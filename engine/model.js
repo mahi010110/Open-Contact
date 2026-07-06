@@ -1,0 +1,162 @@
+/* ============================================================
+   OpenContact — moteur · modèle de données
+   Ce que « sont » une piste, un contact, un profil : constantes,
+   normalisation (v3 : plusieurs contacts par piste), valeurs par
+   défaut, historique, gabarits d'emails. C'est le contrat de
+   données de l'application — aucun accès au DOM.
+   ============================================================ */
+import { uid, extractCity, todayISO } from './utils.js';
+
+export const APP_VERSION = '4.5.0';
+
+export const DOMAINS = {
+  esn:     { label:'ESN / Services IT',       color:'#4C9FD8' },
+  cyber:   { label:'Cybersécurité',           color:'#9B7FD4' },
+  cloud:   { label:'Cloud / Hébergeur',       color:'#2FA98C' },
+  dsi:     { label:'DSI / Grande entreprise', color:'#D89A3C' },
+  public:  { label:'Secteur public',          color:'#D97B54' },
+  startup: { label:'Startup / PME tech',      color:'#D56D9B' },
+  industrie:{ label:'Industrie / BTP',        color:'#8D6E63' },
+  commerce:{ label:'Commerce / Services',     color:'#5C6BC0' },
+  sante:   { label:'Santé / Social',          color:'#43A047' },
+  autre:   { label:'Autre',                   color:'#8A99A6' }
+};
+export const STATUSES = {
+  todo:      { label:'À contacter',         color:'#8A99A6' },
+  sent:      { label:'Candidature envoyée', color:'#4C9FD8' },
+  followup:  { label:'Relance faite',       color:'#D89A3C' },
+  interview: { label:'Entretien',           color:'#9B7FD4' },
+  rejected:  { label:'Refus',               color:'#D96A74' },
+  won:       { label:'Décroché 🎉',         color:'#2FA070' }
+};
+export const POSITIONS = { stage:'Stage', alternance:'Alternance', cdi:'CDI', cdd:'CDD', freelance:'Freelance' };
+
+/* ---------- 5. modèle v3 : plusieurs contacts par piste ----------
+   D3 : les champs inconnus (versions futures) sont conservés dans `extra`
+   au lieu d'être perdus silencieusement. */
+const KNOWN_CT = ['id','name','role','email','phone','link','note','conf','extra'];
+const KNOWN_C  = ['id','name','city','domain','desc','address','website','techs','positions',
+  'process','tips','contacts','lat','lng','status','notes','appliedAt','nextAction',
+  'history','verifiedAt','confirmations','demo','createdAt','updatedAt','extra',
+  'contact','email','phone'];   /* les 3 derniers : héritage v1, absorbés dans contacts */
+function keepExtra(x, known){
+  const base = (x.extra && typeof x.extra === 'object' && !Array.isArray(x.extra))
+    ? Object.assign({}, x.extra) : {};
+  for (const k of Object.keys(x)) if (!known.includes(k)) base[k] = x[k];
+  return Object.keys(base).length ? base : null;
+}
+export function normalizeContact(x){
+  x = x || {};
+  const out = {
+    id: x.id || uid(),
+    name: String(x.name || '').trim(),
+    role: String(x.role || '').trim(),
+    email: String(x.email || '').trim(),
+    phone: String(x.phone || '').trim(),
+    link: String(x.link || '').trim(),
+    note: String(x.note || '').trim(),
+    conf: (x.conf === 'ok' || x.conf === 'doubt') ? x.conf : ''
+  };
+  const extra = keepExtra(x, KNOWN_CT);
+  if (extra) out.extra = extra;
+  return out;
+}
+export function contactHasData(ct){ return !!(ct.name || ct.role || ct.email || ct.phone || ct.link || ct.note); }
+export function normalizeCompany(x){
+  let contacts = Array.isArray(x.contacts) ? x.contacts.map(normalizeContact) : [];
+  if (!contacts.length && (x.contact || x.email || x.phone)){
+    contacts = [normalizeContact({ name: x.contact, email: x.email, phone: x.phone })];
+  }
+  contacts = contacts.filter(contactHasData);
+  const out = {
+    id: x.id || uid(),
+    name: String(x.name || '').trim(),
+    city: String(x.city || '').trim() || extractCity(x.address),
+    domain: DOMAINS[x.domain] ? x.domain : 'autre',
+    desc: x.desc || '',
+    address: x.address || '',
+    website: x.website || '',
+    techs: x.techs || '',
+    positions: Array.isArray(x.positions) ? x.positions.filter(p => POSITIONS[p]) : [],
+    process: x.process || '',
+    tips: x.tips || '',
+    contacts,
+    lat: (typeof x.lat === 'number') ? x.lat : null,
+    lng: (typeof x.lng === 'number') ? x.lng : null,
+    status: STATUSES[x.status] ? x.status : 'todo',
+    notes: x.notes || '', appliedAt: x.appliedAt || '', nextAction: x.nextAction || '',
+    history: Array.isArray(x.history) ? x.history.slice(-40) : [],
+    verifiedAt: x.verifiedAt || '',
+    confirmations: Number(x.confirmations) || 0,
+    demo: !!x.demo,
+    createdAt: x.createdAt || Date.now(), updatedAt: x.updatedAt || Date.now()
+  };
+  const extra = keepExtra(x, KNOWN_C);
+  if (extra) out.extra = extra;
+  return out;
+}
+export function defaultTemplates(){
+  return [
+    { id: uid(), name: 'Candidature spontanée', subject: 'Candidature spontanée — {{formation}}',
+      body: `Bonjour {{contact}},
+
+Actuellement en formation {{formation}}, je suis à la recherche d'un stage et l'activité de {{entreprise}} a retenu toute mon attention.
+
+[1 à 2 phrases personnalisées : pourquoi cette entreprise, ce que tu peux lui apporter]
+
+Vous trouverez mon CV ici : {{cv}}
+Je reste disponible pour un échange au {{tel}} ou par retour de mail.
+
+Merci pour votre attention,
+{{moi}} — {{email}}` },
+    { id: uid(), name: 'Relance', subject: 'Relance — candidature {{formation}}',
+      body: `Bonjour {{contact}},
+
+Je me permets de revenir vers vous au sujet de ma candidature envoyée récemment à {{entreprise}}, restée sans réponse à ce jour.
+
+Toujours très motivé(e) à l'idée de rejoindre vos équipes, je reste à votre disposition pour tout échange.
+
+Bien cordialement,
+{{moi}} — {{tel}} — {{email}}` },
+    { id: uid(), name: 'Remerciement après entretien', subject: 'Merci pour notre échange — {{moi}}',
+      body: `Bonjour {{contact}},
+
+Merci pour le temps que vous m'avez accordé lors de notre entretien. Notre échange a confirmé mon envie de rejoindre {{entreprise}}.
+
+[1 phrase : un point marquant de l'entretien]
+
+Je reste à votre disposition pour toute information complémentaire.
+
+Bien cordialement,
+{{moi}} — {{tel}}` }
+  ];
+}
+export function defaultProfile(){
+  return { name:'', formation:'', phone:'', email:'', cvUrl:'', portfolio:'', letter:'',
+           templates: defaultTemplates(), confirmedIds: [], flags: {} };
+}
+/* remet un profil (chargé, importé ou restauré) aux invariants attendus */
+export function normalizeProfile(raw){
+  const profile = Object.assign(defaultProfile(), (raw && typeof raw === 'object') ? raw : {});
+  if (!Array.isArray(profile.templates) || !profile.templates.length) profile.templates = defaultTemplates();
+  if (!Array.isArray(profile.confirmedIds)) profile.confirmedIds = [];
+  if (!profile.flags || typeof profile.flags !== 'object') profile.flags = {};
+  return profile;
+}
+/* historique d'une piste (privé) : création, statuts, emails, notes, contacts… */
+export function pushHist(c, t){
+  (c.history = c.history || []).push({ d: todayISO(), t });
+  if (c.history.length > 40) c.history = c.history.slice(-40);
+}
+/* remplit un gabarit {{variable}} avec la piste, le contact visé et le profil */
+export function fillTpl(str, c, ct, profile){
+  const m = {
+    entreprise: c.name || '',
+    contact: (ct && ct.name) || 'Madame, Monsieur',
+    ville: c.city || extractCity(c.address),
+    moi: profile.name || '', formation: profile.formation || '',
+    tel: profile.phone || '', email: profile.email || '',
+    cv: profile.cvUrl || '', portfolio: profile.portfolio || ''
+  };
+  return String(str || '').replace(/\{\{(\w+)\}\}/g, (_, k) => m[k] !== undefined ? m[k] : '');
+}
