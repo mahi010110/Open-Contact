@@ -8,9 +8,14 @@
 import { esc, normName, extractCity, distKm } from './engine/utils.js';
 import { KDF_ITER, encryptOC2, decryptOC2, deriveKey, bytesToB64,
          fnv, ocKeystream, unsealOC1 } from './engine/crypto.js';
-import { normalizeCompany } from './engine/model.js';
-import { communityView, parseInput } from './engine/exchange.js';
-import { findMatch, mergeIncoming } from './engine/merge.js';
+import { APP_VERSION, normalizeCompany, normalizeContact, normalizeProfile,
+         pushHist, fillTpl } from './engine/model.js';
+import { communityView, parseInput, sharePayload, fullPayload } from './engine/exchange.js';
+import { findMatch, mergeIncoming, contactKey } from './engine/merge.js';
+import { filterCompanies } from './engine/filter.js';
+import { scoreOf } from './engine/score.js';
+import { DATA_KEY, PROFILE_KEY, JOURNAL_KEY, THEME_KEY, VIEW_KEY,
+         OLD_V2, OLD_V1 } from './engine/storage.js';
 
 export async function runSelfTests(){
   const R = [];
@@ -110,6 +115,121 @@ export async function runSelfTests(){
       const many = JSON.stringify({ companies: Array.from({ length: 2001 }, (_, i) => ({ name: 'c' + i })) });
       try { await parseInput(many); throw new Error('accepté !'); }
       catch (e) { eq(e.message, 'tropdepistes'); }
+    },
+
+    /* — tests de contrat (CONTRAT.md) : ce qui ne doit JAMAIS casser — */
+    'contrat : clés de stockage inchangées': () => {
+      eq(DATA_KEY, 'oc_data_v3');
+      eq(PROFILE_KEY, 'oc_profile_v1');
+      eq(JOURNAL_KEY, 'oc_journal_v1');
+      eq(THEME_KEY, 'oc_theme');
+      eq(VIEW_KEY, 'oc_view');
+      eq(OLD_V2, 'oc_data_v2');
+      eq(OLD_V1, 'ais_stage_targets_v1');
+    },
+    'contrat : schéma d’une piste normalisée (24 champs exacts)': () => {
+      eq(Object.keys(normalizeCompany({ name: 'X' })).sort(),
+         ['address','appliedAt','city','confirmations','contacts','createdAt','demo',
+          'desc','domain','history','id','lat','lng','name','nextAction','notes',
+          'positions','process','status','techs','tips','updatedAt','verifiedAt','website'].sort());
+    },
+    'contrat : schéma d’un contact normalisé (8 champs exacts)': () => {
+      eq(Object.keys(normalizeContact({ name: 'A' })).sort(),
+         ['conf','email','id','link','name','note','phone','role'].sort());
+    },
+    'contrat : enveloppe « share » — v4, sans profil ni champ privé': () => {
+      const p = sharePayload([normalizeCompany({ name: 'X', status: 'sent', notes: 'privé', appliedAt: '2026-01-01' })]);
+      eq(p.v, 4); eq(p.kind, 'share'); eq(p.app, APP_VERSION);
+      ok(!('profile' in p));
+      for (const k of ['status','notes','appliedAt','nextAction','history','id','demo']) ok(!(k in p.companies[0]));
+    },
+    'contrat : enveloppe « full » — v4, avec profil (sauvegarde complète)': () => {
+      const prof = normalizeProfile({ name: 'Moi' });
+      const p = fullPayload([normalizeCompany({ name: 'X', notes: 'privé' })], prof);
+      eq(p.v, 4); eq(p.kind, 'full'); eq(p.app, APP_VERSION);
+      ok(p.profile === prof);
+      eq(p.companies[0].notes, 'privé');   /* la sauvegarde, elle, garde le privé */
+    },
+    'contrat : partage → réception, aller-retour sans perte (clair)': async () => {
+      const src = normalizeCompany({ name: 'Gamma', city: 'Lyon', domain: 'cloud',
+        techs: 'K8s', contacts: [{ name: 'Léa', email: 'lea@x.fr' }] });
+      const obj = await parseInput(JSON.stringify(sharePayload([src])));
+      eq(obj.kind, 'share');
+      const dest = [];
+      const st = mergeIncoming(obj.companies, dest);
+      eq(st.addedC, 1);
+      eq(dest[0].name, 'Gamma'); eq(dest[0].city, 'Lyon'); eq(dest[0].techs, 'K8s');
+      eq(dest[0].contacts[0].email, 'lea@x.fr');
+      eq(dest[0].status, 'todo'); eq(dest[0].notes, '');
+    },
+    'contrat : partage chiffré — mot de passe exigé puis accepté': async () => {
+      const txt = await encryptOC2(sharePayload([normalizeCompany({ name: 'Delta' })]), 'promo2026');
+      try { await parseInput(txt); throw new Error('accepté sans mot de passe !'); }
+      catch (e) { eq(e.message, 'besoinpass'); }
+      const obj = await parseInput(txt, 'promo2026');
+      eq(obj.companies[0].name, 'Delta');
+    },
+    'OC1 : contenu altéré → refusé': () => {
+      try { unsealOC1('OC1.abcd.QUJDRA=='); throw new Error('accepté !'); }
+      catch (e) { eq(e.message, 'altéré'); }
+    },
+    'fusion : idempotente (re-fusionner le même fichier n’ajoute rien)': () => {
+      const incoming = [{ name: 'Epsilon', city: 'Nice', contacts: [{ name: 'Sam', email: 's@x.fr' }] }];
+      const dest = [];
+      mergeIncoming(incoming, dest);
+      const st2 = mergeIncoming(incoming, dest);
+      eq(dest.length, 1);
+      eq(st2.addedC, 0); eq(st2.addedCt, 0); eq(st2.conflicts, 0);
+    },
+    'profil : normalizeProfile répare les invariants': () => {
+      const p = normalizeProfile(null);
+      ok(Array.isArray(p.templates) && p.templates.length >= 1);
+      ok(Array.isArray(p.confirmedIds));
+      ok(p.flags && typeof p.flags === 'object');
+      const q = normalizeProfile({ name: 'Moi', templates: 'cassé', confirmedIds: null, flags: 3 });
+      eq(q.name, 'Moi');
+      ok(Array.isArray(q.templates) && q.templates.length >= 1);
+      ok(Array.isArray(q.confirmedIds));
+      ok(q.flags && typeof q.flags === 'object');
+    },
+    'gabarits : fillTpl remplit piste, contact et profil': () => {
+      const c = normalizeCompany({ name: 'Zeta', city: 'Lille' });
+      const prof = normalizeProfile({ name: 'Ana B', formation: 'AIS' });
+      eq(fillTpl('{{contact}} / {{entreprise}} ({{ville}}) — {{moi}}, {{formation}}', c, null, prof),
+         'Madame, Monsieur / Zeta (Lille) — Ana B, AIS');
+      eq(fillTpl('{{contact}}', c, { name: 'Léo' }, prof), 'Léo');
+    },
+    'score : borné 0–100, croissant avec la complétude': () => {
+      const vide = scoreOf(normalizeCompany({ name: 'X' }));
+      const pleine = scoreOf(normalizeCompany({
+        name: 'X', city: 'Lille', desc: 'd', website: 'w', techs: 't', process: 'p', tips: 'c',
+        positions: ['stage'], contacts: [{ name: 'A', email: 'a@b.fr' }],
+        lat: 50, lng: 3, verifiedAt: new Date().toISOString().slice(0,10), confirmations: 3
+      }));
+      ok(vide >= 0 && vide <= 100 && pleine >= 0 && pleine <= 100);
+      ok(pleine > vide);
+    },
+    'filtres : q / domaine / statut + tri A→Z (sans lire l’écran)': () => {
+      const list = [
+        normalizeCompany({ name: 'Bravo', city: 'Paris', domain: 'cyber', status: 'sent', techs: 'Azure' }),
+        normalizeCompany({ name: 'Alpha', city: 'Lille', domain: 'esn' })
+      ];
+      eq(filterCompanies(list, { q: 'azure' }).map(c => c.name), ['Bravo']);
+      eq(filterCompanies(list, { domain: 'esn' }).map(c => c.name), ['Alpha']);
+      eq(filterCompanies(list, { status: 'sent' }).map(c => c.name), ['Bravo']);
+      eq(filterCompanies(list, { sort: 'az' }).map(c => c.name), ['Alpha', 'Bravo']);
+    },
+    'historique : pushHist plafonne à 40 entrées': () => {
+      const c = normalizeCompany({ name: 'X' });
+      for (let i = 0; i < 50; i++) pushHist(c, 't' + i);
+      eq(c.history.length, 40);
+      eq(c.history[39].t, 't49');
+    },
+    'doublons : contactKey — email > téléphone > nom+rôle': () => {
+      eq(contactKey({ email: ' Ana@X.fr ' }), 'e:ana@x.fr');
+      eq(contactKey({ phone: '06 01 02 03 04' }), 'p:0601020304');
+      eq(contactKey({ name: 'Ana', role: 'RH' }), 'n:anarh');
+      eq(contactKey({}), '');
     }
   };
   for (const name of Object.keys(tests)){

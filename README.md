@@ -20,6 +20,10 @@ Règle de sens unique : l'interface (`app.js`) appelle le moteur (`engine/`),
 jamais l'inverse — le moteur reçoit des paramètres et rend des valeurs, sans
 jamais lire ni toucher l'écran.
 
+Le contrat de données — clés de stockage, format `.oc`, schéma d'une piste,
+invariants de fusion — est figé noir sur blanc dans [`CONTRAT.md`](CONTRAT.md)
+et vérifié par les auto-tests (`?test`).
+
 ## Développement
 
 Servir le dossier en local (`python3 -m http.server`) puis ouvrir
