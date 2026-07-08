@@ -2,6 +2,10 @@
 
 Tu vas refondre l'expérience (UX) d'une app existante. Avant de coder, lis tout, explore le dépôt, et si quelque chose est ambigu **pose-moi tes questions et propose ton plan avant de te lancer**. Travaille mobile d'abord, écran par écran, et vérifie ton travail en lançant réellement l'app. Ne fais pas tout d'un coup.
 
+## Point de départ : page blanche
+
+**L'UX actuelle n'est PAS ta référence — c'est le problème à dépasser.** Ne t'inspire pas de son organisation, de sa navigation, de ses écrans ni de ses parcours. Trois choses seulement survivent de l'ancienne version, listées plus bas : le **moteur** (`engine/`), l'**identité visuelle « 98 »** (les tokens), et les quelques **« excellentes idées »** explicitement nommées. *Distinction clé :* tu réutilises ces **fondations techniques** (ne réécris pas le moteur), mais tu **reconçois toute l'expérience** à partir de zéro.
+
 ## Pourquoi cette app existe (l'intention)
 
 OpenContact aide des étudiants en **informatique / cybersécurité** à trouver un stage, une alternance ou un emploi. L'idée forte et rare : le savoir se **partage au sein d'une promo** — chaque promo laisse la carte plus riche pour la suivante. C'est **local-first** : pas de compte, pas de serveur, les données vivent dans le navigateur et circulent par fichiers `.oc` échangés de la main à la main.
@@ -66,6 +70,8 @@ Le vrai défaut de la version actuelle, ce n'est pas l'esthétique — c'est **�
 - Ne multiplie pas les points d'entrée pour une même action (c'est le défaut actuel) : une action = un endroit évident.
 
 ## Comment travailler (qualité)
+
+**Tu as la main sur l'exécution.** Les décisions de ce brief (les 4 zones, le modèle de données, ce qu'on garde/coupe) sont des arbitrages déjà tranchés : respecte-les. Mais le *comment* — la mise en écran, les micro-interactions, les détails qui rendent l'app fluide et agréable — est à toi. Traite mes descriptions comme l'**intention et la direction**, pas comme des maquettes à recopier. Si tu vois un motif plus simple ou plus élégant qui sert la même intention et la boussole « simplicité », **propose-le et applique-le**. Tu es plus imaginatif que mes exemples — sers-t'en.
 
 - **Mobile d'abord** (conçois pour 390 px de large, le desktop est l'élargissement), puis desktop.
 - **Écran par écran**, pas en big-bang. Commence par ce que tu juges le plus structurant (probablement « Aujourd'hui » et la capture mobile).
