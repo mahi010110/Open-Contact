@@ -5,6 +5,7 @@
    copie) → fusion réelle sans écrasement → « Annuler » ~30 s
    (instantané restauré tel quel).
    ============================================================ */
+import { esc } from '../engine/utils.js';
 import { parseInput } from '../engine/exchange.js';
 import { mergeIncoming } from '../engine/merge.js';
 import { normalizeCompany } from '../engine/model.js';
@@ -28,7 +29,7 @@ export function openRecevoir(){
          <button class="pick" id="rcFile"><b>${ic('folder', 'ic-14')} Ouvrir un fichier .oc</b><span>reçu par mail, WhatsApp, clé USB…</span></button>
          <button class="pick" id="rcPaste"><b>${ic('clipboard', 'ic-14')} Coller du texte</b><span>un partage copié-collé</span></button>
        </div>
-       <p class="hint">${ic('shield', 'ic-14')} Aperçu avant fusion, rien n’est écrasé, et tu peux annuler juste après.</p>
+       <p class="hint">${ic('shield', 'ic-14')} Aperçu avant fusion — annulable.</p>
        <input type="file" id="rcInput" accept=".oc,.txt,.json,application/octet-stream,text/plain,application/json" hidden>`;
     q('#rcScan').addEventListener('click', scan);
     q('#rcFile').addEventListener('click', () => q('#rcInput').click());
@@ -63,7 +64,8 @@ export function openRecevoir(){
     sh.setTitle('Coller');
     sh.body.innerHTML =
       `<div class="field"><label for="rcTxt">Le texte reçu</label>
-         <textarea id="rcTxt" style="min-height:140px" placeholder="Colle ici le contenu partagé (JSON, OC2., OCQ1., OC1.)"></textarea></div>`;
+         <textarea id="rcTxt" style="min-height:140px" placeholder="Colle ici le contenu partagé"></textarea>
+         <p class="hint">Astuce : « Mes emails → pistes » (Moi → Coup de pouce IA) fabrique un texte à coller ici.</p></div>`;
     sh.setFoot([btn('← Retour', 'btn-ghost', menu), btn('Lire', 'btn-primary', () => treat(q('#rcTxt').value))]);
     q('#rcTxt').focus();
   };
@@ -72,7 +74,7 @@ export function openRecevoir(){
   const askPass = raw => {
     sh.setTitle('Fichier protégé');
     sh.body.innerHTML =
-      `<p class="hint" style="margin:0 0 10px">${ic('lock', 'ic-14')} Ce partage est chiffré — demande le mot de passe à la personne qui te l’a donné.</p>
+      `<p class="hint" style="margin:0 0 10px">${ic('lock', 'ic-14')} Chiffré — demande le mot de passe à l’expéditeur.</p>
        <div class="field"><label for="rcPass">Mot de passe</label>
          <input id="rcPass" type="password" autocomplete="off"></div>`;
     const go = () => treat(raw, q('#rcPass').value);
@@ -102,37 +104,46 @@ export function openRecevoir(){
       if (e.message === 'motdepasse') askPass(raw);
       return;
     }
-    /* fusion à blanc sur une copie : l'aperçu dit tout, rien n'est touché */
-    const dry = mergeIncoming(obj.companies, JSON.parse(JSON.stringify(S.companies)));
-    const n = obj.companies.length;
-    sh.setTitle('Aperçu avant fusion');
-    sh.body.innerHTML =
-      `<div class="rc-recap">
-         <div class="rc-big">${n} piste${n > 1 ? 's' : ''} reçue${n > 1 ? 's' : ''}</div>
-         <ul class="rc-lines">
-           <li>${ic('plus', 'ic-14')} <b>${dry.addedC}</b> nouvelle${dry.addedC > 1 ? 's' : ''}</li>
-           <li>${ic('pencil', 'ic-14')} <b>${dry.enriched}</b> complétée${dry.enriched > 1 ? 's' : ''} (champs vides remplis)</li>
-           <li>${ic('contact', 'ic-14')} <b>${dry.addedCt}</b> contact${dry.addedCt > 1 ? 's' : ''} ajouté${dry.addedCt > 1 ? 's' : ''}</li>
-           ${dry.conflicts ? `<li class="rc-warn">${ic('square-alert', 'ic-14')} <b>${dry.conflicts}</b> divergence${dry.conflicts > 1 ? 's' : ''} signalée${dry.conflicts > 1 ? 's' : ''} — l’existant est gardé</li>` : ''}
-         </ul>
-         ${obj.kind === 'full' ? `<p class="hint">${ic('info-box', 'ic-14')} C’est une sauvegarde complète : seules les pistes fusionnent ici (profil ignoré). Pour restaurer entièrement, passe par « Moi ».</p>` : ''}
-         <p class="hint">${ic('shield', 'ic-14')} Rien n’est écrasé : l’existant gagne toujours, le reçu complète les vides.</p>
-       </div>`;
-    sh.setFoot([
-      btn('Annuler', 'btn-ghost', menu),
-      btn(dry.addedC + dry.enriched + dry.addedCt === 0 ? 'Rien à ajouter' : 'Fusionner', 'btn-primary', () => {
-        const snapshot = JSON.stringify(S.companies);
-        const stats = mergeIncoming(obj.companies, S.companies);
-        saveData();
-        logJ('Reçu de la promo : +' + stats.addedC + ' piste(s), ' + stats.enriched + ' complétée(s)');
-        sh.close();
-        bus.refresh();
-        offerUndo(snapshot, stats);
-      })
-    ]);
+    mergePreviewInto(sh, obj, { onCancel: menu });
   };
 
   menu();
+}
+
+/* ---- aperçu avant fusion + fusion + annulation — réutilisé par le
+   direct (salle de promo) : mêmes règles, quel que soit le canal ---- */
+export function mergePreviewInto(sh, obj, opts){
+  opts = opts || {};
+  /* fusion à blanc sur une copie : l'aperçu dit tout, rien n'est touché */
+  const dry = mergeIncoming(obj.companies, JSON.parse(JSON.stringify(S.companies)));
+  const n = obj.companies.length;
+  sh.setTitle('Aperçu avant fusion');
+  sh.body.innerHTML =
+    `<div class="rc-recap">
+       ${opts.from ? `<p class="hint" style="margin:0 0 8px">${ic('radio', 'ic-14')} Reçu en direct de <b>${esc(opts.from)}</b></p>` : ''}
+       <div class="rc-big">${n} piste${n > 1 ? 's' : ''} reçue${n > 1 ? 's' : ''}</div>
+       <ul class="rc-lines">
+         <li>${ic('plus', 'ic-14')} <b>${dry.addedC}</b> nouvelle${dry.addedC > 1 ? 's' : ''}</li>
+         <li>${ic('pencil', 'ic-14')} <b>${dry.enriched}</b> complétée${dry.enriched > 1 ? 's' : ''}</li>
+         <li>${ic('contact', 'ic-14')} <b>${dry.addedCt}</b> contact${dry.addedCt > 1 ? 's' : ''} ajouté${dry.addedCt > 1 ? 's' : ''}</li>
+         ${dry.conflicts ? `<li class="rc-warn">${ic('square-alert', 'ic-14')} <b>${dry.conflicts}</b> divergence${dry.conflicts > 1 ? 's' : ''} — l’existant est gardé</li>` : ''}
+       </ul>
+       ${obj.kind === 'full' ? `<p class="hint">${ic('info-box', 'ic-14')} Sauvegarde complète : seules les pistes fusionnent ici. Pour tout restaurer, passe par « Moi ».</p>` : ''}
+       <p class="hint">${ic('shield', 'ic-14')} Rien n’est écrasé, annulable juste après.</p>
+     </div>`;
+  sh.setFoot([
+    btn('Annuler', 'btn-ghost', () => opts.onCancel ? opts.onCancel() : sh.close()),
+    btn(dry.addedC + dry.enriched + dry.addedCt === 0 ? 'Rien à ajouter' : 'Fusionner', 'btn-primary', () => {
+      const snapshot = JSON.stringify(S.companies);
+      const stats = mergeIncoming(obj.companies, S.companies);
+      saveData();
+      logJ('Reçu' + (opts.from ? ' de ' + opts.from : ' de la promo') + ' : +' + stats.addedC + ' piste(s), ' + stats.enriched + ' complétée(s)');
+      sh.close();
+      bus.refresh();
+      offerUndo(snapshot, stats);
+      if (opts.onDone) opts.onDone(stats);
+    })
+  ]);
 }
 
 /* ---- « Annuler » ~30 s : l'instantané d'avant fusion, restauré tel quel ---- */

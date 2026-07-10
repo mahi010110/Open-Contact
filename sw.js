@@ -4,17 +4,18 @@
    arrière-plan — la version suivante s'applique à l'ouverture d'après.
    Jamais mis en cache : le géocodage (données fraîches) et les tuiles de
    carte (volume) — la carte demande donc du réseau, tout le reste non. */
-const CACHE = 'oc-v7';
+const CACHE = 'oc-v8';
 const PRECACHE = ['./', './index.html', './app.js', './tests.js',
   './engine/crypto.js', './engine/exchange.js', './engine/filter.js',
   './engine/geo.js', './engine/merge.js', './engine/model.js',
-  './engine/score.js', './engine/storage.js', './engine/utils.js',
+  './engine/score.js', './engine/storage.js', './engine/sync.js', './engine/utils.js',
   './ui/dom.js', './ui/dates.js', './ui/state.js', './ui/actions.js',
   './ui/mail.js', './ui/capture.js', './ui/fiche.js', './ui/today.js',
-  './ui/pistes.js', './ui/moi.js', './ui/echanger.js',
+  './ui/pistes.js', './ui/moi.js', './ui/echanger.js', './ui/direct.js',
   './ui/contact.js', './ui/edit.js', './ui/prospect.js',
   './ui/qr.js', './ui/donner.js', './ui/recevoir.js', './ui/profil.js',
   './assets/vendor/qrcode-generator.mjs', './assets/vendor/jsQR.js',
+  './assets/vendor/trystero-nostr.min.js',
   './manifest.webmanifest', './icon.svg',
   './styles/app.css',
   './styles/tokens/fonts.css',
