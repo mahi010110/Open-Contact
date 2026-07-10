@@ -22,9 +22,9 @@ export function renderEchanger(){
        </div>
 
        <div class="pcard">
-         <h3>${ic('radio', 'ic-14')} Salle de promo <span class="tag-share">jamais le privé</span></h3>
-         <p class="pd">Un mot de passe commun, et les fiches circulent en direct — aperçu avant chaque fusion.</p>
-         <button class="btn btn-primary" id="ecPromo">${ic('radio', 'ic-14')} Entrer dans la salle</button>
+         <h3>${ic('radio', 'ic-14')} Salle de promo <span class="tag-beta">bêta</span></h3>
+         <p class="pd">Un mot de passe commun, et les fiches circulent en direct — jamais ton suivi privé, aperçu avant chaque fusion.</p>
+         <button class="btn" id="ecPromo">${ic('radio', 'ic-14')} Entrer dans la salle</button>
        </div>
 
        <details class="pcard pcard-details">

@@ -62,6 +62,7 @@ export function openAppareils(){
   const setStatus = txt => { const el = q('#syStatus'); if (el) el.innerHTML = txt; };
 
   async function connect(phrase){
+    peers = 0;   /* on repart de zéro — l'ancien décompte ne vaut plus */
     await kvSet(SYNC_KEY, phrase);
     sh.body.innerHTML =
       `<div class="sy-phrase"><span>${esc(phrase)}</span></div>
@@ -150,7 +151,7 @@ export function openAppareils(){
     if (saved){ connect(saved); return; }
     sh.setTitle('Mes appareils');
     sh.body.innerHTML =
-      `<p class="pd" style="margin:0 0 12px">Téléphone + ordinateur : une <b>phrase de liaison</b>, et tout se synchronise en direct — suivi privé compris (ce sont tes appareils).</p>
+      `<p class="hint" style="margin:0 0 12px">Téléphone + ordinateur : une <b>phrase de liaison</b>, et tout se synchronise en direct — suivi privé compris (ce sont tes appareils).</p>
        <div class="pick-list">
          <button class="pick" id="syNew"><b>${ic('sparkles', 'ic-14')} Premier appareil</b><span>créer ma phrase de liaison</span></button>
          <button class="pick" id="syJoin"><b>${ic('switch', 'ic-14')} Appareil suivant</b><span>taper la phrase déjà créée</span></button>
@@ -182,7 +183,7 @@ export function openPromo(){
 
   const ask = () => {
     sh.body.innerHTML =
-      `<p class="pd" style="margin:0 0 12px">Un mot de passe pour toute la promo, et les fiches circulent en direct — <b>jamais ton suivi privé</b>.</p>
+      `<p class="hint" style="margin:0 0 12px">Un mot de passe pour toute la promo, et les fiches circulent en direct — <b>jamais ton suivi privé</b>.</p>
        <div class="field"><label for="prPass">Mot de passe de la salle</label>
          <input id="prPass" autocomplete="off" autocapitalize="off" placeholder="ex : promo-sio-2026"></div>`;
     const go = () => { const v = q('#prPass').value.trim(); if (v) enter(v); };
@@ -220,8 +221,7 @@ export function openPromo(){
           toast('Parti vers ' + peers + ' camarade' + (peers > 1 ? 's' : '') + ' ✓');
         }, 'share');
         b.id = 'prSend';
-        b.style.width = '100%';
-        b.style.marginTop = '12px';
+        b.classList.add('pr-send');
         q('#prStatus').after(b);
       }
     };
