@@ -69,13 +69,14 @@ export async function parseInput(raw, pass){
   return obj;
 }
 /* enveloppes d'export : « share » ne contient jamais le privé (communityView),
-   « full » est la sauvegarde personnelle complète (+ contacts à rattacher
-   s'il y en a — champ optionnel, ignoré sans casse par les vieux lecteurs) */
+   « full » est la sauvegarde personnelle complète (+ champs optionnels
+   `orphans` et `tombs`, ignorés sans casse par les vieux lecteurs) */
 export function sharePayload(list){
   return { v: 4, app: APP_VERSION, kind: 'share', companies: list.map(communityView) };
 }
-export function fullPayload(companies, profile, orphans){
+export function fullPayload(companies, profile, orphans, tombs){
   const out = { v: 4, app: APP_VERSION, kind: 'full', profile, companies };
   if (Array.isArray(orphans) && orphans.length) out.orphans = orphans;
+  if (Array.isArray(tombs) && tombs.length) out.tombs = tombs;
   return out;
 }

@@ -5,18 +5,19 @@
    Chargé à la demande par app.js — résultats en console et dans
    window.__ocTests ; le toast est affiché par l'interface.
    ============================================================ */
-import { esc, normName, extractCity, distKm } from './engine/utils.js';
+import { esc, normName, extractCity, distKm, todayISO, localISO } from './engine/utils.js';
 import { KDF_ITER, encryptOC2, decryptOC2, deriveKey, bytesToB64,
          fnv, ocKeystream, unsealOC1 } from './engine/crypto.js';
 import { APP_VERSION, normalizeCompany, normalizeContact, normalizeProfile,
-         pushHist, fillTpl } from './engine/model.js';
+         pushHist, fillTpl, safeUrl } from './engine/model.js';
 import { communityView, parseInput, sharePayload, fullPayload,
          encodeOCQ } from './engine/exchange.js';
 import { findMatch, mergeIncoming, contactKey } from './engine/merge.js';
+import { syncMerge, mergeTombs, TOMBS_MAX } from './engine/sync.js';
 import { filterCompanies } from './engine/filter.js';
 import { scoreOf } from './engine/score.js';
-import { DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, THEME_KEY, VIEW_KEY,
-         OLD_V2, OLD_V1 } from './engine/storage.js';
+import { DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, SYNC_KEY,
+         THEME_KEY, VIEW_KEY, OLD_V2, OLD_V1 } from './engine/storage.js';
 
 export async function runSelfTests(){
   const R = [];
@@ -143,10 +144,90 @@ export async function runSelfTests(){
       eq(PROFILE_KEY, 'oc_profile_v1');
       eq(JOURNAL_KEY, 'oc_journal_v1');
       eq(ORPHANS_KEY, 'oc_orphans_v1');
+      eq(TOMBS_KEY, 'oc_tombs_v1');
+      eq(SYNC_KEY, 'oc_sync_v1');
       eq(THEME_KEY, 'oc_theme');
       eq(VIEW_KEY, 'oc_view');
       eq(OLD_V2, 'oc_data_v2');
       eq(OLD_V1, 'ais_stage_targets_v1');
+    },
+    'dates : todayISO est en heure locale, jamais UTC': () => {
+      const d = new Date();
+      const manuel = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') +
+                     '-' + String(d.getDate()).padStart(2, '0');
+      eq(todayISO(), manuel);
+      eq(localISO(new Date(2026, 0, 5)), '2026-01-05');
+    },
+    'liens : safeUrl neutralise les schémas dangereux (S1)': () => {
+      eq(safeUrl('javascript:alert(1)'), '');
+      eq(safeUrl('data:text/html,x'), '');
+      eq(safeUrl('vbscript:x'), '');
+      eq(safeUrl('https://linkedin.com/in/ana'), 'https://linkedin.com/in/ana');
+      eq(safeUrl('HTTP://x.fr/y'), 'HTTP://x.fr/y');
+      eq(safeUrl('linkedin.com/in/ana'), 'https://linkedin.com/in/ana');
+      eq(safeUrl(''), '');
+      eq(normalizeContact({ name: 'A', link: 'javascript:alert(1)' }).link, '');
+      eq(normalizeContact({ name: 'A', link: 'linkedin.com/in/a' }).link, 'https://linkedin.com/in/a');
+    },
+    'sync appareils : LWW par updatedAt, ajouts, tombstones': () => {
+      const A = {
+        companies: [
+          normalizeCompany({ id: 'c1', name: 'Alpha', notes: 'version A', updatedAt: 100 }),
+          normalizeCompany({ id: 'c2', name: 'Beta', updatedAt: 100 })
+        ],
+        orphans: [], profile: normalizeProfile({ name: 'Moi A', updatedAt: 50 }), tombs: []
+      };
+      const B = {
+        companies: [
+          normalizeCompany({ id: 'c1', name: 'Alpha', notes: 'version B plus récente', status: 'active', updatedAt: 200 }),
+          normalizeCompany({ id: 'c3', name: 'Gamma', updatedAt: 100 })
+        ],
+        orphans: [normalizeContact({ id: 'o1', name: 'Léo' })],
+        profile: normalizeProfile({ name: 'Moi B', updatedAt: 80 }),
+        tombs: [{ id: 'c2', t: 300 }]
+      };
+      const r = syncMerge(B, A);
+      eq(r.stats.addedC, 1);                       /* Gamma */
+      eq(r.stats.updatedC, 1);                     /* Alpha version B */
+      eq(r.stats.removedC, 1);                     /* Beta tuée par la tombstone */
+      eq(r.stats.addedO, 1);
+      eq(r.stats.profile, 'remote');
+      const names = r.companies.map(c => c.name).sort();
+      eq(names, ['Alpha', 'Gamma']);
+      const alpha = r.companies.find(c => c.id === 'c1');
+      eq(alpha.notes, 'version B plus récente');   /* le privé circule entre MES appareils */
+      eq(alpha.status, 'active');
+      eq(r.profile.name, 'Moi B');
+      eq(r.tombs, [{ id: 'c2', t: 300 }]);
+    },
+    'sync appareils : une fiche modifiée APRÈS suppression ressuscite': () => {
+      const local = { companies: [normalizeCompany({ id: 'c1', name: 'X', updatedAt: 500 })], tombs: [] };
+      const remote = { companies: [], tombs: [{ id: 'c1', t: 400 }] };
+      const r = syncMerge(remote, local);
+      eq(r.companies.length, 1);
+      eq(r.stats.removedC, 0);
+    },
+    'sync appareils : idempotente et symétrique (convergence)': () => {
+      const A = { companies: [normalizeCompany({ id: 'c1', name: 'X', updatedAt: 100 })], tombs: [{ id: 'z', t: 10 }] };
+      const B = { companies: [normalizeCompany({ id: 'c1', name: 'X ancien', updatedAt: 50 }),
+                              normalizeCompany({ id: 'c2', name: 'Y', updatedAt: 60 })], tombs: [] };
+      const ab = syncMerge(B, A);
+      const ab2 = syncMerge(B, { companies: ab.companies, tombs: ab.tombs });
+      eq(ab2.stats.addedC + ab2.stats.updatedC + ab2.stats.removedC, 0);   /* rejouer = rien */
+      const ba = syncMerge(A, B);
+      eq(ab.companies.map(c => c.id).sort(), ba.companies.map(c => c.id).sort());
+      eq(ab.companies.find(c => c.id === 'c1').name, ba.companies.find(c => c.id === 'c1').name);
+    },
+    'sync appareils : mergeTombs plafonne et garde les plus récentes': () => {
+      const many = Array.from({ length: TOMBS_MAX + 50 }, (_, i) => ({ id: 'k' + i, t: i }));
+      const m = mergeTombs(many, [{ id: 'k0', t: 9999 }]);
+      eq(m.length, TOMBS_MAX);
+      eq(m[0], { id: 'k0', t: 9999 });
+    },
+    'contrat : enveloppe « full » — champ tombs optionnel': () => {
+      const prof = normalizeProfile({ name: 'Moi' });
+      ok(!('tombs' in fullPayload([], prof)));
+      eq(fullPayload([], prof, null, [{ id: 'a', t: 1 }]).tombs, [{ id: 'a', t: 1 }]);
     },
     'contrat : schéma d’une piste normalisée (27 champs exacts)': () => {
       eq(Object.keys(normalizeCompany({ name: 'X' })).sort(),

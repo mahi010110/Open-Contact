@@ -7,7 +7,7 @@
    ============================================================ */
 import { uid, extractCity, todayISO } from './utils.js';
 
-export const APP_VERSION = '6.0.0';
+export const APP_VERSION = '6.1.0';
 
 export const DOMAINS = {
   esn:     { label:'ESN / Services IT',       color:'#4C9FD8' },
@@ -47,6 +47,15 @@ const KNOWN_C  = ['id','name','city','domain','desc','address','website','techs'
   'nextActionText','closedAt','closedReason',
   'history','verifiedAt','confirmations','demo','createdAt','updatedAt','extra',
   'contact','email','phone'];   /* les 3 derniers : héritage v1, absorbés dans contacts */
+/* un lien ne sort d'ici qu'en http(s) : « javascript: » et consorts, posés
+   dans un fichier reçu, deviendraient exécutables au clic (S1 de l'audit) */
+export function safeUrl(u){
+  u = String(u || '').trim();
+  if (!u) return '';
+  if (/^https?:\/\//i.test(u)) return u;
+  if (/^[\w-]+(\.[\w-]+)+(:\d+)?([\/?#]\S*)?$/i.test(u)) return 'https://' + u;
+  return '';
+}
 function keepExtra(x, known){
   const base = (x.extra && typeof x.extra === 'object' && !Array.isArray(x.extra))
     ? Object.assign({}, x.extra) : {};
@@ -61,7 +70,7 @@ export function normalizeContact(x){
     role: String(x.role || '').trim(),
     email: String(x.email || '').trim(),
     phone: String(x.phone || '').trim(),
-    link: String(x.link || '').trim(),
+    link: safeUrl(x.link),
     note: String(x.note || '').trim(),
     conf: (x.conf === 'ok' || x.conf === 'doubt') ? x.conf : ''
   };
@@ -152,7 +161,7 @@ Bien cordialement,
 }
 export function defaultProfile(){
   return { name:'', formation:'', phone:'', email:'', cvUrl:'', portfolio:'', letter:'',
-           templates: defaultTemplates(), confirmedIds: [], flags: {} };
+           templates: defaultTemplates(), confirmedIds: [], flags: {}, updatedAt: 0 };
 }
 /* remet un profil (chargé, importé ou restauré) aux invariants attendus */
 export function normalizeProfile(raw){
@@ -160,6 +169,7 @@ export function normalizeProfile(raw){
   if (!Array.isArray(profile.templates) || !profile.templates.length) profile.templates = defaultTemplates();
   if (!Array.isArray(profile.confirmedIds)) profile.confirmedIds = [];
   if (!profile.flags || typeof profile.flags !== 'object') profile.flags = {};
+  profile.updatedAt = Number(profile.updatedAt) || 0;   /* LWW entre appareils */
   return profile;
 }
 /* historique d'une piste (privé) : création, statuts, emails, notes, contacts… */

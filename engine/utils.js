@@ -10,7 +10,13 @@ export const esc = s => String(s ?? '').replace(/[&<>"']/g, c => (
 ));
 export function uid(){ return 'c_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,7); }
 export function fmtDate(iso){ const p = String(iso).split('-'); return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : iso; }
-export function todayISO(){ return new Date().toISOString().slice(0,10); }
+/* date ISO en heure LOCALE — jamais toISOString(), qui bascule en UTC et
+   décale d'un jour entre minuit et 2 h en France */
+export function localISO(d){
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') +
+         '-' + String(d.getDate()).padStart(2, '0');
+}
+export function todayISO(){ return localISO(new Date()); }
 export function isLate(iso){ return !!iso && iso < todayISO(); }
 export function debounce(fn, ms){ let h; return (...a) => { clearTimeout(h); h = setTimeout(() => fn(...a), ms); }; }
 export function normName(s){

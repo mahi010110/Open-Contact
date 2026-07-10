@@ -3,17 +3,17 @@
    Tout ce qui traduit une date ISO en langage d'écran (« demain »,
    « –5 j », « jeu. 03/07 ») et les raccourcis de planification.
    ============================================================ */
-import { todayISO } from '../engine/utils.js';
+import { todayISO, localISO } from '../engine/utils.js';
 
 export function plusDaysISO(n){
   const d = new Date();
   d.setDate(d.getDate() + n);
-  return d.toISOString().slice(0, 10);
+  return localISO(d);
 }
 export function nextMondayISO(){
   const d = new Date();
   d.setDate(d.getDate() + ((8 - d.getDay()) % 7 || 7));
-  return d.toISOString().slice(0, 10);
+  return localISO(d);
 }
 /* écart en jours par rapport à aujourd'hui (négatif = passé) */
 export function diffDays(iso){
