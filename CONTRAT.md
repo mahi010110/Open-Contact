@@ -17,12 +17,20 @@ doit être repensée, pas forcée.
 | Clé | Contenu | Format |
 |---|---|---|
 | `oc_data_v3` | Les pistes (partagé + suivi privé) | JSON : tableau de pistes |
-| `oc_profile_v1` | Profil, modèles d'emails, fiches confirmées, flags | JSON : objet profil |
+| `oc_profile_v1` | Profil, modèles d'emails, fiches confirmées, flags, `updatedAt` (LWW appareils) | JSON : objet profil |
 | `oc_journal_v1` | Journal privé des actions (200 max) | JSON : tableau `{t, txt, cid}` |
 | `oc_orphans_v1` | Contacts « à rattacher » (sans entreprise) — l'indice d'entreprise saisi par l'utilisateur voyage dans `extra.company` (D3), consommé au rattachement | JSON : tableau de contacts |
+| `oc_tombs_v1` | Suppressions (tombstones, 500 max) — font voyager les suppressions entre MES appareils | JSON : tableau `{id, t}` |
+| `oc_sync_v1` | Phrase de liaison de mes appareils | chaîne |
+| `oc_relays_v1` | Relais P2P personnalisés (optionnel — vide = relais publics) | JSON : tableau d'URLs |
 | `oc_theme` | `light` ou `dark` | chaîne |
 | `oc_view` | `map`, `list` ou `grid` (héritée, plus écrite) | chaîne |
 | `oc_data_v2`, `ais_stage_targets_v1` | Anciennes clés (v1/v2), lues une seule fois pour migration | lecture seule |
+
+Depuis la v6.1, ces clés vivent dans **IndexedDB** (base `oc_kv_v1`, magasin
+`kv`) avec les **mêmes noms** ; `localStorage` reste lu en repli, ce qui migre
+automatiquement les données existantes sans les toucher. L'ordre des backends :
+`window.storage` → IndexedDB → localStorage → mémoire.
 
 Les PDF (CV, lettre) vivent dans **IndexedDB** : base `oc_docs_v1`, magasin
 `docs`, clés `cv` et `lettre` — séparés exprès des pistes pour qu'un document
@@ -46,9 +54,9 @@ On ne renomme jamais ; si le format d'une clé doit évoluer, on crée une
 - `kind: "share"` : pistes en **vue communautaire** (voir §3) — jamais de
   champ privé, jamais de profil.
 - `kind: "full"` : sauvegarde personnelle complète — pistes avec suivi privé,
-  plus le profil, plus le champ **optionnel** `orphans` (contacts « à
-  rattacher ») s'il y en a. Un lecteur qui ignore `orphans` charge quand même
-  le reste sans erreur.
+  plus le profil, plus les champs **optionnels** `orphans` (contacts « à
+  rattacher ») et `tombs` (suppressions) s'il y en a. Un lecteur qui les
+  ignore charge quand même le reste sans erreur.
 - Tolérance à la lecture : un simple tableau JSON de pistes est aussi accepté.
 
 ### Compact — OCQ1 (échange par QR)
@@ -100,6 +108,9 @@ Ni `id`, ni `demo`, ni `createdAt` ne circulent non plus.
 
 **Un contact** : `id`, `name`, `role`, `email`, `phone`, `link`, `note`,
 `conf` (`""` | `"ok"` | `"doubt"`) (+ `extra` si présent).
+`link` est toujours en `http(s)` après normalisation : tout autre schéma
+(`javascript:` et consorts) est neutralisé — un lien piégé dans un fichier
+reçu ne doit jamais devenir cliquable.
 
 **Vocabulaires fermés** :
 - `domain` : `esn`, `cyber`, `cloud`, `dsi`, `public`, `startup`,
@@ -136,6 +147,25 @@ jamais perdus silencieusement.
    qu'une mauvaise fusion. Contacts dédupliqués par email, sinon téléphone,
    sinon nom+rôle.
 6. Re-fusionner le même fichier n'ajoute rien (idempotence).
+
+## 5. La sync entre MES appareils — invariants
+
+À ne pas confondre avec la fusion communautaire (§4) : ici les deux côtés
+appartiennent à la même personne (`engine/sync.js`, transport P2P chiffré).
+
+1. **Tout circule**, privé inclus — ce sont mes appareils.
+2. **Le plus récent gagne**, piste par piste (`updatedAt`) ; le profil
+   voyage en bloc (son `updatedAt` à lui).
+3. **Les suppressions voyagent** par tombstones `{id, t}` : une pierre plus
+   récente que la fiche la supprime partout ; une fiche modifiée **après**
+   la suppression ressuscite (le geste le plus récent gagne).
+4. La sync est **idempotente et convergente** : rejouer le même échange ne
+   change rien, et deux appareils arrivent au même état quel que soit l'ordre.
+5. La phrase de liaison ne transite jamais en clair : la salle P2P porte un
+   hash, les données sont chiffrées de bout en bout.
+6. La **salle de promo**, elle, passe exclusivement par `sharePayload`
+   (vue communautaire, §3) et l'aperçu avant fusion (§4) — mêmes règles que
+   par fichier, quel que soit le canal.
 
 ---
 
