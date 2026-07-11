@@ -9,7 +9,7 @@ import { esc, normName, extractCity, distKm, todayISO, localISO } from './engine
 import { KDF_ITER, encryptOC2, decryptOC2, deriveKey, bytesToB64,
          fnv, ocKeystream, unsealOC1 } from './engine/crypto.js';
 import { APP_VERSION, normalizeCompany, normalizeContact, normalizeProfile,
-         pushHist, fillTpl, safeUrl } from './engine/model.js';
+         pushHist, fillTpl, safeUrl, PROMPTS_MAX, PROMPT_MAX_LEN } from './engine/model.js';
 import { communityView, parseInput, sharePayload, fullPayload,
          encodeOCQ, splitOCQ, makeOCQJoiner, OCQP_CHUNK } from './engine/exchange.js';
 import { findMatch, mergeIncoming, contactKey } from './engine/merge.js';
@@ -228,6 +228,16 @@ export async function runSelfTests(){
       const m = mergeTombs(many, [{ id: 'k0', t: 9999 }]);
       eq(m.length, TOMBS_MAX);
       eq(m[0], { id: 'k0', t: 9999 });
+    },
+    'profil : prompts IA — un seul défaut, bornés (8 × 4 000)': () => {
+      const p = normalizeProfile({});
+      eq(p.prompts.length, 1);
+      eq(p.prompts[0].name, 'Mes emails → pistes');
+      ok(p.prompts[0].text.includes('"kind":"share"'));
+      const many = normalizeProfile({ prompts: Array.from({ length: 12 }, (_, i) => ({ name: 'P' + i, text: 'x'.repeat(9000) })) });
+      eq(many.prompts.length, PROMPTS_MAX);
+      eq(many.prompts[0].text.length, PROMPT_MAX_LEN);
+      eq(normalizeProfile({ prompts: [{ text: 'y' }] }).prompts[0].name, 'Prompt');
     },
     'contrat : OCQP — découpe du QR animé et réassemblage dans le désordre': () => {
       const court = 'OCQ1.petit';

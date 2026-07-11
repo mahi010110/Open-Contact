@@ -451,6 +451,26 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 }
 .sy-log{margin-top:10px}
 .pr-send{width:100%;margin-top:12px}
+/* ---- sélection de pistes (suppression groupée) ---- */
+.row-item .ic-on,.bcard .ic-on{display:none;color:var(--accent)}
+.row-item.on .ic-on,.bcard.on .ic-on{display:inline-block}
+.row-item.on .ic-off,.bcard.on .ic-off{display:none}
+.row-item .ic-off,.row-item .ic-on{flex:none}
+.row-item.on,.bcard.on{background:var(--navy-wash)}
+.bcard{position:relative}
+.bc-check{position:absolute;top:8px;right:8px}
+.selbar{
+  position:fixed;left:50%;transform:translateX(-50%);z-index:3500;
+  bottom:calc(var(--nav-h) + 16px + env(safe-area-inset-bottom));
+  display:flex;align-items:center;gap:10px;width:calc(100% - 24px);max-width:480px;
+  background:var(--surface-window);border:1px solid var(--border-strong);
+  box-shadow:var(--shadow-modal);padding:9px 12px;
+  font-family:var(--font-mono);font-size:var(--text-12);line-height:1.45;
+  animation:oc-up var(--dur-3) var(--ease-steps);
+}
+.selbar #selN{flex:1;color:var(--text-muted)}
+@media (min-width:901px){ .selbar{bottom:40px} }
+
 .qr-prog,.scan-prog{
   margin-top:8px;text-align:center;
   font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted);

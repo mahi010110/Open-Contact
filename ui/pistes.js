@@ -8,8 +8,8 @@ import { esc, distKm } from '../engine/utils.js';
 import { STATUSES, CLOSE_REASONS, DOMAINS } from '../engine/model.js';
 import { scoreOf } from '../engine/score.js';
 import { filterCompanies } from '../engine/filter.js';
-import { S, bus, isClosed, hasDemo, addDemo, ctLabel } from './state.js';
-import { $, ic, toast, openSheet, btn } from './dom.js';
+import { S, bus, isClosed, hasDemo, addDemo, ctLabel, deletePiste, undeletePiste } from './state.js';
+import { $, ic, toast, openSheet, btn, confirmSheet, showUndo } from './dom.js';
 import { relLabel } from './dates.js';
 import { openFiche } from './fiche.js';
 import { openCapture } from './capture.js';
@@ -28,6 +28,12 @@ const SORTS = {
 };
 let sort = 'recent';
 let userPos = null;
+
+/* mode sélection : appui long sur une ligne (mobile) ou bouton à côté
+   du tri — cocher, puis UNE décision (Supprimer n) + Annuler ~30 s */
+let selMode = false;
+const selIds = new Set();
+let longPressAt = 0;
 
 function openSortSheet(){
   const sh = openSheet({ title: 'Trier les pistes', icon: 'sort-vertical' });
@@ -77,8 +83,9 @@ function rowHTML(c){
   else if (c.nextAction) bits.push(esc(c.nextActionText || 'Faire le point') + ' · ' + relLabel(c.nextAction));
   else bits.push('pas de prochaine action');
   return (
-    `<div class="row-item${closed ? ' row-closed' : ''}" data-id="${c.id}" role="button" tabindex="0">
-       <span class="dotc" style="background:${color}"></span>
+    `<div class="row-item${closed ? ' row-closed' : ''}${selMode && selIds.has(c.id) ? ' on' : ''}" data-id="${c.id}" role="button" tabindex="0"
+          ${selMode ? `aria-pressed="${selIds.has(c.id)}"` : ''}>
+       ${selMode ? ic('checkbox', 'ic-20 ic-off') + ic('checkbox-on', 'ic-20 ic-on') : `<span class="dotc" style="background:${color}"></span>`}
        <div class="ri-main">
          <h3>${esc(c.name)}</h3>
          <div class="ri-sub">${bits.join(' · ')}</div>
@@ -96,7 +103,8 @@ function cardHTML(c){
   if ((c.contacts || []).length) foot.push(ic('contact', 'ic-14') + ' ' + c.contacts.length);
   foot.push('complète à ' + scoreOf(c) + ' %');
   return (
-    `<button class="bcard" data-id="${c.id}">
+    `<button class="bcard${selMode && selIds.has(c.id) ? ' on' : ''}" data-id="${c.id}"${selMode ? ` aria-pressed="${selIds.has(c.id)}"` : ''}>
+       ${selMode ? `<span class="bc-check">${ic('checkbox', 'ic-20 ic-off')}${ic('checkbox-on', 'ic-20 ic-on')}</span>` : ''}
        <b>${esc(c.name)}</b>
        ${bits.length ? `<span class="bc-sub">${bits.map(esc).join(' · ')}</span>` : ''}
        ${na}
@@ -133,6 +141,33 @@ function orphansHTML(){
      </details>`);
 }
 
+/* sortie du mode sélection — la barre et les coches disparaissent */
+function exitSel(){
+  selMode = false;
+  selIds.clear();
+}
+/* suppression groupée : UNE confirmation, tombstones, Annuler ~30 s */
+async function deleteSelected(){
+  const list = S.companies.filter(c => selIds.has(c.id));
+  if (!list.length) return;
+  const n = list.length;
+  const names = list.slice(0, 3).map(c => esc(c.name)).join(', ') + (n > 3 ? ` et ${n - 3} autre${n > 4 ? 's' : ''}` : '');
+  const ok = await confirmSheet({
+    title: n > 1 ? `Supprimer ${n} pistes ?` : 'Supprimer cette piste ?',
+    danger: true, okLabel: 'Supprimer', icon: 'trash',
+    msg: `<b>${names}</b> — supprimée${n > 1 ? 's' : ''} aussi de tes appareils synchronisés.`
+  });
+  if (!ok) return;
+  list.forEach(deletePiste);
+  exitSel();
+  bus.refresh();
+  showUndo(`${ic('check', 'ic-14')} ${n} piste${n > 1 ? 's' : ''} supprimée${n > 1 ? 's' : ''}.`, () => {
+    list.forEach(undeletePiste);
+    bus.refresh();
+    toast(n > 1 ? 'Pistes restaurées.' : 'Piste restaurée.');
+  });
+}
+
 export function renderPistes(){
   const root = $('#view-pistes');
   const wide = mqWide.matches;
@@ -143,20 +178,39 @@ export function renderPistes(){
        <div class="td-head">
          <h2>Mes pistes</h2>
          <div class="td-date">${S.companies.length} piste${S.companies.length > 1 ? 's' : ''}</div>
-         ${nAlive ? `<button class="btn btn-sm" id="piProspect">${ic('mail', 'ic-14')} Prospecter</button>` : ''}
+         ${nAlive && !selMode ? `<button class="btn btn-sm" id="piProspect">${ic('mail', 'ic-14')} Prospecter</button>` : ''}
        </div>
        <div class="search-wrap">
          <input class="search" id="piQ" type="search" placeholder="Chercher : entreprise, contact, ville, techno…"
                 aria-label="Rechercher une piste" value="${esc(q)}">
          <button class="btn icon-btn${sort !== 'recent' ? ' btn-primary' : ''}" id="piSort"
                  aria-label="Trier — ${SORTS[sort][0]}" title="Trier — ${SORTS[sort][0]}">${ic('sort-vertical', 'ic-14')}</button>
+         ${S.companies.length ? `<button class="btn icon-btn${selMode ? ' btn-primary' : ''}" id="piSel"
+                 aria-label="Sélectionner des pistes" title="Sélectionner">${ic('checkbox', 'ic-14')}</button>` : ''}
        </div>
        <div id="piBody"></div>
      </div>`;
 
   const openById = id => {
+    if (Date.now() - longPressAt < 600) return;   /* le clic fantôme après l'appui long */
+    if (selMode){ toggleSel(id); return; }
     const c = S.companies.find(x => x.id === id);
     if (c) openFiche(c);
+  };
+  const syncBar = () => {
+    const bar = root.querySelector('.selbar');
+    if (!bar) return;
+    bar.querySelector('#selN').textContent = selIds.size
+      ? selIds.size + ' sélectionnée' + (selIds.size > 1 ? 's' : '') : 'Coche des pistes';
+    bar.querySelector('#selDel').disabled = !selIds.size;
+  };
+  const toggleSel = id => {
+    selIds.has(id) ? selIds.delete(id) : selIds.add(id);
+    root.querySelectorAll(`[data-id="${id}"]`).forEach(el => {
+      el.classList.toggle('on', selIds.has(id));
+      el.setAttribute('aria-pressed', selIds.has(id));
+    });
+    syncBar();
   };
 
   /* le corps se re-rend seul pendant la frappe — le champ de recherche
@@ -191,6 +245,14 @@ export function renderPistes(){
            </details>`;
       }
     }
+    if (selMode){
+      html +=
+        `<div class="selbar">
+           <span id="selN"></span>
+           <button class="btn btn-sm" id="selQuit">Annuler</button>
+           <button class="btn btn-sm btn-danger" id="selDel">${ic('trash', 'ic-14')} Supprimer</button>
+         </div>`;
+    }
     body.innerHTML = html;
 
     body.querySelectorAll('.row-item').forEach(r => {
@@ -199,6 +261,26 @@ export function renderPistes(){
     });
     body.querySelectorAll('.bcard').forEach(b =>
       b.addEventListener('click', () => openById(b.dataset.id)));
+    /* appui long sur une ligne/carte = entrer en sélection, elle cochée */
+    if (!selMode){
+      body.querySelectorAll('.row-item, .bcard').forEach(el => {
+        let t = null;
+        const cancel = () => { clearTimeout(t); t = null; };
+        el.addEventListener('touchstart', () => {
+          t = setTimeout(() => {
+            longPressAt = Date.now();
+            selMode = true;
+            selIds.add(el.dataset.id);
+            renderPistes();
+          }, 500);
+        }, { passive: true });
+        el.addEventListener('touchmove', cancel, { passive: true });
+        el.addEventListener('touchend', cancel);
+      });
+    }
+    body.querySelector('#selQuit')?.addEventListener('click', () => { exitSel(); renderPistes(); });
+    body.querySelector('#selDel')?.addEventListener('click', deleteSelected);
+    syncBar();
     /* bac : la ligne édite, le bouton rattache */
     body.querySelectorAll('.orow').forEach(r => {
       const o = () => S.orphans.find(x => x.id === r.dataset.oid);
@@ -220,6 +302,10 @@ export function renderPistes(){
     h = setTimeout(() => { q = input.value; renderBody(); }, 180);
   });
   root.querySelector('#piSort').addEventListener('click', openSortSheet);
+  root.querySelector('#piSel')?.addEventListener('click', () => {
+    selMode ? exitSel() : (selMode = true);
+    renderPistes();
+  });
   root.querySelector('#piProspect')?.addEventListener('click', openProspect);
   renderBody();
 }
