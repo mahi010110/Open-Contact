@@ -97,7 +97,7 @@ function orphansHTML(){
                      <h4>${esc(ctLabel(o))}</h4>
                      <div class="o-sub">${sub || 'à compléter'}</div>
                    </div>
-                   <button class="btn btn-sm btn-primary" data-attach="${o.id}">Rattacher</button>
+                   <button class="btn btn-sm" data-attach="${o.id}">Rattacher</button>
                  </div>`;
        }).join('')}</div>
      </details>`);

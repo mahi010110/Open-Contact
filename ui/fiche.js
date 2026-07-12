@@ -103,7 +103,7 @@ export function openFiche(c){
                     <span>${frDate(val('nextAction'))} · ${relLabel(val('nextAction'))}</span></div>
                   <button class="btn btn-sm" id="fiNa">Modifier</button>`
                : `<div class="na-cur na-none">Aucune — planifie la suite</div>
-                  <button class="btn btn-sm btn-primary" id="fiNa">Planifier</button>`}
+                  <button class="btn btn-sm" id="fiNa">Planifier</button>`}
            </div>
          </div>`}
        <div class="field">

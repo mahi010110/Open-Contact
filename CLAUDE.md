@@ -113,7 +113,9 @@ avec un motif existant :
 
 | Besoin | Motif |
 |---|---|
-| Poser une question, éditer | `openSheet` (feuilles empilables, focus-trap, Échap, glisser-fermer tactile, `setFoot` REMPLACE les boutons) |
+| Poser une question, éditer | `openSheet` (feuilles empilables, focus-trap, Échap, glisser-fermer tactile, `setFoot` REMPLACE les boutons, `guard` = garde-fou avant fermeture) |
+| Trier une liste | `ui/sort.js` — bouton critère + bascule ↑↓ ; re-tap sur le critère actif = retour au défaut de l'écran. Le même contrôle partout (Mes pistes, Prospecter, Donner) |
+| Supprimer au geste | `bindDeleteGesture(node, onDelete)` — le nœud fournit un enfant `.sw-in` ; glisser (mobile) / poubelle au survol (desktop), l'appelant double d'un `showUndo` |
 | Choisir parmi 2-5 options | `pick-list` / `.pick` (gros boutons b + span descriptif) |
 | Choisir une date | chips « Demain / +3 j / +7 j / Lundi » + date précise validée par OK (jamais de fermeture sur `change` seul — roue iOS) |
 | Confirmer un geste risqué | `confirmSheet` (danger = `btn-danger`) |
