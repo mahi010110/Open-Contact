@@ -8,15 +8,16 @@
    ============================================================ */
 import { esc, todayISO } from '../engine/utils.js';
 import { STATUSES } from '../engine/model.js';
-import { sharePayload, encodeOCQ, splitOCQ } from '../engine/exchange.js';
+import { sharePayload, encodeOCQ, splitOCQ, makeRdvCode, rdvNorm, rdvWrap } from '../engine/exchange.js';
 import { filterCompanies } from '../engine/filter.js';
 import { encryptOC2 } from '../engine/crypto.js';
 import { S, isClosed, logJ } from './state.js';
 import { openSheet, toast, btn, ic } from './dom.js';
 import { sortState, sortBarHTML, bindSortBar } from './sort.js';
+import { openRoom } from './synclive.js';
 import { makeQrSvg } from './qr.js';
 
-const QR_HARD_MAX = 1800;     /* caractères par QR : au-delà, on découpe (OCQP) */
+const QR_HARD_MAX = 1800;     /* caractères par QR : au-delà, rendez-vous P2P ou QR animé */
 
 export function openDonner(){
   /* jamais les pistes d'exemple : leurs contacts sont fictifs */
@@ -26,11 +27,17 @@ export function openDonner(){
   const st = sortState('recent');
   let choosing = false;
   const chosen = () => alive().filter(c => !unsel.has(c.id));
-  const sh = openSheet({ title: 'Donner', icon: 'share' });
+  /* salle de rendez-vous éventuelle : fermée à chaque changement d'écran */
+  let room = null;
+  let gen = 0;
+  const leaveRdv = () => { if (room){ try { room.leave(); } catch (e) {} room = null; } };
+  const enter = () => { gen++; leaveRdv(); return gen; };
+  const sh = openSheet({ title: 'Donner', icon: 'share', onClose: () => { gen++; leaveRdv(); } });
   const q = s => sh.body.querySelector(s);
 
   /* ---- l'écran : QR ou fichier — tout part par défaut, élagable ---- */
   const stepHow = () => {
+    enter();
     sh.setTitle('Donner');
     sh.body.innerHTML =
       `<p class="hint" style="margin:0 0 10px">${ic('lock', 'ic-14')} Seules les fiches partent — jamais ton suivi privé.</p>
@@ -90,19 +97,27 @@ export function openDonner(){
     syncCount();
   };
 
-  /* ---- QR (OCQ1) — au-delà d'un QR lisible, il s'anime (OCQP) ---- */
+  /* ---- QR : petit lot → QR de données (hors ligne, un scan) ;
+     gros lot → rendez-vous P2P, repli QR animé — tout seul ---- */
   const stepQR = async () => {
-    let compact;
-    try {
-      compact = await encodeOCQ(chosen());
-    } catch (e) {
-      toast('Le QR n’est pas disponible sur ce navigateur — passe par le fichier.');
-      stepFile();
-      return;
-    }
+    const my = enter();
     const n = chosen().length;
+    let compact = null;
+    try { compact = await encodeOCQ(chosen()); } catch (e) {}
+    if (my !== gen) return;
+    if (compact && compact.length <= QR_HARD_MAX){ stepQRData(compact, n); return; }
+    if (navigator.onLine){ stepQRRdv(compact, n); return; }
+    if (compact){ stepQRData(compact, n); return; }
+    toast('Le QR n’est pas disponible sur ce navigateur — passe par le fichier.');
+    stepFile();
+  };
+
+  /* le QR porte les données (OCQ1) — animé en plusieurs parties si besoin */
+  const stepQRData = async (compact, n) => {
+    const my = enter();
     const parts = compact.length > QR_HARD_MAX ? splitOCQ(compact) : [compact];
     const svgs = await Promise.all(parts.map(makeQrSvg));
+    if (my !== gen) return;
     sh.setTitle(`QR — ${n} piste${n > 1 ? 's' : ''}`);
     sh.body.innerHTML =
       `<div class="qr-wrap" role="img" aria-label="QR à faire scanner">${svgs[0]}</div>
@@ -122,8 +137,52 @@ export function openDonner(){
     sh.setFoot([btn('← Retour', 'btn-ghost', stepHow), btn('Fichier plutôt', '', stepFile), btn('Terminé', 'btn-primary', () => sh.close())]);
   };
 
+  /* le QR est un code de rendez-vous (OCR1) : l'autre appareil scanne
+     ou tape le code, l'appairage P2P fait passer les fiches — sans
+     limite de nombre. Échec de connexion = repli silencieux. */
+  const stepQRRdv = async (compact, n) => {
+    const my = enter();
+    const fallback = () => {
+      if (compact){ toast('Pas de connexion — QR hors ligne.'); stepQRData(compact, n); }
+      else { toast('Pas de connexion — passe par le fichier.'); stepFile(); }
+    };
+    sh.setTitle(`QR — ${n} piste${n > 1 ? 's' : ''}`);
+    sh.body.innerHTML = `<div class="qr-prog">${ic('clock', 'ic-14')} Connexion…</div>`;
+    sh.setFoot([btn('← Retour', 'btn-ghost', stepHow)]);
+    const code = makeRdvCode();
+    let r, svg;
+    try {
+      [r, svg] = await Promise.all([openRoom('give', rdvNorm(code)), makeQrSvg(rdvWrap(code))]);
+    } catch (e) {
+      if (my === gen) fallback();
+      return;
+    }
+    if (my !== gen){ try { r.leave(); } catch (e) {} return; }
+    room = r;
+    sh.body.innerHTML =
+      `<div class="qr-wrap" role="img" aria-label="QR de rendez-vous">${svg}</div>
+       <div class="sy-phrase"><span>${esc(code)}</span></div>
+       <div class="qr-prog" id="dnRdvSt">${ic('clock', 'ic-14')} En attente de l’autre appareil…</div>
+       <p class="hint" style="text-align:center">L’autre personne : <b>Recevoir → Scanner</b> — ou tape ce code.</p>
+       <button class="linklike" id="dnOffline" style="display:flex;margin:6px auto 0">Sans réseau ? QR hors ligne</button>`;
+    q('#dnOffline').addEventListener('click', fallback);
+    const give = room.makeAction('give');
+    const payload = sharePayload(chosen());
+    let sent = 0;
+    room.onPeerJoin = () => {
+      give.send(payload);
+      sent++;
+      if (sent === 1) logJ('Donné (QR rendez-vous) : ' + n + ' piste(s)');
+      const el = q('#dnRdvSt');
+      if (el) el.innerHTML = `${ic('check', 'ic-14')} Envoyé ✓ — ${sent} appareil${sent > 1 ? 's' : ''}`;
+      const f = sh.ov.querySelector('.modal-f');
+      if (f && !f.querySelector('.btn-primary')) sh.setFoot([btn('← Retour', 'btn-ghost', stepHow), btn('Terminé', 'btn-primary', () => sh.close())]);
+    };
+  };
+
   /* ---- fichier .oc : case « Chiffrer », 3 sorties ---- */
   const stepFile = () => {
+    enter();
     const n = chosen().length;
     const fname = 'opencontact-pistes-' + todayISO() + '.oc';
     sh.setTitle(`Fichier — ${n} piste${n > 1 ? 's' : ''}`);

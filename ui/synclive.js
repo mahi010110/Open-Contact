@@ -27,7 +27,8 @@ async function sha256hex(s){
 }
 /* la phrase ne sort jamais telle quelle : la salle porte un hash.
    Relais personnalisés possibles (oc_relays_v1). Le préfixe reste
-   historique (« sync- », « promo- ») — compat entre versions. */
+   historique (« sync- », « promo- », « give- » pour le QR de
+   rendez-vous) — compat entre versions. */
 export async function openRoom(kind, phrase){
   const { joinRoom } = await loadLib();
   const id = kind + '-' + (await sha256hex('opencontact·' + kind + '·' + phrase)).slice(0, 24);

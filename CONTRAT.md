@@ -73,6 +73,23 @@ Une enveloppe `kind:"share"` (jamais de privé), compressée par l'API native
 autres formats. Si l'API manque (très vieux navigateur), l'émetteur replie
 vers le fichier `.oc` — le format ne change pas.
 
+### Rendez-vous — OCR1 (QR appairé, P2P)
+
+```
+OCR1.<code court>
+```
+
+Le QR ne porte pas les données : un petit **code de rendez-vous**,
+typable sans caméra (alphabet sans ambiguïté — ni i, l, o, 0, 1 —,
+8 à 24 caractères une fois normalisé en minuscules sans séparateurs).
+Les deux appareils dérivent la même salle P2P éphémère du code
+(préfixe de salle `give-`, mêmes règles de transport que §5 : la
+salle porte un hash, les données sont chiffrées de pair à pair) et
+les fiches passent par la connexion — exclusivement en `sharePayload`
+(vue communautaire, §3) avec l'aperçu avant fusion (§4). Un lecteur
+ancien ignore ce préfixe sans casse ; le repli hors ligne reste
+OCQ1/OCQP et le fichier `.oc`.
+
 ### Compact multi-parties — OCQP (QR animé)
 
 ```

@@ -1,27 +1,34 @@
 /* ============================================================
    OpenContact — interface · Recevoir de la promo
-   Scanner un QR / ouvrir un fichier / coller du texte → aperçu
-   AVANT (« 12 reçues, dont 4 nouvelles », fusion à blanc sur une
-   copie) → fusion réelle sans écrasement → « Annuler » ~30 s
-   (instantané restauré tel quel).
+   Scanner un QR (données OU rendez-vous P2P — reconnu tout seul,
+   le code se tape aussi sans caméra) / ouvrir un fichier / coller
+   → aperçu AVANT (« 12 reçues, dont 4 nouvelles », fusion à blanc
+   sur une copie) → fusion réelle sans écrasement → « Annuler »
+   ~30 s (instantané restauré tel quel).
    ============================================================ */
 import { esc } from '../engine/utils.js';
-import { parseInput, makeOCQJoiner } from '../engine/exchange.js';
+import { parseInput, makeOCQJoiner, rdvParse, rdvNorm } from '../engine/exchange.js';
 import { mergeIncoming } from '../engine/merge.js';
 import { normalizeCompany } from '../engine/model.js';
 import { S, bus, saveData, logJ } from './state.js';
 import { openSheet, toast, btn, ic, showUndo } from './dom.js';
+import { openRoom } from './synclive.js';
 import { startScan } from './qr.js';
 
 export function openRecevoir(){
   let stopScan = null;
+  let room = null;         /* salle de rendez-vous (QR OCR1 / code tapé) */
+  let gen = 0;
   const halt = () => { if (stopScan){ stopScan(); stopScan = null; } };
-  /* la caméra se coupe quelle que soit la façon de fermer la feuille */
-  const sh = openSheet({ title: 'Recevoir', icon: 'inbox', onClose: halt });
+  const leaveRdv = () => { if (room){ try { room.leave(); } catch (e) {} room = null; } };
+  /* caméra et salle se coupent quelle que soit la façon de fermer */
+  const sh = openSheet({ title: 'Recevoir', icon: 'inbox', onClose: () => { gen++; halt(); leaveRdv(); } });
   const q = s => sh.body.querySelector(s);
 
   const menu = () => {
+    gen++;
     halt();
+    leaveRdv();
     sh.setTitle('Recevoir');
     sh.body.innerHTML =
       `<div class="pick-list">
@@ -44,17 +51,31 @@ export function openRecevoir(){
     sh.setFoot([btn('Fermer', 'btn-ghost', () => sh.close())]);
   };
 
-  /* ---- scanner — un QR simple, ou un QR animé assemblé tout seul ---- */
+  /* ---- scanner — QR de données (simple ou animé) OU QR de
+     rendez-vous : reconnu tout seul ; sans caméra, le code se tape ---- */
   const scan = async () => {
     sh.setTitle('Scanner');
     sh.body.innerHTML =
       `<div class="scan-box"><video id="rcVideo" playsinline muted></video><div class="scan-mark"></div></div>
        <div class="scan-prog" id="rcProg" hidden></div>
-       <p class="hint" style="text-align:center">Vise le QR — la lecture est automatique.</p>`;
+       <p class="hint" style="text-align:center" id="rcScanHint">Vise le QR — la lecture est automatique.</p>
+       <div class="field" style="margin-top:10px"><label for="rcCode">Ou le code affiché</label>
+         <div class="date-row">
+           <input id="rcCode" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="ex : k7m3p-9xq2f">
+           <button class="btn btn-primary" id="rcCodeGo" hidden>OK</button>
+         </div></div>`;
     sh.setFoot([btn('← Retour', 'btn-ghost', menu)]);
+    const codeInp = q('#rcCode');
+    const codeGo = q('#rcCodeGo');
+    const goCode = () => { const c = rdvNorm(codeInp.value); if (c) joinRdv(c); };
+    codeInp.addEventListener('input', () => { codeGo.hidden = !rdvNorm(codeInp.value); });
+    codeInp.addEventListener('keydown', e => { if (e.key === 'Enter') goCode(); });
+    codeGo.addEventListener('click', goCode);
     const joiner = makeOCQJoiner();
     try {
       stopScan = await startScan(q('#rcVideo'), raw => {
+        const code = rdvParse(raw);
+        if (code){ joinRdv(code); return false; }
         const part = joiner(raw);
         if (!part){ halt(); treat(raw); return false; }
         if (part.done){ halt(); treat(part.text); return false; }
@@ -63,9 +84,47 @@ export function openRecevoir(){
         return true;   /* il manque des parties : on continue */
       });
     } catch (e) {
-      toast('Caméra indisponible ou refusée — passe par le fichier ou le collage.');
-      menu();
+      const box = q('.scan-box');
+      if (box) box.hidden = true;
+      const h = q('#rcScanHint');
+      if (h) h.textContent = 'Caméra indisponible — tape le code, ou passe par le fichier.';
     }
+  };
+
+  /* ---- rendez-vous : l'appairage P2P fait passer les fiches ---- */
+  const joinRdv = async code => {
+    halt();
+    leaveRdv();
+    const my = ++gen;
+    sh.setTitle('Réception');
+    sh.body.innerHTML = `<div class="qr-prog">${ic('clock', 'ic-14')} Connexion…</div>`;
+    sh.setFoot([btn('← Retour', 'btn-ghost', menu)]);
+    let r;
+    try {
+      r = await openRoom('give', code);
+    } catch (e) {
+      if (my !== gen) return;
+      toast('Pas de connexion — demande un QR hors ligne ou un fichier.');
+      menu();
+      return;
+    }
+    if (my !== gen){ try { r.leave(); } catch (e) {} return; }
+    room = r;
+    sh.body.innerHTML = `<div class="qr-prog" id="rcRdvSt">${ic('clock', 'ic-14')} En attente de l’autre appareil…</div>`;
+    const give = room.makeAction('give');
+    let got = false;
+    give.onMessage = obj => {
+      if (got || !obj || obj.kind !== 'share' || !Array.isArray(obj.companies)) return;
+      obj.companies = obj.companies.filter(x => x && typeof x === 'object' && x.name).slice(0, 2000);
+      if (!obj.companies.length) return;
+      got = true;
+      leaveRdv();
+      mergePreviewInto(sh, obj, { onCancel: menu });
+    };
+    room.onPeerJoin = () => {
+      const el = q('#rcRdvSt');
+      if (el) el.innerHTML = `${ic('radio', 'ic-14')} Relié — réception…`;
+    };
   };
 
   /* ---- coller ---- */

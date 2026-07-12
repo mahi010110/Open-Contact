@@ -11,7 +11,8 @@ import { KDF_ITER, encryptOC2, decryptOC2, deriveKey, bytesToB64,
 import { APP_VERSION, normalizeCompany, normalizeContact, normalizeProfile,
          pushHist, fillTpl, safeUrl, PROMPTS_MAX, PROMPT_MAX_LEN } from './engine/model.js';
 import { communityView, parseInput, sharePayload, fullPayload,
-         encodeOCQ, splitOCQ, makeOCQJoiner, OCQP_CHUNK } from './engine/exchange.js';
+         encodeOCQ, splitOCQ, makeOCQJoiner, OCQP_CHUNK,
+         makeRdvCode, rdvNorm, rdvWrap, rdvParse } from './engine/exchange.js';
 import { findMatch, mergeIncoming, contactKey } from './engine/merge.js';
 import { syncMerge, mergeTombs, TOMBS_MAX } from './engine/sync.js';
 import { filterCompanies, NATURAL_DIR } from './engine/filter.js';
@@ -62,6 +63,14 @@ export async function runSelfTests(){
       for (let i = 0; i < data.length; i++) out[i] = data[i] ^ ks[i];
       const body = bytesToB64(out);
       eq(unsealOC1('OC1.' + fnv(body).toString(16) + '.' + body), { companies: [] });
+    },
+    'OCR1 : code de rendez-vous — généré, encapsulé, relu': () => {
+      const code = makeRdvCode();
+      ok(/^[a-z2-9]{5}-[a-z2-9]{5}$/.test(code));
+      eq(rdvParse(rdvWrap(code)), rdvNorm(code));
+      eq(rdvParse('OCR1. K7M3P-9XQ2F '), 'k7m3p9xq2f');   /* tolérant : casse, espaces, tiret */
+      eq(rdvParse('OCQ1.abc'), null);                     /* les données ne sont pas un rendez-vous */
+      eq(rdvNorm('hello'), '');                           /* trop court une fois normalisé */
     },
     'normalizeCompany : héritage v1, domaine inconnu, extra (D3)': () => {
       const c = normalizeCompany({ name: 'X', contact: 'Ana', email: 'a@b.fr', domain: 'zzz', champFutur: 42 });

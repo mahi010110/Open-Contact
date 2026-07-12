@@ -46,6 +46,34 @@ export async function decodeOCQ(compact){
   catch (e) { throw new Error('format'); }
 }
 
+/* ---------- OCR1 : QR de rendez-vous (appairage P2P) ----------
+   Le QR ne porte pas les données : un petit code de rendez-vous,
+   typable sans caméra. Les deux appareils dérivent la même salle
+   P2P éphémère du code (préfixe de salle « give- », données
+   chiffrées de pair à pair par le code lui-même) et les fiches
+   passent par la connexion — toujours en vue communautaire
+   (sharePayload), jamais le privé. Un lecteur ancien ignore ce
+   préfixe sans casse ; le repli hors ligne reste OCQ1/OCQP et le
+   fichier .oc. */
+const RDV_ABC = 'abcdefghjkmnpqrstuvwxyz23456789';   /* sans i, l, o, 0, 1 */
+export function makeRdvCode(){
+  const u = crypto.getRandomValues(new Uint8Array(10));
+  const c = i => RDV_ABC[u[i] % RDV_ABC.length];
+  return [0, 1, 2, 3, 4].map(c).join('') + '-' + [5, 6, 7, 8, 9].map(c).join('');
+}
+/* code tapé ou lu → forme canonique (minuscules, sans séparateurs) */
+export function rdvNorm(txt){
+  const s = String(txt || '').toLowerCase().split('').filter(ch => RDV_ABC.includes(ch)).join('');
+  return (s.length >= 8 && s.length <= 24) ? s : '';
+}
+export const rdvWrap = code => 'OCR1.' + code;
+/* lecture d'un QR : rend le code canonique, ou null si ce n'en est pas un */
+export function rdvParse(raw){
+  const s = String(raw || '').trim();
+  if (!/^OCR1\./i.test(s)) return null;
+  return rdvNorm(s.slice(5)) || null;
+}
+
 /* ---------- OCQP : QR animé (multi-parties) ----------
    Quand l'OCQ1 déborde d'un QR lisible, la chaîne complète est découpée
    en tranches « OCQP.<i>.<n>.<tranche> » (i de 1 à n) que l'émetteur fait
