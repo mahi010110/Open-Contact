@@ -202,7 +202,7 @@ export function openPromo(){
          <button class="linklike" id="prPick" style="margin-top:6px">${choosing ? 'Replier la liste' : 'Choisir ce qui part…'}</button>
          ${choosing ? `<div class="pick-list" style="margin-top:8px">
            ${mine().map(c =>
-             `<button class="pick pk${unsel.has(c.id) ? '' : ' on'}" data-id="${c.id}" aria-pressed="${!unsel.has(c.id)}">
+             `<button class="pick pk${unsel.has(c.id) ? '' : ' on'}" data-id="${esc(c.id)}" aria-pressed="${!unsel.has(c.id)}">
                 ${ic('checkbox', 'ic-20 ic-off')}${ic('checkbox-on', 'ic-20 ic-on')}
                 <div class="pk-m"><b>${esc(c.name)}</b>${c.city ? `<span>${esc(c.city)}</span>` : ''}</div>
               </button>`).join('')}

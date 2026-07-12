@@ -65,7 +65,7 @@ export function openDonner(){
         `<div class="listbar"><button class="linklike" id="dnAll">Tout cocher / décocher</button>${sortBarHTML(st)}</div>
          <div class="pick-list">
            ${list.map(c =>
-             `<button class="pick pk${unsel.has(c.id) ? '' : ' on'}" data-id="${c.id}" aria-pressed="${!unsel.has(c.id)}">
+             `<button class="pick pk${unsel.has(c.id) ? '' : ' on'}" data-id="${esc(c.id)}" aria-pressed="${!unsel.has(c.id)}">
                 ${ic('checkbox', 'ic-20 ic-off')}${ic('checkbox-on', 'ic-20 ic-on')}
                 <div class="pk-m"><b>${esc(c.name)}</b>
                   <span>${STATUSES[c.status].label}${c.city ? ' · ' + esc(c.city) : ''}</span></div>

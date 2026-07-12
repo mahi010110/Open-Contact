@@ -38,7 +38,7 @@ function rowHTML(c){
   const when = c.nextAction < today ? `<em class="late">${relLabel(c.nextAction)}</em> · `
              : c.nextAction > today ? frDate(c.nextAction) + ' · ' : '';
   return (
-    `<div class="act-row" data-id="${c.id}">
+    `<div class="act-row" data-id="${esc(c.id)}">
        <div class="act-under act-under-done">${ic('check', 'ic-14')} Fait</div>
        <div class="act-under act-under-report">${ic('clock', 'ic-14')} Reporter</div>
        <div class="act-in">

@@ -41,7 +41,7 @@ export function openProspect(){
        <div class="pick-list">
          ${list.map(c => {
            const mail = (c.contacts || []).find(t => t.email);
-           return `<button class="pick pk${sel.has(c.id) ? ' on' : ''}" data-id="${c.id}" aria-pressed="${sel.has(c.id)}">
+           return `<button class="pick pk${sel.has(c.id) ? ' on' : ''}" data-id="${esc(c.id)}" aria-pressed="${sel.has(c.id)}">
                      ${ic('checkbox', 'ic-20 ic-off')}${ic('checkbox-on', 'ic-20 ic-on')}
                      <div class="pk-m"><b>${esc(c.name)}</b>
                        <span>${STATUSES[c.status].label}${mail ? ' · ' + esc(mail.email) : ' · pas d’email — copie vers LinkedIn'}</span></div>

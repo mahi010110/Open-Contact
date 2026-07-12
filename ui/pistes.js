@@ -41,7 +41,7 @@ function rowHTML(c){
   if (kmBit(c)) bits.push(kmBit(c));
   if (c.city) bits.push(esc(c.city));
   return (
-    `<div class="row-item${closed ? ' row-closed' : ''}" data-id="${c.id}">
+    `<div class="row-item${closed ? ' row-closed' : ''}" data-id="${esc(c.id)}">
        <div class="sw-in">
          <span class="dotc" style="background:${color}"></span>
          <div class="ri-main" role="button" tabindex="0" aria-label="Ouvrir ${esc(c.name)}">
@@ -62,7 +62,7 @@ function cardHTML(c){
   if ((c.contacts || []).length) foot.push(ic('contact', 'ic-14') + ' ' + c.contacts.length);
   foot.push('complète à ' + scoreOf(c) + ' %');
   return (
-    `<div class="bcard" data-id="${c.id}">
+    `<div class="bcard" data-id="${esc(c.id)}">
        <div class="sw-in">
          <div class="bc-main" role="button" tabindex="0" aria-label="Ouvrir ${esc(c.name)}">
            <b>${esc(c.name)}</b>
@@ -92,12 +92,12 @@ function orphansHTML(){
        <div class="rows">${S.orphans.map(o => {
          const sub = [o.role, o.email || o.phone, (o.extra && o.extra.company) ? '→ ' + o.extra.company + ' ?' : '']
            .filter(Boolean).map(esc).join(' · ');
-         return `<div class="orow" data-oid="${o.id}">
+         return `<div class="orow" data-oid="${esc(o.id)}">
                    <div class="o-main" role="button" tabindex="0" aria-label="Modifier ${esc(ctLabel(o))}">
                      <h4>${esc(ctLabel(o))}</h4>
                      <div class="o-sub">${sub || 'à compléter'}</div>
                    </div>
-                   <button class="btn btn-sm" data-attach="${o.id}">Rattacher</button>
+                   <button class="btn btn-sm" data-attach="${esc(o.id)}">Rattacher</button>
                  </div>`;
        }).join('')}</div>
      </details>`);

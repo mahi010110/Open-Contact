@@ -125,7 +125,7 @@ export function openFiche(c){
              <div class="ct-h"><b>${esc(title)}</b>
                ${t.role ? `<span class="ct-role">${esc(t.role)}</span>` : ''}
                ${t.conf === 'ok' ? '<span class="conf-ok">vérifié ✓</span>' : t.conf === 'doubt' ? '<span class="conf-doubt">à confirmer ?</span>' : ''}
-               <button class="abtn abtn-sm" data-ct="${t.id}" aria-label="Modifier ${esc(t.name || 'le contact')}" title="Modifier">${ic('pencil', 'ic-14')}</button></div>
+               <button class="abtn abtn-sm" data-ct="${esc(t.id)}" aria-label="Modifier ${esc(t.name || 'le contact')}" title="Modifier">${ic('pencil', 'ic-14')}</button></div>
              ${meta ? `<div class="ct-meta">${esc(meta)}</div>` : ''}
              ${acts ? `<div class="ct-acts">${acts}</div>` : ''}
              ${t.note ? `<div class="ct-note">${esc(t.note)}</div>` : ''}

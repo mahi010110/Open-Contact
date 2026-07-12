@@ -172,7 +172,7 @@ export function openAttach(ct){
       .filter(c => !nq || normName(c.name).includes(nq) || normName(c.city).includes(nq))
       .slice(0, 12);
     let html = list.map(c =>
-      `<button class="pick" data-id="${c.id}">
+      `<button class="pick" data-id="${esc(c.id)}">
          <b>${esc(c.name)}</b>
          <span>${isClosed(c) ? 'clôturée' : STATUSES[c.status].label}${c.city ? ' · ' + esc(c.city) : ''}</span>
        </button>`).join('');
