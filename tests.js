@@ -5,14 +5,14 @@
    Chargé à la demande par app.js — résultats en console et dans
    window.__ocTests ; le toast est affiché par l'interface.
    ============================================================ */
-import { esc, normName, extractCity, distKm, todayISO, localISO } from './engine/utils.js';
-import { KDF_ITER, encryptOC2, decryptOC2, deriveKey, bytesToB64,
+import { esc, safeJSONParse, normName, extractCity, distKm, todayISO, localISO } from './engine/utils.js';
+import { KDF_ITER, encryptOC2, decryptOC2, deriveKey, bytesToB64, b64ToBytes,
          fnv, ocKeystream, unsealOC1 } from './engine/crypto.js';
 import { APP_VERSION, normalizeCompany, normalizeContact, normalizeProfile,
          pushHist, fillTpl, safeUrl, summarizeChanges,
          PROMPTS_MAX, PROMPT_MAX_LEN } from './engine/model.js';
 import { communityView, parseInput, sharePayload, fullPayload,
-         encodeOCQ, splitOCQ, makeOCQJoiner, OCQP_CHUNK,
+         encodeOCQ, splitOCQ, makeOCQJoiner, OCQP_CHUNK, OCQ_MAX_DECOMPRESSED,
          makeRdvCode, rdvNorm, rdvWrap, rdvParse } from './engine/exchange.js';
 import { findMatch, mergeIncoming, contactKey } from './engine/merge.js';
 import { syncMerge, mergeTombs, TOMBS_MAX } from './engine/sync.js';
@@ -147,6 +147,48 @@ export async function runSelfTests(){
       const many = JSON.stringify({ companies: Array.from({ length: 2001 }, (_, i) => ({ name: 'c' + i })) });
       try { await parseInput(many); throw new Error('accepté !'); }
       catch (e) { eq(e.message, 'tropdepistes'); }
+    },
+
+    /* — sécurité : entrées non fiables (audit) — */
+    'sécurité : safeJSONParse neutralise la pollution de prototype': () => {
+      const o = safeJSONParse('{"__proto__":{"polluted":1},"constructor":{"x":2},"ok":3}');
+      eq(o.ok, 3);
+      ok(!Object.prototype.hasOwnProperty.call(o, '__proto__'));
+      ok(Object.getPrototypeOf(o) === Object.prototype);   /* prototype intact */
+      eq(({}).polluted, undefined);                         /* Object.prototype non pollué */
+    },
+    'sécurité : une piste reçue ne pollue pas le prototype': async () => {
+      const evil = '{"kind":"share","companies":[{"name":"X","__proto__":{"polluted":1},"champFutur":7}]}';
+      const obj = await parseInput(evil);
+      eq(obj.companies[0].name, 'X');
+      eq(({}).polluted, undefined);
+      const c = normalizeCompany(obj.companies[0]);
+      eq(c.extra, { champFutur: 7 });                       /* l'inconnu légitime est gardé */
+      ok(!c.extra || c.extra.polluted === undefined);
+    },
+    'sécurité : OCQ1 borne la décompression (anti-bombe)': async () => {
+      if (typeof CompressionStream === 'undefined') return;   /* API absente : repli fichier */
+      const big = 'a'.repeat(OCQ_MAX_DECOMPRESSED + 1024);    /* > plafond décompressé */
+      const stream = new Blob([new TextEncoder().encode(big)]).stream()
+        .pipeThrough(new CompressionStream('deflate-raw'));
+      const bytes = new Uint8Array(await new Response(stream).arrayBuffer());
+      const bomb = 'OCQ1.' + bytesToB64(bytes).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      ok(bomb.length < 4000000);                              /* compressé = minuscule, passe la borne d'entrée */
+      try { await parseInput(bomb); throw new Error('accepté !'); }
+      catch (e) { eq(e.message, 'troplourd'); }
+    },
+    'sécurité : OC2 — contenu altéré rejeté (intégrité AES-GCM)': async () => {
+      const enc = await encryptOC2({ secret: 42 }, 'mdp');
+      const p = enc.split('.');
+      const ct = b64ToBytes(p[5]); ct[0] ^= 0xff;             /* on altère un octet du chiffré */
+      p[5] = bytesToB64(ct);
+      try { await decryptOC2(p.join('.'), 'mdp'); throw new Error('accepté !'); }
+      catch (e) { eq(e.message, 'motdepasse'); }
+    },
+    'sécurité : OC2 — sel et IV aléatoires (deux chiffrements diffèrent)': async () => {
+      const a = await encryptOC2({ x: 1 }, 'mdp');
+      const b = await encryptOC2({ x: 1 }, 'mdp');
+      ok(a !== b);                                            /* sel + IV aléatoires par chiffrement */
     },
 
     /* — tests de contrat (CONTRAT.md) : ce qui ne doit JAMAIS casser — */

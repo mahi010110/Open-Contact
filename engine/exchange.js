@@ -7,6 +7,12 @@
    ============================================================ */
 import { decryptOC2, unsealOC1, bytesToB64, b64ToBytes } from './crypto.js';
 import { APP_VERSION } from './model.js';
+import { safeJSONParse } from './utils.js';
+
+/* plafond de la taille DÉCOMPRESSÉE d'un OCQ1 : large pour 2 000 pistes
+   légitimes, mais coupe une « bombe » deflate (un petit blob qui gonfle
+   d'un facteur ~1000 et épuiserait la mémoire de l'onglet). */
+export const OCQ_MAX_DECOMPRESSED = 8 * 1024 * 1024;
 
 export function communityView(c){
   const out = {
@@ -42,7 +48,27 @@ export async function decodeOCQ(compact){
   if (typeof DecompressionStream === 'undefined') throw new Error('noqr');
   const bytes = b64urlToBytes(String(compact).slice(5));
   const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
-  try { return JSON.parse(await new Response(stream).text()); }
+  /* lecture par tranches avec plafond : un flux qui dépasse est annulé
+     avant de remplir la mémoire (anti-bombe de décompression). */
+  const reader = stream.getReader();
+  const chunks = [];
+  let total = 0;
+  try {
+    for (;;){
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.length;
+      if (total > OCQ_MAX_DECOMPRESSED){ try { await reader.cancel(); } catch (e) {} throw new Error('troplourd'); }
+      chunks.push(value);
+    }
+  } catch (e) {
+    if (e.message === 'troplourd') throw e;
+    throw new Error('format');
+  }
+  const buf = new Uint8Array(total);
+  let off = 0;
+  for (const c of chunks){ buf.set(c, off); off += c.length; }
+  try { return safeJSONParse(new TextDecoder().decode(buf)); }
   catch (e) { throw new Error('format'); }
 }
 
@@ -124,7 +150,7 @@ export async function parseInput(raw, pass){
   } else if (compact.startsWith('OCQ1.')){
     obj = await decodeOCQ(compact);
   } else {
-    obj = JSON.parse(s);
+    obj = safeJSONParse(s);
   }
   if (Array.isArray(obj)) obj = { companies: obj };
   if (!obj || !Array.isArray(obj.companies)) throw new Error('format');

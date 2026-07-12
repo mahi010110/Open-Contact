@@ -8,6 +8,14 @@
 export const esc = s => String(s ?? '').replace(/[&<>"']/g, c => (
   {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]
 ));
+/* parse du JSON venu d'une source NON fiable (fichier, QR, coller, pair)
+   en neutralisant la pollution de prototype : les clés __proto__ /
+   constructor / prototype sont écartées à la lecture. Ces noms ne sont
+   jamais des champs légitimes du modèle OpenContact. */
+export function safeJSONParse(str){
+  return JSON.parse(str, (k, v) =>
+    (k === '__proto__' || k === 'constructor' || k === 'prototype') ? undefined : v);
+}
 export function uid(){ return 'c_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,7); }
 export function fmtDate(iso){ const p = String(iso).split('-'); return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : iso; }
 /* date ISO en heure LOCALE — jamais toISOString(), qui bascule en UTC et

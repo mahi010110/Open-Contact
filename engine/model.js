@@ -7,7 +7,7 @@
    ============================================================ */
 import { uid, extractCity, todayISO, fmtDate } from './utils.js';
 
-export const APP_VERSION = '6.3.0';
+export const APP_VERSION = '6.3.1';
 
 export const DOMAINS = {
   esn:     { label:'ESN / Services IT',       color:'#4C9FD8' },
@@ -56,10 +56,14 @@ export function safeUrl(u){
   if (/^[\w-]+(\.[\w-]+)+(:\d+)?([\/?#]\S*)?$/i.test(u)) return 'https://' + u;
   return '';
 }
+/* clés à ne jamais recopier : elles déclencheraient une pollution de
+   prototype sur un canal non fiable (fichier, QR, coller, pair) */
+const PROTO_KEYS = ['__proto__', 'constructor', 'prototype'];
 function keepExtra(x, known){
-  const base = (x.extra && typeof x.extra === 'object' && !Array.isArray(x.extra))
-    ? Object.assign({}, x.extra) : {};
-  for (const k of Object.keys(x)) if (!known.includes(k)) base[k] = x[k];
+  const base = {};
+  const src = (x.extra && typeof x.extra === 'object' && !Array.isArray(x.extra)) ? x.extra : null;
+  if (src) for (const k of Object.keys(src)) if (!PROTO_KEYS.includes(k)) base[k] = src[k];
+  for (const k of Object.keys(x)) if (!known.includes(k) && !PROTO_KEYS.includes(k)) base[k] = x[k];
   return Object.keys(base).length ? base : null;
 }
 export function normalizeContact(x){

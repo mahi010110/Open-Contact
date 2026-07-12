@@ -5,6 +5,8 @@
    lu pour compatibilité. Aucun accès au DOM.
    ============================================================ */
 
+import { safeJSONParse } from './utils.js';
+
 export const KDF_ITER = 600000;
 
 export function bytesToB64(u8){
@@ -50,7 +52,7 @@ export async function decryptOC2(str, pass){
   const key = await deriveKey(pass, salt, iter);
   try {
     const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
-    return JSON.parse(new TextDecoder().decode(pt));
+    return safeJSONParse(new TextDecoder().decode(pt));
   } catch (e) { throw new Error('motdepasse'); }
 }
 /* OC1 : ancien format scellé — lecture seule (compatibilité) */
@@ -80,5 +82,5 @@ export function unsealOC1(str){
   const ks = ocKeystream(fnv('OpenContact·communauté·v1'), enc.length);
   const dec = new Uint8Array(enc.length);
   for (let i = 0; i < enc.length; i++) dec[i] = enc[i] ^ ks[i];
-  return JSON.parse(new TextDecoder().decode(dec));
+  return safeJSONParse(new TextDecoder().decode(dec));
 }
