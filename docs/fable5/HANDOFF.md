@@ -27,8 +27,16 @@
   Connexions dans Moi, CSP élargie, `oc_mail_v1` scellée. **Blocage
   externe assumé : les apps OAuth Google/Microsoft restent à déclarer
   par le mainteneur (IDs publics à renseigner dans MAIL_CLIENTS).**
-- **Tâche en cours** : P5-1 (parcours campagne : bifurcation Prospecter,
-  contrôle, ligne quotidienne dans Aujourd'hui — D13).
+- **P5 terminée** : parcours campagne — `ui/campagnes.js` (assistant :
+  message + relances éditables aux dates figées, contrôle avec aperçus
+  remplis et pistes écartées, validation au code), bifurcation « Une par
+  une / En campagne » dans Prospecter, ligne groupée quotidienne dans
+  Aujourd'hui + feuille du jour (envoi par ligne / Tout envoyer, pause,
+  reprise, arrêt, bilan une fois), réconciliation des réponses depuis le
+  statut de la fiche (non débrayable), tags « en campagne » liste/board,
+  historique de fiche alimenté. `sw.js` → oc-v20.
+- **Tâche en cours** : P6 (IA : aides sans IA, connexions IA, brouillon
+  dans le composeur).
 - **Tests exécutés** : `?test` **64/64 verts** ; E2E `e2e-verrou.mjs`
   (régression P1) + `e2e-recuperation.mjs` (D7 bout en bout : coffre
   gen 2, anneau gen 2, ancien code refusé, nouveau accepté, donnée

@@ -53,8 +53,8 @@ L'UX suit `UX-PLAN.md` (validé) sans réinterprétation.
 
 | ID | Tâche | Résultat attendu | Dépend de | État | Acceptation / tests |
 |---|---|---|---|---|---|
-| P5-1 | Parcours : bifurcation Prospecter → message → contrôle → code ; ligne groupée quotidienne dans Aujourd'hui + feuille du jour (D13) ; pause/arrêt ; tags fiche/board | Conforme `UX-PLAN.md` §6 | P3-1, P4-1 | à faire | Playwright ; états pause/reprise/annulation/réponse |
-| P5-2 | Exécution app ouverte (déclenchée par l'utilisateur) + rattrapage/glissement au lendemain | Aucun envoi double après fermeture/rouverture | P5-1 | à faire | Test de reprise |
+| P5-1 | Parcours : bifurcation Prospecter → message (relances J+7/J+14 éditables, dates figées) → contrôle (récap, aperçus remplis, écartées, adresse d'envoi) → code ; ligne groupée quotidienne dans Aujourd'hui + feuille du jour (envoi par ligne + Tout envoyer — D13) ; pause/reprise/arrêt ; réconciliation réponse (statut fiche) ; tags « en campagne » liste/board | Conforme `UX-PLAN.md` §6 | P3-1, P4-1 | terminée | E2E `e2e-campagne.mjs` vert (bifurcation → envois interceptés → réponse → relances annulées → board) |
+| P5-2 | Exécution app ouverte (déclenchée par l'utilisateur) + glissement au lendemain | Aucun envoi double après fermeture/rouverture | P5-1 | terminée | Idempotence par ids stables (tests moteur) ; glissement testé ; erreurs marquées jamais re-tentées |
 
 ## Phase 6 — IA (rédaction + aides)
 

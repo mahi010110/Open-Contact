@@ -11,6 +11,7 @@ import { S, bus, isClosed } from './state.js';
 import { openSheet, toast, btn, ic } from './dom.js';
 import { sortState, sortArgs, sortBarHTML, bindSortBar } from './sort.js';
 import { openMail } from './mail.js';
+import { openCampaignWizard } from './campagnes.js';
 
 export function openProspect(){
   const alive = () => S.companies.filter(c => !isClosed(c));
@@ -20,14 +21,14 @@ export function openProspect(){
   const sh = openSheet({ title: 'Prospecter — qui ?', icon: 'mail' });
   const nTodo = alive().filter(c => c.status === 'todo').length;
 
-  const bGo = btn('Commencer', 'btn-primary', () => {
+  const bGo = btn('Continuer', 'btn-primary', () => {
     const list = alive().filter(c => sel.has(c.id));
     if (!list.length){ toast('Coche au moins une piste.'); return; }
     sh.close();
-    run(list);
+    chooseMode(list);
   });
   const sync = () => {
-    bGo.textContent = sel.size ? `Commencer (${sel.size})` : 'Commencer';
+    bGo.textContent = sel.size ? `Continuer (${sel.size})` : 'Continuer';
     bGo.classList.toggle('btn-off', !sel.size);
   };
 
@@ -69,6 +70,20 @@ export function openProspect(){
   };
   sh.setFoot([bGo]);
   render();
+}
+
+/* la bifurcation : une décision, deux chemins (UX-PLAN §6) */
+function chooseMode(list){
+  const sh = openSheet({ title: list.length + ' piste' + (list.length > 1 ? 's' : '') + ' choisie' + (list.length > 1 ? 's' : ''), icon: 'mail' });
+  sh.body.innerHTML =
+    `<div class="pick-list">
+       <button class="pick" id="pmOne"><b>${ic('mail', 'ic-14')} Une par une</b>
+         <span>tu écris et envoies chaque email maintenant</span></button>
+       <button class="pick" id="pmCamp"><b>${ic('flag', 'ic-14')} En campagne</b>
+         <span>un message + 2 relances, préparés pour les jours qui viennent — tu gardes la main</span></button>
+     </div>`;
+  sh.body.querySelector('#pmOne').addEventListener('click', () => { sh.close(); run(list); });
+  sh.body.querySelector('#pmCamp').addEventListener('click', () => { sh.close(); openCampaignWizard(list); });
 }
 
 /* la série : un composeur après l'autre, la relance planifiée entre les

@@ -18,6 +18,7 @@ import { openFiche } from './fiche.js';
 import { openCapture } from './capture.js';
 import { openContactEditor, openAttach } from './contact.js';
 import { openProspect } from './prospect.js';
+import { campaignOfPiste } from './campagnes.js';
 
 let q = '';
 const st = sortState('recent');
@@ -49,7 +50,9 @@ function rowHTML(c){
   const bits = [];
   if (closed) bits.push('<b>' + CLOSE_REASONS[c.closedReason].label + '</b>');
   else if (c.nextAction) bits.push('<b>' + esc(c.nextActionText || 'Faire le point') + '</b> · ' + relLabel(c.nextAction));
+  else if (campaignOfPiste(c.id)) bits.push('en campagne');
   else bits.push('à planifier');
+  if (!closed && c.nextAction && campaignOfPiste(c.id)) bits.push('en campagne');
   if (kmBit(c)) bits.push(kmBit(c));
   if (c.city) bits.push(esc(c.city));
   return (
@@ -67,9 +70,10 @@ function rowHTML(c){
 
 function cardHTML(c){
   const bits = [kmBit(c), c.city, c.domain !== 'autre' ? DOMAINS[c.domain].label : ''].filter(Boolean);
+  const inCamp = campaignOfPiste(c.id);
   const na = c.nextAction
     ? `<span class="bc-na">${esc(c.nextActionText || 'Faire le point')} · <em class="${relLabel(c.nextAction).startsWith('–') ? 'late' : ''}">${relLabel(c.nextAction)}</em></span>`
-    : '<span class="bc-na bc-none">à planifier</span>';
+    : `<span class="bc-na bc-none">${inCamp ? 'en campagne' : 'à planifier'}</span>`;
   const foot = [];
   if ((c.contacts || []).length) foot.push(ic('contact', 'ic-14') + ' ' + c.contacts.length);
   foot.push('complète à ' + scoreOf(c) + ' %');
