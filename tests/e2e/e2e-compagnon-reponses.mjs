@@ -94,9 +94,14 @@ const attendre = async (fn, ms, quoi) => {
 };
 await attendre(async () => {
   try {
-    const r = await fetch('http://127.0.0.1:17095/oc-compagnon', { signal: AbortSignal.timeout(800) });
-    const j = r.ok && await r.json();
-    return j && j.appairage;
+    for (const port of [17095, 17096, 17097]){
+      try {
+        const r = await fetch(`http://127.0.0.1:${port}/oc-compagnon`, { signal: AbortSignal.timeout(800) });
+        const j = r.ok && await r.json();
+        if (j && j.appairage) return true;
+      } catch (e) {}
+    }
+    return false;
   } catch (e) { return false; }
 }, 30000, 'canal du Compagnon');
 
@@ -184,20 +189,31 @@ await page.waitForFunction(async () => {
   const t = cs[0] && cs[0].targets.find(x => x.cid === 'p1');
   return t && t.state === 'replied';
 }, null, { timeout: 20000 });
+const rapBrut = await page.evaluate(async () => {
+  const { loadCompanion } = await import('./ui/compagnon.js');
+  const { probeCompanion, companionCall } = await import('./engine/companion.js');
+  const assoc = await loadCompanion();
+  const found = await probeCompanion();
+  return await companionCall(found.base, assoc.k, { t: 'rapport' });
+});
+if (!Array.isArray(rapBrut.reponses) || !rapBrut.reponses.includes('p1'))
+  fail('rapport sans la réponse détectée : ' + JSON.stringify(rapBrut));
+/* chaque sonde relance la réconciliation : convergence garantie */
 await page.waitForFunction(async () => {
+  await (await import('./ui/campagnes.js')).reconcileCompanion();
   const st = await import('./engine/storage.js');
   const data = JSON.parse(await st.kvGet(st.DATA_KEY));
   const p = data.find(x => x.id === 'p1');
-  return p && p.status === 'reply';
-}, null, { timeout: 10000 }).catch(() => {});
+  return p && p.status === 'reply' && (p.history || []).some(h => /ton ordinateur/.test(h.t || ''));
+}, null, { timeout: 20000, polling: 1200 });
 const fiche = await page.evaluate(async () => {
   const st = await import('./engine/storage.js');
   const data = JSON.parse(await st.kvGet(st.DATA_KEY));
   const p = data.find(x => x.id === 'p1');
-  return { status: p.status, hist: (p.history || []).map(h => h.t).join(' | ') };
+  return { status: p.status, hist: (p.history || []).map(h => h.t).join(' | '), brut: JSON.stringify(p).slice(0, 400) };
 });
 if (fiche.status !== 'reply') fail('statut fiche attendu reply, vu ' + fiche.status);
-if (!/réponse détectée par ton ordinateur/.test(fiche.hist)) fail('trace absente : ' + fiche.hist);
+if (!/réponse détectée par ton ordinateur/.test(fiche.hist)) fail('trace absente — fiche : ' + fiche.brut);
 console.log('fiche marquée « réponse », trace posée ✓');
 await page.goto(base + '/#/aujourdhui');
 await page.waitForSelector('.camp-line');

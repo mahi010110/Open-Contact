@@ -10,6 +10,7 @@ use tauri::{
     Manager,
 };
 
+mod analyse;
 mod canal;
 mod coffrelocal;
 mod commandes;

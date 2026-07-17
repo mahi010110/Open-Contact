@@ -12,8 +12,12 @@ import { mergeIncoming } from '../engine/merge.js';
 import { normalizeCompany } from '../engine/model.js';
 import { S, bus, saveData, logJ } from './state.js';
 import { openSheet, toast, btn, ic, showUndo } from './dom.js';
-import { openRoom } from './synclive.js';
+import { openRoom, deviceSelf, ensureKeys } from './synclive.js';
 import { startScan } from './qr.js';
+import { probeCompanion, companionCall } from '../engine/companion.js';
+import { makeMission, signMission } from '../engine/mission.js';
+import { loadCompanion } from './compagnon.js';
+import { requireCode } from './verrou.js';
 
 export function openRecevoir(){
   let stopScan = null;
@@ -137,18 +141,30 @@ export function openRecevoir(){
      proposition d'IA se trie, un fichier de camarade se prend en
      bloc). Demain : le Compagnon fera la lecture tout seul, cette
      feuille gagnera simplement le chemin automatique. */
-  const mails = () => {
+  const mails = async () => {
     sh.setTitle('Depuis mes e-mails');
     const prompt = (S.profile.prompts.find(p => /mails?|e-?mails?/i.test(p.name)) || S.profile.prompts[0]);
+    const assoc = await loadCompanion().catch(() => null);
     sh.body.innerHTML =
-      `<div class="pick-list">
+      `${assoc ? `
+       <div class="pick-list">
+         <button class="pick" id="rcScan7"><b>${ic('zap', 'ic-14')} Ton ordinateur lit tes 7 derniers jours</b>
+           <span>l’IA lit chez toi, propose ici — annulable</span></button>
+         <button class="pick" id="rcScan30"><b>${ic('zap', 'ic-14')} Les 30 derniers jours</b>
+           <span>plus long, plus complet</span></button>
+       </div>
+       <p class="hint">${ic('shield', 'ic-14')} Rien ne s’enregistre sans ton accord — chaque proposition se trie.</p>
+       <div class="lbl-row" style="margin:12px 0 6px"><label>ou à la main</label></div>` : ''}
+       <div class="pick-list">
          <div class="lk-why">${ic('copy', 'ic-14')} <span>Copie le prompt, colle-le dans ton assistant IA avec tes e-mails.</span></div>
          <div class="lk-why">${ic('clipboard', 'ic-14')} <span>Rapporte ici sa réponse : chaque piste proposée se coche ou s’écarte.</span></div>
-         <div class="lk-why">${ic('shield', 'ic-14')} <span>Rien ne s’enregistre sans ton accord.</span></div>
+         ${assoc ? '' : `<div class="lk-why">${ic('shield', 'ic-14')} <span>Rien ne s’enregistre sans ton accord.</span></div>`}
        </div>
-       <p class="hint">${ic('lightbulb', 'ic-14')} Bientôt : ton ordinateur fera la lecture tout seul (Compagnon).</p>
+       ${assoc ? '' : `<p class="hint">${ic('lightbulb', 'ic-14')} Avec le Compagnon, ton ordinateur fait la lecture tout seul — Moi → Mes appareils.</p>`}
        <div class="field" style="margin-top:10px"><label for="rcMailTxt">La réponse de l’IA</label>
          <textarea id="rcMailTxt" style="min-height:120px" placeholder="Colle ici le texte produit par l’assistant"></textarea></div>`;
+    q('#rcScan7')?.addEventListener('click', () => scan(7));
+    q('#rcScan30')?.addEventListener('click', () => scan(30));
     sh.setFoot([
       btn('← Retour', 'btn-ghost', menu),
       btn('Copier le prompt', '', async () => {
@@ -157,6 +173,53 @@ export function openRecevoir(){
       }, 'copy'),
       btn('Lire', 'btn-primary', () => treat(q('#rcMailTxt').value, undefined, { select: true }))
     ]);
+
+    /* le chemin automatique : mission bornée, visible, annulable —
+       le résultat repasse par le MÊME aperçu que le collage */
+    async function scan(jours){
+      const assoc2 = await loadCompanion().catch(() => null);
+      if (!assoc2) return;
+      if (!await requireCode('Ton code, pour lancer la lecture')) return;
+      const found = await probeCompanion();
+      if (!found){ toast('Ton ordinateur est éteint — ouvre le Compagnon d’abord.'); return; }
+      let mid = null, annule = false;
+      sh.setTitle('Lecture en cours');
+      sh.body.innerHTML =
+        `<p class="hint" style="margin:12px 0">${ic('zap', 'ic-14')} Ton ordinateur lit tes ${jours} derniers jours
+           et l’IA locale prépare des propositions — une à deux minutes.</p>
+         <p class="hint" id="rcScanSt"></p>`;
+      sh.setFoot([btn('Annuler', 'btn-ghost', async () => {
+        annule = true;
+        try { if (mid) await companionCall(found.base, assoc2.k, { t: 'revoquer', mid }); } catch (e) {}
+        mails();
+      })]);
+      try {
+        const self = await deviceSelf();
+        const keys = await ensureKeys();
+        const m = makeMission('mail-scan', { jours, prompt: prompt.text });
+        const wire = await signMission(m, self.id, keys.seed);
+        mid = m.mid;
+        const rep = await companionCall(found.base, assoc2.k, { t: 'mission', wire });
+        if (!rep || rep.t !== 'mission-ok') throw new Error('mission');
+        for (;;){
+          await new Promise(r => setTimeout(r, 1500));
+          if (annule || !sh.body.isConnected) return;
+          const e = await companionCall(found.base, assoc2.k, { t: 'analyse-etat', mid });
+          if (!e || e.etat === 'en cours' || e.etat === 'inconnue') continue;
+          if (e.etat === 'annulee') return;
+          if (e.etat === 'erreur') throw new Error(e.e || 'analyse');
+          treat(String(e.resultat || ''), undefined, { select: true });
+          return;
+        }
+      } catch (err) {
+        if (annule) return;
+        const st = q('#rcScanSt');
+        if (st) st.textContent = /messagerie/.test(String(err && err.message))
+          ? 'Règle la messagerie dans la fenêtre du Compagnon, puis reviens.'
+          : 'Pas de proposition — ' + (err && err.message === 'analyse' ? 'l’IA n’a pas répondu.' : (err && err.message || 'réessaie.'));
+        sh.setFoot([btn('← Retour', 'btn-ghost', mails)]);
+      }
+    }
   };
 
   /* ---- coller ---- */

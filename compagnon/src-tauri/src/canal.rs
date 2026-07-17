@@ -217,9 +217,16 @@ fn repondre_boite(
             });
             em.sauver(&p.coffre);
             println!("compagnon : mission reçue {}", ms.mid);
-            /* premier passage sans attendre le tick */
-            let p2 = p.clone();
-            std::thread::spawn(move || crate::planif::cycle(&p2));
+            if ms.kind == "mail-scan" {
+                /* l'analyse démarre tout de suite, bornée et annulable */
+                let jours = ms.params["jours"].as_i64().unwrap_or(7).clamp(1, 90);
+                let prompt = ms.params["prompt"].as_str().unwrap_or("").to_string();
+                crate::analyse::lancer(p.clone(), ms.mid.clone(), jours, prompt);
+            } else {
+                /* campagne : premier passage sans attendre le tick */
+                let p2 = p.clone();
+                std::thread::spawn(move || crate::planif::cycle(&p2));
+            }
             serde_json::json!({ "t": "mission-ok", "mid": ms.mid })
         }
         Some("revoquer") => {
@@ -245,6 +252,13 @@ fn repondre_boite(
                 }
             }
             serde_json::json!({ "t": "ok" })
+        }
+        /* où en est une analyse — et son résultat quand elle a fini */
+        Some("analyse-etat") => {
+            let mid = msg["mid"].as_str().unwrap_or("");
+            let mut v = crate::analyse::etat(p, mid);
+            v["t"] = "analyse".into();
+            v
         }
         /* le journal complet — la PWA replie (markSent idempotent) */
         Some("rapport") => {

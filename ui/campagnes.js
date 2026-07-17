@@ -125,15 +125,21 @@ async function foldReponses(cids){
     if (!c.auto) return c;
     let cc = c;
     for (const cid of cids){
-      const t = cc.targets.find(x => x.cid === cid && x.state === 'active');
-      if (!t) continue;
-      cc = markReplied(cc, cid);
-      changed = true;
+      if (!cc.targets.some(x => x.cid === cid)) continue;
+      if (cc.targets.some(x => x.cid === cid && x.state === 'active')){
+        cc = markReplied(cc, cid);
+        changed = true;
+      }
+      /* la fiche, INDÉPENDAMMENT de la transition de cible : une
+         réconciliation précoce (pistes pas encore chargées) ne doit
+         pas consommer le marquage — on re-tente tant que la fiche
+         n'est pas au bon statut, jamais deux fois la même trace */
       const p = S.companies.find(x => x.id === cid);
-      if (p){
+      if (p && p.status !== 'reply' && !isClosed(p)){
         pushHist(p, 'Campagne « ' + c.name + ' » — réponse détectée par ton ordinateur, relances arrêtées.');
         if (p.status === 'todo' || p.status === 'active') p.status = 'reply';
         p.updatedAt = Date.now();
+        changed = true;
       }
     }
     return cc;
@@ -313,8 +319,13 @@ export function openCampaignWizard(list){
        </details>
        ${skipped.length ? `<p class="hint warn">${skipped.length} piste${skipped.length > 1 ? 's' : ''} sans email — écartée${skipped.length > 1 ? 's' : ''} : ${esc(skipped.map(c => c.name).join(', ').slice(0, 120))}</p>` : ''}
        ${acct || compAssoc ? '' : `<p class="hint warn">Connecte ta messagerie pour envoyer depuis l’app. <button class="linklike" id="czCx" style="min-height:0;padding:0 4px">Connecter</button></p>`}
-       ${draft.auto ? '' : `<p class="hint">Rien ne part tout seul : chaque jour, tes envois prêts t’attendent dans « Aujourd’hui ».</p>`}`;
+       ${draft.auto ? '' : `<p class="hint">Rien ne part tout seul : chaque jour, tes envois prêts t’attendent dans « Aujourd’hui ».</p>`}
+       ${compAssoc ? '' : `<p class="hint">${ic('lightbulb', 'ic-14')} Ton ordinateur peut envoyer même app fermée — <button class="linklike" id="czVoirComp" style="min-height:0;padding:0 4px">voir comment</button></p>`}`;
     q('#czCx')?.addEventListener('click', () => openConnexions());
+    q('#czVoirComp')?.addEventListener('click', async () => {
+      const { openAddCompanion } = await import('./compagnon.js');
+      openAddCompanion(() => { loadCompanion().then(a => { compAssoc = a; stepControl(); }); });
+    });
     q('#czManu')?.addEventListener('click', () => { draft.auto = false; stepControl(); });
     q('#czAutoOpt')?.addEventListener('click', () => { draft.auto = true; stepControl(); });
     /* honnêteté : l'ordinateur est-il là, sa messagerie est-elle réglée ? */

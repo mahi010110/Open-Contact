@@ -91,7 +91,19 @@
     côté Compagnon (non débrayable) et la PWA replie : fiche
     « réponse », trace, relances annulées. E2E vrai binaire + faux
     IMAP (OC_IMAP_TEST). Outlook OAuth : attend l'app du mainteneur.
-  - Suite : C6 analyse d'e-mails, C7 états & finitions (PLAN.md).
+  - **C6 livré — « ton ordinateur lit tes e-mails »** : mission
+    `mail-scan` bornée (jours, 40 messages, 100 Ko), Ollama local
+    (OC_OLLAMA), résultat scellé, annulable (révoquée = rien n'est
+    produit) ; la PWA offre le chemin auto dans « Depuis mes e-mails »
+    (Compagnon associé) et le résultat repasse par l'aperçu
+    multi-sélection — E2E vrai binaire, corpus piégé, injection
+    neutralisée par le rail.
+  - **C7 livré** : états partout (éteint/rattrapage, refus/incertain/
+    transitoire, révocations en file), docs, oc-v27.
+  - **C8 reporté (après fusion)** : missions depuis le téléphone —
+    sync des campagnes/missions entre appareils ou P2P du Compagnon ;
+    sur téléphone l'option auto n'apparaît pas (aucune promesse
+    cassée), la vérification côté Compagnon est déjà prête.
 - **Prochaine action exacte** : au choix du mainteneur — arbitrer l'étude
   Compagnon (D17/D18), déclarer les apps OAuth (débloque l'envoi réel).
   Côté PWA, tout nouveau travail = relire `UX-PLAN.md` et repartir des

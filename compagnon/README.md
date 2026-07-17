@@ -32,6 +32,25 @@ cargo build -p oc-compagnon        # la coquille (webkit2gtk + gtk3 requis sous 
 Le bundle (`deb`/`appimage`) passe par la CLI Tauri : `cargo tauri build`
 depuis `compagnon/src-tauri` (la CLI lance `preparer.mjs` toute seule).
 
+## Le canal local (résumé du protocole)
+
+`GET /oc-compagnon` — découverte : `{v, nom, associe, appairage?:{s}}`.
+Tout le reste voyage en enveloppes `OCV1.` (AES-GCM, AAD liée) :
+`POST /appairage` sous la clé dérivée du code court (PBKDF2 120 000),
+`POST /boite` sous la clé de canal née de l'appairage — messages
+`ping`, `dissocier`, `mission` (bon signé Ed25519, re-vérifié à chaque
+lecture), `revoquer`, `arreter-cible`, `rapport`, `analyse-etat`.
+Rien d'utile en clair ; un processus local sans le code n'obtient rien.
+
+## Crochets de développement (jamais en production)
+
+`OC_APPAIRAGE_AUTO=code` (appairage ouvert au démarrage),
+`OC_SMTP_TEST=hote:port` (puits SMTP en clair),
+`OC_IMAP_TEST=hote:port` (faux IMAP en clair),
+`OC_OLLAMA=url` / `OC_OLLAMA_MODELE`, `OC_CORPUS_TEST=fichier`,
+`OC_TICK_MS`, `OC_FENETRE_TEST=1`. Les scénarios `tests/e2e/
+e2e-compagnon-*.mjs` les utilisent contre le binaire réel sous xvfb.
+
 ## Règles héritées du dépôt
 
 Pas de serveur, pas de compte, pas d'analytics. Les secrets vivent dans

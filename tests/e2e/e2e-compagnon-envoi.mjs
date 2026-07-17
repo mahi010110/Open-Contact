@@ -76,10 +76,13 @@ const attendre = async (fn, ms, quoi) => {
   }
 };
 const sonde = async () => {
-  try {
-    const r = await fetch('http://127.0.0.1:17095/oc-compagnon', { signal: AbortSignal.timeout(800) });
-    return r.ok ? await r.json() : null;
-  } catch (e) { return null; }
+  for (const port of [17095, 17096, 17097]){
+    try {
+      const r = await fetch(`http://127.0.0.1:${port}/oc-compagnon`, { signal: AbortSignal.timeout(800) });
+      if (r.ok) return await r.json();
+    } catch (e) {}
+  }
+  return null;
 };
 lancer();
 await attendre(async () => { const i = await sonde(); return i && i.appairage; }, 30000, 'canal du Compagnon');
