@@ -27,7 +27,6 @@ pub fn appairage_demarrer(p: State<Arc<Partage>>) -> Result<String, String> {
     rand::thread_rng().fill_bytes(&mut sel);
     let kc = oc_coeur::cle_du_code(&code, &sel);
     *p.appairage.lock().unwrap() = Some(Appairage {
-        code: code.clone(),
         sel,
         kc,
         depuis: Instant::now(),
