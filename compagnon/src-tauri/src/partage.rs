@@ -33,7 +33,6 @@ struct EtatDisque {
 }
 
 pub struct Appairage {
-    pub code: String,
     pub sel: [u8; 16],
     pub kc: [u8; 32],
     pub depuis: Instant,
