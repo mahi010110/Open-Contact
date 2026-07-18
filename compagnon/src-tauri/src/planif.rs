@@ -49,6 +49,11 @@ fn maintenant() -> (u8, u8, String, i64) {
 }
 
 pub fn cycle(p: &Arc<Partage>) {
+    /* un seul cycle à la fois : celui du canal (premier passage d'une
+       campagne confiée) et celui de la boucle périodique ne doivent jamais
+       charger le journal en même temps — sinon le même envoi part deux fois.
+       Le verrou couvre tout le cycle, envois SMTP compris. */
+    let _serialise = p.journal_lock.lock().unwrap();
     let (js, h, date, present) = maintenant();
     if !oc_coeur::dans_fenetre(js, h) {
         return;

@@ -42,6 +42,10 @@ fn chercher<T: Read + Write>(
 }
 
 pub fn detecter(p: &Arc<Partage>) {
+    /* même verrou que le cycle d'envoi : la détection réécrit le journal
+       (arrêts, réponses) et ne doit pas se croiser avec un envoi qui écrit
+       « fait » — sinon l'un écrase l'autre et un envoi confirmé peut repartir. */
+    let _serialise = p.journal_lock.lock().unwrap();
     let Some(pub_pair) = p
         .assoc
         .lock()

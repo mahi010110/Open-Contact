@@ -50,6 +50,12 @@ pub struct Partage {
     pub canal_k: Mutex<Option<[u8; 32]>>,
     pub appairage: Mutex<Option<Appairage>>,
     pub port: AtomicU16,
+    /* sérialise tout lire-modifier-écrire du journal d'envois : le canal
+       lance un cycle « premier passage » dès qu'une campagne est confiée,
+       pendant que la boucle périodique tourne — sans ce verrou, deux cycles
+       chargent le journal avant que l'un écrive « incertain » et le même
+       envoi part deux fois. Détenu le temps d'un cycle (envois compris). */
+    pub journal_lock: Mutex<()>,
 }
 
 const ALPHABET: &[u8] = b"ABCDEFGHJKMNPQRSTUVWXYZ23456789"; /* sans I, L, O, 0, 1 */
@@ -109,6 +115,7 @@ impl Partage {
             canal_k: Mutex::new(canal_k),
             appairage: Mutex::new(None),
             port: AtomicU16::new(0),
+            journal_lock: Mutex::new(()),
         };
         p.persister();
         p
