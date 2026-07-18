@@ -47,7 +47,7 @@ export function aiStateLabel(){
   if (ai && ai.provider && AI_FAMILIES[ai.provider]){
     const fam = AI_FAMILIES[ai.provider];
     if (fam.channel === 'browser' && ai.key) return AI_FAMILIES[ai.provider].label;
-    return AI_FAMILIES[ai.provider].label + ' — via ton ordinateur';
+    return AI_FAMILIES[ai.provider].label + ' — pas encore disponible';
   }
   return 'aucune';
 }
@@ -186,7 +186,7 @@ export async function openConnexions(){
              : `<button class="btn btn-sm" data-cx="${p.id}">Connecter</button>`}
          </div>`;
        }).join('')}
-       <div class="lbl-row" style="margin-top:14px"><label>IA <span class="lbl-soft">— rédaction, bientôt l’analyse</span></label></div>
+       <div class="lbl-row" style="margin-top:14px"><label>IA <span class="lbl-soft">— aide à la rédaction</span></label></div>
        <div class="ec-row">
          <div class="ec-row-m"><b>${ic('sparkles', 'ic-14')} Assistant</b>
            <span class="ec-sub">${esc(aiStateLabel())}</span></div>
@@ -211,8 +211,8 @@ export async function openConnexions(){
   render();
 }
 
-/* la feuille IA : choisir une famille, coller une clé (navigateur) ou
-   noter « via ton ordinateur » (Compagnon à venir). Une seule active. */
+/* la feuille IA : les deux choix utilisables maintenant sont explicites ;
+   les adaptateurs Compagnon non livrés restent visibles, mais non activables. */
 function openAiSheet(after){
   const sh = openSheet({ title: 'Assistant IA', icon: 'sparkles' });
   const q = s => sh.body.querySelector(s);
@@ -224,13 +224,15 @@ function openAiSheet(after){
            const f = AI_FAMILIES[k];
            const on = ai && ai.provider === k;
            const soon = f.channel === 'companion';
-           return `<button class="pick${on ? ' pick-on' : ''}" data-ai="${k}">
+           return `<button class="pick${on ? ' pick-on' : ''}" data-ai="${k}"${soon ? ' disabled aria-disabled="true"' : ''}>
                      <b>${esc(f.label)}</b>
-                     <span>${soon ? 'via ton ordinateur — bientôt' : (f.key ? 'colle ta clé' : 'local')}${on ? ' · actif' : ''}</span>
+                     <span>${soon
+                       ? `${f.key ? 'Clé API' : (k === 'ollama' ? 'Local' : 'Abonnement')} · pas encore disponible`
+                       : 'Clé API · disponible maintenant'}${on ? ' · actif' : ''}</span>
                    </button>`;
          }).join('')}
        </div>
-       ${aiConnection() ? `<button class="linklike" id="aiOff" style="margin-top:12px;color:var(--red)">Retirer l’assistant</button>` : ''}`;
+       ${ai && ai.provider ? `<button class="linklike" id="aiOff" style="margin-top:12px;color:var(--red)">Retirer ce choix</button>` : ''}`;
     sh.body.querySelectorAll('[data-ai]').forEach(b =>
       b.addEventListener('click', () => pick(b.dataset.ai)));
     q('#aiOff')?.addEventListener('click', async () => {
@@ -245,12 +247,7 @@ function openAiSheet(after){
   const pick = k => {
     const f = AI_FAMILIES[k];
     if (f.channel === 'companion'){
-      /* pas de clé navigateur : on note l'intention, le Compagnon l'activera */
-      ai = { provider: k };
-      saveAi();
-      toast('Noté — actif quand ton ordinateur sera relié.');
-      render();
-      after && after();
+      toast('Pas encore disponible — rien n’a changé.');
       return;
     }
     sh.setTitle(f.label);
