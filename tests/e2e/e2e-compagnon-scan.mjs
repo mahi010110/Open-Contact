@@ -48,7 +48,8 @@ const compagnon = spawn('xvfb-run', ['-a', 'dbus-run-session', '--', BIN], {
     OC_APPAIRAGE_AUTO: CODE,
     OC_CORPUS_TEST: corpus,
     OC_OLLAMA: 'http://127.0.0.1:11500',
-    OC_TICK_MS: '1500'
+    OC_TICK_MS: '1500',
+    OC_INTEGRATION_TEST: '1'
   }),
   stdio: ['ignore', 'pipe', 'pipe'], detached: true
 });
