@@ -1,14 +1,15 @@
 # Fable 5 — point de reprise (checkpoint)
 
-- **Phase actuelle** : chantier connecté V1 livré côté PWA (P0 → P8-1),
-  **durci par la phase V** (pré-fusion) ; le Compagnon (D17/D18 validés)
-  démarre dans `compagnon/`.
+- **Phase actuelle** : chantier connecté V1 livré côté PWA (P0 → P8-1) et
+  **Compagnon C1–C7 livré** dans `compagnon/`. Les corrections UX prioritaires
+  de `AUDIT-UX.md` sont maintenant livrées et testées. C8, MCP, nouvelles IA
+  et installateurs Windows/macOS restent volontairement hors périmètre.
 - **Phase V (durcissement) livrée** : rotation du coffre interruptible et
   reprenable (`prev` dans `oc_vault_v1`), le SW ne détourne plus
   `oauth.html` (oc-v23), `wipe` complet (jetons, clés IA, campagnes,
   missions, documents), plafond 15/j **global** + fenêtre d'envoi
   lun–ven 8-19 h (`dueSendsAll`, `inSendWindow`), tests Playwright
-  versionnés dans `tests/e2e/` (8 scénarios, `node tests/e2e/tous.mjs`),
+  versionnés dans `tests/e2e/` (`node tests/e2e/tous.mjs`),
   et reconnexion IndexedDB automatique (les navigateurs mobiles ferment
   la connexion sous pression mémoire — l'app rouvre et re-tente).
 - **Branche Git** : `claude/opencontact-repo-study-3bw0ju`
@@ -36,21 +37,24 @@
   8. **P7-1/P8-1** : `engine/mission.js` (missions bornées/révocables/
      idempotentes) ; « Depuis mes e-mails » dans Recevoir (V1 guidée par
      prompt, aperçu multi-sélection, injection neutralisée par le rail).
-- **Tests** : `?test` **77/77 verts** ; **8 scénarios Playwright dans
-  `tests/e2e/`** (verrou, récupération, envoi, campagne + fenêtre, IA,
-  analyse, oauth-sw, unitaires) — tous verts, thèmes clair/sombre,
-  390/1280, zéro erreur console. `sw.js` → **oc-v23**.
+- **Tests de référence après correction UX** : `?test` est vert à **79/79**.
+  `node tests/e2e/tous.mjs` recense 13 scénarios : **10/10 réellement joués
+  avec succès**, **3 sautés explicitement** car ils exigent le vrai binaire
+  Compagnon. `node compagnon/preparer.mjs` passe. Les 18 tests du cœur Rust,
+  le test de la coquille Tauri et les 3 E2E natifs restent à **rejouer ici** :
+  `cargo` n'est pas installé. Le cache PWA est maintenant **oc-v28**.
 - **Blocages externes (dans l'ordre d'importance)** :
   1. **Apps OAuth Google/Microsoft à déclarer par le mainteneur** —
      renseigner les IDs publics dans `MAIL_CLIENTS` (`engine/mailer.js`),
      puis essai réel d'envoi (l'option avancée de Connexions permet de
      tester avec son propre client avant).
-  2. **Compagnon (Tauri)** = projet distinct : consommer
-     `engine/mission.js`, appairage code court, IMAP/lecture (D8), MCP
-     local (P7-2, P7-3, P8-2). Nécessite un environnement de build dédié.
-  3. Tests manuels sur vrai matériel : biométrie PRF (P1-3), commandes
-     d'anneau entre deux vrais appareils (transport Trystero).
-- **Compagnon (D17/D18 validés — chantier C en cours, `compagnon/`)** :
+  2. **Validation native et matérielle** : installer une toolchain Rust dans
+     l'environnement de reprise, rejouer 18 tests `oc-coeur` + 1 test Tauri,
+     construire le binaire puis les 3 E2E natifs ; ensuite PRF et anneau sur
+     de vrais appareils.
+  3. **Distribution** : Outlook OAuth, signatures, AppImage réel,
+     installateurs Windows/macOS et publication restent externes ou à faire.
+- **Compagnon (D17/D18 validés — C1 à C7 terminés, `compagnon/`)** :
   - **C1 livré** : crate `oc-coeur` (la garde D17 — mission signée
     Ed25519, anti-double-envoi, plafond global, fenêtre, hors-mission)
     `cargo test` 9/9 dont **vecteur croisé** avec le test JS « fil
@@ -99,21 +103,26 @@
     multi-sélection — E2E vrai binaire, corpus piégé, injection
     neutralisée par le rail.
   - **C7 livré** : états partout (éteint/rattrapage, refus/incertain/
-    transitoire, révocations en file), docs, oc-v27. **Installable
+    transitoire, révocations en file), docs, oc-v27 à la livraison C7
+    (oc-v28 après corrections UX). **Installable
     prouvé** : `cargo tauri build --bundles deb` (CLI 2.11) produit
     `OpenContact Compagnon_0.1.0_amd64.deb` (6,1 Mo, release) —
     installé et vérifié dans le conteneur (`/usr/bin/oc-compagnon`).
     AppImage/Windows/macOS : à produire sur les OS cibles (signature
     comprise — spec §8.3, geste mainteneur).
-  - **C8 reporté (après fusion)** : missions depuis le téléphone —
+  - **C8 à faire (hors reprise UX)** : missions depuis le téléphone —
     sync des campagnes/missions entre appareils ou P2P du Compagnon ;
     sur téléphone l'option auto n'apparaît pas (aucune promesse
     cassée), la vérification côté Compagnon est déjà prête.
-- **Prochaine action exacte** : au choix du mainteneur — arbitrer l'étude
-  Compagnon (D17/D18), déclarer les apps OAuth (débloque l'envoi réel).
-  Côté PWA, tout nouveau travail = relire `UX-PLAN.md` et repartir des
-  états « bloquée » de `PLAN.md`.
-- **Première vérification à lancer en reprise** :
-  `git log --oneline -8 && git status`, servir le dossier
-  (`python3 -m http.server`) et ouvrir `http://localhost:8000/?test`
-  (74/74 attendus avant toute modification).
+- **Ordre de suite recommandé** : rejouer le vrai natif avec Cargo/xvfb, puis
+  tester le `.deb`, le verrou PRF, l'anneau et les parcours Compagnon sur
+  matériel réel. Ensuite : récupération des résultats d'analyse après
+  fermeture, C8, MCP, connexions OAuth externes, puis distribution multi-OS.
+  Les ajustements visuels écran par écran restent un chantier séparé avec le
+  mainteneur.
+- **Première vérification à la prochaine reprise** :
+  `git log --oneline -8 && git status`, puis
+  `node tests/e2e/unitaires.mjs` (**79/79 attendus**) et
+  `node tests/e2e/tous.mjs`. Avec la toolchain native :
+  `cargo test --manifest-path compagnon/Cargo.toml` puis construire le
+  binaire avant de rejouer les trois E2E Compagnon réels.
