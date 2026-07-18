@@ -7,7 +7,7 @@ use rand::RngCore;
 use serde::Serialize;
 use std::sync::Arc;
 use std::time::Instant;
-use tauri::State;
+use tauri::{Manager, State};
 use tauri_plugin_autostart::ManagerExt;
 
 #[derive(Serialize)]
@@ -52,10 +52,25 @@ pub fn appairage_sel(p: State<Arc<Partage>>) -> Option<String> {
 /// Démarrage automatique avec la session — optionnel, jamais imposé.
 #[tauri::command]
 pub fn autostart_etat(app: tauri::AppHandle) -> Result<bool, String> {
+    /* le plugin autostart n'est pas enregistré quand les services de bureau
+       sont désactivés (mode intégration / conteneur sans D-Bus) : appeler
+       autolaunch() ferait paniquer le processus. On répond « désactivé ». */
+    if app
+        .try_state::<tauri_plugin_autostart::AutoLaunchManager>()
+        .is_none()
+    {
+        return Ok(false);
+    }
     app.autolaunch().is_enabled().map_err(|e| e.to_string())
 }
 #[tauri::command]
 pub fn autostart_regler(app: tauri::AppHandle, actif: bool) -> Result<(), String> {
+    if app
+        .try_state::<tauri_plugin_autostart::AutoLaunchManager>()
+        .is_none()
+    {
+        return Err("Démarrage automatique indisponible sur ce système.".into());
+    }
     let al = app.autolaunch();
     if actif { al.enable() } else { al.disable() }.map_err(|e| e.to_string())
 }
