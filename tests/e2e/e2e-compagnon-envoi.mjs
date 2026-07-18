@@ -59,7 +59,8 @@ function lancer(){
       OC_APPAIRAGE_AUTO: CODE,
       OC_SMTP_TEST: '127.0.0.1:2525',
       OC_TICK_MS: '1200',
-      OC_FENETRE_TEST: '1'
+      OC_FENETRE_TEST: '1',
+      OC_INTEGRATION_TEST: '1'
     }),
     stdio: ['ignore', 'pipe', 'pipe'], detached: true
   });
@@ -181,13 +182,23 @@ console.log('kill −9 puis relance : toujours 2 messages — zéro doublon ✓'
 /* la PWA replie le rapport au retour */
 await page.reload({ waitUntil: 'load' });
 await deverrouiller();
+/* le retrait du verrou précède de quelques millisecondes la fin de
+   l'amorçage : attendre le marqueur posé après loadCampaigns évite de
+   lancer la réconciliation alors que son état mémoire est encore vide */
+await page.waitForFunction(() => !!document.querySelector('#sbVer')?.textContent.trim(),
+  null, { timeout: 10000 });
+await page.evaluate(async () => {
+  await (await import('./ui/campagnes.js')).reconcileCompanion();
+});
 await page.waitForFunction(async () => {
-  const { loadCampaigns } = await import('./ui/campagnes.js');
-  const cs = await loadCampaigns();
+  const st = await import('./engine/storage.js');
+  const cs = JSON.parse(await st.kvGet(st.CAMPAIGNS_KEY) || '[]');
   return cs.length === 1 && (cs[0].log || []).length === 2;
 }, null, { timeout: 20000 });
 await page.goto(base + '/#/aujourdhui');
 await page.waitForSelector('.camp-line');
+await page.waitForFunction(() => /2 envoyés/.test(
+  document.querySelector('.camp-line')?.textContent || ''), null, { timeout: 20000 });
 const ligne = await page.textContent('.camp-line');
 if (!/ton ordinateur s’en occupe/.test(ligne) || !/2 envoyés/.test(ligne)) fail('ligne du jour : ' + ligne);
 console.log('rapport replié : 2 envois au journal de la PWA ✓');
