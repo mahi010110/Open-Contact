@@ -107,11 +107,14 @@ function orphansHTML(){
     `<details class="tranche tr-orph" open>
        <summary class="tr-h">${ic('contact', 'ic-14')} Contacts à rattacher <span class="tr-n">${S.orphans.length}</span></summary>
        <div class="rows">${S.orphans.map(o => {
-         const sub = [o.role, o.email || o.phone, (o.extra && o.extra.company) ? '→ ' + o.extra.company + ' ?' : '']
+         const title = ctLabel(o);
+         const sameAsTitle = v => String(v || '').trim().toLocaleLowerCase() === String(title).trim().toLocaleLowerCase();
+         const contact = [o.email, o.phone].filter(v => v && !sameAsTitle(v))[0] || '';
+         const sub = [o.role, contact, (o.extra && o.extra.company) ? '→ ' + o.extra.company + ' ?' : '']
            .filter(Boolean).map(esc).join(' · ');
          return `<div class="orow" data-oid="${o.id}">
-                   <div class="o-main" role="button" tabindex="0" aria-label="Modifier ${esc(ctLabel(o))}">
-                     <h4>${esc(ctLabel(o))}</h4>
+                   <div class="o-main" role="button" tabindex="0" aria-label="Modifier ${esc(title)}">
+                     <h4>${esc(title)}</h4>
                      <div class="o-sub">${sub || 'à compléter'}</div>
                    </div>
                    <button class="btn btn-sm" data-attach="${o.id}">Rattacher</button>
