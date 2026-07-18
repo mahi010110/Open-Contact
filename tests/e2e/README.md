@@ -26,3 +26,8 @@ binaire>`. Les captures vont dans `captures/` (non versionné).
 | `e2e-compagnon-envoi.mjs` | Le VRAI binaire (xvfb) : campagne confiée par l'assistant, envois SMTP réels vers un puits local, kill −9 + relance = zéro doublon, rapport replié, reprise en main — sauté si `compagnon/target` n'est pas construit |
 | `e2e-compagnon-reponses.mjs` | Le VRAI binaire + faux IMAP : réponse détectée en boîte → relances arrêtées seules, fiche marquée « réponse » au repli — sauté sans binaire |
 | `e2e-compagnon-scan.mjs` | Le VRAI binaire + corpus piégé + faux Ollama : « ton ordinateur lit tes e-mails » → aperçu multi-sélection, injection neutralisée, tri respecté — sauté sans binaire |
+| `e2e-ux-audit.mjs` | Priorités de l'audit : actions impossibles désactivées, copie Compagnon mobile, relais avancés, cibles 44 px, doublon orphelin et disponibilité IA honnête |
+
+Le résumé de `tous.mjs` distingue **joués**, **sautés** et **échoués**. Les
+trois scénarios vrai-binaire ne sont donc plus comptés comme verts lorsque le
+binaire Compagnon (ou `xvfb-run`) manque.
