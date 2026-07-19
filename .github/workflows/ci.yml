@@ -28,6 +28,7 @@ jobs:
         run: |
           npm i -g playwright
           playwright install --with-deps chromium
+          echo "OC_PLAYWRIGHT=$(npm root -g)/playwright/index.mjs" >> "$GITHUB_ENV"
       - name: Auto-tests (?test)
         run: node tests/e2e/unitaires.mjs
 
@@ -69,6 +70,7 @@ jobs:
         run: |
           npm i -g playwright
           playwright install --with-deps chromium
+          echo "OC_PLAYWRIGHT=$(npm root -g)/playwright/index.mjs" >> "$GITHUB_ENV"
       - name: Dépendances système Tauri + xvfb
         run: |
           sudo apt-get update

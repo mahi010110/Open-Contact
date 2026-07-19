@@ -5,18 +5,28 @@
   familles IA de D5 complètes** (plus aucune famille « pas encore
   disponible »). Les corrections UX prioritaires de `AUDIT-UX.md` sont
   livrées et testées. Une CI GitHub Actions rejoue tout (V7).
-- **P6-3 livrée — l'IA passe aussi par ton ordinateur (D5 complet)** :
-  OpenRouter rejoint Claude/Gemini en clé navigateur (CORS autorisé par le
-  fournisseur, vérifié) ; Ollama (local, sans clé), OpenAI (clé de
-  l'utilisateur) et l'abonnement ChatGPT (outil officiel Codex, mode non
-  interactif documenté `codex exec --output-last-message`, bac à sable
-  lecture seule, dossier temporaire vide) passent par le Compagnon :
-  messages `ia-demarrer`/`ia-etat` du canal chiffré, asynchrones (le canal
-  reste vif), garde pure `oc_coeur::ia` (vocabulaire fermé, bornes, clé
-  exigée pour OpenAI, jid à alphabet fermé). La clé sert l'appel puis
-  s'oublie : jamais écrite chez le Compagnon (prouvé par `grep` du disque
-  dans l'E2E), jamais journalisée. Erreurs en codes courts (`cle`,
-  `quota`, `indispo`, `runtime`, `occupe`, `eteint`, `compagnon`)
+- **P6-3 livrée — l'IA passe aussi par ton ordinateur (D5 complet), sans
+  modèle implicite** : OpenRouter rejoint Claude/Gemini en clé navigateur
+  (CORS autorisé par le fournisseur, vérifié) ; Ollama (local, sans clé),
+  OpenAI (clé de l'utilisateur) et l'abonnement ChatGPT passent par le
+  Compagnon : messages `ia-demarrer`/`ia-etat`/`ia-annuler` du canal
+  chiffré, asynchrones et ANNULABLES (fermer la feuille tue ou jette le
+  travail, le verrou se libère, toute attente a une échéance), garde pure
+  `oc_coeur::ia` (vocabulaire fermé, bornes d'entrée et de sortie
+  `TEXTE_MAX`). **Aucun modèle codé en dur nulle part** — la leçon
+  Gemini 2.0 Flash (éteint le 2026-06-01 alors que le code le servait
+  par défaut) est corrigée à la racine : l'utilisateur choisit dans la
+  liste que chaque fournisseur sert VRAIMENT (`/v1/models` Anthropic et
+  OpenAI, `ListModels` Gemini, `/api/v1/models` OpenRouter, tags Ollama,
+  et `codex app-server` → `model/list` pour l'abonnement — GPT-5.5/5.6 et
+  variantes selon le compte), liste injoignable = dit honnêtement, champ
+  libre en repli. Génération ChatGPT par `codex exec` non interactif :
+  prompt par STDIN (jamais dans `ps`), bac à sable lecture seule (ni
+  écriture, ni commande, ni réseau), cadrage donnée≠instruction,
+  `--model` choisi. La clé sert l'appel puis s'oublie : jamais écrite
+  chez le Compagnon (prouvé par `grep` du disque dans l'E2E), jamais
+  journalisée. Erreurs en codes courts (`cle`, `quota`, `indispo`,
+  `runtime`, `occupe`, `eteint`, `compagnon`, `modele`, `annule`)
   traduits par le composeur — le texte en place n'est jamais perdu.
   Cache PWA **oc-v32**. Crochets dev : OC_OPENAI_TEST, OC_CODEX.
 - **P8-2 livrée — serveur MCP local** : `oc-compagnon --mcp` (SDK officiel
@@ -72,15 +82,17 @@
      multi-sélection et injection neutralisée par le rail.
 - **Tests de référence après P6-3** : `?test` est vert à **87/87**. La
   suite complète (`node tests/e2e/tous.mjs`) passe à **16/16, zéro saut**.
-  `cargo test --locked` passe à **30/30** (29 cœur dont 5 MCP et 4 IA +
+  `cargo test --locked` passe à **31/31** (30 cœur dont 5 MCP et 5 IA +
   1 coquille), le Compagnon se construit, puis les **6/6 scénarios natifs
   passent contre le vrai binaire** : envoi + kill/reprise sans doublon,
   réponse IMAP, analyse locale fermée/reprise + fusion sûre, téléphone C8,
   MCP local (client JSON-RPC réel sur stdio) et rédaction IA via
-  l'ordinateur (faux Ollama/OpenAI/Codex, clé jamais sur le disque,
-  rejoué trois fois). Le cache PWA est **oc-v32**. La CI
-  (`.github/workflows/ci.yml`) rejoue unitaires, cargo et la suite
-  complète ; `paquets.yml` construit les bundles non signés à la demande.
+  l'ordinateur (listes de modèles réelles des trois runtimes factices,
+  protocole app-server exact, prompt par stdin, clé jamais sur le disque,
+  annulation qui libère — rejoué trois fois). Le cache PWA est
+  **oc-v32**. La CI (`.github/workflows/ci.yml`) rejoue unitaires, cargo
+  et la suite complète ; `paquets.yml` construit les bundles non signés
+  des trois OS (joué sur la PR qui le modifie, et à la demande).
 - **Blocages externes (dans l'ordre d'importance)** :
   1. **Apps OAuth Google/Microsoft à déclarer par le mainteneur** —
      renseigner les IDs publics dans `MAIL_CLIENTS` (`engine/mailer.js`),

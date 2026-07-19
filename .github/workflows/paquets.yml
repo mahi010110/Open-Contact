@@ -8,6 +8,10 @@ name: Paquets Compagnon
 
 on:
   workflow_dispatch:
+  # toute PR qui touche ce workflow le PROUVE en le jouant — pas de
+  # chaîne de paquets déclarée « prête » sans exécution constatée
+  pull_request:
+    paths: ['.github/workflows/paquets.yml']
 
 jobs:
   paquets:
