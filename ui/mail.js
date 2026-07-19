@@ -137,13 +137,16 @@ export function openMail(c, opts){
         company: c, contactName: ct && ct.name, contactRole: ct && ct.role, profile: S.profile
       });
       const txt = conn && conn.channel === 'companion'
-        ? await aiCompleteViaCompanion(conn, prompt)
+        ? await aiCompleteViaCompanion(conn, prompt, { cancelled: () => !sh.body.isConnected })
         : await aiComplete(conn, prompt);
+      if (!sh.body.isConnected) return;   /* feuille fermée entre-temps */
       if (txt){ q('#mBody').value = txt; sync(); toast('Brouillon proposé — relis avant d’envoyer.'); }
       else toast('L’IA n’a rien proposé — le modèle reste là.');
     } catch (e) {
+      if (e.message === 'annule' || !sh.body.isConnected) return;   /* abandon voulu : silence */
       toast(e.message === 'quota' ? 'Quota IA atteint — le modèle reste là.'
         : e.message === 'cle' ? 'Clé refusée — vérifie-la dans Connexions.'
+        : e.message === 'modele' ? 'Choisis un modèle dans Connexions — la liste vient du fournisseur.'
         : e.message === 'compagnon' ? 'Associe le Compagnon dans « Mes appareils » d’abord.'
         : e.message === 'eteint' ? 'Ton ordinateur est éteint — ouvre le Compagnon.'
         : e.message === 'runtime' ? 'Le moteur IA de ton ordinateur ne répond pas — il est bien installé ?'

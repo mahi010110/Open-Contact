@@ -172,16 +172,22 @@ await tapIn(aiPage, '#rqPad', '280941');
 await aiPage.waitForSelector('#cxAi');
 await aiPage.click('#cxAi');
 await aiPage.waitForSelector('[data-ai="gemini"]');
+/* depuis P6-3, TOUTES les familles sont réelles : chacune dit son
+   chemin (« ici » ou « via ton ordinateur »), aucune n'est grisée
+   et « pas encore disponible » a disparu pour de bon */
 const aiUi = await aiPage.evaluate(() => ({
   gemini: document.querySelector('[data-ai="gemini"]').textContent,
   openai: document.querySelector('[data-ai="openai"]').textContent,
+  ollama: document.querySelector('[data-ai="ollama"]').textContent,
   openaiDisabled: document.querySelector('[data-ai="openai"]').disabled,
   ollamaDisabled: document.querySelector('[data-ai="ollama"]').disabled
 }));
-if (!/disponible maintenant/.test(aiUi.gemini) || !/pas encore disponible/.test(aiUi.openai)
-    || !aiUi.openaiDisabled || !aiUi.ollamaDisabled)
+if (!/Clé API · ici/.test(aiUi.gemini) || !/via ton ordinateur/.test(aiUi.openai)
+    || !/via ton ordinateur/.test(aiUi.ollama)
+    || aiUi.openaiDisabled || aiUi.ollamaDisabled
+    || /pas encore disponible/.test(JSON.stringify(aiUi)))
   fail('disponibilité IA ambiguë : ' + JSON.stringify(aiUi));
-console.log('connexions IA : disponible maintenant vs pas encore disponible ✓');
+console.log('connexions IA : chaque famille dit son chemin, aucune grisée ✓');
 await aiPage.waitForTimeout(350);
 await aiPage.screenshot({ path: SHOTS + '/82-ux-ia-disponibilite.png' });
 

@@ -6,8 +6,12 @@
    · via l'ordinateur (le Compagnon) : Ollama local, OpenAI par clé
      (api.openai.com refuse le navigateur) et l'abonnement ChatGPT
      (outil officiel Codex, mode non interactif documenté).
-   Ici : la fabrique d'un appel « texte → texte » côté navigateur ;
-   le chemin Compagnon vit dans ui/connexions.js (canal chiffré).
+   Ici : la fabrique d'un appel « texte → texte » côté navigateur et
+   la découverte des modèles RÉELLEMENT servis (aiListModels) — aucun
+   modèle codé en dur, jamais : l'utilisateur choisit dans la liste
+   vivante du fournisseur, et ce qui est affiché est ce qui est
+   utilisé. Le chemin Compagnon vit dans ui/connexions.js (canal
+   chiffré).
    L'IA ne fait que PROPOSER : le texte retombe dans un champ
    éditable, jamais un envoi. Fonctions + fetch, aucun accès au
    DOM. La clé n'est jamais mise dans un log ni un prompt système
@@ -25,18 +29,51 @@ export const AI_FAMILIES = {
 export const browserProviders = () =>
   Object.keys(AI_FAMILIES).filter(k => AI_FAMILIES[k].channel === 'browser');
 
-const DEFAULT_MODEL = {
-  anthropic: 'claude-3-5-haiku-latest',
-  gemini: 'gemini-2.0-flash',
-  openrouter: 'openai/gpt-4o-mini'
-};
-
 /* map d'erreurs HTTP → messages courts, honnêtes */
 function classify(status){
   if (status === 401 || status === 403) return 'cle';       /* clé invalide/refusée */
   if (status === 429) return 'quota';
   if (status >= 500) return 'indispo';
   return 'echec';
+}
+
+/* Aucun modèle n'est codé en dur : les fournisseurs retirent leurs
+   modèles sans prévenir (Gemini 2.0 Flash est mort le 2026-06-01).
+   On demande à CHAQUE fournisseur ce qu'il sert VRAIMENT, et c'est
+   dans cette liste que l'utilisateur choisit — ce qui est affiché
+   est ce qui est utilisé. Rend [{id, nom}]. */
+export async function aiListModels(conn){
+  const provider = conn && conn.provider;
+  if (provider === 'anthropic'){
+    if (!conn.key) throw new Error('cle');
+    const r = await fetch('https://api.anthropic.com/v1/models?limit=100', {
+      headers: {
+        'x-api-key': conn.key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      }
+    });
+    if (!r.ok) throw new Error(classify(r.status));
+    const j = await r.json();
+    return (j.data || []).map(m => ({ id: m.id, nom: m.display_name || m.id }));
+  }
+  if (provider === 'gemini'){
+    if (!conn.key) throw new Error('cle');
+    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200&key='
+      + encodeURIComponent(conn.key));
+    if (!r.ok) throw new Error(classify(r.status));
+    const j = await r.json();
+    return (j.models || [])
+      .filter(m => (m.supportedGenerationMethods || []).includes('generateContent'))
+      .map(m => ({ id: String(m.name || '').replace(/^models\//, ''), nom: m.displayName || m.name }));
+  }
+  if (provider === 'openrouter'){
+    const r = await fetch('https://openrouter.ai/api/v1/models');
+    if (!r.ok) throw new Error(classify(r.status));
+    const j = await r.json();
+    return (j.data || []).map(m => ({ id: m.id, nom: m.name || m.id }));
+  }
+  throw new Error('viacompagnon');
 }
 
 /* un appel navigateur direct — Anthropic ou Gemini. Rend le TEXTE
@@ -47,7 +84,8 @@ export async function aiComplete(conn, prompt, opts){
   const fam = AI_FAMILIES[provider];
   if (!fam || fam.channel !== 'browser') throw new Error('viacompagnon');
   if (!conn.key) throw new Error('cle');
-  const model = conn.model || DEFAULT_MODEL[provider];
+  const model = conn.model;
+  if (!model) throw new Error('modele');   /* jamais de modèle implicite */
   const maxTokens = opts.maxTokens || 700;
   if (provider === 'anthropic'){
     const r = await fetch('https://api.anthropic.com/v1/messages', {

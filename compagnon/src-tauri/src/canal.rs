@@ -276,9 +276,12 @@ fn repondre_boite(
         /* ---- rédaction IA « via ton ordinateur » (D5) ---- */
         /* La demande part en tâche de fond : le canal reste vif (présence,
            missions) pendant que le fournisseur travaille. La clé vit le
-           temps de l'appel, en mémoire — jamais écrite, jamais logguée. */
+           temps de l'appel, en mémoire — jamais écrite, jamais logguée.
+           `op` : "texte" (défaut) ou "modeles" (la liste RÉELLE du
+           runtime — c'est dedans que l'utilisateur choisit). */
         Some("ia-demarrer") => {
             let jid = msg["jid"].as_str().unwrap_or("").to_string();
+            let op = msg["op"].as_str().unwrap_or("texte").to_string();
             let (fournisseur, cle, modele, prompt, systeme) = (
                 msg["provider"].as_str().unwrap_or("").to_string(),
                 msg["key"].as_str().unwrap_or("").to_string(),
@@ -289,7 +292,12 @@ fn repondre_boite(
             if !oc_coeur::ia::jid_valide(&jid) {
                 return serde_json::json!({ "e": "jid" });
             }
-            if let Err(e) = oc_coeur::ia::valider_demande(&fournisseur, &prompt, &systeme, &cle, &modele) {
+            let recevable = match op.as_str() {
+                "modeles" => oc_coeur::ia::valider_liste(&fournisseur, &cle),
+                "texte" => oc_coeur::ia::valider_demande(&fournisseur, &prompt, &systeme, &cle, &modele),
+                _ => Err("op"),
+            };
+            if let Err(e) = recevable {
                 return serde_json::json!({ "e": e });
             }
             {
@@ -302,15 +310,39 @@ fn repondre_boite(
             }
             let p2 = p.clone();
             std::thread::spawn(move || {
-                let fini = match crate::ia::generer(&fournisseur, &cle, &modele, &prompt, &systeme) {
-                    Ok(texte) => serde_json::json!({ "etat": "fini", "texte": texte }),
-                    Err(e) => serde_json::json!({ "etat": "erreur", "e": e }),
+                let encore = {
+                    let p3 = p2.clone();
+                    let jid3 = jid.clone();
+                    move || {
+                        p3.ia
+                            .lock()
+                            .unwrap()
+                            .get(&jid3)
+                            .map(|v| v.contains("\"en cours\""))
+                            .unwrap_or(false)
+                    }
+                };
+                let annule = || !encore();
+                let fini = if op == "modeles" {
+                    match crate::ia::lister(&fournisseur, &cle) {
+                        Ok(liste) => serde_json::json!({ "etat": "fini", "modeles": liste }),
+                        Err(e) => serde_json::json!({ "etat": "erreur", "e": e }),
+                    }
+                } else {
+                    match crate::ia::generer(&fournisseur, &cle, &modele, &prompt, &systeme, &annule) {
+                        Ok(texte) => serde_json::json!({ "etat": "fini", "texte": texte }),
+                        Err(e) => serde_json::json!({ "etat": "erreur", "e": e }),
+                    }
                 };
                 println!(
-                    "compagnon : ia {fournisseur} — {}",
-                    if fini["etat"] == "fini" { "texte proposé" } else { "refus court" }
+                    "compagnon : ia {fournisseur} {op} — {}",
+                    if fini["etat"] == "fini" { "ok" } else { "refus court" }
                 );
-                p2.ia.lock().unwrap().insert(jid, fini.to_string());
+                /* annulée entre-temps = résultat jeté, rien d'écrit */
+                let mut jobs = p2.ia.lock().unwrap();
+                if jobs.get(&jid).map(|v| v.contains("\"en cours\"")).unwrap_or(false) {
+                    jobs.insert(jid, fini.to_string());
+                }
             });
             serde_json::json!({ "t": "ok" })
         }
@@ -329,6 +361,13 @@ fn repondre_boite(
                     v
                 }
             }
+        }
+        /* la PWA renonce (feuille fermée) : l'entrée disparaît, le
+           travail en cours est tué (Codex) ou son résultat jeté */
+        Some("ia-annuler") => {
+            let jid = msg["jid"].as_str().unwrap_or("");
+            p.ia.lock().unwrap().remove(jid);
+            serde_json::json!({ "t": "ok" })
         }
         /* ---- l'assistant IA (P8-2) — géré depuis OpenContact ---- */
         Some("mcp-regler") => {

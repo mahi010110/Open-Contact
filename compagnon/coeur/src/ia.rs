@@ -15,6 +15,11 @@ pub const SYSTEME_MAX: usize = 2_000;
 pub const CLE_MAX: usize = 256;
 pub const MODELE_MAX: usize = 100;
 pub const JID_MAX: usize = 40;
+/// Un texte rendu ne dépasse jamais ça : un modèle bavard (ou hostile)
+/// ne gonfle ni le canal, ni le stockage, ni le champ du composeur.
+pub const TEXTE_MAX: usize = 20_000;
+/// Jamais plus de modèles que ça dans une liste rendue à la PWA.
+pub const MODELES_MAX: usize = 400;
 
 /// Un identifiant de demande sûr : court, alphabet fermé — jamais
 /// interpolé dans un chemin ni un journal sans cette garantie.
@@ -48,6 +53,30 @@ pub fn valider_demande(
         return Err("modele");
     }
     Ok(())
+}
+
+/// Lister les modèles d'un fournisseur : pas de prompt, mais le même
+/// vocabulaire fermé et la clé exigée là où le fournisseur la demande.
+pub fn valider_liste(fournisseur: &str, cle: &str) -> Result<(), &'static str> {
+    if !FOURNISSEURS.contains(&fournisseur) {
+        return Err("fournisseur");
+    }
+    if cle.len() > CLE_MAX || (fournisseur == "openai" && cle.trim().is_empty()) {
+        return Err("cle");
+    }
+    Ok(())
+}
+
+/// Tronque proprement (jamais au milieu d'un point de code UTF-8).
+pub fn borner_texte(s: &str) -> String {
+    if s.len() <= TEXTE_MAX {
+        return s.to_string();
+    }
+    let mut fin = TEXTE_MAX;
+    while fin > 0 && !s.is_char_boundary(fin) {
+        fin -= 1;
+    }
+    s[..fin].to_string()
 }
 
 /// Le même classement court et honnête que `engine/ai.js` : la PWA
@@ -96,6 +125,20 @@ mod tests {
         assert!(!jid_valide("../fuite"));
         assert!(!jid_valide("é😀"));
         assert!(!jid_valide(""));
+    }
+
+    #[test]
+    fn liste_et_borne() {
+        assert!(valider_liste("ollama", "").is_ok());
+        assert!(valider_liste("chatgpt", "").is_ok());
+        assert!(valider_liste("openai", "sk-x").is_ok());
+        assert_eq!(valider_liste("openai", ""), Err("cle"));
+        assert_eq!(valider_liste("anthropic", "k"), Err("fournisseur"));
+        assert_eq!(borner_texte("court"), "court");
+        let long = "é".repeat(TEXTE_MAX); /* 2 octets : coupe en pleine séquence */
+        let b = borner_texte(&long);
+        assert!(b.len() <= TEXTE_MAX);
+        assert!(std::str::from_utf8(b.as_bytes()).is_ok());
     }
 
     #[test]

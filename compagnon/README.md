@@ -40,10 +40,15 @@ Tout le reste voyage en enveloppes `OCV1.` (AES-GCM, AAD liée) :
 `POST /boite` sous la clé de canal née de l'appairage — messages
 `ping`, `dissocier`, `mission` (bon signé Ed25519, re-vérifié à chaque
 lecture), `revoquer`, `arreter-cible`, `rapport`, `analyse-etat`,
-`ia-demarrer`/`ia-etat` (rédaction D5 : Ollama local, OpenAI par la clé
-de l'utilisateur — elle sert l'appel puis s'oublie, jamais écrite ici —
-ou l'abonnement ChatGPT via l'outil officiel Codex en mode non
-interactif, bac à sable lecture seule), `mcp-regler`, `resume`,
+`ia-demarrer`/`ia-etat`/`ia-annuler` (rédaction D5 : Ollama local,
+OpenAI par la clé de l'utilisateur — elle sert l'appel puis s'oublie,
+jamais écrite ici — ou l'abonnement ChatGPT via l'outil officiel Codex ;
+`op:"modeles"` rend la liste que le runtime sert VRAIMENT — tags
+Ollama, `/v1/models`, `codex app-server` → `model/list` — c'est dedans
+que l'utilisateur choisit, jamais un modèle codé en dur ; la génération
+Codex passe par `codex exec` non interactif : prompt par STDIN, bac à
+sable lecture seule, `--model` choisi ; sorties bornées `TEXTE_MAX`,
+annulation qui tue ou jette le travail), `mcp-regler`, `resume`,
 `propositions`, `proposition-reglee`.
 Rien d'utile en clair ; un processus local sans le code n'obtient rien.
 

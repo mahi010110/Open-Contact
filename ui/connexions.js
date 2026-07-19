@@ -48,16 +48,18 @@ export function aiStateLabel(){
   if (ai && ai.provider && AI_FAMILIES[ai.provider]){
     const fam = AI_FAMILIES[ai.provider];
     if (fam.key && !ai.key) return fam.label + ' — clé à coller';
-    return fam.label + (fam.channel === 'companion' ? ' — via ton ordinateur' : '');
+    const modele = ai.model || (ai.provider === 'chatgpt' ? 'modèle de Codex' : 'modèle à choisir');
+    return fam.label + ' · ' + modele;
   }
   return 'aucune';
 }
 
-/* la rédaction confiée à l'ordinateur : demande courte sur le canal
-   chiffré, puis on suit jusqu'au texte — mêmes codes d'erreur courts
-   que le chemin navigateur, plus `compagnon` (pas associé) et
-   `eteint` (il ne répond pas) */
-export async function aiCompleteViaCompanion(conn, prompt, opts){
+/* un travail IA confié à l'ordinateur (texte ou liste de modèles) :
+   demande courte sur le canal chiffré, suivi jusqu'au résultat,
+   ANNULABLE — fermer la feuille abandonne vraiment (le Compagnon tue
+   ou jette le travail). Mêmes codes d'erreur courts que le chemin
+   navigateur, plus `compagnon` (pas associé) et `eteint`. */
+async function companionIaJob(payload, opts){
   opts = opts || {};
   const { probeCompanion, companionCall } = await import('../engine/companion.js');
   const { loadCompanion } = await import('./compagnon.js');
@@ -68,23 +70,34 @@ export async function aiCompleteViaCompanion(conn, prompt, opts){
   const jid = 'ia-' + Math.random().toString(36).slice(2, 10);
   let rep;
   try {
-    rep = await companionCall(found.base, assoc.k, {
-      t: 'ia-demarrer', jid, provider: conn.provider, key: conn.key || '',
-      model: conn.model || '', prompt, system: opts.system || ''
-    });
+    rep = await companionCall(found.base, assoc.k, Object.assign({ t: 'ia-demarrer', jid }, payload));
   } catch (e) { throw new Error('eteint'); }
   if (!rep || rep.t !== 'ok') throw new Error((rep && rep.e) || 'echec');
+  const abandonner = () => { companionCall(found.base, assoc.k, { t: 'ia-annuler', jid }).catch(() => {}); };
   const debut = Date.now();
   while (Date.now() - debut < 200000){
     await new Promise(r => setTimeout(r, 1200));
+    if (opts.cancelled && opts.cancelled()){ abandonner(); throw new Error('annule'); }
     let et;
     try { et = await companionCall(found.base, assoc.k, { t: 'ia-etat', jid }); }
     catch (e) { throw new Error('eteint'); }
     if (!et || et.t !== 'ia' || et.etat === 'inconnue') throw new Error('echec');
-    if (et.etat === 'fini') return String(et.texte || '').trim();
+    if (et.etat === 'fini') return et;
     if (et.etat === 'erreur') throw new Error(et.e || 'echec');
   }
+  abandonner();
   throw new Error('indispo');
+}
+export async function aiCompleteViaCompanion(conn, prompt, opts){
+  opts = opts || {};
+  const et = await companionIaJob({ provider: conn.provider, key: conn.key || '',
+    model: conn.model || '', prompt, system: opts.system || '' }, opts);
+  /* même borne que le Compagnon (oc_coeur TEXTE_MAX) — ceinture locale */
+  return String(et.texte || '').trim().slice(0, 20000);
+}
+export async function aiModelsViaCompanion(provider, key){
+  const et = await companionIaJob({ op: 'modeles', provider, key: key || '' }, {});
+  return Array.isArray(et.modeles) ? et.modeles : [];
 }
 const acct = p => (mail && mail[p]) || null;
 const expired = a => !a.exp || a.exp <= Date.now() + 60000;
@@ -282,39 +295,102 @@ function openAiSheet(after){
       bus.refresh();
     });
   };
-  const pick = async k => {
+  /* choisir une famille = deux gestes au plus : la clé s'il en faut
+     une, puis LE modèle — choisi dans la liste que le fournisseur
+     sert VRAIMENT (aucun modèle codé en dur, aucun choix décoratif :
+     ce qui est affiché est ce qui sera utilisé). Si la liste est
+     injoignable, on le dit et on laisse taper le nom à la main. */
+  const intro = k =>
+    k === 'ollama' ? 'Ollama tourne sur ton ordinateur : rien ne sort, aucune clé, hors ligne une fois le modèle installé.'
+    : k === 'chatgpt' ? 'Ton abonnement ChatGPT, par l’outil officiel Codex connecté sur ton ordinateur. Aucune clé à coller.'
+    : AI_FAMILIES[k].channel === 'companion'
+      ? 'Ta clé sert l’appel depuis ton ordinateur, puis s’oublie là-bas — elle n’y est jamais gardée.'
+      : 'L’appel part d’ici, avec ta clé.';
+  const enregistrer = async (k, key, model) => {
+    ai = { provider: k, key, model };
+    await saveAi();
+    logJ('Assistant IA : ' + k + (model ? ' (' + model + ')' : ''));
+    sh.setFoot(null);
+    toast('Assistant prêt ✓');
+    render();
+    after && after();
+    bus.refresh();
+  };
+  const pick = k => {
     const f = AI_FAMILIES[k];
-    const viaOrdi = f.channel === 'companion';
-    let assoc = null;
-    if (viaOrdi){
-      const { loadCompanion } = await import('./compagnon.js');
-      assoc = await loadCompanion().catch(() => null);
-    }
     sh.setTitle(f.label);
+    if (f.key) etapeCle(k, '');
+    else etapeModeles(k, '');
+  };
+  const etapeCle = (k, erreur) => {
+    sh.setTitle(AI_FAMILIES[k].label);
     sh.body.innerHTML =
-      `${viaOrdi ? `<p class="hint" style="margin:0 0 10px">${
-          k === 'ollama' ? 'Ollama tourne sur ton ordinateur : rien ne sort, aucune clé, hors ligne une fois le modèle installé.'
-          : k === 'chatgpt' ? 'Ton abonnement ChatGPT, par l’outil officiel Codex connecté sur ton ordinateur. Aucune clé à coller.'
-          : 'Ta clé sert l’appel depuis ton ordinateur, puis s’oublie là-bas — elle n’y est jamais gardée.'}</p>` : ''}
-       ${f.key ? `<div class="field"><label for="aiKey">Ta clé ${esc(f.label)}</label>
+      `<p class="hint" style="margin:0 0 10px">${intro(k)}</p>
+       <div class="field"><label for="aiKey">Ta clé ${esc(AI_FAMILIES[k].label)}</label>
          <input id="aiKey" type="password" autocomplete="off" value="${esc((ai && ai.provider === k && ai.key) || '')}">
-         <p class="hint">Elle reste chiffrée ici — jamais dans un log ni un export.</p></div>` : ''}
-       ${k !== 'chatgpt' ? `<div class="field"><label for="aiModel">Modèle <span class="lbl-soft">— optionnel</span></label>
-         <input id="aiModel" autocomplete="off" placeholder="défaut raisonnable" value="${esc((ai && ai.provider === k && ai.model) || '')}"></div>` : ''}
-       ${viaOrdi && !assoc ? `<p class="hint warn">Il te faut le Compagnon : associe ton ordinateur dans « Mes appareils », puis reviens.</p>` : ''}`;
+         <p class="hint${erreur ? ' warn' : ''}">${erreur || 'Elle reste chiffrée ici — jamais dans un log ni un export.'}</p></div>`;
     sh.setFoot([
       btn('← Retour', 'btn-ghost', () => { sh.setFoot(null); render(); }),
-      btn('Enregistrer', 'btn-primary', async () => {
-        const key = f.key ? q('#aiKey').value.trim() : '';
-        if (f.key && !key){ toast('Colle ta clé, ou reviens en arrière.'); return; }
-        ai = { provider: k, key, model: (q('#aiModel') && q('#aiModel').value.trim()) || '' };
-        await saveAi();
-        logJ('Assistant IA : ' + k);
-        sh.setFoot(null);
-        toast('Assistant prêt ✓');
-        render();
-        after && after();
-        bus.refresh();
+      btn('Continuer', 'btn-primary', () => {
+        const key = q('#aiKey').value.trim();
+        if (!key){ toast('Colle ta clé, ou reviens en arrière.'); return; }
+        etapeModeles(k, key);
+      })
+    ]);
+  };
+  const etapeModeles = async (k, key) => {
+    const f = AI_FAMILIES[k];
+    sh.setTitle('Modèle — ' + f.label);
+    sh.body.innerHTML = `<p class="hint" style="margin:12px 0">${ic('clock', 'ic-14')} Je demande au fournisseur ses modèles…</p>`;
+    sh.setFoot([btn('← Retour', 'btn-ghost', () => { sh.setFoot(null); f.key ? etapeCle(k, '') : render(); })]);
+    let liste;
+    try {
+      liste = f.channel === 'companion'
+        ? await aiModelsViaCompanion(k, key)
+        : await (await import('../engine/ai.js')).aiListModels({ provider: k, key });
+    } catch (e) {
+      if (e.message === 'cle'){ etapeCle(k, 'Clé refusée — vérifie-la.'); return; }
+      etapeLibre(k, key,
+        e.message === 'compagnon' ? 'Associe d’abord le Compagnon (Mes appareils) — tu choisiras dans sa liste ensuite.'
+        : e.message === 'eteint' ? 'Ton ordinateur est éteint — sa liste attendra. Tu peux taper un nom en attendant.'
+        : e.message === 'runtime' ? 'Le moteur IA de ton ordinateur ne répond pas — sa liste attendra.'
+        : 'La liste des modèles est injoignable pour l’instant.');
+      return;
+    }
+    if (!liste.length){ etapeLibre(k, key, 'Le fournisseur n’a rendu aucun modèle.'); return; }
+    const actuel = (ai && ai.provider === k && ai.model) || '';
+    const entrees = (k === 'chatgpt' ? [{ id: '', nom: 'Celui réglé dans Codex' }] : []).concat(liste);
+    sh.body.innerHTML =
+      `<p class="hint" style="margin:0 0 10px">La liste vient du fournisseur, à l’instant — choisis, c’est ce modèle qui écrira.</p>
+       ${entrees.length > 12 ? `<div class="field"><input id="aiFiltre" autocomplete="off" placeholder="Filtrer…"></div>` : ''}
+       <div class="pick-list" id="aiListe">
+         ${entrees.map(m => `<button class="pick${m.id === actuel ? ' pick-on' : ''}" data-m="${esc(m.id)}">
+             <b>${esc(m.id || m.nom)}</b><span>${esc(m.id && m.nom !== m.id ? m.nom : '')}${m.id === actuel ? ' · actuel' : ''}</span>
+           </button>`).join('')}
+       </div>`;
+    sh.body.querySelectorAll('[data-m]').forEach(b =>
+      b.addEventListener('click', () => enregistrer(k, key, b.dataset.m)));
+    q('#aiFiltre')?.addEventListener('input', () => {
+      const v = q('#aiFiltre').value.trim().toLowerCase();
+      sh.body.querySelectorAll('[data-m]').forEach(b => {
+        b.style.display = !v || b.textContent.toLowerCase().includes(v) ? '' : 'none';
+      });
+    });
+    sh.setFoot([btn('← Retour', 'btn-ghost', () => { sh.setFoot(null); f.key ? etapeCle(k, '') : render(); })]);
+  };
+  /* la liste est injoignable : on le DIT, et le nom se tape à la main */
+  const etapeLibre = (k, key, pourquoi) => {
+    sh.setTitle('Modèle — ' + AI_FAMILIES[k].label);
+    sh.body.innerHTML =
+      `<p class="hint warn" style="margin:0 0 10px">${esc(pourquoi)}</p>
+       <div class="field"><label for="aiModel">Nom du modèle${k === 'chatgpt' ? ' <span class="lbl-soft">— vide = celui réglé dans Codex</span>' : ''}</label>
+         <input id="aiModel" autocomplete="off" value="${esc((ai && ai.provider === k && ai.model) || '')}"></div>`;
+    sh.setFoot([
+      btn('← Retour', 'btn-ghost', () => { sh.setFoot(null); render(); }),
+      btn('Enregistrer', 'btn-primary', () => {
+        const model = q('#aiModel').value.trim();
+        if (!model && k !== 'chatgpt'){ toast('Il faut un modèle — ou réessaie la liste plus tard.'); return; }
+        enregistrer(k, key, model);
       })
     ]);
   };

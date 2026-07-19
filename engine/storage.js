@@ -37,7 +37,7 @@ export const COMPANION_KEY = 'oc_companion_v1'; /* association au Compagnon (cl�
 export const ANALYSIS_KEY = 'oc_analysis_v1'; /* dernière analyse d'e-mails à reprendre / trier */
 export const PROPOSALS_KEY = 'oc_proposals_v1'; /* propositions de l'assistant IA (MCP) à trier */
 export const THEME_KEY = 'oc_theme';
-export const VIEW_KEY = 'oc_view';
+export const VIEW_KEY = 'oc_view';   /* héritée, plus écrite — épinglée par le test de contrat */
 export const OLD_V2 = 'oc_data_v2';
 export const OLD_V1 = 'ais_stage_targets_v1';
 
