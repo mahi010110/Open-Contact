@@ -39,7 +39,12 @@ Tout le reste voyage en enveloppes `OCV1.` (AES-GCM, AAD liée) :
 `POST /appairage` sous la clé dérivée du code court (PBKDF2 120 000),
 `POST /boite` sous la clé de canal née de l'appairage — messages
 `ping`, `dissocier`, `mission` (bon signé Ed25519, re-vérifié à chaque
-lecture), `revoquer`, `arreter-cible`, `rapport`, `analyse-etat`.
+lecture), `revoquer`, `arreter-cible`, `rapport`, `analyse-etat`,
+`ia-demarrer`/`ia-etat` (rédaction D5 : Ollama local, OpenAI par la clé
+de l'utilisateur — elle sert l'appel puis s'oublie, jamais écrite ici —
+ou l'abonnement ChatGPT via l'outil officiel Codex en mode non
+interactif, bac à sable lecture seule), `mcp-regler`, `resume`,
+`propositions`, `proposition-reglee`.
 Rien d'utile en clair ; un processus local sans le code n'obtient rien.
 
 ## Le serveur MCP local (P8-2)
@@ -67,6 +72,8 @@ entre un bureau et un client tiers. Journal sobre : `mcp-journal.log`
 `OC_SMTP_TEST=hote:port` (puits SMTP en clair),
 `OC_IMAP_TEST=hote:port` (faux IMAP en clair),
 `OC_OLLAMA=url` / `OC_OLLAMA_MODELE`, `OC_CORPUS_TEST=fichier`,
+`OC_OPENAI_TEST=url` (faux service OpenAI pour la rédaction D5),
+`OC_CODEX=chemin` (outil Codex de remplacement),
 `OC_TICK_MS`, `OC_FENETRE_TEST=1`, `OC_INTEGRATION_TEST=1`. Ce dernier
 désactive uniquement l'instance unique, le démarrage automatique et la zone
 de notification lorsque D-Bus ou `/proc` manquent ; le moteur, le canal, la

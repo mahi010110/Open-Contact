@@ -15,6 +15,7 @@ mod canal;
 mod coffrelocal;
 mod commandes;
 mod envoi;
+mod ia;
 mod mcp;
 mod missions;
 mod partage;

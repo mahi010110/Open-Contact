@@ -34,22 +34,57 @@ export async function loadMail(){
 const saveMail = () => kvSet(MAIL_KEY, JSON.stringify(mail || {}));
 const saveAi = () => kvSet(AI_KEY, JSON.stringify(ai || {}));
 
-/* la connexion IA utilisable (V1 : clé navigateur) — les familles
-   « via ordinateur » attendent le Compagnon */
+/* la connexion IA utilisable — clé navigateur (Claude, Gemini,
+   OpenRouter) ou « via ton ordinateur » (Ollama, OpenAI, ChatGPT :
+   le Compagnon fait l'appel, la clé ne fait que passer, chiffrée) */
 export function aiConnection(){
   if (!ai || !ai.provider) return null;
   const fam = AI_FAMILIES[ai.provider];
   if (!fam) return null;
-  if (fam.channel === 'browser' && ai.key) return { provider: ai.provider, key: ai.key, model: ai.model || '' };
-  return null;   /* companion pas encore là : proposé mais pas actif */
+  if (fam.key && !ai.key) return null;
+  return { provider: ai.provider, channel: fam.channel, key: ai.key || '', model: ai.model || '' };
 }
 export function aiStateLabel(){
   if (ai && ai.provider && AI_FAMILIES[ai.provider]){
     const fam = AI_FAMILIES[ai.provider];
-    if (fam.channel === 'browser' && ai.key) return AI_FAMILIES[ai.provider].label;
-    return AI_FAMILIES[ai.provider].label + ' — pas encore disponible';
+    if (fam.key && !ai.key) return fam.label + ' — clé à coller';
+    return fam.label + (fam.channel === 'companion' ? ' — via ton ordinateur' : '');
   }
   return 'aucune';
+}
+
+/* la rédaction confiée à l'ordinateur : demande courte sur le canal
+   chiffré, puis on suit jusqu'au texte — mêmes codes d'erreur courts
+   que le chemin navigateur, plus `compagnon` (pas associé) et
+   `eteint` (il ne répond pas) */
+export async function aiCompleteViaCompanion(conn, prompt, opts){
+  opts = opts || {};
+  const { probeCompanion, companionCall } = await import('../engine/companion.js');
+  const { loadCompanion } = await import('./compagnon.js');
+  const assoc = await loadCompanion().catch(() => null);
+  if (!assoc) throw new Error('compagnon');
+  const found = await probeCompanion();
+  if (!found) throw new Error('eteint');
+  const jid = 'ia-' + Math.random().toString(36).slice(2, 10);
+  let rep;
+  try {
+    rep = await companionCall(found.base, assoc.k, {
+      t: 'ia-demarrer', jid, provider: conn.provider, key: conn.key || '',
+      model: conn.model || '', prompt, system: opts.system || ''
+    });
+  } catch (e) { throw new Error('eteint'); }
+  if (!rep || rep.t !== 'ok') throw new Error((rep && rep.e) || 'echec');
+  const debut = Date.now();
+  while (Date.now() - debut < 200000){
+    await new Promise(r => setTimeout(r, 1200));
+    let et;
+    try { et = await companionCall(found.base, assoc.k, { t: 'ia-etat', jid }); }
+    catch (e) { throw new Error('eteint'); }
+    if (!et || et.t !== 'ia' || et.etat === 'inconnue') throw new Error('echec');
+    if (et.etat === 'fini') return String(et.texte || '').trim();
+    if (et.etat === 'erreur') throw new Error(et.e || 'echec');
+  }
+  throw new Error('indispo');
 }
 const acct = p => (mail && mail[p]) || null;
 const expired = a => !a.exp || a.exp <= Date.now() + 60000;
@@ -211,24 +246,27 @@ export async function openConnexions(){
   render();
 }
 
-/* la feuille IA : les deux choix utilisables maintenant sont explicites ;
-   les adaptateurs Compagnon non livrés restent visibles, mais non activables. */
+/* la feuille IA : chaque famille dit son chemin — « ici » (clé
+   navigateur) ou « via ton ordinateur » (le Compagnon fait l'appel).
+   Une décision à la fois ; couper reste possible d'un geste. */
 function openAiSheet(after){
   const sh = openSheet({ title: 'Assistant IA', icon: 'sparkles' });
   const q = s => sh.body.querySelector(s);
   const render = () => {
+    sh.setTitle('Assistant IA');
     sh.body.innerHTML =
       `<p class="hint" style="margin:0 0 10px">L’IA propose un brouillon — tu le relis et tu décides. Sans elle, les modèles restent là.</p>
        <div class="pick-list">
          ${Object.keys(AI_FAMILIES).map(k => {
            const f = AI_FAMILIES[k];
            const on = ai && ai.provider === k;
-           const soon = f.channel === 'companion';
-           return `<button class="pick${on ? ' pick-on' : ''}" data-ai="${k}"${soon ? ' disabled aria-disabled="true"' : ''}>
+           const voie = f.channel === 'companion'
+             ? (f.key ? 'Clé API · via ton ordinateur'
+               : (k === 'ollama' ? 'Local · via ton ordinateur' : 'Abonnement · via ton ordinateur'))
+             : 'Clé API · ici';
+           return `<button class="pick${on ? ' pick-on' : ''}" data-ai="${k}">
                      <b>${esc(f.label)}</b>
-                     <span>${soon
-                       ? `${f.key ? 'Clé API' : (k === 'ollama' ? 'Local' : 'Abonnement')} · pas encore disponible`
-                       : 'Clé API · disponible maintenant'}${on ? ' · actif' : ''}</span>
+                     <span>${voie}${on ? ' · actif' : ''}</span>
                    </button>`;
          }).join('')}
        </div>
@@ -244,25 +282,32 @@ function openAiSheet(after){
       bus.refresh();
     });
   };
-  const pick = k => {
+  const pick = async k => {
     const f = AI_FAMILIES[k];
-    if (f.channel === 'companion'){
-      toast('Pas encore disponible — rien n’a changé.');
-      return;
+    const viaOrdi = f.channel === 'companion';
+    let assoc = null;
+    if (viaOrdi){
+      const { loadCompanion } = await import('./compagnon.js');
+      assoc = await loadCompanion().catch(() => null);
     }
     sh.setTitle(f.label);
     sh.body.innerHTML =
-      `<div class="field"><label for="aiKey">Ta clé ${esc(f.label)}</label>
+      `${viaOrdi ? `<p class="hint" style="margin:0 0 10px">${
+          k === 'ollama' ? 'Ollama tourne sur ton ordinateur : rien ne sort, aucune clé, hors ligne une fois le modèle installé.'
+          : k === 'chatgpt' ? 'Ton abonnement ChatGPT, par l’outil officiel Codex connecté sur ton ordinateur. Aucune clé à coller.'
+          : 'Ta clé sert l’appel depuis ton ordinateur, puis s’oublie là-bas — elle n’y est jamais gardée.'}</p>` : ''}
+       ${f.key ? `<div class="field"><label for="aiKey">Ta clé ${esc(f.label)}</label>
          <input id="aiKey" type="password" autocomplete="off" value="${esc((ai && ai.provider === k && ai.key) || '')}">
-         <p class="hint">Elle reste chiffrée ici — jamais dans un log ni un export.</p></div>
-       <div class="field"><label for="aiModel">Modèle <span class="lbl-soft">— optionnel</span></label>
-         <input id="aiModel" autocomplete="off" placeholder="défaut raisonnable" value="${esc((ai && ai.model) || '')}"></div>`;
+         <p class="hint">Elle reste chiffrée ici — jamais dans un log ni un export.</p></div>` : ''}
+       ${k !== 'chatgpt' ? `<div class="field"><label for="aiModel">Modèle <span class="lbl-soft">— optionnel</span></label>
+         <input id="aiModel" autocomplete="off" placeholder="défaut raisonnable" value="${esc((ai && ai.provider === k && ai.model) || '')}"></div>` : ''}
+       ${viaOrdi && !assoc ? `<p class="hint warn">Il te faut le Compagnon : associe ton ordinateur dans « Mes appareils », puis reviens.</p>` : ''}`;
     sh.setFoot([
       btn('← Retour', 'btn-ghost', () => { sh.setFoot(null); render(); }),
       btn('Enregistrer', 'btn-primary', async () => {
-        const key = q('#aiKey').value.trim();
-        if (!key){ toast('Colle ta clé, ou reviens en arrière.'); return; }
-        ai = { provider: k, key, model: q('#aiModel').value.trim() };
+        const key = f.key ? q('#aiKey').value.trim() : '';
+        if (f.key && !key){ toast('Colle ta clé, ou reviens en arrière.'); return; }
+        ai = { provider: k, key, model: (q('#aiModel') && q('#aiModel').value.trim()) || '' };
         await saveAi();
         logJ('Assistant IA : ' + k);
         sh.setFoot(null);

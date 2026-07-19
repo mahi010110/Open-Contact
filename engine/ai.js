@@ -1,23 +1,24 @@
 /* ============================================================
    OpenContact — moteur · connexions IA (rédaction & analyse)
    Trois familles (D5), toutes optionnelles — sans IA, tout marche :
-   · clé API navigateur : Anthropic, Gemini (CORS OK depuis le
-     navigateur) ;
-   · OpenAI / OpenRouter, Ollama local et l'abonnement ChatGPT sont
-     répertoriés pour la suite, mais non activables tant que leurs
-     adaptateurs Compagnon ne sont pas livrés.
-   Ici : la fabrique d'un appel « texte → texte » pour la V1
-   navigateur (Anthropic, Gemini). L'IA ne fait que PROPOSER : le
-   texte retombe dans un champ éditable, jamais un envoi.
-   Fonctions + fetch, aucun accès au DOM. La clé n'est jamais mise
-   dans un log ni un prompt système inutile.
+   · clé API navigateur : Anthropic, Gemini, OpenRouter (les trois
+     autorisent l'appel direct depuis un navigateur) ;
+   · via l'ordinateur (le Compagnon) : Ollama local, OpenAI par clé
+     (api.openai.com refuse le navigateur) et l'abonnement ChatGPT
+     (outil officiel Codex, mode non interactif documenté).
+   Ici : la fabrique d'un appel « texte → texte » côté navigateur ;
+   le chemin Compagnon vit dans ui/connexions.js (canal chiffré).
+   L'IA ne fait que PROPOSER : le texte retombe dans un champ
+   éditable, jamais un envoi. Fonctions + fetch, aucun accès au
+   DOM. La clé n'est jamais mise dans un log ni un prompt système
+   inutile — et jamais stockée par le Compagnon.
    ============================================================ */
 
 export const AI_FAMILIES = {
   gemini:     { label: 'Gemini',     channel: 'browser', key: true },
   anthropic:  { label: 'Claude',     channel: 'browser', key: true },
+  openrouter: { label: 'OpenRouter', channel: 'browser', key: true },
   openai:     { label: 'OpenAI',     channel: 'companion', key: true },
-  openrouter: { label: 'OpenRouter', channel: 'companion', key: true },
   ollama:     { label: 'Ollama',     channel: 'companion', key: false },
   chatgpt:    { label: 'ChatGPT',    channel: 'companion', key: false }
 };
@@ -26,7 +27,8 @@ export const browserProviders = () =>
 
 const DEFAULT_MODEL = {
   anthropic: 'claude-3-5-haiku-latest',
-  gemini: 'gemini-2.0-flash'
+  gemini: 'gemini-2.0-flash',
+  openrouter: 'openai/gpt-4o-mini'
 };
 
 /* map d'erreurs HTTP → messages courts, honnêtes */
@@ -65,6 +67,24 @@ export async function aiComplete(conn, prompt, opts){
     if (!r.ok) throw new Error(classify(r.status));
     const j = await r.json();
     return (j.content || []).map(b => b.text || '').join('').trim();
+  }
+  if (provider === 'openrouter'){
+    const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'authorization': 'Bearer ' + conn.key
+      },
+      body: JSON.stringify({
+        model, max_tokens: maxTokens,
+        messages: (opts.system ? [{ role: 'system', content: opts.system }] : [])
+          .concat([{ role: 'user', content: prompt }])
+      })
+    });
+    if (!r.ok) throw new Error(classify(r.status));
+    const j = await r.json();
+    const ch = (j.choices || [])[0];
+    return ((ch && ch.message && ch.message.content) || '').trim();
   }
   if (provider === 'gemini'){
     const url = 'https://generativelanguage.googleapis.com/v1beta/models/' +

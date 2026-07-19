@@ -273,6 +273,63 @@ fn repondre_boite(
             serde_json::json!({ "t": "rapport", "journal": em.journal,
                 "arrets": em.arrets, "reponses": em.reponses })
         }
+        /* ---- rédaction IA « via ton ordinateur » (D5) ---- */
+        /* La demande part en tâche de fond : le canal reste vif (présence,
+           missions) pendant que le fournisseur travaille. La clé vit le
+           temps de l'appel, en mémoire — jamais écrite, jamais logguée. */
+        Some("ia-demarrer") => {
+            let jid = msg["jid"].as_str().unwrap_or("").to_string();
+            let (fournisseur, cle, modele, prompt, systeme) = (
+                msg["provider"].as_str().unwrap_or("").to_string(),
+                msg["key"].as_str().unwrap_or("").to_string(),
+                msg["model"].as_str().unwrap_or("").to_string(),
+                msg["prompt"].as_str().unwrap_or("").to_string(),
+                msg["system"].as_str().unwrap_or("").to_string(),
+            );
+            if !oc_coeur::ia::jid_valide(&jid) {
+                return serde_json::json!({ "e": "jid" });
+            }
+            if let Err(e) = oc_coeur::ia::valider_demande(&fournisseur, &prompt, &systeme, &cle, &modele) {
+                return serde_json::json!({ "e": e });
+            }
+            {
+                let mut jobs = p.ia.lock().unwrap();
+                if jobs.values().any(|v| v.contains("\"en cours\"")) {
+                    return serde_json::json!({ "e": "occupe" });
+                }
+                jobs.clear(); /* les résultats jamais relus ne s'accumulent pas */
+                jobs.insert(jid.clone(), r#"{"etat":"en cours"}"#.into());
+            }
+            let p2 = p.clone();
+            std::thread::spawn(move || {
+                let fini = match crate::ia::generer(&fournisseur, &cle, &modele, &prompt, &systeme) {
+                    Ok(texte) => serde_json::json!({ "etat": "fini", "texte": texte }),
+                    Err(e) => serde_json::json!({ "etat": "erreur", "e": e }),
+                };
+                println!(
+                    "compagnon : ia {fournisseur} — {}",
+                    if fini["etat"] == "fini" { "texte proposé" } else { "refus court" }
+                );
+                p2.ia.lock().unwrap().insert(jid, fini.to_string());
+            });
+            serde_json::json!({ "t": "ok" })
+        }
+        Some("ia-etat") => {
+            let jid = msg["jid"].as_str().unwrap_or("");
+            let mut jobs = p.ia.lock().unwrap();
+            match jobs.get(jid).cloned() {
+                None => serde_json::json!({ "t": "ia", "etat": "inconnue" }),
+                Some(s) => {
+                    let mut v: serde_json::Value =
+                        serde_json::from_str(&s).unwrap_or_else(|_| serde_json::json!({ "etat": "erreur", "e": "echec" }));
+                    if v["etat"] != "en cours" {
+                        jobs.remove(jid); /* consommé : le texte ne traîne pas */
+                    }
+                    v["t"] = "ia".into();
+                    v
+                }
+            }
+        }
         /* ---- l'assistant IA (P8-2) — géré depuis OpenContact ---- */
         Some("mcp-regler") => {
             let on = msg["actif"].as_bool().unwrap_or(false);

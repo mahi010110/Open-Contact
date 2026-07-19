@@ -14,7 +14,7 @@ import { aiComplete, draftPrompt } from '../engine/ai.js';
 import { S, bus, saveData, logJ } from './state.js';
 import { openSheet, toast, btn, el, ic } from './dom.js';
 import { askNextAction } from './actions.js';
-import { mailAccount, freshToken, openConnexions, aiConnection } from './connexions.js';
+import { mailAccount, freshToken, openConnexions, aiConnection, aiCompleteViaCompanion } from './connexions.js';
 
 export function openMail(c, opts){
   opts = opts || {};
@@ -132,14 +132,22 @@ export function openMail(c, opts){
     b.textContent = 'L’IA rédige…';
     try {
       const ct = currentCt();
-      const txt = await aiComplete(aiConnection(), draftPrompt({
+      const conn = aiConnection();
+      const prompt = draftPrompt({
         company: c, contactName: ct && ct.name, contactRole: ct && ct.role, profile: S.profile
-      }));
+      });
+      const txt = conn && conn.channel === 'companion'
+        ? await aiCompleteViaCompanion(conn, prompt)
+        : await aiComplete(conn, prompt);
       if (txt){ q('#mBody').value = txt; sync(); toast('Brouillon proposé — relis avant d’envoyer.'); }
       else toast('L’IA n’a rien proposé — le modèle reste là.');
     } catch (e) {
       toast(e.message === 'quota' ? 'Quota IA atteint — le modèle reste là.'
         : e.message === 'cle' ? 'Clé refusée — vérifie-la dans Connexions.'
+        : e.message === 'compagnon' ? 'Associe le Compagnon dans « Mes appareils » d’abord.'
+        : e.message === 'eteint' ? 'Ton ordinateur est éteint — ouvre le Compagnon.'
+        : e.message === 'runtime' ? 'Le moteur IA de ton ordinateur ne répond pas — il est bien installé ?'
+        : e.message === 'occupe' ? 'Une rédaction est déjà en cours — un instant.'
         : 'L’IA ne répond pas — le modèle reste là.');
     }
     b.disabled = false;
