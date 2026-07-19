@@ -13,8 +13,13 @@
 import { uid } from '../engine/utils.js';
 import { normalizeProfile } from '../engine/model.js';
 import { fullPayload } from '../engine/exchange.js';
-import { syncMerge } from '../engine/sync.js';
-import { SYNC_KEY, RELAYS_KEY, DEVICE_KEY, DEVICES_KEY, kvGet, kvSet } from '../engine/storage.js';
+import { syncMerge, syncPrivateMerge } from '../engine/sync.js';
+import { edAvailable, makeDeviceKeys, recoveryKeys, ringInit, ringAddDevice,
+         ringCommand, ringTransfer, ringRecover, mergeRing, actionsFor, deviceIn } from '../engine/ring.js';
+import { SYNC_KEY, RELAYS_KEY, DEVICE_KEY, DEVICES_KEY, RING_KEY,
+         DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, PROMO_KEY, VAULT_KEY,
+         CAMPAIGNS_KEY, MAIL_KEY, AI_KEY, MISSIONS_KEY, COMPANION_KEY, ANALYSIS_KEY,
+         kvGet, kvSet, kvDel, docDel } from '../engine/storage.js';
 import { S, bus, applySynced, saveProfile, logJ } from './state.js';
 import { ic, toast, showUndo } from './dom.js';
 
@@ -81,6 +86,149 @@ export async function removeDevice(id){
 }
 export const DEVICES_MAX = 5;
 
+/* ---------- l'anneau d'appareils (appareil principal) ----------
+   État persistant : { keys: {pub, seed}, ring, applied: [cid…] } —
+   scellé au repos quand le profil est protégé (SEALABLE). Les
+   commandes reçues me visant sont appliquées ici ; « verrouiller »
+   est délégué au verrou par événement (pas d'import croisé). */
+let ringSt = null;
+let ringLoaded = false;
+async function loadRingSt(){
+  if (ringLoaded) return ringSt;
+  ringLoaded = true;
+  try { ringSt = JSON.parse(await kvGet(RING_KEY) || 'null'); } catch (e) { ringSt = null; }
+  return ringSt;
+}
+const saveRingSt = () => kvSet(RING_KEY, JSON.stringify(ringSt));
+export const getRing = () => (ringSt && ringSt.ring) || null;
+export async function ringCompanion(){
+  await loadRingSt();
+  return ((getRing() && getRing().devices) || []).find(d => d && d.role === 'companion') || null;
+}
+export async function amMain(){
+  const r = getRing();
+  if (!r) return false;
+  return r.main === (await deviceSelf()).id;
+}
+/* les clés de CET appareil — créées au premier besoin */
+export async function ensureKeys(){
+  await loadRingSt();
+  if (ringSt && ringSt.keys) return ringSt.keys;
+  if (!(await edAvailable())) return null;
+  const keys = await makeDeviceKeys();
+  ringSt = Object.assign({ ring: null, applied: [] }, ringSt || {}, { keys });
+  await saveRingSt();
+  return keys;
+}
+/* à l'activation de la protection : cet appareil devient le principal */
+export async function ensureRing(recoveryPhrase){
+  const keys = await ensureKeys();
+  if (!keys) return false;
+  if (ringSt.ring) return true;
+  const self = await deviceSelf();
+  const rec = await recoveryKeys(recoveryPhrase);
+  ringSt.ring = await ringInit(self, keys.pub, keys.seed, rec.pub);
+  await saveRingSt();
+  logJ('Appareil principal : ' + self.name);
+  sendRing();
+  emit();
+  return true;
+}
+/* récupération d'urgence (D7) : cet appareil devient le principal,
+   prouvé par l'ANCIENNE phrase, re-scellé par la NOUVELLE */
+export async function recoverRing(oldPhrase, newPhrase){
+  const keys = await ensureKeys();
+  if (!keys) return false;
+  const self = await deviceSelf();
+  const newRec = await recoveryKeys(newPhrase);
+  if (ringSt.ring){
+    const oldRec = await recoveryKeys(oldPhrase);
+    ringSt.ring = await ringRecover(ringSt.ring, oldRec.seed, self, keys.pub, newRec.pub);
+  } else {
+    ringSt.ring = await ringInit(self, keys.pub, keys.seed, newRec.pub);
+  }
+  ringSt.applied = [];
+  await saveRingSt();
+  logJ('Récupération : cet appareil devient le principal');
+  sendRing();
+  emit();
+  return true;
+}
+/* commandes du principal (l'appelant a déjà re-demandé le code) */
+export async function ringDo(cmd, targetId){
+  if (!(await amMain())) return false;
+  ringSt.ring = await ringCommand(ringSt.ring, ringSt.keys.seed, cmd, targetId);
+  await saveRingSt();
+  if (cmd === 'remove' || cmd === 'ban' || cmd === 'wipe') await removeDevice(targetId);
+  logJ('Commande appareil : ' + cmd + ' → ' + targetId);
+  sendRing();
+  emit();
+  return true;
+}
+export async function ringMakeMain(targetId){
+  if (!(await amMain())) return false;
+  ringSt.ring = await ringTransfer(ringSt.ring, ringSt.keys.seed, targetId);
+  await saveRingSt();
+  logJ('Rôle principal transféré');
+  sendRing();
+  emit();
+  return true;
+}
+/* le principal inscrit le Compagnon dans l'anneau (rôle companion) —
+   identité apprise sur le canal local authentifié par le code court */
+export async function ringAddCompanion(dev){
+  if (!(await amMain())) return false;
+  ringSt.ring = await ringAddDevice(ringSt.ring, ringSt.keys.seed,
+    { id: dev.id, name: dev.name, pub: dev.pub, role: 'companion' });
+  await saveRingSt();
+  logJ('Compagnon associé : ' + dev.name);
+  sendRing();
+  emit();
+  return true;
+}
+/* réception d'un anneau distant : fusion vérifiée, puis les
+   commandes qui me visent — appliquées UNE fois, même hors ligne
+   au moment de l'émission (elles voyagent dans l'anneau) */
+async function onRingMsg(incoming){
+  await loadRingSt();
+  const mine = getRing();
+  const r = await mergeRing(mine, incoming);
+  if (!r.changed) return;
+  ringSt = Object.assign({ keys: null, applied: [] }, ringSt || {}, { ring: r.ring });
+  await saveRingSt();
+  if (r.recovered) toast('Ton appareil principal a changé — récupération d’urgence.');
+  const self = await deviceSelf();
+  const acts = actionsFor(r.ring, self.id, ringSt.applied);
+  for (const a of acts){
+    ringSt.applied = (ringSt.applied || []).concat([a.cid]).slice(-80);
+    await saveRingSt();
+    if (a.cmd === 'lock'){
+      document.dispatchEvent(new CustomEvent('oc:ringlock'));
+      toast('Verrouillé depuis ton appareil principal.');
+    } else if (a.cmd === 'remove' || a.cmd === 'ban'){
+      await breakLink();
+      toast('Cet appareil a été retiré de tes appareils.');
+    } else if (a.cmd === 'wipe'){
+      logJ('Effacement demandé par l’appareil principal');
+      /* TOUT ce qui est à l'utilisateur part : données, suivi,
+         campagnes, jetons de messagerie, clés d'IA, missions,
+         identité d'appareil, documents (CV, lettre) */
+      for (const k of [DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY,
+                       SYNC_KEY, RELAYS_KEY, PROMO_KEY, DEVICE_KEY, DEVICES_KEY, RING_KEY, VAULT_KEY,
+                       CAMPAIGNS_KEY, MAIL_KEY, AI_KEY, MISSIONS_KEY, COMPANION_KEY, ANALYSIS_KEY]) await kvDel(k);
+      for (const dk of ['cv', 'lettre']) await docDel(dk).catch(() => {});
+      location.replace(location.pathname);
+      return;
+    }
+  }
+  emit();
+}
+let sendRingRaw = null;
+function sendRing(){
+  const r = getRing();
+  if (r && sendRingRaw) sendRingRaw(r);
+}
+
 /* ---------- l'état vivant ---------- */
 const live = {
   state: 'off',        /* off · wait (personne en face) · on · err */
@@ -96,15 +244,54 @@ let room = null;
 let sendFull = null;
 let sendHello = null;
 let lastSent = '';
+let sendJob = null;
+let sendAgain = false;
 let gen = 0;             /* jeton : une (re)connexion invalide les précédentes */
+
+const parseList = raw => {
+  try { const v = JSON.parse(raw || '[]'); return Array.isArray(v) ? v : []; }
+  catch (e) { return []; }
+};
+async function privateState(){
+  const [campaigns, missions] = await Promise.all([kvGet(CAMPAIGNS_KEY), kvGet(MISSIONS_KEY)]);
+  return { campaigns: parseList(campaigns), missions: parseList(missions) };
+}
+async function writePrivateState(next){
+  await Promise.all([
+    kvSet(CAMPAIGNS_KEY, JSON.stringify(next.campaigns || [])),
+    kvSet(MISSIONS_KEY, JSON.stringify(next.missions || []))
+  ]);
+  document.dispatchEvent(new CustomEvent('oc:campaigns-sync'));
+  document.dispatchEvent(new CustomEvent('oc:change'));
+}
+/* API volontairement petite, aussi utilisée par le scénario C8 : elle
+   applique exactement le même rail privé que la réception réseau. */
+export async function applyPrivatePayload(payload){
+  const mine = await privateState();
+  const merged = syncPrivateMerge(payload || {}, mine);
+  if (merged.stats.campaigns || merged.stats.missions) await writePrivateState(merged);
+  return merged;
+}
 
 const sendState = () => {
   if (!sendFull || !live.peers) return;
-  const payload = fullPayload(S.companies, S.profile, S.orphans, S.tombs);
-  const j = JSON.stringify(payload);
-  if (j === lastSent) return;   /* rien de neuf = on ne renvoie pas (stop au ping-pong) */
-  lastSent = j;
-  sendFull(payload);
+  if (sendJob){ sendAgain = true; return; }
+  sendJob = (async () => {
+    do {
+      sendAgain = false;
+      const priv = await privateState();
+      if (!sendFull || !live.peers) return;
+      const payload = Object.assign(fullPayload(S.companies, S.profile, S.orphans, S.tombs), priv);
+      const j = JSON.stringify(payload);
+      if (j !== lastSent){
+        lastSent = j;           /* rien de neuf = stop au ping-pong */
+        sendFull(payload);
+      }
+    } while (sendAgain);
+  })().catch(() => {}).finally(() => {
+    sendJob = null;
+    if (sendAgain) sendState();
+  });
 };
 /* chaque enregistrement, où qu'il vienne, se propage — en continu */
 document.addEventListener('oc:change', () => sendState());
@@ -117,6 +304,7 @@ function closeRoom(){
   if (room){ try { room.leave(); } catch (e) {} room = null; }
   sendFull = null;
   sendHello = null;
+  sendRingRaw = null;
   lastSent = '';
   live.peers = 0;
 }
@@ -140,36 +328,55 @@ async function join(phrase){
   if (my !== gen){ try { r.leave(); } catch (e) {} return; }
   room = r;
 
+  const keys = await ensureKeys();          /* identité signée de cet appareil */
   const hello = room.makeAction('hello');
-  sendHello = () => hello.send({ id: self.id, name: self.name });
+  sendHello = () => hello.send({ id: self.id, name: self.name, pub: keys ? keys.pub : '' });
   hello.onMessage = async obj => {
     if (!obj || !obj.id || obj.id === self.id) return;
     await upsertDevice(obj.id, obj.name);
+    /* je suis le principal : un appareil du canal authentifié qui
+       annonce sa clé entre dans l'anneau (signé, propagé) */
+    if (obj.pub && await amMain() && !deviceIn(getRing(), obj.id)){
+      ringSt.ring = await ringAddDevice(getRing(), ringSt.keys.seed, obj);
+      await saveRingSt();
+      sendRing();
+    }
     emit();
   };
+  const ringAct = room.makeAction('ring');
+  sendRingRaw = d => { try { ringAct.send(d); } catch (e) {} };
+  ringAct.onMessage = obj => { onRingMsg(obj).catch(() => {}); };
 
   const full = room.makeAction('full');
   sendFull = d => full.send(d);
-  full.onMessage = obj => {
+  let receiveQueue = Promise.resolve();
+  full.onMessage = obj => { receiveQueue = receiveQueue.then(async () => {
     if (!obj || obj.kind !== 'full' || !Array.isArray(obj.companies)) return;
     const r2 = syncMerge(obj, { companies: S.companies, orphans: S.orphans, profile: S.profile, tombs: S.tombs });
+    const minePrivate = await privateState();
+    const rPriv = syncPrivateMerge(obj, minePrivate);
     const st = r2.stats;
-    const changed = st.addedC + st.updatedC + st.removedC + st.addedO + (st.profile === 'remote' ? 1 : 0);
+    const changed = st.addedC + st.updatedC + st.removedC + st.addedO +
+      (st.profile === 'remote' ? 1 : 0) + rPriv.stats.campaigns + rPriv.stats.missions;
     if (changed){
       const snap = {
         companies: JSON.stringify(S.companies), orphans: JSON.stringify(S.orphans),
-        profile: JSON.stringify(S.profile), tombs: JSON.stringify(S.tombs)
+        profile: JSON.stringify(S.profile), tombs: JSON.stringify(S.tombs),
+        campaigns: JSON.stringify(minePrivate.campaigns), missions: JSON.stringify(minePrivate.missions)
       };
       if (st.profile === 'remote' && !live.prevProfile) live.prevProfile = snap.profile;
       applySynced(r2);
+      if (rPriv.stats.campaigns || rPriv.stats.missions) await writePrivateState(rPriv);
       bus.refresh();
-      live.lastStats = Object.assign({ t: Date.now() }, st);
+      live.lastStats = Object.assign({ t: Date.now(), campaigns: rPriv.stats.campaigns,
+        missions: rPriv.stats.missions }, st);
       logJ('Sync appareils : +' + st.addedC + ', ' + st.updatedC + ' maj, ' + st.removedC + ' suppr.');
       showUndo(`${ic('check', 'ic-14')} Appareils synchronisés.`, () => {
         applySynced({
           companies: JSON.parse(snap.companies), orphans: JSON.parse(snap.orphans),
           profile: JSON.parse(snap.profile), tombs: JSON.parse(snap.tombs)
         });
+        writePrivateState({ campaigns: JSON.parse(snap.campaigns), missions: JSON.parse(snap.missions) });
         live.lastStats = null;
         live.prevProfile = null;
         bus.refresh();
@@ -180,13 +387,14 @@ async function join(phrase){
     live.state = 'on';
     emit();
     sendState();   /* converge : ne repart que si quelque chose a changé */
-  };
+  }).catch(() => {}); };
 
   room.onPeerJoin = () => {
     live.peers++;
     live.state = 'on';
     emit();
     if (sendHello) sendHello();
+    sendRing();
     sendState();
   };
   room.onPeerLeave = () => {

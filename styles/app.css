@@ -143,6 +143,10 @@ input,select,textarea{font-family:inherit;color:var(--text-body)}
 .btn-ghost:hover{background:var(--surface-chrome);color:var(--text-body)}
 .btn-ghost:active{transform:none;box-shadow:var(--bevel-down)}
 .btn-sm{min-height:36px;padding:2px 11px;font-size:var(--text-12)}
+/* Mobile et écran tactile : même les actions compactes restent au pouce. */
+@media (max-width:900px), (pointer:coarse){
+  .btn-sm{min-height:44px}
+}
 .icon-btn{width:var(--ctl);height:var(--ctl);padding:0}
 .linklike{
   background:none;border:0;color:var(--text-link);font-weight:var(--weight-semibold);font-size:var(--text-12);
@@ -565,6 +569,7 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 }
 .pick b{font-weight:var(--weight-semibold)}
 .pick span{font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted)}
+.pick:disabled{opacity:.62;cursor:not-allowed;box-shadow:none}
 .pick:active{box-shadow:var(--bevel-down);transform:translate(1px,1px)}
 .pick-close{border-left:3px solid var(--c)}
 .dup-note{
@@ -651,6 +656,9 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px}
   padding:1px 7px;border-radius:var(--radius-1);font-size:var(--text-11);font-weight:var(--weight-semibold);
 }
 .abtn-sm{width:32px;height:32px;margin-left:auto}
+@media (max-width:900px), (pointer:coarse){
+  .abtn-sm{width:44px;height:44px}
+}
 .ta-s{min-height:48px}
 .ckline{display:flex;align-items:center;gap:9px;font-size:var(--text-13);min-height:var(--ctl);cursor:pointer;user-select:none}
 .ckline input{width:18px;height:18px;accent-color:var(--accent)}
@@ -816,3 +824,105 @@ body:has(.overlay) .toast{bottom:auto;top:calc(env(safe-area-inset-top) + 62px)}
 .overlay{animation:oc-fade var(--dur-2) var(--ease-steps)}
 .overlay .modal{animation:oc-up var(--dur-3) var(--ease-steps)}
 .view:not([hidden])>.page-inner{animation:oc-fade var(--dur-2) var(--ease-steps)}
+
+/* ============ LE VERROUILLAGE (profil protégé) ============
+   Plein écran au-dessus de tout ; pavé 44 px au pouce (mobile),
+   saisie clavier (ordinateur). Bevels francs, steps() — pas de flou. */
+.lock{
+  /* au-dessus de l'en-tête (1300) et de la nav (1500), sous les
+     feuilles (3000) — « Code oublié ? » s'ouvre par-dessus */
+  position:fixed;inset:0;z-index:2500;display:flex;align-items:center;justify-content:center;
+  background:var(--surface-desktop);
+}
+.lock-in{display:flex;flex-direction:column;align-items:center;gap:10px;padding:24px;width:min(340px,92vw)}
+.lock-title{font-family:var(--font-pixel);font-size:24px;letter-spacing:.02em;color:var(--text-body)}
+.lock-state{font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted);text-transform:uppercase;letter-spacing:.14em}
+.lock-body{display:flex;flex-direction:column;align-items:center;gap:6px;width:100%}
+.lock-dots{display:flex;gap:12px;justify-content:center;padding:16px 0 10px}
+.lock-dots .dot{
+  width:12px;height:12px;border:1px solid var(--border-strong);
+  background:var(--surface-field);box-shadow:var(--bevel-field);
+}
+.lock-dots .dot.on{background:var(--accent);box-shadow:none}
+.lock-err{animation:lock-shake .28s steps(4)}
+@keyframes lock-shake{
+  25%{transform:translateX(-7px)} 50%{transform:translateX(7px)}
+  75%{transform:translateX(-4px)} 100%{transform:translateX(0)}
+}
+.lock-pad{display:grid;grid-template-columns:repeat(3,72px);gap:10px;justify-content:center}
+.pad-k{
+  height:56px;font-family:var(--font-mono);font-size:20px;font-weight:var(--weight-semibold);
+  color:var(--text-body);background:var(--surface-raised);
+  border:1px solid var(--border-strong);box-shadow:var(--bevel-up);
+  display:flex;align-items:center;justify-content:center;
+}
+.pad-k:active{box-shadow:var(--bevel-down);transform:translate(1px,1px)}
+.pad-side{color:var(--text-muted)}
+.pad-off .pad-k{opacity:.45;pointer-events:none}
+.lock-msg{min-height:18px;font-size:var(--text-12);color:var(--amber);margin:2px 0 0;text-align:center}
+.modal .lock-pad{grid-template-columns:repeat(3,64px)}
+.modal .pad-k{height:48px}
+@media (min-width:901px){
+  .lock-pad{grid-template-columns:repeat(3,64px);gap:8px}
+  .pad-k{height:44px;font-size:17px}
+}
+/* la phrase de secours : 12 mots numérotés, mono, à recopier */
+.phrase-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;margin:0 0 12px;
+  padding:12px 14px 12px 34px;border:1px solid var(--border-strong);
+  background:var(--surface-field);box-shadow:var(--bevel-field);
+  font-family:var(--font-mono);font-size:var(--text-14);
+}
+.phrase-grid li{padding:2px 0}
+.phrase-grid li::marker{color:var(--text-muted);font-size:var(--text-11)}
+/* les trois lignes de valeur du parcours de création */
+.lk-why{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--border-soft);background:var(--surface-raised)}
+.lk-why .ic{color:var(--accent);flex:none}
+/* anneau d'appareils : rôles et lignes ouvrables */
+.tag-main{
+  display:inline-block;padding:1px 6px;margin-left:6px;
+  font-family:var(--font-mono);font-size:var(--text-11);
+  color:var(--on-accent);background:var(--accent);border:1px solid var(--border-strong);
+}
+.dev-open{
+  width:100%;text-align:left;background:none;border:0;cursor:pointer;
+  color:inherit;font:inherit;
+}
+.dev-open:hover{background:var(--surface-chrome)}
+.pick-danger{border-left:3px solid var(--red)}
+.pick-danger b{color:var(--red)}
+/* campagnes : la ligne groupée d'Aujourd'hui + la feuille du jour */
+.camp-line{
+  display:flex;align-items:center;gap:8px;width:100%;margin:0 0 10px;
+  padding:10px 12px;min-height:var(--ctl);text-align:left;
+  background:var(--surface-raised);color:var(--text-body);
+  border:1px solid var(--border-strong);border-left:3px solid var(--accent);
+  box-shadow:var(--bevel-up), var(--shadow-raised);
+  font-size:var(--text-13);font-weight:var(--weight-semibold);
+}
+.camp-line:active{box-shadow:var(--bevel-down);transform:translate(1px,1px)}
+.camp-line .ic{color:var(--accent)}
+.camp-line span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}
+.camp-line em{font-style:normal;font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-link)}
+.camp-send{border:1px solid var(--border-soft);background:var(--surface-raised);margin-bottom:7px}
+.camp-send summary{
+  display:flex;align-items:center;gap:10px;list-style:none;cursor:pointer;
+  padding:9px 12px;min-height:var(--ctl);
+}
+.camp-send summary::-webkit-details-marker{display:none}
+.camp-send .cs-m{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.camp-send .cs-m b{font-size:var(--text-13)}
+.camp-send .cs-sub{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
+.camp-send .cs-body{
+  white-space:pre-wrap;padding:10px 12px;margin:0 10px 10px;
+  border:1px solid var(--border-soft);background:var(--surface-field);
+  box-shadow:var(--bevel-field);font-size:var(--text-12);line-height:1.55;
+  max-height:220px;overflow-y:auto;
+}
+.cz-recap{border:1px solid var(--border-strong);background:var(--surface-raised);padding:12px 14px;margin-bottom:12px}
+.cz-recap>b{display:block;margin-bottom:8px}
+.cz-lines{display:flex;flex-direction:column;gap:5px;font-size:var(--text-12);color:var(--text-muted)}
+.cz-lines .ic{color:var(--accent)}
+.cz-preview{padding:8px 0;border-bottom:1px dashed var(--border-soft);font-size:var(--text-12)}
+.cz-preview:last-child{border-bottom:0}
+.cz-preview .cz-subj{color:var(--text-muted);font-family:var(--font-mono);font-size:var(--text-11)}

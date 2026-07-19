@@ -12,12 +12,75 @@
 import { esc } from '../engine/utils.js';
 import { fnv } from '../engine/crypto.js';
 import { sharePayload } from '../engine/exchange.js';
-import { PROMO_KEY, kvGet, kvSet } from '../engine/storage.js';
+import { PROMO_KEY, RELAYS_KEY, kvGet, kvSet } from '../engine/storage.js';
 import { S, bus, isClosed, logJ } from './state.js';
 import { openSheet, confirmSheet, toast, btn, ic } from './dom.js';
 import { mergePreviewInto } from './recevoir.js';
 import { getSync, startSync, breakLink, keepMyProfile, makePhrase, openRoom,
-         deviceSelf, loadDevices, removeDevice, DEVICES_MAX } from './synclive.js';
+         deviceSelf, loadDevices, removeDevice, DEVICES_MAX,
+         getRing, amMain, ringDo, ringMakeMain } from './synclive.js';
+import { deviceIn } from '../engine/ring.js';
+import { requireCode } from './verrou.js';
+import { loadCompanion, openAddCompanion, openCompanionSheet, companionPresence } from './compagnon.js';
+
+const isDesktop = () => matchMedia('(min-width:901px)').matches;
+const relayList = async () => {
+  try {
+    const urls = JSON.parse(await kvGet(RELAYS_KEY) || '[]');
+    return Array.isArray(urls) ? urls.filter(x => typeof x === 'string').slice(0, 8) : [];
+  } catch (e) { return []; }
+};
+const relaySettingsHTML = urls =>
+  `<details class="pcard pcard-details sy-relays" style="margin-top:14px">
+     <summary><h3>${ic('settings-2', 'ic-14')} Connexion avancée</h3></summary>
+     <p class="hint">Seulement si ton réseau bloque la liaison. Une adresse sécurisée <b>wss://</b> par ligne.</p>
+     <div class="field"><label for="syRelays">Relais personnalisés</label>
+       <textarea id="syRelays" class="ta-s" spellcheck="false" autocapitalize="off"
+         placeholder="wss://relais.exemple.org">${esc(urls.join('\n'))}</textarea></div>
+     <button class="btn btn-sm" id="sySaveRelays">Enregistrer</button>
+     <button class="linklike" id="syPublicRelays"${urls.length ? '' : ' hidden'}>Revenir aux relais publics</button>
+   </details>`;
+function parseRelays(raw){
+  const values = String(raw || '').split(/[\n,]+/).map(x => x.trim()).filter(Boolean);
+  if (values.length > 8) throw new Error('huit');
+  const out = [];
+  for (const value of values){
+    let u;
+    try { u = new URL(value); } catch (e) { throw new Error('adresse'); }
+    if (u.protocol !== 'wss:' || !u.hostname || u.username || u.password) throw new Error('adresse');
+    if (!out.includes(u.href)) out.push(u.href);
+  }
+  return out;
+}
+function wireRelays(q, phrase, rerender){
+  const save = async urls => {
+    await kvSet(RELAYS_KEY, JSON.stringify(urls));
+    if (phrase) await startSync(phrase);
+    toast(urls.length
+      ? 'Relais enregistrés — la liaison redémarre.'
+      : 'Relais publics rétablis.');
+    rerender();
+  };
+  q('#sySaveRelays')?.addEventListener('click', async () => {
+    try { await save(parseRelays(q('#syRelays').value)); }
+    catch (e) { toast(e.message === 'huit' ? 'Huit relais maximum.' : 'Adresse attendue : wss://…'); }
+  });
+  q('#syPublicRelays')?.addEventListener('click', () => save([]));
+}
+/* la ligne Compagnon — présente avec ou sans phrase de liaison */
+const compRowHTML = comp => comp
+  ? `<button class="dev-row dev-open" id="devComp"><b>${esc(comp.nom || 'Compagnon')}</b> <span class="tag-beta">compagnon</span>
+       <span class="dev-sub" id="devCompSub">état… · gérer ›</span></button>`
+  : '';
+function wireComp(q, comp, render){
+  q('#devAddComp')?.addEventListener('click', () => openAddCompanion(render));
+  if (!comp) return;
+  q('#devComp')?.addEventListener('click', () => openCompanionSheet(comp, render));
+  companionPresence().then(p => {
+    const el = q('#devCompSub');
+    if (el) el.textContent = (p && p.state === 'on' ? 'prêt' : 'éteint') + ' · gérer ›';
+  });
+}
 
 const agoLabel = t => {
   const m = Math.round((Date.now() - t) / 60000);
@@ -28,11 +91,56 @@ const agoLabel = t => {
   return 'il y a ' + Math.round(h / 24) + ' j';
 };
 
+/* ---------- feuille d'un appareil : les commandes du principal ----------
+   Chaque geste re-demande le code ; la commande voyage dans l'anneau
+   signé et s'applique quand l'appareil se reconnecte — l'interface
+   est honnête sur cette limite. */
+function openDeviceSheet(d, onDone){
+  const sh = openSheet({ title: d.name, icon: 'switch' });
+  sh.body.innerHTML =
+    `<p class="hint" style="margin:0 0 10px">Vu ${agoLabel(d.seen || 0)}. Une commande s’applique quand il se reconnecte.</p>
+     <div class="pick-list">
+       <button class="pick" id="dvLock"><b>Verrouiller cet appareil</b><span>il se verrouillera dès qu’il se reconnectera</span></button>
+       <button class="pick" id="dvMain"><b>En faire l’appareil principal</b><span>celui-ci redevient un appareil ordinaire</span></button>
+       <button class="pick" id="dvRemove"><b>Retirer de mes appareils</b><span>il ne se synchronisera plus</span></button>
+       <button class="pick" id="dvBan"><b>Retirer et changer les clés</b><span>appareil perdu ou douteux</span></button>
+       <button class="pick pick-danger" id="dvWipe"><b>Effacer ses données</b><span>de bonne foi — à sa prochaine connexion</span></button>
+     </div>`;
+  const q = s => sh.body.querySelector(s);
+  const doCmd = async (cmd, confirmOpts, doneMsg) => {
+    if (confirmOpts && !await confirmSheet(confirmOpts)) return;
+    if (!await requireCode('Ton code, pour confirmer')) return;
+    if (cmd === 'main') await ringMakeMain(d.id);
+    else await ringDo(cmd, d.id);
+    sh.close(null, true);
+    toast(doneMsg);
+    onDone();
+  };
+  q('#dvLock').addEventListener('click', () =>
+    doCmd('lock', null, 'Il se verrouillera dès qu’il se reconnectera.'));
+  q('#dvMain').addEventListener('click', () =>
+    doCmd('main', { title: 'Transférer le rôle ?', okLabel: 'Transférer', icon: 'switch',
+      msg: `<b>${esc(d.name)}</b> devient ton appareil principal. Celui-ci redevient un appareil ordinaire.` },
+      'Rôle transféré ✓'));
+  q('#dvRemove').addEventListener('click', () =>
+    doCmd('remove', { title: 'Retirer cet appareil ?', danger: true, okLabel: 'Retirer', icon: 'trash',
+      msg: `<b>${esc(d.name)}</b> sort de tes appareils et ne se synchronisera plus. Rien n’y est effacé.` },
+      'Retiré — il l’apprendra à sa prochaine connexion.'));
+  q('#dvBan').addEventListener('click', () =>
+    doCmd('ban', { title: 'Retirer et changer les clés ?', danger: true, okLabel: 'Retirer', icon: 'trash',
+      msg: `<b>${esc(d.name)}</b> est écarté et les clés du groupe changent. Il connaît encore la phrase de liaison — <b>change-la aussi</b> pour l’écarter vraiment.` },
+      'Écarté. Pense à changer la phrase de liaison.'));
+  q('#dvWipe').addEventListener('click', () =>
+    doCmd('wipe', { title: 'Effacer ses données ?', danger: true, okLabel: 'Effacer', icon: 'square-alert',
+      msg: `<b>${esc(d.name)}</b> effacera ses données OpenContact à sa prochaine connexion. Si quelqu’un l’en empêche, change aussi les clés et la phrase.` },
+      'Demandé — il effacera à sa prochaine connexion.'));
+}
+
 /* ============ Mes appareils : gestion du lien persistant ============ */
 export function openAppareils(){
   let onSync = null;
   const sh = openSheet({
-    title: 'Mes appareils', icon: 'switch',
+    title: 'Mes appareils', icon: 'switch', clearToast: true,
     onClose: () => { if (onSync){ document.removeEventListener('oc:sync', onSync); onSync = null; } }
   });
   const q = s => sh.body.querySelector(s);
@@ -48,11 +156,27 @@ export function openAppareils(){
     return `${ic('clock', 'ic-14')} Connexion…`;
   };
 
+  /* le rôle d'un appareil dans l'anneau — '' si pas d'anneau */
+  const roleOf = id => {
+    const r = getRing();
+    const d = r && deviceIn(r, id);
+    return d ? (r.main === id ? 'main' : d.role) : '';
+  };
+  const roleTag = id => {
+    const role = roleOf(id);
+    if (role === 'main') return ' <span class="tag-main">principal</span>';
+    if (role === 'companion') return ' <span class="tag-beta">compagnon</span>';
+    return '';
+  };
+
   async function renderLinked(){
     const sy = getSync();
     const self = await deviceSelf();
     const devs = await loadDevices();
     const st = sy.lastStats;
+    const iAmMain = await amMain();
+    const comp = await loadCompanion();
+    const relays = await relayList();
     sh.setTitle('Mes appareils');
     sh.body.innerHTML =
       `<div class="sy-phrase"><span>${esc(sy.phrase)}</span></div>
@@ -69,20 +193,32 @@ export function openAppareils(){
          </ul>` : ''}</div>
        <div class="sy-devs">
          <div class="lbl-row" style="margin-bottom:6px"><label>Appareils reliés</label></div>
-         <div class="dev-row"><b>${esc(self.name)}</b><span class="dev-sub">cet appareil</span></div>
-         ${devs.map(d =>
-           `<div class="dev-row"><b>${esc(d.name)}</b><span class="dev-sub">${agoLabel(d.seen || 0)}</span>
-              <button class="abtn abtn-sm" data-rm="${esc(d.id)}" aria-label="Retirer ${esc(d.name)}" title="Retirer">${ic('trash', 'ic-14')}</button>
-            </div>`).join('')}
+         <div class="dev-row"><b>${esc(self.name)}</b>${roleTag(self.id)}<span class="dev-sub">cet appareil</span></div>
+         ${devs.map(d => iAmMain && roleOf(d.id)
+           ? `<button class="dev-row dev-open" data-dev="${esc(d.id)}"><b>${esc(d.name)}</b>${roleTag(d.id)}
+                <span class="dev-sub">${agoLabel(d.seen || 0)} · gérer ›</span></button>`
+           : `<div class="dev-row"><b>${esc(d.name)}</b>${roleTag(d.id)}<span class="dev-sub">${agoLabel(d.seen || 0)}</span>
+                <button class="abtn abtn-sm" data-rm="${esc(d.id)}" aria-label="Retirer ${esc(d.name)}" title="Retirer">${ic('trash', 'ic-14')}</button>
+              </div>`).join('')}
+         ${comp ? compRowHTML(comp)
+           : (iAmMain
+             ? (isDesktop()
+               ? `<button class="linklike" id="devAddComp" style="margin-top:6px">${ic('plus', 'ic-14')} Ajouter le Compagnon — cet ordinateur enverra même app fermée</button>`
+               : `<div class="dev-row"><b>Le Compagnon</b><span class="dev-sub">s’installe et s’associe depuis ton ordinateur</span></div>`)
+             : '')}
+         ${getRing() && !iAmMain ? `<p class="hint" style="margin-top:6px">Seul ton appareil principal peut gérer les autres.</p>` : ''}
          ${1 + devs.length > DEVICES_MAX
            ? `<p class="hint warn" style="margin-top:6px">Plus de ${DEVICES_MAX} appareils — change la phrase de liaison pour écarter ceux que tu ne reconnais pas.</p>`
            : ''}
        </div>
+       ${relaySettingsHTML(relays)}
        <button class="linklike" id="syNewPhrase" style="margin-top:12px">Changer la phrase de liaison</button>`;
 
     q('#syRetry')?.addEventListener('click', () => startSync(sy.phrase));
     q('#syKeepProf')?.addEventListener('click', keepMyProfile);
-    q('#syNewPhrase')?.addEventListener('click', () => renderStart(true));
+    q('#syNewPhrase')?.addEventListener('click', async () => {
+      if (await requireCode('Ton code, pour changer la phrase')) renderStart(true);
+    });
     sh.body.querySelectorAll('[data-rm]').forEach(b =>
       b.addEventListener('click', async () => {
         const d = devs.find(x => x.id === b.dataset.rm);
@@ -91,9 +227,18 @@ export function openAppareils(){
           msg: `<b>${esc(d ? d.name : 'Appareil')}</b> sort de la liste. Il connaît encore la phrase — pour l’écarter vraiment, change aussi la phrase de liaison.`
         });
         if (!ok) return;
+        if (!await requireCode('Ton code, pour retirer')) return;
         await removeDevice(b.dataset.rm);
         render();
       }));
+    /* je suis le principal : chaque appareil s'ouvre en feuille de gestion */
+    sh.body.querySelectorAll('[data-dev]').forEach(b =>
+      b.addEventListener('click', () => {
+        const d = devs.find(x => x.id === b.dataset.dev);
+        if (d) openDeviceSheet(d, render);
+      }));
+    wireComp(q, comp, render);
+    wireRelays(q, sy.phrase, render);
     sh.setFoot([
       btn('Rompre le lien', 'btn-ghost', async () => {
         const ok = await confirmSheet({
@@ -101,6 +246,7 @@ export function openAppareils(){
           msg: 'Cet appareil ne se synchronisera plus. Rien n’est effacé — tes pistes restent ici, les autres appareils gardent les leurs.'
         });
         if (!ok) return;
+        if (!await requireCode('Ton code, pour rompre le lien')) return;
         await breakLink();
         toast('Lien rompu — cet appareil vit sa vie.');
         render();
@@ -108,7 +254,9 @@ export function openAppareils(){
     ]);
   }
 
-  function renderStart(changing){
+  async function renderStart(changing){
+    const comp = await loadCompanion();
+    const relays = await relayList();
     sh.setTitle('Mes appareils');
     sh.body.innerHTML =
       `<p class="hint" style="margin:0 0 12px">${changing
@@ -117,8 +265,21 @@ export function openAppareils(){
        <div class="pick-list">
          <button class="pick" id="syNew"><b>${ic('sparkles', 'ic-14')} Créer une phrase</b><span>je commence ici</span></button>
          <button class="pick" id="syJoin"><b>${ic('switch', 'ic-14')} Entrer une phrase</b><span>j’en ai déjà une</span></button>
-       </div>`;
+       </div>
+       ${comp ? `<div class="sy-devs" style="margin-top:14px">
+           <div class="lbl-row" style="margin-bottom:6px"><label>Appareils reliés</label></div>
+           ${compRowHTML(comp)}
+         </div>` : ''}
+       ${!changing && !comp && isDesktop()
+         ? `<button class="linklike" id="devAddComp" style="margin-top:12px">${ic('plus', 'ic-14')} Ajouter le Compagnon — cet ordinateur enverra même app fermée</button>`
+         : ''}
+       ${!changing && !comp && !isDesktop()
+         ? `<div class="sy-devs"><div class="dev-row"><b>Le Compagnon</b><span class="dev-sub">s’installe et s’associe depuis ton ordinateur</span></div></div>`
+         : ''}
+       ${relaySettingsHTML(relays)}`;
     sh.setFoot(changing ? [btn('← Retour', 'btn-ghost', render)] : null);
+    wireComp(q, comp, render);
+    wireRelays(q, '', render);
     q('#syNew').addEventListener('click', () => { startSync(makePhrase()); render(); });
     q('#syJoin').addEventListener('click', () => {
       sh.body.innerHTML =

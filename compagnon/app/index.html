@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenContact Compagnon</title>
+<link rel="stylesheet" href="moteur/styles/tokens/fonts.css">
+<link rel="stylesheet" href="moteur/styles/tokens/colors.css">
+<link rel="stylesheet" href="moteur/styles/tokens/typography.css">
+<link rel="stylesheet" href="moteur/styles/tokens/spacing.css">
+<link rel="stylesheet" href="moteur/styles/tokens/effects.css">
+<link rel="stylesheet" href="moteur/styles/tokens/base.css">
+<link rel="stylesheet" href="compagnon.css">
+</head>
+<body>
+<main class="cg">
+  <header class="cg-head">
+    <h1>Compagnon</h1>
+    <span class="cg-ver" id="cgVer"></span>
+  </header>
+
+  <section class="cg-card" id="cgEtat">
+    <h2>État</h2>
+    <p class="cg-line" id="cgAssoc">…</p>
+    <p class="hint">Le Compagnon travaille en arrière-plan : fermer la fenêtre ne l’arrête pas
+       — l’icône reste dans la barre système.</p>
+  </section>
+
+  <section class="cg-card">
+    <h2>Associer à OpenContact</h2>
+    <div class="cg-code" id="cgCode" hidden></div>
+    <p class="hint" id="cgPairHint">Un code court, à recopier dans OpenContact sur cet ordinateur.</p>
+    <button class="btn" id="cgPair">Afficher le code</button>
+    <button class="btn" id="cgUnpair" hidden>Rompre l’association…</button>
+  </section>
+
+  <section class="cg-card">
+    <h2>Messagerie</h2>
+    <p class="hint">Pour envoyer tes campagnes : Gmail avec un <b>mot de passe
+       d’application</b> (jamais ton mot de passe habituel). Il reste dans le
+       trousseau de cet ordinateur.</p>
+    <div class="cg-form">
+      <label>Adresse d’envoi <input id="cgDe" type="email" placeholder="toi@gmail.com"></label>
+      <label>Mot de passe d’application <input id="cgMdp" type="password" autocomplete="off"></label>
+      <details class="cg-tech"><summary>Autre fournisseur (avancé)</summary>
+        <label>Serveur SMTP <input id="cgHote" placeholder="smtp.gmail.com"></label>
+        <label>Port <input id="cgPort" type="number" placeholder="465"></label>
+        <label>Sécurité
+          <select id="cgSec"><option value="tls">TLS (465)</option><option value="starttls">STARTTLS (587)</option></select>
+        </label>
+        <label>Serveur IMAP (lecture des réponses) <input id="cgImapHote" placeholder="imap.gmail.com"></label>
+        <label>Port IMAP <input id="cgImapPort" type="number" placeholder="993"></label>
+      </details>
+      <button class="btn" id="cgMailOk">Enregistrer</button>
+      <span class="hint" id="cgMailEtat"></span>
+    </div>
+  </section>
+
+  <section class="cg-card">
+    <h2>Démarrage</h2>
+    <label class="cg-opt">
+      <input type="checkbox" id="cgAuto">
+      <span>Démarrer avec l’ordinateur</span>
+    </label>
+    <p class="hint">Optionnel. Sans lui, lance le Compagnon à la main quand une campagne doit partir.</p>
+  </section>
+
+  <details class="cg-card cg-tech">
+    <summary>Détails techniques</summary>
+    <p class="cg-line" id="cgMoteur">moteur partagé : …</p>
+  </details>
+</main>
+<script src="compagnon.js" type="module"></script>
+</body>
+</html>

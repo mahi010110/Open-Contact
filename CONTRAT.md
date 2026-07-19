@@ -26,6 +26,13 @@ doit être repensée, pas forcée.
 | `oc_device_v1` | Cet appareil — identité annoncée à la sync | JSON : `{id, name}` |
 | `oc_devices_v1` | Appareils reliés déjà vus (12 max, consultables et élagables) | JSON : tableau `{id, name, seen}` |
 | `oc_promo_v1` | Dernier mot de passe de partage en groupe (confort de saisie) | chaîne |
+| `oc_vault_v1` | Métadonnée du coffre (profil protégé) : enveloppes de la clé maîtresse par code / phrase de secours / PRF — **jamais la clé en clair**. Pendant une rotation, `prev` porte l'ANCIENNE clé maîtresse scellée sous la nouvelle (`OCV1.`) : la métadonnée s'écrit avant le re-scellement, une interruption se reprend au déverrouillage suivant sans perte, puis `prev` est retiré | JSON : `{v, gen, at, wraps, prev?}` |
+| `oc_devring_v1` | Anneau d'appareils : registre signé (appareil principal, membres, commandes) + clés Ed25519 de CET appareil + commandes déjà appliquées | JSON : `{ring, keys, applied}` |
+| `oc_campaigns_v1` | Campagnes de prospection (privé — messages figés au montage, journal des envois faits ; chaque envoi porte un identifiant stable `id.cible.étape` : rejouer ne double jamais). Plafond de 15 envois/jour **global, toutes campagnes confondues** (`dueSendsAll` fait foi dès qu'il en existe plusieurs) et fenêtre d'envoi imposée : jours ouvrés, 8 h – 19 h locales | JSON : tableau de campagnes |
+| `oc_mail_v1` | Connexions messagerie : jetons OAuth et adresse d'envoi — **exige le profil protégé** (valeur toujours scellée) | JSON : `{gmail, outlook, clients}` |
+| `oc_ai_v1` | Connexions IA : fournisseur actif + clé API — **exige le profil protégé** (valeur toujours scellée) ; la clé ne sort jamais dans un log ni un export | JSON : `{provider, key, model}` |
+| `oc_missions_v1` | Bons de mission du Compagnon : idempotents (repliés sur le journal de campagne), bornés (expiration), révocables ; un résultat d'analyse = enveloppe `share` qui repasse par l'aperçu. Sur le fil, une mission voyage **signée** : `{m, sig, dev}` — `m` est la chaîne JSON exacte signée Ed25519 par l'appareil émetteur, vérifiée octet à octet (PWA `openMissionWire` ET cœur Rust du Compagnon, à CHAQUE lecture). `dev` peut être l'ordinateur appairé ou un autre membre (téléphone) : le Compagnon résout sa clé dans l'anneau signé. Côté PWA la clé garde les remises : `[{mid, cpId, wire, state: a_confier·confiee·revoquee, stops[], revOk?}]` | JSON : tableau de missions |
+| `oc_companion_v1` | Association au Compagnon : clé de canal née de l'appairage par code court + identité du Compagnon (`{k, id, nom, pub, at}`) — **exige le profil protégé** (valeur toujours scellée). Le canal local (127.0.0.1) ne transporte que des enveloppes `OCV1.` : l'appairage sous PBKDF2(code, 120 000 itér.), la suite sous `k` — rien d'utile en clair | JSON |
 | `oc_theme` | `light` ou `dark` | chaîne |
 | `oc_view` | `map`, `list` ou `grid` (héritée, plus écrite) | chaîne |
 | `oc_data_v2`, `ais_stage_targets_v1` | Anciennes clés (v1/v2), lues une seule fois pour migration | lecture seule |
@@ -42,6 +49,19 @@ lourd ne puisse jamais les bloquer ni les faire perdre.
 Renommer une clé = perte de données pour tous les utilisateurs existants.
 On ne renomme jamais ; si le format d'une clé doit évoluer, on crée une
 **nouvelle** clé versionnée et on migre à la lecture (comme v1 → v2 → v3).
+
+**Profil protégé (coffre)** : quand `oc_vault_v1` existe, les valeurs des
+clés de données et de secrets sont écrites **scellées** sous la forme
+`OCV1.<iv base64>.<contenu chiffré base64>` (AES-GCM 256 sous la clé
+maîtresse, AAD = nom de la clé — une enveloppe ne se rejoue pas sous un
+autre nom). Les **noms** de clés ne changent pas. Une valeur claire héritée
+reste lisible telle quelle (migration à l'écriture) ; une valeur scellée lue
+sans coffre déverrouillé est une **erreur** (`verrou`), jamais un `null`
+silencieux. La clé maîtresse est enveloppée (wrap AES-GCM) sous des clés
+dérivées : code PIN et phrase de secours par PBKDF2-SHA256 (600 000
+itérations à l'écriture, 10 000 à 2 000 000 acceptées à la lecture), secret
+PRF (WebAuthn) par HKDF-SHA256. Code perdu **et** phrase perdue = contenu
+irrécupérable — c'est le contrat du local-first.
 
 ## 2. Le format `.oc` — intouchable
 
@@ -208,6 +228,31 @@ appartiennent à la même personne (`engine/sync.js`, transport P2P chiffré).
    `promo-` et la clé `oc_promo_v1` ne changent pas), lui, passe exclusivement par `sharePayload`
    (vue communautaire, §3) et l'aperçu avant fusion (§4) — mêmes règles que
    par fichier, quel que soit le canal.
+7. **L'anneau d'appareils** (`engine/ring.js`, quand le profil est protégé) :
+   le registre voyage avec la sync, signé **en bloc** (Ed25519) par
+   l'appareil principal ; une commande (verrouiller, retirer, effacer,
+   transférer) n'est appliquée que si la signature vérifie contre la clé
+   publique du principal déjà connue. La **génération** ne descend jamais
+   (bannir = génération +1 — l'anneau d'un banni est ignoré). La
+   **récupération d'urgence** est signée par la clé de secours, dérivée
+   de la phrase de secours (déterministe) : elle prouve la phrase,
+   exige une génération strictement supérieure, et se vérifie hors ligne.
+   La commande **effacer** (`wipe`) emporte TOUT ce qui est à
+   l'utilisateur sur l'appareil visé : données, profil, journal, bac,
+   tombstones, phrase de liaison, relais, identité d'appareil, appareils
+   vus, anneau, coffre, campagnes, jetons de messagerie, clés d'IA,
+   missions, et les documents (`cv`, `lettre`) de `oc_docs_v1`.
+8. **Campagnes C8** : les instantanés privés du canal `full` peuvent porter
+   `campaigns` (`oc_campaigns_v1`) et `missions` (`oc_missions_v1`). Ce sont
+   des champs optionnels : un ancien appareil les ignore sans casser le
+   format. Une campagne prend la forme la plus récente (`updatedAt`), mais
+   les `sid` déjà au journal et les états terminaux des cibles ne régressent
+   jamais. Les missions sont dédupliquées par `mid` ; leur état est monotone
+   (`a_confier` → `confiee` → `revoquee`), les arrêts sont réunis, et le
+   triplet signé `{m,sig,dev}` est transporté **sans recomposition**.
+   `oc_companion_v1`, clé du canal 127.0.0.1, reste exclusivement sur
+   l'ordinateur associé et ne voyage jamais. Les formats `.oc`, `OCQ1.` et
+   `OCQP1.` ne changent pas.
 
 ---
 

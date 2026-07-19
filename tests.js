@@ -19,8 +19,28 @@ import { syncMerge, mergeTombs, TOMBS_MAX } from './engine/sync.js';
 import { filterCompanies, NATURAL_DIR } from './engine/filter.js';
 import { scoreOf } from './engine/score.js';
 import { DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, SYNC_KEY,
-         RELAYS_KEY, DEVICE_KEY, DEVICES_KEY, PROMO_KEY,
-         THEME_KEY, VIEW_KEY, OLD_V2, OLD_V1 } from './engine/storage.js';
+         RELAYS_KEY, DEVICE_KEY, DEVICES_KEY, PROMO_KEY, VAULT_KEY,
+         ANALYSIS_KEY, SEALABLE, THEME_KEY, VIEW_KEY, OLD_V2, OLD_V1,
+         kvGet, kvSet, kvDel, vaultActive, vaultDetach, vaultReseal } from './engine/storage.js';
+import { VAULT_WORDS, PHRASE_LEN, makeVaultPhrase, normVaultPhrase, phraseUnknownWords,
+         createVault, unlockWithPin, unlockWithPhrase, unlockWithPrf,
+         setPin, addPrfWrap, rotateVault,
+         rotateVaultResumable, prevKeyOf, clearPrev,
+         sealValue, openValue, isSealed } from './engine/vault.js';
+import { edAvailable, makeDeviceKeys, recoveryKeys, ringInit, ringAddDevice,
+         ringCommand, ringTransfer, ringRecover, mergeRing, actionsFor,
+         verifyRing, deviceIn } from './engine/ring.js';
+import { DAILY_CAP, buildCampaign, dueSends, dueSendsAll, sentTodayAll,
+         markSent, markReplied, markError,
+         pauseCampaign, resumeCampaign, stopCampaign, campaignStats,
+         inSendWindow, addDays as cAddDays } from './engine/campaign.js';
+import { buildMime, encodeHeader, toB64Url, authUrl, parseCallback, pkcePair } from './engine/mailer.js';
+import { dueFollowups, contactFromSignature } from './engine/assist.js';
+import { makeMission, missionUsable, revokeMission, foldCampaignReport,
+         signMission, openMissionWire } from './engine/mission.js';
+import { normCode, pairKey } from './engine/companion.js';
+import { AI_FAMILIES, browserProviders, aiComplete, draftPrompt } from './engine/ai.js';
+import { normaliseMailAnalysis } from './ui/analyse.js';
 
 export async function runSelfTests(){
   const R = [];
@@ -216,6 +236,7 @@ export async function runSelfTests(){
       eq(DEVICE_KEY, 'oc_device_v1');
       eq(DEVICES_KEY, 'oc_devices_v1');
       eq(PROMO_KEY, 'oc_promo_v1');
+      eq(VAULT_KEY, 'oc_vault_v1');
       eq(THEME_KEY, 'oc_theme');
       eq(VIEW_KEY, 'oc_view');
       eq(OLD_V2, 'oc_data_v2');
@@ -531,6 +552,416 @@ export async function runSelfTests(){
       eq(contactKey({ phone: '06 01 02 03 04' }), 'p:0601020304');
       eq(contactKey({ name: 'Ana', role: 'RH' }), 'n:anarh');
       eq(contactKey({}), '');
+    },
+    /* ---------- le coffre (profil protégé) ---------- */
+    'coffre : liste de mots — 256, uniques, phrase normalisée': () => {
+      eq(VAULT_WORDS.length, 256);
+      eq(new Set(VAULT_WORDS).size, 256);
+      ok(VAULT_WORDS.every(w => /^[a-z]{3,9}$/.test(w)));
+      eq(normVaultPhrase('  Éclair   FORÊT, chien '), 'eclair foret chien');
+      eq(phraseUnknownWords('aigle zzz ancre'), ['zzz']);
+      const r = makeVaultPhrase(n => new Uint8Array(n));   /* octets à 0 → 12 × 1er mot */
+      eq(r, Array(PHRASE_LEN).fill(VAULT_WORDS[0]).join(' '));
+    },
+    'coffre : vecteurs stables — méta v1, OCV1, déverrouillage': async () => {
+      /* hasard compteur : la méta et l'enveloppe sont figées — si ce
+         test casse, le FORMAT a changé et les coffres existants aussi */
+      let n = 0;
+      const rnd = len => { const u = new Uint8Array(len); for (let i = 0; i < len; i++) u[i] = (n++) & 255; return u; };
+      const phrase = makeVaultPhrase(rnd);
+      eq(phrase, 'aigle ancre avion balai balle bambou banane barque bassin bateau biche bijou');
+      const { meta, key } = await createVault('123456', phrase, { rnd, iter: 15000, at: 1752624000000 });
+      eq(JSON.stringify(meta), '{"v":1,"gen":1,"at":1752624000000,"wraps":{"pin":{"it":15000,"s":"LC0uLzAxMjM0NTY3ODk6Ow==","i":"PD0+P0BBQkNERUZH","c":"orzOHlSEfKCq8U0YCZfi+MbyTvblwxdJyoJvZwsGA3F2YcW3woL6OQSh87xmSTcI"},"phrase":{"it":15000,"s":"SElKS0xNTk9QUVJTVFVWVw==","i":"WFlaW1xdXl9gYWJj","c":"MhygJSivFk2uv1yv13efdkeiCjokvjtsppmnWv0GRh9MWqj38reXiHqaDoQV5q7y"}}}');
+      const u = await unlockWithPin(meta, '123456');
+      const env = await sealValue(u.key, 'oc_test', 'secret-value', rnd);
+      eq(env, 'OCV1.ZGVmZ2hpamtsbW5v.CYeg+aWD3YHyn/RP7tmFlR8op+Fo22JbQ24ZGA==');
+      ok(isSealed(env));
+      eq(await openValue(key, 'oc_test', env), 'secret-value');
+    },
+    'coffre : mauvais code, phrase tolérante, AAD lié au nom': async () => {
+      const rnd = len => crypto.getRandomValues(new Uint8Array(len));
+      const phrase = makeVaultPhrase(rnd);
+      const { meta, key } = await createVault('123456', phrase, { iter: 15000 });
+      try { await unlockWithPin(meta, '000000'); throw new Error('accepté !'); }
+      catch (e) { eq(e.message, 'code'); }
+      try { await unlockWithPhrase(meta, 'aigle aigle aigle'); throw new Error('accepté !'); }
+      catch (e) { eq(e.message, 'phrase'); }
+      const u = await unlockWithPhrase(meta, '  ' + phrase.toUpperCase() + ' ');
+      ok(!!u.key);
+      const env = await sealValue(key, 'oc_sync_v1', 'ma phrase de liaison');
+      try { await openValue(key, 'oc_data_v3', env); throw new Error('ouvert !'); }
+      catch (e) { eq(e.message, 'coffre'); }
+    },
+    'coffre : nouveau code, PRF, rotation (gén. +1, ancien code refusé)': async () => {
+      const phrase = makeVaultPhrase();
+      const { meta } = await createVault('111111', phrase, { iter: 15000 });
+      /* changer le code exige de re-prouver un moyen d'accès */
+      const meta2 = await setPin(meta, { pin: '111111' }, '222222', { iter: 15000 });
+      ok(!!(await unlockWithPin(meta2, '222222')).key);
+      try { await setPin(meta, { pin: '999999' }, '333333', { iter: 15000 }); throw new Error('accepté !'); }
+      catch (e) { eq(e.message, 'code'); }
+      /* PRF : un secret externe enveloppe et déverrouille */
+      const secret = new Uint8Array(32).fill(7);
+      const meta3 = await addPrfWrap(meta2, { pin: '222222' }, secret, 'cred-1', { iter: 15000 });
+      ok(!!(await unlockWithPrf(meta3, secret)).key);
+      try { await unlockWithPrf(meta3, new Uint8Array(32).fill(8)); throw new Error('accepté !'); }
+      catch (e) { eq(e.message, 'secret'); }
+      /* rotation : nouvelle clé maîtresse, génération incrémentée */
+      const rot = await rotateVault(meta3, '444444', makeVaultPhrase(), { iter: 15000 });
+      eq(rot.meta.gen, 2);
+      try { await unlockWithPin(rot.meta, '222222'); throw new Error('accepté !'); }
+      catch (e) { eq(e.message, 'code'); }
+      ok(!!(await unlockWithPin(rot.meta, '444444')).key);
+    },
+    'coffre : rotation interrompue — reprise par `prev`, rien de perdu': async () => {
+      const phrase = makeVaultPhrase();
+      const { meta, key } = await createVault('111111', phrase, { iter: 15000 });
+      const e1 = await sealValue(key, 'k1', 'valeur-1');
+      const e2 = await sealValue(key, 'k2', 'valeur-2');
+      /* la rotation exige de re-prouver un secret, jamais la clé seule */
+      try { await rotateVaultResumable(meta, { pin: '999999' }, '222222', makeVaultPhrase(), { iter: 15000 }); throw new Error('accepté !'); }
+      catch (e) { eq(e.message, 'code'); }
+      const rot = await rotateVaultResumable(meta, { phrase }, '222222', makeVaultPhrase(), { iter: 15000 });
+      eq(rot.meta.gen, 2);
+      ok(isSealed(rot.meta.prev));
+      /* « crash » simulé : la méta est écrite, seule k1 est re-scellée */
+      const n1 = await sealValue(rot.key, 'k1', await openValue(rot.oldKey, 'k1', e1));
+      /* reprise au déverrouillage suivant : la nouvelle clé rouvre l'ancienne */
+      const pk = await prevKeyOf(rot.meta, rot.key);
+      ok(!!pk);
+      eq(await openValue(pk, 'k2', e2), 'valeur-2');       /* l'ancienne enveloppe se relit */
+      eq(await openValue(rot.key, 'k1', n1), 'valeur-1');  /* la re-scellée aussi */
+      /* soldée : prev retiré, l'ancien code ne rentre plus */
+      const done = clearPrev(rot.meta);
+      ok(!done.prev);
+      eq(await prevKeyOf(done, rot.key), null);
+      try { await unlockWithPin(rot.meta, '111111'); throw new Error('accepté !'); }
+      catch (e) { eq(e.message, 'code'); }
+    },
+    'anneau : signé, vérifié, TOFU, falsification refusée': async () => {
+      if (!(await edAvailable())) return;   /* vieux navigateur : dégradé assumé */
+      const kA = await makeDeviceKeys(), kB = await makeDeviceKeys();
+      const rec = await recoveryKeys('aigle ancre avion', 15000);
+      let ring = await ringInit({ id: 'A', name: 'Pixel' }, kA.pub, kA.seed, rec.pub);
+      ok(await verifyRing(ring, kA.pub));
+      ring = await ringAddDevice(ring, kA.seed, { id: 'B', name: 'MacBook', pub: kB.pub });
+      eq(ring.devices.length, 2);
+      const mB = await mergeRing(null, ring);         /* B apprend l'anneau (TOFU) */
+      ok(mB.changed);
+      const forged = await ringCommand(ring, kB.seed, 'wipe', 'A');   /* signé par B */
+      ok(!(await mergeRing(mB.ring, forged)).changed);
+    },
+    'anneau : commandes ciblées, appliquées une seule fois': async () => {
+      if (!(await edAvailable())) return;
+      const kA = await makeDeviceKeys(), kB = await makeDeviceKeys();
+      const rec = await recoveryKeys('x', 15000);
+      let ring = await ringInit({ id: 'A', name: 'A' }, kA.pub, kA.seed, rec.pub);
+      ring = await ringAddDevice(ring, kA.seed, { id: 'B', name: 'B', pub: kB.pub });
+      ring = await ringCommand(ring, kA.seed, 'lock', 'B', 'c1');
+      const acts = actionsFor(ring, 'B', []);
+      eq(acts, [{ cid: 'c1', cmd: 'lock' }]);
+      eq(actionsFor(ring, 'B', ['c1']), []);          /* déjà appliquée */
+      eq(actionsFor(ring, 'A', []), []);              /* ne me vise pas */
+    },
+    'anneau : bannir = génération +1, le retour d’un banni est ignoré': async () => {
+      if (!(await edAvailable())) return;
+      const kA = await makeDeviceKeys(), kB = await makeDeviceKeys();
+      const rec = await recoveryKeys('x', 15000);
+      let ring = await ringInit({ id: 'A', name: 'A' }, kA.pub, kA.seed, rec.pub);
+      ring = await ringAddDevice(ring, kA.seed, { id: 'B', name: 'B', pub: kB.pub });
+      const banned = await ringCommand(ring, kA.seed, 'ban', 'B');
+      eq(banned.gen, 2);
+      ok(!deviceIn(banned, 'B'));
+      ok(!(await mergeRing(banned, ring)).changed);   /* l'ancien anneau ne redescend pas */
+    },
+    'anneau : transfert du rôle signé par l’ancien principal': async () => {
+      if (!(await edAvailable())) return;
+      const kA = await makeDeviceKeys(), kB = await makeDeviceKeys();
+      const rec = await recoveryKeys('x', 15000);
+      let ring = await ringInit({ id: 'A', name: 'A' }, kA.pub, kA.seed, rec.pub);
+      ring = await ringAddDevice(ring, kA.seed, { id: 'B', name: 'B', pub: kB.pub });
+      const mB = await mergeRing(null, ring);
+      const t = await ringTransfer(ring, kA.seed, 'B');
+      const mB2 = await mergeRing(mB.ring, t);
+      ok(mB2.changed);
+      eq(mB2.ring.main, 'B');
+      eq(deviceIn(mB2.ring, 'A').role, 'member');
+    },
+    'anneau : récupération par la phrase — vraie acceptée, fausse refusée': async () => {
+      if (!(await edAvailable())) return;
+      const kA = await makeDeviceKeys(), kB = await makeDeviceKeys();
+      const rec = await recoveryKeys('bonne phrase', 15000);
+      let ring = await ringInit({ id: 'A', name: 'A' }, kA.pub, kA.seed, rec.pub);
+      ring = await ringAddDevice(ring, kA.seed, { id: 'B', name: 'B', pub: kB.pub });
+      const newRec = await recoveryKeys('phrase renouvelee', 15000);
+      const good = await ringRecover(ring, rec.seed, { id: 'B', name: 'B' }, kB.pub, newRec.pub);
+      const mA = await mergeRing(ring, good);
+      ok(mA.changed && mA.recovered);
+      eq(mA.ring.main, 'B');
+      eq(mA.ring.gen, 2);
+      const badRec = await recoveryKeys('mauvaise phrase', 15000);
+      const bad = await ringRecover(ring, badRec.seed, { id: 'B', name: 'B' }, kB.pub, newRec.pub);
+      ok(!(await mergeRing(ring, bad)).changed);
+    },
+    'missions Compagnon : bornées, révocables, rapport replié sans doublon': () => {
+      const m = makeMission('campaign-run', { campaignId: 'cp1' }, { at: 1000, mid: 'ms1' });
+      ok(missionUsable(m, 1000 + 86400000));                    /* dans la fenêtre */
+      ok(!missionUsable(m, 1000 + 31 * 86400000));              /* expirée */
+      ok(!missionUsable(revokeMission(m), 2000));               /* révoquée */
+      try { makeMission('exfiltrer', {}); throw new Error('accepté !'); }
+      catch (e) { eq(e.message, 'mission'); }
+      /* le rapport se replie sur le journal : rejouer = rien de plus */
+      const steps = [{ subject: 's', body: 'b' }, { subject: 's', body: 'b' }, { subject: 's', body: 'b' }];
+      let c = buildCampaign({ steps, launchAt: '2026-07-16', targets: [{ cid: 'c1', email: 'a@x.fr' }] });
+      const sid = dueSends(c, '2026-07-16')[0].sid;
+      const report = { mid: 'ms1', sent: [{ sid, at: '2026-07-16' }, { sid, at: '2026-07-16' }] };
+      c = foldCampaignReport(c, report);
+      eq(c.log.length, 1);
+      c = foldCampaignReport(c, report);                        /* l'autre canal rejoue */
+      eq(c.log.length, 1);
+      eq(dueSends(c, '2026-07-16').length, 0);
+    },
+    'missions Compagnon : fil signé — vecteur figé, altération et expiration refusées': async () => {
+      if (!(await edAvailable())) return;
+      /* graine fixe 0..31 : la signature Ed25519 est DÉTERMINISTE — ce
+         vecteur est vérifié à l'identique par le cœur Rust du Compagnon
+         (compagnon/coeur). S'il casse, le format du fil a changé. */
+      const seedB64 = btoa(String.fromCharCode(...Array.from({ length: 32 }, (_, i) => i)));
+      const pub = 'A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg';
+      const m = { v: 1, mid: 'ms-test-1', kind: 'campaign-run', params: { cpId: 'cp1' },
+        createdAt: 1752624000000, expiresAt: 1755216000000, revoked: false };
+      const wire = await signMission(m, 'A', seedB64);
+      eq(wire.sig, 'oUjaqwFsq0uAA8vtYzgIgQ1itQtkz7vP6+zNJs2WVn6+FDj/Tl9dBRRsSdPi1TJW+kAFST0Qbd5CdZ+WkHsBBw==');
+      eq((await openMissionWire(wire, pub, 1752624000001)).mid, 'ms-test-1');
+      /* un octet changé = rien ne s'ouvre */
+      eq(await openMissionWire({ m: wire.m.replace('cp1', 'cp2'), sig: wire.sig, dev: 'A' }, pub, 1752624000001), null);
+      /* mauvaise clé publique = rien (le dernier caractère base64url ne
+         porte que des bits ignorés — on altère un caractère UTILE) */
+      eq(await openMissionWire(wire, 'B6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg', 1752624000001), null);
+      /* signée mais expirée = rien (missionUsable est dans le fil) */
+      eq(await openMissionWire(wire, pub, 1755216000001), null);
+    },
+    'compagnon : code toléré à la saisie, clé du code = vecteur du cœur Rust': async () => {
+      eq(normCode(' abcd 2345 '), 'ABCD-2345');
+      eq(normCode('abcd-2345'), 'ABCD-2345');
+      eq(normCode('AB'), 'AB');
+      /* la dérivation (PBKDF2 « code: », 120 000 itér.) DOIT donner la
+         même clé que compagnon/coeur (enveloppe.rs, vecteur figé) : on
+         scelle avec la clé dérivée, on ouvre avec la clé brute du vecteur */
+      const selB64 = btoa(String.fromCharCode(...Array.from({ length: 16 }, (_, i) => i)));
+      const k = await pairKey('abcd2345', selB64);
+      const env = await sealValue(k, 'canal', 'preuve');
+      const raw = Uint8Array.from(atob('0zhUpHdF75HUrzrxzTIA1kwhXaMNsx8wJzed3TBbiwk='), c => c.charCodeAt(0));
+      const kBrut = await crypto.subtle.importKey('raw', raw, { name: 'AES-GCM' }, false, ['decrypt']);
+      eq(await openValue(kBrut, 'canal', env), 'preuve');
+    },
+    'aides : relances dues — retard d’abord, pistes travaillées ensuite': () => {
+      const comps = [
+        { id: 'c1', name: 'A', nextAction: '2026-07-01', history: [{ t: 'Email envoyé' }, { t: 'Relance envoyée' }] },
+        { id: 'c2', name: 'B', nextAction: '2026-07-01' },
+        { id: 'c3', name: 'C', nextAction: '2026-07-16' },
+        { id: 'c4', name: 'D', nextAction: '2026-08-01' },          /* futur : exclu */
+        { id: 'c5', name: 'E', nextAction: '2026-07-01', closedReason: 'won' }
+      ];
+      eq(dueFollowups(comps, '2026-07-16').map(x => x.id), ['c1', 'c2', 'c3']);
+      eq(dueFollowups(comps, '2026-07-16')[0].lateDays, 15);
+    },
+    'aides : signature collée → contact, sans jamais inventer': () => {
+      const got = contactFromSignature(
+        'Nadia Rahmani\nResponsable RH — Orange Cyberdefense\nnadia.rahmani@orange.fr\nTél : +33 6 12 34 56 78\nwww.orangecyberdefense.com');
+      eq(got.name, 'Nadia Rahmani');
+      ok(/Responsable RH/.test(got.role));
+      eq(got.email, 'nadia.rahmani@orange.fr');
+      ok(got.phone.replace(/\D/g, '').length >= 9);
+      ok(/orangecyberdefense/.test(got.link));
+      eq(contactFromSignature('theo.vasseur@ovh.com').name, 'Theo Vasseur');  /* dérivé de l'email */
+      eq(contactFromSignature('Bonjour, cordialement'), null);
+    },
+    'IA : familles, prompt cadré, erreurs sans réseau': async () => {
+      eq(browserProviders().sort(), ['anthropic', 'gemini']);
+      ok(AI_FAMILIES.chatgpt.channel === 'companion');
+      const p = draftPrompt({ company: { name: 'OVHcloud', city: 'Roubaix' },
+        contactName: 'Théo', profile: { name: 'Mahé', formation: 'BTS SIO' } });
+      ok(/OVHcloud \(Roubaix\)/.test(p) && /Théo/.test(p) && /Mahé, BTS SIO/.test(p));
+      ok(/120 mots max/.test(p));
+      try { await aiComplete({ provider: 'openai', key: 'x' }, 'test'); throw new Error('parti !'); }
+      catch (e) { eq(e.message, 'viacompagnon'); }
+      try { await aiComplete({ provider: 'anthropic', key: '' }, 'test'); throw new Error('parti !'); }
+      catch (e) { eq(e.message, 'cle'); }
+    },
+    'envoi direct : MIME — entêtes UTF-8, corps base64, base64url': () => {
+      eq(encodeHeader('Hello'), 'Hello');                       /* ASCII : inchangé */
+      eq(encodeHeader('Candidature — été'), '=?UTF-8?B?Q2FuZGlkYXR1cmUg4oCUIMOpdMOp?=');
+      const m = buildMime({ from: 'moi@x.fr', to: 'rh@y.fr', subject: 'Stage été', body: 'Bonjour à vous.' });
+      ok(m.startsWith('From: moi@x.fr\r\nTo: rh@y.fr\r\nSubject: =?UTF-8?B?'));
+      ok(m.includes('Content-Type: text/plain; charset=UTF-8'));
+      ok(m.includes('Content-Transfer-Encoding: base64'));
+      const body64 = m.split('\r\n\r\n')[1].replace(/\r\n/g, '');
+      eq(atob(body64), unescape(encodeURIComponent('Bonjour à vous.')));
+      eq(toB64Url('a+b/c'), btoa('a+b/c').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''));
+    },
+    'envoi direct : URLs OAuth et retour de popup': async () => {
+      const g = authUrl('gmail', 'CID', 'https://x/oauth.html', { state: 's1' });
+      ok(g.startsWith('https://accounts.google.com/o/oauth2/v2/auth?'));
+      ok(g.includes('response_type=token') && g.includes('state=s1') && g.includes('gmail.send'));
+      const o = authUrl('outlook', 'CID', 'https://x/oauth.html', { state: 's2', challenge: 'CH' });
+      ok(o.includes('code_challenge=CH') && o.includes('code_challenge_method=S256'));
+      eq(parseCallback('https://x/oauth.html#access_token=T&expires_in=3599&state=s1'),
+         { access_token: 'T', expires_in: '3599', state: 's1' });
+      eq(parseCallback('https://x/oauth.html?code=C&state=s2').code, 'C');
+      const pk = await pkcePair();
+      ok(pk.verifier.length >= 43 && /^[A-Za-z0-9_-]+$/.test(pk.challenge));
+    },
+    'campagne : montage — opposition imposée, personnalisation figée': () => {
+      const steps = [
+        { subject: 'Candidature — {{entreprise}}', body: 'Bonjour {{contact}}.' },
+        { subject: 'Re', body: 'Relance 1' },
+        { subject: 'Re', body: 'Relance 2' }
+      ];
+      const c = buildCampaign({ name: 'T', steps, launchAt: '2026-07-16',
+        targets: [{ cid: 'c1', name: 'Ana', company: 'Orange', email: 'a@x.fr' }] });
+      ok(c.steps.every(s => /je m’arrête là/.test(s.body)));   /* imposée, jamais retirée */
+      eq(c.targets[0].msgs[0].subject, 'Candidature — Orange');
+      ok(/Bonjour Ana/.test(c.targets[0].msgs[0].body));
+      eq(c.state, 'ready');
+      /* sans email = pas de cible ; zéro cible = erreur */
+      try { buildCampaign({ steps, launchAt: '2026-07-16', targets: [{ cid: 'c2', name: 'X' }] }); throw new Error('accepté !'); }
+      catch (e) { eq(e.message, 'cibles'); }
+    },
+    'campagne : cadence 15/jour, glissement, idempotence (rejeu du journal)': () => {
+      const steps = [{ subject: 's', body: 'b' }, { subject: 's', body: 'b' }, { subject: 's', body: 'b' }];
+      const targets = Array.from({ length: 20 }, (_, i) => ({ cid: 'c' + i, email: 'p' + i + '@x.fr' }));
+      let c = buildCampaign({ steps, targets, launchAt: '2026-07-16' });
+      const due = dueSends(c, '2026-07-16');
+      eq(due.length, DAILY_CAP);
+      for (const d of due) c = markSent(c, d.sid, '2026-07-16');
+      eq(dueSends(c, '2026-07-16').length, 0);          /* la cadence du jour est prise */
+      const n = c.log.length;
+      c = markSent(c, due[0].sid, '2026-07-16');        /* rejouer le même envoi */
+      eq(c.log.length, n);
+      eq(dueSends(c, '2026-07-17').length, 5);          /* le reste a glissé */
+    },
+    'campagne : plafond GLOBAL 15/j toutes campagnes ; fenêtre d’envoi': () => {
+      const steps = [{ subject: 's', body: 'b' }, { subject: 's', body: 'b' }, { subject: 's', body: 'b' }];
+      const mk = id => buildCampaign({ id, steps, launchAt: '2026-07-16',
+        targets: Array.from({ length: 10 }, (_, i) => ({ cid: id + i, email: id + i + '@x.fr' })) });
+      let a = mk('ca');
+      const b = mk('cb');
+      /* 10 envois déjà partis dans A aujourd'hui : il n'en reste que 5
+         pour TOUTES les campagnes — jamais 15 par campagne */
+      for (const d of dueSends(a, '2026-07-16')) a = markSent(a, d.sid, '2026-07-16');
+      eq(sentTodayAll([a, b], '2026-07-16'), 10);
+      const due = dueSendsAll([a, b], '2026-07-16');
+      eq(due.length, 5);
+      ok(due.every(d => d.cpId === 'cb'));
+      /* le lendemain, le plafond global repart — B a ses 10 premiers messages */
+      eq(dueSendsAll([a, b], '2026-07-17').length, 10);
+      /* fenêtre d'envoi imposée : jours ouvrés, 8 h → 18 h 59, heure locale */
+      ok(inSendWindow(new Date(2026, 6, 16, 10, 0)));    /* jeudi 10 h */
+      ok(inSendWindow(new Date(2026, 6, 16, 8, 0)));
+      ok(!inSendWindow(new Date(2026, 6, 16, 7, 59)));
+      ok(!inSendWindow(new Date(2026, 6, 16, 19, 0)));
+      ok(!inSendWindow(new Date(2026, 6, 18, 10, 0)));   /* samedi */
+      ok(!inSendWindow(new Date(2026, 6, 19, 10, 0)));   /* dimanche */
+    },
+    'campagne : relances J+7 sur la date d’envoi RÉELLE ; réponse = stop': () => {
+      const steps = [{ subject: 's', body: 'b' }, { subject: 's', body: 'b' }, { subject: 's', body: 'b' }];
+      let c = buildCampaign({ steps, launchAt: '2026-07-16',
+        targets: [{ cid: 'c1', email: 'a@x.fr' }, { cid: 'c2', email: 'b@x.fr' }] });
+      /* c1 part le 16, c2 seulement le 18 (l'utilisateur n'a pas appuyé) */
+      c = markSent(c, dueSends(c, '2026-07-16')[0].sid, '2026-07-16');
+      c = markSent(c, dueSends(c, '2026-07-18').find(d => d.cid === 'c2').sid, '2026-07-18');
+      eq(dueSends(c, '2026-07-22').length, 0);          /* rien avant J+7 */
+      const d23 = dueSends(c, '2026-07-23');
+      eq(d23.length, 1);                                 /* c1 seulement (16+7) */
+      eq(d23[0].cid, 'c1'); eq(d23[0].step, 1);
+      ok(dueSends(c, '2026-07-25').some(d => d.cid === 'c2' && d.step === 1));
+      /* réponse : plus jamais rien pour cette piste — non débrayable */
+      c = markReplied(c, 'c1');
+      ok(!dueSends(c, '2026-07-30').some(d => d.cid === 'c1'));
+      /* erreur d'envoi : marquée, jamais re-tentée en silence */
+      c = markError(c, 't2');
+      eq(dueSends(c, '2026-08-30').length, 0);
+      eq(c.state, 'done');                               /* plus aucune cible active */
+    },
+    'campagne : pause / reprise / arrêt ; bords de date': () => {
+      const steps = [{ subject: 's', body: 'b' }, { subject: 's', body: 'b' }, { subject: 's', body: 'b' }];
+      let c = buildCampaign({ steps, launchAt: '2026-07-16', targets: [{ cid: 'c1', email: 'a@x.fr' }] });
+      c = pauseCampaign(c);
+      eq(dueSends(c, '2026-07-16').length, 0);
+      c = resumeCampaign(c);
+      eq(dueSends(c, '2026-07-16').length, 1);
+      c = stopCampaign(c);
+      eq(c.state, 'stopped');
+      eq(dueSends(c, '2026-07-16').length, 0);
+      eq(cAddDays('2026-01-31', 7), '2026-02-07');
+      eq(cAddDays('2026-12-28', 7), '2027-01-04');
+      eq(cAddDays('2028-02-28', 7), '2028-03-06');       /* bissextile */
+      /* stats */
+      let cc = buildCampaign({ steps, launchAt: '2026-07-16', targets: [{ cid: 'c1', email: 'a@x.fr' }] });
+      let day = '2026-07-16';
+      for (let i = 0; i < 40 && cc.state === 'ready'; i++){
+        for (const d of dueSends(cc, day)) cc = markSent(cc, d.sid, day);
+        day = cAddDays(day, 1);
+      }
+      eq(cc.state, 'done');
+      eq(campaignStats(cc).sent, 3);
+    },
+    'analyse e-mails : résultat sensible scellé au repos': () => {
+      eq(ANALYSIS_KEY, 'oc_analysis_v1');
+      ok(SEALABLE.has(ANALYSIS_KEY));
+    },
+    'analyse e-mails : reprise valide, mission expirée signalée': () => {
+      const now = 1900000000000;
+      const ready = normaliseMailAnalysis({
+        mid: 'ms-test', days: 30, state: 'ready', startedAt: now - 1000,
+        expiresAt: now + 1000, result: '{"companies":[]}', count: 6
+      }, now);
+      eq({ mid: ready.mid, days: ready.days, state: ready.state, count: ready.count },
+         { mid: 'ms-test', days: 30, state: 'ready', count: 6 });
+      const expired = normaliseMailAnalysis({
+        mid: 'ms-old', days: 7, state: 'running', startedAt: now - 2000, expiresAt: now - 1
+      }, now);
+      eq(expired.state, 'error');
+      ok(/expiré/.test(expired.error));
+    },
+    'verrou : codes triviaux refusés (suites, répétitions)': async () => {
+      const { isWeakPin } = await import('./ui/verrou.js');
+      ok(isWeakPin('000000'));
+      ok(isWeakPin('123456'));
+      ok(isWeakPin('654321'));
+      ok(isWeakPin('901234'));
+      ok(!isWeakPin('280941'));
+    },
+    'stockage : valeur scellée sans clé = `verrou`, jamais un null': async () => {
+      if (vaultActive()) return;   /* un vrai coffre est ouvert : ne pas interférer */
+      const probe = 'oc_probe_vault';
+      const { key } = await createVault('123456', makeVaultPhrase(), { iter: 15000 });
+      const env = await sealValue(key, probe, '{"x":1}');
+      await kvSet(probe, env);     /* déjà scellée : écrite telle quelle */
+      try { await kvGet(probe); throw new Error('lisible !'); }
+      catch (e) { eq(e.message, 'verrou'); }
+      eq(await openValue(key, probe, env), '{"x":1}');
+      await kvDel(probe);
+      eq(await kvGet(probe), null);
+    },
+    'stockage : re-scellement reprenable — l’enveloppe déjà migrée est reconnue': async () => {
+      if (vaultActive()) return;   /* un vrai coffre est ouvert : ne pas interférer */
+      let p0 = null, r0 = null;
+      try { p0 = await kvGet(PROMO_KEY); r0 = await kvGet(RELAYS_KEY); }
+      catch (e) { return; }        /* valeurs scellées d'un vrai coffre : ne pas toucher */
+      const vOld = await createVault('111111', makeVaultPhrase(), { iter: 15000 });
+      const vNew = await createVault('222222', makeVaultPhrase(), { iter: 15000 });
+      await kvSet(PROMO_KEY, await sealValue(vOld.key, PROMO_KEY, 'ancienne'));
+      /* rotation interrompue simulée : celle-ci est DÉJÀ sous la nouvelle clé */
+      await kvSet(RELAYS_KEY, await sealValue(vNew.key, RELAYS_KEY, 'deja-migree'));
+      const n = await vaultReseal(vOld.key, vNew.key);
+      eq(n, 1);                    /* une seule re-scellée, l'autre reconnue et gardée */
+      eq(await kvGet(PROMO_KEY), 'ancienne');
+      eq(await kvGet(RELAYS_KEY), 'deja-migree');
+      vaultDetach();
+      await (p0 == null ? kvDel(PROMO_KEY) : kvSet(PROMO_KEY, p0));
+      await (r0 == null ? kvDel(RELAYS_KEY) : kvSet(RELAYS_KEY, r0));
     }
   };
   for (const name of Object.keys(tests)){

@@ -1,0 +1,28 @@
+[package]
+name = "oc-compagnon"
+version = "0.1.0"
+description = "OpenContact Compagnon — l'appoint local de la PWA (envois app fermée, messageries, analyse)"
+edition = "2021"
+license = "MIT"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-single-instance = "2"
+tauri-plugin-autostart = "2"
+oc-coeur = { path = "../coeur" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tiny_http = "0.12"
+keyring = { version = "3", features = ["linux-native", "apple-native", "windows-native"] }
+ed25519-dalek = { version = "2", features = ["rand_core"] }
+rand = "0.8"
+base64 = "0.22"
+hostname = "0.4"
+chrono = "0.4"
+lettre = { version = "0.11", default-features = false, features = ["smtp-transport", "rustls-tls", "builder", "hostname", "pool"] }
+imap = "2.4"
+native-tls = "0.2"
+ureq = { version = "2", default-features = false, features = ["json"] }

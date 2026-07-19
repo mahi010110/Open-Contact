@@ -51,6 +51,12 @@ Celles de `CLAUDE.md` et `CONTRAT.md`, plus, pour ce chantier :
 | D10 | Suivi d'ouvertures : **absent de la V1** ; étude ultérieure comme option facultative auto-hébergeable |
 | D11 | Phrase d'association (appairage, existante) ≠ **phrase de secours** (récupération, forte) : deux objets distincts |
 | D12 | MCP distant / relais : **reportés** ; MCP local d'abord ; tout relais futur = optionnel, auto-hébergeable, sans stockage permanent |
+| D13 | Campagnes sans Compagnon : **ligne groupée quotidienne dans « Aujourd'hui »**, envois déclenchés par l'utilisateur (par ligne ou « Tout envoyer ») — aucun envoi automatique app ouverte ; l'automatisation reste la raison d'adopter le Compagnon |
+| D14 | « Verrouillage » et « Connexions » **visibles dans « Moi » pour tous dès la V1** (deux lignes sobres — c'est la découverte du produit) |
+| D15 | Sauvegarde chiffrée **bloquante** à la création du verrou (cohérente avec D7) |
+| D16 | Nom visible du verrou : **« Verrouillage »** (le geste : « Protéger » ; l'état : « protégé / non protégé ») — « profil protégé » reste le terme des docs |
+| D17 | Cœur du Compagnon : **hybride Tauri** (`ETUDE-COMPAGNON.md`) — Rust porte les capacités natives (trousseau OS, IMAP/SMTP, réseau, vie du processus) ; le cerveau JS réutilise les moteurs `engine/` existants ; **Rust re-vérifie les règles critiques avant chaque action** : autorisation, anti-double-envoi, limites, fenêtre horaire, validité de la mission |
+| D18 | Le Compagnon vit dans **`compagnon/` de ce dépôt** — application et build distincts, séparation modulaire nette pour rester déplaçable sans réécriture. Modèle économique, abonnements et paiements : **reportés, rien à développer** |
 
 ## Références dans le dépôt
 
@@ -60,6 +66,9 @@ Celles de `CLAUDE.md` et `CONTRAT.md`, plus, pour ce chantier :
   histoire et feuille de route générale.
 - `docs/fable5/SPECIFICATIONS.md` — périmètre fonctionnel et technique
   consolidé du chantier, comportements, limites et critères d'acceptation.
+- `docs/fable5/UX-PLAN.md` — plan UX **validé** (16 juillet 2026) :
+  emplacements, parcours, états, microcopie. Le code le suit sans le
+  réinterpréter.
 - `docs/fable5/PLAN.md` — feuille de route opérationnelle du chantier.
 - `docs/fable5/HANDOFF.md` — point de reprise courant.
 - Les études détaillées (faisabilité v1/v2 du 2026-07, plan UX) ont été

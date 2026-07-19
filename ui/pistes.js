@@ -18,6 +18,7 @@ import { openFiche } from './fiche.js';
 import { openCapture } from './capture.js';
 import { openContactEditor, openAttach } from './contact.js';
 import { openProspect } from './prospect.js';
+import { campaignOfPiste } from './campagnes.js';
 
 let q = '';
 const st = sortState('recent');
@@ -49,7 +50,9 @@ function rowHTML(c){
   const bits = [];
   if (closed) bits.push('<b>' + CLOSE_REASONS[c.closedReason].label + '</b>');
   else if (c.nextAction) bits.push('<b>' + esc(c.nextActionText || 'Faire le point') + '</b> · ' + relLabel(c.nextAction));
+  else if (campaignOfPiste(c.id)) bits.push('en campagne');
   else bits.push('à planifier');
+  if (!closed && c.nextAction && campaignOfPiste(c.id)) bits.push('en campagne');
   if (kmBit(c)) bits.push(kmBit(c));
   if (c.city) bits.push(esc(c.city));
   return (
@@ -67,9 +70,10 @@ function rowHTML(c){
 
 function cardHTML(c){
   const bits = [kmBit(c), c.city, c.domain !== 'autre' ? DOMAINS[c.domain].label : ''].filter(Boolean);
+  const inCamp = campaignOfPiste(c.id);
   const na = c.nextAction
     ? `<span class="bc-na">${esc(c.nextActionText || 'Faire le point')} · <em class="${relLabel(c.nextAction).startsWith('–') ? 'late' : ''}">${relLabel(c.nextAction)}</em></span>`
-    : '<span class="bc-na bc-none">à planifier</span>';
+    : `<span class="bc-na bc-none">${inCamp ? 'en campagne' : 'à planifier'}</span>`;
   const foot = [];
   if ((c.contacts || []).length) foot.push(ic('contact', 'ic-14') + ' ' + c.contacts.length);
   foot.push('complète à ' + scoreOf(c) + ' %');
@@ -103,11 +107,14 @@ function orphansHTML(){
     `<details class="tranche tr-orph" open>
        <summary class="tr-h">${ic('contact', 'ic-14')} Contacts à rattacher <span class="tr-n">${S.orphans.length}</span></summary>
        <div class="rows">${S.orphans.map(o => {
-         const sub = [o.role, o.email || o.phone, (o.extra && o.extra.company) ? '→ ' + o.extra.company + ' ?' : '']
+         const title = ctLabel(o);
+         const sameAsTitle = v => String(v || '').trim().toLocaleLowerCase() === String(title).trim().toLocaleLowerCase();
+         const contact = [o.email, o.phone].filter(v => v && !sameAsTitle(v))[0] || '';
+         const sub = [o.role, contact, (o.extra && o.extra.company) ? '→ ' + o.extra.company + ' ?' : '']
            .filter(Boolean).map(esc).join(' · ');
          return `<div class="orow" data-oid="${o.id}">
-                   <div class="o-main" role="button" tabindex="0" aria-label="Modifier ${esc(ctLabel(o))}">
-                     <h4>${esc(ctLabel(o))}</h4>
+                   <div class="o-main" role="button" tabindex="0" aria-label="Modifier ${esc(title)}">
+                     <h4>${esc(title)}</h4>
                      <div class="o-sub">${sub || 'à compléter'}</div>
                    </div>
                    <button class="btn btn-sm" data-attach="${o.id}">Rattacher</button>
