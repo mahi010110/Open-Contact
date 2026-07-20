@@ -36,6 +36,18 @@ if (!hasXvfb){
   console.log('⚠  Cargo absent : scénarios natifs joués contre le binaire EXISTANT (peut être ancien).');
 }
 
+/* Un scénario qui meurt en route peut laisser SON Compagnon vivant sur le
+   canal local (17095) : le suivant hérite alors d'un pair inconnu et tout
+   rougit en cascade — un seul flake devient six échecs illisibles. On
+   moissonne donc les survivants de CE dépôt (chemin exact du binaire)
+   avant la suite et après chaque scénario. */
+function balayer(){
+  const r = spawnSync('pkill', ['-9', '-f', bin], { stdio: 'ignore' });
+  if (!r.error && r.status === 0)
+    console.log('⚠  processus Compagnon survivant moissonné (isolation des scénarios)');
+}
+
+balayer();
 let ko = 0, joues = 0, sautes = 0;
 for (const s of scripts){
   console.log('\n━━━ ' + s + ' ━━━');
@@ -49,6 +61,7 @@ for (const s of scripts){
     spawn(process.execPath, [path.join(DIR, s)], { stdio: 'inherit' }).on('close', res));
   if (code) ko++;
   console.log((code ? '✗ ' : '✓ ') + s);
+  balayer();
 }
 console.log('\n' + `${joues - ko}/${joues} joués avec succès · ${sautes} sauté(s) · ${ko} échec(s)`);
 process.exit(ko ? 1 : 0);
