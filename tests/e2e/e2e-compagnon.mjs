@@ -47,7 +47,9 @@ const fauxSrv = http.createServer(async (req, res) => {
   for await (const ch of req) body += ch;
   try {
     if (req.method === 'GET' && req.url === '/oc-compagnon'){
-      res.end(JSON.stringify({ v: 1, nom: 'FauxOrdi', associe: !!faux.assoc,
+      /* découverte anonyme (comme le vrai canal) : ni nom ni état
+         d'association — le nom réel arrive à l'appairage et au ping */
+      res.end(JSON.stringify({ v: 1,
         appairage: faux.appairage ? { s: b64(sel) } : null }));
     } else if (req.method === 'POST' && req.url === '/appairage'){
       const clair = JSON.parse(await ouvrir(kc, 'canal-appairage', JSON.parse(body).d));
