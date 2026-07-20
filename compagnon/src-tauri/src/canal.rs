@@ -175,7 +175,8 @@ fn repondre_boite(
         Some("ping") => {
             let (r, _) = p.reglage_mail();
             serde_json::json!({ "t": "pong", "nom": p.nom, "associe": true,
-                "messagerie": !r.hote.is_empty() || std::env::var("OC_SMTP_TEST").is_ok() })
+                "messagerie": !r.hote.is_empty() || std::env::var("OC_SMTP_TEST").is_ok(),
+                "mcp": crate::mcp::actif(p.dossier()) })
         }
         Some("dissocier") => {
             p.dissocier();
@@ -271,6 +272,135 @@ fn repondre_boite(
             let em = EtatMissions::charger(&p.coffre);
             serde_json::json!({ "t": "rapport", "journal": em.journal,
                 "arrets": em.arrets, "reponses": em.reponses })
+        }
+        /* ---- rédaction IA « via ton ordinateur » (D5) ---- */
+        /* La demande part en tâche de fond : le canal reste vif (présence,
+           missions) pendant que le fournisseur travaille. La clé vit le
+           temps de l'appel, en mémoire — jamais écrite, jamais logguée.
+           `op` : "texte" (défaut) ou "modeles" (la liste RÉELLE du
+           runtime — c'est dedans que l'utilisateur choisit). */
+        Some("ia-demarrer") => {
+            let jid = msg["jid"].as_str().unwrap_or("").to_string();
+            let op = msg["op"].as_str().unwrap_or("texte").to_string();
+            let (fournisseur, cle, modele, prompt, systeme) = (
+                msg["provider"].as_str().unwrap_or("").to_string(),
+                msg["key"].as_str().unwrap_or("").to_string(),
+                msg["model"].as_str().unwrap_or("").to_string(),
+                msg["prompt"].as_str().unwrap_or("").to_string(),
+                msg["system"].as_str().unwrap_or("").to_string(),
+            );
+            if !oc_coeur::ia::jid_valide(&jid) {
+                return serde_json::json!({ "e": "jid" });
+            }
+            let recevable = match op.as_str() {
+                "modeles" => oc_coeur::ia::valider_liste(&fournisseur, &cle),
+                "texte" => oc_coeur::ia::valider_demande(&fournisseur, &prompt, &systeme, &cle, &modele),
+                _ => Err("op"),
+            };
+            if let Err(e) = recevable {
+                return serde_json::json!({ "e": e });
+            }
+            {
+                let mut jobs = p.ia.lock().unwrap();
+                if jobs.values().any(|v| v.contains("\"en cours\"")) {
+                    return serde_json::json!({ "e": "occupe" });
+                }
+                jobs.clear(); /* les résultats jamais relus ne s'accumulent pas */
+                jobs.insert(jid.clone(), r#"{"etat":"en cours"}"#.into());
+            }
+            let p2 = p.clone();
+            std::thread::spawn(move || {
+                let encore = {
+                    let p3 = p2.clone();
+                    let jid3 = jid.clone();
+                    move || {
+                        p3.ia
+                            .lock()
+                            .unwrap()
+                            .get(&jid3)
+                            .map(|v| v.contains("\"en cours\""))
+                            .unwrap_or(false)
+                    }
+                };
+                let annule = || !encore();
+                let fini = if op == "modeles" {
+                    match crate::ia::lister(&fournisseur, &cle) {
+                        Ok(liste) => serde_json::json!({ "etat": "fini", "modeles": liste }),
+                        Err(e) => serde_json::json!({ "etat": "erreur", "e": e }),
+                    }
+                } else {
+                    match crate::ia::generer(&fournisseur, &cle, &modele, &prompt, &systeme, &annule) {
+                        Ok(texte) => serde_json::json!({ "etat": "fini", "texte": texte }),
+                        Err(e) => serde_json::json!({ "etat": "erreur", "e": e }),
+                    }
+                };
+                println!(
+                    "compagnon : ia {fournisseur} {op} — {}",
+                    if fini["etat"] == "fini" { "ok" } else { "refus court" }
+                );
+                /* annulée entre-temps = résultat jeté, rien d'écrit */
+                let mut jobs = p2.ia.lock().unwrap();
+                if jobs.get(&jid).map(|v| v.contains("\"en cours\"")).unwrap_or(false) {
+                    jobs.insert(jid, fini.to_string());
+                }
+            });
+            serde_json::json!({ "t": "ok" })
+        }
+        Some("ia-etat") => {
+            let jid = msg["jid"].as_str().unwrap_or("");
+            let mut jobs = p.ia.lock().unwrap();
+            match jobs.get(jid).cloned() {
+                None => serde_json::json!({ "t": "ia", "etat": "inconnue" }),
+                Some(s) => {
+                    let mut v: serde_json::Value =
+                        serde_json::from_str(&s).unwrap_or_else(|_| serde_json::json!({ "etat": "erreur", "e": "echec" }));
+                    if v["etat"] != "en cours" {
+                        jobs.remove(jid); /* consommé : le texte ne traîne pas */
+                    }
+                    v["t"] = "ia".into();
+                    v
+                }
+            }
+        }
+        /* la PWA renonce (feuille fermée) : l'entrée disparaît, le
+           travail en cours est tué (Codex) ou son résultat jeté */
+        Some("ia-annuler") => {
+            let jid = msg["jid"].as_str().unwrap_or("");
+            p.ia.lock().unwrap().remove(jid);
+            serde_json::json!({ "t": "ok" })
+        }
+        /* ---- l'assistant IA (P8-2) — géré depuis OpenContact ---- */
+        Some("mcp-regler") => {
+            let on = msg["actif"].as_bool().unwrap_or(false);
+            crate::mcp::regler(p.dossier(), on);
+            serde_json::json!({ "t": "ok", "actif": on })
+        }
+        /* le résumé en liste blanche que l'assistant a le droit de lire —
+           refusé tant que l'assistant n'est pas autorisé */
+        Some("resume") => {
+            if !crate::mcp::actif(p.dossier()) {
+                return serde_json::json!({ "e": "coupe" });
+            }
+            match crate::mcp::ranger_resume(p.dossier(), &msg["resume"]) {
+                Ok(()) => serde_json::json!({ "t": "ok" }),
+                Err(e) => serde_json::json!({ "e": e }),
+            }
+        }
+        /* les propositions en attente de tri — la PWA les rapporte,
+           l'utilisateur décide, puis les règle une à une */
+        Some("propositions") => {
+            serde_json::json!({ "t": "propositions",
+                "actif": crate::mcp::actif(p.dossier()),
+                "liste": crate::mcp::lister_propositions(p.dossier()) })
+        }
+        Some("proposition-reglee") => {
+            let pid = msg["pid"].as_str().unwrap_or("");
+            let action = msg["action"].as_str().unwrap_or("fusion");
+            if crate::mcp::regler_proposition(p.dossier(), pid, action) {
+                serde_json::json!({ "t": "ok" })
+            } else {
+                serde_json::json!({ "e": "pid" })
+            }
         }
         _ => serde_json::json!({ "t": "?" }),
     }

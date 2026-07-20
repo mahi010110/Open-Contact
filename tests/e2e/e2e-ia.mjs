@@ -29,8 +29,17 @@ page.on('console', m => {
 page.on('pageerror', e => errors.push(String(e)));
 const fail = m => { console.error('ÉCHEC :', m); process.exitCode = 1; };
 
-let mode = 'ok', captured = null;
+let mode = 'ok', captured = null, modelsAsked = false;
 await page.route('https://api.anthropic.com/**', async route => {
+  if (/\/v1\/models/.test(route.request().url())){
+    /* la liste vivante du fournisseur — c'est dedans qu'on choisit */
+    modelsAsked = true;
+    return route.fulfill({ status: 200, contentType: 'application/json',
+      body: JSON.stringify({ data: [
+        { id: 'claude-haiku-9-test', display_name: 'Claude Haiku 9 (test)' },
+        { id: 'claude-sonnet-9-test', display_name: 'Claude Sonnet 9 (test)' }
+      ] }) });
+  }
   captured = JSON.parse(route.request().postData() || '{}');
   if (mode === 'quota') return route.fulfill({ status: 429, contentType: 'application/json', body: '{}' });
   await route.fulfill({ status: 200, contentType: 'application/json',
@@ -44,10 +53,27 @@ await page.evaluate(async () => {
   await st.kvSet(st.DATA_KEY, JSON.stringify([{
     id: 'p1', name: 'Orange Cyberdefense', city: 'Lille', status: 'todo',
     contacts: [{ id: 'k1', name: 'Nadia', role: 'RH', email: 'nadia@exemple.fr' }], updatedAt: 1 }]));
-  await st.kvSet(st.AI_KEY, JSON.stringify({ provider: 'anthropic', key: 'sk-test' }));
+  await st.kvSet(st.AI_KEY, JSON.stringify({ provider: 'anthropic', key: 'sk-test', model: 'claude-haiku-9-test' }));
 });
 await page.reload({ waitUntil: 'load' });
 await page.waitForFunction(async () => (await import('./ui/state.js')).S.companies.length > 0, null, { timeout: 10000 });
+
+/* la découverte des modèles rend la liste RÉELLE du fournisseur —
+   aucun modèle codé en dur ne subsiste dans le moteur */
+const listés = await page.evaluate(async () => {
+  const { aiListModels } = await import('./engine/ai.js');
+  return aiListModels({ provider: 'anthropic', key: 'sk-test' });
+});
+if (!modelsAsked) fail('la liste des modèles n’a pas été demandée au fournisseur');
+if (listés.length !== 2 || listés[0].id !== 'claude-haiku-9-test')
+  fail('liste de modèles inattendue : ' + JSON.stringify(listés));
+const sansModele = await page.evaluate(async () => {
+  const { aiComplete } = await import('./engine/ai.js');
+  try { await aiComplete({ provider: 'anthropic', key: 'sk-test', model: '' }, 'x'); return 'parti'; }
+  catch (e) { return e.message; }
+});
+if (sansModele !== 'modele') fail('un modèle implicite est passé : ' + sansModele);
+console.log('modèles : liste vivante du fournisseur, jamais d’implicite ✓');
 const dbg = await page.evaluate(async () => {
   const { S } = await import('./ui/state.js');
   const st = await import('./engine/storage.js');
@@ -69,10 +95,12 @@ console.log('brouillon IA : texte dans le champ éditable, contexte piste seulem
 await page.waitForTimeout(350);
 await page.screenshot({ path: SHOTS + '/40-brouillon-ia.png' });
 
-/* quota : message court, le texte en place ne bouge pas */
+/* quota : message court, le texte en place ne bouge pas
+   (le toast du brouillon précédent reste affiché ~3,4 s — on attend le
+   CONTENU attendu, pas juste « .toast.on », déjà vrai depuis l’appel d’avant) */
 mode = 'quota';
 await page.click('#mAi');
-await page.waitForSelector('.toast.on');
+await page.waitForFunction(() => /Quota IA atteint/.test(document.querySelector('#toast')?.textContent || ''), null, { timeout: 10000 });
 const toastTxt = await page.textContent('#toast');
 if (!/Quota IA atteint/.test(toastTxt)) fail('message quota : ' + toastTxt);
 const after = await page.inputValue('#mBody');

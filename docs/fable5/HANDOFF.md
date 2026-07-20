@@ -1,10 +1,50 @@
 # Fable 5 — point de reprise (checkpoint)
 
-- **Phase actuelle** : chantier connecté V1 livré côté PWA (P0 → P8-1, y
-  compris la reprise d'analyse après fermeture) et
-  **Compagnon C1–C8 livré** dans `compagnon/`. Les corrections UX prioritaires
-  de `AUDIT-UX.md` sont maintenant livrées et testées. MCP, nouvelles IA
-  et installateurs Windows/macOS restent volontairement hors périmètre.
+- **Phase actuelle** : chantier connecté V1 **entièrement livré** — PWA
+  (P0 → P8-2), Compagnon C1–C8, serveur MCP local, et **P6-3 : les trois
+  familles IA de D5 complètes** (plus aucune famille « pas encore
+  disponible »). Les corrections UX prioritaires de `AUDIT-UX.md` sont
+  livrées et testées. Une CI GitHub Actions rejoue tout (V7).
+- **P6-3 livrée — l'IA passe aussi par ton ordinateur (D5 complet), sans
+  modèle implicite** : OpenRouter rejoint Claude/Gemini en clé navigateur
+  (CORS autorisé par le fournisseur, vérifié) ; Ollama (local, sans clé),
+  OpenAI (clé de l'utilisateur) et l'abonnement ChatGPT passent par le
+  Compagnon : messages `ia-demarrer`/`ia-etat`/`ia-annuler` du canal
+  chiffré, asynchrones et ANNULABLES (fermer la feuille tue ou jette le
+  travail, le verrou se libère, toute attente a une échéance), garde pure
+  `oc_coeur::ia` (vocabulaire fermé, bornes d'entrée et de sortie
+  `TEXTE_MAX`). **Aucun modèle codé en dur nulle part** — la leçon
+  Gemini 2.0 Flash (éteint le 2026-06-01 alors que le code le servait
+  par défaut) est corrigée à la racine : l'utilisateur choisit dans la
+  liste que chaque fournisseur sert VRAIMENT (`/v1/models` Anthropic et
+  OpenAI, `ListModels` Gemini, `/api/v1/models` OpenRouter, tags Ollama,
+  et `codex app-server` → `model/list` pour l'abonnement — GPT-5.5/5.6 et
+  variantes selon le compte), liste injoignable = dit honnêtement, champ
+  libre en repli. Génération ChatGPT par `codex exec` non interactif :
+  prompt par STDIN (jamais dans `ps`), bac à sable lecture seule (ni
+  écriture, ni commande, ni réseau), cadrage donnée≠instruction,
+  `--model` choisi. La clé sert l'appel puis s'oublie : jamais écrite
+  chez le Compagnon (prouvé par `grep` du disque dans l'E2E), jamais
+  journalisée. Erreurs en codes courts (`cle`, `quota`, `indispo`,
+  `runtime`, `occupe`, `eteint`, `compagnon`, `modele`, `annule`)
+  traduits par le composeur — le texte en place n'est jamais perdu.
+  Cache PWA **oc-v32**. Crochets dev : OC_OPENAI_TEST, OC_CODEX.
+- **P8-2 livrée — serveur MCP local** : `oc-compagnon --mcp` (SDK officiel
+  `rmcp`, transport **stdio** : le client IA compatible lance le processus,
+  aucun port). Coupé par défaut ; autorisé et révoqué depuis la feuille du
+  Compagnon (Mes appareils), l'état est relu à CHAQUE appel. Deux outils :
+  `resume_pistes` (résumé en liste blanche construit par `engine/mcp.js`,
+  poussé par la PWA, re-filtré par `oc_coeur::mcp` — nom, ville, domaine,
+  postes, dernière activité, suivi agrégé, jamais une note ni un contact)
+  et `proposer_pistes` (schéma fermé + bornes, enveloppe `share` scellée
+  en attente, `pid` = hash du contenu → rejeu idempotent). La PWA rapporte
+  les propositions (`ui/propositions.js`), les garde scellées sous
+  `oc_proposals_v1` (SEALABLE, wipe, CONTRAT §1), chip d'Aujourd'hui →
+  aperçu multi-sélection existant → fusion + Annuler, ou « Écarter » +
+  retour. Les fichiers d'échange `mcp-*.ocv` sont scellés sous une clé
+  fichier 0600 dédiée (les trousseaux de session ne se partagent pas
+  entre processus indépendants). Journal sobre `mcp-journal.log`. Cache
+  PWA **oc-v31**.
 - **Phase V (durcissement) livrée** : rotation du coffre interruptible et
   reprenable (`prev` dans `oc_vault_v1`), le SW ne détourne plus
   `oauth.html` (oc-v23), `wipe` complet (jetons, clés IA, campagnes,
@@ -40,14 +80,20 @@
      prompt + chemin Compagnon), suivi/résultat scellé dans
      `oc_analysis_v1`, reprise après fermeture dans Aujourd'hui, aperçu
      multi-sélection et injection neutralisée par le rail.
-- **Tests de référence après C8** : `?test` est vert à **83/83**. La suite
-  complète passe à **14/14, zéro saut**.
-  Rust/Cargo 1.97.1 a
-  été installé localement : `cargo test --locked` passe à **21/21** (20 cœur
-  + 1 coquille), le Compagnon se construit, puis les **4/4 scénarios natifs
+- **Tests de référence après P6-3** : `?test` est vert à **87/87**. La
+  suite complète (`node tests/e2e/tous.mjs`) passe à **16/16, zéro saut**.
+  `cargo test --locked` passe à **31/31** (30 cœur dont 5 MCP et 5 IA +
+  1 coquille), le Compagnon se construit, puis les **6/6 scénarios natifs
   passent contre le vrai binaire** : envoi + kill/reprise sans doublon,
-  réponse IMAP, analyse locale fermée/reprise + fusion sûre, et téléphone C8.
-  Le cache PWA est **oc-v30**.
+  réponse IMAP, analyse locale fermée/reprise + fusion sûre, téléphone C8,
+  MCP local (client JSON-RPC réel sur stdio) et rédaction IA via
+  l'ordinateur (listes de modèles réelles des trois runtimes factices,
+  protocole app-server exact, prompt par stdin, clé jamais sur le disque,
+  annulation qui libère — rejoué trois fois). Le cache PWA est
+  **oc-v32**. La CI (`.github/workflows/ci.yml`) rejoue unitaires, cargo
+  et la suite complète ; `paquets.yml` construit les bundles non signés
+  par OS — `.deb`, installateur NSIS, `.app`+`.dmg` (icônes `.ico`/`.icns`
+  versionnées) — joué sur toute PR qui le modifie, et à la demande.
 - **Blocages externes (dans l'ordre d'importance)** :
   1. **Apps OAuth Google/Microsoft à déclarer par le mainteneur** —
      renseigner les IDs publics dans `MAIL_CLIENTS` (`engine/mailer.js`),
@@ -55,9 +101,13 @@
      tester avec son propre client avant).
   2. **Validation matérielle** : la validation native automatisée est faite ;
      restent le `.deb`, le trousseau, le démarrage automatique, la zone de
-     notification, le verrou PRF et l'anneau sur de vrais appareils.
-  3. **Distribution** : Outlook OAuth, signatures, AppImage réel,
-     installateurs Windows/macOS et publication restent externes ou à faire.
+     notification, le verrou PRF, l'anneau, un vrai client MCP de bureau et
+     les runtimes IA réels (Ollama installé, Codex connecté) sur de vrais
+     appareils.
+  3. **Distribution** : `paquets.yml` construit les bundles NON SIGNÉS
+     (`.deb` Linux, installateur NSIS Windows, `.app`+`.dmg` macOS) ;
+     restent la signature, la publication et Outlook OAuth — gestes du
+     mainteneur.
 - **Compagnon (D17/D18 validés — C1 à C8 terminés, `compagnon/`)** :
   - **C1 livré** : crate `oc-coeur` (la garde D17 — mission signée
     Ed25519, anti-double-envoi, plafond global, fenêtre, hors-mission)
@@ -120,8 +170,9 @@
     prouvé** : `cargo tauri build --bundles deb` (CLI 2.11) produit
     `OpenContact Compagnon_0.1.0_amd64.deb` (6,1 Mo, release) —
     installé et vérifié dans le conteneur (`/usr/bin/oc-compagnon`).
-    AppImage/Windows/macOS : à produire sur les OS cibles (signature
-    comprise — spec §8.3, geste mainteneur).
+    Windows (installateur NSIS) et macOS (`.app`+`.dmg`) sortent
+    désormais non signés de `paquets.yml` ; restent l'AppImage local et
+    la signature (spec §8.3, geste mainteneur).
   - **C8 livré — confier depuis le téléphone** : l'option auto apparaît sans
     association locale dès que l'anneau connaît un appareil `companion`, avec
     l'état honnête « ton ordinateur la prendra dès qu'il te rejoint ».
@@ -133,16 +184,18 @@
     l'ordinateur. E2E vrai binaire : téléphone 390×844, ordinateur 1280×800,
     clair/sombre, trois rejeux de sync puis plusieurs cycles = un seul SMTP ;
     scénario rejoué trois fois sans flakiness.
-- **Ordre de suite recommandé** : réaliser P8-2 (MCP local), puis tester le
-  `.deb`, le verrou PRF, l'anneau et les parcours Compagnon sur matériel réel ;
-  déclarer et essayer les apps OAuth Google/Microsoft ; enfin la distribution
-  multi-OS. La récupération des analyses après fermeture est maintenant faite.
-  Les ajustements visuels écran par écran restent un chantier séparé avec le
-  mainteneur.
+- **Ordre de suite recommandé** : tester le `.deb`, le verrou PRF, l'anneau
+  et les parcours Compagnon (dont un vrai client MCP type Claude Desktop,
+  Ollama installé et Codex connecté) sur matériel réel ; déclarer et essayer
+  les apps OAuth Google/Microsoft ; lancer `paquets.yml` puis signer et
+  publier. **Le code du chantier V1 est complet** — P6-3 en était la
+  dernière brique. Les ajustements visuels écran par écran restent un
+  chantier séparé avec le mainteneur.
 - **Première vérification à la prochaine reprise** :
   `git log --oneline -8 && git status`, puis
-  `node tests/e2e/unitaires.mjs` (**83/83 attendus**) et
-  `node tests/e2e/tous.mjs`. Pour le natif :
-  `cargo test --locked --manifest-path compagnon/Cargo.toml`,
+  `node tests/e2e/unitaires.mjs` (**87/87 attendus**) et
+  `node tests/e2e/tous.mjs` (**16/16, zéro saut**). Pour le natif :
+  `cargo test --locked --manifest-path compagnon/Cargo.toml` (**30/30**),
   `cargo build --locked --manifest-path compagnon/Cargo.toml -p oc-compagnon`,
-  puis les quatre scénarios natifs, dont `e2e-c8-telephone.mjs`.
+  puis les six scénarios natifs, dont `e2e-mcp.mjs` et
+  `e2e-compagnon-ia.mjs`. La CI GitHub rejoue tout à chaque poussée.

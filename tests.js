@@ -778,8 +778,10 @@ export async function runSelfTests(){
       eq(contactFromSignature('Bonjour, cordialement'), null);
     },
     'IA : familles, prompt cadré, erreurs sans réseau': async () => {
-      eq(browserProviders().sort(), ['anthropic', 'gemini']);
-      ok(AI_FAMILIES.chatgpt.channel === 'companion');
+      eq(browserProviders().sort(), ['anthropic', 'gemini', 'openrouter']);
+      ok(AI_FAMILIES.chatgpt.channel === 'companion' && !AI_FAMILIES.chatgpt.key);
+      ok(AI_FAMILIES.ollama.channel === 'companion' && !AI_FAMILIES.ollama.key);
+      ok(AI_FAMILIES.openai.channel === 'companion' && AI_FAMILIES.openai.key);
       const p = draftPrompt({ company: { name: 'OVHcloud', city: 'Roubaix' },
         contactName: 'Théo', profile: { name: 'Mahé', formation: 'BTS SIO' } });
       ok(/OVHcloud \(Roubaix\)/.test(p) && /Théo/.test(p) && /Mahé, BTS SIO/.test(p));
@@ -788,6 +790,12 @@ export async function runSelfTests(){
       catch (e) { eq(e.message, 'viacompagnon'); }
       try { await aiComplete({ provider: 'anthropic', key: '' }, 'test'); throw new Error('parti !'); }
       catch (e) { eq(e.message, 'cle'); }
+      try { await aiComplete({ provider: 'openrouter', key: '' }, 'test'); throw new Error('parti !'); }
+      catch (e) { eq(e.message, 'cle'); }
+      /* jamais de modèle implicite : sans choix, refus court — le
+         modèle vient TOUJOURS de la liste vivante du fournisseur */
+      try { await aiComplete({ provider: 'anthropic', key: 'k', model: '' }, 'test'); throw new Error('parti !'); }
+      catch (e) { eq(e.message, 'modele'); }
     },
     'envoi direct : MIME — entêtes UTF-8, corps base64, base64url': () => {
       eq(encodeHeader('Hello'), 'Hello');                       /* ASCII : inchangé */

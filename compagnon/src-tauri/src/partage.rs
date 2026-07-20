@@ -64,6 +64,9 @@ pub struct Partage {
        chargent le journal avant que l'un écrive « incertain » et le même
        envoi part deux fois. Détenu le temps d'un cycle (envois compris). */
     pub journal_lock: Mutex<()>,
+    /* rédactions IA en cours (D5) : jid → état JSON, en mémoire seulement —
+       ni le prompt ni la clé ne touchent le disque. Une à la fois. */
+    pub ia: Mutex<std::collections::HashMap<String, String>>,
 }
 
 const ALPHABET: &[u8] = b"ABCDEFGHJKMNPQRSTUVWXYZ23456789"; /* sans I, L, O, 0, 1 */
@@ -124,6 +127,7 @@ impl Partage {
             appairage: Mutex::new(None),
             port: AtomicU16::new(0),
             journal_lock: Mutex::new(()),
+            ia: Mutex::new(std::collections::HashMap::new()),
         };
         p.persister();
         p
@@ -143,12 +147,18 @@ impl Partage {
         self.assoc.lock().unwrap().is_some()
     }
 
+    pub fn dossier(&self) -> &std::path::Path {
+        &self.dossier
+    }
+
     /// Rompre l'association : l'appareil pair et la clé de canal
-    /// disparaissent — un nouvel appairage repart de zéro.
+    /// disparaissent — un nouvel appairage repart de zéro. L'assistant
+    /// IA perd aussi tout : plus de consommateur pour ses propositions.
     pub fn dissocier(&self) {
         *self.assoc.lock().unwrap() = None;
         *self.canal_k.lock().unwrap() = None;
         self.secrets.effacer("canal.k");
+        crate::mcp::purger(&self.dossier);
         self.persister();
     }
 

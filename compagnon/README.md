@@ -29,8 +29,11 @@ cargo test -p oc-coeur             # la garde (18 tests, vecteurs croisés)
 cargo build -p oc-compagnon        # la coquille (webkit2gtk + gtk3 requis sous Linux)
 ```
 
-Le bundle (`deb`/`appimage`) passe par la CLI Tauri : `cargo tauri build`
-depuis `compagnon/src-tauri` (la CLI lance `preparer.mjs` toute seule).
+Le bundle passe par la CLI Tauri depuis `compagnon/src-tauri` (elle lance
+`preparer.mjs` toute seule) : `cargo tauri build` fait `deb`/`appimage`
+sous Linux ; Windows demande `--bundles nsis`, macOS `--bundles app,dmg`
+(icônes `.ico`/`.icns` versionnées dans `icons/`). `paquets.yml` joue les
+trois, non signés, sur toute PR qui le modifie et à la demande.
 
 ## Le canal local (résumé du protocole)
 
@@ -39,8 +42,37 @@ Tout le reste voyage en enveloppes `OCV1.` (AES-GCM, AAD liée) :
 `POST /appairage` sous la clé dérivée du code court (PBKDF2 120 000),
 `POST /boite` sous la clé de canal née de l'appairage — messages
 `ping`, `dissocier`, `mission` (bon signé Ed25519, re-vérifié à chaque
-lecture), `revoquer`, `arreter-cible`, `rapport`, `analyse-etat`.
+lecture), `revoquer`, `arreter-cible`, `rapport`, `analyse-etat`,
+`ia-demarrer`/`ia-etat`/`ia-annuler` (rédaction D5 : Ollama local,
+OpenAI par la clé de l'utilisateur — elle sert l'appel puis s'oublie,
+jamais écrite ici — ou l'abonnement ChatGPT via l'outil officiel Codex ;
+`op:"modeles"` rend la liste que le runtime sert VRAIMENT — tags
+Ollama, `/v1/models`, `codex app-server` → `model/list` — c'est dedans
+que l'utilisateur choisit, jamais un modèle codé en dur ; la génération
+Codex passe par `codex exec` non interactif : prompt par STDIN, bac à
+sable lecture seule, `--model` choisi ; sorties bornées `TEXTE_MAX`,
+annulation qui tue ou jette le travail), `mcp-regler`, `resume`,
+`propositions`, `proposition-reglee`.
 Rien d'utile en clair ; un processus local sans le code n'obtient rien.
+
+## Le serveur MCP local (P8-2)
+
+`oc-compagnon --mcp` sert le protocole MCP sur **stdio** (SDK officiel
+`rmcp`) : c'est le client IA compatible qui lance le processus — aucun
+port, aucun relais, aucun compte. **Coupé par défaut** ; l'autorisation
+se donne et se révoque dans OpenContact (Mes appareils → feuille du
+Compagnon), relue à CHAQUE appel. Deux outils, pas un de plus :
+`resume_pistes` (lecture bornée d'un résumé en liste blanche — nom,
+ville, domaine, postes, dernière activité, suivi agrégé — poussé par la
+PWA et re-filtré par `oc_coeur::mcp`) et `proposer_pistes` (schéma
+fermé, bornes strictes ; la proposition devient une enveloppe `share`
+scellée en attente, rejouable sans doublon par son `pid`, et repasse
+par l'aperçu multi-sélection de la PWA — jamais une écriture directe,
+aucune suppression exposée). Les fichiers d'échange (`mcp-*.ocv`) sont
+scellés sous une clé fichier 0600 dédiée — deux processus indépendants
+doivent les ouvrir et les trousseaux de session ne se partagent pas
+entre un bureau et un client tiers. Journal sobre : `mcp-journal.log`
+(gestes et comptes, jamais un contenu).
 
 ## Crochets de développement (jamais en production)
 
@@ -48,6 +80,8 @@ Rien d'utile en clair ; un processus local sans le code n'obtient rien.
 `OC_SMTP_TEST=hote:port` (puits SMTP en clair),
 `OC_IMAP_TEST=hote:port` (faux IMAP en clair),
 `OC_OLLAMA=url` / `OC_OLLAMA_MODELE`, `OC_CORPUS_TEST=fichier`,
+`OC_OPENAI_TEST=url` (faux service OpenAI pour la rédaction D5),
+`OC_CODEX=chemin` (outil Codex de remplacement),
 `OC_TICK_MS`, `OC_FENETRE_TEST=1`, `OC_INTEGRATION_TEST=1`. Ce dernier
 désactive uniquement l'instance unique, le démarrage automatique et la zone
 de notification lorsque D-Bus ou `/proc` manquent ; le moteur, le canal, la
