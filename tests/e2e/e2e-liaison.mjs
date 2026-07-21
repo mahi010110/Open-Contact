@@ -148,6 +148,21 @@ await attendre(D, () => /Rien à partager/.test(document.querySelector('#prZone'
   { timeout: 8000, message: 'message « rien à partager » côté client sans piste' });
 if (await D.$('#prSend')) fail('un bouton Envoyer apparaît alors qu’il n’y a rien à partager');
 console.log('groupe : client sans piste voit « Rien à partager » (pas un vide muet) ✓');
+
+/* INVARIANT (retour utilisateur) : RIEN ne part sans clic « Envoyer ».
+   C a 25 pistes et vient d'en éditer une, mais tant qu'il n'a pas cliqué,
+   D ne doit avoir reçu AUCUN aperçu. Le partage en groupe n'est jamais
+   automatique — seul le bouton déclenche l'envoi. */
+await C.evaluate(async () => {
+  const { S, saveData } = await import('./ui/state.js');
+  S.companies[0].nextActionText = 'édité — ne doit surtout pas partir tout seul';
+  S.companies[0].updatedAt = Date.now();
+  saveData();   /* déclenche oc:change — ne DOIT PAS provoquer d'envoi groupe */
+});
+await C.waitForTimeout(5000);
+if (await D.$('.rc-big')) fail('AUTO-ENVOI : D a reçu un aperçu sans que C ait cliqué « Envoyer »');
+console.log('groupe : rien ne part sans clic « Envoyer », même après édition (invariant tenu) ✓');
+
 await C.waitForSelector('#prSend');
 await C.click('#prSend');
 await D.waitForSelector('.rc-big', { timeout: 20000 });
