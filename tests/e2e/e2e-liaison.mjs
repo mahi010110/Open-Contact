@@ -21,13 +21,21 @@ const portMort = await new Promise(res => {
 const browser = await chromium.launch({ executablePath: chromiumPath() });
 const fail = m => { console.error('ÉCHEC :', m); process.exitCode = 1; };
 const errors = [];
-/* le relais volontairement mort de la partie 4 hurle en console : attendu */
-const attendu = new RegExp('wss://127\\.0\\.0\\.1:' + portMort + '/');
+/* Deux bruits de console ATTENDUS, jamais des bugs de l'app :
+   1. le relais volontairement mort de la partie 4 (échec de connexion wss) ;
+   2. l'abandon WebRTC quand on FERME une page/salle en pleine négociation
+      au démontage — Trystero émet « User-Initiated Abort, reason=Close
+      called » : c'est notre propre close() qui coupe, pas un échec de
+      liaison (un vrai échec passe par onJoinError → état rtcfail, prouvé
+      en partie 4). On ne filtre que ce motif exact, rien de plus large. */
+const attenduRelais = new RegExp('wss://127\\.0\\.0\\.1:' + portMort + '/');
+const attenduDemontage = /User-Initiated Abort|reason=Close called|Close called/;
+const benin = t => attenduRelais.test(t) || attenduDemontage.test(t);
 const mk = async opts => {
   const ctx = await browser.newContext({ ignoreHTTPSErrors: true, ...opts });
   const p = await ctx.newPage();
-  p.on('console', m => { if (m.type() === 'error' && !attendu.test(m.text())) errors.push(m.text()); });
-  p.on('pageerror', e => errors.push(String(e)));
+  p.on('console', m => { if (m.type() === 'error' && !benin(m.text())) errors.push(m.text()); });
+  p.on('pageerror', e => { if (!benin(String(e))) errors.push(String(e)); });
   return p;
 };
 const desktop = { viewport: { width: 1280, height: 800 } };
