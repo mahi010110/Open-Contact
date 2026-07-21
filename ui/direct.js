@@ -416,7 +416,14 @@ export function openPromo(){
       else if (watch) watch.tick();   /* l'étape honnête reprend la main */
       const zone = q('#prZone');
       if (!zone) return;
-      if (!peers || !mine().length){ zone.innerHTML = ''; return; }
+      if (!peers){ zone.innerHTML = ''; return; }
+      /* connecté mais rien de partageable : le DIRE, ne pas laisser un
+         vide muet (les pistes d'exemple et closes ne partent pas) */
+      if (!mine().length){
+        zone.innerHTML =
+          `<p class="hint" style="text-align:center">${ic('info-box', 'ic-14')} Rien à partager pour l’instant — ajoute une piste depuis « Mes pistes ». Les exemples ne partent pas.</p>`;
+        return;
+      }
       zone.innerHTML =
         `<button class="btn btn-primary pr-send" id="prSend"${n ? '' : ' disabled'}>${ic('share', 'ic-14')} Envoyer ${n ? n + ' piste' + (n > 1 ? 's' : '') : '…'}</button>
          <button class="linklike" id="prPick" style="margin-top:6px">${choosing ? 'Replier la liste' : 'Choisir ce qui part…'}</button>

@@ -96,9 +96,10 @@ for (const p of [A, B])
 const stA = (await A.textContent('#syStatus')).trim();
 if (!/à jour en continu/.test(stA)) fail('statut bureau : ' + stA);
 
-/* les 25 pistes du bureau arrivent sur le mobile neuf… */
+/* les 25 pistes du bureau arrivent sur le mobile neuf… (marge large : la
+   liaison WebRTC réelle peut mettre quelques secondes à ouvrir son canal) */
 await attendre(B, async () => (await import('./ui/state.js')).S.companies.length === 25,
-  { timeout: 25000, message: '25 pistes A→B' });
+  { timeout: 40000, message: '25 pistes A→B' });
 /* …et une piste créée sur mobile repart vers le bureau */
 await B.evaluate(async () => {
   const { S, saveData } = await import('./ui/state.js');
@@ -107,7 +108,7 @@ await B.evaluate(async () => {
   saveData();
 });
 await attendre(A, async () => (await import('./ui/state.js')).S.companies.some(c => c.id === 'retour-b'),
-  { timeout: 25000, message: 'piste B→A' });
+  { timeout: 40000, message: 'piste B→A' });
 const devsB = await B.evaluate(async () => (await import('./ui/synclive.js')).loadDevices());
 if (!devsB.length) fail('aucun appareil vu côté mobile');
 console.log('sync réelle : 25 pistes A→B, 1 piste B→A, appareils vus :', devsB.map(d => d.name).join(', '), '✓');
@@ -141,6 +142,28 @@ for (const [p, nav] of [[C, '.topnav'], [D, '.bottomnav']]){
 for (const p of [C, D])
   await attendre(p, () => /camarade/.test(document.querySelector('#prStatus')?.textContent || ''),
     { timeout: 40000, message: 'groupe relié' });
+/* D est connecté mais n'a AUCUNE piste partageable : l'écran doit le DIRE,
+   jamais rester muet sans bouton ni explication (retour utilisateur). */
+await attendre(D, () => /Rien à partager/.test(document.querySelector('#prZone')?.textContent || ''),
+  { timeout: 8000, message: 'message « rien à partager » côté client sans piste' });
+if (await D.$('#prSend')) fail('un bouton Envoyer apparaît alors qu’il n’y a rien à partager');
+console.log('groupe : client sans piste voit « Rien à partager » (pas un vide muet) ✓');
+
+/* INVARIANT (retour utilisateur) : RIEN ne part sans clic « Envoyer ».
+   C a 25 pistes et vient d'en éditer une, mais tant qu'il n'a pas cliqué,
+   D ne doit avoir reçu AUCUN aperçu. Le partage en groupe n'est jamais
+   automatique — seul le bouton déclenche l'envoi. */
+await C.evaluate(async () => {
+  const { S, saveData } = await import('./ui/state.js');
+  S.companies[0].nextActionText = 'édité — ne doit surtout pas partir tout seul';
+  S.companies[0].updatedAt = Date.now();
+  saveData();   /* déclenche oc:change — ne DOIT PAS provoquer d'envoi groupe */
+});
+await C.waitForTimeout(5000);
+if (await D.$('.rc-big')) fail('AUTO-ENVOI : D a reçu un aperçu sans que C ait cliqué « Envoyer »');
+console.log('groupe : rien ne part sans clic « Envoyer », même après édition (invariant tenu) ✓');
+
+/* clic « Envoyer » → l'envoi part (pas de confirmation : geste direct) */
 await C.waitForSelector('#prSend');
 await C.click('#prSend');
 await D.waitForSelector('.rc-big', { timeout: 20000 });
