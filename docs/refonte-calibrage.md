@@ -167,8 +167,52 @@ disponible la plus proche, jamais l'issue indisponible.**
 
 ---
 
+## Décision 7 — Ajouter une piste : deux blocs, deux boutons
+
+Une piste = **deux grosses informations : l'entreprise et le contact** (avec
+ses coordonnées). L'ajout se construit autour de ces deux-là, ensemble — fini
+le détour actuel « créer la piste, puis ouvrir la fiche, puis ajouter un
+contact », et fini le lien « plutôt un contact ? ».
+
+**L'écran d'ajout = deux blocs, l'un sous l'autre :**
+
+```
+L'ENTREPRISE
+[ Nom de la boîte ]
+
+LE CONTACT   (si tu en as un)
+[ Nom de la personne ]
+[ Son email ou son téléphone ]
+```
+
+On **remplit ce qu'on a**. Juste l'entreprise → validé. Une personne + un email
+→ la piste est tout de suite **utilisable** (on peut lui écrire dans la foulée).
+
+**Deux boutons de validation :**
+- **« Ajouter »** → créé, le champ se vide, prêt pour la suivante (**rafale** :
+  noter plein de boîtes très vite). Confirmation courte « ✓ X ajoutée » (un
+  mot, pas une phrase — Décision 3).
+- **« Ajouter et compléter »** → créé **et** ouvre la fiche pour le reste.
+
+**Le reste des champs (ville, domaine, site, technos, postes, process,
+conseils, adresse, notes) vit dans la fiche, pas dans l'ajout.** La capture
+reste les deux blocs.
+
+**Cas « juste la personne, pas d'entreprise » :** jamais bloqué. Ça
+s'enregistre, la personne va dans le bac **« à rattacher »** (existant),
+Aujourd'hui rappelle gentiment de lui trouver sa boîte. Rien n'est perdu
+(invariant « toute donnée saisie est précieuse »).
+
+**Petit plus :** email `nadia@ovhcloud.com` → l'app propose **« OVHcloud »**
+comme entreprise en un tap. Résout la plupart des cas seuls.
+
+---
+
 ## Prochains forks
 
+- **La barre « Affiner »** (recherche + filtre + tri + ordre en un groupe) :
+  proposée, **à confirmer** — une recherche visible + un bouton « Affiner » +
+  des puces d'état sous la recherche (le sens du tri vit dans la puce).
 4. **Doctrine de l'avancé** — progressive disclosure : que replie-t-on, où,
    comment (prolonge les Décisions 3 & 6).
 5. **Le fil du nouvel arrivant** — les 4 premiers gestes.
