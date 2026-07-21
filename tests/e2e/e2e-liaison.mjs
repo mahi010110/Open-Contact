@@ -96,9 +96,10 @@ for (const p of [A, B])
 const stA = (await A.textContent('#syStatus')).trim();
 if (!/à jour en continu/.test(stA)) fail('statut bureau : ' + stA);
 
-/* les 25 pistes du bureau arrivent sur le mobile neuf… */
+/* les 25 pistes du bureau arrivent sur le mobile neuf… (marge large : la
+   liaison WebRTC réelle peut mettre quelques secondes à ouvrir son canal) */
 await attendre(B, async () => (await import('./ui/state.js')).S.companies.length === 25,
-  { timeout: 25000, message: '25 pistes A→B' });
+  { timeout: 40000, message: '25 pistes A→B' });
 /* …et une piste créée sur mobile repart vers le bureau */
 await B.evaluate(async () => {
   const { S, saveData } = await import('./ui/state.js');
@@ -107,7 +108,7 @@ await B.evaluate(async () => {
   saveData();
 });
 await attendre(A, async () => (await import('./ui/state.js')).S.companies.some(c => c.id === 'retour-b'),
-  { timeout: 25000, message: 'piste B→A' });
+  { timeout: 40000, message: 'piste B→A' });
 const devsB = await B.evaluate(async () => (await import('./ui/synclive.js')).loadDevices());
 if (!devsB.length) fail('aucun appareil vu côté mobile');
 console.log('sync réelle : 25 pistes A→B, 1 piste B→A, appareils vus :', devsB.map(d => d.name).join(', '), '✓');
@@ -141,6 +142,12 @@ for (const [p, nav] of [[C, '.topnav'], [D, '.bottomnav']]){
 for (const p of [C, D])
   await attendre(p, () => /camarade/.test(document.querySelector('#prStatus')?.textContent || ''),
     { timeout: 40000, message: 'groupe relié' });
+/* D est connecté mais n'a AUCUNE piste partageable : l'écran doit le DIRE,
+   jamais rester muet sans bouton ni explication (retour utilisateur). */
+await attendre(D, () => /Rien à partager/.test(document.querySelector('#prZone')?.textContent || ''),
+  { timeout: 8000, message: 'message « rien à partager » côté client sans piste' });
+if (await D.$('#prSend')) fail('un bouton Envoyer apparaît alors qu’il n’y a rien à partager');
+console.log('groupe : client sans piste voit « Rien à partager » (pas un vide muet) ✓');
 await C.waitForSelector('#prSend');
 await C.click('#prSend');
 await D.waitForSelector('.rc-big', { timeout: 20000 });
