@@ -387,6 +387,30 @@ casse si le besoin vient.
 
 ---
 
+## Décision 16 — Écrire un email : déjà bon, resserré
+
+**Déjà bon, conservé :** destinataire = **une personne** (contacts avec email,
+donc déjà aligné #14) ; modèle → objet + message éditables ; brouillon IA
+optionnel ; envoi direct si messagerie connectée, sinon « Ouvrir dans Mail » /
+« Envoyée ✓ » ; après envoi, « Envoyé ✓ — et ensuite ? » → **« Relancer [la
+personne] »** ; mode série (Prospecter).
+
+**Ajouts / resserrages :**
+- **Joindre CV / LM** (Décision 4) : une ligne **discrète, juste au-dessus de
+  l'envoi** — `📎 CV [Aucun ▾]  LM [Aucun ▾]`, « Aucun » par défaut, **vraie
+  pièce jointe PDF**. **Masquée s'il n'y a aucun document** (loi #6, un
+  « ＋ joindre un CV » discret à la place) ; quand un doc est joint, la ligne
+  affiche son nom (`📎 CV cyber`) — un regard suffit.
+- **Profil vide → une action, pas un sermon** : « ✏ Compléter mon profil »
+  remplace le warning (loi #6 + Décision 9). Motivé : un email non signé /
+  « troué » est gênant (vu en capture).
+- **Pas d'email sur la personne** : « Envoyer » **absent** (pas grisé), « Copier »
+  devient le bouton principal (loi #6).
+- **Fin du double-modal (N8)** : « Écrire » s'ouvre **dans le panneau de la
+  fiche**, pas une 2ᵉ fenêtre empilée (vu en capture sur desktop).
+
+---
+
 # Fondations calibrées ✓ — et ce qui reste
 
 Les **décisions ci-dessus = le squelette, les lois, et le 1ᵉʳ écran conçu
@@ -403,8 +427,7 @@ chacun au filtre des 9 décisions. Ça va plus vite maintenant qu'on a le cadre.
 - **Mes pistes** — ✅ **calibré (Décision 13).** *(reste au build : glisser +
   équivalent clavier, C9)*
 - **La fiche** — ✅ **calibré (Décisions 14 & 15).**
-- **Écrire un email** — modèles, variables, **sélecteur CV/LM** (Décision 4),
-  envoi.
+- **Écrire un email** — ✅ **calibré (Décision 16).**
 - **Prospecter + Campagnes** — sélection, pistes sans email (N6), la **maison
   campagnes** dans Mes pistes (Décision 5), feuille du jour, assistant
   (variables + Compagnon, N7), auto vs manuel.
