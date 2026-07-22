@@ -569,6 +569,37 @@ connecter ») ; plus de **double-modal** (N8).
 
 ---
 
+## Décision 23 — La motion : contraste « 98 » net × douceur discrète
+
+Un **contraste assumé** : le skin « 98 » reste figé, honnête, net — et par-dessus,
+une motion **douce, façon Apple**, mais **au minimum**. Le contraste est la
+signature : c'est parce que le visuel est immobile que la moindre fluidité se
+remarque et fait « premium ».
+
+**La règle du dosage :** le minimum, **senti sans être vu**, jamais la motion
+qui épate. Elle sert le **feedback**, le **sentiment d'avancer** et
+l'**orientation** — jamais la déco.
+
+**Où vit quoi :**
+- **Les éléments restent « 98 »** : boutons, icônes, texte, survols, bascules
+  d'état → nets, instantanés, zéro easing.
+- **Le mouvement est doux** : feuille qui monte, panneau latéral qui entre, liste
+  qui se réorganise (filtre/tri), ligne qui apparaît ou part, barre d'annulation
+  qui se pose → ease-out léger, court, discret.
+- Résumé : **la douceur dans le déplacement entre états, la netteté dans les
+  objets.**
+
+**Performances — non négociable (téléphone d'étudiant) :**
+- Animer **uniquement `transform` et `opacity`** (composé par le GPU, aucun
+  reflow) ; jamais width/height/top/left/margin.
+- **Transitions CSS**, pas de JS ; durées courtes.
+- **`prefers-reduced-motion` respecté** (accessibilité).
+
+**Fait évoluer `CLAUDE.md`** (« rien de smooth ») : le smooth est autorisé, mais
+seulement sur le **mouvement** et à dose « sentie, pas vue ».
+
+---
+
 # Fondations calibrées ✓ — et ce qui reste
 
 Les **décisions ci-dessus = le squelette, les lois, et le 1ᵉʳ écran conçu
@@ -596,9 +627,9 @@ chacun au filtre des 9 décisions. Ça va plus vite maintenant qu'on a le cadre.
 - **Réglages** — ✅ **calibré (#21)** : noms clairs, voix humaine, explication à
   la demande (« ? »), avancé replié, Compagnon visible avec bouton.
 
-**Transverse :** ✅ **calibré (Décision 22)** — montrer plutôt qu'expliquer
+**Transverse :** ✅ **calibré (Décisions 22 & 23)** — montrer plutôt qu'expliquer
 (léger), une seule modale à la fois, verrou au bon moment, site séparé, passe
-accessibilité + thème sombre.
+accessibilité + thème sombre, et **motion « 98 » × douceur discrète (#23)**.
 
 **➡️ Tous les écrans sont calibrés. La suite = construire — voir le Handoff
 ci-dessous.**
@@ -667,7 +698,9 @@ voix humaine, boîte à réflexes UX (#19).
 
 ## Phase 4 — Transverses & finitions (#22)
 11. Langage visuel (**cadenas** privé) ; **une seule modale à la fois** (N8) ;
-    verrou au bon moment ; passe **accessibilité clavier + thème sombre**.
+    verrou au bon moment ; passe **accessibilité clavier + thème sombre** ;
+    **motion (#23)** — contraste « 98 » × douceur discrète, `transform`/`opacity`
+    uniquement, `prefers-reduced-motion` respecté.
 12. **Site séparé** (guide + téléchargement Compagnon) — chantier hors app.
 
 **Ordre de valeur si tu veux prioriser :** Phase 0 (obligatoire) → Aujourd'hui →
