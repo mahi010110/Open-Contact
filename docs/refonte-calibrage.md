@@ -494,6 +494,21 @@ ce soit. Elle sert les lois #3 (pas d'explication), #6 (indisponible = absent),
 
 ---
 
+## Décision 20 — « Moi » éclaté : Profil & données (visible) + Réglages (à part)
+
+Concrétise #2 & #4 — « Moi » devient **deux mondes** :
+
+- **Profil & données** — léger, pour tous, **toujours visible** : Mon profil ·
+  Mes modèles d'emails · Mes CV & lettres (variantes, #4) · **Garder une copie**
+  (sauvegarde promue, #4). *Contenu déjà calibré par #4, #16, #17 — reste la
+  mise en écran.*
+- **Réglages** — la config : Verrouillage · Mes appareils (Compagnon inclus) ·
+  Connexions (messagerie + IA). **Une porte à part sur mobile** (garde « Moi »
+  minimal — le terrain), **dépliée en colonnes sur desktop** (le poste de
+  commandement a la place).
+
+---
+
 # Fondations calibrées ✓ — et ce qui reste
 
 Les **décisions ci-dessus = le squelette, les lois, et le 1ᵉʳ écran conçu
@@ -515,10 +530,12 @@ chacun au filtre des 9 décisions. Ça va plus vite maintenant qu'on a le cadre.
 - **Échanger** — ✅ **calibré (Décision 18).**
 
 **Régler (« Moi ») :**
-- **Profil & données** — mise en écran (profil, modèles, CV/LM, « garder une
-  copie »).
-- **Réglages** — verrou · appareils (quotidien + avancé replié, phrase masquée
-  N11, TURN N10) · connexions (messagerie + tuyauterie IA) · Compagnon.
+- **Profil & données** — ✅ **structure calibrée (#20)** ; contenu déjà couvert
+  par #4 (CV/LM, sauvegarde), #16 (profil), #17 (modèles sans code). Reste la
+  mise en écran.
+- **Réglages** — structure #20 ; détail *(en cours)* : verrou · appareils
+  (avancé replié, phrase masquée N11, TURN N10) · connexions (messagerie + IA) ·
+  Compagnon.
 
 **Transverse :**
 - **Fin du double-modal** sur desktop (N8).
