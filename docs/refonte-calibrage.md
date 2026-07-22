@@ -331,6 +331,62 @@ Rien d'autre ne bouge.
 
 ---
 
+## Décision 14 — Le modèle : l'entreprise se suit, la personne s'agit
+
+**Deux niveaux, jamais mélangés :**
+- **L'entreprise = le suivi.** Un statut, une place dans le tableau, les notes,
+  la référence *(l'opportunité)*. Le tableau/liste (Mes pistes) restent **par
+  entreprise**, inchangés.
+- **Le contact = l'action.** Écrire, relancer, prochaine action, prospection,
+  campagne ciblent **une personne** — fini le « premier email deviné ».
+  L'action reste **aussi** possible au niveau entreprise (« envoyer la
+  candidature » avant d'avoir un nom).
+
+**Contact dormant.** Un contact ne devient une « action » que **quand tu
+l'actives** (tu lui écris / tu lui poses une action). Sinon, c'est juste **un
+nom connu.**
+- Reçu d'un ami → **enrichit ta carte, zéro to-do** : jamais dans « Aujourd'hui »,
+  jamais coché tout seul en prospection. Ton **suivi reste privé** (invariant).
+- Fiche : personnes **actives en haut**, dormantes/reçues **repliées** (« + N
+  personnes connues »), repère « reçu de la promo ».
+
+**Ce que ça règle :** le « mur » de contacts dans la fiche, le « à qui
+j'écris ? », et **N6** (plus de boîtes écartées faute d'email — tu choisis qui
+en a un).
+
+**Un cran de plus, plus tard (loi #12) :** un **statut par contact** (deux
+conversations parallèles dans une même boîte) — pas maintenant, greffable sans
+casse si le besoin vient.
+
+**Périmètre (vérifié) : additif et rétrocompatible.**
+- Touche ~6 fichiers de la **zone action** (`model.js` + migration, `today.js`,
+  `actions.js`, `assist.js`, `fiche.js`, `prospect.js`, `filter.js`) +
+  `CONTRAT.md` / `tests.js`.
+- **N'affecte PAS** le statut/tableau, ni l'infra sync/chiffrement/stockage/
+  partage/P2P, ni le moteur de campagne (déjà person-targeted).
+- Construction **par petits pas** (le champ d'abord, puis chaque écran), pas de
+  big-bang.
+
+---
+
+## Décision 15 — La fiche : resserrée autour de « où j'en suis + quoi ensuite »
+
+- **Héros en haut :** *où j'en suis* (statut entreprise) + *prochaine action* —
+  ce qu'on vient voir 9 fois sur 10.
+- **Contacts = le bloc d'action** juste dessous : **liste compacte** (une
+  ligne/personne), **actifs en haut**, dormants repliés (Décision 14) ; on
+  déplie une personne pour ses coordonnées/actions. Plus de mur.
+- **« À savoir » + « Historique » repliés** (référence, pas quotidien).
+- **Sections vides masquées** (loi #6) : une piste neuve n'a pas de trous —
+  juste **« Compléter »** (le % est la porte). Cible de « Ajouter et compléter »
+  (Décision 7).
+- **« Écrire »** = action sortante principale → ouvre le **composeur** (choix
+  **CV/LM**, Décision 4) vers **la personne** choisie.
+- **Tampon + « Confirmer »** (rien ne s'écrit avant) conservé. Mobile = feuille ;
+  desktop = **panneau latéral** (Décision 10).
+
+---
+
 # Fondations calibrées ✓ — et ce qui reste
 
 Les **décisions ci-dessus = le squelette, les lois, et le 1ᵉʳ écran conçu
@@ -346,8 +402,7 @@ chacun au filtre des 9 décisions. Ça va plus vite maintenant qu'on a le cadre.
 - **Aujourd'hui** — ✅ **calibré (Décision 10).**
 - **Mes pistes** — ✅ **calibré (Décision 13).** *(reste au build : glisser +
   équivalent clavier, C9)*
-- **La fiche** — contacts, « Compléter », « À savoir », clôture, itinéraire,
-  historique ; c'est là qu'atterrit « Ajouter et compléter » (Décision 7).
+- **La fiche** — ✅ **calibré (Décisions 14 & 15).**
 - **Écrire un email** — modèles, variables, **sélecteur CV/LM** (Décision 4),
   envoi.
 - **Prospecter + Campagnes** — sélection, pistes sans email (N6), la **maison
