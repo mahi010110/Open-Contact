@@ -118,7 +118,7 @@ format bouge · commit français focalisé.
   surlignés (composeur, wizard, modèles) ; Compagnon hors wizard.
   Fichiers : `ui/prospect.js`, `ui/campagnes.js`, `ui/mail.js`,
   `ui/profil.js` (modèles sans code), `styles/app.css`.
-- [ ] **2.7 Échanger (#18)** — Recevoir = Scanner · Fichier · Coller (fait
+- [x] **2.7 Échanger (#18)** *(livré — e2e liaison vert)* — Recevoir = Scanner · Fichier · Coller (fait
   en 0.2) ; « bêta » retiré ; pavés d'explication retirés ; mot de passe
   groupe : bouton **générer un code fort** dans le champ + copier discret ;
   rappel « jamais ton suivi privé » au moment d'envoyer seulement.
