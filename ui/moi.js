@@ -6,15 +6,14 @@
    restauration, aide condensée — et le coup de pouce IA, rangé
    ici sans faire d'ombre au reste.
    ============================================================ */
-import { APP_VERSION, normalizeCompany, normalizeContact, normalizeProfile,
-         defaultPrompts, PROMPTS_MAX, PROMPT_MAX_LEN } from '../engine/model.js';
+import { APP_VERSION, normalizeCompany, normalizeContact, normalizeProfile } from '../engine/model.js';
 import { fullPayload, parseInput } from '../engine/exchange.js';
 import { encryptOC2 } from '../engine/crypto.js';
 import { fmtSize, todayISO, esc } from '../engine/utils.js';
 import { mergeTombs } from '../engine/sync.js';
 import { docGet, docPut, docDel } from '../engine/storage.js';
 import { S, bus, saveData, saveProfile, saveOrphans, saveTombs, logJ, isClosed } from './state.js';
-import { $, ic, toast, btn, openSheet, confirmSheet, showUndo, bindDeleteGesture } from './dom.js';
+import { $, ic, toast, btn, openSheet, confirmSheet, showUndo } from './dom.js';
 import { openProfil, openTemplates } from './profil.js';
 import { openAppareils } from './direct.js';
 import { getSync } from './synclive.js';
@@ -166,57 +165,6 @@ async function docLine(key, label){
   });
 }
 
-/* ---------- prompts IA : les SIENS — créés, modifiés, bornés ----------
-   Un seul livré d'origine (« Mes emails → pistes », qui fabrique un JSON
-   à coller dans Recevoir) ; le reste appartient à l'utilisateur. Ils
-   vivent dans le profil, donc voyagent entre ses appareils.
-   Supprimer = le geste (glisser / poubelle) + Annuler ~30 s. Le moteur
-   ressuscite les défauts quand la liste est vide : le dernier reste. */
-function delPrompt(i){
-  const list = S.profile.prompts;
-  if (list.length <= 1){
-    toast('Le dernier prompt reste — modifie-le plutôt.');
-    bus.refresh();
-    return;
-  }
-  const gone = list.splice(i, 1)[0];
-  saveProfile();
-  bus.refresh();
-  showUndo(`${ic('check', 'ic-14')} « ${esc(gone.name)} » supprimé.`, () => {
-    S.profile.prompts.splice(Math.min(i, S.profile.prompts.length), 0, gone);
-    saveProfile();
-    bus.refresh();
-    toast('Prompt restauré.');
-  });
-}
-function editPrompt(i){
-  const isNew = i < 0;
-  const src = isNew ? { name: '', text: '' } : S.profile.prompts[i];
-  const sh = openSheet({ title: isNew ? 'Nouveau prompt' : 'Modifier le prompt', icon: 'sparkles', focus: '#ppName' });
-  sh.body.innerHTML =
-    `<div class="field"><label for="ppName">Nom</label>
-       <input id="ppName" value="${esc(src.name)}" maxlength="60" placeholder="Ex : Préparer un entretien"></div>
-     <div class="field"><label for="ppText">Le prompt <span class="lbl-soft">— [crochets] = à remplacer au moment de coller</span></label>
-       <textarea id="ppText" maxlength="${PROMPT_MAX_LEN}" style="min-height:180px">${esc(src.text)}</textarea>
-       <p class="hint" style="text-align:right"><span id="ppCount">${src.text.length}</span> / ${PROMPT_MAX_LEN}</p></div>`;
-  const q = s => sh.body.querySelector(s);
-  q('#ppText').addEventListener('input', () => { q('#ppCount').textContent = q('#ppText').value.length; });
-  const foot = [
-    btn('Enregistrer', 'btn-primary', () => {
-      const name = q('#ppName').value.trim();
-      const text = q('#ppText').value.trim();
-      if (!name || !text){ toast('Un nom et un contenu — il manque l’un des deux.'); return; }
-      if (isNew) S.profile.prompts.push({ name, text: text.slice(0, PROMPT_MAX_LEN) });
-      else S.profile.prompts[i] = { name, text: text.slice(0, PROMPT_MAX_LEN) };
-      saveProfile();
-      sh.close();
-      bus.refresh();
-      toast('Prompt enregistré ✓');
-    })
-  ];
-  sh.setFoot(foot);
-}
-
 /* ---------- l'écran ---------- */
 function syncLabel(){
   const sy = getSync();
@@ -282,37 +230,6 @@ export function renderMoi(){
          </div>
        </div>
 
-       <details class="pcard pcard-details">
-         <summary><h3>${ic('sparkles', 'ic-14')} Coup de pouce IA</h3></summary>
-         ${p.prompts.map((pr, i) =>
-           `<div class="prompt-row">
-              <div class="sw-in">
-                <button class="pr-name" data-copy="${i}" title="Copier">${esc(pr.name)}</button>
-                <span class="pr-hint" aria-hidden="true">${ic('copy', 'ic-14')}</span>
-                <button class="abtn abtn-sm" data-pedit="${i}" aria-label="Modifier ${esc(pr.name)}" title="Modifier">${ic('pencil', 'ic-14')}</button>
-              </div>
-            </div>`).join('')}
-         <div class="pr-foot">
-           ${p.prompts.length < PROMPTS_MAX
-             ? `<button class="btn btn-sm" id="moiPromptAdd">${ic('plus', 'ic-14')} Nouveau prompt</button>`
-             : `<span class="hint" style="margin:0">${PROMPTS_MAX} max — supprime-en un</span>`}
-           <button class="linklike" id="moiPromptReset">Revenir au prompt d’origine</button>
-         </div>
-       </details>
-
-       <details class="pcard pcard-details">
-         <summary><h3>${ic('book-open', 'ic-14')} Comment ça marche</h3></summary>
-         <ul class="help-list">
-           <li><b>Local-first.</b> Tout vit sur tes appareils — pas de compte, pas de serveur.</li>
-           <li><b>Une piste = une entreprise</b>, avec une prochaine action + une date : c’est ce qui nourrit « Aujourd’hui ».</li>
-           <li><b>Échanger</b> fait circuler les fiches dans la promo — jamais ton suivi privé.</li>
-           <li><b>Mes appareils</b> (ci-dessus) garde téléphone et ordinateur synchronisés en continu, suivi compris.</li>
-           <li><b>Coup de pouce IA :</b> taper un prompt le copie, à coller dans ton assistant. « Mes emails → pistes » fabrique un texte pour <b>Échanger → Recevoir → Coller</b>.</li>
-           <li><b>Supprimer :</b> glisse une ligne (ou survole-la) — annulable 30 s.</li>
-           <li><b>Raccourci :</b> « / » saute à la recherche.</li>
-         </ul>
-       </details>
-
        <div class="moi-ver">OpenContact ${APP_VERSION} · local-first, sans compte · fichier .oc</div>
      </div>`;
 
@@ -339,25 +256,6 @@ export function renderMoi(){
     if (await requireCode('Ton code, pour restaurer')) rf.click();
   });
   rf.addEventListener('change', () => { if (rf.files[0]) restoreFile(rf.files[0]); });
-  root.querySelectorAll('[data-copy]').forEach(b =>
-    b.addEventListener('click', async () => {
-      try { await navigator.clipboard.writeText(S.profile.prompts[+b.dataset.copy].text); toast('Copié ✓'); }
-      catch (e) { toast('Copie impossible ici.'); }
-    }));
-  root.querySelectorAll('[data-pedit]').forEach(b =>
-    b.addEventListener('click', () => editPrompt(+b.dataset.pedit)));
-  /* supprimer un prompt = le même geste que partout */
-  root.querySelectorAll('.prompt-row').forEach((r, i) =>
-    bindDeleteGesture(r, () => delPrompt(i)));
-  root.querySelector('#moiPromptAdd')?.addEventListener('click', () => editPrompt(-1));
-  root.querySelector('#moiPromptReset')?.addEventListener('click', async () => {
-    const ok = await confirmSheet({ title: 'Revenir au prompt d’origine ?', okLabel: 'Réinitialiser',
-      msg: 'Tes prompts actuels seront remplacés par le seul prompt d’origine (« Mes emails → pistes »).', danger: true });
-    if (!ok) return;
-    S.profile.prompts = defaultPrompts();
-    saveProfile();
-    bus.refresh();
-  });
   DOCS.forEach(([k, l]) => docLine(k, l));
   if (navigator.storage && navigator.storage.estimate){
     navigator.storage.estimate().then(({ usage, quota }) => {

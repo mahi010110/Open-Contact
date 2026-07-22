@@ -26,7 +26,8 @@ export function openCapture(prefill){
        <p class="hint">Le lien sera rangé dans la fiche.</p>` : ''}
      <div class="dup-note" id="cpDup" hidden></div>
      <p class="hint">Un nom suffit.</p>
-     <button class="linklike" id="cpOrph">Plutôt un contact ?</button>`;
+     <button class="linklike" id="cpOrph">Plutôt un contact ?</button>
+     <button class="linklike" id="cpMails">${ic('sparkles', 'ic-14')} Depuis mes e-mails</button>`;
   const q = s => sh.body.querySelector(s);
 
   let dup = null;
@@ -79,6 +80,12 @@ export function openCapture(prefill){
     const name = q('#cpName').value.trim();
     sh.close();
     openContactEditor(name ? { prefill: { extra: { company: name } } } : {});
+  });
+  /* l'import d'e-mails est une SOURCE de pistes (#5) — il vit ici,
+     pas dans « Recevoir » (réservé à ce qu'un camarade envoie) */
+  q('#cpMails').addEventListener('click', async () => {
+    sh.close();
+    (await import('./recevoir.js')).openImportMails();
   });
   q('#cpName').addEventListener('input', debounce(checkDup, 250));
   q('#cpCity').addEventListener('input', debounce(checkDup, 250));

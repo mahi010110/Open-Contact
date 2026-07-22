@@ -54,7 +54,8 @@ format bouge · commit français focalisé.
   `CONTRAT.md` §3, `tests.js` (+7), `sw.js`.
   Risques : tests-contrat « champs exacts » (champs conditionnels → intacts
   pour une entrée nue) ; fuite via `extra` (test dédié).
-- [ ] **0.2 Dissoudre l'IA (#5)** — « Depuis mes e-mails » quitte Recevoir
+- [x] **0.2 Dissoudre l'IA (#5)** *(livré — feuille autonome
+  `openImportMails`, e2e analyse vert)* — « Depuis mes e-mails » quitte Recevoir
   et devient une source de la capture ; la bibliothèque de prompts quitte
   « Moi » (les données `profile.prompts` restent — compat sync).
   Fichiers : `ui/recevoir.js`, `ui/capture.js`, `ui/moi.js`, `sw.js`.

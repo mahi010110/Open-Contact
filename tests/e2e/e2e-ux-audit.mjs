@@ -170,8 +170,7 @@ const receiveCtx = await receiveBrowser.newContext({ viewport: { width: 390, hei
 const receivePage = await receiveCtx.newPage();
 watchErrors(receivePage);
 await receivePage.goto(base, { waitUntil: 'load' });
-await receivePage.evaluate(async () => (await import('./ui/recevoir.js')).openRecevoir());
-await receivePage.click('#rcMails');
+await receivePage.evaluate(async () => (await import('./ui/recevoir.js')).openImportMails());
 await receivePage.waitForSelector('#rcMailTxt');
 const scanText = await receivePage.locator('.modal-b').innerText();
 if (!/s.installe et s.associe depuis ton ordinateur/i.test(scanText) || /Moi → Mes appareils/.test(scanText))

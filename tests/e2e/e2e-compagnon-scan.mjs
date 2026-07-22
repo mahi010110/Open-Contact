@@ -125,10 +125,8 @@ await page.evaluate(async code => {
 }, CODE);
 console.log('appairé ✓');
 
-/* Recevoir → Depuis mes e-mails → le chemin automatique */
-await page.evaluate(async () => (await import('./ui/recevoir.js')).openRecevoir());
-await page.waitForSelector('#rcMails');
-await page.click('#rcMails');
+/* Ajouter une piste → Depuis mes e-mails → le chemin automatique (#5) */
+await page.evaluate(async () => (await import('./ui/recevoir.js')).openImportMails());
 await page.waitForSelector('#rcScan7');
 await page.waitForTimeout(300);
 await page.screenshot({ path: SHOTS + '/90-scan-choix.png' });
