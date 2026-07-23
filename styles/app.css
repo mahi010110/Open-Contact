@@ -349,7 +349,7 @@ details.tranche[open]>summary::before{
 .abtn:hover{background:var(--surface-chrome);color:var(--text-body)}
 .abtn:active{box-shadow:var(--bevel-down)}
 .abtn-ok:hover{color:var(--green)}
-.act-gone{transition:opacity 150ms var(--ease-steps),transform 150ms var(--ease-steps);opacity:0;transform:translateX(20px)}
+.act-gone{transition:opacity 150ms var(--ease-out),transform 150ms var(--ease-out);opacity:0;transform:translateX(20px)}
 
 /* ============ ÉTATS VIDES ============ */
 .td-empty{
@@ -380,7 +380,7 @@ details.tranche[open]>summary::before{
   font-weight:var(--weight-bold);font-size:var(--text-13);opacity:0;
 }
 .swipe-del .sw-under{opacity:1}
-.sw-gone{transition:opacity 150ms var(--ease-steps),transform 150ms var(--ease-steps);opacity:0;transform:translateX(-20px)}
+.sw-gone{transition:opacity 150ms var(--ease-out),transform 150ms var(--ease-out);opacity:0;transform:translateX(-20px)}
 /* poubelle au survol (desktop) : un élément du flux, pas un survol
    flottant — la colonne est réservée, rien ne saute ni ne déborde */
 .hov-del{
@@ -508,7 +508,7 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   width:100%;max-width:560px;border-radius:var(--radius-0);
   box-shadow:var(--shadow-modal);
   max-height:92dvh;display:flex;flex-direction:column;
-  transition:transform .18s ease;
+  transition:transform var(--dur-3) var(--ease-out);   /* retour du glisser */
 }
 @media (pointer:coarse){ .modal-h{touch-action:none} }
 .modal-h{
@@ -928,7 +928,7 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px}
   background:var(--surface-window);border:1px solid var(--border-strong);
   box-shadow:var(--shadow-modal);padding:9px 12px;
   font-family:var(--font-mono);font-size:var(--text-12);line-height:1.45;
-  animation:oc-up var(--dur-3) var(--ease-steps);
+  animation:oc-up var(--dur-3) var(--ease-out);   /* la barre se pose (#23) */
 }
 .undo-bar span{flex:1;min-width:0}
 .undo-bar .btn{flex:none}
@@ -960,7 +960,7 @@ body:has(.undo-bar) .toast{bottom:calc(var(--nav-h) + 76px + env(safe-area-inset
   background:var(--surface-window);color:var(--text-body);
   border:1px solid var(--border-strong);box-shadow:var(--shadow-raised);
   font-family:var(--font-mono);font-size:var(--text-12);padding:8px 12px;
-  opacity:0;pointer-events:none;transition:opacity var(--dur-2),transform var(--dur-2);
+  opacity:0;pointer-events:none;transition:opacity var(--dur-2) var(--ease-out),transform var(--dur-2) var(--ease-out);
   max-width:calc(100% - 40px);text-align:left;line-height:1.5;
 }
 .toast::before{content:'';width:8px;height:8px;flex:none;border:1px solid var(--border-strong);background:var(--teal)}
@@ -976,12 +976,19 @@ body:has(.undo-bar) .toast{bottom:calc(var(--nav-h) + 76px + env(safe-area-inset
 body:has(.overlay) .toast{bottom:auto;top:calc(env(safe-area-inset-top) + 62px)}
 @media (min-width:901px){ .toast{bottom:44px} }
 
-/* ============ ANIMATIONS (ça claque, ça ne flotte pas) ============ */
+/* ============ MOTION (#23 : objets nets, déplacements doux) ============
+   Le contraste est la signature : le skin « 98 » reste figé, seul le
+   mouvement entre états est doux — feuille qui monte, panneau qui entre,
+   liste qui se réorganise (softReorder), barre qui se pose. Court,
+   ease-out, transform/opacity seulement ; reduced-motion coupe tout
+   (base.css). Les objets, eux, gardent steps() — la secousse du verrou. */
 @keyframes oc-fade{from{opacity:0}}
-@keyframes oc-up{from{opacity:0;transform:translateY(8px)}}
-.overlay{animation:oc-fade var(--dur-2) var(--ease-steps)}
-.overlay .modal{animation:oc-up var(--dur-3) var(--ease-steps)}
-.view:not([hidden])>.page-inner{animation:oc-fade var(--dur-2) var(--ease-steps)}
+@keyframes oc-up{from{opacity:0;transform:translateY(12px)}}
+@keyframes oc-side{from{opacity:0;transform:translateX(24px)}}
+.overlay{animation:oc-fade var(--dur-2) var(--ease-out)}
+.overlay .modal{animation:oc-up var(--dur-3) var(--ease-out)}
+.spanel{animation:oc-side var(--dur-3) var(--ease-out)}
+.view:not([hidden])>.page-inner{animation:oc-fade var(--dur-2) var(--ease-out)}
 
 /* ============ LE VERROUILLAGE (profil protégé) ============
    Plein écran au-dessus de tout ; pavé 44 px au pouce (mobile),

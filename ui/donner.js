@@ -12,7 +12,7 @@ import { sharePayload, encodeOCQ, splitOCQ, makeRdvCode, rdvNorm, rdvWrap } from
 import { filterCompanies } from '../engine/filter.js';
 import { encryptOC2 } from '../engine/crypto.js';
 import { S, isClosed, logJ } from './state.js';
-import { openSheet, toast, btn, ic } from './dom.js';
+import { openSheet, toast, btn, ic, softReorder } from './dom.js';
 import { sortState, sortArgs, sortBarHTML, bindSortBar } from './sort.js';
 import { openRoom, watchLiaison } from './synclive.js';
 import { makeQrSvg } from './qr.js';
@@ -79,7 +79,7 @@ export function openDonner(){
                   <span>${STATUSES[c.status].label}${c.city ? ' · ' + esc(c.city) : ''}</span></div>
               </button>`).join('')}
          </div>`;
-      bindSortBar(zone, st, renderList);
+      bindSortBar(zone, st, () => { const play = softReorder('.modal-b .pk'); renderList(); play(); });
       zone.querySelectorAll('.pk').forEach(b =>
         b.addEventListener('click', () => {
           const id = b.dataset.id;

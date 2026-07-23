@@ -11,7 +11,7 @@ import { STATUSES, CLOSE_REASONS, DOMAINS, pushHist } from '../engine/model.js';
 import { scoreOf } from '../engine/score.js';
 import { filterCompanies } from '../engine/filter.js';
 import { S, bus, isClosed, hasDemo, addDemo, ctLabel, deletePiste, undeletePiste, saveData, logJ } from './state.js';
-import { $, ic, toast, showUndo, bindDeleteGesture, openSheet } from './dom.js';
+import { $, ic, toast, showUndo, bindDeleteGesture, openSheet, softReorder } from './dom.js';
 import { sortState, sortArgs, sortHasDist,
          sortSectionHTML, bindSortSection, sortChipHTML, bindSortChip } from './sort.js';
 import { relLabel } from './dates.js';
@@ -352,12 +352,15 @@ export function renderPistes(){
     h = setTimeout(() => { q = input.value; renderBody(); }, 180);
   });
   /* les puces d'état et le corps se re-rendent ensemble, la recherche
-     reste le même nœud (le curseur ne saute pas) */
+     reste le même nœud (le curseur ne saute pas) ; les lignes retrouvées
+     glissent vers leur nouvelle place (#23) */
   const refresh = () => {
+    const play = softReorder('#piBody .row-item, #piBody .bcard');
     const chips = root.querySelector('#piChips');
     chips.innerHTML = chipsRowHTML();
     bindChips(chips);
     renderBody();
+    play();
   };
   const bindChips = box => {
     box.querySelectorAll('[data-clear], [data-clear-x]').forEach(b =>

@@ -349,6 +349,35 @@ export function bindDeleteGesture(node, onDelete){
   }, true);
 }
 
+/* ---------- réorganisation douce d'une liste (#23) ----------
+   FLIP minimal : appeler AVANT le re-rendu (mémorise la position des
+   lignes par data-id), jouer le retour APRÈS — chaque ligne retrouvée
+   glisse de son ancienne place à la nouvelle. transform seulement,
+   transition CSS ; reduced-motion et longues listes = rien. */
+export function softReorder(sel){
+  if (matchMedia('(prefers-reduced-motion:reduce)').matches) return () => {};
+  const nodes = document.querySelectorAll(sel);
+  if (!nodes.length || nodes.length > 60) return () => {};
+  const old = new Map();
+  nodes.forEach(n => { if (n.dataset.id) old.set(n.dataset.id, n.getBoundingClientRect()); });
+  return () => {
+    document.querySelectorAll(sel).forEach(n => {
+      const was = n.dataset.id && old.get(n.dataset.id);
+      if (!was) return;
+      const now = n.getBoundingClientRect();
+      const dx = was.left - now.left, dy = was.top - now.top;
+      if (!dx && !dy) return;
+      n.style.transition = 'none';
+      n.style.transform = `translate(${dx}px,${dy}px)`;
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        n.style.transition = 'transform var(--dur-3) var(--ease-out)';
+        n.style.transform = '';
+        n.addEventListener('transitionend', () => { n.style.transition = ''; }, { once: true });
+      }));
+    });
+  };
+}
+
 /* confirmation simple — remplace confirm() natif */
 export function confirmSheet(o){
   return new Promise(resolve => {

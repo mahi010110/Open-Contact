@@ -10,7 +10,7 @@ import { esc } from '../engine/utils.js';
 import { STATUSES, nextActionContact } from '../engine/model.js';
 import { filterCompanies } from '../engine/filter.js';
 import { S, bus, isClosed } from './state.js';
-import { openSheet, toast, btn, ic } from './dom.js';
+import { openSheet, toast, btn, ic, softReorder } from './dom.js';
 import { sortState, sortArgs, sortBarHTML, bindSortBar } from './sort.js';
 import { openMail } from './mail.js';
 import { openContactEditor } from './contact.js';
@@ -119,7 +119,7 @@ export function openProspect(){
       });
       sync();
     });
-    bindSortBar(sh.body, st, render);
+    bindSortBar(sh.body, st, () => { const play = softReorder('.modal-b .pk'); render(); play(); });
     sync();
   };
   sh.setFoot([bGo]);

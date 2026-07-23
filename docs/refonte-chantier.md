@@ -155,10 +155,19 @@ format bouge · commit français focalisé.
   (`modal-confirm` — une question, un tap) se posent par-dessus. Mobile
   inchangé (les bottom sheets se couvrent déjà). `ui/dom.js`,
   `styles/app.css`, `sw.js` (oc-v48).
-- [ ] **4.2 Motion (#23)** — objets « 98 » nets ; déplacements doux
-  (feuille, panneau, réorganisation de liste, barre Annuler) ;
-  `transform`/`opacity` seulement ; `prefers-reduced-motion` respecté.
-  `styles/tokens/effects.css`, `styles/app.css`, `CLAUDE.md` (règle motion).
+- [x] **4.2 Motion (#23)** *(livré — sonde easing/durée/reduced-motion,
+  e2e pistes/analyse/ux-audit rejoués verts)* — objets « 98 » nets
+  (steps() gardé pour la secousse du verrou, bevels instantanés) ;
+  déplacements doux à l'`ease-out` court : feuille qui monte (`oc-up`
+  12 px), panneau latéral qui entre (`oc-side`), barre Annuler qui se
+  pose, toast, retour du glisser, lignes qui partent ; **liste qui se
+  réorganise** au tri/filtre via `softReorder` (FLIP minimal dans
+  `ui/dom.js` — transform seulement, no-op en reduced-motion et au-delà
+  de 60 lignes), branché dans Mes pistes, Prospecter, Donner.
+  `prefers-reduced-motion` coupe tout (déjà global, `base.css`).
+  Règle motion de `CLAUDE.md` mise à jour. Fichiers :
+  `styles/tokens/effects.css`, `styles/app.css`, `ui/dom.js`,
+  `ui/pistes.js`, `ui/prospect.js`, `ui/donner.js`, `sw.js` (oc-v49).
 - [ ] **4.3 Passe finale** — cadenas = langage du privé partout ; verrou
   au bon moment ; accessibilité clavier (équivalents gestes, focus
   visible) ; thème sombre vérifié écran par écran ; cibles ≥ 44 px.
