@@ -7,8 +7,11 @@
 > des livraisons — chaque étape est vérifiée en lançant l'app (390 px +
 > 1280 px, clair + sombre, `?test` vert, zéro erreur console).
 
-Statut : **chantier ouvert.** Base de départ vérifiée : `?test` 91/91,
-zéro erreur console, captures 4 configurations.
+Statut : **toutes les étapes livrées** (phases 0 à 4 cochées ci-dessous).
+Dernier état vérifié : `?test` 97/97, suite complète
+`node tests/e2e/tous.mjs` **19/19** (scénarios natifs contre le vrai
+binaire inclus), zéro erreur console, captures 390/1280 clair/sombre.
+Base de départ : `?test` 91/91.
 
 ## L'écart mesuré (état au 2026-07-22)
 
