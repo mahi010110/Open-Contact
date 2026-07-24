@@ -160,29 +160,6 @@ function openDeviceSheet(d, onDone){
       'Demandé — il effacera à sa prochaine connexion.'));
 }
 
-/* feuille d'un appareil hors anneau (profil non protégé, ou je ne suis
-   pas le principal) : rien à commander à distance, juste le retrait de ma
-   liste — il garde la phrase, donc la confirmation le dit. */
-function openDeviceBasic(d, onDone){
-  const sh = openSheet({ title: d.name, icon: 'switch' });
-  sh.body.innerHTML =
-    `<p class="hint" style="margin:0 0 10px">Vu ${agoLabel(d.seen || 0)}.</p>
-     <div class="pick-list">
-       <button class="pick" id="dvbRemove"><b>Retirer de mes appareils</b><span>il ne se synchronisera plus</span></button>
-     </div>`;
-  sh.body.querySelector('#dvbRemove').addEventListener('click', async () => {
-    const ok = await confirmSheet({
-      title: 'Retirer cet appareil ?', danger: true, okLabel: 'Retirer', icon: 'trash',
-      msg: `<b>${esc(d.name)}</b> sort de la liste. Il connaît encore la phrase — pour l’écarter vraiment, change aussi la phrase de liaison.`
-    });
-    if (!ok) return;
-    if (!await requireCode('Ton code, pour retirer')) return;
-    await removeDevice(d.id);
-    sh.close(null, true);
-    onDone();
-  });
-}
-
 /* ============ Mes appareils : gestion du lien persistant ============ */
 export function openAppareils(){
   let onSync = null;
@@ -259,9 +236,12 @@ export function openAppareils(){
        <div class="sy-devs">
          <div class="lbl-row" style="margin-bottom:6px"><label>Appareils reliés</label></div>
          <div class="dev-row"><b>${esc(self.name)}</b>${roleTag(self.id)}<span class="dev-sub">cet appareil</span></div>
-         ${devs.map(d =>
-           `<button class="dev-row dev-open" data-dev="${esc(d.id)}"><b>${esc(d.name)}</b>${roleTag(d.id)}
-              <span class="dev-sub">${agoLabel(d.seen || 0)} · gérer ›</span></button>`).join('')}
+         ${devs.map(d => iAmMain && roleOf(d.id)
+           ? `<button class="dev-row dev-open" data-dev="${esc(d.id)}"><b>${esc(d.name)}</b>${roleTag(d.id)}
+                <span class="dev-sub">${agoLabel(d.seen || 0)} · gérer ›</span></button>`
+           : `<div class="dev-row"><b>${esc(d.name)}</b>${roleTag(d.id)}<span class="dev-sub">${agoLabel(d.seen || 0)}</span>
+                <button class="abtn abtn-sm" data-rm="${esc(d.id)}" aria-label="Retirer ${esc(d.name)}" title="Retirer">${ic('trash', 'ic-14')}</button>
+              </div>`).join('')}
          ${comp ? compRowHTML(comp)
            : (iAmMain
              ? (isDesktop()
@@ -282,16 +262,23 @@ export function openAppareils(){
     q('#syNewPhrase')?.addEventListener('click', async () => {
       if (await requireCode('Ton code, pour changer la phrase')) renderStart(true);
     });
-    /* chaque appareil s'ouvre : les commandes de l'anneau quand je suis le
-       principal, sinon le simple retrait — dans les deux cas le geste vit
-       sur le 2ᵉ écran (#21), plus dans une poubelle plantée au bout de la
-       ligne */
+    sh.body.querySelectorAll('[data-rm]').forEach(b =>
+      b.addEventListener('click', async () => {
+        const d = devs.find(x => x.id === b.dataset.rm);
+        const ok = await confirmSheet({
+          title: 'Retirer cet appareil ?', danger: true, okLabel: 'Retirer', icon: 'trash',
+          msg: `<b>${esc(d ? d.name : 'Appareil')}</b> sort de la liste. Il connaît encore la phrase — pour l’écarter vraiment, change aussi la phrase de liaison.`
+        });
+        if (!ok) return;
+        if (!await requireCode('Ton code, pour retirer')) return;
+        await removeDevice(b.dataset.rm);
+        render();
+      }));
+    /* je suis le principal : chaque appareil s'ouvre en feuille de gestion */
     sh.body.querySelectorAll('[data-dev]').forEach(b =>
       b.addEventListener('click', () => {
         const d = devs.find(x => x.id === b.dataset.dev);
-        if (!d) return;
-        if (iAmMain && roleOf(d.id)) openDeviceSheet(d, render);
-        else openDeviceBasic(d, render);
+        if (d) openDeviceSheet(d, render);
       }));
     wireComp(q, comp, render);
     wireRelays(q, sy.phrase, render);
