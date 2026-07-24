@@ -14,7 +14,7 @@ import { mergeTombs } from '../engine/sync.js';
 import { docGet, docPut } from '../engine/storage.js';
 import { listDocs, docKind, docTitle, pickPdf, removeDoc } from './docs.js';
 import { S, bus, saveData, saveProfile, saveOrphans, saveTombs, logJ } from './state.js';
-import { $, ic, toast, btn, openSheet, confirmSheet, showUndo } from './dom.js';
+import { $, ic, toast, btn, openSheet, confirmSheet, showUndo, bindDeleteGesture } from './dom.js';
 import { openProfil, openTemplates } from './profil.js';
 import { openAppareils } from './direct.js';
 import { getSync } from './synclive.js';
@@ -120,10 +120,12 @@ async function renderDocs(){
   if (!box) return;
   const docs = await listDocs();
   box.innerHTML = docs.map(d =>
-    `<div class="doc-row">
-       <span class="doc-name">${ic('attachment', 'ic-14')} <b>${esc(docTitle(d))}</b> · ${docKind(d.key) === 'cv' ? 'CV' : 'lettre'} · ${fmtSize(d.size)}</span>
-       <button class="abtn abtn-sm" data-see="${esc(d.key)}" aria-label="Voir ${esc(docTitle(d))}" title="Voir">${ic('eye', 'ic-14')}</button>
-       <button class="abtn abtn-sm abtn-del" data-del="${esc(d.key)}" aria-label="Retirer ${esc(docTitle(d))}" title="Retirer">${ic('trash', 'ic-14')}</button>
+    `<div class="doc-row" data-key="${esc(d.key)}">
+       <div class="sw-in">
+         <span class="doc-name">${ic('attachment', 'ic-14')} <b>${esc(docTitle(d))}</b> · ${docKind(d.key) === 'cv' ? 'CV' : 'lettre'} · ${fmtSize(d.size)}</span>
+         <button class="abtn abtn-sm" data-see="${esc(d.key)}" aria-label="Voir ${esc(docTitle(d))}" title="Voir">${ic('eye', 'ic-14')}</button>
+         <button class="abtn abtn-sm abtn-del doc-del" data-del="${esc(d.key)}" aria-label="Retirer ${esc(docTitle(d))}" title="Retirer">${ic('trash', 'ic-14')}</button>
+       </div>
      </div>`).join('');
   box.querySelectorAll('[data-see]').forEach(b =>
     b.addEventListener('click', async () => {
@@ -133,13 +135,15 @@ async function renderDocs(){
       window.open(url, '_blank', 'noopener');
       setTimeout(() => URL.revokeObjectURL(url), 60000);
     }));
-  /* un tap retire, la barre « Annuler » rattrape pendant 30 s (CLAUDE.md
-     §6) : le PDF est gardé de côté le temps de la barre, donc rien n'est
-     perdu — plus de feuille de confirmation pour un geste réversible */
-  box.querySelectorAll('[data-del]').forEach(b =>
-    b.addEventListener('click', async () => {
-      const d = docs.find(x => x.key === b.dataset.del);
-      if (!d) return;
+  /* retirer : glisser la ligne (mobile) ou taper la poubelle (souris) —
+     le motif de CLAUDE.md §6, avec l'icône nue de la ligne comme
+     déclencheur au lieu du bouton carré du motif. Pas de confirmation :
+     la barre « Annuler » rattrape pendant 30 s et le PDF est gardé de
+     côté le temps de la barre, donc rien n'est perdu. */
+  box.querySelectorAll('.doc-row').forEach(row => {
+    const d = docs.find(x => x.key === row.dataset.key);
+    if (!d) return;
+    bindDeleteGesture(row, async () => {
       await removeDoc(d.key).catch(() => {});
       renderDocs();
       showUndo(`${ic('check', 'ic-14')} « ${esc(docTitle(d))} » retiré.`, async () => {
@@ -148,7 +152,8 @@ async function renderDocs(){
         renderDocs();
         toast('Document restauré.');
       });
-    }));
+    }, { bouton: row.querySelector('.doc-del') });
+  });
 }
 
 /* ---------- l'écran : Profil & données + Réglages (#20) ---------- */

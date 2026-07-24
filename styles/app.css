@@ -447,11 +447,12 @@ details.pcard-details[open]>summary::before{
   border-top:5px solid var(--accent);border-bottom:0;
 }
 details.pcard-details[open]>summary{margin-bottom:10px}
-.doc-row{
-  display:flex;align-items:center;gap:8px;min-height:var(--ctl);
-  padding:6px 0;border-bottom:1px dashed var(--border-soft);
-}
+.doc-row{border-bottom:1px dashed var(--border-soft)}
 .doc-row:last-of-type{border-bottom:0}
+.doc-row .sw-in{display:flex;align-items:center;gap:8px;min-height:var(--ctl);padding:6px 0}
+/* au doigt, c'est le glissement qui retire (CLAUDE.md §6) : l'icône ne
+   double pas le geste — elle ne sert que la souris */
+@media (pointer:coarse){ .doc-del{display:none} }
 .doc-name{flex:1;min-width:0;font-size:var(--text-13);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .doc-name.doc-none{color:var(--text-muted)}
 /* coup de pouce IA : une ligne = un prompt — taper copie, ✎ édite,
