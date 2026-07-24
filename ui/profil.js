@@ -7,7 +7,7 @@
 import { esc, uid } from '../engine/utils.js';
 import { defaultTemplates } from '../engine/model.js';
 import { S, bus, saveProfile } from './state.js';
-import { openSheet, confirmSheet, toast, btn, ic } from './dom.js';
+import { openSheet, confirmSheet, toast, btn, ic, showUndo, bindDeleteGesture } from './dom.js';
 import { tplField, tplSample, TPL_LABELS } from './tplfield.js';
 
 /* ---------- profil ---------- */
@@ -50,16 +50,39 @@ export function openProfil(onDone){
 /* ---------- modèles d'emails — jamais de {{...}} à l'écran (#17) ---------- */
 export function openTemplates(){
   const sh = openSheet({ title: 'Modèles d’emails', icon: 'mail' });
+  /* retirer un modèle = geste + Annuler (CLAUDE.md §6), et il retrouve sa
+     place exacte si on annule. Le dernier modèle ne se retire pas : le
+     geste n'est simplement pas proposé (loi #6, jamais un refus). */
+  const removeTpl = (t, i) => {
+    S.profile.templates = S.profile.templates.filter(x => x.id !== t.id);
+    saveProfile();
+    render();
+    showUndo(`${ic('check', 'ic-14')} « ${esc(t.name)} » retiré.`, () => {
+      S.profile.templates.splice(Math.min(i, S.profile.templates.length), 0, t);
+      saveProfile();
+      render();
+      toast('Modèle restauré.');
+    });
+  };
   const render = () => {
     sh.body.innerHTML =
       `<div class="pick-list">
          ${S.profile.templates.map((t, i) =>
-           `<button class="pick" data-i="${i}">
-              <b>${esc(t.name)}</b><span>${esc(t.subject.slice(0, 40))}${t.subject.length > 40 ? '…' : ''}</span>
-            </button>`).join('')}
+           `<div class="tpl-row" data-i="${i}">
+              <div class="sw-in">
+                <button class="pick" data-i="${i}">
+                  <b>${esc(t.name)}</b><span>${esc(t.subject.slice(0, 40))}${t.subject.length > 40 ? '…' : ''}</span>
+                </button>
+              </div>
+            </div>`).join('')}
        </div>`;
     sh.body.querySelectorAll('.pick').forEach(b =>
       b.addEventListener('click', () => editTemplate(S.profile.templates[+b.dataset.i], render)));
+    if (S.profile.templates.length > 1) sh.body.querySelectorAll('.tpl-row').forEach(row => {
+      const i = +row.dataset.i;
+      const t = S.profile.templates[i];
+      if (t) bindDeleteGesture(row, () => removeTpl(t, i));
+    });
     sh.setFoot([
       btn('Modèles de départ', 'btn-ghost', async () => {
         const ok = await confirmSheet({
@@ -115,18 +138,7 @@ function editTemplate(t, onBack, isNew){
       onBack();
     })
   ];
-  if (!isNew && S.profile.templates.length > 1){
-    foot.unshift(btn('Supprimer', 'btn-ghost btn-danger', async () => {
-      const ok = await confirmSheet({
-        title: 'Supprimer ce modèle ?', danger: true, okLabel: 'Supprimer',
-        msg: '<b>' + esc(t.name) + '</b> sera retiré de la liste.'
-      });
-      if (!ok) return;
-      S.profile.templates = S.profile.templates.filter(x => x.id !== t.id);
-      saveProfile();
-      sh.close();
-      onBack();
-    }, 'trash'));
-  }
+  /* plus de « Supprimer » ici : le retrait vit sur la ligne de la liste,
+     au geste + Annuler — un seul endroit, un seul motif */
   sh.setFoot(foot);
 }

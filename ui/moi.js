@@ -11,10 +11,10 @@ import { fullPayload, parseInput } from '../engine/exchange.js';
 import { encryptOC2 } from '../engine/crypto.js';
 import { fmtSize, todayISO, esc } from '../engine/utils.js';
 import { mergeTombs } from '../engine/sync.js';
-import { docGet } from '../engine/storage.js';
+import { docGet, docPut } from '../engine/storage.js';
 import { listDocs, docKind, docTitle, pickPdf, removeDoc } from './docs.js';
 import { S, bus, saveData, saveProfile, saveOrphans, saveTombs, logJ } from './state.js';
-import { $, ic, toast, btn, openSheet, confirmSheet, showUndo } from './dom.js';
+import { $, ic, toast, btn, openSheet, confirmSheet, showUndo, bindDeleteGesture } from './dom.js';
 import { openProfil, openTemplates } from './profil.js';
 import { openAppareils } from './direct.js';
 import { getSync } from './synclive.js';
@@ -120,10 +120,11 @@ async function renderDocs(){
   if (!box) return;
   const docs = await listDocs();
   box.innerHTML = docs.map(d =>
-    `<div class="doc-row">
-       <span class="doc-name">${ic('attachment', 'ic-14')} <b>${esc(docTitle(d))}</b> · ${docKind(d.key) === 'cv' ? 'CV' : 'lettre'} · ${fmtSize(d.size)}</span>
-       <button class="btn btn-sm" data-see="${esc(d.key)}">Voir</button>
-       <button class="abtn abtn-sm" data-del="${esc(d.key)}" aria-label="Retirer ${esc(docTitle(d))}" title="Retirer">${ic('trash', 'ic-14')}</button>
+    `<div class="doc-row" data-key="${esc(d.key)}">
+       <div class="sw-in">
+         <span class="doc-name">${ic('attachment', 'ic-14')} <b>${esc(docTitle(d))}</b> · ${docKind(d.key) === 'cv' ? 'CV' : 'lettre'} · ${fmtSize(d.size)}</span>
+         <button class="btn btn-sm" data-see="${esc(d.key)}">Voir</button>
+       </div>
      </div>`).join('');
   box.querySelectorAll('[data-see]').forEach(b =>
     b.addEventListener('click', async () => {
@@ -133,14 +134,23 @@ async function renderDocs(){
       window.open(url, '_blank', 'noopener');
       setTimeout(() => URL.revokeObjectURL(url), 60000);
     }));
-  box.querySelectorAll('[data-del]').forEach(b =>
-    b.addEventListener('click', async () => {
-      const ok = await confirmSheet({ title: 'Retirer ce document ?', danger: true, okLabel: 'Retirer',
-        msg: 'Retiré de cet appareil seulement.' });
-      if (!ok) return;
-      await removeDoc(b.dataset.del).catch(() => {});
+  /* retirer un document = geste + Annuler, comme partout (CLAUDE.md §6) :
+     plus de poubelle plantée dans la ligne, plus de confirmation — le PDF
+     est gardé de côté le temps de la barre, donc rien n'est perdu */
+  box.querySelectorAll('.doc-row').forEach(row => {
+    const d = docs.find(x => x.key === row.dataset.key);
+    if (!d) return;
+    bindDeleteGesture(row, async () => {
+      await removeDoc(d.key).catch(() => {});
       renderDocs();
-    }));
+      showUndo(`${ic('check', 'ic-14')} « ${esc(docTitle(d))} » retiré.`, async () => {
+        const { key, ...val } = d;
+        await docPut(key, val).catch(() => {});
+        renderDocs();
+        toast('Document restauré.');
+      });
+    });
+  });
 }
 
 /* ---------- l'écran : Profil & données + Réglages (#20) ---------- */
