@@ -10,7 +10,8 @@ import { esc, distKm } from '../engine/utils.js';
 import { STATUSES, CLOSE_REASONS, DOMAINS, pushHist } from '../engine/model.js';
 import { scoreOf } from '../engine/score.js';
 import { filterCompanies } from '../engine/filter.js';
-import { S, bus, isClosed, hasDemo, addDemo, ctLabel, deletePiste, undeletePiste, saveData, logJ } from './state.js';
+import { S, bus, isClosed, hasDemo, addDemo, ctLabel, deletePiste, undeletePiste,
+         removeOrphan, saveOrphans, saveData, logJ } from './state.js';
 import { $, ic, toast, showUndo, bindDeleteGesture, openSheet, softReorder } from './dom.js';
 import { sortState, sortArgs, sortHasDist,
          sortSectionHTML, bindSortSection, sortChipHTML, bindSortChip } from './sort.js';
@@ -222,11 +223,13 @@ function orphansHTML(){
          const sub = [o.role, contact, (o.extra && o.extra.company) ? '→ ' + o.extra.company + ' ?' : '']
            .filter(Boolean).map(esc).join(' · ');
          return `<div class="orow" data-oid="${o.id}">
-                   <div class="o-main" role="button" tabindex="0" aria-label="Modifier ${esc(title)}">
-                     <h4>${esc(title)}</h4>
-                     <div class="o-sub">${sub || 'à compléter'}</div>
+                   <div class="sw-in">
+                     <div class="o-main" role="button" tabindex="0" aria-label="Modifier ${esc(title)}">
+                       <h4>${esc(title)}</h4>
+                       <div class="o-sub">${sub || 'à compléter'}</div>
+                     </div>
+                     <button class="btn btn-sm" data-attach="${o.id}">Rattacher</button>
                    </div>
-                   <button class="btn btn-sm" data-attach="${o.id}">Rattacher</button>
                  </div>`;
        }).join('')}</div>
      </details>`);
@@ -325,7 +328,8 @@ export function renderPistes(){
     });
     if (wide && body.querySelector('.board')) bindBoardDrag(body);
     body.querySelector('#piFtClear')?.addEventListener('click', () => { ftClear(); renderPistes(); });
-    /* bac : la ligne édite, le bouton rattache */
+    /* bac : la ligne édite, le bouton rattache — et le contact se jette
+       au geste, comme une piste (jusqu'ici il fallait l'ouvrir pour ça) */
     body.querySelectorAll('.orow').forEach(r => {
       const o = () => S.orphans.find(x => x.id === r.dataset.oid);
       const edit = () => { const ct = o(); if (ct) openContactEditor({ contact: ct }); };
@@ -334,6 +338,19 @@ export function renderPistes(){
         if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); edit(); }
       });
       r.querySelector('[data-attach]').addEventListener('click', () => { const ct = o(); if (ct) openAttach(ct); });
+      bindDeleteGesture(r, () => {
+        const ct = o();
+        if (!ct) return;
+        const i = S.orphans.indexOf(ct);
+        removeOrphan(ct.id);
+        bus.refresh();
+        showUndo(`${ic('check', 'ic-14')} « ${esc(ctLabel(ct))} » jeté.`, () => {
+          S.orphans.splice(Math.min(i, S.orphans.length), 0, ct);
+          saveOrphans();
+          bus.refresh();
+          toast('Contact récupéré.');
+        });
+      });
     });
     body.querySelectorAll('[data-more]').forEach(b =>
       b.addEventListener('click', e => {

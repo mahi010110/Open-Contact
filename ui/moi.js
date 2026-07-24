@@ -119,27 +119,30 @@ async function renderDocs(){
   const box = $('#moiDocs');
   if (!box) return;
   const docs = await listDocs();
+  /* taper la ligne ouvre le document — pas de bouton « Voir » à côté :
+     c'est la grammaire de Mes pistes et du bac « à rattacher » */
   box.innerHTML = docs.map(d =>
     `<div class="doc-row" data-key="${esc(d.key)}">
        <div class="sw-in">
-         <span class="doc-name">${ic('attachment', 'ic-14')} <b>${esc(docTitle(d))}</b> · ${docKind(d.key) === 'cv' ? 'CV' : 'lettre'} · ${fmtSize(d.size)}</span>
-         <button class="abtn abtn-sm" data-see="${esc(d.key)}" aria-label="Voir ${esc(docTitle(d))}" title="Voir">${ic('eye', 'ic-14')}</button>
-         <button class="abtn abtn-sm abtn-del doc-del" data-del="${esc(d.key)}" aria-label="Retirer ${esc(docTitle(d))}" title="Retirer">${ic('trash', 'ic-14')}</button>
+         <div class="doc-name" role="button" tabindex="0" aria-label="Voir ${esc(docTitle(d))}">${ic('attachment', 'ic-14')} <b>${esc(docTitle(d))}</b> · ${docKind(d.key) === 'cv' ? 'CV' : 'lettre'} · ${fmtSize(d.size)}</div>
        </div>
      </div>`).join('');
-  box.querySelectorAll('[data-see]').forEach(b =>
-    b.addEventListener('click', async () => {
-      const doc = await docGet(b.dataset.see).catch(() => null);
+  box.querySelectorAll('.doc-name').forEach(m => {
+    const open = async () => {
+      const doc = await docGet(m.parentElement.parentElement.dataset.key).catch(() => null);
       if (!doc) return;
       const url = URL.createObjectURL(new Blob([doc.blob], { type: doc.type || 'application/pdf' }));
       window.open(url, '_blank', 'noopener');
       setTimeout(() => URL.revokeObjectURL(url), 60000);
-    }));
-  /* retirer : glisser la ligne (mobile) ou taper la poubelle (souris) —
-     le motif de CLAUDE.md §6, avec l'icône nue de la ligne comme
-     déclencheur au lieu du bouton carré du motif. Pas de confirmation :
-     la barre « Annuler » rattrape pendant 30 s et le PDF est gardé de
-     côté le temps de la barre, donc rien n'est perdu. */
+    };
+    m.addEventListener('click', open);
+    m.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); open(); }
+    });
+  });
+  /* retirer : le motif de CLAUDE.md §6 — glisser au doigt, poubelle au
+     survol à la souris, jamais de confirmation. La barre « Annuler »
+     rattrape 30 s et le PDF est gardé de côté le temps de la barre. */
   box.querySelectorAll('.doc-row').forEach(row => {
     const d = docs.find(x => x.key === row.dataset.key);
     if (!d) return;
@@ -152,7 +155,7 @@ async function renderDocs(){
         renderDocs();
         toast('Document restauré.');
       });
-    }, { bouton: row.querySelector('.doc-del') });
+    });
   });
 }
 

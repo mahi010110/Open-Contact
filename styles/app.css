@@ -384,20 +384,28 @@ details.tranche[open]>summary::before{
 }
 .swipe-del .sw-under{opacity:1}
 .sw-gone{transition:opacity 150ms var(--ease-out),transform 150ms var(--ease-out);opacity:0;transform:translateX(-20px)}
-/* poubelle au survol (desktop) : un élément du flux, pas un survol
-   flottant — la colonne est réservée, rien ne saute ni ne déborde */
+/* poubelle au survol (souris) : un élément du flux, pas un survol
+   flottant — la colonne est réservée, rien ne saute ni ne déborde. Nue
+   comme toute action de ligne : ni cadre, ni biseau, ni ombre, ni aplat
+   (seule la couleur bouge). Absente au doigt : là, c'est le glissement. */
 .hov-del{
   display:none;flex:none;width:32px;height:32px;
   align-items:center;justify-content:center;align-self:center;
-  background:var(--surface-window);color:var(--red);border:1px solid var(--border-strong);
-  border-radius:var(--radius-1);box-shadow:var(--bevel-up), var(--shadow-raised);padding:0;
+  background:none;border:0;padding:0;color:var(--text-muted);
   opacity:0;pointer-events:none;
 }
 @media (hover:hover) and (pointer:fine){ .hov-del{display:inline-flex} }
 @media (hover:hover){
   .sw:hover .hov-del,.sw:focus-within .hov-del{opacity:1;pointer-events:auto}
 }
-.hov-del:hover{background:var(--red-wash)}
+.hov-del:hover,.hov-del:focus-visible{color:var(--red)}
+/* même discrétion pour une action qui n'a PAS de geste de remplacement :
+   effacée tant qu'on ne survole pas sa ligne, mais simplement visible
+   là où le survol n'existe pas (au doigt, sinon elle serait inatteignable) */
+@media (hover:hover) and (pointer:fine){
+  .hov-soft{opacity:0;pointer-events:none}
+  .hov-row:hover .hov-soft,.hov-row:focus-within .hov-soft{opacity:1;pointer-events:auto}
+}
 
 /* ============ LISTE DES PISTES ============ */
 .rows{display:flex;flex-direction:column;gap:7px}
@@ -449,11 +457,15 @@ details.pcard-details[open]>summary::before{
 details.pcard-details[open]>summary{margin-bottom:10px}
 .doc-row{border-bottom:1px dashed var(--border-soft)}
 .doc-row:last-of-type{border-bottom:0}
-.doc-row .sw-in{display:flex;align-items:center;gap:8px;min-height:var(--ctl);padding:6px 0}
-/* au doigt, c'est le glissement qui retire (CLAUDE.md §6) : l'icône ne
-   double pas le geste — elle ne sert que la souris */
-@media (pointer:coarse){ .doc-del{display:none} }
-.doc-name{flex:1;min-width:0;font-size:var(--text-13);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.doc-row .sw-in{display:flex;align-items:center;gap:8px}
+/* la ligne EST le bouton : elle prend toute la hauteur de contrôle
+   (44 px au pouce, 32 px à la souris) sans cesser d'être du texte —
+   sinon l'ellipse ne fonctionnerait plus */
+.doc-name{
+  flex:1;min-width:0;font-size:var(--text-13);line-height:20px;cursor:pointer;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  padding:calc((var(--ctl) - 20px) / 2) 0;
+}
 .doc-name.doc-none{color:var(--text-muted)}
 /* coup de pouce IA : une ligne = un prompt — taper copie, ✎ édite,
    supprimer au geste (glisser / poubelle, comme partout) */
@@ -845,10 +857,13 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px}
 /* ============ CONTACTS À RATTACHER (bac) ============ */
 .tr-orph{margin:0 0 18px}
 .orow{
-  display:flex;align-items:center;gap:10px;min-height:var(--control-h-touch);
   background:var(--surface-window);border:1px solid var(--border-strong);
   border-left:3px solid var(--amber);border-radius:var(--radius-0);
-  box-shadow:var(--shadow-raised);padding:7px 8px 7px 12px;
+  box-shadow:var(--shadow-raised);
+}
+.orow .sw-in{
+  display:flex;align-items:center;gap:10px;min-height:var(--control-h-touch);
+  padding:7px 8px 7px 12px;
 }
 .orow .o-main{flex:1;min-width:0;cursor:pointer}
 .orow h4{font-size:var(--text-13);font-weight:var(--weight-semibold);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

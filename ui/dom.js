@@ -301,7 +301,7 @@ export function showUndo(msgHTML, onUndo){
    · desktop — poubelle au survol / au focus (accessible clavier).
    L'appelant double toujours onDelete d'un showUndo — jamais de
    confirmation. */
-export function bindDeleteGesture(node, onDelete, opts){
+export function bindDeleteGesture(node, onDelete){
   const inner = node.querySelector('.sw-in');
   if (!inner || node.__swDel) return;
   node.__swDel = true;
@@ -313,12 +313,9 @@ export function bindDeleteGesture(node, onDelete, opts){
     node.classList.add('sw-gone');
     setTimeout(onDelete, 150);
   };
-  /* le déclencheur souris : celui que l'appelant a déjà posé dans sa
-     ligne (une icône nue, à sa place) ou, à défaut, la poubelle du motif */
-  const fourni = opts && opts.bouton;
-  const del = fourni || el(`<button class="hov-del" aria-label="Supprimer" title="Supprimer">${ic('trash', 'ic-14')}</button>`);
+  const del = el(`<button class="hov-del" aria-label="Supprimer" title="Supprimer">${ic('trash', 'ic-14')}</button>`);
   del.addEventListener('click', e => { e.stopPropagation(); vanish(); });
-  if (!fourni) inner.append(del);
+  inner.append(del);
   if (!matchMedia('(pointer:coarse)').matches) return;
   node.prepend(el(`<div class="sw-under" aria-hidden="true">${ic('trash', 'ic-14')} Supprimer</div>`));
   let x0 = null, y0 = null, dx = 0, active = false, endedAt = 0;
