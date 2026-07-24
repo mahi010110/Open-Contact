@@ -39,7 +39,9 @@ export function downloadBackup(pass){
     S.profile.flags.lastBackupAt = Date.now();
     saveProfile();
     logJ('Copie téléchargée' + (pass ? ' (chiffrée)' : ''));
-    toast('Copie gardée ✓');
+    /* dire lequel des deux : un champ ouvert mais laissé vide donne une
+       copie en clair — le retour ne doit pas laisser croire l'inverse */
+    toast(pass ? 'Copie chiffrée ✓' : 'Copie gardée ✓');
     bus.refresh();
   };
   return doIt();
@@ -312,11 +314,15 @@ export function renderMoi(){
        <h3>${ic('save', 'ic-14')} Garder une copie <span class="tag-priv">${ic('lock', 'ic-14')} privé inclus</span></h3>
        <p class="pd">${bkState}</p>
        <div class="pc-actions">
-         <input id="moiBkPass" class="bk-pass" type="password" autocomplete="new-password"
-                placeholder="Mot de passe (facultatif)" aria-label="Mot de passe de la copie — facultatif">
          <button class="btn ${bkPromote ? 'btn-primary' : ''}" id="moiBackup">${ic('download', 'ic-14')} Garder une copie</button>
+         <button class="btn icon-btn bk-lock" id="moiBkLock" aria-pressed="false"
+                 aria-label="Protéger la copie par un mot de passe" title="Protéger par un mot de passe">${ic('shield', 'ic-14')}</button>
        </div>
-       <p class="hint warn" id="moiBkWarn" hidden>Perdu = copie irrécupérable.</p>
+       <div class="bk-line" id="moiBkLine" hidden>
+         <input id="moiBkPass" class="bk-pass" type="password" autocomplete="new-password"
+                placeholder="Mot de passe" aria-label="Mot de passe de la copie">
+         <span class="bk-warn">Perdu = irrécupérable.</span>
+       </div>
        <div class="stor-line" id="moiStor"></div>
      </div>` : ''}`;
 
@@ -341,13 +347,22 @@ export function renderMoi(){
 
   root.querySelector('#moiProfil').addEventListener('click', () => openProfil());
   root.querySelector('#moiTpl').addEventListener('click', openTemplates);
-  /* le mot de passe vit dans le geste (#19-1) : vide = copie en clair,
-     c'est un choix. Le rappel n'apparaît qu'une fois qu'on en tape un —
-     au moment où il engage (CLAUDE.md §7), jamais en permanence. */
+  /* le mot de passe est facultatif : au repos il ne pèse qu'une icône à
+     côté du geste (#8 — l'avancé se replie derrière un signe, jamais une
+     phrase). Tapée, elle ouvre le champ ; re-tapée, elle le referme et
+     l'oublie. Un seul contrôle, deux états (#19-4). */
   const bkPass = root.querySelector('#moiBkPass');
-  const bkWarn = root.querySelector('#moiBkWarn');
-  bkPass?.addEventListener('input', () => { bkWarn.hidden = !bkPass.value; });
-  root.querySelector('#moiBackup')?.addEventListener('click', () => downloadBackup(bkPass ? bkPass.value : ''));
+  const bkLine = root.querySelector('#moiBkLine');
+  const bkLock = root.querySelector('#moiBkLock');
+  bkLock?.addEventListener('click', () => {
+    const on = bkLine.hidden;
+    bkLine.hidden = !on;
+    bkLock.classList.toggle('on', on);
+    bkLock.setAttribute('aria-pressed', String(on));
+    if (on) bkPass.focus(); else bkPass.value = '';
+  });
+  root.querySelector('#moiBackup')?.addEventListener('click', () =>
+    downloadBackup(bkLine && !bkLine.hidden ? bkPass.value : ''));
   if (wide) bindReglages(root);
   else root.querySelector('#moiReglages').addEventListener('click', () => {
     reglagesOpen = true;

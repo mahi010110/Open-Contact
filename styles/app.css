@@ -478,14 +478,21 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   padding:1px 5px;border-radius:var(--radius-1);word-break:break-word;
 }
 .stor-line{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);margin-top:10px}
-/* « Garder une copie » : le mot de passe est DANS le geste (#19-1), plus
-   derrière un lien à part — laissé vide, la copie part en clair */
+/* « Garder une copie » : le mot de passe est facultatif, donc au repos il
+   ne pèse qu'une icône posée à côté du geste (#8 — l'avancé se replie
+   derrière un signe, jamais une phrase). Tapée, elle ouvre le champ. */
+.bk-lock.on{background:var(--teal-wash);border-color:var(--accent);color:var(--accent)}
+.bk-line{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;
+  animation:oc-up var(--dur-2) var(--ease-out);
+}
 .bk-pass{
-  flex:1 1 170px;min-width:0;height:var(--ctl);padding:0 10px;
+  flex:1 1 150px;min-width:0;height:var(--ctl);padding:0 10px;
   background:var(--surface-field);border:1px solid var(--border-field);
   box-shadow:var(--bevel-field);border-radius:var(--radius-1);font-size:var(--input-fs);
 }
 .bk-pass::placeholder{color:var(--text-muted)}
+.bk-warn{flex:none;font-size:var(--text-11);font-family:var(--font-mono);color:var(--amber)}
 /* « Moi » éclaté (#20) : colonnes desktop, porte Réglages mobile */
 .moi-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
 .moi-cols .pcard:last-child{margin-bottom:0}
