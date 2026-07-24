@@ -114,69 +114,83 @@ function askRestorePass(raw){
   sh.setFoot([btn('Déverrouiller', 'btn-primary', go)]);
 }
 
-/* ---------- CV & lettres : variantes nommées (#4) ----------
-   Deux groupes, les mêmes qu'au composeur (CV / Lettres) : le type ne se
-   répète plus sur chaque ligne, ni la trombone. Reste le nom et la
-   taille. Un groupe vide est absent (loi #6). Et comme une ligne
-   tactile ne descend pas sous 44 px, la seule vraie façon de réduire la
-   place, c'est de replier la carte — l'état la résume. */
-const DOC_GROUPS = [['cv', 'CV'], ['lm', 'Lettres']];
+/* ---------- CV & lettres : deux tiroirs (#4) ----------
+   La carte ne montre que deux lignes — « CV » et « Lettres » — quel que
+   soit le nombre de documents : elle ne grandit plus. Taper une ligne
+   ouvre la liste de ce type, où vivent l'ajout et les gestes. */
+const DOC_KINDS = {
+  cv: { label: 'CV', add: 'Ajouter un CV', vide: 'Ton CV partira avec tes emails.' },
+  lm: { label: 'Lettres', add: 'Ajouter une lettre', vide: 'Ta lettre partira avec tes emails.' }
+};
+
+function openDocs(kind, onChange){
+  const k = DOC_KINDS[kind];
+  const sh = openSheet({ title: k.label, icon: 'attachment' });
+  const render = async () => {
+    const docs = (await listDocs()).filter(d => docKind(d.key) === kind);
+    if (!sh.body.isConnected) return;
+    sh.body.innerHTML = docs.length
+      ? docs.map(d =>
+          `<div class="doc-row" data-key="${esc(d.key)}">
+             <div class="sw-in">
+               <div class="doc-name" role="button" tabindex="0" aria-label="Voir ${esc(docTitle(d))}">${esc(docTitle(d))}</div>
+               <span class="doc-size">${fmtSize(d.size)}</span>
+             </div>
+           </div>`).join('')
+      : `<p class="doc-vide">${k.vide}</p>`;
+    /* taper le nom ouvre le PDF */
+    sh.body.querySelectorAll('.doc-name').forEach(m => {
+      const open = async () => {
+        const doc = await docGet(m.closest('.doc-row').dataset.key).catch(() => null);
+        if (!doc) return;
+        const url = URL.createObjectURL(new Blob([doc.blob], { type: doc.type || 'application/pdf' }));
+        window.open(url, '_blank', 'noopener');
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+      };
+      m.addEventListener('click', open);
+      m.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); open(); }
+      });
+    });
+    /* retirer : glisser au doigt, poubelle au survol à la souris, jamais
+       de confirmation — la barre « Annuler » rattrape 30 s et le PDF est
+       gardé de côté le temps de la barre (CLAUDE.md §6) */
+    sh.body.querySelectorAll('.doc-row').forEach(row => {
+      const d = docs.find(x => x.key === row.dataset.key);
+      if (!d) return;
+      bindDeleteGesture(row, async () => {
+        await removeDoc(d.key).catch(() => {});
+        render();
+        if (onChange) onChange();
+        showUndo(`${ic('check', 'ic-14')} « ${esc(docTitle(d))} » retiré.`, async () => {
+          const { key, ...val } = d;
+          await docPut(key, val).catch(() => {});
+          render();
+          if (onChange) onChange();
+          toast('Document restauré.');
+        });
+      });
+    });
+    if (onChange) onChange();
+  };
+  sh.setFoot([btn(k.add, 'btn-primary', () => pickPdf(kind, render), 'plus')]);
+  render();
+}
 
 async function renderDocs(){
   const box = $('#moiDocs');
   if (!box) return;
   const docs = await listDocs();
-  box.innerHTML = DOC_GROUPS.map(([kind, label]) => {
-    const list = docs.filter(d => docKind(d.key) === kind);
-    if (!list.length) return '';
-    return `<div class="doc-grp"><div class="doc-grp-h">${label}</div>
-              ${list.map(d =>
-                `<div class="doc-row" data-key="${esc(d.key)}">
-                   <div class="sw-in">
-                     <div class="doc-name" role="button" tabindex="0" aria-label="Voir ${esc(docTitle(d))}">${esc(docTitle(d))}</div>
-                     <span class="doc-size">${fmtSize(d.size)}</span>
-                   </div>
-                 </div>`).join('')}
-            </div>`;
+  box.innerHTML = Object.keys(DOC_KINDS).map(kind => {
+    const n = docs.filter(d => docKind(d.key) === kind).length;
+    return `<button class="doc-door" data-kind="${kind}">
+              <span class="doc-door-n">${DOC_KINDS[kind].label}</span>
+              <span class="doc-door-s">${n ? n + ' document' + (n > 1 ? 's' : '') : 'aucun'}</span>
+              ${ic('chevron-right', 'ic-14')}
+            </button>`;
   }).join('');
-  const st = $('#moiDocsSt');
-  if (st){
-    const bits = DOC_GROUPS.map(([kind, label]) => {
-      const n = docs.filter(d => docKind(d.key) === kind).length;
-      return n ? n + ' ' + (kind === 'cv' ? 'CV' : (n > 1 ? 'lettres' : 'lettre')) : '';
-    }).filter(Boolean);
-    st.textContent = bits.join(' · ');
-  }
-  box.querySelectorAll('.doc-name').forEach(m => {
-    const open = async () => {
-      const doc = await docGet(m.closest('.doc-row').dataset.key).catch(() => null);
-      if (!doc) return;
-      const url = URL.createObjectURL(new Blob([doc.blob], { type: doc.type || 'application/pdf' }));
-      window.open(url, '_blank', 'noopener');
-      setTimeout(() => URL.revokeObjectURL(url), 60000);
-    };
-    m.addEventListener('click', open);
-    m.addEventListener('keydown', e => {
-      if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); open(); }
-    });
-  });
-  /* retirer : le motif de CLAUDE.md §6 — glisser au doigt, poubelle au
-     survol à la souris, jamais de confirmation. La barre « Annuler »
-     rattrape 30 s et le PDF est gardé de côté le temps de la barre. */
-  box.querySelectorAll('.doc-row').forEach(row => {
-    const d = docs.find(x => x.key === row.dataset.key);
-    if (!d) return;
-    bindDeleteGesture(row, async () => {
-      await removeDoc(d.key).catch(() => {});
-      renderDocs();
-      showUndo(`${ic('check', 'ic-14')} « ${esc(docTitle(d))} » retiré.`, async () => {
-        const { key, ...val } = d;
-        await docPut(key, val).catch(() => {});
-        renderDocs();
-        toast('Document restauré.');
-      });
-    });
-  });
+  box.querySelectorAll('[data-kind]').forEach(b =>
+    b.addEventListener('click', () => openDocs(b.dataset.kind, renderDocs)));
 }
 
 /* ---------- l'écran : Profil & données + Réglages (#20) ---------- */
@@ -289,10 +303,6 @@ function bindReglages(box){
 /* mobile : Réglages est le 2ᵉ écran de « Moi » (la porte #20) — un vrai
    écran re-rendu par bus.refresh, jamais une feuille qui gèlerait ses états */
 let reglagesOpen = false;
-/* null = pas encore choisi : la carte des documents s'ouvre d'elle-même
-   tant qu'elle est vide (l'état vide enseigne), et reste repliée dès
-   qu'il y a des documents — c'est là qu'elle prend de la place */
-let docsOpen = null;
 const mqWideMoi = matchMedia('(min-width:901px)');
 mqWideMoi.addEventListener('change', () => { if (S.route === 'moi') renderMoi(); });
 
@@ -340,15 +350,10 @@ export function renderMoi(){
        </div>
      </div>
 
-     <details class="pcard pcard-details" id="moiDocsCard"${docsOpen ? ' open' : ''}>
-       <summary><h3>${ic('attachment', 'ic-14')} Mes CV &amp; lettres
-         <span class="lbl-soft" id="moiDocsSt"></span></h3></summary>
+     <div class="pcard">
+       <h3>${ic('attachment', 'ic-14')} Mes CV &amp; lettres</h3>
        <div id="moiDocs"></div>
-       <div class="pc-actions">
-         <button class="btn btn-sm" id="moiDocCv">${ic('plus', 'ic-14')} CV</button>
-         <button class="btn btn-sm" id="moiDocLm">${ic('plus', 'ic-14')} Lettre</button>
-       </div>
-     </details>
+     </div>
 
      ${showBackup ? `
      <div class="pcard">
@@ -410,13 +415,6 @@ export function renderMoi(){
     root.scrollTop = 0;
   });
   bindSyncLive(root);
-  root.querySelector('#moiDocCv').addEventListener('click', () => pickPdf('cv', renderDocs));
-  root.querySelector('#moiDocLm').addEventListener('click', () => pickPdf('lm', renderDocs));
-  /* la carte garde l'état choisi d'un rendu à l'autre : ajouter un
-     document ne doit pas la refermer sous les doigts */
-  const dCard = root.querySelector('#moiDocsCard');
-  dCard.addEventListener('toggle', () => { docsOpen = dCard.open; });
-  listDocs().then(ds => { if (docsOpen === null && !ds.length) dCard.open = true; }).catch(() => {});
   renderDocs();
   if (navigator.storage && navigator.storage.estimate){
     navigator.storage.estimate().then(({ usage, quota }) => {

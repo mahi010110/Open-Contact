@@ -455,15 +455,22 @@ details.pcard-details[open]>summary::before{
   border-top:5px solid var(--accent);border-bottom:0;
 }
 details.pcard-details[open]>summary{margin-bottom:10px}
-/* CV & lettres : deux groupes, une ligne par document. Le type et la
-   trombone ne se répètent plus (le groupe les dit), les séparateurs
-   tombent — moins de bordures dans des bordures (v6.3). */
-.doc-grp + .doc-grp{margin-top:10px}
-.doc-grp-h{
-  font-family:var(--font-mono);font-size:var(--text-11);font-weight:var(--weight-bold);
-  text-transform:uppercase;letter-spacing:var(--tracking-wide);color:var(--text-muted);
-  padding-bottom:2px;
+/* CV & lettres : la carte ne porte que deux portes — « CV » et
+   « Lettres » — donc elle ne grandit plus avec le nombre de documents ;
+   la liste, l'ajout et les gestes vivent dans la feuille du type. */
+.doc-door{
+  display:flex;align-items:center;gap:10px;width:100%;min-height:var(--ctl);
+  background:none;border:0;padding:0;font:inherit;color:inherit;text-align:left;cursor:pointer;
+  border-bottom:1px dashed var(--border-soft);
 }
+.doc-door:last-child{border-bottom:0}
+.doc-door-n{flex:1;min-width:0;font-size:var(--text-14);font-weight:var(--weight-semibold)}
+.doc-door-s{flex:none;font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
+.doc-door .ic{flex:none;color:var(--text-muted)}
+.doc-door:hover .doc-door-n{color:var(--text-link)}
+.doc-vide{text-align:center;padding:26px 8px;font-size:var(--text-13);color:var(--text-muted)}
+.doc-row{border-bottom:1px dashed var(--border-soft)}
+.doc-row:last-of-type{border-bottom:0}
 .doc-row .sw-in{display:flex;align-items:center;gap:8px}
 /* la ligne EST le bouton : elle prend toute la hauteur de contrôle
    (44 px au pouce, 32 px à la souris) sans cesser d'être du texte —
@@ -475,7 +482,6 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   padding:calc((var(--ctl) - 20px) / 2) 0;
 }
 .doc-size{flex:none;font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
-#moiDocs:not(:empty){margin-bottom:12px}
 /* coup de pouce IA : une ligne = un prompt — taper copie, ✎ édite,
    supprimer au geste (glisser / poubelle, comme partout) */
 .prompt-row{border-bottom:1px dashed var(--border-soft);font-size:var(--text-13)}
