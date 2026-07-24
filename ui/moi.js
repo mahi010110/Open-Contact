@@ -316,12 +316,11 @@ export function renderMoi(){
        <div class="pc-actions">
          <button class="btn ${bkPromote ? 'btn-primary' : ''}" id="moiBackup">${ic('download', 'ic-14')} Garder une copie</button>
          <button class="btn icon-btn bk-lock" id="moiBkLock" aria-pressed="false"
-                 aria-label="Protéger la copie par un mot de passe" title="Protéger par un mot de passe">${ic('shield', 'ic-14')}</button>
+                 aria-label="Protéger la copie par un mot de passe" title="Protéger par un mot de passe">${ic('lock', 'ic-14')}</button>
        </div>
        <div class="bk-line" id="moiBkLine" hidden>
          <input id="moiBkPass" class="bk-pass" type="password" autocomplete="new-password"
                 placeholder="Mot de passe" aria-label="Mot de passe de la copie">
-         <span class="bk-warn">Perdu = irrécupérable.</span>
        </div>
        <div class="stor-line" id="moiStor"></div>
      </div>` : ''}`;
