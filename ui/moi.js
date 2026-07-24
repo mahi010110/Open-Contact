@@ -45,20 +45,6 @@ export function downloadBackup(pass){
   return doIt();
 }
 
-function openBackupSheet(){
-  const sh = openSheet({ title: 'Copie avec mot de passe', icon: 'save' });
-  sh.body.innerHTML =
-    `<div class="field"><label for="bkPass">Mot de passe</label>
-       <input id="bkPass" type="password" autocomplete="new-password">
-       <p class="hint">Perdu = copie irrécupérable.</p></div>`;
-  sh.setFoot([
-    btn('Garder la copie', 'btn-primary', async () => {
-      await downloadBackup(sh.body.querySelector('#bkPass').value || '');
-      sh.close();
-    }, 'download')
-  ]);
-}
-
 /* ---------- restauration (remplace tout, annulable ~30 s) ---------- */
 function restoreFile(file){
   const r = new FileReader();
@@ -326,9 +312,11 @@ export function renderMoi(){
        <h3>${ic('save', 'ic-14')} Garder une copie <span class="tag-priv">${ic('lock', 'ic-14')} privé inclus</span></h3>
        <p class="pd">${bkState}</p>
        <div class="pc-actions">
+         <input id="moiBkPass" class="bk-pass" type="password" autocomplete="new-password"
+                placeholder="Mot de passe (facultatif)" aria-label="Mot de passe de la copie — facultatif">
          <button class="btn ${bkPromote ? 'btn-primary' : ''}" id="moiBackup">${ic('download', 'ic-14')} Garder une copie</button>
-         <button class="linklike" id="moiBackupPass">avec un mot de passe</button>
        </div>
+       <p class="hint warn" id="moiBkWarn" hidden>Perdu = copie irrécupérable.</p>
        <div class="stor-line" id="moiStor"></div>
      </div>` : ''}`;
 
@@ -353,8 +341,13 @@ export function renderMoi(){
 
   root.querySelector('#moiProfil').addEventListener('click', () => openProfil());
   root.querySelector('#moiTpl').addEventListener('click', openTemplates);
-  root.querySelector('#moiBackup')?.addEventListener('click', () => downloadBackup(''));
-  root.querySelector('#moiBackupPass')?.addEventListener('click', openBackupSheet);
+  /* le mot de passe vit dans le geste (#19-1) : vide = copie en clair,
+     c'est un choix. Le rappel n'apparaît qu'une fois qu'on en tape un —
+     au moment où il engage (CLAUDE.md §7), jamais en permanence. */
+  const bkPass = root.querySelector('#moiBkPass');
+  const bkWarn = root.querySelector('#moiBkWarn');
+  bkPass?.addEventListener('input', () => { bkWarn.hidden = !bkPass.value; });
+  root.querySelector('#moiBackup')?.addEventListener('click', () => downloadBackup(bkPass ? bkPass.value : ''));
   if (wide) bindReglages(root);
   else root.querySelector('#moiReglages').addEventListener('click', () => {
     reglagesOpen = true;
