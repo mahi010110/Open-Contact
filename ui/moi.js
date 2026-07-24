@@ -114,22 +114,42 @@ function askRestorePass(raw){
   sh.setFoot([btn('Déverrouiller', 'btn-primary', go)]);
 }
 
-/* ---------- CV & lettres : variantes nommées (#4) ---------- */
+/* ---------- CV & lettres : variantes nommées (#4) ----------
+   Deux groupes, les mêmes qu'au composeur (CV / Lettres) : le type ne se
+   répète plus sur chaque ligne, ni la trombone. Reste le nom et la
+   taille. Un groupe vide est absent (loi #6). Et comme une ligne
+   tactile ne descend pas sous 44 px, la seule vraie façon de réduire la
+   place, c'est de replier la carte — l'état la résume. */
+const DOC_GROUPS = [['cv', 'CV'], ['lm', 'Lettres']];
+
 async function renderDocs(){
   const box = $('#moiDocs');
   if (!box) return;
   const docs = await listDocs();
-  /* taper la ligne ouvre le document — pas de bouton « Voir » à côté :
-     c'est la grammaire de Mes pistes et du bac « à rattacher » */
-  box.innerHTML = docs.map(d =>
-    `<div class="doc-row" data-key="${esc(d.key)}">
-       <div class="sw-in">
-         <div class="doc-name" role="button" tabindex="0" aria-label="Voir ${esc(docTitle(d))}">${ic('attachment', 'ic-14')} <b>${esc(docTitle(d))}</b> · ${docKind(d.key) === 'cv' ? 'CV' : 'lettre'} · ${fmtSize(d.size)}</div>
-       </div>
-     </div>`).join('');
+  box.innerHTML = DOC_GROUPS.map(([kind, label]) => {
+    const list = docs.filter(d => docKind(d.key) === kind);
+    if (!list.length) return '';
+    return `<div class="doc-grp"><div class="doc-grp-h">${label}</div>
+              ${list.map(d =>
+                `<div class="doc-row" data-key="${esc(d.key)}">
+                   <div class="sw-in">
+                     <div class="doc-name" role="button" tabindex="0" aria-label="Voir ${esc(docTitle(d))}">${esc(docTitle(d))}</div>
+                     <span class="doc-size">${fmtSize(d.size)}</span>
+                   </div>
+                 </div>`).join('')}
+            </div>`;
+  }).join('');
+  const st = $('#moiDocsSt');
+  if (st){
+    const bits = DOC_GROUPS.map(([kind, label]) => {
+      const n = docs.filter(d => docKind(d.key) === kind).length;
+      return n ? n + ' ' + (kind === 'cv' ? 'CV' : (n > 1 ? 'lettres' : 'lettre')) : '';
+    }).filter(Boolean);
+    st.textContent = bits.join(' · ');
+  }
   box.querySelectorAll('.doc-name').forEach(m => {
     const open = async () => {
-      const doc = await docGet(m.parentElement.parentElement.dataset.key).catch(() => null);
+      const doc = await docGet(m.closest('.doc-row').dataset.key).catch(() => null);
       if (!doc) return;
       const url = URL.createObjectURL(new Blob([doc.blob], { type: doc.type || 'application/pdf' }));
       window.open(url, '_blank', 'noopener');
@@ -269,6 +289,10 @@ function bindReglages(box){
 /* mobile : Réglages est le 2ᵉ écran de « Moi » (la porte #20) — un vrai
    écran re-rendu par bus.refresh, jamais une feuille qui gèlerait ses états */
 let reglagesOpen = false;
+/* null = pas encore choisi : la carte des documents s'ouvre d'elle-même
+   tant qu'elle est vide (l'état vide enseigne), et reste repliée dès
+   qu'il y a des documents — c'est là qu'elle prend de la place */
+let docsOpen = null;
 const mqWideMoi = matchMedia('(min-width:901px)');
 mqWideMoi.addEventListener('change', () => { if (S.route === 'moi') renderMoi(); });
 
@@ -316,14 +340,15 @@ export function renderMoi(){
        </div>
      </div>
 
-     <div class="pcard">
-       <h3>${ic('attachment', 'ic-14')} Mes CV &amp; lettres <span class="lbl-soft">PDF, sur cet appareil</span></h3>
+     <details class="pcard pcard-details" id="moiDocsCard"${docsOpen ? ' open' : ''}>
+       <summary><h3>${ic('attachment', 'ic-14')} Mes CV &amp; lettres
+         <span class="lbl-soft" id="moiDocsSt"></span></h3></summary>
        <div id="moiDocs"></div>
        <div class="pc-actions">
          <button class="btn btn-sm" id="moiDocCv">${ic('plus', 'ic-14')} CV</button>
          <button class="btn btn-sm" id="moiDocLm">${ic('plus', 'ic-14')} Lettre</button>
        </div>
-     </div>
+     </details>
 
      ${showBackup ? `
      <div class="pcard">
@@ -387,6 +412,11 @@ export function renderMoi(){
   bindSyncLive(root);
   root.querySelector('#moiDocCv').addEventListener('click', () => pickPdf('cv', renderDocs));
   root.querySelector('#moiDocLm').addEventListener('click', () => pickPdf('lm', renderDocs));
+  /* la carte garde l'état choisi d'un rendu à l'autre : ajouter un
+     document ne doit pas la refermer sous les doigts */
+  const dCard = root.querySelector('#moiDocsCard');
+  dCard.addEventListener('toggle', () => { docsOpen = dCard.open; });
+  listDocs().then(ds => { if (docsOpen === null && !ds.length) dCard.open = true; }).catch(() => {});
   renderDocs();
   if (navigator.storage && navigator.storage.estimate){
     navigator.storage.estimate().then(({ usage, quota }) => {

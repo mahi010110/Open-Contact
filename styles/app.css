@@ -455,18 +455,27 @@ details.pcard-details[open]>summary::before{
   border-top:5px solid var(--accent);border-bottom:0;
 }
 details.pcard-details[open]>summary{margin-bottom:10px}
-.doc-row{border-bottom:1px dashed var(--border-soft)}
-.doc-row:last-of-type{border-bottom:0}
+/* CV & lettres : deux groupes, une ligne par document. Le type et la
+   trombone ne se répètent plus (le groupe les dit), les séparateurs
+   tombent — moins de bordures dans des bordures (v6.3). */
+.doc-grp + .doc-grp{margin-top:10px}
+.doc-grp-h{
+  font-family:var(--font-mono);font-size:var(--text-11);font-weight:var(--weight-bold);
+  text-transform:uppercase;letter-spacing:var(--tracking-wide);color:var(--text-muted);
+  padding-bottom:2px;
+}
 .doc-row .sw-in{display:flex;align-items:center;gap:8px}
 /* la ligne EST le bouton : elle prend toute la hauteur de contrôle
    (44 px au pouce, 32 px à la souris) sans cesser d'être du texte —
    sinon l'ellipse ne fonctionnerait plus */
 .doc-name{
-  flex:1;min-width:0;font-size:var(--text-13);line-height:20px;cursor:pointer;
+  flex:1;min-width:0;font-size:var(--text-13);font-weight:var(--weight-semibold);
+  line-height:20px;cursor:pointer;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   padding:calc((var(--ctl) - 20px) / 2) 0;
 }
-.doc-name.doc-none{color:var(--text-muted)}
+.doc-size{flex:none;font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
+#moiDocs:not(:empty){margin-bottom:12px}
 /* coup de pouce IA : une ligne = un prompt — taper copie, ✎ édite,
    supprimer au geste (glisser / poubelle, comme partout) */
 .prompt-row{border-bottom:1px dashed var(--border-soft);font-size:var(--text-13)}
