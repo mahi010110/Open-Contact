@@ -54,7 +54,7 @@ await page.goto(base + '/#/moi');
 await ouvrirReglages(page);
 await page.waitForSelector('#moiCx');
 const cxLabel = await page.evaluate(() =>
-  document.querySelector('#moiCx').closest('.ec-row').querySelector('.ec-sub').textContent);
+  document.querySelector('#moiCx').querySelector('.rg-s').textContent);
 if (!/Gmail — mahe@gmail.com/.test(cxLabel)) fail('ligne Connexions : ' + cxLabel);
 
 /* Écrire depuis la fiche : Envoyer primaire + « Depuis » visible */

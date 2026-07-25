@@ -533,6 +533,26 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 .moi-door .md-m{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .moi-door .md-m b{font-size:var(--text-14);font-weight:var(--weight-bold);display:flex;align-items:center;gap:7px}
 .moi-door:active{box-shadow:var(--shadow-pressed)}
+/* Réglages : une ligne = une porte (#7) — pictogramme, nom, état,
+   chevron. Aucun bouton : c'est la ligne entière qui se tape, et le
+   bord droit cesse d'être en dents de scie. */
+.rg-row{
+  display:flex;align-items:center;gap:10px;width:100%;min-height:var(--ctl);
+  background:none;border:0;padding:0;font:inherit;color:inherit;text-align:left;cursor:pointer;
+  border-bottom:1px dashed var(--border-soft);
+}
+.rg-row.rg-last{border-bottom:0}
+.rg-n{
+  flex:1;min-width:0;display:flex;align-items:center;gap:8px;
+  font-size:var(--text-14);font-weight:var(--weight-semibold);
+}
+.rg-n .ic{flex:none;color:var(--text-muted)}
+.rg-s{
+  flex:none;max-width:52%;font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.rg-row>.ic{flex:none;color:var(--text-muted)}
+.rg-row:hover .rg-n{color:var(--text-link)}
 .rg-foot{padding:12px 0 2px;border-top:1px dashed var(--border-soft);margin-top:2px}
 .moi-ver{
   margin-top:18px;text-align:center;

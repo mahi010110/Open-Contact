@@ -214,41 +214,37 @@ function backupState(){
   };
 }
 
-/* les lignes de Réglages — noms clairs (#21) : nom + état + geste,
-   aucune explication ici (elle vit sur le 2ᵉ écran). Messagerie et IA
-   exigent le code : sans protection, le bouton dit le vrai premier
-   geste — « Protéger pour… » — au lieu d'un « Connecter » qui refuse
-   ensuite (N9). Le Compagnon a un vrai bouton : Télécharger sur
-   ordinateur, Copier le lien sur téléphone (#21). */
+/* les lignes de Réglages — des portes, plus des boutons (#7) : la ligne
+   entière se tape, le réglage s'ouvre dans sa feuille. C'est la décision
+   #21 (« le nom d'abord, l'écran ensuite ») et la même grammaire que les
+   tiroirs CV / Lettres. Messagerie et IA exigent le code : sans
+   protection, l'ÉTAT dit le vrai premier geste — « à protéger d'abord » —
+   et taper mène quand même à la protection (N9 reste réglé). */
+const rgRow = (id, icon, nom, etat, last) =>
+  `<button class="rg-row${last ? ' rg-last' : ''}" id="${id}">
+     <span class="rg-n">${ic(icon, 'ic-14')}${nom}</span>
+     <span class="rg-s"${id === 'moiSync' ? ' id="moiSyncSt"' : (id === 'moiComp' ? ' id="moiCompSt"' : '')}>${etat}</span>
+     ${ic('chevron-right', 'ic-14')}
+   </button>`;
+
 function reglagesRowsHTML(){
   const prot = isProtected();
   return (
-    `<div class="ec-row">
-       <div class="ec-row-m"><b>${ic('lock', 'ic-14')} Protection</b>
-         <span class="ec-sub">${verrouLabel()}</span></div>
-       <button class="btn" id="moiVerrou">${prot ? 'Gérer' : 'Protéger'}</button>
-     </div>
-     <div class="ec-row">
-       <div class="ec-row-m"><b>${ic('switch', 'ic-14')} Mes appareils</b>
-         <span class="ec-sub" id="moiSyncSt">${syncLabel()}</span></div>
-       <button class="btn" id="moiSync">${getSync().phrase ? 'Gérer' : 'Relier'}</button>
-     </div>
-     <div class="ec-row">
-       <div class="ec-row-m"><b>${ic('mail', 'ic-14')} Ma messagerie</b>
-         <span class="ec-sub">${mailStateLabel()}</span></div>
-       <button class="btn" id="moiCx">${!prot ? 'Protéger pour connecter' : (mailAccount() ? 'Gérer' : 'Connecter')}</button>
-     </div>
-     <div class="ec-row">
-       <div class="ec-row-m"><b>${ic('sparkles', 'ic-14')} Mon assistant IA</b>
-         <span class="ec-sub">${aiStateLabel()}</span></div>
-       <button class="btn" id="moiAi">${!prot ? 'Protéger pour brancher' : (aiConnection() ? 'Gérer' : 'Brancher')}</button>
-     </div>
-     <div class="ec-row" style="border:0">
-       <div class="ec-row-m"><b>${ic('switch', 'ic-14')} Le Compagnon</b>
-         <span class="ec-sub" id="moiCompSt">${mqWideMoi.matches ? 'pas encore installé' : 's’installe sur ton ordinateur'}</span></div>
-       <button class="btn" id="moiComp">${mqWideMoi.matches ? 'Télécharger' : 'Copier le lien'}</button>
-     </div>
-     <div class="rg-foot">
+    rgRow('moiVerrou', 'lock', 'Protection', verrouLabel()) +
+    rgRow('moiSync', 'switch', 'Mes appareils', syncLabel()) +
+    /* le pré-requis ne remplace l'état que s'il n'y a rien à dire : une
+       messagerie déjà branchée le dit, même si le coffre a disparu */
+    rgRow('moiCx', 'mail', 'Ma messagerie',
+          (!prot && !mailAccount()) ? 'à protéger d’abord' : mailStateLabel()) +
+    rgRow('moiAi', 'sparkles', 'Mon assistant IA',
+          (!prot && !aiConnection()) ? 'à protéger d’abord' : aiStateLabel()) +
+    /* #4 : l'éclair distingue le Compagnon de « Mes appareils », qui
+       portaient le même signe. Provisoire — le pack n'a pas d'icône
+       d'ordinateur et zap sert aussi à « Aujourd'hui ». */
+    /* l'état, pas la phrase : « il s'installe sur ton ordinateur » se
+       dit sur le 2ᵉ écran, là où on peut vraiment le faire (#21) */
+    rgRow('moiComp', 'zap', 'Le Compagnon', 'pas installé', true) +
+    `<div class="rg-foot">
        <button class="linklike" id="moiRestore">${ic('reload', 'ic-14')} Restaurer une copie</button>
        <input type="file" id="moiRestoreFile" accept=".oc,.txt,.json,application/octet-stream,application/json,text/plain" hidden>
      </div>`);
@@ -259,9 +255,7 @@ function bindSyncLive(root){
   root.__onSync = () => {
     if (root.hidden){ document.removeEventListener('oc:sync', root.__onSync); root.__onSync = null; return; }
     const lbl = root.querySelector('#moiSyncSt');
-    const b = root.querySelector('#moiSync');
     if (lbl) lbl.textContent = syncLabel();
-    if (b) b.textContent = getSync().phrase ? 'Gérer' : 'Relier';
   };
   document.addEventListener('oc:sync', root.__onSync);
 }
@@ -271,7 +265,7 @@ function bindReglages(box){
   q('#moiVerrou').addEventListener('click', () =>
     isProtected() ? openManageSheet() : openProtectFlow());
   q('#moiSync').addEventListener('click', openAppareils);
-  /* N9 : le bouton a promis « Protéger pour… » — il y va tout droit */
+  /* N9 : l'état a dit « à protéger d'abord » — la ligne y mène tout droit */
   q('#moiCx').addEventListener('click', () =>
     isProtected() ? openConnexions() : openProtectFlow());
   q('#moiAi').addEventListener('click', () =>
@@ -286,11 +280,8 @@ function bindReglages(box){
     } catch (e) { toast('Copie impossible ici — le lien : ' + DIST_PAGE); }
   });
   loadCompanion().then(a => {
-    if (!a) return;
     const st = q('#moiCompSt');
-    const b = q('#moiComp');
-    if (st) st.textContent = 'associé — ' + (a.nom || 'ton ordinateur');
-    if (b) b.textContent = 'Gérer';
+    if (a && st) st.textContent = 'associé — ' + (a.nom || 'ton ordinateur');
   }).catch(() => {});
   const rf = q('#moiRestoreFile');
   /* restaurer = rare et sensible (#4) : rangé ici, le code d'abord */
@@ -330,20 +321,22 @@ export function renderMoi(){
   const bk = backupState();
   const showBackup = !!(S.companies.length || p.name);   /* rien à copier = carte absente */
   const bkPromote = showBackup && !bk.linked && (!bk.last || bk.n > 0);
+  /* l'état, jamais l'explication (A) : un mot, ou un chiffre quand il
+     pousse à agir (décision #11) */
   const bkState = bk.linked
-    ? 'Tes appareils reliés la gardent déjà en double.'
+    ? 'en double'
     : !bk.last
-      ? 'Aucune copie encore.'
+      ? 'aucune copie'
       : bk.n
-        ? `<b>${bk.n} piste${bk.n > 1 ? 's' : ''}</b> depuis ta dernière copie.`
-        : 'À jour.';
+        ? `<b>${bk.n} piste${bk.n > 1 ? 's' : ''}</b> depuis ta copie`
+        : 'à jour';
 
   const cards =
     `<div class="pcard">
        <h3>${ic('user', 'ic-14')} Mon profil</h3>
        <p class="pd">${pReady
-          ? `<b>${esc(p.name)}</b>${p.formation ? ' · ' + esc(p.formation) : ''} — tes emails se signent tout seuls.`
-          : 'Nom, formation, contact : une fois remplis, chaque email part signé et complet.'}</p>
+          ? `<b>${esc(p.name)}</b>${p.formation ? ' · ' + esc(p.formation) : ''}`
+          : 'à remplir'}</p>
        <div class="pc-actions">
          <button class="btn ${pReady ? '' : 'btn-primary'}" id="moiProfil">${ic('pencil', 'ic-14')} ${pReady ? 'Modifier' : 'Remplir mon profil'}</button>
          <button class="btn" id="moiTpl">${ic('mail', 'ic-14')} Modèles d’emails (${p.templates.length})</button>
@@ -378,16 +371,16 @@ export function renderMoi(){
 
   root.innerHTML =
     `<div class="page-inner${wide ? ' page-wide' : ''}">
-       <div class="td-head"><h2>Moi</h2><div class="td-date">${ic('lock', 'ic-14')} privé — jamais partagé</div></div>
+       <div class="td-head"><h2>Moi</h2>
+         <div class="td-date" title="privé — jamais partagé" aria-label="privé — jamais partagé">${ic('lock', 'ic-14')}</div></div>
        ${wide
          ? `<div class="moi-cols"><div>${cards}</div><div>${reglages}</div></div>`
          : cards +
            `<button class="pcard moi-door" id="moiReglages">
-              <span class="md-m"><b>${ic('settings-2', 'ic-14')} Réglages</b>
-                <span class="ec-sub">protection · appareils · messagerie · IA · Compagnon</span></span>
+              <span class="md-m"><b>${ic('settings-2', 'ic-14')} Réglages</b></span>
               ${ic('chevron-right', 'ic-14')}
             </button>`}
-       <div class="moi-ver">OpenContact ${APP_VERSION} · local-first, sans compte · fichier .oc</div>
+       <div class="moi-ver">OpenContact ${APP_VERSION}</div>
      </div>`;
 
   root.querySelector('#moiProfil').addEventListener('click', () => openProfil());
@@ -420,7 +413,7 @@ export function renderMoi(){
     navigator.storage.estimate().then(({ usage, quota }) => {
       if (usage != null && quota){
         const el = $('#moiStor');
-        if (el) el.textContent = 'Espace local utilisé : ' + fmtSize(usage) + ' sur ' + fmtSize(quota) + '.';
+        if (el) el.textContent = fmtSize(usage) + ' sur ' + fmtSize(quota);
       }
     }).catch(() => {});
   }

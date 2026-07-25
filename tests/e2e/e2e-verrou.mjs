@@ -35,7 +35,7 @@ page.on('pageerror', e => errors.push(String(e)));
 /* --- 1. sans verrou : Moi montre la ligne sobre --- */
 await page.goto(base + '/#/moi', { waitUntil: 'load' });
 await ouvrirReglages(page);
-const label = await page.textContent('#view-moi .ec-row .ec-sub');
+const label = await page.textContent('#moiVerrou .rg-s');
 if (!/non protégé/.test(label)) fail('étiquette attendue « non protégé », vu : ' + label);
 await snap(page, 'moi-non-protege');
 
@@ -85,7 +85,7 @@ await page.waitForSelector('.toast.on', { timeout: 15000 });
 const bioSheet = await page.$('.modal-confirm');
 if (bioSheet) await page.click('.modal-f .btn-ghost');
 await page.waitForTimeout(400);
-const lbl2 = await page.textContent('#view-moi .ec-row .ec-sub');
+const lbl2 = await page.textContent('#moiVerrou .rg-s');
 if (!/protégé — se verrouille seul/.test(lbl2)) fail('étiquette après création : ' + lbl2);
 await snap(page, 'moi-protege');
 
