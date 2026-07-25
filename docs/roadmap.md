@@ -68,11 +68,10 @@ sombre, zéro erreur console, `?test` vert (checklist `CLAUDE.md` §9).
 - **#4 — icône du Compagnon.** « Le Compagnon » et « Mes appareils »
   partagent aujourd'hui l'icône `switch` (`ui/direct.js`). Le Compagnon
   prend une icône distincte du pack pixelarticons déjà vendorisé.
-- **#6 — copie du code de groupe au geste.** Le bouton « copier le code »
-  (`#prCopy`) disparaît ; le code se copie par appui long (mobile) / clic
-  maintenu (desktop) sur le code lui-même, retour par `toast()`.
-  *Prérequis : une capture en salle réellement connectée — cet écran
-  n'existe qu'une fois le groupe rejoint, impossible à voir hors réseau.*
+- ~~**#6 — copie du code de groupe au geste.**~~ **Fait.** Le bouton
+  « copier le code » disparaît. Générer un code le copie déjà — c'est le
+  seul qu'on ne connaisse pas par cœur — et un appui long (pouce) / clic
+  maintenu (souris) sur le code le recopie à tout moment.
 
 **Lot 3 — mise en page desktop**
 

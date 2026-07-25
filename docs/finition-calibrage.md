@@ -232,12 +232,25 @@ Le Compagnon, lui, raisonne par piste (`arreter-cible` porte un `cid`) :
 on ne lui demande d'arrêter une entreprise que lorsque plus personne n'y
 attend d'envoi — sinon il couperait tout le monde.
 
-## #6 — copier le code du groupe au geste *(bloqué)*
+## #6 — copier le code du groupe au geste
 
-L'écran n'existe qu'une fois un groupe P2P rejoint, ce qui demande des
-relais joignables — impossible depuis l'environnement de développement.
-À calibrer quand le mainteneur pourra montrer l'écran, ou sur un relais
-local.
+*Cru bloqué à tort* : l'écran a été supposé derrière une salle rejointe.
+Les captures du mainteneur montrent le contraire — « copier le code »
+apparaît dans la feuille d'ENTRÉE, dès qu'on génère un code, sans aucun
+réseau. Leçon : vérifier où vit un écran avant de le déclarer inatteignable.
+
+**Fait.** Le bouton part. Deux chemins le remplacent :
+- **générer copie déjà** — un code inventé par l'app est le seul qu'on ne
+  connaisse pas par cœur, et c'est le geste que fait celui qui ouvre le
+  groupe. Le toast le dit : « Code généré et copié ».
+- **appui long** (pouce) / clic maintenu (souris) **sur le code lui-même**,
+  550 ms, pour le recopier plus tard. Un appui bref ne copie pas : il pose
+  le curseur, le champ reste saisissable.
+
+⚠️ Le champ est un `input` : sur iOS, l'appui long ouvre aussi le menu
+natif « Sélectionner / Coller ». Invérifiable ici (Chromium). Si ça gêne
+sur un vrai iPhone, le chemin « générer copie » suffit à lui seul et le
+geste peut sauter.
 
 ## F — « Compléter mon profil » dans Écrire *(hors des 12, vu au passage)*
 

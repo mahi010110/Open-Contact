@@ -383,25 +383,37 @@ export function openPromo(){
     const last = (await kvGet(PROMO_KEY)) || '';
     /* le code EST la clé : un bouton discret le remplit d'une phrase
        forte (comme la liaison des appareils) ; qui veut le sien tape le
-       sien. Une fois généré, « copier » apparaît — il se partage à la
-       promo. Aucun pavé d'explication (loi #3). */
+       sien. Plus de bouton « copier » à côté (#6) : générer copie déjà —
+       c'est le seul code qu'on ne connaisse pas par cœur — et un appui
+       long sur le code le recopie à tout moment. */
     sh.body.innerHTML =
       `<div class="field"><label for="prPass">Mot de passe du groupe</label>
          <div class="date-row">
-           <input id="prPass" autocomplete="off" autocapitalize="off" placeholder="ex : promo-sio-2026" value="${esc(last)}">
+           <input id="prPass" autocomplete="off" autocapitalize="off" placeholder="ex : promo-sio-2026"
+                  title="Appui long pour copier" value="${esc(last)}">
            <button class="btn icon-btn" id="prGen" aria-label="Générer un code fort" title="Générer un code fort">${ic('reload', 'ic-14')}</button>
-         </div>
-         <button class="linklike" id="prCopy" hidden>${ic('copy', 'ic-14')} copier le code</button></div>`;
+         </div></div>`;
     const go = () => { const v = q('#prPass').value.trim(); if (v){ kvSet(PROMO_KEY, v); enter(v); } };
+    const copier = async (msg) => {
+      const v = q('#prPass').value.trim();
+      if (!v) return;
+      try { await navigator.clipboard.writeText(v); toast(msg); }
+      catch (e) { toast('Copie impossible ici — recopie-le à la main.'); }
+    };
     q('#prPass').addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
     q('#prGen').addEventListener('click', () => {
       q('#prPass').value = makePhrase();
-      q('#prCopy').hidden = false;
+      copier('Code généré et copié — partage-le à la promo.');
     });
-    q('#prCopy').addEventListener('click', async () => {
-      try { await navigator.clipboard.writeText(q('#prPass').value); toast('Code copié — partage-le à la promo.'); }
-      catch (e) { toast('Copie impossible ici — recopie-le à la main.'); }
+    /* appui long (pouce) / clic maintenu (souris) sur le code lui-même */
+    let hold = null;
+    const inp = q('#prPass');
+    inp.addEventListener('pointerdown', () => {
+      clearTimeout(hold);
+      hold = setTimeout(() => copier('Code copié — partage-le à la promo.'), 550);
     });
+    ['pointerup', 'pointercancel', 'pointerleave', 'blur', 'input']
+      .forEach(e => inp.addEventListener(e, () => clearTimeout(hold)));
     sh.setFoot([btn('Entrer', 'btn-primary', go)]);
     q('#prPass').focus();
   };
