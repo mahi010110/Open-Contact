@@ -552,6 +552,27 @@ export async function runSelfTests(){
          'Madame, Monsieur / Zeta (Lille) — Ana B, AIS');
       eq(fillTpl('{{contact}}', c, { name: 'Léo' }, prof), 'Léo');
     },
+    'gabarits : un jeton vide referme son trou, jamais « — » ni « en formation , »': () => {
+      const c = normalizeCompany({ name: 'Zeta' });
+      const vide = normalizeProfile({});
+      /* le séparateur collé au jeton vide part avec lui */
+      eq(fillTpl('Candidature spontanée — {{formation}}', c, null, vide), 'Candidature spontanée');
+      /* « Étiquette : {{jeton}} » : la ligne entière saute */
+      eq(fillTpl('Bonjour,\nVous trouverez mon CV ici : {{cv}}\nMerci.', c, null, vide),
+         'Bonjour,\nMerci.');
+      /* une ligne qui ne pesait que des jetons vides disparaît */
+      eq(fillTpl('Merci,\n{{moi}} — {{tel}} — {{email}}', c, null, vide), 'Merci,');
+      /* au milieu d'une phrase : l'espace parasite avant la virgule part */
+      eq(fillTpl('En formation {{formation}}, je cherche.', c, null, vide),
+         'En formation, je cherche.');
+      /* rempli, rien n'est retouché — même les jetons voisins */
+      const plein = normalizeProfile({ name: 'Ana B', formation: 'AIS', phone: '06', email: 'a@b.fr' });
+      eq(fillTpl('Merci,\n{{moi}} — {{tel}} — {{email}}', c, null, plein),
+         'Merci,\nAna B — 06 — a@b.fr');
+      /* une ligne SANS jeton vide garde sa typographie française */
+      eq(fillTpl('Merci {{moi}} !\nBien à vous : {{email}}', c, null, plein),
+         'Merci Ana B !\nBien à vous : a@b.fr');
+    },
     'score : borné 0–100, croissant avec la complétude': () => {
       const vide = scoreOf(normalizeCompany({ name: 'X' }));
       const pleine = scoreOf(normalizeCompany({

@@ -53,8 +53,7 @@ export function openMail(c, opts){
      <div class="field"><label for="mBody">Message</label><textarea id="mBody" style="min-height:170px"></textarea>
        ${aiConnection() ? `<button class="linklike" id="mAi" style="margin-top:2px">${ic('sparkles', 'ic-14')} Proposer un brouillon</button>` : ''}</div>
      <div class="attach-line" id="mAttach"></div>
-     <p class="hint" id="mHint"></p>
-     ${!S.profile.name ? `<div class="pc-actions"><button class="btn btn-sm" id="mProfil">${ic('pencil', 'ic-14')} Compléter mon profil</button></div>` : ''}`;
+     <p class="hint" id="mHint"></p>`;
 
   const q = s => sh.body.querySelector(s);
   const currentCt = () => cts[+q('#mTo').value] || (c.contacts || [])[0] || null;
@@ -106,6 +105,13 @@ export function openMail(c, opts){
     } else {
       aMail.removeAttribute('href');
       q('#mHint').textContent = 'Pas d’email — Copier, puis LinkedIn ou le site.';
+    }
+    /* profil vide = message sans signature : un lien, au même poids que son
+       voisin, qui s'efface de lui-même dès qu'un nom est saisi */
+    if (!S.profile.name){
+      const b = el(`<button class="linklike" id="mProfil" style="min-height:0;padding:0 4px">Compléter mon profil</button>`);
+      b.addEventListener('click', () => openProfil(() => { if (sh.body.isConnected) fill(); }));
+      q('#mHint').append(' ', b);
     }
     syncFoot();
   }
@@ -285,11 +291,6 @@ export function openMail(c, opts){
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && lastEmail && !sending) doSend();
     });
   }
-  q('#mProfil')?.addEventListener('click', () => openProfil(() => {
-    if (!sh.body.isConnected) return;
-    fill();
-    if (S.profile.name) q('#mProfil')?.remove();
-  }));
   fill();
   renderAttach();
 }

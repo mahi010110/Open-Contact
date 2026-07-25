@@ -200,3 +200,45 @@ L'écran n'existe qu'une fois un groupe P2P rejoint, ce qui demande des
 relais joignables — impossible depuis l'environnement de développement.
 À calibrer quand le mainteneur pourra montrer l'écran, ou sur un relais
 local.
+
+## F — « Compléter mon profil » dans Écrire *(hors des 12, vu au passage)*
+
+Un bouton encadré, posé juste sous un lien souligné de même importance.
+Le mainteneur n'en veut pas sous cette forme.
+
+Ce qu'il réparait est réel : profil vide, le message généré sortait
+troué — « en formation , », « au  ou par retour de mail », une signature
+réduite à « — ». Le supprimer sans rien faire d'autre aurait laissé
+partir ce message-là à un recruteur.
+
+**Décision : les deux à la fois.**
+
+1. **Le gabarit se referme tout seul** (`fillTpl`, `engine/model.js`) —
+   un jeton sans valeur emporte ce qui le tenait :
+   - le séparateur collé au jeton part avec lui (`Candidature spontanée —
+     {{formation}}` → `Candidature spontanée`) ;
+   - une ligne `Étiquette : {{jeton}}` saute en entier (`Vous trouverez
+     mon CV ici : {{cv}}`) ;
+   - une ligne qui ne pesait que des jetons vides disparaît
+     (`{{moi}} — {{tel}} — {{email}}`) ;
+   - l'espace parasite avant `,` ou `.` part.
+
+   **Une ligne sans jeton vide n'est jamais retouchée** : la prose de
+   l'utilisateur reste la sienne, y compris l'espace avant `; : ! ?`
+   qu'exige la typographie française.
+
+   Deux gabarits par défaut sont réécrits pour tomber sur ces formes :
+   le téléphone quitte le milieu de phrase pour rejoindre la signature,
+   et « Relance — candidature {{formation}} » devient « Relance de ma
+   candidature — {{formation}} ».
+
+2. **Le rappel reste, en lien** : « Compléter mon profil » en `linklike`
+   à la suite de « Envoyer directement depuis l'app ? », même poids que
+   son voisin. Il n'apparaît que sans nom au profil et s'efface dès
+   qu'un nom est saisi.
+
+⚠️ Ce lien hérite de la cible tactile de son voisin — **14 px de haut sur
+mobile**, sous les 44 px de la règle. C'est le choix déjà fait pour
+« Envoyer directement depuis l'app ? » : les deux liens tiennent sur la
+ligne d'info, ou aucun. À revoir pour les deux ensemble, jamais pour un
+seul.
