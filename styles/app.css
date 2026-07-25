@@ -656,13 +656,6 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 }
 .att-sel select{min-height:32px;padding:2px 8px;max-width:170px}
 
-/* ============ PANNEAU LATÉRAL (desktop, #10) ============ */
-.spanel{position:absolute;top:0;right:0;bottom:0;width:min(480px,46vw);z-index:1200}
-.spanel .modal{
-  width:100%;height:100%;max-width:none;max-height:none;border-radius:0;
-  border:0;border-left:1px solid var(--border-strong);box-shadow:var(--shadow-modal);
-}
-
 /* ============ FEUILLES D'ACTION ============ */
 .na-company{
   display:flex;align-items:center;gap:8px;margin-bottom:14px;
@@ -1046,16 +1039,14 @@ body:has(.overlay) .toast{bottom:auto;top:calc(env(safe-area-inset-top) + 62px)}
 
 /* ============ MOTION (#23 : objets nets, déplacements doux) ============
    Le contraste est la signature : le skin « 98 » reste figé, seul le
-   mouvement entre états est doux — feuille qui monte, panneau qui entre,
-   liste qui se réorganise (softReorder), barre qui se pose. Court,
+   mouvement entre états est doux — feuille qui monte, fenêtre qui se
+   pose, liste qui se réorganise (softReorder), barre qui arrive. Court,
    ease-out, transform/opacity seulement ; reduced-motion coupe tout
    (base.css). Les objets, eux, gardent steps() — la secousse du verrou. */
 @keyframes oc-fade{from{opacity:0}}
 @keyframes oc-up{from{opacity:0;transform:translateY(12px)}}
-@keyframes oc-side{from{opacity:0;transform:translateX(24px)}}
 .overlay{animation:oc-fade var(--dur-2) var(--ease-out)}
 .overlay .modal{animation:oc-up var(--dur-3) var(--ease-out)}
-.spanel{animation:oc-side var(--dur-3) var(--ease-out)}
 .view:not([hidden])>.page-inner{animation:oc-fade var(--dur-2) var(--ease-out)}
 
 /* ============ LE VERROUILLAGE (profil protégé) ============

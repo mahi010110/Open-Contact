@@ -18,7 +18,7 @@ import { CAMPAIGNS_KEY, MISSIONS_KEY, kvGet, kvSet } from '../engine/storage.js'
 import { makeMission, signMission } from '../engine/mission.js';
 import { probeCompanion, companionCall } from '../engine/companion.js';
 import { S, bus, saveData, logJ, isClosed } from './state.js';
-import { openSheet, openPanel, confirmSheet, toast, btn, ic } from './dom.js';
+import { openSheet, confirmSheet, toast, btn, ic } from './dom.js';
 import { mailAccount, freshToken, openConnexions } from './connexions.js';
 import { requireCode } from './verrou.js';
 import { loadCompanion } from './compagnon.js';
@@ -277,9 +277,10 @@ export function openCampaignById(id){
    L'accès n'existe que s'il y en a (loi #6). */
 export const liveCampaignsCount = () => live().length;
 export function openCampaignsHome(){
+  /* sur l'ordinateur la liste s'efface derrière le jour puis revient
+     (N8) ; au pouce elle se referme — une décision à la fois */
   const wide = matchMedia('(min-width:901px)').matches;
-  const sh = (wide ? openPanel : openSheet)({ title: 'Campagnes', icon: 'flag' });
-  if (!sh) return;
+  const sh = openSheet({ title: 'Campagnes', icon: 'flag' });
   const stateTxt = c => c.state === 'paused' ? 'en pause'
     : c.auto ? 'ton ordinateur s’en occupe' : 'en cours';
   const render = () => {

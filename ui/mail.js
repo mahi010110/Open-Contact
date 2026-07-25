@@ -14,7 +14,7 @@ import { bytesToB64 } from '../engine/crypto.js';
 import { docGet } from '../engine/storage.js';
 import { aiComplete, draftPrompt } from '../engine/ai.js';
 import { S, bus, saveData, logJ, activateContact } from './state.js';
-import { openSheet, openPanel, toast, btn, el, ic } from './dom.js';
+import { openSheet, toast, btn, el, ic } from './dom.js';
 import { askNextAction } from './actions.js';
 import { openProfil } from './profil.js';
 import { listDocs, docKind, docTitle, pickPdf } from './docs.js';
@@ -30,15 +30,13 @@ export function openMail(c, opts){
      suivante ; la croix (ou Échap) arrête TOUTE la série immédiatement */
   let done = false;
   const advance = () => { if (opts.onDone){ const f = opts.onDone; opts.onDone = null; f(); } };
-  /* desktop : le composeur prend la place de la fiche dans le panneau
-     (#16, fin du double-modal N8) ; mobile : feuille comme avant */
-  const wide = matchMedia('(min-width:901px)').matches;
-  const sh = (wide ? openPanel : openSheet)({
+  /* le composeur prend la place de la fiche (#16, fin du double-modal
+     N8) : même fenêtre partout, en bas au pouce, centrée sur l'ordinateur */
+  const sh = openSheet({
     title: 'Écrire — ' + c.name + (opts.progress ? '  ·  ' + opts.progress : ''),
     icon: 'mail', focus: cts.length ? '#mSubj' : '#mBody',
     onClose: () => { if (done) return; done = true; if (opts.onQuit) opts.onQuit(); }
   });
-  if (!sh) return;
   const acct = mailAccount();       /* messagerie connectée ? */
   /* la personne choisie arrive pré-sélectionnée (#14) — jamais devinée */
   const initIdx = Math.max(0, cts.findIndex(t => t.id === opts.ctId));

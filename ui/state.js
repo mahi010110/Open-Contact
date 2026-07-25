@@ -42,7 +42,7 @@ function tellTabs(){
 if (tabs) tabs.addEventListener('message', e => {
   if (e.data === selfTab) return;
   /* une feuille ou un panneau ouvert = édition en cours : on recharge après */
-  if (document.querySelector('.overlay, .spanel')){ S.stale = true; return; }
+  if (document.querySelector('.overlay')){ S.stale = true; return; }
   reloadFromStorage();
 });
 export async function reloadFromStorage(){

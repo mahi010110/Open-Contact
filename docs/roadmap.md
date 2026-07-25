@@ -76,11 +76,13 @@ sombre, zéro erreur console, `?test` vert (checklist `CLAUDE.md` §9).
 
 **Lot 3 — mise en page desktop**
 
-- **#5 — le panneau latéral recouvre le contenu.** `openPanel()`
-  (`ui/dom.js`) pose `.spanel` en absolu sans réserver de place : la
-  colonne « Réponse » de Mes pistes est entièrement masquée, même
-  problème sur Aujourd'hui. Le panneau doit réserver sa largeur et le
-  contenu se recomposer à côté.
+- ~~**#5 — le panneau latéral recouvre le contenu.**~~ **Fait.** Le
+  panneau posait `.spanel` en absolu sans réserver de place : la colonne
+  « Réponse » de Mes pistes était entièrement masquée, même problème sur
+  Aujourd'hui. Le resserrer coûtait trop cher (mesures dans
+  `docs/finition-calibrage.md`) : `openPanel` est supprimé et ses trois
+  écrans — la fiche, « Écrire », « Campagnes » — s'ouvrent en fenêtre
+  centrée, comme au pouce.
 
 **Lot 4 — décision assumée**
 

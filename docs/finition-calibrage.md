@@ -100,6 +100,15 @@ pour qu'une prochaine session ne le refasse pas en croyant bien faire.
 - le vide de 254 px sous le pied du panneau disparaît de lui-même, une
   fenêtre centrée se dimensionnant sur son contenu.
 
+**Fait.** `openPanel`/`closePanel` et `.spanel` sont supprimés : ils ne
+servaient plus que trois écrans, tous passés à `openSheet` — la fiche
+(`ui/fiche.js`), « Écrire » (`ui/mail.js`) et « Campagnes »
+(`ui/campagnes.js`). Sur l'ordinateur, une feuille ouverte par-dessus une
+autre efface la précédente (`.ov-behind`, N8) puis la rend à la fermeture :
+« Écrire » revient donc sur la fiche, et le jour d'une campagne revient sur
+la liste des campagnes — ce que le panneau savait déjà faire, sans le
+double-modal.
+
 ## #3 — ajouter une piste : deux formulaires, un par appareil
 
 La Décision 7 (« le reste vit dans la fiche ») décrit le **téléphone** ;

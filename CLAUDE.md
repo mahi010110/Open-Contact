@@ -85,8 +85,8 @@ espacements, effets) et le kit `design/`.
   pas d'autre pack d'icônes.
 - **Motion (#23)** : les **objets** restent « 98 » — nets, instantanés,
   `steps()` pour le feedback (secousse, bascule d'état). Seul le
-  **déplacement entre états** est doux (feuille qui monte, panneau qui
-  entre, liste qui se réorganise, barre qui se pose) : court, `ease-out`,
+  **déplacement entre états** est doux (feuille qui monte, fenêtre qui se
+  pose, liste qui se réorganise, barre qui arrive) : court, `ease-out`,
   senti sans être vu, jamais décoratif. `transform`/`opacity` uniquement,
   transitions CSS, `prefers-reduced-motion` respecté (coupe tout).
 - **Thème sombre obligatoire** : tout nouvel élément se vérifie dans les
