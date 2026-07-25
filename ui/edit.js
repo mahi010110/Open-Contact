@@ -12,11 +12,12 @@ import { openSheet, toast, btn } from './dom.js';
 
 const FIELDS = ['name','city','domain','desc','website','address','techs','process','tips'];
 
-export function openEditPiste(c, onDone){
-  const sh = openSheet({ title: 'Modifier — ' + c.name, icon: 'pencil', className: 'modal-fiche', focus: '#edName' });
-  sh.body.innerHTML =
-    `<p class="hint" style="margin:0 0 14px"><span class="tag-share">partagé</span> Ces infos circulent dans les partages — ton suivi jamais.</p>
-     <div class="grid2">
+/* Le formulaire des champs partagés, en un seul endroit : « Modifier »
+   s'en sert pour une fiche existante, la capture sur ordinateur pour une
+   piste neuve (#3). Les deux écrans évoluent donc ensemble. */
+export function sharedFieldsHTML(c){
+  return (
+    `<div class="grid2">
        <div class="field"><label for="edName">Entreprise *</label><input id="edName" value="${esc(c.name)}"></div>
        <div class="field"><label for="edCity">Ville</label><input id="edCity" value="${esc(c.city)}"></div>
      </div>
@@ -43,10 +44,15 @@ export function openEditPiste(c, onDone){
      <div class="field"><label for="edProcess">Process de recrutement</label>
        <textarea id="edProcess" class="ta-s" placeholder="Ex : CV → entretien RH → test technique">${esc(c.process)}</textarea></div>
      <div class="field"><label for="edTips">Conseils pour postuler</label>
-       <textarea id="edTips" class="ta-s" placeholder="Ex : passer par le forum, citer tel projet…">${esc(c.tips)}</textarea></div>`;
-  const q = s => sh.body.querySelector(s);
+       <textarea id="edTips" class="ta-s" placeholder="Ex : passer par le forum, citer tel projet…">${esc(c.tips)}</textarea></div>`);
+}
 
-  sh.body.querySelectorAll('.dchip').forEach(b =>
+/* Branche les postes et l'autocomplétion d'adresse, puis rend `apply(c)` :
+   écrit les champs saisis dans la piste. Ne valide rien, n'enregistre
+   rien — l'écran appelant décide. */
+export function bindSharedFields(root){
+  const q = s => root.querySelector(s);
+  root.querySelectorAll('.dchip').forEach(b =>
     b.addEventListener('click', () => {
       b.classList.toggle('on');
       b.setAttribute('aria-pressed', b.classList.contains('on'));
@@ -77,14 +83,12 @@ export function openEditPiste(c, onDone){
   q('#edAddress').addEventListener('input', e => { picked = null; acSearch(e.target.value.trim()); });
   q('#edAddress').addEventListener('blur', () => setTimeout(acHide, 150));
 
-  sh.setFoot([
-    btn('Enregistrer', 'btn-primary', () => {
-      const name = q('#edName').value.trim();
-      if (!name){ toast('Le nom de la structure est obligatoire.'); q('#edName').focus(); return; }
-      const snap = () => JSON.stringify(FIELDS.map(f => c[f]).concat([c.positions, c.lat, c.lng]));
-      const before = snap();
+  return {
+    nom: () => q('#edName').value.trim(),
+    focusNom: () => q('#edName').focus(),
+    apply(c){
       const addrBefore = c.address;
-      c.name = name;
+      c.name = q('#edName').value.trim();
       c.city = q('#edCity').value.trim();
       c.domain = q('#edDomain').value;
       c.desc = q('#edDesc').value.trim();
@@ -97,7 +101,24 @@ export function openEditPiste(c, onDone){
          réécrite à la main invalide les anciennes */
       if (picked){ c.lat = picked.lat; c.lng = picked.lng; }
       else if (c.address !== addrBefore){ c.lat = null; c.lng = null; }
-      c.positions = Array.from(sh.body.querySelectorAll('.dchip.on')).map(b => b.dataset.p);
+      c.positions = Array.from(root.querySelectorAll('.dchip.on')).map(b => b.dataset.p);
+    }
+  };
+}
+
+export function openEditPiste(c, onDone){
+  const sh = openSheet({ title: 'Modifier — ' + c.name, icon: 'pencil', className: 'modal-fiche', focus: '#edName' });
+  sh.body.innerHTML =
+    `<p class="hint" style="margin:0 0 14px"><span class="tag-share">partagé</span> Ces infos circulent dans les partages — ton suivi jamais.</p>
+     ${sharedFieldsHTML(c)}`;
+  const champs = bindSharedFields(sh.body);
+
+  sh.setFoot([
+    btn('Enregistrer', 'btn-primary', () => {
+      if (!champs.nom()){ toast('Le nom de la structure est obligatoire.'); champs.focusNom(); return; }
+      const snap = () => JSON.stringify(FIELDS.map(f => c[f]).concat([c.positions, c.lat, c.lng]));
+      const before = snap();
+      champs.apply(c);
       if (snap() !== before){
         pushHist(c, 'Fiche complétée');
         logJ('Fiche complétée : ' + c.name, c.id);

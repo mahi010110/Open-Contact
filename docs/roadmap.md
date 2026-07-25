@@ -95,10 +95,12 @@ sombre, zéro erreur console, `?test` vert (checklist `CLAUDE.md` §9).
 
 **Lot 5 — corrections structurelles** (moteur d'abord, tests, puis UI)
 
-- **#3 — saisie complète sur desktop.** `openCapture()` sert le même
-  mini-formulaire à 390 px et à 1280 px. Sur desktop, formulaire complet
-  entreprise + contact d'emblée (« adaptatif, pas responsive »,
-  `CLAUDE.md` §5).
+- ~~**#3 — saisie complète sur desktop.**~~ **Fait.** `openCapture()`
+  servait le même mini-formulaire à 390 px et à 1280 px. Sur ordinateur
+  il sert désormais le formulaire complet entreprise + contact d'emblée,
+  et un seul bouton — « Terminer ». Le formulaire partagé vit dans
+  `ui/edit.js` (`sharedFieldsHTML` / `bindSharedFields`), donc « Modifier »
+  et la capture évoluent ensemble.
 - **#2 — choisir quels contacts partir.** Le partage envoie aujourd'hui
   tous les contacts d'une piste, ou aucun. `communityView`
   (`engine/exchange.js`) gagne un paramètre facultatif de contacts retenus

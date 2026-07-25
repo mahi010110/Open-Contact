@@ -124,6 +124,14 @@ Elles ne se contredisent pas — elles parlent de deux appareils.
 Sur ordinateur « Compléter » n'a plus de sens : le formulaire *est*
 complet.
 
+**Fait.** Le formulaire des champs partagés est sorti de « Modifier »
+vers `sharedFieldsHTML` / `bindSharedFields` (`ui/edit.js`) : les deux
+écrans lisent le même, il n'y a rien à tenir en double. Sur ordinateur la
+capture l'affiche en entier, y suit sa grammaire (un libellé par champ,
+contact compris) et valide au **Ctrl/Cmd + Entrée** du composeur — une
+Entrée distraite au milieu d'un long formulaire ne crée pas la piste. Au
+pouce, rien ne bouge : trois champs, `Compléter` + `Suivant`, la rafale.
+
 ## #2 et #1 — un seul mécanisme pour les deux
 
 Ce sont le même écran. Prospecter a déjà : piste cochée + une ligne
