@@ -185,12 +185,26 @@ export function markError(c, tid){
     targets: c.targets.map(t => t.tid === tid ? Object.assign({}, t, { state: 'error' }) : t)
   }));
 }
-/* réponse reçue (à la main ou par le Compagnon) : les relances
-   restantes de CETTE cible sont annulées — non débrayable */
-export function markReplied(c, cid){
+/* Réponse reçue : les relances restantes s'arrêtent — non débrayable.
+   Avec `tid`, SEULE cette personne se tait : viser trois personnes chez
+   Capgemini et voir Marc et Sofia cesser d'être relancés parce que Léa a
+   répondu, c'est perdre deux pistes sans raison. Sans `tid`, toute
+   l'entreprise — c'est le seul signal disponible quand la fiche passe en
+   « réponse » ou que l'ordinateur rapporte une piste : ni l'un ni
+   l'autre ne sait QUI a répondu, et on ne devine pas. */
+export function markReplied(c, cid, tid){
+  const vise = t => t.state === 'active' && (tid ? t.tid === tid : t.cid === cid);
+  return refreshDone(Object.assign({}, c, {
+    targets: c.targets.map(t => vise(t) ? Object.assign({}, t, { state: 'replied' }) : t)
+  }));
+}
+/* « arrêter toute l'entreprise » : quelqu'un y a répondu, on cesse de
+   relancer les autres — sans leur prêter une réponse qu'ils n'ont pas
+   donnée (état `done`, celui d'une cible arrivée au bout). */
+export function stopCompanyTargets(c, cid){
   return refreshDone(Object.assign({}, c, {
     targets: c.targets.map(t => (t.cid === cid && t.state === 'active')
-      ? Object.assign({}, t, { state: 'replied' })
+      ? Object.assign({}, t, { state: 'done' })
       : t)
   }));
 }
@@ -208,9 +222,12 @@ export function stopCampaign(c){
 }
 
 /* ---------- bilan ---------- */
+/* `targets` compte les PERSONNES visées, `pistes` les entreprises — les
+   deux ont divergé le jour où une entreprise a pu en compter plusieurs.
+   Un écran qui dit « 3 pistes » ne doit pas lire `targets`. */
 export function campaignStats(c){
-  const s = { targets: c.targets.length, sent: (c.log || []).length,
-    replied: 0, done: 0, error: 0, active: 0 };
+  const s = { targets: c.targets.length, pistes: new Set(c.targets.map(t => t.cid)).size,
+    sent: (c.log || []).length, replied: 0, done: 0, error: 0, active: 0 };
   for (const t of c.targets) s[t.state === 'active' ? 'active' : t.state]++;
   return s;
 }

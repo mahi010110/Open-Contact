@@ -138,6 +138,10 @@ async function doReconcileCompanion(){
     if (!rec) continue;
     for (const t of c.targets){
       if (t.state === 'replied' && !rec.stops.includes(t.cid)){
+        /* le Compagnon raisonne par PISTE (`arreter-cible` porte un cid) :
+           tant qu'une autre personne de cette entreprise attend un envoi,
+           on ne lui demande rien — sinon il couperait tout le monde */
+        if (c.targets.some(x => x.cid === t.cid && x.state === 'active')) continue;
         try {
           await companionCall(found.base, assoc.k, { t: 'arreter-cible', cid: t.cid });
           rec.stops.push(t.cid);
@@ -291,7 +295,7 @@ export function openCampaignsHome(){
          const st = campaignStats(c);
          return `<button class="pick" data-cid="${esc(c.id)}">
                    <b>${ic('flag', 'ic-14')} ${esc(c.name)}</b>
-                   <span>${stateTxt(c)} · ${st.sent} envoyé${st.sent > 1 ? 's' : ''} · ${st.replied} réponse${st.replied > 1 ? 's' : ''} · ${st.targets} piste${st.targets > 1 ? 's' : ''}</span>
+                   <span>${stateTxt(c)} · ${st.sent} envoyé${st.sent > 1 ? 's' : ''} · ${st.replied} réponse${st.replied > 1 ? 's' : ''} · ${st.pistes} piste${st.pistes > 1 ? 's' : ''}</span>
                  </button>`;
        }).join('')}</div>`;
     sh.body.querySelectorAll('[data-cid]').forEach(b =>
@@ -561,7 +565,7 @@ export function openCampaignDay(c0){
     const st = campaignStats(c);
     const closed = c.state === 'done' || c.state === 'stopped';
     sh.body.innerHTML =
-      `<p class="hint" style="margin:0 0 10px">${st.sent} envoyé${st.sent > 1 ? 's' : ''} · ${st.replied} réponse${st.replied > 1 ? 's' : ''} · ${st.targets} piste${st.targets > 1 ? 's' : ''}</p>
+      `<p class="hint" style="margin:0 0 10px">${st.sent} envoyé${st.sent > 1 ? 's' : ''} · ${st.replied} réponse${st.replied > 1 ? 's' : ''} · ${st.pistes} piste${st.pistes > 1 ? 's' : ''}</p>
        ${closed
          ? `<p class="hint">${c.state === 'done' ? 'Terminée ✓' : 'Arrêtée.'}</p>`
          : `<p class="hint">${ic('zap', 'ic-14')} Confiée à ton ordinateur — les envois partent tout seuls (${DAILY_CAP}/jour, ${SEND_WINDOW_TXT}).</p>
@@ -616,7 +620,7 @@ export function openCampaignDay(c0){
     const inWin = inSendWindow(new Date());
     const closed = c.state === 'done' || c.state === 'stopped';
     sh.body.innerHTML =
-      `<p class="hint" style="margin:0 0 10px">${st.sent} envoyé${st.sent > 1 ? 's' : ''} · ${st.replied} réponse${st.replied > 1 ? 's' : ''} · ${st.targets} piste${st.targets > 1 ? 's' : ''}${c.from ? ' · depuis ' + esc(c.from) : ''}</p>
+      `<p class="hint" style="margin:0 0 10px">${st.sent} envoyé${st.sent > 1 ? 's' : ''} · ${st.replied} réponse${st.replied > 1 ? 's' : ''} · ${st.pistes} piste${st.pistes > 1 ? 's' : ''}${c.from ? ' · depuis ' + esc(c.from) : ''}</p>
        ${c.state === 'paused' ? `<p class="hint warn">En pause — rien ne part.</p>` : ''}
        ${closed ? `<p class="hint">${c.state === 'done' ? 'Terminée ✓' : 'Arrêtée.'} ${st.replied ? '' : 'Marque les réponses sur les fiches quand elles arrivent.'}</p>` : ''}
        ${due.length && !inWin ? `<p class="hint warn">Les envois partent ${SEND_WINDOW_TXT} — ils t’attendent ici.</p>` : ''}

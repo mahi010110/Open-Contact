@@ -16,11 +16,15 @@ function extraSans(extra, prives){
   for (const k of Object.keys(extra)) if (!prives.includes(k)) out[k] = extra[k];
   return Object.keys(out).length ? out : null;
 }
-export function communityView(c){
+/* `keep` (facultatif) : les seuls contacts à faire sortir, par id.
+   Absent ou null = tous, comme avant. Une liste VIDE est un choix, pas
+   un oubli : la fiche part seule, sans personne — « Donner » l'autorise. */
+export function communityView(c, keep){
+  const garder = keep ? new Set(keep) : null;
   const out = {
     name: c.name, city: c.city, domain: c.domain, desc: c.desc, address: c.address,
     website: c.website, techs: c.techs, positions: c.positions, process: c.process, tips: c.tips,
-    contacts: (c.contacts || []).map(t => {
+    contacts: (c.contacts || []).filter(t => !garder || garder.has(t.id)).map(t => {
       const ct = { name: t.name, role: t.role, email: t.email, phone: t.phone, link: t.link, note: t.note, conf: t.conf };
       const ex = extraSans(t.extra, ['activatedAt', 'src']);
       if (ex) ct.extra = ex;
@@ -42,9 +46,9 @@ function b64urlToBytes(s){
   while (s.length % 4) s += '=';
   return b64ToBytes(s);
 }
-export async function encodeOCQ(list){
+export async function encodeOCQ(list, keep){
   if (typeof CompressionStream === 'undefined') throw new Error('noqr');
-  const json = new TextEncoder().encode(JSON.stringify(sharePayload(list)));
+  const json = new TextEncoder().encode(JSON.stringify(sharePayload(list, keep)));
   const stream = new Blob([json]).stream().pipeThrough(new CompressionStream('deflate-raw'));
   return 'OCQ1.' + b64url(new Uint8Array(await new Response(stream).arrayBuffer()));
 }
@@ -165,8 +169,13 @@ export async function parseInput(raw, pass){
 /* enveloppes d'export : « share » ne contient jamais le privé (communityView),
    « full » est la sauvegarde personnelle complète (+ champs optionnels
    `orphans` et `tombs`, ignorés sans casse par les vieux lecteurs) */
-export function sharePayload(list){
-  return { v: 4, app: APP_VERSION, kind: 'share', companies: list.map(communityView) };
+/* `keep` (facultatif) : fonction `piste → [id de contact]` — ce que
+   l'utilisateur a retenu pour CETTE piste. Rend null/undefined pour
+   « tout », ce qui reste le défaut de tous les canaux. Le format `.oc`
+   ne bouge pas : une piste part simplement avec moins de personnes. */
+export function sharePayload(list, keep){
+  const pick = typeof keep === 'function' ? keep : () => null;
+  return { v: 4, app: APP_VERSION, kind: 'share', companies: list.map(c => communityView(c, pick(c))) };
 }
 export function fullPayload(companies, profile, orphans, tombs){
   const out = { v: 4, app: APP_VERSION, kind: 'full', profile, companies };
