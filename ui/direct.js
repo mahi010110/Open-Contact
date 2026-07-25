@@ -24,6 +24,9 @@ import { deviceIn } from '../engine/ring.js';
 import { requireCode } from './verrou.js';
 import { loadCompanion, openAddCompanion, openCompanionSheet, openCompanionPhoneSheet, companionPresence } from './compagnon.js';
 import { whoCandidates, whoLineHTML, openWhoPicker } from './qui.js';
+import { filterCompanies } from '../engine/filter.js';
+import { sortState, sortArgs } from './sort.js';
+import { filterState, filterArgs, affinerBtnHTML, bindAffinerBtn } from './affiner.js';
 
 const isDesktop = () => matchMedia('(min-width:901px)').matches;
 const relayList = async () => {
@@ -460,6 +463,11 @@ export function openPromo(){
       return keepMap.get(c.id);
     };
     const keepFn = c => { const s = keepMap.get(c.id); return s ? [...s] : null; };
+    /* la même liste que « Mes pistes » : elle mérite le même contrôle —
+       il manquait ici, cet écran étant arrivé après les autres (#8) */
+    const st = sortState('recent');
+    const ft = filterState();
+    const listed = () => filterCompanies(mine(), { ...filterArgs(ft), ...sortArgs(st) });
     const refreshStatus = () => {
       const n = chosen().length;
       if (peers) setStatus(`${ic('radio', 'ic-14')} <b>${peers}</b> camarade${peers > 1 ? 's' : ''} dans le groupe`);
@@ -478,8 +486,10 @@ export function openPromo(){
         `<button class="btn btn-primary pr-send" id="prSend"${n ? '' : ' disabled'}>${ic('share', 'ic-14')} Envoyer ${n ? n + ' piste' + (n > 1 ? 's' : '') : '…'}</button>
          <div style="text-align:center;margin-top:6px"><span class="tag-share">jamais le privé</span></div>
          <button class="linklike" id="prPick" style="margin-top:6px">${choosing ? 'Replier la liste' : 'Choisir ce qui part…'}</button>
-         ${choosing ? `<div class="pick-list" style="margin-top:8px">
-           ${mine().map(c =>
+         ${choosing ? `<div class="listbar" style="margin-top:8px">
+           <button class="linklike" id="prAll">Tout cocher / décocher</button>${affinerBtnHTML(ft, st)}</div>
+         <div class="pick-list">
+           ${listed().map(c =>
              `<div class="pk-duo">
                 <button class="pick pk${unsel.has(c.id) ? '' : ' on'}" data-id="${c.id}" aria-pressed="${!unsel.has(c.id)}">
                   ${ic('checkbox', 'ic-20 ic-off')}${ic('checkbox-on', 'ic-20 ic-on')}
@@ -496,6 +506,13 @@ export function openPromo(){
         toast('Parti vers ' + peers + ' camarade' + (peers > 1 ? 's' : '') + ' ✓');
       });
       q('#prPick').addEventListener('click', () => { choosing = !choosing; refreshStatus(); });
+      bindAffinerBtn(zone, ft, st, {}, refreshStatus);
+      q('#prAll')?.addEventListener('click', () => {
+        const all = unsel.size > 0;
+        unsel.clear();
+        if (!all) mine().forEach(c => unsel.add(c.id));
+        refreshStatus();
+      });
       zone.querySelectorAll('[data-who]').forEach(b =>
         b.addEventListener('click', () => {
           const c = mine().find(x => x.id === b.dataset.who);

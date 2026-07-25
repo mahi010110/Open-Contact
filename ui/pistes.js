@@ -13,8 +13,8 @@ import { filterCompanies } from '../engine/filter.js';
 import { S, bus, isClosed, hasDemo, addDemo, ctLabel, deletePiste, undeletePiste,
          removeOrphan, saveOrphans, saveData, logJ } from './state.js';
 import { $, ic, toast, showUndo, bindDeleteGesture, openSheet, softReorder } from './dom.js';
-import { sortState, sortArgs, sortHasDist,
-         sortSectionHTML, bindSortSection, sortChipHTML, bindSortChip } from './sort.js';
+import { openAffinerSheet } from './affiner.js';
+import { sortState, sortArgs, sortHasDist, sortChipHTML, bindSortChip } from './sort.js';
 import { relLabel } from './dates.js';
 import { openFiche } from './fiche.js';
 import { openCapture } from './capture.js';
@@ -159,38 +159,6 @@ function bindBoardDrag(body){
       if (id) moveStatus(id, col.dataset.st);
     });
   });
-}
-
-/* la feuille « Affiner » (#8) : filtres + tri, une seule surface, même
-   grammaire partout — chaque tap s'applique aussitôt, la croix referme.
-   Le statut n'est proposé qu'en liste (le tableau desktop segmente déjà) ;
-   le tri multi-niveaux vit replié dans la section « Trier ». */
-function openAffinerSheet(onChange){
-  const sh = openSheet({ title: 'Affiner', icon: 'filter' });
-  const render = () => {
-    const chips = (grp, defs, cur) => Object.keys(defs).map(k =>
-      `<button class="fl-chip${cur === k ? ' on' : ''}" data-${grp}="${k}" aria-pressed="${cur === k}">
-         <span class="dotc" style="background:${defs[k].color}"></span>${defs[k].label}</button>`).join('');
-    sh.body.innerHTML =
-      `${mqWide.matches ? '' :
-        `<div class="lbl-row"><label>Statut</label></div>
-         <div class="fl-grid">${chips('st', STATUSES, ft.status)}</div>`}
-       <div class="lbl-row"><label>Domaine</label></div>
-       <div class="fl-grid">${chips('dom', DOMAINS, ft.domain)}</div>
-       ${sortSectionHTML(st)}`;
-    sh.body.querySelectorAll('[data-st]').forEach(b =>
-      b.addEventListener('click', () => {
-        ft.status = (ft.status === b.dataset.st) ? '' : b.dataset.st;
-        onChange(); render();
-      }));
-    sh.body.querySelectorAll('[data-dom]').forEach(b =>
-      b.addEventListener('click', () => {
-        ft.domain = (ft.domain === b.dataset.dom) ? '' : b.dataset.dom;
-        onChange(); render();
-      }));
-    bindSortSection(sh.body, st, () => { onChange(); render(); });
-  };
-  render();
 }
 
 /* l'état actif = des puces sous la recherche, un regard suffit (#8) —
@@ -390,7 +358,8 @@ export function renderPistes(){
     bindSortChip(box, st, refresh);
   };
   bindChips(root.querySelector('#piChips'));
-  root.querySelector('#piAffiner').addEventListener('click', () => openAffinerSheet(refresh));
+  root.querySelector('#piAffiner').addEventListener('click', () =>
+    openAffinerSheet(ft, st, { withStatus: !mqWide.matches }, refresh));
   root.querySelector('#piProspect')?.addEventListener('click', openProspect);
   root.querySelector('#piCamps')?.addEventListener('click', openCampaignsHome);
   renderBody();

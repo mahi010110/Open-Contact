@@ -1158,3 +1158,14 @@ body:has(.overlay) .toast{bottom:auto;top:calc(env(safe-area-inset-top) + 62px)}
 .cz-preview{padding:8px 0;border-bottom:1px dashed var(--border-soft);font-size:var(--text-12)}
 .cz-preview:last-child{border-bottom:0}
 .cz-preview .cz-subj{color:var(--text-muted);font-family:var(--font-mono);font-size:var(--text-11)}
+
+/* le compte d'« Affiner » dans les feuilles : la place va à la liste,
+   le bouton dit seulement combien de réglages sont actifs (#8) */
+.icon-btn.af-btn{width:auto;padding:0 8px}
+.af-n{
+  margin-left:5px;padding:0 5px;min-width:16px;
+  display:inline-flex;align-items:center;justify-content:center;
+  background:var(--accent);color:var(--on-navy);
+  font-family:var(--font-mono);font-size:var(--text-11);line-height:1.6;
+  border-radius:var(--radius-1);
+}

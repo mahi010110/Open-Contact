@@ -13,7 +13,8 @@ import { filterCompanies } from '../engine/filter.js';
 import { encryptOC2 } from '../engine/crypto.js';
 import { S, isClosed, logJ } from './state.js';
 import { openSheet, toast, btn, ic, softReorder } from './dom.js';
-import { sortState, sortArgs, sortBarHTML, bindSortBar } from './sort.js';
+import { sortState, sortArgs } from './sort.js';
+import { filterState, filterArgs, affinerBtnHTML, bindAffinerBtn } from './affiner.js';
 import { openRoom, watchLiaison } from './synclive.js';
 import { makeQrSvg } from './qr.js';
 import { whoCandidates, whoLineHTML, openWhoPicker } from './qui.js';
@@ -26,6 +27,7 @@ export function openDonner(){
   if (!alive().length){ toast('Rien à donner pour l’instant — ajoute d’abord une piste.'); return; }
   const unsel = new Set();
   const st = sortState('recent');
+  const ft = filterState();                  /* propre à cet écran (#8) */
   let choosing = false;
   const chosen = () => alive().filter(c => !unsel.has(c.id));
   /* qui part, piste par piste (#2) : tout le monde par défaut — une
@@ -84,10 +86,10 @@ export function openDonner(){
     const renderList = () => {
       const zone = q('#dnList');
       if (!choosing){ zone.hidden = true; zone.innerHTML = ''; syncCount(); return; }
-      const list = filterCompanies(alive(), sortArgs(st));
+      const list = filterCompanies(alive(), { ...filterArgs(ft), ...sortArgs(st) });
       zone.hidden = false;
       zone.innerHTML =
-        `<div class="listbar"><button class="linklike" id="dnAll">Tout cocher / décocher</button>${sortBarHTML(st)}</div>
+        `<div class="listbar"><button class="linklike" id="dnAll">Tout cocher / décocher</button>${affinerBtnHTML(ft, st)}</div>
          <div class="pick-list">
            ${list.map(c =>
              `<div class="pk-duo">
@@ -99,7 +101,7 @@ export function openDonner(){
                 ${whoLineHTML(c, keepOf(c), 'donner')}
               </div>`).join('')}
          </div>`;
-      bindSortBar(zone, st, () => { const play = softReorder('.modal-b .pk'); renderList(); play(); });
+      bindAffinerBtn(zone, ft, st, {}, () => { const play = softReorder('.modal-b .pk'); renderList(); play(); });
       zone.querySelectorAll('.pk').forEach(b =>
         b.addEventListener('click', () => {
           const id = b.dataset.id;

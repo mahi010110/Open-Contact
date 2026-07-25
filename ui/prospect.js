@@ -11,7 +11,8 @@ import { STATUSES, nextActionContact } from '../engine/model.js';
 import { filterCompanies } from '../engine/filter.js';
 import { S, bus, isClosed } from './state.js';
 import { openSheet, toast, btn, ic, softReorder } from './dom.js';
-import { sortState, sortArgs, sortBarHTML, bindSortBar } from './sort.js';
+import { sortState, sortArgs } from './sort.js';
+import { filterState, filterArgs, affinerBtnHTML, bindAffinerBtn } from './affiner.js';
 import { openMail } from './mail.js';
 import { openContactEditor } from './contact.js';
 import { openCampaignWizard } from './campagnes.js';
@@ -31,6 +32,7 @@ export function openProspect(){
   if (!alive().length) return;
   const sel = new Set();
   const st = sortState('status');            /* « À contacter » en tête par défaut */
+  const ft = filterState();                  /* propre à cet écran (#8) */
   const sh = openSheet({ title: 'Prospecter — qui ?', icon: 'mail' });
   const nTodo = alive().filter(c => c.status === 'todo').length;
 
@@ -80,11 +82,11 @@ export function openProspect(){
   });
 
   const render = () => {
-    const list = filterCompanies(alive(), sortArgs(st));
+    const list = filterCompanies(alive(), { ...filterArgs(ft), ...sortArgs(st) });
     sh.body.innerHTML =
       `<div class="listbar">
          ${nTodo ? `<button class="linklike" id="pkAllTodo">Cocher les ${nTodo} « À contacter »</button>` : '<span></span>'}
-         ${sortBarHTML(st)}
+         ${affinerBtnHTML(ft, st)}
        </div>
        <div class="pick-list">
          ${list.map(c =>
@@ -131,7 +133,7 @@ export function openProspect(){
       });
       sync();
     });
-    bindSortBar(sh.body, st, () => { const play = softReorder('.modal-b .pk'); render(); play(); });
+    bindAffinerBtn(sh.body, ft, st, {}, () => { const play = softReorder('.modal-b .pk'); render(); play(); });
     sync();
   };
   sh.setFoot([bGo]);

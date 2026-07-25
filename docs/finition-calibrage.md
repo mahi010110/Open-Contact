@@ -320,3 +320,46 @@ mobile**, sous les 44 px de la règle. C'est le choix déjà fait pour
 « Envoyer directement depuis l'app ? » : les deux liens tiennent sur la
 ligne d'info, ou aucun. À revoir pour les deux ensemble, jamais pour un
 seul.
+
+
+## G — « Affiner » partout, et les filtres posés sur une ligne *(hors des 12)*
+
+Parti des captures du mainteneur. Deux constats, réglés dans cet ordre —
+rendre le filtre bon marché d'abord, le répandre ensuite.
+
+**Les filtres posés.** Trois étiquettes s'empilaient sur trois lignes et
+repoussaient la première piste à 258 px sur un écran de 844. Elles
+tiennent maintenant sur **une ligne qui glisse**, et le ✕ disparaît :
+taper l'étiquette la retire, il faisait déjà exactement ça. Même geste
+pour le tri, qui perd du coup son inversion au tap — inverser se fait là
+où on l'a choisi, en re-tapant le critère dans « Affiner ». Les
+étiquettes passent à `--ctl` : un tap qui supprime ne peut pas viser
+32 px.
+
+⚠️ **Écarté sur décision du mainteneur** : replier « Domaine » dans la
+feuille « Affiner ». Elle lui plaît telle quelle ; sa remarque sur la
+place ne visait que les étiquettes.
+
+**« Affiner » manquait ailleurs.** Trois écrans montrent la MÊME liste de
+pistes : Prospecter, Donner → Choisir…, et le partage en groupe. Les deux
+premiers n'avaient qu'un bouton « Trier » ; le troisième n'avait rien —
+il est arrivé après les autres. Tous trois reçoivent maintenant le même
+« Affiner » (filtre + tri), sorti de `ui/pistes.js` vers `ui/affiner.js`.
+
+**Deux façons de montrer l'état actif, et c'est voulu** (choix du
+mainteneur, capture à l'appui) :
+
+| Où | Comment | Pourquoi |
+|---|---|---|
+| Page « Mes pistes » | des étiquettes sous la recherche | on y vit, un regard doit suffire |
+| Les trois feuilles | un compte dans le bouton (`Affiner ③`) | on y vient faire une chose, la place va à la liste |
+
+C'est « adaptatif, pas responsive » appliqué à un contrôle : deux
+contextes, deux réponses.
+
+**L'état est propre à chaque écran.** Filtrer « cyber » dans Prospecter
+ne touche pas ce que montre « Mes pistes » derrière — comme le tri, déjà.
+
+Laissés de côté : **Recevoir** (ce ne sont pas encore tes pistes —
+filtrer là serait du rangement, pas de l'action) et **Campagnes** (ce sont
+des campagnes, pas des pistes).
