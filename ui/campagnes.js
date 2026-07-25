@@ -406,7 +406,7 @@ export function openCampaignWizard(list){
        <div class="lbl-row" style="margin:10px 0 6px"><label>Qui appuie sur Envoyer ?</label></div>
        <div class="pick-list">
          <button class="pick${draft.auto ? '' : ' on'}" id="czManu" aria-pressed="${!draft.auto}">
-           <b>Je valide chaque jour</b><span>tes envois t’attendent dans « Aujourd’hui »</span></button>
+           <b>Je valide chaque jour</b></button>
          <button class="pick${draft.auto ? ' on' : ''}" id="czAutoOpt" aria-pressed="${draft.auto}">
            <b>Mon ordinateur envoie tout seul</b><span>${compAssoc
              ? 'même app fermée — ' + esc(compAssoc.nom || 'Compagnon')

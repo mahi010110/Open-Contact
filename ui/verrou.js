@@ -560,7 +560,7 @@ export function openManageSheet(){
        <div class="pick-list">
          <button class="pick" id="vgLock"><b>Verrouiller maintenant</b></button>
          <button class="pick" id="vgPin"><b>Changer mon code</b></button>
-         ${bioAvailable() ? `<button class="pick" id="vgBio"><b>${bioEnrolled() ? 'Retirer' : 'Activer'} l’empreinte / le visage</b><span>le code reste le secours</span></button>` : ''}
+         ${bioAvailable() ? `<button class="pick" id="vgBio"><b>${bioEnrolled() ? 'Retirer' : 'Activer'} l’empreinte / le visage</b></button>` : ''}
        </div>
        <button class="linklike" id="vgOff" style="margin-top:14px;color:var(--red)">Ne plus protéger…</button>`;
     const q = s => sh.body.querySelector(s);

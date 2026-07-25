@@ -249,7 +249,7 @@ export function openDonner(){
       `<div class="pick-list">
          ${navigator.share ? `<button class="pick" id="dnShare"><b>${ic('share', 'ic-14')} Partager</b><span>WhatsApp, mail…</span></button>` : ''}
          <button class="pick" id="dnDl"><b>${ic('download', 'ic-14')} Télécharger</b><span>${fname}</span></button>
-         <button class="pick" id="dnCopy"><b>${ic('copy', 'ic-14')} Copier</b><span>à coller où tu veux</span></button>
+         <button class="pick" id="dnCopy"><b>${ic('copy', 'ic-14')} Copier</b></button>
        </div>
        <label class="ckline" style="margin-top:12px"><input type="checkbox" id="dnCrypt"> Chiffrer</label>
        <div class="field" id="dnPassF" hidden>

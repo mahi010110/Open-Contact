@@ -150,9 +150,9 @@ function chooseMode(pairs){
   sh.body.innerHTML =
     `<div class="pick-list">
        <button class="pick" id="pmOne"><b>${ic('mail', 'ic-14')} Une par une</b>
-         <span>tu écris et envoies chaque email maintenant</span></button>
+         <span>maintenant</span></button>
        <button class="pick" id="pmCamp"><b>${ic('flag', 'ic-14')} En campagne</b>
-         <span>un message + 2 relances, préparés pour les jours qui viennent — tu gardes la main</span></button>
+         <span>sur 2 semaines</span></button>
      </div>`;
   sh.body.querySelector('#pmOne').addEventListener('click', () => { sh.close(); run(pairs); });
   sh.body.querySelector('#pmCamp').addEventListener('click', () => { sh.close(); openCampaignWizard(pairs); });

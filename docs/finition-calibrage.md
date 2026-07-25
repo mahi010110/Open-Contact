@@ -75,6 +75,33 @@ Réglages) :
 Restent : les avertissements de sécurité au moment du geste (flux de
 protection, Connexions) — `CLAUDE.md §7` les autorise.
 
+**Deuxième passe (captures du mainteneur).** La première n'avait traité
+que « Moi / Réglages ». Le même défaut vivait dans cinq autres écrans —
+16 boutons, vus en maquette avant / après :
+
+| Écran | Bouton | Devient |
+|---|---|---|
+| Prospecter → bifurcation | Une par une | `maintenant` |
+| Prospecter → bifurcation | En campagne | `sur 2 semaines` |
+| Assistant campagne | Je valide chaque jour | rien |
+| Mes appareils | Retirer de mes appareils | rien |
+| Mes appareils | Verrouiller cet appareil | `à sa prochaine connexion` |
+| Mes appareils | En faire l'appareil principal | rien |
+| Mes appareils | Effacer ses données | `à sa prochaine connexion` |
+| Mes appareils → lier | Créer une phrase · Entrer une phrase | rien |
+| Le Compagnon | Rompre l'association | rien |
+| Protection | Activer l'empreinte / le visage | rien |
+| Recevoir | Analyse en cours · La dernière analyse s'est arrêtée | rien |
+| Recevoir | Ton ordinateur lit tes 7 derniers jours | rien |
+| Recevoir | Les 30 derniers jours | `plus complet` |
+| Donner → fichier | Copier | rien |
+
+**Gardés, et pourquoi** : `en personne` / `à distance` (QR vs fichier),
+`.oc`, `WhatsApp, mail…`, `appareil perdu ou douteux` — ce ne sont pas
+des descriptions, c'est le seul mot qui distingue deux choix, ou qui dit
+*quand* s'en servir. Idem pour les données : nom du fichier, compteurs,
+villes, statuts, dates.
+
 ## B — sauvegarde imposée à la 1re protection
 
 **Abandonnée.** Le mainteneur garde le comportement actuel et s'en

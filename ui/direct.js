@@ -120,15 +120,15 @@ function openDeviceSheet(d, onDone){
   sh.body.innerHTML =
     `<p class="hint" style="margin:0 0 10px">Vu ${agoLabel(d.seen || 0)}. Une commande s’applique quand il se reconnecte.</p>
      <div class="pick-list">
-       <button class="pick" id="dvRemove"><b>Retirer de mes appareils</b><span>il ne se synchronisera plus</span></button>
+       <button class="pick" id="dvRemove"><b>Retirer de mes appareils</b></button>
      </div>
      <details class="srt-adv" style="margin-top:10px">
        <summary>Sécurité avancée</summary>
        <div class="pick-list">
-         <button class="pick" id="dvLock"><b>Verrouiller cet appareil</b><span>il se verrouillera dès qu’il se reconnectera</span></button>
-         <button class="pick" id="dvMain"><b>En faire l’appareil principal</b><span>celui-ci redevient un appareil ordinaire</span></button>
+         <button class="pick" id="dvLock"><b>Verrouiller cet appareil</b><span>à sa prochaine connexion</span></button>
+         <button class="pick" id="dvMain"><b>En faire l’appareil principal</b></button>
          <button class="pick" id="dvBan"><b>Retirer et changer les clés</b><span>appareil perdu ou douteux</span></button>
-         <button class="pick pick-danger" id="dvWipe"><b>Effacer ses données</b><span>de bonne foi — à sa prochaine connexion</span></button>
+         <button class="pick pick-danger" id="dvWipe"><b>Effacer ses données</b><span>à sa prochaine connexion</span></button>
        </div>
      </details>`;
   const q = s => sh.body.querySelector(s);
@@ -308,8 +308,8 @@ export function openAppareils(){
          ? 'Nouvelle phrase = nouveau lien — à retaper sur les autres appareils.'
          : 'Une phrase de liaison, et tes appareils restent à jour — suivi compris.'}</p>
        <div class="pick-list">
-         <button class="pick" id="syNew"><b>${ic('sparkles', 'ic-14')} Créer une phrase</b><span>je commence ici</span></button>
-         <button class="pick" id="syJoin"><b>${ic('switch', 'ic-14')} Entrer une phrase</b><span>j’en ai déjà une</span></button>
+         <button class="pick" id="syNew"><b>${ic('sparkles', 'ic-14')} Créer une phrase</b></button>
+         <button class="pick" id="syJoin"><b>${ic('switch', 'ic-14')} Entrer une phrase</b></button>
        </div>
        ${comp ? `<div class="sy-devs" style="margin-top:14px">
            <div class="lbl-row" style="margin-bottom:6px"><label>Appareils reliés</label></div>
