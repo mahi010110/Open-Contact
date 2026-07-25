@@ -58,21 +58,28 @@ await mPage.click('[data-sort-set="az"]');
 await mPage.screenshot({ path: SHOTS + '/85-pistes-filtre-mobile.png' });
 await mPage.evaluate(async () => (await import('./ui/dom.js')).topSheet()?.close());
 
-/* l'état actif = des puces sous la recherche, la croix enlève */
+/* l'état actif = des puces sous la recherche : UNE ligne, et taper une
+   puce la retire — plus de ✕ à côté, il faisait déjà la même chose */
 const chips = await mPage.evaluate(() =>
-  [...document.querySelectorAll('#piChips .st-chip-b')].map(b => b.textContent.trim()));
+  [...document.querySelectorAll('#piChips .st-chip')].map(b => b.textContent.trim()));
 if (chips.length !== 3) fail('3 puces attendues (statut, domaine, tri) : ' + JSON.stringify(chips));
 if (!/A → Z ↑/.test(chips[2])) fail('la puce de tri porte son sens : ' + chips[2]);
-await mPage.click('#piChips [data-sort-flip]');
-await mPage.waitForFunction(() =>
-  /↓/.test(document.querySelector('#piChips [data-sort-flip]')?.textContent || ''));
+const ligne = await mPage.evaluate(() => {
+  const r = document.querySelector('#piChips .chips-row');
+  return { h: Math.round(r.getBoundingClientRect().height),
+           lignes: new Set([...r.children].map(c => Math.round(c.getBoundingClientRect().top))).size,
+           mini: Math.min(...[...r.children].map(c => Math.round(c.getBoundingClientRect().height))) };
+});
+if (ligne.lignes !== 1) fail('les puces tiennent sur UNE ligne : ' + ligne.lignes);
+if (ligne.mini < 44) fail('puce sous 44 px au pouce : ' + ligne.mini);
+if (await mPage.$('#piChips .st-chip-x')) fail('plus de ✕ : taper la puce suffit');
 await mPage.click('#piChips [data-sort-clear]');
 await mPage.waitForFunction(() =>
   document.querySelectorAll('#piChips .st-chip').length === 2);
-await mPage.evaluate(() => document.querySelectorAll('#piChips .st-chip-x').forEach(x => x.click()));
+await mPage.evaluate(() => document.querySelectorAll('#piChips .st-chip').forEach(x => x.click()));
 await mPage.waitForFunction(() => document.querySelectorAll('#piBody .row-item').length === 4);
-if (await mPage.$('#piChips .st-chip')) fail('les croix doivent tout enlever');
-console.log('Affiner mobile : filtres + tri combinés, puces retirables, sens dans la puce ✓');
+if (await mPage.$('#piChips .st-chip')) fail('taper chaque puce doit tout enlever');
+console.log('Affiner mobile : filtres + tri combinés, une ligne, taper retire ✓');
 
 /* filtre sans résultat : l'écran explique et offre le retour en un tap */
 await mPage.click('#piAffiner');
@@ -101,7 +108,7 @@ if (await dPage.$('.fl-chip[data-st="todo"]')) fail('le statut ne se filtre pas 
 await dPage.click('[data-dom="cyber"]');
 await dPage.waitForFunction(() => document.querySelectorAll('#piBody .bcard').length === 2);
 await dPage.evaluate(async () => (await import('./ui/dom.js')).topSheet()?.close());
-await dPage.click('#piChips .st-chip-x');
+await dPage.click('#piChips .st-chip');
 await dPage.waitForFunction(() => document.querySelectorAll('#piBody .bcard').length === 4);
 console.log('Affiner desktop : domaine seul, appliqué au tableau, puce retirable ✓');
 

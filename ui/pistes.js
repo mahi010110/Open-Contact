@@ -197,14 +197,14 @@ function openAffinerSheet(onChange){
    la croix enlève, taper la puce de tri inverse son sens */
 function chipsRowHTML(){
   const bits = [];
+  /* une étiquette = un bouton : taper la retire. Pas de ✕ à côté — il
+     faisait déjà exactement la même chose. */
   if (ft.status) bits.push(
-    `<span class="st-chip"><button class="st-chip-b" data-clear="st" aria-label="Retirer le filtre ${STATUSES[ft.status].label}">
-       <span class="dotc" style="background:${STATUSES[ft.status].color}"></span>${STATUSES[ft.status].label}</button>
-     <button class="st-chip-x" data-clear-x="st" aria-label="Retirer le filtre">✕</button></span>`);
+    `<button class="st-chip" data-clear="st" aria-label="Retirer le filtre ${STATUSES[ft.status].label}">
+       <span class="dotc" style="background:${STATUSES[ft.status].color}"></span>${STATUSES[ft.status].label}</button>`);
   if (ft.domain) bits.push(
-    `<span class="st-chip"><button class="st-chip-b" data-clear="dom" aria-label="Retirer le filtre ${DOMAINS[ft.domain].label}">
-       <span class="dotc" style="background:${DOMAINS[ft.domain].color}"></span>${DOMAINS[ft.domain].label}</button>
-     <button class="st-chip-x" data-clear-x="dom" aria-label="Retirer le filtre">✕</button></span>`);
+    `<button class="st-chip" data-clear="dom" aria-label="Retirer le filtre ${DOMAINS[ft.domain].label}">
+       <span class="dotc" style="background:${DOMAINS[ft.domain].color}"></span>${DOMAINS[ft.domain].label}</button>`);
   const sc = sortChipHTML(st);
   if (sc) bits.push(sc);
   return bits.length ? `<div class="chips-row">${bits.join('')}</div>` : '';
@@ -380,9 +380,9 @@ export function renderPistes(){
     play();
   };
   const bindChips = box => {
-    box.querySelectorAll('[data-clear], [data-clear-x]').forEach(b =>
+    box.querySelectorAll('[data-clear]').forEach(b =>
       b.addEventListener('click', () => {
-        const grp = b.dataset.clear || b.dataset.clearX;
+        const grp = b.dataset.clear;
         if (grp === 'st') ft.status = '';
         else ft.domain = '';
         refresh();

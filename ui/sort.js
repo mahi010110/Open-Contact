@@ -105,22 +105,18 @@ export function bindSortBar(root, st, onChange){
   });
 }
 
-/* ---------- la puce d'état (Mes pistes) — le sens vit dedans ---------- */
+/* ---------- la puce d'état (Mes pistes) ----------
+   Un bouton, un geste : taper la retire, comme les étiquettes de filtre
+   à côté d'elle. La flèche dit le sens ; l'inverser se fait là où on l'a
+   choisi — en re-tapant le critère dans « Affiner ». */
 export function sortChipHTML(st){
   if (sortIsDefault(st)) return '';
   const names = st.levels.map(l => SORT_LABELS[l.sort]).join(' puis ');
   return (
-    `<span class="st-chip">
-       <button class="st-chip-b" data-sort-flip
-               aria-label="Tri : ${names} — taper pour inverser le sens">${names} ${effDir(st.levels[0]) === 'asc' ? '↑' : '↓'}</button>
-       <button class="st-chip-x" data-sort-clear aria-label="Revenir au tri par défaut">✕</button>
-     </span>`);
+    `<button class="st-chip" data-sort-clear
+             aria-label="Retirer le tri ${names}">${names} ${effDir(st.levels[0]) === 'asc' ? '↑' : '↓'}</button>`);
 }
 export function bindSortChip(box, st, onChange){
-  box.querySelector('[data-sort-flip]')?.addEventListener('click', () => {
-    flipDir(st.levels[0]);
-    onChange();
-  });
   box.querySelector('[data-sort-clear]')?.addEventListener('click', () => {
     st.levels = [{ sort: st.def, dir: '' }];
     onChange();
