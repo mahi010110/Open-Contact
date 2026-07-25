@@ -11,14 +11,14 @@
 import { esc, todayISO } from '../engine/utils.js';
 import { fillTpl, pushHist } from '../engine/model.js';
 import { buildCampaign, dueSends, dueSendsAll, markSent, markReplied, markError,
-         pauseCampaign, resumeCampaign, stopCampaign, campaignStats,
+         stopCompanyTargets, pauseCampaign, resumeCampaign, stopCampaign, campaignStats,
          DAILY_CAP, OPPOSITION, inSendWindow, SEND_WINDOW_TXT } from '../engine/campaign.js';
 import { sendMail } from '../engine/mailer.js';
 import { CAMPAIGNS_KEY, MISSIONS_KEY, kvGet, kvSet } from '../engine/storage.js';
 import { makeMission, signMission } from '../engine/mission.js';
 import { probeCompanion, companionCall } from '../engine/companion.js';
 import { S, bus, saveData, logJ, isClosed } from './state.js';
-import { openSheet, confirmSheet, toast, btn, ic } from './dom.js';
+import { openSheet, confirmSheet, toast, showUndo, btn, ic } from './dom.js';
 import { mailAccount, freshToken, openConnexions } from './connexions.js';
 import { requireCode } from './verrou.js';
 import { loadCompanion } from './compagnon.js';
@@ -316,16 +316,21 @@ const monthName = () => new Date().toLocaleDateString('fr-FR', { month: 'long' }
 export function openCampaignWizard(list){
   const sh = openSheet({ title: 'En campagne', icon: 'flag' });
   const q = s => sh.body.querySelector(s);
-  /* une cible par piste : la personne CHOISIE dans Prospecter (#17) —
-     paires {c, ct} — sinon le premier contact joignable (repli) */
+  /* Une cible par PERSONNE choisie dans Prospecter (#17, #1) : une même
+     entreprise peut en compter plusieurs — paires {c, ct} — sinon le
+     premier contact joignable (repli quand l'appelant donne une piste
+     nue). Une piste sans email n'est écartée qu'une fois. */
   const pairs = (list || []).map(x => (x && x.c) ? x : { c: x, ct: null });
   const targets = [];
   const skipped = [];
   for (const { c, ct: chosen } of pairs){
     const ct = (chosen && chosen.email) ? chosen : (c.contacts || []).find(t => t.email);
     if (ct) targets.push({ cid: c.id, name: ct.name || '', role: ct.role || '', email: ct.email, company: c.name, companyObj: c });
-    else skipped.push(c);
+    else if (!skipped.some(x => x.id === c.id)) skipped.push(c);
   }
+  /* le récap compte les pistes ; les personnes ne s'affichent que
+     lorsqu'elles sont plus nombreuses (Décision 11) */
+  const nPistes = () => new Set(targets.map(t => t.cid)).size;
   let compAssoc = null;   /* association locale, seulement sur l'ordinateur */
   let compRing = null;    /* Compagnon connu de l'anneau, visible aussi du téléphone */
   const companionReady = Promise.all([
@@ -388,7 +393,8 @@ export function openCampaignWizard(list){
       `<div class="cz-recap">
          <b>${esc(draft.name)}</b>
          <div class="cz-lines">
-           <span>${ic('contact', 'ic-14')} ${targets.length} piste${targets.length > 1 ? 's' : ''} · 1 message + 2 relances</span>
+           <span>${ic('contact', 'ic-14')} ${nPistes()} piste${nPistes() > 1 ? 's' : ''}${
+             targets.length === nPistes() ? '' : ' · ' + targets.length + ' personnes'} · 1 message + 2 relances</span>
            <span>${ic('clock', 'ic-14')} ${DAILY_CAP} envois max par jour, ${SEND_WINDOW_TXT}</span>
            <span>${ic('check', 'ic-14')} S’arrête seule si on te répond</span>
            <span>${ic('mail', 'ic-14')} ${draft.auto
@@ -612,6 +618,86 @@ export function openCampaignDay(c0){
     sh.setFoot(null);
   };
 
+  /* ---------- les personnes visées ----------
+     C'est ICI qu'on dit « Léa a répondu » : la fiche, elle, ne connaît
+     que l'entreprise (un statut, pas un nom) — la marquer « réponse »
+     arrête donc tout le monde, et c'est voulu. Depuis cette liste, une
+     réponse ne tait QUE la personne qui l'a donnée ; « arrêter toute
+     l'entreprise » est le geste explicite pour les autres. */
+  /* l'état se lit, le bouton s'appuie : deux mots différents pour ne pas
+     les confondre sur la même ligne */
+  const TETAT = { active: 'en cours', replied: 'réponse reçue', done: 'terminé', error: 'à vérifier' };
+  let whoOpen = false;      /* marquer une réponse ne referme pas le tiroir ouvert */
+  const whoBlockHTML = () => {
+    const grp = [];
+    for (const t of c.targets){
+      let g = grp.find(x => x.cid === t.cid);
+      if (!g) grp.push(g = { cid: t.cid, nom: t.company, gens: [] });
+      g.gens.push(t);
+    }
+    /* une seule personne par entreprise partout : rien à arbitrer */
+    if (!grp.some(g => g.gens.length > 1)) return '';
+    return (
+      `<details class="pcard pcard-details" id="czWho" style="margin-top:14px"${whoOpen ? ' open' : ''}>
+         <summary><h3>${ic('contact', 'ic-14')} Les personnes visées (${c.targets.length})</h3></summary>
+         ${grp.map(g => {
+           const actifs = g.gens.filter(t => t.state === 'active').length;
+           return `<div class="cw-grp">
+             <div class="cw-h"><b>${esc(g.nom)}</b>${actifs > 1
+               ? `<button class="linklike" data-stopc="${esc(g.cid)}">arrêter toute l’entreprise</button>` : ''}</div>
+             ${g.gens.map(t =>
+               `<div class="ec-row"><span class="cw-n">${esc(t.who || t.email)}</span>
+                  <span class="cs-sub">${TETAT[t.state] || t.state}</span>
+                  ${t.state === 'active'
+                    ? `<button class="linklike" data-rep="${esc(t.tid)}">a répondu</button>` : ''}
+                </div>`).join('')}
+           </div>`;
+         }).join('')}
+       </details>`);
+  };
+  const bindWhoBlock = () => {
+    const det = q('#czWho');
+    if (det) det.addEventListener('toggle', () => { whoOpen = det.open; });
+    sh.body.querySelectorAll('[data-rep]').forEach(b =>
+      b.addEventListener('click', async () => {
+        const t = c.targets.find(x => x.tid === b.dataset.rep);
+        if (!t) return;
+        const avant = c;
+        c = markReplied(c, t.cid, t.tid);
+        await persist();
+        const p = S.companies.find(x => x.id === t.cid);
+        if (p) pushHist(p, 'Campagne « ' + c.name + ' » — ' + (t.who || t.email) + ' a répondu, ses relances s’arrêtent.');
+        saveData();
+        render();
+        bus.refresh();
+        showUndo(`${ic('check', 'ic-14')} ${esc(t.who || t.email)} a répondu.`, async () => {
+          c = avant;
+          await persist();
+          render();
+          bus.refresh();
+        });
+      }));
+    sh.body.querySelectorAll('[data-stopc]').forEach(b =>
+      b.addEventListener('click', async () => {
+        const cid = b.dataset.stopc;
+        const avant = c;
+        const nom = (c.targets.find(t => t.cid === cid) || {}).company || '';
+        c = stopCompanyTargets(c, cid);
+        await persist();
+        const p = S.companies.find(x => x.id === cid);
+        if (p) pushHist(p, 'Campagne « ' + c.name + ' » — relances arrêtées pour toute l’entreprise.');
+        saveData();
+        render();
+        bus.refresh();
+        showUndo(`${ic('check', 'ic-14')} ${esc(nom)} — relances arrêtées.`, async () => {
+          c = avant;
+          await persist();
+          render();
+          bus.refresh();
+        });
+      }));
+  };
+
   const render = () => {
     if (c.auto){ renderAuto(); return; }
     const st = campaignStats(c);
@@ -641,7 +727,9 @@ export function openCampaignDay(c0){
           <button class="linklike" id="czStop" style="color:var(--red)">Arrêter la campagne…</button>
         </div>` : ''}
        ${closed && st.active === 0 && st.replied < st.targets
-         ? `<button class="linklike" id="czNoReply">Voir les pistes sans réponse →</button>` : ''}`;
+         ? `<button class="linklike" id="czNoReply">Voir les pistes sans réponse →</button>` : ''}
+       ${whoBlockHTML()}`;
+    bindWhoBlock();
     sh.body.querySelectorAll('[data-send]').forEach(b =>
       b.addEventListener('click', async e => {
         e.preventDefault();

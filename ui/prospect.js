@@ -15,6 +15,7 @@ import { sortState, sortArgs, sortBarHTML, bindSortBar } from './sort.js';
 import { openMail } from './mail.js';
 import { openContactEditor } from './contact.js';
 import { openCampaignWizard } from './campagnes.js';
+import { whoCandidates, whoLineHTML, openWhoPicker } from './qui.js';
 
 /* la personne proposée d'office : celle de la prochaine action, sinon
    la première activée avec email, sinon la première joignable (#14) */
@@ -29,43 +30,54 @@ export function openProspect(){
   const alive = () => S.companies.filter(c => !isClosed(c));
   if (!alive().length) return;
   const sel = new Set();
-  const who = new Map();                     /* pisteId → id du contact choisi */
   const st = sortState('status');            /* « À contacter » en tête par défaut */
   const sh = openSheet({ title: 'Prospecter — qui ?', icon: 'mail' });
   const nTodo = alive().filter(c => c.status === 'todo').length;
 
-  const chosenCt = c => (c.contacts || []).find(t => t.id === who.get(c.id)) || defaultCt(c);
+  /* qui recevra, piste par piste (#1). Écrire n'est pas donner : le
+     défaut reste UNE personne — celle de la prochaine action — sinon un
+     tap enverrait trois candidatures à la même boîte. En ajouter est un
+     geste, jamais un effet de bord. */
+  const keepMap = new Map();
+  const keepOf = c => {
+    if (!keepMap.has(c.id)){
+      const d = defaultCt(c);
+      keepMap.set(c.id, new Set(d ? [d.id] : []));
+    }
+    return keepMap.get(c.id);
+  };
+  const pairsOf = c => {
+    const cand = whoCandidates(c, 'ecrire');
+    /* aucune personne joignable : la piste suit quand même, pour que
+       l'assistant l'écarte À VUE (« 1 piste sans email ») plutôt qu'elle
+       disparaisse en silence ici */
+    if (!cand.length) return [{ c, ct: null }];
+    return cand.filter(t => keepOf(c).has(t.id)).map(ct => ({ c, ct }));
+  };
+  const allPairs = () => alive().filter(c => sel.has(c.id)).flatMap(pairsOf);
+  const nWho = () => allPairs().filter(p => p.ct).length;
+
   const bGo = btn('Continuer', 'btn-primary', () => {
-    const list = alive().filter(c => sel.has(c.id));
-    if (!list.length){ toast('Coche au moins une piste.'); return; }
+    if (!sel.size){ toast('Coche au moins une piste.'); return; }
+    const pairs = allPairs();
+    if (!pairs.some(p => p.ct)){ toast('Choisis au moins une personne.'); return; }
     sh.close();
-    chooseMode(list.map(c => ({ c, ct: chosenCt(c) })));
+    chooseMode(pairs);
   });
   const sync = () => {
-    bGo.textContent = sel.size ? `Continuer (${sel.size})` : 'Continuer';
-    bGo.classList.toggle('btn-off', !sel.size);
+    const n = nWho();
+    bGo.textContent = n ? `Continuer (${n})` : 'Continuer';
+    bGo.classList.toggle('btn-off', !n);
   };
 
-  /* choisir la personne d'une piste — même grammaire qu'ailleurs */
-  const pickWho = c => {
-    const cts = (c.contacts || []).filter(t => t.email);
-    const s2 = openSheet({ title: 'Qui, chez ' + c.name + ' ?', icon: 'contact' });
-    s2.body.innerHTML =
-      `<div class="pick-list">
-         ${cts.map(t =>
-           `<button class="pick${chosenCt(c) === t ? ' on' : ''}" data-ct="${t.id}">
-              <b>${esc(t.name || t.email)}</b>
-              <span>${esc([t.role, t.email].filter(Boolean).join(' · '))}</span>
-            </button>`).join('')}
-         <button class="pick" data-addct><b>${ic('plus', 'ic-14')} Ajouter quelqu’un</b></button>
-       </div>`;
-    s2.body.querySelectorAll('[data-ct]').forEach(b =>
-      b.addEventListener('click', () => { who.set(c.id, b.dataset.ct); s2.close(); render(); }));
-    s2.body.querySelector('[data-addct]').addEventListener('click', () => {
-      s2.close();
-      openContactEditor({ company: c, onDone: () => { sel.add(c.id); render(); } });
-    });
-  };
+  /* choisir les personnes d'une piste — le composant partagé */
+  const pickWho = c => openWhoPicker(c, keepOf(c), {
+    verbe: 'ecrire',
+    /* plus personne de retenu = la piste n'est plus prospectée : le dire
+       tout de suite plutôt que l'écarter en silence au « Continuer » */
+    onChange: keep => { if (!keep.size) sel.delete(c.id); render(); },
+    onAdd: () => openContactEditor({ company: c, onDone: () => { sel.add(c.id); render(); } })
+  });
 
   const render = () => {
     const list = filterCompanies(alive(), sortArgs(st));
@@ -75,28 +87,28 @@ export function openProspect(){
          ${sortBarHTML(st)}
        </div>
        <div class="pick-list">
-         ${list.map(c => {
-           const ct = chosenCt(c);
-           const nMail = (c.contacts || []).filter(t => t.email).length;
-           return `<div class="pk-duo">
-                     <button class="pick pk${sel.has(c.id) ? ' on' : ''}" data-id="${c.id}" aria-pressed="${sel.has(c.id)}">
-                       ${ic('checkbox', 'ic-20 ic-off')}${ic('checkbox-on', 'ic-20 ic-on')}
-                       <div class="pk-m"><b>${esc(c.name)}</b>
-                         <span>${STATUSES[c.status].label}</span></div>
-                     </button>
-                     ${ct
-                       ? `<button class="pk-who" data-who="${c.id}" ${nMail > 1 ? '' : 'disabled'}
-                                  aria-label="Destinataire chez ${esc(c.name)}">
-                            → ${esc(ct.name || ct.email)}${nMail > 1 ? ' ▾' : ''}
-                          </button>`
-                       : `<button class="pk-who pk-add" data-addct="${c.id}">${ic('plus', 'ic-14')} ajoute quelqu’un</button>`}
-                   </div>`;
-         }).join('')}
+         ${list.map(c =>
+           `<div class="pk-duo">
+              <button class="pick pk${sel.has(c.id) ? ' on' : ''}" data-id="${c.id}" aria-pressed="${sel.has(c.id)}">
+                ${ic('checkbox', 'ic-20 ic-off')}${ic('checkbox-on', 'ic-20 ic-on')}
+                <div class="pk-m"><b>${esc(c.name)}</b>
+                  <span>${STATUSES[c.status].label}</span></div>
+              </button>
+              ${whoLineHTML(c, keepOf(c), 'ecrire')}
+            </div>`).join('')}
        </div>`;
     sh.body.querySelectorAll('.pk').forEach(b =>
       b.addEventListener('click', () => {
         const id = b.dataset.id;
-        sel.has(id) ? sel.delete(id) : sel.add(id);
+        if (sel.has(id)){ sel.delete(id); }
+        else {
+          sel.add(id);
+          /* re-cocher une piste dont on avait tout décoché : la personne
+             par défaut revient — sinon « Continuer » l'ignorerait */
+          const c = alive().find(x => x.id === id);
+          const d = c && !keepOf(c).size && defaultCt(c);
+          if (d){ keepOf(c).add(d.id); render(); return; }
+        }
         b.classList.toggle('on', sel.has(id));
         b.setAttribute('aria-pressed', sel.has(id));
         sync();
@@ -126,10 +138,15 @@ export function openProspect(){
   render();
 }
 
-/* la bifurcation : une décision, deux chemins */
+/* la bifurcation : une décision, deux chemins. Le titre compte les
+   pistes, et n'ajoute les personnes que si les deux diffèrent (#1) */
 function chooseMode(pairs){
-  const n = pairs.length;
-  const sh = openSheet({ title: n + ' piste' + (n > 1 ? 's' : '') + ' choisie' + (n > 1 ? 's' : ''), icon: 'mail' });
+  const nP = pairs.length;
+  const nC = new Set(pairs.map(x => x.c.id)).size;
+  const sh = openSheet({
+    title: nC + ' piste' + (nC > 1 ? 's' : '') + (nP === nC ? '' : ' · ' + nP + ' personnes'),
+    icon: 'mail'
+  });
   sh.body.innerHTML =
     `<div class="pick-list">
        <button class="pick" id="pmOne"><b>${ic('mail', 'ic-14')} Une par une</b>

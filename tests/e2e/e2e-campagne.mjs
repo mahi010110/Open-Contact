@@ -161,6 +161,84 @@ const cardTxt = await page.evaluate(() => document.querySelector('.board').textC
 if (!/en campagne/.test(cardTxt)) fail('tag « en campagne » absent du board');
 await settle('36-board-en-campagne');
 
+/* ---------- plusieurs personnes chez la même entreprise (#1) ----------
+   Léa répond : elle seule se tait. Les deux autres restent relançables
+   jusqu'au geste explicite « arrêter toute l'entreprise », qui ne leur
+   prête pas une réponse qu'elles n'ont pas donnée. */
+const mCtx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true });
+const M = await mCtx.newPage();
+M.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
+M.on('pageerror', e => errors.push(String(e)));
+await M.goto(base, { waitUntil: 'load' });
+await M.evaluate(async () => {
+  const st = await import('./engine/storage.js');
+  const { buildCampaign } = await import('./engine/campaign.js');
+  await st.kvInit();
+  await st.kvSet(st.DATA_KEY, JSON.stringify([
+    { id: 'pi-a', name: 'Capgemini', status: 'active', updatedAt: 2, contacts: [
+      { id: 'ct1', name: 'Léa Fontaine', email: 'lea@cap.fr' },
+      { id: 'ct2', name: 'Marc Dubois', email: 'marc@cap.fr' },
+      { id: 'ct3', name: 'Sofia Ben', email: 'sofia@cap.fr' }] },
+    { id: 'pi-b', name: 'OVHcloud', status: 'todo', updatedAt: 1, contacts: [
+      { id: 'ct4', name: 'Nadia K.', email: 'nadia@ovh.fr' }] }
+  ]));
+  const steps = [{ subject: 's0', body: 'b0' }, { subject: 's1', body: 'b1' }, { subject: 's2', body: 'b2' }];
+  await st.kvSet(st.CAMPAIGNS_KEY, JSON.stringify([buildCampaign({
+    steps, launchAt: new Date().toISOString().slice(0, 10), name: 'Prospection — multi',
+    targets: [
+      { cid: 'pi-a', name: 'Léa Fontaine', email: 'lea@cap.fr', company: 'Capgemini' },
+      { cid: 'pi-a', name: 'Marc Dubois', email: 'marc@cap.fr', company: 'Capgemini' },
+      { cid: 'pi-a', name: 'Sofia Ben', email: 'sofia@cap.fr', company: 'Capgemini' },
+      { cid: 'pi-b', name: 'Nadia K.', email: 'nadia@ovh.fr', company: 'OVHcloud' }]
+  })]));
+});
+await M.goto(base + '/#/pistes');
+await M.reload({ waitUntil: 'load' });
+await attendre(M, async () => (await import('./ui/state.js')).S.companies.length === 2,
+  { timeout: 8000, message: 'pistes de la campagne multi' });
+await M.evaluate(async () => {
+  const m = await import('./ui/campagnes.js');
+  await m.loadCampaigns();
+  m.openCampaignsHome();
+});
+await M.waitForSelector('.pick[data-cid]');
+/* la liste compte les PISTES, pas les personnes */
+const resume = (await M.textContent('.pick[data-cid]')).replace(/\s+/g, ' ');
+if (!/2 pistes/.test(resume)) fail('la liste doit compter 2 pistes, pas 4 cibles : ' + resume);
+await M.click('.pick[data-cid]');
+await M.waitForSelector('#czWho');
+await M.click('#czWho summary');
+const etats = () => M.evaluate(() => Object.fromEntries(
+  [...document.querySelectorAll('.cw-grp .ec-row')].map(r => {
+    const t = r.textContent.replace(/\s+/g, ' ').trim();
+    return [r.querySelector('.cw-n').textContent.trim(), t.replace(/^.*?(en cours|réponse reçue|terminé|à vérifier).*$/, '$1')];
+  })));
+await M.click('.cw-grp .ec-row:has-text("Léa Fontaine") [data-rep]');
+await attendre(M, () => /réponse reçue/.test(document.querySelector('.cw-grp .ec-row').textContent),
+  { timeout: 5000, message: 'Léa marquée' });
+const e1 = await etats();
+if (e1['Léa Fontaine'] !== 'réponse reçue') fail('Léa devait se taire : ' + JSON.stringify(e1));
+if (e1['Marc Dubois'] !== 'en cours' || e1['Sofia Ben'] !== 'en cours')
+  fail('les autres devaient continuer : ' + JSON.stringify(e1));
+if (!await M.$('.undo-bar')) fail('un geste lourd et réversible offre « Annuler »');
+if (!/1 réponse/.test(await M.textContent('.modal-b .hint'))) fail('une seule réponse comptée');
+await M.screenshot({ path: SHOTS + '/37-campagne-personnes.png' });
+/* le tiroir reste ouvert : on travaille dedans */
+if (!await M.$('#czWho[open]')) fail('marquer une réponse ne doit pas refermer le tiroir');
+/* arrêter toute l'entreprise : les autres cessent SANS compter comme réponses */
+await M.click('.cw-grp [data-stopc]');
+await attendre(M, () => /terminé/.test(document.querySelector('.cw-grp').textContent),
+  { timeout: 5000, message: 'entreprise arrêtée' });
+const e2 = await etats();
+if (e2['Marc Dubois'] !== 'terminé' || e2['Sofia Ben'] !== 'terminé')
+  fail('« arrêter toute l’entreprise » : ' + JSON.stringify(e2));
+if (e2['Nadia K.'] !== 'en cours') fail('l’autre entreprise n’est pas concernée : ' + JSON.stringify(e2));
+if (!/1 réponse/.test(await M.textContent('.modal-b .hint')))
+  fail('arrêter n’est pas répondre — le compteur doit rester à 1');
+const prets = await M.evaluate(() => [...document.querySelectorAll('.camp-send .cs-m b')].map(x => x.textContent));
+if (String(prets) !== 'Nadia K.') fail('seule Nadia reste à envoyer : ' + prets);
+console.log('plusieurs personnes par entreprise : une réponse n’en tait qu’une ✓');
+
 console.log(errors.length ? 'Erreurs console : ' + errors.join(' | ') : 'Zéro erreur console.');
 if (errors.length) process.exitCode = 1;
 await browser.close();

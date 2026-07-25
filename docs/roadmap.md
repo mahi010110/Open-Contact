@@ -101,20 +101,22 @@ sombre, zéro erreur console, `?test` vert (checklist `CLAUDE.md` §9).
   et un seul bouton — « Terminer ». Le formulaire partagé vit dans
   `ui/edit.js` (`sharedFieldsHTML` / `bindSharedFields`), donc « Modifier »
   et la capture évoluent ensemble.
-- **#2 — choisir quels contacts partir.** Le partage envoie aujourd'hui
-  tous les contacts d'une piste, ou aucun. `communityView`
-  (`engine/exchange.js`) gagne un paramètre facultatif de contacts retenus
-  — rétrocompatible, format `.oc` inchangé — et « Donner » permet de
-  choisir les personnes, pas seulement les pistes.
-- **#1 — viser plusieurs personnes dans la même entreprise.** La
-  prospection ne retient qu'une personne par piste (`who: Map pisteId →
-  contactId`, `ui/prospect.js`). Passage au multi-destinataires avec le
-  motif `.pk` existant (chaque tap bascule, aucun écran de validation
-  ajouté). Côté campagne : une réponse arrête les relances **de cette
-  personne** seulement (`markReplied` s'arrête aujourd'hui à l'entreprise,
-  `engine/campaign.js`), les autres continuent, notification « Nadia a
-  répondu chez Orange », bouton « arrêter toute l'entreprise » dans la
-  carte de campagne, plafond de 15 envois/jour inchangé (global).
+- ~~**#2 — choisir quels contacts partir.**~~ **Fait.** `communityView`
+  et `sharePayload` acceptent les personnes retenues — rétrocompatible,
+  format `.oc` inchangé. La ligne « → qui » de `ui/qui.js` sert les trois
+  chemins de sortie : QR, fichier et partage en groupe.
+- ~~**#1 — viser plusieurs personnes dans la même entreprise.**~~
+  **Fait.** La prospection utilise le même « → qui » que le partage, avec
+  un défaut opposé et assumé : donner part avec tout le monde, écrire vise
+  UNE personne — celle de la prochaine action. Côté campagne, `markReplied`
+  prend un `tid` : une réponse ne tait que la personne qui l'a donnée, et
+  `stopCompanyTargets` arrête les autres sans leur prêter cette réponse.
+  Le tiroir « Les personnes visées » de la feuille du jour porte les deux
+  gestes, réversibles ~30 s. Plafond de 15 envois/jour inchangé (global).
+  **Nuance découverte en codant** : ni la fiche (un statut, pas un nom) ni
+  le rapport du Compagnon (un `cid`) ne savent QUI a répondu — marquer la
+  fiche « réponse » arrête donc toujours toute l'entreprise, et c'est le
+  sens du geste.
 
 **Écarté après vérification.** L'écran « Donner » quand il n'y a que des
 pistes d'exemple : signalé comme muet, il ne l'est pas — un toast dit

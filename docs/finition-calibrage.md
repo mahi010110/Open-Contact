@@ -202,6 +202,36 @@ Le moteur sait déjà faire : chaque cible a son `tid` et son état
 (`engine/campaign.js`). Seul l'assistant de montage écrase à une
 personne par piste. `CONTRAT.md` ne bouge pas.
 
+**Fait**, en trois temps — moteur, partage, prospection.
+
+`ui/qui.js` porte le mécanisme unique : la ligne « → qui » et la
+sous-feuille à cocher, aux quatre endroits (Prospecter, Donner → QR,
+Donner → fichier, partage en groupe).
+
+Deux défauts opposés, et c'est voulu : **donner part avec tout le
+monde** (c'était déjà le cas), **écrire vise UNE personne** — celle de la
+prochaine action. Un tap qui enverrait trois candidatures à la même boîte
+n'est pas un défaut acceptable ; en ajouter reste un geste.
+
+Une précision au libellé : le tableau ci-dessus ne disait rien du cas
+« une seule retenue sur plusieurs ». C'est **le nom**, pas « 1 sur 3 » —
+sinon Prospecter perdrait le destinataire de vue, ce qu'interdit la
+Décision 17 (« jamais un premier email deviné »). Les trois lignes
+calibrées restent vraies telles quelles.
+
+**Le signal de réponse.** Le point aveugle découvert en codant : ni la
+fiche (un statut, pas un nom) ni le rapport du Compagnon (un `cid`) ne
+savent QUI a répondu. Marquer la fiche « réponse » arrête donc toujours
+toute l'entreprise — c'est le sens du geste, et on ne devine pas. La
+granularité par personne vit là où l'information existe : la feuille du
+jour, tiroir « Les personnes visées », un « a répondu » par ligne et
+« arrêter toute l'entreprise » par entreprise. Les deux gestes sont
+réversibles ~30 s (`showUndo`), donc sans confirmation.
+
+Le Compagnon, lui, raisonne par piste (`arreter-cible` porte un `cid`) :
+on ne lui demande d'arrêter une entreprise que lorsque plus personne n'y
+attend d'envoi — sinon il couperait tout le monde.
+
 ## #6 — copier le code du groupe au geste *(bloqué)*
 
 L'écran n'existe qu'une fois un groupe P2P rejoint, ce qui demande des
