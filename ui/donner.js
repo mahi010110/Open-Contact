@@ -16,6 +16,7 @@ import { openSheet, toast, btn, ic, softReorder } from './dom.js';
 import { sortState, sortArgs, sortBarHTML, bindSortBar } from './sort.js';
 import { openRoom, watchLiaison } from './synclive.js';
 import { makeQrSvg } from './qr.js';
+import { whoCandidates, whoLineHTML, openWhoPicker } from './qui.js';
 
 const QR_HARD_MAX = 1800;     /* caractères par QR : au-delà, rendez-vous P2P ou QR animé */
 
@@ -27,6 +28,20 @@ export function openDonner(){
   const st = sortState('recent');
   let choosing = false;
   const chosen = () => alive().filter(c => !unsel.has(c.id));
+  /* qui part, piste par piste (#2) : tout le monde par défaut — une
+     entrée n'apparaît ici que si on y a touché, et `keepFn` rend alors
+     null pour dire « tout », ce que sharePayload attend */
+  const keepMap = new Map();
+  const keepOf = c => {
+    if (!keepMap.has(c.id)) keepMap.set(c.id, new Set(whoCandidates(c, 'donner').map(t => t.id)));
+    return keepMap.get(c.id);
+  };
+  const keepFn = c => { const s = keepMap.get(c.id); return s ? [...s] : null; };
+  /* le compte de personnes n'est utile que s'il est incomplet */
+  const cutCount = () => chosen().reduce((n, c) => {
+    const s = keepMap.get(c.id);
+    return n + (s ? whoCandidates(c, 'donner').length - s.size : 0);
+  }, 0);
   /* salle de rendez-vous éventuelle : fermée à chaque changement d'écran */
   let room = null;
   let rdvWatch = null;     /* honnêteté de la liaison du rendez-vous */
@@ -61,7 +76,9 @@ export function openDonner(){
     const syncCount = () => {
       const k = chosen().length;
       const t = alive().length;
-      q('#dnCount').textContent = (k === t ? k : k + ' / ' + t) + ' piste' + (t > 1 ? 's' : '');
+      const cut = cutCount();
+      q('#dnCount').textContent = (k === t ? k : k + ' / ' + t) + ' piste' + (t > 1 ? 's' : '') +
+        (cut ? ' · ' + cut + ' personne' + (cut > 1 ? 's' : '') + ' écartée' + (cut > 1 ? 's' : '') : '');
       q('#dnPick').textContent = choosing ? 'Replier' : 'Choisir…';
     };
     const renderList = () => {
@@ -73,11 +90,14 @@ export function openDonner(){
         `<div class="listbar"><button class="linklike" id="dnAll">Tout cocher / décocher</button>${sortBarHTML(st)}</div>
          <div class="pick-list">
            ${list.map(c =>
-             `<button class="pick pk${unsel.has(c.id) ? '' : ' on'}" data-id="${c.id}" aria-pressed="${!unsel.has(c.id)}">
-                ${ic('checkbox', 'ic-20 ic-off')}${ic('checkbox-on', 'ic-20 ic-on')}
-                <div class="pk-m"><b>${esc(c.name)}</b>
-                  <span>${STATUSES[c.status].label}${c.city ? ' · ' + esc(c.city) : ''}</span></div>
-              </button>`).join('')}
+             `<div class="pk-duo">
+                <button class="pick pk${unsel.has(c.id) ? '' : ' on'}" data-id="${c.id}" aria-pressed="${!unsel.has(c.id)}">
+                  ${ic('checkbox', 'ic-20 ic-off')}${ic('checkbox-on', 'ic-20 ic-on')}
+                  <div class="pk-m"><b>${esc(c.name)}</b>
+                    <span>${STATUSES[c.status].label}${c.city ? ' · ' + esc(c.city) : ''}</span></div>
+                </button>
+                ${whoLineHTML(c, keepOf(c), 'donner')}
+              </div>`).join('')}
          </div>`;
       bindSortBar(zone, st, () => { const play = softReorder('.modal-b .pk'); renderList(); play(); });
       zone.querySelectorAll('.pk').forEach(b =>
@@ -87,6 +107,11 @@ export function openDonner(){
           b.classList.toggle('on', !unsel.has(id));
           b.setAttribute('aria-pressed', !unsel.has(id));
           syncCount();
+        }));
+      zone.querySelectorAll('[data-who]').forEach(b =>
+        b.addEventListener('click', () => {
+          const c = alive().find(x => x.id === b.dataset.who);
+          if (c) openWhoPicker(c, keepOf(c), { verbe: 'donner', onChange: renderList });
         }));
       zone.querySelector('#dnAll').addEventListener('click', () => {
         const all = unsel.size > 0;
@@ -111,7 +136,7 @@ export function openDonner(){
     const my = enter();
     const n = chosen().length;
     let compact = null;
-    try { compact = await encodeOCQ(chosen()); } catch (e) {}
+    try { compact = await encodeOCQ(chosen(), keepFn); } catch (e) {}
     if (my !== gen) return;
     if (compact && compact.length <= QR_HARD_MAX){ stepQRData(compact, n); return; }
     if (navigator.onLine){ stepQRRdv(compact, n); return; }
@@ -204,7 +229,7 @@ export function openDonner(){
        <button class="linklike" id="dnOffline" style="display:flex;margin:6px auto 0">Sans réseau ? QR hors ligne</button>`;
     q('#dnOffline').addEventListener('click', fallback);
     const give = room.makeAction('give');
-    const payload = sharePayload(chosen());
+    const payload = sharePayload(chosen(), keepFn);
     room.onPeerJoin = () => {
       give.send(payload);
       sent++;
@@ -244,7 +269,7 @@ export function openDonner(){
         q('#dnPass').focus();
         return null;
       }
-      const payload = sharePayload(chosen());
+      const payload = sharePayload(chosen(), keepFn);
       const txt = pass ? await encryptOC2(payload, pass) : JSON.stringify(payload);
       logJ('Donné (fichier' + (pass ? ' chiffré' : '') + ') : ' + n + ' piste(s)');
       return txt;

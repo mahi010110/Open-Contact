@@ -23,6 +23,7 @@ import { getSync, startSync, breakLink, keepMyProfile, makePhrase, openRoom,
 import { deviceIn } from '../engine/ring.js';
 import { requireCode } from './verrou.js';
 import { loadCompanion, openAddCompanion, openCompanionSheet, openCompanionPhoneSheet, companionPresence } from './compagnon.js';
+import { whoCandidates, whoLineHTML, openWhoPicker } from './qui.js';
 
 const isDesktop = () => matchMedia('(min-width:901px)').matches;
 const relayList = async () => {
@@ -439,6 +440,14 @@ export function openPromo(){
     const unsel = new Set();
     const chosen = () => mine().filter(c => !unsel.has(c.id));
     let choosing = false;
+    /* qui part, piste par piste (#2) — c'est le canal le plus exposé :
+       un envoi live à toute une salle, pas un fichier qu'on relit */
+    const keepMap = new Map();
+    const keepOf = c => {
+      if (!keepMap.has(c.id)) keepMap.set(c.id, new Set(whoCandidates(c, 'donner').map(t => t.id)));
+      return keepMap.get(c.id);
+    };
+    const keepFn = c => { const s = keepMap.get(c.id); return s ? [...s] : null; };
     const refreshStatus = () => {
       const n = chosen().length;
       if (peers) setStatus(`${ic('radio', 'ic-14')} <b>${peers}</b> camarade${peers > 1 ? 's' : ''} dans le groupe`);
@@ -459,19 +468,27 @@ export function openPromo(){
          <button class="linklike" id="prPick" style="margin-top:6px">${choosing ? 'Replier la liste' : 'Choisir ce qui part…'}</button>
          ${choosing ? `<div class="pick-list" style="margin-top:8px">
            ${mine().map(c =>
-             `<button class="pick pk${unsel.has(c.id) ? '' : ' on'}" data-id="${c.id}" aria-pressed="${!unsel.has(c.id)}">
-                ${ic('checkbox', 'ic-20 ic-off')}${ic('checkbox-on', 'ic-20 ic-on')}
-                <div class="pk-m"><b>${esc(c.name)}</b>${c.city ? `<span>${esc(c.city)}</span>` : ''}</div>
-              </button>`).join('')}
+             `<div class="pk-duo">
+                <button class="pick pk${unsel.has(c.id) ? '' : ' on'}" data-id="${c.id}" aria-pressed="${!unsel.has(c.id)}">
+                  ${ic('checkbox', 'ic-20 ic-off')}${ic('checkbox-on', 'ic-20 ic-on')}
+                  <div class="pk-m"><b>${esc(c.name)}</b>${c.city ? `<span>${esc(c.city)}</span>` : ''}</div>
+                </button>
+                ${whoLineHTML(c, keepOf(c), 'donner')}
+              </div>`).join('')}
          </div>` : ''}`;
       q('#prSend').addEventListener('click', () => {
         const list = chosen();
         if (!list.length) return;
-        share.send(sharePayload(list));
+        share.send(sharePayload(list, keepFn));
         logJ('Donné (partage en groupe) : ' + list.length + ' piste(s)');
         toast('Parti vers ' + peers + ' camarade' + (peers > 1 ? 's' : '') + ' ✓');
       });
       q('#prPick').addEventListener('click', () => { choosing = !choosing; refreshStatus(); });
+      zone.querySelectorAll('[data-who]').forEach(b =>
+        b.addEventListener('click', () => {
+          const c = mine().find(x => x.id === b.dataset.who);
+          if (c) openWhoPicker(c, keepOf(c), { verbe: 'donner', onChange: refreshStatus });
+        }));
       zone.querySelectorAll('.pk').forEach(b =>
         b.addEventListener('click', () => {
           const id = b.dataset.id;
