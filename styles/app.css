@@ -238,14 +238,6 @@ html[data-theme="dark"] .field select{
 .srt-adv[open]>summary::before{content:'▾'}
 .srt-adv[open]>summary{margin-bottom:8px}
 .srt-dir{font-family:var(--font-mono)}
-.srt-stack{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
-.srt-lv{
-  display:flex;align-items:center;gap:8px;min-height:var(--ctl);
-  background:var(--surface-window);border:1px solid var(--border-strong);
-  border-radius:var(--radius-0);box-shadow:var(--shadow-raised);padding:2px 6px 2px 12px;
-}
-.srt-lv .srt-n{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
-.srt-lv b{flex:1;min-width:0;font-size:var(--text-13)}
 /* feuille « Filtrer » : chips statut/domaine en deux colonnes — un tap
    montre seulement, re-tap de l'actif remontre tout */
 .fl-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:14px}
