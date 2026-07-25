@@ -538,7 +538,7 @@ export function openProtectFlow(){
     /* biométrie : accélérateur optionnel, proposé une fois */
     if (bioAvailable()){
       const okv = await confirmSheet({ title: 'Déverrouiller plus vite ?', icon: 'shield',
-        okLabel: 'Activer', cancelLabel: 'Plus tard',
+        okLabel: 'Activer',
         msg: 'Empreinte ou visage, si ton appareil le propose. Le code reste le secours.' });
       if (okv){
         try { await enrollBio(pin); toast('Activé ✓'); }

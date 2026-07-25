@@ -162,7 +162,7 @@ export function openRecevoir(){
       if (JSON.stringify(obj.companies).length > 4000000) return;
       got = true;
       leaveRdv();
-      mergePreviewInto(sh, obj, { onCancel: menu });
+      mergePreviewInto(sh, obj, { onBack: menu });
     };
     room.onPeerJoin = () => {
       joined = true;
@@ -206,7 +206,7 @@ export function openRecevoir(){
       if (e.message === 'motdepasse') askPass(raw);
       return;
     }
-    mergePreviewInto(sh, obj, Object.assign({ onCancel: menu }, extra || {}));
+    mergePreviewInto(sh, obj, Object.assign({ onBack: menu }, extra || {}));
   };
 
   menu();
@@ -234,7 +234,7 @@ export function openImportMails(){
       toast(ERRS[e.message] || 'Lecture impossible : ' + e.message);
       return;
     }
-    mergePreviewInto(sh, obj, { select: true, onCancel: mails });
+    mergePreviewInto(sh, obj, { select: true, onBack: mails });
   };
 
   const mails = async () => {
@@ -413,20 +413,20 @@ export async function openPendingMailAnalysis(){
   await mergeReadyAnalysisInto(sh, () => sh.close());
 }
 
-async function mergeReadyAnalysisInto(sh, onCancel){
+async function mergeReadyAnalysisInto(sh, onBack){
   const rec = mailAnalysis();
-  if (!rec || rec.state !== 'ready'){ if (onCancel) onCancel(); return; }
+  if (!rec || rec.state !== 'ready'){ if (onBack) onBack(); return; }
   let obj;
   try { obj = await parseInput(rec.result); }
   catch (e) {
     await failMailAnalysis(rec.mid, 'Le résultat mémorisé est devenu illisible.');
     toast('Ce résultat ne peut plus être lu.');
-    if (onCancel) onCancel();
+    if (onBack) onBack();
     return;
   }
   mergePreviewInto(sh, obj, {
     select: true,
-    onCancel,
+    onBack,
     onDone: () => { clearMailAnalysis(rec.mid).catch(() => {}); }
   });
 }
@@ -491,10 +491,10 @@ export function mergePreviewInto(sh, obj, opts){
     }));
   relabel();
   sh.body.querySelector('#rcDiscard')?.addEventListener('click', () => opts.onDiscard());
-  sh.setFoot([
-    btn('Annuler', 'btn-ghost', () => opts.onCancel ? opts.onCancel() : sh.close()),
-    bGo
-  ]);
+  /* « Retour » seulement quand il ramène quelque part (le menu Recevoir,
+     l'écran des e-mails) — c'est la seule exception à « la croix
+     suffit ». Quand il ne ferait que fermer, la croix s'en charge. */
+  sh.setFoot(opts.onBack ? [btn('Retour', 'btn-ghost', () => opts.onBack(), 'arrow-left'), bGo] : [bGo]);
 }
 
 /* ---- « Annuler » ~30 s : l'instantané d'avant fusion, restauré tel quel ---- */

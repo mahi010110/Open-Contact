@@ -222,7 +222,6 @@ export async function openPendingProposals(){
   const { mergePreviewInto } = await import('./recevoir.js');
   mergePreviewInto(sh, obj, {
     select: true,
-    onCancel: () => sh.close(),
     onDone: () => {
       consumeProposal(rec.pid, 'fusion').catch(() => {});
       logJ('Propositions de l’assistant fusionnées (' + rec.n + ' piste' + (rec.n > 1 ? 's' : '') + ')');

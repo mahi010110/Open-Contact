@@ -40,7 +40,7 @@ export function openFiche(c){
     title: c.name, icon: 'briefcase', className: 'modal-fiche',
     guard: () => !dirty() || confirmSheet({
       title: 'Quitter sans enregistrer ?', icon: 'square-alert', danger: true,
-      okLabel: 'Quitter', cancelLabel: 'Rester',
+      okLabel: 'Quitter',
       msg: 'Tes changements ne sont pas enregistrés.'
     })
   });

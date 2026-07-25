@@ -489,7 +489,7 @@ export function openPromo(){
       showing = true;
       const { obj, from } = queue.shift();
       const psh = openSheet({ title: 'Reçu en direct', icon: 'inbox', onClose: () => { showing = false; showNext(); } });
-      mergePreviewInto(psh, obj, { from, onCancel: () => psh.close() });
+      mergePreviewInto(psh, obj, { from });
     };
     share.onMessage = (obj, meta) => {
       if (!obj || obj.kind !== 'share' || !Array.isArray(obj.companies)) return;

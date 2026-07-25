@@ -388,8 +388,10 @@ export function confirmSheet(o){
       body: `<p class="cf-msg">${o.msg || ''}</p>`,
       onClose: v => resolve(!!v)
     });
+    /* pas de bouton d'annulation : la croix de la feuille annule (elle
+       ferme sans valeur, donc la promesse rend false). Un seul bouton,
+       celui qui agit — « un bouton primaire max par vue ». */
     s.setFoot([
-      btn(o.cancelLabel || 'Annuler', 'btn-ghost', () => s.close(false)),
       btn(o.okLabel || 'Confirmer', o.danger ? 'btn-danger' : 'btn-primary', () => s.close(true))
     ]);
   });

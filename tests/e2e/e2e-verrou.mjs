@@ -83,7 +83,7 @@ await page.click('.modal-f button:has-text("Terminer"):not([disabled])');
 await page.waitForSelector('.toast.on', { timeout: 15000 });
 /* refuser la biométrie si proposée */
 const bioSheet = await page.$('.modal-confirm');
-if (bioSheet) await page.click('.modal-f .btn-ghost');
+if (bioSheet) await page.click('.modal-confirm .modal-h .x');   /* la croix refuse (R2) */
 await page.waitForTimeout(400);
 const lbl2 = await page.textContent('#moiVerrou .rg-s');
 if (!/protégé — se verrouille seul/.test(lbl2)) fail('étiquette après création : ' + lbl2);

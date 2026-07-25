@@ -184,7 +184,7 @@ await page.screenshot({ path: SHOTS + '/91-scan-repris-aujourdhui.png' });
 /* Ouvrir puis fermer l'aperçu ne consomme pas le résultat. */
 await page.click('#tdTriage');
 await page.waitForSelector('[data-sel]');
-await page.click('.modal-f .btn-ghost:has-text("Annuler")');
+await page.click('.overlay:last-of-type .modal-h .x');   /* la croix annule (R2) */
 await page.waitForSelector('#tdTriage');
 await page.click('#tdTriage');
 await page.waitForSelector('[data-sel]');
