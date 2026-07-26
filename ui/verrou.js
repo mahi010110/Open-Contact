@@ -217,7 +217,7 @@ function openRecovery(onUnlocked){
          <div class="lk-why">${ic('lock', 'ic-14')} <span>Ton code et ta phrase sont renouvelés.</span></div>
          <div class="lk-why">${ic('save', 'ic-14')} <span>Une nouvelle sauvegarde chiffrée termine le parcours.</span></div>
        </div>
-       <p class="hint">Tes anciennes sauvegardes s’ouvrent toujours avec l’ancienne phrase — détruis celles que tu ne veux plus.</p>`;
+       <p class="hint">Tes anciennes sauvegardes s’ouvrent toujours avec l’ancienne phrase. Détruis celles que tu ne veux plus.</p>`;
     sh.setFoot([btn('Continuer', 'btn-primary', stepNewPin)]);
   };
 
@@ -294,7 +294,7 @@ function phraseCeremony(sh, phrase, onOk){
     sh.setTitle('Ta phrase de secours');
     sh.body.innerHTML =
       `<ol class="phrase-grid">${phrase.split(' ').map(w => `<li>${esc(w)}</li>`).join('')}</ol>
-       <p class="hint warn">Écris-la sur papier. C’est la seule issue si tu oublies ton code.</p>
+       <p class="hint warn">Écris-la sur papier. Sans elle, un code oublié ne se récupère pas.</p>
        <p class="hint">Rien à voir avec ta phrase de liaison d’appareils.</p>`;
     sh.setFoot([btn('Je l’ai écrite', 'btn-primary', verify)]);
   };
@@ -507,7 +507,7 @@ export function openProtectFlow(){
          <div class="lk-why">${ic('shield', 'ic-14')} <span>Tes données et tes secrets chiffrés ici.</span></div>
          <div class="lk-why">${ic('switch', 'ic-14')} <span>Tes appareils sous contrôle.</span></div>
        </div>
-       <p class="hint">Optionnel — l’app reste la même sans. Obligatoire pour connecter une messagerie ou une IA.</p>`;
+       <p class="hint">Optionnel, sauf pour connecter une messagerie ou une IA.</p>`;
     sh.setFoot([btn('Choisir mon code', 'btn-primary', stepPin)]);
   };
 
@@ -538,7 +538,7 @@ export function openProtectFlow(){
     /* biométrie : accélérateur optionnel, proposé une fois */
     if (bioAvailable()){
       const okv = await confirmSheet({ title: 'Déverrouiller plus vite ?', icon: 'shield',
-        okLabel: 'Activer', cancelLabel: 'Plus tard',
+        okLabel: 'Activer',
         msg: 'Empreinte ou visage, si ton appareil le propose. Le code reste le secours.' });
       if (okv){
         try { await enrollBio(pin); toast('Activé ✓'); }
@@ -560,7 +560,7 @@ export function openManageSheet(){
        <div class="pick-list">
          <button class="pick" id="vgLock"><b>Verrouiller maintenant</b></button>
          <button class="pick" id="vgPin"><b>Changer mon code</b></button>
-         ${bioAvailable() ? `<button class="pick" id="vgBio"><b>${bioEnrolled() ? 'Retirer' : 'Activer'} l’empreinte / le visage</b><span>le code reste le secours</span></button>` : ''}
+         ${bioAvailable() ? `<button class="pick" id="vgBio"><b>${bioEnrolled() ? 'Retirer' : 'Activer'} l’empreinte / le visage</b></button>` : ''}
        </div>
        <button class="linklike" id="vgOff" style="margin-top:14px;color:var(--red)">Ne plus protéger…</button>`;
     const q = s => sh.body.querySelector(s);

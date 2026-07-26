@@ -173,11 +173,11 @@ Actuellement en formation {{formation}}, je suis à la recherche d'un stage et l
 [1 à 2 phrases personnalisées : pourquoi cette entreprise, ce que tu peux lui apporter]
 
 Vous trouverez mon CV ici : {{cv}}
-Je reste disponible pour un échange au {{tel}} ou par retour de mail.
+Je reste disponible pour un échange.
 
 Merci pour votre attention,
-{{moi}} — {{email}}` },
-    { id: uid(), name: 'Relance', subject: 'Relance — candidature {{formation}}',
+{{moi}} — {{tel}} — {{email}}` },
+    { id: uid(), name: 'Relance', subject: 'Relance de ma candidature — {{formation}}',
       body: `Bonjour {{contact}},
 
 Je me permets de revenir vers vous au sujet de ma candidature envoyée récemment à {{entreprise}}, restée sans réponse à ce jour.
@@ -261,6 +261,34 @@ export function summarizeChanges(before, after){
   if (after.notes !== before.notes) parts.push('Notes modifiées');
   return parts.join(' · ');
 }
+/* Un jeton sans valeur laissait sa cicatrice dans le message : « en
+   formation , », une signature « — ». Le trou est refermé dans le gabarit
+   AVANT le remplissage : le séparateur collé au jeton vide part avec lui,
+   une ligne « Étiquette : {{jeton}} » saute en entier, une ligne qui ne
+   pesait que des jetons vides disparaît. Une ligne sans jeton vide n'est
+   JAMAIS retouchée — la prose de l'utilisateur reste la sienne, espace
+   avant « ; : ! ? » compris (typographie française). */
+const SEP_AVANT = /[ \t]+[—–·|-][ \t]*\{\{(\w+)\}\}/g;
+const SEP_APRES = /\{\{(\w+)\}\}[ \t]*[—–·|-][ \t]+/g;
+const ETIQUETTE = /:[ \t]*\{\{(\w+)\}\}[ \t]*$/;
+function refermeLigne(ligne, creux){
+  if (!/\{\{(\w+)\}\}/.test(ligne)) return ligne;
+  const troue = ligne.replace(/\{\{(\w+)\}\}/g, (s, k) => creux(k) ? '' : s) !== ligne;
+  if (!troue) return ligne;
+  /* le jeton portait tout ce qui suivait les deux-points : la ligne
+     entière n'a plus de raison d'être */
+  const et = ligne.match(ETIQUETTE);
+  if (et && creux(et[1])) return null;
+  const out = ligne
+    .replace(SEP_AVANT, (s, k) => creux(k) ? '' : s)
+    .replace(SEP_APRES, (s, k) => creux(k) ? '' : s)
+    .replace(/\{\{(\w+)\}\}/g, (s, k) => creux(k) ? '' : s)
+    .replace(/[ \t]+([,.])/g, '$1')
+    .replace(/[ \t]{2,}/g, ' ')
+    .trimEnd();
+  /* il ne reste que de la ponctuation : la ligne ne dit plus rien */
+  return /[\p{L}\p{N}]/u.test(out) ? out : null;
+}
 /* remplit un gabarit {{variable}} avec la piste, le contact visé et le profil */
 export function fillTpl(str, c, ct, profile){
   const m = {
@@ -271,5 +299,9 @@ export function fillTpl(str, c, ct, profile){
     tel: profile.phone || '', email: profile.email || '',
     cv: profile.cvUrl || '', portfolio: profile.portfolio || ''
   };
-  return String(str || '').replace(/\{\{(\w+)\}\}/g, (_, k) => m[k] !== undefined ? m[k] : '');
+  const creux = k => !m[k];
+  return String(str || '')
+    .split('\n').map(l => refermeLigne(l, creux)).filter(l => l !== null).join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/\{\{(\w+)\}\}/g, (_, k) => m[k] || '');
 }

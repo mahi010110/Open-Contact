@@ -12,7 +12,7 @@ import { STATUSES, CLOSE_REASONS, DOMAINS, POSITIONS, pushHist, summarizeChanges
          nextActionContact } from '../engine/model.js';
 import { scoreOf } from '../engine/score.js';
 import { bus, isClosed, saveData, reopenPiste, logJ, activateContact } from './state.js';
-import { openSheet, openPanel, confirmSheet, toast, btn, ic } from './dom.js';
+import { openSheet, confirmSheet, toast, btn, ic } from './dom.js';
 import { frDate, relLabel } from './dates.js';
 import { askNextAction, askClose } from './actions.js';
 import { openMail } from './mail.js';
@@ -34,17 +34,16 @@ export function openFiche(c){
     else draft[f] = v;
   };
 
-  /* desktop : la fiche vit dans le panneau latéral, la liste reste (#10) */
-  const wide = matchMedia('(min-width:901px)').matches;
-  const sh = (wide ? openPanel : openSheet)({
+  /* une seule fenêtre partout : feuille en bas au pouce, fenêtre centrée
+     sur l'ordinateur — jamais un panneau collé au bord */
+  const sh = openSheet({
     title: c.name, icon: 'briefcase', className: 'modal-fiche',
     guard: () => !dirty() || confirmSheet({
       title: 'Quitter sans enregistrer ?', icon: 'square-alert', danger: true,
-      okLabel: 'Quitter', cancelLabel: 'Rester',
+      okLabel: 'Quitter',
       msg: 'Tes changements ne sont pas enregistrés.'
     })
   });
-  if (!sh) return null;   /* un panneau retient encore son garde-fou */
 
   const confirm = () => {
     const before = { status: c.status, notes: c.notes, nextAction: c.nextAction, nextActionText: c.nextActionText };

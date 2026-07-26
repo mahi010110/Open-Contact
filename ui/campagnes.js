@@ -11,14 +11,14 @@
 import { esc, todayISO } from '../engine/utils.js';
 import { fillTpl, pushHist } from '../engine/model.js';
 import { buildCampaign, dueSends, dueSendsAll, markSent, markReplied, markError,
-         pauseCampaign, resumeCampaign, stopCampaign, campaignStats,
+         stopCompanyTargets, pauseCampaign, resumeCampaign, stopCampaign, campaignStats,
          DAILY_CAP, OPPOSITION, inSendWindow, SEND_WINDOW_TXT } from '../engine/campaign.js';
 import { sendMail } from '../engine/mailer.js';
 import { CAMPAIGNS_KEY, MISSIONS_KEY, kvGet, kvSet } from '../engine/storage.js';
 import { makeMission, signMission } from '../engine/mission.js';
 import { probeCompanion, companionCall } from '../engine/companion.js';
 import { S, bus, saveData, logJ, isClosed } from './state.js';
-import { openSheet, openPanel, confirmSheet, toast, btn, ic } from './dom.js';
+import { openSheet, confirmSheet, toast, showUndo, btn, ic } from './dom.js';
 import { mailAccount, freshToken, openConnexions } from './connexions.js';
 import { requireCode } from './verrou.js';
 import { loadCompanion } from './compagnon.js';
@@ -138,6 +138,10 @@ async function doReconcileCompanion(){
     if (!rec) continue;
     for (const t of c.targets){
       if (t.state === 'replied' && !rec.stops.includes(t.cid)){
+        /* le Compagnon raisonne par PISTE (`arreter-cible` porte un cid) :
+           tant qu'une autre personne de cette entreprise attend un envoi,
+           on ne lui demande rien — sinon il couperait tout le monde */
+        if (c.targets.some(x => x.cid === t.cid && x.state === 'active')) continue;
         try {
           await companionCall(found.base, assoc.k, { t: 'arreter-cible', cid: t.cid });
           rec.stops.push(t.cid);
@@ -277,9 +281,10 @@ export function openCampaignById(id){
    L'accès n'existe que s'il y en a (loi #6). */
 export const liveCampaignsCount = () => live().length;
 export function openCampaignsHome(){
+  /* sur l'ordinateur la liste s'efface derrière le jour puis revient
+     (N8) ; au pouce elle se referme — une décision à la fois */
   const wide = matchMedia('(min-width:901px)').matches;
-  const sh = (wide ? openPanel : openSheet)({ title: 'Campagnes', icon: 'flag' });
-  if (!sh) return;
+  const sh = openSheet({ title: 'Campagnes', icon: 'flag' });
   const stateTxt = c => c.state === 'paused' ? 'en pause'
     : c.auto ? 'ton ordinateur s’en occupe' : 'en cours';
   const render = () => {
@@ -290,7 +295,7 @@ export function openCampaignsHome(){
          const st = campaignStats(c);
          return `<button class="pick" data-cid="${esc(c.id)}">
                    <b>${ic('flag', 'ic-14')} ${esc(c.name)}</b>
-                   <span>${stateTxt(c)} · ${st.sent} envoyé${st.sent > 1 ? 's' : ''} · ${st.replied} réponse${st.replied > 1 ? 's' : ''} · ${st.targets} piste${st.targets > 1 ? 's' : ''}</span>
+                   <span>${stateTxt(c)} · ${st.sent} envoyé${st.sent > 1 ? 's' : ''} · ${st.replied} réponse${st.replied > 1 ? 's' : ''} · ${st.pistes} piste${st.pistes > 1 ? 's' : ''}</span>
                  </button>`;
        }).join('')}</div>`;
     sh.body.querySelectorAll('[data-cid]').forEach(b =>
@@ -311,16 +316,21 @@ const monthName = () => new Date().toLocaleDateString('fr-FR', { month: 'long' }
 export function openCampaignWizard(list){
   const sh = openSheet({ title: 'En campagne', icon: 'flag' });
   const q = s => sh.body.querySelector(s);
-  /* une cible par piste : la personne CHOISIE dans Prospecter (#17) —
-     paires {c, ct} — sinon le premier contact joignable (repli) */
+  /* Une cible par PERSONNE choisie dans Prospecter (#17, #1) : une même
+     entreprise peut en compter plusieurs — paires {c, ct} — sinon le
+     premier contact joignable (repli quand l'appelant donne une piste
+     nue). Une piste sans email n'est écartée qu'une fois. */
   const pairs = (list || []).map(x => (x && x.c) ? x : { c: x, ct: null });
   const targets = [];
   const skipped = [];
   for (const { c, ct: chosen } of pairs){
     const ct = (chosen && chosen.email) ? chosen : (c.contacts || []).find(t => t.email);
     if (ct) targets.push({ cid: c.id, name: ct.name || '', role: ct.role || '', email: ct.email, company: c.name, companyObj: c });
-    else skipped.push(c);
+    else if (!skipped.some(x => x.id === c.id)) skipped.push(c);
   }
+  /* le récap compte les pistes ; les personnes ne s'affichent que
+     lorsqu'elles sont plus nombreuses (Décision 11) */
+  const nPistes = () => new Set(targets.map(t => t.cid)).size;
   let compAssoc = null;   /* association locale, seulement sur l'ordinateur */
   let compRing = null;    /* Compagnon connu de l'anneau, visible aussi du téléphone */
   const companionReady = Promise.all([
@@ -354,7 +364,7 @@ export function openCampaignWizard(list){
          <div class="field"><label>Relance 1 (7 jours après l’envoi)</label><div id="czR1"></div></div>
          <div class="field"><label>Relance 2 (7 jours après la relance 1)</label><div id="czR2"></div></div>
        </details>
-       <p class="hint">${ic('lock', 'ic-14')} La mention d’opposition est ajoutée à chaque message — obligatoire, elle ne se retire pas.</p>`;
+       <p class="hint">${ic('lock', 'ic-14')} Chaque message porte la mention d’opposition. Obligatoire.</p>`;
     const fSubj = tplField(q('#czSubj'), { value: draft.subject, sample, multiline: false });
     const fBody = tplField(q('#czBody'), { value: draft.body, sample });
     const fR1 = tplField(q('#czR1'), { value: draft.r1, sample });
@@ -383,7 +393,8 @@ export function openCampaignWizard(list){
       `<div class="cz-recap">
          <b>${esc(draft.name)}</b>
          <div class="cz-lines">
-           <span>${ic('contact', 'ic-14')} ${targets.length} piste${targets.length > 1 ? 's' : ''} · 1 message + 2 relances</span>
+           <span>${ic('contact', 'ic-14')} ${nPistes()} piste${nPistes() > 1 ? 's' : ''}${
+             targets.length === nPistes() ? '' : ' · ' + targets.length + ' personnes'} · 1 message + 2 relances</span>
            <span>${ic('clock', 'ic-14')} ${DAILY_CAP} envois max par jour, ${SEND_WINDOW_TXT}</span>
            <span>${ic('check', 'ic-14')} S’arrête seule si on te répond</span>
            <span>${ic('mail', 'ic-14')} ${draft.auto
@@ -395,7 +406,7 @@ export function openCampaignWizard(list){
        <div class="lbl-row" style="margin:10px 0 6px"><label>Qui appuie sur Envoyer ?</label></div>
        <div class="pick-list">
          <button class="pick${draft.auto ? '' : ' on'}" id="czManu" aria-pressed="${!draft.auto}">
-           <b>Je valide chaque jour</b><span>tes envois t’attendent dans « Aujourd’hui »</span></button>
+           <b>Je valide chaque jour</b></button>
          <button class="pick${draft.auto ? ' on' : ''}" id="czAutoOpt" aria-pressed="${draft.auto}">
            <b>Mon ordinateur envoie tout seul</b><span>${compAssoc
              ? 'même app fermée — ' + esc(compAssoc.nom || 'Compagnon')
@@ -409,7 +420,7 @@ export function openCampaignWizard(list){
        </details>
        ${skipped.length ? `<p class="hint warn">${skipped.length} piste${skipped.length > 1 ? 's' : ''} sans email — écartée${skipped.length > 1 ? 's' : ''} : ${esc(skipped.map(c => c.name).join(', ').slice(0, 120))}</p>` : ''}
        ${acct || compAvailable ? '' : `<p class="hint warn" id="czCxHint">Connecte ta messagerie pour envoyer depuis l’app. <button class="linklike" id="czCx" style="min-height:0;padding:0 4px">Connecter</button></p>`}
-       ${draft.auto ? '' : `<p class="hint">Rien ne part tout seul : chaque jour, tes envois prêts t’attendent dans « Aujourd’hui ».</p>`}`;
+`;
     q('#czCx')?.addEventListener('click', () => openConnexions());
     q('#czManu')?.addEventListener('click', () => { draft.auto = false; stepControl(); });
     q('#czAutoOpt')?.addEventListener('click', () => { draft.auto = true; stepControl(); });
@@ -474,7 +485,7 @@ export function openCampaignWizard(list){
           const ok = await remettreMission(rec);
           sh.close(null, true);
           bus.refresh();
-          toast(ok ? 'Confiée à ton ordinateur ✓ — elle partira toute seule.'
+          toast(ok ? 'Confiée à ton ordinateur ✓'
                    : (compAssoc ? 'Prête — ton ordinateur la prendra à son réveil.'
                                 : 'Prête — ton ordinateur la prendra dès qu’il te rejoint.'));
         } catch (e) {
@@ -560,10 +571,10 @@ export function openCampaignDay(c0){
     const st = campaignStats(c);
     const closed = c.state === 'done' || c.state === 'stopped';
     sh.body.innerHTML =
-      `<p class="hint" style="margin:0 0 10px">${st.sent} envoyé${st.sent > 1 ? 's' : ''} · ${st.replied} réponse${st.replied > 1 ? 's' : ''} · ${st.targets} piste${st.targets > 1 ? 's' : ''}</p>
+      `<p class="hint" style="margin:0 0 10px">${st.sent} envoyé${st.sent > 1 ? 's' : ''} · ${st.replied} réponse${st.replied > 1 ? 's' : ''} · ${st.pistes} piste${st.pistes > 1 ? 's' : ''}</p>
        ${closed
          ? `<p class="hint">${c.state === 'done' ? 'Terminée ✓' : 'Arrêtée.'}</p>`
-         : `<p class="hint">${ic('zap', 'ic-14')} Confiée à ton ordinateur — les envois partent tout seuls (${DAILY_CAP}/jour, ${SEND_WINDOW_TXT}).</p>
+         : `<p class="hint">${ic('zap', 'ic-14')} Ton ordinateur s’en occupe. ${DAILY_CAP} envois par jour, ${SEND_WINDOW_TXT}.</p>
             <p class="hint" id="czCompLive">${ic('clock', 'ic-14')} État de ton ordinateur…</p>
             <button class="linklike" id="czReprendre" style="margin-top:12px">Reprendre la main…</button>`}`;
     (async () => {
@@ -607,6 +618,86 @@ export function openCampaignDay(c0){
     sh.setFoot(null);
   };
 
+  /* ---------- les personnes visées ----------
+     C'est ICI qu'on dit « Léa a répondu » : la fiche, elle, ne connaît
+     que l'entreprise (un statut, pas un nom) — la marquer « réponse »
+     arrête donc tout le monde, et c'est voulu. Depuis cette liste, une
+     réponse ne tait QUE la personne qui l'a donnée ; « arrêter toute
+     l'entreprise » est le geste explicite pour les autres. */
+  /* l'état se lit, le bouton s'appuie : deux mots différents pour ne pas
+     les confondre sur la même ligne */
+  const TETAT = { active: 'en cours', replied: 'réponse reçue', done: 'terminé', error: 'à vérifier' };
+  let whoOpen = false;      /* marquer une réponse ne referme pas le tiroir ouvert */
+  const whoBlockHTML = () => {
+    const grp = [];
+    for (const t of c.targets){
+      let g = grp.find(x => x.cid === t.cid);
+      if (!g) grp.push(g = { cid: t.cid, nom: t.company, gens: [] });
+      g.gens.push(t);
+    }
+    /* une seule personne par entreprise partout : rien à arbitrer */
+    if (!grp.some(g => g.gens.length > 1)) return '';
+    return (
+      `<details class="pcard pcard-details" id="czWho" style="margin-top:14px"${whoOpen ? ' open' : ''}>
+         <summary><h3>${ic('contact', 'ic-14')} Les personnes visées (${c.targets.length})</h3></summary>
+         ${grp.map(g => {
+           const actifs = g.gens.filter(t => t.state === 'active').length;
+           return `<div class="cw-grp">
+             <div class="cw-h"><b>${esc(g.nom)}</b>${actifs > 1
+               ? `<button class="linklike" data-stopc="${esc(g.cid)}">arrêter toute l’entreprise</button>` : ''}</div>
+             ${g.gens.map(t =>
+               `<div class="ec-row"><span class="cw-n">${esc(t.who || t.email)}</span>
+                  <span class="cs-sub">${TETAT[t.state] || t.state}</span>
+                  ${t.state === 'active'
+                    ? `<button class="linklike" data-rep="${esc(t.tid)}">a répondu</button>` : ''}
+                </div>`).join('')}
+           </div>`;
+         }).join('')}
+       </details>`);
+  };
+  const bindWhoBlock = () => {
+    const det = q('#czWho');
+    if (det) det.addEventListener('toggle', () => { whoOpen = det.open; });
+    sh.body.querySelectorAll('[data-rep]').forEach(b =>
+      b.addEventListener('click', async () => {
+        const t = c.targets.find(x => x.tid === b.dataset.rep);
+        if (!t) return;
+        const avant = c;
+        c = markReplied(c, t.cid, t.tid);
+        await persist();
+        const p = S.companies.find(x => x.id === t.cid);
+        if (p) pushHist(p, 'Campagne « ' + c.name + ' » — ' + (t.who || t.email) + ' a répondu, ses relances s’arrêtent.');
+        saveData();
+        render();
+        bus.refresh();
+        showUndo(`${ic('check', 'ic-14')} ${esc(t.who || t.email)} a répondu.`, async () => {
+          c = avant;
+          await persist();
+          render();
+          bus.refresh();
+        });
+      }));
+    sh.body.querySelectorAll('[data-stopc]').forEach(b =>
+      b.addEventListener('click', async () => {
+        const cid = b.dataset.stopc;
+        const avant = c;
+        const nom = (c.targets.find(t => t.cid === cid) || {}).company || '';
+        c = stopCompanyTargets(c, cid);
+        await persist();
+        const p = S.companies.find(x => x.id === cid);
+        if (p) pushHist(p, 'Campagne « ' + c.name + ' » — relances arrêtées pour toute l’entreprise.');
+        saveData();
+        render();
+        bus.refresh();
+        showUndo(`${ic('check', 'ic-14')} ${esc(nom)} — relances arrêtées.`, async () => {
+          c = avant;
+          await persist();
+          render();
+          bus.refresh();
+        });
+      }));
+  };
+
   const render = () => {
     if (c.auto){ renderAuto(); return; }
     const st = campaignStats(c);
@@ -615,10 +706,10 @@ export function openCampaignDay(c0){
     const inWin = inSendWindow(new Date());
     const closed = c.state === 'done' || c.state === 'stopped';
     sh.body.innerHTML =
-      `<p class="hint" style="margin:0 0 10px">${st.sent} envoyé${st.sent > 1 ? 's' : ''} · ${st.replied} réponse${st.replied > 1 ? 's' : ''} · ${st.targets} piste${st.targets > 1 ? 's' : ''}${c.from ? ' · depuis ' + esc(c.from) : ''}</p>
+      `<p class="hint" style="margin:0 0 10px">${st.sent} envoyé${st.sent > 1 ? 's' : ''} · ${st.replied} réponse${st.replied > 1 ? 's' : ''} · ${st.pistes} piste${st.pistes > 1 ? 's' : ''}${c.from ? ' · depuis ' + esc(c.from) : ''}</p>
        ${c.state === 'paused' ? `<p class="hint warn">En pause — rien ne part.</p>` : ''}
-       ${closed ? `<p class="hint">${c.state === 'done' ? 'Terminée ✓' : 'Arrêtée.'} ${st.replied ? '' : 'Marque les réponses sur les fiches quand elles arrivent.'}</p>` : ''}
-       ${due.length && !inWin ? `<p class="hint warn">Les envois partent ${SEND_WINDOW_TXT} — ils t’attendent ici.</p>` : ''}
+       ${closed ? `<p class="hint">${c.state === 'done' ? 'Terminée ✓' : 'Arrêtée.'}</p>` : ''}
+       ${due.length && !inWin ? `<p class="hint warn">Les envois partent ${SEND_WINDOW_TXT}.</p>` : ''}
        ${due.length ? `<div class="lbl-row"><label>Prêts aujourd’hui (${due.length})</label></div>` : ''}
        ${due.map(d =>
          `<details class="camp-send" data-sid="${esc(d.sid)}">
@@ -627,8 +718,8 @@ export function openCampaignDay(c0){
               <button class="btn btn-sm" data-send="${esc(d.sid)}"${inWin ? '' : ' disabled'}>Envoyer</button></summary>
             <div class="cs-body"><b>${esc(d.subject)}</b>\n\n${esc(d.body)}</div>
           </details>`).join('')}
-       ${held > 0 ? `<p class="hint">${held} de plus demain — 15/jour, toutes campagnes confondues.</p>` : ''}
-       ${!due.length && c.state === 'ready' ? `<p class="hint">${ic('check', 'ic-14')} C’est tout pour aujourd’hui — la suite viendra d’elle-même.</p>` : ''}
+       ${held > 0 ? `<p class="hint">${held} de plus demain : 15 envois par jour en tout.</p>` : ''}
+       ${!due.length && c.state === 'ready' ? `<p class="hint">${ic('check', 'ic-14')} C’est tout pour aujourd’hui. Reviens demain.</p>` : ''}
        ${!closed ? `<div style="margin-top:14px;display:flex;gap:10px">
           ${c.state === 'paused'
             ? `<button class="linklike" id="czResume">Reprendre</button>`
@@ -636,7 +727,9 @@ export function openCampaignDay(c0){
           <button class="linklike" id="czStop" style="color:var(--red)">Arrêter la campagne…</button>
         </div>` : ''}
        ${closed && st.active === 0 && st.replied < st.targets
-         ? `<button class="linklike" id="czNoReply">Voir les pistes sans réponse →</button>` : ''}`;
+         ? `<button class="linklike" id="czNoReply">Voir les pistes sans réponse →</button>` : ''}
+       ${whoBlockHTML()}`;
+    bindWhoBlock();
     sh.body.querySelectorAll('[data-send]').forEach(b =>
       b.addEventListener('click', async e => {
         e.preventDefault();

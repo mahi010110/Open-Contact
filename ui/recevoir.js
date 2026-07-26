@@ -162,7 +162,7 @@ export function openRecevoir(){
       if (JSON.stringify(obj.companies).length > 4000000) return;
       got = true;
       leaveRdv();
-      mergePreviewInto(sh, obj, { onCancel: menu });
+      mergePreviewInto(sh, obj, { onBack: menu });
     };
     room.onPeerJoin = () => {
       joined = true;
@@ -206,7 +206,7 @@ export function openRecevoir(){
       if (e.message === 'motdepasse') askPass(raw);
       return;
     }
-    mergePreviewInto(sh, obj, Object.assign({ onCancel: menu }, extra || {}));
+    mergePreviewInto(sh, obj, Object.assign({ onBack: menu }, extra || {}));
   };
 
   menu();
@@ -234,7 +234,7 @@ export function openImportMails(){
       toast(ERRS[e.message] || 'Lecture impossible : ' + e.message);
       return;
     }
-    mergePreviewInto(sh, obj, { select: true, onCancel: mails });
+    mergePreviewInto(sh, obj, { select: true, onBack: mails });
   };
 
   const mails = async () => {
@@ -249,20 +249,17 @@ export function openImportMails(){
       ? `<button class="pick" id="rcLastAnalysis"><b>${ic('sparkles', 'ic-14')} La dernière analyse</b>
            <span>${pending.count} piste${pending.count > 1 ? 's' : ''} proposée${pending.count > 1 ? 's' : ''} à trier</span></button>`
       : (pending.state === 'error'
-        ? `<button class="pick" id="rcAnalysisError"><b>${ic('square-alert', 'ic-14')} La dernière analyse s’est arrêtée</b>
-             <span>voir le détail ou recommencer</span></button>`
-        : `<button class="pick" id="rcCurrentAnalysis"><b>${ic('clock', 'ic-14')} Analyse en cours</b>
-             <span>ton ordinateur continue même si tu fermes cette fenêtre</span></button>`)) : '';
+        ? `<button class="pick" id="rcAnalysisError"><b>${ic('square-alert', 'ic-14')} La dernière analyse s’est arrêtée</b></button>`
+        : `<button class="pick" id="rcCurrentAnalysis"><b>${ic('clock', 'ic-14')} Analyse en cours</b></button>`)) : '';
     sh.body.innerHTML =
       `${pendingPick ? `<div class="pick-list">${pendingPick}</div>` : ''}
        ${assoc ? `
        <div class="pick-list">
-         <button class="pick" id="rcScan7"><b>${ic('zap', 'ic-14')} Ton ordinateur lit tes 7 derniers jours</b>
-           <span>l’IA lit chez toi, propose ici — annulable</span></button>
+         <button class="pick" id="rcScan7"><b>${ic('zap', 'ic-14')} Ton ordinateur lit tes 7 derniers jours</b></button>
          <button class="pick" id="rcScan30"><b>${ic('zap', 'ic-14')} Les 30 derniers jours</b>
-           <span>plus long, plus complet</span></button>
+           <span>plus complet</span></button>
        </div>
-       <p class="hint">${ic('shield', 'ic-14')} Rien ne s’enregistre sans ton accord — chaque proposition se trie.</p>
+       <p class="hint">${ic('shield', 'ic-14')} Rien ne s’enregistre sans ton accord.</p>
        <div class="lbl-row" style="margin:12px 0 6px"><label>ou à la main</label></div>` : ''}
        <div class="pick-list">
          <div class="lk-why">${ic('copy', 'ic-14')} <span>Copie le prompt, colle-le dans ton assistant IA avec tes e-mails.</span></div>
@@ -305,7 +302,7 @@ export function openImportMails(){
       sh.setTitle('Analyse interrompue');
       sh.body.innerHTML =
         `<p class="hint warn" style="margin:8px 0 12px">${ic('square-alert', 'ic-14')} ${esc(rec.error)}</p>
-         <p class="hint">Aucune piste n’a été ajoutée. Tu peux oublier ce résultat puis relancer une lecture.</p>`;
+         <p class="hint">Aucune piste n’a été ajoutée.</p>`;
       sh.setFoot([
         btn('← Retour', 'btn-ghost', mails),
         btn('Oublier et recommencer', 'btn-primary', async () => { await clearMailAnalysis(rec.mid); mails(); })
@@ -413,20 +410,20 @@ export async function openPendingMailAnalysis(){
   await mergeReadyAnalysisInto(sh, () => sh.close());
 }
 
-async function mergeReadyAnalysisInto(sh, onCancel){
+async function mergeReadyAnalysisInto(sh, onBack){
   const rec = mailAnalysis();
-  if (!rec || rec.state !== 'ready'){ if (onCancel) onCancel(); return; }
+  if (!rec || rec.state !== 'ready'){ if (onBack) onBack(); return; }
   let obj;
   try { obj = await parseInput(rec.result); }
   catch (e) {
     await failMailAnalysis(rec.mid, 'Le résultat mémorisé est devenu illisible.');
     toast('Ce résultat ne peut plus être lu.');
-    if (onCancel) onCancel();
+    if (onBack) onBack();
     return;
   }
   mergePreviewInto(sh, obj, {
     select: true,
-    onCancel,
+    onBack,
     onDone: () => { clearMailAnalysis(rec.mid).catch(() => {}); }
   });
 }
@@ -452,7 +449,7 @@ export function mergePreviewInto(sh, obj, opts){
          ${dry.addedCt ? `<li>${ic('contact', 'ic-14')} <b>${dry.addedCt}</b> contact${dry.addedCt > 1 ? 's' : ''} ajouté${dry.addedCt > 1 ? 's' : ''}</li>` : ''}
          ${dry.conflicts ? `<li class="rc-warn">${ic('square-alert', 'ic-14')} <b>${dry.conflicts}</b> divergence${dry.conflicts > 1 ? 's' : ''} — l’existant est gardé</li>` : ''}
        </ul>
-       ${obj.kind === 'full' ? `<p class="hint">${ic('info-box', 'ic-14')} Sauvegarde complète : seules les pistes fusionnent ici. Pour tout restaurer, passe par « Moi ».</p>` : ''}
+       ${obj.kind === 'full' ? `<p class="hint">${ic('info-box', 'ic-14')} Seules les pistes arrivent ici. Pour tout restaurer, va dans « Moi ».</p>` : ''}
        ${opts.select && n ? `<div class="pick-list" style="margin:10px 0 4px">
          ${obj.companies.slice(0, 200).map((c, i) =>
            `<button class="pick pk on" data-sel="${i}" aria-pressed="true">
@@ -461,7 +458,7 @@ export function mergePreviewInto(sh, obj, opts){
                 <span>${esc([c.city, (c.contacts || []).length ? (c.contacts.length + ' contact' + (c.contacts.length > 1 ? 's' : '')) : ''].filter(Boolean).join(' · '))}</span></div>
             </button>`).join('')}
        </div>` : ''}
-       <p class="hint">${ic('shield', 'ic-14')} Rien n’est écrasé, annulable juste après.</p>
+       <p class="hint">${ic('shield', 'ic-14')} Rien n’est écrasé. Tu peux annuler juste après.</p>
        ${opts.onDiscard ? `<button class="linklike" id="rcDiscard">Écarter ces propositions</button>` : ''}
      </div>`;
   const bGo = btn(dry.addedC + dry.enriched + dry.addedCt === 0 ? 'Rien à ajouter' : 'Fusionner', 'btn-primary', () => {
@@ -491,10 +488,10 @@ export function mergePreviewInto(sh, obj, opts){
     }));
   relabel();
   sh.body.querySelector('#rcDiscard')?.addEventListener('click', () => opts.onDiscard());
-  sh.setFoot([
-    btn('Annuler', 'btn-ghost', () => opts.onCancel ? opts.onCancel() : sh.close()),
-    bGo
-  ]);
+  /* « Retour » seulement quand il ramène quelque part (le menu Recevoir,
+     l'écran des e-mails) — c'est la seule exception à « la croix
+     suffit ». Quand il ne ferait que fermer, la croix s'en charge. */
+  sh.setFoot(opts.onBack ? [btn('Retour', 'btn-ghost', () => opts.onBack(), 'arrow-left'), bGo] : [bGo]);
 }
 
 /* ---- « Annuler » ~30 s : l'instantané d'avant fusion, restauré tel quel ---- */

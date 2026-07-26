@@ -88,6 +88,36 @@ await attendre(D, async () => (await import('./ui/state.js')).S.companies.some(c
 console.log('Bureau neuf : les pistes d’exemple se posent ✓');
 await D.screenshot({ path: SHOTS + '/parcours-neuf-bureau-demo.png' });
 
+/* ---------- capture au bureau : le formulaire complet (#3) ---------- */
+await D.click('#btnAddTop');
+await D.waitForSelector('#edName');
+if (await D.$('#cpName')) fail('le bureau ne sert plus le mini-formulaire du pouce');
+const pied = await D.evaluate(() =>
+  [...document.querySelectorAll('.overlay .modal-f .btn')].map(b => b.textContent.trim()));
+if (String(pied) !== 'Terminer') fail('un seul bouton attendu au bureau : ' + JSON.stringify(pied));
+for (const [sel, val] of [['#edName', 'Boulangerie Cyber SARL'], ['#edCity', 'Roubaix'],
+  ['#edTechs', 'SOC, Linux'], ['#cpCtName', 'Sam Roubaix'], ['#cpCtCoord', 'sam@boulangeriecyber.fr']])
+  await D.fill(sel, val);
+await D.selectOption('#edDomain', 'cyber');
+await D.click('.overlay .dchip');                 /* un poste recherché */
+await D.screenshot({ path: SHOTS + '/parcours-neuf-capture-bureau.png' });
+await D.click('.overlay .modal-f .btn-primary');
+await attendre(D, async () =>
+  (await import('./ui/state.js')).S.companies.some(c => c.name === 'Boulangerie Cyber SARL'),
+  { timeout: 6000, message: 'capture au bureau' });
+const neuve = await D.evaluate(async () => {
+  const { S } = await import('./ui/state.js');
+  const c = S.companies.find(x => x.name === 'Boulangerie Cyber SARL') || {};
+  return { city: c.city, domain: c.domain, techs: c.techs, pos: c.positions,
+           ct: (c.contacts || []).map(t => t.email), reste: !!document.querySelector('.overlay') };
+});
+if (neuve.city !== 'Roubaix' || neuve.domain !== 'cyber' || neuve.techs !== 'SOC, Linux')
+  fail('les champs complets ne suivent pas la piste : ' + JSON.stringify(neuve));
+if (!(neuve.pos || []).length) fail('les postes recherchés ne suivent pas : ' + JSON.stringify(neuve.pos));
+if (String(neuve.ct) !== 'sam@boulangeriecyber.fr') fail('le contact ne suit pas : ' + neuve.ct);
+if (neuve.reste) fail('au bureau, « Terminer » ferme — pas de rafale');
+console.log('Capture au bureau : formulaire complet, un seul bouton, tout est retenu ✓');
+
 if (errors.length) fail('erreurs console : ' + JSON.stringify(errors.slice(0, 6)));
 else console.log('Zéro erreur console.');
 console.log(process.exitCode ? 'E2E parcours neuf : ÉCHEC' : 'E2E parcours neuf : OK');

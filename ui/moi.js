@@ -11,10 +11,10 @@ import { fullPayload, parseInput } from '../engine/exchange.js';
 import { encryptOC2 } from '../engine/crypto.js';
 import { fmtSize, todayISO, esc } from '../engine/utils.js';
 import { mergeTombs } from '../engine/sync.js';
-import { docGet } from '../engine/storage.js';
+import { docGet, docPut } from '../engine/storage.js';
 import { listDocs, docKind, docTitle, pickPdf, removeDoc } from './docs.js';
 import { S, bus, saveData, saveProfile, saveOrphans, saveTombs, logJ } from './state.js';
-import { $, ic, toast, btn, openSheet, confirmSheet, showUndo } from './dom.js';
+import { $, ic, toast, btn, openSheet, confirmSheet, showUndo, bindDeleteGesture } from './dom.js';
 import { openProfil, openTemplates } from './profil.js';
 import { openAppareils } from './direct.js';
 import { getSync } from './synclive.js';
@@ -39,24 +39,12 @@ export function downloadBackup(pass){
     S.profile.flags.lastBackupAt = Date.now();
     saveProfile();
     logJ('Copie téléchargée' + (pass ? ' (chiffrée)' : ''));
-    toast('Copie gardée ✓');
+    /* dire lequel des deux : un champ ouvert mais laissé vide donne une
+       copie en clair — le retour ne doit pas laisser croire l'inverse */
+    toast(pass ? 'Copie chiffrée ✓' : 'Copie gardée ✓');
     bus.refresh();
   };
   return doIt();
-}
-
-function openBackupSheet(){
-  const sh = openSheet({ title: 'Copie avec mot de passe', icon: 'save' });
-  sh.body.innerHTML =
-    `<div class="field"><label for="bkPass">Mot de passe</label>
-       <input id="bkPass" type="password" autocomplete="new-password">
-       <p class="hint">Perdu = copie irrécupérable.</p></div>`;
-  sh.setFoot([
-    btn('Garder la copie', 'btn-primary', async () => {
-      await downloadBackup(sh.body.querySelector('#bkPass').value || '');
-      sh.close();
-    }, 'download')
-  ]);
 }
 
 /* ---------- restauration (remplace tout, annulable ~30 s) ---------- */
@@ -126,33 +114,83 @@ function askRestorePass(raw){
   sh.setFoot([btn('Déverrouiller', 'btn-primary', go)]);
 }
 
-/* ---------- CV & lettres : variantes nommées (#4) ---------- */
+/* ---------- CV & lettres : deux tiroirs (#4) ----------
+   La carte ne montre que deux lignes — « CV » et « Lettres » — quel que
+   soit le nombre de documents : elle ne grandit plus. Taper une ligne
+   ouvre la liste de ce type, où vivent l'ajout et les gestes. */
+const DOC_KINDS = {
+  cv: { label: 'CV', add: 'Ajouter un CV', vide: 'Ton CV partira avec tes emails.' },
+  lm: { label: 'Lettres', add: 'Ajouter une lettre', vide: 'Ta lettre partira avec tes emails.' }
+};
+
+function openDocs(kind, onChange){
+  const k = DOC_KINDS[kind];
+  const sh = openSheet({ title: k.label, icon: 'attachment' });
+  const render = async () => {
+    const docs = (await listDocs()).filter(d => docKind(d.key) === kind);
+    if (!sh.body.isConnected) return;
+    sh.body.innerHTML = docs.length
+      ? docs.map(d =>
+          `<div class="doc-row" data-key="${esc(d.key)}">
+             <div class="sw-in">
+               <div class="doc-name" role="button" tabindex="0" aria-label="Voir ${esc(docTitle(d))}">${esc(docTitle(d))}</div>
+               <span class="doc-size">${fmtSize(d.size)}</span>
+             </div>
+           </div>`).join('')
+      : `<p class="doc-vide">${k.vide}</p>`;
+    /* taper le nom ouvre le PDF */
+    sh.body.querySelectorAll('.doc-name').forEach(m => {
+      const open = async () => {
+        const doc = await docGet(m.closest('.doc-row').dataset.key).catch(() => null);
+        if (!doc) return;
+        const url = URL.createObjectURL(new Blob([doc.blob], { type: doc.type || 'application/pdf' }));
+        window.open(url, '_blank', 'noopener');
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+      };
+      m.addEventListener('click', open);
+      m.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); open(); }
+      });
+    });
+    /* retirer : glisser au doigt, poubelle au survol à la souris, jamais
+       de confirmation — la barre « Annuler » rattrape 30 s et le PDF est
+       gardé de côté le temps de la barre (CLAUDE.md §6) */
+    sh.body.querySelectorAll('.doc-row').forEach(row => {
+      const d = docs.find(x => x.key === row.dataset.key);
+      if (!d) return;
+      bindDeleteGesture(row, async () => {
+        await removeDoc(d.key).catch(() => {});
+        render();
+        if (onChange) onChange();
+        showUndo(`${ic('check', 'ic-14')} « ${esc(docTitle(d))} » retiré.`, async () => {
+          const { key, ...val } = d;
+          await docPut(key, val).catch(() => {});
+          render();
+          if (onChange) onChange();
+          toast('Document restauré.');
+        });
+      });
+    });
+    if (onChange) onChange();
+  };
+  sh.setFoot([btn(k.add, 'btn-primary', () => pickPdf(kind, render), 'plus')]);
+  render();
+}
+
 async function renderDocs(){
   const box = $('#moiDocs');
   if (!box) return;
   const docs = await listDocs();
-  box.innerHTML = docs.map(d =>
-    `<div class="doc-row">
-       <span class="doc-name">${ic('attachment', 'ic-14')} <b>${esc(docTitle(d))}</b> · ${docKind(d.key) === 'cv' ? 'CV' : 'lettre'} · ${fmtSize(d.size)}</span>
-       <button class="btn btn-sm" data-see="${esc(d.key)}">Voir</button>
-       <button class="abtn abtn-sm" data-del="${esc(d.key)}" aria-label="Retirer ${esc(docTitle(d))}" title="Retirer">${ic('trash', 'ic-14')}</button>
-     </div>`).join('');
-  box.querySelectorAll('[data-see]').forEach(b =>
-    b.addEventListener('click', async () => {
-      const doc = await docGet(b.dataset.see).catch(() => null);
-      if (!doc) return;
-      const url = URL.createObjectURL(new Blob([doc.blob], { type: doc.type || 'application/pdf' }));
-      window.open(url, '_blank', 'noopener');
-      setTimeout(() => URL.revokeObjectURL(url), 60000);
-    }));
-  box.querySelectorAll('[data-del]').forEach(b =>
-    b.addEventListener('click', async () => {
-      const ok = await confirmSheet({ title: 'Retirer ce document ?', danger: true, okLabel: 'Retirer',
-        msg: 'Retiré de cet appareil seulement.' });
-      if (!ok) return;
-      await removeDoc(b.dataset.del).catch(() => {});
-      renderDocs();
-    }));
+  box.innerHTML = Object.keys(DOC_KINDS).map(kind => {
+    const n = docs.filter(d => docKind(d.key) === kind).length;
+    return `<button class="doc-door" data-kind="${kind}">
+              <span class="doc-door-n">${DOC_KINDS[kind].label}</span>
+              <span class="doc-door-s">${n ? n + ' document' + (n > 1 ? 's' : '') : 'aucun'}</span>
+              ${ic('chevron-right', 'ic-14')}
+            </button>`;
+  }).join('');
+  box.querySelectorAll('[data-kind]').forEach(b =>
+    b.addEventListener('click', () => openDocs(b.dataset.kind, renderDocs)));
 }
 
 /* ---------- l'écran : Profil & données + Réglages (#20) ---------- */
@@ -176,41 +214,37 @@ function backupState(){
   };
 }
 
-/* les lignes de Réglages — noms clairs (#21) : nom + état + geste,
-   aucune explication ici (elle vit sur le 2ᵉ écran). Messagerie et IA
-   exigent le code : sans protection, le bouton dit le vrai premier
-   geste — « Protéger pour… » — au lieu d'un « Connecter » qui refuse
-   ensuite (N9). Le Compagnon a un vrai bouton : Télécharger sur
-   ordinateur, Copier le lien sur téléphone (#21). */
+/* les lignes de Réglages — des portes, plus des boutons (#7) : la ligne
+   entière se tape, le réglage s'ouvre dans sa feuille. C'est la décision
+   #21 (« le nom d'abord, l'écran ensuite ») et la même grammaire que les
+   tiroirs CV / Lettres. Messagerie et IA exigent le code : sans
+   protection, l'ÉTAT dit le vrai premier geste — « à protéger d'abord » —
+   et taper mène quand même à la protection (N9 reste réglé). */
+const rgRow = (id, icon, nom, etat, last) =>
+  `<button class="rg-row${last ? ' rg-last' : ''}" id="${id}">
+     <span class="rg-n">${ic(icon, 'ic-14')}${nom}</span>
+     <span class="rg-s"${id === 'moiSync' ? ' id="moiSyncSt"' : (id === 'moiComp' ? ' id="moiCompSt"' : '')}>${etat}</span>
+     ${ic('chevron-right', 'ic-14')}
+   </button>`;
+
 function reglagesRowsHTML(){
   const prot = isProtected();
   return (
-    `<div class="ec-row">
-       <div class="ec-row-m"><b>${ic('lock', 'ic-14')} Protection</b>
-         <span class="ec-sub">${verrouLabel()}</span></div>
-       <button class="btn" id="moiVerrou">${prot ? 'Gérer' : 'Protéger'}</button>
-     </div>
-     <div class="ec-row">
-       <div class="ec-row-m"><b>${ic('switch', 'ic-14')} Mes appareils</b>
-         <span class="ec-sub" id="moiSyncSt">${syncLabel()}</span></div>
-       <button class="btn" id="moiSync">${getSync().phrase ? 'Gérer' : 'Relier'}</button>
-     </div>
-     <div class="ec-row">
-       <div class="ec-row-m"><b>${ic('mail', 'ic-14')} Ma messagerie</b>
-         <span class="ec-sub">${mailStateLabel()}</span></div>
-       <button class="btn" id="moiCx">${!prot ? 'Protéger pour connecter' : (mailAccount() ? 'Gérer' : 'Connecter')}</button>
-     </div>
-     <div class="ec-row">
-       <div class="ec-row-m"><b>${ic('sparkles', 'ic-14')} Mon assistant IA</b>
-         <span class="ec-sub">${aiStateLabel()}</span></div>
-       <button class="btn" id="moiAi">${!prot ? 'Protéger pour brancher' : (aiConnection() ? 'Gérer' : 'Brancher')}</button>
-     </div>
-     <div class="ec-row" style="border:0">
-       <div class="ec-row-m"><b>${ic('switch', 'ic-14')} Le Compagnon</b>
-         <span class="ec-sub" id="moiCompSt">${mqWideMoi.matches ? 'pas encore installé' : 's’installe sur ton ordinateur'}</span></div>
-       <button class="btn" id="moiComp">${mqWideMoi.matches ? 'Télécharger' : 'Copier le lien'}</button>
-     </div>
-     <div class="rg-foot">
+    rgRow('moiVerrou', 'lock', 'Protection', verrouLabel()) +
+    rgRow('moiSync', 'switch', 'Mes appareils', syncLabel()) +
+    /* le pré-requis ne remplace l'état que s'il n'y a rien à dire : une
+       messagerie déjà branchée le dit, même si le coffre a disparu */
+    rgRow('moiCx', 'mail', 'Ma messagerie',
+          (!prot && !mailAccount()) ? 'à protéger d’abord' : mailStateLabel()) +
+    rgRow('moiAi', 'sparkles', 'Mon assistant IA',
+          (!prot && !aiConnection()) ? 'à protéger d’abord' : aiStateLabel()) +
+    /* #4 : l'éclair distingue le Compagnon de « Mes appareils », qui
+       portaient le même signe. Provisoire — le pack n'a pas d'icône
+       d'ordinateur et zap sert aussi à « Aujourd'hui ». */
+    /* l'état, pas la phrase : « il s'installe sur ton ordinateur » se
+       dit sur le 2ᵉ écran, là où on peut vraiment le faire (#21) */
+    rgRow('moiComp', 'zap', 'Le Compagnon', 'pas installé', true) +
+    `<div class="rg-foot">
        <button class="linklike" id="moiRestore">${ic('reload', 'ic-14')} Restaurer une copie</button>
        <input type="file" id="moiRestoreFile" accept=".oc,.txt,.json,application/octet-stream,application/json,text/plain" hidden>
      </div>`);
@@ -221,9 +255,7 @@ function bindSyncLive(root){
   root.__onSync = () => {
     if (root.hidden){ document.removeEventListener('oc:sync', root.__onSync); root.__onSync = null; return; }
     const lbl = root.querySelector('#moiSyncSt');
-    const b = root.querySelector('#moiSync');
     if (lbl) lbl.textContent = syncLabel();
-    if (b) b.textContent = getSync().phrase ? 'Gérer' : 'Relier';
   };
   document.addEventListener('oc:sync', root.__onSync);
 }
@@ -233,7 +265,7 @@ function bindReglages(box){
   q('#moiVerrou').addEventListener('click', () =>
     isProtected() ? openManageSheet() : openProtectFlow());
   q('#moiSync').addEventListener('click', openAppareils);
-  /* N9 : le bouton a promis « Protéger pour… » — il y va tout droit */
+  /* N9 : l'état a dit « à protéger d'abord » — la ligne y mène tout droit */
   q('#moiCx').addEventListener('click', () =>
     isProtected() ? openConnexions() : openProtectFlow());
   q('#moiAi').addEventListener('click', () =>
@@ -248,11 +280,8 @@ function bindReglages(box){
     } catch (e) { toast('Copie impossible ici — le lien : ' + DIST_PAGE); }
   });
   loadCompanion().then(a => {
-    if (!a) return;
     const st = q('#moiCompSt');
-    const b = q('#moiComp');
-    if (st) st.textContent = 'associé — ' + (a.nom || 'ton ordinateur');
-    if (b) b.textContent = 'Gérer';
+    if (a && st) st.textContent = 'associé — ' + (a.nom || 'ton ordinateur');
   }).catch(() => {});
   const rf = q('#moiRestoreFile');
   /* restaurer = rare et sensible (#4) : rangé ici, le code d'abord */
@@ -292,20 +321,22 @@ export function renderMoi(){
   const bk = backupState();
   const showBackup = !!(S.companies.length || p.name);   /* rien à copier = carte absente */
   const bkPromote = showBackup && !bk.linked && (!bk.last || bk.n > 0);
+  /* l'état, jamais l'explication (A) : un mot, ou un chiffre quand il
+     pousse à agir (décision #11) */
   const bkState = bk.linked
-    ? 'Tes appareils reliés la gardent déjà en double.'
+    ? 'en double'
     : !bk.last
-      ? 'Aucune copie encore.'
+      ? 'aucune copie'
       : bk.n
-        ? `<b>${bk.n} piste${bk.n > 1 ? 's' : ''}</b> depuis ta dernière copie.`
-        : 'À jour.';
+        ? `<b>${bk.n} piste${bk.n > 1 ? 's' : ''}</b> depuis ta copie`
+        : 'à jour';
 
   const cards =
     `<div class="pcard">
        <h3>${ic('user', 'ic-14')} Mon profil</h3>
        <p class="pd">${pReady
-          ? `<b>${esc(p.name)}</b>${p.formation ? ' · ' + esc(p.formation) : ''} — tes emails se signent tout seuls.`
-          : 'Nom, formation, contact : une fois remplis, chaque email part signé et complet.'}</p>
+          ? `<b>${esc(p.name)}</b>${p.formation ? ' · ' + esc(p.formation) : ''}`
+          : 'à remplir'}</p>
        <div class="pc-actions">
          <button class="btn ${pReady ? '' : 'btn-primary'}" id="moiProfil">${ic('pencil', 'ic-14')} ${pReady ? 'Modifier' : 'Remplir mon profil'}</button>
          <button class="btn" id="moiTpl">${ic('mail', 'ic-14')} Modèles d’emails (${p.templates.length})</button>
@@ -313,12 +344,8 @@ export function renderMoi(){
      </div>
 
      <div class="pcard">
-       <h3>${ic('attachment', 'ic-14')} Mes CV &amp; lettres <span class="lbl-soft">PDF, sur cet appareil</span></h3>
+       <h3>${ic('attachment', 'ic-14')} Mes CV &amp; lettres</h3>
        <div id="moiDocs"></div>
-       <div class="pc-actions">
-         <button class="btn btn-sm" id="moiDocCv">${ic('plus', 'ic-14')} CV</button>
-         <button class="btn btn-sm" id="moiDocLm">${ic('plus', 'ic-14')} Lettre</button>
-       </div>
      </div>
 
      ${showBackup ? `
@@ -327,7 +354,12 @@ export function renderMoi(){
        <p class="pd">${bkState}</p>
        <div class="pc-actions">
          <button class="btn ${bkPromote ? 'btn-primary' : ''}" id="moiBackup">${ic('download', 'ic-14')} Garder une copie</button>
-         <button class="linklike" id="moiBackupPass">avec un mot de passe</button>
+         <button class="btn icon-btn bk-lock" id="moiBkLock" aria-pressed="false"
+                 aria-label="Protéger la copie par un mot de passe" title="Protéger par un mot de passe">${ic('lock', 'ic-14')}</button>
+       </div>
+       <div class="bk-line" id="moiBkLine" hidden>
+         <input id="moiBkPass" class="bk-pass" type="password" autocomplete="new-password"
+                placeholder="Mot de passe" aria-label="Mot de passe de la copie">
        </div>
        <div class="stor-line" id="moiStor"></div>
      </div>` : ''}`;
@@ -339,22 +371,36 @@ export function renderMoi(){
 
   root.innerHTML =
     `<div class="page-inner${wide ? ' page-wide' : ''}">
-       <div class="td-head"><h2>Moi</h2><div class="td-date">${ic('lock', 'ic-14')} privé — jamais partagé</div></div>
+       <div class="td-head"><h2>Moi</h2>
+         <div class="td-date" title="privé — jamais partagé" aria-label="privé — jamais partagé">${ic('lock', 'ic-14')}</div></div>
        ${wide
          ? `<div class="moi-cols"><div>${cards}</div><div>${reglages}</div></div>`
          : cards +
            `<button class="pcard moi-door" id="moiReglages">
-              <span class="md-m"><b>${ic('settings-2', 'ic-14')} Réglages</b>
-                <span class="ec-sub">protection · appareils · messagerie · IA · Compagnon</span></span>
+              <span class="md-m"><b>${ic('settings-2', 'ic-14')} Réglages</b></span>
               ${ic('chevron-right', 'ic-14')}
             </button>`}
-       <div class="moi-ver">OpenContact ${APP_VERSION} · local-first, sans compte · fichier .oc</div>
+       <div class="moi-ver">OpenContact ${APP_VERSION}</div>
      </div>`;
 
   root.querySelector('#moiProfil').addEventListener('click', () => openProfil());
   root.querySelector('#moiTpl').addEventListener('click', openTemplates);
-  root.querySelector('#moiBackup')?.addEventListener('click', () => downloadBackup(''));
-  root.querySelector('#moiBackupPass')?.addEventListener('click', openBackupSheet);
+  /* le mot de passe est facultatif : au repos il ne pèse qu'une icône à
+     côté du geste (#8 — l'avancé se replie derrière un signe, jamais une
+     phrase). Tapée, elle ouvre le champ ; re-tapée, elle le referme et
+     l'oublie. Un seul contrôle, deux états (#19-4). */
+  const bkPass = root.querySelector('#moiBkPass');
+  const bkLine = root.querySelector('#moiBkLine');
+  const bkLock = root.querySelector('#moiBkLock');
+  bkLock?.addEventListener('click', () => {
+    const on = bkLine.hidden;
+    bkLine.hidden = !on;
+    bkLock.classList.toggle('on', on);
+    bkLock.setAttribute('aria-pressed', String(on));
+    if (on) bkPass.focus(); else bkPass.value = '';
+  });
+  root.querySelector('#moiBackup')?.addEventListener('click', () =>
+    downloadBackup(bkLine && !bkLine.hidden ? bkPass.value : ''));
   if (wide) bindReglages(root);
   else root.querySelector('#moiReglages').addEventListener('click', () => {
     reglagesOpen = true;
@@ -362,14 +408,12 @@ export function renderMoi(){
     root.scrollTop = 0;
   });
   bindSyncLive(root);
-  root.querySelector('#moiDocCv').addEventListener('click', () => pickPdf('cv', renderDocs));
-  root.querySelector('#moiDocLm').addEventListener('click', () => pickPdf('lm', renderDocs));
   renderDocs();
   if (navigator.storage && navigator.storage.estimate){
     navigator.storage.estimate().then(({ usage, quota }) => {
       if (usage != null && quota){
         const el = $('#moiStor');
-        if (el) el.textContent = 'Espace local utilisé : ' + fmtSize(usage) + ' sur ' + fmtSize(quota) + '.';
+        if (el) el.textContent = fmtSize(usage) + ' sur ' + fmtSize(quota);
       }
     }).catch(() => {});
   }

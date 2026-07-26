@@ -11,7 +11,8 @@ pas d'exception silencieuse.
 `?test`), `docs/refonte-brief.md` (la vision d'origine),
 `docs/degraissage-v6.3.md` (**chantier en cours — fait foi sur ce qu'il
 traite** : suppression au geste, diète de texte, Échanger, tri/ordre),
-`docs/plan-v7.md` (feuille de route), `design/` (kit « Utilitaire 98 »).
+`docs/roadmap.md` (**la feuille de route officielle** — `plan-v7.md` n'en
+est plus que l'historique v6.1), `design/` (kit « Utilitaire 98 »).
 
 ## 1. Le produit en une phrase
 
@@ -84,8 +85,8 @@ espacements, effets) et le kit `design/`.
   pas d'autre pack d'icônes.
 - **Motion (#23)** : les **objets** restent « 98 » — nets, instantanés,
   `steps()` pour le feedback (secousse, bascule d'état). Seul le
-  **déplacement entre états** est doux (feuille qui monte, panneau qui
-  entre, liste qui se réorganise, barre qui se pose) : court, `ease-out`,
+  **déplacement entre états** est doux (feuille qui monte, fenêtre qui se
+  pose, liste qui se réorganise, barre qui arrive) : court, `ease-out`,
   senti sans être vu, jamais décoratif. `transform`/`opacity` uniquement,
   transitions CSS, `prefers-reduced-motion` respecté (coupe tout).
 - **Thème sombre obligatoire** : tout nouvel élément se vérifie dans les

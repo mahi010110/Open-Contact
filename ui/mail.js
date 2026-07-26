@@ -14,7 +14,7 @@ import { bytesToB64 } from '../engine/crypto.js';
 import { docGet } from '../engine/storage.js';
 import { aiComplete, draftPrompt } from '../engine/ai.js';
 import { S, bus, saveData, logJ, activateContact } from './state.js';
-import { openSheet, openPanel, toast, btn, el, ic } from './dom.js';
+import { openSheet, toast, btn, el, ic } from './dom.js';
 import { askNextAction } from './actions.js';
 import { openProfil } from './profil.js';
 import { listDocs, docKind, docTitle, pickPdf } from './docs.js';
@@ -30,15 +30,13 @@ export function openMail(c, opts){
      suivante ; la croix (ou Échap) arrête TOUTE la série immédiatement */
   let done = false;
   const advance = () => { if (opts.onDone){ const f = opts.onDone; opts.onDone = null; f(); } };
-  /* desktop : le composeur prend la place de la fiche dans le panneau
-     (#16, fin du double-modal N8) ; mobile : feuille comme avant */
-  const wide = matchMedia('(min-width:901px)').matches;
-  const sh = (wide ? openPanel : openSheet)({
+  /* le composeur prend la place de la fiche (#16, fin du double-modal
+     N8) : même fenêtre partout, en bas au pouce, centrée sur l'ordinateur */
+  const sh = openSheet({
     title: 'Écrire — ' + c.name + (opts.progress ? '  ·  ' + opts.progress : ''),
     icon: 'mail', focus: cts.length ? '#mSubj' : '#mBody',
     onClose: () => { if (done) return; done = true; if (opts.onQuit) opts.onQuit(); }
   });
-  if (!sh) return;
   const acct = mailAccount();       /* messagerie connectée ? */
   /* la personne choisie arrive pré-sélectionnée (#14) — jamais devinée */
   const initIdx = Math.max(0, cts.findIndex(t => t.id === opts.ctId));
@@ -55,8 +53,7 @@ export function openMail(c, opts){
      <div class="field"><label for="mBody">Message</label><textarea id="mBody" style="min-height:170px"></textarea>
        ${aiConnection() ? `<button class="linklike" id="mAi" style="margin-top:2px">${ic('sparkles', 'ic-14')} Proposer un brouillon</button>` : ''}</div>
      <div class="attach-line" id="mAttach"></div>
-     <p class="hint" id="mHint"></p>
-     ${!S.profile.name ? `<div class="pc-actions"><button class="btn btn-sm" id="mProfil">${ic('pencil', 'ic-14')} Compléter mon profil</button></div>` : ''}`;
+     <p class="hint" id="mHint"></p>`;
 
   const q = s => sh.body.querySelector(s);
   const currentCt = () => cts[+q('#mTo').value] || (c.contacts || [])[0] || null;
@@ -108,6 +105,13 @@ export function openMail(c, opts){
     } else {
       aMail.removeAttribute('href');
       q('#mHint').textContent = 'Pas d’email — Copier, puis LinkedIn ou le site.';
+    }
+    /* profil vide = message sans signature : un lien, au même poids que son
+       voisin, qui s'efface de lui-même dès qu'un nom est saisi */
+    if (!S.profile.name){
+      const b = el(`<button class="linklike" id="mProfil" style="min-height:0;padding:0 4px">Compléter mon profil</button>`);
+      b.addEventListener('click', () => openProfil(() => { if (sh.body.isConnected) fill(); }));
+      q('#mHint').append(' ', b);
     }
     syncFoot();
   }
@@ -287,11 +291,6 @@ export function openMail(c, opts){
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && lastEmail && !sending) doSend();
     });
   }
-  q('#mProfil')?.addEventListener('click', () => openProfil(() => {
-    if (!sh.body.isConnected) return;
-    fill();
-    if (S.profile.name) q('#mProfil')?.remove();
-  }));
   fill();
   renderAttach();
 }

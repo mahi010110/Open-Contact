@@ -220,7 +220,7 @@ export function openCompanionSheet(assoc, onDone){
     `<p class="hint" id="cgLive" style="margin:0 0 10px">${ic('clock', 'ic-14')} État…</p>
      <div class="pick-list">
        <button class="pick" id="cgMcp"><b>${ic('sparkles', 'ic-14')} Ton assistant IA</b><span id="cgMcpSt">état…</span></button>
-       <button class="pick pick-danger" id="cgBreak"><b>Rompre l’association</b><span>il ne recevra plus de missions</span></button>
+       <button class="pick pick-danger" id="cgBreak"><b>Rompre l’association</b></button>
      </div>
      <p class="hint" style="margin-top:10px">Depuis ton téléphone : dans une campagne,
         « Mon ordinateur envoie tout seul » — il la prend dès qu’il te rejoint.</p>`;

@@ -23,8 +23,7 @@ export function renderEchanger(){
 
        <div class="pcard">
          <div class="ec-row" style="border:0;padding:2px 0">
-           <div class="ec-row-m"><b>${ic('radio', 'ic-14')} Partage en groupe</b>
-             <span class="ec-sub">la promo en direct</span></div>
+           <div class="ec-row-m"><b>${ic('radio', 'ic-14')} Partage en groupe</b></div>
            <button class="btn" id="ecPromo">Entrer</button>
          </div>
        </div>

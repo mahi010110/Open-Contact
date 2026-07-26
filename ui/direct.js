@@ -23,6 +23,10 @@ import { getSync, startSync, breakLink, keepMyProfile, makePhrase, openRoom,
 import { deviceIn } from '../engine/ring.js';
 import { requireCode } from './verrou.js';
 import { loadCompanion, openAddCompanion, openCompanionSheet, openCompanionPhoneSheet, companionPresence } from './compagnon.js';
+import { whoCandidates, whoLineHTML, openWhoPicker } from './qui.js';
+import { filterCompanies } from '../engine/filter.js';
+import { sortState, sortArgs } from './sort.js';
+import { filterState, filterArgs, affinerBtnHTML, bindAffinerBtn } from './affiner.js';
 
 const isDesktop = () => matchMedia('(min-width:901px)').matches;
 const relayList = async () => {
@@ -119,15 +123,15 @@ function openDeviceSheet(d, onDone){
   sh.body.innerHTML =
     `<p class="hint" style="margin:0 0 10px">Vu ${agoLabel(d.seen || 0)}. Une commande s’applique quand il se reconnecte.</p>
      <div class="pick-list">
-       <button class="pick" id="dvRemove"><b>Retirer de mes appareils</b><span>il ne se synchronisera plus</span></button>
+       <button class="pick" id="dvRemove"><b>Retirer de mes appareils</b></button>
      </div>
      <details class="srt-adv" style="margin-top:10px">
        <summary>Sécurité avancée</summary>
        <div class="pick-list">
-         <button class="pick" id="dvLock"><b>Verrouiller cet appareil</b><span>il se verrouillera dès qu’il se reconnectera</span></button>
-         <button class="pick" id="dvMain"><b>En faire l’appareil principal</b><span>celui-ci redevient un appareil ordinaire</span></button>
+         <button class="pick" id="dvLock"><b>Verrouiller cet appareil</b><span>à sa prochaine connexion</span></button>
+         <button class="pick" id="dvMain"><b>En faire l’appareil principal</b></button>
          <button class="pick" id="dvBan"><b>Retirer et changer les clés</b><span>appareil perdu ou douteux</span></button>
-         <button class="pick pick-danger" id="dvWipe"><b>Effacer ses données</b><span>de bonne foi — à sa prochaine connexion</span></button>
+         <button class="pick pick-danger" id="dvWipe"><b>Effacer ses données</b><span>à sa prochaine connexion</span></button>
        </div>
      </details>`;
   const q = s => sh.body.querySelector(s);
@@ -239,8 +243,8 @@ export function openAppareils(){
          ${devs.map(d => iAmMain && roleOf(d.id)
            ? `<button class="dev-row dev-open" data-dev="${esc(d.id)}"><b>${esc(d.name)}</b>${roleTag(d.id)}
                 <span class="dev-sub">${agoLabel(d.seen || 0)} · gérer ›</span></button>`
-           : `<div class="dev-row"><b>${esc(d.name)}</b>${roleTag(d.id)}<span class="dev-sub">${agoLabel(d.seen || 0)}</span>
-                <button class="abtn abtn-sm" data-rm="${esc(d.id)}" aria-label="Retirer ${esc(d.name)}" title="Retirer">${ic('trash', 'ic-14')}</button>
+           : `<div class="dev-row hov-row"><b>${esc(d.name)}</b>${roleTag(d.id)}<span class="dev-sub">${agoLabel(d.seen || 0)}</span>
+                <button class="abtn abtn-sm abtn-del hov-soft" data-rm="${esc(d.id)}" aria-label="Retirer ${esc(d.name)}" title="Retirer">${ic('trash', 'ic-14')}</button>
               </div>`).join('')}
          ${comp ? compRowHTML(comp)
            : (iAmMain
@@ -307,8 +311,8 @@ export function openAppareils(){
          ? 'Nouvelle phrase = nouveau lien — à retaper sur les autres appareils.'
          : 'Une phrase de liaison, et tes appareils restent à jour — suivi compris.'}</p>
        <div class="pick-list">
-         <button class="pick" id="syNew"><b>${ic('sparkles', 'ic-14')} Créer une phrase</b><span>je commence ici</span></button>
-         <button class="pick" id="syJoin"><b>${ic('switch', 'ic-14')} Entrer une phrase</b><span>j’en ai déjà une</span></button>
+         <button class="pick" id="syNew"><b>${ic('sparkles', 'ic-14')} Créer une phrase</b></button>
+         <button class="pick" id="syJoin"><b>${ic('switch', 'ic-14')} Entrer une phrase</b></button>
        </div>
        ${comp ? `<div class="sy-devs" style="margin-top:14px">
            <div class="lbl-row" style="margin-bottom:6px"><label>Appareils reliés</label></div>
@@ -382,25 +386,37 @@ export function openPromo(){
     const last = (await kvGet(PROMO_KEY)) || '';
     /* le code EST la clé : un bouton discret le remplit d'une phrase
        forte (comme la liaison des appareils) ; qui veut le sien tape le
-       sien. Une fois généré, « copier » apparaît — il se partage à la
-       promo. Aucun pavé d'explication (loi #3). */
+       sien. Plus de bouton « copier » à côté (#6) : générer copie déjà —
+       c'est le seul code qu'on ne connaisse pas par cœur — et un appui
+       long sur le code le recopie à tout moment. */
     sh.body.innerHTML =
       `<div class="field"><label for="prPass">Mot de passe du groupe</label>
          <div class="date-row">
-           <input id="prPass" autocomplete="off" autocapitalize="off" placeholder="ex : promo-sio-2026" value="${esc(last)}">
+           <input id="prPass" autocomplete="off" autocapitalize="off" placeholder="ex : promo-sio-2026"
+                  title="Appui long pour copier" value="${esc(last)}">
            <button class="btn icon-btn" id="prGen" aria-label="Générer un code fort" title="Générer un code fort">${ic('reload', 'ic-14')}</button>
-         </div>
-         <button class="linklike" id="prCopy" hidden>${ic('copy', 'ic-14')} copier le code</button></div>`;
+         </div></div>`;
     const go = () => { const v = q('#prPass').value.trim(); if (v){ kvSet(PROMO_KEY, v); enter(v); } };
+    const copier = async (msg) => {
+      const v = q('#prPass').value.trim();
+      if (!v) return;
+      try { await navigator.clipboard.writeText(v); toast(msg); }
+      catch (e) { toast('Copie impossible ici — recopie-le à la main.'); }
+    };
     q('#prPass').addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
     q('#prGen').addEventListener('click', () => {
       q('#prPass').value = makePhrase();
-      q('#prCopy').hidden = false;
+      copier('Code généré et copié — partage-le à la promo.');
     });
-    q('#prCopy').addEventListener('click', async () => {
-      try { await navigator.clipboard.writeText(q('#prPass').value); toast('Code copié — partage-le à la promo.'); }
-      catch (e) { toast('Copie impossible ici — recopie-le à la main.'); }
+    /* appui long (pouce) / clic maintenu (souris) sur le code lui-même */
+    let hold = null;
+    const inp = q('#prPass');
+    inp.addEventListener('pointerdown', () => {
+      clearTimeout(hold);
+      hold = setTimeout(() => copier('Code copié — partage-le à la promo.'), 550);
     });
+    ['pointerup', 'pointercancel', 'pointerleave', 'blur', 'input']
+      .forEach(e => inp.addEventListener(e, () => clearTimeout(hold)));
     sh.setFoot([btn('Entrer', 'btn-primary', go)]);
     q('#prPass').focus();
   };
@@ -439,6 +455,19 @@ export function openPromo(){
     const unsel = new Set();
     const chosen = () => mine().filter(c => !unsel.has(c.id));
     let choosing = false;
+    /* qui part, piste par piste (#2) — c'est le canal le plus exposé :
+       un envoi live à toute une salle, pas un fichier qu'on relit */
+    const keepMap = new Map();
+    const keepOf = c => {
+      if (!keepMap.has(c.id)) keepMap.set(c.id, new Set(whoCandidates(c, 'donner').map(t => t.id)));
+      return keepMap.get(c.id);
+    };
+    const keepFn = c => { const s = keepMap.get(c.id); return s ? [...s] : null; };
+    /* la même liste que « Mes pistes » : elle mérite le même contrôle —
+       il manquait ici, cet écran étant arrivé après les autres (#8) */
+    const st = sortState('recent');
+    const ft = filterState();
+    const listed = () => filterCompanies(mine(), { ...filterArgs(ft), ...sortArgs(st) });
     const refreshStatus = () => {
       const n = chosen().length;
       if (peers) setStatus(`${ic('radio', 'ic-14')} <b>${peers}</b> camarade${peers > 1 ? 's' : ''} dans le groupe`);
@@ -457,21 +486,38 @@ export function openPromo(){
         `<button class="btn btn-primary pr-send" id="prSend"${n ? '' : ' disabled'}>${ic('share', 'ic-14')} Envoyer ${n ? n + ' piste' + (n > 1 ? 's' : '') : '…'}</button>
          <div style="text-align:center;margin-top:6px"><span class="tag-share">jamais le privé</span></div>
          <button class="linklike" id="prPick" style="margin-top:6px">${choosing ? 'Replier la liste' : 'Choisir ce qui part…'}</button>
-         ${choosing ? `<div class="pick-list" style="margin-top:8px">
-           ${mine().map(c =>
-             `<button class="pick pk${unsel.has(c.id) ? '' : ' on'}" data-id="${c.id}" aria-pressed="${!unsel.has(c.id)}">
-                ${ic('checkbox', 'ic-20 ic-off')}${ic('checkbox-on', 'ic-20 ic-on')}
-                <div class="pk-m"><b>${esc(c.name)}</b>${c.city ? `<span>${esc(c.city)}</span>` : ''}</div>
-              </button>`).join('')}
+         ${choosing ? `<div class="listbar" style="margin-top:8px">
+           <button class="linklike" id="prAll">Tout cocher / décocher</button>${affinerBtnHTML(ft, st)}</div>
+         <div class="pick-list">
+           ${listed().map(c =>
+             `<div class="pk-duo">
+                <button class="pick pk${unsel.has(c.id) ? '' : ' on'}" data-id="${c.id}" aria-pressed="${!unsel.has(c.id)}">
+                  ${ic('checkbox', 'ic-20 ic-off')}${ic('checkbox-on', 'ic-20 ic-on')}
+                  <div class="pk-m"><b>${esc(c.name)}</b>${c.city ? `<span>${esc(c.city)}</span>` : ''}</div>
+                </button>
+                ${whoLineHTML(c, keepOf(c), 'donner')}
+              </div>`).join('')}
          </div>` : ''}`;
       q('#prSend').addEventListener('click', () => {
         const list = chosen();
         if (!list.length) return;
-        share.send(sharePayload(list));
+        share.send(sharePayload(list, keepFn));
         logJ('Donné (partage en groupe) : ' + list.length + ' piste(s)');
         toast('Parti vers ' + peers + ' camarade' + (peers > 1 ? 's' : '') + ' ✓');
       });
       q('#prPick').addEventListener('click', () => { choosing = !choosing; refreshStatus(); });
+      bindAffinerBtn(zone, ft, st, {}, refreshStatus);
+      q('#prAll')?.addEventListener('click', () => {
+        const all = unsel.size > 0;
+        unsel.clear();
+        if (!all) mine().forEach(c => unsel.add(c.id));
+        refreshStatus();
+      });
+      zone.querySelectorAll('[data-who]').forEach(b =>
+        b.addEventListener('click', () => {
+          const c = mine().find(x => x.id === b.dataset.who);
+          if (c) openWhoPicker(c, keepOf(c), { verbe: 'donner', onChange: refreshStatus });
+        }));
       zone.querySelectorAll('.pk').forEach(b =>
         b.addEventListener('click', () => {
           const id = b.dataset.id;
@@ -489,7 +535,7 @@ export function openPromo(){
       showing = true;
       const { obj, from } = queue.shift();
       const psh = openSheet({ title: 'Reçu en direct', icon: 'inbox', onClose: () => { showing = false; showNext(); } });
-      mergePreviewInto(psh, obj, { from, onCancel: () => psh.close() });
+      mergePreviewInto(psh, obj, { from });
     };
     share.onMessage = (obj, meta) => {
       if (!obj || obj.kind !== 'share' || !Array.isArray(obj.companies)) return;

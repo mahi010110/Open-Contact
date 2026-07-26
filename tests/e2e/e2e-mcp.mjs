@@ -303,7 +303,7 @@ await page.click('#tdTriage');
 await page.waitForSelector('[data-sel]');
 ok(await page.$$eval('[data-sel]', els => els.length) === 2, '2 propositions à trier');
 /* fermer la feuille ne consomme pas */
-await page.click('.modal-f .btn-ghost:has-text("Annuler")');
+await page.click('.overlay:last-of-type .modal-h .x');   /* la croix annule (R2) */
 await page.waitForSelector('#tdTriage');
 await page.click('#tdTriage');
 await page.waitForSelector('[data-sel]');

@@ -213,19 +213,22 @@ html[data-theme="dark"] .field select{
 /* feuille « Trier » : la pile des niveaux (principal + départages) */
 /* puces d'état sous la recherche (#8) — la croix enlève, la puce de tri
    s'inverse au tap ; le sens vit dans la puce */
-.chips-row{display:flex;flex-wrap:wrap;gap:6px;margin:-6px 0 12px}
+/* les filtres posés : UNE ligne qui glisse, jamais une pile qui repousse
+   la liste hors de l'écran (mesuré : trois étiquettes empilées mangeaient
+   74 px et le premier résultat ne venait qu'à 258 px) */
+.chips-row{
+  display:flex;flex-wrap:nowrap;gap:6px;margin:-6px 0 12px;
+  overflow-x:auto;padding:2px 2px 4px;
+}
 .st-chip{
-  display:inline-flex;align-items:stretch;
+  flex:none;display:inline-flex;align-items:center;gap:6px;
+  min-height:var(--ctl);padding:4px 11px;white-space:nowrap;cursor:pointer;
   background:var(--surface-chrome);border:1px solid var(--border-strong);
   border-radius:var(--radius-1);box-shadow:var(--bevel-up);
+  font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-body);
 }
-.st-chip-b,.st-chip-x{
-  display:inline-flex;align-items:center;gap:6px;padding:4px 9px;min-height:32px;
-  font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-body);cursor:pointer;
-}
-.st-chip-b .dotc{width:8px;height:8px;border:1px solid var(--border-strong);flex:none}
-.st-chip-x{border-left:1px solid var(--border-soft);color:var(--text-muted);padding:4px 8px}
-.st-chip-x:active,.st-chip-b:active{box-shadow:var(--bevel-down)}
+.st-chip .dotc{width:8px;height:8px;border:1px solid var(--border-strong);flex:none}
+.st-chip:active{box-shadow:var(--bevel-down);transform:translate(1px,1px)}
 /* le « puis par » (avancé) se replie dans la section Trier */
 .srt-adv{margin:2px 0 14px}
 .srt-adv>summary{
@@ -238,14 +241,6 @@ html[data-theme="dark"] .field select{
 .srt-adv[open]>summary::before{content:'▾'}
 .srt-adv[open]>summary{margin-bottom:8px}
 .srt-dir{font-family:var(--font-mono)}
-.srt-stack{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
-.srt-lv{
-  display:flex;align-items:center;gap:8px;min-height:var(--ctl);
-  background:var(--surface-window);border:1px solid var(--border-strong);
-  border-radius:var(--radius-0);box-shadow:var(--shadow-raised);padding:2px 6px 2px 12px;
-}
-.srt-lv .srt-n{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
-.srt-lv b{flex:1;min-width:0;font-size:var(--text-13)}
 /* feuille « Filtrer » : chips statut/domaine en deux colonnes — un tap
    montre seulement, re-tap de l'actif remontre tout */
 .fl-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:14px}
@@ -341,14 +336,17 @@ details.tranche[open]>summary::before{
 }
 .act-sub .late{color:var(--amber);font-style:normal;font-weight:var(--weight-bold)}
 .act-btns{display:flex;flex:none;padding-right:4px;gap:1px}
+/* actions d'une ligne : des icônes nues, jamais des boutons — au survol,
+   au focus ou au tap, SEULE LA COULEUR change. Aucun aplat de fond,
+   aucun biseau : le carré derrière l'icône était le bruit à retirer. */
 .abtn{
   width:var(--control-h-touch);height:var(--control-h-touch);
   display:inline-flex;align-items:center;justify-content:center;
-  background:none;border:0;color:var(--text-muted);border-radius:var(--radius-1);
+  background:none;border:0;padding:0;color:var(--text-muted);border-radius:var(--radius-1);
 }
-.abtn:hover{background:var(--surface-chrome);color:var(--text-body)}
-.abtn:active{box-shadow:var(--bevel-down)}
-.abtn-ok:hover{color:var(--green)}
+.abtn:hover,.abtn:focus-visible,.abtn:active{color:var(--text-body)}
+.abtn-ok:hover,.abtn-ok:focus-visible,.abtn-ok:active{color:var(--green)}
+.abtn-del:hover,.abtn-del:focus-visible,.abtn-del:active{color:var(--red)}
 .act-gone{transition:opacity 150ms var(--ease-out),transform 150ms var(--ease-out);opacity:0;transform:translateX(20px)}
 
 /* ============ ÉTATS VIDES ============ */
@@ -381,20 +379,28 @@ details.tranche[open]>summary::before{
 }
 .swipe-del .sw-under{opacity:1}
 .sw-gone{transition:opacity 150ms var(--ease-out),transform 150ms var(--ease-out);opacity:0;transform:translateX(-20px)}
-/* poubelle au survol (desktop) : un élément du flux, pas un survol
-   flottant — la colonne est réservée, rien ne saute ni ne déborde */
+/* poubelle au survol (souris) : un élément du flux, pas un survol
+   flottant — la colonne est réservée, rien ne saute ni ne déborde. Nue
+   comme toute action de ligne : ni cadre, ni biseau, ni ombre, ni aplat
+   (seule la couleur bouge). Absente au doigt : là, c'est le glissement. */
 .hov-del{
   display:none;flex:none;width:32px;height:32px;
   align-items:center;justify-content:center;align-self:center;
-  background:var(--surface-window);color:var(--red);border:1px solid var(--border-strong);
-  border-radius:var(--radius-1);box-shadow:var(--bevel-up), var(--shadow-raised);padding:0;
+  background:none;border:0;padding:0;color:var(--text-muted);
   opacity:0;pointer-events:none;
 }
 @media (hover:hover) and (pointer:fine){ .hov-del{display:inline-flex} }
 @media (hover:hover){
   .sw:hover .hov-del,.sw:focus-within .hov-del{opacity:1;pointer-events:auto}
 }
-.hov-del:hover{background:var(--red-wash)}
+.hov-del:hover,.hov-del:focus-visible{color:var(--red)}
+/* même discrétion pour une action qui n'a PAS de geste de remplacement :
+   effacée tant qu'on ne survole pas sa ligne, mais simplement visible
+   là où le survol n'existe pas (au doigt, sinon elle serait inatteignable) */
+@media (hover:hover) and (pointer:fine){
+  .hov-soft{opacity:0;pointer-events:none}
+  .hov-row:hover .hov-soft,.hov-row:focus-within .hov-soft{opacity:1;pointer-events:auto}
+}
 
 /* ============ LISTE DES PISTES ============ */
 .rows{display:flex;flex-direction:column;gap:7px}
@@ -444,13 +450,33 @@ details.pcard-details[open]>summary::before{
   border-top:5px solid var(--accent);border-bottom:0;
 }
 details.pcard-details[open]>summary{margin-bottom:10px}
-.doc-row{
-  display:flex;align-items:center;gap:8px;min-height:var(--ctl);
-  padding:6px 0;border-bottom:1px dashed var(--border-soft);
+/* CV & lettres : la carte ne porte que deux portes — « CV » et
+   « Lettres » — donc elle ne grandit plus avec le nombre de documents ;
+   la liste, l'ajout et les gestes vivent dans la feuille du type. */
+.doc-door{
+  display:flex;align-items:center;gap:10px;width:100%;min-height:var(--ctl);
+  background:none;border:0;padding:0;font:inherit;color:inherit;text-align:left;cursor:pointer;
+  border-bottom:1px dashed var(--border-soft);
 }
+.doc-door:last-child{border-bottom:0}
+.doc-door-n{flex:1;min-width:0;font-size:var(--text-14);font-weight:var(--weight-semibold)}
+.doc-door-s{flex:none;font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
+.doc-door .ic{flex:none;color:var(--text-muted)}
+.doc-door:hover .doc-door-n{color:var(--text-link)}
+.doc-vide{text-align:center;padding:26px 8px;font-size:var(--text-13);color:var(--text-muted)}
+.doc-row{border-bottom:1px dashed var(--border-soft)}
 .doc-row:last-of-type{border-bottom:0}
-.doc-name{flex:1;min-width:0;font-size:var(--text-13);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.doc-name.doc-none{color:var(--text-muted)}
+.doc-row .sw-in{display:flex;align-items:center;gap:8px}
+/* la ligne EST le bouton : elle prend toute la hauteur de contrôle
+   (44 px au pouce, 32 px à la souris) sans cesser d'être du texte —
+   sinon l'ellipse ne fonctionnerait plus */
+.doc-name{
+  flex:1;min-width:0;font-size:var(--text-13);font-weight:var(--weight-semibold);
+  line-height:20px;cursor:pointer;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  padding:calc((var(--ctl) - 20px) / 2) 0;
+}
+.doc-size{flex:none;font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
 /* coup de pouce IA : une ligne = un prompt — taper copie, ✎ édite,
    supprimer au geste (glisser / poubelle, comme partout) */
 .prompt-row{border-bottom:1px dashed var(--border-soft);font-size:var(--text-13)}
@@ -478,6 +504,20 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   padding:1px 5px;border-radius:var(--radius-1);word-break:break-word;
 }
 .stor-line{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);margin-top:10px}
+/* « Garder une copie » : le mot de passe est facultatif, donc au repos il
+   ne pèse qu'une icône posée à côté du geste (#8 — l'avancé se replie
+   derrière un signe, jamais une phrase). Tapée, elle ouvre le champ. */
+.bk-lock.on{background:var(--teal-wash);border-color:var(--accent);color:var(--accent)}
+.bk-line{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;
+  animation:oc-up var(--dur-2) var(--ease-out);
+}
+.bk-pass{
+  flex:1 1 150px;min-width:0;height:var(--ctl);padding:0 10px;
+  background:var(--surface-field);border:1px solid var(--border-field);
+  box-shadow:var(--bevel-field);border-radius:var(--radius-1);font-size:var(--input-fs);
+}
+.bk-pass::placeholder{color:var(--text-muted)}
 /* « Moi » éclaté (#20) : colonnes desktop, porte Réglages mobile */
 .moi-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
 .moi-cols .pcard:last-child{margin-bottom:0}
@@ -488,6 +528,26 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 .moi-door .md-m{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .moi-door .md-m b{font-size:var(--text-14);font-weight:var(--weight-bold);display:flex;align-items:center;gap:7px}
 .moi-door:active{box-shadow:var(--shadow-pressed)}
+/* Réglages : une ligne = une porte (#7) — pictogramme, nom, état,
+   chevron. Aucun bouton : c'est la ligne entière qui se tape, et le
+   bord droit cesse d'être en dents de scie. */
+.rg-row{
+  display:flex;align-items:center;gap:10px;width:100%;min-height:var(--ctl);
+  background:none;border:0;padding:0;font:inherit;color:inherit;text-align:left;cursor:pointer;
+  border-bottom:1px dashed var(--border-soft);
+}
+.rg-row.rg-last{border-bottom:0}
+.rg-n{
+  flex:1;min-width:0;display:flex;align-items:center;gap:8px;
+  font-size:var(--text-14);font-weight:var(--weight-semibold);
+}
+.rg-n .ic{flex:none;color:var(--text-muted)}
+.rg-s{
+  flex:none;max-width:52%;font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.rg-row>.ic{flex:none;color:var(--text-muted)}
+.rg-row:hover .rg-n{color:var(--text-link)}
 .rg-foot{padding:12px 0 2px;border-top:1px dashed var(--border-soft);margin-top:2px}
 .moi-ver{
   margin-top:18px;text-align:center;
@@ -590,13 +650,6 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);
 }
 .att-sel select{min-height:32px;padding:2px 8px;max-width:170px}
-
-/* ============ PANNEAU LATÉRAL (desktop, #10) ============ */
-.spanel{position:absolute;top:0;right:0;bottom:0;width:min(480px,46vw);z-index:1200}
-.spanel .modal{
-  width:100%;height:100%;max-width:none;max-height:none;border-radius:0;
-  border:0;border-left:1px solid var(--border-strong);box-shadow:var(--shadow-modal);
-}
 
 /* ============ FEUILLES D'ACTION ============ */
 .na-company{
@@ -827,10 +880,13 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px}
 /* ============ CONTACTS À RATTACHER (bac) ============ */
 .tr-orph{margin:0 0 18px}
 .orow{
-  display:flex;align-items:center;gap:10px;min-height:var(--control-h-touch);
   background:var(--surface-window);border:1px solid var(--border-strong);
   border-left:3px solid var(--amber);border-radius:var(--radius-0);
-  box-shadow:var(--shadow-raised);padding:7px 8px 7px 12px;
+  box-shadow:var(--shadow-raised);
+}
+.orow .sw-in{
+  display:flex;align-items:center;gap:10px;min-height:var(--control-h-touch);
+  padding:7px 8px 7px 12px;
 }
 .orow .o-main{flex:1;min-width:0;cursor:pointer}
 .orow h4{font-size:var(--text-13);font-weight:var(--weight-semibold);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -978,16 +1034,14 @@ body:has(.overlay) .toast{bottom:auto;top:calc(env(safe-area-inset-top) + 62px)}
 
 /* ============ MOTION (#23 : objets nets, déplacements doux) ============
    Le contraste est la signature : le skin « 98 » reste figé, seul le
-   mouvement entre états est doux — feuille qui monte, panneau qui entre,
-   liste qui se réorganise (softReorder), barre qui se pose. Court,
+   mouvement entre états est doux — feuille qui monte, fenêtre qui se
+   pose, liste qui se réorganise (softReorder), barre qui arrive. Court,
    ease-out, transform/opacity seulement ; reduced-motion coupe tout
    (base.css). Les objets, eux, gardent steps() — la secousse du verrou. */
 @keyframes oc-fade{from{opacity:0}}
 @keyframes oc-up{from{opacity:0;transform:translateY(12px)}}
-@keyframes oc-side{from{opacity:0;transform:translateX(24px)}}
 .overlay{animation:oc-fade var(--dur-2) var(--ease-out)}
 .overlay .modal{animation:oc-up var(--dur-3) var(--ease-out)}
-.spanel{animation:oc-side var(--dur-3) var(--ease-out)}
 .view:not([hidden])>.page-inner{animation:oc-fade var(--dur-2) var(--ease-out)}
 
 /* ============ LE VERROUILLAGE (profil protégé) ============
@@ -1084,6 +1138,19 @@ body:has(.overlay) .toast{bottom:auto;top:calc(env(safe-area-inset-top) + 62px)}
   box-shadow:var(--bevel-field);font-size:var(--text-12);line-height:1.55;
   max-height:220px;overflow-y:auto;
 }
+/* les personnes visées par une campagne (#1) : une entreprise, ses gens,
+   et le geste qui n'arrête que celle qui a répondu */
+.cw-grp{margin-top:10px}
+.cw-grp:first-of-type{margin-top:4px}
+.cw-h{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  font-size:var(--text-13);
+}
+.cw-h .linklike{flex:none}
+.cw-n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--text-13)}
+.cw-grp .ec-row .cs-sub{
+  flex:none;font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);
+}
 .cz-recap{border:1px solid var(--border-strong);background:var(--surface-raised);padding:12px 14px;margin-bottom:12px}
 .cz-recap>b{display:block;margin-bottom:8px}
 .cz-lines{display:flex;flex-direction:column;gap:5px;font-size:var(--text-12);color:var(--text-muted)}
@@ -1091,3 +1158,14 @@ body:has(.overlay) .toast{bottom:auto;top:calc(env(safe-area-inset-top) + 62px)}
 .cz-preview{padding:8px 0;border-bottom:1px dashed var(--border-soft);font-size:var(--text-12)}
 .cz-preview:last-child{border-bottom:0}
 .cz-preview .cz-subj{color:var(--text-muted);font-family:var(--font-mono);font-size:var(--text-11)}
+
+/* le compte d'« Affiner » dans les feuilles : la place va à la liste,
+   le bouton dit seulement combien de réglages sont actifs (#8) */
+.icon-btn.af-btn{width:auto;padding:0 8px}
+.af-n{
+  margin-left:5px;padding:0 5px;min-width:16px;
+  display:inline-flex;align-items:center;justify-content:center;
+  background:var(--accent);color:var(--on-navy);
+  font-family:var(--font-mono);font-size:var(--text-11);line-height:1.6;
+  border-radius:var(--radius-1);
+}

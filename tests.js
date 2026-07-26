@@ -33,7 +33,7 @@ import { edAvailable, makeDeviceKeys, recoveryKeys, ringInit, ringAddDevice,
          ringCommand, ringTransfer, ringRecover, mergeRing, actionsFor,
          verifyRing, deviceIn } from './engine/ring.js';
 import { DAILY_CAP, buildCampaign, dueSends, dueSendsAll, sentTodayAll,
-         markSent, markReplied, markError,
+         markSent, markReplied, markError, stopCompanyTargets,
          pauseCampaign, resumeCampaign, stopCampaign, campaignStats,
          inSendWindow, addDays as cAddDays } from './engine/campaign.js';
 import { buildMime, encodeHeader, toB64Url, authUrl, parseCallback, pkcePair } from './engine/mailer.js';
@@ -552,6 +552,27 @@ export async function runSelfTests(){
          'Madame, Monsieur / Zeta (Lille) — Ana B, AIS');
       eq(fillTpl('{{contact}}', c, { name: 'Léo' }, prof), 'Léo');
     },
+    'gabarits : un jeton vide referme son trou, jamais « — » ni « en formation , »': () => {
+      const c = normalizeCompany({ name: 'Zeta' });
+      const vide = normalizeProfile({});
+      /* le séparateur collé au jeton vide part avec lui */
+      eq(fillTpl('Candidature spontanée — {{formation}}', c, null, vide), 'Candidature spontanée');
+      /* « Étiquette : {{jeton}} » : la ligne entière saute */
+      eq(fillTpl('Bonjour,\nVous trouverez mon CV ici : {{cv}}\nMerci.', c, null, vide),
+         'Bonjour,\nMerci.');
+      /* une ligne qui ne pesait que des jetons vides disparaît */
+      eq(fillTpl('Merci,\n{{moi}} — {{tel}} — {{email}}', c, null, vide), 'Merci,');
+      /* au milieu d'une phrase : l'espace parasite avant la virgule part */
+      eq(fillTpl('En formation {{formation}}, je cherche.', c, null, vide),
+         'En formation, je cherche.');
+      /* rempli, rien n'est retouché — même les jetons voisins */
+      const plein = normalizeProfile({ name: 'Ana B', formation: 'AIS', phone: '06', email: 'a@b.fr' });
+      eq(fillTpl('Merci,\n{{moi}} — {{tel}} — {{email}}', c, null, plein),
+         'Merci,\nAna B — 06 — a@b.fr');
+      /* une ligne SANS jeton vide garde sa typographie française */
+      eq(fillTpl('Merci {{moi}} !\nBien à vous : {{email}}', c, null, plein),
+         'Merci Ana B !\nBien à vous : a@b.fr');
+    },
     'score : borné 0–100, croissant avec la complétude': () => {
       const vide = scoreOf(normalizeCompany({ name: 'X' }));
       const pleine = scoreOf(normalizeCompany({
@@ -1027,6 +1048,69 @@ export async function runSelfTests(){
       c = markError(c, 't2');
       eq(dueSends(c, '2026-08-30').length, 0);
       eq(c.state, 'done');                               /* plus aucune cible active */
+    },
+    'campagne : plusieurs personnes chez la même entreprise (#1)': () => {
+      const steps = [{ subject: 's', body: 'b' }, { subject: 's', body: 'b' }, { subject: 's', body: 'b' }];
+      let c = buildCampaign({ steps, launchAt: '2026-07-16', targets: [
+        { cid: 'cap', name: 'Léa', email: 'lea@cap.fr', company: 'Capgemini' },
+        { cid: 'cap', name: 'Marc', email: 'marc@cap.fr', company: 'Capgemini' },
+        { cid: 'cap', name: 'Sofia', email: 'sofia@cap.fr', company: 'Capgemini' },
+        { cid: 'ovh', name: 'Nadia', email: 'nadia@ovh.fr', company: 'OVH' }
+      ] });
+      /* trois personnes, une entreprise : les identifiants ne se marchent pas dessus */
+      eq(new Set(c.targets.map(t => t.tid)).size, 4);
+      const st = campaignStats(c);
+      eq(st.targets, 4);                                 /* personnes visées */
+      eq(st.pistes, 2);                                  /* entreprises */
+      eq(dueSends(c, '2026-07-16').length, 4);
+      /* Léa répond : elle seule se tait, Marc et Sofia continuent */
+      const lea = c.targets.find(t => t.who === 'Léa');
+      c = markReplied(c, 'cap', lea.tid);
+      const due = dueSends(c, '2026-07-16');
+      eq(due.length, 3);
+      ok(!due.some(d => d.who === 'Léa'));
+      ok(due.some(d => d.who === 'Marc') && due.some(d => d.who === 'Sofia'));
+      eq(campaignStats(c).replied, 1);
+      /* « arrêter toute l'entreprise » : les autres cessent SANS compter
+         comme des réponses — seule Léa a répondu */
+      c = stopCompanyTargets(c, 'cap');
+      const due2 = dueSends(c, '2026-07-16');
+      eq(due2.length, 1);
+      eq(due2[0].cid, 'ovh');
+      eq(campaignStats(c).replied, 1);
+      eq(campaignStats(c).done, 2);
+      /* sans tid, c'est toute l'entreprise qui se tait (fiche en
+         « réponse », rapport de l'ordinateur : aucun des deux ne sait qui) */
+      let d = buildCampaign({ steps, launchAt: '2026-07-16', targets: [
+        { cid: 'cap', name: 'Léa', email: 'lea@cap.fr' },
+        { cid: 'cap', name: 'Marc', email: 'marc@cap.fr' }
+      ] });
+      d = markReplied(d, 'cap');
+      eq(dueSends(d, '2026-07-16').length, 0);
+      eq(campaignStats(d).replied, 2);
+      eq(d.state, 'done');
+    },
+    'partage : ne faire sortir que les personnes retenues (#2)': () => {
+      const c = normalizeCompany({ name: 'Capgemini', contacts: [
+        { id: 'ct1', name: 'Léa', email: 'lea@cap.fr' },
+        { id: 'ct2', name: 'Marc', email: 'marc@cap.fr' },
+        { id: 'ct3', name: 'Sofia', email: 'sofia@cap.fr' }
+      ] });
+      /* rien de précisé = tout part, comme avant */
+      eq(communityView(c).contacts.length, 3);
+      eq(sharePayload([c]).companies[0].contacts.length, 3);
+      /* une sélection ne fait sortir qu'elle */
+      const deux = communityView(c, ['ct1', 'ct3']);
+      eq(deux.contacts.map(t => t.name).join(','), 'Léa,Sofia');
+      eq(deux.name, 'Capgemini');                        /* la fiche, elle, est entière */
+      /* une liste VIDE est un choix : la fiche part seule */
+      eq(communityView(c, []).contacts.length, 0);
+      /* sharePayload prend une fonction piste → personnes retenues */
+      const p = sharePayload([c], x => x.id === c.id ? ['ct2'] : null);
+      eq(p.companies[0].contacts.map(t => t.name).join(','), 'Marc');
+      /* et rien de privé ne suit la personne retenue */
+      ok(!('id' in p.companies[0].contacts[0]));
+      ok(!('activatedAt' in p.companies[0].contacts[0]));
     },
     'campagne : pause / reprise / arrêt ; bords de date': () => {
       const steps = [{ subject: 's', body: 'b' }, { subject: 's', body: 'b' }, { subject: 's', body: 'b' }];

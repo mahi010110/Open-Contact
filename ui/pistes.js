@@ -10,10 +10,11 @@ import { esc, distKm } from '../engine/utils.js';
 import { STATUSES, CLOSE_REASONS, DOMAINS, pushHist } from '../engine/model.js';
 import { scoreOf } from '../engine/score.js';
 import { filterCompanies } from '../engine/filter.js';
-import { S, bus, isClosed, hasDemo, addDemo, ctLabel, deletePiste, undeletePiste, saveData, logJ } from './state.js';
+import { S, bus, isClosed, hasDemo, addDemo, ctLabel, deletePiste, undeletePiste,
+         removeOrphan, saveOrphans, saveData, logJ } from './state.js';
 import { $, ic, toast, showUndo, bindDeleteGesture, openSheet, softReorder } from './dom.js';
-import { sortState, sortArgs, sortHasDist,
-         sortSectionHTML, bindSortSection, sortChipHTML, bindSortChip } from './sort.js';
+import { openAffinerSheet } from './affiner.js';
+import { sortState, sortArgs, sortHasDist, sortChipHTML, bindSortChip } from './sort.js';
 import { relLabel } from './dates.js';
 import { openFiche } from './fiche.js';
 import { openCapture } from './capture.js';
@@ -160,50 +161,18 @@ function bindBoardDrag(body){
   });
 }
 
-/* la feuille « Affiner » (#8) : filtres + tri, une seule surface, même
-   grammaire partout — chaque tap s'applique aussitôt, la croix referme.
-   Le statut n'est proposé qu'en liste (le tableau desktop segmente déjà) ;
-   le tri multi-niveaux vit replié dans la section « Trier ». */
-function openAffinerSheet(onChange){
-  const sh = openSheet({ title: 'Affiner', icon: 'filter' });
-  const render = () => {
-    const chips = (grp, defs, cur) => Object.keys(defs).map(k =>
-      `<button class="fl-chip${cur === k ? ' on' : ''}" data-${grp}="${k}" aria-pressed="${cur === k}">
-         <span class="dotc" style="background:${defs[k].color}"></span>${defs[k].label}</button>`).join('');
-    sh.body.innerHTML =
-      `${mqWide.matches ? '' :
-        `<div class="lbl-row"><label>Statut</label></div>
-         <div class="fl-grid">${chips('st', STATUSES, ft.status)}</div>`}
-       <div class="lbl-row"><label>Domaine</label></div>
-       <div class="fl-grid">${chips('dom', DOMAINS, ft.domain)}</div>
-       ${sortSectionHTML(st)}`;
-    sh.body.querySelectorAll('[data-st]').forEach(b =>
-      b.addEventListener('click', () => {
-        ft.status = (ft.status === b.dataset.st) ? '' : b.dataset.st;
-        onChange(); render();
-      }));
-    sh.body.querySelectorAll('[data-dom]').forEach(b =>
-      b.addEventListener('click', () => {
-        ft.domain = (ft.domain === b.dataset.dom) ? '' : b.dataset.dom;
-        onChange(); render();
-      }));
-    bindSortSection(sh.body, st, () => { onChange(); render(); });
-  };
-  render();
-}
-
 /* l'état actif = des puces sous la recherche, un regard suffit (#8) —
    la croix enlève, taper la puce de tri inverse son sens */
 function chipsRowHTML(){
   const bits = [];
+  /* une étiquette = un bouton : taper la retire. Pas de ✕ à côté — il
+     faisait déjà exactement la même chose. */
   if (ft.status) bits.push(
-    `<span class="st-chip"><button class="st-chip-b" data-clear="st" aria-label="Retirer le filtre ${STATUSES[ft.status].label}">
-       <span class="dotc" style="background:${STATUSES[ft.status].color}"></span>${STATUSES[ft.status].label}</button>
-     <button class="st-chip-x" data-clear-x="st" aria-label="Retirer le filtre">✕</button></span>`);
+    `<button class="st-chip" data-clear="st" aria-label="Retirer le filtre ${STATUSES[ft.status].label}">
+       <span class="dotc" style="background:${STATUSES[ft.status].color}"></span>${STATUSES[ft.status].label}</button>`);
   if (ft.domain) bits.push(
-    `<span class="st-chip"><button class="st-chip-b" data-clear="dom" aria-label="Retirer le filtre ${DOMAINS[ft.domain].label}">
-       <span class="dotc" style="background:${DOMAINS[ft.domain].color}"></span>${DOMAINS[ft.domain].label}</button>
-     <button class="st-chip-x" data-clear-x="dom" aria-label="Retirer le filtre">✕</button></span>`);
+    `<button class="st-chip" data-clear="dom" aria-label="Retirer le filtre ${DOMAINS[ft.domain].label}">
+       <span class="dotc" style="background:${DOMAINS[ft.domain].color}"></span>${DOMAINS[ft.domain].label}</button>`);
   const sc = sortChipHTML(st);
   if (sc) bits.push(sc);
   return bits.length ? `<div class="chips-row">${bits.join('')}</div>` : '';
@@ -222,11 +191,13 @@ function orphansHTML(){
          const sub = [o.role, contact, (o.extra && o.extra.company) ? '→ ' + o.extra.company + ' ?' : '']
            .filter(Boolean).map(esc).join(' · ');
          return `<div class="orow" data-oid="${o.id}">
-                   <div class="o-main" role="button" tabindex="0" aria-label="Modifier ${esc(title)}">
-                     <h4>${esc(title)}</h4>
-                     <div class="o-sub">${sub || 'à compléter'}</div>
+                   <div class="sw-in">
+                     <div class="o-main" role="button" tabindex="0" aria-label="Modifier ${esc(title)}">
+                       <h4>${esc(title)}</h4>
+                       <div class="o-sub">${sub || 'à compléter'}</div>
+                     </div>
+                     <button class="btn btn-sm" data-attach="${o.id}">Rattacher</button>
                    </div>
-                   <button class="btn btn-sm" data-attach="${o.id}">Rattacher</button>
                  </div>`;
        }).join('')}</div>
      </details>`);
@@ -325,7 +296,8 @@ export function renderPistes(){
     });
     if (wide && body.querySelector('.board')) bindBoardDrag(body);
     body.querySelector('#piFtClear')?.addEventListener('click', () => { ftClear(); renderPistes(); });
-    /* bac : la ligne édite, le bouton rattache */
+    /* bac : la ligne édite, le bouton rattache — et le contact se jette
+       au geste, comme une piste (jusqu'ici il fallait l'ouvrir pour ça) */
     body.querySelectorAll('.orow').forEach(r => {
       const o = () => S.orphans.find(x => x.id === r.dataset.oid);
       const edit = () => { const ct = o(); if (ct) openContactEditor({ contact: ct }); };
@@ -334,6 +306,19 @@ export function renderPistes(){
         if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); edit(); }
       });
       r.querySelector('[data-attach]').addEventListener('click', () => { const ct = o(); if (ct) openAttach(ct); });
+      bindDeleteGesture(r, () => {
+        const ct = o();
+        if (!ct) return;
+        const i = S.orphans.indexOf(ct);
+        removeOrphan(ct.id);
+        bus.refresh();
+        showUndo(`${ic('check', 'ic-14')} « ${esc(ctLabel(ct))} » jeté.`, () => {
+          S.orphans.splice(Math.min(i, S.orphans.length), 0, ct);
+          saveOrphans();
+          bus.refresh();
+          toast('Contact récupéré.');
+        });
+      });
     });
     body.querySelectorAll('[data-more]').forEach(b =>
       b.addEventListener('click', e => {
@@ -363,9 +348,9 @@ export function renderPistes(){
     play();
   };
   const bindChips = box => {
-    box.querySelectorAll('[data-clear], [data-clear-x]').forEach(b =>
+    box.querySelectorAll('[data-clear]').forEach(b =>
       b.addEventListener('click', () => {
-        const grp = b.dataset.clear || b.dataset.clearX;
+        const grp = b.dataset.clear;
         if (grp === 'st') ft.status = '';
         else ft.domain = '';
         refresh();
@@ -373,7 +358,8 @@ export function renderPistes(){
     bindSortChip(box, st, refresh);
   };
   bindChips(root.querySelector('#piChips'));
-  root.querySelector('#piAffiner').addEventListener('click', () => openAffinerSheet(refresh));
+  root.querySelector('#piAffiner').addEventListener('click', () =>
+    openAffinerSheet(ft, st, { withStatus: !mqWide.matches }, refresh));
   root.querySelector('#piProspect')?.addEventListener('click', openProspect);
   root.querySelector('#piCamps')?.addEventListener('click', openCampaignsHome);
   renderBody();
