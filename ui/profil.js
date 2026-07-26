@@ -8,7 +8,7 @@ import { esc, uid } from '../engine/utils.js';
 import { defaultTemplates } from '../engine/model.js';
 import { S, bus, saveProfile } from './state.js';
 import { openSheet, confirmSheet, toast, btn, ic } from './dom.js';
-import { tplField, tplSample, TPL_LABELS } from './tplfield.js';
+import { tplField, tplSample } from './tplfield.js';
 
 /* ---------- profil ---------- */
 export function openProfil(onDone){
@@ -52,13 +52,16 @@ export function openTemplates(){
   const sh = openSheet({ title: 'Modèles d’emails', icon: 'mail' });
   const render = () => {
     sh.body.innerHTML =
-      `<div class="pick-list">
+      /* la même ligne que les Réglages : nom + chevron. L'objet répété
+         sous chaque nom n'aidait pas — on ouvre pour le lire. */
+      `<div class="pcard" style="margin:0">
          ${S.profile.templates.map((t, i) =>
-           `<button class="pick" data-i="${i}">
-              <b>${esc(t.name)}</b><span>${esc(t.subject.slice(0, 40))}${t.subject.length > 40 ? '…' : ''}</span>
+           `<button class="rg-row${i === S.profile.templates.length - 1 ? ' rg-last' : ''}" data-i="${i}">
+              <span class="rg-n">${esc(t.name)}</span>
+              ${ic('chevron-right', 'ic-14')}
             </button>`).join('')}
        </div>`;
-    sh.body.querySelectorAll('.pick').forEach(b =>
+    sh.body.querySelectorAll('.rg-row').forEach(b =>
       b.addEventListener('click', () => editTemplate(S.profile.templates[+b.dataset.i], render)));
     sh.setFoot([
       btn('Modèles de départ', 'btn-ghost', async () => {
@@ -87,19 +90,9 @@ function editTemplate(t, onBack, isNew){
        <input id="tpName" value="${esc(t.name)}" placeholder="Ex : Relance après forum"></div>
      <div class="field"><label>Objet</label><div id="tpSubject"></div></div>
      <div class="field"><label>Message</label><div id="tpBody"></div></div>
-     <div class="tpl-insert">Insérer :
-       ${Object.keys(TPL_LABELS).map(k =>
-         `<button class="linklike" data-ins="${k}">${TPL_LABELS[k]}</button>`).join(' · ')}
-     </div>`;
+     <p class="tpl-insert">Tape <b>@</b> pour insérer un prénom, une entreprise…</p>`;
   const fSubj = tplField(sh.body.querySelector('#tpSubject'), { value: t.subject, sample, multiline: false });
   const fBody = tplField(sh.body.querySelector('#tpBody'), { value: t.body, sample });
-  let lastField = fBody;
-  fSubj.el.addEventListener('focus', () => { lastField = fSubj; });
-  fBody.el.addEventListener('focus', () => { lastField = fBody; });
-  sh.body.querySelectorAll('[data-ins]').forEach(b =>
-    b.addEventListener('mousedown', e => e.preventDefault()));   /* garder le curseur dans le champ */
-  sh.body.querySelectorAll('[data-ins]').forEach(b =>
-    b.addEventListener('click', () => lastField.insert(b.dataset.ins)));
   const v = s => sh.body.querySelector(s).value;
   const foot = [
     btn('Enregistrer', 'btn-primary', () => {

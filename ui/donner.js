@@ -89,7 +89,7 @@ export function openDonner(){
       const list = filterCompanies(alive(), { ...filterArgs(ft), ...sortArgs(st) });
       zone.hidden = false;
       zone.innerHTML =
-        `<div class="listbar"><button class="linklike" id="dnAll">Tout cocher / décocher</button>${affinerBtnHTML(ft, st)}</div>
+        `<div class="listbar"><button class="linklike" id="dnAll">${unsel.size ? 'Tout cocher' : 'Tout décocher'}</button>${affinerBtnHTML(ft, st)}</div>
          <div class="pick-list">
            ${list.map(c =>
              `<div class="pk-duo">
@@ -116,9 +116,9 @@ export function openDonner(){
           if (c) openWhoPicker(c, keepOf(c), { verbe: 'donner', onChange: renderList });
         }));
       zone.querySelector('#dnAll').addEventListener('click', () => {
-        const all = unsel.size > 0;
+        const rienDecoche = unsel.size === 0;
         unsel.clear();
-        if (!all) alive().forEach(c => unsel.add(c.id));
+        if (rienDecoche) alive().forEach(c => unsel.add(c.id));
         renderList();
       });
       syncCount();

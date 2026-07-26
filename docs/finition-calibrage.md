@@ -402,3 +402,56 @@ elles font trop IA »*. Les tells relevés et corrigés :
 Règle qui en sort : **un tiret cadratin par phrase au maximum, et jamais
 pour remplacer un point.** Deux phrases courtes se lisent mieux qu'une
 phrase à charnière.
+
+## I — simplifier l'esthétique *(hors des 12, captures du mainteneur)*
+
+Cinq points relevés sur son iPhone. **Première série de propositions
+refusée** : *« ça ne corrige pas réellement les problèmes, ça change de
+forme »*. Les boutons devenaient des lignes, le titre devenait un bouton —
+des transformations, pas des réparations. Leçon à garder : *chercher la
+cause, pas une autre apparence.*
+
+Le mainteneur a alors demandé de **se documenter avant de reproposer**.
+Ce que la recherche a changé :
+
+| Ce qui a été trouvé | Ce que ça a corrigé dans mes propositions |
+|---|---|
+| NN/g : on scanne une liste par ses **deux premiers mots à gauche** ; une icône n'aide que sur un libellé obscur | l'intuition du mainteneur sur les pictogrammes est confirmée — ils repoussent les mots qui servent à scanner |
+| Apple HIG : un **geste complète** un bouton visible, il ne le remplace **jamais** | ma « ligne de titre cliquable » remplaçait l'attendu → abandonnée |
+| Coin haut-gauche = zone la plus dure au pouce (Hoober) | le retour reste en place mais gagne **deux chemins de secours** |
+| Mailchimp, Brevo, Unlayer : insertion **à la frappe**, jamais une rangée de boutons | mon bouton `＋ Insérer` n'était qu'un dixième bouton → remplacé par `@` |
+
+**Ce qui est livré**
+
+1. **Moi** — cadenas centré (`.td-lock` : une icône se centre, une date se
+   pose sur la ligne de base) ; les deux boutons en `flex:1 1 0`, donc de
+   même largeur par construction, en `btn-sm` ; « à remplir » supprimé, le
+   libellé du bouton le disait déjà.
+2. **Réglages** — plus de pictogrammes (le nom récupère 22 px, plus aucune
+   ligne à deux étages) ; les états raccourcissent (`relié — en attente`
+   → `en attente`, `à protéger d'abord` → `à protéger`) ; le retour perd
+   sa boîte pour un chevron nu (`.abtn`), et gagne **retaper « Moi » dans
+   la barre du bas** (racine de l'onglet, à la façon d'iOS) plus le
+   **glissé depuis le bord gauche**.
+3. **Prospecter** — `Tout cocher` ⇄ `Tout décocher`, le même lien que
+   Donner et le partage en groupe, et il porte sur ce qui est **affiché**.
+   Le raccourci « Cocher les N à contacter » part : depuis qu'« Affiner »
+   est là, filtrer puis tout cocher fait mieux.
+4. **Les plis** — la flèche entre dans la ligne (`summary` en flex) au lieu
+   d'être posée devant : elle ne reste plus seule quand le titre plie.
+   Corrigé pour **tous** les `pcard-details`.
+5. **Modèles** — la liste prend la ligne des Réglages ; les neuf boutons
+   d'insertion disparaissent au profit du **`@`** (`bindAtMenu`,
+   `ui/tplfield.js`), qui ne se déclenche **qu'en début de mot** — le `@`
+   d'une adresse e-mail ne l'ouvre pas.
+
+**Les jetons se taisent.** Plus de fond teal ni de pointillé : un trait
+sous le mot, à 28 % de l'accent. Le message se lit comme un message. Le
+repère ne se réveille qu'au survol du jeton — pas quand on écrit à côté.
+
+⚠️ **#4 se referme sans décision.** Sans pictogrammes dans les Réglages,
+« Le Compagnon » ne porte plus l'éclair d'« Aujourd'hui » : le conflit
+d'icône n'existe plus. Aucune icône à choisir.
+
+⚠️ **Écarté sur décision du mainteneur** : replier « Domaine » dans la
+feuille « Affiner ». Elle lui plaît telle quelle.

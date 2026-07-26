@@ -360,7 +360,7 @@ export function openCampaignWizard(list){
        <div class="field"><label>Objet</label><div id="czSubj"></div></div>
        <div class="field"><label>Message (J0)${t0.name ? ` <span class="lbl-soft">— tel que le recevra ${esc(t0.name)}</span>` : ''}</label>
          <div id="czBody"></div></div>
-       <details class="pcard pcard-details"><summary><h3>${ic('clock', 'ic-14')} Les deux relances — J+7 et J+14, figées</h3></summary>
+       <details class="pcard pcard-details"><summary><h3>Les deux relances · J+7 et J+14</h3></summary>
          <div class="field"><label>Relance 1 (7 jours après l’envoi)</label><div id="czR1"></div></div>
          <div class="field"><label>Relance 2 (7 jours après la relance 1)</label><div id="czR2"></div></div>
        </details>

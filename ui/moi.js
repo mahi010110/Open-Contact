@@ -197,11 +197,11 @@ async function renderDocs(){
 function syncLabel(){
   const sy = getSync();
   if (!sy.phrase) return 'non relié';
-  if (sy.state === 'on') return 'relié — ' + sy.peers + ' en face';
-  if (sy.state === 'link') return 'relié — premier échange…';
-  if (sy.state === 'err' || sy.state === 'norelay') return 'relié — réseau bloqué ?';
-  if (sy.state === 'rtcfail') return 'relié — liaison directe en échec';
-  return 'relié — en attente';
+  if (sy.state === 'on') return sy.peers + ' en face';
+  if (sy.state === 'link') return 'premier échange…';
+  if (sy.state === 'err' || sy.state === 'norelay') return 'réseau bloqué ?';
+  if (sy.state === 'rtcfail') return 'liaison en échec';
+  return 'en attente';
 }
 /* « N pistes depuis ta dernière copie » — l'état qui pousse au geste (#4) ;
    se calme quand les appareils reliés dupliquent déjà les données */
@@ -218,11 +218,17 @@ function backupState(){
    entière se tape, le réglage s'ouvre dans sa feuille. C'est la décision
    #21 (« le nom d'abord, l'écran ensuite ») et la même grammaire que les
    tiroirs CV / Lettres. Messagerie et IA exigent le code : sans
-   protection, l'ÉTAT dit le vrai premier geste — « à protéger d'abord » —
-   et taper mène quand même à la protection (N9 reste réglé). */
-const rgRow = (id, icon, nom, etat, last) =>
+   protection, l'ÉTAT dit le vrai premier geste — « à protéger » — et
+   taper mène quand même à la protection (N9 reste réglé).
+
+   PAS de pictogramme : on scanne une liste par ses deux premiers mots à
+   gauche (NN/g), et l'icône les repoussait de 22 px — assez pour que
+   « Mes appareils » passe à deux lignes sur un vrai téléphone. Une icône
+   aide quand elle éclaire un libellé obscur ; ici les libellés sont
+   clairs, elle ne faisait que prendre la place. */
+const rgRow = (id, nom, etat, last) =>
   `<button class="rg-row${last ? ' rg-last' : ''}" id="${id}">
-     <span class="rg-n">${ic(icon, 'ic-14')}${nom}</span>
+     <span class="rg-n">${nom}</span>
      <span class="rg-s"${id === 'moiSync' ? ' id="moiSyncSt"' : (id === 'moiComp' ? ' id="moiCompSt"' : '')}>${etat}</span>
      ${ic('chevron-right', 'ic-14')}
    </button>`;
@@ -230,20 +236,19 @@ const rgRow = (id, icon, nom, etat, last) =>
 function reglagesRowsHTML(){
   const prot = isProtected();
   return (
-    rgRow('moiVerrou', 'lock', 'Protection', verrouLabel()) +
-    rgRow('moiSync', 'switch', 'Mes appareils', syncLabel()) +
+    rgRow('moiVerrou', 'Protection', verrouLabel()) +
+    rgRow('moiSync', 'Mes appareils', syncLabel()) +
     /* le pré-requis ne remplace l'état que s'il n'y a rien à dire : une
        messagerie déjà branchée le dit, même si le coffre a disparu */
-    rgRow('moiCx', 'mail', 'Ma messagerie',
-          (!prot && !mailAccount()) ? 'à protéger d’abord' : mailStateLabel()) +
-    rgRow('moiAi', 'sparkles', 'Mon assistant IA',
-          (!prot && !aiConnection()) ? 'à protéger d’abord' : aiStateLabel()) +
-    /* #4 : l'éclair distingue le Compagnon de « Mes appareils », qui
-       portaient le même signe. Provisoire — le pack n'a pas d'icône
-       d'ordinateur et zap sert aussi à « Aujourd'hui ». */
+    rgRow('moiCx', 'Ma messagerie',
+          (!prot && !mailAccount()) ? 'à protéger' : mailStateLabel()) +
+    rgRow('moiAi', 'Mon assistant IA',
+          (!prot && !aiConnection()) ? 'à protéger' : aiStateLabel()) +
     /* l'état, pas la phrase : « il s'installe sur ton ordinateur » se
-       dit sur le 2ᵉ écran, là où on peut vraiment le faire (#21) */
-    rgRow('moiComp', 'zap', 'Le Compagnon', 'pas installé', true) +
+       dit sur le 2ᵉ écran, là où on peut vraiment le faire (#21).
+       #4 se referme ici : sans pictogramme, le Compagnon ne partage plus
+       l'éclair d'« Aujourd'hui ». */
+    rgRow('moiComp', 'Le Compagnon', 'pas installé', true) +
     `<div class="rg-foot">
        <button class="linklike" id="moiRestore">${ic('reload', 'ic-14')} Restaurer une copie</button>
        <input type="file" id="moiRestoreFile" accept=".oc,.txt,.json,application/octet-stream,application/json,text/plain" hidden>
@@ -297,6 +302,34 @@ let reglagesOpen = false;
 const mqWideMoi = matchMedia('(min-width:901px)');
 mqWideMoi.addEventListener('change', () => { if (S.route === 'moi') renderMoi(); });
 
+/* Revenir de Réglages : le chevron le fait, mais il vit dans le coin le
+   plus dur à atteindre au pouce. Deux chemins s'y ajoutent — jamais ne le
+   remplacent (Apple HIG : un geste complète un bouton visible) :
+   · retaper « Moi » dans la barre du bas, comme un onglet iOS qu'on
+     retape pour remonter à sa racine — c'est la zone la plus facile ;
+   · glisser depuis le bord gauche. */
+export function closeReglages(){
+  if (!reglagesOpen) return false;
+  reglagesOpen = false;
+  renderMoi();
+  return true;
+}
+function bindEdgeBack(root){
+  let x0 = null, y0 = null;
+  root.addEventListener('touchstart', e => {
+    const t = e.touches[0];
+    x0 = t.clientX <= 24 ? t.clientX : null;   /* depuis le bord seulement */
+    y0 = t.clientY;
+  }, { passive: true });
+  root.addEventListener('touchend', e => {
+    if (x0 == null) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - x0, dy = Math.abs(t.clientY - y0);
+    x0 = null;
+    if (dx > 60 && dy < 50) closeReglages();
+  });
+}
+
 export function renderMoi(){
   const root = $('#view-moi');
   const wide = mqWideMoi.matches;
@@ -304,13 +337,14 @@ export function renderMoi(){
   if (!wide && reglagesOpen){
     root.innerHTML =
       `<div class="page-inner">
-         <div class="td-head">
-           <button class="btn icon-btn" id="moiBack" aria-label="Retour à Moi">${ic('arrow-left', 'ic-14')}</button>
+         <div class="td-head td-back">
+           <button class="abtn" id="moiBack" aria-label="Retour à Moi">${ic('chevron-left', 'ic-14')}</button>
            <h2>Réglages</h2>
          </div>
          <div class="pcard">${reglagesRowsHTML()}</div>
        </div>`;
-    root.querySelector('#moiBack').addEventListener('click', () => { reglagesOpen = false; renderMoi(); });
+    root.querySelector('#moiBack').addEventListener('click', closeReglages);
+    bindEdgeBack(root);
     bindReglages(root);
     bindSyncLive(root);
     return;
@@ -334,12 +368,10 @@ export function renderMoi(){
   const cards =
     `<div class="pcard">
        <h3>${ic('user', 'ic-14')} Mon profil</h3>
-       <p class="pd">${pReady
-          ? `<b>${esc(p.name)}</b>${p.formation ? ' · ' + esc(p.formation) : ''}`
-          : 'à remplir'}</p>
+       ${pReady ? `<p class="pd"><b>${esc(p.name)}</b>${p.formation ? ' · ' + esc(p.formation) : ''}</p>` : ''}
        <div class="pc-actions">
-         <button class="btn ${pReady ? '' : 'btn-primary'}" id="moiProfil">${ic('pencil', 'ic-14')} ${pReady ? 'Modifier' : 'Remplir mon profil'}</button>
-         <button class="btn" id="moiTpl">${ic('mail', 'ic-14')} Modèles d’emails (${p.templates.length})</button>
+         <button class="btn btn-sm ${pReady ? '' : 'btn-primary'}" id="moiProfil">${pReady ? 'Modifier' : 'Remplir mon profil'}</button>
+         <button class="btn btn-sm" id="moiTpl">Modèles d’emails (${p.templates.length})</button>
        </div>
      </div>
 
@@ -372,7 +404,7 @@ export function renderMoi(){
   root.innerHTML =
     `<div class="page-inner${wide ? ' page-wide' : ''}">
        <div class="td-head"><h2>Moi</h2>
-         <div class="td-date" title="privé — jamais partagé" aria-label="privé — jamais partagé">${ic('lock', 'ic-14')}</div></div>
+         <div class="td-date td-lock" title="privé — jamais partagé" aria-label="privé — jamais partagé">${ic('lock', 'ic-14')}</div></div>
        ${wide
          ? `<div class="moi-cols"><div>${cards}</div><div>${reglages}</div></div>`
          : cards +
