@@ -65,9 +65,11 @@ sombre, zéro erreur console, `?test` vert (checklist `CLAUDE.md` §9).
 
 **Lot 2 — corrections isolées rapides**
 
-- **#4 — icône du Compagnon.** « Le Compagnon » et « Mes appareils »
-  partagent aujourd'hui l'icône `switch` (`ui/direct.js`). Le Compagnon
-  prend une icône distincte du pack pixelarticons déjà vendorisé.
+- ~~**#4 — icône du Compagnon.**~~ **Sans objet.** Les pictogrammes des
+  Réglages ont été retirés (ils repoussaient les mots qui servent à
+  scanner, jusqu'à faire plier « Mes appareils » sur deux lignes) : « Le
+  Compagnon » ne porte plus d'icône, donc plus de conflit avec
+  « Aujourd'hui ». Détail dans `docs/finition-calibrage.md` §I.
 - ~~**#6 — copie du code de groupe au geste.**~~ **Fait.** Le bouton
   « copier le code » disparaît. Générer un code le copie déjà — c'est le
   seul qu'on ne connaisse pas par cœur — et un appui long (pouce) / clic

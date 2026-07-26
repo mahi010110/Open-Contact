@@ -151,8 +151,10 @@ input,select,textarea{font-family:inherit;color:var(--text-body)}
 .linklike{
   background:none;border:0;color:var(--text-link);font-weight:var(--weight-semibold);font-size:var(--text-12);
   text-decoration:underline;text-underline-offset:2px;
-  display:inline-flex;align-items:center;min-height:var(--ctl);padding:0 8px;border-radius:var(--radius-1);
+  display:inline-flex;align-items:center;gap:6px;min-height:var(--ctl);padding:0 8px;border-radius:var(--radius-1);
 }
+/* le pictogramme accompagne, il ne se souligne pas avec le mot */
+.linklike .ic{text-decoration:none}
 .linklike:hover{color:var(--text-link-hover)}
 
 /* ============ ÉTIQUETTES ============ */
@@ -259,6 +261,13 @@ html[data-theme="dark"] .field select{
 .td-head{display:flex;align-items:baseline;gap:12px;margin-bottom:14px;flex-wrap:wrap}
 .td-head h2{font-size:var(--text-20);letter-spacing:var(--tracking-tight)}
 .td-date{font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted)}
+/* une DATE se pose sur la ligne de base du titre ; une ICÔNE se centre
+   dessus — sinon elle pend 3 px trop bas (le cadenas de « Moi ») */
+.td-lock{display:inline-flex;align-items:center;align-self:center}
+/* le retour d'un 2ᵉ écran : nu, comme la poubelle au survol — un chevron
+   qui n'est pas un bouton encadré. La ligne se centre sur le titre. */
+.td-back{align-items:center;gap:4px}
+.td-back .abtn{width:auto;min-width:32px;color:var(--text-muted)}
 .done-line{
   display:inline-flex;align-items:center;gap:6px;margin:0 0 10px;
   font-family:var(--font-mono);font-size:var(--text-12);font-weight:var(--weight-semibold);color:var(--green);
@@ -437,12 +446,24 @@ details.tranche[open]>summary::before{
 .pcard .pd:last-child{margin-bottom:0}
 .pcard-soon{background-image:var(--dither);}
 .pcard-soon h3{color:var(--text-muted)}
+/* les actions d'une carte se partagent la largeur : deux boutons de
+   libellés inégaux ne peuvent plus finir de tailles différentes. Une
+   commande à icône garde la sienne. Le plafond évite l'inverse — un
+   bouton d'un seul mot étiré sur 700 px de carte, sur l'ordinateur. */
 .pc-actions{display:flex;gap:8px;flex-wrap:wrap}
-details.pcard-details>summary{cursor:pointer;list-style:none;user-select:none;margin:-4px 0}
+.pc-actions>.btn{flex:1 1 0;min-width:0;max-width:240px}
+.pc-actions>.icon-btn{flex:0 0 auto}
+/* La flèche du pli est un ÉLÉMENT DE LA LIGNE, pas un signe posé devant :
+   en `inline-block` elle restait seule sur la première ligne dès que le
+   titre pliait en deux (vu sur « Les deux relances… » à 390 px). */
+details.pcard-details>summary{
+  cursor:pointer;list-style:none;user-select:none;margin:-4px 0;
+  display:flex;align-items:center;gap:8px;
+}
 details.pcard-details>summary::-webkit-details-marker{display:none}
-details.pcard-details>summary h3{margin-bottom:0;display:inline-flex}
+details.pcard-details>summary h3{margin-bottom:0;flex:1;min-width:0}
 details.pcard-details>summary::before{
-  content:'';display:inline-block;width:0;height:0;margin-right:8px;
+  content:'';flex:none;width:0;height:0;
   border-left:5px solid var(--accent);border-top:4px solid transparent;border-bottom:4px solid transparent;
 }
 details.pcard-details[open]>summary::before{
@@ -618,17 +639,36 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 }
 .tpl-field:focus{outline:2px solid var(--accent);outline-offset:-1px}
 .tpl-field.tpl-single{min-height:var(--ctl);white-space:nowrap;overflow-x:auto;padding-top:10px}
+/* Les jetons se taisent au repos : un message doit se lire comme un
+   message, pas comme du code au milieu d'une phrase. Ils ne se signalent
+   qu'au survol, au toucher ou au clavier — là où on va les manipuler. */
 .tvar{
-  display:inline;background:var(--teal-wash);color:var(--accent);
-  border-bottom:1px dashed var(--accent);border-radius:var(--radius-1);
-  padding:0 2px;white-space:nowrap;
+  display:inline;background:none;color:inherit;
+  border-bottom:1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+  border-radius:var(--radius-1);padding:0 1px;white-space:nowrap;cursor:default;
 }
+/* le repère ne se réveille qu'au moment où l'on vient toucher le jeton —
+   pas quand on écrit à côté */
+.tvar:hover{background:var(--teal-wash);color:var(--accent);border-bottom-color:var(--accent)}
 
+/* une seule ligne d'aide à la place des neuf boutons d'insertion */
 .tpl-insert{
-  margin-top:2px;font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);
-  display:flex;flex-wrap:wrap;gap:2px 6px;align-items:center;
+  margin:4px 0 0;font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);
 }
-.tpl-insert .linklike{min-height:28px;padding:2px 2px}
+.tpl-insert b{color:var(--accent)}
+/* la petite liste qui s'ouvre au « @ », sous le curseur */
+.at-pop{
+  position:fixed;z-index:3500;min-width:150px;max-width:200px;max-height:168px;overflow-y:auto;
+  background:var(--surface-window);border:1px solid var(--border-strong);
+  border-radius:var(--radius-1);box-shadow:var(--shadow-modal);
+}
+.at-pop button{
+  display:block;width:100%;text-align:left;background:none;border:0;
+  padding:8px 11px;font-family:var(--font-ui);font-size:var(--text-13);color:var(--text-body);
+  border-bottom:1px dashed var(--border-soft);cursor:pointer;
+}
+.at-pop button:last-child{border-bottom:0}
+.at-pop button.on{background:var(--teal-wash);color:var(--accent);font-weight:var(--weight-semibold)}
 /* Prospecter (#17) : la piste cochable + sa personne, côte à côte */
 .pk-duo{display:flex;flex-direction:column;gap:0}
 .pk-duo .pick{margin:0}
@@ -1095,8 +1135,13 @@ body:has(.overlay) .toast{bottom:auto;top:calc(env(safe-area-inset-top) + 62px)}
 .phrase-grid li{padding:2px 0}
 .phrase-grid li::marker{color:var(--text-muted);font-size:var(--text-11)}
 /* les trois lignes de valeur du parcours de création */
-.lk-why{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--border-soft);background:var(--surface-raised)}
-.lk-why .ic{color:var(--accent);flex:none}
+/* Les « pourquoi » : du texte, pas des boutons. Ils portaient bordure et
+   fond surélevé, exactement l'habit d'un `.pick` — on tapait dessus pour
+   rien. Une phrase avec son pictogramme suffit ; les boutons redeviennent
+   les seules choses qui ont l'air de se taper. */
+.lk-whys{display:flex;flex-direction:column;gap:6px}
+.lk-why{display:flex;align-items:flex-start;gap:10px;line-height:var(--leading-body)}
+.lk-why .ic{color:var(--accent);flex:none;margin-top:3px}
 /* anneau d'appareils : rôles et lignes ouvrables */
 .tag-main{
   display:inline-block;padding:1px 6px;margin-left:6px;

@@ -53,10 +53,10 @@ export function openContactEditor(o){
        <div class="field"><label for="cePhone">Téléphone</label>
          <input id="cePhone" type="tel" value="${esc(src.phone || '')}" autocomplete="off" inputmode="tel"></div>
      </div>
-     <div class="field"><label for="ceLink">Profil <span class="lbl-soft">— LinkedIn ou autre</span></label>
-       <input id="ceLink" type="url" value="${esc(src.link || '')}" placeholder="https://…" autocomplete="off"></div>
+     <div class="field"><label for="ceLink">Profil</label>
+       <input id="ceLink" type="url" value="${esc(src.link || '')}" placeholder="Ex : linkedin.com/in/…" autocomplete="off"></div>
      ${!c ? `
-     <div class="field"><label for="ceCo">Entreprise <span class="lbl-soft">— si tu la connais</span></label>
+     <div class="field"><label for="ceCo">Entreprise</label>
        <input id="ceCo" value="${esc((src.extra && src.extra.company) || '')}" placeholder="Ex : OVHcloud" autocomplete="off">
        <p class="hint" id="ceCoNote" hidden></p></div>` : ''}
      <div class="field"><label for="ceNote">Note</label>
@@ -200,7 +200,6 @@ export function openAttach(ct){
     if (txt && !S.companies.some(c => normName(c.name) === nq)){
       html += `<button class="pick" id="atNew">
                  <b>${ic('plus', 'ic-14')} Créer la piste « ${esc(txt)} »</b>
-                 <span>et y ranger le contact</span>
                </button>`;
     }
     q('#atList').innerHTML = html || '<p class="hint">Tape le nom de l’entreprise pour la retrouver ou la créer.</p>';

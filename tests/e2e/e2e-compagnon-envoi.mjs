@@ -143,7 +143,7 @@ console.log('appairé au vrai Compagnon ✓');
 await page.goto(base + '/#/pistes');
 await page.click('#piProspect');
 await page.waitForSelector('.pk');
-await page.click('#pkAllTodo');
+await page.click('#pkAll');
 await page.click('.modal-f .btn-primary');
 await page.waitForSelector('#pmCamp');
 await page.click('#pmCamp');

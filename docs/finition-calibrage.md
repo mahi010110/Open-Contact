@@ -402,3 +402,107 @@ elles font trop IA »*. Les tells relevés et corrigés :
 Règle qui en sort : **un tiret cadratin par phrase au maximum, et jamais
 pour remplacer un point.** Deux phrases courtes se lisent mieux qu'une
 phrase à charnière.
+
+## I — simplifier l'esthétique *(hors des 12, captures du mainteneur)*
+
+Cinq points relevés sur son iPhone. **Première série de propositions
+refusée** : *« ça ne corrige pas réellement les problèmes, ça change de
+forme »*. Les boutons devenaient des lignes, le titre devenait un bouton —
+des transformations, pas des réparations. Leçon à garder : *chercher la
+cause, pas une autre apparence.*
+
+Le mainteneur a alors demandé de **se documenter avant de reproposer**.
+Ce que la recherche a changé :
+
+| Ce qui a été trouvé | Ce que ça a corrigé dans mes propositions |
+|---|---|
+| NN/g : on scanne une liste par ses **deux premiers mots à gauche** ; une icône n'aide que sur un libellé obscur | l'intuition du mainteneur sur les pictogrammes est confirmée — ils repoussent les mots qui servent à scanner |
+| Apple HIG : un **geste complète** un bouton visible, il ne le remplace **jamais** | ma « ligne de titre cliquable » remplaçait l'attendu → abandonnée |
+| Coin haut-gauche = zone la plus dure au pouce (Hoober) | le retour reste en place mais gagne **deux chemins de secours** |
+| Mailchimp, Brevo, Unlayer : insertion **à la frappe**, jamais une rangée de boutons | mon bouton `＋ Insérer` n'était qu'un dixième bouton → remplacé par `@` |
+
+**Ce qui est livré**
+
+1. **Moi** — cadenas centré (`.td-lock` : une icône se centre, une date se
+   pose sur la ligne de base) ; les deux boutons en `flex:1 1 0`, donc de
+   même largeur par construction, en `btn-sm` ; « à remplir » supprimé, le
+   libellé du bouton le disait déjà.
+2. **Réglages** — plus de pictogrammes (le nom récupère 22 px, plus aucune
+   ligne à deux étages) ; les états raccourcissent (`relié — en attente`
+   → `en attente`, `à protéger d'abord` → `à protéger`) ; le retour perd
+   sa boîte pour un chevron nu (`.abtn`), et gagne **retaper « Moi » dans
+   la barre du bas** (racine de l'onglet, à la façon d'iOS) plus le
+   **glissé depuis le bord gauche**.
+3. **Prospecter** — `Tout cocher` ⇄ `Tout décocher`, le même lien que
+   Donner et le partage en groupe, et il porte sur ce qui est **affiché**.
+   Le raccourci « Cocher les N à contacter » part : depuis qu'« Affiner »
+   est là, filtrer puis tout cocher fait mieux.
+4. **Les plis** — la flèche entre dans la ligne (`summary` en flex) au lieu
+   d'être posée devant : elle ne reste plus seule quand le titre plie.
+   Corrigé pour **tous** les `pcard-details`.
+5. **Modèles** — la liste prend la ligne des Réglages ; les neuf boutons
+   d'insertion disparaissent au profit du **`@`** (`bindAtMenu`,
+   `ui/tplfield.js`), qui ne se déclenche **qu'en début de mot** — le `@`
+   d'une adresse e-mail ne l'ouvre pas.
+
+**Les jetons se taisent.** Plus de fond teal ni de pointillé : un trait
+sous le mot, à 28 % de l'accent. Le message se lit comme un message. Le
+repère ne se réveille qu'au survol du jeton — pas quand on écrit à côté.
+
+⚠️ **#4 se referme sans décision.** Sans pictogrammes dans les Réglages,
+« Le Compagnon » ne porte plus l'éclair d'« Aujourd'hui » : le conflit
+d'icône n'existe plus. Aucune icône à choisir.
+
+⚠️ **Écarté sur décision du mainteneur** : replier « Domaine » dans la
+feuille « Affiner ». Elle lui plaît telle quelle.
+
+## J — le balayage du motif *(la moitié manquante du §I)*
+
+Le mainteneur a rappelé la règle qu'il avait posée et que je n'avais
+appliquée qu'aux cinq captures : **« lorsque je signale une chose, cherche
+les occurrences à d'autres endroits pour les corriger SI c'est pertinent »**.
+Deux points de sa liste restaient ouverts, et le motif vivait ailleurs.
+
+### Ce qui restait de sa liste
+
+- **« aligner ET réduire les boutons »** — je n'avais fait qu'aligner.
+  La cause du surdimensionnement : **le bouton répétait le titre de sa
+  carte**. « Mon profil » + « Remplir mon profil », « Garder une copie » +
+  « Garder une copie ». Le titre dit de quoi il s'agit, le bouton dit le
+  geste : **« Remplir »**, **« Télécharger »**. Les libellés rétrécissent,
+  donc les boutons aussi — sans rien perdre.
+- **« surtout pas ce `{{ }}` »** — il en restait un vrai à l'écran, que la
+  refonte de l'éditeur ne touchait pas : `Lien CV — pour {{cv}} dans les
+  emails`, dans « Mon profil ». Supprimé. Un test de la passe de
+  vérification échoue désormais si un `{{` réapparaît dans cette feuille.
+
+### Le motif, partout où il vivait
+
+| Ce qui a été trouvé | Où | Corrigé en |
+|---|---|---|
+| **Du texte déguisé en bouton** : `.lk-why` portait bordure + fond surélevé, l'habit exact d'un `.pick`, et trois d'entre eux étaient même posés dans un `pick-list` | Protection (×2), Compagnon (×2), Recevoir — **15 lignes, 5 écrans** | une ligne de CSS : plus de boîte. Seuls les boutons ont désormais l'air de se taper |
+| **L'icône collée au mot** : `.linklike` était en `inline-flex` sans `gap` | 7 liens (Réglages, fiche, écrire, capture, appareils ×2) | `gap:6px`, une fois pour toutes |
+| **Une carte-titre + un bouton** qui fait le travail d'une porte, avec « Entrer » qui ne dit rien de plus | Échanger — « Partage en groupe » | la porte de « Moi » à l'identique (`pcard moi-door`) |
+| **Une explication au lieu d'un état** | « Mes appareils » : « Le Compagnon · s'installe et s'associe depuis ton ordinateur » (×2) | « pas installé · voir › » — la même règle que la liste des Réglages : l'état ici, le chemin sur l'écran d'après |
+| **Un libellé de lien qui porte sa notice** | « Ajouter le Compagnon — cet ordinateur enverra même app fermée » (×2) | « Ajouter le Compagnon » |
+| **Un commentaire sous chaque bouton** | Clôturer : « bravo ! », « la suivante sera la bonne », « on passe à autre chose » | rien — « Décroché / Refusé / Abandonné » se suffisent, et l'encouragement vit déjà dans le toast qui suit |
+| **Deux frères écrits différemment** | Recevoir : « Ton ordinateur lit tes 7 derniers jours » vs « Les 30 derniers jours · plus complet » | un libellé au-dessus (`ton ordinateur lit`), deux boutons parallèles où seul le nombre change |
+| **Une explication sur l'étiquette d'un champ** que le texte d'exemple disait déjà | Technos, Profil, Entreprise, Contact (×2), « Quand ? » | l'étiquette seule ; l'exemple reste dans le champ |
+| **Une phrase entière en descriptif** | Campagne : « il prendra la campagne dès qu'il te rejoint » | « dès qu'il te rejoint » |
+| Divers | « et y ranger le contact », « WhatsApp, mail… » | retirés |
+
+**La règle qui a servi de tri** — un `<span>` sous un bouton **reste** s'il
+porte un état ou une donnée (une date, un compte, un nom de fichier, un
+statut) ou s'il est le **seul** départage entre deux frères (« en personne »
+/ « à distance », « maintenant » / « sur 2 semaines »). Il **part** s'il
+explique, encourage, ou répète.
+
+**Un plafond, aussi** : `.pc-actions>.btn` gagne `max-width:240px`. Aligner
+deux boutons évitait qu'ils soient inégaux ; sur l'ordinateur ça étirait
+« Télécharger » sur 700 px de carte. Les deux travers sont refermés.
+
+⚠️ **Un test a dû changer d'endroit, pas de promesse.** `e2e-ux-audit`
+exigeait l'explication « depuis ton ordinateur » sur la LIGNE du Compagnon.
+Elle vit maintenant sur la feuille d'après — que le même test vérifiait
+déjà. L'assertion contrôle désormais que la ligne dit son **état** et,
+symétriquement, qu'elle ne réexplique **pas**.

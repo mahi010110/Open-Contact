@@ -142,6 +142,20 @@ remplacer, retirer un appareil, rompre le lien) gardent `confirmSheet`
 (`btn-danger`) ; l'état vide de chaque écran enseigne le produit (pas un
 simple « aucune donnée »).
 
+Trois règles de sobriété, à vérifier sur tout écran nouveau ou retouché :
+
+1. **Un bouton ne répète jamais le titre de sa carte.** Le titre dit de
+   quoi il s'agit, le bouton dit le geste — un verbe (« Mon profil » →
+   « Remplir », « Garder une copie » → « Télécharger »). Un libellé qui
+   répète produit toujours un bouton trop large.
+2. **Un `<span>` sous un bouton reste** s'il porte un **état ou une
+   donnée** (date, compte, nom de fichier, statut) ou s'il est le **seul**
+   départage entre deux frères (« en personne » / « à distance »). Il
+   **part** s'il explique, encourage ou répète.
+3. **Une explication ne se déguise jamais en bouton.** Bordure et fond
+   surélevé appartiennent à ce qui se tape ; une phrase se pose en texte
+   (`hint`, `lk-why`), même dans une liste de choix.
+
 ## 7. Les textes
 
 Français, tutoiement, phrases courtes, concret. On parle « pistes »,

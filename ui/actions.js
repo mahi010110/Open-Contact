@@ -43,7 +43,7 @@ export function askNextAction(c, opts){
      <div class="field"><label for="naTxt">Quoi ?</label>
        <input id="naTxt" value="${esc(opts.preset != null ? opts.preset : (c.nextActionText || ''))}"
               placeholder="Ex : Relancer le RH" autocomplete="off"></div>
-     <div class="field"><label id="naWhen">Quand ? <span class="lbl-soft">— un tap suffit</span></label>
+     <div class="field"><label id="naWhen">Quand ?</label>
        <div class="datechips" role="group" aria-labelledby="naWhen">
          ${DATE_CHOICES.map((d, i) => `<button class="dchip" data-i="${i}">${d[0]}</button>`).join('')}
        </div>
@@ -117,9 +117,10 @@ export function askClose(c, opts){
     `<div class="na-company">${esc(c.name)}</div>
      <div class="pick-list">
        ${Object.keys(CLOSE_REASONS).map(k =>
+         /* « Décroché », « Refusé », « Abandonné » se suffisent : le mot
+            d'encouragement vit dans le toast qui suit, pas sous le bouton */
          `<button class="pick pick-close" data-r="${k}" style="--c:${CLOSE_REASONS[k].color}">
             <b>${CLOSE_REASONS[k].label}</b>
-            <span>${k === 'won' ? 'bravo !' : k === 'rejected' ? 'la suivante sera la bonne' : 'on passe à autre chose'}</span>
           </button>`).join('')}
      </div>
      <p class="hint">${ic('archive', 'ic-14')} Elle reste dans « Mes pistes », tu peux la rouvrir.</p>`;

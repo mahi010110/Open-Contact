@@ -48,12 +48,12 @@ export function openCapture(prefill){
      (un libellé par champ) ; au pouce il garde son en-tête unique */
   const contactHTML = wide
     ? `<div class="grid2">
-         <div class="field"><label for="cpCtName">Contact <span class="lbl-soft">— si tu en as un</span></label>
+         <div class="field"><label for="cpCtName">Contact</label>
            <input id="cpCtName" placeholder="Ex : Nadia Rahmani" autocomplete="off"></div>
          <div class="field"><label for="cpCtCoord">Email ou téléphone</label>
            <input id="cpCtCoord" placeholder="nadia@…  ou  06 12 34 56 78" autocomplete="off"></div>
        </div>`
-    : `<div class="lbl-row"><label for="cpCtName">Le contact <span class="lbl-soft">— si tu en as un</span></label></div>
+    : `<div class="lbl-row"><label for="cpCtName">Le contact</label></div>
        <div class="field"><input id="cpCtName" placeholder="Ex : Nadia Rahmani" autocomplete="off"></div>
        <div class="field"><input id="cpCtCoord" placeholder="Son email ou son téléphone" autocomplete="off"></div>`;
   const mailsHTML = `<button class="linklike" id="cpMails">${ic('sparkles', 'ic-14')} Depuis mes e-mails</button>`;

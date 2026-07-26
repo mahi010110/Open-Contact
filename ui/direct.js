@@ -249,8 +249,8 @@ export function openAppareils(){
          ${comp ? compRowHTML(comp)
            : (iAmMain
              ? (isDesktop()
-               ? `<button class="linklike" id="devAddComp" style="margin-top:6px">${ic('plus', 'ic-14')} Ajouter le Compagnon — cet ordinateur enverra même app fermée</button>`
-               : `<button class="dev-row dev-open" id="devCompInfo"><b>Le Compagnon</b><span class="dev-sub">s’installe et s’associe depuis ton ordinateur · voir ›</span></button>`)
+               ? `<button class="linklike" id="devAddComp" style="margin-top:6px">${ic('plus', 'ic-14')} Ajouter le Compagnon</button>`
+               : `<button class="dev-row dev-open" id="devCompInfo"><b>Le Compagnon</b><span class="dev-sub">pas installé · voir ›</span></button>`)
              : '')}
          ${getRing() && !iAmMain ? `<p class="hint" style="margin-top:6px">Seul ton appareil principal peut gérer les autres.</p>` : ''}
          ${1 + devs.length > DEVICES_MAX
@@ -319,10 +319,10 @@ export function openAppareils(){
            ${compRowHTML(comp)}
          </div>` : ''}
        ${!changing && !comp && isDesktop()
-         ? `<button class="linklike" id="devAddComp" style="margin-top:12px">${ic('plus', 'ic-14')} Ajouter le Compagnon — cet ordinateur enverra même app fermée</button>`
+         ? `<button class="linklike" id="devAddComp" style="margin-top:12px">${ic('plus', 'ic-14')} Ajouter le Compagnon</button>`
          : ''}
        ${!changing && !comp && !isDesktop()
-         ? `<div class="sy-devs"><button class="dev-row dev-open" id="devCompInfo"><b>Le Compagnon</b><span class="dev-sub">s’installe et s’associe depuis ton ordinateur · voir ›</span></button></div>`
+         ? `<div class="sy-devs"><button class="dev-row dev-open" id="devCompInfo"><b>Le Compagnon</b><span class="dev-sub">pas installé · voir ›</span></button></div>`
          : ''}
        ${relaySettingsHTML(relays, turn)}`;
     sh.setFoot(changing ? [btn('← Retour', 'btn-ghost', render)] : null);
@@ -487,7 +487,7 @@ export function openPromo(){
          <div style="text-align:center;margin-top:6px"><span class="tag-share">jamais le privé</span></div>
          <button class="linklike" id="prPick" style="margin-top:6px">${choosing ? 'Replier la liste' : 'Choisir ce qui part…'}</button>
          ${choosing ? `<div class="listbar" style="margin-top:8px">
-           <button class="linklike" id="prAll">Tout cocher / décocher</button>${affinerBtnHTML(ft, st)}</div>
+           <button class="linklike" id="prAll">${unsel.size ? 'Tout cocher' : 'Tout décocher'}</button>${affinerBtnHTML(ft, st)}</div>
          <div class="pick-list">
            ${listed().map(c =>
              `<div class="pk-duo">
@@ -508,9 +508,9 @@ export function openPromo(){
       q('#prPick').addEventListener('click', () => { choosing = !choosing; refreshStatus(); });
       bindAffinerBtn(zone, ft, st, {}, refreshStatus);
       q('#prAll')?.addEventListener('click', () => {
-        const all = unsel.size > 0;
+        const rienDecoche = unsel.size === 0;
         unsel.clear();
-        if (!all) mine().forEach(c => unsel.add(c.id));
+        if (rienDecoche) mine().forEach(c => unsel.add(c.id));
         refreshStatus();
       });
       zone.querySelectorAll('[data-who]').forEach(b =>

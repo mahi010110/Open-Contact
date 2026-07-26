@@ -254,14 +254,16 @@ export function openImportMails(){
     sh.body.innerHTML =
       `${pendingPick ? `<div class="pick-list">${pendingPick}</div>` : ''}
        ${assoc ? `
+       <!-- deux frères, deux libellés parallèles : seul le nombre de jours
+            change, donc seul le nombre de jours s'écrit -->
+       <div class="lbl-row" style="margin:0 0 6px"><label>ton ordinateur lit</label></div>
        <div class="pick-list">
-         <button class="pick" id="rcScan7"><b>${ic('zap', 'ic-14')} Ton ordinateur lit tes 7 derniers jours</b></button>
-         <button class="pick" id="rcScan30"><b>${ic('zap', 'ic-14')} Les 30 derniers jours</b>
-           <span>plus complet</span></button>
+         <button class="pick" id="rcScan7"><b>${ic('zap', 'ic-14')} Les 7 derniers jours</b></button>
+         <button class="pick" id="rcScan30"><b>${ic('zap', 'ic-14')} Les 30 derniers jours</b></button>
        </div>
        <p class="hint">${ic('shield', 'ic-14')} Rien ne s’enregistre sans ton accord.</p>
        <div class="lbl-row" style="margin:12px 0 6px"><label>ou à la main</label></div>` : ''}
-       <div class="pick-list">
+       <div class="lk-whys">
          <div class="lk-why">${ic('copy', 'ic-14')} <span>Copie le prompt, colle-le dans ton assistant IA avec tes e-mails.</span></div>
          <div class="lk-why">${ic('clipboard', 'ic-14')} <span>Rapporte ici sa réponse : chaque piste proposée se coche ou s’écarte.</span></div>
          ${assoc ? '' : `<div class="lk-why">${ic('shield', 'ic-14')} <span>Rien ne s’enregistre sans ton accord.</span></div>`}
