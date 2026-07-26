@@ -116,9 +116,14 @@ await page.waitForSelector('#toast.on');
 await page.evaluate(async () => (await import('./ui/direct.js')).openAppareils());
 await page.waitForSelector('.sy-relays');
 if (await page.$('#toast.on')) fail('un ancien toast recouvre la nouvelle feuille');
+/* la ligne dit l'ÉTAT, pas la phrase (même règle que la liste des
+   Réglages) : « pas installé · voir › ». Le chemin — c'est un logiciel
+   d'ordinateur — se dit sur l'écran d'après, vérifié juste en dessous. */
 const deviceText = await page.locator('.modal-b').innerText();
-if (!/Compagnon[\s\S]*depuis ton ordinateur/.test(deviceText))
-  fail('explication Compagnon mobile absente : ' + deviceText.slice(0, 220));
+if (!/Le Compagnon[\s\S]*pas installé/.test(deviceText))
+  fail('la ligne Compagnon n’annonce pas son état : ' + deviceText.slice(0, 220));
+if (/depuis ton ordinateur/.test(deviceText))
+  fail('la ligne Compagnon réexplique au lieu de dire son état : ' + deviceText.slice(0, 220));
 if (await page.$('#devAddComp')) fail('le téléphone ne doit pas proposer un appairage local impossible');
 /* la ligne s'ouvre : le téléphone apprend le chemin (ordinateur d'abord),
    peut s'envoyer le lien, et sait quoi faire ensuite depuis ici */

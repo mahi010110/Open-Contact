@@ -28,7 +28,7 @@ export function openProfil(onDone){
        <div class="field"><label for="pfEmail">Email</label>
          <input id="pfEmail" type="email" value="${esc(p.email)}" autocomplete="email"></div>
      </div>
-     <div class="field"><label for="pfCv">Lien CV <span class="lbl-soft">— pour {{cv}} dans les emails</span></label>
+     <div class="field"><label for="pfCv">Lien CV</label>
        <input id="pfCv" type="url" value="${esc(p.cvUrl)}" placeholder="https://…" autocomplete="off"></div>
      <div class="field"><label for="pfPortfolio">Portfolio / LinkedIn</label>
        <input id="pfPortfolio" type="url" value="${esc(p.portfolio)}" placeholder="https://…" autocomplete="off"></div>`;

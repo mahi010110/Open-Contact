@@ -249,7 +249,7 @@ export function openDonner(){
     sh.setTitle(`Fichier — ${n} piste${n > 1 ? 's' : ''}`);
     sh.body.innerHTML =
       `<div class="pick-list">
-         ${navigator.share ? `<button class="pick" id="dnShare"><b>${ic('share', 'ic-14')} Partager</b><span>WhatsApp, mail…</span></button>` : ''}
+         ${navigator.share ? `<button class="pick" id="dnShare"><b>${ic('share', 'ic-14')} Partager</b></button>` : ''}
          <button class="pick" id="dnDl"><b>${ic('download', 'ic-14')} Télécharger</b><span>${fname}</span></button>
          <button class="pick" id="dnCopy"><b>${ic('copy', 'ic-14')} Copier</b></button>
        </div>

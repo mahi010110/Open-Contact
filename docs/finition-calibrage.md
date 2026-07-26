@@ -455,3 +455,54 @@ d'icône n'existe plus. Aucune icône à choisir.
 
 ⚠️ **Écarté sur décision du mainteneur** : replier « Domaine » dans la
 feuille « Affiner ». Elle lui plaît telle quelle.
+
+## J — le balayage du motif *(la moitié manquante du §I)*
+
+Le mainteneur a rappelé la règle qu'il avait posée et que je n'avais
+appliquée qu'aux cinq captures : **« lorsque je signale une chose, cherche
+les occurrences à d'autres endroits pour les corriger SI c'est pertinent »**.
+Deux points de sa liste restaient ouverts, et le motif vivait ailleurs.
+
+### Ce qui restait de sa liste
+
+- **« aligner ET réduire les boutons »** — je n'avais fait qu'aligner.
+  La cause du surdimensionnement : **le bouton répétait le titre de sa
+  carte**. « Mon profil » + « Remplir mon profil », « Garder une copie » +
+  « Garder une copie ». Le titre dit de quoi il s'agit, le bouton dit le
+  geste : **« Remplir »**, **« Télécharger »**. Les libellés rétrécissent,
+  donc les boutons aussi — sans rien perdre.
+- **« surtout pas ce `{{ }}` »** — il en restait un vrai à l'écran, que la
+  refonte de l'éditeur ne touchait pas : `Lien CV — pour {{cv}} dans les
+  emails`, dans « Mon profil ». Supprimé. Un test de la passe de
+  vérification échoue désormais si un `{{` réapparaît dans cette feuille.
+
+### Le motif, partout où il vivait
+
+| Ce qui a été trouvé | Où | Corrigé en |
+|---|---|---|
+| **Du texte déguisé en bouton** : `.lk-why` portait bordure + fond surélevé, l'habit exact d'un `.pick`, et trois d'entre eux étaient même posés dans un `pick-list` | Protection (×2), Compagnon (×2), Recevoir — **15 lignes, 5 écrans** | une ligne de CSS : plus de boîte. Seuls les boutons ont désormais l'air de se taper |
+| **L'icône collée au mot** : `.linklike` était en `inline-flex` sans `gap` | 7 liens (Réglages, fiche, écrire, capture, appareils ×2) | `gap:6px`, une fois pour toutes |
+| **Une carte-titre + un bouton** qui fait le travail d'une porte, avec « Entrer » qui ne dit rien de plus | Échanger — « Partage en groupe » | la porte de « Moi » à l'identique (`pcard moi-door`) |
+| **Une explication au lieu d'un état** | « Mes appareils » : « Le Compagnon · s'installe et s'associe depuis ton ordinateur » (×2) | « pas installé · voir › » — la même règle que la liste des Réglages : l'état ici, le chemin sur l'écran d'après |
+| **Un libellé de lien qui porte sa notice** | « Ajouter le Compagnon — cet ordinateur enverra même app fermée » (×2) | « Ajouter le Compagnon » |
+| **Un commentaire sous chaque bouton** | Clôturer : « bravo ! », « la suivante sera la bonne », « on passe à autre chose » | rien — « Décroché / Refusé / Abandonné » se suffisent, et l'encouragement vit déjà dans le toast qui suit |
+| **Deux frères écrits différemment** | Recevoir : « Ton ordinateur lit tes 7 derniers jours » vs « Les 30 derniers jours · plus complet » | un libellé au-dessus (`ton ordinateur lit`), deux boutons parallèles où seul le nombre change |
+| **Une explication sur l'étiquette d'un champ** que le texte d'exemple disait déjà | Technos, Profil, Entreprise, Contact (×2), « Quand ? » | l'étiquette seule ; l'exemple reste dans le champ |
+| **Une phrase entière en descriptif** | Campagne : « il prendra la campagne dès qu'il te rejoint » | « dès qu'il te rejoint » |
+| Divers | « et y ranger le contact », « WhatsApp, mail… » | retirés |
+
+**La règle qui a servi de tri** — un `<span>` sous un bouton **reste** s'il
+porte un état ou une donnée (une date, un compte, un nom de fichier, un
+statut) ou s'il est le **seul** départage entre deux frères (« en personne »
+/ « à distance », « maintenant » / « sur 2 semaines »). Il **part** s'il
+explique, encourage, ou répète.
+
+**Un plafond, aussi** : `.pc-actions>.btn` gagne `max-width:240px`. Aligner
+deux boutons évitait qu'ils soient inégaux ; sur l'ordinateur ça étirait
+« Télécharger » sur 700 px de carte. Les deux travers sont refermés.
+
+⚠️ **Un test a dû changer d'endroit, pas de promesse.** `e2e-ux-audit`
+exigeait l'explication « depuis ton ordinateur » sur la LIGNE du Compagnon.
+Elle vit maintenant sur la feuille d'après — que le même test vérifiait
+déjà. L'assertion contrôle désormais que la ligne dit son **état** et,
+symétriquement, qu'elle ne réexplique **pas**.

@@ -151,8 +151,10 @@ input,select,textarea{font-family:inherit;color:var(--text-body)}
 .linklike{
   background:none;border:0;color:var(--text-link);font-weight:var(--weight-semibold);font-size:var(--text-12);
   text-decoration:underline;text-underline-offset:2px;
-  display:inline-flex;align-items:center;min-height:var(--ctl);padding:0 8px;border-radius:var(--radius-1);
+  display:inline-flex;align-items:center;gap:6px;min-height:var(--ctl);padding:0 8px;border-radius:var(--radius-1);
 }
+/* le pictogramme accompagne, il ne se souligne pas avec le mot */
+.linklike .ic{text-decoration:none}
 .linklike:hover{color:var(--text-link-hover)}
 
 /* ============ ÉTIQUETTES ============ */
@@ -446,9 +448,10 @@ details.tranche[open]>summary::before{
 .pcard-soon h3{color:var(--text-muted)}
 /* les actions d'une carte se partagent la largeur : deux boutons de
    libellés inégaux ne peuvent plus finir de tailles différentes. Une
-   commande à icône garde la sienne. */
+   commande à icône garde la sienne. Le plafond évite l'inverse — un
+   bouton d'un seul mot étiré sur 700 px de carte, sur l'ordinateur. */
 .pc-actions{display:flex;gap:8px;flex-wrap:wrap}
-.pc-actions>.btn{flex:1 1 0;min-width:0}
+.pc-actions>.btn{flex:1 1 0;min-width:0;max-width:240px}
 .pc-actions>.icon-btn{flex:0 0 auto}
 /* La flèche du pli est un ÉLÉMENT DE LA LIGNE, pas un signe posé devant :
    en `inline-block` elle restait seule sur la première ligne dès que le
@@ -1132,8 +1135,13 @@ body:has(.overlay) .toast{bottom:auto;top:calc(env(safe-area-inset-top) + 62px)}
 .phrase-grid li{padding:2px 0}
 .phrase-grid li::marker{color:var(--text-muted);font-size:var(--text-11)}
 /* les trois lignes de valeur du parcours de création */
-.lk-why{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--border-soft);background:var(--surface-raised)}
-.lk-why .ic{color:var(--accent);flex:none}
+/* Les « pourquoi » : du texte, pas des boutons. Ils portaient bordure et
+   fond surélevé, exactement l'habit d'un `.pick` — on tapait dessus pour
+   rien. Une phrase avec son pictogramme suffit ; les boutons redeviennent
+   les seules choses qui ont l'air de se taper. */
+.lk-whys{display:flex;flex-direction:column;gap:6px}
+.lk-why{display:flex;align-items:flex-start;gap:10px;line-height:var(--leading-body)}
+.lk-why .ic{color:var(--accent);flex:none;margin-top:3px}
 /* anneau d'appareils : rôles et lignes ouvrables */
 .tag-main{
   display:inline-block;padding:1px 6px;margin-left:6px;

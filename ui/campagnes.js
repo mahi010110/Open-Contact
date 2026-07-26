@@ -358,7 +358,7 @@ export function openCampaignWizard(list){
        <div class="field"><label for="czTpl">Partir d’un modèle</label>
          <select id="czTpl">${tpls.map((t, i) => `<option value="${i}">${esc(t.name)}</option>`).join('')}</select></div>
        <div class="field"><label>Objet</label><div id="czSubj"></div></div>
-       <div class="field"><label>Message (J0)${t0.name ? ` <span class="lbl-soft">— tel que le recevra ${esc(t0.name)}</span>` : ''}</label>
+       <div class="field"><label>Message (J0)${t0.name ? ` <span class="lbl-soft">— vu par ${esc(t0.name)}</span>` : ''}</label>
          <div id="czBody"></div></div>
        <details class="pcard pcard-details"><summary><h3>Les deux relances · J+7 et J+14</h3></summary>
          <div class="field"><label>Relance 1 (7 jours après l’envoi)</label><div id="czR1"></div></div>
@@ -409,8 +409,8 @@ export function openCampaignWizard(list){
            <b>Je valide chaque jour</b></button>
          <button class="pick${draft.auto ? ' on' : ''}" id="czAutoOpt" aria-pressed="${draft.auto}">
            <b>Mon ordinateur envoie tout seul</b><span>${compAssoc
-             ? 'même app fermée — ' + esc(compAssoc.nom || 'Compagnon')
-             : 'il prendra la campagne dès qu’il te rejoint'}</span></button>
+             ? esc(compAssoc.nom || 'Compagnon') + ' · même app fermée'
+             : 'dès qu’il te rejoint'}</span></button>
        </div>
        <p class="hint" id="czCompEtat"></p>` : ''}
        <details class="pcard pcard-details"><summary><h3>${ic('eye', 'ic-14')} Voir les ${targets.length} emails remplis</h3></summary>

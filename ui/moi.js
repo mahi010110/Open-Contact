@@ -365,12 +365,16 @@ export function renderMoi(){
         ? `<b>${bk.n} piste${bk.n > 1 ? 's' : ''}</b> depuis ta copie`
         : 'à jour';
 
+  /* Un bouton ne répète pas le titre de sa carte : « Mon profil » +
+     « Remplir mon profil », « Garder une copie » + « Garder une copie »,
+     c'était le même mot deux fois et deux boutons trop larges pour rien.
+     Le titre dit de quoi il s'agit, le bouton dit le geste — un verbe. */
   const cards =
     `<div class="pcard">
        <h3>${ic('user', 'ic-14')} Mon profil</h3>
        ${pReady ? `<p class="pd"><b>${esc(p.name)}</b>${p.formation ? ' · ' + esc(p.formation) : ''}</p>` : ''}
        <div class="pc-actions">
-         <button class="btn btn-sm ${pReady ? '' : 'btn-primary'}" id="moiProfil">${pReady ? 'Modifier' : 'Remplir mon profil'}</button>
+         <button class="btn btn-sm ${pReady ? '' : 'btn-primary'}" id="moiProfil">${pReady ? 'Modifier' : 'Remplir'}</button>
          <button class="btn btn-sm" id="moiTpl">Modèles d’emails (${p.templates.length})</button>
        </div>
      </div>
@@ -385,7 +389,7 @@ export function renderMoi(){
        <h3>${ic('save', 'ic-14')} Garder une copie <span class="tag-priv">${ic('lock', 'ic-14')} privé inclus</span></h3>
        <p class="pd">${bkState}</p>
        <div class="pc-actions">
-         <button class="btn ${bkPromote ? 'btn-primary' : ''}" id="moiBackup">${ic('download', 'ic-14')} Garder une copie</button>
+         <button class="btn btn-sm ${bkPromote ? 'btn-primary' : ''}" id="moiBackup">Télécharger</button>
          <button class="btn icon-btn bk-lock" id="moiBkLock" aria-pressed="false"
                  aria-label="Protéger la copie par un mot de passe" title="Protéger par un mot de passe">${ic('lock', 'ic-14')}</button>
        </div>

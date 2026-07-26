@@ -33,7 +33,7 @@ export function sharedFieldsHTML(c){
          <input id="edAddress" value="${esc(c.address)}" placeholder="Ex : 12 rue…, 59000 Lille" autocomplete="off">
          <div class="ac-list" id="edAc" hidden></div></div>
      </div>
-     <div class="field"><label for="edTechs">Technos <span class="lbl-soft">— ce qu'on y pratique</span></label>
+     <div class="field"><label for="edTechs">Technos</label>
        <input id="edTechs" value="${esc(c.techs)}" placeholder="Ex : SOC, Fortinet, Linux" autocomplete="off"></div>
      <div class="field"><label id="edPosL">Postes recherchés</label>
        <div class="datechips" role="group" aria-labelledby="edPosL">
