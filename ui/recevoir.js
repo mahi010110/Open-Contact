@@ -259,7 +259,7 @@ export function openImportMails(){
          <button class="pick" id="rcScan30"><b>${ic('zap', 'ic-14')} Les 30 derniers jours</b>
            <span>plus complet</span></button>
        </div>
-       <p class="hint">${ic('shield', 'ic-14')} Rien ne s’enregistre sans ton accord — chaque proposition se trie.</p>
+       <p class="hint">${ic('shield', 'ic-14')} Rien ne s’enregistre sans ton accord.</p>
        <div class="lbl-row" style="margin:12px 0 6px"><label>ou à la main</label></div>` : ''}
        <div class="pick-list">
          <div class="lk-why">${ic('copy', 'ic-14')} <span>Copie le prompt, colle-le dans ton assistant IA avec tes e-mails.</span></div>
@@ -302,7 +302,7 @@ export function openImportMails(){
       sh.setTitle('Analyse interrompue');
       sh.body.innerHTML =
         `<p class="hint warn" style="margin:8px 0 12px">${ic('square-alert', 'ic-14')} ${esc(rec.error)}</p>
-         <p class="hint">Aucune piste n’a été ajoutée. Tu peux oublier ce résultat puis relancer une lecture.</p>`;
+         <p class="hint">Aucune piste n’a été ajoutée.</p>`;
       sh.setFoot([
         btn('← Retour', 'btn-ghost', mails),
         btn('Oublier et recommencer', 'btn-primary', async () => { await clearMailAnalysis(rec.mid); mails(); })
@@ -449,7 +449,7 @@ export function mergePreviewInto(sh, obj, opts){
          ${dry.addedCt ? `<li>${ic('contact', 'ic-14')} <b>${dry.addedCt}</b> contact${dry.addedCt > 1 ? 's' : ''} ajouté${dry.addedCt > 1 ? 's' : ''}</li>` : ''}
          ${dry.conflicts ? `<li class="rc-warn">${ic('square-alert', 'ic-14')} <b>${dry.conflicts}</b> divergence${dry.conflicts > 1 ? 's' : ''} — l’existant est gardé</li>` : ''}
        </ul>
-       ${obj.kind === 'full' ? `<p class="hint">${ic('info-box', 'ic-14')} Sauvegarde complète : seules les pistes fusionnent ici. Pour tout restaurer, passe par « Moi ».</p>` : ''}
+       ${obj.kind === 'full' ? `<p class="hint">${ic('info-box', 'ic-14')} Seules les pistes arrivent ici. Pour tout restaurer, va dans « Moi ».</p>` : ''}
        ${opts.select && n ? `<div class="pick-list" style="margin:10px 0 4px">
          ${obj.companies.slice(0, 200).map((c, i) =>
            `<button class="pick pk on" data-sel="${i}" aria-pressed="true">
@@ -458,7 +458,7 @@ export function mergePreviewInto(sh, obj, opts){
                 <span>${esc([c.city, (c.contacts || []).length ? (c.contacts.length + ' contact' + (c.contacts.length > 1 ? 's' : '')) : ''].filter(Boolean).join(' · '))}</span></div>
             </button>`).join('')}
        </div>` : ''}
-       <p class="hint">${ic('shield', 'ic-14')} Rien n’est écrasé, annulable juste après.</p>
+       <p class="hint">${ic('shield', 'ic-14')} Rien n’est écrasé. Tu peux annuler juste après.</p>
        ${opts.onDiscard ? `<button class="linklike" id="rcDiscard">Écarter ces propositions</button>` : ''}
      </div>`;
   const bGo = btn(dry.addedC + dry.enriched + dry.addedCt === 0 ? 'Rien à ajouter' : 'Fusionner', 'btn-primary', () => {

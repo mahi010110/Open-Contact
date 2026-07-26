@@ -122,7 +122,7 @@ export function askClose(c, opts){
             <span>${k === 'won' ? 'bravo !' : k === 'rejected' ? 'la suivante sera la bonne' : 'on passe à autre chose'}</span>
           </button>`).join('')}
      </div>
-     <p class="hint">${ic('archive', 'ic-14')} Elle reste dans « Mes pistes », rouvrable.</p>`;
+     <p class="hint">${ic('archive', 'ic-14')} Elle reste dans « Mes pistes », tu peux la rouvrir.</p>`;
   sh.body.querySelectorAll('.pick-close').forEach(b =>
     b.addEventListener('click', () => {
       closePiste(c, b.dataset.r);

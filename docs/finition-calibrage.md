@@ -363,3 +363,42 @@ ne touche pas ce que montre « Mes pistes » derrière — comme le tri, déjà.
 Laissés de côté : **Recevoir** (ce ne sont pas encore tes pistes —
 filtrer là serait du rangement, pas de l'action) et **Campagnes** (ce sont
 des campagnes, pas des pistes).
+
+
+## H — les phrases longues, et celles qui sonnaient machine *(hors des 12)*
+
+Relevé : 15 `hint` de plus de 70 caractères. **En contexte, seules 8
+méritaient d'être touchées** — les autres sont soit des avertissements de
+sécurité au moment du geste (`CLAUDE.md §7` les autorise), soit des états
+vides qui enseignent (§6 les exige), soit des faits chiffrés.
+
+**Une seule disparaît** : « Rien ne part tout seul : chaque jour, tes
+envois prêts t'attendent dans "Aujourd'hui". » Le bouton juste au-dessus
+dit déjà « Je valide chaque jour ».
+
+**Sept raccourcies**, jamais vidées : la mention d'opposition (légale)
+garde son « Obligatoire », la fenêtre d'envoi garde ses horaires,
+« Optionnel — l'app reste la même sans. Obligatoire pour connecter… »
+devient « Optionnel, sauf pour connecter une messagerie ou une IA. »
+
+⚠️ **Une consigne devenue à moitié fausse** est partie avec : « Marque les
+réponses sur les fiches quand elles arrivent. » Depuis #1, il y a deux
+endroits pour marquer une réponse (la fiche pour toute l'entreprise, le
+tiroir des personnes visées pour quelqu'un) — en désigner un seul
+tromperait.
+
+**Puis une seconde passe, demandée par le mainteneur** : *« change-les si
+elles font trop IA »*. Les tells relevés et corrigés :
+
+| Tell | Avant | Après |
+|---|---|---|
+| tiret cadratin à tout faire | `Tes anciennes sauvegardes… — détruis celles que tu ne veux plus.` | deux phrases |
+| tournure littéraire | `la suite viendra d'elle-même` | `Reviens demain.` |
+| adjectif télégraphique | `annulable juste après` · `rouvrable` | `Tu peux annuler juste après.` · `tu peux la rouvrir` |
+| emphase dramatique | `C'est la seule issue si tu oublies ton code.` | `Sans elle, un code oublié ne se récupère pas.` |
+| jargon administratif | `15/jour, toutes campagnes confondues` | `15 envois par jour en tout` |
+| voix passive | `Confiée à ton ordinateur — les envois partent tout seuls` | `Ton ordinateur s'en occupe.` |
+
+Règle qui en sort : **un tiret cadratin par phrase au maximum, et jamais
+pour remplacer un point.** Deux phrases courtes se lisent mieux qu'une
+phrase à charnière.

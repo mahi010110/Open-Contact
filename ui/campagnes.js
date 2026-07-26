@@ -364,7 +364,7 @@ export function openCampaignWizard(list){
          <div class="field"><label>Relance 1 (7 jours après l’envoi)</label><div id="czR1"></div></div>
          <div class="field"><label>Relance 2 (7 jours après la relance 1)</label><div id="czR2"></div></div>
        </details>
-       <p class="hint">${ic('lock', 'ic-14')} La mention d’opposition est ajoutée à chaque message — obligatoire, elle ne se retire pas.</p>`;
+       <p class="hint">${ic('lock', 'ic-14')} Chaque message porte la mention d’opposition. Obligatoire.</p>`;
     const fSubj = tplField(q('#czSubj'), { value: draft.subject, sample, multiline: false });
     const fBody = tplField(q('#czBody'), { value: draft.body, sample });
     const fR1 = tplField(q('#czR1'), { value: draft.r1, sample });
@@ -420,7 +420,7 @@ export function openCampaignWizard(list){
        </details>
        ${skipped.length ? `<p class="hint warn">${skipped.length} piste${skipped.length > 1 ? 's' : ''} sans email — écartée${skipped.length > 1 ? 's' : ''} : ${esc(skipped.map(c => c.name).join(', ').slice(0, 120))}</p>` : ''}
        ${acct || compAvailable ? '' : `<p class="hint warn" id="czCxHint">Connecte ta messagerie pour envoyer depuis l’app. <button class="linklike" id="czCx" style="min-height:0;padding:0 4px">Connecter</button></p>`}
-       ${draft.auto ? '' : `<p class="hint">Rien ne part tout seul : chaque jour, tes envois prêts t’attendent dans « Aujourd’hui ».</p>`}`;
+`;
     q('#czCx')?.addEventListener('click', () => openConnexions());
     q('#czManu')?.addEventListener('click', () => { draft.auto = false; stepControl(); });
     q('#czAutoOpt')?.addEventListener('click', () => { draft.auto = true; stepControl(); });
@@ -485,7 +485,7 @@ export function openCampaignWizard(list){
           const ok = await remettreMission(rec);
           sh.close(null, true);
           bus.refresh();
-          toast(ok ? 'Confiée à ton ordinateur ✓ — elle partira toute seule.'
+          toast(ok ? 'Confiée à ton ordinateur ✓'
                    : (compAssoc ? 'Prête — ton ordinateur la prendra à son réveil.'
                                 : 'Prête — ton ordinateur la prendra dès qu’il te rejoint.'));
         } catch (e) {
@@ -574,7 +574,7 @@ export function openCampaignDay(c0){
       `<p class="hint" style="margin:0 0 10px">${st.sent} envoyé${st.sent > 1 ? 's' : ''} · ${st.replied} réponse${st.replied > 1 ? 's' : ''} · ${st.pistes} piste${st.pistes > 1 ? 's' : ''}</p>
        ${closed
          ? `<p class="hint">${c.state === 'done' ? 'Terminée ✓' : 'Arrêtée.'}</p>`
-         : `<p class="hint">${ic('zap', 'ic-14')} Confiée à ton ordinateur — les envois partent tout seuls (${DAILY_CAP}/jour, ${SEND_WINDOW_TXT}).</p>
+         : `<p class="hint">${ic('zap', 'ic-14')} Ton ordinateur s’en occupe. ${DAILY_CAP} envois par jour, ${SEND_WINDOW_TXT}.</p>
             <p class="hint" id="czCompLive">${ic('clock', 'ic-14')} État de ton ordinateur…</p>
             <button class="linklike" id="czReprendre" style="margin-top:12px">Reprendre la main…</button>`}`;
     (async () => {
@@ -708,8 +708,8 @@ export function openCampaignDay(c0){
     sh.body.innerHTML =
       `<p class="hint" style="margin:0 0 10px">${st.sent} envoyé${st.sent > 1 ? 's' : ''} · ${st.replied} réponse${st.replied > 1 ? 's' : ''} · ${st.pistes} piste${st.pistes > 1 ? 's' : ''}${c.from ? ' · depuis ' + esc(c.from) : ''}</p>
        ${c.state === 'paused' ? `<p class="hint warn">En pause — rien ne part.</p>` : ''}
-       ${closed ? `<p class="hint">${c.state === 'done' ? 'Terminée ✓' : 'Arrêtée.'} ${st.replied ? '' : 'Marque les réponses sur les fiches quand elles arrivent.'}</p>` : ''}
-       ${due.length && !inWin ? `<p class="hint warn">Les envois partent ${SEND_WINDOW_TXT} — ils t’attendent ici.</p>` : ''}
+       ${closed ? `<p class="hint">${c.state === 'done' ? 'Terminée ✓' : 'Arrêtée.'}</p>` : ''}
+       ${due.length && !inWin ? `<p class="hint warn">Les envois partent ${SEND_WINDOW_TXT}.</p>` : ''}
        ${due.length ? `<div class="lbl-row"><label>Prêts aujourd’hui (${due.length})</label></div>` : ''}
        ${due.map(d =>
          `<details class="camp-send" data-sid="${esc(d.sid)}">
@@ -718,8 +718,8 @@ export function openCampaignDay(c0){
               <button class="btn btn-sm" data-send="${esc(d.sid)}"${inWin ? '' : ' disabled'}>Envoyer</button></summary>
             <div class="cs-body"><b>${esc(d.subject)}</b>\n\n${esc(d.body)}</div>
           </details>`).join('')}
-       ${held > 0 ? `<p class="hint">${held} de plus demain — 15/jour, toutes campagnes confondues.</p>` : ''}
-       ${!due.length && c.state === 'ready' ? `<p class="hint">${ic('check', 'ic-14')} C’est tout pour aujourd’hui — la suite viendra d’elle-même.</p>` : ''}
+       ${held > 0 ? `<p class="hint">${held} de plus demain : 15 envois par jour en tout.</p>` : ''}
+       ${!due.length && c.state === 'ready' ? `<p class="hint">${ic('check', 'ic-14')} C’est tout pour aujourd’hui. Reviens demain.</p>` : ''}
        ${!closed ? `<div style="margin-top:14px;display:flex;gap:10px">
           ${c.state === 'paused'
             ? `<button class="linklike" id="czResume">Reprendre</button>`
