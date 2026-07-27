@@ -506,3 +506,61 @@ exigeait l'explication « depuis ton ordinateur » sur la LIGNE du Compagnon.
 Elle vit maintenant sur la feuille d'après — que le même test vérifiait
 déjà. L'assertion contrôle désormais que la ligne dit son **état** et,
 symétriquement, qu'elle ne réexplique **pas**.
+
+## K — « Moi » repensée en feuille de propriétés *(à la demande du mainteneur)*
+
+*« J'ai l'impression d'avoir dénaturé la page Moi. J'aimerais qu'on la
+repense à deux »* — puis *« renseigne-toi sur ce genre d'interface, étant
+donné que le style est 98 utilitaire »*.
+
+**Le diagnostic.** Chaque correction du §I et du §J était juste prise
+seule, mais l'ensemble avait perdu son centre : quatre cartes, quatre
+grammaires ; aucun nom d'objet en tête (la page s'appelle « Moi » et ne
+disait jamais qui) ; une hiérarchie inversée (la sauvegarde criait, le
+profil chuchotait) ; et deux cartes sur quatre déjà devenues des listes —
+un mouvement commencé, pas fini.
+
+**Ce que la recherche a tranché.** Une page « Moi » est très exactement
+l'objet que décrivent les guidelines d'origine : une *property page*.
+
+| Règle, mot pour mot | Ce qu'elle a décidé |
+|---|---|
+| « Put the object's name on the first page » + « display the appropriate icon in the **upper-left corner** » | l'en-tête d'objet (`.obj`) remplace la carte « Mon profil » |
+| « Group boxes… are visually heavy and should be used **sparingly** » | 4 cartes → 2 cadres |
+| « Use group boxes only when the group **doesn't contain all controls on the surface** » | trois des quatre cartes n'avaient pas le droit d'être des cadres |
+| « Make pages coherent by relating all properties to a **single, task-based purpose** » | on range par usage (« Ce que j'envoie ») et non par objet |
+| « Buttons that apply only to individual pages go **directly on the property page** » | « Télécharger » reste DANS son groupe |
+| « **Don't repeat the group box label** in control labels within the box » | la règle du §J, retrouvée à l'identique dans la source d'origine |
+| « General page first, **Advanced page last** » | « Réglages » ferme la page |
+
+**Ce qui est livré** — le mainteneur a choisi le **vrai group box** (le
+composant `Fieldset` du kit `design/`, jusque-là jamais utilisé dans
+l'app) plutôt que les simples séparateurs :
+
+1. **`.obj`** — icône en haut à gauche, nom, formation, email, et
+   « Modifier » à droite. À vide : la phrase (débarrassée de ses
+   deux-points, qui la faisaient sonner machine) et « Remplir mon profil ».
+2. **`.fset` « Ce que j'envoie »** — Modèles d'emails · CV · Lettres. Les
+   trois font le même travail ; ils étaient séparés par hasard.
+3. **`.fset` « Ma copie »** — l'état, l'étiquette « privé inclus »,
+   « Télécharger » et le cadenas du mot de passe.
+4. **« Réglages »** — une ligne au pouce (qui ouvre le sous-écran), la 2ᵉ
+   colonne à la souris. Le sous-écran prend `fset-plain` : un cadre sans
+   légende, puisque le titre de l'écran nomme déjà.
+5. `.doc-door` **supprimé** : c'était le sosie de `.rg-row`, avec sa propre
+   CSS. Une seule ligne dans toute l'app.
+6. La ligne « 5 Ko sur 988,1 Mo » **part**.
+
+⚠️ **Un token neuf : `--border-frame`.** Le cadre était en `--border-soft`
+— exactement la valeur des pointillés qu'il contient. En thème clair le
+plein contre le pointillé sauvait la lecture ; **en sombre les deux se
+confondaient** et le cadre cessait d'être un cadre. Impossible de
+réutiliser `--border-field` (il vaut l'encre en clair, le cadre serait
+devenu noir). D'où un ton propre, entre le séparateur et le contour :
+clair `#A8A395`, sombre `#4E5A68`. Vérifié dans les deux thèmes.
+
+⚠️ **`e2e-liaison` est intermittent** — et ce n'est pas cette refonte : sur
+l'arbre d'AVANT, lancé au même moment, il échoue à la même ligne. C'est le
+seul scénario qui passe par de vrais relais Nostr publics ; il tombe à un
+endroit différent à chaque échec (« liaison sync prouvée », « piste B→A »,
+ligne 110). Seul, il passe. À relancer, pas à corriger.

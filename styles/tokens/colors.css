@@ -50,6 +50,7 @@
 
   /* --- Sémantique : bordures --- */
   --border-strong:var(--ink);           /* contour des fenêtres, boutons, champs */
+  --border-frame:#A8A395;               /* cadre de groupe (group box 98) */
   --border-soft:#C9C6BA;                /* séparateurs internes */
   --border-field:var(--ink);
 
@@ -111,6 +112,9 @@ html[data-theme="dark"]{
   --green-wash:#1B2E16;
 
   --surface-field:var(--gray-0);
+  /* le cadre doit rester PLUS NET que les pointillés qu'il contient :
+     en sombre, `--border-soft` pour les deux les confondait */
+  --border-frame:#4E5A68;
   --border-soft:#3C4550;
   --border-strong:#9AA4B0;
   --border-field:#7E8894;

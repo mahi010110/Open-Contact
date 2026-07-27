@@ -181,11 +181,14 @@ async function renderDocs(){
   const box = $('#moiDocs');
   if (!box) return;
   const docs = await listDocs();
-  box.innerHTML = Object.keys(DOC_KINDS).map(kind => {
+  const kinds = Object.keys(DOC_KINDS);
+  /* la même ligne que partout (`rg-row`) : « doc-door » était son sosie,
+     avec ses propres classes et sa propre CSS pour rien */
+  box.innerHTML = kinds.map((kind, i) => {
     const n = docs.filter(d => docKind(d.key) === kind).length;
-    return `<button class="doc-door" data-kind="${kind}">
-              <span class="doc-door-n">${DOC_KINDS[kind].label}</span>
-              <span class="doc-door-s">${n ? n + ' document' + (n > 1 ? 's' : '') : 'aucun'}</span>
+    return `<button class="rg-row${i === kinds.length - 1 ? ' rg-last' : ''}" data-kind="${kind}">
+              <span class="rg-n">${DOC_KINDS[kind].label}</span>
+              <span class="rg-s">${n ? n + ' document' + (n > 1 ? 's' : '') : 'aucun'}</span>
               ${ic('chevron-right', 'ic-14')}
             </button>`;
   }).join('');
@@ -341,7 +344,7 @@ export function renderMoi(){
            <button class="abtn" id="moiBack" aria-label="Retour à Moi">${ic('chevron-left', 'ic-14')}</button>
            <h2>Réglages</h2>
          </div>
-         <div class="pcard">${reglagesRowsHTML()}</div>
+         <fieldset class="fset fset-plain">${reglagesRowsHTML()}</fieldset>
        </div>`;
     root.querySelector('#moiBack').addEventListener('click', closeReglages);
     bindEdgeBack(root);
@@ -365,29 +368,48 @@ export function renderMoi(){
         ? `<b>${bk.n} piste${bk.n > 1 ? 's' : ''}</b> depuis ta copie`
         : 'à jour';
 
-  /* Un bouton ne répète pas le titre de sa carte : « Mon profil » +
-     « Remplir mon profil », « Garder une copie » + « Garder une copie »,
-     c'était le même mot deux fois et deux boutons trop larges pour rien.
-     Le titre dit de quoi il s'agit, le bouton dit le geste — un verbe. */
-  const cards =
-    `<div class="pcard">
-       <h3>${ic('user', 'ic-14')} Mon profil</h3>
-       ${pReady ? `<p class="pd"><b>${esc(p.name)}</b>${p.formation ? ' · ' + esc(p.formation) : ''}</p>` : ''}
-       <div class="pc-actions">
-         <button class="btn btn-sm ${pReady ? '' : 'btn-primary'}" id="moiProfil">${pReady ? 'Modifier' : 'Remplir'}</button>
-         <button class="btn btn-sm" id="moiTpl">Modèles d’emails (${p.templates.length})</button>
+  /* « Moi » est une FEUILLE DE PROPRIÉTÉS, pas une pile de cartes.
+     Trois règles d'origine, appliquées telles quelles :
+     · « put the object's name on the first page » + l'icône en haut à
+       gauche → la page dit d'abord QUI, au lieu d'une carte « Mon profil »
+       dont le bouton répétait le titre ;
+     · « group boxes are visually heavy… use sparingly » et « only when the
+       group doesn't contain all controls on the surface » → quatre cartes
+       deviennent deux cadres, rangés par usage et non par objet ;
+     · « buttons that apply only to a page go on the page » → « Télécharger »
+       reste DANS son groupe, il ne descend pas en pied de page. */
+  const objet =
+    `<div class="obj">
+       ${ic('user', 'ic-24')}
+       <div class="obj-m">
+         ${pReady
+           ? `<span class="obj-n">${esc(p.name)}</span>
+              <div class="obj-s">${[p.formation, p.email].filter(Boolean).map(esc).join('<br>')}</div>`
+           : `<p class="obj-empty">Ton nom, ta formation, ton email remplissent
+                chaque email que tu envoies.</p>
+              <button class="btn btn-sm btn-primary" id="moiProfil">Remplir mon profil</button>`}
        </div>
-     </div>
+       ${pReady ? '<button class="btn btn-sm" id="moiProfil">Modifier</button>' : ''}
+     </div>`;
 
-     <div class="pcard">
-       <h3>${ic('attachment', 'ic-14')} Mes CV &amp; lettres</h3>
+  const envoi =
+    `<fieldset class="fset">
+       <legend>Ce que j’envoie</legend>
+       <button class="rg-row" id="moiTpl">
+         <span class="rg-n">Modèles d’emails</span>
+         <span class="rg-s">${p.templates.length}</span>
+         ${ic('chevron-right', 'ic-14')}
+       </button>
        <div id="moiDocs"></div>
-     </div>
+     </fieldset>`;
 
-     ${showBackup ? `
-     <div class="pcard">
-       <h3>${ic('save', 'ic-14')} Garder une copie <span class="tag-priv">${ic('lock', 'ic-14')} privé inclus</span></h3>
-       <p class="pd">${bkState}</p>
+  const copie = showBackup ? `
+     <fieldset class="fset">
+       <legend>Ma copie</legend>
+       <div class="fs-state">
+         <span class="pd">${bkState}</span>
+         <span class="tag-priv">${ic('lock', 'ic-14')} privé inclus</span>
+       </div>
        <div class="pc-actions">
          <button class="btn btn-sm ${bkPromote ? 'btn-primary' : ''}" id="moiBackup">Télécharger</button>
          <button class="btn icon-btn bk-lock" id="moiBkLock" aria-pressed="false"
@@ -397,23 +419,25 @@ export function renderMoi(){
          <input id="moiBkPass" class="bk-pass" type="password" autocomplete="new-password"
                 placeholder="Mot de passe" aria-label="Mot de passe de la copie">
        </div>
-       <div class="stor-line" id="moiStor"></div>
-     </div>` : ''}`;
+     </fieldset>` : '';
 
-  const reglages = `<div class="pcard">
-       ${wide ? `<h3>${ic('settings-2', 'ic-14')} Réglages</h3>` : ''}
+  /* « General first, Advanced last » : les réglages ferment la page.
+     Au pouce c'est une porte ; à la souris, la 2ᵉ colonne les déplie. */
+  const reglages = `<fieldset class="fset">
+       <legend>Réglages</legend>
        ${reglagesRowsHTML()}
-     </div>`;
+     </fieldset>`;
 
   root.innerHTML =
     `<div class="page-inner${wide ? ' page-wide' : ''}">
        <div class="td-head"><h2>Moi</h2>
          <div class="td-date td-lock" title="privé — jamais partagé" aria-label="privé — jamais partagé">${ic('lock', 'ic-14')}</div></div>
        ${wide
-         ? `<div class="moi-cols"><div>${cards}</div><div>${reglages}</div></div>`
-         : cards +
-           `<button class="pcard moi-door" id="moiReglages">
-              <span class="md-m"><b>${ic('settings-2', 'ic-14')} Réglages</b></span>
+         ? `<div class="moi-cols"><div>${objet}${envoi}${copie}</div><div>${reglages}</div></div>`
+         : objet + envoi + copie +
+           `<button class="rg-row rg-last moi-rg" id="moiReglages">
+              <span class="rg-n">Réglages</span>
+              <span class="rg-s">${verrouLabel()}</span>
               ${ic('chevron-right', 'ic-14')}
             </button>`}
        <div class="moi-ver">OpenContact ${APP_VERSION}</div>
@@ -445,12 +469,4 @@ export function renderMoi(){
   });
   bindSyncLive(root);
   renderDocs();
-  if (navigator.storage && navigator.storage.estimate){
-    navigator.storage.estimate().then(({ usage, quota }) => {
-      if (usage != null && quota){
-        const el = $('#moiStor');
-        if (el) el.textContent = fmtSize(usage) + ' sur ' + fmtSize(quota);
-      }
-    }).catch(() => {});
-  }
 }
