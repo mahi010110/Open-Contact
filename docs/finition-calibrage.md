@@ -564,3 +564,64 @@ l'arbre d'AVANT, lancé au même moment, il échoue à la même ligne. C'est le
 seul scénario qui passe par de vrais relais Nostr publics ; il tombe à un
 endroit différent à chaque échec (« liaison sync prouvée », « piste B→A »,
 ligne 110). Seul, il passe. À relancer, pas à corriger.
+
+## L — Donner et Recevoir en onglets *(l'idée du mainteneur : « un système de slide »)*
+
+Son intuition tombait sur un motif d'origine. Les guidelines la valident
+mot pour mot, et condamnent au passage ce qui existait :
+
+| La règle | Ce qu'elle décide |
+|---|---|
+| « Tabs work best when information is **related and independent** across pages » | QR · Fichier · Texte sont trois façons indépendantes de faire la même chose → des onglets |
+| « Consider alternatives if **tabs represent task steps — use wizards** » | l'inverse est vrai aussi : nos canaux n'étaient PAS des étapes, or Donner les enchaînait comme un assistant (3 écrans) |
+| « If users are likely to start with the **last tab displayed**, make the tab persist » | l'onglet retenu d'une ouverture à l'autre (en mémoire, pas une clé de stockage) |
+| « If a tab **doesn't apply to the current context, remove it** » | sans caméra, plus d'onglet « Scanner » |
+| « Use **vertical tabs for eight or more** » | la variante en colonne (3 onglets) était hors-règle : écartée |
+
+**Le glissé est un champ de mines** — trois gestes se disputent le doigt,
+et chacun est traité à la source :
+1. la feuille se ferme déjà en glissant **vers le bas** → l'axe se
+   verrouille au premier mouvement (>8 px), seul l'horizontal compte ;
+2. iOS **revient en arrière** depuis le bord gauche → les 24 premiers
+   pixels sont ignorés, et c'est précisément pour ce cas que le chevron
+   existe ;
+3. glisser dans un champ, c'est **sélectionner** → aucun glissé n'y démarre.
+
+**Le chevron ne ment pas.** Dans la maquette il était en
+`pointer-events:none` : il ressemblait à un bouton sans en être un.
+Il est devenu une commande de 26 px sur toute la hauteur, et il n'existe
+que du côté où il reste un onglet.
+
+**L'état quitte le contenu.** Cinq lignes s'étaient empilées sous le code
+(état, consigne, repli, points, notice de geste). Les points répétaient
+les onglets, la notice ne sert qu'une fois, la consigne redisait le QR.
+Reste l'état — et il va dans `setStatus`, la barre d'état de la fenêtre.
+Elle **disparaît** quand il n'y a rien à dire : sur un téléphone, une
+bande permanente coûterait 26 px pour rien.
+
+**Le réseau ne se réveille plus tout seul.** Le rendez-vous P2P n'est
+ouvert que si l'onglet QR est réellement affiché, et rendu (`onHide`) dès
+qu'on le quitte. À la souris, où le QR n'est qu'une colonne parmi
+d'autres, on s'en tient au QR hors ligne — un rendez-vous se demande d'un
+bouton. Trois pistes tiennent dans l'image : la barre d'état dit
+« ✓ hors ligne — un scan suffit », et **rien ne part sur le réseau**.
+
+**La caméra se compte sans rien demander.** `hasCamera()` lit
+`enumerateDevices` : 0 entrée vidéo = pas de caméra, et l'état de
+permission reste « prompt » — le test le prouve. Elle s'éteint aussi
+quand l'app passe en arrière-plan.
+
+⚠️ **Un vrai bug de conception, trouvé par le test.** Retirer l'onglet
+« Scanner » sans caméra emportait **le champ de code avec lui** : sur une
+tour de bureau, plus aucun moyen de taper le code qu'on te dicte. Ce qui
+n'existe pas sans caméra, c'est la caméra — pas le rendez-vous. L'onglet
+reste donc, sous son vrai nom : **« Code »**.
+
+⚠️ **Un second bug, trouvé à l'écran.** « Chiffrer » vivait dans chaque
+panneau. Au pouce on n'en voit qu'un ; à la souris les deux cadres sont
+visibles **en même temps** → deux cases et un `id` dupliqué. C'est UN
+réglage : il est posé une fois, sous les deux. Un test le verrouille.
+
+**Ce que ça enlève** : Donner passe de **3 écrans à 1** (les pistes se
+choisissent au-dessus des onglets, plus dans une étape à part), et
+« Coller » cesse d'être un écran pour devenir l'onglet « Texte ».

@@ -39,6 +39,20 @@ function loadJsQR(){
    plusieurs parties), sinon on s'arrête à la première. Deux lectures
    identiques d'affilée ne comptent qu'une fois. Retourne stop().
    Jette 'camera' si l'accès est refusé. */
+/* Y a-t-il une caméra sur cet appareil ? La question se pose SANS rien
+   demander : `enumerateDevices` liste les entrées vidéo avant toute
+   permission (leurs libellés restent vides, leur nombre non). Sans ça on
+   proposait « Scanner » à une tour de bureau, et l'échec ne se découvrait
+   qu'après le clic. Dans le doute (API absente, exception), on répond oui :
+   mieux vaut un chemin qui échoue proprement qu'un chemin absent à tort. */
+export async function hasCamera(){
+  try {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return true;
+    const list = await navigator.mediaDevices.enumerateDevices();
+    return list.some(d => d.kind === 'videoinput');
+  } catch (e) { return true; }
+}
+
 export async function startScan(video, onCode){
   let stream;
   try {
@@ -81,7 +95,17 @@ export async function startScan(video, onCode){
     if (!stopped) setTimeout(tick, 200);
   };
   tick();
-  return () => { stopped = true; stream.getTracks().forEach(t => t.stop()); };
+  const stop = () => {
+    if (stopped) return;
+    stopped = true;
+    document.removeEventListener('visibilitychange', onHide);
+    stream.getTracks().forEach(t => t.stop());
+  };
+  /* l'app passe en arrière-plan : la caméra s'éteint. Une pastille verte
+     qui reste allumée derrière une autre application, c'est non. */
+  const onHide = () => { if (document.hidden) stop(); };
+  document.addEventListener('visibilitychange', onHide);
+  return stop;
 }
 /* lit un QR dans une image déjà posée sur un canvas (utilisé aussi
    par les auto-vérifications) */
