@@ -676,6 +676,12 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   border:1px solid var(--border-strong);background:var(--surface-window);
   padding:14px 30px;position:relative;
 }
+/* Le plancher n'existe qu'au pouce, là où vivent les chevrons : ils se
+   centrent sur la hauteur, et sans lui ils tombaient pile sur le bouton
+   d'un onglet court. À la souris il n'y a rien à centrer — un plancher
+   n'y ferait que du vide. */
+@media (max-width:900px), (pointer:coarse){ .tabpage{min-height:232px} }
+@media (min-width:901px) and (pointer:fine){ .tabpage{padding:14px 18px} .sw-a{display:none} }
 /* le chevron est une COMMANDE, pas un décor : 26 px sur toute la hauteur,
    tapable, et il n'apparaît que du côté où il reste quelque chose */
 .sw-a{
@@ -790,9 +796,20 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 .hero2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
 .hero2 .hero{min-height:76px;flex-direction:column;gap:7px;font-size:var(--text-14)}
 .ec-foot{text-align:center;margin-top:16px}
-/* ---- Donner : ce qui part (compteur + élagage) ---- */
-.dn-what{display:flex;align-items:center;gap:8px;margin-top:12px}
+/* ---- Donner : ce qui part (compteur + élagage), puis par où ---- */
+.dn-what{display:flex;align-items:center;gap:8px;margin:0 0 12px}
 .dn-count{flex:1;font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted)}
+.dn-fname{font-family:var(--font-mono);font-size:var(--text-11);margin:10px 0 0;overflow-wrap:anywhere}
+.dn-crypt{margin-top:14px}
+.dn-blob{margin:0 0 10px}
+.dn-blob textarea{min-height:78px;font-family:var(--font-mono);font-size:var(--text-11)}
+/* à la souris : le QR à gauche, les deux cadres à droite — tout visible,
+   aucun onglet à ouvrir pour découvrir ce qui existe */
+.dn-large{display:flex;gap:20px;align-items:flex-start}
+.dn-large .dn-qr{flex:none;width:236px}
+.dn-large .dn-sep{width:1px;align-self:stretch;border-left:1px dashed var(--border-soft)}
+.dn-large .dn-ways{flex:1;min-width:0}
+.dn-large .fset:last-of-type{margin-bottom:0}
 
 .qr-prog,.scan-prog{
   margin-top:8px;text-align:center;
@@ -1068,11 +1085,25 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px}
   background:#fff;border:1px solid var(--border-strong);box-shadow:var(--shadow-raised);
   padding:16px;max-width:300px;margin:0 auto 12px;
 }
-.qr-wrap svg{display:block;width:100%;height:auto}
+/* Le QR et son code forment UN bloc : à 390 px, un QR qui prend toute la
+   largeur poussait le code sous la ligne de flottaison. On plafonne par
+   la hauteur d'écran, pas par la largeur — un petit écran rend un petit
+   QR, mais on ne perd jamais le code de vue. */
+.qr-wrap svg{display:block;width:100%;height:auto;max-height:38dvh;margin:0 auto}
 .scan-box{
   position:relative;background:#000;border:1px solid var(--border-strong);
-  box-shadow:var(--shadow-raised);overflow:hidden;aspect-ratio:1/1;max-height:46dvh;margin-bottom:10px;
+  box-shadow:var(--shadow-raised);overflow:hidden;aspect-ratio:1/1;max-height:38dvh;margin-bottom:10px;
 }
+/* Recevoir : le pendant exact de Donner. Le champ de code se pose SOUS la
+   caméra, là où le code se pose sous le QR en face. */
+.rc-code{margin:0}
+.rc-blob{margin:0 0 10px}
+.rc-blob textarea{min-height:110px;font-family:var(--font-mono);font-size:var(--text-11)}
+.rc-drop{
+  border:1px dashed var(--border-frame);padding:26px 12px;text-align:center;
+  font-size:var(--text-13);color:var(--text-muted);line-height:1.6;
+}
+.rc-drop.on{border-color:var(--accent);background:var(--teal-wash);color:var(--text-body)}
 .scan-box video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .scan-mark{
   position:absolute;inset:14%;border:2px solid #fff;

@@ -80,7 +80,9 @@ await page.evaluate(() => {
   window.__copie = null;
   navigator.clipboard.writeText = t => { window.__copie = t; return Promise.resolve(); };
 });
-await page.click('#dnFile');
+/* « Copier » vit sous l'onglet « Texte » : un fichier et un texte collé
+   ne vont pas au même endroit, ils ne partagent plus le même écran */
+await page.click('#dnText');
 await page.waitForSelector('#dnCopy');
 await page.click('#dnCopy');
 await attendre(page, () => !!window.__copie, { timeout: 6000, message: 'fichier copié' });
@@ -91,6 +93,10 @@ if (String(cap) !== 'Léa Fontaine,Sofia Ben') fail('Marc ne devait pas partir :
 if (String(parNom.OVHcloud.contacts.map(t => t.name)) !== 'Nadia K.')
   fail('une piste non touchée part entière : ' + parNom.OVHcloud.contacts.length);
 if (parNom.Sopra.contacts.length) fail('Sopra n’a personne à faire partir');
+/* « Chiffrer » est UN réglage : à la souris les deux cadres sont visibles
+   en même temps, un par cadre aurait dupliqué l'identifiant */
+const cryptDoublons = await page.evaluate(() => document.querySelectorAll('#dnCrypt').length);
+if (cryptDoublons !== 1) fail('« Chiffrer » présent ' + cryptDoublons + ' fois');
 /* la fiche, elle, reste entière — on écarte des personnes, pas des champs */
 if (parNom.Capgemini.city !== 'Lille' || parNom.Capgemini.domain !== 'esn')
   fail('la fiche doit partir entière : ' + JSON.stringify(parNom.Capgemini));

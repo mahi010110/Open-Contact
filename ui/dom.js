@@ -234,7 +234,8 @@ export function tabsUI(host, defs, o){
   let cur = -1;
   host.innerHTML =
     `<div class="tabs" role="tablist">${defs.map((d, i) =>
-      `<button class="tab" type="button" role="tab" id="${uid}-t${i}" aria-controls="${uid}-p"
+      `<button class="tab" type="button" role="tab" id="${esc(d.id || uid + '-t' + i)}"
+               data-t="${uid}-t${i}" aria-controls="${uid}-p"
                aria-selected="false" tabindex="-1">${esc(d.label)}</button>`).join('')}</div>
      <div class="tabpage" id="${uid}-p" role="tabpanel" aria-labelledby="${uid}-t0">
        <button class="sw-a sw-l" type="button" aria-label="Onglet précédent" hidden>‹</button>
@@ -257,13 +258,16 @@ export function tabsUI(host, defs, o){
       t.setAttribute('aria-selected', String(k === i));
       t.tabIndex = k === i ? 0 : -1;
     });
-    page.setAttribute('aria-labelledby', uid + '-t' + i);
+    page.setAttribute('aria-labelledby', tabs[i].id);
     prev.hidden = i === 0;
     next.hidden = i === defs.length - 1;
-    zone.innerHTML = '';
-    defs[i].render(zone);
+    peindre();
     if (o.onChange) o.onChange(i, defs[i]);
   };
+  /* le contenu de l'onglet dépend souvent d'un choix fait au-dessus (les
+     pistes qui partent, par exemple) : `refresh` le refait sans faire
+     croire à un changement d'onglet */
+  const peindre = () => { zone.innerHTML = ''; defs[cur].render(zone); };
 
   tabs.forEach((t, i) => t.addEventListener('click', () => show(i)));
   prev.addEventListener('click', () => show(cur - 1));
@@ -301,7 +305,7 @@ export function tabsUI(host, defs, o){
   }
 
   show(Math.max(0, Math.min(defs.length - 1, o.start | 0)));
-  return { show, current: () => cur, count: defs.length };
+  return { show, refresh: peindre, current: () => cur, count: defs.length };
 }
 
 document.addEventListener('keydown', e => {
