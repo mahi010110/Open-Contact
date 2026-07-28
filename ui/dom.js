@@ -104,10 +104,12 @@ export function openSheet(o){
         <div class="modal-h"><h2>${o.icon ? ic(o.icon, 'ic-14') : ''}<span>${esc(o.title || '')}</span></h2>
           <button class="x" aria-label="Fermer">✕</button></div>
         <div class="modal-b"></div>
+        <div class="modal-s" hidden></div>
         <div class="modal-f" hidden></div>
       </div>
     </div>`);
   const body = ov.querySelector('.modal-b');
+  const stat = ov.querySelector('.modal-s');
   const foot = ov.querySelector('.modal-f');
   if (typeof o.body === 'string') body.innerHTML = o.body;
   else if (o.body) body.append(o.body);
@@ -183,6 +185,15 @@ export function openSheet(o){
   const api = {
     ov, body, close,
     setTitle(t){ ov.querySelector('.modal-h h2 span').textContent = t; },
+    /* La barre d'état de la fenêtre — là où 98 mettait l'état vivant, et
+       pas au milieu du contenu. `null` la fait disparaître : sur un
+       téléphone, une bande permanente coûterait 26 px pour rien quand il
+       n'y a rien à dire. `ton` colore le mot (« ok » = vert). */
+    setStatus(html, ton){
+      stat.hidden = html == null;
+      stat.className = 'modal-s' + (ton ? ' modal-s-' + ton : '');
+      stat.innerHTML = html == null ? '' : html;
+    },
     setFoot(content){
       /* remplace — les feuilles à étapes rappellent setFoot à chaque
          écran ; null = pas de pied (fermer = la croix ou le glisser) */
@@ -196,6 +207,102 @@ export function openSheet(o){
   return api;
 }
 export function topSheet(){ return stack[stack.length - 1] || null; }
+
+/* ---------- onglets — la feuille de propriétés 98 ----------
+   À réserver à ce qu'elle décrit : plusieurs façons INDÉPENDANTES de
+   faire la même chose (« tabs work best when information is related and
+   independent across pages »). Des ÉTAPES ne sont pas des onglets — ça,
+   c'est un parcours en feuilles.
+
+   Trois entrées pour un seul comportement, et le geste ne remplace
+   jamais ce qui se voit : taper l'onglet · ← → au clavier · glisser au
+   pouce · les chevrons aux bords, qui sont de VRAIS boutons de 26 px.
+
+   Les pièges évités, dans l'ordre où ils mordent :
+   · le glisser-fermer de la feuille est vertical → on verrouille l'axe
+     au premier mouvement et on ne prend que l'horizontal ;
+   · iOS revient en arrière quand on part du bord gauche → on ignore les
+     24 premiers pixels (le chevron reste, lui, tapable) ;
+   · glisser dans un champ, c'est sélectionner du texte → on n'y touche pas.
+
+   `onHide` sert à rendre les ressources (une caméra ne tourne jamais
+   sous un onglet caché). */
+let tabSeq = 0;
+export function tabsUI(host, defs, o){
+  o = o || {};
+  const uid = 'tb' + (++tabSeq);
+  let cur = -1;
+  host.innerHTML =
+    `<div class="tabs" role="tablist">${defs.map((d, i) =>
+      `<button class="tab" type="button" role="tab" id="${uid}-t${i}" aria-controls="${uid}-p"
+               aria-selected="false" tabindex="-1">${esc(d.label)}</button>`).join('')}</div>
+     <div class="tabpage" id="${uid}-p" role="tabpanel" aria-labelledby="${uid}-t0">
+       <button class="sw-a sw-l" type="button" aria-label="Onglet précédent" hidden>‹</button>
+       <button class="sw-a sw-r" type="button" aria-label="Onglet suivant" hidden>›</button>
+       <div class="tab-in"></div>
+     </div>`;
+  const tabs = Array.from(host.querySelectorAll('.tab'));
+  const page = host.querySelector('.tabpage');
+  const zone = host.querySelector('.tab-in');
+  const prev = host.querySelector('.sw-l');
+  const next = host.querySelector('.sw-r');
+
+  const show = i => {
+    i = Math.max(0, Math.min(defs.length - 1, i));
+    if (i === cur) return;
+    if (cur >= 0 && defs[cur].onHide) defs[cur].onHide();
+    cur = i;
+    tabs.forEach((t, k) => {
+      t.classList.toggle('on', k === i);
+      t.setAttribute('aria-selected', String(k === i));
+      t.tabIndex = k === i ? 0 : -1;
+    });
+    page.setAttribute('aria-labelledby', uid + '-t' + i);
+    prev.hidden = i === 0;
+    next.hidden = i === defs.length - 1;
+    zone.innerHTML = '';
+    defs[i].render(zone);
+    if (o.onChange) o.onChange(i, defs[i]);
+  };
+
+  tabs.forEach((t, i) => t.addEventListener('click', () => show(i)));
+  prev.addEventListener('click', () => show(cur - 1));
+  next.addEventListener('click', () => show(cur + 1));
+  host.querySelector('.tabs').addEventListener('keydown', e => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    const i = cur + (e.key === 'ArrowRight' ? 1 : -1);
+    if (i < 0 || i >= defs.length) return;
+    e.preventDefault();
+    show(i);
+    tabs[i].focus();
+  });
+
+  if (matchMedia('(pointer:coarse)').matches){
+    let x0 = null, y0 = 0, axe = '';
+    page.addEventListener('touchstart', e => {
+      const t = e.touches[0];
+      if (t.clientX < 24 || e.target.closest('input, textarea, select, [contenteditable]')){
+        x0 = null;
+        return;
+      }
+      x0 = t.clientX; y0 = t.clientY; axe = '';
+    }, { passive: true });
+    page.addEventListener('touchmove', e => {
+      if (x0 == null || axe) return;
+      const t = e.touches[0];
+      const dx = Math.abs(t.clientX - x0), dy = Math.abs(t.clientY - y0);
+      if (dx > 8 || dy > 8) axe = dx > dy ? 'x' : 'y';
+    }, { passive: true });
+    page.addEventListener('touchend', e => {
+      const d = x0 == null || axe !== 'x' ? 0 : e.changedTouches[0].clientX - x0;
+      x0 = null;
+      if (Math.abs(d) > 48) show(cur + (d < 0 ? 1 : -1));
+    });
+  }
+
+  show(Math.max(0, Math.min(defs.length - 1, o.start | 0)));
+  return { show, current: () => cur, count: defs.length };
+}
 
 document.addEventListener('keydown', e => {
   if (!stack.length) return;

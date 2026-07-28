@@ -642,6 +642,52 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;flex:none;
 }
 .modal-f .btn{flex:1 1 40%}
+/* la barre d'état de la fenêtre : l'état vivant se pose ICI, jamais au
+   milieu du contenu — et elle disparaît quand il n'y a rien à dire */
+.modal-s{
+  flex:none;padding:5px 18px;border-top:1px solid var(--border-strong);
+  background:var(--surface-chrome);
+  font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);
+  display:flex;align-items:center;gap:7px;
+}
+.modal-s .ic{flex:none}
+.modal-s-ok{color:var(--green)}
+.modal-s-warn{color:var(--amber)}
+
+/* ============ ONGLETS (feuille de propriétés 98) ============
+   L'onglet actif fusionne avec sa page : c'est ce qui fait lire
+   « une seule surface à plusieurs pages » plutôt qu'un rang de boutons. */
+.tabs{display:flex;gap:2px;padding-left:2px;position:relative;z-index:1}
+.tab{
+  padding:7px 14px 6px;min-height:36px;
+  border:1px solid var(--border-strong);border-bottom:0;
+  border-radius:var(--radius-1) var(--radius-1) 0 0;
+  background:var(--surface-chrome);background-image:var(--dither);
+  font:inherit;font-size:var(--text-13);font-weight:var(--weight-semibold);
+  color:var(--text-muted);cursor:pointer;white-space:nowrap;
+}
+.tab.on{
+  background:var(--surface-window);background-image:none;color:var(--text-body);
+  margin-bottom:-1px;padding-bottom:7px;
+}
+.tab:focus-visible{outline:2px solid var(--focus-ring);outline-offset:-3px}
+@media (max-width:900px), (pointer:coarse){ .tab{min-height:var(--ctl)} }
+.tabpage{
+  border:1px solid var(--border-strong);background:var(--surface-window);
+  padding:14px 30px;position:relative;
+}
+/* le chevron est une COMMANDE, pas un décor : 26 px sur toute la hauteur,
+   tapable, et il n'apparaît que du côté où il reste quelque chose */
+.sw-a{
+  position:absolute;top:0;bottom:0;width:26px;padding:0;border:0;background:none;
+  display:grid;place-items:center;cursor:pointer;
+  font-size:20px;line-height:1;color:var(--text-muted);
+}
+.sw-a.sw-l{left:0}
+.sw-a.sw-r{right:0}
+.sw-a:hover{color:var(--text-link)}
+.sw-a:active{background:var(--surface-chrome)}
+.sw-a:focus-visible{outline:2px solid var(--focus-ring);outline-offset:-3px}
 .x{
   flex:none;min-width:var(--control-h-touch);min-height:var(--control-h-touch);
   padding:0;display:inline-flex;align-items:center;justify-content:center;
