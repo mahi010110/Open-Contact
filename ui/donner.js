@@ -1,19 +1,10 @@
 /* ============================================================
    OpenContact — interface · Donner à la promo
-   UN écran, pas trois. Les pistes qui partent se choisissent en
-   haut ; en dessous, les trois façons de les faire passer vivent
-   côte à côte — onglets au pouce (glissables), tout visible à la
-   souris. Ce ne sont pas des étapes : ce sont trois chemins vers
-   la même chose, et c'est très exactement ce à quoi servent des
-   onglets. Le suivi privé ne part jamais : tout passe par
-   sharePayload (vue communautaire) ou OCQ1/OCQP — qui l'excluent
-   par construction.
-
-   Le réseau ne se réveille jamais tout seul : le rendez-vous P2P
-   n'est ouvert que si l'onglet QR est réellement affiché, et il
-   est rendu (`onHide`) dès qu'on le quitte. À la souris, où le QR
-   n'est qu'une colonne parmi d'autres, on s'en tient au QR hors
-   ligne — un rendez-vous se demande alors d'un bouton.
+   Une feuille, une décision : QR (en personne) ou fichier .oc
+   (à distance, chiffrable d'une case). Tout part par défaut —
+   élagable d'un tap, triable comme partout. Le suivi privé ne
+   part jamais : tout passe par sharePayload (vue communautaire)
+   ou OCQ1/OCQP — qui l'excluent par construction.
    ============================================================ */
 import { esc, todayISO } from '../engine/utils.js';
 import { STATUSES } from '../engine/model.js';
@@ -21,7 +12,7 @@ import { sharePayload, encodeOCQ, splitOCQ, makeRdvCode, rdvNorm, rdvWrap } from
 import { filterCompanies } from '../engine/filter.js';
 import { encryptOC2 } from '../engine/crypto.js';
 import { S, isClosed, logJ } from './state.js';
-import { openSheet, toast, btn, ic, softReorder, tabsUI } from './dom.js';
+import { openSheet, toast, btn, ic, softReorder } from './dom.js';
 import { sortState, sortArgs } from './sort.js';
 import { filterState, filterArgs, affinerBtnHTML, bindAffinerBtn } from './affiner.js';
 import { openRoom, watchLiaison } from './synclive.js';
@@ -29,10 +20,6 @@ import { makeQrSvg } from './qr.js';
 import { whoCandidates, whoLineHTML, openWhoPicker } from './qui.js';
 
 const QR_HARD_MAX = 1800;     /* caractères par QR : au-delà, rendez-vous P2P ou QR animé */
-/* l'onglet retenu d'une ouverture à l'autre — « if users are likely to
-   start with the last tab displayed, make the tab persist ». En mémoire
-   seulement : ça ne vaut pas une clé de stockage. */
-let dernierOnglet = 0;
 
 export function openDonner(){
   /* jamais les pistes d'exemple : leurs contacts sont fictifs */
@@ -69,314 +56,257 @@ export function openDonner(){
   const sh = openSheet({ title: 'Donner', icon: 'share', onClose: () => { gen++; leaveRdv(); } });
   const q = s => sh.body.querySelector(s);
 
-  /* ---- l'écran unique : ce qui part, puis par où ---- */
-  const wide = () => matchMedia('(min-width:901px)').matches;
-  let tb = null;                    /* la barre d'onglets, au pouce */
-
-  const syncCount = () => {
-    const k = chosen().length;
-    const t = alive().length;
-    const cut = cutCount();
-    const el = q('#dnCount');
-    if (!el) return;
-    el.textContent = (k === t ? k : k + ' / ' + t) + ' piste' + (t > 1 ? 's' : '') +
-      (cut ? ' · ' + cut + ' personne' + (cut > 1 ? 's' : '') + ' écartée' + (cut > 1 ? 's' : '') : '');
-    q('#dnPick').textContent = choosing ? 'Replier' : 'Choisir…';
-  };
-
-  /* la sélection change → ce qui part change : le chemin affiché se
-     refait, sinon le QR mentirait sur son contenu */
-  const rejouer = () => {
-    if (tb) tb.refresh();
-    else renderLarge();
-  };
-
-  const renderList = () => {
-    const zone = q('#dnList');
-    if (!zone) return;
-    if (!choosing){ zone.hidden = true; zone.innerHTML = ''; syncCount(); return; }
-    const list = filterCompanies(alive(), { ...filterArgs(ft), ...sortArgs(st) });
-    zone.hidden = false;
-    zone.innerHTML =
-      `<div class="listbar"><button class="linklike" id="dnAll">${unsel.size ? 'Tout cocher' : 'Tout décocher'}</button>${affinerBtnHTML(ft, st)}</div>
+  /* ---- l'écran : QR ou fichier — tout part par défaut, élagable ---- */
+  const stepHow = () => {
+    enter();
+    sh.setTitle('Donner');
+    /* mobile = le terrain : QR d'abord ; desktop = le poste : fichier
+       d'abord, le QR devient le pont vers le téléphone (#18) */
+    const wide = matchMedia('(min-width:901px)').matches;
+    const optQR = `<button class="pick" id="dnQR"><b>${ic('grid-3x3', 'ic-14')} QR</b><span>${wide ? 'à faire scanner par un téléphone' : 'en personne'}</span></button>`;
+    const optFile = `<button class="pick" id="dnFile"><b>${ic('file', 'ic-14')} Fichier .oc</b><span>à distance</span></button>`;
+    sh.body.innerHTML =
+      `<p class="hint" style="margin:0 0 10px">${ic('lock', 'ic-14')} Seules les fiches partent — jamais ton suivi privé.</p>
        <div class="pick-list">
-         ${list.map(c =>
-           `<div class="pk-duo">
-              <button class="pick pk${unsel.has(c.id) ? '' : ' on'}" data-id="${c.id}" aria-pressed="${!unsel.has(c.id)}">
-                ${ic('checkbox', 'ic-20 ic-off')}${ic('checkbox-on', 'ic-20 ic-on')}
-                <div class="pk-m"><b>${esc(c.name)}</b>
-                  <span>${STATUSES[c.status].label}${c.city ? ' · ' + esc(c.city) : ''}</span></div>
-              </button>
-              ${whoLineHTML(c, keepOf(c), 'donner')}
-            </div>`).join('')}
-       </div>`;
-    bindAffinerBtn(zone, ft, st, {}, () => { const play = softReorder('.modal-b .pk'); renderList(); play(); });
-    zone.querySelectorAll('.pk').forEach(b =>
-      b.addEventListener('click', () => {
-        const id = b.dataset.id;
-        unsel.has(id) ? unsel.delete(id) : unsel.add(id);
-        b.classList.toggle('on', !unsel.has(id));
-        b.setAttribute('aria-pressed', !unsel.has(id));
-        syncCount();
-        rejouer();
-      }));
-    zone.querySelectorAll('[data-who]').forEach(b =>
-      b.addEventListener('click', () => {
-        const c = alive().find(x => x.id === b.dataset.who);
-        if (c) openWhoPicker(c, keepOf(c), { verbe: 'donner', onChange: () => { renderList(); rejouer(); } });
-      }));
-    zone.querySelector('#dnAll').addEventListener('click', () => {
-      const rienDecoche = unsel.size === 0;
-      unsel.clear();
-      if (rienDecoche) alive().forEach(c => unsel.add(c.id));
-      renderList();
-      rejouer();
-    });
+         ${wide ? optFile + optQR : optQR + optFile}
+       </div>
+       <div class="dn-what">
+         <span class="dn-count" id="dnCount"></span>
+         <button class="linklike" id="dnPick"></button>
+       </div>
+       <div id="dnList" hidden></div>`;
+    const syncCount = () => {
+      const k = chosen().length;
+      const t = alive().length;
+      const cut = cutCount();
+      q('#dnCount').textContent = (k === t ? k : k + ' / ' + t) + ' piste' + (t > 1 ? 's' : '') +
+        (cut ? ' · ' + cut + ' personne' + (cut > 1 ? 's' : '') + ' écartée' + (cut > 1 ? 's' : '') : '');
+      q('#dnPick').textContent = choosing ? 'Replier' : 'Choisir…';
+    };
+    const renderList = () => {
+      const zone = q('#dnList');
+      if (!choosing){ zone.hidden = true; zone.innerHTML = ''; syncCount(); return; }
+      const list = filterCompanies(alive(), { ...filterArgs(ft), ...sortArgs(st) });
+      zone.hidden = false;
+      zone.innerHTML =
+        `<div class="listbar"><button class="linklike" id="dnAll">${unsel.size ? 'Tout cocher' : 'Tout décocher'}</button>${affinerBtnHTML(ft, st)}</div>
+         <div class="pick-list">
+           ${list.map(c =>
+             `<div class="pk-duo">
+                <button class="pick pk${unsel.has(c.id) ? '' : ' on'}" data-id="${c.id}" aria-pressed="${!unsel.has(c.id)}">
+                  ${ic('checkbox', 'ic-20 ic-off')}${ic('checkbox-on', 'ic-20 ic-on')}
+                  <div class="pk-m"><b>${esc(c.name)}</b>
+                    <span>${STATUSES[c.status].label}${c.city ? ' · ' + esc(c.city) : ''}</span></div>
+                </button>
+                ${whoLineHTML(c, keepOf(c), 'donner')}
+              </div>`).join('')}
+         </div>`;
+      bindAffinerBtn(zone, ft, st, {}, () => { const play = softReorder('.modal-b .pk'); renderList(); play(); });
+      zone.querySelectorAll('.pk').forEach(b =>
+        b.addEventListener('click', () => {
+          const id = b.dataset.id;
+          unsel.has(id) ? unsel.delete(id) : unsel.add(id);
+          b.classList.toggle('on', !unsel.has(id));
+          b.setAttribute('aria-pressed', !unsel.has(id));
+          syncCount();
+        }));
+      zone.querySelectorAll('[data-who]').forEach(b =>
+        b.addEventListener('click', () => {
+          const c = alive().find(x => x.id === b.dataset.who);
+          if (c) openWhoPicker(c, keepOf(c), { verbe: 'donner', onChange: renderList });
+        }));
+      zone.querySelector('#dnAll').addEventListener('click', () => {
+        const rienDecoche = unsel.size === 0;
+        unsel.clear();
+        if (rienDecoche) alive().forEach(c => unsel.add(c.id));
+        renderList();
+      });
+      syncCount();
+    };
+    q('#dnPick').addEventListener('click', () => { choosing = !choosing; renderList(); });
+    const need = fn => () => { if (!chosen().length){ toast('Coche au moins une piste.'); return; } fn(); };
+    q('#dnQR').addEventListener('click', need(stepQR));
+    q('#dnFile').addEventListener('click', need(stepFile));
+    sh.setFoot(null);
+    renderList();
     syncCount();
   };
 
-  /* ================= les trois chemins ================= */
-
-  /* --- QR --- le contenu tient dans l'image (hors ligne) quand il est
-     petit ; sinon c'est un rendez-vous P2P, et sinon encore le fichier */
-  const paneQR = async (zone, { reseau }) => {
+  /* ---- QR : petit lot → QR de données (hors ligne, un scan) ;
+     gros lot → rendez-vous P2P, repli QR animé — tout seul ---- */
+  const stepQR = async () => {
     const my = enter();
     const n = chosen().length;
-    zone.innerHTML = `<div class="qr-prog">${ic('clock', 'ic-14')} Préparation…</div>`;
     let compact = null;
     try { compact = await encodeOCQ(chosen(), keepFn); } catch (e) {}
-    if (my !== gen || !zone.isConnected) return;
-    if (compact && compact.length <= QR_HARD_MAX){ qrDonnees(zone, compact, n, my); return; }
-    if (reseau && navigator.onLine){ qrRendezVous(zone, compact, n, my); return; }
-    if (compact){ qrDonnees(zone, compact, n, my); return; }
-    zone.innerHTML =
-      `<p class="hint" style="text-align:center">Trop de pistes pour un QR hors ligne.</p>`;
-    if (!reseau && navigator.onLine){
-      const b = btn('Créer un rendez-vous', 'btn-sm btn-primary',
-        () => qrRendezVous(zone, compact, n, enter()));
-      b.style.margin = '10px auto 0';
-      b.style.display = 'flex';
-      zone.append(b);
-    }
+    if (my !== gen) return;
+    if (compact && compact.length <= QR_HARD_MAX){ stepQRData(compact, n); return; }
+    if (navigator.onLine){ stepQRRdv(compact, n); return; }
+    if (compact){ stepQRData(compact, n); return; }
+    toast('Le QR n’est pas disponible sur ce navigateur — passe par le fichier.');
+    stepFile();
   };
 
-  const qrDonnees = async (zone, compact, n, my) => {
+  /* le QR porte les données (OCQ1) — animé en plusieurs parties si besoin */
+  const stepQRData = async (compact, n) => {
+    const my = enter();
     const parts = compact.length > QR_HARD_MAX ? splitOCQ(compact) : [compact];
     let svgs;
-    try { svgs = await Promise.all(parts.map(makeQrSvg)); }
-    catch (e) {
-      if (my !== gen || !zone.isConnected) return;
-      zone.innerHTML = `<p class="hint" style="text-align:center">Le QR n’est pas disponible ici — passe par le fichier.</p>`;
+    try {
+      svgs = await Promise.all(parts.map(makeQrSvg));
+    } catch (e) {
+      /* générateur indisponible : un écran bloqué sans un mot n'est
+         pas une réponse — le fichier marche toujours */
+      if (my !== gen) return;
+      toast('Le QR n’est pas disponible ici — passe par le fichier.');
+      stepFile();
       return;
     }
-    if (my !== gen || !zone.isConnected) return;
-    zone.innerHTML =
+    if (my !== gen) return;
+    sh.setTitle(`QR — ${n} piste${n > 1 ? 's' : ''}`);
+    sh.body.innerHTML =
       `<div class="qr-wrap" role="img" aria-label="QR à faire scanner">${svgs[0]}</div>
-       ${svgs.length > 1 ? `<div class="qr-prog" id="dnQrProg">partie 1/${svgs.length} — laisse défiler</div>` : ''}`;
-    sh.setStatus(`${ic('check', 'ic-14')} hors ligne — un scan suffit`, 'ok');
+       ${svgs.length > 1 ? `<div class="qr-prog" id="dnQrProg">partie 1/${svgs.length} — laisse défiler</div>` : ''}
+       <p class="hint" style="text-align:center">L’autre personne : <b>Échanger → Recevoir → Scanner</b>.</p>`;
     if (svgs.length > 1){
       let i = 0;
       const t = setInterval(() => {
-        const wrap = zone.querySelector('.qr-wrap'), prog = zone.querySelector('#dnQrProg');
-        if (!wrap || !wrap.isConnected){ clearInterval(t); return; }
+        const wrap = q('.qr-wrap'), prog = q('#dnQrProg');
+        if (!wrap || !document.body.contains(wrap)){ clearInterval(t); return; }   /* étape quittée */
         i = (i + 1) % svgs.length;
         wrap.innerHTML = svgs[i];
         prog.textContent = `partie ${i + 1}/${svgs.length} — laisse défiler`;
       }, 900);
     }
     logJ('Donné (QR) : ' + n + ' piste(s)');
+    sh.setFoot([btn('← Retour', 'btn-ghost', stepHow), btn('Fichier plutôt', '', stepFile)]);
   };
 
-  const qrRendezVous = async (zone, compact, n, my) => {
-    const repli = () => {
-      if (compact){ toast('Pas de connexion — QR hors ligne.'); qrDonnees(zone, compact, n, enter()); }
-      else { toast('Pas de connexion — passe par le fichier.'); if (tb) tb.show(1); }
+  /* le QR est un code de rendez-vous (OCR1) : l'autre appareil scanne
+     ou tape le code, l'appairage P2P fait passer les fiches — sans
+     limite de nombre. Échec de connexion = repli silencieux. */
+  const stepQRRdv = async (compact, n) => {
+    const my = enter();
+    const fallback = () => {
+      if (compact){ toast('Pas de connexion — QR hors ligne.'); stepQRData(compact, n); }
+      else { toast('Pas de connexion — passe par le fichier.'); stepFile(); }
     };
-    zone.innerHTML = `<div class="qr-prog">${ic('clock', 'ic-14')} Connexion…</div>`;
-    sh.setStatus(`${ic('clock', 'ic-14')} connexion aux relais…`);
+    sh.setTitle(`QR — ${n} piste${n > 1 ? 's' : ''}`);
+    sh.body.innerHTML = `<div class="qr-prog">${ic('clock', 'ic-14')} Connexion…</div>`;
+    sh.setFoot([btn('← Retour', 'btn-ghost', stepHow)]);
     const code = makeRdvCode();
-    let r, svg, sent = 0;
-    /* l'attente dit l'étape prouvée : relais morts ou liaison en échec
-       se disent dans la barre d'état, avec le repli à portée */
+    let r, svg;
+    let sent = 0;
+    /* l'attente dit l'étape prouvée — relais morts ou liaison directe
+       en échec basculent d'eux-mêmes vers le repli affiché */
     const w = watchLiaison(() => sent, stage => {
       if (my !== gen || sent) return;
-      if (stage === 'norelay') sh.setStatus(`${ic('square-alert', 'ic-14')} aucun relais joignable`, 'warn');
-      else if (stage === 'rtcfail') sh.setStatus(`${ic('square-alert', 'ic-14')} liaison en échec`, 'warn');
-      else if (stage === 'wait') sh.setStatus(`${ic('clock', 'ic-14')} en attente de l’autre appareil…`);
-      else sh.setStatus(`${ic('clock', 'ic-14')} connexion aux relais…`);
+      const el = q('#dnRdvSt');
+      if (!el) return;
+      if (stage === 'norelay')
+        el.innerHTML = `${ic('square-alert', 'ic-14')} Aucun relais joignable — passe par le QR hors ligne ci-dessous.`;
+      else if (stage === 'rtcfail')
+        el.innerHTML = `${ic('square-alert', 'ic-14')} L’autre appareil est en vue, mais la liaison échoue — QR hors ligne ci-dessous.`;
+      else if (stage === 'wait')
+        el.innerHTML = `${ic('clock', 'ic-14')} En attente de l’autre appareil…`;
+      else
+        el.innerHTML = `${ic('clock', 'ic-14')} Connexion aux relais…`;
     });
     try {
       [r, svg] = await Promise.all([openRoom('give', rdvNorm(code), { onJoinError: () => w.fail() }),
         makeQrSvg(rdvWrap(code))]);
     } catch (e) {
       w.stop();
-      if (my === gen) repli();
+      if (my === gen) fallback();
       return;
     }
-    if (my !== gen || !zone.isConnected){ w.stop(); try { r.leave(); } catch (e) {} return; }
+    if (my !== gen){ w.stop(); try { r.leave(); } catch (e) {} return; }
     room = r;
     rdvWatch = w;
-    zone.innerHTML =
+    sh.body.innerHTML =
       `<div class="qr-wrap" role="img" aria-label="QR de rendez-vous">${svg}</div>
        <div class="sy-phrase"><span>${esc(code)}</span></div>
-       ${compact ? '<button class="linklike" id="dnOffline" style="display:flex;margin:2px auto 0">Sans réseau ? QR hors ligne</button>' : ''}`;
-    zone.querySelector('#dnOffline')?.addEventListener('click', repli);
+       <div class="qr-prog" id="dnRdvSt">${ic('clock', 'ic-14')} Connexion aux relais…</div>
+       <p class="hint" style="text-align:center">L’autre personne : <b>Recevoir → Scanner</b> — ou tape ce code.</p>
+       <button class="linklike" id="dnOffline" style="display:flex;margin:6px auto 0">Sans réseau ? QR hors ligne</button>`;
+    q('#dnOffline').addEventListener('click', fallback);
     const give = room.makeAction('give');
     const payload = sharePayload(chosen(), keepFn);
     room.onPeerJoin = () => {
       give.send(payload);
       sent++;
       if (sent === 1) logJ('Donné (QR rendez-vous) : ' + n + ' piste(s)');
-      sh.setStatus(`${ic('check', 'ic-14')} envoyé — ${sent} appareil${sent > 1 ? 's' : ''}`, 'ok');
+      const el = q('#dnRdvSt');
+      if (el) el.innerHTML = `${ic('check', 'ic-14')} Envoyé ✓ — ${sent} appareil${sent > 1 ? 's' : ''}`;
     };
   };
 
-  /* --- le .oc, quel que soit son véhicule --- */
-  const fname = () => 'opencontact-pistes-' + todayISO() + '.oc';
-  const fabrique = async () => {
-    const boite = sh.body.querySelector('#dnCrypt');
-    const crypt = !!(boite && boite.checked);
-    const champ = sh.body.querySelector('#dnPass');
-    const pass = crypt && champ ? champ.value : '';
-    if (crypt && !pass){
-      toast('Choisis un mot de passe — ou décoche « Chiffrer ».');
-      champ?.focus();
-      return null;
-    }
-    const payload = sharePayload(chosen(), keepFn);
-    const txt = pass ? await encryptOC2(payload, pass) : JSON.stringify(payload);
-    logJ('Donné (fichier' + (pass ? ' chiffré' : '') + ') : ' + chosen().length + ' piste(s)');
-    return txt;
-  };
-  const chiffrerHTML = () =>
-    `<label class="ckline dn-crypt"><input type="checkbox" id="dnCrypt"> Chiffrer</label>
-     <div class="field" id="dnPassF" hidden>
-       <label for="dnPass">Mot de passe</label>
-       <input id="dnPass" type="password" autocomplete="new-password">
-     </div>`;
-  const bindChiffrer = root => {
-    root.querySelector('#dnCrypt')?.addEventListener('change', e => {
-      root.querySelector('#dnPassF').hidden = !e.target.checked;
-      if (e.target.checked) root.querySelector('#dnPass').focus();
-    });
-  };
-
-  const paneFichier = (zone, o) => {
-    sh.setStatus(null);
-    zone.innerHTML =
-      `<div class="pc-actions">
-         <button class="btn btn-sm btn-primary" id="dnDl">Télécharger</button>
-         ${navigator.share ? '<button class="btn btn-sm" id="dnShare">Partager</button>' : ''}
+  /* ---- fichier .oc : case « Chiffrer », 3 sorties ---- */
+  const stepFile = () => {
+    enter();
+    const n = chosen().length;
+    const fname = 'opencontact-pistes-' + todayISO() + '.oc';
+    sh.setTitle(`Fichier — ${n} piste${n > 1 ? 's' : ''}`);
+    sh.body.innerHTML =
+      `<div class="pick-list">
+         ${navigator.share ? `<button class="pick" id="dnShare"><b>${ic('share', 'ic-14')} Partager</b></button>` : ''}
+         <button class="pick" id="dnDl"><b>${ic('download', 'ic-14')} Télécharger</b><span>${fname}</span></button>
+         <button class="pick" id="dnCopy"><b>${ic('copy', 'ic-14')} Copier</b></button>
        </div>
-       <p class="pd dn-fname">${esc(fname())}</p>
-       ${o && o.sansCrypt ? '' : chiffrerHTML()}`;
-    bindChiffrer(zone);
-    zone.querySelector('#dnDl').addEventListener('click', async () => {
-      const txt = await fabrique();
-      if (txt == null) return;
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(new Blob([txt], { type: 'application/octet-stream' }));
-      a.download = fname();
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-      toast('Fichier téléchargé ✓');
+       <label class="ckline" style="margin-top:12px"><input type="checkbox" id="dnCrypt"> Chiffrer</label>
+       <div class="field" id="dnPassF" hidden>
+         <label for="dnPass">Mot de passe</label>
+         <input id="dnPass" type="password" autocomplete="new-password">
+         <p class="hint">Perdu = irrécupérable.</p>
+       </div>`;
+    q('#dnCrypt').addEventListener('change', e => {
+      q('#dnPassF').hidden = !e.target.checked;
+      if (e.target.checked) q('#dnPass').focus();
     });
-    zone.querySelector('#dnShare')?.addEventListener('click', async () => {
-      const txt = await fabrique();
+    const make = async () => {
+      const crypt = q('#dnCrypt').checked;
+      const pass = crypt ? q('#dnPass').value : '';
+      if (crypt && !pass){
+        toast('Choisis un mot de passe — ou décoche « Chiffrer ».');
+        q('#dnPass').focus();
+        return null;
+      }
+      const payload = sharePayload(chosen(), keepFn);
+      const txt = pass ? await encryptOC2(payload, pass) : JSON.stringify(payload);
+      logJ('Donné (fichier' + (pass ? ' chiffré' : '') + ') : ' + n + ' piste(s)');
+      return txt;
+    };
+    const share = q('#dnShare');
+    if (share) share.addEventListener('click', async () => {
+      const txt = await make();
       if (txt == null) return;
-      const file = new File([txt], fname(), { type: 'application/octet-stream' });
+      const file = new File([txt], fname, { type: 'application/octet-stream' });
       try {
         if (navigator.canShare && navigator.canShare({ files: [file] })) await navigator.share({ files: [file], title: 'Pistes OpenContact' });
         else await navigator.share({ title: 'Pistes OpenContact', text: txt });
         toast('Parti ✓');
       } catch (e) { /* partage annulé : pas une erreur */ }
     });
-  };
-
-  const paneTexte = (zone, o) => {
-    sh.setStatus(null);
-    zone.innerHTML =
-      `<div class="field dn-blob">
-         <textarea id="dnBlob" readonly aria-label="Le texte à copier"></textarea>
-       </div>
-       <button class="btn btn-sm btn-primary" id="dnCopy">Copier</button>
-       ${o && o.sansCrypt ? '' : chiffrerHTML()}`;
-    bindChiffrer(zone);
-    /* l'aperçu montre ce qui partira vraiment — en clair tant que
-       « Chiffrer » n'est pas coché, illisible dès qu'il l'est */
-    const apercu = async () => {
-      const t = zone.querySelector('#dnBlob');
-      if (!t) return;
-      try { t.value = JSON.stringify(sharePayload(chosen(), keepFn)); } catch (e) { t.value = ''; }
-    };
-    apercu();
-    zone.querySelector('#dnCopy').addEventListener('click', async () => {
-      const txt = await fabrique();
+    q('#dnDl').addEventListener('click', async () => {
+      const txt = await make();
+      if (txt == null) return;
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([txt], { type: 'application/octet-stream' }));
+      a.download = fname;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      toast('Fichier téléchargé ✓');
+    });
+    q('#dnCopy').addEventListener('click', async () => {
+      const txt = await make();
       if (txt == null) return;
       try { await navigator.clipboard.writeText(txt); toast('Copié — colle-le où tu veux.'); }
       catch (e) { toast('Copie impossible ici — passe par Télécharger.'); }
     });
+    sh.setFoot([btn('← Retour', 'btn-ghost', stepHow)]);
   };
 
-  /* ================= l'assemblage ================= */
-  const enteteHTML =
-    `<div class="dn-what">
-       <span class="dn-count" id="dnCount"></span>
-       <button class="linklike" id="dnPick"></button>
-     </div>
-     <div id="dnList" hidden></div>`;
-
-  /* à la souris : tout est là, rien à découvrir d'un clic */
-  const renderLarge = () => {
-    enter();
-    sh.body.innerHTML =
-      `${enteteHTML}
-       <div class="dn-large">
-         <div class="dn-qr" id="dnQRZone"></div>
-         <div class="dn-sep"></div>
-         <div class="dn-ways">
-           <fieldset class="fset"><legend>Un fichier</legend><div id="dnFileZone"></div></fieldset>
-           <fieldset class="fset"><legend>Du texte</legend><div id="dnTextZone"></div></fieldset>
-           <div id="dnCryptZone"></div>
-         </div>
-       </div>`;
-    bindEntete();
-    paneQR(q('#dnQRZone'), { reseau: false });
-    /* les deux cadres sont visibles EN MÊME TEMPS ici : « Chiffrer » ne
-       peut pas vivre dans chacun — un seul réglage, posé sous les deux */
-    paneFichier(q('#dnFileZone'), { sansCrypt: true });
-    paneTexte(q('#dnTextZone'), { sansCrypt: true });
-    q('#dnCryptZone').innerHTML = chiffrerHTML();
-    bindChiffrer(q('#dnCryptZone'));
-    sh.setFoot(null);
-  };
-
-  /* au pouce : trois onglets, glissables — le réseau n'existe que là */
-  const renderNarrow = () => {
-    sh.body.innerHTML = `${enteteHTML}<div id="dnTabs"></div>`;
-    bindEntete();
-    tb = tabsUI(q('#dnTabs'), [
-      { id: 'dnQR', label: 'QR',
-        render: z => paneQR(z, { reseau: true }),
-        onHide: () => { enter(); sh.setStatus(null); } },
-      { id: 'dnFile', label: 'Fichier', render: paneFichier },
-      { id: 'dnText', label: 'Texte', render: paneTexte }
-    ], { start: dernierOnglet, onChange: i => { dernierOnglet = i; } });
-    sh.setFoot(null);
-  };
-
-  function bindEntete(){
-    q('#dnPick').addEventListener('click', () => { choosing = !choosing; renderList(); });
-    renderList();
-    syncCount();
-  }
-
-  const dessine = () => (wide() ? renderLarge() : renderNarrow());
-  dessine();
-  /* franchir le seuil ne doit pas laisser un écran d'un autre contexte */
-  const mq = matchMedia('(min-width:901px)');
-  const onMq = () => { if (sh.ov.isConnected) dessine(); };
-  mq.addEventListener('change', onMq);
+  stepHow();
 }

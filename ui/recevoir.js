@@ -11,9 +11,9 @@ import { parseInput, makeOCQJoiner, rdvParse, rdvNorm } from '../engine/exchange
 import { mergeIncoming } from '../engine/merge.js';
 import { normalizeCompany } from '../engine/model.js';
 import { S, bus, saveData, logJ } from './state.js';
-import { openSheet, toast, btn, ic, showUndo, tabsUI } from './dom.js';
+import { openSheet, toast, btn, ic, showUndo } from './dom.js';
 import { openRoom, watchLiaison, deviceSelf, ensureKeys } from './synclive.js';
-import { startScan, hasCamera } from './qr.js';
+import { startScan } from './qr.js';
 import { probeCompanion, companionCall } from '../engine/companion.js';
 import { makeMission, signMission } from '../engine/mission.js';
 import { loadCompanion } from './compagnon.js';
@@ -48,117 +48,69 @@ export function openRecevoir(){
 
   /* Recevoir = ce qu'un CAMARADE t'envoie (#5) — l'import de ses propres
      e-mails vit dans la capture (« Ajouter une piste → depuis mes e-mails ») */
-  /* Le miroir exact de Donner : Scanner ⟷ QR, Fichier ⟷ Fichier,
-     Texte ⟷ Texte. Ce que l'un montre, l'autre le lit — mêmes mots,
-     même ordre, pour que les deux écrans s'apprennent l'un l'autre.
-
-     La caméra n'existe pas partout : `hasCamera()` la compte SANS rien
-     demander, et sans caméra l'onglet « Scanner » n'apparaît pas du tout
-     — « if a tab doesn't apply to the current context, remove it ».
-     Sur un ordinateur, il existe mais ne s'ouvre pas de lui-même : une
-     webcam frontale n'est pas faite pour viser l'écran d'un camarade. */
-  let tb = null;
-  const paneFichier = zone => {
-    sh.setStatus(null);
-    zone.innerHTML =
-      `<div class="rc-drop" id="rcDrop">Dépose le fichier <b>.oc</b> ici,
-         ou <button class="linklike" id="rcBrowse">parcourir</button></div>
-       <input type="file" id="rcInput" accept=".oc,.txt,.json,application/octet-stream,text/plain,application/json" hidden>`;
-    const inp = zone.querySelector('#rcInput');
-    const lire = f => {
-      if (!f) return;
-      const r = new FileReader();
-      r.onload = () => treat(String(r.result));
-      r.readAsText(f);
-    };
-    zone.querySelector('#rcBrowse').addEventListener('click', () => inp.click());
-    inp.addEventListener('change', e => lire(e.target.files[0]));
-    const drop = zone.querySelector('#rcDrop');
-    ['dragenter', 'dragover'].forEach(t => drop.addEventListener(t, e => {
-      e.preventDefault(); drop.classList.add('on');
-    }));
-    ['dragleave', 'drop'].forEach(t => drop.addEventListener(t, e => {
-      e.preventDefault(); drop.classList.remove('on');
-    }));
-    drop.addEventListener('drop', e => lire(e.dataTransfer && e.dataTransfer.files[0]));
-  };
-  const paneTexte = zone => {
-    sh.setStatus(null);
-    zone.innerHTML =
-      `<div class="field rc-blob">
-         <textarea id="rcTxt" aria-label="Le texte reçu" placeholder="Colle ici ce qu’on t’a envoyé"></textarea>
-       </div>
-       <button class="btn btn-sm btn-primary" id="rcRead">Lire</button>`;
-    zone.querySelector('#rcRead').addEventListener('click', () => {
-      const v = zone.querySelector('#rcTxt').value.trim();
-      if (!v){ toast('Colle d’abord le texte reçu.'); return; }
-      treat(v);
-    });
-  };
-
-  const menu = async () => {
+  const menu = () => {
     gen++;
     halt();
     leaveRdv();
     sh.setTitle('Recevoir');
-    const cam = await hasCamera();
-    if (!sh.body.isConnected) return;
-    /* Ce qui n'existe pas sans caméra, c'est LA CAMÉRA — pas le
-       rendez-vous. Retirer l'onglet entier emportait le champ de code
-       avec lui : sur une tour de bureau, plus aucun moyen de taper le
-       code qu'on te dicte. L'onglet reste donc, sous son vrai nom. */
-    const defs = [
-      { id: 'rcScan', label: cam ? 'Scanner' : 'Code',
-        render: z => scan(z, cam), onHide: () => { gen++; halt(); leaveRdv(); } },
-      { id: 'rcFile', label: 'Fichier', render: paneFichier },
-      { id: 'rcPaste', label: 'Texte', render: paneTexte }
-    ];
-    sh.body.innerHTML = '<div id="rcTabs"></div>';
-    /* le téléphone vise ; l'ordinateur ouvre plus souvent un fichier */
-    tb = tabsUI(q('#rcTabs'), defs, { start: matchMedia('(min-width:901px)').matches ? 1 : 0 });
-    sh.setStatus(`${ic('shield', 'ic-14')} aperçu avant fusion — annulable`);
+    sh.body.innerHTML =
+      `<div class="pick-list">
+         <button class="pick" id="rcScan"><b>${ic('grid-3x3', 'ic-14')} Scanner</b></button>
+         <button class="pick" id="rcFile"><b>${ic('folder', 'ic-14')} Ouvrir un fichier</b><span>.oc</span></button>
+         <button class="pick" id="rcPaste"><b>${ic('clipboard', 'ic-14')} Coller</b></button>
+       </div>
+       <p class="hint">${ic('shield', 'ic-14')} Aperçu avant fusion — annulable.</p>
+       <input type="file" id="rcInput" accept=".oc,.txt,.json,application/octet-stream,text/plain,application/json" hidden>`;
+    q('#rcScan').addEventListener('click', scan);
+    q('#rcFile').addEventListener('click', () => q('#rcInput').click());
+    q('#rcPaste').addEventListener('click', paste);
+    q('#rcInput').addEventListener('change', e => {
+      const f = e.target.files[0];
+      if (!f) return;
+      const r = new FileReader();
+      r.onload = () => treat(String(r.result));
+      r.readAsText(f);
+    });
     sh.setFoot(null);
   };
 
   /* ---- scanner — QR de données (simple ou animé) OU QR de
      rendez-vous : reconnu tout seul ; sans caméra, le code se tape ---- */
-  const scan = async (zone, cam) => {
-    sh.setStatus(`${ic('shield', 'ic-14')} aperçu avant fusion — annulable`);
-    zone.innerHTML =
-      `${cam ? `<div class="scan-box"><video id="rcVideo" playsinline muted></video><div class="scan-mark"></div></div>
-       <div class="scan-prog" id="rcProg" hidden></div>` : ''}
-       <p class="hint" style="text-align:center" id="rcScanHint"${cam ? ' hidden' : ''}>${cam ? '' : 'Pas de caméra ici — tape le code qu’on t’a donné.'}</p>
-       <div class="field rc-code">
+  const scan = async () => {
+    sh.setTitle('Scanner');
+    sh.body.innerHTML =
+      `<div class="scan-box"><video id="rcVideo" playsinline muted></video><div class="scan-mark"></div></div>
+       <div class="scan-prog" id="rcProg" hidden></div>
+       <p class="hint" style="text-align:center" id="rcScanHint">Vise le QR — la lecture est automatique.</p>
+       <div class="field" style="margin-top:10px"><label for="rcCode">Ou le code affiché</label>
          <div class="date-row">
-           <input id="rcCode" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="ex : k7m3p-9xq2f" aria-label="Ou le code affiché">
+           <input id="rcCode" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="ex : k7m3p-9xq2f">
            <button class="btn btn-primary" id="rcCodeGo" hidden>OK</button>
          </div></div>`;
-    const codeInp = zone.querySelector('#rcCode');
-    const codeGo = zone.querySelector('#rcCodeGo');
+    sh.setFoot([btn('← Retour', 'btn-ghost', menu)]);
+    const codeInp = q('#rcCode');
+    const codeGo = q('#rcCodeGo');
     const goCode = () => { const c = rdvNorm(codeInp.value); if (c) joinRdv(c); };
     codeInp.addEventListener('input', () => { codeGo.hidden = !rdvNorm(codeInp.value); });
     codeInp.addEventListener('keydown', e => { if (e.key === 'Enter') goCode(); });
     codeGo.addEventListener('click', goCode);
-    if (!cam) return;                 /* pas de caméra : le champ suffit */
     const joiner = makeOCQJoiner();
     try {
-      stopScan = await startScan(zone.querySelector('#rcVideo'), raw => {
+      stopScan = await startScan(q('#rcVideo'), raw => {
         const code = rdvParse(raw);
         if (code){ joinRdv(code); return false; }
         const part = joiner(raw);
         if (!part){ halt(); treat(raw); return false; }
         if (part.done){ halt(); treat(part.text); return false; }
-        const p = zone.querySelector('#rcProg');
+        const p = q('#rcProg');
         if (p){ p.hidden = false; p.textContent = `QR animé — reçu ${part.got}/${part.total}, continue de viser`; }
         return true;   /* il manque des parties : on continue */
       });
     } catch (e) {
-      /* refus ou caméra prise ailleurs : le champ de code reste, et il
-         est déjà sous les yeux — on ne renvoie personne à un autre écran */
-      const box = zone.querySelector('.scan-box');
+      const box = q('.scan-box');
       if (box) box.hidden = true;
-      const h = zone.querySelector('#rcScanHint');
-      if (h){ h.hidden = false; h.textContent = 'Caméra indisponible — tape le code ci-dessous.'; }
+      const h = q('#rcScanHint');
+      if (h) h.textContent = 'Caméra indisponible — tape le code, ou passe par le fichier.';
     }
   };
 
@@ -220,6 +172,15 @@ export function openRecevoir(){
   };
 
   /* ---- coller ---- */
+  const paste = () => {
+    sh.setTitle('Coller');
+    sh.body.innerHTML =
+      `<div class="field"><label for="rcTxt">Le texte reçu</label>
+         <textarea id="rcTxt" style="min-height:140px" placeholder="Colle ici le contenu partagé"></textarea></div>`;
+    sh.setFoot([btn('← Retour', 'btn-ghost', menu), btn('Lire', 'btn-primary', () => treat(q('#rcTxt').value))]);
+    q('#rcTxt').focus();
+  };
+
   /* ---- mot de passe (fichiers OC2) ---- */
   const askPass = raw => {
     sh.setTitle('Fichier protégé');

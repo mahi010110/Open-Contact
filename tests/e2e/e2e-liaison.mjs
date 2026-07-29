@@ -215,10 +215,8 @@ await C.waitForSelector('.rc-big', { timeout: 30000 });
 await fusionner(C);
 await attendre(C, async () => (await import('./ui/state.js')).S.companies.some(c => c.name === 'Rendez-vous SARL'),
   { timeout: 15000, message: 'fusion après rendez-vous' });
-/* l'état vit maintenant dans la barre d'état de la fenêtre, pas au milieu
-   du contenu — c'est là que 98 le mettait, et le QR récupère la place */
-const stD = (await D.textContent('.modal-s').catch(() => '')).trim();
-if (!/envoyé/i.test(stD)) fail('statut donneur après envoi : ' + stD);
+const stD = (await D.textContent('#dnRdvSt').catch(() => '')).trim();
+if (!/Envoyé/.test(stD)) fail('statut donneur après envoi : ' + stD);
 console.log('rendez-vous QR réel (code tapé) : 26 pistes passées, statut « ' + stD + ' » ✓');
 await C.close();
 await D.close();
