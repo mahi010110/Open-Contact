@@ -77,6 +77,19 @@ export async function openRoom(kind, phrase, callbacks){
   } catch (e) {}
   return joinRoom(cfg, id, callbacks);
 }
+/* Quitter une salle POUR DE BON — à utiliser partout, jamais
+   `room.leave()` seul. `leave()` est ASYNCHRONE (départ annoncé aux
+   relais, connexions fermées, abonnements retirés) et rend une
+   promesse : rejoindre la même salle sans l'attendre laisse les deux
+   côtés en morceaux — celui qui revient garde un pair FANTÔME (« en
+   liaison » qui n'échange jamais rien) et l'autre le voit partir sans
+   jamais le revoir. Les rappels sont détachés d'abord : une salle
+   morte ne doit plus toucher à l'état affiché. */
+export async function leaveRoom(r){
+  if (!r) return;
+  try { r.onPeerJoin = null; r.onPeerLeave = null; } catch (e) {}
+  try { await r.leave(); } catch (e) {}
+}
 /* phrase de liaison : 10 caractères sans ambiguïté, faciles à taper */
 export function makePhrase(){
   const abc = 'abcdefghjkmnpqrstuvwxyz23456789';
@@ -359,12 +372,13 @@ document.addEventListener('oc:change', () => sendState());
 /* le réseau revient : on retente sans rien demander */
 window.addEventListener('online', () => {
   if (live.phrase && (live.state === 'err' || live.state === 'off' || live.state === 'norelay'))
-    join(live.phrase);
+    join(live.phrase, true);
 });
 
-function closeRoom(){
+async function closeRoom(){
   stopWatch();
-  if (room){ try { room.leave(); } catch (e) {} room = null; }
+  const old = room;
+  room = null;
   sendFull = null;
   sendHello = null;
   sendRingRaw = null;
@@ -373,15 +387,23 @@ function closeRoom(){
   live.relays = { total: 0, open: 0, pending: 0 };
   live.exchanged = false;
   live.rtcFail = false;
+  await leaveRoom(old);
 }
 
-async function join(phrase){
+/* `force` = on quitte la salle même si c'est la même phrase (nouveaux
+   relais, « Réessayer », retour du réseau). Sans lui, rejoindre une
+   salle DÉJÀ ouverte l'arracherait pour rien — c'était la panne : la
+   liaison créée à la main était coupée deux secondes plus tard par la
+   reprise au démarrage, et ne revenait jamais. */
+async function join(phrase, force){
+  if (!force && live.phrase === phrase && (room || live.state === 'connecting')) return;
   const my = ++gen;
-  closeRoom();
   live.phrase = phrase;
   live.state = 'connecting';
   live.since = Date.now();
   emit();
+  await closeRoom();
+  if (my !== gen) return;
   const self = await deviceSelf();
   let r;
   try {
@@ -402,13 +424,16 @@ async function join(phrase){
     emit();
     return;
   }
-  if (my !== gen){ try { r.leave(); } catch (e) {} return; }
+  if (my !== gen){ await leaveRoom(r); return; }
   room = r;
   startWatch();
   refreshStage(false);
 
   const keys = await ensureKeys();          /* identité signée de cet appareil */
-  const hello = room.makeAction('hello');
+  /* une liaison plus récente a pris la main pendant l'attente : on ne
+     rebranche pas nos rappels par-dessus les siens */
+  if (my !== gen) return;
+  const hello = r.makeAction('hello');
   sendHello = () => hello.send({ id: self.id, name: self.name, pub: keys ? keys.pub : '' });
   hello.onMessage = async obj => {
     if (!obj || !obj.id || obj.id === self.id) return;
@@ -422,11 +447,11 @@ async function join(phrase){
     }
     emit();
   };
-  const ringAct = room.makeAction('ring');
+  const ringAct = r.makeAction('ring');
   sendRingRaw = d => { try { ringAct.send(d); } catch (e) {} };
   ringAct.onMessage = obj => { onRingMsg(obj).catch(() => {}); };
 
-  const full = room.makeAction('full');
+  const full = r.makeAction('full');
   sendFull = d => full.send(d);
   let receiveQueue = Promise.resolve();
   full.onMessage = obj => { receiveQueue = receiveQueue.then(async () => {
@@ -471,14 +496,14 @@ async function join(phrase){
     sendState();   /* converge : ne repart que si quelque chose a changé */
   }).catch(() => {}); };
 
-  room.onPeerJoin = () => {
+  r.onPeerJoin = () => {
     live.peers++;
     refreshStage(true);
     if (sendHello) sendHello();
     sendRing();
     sendState();
   };
-  room.onPeerLeave = () => {
+  r.onPeerLeave = () => {
     live.peers = Math.max(0, live.peers - 1);
     if (!live.peers) live.exchanged = false;   /* prochaine liaison = nouvelle preuve */
     refreshStage(true);
@@ -486,16 +511,18 @@ async function join(phrase){
 }
 
 /* ---------- l'API de la feuille de gestion ---------- */
-/* (re)lie cet appareil avec cette phrase — elle devient persistante */
-export async function startSync(phrase){
+/* (re)lie cet appareil avec cette phrase — elle devient persistante.
+   `force` : reprendre la liaison à zéro même si la phrase ne change
+   pas (« Réessayer », nouveaux relais) */
+export async function startSync(phrase, force){
   await kvSet(SYNC_KEY, phrase);
-  join(phrase);
+  join(phrase, force);
 }
 /* rompre le lien : cet appareil ne se synchronise plus (les autres
    gardent leurs données) ; la liste des appareils vus est vidée */
 export async function breakLink(){
   gen++;
-  closeRoom();
+  await closeRoom();
   live.state = 'off';
   live.phrase = '';
   live.lastStats = null;
@@ -515,7 +542,9 @@ export function keepMyProfile(){
   toast('Ton profil est repris — il repart vers tes appareils.');
 }
 /* au démarrage (appelé en différé par app.js) : une phrase existe
-   = on rejoint, sinon on ne charge rien */
+   = on rejoint, sinon on ne charge rien. Jamais en force : si
+   l'utilisateur a relié ses appareils pendant ces deux secondes, la
+   liaison est déjà là — la reprendre la casserait. */
 export async function initSyncLive(){
   const saved = (await kvGet(SYNC_KEY)) || '';
   if (saved) join(saved);
