@@ -9,7 +9,7 @@
    écarter), aucune écriture avant validation, révocation immédiate.
    Vérifié à 1280×800 (clair) et 390×844 (sombre, cibles ≥ 44 px).
    Sauté proprement si le binaire n'est pas construit. */
-import { chromium, chromiumPath, SHOTS, serveRepo, ROOT } from './outils.mjs';
+import { chromium, chromiumPath, SHOTS, serveRepo, ROOT, attendreCanal } from './outils.mjs';
 import { spawn } from 'child_process';
 import { existsSync, mkdtempSync } from 'fs';
 import os from 'os';
@@ -33,11 +33,12 @@ const envCompagnon = Object.assign({}, process.env, {
   OC_INTEGRATION_TEST: '1'
 });
 let compagnon = null;
+let journalBin = '';
 function lancerCompagnon(){
   compagnon = spawn('xvfb-run', ['-a', 'dbus-run-session', '--', BIN],
     { env: envCompagnon, stdio: ['ignore', 'pipe', 'pipe'], detached: true });
-  compagnon.stdout.resume();
-  compagnon.stderr.resume();
+  compagnon.stdout.on('data', d => { journalBin = (journalBin + d).slice(-4000); });
+  compagnon.stderr.on('data', d => { journalBin = (journalBin + d).slice(-4000); });
 }
 const tuerCompagnon = () => { try { process.kill(-compagnon.pid, 'SIGKILL'); } catch (e) {} };
 const attendre = async (fn, ms, quoi) => {
@@ -48,15 +49,8 @@ const attendre = async (fn, ms, quoi) => {
     await new Promise(r => setTimeout(r, 400));
   }
 };
-const canalPret = () => attendre(async () => {
-  for (const port of [17095, 17096, 17097]){
-    try {
-      const r = await fetch(`http://127.0.0.1:${port}/oc-compagnon`, { signal: AbortSignal.timeout(800) });
-      if (r.ok && (await r.json()).v === 1) return true;
-    } catch (e) {}
-  }
-  return false;
-}, 30000, 'canal du Compagnon');
+const canalPret = () => attendreCanal({
+  pret: info => info && info.v === 1, journal: () => journalBin });
 
 /* ---------- un client MCP au protocole réel (JSON-RPC sur stdio) ---------- */
 class ClientMcp {

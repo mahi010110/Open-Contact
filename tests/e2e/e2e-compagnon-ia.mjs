@@ -14,7 +14,7 @@
    Compagnon éteint = message court honnête. Mobile 390×844 sombre
    + 1280×800 clair, zéro erreur console.
    Sauté proprement si le binaire n'est pas construit. */
-import { chromium, chromiumPath, SHOTS, serveRepo, ROOT } from './outils.mjs';
+import { chromium, chromiumPath, SHOTS, serveRepo, ROOT, attendreCanal } from './outils.mjs';
 import { spawn } from 'child_process';
 import { existsSync, mkdtempSync, writeFileSync, chmodSync, readFileSync } from 'fs';
 import http from 'http';
@@ -139,16 +139,7 @@ const lancerCompagnon = async () => {
   });
   compagnon.stdout.on('data', d => { compagnonOut = (compagnonOut + d).slice(-4000); });
   compagnon.stderr.on('data', d => { compagnonErr = (compagnonErr + d).slice(-4000); });
-  await attendre(async () => {
-    for (const port of [17095, 17096, 17097]){
-      try {
-        const r = await fetch(`http://127.0.0.1:${port}/oc-compagnon`, { signal: AbortSignal.timeout(800) });
-        const j = r.ok && await r.json();
-        if (j && j.appairage) return true;
-      } catch (e) {}
-    }
-    return false;
-  }, 30000, 'canal du Compagnon');
+  await attendreCanal({ journal: () => compagnonOut + compagnonErr });
 };
 const arreter = () => { try { process.kill(-compagnon.pid, 'SIGKILL'); } catch (e) {} };
 

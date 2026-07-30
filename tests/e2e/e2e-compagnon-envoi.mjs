@@ -8,7 +8,7 @@
    rapport et reprend la main.
    Prérequis : `cargo build -p oc-compagnon` fait (tous.mjs le saute
    proprement si le binaire manque). */
-import { chromium, chromiumPath, SHOTS, serveRepo, ROOT, attendre as attendrePage } from './outils.mjs';
+import { chromium, chromiumPath, SHOTS, serveRepo, ROOT, attendre as attendrePage, attendreCanal } from './outils.mjs';
 import { spawn } from 'child_process';
 import { existsSync, mkdtempSync } from 'fs';
 import net from 'net';
@@ -52,6 +52,7 @@ await new Promise(r => sink.listen(2525, '127.0.0.1', r));
 const xdg = mkdtempSync(path.join(os.tmpdir(), 'oc-compagnon-e2e-'));
 const CODE = 'ABCD-2345';
 let compagnon = null;
+let journalBin = '';
 function lancer(){
   compagnon = spawn('xvfb-run', ['-a', 'dbus-run-session', '--', BIN], {
     env: Object.assign({}, process.env, {
@@ -64,8 +65,8 @@ function lancer(){
     }),
     stdio: ['ignore', 'pipe', 'pipe'], detached: true
   });
-  compagnon.stdout.on('data', d => process.stdout.write('[compagnon] ' + d));
-  compagnon.stderr.on('data', () => {});
+  compagnon.stdout.on('data', d => { journalBin = (journalBin + d).slice(-4000); process.stdout.write('[compagnon] ' + d); });
+  compagnon.stderr.on('data', d => { journalBin = (journalBin + d).slice(-4000); });
 }
 const arreter = () => { try { process.kill(-compagnon.pid, 'SIGKILL'); } catch (e) {} };
 const attendre = async (fn, ms, quoi) => {
@@ -86,7 +87,7 @@ const sonde = async () => {
   return null;
 };
 lancer();
-await attendre(async () => { const i = await sonde(); return i && i.appairage; }, 30000, 'canal du Compagnon');
+await attendreCanal({ journal: () => journalBin });
 console.log('vrai Compagnon lancé, appairage ouvert ✓');
 
 /* ---------- la PWA ---------- */

@@ -3,7 +3,7 @@
    signé emprunte le rail privé de « Mes appareils » ; l'ordinateur le
    remet au VRAI Compagnon, qui accepte la clé du téléphone dans l'anneau
    et envoie une seule fois, même après plusieurs rejeux de sync. */
-import { chromium, chromiumPath, SHOTS, serveRepo, ROOT } from './outils.mjs';
+import { chromium, chromiumPath, SHOTS, serveRepo, ROOT, attendreCanal } from './outils.mjs';
 import { spawn } from 'child_process';
 import { existsSync, mkdtempSync } from 'fs';
 import net from 'net';
@@ -53,7 +53,9 @@ const compagnon = spawn('xvfb-run', ['-a', 'dbus-run-session', '--', BIN], {
   }),
   stdio: ['ignore', 'pipe', 'pipe'], detached: true
 });
-compagnon.stderr.on('data', () => {});
+let journalBin = '';
+compagnon.stdout.on('data', d => { journalBin = (journalBin + d).slice(-4000); });
+compagnon.stderr.on('data', d => { journalBin = (journalBin + d).slice(-4000); });
 const arreter = () => { try { process.kill(-compagnon.pid, 'SIGKILL'); } catch (e) {} };
 const attendre = async (fn, ms, quoi) => {
   const t0 = Date.now();
@@ -72,7 +74,7 @@ const sonde = async () => {
   }
   return null;
 };
-await attendre(async () => (await sonde())?.appairage, 30000, 'Compagnon C8');
+await attendreCanal({ journal: () => journalBin });
 
 const { server: desktopServer, base: desktopBase } = await serveRepo();
 const { server: phoneServer, base: phoneBase } = await serveRepo();

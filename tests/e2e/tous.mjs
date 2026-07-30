@@ -41,9 +41,21 @@ if (!hasXvfb){
    rougit en cascade — un seul flake devient six échecs illisibles. On
    moissonne donc les survivants de CE dépôt (chemin exact du binaire)
    avant la suite et après chaque scénario. */
+let pkillDit = false;
 function balayer(){
   const r = spawnSync('pkill', ['-9', '-f', bin], { stdio: 'ignore' });
-  if (!r.error && r.status === 0)
+  /* pkill absent = le moissonnage ne fait RIEN, et il le faisait en
+     silence : un survivant tenait alors le canal pour tous les
+     scénarios suivants sans qu'aucun message ne le dise. */
+  if (r.error){
+    if (!pkillDit){
+      pkillDit = true;
+      console.log('⚠  pkill introuvable : les Compagnons survivants ne seront pas moissonnés ' +
+                  '— un scénario natif qui meurt peut faire rougir les suivants.');
+    }
+    return;
+  }
+  if (r.status === 0)
     console.log('⚠  processus Compagnon survivant moissonné (isolation des scénarios)');
 }
 

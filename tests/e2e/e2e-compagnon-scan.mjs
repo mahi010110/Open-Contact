@@ -6,7 +6,7 @@
    L'app est rechargée PENDANT l'analyse : le mid scellé doit permettre
    sa reprise, puis la ligne « À trier » d'Aujourd'hui doit rendre le résultat triable (#10).
    Sauté proprement si le binaire n'est pas construit. */
-import { chromium, chromiumPath, SHOTS, serveRepo, ROOT } from './outils.mjs';
+import { chromium, chromiumPath, SHOTS, serveRepo, ROOT, attendreCanal } from './outils.mjs';
 import { spawn } from 'child_process';
 import { existsSync, mkdtempSync, writeFileSync } from 'fs';
 import http from 'http';
@@ -71,18 +71,7 @@ const attendre = async (fn, ms, quoi) => {
     await new Promise(r => setTimeout(r, 400));
   }
 };
-await attendre(async () => {
-  try {
-    for (const port of [17095, 17096, 17097]){
-      try {
-        const r = await fetch(`http://127.0.0.1:${port}/oc-compagnon`, { signal: AbortSignal.timeout(800) });
-        const j = r.ok && await r.json();
-        if (j && j.appairage) return true;
-      } catch (e) {}
-    }
-    return false;
-  } catch (e) { return false; }
-}, 30000, 'canal du Compagnon');
+await attendreCanal({ journal: () => compagnonOut + compagnonErr });
 
 /* ---------- la PWA ---------- */
 const { server, base } = await serveRepo();

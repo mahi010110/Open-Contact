@@ -54,6 +54,52 @@ export async function attendre(page, fn, { timeout = 15000, pas = 250, message =
   }
 }
 
+/* ---------- le canal local du Compagnon (binaire natif) ----------
+   Il écoute sur l'un de ces trois ports et n'expose `appairage` que
+   pendant qu'un appairage attend un code. Attendre en silence puis
+   mourir sur « délai dépassé » n'apprend RIEN : c'est ce qui a rendu
+   un échec de CI illisible (six scénarios rouges, zéro indice). Ici
+   l'échec DIT ce qu'il a vu, port par port, et recrache les dernières
+   lignes du binaire. */
+export const CANAL_PORTS = [17095, 17096, 17097];
+
+export async function sonderCanal(pret = info => info && info.appairage){
+  const vu = [];
+  for (const port of CANAL_PORTS){
+    try {
+      const r = await fetch(`http://127.0.0.1:${port}/oc-compagnon`, { signal: AbortSignal.timeout(800) });
+      if (!r.ok){ vu.push(port + ' : HTTP ' + r.status); continue; }
+      const info = await r.json();
+      if (pret(info)){ vu.push(port + ' : prêt'); return { info, port, vu }; }
+      vu.push(port + ' : répond, mais pas prêt — ' + JSON.stringify(info).slice(0, 120));
+    } catch (e) {
+      vu.push(port + ' : ' + (e.name === 'TimeoutError' ? 'pas de réponse'
+        : (e.cause && e.cause.code) || e.name));
+    }
+  }
+  return { info: null, port: null, vu };
+}
+
+/* `journal()` rend le texte accumulé du binaire (stdout + stderr) —
+   sans lui, un binaire qui meurt au démarrage reste muet. */
+export async function attendreCanal({ timeout = 30000, pas = 400, journal = null,
+                                      pret = info => info && info.appairage } = {}){
+  const fin = Date.now() + timeout;
+  let vu = [];
+  for (;;){
+    const r = await sonderCanal(pret);
+    if (r.info) return r.info;
+    vu = r.vu;
+    if (Date.now() > fin) break;
+    await new Promise(res => setTimeout(res, pas));
+  }
+  const lignes = journal ? String(journal() || '').split('\n').filter(Boolean).slice(-25) : [];
+  throw new Error('canal du Compagnon : rien après ' + Math.round(timeout / 1000) + ' s\n'
+    + '  sondes : ' + vu.join(' · ')
+    + (lignes.length ? '\n  dernières lignes du binaire :\n' + lignes.map(l => '    ' + l).join('\n')
+                     : '\n  (le binaire n’a rien écrit — stdout/stderr vides ou non capturés)'));
+}
+
 /* Depuis « Moi » : atteint les lignes de Réglages — porte à ouvrir sur
    mobile (#20), colonne déjà dépliée sur desktop. */
 export async function ouvrirReglages(page){
