@@ -744,8 +744,10 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 .hero2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
 .hero2 .hero{min-height:76px;flex-direction:column;gap:7px;font-size:var(--text-14)}
 .ec-foot{text-align:center;margin-top:16px}
-/* ---- Donner : ce qui part (compteur + élagage) ---- */
-.dn-what{display:flex;align-items:center;gap:8px;margin-top:12px}
+/* ---- Donner : ce qui part (compteur + élagage), au-dessus du canal —
+   un filet sépare les deux questions : QUOI, puis COMMENT ---- */
+.dn-src{margin:0 0 12px;padding-bottom:10px;border-bottom:1px dashed var(--border-soft)}
+.dn-what{display:flex;align-items:center;gap:8px}
 .dn-count{flex:1;font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted)}
 
 .qr-prog,.scan-prog{
@@ -1020,9 +1022,12 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px}
 /* ============ ÉCHANGER : QR, SCAN, APERÇU, ANNULER ============ */
 .qr-wrap{
   background:#fff;border:1px solid var(--border-strong);box-shadow:var(--shadow-raised);
-  padding:16px;max-width:300px;margin:0 auto 12px;
+  padding:16px;max-width:340px;margin:0 auto 12px;
 }
 .qr-wrap svg{display:block;width:100%;height:auto}
+/* un QR se scanne de loin et de travers : sur le poste de commandement,
+   la fenêtre a la place, autant la donner au code */
+@media (min-width:901px){ .qr-wrap{max-width:420px} }
 .scan-box{
   position:relative;background:#000;border:1px solid var(--border-strong);
   box-shadow:var(--shadow-raised);overflow:hidden;aspect-ratio:1/1;max-height:46dvh;margin-bottom:10px;

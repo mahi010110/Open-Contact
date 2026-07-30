@@ -69,18 +69,26 @@ export function openDonner(){
     /* mobile = le terrain : QR d'abord ; desktop = le poste : fichier
        d'abord, le QR devient le pont vers le téléphone (#18) */
     const wide = matchMedia('(min-width:901px)').matches;
-    const optQR = `<button class="pick" id="dnQR"><b>${ic('grid-3x3', 'ic-14')} QR</b><span>${wide ? 'à faire scanner par un téléphone' : 'en personne'}</span></button>`;
-    const optFile = `<button class="pick" id="dnFile"><b>${ic('file', 'ic-14')} Fichier .oc</b><span>à distance</span></button>`;
+    /* la SITUATION en gras, le moyen en donnée : au moment de donner, la
+       question qu'on se pose est « l'autre est là, ou pas ? » — pas « QR
+       ou fichier ? ». Le moyen reste écrit dessous, personne n'est perdu. */
+    const optQR = `<button class="pick" id="dnQR"><b>${ic('grid-3x3', 'ic-14')} En personne</b><span>${wide ? 'QR à scanner avec un téléphone' : 'QR à scanner'}</span></button>`;
+    const optFile = `<button class="pick" id="dnFile"><b>${ic('file', 'ic-14')} À distance</b><span>fichier .oc</span></button>`;
+    /* ce qui part AVANT comment ça part : on ne choisit pas un canal sans
+       savoir ce qu'on met dedans. La liste dépliée pousse les deux choix
+       vers le bas — c'est l'ordre de lecture, et le pouce les trouve mieux. */
     sh.body.innerHTML =
       `<p class="hint" style="margin:0 0 10px">${ic('lock', 'ic-14')} Seules les fiches partent — jamais ton suivi privé.</p>
+       <div class="dn-src">
+         <div class="dn-what">
+           <span class="dn-count" id="dnCount"></span>
+           <button class="linklike" id="dnPick"></button>
+         </div>
+         <div id="dnList" hidden></div>
+       </div>
        <div class="pick-list">
          ${wide ? optFile + optQR : optQR + optFile}
-       </div>
-       <div class="dn-what">
-         <span class="dn-count" id="dnCount"></span>
-         <button class="linklike" id="dnPick"></button>
-       </div>
-       <div id="dnList" hidden></div>`;
+       </div>`;
     const syncCount = () => {
       const k = chosen().length;
       const t = alive().length;
