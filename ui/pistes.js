@@ -65,8 +65,8 @@ function dueHTML(c){
      lui-même reste écrit dans la sous-ligne, là où on le lit. */
   if (isClosed(c) || !c.nextAction) return '';
   const n = diffDays(c.nextAction);
-  const cran = n < 0 ? 'due-late' : n === 0 ? 'due-now' : n <= 2 ? 'due-soon' : 'due-far';
-  return `<span class="ri-due ${cran}">${relLabel(c.nextAction)}</span>`;
+  const cran = n < 0 ? 'mark-late' : n === 0 ? 'mark-now' : n <= 2 ? 'mark-soon' : 'mark-far';
+  return `<span class="mark ${cran}">${relLabel(c.nextAction)}</span>`;
 }
 
 function rowHTML(c){

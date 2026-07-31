@@ -357,16 +357,21 @@ export function renderMoi(){
   const pReady = p.name && p.email;
   const bk = backupState();
   const showBackup = !!(S.companies.length || p.name);   /* rien à copier = carte absente */
-  const bkPromote = showBackup && !bk.linked && (!bk.last || bk.n > 0);
   /* l'état, jamais l'explication (A) : un mot, ou un chiffre quand il
-     pousse à agir (décision #11) */
+     pousse à agir (décision #11).
+     C'est l'ÉTAT qui porte la marque, pas le bouton. Sans serveur ni
+     compte, « aucune copie » est la seule situation où tout peut
+     disparaître d'un coup — c'est elle qui doit sauter aux yeux, tandis
+     que « Télécharger » est là de toute façon et ne dit rien de neuf.
+     Même langage que l'échéance d'une piste (.mark) : deux crans
+     seulement portent un cadre, et ce qui va bien ne met rien. */
   const bkState = bk.linked
-    ? 'en double'
+    ? '<span class="pd">en double</span>'
     : !bk.last
-      ? 'aucune copie'
+      ? '<span class="mark mark-late">aucune copie</span>'
       : bk.n
-        ? `<b>${bk.n} piste${bk.n > 1 ? 's' : ''}</b> depuis ta copie`
-        : 'à jour';
+        ? `<span class="mark mark-soon">${bk.n} piste${bk.n > 1 ? 's' : ''} depuis ta copie</span>`
+        : '<span class="pd">à jour</span>';
 
   /* « Moi » est une FEUILLE DE PROPRIÉTÉS, pas une pile de cartes.
      Trois règles d'origine, appliquées telles quelles :
@@ -404,14 +409,14 @@ export function renderMoi(){
      </fieldset>`;
 
   const copie = showBackup ? `
-     <fieldset class="fset">
+     <fieldset class="fset${!bk.linked && !bk.last ? ' fs-alert' : ''}">
        <legend>Ma copie</legend>
        <div class="fs-state">
-         <span class="pd">${bkState}</span>
+         ${bkState}
          <span class="tag-priv">${ic('lock', 'ic-14')} privé inclus</span>
        </div>
        <div class="pc-actions">
-         <button class="btn btn-sm ${bkPromote ? 'btn-primary' : ''}" id="moiBackup">Télécharger</button>
+         <button class="btn btn-sm" id="moiBackup">Télécharger</button>
          <button class="btn icon-btn bk-lock" id="moiBkLock" aria-pressed="false"
                  aria-label="Protéger la copie par un mot de passe" title="Protéger par un mot de passe">${ic('lock', 'ic-14')}</button>
        </div>
