@@ -3,10 +3,15 @@
 > Décisions de conception **prises ensemble** (mainteneur + assistant) avant
 > d'ouvrir le chantier de refonte. Un fork à la fois : position tranchée →
 > discussion → décision verrouillée. On ne re-décide pas ce qui est verrouillé.
-> S'appuie sur les diagnostics `docs/audit-ux-2026.md` et
-> `docs/audit-ux-2026-nouveautes.md`. Rien ici n'est encore codé.
+>
+> ⚠️ Ce document **fait désormais foi seul**. Les deux diagnostics dont il
+> partait (`audit-ux-2026.md`, C1–C9, et `audit-ux-2026-nouveautes.md`,
+> N1–N12) ont été retirés en juillet 2026, une fois toutes leurs trouvailles
+> livrées : leurs conclusions vivent ici, sous forme de décisions. Les renvois
+> « C… » et « N… » plus bas se lisent comme des numéros d'archive.
 
-Statut : **en cours de calibrage.**
+Statut : **les 23 décisions sont livrées** (phases 0 à 4). Le journal reste la
+référence du « pourquoi » de l'interface actuelle.
 
 ---
 
@@ -643,8 +648,12 @@ ci-dessous.**
 
 # Handoff — plan d'action pour construire (Fable 5)
 
-**Sources de vérité :** ce journal (les 22 décisions ci-dessus) +
-`docs/audit-ux-2026.md` + `docs/audit-ux-2026-nouveautes.md`.
+**Sources de vérité :** ce journal (les 23 décisions ci-dessus) — les deux
+diagnostics dont il partait ont été retirés, voir l'avertissement en tête.
+
+> **Livré.** Ce plan est exécuté : phases 0 à 4 fusionnées dans `main`. Il se
+> lit maintenant comme la trace de ce qui a été construit, pas comme une
+> consigne.
 
 **Invariants à ne JAMAIS casser :** local-first, identité « 98 », **privé jamais
 partagé**, fusion sans écrasement + Annuler ~30 s, **moteur qu'on agrandit sans

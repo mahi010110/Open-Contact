@@ -8,12 +8,11 @@ adapte l'idée — ou on discute la règle avec le mainteneur — mais on ne cr�
 pas d'exception silencieuse.
 
 À lire avec : `CONTRAT.md` (contrat de données exécutable, vérifié par
-`?test`), `docs/refonte-brief.md` (la vision d'origine),
-`docs/degraissage-v6.3.md` (**chantier en cours — fait foi sur ce qu'il
-traite** : suppression au geste, diète de texte, Échanger, tri/ordre),
-`docs/roadmap.md` (**la feuille de route d'OpenContact** — `plan-v7.md` n'en
-est plus que l'historique v6.1), `compagnon/roadmap.md` (**celle du second
-produit**, avec son point de gel), `design/` (kit « Utilitaire 98 »).
+`?test`), `docs/roadmap.md` (**la feuille de route d'OpenContact**),
+`compagnon/roadmap.md` (**celle du second produit**, avec son point de gel),
+`docs/refonte-calibrage.md` (les 23 décisions de conception — le « pourquoi »
+de l'interface actuelle) et `docs/finition-calibrage.md` (les règles R1 et R2,
+et le raisonnement des 12 corrections), `design/` (kit « Utilitaire 98 »).
 
 ## 0. Deux produits, une frontière
 

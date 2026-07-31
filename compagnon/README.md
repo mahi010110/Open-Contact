@@ -1,6 +1,6 @@
 # OpenContact Compagnon
 
-L'application d'appoint sur l'ordinateur (D17/D18, `docs/fable5/ETUDE-COMPAGNON.md`) :
+L'application d'appoint sur l'ordinateur (D17/D18, `compagnon/fable5/ETUDE-COMPAGNON.md`) :
 elle prend ce qu'un navigateur ne peut pas garantir — envois de campagne
 app fermée, secrets dans le trousseau du système, IMAP/SMTP, analyse
 d'e-mails — et **rien d'autre**. La PWA reste complète sans elle.

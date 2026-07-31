@@ -24,7 +24,7 @@ peut pas garantir — et **rien d'autre** :
 - faire tourner une IA locale ou un abonnement installé sur la machine ;
 - exposer un serveur MCP à un assistant IA extérieur.
 
-Architecture : hybride Tauri (`docs/fable5/ETUDE-COMPAGNON.md`, décisions
+Architecture : hybride Tauri (`compagnon/fable5/ETUDE-COMPAGNON.md`, décisions
 D17/D18). `coeur/` = la garde en Rust pur, `src-tauri/` = la coquille et les
 capacités natives, `app/` = le cerveau qui exécute les mêmes modules
 `engine/` que la PWA. Détail du protocole : `compagnon/README.md`.
@@ -196,6 +196,6 @@ ouvertures d'e-mails — avec sa réserve : côté destinataire, un pixel de sui
 - `CLAUDE.md` §0 — la frontière entre les deux produits.
 - `compagnon/README.md` — architecture, protocole du canal, crochets de
   développement.
-- `docs/fable5/` — le chantier connecté : contexte, spécifications, plan UX,
+- `compagnon/fable5/` — le chantier connecté : contexte, spécifications, plan UX,
   études. **À déplacer ici** lors du nettoyage de la documentation.
 - `CONTRAT.md` §1, §5.7, §5.8 — clés, missions, anneau, sync privée.

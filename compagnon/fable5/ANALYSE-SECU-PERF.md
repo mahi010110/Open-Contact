@@ -4,7 +4,7 @@
 > `claude/fable5-audit-secu-perf-*`, après lecture complète de la PWA
 > (`engine/`, `ui/`, `app.js`, `sw.js`, `index.html`) et du Compagnon
 > (`compagnon/coeur`, `compagnon/src-tauri`, `compagnon/app`,
-> `preparer.mjs`), des documents `docs/fable5/*` et de `docs/audit-securite.md`.
+> `preparer.mjs`), des documents `compagnon/fable5/*` et de `docs/audit-securite.md`.
 >
 > **Cadre honnête.** Chaque point est étiqueté **prouvé** (constaté dans le
 > code et/ou reproduit), **plausible** (raisonnement solide, non déclenché

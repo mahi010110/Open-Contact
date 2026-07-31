@@ -95,14 +95,21 @@ première bêta — pas avant, et jamais dans le même geste que le masquage.
 
 ### 1.3 Tests sur vrai matériel
 
-- Vrais téléphones et vrais ordinateurs, pas seulement l'émulation.
-- Sync et partage sur Wi-Fi domestique, 4G croisée, **réseau d'école**, et en
-  groupe à 5+ (protocole détaillé conservé dans `plan-v7.md`).
-- Fermer l'**issue P2P n°14** seulement après preuve multi-réseaux, pas sur un
-  succès isolé.
-- Si le réseau d'école bloque WebRTC : vérifier que le repli QR / fichier
-  `.oc` est réellement fluide, et documenter les relais personnalisables
-  (`oc_relays_v1`).
+Vrais téléphones et vrais ordinateurs, pas seulement l'émulation. Fermer
+l'**issue P2P n°14** seulement après preuve multi-réseaux, jamais sur un
+succès isolé.
+
+**Le protocole :**
+
+1. Deux téléphones, même Wi-Fi : liaison appareils en moins de 30 s ? sync
+   complète ?
+2. Deux téléphones, 4G d'opérateurs différents : idem (traversée NAT).
+3. **Wi-Fi d'établissement.** En cas d'échec, tester `oc_relays_v1` avec un
+   relais auto-hébergé ; sinon confirmer que le repli QR / fichier `.oc` est
+   réellement fluide, et documenter les relais personnalisables.
+4. Partage en groupe à 5+ : débit, files d'aperçus, doublons après fusions
+   croisées (l'idempotence doit tenir).
+5. Après chaque passe : `?test` → tous les auto-tests verts.
 
 ### 1.4 Durabilité des données
 
@@ -243,14 +250,26 @@ avec sa réserve.)*
 
 ## 11. Nettoyage de la documentation
 
-À faire **après** le recentrage (§1.2), pas avant : on saura alors quelles
-règles ont réellement gêné en pratique, plutôt que de trancher de mémoire.
+**Première passe faite (31 juillet 2026).** Six spécifications et diagnostics
+entièrement livrés ont été retirés — `plan-v7.md`, `degraissage-v6.3.md`,
+`inspection-ux.md`, `audit-ux-2026.md`, `audit-ux-2026-nouveautes.md`,
+`refonte-chantier.md`. Ce qu'ils portaient encore a été déplacé avant
+suppression (le protocole de test en classe est au §1.3, les règles durables
+étaient déjà dans `CLAUDE.md`). `docs/fable5/` a rejoint le Compagnon.
 
-- Fusionner les anciens plans et audits qui se recouvrent (`audit-ux-2026.md`,
-  `audit-ux-2026-nouveautes.md`, `inspection-ux.md`, `refonte-calibrage.md`,
-  `refonte-chantier.md`, `revue-2026-07.md`, `degraissage-v6.3.md`,
-  `finition-calibrage.md`, `plan-v7.md`).
-- Déplacer `docs/fable5/` vers le Compagnon — c'est son chantier.
+**Ce qui reste dans `docs/`, et pourquoi :**
+
+| Fichier | Ce qu'il porte encore |
+|---|---|
+| `roadmap.md` | ce document |
+| `refonte-calibrage.md` | les 23 décisions de conception — le « pourquoi » de toute l'interface actuelle |
+| `finition-calibrage.md` | les règles R1 (« rien > icône > mot > phrase ») et R2 (« la croix suffit »), et le raisonnement des 12 corrections |
+| `audit-securite.md` | des arbitrages **encore ouverts** (géocodage pendant la frappe, chiffrement au repos) |
+| `revue-2026-07.md` | les compromis constatés et **volontairement** non touchés |
+| `refonte-brief.md` | la vision d'origine — historique, à lire comme tel : certains passages ne décrivent plus l'app (il annonce des appareils autonomes, la sync existe depuis) |
+
+**Reste à faire :**
+
 - Mettre à jour README, installation, sécurité, architecture, contribution.
 - **Règles abandonnées : garder une trace courte de ce qui a changé et
   pourquoi.** Trois lignes suffisent. Sans ça, le même débat se rouvre — c'est
