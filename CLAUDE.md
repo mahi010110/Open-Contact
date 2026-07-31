@@ -14,6 +14,71 @@ traite** : suppression au geste, diète de texte, Échanger, tri/ordre),
 `docs/roadmap.md` (**la feuille de route officielle** — `plan-v7.md` n'en
 est plus que l'historique v6.1), `design/` (kit « Utilitaire 98 »).
 
+## 0. Deux produits, une frontière
+
+OpenContact et le Compagnon sont **deux produits distincts**. Ils se relient ;
+ils ne se mélangent pas. Avant d'ajouter quoi que ce soit, deux questions :
+
+> **① Est-ce que ça marche pour quelqu'un qui ouvre l'app pour la première
+> fois, sur son téléphone, sans compte et sans rien installer ?**
+> Non → c'est le Compagnon. **L'installation est ce qui fait un second
+> produit** — pas la complexité, pas le niveau d'expertise.
+>
+> **② Est-ce que ça engage le mainteneur dans une démarche permanente**
+> (déclaration chez un fournisseur, examen, certificat à renouveler) **?**
+> Oui → **reporté**, quel que soit le produit qui l'héberge.
+
+Pas « est-ce que c'est avancé », pas « est-ce que c'est pour les experts » :
+est-ce que ça marche **tout de suite, pour tout le monde**. Une fonctionnalité
+qui échoue faute d'un binaire, d'un processus ou d'un compte tiers n'est pas
+une fonctionnalité d'OpenContact — même bien faite, même repliée, même
+optionnelle.
+
+Ce qui traverse la frontière est **une donnée, jamais une dépendance** :
+OpenContact reste entier si le Compagnon n'existe pas.
+
+**Corollaire — la loi #6 étendue.** « Indisponible = absent » vaut aussi pour
+la frontière : ce qui appartient au Compagnon **n'apparaît pas** dans
+OpenContact tant que le Compagnon n'est pas là. Ni grisé, ni « bientôt » :
+absent.
+
+### La répartition
+
+`OC` = OpenContact · `CP` = Compagnon · `⏸` = reporté (voir l'état plus bas).
+
+| | Où |
+|---|---|
+| Pistes, fiches, suivi, prochaine action, clôture | OC |
+| Capture, anti-doublon, bac « à rattacher » | OC |
+| Partage promo (QR, fichier `.oc`, coller, groupe) | OC |
+| Sync entre MES appareils | OC |
+| Écrire un mail (`mailto:`, copier, « Envoyée ✓ ») | OC |
+| Postuler à plusieurs d'affilée, une par une | OC |
+| CV & lettres rangés, modèles d'emails | OC |
+| Sauvegarde / restauration, verrouillage facultatif | OC |
+| Campagnes (séquence, relances, plafond, fenêtre d'envoi) | CP |
+| Envoi app fermée, détection des réponses (SMTP/IMAP) | CP |
+| Analyse automatique de la boîte mail | CP |
+| IA « via l'ordinateur » (Ollama, OpenAI, abonnement) | CP |
+| Serveur MCP pour un assistant extérieur | CP |
+| IA par clé navigateur (Claude, Gemini, OpenRouter) | ⏸ |
+| Envoi direct OAuth (Gmail, Outlook) | ⏸ |
+
+Les deux dernières lignes **passent la question ①** — elles n'exigent aucune
+installation et ont donc leur place dans OpenContact. Elles sont mises de
+côté par **choix de périmètre**, pas par la règle : l'IA par clé pour se
+recentrer sur les bases, l'envoi direct au titre de la question ②. Le jour où
+elles reviennent, elles reviennent **ici**, pas dans le Compagnon.
+
+### État au 31 juillet 2026
+
+OpenContact se recentre sur ses bases avant sa première mise à disposition.
+Tout ce qui est marqué `CP` ou `⏸` est **présent dans le code mais masqué à
+l'écran** : rien n'est supprimé, aucune clé de stockage ne bouge, aucune
+donnée déjà enregistrée n'est perdue (une clé d'IA ou un jeton de messagerie
+déjà en place reste lisible, simplement plus affiché). La suppression franche
+se décidera **après la première bêta**, pas avant.
+
 ## 1. Le produit en une phrase
 
 OpenContact aide un étudiant IT/cyber à répondre à **« je fais quoi
