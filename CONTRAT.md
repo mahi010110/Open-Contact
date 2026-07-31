@@ -18,7 +18,7 @@ doit être repensée, pas forcée.
 |---|---|---|
 | `oc_data_v3` | Les pistes (partagé + suivi privé) | JSON : tableau de pistes |
 | `oc_profile_v1` | Profil, modèles d'emails, prompts IA (8 × 4 000 car. max), fiches confirmées, flags, `updatedAt` (LWW appareils) | JSON : objet profil |
-| `oc_journal_v1` | Journal privé des actions (200 max) | JSON : tableau `{t, txt, cid}` |
+| `oc_journal_v1` | Journal privé des actions (200 max). **Deux phrases de `txt` sont relues, pas seulement écrites** : `Donné (canal) : N piste(s)` et `Reçu de <qui\|la promo> : +N piste(s)…` alimentent le fil de l'écran « Échanger » (`engine/assist.js` → `exchangeLog`). Les relire plutôt qu'ajouter un champ garde l'historique DÉJÀ écrit visible ; en échange, ces deux formes sont figées et verrouillées par `tests.js`. Toute autre entrée reste du texte libre, et `Reçu (analyse IA triée)` est exclu par construction (ce n'est pas un échange avec la promo) | JSON : tableau `{t, txt, cid}` |
 | `oc_orphans_v1` | Contacts « à rattacher » (sans entreprise) — l'indice d'entreprise saisi par l'utilisateur voyage dans `extra.company` (D3), consommé au rattachement | JSON : tableau de contacts |
 | `oc_tombs_v1` | Suppressions (tombstones, 500 max) — font voyager les suppressions entre MES appareils | JSON : tableau `{id, t}` |
 | `oc_sync_v1` | Phrase de liaison de mes appareils | chaîne |

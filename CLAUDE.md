@@ -128,6 +128,7 @@ avec un motif existant :
 | Geste lourd réversible | `showUndo(msg, onUndo)` — barre Annuler ~30 s |
 | Retour discret | `toast()` — court, ponctuel, jamais deux phrases |
 | Marquer partagé vs privé | `tag-share` / `tag-priv` |
+| Dire qu'un état **réclame quelque chose** | `.mark` + un cran : `mark-late` (ambre encadré) · `mark-now` (accent encadré) · `mark-soon` · `mark-far`. **Un seul langage d'urgence dans toute l'app** : l'échéance d'une piste et « aucune copie » posent la même question, donc portent la même marque. L'échelle est **monotone** (plus urgent = plus lourd) et **ce qui ne réclame rien ne met RIEN** — c'est le vide, en face, qui fait ressortir le reste. Un cadre entier peut prendre le bord ambre (`.fset.fs-alert`, comme `.orow`) quand l'état qu'il porte peut tout coûter |
 | Note contextuelle | `<p class="hint">` (+ `warn` si alerte) — une seule par écran si possible |
 | Multi-sélection (choisir quoi partager) | `.pk` avec icônes checkbox/checkbox-on — **plus utilisé pour supprimer** |
 | Supprimer un élément (piste, prompt) | geste : **glisser** (mobile) / **poubelle au survol** (desktop) + `showUndo`, sans confirmation. Uniquement dans « Mes pistes » pour les pistes |
@@ -142,6 +143,35 @@ confirmation** ; seules les actions lourdes ou irréversibles (tout supprimer,
 remplacer, retirer un appareil, rompre le lien) gardent `confirmSheet`
 (`btn-danger`) ; l'état vide de chaque écran enseigne le produit (pas un
 simple « aucune donnée »).
+
+Trois règles de **guidage du regard**, tirées d'un audit mesuré des quatre
+écrans (test du flou + saillance calculée sur les pixels rendus) et
+appliquées depuis à Mes pistes, Aujourd'hui, Échanger et Moi :
+
+1. **L'encre va à ce qui change, jamais à ce qui est permanent.** Un
+   statut qui bouge une fois par quinzaine ne mérite pas la seule
+   pastille colorée de la ligne ; une échéance en retard, si. Une
+   pastille sur *chaque* ligne n'est pas un signal, c'est un papier
+   peint. Corollaire : ce qui ne réclame rien n'affiche rien — et un
+   mot identique répété huit fois n'informe personne.
+2. **Un écran montre les affaires de l'utilisateur, pas des portes.**
+   Un écran incapable d'afficher une seule donnée réelle est un menu :
+   il appartient à la navigation, pas à un onglet. Aucune mise en forme
+   ne sauve un écran qui n'a rien à dire (c'est ce qui a fait échouer
+   huit refontes d'« Échanger » avant qu'on lui donne son fil).
+3. **`page-inner` seul (640 px) sur desktop = écran non conçu.** Les
+   écrans qui passent le test du flou à 1280 px sont exactement ceux
+   qui ont une conception propre au poste (`page-wide` + colonnes).
+   Vérifier en floutant la capture : si la structure disparaît, ou si
+   la zone la plus contrastée de l'écran est du vide, c'est raté.
+
+Ce que les instruments savent faire, et pas faire : ils tranchent la
+**mise en page** (vide, dominance de la barre de navigation, largeur de
+colonne) ; ils sont **aveugles à l'emphase** (une pastille, une teinte,
+un cran d'intensité) — les moyennes sont pondérées par la surface et la
+luminance ignore la teinte. À cette échelle, c'est le test du flou et
+l'œil qui décident : ne pas perdre de tours à raffiner un chiffre qui ne
+peut pas répondre.
 
 Trois règles de sobriété, à vérifier sur tout écran nouveau ou retouché :
 

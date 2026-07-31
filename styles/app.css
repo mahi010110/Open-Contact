@@ -349,7 +349,11 @@ details.tranche[open]>summary::before{
    au focus ou au tap, SEULE LA COULEUR change. Aucun aplat de fond,
    aucun biseau : le carré derrière l'icône était le bruit à retirer. */
 .abtn{
-  width:var(--control-h-touch);height:var(--control-h-touch);
+  /* 44 px au pouce, 32 px à la souris — comme tout contrôle de l'app
+     (`--ctl`). C'était figé à 44 partout : dans une colonne de 300 px du
+     tableau « Aujourd'hui », trois icônes mangeaient la moitié de la
+     largeur pour du mobilier qui ne varie jamais. */
+  width:var(--ctl);height:var(--ctl);
   display:inline-flex;align-items:center;justify-content:center;
   background:none;border:0;padding:0;color:var(--text-muted);border-radius:var(--radius-1);
 }
@@ -997,7 +1001,11 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px}
 
 /* ============ TABLEAU 3 COLONNES (desktop) ============ */
 .page-wide{max-width:1060px}
-.board{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;align-items:start;margin-top:6px}
+/* `1fr` vaut `minmax(auto,1fr)` : une colonne dont le contenu est plus
+   large (une date « sam. 08/08 ») pousse et écrase ses voisines — à
+   901 px, la colonne du milieu tombait à 245 px contre 303. `minmax(0,…)`
+   rend les trois colonnes vraiment égales, à toutes les largeurs. */
+.board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:start;margin-top:6px}
 .bcol{
   border:1px solid var(--border-strong);background:var(--surface-chrome);
   border-radius:var(--radius-0);box-shadow:var(--shadow-raised);
