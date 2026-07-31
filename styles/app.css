@@ -429,10 +429,26 @@ details.tranche[open]>summary::before{
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
 }
 .row-item .ri-sub b{color:var(--text-body);font-weight:var(--weight-semibold)}
-.ri-st{
+/* L'échéance tient la place forte de la ligne, en quatre crans : plus
+   c'est proche, plus ça pèse. Une piste sans rendez-vous ne consomme
+   aucune encre — c'est ainsi que les trois qui en réclament sautent
+   aux yeux au milieu de trente. */
+.ri-due{
   flex:none;font-family:var(--font-mono);font-size:var(--text-11);font-weight:var(--weight-semibold);
-  color:var(--c);border:1px solid var(--c);border-radius:var(--radius-1);padding:1px 6px;white-space:nowrap;
+  border:1px solid transparent;border-radius:var(--radius-1);padding:2px 7px;white-space:nowrap;
+  color:var(--text-muted);
 }
+/* L'échelle doit être MONOTONE : plus c'est urgent, plus c'est lourd —
+   sinon « demain », plus long et encadré, pèse plus que « –2 j » et
+   l'œil part au mauvais endroit (mesuré, pas supposé). Seuls les deux
+   crans qui réclament un geste aujourd'hui portent un cadre ; le reste
+   n'est que du texte, de plus en plus effacé. */
+.ri-due.due-late{ color:var(--amber);  background:var(--amber-wash); border-color:var(--amber);
+                  font-weight:var(--weight-bold) }
+.ri-due.due-now{  color:var(--accent); background:var(--teal-wash);  border-color:var(--accent) }
+.ri-due.due-soon{ color:var(--text-body) }
+.ri-due.due-far{  color:var(--text-muted) }
+.ri-due.due-none{ color:var(--text-muted); opacity:.5 }
 .row-closed{opacity:.72}
 .tr-closed{margin-top:20px}
 
@@ -996,7 +1012,7 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px}
   font-size:var(--text-12);max-width:100%;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
 }
-.bc-na .late{color:var(--amber);font-weight:var(--weight-bold);font-style:normal}
+.bc-na .ri-due{display:inline-block;margin-left:2px;vertical-align:baseline}
 .bc-none{color:var(--text-muted)}
 .bcol-empty{padding:18px 10px;text-align:center;color:var(--text-muted);font-size:var(--text-12);background-image:var(--dither)}
 /* glisser une carte vers une autre colonne = changer le statut :
