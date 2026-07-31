@@ -25,6 +25,43 @@ export function dueFollowups(companies, today){
   out.sort((a, b) => (b.lateDays - a.lateDays) || (b.touches - a.touches));
   return out;
 }
+/* ---------- le fil des échanges, relu dans le journal ----------
+   « Échanger » ne montrait que deux portes : aucune donnée de
+   l'utilisateur, donc rien à comprendre d'un regard. Ce qu'il a déjà
+   donné et reçu est pourtant écrit dans son journal privé depuis
+   toujours. On le relit ici plutôt que d'ajouter un champ au journal :
+   un nouveau format ne ferait apparaître que les échanges d'APRÈS la
+   mise à jour, et l'historique existant resterait invisible.
+   Le prix de ce choix, c'est que les libellés de logJ deviennent un
+   contrat : ils sont verrouillés par les tests, et le jour où l'un
+   d'eux change de phrase, ça casse ici, bruyamment.
+   « Reçu (analyse IA triée) » n'est PAS un échange avec la promo :
+   la forme « Reçu de … » l'exclut par construction. */
+const RE_DONNE = /^Donné \(([^)]+)\)\s*:\s*(\d+)\s*piste/;
+const RE_RECU  = /^Reçu de (la promo|.+?)\s*:\s*\+(\d+)\s*piste/;
+export function exchangeLog(journal, limit = 8){
+  const out = [];
+  for (const e of (journal || [])){
+    const txt = e && typeof e.txt === 'string' ? e.txt : '';
+    let m = RE_DONNE.exec(txt);
+    if (m){ out.push({ t: e.t, sens: 'donne', canal: m[1], n: +m[2], qui: '' }); continue; }
+    m = RE_RECU.exec(txt);
+    if (m) out.push({ t: e.t, sens: 'recu', canal: '', n: +m[2],
+      qui: m[1] === 'la promo' ? '' : m[1] });
+  }
+  out.sort((a, b) => (b.t || 0) - (a.t || 0));
+  return limit > 0 ? out.slice(0, limit) : out;
+}
+/* ce qui a circulé en tout — le compte que l'écran affiche en tête */
+export function exchangeTotals(journal){
+  const all = exchangeLog(journal, 0);
+  return {
+    donne: all.filter(x => x.sens === 'donne').reduce((s, x) => s + x.n, 0),
+    recu: all.filter(x => x.sens === 'recu').reduce((s, x) => s + x.n, 0),
+    n: all.length
+  };
+}
+
 function daysBetween(a, b){
   const d1 = Date.UTC(...a.split('-').map((n, i) => i === 1 ? +n - 1 : +n));
   const d2 = Date.UTC(...b.split('-').map((n, i) => i === 1 ? +n - 1 : +n));

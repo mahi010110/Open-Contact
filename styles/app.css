@@ -760,6 +760,17 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 .hero2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
 .hero2 .hero{min-height:76px;flex-direction:column;gap:7px;font-size:var(--text-14)}
 .ec-foot{text-align:center;margin-top:16px}
+/* le fil des échanges : ce que l'écran a enfin à montrer. Au pouce il
+   suit les deux gestes ; au poste il prend la place restante — les
+   gestes n'ont pas besoin de 1060 px, le fil si. */
+.ec-fil{margin-top:18px}
+.ec-tot{margin:-2px 0 6px}
+.ec-when{flex:none;white-space:nowrap}
+.ec-when b{color:var(--text-body);font-weight:var(--weight-semibold)}
+@media (min-width:901px){
+  .ec-cols{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:18px;align-items:start}
+  .ec-cols .ec-fil{margin-top:0}
+}
 /* ---- Donner : ce qui part (compteur + élagage) ---- */
 .dn-what{display:flex;align-items:center;gap:8px;margin-top:12px}
 .dn-count{flex:1;font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted)}
