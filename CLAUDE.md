@@ -11,8 +11,9 @@ pas d'exception silencieuse.
 `?test`), `docs/refonte-brief.md` (la vision d'origine),
 `docs/degraissage-v6.3.md` (**chantier en cours — fait foi sur ce qu'il
 traite** : suppression au geste, diète de texte, Échanger, tri/ordre),
-`docs/roadmap.md` (**la feuille de route officielle** — `plan-v7.md` n'en
-est plus que l'historique v6.1), `design/` (kit « Utilitaire 98 »).
+`docs/roadmap.md` (**la feuille de route d'OpenContact** — `plan-v7.md` n'en
+est plus que l'historique v6.1), `compagnon/roadmap.md` (**celle du second
+produit**, avec son point de gel), `design/` (kit « Utilitaire 98 »).
 
 ## 0. Deux produits, une frontière
 
