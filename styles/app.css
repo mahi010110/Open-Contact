@@ -994,6 +994,15 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px}
 }
 .bcol-h::before{content:'';width:8px;height:8px;flex:none;border:1px solid var(--border-strong);background:var(--c)}
 .bcol-rows{display:flex;flex-direction:column;gap:8px;padding:10px}
+/* « Aujourd'hui » au poste de commandement : les trois tranches en
+   colonnes, mêmes briques que le tableau de « Mes pistes ». L'en-tête
+   porte déjà son icône — le carré de couleur du tableau des statuts
+   n'a rien à dire ici. Seule « En retard » prend l'ambre : l'encre va
+   à la colonne qui réclame quelque chose. */
+.td-board{margin-top:14px}
+.td-board .bcol-h::before{display:none}
+.td-board .tr-late .bcol-h{color:var(--amber)}
+.td-board .tr-late .bcol-h .tr-n{border-color:var(--amber);background:var(--amber-wash)}
 .bcard{
   background:var(--surface-window);border:1px solid var(--border-strong);border-radius:var(--radius-0);
   box-shadow:var(--bevel-up), var(--shadow-raised);cursor:pointer;

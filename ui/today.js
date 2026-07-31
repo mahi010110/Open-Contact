@@ -22,6 +22,13 @@ import { pendingProposals, openPendingProposals } from './propositions.js';
 const CAP = 8;                      /* lignes visibles par tranche avant « voir plus » */
 const expanded = new Set();         /* tranches dépliées à la main (le temps de la session) */
 
+/* Deux conceptions, pas une page élastique. Au pouce : un fil vertical,
+   « Bientôt » replié — une seule chose à la fois. Au poste : les trois
+   tranches côte à côte, tout visible d'un coup, comme le tableau de
+   « Mes pistes ». Ce n'est pas la même page à deux largeurs. */
+const mqWide = matchMedia('(min-width:901px)');
+mqWide.addEventListener('change', () => { if (S.route === 'aujourdhui') renderToday(); });
+
 function doneTodayCount(){
   const start = new Date(); start.setHours(0, 0, 0, 0);
   return S.journal.filter(e => e.t >= +start &&
@@ -76,6 +83,22 @@ function trancheHTML(key, label, icon, items, open){
           </section>`;
 }
 
+/* la même tranche, en colonne de tableau (poste de commandement) —
+   mêmes briques que « Mes pistes » : .board / .bcol / .bcol-h, et le
+   dither de .bcol-empty quand il n'y a rien. Une colonne vide n'est
+   pas un trou : c'est une bonne nouvelle, elle le dit. */
+function colHTML(key, label, icon, items, vide){
+  const cap = expanded.has(key) ? items.length : CAP;
+  const more = items.length > cap
+    ? `<button class="linklike tr-more" data-tr="${key}">Voir les ${items.length - cap} autres</button>` : '';
+  return `<section class="bcol tr-${key}" aria-label="${label}">
+            <h3 class="bcol-h">${ic(icon, 'ic-14')} ${label} <span class="tr-n">${items.length}</span></h3>
+            ${items.length
+              ? `<div class="bcol-rows">${items.slice(0, cap).map(rowHTML).join('')}${more}</div>`
+              : `<div class="bcol-empty">${vide}</div>`}
+          </section>`;
+}
+
 /* les entrants à trier — une seule ligne calme (#10), plus jamais une
    pile de bandeaux au-dessus du travail du jour */
 function triageItems(){
@@ -125,8 +148,10 @@ export function renderToday(){
   const done = doneTodayCount();
   const triage = triageItems();
 
+  const wide = mqWide.matches;
+  const rienAFaire = !late.length && !due.length;
   let html =
-    `<div class="page-inner">
+    `<div class="page-inner${wide && alive.length ? ' page-wide' : ''}">
        <div class="td-head">
          <h2>Aujourd’hui</h2>
          <div class="td-date">${frToday()}</div>
@@ -145,7 +170,17 @@ export function renderToday(){
            <button class="btn" id="tdeDemo">Voir un exemple</button>
          </div>
        </div>`;
-  } else if (!late.length && !due.length){
+  } else if (wide){
+    /* le poste : les trois tranches côte à côte, toujours présentes —
+       la structure ne bouge pas, seul son contenu change */
+    html +=
+      `<div class="board td-board">
+         ${colHTML('late', 'En retard', 'square-alert', late, 'Rien en retard ✓')}
+         ${colHTML('due', 'Aujourd’hui', 'zap', due, rienAFaire ? 'Tout est à jour ✓' : 'Rien de prévu aujourd’hui')}
+         ${colHTML('soon', 'Bientôt', 'calendar', soon,
+           noAction.length ? 'Rien de planifié — donne une prochaine action à une piste.' : 'Rien en vue')}
+       </div>`;
+  } else if (rienAFaire){
     /* à jour : positif, jamais culpabilisant */
     html +=
       `<div class="td-empty td-clear">
@@ -164,7 +199,7 @@ export function renderToday(){
   /* les campagnes du jour — SOUS le travail, jamais tronquées (#10) */
   html += campaignLines().map(l =>
     `<button class="camp-line" data-camp="${esc(l.id)}">${ic('flag', 'ic-14')} <span>${esc(l.txt)}</span> <em>Voir</em></button>`).join('');
-  html += trancheHTML('soon', 'Bientôt', 'calendar', soon, false);
+  if (!wide) html += trancheHTML('soon', 'Bientôt', 'calendar', soon, false);   /* au poste, elle est déjà en colonne */
   if (triage.total){
     html += `<button class="td-triage" id="tdTriage">${ic('inbox', 'ic-14')} À trier <span class="tr-n">${triage.total}</span></button>`;
   }

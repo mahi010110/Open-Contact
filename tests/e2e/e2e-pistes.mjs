@@ -99,7 +99,7 @@ const dCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } }
 const dPage = await dCtx.newPage();
 watchErrors(dPage);
 await seed(dPage);
-await dPage.waitForSelector('.board');
+await dPage.waitForSelector('#view-pistes .board');   /* « Aujourd'hui » a aussi un tableau */
 
 /* la feuille desktop ne repropose pas le statut : les colonnes le font déjà */
 await dPage.click('#piAffiner');
