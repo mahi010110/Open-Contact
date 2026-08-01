@@ -10,7 +10,7 @@ frontière entre les deux est posée dans `CLAUDE.md` §0 — on ne la re-discut
 pas ici, on l'applique.
 
 Dernière mise à jour : 31 juillet 2026 — version applicative 6.3.0, cache
-`oc-v69`.
+`oc-v74`, 100 auto-tests verts (`node tests/e2e/unitaires.mjs`).
 
 ---
 
