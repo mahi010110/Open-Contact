@@ -181,11 +181,14 @@ async function renderDocs(){
   const box = $('#moiDocs');
   if (!box) return;
   const docs = await listDocs();
-  box.innerHTML = Object.keys(DOC_KINDS).map(kind => {
+  const kinds = Object.keys(DOC_KINDS);
+  /* la même ligne que partout (`rg-row`) : « doc-door » était son sosie,
+     avec ses propres classes et sa propre CSS pour rien */
+  box.innerHTML = kinds.map((kind, i) => {
     const n = docs.filter(d => docKind(d.key) === kind).length;
-    return `<button class="doc-door" data-kind="${kind}">
-              <span class="doc-door-n">${DOC_KINDS[kind].label}</span>
-              <span class="doc-door-s">${n ? n + ' document' + (n > 1 ? 's' : '') : 'aucun'}</span>
+    return `<button class="rg-row${i === kinds.length - 1 ? ' rg-last' : ''}" data-kind="${kind}">
+              <span class="rg-n">${DOC_KINDS[kind].label}</span>
+              <span class="rg-s">${n ? n + ' document' + (n > 1 ? 's' : '') : 'aucun'}</span>
               ${ic('chevron-right', 'ic-14')}
             </button>`;
   }).join('');
@@ -197,11 +200,11 @@ async function renderDocs(){
 function syncLabel(){
   const sy = getSync();
   if (!sy.phrase) return 'non relié';
-  if (sy.state === 'on') return 'relié — ' + sy.peers + ' en face';
-  if (sy.state === 'link') return 'relié — premier échange…';
-  if (sy.state === 'err' || sy.state === 'norelay') return 'relié — réseau bloqué ?';
-  if (sy.state === 'rtcfail') return 'relié — liaison directe en échec';
-  return 'relié — en attente';
+  if (sy.state === 'on') return sy.peers + ' en face';
+  if (sy.state === 'link') return 'premier échange…';
+  if (sy.state === 'err' || sy.state === 'norelay') return 'réseau bloqué ?';
+  if (sy.state === 'rtcfail') return 'liaison en échec';
+  return 'en attente';
 }
 /* « N pistes depuis ta dernière copie » — l'état qui pousse au geste (#4) ;
    se calme quand les appareils reliés dupliquent déjà les données */
@@ -218,11 +221,17 @@ function backupState(){
    entière se tape, le réglage s'ouvre dans sa feuille. C'est la décision
    #21 (« le nom d'abord, l'écran ensuite ») et la même grammaire que les
    tiroirs CV / Lettres. Messagerie et IA exigent le code : sans
-   protection, l'ÉTAT dit le vrai premier geste — « à protéger d'abord » —
-   et taper mène quand même à la protection (N9 reste réglé). */
-const rgRow = (id, icon, nom, etat, last) =>
+   protection, l'ÉTAT dit le vrai premier geste — « à protéger » — et
+   taper mène quand même à la protection (N9 reste réglé).
+
+   PAS de pictogramme : on scanne une liste par ses deux premiers mots à
+   gauche (NN/g), et l'icône les repoussait de 22 px — assez pour que
+   « Mes appareils » passe à deux lignes sur un vrai téléphone. Une icône
+   aide quand elle éclaire un libellé obscur ; ici les libellés sont
+   clairs, elle ne faisait que prendre la place. */
+const rgRow = (id, nom, etat, last) =>
   `<button class="rg-row${last ? ' rg-last' : ''}" id="${id}">
-     <span class="rg-n">${ic(icon, 'ic-14')}${nom}</span>
+     <span class="rg-n">${nom}</span>
      <span class="rg-s"${id === 'moiSync' ? ' id="moiSyncSt"' : (id === 'moiComp' ? ' id="moiCompSt"' : '')}>${etat}</span>
      ${ic('chevron-right', 'ic-14')}
    </button>`;
@@ -230,20 +239,19 @@ const rgRow = (id, icon, nom, etat, last) =>
 function reglagesRowsHTML(){
   const prot = isProtected();
   return (
-    rgRow('moiVerrou', 'lock', 'Protection', verrouLabel()) +
-    rgRow('moiSync', 'switch', 'Mes appareils', syncLabel()) +
+    rgRow('moiVerrou', 'Protection', verrouLabel()) +
+    rgRow('moiSync', 'Mes appareils', syncLabel()) +
     /* le pré-requis ne remplace l'état que s'il n'y a rien à dire : une
        messagerie déjà branchée le dit, même si le coffre a disparu */
-    rgRow('moiCx', 'mail', 'Ma messagerie',
-          (!prot && !mailAccount()) ? 'à protéger d’abord' : mailStateLabel()) +
-    rgRow('moiAi', 'sparkles', 'Mon assistant IA',
-          (!prot && !aiConnection()) ? 'à protéger d’abord' : aiStateLabel()) +
-    /* #4 : l'éclair distingue le Compagnon de « Mes appareils », qui
-       portaient le même signe. Provisoire — le pack n'a pas d'icône
-       d'ordinateur et zap sert aussi à « Aujourd'hui ». */
+    rgRow('moiCx', 'Ma messagerie',
+          (!prot && !mailAccount()) ? 'à protéger' : mailStateLabel()) +
+    rgRow('moiAi', 'Mon assistant IA',
+          (!prot && !aiConnection()) ? 'à protéger' : aiStateLabel()) +
     /* l'état, pas la phrase : « il s'installe sur ton ordinateur » se
-       dit sur le 2ᵉ écran, là où on peut vraiment le faire (#21) */
-    rgRow('moiComp', 'zap', 'Le Compagnon', 'pas installé', true) +
+       dit sur le 2ᵉ écran, là où on peut vraiment le faire (#21).
+       #4 se referme ici : sans pictogramme, le Compagnon ne partage plus
+       l'éclair d'« Aujourd'hui ». */
+    rgRow('moiComp', 'Le Compagnon', 'pas installé', true) +
     `<div class="rg-foot">
        <button class="linklike" id="moiRestore">${ic('reload', 'ic-14')} Restaurer une copie</button>
        <input type="file" id="moiRestoreFile" accept=".oc,.txt,.json,application/octet-stream,application/json,text/plain" hidden>
@@ -297,6 +305,34 @@ let reglagesOpen = false;
 const mqWideMoi = matchMedia('(min-width:901px)');
 mqWideMoi.addEventListener('change', () => { if (S.route === 'moi') renderMoi(); });
 
+/* Revenir de Réglages : le chevron le fait, mais il vit dans le coin le
+   plus dur à atteindre au pouce. Deux chemins s'y ajoutent — jamais ne le
+   remplacent (Apple HIG : un geste complète un bouton visible) :
+   · retaper « Moi » dans la barre du bas, comme un onglet iOS qu'on
+     retape pour remonter à sa racine — c'est la zone la plus facile ;
+   · glisser depuis le bord gauche. */
+export function closeReglages(){
+  if (!reglagesOpen) return false;
+  reglagesOpen = false;
+  renderMoi();
+  return true;
+}
+function bindEdgeBack(root){
+  let x0 = null, y0 = null;
+  root.addEventListener('touchstart', e => {
+    const t = e.touches[0];
+    x0 = t.clientX <= 24 ? t.clientX : null;   /* depuis le bord seulement */
+    y0 = t.clientY;
+  }, { passive: true });
+  root.addEventListener('touchend', e => {
+    if (x0 == null) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - x0, dy = Math.abs(t.clientY - y0);
+    x0 = null;
+    if (dx > 60 && dy < 50) closeReglages();
+  });
+}
+
 export function renderMoi(){
   const root = $('#view-moi');
   const wide = mqWideMoi.matches;
@@ -304,13 +340,14 @@ export function renderMoi(){
   if (!wide && reglagesOpen){
     root.innerHTML =
       `<div class="page-inner">
-         <div class="td-head">
-           <button class="btn icon-btn" id="moiBack" aria-label="Retour à Moi">${ic('arrow-left', 'ic-14')}</button>
+         <div class="td-head td-back">
+           <button class="abtn" id="moiBack" aria-label="Retour à Moi">${ic('chevron-left', 'ic-14')}</button>
            <h2>Réglages</h2>
          </div>
-         <div class="pcard">${reglagesRowsHTML()}</div>
+         <fieldset class="fset fset-plain">${reglagesRowsHTML()}</fieldset>
        </div>`;
-    root.querySelector('#moiBack').addEventListener('click', () => { reglagesOpen = false; renderMoi(); });
+    root.querySelector('#moiBack').addEventListener('click', closeReglages);
+    bindEdgeBack(root);
     bindReglages(root);
     bindSyncLive(root);
     return;
@@ -331,29 +368,50 @@ export function renderMoi(){
         ? `<b>${bk.n} piste${bk.n > 1 ? 's' : ''}</b> depuis ta copie`
         : 'à jour';
 
-  const cards =
-    `<div class="pcard">
-       <h3>${ic('user', 'ic-14')} Mon profil</h3>
-       <p class="pd">${pReady
-          ? `<b>${esc(p.name)}</b>${p.formation ? ' · ' + esc(p.formation) : ''}`
-          : 'à remplir'}</p>
-       <div class="pc-actions">
-         <button class="btn ${pReady ? '' : 'btn-primary'}" id="moiProfil">${ic('pencil', 'ic-14')} ${pReady ? 'Modifier' : 'Remplir mon profil'}</button>
-         <button class="btn" id="moiTpl">${ic('mail', 'ic-14')} Modèles d’emails (${p.templates.length})</button>
+  /* « Moi » est une FEUILLE DE PROPRIÉTÉS, pas une pile de cartes.
+     Trois règles d'origine, appliquées telles quelles :
+     · « put the object's name on the first page » + l'icône en haut à
+       gauche → la page dit d'abord QUI, au lieu d'une carte « Mon profil »
+       dont le bouton répétait le titre ;
+     · « group boxes are visually heavy… use sparingly » et « only when the
+       group doesn't contain all controls on the surface » → quatre cartes
+       deviennent deux cadres, rangés par usage et non par objet ;
+     · « buttons that apply only to a page go on the page » → « Télécharger »
+       reste DANS son groupe, il ne descend pas en pied de page. */
+  const objet =
+    `<div class="obj">
+       ${ic('user', 'ic-24')}
+       <div class="obj-m">
+         ${pReady
+           ? `<span class="obj-n">${esc(p.name)}</span>
+              <div class="obj-s">${[p.formation, p.email].filter(Boolean).map(esc).join('<br>')}</div>`
+           : `<p class="obj-empty">Ton nom, ta formation, ton email remplissent
+                chaque email que tu envoies.</p>
+              <button class="btn btn-sm btn-primary" id="moiProfil">Remplir mon profil</button>`}
        </div>
-     </div>
+       ${pReady ? '<button class="btn btn-sm" id="moiProfil">Modifier</button>' : ''}
+     </div>`;
 
-     <div class="pcard">
-       <h3>${ic('attachment', 'ic-14')} Mes CV &amp; lettres</h3>
+  const envoi =
+    `<fieldset class="fset">
+       <legend>Ce que j’envoie</legend>
+       <button class="rg-row" id="moiTpl">
+         <span class="rg-n">Modèles d’emails</span>
+         <span class="rg-s">${p.templates.length}</span>
+         ${ic('chevron-right', 'ic-14')}
+       </button>
        <div id="moiDocs"></div>
-     </div>
+     </fieldset>`;
 
-     ${showBackup ? `
-     <div class="pcard">
-       <h3>${ic('save', 'ic-14')} Garder une copie <span class="tag-priv">${ic('lock', 'ic-14')} privé inclus</span></h3>
-       <p class="pd">${bkState}</p>
+  const copie = showBackup ? `
+     <fieldset class="fset">
+       <legend>Ma copie</legend>
+       <div class="fs-state">
+         <span class="pd">${bkState}</span>
+         <span class="tag-priv">${ic('lock', 'ic-14')} privé inclus</span>
+       </div>
        <div class="pc-actions">
-         <button class="btn ${bkPromote ? 'btn-primary' : ''}" id="moiBackup">${ic('download', 'ic-14')} Garder une copie</button>
+         <button class="btn btn-sm ${bkPromote ? 'btn-primary' : ''}" id="moiBackup">Télécharger</button>
          <button class="btn icon-btn bk-lock" id="moiBkLock" aria-pressed="false"
                  aria-label="Protéger la copie par un mot de passe" title="Protéger par un mot de passe">${ic('lock', 'ic-14')}</button>
        </div>
@@ -361,23 +419,25 @@ export function renderMoi(){
          <input id="moiBkPass" class="bk-pass" type="password" autocomplete="new-password"
                 placeholder="Mot de passe" aria-label="Mot de passe de la copie">
        </div>
-       <div class="stor-line" id="moiStor"></div>
-     </div>` : ''}`;
+     </fieldset>` : '';
 
-  const reglages = `<div class="pcard">
-       ${wide ? `<h3>${ic('settings-2', 'ic-14')} Réglages</h3>` : ''}
+  /* « General first, Advanced last » : les réglages ferment la page.
+     Au pouce c'est une porte ; à la souris, la 2ᵉ colonne les déplie. */
+  const reglages = `<fieldset class="fset">
+       <legend>Réglages</legend>
        ${reglagesRowsHTML()}
-     </div>`;
+     </fieldset>`;
 
   root.innerHTML =
     `<div class="page-inner${wide ? ' page-wide' : ''}">
        <div class="td-head"><h2>Moi</h2>
-         <div class="td-date" title="privé — jamais partagé" aria-label="privé — jamais partagé">${ic('lock', 'ic-14')}</div></div>
+         <div class="td-date td-lock" title="privé — jamais partagé" aria-label="privé — jamais partagé">${ic('lock', 'ic-14')}</div></div>
        ${wide
-         ? `<div class="moi-cols"><div>${cards}</div><div>${reglages}</div></div>`
-         : cards +
-           `<button class="pcard moi-door" id="moiReglages">
-              <span class="md-m"><b>${ic('settings-2', 'ic-14')} Réglages</b></span>
+         ? `<div class="moi-cols"><div>${objet}${envoi}${copie}</div><div>${reglages}</div></div>`
+         : objet + envoi + copie +
+           `<button class="rg-row rg-last moi-rg" id="moiReglages">
+              <span class="rg-n">Réglages</span>
+              <span class="rg-s">${verrouLabel()}</span>
               ${ic('chevron-right', 'ic-14')}
             </button>`}
        <div class="moi-ver">OpenContact ${APP_VERSION}</div>
@@ -409,12 +469,4 @@ export function renderMoi(){
   });
   bindSyncLive(root);
   renderDocs();
-  if (navigator.storage && navigator.storage.estimate){
-    navigator.storage.estimate().then(({ usage, quota }) => {
-      if (usage != null && quota){
-        const el = $('#moiStor');
-        if (el) el.textContent = fmtSize(usage) + ' sur ' + fmtSize(quota);
-      }
-    }).catch(() => {});
-  }
 }

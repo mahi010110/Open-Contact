@@ -34,7 +34,6 @@ export function openProspect(){
   const st = sortState('status');            /* « À contacter » en tête par défaut */
   const ft = filterState();                  /* propre à cet écran (#8) */
   const sh = openSheet({ title: 'Prospecter — qui ?', icon: 'mail' });
-  const nTodo = alive().filter(c => c.status === 'todo').length;
 
   /* qui recevra, piste par piste (#1). Écrire n'est pas donner : le
      défaut reste UNE personne — celle de la prochaine action — sinon un
@@ -85,7 +84,7 @@ export function openProspect(){
     const list = filterCompanies(alive(), { ...filterArgs(ft), ...sortArgs(st) });
     sh.body.innerHTML =
       `<div class="listbar">
-         ${nTodo ? `<button class="linklike" id="pkAllTodo">Cocher les ${nTodo} « À contacter »</button>` : '<span></span>'}
+         <button class="linklike" id="pkAll">${sel.size ? 'Tout décocher' : 'Tout cocher'}</button>
          ${affinerBtnHTML(ft, st)}
        </div>
        <div class="pick-list">
@@ -125,13 +124,17 @@ export function openProspect(){
         const c = alive().find(x => x.id === b.dataset.addct);
         if (c) openContactEditor({ company: c, onDone: () => { sel.add(c.id); render(); } });
       }));
-    sh.body.querySelector('#pkAllTodo')?.addEventListener('click', () => {
-      alive().filter(c => c.status === 'todo').forEach(c => sel.add(c.id));
-      sh.body.querySelectorAll('.pk').forEach(b => {
-        b.classList.toggle('on', sel.has(b.dataset.id));
-        b.setAttribute('aria-pressed', sel.has(b.dataset.id));
-      });
-      sync();
+    /* le lien dit ce que le tap va faire, et il porte sur ce qui est
+       AFFICHÉ — filtrer puis « Tout cocher » remplace l'ancien raccourci
+       « Cocher les N à contacter », en mieux (#8) */
+    sh.body.querySelector('#pkAll').addEventListener('click', () => {
+      if (sel.size) sel.clear();
+      else for (const c of list){
+        sel.add(c.id);
+        const d = !keepOf(c).size && defaultCt(c);
+        if (d) keepOf(c).add(d.id);
+      }
+      render();
     });
     bindAffinerBtn(sh.body, ft, st, {}, () => { const play = softReorder('.modal-b .pk'); render(); play(); });
     sync();

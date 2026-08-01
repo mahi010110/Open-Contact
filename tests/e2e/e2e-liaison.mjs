@@ -96,6 +96,23 @@ for (const p of [A, B])
 const stA = (await A.textContent('#syStatus')).trim();
 if (!/à jour en continu/.test(stA)) fail('statut bureau : ' + stA);
 
+/* PANNE VÉCUE : la reprise différée du démarrage (initSyncLive, ~2 s
+   après le lancement) tombait sur une salle DÉJÀ rejointe, la quittait
+   et la rejoignait aussitôt. Quitter une salle prend un instant : les
+   deux appareils restaient alors en morceaux — un pair fantôme d'un
+   côté (« en liaison » qui n'échange jamais), plus personne de l'autre,
+   et ça ne revenait pas. Rejoindre deux fois la même salle ne doit
+   plus rien casser. */
+for (const p of [A, B])
+  await p.evaluate(async () => (await import('./ui/synclive.js')).initSyncLive());
+await A.waitForTimeout(4000);
+for (const p of [A, B])
+  await attendre(p, async () => {
+    const sy = (await import('./ui/synclive.js')).getSync();
+    return sy.peers >= 1 && sy.state === 'on' && sy.exchanged;
+  }, { timeout: 20000, message: 'la liaison survit à la reprise du démarrage' });
+console.log('reprise sur une salle déjà rejointe : la liaison tient ✓');
+
 /* les 25 pistes du bureau arrivent sur le mobile neuf… (marge large : la
    liaison WebRTC réelle peut mettre quelques secondes à ouvrir son canal) */
 await attendre(B, async () => (await import('./ui/state.js')).S.companies.length === 25,

@@ -212,7 +212,7 @@ function openRecovery(onUnlocked){
   const stepAnnounce = () => {
     sh.setTitle('Récupération');
     sh.body.innerHTML =
-      `<div class="pick-list">
+      `<div class="lk-whys">
          <div class="lk-why">${ic('switch', 'ic-14')} <span>Cet appareil devient ton appareil principal. L’ancien est écarté.</span></div>
          <div class="lk-why">${ic('lock', 'ic-14')} <span>Ton code et ta phrase sont renouvelés.</span></div>
          <div class="lk-why">${ic('save', 'ic-14')} <span>Une nouvelle sauvegarde chiffrée termine le parcours.</span></div>
@@ -502,7 +502,7 @@ export function openProtectFlow(){
 
   const stepIntro = () => {
     sh.body.innerHTML =
-      `<div class="pick-list">
+      `<div class="lk-whys">
          <div class="lk-why">${ic('lock', 'ic-14')} <span>Un code pour ouvrir l’app.</span></div>
          <div class="lk-why">${ic('shield', 'ic-14')} <span>Tes données et tes secrets chiffrés ici.</span></div>
          <div class="lk-why">${ic('switch', 'ic-14')} <span>Tes appareils sous contrôle.</span></div>

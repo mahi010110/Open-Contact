@@ -58,7 +58,7 @@ await attendre(page, async () => (await import('./ui/state.js')).S.companies.len
 await page.goto(base + '/#/pistes');
 await page.click('#piProspect');
 await page.waitForSelector('.pk');
-await page.click('#pkAllTodo');
+await page.click('#pkAll');   /* « Tout cocher » — le même lien partout (#8) */
 await page.click('.modal-f .btn-primary');
 await page.waitForSelector('#pmCamp');
 await settle('30-bifurcation');

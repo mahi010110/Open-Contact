@@ -21,12 +21,13 @@ export function renderEchanger(){
          <button class="btn hero" id="ecRecv">${ic('inbox', 'ic-20')}<span>Recevoir</span></button>
        </div>
 
-       <div class="pcard">
-         <div class="ec-row" style="border:0;padding:2px 0">
-           <div class="ec-row-m"><b>${ic('radio', 'ic-14')} Partage en groupe</b></div>
-           <button class="btn" id="ecPromo">Entrer</button>
-         </div>
-       </div>
+       <!-- une porte, pas une carte à bouton : « Entrer » ne disait rien de
+            plus que la ligne elle-même. Exactement la porte « Réglages »
+            de « Moi » — on tape la carte entière. -->
+       <button class="pcard moi-door" id="ecPromo">
+         <span class="md-m"><b>${ic('radio', 'ic-14')} Partage en groupe</b></span>
+         ${ic('chevron-right', 'ic-14')}
+       </button>
 
        <p class="hint ec-foot">${ic('lock', 'ic-14')} Données locales — jamais le privé.</p>
      </div>`;

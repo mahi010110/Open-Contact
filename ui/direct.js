@@ -17,7 +17,7 @@ import { parseTurn, turnText } from '../engine/transport.js';
 import { S, bus, isClosed, logJ } from './state.js';
 import { openSheet, confirmSheet, toast, btn, ic } from './dom.js';
 import { mergePreviewInto } from './recevoir.js';
-import { getSync, startSync, breakLink, keepMyProfile, makePhrase, openRoom,
+import { getSync, startSync, breakLink, keepMyProfile, makePhrase, openRoom, leaveRoom,
          watchLiaison, deviceSelf, loadDevices, removeDevice, DEVICES_MAX,
          getRing, amMain, ringDo, ringMakeMain } from './synclive.js';
 import { deviceIn } from '../engine/ring.js';
@@ -70,7 +70,7 @@ function wireRelays(q, phrase, rerender){
   const save = async (urls, turn) => {
     await kvSet(RELAYS_KEY, JSON.stringify(urls));
     await kvSet(TURN_KEY, JSON.stringify(turn));
-    if (phrase) await startSync(phrase);
+    if (phrase) await startSync(phrase, true);   /* relais changés : on reprend la liaison */
     toast(urls.length || turn.length
       ? 'Réglages enregistrés — la liaison redémarre.'
       : 'Réglage d’origine rétabli.');
@@ -249,8 +249,8 @@ export function openAppareils(){
          ${comp ? compRowHTML(comp)
            : (iAmMain
              ? (isDesktop()
-               ? `<button class="linklike" id="devAddComp" style="margin-top:6px">${ic('plus', 'ic-14')} Ajouter le Compagnon — cet ordinateur enverra même app fermée</button>`
-               : `<button class="dev-row dev-open" id="devCompInfo"><b>Le Compagnon</b><span class="dev-sub">s’installe et s’associe depuis ton ordinateur · voir ›</span></button>`)
+               ? `<button class="linklike" id="devAddComp" style="margin-top:6px">${ic('plus', 'ic-14')} Ajouter le Compagnon</button>`
+               : `<button class="dev-row dev-open" id="devCompInfo"><b>Le Compagnon</b><span class="dev-sub">pas installé · voir ›</span></button>`)
              : '')}
          ${getRing() && !iAmMain ? `<p class="hint" style="margin-top:6px">Seul ton appareil principal peut gérer les autres.</p>` : ''}
          ${1 + devs.length > DEVICES_MAX
@@ -261,7 +261,7 @@ export function openAppareils(){
        <button class="linklike" id="syNewPhrase" style="margin-top:12px">Changer la phrase de liaison</button>`;
 
     q('#syEye')?.addEventListener('click', () => { revealPhrase = !phraseShown; renderLinked(); });
-    q('#syRetry')?.addEventListener('click', () => startSync(sy.phrase));
+    q('#syRetry')?.addEventListener('click', () => startSync(sy.phrase, true));
     q('#syKeepProf')?.addEventListener('click', keepMyProfile);
     q('#syNewPhrase')?.addEventListener('click', async () => {
       if (await requireCode('Ton code, pour changer la phrase')) renderStart(true);
@@ -319,10 +319,10 @@ export function openAppareils(){
            ${compRowHTML(comp)}
          </div>` : ''}
        ${!changing && !comp && isDesktop()
-         ? `<button class="linklike" id="devAddComp" style="margin-top:12px">${ic('plus', 'ic-14')} Ajouter le Compagnon — cet ordinateur enverra même app fermée</button>`
+         ? `<button class="linklike" id="devAddComp" style="margin-top:12px">${ic('plus', 'ic-14')} Ajouter le Compagnon</button>`
          : ''}
        ${!changing && !comp && !isDesktop()
-         ? `<div class="sy-devs"><button class="dev-row dev-open" id="devCompInfo"><b>Le Compagnon</b><span class="dev-sub">s’installe et s’associe depuis ton ordinateur · voir ›</span></button></div>`
+         ? `<div class="sy-devs"><button class="dev-row dev-open" id="devCompInfo"><b>Le Compagnon</b><span class="dev-sub">pas installé · voir ›</span></button></div>`
          : ''}
        ${relaySettingsHTML(relays, turn)}`;
     sh.setFoot(changing ? [btn('← Retour', 'btn-ghost', render)] : null);
@@ -357,7 +357,7 @@ export function openAppareils(){
       const el = sh.body.querySelector('#syStatus');
       if (el){
         el.innerHTML = statusHTML();
-        el.querySelector('#syRetry')?.addEventListener('click', () => startSync(getSync().phrase));
+        el.querySelector('#syRetry')?.addEventListener('click', () => startSync(getSync().phrase, true));
       }
       return;
     }
@@ -375,9 +375,17 @@ export function openPromo(){
   const queue = [];         /* payloads reçus, présentés un par un */
   const seen = new Set();   /* le même envoi ne se représente pas */
   let showing = false;
+  /* quitter rend une promesse, et les départs s'enchaînent : re-entrer
+     dans le MÊME groupe sans attendre la fin du départ laisserait la
+     salle en morceaux des deux côtés (voir leaveRoom) */
+  let leaving = Promise.resolve();
   const leave = () => {
     if (watch){ watch.stop(); watch = null; }
-    if (room){ try { room.leave(); } catch (e) {} room = null; }
+    const old = room;
+    room = null;
+    peers = 0;
+    leaving = leaving.then(() => leaveRoom(old));
+    return leaving;
   };
   const sh = openSheet({ title: 'Partage en groupe', icon: 'radio', onClose: leave });
   const q = s => sh.body.querySelector(s);
@@ -422,6 +430,7 @@ export function openPromo(){
   };
 
   async function enter(pass){
+    await leave();
     sh.body.innerHTML =
       `<div class="sy-status" id="prStatus">${ic('radio', 'ic-14')} Connexion…</div>
        <div id="prZone"></div>`;
@@ -487,7 +496,7 @@ export function openPromo(){
          <div style="text-align:center;margin-top:6px"><span class="tag-share">jamais le privé</span></div>
          <button class="linklike" id="prPick" style="margin-top:6px">${choosing ? 'Replier la liste' : 'Choisir ce qui part…'}</button>
          ${choosing ? `<div class="listbar" style="margin-top:8px">
-           <button class="linklike" id="prAll">Tout cocher / décocher</button>${affinerBtnHTML(ft, st)}</div>
+           <button class="linklike" id="prAll">${unsel.size ? 'Tout cocher' : 'Tout décocher'}</button>${affinerBtnHTML(ft, st)}</div>
          <div class="pick-list">
            ${listed().map(c =>
              `<div class="pk-duo">
@@ -508,9 +517,9 @@ export function openPromo(){
       q('#prPick').addEventListener('click', () => { choosing = !choosing; refreshStatus(); });
       bindAffinerBtn(zone, ft, st, {}, refreshStatus);
       q('#prAll')?.addEventListener('click', () => {
-        const all = unsel.size > 0;
+        const rienDecoche = unsel.size === 0;
         unsel.clear();
-        if (!all) mine().forEach(c => unsel.add(c.id));
+        if (rienDecoche) mine().forEach(c => unsel.add(c.id));
         refreshStatus();
       });
       zone.querySelectorAll('[data-who]').forEach(b =>

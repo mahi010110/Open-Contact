@@ -12,7 +12,7 @@ import { mergeIncoming } from '../engine/merge.js';
 import { normalizeCompany } from '../engine/model.js';
 import { S, bus, saveData, logJ } from './state.js';
 import { openSheet, toast, btn, ic, showUndo } from './dom.js';
-import { openRoom, watchLiaison, deviceSelf, ensureKeys } from './synclive.js';
+import { openRoom, leaveRoom, watchLiaison, deviceSelf, ensureKeys } from './synclive.js';
 import { startScan } from './qr.js';
 import { probeCompanion, companionCall } from '../engine/companion.js';
 import { makeMission, signMission } from '../engine/mission.js';
@@ -38,9 +38,16 @@ export function openRecevoir(){
   let rdvWatch = null;     /* honnêteté de la liaison du rendez-vous */
   let gen = 0;
   const halt = () => { if (stopScan){ stopScan(); stopScan = null; } };
+  /* les départs s'enchaînent et s'attendent : retaper le MÊME code
+     sans laisser la salle précédente se fermer laisserait la liaison
+     en morceaux des deux côtés (voir leaveRoom) */
+  let leaving = Promise.resolve();
   const leaveRdv = () => {
     if (rdvWatch){ rdvWatch.stop(); rdvWatch = null; }
-    if (room){ try { room.leave(); } catch (e) {} room = null; }
+    const old = room;
+    room = null;
+    leaving = leaving.then(() => leaveRoom(old));
+    return leaving;
   };
   /* caméra et salle se coupent quelle que soit la façon de fermer */
   const sh = openSheet({ title: 'Recevoir', icon: 'inbox', onClose: () => { gen++; halt(); leaveRdv(); } });
@@ -117,8 +124,9 @@ export function openRecevoir(){
   /* ---- rendez-vous : l'appairage P2P fait passer les fiches ---- */
   const joinRdv = async code => {
     halt();
-    leaveRdv();
     const my = ++gen;
+    await leaveRdv();
+    if (my !== gen) return;
     sh.setTitle('Réception');
     sh.body.innerHTML = `<div class="qr-prog">${ic('clock', 'ic-14')} Connexion…</div>`;
     sh.setFoot([btn('← Retour', 'btn-ghost', menu)]);
@@ -148,11 +156,11 @@ export function openRecevoir(){
       menu();
       return;
     }
-    if (my !== gen){ w.stop(); try { r.leave(); } catch (e) {} return; }
+    if (my !== gen){ w.stop(); await leaveRoom(r); return; }
     room = r;
     rdvWatch = w;
     sh.body.innerHTML = `<div class="qr-prog" id="rcRdvSt">${ic('clock', 'ic-14')} Connexion aux relais…</div>`;
-    const give = room.makeAction('give');
+    const give = r.makeAction('give');
     let got = false;
     give.onMessage = obj => {
       if (got || !obj || obj.kind !== 'share' || !Array.isArray(obj.companies)) return;
@@ -164,7 +172,7 @@ export function openRecevoir(){
       leaveRdv();
       mergePreviewInto(sh, obj, { onBack: menu });
     };
-    room.onPeerJoin = () => {
+    r.onPeerJoin = () => {
       joined = true;
       const el = q('#rcRdvSt');
       if (el) el.innerHTML = `${ic('radio', 'ic-14')} Relié — réception…`;
@@ -254,14 +262,16 @@ export function openImportMails(){
     sh.body.innerHTML =
       `${pendingPick ? `<div class="pick-list">${pendingPick}</div>` : ''}
        ${assoc ? `
+       <!-- deux frères, deux libellés parallèles : seul le nombre de jours
+            change, donc seul le nombre de jours s'écrit -->
+       <div class="lbl-row" style="margin:0 0 6px"><label>ton ordinateur lit</label></div>
        <div class="pick-list">
-         <button class="pick" id="rcScan7"><b>${ic('zap', 'ic-14')} Ton ordinateur lit tes 7 derniers jours</b></button>
-         <button class="pick" id="rcScan30"><b>${ic('zap', 'ic-14')} Les 30 derniers jours</b>
-           <span>plus complet</span></button>
+         <button class="pick" id="rcScan7"><b>${ic('zap', 'ic-14')} Les 7 derniers jours</b></button>
+         <button class="pick" id="rcScan30"><b>${ic('zap', 'ic-14')} Les 30 derniers jours</b></button>
        </div>
        <p class="hint">${ic('shield', 'ic-14')} Rien ne s’enregistre sans ton accord.</p>
        <div class="lbl-row" style="margin:12px 0 6px"><label>ou à la main</label></div>` : ''}
-       <div class="pick-list">
+       <div class="lk-whys">
          <div class="lk-why">${ic('copy', 'ic-14')} <span>Copie le prompt, colle-le dans ton assistant IA avec tes e-mails.</span></div>
          <div class="lk-why">${ic('clipboard', 'ic-14')} <span>Rapporte ici sa réponse : chaque piste proposée se coche ou s’écarte.</span></div>
          ${assoc ? '' : `<div class="lk-why">${ic('shield', 'ic-14')} <span>Rien ne s’enregistre sans ton accord.</span></div>`}

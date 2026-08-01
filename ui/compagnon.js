@@ -20,7 +20,7 @@ const isDesktop = () => matchMedia('(min-width:901px)').matches;
 
 /* pourquoi le Compagnon — les mêmes trois raisons partout */
 const whyHTML = () =>
-  `<div class="pick-list">
+  `<div class="lk-whys">
      <div class="lk-why">${ic('zap', 'ic-14')} <span>Tes campagnes partent même app fermée.</span></div>
      <div class="lk-why">${ic('mail', 'ic-14')} <span>Les réponses arrêtent les relances toutes seules.</span></div>
      <div class="lk-why">${ic('shield', 'ic-14')} <span>Tes accès restent dans le trousseau de l’ordinateur.</span></div>
@@ -253,7 +253,7 @@ export function openCompanionSheet(assoc, onDone){
       ? `<p class="hint" style="margin:0 0 10px">Autorisé ✓ — il lit un résumé de tes pistes
            et dépose des propositions. Rien ne s’ajoute sans ton accord.</p>
          <p class="hint">Couper prend effet immédiatement.</p>`
-      : `<div class="pick-list">
+      : `<div class="lk-whys">
            <div class="lk-why">${ic('eye', 'ic-14')} <span>Il lira un résumé : nom, ville, domaine — jamais tes notes ni tes contacts.</span></div>
            <div class="lk-why">${ic('inbox', 'ic-14')} <span>Ses propositions passent par l’aperçu : tu coches, tu fusionnes ou tu écartes.</span></div>
            <div class="lk-why">${ic('shield', 'ic-14')} <span>Tu peux le couper ici à tout moment.</span></div>

@@ -50,8 +50,12 @@ confirmés, tous traités :
   (D) ; boutons à la taille de contrôle standard (#7) ; plus de texte
   descriptif à côté d'un bouton, seulement un état court (A) ; CV et lettres
   classés en deux groupes, une ligne dense par document (C).
-- **Lot 2** : le code de groupe se copie au geste (#6). *L'icône du Compagnon
-  (#4) devient sans objet : la ligne quitte OpenContact (§1.2).*
+- **Lot 2** : le code de groupe se copie au geste (#6). **#4 — icône du
+  Compagnon : sans objet, deux fois.** Les pictogrammes des Réglages ont été
+  retirés (ils repoussaient les mots qui servent à scanner, jusqu'à faire
+  plier « Mes appareils » sur deux lignes — détail dans
+  `docs/finition-calibrage.md` §I), et la ligne « Le Compagnon » quitte de
+  toute façon OpenContact (§1.2).
 - **Lot 3** : `openPanel` supprimé, la fiche s'ouvre en fenêtre centrée (#5).
 - **Lot 4** : la sauvegarde imposée à la première protection (B) —
   **abandonnée sur décision du mainteneur**, le comportement actuel est

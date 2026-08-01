@@ -15,7 +15,7 @@ import { S, isClosed, logJ } from './state.js';
 import { openSheet, toast, btn, ic, softReorder } from './dom.js';
 import { sortState, sortArgs } from './sort.js';
 import { filterState, filterArgs, affinerBtnHTML, bindAffinerBtn } from './affiner.js';
-import { openRoom, watchLiaison } from './synclive.js';
+import { openRoom, leaveRoom, watchLiaison } from './synclive.js';
 import { makeQrSvg } from './qr.js';
 import { whoCandidates, whoLineHTML, openWhoPicker } from './qui.js';
 
@@ -48,9 +48,15 @@ export function openDonner(){
   let room = null;
   let rdvWatch = null;     /* honnêteté de la liaison du rendez-vous */
   let gen = 0;
+  /* les départs s'enchaînent et s'attendent — une salle qu'on quitte
+     met un instant à se fermer vraiment (voir leaveRoom) */
+  let leaving = Promise.resolve();
   const leaveRdv = () => {
     if (rdvWatch){ rdvWatch.stop(); rdvWatch = null; }
-    if (room){ try { room.leave(); } catch (e) {} room = null; }
+    const old = room;
+    room = null;
+    leaving = leaving.then(() => leaveRoom(old));
+    return leaving;
   };
   const enter = () => { gen++; leaveRdv(); return gen; };
   const sh = openSheet({ title: 'Donner', icon: 'share', onClose: () => { gen++; leaveRdv(); } });
@@ -89,7 +95,7 @@ export function openDonner(){
       const list = filterCompanies(alive(), { ...filterArgs(ft), ...sortArgs(st) });
       zone.hidden = false;
       zone.innerHTML =
-        `<div class="listbar"><button class="linklike" id="dnAll">Tout cocher / décocher</button>${affinerBtnHTML(ft, st)}</div>
+        `<div class="listbar"><button class="linklike" id="dnAll">${unsel.size ? 'Tout cocher' : 'Tout décocher'}</button>${affinerBtnHTML(ft, st)}</div>
          <div class="pick-list">
            ${list.map(c =>
              `<div class="pk-duo">
@@ -116,9 +122,9 @@ export function openDonner(){
           if (c) openWhoPicker(c, keepOf(c), { verbe: 'donner', onChange: renderList });
         }));
       zone.querySelector('#dnAll').addEventListener('click', () => {
-        const all = unsel.size > 0;
+        const rienDecoche = unsel.size === 0;
         unsel.clear();
-        if (!all) alive().forEach(c => unsel.add(c.id));
+        if (rienDecoche) alive().forEach(c => unsel.add(c.id));
         renderList();
       });
       syncCount();
@@ -187,6 +193,8 @@ export function openDonner(){
      limite de nombre. Échec de connexion = repli silencieux. */
   const stepQRRdv = async (compact, n) => {
     const my = enter();
+    await leaving;
+    if (my !== gen) return;
     const fallback = () => {
       if (compact){ toast('Pas de connexion — QR hors ligne.'); stepQRData(compact, n); }
       else { toast('Pas de connexion — passe par le fichier.'); stepFile(); }
@@ -220,7 +228,7 @@ export function openDonner(){
       if (my === gen) fallback();
       return;
     }
-    if (my !== gen){ w.stop(); try { r.leave(); } catch (e) {} return; }
+    if (my !== gen){ w.stop(); await leaveRoom(r); return; }
     room = r;
     rdvWatch = w;
     sh.body.innerHTML =
@@ -230,9 +238,9 @@ export function openDonner(){
        <p class="hint" style="text-align:center">L’autre personne : <b>Recevoir → Scanner</b> — ou tape ce code.</p>
        <button class="linklike" id="dnOffline" style="display:flex;margin:6px auto 0">Sans réseau ? QR hors ligne</button>`;
     q('#dnOffline').addEventListener('click', fallback);
-    const give = room.makeAction('give');
+    const give = r.makeAction('give');
     const payload = sharePayload(chosen(), keepFn);
-    room.onPeerJoin = () => {
+    r.onPeerJoin = () => {
       give.send(payload);
       sent++;
       if (sent === 1) logJ('Donné (QR rendez-vous) : ' + n + ' piste(s)');
@@ -249,7 +257,7 @@ export function openDonner(){
     sh.setTitle(`Fichier — ${n} piste${n > 1 ? 's' : ''}`);
     sh.body.innerHTML =
       `<div class="pick-list">
-         ${navigator.share ? `<button class="pick" id="dnShare"><b>${ic('share', 'ic-14')} Partager</b><span>WhatsApp, mail…</span></button>` : ''}
+         ${navigator.share ? `<button class="pick" id="dnShare"><b>${ic('share', 'ic-14')} Partager</b></button>` : ''}
          <button class="pick" id="dnDl"><b>${ic('download', 'ic-14')} Télécharger</b><span>${fname}</span></button>
          <button class="pick" id="dnCopy"><b>${ic('copy', 'ic-14')} Copier</b></button>
        </div>

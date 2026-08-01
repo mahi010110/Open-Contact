@@ -3,7 +3,7 @@
    répond → le Compagnon arrête ses relances tout seul et la PWA
    marque la fiche « réponse » au repli du rapport.
    Sauté proprement si le binaire n'est pas construit. */
-import { chromium, chromiumPath, SHOTS, serveRepo, ROOT, attendre as attendrePage } from './outils.mjs';
+import { chromium, chromiumPath, SHOTS, serveRepo, ROOT, attendre as attendrePage, attendreCanal } from './outils.mjs';
 import { spawn } from 'child_process';
 import { existsSync, mkdtempSync } from 'fs';
 import net from 'net';
@@ -93,18 +93,7 @@ const attendre = async (fn, ms, quoi) => {
     await new Promise(r => setTimeout(r, 400));
   }
 };
-await attendre(async () => {
-  try {
-    for (const port of [17095, 17096, 17097]){
-      try {
-        const r = await fetch(`http://127.0.0.1:${port}/oc-compagnon`, { signal: AbortSignal.timeout(800) });
-        const j = r.ok && await r.json();
-        if (j && j.appairage) return true;
-      } catch (e) {}
-    }
-    return false;
-  } catch (e) { return false; }
-}, 30000, 'canal du Compagnon');
+await attendreCanal({ journal: () => journalC });
 
 /* ---------- la PWA : coffre, anneau, appairage, campagne confiée ---------- */
 const { server, base } = await serveRepo();

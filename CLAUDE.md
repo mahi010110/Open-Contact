@@ -198,6 +198,7 @@ avec un motif existant :
 | Supprimer un élément (piste, prompt) | geste : **glisser** (mobile) / **poubelle au survol** (desktop) + `showUndo`, sans confirmation. Uniquement dans « Mes pistes » pour les pistes |
 | Fermer une barre transitoire (toast, Annuler, bandeau) | **balayer** (mobile) / **`✕`** (desktop) |
 | Contenu secondaire | `<details class="pcard pcard-details">` replié |
+| Une page = un objet et ses réglages | en-tête d'objet `.obj` (icône en haut à gauche + nom) puis des cadres `.fset` (légende dans le trait) — voir « Moi ». **Le cadre est lourd : deux par écran au maximum, et jamais s'il contiendrait tout l'écran.** Ailleurs, `pcard` reste la règle |
 | Recevoir des données | TOUJOURS l'aperçu avant fusion (`mergePreviewInto`) — mêmes règles quel que soit le canal (fichier, QR, P2P) |
 
 Règles d'écran : un bouton primaire max par vue ; **une suppression unitaire
@@ -206,6 +207,26 @@ confirmation** ; seules les actions lourdes ou irréversibles (tout supprimer,
 remplacer, retirer un appareil, rompre le lien) gardent `confirmSheet`
 (`btn-danger`) ; l'état vide de chaque écran enseigne le produit (pas un
 simple « aucune donnée »).
+
+Trois règles de sobriété, à vérifier sur tout écran nouveau ou retouché :
+
+1. **Un bouton ne répète jamais le titre de sa carte.** Le titre dit de
+   quoi il s'agit, le bouton dit le geste — un verbe (« Mon profil » →
+   « Remplir », « Garder une copie » → « Télécharger »). Un libellé qui
+   répète produit toujours un bouton trop large.
+2. **Un `<span>` sous un bouton reste** s'il porte un **état ou une
+   donnée** (date, compte, nom de fichier, statut) ou s'il est le **seul**
+   départage entre deux frères (« en personne » / « à distance »). Il
+   **part** s'il explique, encourage ou répète.
+3. **Une explication ne se déguise jamais en bouton.** Bordure et fond
+   surélevé appartiennent à ce qui se tape ; une phrase se pose en texte
+   (`hint`, `lk-why`), même dans une liste de choix.
+
+Sur un écran qui décrit **un objet** (« Moi »), quatre règles d'origine
+s'appliquent, dans cet ordre : le **nom de l'objet et son icône en haut à
+gauche** ; les groupes rangés par **usage**, pas par type ; le bouton qui
+ne sert qu'à un groupe **reste dans ce groupe** ; les réglages avancés
+**ferment** la page.
 
 ## 7. Les textes
 
