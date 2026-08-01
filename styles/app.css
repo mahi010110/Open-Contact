@@ -966,7 +966,19 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   .fi-cols>div:first-child>.field:last-child textarea{flex:1;min-height:150px}
   .fi-top{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
   .fi-top .fi-sub,.fi-top .fi-tools{margin-bottom:10px}
+  /* Écrire au poste : la fenêtre prend une hauteur franche et la donne
+     au message. Les deux menus (destinataire, modèle) cessent aussi de
+     tronquer leur libellé — c'est la largeur qui manquait. */
+  .modal-compose{max-width:820px;height:min(88dvh,800px)}
+  /* `flex:1` sur le corps : sans lui il se dimensionne à son contenu et
+     la hauteur gagnée par la fenêtre resterait sous le pied, inutile */
+  .modal-compose .modal-b{flex:1;min-height:0;display:flex;flex-direction:column}
+  .modal-compose .fld-body{flex:1;display:flex;flex-direction:column;min-height:0}
+  .modal-compose .fld-body textarea{flex:1;min-height:240px}
 }
+/* au pouce, la zone d'écriture garde sa taille : le clavier occupe déjà
+   la moitié basse de l'écran, une zone plus haute ne se verrait pas */
+.fld-body textarea{min-height:170px}
 .fi-score.low{color:var(--amber);border-color:var(--amber)}
 .fi-tools .btn{margin-left:auto}
 .fi-know{border:1px solid var(--border-soft);border-radius:var(--radius-1);background:var(--surface-chrome)}

@@ -32,9 +32,14 @@ export function openMail(c, opts){
   const advance = () => { if (opts.onDone){ const f = opts.onDone; opts.onDone = null; f(); } };
   /* le composeur prend la place de la fiche (#16, fin du double-modal
      N8) : même fenêtre partout, en bas au pouce, centrée sur l'ordinateur */
+  /* `modal-compose` : au poste, la fenêtre prend de la hauteur et c'est
+     le MESSAGE qui la reçoit. Écrire est la seule chose qu'on fait ici,
+     et 170 px de zone d'écriture — la même valeur au pouce et sur
+     1280x800, huit lignes visibles pour dix écrites, la phrase coupée
+     en deux — c'était l'écran du téléphone resservi tel quel. */
   const sh = openSheet({
     title: 'Écrire — ' + c.name + (opts.progress ? '  ·  ' + opts.progress : ''),
-    icon: 'mail', focus: cts.length ? '#mSubj' : '#mBody',
+    icon: 'mail', className: 'modal-compose', focus: cts.length ? '#mSubj' : '#mBody',
     onClose: () => { if (done) return; done = true; if (opts.onQuit) opts.onQuit(); }
   });
   const acct = mailAccount();       /* messagerie connectée ? */
@@ -50,7 +55,7 @@ export function openMail(c, opts){
          <select id="mTpl">${tpls.map((t, i) => `<option value="${i}">${esc(t.name)}</option>`).join('')}</select></div>
      </div>
      <div class="field"><label for="mSubj">Objet</label><input id="mSubj"></div>
-     <div class="field"><label for="mBody">Message</label><textarea id="mBody" style="min-height:170px"></textarea>
+     <div class="field fld-body"><label for="mBody">Message</label><textarea id="mBody"></textarea>
        ${aiConnection() ? `<button class="linklike" id="mAi" style="margin-top:2px">${ic('sparkles', 'ic-14')} Proposer un brouillon</button>` : ''}</div>
      <div class="attach-line" id="mAttach"></div>
      <p class="hint" id="mHint"></p>`;
