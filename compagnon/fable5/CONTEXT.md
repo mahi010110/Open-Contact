@@ -62,15 +62,17 @@ Celles de `CLAUDE.md` et `CONTRAT.md`, plus, pour ce chantier :
 
 - `CLAUDE.md` — référence produit & UI/UX (autorité).
 - `CONTRAT.md` — contrat de données exécutable (`?test`).
-- `docs/refonte-brief.md`, `docs/degraissage-v6.3.md`, `docs/plan-v7.md` —
-  histoire et feuille de route générale.
-- `docs/fable5/SPECIFICATIONS.md` — périmètre fonctionnel et technique
+- `compagnon/roadmap.md` — la feuille de route du Compagnon, avec son point
+  de gel et les défauts connus. **C'est elle qui fait foi sur la suite** ;
+  les documents ci-dessous décrivent le chantier tel qu'il a été mené.
+- `docs/roadmap.md` — celle d'OpenContact (produit distinct, `CLAUDE.md` §0).
+- `compagnon/fable5/SPECIFICATIONS.md` — périmètre fonctionnel et technique
   consolidé du chantier, comportements, limites et critères d'acceptation.
-- `docs/fable5/UX-PLAN.md` — plan UX **validé** (16 juillet 2026) :
+- `compagnon/fable5/UX-PLAN.md` — plan UX **validé** (16 juillet 2026) :
   emplacements, parcours, états, microcopie. Le code le suit sans le
   réinterpréter.
-- `docs/fable5/PLAN.md` — feuille de route opérationnelle du chantier.
-- `docs/fable5/HANDOFF.md` — point de reprise courant.
+- `compagnon/fable5/PLAN.md` — feuille de route opérationnelle du chantier.
+- `compagnon/fable5/HANDOFF.md` — point de reprise courant.
 - Les études détaillées (faisabilité v1/v2 du 2026-07, plan UX) ont été
   livrées **en discussion** ; la direction UX choisie sera consignée ici
   (section « Décisions acquises ») dès l'arbitrage du mainteneur. Les

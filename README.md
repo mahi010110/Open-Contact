@@ -23,7 +23,7 @@ données vivent sur les appareils et circulent **en direct de pair à pair**
 | `manifest.webmanifest` | Manifeste d'installation |
 | `icon.svg` | Icône de l'app |
 | `compagnon/` | Le Compagnon (Tauri, **facultatif**) : campagnes app fermée, IMAP/SMTP, analyse d'e-mails, IA locale, serveur MCP local — voir `compagnon/README.md` |
-| `docs/` | Feuille de route officielle (`roadmap.md`), briefs et historiques (`plan-v7.md`, `docs/fable5/` pour le chantier connecté) |
+| `docs/` | Feuille de route d'OpenContact (`roadmap.md`) et journaux de conception (`refonte-calibrage.md`, `finition-calibrage.md`, audits) — le Compagnon a les siens dans `compagnon/` |
 
 ## Installer le Compagnon (facultatif)
 
