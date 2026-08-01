@@ -947,9 +947,25 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 .lbl-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px}
 .lbl-row label{margin-bottom:0}
 .fi-tools{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+/* un chiffre qui bouge deux fois par mois n'a pas à porter un cadre :
+   encadré, il se déguisait en chose qui se tape (elle ne se tape pas) */
 .fi-score{
   font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);
-  border:1px dashed var(--border-soft);padding:3px 8px;border-radius:var(--radius-1);
+}
+/* La fiche au poste : le travail à gauche, le dossier à droite. Une
+   fenêtre de 560 px au milieu de 1280 était l'écran du pouce resservi
+   tel quel — et sur l'écran le PLUS ouvert de l'application. */
+@media (min-width:901px){
+  .modal-fiche{max-width:900px}
+  .fi-cols{display:grid;grid-template-columns:1fr 1fr;gap:8px 22px;align-items:stretch}
+  .fi-cols>div{min-width:0;display:flex;flex-direction:column}
+  /* le travail est plus court que le dossier : plutôt que laisser un
+     trou à gauche, les notes prennent la hauteur qui reste — c'est la
+     seule zone de cette fenêtre où l'on écrit vraiment */
+  .fi-cols>div:first-child>.field:last-child{flex:1;display:flex;flex-direction:column;min-height:0}
+  .fi-cols>div:first-child>.field:last-child textarea{flex:1;min-height:150px}
+  .fi-top{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+  .fi-top .fi-sub,.fi-top .fi-tools{margin-bottom:10px}
 }
 .fi-score.low{color:var(--amber);border-color:var(--amber)}
 .fi-tools .btn{margin-left:auto}
