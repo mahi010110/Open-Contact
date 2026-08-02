@@ -952,21 +952,19 @@ details.pcard-details[open]>summary{margin-bottom:10px}
    journal court laissait un trou et un journal long jetait sa date à
    700 px de son libellé : c'est le bord qui fait qu'une liste se lit
    comme une liste. */
-.ec-fil{
-  margin-top:18px;display:flex;flex-direction:column;
-  background:var(--surface-window);border:1px solid var(--border-strong);
-  box-shadow:var(--shadow-raised);padding:9px 12px 2px;
-}
-/* le corps glisse, le bandeau reste */
+/* Le fil est un `fset` — le cadre à légende de « Moi ». Il tient toujours
+   sa région (c'est lui qui garde les gestes au pouce), mais avec un trait
+   fin et une légende en encoche au lieu d'un aplat bordé et biseauté :
+   sur un écran qui ne porte que trois objets, le panneau plein en faisait
+   un de plus au lieu de ranger les deux autres. */
+.ec-fil{margin-top:18px;display:flex;flex-direction:column}
+/* le corps glisse, la légende reste — elle vit dans le trait du cadre */
 .ec-body{flex:1;min-height:0;display:flex;flex-direction:column;overflow:auto;-webkit-overflow-scrolling:touch}
-.ec-vide .ec-rien{flex:1}
+.ec-vide .ec-rien{flex:1;display:flex;align-items:center;justify-content:center}
 .ec-rien{
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:5px;text-align:center;padding:18px 4px;
+  font-size:var(--text-13);color:var(--text-muted);text-align:center;
+  margin:0;padding:14px 4px;
 }
-.ec-rien .tde-ic{margin-bottom:5px}
-.ec-rien b{font-size:var(--text-14);font-weight:var(--weight-bold);letter-spacing:var(--tracking-tight)}
-.ec-rien p{font-size:var(--text-13);color:var(--text-muted);line-height:1.6;max-width:32ch;margin:0}
 /* Le panneau garde sa taille : c'est LUI qui défile quand le journal
    déborde, jamais la page. `height` et non `min-height` — sinon huit
    lignes repoussaient les gestes à 101 % de la hauteur sur un 360×640,
