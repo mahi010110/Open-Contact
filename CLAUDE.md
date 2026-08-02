@@ -156,6 +156,12 @@ net. Sources uniques : `styles/tokens/` et le kit `design/`.
   `--shadow-*`). L'identité est **nette, sans flou** — un dégradé, une ombre
   floue, un arrondi marqué la cassent. Ça se discute avec le mainteneur, ça ne
   se glisse pas dans un écran.
+- **Trame dither** : `--dither` porte la position ET la taille, il n'est donc
+  valable que derrière la propriété raccourcie `background`. Posé sur
+  `background-image`, il est **rejeté en silence** — la trame ne s'affiche pas
+  et rien ne le signale. Quand un fond de couleur doit rester dessous, prendre
+  `--dither-img` + `--dither-size`. (Quatre endroits de l'app ont vécu
+  longtemps sans leur trame à cause de ça.)
 - **Typo** : Silkscreen (titres pixel), IBM Plex Mono (données, dates,
   compteurs), Public Sans (texte courant). Pas d'autre police.
 - **Icônes** : pixelarticons via `ic('nom', 'ic-14')`. Pas d'emoji dans
@@ -190,6 +196,40 @@ pensées par contexte**, qui partagent les données et le style.
   suffit. Quand le comportement doit différer, brancher sur `matchMedia`, pas
   sur du CSS seul.
 
+**La zone du pouce** (mobile, mesurée : « facile » = les 40 % du bas de
+l'écran) — l'ordre de lecture descend, la main monte, et c'est le bas qui
+gagne pour ce qui se TAPE :
+
+1. **Ce qui compte se tape en bas.** L'action principale d'un écran vit
+   au-dessus de la barre de navigation, pas en tête : les feuilles le font
+   déjà (`setFoot` place le bouton à ~96 % de la hauteur), les pages
+   doivent le faire aussi. Un verbe posé en tête d'écran vit à ~17 % de la
+   hauteur — le point le plus dur à atteindre d'une main.
+2. **Une action se pose TOUJOURS au même endroit**, quel que soit le
+   remplissage : c'est ce qui fait la mémoire du geste. Le motif est le
+   **panneau** — le contenu variable prend un cadre qui tient sa région
+   (`flex:1` + `overflow:auto`, la vue en `height:100%`), les lignes s'y
+   remplissent par le haut, la place restante lui appartient. Sans lui, une
+   liste courte ouvre un trou et une liste longue chasse l'action hors de
+   l'écran. Le cadre est aussi ce qui rend le vide présentable : une place
+   qui a un propriétaire n'est plus un manque.
+3. **Deux gestes aux conséquences différentes ne partagent pas une arête.**
+   ≥ 8 px entre eux — la visée d'un pouce dérape de plusieurs pixels, et
+   ouvrir une fiche n'est pas la clore. Ce qui compte est la
+   **conséquence d'un rata­ge**, pas la proximité : là où se tromper coûte
+   un tap pour revenir, les cibles ont le droit de se toucher. C'est le
+   cas des **lignes de liste** (réglages, documents — le trait pointillé
+   dit la frontière) et de la **barre de navigation** (onglets jointifs à
+   2-4 px : tout tab bar du monde fait ça, et les écarter volerait de la
+   largeur à des cibles qu'on tape cent fois par jour). Appliquer la règle
+   à la lettre sur ces deux cas DÉGRADE l'interface.
+
+Ça se mesure : position du bouton primaire en % de la hauteur, et
+`elementFromPoint` à ±6 px du bord de chaque cible pour vérifier qu'elle ne
+touche qu'elle-même. Vérifier en 360×640 (le petit téléphone décide) autant
+qu'en 390×844. L'instrument signale toute adjacence : c'est à la lecture de
+trancher si le voisinage coûte quelque chose.
+
 ---
 
 ## 6. Catalogue des motifs — à réutiliser AVANT d'inventer
@@ -209,9 +249,12 @@ avec un motif existant.
 | Geste lourd réversible | `showUndo(msg, onUndo)` — barre Annuler ~30 s |
 | Retour discret | `toast()` — court, ponctuel, jamais deux phrases |
 | Marquer partagé vs privé | `tag-share` / `tag-priv` |
+| Dire qu'un état **réclame quelque chose** | `.mark` + un cran : `mark-late` · `mark-now` · `mark-soon` · `mark-far`. **Un seul langage d'urgence dans toute l'app**, échelle monotone, et **ce qui ne réclame rien n'affiche rien** — c'est le vide en face qui fait ressortir le reste. Un cadre entier peut prendre le bord ambre (`.fset.fs-alert`) quand son état peut tout coûter |
+| Proposer un filtre | `.fl-chip` + son **compte**. Ne jamais offrir une valeur absente des données. Liste fermée (statuts) : la puce reste, éteinte. Liste ouverte (domaines) : elle disparaît, sauf si le filtre est actif |
 | Note contextuelle | `<p class="hint">` (+ `warn` si alerte) |
-| Multi-sélection | `.pk` avec icônes checkbox — **jamais pour supprimer** |
+| Multi-sélection | `.pk` avec icônes checkbox — **jamais pour supprimer**. L'emphase suit le DÉFAUT : parti de rien coché, l'aplat marque le choix ; parti de tout coché, `pk-inverse` marque l'**écart**. **Le défaut se juge feuille par feuille** — « → qui » s'ouvre tout coché pour *donner*, avec une seule personne pour *écrire* |
 | Choisir qui part / qui est visé | `ui/qui.js` — la ligne « → qui » et sa sous-feuille à cocher |
+| Supprimer un élément | glisser (mobile) / poubelle au survol (desktop) + `showUndo`, sans confirmation |
 | Fermer une barre transitoire | balayer (mobile) / `✕` (desktop) |
 | Contenu secondaire | `<details class="pcard pcard-details">` replié |
 | Une page = un objet et ses réglages | en-tête `.obj` (icône en haut à gauche + nom) puis des cadres `.fset`. **Le cadre est lourd : deux par écran au maximum, jamais s'il contiendrait tout l'écran.** Ailleurs, `pcard` reste la règle |
@@ -221,6 +264,26 @@ avec un motif existant.
 réversible se fait au geste + `showUndo`, sans confirmation ; seules les
 actions lourdes ou irréversibles gardent `confirmSheet` ; l'état vide de
 chaque écran enseigne le produit, jamais un simple « aucune donnée ».
+
+**Trois règles de guidage du regard**, tirées d'un audit mesuré (test du flou
++ saillance calculée sur les pixels rendus) :
+
+1. **L'encre va à ce qui change, jamais à ce qui est permanent.** Une pastille
+   sur *chaque* ligne n'est pas un signal, c'est un papier peint. Ce qui ne
+   réclame rien n'affiche rien.
+2. **Un écran montre les affaires de l'utilisateur, pas des portes.** Un écran
+   incapable d'afficher une donnée réelle est un menu : il appartient à la
+   navigation, pas à un onglet. Aucune mise en forme ne sauve un écran qui n'a
+   rien à dire.
+3. **`page-inner` seul (640 px) sur desktop = écran non conçu.** Flouter la
+   capture : si la structure disparaît, ou si la zone la plus contrastée est
+   du vide, c'est raté.
+
+> **Ce que les instruments ne savent pas faire.** Ils tranchent la mise en
+> page (vide, dominance, largeur) ; ils sont **aveugles à l'emphase** — les
+> moyennes sont pondérées par la surface, la luminance ignore la teinte. Un
+> chiffre peut donc récompenser la suppression de la seule couleur qui devait
+> rester. La mesure propose, l'œil tranche.
 
 **Trois règles de sobriété**, à vérifier sur tout écran neuf ou retouché :
 
@@ -242,6 +305,24 @@ groupe reste dans ce groupe ; les réglages avancés ferment la page.
 
 Français, tutoiement, phrases courtes, concret. On dit « pistes », « promo »,
 « fiche », « suivi » — jamais « CRM », « lead », ni autre jargon à l'écran.
+
+**Un objet, UN mot** — dans toute l'app, y compris les dialogues qu'un écran
+ouvre et le nom des fichiers qu'il produit. Deux noms pour la même chose
+obligent à apprendre deux fois, et le glissement se fait toujours dans les
+feuilles secondaires, jamais dans le titre.
+
+| l'objet | le mot | jamais |
+|---|---|---|
+| une entreprise suivie | **piste** (« entreprise » = le champ, pas l'objet) | boîte, société |
+| une personne chez elle | **contact** (« destinataire » reste dans le composeur : c'est le mot du courrier) | personne — sauf le pronom (« personne pour l'instant ») |
+| l'écran d'une piste | **fiche** | détail |
+| le fichier de tout mon suivi | **copie** (`opencontact-copie-*.oc`) | sauvegarde, export, archive |
+| le groupe | **promo** | camarades |
+
+Ça se vérifie mécaniquement — extraire les chaînes de `ui/*.js` **et de
+`index.html`** (la coque compte aussi, c'est là que « sauvegarde » avait
+survécu), puis regrouper les synonymes. Un compte ne tranche pas seul : il
+faut relire la phrase. « Copie impossible ici » parle du presse-papier.
 
 **Le plus court qui reste compris.** L'ordre est bien : rien, une icône, un
 mot, une phrase — mais **la compréhension passe avant la brièveté**. Si un mot

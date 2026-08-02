@@ -156,8 +156,11 @@ console.log('réponse → relances annulées, trace dans l’historique ✓');
 /* le board desktop montre « en campagne » */
 await page.setViewportSize({ width: 1280, height: 800 });
 await page.goto(base + '/#/pistes');
-await page.waitForSelector('.board');
-const cardTxt = await page.evaluate(() => document.querySelector('.board').textContent);
+/* viser la VUE : « Aujourd'hui » a désormais son propre tableau de
+   colonnes (En retard · Aujourd'hui · Bientôt), et un `.board` nu
+   attrapait celui-là — resté caché, donc jamais visible */
+await page.waitForSelector('#view-pistes .board');
+const cardTxt = await page.evaluate(() => document.querySelector('#view-pistes .board').textContent);
 if (!/en campagne/.test(cardTxt)) fail('tag « en campagne » absent du board');
 await settle('36-board-en-campagne');
 

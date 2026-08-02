@@ -30,7 +30,7 @@ export function downloadBackup(pass){
     const txt = pass ? await encryptOC2(payload, pass) : JSON.stringify(payload);
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([txt], { type: 'application/octet-stream' }));
-    a.download = 'opencontact-sauvegarde-' + todayISO() + '.oc';
+    a.download = 'opencontact-copie-' + todayISO() + '.oc';
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -63,17 +63,17 @@ async function treatRestore(raw, pass){
       askRestorePass(raw);
       return;
     }
-    toast(e.message === 'format' ? 'Ce fichier n’est pas une sauvegarde OpenContact.' : 'Lecture impossible : ' + e.message);
+    toast(e.message === 'format' ? 'Ce fichier n’est pas une copie OpenContact.' : 'Lecture impossible : ' + e.message);
     return;
   }
   if (obj.kind === 'share'){
-    toast('C’est un partage de pistes, pas une sauvegarde — passe par Échanger → Recevoir pour le fusionner.');
+    toast('C’est un partage de pistes, pas une copie — passe par Échanger → Recevoir pour le fusionner.');
     return;
   }
   const n = obj.companies.length;
   const cur = S.companies.length;
   const ok = await confirmSheet({
-    title: 'Restaurer cette sauvegarde ?', icon: 'reload', danger: true, okLabel: 'Tout remplacer',
+    title: 'Restaurer cette copie ?', icon: 'reload', danger: true, okLabel: 'Tout remplacer',
     msg: `Le fichier contient <b>${n} piste${n > 1 ? 's' : ''}</b>${obj.profile ? ', le profil' : ''}${obj.orphans ? ', ' + obj.orphans.length + ' contact(s) à rattacher' : ''}.<br>
           Ta base actuelle (<b>${cur} piste${cur > 1 ? 's' : ''}</b>) sera <b>entièrement remplacée</b> — annulable pendant 30 secondes.`
   });
@@ -91,7 +91,7 @@ async function treatRestore(raw, pass){
      pierre tombale re-supprimerait une piste restaurée à la sync suivante */
   S.tombs = mergeTombs(Array.isArray(obj.tombs) ? obj.tombs : [], []);
   saveData(); saveProfile(); saveOrphans(); saveTombs();
-  logJ('Sauvegarde restaurée : ' + n + ' piste(s)');
+  logJ('Copie restaurée : ' + n + ' piste(s)');
   bus.refresh();
   showUndo(`${ic('check', 'ic-14')} Restauré : ${n} piste${n > 1 ? 's' : ''}.`, () => {
     S.companies = JSON.parse(snap.companies).map(normalizeCompany);
@@ -105,9 +105,9 @@ async function treatRestore(raw, pass){
   });
 }
 function askRestorePass(raw){
-  const sh = openSheet({ title: 'Sauvegarde protégée', icon: 'lock', focus: '#rsPass' });
+  const sh = openSheet({ title: 'Copie protégée', icon: 'lock', focus: '#rsPass' });
   sh.body.innerHTML =
-    `<div class="field"><label for="rsPass">Mot de passe de la sauvegarde</label>
+    `<div class="field"><label for="rsPass">Mot de passe de la copie</label>
        <input id="rsPass" type="password" autocomplete="off"></div>`;
   const go = () => { const p = sh.body.querySelector('#rsPass').value; sh.close(); treatRestore(raw, p); };
   sh.body.querySelector('#rsPass').addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
@@ -229,8 +229,8 @@ function backupState(){
    « Mes appareils » passe à deux lignes sur un vrai téléphone. Une icône
    aide quand elle éclaire un libellé obscur ; ici les libellés sont
    clairs, elle ne faisait que prendre la place. */
-const rgRow = (id, nom, etat, last) =>
-  `<button class="rg-row${last ? ' rg-last' : ''}" id="${id}">
+const rgRow = (id, nom, etat, last, dep) =>
+  `<button class="rg-row${last ? ' rg-last' : ''}${dep ? ' rg-dep' : ''}" id="${id}">
      <span class="rg-n">${nom}</span>
      <span class="rg-s"${id === 'moiSync' ? ' id="moiSyncSt"' : (id === 'moiComp' ? ' id="moiCompSt"' : '')}>${etat}</span>
      ${ic('chevron-right', 'ic-14')}
@@ -242,15 +242,23 @@ function reglagesRowsHTML(){
     rgRow('moiVerrou', 'Protection', verrouLabel()) +
     rgRow('moiSync', 'Mes appareils', syncLabel()) +
     /* le pré-requis ne remplace l'état que s'il n'y a rien à dire : une
-       messagerie déjà branchée le dit, même si le coffre a disparu */
+       messagerie déjà branchée le dit, même si le coffre a disparu.
+       Deux lignes attendaient la MÊME chose et le disaient chacune dans
+       son coin (« à protéger », deux fois) : rien ne montrait que c'est
+       la ligne du dessus qui les débloque toutes les deux. Elles nomment
+       donc leur cause et s'effacent tant qu'elle n'est pas levée — taper
+       mène quand même à la protection (N9 reste réglé). */
     rgRow('moiCx', 'Ma messagerie',
-          (!prot && !mailAccount()) ? 'à protéger' : mailStateLabel()) +
+          (!prot && !mailAccount()) ? 'après Protection' : mailStateLabel(),
+          false, !prot && !mailAccount()) +
     rgRow('moiAi', 'Mon assistant IA',
-          (!prot && !aiConnection()) ? 'à protéger' : aiStateLabel()) +
+          (!prot && !aiConnection()) ? 'après Protection' : aiStateLabel(),
+          false, !prot && !aiConnection()) +
     /* l'état, pas la phrase : « il s'installe sur ton ordinateur » se
        dit sur le 2ᵉ écran, là où on peut vraiment le faire (#21).
-       #4 se referme ici : sans pictogramme, le Compagnon ne partage plus
-       l'éclair d'« Aujourd'hui ». */
+       Cette liste reste sans pictogramme (voir plus haut) ; le Compagnon
+       a son icône propre — un écran d'ordinateur — sur SES feuilles,
+       là où elle distingue quelque chose (#4). */
     rgRow('moiComp', 'Le Compagnon', 'pas installé', true) +
     `<div class="rg-foot">
        <button class="linklike" id="moiRestore">${ic('reload', 'ic-14')} Restaurer une copie</button>
@@ -357,16 +365,21 @@ export function renderMoi(){
   const pReady = p.name && p.email;
   const bk = backupState();
   const showBackup = !!(S.companies.length || p.name);   /* rien à copier = carte absente */
-  const bkPromote = showBackup && !bk.linked && (!bk.last || bk.n > 0);
   /* l'état, jamais l'explication (A) : un mot, ou un chiffre quand il
-     pousse à agir (décision #11) */
+     pousse à agir (décision #11).
+     C'est l'ÉTAT qui porte la marque, pas le bouton. Sans serveur ni
+     compte, « aucune copie » est la seule situation où tout peut
+     disparaître d'un coup — c'est elle qui doit sauter aux yeux, tandis
+     que « Télécharger » est là de toute façon et ne dit rien de neuf.
+     Même langage que l'échéance d'une piste (.mark) : deux crans
+     seulement portent un cadre, et ce qui va bien ne met rien. */
   const bkState = bk.linked
-    ? 'en double'
+    ? '<span class="pd">en double</span>'
     : !bk.last
-      ? 'aucune copie'
+      ? '<span class="mark mark-late">aucune copie</span>'
       : bk.n
-        ? `<b>${bk.n} piste${bk.n > 1 ? 's' : ''}</b> depuis ta copie`
-        : 'à jour';
+        ? `<span class="mark mark-soon">${bk.n} piste${bk.n > 1 ? 's' : ''} depuis ta copie</span>`
+        : '<span class="pd">à jour</span>';
 
   /* « Moi » est une FEUILLE DE PROPRIÉTÉS, pas une pile de cartes.
      Trois règles d'origine, appliquées telles quelles :
@@ -404,14 +417,14 @@ export function renderMoi(){
      </fieldset>`;
 
   const copie = showBackup ? `
-     <fieldset class="fset">
+     <fieldset class="fset${!bk.linked && !bk.last ? ' fs-alert' : ''}">
        <legend>Ma copie</legend>
        <div class="fs-state">
-         <span class="pd">${bkState}</span>
+         ${bkState}
          <span class="tag-priv">${ic('lock', 'ic-14')} privé inclus</span>
        </div>
        <div class="pc-actions">
-         <button class="btn btn-sm ${bkPromote ? 'btn-primary' : ''}" id="moiBackup">Télécharger</button>
+         <button class="btn btn-sm" id="moiBackup">Télécharger</button>
          <button class="btn icon-btn bk-lock" id="moiBkLock" aria-pressed="false"
                  aria-label="Protéger la copie par un mot de passe" title="Protéger par un mot de passe">${ic('lock', 'ic-14')}</button>
        </div>

@@ -9,7 +9,7 @@ import { esc, todayISO } from '../engine/utils.js';
 import { dueFollowups } from '../engine/assist.js';
 import { S, bus, isClosed, markDone, hasDemo, addDemo, removeDemo } from './state.js';
 import { $, ic, toast, openSheet } from './dom.js';
-import { frToday, frDate, relLabel } from './dates.js';
+import { frToday, frDate, dueMarkHTML } from './dates.js';
 import { askNextAction, reportAction } from './actions.js';
 import { openMail } from './mail.js';
 import { openFiche } from './fiche.js';
@@ -21,6 +21,13 @@ import { pendingProposals, openPendingProposals } from './propositions.js';
 
 const CAP = 8;                      /* lignes visibles par tranche avant « voir plus » */
 const expanded = new Set();         /* tranches dépliées à la main (le temps de la session) */
+
+/* Deux conceptions, pas une page élastique. Au pouce : un fil vertical,
+   « Bientôt » replié — une seule chose à la fois. Au poste : les trois
+   tranches côte à côte, tout visible d'un coup, comme le tableau de
+   « Mes pistes ». Ce n'est pas la même page à deux largeurs. */
+const mqWide = matchMedia('(min-width:901px)');
+mqWide.addEventListener('change', () => { if (S.route === 'aujourdhui') renderToday(); });
 
 function doneTodayCount(){
   const start = new Date(); start.setHours(0, 0, 0, 0);
@@ -39,9 +46,14 @@ function rowHTML(c){
   const today = todayISO();
   /* la tranche donne le contexte : en retard → seul l'écart compte,
      aujourd'hui → rien à répéter, bientôt → la date. L'échéance passe
-     devant le nom : c'est lui qui se tronque, jamais elle. */
-  const when = c.nextAction < today ? `<em class="late">${relLabel(c.nextAction)}</em> · `
-             : c.nextAction > today ? frDate(c.nextAction) + ' · ' : '';
+     devant le nom : c'est lui qui se tronque, jamais elle.
+     Le retard prend LA marque de l'app (`dueMarkHTML`), celle de « Mes
+     pistes » : c'est le même fait, il doit avoir le même dessin. Et
+     c'est le seul cran qui la porte ici — sur un écran où toutes les
+     lignes réclament quelque chose, une marque sur chacune ne serait
+     plus un signal. */
+  const when = c.nextAction < today ? dueMarkHTML(c.nextAction)
+             : c.nextAction > today ? `<span class="act-when">${frDate(c.nextAction)}</span>` : '';
   return (
     `<div class="act-row" data-id="${c.id}">
        <div class="act-under act-under-done">${ic('check', 'ic-14')} Fait</div>
@@ -49,7 +61,7 @@ function rowHTML(c){
        <div class="act-in">
          <div class="act-main" role="button" tabindex="0" aria-label="Ouvrir ${esc(c.name)}">
            <b class="act-verb">${esc(verb)}</b>
-           <span class="act-sub">${when}${esc(c.name)}</span>
+           <span class="act-sub">${when}<span class="act-who">${esc(c.name)}</span></span>
          </div>
          <div class="act-btns">
            <button class="abtn" data-a="mail" aria-label="Écrire à ${esc(c.name)}" title="Écrire">${ic('mail')}</button>
@@ -73,6 +85,22 @@ function trancheHTML(key, label, icon, items, open){
   }
   return `<section class="tranche tr-${key}">
             <h3 class="tr-h">${head}</h3><div class="tr-rows">${rows}${more}</div>
+          </section>`;
+}
+
+/* la même tranche, en colonne de tableau (poste de commandement) —
+   mêmes briques que « Mes pistes » : .board / .bcol / .bcol-h, et le
+   dither de .bcol-empty quand il n'y a rien. Une colonne vide n'est
+   pas un trou : c'est une bonne nouvelle, elle le dit. */
+function colHTML(key, label, icon, items, vide){
+  const cap = expanded.has(key) ? items.length : CAP;
+  const more = items.length > cap
+    ? `<button class="linklike tr-more" data-tr="${key}">Voir les ${items.length - cap} autres</button>` : '';
+  return `<section class="bcol tr-${key}" aria-label="${label}">
+            <h3 class="bcol-h">${ic(icon, 'ic-14')} ${label} <span class="tr-n">${items.length}</span></h3>
+            ${items.length
+              ? `<div class="bcol-rows">${items.slice(0, cap).map(rowHTML).join('')}${more}</div>`
+              : `<div class="bcol-empty">${vide}</div>`}
           </section>`;
 }
 
@@ -125,8 +153,11 @@ export function renderToday(){
   const done = doneTodayCount();
   const triage = triageItems();
 
+  const wide = mqWide.matches;
+  const rienAFaire = !late.length && !due.length;
+  let porteLeGeste = false;      /* l'état vide offre déjà « Planifier » */
   let html =
-    `<div class="page-inner">
+    `<div class="page-inner${wide && alive.length ? ' page-wide' : ''}">
        <div class="td-head">
          <h2>Aujourd’hui</h2>
          <div class="td-date">${frToday()}</div>
@@ -145,7 +176,34 @@ export function renderToday(){
            <button class="btn" id="tdeDemo">Voir un exemple</button>
          </div>
        </div>`;
-  } else if (!late.length && !due.length){
+  } else if (wide){
+    /* le poste : les trois tranches côte à côte, toujours présentes —
+       la structure ne bouge pas, seul son contenu change */
+    html +=
+      `<div class="board td-board">
+         ${colHTML('late', 'En retard', 'square-alert', late, 'Rien en retard ✓')}
+         ${colHTML('due', 'Aujourd’hui', 'zap', due, rienAFaire ? 'Tout est à jour ✓' : 'Rien de prévu aujourd’hui')}
+         ${colHTML('soon', 'Bientôt', 'calendar', soon,
+           noAction.length ? 'Rien de planifié — donne une prochaine action à une piste.' : 'Rien en vue')}
+       </div>`;
+  } else if (rienAFaire && !soon.length && noAction.length){
+    /* Des pistes, aucune action : ce n'est PAS « tout est à jour ». Il y
+       a un prochain geste — planifier — et c'est le seul de l'écran, donc
+       il prend le bouton au lieu d'être expliqué dans un paragraphe sous
+       une coche verte qui dit le contraire. Le lien du pied ferait alors
+       doublon : il s'efface (voir `pied`). */
+    porteLeGeste = true;
+    html +=
+      `<div class="td-empty td-clear">
+         <div class="tde-ic">${ic('calendar', 'ic-24')}</div>
+         <h3>Rien de planifié</h3>
+         <p>Donne une prochaine action à ${noAction.length > 1 ? 'une de tes pistes' : 'ta piste'} —
+            cet écran te dira quoi faire ensuite.</p>
+         <div class="tde-actions">
+           <button class="btn btn-primary" id="tdePlan">${ic('zap', 'ic-14')} Planifier</button>
+         </div>
+       </div>`;
+  } else if (rienAFaire){
     /* à jour : positif, jamais culpabilisant */
     html +=
       `<div class="td-empty td-clear">
@@ -153,9 +211,7 @@ export function renderToday(){
          <h3>Tout est à jour</h3>
          <p>${soon.length
             ? 'Rien d’urgent — la suite est plus bas, repliée exprès.'
-            : noAction.length
-              ? 'Rien de planifié. Prends de l’avance en donnant une prochaine action à une piste.'
-              : 'Rien à faire — ajoute une piste quand tu en croises une.'}</p>
+            : 'Rien à faire — ajoute une piste quand tu en croises une.'}</p>
        </div>`;
   } else {
     html += trancheHTML('late', 'En retard', 'square-alert', late);
@@ -164,16 +220,21 @@ export function renderToday(){
   /* les campagnes du jour — SOUS le travail, jamais tronquées (#10) */
   html += campaignLines().map(l =>
     `<button class="camp-line" data-camp="${esc(l.id)}">${ic('flag', 'ic-14')} <span>${esc(l.txt)}</span> <em>Voir</em></button>`).join('');
-  html += trancheHTML('soon', 'Bientôt', 'calendar', soon, false);
+  if (!wide) html += trancheHTML('soon', 'Bientôt', 'calendar', soon, false);   /* au poste, elle est déjà en colonne */
+  /* ce qui suit le travail du jour — un pied, pas des liens en vrac.
+     Sous un tableau à trois colonnes de hauteurs inégales, « 5 pistes
+     sans prochaine action » flottait tout seul à gauche, sous un trou. */
+  let pied = '';
   if (triage.total){
-    html += `<button class="td-triage" id="tdTriage">${ic('inbox', 'ic-14')} À trier <span class="tr-n">${triage.total}</span></button>`;
+    pied += `<button class="td-triage" id="tdTriage">${ic('inbox', 'ic-14')} À trier <span class="tr-n">${triage.total}</span></button>`;
   }
-  if (noAction.length && alive.length){
-    html += `<button class="td-foot linklike" id="tdNoAct">${noAction.length} piste${noAction.length > 1 ? 's' : ''} sans prochaine action →</button>`;
+  if (noAction.length && alive.length && !porteLeGeste){
+    pied += `<button class="td-foot linklike" id="tdNoAct">${noAction.length} piste${noAction.length > 1 ? 's' : ''} sans prochaine action →</button>`;
   }
   if (hasDemo()){
-    html += `<button class="td-foot linklike" id="tdRmDemo">Retirer les pistes d’exemple</button>`;
+    pied += `<button class="td-foot linklike" id="tdRmDemo">Retirer les pistes d’exemple</button>`;
   }
+  if (pied) html += `<div class="td-under">${pied}</div>`;
   html += '</div>';
   root.innerHTML = html;
 
@@ -199,6 +260,12 @@ export function renderToday(){
     b.addEventListener('click', () => openCampaignById(b.dataset.camp)));
   root.querySelector('#tdTriage')?.addEventListener('click', () => openTriage(triage.items));
   root.querySelector('#tdNoAct')?.addEventListener('click', goPistes);
+  /* une seule piste à planifier : on ouvre SA question tout de suite —
+     passer par la liste pour choisir l'unique élément est un tap perdu */
+  root.querySelector('#tdePlan')?.addEventListener('click', () => {
+    if (noAction.length === 1) askNextAction(noAction[0], { title: 'Et ensuite ?' });
+    else goPistes();
+  });
   root.querySelector('#tdeAdd')?.addEventListener('click', () => openCapture());
   root.querySelector('#tdeDemo')?.addEventListener('click', () => { addDemo(); bus.refresh(); toast('Exemple ajouté — retire-le quand tu veux.'); });
   root.querySelector('#tdRmDemo')?.addEventListener('click', () => { removeDemo(); bus.refresh(); toast('Exemple retiré.'); });

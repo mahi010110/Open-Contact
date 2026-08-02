@@ -463,7 +463,7 @@ export function mergePreviewInto(sh, obj, opts){
          ${dry.conflicts ? `<li class="rc-warn">${ic('square-alert', 'ic-14')} <b>${dry.conflicts}</b> divergence${dry.conflicts > 1 ? 's' : ''} — l’existant est gardé</li>` : ''}
        </ul>
        ${obj.kind === 'full' ? `<p class="hint">${ic('info-box', 'ic-14')} Seules les pistes arrivent ici. Pour tout restaurer, va dans « Moi ».</p>` : ''}
-       ${opts.select && n ? `<div class="pick-list" style="margin:10px 0 4px">
+       ${opts.select && n ? `<div class="pick-list pk-inverse" style="margin:10px 0 4px">
          ${obj.companies.slice(0, 200).map((c, i) =>
            `<button class="pick pk on" data-sel="${i}" aria-pressed="true">
               ${ic('checkbox', 'ic-20 ic-off')}${ic('checkbox-on', 'ic-20 ic-on')}

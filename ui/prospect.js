@@ -16,7 +16,7 @@ import { filterState, filterArgs, affinerBtnHTML, bindAffinerBtn } from './affin
 import { openMail } from './mail.js';
 import { openContactEditor } from './contact.js';
 import { openCampaignWizard } from './campagnes.js';
-import { whoCandidates, whoLineHTML, openWhoPicker } from './qui.js';
+import { whoCandidates, whoLineHTML, whoInline, openWhoPicker } from './qui.js';
 
 /* la personne proposée d'office : celle de la prochaine action, sinon
    la première activée avec email, sinon la première joignable (#14) */
@@ -61,14 +61,18 @@ export function openProspect(){
   const bGo = btn('Continuer', 'btn-primary', () => {
     if (!sel.size){ toast('Coche au moins une piste.'); return; }
     const pairs = allPairs();
-    if (!pairs.some(p => p.ct)){ toast('Choisis au moins une personne.'); return; }
+    if (!pairs.some(p => p.ct)){ toast('Choisis au moins un contact.'); return; }
     sh.close();
     chooseMode(pairs);
   });
+  /* la case « Tout » PORTE l'état : elle doit donc suivre chaque tap
+     individuel, sinon elle affiche un état périmé dès la seconde ligne */
+  let syncAll = () => {};
   const sync = () => {
     const n = nWho();
     bGo.textContent = n ? `Continuer (${n})` : 'Continuer';
     bGo.classList.toggle('btn-off', !n);
+    syncAll();
   };
 
   /* choisir les personnes d'une piste — le composant partagé */
@@ -84,8 +88,14 @@ export function openProspect(){
     const list = filterCompanies(alive(), { ...filterArgs(ft), ...sortArgs(st) });
     sh.body.innerHTML =
       `<div class="listbar">
-         <button class="linklike" id="pkAll">${sel.size ? 'Tout décocher' : 'Tout cocher'}</button>
-         ${affinerBtnHTML(ft, st)}
+         ${/* le mot ne bascule plus : c'est la CASE qui porte l'état, comme
+              sur chaque ligne en dessous. « Tout cocher » devenant « Tout
+              décocher » d'un tap, la cible changeait de nom sous le doigt
+              et le regard devait relire pour savoir où il en était. */''}
+         <button class="lb-act" id="pkAll" aria-pressed="${!!sel.size}">
+           ${ic(sel.size ? 'checkbox-on' : 'checkbox', 'ic-14')}<span>Tout</span>
+         </button>
+         ${affinerBtnHTML(ft, st, { leger: true })}
        </div>
        <div class="pick-list">
          ${list.map(c =>
@@ -93,11 +103,20 @@ export function openProspect(){
               <button class="pick pk${sel.has(c.id) ? ' on' : ''}" data-id="${c.id}" aria-pressed="${sel.has(c.id)}">
                 ${ic('checkbox', 'ic-20 ic-off')}${ic('checkbox-on', 'ic-20 ic-on')}
                 <div class="pk-m"><b>${esc(c.name)}</b>
-                  <span>${STATUSES[c.status].label}</span></div>
+                  <span>${STATUSES[c.status].label}${
+                    /* déjà échappé par whoInline — il porte son icône */
+                    whoInline(c, keepOf(c), 'ecrire') && ' · ' + whoInline(c, keepOf(c), 'ecrire')
+                    || ''}</span></div>
               </button>
               ${whoLineHTML(c, keepOf(c), 'ecrire')}
             </div>`).join('')}
        </div>`;
+    const bAll = sh.body.querySelector('#pkAll');
+    syncAll = () => {
+      const tout = list.length > 0 && list.every(c => sel.has(c.id));
+      bAll.setAttribute('aria-pressed', tout);
+      bAll.innerHTML = ic(tout ? 'checkbox-on' : 'checkbox', 'ic-14') + '<span>Tout</span>';
+    };
     sh.body.querySelectorAll('.pk').forEach(b =>
       b.addEventListener('click', () => {
         const id = b.dataset.id;
@@ -136,7 +155,7 @@ export function openProspect(){
       }
       render();
     });
-    bindAffinerBtn(sh.body, ft, st, {}, () => { const play = softReorder('.modal-b .pk'); render(); play(); });
+    bindAffinerBtn(sh.body, ft, st, { pool: alive }, () => { const play = softReorder('.modal-b .pk'); render(); play(); });
     sync();
   };
   sh.setFoot([bGo]);

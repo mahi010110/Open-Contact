@@ -37,7 +37,7 @@ import { DAILY_CAP, buildCampaign, dueSends, dueSendsAll, sentTodayAll,
          pauseCampaign, resumeCampaign, stopCampaign, campaignStats,
          inSendWindow, addDays as cAddDays } from './engine/campaign.js';
 import { buildMime, encodeHeader, toB64Url, authUrl, parseCallback, pkcePair } from './engine/mailer.js';
-import { dueFollowups, contactFromSignature } from './engine/assist.js';
+import { dueFollowups, contactFromSignature, exchangeLog, exchangeTotals, nextActionSuggestions } from './engine/assist.js';
 import { makeMission, missionUsable, revokeMission, foldCampaignReport,
          signMission, openMissionWire } from './engine/mission.js';
 import { normCode, pairKey } from './engine/companion.js';
@@ -922,6 +922,68 @@ export async function runSelfTests(){
       ];
       eq(dueFollowups(comps, '2026-07-16').map(x => x.id), ['c1', 'c2', 'c3']);
       eq(dueFollowups(comps, '2026-07-16')[0].lateDays, 15);
+    },
+    /* Les verbes proposés après « Fait ✓ » : ils suivent l'état de la
+       piste, et ne reproposent jamais celui qui est déjà posé — un tap
+       qui ne change rien est un tap volé. */
+    'aides : les verbes proposés suivent l’état de la piste': () => {
+      const v = s => nextActionSuggestions({ status: s });
+      ok(v('todo')[0] === 'Envoyer la candidature', 'à contacter : envoyer d’abord');
+      ok(v('active')[0] === 'Relancer', 'en cours : relancer d’abord');
+      ok(v('reply')[0] === 'Répondre', 'réponse : répondre d’abord');
+      ok(v('todo').length === 3 && v('active').length === 3, 'trois verbes, pas plus');
+      /* un état inconnu (ancienne donnée, format futur) ne casse rien */
+      ok(nextActionSuggestions({ status: 'zzz' }).length === 3, 'état inconnu : le défaut');
+      ok(nextActionSuggestions(null).length === 3, 'aucune piste : le défaut');
+      /* déjà « Relancer » posé : on ne le repropose pas */
+      const dup = nextActionSuggestions({ status: 'active', nextActionText: '  relancer ' });
+      ok(!dup.some(x => x.toLowerCase() === 'relancer'), 'le libellé déjà posé disparaît');
+      ok(dup.length === 2, 'les deux autres restent');
+    },
+    /* « Échanger » relit le journal pour montrer ce qui a circulé. Les
+       phrases de logJ deviennent donc un contrat : si l'une d'elles
+       change de forme, c'est ICI que ça doit casser — pas en silence
+       sur l'écran de l'utilisateur, qui verrait sa liste se vider. */
+    'aides : le fil des échanges se relit dans le journal': () => {
+      const j = [
+        { t: 10, txt: 'Donné (QR) : 3 piste(s)' },
+        { t: 20, txt: 'Reçu de la promo : +5 piste(s), 2 complétée(s)' },
+        { t: 30, txt: 'Donné (fichier chiffré) : 12 piste(s)' },
+        { t: 40, txt: 'Reçu de Karim : +1 piste(s), 0 complétée(s)' },
+        { t: 50, txt: 'Donné (partage en groupe) : 7 piste(s)' },
+        { t: 60, txt: 'Donné (QR rendez-vous) : 2 piste(s)' },
+        /* rien à voir avec la promo : ne doit jamais entrer dans le fil */
+        { t: 70, txt: 'Reçu (analyse IA triée) : +4 piste(s), 0 complétée(s)' },
+        { t: 80, txt: 'Fait : Relancer Léa — Capgemini' },
+        { t: 90, txt: 'Supprimée : Atos' }
+      ];
+      const fil = exchangeLog(j);
+      eq(fil.length, 6);
+      eq(fil[0].t, 60);                                    /* le plus récent d'abord */
+      eq(fil[0].canal, 'QR rendez-vous');
+      eq(fil.map(x => x.sens).join(','), 'donne,donne,recu,donne,recu,donne');
+      eq(fil.find(x => x.t === 40).qui, 'Karim');           /* reçu d'une personne nommée */
+      eq(fil.find(x => x.t === 20).qui, '');                /* « la promo » = personne en particulier */
+      eq(fil.find(x => x.t === 30).n, 12);
+      ok(!fil.some(x => x.t === 70), 'l’analyse IA n’est pas un échange avec la promo');
+      eq(exchangeLog(j, 2).length, 2);
+      eq(exchangeLog(j, 0).length, 6);                      /* 0 = tout */
+      const tot = exchangeTotals(j);
+      eq(tot.donne, 24);                                    /* 3 + 12 + 7 + 2 */
+      eq(tot.recu, 6);                                      /* 5 + 1 */
+      eq(tot.n, 6);
+      eq(exchangeLog(null).length, 0);
+      eq(exchangeLog([{ t: 1 }, { t: 2, txt: null }]).length, 0);
+      /* un journal revenu d'une sauvegarde peut avoir perdu ses
+         horodatages : l'échange reste compté, la date vaut 0 — jamais
+         NaN, sinon l'écran afficherait « NaN-NaN-NaN » */
+      const abime = exchangeLog([
+        { txt: 'Donné (QR) : 3 piste(s)' },
+        { t: 'hier', txt: 'Reçu de la promo : +2 piste(s), 0 complétée(s)' }
+      ]);
+      eq(abime.length, 2);
+      eq(abime.every(x => Number.isFinite(x.t)), true);
+      eq(exchangeTotals([{ txt: 'Donné (QR) : 3 piste(s)' }]).donne, 3);
     },
     'aides : signature collée → contact, sans jamais inventer': () => {
       const got = contactFromSignature(

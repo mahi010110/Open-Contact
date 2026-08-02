@@ -31,6 +31,7 @@ button{font-family:inherit;cursor:pointer}
 input,select,textarea{font-family:inherit;color:var(--text-body)}
 .skip{
   position:fixed;top:-48px;left:10px;z-index:5000;
+  display:inline-flex;align-items:center;min-height:var(--ctl);
   background:var(--accent);color:var(--on-accent);
   font-weight:var(--weight-bold);font-size:var(--text-13);padding:10px 14px;
   border:1px solid var(--border-strong);border-top:0;text-decoration:none;transition:top 120ms;
@@ -62,7 +63,10 @@ input,select,textarea{font-family:inherit;color:var(--text-body)}
   padding:0 calc(8px + env(safe-area-inset-right)) 0 calc(14px + env(safe-area-inset-left));
   background:var(--surface-window);border-bottom:1px solid var(--border-strong);
 }
-.brand{display:flex;align-items:center;gap:9px;text-decoration:none;color:var(--text-body);flex:none}
+/* le logo est un LIEN (retour à l'accueil) : il obéit à la règle des
+   cibles, comme le reste — 22 px de haut, c'était le texte, pas la cible */
+.brand{display:flex;align-items:center;gap:9px;text-decoration:none;color:var(--text-body);flex:none;
+  min-height:var(--ctl)}
 .brand img,.brand svg{image-rendering:pixelated;display:block}
 .brand b{
   font-family:var(--font-pixel);font-weight:400;font-size:var(--pixel-16);
@@ -108,8 +112,14 @@ input,select,textarea{font-family:inherit;color:var(--text-body)}
   white-space:nowrap;overflow:hidden;
 }
 .bottomnav a.on{background:var(--select-bg);color:var(--select-text);border-color:var(--border-strong)}
+/* Le ⊕ était la cible la PLUS ÉTROITE de la barre (52 px) pour le geste
+   le plus précieux de l'app — noter une entreprise qu'on vient de
+   croiser. Il passe à 64 px : c'est le maximum mesuré avant que
+   « Aujourd'hui » ne se coupe sur un écran de 320 px (à 68 px il se
+   coupe). Les onglets descendent de 62 à 59 px, aucun libellé n'en
+   souffre, et le centre de la barre devient enfin son point d'appui. */
 .bn-add{
-  flex:none;width:52px;margin:0 2px;align-self:stretch;
+  flex:none;width:64px;margin:0 2px;align-self:stretch;
   display:inline-flex;align-items:center;justify-content:center;
   background:var(--accent);color:var(--on-accent);
   border:1px solid var(--border-strong);border-radius:var(--radius-1);
@@ -166,7 +176,7 @@ input,select,textarea{font-family:inherit;color:var(--text-body)}
   white-space:nowrap;vertical-align:middle;
 }
 .tag-share{color:var(--green);background:var(--green-wash)}
-.tag-priv{color:var(--text-muted);background:var(--surface-chrome);background-image:var(--dither)}
+.tag-priv{color:var(--text-muted);background:var(--surface-chrome);background-image:var(--dither-img);background-size:var(--dither-size)}
 .tag-beta{color:var(--amber);background:var(--amber-wash)}
 .conf-ok{color:var(--green);font-size:var(--text-11);font-weight:var(--weight-bold);font-family:var(--font-mono)}
 .conf-doubt{color:var(--amber);font-size:var(--text-11);font-weight:var(--weight-bold);font-family:var(--font-mono)}
@@ -194,8 +204,17 @@ input,select,textarea{font-family:inherit;color:var(--text-body)}
 html[data-theme="dark"] .field select{
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath fill='%239AA4B0' d='M7 8h2v2H7V8Zm4 4H9v-2h2v2Zm2 0v2h-2v-2h2Zm2-2h-2v2h2v-2Zm0 0V8h2v2h-2Z'/%3E%3C/svg%3E");
 }
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-@media (max-width:349px){.grid2{grid-template-columns:1fr}}
+/* Deux champs par rang au POSTE seulement. Au pouce, la moitié d'une
+   feuille de 390 px fait 172 px : « Chargée de recrutement » y devient
+   « Chargée de recruter » et une adresse email « lea.fontaine@capgei ».
+   Un champ qui ne montre pas sa propre valeur ne sert à rien — et le
+   seuil de 349 px qui traînait ici n'appartenait à aucun contexte : la
+   règle de l'application est UN seuil, 901 px. */
+.grid2{display:grid;grid-template-columns:1fr;gap:10px}
+@media (min-width:901px){ .grid2{grid-template-columns:1fr 1fr} }
+/* l'exception : deux valeurs COURTES et connues d'avance (deux mots de
+   la phrase de secours) tiennent côte à côte à toutes les tailles */
+.grid2.grid2-tight{grid-template-columns:1fr 1fr}
 .hint{font-size:var(--text-12);color:var(--text-muted);margin-top:7px;line-height:1.5}
 .hint.warn{color:var(--amber)}
 .search-wrap{position:relative;display:flex;gap:8px;margin-bottom:14px}
@@ -212,6 +231,37 @@ html[data-theme="dark"] .field select{
 /* barre au-dessus d'une liste de choix (tri dans les feuilles) */
 .listbar{display:flex;align-items:center;gap:8px;margin-bottom:10px}
 .listbar .linklike,.listbar>span{flex:1;min-width:0}
+/* Les deux commandes d'une liste — « Tout » et « Affiner » — sont des
+   SŒURS : même poids, même grammaire, aux deux bouts de la barre. Elles
+   commandent la liste, elles ne rivalisent pas avec elle : pas de cadre,
+   pas de biseau, l'encre de la métadonnée. Un cadre revient uniquement
+   quand la commande PORTE quelque chose (un filtre actif), jamais parce
+   qu'elle existe. Elles gardent 44 px de haut : légères à l'œil, pleines
+   sous le pouce. */
+.lb-act{
+  display:inline-flex;align-items:center;gap:6px;flex:none;
+  min-height:var(--ctl);padding:0 8px;
+  background:none;border:1px solid transparent;border-radius:var(--radius-1);
+  font:inherit;font-size:var(--text-12);font-weight:var(--weight-semibold);
+  color:var(--text-muted);cursor:pointer;text-align:left;
+}
+.lb-act:first-child{margin-left:-8px}      /* le mot s'aligne sur la liste */
+.listbar>.lb-act:last-child{margin-left:auto;margin-right:-8px}
+.lb-act .ic{flex:none}
+.lb-act:hover{color:var(--text-link)}
+.lb-act[aria-pressed="true"]{color:var(--accent)}
+.lb-act[aria-pressed="true"] .ic{color:var(--accent)}
+.lb-act.on{
+  color:var(--accent);border-color:var(--accent);background:var(--teal-wash);
+  margin-right:0;
+}
+/* le repli d'une liste : le mot se fige, le chevron tourne. « Choisir »
+   qui devient « Replier » sur la même cible oblige à relire pour savoir
+   où l'on en est — l'état appartient au signe, pas au libellé. */
+.lb-fold .ic{transition:transform var(--dur-1) var(--ease-out)}
+.lb-fold[aria-expanded="true"]{color:var(--accent)}
+.lb-fold[aria-expanded="true"] .ic{transform:rotate(180deg);color:var(--accent)}
+@media (prefers-reduced-motion:reduce){.lb-fold .ic{transition:none}}
 /* feuille « Trier » : la pile des niveaux (principal + départages) */
 /* puces d'état sous la recherche (#8) — la croix enlève, la puce de tri
    s'inverse au tap ; le sens vit dans la puce */
@@ -254,6 +304,12 @@ html[data-theme="dark"] .field select{
   font-family:var(--font-ui);font-size:var(--text-13);color:var(--text-body);
 }
 .fl-chip:active{box-shadow:var(--bevel-down);transform:translate(1px,1px)}
+/* le compte à droite de la puce : combien de pistes ce filtre garderait.
+   Un statut à zéro reste visible (savoir qu'on n'a aucune réponse est
+   une information) mais s'éteint — il ne peut rien filtrer. */
+.fl-chip .fl-n{margin-left:auto;font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
+.fl-chip.on .fl-n{color:inherit;opacity:.75}
+.fl-chip.fl-off{opacity:.45;cursor:not-allowed;box-shadow:none}
 .fl-chip.on{background:var(--teal-wash);border-color:var(--accent);color:var(--accent);font-weight:var(--weight-semibold)}
 .fl-chip .dotc{width:8px;height:8px;border:1px solid var(--border-strong);flex:none}
 
@@ -280,6 +336,33 @@ html[data-theme="dark"] .field select{
 }
 .td-chip:active{box-shadow:var(--bevel-down);transform:translate(1px,1px)}
 .td-foot{margin-top:16px;display:flex}
+/* le pied d'« Aujourd'hui » : au pouce les lignes s'empilent comme
+   avant ; au poste elles se rangent sur un rang sous un filet, pour
+   qu'on les lise comme un pied de page et non comme un lien égaré
+   sous la colonne la plus courte du tableau */
+.td-under{margin-top:16px}
+@media (max-width:900px){
+  /* Au pouce, le pied est un PIED : il se pose en bas de la vue quand la
+     journée est courte — la zone qu'une main atteint sans changer de
+     prise — au lieu de flotter sous la dernière tranche avec 440 px de
+     vide dessous. « 2 pistes sans prochaine action → » est justement le
+     prochain geste quand il n'y a rien à faire : il doit être sous le
+     pouce, pas à 27 % de la hauteur. Journée chargée, il suit le contenu :
+     `margin-top:auto` ne prend que la place qui reste, s'il en reste. */
+  #view-aujourdhui>.page-inner{display:flex;flex-direction:column;min-height:100%}
+  #view-aujourdhui>.page-inner>.td-under{
+    margin-top:auto;padding-top:14px;border-top:1px dashed var(--border-soft);
+  }
+  .td-under>*:first-child{margin-top:0}   /* le filet fait déjà la respiration */
+}
+@media (min-width:901px){
+  .td-under{
+    display:flex;flex-wrap:wrap;align-items:center;gap:8px 20px;
+    margin-top:20px;padding-top:14px;border-top:1px dashed var(--border-soft);
+  }
+  .td-under .td-triage{width:auto}
+  .td-under .td-foot{margin-top:0}
+}
 /* « À trier (N) » — la ligne calme qui regroupe les entrants (#10) */
 .td-triage{
   display:flex;align-items:center;gap:8px;width:100%;margin-top:16px;
@@ -305,7 +388,11 @@ html[data-theme="dark"] .field select{
 }
 .tr-late .tr-h{color:var(--amber)}
 .tr-late .tr-h .tr-n{border-color:var(--amber);background:var(--amber-wash)}
-details.tranche>summary{cursor:pointer;list-style:none;user-select:none;padding:6px 0}
+/* replier/déplier « Bientôt » est un geste au pouce comme un autre :
+   la ligne fait 44 px, pas la hauteur de ses 11 px de texte */
+details.tranche>summary{
+  cursor:pointer;list-style:none;user-select:none;padding:6px 0;min-height:var(--ctl);
+}
 details.tranche>summary::-webkit-details-marker{display:none}
 details.tranche>summary::before{
   content:'';width:0;height:0;flex:none;
@@ -333,23 +420,40 @@ details.tranche[open]>summary::before{
 .swipe-done .act-under-done{opacity:1}
 .swipe-report .act-under-report{opacity:1}
 .act-in{position:relative;display:flex;align-items:center;background:var(--surface-window);transition:transform 60ms linear}
-.act-main{flex:1;min-width:0;padding:9px 4px 9px 12px;cursor:pointer;display:flex;flex-direction:column;gap:2px}
+/* Une zone morte entre OUVRIR la fiche et les trois gestes : leurs
+   bords se touchaient (0 px mesuré), et un pouce posé à la frontière
+   ouvrait la fiche au lieu de marquer « Fait ». Deux conséquences très
+   différentes ne doivent pas partager une arête. */
+.act-main{flex:1;min-width:0;padding:9px 0 9px 12px;cursor:pointer;display:flex;flex-direction:column;gap:2px}
 .act-main:hover .act-verb{color:var(--text-link)}
 .act-verb{
   font-size:var(--text-14);font-weight:var(--weight-semibold);line-height:1.35;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
 }
+/* l'échéance d'abord, le nom ensuite — et c'est LUI qui se tronque : on
+   perd la fin d'« Orange Cyberdefense » avant de perdre « –2 j » */
 .act-sub{
+  display:flex;align-items:center;gap:6px;min-width:0;
   font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
-.act-sub .late{color:var(--amber);font-style:normal;font-weight:var(--weight-bold)}
-.act-btns{display:flex;flex:none;padding-right:4px;gap:1px}
+.act-sub .act-who{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.act-sub .act-when{flex:none}
+.act-sub .mark{padding:1px 6px}      /* la ligne est dense : la marque s'y range */
+/* Trois gestes aux conséquences distinctes — écrire, reporter, clore —
+   plus « ouvrir la fiche » à leur gauche. Ils se touchaient (0 px
+   mesuré) : un pouce posé à la frontière ouvrait la fiche au lieu de
+   marquer « Fait ». 8 px partout, et chaque geste ne touche plus que
+   lui-même quand la visée dérape de 6 px. */
+.act-btns{display:flex;flex:none;margin-left:8px;padding-right:4px;gap:8px}
 /* actions d'une ligne : des icônes nues, jamais des boutons — au survol,
    au focus ou au tap, SEULE LA COULEUR change. Aucun aplat de fond,
    aucun biseau : le carré derrière l'icône était le bruit à retirer. */
 .abtn{
-  width:var(--control-h-touch);height:var(--control-h-touch);
+  /* 44 px au pouce, 32 px à la souris — comme tout contrôle de l'app
+     (`--ctl`). C'était figé à 44 partout : dans une colonne de 300 px du
+     tableau « Aujourd'hui », trois icônes mangeaient la moitié de la
+     largeur pour du mobilier qui ne varie jamais. */
+  width:var(--ctl);height:var(--ctl);
   display:inline-flex;align-items:center;justify-content:center;
   background:none;border:0;padding:0;color:var(--text-muted);border-radius:var(--radius-1);
 }
@@ -371,7 +475,8 @@ details.tranche[open]>summary::before{
 .tde-ic.ok{background:var(--green-wash);color:var(--green)}
 .td-empty h3{font-size:var(--text-16);font-weight:var(--weight-bold);letter-spacing:var(--tracking-tight);margin-bottom:5px}
 .td-empty p{font-size:var(--text-13);color:var(--text-muted);line-height:1.6;max-width:340px;margin:0 auto 14px}
-.td-empty.td-clear p{margin-bottom:0}
+.td-empty.td-clear p,.ec-vide .td-empty p{margin-bottom:0}
+.ec-vide .td-empty{margin-top:0}
 .tde-actions{display:flex;flex-direction:column;gap:8px;max-width:280px;margin:0 auto}
 @media (min-width:520px){.tde-actions{flex-direction:row;justify-content:center;max-width:none}}
 .empty-list{padding:26px 14px;text-align:center;color:var(--text-muted);font-size:var(--text-13);line-height:1.6}
@@ -417,22 +522,47 @@ details.tranche[open]>summary::before{
   background:var(--surface-window);border:1px solid var(--border-strong);border-radius:var(--radius-0);
   box-shadow:var(--shadow-raised);cursor:pointer;
 }
+/* le rembourrage vertical appartient à la ZONE QUI OUVRE, pas au
+   conteneur : posé sur .sw-in, les 9 px du haut et du bas ne
+   réagissaient pas au tap alors que la ligne, elle, faisait bien 44 px */
 .row-item .sw-in{
-  display:flex;align-items:center;gap:10px;min-height:var(--control-h-touch);padding:9px 12px;
+  display:flex;align-items:center;gap:10px;min-height:var(--control-h-touch);padding:0 12px;
 }
 .row-item:hover .sw-in{background:var(--surface-field)}
 .row-item .dotc{width:8px;height:8px;border-radius:0;border:1px solid var(--border-strong);flex:none}
-.row-item .ri-main{flex:1;min-width:0}
+/* la zone qui ouvre la fiche prend TOUTE la hauteur de la ligne : à
+   35 px, les quelques pixels de marge haut et bas ne réagissaient pas,
+   alors que la ligne, elle, en fait bien 44 */
+.row-item .ri-main{
+  flex:1;min-width:0;align-self:stretch;padding:9px 0;
+  display:flex;flex-direction:column;justify-content:center;
+}
 .row-item h3{font-size:var(--text-14);font-weight:var(--weight-semibold);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .row-item .ri-sub{
   font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);line-height:1.5;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
 }
 .row-item .ri-sub b{color:var(--text-body);font-weight:var(--weight-semibold)}
-.ri-st{
+/* ---- UN ÉTAT QUI POUSSE À AGIR — le même langage partout ----
+   L'échéance d'une piste, la copie qui manque : c'est la même question
+   posée à l'utilisateur (« ça, ça réclame quelque chose »), donc la
+   même marque, où qu'elle soit. Quatre crans, et l'échelle est
+   MONOTONE : plus c'est urgent, plus c'est lourd — sinon « demain »,
+   plus long et encadré, pèse plus que le court « –2 j » et l'œil part
+   au mauvais endroit (mesuré, pas supposé). Seuls les deux crans qui
+   réclament un geste maintenant portent un cadre ; le reste n'est que
+   du texte, de plus en plus effacé. Ce qui ne réclame rien ne met
+   RIEN — c'est le vide, en face, qui fait ressortir les autres. */
+.mark{
   flex:none;font-family:var(--font-mono);font-size:var(--text-11);font-weight:var(--weight-semibold);
-  color:var(--c);border:1px solid var(--c);border-radius:var(--radius-1);padding:1px 6px;white-space:nowrap;
+  border:1px solid transparent;border-radius:var(--radius-1);padding:2px 7px;white-space:nowrap;
+  color:var(--text-muted);
 }
+.mark.mark-late{ color:var(--amber);  background:var(--amber-wash); border-color:var(--amber);
+                 font-weight:var(--weight-bold) }
+.mark.mark-now{  color:var(--accent); background:var(--teal-wash);  border-color:var(--accent) }
+.mark.mark-soon{ color:var(--text-body) }
+.mark.mark-far{  color:var(--text-muted) }
 .row-closed{opacity:.72}
 .tr-closed{margin-top:20px}
 
@@ -444,7 +574,7 @@ details.tranche[open]>summary::before{
 .pcard h3{font-size:var(--text-14);font-weight:var(--weight-bold);margin-bottom:4px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
 .pcard .pd{font-size:var(--text-12);color:var(--text-muted);line-height:1.55;margin-bottom:10px}
 .pcard .pd:last-child{margin-bottom:0}
-.pcard-soon{background-image:var(--dither);}
+.pcard-soon{background-image:var(--dither-img);background-size:var(--dither-size);}
 .pcard-soon h3{color:var(--text-muted)}
 
 /* ============ GROUP BOX (feuille de propriétés 98) ============
@@ -468,6 +598,11 @@ details.tranche[open]>summary::before{
    garder l'encoche que le navigateur réserve au `legend` */
 .fset-plain{padding-top:6px}
 .fset .pd{font-size:var(--text-12);color:var(--text-muted);line-height:1.55;margin:0}
+/* le cadre entier prend le bord ambre quand l'état qu'il porte est celui
+   qui peut TOUT coûter (aucune copie, sans serveur derrière) — même
+   signal que le bac « Contacts à rattacher », et seulement quand c'est
+   vrai. Un cadre alerté en permanence ne serait plus une alerte. */
+.fset.fs-alert{border-left:3px solid var(--amber)}
 .fs-state{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:2px 0 10px}
 
 /* ============ EN-TÊTE D'OBJET ============
@@ -496,6 +631,9 @@ details.tranche[open]>summary::before{
    titre pliait en deux (vu sur « Les deux relances… » à 390 px). */
 details.pcard-details>summary{
   cursor:pointer;list-style:none;user-select:none;margin:-4px 0;
+  /* déplier est un geste comme un autre : la ligne fait 44 px au pouce,
+     pas la hauteur de son titre (19 px mesurés sur « Connexion avancée ») */
+  min-height:var(--ctl);
   display:flex;align-items:center;gap:8px;
 }
 details.pcard-details>summary::-webkit-details-marker{display:none}
@@ -509,6 +647,18 @@ details.pcard-details[open]>summary::before{
   border-top:5px solid var(--accent);border-bottom:0;
 }
 details.pcard-details[open]>summary{margin-bottom:10px}
+/* Un repli DANS une feuille : `pcard` a le fond de la fenêtre, un cadre
+   et une ombre portée — sur le corps d'une feuille, qui a exactement le
+   même fond, ça donnait une boîte flottante posée sur une boîte
+   identique, puis des champs encadrés dedans. Trois niveaux de cadre
+   pour une section. Ici le repli se CREUSE au lieu de se poser : le ton
+   du chrome, pas d'ombre — il se lit comme une partie de la feuille. */
+.modal-b details.pcard-details{
+  background:var(--surface-chrome);box-shadow:none;
+}
+.modal-b details.pcard-details .hint{margin-top:5px}
+.modal-b details.pcard-details .pc-actions{margin-top:12px}
+.modal-b details.pcard-details .linklike{margin-top:10px}
 /* CV & lettres : la carte ne porte que deux portes — « CV » et
    « Lettres » — donc elle ne grandit plus avec le nombre de documents ;
    la liste, l'ajout et les gestes vivent dans la feuille du type. */
@@ -588,6 +738,9 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   border-bottom:1px dashed var(--border-soft);
 }
 .rg-row.rg-last{border-bottom:0}
+/* une ligne qui attend qu'une AUTRE soit faite : elle s'efface au lieu
+   de répéter l'ordre. Elle reste tapable — le tap mène au pré-requis. */
+.rg-row.rg-dep .rg-n{font-weight:var(--weight-regular);color:var(--text-muted)}
 .rg-n{
   flex:1;min-width:0;display:flex;align-items:center;gap:8px;
   font-size:var(--text-14);font-weight:var(--weight-semibold);
@@ -699,17 +852,37 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 }
 .at-pop button:last-child{border-bottom:0}
 .at-pop button.on{background:var(--teal-wash);color:var(--accent);font-weight:var(--weight-semibold)}
-/* Prospecter (#17) : la piste cochable + sa personne, côte à côte */
-.pk-duo{display:flex;flex-direction:column;gap:0}
-.pk-duo .pick{margin:0}
-.pk-who{
-  display:flex;align-items:center;gap:6px;min-height:32px;padding:3px 12px 6px 40px;
-  font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-link);
-  text-align:left;cursor:pointer;background:var(--surface-window);
-  border:1px solid var(--border-strong);border-top:0;
+/* Prospecter (#17) : UNE piste = UN objet. Le cadre, le biseau et le
+   fond appartiennent au duo ; ce qu'il contient — la case à cocher et,
+   s'il y a un choix, la personne visée — n'a plus de bord à soi. Deux
+   boîtes empilées faisaient lire six objets pour trois pistes, et la
+   seconde, blanche et plus haute que la première, tirait l'œil vers le
+   détail au lieu de la piste. */
+.pk-duo{
+  display:flex;flex-direction:column;gap:0;
+  border:1px solid var(--border-strong);border-radius:var(--radius-1);
+  background:var(--surface-chrome);box-shadow:var(--bevel-up), var(--shadow-raised);
+  overflow:hidden;
 }
-.pk-who[disabled]{color:var(--text-muted);cursor:default}
-.pk-who.pk-add{color:var(--accent)}
+.pk-duo .pick{margin:0;border:0;border-radius:0;box-shadow:none;background:none}
+.pk-duo .pick:active{box-shadow:none;transform:none}
+.pk-duo .pick:active .pk-m{transform:translate(1px,1px)}
+/* la personne visée : une commande, mais SUBORDONNÉE — un filet
+   pointillé pour la frontière (l'idiome des lignes voisines partout
+   ailleurs), le retrait qui la range sous le nom, et `--ctl` parce
+   qu'elle s'ouvre vraiment (44 px au pouce, 32 px à la souris). */
+.pk-who{
+  display:flex;align-items:center;gap:5px;min-height:var(--ctl);
+  padding:2px 12px 2px 46px;margin-top:-2px;
+  font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-link);
+  text-align:left;cursor:pointer;background:none;border:0;
+  border-top:1px dashed var(--border-soft);
+}
+.pk-who>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pk-who>.ic{flex:none;color:var(--text-muted)}
+.pk-who:hover{color:var(--text-link);text-decoration:underline}
+.pk-who:active{box-shadow:var(--bevel-down)}
+.pk-who.pk-add{color:var(--accent);padding-left:40px}
 
 /* la ligne « joindre CV / LM » du composeur (#16) — discrète, au-dessus
    de l'envoi ; absente sans messagerie connectée */
@@ -744,6 +917,57 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 .hero2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
 .hero2 .hero{min-height:76px;flex-direction:column;gap:7px;font-size:var(--text-14)}
 .ec-foot{text-align:center;margin-top:16px}
+/* Le fil des échanges : ce que l'écran a enfin à montrer. C'est un
+   PANNEAU — un cadre qui tient sa région, où les lignes se remplissent
+   par le haut et dont la place restante lui appartient. Sans cadre, un
+   journal court laissait un trou et un journal long jetait sa date à
+   700 px de son libellé : c'est le bord qui fait qu'une liste se lit
+   comme une liste. */
+.ec-fil{
+  margin-top:18px;display:flex;flex-direction:column;
+  background:var(--surface-window);border:1px solid var(--border-strong);
+  box-shadow:var(--shadow-raised);padding:9px 12px 2px;
+}
+.ec-vide .ec-rien{flex:1}
+.ec-rien{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:5px;text-align:center;padding:18px 4px;
+}
+.ec-rien .tde-ic{margin-bottom:5px}
+.ec-rien b{font-size:var(--text-14);font-weight:var(--weight-bold);letter-spacing:var(--tracking-tight)}
+.ec-rien p{font-size:var(--text-13);color:var(--text-muted);line-height:1.6;max-width:32ch;margin:0}
+/* Le panneau garde sa taille : c'est LUI qui défile quand le journal
+   déborde, jamais la page. `height` et non `min-height` — sinon huit
+   lignes repoussaient les gestes à 101 % de la hauteur sur un 360×640,
+   hors de l'écran donc hors du pouce, exactement ce qu'on venait de
+   corriger. Conséquence : « Donner » se pose au même endroit quel que
+   soit le remplissage (63 / 72 / 74 % selon le téléphone), et la mémoire
+   du geste tient. */
+#view-echanger>.page-inner{display:flex;flex-direction:column;height:100%}
+.ec-fil{flex:1;min-height:96px;overflow:auto;-webkit-overflow-scrolling:touch}
+/* Au pouce, l'écran s'inverse : on LIT en haut, on AGIT en bas — les
+   deux gestes se posent juste au-dessus de la barre, la zone qu'une main
+   atteint sans changer de prise, au lieu de vivre à 17 % de la hauteur.
+   Au poste la souris ignore cette contrainte : les gestes gardent leur
+   colonne à gauche, en tête de lecture. */
+@media (max-width:900px){
+  .ec-fil{margin:2px 0 0}
+  .ec-fil + .hero2{margin-top:16px}
+}
+.ec-tot{margin:-2px 0 6px}
+.ec-when{flex:none;white-space:nowrap}
+.ec-when b{color:var(--text-body);font-weight:var(--weight-semibold)}
+@media (min-width:901px){
+  /* le panneau prend TOUTE la hauteur de la vue : les gestes n'ont pas
+     besoin de 1060 px, le fil si — et un cadre qui s'arrête à mi-écran
+     laisserait sous lui le vide que le cadre servait à supprimer */
+  .ec-cols{
+    flex:1;min-height:0;display:grid;
+    grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:18px;
+  }
+  .ec-actes{align-self:start}
+  .ec-cols .ec-fil{margin-top:0}
+}
 /* ---- Donner : ce qui part (compteur + élagage), au-dessus du canal —
    un filet sépare les deux questions : QUOI, puis COMMENT ---- */
 .dn-src{margin:0 0 12px;padding-bottom:10px;border-bottom:1px dashed var(--border-soft)}
@@ -799,6 +1023,14 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   font-weight:var(--weight-semibold);font-size:var(--text-13);
 }
 .dchip:active{box-shadow:var(--bevel-down);transform:translate(1px,1px)}
+/* le raccourci de date porte le JOUR qu'il vise : « +3 jours » se
+   calcule, « mer. 05/08 » se lit. Le nom reste la ligne qu'on vise. */
+.dchip-d{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+  padding:5px 10px;min-height:var(--control-h-touch);line-height:1.2;
+}
+.dchip-d span{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
+.dchip-d.on span{color:var(--on-accent);opacity:.8}
 .pick-list{display:flex;flex-direction:column;gap:7px}
 .pick{
   display:flex;align-items:center;justify-content:space-between;gap:10px;
@@ -855,7 +1087,24 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 }
 .fi-row .btn{margin-left:auto}
 .fi-hist{margin-top:4px}
-.fi-hist summary{cursor:pointer;font-size:var(--text-12);color:var(--text-link);font-weight:var(--weight-bold);padding:8px 0}
+/* « À savoir » et « Historique » s'ouvrent d'un tap — même règle, et
+   surtout MÊME SIGNE que « Bientôt » : sans le triangle, ces deux mots
+   flottaient en teal au bas de la fiche sans rien dire de ce qu'ils
+   font. Un même geste ne se montre pas de deux façons dans une app. */
+.fi-hist summary{
+  display:flex;align-items:center;gap:7px;min-height:var(--ctl);
+  cursor:pointer;list-style:none;user-select:none;
+  font-size:var(--text-12);color:var(--text-link);font-weight:var(--weight-bold);padding:8px 0;
+}
+.fi-hist>summary::-webkit-details-marker{display:none}
+.fi-hist>summary::before{
+  content:'';width:0;height:0;flex:none;
+  border-left:5px solid var(--accent);border-top:4px solid transparent;border-bottom:4px solid transparent;
+}
+.fi-hist[open]>summary::before{
+  border-left:4px solid transparent;border-right:4px solid transparent;
+  border-top:5px solid var(--accent);border-bottom:0;
+}
 .ct-list{display:flex;flex-direction:column;gap:6px}
 .ct{background:var(--surface-chrome);border:1px solid var(--border-soft);border-radius:var(--radius-1);padding:8px 10px;font-size:var(--text-12)}
 .ct .ct-h{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
@@ -913,11 +1162,54 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 .lbl-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px}
 .lbl-row label{margin-bottom:0}
 .fi-tools{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+/* un chiffre qui bouge deux fois par mois n'a pas à porter un cadre :
+   encadré, il se déguisait en chose qui se tape (elle ne se tape pas) */
 .fi-score{
   font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);
-  border:1px dashed var(--border-soft);padding:3px 8px;border-radius:var(--radius-1);
 }
-.fi-score.low{color:var(--amber);border-color:var(--amber)}
+/* La fiche au poste : le travail à gauche, le dossier à droite. Une
+   fenêtre de 560 px au milieu de 1280 était l'écran du pouce resservi
+   tel quel — et sur l'écran le PLUS ouvert de l'application. */
+@media (min-width:901px){
+  .modal-fiche{max-width:900px}
+  .fi-cols{display:grid;grid-template-columns:1fr 1fr;gap:8px 22px;align-items:stretch}
+  .fi-cols>div{min-width:0;display:flex;flex-direction:column}
+  /* le travail est plus court que le dossier : plutôt que laisser un
+     trou à gauche, les notes prennent la hauteur qui reste — c'est la
+     seule zone de cette fenêtre où l'on écrit vraiment */
+  .fi-cols>div:first-child>.field:last-child{flex:1;display:flex;flex-direction:column;min-height:0}
+  .fi-cols>div:first-child>.field:last-child textarea{flex:1;min-height:150px}
+  .fi-top{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .fi-top .fi-sub,.fi-top .fi-tools{margin-bottom:10px}
+  /* `margin-left:auto` plutôt que `space-between` : une piste sans ville
+     ni domaine n'a pas de sous-titre, et les outils sautaient alors à
+     gauche. Leur place ne doit pas dépendre du remplissage de la fiche. */
+  .fi-top .fi-tools{margin-left:auto}
+  /* Écrire au poste : la fenêtre prend une hauteur franche et la donne
+     au message. Les deux menus (destinataire, modèle) cessent aussi de
+     tronquer leur libellé — c'est la largeur qui manquait. */
+  /* le formulaire d'une piste, au poste : deux colonnes. Les paires qui
+     tiennent déjà sur un rang (Entreprise/Ville, Site/Adresse) gardent
+     toute la largeur ; le reste se range côte à côte. La hauteur est
+     divisée par deux — le formulaire cesse de déborder, et le contact
+     redevient visible sans défiler. */
+  .ed-form{display:grid;grid-template-columns:1fr 1fr;gap:0 20px;align-items:start}
+  .ed-form>.grid2{grid-column:1 / -1}
+  .modal-compose{max-width:820px;height:min(88dvh,800px)}
+  /* `flex:1` sur le corps : sans lui il se dimensionne à son contenu et
+     la hauteur gagnée par la fenêtre resterait sous le pied, inutile */
+  .modal-compose .modal-b{flex:1;min-height:0;display:flex;flex-direction:column}
+  .modal-compose .fld-body{flex:1;display:flex;flex-direction:column;min-height:0}
+  .modal-compose .fld-body textarea{flex:1;min-height:240px}
+}
+/* au pouce, la zone d'écriture garde sa taille : le clavier occupe déjà
+   la moitié basse de l'écran, une zone plus haute ne se verrait pas */
+.fld-body textarea{min-height:170px}
+/* Une fiche remplie à 43 % ne RÉCLAME rien : elle ne coûte pas une
+   opportunité, contrairement à une relance en retard — qui, elle, porte
+   déjà l'ambre trois blocs plus haut. Deux ambres sur un écran diluent
+   celui qui compte. Le signal est le verbe du bouton d'à côté, qui passe
+   de « Modifier » à « Compléter » : un mot, pas une couleur d'alerte. */
 .fi-tools .btn{margin-left:auto}
 .fi-know{border:1px solid var(--border-soft);border-radius:var(--radius-1);background:var(--surface-chrome)}
 .fk{display:flex;gap:10px;padding:7px 10px;font-size:var(--text-12);border-bottom:1px dashed var(--border-soft);align-items:baseline}
@@ -927,7 +1219,9 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;
 }
 .fk-v{min-width:0;line-height:1.5;word-break:break-word}
-a.fk-v{display:inline-flex;align-items:center;gap:5px}
+/* le site est un LIEN à part entière dans sa ligne de données, pas un mot
+   au milieu d'une phrase : il obéit à la règle des cibles */
+a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 .fk-tags{display:flex;gap:5px;flex-wrap:wrap}
 .fk-tag{
   border:1px solid var(--border-strong);background:var(--surface-window);
@@ -967,7 +1261,11 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px}
 
 /* ============ TABLEAU 3 COLONNES (desktop) ============ */
 .page-wide{max-width:1060px}
-.board{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;align-items:start;margin-top:6px}
+/* `1fr` vaut `minmax(auto,1fr)` : une colonne dont le contenu est plus
+   large (une date « sam. 08/08 ») pousse et écrase ses voisines — à
+   901 px, la colonne du milieu tombait à 245 px contre 303. `minmax(0,…)`
+   rend les trois colonnes vraiment égales, à toutes les largeurs. */
+.board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:start;margin-top:6px}
 .bcol{
   border:1px solid var(--border-strong);background:var(--surface-chrome);
   border-radius:var(--radius-0);box-shadow:var(--shadow-raised);
@@ -980,6 +1278,15 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px}
 }
 .bcol-h::before{content:'';width:8px;height:8px;flex:none;border:1px solid var(--border-strong);background:var(--c)}
 .bcol-rows{display:flex;flex-direction:column;gap:8px;padding:10px}
+/* « Aujourd'hui » au poste de commandement : les trois tranches en
+   colonnes, mêmes briques que le tableau de « Mes pistes ». L'en-tête
+   porte déjà son icône — le carré de couleur du tableau des statuts
+   n'a rien à dire ici. Seule « En retard » prend l'ambre : l'encre va
+   à la colonne qui réclame quelque chose. */
+.td-board{margin-top:14px}
+.td-board .bcol-h::before{display:none}
+.td-board .tr-late .bcol-h{color:var(--amber)}
+.td-board .tr-late .bcol-h .tr-n{border-color:var(--amber);background:var(--amber-wash)}
 .bcard{
   background:var(--surface-window);border:1px solid var(--border-strong);border-radius:var(--radius-0);
   box-shadow:var(--bevel-up), var(--shadow-raised);cursor:pointer;
@@ -998,9 +1305,9 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px}
   font-size:var(--text-12);max-width:100%;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
 }
-.bc-na .late{color:var(--amber);font-weight:var(--weight-bold);font-style:normal}
+.bc-na .mark{display:inline-block;margin-left:2px;vertical-align:baseline}
 .bc-none{color:var(--text-muted)}
-.bcol-empty{padding:18px 10px;text-align:center;color:var(--text-muted);font-size:var(--text-12);background-image:var(--dither)}
+.bcol-empty{padding:18px 10px;text-align:center;color:var(--text-muted);font-size:var(--text-12);background-image:var(--dither-img);background-size:var(--dither-size)}
 /* glisser une carte vers une autre colonne = changer le statut :
    états francs (opacité nette, contour accent), aucun fondu */
 .bcard.drag-src{opacity:.45}
@@ -1011,6 +1318,9 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px}
 .pk{justify-content:flex-start}
 .pk .pk-m{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;text-align:left}
 .pk .pk-m b,.pk .pk-m span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* la personne posée sur la ligne d'état : son icône se lit dans l'encre
+   de la ligne, pas plus fort qu'elle */
+.pk .pk-m span .ic{vertical-align:-2px;margin-right:1px}
 .pk .ic-on{display:none;color:var(--accent)}
 .pk.on .ic-on{display:inline-block}
 .pk.on .ic-off{display:none}
@@ -1018,6 +1328,26 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px}
 .pk.on .pk-m b{color:var(--select-text)}
 .pk.on .pk-m span{color:var(--select-text);opacity:.75}
 .pk.on .ic-on{color:var(--select-text)}
+/* ---- listes dont le défaut est « TOUT coché » ----
+   Donner, le partage en groupe, les personnes visées, une proposition
+   d'IA à trier : on part de tout retenu et l'on élague. L'aplat de
+   sélection couvrait alors la liste ENTIÈRE — au flou, un bloc uniforme
+   qui n'apprend rien, alors que la seule chose qui varie est l'écart.
+   C'est donc lui qui se marque : la ligne écartée s'éteint et se dithère,
+   la ligne retenue redevient calme. La case à cocher, elle, ne change
+   pas — elle reste le signe de l'état, et rien d'autre ne bouge.
+   Les listes qui partent de RIEN coché (Prospecter) gardent l'aplat :
+   là, c'est le choix qui est rare, donc c'est lui qui mérite l'encre. */
+.pk-inverse .pk.on{background:none}
+.pk-inverse .pk.on .pk-m b{color:var(--text-body)}
+.pk-inverse .pk.on .pk-m span{color:var(--text-muted);opacity:1}
+.pk-inverse .pk.on .ic-on{color:var(--accent)}
+.pk-inverse .pk:not(.on){background-image:var(--dither-img);background-size:var(--dither-size);color:var(--text-muted)}
+.pk-inverse .pk:not(.on) .pk-m b{color:var(--text-muted)}
+/* une piste écartée l'est ENTIÈRE : sa commande « qui » s'éteint avec
+   elle, sinon l'objet disait deux choses à la fois */
+.pk-duo.pk-out .pk-who{background-image:var(--dither-img);background-size:var(--dither-size);color:var(--text-muted)}
+.pk-duo.pk-out .pk-who .ic{color:var(--text-muted)}
 
 /* ============ ÉCHANGER : QR, SCAN, APERÇU, ANNULER ============ */
 .qr-wrap{
@@ -1065,19 +1395,42 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px}
 .undo-bar .btn{flex:none}
 /* le toast laisse la place à la barre Annuler quand elle est là */
 body:has(.undo-bar) .toast{bottom:calc(var(--nav-h) + 76px + env(safe-area-inset-bottom))}
+/* … et à un PIED posé au pouce, qui occupe la même bande. Mesuré sur
+   « Aujourd'hui » : 34 px de recouvrement, et un doigt visant « 1 piste
+   sans prochaine action → » touchait LE TOAST — juste après avoir ajouté
+   une piste, donc au moment précis où ce lien est le prochain geste.
+   Tout écran qui descend une action au pouce doit repasser ici. */
+@media (max-width:900px){
+  body:has(#view-aujourdhui:not([hidden]) .td-under) .toast{
+    /* 88 et non 76 : à 76 il restait 8 px de recouvrement sur le bord
+       HAUT du lien — le centre était libre, le bord non */
+    bottom:calc(var(--nav-h) + 88px + env(safe-area-inset-bottom));
+  }
+}
 @media (min-width:901px){
   .undo-bar{bottom:40px}
   body:has(.undo-bar) .toast{bottom:100px}
 }
 
 /* ============ ALERTE SAUVEGARDE / TOAST ============ */
+/* L'avertissement le plus grave de l'app : ce que l'étudiant saisit
+   n'ira nulle part. Il est PERSISTANT — un toast de trois secondes ne
+   passe donc ni devant lui ni sur son bouton de secours (mesuré : 54 px
+   de recouvrement, et un doigt au centre de « Garder une copie »
+   touchait le toast). D'où z-index au-dessus, et une largeur explicite :
+   à 195 px il se pliait en 110 px de haut et devenait illisible. */
 .save-warn{
-  position:fixed;top:56px;left:50%;transform:translateX(-50%);z-index:3500;
+  position:fixed;top:56px;left:50%;transform:translateX(-50%);z-index:4200;
   background:var(--red-wash);color:var(--red);border:1px solid var(--red);
   box-shadow:var(--shadow-modal);
   font-weight:var(--weight-semibold);font-size:var(--text-13);padding:10px 14px;
-  display:flex;gap:10px;align-items:center;max-width:calc(100% - 24px);
+  display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+  width:calc(100% - 24px);max-width:520px;
 }
+.save-warn span{flex:1 1 190px;min-width:0}
+.save-warn button{flex:none;margin-left:auto}
+/* le toast s'efface devant lui : il descend d'une voie tant qu'il est là */
+body:has(#saveWarn:not([hidden])) .toast{top:calc(env(safe-area-inset-top) + 148px)}
 .save-warn button{
   background:var(--surface-window);border:1px solid var(--red);color:var(--red);
   border-radius:var(--radius-1);padding:5px 11px;font-weight:var(--weight-bold);min-height:var(--ctl);
@@ -1122,6 +1475,12 @@ body:has(.overlay) .toast{bottom:auto;top:calc(env(safe-area-inset-top) + 62px)}
 /* ============ LE VERROUILLAGE (profil protégé) ============
    Plein écran au-dessus de tout ; pavé 44 px au pouce (mobile),
    saisie clavier (ordinateur). Bevels francs, steps() — pas de flou. */
+/* Tant que l'app est verrouillée, rien de ce qui flotte ne se voit :
+   le toast et la barre « Annuler » portent des noms de pistes, et
+   l'écran de verrouillage est censé ne rien montrer. Masqués, pas
+   détruits — leur minuterie continue derrière. */
+html.oc-locked .toast,
+html.oc-locked .undo-bar{display:none}
 .lock{
   /* au-dessus de l'en-tête (1300) et de la nav (1500), sous les
      feuilles (3000) — « Code oublié ? » s'ouvre par-dessus */
@@ -1203,6 +1562,13 @@ body:has(.overlay) .toast{bottom:auto;top:calc(env(safe-area-inset-top) + 62px)}
 .camp-line .ic{color:var(--accent)}
 .camp-line span{flex:1;min-width:0;text-align:left}   /* jamais tronquée (#10) */
 .camp-line em{font-style:normal;font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-link)}
+/* la ligne d'une campagne : le nom garde toute sa largeur, l'état passe
+   dessous, la marque tient la place forte à droite — même grammaire
+   qu'une ligne de « Mes pistes », rien ne se replie */
+.cp-row{align-items:center;gap:10px}
+.cp-m{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;text-align:left}
+.cp-m b{display:flex;align-items:center;gap:7px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cp-sub{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .camp-send{border:1px solid var(--border-soft);background:var(--surface-raised);margin-bottom:7px}
 .camp-send summary{
   display:flex;align-items:center;gap:10px;list-style:none;cursor:pointer;

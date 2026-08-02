@@ -41,18 +41,26 @@ await page.evaluate(async () => (await import('./ui/donner.js')).openDonner());
 await page.waitForSelector('#dnPick');
 await page.click('#dnPick');
 await page.waitForSelector('.pk-duo');
+/* La commande « qui » n'existe QUE s'il y a un choix. Avec une seule
+   personne, son nom n'est pas une commande : il se pose sur la ligne
+   d'état de la piste. On vérifie les deux — que la fausse commande a
+   disparu, ET que la donnée, elle, est toujours là. */
 const lignes = () => page.evaluate(() =>
   Object.fromEntries([...document.querySelectorAll('.pk-duo')].map(d => [
     d.querySelector('.pk-m b').textContent,
-    (d.querySelector('.pk-who')?.textContent || '').replace(/\s+/g, ' ').trim()
+    {
+      qui: (d.querySelector('.pk-who')?.textContent || '').replace(/\s+/g, ' ').trim(),
+      etat: (d.querySelector('.pk-m span')?.textContent || '').replace(/\s+/g, ' ').trim()
+    }
   ])));
 const l0 = await lignes();
-if (l0.Capgemini !== '→ Léa Fontaine +2 ▾') fail('3 personnes toutes retenues : ' + l0.Capgemini);
-if (l0.OVHcloud !== '→ Nadia K.') fail('une seule personne = son nom, ligne inerte : ' + l0.OVHcloud);
-if (l0.Sopra !== '') fail('aucune personne = rien affiché (Donner) : ' + JSON.stringify(l0.Sopra));
-if (await page.$('.pk-duo:has-text("OVHcloud") .pk-who:not([disabled])'))
-  fail('une seule personne : la ligne ne doit pas s’ouvrir');
-console.log('la ligne « → qui » : nom seul, nom +N, rien — selon le cas ✓');
+if (l0.Capgemini.qui !== 'Léa Fontaine +2') fail('3 personnes toutes retenues : ' + l0.Capgemini.qui);
+if (l0.OVHcloud.qui !== '') fail('une seule personne : aucune commande à ouvrir — ' + l0.OVHcloud.qui);
+if (!/Nadia K\./.test(l0.OVHcloud.etat))
+  fail('une seule personne : son nom reste, sur la ligne d’état — ' + l0.OVHcloud.etat);
+if (l0.Sopra.qui !== '') fail('aucune personne = rien affiché (Donner) : ' + JSON.stringify(l0.Sopra.qui));
+if (/Nadia|Léa|Sofia/.test(l0.Sopra.etat)) fail('Sopra n’a personne : rien à nommer — ' + l0.Sopra.etat);
+console.log('la ligne « → qui » : commande si choix, donnée sinon, rien si personne ✓');
 
 /* ---------- écarter quelqu'un : une case, aucune validation ---------- */
 await page.click('.pk-duo:has-text("Capgemini") .pk-who');
@@ -70,7 +78,7 @@ await page.click('.overlay:last-of-type .pick[data-ct="ct2"]');       /* Marc so
 await page.click('.overlay:last-of-type .modal-h .x');
 await page.waitForTimeout(250);
 const l1 = await lignes();
-if (l1.Capgemini !== '→ 2 sur 3 ▾') fail('quelqu’un d’écarté = le compte : ' + l1.Capgemini);
+if (l1.Capgemini.qui !== '2 sur 3') fail('quelqu’un d’écarté = le compte : ' + l1.Capgemini.qui);
 const compte = (await page.textContent('#dnCount')).replace(/\s+/g, ' ').trim();
 if (!/1 personne écartée/.test(compte)) fail('l’écran doit dire ce qui manque : ' + compte);
 console.log('écarter quelqu’un : « 2 sur 3 », et le compteur le dit ✓');

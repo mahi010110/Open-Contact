@@ -29,19 +29,35 @@ export function whoLabel(cts, keep){
   return gardes.length + ' sur ' + n;
 }
 
-/* La ligne posée sous la piste. `verbe` : 'ecrire' | 'donner'.
-   Sans personne joignable, écrire propose d'en ajouter une (N6) ;
-   donner se tait — une fiche sans contact se partage quand même. */
+/* Une seule personne joignable : il n'y a RIEN à choisir. Le nom est
+   alors une donnée, pas une commande — il se pose sur la ligne d'état
+   de la piste (« À contacter · Léa Fontaine ») au lieu d'occuper une
+   deuxième boîte de 44 px qu'on ne peut pas taper. C'est le cas le plus
+   fréquent : une liste de huit pistes y perd huit fausses commandes. */
+export function whoInline(c, keep, verbe){
+  const cts = whoCandidates(c, verbe);
+  if (cts.length !== 1) return '';
+  /* l'icône dit la relation sans une préposition de plus : une
+     enveloppe = « l'email part là », une silhouette = « cette personne
+     est dans ce qui part ». Un nom seul ne dit ni l'un ni l'autre. */
+  return ic(verbe === 'ecrire' ? 'mail' : 'contact', 'ic-14') + ' ' + esc(whoName(cts[0]));
+}
+
+/* La ligne posée sous la piste — seulement quand elle SERT : plusieurs
+   personnes à départager, ou aucune et il faut en ajouter (N6, écrire
+   seulement ; donner se tait, une fiche sans contact se partage
+   quand même). `verbe` : 'ecrire' | 'donner'. */
 export function whoLineHTML(c, keep, verbe){
   const cts = whoCandidates(c, verbe);
   if (!cts.length)
     return verbe === 'ecrire'
       ? `<button class="pk-who pk-add" data-addct="${esc(c.id)}">${ic('plus', 'ic-14')} ajoute quelqu’un</button>`
       : '';
-  const lab = whoLabel(cts, keep);
-  return `<button class="pk-who" data-who="${esc(c.id)}"${cts.length > 1 ? '' : ' disabled'}
+  if (cts.length === 1) return '';
+  return `<button class="pk-who" data-who="${esc(c.id)}"
                   aria-label="Personnes visées chez ${esc(c.name)}">
-            → ${esc(lab)}${cts.length > 1 ? ' ▾' : ''}
+            ${ic(verbe === 'ecrire' ? 'mail' : 'contact', 'ic-14')}
+            <span>${esc(whoLabel(cts, keep))}</span>${ic('chevron-down', 'ic-14')}
           </button>`;
 }
 
@@ -56,9 +72,17 @@ export function openWhoPicker(c, keep, o){
     title: (verbe === 'ecrire' ? 'Qui, chez ' : 'Qui part, chez ') + c.name + ' ?',
     icon: 'contact'
   });
+  /* L'emphase suit le DÉFAUT de la liste, pas la feuille qui l'affiche.
+     DONNER part de TOUT retenu : c'est l'écart qui est rare, donc lui
+     qui se marque (`pk-inverse`). ÉCRIRE part d'UNE seule personne — un
+     tap n'envoie pas trois candidatures à la même boîte — donc la liste
+     s'ouvre presque vide et c'est le CHOIX qui mérite l'encre. La même
+     feuille, deux grammaires, parce que les deux verbes n'ont pas le
+     même point de départ. */
+  const inverse = verbe !== 'ecrire';
   const render = () => {
     sh.body.innerHTML =
-      `<div class="pick-list">
+      `<div class="pick-list${inverse ? ' pk-inverse' : ''}">
          ${cts.map(t =>
            `<button class="pick pk${keep.has(t.id) ? ' on' : ''}" data-ct="${esc(t.id)}" aria-pressed="${keep.has(t.id)}">
               ${ic('checkbox', 'ic-20 ic-off')}${ic('checkbox-on', 'ic-20 ic-on')}

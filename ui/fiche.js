@@ -24,6 +24,14 @@ const webLabel = w => w.replace(/^https?:\/\//i, '').replace(/\/$/, '');
 
 const FORM_FIELDS = ['status', 'nextAction', 'nextActionText', 'nextActionCt', 'notes'];
 
+/* Deux conceptions, pas une fenêtre élastique. Au pouce : une colonne,
+   le travail d'abord, le dossier replié — on tient la fiche d'une main.
+   Au poste : le travail à gauche (où j'en suis, la prochaine action,
+   mes notes), le dossier à droite (les gens, ce qu'on sait, l'histoire)
+   — et les gens DÉPLIÉS, parce que joindre quelqu'un est la raison
+   d'ouvrir cette fenêtre et que la hauteur ne manque pas. */
+const mqWide = matchMedia('(min-width:901px)');
+
 export function openFiche(c){
   /* le tampon : seulement les champs touchés — rien ne s'écrit avant Confirmer */
   const draft = {};
@@ -88,7 +96,7 @@ export function openFiche(c){
 
   /* une ligne par personne, dépliable — actifs en haut, reçus dormants
      repliés « + N personnes connues » (#14/#15) : plus de mur */
-  const ctRowHTML = t => {
+  const ctRowHTML = (t, ouvert) => {
     const title = t.name || t.email || t.phone;
     const meta = [t.email, t.phone].filter(x => x && x !== title).join(' · ');
     const subBits = [
@@ -105,7 +113,7 @@ export function openFiche(c){
       t.link ? `<a class="btn" data-act="${t.id}" href="${esc(t.link)}" target="_blank" rel="noopener">${ic('external-link', 'ic-14')} Profil</a>` : ''
     ].filter(Boolean).join('');
     return (
-      `<details class="ctc">
+      `<details class="ctc"${ouvert ? ' open' : ''}>
          <summary><b>${esc(title)}</b>${subBits ? `<span class="ctc-sub">${subBits}</span>` : ''}</summary>
          <div class="ctc-body">
            ${meta ? `<div class="ct-meta">${esc(meta)}</div>` : ''}
@@ -129,10 +137,19 @@ export function openFiche(c){
     const naCtId = val('nextActionCt');
     const naPerson = !closed && val('nextAction') && naCtId
       ? (c.contacts || []).find(t => t.id === naCtId) : null;
+    const wide = mqWide.matches;
     sh.setTitle(c.name);
-    sh.body.innerHTML =
-      `${subBits.length ? `<div class="fi-sub">${subBits.map(esc).join(' · ')}</div>` : ''}
-       ${closed ? `
+    /* la complétude et « Modifier » parlent de la FICHE entière, pas du
+       dossier : au poste ils montent sur la ligne d'identité, sinon ils
+       se retrouvaient sous « À savoir » déplié, hors de l'écran */
+    const outils =
+      `<div class="fi-tools">
+         <span class="fi-score">fiche complète à ${score} %</span>
+         <button class="btn btn-sm" id="fiEdit">${ic('pencil', 'ic-14')} ${score < 60 ? 'Compléter' : 'Modifier'}</button>
+       </div>`;
+    /* ---- le travail : où j'en suis, ce que je fais ensuite, ce que je note ---- */
+    const travail =
+      `${closed ? `
          <div class="fi-closed" style="--c:${CLOSE_REASONS[c.closedReason].color}">
            ${ic('archive', 'ic-14')} Clôturée — <b>${CLOSE_REASONS[c.closedReason].label}</b>${c.closedAt ? ' · ' + esc(fmtDate(c.closedAt)) : ''}
            <button class="btn btn-sm" id="fiReopen">Rouvrir</button>
@@ -153,20 +170,25 @@ export function openFiche(c){
                   <button class="btn btn-sm" id="fiNa">Planifier</button>`}
            </div>
          </div>`}
-       <div class="field">
+       <div class="field"><label for="fiNotes">Mes notes ${ic('lock', 'ic-14')} <span class="lbl-soft">privées</span></label>
+         <textarea id="fiNotes" placeholder="Échange avec M. X le 12/03, rappeler la semaine prochaine…">${esc(val('notes'))}</textarea></div>`;
+
+    /* ---- le dossier : les gens, ce qu'on sait, l'histoire ---- */
+    const dossier =
+      `<div class="field">
          <div class="lbl-row"><label>Contacts</label>
            <button class="btn btn-sm" id="fiCtAdd">${ic('plus', 'ic-14')} Ajouter</button></div>
          ${main.length || knownCts.length ? `
-           ${main.length ? `<div class="ctc-list">${main.map(ctRowHTML).join('')}</div>` : ''}
+           ${main.length ? `<div class="ctc-list">${main.map(t => ctRowHTML(t, wide)).join('')}</div>` : ''}
            ${knownCts.length ? `
              <details class="ctc-known"${main.length ? '' : ' open'}>
                <summary>+ ${knownCts.length} personne${knownCts.length > 1 ? 's' : ''} connue${knownCts.length > 1 ? 's' : ''}</summary>
-               <div class="ctc-list">${knownCts.map(ctRowHTML).join('')}</div>
+               <div class="ctc-list">${knownCts.map(t => ctRowHTML(t, false)).join('')}</div>
              </details>` : ''}`
          : '<p class="hint" style="margin:0">Personne pour l’instant — ajoute au moins un email.</p>'}
        </div>
        ${know ? `
-         <details class="fi-hist" id="fiKnow"><summary>À savoir</summary>
+         <details class="fi-hist" id="fiKnow"${wide ? ' open' : ''}><summary>À savoir</summary>
            <div class="fi-know">
              ${c.desc ? `<div class="fk"><span class="fk-l">En bref</span><span class="fk-v">${esc(c.desc)}</span></div>` : ''}
              ${c.website ? `<div class="fk"><span class="fk-l">Site</span>
@@ -182,17 +204,18 @@ export function openFiche(c){
                </div>` : ''}
            </div>
          </details>` : ''}
-       <div class="fi-tools">
-         <span class="fi-score${score < 50 ? ' low' : ''}">fiche complète à ${score} %</span>
-         <button class="btn btn-sm" id="fiEdit">${ic('pencil', 'ic-14')} ${score < 60 ? 'Compléter' : 'Modifier'}</button>
-       </div>
-       <div class="field"><label for="fiNotes">Mes notes ${ic('lock', 'ic-14')} <span class="lbl-soft">privées</span></label>
-         <textarea id="fiNotes" placeholder="Échange avec M. X le 12/03, rappeler la semaine prochaine…">${esc(val('notes'))}</textarea></div>
+       ${wide ? '' : outils}
        ${(c.history || []).length ? `
          <details class="fi-hist"><summary>Historique</summary>
            <ul class="timeline">${c.history.slice().reverse().slice(0, 10).map(h =>
              `<li><span class="d">${esc(fmtDate(h.d))}</span><span>${esc(h.t)}</span></li>`).join('')}</ul>
          </details>` : ''}`;
+
+    const sub = subBits.length ? `<div class="fi-sub">${subBits.map(esc).join(' · ')}</div>` : '';
+    sh.body.innerHTML = wide
+      ? `<div class="fi-top">${sub}${outils}</div>
+         <div class="fi-cols"><div>${travail}</div><div>${dossier}</div></div>`
+      : sub + travail + dossier;
 
     /* branchements */
     const byCt = id => (c.contacts || []).find(t => t.id === id);

@@ -15,7 +15,7 @@ import { S, bus, isClosed, hasDemo, addDemo, ctLabel, deletePiste, undeletePiste
 import { $, ic, toast, showUndo, bindDeleteGesture, openSheet, softReorder } from './dom.js';
 import { openAffinerSheet } from './affiner.js';
 import { sortState, sortArgs, sortHasDist, sortChipHTML, bindSortChip } from './sort.js';
-import { relLabel } from './dates.js';
+import { relLabel, diffDays, dueMarkHTML } from './dates.js';
 import { openFiche } from './fiche.js';
 import { openCapture } from './capture.js';
 import { openContactEditor, openAttach } from './contact.js';
@@ -51,16 +51,33 @@ mqWide.addEventListener('change', () => { if (S.route === 'pistes') renderPistes
 const kmBit = c => (sortHasDist(st) && st.userPos && c.lat != null)
   ? Math.round(distKm(st.userPos.lat, st.userPos.lng, c.lat, c.lng)) + ' km' : '';
 
+/* L'encre va à ce qui CHANGE. Le statut d'une piste bouge une fois
+   par quinzaine ; l'échéance bouge tous les jours — et c'est elle qui
+   dit s'il faut agir maintenant. La place forte de la ligne (à droite,
+   la seule qui survive au flou) revient donc à l'échéance, graduée en
+   quatre crans d'intensité, et le statut redescend en donnée dans la
+   sous-ligne. Il reste écrit UNE fois (#13). */
+function dueHTML(c){
+  /* Rien de prévu = RIEN dans la colonne forte. Un « à planifier »
+     répété huit fois de suite n'est pas une information, c'est du
+     bruit : c'est le vide, en face des deux lignes qui portent une
+     échéance, qui dit lesquelles réclament quelque chose. Le mot
+     lui-même reste écrit dans la sous-ligne, là où on le lit. */
+  if (isClosed(c) || !c.nextAction) return '';
+  return dueMarkHTML(c.nextAction);        /* LA marque, partagée avec « Aujourd'hui » */
+}
+
 function rowHTML(c){
   const closed = isClosed(c);
-  /* le verbe d'action d'abord — jamais tronqué (la ligne peut plier) ;
-     le statut UNE seule fois : la pastille texte + couleur (#13) */
+  /* le verbe d'action d'abord — jamais tronqué (la ligne peut plier) */
   const bits = [];
   if (closed) bits.push('<b>' + CLOSE_REASONS[c.closedReason].label + '</b>');
-  else if (c.nextAction) bits.push('<b>' + esc(c.nextActionText || 'Faire le point') + '</b> · ' + relLabel(c.nextAction));
-  else if (campaignOfPiste(c.id)) bits.push('en campagne');
-  else bits.push('à planifier');
-  if (!closed && c.nextAction && campaignOfPiste(c.id)) bits.push('en campagne');
+  else {
+    if (c.nextAction) bits.push('<b>' + esc(c.nextActionText || 'Faire le point') + '</b>');
+    else if (!campaignOfPiste(c.id)) bits.push('à planifier');
+    bits.push(STATUSES[c.status].label);
+    if (campaignOfPiste(c.id)) bits.push('en campagne');
+  }
   if (kmBit(c)) bits.push(kmBit(c));
   if (c.city) bits.push(esc(c.city));
   return (
@@ -70,7 +87,7 @@ function rowHTML(c){
            <h3>${esc(c.name)}</h3>
            <div class="ri-sub">${bits.join(' · ')}</div>
          </div>
-         ${!closed ? `<span class="ri-st" style="--c:${STATUSES[c.status].color}">${STATUSES[c.status].label}</span>` : ''}
+         ${dueHTML(c)}
        </div>
      </div>`);
 }
@@ -78,8 +95,10 @@ function rowHTML(c){
 function cardHTML(c){
   const bits = [kmBit(c), c.city, c.domain !== 'autre' ? DOMAINS[c.domain].label : ''].filter(Boolean);
   const inCamp = campaignOfPiste(c.id);
+  /* la carte du tableau porte la MÊME graduation que la ligne mobile :
+     un seul langage d'urgence dans toute l'application */
   const na = c.nextAction
-    ? `<span class="bc-na">${esc(c.nextActionText || 'Faire le point')} · <em class="${relLabel(c.nextAction).startsWith('–') ? 'late' : ''}">${relLabel(c.nextAction)}</em></span>`
+    ? `<span class="bc-na">${esc(c.nextActionText || 'Faire le point')} ${dueHTML(c)}</span>`
     : `<span class="bc-na bc-none">${inCamp ? 'en campagne' : 'à planifier'}</span>`;
   const foot = [];
   if ((c.contacts || []).length) foot.push(ic('contact', 'ic-14') + ' ' + c.contacts.length);
@@ -359,7 +378,8 @@ export function renderPistes(){
   };
   bindChips(root.querySelector('#piChips'));
   root.querySelector('#piAffiner').addEventListener('click', () =>
-    openAffinerSheet(ft, st, { withStatus: !mqWide.matches }, refresh));
+    openAffinerSheet(ft, st, { withStatus: !mqWide.matches,
+      pool: () => S.companies.filter(c => !isClosed(c)) }, refresh));
   root.querySelector('#piProspect')?.addEventListener('click', openProspect);
   root.querySelector('#piCamps')?.addEventListener('click', openCampaignsHome);
   renderBody();

@@ -44,15 +44,21 @@ const turnList = async () => {
 const relaySettingsHTML = (urls, turn) =>
   `<details class="pcard pcard-details sy-relays" style="margin-top:14px">
      <summary><h3>${ic('settings-2', 'ic-14')} Connexion avancée</h3></summary>
-     <p class="hint">Seulement si ton réseau bloque la liaison. Une adresse sécurisée <b>wss://</b> par ligne.</p>
+     ${/* l'intro dit QUAND s'en servir ; la forme à respecter descend sous
+          SON champ, là où on la lit au moment de taper. Mélangées, elles
+          faisaient une phrase que personne ne finit. */''}
+     <p class="hint">Seulement si ton réseau bloque la liaison — sinon, laisse vide.</p>
      <div class="field"><label for="syRelays">Relais personnalisés</label>
        <textarea id="syRelays" class="ta-s" spellcheck="false" autocapitalize="off"
-         placeholder="wss://relais.exemple.org">${esc(urls.join('\n'))}</textarea></div>
+         placeholder="wss://relais.exemple.org">${esc(urls.join('\n'))}</textarea>
+       <p class="hint">Une adresse <b>wss://</b> par ligne, huit au maximum.</p></div>
      <div class="field"><label for="syTurn">Serveur TURN — si la liaison directe échoue</label>
        <textarea id="syTurn" class="ta-s" spellcheck="false" autocapitalize="off"
          placeholder="turns:relais.exemple.org:443 utilisateur motdepasse">${esc(turnText(turn))}</textarea></div>
-     <button class="btn btn-sm" id="sySaveRelays">Enregistrer</button>
-     <button class="linklike" id="syPublicRelays"${urls.length || (turn && turn.length) ? '' : ' hidden'}>Revenir au réglage d’origine</button>
+     ${/* la seule action de la carte : elle se voit. Elle flottait en bas
+          à gauche, en gris, plus discrète que les champs qu'elle valide. */''}
+     <div class="pc-actions"><button class="btn btn-sm btn-primary" id="sySaveRelays">Enregistrer</button></div>
+     <button class="linklike" id="syPublicRelays"${urls.length || (turn && turn.length) ? '' : ' hidden'}>Réinitialiser</button>
    </details>`;
 function parseRelays(raw){
   const values = String(raw || '').split(/[\n,]+/).map(x => x.trim()).filter(Boolean);
@@ -494,12 +500,16 @@ export function openPromo(){
       zone.innerHTML =
         `<button class="btn btn-primary pr-send" id="prSend"${n ? '' : ' disabled'}>${ic('share', 'ic-14')} Envoyer ${n ? n + ' piste' + (n > 1 ? 's' : '') : '…'}</button>
          <div style="text-align:center;margin-top:6px"><span class="tag-share">jamais le privé</span></div>
-         <button class="linklike" id="prPick" style="margin-top:6px">${choosing ? 'Replier la liste' : 'Choisir ce qui part…'}</button>
+         <button class="lb-act lb-fold" id="prPick" style="margin-top:6px" aria-expanded="${choosing}">
+           <span>Choisir ce qui part</span>${ic('chevron-down', 'ic-14')}
+         </button>
          ${choosing ? `<div class="listbar" style="margin-top:8px">
-           <button class="linklike" id="prAll">${unsel.size ? 'Tout cocher' : 'Tout décocher'}</button>${affinerBtnHTML(ft, st)}</div>
-         <div class="pick-list">
+           <button class="lb-act" id="prAll" aria-pressed="${!unsel.size}">
+             ${ic(unsel.size ? 'checkbox' : 'checkbox-on', 'ic-14')}<span>Tout</span>
+           </button>${affinerBtnHTML(ft, st, { leger: true })}</div>
+         <div class="pick-list pk-inverse">
            ${listed().map(c =>
-             `<div class="pk-duo">
+             `<div class="pk-duo${unsel.has(c.id) ? ' pk-out' : ''}">
                 <button class="pick pk${unsel.has(c.id) ? '' : ' on'}" data-id="${c.id}" aria-pressed="${!unsel.has(c.id)}">
                   ${ic('checkbox', 'ic-20 ic-off')}${ic('checkbox-on', 'ic-20 ic-on')}
                   <div class="pk-m"><b>${esc(c.name)}</b>${c.city ? `<span>${esc(c.city)}</span>` : ''}</div>
@@ -515,7 +525,7 @@ export function openPromo(){
         toast('Parti vers ' + peers + ' camarade' + (peers > 1 ? 's' : '') + ' ✓');
       });
       q('#prPick').addEventListener('click', () => { choosing = !choosing; refreshStatus(); });
-      bindAffinerBtn(zone, ft, st, {}, refreshStatus);
+      bindAffinerBtn(zone, ft, st, { pool: mine }, refreshStatus);
       q('#prAll')?.addEventListener('click', () => {
         const rienDecoche = unsel.size === 0;
         unsel.clear();
@@ -532,11 +542,20 @@ export function openPromo(){
           const id = b.dataset.id;
           unsel.has(id) ? unsel.delete(id) : unsel.add(id);
           b.classList.toggle('on', !unsel.has(id));
+          /* une piste écartée l'est ENTIÈRE : sa commande « qui » avec elle */
+          b.parentElement.classList.toggle('pk-out', unsel.has(id));
           b.setAttribute('aria-pressed', !unsel.has(id));
           const n2 = chosen().length;
           const send = q('#prSend');
           send.disabled = !n2;
           send.innerHTML = `${ic('share', 'ic-14')} Envoyer ${n2 ? n2 + ' piste' + (n2 > 1 ? 's' : '') : '…'}`;
+          /* la case « Tout » porte l'état : elle suit chaque tap */
+          const bAll = q('#prAll');
+          if (bAll){
+            const tout = !unsel.size;
+            bAll.setAttribute('aria-pressed', tout);
+            bAll.innerHTML = ic(tout ? 'checkbox-on' : 'checkbox', 'ic-14') + '<span>Tout</span>';
+          }
         }));
     };
     const showNext = () => {

@@ -58,6 +58,43 @@ const vers = (await page.textContent('#sbVer')).trim();
 if (!await page.$('.bottomnav')) fail('app hors ligne : navigation absente');
 console.log('serveur coupé → rechargement : l’app revit du cache (v' + vers.trim() + ') ✓');
 
+/* 6. le thème est posé AVANT le premier pixel (theme.js, bloquant dans
+   le <head>). Sans lui, `<html data-theme="light">` reste peint tant
+   qu'IndexedDB n'a pas répondu : mesuré à 95 ms sur un processeur bridé
+   ×8, c'est-à-dire un flash blanc à CHAQUE lancement pour qui utilise le
+   thème sombre. On vérifie que le tout PREMIER rendu est déjà bon, sans
+   laisser à app.js le temps de corriger.
+   (le serveur de l'étape 5 est mort exprès : celle-ci ouvre le sien) */
+{
+  const { server: srv2, base: b2 } = await serveRepo();
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const p2 = await ctx.newPage();
+  p2.on('pageerror', e => errors.push(String(e)));
+  await p2.goto(b2, { waitUntil: 'load' });
+  await p2.waitForSelector('#btnTheme');
+  if (await p2.evaluate(() => document.documentElement.dataset.theme !== 'dark')) await p2.click('#btnTheme');
+  await p2.waitForTimeout(300);
+  const cdp = await ctx.newCDPSession(p2);
+  await cdp.send('Emulation.setCPUThrottlingRate', { rate: 8 });   /* téléphone d'entrée de gamme */
+  await p2.reload({ waitUntil: 'domcontentloaded' });
+  const vu = await p2.evaluate(() => ({
+    t: document.documentElement.dataset.theme,
+    fond: getComputedStyle(document.body).backgroundColor
+  }));
+  let bon = true;
+  if (vu.t !== 'dark'){
+    fail('premier rendu : thème « ' + vu.t + ' » au lieu de « dark » — flash au lancement'); bon = false;
+  }
+  const rouge = +((vu.fond.match(/\d+/g) || ['0'])[0]);
+  if (rouge > 150){
+    fail('premier rendu : fond clair ' + vu.fond + ' alors que le thème est sombre'); bon = false;
+  }
+  /* pas de ✓ après un échec : il ferait lire « ça marche » à côté de « ça casse » */
+  if (bon) console.log('thème posé avant le premier pixel, même processeur bridé ×8 ✓');
+  await ctx.close();
+  srv2.close();
+}
+
 console.log(errors.length ? 'Erreurs console : ' + errors.join(' | ') : 'Zéro erreur console.');
 if (errors.length) process.exitCode = 1;
 await browser.close();

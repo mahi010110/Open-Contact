@@ -136,7 +136,7 @@ export function openCapture(prefill){
     const name = v(NOM);
     const ct = contactData();
     if (!name && !ct){
-      toast('Une entreprise, ou au moins une personne.');
+      toast('Une entreprise, ou au moins un contact.');
       q(NOM).focus();
       return undefined;
     }

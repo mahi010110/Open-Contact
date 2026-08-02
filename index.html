@@ -23,6 +23,10 @@
 <link rel="apple-touch-icon" href="icon.svg">
 <!-- tokens puis mise en écran : en <link> plutôt qu'en @import, le
      navigateur télécharge tout en parallèle dès l'analyse du HTML -->
+<!-- le thème AVANT le premier pixel : bloquant et minuscule, sinon un
+     utilisateur en sombre prend du clair en pleine figure à chaque
+     lancement (95 ms mesurés sur un processeur d'entrée de gamme) -->
+<script src="theme.js"></script>
 <link rel="stylesheet" href="styles/tokens/fonts.css">
 <link rel="stylesheet" href="styles/tokens/colors.css">
 <link rel="stylesheet" href="styles/tokens/typography.css">
@@ -67,9 +71,14 @@
     </div>
   </header>
 
+  <!-- Le seul cas où une phrase entière s'impose : ce que l'étudiant
+       saisit n'ira nulle part. Elle dit la CONSÉQUENCE, pas la cause
+       technique — « sauvegarde impossible » ne se relie à rien dans sa
+       tête, « tout disparaîtra en fermant » si. Et elle emploie le mot
+       de l'app : une copie, jamais une sauvegarde ni un export. -->
   <div class="save-warn" id="saveWarn" hidden role="alert">
-    <span>Sauvegarde impossible ici — exporte avant de fermer.</span>
-    <button id="swExport">Exporter</button>
+    <span>Rien ne s’enregistre ici — tout disparaîtra en fermant.</span>
+    <button id="swCopy">Garder une copie</button>
   </div>
 
   <main class="main" id="main">

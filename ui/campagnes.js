@@ -285,17 +285,39 @@ export function openCampaignsHome(){
      (N8) ; au pouce elle se referme — une décision à la fois */
   const wide = matchMedia('(min-width:901px)').matches;
   const sh = openSheet({ title: 'Campagnes', icon: 'flag' });
-  const stateTxt = c => c.state === 'paused' ? 'en pause'
-    : c.auto ? 'ton ordinateur s’en occupe' : 'en cours';
+  /* L'encre va à ce qui réclame quelque chose. Une réponse reçue est la
+     seule raison d'avoir lancé la campagne : elle prend la marque et
+     passe en tête, au lieu d'être noyée en troisième position entre
+     deux compteurs, dans le même gris qu'eux. Une campagne en pause
+     n'envoie plus rien — notable, sans être une alarme. Et « 0 réponse »
+     ne s'écrit pas : un zéro n'informe personne, il dilue le reste. */
+  const marqueHTML = (c, st) =>
+    st.replied ? `<span class="mark mark-now">${st.replied} réponse${st.replied > 1 ? 's' : ''}</span>`
+      : c.state === 'paused' ? '<span class="mark mark-soon">en pause</span>' : '';
+  const resteTxt = (c, st) => {
+    const bits = [];
+    /* l'état ne se redit pas quand la marque le porte déjà */
+    if (c.state === 'paused'){ if (st.replied) bits.push('en pause'); }
+    else bits.push(c.auto ? 'ton ordinateur s’en occupe' : 'en cours');
+    bits.push(st.sent + ' envoyé' + (st.sent > 1 ? 's' : ''));
+    bits.push(st.pistes + ' piste' + (st.pistes > 1 ? 's' : ''));
+    return bits.join(' · ');
+  };
   const render = () => {
     const list = live();
     if (!list.length){ sh.close(); return; }
     sh.body.innerHTML =
       `<div class="pick-list">${list.map(c => {
          const st = campaignStats(c);
-         return `<button class="pick" data-cid="${esc(c.id)}">
-                   <b>${ic('flag', 'ic-14')} ${esc(c.name)}</b>
-                   <span>${stateTxt(c)} · ${st.sent} envoyé${st.sent > 1 ? 's' : ''} · ${st.replied} réponse${st.replied > 1 ? 's' : ''} · ${st.pistes} piste${st.pistes > 1 ? 's' : ''}</span>
+         /* le nom sur SA ligne, l'état dessous, la marque à droite —
+            la même grammaire qu'une ligne de « Mes pistes ». Sur un
+            seul rang, la marque écrasait le nom et tout se repliait */
+         return `<button class="pick cp-row" data-cid="${esc(c.id)}">
+                   <div class="cp-m">
+                     <b>${ic('flag', 'ic-14')} ${esc(c.name)}</b>
+                     <span class="cp-sub">${resteTxt(c, st)}</span>
+                   </div>
+                   ${marqueHTML(c, st)}
                  </button>`;
        }).join('')}</div>`;
     sh.body.querySelectorAll('[data-cid]').forEach(b =>
@@ -591,7 +613,7 @@ export function openCampaignDay(c0){
       } catch (e) { el.innerHTML = `${ic('clock', 'ic-14')} Ton ordinateur ne répond pas — il rattrapera.`; }
     })();
     q('#czReprendre')?.addEventListener('click', async () => {
-      const okv = await confirmSheet({ title: 'Reprendre la main ?', okLabel: 'Reprendre', icon: 'switch',
+      const okv = await confirmSheet({ title: 'Reprendre la main ?', okLabel: 'Reprendre', icon: 'monitor',
         msg: 'Ton ordinateur arrête d’envoyer — s’il est éteint, il l’apprendra à son réveil. Ce qui est parti est au journal ; la suite t’attendra dans « Aujourd’hui ».' });
       if (!okv) return;
       if (!await requireCode('Ton code, pour reprendre')) return;

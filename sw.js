@@ -4,8 +4,8 @@
    arrière-plan — la version suivante s'applique à l'ouverture d'après.
    Jamais mis en cache : le géocodage (données fraîches) et les tuiles de
    carte (volume) — la carte demande donc du réseau, tout le reste non. */
-const CACHE = 'oc-v74';
-const PRECACHE = ['./', './index.html', './app.js', './tests.js', './tests-c8.js', './tests-mcp.js',
+const CACHE = 'oc-v90';
+const PRECACHE = ['./', './index.html', './app.js', './theme.js', './tests.js', './tests-c8.js', './tests-mcp.js',
   './engine/crypto.js', './engine/exchange.js', './engine/filter.js',
   './engine/geo.js', './engine/merge.js', './engine/model.js',
   './engine/score.js', './engine/storage.js', './engine/sync.js', './engine/utils.js',
@@ -82,6 +82,7 @@ const PRECACHE = ['./', './index.html', './app.js', './tests.js', './tests-c8.js
   './assets/icons/menu.svg',
   './assets/icons/message-text.svg',
   './assets/icons/minus.svg',
+  './assets/icons/monitor.svg',
   './assets/icons/moon.svg',
   './assets/icons/more-horizontal.svg',
   './assets/icons/more-vertical.svg',
@@ -116,8 +117,15 @@ self.addEventListener('install', e => {
 
 self.addEventListener('activate', e => {
   e.waitUntil(
+    /* on purge les VIEILLES caches d'application — jamais le coffre de
+       données. `oc-kv-v1` est le dernier rang de stockage persistant
+       (navigation privée verrouillée, voir engine/storage.js) : le
+       supprimer effacerait les pistes de l'utilisateur à chaque mise à
+       jour de l'app, exactement ce que ce rang existe pour éviter. */
     caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(keys => Promise.all(keys
+        .filter(k => k !== CACHE && k !== 'oc-kv-v1')
+        .map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });

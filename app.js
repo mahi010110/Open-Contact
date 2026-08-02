@@ -53,6 +53,12 @@ function applyTheme(t, persist){
   document.documentElement.dataset.theme = t;
   $('#metaTheme').content = (t === 'dark') ? '#1E232B' : '#F7F6F1';
   if (persist) kvSet(THEME_KEY, t);
+  /* miroir synchrone pour `theme.js`, qui doit décider AVANT le premier
+     pixel et ne peut donc pas attendre IndexedDB. On l'écrit à chaque
+     application, pas seulement en persistance : le repli système fait
+     lui aussi foi pour le lancement suivant. Valeur sans rien de privé,
+     même clé — un échec (navigation privée) est sans conséquence. */
+  try { localStorage.setItem(THEME_KEY, t); } catch (e) {}
 }
 
 (async function init(){
@@ -92,7 +98,7 @@ function applyTheme(t, persist){
   $('#btnTheme').addEventListener('click', () => applyTheme(S.theme === 'dark' ? 'light' : 'dark', true));
   $('#bnAdd').addEventListener('click', () => openCapture());
   $('#btnAddTop').addEventListener('click', () => openCapture());
-  $('#swExport').addEventListener('click', () => downloadBackup());   /* secours : brut, sans question */
+  $('#swCopy').addEventListener('click', () => downloadBackup());   /* secours : brut, sans question */
 
   /* clavier : « / » saute à la recherche des pistes */
   document.addEventListener('keydown', e => {

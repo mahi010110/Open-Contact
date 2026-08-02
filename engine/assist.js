@@ -8,6 +8,31 @@
    Fonctions pures, aucun accès au DOM ni au réseau.
    ============================================================ */
 
+/* ---------- les verbes qu'on propose pour la prochaine action ----------
+   Le geste le plus répété de l'app — « Fait ✓ → et ensuite ? » — obligeait
+   à TAPER au clavier sur un téléphone, alors que la date, elle, avait ses
+   raccourcis. Sans rien saisir, l'action devenait « Faire le point » :
+   une semaine plus tard, l'étudiant lit ça et ne sait plus ce qu'il
+   voulait dire.
+
+   L'ORDRE EST LE CONTRAT : le premier est le plus probable, c'est lui que
+   l'interface pose d'office dans le champ — l'utilisateur n'a donc rien à
+   lire ni à choisir, il lit et tape une date. Les suivants ne s'offrent
+   que s'il vient toucher le champ (liste native). Le texte libre reste
+   maître : ces verbes proposent, ils n'enferment pas. */
+const VERBES = {
+  todo:   ['Envoyer la candidature', 'Trouver un contact', 'Appeler'],
+  active: ['Relancer', 'Appeler', 'Repasser sur place'],
+  reply:  ['Répondre', 'Préparer l’entretien', 'Envoyer le CV']
+};
+export function nextActionSuggestions(c){
+  const base = VERBES[(c && c.status) || 'todo'] || VERBES.todo;
+  /* ne jamais proposer le libellé DÉJÀ posé : le tap ne changerait rien
+     (règle : un filtre qui ne peut rien filtrer coûte un tap) */
+  const dejaLa = String((c && c.nextActionText) || '').trim().toLowerCase();
+  return base.filter(v => v.toLowerCase() !== dejaLa);
+}
+
 /* ---------- priorisation locale des relances ----------
    Une piste « à relancer » = une prochaine action datée aujourd'hui
    ou passée. On classe par retard (le plus en retard d'abord), puis
@@ -25,6 +50,48 @@ export function dueFollowups(companies, today){
   out.sort((a, b) => (b.lateDays - a.lateDays) || (b.touches - a.touches));
   return out;
 }
+/* ---------- le fil des échanges, relu dans le journal ----------
+   « Échanger » ne montrait que deux portes : aucune donnée de
+   l'utilisateur, donc rien à comprendre d'un regard. Ce qu'il a déjà
+   donné et reçu est pourtant écrit dans son journal privé depuis
+   toujours. On le relit ici plutôt que d'ajouter un champ au journal :
+   un nouveau format ne ferait apparaître que les échanges d'APRÈS la
+   mise à jour, et l'historique existant resterait invisible.
+   Le prix de ce choix, c'est que les libellés de logJ deviennent un
+   contrat : ils sont verrouillés par les tests, et le jour où l'un
+   d'eux change de phrase, ça casse ici, bruyamment.
+   « Reçu (analyse IA triée) » n'est PAS un échange avec la promo :
+   la forme « Reçu de … » l'exclut par construction. */
+const RE_DONNE = /^Donné \(([^)]+)\)\s*:\s*(\d+)\s*piste/;
+const RE_RECU  = /^Reçu de (la promo|.+?)\s*:\s*\+(\d+)\s*piste/;
+export function exchangeLog(journal, limit = 8){
+  const out = [];
+  for (const e of (journal || [])){
+    const txt = e && typeof e.txt === 'string' ? e.txt : '';
+    /* un journal peut revenir d'une sauvegarde ou d'un autre appareil :
+       un horodatage absent ou abîmé vaut 0, jamais NaN — sinon l'écran
+       afficherait « NaN-NaN-NaN » au lieu d'une date. L'échange, lui,
+       reste compté : ce qui a circulé a circulé. */
+    const t = Number.isFinite(+(e && e.t)) ? +e.t : 0;
+    let m = RE_DONNE.exec(txt);
+    if (m){ out.push({ t, sens: 'donne', canal: m[1], n: +m[2], qui: '' }); continue; }
+    m = RE_RECU.exec(txt);
+    if (m) out.push({ t, sens: 'recu', canal: '', n: +m[2],
+      qui: m[1] === 'la promo' ? '' : m[1] });
+  }
+  out.sort((a, b) => (b.t || 0) - (a.t || 0));
+  return limit > 0 ? out.slice(0, limit) : out;
+}
+/* ce qui a circulé en tout — le compte que l'écran affiche en tête */
+export function exchangeTotals(journal){
+  const all = exchangeLog(journal, 0);
+  return {
+    donne: all.filter(x => x.sens === 'donne').reduce((s, x) => s + x.n, 0),
+    recu: all.filter(x => x.sens === 'recu').reduce((s, x) => s + x.n, 0),
+    n: all.length
+  };
+}
+
 function daysBetween(a, b){
   const d1 = Date.UTC(...a.split('-').map((n, i) => i === 1 ? +n - 1 : +n));
   const d2 = Date.UTC(...b.split('-').map((n, i) => i === 1 ? +n - 1 : +n));

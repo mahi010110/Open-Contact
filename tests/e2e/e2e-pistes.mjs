@@ -81,10 +81,16 @@ await mPage.waitForFunction(() => document.querySelectorAll('#piBody .row-item')
 if (await mPage.$('#piChips .st-chip')) fail('taper chaque puce doit tout enlever');
 console.log('Affiner mobile : filtres + tri combinés, une ligne, taper retire ✓');
 
-/* filtre sans résultat : l'écran explique et offre le retour en un tap */
+/* Filtre sans résultat : l'écran explique et offre le retour en un tap.
+   On y arrive par une COMBINAISON qui se vide (« Réponse » + « Cyber-
+   sécurité » : les deux existent, leur croisement non) — « Affiner »
+   ne propose plus de domaine absent des pistes, donc plus aucune puce
+   seule ne peut mener au vide. C'est le but ; l'état, lui, reste
+   atteignable et doit toujours se dire. */
 await mPage.click('#piAffiner');
-await mPage.waitForSelector('[data-dom="sante"]');
-await mPage.click('[data-dom="sante"]');
+await mPage.waitForSelector('[data-dom="cyber"]');
+await mPage.click('[data-st="reply"]');
+await mPage.click('[data-dom="cyber"]');
 await mPage.evaluate(async () => (await import('./ui/dom.js')).topSheet()?.close());
 await mPage.waitForSelector('#piFtClear');
 if (!/Rien ne correspond au filtre/.test(await mPage.locator('.empty-list').innerText()))
@@ -99,7 +105,7 @@ const dCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } }
 const dPage = await dCtx.newPage();
 watchErrors(dPage);
 await seed(dPage);
-await dPage.waitForSelector('.board');
+await dPage.waitForSelector('#view-pistes .board');   /* « Aujourd'hui » a aussi un tableau */
 
 /* la feuille desktop ne repropose pas le statut : les colonnes le font déjà */
 await dPage.click('#piAffiner');

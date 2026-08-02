@@ -17,7 +17,7 @@ import { sortState, sortArgs } from './sort.js';
 import { filterState, filterArgs, affinerBtnHTML, bindAffinerBtn } from './affiner.js';
 import { openRoom, leaveRoom, watchLiaison } from './synclive.js';
 import { makeQrSvg } from './qr.js';
-import { whoCandidates, whoLineHTML, openWhoPicker } from './qui.js';
+import { whoCandidates, whoLineHTML, whoInline, openWhoPicker } from './qui.js';
 
 const QR_HARD_MAX = 1800;     /* caractères par QR : au-delà, rendez-vous P2P ou QR animé */
 
@@ -82,7 +82,9 @@ export function openDonner(){
        <div class="dn-src">
          <div class="dn-what">
            <span class="dn-count" id="dnCount"></span>
-           <button class="linklike" id="dnPick"></button>
+           <button class="lb-act lb-fold" id="dnPick" aria-expanded="false">
+             <span>Choisir</span>${ic('chevron-down', 'ic-14')}
+           </button>
          </div>
          <div id="dnList" hidden></div>
        </div>
@@ -95,7 +97,17 @@ export function openDonner(){
       const cut = cutCount();
       q('#dnCount').textContent = (k === t ? k : k + ' / ' + t) + ' piste' + (t > 1 ? 's' : '') +
         (cut ? ' · ' + cut + ' personne' + (cut > 1 ? 's' : '') + ' écartée' + (cut > 1 ? 's' : '') : '');
-      q('#dnPick').textContent = choosing ? 'Replier' : 'Choisir…';
+      /* le mot ne bascule plus — « Choisir » puis « Replier » sur la même
+         cible obligeait à relire pour savoir où l'on en était. Le chevron
+         dit l'état, comme partout ailleurs dans l'app. */
+      q('#dnPick').setAttribute('aria-expanded', choosing);
+      /* la case « Tout » porte l'état : elle suit chaque tap individuel */
+      const bAll = q('#dnAll');
+      if (bAll){
+        const tout = !unsel.size;
+        bAll.setAttribute('aria-pressed', tout);
+        bAll.innerHTML = ic(tout ? 'checkbox-on' : 'checkbox', 'ic-14') + '<span>Tout</span>';
+      }
     };
     const renderList = () => {
       const zone = q('#dnList');
@@ -103,24 +115,34 @@ export function openDonner(){
       const list = filterCompanies(alive(), { ...filterArgs(ft), ...sortArgs(st) });
       zone.hidden = false;
       zone.innerHTML =
-        `<div class="listbar"><button class="linklike" id="dnAll">${unsel.size ? 'Tout cocher' : 'Tout décocher'}</button>${affinerBtnHTML(ft, st)}</div>
-         <div class="pick-list">
+        `<div class="listbar">
+           <button class="lb-act" id="dnAll" aria-pressed="${!unsel.size}">
+             ${ic(unsel.size ? 'checkbox' : 'checkbox-on', 'ic-14')}<span>Tout</span>
+           </button>${affinerBtnHTML(ft, st, { leger: true })}</div>
+         <div class="pick-list pk-inverse">
            ${list.map(c =>
-             `<div class="pk-duo">
+             `<div class="pk-duo${unsel.has(c.id) ? ' pk-out' : ''}">
                 <button class="pick pk${unsel.has(c.id) ? '' : ' on'}" data-id="${c.id}" aria-pressed="${!unsel.has(c.id)}">
                   ${ic('checkbox', 'ic-20 ic-off')}${ic('checkbox-on', 'ic-20 ic-on')}
                   <div class="pk-m"><b>${esc(c.name)}</b>
-                    <span>${STATUSES[c.status].label}${c.city ? ' · ' + esc(c.city) : ''}</span></div>
+                    <span>${STATUSES[c.status].label}${c.city ? ' · ' + esc(c.city) : ''}${
+                      /* déjà échappé par whoInline — il porte son icône */
+                      whoInline(c, keepOf(c), 'donner') && ' · ' + whoInline(c, keepOf(c), 'donner')
+                      || ''}</span></div>
                 </button>
                 ${whoLineHTML(c, keepOf(c), 'donner')}
               </div>`).join('')}
          </div>`;
-      bindAffinerBtn(zone, ft, st, {}, () => { const play = softReorder('.modal-b .pk'); renderList(); play(); });
+      bindAffinerBtn(zone, ft, st, { pool: alive }, () => { const play = softReorder('.modal-b .pk'); renderList(); play(); });
       zone.querySelectorAll('.pk').forEach(b =>
         b.addEventListener('click', () => {
           const id = b.dataset.id;
           unsel.has(id) ? unsel.delete(id) : unsel.add(id);
           b.classList.toggle('on', !unsel.has(id));
+          /* une piste écartée l'est ENTIÈRE : sa commande « qui » s'éteint
+             avec elle — choisir des personnes pour ce qui ne part pas
+             n'a pas de sens */
+          b.parentElement.classList.toggle('pk-out', unsel.has(id));
           b.setAttribute('aria-pressed', !unsel.has(id));
           syncCount();
         }));

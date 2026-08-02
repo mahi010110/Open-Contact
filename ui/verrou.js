@@ -117,8 +117,16 @@ function showLock(){
          </div>
        </div>`);
     document.body.append(lockEl);
+    /* L'écran verrouillé ne doit RIEN montrer. Or le toast (~4 s) et la
+       barre « Annuler » (~30 s) sont posés en `fixed` et survivaient
+       au-dessus de lui : verrouiller juste après avoir supprimé une piste
+       affichait « Supprimée : Capgemini » sur l'écran de verrouillage.
+       On les masque le temps du verrou plutôt que de les détruire — leur
+       minuterie continue, et « Annuler » est encore là au déverrouillage. */
+    document.documentElement.classList.add('oc-locked');
     const hasBio = !!(meta.wraps && meta.wraps.prf) && !!navigator.credentials;
     const done = un => {
+      document.documentElement.classList.remove('oc-locked');
       document.removeEventListener('keydown', onKey, true);
       clearInterval(waitTimer);
       lockEl.remove();
@@ -215,9 +223,9 @@ function openRecovery(onUnlocked){
       `<div class="lk-whys">
          <div class="lk-why">${ic('switch', 'ic-14')} <span>Cet appareil devient ton appareil principal. L’ancien est écarté.</span></div>
          <div class="lk-why">${ic('lock', 'ic-14')} <span>Ton code et ta phrase sont renouvelés.</span></div>
-         <div class="lk-why">${ic('save', 'ic-14')} <span>Une nouvelle sauvegarde chiffrée termine le parcours.</span></div>
+         <div class="lk-why">${ic('save', 'ic-14')} <span>Une nouvelle copie chiffrée termine le parcours.</span></div>
        </div>
-       <p class="hint">Tes anciennes sauvegardes s’ouvrent toujours avec l’ancienne phrase. Détruis celles que tu ne veux plus.</p>`;
+       <p class="hint">Tes anciennes copies s’ouvrent toujours avec l’ancienne phrase. Détruis celles que tu ne veux plus.</p>`;
     sh.setFoot([btn('Continuer', 'btn-primary', stepNewPin)]);
   };
 
@@ -250,7 +258,7 @@ function openRecovery(onUnlocked){
     await recoverRing(oldPhrase, newPhrase).catch(() => {});
     logJ('Récupération d’urgence : protection et phrase renouvelées');
     backupCeremony(sh, newPhrase, finish,
-      'Presque fini : une nouvelle sauvegarde chiffrée, à garder ailleurs.');
+      'Presque fini : une nouvelle copie chiffrée, à garder ailleurs.');
   };
 
   const finish = () => {
@@ -303,7 +311,11 @@ function phraseCeremony(sh, phrase, onOk){
     const a = Math.floor(Math.random() * 6), b = 6 + Math.floor(Math.random() * 6);
     sh.setTitle('Vérifions');
     sh.body.innerHTML =
-      `<div class="grid2">
+      `${/* deux mots de six lettres : ils tiennent côte à côte même au
+             pouce. La règle générale (un champ par rang sous 901 px)
+             existe pour les valeurs longues — un email, un rôle — pas
+             pour ça. */''}
+       <div class="grid2 grid2-tight">
          <div class="field"><label for="vw1">Mot n°${a + 1}</label>
            <input id="vw1" autocapitalize="none" autocomplete="off"></div>
          <div class="field"><label for="vw2">Mot n°${b + 1}</label>
@@ -328,15 +340,15 @@ function phraseCeremony(sh, phrase, onOk){
 }
 /* la sauvegarde chiffrée bloquante (D15/D7) — chiffrée avec la phrase */
 function backupCeremony(sh, phrase, onOk, introTxt){
-  sh.setTitle('Ta sauvegarde');
+  sh.setTitle('Ta copie');
   sh.body.innerHTML =
-    `<p class="pd" style="margin:0 0 10px">${introTxt || 'Dernière étape : une sauvegarde chiffrée de tout, à garder ailleurs (clé USB, autre disque).'}</p>
+    `<p class="pd" style="margin:0 0 10px">${introTxt || 'Dernière étape : une copie chiffrée de tout, à garder ailleurs (clé USB, autre disque).'}</p>
      <p class="hint">Chiffrée avec ta phrase de secours — elle seule l’ouvre.</p>`;
-  const bDl = btn('Télécharger la sauvegarde', 'btn-primary', async () => {
+  const bDl = btn('Télécharger la copie', 'btn-primary', async () => {
     const txt = await encryptOC2(fullPayload(S.companies, S.profile, S.orphans, S.tombs), phrase);
     const A = document.createElement('a');
     A.href = URL.createObjectURL(new Blob([txt], { type: 'application/octet-stream' }));
-    A.download = 'opencontact-sauvegarde-' + todayISO() + '.oc';
+    A.download = 'opencontact-copie-' + todayISO() + '.oc';
     document.body.append(A);
     A.click();
     A.remove();
@@ -610,8 +622,12 @@ export function openManageSheet(){
 }
 
 /* l'étiquette d'état pour la ligne de « Moi » */
+/* L'ÉTAT, jamais l'explication : « se verrouille seul » décrit un
+   comportement, pas un état, et il n'entrait pas dans la colonne — la
+   ligne affichait « protégé — se verrouille s… ». Le délai exact se dit
+   sur la feuille Verrouillage, là où on peut agir dessus. */
 export function verrouLabel(){
-  return meta ? 'protégé — se verrouille seul' : 'non protégé';
+  return meta ? 'protégé' : 'non protégé';
 }
 
 /* commande « verrouiller » reçue de l'appareil principal (anneau) */
