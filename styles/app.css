@@ -1412,13 +1412,24 @@ body:has(.undo-bar) .toast{bottom:calc(var(--nav-h) + 76px + env(safe-area-inset
 }
 
 /* ============ ALERTE SAUVEGARDE / TOAST ============ */
+/* L'avertissement le plus grave de l'app : ce que l'étudiant saisit
+   n'ira nulle part. Il est PERSISTANT — un toast de trois secondes ne
+   passe donc ni devant lui ni sur son bouton de secours (mesuré : 54 px
+   de recouvrement, et un doigt au centre de « Garder une copie »
+   touchait le toast). D'où z-index au-dessus, et une largeur explicite :
+   à 195 px il se pliait en 110 px de haut et devenait illisible. */
 .save-warn{
-  position:fixed;top:56px;left:50%;transform:translateX(-50%);z-index:3500;
+  position:fixed;top:56px;left:50%;transform:translateX(-50%);z-index:4200;
   background:var(--red-wash);color:var(--red);border:1px solid var(--red);
   box-shadow:var(--shadow-modal);
   font-weight:var(--weight-semibold);font-size:var(--text-13);padding:10px 14px;
-  display:flex;gap:10px;align-items:center;max-width:calc(100% - 24px);
+  display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+  width:calc(100% - 24px);max-width:520px;
 }
+.save-warn span{flex:1 1 190px;min-width:0}
+.save-warn button{flex:none;margin-left:auto}
+/* le toast s'efface devant lui : il descend d'une voie tant qu'il est là */
+body:has(#saveWarn:not([hidden])) .toast{top:calc(env(safe-area-inset-top) + 148px)}
 .save-warn button{
   background:var(--surface-window);border:1px solid var(--red);color:var(--red);
   border-radius:var(--radius-1);padding:5px 11px;font-weight:var(--weight-bold);min-height:var(--ctl);
