@@ -249,8 +249,9 @@ function reglagesRowsHTML(){
           (!prot && !aiConnection()) ? 'à protéger' : aiStateLabel()) +
     /* l'état, pas la phrase : « il s'installe sur ton ordinateur » se
        dit sur le 2ᵉ écran, là où on peut vraiment le faire (#21).
-       #4 se referme ici : sans pictogramme, le Compagnon ne partage plus
-       l'éclair d'« Aujourd'hui ». */
+       Cette liste reste sans pictogramme (voir plus haut) ; le Compagnon
+       a son icône propre — un écran d'ordinateur — sur SES feuilles,
+       là où elle distingue quelque chose (#4). */
     rgRow('moiComp', 'Le Compagnon', 'pas installé', true) +
     `<div class="rg-foot">
        <button class="linklike" id="moiRestore">${ic('reload', 'ic-14')} Restaurer une copie</button>

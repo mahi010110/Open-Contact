@@ -613,7 +613,7 @@ export function openCampaignDay(c0){
       } catch (e) { el.innerHTML = `${ic('clock', 'ic-14')} Ton ordinateur ne répond pas — il rattrapera.`; }
     })();
     q('#czReprendre')?.addEventListener('click', async () => {
-      const okv = await confirmSheet({ title: 'Reprendre la main ?', okLabel: 'Reprendre', icon: 'switch',
+      const okv = await confirmSheet({ title: 'Reprendre la main ?', okLabel: 'Reprendre', icon: 'monitor',
         msg: 'Ton ordinateur arrête d’envoyer — s’il est éteint, il l’apprendra à son réveil. Ce qui est parti est au journal ; la suite t’attendra dans « Aujourd’hui ».' });
       if (!okv) return;
       if (!await requireCode('Ton code, pour reprendre')) return;

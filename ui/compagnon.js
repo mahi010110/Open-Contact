@@ -38,7 +38,7 @@ const enMo = n => n ? ' (' + (n / 1048576).toFixed(1).replace('.', ',') + ' Mo)'
 
 /* ---------- téléphone : le Compagnon se prépare sur l'ordinateur ---------- */
 export function openCompanionPhoneSheet(){
-  const sh = openSheet({ title: 'Le Compagnon', icon: 'switch' });
+  const sh = openSheet({ title: 'Le Compagnon', icon: 'monitor' });
   sh.body.innerHTML =
     `${whyHTML()}
      <p class="hint" style="margin-top:10px">Il s’installe et s’associe <b>depuis ton ordinateur</b> :
@@ -77,7 +77,7 @@ export function openAddCompanion(onDone){
   /* sur un téléphone, cette feuille dirait des choses fausses :
      l'installation et la première association vivent sur l'ordinateur */
   if (!isDesktop()){ openCompanionPhoneSheet(); return; }
-  const sh = openSheet({ title: 'Ajouter le Compagnon', icon: 'switch', focus: '.x' });
+  const sh = openSheet({ title: 'Ajouter le Compagnon', icon: 'monitor', focus: '.x' });
   const q = s => sh.body.querySelector(s);
 
   const stepIntro = async () => {
@@ -215,7 +215,7 @@ export function openAddCompanion(onDone){
 
 /* ---------- la feuille de gestion (depuis Mes appareils) ---------- */
 export function openCompanionSheet(assoc, onDone){
-  const sh = openSheet({ title: assoc.nom || 'Compagnon', icon: 'switch' });
+  const sh = openSheet({ title: assoc.nom || 'Compagnon', icon: 'monitor' });
   sh.body.innerHTML =
     `<p class="hint" id="cgLive" style="margin:0 0 10px">${ic('clock', 'ic-14')} État…</p>
      <div class="pick-list">
@@ -278,7 +278,7 @@ export function openCompanionSheet(assoc, onDone){
   });
   q('#cgBreak').addEventListener('click', async () => {
     const ok = await confirmSheet({
-      title: 'Rompre l’association ?', danger: true, okLabel: 'Rompre', icon: 'switch',
+      title: 'Rompre l’association ?', danger: true, okLabel: 'Rompre', icon: 'monitor',
       msg: `<b>${esc(assoc.nom || 'Le Compagnon')}</b> ne recevra plus de missions et oublie vos clés communes. Rien d’autre n’est effacé.`
     });
     if (!ok) return;

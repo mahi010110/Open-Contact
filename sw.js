@@ -82,6 +82,7 @@ const PRECACHE = ['./', './index.html', './app.js', './tests.js', './tests-c8.js
   './assets/icons/menu.svg',
   './assets/icons/message-text.svg',
   './assets/icons/minus.svg',
+  './assets/icons/monitor.svg',
   './assets/icons/moon.svg',
   './assets/icons/more-horizontal.svg',
   './assets/icons/more-vertical.svg',
