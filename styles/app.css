@@ -286,6 +286,19 @@ html[data-theme="dark"] .field select{
 }
 .td-chip:active{box-shadow:var(--bevel-down);transform:translate(1px,1px)}
 .td-foot{margin-top:16px;display:flex}
+/* le pied d'« Aujourd'hui » : au pouce les lignes s'empilent comme
+   avant ; au poste elles se rangent sur un rang sous un filet, pour
+   qu'on les lise comme un pied de page et non comme un lien égaré
+   sous la colonne la plus courte du tableau */
+.td-under{margin-top:16px}
+@media (min-width:901px){
+  .td-under{
+    display:flex;flex-wrap:wrap;align-items:center;gap:8px 20px;
+    margin-top:20px;padding-top:14px;border-top:1px dashed var(--border-soft);
+  }
+  .td-under .td-triage{width:auto}
+  .td-under .td-foot{margin-top:0}
+}
 /* « À trier (N) » — la ligne calme qui regroupe les entrants (#10) */
 .td-triage{
   display:flex;align-items:center;gap:8px;width:100%;margin-top:16px;

@@ -200,15 +200,20 @@ export function renderToday(){
   html += campaignLines().map(l =>
     `<button class="camp-line" data-camp="${esc(l.id)}">${ic('flag', 'ic-14')} <span>${esc(l.txt)}</span> <em>Voir</em></button>`).join('');
   if (!wide) html += trancheHTML('soon', 'Bientôt', 'calendar', soon, false);   /* au poste, elle est déjà en colonne */
+  /* ce qui suit le travail du jour — un pied, pas des liens en vrac.
+     Sous un tableau à trois colonnes de hauteurs inégales, « 5 pistes
+     sans prochaine action » flottait tout seul à gauche, sous un trou. */
+  let pied = '';
   if (triage.total){
-    html += `<button class="td-triage" id="tdTriage">${ic('inbox', 'ic-14')} À trier <span class="tr-n">${triage.total}</span></button>`;
+    pied += `<button class="td-triage" id="tdTriage">${ic('inbox', 'ic-14')} À trier <span class="tr-n">${triage.total}</span></button>`;
   }
   if (noAction.length && alive.length){
-    html += `<button class="td-foot linklike" id="tdNoAct">${noAction.length} piste${noAction.length > 1 ? 's' : ''} sans prochaine action →</button>`;
+    pied += `<button class="td-foot linklike" id="tdNoAct">${noAction.length} piste${noAction.length > 1 ? 's' : ''} sans prochaine action →</button>`;
   }
   if (hasDemo()){
-    html += `<button class="td-foot linklike" id="tdRmDemo">Retirer les pistes d’exemple</button>`;
+    pied += `<button class="td-foot linklike" id="tdRmDemo">Retirer les pistes d’exemple</button>`;
   }
+  if (pied) html += `<div class="td-under">${pied}</div>`;
   html += '</div>';
   root.innerHTML = html;
 
