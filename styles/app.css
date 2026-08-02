@@ -304,6 +304,20 @@ html[data-theme="dark"] .field select{
    qu'on les lise comme un pied de page et non comme un lien égaré
    sous la colonne la plus courte du tableau */
 .td-under{margin-top:16px}
+@media (max-width:900px){
+  /* Au pouce, le pied est un PIED : il se pose en bas de la vue quand la
+     journée est courte — la zone qu'une main atteint sans changer de
+     prise — au lieu de flotter sous la dernière tranche avec 440 px de
+     vide dessous. « 2 pistes sans prochaine action → » est justement le
+     prochain geste quand il n'y a rien à faire : il doit être sous le
+     pouce, pas à 27 % de la hauteur. Journée chargée, il suit le contenu :
+     `margin-top:auto` ne prend que la place qui reste, s'il en reste. */
+  #view-aujourdhui>.page-inner{display:flex;flex-direction:column;min-height:100%}
+  #view-aujourdhui>.page-inner>.td-under{
+    margin-top:auto;padding-top:14px;border-top:1px dashed var(--border-soft);
+  }
+  .td-under>*:first-child{margin-top:0}   /* le filet fait déjà la respiration */
+}
 @media (min-width:901px){
   .td-under{
     display:flex;flex-wrap:wrap;align-items:center;gap:8px 20px;
