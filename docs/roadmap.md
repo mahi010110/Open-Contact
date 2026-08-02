@@ -68,11 +68,17 @@ confirmés, tous traités :
 d'exemple : signalé comme muet, il ne l'est pas — un toast dit « Rien à
 donner pour l'instant ». Ce n'était pas un défaut.
 
-### 1.2 Le recentrage *(nouveau — le chantier en cours)*
+### 1.2 Le recentrage — **livré**
 
 Application de `CLAUDE.md` §0. Tout ce qui appartient au Compagnon ou qui est
 reporté **disparaît de l'écran** — sans rien supprimer, sans toucher une clé
 de stockage, sans perdre la moindre donnée déjà enregistrée.
+
+**Un seul point de contrôle : `ui/perimetre.js`.** Quatre drapeaux
+(`COMPAGNON`, `CAMPAGNES`, `IA`, `ENVOI_DIRECT`), tous à `false`. Remettre une
+capacité à l'écran = repasser son drapeau à `true`, rien d'autre — y compris
+ses scénarios de bout en bout, que `tests/e2e/tous.mjs` saute en lisant ces
+mêmes drapeaux et rejoue dès qu'ils changent.
 
 Disparaissent de l'interface :
 

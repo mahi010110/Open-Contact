@@ -12,6 +12,26 @@ const scripts = ['unitaires.mjs',
 const natifs = new Set(['e2e-c8-telephone.mjs', 'e2e-compagnon-envoi.mjs',
   'e2e-compagnon-ia.mjs', 'e2e-compagnon-reponses.mjs', 'e2e-compagnon-scan.mjs',
   'e2e-mcp.mjs']);
+
+/* Le recentrage (CLAUDE.md §0) masque des capacités à l'écran sans rien
+   supprimer : leur code et leurs scénarios restent valides, mais le parcours
+   n'existe plus dans l'interface. On les saute EXPLICITEMENT, et on lit le
+   verdict dans `ui/perimetre.js` — repasser un drapeau à `true` remet donc
+   ses scénarios dans la suite, sans toucher à ce fichier. */
+const perim = await import(path.resolve(DIR, '..', '..', 'ui', 'perimetre.js'));
+const exigences = new Map([
+  ['e2e-campagne.mjs', 'CAMPAGNES'],
+  ['e2e-envoi.mjs', 'ENVOI_DIRECT'],
+  ['e2e-oauth-sw.mjs', 'ENVOI_DIRECT'],
+  ['e2e-ia.mjs', 'IA'],
+  ['e2e-analyse.mjs', 'COMPAGNON'],
+  ['e2e-compagnon.mjs', 'COMPAGNON'],
+  ...[...natifs].map(f => [f, 'COMPAGNON'])
+]);
+const horsPerimetre = s => {
+  const flag = exigences.get(s);
+  return (flag && !perim[flag]) ? flag : '';
+};
 const compDir = path.resolve(DIR, '..', '..', 'compagnon');
 const bin = path.join(compDir, 'target', 'debug', 'oc-compagnon');
 
@@ -63,6 +83,13 @@ balayer();
 let ko = 0, joues = 0, sautes = 0;
 for (const s of scripts){
   console.log('\n━━━ ' + s + ' ━━━');
+  const hp = horsPerimetre(s);
+  if (hp){
+    sautes++;
+    console.log(`↷ sauté — hors périmètre : ${hp} est masqué à l'écran (CLAUDE.md §0). ` +
+      `Le code et ce scénario restent valides ; repasser ${hp} à true dans ui/perimetre.js les rejoue.`);
+    continue;
+  }
   if (natifs.has(s) && nativeReason){
     sautes++;
     console.log('↷ sauté — ' + nativeReason + ' (construire avec Cargo puis relancer)');

@@ -23,6 +23,7 @@ import { getSync, startSync, breakLink, keepMyProfile, makePhrase, openRoom, lea
 import { deviceIn } from '../engine/ring.js';
 import { requireCode } from './verrou.js';
 import { loadCompanion, openAddCompanion, openCompanionSheet, openCompanionPhoneSheet, companionPresence } from './compagnon.js';
+import { COMPAGNON } from './perimetre.js';
 import { whoCandidates, whoLineHTML, openWhoPicker } from './qui.js';
 import { filterCompanies } from '../engine/filter.js';
 import { sortState, sortArgs } from './sort.js';
@@ -253,7 +254,7 @@ export function openAppareils(){
                 <button class="abtn abtn-sm abtn-del hov-soft" data-rm="${esc(d.id)}" aria-label="Retirer ${esc(d.name)}" title="Retirer">${ic('trash', 'ic-14')}</button>
               </div>`).join('')}
          ${comp ? compRowHTML(comp)
-           : (iAmMain
+           : (COMPAGNON && iAmMain
              ? (isDesktop()
                ? `<button class="linklike" id="devAddComp" style="margin-top:6px">${ic('plus', 'ic-14')} Ajouter le Compagnon</button>`
                : `<button class="dev-row dev-open" id="devCompInfo"><b>Le Compagnon</b><span class="dev-sub">pas installé · voir ›</span></button>`)
@@ -324,10 +325,10 @@ export function openAppareils(){
            <div class="lbl-row" style="margin-bottom:6px"><label>Appareils reliés</label></div>
            ${compRowHTML(comp)}
          </div>` : ''}
-       ${!changing && !comp && isDesktop()
+       ${COMPAGNON && !changing && !comp && isDesktop()
          ? `<button class="linklike" id="devAddComp" style="margin-top:12px">${ic('plus', 'ic-14')} Ajouter le Compagnon</button>`
          : ''}
-       ${!changing && !comp && !isDesktop()
+       ${COMPAGNON && !changing && !comp && !isDesktop()
          ? `<div class="sy-devs"><button class="dev-row dev-open" id="devCompInfo"><b>Le Compagnon</b><span class="dev-sub">pas installé · voir ›</span></button></div>`
          : ''}
        ${relaySettingsHTML(relays, turn)}`;

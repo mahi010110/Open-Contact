@@ -16,6 +16,7 @@ import { S, bus, saveData, logJ, addOrphan, attachContact, ctLabel } from './sta
 import { openSheet, toast, btn, ic } from './dom.js';
 import { openFiche } from './fiche.js';
 import { sharedFieldsHTML, bindSharedFields } from './edit.js';
+import { COMPAGNON } from './perimetre.js';
 
 /* nadia@ovhcloud.com → « Ovhcloud » : l'entreprise se devine de l'email —
    proposée en un tap, jamais imposée. Les domaines personnels se taisent. */
@@ -56,7 +57,11 @@ export function openCapture(prefill){
     : `<div class="lbl-row"><label for="cpCtName">Le contact</label></div>
        <div class="field"><input id="cpCtName" placeholder="Ex : Nadia Rahmani" autocomplete="off"></div>
        <div class="field"><input id="cpCtCoord" placeholder="Son email ou son téléphone" autocomplete="off"></div>`;
-  const mailsHTML = `<button class="linklike" id="cpMails">${ic('sparkles', 'ic-14')} Depuis mes e-mails</button>`;
+  /* l'import d'e-mails demande le Compagnon (lecture IMAP) — absent
+     tant qu'il n'est pas là, jamais grisé (CLAUDE.md §0) */
+  const mailsHTML = COMPAGNON
+    ? `<button class="linklike" id="cpMails">${ic('sparkles', 'ic-14')} Depuis mes e-mails</button>`
+    : '';
 
   sh.body.innerHTML = wide
     ? `${sharedFieldsHTML(brouillon)}${contactHTML}${mailsHTML}`
@@ -192,7 +197,7 @@ export function openCapture(prefill){
 
   /* l'import d'e-mails est une SOURCE de pistes (#5) — il vit ici,
      pas dans « Recevoir » (réservé à ce qu'un camarade envoie) */
-  q('#cpMails').addEventListener('click', async () => {
+  q('#cpMails')?.addEventListener('click', async () => {
     sh.close();
     (await import('./recevoir.js')).openImportMails();
   });

@@ -4,7 +4,7 @@
    arrière-plan — la version suivante s'applique à l'ouverture d'après.
    Jamais mis en cache : le géocodage (données fraîches) et les tuiles de
    carte (volume) — la carte demande donc du réseau, tout le reste non. */
-const CACHE = 'oc-v90';
+const CACHE = 'oc-v91';
 const PRECACHE = ['./', './index.html', './app.js', './theme.js', './tests.js', './tests-c8.js', './tests-mcp.js',
   './engine/crypto.js', './engine/exchange.js', './engine/filter.js',
   './engine/geo.js', './engine/merge.js', './engine/model.js',
@@ -12,7 +12,7 @@ const PRECACHE = ['./', './index.html', './app.js', './theme.js', './tests.js', 
   './engine/vault.js', './engine/ring.js', './engine/campaign.js', './engine/mailer.js', './engine/assist.js', './engine/ai.js', './engine/mission.js', './engine/companion.js', './engine/mcp.js', './engine/distribution.js', './engine/transport.js',
   './ui/dom.js', './ui/dates.js', './ui/state.js', './ui/actions.js', './ui/sort.js', './ui/verrou.js',
   './ui/mail.js', './ui/capture.js', './ui/fiche.js', './ui/today.js',
-  './ui/pistes.js', './ui/moi.js', './ui/echanger.js', './ui/direct.js', './ui/synclive.js',
+  './ui/pistes.js', './ui/moi.js', './ui/perimetre.js', './ui/echanger.js', './ui/direct.js', './ui/synclive.js',
   './ui/contact.js', './ui/edit.js', './ui/docs.js', './ui/tplfield.js', './ui/prospect.js', './ui/analyse.js', './ui/propositions.js',
   './ui/qr.js', './ui/qui.js', './ui/affiner.js', './ui/donner.js', './ui/recevoir.js', './ui/profil.js', './ui/connexions.js', './ui/campagnes.js', './ui/compagnon.js', './oauth.html',
   './assets/vendor/qrcode-generator.mjs', './assets/vendor/jsQR.js',

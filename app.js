@@ -17,6 +17,7 @@ import { renderMoi } from './ui/moi.js';
 import { openCapture } from './ui/capture.js';
 import { downloadBackup, closeReglages } from './ui/moi.js';
 import { initSyncLive } from './ui/synclive.js';
+import { COMPAGNON, CAMPAGNES } from './ui/perimetre.js';
 
 const VIEWS = {
   aujourdhui: renderToday,
@@ -75,9 +76,9 @@ function applyTheme(t, persist){
      aller-retour IndexedDB sérialisé se paierait au démarrage */
   await Promise.all([
     import('./ui/connexions.js').then(m => m.loadMail()).catch(() => {}),
-    import('./ui/campagnes.js').then(m => m.loadCampaigns()).catch(() => {}),
-    import('./ui/analyse.js').then(m => m.loadMailAnalysis()).catch(() => {}),
-    import('./ui/propositions.js').then(m => m.loadProposals()).catch(() => {})
+    CAMPAGNES ? import('./ui/campagnes.js').then(m => m.loadCampaigns()).catch(() => {}) : null,
+    COMPAGNON ? import('./ui/analyse.js').then(m => m.loadMailAnalysis()).catch(() => {}) : null,
+    COMPAGNON ? import('./ui/propositions.js').then(m => m.loadProposals()).catch(() => {}) : null
   ]);
   applyTheme(S.theme, false);
   $('#sbVer').textContent = APP_VERSION;
@@ -119,7 +120,7 @@ function applyTheme(t, persist){
 
   /* propositions de l'assistant IA (Compagnon associé) : rapportées en
      arrière-plan, sobrement — rien ne s'ajoute sans l'aperçu */
-  setTimeout(() => {
+  if (COMPAGNON) setTimeout(() => {
     import('./ui/propositions.js').then(m => m.startProposalsLoop()).catch(() => {});
   }, 2500);
 

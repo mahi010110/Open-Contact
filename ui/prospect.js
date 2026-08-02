@@ -16,6 +16,7 @@ import { filterState, filterArgs, affinerBtnHTML, bindAffinerBtn } from './affin
 import { openMail } from './mail.js';
 import { openContactEditor } from './contact.js';
 import { openCampaignWizard } from './campagnes.js';
+import { CAMPAGNES } from './perimetre.js';
 import { whoCandidates, whoLineHTML, whoInline, openWhoPicker } from './qui.js';
 
 /* la personne proposée d'office : celle de la prochaine action, sinon
@@ -175,11 +176,11 @@ function chooseMode(pairs){
     `<div class="pick-list">
        <button class="pick" id="pmOne"><b>${ic('mail', 'ic-14')} Une par une</b>
          <span>maintenant</span></button>
-       <button class="pick" id="pmCamp"><b>${ic('flag', 'ic-14')} En campagne</b>
-         <span>sur 2 semaines</span></button>
+       ${CAMPAGNES ? `<button class="pick" id="pmCamp"><b>${ic('flag', 'ic-14')} En campagne</b>
+         <span>sur 2 semaines</span></button>` : ''}
      </div>`;
   sh.body.querySelector('#pmOne').addEventListener('click', () => { sh.close(); run(pairs); });
-  sh.body.querySelector('#pmCamp').addEventListener('click', () => { sh.close(); openCampaignWizard(pairs); });
+  sh.body.querySelector('#pmCamp')?.addEventListener('click', () => { sh.close(); openCampaignWizard(pairs); });
 }
 
 /* la série : un composeur après l'autre, vers la personne choisie.
