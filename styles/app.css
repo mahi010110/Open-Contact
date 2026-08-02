@@ -1275,6 +1275,13 @@ body:has(.overlay) .toast{bottom:auto;top:calc(env(safe-area-inset-top) + 62px)}
 .camp-line .ic{color:var(--accent)}
 .camp-line span{flex:1;min-width:0;text-align:left}   /* jamais tronquée (#10) */
 .camp-line em{font-style:normal;font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-link)}
+/* la ligne d'une campagne : le nom garde toute sa largeur, l'état passe
+   dessous, la marque tient la place forte à droite — même grammaire
+   qu'une ligne de « Mes pistes », rien ne se replie */
+.cp-row{align-items:center;gap:10px}
+.cp-m{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;text-align:left}
+.cp-m b{display:flex;align-items:center;gap:7px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cp-sub{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .camp-send{border:1px solid var(--border-soft);background:var(--surface-raised);margin-bottom:7px}
 .camp-send summary{
   display:flex;align-items:center;gap:10px;list-style:none;cursor:pointer;
