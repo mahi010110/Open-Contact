@@ -29,9 +29,17 @@ export const CAMPAGNES = false;
 
 /* ---- Colonne ⏸ : passe la règle, reporté par choix de périmètre ---- */
 
-/* IA par clé navigateur (Claude, Gemini, OpenRouter). Aucune
-   installation, aucune démarche du mainteneur : elle reviendra ICI. */
-export const IA = true;
+/* Brouillon IA par clé navigateur (Claude, Gemini, OpenRouter) : la ligne
+   « Mon assistant IA » des réglages et le bouton « Proposer un brouillon »
+   du composeur. Rallumé puis rééteint le 2 août 2026 — il passe la règle,
+   mais il demande de comprendre ce qu'est une clé d'API avant de rendre
+   quoi que ce soit. Aucune installation, aucune démarche du mainteneur :
+   il reviendra ICI, jamais sur la surface ordinateur.
+
+   Ne commande PAS « Depuis mes e-mails » (capture → recevoir.js) : cette
+   source ne fait qu'un aller-retour de texte par le presse-papier, sans
+   clé ni appel réseau. Elle est de partout, sans drapeau. */
+export const IA = false;
 
 /* Envoi direct OAuth (Gmail, Outlook). Reporté au titre de la
    question ② : il engage le mainteneur dans une démarche permanente

@@ -84,13 +84,18 @@ mêmes drapeaux et rejoue dès qu'ils changent.
 Disparaissent de l'interface :
 
 - la connexion à une messagerie et l'envoi direct ;
+- le branchement à une IA par clé — la ligne « Mon assistant IA » des réglages
+  et le bouton « Proposer un brouillon » du composeur ;
 - l'assistant de campagne, la liste du jour, les lignes de campagne
   d'« Aujourd'hui », la maison « Campagnes (N) » ;
 - l'analyse automatique de la boîte mail et les propositions de l'assistant ;
 - tout ce qui nomme ou propose une capacité de la surface ordinateur.
 
 Restent visibles : écrire un mail par `mailto:` (copier / ouvrir dans Mail /
-« Envoyée ✓ ») et **postuler à plusieurs boîtes d'affilée, une par une**.
+« Envoyée ✓ »), **postuler à plusieurs boîtes d'affilée, une par une**, et
+**« Depuis mes e-mails »** — la source de capture qui donne une consigne à
+copier et lit ce qu'on lui recolle. Elle ne dépend d'aucun drapeau : OpenContact
+n'y appelle aucune IA, il fait circuler du texte par le presse-papier.
 
 Deux points d'attention :
 
@@ -180,13 +185,17 @@ Démarrer par un petit groupe d'étudiants, puis ouvrir.
 
 Par ordre de valeur, et **seulement** ce qui passe la frontière :
 
-1. ~~**L'IA par clé de navigateur**~~ — **ramenée le 2 août 2026.** Le
-   branchement (Claude, Gemini, OpenRouter) et le brouillon dans le composeur
-   sont de nouveau à l'écran ; les familles qui passent par l'ordinateur
-   n'apparaîtront qu'avec cette surface. Restent à faire, et c'est là qu'est
-   le gain : un brouillon qui tient compte du modèle d'email choisi et de
-   l'historique, « améliorer mon texte », remplir une fiche depuis une annonce
-   collée.
+1. **L'IA par clé de navigateur** — ramenée le 2 août 2026, puis **remise en
+   sommeil le jour même** : le branchement demande de comprendre ce qu'est une
+   clé d'API avant de rendre quoi que ce soit, et ce n'est pas la première
+   chose qu'un étudiant doit apprendre. Le code reste entier derrière `IA`
+   dans `ui/perimetre.js`, brouillon du composeur compris. Ce qui vaut le
+   retour, quand il aura lieu : « améliorer mon texte », et remplir une fiche
+   depuis une annonce collée.
+
+   *À ne pas confondre avec « Depuis mes e-mails », qui est à l'écran et y
+   reste* : là, OpenContact n'appelle aucune IA — il donne une consigne à
+   copier et lit ce qu'on lui recolle.
 2. **L'envoi direct, en option assumée** : l'identifiant d'application créé
    par l'utilisateur lui-même (le mécanisme existe déjà), avec un écran guidé
    qui donne les étapes et l'adresse de retour à copier. Zéro démarche pour le

@@ -66,20 +66,28 @@ autres. Ni grisée, ni « bientôt » : absente.
 | Postuler à plusieurs d'affilée, une par une | WEB |
 | CV & lettres rangés, modèles d'emails | WEB |
 | Sauvegarde / restauration, verrouillage facultatif | WEB |
-| Brouillon IA par clé navigateur (Claude, Gemini, OpenRouter) | WEB |
+| « Depuis mes e-mails » : copier la consigne, coller la réponse | WEB |
 | Campagnes (séquence, relances, plafond, fenêtre d'envoi) | PC |
 | Envoi app fermée, détection des réponses (SMTP/IMAP) | PC |
 | Analyse automatique de la boîte mail | PC |
 | IA locale (Ollama) ou par abonnement installé | PC |
 | Serveur MCP pour un assistant extérieur | PC |
+| Brouillon IA par clé navigateur (Claude, Gemini, OpenRouter) | ⏸ |
 | Envoi direct OAuth (Gmail, Outlook) | ⏸ |
 
-**L'IA par clé navigateur est revenue le 2 août 2026.** Elle passe la question
-① sans réserve : aucune installation, elle marche dans un navigateur sur un
-téléphone, et c'est la clé de l'utilisateur qui porte le coût. Seules les
-familles **joignables** sont proposées — les trois qui appellent depuis le
-navigateur ; celles qui passent par l'ordinateur n'apparaissent qu'avec cette
-surface (loi #6).
+**« Depuis mes e-mails » n'est pas de l'IA côté OpenContact.** L'app ne rédige
+rien et n'appelle personne : elle te donne une consigne à copier, tu la portes
+à l'assistant de ton choix — celui de ton téléphone, un onglet ouvert, ce que
+tu veux — et tu recolles la réponse. Aucune clé, aucun compte, aucun réseau au
+démarrage : c'est du texte qui fait l'aller-retour dans le presse-papier. Elle
+passe la question ① sans réserve et **reste de partout**.
+
+**Le brouillon IA par clé navigateur est reporté** *(décision du 2 août 2026,
+après un aller-retour)*. Il passait la question ① — aucune installation, c'est
+la clé de l'utilisateur qui porte le coût — mais il demande à l'utilisateur de
+comprendre ce qu'est une clé d'API avant d'en tirer quoi que ce soit. Reporté
+par **choix de périmètre**, donc : le jour où il revient, il revient **ici**,
+jamais sur la surface ordinateur.
 
 **L'envoi direct reste reporté** au titre de la question ② : il engage le
 mainteneur dans une déclaration chez Google et Microsoft. L'option « je colle

@@ -2,7 +2,7 @@
    parcours Compagnon mobile honnête, relais avancés accessibles, cibles au
    pouce, contact sans doublon et fournisseurs IA non livrés non activables. */
 import { chromium, chromiumPath, SHOTS, serveRepo, attendre } from './outils.mjs';
-import { COMPAGNON } from '../../ui/perimetre.js';
+import { COMPAGNON, IA } from '../../ui/perimetre.js';
 
 const { server, base } = await serveRepo();
 const browser = await chromium.launch({ executablePath: chromiumPath() });
@@ -212,44 +212,60 @@ if (COMPAGNON){
 }
 console.log('Depuis mes e-mails : consigne mobile réalisable ✓');
 
-/* F6 IA : les options livrées sont nommées comme telles ; les adaptateurs
-   encore absents restent visibles mais impossibles à activer. La page propre
-   du scénario précédent reste indépendante du test réseau. */
+/* F6 IA : le branchement par clé n'est proposé que si `IA` est allumé, et
+   seules les familles JOIGNABLES y figurent — une famille qui passe par
+   l'ordinateur n'apparaît qu'avec cette surface (loi #6). Éteint, ce n'est
+   pas un trou à ignorer : on vérifie l'INVERSE, c'est-à-dire que la ligne a
+   bien quitté les réglages. La page propre du scénario précédent reste
+   indépendante du test réseau. */
 const aiPage = receivePage;
 await aiPage.evaluate(async () => (await import('./ui/dom.js')).topSheet()?.close());
-await aiPage.evaluate(async () => {
-  const st = await import('./engine/storage.js');
-  await st.kvInit();
-  const { createVault, makeVaultPhrase } = await import('./engine/vault.js');
-  const made = await createVault('280941', makeVaultPhrase(), { iter: 15000 });
-  await st.kvSet(st.VAULT_KEY, JSON.stringify(made.meta));
-});
-await aiPage.reload({ waitUntil: 'load' });
-await aiPage.waitForSelector('.lock .pad-k');
-await tapIn(aiPage, '.lock', '280941');
-await aiPage.waitForFunction(() => !document.querySelector('.lock'));
-await aiPage.evaluate(() => { import('./ui/connexions.js').then(m => m.openAssistantIA()); });
-await aiPage.waitForSelector('#rqPad .pad-k');
-await tapIn(aiPage, '#rqPad', '280941');
-await aiPage.waitForSelector('[data-ai="gemini"]');
-/* depuis P6-3, TOUTES les familles sont réelles : chacune dit son
-   chemin (« ici » ou « via ton ordinateur »), aucune n'est grisée
-   et « pas encore disponible » a disparu pour de bon */
-const aiUi = await aiPage.evaluate(() => ({
-  gemini: document.querySelector('[data-ai="gemini"]').textContent,
-  openai: document.querySelector('[data-ai="openai"]').textContent,
-  ollama: document.querySelector('[data-ai="ollama"]').textContent,
-  openaiDisabled: document.querySelector('[data-ai="openai"]').disabled,
-  ollamaDisabled: document.querySelector('[data-ai="ollama"]').disabled
-}));
-if (!/Clé API · ici/.test(aiUi.gemini) || !/via ton ordinateur/.test(aiUi.openai)
-    || !/via ton ordinateur/.test(aiUi.ollama)
-    || aiUi.openaiDisabled || aiUi.ollamaDisabled
-    || /pas encore disponible/.test(JSON.stringify(aiUi)))
-  fail('disponibilité IA ambiguë : ' + JSON.stringify(aiUi));
-console.log('connexions IA : chaque famille dit son chemin, aucune grisée ✓');
-await aiPage.waitForTimeout(350);
-await aiPage.screenshot({ path: SHOTS + '/82-ux-ia-disponibilite.png' });
+if (IA){
+  await aiPage.evaluate(async () => {
+    const st = await import('./engine/storage.js');
+    await st.kvInit();
+    const { createVault, makeVaultPhrase } = await import('./engine/vault.js');
+    const made = await createVault('280941', makeVaultPhrase(), { iter: 15000 });
+    await st.kvSet(st.VAULT_KEY, JSON.stringify(made.meta));
+  });
+  await aiPage.reload({ waitUntil: 'load' });
+  await aiPage.waitForSelector('.lock .pad-k');
+  await tapIn(aiPage, '.lock', '280941');
+  await aiPage.waitForFunction(() => !document.querySelector('.lock'));
+  await aiPage.evaluate(() => { import('./ui/connexions.js').then(m => m.openAssistantIA()); });
+  await aiPage.waitForSelector('#rqPad .pad-k');
+  await tapIn(aiPage, '#rqPad', '280941');
+  await aiPage.waitForSelector('[data-ai="gemini"]');
+  /* Chaque famille présente dit son chemin, et aucune n'est grisée : une
+     option qu'on ne peut pas activer ne s'affiche pas du tout. */
+  const aiUi = await aiPage.evaluate(() => {
+    const fam = {};
+    for (const b of document.querySelectorAll('[data-ai]'))
+      fam[b.dataset.ai] = { txt: b.textContent, off: !!b.disabled };
+    return fam;
+  });
+  const viaPC = ['openai', 'ollama'].filter(k => aiUi[k]);
+  if (!aiUi.gemini || !/Clé API · ici/.test(aiUi.gemini.txt))
+    fail('famille joignable mal nommée : ' + JSON.stringify(aiUi));
+  if (Object.values(aiUi).some(f => f.off) || /pas encore disponible/.test(JSON.stringify(aiUi)))
+    fail('une famille est proposée sans pouvoir répondre : ' + JSON.stringify(aiUi));
+  if (COMPAGNON ? viaPC.some(k => !/via ton ordinateur/.test(aiUi[k].txt))
+                : viaPC.length)
+    fail('familles « via ton ordinateur » incohérentes avec la surface : ' + JSON.stringify(aiUi));
+  console.log('connexions IA : chaque famille dit son chemin, aucune grisée ✓');
+  await aiPage.waitForTimeout(350);
+  await aiPage.screenshot({ path: SHOTS + '/82-ux-ia-disponibilite.png' });
+} else {
+  await aiPage.goto(base + '/#/moi', { waitUntil: 'load' });
+  /* sur téléphone, Réglages est le 2ᵉ écran de « Moi » (la porte #20) */
+  await aiPage.click('#moiReglages');
+  await aiPage.waitForSelector('#moiVerrou');
+  const moiTxt = await aiPage.locator('#view-moi').innerText();
+  if (await aiPage.$('#moiAi')) fail('hors périmètre, la ligne « Mon assistant IA » subsiste');
+  if (/assistant IA|clé API/i.test(moiTxt))
+    fail('hors périmètre, les réglages nomment encore l’IA : ' + moiTxt.slice(0, 260));
+  console.log('hors périmètre : aucune ligne « Mon assistant IA » dans les réglages ✓');
+}
 
 console.log(errors.length ? 'Erreurs console : ' + errors.join(' | ') : 'Zéro erreur console.');
 if (errors.length) process.exitCode = 1;
