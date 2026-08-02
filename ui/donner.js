@@ -96,7 +96,7 @@ export function openDonner(){
       zone.hidden = false;
       zone.innerHTML =
         `<div class="listbar"><button class="linklike" id="dnAll">${unsel.size ? 'Tout cocher' : 'Tout décocher'}</button>${affinerBtnHTML(ft, st)}</div>
-         <div class="pick-list">
+         <div class="pick-list pk-inverse">
            ${list.map(c =>
              `<div class="pk-duo">
                 <button class="pick pk${unsel.has(c.id) ? '' : ' on'}" data-id="${c.id}" aria-pressed="${!unsel.has(c.id)}">

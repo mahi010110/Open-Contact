@@ -58,7 +58,7 @@ export function openWhoPicker(c, keep, o){
   });
   const render = () => {
     sh.body.innerHTML =
-      `<div class="pick-list">
+      `<div class="pick-list pk-inverse">
          ${cts.map(t =>
            `<button class="pick pk${keep.has(t.id) ? ' on' : ''}" data-ct="${esc(t.id)}" aria-pressed="${keep.has(t.id)}">
               ${ic('checkbox', 'ic-20 ic-off')}${ic('checkbox-on', 'ic-20 ic-on')}

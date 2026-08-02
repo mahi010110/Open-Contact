@@ -1160,6 +1160,22 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 .pk.on .pk-m b{color:var(--select-text)}
 .pk.on .pk-m span{color:var(--select-text);opacity:.75}
 .pk.on .ic-on{color:var(--select-text)}
+/* ---- listes dont le défaut est « TOUT coché » ----
+   Donner, le partage en groupe, les personnes visées, une proposition
+   d'IA à trier : on part de tout retenu et l'on élague. L'aplat de
+   sélection couvrait alors la liste ENTIÈRE — au flou, un bloc uniforme
+   qui n'apprend rien, alors que la seule chose qui varie est l'écart.
+   C'est donc lui qui se marque : la ligne écartée s'éteint et se dithère,
+   la ligne retenue redevient calme. La case à cocher, elle, ne change
+   pas — elle reste le signe de l'état, et rien d'autre ne bouge.
+   Les listes qui partent de RIEN coché (Prospecter) gardent l'aplat :
+   là, c'est le choix qui est rare, donc c'est lui qui mérite l'encre. */
+.pk-inverse .pk.on{background:none}
+.pk-inverse .pk.on .pk-m b{color:var(--text-body)}
+.pk-inverse .pk.on .pk-m span{color:var(--text-muted);opacity:1}
+.pk-inverse .pk.on .ic-on{color:var(--accent)}
+.pk-inverse .pk:not(.on){background-image:var(--dither);color:var(--text-muted)}
+.pk-inverse .pk:not(.on) .pk-m b{color:var(--text-muted)}
 
 /* ============ ÉCHANGER : QR, SCAN, APERÇU, ANNULER ============ */
 .qr-wrap{

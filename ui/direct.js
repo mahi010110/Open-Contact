@@ -497,7 +497,7 @@ export function openPromo(){
          <button class="linklike" id="prPick" style="margin-top:6px">${choosing ? 'Replier la liste' : 'Choisir ce qui part…'}</button>
          ${choosing ? `<div class="listbar" style="margin-top:8px">
            <button class="linklike" id="prAll">${unsel.size ? 'Tout cocher' : 'Tout décocher'}</button>${affinerBtnHTML(ft, st)}</div>
-         <div class="pick-list">
+         <div class="pick-list pk-inverse">
            ${listed().map(c =>
              `<div class="pk-duo">
                 <button class="pick pk${unsel.has(c.id) ? '' : ' on'}" data-id="${c.id}" aria-pressed="${!unsel.has(c.id)}">
