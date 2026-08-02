@@ -13,12 +13,13 @@
    à TAPER au clavier sur un téléphone, alors que la date, elle, avait ses
    raccourcis. Sans rien saisir, l'action devenait « Faire le point » :
    une semaine plus tard, l'étudiant lit ça et ne sait plus ce qu'il
-   voulait dire. Trois verbes selon l'état de la piste — c'est un tap, et
-   surtout c'est un libellé qui veut dire quelque chose.
+   voulait dire.
 
-   L'ordre compte : le premier est le plus probable, et c'est celui que
-   l'œil prend. Le champ libre reste : ces verbes proposent, ils
-   n'enferment pas. */
+   L'ORDRE EST LE CONTRAT : le premier est le plus probable, c'est lui que
+   l'interface pose d'office dans le champ — l'utilisateur n'a donc rien à
+   lire ni à choisir, il lit et tape une date. Les suivants ne s'offrent
+   que s'il vient toucher le champ (liste native). Le texte libre reste
+   maître : ces verbes proposent, ils n'enferment pas. */
 const VERBES = {
   todo:   ['Envoyer la candidature', 'Trouver un contact', 'Appeler'],
   active: ['Relancer', 'Appeler', 'Repasser sur place'],

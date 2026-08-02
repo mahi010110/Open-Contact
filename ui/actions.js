@@ -43,26 +43,32 @@ function bindDateOk(root, inputSel, okSel, pick){
 export function askNextAction(c, opts){
   opts = opts || {};
   const choix = dateChoices();
+  /* « Quoi ? » est DÉJÀ RÉPONDU quand on peut le deviner. Trois boutons
+     de verbes posés sous le champ ressemblaient à des actions alors
+     qu'ils ne faisaient que le remplir : il fallait les lire, comprendre
+     ce qu'ils font, puis en choisir un. Le service rendu est le même
+     sans rien montrer — le champ arrive rempli du verbe le plus probable
+     pour l'état de la piste, les autres vivent dans la liste native du
+     champ (`datalist`), qui n'apparaît que si l'on vient y toucher.
+     Cas courant : lire, taper une date, fini. Zéro clavier, zéro lecture
+     de plus, et plus jamais « Faire le point » enregistré par défaut. */
   const verbes = nextActionSuggestions(c);
+  const valeur = opts.preset != null ? opts.preset : (c.nextActionText || verbes[0] || '');
   const sh = openSheet({
     title: opts.title || 'Prochaine action ?',
     icon: 'calendar',
-    focus: '#naTxt',
+    /* on ne vole le focus — donc on n'ouvre le clavier — que s'il reste
+       vraiment quelque chose à saisir */
+    focus: valeur ? null : '#naTxt',
     onClose: () => { if (opts.onDone) opts.onDone(); }
   });
   sh.body.innerHTML =
     `<div class="na-company">${esc(c.name)}</div>
      <div class="field"><label for="naTxt">Quoi ?</label>
-       <input id="naTxt" value="${esc(opts.preset != null ? opts.preset : (c.nextActionText || ''))}"
+       <input id="naTxt" value="${esc(valeur)}" list="naSug"
               placeholder="Ex : Relancer le RH" autocomplete="off">
-       ${/* les verbes AVANT le clavier : un tap remplit le champ, il ne
-            valide pas — c'est toujours la date qui referme la feuille.
-            Taper au pouce est le geste le plus lent de l'application. */''}
-       ${verbes.length
-         ? `<div class="vchips" role="group" aria-label="Verbes proposés">
-              ${verbes.map((v, i) => `<button class="dchip vchip" data-v="${i}">${esc(v)}</button>`).join('')}
-            </div>`
-         : ''}</div>
+       <datalist id="naSug">${verbes.map(v => `<option value="${esc(v)}"></option>`).join('')}</datalist>
+     </div>
      <div class="field"><label id="naWhen">Quand ?</label>
        <div class="datechips" role="group" aria-labelledby="naWhen">
          ${/* le jour SOUS le raccourci : « +3 jours » oblige à compter,
@@ -91,16 +97,6 @@ export function askNextAction(c, opts){
     toast('Noté : ' + txt + ' — ' + frDate(iso));
     bus.refresh();
   };
-  /* un verbe REMPLIT, il ne valide pas : la feuille pose deux questions
-     et c'est la seconde qui referme — sinon un tap sur « Relancer »
-     enregistrerait une action sans date */
-  const champ = sh.body.querySelector('#naTxt');
-  sh.body.querySelectorAll('.vchip').forEach(b =>
-    b.addEventListener('click', () => {
-      champ.value = verbes[+b.dataset.v];
-      sh.body.querySelectorAll('.vchip').forEach(x => x.classList.toggle('on', x === b));
-      champ.focus();
-    }));
   sh.body.querySelectorAll('.dchip-d').forEach(b =>
     b.addEventListener('click', () => pick(choix[+b.dataset.i][1])));
   /* la date précise se VALIDE : sur mobile, la roue déclenche des

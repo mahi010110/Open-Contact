@@ -1023,16 +1023,6 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 }
 .dchip-d span{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
 .dchip-d.on span{color:var(--on-accent);opacity:.8}
-/* les verbes proposés, sous le champ : ils REMPLISSENT, ils ne valident
-   pas — d'où un poids plus léger que les raccourcis de date, qui eux
-   referment la feuille. Ils ne s'étirent pas non plus : un verbe court
-   ne doit pas occuper la largeur d'un verbe long. */
-.vchips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
-.vchip{
-  flex:0 0 auto;min-height:var(--ctl);padding:0 11px;
-  font-size:var(--text-12);font-weight:var(--weight-medium);
-  box-shadow:var(--bevel-up);
-}
 .pick-list{display:flex;flex-direction:column;gap:7px}
 .pick{
   display:flex;align-items:center;justify-content:space-between;gap:10px;
