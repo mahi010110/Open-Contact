@@ -225,6 +225,37 @@ html[data-theme="dark"] .field select{
 /* barre au-dessus d'une liste de choix (tri dans les feuilles) */
 .listbar{display:flex;align-items:center;gap:8px;margin-bottom:10px}
 .listbar .linklike,.listbar>span{flex:1;min-width:0}
+/* Les deux commandes d'une liste — « Tout » et « Affiner » — sont des
+   SŒURS : même poids, même grammaire, aux deux bouts de la barre. Elles
+   commandent la liste, elles ne rivalisent pas avec elle : pas de cadre,
+   pas de biseau, l'encre de la métadonnée. Un cadre revient uniquement
+   quand la commande PORTE quelque chose (un filtre actif), jamais parce
+   qu'elle existe. Elles gardent 44 px de haut : légères à l'œil, pleines
+   sous le pouce. */
+.lb-act{
+  display:inline-flex;align-items:center;gap:6px;flex:none;
+  min-height:var(--ctl);padding:0 8px;
+  background:none;border:1px solid transparent;border-radius:var(--radius-1);
+  font:inherit;font-size:var(--text-12);font-weight:var(--weight-semibold);
+  color:var(--text-muted);cursor:pointer;text-align:left;
+}
+.lb-act:first-child{margin-left:-8px}      /* le mot s'aligne sur la liste */
+.listbar>.lb-act:last-child{margin-left:auto;margin-right:-8px}
+.lb-act .ic{flex:none}
+.lb-act:hover{color:var(--text-link)}
+.lb-act[aria-pressed="true"]{color:var(--accent)}
+.lb-act[aria-pressed="true"] .ic{color:var(--accent)}
+.lb-act.on{
+  color:var(--accent);border-color:var(--accent);background:var(--teal-wash);
+  margin-right:0;
+}
+/* le repli d'une liste : le mot se fige, le chevron tourne. « Choisir »
+   qui devient « Replier » sur la même cible oblige à relire pour savoir
+   où l'on en est — l'état appartient au signe, pas au libellé. */
+.lb-fold .ic{transition:transform var(--dur-1) var(--ease-out)}
+.lb-fold[aria-expanded="true"]{color:var(--accent)}
+.lb-fold[aria-expanded="true"] .ic{transform:rotate(180deg);color:var(--accent)}
+@media (prefers-reduced-motion:reduce){.lb-fold .ic{transition:none}}
 /* feuille « Trier » : la pile des niveaux (principal + départages) */
 /* puces d'état sous la recherche (#8) — la croix enlève, la puce de tri
    s'inverse au tap ; le sens vit dans la puce */
@@ -988,6 +1019,16 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 }
 .dchip-d span{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
 .dchip-d.on span{color:var(--on-accent);opacity:.8}
+/* les verbes proposés, sous le champ : ils REMPLISSENT, ils ne valident
+   pas — d'où un poids plus léger que les raccourcis de date, qui eux
+   referment la feuille. Ils ne s'étirent pas non plus : un verbe court
+   ne doit pas occuper la largeur d'un verbe long. */
+.vchips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.vchip{
+  flex:0 0 auto;min-height:var(--ctl);padding:0 11px;
+  font-size:var(--text-12);font-weight:var(--weight-medium);
+  box-shadow:var(--bevel-up);
+}
 .pick-list{display:flex;flex-direction:column;gap:7px}
 .pick{
   display:flex;align-items:center;justify-content:space-between;gap:10px;

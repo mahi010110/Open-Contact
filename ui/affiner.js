@@ -83,9 +83,22 @@ export function openAffinerSheet(ft, st, o, onChange){
 
 /* le bouton des feuilles : l'entonnoir, et le compte de ce qui est
    actif — pas d'étiquettes, la place va à la liste */
-export function affinerBtnHTML(ft, st){
+/* Le même contrôle a deux poids, selon l'endroit. Sur la PAGE « Mes
+   pistes » il est un bouton posé à côté de la recherche : il tient sa
+   place dans une barre d'outils. Dans une FEUILLE de sélection il
+   surplombait la liste en boîte biseautée de 44 px pour un glyphe de
+   14 — un cadre presque vide, plus lourd que les lignes qu'il commande.
+   Il y prend donc le poids de son voisin (« Tout »), et ne redevient un
+   objet encadré que lorsqu'il filtre vraiment : l'encre va à ce qui
+   change, pas à ce qui est toujours là. */
+export function affinerBtnHTML(ft, st, o){
   const n = affineCount(ft, st);
   const lbl = n ? `Affiner — ${n} actif${n > 1 ? 's' : ''}` : 'Affiner';
+  if (o && o.leger)
+    return (
+      `<button class="lb-act${n ? ' on' : ''}" data-affiner
+               aria-label="${lbl}" title="${lbl}">${ic('filter', 'ic-14')}<span>Affiner</span>${
+        n ? `<span class="af-n">${n}</span>` : ''}</button>`);
   return (
     `<button class="btn icon-btn${n ? ' sort-on af-btn' : ''}" data-affiner
              aria-label="${lbl}" title="${lbl}">${ic('filter', 'ic-14')}${

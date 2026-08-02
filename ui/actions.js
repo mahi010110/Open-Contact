@@ -9,6 +9,7 @@ import { CLOSE_REASONS } from '../engine/model.js';
 import { bus, setNextAction, closePiste } from './state.js';
 import { openSheet, toast, ic, btn } from './dom.js';
 import { plusDaysISO, nextMondayISO, frDate } from './dates.js';
+import { nextActionSuggestions } from '../engine/assist.js';
 
 const DATE_CHOICES = [
   ['Demain', () => plusDaysISO(1)],
@@ -42,6 +43,7 @@ function bindDateOk(root, inputSel, okSel, pick){
 export function askNextAction(c, opts){
   opts = opts || {};
   const choix = dateChoices();
+  const verbes = nextActionSuggestions(c);
   const sh = openSheet({
     title: opts.title || 'Prochaine action ?',
     icon: 'calendar',
@@ -52,7 +54,15 @@ export function askNextAction(c, opts){
     `<div class="na-company">${esc(c.name)}</div>
      <div class="field"><label for="naTxt">Quoi ?</label>
        <input id="naTxt" value="${esc(opts.preset != null ? opts.preset : (c.nextActionText || ''))}"
-              placeholder="Ex : Relancer le RH" autocomplete="off"></div>
+              placeholder="Ex : Relancer le RH" autocomplete="off">
+       ${/* les verbes AVANT le clavier : un tap remplit le champ, il ne
+            valide pas — c'est toujours la date qui referme la feuille.
+            Taper au pouce est le geste le plus lent de l'application. */''}
+       ${verbes.length
+         ? `<div class="vchips" role="group" aria-label="Verbes proposés">
+              ${verbes.map((v, i) => `<button class="dchip vchip" data-v="${i}">${esc(v)}</button>`).join('')}
+            </div>`
+         : ''}</div>
      <div class="field"><label id="naWhen">Quand ?</label>
        <div class="datechips" role="group" aria-labelledby="naWhen">
          ${/* le jour SOUS le raccourci : « +3 jours » oblige à compter,
@@ -81,7 +91,17 @@ export function askNextAction(c, opts){
     toast('Noté : ' + txt + ' — ' + frDate(iso));
     bus.refresh();
   };
-  sh.body.querySelectorAll('.dchip').forEach(b =>
+  /* un verbe REMPLIT, il ne valide pas : la feuille pose deux questions
+     et c'est la seconde qui referme — sinon un tap sur « Relancer »
+     enregistrerait une action sans date */
+  const champ = sh.body.querySelector('#naTxt');
+  sh.body.querySelectorAll('.vchip').forEach(b =>
+    b.addEventListener('click', () => {
+      champ.value = verbes[+b.dataset.v];
+      sh.body.querySelectorAll('.vchip').forEach(x => x.classList.toggle('on', x === b));
+      champ.focus();
+    }));
+  sh.body.querySelectorAll('.dchip-d').forEach(b =>
     b.addEventListener('click', () => pick(choix[+b.dataset.i][1])));
   /* la date précise se VALIDE : sur mobile, la roue déclenche des
      `change` intermédiaires — fermer au premier aurait pris la mauvaise date */

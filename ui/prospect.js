@@ -65,10 +65,14 @@ export function openProspect(){
     sh.close();
     chooseMode(pairs);
   });
+  /* la case « Tout » PORTE l'état : elle doit donc suivre chaque tap
+     individuel, sinon elle affiche un état périmé dès la seconde ligne */
+  let syncAll = () => {};
   const sync = () => {
     const n = nWho();
     bGo.textContent = n ? `Continuer (${n})` : 'Continuer';
     bGo.classList.toggle('btn-off', !n);
+    syncAll();
   };
 
   /* choisir les personnes d'une piste — le composant partagé */
@@ -84,8 +88,14 @@ export function openProspect(){
     const list = filterCompanies(alive(), { ...filterArgs(ft), ...sortArgs(st) });
     sh.body.innerHTML =
       `<div class="listbar">
-         <button class="linklike" id="pkAll">${sel.size ? 'Tout décocher' : 'Tout cocher'}</button>
-         ${affinerBtnHTML(ft, st)}
+         ${/* le mot ne bascule plus : c'est la CASE qui porte l'état, comme
+              sur chaque ligne en dessous. « Tout cocher » devenant « Tout
+              décocher » d'un tap, la cible changeait de nom sous le doigt
+              et le regard devait relire pour savoir où il en était. */''}
+         <button class="lb-act" id="pkAll" aria-pressed="${!!sel.size}">
+           ${ic(sel.size ? 'checkbox-on' : 'checkbox', 'ic-14')}<span>Tout</span>
+         </button>
+         ${affinerBtnHTML(ft, st, { leger: true })}
        </div>
        <div class="pick-list">
          ${list.map(c =>
@@ -101,6 +111,12 @@ export function openProspect(){
               ${whoLineHTML(c, keepOf(c), 'ecrire')}
             </div>`).join('')}
        </div>`;
+    const bAll = sh.body.querySelector('#pkAll');
+    syncAll = () => {
+      const tout = list.length > 0 && list.every(c => sel.has(c.id));
+      bAll.setAttribute('aria-pressed', tout);
+      bAll.innerHTML = ic(tout ? 'checkbox-on' : 'checkbox', 'ic-14') + '<span>Tout</span>';
+    };
     sh.body.querySelectorAll('.pk').forEach(b =>
       b.addEventListener('click', () => {
         const id = b.dataset.id;

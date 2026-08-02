@@ -8,6 +8,30 @@
    Fonctions pures, aucun accès au DOM ni au réseau.
    ============================================================ */
 
+/* ---------- les verbes qu'on propose pour la prochaine action ----------
+   Le geste le plus répété de l'app — « Fait ✓ → et ensuite ? » — obligeait
+   à TAPER au clavier sur un téléphone, alors que la date, elle, avait ses
+   raccourcis. Sans rien saisir, l'action devenait « Faire le point » :
+   une semaine plus tard, l'étudiant lit ça et ne sait plus ce qu'il
+   voulait dire. Trois verbes selon l'état de la piste — c'est un tap, et
+   surtout c'est un libellé qui veut dire quelque chose.
+
+   L'ordre compte : le premier est le plus probable, et c'est celui que
+   l'œil prend. Le champ libre reste : ces verbes proposent, ils
+   n'enferment pas. */
+const VERBES = {
+  todo:   ['Envoyer la candidature', 'Trouver un contact', 'Appeler'],
+  active: ['Relancer', 'Appeler', 'Repasser sur place'],
+  reply:  ['Répondre', 'Préparer l’entretien', 'Envoyer le CV']
+};
+export function nextActionSuggestions(c){
+  const base = VERBES[(c && c.status) || 'todo'] || VERBES.todo;
+  /* ne jamais proposer le libellé DÉJÀ posé : le tap ne changerait rien
+     (règle : un filtre qui ne peut rien filtrer coûte un tap) */
+  const dejaLa = String((c && c.nextActionText) || '').trim().toLowerCase();
+  return base.filter(v => v.toLowerCase() !== dejaLa);
+}
+
 /* ---------- priorisation locale des relances ----------
    Une piste « à relancer » = une prochaine action datée aujourd'hui
    ou passée. On classe par retard (le plus en retard d'abord), puis

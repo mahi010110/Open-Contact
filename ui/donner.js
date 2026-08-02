@@ -78,7 +78,9 @@ export function openDonner(){
        </div>
        <div class="dn-what">
          <span class="dn-count" id="dnCount"></span>
-         <button class="linklike" id="dnPick"></button>
+         <button class="lb-act lb-fold" id="dnPick" aria-expanded="false">
+           <span>Choisir</span>${ic('chevron-down', 'ic-14')}
+         </button>
        </div>
        <div id="dnList" hidden></div>`;
     const syncCount = () => {
@@ -87,7 +89,17 @@ export function openDonner(){
       const cut = cutCount();
       q('#dnCount').textContent = (k === t ? k : k + ' / ' + t) + ' piste' + (t > 1 ? 's' : '') +
         (cut ? ' · ' + cut + ' personne' + (cut > 1 ? 's' : '') + ' écartée' + (cut > 1 ? 's' : '') : '');
-      q('#dnPick').textContent = choosing ? 'Replier' : 'Choisir…';
+      /* le mot ne bascule plus — « Choisir » puis « Replier » sur la même
+         cible obligeait à relire pour savoir où l'on en était. Le chevron
+         dit l'état, comme partout ailleurs dans l'app. */
+      q('#dnPick').setAttribute('aria-expanded', choosing);
+      /* la case « Tout » porte l'état : elle suit chaque tap individuel */
+      const bAll = q('#dnAll');
+      if (bAll){
+        const tout = !unsel.size;
+        bAll.setAttribute('aria-pressed', tout);
+        bAll.innerHTML = ic(tout ? 'checkbox-on' : 'checkbox', 'ic-14') + '<span>Tout</span>';
+      }
     };
     const renderList = () => {
       const zone = q('#dnList');
@@ -95,7 +107,10 @@ export function openDonner(){
       const list = filterCompanies(alive(), { ...filterArgs(ft), ...sortArgs(st) });
       zone.hidden = false;
       zone.innerHTML =
-        `<div class="listbar"><button class="linklike" id="dnAll">${unsel.size ? 'Tout cocher' : 'Tout décocher'}</button>${affinerBtnHTML(ft, st)}</div>
+        `<div class="listbar">
+           <button class="lb-act" id="dnAll" aria-pressed="${!unsel.size}">
+             ${ic(unsel.size ? 'checkbox' : 'checkbox-on', 'ic-14')}<span>Tout</span>
+           </button>${affinerBtnHTML(ft, st, { leger: true })}</div>
          <div class="pick-list pk-inverse">
            ${list.map(c =>
              `<div class="pk-duo${unsel.has(c.id) ? ' pk-out' : ''}">

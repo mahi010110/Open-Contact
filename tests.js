@@ -37,7 +37,7 @@ import { DAILY_CAP, buildCampaign, dueSends, dueSendsAll, sentTodayAll,
          pauseCampaign, resumeCampaign, stopCampaign, campaignStats,
          inSendWindow, addDays as cAddDays } from './engine/campaign.js';
 import { buildMime, encodeHeader, toB64Url, authUrl, parseCallback, pkcePair } from './engine/mailer.js';
-import { dueFollowups, contactFromSignature, exchangeLog, exchangeTotals } from './engine/assist.js';
+import { dueFollowups, contactFromSignature, exchangeLog, exchangeTotals, nextActionSuggestions } from './engine/assist.js';
 import { makeMission, missionUsable, revokeMission, foldCampaignReport,
          signMission, openMissionWire } from './engine/mission.js';
 import { normCode, pairKey } from './engine/companion.js';
@@ -922,6 +922,23 @@ export async function runSelfTests(){
       ];
       eq(dueFollowups(comps, '2026-07-16').map(x => x.id), ['c1', 'c2', 'c3']);
       eq(dueFollowups(comps, '2026-07-16')[0].lateDays, 15);
+    },
+    /* Les verbes proposés après « Fait ✓ » : ils suivent l'état de la
+       piste, et ne reproposent jamais celui qui est déjà posé — un tap
+       qui ne change rien est un tap volé. */
+    'aides : les verbes proposés suivent l’état de la piste': () => {
+      const v = s => nextActionSuggestions({ status: s });
+      ok(v('todo')[0] === 'Envoyer la candidature', 'à contacter : envoyer d’abord');
+      ok(v('active')[0] === 'Relancer', 'en cours : relancer d’abord');
+      ok(v('reply')[0] === 'Répondre', 'réponse : répondre d’abord');
+      ok(v('todo').length === 3 && v('active').length === 3, 'trois verbes, pas plus');
+      /* un état inconnu (ancienne donnée, format futur) ne casse rien */
+      ok(nextActionSuggestions({ status: 'zzz' }).length === 3, 'état inconnu : le défaut');
+      ok(nextActionSuggestions(null).length === 3, 'aucune piste : le défaut');
+      /* déjà « Relancer » posé : on ne le repropose pas */
+      const dup = nextActionSuggestions({ status: 'active', nextActionText: '  relancer ' });
+      ok(!dup.some(x => x.toLowerCase() === 'relancer'), 'le libellé déjà posé disparaît');
+      ok(dup.length === 2, 'les deux autres restent');
     },
     /* « Échanger » relit le journal pour montrer ce qui a circulé. Les
        phrases de logJ deviennent donc un contrat : si l'une d'elles
