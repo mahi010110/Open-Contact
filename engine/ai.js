@@ -80,6 +80,15 @@ export async function aiListModels(conn){
    proposé (jamais envoyé). model optionnel (défaut raisonnable). */
 export async function aiComplete(conn, prompt, opts){
   opts = opts || {};
+  /* un fournisseur qui ne répond pas laissait le bouton sur « L'IA rédige… »
+     indéfiniment : `fetch` n'a aucune échéance par défaut */
+  const stop = new AbortController();
+  const minuteur = setTimeout(() => stop.abort(), opts.timeoutMs || 60000);
+  try { return await appel(conn, prompt, opts, stop.signal); }
+  catch (e) { throw (e && e.name === 'AbortError') ? new Error('indispo') : e; }
+  finally { clearTimeout(minuteur); }
+}
+async function appel(conn, prompt, opts, signal){
   const provider = conn.provider;
   const fam = AI_FAMILIES[provider];
   if (!fam || fam.channel !== 'browser') throw new Error('viacompagnon');
@@ -96,6 +105,7 @@ export async function aiComplete(conn, prompt, opts){
         'anthropic-version': '2023-06-01',
         'anthropic-dangerous-direct-browser-access': 'true'
       },
+      signal,
       body: JSON.stringify({
         model, max_tokens: maxTokens,
         system: opts.system || '',
@@ -113,6 +123,7 @@ export async function aiComplete(conn, prompt, opts){
         'content-type': 'application/json',
         'authorization': 'Bearer ' + conn.key
       },
+      signal,
       body: JSON.stringify({
         model, max_tokens: maxTokens,
         messages: (opts.system ? [{ role: 'system', content: opts.system }] : [])
@@ -128,7 +139,7 @@ export async function aiComplete(conn, prompt, opts){
     const url = 'https://generativelanguage.googleapis.com/v1beta/models/' +
       encodeURIComponent(model) + ':generateContent?key=' + encodeURIComponent(conn.key);
     const r = await fetch(url, {
-      method: 'POST', headers: { 'content-type': 'application/json' },
+      method: 'POST', headers: { 'content-type': 'application/json' }, signal,
       body: JSON.stringify({
         systemInstruction: opts.system ? { parts: [{ text: opts.system }] } : undefined,
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
@@ -144,18 +155,49 @@ export async function aiComplete(conn, prompt, opts){
 }
 
 /* le prompt d'un brouillon d'email — cadré, concret, sans fioriture.
-   L'IA reçoit le contexte de la piste, pas les données privées de suivi. */
+
+   L'IA reçoit **la vue partageable** de la piste : ce qui part déjà dans un
+   `.oc` vers un camarade (nom, ville, secteur, description, technos, postes,
+   process, conseils). Jamais le suivi privé — ni statut, ni notes, ni
+   historique, ni prochaine action. C'est la décision du mainteneur, et elle
+   est plus stricte que l'invariant ① (qui ne parle que des partages).
+
+   Ce qui change vraiment la qualité et qui n'est PAS privé : l'intention
+   (« relance » plutôt que « première candidature »), que l'utilisateur a déjà
+   choisie en sélectionnant son modèle d'email, et les champs riches qu'il a
+   lui-même renseignés. Sans eux, l'IA écrivait toujours la même lettre. */
 export function draftPrompt(o){
   const c = o.company || {};
+  const bref = (v, n) => { const t = String(v || '').replace(/\s+/g, ' ').trim(); return t ? t.slice(0, n) : ''; };
+  const postes = Array.isArray(c.positions) && c.positions.length ? c.positions.join(', ') : '';
   const parts = [
-    'Rédige un email de candidature spontanée, court (120 mots max), en français, ton professionnel et direct, sans formules ampoulées.',
+    'Rédige un email en français, court (120 mots max), ton professionnel et direct, sans formules ampoulées.',
+    o.intent ? 'Type de message : ' + bref(o.intent, 60) + '.' : '',
     'Entreprise : ' + (c.name || '') + (c.city ? ' (' + c.city + ')' : '') + '.',
     c.domain ? 'Secteur : ' + c.domain + '.' : '',
-    c.desc ? 'À propos : ' + c.desc + '.' : '',
+    bref(c.desc, 400) ? 'À propos : ' + bref(c.desc, 400) + '.' : '',
+    bref(c.techs, 200) ? 'Technologies utilisées : ' + bref(c.techs, 200) + '.' : '',
+    postes ? 'Types de poste visés : ' + postes + '.' : '',
+    bref(c.process, 300) ? 'Leur processus de recrutement : ' + bref(c.process, 300) + '.' : '',
+    bref(c.tips, 300) ? 'À savoir : ' + bref(c.tips, 300) + '.' : '',
     o.contactName ? 'Destinataire : ' + o.contactName + (o.contactRole ? ', ' + o.contactRole : '') + '.' : '',
     o.profile && o.profile.name ? 'Expéditeur : ' + o.profile.name + (o.profile.formation ? ', ' + o.profile.formation : '') + '.' : '',
     o.goal ? 'Objectif : ' + o.goal + '.' : 'Objectif : décrocher un stage ou une alternance.',
-    'Ne mets pas d\'objet, seulement le corps. Ne signe pas avec des coordonnées inventées. Termine par le prénom de l\'expéditeur seulement.'
+    'Réponds EXACTEMENT sous cette forme, sans rien avant ni après :',
+    'Objet: <un objet court>',
+    '<ligne vide>',
+    '<le corps du message>',
+    'Ne signe pas avec des coordonnées inventées. Termine par le prénom de l\'expéditeur seulement.'
   ];
   return parts.filter(Boolean).join('\n');
+}
+
+/* Sépare « Objet: … » du corps. L'IA suit rarement un format à la lettre :
+   sans ligne d'objet reconnaissable, on rend le texte entier comme corps et
+   l'objet du modèle reste — jamais de perte, jamais d'objet inventé. */
+export function splitDraft(txt){
+  const t = String(txt || '').trim();
+  const m = /^\s*objet\s*:\s*(.+?)\s*(?:\n|$)/i.exec(t);
+  if (!m) return { subject: '', body: t };
+  return { subject: m[1].trim().slice(0, 200), body: t.slice(m[0].length).trim() };
 }

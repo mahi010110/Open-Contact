@@ -12,9 +12,9 @@ import { fillTpl, pushHist } from '../engine/model.js';
 import { sendMail } from '../engine/mailer.js';
 import { bytesToB64 } from '../engine/crypto.js';
 import { docGet } from '../engine/storage.js';
-import { aiComplete, draftPrompt } from '../engine/ai.js';
+import { aiComplete, draftPrompt, splitDraft } from '../engine/ai.js';
 import { S, bus, saveData, logJ, activateContact } from './state.js';
-import { openSheet, toast, btn, el, ic } from './dom.js';
+import { openSheet, toast, btn, el, ic, showUndo } from './dom.js';
 import { askNextAction } from './actions.js';
 import { openProfil } from './profil.js';
 import { listDocs, docKind, docTitle, pickPdf } from './docs.js';
@@ -212,14 +212,34 @@ export function openMail(c, opts){
     try {
       const ct = currentCt();
       const conn = aiConnection();
+      /* l'intention vient du modèle que l'utilisateur a DÉJÀ choisi juste
+         au-dessus : sans elle, une « Relance » produisait une première
+         candidature. C'est son propre choix, pas une donnée de suivi. */
+      const tpl = tpls[+q('#mTpl').value || 0];
       const prompt = draftPrompt({
-        company: c, contactName: ct && ct.name, contactRole: ct && ct.role, profile: S.profile
+        company: c, contactName: ct && ct.name, contactRole: ct && ct.role,
+        profile: S.profile, intent: tpl && tpl.name
       });
       const txt = conn && conn.channel === 'companion'
         ? await aiCompleteViaCompanion(conn, prompt, { cancelled: () => !sh.body.isConnected })
         : await aiComplete(conn, prompt);
       if (!sh.body.isConnected) return;   /* feuille fermée entre-temps */
-      if (txt){ q('#mBody').value = txt; sync(); toast('Brouillon proposé — relis avant d’envoyer.'); }
+      if (txt){
+        /* un brouillon écrase un texte que l'utilisateur a peut-être écrit :
+           c'est un geste lourd, il a droit à son Annuler (invariant ②) */
+        const avant = { subject: q('#mSubj').value, body: q('#mBody').value };
+        const { subject, body } = splitDraft(txt);
+        if (subject) q('#mSubj').value = subject;   /* sinon l'objet du modèle reste */
+        q('#mBody').value = body;
+        sync();
+        showUndo(`${ic('sparkles', 'ic-14')} Brouillon proposé — relis avant d’envoyer.`, () => {
+          if (!sh.body.isConnected) return;
+          q('#mSubj').value = avant.subject;
+          q('#mBody').value = avant.body;
+          sync();
+          toast('Ton texte est revenu.');
+        });
+      }
       else toast('L’IA n’a rien proposé — le modèle reste là.');
     } catch (e) {
       if (e.message === 'annule' || !sh.body.isConnected) return;   /* abandon voulu : silence */
