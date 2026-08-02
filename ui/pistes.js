@@ -21,6 +21,11 @@ import { openCapture } from './capture.js';
 import { openContactEditor, openAttach } from './contact.js';
 import { openProspect } from './prospect.js';
 import { campaignOfPiste, liveCampaignsCount, openCampaignsHome } from './campagnes.js';
+import { CAMPAGNES } from './perimetre.js';
+
+/* hors périmètre, aucune piste n'est « en campagne » — la question ne se
+   pose plus à l'écran, et « à planifier » reprend sa place (CLAUDE.md §0) */
+const enCampagne = cid => CAMPAGNES && !!campaignOfPiste(cid);
 
 let q = '';
 const st = sortState('recent');
@@ -74,9 +79,9 @@ function rowHTML(c){
   if (closed) bits.push('<b>' + CLOSE_REASONS[c.closedReason].label + '</b>');
   else {
     if (c.nextAction) bits.push('<b>' + esc(c.nextActionText || 'Faire le point') + '</b>');
-    else if (!campaignOfPiste(c.id)) bits.push('à planifier');
+    else if (!enCampagne(c.id)) bits.push('à planifier');
     bits.push(STATUSES[c.status].label);
-    if (campaignOfPiste(c.id)) bits.push('en campagne');
+    if (enCampagne(c.id)) bits.push('en campagne');
   }
   if (kmBit(c)) bits.push(kmBit(c));
   if (c.city) bits.push(esc(c.city));
@@ -94,7 +99,7 @@ function rowHTML(c){
 
 function cardHTML(c){
   const bits = [kmBit(c), c.city, c.domain !== 'autre' ? DOMAINS[c.domain].label : ''].filter(Boolean);
-  const inCamp = campaignOfPiste(c.id);
+  const inCamp = enCampagne(c.id);
   /* la carte du tableau porte la MÊME graduation que la ligne mobile :
      un seul langage d'urgence dans toute l'application */
   const na = c.nextAction
@@ -246,7 +251,7 @@ export function renderPistes(){
        <div class="td-head">
          <h2>Mes pistes</h2>
          <div class="td-date">${S.companies.length} piste${S.companies.length > 1 ? 's' : ''}</div>
-         ${nCamps ? `<button class="btn btn-sm" id="piCamps">${ic('flag', 'ic-14')} Campagnes (${nCamps})</button>` : ''}
+         ${(CAMPAGNES && nCamps) ? `<button class="btn btn-sm" id="piCamps">${ic('flag', 'ic-14')} Campagnes (${nCamps})</button>` : ''}
          ${nAlive ? `<button class="btn btn-sm" id="piProspect">${ic('mail', 'ic-14')} Prospecter</button>` : ''}
        </div>
        <div class="search-wrap">

@@ -19,6 +19,7 @@ import { askNextAction } from './actions.js';
 import { openProfil } from './profil.js';
 import { listDocs, docKind, docTitle, pickPdf } from './docs.js';
 import { mailAccount, freshToken, openConnexions, aiConnection, aiCompleteViaCompanion } from './connexions.js';
+import { IA, ENVOI_DIRECT } from './perimetre.js';
 
 export function openMail(c, opts){
   opts = opts || {};
@@ -42,7 +43,10 @@ export function openMail(c, opts){
     icon: 'mail', className: 'modal-compose', focus: cts.length ? '#mSubj' : '#mBody',
     onClose: () => { if (done) return; done = true; if (opts.onQuit) opts.onQuit(); }
   });
-  const acct = mailAccount();       /* messagerie connectée ? */
+  /* messagerie connectée ? Hors périmètre, la réponse est « non » et tout
+     le composeur retombe de lui-même sur `mailto:` — pied, pièce jointe,
+     raccourci clavier compris (CLAUDE.md §0). */
+  const acct = ENVOI_DIRECT ? mailAccount() : null;
   /* la personne choisie arrive pré-sélectionnée (#14) — jamais devinée */
   const initIdx = Math.max(0, cts.findIndex(t => t.id === opts.ctId));
   sh.body.innerHTML =
@@ -56,7 +60,7 @@ export function openMail(c, opts){
      </div>
      <div class="field"><label for="mSubj">Objet</label><input id="mSubj"></div>
      <div class="field fld-body"><label for="mBody">Message</label><textarea id="mBody"></textarea>
-       ${aiConnection() ? `<button class="linklike" id="mAi" style="margin-top:2px">${ic('sparkles', 'ic-14')} Proposer un brouillon</button>` : ''}</div>
+       ${(IA && aiConnection()) ? `<button class="linklike" id="mAi" style="margin-top:2px">${ic('sparkles', 'ic-14')} Proposer un brouillon</button>` : ''}</div>
      <div class="attach-line" id="mAttach"></div>
      <p class="hint" id="mHint"></p>`;
 
@@ -105,7 +109,9 @@ export function openMail(c, opts){
         '&body=' + encodeURIComponent(q('#mBody').value);
       q('#mHint').innerHTML = acct
         ? `Depuis <b>${esc(acct.email || 'ta messagerie')}</b> → ${esc(email)}`
-        : `Destinataire : ${esc(email)} <button class="linklike" id="mDirect" style="min-height:0;padding:0 4px">Envoyer directement depuis l’app ?</button>`;
+        : `Destinataire : ${esc(email)}` + (ENVOI_DIRECT
+            ? ` <button class="linklike" id="mDirect" style="min-height:0;padding:0 4px">Envoyer directement depuis l’app ?</button>`
+            : '');
       q('#mDirect')?.addEventListener('click', () => openConnexions());
     } else {
       aMail.removeAttribute('href');

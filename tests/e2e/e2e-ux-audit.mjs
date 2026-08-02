@@ -2,6 +2,7 @@
    parcours Compagnon mobile honnête, relais avancés accessibles, cibles au
    pouce, contact sans doublon et fournisseurs IA non livrés non activables. */
 import { chromium, chromiumPath, SHOTS, serveRepo, attendre } from './outils.mjs';
+import { COMPAGNON } from '../../ui/perimetre.js';
 
 const { server, base } = await serveRepo();
 const browser = await chromium.launch({ executablePath: chromiumPath() });
@@ -116,27 +117,39 @@ await page.waitForSelector('#toast.on');
 await page.evaluate(async () => (await import('./ui/direct.js')).openAppareils());
 await page.waitForSelector('.sy-relays');
 if (await page.$('#toast.on')) fail('un ancien toast recouvre la nouvelle feuille');
-/* la ligne dit l'ÉTAT, pas la phrase (même règle que la liste des
-   Réglages) : « pas installé · voir › ». Le chemin — c'est un logiciel
-   d'ordinateur — se dit sur l'écran d'après, vérifié juste en dessous. */
+/* Le correctif F2 (la copie honnête du Compagnon sur téléphone) ne se
+   vérifie que si le Compagnon est à l'écran. Hors périmètre (CLAUDE.md §0),
+   c'est SON ABSENCE qui est la règle — on vérifie donc l'inverse, plutôt
+   que de sauter en silence : rien ne doit nommer le Compagnon ici. */
 const deviceText = await page.locator('.modal-b').innerText();
-if (!/Le Compagnon[\s\S]*pas installé/.test(deviceText))
-  fail('la ligne Compagnon n’annonce pas son état : ' + deviceText.slice(0, 220));
-if (/depuis ton ordinateur/.test(deviceText))
-  fail('la ligne Compagnon réexplique au lieu de dire son état : ' + deviceText.slice(0, 220));
-if (await page.$('#devAddComp')) fail('le téléphone ne doit pas proposer un appairage local impossible');
-/* la ligne s'ouvre : le téléphone apprend le chemin (ordinateur d'abord),
-   peut s'envoyer le lien, et sait quoi faire ensuite depuis ici */
-await page.click('#devCompInfo');
-await page.waitForSelector('.modal-f .btn-primary');
-const phoneTxt = await page.locator('.modal-b').last().innerText();
-if (!/depuis ton ordinateur/.test(phoneTxt) || !/Ajouter le Compagnon/.test(phoneTxt))
-  fail('feuille Compagnon téléphone : chemin absent — ' + phoneTxt.slice(0, 200));
-if (!/depuis ce téléphone/.test(phoneTxt))
-  fail('feuille Compagnon téléphone : l’usage depuis le téléphone manque');
-if (!/Copier le lien/.test(await page.locator('.modal-f').last().innerText()))
-  fail('feuille Compagnon téléphone : pas de lien à copier');
-await page.evaluate(async () => (await import('./ui/dom.js')).topSheet()?.close());
+if (COMPAGNON){
+  /* la ligne dit l'ÉTAT, pas la phrase (même règle que la liste des
+     Réglages) : « pas installé · voir › ». Le chemin — c'est un logiciel
+     d'ordinateur — se dit sur l'écran d'après, vérifié juste en dessous. */
+  if (!/Le Compagnon[\s\S]*pas installé/.test(deviceText))
+    fail('la ligne Compagnon n’annonce pas son état : ' + deviceText.slice(0, 220));
+  if (/depuis ton ordinateur/.test(deviceText))
+    fail('la ligne Compagnon réexplique au lieu de dire son état : ' + deviceText.slice(0, 220));
+  if (await page.$('#devAddComp')) fail('le téléphone ne doit pas proposer un appairage local impossible');
+  /* la ligne s'ouvre : le téléphone apprend le chemin (ordinateur d'abord),
+     peut s'envoyer le lien, et sait quoi faire ensuite depuis ici */
+  await page.click('#devCompInfo');
+  await page.waitForSelector('.modal-f .btn-primary');
+  const phoneTxt = await page.locator('.modal-b').last().innerText();
+  if (!/depuis ton ordinateur/.test(phoneTxt) || !/Ajouter le Compagnon/.test(phoneTxt))
+    fail('feuille Compagnon téléphone : chemin absent — ' + phoneTxt.slice(0, 200));
+  if (!/depuis ce téléphone/.test(phoneTxt))
+    fail('feuille Compagnon téléphone : l’usage depuis le téléphone manque');
+  if (!/Copier le lien/.test(await page.locator('.modal-f').last().innerText()))
+    fail('feuille Compagnon téléphone : pas de lien à copier');
+  await page.evaluate(async () => (await import('./ui/dom.js')).topSheet()?.close());
+} else {
+  if (/Compagnon/.test(deviceText))
+    fail('hors périmètre, « Mes appareils » nomme encore le Compagnon : ' + deviceText.slice(0, 220));
+  if (await page.$('#devAddComp') || await page.$('#devCompInfo'))
+    fail('hors périmètre, une entrée Compagnon subsiste dans « Mes appareils »');
+  console.log('Mes appareils : aucune trace du Compagnon (hors périmètre) ✓');
+}
 await page.click('.sy-relays summary');
 await page.fill('#syRelays', 'https://pas-un-relais.example');
 await page.click('#sySaveRelays');

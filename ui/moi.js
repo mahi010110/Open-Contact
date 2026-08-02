@@ -21,6 +21,7 @@ import { getSync } from './synclive.js';
 import { isProtected, openProtectFlow, openManageSheet, verrouLabel, requireCode } from './verrou.js';
 import { openConnexions, openAssistantIA, mailStateLabel, mailAccount, aiStateLabel, aiConnection } from './connexions.js';
 import { loadCompanion, openAddCompanion, openCompanionSheet } from './compagnon.js';
+import { COMPAGNON, IA, ENVOI_DIRECT } from './perimetre.js';
 import { DIST_PAGE } from '../engine/distribution.js';
 
 /* ---------- garder une copie (.oc complet) ---------- */
@@ -238,28 +239,35 @@ const rgRow = (id, nom, etat, last, dep) =>
 
 function reglagesRowsHTML(){
   const prot = isProtected();
+  /* les lignes se composent avant de s'écrire : le recentrage en retire
+     (CLAUDE.md §0), et c'est la DERNIÈRE présente qui porte `rg-last` —
+     sinon masquer le Compagnon laisserait un trait en bas de liste */
+  const rows = [
+    ['moiVerrou', 'Protection', verrouLabel(), false],
+    ['moiSync', 'Mes appareils', syncLabel(), false]
+  ];
+  /* le pré-requis ne remplace l'état que s'il n'y a rien à dire : une
+     messagerie déjà branchée le dit, même si le coffre a disparu.
+     Deux lignes attendaient la MÊME chose et le disaient chacune dans
+     son coin (« à protéger », deux fois) : rien ne montrait que c'est
+     la ligne du dessus qui les débloque toutes les deux. Elles nomment
+     donc leur cause et s'effacent tant qu'elle n'est pas levée — taper
+     mène quand même à la protection (N9 reste réglé). */
+  if (ENVOI_DIRECT) rows.push(['moiCx', 'Ma messagerie',
+    (!prot && !mailAccount()) ? 'après Protection' : mailStateLabel(),
+    !prot && !mailAccount()]);
+  if (IA) rows.push(['moiAi', 'Mon assistant IA',
+    (!prot && !aiConnection()) ? 'après Protection' : aiStateLabel(),
+    !prot && !aiConnection()]);
+  /* l'état, pas la phrase : « il s'installe sur ton ordinateur » se
+     dit sur le 2ᵉ écran, là où on peut vraiment le faire (#21).
+     Cette liste reste sans pictogramme (voir plus haut) ; le Compagnon
+     a son icône propre — un écran d'ordinateur — sur SES feuilles,
+     là où elle distingue quelque chose (#4). */
+  if (COMPAGNON) rows.push(['moiComp', 'Le Compagnon', 'pas installé', false]);
   return (
-    rgRow('moiVerrou', 'Protection', verrouLabel()) +
-    rgRow('moiSync', 'Mes appareils', syncLabel()) +
-    /* le pré-requis ne remplace l'état que s'il n'y a rien à dire : une
-       messagerie déjà branchée le dit, même si le coffre a disparu.
-       Deux lignes attendaient la MÊME chose et le disaient chacune dans
-       son coin (« à protéger », deux fois) : rien ne montrait que c'est
-       la ligne du dessus qui les débloque toutes les deux. Elles nomment
-       donc leur cause et s'effacent tant qu'elle n'est pas levée — taper
-       mène quand même à la protection (N9 reste réglé). */
-    rgRow('moiCx', 'Ma messagerie',
-          (!prot && !mailAccount()) ? 'après Protection' : mailStateLabel(),
-          false, !prot && !mailAccount()) +
-    rgRow('moiAi', 'Mon assistant IA',
-          (!prot && !aiConnection()) ? 'après Protection' : aiStateLabel(),
-          false, !prot && !aiConnection()) +
-    /* l'état, pas la phrase : « il s'installe sur ton ordinateur » se
-       dit sur le 2ᵉ écran, là où on peut vraiment le faire (#21).
-       Cette liste reste sans pictogramme (voir plus haut) ; le Compagnon
-       a son icône propre — un écran d'ordinateur — sur SES feuilles,
-       là où elle distingue quelque chose (#4). */
-    rgRow('moiComp', 'Le Compagnon', 'pas installé', true) +
+    rows.map(([id, nom, etat, dep], i) =>
+      rgRow(id, nom, etat, i === rows.length - 1, dep)).join('') +
     `<div class="rg-foot">
        <button class="linklike" id="moiRestore">${ic('reload', 'ic-14')} Restaurer une copie</button>
        <input type="file" id="moiRestoreFile" accept=".oc,.txt,.json,application/octet-stream,application/json,text/plain" hidden>
@@ -281,12 +289,14 @@ function bindReglages(box){
   q('#moiVerrou').addEventListener('click', () =>
     isProtected() ? openManageSheet() : openProtectFlow());
   q('#moiSync').addEventListener('click', openAppareils);
-  /* N9 : l'état a dit « à protéger d'abord » — la ligne y mène tout droit */
-  q('#moiCx').addEventListener('click', () =>
+  /* N9 : l'état a dit « à protéger d'abord » — la ligne y mène tout droit.
+     Les trois lignes suivantes peuvent être absentes (CLAUDE.md §0) : on
+     branche ce qui existe, jamais ce qui devrait exister. */
+  q('#moiCx')?.addEventListener('click', () =>
     isProtected() ? openConnexions() : openProtectFlow());
-  q('#moiAi').addEventListener('click', () =>
+  q('#moiAi')?.addEventListener('click', () =>
     isProtected() ? openAssistantIA() : openProtectFlow());
-  q('#moiComp').addEventListener('click', async () => {
+  q('#moiComp')?.addEventListener('click', async () => {
     const assoc = await loadCompanion().catch(() => null);
     if (assoc){ openCompanionSheet(assoc); return; }
     if (mqWideMoi.matches){ openAddCompanion(); return; }
@@ -295,7 +305,7 @@ function bindReglages(box){
       toast('Lien copié — ouvre-le sur ton ordinateur.');
     } catch (e) { toast('Copie impossible ici — le lien : ' + DIST_PAGE); }
   });
-  loadCompanion().then(a => {
+  if (COMPAGNON) loadCompanion().then(a => {
     const st = q('#moiCompSt');
     if (a && st) st.textContent = 'associé — ' + (a.nom || 'ton ordinateur');
   }).catch(() => {});
