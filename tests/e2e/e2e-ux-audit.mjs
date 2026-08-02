@@ -198,8 +198,18 @@ await attendre(receivePage, async () => !!(await import('./ui/state.js')).S.prof
 await receivePage.evaluate(async () => (await import('./ui/recevoir.js')).openImportMails());
 await receivePage.waitForSelector('#rcMailTxt');
 const scanText = await receivePage.locator('.modal-b').innerText();
-if (!/s.installe et s.associe depuis ton ordinateur/i.test(scanText) || /Moi → Mes appareils/.test(scanText))
-  fail('copie Compagnon mobile ambiguë : ' + scanText.slice(0, 260));
+if (COMPAGNON){
+  if (!/s.installe et s.associe depuis ton ordinateur/i.test(scanText) || /Moi → Mes appareils/.test(scanText))
+    fail('copie Compagnon mobile ambiguë : ' + scanText.slice(0, 260));
+} else {
+  /* Hors périmètre, la source garde son chemin « je colle » — il ne demande
+     ni installation ni compte — mais ne vante plus une surface absente. */
+  if (/Compagnon/.test(scanText))
+    fail('hors périmètre, « Depuis mes e-mails » nomme encore le Compagnon : ' + scanText.slice(0, 260));
+  if (!/Copie le prompt/.test(scanText))
+    fail('le chemin « je colle » a disparu alors qu\'il ne demande rien : ' + scanText.slice(0, 260));
+  console.log('Depuis mes e-mails : chemin « je colle » intact, aucune surface absente vantée ✓');
+}
 console.log('Depuis mes e-mails : consigne mobile réalisable ✓');
 
 /* F6 IA : les options livrées sont nommées comme telles ; les adaptateurs
