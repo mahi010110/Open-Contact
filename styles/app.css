@@ -206,6 +206,9 @@ html[data-theme="dark"] .field select{
    règle de l'application est UN seuil, 901 px. */
 .grid2{display:grid;grid-template-columns:1fr;gap:10px}
 @media (min-width:901px){ .grid2{grid-template-columns:1fr 1fr} }
+/* l'exception : deux valeurs COURTES et connues d'avance (deux mots de
+   la phrase de secours) tiennent côte à côte à toutes les tailles */
+.grid2.grid2-tight{grid-template-columns:1fr 1fr}
 .hint{font-size:var(--text-12);color:var(--text-muted);margin-top:7px;line-height:1.5}
 .hint.warn{color:var(--amber)}
 .search-wrap{position:relative;display:flex;gap:8px;margin-bottom:14px}
@@ -1295,6 +1298,12 @@ body:has(.overlay) .toast{bottom:auto;top:calc(env(safe-area-inset-top) + 62px)}
 /* ============ LE VERROUILLAGE (profil protégé) ============
    Plein écran au-dessus de tout ; pavé 44 px au pouce (mobile),
    saisie clavier (ordinateur). Bevels francs, steps() — pas de flou. */
+/* Tant que l'app est verrouillée, rien de ce qui flotte ne se voit :
+   le toast et la barre « Annuler » portent des noms de pistes, et
+   l'écran de verrouillage est censé ne rien montrer. Masqués, pas
+   détruits — leur minuterie continue derrière. */
+html.oc-locked .toast,
+html.oc-locked .undo-bar{display:none}
 .lock{
   /* au-dessus de l'en-tête (1300) et de la nav (1500), sous les
      feuilles (3000) — « Code oublié ? » s'ouvre par-dessus */

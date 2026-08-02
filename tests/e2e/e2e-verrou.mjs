@@ -128,6 +128,38 @@ if (!opened) fail('déverrouillage sans effet');
 console.log('déverrouillage OK ; la donnée témoin est relue :',
   await page.evaluate(async () => (JSON.parse(await (await import('./engine/storage.js')).kvGet('oc_data_v3')))[0].name));
 
+/* PANNE VÉCUE : la barre « Annuler » (~30 s) et le toast (~4 s) sont
+   posés en `fixed` et survivaient AU-DESSUS de l'écran verrouillé —
+   verrouiller juste après avoir supprimé une piste affichait son nom
+   sur un écran censé ne rien montrer. Ils sont masqués, pas détruits :
+   la minuterie continue et « Annuler » est encore là au déverrouillage. */
+await page.evaluate(async () => {
+  const { showUndo } = await import('./ui/dom.js');
+  showUndo('Supprimée : Capgemini', () => {});
+});
+await page.waitForSelector('.undo-bar');
+await page.evaluate(async () => (await import('./ui/verrou.js')).lockNow());
+await page.waitForSelector('.lock .pad-k');
+await page.waitForTimeout(300);
+const fuite = await page.evaluate(() =>
+  [...document.querySelectorAll('.undo-bar, .toast')].some(e => {
+    const r = e.getBoundingClientRect();
+    return r.width > 0 && r.height > 0 && getComputedStyle(e).display !== 'none'
+      && /Capgemini/.test(e.textContent);
+  }));
+if (fuite) fail('l’écran verrouillé laisse voir un nom de piste');
+if (!await page.$('.undo-bar')) fail('« Annuler » détruit par le verrou au lieu d’être masqué');
+await tapLock('280941');
+await page.waitForSelector('.lock', { state: 'detached', timeout: 10000 });
+await page.waitForTimeout(300);
+const revenue = await page.evaluate(() => {
+  const u = document.querySelector('.undo-bar');
+  return !!u && getComputedStyle(u).display !== 'none' && /Capgemini/.test(u.textContent);
+});
+if (!revenue) fail('« Annuler » perdu après déverrouillage');
+console.log('écran verrouillé : rien ne fuit, et « Annuler » survit ✓');
+await page.evaluate(() => document.querySelector('.undo-bar')?.remove());
+
 /* --- 5. re-authentification d'un geste sensible --- */
 await page.goto(base + '/#/moi');
 await ouvrirReglages(page);

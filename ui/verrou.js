@@ -117,8 +117,16 @@ function showLock(){
          </div>
        </div>`);
     document.body.append(lockEl);
+    /* L'écran verrouillé ne doit RIEN montrer. Or le toast (~4 s) et la
+       barre « Annuler » (~30 s) sont posés en `fixed` et survivaient
+       au-dessus de lui : verrouiller juste après avoir supprimé une piste
+       affichait « Supprimée : Capgemini » sur l'écran de verrouillage.
+       On les masque le temps du verrou plutôt que de les détruire — leur
+       minuterie continue, et « Annuler » est encore là au déverrouillage. */
+    document.documentElement.classList.add('oc-locked');
     const hasBio = !!(meta.wraps && meta.wraps.prf) && !!navigator.credentials;
     const done = un => {
+      document.documentElement.classList.remove('oc-locked');
       document.removeEventListener('keydown', onKey, true);
       clearInterval(waitTimer);
       lockEl.remove();
@@ -303,7 +311,11 @@ function phraseCeremony(sh, phrase, onOk){
     const a = Math.floor(Math.random() * 6), b = 6 + Math.floor(Math.random() * 6);
     sh.setTitle('Vérifions');
     sh.body.innerHTML =
-      `<div class="grid2">
+      `${/* deux mots de six lettres : ils tiennent côte à côte même au
+             pouce. La règle générale (un champ par rang sous 901 px)
+             existe pour les valeurs longues — un email, un rôle — pas
+             pour ça. */''}
+       <div class="grid2 grid2-tight">
          <div class="field"><label for="vw1">Mot n°${a + 1}</label>
            <input id="vw1" autocapitalize="none" autocomplete="off"></div>
          <div class="field"><label for="vw2">Mot n°${b + 1}</label>
