@@ -7,6 +7,7 @@
    ~30 s (instantané restauré tel quel).
    ============================================================ */
 import { esc } from '../engine/utils.js';
+import { COMPAGNON } from './perimetre.js';
 import { parseInput, makeOCQJoiner, rdvParse, rdvNorm } from '../engine/exchange.js';
 import { mergeIncoming } from '../engine/merge.js';
 import { normalizeCompany } from '../engine/model.js';
@@ -253,7 +254,9 @@ export function openImportMails(){
     leaveAnalysis();
     sh.setTitle('Depuis mes e-mails');
     const prompt = (S.profile.prompts.find(p => /mails?|e-?mails?/i.test(p.name)) || S.profile.prompts[0]);
-    const assoc = await loadCompanion().catch(() => null);
+    /* la lecture automatique de la boîte est de la surface ordinateur ;
+       le chemin « je colle » qui suit, lui, marche partout */
+    const assoc = COMPAGNON ? await loadCompanion().catch(() => null) : null;
     if (view !== gen || !sh.body.isConnected) return;
     const pending = mailAnalysis();
     const pendingPick = pending ? (pending.state === 'ready'
@@ -279,9 +282,9 @@ export function openImportMails(){
          <div class="lk-why">${ic('clipboard', 'ic-14')} <span>Rapporte ici sa réponse : chaque piste proposée se coche ou s’écarte.</span></div>
          ${assoc ? '' : `<div class="lk-why">${ic('shield', 'ic-14')} <span>Rien ne s’enregistre sans ton accord.</span></div>`}
        </div>
-       ${assoc ? '' : `<p class="hint">${ic('lightbulb', 'ic-14')} ${matchMedia('(min-width:901px)').matches
+       ${(COMPAGNON && !assoc) ? `<p class="hint">${ic('lightbulb', 'ic-14')} ${matchMedia('(min-width:901px)').matches
          ? 'Avec le Compagnon, ton ordinateur fait la lecture tout seul — Moi → Mes appareils.'
-         : 'Le Compagnon s’installe et s’associe depuis ton ordinateur — ouvre OpenContact là-bas.'}</p>`}
+         : 'Le Compagnon s’installe et s’associe depuis ton ordinateur — ouvre OpenContact là-bas.'}</p>` : ''}
        <div class="field" style="margin-top:10px"><label for="rcMailTxt">La réponse de l’IA</label>
          <textarea id="rcMailTxt" style="min-height:120px" placeholder="Colle ici le texte produit par l’assistant"></textarea></div>`;
     q('#rcLastAnalysis')?.addEventListener('click', showReady);
