@@ -152,8 +152,10 @@ net. Sources uniques : `styles/tokens/` et le kit `design/`.
 
 - **Couleurs** : encre sur papier, accent teal `#0B7268`, sélection navy.
   Toujours par les tokens (`var(--…)`), jamais de couleur en dur.
-- **Reliefs** : bevels francs, ombres dures (`--bevel-*`, `--shadow-*`).
-  **Interdits : dégradés, ombres floues, coins très arrondis, glassmorphism.**
+- **Reliefs** : bevels francs, ombres dures, coins droits (`--bevel-*`,
+  `--shadow-*`). L'identité est **nette, sans flou** — un dégradé, une ombre
+  floue, un arrondi marqué la cassent. Ça se discute avec le mainteneur, ça ne
+  se glisse pas dans un écran.
 - **Typo** : Silkscreen (titres pixel), IBM Plex Mono (données, dates,
   compteurs), Public Sans (texte courant). Pas d'autre police.
 - **Icônes** : pixelarticons via `ic('nom', 'ic-14')`. Pas d'emoji dans
@@ -180,10 +182,13 @@ pensées par contexte**, qui partagent les données et le style.
 - **Desktop (≥ 901 px)** : navigation en haut + barre de statut, contrôles
   32 px, fenêtres centrées, layouts en colonnes, raccourcis clavier
   (« / » = recherche).
-- **La règle** : pour toute nouvelle interface, se demander « à quoi ça
-  ressemble à 390 px ? à 1280 px ? » et concevoir **deux réponses** si les
-  usages diffèrent. Si le comportement doit différer (pas juste la taille),
-  brancher sur `matchMedia`, pas sur du CSS seul.
+- **La règle, et son seuil** : par défaut, **un seul dessin** qui s'adapte.
+  On n'en fait deux que si l'**usage** diffère vraiment — pas la taille.
+  Aujourd'hui c'est le cas sur trois choses : Mes pistes (liste au pouce /
+  tableau à l'écran), la capture (trois champs / formulaire complet), les
+  feuilles (bas d'écran / fenêtre centrée). Partout ailleurs, un dessin
+  suffit. Quand le comportement doit différer, brancher sur `matchMedia`, pas
+  sur du CSS seul.
 
 ---
 
@@ -238,9 +243,11 @@ groupe reste dans ce groupe ; les réglages avancés ferment la page.
 Français, tutoiement, phrases courtes, concret. On dit « pistes », « promo »,
 « fiche », « suivi » — jamais « CRM », « lead », ni autre jargon à l'écran.
 
-**Par défaut, un mot ou une icône suffit ; une phrase entière seulement quand
-la sécurité l'exige**, et au moment du geste. Ordre à appliquer à chaque
-hésitation : **rien > une icône > un mot > une phrase.**
+**Le plus court qui reste compris.** L'ordre est bien : rien, une icône, un
+mot, une phrase — mais **la compréhension passe avant la brièveté**. Si un mot
+est nécessaire pour comprendre, le mot gagne sur l'icône : une icône qu'on ne
+devine pas coûte plus cher qu'un mot. Une phrase entière seulement quand la
+sécurité l'exige, et au moment du geste.
 
 Là où une feuille a sa croix, pas de bouton « Annuler » : la croix annule.
 Seule exception, « Retour ». La barre « Annuler » ~30 s reste — là, annuler
@@ -306,6 +313,9 @@ retiré.
 | « Aucun serveur, aucun compte » (formulation absolue) | **reformulée** | La version absolue obligeait la spec à plaider que Gmail et OpenAI « ne sont pas un backend ». La nouvelle dit ce qu'on veut vraiment : rien **d'OpenContact** ne tourne ailleurs |
 | « Ne jamais dégrader l'existant pour caser une nouveauté » | **supprimée** | Une humeur, pas une règle : aucun test ne la vérifie, on peut l'invoquer contre n'importe quoi. Les tests et `CONTRAT.md` protègent réellement |
 | « Rien de smooth » (motion) | **remplacée** (juillet 2026) | Le mouvement doux est autorisé sur le **déplacement entre états**, pas sur les objets — voir §4 |
+| « Interdits : dégradés, ombres floues, arrondis, glassmorphism » | **assouplie** | Une liste d'interdits absolus légifère contre un futur qu'on ne connaît pas. L'identité « nette, sans flou » est dite positivement : un effet qui l'adoucit se **discute**, il ne se glisse pas |
+| « Concevoir deux réponses » (adaptatif) | **précisée** | Se lisait comme « deux dessins par écran », soit le double de travail. Le défaut est **un seul dessin** ; deux seulement quand l'usage diffère — trois écrans aujourd'hui |
+| « rien > icône > mot > phrase » | **précisée** | La brièveté poussée à bout rend cryptique. La compréhension passe devant : une icône qu'on ne devine pas coûte plus cher qu'un mot |
 
 *Tranché par l'assistant, à valider :* la reformulation de l'interdit serveur,
 la suppression de « ne pas dégrader l'existant », et le contenu détaillé des
