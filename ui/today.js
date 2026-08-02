@@ -150,6 +150,7 @@ export function renderToday(){
 
   const wide = mqWide.matches;
   const rienAFaire = !late.length && !due.length;
+  let porteLeGeste = false;      /* l'état vide offre déjà « Planifier » */
   let html =
     `<div class="page-inner${wide && alive.length ? ' page-wide' : ''}">
        <div class="td-head">
@@ -180,6 +181,23 @@ export function renderToday(){
          ${colHTML('soon', 'Bientôt', 'calendar', soon,
            noAction.length ? 'Rien de planifié — donne une prochaine action à une piste.' : 'Rien en vue')}
        </div>`;
+  } else if (rienAFaire && !soon.length && noAction.length){
+    /* Des pistes, aucune action : ce n'est PAS « tout est à jour ». Il y
+       a un prochain geste — planifier — et c'est le seul de l'écran, donc
+       il prend le bouton au lieu d'être expliqué dans un paragraphe sous
+       une coche verte qui dit le contraire. Le lien du pied ferait alors
+       doublon : il s'efface (voir `pied`). */
+    porteLeGeste = true;
+    html +=
+      `<div class="td-empty td-clear">
+         <div class="tde-ic">${ic('calendar', 'ic-24')}</div>
+         <h3>Rien de planifié</h3>
+         <p>Donne une prochaine action à ${noAction.length > 1 ? 'une de tes pistes' : 'ta piste'} —
+            cet écran te dira quoi faire ensuite.</p>
+         <div class="tde-actions">
+           <button class="btn btn-primary" id="tdePlan">${ic('zap', 'ic-14')} Planifier</button>
+         </div>
+       </div>`;
   } else if (rienAFaire){
     /* à jour : positif, jamais culpabilisant */
     html +=
@@ -188,9 +206,7 @@ export function renderToday(){
          <h3>Tout est à jour</h3>
          <p>${soon.length
             ? 'Rien d’urgent — la suite est plus bas, repliée exprès.'
-            : noAction.length
-              ? 'Rien de planifié. Prends de l’avance en donnant une prochaine action à une piste.'
-              : 'Rien à faire — ajoute une piste quand tu en croises une.'}</p>
+            : 'Rien à faire — ajoute une piste quand tu en croises une.'}</p>
        </div>`;
   } else {
     html += trancheHTML('late', 'En retard', 'square-alert', late);
@@ -207,7 +223,7 @@ export function renderToday(){
   if (triage.total){
     pied += `<button class="td-triage" id="tdTriage">${ic('inbox', 'ic-14')} À trier <span class="tr-n">${triage.total}</span></button>`;
   }
-  if (noAction.length && alive.length){
+  if (noAction.length && alive.length && !porteLeGeste){
     pied += `<button class="td-foot linklike" id="tdNoAct">${noAction.length} piste${noAction.length > 1 ? 's' : ''} sans prochaine action →</button>`;
   }
   if (hasDemo()){
@@ -239,6 +255,12 @@ export function renderToday(){
     b.addEventListener('click', () => openCampaignById(b.dataset.camp)));
   root.querySelector('#tdTriage')?.addEventListener('click', () => openTriage(triage.items));
   root.querySelector('#tdNoAct')?.addEventListener('click', goPistes);
+  /* une seule piste à planifier : on ouvre SA question tout de suite —
+     passer par la liste pour choisir l'unique élément est un tap perdu */
+  root.querySelector('#tdePlan')?.addEventListener('click', () => {
+    if (noAction.length === 1) askNextAction(noAction[0], { title: 'Et ensuite ?' });
+    else goPistes();
+  });
   root.querySelector('#tdeAdd')?.addEventListener('click', () => openCapture());
   root.querySelector('#tdeDemo')?.addEventListener('click', () => { addDemo(); bus.refresh(); toast('Exemple ajouté — retire-le quand tu veux.'); });
   root.querySelector('#tdRmDemo')?.addEventListener('click', () => { removeDemo(); bus.refresh(); toast('Exemple retiré.'); });

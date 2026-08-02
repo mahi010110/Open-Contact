@@ -1349,6 +1349,18 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 .undo-bar .btn{flex:none}
 /* le toast laisse la place à la barre Annuler quand elle est là */
 body:has(.undo-bar) .toast{bottom:calc(var(--nav-h) + 76px + env(safe-area-inset-bottom))}
+/* … et à un PIED posé au pouce, qui occupe la même bande. Mesuré sur
+   « Aujourd'hui » : 34 px de recouvrement, et un doigt visant « 1 piste
+   sans prochaine action → » touchait LE TOAST — juste après avoir ajouté
+   une piste, donc au moment précis où ce lien est le prochain geste.
+   Tout écran qui descend une action au pouce doit repasser ici. */
+@media (max-width:900px){
+  body:has(#view-aujourdhui:not([hidden]) .td-under) .toast{
+    /* 88 et non 76 : à 76 il restait 8 px de recouvrement sur le bord
+       HAUT du lien — le centre était libre, le bord non */
+    bottom:calc(var(--nav-h) + 88px + env(safe-area-inset-bottom));
+  }
+}
 @media (min-width:901px){
   .undo-bar{bottom:40px}
   body:has(.undo-bar) .toast{bottom:100px}
