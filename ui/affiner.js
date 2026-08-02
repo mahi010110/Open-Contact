@@ -55,12 +55,15 @@ export function openAffinerSheet(ft, st, o, onChange){
     const chipsDom = () => Object.keys(DOMAINS)
       .filter(k => !pool || compte('domain', k) || ft.domain === k)
       .map(k => chip('dom', DOMAINS, ft.domain, k, false)).join('');
+    const dom = chipsDom();
     sh.body.innerHTML =
       `${o.withStatus === false ? '' :
         `<div class="lbl-row"><label>Statut</label></div>
          <div class="fl-grid">${chipsSt()}</div>`}
-       <div class="lbl-row"><label>Domaine</label></div>
-       <div class="fl-grid">${chipsDom()}</div>
+       ${/* aucun domaine à proposer (liste vide) : pas de titre orphelin
+            au-dessus du néant — le tri, lui, reste utile */''}
+       ${dom ? `<div class="lbl-row"><label>Domaine</label></div>
+                <div class="fl-grid">${dom}</div>` : ''}
        ${sortSectionHTML(st)}`;
     sh.body.querySelectorAll('[data-st]').forEach(b =>
       b.addEventListener('click', () => {

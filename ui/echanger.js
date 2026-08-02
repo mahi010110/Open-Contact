@@ -25,6 +25,7 @@ mqWide.addEventListener('change', () => { if (S.route === 'echanger') renderEcha
 /* un journal porte des horodatages, pas des dates d'agenda : « hier »
    et « aujourd'hui » se disent, le reste se date */
 function quand(t){
+  if (!t) return '';                      /* horodatage perdu : rien plutôt qu'une fausse date */
   const iso = localISO(new Date(t));
   const d = diffDays(iso);
   return d === 0 ? 'aujourd’hui' : d === -1 ? 'hier' : frDate(iso);

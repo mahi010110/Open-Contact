@@ -31,6 +31,7 @@ button{font-family:inherit;cursor:pointer}
 input,select,textarea{font-family:inherit;color:var(--text-body)}
 .skip{
   position:fixed;top:-48px;left:10px;z-index:5000;
+  display:inline-flex;align-items:center;min-height:var(--ctl);
   background:var(--accent);color:var(--on-accent);
   font-weight:var(--weight-bold);font-size:var(--text-13);padding:10px 14px;
   border:1px solid var(--border-strong);border-top:0;text-decoration:none;transition:top 120ms;
@@ -62,7 +63,10 @@ input,select,textarea{font-family:inherit;color:var(--text-body)}
   padding:0 calc(8px + env(safe-area-inset-right)) 0 calc(14px + env(safe-area-inset-left));
   background:var(--surface-window);border-bottom:1px solid var(--border-strong);
 }
-.brand{display:flex;align-items:center;gap:9px;text-decoration:none;color:var(--text-body);flex:none}
+/* le logo est un LIEN (retour à l'accueil) : il obéit à la règle des
+   cibles, comme le reste — 22 px de haut, c'était le texte, pas la cible */
+.brand{display:flex;align-items:center;gap:9px;text-decoration:none;color:var(--text-body);flex:none;
+  min-height:var(--ctl)}
 .brand img,.brand svg{image-rendering:pixelated;display:block}
 .brand b{
   font-family:var(--font-pixel);font-weight:400;font-size:var(--pixel-16);
@@ -330,7 +334,11 @@ html[data-theme="dark"] .field select{
 }
 .tr-late .tr-h{color:var(--amber)}
 .tr-late .tr-h .tr-n{border-color:var(--amber);background:var(--amber-wash)}
-details.tranche>summary{cursor:pointer;list-style:none;user-select:none;padding:6px 0}
+/* replier/déplier « Bientôt » est un geste au pouce comme un autre :
+   la ligne fait 44 px, pas la hauteur de ses 11 px de texte */
+details.tranche>summary{
+  cursor:pointer;list-style:none;user-select:none;padding:6px 0;min-height:var(--ctl);
+}
 details.tranche>summary::-webkit-details-marker{display:none}
 details.tranche>summary::before{
   content:'';width:0;height:0;flex:none;
@@ -446,12 +454,21 @@ details.tranche[open]>summary::before{
   background:var(--surface-window);border:1px solid var(--border-strong);border-radius:var(--radius-0);
   box-shadow:var(--shadow-raised);cursor:pointer;
 }
+/* le rembourrage vertical appartient à la ZONE QUI OUVRE, pas au
+   conteneur : posé sur .sw-in, les 9 px du haut et du bas ne
+   réagissaient pas au tap alors que la ligne, elle, faisait bien 44 px */
 .row-item .sw-in{
-  display:flex;align-items:center;gap:10px;min-height:var(--control-h-touch);padding:9px 12px;
+  display:flex;align-items:center;gap:10px;min-height:var(--control-h-touch);padding:0 12px;
 }
 .row-item:hover .sw-in{background:var(--surface-field)}
 .row-item .dotc{width:8px;height:8px;border-radius:0;border:1px solid var(--border-strong);flex:none}
-.row-item .ri-main{flex:1;min-width:0}
+/* la zone qui ouvre la fiche prend TOUTE la hauteur de la ligne : à
+   35 px, les quelques pixels de marge haut et bas ne réagissaient pas,
+   alors que la ligne, elle, en fait bien 44 */
+.row-item .ri-main{
+  flex:1;min-width:0;align-self:stretch;padding:9px 0;
+  display:flex;flex-direction:column;justify-content:center;
+}
 .row-item h3{font-size:var(--text-14);font-weight:var(--weight-semibold);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .row-item .ri-sub{
   font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);line-height:1.5;
@@ -922,7 +939,11 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 }
 .fi-row .btn{margin-left:auto}
 .fi-hist{margin-top:4px}
-.fi-hist summary{cursor:pointer;font-size:var(--text-12);color:var(--text-link);font-weight:var(--weight-bold);padding:8px 0}
+/* « À savoir » et « Historique » s'ouvrent d'un tap — même règle */
+.fi-hist summary{
+  display:flex;align-items:center;min-height:var(--ctl);
+  cursor:pointer;font-size:var(--text-12);color:var(--text-link);font-weight:var(--weight-bold);padding:8px 0;
+}
 .ct-list{display:flex;flex-direction:column;gap:6px}
 .ct{background:var(--surface-chrome);border:1px solid var(--border-soft);border-radius:var(--radius-1);padding:8px 10px;font-size:var(--text-12)}
 .ct .ct-h{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
@@ -997,8 +1018,12 @@ details.pcard-details[open]>summary{margin-bottom:10px}
      seule zone de cette fenêtre où l'on écrit vraiment */
   .fi-cols>div:first-child>.field:last-child{flex:1;display:flex;flex-direction:column;min-height:0}
   .fi-cols>div:first-child>.field:last-child textarea{flex:1;min-height:150px}
-  .fi-top{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+  .fi-top{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
   .fi-top .fi-sub,.fi-top .fi-tools{margin-bottom:10px}
+  /* `margin-left:auto` plutôt que `space-between` : une piste sans ville
+     ni domaine n'a pas de sous-titre, et les outils sautaient alors à
+     gauche. Leur place ne doit pas dépendre du remplissage de la fiche. */
+  .fi-top .fi-tools{margin-left:auto}
   /* Écrire au poste : la fenêtre prend une hauteur franche et la donne
      au message. Les deux menus (destinataire, modèle) cessent aussi de
      tronquer leur libellé — c'est la largeur qui manquait. */
@@ -1029,7 +1054,9 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;
 }
 .fk-v{min-width:0;line-height:1.5;word-break:break-word}
-a.fk-v{display:inline-flex;align-items:center;gap:5px}
+/* le site est un LIEN à part entière dans sa ligne de données, pas un mot
+   au milieu d'une phrase : il obéit à la règle des cibles */
+a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 .fk-tags{display:flex;gap:5px;flex-wrap:wrap}
 .fk-tag{
   border:1px solid var(--border-strong);background:var(--surface-window);

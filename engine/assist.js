@@ -43,10 +43,15 @@ export function exchangeLog(journal, limit = 8){
   const out = [];
   for (const e of (journal || [])){
     const txt = e && typeof e.txt === 'string' ? e.txt : '';
+    /* un journal peut revenir d'une sauvegarde ou d'un autre appareil :
+       un horodatage absent ou abîmé vaut 0, jamais NaN — sinon l'écran
+       afficherait « NaN-NaN-NaN » au lieu d'une date. L'échange, lui,
+       reste compté : ce qui a circulé a circulé. */
+    const t = Number.isFinite(+(e && e.t)) ? +e.t : 0;
     let m = RE_DONNE.exec(txt);
-    if (m){ out.push({ t: e.t, sens: 'donne', canal: m[1], n: +m[2], qui: '' }); continue; }
+    if (m){ out.push({ t, sens: 'donne', canal: m[1], n: +m[2], qui: '' }); continue; }
     m = RE_RECU.exec(txt);
-    if (m) out.push({ t: e.t, sens: 'recu', canal: '', n: +m[2],
+    if (m) out.push({ t, sens: 'recu', canal: '', n: +m[2],
       qui: m[1] === 'la promo' ? '' : m[1] });
   }
   out.sort((a, b) => (b.t || 0) - (a.t || 0));

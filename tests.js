@@ -957,6 +957,16 @@ export async function runSelfTests(){
       eq(tot.n, 6);
       eq(exchangeLog(null).length, 0);
       eq(exchangeLog([{ t: 1 }, { t: 2, txt: null }]).length, 0);
+      /* un journal revenu d'une sauvegarde peut avoir perdu ses
+         horodatages : l'échange reste compté, la date vaut 0 — jamais
+         NaN, sinon l'écran afficherait « NaN-NaN-NaN » */
+      const abime = exchangeLog([
+        { txt: 'Donné (QR) : 3 piste(s)' },
+        { t: 'hier', txt: 'Reçu de la promo : +2 piste(s), 0 complétée(s)' }
+      ]);
+      eq(abime.length, 2);
+      eq(abime.every(x => Number.isFinite(x.t)), true);
+      eq(exchangeTotals([{ txt: 'Donné (QR) : 3 piste(s)' }]).donne, 3);
     },
     'aides : signature collée → contact, sans jamais inventer': () => {
       const got = contactFromSignature(
