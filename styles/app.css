@@ -814,13 +814,18 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 /* Prospecter (#17) : la piste cochable + sa personne, côte à côte */
 .pk-duo{display:flex;flex-direction:column;gap:0}
 .pk-duo .pick{margin:0}
+/* Quand la piste a plusieurs personnes, cette ligne S'OUVRE : c'est une
+   cible, donc `--ctl` (44 px au pouce, 32 px à la souris). Elle était
+   figée à 32 px partout — sous le plancher tactile. Avec une seule
+   personne elle ne fait qu'informer : rien à viser, elle reste compacte
+   et n'allonge pas la liste. */
 .pk-who{
-  display:flex;align-items:center;gap:6px;min-height:32px;padding:3px 12px 6px 40px;
+  display:flex;align-items:center;gap:6px;min-height:var(--ctl);padding:3px 12px 6px 40px;
   font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-link);
   text-align:left;cursor:pointer;background:var(--surface-window);
   border:1px solid var(--border-strong);border-top:0;
 }
-.pk-who[disabled]{color:var(--text-muted);cursor:default}
+.pk-who[disabled]{min-height:32px;color:var(--text-muted);cursor:default}
 .pk-who.pk-add{color:var(--accent)}
 
 /* la ligne « joindre CV / LM » du composeur (#16) — discrète, au-dessus
