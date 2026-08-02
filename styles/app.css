@@ -969,6 +969,13 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   /* Écrire au poste : la fenêtre prend une hauteur franche et la donne
      au message. Les deux menus (destinataire, modèle) cessent aussi de
      tronquer leur libellé — c'est la largeur qui manquait. */
+  /* le formulaire d'une piste, au poste : deux colonnes. Les paires qui
+     tiennent déjà sur un rang (Entreprise/Ville, Site/Adresse) gardent
+     toute la largeur ; le reste se range côte à côte. La hauteur est
+     divisée par deux — le formulaire cesse de déborder, et le contact
+     redevient visible sans défiler. */
+  .ed-form{display:grid;grid-template-columns:1fr 1fr;gap:0 20px;align-items:start}
+  .ed-form>.grid2{grid-column:1 / -1}
   .modal-compose{max-width:820px;height:min(88dvh,800px)}
   /* `flex:1` sur le corps : sans lui il se dimensionne à son contenu et
      la hauteur gagnée par la fenêtre resterait sous le pied, inutile */

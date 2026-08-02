@@ -15,9 +15,14 @@ const FIELDS = ['name','city','domain','desc','website','address','techs','proce
 /* Le formulaire des champs partagés, en un seul endroit : « Modifier »
    s'en sert pour une fiche existante, la capture sur ordinateur pour une
    piste neuve (#3). Les deux écrans évoluent donc ensemble. */
+/* `ed-form` : au pouce une colonne, au poste DEUX. Une seule colonne de
+   860 px dans une fenêtre de 900 donnait des champs trop longs à lire,
+   un formulaire qui déborde, et le contact repoussé sous la ligne de
+   flottaison — alors que la place était à côté, pas en dessous. */
 export function sharedFieldsHTML(c){
   return (
-    `<div class="grid2">
+    `<div class="ed-form">
+     <div class="grid2">
        <div class="field"><label for="edName">Entreprise *</label><input id="edName" value="${esc(c.name)}"></div>
        <div class="field"><label for="edCity">Ville</label><input id="edCity" value="${esc(c.city)}"></div>
      </div>
@@ -44,7 +49,8 @@ export function sharedFieldsHTML(c){
      <div class="field"><label for="edProcess">Process de recrutement</label>
        <textarea id="edProcess" class="ta-s" placeholder="Ex : CV → entretien RH → test technique">${esc(c.process)}</textarea></div>
      <div class="field"><label for="edTips">Conseils pour postuler</label>
-       <textarea id="edTips" class="ta-s" placeholder="Ex : passer par le forum, citer tel projet…">${esc(c.tips)}</textarea></div>`);
+       <textarea id="edTips" class="ta-s" placeholder="Ex : passer par le forum, citer tel projet…">${esc(c.tips)}</textarea></div>
+     </div>`);
 }
 
 /* Branche les postes et l'autocomplétion d'adresse, puis rend `apply(c)` :
