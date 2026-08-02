@@ -194,8 +194,14 @@ input,select,textarea{font-family:inherit;color:var(--text-body)}
 html[data-theme="dark"] .field select{
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath fill='%239AA4B0' d='M7 8h2v2H7V8Zm4 4H9v-2h2v2Zm2 0v2h-2v-2h2Zm2-2h-2v2h2v-2Zm0 0V8h2v2h-2Z'/%3E%3C/svg%3E");
 }
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-@media (max-width:349px){.grid2{grid-template-columns:1fr}}
+/* Deux champs par rang au POSTE seulement. Au pouce, la moitié d'une
+   feuille de 390 px fait 172 px : « Chargée de recrutement » y devient
+   « Chargée de recruter » et une adresse email « lea.fontaine@capgei ».
+   Un champ qui ne montre pas sa propre valeur ne sert à rien — et le
+   seuil de 349 px qui traînait ici n'appartenait à aucun contexte : la
+   règle de l'application est UN seuil, 901 px. */
+.grid2{display:grid;grid-template-columns:1fr;gap:10px}
+@media (min-width:901px){ .grid2{grid-template-columns:1fr 1fr} }
 .hint{font-size:var(--text-12);color:var(--text-muted);margin-top:7px;line-height:1.5}
 .hint.warn{color:var(--amber)}
 .search-wrap{position:relative;display:flex;gap:8px;margin-bottom:14px}
