@@ -42,7 +42,17 @@ doit être repensée, pas forcée.
 Depuis la v6.1, ces clés vivent dans **IndexedDB** (base `oc_kv_v1`, magasin
 `kv`) avec les **mêmes noms** ; `localStorage` reste lu en repli, ce qui migre
 automatiquement les données existantes sans les toucher. L'ordre des backends :
-`window.storage` → IndexedDB → localStorage → mémoire.
+`window.storage` → IndexedDB → localStorage → **Cache API** → mémoire.
+
+Le rang **Cache API** (cache nommé `oc-kv-v1`, une entrée par clé sous
+`oc-kv/<clé>`) est le dernier coffre **persistant** : il sert quand les deux
+premiers refusent, c'est-à-dire en navigation privée verrouillée. Sans lui on
+tombait en mémoire — l'application marchait et tout disparaissait au
+rechargement. **`sw.js` doit l'exclure de sa purge d'activation** (il ne
+supprime que les vieilles caches d'application) : sinon chaque mise à jour
+effacerait les pistes, exactement ce que ce rang existe pour éviter.
+Le rang `mémoire` reste le dernier recours, et lui seul lève l'avertissement
+« rien ne s'enregistre ici » (`rawSet` y rend `false`).
 
 Les PDF (CV, lettres) vivent dans **IndexedDB** : base `oc_docs_v1`,
 magasin `docs` — séparés exprès des pistes pour qu'un document lourd ne

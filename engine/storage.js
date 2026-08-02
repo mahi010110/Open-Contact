@@ -1,8 +1,11 @@
 /* ============================================================
    OpenContact — moteur · stockage
-   kv* : pistes / profil / journal — 4 niveaux (window.storage,
-   IndexedDB, localStorage, mémoire), l'interface lit getBackend()
-   pour décider seule comment alerter. Depuis la v6.1, IndexedDB
+   kv* : pistes / profil / journal — 5 niveaux (window.storage,
+   IndexedDB, localStorage, Cache API, mémoire), l'interface lit
+   getBackend() pour décider seule comment alerter. Le rang « cache »
+   sert de dernier coffre PERSISTANT en navigation privée verrouillée,
+   là où les deux premiers refusent : sans lui on tombait en mémoire et
+   tout disparaissait au rechargement, sans que rien ne puisse l'éviter. Depuis la v6.1, IndexedDB
    (base oc_kv_v1) est le rang principal : capacité bien plus
    grande que localStorage, écritures asynchrones ; les MÊMES clés
    y sont utilisées, et l'ancien localStorage reste lu en repli —
@@ -83,6 +86,22 @@ async function kvIdbReq(mode, fn){
   }
 }
 
+/* ---------- l'échelon d'avant l'abandon : le Cache API ----------
+   IndexedDB refusé ET localStorage refusé, c'est la navigation privée
+   verrouillée. On tombait alors en mémoire : l'app marchait, et tout
+   disparaissait au rechargement. Or il reste presque toujours un
+   troisième coffre, dans un bucket différent, qui survit lui à un
+   rechargement. Le mieux qu'on puisse offrir n'est pas de mieux
+   prévenir : c'est de ne plus avoir à prévenir. */
+const CACHE_KV = 'oc-kv-v1';
+const cacheUrl = k => 'oc-kv/' + encodeURIComponent(k);
+let kvCache = null;
+async function cacheReady(){
+  if (kvCache) return kvCache;
+  kvCache = await caches.open(CACHE_KV);
+  return kvCache;
+}
+
 export async function kvInit(){
   if (window.storage){
     try { await window.storage.set('oc_probe', '1'); backend = 'claude'; return; } catch (e) {}
@@ -92,7 +111,14 @@ export async function kvInit(){
     backend = 'idb';
     return;
   } catch (e) { kvDb = null; }
-  try { localStorage.setItem('oc_probe', '1'); backend = 'local'; } catch (e) { backend = 'memory'; }
+  try { localStorage.setItem('oc_probe', '1'); backend = 'local'; return; } catch (e) {}
+  try {
+    const c = await cacheReady();
+    await c.put(cacheUrl('oc_probe'), new Response('1'));
+    const r = await c.match(cacheUrl('oc_probe'));
+    if (r && await r.text() === '1'){ backend = 'cache'; return; }
+  } catch (e) { kvCache = null; }
+  backend = 'memory';
 }
 async function rawGet(k){
   try {
@@ -104,6 +130,10 @@ async function rawGet(k){
       try { return localStorage.getItem(k); } catch (e) { return null; }
     }
     if (backend === 'local') return localStorage.getItem(k);
+    if (backend === 'cache'){
+      const r = await (await cacheReady()).match(cacheUrl(k));
+      return r ? await r.text() : null;
+    }
     return mem[k] ?? null;
   } catch (e) { return null; }
 }
@@ -112,6 +142,7 @@ async function rawSet(k, v){
     if (backend === 'claude'){ await window.storage.set(k, v); return true; }
     if (backend === 'idb'){ await kvIdbReq('readwrite', s => s.put(v, k)); return true; }
     if (backend === 'local'){ localStorage.setItem(k, v); return true; }
+    if (backend === 'cache'){ await (await cacheReady()).put(cacheUrl(k), new Response(v)); return true; }
     mem[k] = v; return false;
   } catch (e) { return false; }
 }
@@ -123,6 +154,7 @@ export async function kvDel(k){
       return true;
     }
     if (backend === 'idb'){ await kvIdbReq('readwrite', s => s.delete(k)); }
+    if (backend === 'cache') await (await cacheReady()).delete(cacheUrl(k));
     try { localStorage.removeItem(k); } catch (e) {}   /* aussi le repli hérité */
     if (backend === 'memory') delete mem[k];
     return true;
