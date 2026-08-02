@@ -44,14 +44,20 @@ const turnList = async () => {
 const relaySettingsHTML = (urls, turn) =>
   `<details class="pcard pcard-details sy-relays" style="margin-top:14px">
      <summary><h3>${ic('settings-2', 'ic-14')} Connexion avancée</h3></summary>
-     <p class="hint">Seulement si ton réseau bloque la liaison. Une adresse sécurisée <b>wss://</b> par ligne.</p>
+     ${/* l'intro dit QUAND s'en servir ; la forme à respecter descend sous
+          SON champ, là où on la lit au moment de taper. Mélangées, elles
+          faisaient une phrase que personne ne finit. */''}
+     <p class="hint">Seulement si ton réseau bloque la liaison — sinon, laisse vide.</p>
      <div class="field"><label for="syRelays">Relais personnalisés</label>
        <textarea id="syRelays" class="ta-s" spellcheck="false" autocapitalize="off"
-         placeholder="wss://relais.exemple.org">${esc(urls.join('\n'))}</textarea></div>
+         placeholder="wss://relais.exemple.org">${esc(urls.join('\n'))}</textarea>
+       <p class="hint">Une adresse <b>wss://</b> par ligne, huit au maximum.</p></div>
      <div class="field"><label for="syTurn">Serveur TURN — si la liaison directe échoue</label>
        <textarea id="syTurn" class="ta-s" spellcheck="false" autocapitalize="off"
          placeholder="turns:relais.exemple.org:443 utilisateur motdepasse">${esc(turnText(turn))}</textarea></div>
-     <button class="btn btn-sm" id="sySaveRelays">Enregistrer</button>
+     ${/* la seule action de la carte : elle se voit. Elle flottait en bas
+          à gauche, en gris, plus discrète que les champs qu'elle valide. */''}
+     <div class="pc-actions"><button class="btn btn-sm btn-primary" id="sySaveRelays">Enregistrer</button></div>
      <button class="linklike" id="syPublicRelays"${urls.length || (turn && turn.length) ? '' : ' hidden'}>Revenir au réglage d’origine</button>
    </details>`;
 function parseRelays(raw){

@@ -229,8 +229,8 @@ function backupState(){
    « Mes appareils » passe à deux lignes sur un vrai téléphone. Une icône
    aide quand elle éclaire un libellé obscur ; ici les libellés sont
    clairs, elle ne faisait que prendre la place. */
-const rgRow = (id, nom, etat, last) =>
-  `<button class="rg-row${last ? ' rg-last' : ''}" id="${id}">
+const rgRow = (id, nom, etat, last, dep) =>
+  `<button class="rg-row${last ? ' rg-last' : ''}${dep ? ' rg-dep' : ''}" id="${id}">
      <span class="rg-n">${nom}</span>
      <span class="rg-s"${id === 'moiSync' ? ' id="moiSyncSt"' : (id === 'moiComp' ? ' id="moiCompSt"' : '')}>${etat}</span>
      ${ic('chevron-right', 'ic-14')}
@@ -242,11 +242,18 @@ function reglagesRowsHTML(){
     rgRow('moiVerrou', 'Protection', verrouLabel()) +
     rgRow('moiSync', 'Mes appareils', syncLabel()) +
     /* le pré-requis ne remplace l'état que s'il n'y a rien à dire : une
-       messagerie déjà branchée le dit, même si le coffre a disparu */
+       messagerie déjà branchée le dit, même si le coffre a disparu.
+       Deux lignes attendaient la MÊME chose et le disaient chacune dans
+       son coin (« à protéger », deux fois) : rien ne montrait que c'est
+       la ligne du dessus qui les débloque toutes les deux. Elles nomment
+       donc leur cause et s'effacent tant qu'elle n'est pas levée — taper
+       mène quand même à la protection (N9 reste réglé). */
     rgRow('moiCx', 'Ma messagerie',
-          (!prot && !mailAccount()) ? 'à protéger' : mailStateLabel()) +
+          (!prot && !mailAccount()) ? 'après Protection' : mailStateLabel(),
+          false, !prot && !mailAccount()) +
     rgRow('moiAi', 'Mon assistant IA',
-          (!prot && !aiConnection()) ? 'à protéger' : aiStateLabel()) +
+          (!prot && !aiConnection()) ? 'après Protection' : aiStateLabel(),
+          false, !prot && !aiConnection()) +
     /* l'état, pas la phrase : « il s'installe sur ton ordinateur » se
        dit sur le 2ᵉ écran, là où on peut vraiment le faire (#21).
        Cette liste reste sans pictogramme (voir plus haut) ; le Compagnon

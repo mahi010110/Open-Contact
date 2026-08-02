@@ -579,6 +579,18 @@ details.pcard-details[open]>summary::before{
   border-top:5px solid var(--accent);border-bottom:0;
 }
 details.pcard-details[open]>summary{margin-bottom:10px}
+/* Un repli DANS une feuille : `pcard` a le fond de la fenêtre, un cadre
+   et une ombre portée — sur le corps d'une feuille, qui a exactement le
+   même fond, ça donnait une boîte flottante posée sur une boîte
+   identique, puis des champs encadrés dedans. Trois niveaux de cadre
+   pour une section. Ici le repli se CREUSE au lieu de se poser : le ton
+   du chrome, pas d'ombre — il se lit comme une partie de la feuille. */
+.modal-b details.pcard-details{
+  background:var(--surface-chrome);box-shadow:none;
+}
+.modal-b details.pcard-details .hint{margin-top:5px}
+.modal-b details.pcard-details .pc-actions{margin-top:12px}
+.modal-b details.pcard-details .linklike{margin-top:10px}
 /* CV & lettres : la carte ne porte que deux portes — « CV » et
    « Lettres » — donc elle ne grandit plus avec le nombre de documents ;
    la liste, l'ajout et les gestes vivent dans la feuille du type. */
@@ -658,6 +670,9 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   border-bottom:1px dashed var(--border-soft);
 }
 .rg-row.rg-last{border-bottom:0}
+/* une ligne qui attend qu'une AUTRE soit faite : elle s'efface au lieu
+   de répéter l'ordre. Elle reste tapable — le tap mène au pré-requis. */
+.rg-row.rg-dep .rg-n{font-weight:var(--weight-regular);color:var(--text-muted)}
 .rg-n{
   flex:1;min-width:0;display:flex;align-items:center;gap:8px;
   font-size:var(--text-14);font-weight:var(--weight-semibold);
