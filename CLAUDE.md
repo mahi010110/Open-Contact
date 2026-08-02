@@ -112,6 +112,34 @@ interfaces **pensées par contexte**, qui partagent les données et le style.
   différer (pas juste la taille), brancher sur `matchMedia`, pas sur du CSS
   seul.
 
+**La zone du pouce** (mobile, mesurée : « facile » = les 40 % du bas de
+l'écran) — l'ordre de lecture descend, la main monte, et c'est le bas qui
+gagne pour ce qui se TAPE :
+
+1. **Ce qui compte se tape en bas.** L'action principale d'un écran vit
+   au-dessus de la barre de navigation, pas en tête : les feuilles le font
+   déjà (`setFoot` place le bouton à ~96 % de la hauteur), les pages
+   doivent le faire aussi. Un verbe posé en tête d'écran vit à ~17 % de la
+   hauteur — le point le plus dur à atteindre d'une main.
+2. **Une action se pose TOUJOURS au même endroit**, quel que soit le
+   remplissage : c'est ce qui fait la mémoire du geste. Le motif est le
+   **panneau** — le contenu variable prend un cadre qui tient sa région
+   (`flex:1` + `overflow:auto`, la vue en `height:100%`), les lignes s'y
+   remplissent par le haut, la place restante lui appartient. Sans lui, une
+   liste courte ouvre un trou et une liste longue chasse l'action hors de
+   l'écran. Le cadre est aussi ce qui rend le vide présentable : une place
+   qui a un propriétaire n'est plus un manque.
+3. **Deux gestes aux conséquences différentes ne partagent pas une arête.**
+   ≥ 8 px entre eux — la visée d'un pouce dérape de plusieurs pixels, et
+   ouvrir une fiche n'est pas la clore. Des lignes de liste voisines
+   (réglages, documents) sont l'exception : elles se touchent partout,
+   c'est le trait pointillé qui dit la frontière.
+
+Ça se mesure : position du bouton primaire en % de la hauteur, et
+`elementFromPoint` à ±6 px du bord de chaque cible pour vérifier qu'elle ne
+touche qu'elle-même. Vérifier en 360×640 (le petit téléphone décide) autant
+qu'en 390×844.
+
 ## 6. Catalogue des motifs d'interaction — à réutiliser AVANT d'inventer
 
 Tout vit dans `ui/dom.js` sauf mention. Un besoin nouveau se résout d'abord
