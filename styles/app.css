@@ -369,7 +369,11 @@ details.tranche[open]>summary::before{
 .swipe-done .act-under-done{opacity:1}
 .swipe-report .act-under-report{opacity:1}
 .act-in{position:relative;display:flex;align-items:center;background:var(--surface-window);transition:transform 60ms linear}
-.act-main{flex:1;min-width:0;padding:9px 4px 9px 12px;cursor:pointer;display:flex;flex-direction:column;gap:2px}
+/* Une zone morte entre OUVRIR la fiche et les trois gestes : leurs
+   bords se touchaient (0 px mesuré), et un pouce posé à la frontière
+   ouvrait la fiche au lieu de marquer « Fait ». Deux conséquences très
+   différentes ne doivent pas partager une arête. */
+.act-main{flex:1;min-width:0;padding:9px 0 9px 12px;cursor:pointer;display:flex;flex-direction:column;gap:2px}
 .act-main:hover .act-verb{color:var(--text-link)}
 .act-verb{
   font-size:var(--text-14);font-weight:var(--weight-semibold);line-height:1.35;
@@ -380,7 +384,12 @@ details.tranche[open]>summary::before{
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
 .act-sub .late{color:var(--amber);font-style:normal;font-weight:var(--weight-bold)}
-.act-btns{display:flex;flex:none;padding-right:4px;gap:1px}
+/* Trois gestes aux conséquences distinctes — écrire, reporter, clore —
+   plus « ouvrir la fiche » à leur gauche. Ils se touchaient (0 px
+   mesuré) : un pouce posé à la frontière ouvrait la fiche au lieu de
+   marquer « Fait ». 8 px partout, et chaque geste ne touche plus que
+   lui-même quand la visée dérape de 6 px. */
+.act-btns{display:flex;flex:none;margin-left:8px;padding-right:4px;gap:8px}
 /* actions d'une ligne : des icônes nues, jamais des boutons — au survol,
    au focus ou au tap, SEULE LA COULEUR change. Aucun aplat de fond,
    aucun biseau : le carré derrière l'icône était le bruit à retirer. */
@@ -411,7 +420,8 @@ details.tranche[open]>summary::before{
 .tde-ic.ok{background:var(--green-wash);color:var(--green)}
 .td-empty h3{font-size:var(--text-16);font-weight:var(--weight-bold);letter-spacing:var(--tracking-tight);margin-bottom:5px}
 .td-empty p{font-size:var(--text-13);color:var(--text-muted);line-height:1.6;max-width:340px;margin:0 auto 14px}
-.td-empty.td-clear p{margin-bottom:0}
+.td-empty.td-clear p,.ec-vide .td-empty p{margin-bottom:0}
+.ec-vide .td-empty{margin-top:0}
 .tde-actions{display:flex;flex-direction:column;gap:8px;max-width:280px;margin:0 auto}
 @media (min-width:520px){.tde-actions{flex-direction:row;justify-content:center;max-width:none}}
 .empty-list{padding:26px 14px;text-align:center;color:var(--text-muted);font-size:var(--text-13);line-height:1.6}
@@ -832,15 +842,55 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 .hero2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
 .hero2 .hero{min-height:76px;flex-direction:column;gap:7px;font-size:var(--text-14)}
 .ec-foot{text-align:center;margin-top:16px}
-/* le fil des échanges : ce que l'écran a enfin à montrer. Au pouce il
-   suit les deux gestes ; au poste il prend la place restante — les
-   gestes n'ont pas besoin de 1060 px, le fil si. */
-.ec-fil{margin-top:18px}
+/* Le fil des échanges : ce que l'écran a enfin à montrer. C'est un
+   PANNEAU — un cadre qui tient sa région, où les lignes se remplissent
+   par le haut et dont la place restante lui appartient. Sans cadre, un
+   journal court laissait un trou et un journal long jetait sa date à
+   700 px de son libellé : c'est le bord qui fait qu'une liste se lit
+   comme une liste. */
+.ec-fil{
+  margin-top:18px;display:flex;flex-direction:column;
+  background:var(--surface-window);border:1px solid var(--border-strong);
+  box-shadow:var(--shadow-raised);padding:9px 12px 2px;
+}
+.ec-vide .ec-rien{flex:1}
+.ec-rien{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:5px;text-align:center;padding:18px 4px;
+}
+.ec-rien .tde-ic{margin-bottom:5px}
+.ec-rien b{font-size:var(--text-14);font-weight:var(--weight-bold);letter-spacing:var(--tracking-tight)}
+.ec-rien p{font-size:var(--text-13);color:var(--text-muted);line-height:1.6;max-width:32ch;margin:0}
+/* Le panneau garde sa taille : c'est LUI qui défile quand le journal
+   déborde, jamais la page. `height` et non `min-height` — sinon huit
+   lignes repoussaient les gestes à 101 % de la hauteur sur un 360×640,
+   hors de l'écran donc hors du pouce, exactement ce qu'on venait de
+   corriger. Conséquence : « Donner » se pose au même endroit quel que
+   soit le remplissage (63 / 72 / 74 % selon le téléphone), et la mémoire
+   du geste tient. */
+#view-echanger>.page-inner{display:flex;flex-direction:column;height:100%}
+.ec-fil{flex:1;min-height:96px;overflow:auto;-webkit-overflow-scrolling:touch}
+/* Au pouce, l'écran s'inverse : on LIT en haut, on AGIT en bas — les
+   deux gestes se posent juste au-dessus de la barre, la zone qu'une main
+   atteint sans changer de prise, au lieu de vivre à 17 % de la hauteur.
+   Au poste la souris ignore cette contrainte : les gestes gardent leur
+   colonne à gauche, en tête de lecture. */
+@media (max-width:900px){
+  .ec-fil{margin:2px 0 0}
+  .ec-fil + .hero2{margin-top:16px}
+}
 .ec-tot{margin:-2px 0 6px}
 .ec-when{flex:none;white-space:nowrap}
 .ec-when b{color:var(--text-body);font-weight:var(--weight-semibold)}
 @media (min-width:901px){
-  .ec-cols{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:18px;align-items:start}
+  /* le panneau prend TOUTE la hauteur de la vue : les gestes n'ont pas
+     besoin de 1060 px, le fil si — et un cadre qui s'arrête à mi-écran
+     laisserait sous lui le vide que le cadre servait à supprimer */
+  .ec-cols{
+    flex:1;min-height:0;display:grid;
+    grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:18px;
+  }
+  .ec-actes{align-self:start}
   .ec-cols .ec-fil{margin-top:0}
 }
 /* ---- Donner : ce qui part (compteur + élagage) ---- */

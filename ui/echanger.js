@@ -36,14 +36,20 @@ function filHTML(){
   const tot = exchangeTotals(S.journal);
   const head =
     `<h3 class="tr-h">${ic('switch', 'ic-14')} Tes échanges ${tot.n ? `<span class="tr-n">${tot.n}</span>` : ''}</h3>`;
-  if (!fil.length)
-    return `<section class="tranche ec-fil">${head}
-              <p class="hint">Rien n’a encore circulé. Donne tes pistes à ta promo, ou récupère les
-                 siennes — ce qui part et ce qui arrive s’inscrira ici.</p>
-            </section>`;
-  return (
-    `<section class="tranche ec-fil">${head}
-       <p class="ec-sub ec-tot">${tot.donne} donnée${tot.donne > 1 ? 's' : ''} ·
+  /* Le fil est un PANNEAU, pas un bloc de texte : il tient sa région,
+     les lignes s'y remplissent par le haut et la place qui reste est la
+     sienne — celle des échanges à venir. Sans lui, descendre les gestes
+     au pouce ouvrait un trou de 370 px au milieu de l'écran ; avec lui,
+     les gestes se posent toujours au même endroit, que le journal porte
+     huit lignes, une seule ou aucune. */
+  const corps = !fil.length
+    ? `<div class="ec-rien">
+         <div class="tde-ic">${ic('switch', 'ic-24')}</div>
+         <b>Rien n’a encore circulé</b>
+         <p>Donne tes pistes à ta promo, ou récupère les siennes —
+            ce qui part et ce qui arrive s’inscrira ici.</p>
+       </div>`
+    : `<p class="ec-sub ec-tot">${tot.donne} donnée${tot.donne > 1 ? 's' : ''} ·
           ${tot.recu} reçue${tot.recu > 1 ? 's' : ''}</p>
        ${fil.map(x => {
          const titre = x.sens === 'donne'
@@ -60,8 +66,8 @@ function filHTML(){
                    </div>
                    <span class="ec-sub ec-when">${quand(x.t)}</span>
                  </div>`;
-       }).join('')}
-     </section>`);
+       }).join('')}`;
+  return `<section class="ec-fil${fil.length ? '' : ' ec-vide'}">${head}${corps}</section>`;
 }
 
 export function renderEchanger(){
@@ -86,9 +92,15 @@ export function renderEchanger(){
   root.innerHTML =
     `<div class="page-inner${wide ? ' page-wide' : ''}">
        <div class="td-head"><h2>Échanger</h2></div>
+       ${/* Au pouce, l'ordre s'inverse : on LIT ce qui s'est passé en haut,
+            on AGIT en bas — là où le pouce arrive sans changer de prise.
+            Posés en tête, les deux gestes vivaient à 17 % de la hauteur,
+            le point le plus dur à atteindre d'une main. Au poste, la
+            souris ne connaît pas cette contrainte : les gestes gardent
+            leur colonne à gauche, en tête de lecture. */''}
        ${wide
          ? `<div class="ec-cols"><div class="ec-actes">${gestes}${priv}</div>${filHTML()}</div>`
-         : gestes + filHTML() + priv}
+         : filHTML() + gestes + priv}
      </div>`;
   root.querySelector('#ecGive').addEventListener('click', openDonner);
   root.querySelector('#ecRecv').addEventListener('click', openRecevoir);
