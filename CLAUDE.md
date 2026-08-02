@@ -66,18 +66,25 @@ autres. Ni grisée, ni « bientôt » : absente.
 | Postuler à plusieurs d'affilée, une par une | WEB |
 | CV & lettres rangés, modèles d'emails | WEB |
 | Sauvegarde / restauration, verrouillage facultatif | WEB |
+| Brouillon IA par clé navigateur (Claude, Gemini, OpenRouter) | WEB |
 | Campagnes (séquence, relances, plafond, fenêtre d'envoi) | PC |
 | Envoi app fermée, détection des réponses (SMTP/IMAP) | PC |
 | Analyse automatique de la boîte mail | PC |
 | IA locale (Ollama) ou par abonnement installé | PC |
 | Serveur MCP pour un assistant extérieur | PC |
-| IA par clé navigateur (Claude, Gemini, OpenRouter) | ⏸ |
 | Envoi direct OAuth (Gmail, Outlook) | ⏸ |
 
-Les deux dernières lignes **passent la question ①** : elles n'exigent aucune
-installation et marchent donc sur le web. Elles sont mises de côté par **choix
-de périmètre**, pas par la règle — l'IA par clé pour se recentrer sur les
-bases, l'envoi direct au titre de la question ②.
+**L'IA par clé navigateur est revenue le 2 août 2026.** Elle passe la question
+① sans réserve : aucune installation, elle marche dans un navigateur sur un
+téléphone, et c'est la clé de l'utilisateur qui porte le coût. Seules les
+familles **joignables** sont proposées — les trois qui appellent depuis le
+navigateur ; celles qui passent par l'ordinateur n'apparaissent qu'avec cette
+surface (loi #6).
+
+**L'envoi direct reste reporté** au titre de la question ② : il engage le
+mainteneur dans une déclaration chez Google et Microsoft. L'option « je colle
+mon propre identifiant » le rendrait pourtant disponible sans aucune démarche
+— à rouvrir quand tu voudras.
 
 ### État au 2 août 2026
 

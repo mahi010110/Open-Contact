@@ -11,6 +11,7 @@
 import { MAIL_CLIENTS, authUrl, parseCallback, pkcePair,
          exchangeOutlookCode, refreshOutlook, whoAmI } from '../engine/mailer.js';
 import { AI_FAMILIES } from '../engine/ai.js';
+import { COMPAGNON } from './perimetre.js';
 import { MAIL_KEY, AI_KEY, kvGet, kvSet } from '../engine/storage.js';
 import { esc } from '../engine/utils.js';
 import { S, bus, logJ } from './state.js';
@@ -37,6 +38,12 @@ const saveAi = () => kvSet(AI_KEY, JSON.stringify(ai || {}));
 /* la connexion IA utilisable — clé navigateur (Claude, Gemini,
    OpenRouter) ou « via ton ordinateur » (Ollama, OpenAI, ChatGPT :
    le Compagnon fait l'appel, la clé ne fait que passer, chiffrée) */
+/* Les familles réellement joignables ici et maintenant (loi #6). Celles qui
+   passent par l'ordinateur n'existent que si cette surface est là — sinon la
+   feuille proposerait un choix qui échoue au premier appel. */
+export const familles = () =>
+  Object.keys(AI_FAMILIES).filter(k => AI_FAMILIES[k].channel === 'browser' || COMPAGNON);
+
 export function aiConnection(){
   if (!ai || !ai.provider) return null;
   const fam = AI_FAMILIES[ai.provider];
@@ -276,7 +283,7 @@ function openAiSheet(after){
     sh.body.innerHTML =
       `<p class="hint" style="margin:0 0 10px">L’IA propose un brouillon — tu le relis et tu décides. Sans elle, les modèles restent là.</p>
        <div class="pick-list">
-         ${Object.keys(AI_FAMILIES).map(k => {
+         ${familles().map(k => {
            const f = AI_FAMILIES[k];
            const on = ai && ai.provider === k;
            const voie = f.channel === 'companion'

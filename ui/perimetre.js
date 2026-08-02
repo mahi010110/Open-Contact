@@ -31,7 +31,7 @@ export const CAMPAGNES = false;
 
 /* IA par clé navigateur (Claude, Gemini, OpenRouter). Aucune
    installation, aucune démarche du mainteneur : elle reviendra ICI. */
-export const IA = false;
+export const IA = true;
 
 /* Envoi direct OAuth (Gmail, Outlook). Reporté au titre de la
    question ② : il engage le mainteneur dans une démarche permanente

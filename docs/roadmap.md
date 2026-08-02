@@ -83,7 +83,6 @@ mêmes drapeaux et rejoue dès qu'ils changent.
 
 Disparaissent de l'interface :
 
-- le branchement d'un assistant IA et le bouton « Proposer un brouillon » ;
 - la connexion à une messagerie et l'envoi direct ;
 - l'assistant de campagne, la liste du jour, les lignes de campagne
   d'« Aujourd'hui », la maison « Campagnes (N) » ;
@@ -181,12 +180,13 @@ Démarrer par un petit groupe d'étudiants, puis ouvrir.
 
 Par ordre de valeur, et **seulement** ce qui passe la frontière :
 
-1. **L'IA par clé de navigateur** (Claude, Gemini, OpenRouter). Elle passe la
-   règle — aucune installation, elle marche sur un téléphone — et elle ne
-   demande aucune démarche au mainteneur. C'est la moins chère à ramener et
-   la plus utile : brouillon qui tient compte du modèle choisi et de
-   l'historique, « améliorer mon texte », import d'e-mails collés, remplir une
-   fiche depuis une annonce collée.
+1. ~~**L'IA par clé de navigateur**~~ — **ramenée le 2 août 2026.** Le
+   branchement (Claude, Gemini, OpenRouter) et le brouillon dans le composeur
+   sont de nouveau à l'écran ; les familles qui passent par l'ordinateur
+   n'apparaîtront qu'avec cette surface. Restent à faire, et c'est là qu'est
+   le gain : un brouillon qui tient compte du modèle d'email choisi et de
+   l'historique, « améliorer mon texte », remplir une fiche depuis une annonce
+   collée.
 2. **L'envoi direct, en option assumée** : l'identifiant d'application créé
    par l'utilisateur lui-même (le mécanisme existe déjà), avec un écran guidé
    qui donne les étapes et l'adresse de retour à copier. Zéro démarche pour le
