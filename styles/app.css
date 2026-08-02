@@ -1024,10 +1024,23 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 }
 .fi-row .btn{margin-left:auto}
 .fi-hist{margin-top:4px}
-/* « À savoir » et « Historique » s'ouvrent d'un tap — même règle */
+/* « À savoir » et « Historique » s'ouvrent d'un tap — même règle, et
+   surtout MÊME SIGNE que « Bientôt » : sans le triangle, ces deux mots
+   flottaient en teal au bas de la fiche sans rien dire de ce qu'ils
+   font. Un même geste ne se montre pas de deux façons dans une app. */
 .fi-hist summary{
-  display:flex;align-items:center;min-height:var(--ctl);
-  cursor:pointer;font-size:var(--text-12);color:var(--text-link);font-weight:var(--weight-bold);padding:8px 0;
+  display:flex;align-items:center;gap:7px;min-height:var(--ctl);
+  cursor:pointer;list-style:none;user-select:none;
+  font-size:var(--text-12);color:var(--text-link);font-weight:var(--weight-bold);padding:8px 0;
+}
+.fi-hist>summary::-webkit-details-marker{display:none}
+.fi-hist>summary::before{
+  content:'';width:0;height:0;flex:none;
+  border-left:5px solid var(--accent);border-top:4px solid transparent;border-bottom:4px solid transparent;
+}
+.fi-hist[open]>summary::before{
+  border-left:4px solid transparent;border-right:4px solid transparent;
+  border-top:5px solid var(--accent);border-bottom:0;
 }
 .ct-list{display:flex;flex-direction:column;gap:6px}
 .ct{background:var(--surface-chrome);border:1px solid var(--border-soft);border-radius:var(--radius-1);padding:8px 10px;font-size:var(--text-12)}
@@ -1129,7 +1142,11 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 /* au pouce, la zone d'écriture garde sa taille : le clavier occupe déjà
    la moitié basse de l'écran, une zone plus haute ne se verrait pas */
 .fld-body textarea{min-height:170px}
-.fi-score.low{color:var(--amber);border-color:var(--amber)}
+/* Une fiche remplie à 43 % ne RÉCLAME rien : elle ne coûte pas une
+   opportunité, contrairement à une relance en retard — qui, elle, porte
+   déjà l'ambre trois blocs plus haut. Deux ambres sur un écran diluent
+   celui qui compte. Le signal est le verbe du bouton d'à côté, qui passe
+   de « Modifier » à « Compléter » : un mot, pas une couleur d'alerte. */
 .fi-tools .btn{margin-left:auto}
 .fi-know{border:1px solid var(--border-soft);border-radius:var(--radius-1);background:var(--surface-chrome)}
 .fk{display:flex;gap:10px;padding:7px 10px;font-size:var(--text-12);border-bottom:1px dashed var(--border-soft);align-items:baseline}

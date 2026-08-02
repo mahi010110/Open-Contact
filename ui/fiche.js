@@ -144,7 +144,7 @@ export function openFiche(c){
        se retrouvaient sous « À savoir » déplié, hors de l'écran */
     const outils =
       `<div class="fi-tools">
-         <span class="fi-score${score < 50 ? ' low' : ''}">fiche complète à ${score} %</span>
+         <span class="fi-score">fiche complète à ${score} %</span>
          <button class="btn btn-sm" id="fiEdit">${ic('pencil', 'ic-14')} ${score < 60 ? 'Compléter' : 'Modifier'}</button>
        </div>`;
     /* ---- le travail : où j'en suis, ce que je fais ensuite, ce que je note ---- */
