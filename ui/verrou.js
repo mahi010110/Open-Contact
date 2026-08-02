@@ -610,8 +610,12 @@ export function openManageSheet(){
 }
 
 /* l'étiquette d'état pour la ligne de « Moi » */
+/* L'ÉTAT, jamais l'explication : « se verrouille seul » décrit un
+   comportement, pas un état, et il n'entrait pas dans la colonne — la
+   ligne affichait « protégé — se verrouille s… ». Le délai exact se dit
+   sur la feuille Verrouillage, là où on peut agir dessus. */
 export function verrouLabel(){
-  return meta ? 'protégé — se verrouille seul' : 'non protégé';
+  return meta ? 'protégé' : 'non protégé';
 }
 
 /* commande « verrouiller » reçue de l'appareil principal (anneau) */

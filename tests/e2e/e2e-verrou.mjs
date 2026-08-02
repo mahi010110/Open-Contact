@@ -86,7 +86,10 @@ const bioSheet = await page.$('.modal-confirm');
 if (bioSheet) await page.click('.modal-confirm .modal-h .x');   /* la croix refuse (R2) */
 await page.waitForTimeout(400);
 const lbl2 = await page.textContent('#moiVerrou .rg-s');
-if (!/protégé — se verrouille seul/.test(lbl2)) fail('étiquette après création : ' + lbl2);
+/* l'ÉTAT seul : « se verrouille seul » décrit un comportement et ne
+   tenait pas dans la colonne (« protégé — se verrouille s… ») ; le délai
+   exact se dit sur la feuille Verrouillage */
+if (lbl2.trim() !== 'protégé') fail('étiquette après création : ' + lbl2);
 await snap(page, 'moi-protege');
 
 /* --- 3. le scellement est réel --- */
