@@ -446,13 +446,26 @@ details.tranche[open]>summary::before{
   font-size:var(--text-14);font-weight:var(--weight-semibold);line-height:1.35;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
 }
-/* l'échéance d'abord, le nom ensuite — et c'est LUI qui se tronque : on
-   perd la fin d'« Orange Cyberdefense » avant de perdre « –2 j » */
+/* L'échéance d'abord, le nom ensuite. Mais le nom PASSE À LA LIGNE avant
+   de se tronquer : sur un petit téléphone, les trois gestes prennent
+   152 px et le contenu 130, si bien qu'« Orange Cyberdefense » recevait
+   72 px pour les 125 qu'il lui faut — on lisait « Orange Cy… », et une
+   piste qu'on ne reconnaît plus ne sert à rien. L'asymétrie était là :
+   le verbe avait droit à deux lignes, le nom pas même à une entière.
+   Quand la place suffit (≥ 393 px), rien ne bouge : le retour à la ligne
+   ne se produit que s'il manque des pixels. */
 .act-sub{
-  display:flex;align-items:center;gap:6px;min-width:0;
+  display:flex;align-items:center;flex-wrap:wrap;gap:2px 6px;min-width:0;
   font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);
 }
 .act-sub .act-who{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Sur les plus petits écrans il manquait 7 px au nom, pris par les
+   retraits de la ligne. On les rend — jamais les 8 px entre les gestes,
+   qui protègent le doigt. */
+@media (max-width:340px){
+  .act-in .act-main{padding-left:8px}
+  .act-in .act-btns{padding-right:0}
+}
 .act-sub .act-when{flex:none}
 .act-sub .mark{padding:1px 6px}      /* la ligne est dense : la marque s'y range */
 /* Trois gestes aux conséquences distinctes — écrire, reporter, clore —
