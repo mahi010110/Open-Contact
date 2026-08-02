@@ -72,9 +72,17 @@ export function openWhoPicker(c, keep, o){
     title: (verbe === 'ecrire' ? 'Qui, chez ' : 'Qui part, chez ') + c.name + ' ?',
     icon: 'contact'
   });
+  /* L'emphase suit le DÉFAUT de la liste, pas la feuille qui l'affiche.
+     DONNER part de TOUT retenu : c'est l'écart qui est rare, donc lui
+     qui se marque (`pk-inverse`). ÉCRIRE part d'UNE seule personne — un
+     tap n'envoie pas trois candidatures à la même boîte — donc la liste
+     s'ouvre presque vide et c'est le CHOIX qui mérite l'encre. La même
+     feuille, deux grammaires, parce que les deux verbes n'ont pas le
+     même point de départ. */
+  const inverse = verbe !== 'ecrire';
   const render = () => {
     sh.body.innerHTML =
-      `<div class="pick-list pk-inverse">
+      `<div class="pick-list${inverse ? ' pk-inverse' : ''}">
          ${cts.map(t =>
            `<button class="pick pk${keep.has(t.id) ? ' on' : ''}" data-ct="${esc(t.id)}" aria-pressed="${keep.has(t.id)}">
               ${ic('checkbox', 'ic-20 ic-off')}${ic('checkbox-on', 'ic-20 ic-on')}
