@@ -5,9 +5,10 @@ UI/UX restent dans `CLAUDE.md`, le contrat de données dans `CONTRAT.md` :
 cette feuille de route dit **quoi faire et dans quel ordre**, jamais
 **comment concevoir**.
 
-Le Compagnon a **sa propre feuille de route** : `compagnon/roadmap.md`. La
-frontière entre les deux est posée dans `CLAUDE.md` §0 — on ne la re-discute
-pas ici, on l'applique.
+OpenContact est **un seul produit sur trois surfaces** (`CLAUDE.md` §0) : le
+web — livré, c'est cette feuille de route —, l'ordinateur et le téléphone.
+La surface ordinateur a la sienne : `compagnon/roadmap.md`. On ne re-discute
+pas la répartition ici, on l'applique.
 
 Dernière mise à jour : 31 juillet 2026 — version applicative 6.3.0, cache
 `oc-v74`, 100 auto-tests verts (`node tests/e2e/unitaires.mjs`).
@@ -31,9 +32,9 @@ Dernière mise à jour : 31 juillet 2026 — version applicative 6.3.0, cache
 > trouvé 12, capture d'écran à l'appui. C'est normal — c'était exactement son
 > rôle.
 
-Le chantier connecté (coffre pour secrets, messagerie, IA, campagnes,
-Compagnon, MCP) est livré lui aussi, mais **il n'appartient plus à
-OpenContact** : voir `compagnon/roadmap.md`.
+Le chantier connecté (campagnes, envoi app fermée, analyse de la boîte mail,
+IA locale, MCP) est livré lui aussi, mais **il appartient à la surface
+ordinateur** : voir `compagnon/roadmap.md`.
 
 ---
 
@@ -70,8 +71,8 @@ donner pour l'instant ». Ce n'était pas un défaut.
 
 ### 1.2 Le recentrage — **livré**
 
-Application de `CLAUDE.md` §0. Tout ce qui appartient au Compagnon ou qui est
-reporté **disparaît de l'écran** — sans rien supprimer, sans toucher une clé
+Application de `CLAUDE.md` §0. Tout ce qui appartient à la surface ordinateur
+ou qui est reporté **disparaît de l'écran du web** — sans rien supprimer, sans toucher une clé
 de stockage, sans perdre la moindre donnée déjà enregistrée.
 
 **Un seul point de contrôle : `ui/perimetre.js`.** Quatre drapeaux
@@ -87,7 +88,7 @@ Disparaissent de l'interface :
 - l'assistant de campagne, la liste du jour, les lignes de campagne
   d'« Aujourd'hui », la maison « Campagnes (N) » ;
 - l'analyse automatique de la boîte mail et les propositions de l'assistant ;
-- tout ce qui nomme ou propose le Compagnon.
+- tout ce qui nomme ou propose une capacité de la surface ordinateur.
 
 Restent visibles : écrire un mail par `mailto:` (copier / ouvrir dans Mail /
 « Envoyée ✓ ») et **postuler à plusieurs boîtes d'affilée, une par une**.
@@ -138,7 +139,7 @@ C'est ce qui détruirait la confiance le plus vite.
 
 **Plus aucun blocage externe.** Depuis le recentrage, tout ce qui dépendait
 d'un tiers (déclaration OAuth chez Google et Microsoft, signature et
-notarisation des installateurs) est parti dans `compagnon/roadmap.md`. Ce qui
+notarisation des installateurs) appartient à la surface ordinateur. Ce qui
 suit ne dépend que du projet.
 
 - Domaine et hébergement officiel.

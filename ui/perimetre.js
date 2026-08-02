@@ -16,15 +16,15 @@
    masquage.
    ============================================================ */
 
-/* ---- Colonne CP : appartient au Compagnon (installation requise) ---- */
+/* ---- Colonne PC : surface ordinateur (installation requise) ---- */
 
-/* Association au Compagnon, analyse automatique de la boîte mail,
-   IA « via l'ordinateur » (Ollama, OpenAI, abonnement), serveur MCP. */
+/* Tout ce qui exige une application installée : travail fenêtre fermée,
+   analyse automatique de la boîte mail, IA locale, serveur MCP. */
 export const COMPAGNON = false;
 
 /* Campagnes : séquence 1 message + 2 relances, plafond quotidien,
    fenêtre d'envoi, arrêt sur réponse. Le moteur et les écrans restent
-   testés ; ils attendent leur maison dans le Compagnon. */
+   testés ; ils attendent la surface ordinateur. */
 export const CAMPAGNES = false;
 
 /* ---- Colonne ⏸ : passe la règle, reporté par choix de périmètre ---- */

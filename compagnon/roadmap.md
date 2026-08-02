@@ -1,22 +1,41 @@
-# Le Compagnon — feuille de route
+# OpenContact pour ordinateur — feuille de route
 
-**Second produit du dépôt.** OpenContact et le Compagnon se relient ; ils ne
-se mélangent pas. La frontière est posée dans `CLAUDE.md` §0 : ce qui exige
-une **installation** appartient ici. Ce qui engage le mainteneur dans une
-**démarche permanente** est reporté, ici comme là-bas.
+**Une surface du même produit, pas un produit à part** (`CLAUDE.md` §0). Ce
+qui exige une **installation** vit ici ; ce qui engage le mainteneur dans une
+**démarche permanente** est reporté, quelle que soit la surface.
 
-Règle qui ne bouge pas : **OpenContact reste entier si le Compagnon n'existe
-pas.** Ce qui traverse la frontière est une donnée, jamais une dépendance.
+Règle qui ne bouge pas : **le web reste entier si l'ordinateur n'existe pas.**
+Les surfaces partagent des données, jamais des dépendances.
 
-Statut : **en pause volontaire depuis le 31 juillet 2026.** Le code est
-complet et testé ; OpenContact passe d'abord.
+> **Le nom.** « Le Compagnon » ne se dit plus à l'écran — ce sera
+> **OpenContact pour ordinateur**, la même application, capable de travailler
+> fenêtre fermée. Le dossier `compagnon/` garde son nom technique : c'est la
+> coquille qui deviendra cette surface, et renommer un dossier ne change rien
+> à ce que voit un utilisateur.
+>
+> **Ce que ce changement de cadrage supprime**, le jour de la reprise :
+> l'appairage par code court, le serveur local 127.0.0.1, l'anneau
+> d'appareils signé et l'obligation d'être « l'appareil principal ». Une
+> surface du même produit rejoint tes appareils par la **phrase de liaison**,
+> comme un téléphone — elle n'a rien à prouver de plus. C'est plusieurs
+> centaines de lignes qui deviennent inutiles, et une étape en moins pour
+> l'utilisateur. Le code actuel reste valide en attendant ; il est simplement
+> plus lourd que nécessaire.
+
+Statut : **en sommeil depuis le 2 août 2026.** Le code est complet et testé ;
+la surface web passe d'abord.
+
+**Le déclencheur de la reprise** *(à fixer par le mainteneur)* : une preuve
+d'usage, pas une envie — par exemple « dix étudiants utilisent encore la
+version web un mois après l'avoir installée ». Tant que le seuil n'est pas
+atteint, cette feuille de route dort.
 
 ---
 
 ## 1. Ce que c'est
 
-L'application d'appoint sur l'ordinateur. Elle prend ce qu'un navigateur ne
-peut pas garantir — et **rien d'autre** :
+OpenContact sur l'ordinateur : la même application, plus ce qu'un navigateur
+ne peut pas garantir —
 
 - envoyer des e-mails même application fermée ;
 - garder les secrets dans le trousseau du système ;
@@ -193,7 +212,7 @@ ouvertures d'e-mails — avec sa réserve : côté destinataire, un pixel de sui
 
 ## Références
 
-- `CLAUDE.md` §0 — la frontière entre les deux produits.
+- `CLAUDE.md` §0 — un produit, trois surfaces, et la question qui range.
 - `compagnon/README.md` — architecture, protocole du canal, crochets de
   développement.
 - `compagnon/fable5/` — le chantier connecté : contexte, spécifications, plan UX,

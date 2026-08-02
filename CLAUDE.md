@@ -7,71 +7,92 @@ l'idée, ou on discute la règle avec le mainteneur. Jamais d'exception
 silencieuse.
 
 À lire avec : `CONTRAT.md` (le contrat de données, vérifié par `?test`),
-`docs/roadmap.md` (la feuille de route d'OpenContact), `compagnon/roadmap.md`
-(celle du second produit), `design/` (le kit « Utilitaire 98 »).
+`docs/roadmap.md` (la feuille de route de la surface web), `compagnon/roadmap.md`
+(celle de la surface ordinateur, en sommeil), `design/` (le kit « Utilitaire 98 »).
 Le « pourquoi » de l'interface actuelle vit dans `docs/refonte-calibrage.md`
 (23 décisions) et `docs/finition-calibrage.md`.
 
 ---
 
-## 0. Deux produits, une frontière
+## 0. Un produit, trois surfaces
 
-OpenContact et le Compagnon sont **deux produits distincts**. Ils se relient ;
-ils ne se mélangent pas. Avant d'ajouter quoi que ce soit, deux questions :
+OpenContact est **un seul produit**. Il vit — ou vivra — sur trois surfaces
+qui partagent les mêmes données et le même vocabulaire.
 
-> **① Est-ce que ça marche pour quelqu'un qui ouvre l'app pour la première
-> fois, sur son téléphone, sans compte et sans rien installer ?**
-> Non → c'est le Compagnon. **L'installation est ce qui fait un second
-> produit** — pas la complexité, pas le niveau d'expertise.
+| Surface | État | Ce qu'elle apporte de plus |
+|---|---|---|
+| **Le web** (PWA, installable) | **livrée** | tout le quotidien : capturer, agir, écrire, partager avec la promo, synchroniser ses appareils |
+| **L'ordinateur** | **en sommeil** | ce qu'un navigateur ne peut pas garantir : travailler application fermée, parler IMAP/SMTP, faire tourner une IA locale |
+| **Le téléphone** (store) | non commencée | la même chose que le web, mieux intégrée à l'appareil (caméra, partage, notifications) |
+
+*(Le dossier `compagnon/` garde son nom technique — c'est la coquille qui
+deviendra la surface ordinateur. « Le Compagnon » ne se dit plus à l'écran :
+c'est **OpenContact pour ordinateur**.)*
+
+### Les deux questions, avant d'ajouter quoi que ce soit
+
+> **① Est-ce que ça marche pour quelqu'un qui ouvre l'app dans son
+> navigateur, sur son téléphone, sans compte et sans rien installer ?**
+> Oui → c'est du web, donc de partout.
+> Non → c'est une capacité de la **surface ordinateur**, aujourd'hui en
+> sommeil. **L'installation est ce qui fait une autre surface** — pas la
+> complexité, pas le niveau d'expertise.
 >
 > **② Est-ce que ça engage le mainteneur dans une démarche permanente**
 > (déclaration chez un fournisseur, examen, certificat à renouveler) **?**
-> Oui → **reporté**, quel que soit le produit qui l'héberge.
+> Oui → **reporté**, quelle que soit la surface.
 
 Pas « est-ce que c'est avancé », pas « est-ce que c'est pour les experts » :
 est-ce que ça marche **tout de suite, pour tout le monde**.
 
-Ce qui traverse la frontière est **une donnée, jamais une dépendance** :
-OpenContact reste entier si le Compagnon n'existe pas.
+**La règle qui ne bouge pas : les surfaces partagent des données, jamais des
+dépendances.** Le web reste entier si l'ordinateur n'existe pas.
 
-**Corollaire.** Ce qui appartient au Compagnon **n'apparaît pas** dans
-OpenContact tant que le Compagnon n'est pas là. Ni grisé, ni « bientôt » :
-absent.
+**Corollaire.** Une capacité d'une surface absente **n'apparaît pas** sur les
+autres. Ni grisée, ni « bientôt » : absente.
 
 ### La répartition
 
-`OC` = OpenContact · `CP` = Compagnon · `⏸` = reporté (voir l'état plus bas).
+`WEB` = partout, dès aujourd'hui · `PC` = surface ordinateur, en sommeil ·
+`⏸` = reporté par choix (voir l'état plus bas).
 
 | | Où |
 |---|---|
-| Pistes, fiches, suivi, prochaine action, clôture | OC |
-| Capture, anti-doublon, bac « à rattacher » | OC |
-| Partage promo (QR, fichier `.oc`, coller, groupe) | OC |
-| Sync entre MES appareils | OC |
-| Écrire un mail (`mailto:`, copier, « Envoyée ✓ ») | OC |
-| Postuler à plusieurs d'affilée, une par une | OC |
-| CV & lettres rangés, modèles d'emails | OC |
-| Sauvegarde / restauration, verrouillage facultatif | OC |
-| Campagnes (séquence, relances, plafond, fenêtre d'envoi) | CP |
-| Envoi app fermée, détection des réponses (SMTP/IMAP) | CP |
-| Analyse automatique de la boîte mail | CP |
-| IA « via l'ordinateur » (Ollama, OpenAI, abonnement) | CP |
-| Serveur MCP pour un assistant extérieur | CP |
+| Pistes, fiches, suivi, prochaine action, clôture | WEB |
+| Capture, anti-doublon, bac « à rattacher » | WEB |
+| Partage promo (QR, fichier `.oc`, coller, groupe) | WEB |
+| Sync entre MES appareils | WEB |
+| Écrire un mail (`mailto:`, copier, « Envoyée ✓ ») | WEB |
+| Postuler à plusieurs d'affilée, une par une | WEB |
+| CV & lettres rangés, modèles d'emails | WEB |
+| Sauvegarde / restauration, verrouillage facultatif | WEB |
+| Campagnes (séquence, relances, plafond, fenêtre d'envoi) | PC |
+| Envoi app fermée, détection des réponses (SMTP/IMAP) | PC |
+| Analyse automatique de la boîte mail | PC |
+| IA locale (Ollama) ou par abonnement installé | PC |
+| Serveur MCP pour un assistant extérieur | PC |
 | IA par clé navigateur (Claude, Gemini, OpenRouter) | ⏸ |
 | Envoi direct OAuth (Gmail, Outlook) | ⏸ |
 
 Les deux dernières lignes **passent la question ①** : elles n'exigent aucune
-installation et ont donc leur place dans OpenContact. Elles sont mises de côté
-par **choix de périmètre**, pas par la règle. Le jour où elles reviennent,
-elles reviennent **ici**, pas dans le Compagnon.
+installation et marchent donc sur le web. Elles sont mises de côté par **choix
+de périmètre**, pas par la règle — l'IA par clé pour se recentrer sur les
+bases, l'envoi direct au titre de la question ②.
 
-**État au 31 juillet 2026.** OpenContact se recentre sur ses bases avant sa
-première mise à disposition. Tout ce qui est marqué `CP` ou `⏸` est **présent
-dans le code mais masqué à l'écran** : rien n'est supprimé, aucune clé de
-stockage ne bouge, aucune donnée existante n'est perdue. La suppression
-franche se décidera après la première bêta.
+### État au 2 août 2026
 
----
+La surface web se recentre sur ses bases avant sa première mise à
+disposition. Tout ce qui est marqué `PC` ou `⏸` est **présent dans le code
+mais masqué à l'écran**, piloté par les quatre drapeaux de `ui/perimetre.js` :
+rien n'est supprimé, aucune clé de stockage ne bouge, aucune donnée existante
+n'est perdue (une clé d'IA ou un jeton de messagerie déjà en place reste
+lisible, simplement plus affiché). La suppression franche se décidera après la
+première bêta.
+
+**Le déclencheur de la surface ordinateur** *(à remplir par le mainteneur)* :
+elle ne se rouvre pas sur une envie, mais sur une preuve d'usage — par
+exemple « dix étudiants l'utilisent encore un mois après l'avoir installée ».
+Tant que le seuil n'est pas atteint, elle dort.
 
 ## 1. Le produit en une phrase
 
@@ -136,8 +157,9 @@ leur licence.
 - **`sw.js`** : chaque livraison qui touche un fichier précaché incrémente
   `CACHE` (`oc-vN`) et met à jour `PRECACHE`.
 
-C'est cette séparation qui a permis au Compagnon de réutiliser le moteur sans
-le réécrire. Elle reste, même si les deux produits divergent.
+C'est cette séparation qui permet à la surface ordinateur d'exécuter le même
+moteur que le web, sans le réécrire. Elle reste, quoi qu'il arrive aux
+surfaces.
 
 > **Outillage.** Aujourd'hui : JavaScript pur, modules ES, aucune étape de
 > build. C'est **l'état actuel, plus une règle** — l'interdiction de framework
