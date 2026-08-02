@@ -402,17 +402,28 @@ export function renderMoi(){
      · « buttons that apply only to a page go on the page » → « Télécharger »
        reste DANS son groupe, il ne descend pas en pied de page. */
   const objet =
+    /* Ce qui est rempli s'AFFICHE, tout de suite. L'écran exigeait le nom
+       ET l'email pour montrer quoi que ce soit : on tapait son nom, et
+       l'écran répondait par la même phrase d'accueil, comme si rien
+       n'avait été saisi. Dès qu'il y a un nom, c'est lui qu'on lit — et
+       la phrase, qui n'avait plus rien à apprendre, s'en va.
+       Ce qui manque ne se signale PAS : ni pastille, ni phrase. Remplir
+       son profil n'est pas urgent, et une marque sur cet écran pèserait
+       autant qu'un retard de relance sans rien coûter si on l'ignore.
+       C'est le VERBE du bouton qui porte l'écart — « Compléter » tant
+       qu'il reste quelque chose, « Modifier » ensuite : un mot, pas un
+       objet de plus. */
     `<div class="obj">
        ${ic('user', 'ic-24')}
        <div class="obj-m">
-         ${pReady
+         ${p.name
            ? `<span class="obj-n">${esc(p.name)}</span>
               <div class="obj-s">${[p.formation, p.email].filter(Boolean).map(esc).join('<br>')}</div>`
            : `<p class="obj-empty">Ton nom, ta formation, ton email remplissent
                 chaque email que tu envoies.</p>
               <button class="btn btn-sm btn-primary" id="moiProfil">Remplir mon profil</button>`}
        </div>
-       ${pReady ? '<button class="btn btn-sm" id="moiProfil">Modifier</button>' : ''}
+       ${p.name ? `<button class="btn btn-sm" id="moiProfil">${pReady ? 'Modifier' : 'Compléter'}</button>` : ''}
      </div>`;
 
   const envoi =

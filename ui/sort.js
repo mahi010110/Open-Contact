@@ -56,7 +56,13 @@ export function sortSectionHTML(st){
   const main = st.levels[0];
   return (
     `<div class="lbl-row"><label>Trier</label>
-       ${sortIsDefault(st) ? '' : `<button class="linklike" data-sort-reset>Revenir à « ${SORT_LABELS[st.def]} »</button>`}
+       ${/* Le lien porte le SENS, pas seulement le critère. Sans lui, un
+            re-tap sur « Récentes » n'inverse que la flèche, et le lien
+            disait « Revenir à "Récentes" » juste au-dessus d'une puce
+            « Récentes » allumée : on lisait une commande qui ne fait
+            rien. Avec la flèche du défaut, ↑ actif contre ↓ proposé,
+            l'écart est visible dans le libellé même. */''}
+       ${sortIsDefault(st) ? '' : `<button class="linklike" data-sort-reset>Revenir à « ${SORT_LABELS[st.def]} ${(NATURAL_DIR[st.def] || 'desc') === 'asc' ? '↑' : '↓'} »</button>`}
      </div>
      <div class="fl-grid">
        ${Object.keys(SORT_LABELS).map(k =>

@@ -67,7 +67,13 @@ function filHTML(){
                    <span class="ec-sub ec-when">${quand(x.t)}</span>
                  </div>`;
        }).join('')}`;
-  return `<section class="ec-fil${fil.length ? '' : ' ec-vide'}">${head}${corps}</section>`;
+  /* Le bandeau NE DÉFILE PAS. Il vivait dans la zone qui glisse : sur un
+     écran court, neuf pixels de défilement suffisaient à le faire passer
+     sous sa propre bordure — on lisait « TES ÉCHANGES » coupé en deux.
+     Un panneau a un bandeau fixe et un corps qui glisse dessous. */
+  return `<section class="ec-fil${fil.length ? '' : ' ec-vide'}">
+            ${head}<div class="ec-body">${corps}</div>
+          </section>`;
 }
 
 export function renderEchanger(){

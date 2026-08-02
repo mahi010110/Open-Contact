@@ -350,10 +350,13 @@ html[data-theme="dark"] .field select{
      pouce, pas à 27 % de la hauteur. Journée chargée, il suit le contenu :
      `margin-top:auto` ne prend que la place qui reste, s'il en reste. */
   #view-aujourdhui>.page-inner{display:flex;flex-direction:column;min-height:100%}
-  #view-aujourdhui>.page-inner>.td-under{
-    margin-top:auto;padding-top:14px;border-top:1px dashed var(--border-soft);
-  }
-  .td-under>*:first-child{margin-top:0}   /* le filet fait déjà la respiration */
+  /* Pas de filet ici. Il devait dire « le travail s'arrête, le pied
+     commence » ; à l'usage personne ne sait à quoi il sert, et sur une
+     journée courte il vient se poser contre la dernière carte, où il se
+     lit comme un bord de cette carte. Le pied se distingue déjà par sa
+     position — tout en bas — et par son style de lien. Un séparateur
+     qu'il faut expliquer ne sépare rien. */
+  #view-aujourdhui>.page-inner>.td-under{margin-top:auto}
 }
 @media (min-width:901px){
   .td-under{
@@ -390,8 +393,21 @@ html[data-theme="dark"] .field select{
 .tr-late .tr-h .tr-n{border-color:var(--amber);background:var(--amber-wash)}
 /* replier/déplier « Bientôt » est un geste au pouce comme un autre :
    la ligne fait 44 px, pas la hauteur de ses 11 px de texte */
+/* La CIBLE fait 44 px, la mise en page n'en prend pas 44. Le repli de
+   « Bientôt » affichait un en-tête de 44 px à côté de deux en-têtes de
+   17 px : trois titres de même rang, dont un 2,6 fois plus haut — c'est
+   ça qui cassait l'harmonie de l'écran. Le rembourrage donne le pouce,
+   les marges négatives le rendent à la mise en page : le doigt garde ses
+   44 px, l'œil retrouve le rythme des deux autres. */
 details.tranche>summary{
-  cursor:pointer;list-style:none;user-select:none;padding:6px 0;min-height:var(--ctl);
+  cursor:pointer;list-style:none;user-select:none;
+  /* Tout le rembourrage passe AU-DESSUS du libellé, et la marge négative
+     le rend à la mise en page. En le répartissant, la carte du dessous
+     recouvrait les 6 derniers pixels de la cible et la ramenait à 38 px —
+     sous le plancher tactile, sans que rien ne le montre. Ici : libellé
+     aligné sur un `h3`, 8 px sous lui comme les deux autres tranches, et
+     44 px de cible que personne ne recouvre. */
+  padding:19px 0 8px;min-height:var(--ctl);margin:-19px 0 0;
 }
 details.tranche>summary::-webkit-details-marker{display:none}
 details.tranche>summary::before{
@@ -928,6 +944,8 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   background:var(--surface-window);border:1px solid var(--border-strong);
   box-shadow:var(--shadow-raised);padding:9px 12px 2px;
 }
+/* le corps glisse, le bandeau reste */
+.ec-body{flex:1;min-height:0;display:flex;flex-direction:column;overflow:auto;-webkit-overflow-scrolling:touch}
 .ec-vide .ec-rien{flex:1}
 .ec-rien{
   display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -944,7 +962,7 @@ details.pcard-details[open]>summary{margin-bottom:10px}
    soit le remplissage (63 / 72 / 74 % selon le téléphone), et la mémoire
    du geste tient. */
 #view-echanger>.page-inner{display:flex;flex-direction:column;height:100%}
-.ec-fil{flex:1;min-height:96px;overflow:auto;-webkit-overflow-scrolling:touch}
+.ec-fil{flex:1;min-height:96px;overflow:hidden}
 /* Au pouce, l'écran s'inverse : on LIT en haut, on AGIT en bas — les
    deux gestes se posent juste au-dessus de la barre, la zone qu'une main
    atteint sans changer de prise, au lieu de vivre à 17 % de la hauteur.
@@ -972,6 +990,10 @@ details.pcard-details[open]>summary{margin-bottom:10px}
    un filet sépare les deux questions : QUOI, puis COMMENT ---- */
 .dn-src{margin:0 0 12px;padding-bottom:10px;border-bottom:1px dashed var(--border-soft)}
 .dn-what{display:flex;align-items:center;gap:8px}
+/* « Choisir » déplie la liste, « Affiner » ouvre une feuille : deux
+   conséquences différentes, et leurs bords se touchaient (mesuré à 0 px,
+   208 → 208). La liste dépliée prend ses distances de son déclencheur. */
+#dnList>.listbar{margin-top:10px}
 .dn-count{flex:1;font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted)}
 
 .qr-prog,.scan-prog{
