@@ -131,14 +131,20 @@ gagne pour ce qui se TAPE :
    qui a un propriétaire n'est plus un manque.
 3. **Deux gestes aux conséquences différentes ne partagent pas une arête.**
    ≥ 8 px entre eux — la visée d'un pouce dérape de plusieurs pixels, et
-   ouvrir une fiche n'est pas la clore. Des lignes de liste voisines
-   (réglages, documents) sont l'exception : elles se touchent partout,
-   c'est le trait pointillé qui dit la frontière.
+   ouvrir une fiche n'est pas la clore. Ce qui compte est la
+   **conséquence d'un rata­ge**, pas la proximité : là où se tromper coûte
+   un tap pour revenir, les cibles ont le droit de se toucher. C'est le
+   cas des **lignes de liste** (réglages, documents — le trait pointillé
+   dit la frontière) et de la **barre de navigation** (onglets jointifs à
+   2-4 px : tout tab bar du monde fait ça, et les écarter volerait de la
+   largeur à des cibles qu'on tape cent fois par jour). Appliquer la règle
+   à la lettre sur ces deux cas DÉGRADE l'interface.
 
 Ça se mesure : position du bouton primaire en % de la hauteur, et
 `elementFromPoint` à ±6 px du bord de chaque cible pour vérifier qu'elle ne
 touche qu'elle-même. Vérifier en 360×640 (le petit téléphone décide) autant
-qu'en 390×844.
+qu'en 390×844. L'instrument signale toute adjacence : c'est à la lecture de
+trancher si le voisinage coûte quelque chose.
 
 ## 6. Catalogue des motifs d'interaction — à réutiliser AVANT d'inventer
 
