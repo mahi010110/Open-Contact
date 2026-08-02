@@ -107,7 +107,7 @@ export function openDonner(){
                 ${whoLineHTML(c, keepOf(c), 'donner')}
               </div>`).join('')}
          </div>`;
-      bindAffinerBtn(zone, ft, st, {}, () => { const play = softReorder('.modal-b .pk'); renderList(); play(); });
+      bindAffinerBtn(zone, ft, st, { pool: alive }, () => { const play = softReorder('.modal-b .pk'); renderList(); play(); });
       zone.querySelectorAll('.pk').forEach(b =>
         b.addEventListener('click', () => {
           const id = b.dataset.id;

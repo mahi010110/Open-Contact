@@ -28,20 +28,39 @@ export const affineCount = (ft, st) =>
   (ft.status ? 1 : 0) + (ft.domain ? 1 : 0) + (st && !sortIsDefault(st) ? 1 : 0);
 
 /* la feuille. `withStatus` : le tableau desktop segmente déjà par
-   statut, inutile de le reproposer. */
+   statut, inutile de le reproposer. `o.pool()` rend la population que
+   l'écran filtre — sans elle, la feuille reste exhaustive. */
 export function openAffinerSheet(ft, st, o, onChange){
   o = o || {};
   const sh = openSheet({ title: 'Affiner', icon: 'filter' });
   const render = () => {
-    const chips = (grp, defs, cur) => Object.keys(defs).map(k =>
-      `<button class="fl-chip${cur === k ? ' on' : ''}" data-${grp}="${k}" aria-pressed="${cur === k}">
-         <span class="dotc" style="background:${defs[k].color}"></span>${defs[k].label}</button>`).join('');
+    const pool = typeof o.pool === 'function' ? (o.pool() || []) : null;
+    const compte = (champ, k) => pool ? pool.filter(c => (c[champ] || 'autre') === k).length : null;
+    /* Un filtre qui ne peut rien filtrer est un cul-de-sac : il coûte un
+       tap et rend une liste vide. On montre donc le COMPTE, et on traite
+       le zéro selon la nature de la liste.
+       · Statut : trois crans, un cadre mental fixe — la puce reste, mais
+         éteinte (savoir qu'on n'a aucune réponse est une information).
+       · Domaine : dix étiquettes d'une taxinomie arbitraire — une case
+         vide n'apprend rien, elle disparaît. */
+    const chip = (grp, defs, cur, k, eteint) => {
+      const n = compte(grp === 'st' ? 'status' : 'domain', k);
+      return `<button class="fl-chip${cur === k ? ' on' : ''}${eteint ? ' fl-off' : ''}"
+                 data-${grp}="${k}" aria-pressed="${cur === k}"${eteint ? ' disabled' : ''}>
+         <span class="dotc" style="background:${defs[k].color}"></span>${defs[k].label}${
+        n == null ? '' : `<span class="fl-n">${n}</span>`}</button>`;
+    };
+    const chipsSt = () => Object.keys(STATUSES)
+      .map(k => chip('st', STATUSES, ft.status, k, pool && !compte('status', k))).join('');
+    const chipsDom = () => Object.keys(DOMAINS)
+      .filter(k => !pool || compte('domain', k) || ft.domain === k)
+      .map(k => chip('dom', DOMAINS, ft.domain, k, false)).join('');
     sh.body.innerHTML =
       `${o.withStatus === false ? '' :
         `<div class="lbl-row"><label>Statut</label></div>
-         <div class="fl-grid">${chips('st', STATUSES, ft.status)}</div>`}
+         <div class="fl-grid">${chipsSt()}</div>`}
        <div class="lbl-row"><label>Domaine</label></div>
-       <div class="fl-grid">${chips('dom', DOMAINS, ft.domain)}</div>
+       <div class="fl-grid">${chipsDom()}</div>
        ${sortSectionHTML(st)}`;
     sh.body.querySelectorAll('[data-st]').forEach(b =>
       b.addEventListener('click', () => {
@@ -71,5 +90,5 @@ export function affinerBtnHTML(ft, st){
 }
 export function bindAffinerBtn(root, ft, st, o, onChange){
   root.querySelector('[data-affiner]')?.addEventListener('click', () =>
-    openAffinerSheet(ft, st, o, onChange));
+    openAffinerSheet(ft, st, o || {}, onChange));
 }

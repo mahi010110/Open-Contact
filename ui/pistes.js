@@ -380,7 +380,8 @@ export function renderPistes(){
   };
   bindChips(root.querySelector('#piChips'));
   root.querySelector('#piAffiner').addEventListener('click', () =>
-    openAffinerSheet(ft, st, { withStatus: !mqWide.matches }, refresh));
+    openAffinerSheet(ft, st, { withStatus: !mqWide.matches,
+      pool: () => S.companies.filter(c => !isClosed(c)) }, refresh));
   root.querySelector('#piProspect')?.addEventListener('click', openProspect);
   root.querySelector('#piCamps')?.addEventListener('click', openCampaignsHome);
   renderBody();

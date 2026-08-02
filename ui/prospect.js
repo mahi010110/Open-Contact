@@ -136,7 +136,7 @@ export function openProspect(){
       }
       render();
     });
-    bindAffinerBtn(sh.body, ft, st, {}, () => { const play = softReorder('.modal-b .pk'); render(); play(); });
+    bindAffinerBtn(sh.body, ft, st, { pool: alive }, () => { const play = softReorder('.modal-b .pk'); render(); play(); });
     sync();
   };
   sh.setFoot([bGo]);

@@ -260,6 +260,12 @@ html[data-theme="dark"] .field select{
   font-family:var(--font-ui);font-size:var(--text-13);color:var(--text-body);
 }
 .fl-chip:active{box-shadow:var(--bevel-down);transform:translate(1px,1px)}
+/* le compte à droite de la puce : combien de pistes ce filtre garderait.
+   Un statut à zéro reste visible (savoir qu'on n'a aucune réponse est
+   une information) mais s'éteint — il ne peut rien filtrer. */
+.fl-chip .fl-n{margin-left:auto;font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
+.fl-chip.on .fl-n{color:inherit;opacity:.75}
+.fl-chip.fl-off{opacity:.45;cursor:not-allowed;box-shadow:none}
 .fl-chip.on{background:var(--teal-wash);border-color:var(--accent);color:var(--accent);font-weight:var(--weight-semibold)}
 .fl-chip .dotc{width:8px;height:8px;border:1px solid var(--border-strong);flex:none}
 

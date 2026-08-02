@@ -515,7 +515,7 @@ export function openPromo(){
         toast('Parti vers ' + peers + ' camarade' + (peers > 1 ? 's' : '') + ' ✓');
       });
       q('#prPick').addEventListener('click', () => { choosing = !choosing; refreshStatus(); });
-      bindAffinerBtn(zone, ft, st, {}, refreshStatus);
+      bindAffinerBtn(zone, ft, st, { pool: mine }, refreshStatus);
       q('#prAll')?.addEventListener('click', () => {
         const rienDecoche = unsel.size === 0;
         unsel.clear();
