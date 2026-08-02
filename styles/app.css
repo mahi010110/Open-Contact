@@ -112,8 +112,14 @@ input,select,textarea{font-family:inherit;color:var(--text-body)}
   white-space:nowrap;overflow:hidden;
 }
 .bottomnav a.on{background:var(--select-bg);color:var(--select-text);border-color:var(--border-strong)}
+/* Le ⊕ était la cible la PLUS ÉTROITE de la barre (52 px) pour le geste
+   le plus précieux de l'app — noter une entreprise qu'on vient de
+   croiser. Il passe à 64 px : c'est le maximum mesuré avant que
+   « Aujourd'hui » ne se coupe sur un écran de 320 px (à 68 px il se
+   coupe). Les onglets descendent de 62 à 59 px, aucun libellé n'en
+   souffre, et le centre de la barre devient enfin son point d'appui. */
 .bn-add{
-  flex:none;width:52px;margin:0 2px;align-self:stretch;
+  flex:none;width:64px;margin:0 2px;align-self:stretch;
   display:inline-flex;align-items:center;justify-content:center;
   background:var(--accent);color:var(--on-accent);
   border:1px solid var(--border-strong);border-radius:var(--radius-1);
