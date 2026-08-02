@@ -238,7 +238,26 @@ ne sert qu'à un groupe **reste dans ce groupe** ; les réglages avancés
 
 Français, tutoiement, phrases courtes, concret. On parle « pistes »,
 « promo », « fiche », « suivi » — jamais « CRM », « lead », « sync LWW » ni
-autre jargon à l'écran. Les rappels de sécurité/valeur sont **courts et
+autre jargon à l'écran.
+
+**Un objet, UN mot — dans toute l'app, y compris les dialogues qu'un
+écran ouvre et le nom des fichiers qu'il produit.** Deux noms pour la
+même chose obligent à apprendre deux fois, et le glissement se fait
+toujours dans les feuilles secondaires, jamais dans le titre. Le
+vocabulaire arrêté :
+
+| l'objet | le mot | jamais |
+|---|---|---|
+| une entreprise suivie | **piste** (« entreprise » = le champ, pas l'objet) | boîte, société |
+| une personne chez elle | **contact** (« destinataire » reste dans le composeur : c'est le mot du courrier) | personne (sauf le pronom : « personne pour l'instant ») |
+| l'écran d'une piste | **fiche** | détail |
+| le fichier de tout mon suivi | **copie** (`opencontact-copie-*.oc`) | sauvegarde, export, archive |
+| le groupe | **promo** | camarades |
+
+Ça se vérifie mécaniquement : extraire les chaînes de `ui/*.js` et
+regrouper les synonymes (voir l'inventaire terminologique). Un compte ne
+tranche pas seul — il faut relire la phrase : « Copie impossible ici »
+parle du presse-papier, pas du fichier. Les rappels de sécurité/valeur sont **courts et
 placés au moment du geste** (pas de paragraphes préventifs — la v6.1 a
 allégé, on ne réalourdit pas). Microcopie type : « Seules les fiches
 partent — jamais ton suivi privé. » **Par défaut, un mot ou une icône

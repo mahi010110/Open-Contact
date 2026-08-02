@@ -61,7 +61,7 @@ export function openProspect(){
   const bGo = btn('Continuer', 'btn-primary', () => {
     if (!sel.size){ toast('Coche au moins une piste.'); return; }
     const pairs = allPairs();
-    if (!pairs.some(p => p.ct)){ toast('Choisis au moins une personne.'); return; }
+    if (!pairs.some(p => p.ct)){ toast('Choisis au moins un contact.'); return; }
     sh.close();
     chooseMode(pairs);
   });

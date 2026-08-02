@@ -30,7 +30,7 @@ export function downloadBackup(pass){
     const txt = pass ? await encryptOC2(payload, pass) : JSON.stringify(payload);
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([txt], { type: 'application/octet-stream' }));
-    a.download = 'opencontact-sauvegarde-' + todayISO() + '.oc';
+    a.download = 'opencontact-copie-' + todayISO() + '.oc';
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -63,17 +63,17 @@ async function treatRestore(raw, pass){
       askRestorePass(raw);
       return;
     }
-    toast(e.message === 'format' ? 'Ce fichier n’est pas une sauvegarde OpenContact.' : 'Lecture impossible : ' + e.message);
+    toast(e.message === 'format' ? 'Ce fichier n’est pas une copie OpenContact.' : 'Lecture impossible : ' + e.message);
     return;
   }
   if (obj.kind === 'share'){
-    toast('C’est un partage de pistes, pas une sauvegarde — passe par Échanger → Recevoir pour le fusionner.');
+    toast('C’est un partage de pistes, pas une copie — passe par Échanger → Recevoir pour le fusionner.');
     return;
   }
   const n = obj.companies.length;
   const cur = S.companies.length;
   const ok = await confirmSheet({
-    title: 'Restaurer cette sauvegarde ?', icon: 'reload', danger: true, okLabel: 'Tout remplacer',
+    title: 'Restaurer cette copie ?', icon: 'reload', danger: true, okLabel: 'Tout remplacer',
     msg: `Le fichier contient <b>${n} piste${n > 1 ? 's' : ''}</b>${obj.profile ? ', le profil' : ''}${obj.orphans ? ', ' + obj.orphans.length + ' contact(s) à rattacher' : ''}.<br>
           Ta base actuelle (<b>${cur} piste${cur > 1 ? 's' : ''}</b>) sera <b>entièrement remplacée</b> — annulable pendant 30 secondes.`
   });
@@ -91,7 +91,7 @@ async function treatRestore(raw, pass){
      pierre tombale re-supprimerait une piste restaurée à la sync suivante */
   S.tombs = mergeTombs(Array.isArray(obj.tombs) ? obj.tombs : [], []);
   saveData(); saveProfile(); saveOrphans(); saveTombs();
-  logJ('Sauvegarde restaurée : ' + n + ' piste(s)');
+  logJ('Copie restaurée : ' + n + ' piste(s)');
   bus.refresh();
   showUndo(`${ic('check', 'ic-14')} Restauré : ${n} piste${n > 1 ? 's' : ''}.`, () => {
     S.companies = JSON.parse(snap.companies).map(normalizeCompany);
@@ -105,9 +105,9 @@ async function treatRestore(raw, pass){
   });
 }
 function askRestorePass(raw){
-  const sh = openSheet({ title: 'Sauvegarde protégée', icon: 'lock', focus: '#rsPass' });
+  const sh = openSheet({ title: 'Copie protégée', icon: 'lock', focus: '#rsPass' });
   sh.body.innerHTML =
-    `<div class="field"><label for="rsPass">Mot de passe de la sauvegarde</label>
+    `<div class="field"><label for="rsPass">Mot de passe de la copie</label>
        <input id="rsPass" type="password" autocomplete="off"></div>`;
   const go = () => { const p = sh.body.querySelector('#rsPass').value; sh.close(); treatRestore(raw, p); };
   sh.body.querySelector('#rsPass').addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
