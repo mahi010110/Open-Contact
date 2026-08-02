@@ -15,7 +15,7 @@ import { S, bus, isClosed, hasDemo, addDemo, ctLabel, deletePiste, undeletePiste
 import { $, ic, toast, showUndo, bindDeleteGesture, openSheet, softReorder } from './dom.js';
 import { openAffinerSheet } from './affiner.js';
 import { sortState, sortArgs, sortHasDist, sortChipHTML, bindSortChip } from './sort.js';
-import { relLabel, diffDays } from './dates.js';
+import { relLabel, diffDays, dueMarkHTML } from './dates.js';
 import { openFiche } from './fiche.js';
 import { openCapture } from './capture.js';
 import { openContactEditor, openAttach } from './contact.js';
@@ -64,9 +64,7 @@ function dueHTML(c){
      échéance, qui dit lesquelles réclament quelque chose. Le mot
      lui-même reste écrit dans la sous-ligne, là où on le lit. */
   if (isClosed(c) || !c.nextAction) return '';
-  const n = diffDays(c.nextAction);
-  const cran = n < 0 ? 'mark-late' : n === 0 ? 'mark-now' : n <= 2 ? 'mark-soon' : 'mark-far';
-  return `<span class="mark ${cran}">${relLabel(c.nextAction)}</span>`;
+  return dueMarkHTML(c.nextAction);        /* LA marque, partagée avec « Aujourd'hui » */
 }
 
 function rowHTML(c){

@@ -36,3 +36,16 @@ export function relLabel(iso){
   if (n === 1) return 'demain';
   return (n > 0 ? '+' : '–') + Math.abs(n) + ' j';
 }
+
+/* LA marque d'échéance — une seule dans toute l'app. Le même retard
+   s'affichait en puce ambre encadrée dans « Mes pistes » et en simple
+   italique dans « Aujourd'hui », qui est pourtant L'écran de l'urgence :
+   deux dessins pour un même fait obligent à réapprendre d'un écran à
+   l'autre. Elle vit ici parce que ni « Mes pistes » ni « Aujourd'hui »
+   ne doit dépendre de l'autre. */
+export function dueMarkHTML(iso){
+  if (!iso) return '';
+  const n = diffDays(iso);
+  const cran = n < 0 ? 'mark-late' : n === 0 ? 'mark-now' : n <= 2 ? 'mark-soon' : 'mark-far';
+  return `<span class="mark ${cran}">${relLabel(iso)}</span>`;
+}

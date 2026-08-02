@@ -9,7 +9,7 @@ import { esc, todayISO } from '../engine/utils.js';
 import { dueFollowups } from '../engine/assist.js';
 import { S, bus, isClosed, markDone, hasDemo, addDemo, removeDemo } from './state.js';
 import { $, ic, toast, openSheet } from './dom.js';
-import { frToday, frDate, relLabel } from './dates.js';
+import { frToday, frDate, dueMarkHTML } from './dates.js';
 import { askNextAction, reportAction } from './actions.js';
 import { openMail } from './mail.js';
 import { openFiche } from './fiche.js';
@@ -46,9 +46,14 @@ function rowHTML(c){
   const today = todayISO();
   /* la tranche donne le contexte : en retard → seul l'écart compte,
      aujourd'hui → rien à répéter, bientôt → la date. L'échéance passe
-     devant le nom : c'est lui qui se tronque, jamais elle. */
-  const when = c.nextAction < today ? `<em class="late">${relLabel(c.nextAction)}</em> · `
-             : c.nextAction > today ? frDate(c.nextAction) + ' · ' : '';
+     devant le nom : c'est lui qui se tronque, jamais elle.
+     Le retard prend LA marque de l'app (`dueMarkHTML`), celle de « Mes
+     pistes » : c'est le même fait, il doit avoir le même dessin. Et
+     c'est le seul cran qui la porte ici — sur un écran où toutes les
+     lignes réclament quelque chose, une marque sur chacune ne serait
+     plus un signal. */
+  const when = c.nextAction < today ? dueMarkHTML(c.nextAction)
+             : c.nextAction > today ? `<span class="act-when">${frDate(c.nextAction)}</span>` : '';
   return (
     `<div class="act-row" data-id="${c.id}">
        <div class="act-under act-under-done">${ic('check', 'ic-14')} Fait</div>
@@ -56,7 +61,7 @@ function rowHTML(c){
        <div class="act-in">
          <div class="act-main" role="button" tabindex="0" aria-label="Ouvrir ${esc(c.name)}">
            <b class="act-verb">${esc(verb)}</b>
-           <span class="act-sub">${when}${esc(c.name)}</span>
+           <span class="act-sub">${when}<span class="act-who">${esc(c.name)}</span></span>
          </div>
          <div class="act-btns">
            <button class="abtn" data-a="mail" aria-label="Écrire à ${esc(c.name)}" title="Écrire">${ic('mail')}</button>

@@ -424,11 +424,15 @@ details.tranche[open]>summary::before{
   font-size:var(--text-14);font-weight:var(--weight-semibold);line-height:1.35;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
 }
+/* l'échéance d'abord, le nom ensuite — et c'est LUI qui se tronque : on
+   perd la fin d'« Orange Cyberdefense » avant de perdre « –2 j » */
 .act-sub{
+  display:flex;align-items:center;gap:6px;min-width:0;
   font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
-.act-sub .late{color:var(--amber);font-style:normal;font-weight:var(--weight-bold)}
+.act-sub .act-who{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.act-sub .act-when{flex:none}
+.act-sub .mark{padding:1px 6px}      /* la ligne est dense : la marque s'y range */
 /* Trois gestes aux conséquences distinctes — écrire, reporter, clore —
    plus « ouvrir la fiche » à leur gauche. Ils se touchaient (0 px
    mesuré) : un pouce posé à la frontière ouvrait la fiche au lieu de
