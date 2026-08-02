@@ -852,6 +852,14 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   font-weight:var(--weight-semibold);font-size:var(--text-13);
 }
 .dchip:active{box-shadow:var(--bevel-down);transform:translate(1px,1px)}
+/* le raccourci de date porte le JOUR qu'il vise : « +3 jours » se
+   calcule, « mer. 05/08 » se lit. Le nom reste la ligne qu'on vise. */
+.dchip-d{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+  padding:5px 10px;min-height:var(--control-h-touch);line-height:1.2;
+}
+.dchip-d span{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
+.dchip-d.on span{color:var(--on-accent);opacity:.8}
 .pick-list{display:flex;flex-direction:column;gap:7px}
 .pick{
   display:flex;align-items:center;justify-content:space-between;gap:10px;

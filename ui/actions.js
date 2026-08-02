@@ -16,6 +16,15 @@ const DATE_CHOICES = [
   ['+7 jours', () => plusDaysISO(7)],
   ['Lundi', nextMondayISO]
 ];
+/* Deux raccourcis qui tombent le MÊME jour, c'est un choix pour rien :
+   un dimanche, « Lundi » et « Demain » donnent la même date, et l'écran
+   demande de trancher entre deux boutons identiques. On ne garde que le
+   premier — le plus court à comprendre. */
+const dateChoices = () => {
+  const vus = new Set();
+  return DATE_CHOICES.map(([nom, fn]) => [nom, fn()])
+    .filter(([, iso]) => !vus.has(iso) && vus.add(iso));
+};
 
 /* champ date + bouton OK : le bouton apparaît dès qu'une date est posée */
 function bindDateOk(root, inputSel, okSel, pick){
@@ -32,6 +41,7 @@ function bindDateOk(root, inputSel, okSel, pick){
    « OK » valide un changement du « Quoi ? » seul en gardant la date. */
 export function askNextAction(c, opts){
   opts = opts || {};
+  const choix = dateChoices();
   const sh = openSheet({
     title: opts.title || 'Prochaine action ?',
     icon: 'calendar',
@@ -45,7 +55,11 @@ export function askNextAction(c, opts){
               placeholder="Ex : Relancer le RH" autocomplete="off"></div>
      <div class="field"><label id="naWhen">Quand ?</label>
        <div class="datechips" role="group" aria-labelledby="naWhen">
-         ${DATE_CHOICES.map((d, i) => `<button class="dchip" data-i="${i}">${d[0]}</button>`).join('')}
+         ${/* le jour SOUS le raccourci : « +3 jours » oblige à compter,
+              « mer. 05/08 » se lit. C'est déjà ce que fait « Reporter »,
+              et c'est la même décision, dans le même enchaînement. */''}
+         ${choix.map(([nom, iso], i) =>
+           `<button class="dchip dchip-d" data-i="${i}"><b>${nom}</b><span>${frDate(iso)}</span></button>`).join('')}
        </div>
      </div>
      <div class="field"><label for="naDate">Ou une date précise</label>
@@ -68,7 +82,7 @@ export function askNextAction(c, opts){
     bus.refresh();
   };
   sh.body.querySelectorAll('.dchip').forEach(b =>
-    b.addEventListener('click', () => pick(DATE_CHOICES[+b.dataset.i][1]())));
+    b.addEventListener('click', () => pick(choix[+b.dataset.i][1])));
   /* la date précise se VALIDE : sur mobile, la roue déclenche des
      `change` intermédiaires — fermer au premier aurait pris la mauvaise date */
   bindDateOk(sh.body, '#naDate', '#naOk', pick);
@@ -85,12 +99,13 @@ export function askNextAction(c, opts){
 
 /* « Reporter à quand ? » — le verbe ne change pas, seulement la date */
 export function reportAction(c){
+  const choix = dateChoices();
   const sh = openSheet({ title: 'Reporter', icon: 'clock' });
   sh.body.innerHTML =
     `<div class="na-company">${esc(c.nextActionText || 'Faire le point')} — ${esc(c.name)}</div>
      <div class="pick-list">
-       ${DATE_CHOICES.map((d, i) =>
-         `<button class="pick" data-i="${i}"><b>${d[0]}</b><span>${frDate(d[1]())}</span></button>`).join('')}
+       ${choix.map(([nom, iso], i) =>
+         `<button class="pick" data-i="${i}"><b>${nom}</b><span>${frDate(iso)}</span></button>`).join('')}
      </div>
      <div class="field" style="margin-top:10px"><label for="rpDate">Ou une date précise</label>
        <div class="date-row">
@@ -105,7 +120,7 @@ export function reportAction(c){
     bus.refresh();
   };
   sh.body.querySelectorAll('.pick').forEach(b =>
-    b.addEventListener('click', () => pick(DATE_CHOICES[+b.dataset.i][1]())));
+    b.addEventListener('click', () => pick(choix[+b.dataset.i][1])));
   bindDateOk(sh.body, '#rpDate', '#rpOk', pick);
 }
 
