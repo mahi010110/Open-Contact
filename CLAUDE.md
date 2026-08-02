@@ -78,6 +78,12 @@ espacements, effets) et le kit `design/`.
   Toujours via les tokens (`var(--…)`), jamais de couleur en dur.
 - **Reliefs** : bevels francs et ombres dures (`--bevel-*`, `--shadow-*`).
   **Interdits : dégradés, ombres floues, coins très arrondis, glassmorphism.**
+- **Trame dither** : `--dither` porte la position et la taille, il n'est
+  donc valable que derrière la propriété raccourcie `background`. Sur
+  `background-image` il est **rejeté en silence** — la trame ne s'affiche
+  pas et rien ne le signale. Quand un fond de couleur doit rester dessous,
+  prendre `--dither-img` + `--dither-size`. (Quatre endroits de l'app ont
+  vécu longtemps sans leur trame à cause de ça.)
 - **Typo** : Silkscreen (titres pixel), IBM Plex Mono (données, métadonnées),
   Public Sans (texte courant). Pas d'autre police.
 - **Icônes** : pixelarticons via `ic('nom', 'ic-14')` (masque CSS teinté par

@@ -17,9 +17,19 @@
   --shadow-modal:6px 6px 0 0 color-mix(in srgb, var(--ink) 22%, transparent);
 
   /* Trame dither (damier 2px) — texture d'accent, à utiliser avec parcimonie :
-     fonds de barre inactive, zones « en creux », fins séparateurs décoratifs. */
-  --dither:repeating-conic-gradient(color-mix(in srgb, var(--ink) 14%, transparent) 0% 25%, transparent 0% 50%) 0 0 / 4px 4px;
-  --dither-strong:repeating-conic-gradient(color-mix(in srgb, var(--ink) 28%, transparent) 0% 25%, transparent 0% 50%) 0 0 / 4px 4px;
+     fonds de barre inactive, zones « en creux », fins séparateurs décoratifs.
+
+     DEUX FORMES, et ce n'est pas un doublon. `--dither` porte la position
+     et la taille (`0 0 / 4px 4px`) : il n'est valable que derrière la
+     propriété raccourcie `background`. Posé sur `background-image`, il est
+     REJETÉ en silence et la trame ne s'affiche pas — c'est ce qui arrivait
+     à quatre endroits de l'app. Quand un fond de couleur doit rester sous
+     la trame, prendre `--dither-img` + `--dither-size`. */
+  --dither-img:repeating-conic-gradient(color-mix(in srgb, var(--ink) 14%, transparent) 0% 25%, transparent 0% 50%);
+  --dither-strong-img:repeating-conic-gradient(color-mix(in srgb, var(--ink) 28%, transparent) 0% 25%, transparent 0% 50%);
+  --dither-size:4px 4px;
+  --dither:var(--dither-img) 0 0 / var(--dither-size);
+  --dither-strong:var(--dither-strong-img) 0 0 / var(--dither-size);
   --scanlines:repeating-linear-gradient(0deg, color-mix(in srgb, var(--ink) 6%, transparent) 0 1px, transparent 1px 3px);
 
   /* Focus clavier : pointillé 98, lisible partout */
@@ -46,7 +56,9 @@ html[data-theme="dark"]{
   --shadow-window:4px 4px 0 0 rgba(0,0,0,.55);
   --shadow-modal:6px 6px 0 0 rgba(0,0,0,.65);
 
-  --dither:repeating-conic-gradient(rgba(233,236,239,.10) 0% 25%, transparent 0% 50%) 0 0 / 4px 4px;
-  --dither-strong:repeating-conic-gradient(rgba(233,236,239,.20) 0% 25%, transparent 0% 50%) 0 0 / 4px 4px;
+  --dither-img:repeating-conic-gradient(rgba(233,236,239,.10) 0% 25%, transparent 0% 50%);
+  --dither-strong-img:repeating-conic-gradient(rgba(233,236,239,.20) 0% 25%, transparent 0% 50%);
+  --dither:var(--dither-img) 0 0 / var(--dither-size);
+  --dither-strong:var(--dither-strong-img) 0 0 / var(--dither-size);
   --scanlines:repeating-linear-gradient(0deg, rgba(0,0,0,.25) 0 1px, transparent 1px 3px);
 }

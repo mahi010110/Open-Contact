@@ -17,7 +17,7 @@ import { sortState, sortArgs } from './sort.js';
 import { filterState, filterArgs, affinerBtnHTML, bindAffinerBtn } from './affiner.js';
 import { openRoom, leaveRoom, watchLiaison } from './synclive.js';
 import { makeQrSvg } from './qr.js';
-import { whoCandidates, whoLineHTML, openWhoPicker } from './qui.js';
+import { whoCandidates, whoLineHTML, whoInline, openWhoPicker } from './qui.js';
 
 const QR_HARD_MAX = 1800;     /* caractères par QR : au-delà, rendez-vous P2P ou QR animé */
 
@@ -98,11 +98,14 @@ export function openDonner(){
         `<div class="listbar"><button class="linklike" id="dnAll">${unsel.size ? 'Tout cocher' : 'Tout décocher'}</button>${affinerBtnHTML(ft, st)}</div>
          <div class="pick-list pk-inverse">
            ${list.map(c =>
-             `<div class="pk-duo">
+             `<div class="pk-duo${unsel.has(c.id) ? ' pk-out' : ''}">
                 <button class="pick pk${unsel.has(c.id) ? '' : ' on'}" data-id="${c.id}" aria-pressed="${!unsel.has(c.id)}">
                   ${ic('checkbox', 'ic-20 ic-off')}${ic('checkbox-on', 'ic-20 ic-on')}
                   <div class="pk-m"><b>${esc(c.name)}</b>
-                    <span>${STATUSES[c.status].label}${c.city ? ' · ' + esc(c.city) : ''}</span></div>
+                    <span>${STATUSES[c.status].label}${c.city ? ' · ' + esc(c.city) : ''}${
+                      /* déjà échappé par whoInline — il porte son icône */
+                      whoInline(c, keepOf(c), 'donner') && ' · ' + whoInline(c, keepOf(c), 'donner')
+                      || ''}</span></div>
                 </button>
                 ${whoLineHTML(c, keepOf(c), 'donner')}
               </div>`).join('')}
@@ -113,6 +116,10 @@ export function openDonner(){
           const id = b.dataset.id;
           unsel.has(id) ? unsel.delete(id) : unsel.add(id);
           b.classList.toggle('on', !unsel.has(id));
+          /* une piste écartée l'est ENTIÈRE : sa commande « qui » s'éteint
+             avec elle — choisir des personnes pour ce qui ne part pas
+             n'a pas de sens */
+          b.parentElement.classList.toggle('pk-out', unsel.has(id));
           b.setAttribute('aria-pressed', !unsel.has(id));
           syncCount();
         }));

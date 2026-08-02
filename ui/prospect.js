@@ -16,7 +16,7 @@ import { filterState, filterArgs, affinerBtnHTML, bindAffinerBtn } from './affin
 import { openMail } from './mail.js';
 import { openContactEditor } from './contact.js';
 import { openCampaignWizard } from './campagnes.js';
-import { whoCandidates, whoLineHTML, openWhoPicker } from './qui.js';
+import { whoCandidates, whoLineHTML, whoInline, openWhoPicker } from './qui.js';
 
 /* la personne proposée d'office : celle de la prochaine action, sinon
    la première activée avec email, sinon la première joignable (#14) */
@@ -93,7 +93,10 @@ export function openProspect(){
               <button class="pick pk${sel.has(c.id) ? ' on' : ''}" data-id="${c.id}" aria-pressed="${sel.has(c.id)}">
                 ${ic('checkbox', 'ic-20 ic-off')}${ic('checkbox-on', 'ic-20 ic-on')}
                 <div class="pk-m"><b>${esc(c.name)}</b>
-                  <span>${STATUSES[c.status].label}</span></div>
+                  <span>${STATUSES[c.status].label}${
+                    /* déjà échappé par whoInline — il porte son icône */
+                    whoInline(c, keepOf(c), 'ecrire') && ' · ' + whoInline(c, keepOf(c), 'ecrire')
+                    || ''}</span></div>
               </button>
               ${whoLineHTML(c, keepOf(c), 'ecrire')}
             </div>`).join('')}

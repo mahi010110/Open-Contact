@@ -170,7 +170,7 @@ input,select,textarea{font-family:inherit;color:var(--text-body)}
   white-space:nowrap;vertical-align:middle;
 }
 .tag-share{color:var(--green);background:var(--green-wash)}
-.tag-priv{color:var(--text-muted);background:var(--surface-chrome);background-image:var(--dither)}
+.tag-priv{color:var(--text-muted);background:var(--surface-chrome);background-image:var(--dither-img);background-size:var(--dither-size)}
 .tag-beta{color:var(--amber);background:var(--amber-wash)}
 .conf-ok{color:var(--green);font-size:var(--text-11);font-weight:var(--weight-bold);font-family:var(--font-mono)}
 .conf-doubt{color:var(--amber);font-size:var(--text-11);font-weight:var(--weight-bold);font-family:var(--font-mono)}
@@ -533,7 +533,7 @@ details.tranche[open]>summary::before{
 .pcard h3{font-size:var(--text-14);font-weight:var(--weight-bold);margin-bottom:4px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
 .pcard .pd{font-size:var(--text-12);color:var(--text-muted);line-height:1.55;margin-bottom:10px}
 .pcard .pd:last-child{margin-bottom:0}
-.pcard-soon{background-image:var(--dither);}
+.pcard-soon{background-image:var(--dither-img);background-size:var(--dither-size);}
 .pcard-soon h3{color:var(--text-muted)}
 
 /* ============ GROUP BOX (feuille de propriétés 98) ============
@@ -811,22 +811,37 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 }
 .at-pop button:last-child{border-bottom:0}
 .at-pop button.on{background:var(--teal-wash);color:var(--accent);font-weight:var(--weight-semibold)}
-/* Prospecter (#17) : la piste cochable + sa personne, côte à côte */
-.pk-duo{display:flex;flex-direction:column;gap:0}
-.pk-duo .pick{margin:0}
-/* Quand la piste a plusieurs personnes, cette ligne S'OUVRE : c'est une
-   cible, donc `--ctl` (44 px au pouce, 32 px à la souris). Elle était
-   figée à 32 px partout — sous le plancher tactile. Avec une seule
-   personne elle ne fait qu'informer : rien à viser, elle reste compacte
-   et n'allonge pas la liste. */
-.pk-who{
-  display:flex;align-items:center;gap:6px;min-height:var(--ctl);padding:3px 12px 6px 40px;
-  font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-link);
-  text-align:left;cursor:pointer;background:var(--surface-window);
-  border:1px solid var(--border-strong);border-top:0;
+/* Prospecter (#17) : UNE piste = UN objet. Le cadre, le biseau et le
+   fond appartiennent au duo ; ce qu'il contient — la case à cocher et,
+   s'il y a un choix, la personne visée — n'a plus de bord à soi. Deux
+   boîtes empilées faisaient lire six objets pour trois pistes, et la
+   seconde, blanche et plus haute que la première, tirait l'œil vers le
+   détail au lieu de la piste. */
+.pk-duo{
+  display:flex;flex-direction:column;gap:0;
+  border:1px solid var(--border-strong);border-radius:var(--radius-1);
+  background:var(--surface-chrome);box-shadow:var(--bevel-up), var(--shadow-raised);
+  overflow:hidden;
 }
-.pk-who[disabled]{min-height:32px;color:var(--text-muted);cursor:default}
-.pk-who.pk-add{color:var(--accent)}
+.pk-duo .pick{margin:0;border:0;border-radius:0;box-shadow:none;background:none}
+.pk-duo .pick:active{box-shadow:none;transform:none}
+.pk-duo .pick:active .pk-m{transform:translate(1px,1px)}
+/* la personne visée : une commande, mais SUBORDONNÉE — un filet
+   pointillé pour la frontière (l'idiome des lignes voisines partout
+   ailleurs), le retrait qui la range sous le nom, et `--ctl` parce
+   qu'elle s'ouvre vraiment (44 px au pouce, 32 px à la souris). */
+.pk-who{
+  display:flex;align-items:center;gap:5px;min-height:var(--ctl);
+  padding:2px 12px 2px 46px;margin-top:-2px;
+  font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-link);
+  text-align:left;cursor:pointer;background:none;border:0;
+  border-top:1px dashed var(--border-soft);
+}
+.pk-who>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pk-who>.ic{flex:none;color:var(--text-muted)}
+.pk-who:hover{color:var(--text-link);text-decoration:underline}
+.pk-who:active{box-shadow:var(--bevel-down)}
+.pk-who.pk-add{color:var(--accent);padding-left:40px}
 
 /* la ligne « joindre CV / LM » du composeur (#16) — discrète, au-dessus
    de l'envoi ; absente sans messagerie connectée */
@@ -1249,7 +1264,7 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 }
 .bc-na .mark{display:inline-block;margin-left:2px;vertical-align:baseline}
 .bc-none{color:var(--text-muted)}
-.bcol-empty{padding:18px 10px;text-align:center;color:var(--text-muted);font-size:var(--text-12);background-image:var(--dither)}
+.bcol-empty{padding:18px 10px;text-align:center;color:var(--text-muted);font-size:var(--text-12);background-image:var(--dither-img);background-size:var(--dither-size)}
 /* glisser une carte vers une autre colonne = changer le statut :
    états francs (opacité nette, contour accent), aucun fondu */
 .bcard.drag-src{opacity:.45}
@@ -1260,6 +1275,9 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 .pk{justify-content:flex-start}
 .pk .pk-m{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;text-align:left}
 .pk .pk-m b,.pk .pk-m span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* la personne posée sur la ligne d'état : son icône se lit dans l'encre
+   de la ligne, pas plus fort qu'elle */
+.pk .pk-m span .ic{vertical-align:-2px;margin-right:1px}
 .pk .ic-on{display:none;color:var(--accent)}
 .pk.on .ic-on{display:inline-block}
 .pk.on .ic-off{display:none}
@@ -1281,8 +1299,12 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 .pk-inverse .pk.on .pk-m b{color:var(--text-body)}
 .pk-inverse .pk.on .pk-m span{color:var(--text-muted);opacity:1}
 .pk-inverse .pk.on .ic-on{color:var(--accent)}
-.pk-inverse .pk:not(.on){background-image:var(--dither);color:var(--text-muted)}
+.pk-inverse .pk:not(.on){background-image:var(--dither-img);background-size:var(--dither-size);color:var(--text-muted)}
 .pk-inverse .pk:not(.on) .pk-m b{color:var(--text-muted)}
+/* une piste écartée l'est ENTIÈRE : sa commande « qui » s'éteint avec
+   elle, sinon l'objet disait deux choses à la fois */
+.pk-duo.pk-out .pk-who{background-image:var(--dither-img);background-size:var(--dither-size);color:var(--text-muted)}
+.pk-duo.pk-out .pk-who .ic{color:var(--text-muted)}
 
 /* ============ ÉCHANGER : QR, SCAN, APERÇU, ANNULER ============ */
 .qr-wrap{
