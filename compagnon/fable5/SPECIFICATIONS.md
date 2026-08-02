@@ -16,10 +16,10 @@ Il ne remplace pas :
 
 - `CLAUDE.md`, qui fait autorité sur le produit, l'architecture et l'UI ;
 - `CONTRAT.md`, qui fait autorité sur les formats et invariants de données ;
-- `docs/fable5/CONTEXT.md`, qui conserve les décisions durables validées ;
-- le futur `docs/fable5/UX-PLAN.md`, qui décrira l'expérience finale validée ;
-- `docs/fable5/PLAN.md`, qui ordonne et suit les travaux ;
-- `docs/fable5/HANDOFF.md`, qui indique le dernier checkpoint terminé.
+- `compagnon/fable5/CONTEXT.md`, qui conserve les décisions durables validées ;
+- le futur `compagnon/fable5/UX-PLAN.md`, qui décrira l'expérience finale validée ;
+- `compagnon/fable5/PLAN.md`, qui ordonne et suit les travaux ;
+- `compagnon/fable5/HANDOFF.md`, qui indique le dernier checkpoint terminé.
 
 En cas de divergence, `CLAUDE.md` et `CONTRAT.md` restent prioritaires. Une
 nouvelle décision du mainteneur doit être répercutée dans `CONTEXT.md` et dans

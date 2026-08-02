@@ -1,182 +1,143 @@
-# OpenContact — feuille de route officielle
+# OpenContact — feuille de route
 
-**Document unique de référence pour la suite du projet.** Il remplace
-`plan-v7.md` comme feuille de route (celui-ci devient un historique de la
-v6.1, à archiver au §11). Les règles produit et UI/UX restent dans
-`CLAUDE.md`, le contrat de données dans `CONTRAT.md` : cette feuille de
-route dit **quoi faire et dans quel ordre**, jamais **comment concevoir**.
+**Document de référence pour la suite d'OpenContact.** Les règles produit et
+UI/UX restent dans `CLAUDE.md`, le contrat de données dans `CONTRAT.md` :
+cette feuille de route dit **quoi faire et dans quel ordre**, jamais
+**comment concevoir**.
 
-Dernière mise à jour : juillet 2026 — version applicative 6.3.0, cache
-`oc-v50`, 97 auto-tests verts (`?test`).
+Le Compagnon a **sa propre feuille de route** : `compagnon/roadmap.md`. La
+frontière entre les deux est posée dans `CLAUDE.md` §0 — on ne la re-discute
+pas ici, on l'applique.
+
+Dernière mise à jour : 31 juillet 2026 — version applicative 6.3.0, cache
+`oc-v74`, 100 auto-tests verts (`node tests/e2e/unitaires.mjs`).
 
 ---
 
 ## 0. Déjà terminé
 
 - PWA locale, hors-ligne, sans compte ni serveur.
-- Coffre (code, phrase de récupération, chiffrement), gestion des appareils.
-- Campagnes, Compagnon, IA, analyse d'e-mails, MCP local.
-- Partage et sync P2P (Trystero/Nostr vendorisé), fichier `.oc`, QR.
+- Capture, fiches, suivi, prochaine action, clôture, bac « à rattacher ».
+- Partage promo (QR, fichier `.oc`, coller, groupe) et sync P2P entre mes
+  appareils (Trystero/Nostr vendorisé).
+- Écrire un mail par `mailto:`, modèles à variables, « Envoyée ✓ ».
+- Coffre facultatif (code, phrase de récupération, chiffrement).
 - Refonte UX complète (23 décisions, phases 0 à 4) — fusionnée dans `main`.
-- 97 auto-tests verts, parcours principaux rejoués en E2E.
+- **Les 12 défauts de l'audit post-refonte** (§1.1) — tous traités.
+- Auto-tests verts, parcours principaux rejoués en E2E.
 
-> **Nuance importante.** « Refonte terminée » veut dire : les 23 décisions
-> sont livrées. Pas : l'application est sans défaut. L'audit du §1.1 en a
-> trouvé 12, capture d'écran à l'appui. C'est normal — c'est exactement le
-> rôle du §1.
+> **Nuance conservée.** « Refonte terminée » veut dire : les 23 décisions sont
+> livrées. Pas : l'application est sans défaut. L'audit du §1.1 en avait
+> trouvé 12, capture d'écran à l'appui. C'est normal — c'était exactement son
+> rôle.
+
+Le chantier connecté (coffre pour secrets, messagerie, IA, campagnes,
+Compagnon, MCP) est livré lui aussi, mais **il n'appartient plus à
+OpenContact** : voir `compagnon/roadmap.md`.
 
 ---
 
-## 1. Stabilisation réelle — maintenant
+## 1. Stabilisation — maintenant
 
-### 1.1 Corrections d'UX issues de l'audit (préalable à tout le reste)
+### 1.1 Corrections d'UX issues de l'audit — **terminé**
 
-Audit fonctionnel post-refonte réalisé : app réellement lancée (serveur
-statique + Playwright), 1280×900 et 390×844, données de test réalistes,
-captures conservées. **12 défauts confirmés**, regroupés en 5 lots. Chaque
-lot se termine par une vérification aux deux tailles, thème clair et
-sombre, zéro erreur console, `?test` vert (checklist `CLAUDE.md` §9).
+Audit fonctionnel post-refonte réalisé app lancée (serveur statique +
+Playwright), 1280×900 et 390×844, données de test réalistes. 12 défauts
+confirmés, tous traités :
 
-> Ces corrections passent **avant** les tests sur vrai matériel : faire
-> tester à des camarades une interface dont on sait déjà qu'elle est
-> fautive gâche la ressource rare (leur temps, leur attention, leur
-> premier avis).
+- **Lot 1 — « Moi / Réglages »** : la copie propose le mot de passe d'emblée
+  (E) ; plus aucune poubelle permanente, suppression au geste + `showUndo`
+  (D) ; boutons à la taille de contrôle standard (#7) ; plus de texte
+  descriptif à côté d'un bouton, seulement un état court (A) ; CV et lettres
+  classés en deux groupes, une ligne dense par document (C).
+- **Lot 2** : le code de groupe se copie au geste (#6). **#4 — icône du
+  Compagnon : sans objet, deux fois.** Les pictogrammes des Réglages ont été
+  retirés (ils repoussaient les mots qui servent à scanner, jusqu'à faire
+  plier « Mes appareils » sur deux lignes — détail dans
+  `docs/finition-calibrage.md` §I), et la ligne « Le Compagnon » quitte de
+  toute façon OpenContact (§1.2).
+- **Lot 3** : `openPanel` supprimé, la fiche s'ouvre en fenêtre centrée (#5).
+- **Lot 4** : la sauvegarde imposée à la première protection (B) —
+  **abandonnée sur décision du mainteneur**, le comportement actuel est
+  conservé (`docs/finition-calibrage.md`).
+- **Lot 5** : formulaire complet à la capture sur ordinateur (#3) ; choisir
+  qui part dans un partage (#2) ; viser plusieurs personnes dans la même
+  entreprise (#1).
 
-**Lot 1 — l'écran « Moi / Réglages »** (`ui/moi.js`, `ui/docs.js`,
-`ui/profil.js`). Cinq défauts sur un seul écran : une seule passe.
+**Écarté après vérification.** L'écran « Donner » avec seulement des pistes
+d'exemple : signalé comme muet, il ne l'est pas — un toast dit « Rien à
+donner pour l'instant ». Ce n'était pas un défaut.
 
-- **E — la copie propose directement un mot de passe.** Un seul geste, une
-  seule feuille : champ mot de passe présent d'emblée, laissé vide = copie
-  en clair, c'est un choix valide. Le lien « avec un mot de passe »
-  (`#moiBackupPass`) disparaît.
-- **D — plus aucun bouton poubelle permanent.** Suppression au geste :
-  glisser (mobile) / poubelle au survol (desktop) via `bindDeleteGesture`,
-  doublée d'un `showUndo`. Concerne les documents et les modèles d'emails.
-  Les appareils liés gardent leur confirmation (geste lourd, `CLAUDE.md`
-  §6) mais perdent eux aussi la poubelle affichée en permanence.
-- **#7 — les boutons des Réglages** reprennent la taille de contrôle
-  standard (`--ctl` : 44 px mobile, 32 px desktop) et un alignement unique.
-- **A — plus de texte descriptif à côté d'un bouton.** Il reste le libellé,
-  et un indicateur d'état court quand l'état n'est pas lisible autrement
-  (« 4 documents », « protégé », « 2 appareils »). Pas de phrase.
-- **C — CV et lettres classés et compactés.** Deux groupes (CV / Lettres),
-  une ligne dense par document : nom, taille, « Voir ». Le geste de
-  suppression vit sur la ligne.
+### 1.2 Le recentrage *(nouveau — le chantier en cours)*
 
-**Lot 2 — corrections isolées rapides**
+Application de `CLAUDE.md` §0. Tout ce qui appartient au Compagnon ou qui est
+reporté **disparaît de l'écran** — sans rien supprimer, sans toucher une clé
+de stockage, sans perdre la moindre donnée déjà enregistrée.
 
-- ~~**#4 — icône du Compagnon.**~~ **Sans objet.** Les pictogrammes des
-  Réglages ont été retirés (ils repoussaient les mots qui servent à
-  scanner, jusqu'à faire plier « Mes appareils » sur deux lignes) : « Le
-  Compagnon » ne porte plus d'icône, donc plus de conflit avec
-  « Aujourd'hui ». Détail dans `docs/finition-calibrage.md` §I.
-- ~~**#6 — copie du code de groupe au geste.**~~ **Fait.** Le bouton
-  « copier le code » disparaît. Générer un code le copie déjà — c'est le
-  seul qu'on ne connaisse pas par cœur — et un appui long (pouce) / clic
-  maintenu (souris) sur le code le recopie à tout moment.
+Disparaissent de l'interface :
 
-**Lot 3 — mise en page desktop**
+- le branchement d'un assistant IA et le bouton « Proposer un brouillon » ;
+- la connexion à une messagerie et l'envoi direct ;
+- l'assistant de campagne, la liste du jour, les lignes de campagne
+  d'« Aujourd'hui », la maison « Campagnes (N) » ;
+- l'analyse automatique de la boîte mail et les propositions de l'assistant ;
+- tout ce qui nomme ou propose le Compagnon.
 
-- ~~**#5 — le panneau latéral recouvre le contenu.**~~ **Fait.** Le
-  panneau posait `.spanel` en absolu sans réserver de place : la colonne
-  « Réponse » de Mes pistes était entièrement masquée, même problème sur
-  Aujourd'hui. Le resserrer coûtait trop cher (mesures dans
-  `docs/finition-calibrage.md`) : `openPanel` est supprimé et ses trois
-  écrans — la fiche, « Écrire », « Campagnes » — s'ouvrent en fenêtre
-  centrée, comme au pouce.
+Restent visibles : écrire un mail par `mailto:` (copier / ouvrir dans Mail /
+« Envoyée ✓ ») et **postuler à plusieurs boîtes d'affilée, une par une**.
 
-**Lot 4 — décision assumée**
+Deux points d'attention :
 
-- **B — la sauvegarde n'est plus imposée à la première protection.** Dans
-  `openProtectFlow` (`ui/verrou.js`), « Terminer » n'est plus grisé tant
-  que la sauvegarde n'est pas téléchargée. Elle reste proposée en premier,
-  et un rappel discret persiste tant qu'elle n'est pas faite. **En
-  récupération (« Code oublié ») et en rotation de phrase, elle reste
-  obligatoire** : c'est là que la perte devient définitive.
+- **Personne ne perd rien.** Une clé d'IA ou un jeton de messagerie déjà
+  enregistré reste lisible et scellé, simplement plus affiché.
+- **Le verrouillage reste**, mais cesse d'être un péage : plus rien ne
+  l'exige, il redevient une protection facultative pour qui prête son
+  téléphone.
 
-**Lot 5 — corrections structurelles** (moteur d'abord, tests, puis UI)
+La **suppression franche** du code mis en sommeil se décidera après la
+première bêta — pas avant, et jamais dans le même geste que le masquage.
 
-- ~~**#3 — saisie complète sur desktop.**~~ **Fait.** `openCapture()`
-  servait le même mini-formulaire à 390 px et à 1280 px. Sur ordinateur
-  il sert désormais le formulaire complet entreprise + contact d'emblée,
-  et un seul bouton — « Terminer ». Le formulaire partagé vit dans
-  `ui/edit.js` (`sharedFieldsHTML` / `bindSharedFields`), donc « Modifier »
-  et la capture évoluent ensemble.
-- ~~**#2 — choisir quels contacts partir.**~~ **Fait.** `communityView`
-  et `sharePayload` acceptent les personnes retenues — rétrocompatible,
-  format `.oc` inchangé. La ligne « → qui » de `ui/qui.js` sert les trois
-  chemins de sortie : QR, fichier et partage en groupe.
-- ~~**#1 — viser plusieurs personnes dans la même entreprise.**~~
-  **Fait.** La prospection utilise le même « → qui » que le partage, avec
-  un défaut opposé et assumé : donner part avec tout le monde, écrire vise
-  UNE personne — celle de la prochaine action. Côté campagne, `markReplied`
-  prend un `tid` : une réponse ne tait que la personne qui l'a donnée, et
-  `stopCompanyTargets` arrête les autres sans leur prêter cette réponse.
-  Le tiroir « Les personnes visées » de la feuille du jour porte les deux
-  gestes, réversibles ~30 s. Plafond de 15 envois/jour inchangé (global).
-  **Nuance découverte en codant** : ni la fiche (un statut, pas un nom) ni
-  le rapport du Compagnon (un `cid`) ne savent QUI a répondu — marquer la
-  fiche « réponse » arrête donc toujours toute l'entreprise, et c'est le
-  sens du geste.
+### 1.3 Tests sur vrai matériel
 
-**Écarté après vérification.** L'écran « Donner » quand il n'y a que des
-pistes d'exemple : signalé comme muet, il ne l'est pas — un toast dit
-« Rien à donner pour l'instant — ajoute d'abord une piste. » Capture à
-l'appui. Ce n'était pas un défaut.
+Vrais téléphones et vrais ordinateurs, pas seulement l'émulation. Fermer
+l'**issue P2P n°14** seulement après preuve multi-réseaux, jamais sur un
+succès isolé.
 
-### 1.2 Tests sur vrai matériel
+**Le protocole :**
 
-- Vrais téléphones et vrais ordinateurs, pas seulement l'émulation.
-- Sync et partage sur Wi-Fi domestique, 4G croisée, **réseau d'école**, et
-  en groupe à 5+ (protocole détaillé conservé dans `plan-v7.md`).
-- Fermer l'**issue P2P n°14** seulement après preuve multi-réseaux, pas
-  sur un succès isolé.
-- Si le réseau d'école bloque WebRTC : vérifier que le repli QR / fichier
-  `.oc` est réellement fluide, et documenter les relais personnalisables
-  (`oc_relays_v1`).
+1. Deux téléphones, même Wi-Fi : liaison appareils en moins de 30 s ? sync
+   complète ?
+2. Deux téléphones, 4G d'opérateurs différents : idem (traversée NAT).
+3. **Wi-Fi d'établissement.** En cas d'échec, tester `oc_relays_v1` avec un
+   relais auto-hébergé ; sinon confirmer que le repli QR / fichier `.oc` est
+   réellement fluide, et documenter les relais personnalisables.
+4. Partage en groupe à 5+ : débit, files d'aperçus, doublons après fusions
+   croisées (l'idempotence doit tenir).
+5. Après chaque passe : `?test` → tous les auto-tests verts.
 
-### 1.3 Le Compagnon sur les trois systèmes
+### 1.4 Durabilité des données
 
-Windows, macOS, Linux : trousseaux, démarrage automatique, biométrie,
-Ollama, Codex, et un **vrai client MCP** — pas seulement les tests maison.
+C'est ce qui détruirait la confiance le plus vite.
 
-### 1.4 Durabilité des données *(ajouté — absent de la version initiale)*
-
-C'est ce qui détruirait la confiance le plus vite, et rien ne le couvre
-explicitement aujourd'hui.
-
-- À chaque livraison : rejouer une montée de version depuis les données
-  d'une version **publiée précédente**, pas depuis un état neuf.
+- À chaque livraison : rejouer une montée de version depuis les données d'une
+  version **publiée précédente**, pas depuis un état neuf.
 - Scénario nommé et rejoué : *« j'ai perdu mon téléphone »* — restauration
-  complète depuis un `.oc` sur un appareil qui n'a jamais vu ces données,
-  avec et sans mot de passe, avec et sans coffre actif.
+  complète depuis un `.oc` sur un appareil qui n'a jamais vu ces données, avec
+  et sans mot de passe, avec et sans coffre actif.
 - Aucune clé de stockage renommée, aucun format `.oc` cassé (`CONTRAT.md`).
 
 ---
 
 ## 2. Préparation à la publication
 
-Séparée en deux, parce que la moitié dépend de tiers et ne doit pas
-retenir l'autre moitié.
-
-### 2.A — Ce qui ne dépend que du projet
+**Plus aucun blocage externe.** Depuis le recentrage, tout ce qui dépendait
+d'un tiers (déclaration OAuth chez Google et Microsoft, signature et
+notarisation des installateurs) est parti dans `compagnon/roadmap.md`. Ce qui
+suit ne dépend que du projet.
 
 - Domaine et hébergement officiel.
 - Pages confidentialité, sécurité, aide, CGU.
 - Vérifier les installations vierges et les montées de version sans perte.
-- Préparer le canal de mise à jour du Compagnon.
-
-### 2.B — Ce qui dépend de tiers (bloqué, à lancer tôt car les délais sont longs)
-
-- OAuth Google et Microsoft déclarés, vrais envois Gmail / Outlook.
-  *Identifiants encore vides : blocage externe.*
-- Signature du Compagnon Windows ; signature **et** notarisation macOS.
-
-> **Recommandation.** La bêta du §3 peut partir **sans** 2.B. Fichier
-> `.oc`, `mailto:`, copier-coller et QR suffisent à un parcours complet —
-> et une bêta qui fonctionne sans aucun compte tiers démontre la promesse
-> du produit mieux qu'une page d'accueil. Ne pas laisser OAuth devenir la
-> raison pour laquelle rien ne sort.
 
 ---
 
@@ -186,14 +147,14 @@ Dépôt déjà public. Conditions d'entrée :
 
 - Aucun problème critique ouvert.
 - Sauvegardes et restaurations prouvées (§1.4).
-- Tests réels mobile + ordinateur terminés (§1.2).
-- Domaine et documents prêts (§2.A).
-- **Un chemin de retour d'expérience sans serveur** *(ajouté)* : sans
-  compte ni analytics, une bêta ne renvoie rien par défaut. Prévoir un
-  « Signaler un problème » qui produit un texte de diagnostic copiable
-  (version, backend de stockage, navigateur, taille des données — **aucune
-  donnée personnelle**) à coller dans une issue. Sans ça, la bêta revient
-  silencieuse ou coûte un entretien par étudiant.
+- Tests réels mobile + ordinateur terminés (§1.3).
+- Domaine et documents prêts (§2).
+- **Un chemin de retour d'expérience sans serveur** : sans compte ni
+  analytics, une bêta ne renvoie rien par défaut. Prévoir un « Signaler un
+  problème » qui produit un texte de diagnostic copiable (version, backend de
+  stockage, navigateur, taille des données — **aucune donnée personnelle**) à
+  coller dans une issue. Sans ça, la bêta revient silencieuse ou coûte un
+  entretien par étudiant.
 
 Démarrer par un petit groupe d'étudiants, puis ouvrir.
 
@@ -202,57 +163,70 @@ Démarrer par un petit groupe d'étudiants, puis ouvrir.
 ## 4. Version publique stable
 
 - Retours de bêta corrigés.
-- Gmail / Outlook fonctionnels (le §2.B a abouti).
-- Installateurs signés, trois systèmes testés sur vrai matériel.
 - CI et scénarios E2E verts.
+- Décision prise sur le sort du code mis en sommeil au §1.2 : suppression
+  franche, ou retour dans OpenContact pour ce qui passe la règle de
+  `CLAUDE.md` §0.
 
 ---
 
-## 5. Import de données publiques
+## 5. Ce qui revient en premier, après la bêta
+
+Par ordre de valeur, et **seulement** ce qui passe la frontière :
+
+1. **L'IA par clé de navigateur** (Claude, Gemini, OpenRouter). Elle passe la
+   règle — aucune installation, elle marche sur un téléphone — et elle ne
+   demande aucune démarche au mainteneur. C'est la moins chère à ramener et
+   la plus utile : brouillon qui tient compte du modèle choisi et de
+   l'historique, « améliorer mon texte », import d'e-mails collés, remplir une
+   fiche depuis une annonce collée.
+2. **L'envoi direct, en option assumée** : l'identifiant d'application créé
+   par l'utilisateur lui-même (le mécanisme existe déjà), avec un écran guidé
+   qui donne les étapes et l'adresse de retour à copier. Zéro démarche pour le
+   mainteneur. La déclaration officielle (question ② de `CLAUDE.md` §0) reste
+   un choix séparé, jamais un pré-requis.
+
+---
+
+## 6. Import de données publiques
 
 « Importer depuis une page » : coller une URL ou du texte, en extraire
-entreprise / personne / poste / coordonnées **publiques**, conserver la
-source et la date, aperçu avant création (jamais d'écriture directe —
-invariant `CLAUDE.md` §2).
+entreprise / personne / poste / coordonnées **publiques**, conserver la source
+et la date, aperçu avant création (jamais d'écriture directe — invariant
+`CLAUDE.md` §2).
 
-**LinkedIn** : pas de scraping de compte, pas de contournement de
-protection. Uniquement du texte copié par l'utilisateur, une page fournie
-volontairement, ou une API autorisée. Cette limite est un choix, pas une
-contrainte technique : elle protège le projet autant que ses utilisateurs.
+**LinkedIn** : pas de scraping de compte, pas de contournement de protection.
+Uniquement du texte copié par l'utilisateur, une page fournie volontairement,
+ou une API autorisée. Cette limite est un choix, pas une contrainte technique :
+elle protège le projet autant que ses utilisateurs.
 
----
-
-## 6. Extensions produit prioritaires *(après la V1)*
-
-Dans l'ordre :
-
-1. Campagnes avancées « Cadrées ».
-2. Plusieurs profils.
-3. Biométrie / passkeys sur vrai matériel.
-4. SMTP / IMAP générique.
-5. Yahoo, iCloud, Zoho.
-6. Proton, si une intégration locale fiable existe.
-
-> À ne pas confondre : viser plusieurs personnes dans une même entreprise
-> (#1) n'est **pas** une campagne avancée, c'est un défaut actuel. Il reste
-> au §1.1.
+> Se recoupe avec le §5.1 : une fois l'IA revenue, « coller une annonce →
+> fiche remplie » couvre l'essentiel du besoin sans aucun scraping.
 
 ---
 
-## 7. Application mobile native
+## 7. Extensions produit *(après la V1)*
+
+1. Plusieurs profils.
+2. Biométrie / passkeys sur vrai matériel.
+
+*(Les campagnes avancées, le SMTP/IMAP générique et les autres fournisseurs de
+messagerie sont partis dans `compagnon/roadmap.md`.)*
+
+---
+
+## 8. Application mobile native
 
 Capacitor : adapter stockage, partage, caméra QR. Android d'abord, iOS
-ensuite. Stores après validation. Application de bureau complète
-seulement si Compagnon + PWA se révèlent insuffisants.
+ensuite. Stores après validation.
 
-> **Déclencheur honnête** : la PWA couvre déjà bien Android. Ce qui
-> justifie le natif, c'est iOS (installation, éviction du stockage,
-> caméra). Partir quand un étudiant est réellement bloqué là-dessus — pas
-> à une date.
+> **Déclencheur honnête** : la PWA couvre déjà bien Android. Ce qui justifie
+> le natif, c'est iOS (installation, éviction du stockage, caméra). Partir
+> quand un étudiant est réellement bloqué là-dessus — pas à une date.
 
 ---
 
-## 8. Fonctions communautaires
+## 9. Fonctions communautaires
 
 - Confirmations signées : « vérifié par N camarades » (WebCrypto, clés
   locales, attestations rétrocompatibles).
@@ -261,79 +235,70 @@ seulement si Compagnon + PWA se révèlent insuffisants.
 
 ---
 
-## 9. MCP distant et relais
-
-Facultatif, auto-hébergeable, chiffré de bout en bout, autorisation et
-révocation visibles, aucune écriture directe, aucun stockage permanent.
-Le MCP local reste la base de sécurité.
-
----
-
 ## 10. Expérimentales et faibles priorités — à trancher
 
-Ces points restent tels que décidés par le mainteneur. Deux réserves sont
-consignées ici, en toute franchise, avant décision :
-
-- **Suivi facultatif des ouvertures d'e-mails.** Réserve : côté
-  destinataire, un pixel de suivi *est* la surveillance que l'application
-  refuse partout ailleurs — « transparent et respectueux » ne change pas
-  ce que vit le recruteur. Alternative qui rend le même service sans
-  espionner : un signal « pas de réponse depuis N jours », que
-  l'application calcule déjà localement et qui répond exactement à la
-  question « je fais quoi maintenant ? ».
-- **Soutien financier direct.** Sans réserve — un lien de don ne coûte
-  rien à la crédibilité du projet.
+- **Soutien financier direct.** Sans réserve — un lien de don ne coûte rien à
+  la crédibilité du projet.
 - **Étude d'un soutien par calcul Monero** (module séparé, volontaire,
   visible, jamais par défaut). Réserve forte : c'est la seule ligne du
-  document qu'un professeur, un administrateur réseau d'établissement ou
-  un validateur de store retiendra, et elle contredit frontalement
-  l'argument « rien ne tourne derrière ton dos ». Rapport coût / bénéfice
-  défavorable : revenu quasi nul, dommage réel sur ce qui fait la
-  crédibilité. Le don direct rend le même service sans le risque.
-- **Nouvelles IA et fournisseurs** selon les demandes réelles.
+  document qu'un professeur, un administrateur réseau d'établissement ou un
+  validateur de store retiendra, et elle contredit frontalement l'argument
+  « rien ne tourne derrière ton dos ». Rapport coût / bénéfice défavorable :
+  revenu quasi nul, dommage réel sur ce qui fait la crédibilité. Le don direct
+  rend le même service sans le risque.
+
+*(Le suivi des ouvertures d'e-mails est parti dans `compagnon/roadmap.md`,
+avec sa réserve.)*
 
 ---
 
 ## 11. Nettoyage de la documentation
 
-**Une partie passe devant** *(recommandation)* : `README.md:26` et
-`CLAUDE.md:14` désignent encore `plan-v7.md` comme la feuille de route,
-alors que ce document en est une autre. Deux cartes contradictoires = la
-prochaine session repart sur la mauvaise. Corriger ces deux références
-tout de suite ; le reste peut attendre la fin.
+**Première passe faite (31 juillet 2026).** Six spécifications et diagnostics
+entièrement livrés ont été retirés — `plan-v7.md`, `degraissage-v6.3.md`,
+`inspection-ux.md`, `audit-ux-2026.md`, `audit-ux-2026-nouveautes.md`,
+`refonte-chantier.md`. Ce qu'ils portaient encore a été déplacé avant
+suppression (le protocole de test en classe est au §1.3, les règles durables
+étaient déjà dans `CLAUDE.md`). `docs/fable5/` a rejoint le Compagnon.
 
-Le reste, en fin de parcours :
+**Ce qui reste dans `docs/`, et pourquoi :**
 
-- Fusionner les anciens plans, audits et fichiers Fable5 utiles
-  (`audit-ux-2026.md`, `audit-ux-2026-nouveautes.md`, `inspection-ux.md`,
-  `refonte-calibrage.md`, `refonte-chantier.md`, `revue-2026-07.md`,
-  `degraissage-v6.3.md`) — dix fichiers qui se recouvrent en partie.
-- Mettre à jour README, installation, sécurité, architecture,
-  contribution.
-- Nettoyer les fichiers destinés aux assistants IA **sans supprimer les
-  décisions importantes** : une décision de conception se déplace, elle ne
-  se jette pas.
-- Ne garder qu'une feuille de route officielle maintenue : celle-ci.
+| Fichier | Ce qu'il porte encore |
+|---|---|
+| `roadmap.md` | ce document |
+| `refonte-calibrage.md` | les 23 décisions de conception — le « pourquoi » de toute l'interface actuelle |
+| `finition-calibrage.md` | les règles R1 (« rien > icône > mot > phrase ») et R2 (« la croix suffit »), et le raisonnement des 12 corrections |
+| `audit-securite.md` | des arbitrages **encore ouverts** (géocodage pendant la frappe, chiffrement au repos) |
+| `revue-2026-07.md` | les compromis constatés et **volontairement** non touchés |
+| `refonte-brief.md` | la vision d'origine — historique, à lire comme tel : certains passages ne décrivent plus l'app (il annonce des appareils autonomes, la sync existe depuis) |
+
+**Reste à faire :**
+
+- Mettre à jour README, installation, sécurité, architecture, contribution.
+- **Règles abandonnées : garder une trace courte de ce qui a changé et
+  pourquoi.** Trois lignes suffisent. Sans ça, le même débat se rouvre — c'est
+  exactement ce qui s'est passé avec le panneau latéral, retiré puis remis
+  puis retiré.
+- Ne garder que deux feuilles de route maintenues : celle-ci et celle du
+  Compagnon.
 
 ---
 
-## Ce qu'OpenContact ne fera jamais *(ajouté — à publier)*
+## Ce qu'OpenContact ne fera jamais *(à publier)*
 
-Cette liste existe déjà dans `CLAUDE.md` §10 à usage interne. La rendre
-publique est une fonctionnalité : c'est ce qui permet à un établissement
-de faire confiance à l'outil.
+Cette liste existe dans `CLAUDE.md` §10 à usage interne. La rendre publique
+est une fonctionnalité : c'est ce qui permet à un établissement de faire
+confiance à l'outil.
 
 - Aucun serveur, aucun compte, aucune analytique, aucun traçage.
 - Aucune publicité, aucune revente ou exploitation des données.
 - Le suivi privé ne sort jamais dans un partage communautaire.
-- Aucune donnée écrasée sans aperçu préalable et sans possibilité
-  d'annuler.
+- Aucune donnée écrasée sans aperçu préalable et sans possibilité d'annuler.
 
 ---
 
 ## Ordre général
 
-Stabiliser (corrections UX → vrai matériel → durabilité) → préparer la
-publication → bêta publique → version stable → import public →
-fonctions avancées → mobile → communauté → MCP distant → expérimentations
-→ documentation finale.
+Recentrer (§1.2) → vrai matériel → durabilité → préparer la publication →
+bêta → version stable → ramener l'IA et l'envoi direct → import public →
+mobile → communauté → documentation finale.

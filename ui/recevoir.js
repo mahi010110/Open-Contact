@@ -61,10 +61,13 @@ export function openRecevoir(){
     leaveRdv();
     sh.setTitle('Recevoir');
     sh.body.innerHTML =
+      /* même grammaire que « Donner » : la situation en gras, le moyen en
+         donnée. Ici trois situations distinctes, parce que celui qui reçoit
+         sait déjà ce qu'il a en main. */
       `<div class="pick-list">
-         <button class="pick" id="rcScan"><b>${ic('grid-3x3', 'ic-14')} Scanner</b></button>
-         <button class="pick" id="rcFile"><b>${ic('folder', 'ic-14')} Ouvrir un fichier</b><span>.oc</span></button>
-         <button class="pick" id="rcPaste"><b>${ic('clipboard', 'ic-14')} Coller</b></button>
+         <button class="pick" id="rcScan"><b>${ic('grid-3x3', 'ic-14')} En personne</b><span>scanner le QR</span></button>
+         <button class="pick" id="rcFile"><b>${ic('folder', 'ic-14')} Par fichier</b><span>.oc</span></button>
+         <button class="pick" id="rcPaste"><b>${ic('clipboard', 'ic-14')} Par message</b><span>coller le texte</span></button>
        </div>
        <p class="hint">${ic('shield', 'ic-14')} Aperçu avant fusion — annulable.</p>
        <input type="file" id="rcInput" accept=".oc,.txt,.json,application/octet-stream,text/plain,application/json" hidden>`;
