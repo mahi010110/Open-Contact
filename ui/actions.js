@@ -72,8 +72,8 @@ export function askNextAction(c, opts){
      <div class="field"><label id="naWhen">Quand ?</label>
        <div class="datechips" role="group" aria-labelledby="naWhen">
          ${/* le jour SOUS le raccourci : « +3 jours » oblige à compter,
-              « mer. 05/08 » se lit. C'est déjà ce que fait « Reporter »,
-              et c'est la même décision, dans le même enchaînement. */''}
+              « mer. 05/08 » se lit. Les mêmes puces qu'à « Reporter » :
+              même décision, même enchaînement, donc même dessin. */''}
          ${choix.map(([nom, iso], i) =>
            `<button class="dchip dchip-d" data-i="${i}"><b>${nom}</b><span>${frDate(iso)}</span></button>`).join('')}
        </div>
@@ -119,11 +119,16 @@ export function reportAction(c){
   const sh = openSheet({ title: 'Reporter', icon: 'clock' });
   sh.body.innerHTML =
     `<div class="na-company">${esc(c.nextActionText || 'Faire le point')} — ${esc(c.name)}</div>
-     <div class="pick-list">
+     ${/* EXACTEMENT les raccourcis d'« Et ensuite ? ». C'est la même
+          question — quelle date — posée depuis la même ligne, à un
+          bouton d'écart : elle ne peut pas avoir deux dessins. Elle en
+          avait deux (trois pavés pleine largeur ici, trois puces
+          là-bas), et le commentaire d'à côté affirmait le contraire. */''}
+     <div class="datechips" role="group" aria-label="Reporter à">
        ${choix.map(([nom, iso], i) =>
-         `<button class="pick" data-i="${i}"><b>${nom}</b><span>${frDate(iso)}</span></button>`).join('')}
+         `<button class="dchip dchip-d" data-i="${i}"><b>${nom}</b><span>${frDate(iso)}</span></button>`).join('')}
      </div>
-     <div class="field" style="margin-top:10px"><label for="rpDate">Ou une date précise</label>
+     <div class="field" style="margin-top:12px"><label for="rpDate">Ou une date précise</label>
        <div class="date-row">
          <input id="rpDate" type="date" min="${plusDaysISO(0)}">
          <button class="btn btn-primary" id="rpOk" hidden>OK</button>
@@ -135,7 +140,7 @@ export function reportAction(c){
     toast('Reporté à ' + frDate(iso) + '.');
     bus.refresh();
   };
-  sh.body.querySelectorAll('.pick').forEach(b =>
+  sh.body.querySelectorAll('.dchip-d').forEach(b =>
     b.addEventListener('click', () => pick(choix[+b.dataset.i][1])));
   bindDateOk(sh.body, '#rpDate', '#rpOk', pick);
 }
