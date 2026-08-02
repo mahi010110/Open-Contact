@@ -563,6 +563,9 @@ details.tranche[open]>summary::before{
    titre pliait en deux (vu sur « Les deux relances… » à 390 px). */
 details.pcard-details>summary{
   cursor:pointer;list-style:none;user-select:none;margin:-4px 0;
+  /* déplier est un geste comme un autre : la ligne fait 44 px au pouce,
+     pas la hauteur de son titre (19 px mesurés sur « Connexion avancée ») */
+  min-height:var(--ctl);
   display:flex;align-items:center;gap:8px;
 }
 details.pcard-details>summary::-webkit-details-marker{display:none}
