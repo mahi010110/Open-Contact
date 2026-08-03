@@ -46,7 +46,7 @@ function withPos(st, apply){
   if (!navigator.geolocation){ toast('Pas de géolocalisation sur ce navigateur.'); return; }
   navigator.geolocation.getCurrentPosition(
     p => { st.userPos = { lat: p.coords.latitude, lng: p.coords.longitude }; apply(); },
-    () => toast('Position indisponible — tri par proximité impossible.'),
+    () => toast('Position indisponible'),
     { timeout: 8000, maximumAge: 300000 }
   );
 }

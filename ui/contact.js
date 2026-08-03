@@ -145,7 +145,7 @@ export function openContactEditor(o){
         toast('Contact mis à jour.');
       } else {
         addOrphan(data);
-        toast('Contact gardé de côté — rattache-le à une piste quand tu sais.');
+        toast('Gardé dans « à rattacher »');
       }
       sh.close(); done();
     })

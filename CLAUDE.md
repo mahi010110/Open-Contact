@@ -282,9 +282,9 @@ avec un motif existant.
 | Supprimer au geste | `bindDeleteGesture(node, onDelete)` — glisser (mobile) / poubelle au survol (desktop), doublé d'un `showUndo` |
 | Choisir parmi 2-5 options | `pick-list` / `.pick` |
 | Choisir une date | chips « Demain / +3 j / +7 j / Lundi » + date précise validée par OK (jamais de fermeture sur `change` seul — roue iOS) |
-| Confirmer un geste risqué | `confirmSheet` (danger = `btn-danger`) |
-| Geste lourd réversible | `showUndo(msg, onUndo)` — barre Annuler ~30 s |
-| Retour discret | `toast()` — court, ponctuel, jamais deux phrases |
+| Confirmer un geste risqué | `confirmSheet` (danger = `btn-danger`). **Une porte se décide** : elle ne se justifie que si elle montre ce qu'on ne peut PAS deviner (« ce fichier contient 12 pistes, tu en as 3 »). Une question dont le message dit qu'il n'y a rien à perdre ne protège personne |
+| Geste lourd réversible | `showUndo(msg, onUndo)` — barre Annuler ~30 s. **Il remplace la confirmation**, il ne s'y ajoute pas : demander ET offrir d'annuler, c'est payer deux fois |
+| Retour discret | `toast()` — court, ponctuel, jamais deux phrases. Un tiret cadratin au maximum, et ce qui le suit doit être un **geste** (« — passe par le fichier »), jamais un rassurement (« — tout est revenu comme avant ») |
 | Marquer partagé vs privé | `tag-share` / `tag-priv` |
 | Dire qu'un état **réclame quelque chose** | `.mark` + un cran : `mark-late` · `mark-now` · `mark-soon` · `mark-far`. **Un seul langage d'urgence dans toute l'app**, échelle monotone, et **ce qui ne réclame rien n'affiche rien** — c'est le vide en face qui fait ressortir le reste. Un cadre entier peut prendre le bord ambre (`.fset.fs-alert`) quand son état peut tout coûter |
 | Chercher | `filterCompanies({q})` / `filterOrphans` — les accents se plient dans les deux sens et **chaque mot se cherche pour lui-même** (tous présents, ordre libre). « / » ouvre le champ, Échap le vide |
@@ -404,7 +404,11 @@ Transport : Trystero (vendorisé) via relais Nostr publics, personnalisables
 4. `CONTRAT.md` à jour si une clé, un format ou un invariant a bougé.
 5. `sw.js` : bump `oc-vN` + `PRECACHE` si un fichier précaché a changé.
 6. Textes relus, thème sombre vérifié, cibles tactiles ≥ 44 px sur mobile.
-7. Commits en français, descriptifs, focalisés.
+7. **Sobriété** : `e2e-sobriete.mjs` vert. Une couche de plus (toast long,
+   confirmation, phrase d'explication) ne passe qu'en montant un plafond
+   **dans ce fichier**, exprès — c'est ce qui empêche une passe de
+   nettoyage de se défaire toute seule, un « juste un toast » à la fois.
+8. Commits en français, descriptifs, focalisés.
 
 ---
 

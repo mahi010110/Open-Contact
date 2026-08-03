@@ -502,13 +502,13 @@ export function openProtectFlow(){
   if (meta){ openManageSheet(); return; }
   let pin = '', phrase = '', saved = false;
   const sh = openSheet({
-    title: 'Protéger tes données', icon: 'lock', focus: '.x',
-    guard: () => {
-      if (saved) return true;
-      if (!pin) return true;
-      return confirmSheet({ title: 'Abandonner ?', okLabel: 'Abandonner',
-        msg: 'Rien n’est encore protégé — tu pourras recommencer quand tu veux.' });
-    }
+    title: 'Protéger tes données', icon: 'lock', focus: '.x'
+    /* Pas de garde à la sortie. Elle demandait « Abandonner ? » en
+       expliquant elle-même que rien n'est encore protégé et qu'on
+       pourra recommencer : une confirmation dont le message dit qu'il
+       n'y a rien à perdre ne protège personne, elle ajoute une couche
+       à un parcours qui en a déjà quatre. La croix veut dire « je
+       renonce », et ici renoncer ne coûte rien. */
   });
   const q = s => sh.body.querySelector(s);
 
@@ -546,17 +546,13 @@ export function openProtectFlow(){
     logJ('Données protégées (verrouillage activé)');
     sh.close(null, true);
     bus.refresh();
-    toast('Protégé ✓ — cet appareil est ton appareil principal.');
-    /* biométrie : accélérateur optionnel, proposé une fois */
-    if (bioAvailable()){
-      const okv = await confirmSheet({ title: 'Déverrouiller plus vite ?', icon: 'shield',
-        okLabel: 'Activer',
-        msg: 'Empreinte ou visage, si ton appareil le propose. Le code reste le secours.' });
-      if (okv){
-        try { await enrollBio(pin); toast('Activé ✓'); }
-        catch (e) { toast('Pas disponible ici — le code suffit.'); }
-      }
-    }
+    toast('Protégé ✓');
+    /* L'empreinte ne se propose PLUS ici. Elle arrivait en cinquième
+       couche d'un parcours qui en compte quatre, par-dessus le toast
+       qui venait d'annoncer le succès — et elle est déjà dans
+       « Verrouillage » (`#vgBio`), à un tap de Moi → Protection. Une
+       question posée deux fois n'est pas une aide, c'est une porte de
+       plus à refermer. On finit sur le succès. */
     pin = phrase = '';
   };
 

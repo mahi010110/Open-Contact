@@ -68,7 +68,7 @@ async function treatRestore(raw, pass){
     return;
   }
   if (obj.kind === 'share'){
-    toast('C’est un partage de pistes, pas une copie — passe par Échanger → Recevoir pour le fusionner.');
+    toast('Un partage, pas une copie : ouvre-le dans Échanger → Recevoir.');
     return;
   }
   const n = obj.companies.length;
@@ -76,7 +76,11 @@ async function treatRestore(raw, pass){
   const ok = await confirmSheet({
     title: 'Restaurer cette copie ?', icon: 'reload', danger: true, okLabel: 'Tout remplacer',
     msg: `Le fichier contient <b>${n} piste${n > 1 ? 's' : ''}</b>${obj.profile ? ', le profil' : ''}${obj.orphans ? ', ' + obj.orphans.length + ' contact(s) à rattacher' : ''}.<br>
-          Ta base actuelle (<b>${cur} piste${cur > 1 ? 's' : ''}</b>) sera <b>entièrement remplacée</b> — annulable pendant 30 secondes.`
+          Ta base actuelle (<b>${cur} piste${cur > 1 ? 's' : ''}</b>) sera <b>entièrement remplacée</b>.`
+    /* « — annulable pendant 30 secondes » est parti : la barre Annuler
+       arrive deux secondes plus tard et le dit elle-même. Ce qui reste
+       ici est ce qu'on ne peut PAS deviner — combien de pistes dans le
+       fichier, combien on en a. C'est ça qui justifie la question. */
   });
   if (!ok) return;
   const snap = {
@@ -102,7 +106,7 @@ async function treatRestore(raw, pass){
     saveData(); saveProfile(); saveOrphans(); saveTombs();
     logJ('Restauration annulée');
     bus.refresh();
-    toast('Restauration annulée — tout est revenu comme avant.');
+    toast('Restauration annulée');
   });
 }
 function askRestorePass(raw){

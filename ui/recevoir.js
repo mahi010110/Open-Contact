@@ -349,7 +349,7 @@ export function openImportMails(){
           const rep = await companionCall(found.base, assoc2.k, { t: 'revoquer', mid });
           if (!rep || rep.t !== 'ok') throw new Error('revoquer');
           await clearMailAnalysis(mid);
-          toast('Analyse annulée — aucune proposition conservée.');
+          toast('Analyse annulée');
           mails();
         } catch (e) {
           if (st) st.textContent = 'Annulation non confirmée — réessaie quand le Compagnon répond.';

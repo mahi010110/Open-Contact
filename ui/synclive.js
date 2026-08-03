@@ -539,7 +539,7 @@ export function keepMyProfile(){
   saveProfile();          /* re-tamponne updatedAt : elle gagne partout */
   live.prevProfile = null;
   emit();
-  toast('Ton profil est repris — il repart vers tes appareils.');
+  toast('Profil repris ✓');
 }
 /* au démarrage (appelé en différé par app.js) : une phrase existe
    = on rejoint, sinon on ne charge rien. Jamais en force : si

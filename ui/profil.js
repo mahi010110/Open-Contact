@@ -7,7 +7,7 @@
 import { esc, uid } from '../engine/utils.js';
 import { defaultTemplates } from '../engine/model.js';
 import { S, bus, saveProfile } from './state.js';
-import { openSheet, confirmSheet, toast, btn, ic } from './dom.js';
+import { openSheet, confirmSheet, toast, showUndo, btn, ic } from './dom.js';
 import { tplField, tplSample } from './tplfield.js';
 
 /* ---------- profil ---------- */
@@ -42,7 +42,7 @@ export function openProfil(onDone){
       p.phone = v('#pfPhone'); p.email = v('#pfEmail');
       p.cvUrl = v('#pfCv'); p.portfolio = v('#pfPortfolio');
       saveProfile();
-      toast('Profil enregistré ✓ — tes emails se rempliront tout seuls.');
+      toast('Profil enregistré ✓');
       sh.close();
       bus.refresh();
       if (onDone) onDone();
@@ -112,16 +112,24 @@ function editTemplate(t, onBack, isNew){
     })
   ];
   if (!isNew && S.profile.templates.length > 1){
-    foot.unshift(btn('Supprimer', 'btn-ghost btn-danger', async () => {
-      const ok = await confirmSheet({
-        title: 'Supprimer ce modèle ?', danger: true, okLabel: 'Supprimer',
-        msg: '<b>' + esc(t.name) + '</b> sera retiré de la liste.'
-      });
-      if (!ok) return;
+    /* Le geste est réversible, donc il ne se demande pas — il se fait, et
+       la barre Annuler tient trente secondes (catalogue §6). La question
+       « Supprimer ce modèle ? » était une TROISIÈME couche par-dessus la
+       liste et la fiche du modèle, et elle ne montrait rien de neuf : on
+       est déjà DANS le modèle, son nom est le titre de la feuille. Elle
+       ne protégeait rien non plus — la suppression était définitive.
+       Elle l'est moins maintenant qu'avant. */
+    foot.unshift(btn('Supprimer', 'btn-ghost btn-danger', () => {
+      const rang = S.profile.templates.findIndex(x => x.id === t.id);
       S.profile.templates = S.profile.templates.filter(x => x.id !== t.id);
       saveProfile();
       sh.close();
       onBack();
+      showUndo(`${ic('trash', 'ic-14')} « ${esc(t.name)} » retiré.`, () => {
+        S.profile.templates.splice(Math.max(0, rang), 0, t);   /* à sa place */
+        saveProfile();
+        onBack();
+      });
     }, 'trash'));
   }
   sh.setFoot(foot);
