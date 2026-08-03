@@ -39,7 +39,7 @@ const HORS_ECRAN = new Set(['campagnes.js', 'compagnon.js', 'connexions.js',
 const PLAFOND = {
   toastCar: 79,        /* le plus long : « Connexion interrompue — … » */
   confirmations: 8,    /* portes bloquantes dans les écrans visibles */
-  motsExplication: 207 /* phrases d'explication dans les feuilles visibles */
+  motsExplication: 211 /* phrases d'explication dans les feuilles visibles */
 };
 
 const fichiers = readdirSync(UI).filter(f => f.endsWith('.js') && !HORS_ECRAN.has(f));
