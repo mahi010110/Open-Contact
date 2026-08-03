@@ -251,10 +251,14 @@ html[data-theme="dark"] .field select{
 .lb-act:hover{color:var(--text-link)}
 .lb-act[aria-pressed="true"]{color:var(--accent)}
 .lb-act[aria-pressed="true"] .ic{color:var(--accent)}
-.lb-act.on{
-  color:var(--accent);border-color:var(--accent);background:var(--teal-wash);
-  margin-right:0;
-}
+/* Un filtre actif se dit UNE fois : par son compte. J'avais ajouté en
+   plus un cadre et un aplat teal — trois signaux pour le même fait, et
+   une commande qui doublait de poids à côté de « Tout », resté une case
+   nue sur la même ligne. Le `margin-right:0` la faisait en outre SAUTER
+   de 8 px en s'activant : une cible qui bouge sous le doigt au moment
+   même où l'on vient de s'en servir. */
+.lb-act.on{color:var(--accent)}
+.lb-act.on .ic{color:var(--accent)}
 /* le repli d'une liste : le mot se fige, le chevron tourne. « Choisir »
    qui devient « Replier » sur la même cible oblige à relire pour savoir
    où l'on en est — l'état appartient au signe, pas au libellé. */
@@ -350,10 +354,13 @@ html[data-theme="dark"] .field select{
      pouce, pas à 27 % de la hauteur. Journée chargée, il suit le contenu :
      `margin-top:auto` ne prend que la place qui reste, s'il en reste. */
   #view-aujourdhui>.page-inner{display:flex;flex-direction:column;min-height:100%}
-  #view-aujourdhui>.page-inner>.td-under{
-    margin-top:auto;padding-top:14px;border-top:1px dashed var(--border-soft);
-  }
-  .td-under>*:first-child{margin-top:0}   /* le filet fait déjà la respiration */
+  /* Pas de filet ici. Il devait dire « le travail s'arrête, le pied
+     commence » ; à l'usage personne ne sait à quoi il sert, et sur une
+     journée courte il vient se poser contre la dernière carte, où il se
+     lit comme un bord de cette carte. Le pied se distingue déjà par sa
+     position — tout en bas — et par son style de lien. Un séparateur
+     qu'il faut expliquer ne sépare rien. */
+  #view-aujourdhui>.page-inner>.td-under{margin-top:auto}
 }
 @media (min-width:901px){
   .td-under{
@@ -390,8 +397,21 @@ html[data-theme="dark"] .field select{
 .tr-late .tr-h .tr-n{border-color:var(--amber);background:var(--amber-wash)}
 /* replier/déplier « Bientôt » est un geste au pouce comme un autre :
    la ligne fait 44 px, pas la hauteur de ses 11 px de texte */
+/* La CIBLE fait 44 px, la mise en page n'en prend pas 44. Le repli de
+   « Bientôt » affichait un en-tête de 44 px à côté de deux en-têtes de
+   17 px : trois titres de même rang, dont un 2,6 fois plus haut — c'est
+   ça qui cassait l'harmonie de l'écran. Le rembourrage donne le pouce,
+   les marges négatives le rendent à la mise en page : le doigt garde ses
+   44 px, l'œil retrouve le rythme des deux autres. */
 details.tranche>summary{
-  cursor:pointer;list-style:none;user-select:none;padding:6px 0;min-height:var(--ctl);
+  cursor:pointer;list-style:none;user-select:none;
+  /* Tout le rembourrage passe AU-DESSUS du libellé, et la marge négative
+     le rend à la mise en page. En le répartissant, la carte du dessous
+     recouvrait les 6 derniers pixels de la cible et la ramenait à 38 px —
+     sous le plancher tactile, sans que rien ne le montre. Ici : libellé
+     aligné sur un `h3`, 8 px sous lui comme les deux autres tranches, et
+     44 px de cible que personne ne recouvre. */
+  padding:19px 0 8px;min-height:var(--ctl);margin:-19px 0 0;
 }
 details.tranche>summary::-webkit-details-marker{display:none}
 details.tranche>summary::before{
@@ -430,15 +450,34 @@ details.tranche[open]>summary::before{
   font-size:var(--text-14);font-weight:var(--weight-semibold);line-height:1.35;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
 }
-/* l'échéance d'abord, le nom ensuite — et c'est LUI qui se tronque : on
-   perd la fin d'« Orange Cyberdefense » avant de perdre « –2 j » */
+/* L'échéance d'abord, le nom ensuite. Mais le nom PASSE À LA LIGNE avant
+   de se tronquer : sur un petit téléphone, les trois gestes prennent
+   152 px et le contenu 130, si bien qu'« Orange Cyberdefense » recevait
+   72 px pour les 125 qu'il lui faut — on lisait « Orange Cy… », et une
+   piste qu'on ne reconnaît plus ne sert à rien. L'asymétrie était là :
+   le verbe avait droit à deux lignes, le nom pas même à une entière.
+   Quand la place suffit (≥ 393 px), rien ne bouge : le retour à la ligne
+   ne se produit que s'il manque des pixels. */
 .act-sub{
-  display:flex;align-items:center;gap:6px;min-width:0;
+  display:flex;align-items:center;flex-wrap:wrap;gap:2px 6px;min-width:0;
   font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);
 }
 .act-sub .act-who{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Sur les plus petits écrans il manquait 7 px au nom, pris par les
+   retraits de la ligne. On les rend — jamais les 8 px entre les gestes,
+   qui protègent le doigt. */
+@media (max-width:340px){
+  .act-in .act-main{padding-left:8px}
+  .act-in .act-btns{padding-right:0}
+}
 .act-sub .act-when{flex:none}
-.act-sub .mark{padding:1px 6px}      /* la ligne est dense : la marque s'y range */
+/* La marque se range DANS la ligne sans la grandir. Mesuré sur une
+   journée réelle : les lignes marquées faisaient 60 px et les autres 56 —
+   quatre pixels d'écart qui ne disent rien du contenu, seulement qu'un
+   badge est là. Une liste dont le pas change au gré d'un badge se balaie
+   moins bien. `line-height:1` ramène la marque dans la boîte de ligne du
+   texte qu'elle accompagne. */
+.act-sub .mark{padding:1px 6px;line-height:1}
 /* Trois gestes aux conséquences distinctes — écrire, reporter, clore —
    plus « ouvrir la fiche » à leur gauche. Ils se touchaient (0 px
    mesuré) : un pouce posé à la frontière ouvrait la fiche au lieu de
@@ -923,19 +962,19 @@ details.pcard-details[open]>summary{margin-bottom:10px}
    journal court laissait un trou et un journal long jetait sa date à
    700 px de son libellé : c'est le bord qui fait qu'une liste se lit
    comme une liste. */
-.ec-fil{
-  margin-top:18px;display:flex;flex-direction:column;
-  background:var(--surface-window);border:1px solid var(--border-strong);
-  box-shadow:var(--shadow-raised);padding:9px 12px 2px;
-}
-.ec-vide .ec-rien{flex:1}
+/* Le fil est un `fset` — le cadre à légende de « Moi ». Il tient toujours
+   sa région (c'est lui qui garde les gestes au pouce), mais avec un trait
+   fin et une légende en encoche au lieu d'un aplat bordé et biseauté :
+   sur un écran qui ne porte que trois objets, le panneau plein en faisait
+   un de plus au lieu de ranger les deux autres. */
+.ec-fil{margin-top:18px;display:flex;flex-direction:column}
+/* le corps glisse, la légende reste — elle vit dans le trait du cadre */
+.ec-body{flex:1;min-height:0;display:flex;flex-direction:column;overflow:auto;-webkit-overflow-scrolling:touch}
+.ec-vide .ec-rien{flex:1;display:flex;align-items:center;justify-content:center}
 .ec-rien{
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:5px;text-align:center;padding:18px 4px;
+  font-size:var(--text-13);color:var(--text-muted);text-align:center;
+  margin:0;padding:14px 4px;
 }
-.ec-rien .tde-ic{margin-bottom:5px}
-.ec-rien b{font-size:var(--text-14);font-weight:var(--weight-bold);letter-spacing:var(--tracking-tight)}
-.ec-rien p{font-size:var(--text-13);color:var(--text-muted);line-height:1.6;max-width:32ch;margin:0}
 /* Le panneau garde sa taille : c'est LUI qui défile quand le journal
    déborde, jamais la page. `height` et non `min-height` — sinon huit
    lignes repoussaient les gestes à 101 % de la hauteur sur un 360×640,
@@ -944,7 +983,7 @@ details.pcard-details[open]>summary{margin-bottom:10px}
    soit le remplissage (63 / 72 / 74 % selon le téléphone), et la mémoire
    du geste tient. */
 #view-echanger>.page-inner{display:flex;flex-direction:column;height:100%}
-.ec-fil{flex:1;min-height:96px;overflow:auto;-webkit-overflow-scrolling:touch}
+.ec-fil{flex:1;min-height:96px;overflow:hidden}
 /* Au pouce, l'écran s'inverse : on LIT en haut, on AGIT en bas — les
    deux gestes se posent juste au-dessus de la barre, la zone qu'une main
    atteint sans changer de prise, au lieu de vivre à 17 % de la hauteur.
@@ -972,6 +1011,12 @@ details.pcard-details[open]>summary{margin-bottom:10px}
    un filet sépare les deux questions : QUOI, puis COMMENT ---- */
 .dn-src{margin:0 0 12px;padding-bottom:10px;border-bottom:1px dashed var(--border-soft)}
 .dn-what{display:flex;align-items:center;gap:8px}
+/* « Choisir » déplie la liste, « Affiner » ouvre une feuille : deux
+   conséquences différentes, et leurs bords se touchaient (mesuré à 0 px,
+   208 → 208). Huit pixels — le chiffre de la règle, pas un de plus :
+   j'avais posé 10 sans raison, et un écart choisi au hasard est
+   exactement ce que je corrige ailleurs. */
+#dnList>.listbar{margin-top:8px}
 .dn-count{flex:1;font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted)}
 
 .qr-prog,.scan-prog{
@@ -1021,6 +1066,7 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   border:1px solid var(--border-strong);border-radius:var(--radius-1);
   background:var(--surface-chrome);box-shadow:var(--bevel-up), var(--shadow-raised);
   font-weight:var(--weight-semibold);font-size:var(--text-13);
+  color:var(--text-body);   /* jamais la couleur de bouton du navigateur */
 }
 .dchip:active{box-shadow:var(--bevel-down);transform:translate(1px,1px)}
 /* le raccourci de date porte le JOUR qu'il vise : « +3 jours » se
@@ -1031,16 +1077,33 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 }
 .dchip-d span{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
 .dchip-d.on span{color:var(--on-accent);opacity:.8}
-.pick-list{display:flex;flex-direction:column;gap:7px}
+/* 8 px, le chiffre de la règle — et pas 7. C'est LE motif du choix dans
+   toute l'app, et ses options ont toujours des conséquences distinctes :
+   « Scanner » ouvre la caméra, « Fichier » ouvre le sélecteur, « Coller »
+   lit le presse-papier. Un pixel sous la règle, répété partout, c'est la
+   règle qui ne veut plus rien dire. */
+.pick-list{display:flex;flex-direction:column;gap:8px}
+/* `color` EST OBLIGATOIRE ici. Sans elle, un `<button>` retombe sur la
+   couleur de texte du navigateur : encre sous Chromium — donc invisible
+   en développement — mais BLEU SYSTÈME sous iOS. Toutes les listes de
+   choix de l'app s'affichaient en bleu Apple sur un vrai téléphone, ce
+   que rien ne pouvait montrer ici.
+   Et `flex-wrap` : quand la donnée de droite est longue (un nom de
+   fichier de 28 caractères), elle écrasait le libellé au point de faire
+   passer « Télécharger » SOUS sa propre icône. Elle descend d'une ligne
+   au lieu de le broyer. */
 .pick{
-  display:flex;align-items:center;justify-content:space-between;gap:10px;
-  min-height:var(--ctl);padding:8px 14px;
+  display:flex;align-items:center;justify-content:space-between;gap:4px 10px;
+  flex-wrap:wrap;min-height:var(--ctl);padding:8px 14px;
   border:1px solid var(--border-strong);border-radius:var(--radius-1);
   background:var(--surface-chrome);box-shadow:var(--bevel-up), var(--shadow-raised);
-  font-size:var(--text-14);text-align:left;
+  font:inherit;font-size:var(--text-14);color:var(--text-body);text-align:left;
 }
-.pick b{font-weight:var(--weight-semibold)}
-.pick span{font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted)}
+.pick b{font-weight:var(--weight-semibold);flex:none}
+.pick span{
+  font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted);
+  margin-left:auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
 .pick:disabled{opacity:.62;cursor:not-allowed;box-shadow:none}
 .pick:active{box-shadow:var(--bevel-down);transform:translate(1px,1px)}
 .pick-close{border-left:3px solid var(--c)}
@@ -1161,7 +1224,14 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 /* ============ FICHE : outils, à savoir, contacts ============ */
 .lbl-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px}
 .lbl-row label{margin-bottom:0}
-.fi-tools{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+/* Au pouce, cette ligne suit le cadre « À savoir », dont la DERNIÈRE
+   rangée porte déjà « Itinéraire », calé à droite comme « Compléter ».
+   Deux boutons alignés, à quelques pixels l'un de l'autre, et l'un des
+   deux QUITTE l'application pour ouvrir un plan — se tromper là ne coûte
+   pas un tap, ça coûte de perdre sa place. D'où un vrai palier entre le
+   cadre et cette ligne, et pas les 8 px d'usage. */
+.fi-tools{display:flex;align-items:center;gap:10px;margin:20px 0 14px;flex-wrap:wrap}
+@media (min-width:901px){ .fi-tools{margin-top:0} }   /* au poste elle monte sur l'identité */
 /* un chiffre qui bouge deux fois par mois n'a pas à porter un cadre :
    encadré, il se déguisait en chose qui se tape (elle ne se tape pas) */
 .fi-score{

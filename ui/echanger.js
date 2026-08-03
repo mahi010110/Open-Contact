@@ -34,21 +34,17 @@ function quand(t){
 function filHTML(){
   const fil = exchangeLog(S.journal, 8);
   const tot = exchangeTotals(S.journal);
-  const head =
-    `<h3 class="tr-h">${ic('switch', 'ic-14')} Tes échanges ${tot.n ? `<span class="tr-n">${tot.n}</span>` : ''}</h3>`;
-  /* Le fil est un PANNEAU, pas un bloc de texte : il tient sa région,
-     les lignes s'y remplissent par le haut et la place qui reste est la
-     sienne — celle des échanges à venir. Sans lui, descendre les gestes
-     au pouce ouvrait un trou de 370 px au milieu de l'écran ; avec lui,
-     les gestes se posent toujours au même endroit, que le journal porte
-     huit lignes, une seule ou aucune. */
+  /* Le CADRE À LÉGENDE de « Moi », pas un panneau plein. Le fil tient
+     toujours sa région — c'est lui qui garde les deux gestes au pouce,
+     quel que soit le remplissage — mais il le fait avec le trait fin et
+     la légende en encoche qui rangent déjà « Ce que j'envoie ». Un aplat
+     bordé et biseauté faisait un bloc de plus sur un écran qui n'en a
+     que trois.
+     Et rien de superflu dedans : la légende dit ce que c'est, le compte
+     dit combien. La phrase qui expliquait à quoi sert la page a disparu
+     — les deux verbes juste dessous l'enseignent mieux qu'elle. */
   const corps = !fil.length
-    ? `<div class="ec-rien">
-         <div class="tde-ic">${ic('switch', 'ic-24')}</div>
-         <b>Rien n’a encore circulé</b>
-         <p>Donne tes pistes à ta promo, ou récupère les siennes —
-            ce qui part et ce qui arrive s’inscrira ici.</p>
-       </div>`
+    ? `<p class="ec-rien">Rien n’a encore circulé.</p>`
     : `<p class="ec-sub ec-tot">${tot.donne} donnée${tot.donne > 1 ? 's' : ''} ·
           ${tot.recu} reçue${tot.recu > 1 ? 's' : ''}</p>
        ${fil.map(x => {
@@ -67,7 +63,15 @@ function filHTML(){
                    <span class="ec-sub ec-when">${quand(x.t)}</span>
                  </div>`;
        }).join('')}`;
-  return `<section class="ec-fil${fil.length ? '' : ' ec-vide'}">${head}${corps}</section>`;
+  /* La légende NE DÉFILE PAS : elle est posée dans le trait du cadre,
+     hors du corps qui glisse. Quand le titre vivait dans la zone
+     défilante, neuf pixels suffisaient sur un écran court à le faire
+     passer sous sa propre bordure — on lisait « TES ÉCHANGES » coupé
+     en deux. */
+  return `<fieldset class="fset ec-fil${fil.length ? '' : ' ec-vide'}">
+            <legend>Tes échanges${tot.n ? ` <span class="tr-n">${tot.n}</span>` : ''}</legend>
+            <div class="ec-body">${corps}</div>
+          </fieldset>`;
 }
 
 export function renderEchanger(){

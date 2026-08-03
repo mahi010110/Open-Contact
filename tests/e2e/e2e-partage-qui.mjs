@@ -90,6 +90,20 @@ await page.evaluate(() => {
 });
 await page.click('#dnFile');
 await page.waitForSelector('#dnCopy');
+/* Le titre d'une feuille à étapes doit SUIVRE l'étape. `setTitle` visait
+   `.modal-h h2 span`, c'est-à-dire le premier span — celui de l'icône :
+   il écrivait donc le nouveau titre là où le masque de l'icône le cache,
+   et le titre visible ne changeait jamais. On parcourait Donner →
+   Fichier → QR en lisant « Donner » partout. */
+const titreEtape = (await page.textContent('.overlay:last-of-type .modal-h h2') || '').trim();
+/* Exactement le titre de l'étape : un simple « contient Fichier » laissait
+   passer « Fichier — 3 pistesDonner », c'est-à-dire le bug lui-même. */
+if (!/^Fichier — \d+ pistes?$/.test(titreEtape))
+  fail('le titre doit être CELUI de l’étape, et rien d’autre : ' + JSON.stringify(titreEtape));
+const ariaEtape = await page.getAttribute('.overlay:last-of-type .modal', 'aria-label');
+if (!/Fichier/.test(ariaEtape || ''))
+  fail('le nom annoncé du dialogue doit suivre aussi : ' + JSON.stringify(ariaEtape));
+console.log('le titre de la feuille suit l’étape ✓');
 await page.click('#dnCopy');
 await attendre(page, () => !!window.__copie, { timeout: 6000, message: 'fichier copié' });
 const paye = await page.evaluate(() => JSON.parse(window.__copie));

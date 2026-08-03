@@ -101,7 +101,7 @@ export function openSheet(o){
   const ov = el(
     `<div class="overlay open">
       <div class="modal ${o.className || ''}" role="dialog" aria-modal="true" aria-label="${esc(o.title || '')}">
-        <div class="modal-h"><h2>${o.icon ? ic(o.icon, 'ic-14') : ''}<span>${esc(o.title || '')}</span></h2>
+        <div class="modal-h"><h2>${o.icon ? ic(o.icon, 'ic-14') : ''}<span class="mh-t">${esc(o.title || '')}</span></h2>
           <button class="x" aria-label="Fermer">✕</button></div>
         <div class="modal-b"></div>
         <div class="modal-f" hidden></div>
@@ -182,7 +182,17 @@ export function openSheet(o){
   });
   const api = {
     ov, body, close,
-    setTitle(t){ ov.querySelector('.modal-h h2 span').textContent = t; },
+    /* `.mh-t` et pas `span` : le premier span d'un `h2` est celui de
+       l'ICÔNE. `setTitle` écrivait donc dedans — masqué par le `mask`
+       de l'icône — et le titre visible ne changeait jamais. Toutes les
+       feuilles à étapes gardaient celui de leur ouverture : on
+       parcourait Donner → Fichier → QR en lisant « Donner » partout,
+       sans jamais savoir où l'on était. Le `aria-label` du dialogue
+       suit, sinon un lecteur d'écran restait sur le titre de départ. */
+    setTitle(t){
+      ov.querySelector('.modal-h h2 .mh-t').textContent = t;
+      ov.querySelector('.modal').setAttribute('aria-label', t);
+    },
     setFoot(content){
       /* remplace — les feuilles à étapes rappellent setFoot à chaque
          écran ; null = pas de pied (fermer = la croix ou le glisser) */

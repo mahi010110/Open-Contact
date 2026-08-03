@@ -52,12 +52,15 @@ function withPos(st, apply){
 }
 
 /* ---------- la section « Trier » (réutilisée par « Affiner ») ---------- */
+/* Pas de lien « Revenir à … » : il apparaissait juste au-dessus des puces
+   et proposait ce qu'un seul tap sur la puce fait déjà — taper
+   « Récentes » repose le tri par défaut, sens compris (`dir:''`). Une
+   commande de plus pour un geste qui existe, et qui se lisait comme un
+   ordre de revenir là où l'on était déjà. */
 export function sortSectionHTML(st){
   const main = st.levels[0];
   return (
-    `<div class="lbl-row"><label>Trier</label>
-       ${sortIsDefault(st) ? '' : `<button class="linklike" data-sort-reset>Revenir à « ${SORT_LABELS[st.def]} »</button>`}
-     </div>
+    `<div class="lbl-row"><label>Trier</label></div>
      <div class="fl-grid">
        ${Object.keys(SORT_LABELS).map(k =>
          `<button class="fl-chip${main.sort === k ? ' on' : ''}" data-sort-set="${k}"
@@ -79,10 +82,6 @@ export function bindSortSection(box, st, apply){
       if (k === 'dist') withPos(st, go);
       else go();
     }));
-  box.querySelector('[data-sort-reset]')?.addEventListener('click', () => {
-    st.levels = [{ sort: st.def, dir: '' }];
-    apply();
-  });
 }
 
 /* ---------- le bouton « Trier » (Prospecter, Donner) ---------- */
