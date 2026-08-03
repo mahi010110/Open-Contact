@@ -96,7 +96,14 @@ export function mergeIncoming(list, companies){
           stats.addedCt++; touched = true;
         }
       }
-      if (touched){ ex.updatedAt = Date.now(); stats.enriched++; stats.ids.push(ex.id); }
+      /* une piste n'est nommée QU'UNE FOIS : deux fiches entrantes
+         peuvent viser la même existante (un fichier qui répète une
+         entreprise, deux camarades qui l'ont tous les deux), et la
+         feuille de « Tes échanges » la listerait alors deux fois. */
+      if (touched){
+        ex.updatedAt = Date.now(); stats.enriched++;
+        if (!stats.ids.includes(ex.id)) stats.ids.push(ex.id);
+      }
     }
   }
   return stats;

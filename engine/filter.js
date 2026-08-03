@@ -171,13 +171,25 @@ function excerpt(text, words, max){
     else merged.push([s, l]);
   }
   /* la fenêtre s'ouvre un peu AVANT la trouvaille — un extrait qui
-     commence pile sur le mot cherché perd le mot qui le porte — et
-     se cale sur une frontière de mot quand il y en a une */
+     commence pile sur le mot cherché perd le mot qui le porte — et se
+     cale sur une frontière de mot.
+     Elle se cale en RECULANT. Avancer jusqu'à l'espace qui précède la
+     trouvaille rend « …SOC » : le mot cherché tout seul, précédé de
+     trois points qui cachent la seule chose que l'extrait devait
+     apporter (mesuré sur « Cybersécurité, SOC » — l'extrait n'ajoutait
+     rien au surlignage). On ne recule que si la trouvaille tient encore
+     dans la fenêtre, sinon elle sortirait par la droite ; sans espace
+     en arrière, le début du champ EST une frontière. */
   const first = merged[0][0];
   let a = Math.max(0, first - 12);
   if (a > 0){
-    const sp = text.indexOf(' ', a - 1);
-    if (sp >= 0 && sp < first) a = sp + 1;
+    const back = text.lastIndexOf(' ', a);
+    const debut = back >= 0 ? back + 1 : 0;
+    if (first - debut < max) a = debut;
+    else {
+      const sp = text.indexOf(' ', a - 1);
+      if (sp >= 0 && sp < first) a = sp + 1;
+    }
   }
   const b = Math.min(text.length, a + max);
   const head = a > 0 ? '…' : '';

@@ -639,6 +639,11 @@ export async function runSelfTests(){
       const e = searchHint(long, 'hds', { skip: ['name', 'city'], max: 40 });
       eq(e.text.slice(e.marks[0][0], e.marks[0][0] + e.marks[0][1]), 'HDS');
       ok(e.text.length <= 42, 'l’extrait tient dans sa fenêtre');
+      /* l'extrait garde le mot qui PORTE la trouvaille : se caler sur
+         l'espace d'après rendait « …SOC », soit le mot cherché tout seul
+         — rien de plus que le surlignage. Il recule donc. */
+      const porte = normalizeCompany({ name: 'Thales', techs: 'Cybersécurité, SOC' });
+      eq(searchHint(porte, 'soc', vu).text, 'Cybersécurité, SOC');
       eq(searchHint(c, '', vu), null);
       eq(searchHint(c, 'zzz', vu), null);
     },
@@ -1078,6 +1083,15 @@ export async function runSelfTests(){
       eq(st.ids.includes(comps.find(c => c.name === 'Beta').id), true);
       /* les identifiants désignent bien des pistes du suivi */
       eq(st.ids.every(id => comps.some(c => c.id === id)), true);
+      /* DEUX fiches entrantes qui complètent la MÊME piste : elle est
+         nommée une fois, pas deux — sinon la feuille de « Tes échanges »
+         listerait la même piste en double */
+      const c2 = [normalizeCompany({ id: 'pi-un', name: 'Gamma' })];
+      const st2 = mergeIncoming([
+        { name: 'Gamma', city: 'Nantes' },
+        { name: 'Gamma', techs: 'Kubernetes' }
+      ], c2);
+      eq(st2.ids, ['pi-un']);
     },
     'aides : signature collée → contact, sans jamais inventer': () => {
       const got = contactFromSignature(
