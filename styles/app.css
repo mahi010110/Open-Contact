@@ -974,14 +974,24 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 }
 .na-company::before{content:'';width:8px;height:8px;flex:none;border:1px solid var(--border-strong);background:var(--teal)}
 /* ---- direct (P2P) ---- */
-.sy-phrase{display:flex;justify-content:center;margin:6px 0 10px}
+/* L'œil colle à la phrase : posé au bord opposé de la feuille, il
+   flottait dans le vide, à trois centimètres de ce qu'il montre — on ne
+   fait pas le rapport. Et la colonne se lit à GAUCHE, comme le reste de
+   la feuille : un seul bloc centré au milieu d'éléments alignés casse
+   le fil de lecture. */
+.sy-phrase{display:flex;align-items:center;gap:2px;margin:6px 0 10px}
+/* `.abtn-sm` pousse à droite par défaut (`margin-left:auto`) : c'est bon
+   dans une ligne de liste, pas ici — l'œil se retrouvait à trois
+   centimètres de la phrase, contre le bord opposé, et plus rien ne
+   disait qu'il la concerne. Il colle à son objet. */
+.sy-phrase .abtn-sm{margin-left:0}
 .sy-phrase span{
   font-family:var(--font-mono);font-size:20px;font-weight:var(--weight-bold);
   letter-spacing:.08em;padding:10px 16px;user-select:all;
   border:1px dashed var(--border-strong);background:var(--surface-chrome);
 }
 .sy-status{
-  display:flex;align-items:center;gap:8px;justify-content:center;margin-top:12px;
+  display:flex;align-items:center;gap:8px;margin-top:12px;
   font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted);
 }
 .sy-log{margin-top:10px}
@@ -1066,6 +1076,12 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted);
 }
 .sy-devs{margin-top:16px}
+/* la consigne suit la phrase, à gauche comme elle */
+.sy-dit{margin:0}
+/* les deux réglages du lien, au même niveau : changer la phrase et
+   rompre. Le second porte le rouge, il ne se déguise pas en jumeau. */
+.sy-liens{display:flex;flex-wrap:wrap;gap:16px;margin-top:16px}
+.sy-break{color:var(--red)}
 /* une ligne = une phrase + sa date. Le canal, le nombre et la date
    s'empilaient en L sur deux rangs : trois blocs que l'œil devait
    recomposer avant de comprendre. */

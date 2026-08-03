@@ -43,8 +43,13 @@ const turnList = async () => {
   } catch (e) { return []; }
 };
 const relaySettingsHTML = (urls, turn) =>
-  `<details class="pcard pcard-details sy-relays" style="margin-top:14px">
-     <summary><h3>${ic('settings-2', 'ic-14')} Connexion avancée</h3></summary>
+  /* Un repli discret, pas une carte. Encadrée, « Connexion avancée »
+     était l'objet le plus lourd de la feuille — un pavé pour un réglage
+     que personne n'ouvre, au-dessus de la phrase qui est la seule chose
+     qui compte ici. Même dessin que « Sécurité avancée » sur la feuille
+     d'un appareil : un triangle, une ligne, rien de plus. */
+  `<details class="srt-adv sy-relays" style="margin-top:14px">
+     <summary>${ic('settings-2', 'ic-14')} Connexion avancée</summary>
      ${/* l'intro dit QUAND s'en servir ; la forme à respecter descend sous
           SON champ, là où on la lit au moment de taper. Mélangées, elles
           faisaient une phrase que personne ne finit. */''}
@@ -207,7 +212,7 @@ export function openAppareils(){
        « 5/5 » ne veut rien dire pour qui lit, et le détail vit dans
        « Connexion avancée » pour qui le cherche. */
     if (sy.state === 'wait')
-      return `${ic('clock', 'ic-14')} En attente de ton autre appareil`;
+      return `${ic('clock', 'ic-14')} En attente…`;
     if (sy.state === 'norelay' || sy.state === 'err')
       return `${ic('square-alert', 'ic-14')} Pas de connexion — ton réseau la bloque ?${reessayer}`;
     if (sy.state === 'rtcfail')
@@ -243,7 +248,11 @@ export function openAppareils(){
       `<div class="sy-phrase"><span>${phraseShown ? esc(sy.phrase) : '••••• – •••••'}</span>
          <button class="abtn abtn-sm" id="syEye" aria-label="${phraseShown ? 'Masquer' : 'Afficher'} la phrase"
                  title="${phraseShown ? 'Masquer' : 'Afficher'}">${ic(phraseShown ? 'eye-off' : 'eye', 'ic-14')}</button></div>
-       <p class="hint" style="text-align:center">Sur l’autre appareil : <b>Moi → Mes appareils → Entrer une phrase</b>.</p>
+       ${/* Le chemin en gras (« Moi → Mes appareils → Entrer une phrase »)
+            tenait deux lignes pour décrire l'écran où l'on se trouve
+            DÉJÀ : celui qui lit vient de l'ouvrir. « Au même endroit »
+            dit la même chose et se lit d'un coup. */''}
+       <p class="hint sy-dit">Tape-la au même endroit sur ton autre appareil.</p>
        <div class="sy-status" id="syStatus">${statusHTML()}</div>
        <div class="sy-log">${st ? `
          <ul class="rc-lines">
@@ -279,7 +288,10 @@ export function openAppareils(){
            : ''}
        </div>
        ${relaySettingsHTML(relays, turn)}
-       <button class="linklike" id="syNewPhrase" style="margin-top:12px">Changer la phrase de liaison</button>`;
+       <div class="sy-liens">
+         <button class="linklike" id="syNewPhrase">Changer la phrase</button>
+         <button class="linklike sy-break" id="syBreak">Rompre le lien</button>
+       </div>`;
 
     q('#syEye')?.addEventListener('click', () => { revealPhrase = !phraseShown; renderLinked(); });
     q('#syRetry')?.addEventListener('click', () => startSync(sy.phrase, true));
@@ -307,19 +319,24 @@ export function openAppareils(){
       }));
     wireComp(q, comp, render);
     wireRelays(q, sy.phrase, render);
-    sh.setFoot([
-      btn('Rompre le lien', 'btn-ghost', async () => {
-        const ok = await confirmSheet({
-          title: 'Rompre le lien ?', danger: true, okLabel: 'Rompre', icon: 'switch',
-          msg: 'Cet appareil ne se synchronisera plus. Rien n’est effacé — tes pistes restent ici, les autres appareils gardent les leurs.'
-        });
-        if (!ok) return;
-        if (!await requireCode('Ton code, pour rompre le lien')) return;
-        await breakLink();
-        toast('Lien rompu');
-        render();
-      })
-    ]);
+    /* Le pied reste VIDE. `setFoot` pose son bouton à ~96 % de la
+       hauteur, l'endroit le plus facile à atteindre au pouce : y mettre
+       « Rompre le lien » offrait le meilleur emplacement de la feuille
+       au seul geste destructeur, sur un écran qui n'a par ailleurs rien
+       à valider. Il rejoint « Changer la phrase » en bas du corps —
+       deux réglages du même lien, au même niveau. */
+    sh.setFoot(null);
+    q('#syBreak')?.addEventListener('click', async () => {
+      const ok = await confirmSheet({
+        title: 'Rompre le lien ?', danger: true, okLabel: 'Rompre', icon: 'switch',
+        msg: 'Cet appareil ne se synchronisera plus. Tes pistes restent ici, les autres appareils gardent les leurs.'
+      });
+      if (!ok) return;
+      if (!await requireCode('Ton code, pour rompre le lien')) return;
+      await breakLink();
+      toast('Lien rompu');
+      render();
+    });
   }
 
   async function renderStart(changing){
