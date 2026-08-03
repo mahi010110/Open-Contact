@@ -471,7 +471,13 @@ details.tranche[open]>summary::before{
   .act-in .act-btns{padding-right:0}
 }
 .act-sub .act-when{flex:none}
-.act-sub .mark{padding:1px 6px}      /* la ligne est dense : la marque s'y range */
+/* La marque se range DANS la ligne sans la grandir. Mesuré sur une
+   journée réelle : les lignes marquées faisaient 60 px et les autres 56 —
+   quatre pixels d'écart qui ne disent rien du contenu, seulement qu'un
+   badge est là. Une liste dont le pas change au gré d'un badge se balaie
+   moins bien. `line-height:1` ramène la marque dans la boîte de ligne du
+   texte qu'elle accompagne. */
+.act-sub .mark{padding:1px 6px;line-height:1}
 /* Trois gestes aux conséquences distinctes — écrire, reporter, clore —
    plus « ouvrir la fiche » à leur gauche. Ils se touchaient (0 px
    mesuré) : un pouce posé à la frontière ouvrait la fiche au lieu de
@@ -1007,8 +1013,10 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 .dn-what{display:flex;align-items:center;gap:8px}
 /* « Choisir » déplie la liste, « Affiner » ouvre une feuille : deux
    conséquences différentes, et leurs bords se touchaient (mesuré à 0 px,
-   208 → 208). La liste dépliée prend ses distances de son déclencheur. */
-#dnList>.listbar{margin-top:10px}
+   208 → 208). Huit pixels — le chiffre de la règle, pas un de plus :
+   j'avais posé 10 sans raison, et un écart choisi au hasard est
+   exactement ce que je corrige ailleurs. */
+#dnList>.listbar{margin-top:8px}
 .dn-count{flex:1;font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted)}
 
 .qr-prog,.scan-prog{
