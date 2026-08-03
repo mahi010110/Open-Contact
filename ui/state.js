@@ -72,8 +72,20 @@ export function applySynced(r){
   kvSet(PROFILE_KEY, JSON.stringify(S.profile));
   tellTabs();
 }
-export function logJ(txt, cid){
-  S.journal.push({ t: Date.now(), txt, cid: cid || null });
+/* Une entrée peut porter les identifiants des pistes qu'elle concerne.
+   C'est un champ AJOUTÉ, jamais un renommage : une entrée écrite avant
+   cette version n'en a pas et reste lisible telle quelle. C'est ce qui
+   permet à « Tes échanges » de s'ouvrir sur ce qui a circulé, sans
+   rien effacer de l'historique déjà écrit — les vieilles lignes se
+   lisent, simplement elles ne s'ouvrent pas.
+   Plafond : un gros partage n'a pas à faire enfler la clé de journal.
+   Au-delà, la ligne dira son compte et la feuille dira ce qu'elle a. */
+const JOURNAL_IDS_MAX = 200;
+export function logJ(txt, cid, ids){
+  const e = { t: Date.now(), txt, cid: cid || null };
+  const l = (ids || []).filter(Boolean);
+  if (l.length) e.ids = l.slice(0, JOURNAL_IDS_MAX);
+  S.journal.push(e);
   if (S.journal.length > 200) S.journal = S.journal.slice(-200);
   kvSet(JOURNAL_KEY, JSON.stringify(S.journal));
 }

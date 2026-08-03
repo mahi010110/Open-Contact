@@ -487,7 +487,8 @@ export function mergePreviewInto(sh, obj, opts){
     const snapshot = JSON.stringify(S.companies);
     const stats = mergeIncoming(chosen, S.companies);
     saveData();
-    logJ('Reçu' + (opts.from ? ' de ' + opts.from : (opts.select ? ' (analyse IA triée)' : ' du groupe')) + ' : +' + stats.addedC + ' piste(s), ' + stats.enriched + ' complétée(s)');
+    logJ('Reçu' + (opts.from ? ' de ' + opts.from : (opts.select ? ' (analyse IA triée)' : ' du groupe')) + ' : +' + stats.addedC + ' piste(s), ' + stats.enriched + ' complétée(s)',
+      null, stats.ids);
     sh.close();
     bus.refresh();
     offerUndo(snapshot, stats);

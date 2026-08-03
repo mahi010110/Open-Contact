@@ -1066,9 +1066,26 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 /* une ligne = une phrase + sa date. Le canal, le nombre et la date
    s'empilaient en L sur deux rangs : trois blocs que l'œil devait
    recomposer avant de comprendre. */
+/* La ligne MÈNE quelque part : elle est devenue une cible, donc 44 px
+   au pouce comme toute cible de l'app. Deux lignes voisines ont le
+   droit de se toucher — le trait pointillé dit la frontière, et se
+   tromper d'un cran coûte un tap pour revenir (CLAUDE.md §5). Les
+   anciennes entrées restent des <div> : même dessin, sans le chevron
+   ni le survol, parce qu'elles n'ouvrent rien. */
 .ec-row{
-  display:flex;align-items:baseline;gap:10px;
-  padding:9px 0;border-bottom:1px dashed var(--border-soft);
+  display:flex;align-items:center;gap:10px;width:100%;
+  min-height:var(--ctl);padding:9px 0;
+  border:0;border-bottom:1px dashed var(--border-soft);border-radius:0;
+  background:none;color:var(--text-body);font-family:var(--font-ui);text-align:left;
+}
+button.ec-row{cursor:pointer}
+button.ec-row:hover{background:var(--surface-field)}
+.ec-body .tr-more{margin-top:10px}
+/* le rappel de contexte en tête de la feuille d'un échange : de qui,
+   par quel canal, quel jour — la ligne qu'on vient de taper */
+.ec-quand{
+  margin:0 0 10px;
+  font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted);
 }
 .ec-row>b{flex:1;min-width:0;font-size:var(--text-13);font-weight:var(--weight-semibold);
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

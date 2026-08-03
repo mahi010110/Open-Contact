@@ -1051,6 +1051,33 @@ export async function runSelfTests(){
       eq(abime.length, 2);
       eq(abime.every(x => Number.isFinite(x.t)), true);
       eq(exchangeTotals([{ txt: 'Donné (QR) : 3 piste(s)' }]).donne, 3);
+      /* les identifiants remontent quand l'entrée les porte — c'est eux
+         qui rendent la ligne ouvrable ; sans eux elle reste du texte */
+      eq(fil.every(x => Array.isArray(x.ids)), true);
+      eq(fil.find(x => x.t === 60).ids, []);
+      const avecIds = exchangeLog([
+        { t: 1, txt: 'Donné (QR) : 2 piste(s)', ids: ['pi-a', 'pi-b'] },
+        { t: 2, txt: 'Reçu de Karim : +1 piste(s), 0 complétée(s)', ids: 'pas un tableau' },
+        { t: 3, txt: 'Donné (fichier) : 1 piste(s)', ids: ['pi-c', 42, null, ''] }
+      ]);
+      eq(avecIds.find(x => x.t === 1).ids, ['pi-a', 'pi-b']);
+      eq(avecIds.find(x => x.t === 2).ids, []);          /* champ abîmé : ignoré, pas de casse */
+      eq(avecIds.find(x => x.t === 3).ids, ['pi-c']);    /* seules les chaînes non vides passent */
+    },
+    'fusion : les pistes touchées sont nommées — « Tes échanges » les rouvre': () => {
+      const comps = [normalizeCompany({ id: 'pi-ex', name: 'Alpha', city: 'Lille' })];
+      const st = mergeIncoming([
+        { name: 'Alpha', city: 'Lille', techs: 'Azure' },      /* complète l'existante */
+        { name: 'Beta', city: 'Paris' },                       /* nouvelle */
+        { name: 'Alpha', city: 'Lille' }                       /* ne change rien : divergence nulle */
+      ], comps);
+      eq(st.addedC, 1); eq(st.enriched, 1);
+      /* une seule fois chacune, et rien qui n'ait bougé */
+      eq(st.ids.length, 2);
+      eq(st.ids.includes('pi-ex'), true);
+      eq(st.ids.includes(comps.find(c => c.name === 'Beta').id), true);
+      /* les identifiants désignent bien des pistes du suivi */
+      eq(st.ids.every(id => comps.some(c => c.id === id)), true);
     },
     'aides : signature collée → contact, sans jamais inventer': () => {
       const got = contactFromSignature(

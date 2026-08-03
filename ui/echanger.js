@@ -8,13 +8,15 @@
    compte : jamais le privé. La sync de MES appareils vit dans « Moi ».
    ============================================================ */
 import { esc, localISO } from '../engine/utils.js';
+import { STATUSES } from '../engine/model.js';
 import { exchangeLog, exchangeTotals } from '../engine/assist.js';
 import { S } from './state.js';
-import { $, ic } from './dom.js';
+import { $, ic, openSheet } from './dom.js';
 import { frDate, diffDays } from './dates.js';
 import { openDonner } from './donner.js';
 import { openRecevoir } from './recevoir.js';
 import { openPromo } from './direct.js';
+import { openFiche } from './fiche.js';
 
 /* Deux conceptions, pas une page élastique : au pouce, une colonne —
    les gestes d'abord, le fil dessous ; au poste, les gestes tiennent
@@ -31,8 +33,55 @@ function quand(t){
   return d === 0 ? 'aujourd’hui' : d === -1 ? 'hier' : frDate(iso);
 }
 
+/* ---- ce qu'un échange a fait circuler ----
+   Une ligne qui ne mène nulle part est un reçu, pas un outil :
+   « 3 pistes reçues · Marco » répond « il s'est passé quelque chose »
+   et rien de plus. Les deux questions que se pose vraiment un
+   étudiant — ce que Marco lui a donné, ce qu'il a déjà donné au
+   groupe — n'avaient aucune réponse à l'écran. Elles en ont une ici.
+   Une ligne écrite avant que le journal note les identifiants n'en a
+   pas : elle reste lisible, elle ne s'ouvre simplement pas. */
+function openEchange(x){
+  const pistes = x.ids.map(id => S.companies.find(c => c.id === id)).filter(Boolean);
+  const perdues = x.ids.length - pistes.length;
+  const donne = x.sens === 'donne';
+  const sh = openSheet({ title: donne ? 'Ce que tu as donné' : 'Ce que tu as reçu',
+    icon: donne ? 'share' : 'inbox' });
+  sh.body.innerHTML =
+    `<p class="ec-quand">${esc(donne ? x.canal : (x.qui || 'le groupe'))} · ${quand(x.t)}</p>
+     ${pistes.length ? `<div class="pick-list">${pistes.map(c =>
+        `<button class="pick" data-id="${esc(c.id)}">
+           <div class="pk-m"><b>${esc(c.name)}</b>
+             <span>${esc([STATUSES[c.status] && STATUSES[c.status].label, c.city]
+               .filter(Boolean).join(' · '))}</span></div>
+           ${ic('chevron-right', 'ic-14')}
+         </button>`).join('')}</div>` : ''}
+     ${perdues ? `<p class="hint">${perdues} piste${perdues > 1 ? 's' : ''} ${
+        perdues > 1 ? 'ne sont plus' : 'n’est plus'} dans ton suivi.</p>` : ''}`;
+  sh.body.querySelectorAll('[data-id]').forEach(b =>
+    b.addEventListener('click', () => {
+      const c = S.companies.find(p => p.id === b.dataset.id);
+      sh.close();
+      if (c) openFiche(c);
+    }));
+}
+
+/* le fil montre 8 lignes, comme les autres listes de l'app — et,
+   comme elles, il se déplie d'un tap. Il ne le faisait pas : le
+   compte de l'en-tête annonçait douze échanges au-dessus de huit
+   lignes, sans rien pour aller voir les quatre autres. */
+const FIL_CAP = 8;
+let filDeplie = false;
+/* les lignes réellement à l'écran — le rendu et les écouteurs lisent
+   la MÊME liste, sinon un tap ouvre l'échange d'à côté */
+function filVisible(){
+  const tous = exchangeLog(S.journal, 0);
+  return filDeplie ? tous : tous.slice(0, FIL_CAP);
+}
+
 function filHTML(){
-  const fil = exchangeLog(S.journal, 8);
+  const fil = filVisible();
+  const reste = exchangeLog(S.journal, 0).length - fil.length;
   const tot = exchangeTotals(S.journal);
   /* PAS DE CADRE. Le journal n'est pas un objet à encadrer, c'est une
      tranche — la même grammaire que « En retard » ou « Bientôt » sur
@@ -57,16 +106,23 @@ function filHTML(){
      deux gestes juste à côté, sans les redire à l'impératif. */
   const corps = !fil.length
     ? `<p class="ec-rien">Les pistes que tu donnes et celles que tu reçois s’inscrivent ici.</p>`
-    : fil.map(x => {
+    : fil.map((x, i) => {
         const quoi = x.n + ' piste' + (x.n > 1 ? 's' : '');
         const phrase = x.sens === 'donne'
           ? `${quoi} donnée${x.n > 1 ? 's' : ''} · ${x.canal}`
           : `${quoi} reçue${x.n > 1 ? 's' : ''} · ${x.qui || 'le groupe'}`;
-        return `<div class="ec-row">
-                  <b>${ic(x.sens === 'donne' ? 'share' : 'inbox', 'ic-14')} ${esc(phrase)}</b>
-                  <span class="ec-when">${quand(x.t)}</span>
-                </div>`;
-      }).join('');
+        const dedans =
+          `<b>${ic(x.sens === 'donne' ? 'share' : 'inbox', 'ic-14')} ${esc(phrase)}</b>
+           <span class="ec-when">${quand(x.t)}</span>`;
+        /* Le chevron ne se pose que sur les lignes qui MÈNENT quelque
+           part : les anciennes entrées, qui n'ont pas gardé leurs
+           identifiants, restent du texte — promettre une ouverture
+           qui n'arrive pas coûte plus qu'un chevron manquant. */
+        return x.ids.length
+          ? `<button class="ec-row ec-open" data-fil="${i}">${dedans}${ic('chevron-right', 'ic-14')}</button>`
+          : `<div class="ec-row">${dedans}</div>`;
+      }).join('') +
+      (reste ? `<button class="linklike tr-more" id="ecMore">Voir les ${reste} autres</button>` : '');
   return `<section class="tranche ec-fil${fil.length ? '' : ' ec-vide'}">
             ${head}<div class="ec-body">${corps}</div>
           </section>`;
@@ -109,4 +165,8 @@ export function renderEchanger(){
   root.querySelector('#ecGive').addEventListener('click', openDonner);
   root.querySelector('#ecRecv').addEventListener('click', openRecevoir);
   root.querySelector('#ecPromo').addEventListener('click', openPromo);
+  const fil = filVisible();
+  root.querySelectorAll('[data-fil]').forEach(b =>
+    b.addEventListener('click', () => { const x = fil[+b.dataset.fil]; if (x) openEchange(x); }));
+  root.querySelector('#ecMore')?.addEventListener('click', () => { filDeplie = true; renderEchanger(); });
 }

@@ -77,12 +77,16 @@ export function exchangeLog(journal, limit = 8){
        afficherait « NaN-NaN-NaN » au lieu d'une date. L'échange, lui,
        reste compté : ce qui a circulé a circulé. */
     const t = Number.isFinite(+(e && e.t)) ? +e.t : 0;
+    /* Les pistes de l'échange, quand l'entrée les porte. Un journal
+       écrit avant que ce champ existe — ou revenu d'une sauvegarde —
+       n'en a pas : la ligne reste lisible, elle ne s'ouvre juste pas. */
+    const ids = Array.isArray(e && e.ids) ? e.ids.filter(x => typeof x === 'string' && x) : [];
     let m = RE_DONNE.exec(txt);
-    if (m){ out.push({ t, sens: 'donne', canal: m[1], n: +m[2], qui: '' }); continue; }
+    if (m){ out.push({ t, sens: 'donne', canal: m[1], n: +m[2], qui: '', ids }); continue; }
     m = RE_RECU.exec(txt);
     if (m){
       const qui = m[1] ? '' : m[2];                       /* « du groupe » = anonyme */
-      out.push({ t, sens: 'recu', canal: '', n: +m[3],
+      out.push({ t, sens: 'recu', canal: '', n: +m[3], ids,
         qui: qui === 'la promo' ? '' : qui });            /* ancienne forme, même sens */
     }
   }

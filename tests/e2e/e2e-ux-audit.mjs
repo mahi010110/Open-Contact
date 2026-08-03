@@ -182,6 +182,62 @@ await page.evaluate(async avant => {
 }, DEUX);
 console.log('recherche : accents pliés, deux mots, le pourquoi montré, le bac qui suit, « / » et Échap ✓');
 
+/* F8 : « Tes échanges » menait nulle part — « 3 pistes reçues · Marco »
+   disait qu'il s'était passé quelque chose, et rien d'autre. Une ligne
+   qui a gardé les identifiants de ses pistes s'ouvre dessus ; une
+   entrée d'avant ce champ n'en a pas, et NE promet rien : un chevron
+   qui n'ouvre pas coûte plus cher qu'un chevron absent. */
+await page.evaluate(async () => {
+  const st = await import('./engine/storage.js');
+  const h = 3600000, now = Date.now();
+  const j = [{ t: now - 40 * h, txt: 'Donné (QR) : 3 piste(s)' }];   /* ancienne : sans ids */
+  for (let i = 0; i < 8; i++)
+    j.push({ t: now - (30 - i) * h, txt: 'Donné (fichier) : 1 piste(s)', ids: ['avec-mail'] });
+  j.push({ t: now - h, txt: 'Reçu de Marco : +2 piste(s), 0 complétée(s)',
+    ids: ['sans-mail', 'disparue-depuis'] });
+  await st.kvSet(st.JOURNAL_KEY, JSON.stringify(j));
+});
+await page.goto(base + '/#/echanger');
+await page.reload({ waitUntil: 'load' });
+await page.waitForSelector('.ec-row');
+const fil = await page.evaluate(() => ({
+  lignes: document.querySelectorAll('.ec-row').length,
+  ouvrables: document.querySelectorAll('button.ec-row').length,
+  badge: document.querySelector('.ec-fil .tr-n')?.textContent || '',
+  more: document.querySelector('#ecMore')?.textContent || '',
+  hauteur: Math.round(document.querySelector('.ec-row').getBoundingClientRect().height)
+}));
+if (fil.lignes !== 8 || !/Voir les 2 autres/.test(fil.more))
+  fail('le fil ne se plafonne pas à 8 avec sa suite : ' + JSON.stringify(fil));
+if (fil.badge !== '10') fail('le compte de l’en-tête ne dit pas le total : ' + fil.badge);
+if (fil.hauteur < 44) fail('une ligne qui s’ouvre doit faire 44 px au pouce : ' + fil.hauteur);
+await page.click('#ecMore');
+await page.waitForFunction(() => document.querySelectorAll('.ec-row').length === 10);
+const apres = await page.evaluate(() => ({
+  ouvrables: document.querySelectorAll('button.ec-row').length,
+  muettes: [...document.querySelectorAll('div.ec-row')].map(n => n.textContent.replace(/\s+/g, ' ').trim())
+}));
+if (apres.ouvrables !== 9 || apres.muettes.length !== 1)
+  fail('une entrée sans identifiants ne doit pas promettre une ouverture : ' + JSON.stringify(apres));
+await page.evaluate(() =>
+  [...document.querySelectorAll('button.ec-row')].find(n => /Marco/.test(n.textContent)).click());
+await page.waitForSelector('.modal-b .pick-list');
+const feuille = await page.evaluate(() => ({
+  titre: document.querySelector('.mh-t')?.textContent || '',
+  pistes: [...document.querySelectorAll('.modal-b .pick b')].map(n => n.textContent),
+  note: document.querySelector('.modal-b .hint')?.textContent || ''
+}));
+if (!/reçu/i.test(feuille.titre) || feuille.pistes.join() !== 'Atelier local')
+  fail('la feuille d’un échange ne montre pas ce qui a circulé : ' + JSON.stringify(feuille));
+if (!/plus dans ton suivi/.test(feuille.note))
+  fail('une piste supprimée depuis doit être dite, pas escamotée : ' + feuille.note);
+await page.click('.modal-b .pick');
+await attendre(page, async () => /Atelier local/.test(document.querySelector('.mh-t')?.textContent || ''),
+  { message: 'taper une piste de l’échange ouvre sa fiche' });
+await closeSheet();
+await page.evaluate(async () => (await import('./engine/storage.js')).kvSet('oc_journal_v1', '[]'));
+await page.goto(base + '/#/pistes');
+console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pistes, une vieille entrée ne promet rien ✓');
 
 /* Effet miroir F1 : sans messagerie, le contrôle de campagne explique le
    prérequis et ne laisse pas Valider promettre une action impossible. */
