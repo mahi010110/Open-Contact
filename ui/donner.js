@@ -164,7 +164,15 @@ export function openDonner(){
       syncCount();
     };
     q('#dnPick').addEventListener('click', () => { choosing = !choosing; renderList(); });
-    const need = fn => () => { if (!chosen().length){ toast('Coche au moins une piste.'); return; } fn(); };
+    /* Rien de coché : le canal ne peut pas partir, mais gronder ne fait
+       pas avancer. « Coche au moins une piste » laissait l'écran EXACTEMENT
+       où il était, avec la liste encore repliée — la chose à faire cachée
+       derrière un deuxième tap qu'il fallait deviner. Le bouton ouvre donc
+       le choix : un tap, et on est là où il faut. */
+    const need = fn => () => {
+      if (chosen().length){ fn(); return; }
+      if (!choosing){ choosing = true; renderList(); }
+    };
     q('#dnQR').addEventListener('click', need(stepQR));
     q('#dnFile').addEventListener('click', need(stepFile));
     sh.setFoot(null);
