@@ -82,10 +82,12 @@ export function renderEchanger(){
        <span class="md-m"><b>${ic('radio', 'ic-14')} Partage en groupe</b></span>
        ${ic('chevron-right', 'ic-14')}
      </button>`;
-  /* le rappel de confidentialité appartient aux GESTES — il parle de ce
-     qui part. Au poste il reste donc dans leur colonne ; centré sur
-     1060 px il se serait collé au fil, qui ne fait rien partir. */
-  const priv = `<p class="hint ec-foot">${ic('lock', 'ic-14')} Données locales — jamais le privé.</p>`;
+  /* Pas de rappel de confidentialité ICI. Il répétait, en pied d'écran
+     et en permanence, ce que « Donner » dit déjà au moment du geste —
+     « Seules les fiches partent — jamais ton suivi privé » — c'est-à-dire
+     là où la question se pose vraiment. Deux fois la même phrase, dont
+     une qu'on lit cent fois sans jamais rien partager. */
+  const priv = '';
   root.innerHTML =
     `<div class="page-inner${wide ? ' page-wide' : ''}">
        <div class="td-head"><h2>Échanger</h2></div>

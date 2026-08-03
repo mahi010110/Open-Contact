@@ -363,6 +363,12 @@ export function renderMoi(){
            <h2>Réglages</h2>
          </div>
          <fieldset class="fset fset-plain">${reglagesRowsHTML()}</fieldset>
+         ${/* la version quitte l'écran « Moi » — elle n'y aidait en rien et
+              pesait une ligne — mais elle ne disparaît pas : la barre de
+              statut qui la porte au poste n'existe pas au pouce, et c'est
+              la première chose qu'on demande quand quelque chose cloche.
+              Elle se range donc où vit l'information technique. */''}
+         <div class="moi-ver">OpenContact ${APP_VERSION}</div>
        </div>`;
     root.querySelector('#moiBack').addEventListener('click', closeReglages);
     bindEdgeBack(root);
@@ -474,7 +480,6 @@ export function renderMoi(){
               <span class="rg-s">${verrouLabel()}</span>
               ${ic('chevron-right', 'ic-14')}
             </button>`}
-       <div class="moi-ver">OpenContact ${APP_VERSION}</div>
      </div>`;
 
   root.querySelector('#moiProfil').addEventListener('click', () => openProfil());

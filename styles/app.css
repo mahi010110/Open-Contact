@@ -955,7 +955,7 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 /* ---- Échanger : deux verbes héros + pied discret ---- */
 .hero2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
 .hero2 .hero{min-height:76px;flex-direction:column;gap:7px;font-size:var(--text-14)}
-.ec-foot{text-align:center;margin-top:16px}
+
 /* Le fil des échanges : ce que l'écran a enfin à montrer. C'est un
    PANNEAU — un cadre qui tient sa région, où les lignes se remplissent
    par le haut et dont la place restante lui appartient. Sans cadre, un
@@ -1105,10 +1105,16 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   font:inherit;font-size:var(--text-14);color:var(--text-body);text-align:left;
 }
 .pick b{font-weight:var(--weight-semibold);flex:none}
-.pick span{
+/* `>` et pas un espace : la donnée de droite est un ENFANT DIRECT du
+   bouton. Sans le chevron, la règle attrapait aussi la ligne d'état
+   nichée dans `.pk-m` (« À contacter · ✉ Chloé »), que le `margin-left:auto`
+   jetait à droite — les cartes de Prospecter se désalignaient les unes
+   par rapport aux autres selon qu'elles portaient un contact ou non. */
+.pick>span{
   font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted);
   margin-left:auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
+.pick .pk-m span{font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted)}
 .pick:disabled{opacity:.62;cursor:not-allowed;box-shadow:none}
 .pick:active{box-shadow:var(--bevel-down);transform:translate(1px,1px)}
 .pick-close{border-left:3px solid var(--c)}
