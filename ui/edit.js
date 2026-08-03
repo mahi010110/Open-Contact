@@ -115,7 +115,11 @@ export function bindSharedFields(root){
 export function openEditPiste(c, onDone){
   const sh = openSheet({ title: 'Modifier — ' + c.name, icon: 'pencil', className: 'modal-fiche', focus: '#edName' });
   sh.body.innerHTML =
-    `<p class="hint" style="margin:0 0 14px"><span class="tag-share">partagé</span> Ces infos circulent dans les partages — ton suivi jamais.</p>
+    /* La pastille suffit. « Ces infos circulent dans les partages — ton
+       suivi jamais » expliquait la pastille : c'est le motif documenté
+       (`tag-share`) qui porte la distinction, la phrase ne faisait que
+       la traduire, sur un écran où l'on vient taper, pas lire. */
+    `<div style="margin:0 0 14px"><span class="tag-share">partagé</span></div>
      ${sharedFieldsHTML(c)}`;
   const champs = bindSharedFields(sh.body);
 

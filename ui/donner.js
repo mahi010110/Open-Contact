@@ -77,9 +77,13 @@ export function openDonner(){
     /* ce qui part AVANT comment ça part : on ne choisit pas un canal sans
        savoir ce qu'on met dedans. La liste dépliée pousse les deux choix
        vers le bas — c'est l'ordre de lecture, et le pouce les trouve mieux. */
+    /* Pas de rappel de confidentialité en tête. Il se lisait à chaque
+       ouverture, disait une règle du produit et non un geste à faire, et
+       repoussait vers le bas la seule chose qui se décide ici : ce qui
+       part. Ce que l'app ne partage jamais, elle ne le partage jamais —
+       l'écrire cent fois ne le rend pas plus vrai. */
     sh.body.innerHTML =
-      `<p class="hint" style="margin:0 0 10px">${ic('lock', 'ic-14')} Seules les fiches partent — jamais ton suivi privé.</p>
-       <div class="dn-src">
+      `<div class="dn-src">
          <div class="dn-what">
            <span class="dn-count" id="dnCount"></span>
            <button class="lb-act lb-fold" id="dnPick" aria-expanded="false">
