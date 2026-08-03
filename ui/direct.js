@@ -177,7 +177,6 @@ export function openAppareils(){
   /* N11 : la phrase donne accès à tout le privé — masquée par défaut
      dès qu'un appareil est relié, révélée d'un tap ; visible tant
      qu'on est en train de relier (il faut pouvoir la recopier) */
-  let revealPhrase = null;
   const sh = openSheet({
     title: 'Mes appareils', icon: 'switch', clearToast: true,
     onClose: () => { if (onSync){ document.removeEventListener('oc:sync', onSync); onSync = null; } }
@@ -207,7 +206,7 @@ export function openAppareils(){
        « 5/5 » ne veut rien dire pour qui lit, et le détail vit dans
        « Connexion avancée » pour qui le cherche. */
     if (sy.state === 'wait')
-      return `${ic('clock', 'ic-14')} En attente de ton autre appareil`;
+      return `${ic('clock', 'ic-14')} En attente…`;
     if (sy.state === 'norelay' || sy.state === 'err')
       return `${ic('square-alert', 'ic-14')} Pas de connexion — ton réseau la bloque ?${reessayer}`;
     if (sy.state === 'rtcfail')
@@ -237,13 +236,15 @@ export function openAppareils(){
     const comp = await loadCompanion();
     const relays = await relayList();
     const turn = await turnList();
-    const phraseShown = revealPhrase === null ? !devs.length : revealPhrase;
     sh.setTitle('Mes appareils');
+    /* L'œil est parti — et avec lui le faux centrage. Un bouton de 44 px
+       posé à côté d'une boîte « centrée » décale le centre optique de
+       22 px : la phrase paraissait de travers sans qu'on voie pourquoi.
+       Elle se lit maintenant comme le code du QR de rendez-vous, qui
+       n'a jamais eu de bouton à côté : seule, au milieu. */
     sh.body.innerHTML =
-      `<div class="sy-phrase"><span>${phraseShown ? esc(sy.phrase) : '••••• – •••••'}</span>
-         <button class="abtn abtn-sm" id="syEye" aria-label="${phraseShown ? 'Masquer' : 'Afficher'} la phrase"
-                 title="${phraseShown ? 'Masquer' : 'Afficher'}">${ic(phraseShown ? 'eye-off' : 'eye', 'ic-14')}</button></div>
-       <p class="hint" style="text-align:center">Sur l’autre appareil : <b>Moi → Mes appareils → Entrer une phrase</b>.</p>
+      `<div class="sy-phrase"><span>${esc(sy.phrase)}</span></div>
+       <p class="hint" style="text-align:center">Tape-la sur ton autre appareil.</p>
        <div class="sy-status" id="syStatus">${statusHTML()}</div>
        <div class="sy-log">${st ? `
          <ul class="rc-lines">
@@ -281,7 +282,6 @@ export function openAppareils(){
        ${relaySettingsHTML(relays, turn)}
        <button class="linklike" id="syNewPhrase" style="margin-top:12px">Changer la phrase de liaison</button>`;
 
-    q('#syEye')?.addEventListener('click', () => { revealPhrase = !phraseShown; renderLinked(); });
     q('#syRetry')?.addEventListener('click', () => startSync(sy.phrase, true));
     q('#syKeepProf')?.addEventListener('click', keepMyProfile);
     q('#syNewPhrase')?.addEventListener('click', async () => {

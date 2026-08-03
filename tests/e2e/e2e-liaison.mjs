@@ -282,7 +282,7 @@ await attendre(E, async () => {
    dit ce qui était affiché à la place. */
 let statutVu = false;
 try {
-  await attendre(E, () => /En attente de ton autre appareil/.test(document.querySelector('#syStatus')?.textContent || ''),
+  await attendre(E, () => /En attente/.test(document.querySelector('#syStatus')?.textContent || ''),
     { timeout: 10000 });
   statutVu = true;
 } catch (e) {}

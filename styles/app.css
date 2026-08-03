@@ -974,6 +974,8 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 }
 .na-company::before{content:'';width:8px;height:8px;flex:none;border:1px solid var(--border-strong);background:var(--teal)}
 /* ---- direct (P2P) ---- */
+/* la phrase est SEULE au milieu : plus de bouton à côté pour décaler
+   le centre. Même dessin que le code sous le QR de rendez-vous. */
 .sy-phrase{display:flex;justify-content:center;margin:6px 0 10px}
 .sy-phrase span{
   font-family:var(--font-mono);font-size:20px;font-weight:var(--weight-bold);
