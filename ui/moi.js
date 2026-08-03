@@ -205,10 +205,10 @@ async function renderDocs(){
 function syncLabel(){
   const sy = getSync();
   if (!sy.phrase) return 'non relié';
-  if (sy.state === 'on') return sy.peers + ' en face';
+  if (sy.state === 'on') return sy.peers + ' relié' + (sy.peers > 1 ? 's' : '');
   if (sy.state === 'link') return 'premier échange…';
-  if (sy.state === 'err' || sy.state === 'norelay') return 'réseau bloqué ?';
-  if (sy.state === 'rtcfail') return 'liaison en échec';
+  if (sy.state === 'err' || sy.state === 'norelay') return 'pas de connexion';
+  if (sy.state === 'rtcfail') return 'rien ne passe';
   return 'en attente';
 }
 /* « N pistes depuis ta dernière copie » — l'état qui pousse au geste (#4) ;

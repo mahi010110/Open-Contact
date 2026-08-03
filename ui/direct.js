@@ -189,20 +189,24 @@ export function openAppareils(){
   const statusHTML = () => {
     const sy = getSync();
     const r = sy.relays || {};
+    /* Sept états, un seul vocabulaire. « Relais », « liaison directe »,
+       « serveur TURN » ne veulent rien dire pour un étudiant : ces mots
+       restent dans « Connexion avancée », là où ils sont un RÉGLAGE.
+       Ici on dit ce qui se passe et ce qu'il reste à faire — et deux
+       états qui signifient la même chose pour l'utilisateur (aucun
+       relais joignable / pas de connexion) le disent pareil. */
+    const reessayer = ` <button class="btn btn-sm" id="syRetry">Réessayer</button>`;
     if (sy.state === 'on')
-      return `${ic('radio', 'ic-14')} <b>${sy.peers}</b> appareil${sy.peers > 1 ? 's' : ''} en face — à jour en continu`;
+      return `${ic('radio', 'ic-14')} <b>${sy.peers}</b> appareil${sy.peers > 1 ? 's' : ''} relié${sy.peers > 1 ? 's' : ''} — à jour`;
     if (sy.state === 'link')
-      return `${ic('radio', 'ic-14')} <b>${sy.peers}</b> appareil${sy.peers > 1 ? 's' : ''} en face — premier échange…`;
+      return `${ic('radio', 'ic-14')} <b>${sy.peers}</b> appareil${sy.peers > 1 ? 's' : ''} relié${sy.peers > 1 ? 's' : ''} — premier échange…`;
     if (sy.state === 'wait')
-      return `${ic('clock', 'ic-14')} Relais joints (${r.open}/${r.total}) — personne en face pour l’instant`;
-    if (sy.state === 'norelay')
-      return `${ic('square-alert', 'ic-14')} Aucun relais joignable — réseau bloqué ?
-        <button class="btn btn-sm" id="syRetry">Réessayer</button>`;
+      return `${ic('clock', 'ic-14')} Prêt (${r.open}/${r.total}) — ouvre OpenContact sur ton autre appareil`;
+    if (sy.state === 'norelay' || sy.state === 'err')
+      return `${ic('square-alert', 'ic-14')} Pas de connexion — ton réseau la bloque ?${reessayer}`;
     if (sy.state === 'rtcfail')
-      return `${ic('square-alert', 'ic-14')} Un appareil est en vue, mais la liaison directe échoue — un serveur TURN (Connexion avancée) peut aider`;
-    if (sy.state === 'err')
-      return `${ic('square-alert', 'ic-14')} Pas de connexion — réseau bloqué ? <button class="btn btn-sm" id="syRetry">Réessayer</button>`;
-    return `${ic('clock', 'ic-14')} Connexion aux relais…`;
+      return `${ic('square-alert', 'ic-14')} Ton autre appareil est là, mais rien ne passe — essaie Connexion avancée`;
+    return `${ic('clock', 'ic-14')} Connexion…`;
   };
 
   /* le rôle d'un appareil dans l'anneau — '' si pas d'anneau */
@@ -302,7 +306,7 @@ export function openAppareils(){
         if (!ok) return;
         if (!await requireCode('Ton code, pour rompre le lien')) return;
         await breakLink();
-        toast('Lien rompu — cet appareil vit sa vie.');
+        toast('Lien rompu');
         render();
       })
     ]);
@@ -448,13 +452,13 @@ export function openPromo(){
     const stageStatus = stage => {
       if (peers) return;   /* refreshStatus a la main dès qu'on est en face */
       if (stage === 'norelay')
-        setStatus(`${ic('square-alert', 'ic-14')} Aucun relais joignable — réseau bloqué ? Le QR et le fichier .oc marchent toujours.`);
+        setStatus(`${ic('square-alert', 'ic-14')} Pas de connexion — le QR et le fichier .oc marchent toujours.`);
       else if (stage === 'rtcfail')
-        setStatus(`${ic('square-alert', 'ic-14')} Quelqu’un est là, mais la liaison directe échoue — réseaux trop fermés ?`);
+        setStatus(`${ic('square-alert', 'ic-14')} Quelqu’un est là, mais rien ne passe — prends le QR ou le fichier`);
       else if (stage === 'wait')
-        setStatus(`${ic('clock', 'ic-14')} Relais joints — personne d’autre pour l’instant…`);
+        setStatus(`${ic('clock', 'ic-14')} Prêt — personne d’autre pour l’instant…`);
       else
-        setStatus(`${ic('clock', 'ic-14')} Connexion aux relais…`);
+        setStatus(`${ic('clock', 'ic-14')} Connexion…`);
     };
     watch = watchLiaison(() => peers, stageStatus);
     try {

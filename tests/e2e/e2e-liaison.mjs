@@ -94,7 +94,9 @@ for (const p of [A, B])
     return sy.peers >= 1 && sy.state === 'on' && sy.exchanged && sy.relays.open >= 1;
   }, { timeout: 40000, message: 'liaison sync prouvée' });
 const stA = (await A.textContent('#syStatus')).trim();
-if (!/à jour en continu/.test(stA)) fail('statut bureau : ' + stA);
+/* « relié — à jour » : le même mot que la ligne des réglages et que la
+   feuille, sans « en continu » qui ne disait rien de plus que « à jour ». */
+if (!/appareil relié — à jour/.test(stA)) fail('statut bureau : ' + stA);
 
 /* PANNE VÉCUE : la reprise différée du démarrage (initSyncLive, ~2 s
    après le lancement) tombait sur une salle DÉJÀ rejointe, la quittait
@@ -251,13 +253,16 @@ await ouvrirReglages(E);
 await E.click('#moiSync');
 await E.waitForSelector('#syNew');
 await E.click('#syNew');
-await attendre(E, () => /Aucun relais joignable/.test(document.querySelector('#syStatus')?.textContent || ''),
-  { timeout: 30000, message: 'panne relais dite (sync)' });
+/* le mot « relais » a quitté le statut : il ne veut rien dire pour un
+   étudiant et vit désormais dans « Connexion avancée », là où c'est un
+   réglage. L'écran dit l'état et ce qu'on peut faire. */
+await attendre(E, () => /Pas de connexion/.test(document.querySelector('#syStatus')?.textContent || ''),
+  { timeout: 30000, message: 'panne de connexion dite (sync)' });
 const syE = await E.evaluate(async () => (await import('./ui/synclive.js')).getSync());
 if (syE.state !== 'norelay') fail('état attendu norelay, obtenu ' + syE.state);
 if (!await E.$('#syRetry')) fail('bouton Réessayer absent en panne de relais');
 await E.screenshot({ path: SHOTS + '/liaison-norelay-mobile.png' });
-console.log('sync : « Aucun relais joignable » affiché, Réessayer présent ✓');
+console.log('sync : « Pas de connexion » affiché sans jargon, Réessayer présent ✓');
 
 /* « Réessayer » n'est pas un bouton décoratif : le relais renaît sur le
    même port, un tap, et la liaison se rétablit réellement */
@@ -277,12 +282,12 @@ await attendre(E, async () => {
    dit ce qui était affiché à la place. */
 let statutVu = false;
 try {
-  await attendre(E, () => /Relais joints/.test(document.querySelector('#syStatus')?.textContent || ''),
+  await attendre(E, () => /Prêt/.test(document.querySelector('#syStatus')?.textContent || ''),
     { timeout: 10000 });
   statutVu = true;
 } catch (e) {}
 if (!statutVu) fail('statut après Réessayer : « ' + (await E.textContent('#syStatus')).trim() + ' »');
-console.log('Réessayer : relais revenu → « Relais joints », prouvé ✓');
+console.log('Réessayer : relais revenu → « Prêt », prouvé ✓');
 relaisRevenu.close();
 
 await E.evaluate(async () => {
@@ -296,9 +301,9 @@ await E.click('#ecPromo');
 await E.waitForSelector('#prPass');
 await E.fill('#prPass', 'promo-morte');
 await E.click('.modal-f .btn-primary');
-await attendre(E, () => /Aucun relais joignable/.test(document.querySelector('#prStatus')?.textContent || ''),
-  { timeout: 30000, message: 'panne relais dite (groupe)' });
-console.log('groupe : « Aucun relais joignable » affiché, replis QR/fichier rappelés ✓');
+await attendre(E, () => /Pas de connexion/.test(document.querySelector('#prStatus')?.textContent || ''),
+  { timeout: 30000, message: 'panne de connexion dite (groupe)' });
+console.log('groupe : « Pas de connexion » affiché, replis QR/fichier rappelés ✓');
 await E.screenshot({ path: SHOTS + '/liaison-norelay-groupe-mobile.png' });
 await E.close();
 

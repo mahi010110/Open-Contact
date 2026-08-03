@@ -146,13 +146,13 @@ export function openRecevoir(){
       const el = q('#rcRdvSt');
       if (!el) return;
       if (stage === 'norelay')
-        el.innerHTML = `${ic('square-alert', 'ic-14')} Aucun relais joignable — demande un QR hors ligne ou un fichier.`;
+        el.innerHTML = `${ic('square-alert', 'ic-14')} Pas de connexion — demande un QR hors ligne ou un fichier.`;
       else if (stage === 'rtcfail')
-        el.innerHTML = `${ic('square-alert', 'ic-14')} L’autre appareil est en vue, mais la liaison échoue — passe par le QR hors ligne ou le fichier.`;
+        el.innerHTML = `${ic('square-alert', 'ic-14')} L’autre appareil est là, mais rien ne passe — prends le QR hors ligne ou le fichier.`;
       else if (stage === 'wait')
         el.innerHTML = `${ic('clock', 'ic-14')} En attente de l’autre appareil…`;
       else
-        el.innerHTML = `${ic('clock', 'ic-14')} Connexion aux relais…`;
+        el.innerHTML = `${ic('clock', 'ic-14')} Connexion…`;
     });
     try {
       r = await openRoom('give', code, { onJoinError: () => w.fail() });
@@ -166,7 +166,7 @@ export function openRecevoir(){
     if (my !== gen){ w.stop(); await leaveRoom(r); return; }
     room = r;
     rdvWatch = w;
-    sh.body.innerHTML = `<div class="qr-prog" id="rcRdvSt">${ic('clock', 'ic-14')} Connexion aux relais…</div>`;
+    sh.body.innerHTML = `<div class="qr-prog" id="rcRdvSt">${ic('clock', 'ic-14')} Connexion…</div>`;
     const give = r.makeAction('give');
     let got = false;
     give.onMessage = obj => {

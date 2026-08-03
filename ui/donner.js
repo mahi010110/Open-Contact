@@ -250,7 +250,7 @@ export function openDonner(){
       const el = q('#dnRdvSt');
       if (!el) return;
       if (stage === 'norelay')
-        el.innerHTML = `${ic('square-alert', 'ic-14')} Aucun relais joignable`;
+        el.innerHTML = `${ic('square-alert', 'ic-14')} Pas de connexion`;
       else if (stage === 'rtcfail')
         el.innerHTML = `${ic('square-alert', 'ic-14')} Liaison impossible`;
       else if (stage === 'wait')
