@@ -988,6 +988,9 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 .pr-send{width:100%;margin-top:12px}
 /* ---- Échanger : deux verbes héros + pied discret ---- */
 .hero2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+/* rien à donner : « Recevoir » reste seul et prend toute la largeur —
+   l'indisponible est absent, pas un demi-rang vide à côté (loi #6) */
+.hero2.hero1{grid-template-columns:1fr}
 .hero2 .hero{min-height:76px;flex-direction:column;gap:7px;font-size:var(--text-14)}
 
 /* Le fil des échanges : ce que l'écran a enfin à montrer. C'est un

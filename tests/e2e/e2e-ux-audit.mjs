@@ -121,6 +121,46 @@ if (sizes.small < 44 || sizes.iconW < 44 || sizes.iconH < 44)
   fail('cibles tactiles trop petites : ' + JSON.stringify(sizes));
 console.log('orphelin lisible + cibles tactiles 44 px ✓');
 
+/* F1 ter : « Donner » sans rien à donner était une action MORTE — un
+   toast de trois secondes, et l'écran ne bougeait pas. Loi #6 : ce qui
+   ne peut pas marcher n'est pas là, et « Recevoir » (le seul des deux
+   qui marche à zéro piste) prend l'accent. */
+/* les deux pistes du décor, réécrites telles quelles après le contrôle :
+   plus sûr que relire la clé, et le décor reste lisible sur place */
+const DECOR = JSON.stringify([
+  { id: 'sans-mail', name: 'Atelier local', status: 'todo',
+    contacts: [{ id: 'ct-sans', name: 'Camille', role: 'RH' }], updatedAt: 2 },
+  { id: 'avec-mail', name: 'Entreprise test', status: 'todo',
+    contacts: [{ id: 'ct-avec', name: 'Nadia', role: 'RH', email: 'nadia@exemple.fr' }], updatedAt: 1 }
+]);
+await page.evaluate(async () => {
+  const st = await import('./engine/storage.js');
+  await st.kvInit();
+  await st.kvSet(st.DATA_KEY, '[]');
+});
+await page.reload({ waitUntil: 'load' });
+await page.goto(base + '/#/echanger');
+await page.waitForSelector('.hero2');
+const ech0 = await page.evaluate(() => ({
+  donner: !!document.querySelector('#ecGive'),
+  recevoirPrim: !!document.querySelector('#ecRecv')?.classList.contains('btn-primary')
+}));
+if (ech0.donner) fail('« Donner » présent alors qu’il n’y a rien à donner (action morte)');
+if (!ech0.recevoirPrim) fail('« Recevoir » ne prend pas l’accent quand « Donner » disparaît');
+console.log('Échanger à zéro piste : « Donner » absent, « Recevoir » devient le bouton ✓');
+/* les deux pistes reviennent : la suite du scénario compte dessus */
+await page.evaluate(async d => {
+  const st = await import('./engine/storage.js');
+  await st.kvInit();
+  await st.kvSet(st.DATA_KEY, d);
+}, DECOR);
+/* un `goto` qui ne change que le fragment ne RECHARGE pas le document :
+   l'état en mémoire garderait ses zéro piste. On recharge, puis on
+   revient sur l'écran d'où l'on vient. */
+await page.reload({ waitUntil: 'load' });
+await page.evaluate(() => { location.hash = '#/pistes'; });
+await attendre(page, async () => (await import('./ui/state.js')).S.companies.length === 2);
+
 /* F7 : la recherche. Trois pannes silencieuses — elles rendaient ZÉRO
    résultat sans jamais dire pourquoi, ce qui se lit comme « je n'ai
    pas cette piste » : le mot tapé sans accent, les deux mots venus de

@@ -10,7 +10,7 @@
 import { esc, localISO } from '../engine/utils.js';
 import { STATUSES } from '../engine/model.js';
 import { exchangeLog, exchangeTotals } from '../engine/assist.js';
-import { S } from './state.js';
+import { S, isClosed } from './state.js';
 import { $, ic, openSheet } from './dom.js';
 import { frDate, diffDays } from './dates.js';
 import { openDonner } from './donner.js';
@@ -131,10 +131,19 @@ function filHTML(){
 export function renderEchanger(){
   const root = $('#view-echanger');
   const wide = mqWide.matches;
+  /* « Donner » sans rien à donner était une action MORTE : on tapait le
+     bouton principal de l'écran, un toast passait trois secondes, et
+     rien ne se produisait. C'est la loi #6, déjà appliquée au composeur
+     (sans adresse, « Envoyer » n'existe pas et « Copier » devient LE
+     bouton) : l'indisponible est ABSENT, jamais grisé, jamais mort.
+     Ici « Recevoir » prend donc la place — c'est le seul des deux qui
+     marche quand on n'a encore rien, et c'est justement par là qu'on
+     commence quand un camarade nous partage sa liste. */
+  const aDonner = S.companies.some(c => !isClosed(c) && !c.demo);
   const gestes =
-    `<div class="hero2">
-       <button class="btn btn-primary hero" id="ecGive">${ic('share', 'ic-20')}<span>Donner</span></button>
-       <button class="btn hero" id="ecRecv">${ic('inbox', 'ic-20')}<span>Recevoir</span></button>
+    `<div class="hero2${aDonner ? '' : ' hero1'}">
+       ${aDonner ? `<button class="btn btn-primary hero" id="ecGive">${ic('share', 'ic-20')}<span>Donner</span></button>` : ''}
+       <button class="btn${aDonner ? '' : ' btn-primary'} hero" id="ecRecv">${ic('inbox', 'ic-20')}<span>Recevoir</span></button>
      </div>
      <!-- une porte, pas une carte à bouton : « Entrer » ne disait rien de
           plus que la ligne elle-même. Exactement la porte « Réglages »
@@ -162,7 +171,7 @@ export function renderEchanger(){
          ? `<div class="ec-cols"><div class="ec-actes">${gestes}${priv}</div>${filHTML()}</div>`
          : filHTML() + gestes + priv}
      </div>`;
-  root.querySelector('#ecGive').addEventListener('click', openDonner);
+  root.querySelector('#ecGive')?.addEventListener('click', openDonner);
   root.querySelector('#ecRecv').addEventListener('click', openRecevoir);
   root.querySelector('#ecPromo').addEventListener('click', openPromo);
   const fil = filVisible();
