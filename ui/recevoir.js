@@ -95,7 +95,7 @@ export function openRecevoir(){
     sh.body.innerHTML =
       `<div class="scan-box"><video id="rcVideo" playsinline muted></video><div class="scan-mark"></div></div>
        <div class="scan-prog" id="rcProg" hidden></div>
-       <p class="hint" style="text-align:center" id="rcScanHint">Vise le QR — la lecture est automatique.</p>
+       <p class="hint" style="text-align:center" id="rcScanHint">Vise le QR.</p>
        <div class="field" style="margin-top:10px"><label for="rcCode">Ou le code affiché</label>
          <div class="date-row">
            <input id="rcCode" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="ex : k7m3p-9xq2f">

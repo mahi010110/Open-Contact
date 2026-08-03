@@ -495,7 +495,7 @@ export function openPromo(){
          vide muet (les pistes d'exemple et closes ne partent pas) */
       if (!mine().length){
         zone.innerHTML =
-          `<p class="hint" style="text-align:center">${ic('info-box', 'ic-14')} Rien à partager pour l’instant — ajoute une piste depuis « Mes pistes ». Les exemples ne partent pas.</p>`;
+          `<p class="hint" style="text-align:center">${ic('info-box', 'ic-14')} Rien à partager — ajoute une piste depuis « Mes pistes ».</p>`;
         return;
       }
       zone.innerHTML =

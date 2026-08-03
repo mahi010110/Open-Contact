@@ -302,8 +302,13 @@ function phraseCeremony(sh, phrase, onOk){
     sh.setTitle('Ta phrase de secours');
     sh.body.innerHTML =
       `<ol class="phrase-grid">${phrase.split(' ').map(w => `<li>${esc(w)}</li>`).join('')}</ol>
-       <p class="hint warn">Écris-la sur papier. Sans elle, un code oublié ne se récupère pas.</p>
-       <p class="hint">Rien à voir avec ta phrase de liaison d’appareils.</p>`;
+       ${/* Une seule phrase, et c'est la seule de tout le parcours qui
+            mérite d'être entière : la sécurité l'exige, au moment du
+            geste (§7). « Rien à voir avec ta phrase de liaison
+            d'appareils » est partie — elle expliquait un NON-rapport
+            avec une fonction que l'utilisateur n'a peut-être jamais
+            ouverte, et créait la confusion qu'elle prétendait lever. */''}
+       <p class="hint warn">Écris-la sur papier : sans elle, un code oublié ne se récupère pas.</p>`;
     sh.setFoot([btn('Je l’ai écrite', 'btn-primary', verify)]);
   };
   const verify = () => {
@@ -342,8 +347,11 @@ function phraseCeremony(sh, phrase, onOk){
 function backupCeremony(sh, phrase, onOk, introTxt){
   sh.setTitle('Ta copie');
   sh.body.innerHTML =
-    `<p class="pd" style="margin:0 0 10px">${introTxt || 'Dernière étape : une copie chiffrée de tout, à garder ailleurs (clé USB, autre disque).'}</p>
-     <p class="hint">Chiffrée avec ta phrase de secours — elle seule l’ouvre.</p>`;
+    /* Une ligne au lieu de deux. « Chiffrée » se disait deux fois, et
+       « elle seule l'ouvre » redisait ce que la phrase de secours vient
+       d'être présentée comme étant. Ce qui reste est ce qu'on ne peut
+       pas deviner : où la mettre. */
+    `<p class="pd" style="margin:0 0 10px">${introTxt || 'Dernière étape : une copie de tout, chiffrée par ta phrase de secours. Garde-la ailleurs — clé USB, autre disque.'}</p>`;
   const bDl = btn('Télécharger la copie', 'btn-primary', async () => {
     const txt = await encryptOC2(fullPayload(S.companies, S.profile, S.orphans, S.tombs), phrase);
     const A = document.createElement('a');
@@ -512,20 +520,20 @@ export function openProtectFlow(){
   });
   const q = s => sh.body.querySelector(s);
 
-  const stepIntro = () => {
-    sh.body.innerHTML =
-      `<div class="lk-whys">
-         <div class="lk-why">${ic('lock', 'ic-14')} <span>Un code pour ouvrir l’app.</span></div>
-         <div class="lk-why">${ic('shield', 'ic-14')} <span>Tes données et tes secrets chiffrés ici.</span></div>
-         <div class="lk-why">${ic('switch', 'ic-14')} <span>Tes appareils sous contrôle.</span></div>
-       </div>
-       <p class="hint">Optionnel, sauf pour connecter une messagerie ou une IA.</p>`;
-    sh.setFoot([btn('Choisir mon code', 'btn-primary', stepPin)]);
-  };
-
+  /* L'écran d'accueil est parti. Il ne contenait AUCUNE donnée : trois
+     promesses (« un code pour ouvrir l'app », « tes données chiffrées »,
+     « tes appareils sous contrôle ») et un bouton pour passer à la
+     suite. C'est la définition d'une porte — un écran incapable
+     d'afficher quoi que ce soit de réel appartient à la navigation, pas
+     à un parcours (§6). Et la décision était DÉJÀ prise : on arrive ici
+     en tapant « Protection » dans les réglages.
+     Sa dernière ligne mentait en plus : « optionnel, sauf pour connecter
+     une messagerie ou une IA » désignait deux capacités que le
+     recentrage a retirées de l'écran. Le parcours passe de cinq écrans
+     à quatre, et commence par le seul qui demande quelque chose. */
   const stepPin = () => {
     sh.setTitle('Ton code');
-    sh.body.innerHTML = `<p class="hint" style="margin:0 0 10px">Six chiffres — demandés à chaque ouverture.</p><div id="lkPad"></div>`;
+    sh.body.innerHTML = `<p class="hint" style="margin:0 0 10px">Six chiffres, demandés à chaque ouverture. Tu pourras l’enlever.</p><div id="lkPad"></div>`;
     sh.setFoot(null);
     newCodePad(q('#lkPad'), code => {
       pin = code;
@@ -556,7 +564,7 @@ export function openProtectFlow(){
     pin = phrase = '';
   };
 
-  stepIntro();
+  stepPin();
 }
 
 /* ---------- gestion (depuis « Moi ») ---------- */

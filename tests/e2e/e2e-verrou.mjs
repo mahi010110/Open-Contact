@@ -49,8 +49,15 @@ await ouvrirReglages(page);
 /* --- 2. parcours de création --- */
 await page.click('#moiVerrou');
 await page.waitForSelector('.modal');
-await snap(page, 'protege-intro');
-await page.click('.modal-f .btn-primary');           /* Choisir mon code */
+/* Le parcours ouvre DIRECTEMENT sur le pavé : l'écran d'accueil ne
+   demandait rien et n'affichait aucune donnée, il est parti. On le
+   vérifie ici — un « Choisir mon code » de retour serait une porte de
+   plus dans le plus long parcours de l'app. */
+await page.waitForSelector('.modal .pad-k');
+if (await page.$('.modal-f button')) fail('le parcours de protection rouvre sur une porte');
+if (!/Six chiffres/.test(await page.locator('.modal-b').innerText()))
+  fail('le pavé ne dit plus ce qu’il attend');
+await snap(page, 'protege-code');
 const tapCode = async code => {
   for (const d of code) await page.click(`.modal .pad-k[data-d="${d}"]`);
 };
