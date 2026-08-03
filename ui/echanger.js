@@ -50,8 +50,13 @@ function filHTML(){
   const head =
     `<h3 class="tr-h">${ic('switch', 'ic-14')} Tes échanges${
       tot.n ? ` <span class="tr-n">${tot.n}</span>` : ''}</h3>`;
+  /* Un état vide enseigne, il ne constate pas. « Rien n'a encore
+     circulé » disait qu'il n'y a rien — ce que le vide disait déjà — et
+     laissait un nouveau venu sans idée de ce que cette place recevra.
+     La phrase dit maintenant ce qui s'inscrira là, dans les mots des
+     deux gestes juste à côté, sans les redire à l'impératif. */
   const corps = !fil.length
-    ? `<p class="ec-rien">Rien n’a encore circulé.</p>`
+    ? `<p class="ec-rien">Les pistes que tu donnes et celles que tu reçois s’inscrivent ici.</p>`
     : fil.map(x => {
         const quoi = x.n + ' piste' + (x.n > 1 ? 's' : '');
         const phrase = x.sens === 'donne'

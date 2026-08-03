@@ -980,10 +980,15 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 .ec-fil{margin-top:18px;display:flex;flex-direction:column}
 /* le corps glisse, la légende reste — elle vit dans le trait du cadre */
 .ec-body{flex:1;min-height:0;display:flex;flex-direction:column;overflow:auto;-webkit-overflow-scrolling:touch}
-.ec-vide .ec-rien{flex:1;display:flex;align-items:center;justify-content:center}
+/* La phrase se pose EN HAUT de la région, là où commencerait la première
+   ligne — pas au milieu. Centrée, elle tombait au centre optique de la
+   page au poste : la seule encre de 640 px de haut, posée sur du vide, ce
+   qui est exactement ce que la mesure appelle un écran raté. Un seul
+   dessin pour les deux contextes : la région ne change pas d'usage entre
+   le pouce et l'écran, seulement de hauteur. */
 .ec-rien{
-  font-size:var(--text-13);color:var(--text-muted);text-align:center;
-  margin:0;padding:14px 4px;
+  font-size:var(--text-13);color:var(--text-muted);text-align:left;
+  margin:0;padding:12px 2px 0;
 }
 /* Le panneau garde sa taille : c'est LUI qui défile quand le journal
    déborde, jamais la page. `height` et non `min-height` — sinon huit
