@@ -147,6 +147,17 @@ input,select,textarea{font-family:inherit;color:var(--text-body)}
 .btn:disabled,.btn-off{pointer-events:none;color:var(--text-disabled);box-shadow:var(--bevel-up);opacity:.6}
 .btn-primary{background:var(--accent);border-color:var(--border-strong);color:var(--on-accent)}
 .btn-primary:hover,.btn-primary:active{background:var(--accent-hover)}
+/* Un bouton peut être un LIEN : « Ouvrir dans Mail », « Appeler »,
+   « Itinéraire ». Le fond était protégé du survol (`.btn-primary:hover`),
+   l'ENCRE ne l'était pas — et `a:hover` (0,1,1) bat `.btn-primary` (0,1,0).
+   Le libellé prenait donc `--text-link-hover`, c'est-à-dire exactement
+   `--accent-hover` : mesuré à 1.00:1 sur son propre fond, le mot
+   disparaissait purement et simplement. Au doigt c'est pire qu'à la
+   souris — iOS garde le survol collé après le tap, donc le bouton se
+   vide AU MOMENT où on s'en sert, et le reste. */
+a.btn:hover{color:var(--text-body)}
+a.btn.btn-primary:hover{color:var(--on-accent)}
+a.btn.btn-danger:hover{color:var(--red)}
 .btn-danger{color:var(--red)}
 .btn-danger:hover{background:var(--red-wash)}
 .btn-ghost{background:transparent;border-color:transparent;box-shadow:none;color:var(--text-muted)}

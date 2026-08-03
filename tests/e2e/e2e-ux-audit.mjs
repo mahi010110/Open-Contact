@@ -66,6 +66,38 @@ console.log('Écrire sans e-mail : Envoyer absent (loi #6), Copier devient prima
 await page.screenshot({ path: SHOTS + '/80-ux-ecrire-sans-email.png' });
 await closeSheet();
 
+/* F1 bis : un bouton qui est un LIEN garde son libellé quand on le touche.
+   `a:hover` (0,1,1) bat `.btn-primary` (0,1,0) : l'encre passait à
+   `--text-link-hover`, soit exactement `--accent-hover`, mesuré à 1.00:1
+   sur son propre fond. iOS colle le survol après un tap — « Ouvrir dans
+   Mail » se vidait au moment du geste et le restait. */
+await page.evaluate(async () => {
+  const { openMail } = await import('./ui/mail.js');
+  const { S } = await import('./ui/state.js');
+  openMail(S.companies.find(c => c.id === 'avec-mail'));
+});
+await page.waitForSelector('.modal-f a.btn');
+const lum = ([r, g, b]) => {
+  const f = v => { v /= 255; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; };
+  return .2126 * f(r) + .7152 * f(g) + .0722 * f(b);
+};
+const rgb = s => (String(s).match(/\d+/g) || [0, 0, 0]).slice(0, 3).map(Number);
+const contraste = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + .05) / (y + .05); };
+for (const theme of ['light', 'dark']){
+  await page.evaluate(t => document.documentElement.dataset.theme = t, theme);
+  const aM = await page.$('.modal-f a.btn');
+  const box = await aM.boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.waitForTimeout(60);
+  const [fg, bg] = await aM.evaluate(n => { const s = getComputedStyle(n); return [s.color, s.backgroundColor]; });
+  const c = contraste(rgb(fg), rgb(bg));
+  if (c < 4.5) fail(`« Ouvrir dans Mail » survolé en ${theme} : ${c.toFixed(2)}:1 — ${fg} sur ${bg}`);
+  await page.mouse.move(2, 2);
+}
+console.log('bouton-lien survolé : le libellé garde son encre, clair et sombre ✓');
+await page.evaluate(() => document.documentElement.dataset.theme = 'light');
+await closeSheet();
+
 /* F5 + F4 : l'adresse orpheline n'est visible qu'une fois et les petites
    actions atteignent 44 px dans le contexte mobile. Le bac « à rattacher »
    est replié par défaut (#13) : on l'ouvre d'abord. */
