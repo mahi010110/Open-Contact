@@ -962,11 +962,10 @@ details.pcard-details[open]>summary{margin-bottom:10px}
    journal court laissait un trou et un journal long jetait sa date à
    700 px de son libellé : c'est le bord qui fait qu'une liste se lit
    comme une liste. */
-/* Le fil est un `fset` — le cadre à légende de « Moi ». Il tient toujours
-   sa région (c'est lui qui garde les gestes au pouce), mais avec un trait
-   fin et une légende en encoche au lieu d'un aplat bordé et biseauté :
-   sur un écran qui ne porte que trois objets, le panneau plein en faisait
-   un de plus au lieu de ranger les deux autres. */
+/* Le fil n'est PAS encadré. C'est une tranche — la même grammaire que
+   « En retard » ou « Bientôt » : un libellé, son compte, puis les lignes.
+   Rendu au trait, l'écran respire sur toute sa largeur au lieu de tenir
+   dans une boîte, et le journal cesse d'être un objet de plus à lire. */
 .ec-fil{margin-top:18px;display:flex;flex-direction:column}
 /* le corps glisse, la légende reste — elle vit dans le trait du cadre */
 .ec-body{flex:1;min-height:0;display:flex;flex-direction:column;overflow:auto;-webkit-overflow-scrolling:touch}
@@ -994,7 +993,8 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   .ec-fil + .hero2{margin-top:16px}
 }
 .ec-tot{margin:-2px 0 6px}
-.ec-when{flex:none;white-space:nowrap}
+.ec-when{flex:none;white-space:nowrap;font-family:var(--font-mono);
+  font-size:var(--text-11);color:var(--text-muted)}
 .ec-when b{color:var(--text-body);font-weight:var(--weight-semibold)}
 @media (min-width:901px){
   /* le panneau prend TOUTE la hauteur de la vue : les gestes n'ont pas
@@ -1024,10 +1024,15 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted);
 }
 .sy-devs{margin-top:16px}
+/* une ligne = une phrase + sa date. Le canal, le nombre et la date
+   s'empilaient en L sur deux rangs : trois blocs que l'œil devait
+   recomposer avant de comprendre. */
 .ec-row{
-  display:flex;align-items:center;gap:10px;
-  padding:8px 0;border-bottom:1px dashed var(--border-soft);
+  display:flex;align-items:baseline;gap:10px;
+  padding:9px 0;border-bottom:1px dashed var(--border-soft);
 }
+.ec-row>b{flex:1;min-width:0;font-size:var(--text-13);font-weight:var(--weight-semibold);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ec-row:last-of-type{border-bottom:0}
 .ec-row-m{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .ec-row-m b{font-size:var(--text-13);font-weight:var(--weight-semibold)}

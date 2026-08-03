@@ -7,7 +7,7 @@
    parce qu'il n'y a rien à comprendre. Tout en bas, le rappel qui
    compte : jamais le privé. La sync de MES appareils vit dans « Moi ».
    ============================================================ */
-import { localISO } from '../engine/utils.js';
+import { esc, localISO } from '../engine/utils.js';
 import { exchangeLog, exchangeTotals } from '../engine/assist.js';
 import { S } from './state.js';
 import { $, ic } from './dom.js';
@@ -34,44 +34,37 @@ function quand(t){
 function filHTML(){
   const fil = exchangeLog(S.journal, 8);
   const tot = exchangeTotals(S.journal);
-  /* Le CADRE À LÉGENDE de « Moi », pas un panneau plein. Le fil tient
-     toujours sa région — c'est lui qui garde les deux gestes au pouce,
-     quel que soit le remplissage — mais il le fait avec le trait fin et
-     la légende en encoche qui rangent déjà « Ce que j'envoie ». Un aplat
-     bordé et biseauté faisait un bloc de plus sur un écran qui n'en a
-     que trois.
-     Et rien de superflu dedans : la légende dit ce que c'est, le compte
-     dit combien. La phrase qui expliquait à quoi sert la page a disparu
-     — les deux verbes juste dessous l'enseignent mieux qu'elle. */
+  /* PAS DE CADRE. Le journal n'est pas un objet à encadrer, c'est une
+     tranche — la même grammaire que « En retard » ou « Bientôt » sur
+     « Aujourd'hui » : un libellé en petites capitales, son compte, puis
+     les lignes. Rendu au trait, l'écran respire sur toute sa largeur au
+     lieu de tenir dans une boîte.
+
+     Et UNE ligne par échange, pas deux. Le canal, le nombre et la date
+     s'empilaient en L — trois blocs que l'œil devait recomposer. Ils
+     forment maintenant une phrase qui se lit d'un trait, « 100 pistes
+     données · QR », la date seule tenant la colonne de droite comme
+     dans tout journal. Le total en sous-titre est parti : chaque ligne
+     porte déjà son compte, et le badge de l'en-tête dit combien il y en
+     a eu. */
+  const head =
+    `<h3 class="tr-h">${ic('switch', 'ic-14')} Tes échanges${
+      tot.n ? ` <span class="tr-n">${tot.n}</span>` : ''}</h3>`;
   const corps = !fil.length
     ? `<p class="ec-rien">Rien n’a encore circulé.</p>`
-    : `<p class="ec-sub ec-tot">${tot.donne} donnée${tot.donne > 1 ? 's' : ''} ·
-          ${tot.recu} reçue${tot.recu > 1 ? 's' : ''}</p>
-       ${fil.map(x => {
-         const titre = x.sens === 'donne'
-           ? 'Donné · ' + x.canal
-           : 'Reçu de ' + (x.qui || 'la promo');
-         /* le compte reste COLLÉ à son libellé : dans une colonne large,
-            un `space-between` les jetterait à 700 px l'un de l'autre et
-            l'œil lirait deux objets sans rapport. Seule la date tient la
-            colonne de droite — c'est ce qu'on aligne dans un journal. */
-         return `<div class="ec-row">
-                   <div class="ec-row-m">
-                     <b>${ic(x.sens === 'donne' ? 'share' : 'inbox', 'ic-14')} ${titre}</b>
-                     <span class="ec-sub"><b>${x.n}</b> piste${x.n > 1 ? 's' : ''}</span>
-                   </div>
-                   <span class="ec-sub ec-when">${quand(x.t)}</span>
-                 </div>`;
-       }).join('')}`;
-  /* La légende NE DÉFILE PAS : elle est posée dans le trait du cadre,
-     hors du corps qui glisse. Quand le titre vivait dans la zone
-     défilante, neuf pixels suffisaient sur un écran court à le faire
-     passer sous sa propre bordure — on lisait « TES ÉCHANGES » coupé
-     en deux. */
-  return `<fieldset class="fset ec-fil${fil.length ? '' : ' ec-vide'}">
-            <legend>Tes échanges${tot.n ? ` <span class="tr-n">${tot.n}</span>` : ''}</legend>
-            <div class="ec-body">${corps}</div>
-          </fieldset>`;
+    : fil.map(x => {
+        const quoi = x.n + ' piste' + (x.n > 1 ? 's' : '');
+        const phrase = x.sens === 'donne'
+          ? `${quoi} donnée${x.n > 1 ? 's' : ''} · ${x.canal}`
+          : `${quoi} reçue${x.n > 1 ? 's' : ''} · ${x.qui || 'la promo'}`;
+        return `<div class="ec-row">
+                  <b>${ic(x.sens === 'donne' ? 'share' : 'inbox', 'ic-14')} ${esc(phrase)}</b>
+                  <span class="ec-when">${quand(x.t)}</span>
+                </div>`;
+      }).join('');
+  return `<section class="tranche ec-fil${fil.length ? '' : ' ec-vide'}">
+            ${head}<div class="ec-body">${corps}</div>
+          </section>`;
 }
 
 export function renderEchanger(){

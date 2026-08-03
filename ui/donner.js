@@ -203,7 +203,7 @@ export function openDonner(){
     sh.body.innerHTML =
       `<div class="qr-wrap" role="img" aria-label="QR à faire scanner">${svgs[0]}</div>
        ${svgs.length > 1 ? `<div class="qr-prog" id="dnQrProg">partie 1/${svgs.length} — laisse défiler</div>` : ''}
-       <p class="hint" style="text-align:center">L’autre personne : <b>Échanger → Recevoir → Scanner</b>.</p>`;
+`;
     if (svgs.length > 1){
       let i = 0;
       const t = setInterval(() => {
@@ -242,13 +242,13 @@ export function openDonner(){
       const el = q('#dnRdvSt');
       if (!el) return;
       if (stage === 'norelay')
-        el.innerHTML = `${ic('square-alert', 'ic-14')} Aucun relais joignable — passe par le QR hors ligne ci-dessous.`;
+        el.innerHTML = `${ic('square-alert', 'ic-14')} Aucun relais joignable`;
       else if (stage === 'rtcfail')
-        el.innerHTML = `${ic('square-alert', 'ic-14')} L’autre appareil est en vue, mais la liaison échoue — QR hors ligne ci-dessous.`;
+        el.innerHTML = `${ic('square-alert', 'ic-14')} Liaison impossible`;
       else if (stage === 'wait')
-        el.innerHTML = `${ic('clock', 'ic-14')} En attente de l’autre appareil…`;
+        el.innerHTML = `${ic('clock', 'ic-14')} En attente…`;
       else
-        el.innerHTML = `${ic('clock', 'ic-14')} Connexion aux relais…`;
+        el.innerHTML = `${ic('clock', 'ic-14')} Connexion…`;
     });
     try {
       [r, svg] = await Promise.all([openRoom('give', rdvNorm(code), { onJoinError: () => w.fail() }),
@@ -262,11 +262,15 @@ export function openDonner(){
     room = r;
     rdvWatch = w;
     sh.body.innerHTML =
+      /* Sous le code : rien qui s'explique. La phrase qui détaillait le
+         geste de l'autre personne est partie — un QR affiché et un code
+         lisible n'ont pas besoin qu'on dise à quoi ils servent. Restent
+         les deux seules choses qui ne se devinent pas : où en est la
+         liaison, et par où passer si le réseau est mort. */
       `<div class="qr-wrap" role="img" aria-label="QR de rendez-vous">${svg}</div>
        <div class="sy-phrase"><span>${esc(code)}</span></div>
-       <div class="qr-prog" id="dnRdvSt">${ic('clock', 'ic-14')} Connexion aux relais…</div>
-       <p class="hint" style="text-align:center">L’autre personne : <b>Recevoir → Scanner</b> — ou tape ce code.</p>
-       <button class="linklike" id="dnOffline" style="display:flex;margin:6px auto 0">Sans réseau ? QR hors ligne</button>`;
+       <div class="qr-prog" id="dnRdvSt">${ic('clock', 'ic-14')} Connexion…</div>
+       <button class="linklike" id="dnOffline" style="display:flex;margin:2px auto 0">Sans réseau ?</button>`;
     q('#dnOffline').addEventListener('click', fallback);
     const give = r.makeAction('give');
     const payload = sharePayload(chosen(), keepFn);
