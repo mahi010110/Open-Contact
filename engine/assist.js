@@ -63,7 +63,11 @@ export function dueFollowups(companies, today){
    « Reçu (analyse IA triée) » n'est PAS un échange avec la promo :
    la forme « Reçu de … » l'exclut par construction. */
 const RE_DONNE = /^Donné \(([^)]+)\)\s*:\s*(\d+)\s*piste/;
-const RE_RECU  = /^Reçu de (la promo|.+?)\s*:\s*\+(\d+)\s*piste/;
+/* « du groupe » aujourd'hui, « de la promo » hier : le journal garde des
+   entrées écrites avant le changement de mot, et elles doivent rester
+   lisibles — un renommage à l'écran ne réécrit pas l'histoire. Les deux
+   formes désignent le même anonyme, d'où la même sortie. */
+const RE_RECU  = /^Reçu (?:du (groupe)|de (la promo|.+?))\s*:\s*\+(\d+)\s*piste/;
 export function exchangeLog(journal, limit = 8){
   const out = [];
   for (const e of (journal || [])){
@@ -76,8 +80,11 @@ export function exchangeLog(journal, limit = 8){
     let m = RE_DONNE.exec(txt);
     if (m){ out.push({ t, sens: 'donne', canal: m[1], n: +m[2], qui: '' }); continue; }
     m = RE_RECU.exec(txt);
-    if (m) out.push({ t, sens: 'recu', canal: '', n: +m[2],
-      qui: m[1] === 'la promo' ? '' : m[1] });
+    if (m){
+      const qui = m[1] ? '' : m[2];                       /* « du groupe » = anonyme */
+      out.push({ t, sens: 'recu', canal: '', n: +m[3],
+        qui: qui === 'la promo' ? '' : qui });            /* ancienne forme, même sens */
+    }
   }
   out.sort((a, b) => (b.t || 0) - (a.t || 0));
   return limit > 0 ? out.slice(0, limit) : out;

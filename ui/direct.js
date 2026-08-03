@@ -407,7 +407,7 @@ export function openPromo(){
     sh.body.innerHTML =
       `<div class="field"><label for="prPass">Mot de passe du groupe</label>
          <div class="date-row">
-           <input id="prPass" autocomplete="off" autocapitalize="off" placeholder="ex : promo-sio-2026"
+           <input id="prPass" autocomplete="off" autocapitalize="off" placeholder="ex : sio-lille-2026"
                   title="Appui long pour copier" value="${esc(last)}">
            <button class="btn icon-btn" id="prGen" aria-label="Générer un code fort" title="Générer un code fort">${ic('reload', 'ic-14')}</button>
          </div></div>`;
@@ -421,14 +421,14 @@ export function openPromo(){
     q('#prPass').addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
     q('#prGen').addEventListener('click', () => {
       q('#prPass').value = makePhrase();
-      copier('Code généré et copié — partage-le à la promo.');
+      copier('Code généré et copié — partage-le au groupe.');
     });
     /* appui long (pouce) / clic maintenu (souris) sur le code lui-même */
     let hold = null;
     const inp = q('#prPass');
     inp.addEventListener('pointerdown', () => {
       clearTimeout(hold);
-      hold = setTimeout(() => copier('Code copié — partage-le à la promo.'), 550);
+      hold = setTimeout(() => copier('Code copié — partage-le au groupe.'), 550);
     });
     ['pointerup', 'pointercancel', 'pointerleave', 'blur', 'input']
       .forEach(e => inp.addEventListener(e, () => clearTimeout(hold)));

@@ -114,7 +114,7 @@ function triageItems(){
     open: () => { location.hash = '#/pistes'; } });
   const recv = receivedTodayCount();
   if (recv) items.push({
-    n: recv, icon: 'inbox', label: 'Reçu de la promo',
+    n: recv, icon: 'inbox', label: 'Reçu du groupe',
     open: () => { location.hash = '#/pistes'; } });
   const analysis = COMPAGNON ? mailAnalysis() : null;
   if (analysis && analysis.state === 'ready') items.push({

@@ -950,6 +950,10 @@ export async function runSelfTests(){
         { t: 20, txt: 'Reçu de la promo : +5 piste(s), 2 complétée(s)' },
         { t: 30, txt: 'Donné (fichier chiffré) : 12 piste(s)' },
         { t: 40, txt: 'Reçu de Karim : +1 piste(s), 0 complétée(s)' },
+        /* le mot a changé à l'écran ; le journal, lui, garde les DEUX
+           formes — une entrée écrite avant le renommage doit rester
+           lisible, un changement de vocabulaire ne réécrit pas l'histoire */
+        { t: 45, txt: 'Reçu du groupe : +9 piste(s), 1 complétée(s)' },
         { t: 50, txt: 'Donné (partage en groupe) : 7 piste(s)' },
         { t: 60, txt: 'Donné (QR rendez-vous) : 2 piste(s)' },
         /* rien à voir avec la promo : ne doit jamais entrer dans le fil */
@@ -958,20 +962,22 @@ export async function runSelfTests(){
         { t: 90, txt: 'Supprimée : Atos' }
       ];
       const fil = exchangeLog(j);
-      eq(fil.length, 6);
+      eq(fil.length, 7);
       eq(fil[0].t, 60);                                    /* le plus récent d'abord */
       eq(fil[0].canal, 'QR rendez-vous');
-      eq(fil.map(x => x.sens).join(','), 'donne,donne,recu,donne,recu,donne');
+      eq(fil.map(x => x.sens).join(','), 'donne,donne,recu,recu,donne,recu,donne');
       eq(fil.find(x => x.t === 40).qui, 'Karim');           /* reçu d'une personne nommée */
-      eq(fil.find(x => x.t === 20).qui, '');                /* « la promo » = personne en particulier */
+      eq(fil.find(x => x.t === 20).qui, '');                /* ancienne forme : « la promo » = anonyme */
+      eq(fil.find(x => x.t === 45).qui, '');                /* nouvelle forme : « du groupe » = idem */
+      eq(fil.find(x => x.t === 45).n, 9);
       eq(fil.find(x => x.t === 30).n, 12);
       ok(!fil.some(x => x.t === 70), 'l’analyse IA n’est pas un échange avec la promo');
       eq(exchangeLog(j, 2).length, 2);
-      eq(exchangeLog(j, 0).length, 6);                      /* 0 = tout */
+      eq(exchangeLog(j, 0).length, 7);                      /* 0 = tout */
       const tot = exchangeTotals(j);
       eq(tot.donne, 24);                                    /* 3 + 12 + 7 + 2 */
-      eq(tot.recu, 6);                                      /* 5 + 1 */
-      eq(tot.n, 6);
+      eq(tot.recu, 15);                                     /* 5 + 1 + 9 */
+      eq(tot.n, 7);
       eq(exchangeLog(null).length, 0);
       eq(exchangeLog([{ t: 1 }, { t: 2, txt: null }]).length, 0);
       /* un journal revenu d'une sauvegarde peut avoir perdu ses
