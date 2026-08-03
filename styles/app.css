@@ -1077,7 +1077,12 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 }
 .dchip-d span{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
 .dchip-d.on span{color:var(--on-accent);opacity:.8}
-.pick-list{display:flex;flex-direction:column;gap:7px}
+/* 8 px, le chiffre de la règle — et pas 7. C'est LE motif du choix dans
+   toute l'app, et ses options ont toujours des conséquences distinctes :
+   « Scanner » ouvre la caméra, « Fichier » ouvre le sélecteur, « Coller »
+   lit le presse-papier. Un pixel sous la règle, répété partout, c'est la
+   règle qui ne veut plus rien dire. */
+.pick-list{display:flex;flex-direction:column;gap:8px}
 /* `color` EST OBLIGATOIRE ici. Sans elle, un `<button>` retombe sur la
    couleur de texte du navigateur : encre sous Chromium — donc invisible
    en développement — mais BLEU SYSTÈME sous iOS. Toutes les listes de
