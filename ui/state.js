@@ -242,7 +242,18 @@ export function addDemo(){
   );
   saveData();
 }
+/* L'exemple ne laisse AUCUNE trace. Il écrivait dans le journal privé
+   comme une vraie piste — « Fait : … » — et ces lignes survivaient à son
+   retrait : l'écran d'accueil annonçait « 3 actions faites aujourd'hui »
+   au-dessus d'un « ajoute ta première piste ». Deux phrases qui se
+   contredisent sur le même écran, à propos d'entreprises qui n'ont
+   jamais existé. Chaque entrée porte l'id de sa piste (`logJ`), le
+   ménage est donc exact : on ne retire que ce que l'exemple a écrit. */
 export function removeDemo(){
+  const ids = new Set(S.companies.filter(c => c.demo).map(c => c.id));
   S.companies = S.companies.filter(c => !c.demo);
+  const avant = S.journal.length;
+  S.journal = S.journal.filter(e => !(e && e.cid && ids.has(e.cid)));
+  if (S.journal.length !== avant) kvSet(JOURNAL_KEY, JSON.stringify(S.journal));
   saveData();
 }

@@ -163,7 +163,11 @@ export function renderToday(){
          <h2>Aujourd’hui</h2>
          <div class="td-date">${frToday()}</div>
        </div>
-       ${done ? `<div class="done-line">${ic('check', 'ic-14')} ${done} action${done > 1 ? 's' : ''} faite${done > 1 ? 's' : ''} aujourd’hui</div>` : ''}`;
+       ${/* pas de compte au-dessus d'un « ajoute ta première piste » : on ne
+            félicite pas quelqu'un pour un travail dont l'écran affirme, deux
+            lignes plus bas, qu'il n'existe pas */''}
+       ${done && S.companies.length
+         ? `<div class="done-line">${ic('check', 'ic-14')} ${done} action${done > 1 ? 's' : ''} faite${done > 1 ? 's' : ''} aujourd’hui</div>` : ''}`;
 
   if (!alive.length && !S.companies.length){
     /* première visite : la promesse, puis un seul geste */

@@ -251,10 +251,14 @@ html[data-theme="dark"] .field select{
 .lb-act:hover{color:var(--text-link)}
 .lb-act[aria-pressed="true"]{color:var(--accent)}
 .lb-act[aria-pressed="true"] .ic{color:var(--accent)}
-.lb-act.on{
-  color:var(--accent);border-color:var(--accent);background:var(--teal-wash);
-  margin-right:0;
-}
+/* Un filtre actif se dit UNE fois : par son compte. J'avais ajouté en
+   plus un cadre et un aplat teal — trois signaux pour le même fait, et
+   une commande qui doublait de poids à côté de « Tout », resté une case
+   nue sur la même ligne. Le `margin-right:0` la faisait en outre SAUTER
+   de 8 px en s'activant : une cible qui bouge sous le doigt au moment
+   même où l'on vient de s'en servir. */
+.lb-act.on{color:var(--accent)}
+.lb-act.on .ic{color:var(--accent)}
 /* le repli d'une liste : le mot se fige, le chevron tourne. « Choisir »
    qui devient « Replier » sur la même cible oblige à relire pour savoir
    où l'on en est — l'état appartient au signe, pas au libellé. */
@@ -1054,6 +1058,7 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   border:1px solid var(--border-strong);border-radius:var(--radius-1);
   background:var(--surface-chrome);box-shadow:var(--bevel-up), var(--shadow-raised);
   font-weight:var(--weight-semibold);font-size:var(--text-13);
+  color:var(--text-body);   /* jamais la couleur de bouton du navigateur */
 }
 .dchip:active{box-shadow:var(--bevel-down);transform:translate(1px,1px)}
 /* le raccourci de date porte le JOUR qu'il vise : « +3 jours » se
@@ -1065,15 +1070,27 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 .dchip-d span{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
 .dchip-d.on span{color:var(--on-accent);opacity:.8}
 .pick-list{display:flex;flex-direction:column;gap:7px}
+/* `color` EST OBLIGATOIRE ici. Sans elle, un `<button>` retombe sur la
+   couleur de texte du navigateur : encre sous Chromium — donc invisible
+   en développement — mais BLEU SYSTÈME sous iOS. Toutes les listes de
+   choix de l'app s'affichaient en bleu Apple sur un vrai téléphone, ce
+   que rien ne pouvait montrer ici.
+   Et `flex-wrap` : quand la donnée de droite est longue (un nom de
+   fichier de 28 caractères), elle écrasait le libellé au point de faire
+   passer « Télécharger » SOUS sa propre icône. Elle descend d'une ligne
+   au lieu de le broyer. */
 .pick{
-  display:flex;align-items:center;justify-content:space-between;gap:10px;
-  min-height:var(--ctl);padding:8px 14px;
+  display:flex;align-items:center;justify-content:space-between;gap:4px 10px;
+  flex-wrap:wrap;min-height:var(--ctl);padding:8px 14px;
   border:1px solid var(--border-strong);border-radius:var(--radius-1);
   background:var(--surface-chrome);box-shadow:var(--bevel-up), var(--shadow-raised);
-  font-size:var(--text-14);text-align:left;
+  font:inherit;font-size:var(--text-14);color:var(--text-body);text-align:left;
 }
-.pick b{font-weight:var(--weight-semibold)}
-.pick span{font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted)}
+.pick b{font-weight:var(--weight-semibold);flex:none}
+.pick span{
+  font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted);
+  margin-left:auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
 .pick:disabled{opacity:.62;cursor:not-allowed;box-shadow:none}
 .pick:active{box-shadow:var(--bevel-down);transform:translate(1px,1px)}
 .pick-close{border-left:3px solid var(--c)}
@@ -1194,7 +1211,14 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 /* ============ FICHE : outils, à savoir, contacts ============ */
 .lbl-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px}
 .lbl-row label{margin-bottom:0}
-.fi-tools{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+/* Au pouce, cette ligne suit le cadre « À savoir », dont la DERNIÈRE
+   rangée porte déjà « Itinéraire », calé à droite comme « Compléter ».
+   Deux boutons alignés, à quelques pixels l'un de l'autre, et l'un des
+   deux QUITTE l'application pour ouvrir un plan — se tromper là ne coûte
+   pas un tap, ça coûte de perdre sa place. D'où un vrai palier entre le
+   cadre et cette ligne, et pas les 8 px d'usage. */
+.fi-tools{display:flex;align-items:center;gap:10px;margin:20px 0 14px;flex-wrap:wrap}
+@media (min-width:901px){ .fi-tools{margin-top:0} }   /* au poste elle monte sur l'identité */
 /* un chiffre qui bouge deux fois par mois n'a pas à porter un cadre :
    encadré, il se déguisait en chose qui se tape (elle ne se tape pas) */
 .fi-score{
