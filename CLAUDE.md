@@ -21,7 +21,7 @@ qui partagent les mêmes données et le même vocabulaire.
 
 | Surface | État | Ce qu'elle apporte de plus |
 |---|---|---|
-| **Le web** (PWA, installable) | **livrée** | tout le quotidien : capturer, agir, écrire, partager avec la promo, synchroniser ses appareils |
+| **Le web** (PWA, installable) | **livrée** | tout le quotidien : capturer, agir, écrire, partager avec son groupe, synchroniser ses appareils |
 | **L'ordinateur** | **en sommeil** | ce qu'un navigateur ne peut pas garantir : travailler application fermée, parler IMAP/SMTP, faire tourner une IA locale |
 | **Le téléphone** (store) | non commencée | la même chose que le web, mieux intégrée à l'appareil (caméra, partage, notifications) |
 
@@ -60,7 +60,7 @@ autres. Ni grisée, ni « bientôt » : absente.
 |---|---|
 | Pistes, fiches, suivi, prochaine action, clôture | WEB |
 | Capture, anti-doublon, bac « à rattacher » | WEB |
-| Partage promo (QR, fichier `.oc`, coller, groupe) | WEB |
+| Partage au groupe (QR, fichier `.oc`, coller, en direct) | WEB |
 | Sync entre MES appareils | WEB |
 | Écrire un mail (`mailto:`, copier, « Envoyée ✓ ») | WEB |
 | Postuler à plusieurs d'affilée, une par une | WEB |
@@ -113,7 +113,7 @@ Tant que le seuil n'est pas atteint, elle dort.
 
 OpenContact aide un étudiant IT/cyber à répondre à **« je fais quoi
 maintenant ? »** dans sa recherche de stage, d'alternance ou d'emploi, et fait
-circuler les bonnes pistes dans sa promo.
+circuler les bonnes pistes dans son groupe.
 
 C'est un outil de **motivation et d'action**, pas une base de données : chaque
 écran doit pousser vers le prochain geste concret — écrire, relancer,
@@ -340,7 +340,7 @@ groupe reste dans ce groupe ; les réglages avancés ferment la page.
 
 ## 7. Les textes
 
-Français, tutoiement, phrases courtes, concret. On dit « pistes », « promo »,
+Français, tutoiement, phrases courtes, concret. On dit « pistes », « groupe »,
 « fiche », « suivi » — jamais « CRM », « lead », ni autre jargon à l'écran.
 
 **Un objet, UN mot** — dans toute l'app, y compris les dialogues qu'un écran
@@ -354,7 +354,7 @@ feuilles secondaires, jamais dans le titre.
 | une personne chez elle | **contact** (« destinataire » reste dans le composeur : c'est le mot du courrier) | personne — sauf le pronom (« personne pour l'instant ») |
 | l'écran d'une piste | **fiche** | détail |
 | le fichier de tout mon suivi | **copie** (`opencontact-copie-*.oc`) | sauvegarde, export, archive |
-| le groupe | **promo** | camarades |
+| les camarades avec qui on partage | **groupe** | promo, camarades |
 
 Ça se vérifie mécaniquement — extraire les chaînes de `ui/*.js` **et de
 `index.html`** (la coque compte aussi, c'est là que « sauvegarde » avait
@@ -378,7 +378,7 @@ Deux phrases courtes se lisent mieux qu'une phrase à charnière.
 
 ## 8. Partage & sync — deux mondes à ne pas mélanger
 
-**Communautaire (la promo)** : `sharePayload` → vue communautaire, jamais le
+**Communautaire (le groupe)** : `sharePayload` → vue communautaire, jamais le
 privé, fusion `merge.js` qui n'écrase rien, aperçu avant. Canaux : partage en
 groupe (P2P), QR, fichier `.oc`, coller.
 

@@ -56,7 +56,7 @@ function filHTML(){
         const quoi = x.n + ' piste' + (x.n > 1 ? 's' : '');
         const phrase = x.sens === 'donne'
           ? `${quoi} donnée${x.n > 1 ? 's' : ''} · ${x.canal}`
-          : `${quoi} reçue${x.n > 1 ? 's' : ''} · ${x.qui || 'la promo'}`;
+          : `${quoi} reçue${x.n > 1 ? 's' : ''} · ${x.qui || 'le groupe'}`;
         return `<div class="ec-row">
                   <b>${ic(x.sens === 'donne' ? 'share' : 'inbox', 'ic-14')} ${esc(phrase)}</b>
                   <span class="ec-when">${quand(x.t)}</span>

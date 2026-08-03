@@ -101,7 +101,7 @@ export function openFiche(c){
     const meta = [t.email, t.phone].filter(x => x && x !== title).join(' · ');
     const subBits = [
       t.role ? esc(t.role) : '',
-      (t.src === 'promo' && !t.activatedAt) ? 'reçu de la promo' : '',
+      (t.src === 'promo' && !t.activatedAt) ? 'reçu du groupe' : '',
       t.conf === 'ok' ? '<span class="conf-ok">vérifié ✓</span>'
         : t.conf === 'doubt' ? '<span class="conf-doubt">à confirmer ?</span>' : ''
     ].filter(Boolean).join(' · ');
