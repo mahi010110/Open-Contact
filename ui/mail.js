@@ -41,7 +41,7 @@ export function openMail(c, opts){
   const sh = openSheet({
     title: 'Écrire — ' + c.name + (opts.progress ? '  ·  ' + opts.progress : ''),
     icon: 'mail', className: 'modal-compose', focus: cts.length ? '#mSubj' : '#mBody',
-    onClose: () => { if (done) return; done = true; if (opts.onQuit) opts.onQuit(); }
+    onClose: () => { oublier(); if (done) return; done = true; if (opts.onQuit) opts.onQuit(); }
   });
   /* messagerie connectée ? Hors périmètre, la réponse est « non » et tout
      le composeur retombe de lui-même sur `mailto:` — pied, pièce jointe,
@@ -81,24 +81,63 @@ export function openMail(c, opts){
   }
   /* indisponible = absent (loi #6) : sans adresse, ni « Envoyer » ni
      « Ouvrir dans Mail » — « Copier » devient LE bouton. Le pied se
-     recompose au changement de destinataire. */
-  let manual = false;               /* passé par Mail : re-proposer « Envoyée ✓ » */
+     recompose au changement de destinataire.
+
+     Et « Envoyée ✓ » n'existe qu'APRÈS un geste d'envoi. Il s'affichait
+     d'emblée, à 8 px du bouton principal, alors qu'il n'y avait encore
+     rien à confirmer — le pied comptait quatre boutons sur deux rangs
+     (121 px, seule feuille de l'app dans ce cas) et le ratage le plus
+     cher du produit se jouait sur cet écart : email marqué envoyé sans
+     annulation possible, statut basculé, piste suivante enchaînée.
+     Le pied suit maintenant le MOMENT : d'abord faire partir, ensuite
+     seulement le dire. Bénéfice inattendu — une piste sans adresse peut
+     enfin se marquer écrite : on copie, on colle dans LinkedIn, on
+     revient, « Envoyée ✓ » est là. Elle ne le pouvait pas du tout. */
+  let manual = false;               /* le message est parti : proposer « Envoyée ✓ » */
   let lastEmail = null;
   const syncFoot = () => {
     const ct = currentCt();
     const email = (ct && ct.email) || '';
     if (email === lastEmail) return;
     lastEmail = email;
-    const foot = [bCopy];
-    bCopy.classList.toggle('btn-primary', !email);
-    if (email){
-      foot.push(aMail);
-      aMail.classList.toggle('btn-primary', !acct);
-      aMail.classList.toggle('btn-ghost', !!acct && !manual);
-      foot.push(acct && !manual ? bSend : bMarked);
+    const foot = [];
+    bCopy.classList.toggle('btn-primary', !email && !manual);
+    aMail.classList.toggle('btn-primary', !acct && !manual);
+    aMail.classList.toggle('btn-ghost', !!acct && !manual);
+    bMarked.classList.add('btn-primary');
+    if (manual){
+      /* De retour, la question n'est plus « comment l'envoyer » mais
+         « est-ce parti ? » — « Envoyée ✓ » prend donc l'accent. Le geste
+         d'envoi reste en second : si l'application mail ne s'est pas
+         ouverte, ou s'il faut recopier le texte, il est encore là. */
+      foot.push(email ? aMail : bCopy);
+      foot.push(bMarked);
+    } else {
+      foot.push(bCopy);
+      if (email) foot.push(aMail);
+      if (email && acct) foot.push(bSend);
     }
     sh.setFoot(foot);
     if (opts.onDone) sh.ov.querySelector('.modal-f').prepend(bSkip);
+  };
+  /* le geste qui fait passer le pied au second moment */
+  const parti = () => { if (manual) return; manual = true; lastEmail = null; syncFoot(); };
+  /* Copier ne bascule PAS le pied sur-le-champ. Recomposer un pied juste
+     après un tap déplace les boutons sous le pouce qui vient de taper :
+     mesuré, « Envoyée ✓ » atterrissait à l'endroit exact que le doigt
+     venait de quitter. C'est au RETOUR — on est allé coller le message
+     ailleurs, on revient — que la question « c'est parti ? » se pose, et
+     là plus rien n'est en vol. `visibilitychange` couvre le changement
+     d'application au téléphone, `focus` le changement de fenêtre au
+     poste. */
+  let copie = false;
+  const auRetour = () => { if (copie && sh.body.isConnected) parti(); };
+  const surVisible = () => { if (!document.hidden) auRetour(); };
+  document.addEventListener('visibilitychange', surVisible);
+  window.addEventListener('focus', auRetour);
+  const oublier = () => {
+    document.removeEventListener('visibilitychange', surVisible);
+    window.removeEventListener('focus', auRetour);
   };
   function sync(){
     const ct = currentCt();
@@ -265,6 +304,7 @@ export function openMail(c, opts){
       q('#mBody').select();
       toast('Sélectionné — copie avec Ctrl/Cmd+C.');
     }
+    copie = true;     /* le pied ne bouge pas maintenant — voir `auRetour` */
   }, 'copy');
   const bMarked = btn('Envoyée ✓', '', markSentAndFollow);
 
@@ -309,13 +349,8 @@ export function openMail(c, opts){
   const bSend = acct ? btn('Envoyer', 'btn-primary', doSend, 'mail') : null;
   const bSkip = btn('Passer →', 'btn-ghost', () => { done = true; sh.close(); advance(); });
 
-  /* passer par Mail re-propose le marquage à la main */
-  aMail.addEventListener('click', () => {
-    if (!acct || manual) return;
-    manual = true;
-    lastEmail = null;
-    syncFoot();
-  });
+  /* passer par Mail fait apparaître le marquage à la main */
+  aMail.addEventListener('click', parti);
   if (acct){
     /* ordinateur : Ctrl/Cmd+Entrée envoie */
     sh.body.addEventListener('keydown', e => {

@@ -70,7 +70,10 @@ export function openRecevoir(){
          <button class="pick" id="rcFile"><b>${ic('folder', 'ic-14')} Par fichier</b><span>.oc</span></button>
          <button class="pick" id="rcPaste"><b>${ic('clipboard', 'ic-14')} Par message</b><span>coller le texte</span></button>
        </div>
-       <p class="hint">${ic('shield', 'ic-14')} Aperçu avant fusion — annulable.</p>
+       ${/* Rien sous les trois choix : « Aperçu avant fusion — annulable »
+            annonçait l'écran suivant, qui s'appelle littéralement « Aperçu
+            avant fusion » et porte lui-même son bouton. Une promesse tenue
+            deux secondes plus tard n'a pas besoin d'être écrite avant. */''}
        <input type="file" id="rcInput" accept=".oc,.txt,.json,application/octet-stream,text/plain,application/json" hidden>`;
     q('#rcScan').addEventListener('click', scan);
     q('#rcFile').addEventListener('click', () => q('#rcInput').click());
@@ -275,12 +278,10 @@ export function openImportMails(){
          <button class="pick" id="rcScan7"><b>${ic('zap', 'ic-14')} Les 7 derniers jours</b></button>
          <button class="pick" id="rcScan30"><b>${ic('zap', 'ic-14')} Les 30 derniers jours</b></button>
        </div>
-       <p class="hint">${ic('shield', 'ic-14')} Rien ne s’enregistre sans ton accord.</p>
        <div class="lbl-row" style="margin:12px 0 6px"><label>ou à la main</label></div>` : ''}
        <div class="lk-whys">
          <div class="lk-why">${ic('copy', 'ic-14')} <span>Copie le prompt, colle-le dans ton assistant IA avec tes e-mails.</span></div>
          <div class="lk-why">${ic('clipboard', 'ic-14')} <span>Rapporte ici sa réponse : chaque piste proposée se coche ou s’écarte.</span></div>
-         ${assoc ? '' : `<div class="lk-why">${ic('shield', 'ic-14')} <span>Rien ne s’enregistre sans ton accord.</span></div>`}
        </div>
        ${(COMPAGNON && !assoc) ? `<p class="hint">${ic('lightbulb', 'ic-14')} ${matchMedia('(min-width:901px)').matches
          ? 'Avec le Compagnon, ton ordinateur fait la lecture tout seul — Moi → Mes appareils.'
@@ -474,7 +475,10 @@ export function mergePreviewInto(sh, obj, opts){
                 <span>${esc([c.city, (c.contacts || []).length ? (c.contacts.length + ' contact' + (c.contacts.length > 1 ? 's' : '')) : ''].filter(Boolean).join(' · '))}</span></div>
             </button>`).join('')}
        </div>` : ''}
-       <p class="hint">${ic('shield', 'ic-14')} Rien n’est écrasé. Tu peux annuler juste après.</p>
+       ${/* « Rien n'est écrasé, tu peux annuler juste après » : l'écran
+            s'appelle « Aperçu avant fusion », la ligne de divergence dit
+            déjà « l'existant est gardé », et la barre Annuler arrive au
+            geste suivant. Trois fois la même promesse sur un seul écran. */''}
        ${opts.onDiscard ? `<button class="linklike" id="rcDiscard">Écarter ces propositions</button>` : ''}
      </div>`;
   const bGo = btn(dry.addedC + dry.enriched + dry.addedCt === 0 ? 'Rien à ajouter' : 'Fusionner', 'btn-primary', () => {
@@ -483,7 +487,8 @@ export function mergePreviewInto(sh, obj, opts){
     const snapshot = JSON.stringify(S.companies);
     const stats = mergeIncoming(chosen, S.companies);
     saveData();
-    logJ('Reçu' + (opts.from ? ' de ' + opts.from : (opts.select ? ' (analyse IA triée)' : ' du groupe')) + ' : +' + stats.addedC + ' piste(s), ' + stats.enriched + ' complétée(s)');
+    logJ('Reçu' + (opts.from ? ' de ' + opts.from : (opts.select ? ' (analyse IA triée)' : ' du groupe')) + ' : +' + stats.addedC + ' piste(s), ' + stats.enriched + ' complétée(s)',
+      null, stats.ids);
     sh.close();
     bus.refresh();
     offerUndo(snapshot, stats);

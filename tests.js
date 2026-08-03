@@ -17,7 +17,7 @@ import { communityView, parseInput, sharePayload, fullPayload,
          makeRdvCode, rdvNorm, rdvWrap, rdvParse } from './engine/exchange.js';
 import { findMatch, mergeIncoming, contactKey } from './engine/merge.js';
 import { syncMerge, mergeTombs, TOMBS_MAX } from './engine/sync.js';
-import { filterCompanies, NATURAL_DIR } from './engine/filter.js';
+import { filterCompanies, filterOrphans, searchHint, NATURAL_DIR } from './engine/filter.js';
 import { scoreOf } from './engine/score.js';
 import { DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, SYNC_KEY,
          RELAYS_KEY, TURN_KEY, DEVICE_KEY, DEVICES_KEY, PROMO_KEY, VAULT_KEY,
@@ -593,6 +593,72 @@ export async function runSelfTests(){
       eq(filterCompanies(list, { status: 'active' }).map(c => c.name), ['Bravo']);
       eq(filterCompanies(list, { sort: 'az' }).map(c => c.name), ['Alpha', 'Bravo']);
     },
+    'recherche : les accents se plient, et DEUX mots cherchent deux mots': () => {
+      const list = [
+        normalizeCompany({ name: 'Cyberdéfense Lyon', city: 'Lyon', domain: 'cyber',
+          techs: 'SOC managé, Fortinet', contacts: [{ name: 'Léa Bérard', role: 'RH' }] }),
+        normalizeCompany({ name: 'CloudNine', city: 'Lille', domain: 'cloud',
+          desc: 'Société d’hébergement, agréée HDS' }),
+        normalizeCompany({ name: 'Thales', city: 'Gennevilliers', domain: 'cyber' })
+      ];
+      const noms = q => filterCompanies(list, { q }).map(c => c.name);
+      /* on tape sans accent sur un téléphone — la fiche, elle, en porte */
+      eq(noms('cyberdefense'), ['Cyberdéfense Lyon']);
+      eq(noms('societe'), ['CloudNine']);
+      eq(noms('berard'), ['Cyberdéfense Lyon']);
+      eq(noms('Bérard'), ['Cyberdéfense Lyon']);          /* et l'inverse marche aussi */
+      /* deux mots venus de DEUX champs, dans n'importe quel ordre */
+      eq(noms('cyber lyon'), ['Cyberdéfense Lyon']);
+      eq(noms('lyon cyber'), ['Cyberdéfense Lyon']);
+      eq(noms('lea cyber'), ['Cyberdéfense Lyon']);
+      eq(noms('  CYBER  ').length, 2);                    /* espaces et casse : sans effet */
+      eq(noms('zzz'), []);
+      eq(noms('').length, 3);                             /* rien tapé = tout */
+      /* l’apostrophe typographique de la donnée se tape droite */
+      eq(noms("d'hebergement"), ['CloudNine']);
+    },
+    'recherche : la ligne dit POURQUOI elle est là — sauf si c’est déjà à l’écran': () => {
+      const c = normalizeCompany({ name: 'Cyberdéfense Lyon', city: 'Lyon', domain: 'cyber',
+        techs: 'SOC managé, Fortinet', contacts: [{ name: 'Léa Bérard', role: 'RH' }] });
+      const vu = { skip: ['name', 'city'] };
+      /* le nom explique « cyber » : rien à ajouter */
+      eq(searchHint(c, 'cyber', vu), null);
+      /* la techno, elle, est invisible sur la ligne */
+      const h = searchHint(c, 'soc', vu);
+      eq(h.field, 'techs');
+      eq(h.text.slice(h.marks[0][0], h.marks[0][0] + h.marks[0][1]), 'SOC');
+      /* trouvé sans accent, surligné AVEC : les positions restent alignées */
+      const b = searchHint(c, 'berard', vu);
+      eq(b.field, 'contact');
+      eq(b.text.slice(b.marks[0][0], b.marks[0][0] + b.marks[0][1]), 'Bérard');
+      /* un mot déjà visible + un mot caché : c’est le caché qui parle */
+      eq(searchHint(c, 'lea cyber', vu).field, 'contact');
+      /* un long champ se coupe autour de la trouvaille, jamais au milieu du mot */
+      const long = normalizeCompany({ name: 'X',
+        desc: 'a'.repeat(120) + ' agréée HDS depuis 2019 ' + 'b'.repeat(120) });
+      const e = searchHint(long, 'hds', { skip: ['name', 'city'], max: 40 });
+      eq(e.text.slice(e.marks[0][0], e.marks[0][0] + e.marks[0][1]), 'HDS');
+      ok(e.text.length <= 42, 'l’extrait tient dans sa fenêtre');
+      /* l'extrait garde le mot qui PORTE la trouvaille : se caler sur
+         l'espace d'après rendait « …SOC », soit le mot cherché tout seul
+         — rien de plus que le surlignage. Il recule donc. */
+      const porte = normalizeCompany({ name: 'Thales', techs: 'Cybersécurité, SOC' });
+      eq(searchHint(porte, 'soc', vu).text, 'Cybersécurité, SOC');
+      eq(searchHint(c, '', vu), null);
+      eq(searchHint(c, 'zzz', vu), null);
+    },
+    'recherche : le bac « à rattacher » suit, l’écran ne se contredit plus': () => {
+      const bac = [
+        { name: 'Nadia Rahmani', role: 'RH', email: 'n.rahmani@orange.fr', extra: { company: 'Orange Cyberdefense' } },
+        { name: 'Paul Mercier', phone: '0612345678' }
+      ];
+      eq(filterOrphans(bac, 'nadia').map(o => o.name), ['Nadia Rahmani']);
+      eq(filterOrphans(bac, 'rahmani orange').map(o => o.name), ['Nadia Rahmani']);
+      eq(filterOrphans(bac, '0612').map(o => o.name), ['Paul Mercier']);
+      eq(filterOrphans(bac, 'zzz'), []);
+      eq(filterOrphans(bac, '').length, 2);
+      eq(filterOrphans(null, 'x'), []);
+    },
     'tri « À faire » : la prochaine action la plus proche d’abord, sans rien de prévu à la fin': () => {
       const list = [
         normalizeCompany({ name: 'SansRien', updatedAt: 900 }),
@@ -990,6 +1056,42 @@ export async function runSelfTests(){
       eq(abime.length, 2);
       eq(abime.every(x => Number.isFinite(x.t)), true);
       eq(exchangeTotals([{ txt: 'Donné (QR) : 3 piste(s)' }]).donne, 3);
+      /* les identifiants remontent quand l'entrée les porte — c'est eux
+         qui rendent la ligne ouvrable ; sans eux elle reste du texte */
+      eq(fil.every(x => Array.isArray(x.ids)), true);
+      eq(fil.find(x => x.t === 60).ids, []);
+      const avecIds = exchangeLog([
+        { t: 1, txt: 'Donné (QR) : 2 piste(s)', ids: ['pi-a', 'pi-b'] },
+        { t: 2, txt: 'Reçu de Karim : +1 piste(s), 0 complétée(s)', ids: 'pas un tableau' },
+        { t: 3, txt: 'Donné (fichier) : 1 piste(s)', ids: ['pi-c', 42, null, ''] }
+      ]);
+      eq(avecIds.find(x => x.t === 1).ids, ['pi-a', 'pi-b']);
+      eq(avecIds.find(x => x.t === 2).ids, []);          /* champ abîmé : ignoré, pas de casse */
+      eq(avecIds.find(x => x.t === 3).ids, ['pi-c']);    /* seules les chaînes non vides passent */
+    },
+    'fusion : les pistes touchées sont nommées — « Tes échanges » les rouvre': () => {
+      const comps = [normalizeCompany({ id: 'pi-ex', name: 'Alpha', city: 'Lille' })];
+      const st = mergeIncoming([
+        { name: 'Alpha', city: 'Lille', techs: 'Azure' },      /* complète l'existante */
+        { name: 'Beta', city: 'Paris' },                       /* nouvelle */
+        { name: 'Alpha', city: 'Lille' }                       /* ne change rien : divergence nulle */
+      ], comps);
+      eq(st.addedC, 1); eq(st.enriched, 1);
+      /* une seule fois chacune, et rien qui n'ait bougé */
+      eq(st.ids.length, 2);
+      eq(st.ids.includes('pi-ex'), true);
+      eq(st.ids.includes(comps.find(c => c.name === 'Beta').id), true);
+      /* les identifiants désignent bien des pistes du suivi */
+      eq(st.ids.every(id => comps.some(c => c.id === id)), true);
+      /* DEUX fiches entrantes qui complètent la MÊME piste : elle est
+         nommée une fois, pas deux — sinon la feuille de « Tes échanges »
+         listerait la même piste en double */
+      const c2 = [normalizeCompany({ id: 'pi-un', name: 'Gamma' })];
+      const st2 = mergeIncoming([
+        { name: 'Gamma', city: 'Nantes' },
+        { name: 'Gamma', techs: 'Kubernetes' }
+      ], c2);
+      eq(st2.ids, ['pi-un']);
     },
     'aides : signature collée → contact, sans jamais inventer': () => {
       const got = contactFromSignature(

@@ -38,8 +38,12 @@ export function findMatch(x, companies){
    enrichissements) et retourne des statistiques, dont le compteur de
    divergences (D2) : deux valeurs non vides différentes → rien n'est
    écrasé, mais l'utilisateur est prévenu. */
+/* `stats.ids` = les pistes RÉELLEMENT touchées (ajoutées ou complétées).
+   Ce sont elles que « Tes échanges » rouvre plus tard : sans ça, la
+   ligne « 3 pistes reçues » ne mène nulle part. Les divergences n'en
+   font pas partie — rien n'a bougé, il n'y a rien à rouvrir. */
 export function mergeIncoming(list, companies){
-  const stats = { addedC: 0, enriched: 0, addedCt: 0, conflicts: 0 };
+  const stats = { addedC: 0, enriched: 0, addedCt: 0, conflicts: 0, ids: [] };
   const differ = (a, b) => String(a).trim() !== String(b).trim();
   for (const rawC of list){
     const x = normalizeCompany(rawC);
@@ -57,6 +61,7 @@ export function mergeIncoming(list, companies){
       x.history = [{ d: todayISO(), t: 'Reçue via partage' }];
       companies.push(x);
       stats.addedC++;
+      stats.ids.push(x.id);
     } else {
       let touched = false;
       for (const f of ['desc','address','city','website','techs','process','tips']){
@@ -91,7 +96,14 @@ export function mergeIncoming(list, companies){
           stats.addedCt++; touched = true;
         }
       }
-      if (touched){ ex.updatedAt = Date.now(); stats.enriched++; }
+      /* une piste n'est nommée QU'UNE FOIS : deux fiches entrantes
+         peuvent viser la même existante (un fichier qui répète une
+         entreprise, deux camarades qui l'ont tous les deux), et la
+         feuille de « Tes échanges » la listerait alors deux fois. */
+      if (touched){
+        ex.updatedAt = Date.now(); stats.enriched++;
+        if (!stats.ids.includes(ex.id)) stats.ids.push(ex.id);
+      }
     }
   }
   return stats;

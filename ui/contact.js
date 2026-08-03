@@ -64,8 +64,7 @@ export function openContactEditor(o){
      <label class="ckline"><input type="checkbox" id="ceConf"${src.conf === 'ok' ? ' checked' : ''}> J’ai vérifié ces coordonnées</label>
      ${!editing ? `<button class="linklike" id="ceSig">Coller une signature d’email ?</button>
      <div class="field" id="ceSigZone" hidden><label for="ceSigTxt">La signature</label>
-       <textarea id="ceSigTxt" rows="4" placeholder="Colle la fin de l’email reçu — nom, rôle, téléphone…"></textarea>
-       <p class="hint">Lu ici, sur ton appareil — rien ne part nulle part.</p></div>` : ''}`;
+       <textarea id="ceSigTxt" rows="4" placeholder="Colle la fin de l’email reçu — nom, rôle, téléphone…"></textarea></div>` : ''}`;
   const q = s => sh.body.querySelector(s);
   const v = s => q(s).value.trim();
 

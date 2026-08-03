@@ -287,6 +287,8 @@ avec un motif existant.
 | Retour discret | `toast()` — court, ponctuel, jamais deux phrases |
 | Marquer partagé vs privé | `tag-share` / `tag-priv` |
 | Dire qu'un état **réclame quelque chose** | `.mark` + un cran : `mark-late` · `mark-now` · `mark-soon` · `mark-far`. **Un seul langage d'urgence dans toute l'app**, échelle monotone, et **ce qui ne réclame rien n'affiche rien** — c'est le vide en face qui fait ressortir le reste. Un cadre entier peut prendre le bord ambre (`.fset.fs-alert`) quand son état peut tout coûter |
+| Chercher | `filterCompanies({q})` / `filterOrphans` — les accents se plient dans les deux sens et **chaque mot se cherche pour lui-même** (tous présents, ordre libre). « / » ouvre le champ, Échap le vide |
+| Expliquer un résultat | `searchHint(c, q, {skip})` → `.ri-hit` + `<mark>`. Le moteur rend l'extrait ET les positions, jamais du HTML. La ligne ne parle **que** si ce qu'elle affiche déjà ne répond pas — l'appelant dit ce qu'il montre (`skip`), et rien ne se dit deux fois |
 | Proposer un filtre | `.fl-chip` + son **compte**. Ne jamais offrir une valeur absente des données. Liste fermée (statuts) : la puce reste, éteinte. Liste ouverte (domaines) : elle disparaît, sauf si le filtre est actif |
 | Note contextuelle | `<p class="hint">` (+ `warn` si alerte) |
 | Multi-sélection | `.pk` avec icônes checkbox — **jamais pour supprimer**. L'emphase suit le DÉFAUT : parti de rien coché, l'aplat marque le choix ; parti de tout coché, `pk-inverse` marque l'**écart**. **Le défaut se juge feuille par feuille** — « → qui » s'ouvre tout coché pour *donner*, avec une seule personne pour *écrire* |

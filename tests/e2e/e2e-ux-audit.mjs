@@ -66,6 +66,38 @@ console.log('Écrire sans e-mail : Envoyer absent (loi #6), Copier devient prima
 await page.screenshot({ path: SHOTS + '/80-ux-ecrire-sans-email.png' });
 await closeSheet();
 
+/* F1 bis : un bouton qui est un LIEN garde son libellé quand on le touche.
+   `a:hover` (0,1,1) bat `.btn-primary` (0,1,0) : l'encre passait à
+   `--text-link-hover`, soit exactement `--accent-hover`, mesuré à 1.00:1
+   sur son propre fond. iOS colle le survol après un tap — « Ouvrir dans
+   Mail » se vidait au moment du geste et le restait. */
+await page.evaluate(async () => {
+  const { openMail } = await import('./ui/mail.js');
+  const { S } = await import('./ui/state.js');
+  openMail(S.companies.find(c => c.id === 'avec-mail'));
+});
+await page.waitForSelector('.modal-f a.btn');
+const lum = ([r, g, b]) => {
+  const f = v => { v /= 255; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; };
+  return .2126 * f(r) + .7152 * f(g) + .0722 * f(b);
+};
+const rgb = s => (String(s).match(/\d+/g) || [0, 0, 0]).slice(0, 3).map(Number);
+const contraste = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + .05) / (y + .05); };
+for (const theme of ['light', 'dark']){
+  await page.evaluate(t => document.documentElement.dataset.theme = t, theme);
+  const aM = await page.$('.modal-f a.btn');
+  const box = await aM.boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.waitForTimeout(60);
+  const [fg, bg] = await aM.evaluate(n => { const s = getComputedStyle(n); return [s.color, s.backgroundColor]; });
+  const c = contraste(rgb(fg), rgb(bg));
+  if (c < 4.5) fail(`« Ouvrir dans Mail » survolé en ${theme} : ${c.toFixed(2)}:1 — ${fg} sur ${bg}`);
+  await page.mouse.move(2, 2);
+}
+console.log('bouton-lien survolé : le libellé garde son encre, clair et sombre ✓');
+await page.evaluate(() => document.documentElement.dataset.theme = 'light');
+await closeSheet();
+
 /* F5 + F4 : l'adresse orpheline n'est visible qu'une fois et les petites
    actions atteignent 44 px dans le contexte mobile. Le bac « à rattacher »
    est replié par défaut (#13) : on l'ouvre d'abord. */
@@ -88,6 +120,124 @@ const sizes = await page.evaluate(() => {
 if (sizes.small < 44 || sizes.iconW < 44 || sizes.iconH < 44)
   fail('cibles tactiles trop petites : ' + JSON.stringify(sizes));
 console.log('orphelin lisible + cibles tactiles 44 px ✓');
+
+/* F7 : la recherche. Trois pannes silencieuses — elles rendaient ZÉRO
+   résultat sans jamais dire pourquoi, ce qui se lit comme « je n'ai
+   pas cette piste » : le mot tapé sans accent, les deux mots venus de
+   deux champs, et le bac « à rattacher » qui ignorait la recherche.
+   On ajoute une piste accentuée le temps du contrôle, puis on rend
+   les données d'origine — la suite du scénario compte deux pistes. */
+const DEUX = await page.evaluate(async () => {
+  const st = await import('./engine/storage.js');
+  const avant = await st.kvGet(st.DATA_KEY);
+  const d = JSON.parse(avant);
+  d.push({ id: 'accent', name: 'Cyberdéfense Lyon', status: 'todo', city: 'Lyon',
+    techs: 'SOC managé, Fortinet', updatedAt: 3, contacts: [] });
+  await st.kvSet(st.DATA_KEY, JSON.stringify(d));
+  return avant;
+});
+await page.reload({ waitUntil: 'load' });
+await page.waitForSelector('#piQ');
+const chercher = async txt => {
+  await page.fill('#piQ', txt);
+  await page.waitForTimeout(260);                       /* la frappe est amortie (180 ms) */
+  return page.evaluate(() => ({
+    noms: [...document.querySelectorAll('#piBody .row-item h3')].map(n => n.textContent),
+    compte: document.querySelector('#piCount')?.textContent || '',
+    marques: [...document.querySelectorAll('#piBody .ri-hit mark')].map(n => n.textContent),
+    hits: [...document.querySelectorAll('#piBody .ri-hit')].map(n => n.textContent),
+    bacOuvert: document.querySelector('.tr-orph')?.open || false,
+    bacLignes: document.querySelectorAll('.tr-orph .orow').length,
+    vide: document.querySelector('.empty-list')?.textContent.trim().split('\n')[0] || ''
+  }));
+};
+const sansAccent = await chercher('cyberdefense');
+if (!sansAccent.noms.includes('Cyberdéfense Lyon'))
+  fail('« cyberdefense » sans accent ne trouve pas « Cyberdéfense Lyon » : ' + JSON.stringify(sansAccent.noms));
+const deuxMots = await chercher('atelier camille');
+if (deuxMots.noms.join() !== 'Atelier local')
+  fail('« atelier camille » (nom + contact) : ' + JSON.stringify(deuxMots.noms));
+if (!/1 sur 3/.test(deuxMots.compte)) fail('le compte ne dit pas la part filtrée : « ' + deuxMots.compte + ' »');
+if (!deuxMots.marques.some(m => /Camille/i.test(m)))
+  fail('le mot trouvé n’est pas montré sur la ligne : ' + JSON.stringify(deuxMots.hits));
+/* le nom répond déjà : pas de deuxième ligne pour redire la même chose */
+const deja = await chercher('atelier');
+if (deja.hits.length) fail('la ligne explique ce que le nom montre déjà : ' + JSON.stringify(deja.hits));
+/* le bac suit, et s'ouvre — sinon l'écran se contredit tout seul */
+const bac = await chercher('recrutement');
+if (!bac.bacOuvert || bac.bacLignes !== 1) fail('le bac « à rattacher » ne suit pas la recherche');
+if (!/Aucune piste/.test(bac.vide)) fail('l’écran vide ne nomme pas l’objet : « ' + bac.vide + ' »');
+/* Échap vide le champ ; « / » y ramène le curseur */
+await page.keyboard.press('Escape');
+await page.waitForTimeout(260);
+const vide = await page.evaluate(() => document.querySelector('#piQ').value);
+if (vide !== '') fail('Échap ne vide pas la recherche');
+await page.click('#view-pistes h2');
+await page.keyboard.press('/');
+const focus = await page.evaluate(() => document.activeElement && document.activeElement.id);
+if (focus !== 'piQ') fail('« / » ne ramène pas au champ de recherche (focus : ' + focus + ')');
+await page.evaluate(async avant => {
+  const st = await import('./engine/storage.js');
+  await st.kvSet(st.DATA_KEY, avant);
+}, DEUX);
+console.log('recherche : accents pliés, deux mots, le pourquoi montré, le bac qui suit, « / » et Échap ✓');
+
+/* F8 : « Tes échanges » menait nulle part — « 3 pistes reçues · Marco »
+   disait qu'il s'était passé quelque chose, et rien d'autre. Une ligne
+   qui a gardé les identifiants de ses pistes s'ouvre dessus ; une
+   entrée d'avant ce champ n'en a pas, et NE promet rien : un chevron
+   qui n'ouvre pas coûte plus cher qu'un chevron absent. */
+await page.evaluate(async () => {
+  const st = await import('./engine/storage.js');
+  const h = 3600000, now = Date.now();
+  const j = [{ t: now - 40 * h, txt: 'Donné (QR) : 3 piste(s)' }];   /* ancienne : sans ids */
+  for (let i = 0; i < 8; i++)
+    j.push({ t: now - (30 - i) * h, txt: 'Donné (fichier) : 1 piste(s)', ids: ['avec-mail'] });
+  j.push({ t: now - h, txt: 'Reçu de Marco : +2 piste(s), 0 complétée(s)',
+    ids: ['sans-mail', 'disparue-depuis'] });
+  await st.kvSet(st.JOURNAL_KEY, JSON.stringify(j));
+});
+await page.goto(base + '/#/echanger');
+await page.reload({ waitUntil: 'load' });
+await page.waitForSelector('.ec-row');
+const fil = await page.evaluate(() => ({
+  lignes: document.querySelectorAll('.ec-row').length,
+  ouvrables: document.querySelectorAll('button.ec-row').length,
+  badge: document.querySelector('.ec-fil .tr-n')?.textContent || '',
+  more: document.querySelector('#ecMore')?.textContent || '',
+  hauteur: Math.round(document.querySelector('.ec-row').getBoundingClientRect().height)
+}));
+if (fil.lignes !== 8 || !/Voir les 2 autres/.test(fil.more))
+  fail('le fil ne se plafonne pas à 8 avec sa suite : ' + JSON.stringify(fil));
+if (fil.badge !== '10') fail('le compte de l’en-tête ne dit pas le total : ' + fil.badge);
+if (fil.hauteur < 44) fail('une ligne qui s’ouvre doit faire 44 px au pouce : ' + fil.hauteur);
+await page.click('#ecMore');
+await page.waitForFunction(() => document.querySelectorAll('.ec-row').length === 10);
+const apres = await page.evaluate(() => ({
+  ouvrables: document.querySelectorAll('button.ec-row').length,
+  muettes: [...document.querySelectorAll('div.ec-row')].map(n => n.textContent.replace(/\s+/g, ' ').trim())
+}));
+if (apres.ouvrables !== 9 || apres.muettes.length !== 1)
+  fail('une entrée sans identifiants ne doit pas promettre une ouverture : ' + JSON.stringify(apres));
+await page.evaluate(() =>
+  [...document.querySelectorAll('button.ec-row')].find(n => /Marco/.test(n.textContent)).click());
+await page.waitForSelector('.modal-b .pick-list');
+const feuille = await page.evaluate(() => ({
+  titre: document.querySelector('.mh-t')?.textContent || '',
+  pistes: [...document.querySelectorAll('.modal-b .pick b')].map(n => n.textContent),
+  note: document.querySelector('.modal-b .hint')?.textContent || ''
+}));
+if (!/reçu/i.test(feuille.titre) || feuille.pistes.join() !== 'Atelier local')
+  fail('la feuille d’un échange ne montre pas ce qui a circulé : ' + JSON.stringify(feuille));
+if (!/plus dans ton suivi/.test(feuille.note))
+  fail('une piste supprimée depuis doit être dite, pas escamotée : ' + feuille.note);
+await page.click('.modal-b .pick');
+await attendre(page, async () => /Atelier local/.test(document.querySelector('.mh-t')?.textContent || ''),
+  { message: 'taper une piste de l’échange ouvre sa fiche' });
+await closeSheet();
+await page.evaluate(async () => (await import('./engine/storage.js')).kvSet('oc_journal_v1', '[]'));
+await page.goto(base + '/#/pistes');
+console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pistes, une vieille entrée ne promet rien ✓');
 
 /* Effet miroir F1 : sans messagerie, le contrôle de campagne explique le
    prérequis et ne laisse pas Valider promettre une action impossible. */

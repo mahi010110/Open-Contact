@@ -77,9 +77,13 @@ export function openDonner(){
     /* ce qui part AVANT comment ça part : on ne choisit pas un canal sans
        savoir ce qu'on met dedans. La liste dépliée pousse les deux choix
        vers le bas — c'est l'ordre de lecture, et le pouce les trouve mieux. */
+    /* Pas de rappel de confidentialité en tête. Il se lisait à chaque
+       ouverture, disait une règle du produit et non un geste à faire, et
+       repoussait vers le bas la seule chose qui se décide ici : ce qui
+       part. Ce que l'app ne partage jamais, elle ne le partage jamais —
+       l'écrire cent fois ne le rend pas plus vrai. */
     sh.body.innerHTML =
-      `<p class="hint" style="margin:0 0 10px">${ic('lock', 'ic-14')} Seules les fiches partent — jamais ton suivi privé.</p>
-       <div class="dn-src">
+      `<div class="dn-src">
          <div class="dn-what">
            <span class="dn-count" id="dnCount"></span>
            <button class="lb-act lb-fold" id="dnPick" aria-expanded="false">
@@ -173,18 +177,22 @@ export function openDonner(){
   const stepQR = async () => {
     const my = enter();
     const n = chosen().length;
+    /* la sélection se fige ICI, avec son compte : les deux voyagent
+       ensemble jusqu'au journal, sinon la ligne d'échange dirait un
+       nombre et rouvrirait une autre liste */
+    const ids = chosen().map(c => c.id);
     let compact = null;
     try { compact = await encodeOCQ(chosen(), keepFn); } catch (e) {}
     if (my !== gen) return;
-    if (compact && compact.length <= QR_HARD_MAX){ stepQRData(compact, n); return; }
-    if (navigator.onLine){ stepQRRdv(compact, n); return; }
-    if (compact){ stepQRData(compact, n); return; }
+    if (compact && compact.length <= QR_HARD_MAX){ stepQRData(compact, n, ids); return; }
+    if (navigator.onLine){ stepQRRdv(compact, n, ids); return; }
+    if (compact){ stepQRData(compact, n, ids); return; }
     toast('Le QR n’est pas disponible sur ce navigateur — passe par le fichier.');
     stepFile();
   };
 
   /* le QR porte les données (OCQ1) — animé en plusieurs parties si besoin */
-  const stepQRData = async (compact, n) => {
+  const stepQRData = async (compact, n, ids) => {
     const my = enter();
     const parts = compact.length > QR_HARD_MAX ? splitOCQ(compact) : [compact];
     let svgs;
@@ -214,19 +222,19 @@ export function openDonner(){
         prog.textContent = `partie ${i + 1}/${svgs.length} — laisse défiler`;
       }, 900);
     }
-    logJ('Donné (QR) : ' + n + ' piste(s)');
+    logJ('Donné (QR) : ' + n + ' piste(s)', null, ids);
     sh.setFoot([btn('← Retour', 'btn-ghost', stepHow), btn('Fichier plutôt', '', stepFile)]);
   };
 
   /* le QR est un code de rendez-vous (OCR1) : l'autre appareil scanne
      ou tape le code, l'appairage P2P fait passer les fiches — sans
      limite de nombre. Échec de connexion = repli silencieux. */
-  const stepQRRdv = async (compact, n) => {
+  const stepQRRdv = async (compact, n, ids) => {
     const my = enter();
     await leaving;
     if (my !== gen) return;
     const fallback = () => {
-      if (compact){ toast('Pas de connexion — QR hors ligne.'); stepQRData(compact, n); }
+      if (compact){ toast('Pas de connexion — QR hors ligne.'); stepQRData(compact, n, ids); }
       else { toast('Pas de connexion — passe par le fichier.'); stepFile(); }
     };
     sh.setTitle(`QR — ${n} piste${n > 1 ? 's' : ''}`);
@@ -277,7 +285,7 @@ export function openDonner(){
     r.onPeerJoin = () => {
       give.send(payload);
       sent++;
-      if (sent === 1) logJ('Donné (QR rendez-vous) : ' + n + ' piste(s)');
+      if (sent === 1) logJ('Donné (QR rendez-vous) : ' + n + ' piste(s)', null, ids);
       const el = q('#dnRdvSt');
       if (el) el.innerHTML = `${ic('check', 'ic-14')} Envoyé ✓ — ${sent} appareil${sent > 1 ? 's' : ''}`;
     };
@@ -287,6 +295,7 @@ export function openDonner(){
   const stepFile = () => {
     enter();
     const n = chosen().length;
+    const ids = chosen().map(c => c.id);
     const fname = 'opencontact-pistes-' + todayISO() + '.oc';
     sh.setTitle(`Fichier — ${n} piste${n > 1 ? 's' : ''}`);
     sh.body.innerHTML =
@@ -315,7 +324,7 @@ export function openDonner(){
       }
       const payload = sharePayload(chosen(), keepFn);
       const txt = pass ? await encryptOC2(payload, pass) : JSON.stringify(payload);
-      logJ('Donné (fichier' + (pass ? ' chiffré' : '') + ') : ' + n + ' piste(s)');
+      logJ('Donné (fichier' + (pass ? ' chiffré' : '') + ') : ' + n + ' piste(s)', null, ids);
       return txt;
     };
     const share = q('#dnShare');

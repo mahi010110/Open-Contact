@@ -522,7 +522,7 @@ export function openPromo(){
         const list = chosen();
         if (!list.length) return;
         share.send(sharePayload(list, keepFn));
-        logJ('Donné (partage en groupe) : ' + list.length + ' piste(s)');
+        logJ('Donné (partage en groupe) : ' + list.length + ' piste(s)', null, list.map(c => c.id));
         toast('Parti vers ' + peers + ' camarade' + (peers > 1 ? 's' : '') + ' ✓');
       });
       q('#prPick').addEventListener('click', () => { choosing = !choosing; refreshStatus(); });

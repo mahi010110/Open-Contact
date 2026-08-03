@@ -15,8 +15,11 @@ export function openProfil(onDone){
   const p = S.profile;
   const sh = openSheet({ title: 'Mon profil', icon: 'user', focus: '#pfName' });
   sh.body.innerHTML =
-    `<p class="hint" style="margin:0 0 14px">${ic('lock', 'ic-14')} Privé — sert à remplir tes emails.</p>
-     <div class="grid2">
+    /* « Privé — sert à remplir tes emails » vivait ici en tête. « Moi » le
+       dit déjà, au moment où l'on décide d'ouvrir cette feuille ; et
+       « privé » est l'état par défaut de toute l'app, pas une propriété
+       de cet écran-là. */
+    `<div class="grid2">
        <div class="field"><label for="pfName">Prénom & nom</label>
          <input id="pfName" value="${esc(p.name)}" placeholder="Ex : Sam Martin" autocomplete="name"></div>
        <div class="field"><label for="pfFormation">Formation</label>

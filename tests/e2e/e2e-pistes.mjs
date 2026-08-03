@@ -93,7 +93,7 @@ await mPage.click('[data-st="reply"]');
 await mPage.click('[data-dom="cyber"]');
 await mPage.evaluate(async () => (await import('./ui/dom.js')).topSheet()?.close());
 await mPage.waitForSelector('#piFtClear');
-if (!/Rien ne correspond au filtre/.test(await mPage.locator('.empty-list').innerText()))
+if (!/Aucune piste ne correspond au filtre/.test(await mPage.locator('.empty-list').innerText()))
   fail('vide filtré muet');
 await mPage.click('#piFtClear');
 await mPage.waitForFunction(() => document.querySelectorAll('#piBody .row-item').length === 4);

@@ -267,7 +267,21 @@ await attendre(E, async () => {
   const sy = (await import('./ui/synclive.js')).getSync();
   return sy.state === 'wait' && sy.relays.open >= 1;
 }, { timeout: 30000, message: 'liaison rétablie après Réessayer' });
-if (!/Relais joints/.test((await E.textContent('#syStatus')).trim())) fail('statut après Réessayer');
+/* Le moteur reprend AVANT que l'écran le dise : `attendre` ci-dessus rend
+   la main sur l'ÉTAT, et le libellé se réécrit au tick suivant, quand
+   l'abonné se rejoue. Lu dans la foulée, il portait encore la phrase
+   d'avant — d'où un rouge qui n'accusait rien de réel (vu en CI le
+   03/08 : l'échec et la ligne « prouvé ✓ » à la même milliseconde).
+   On attend donc ce que l'utilisateur VOIT, qui est de toute façon ce
+   que ce contrôle prétend prouver. Le délai reste borné, et l'échec
+   dit ce qui était affiché à la place. */
+let statutVu = false;
+try {
+  await attendre(E, () => /Relais joints/.test(document.querySelector('#syStatus')?.textContent || ''),
+    { timeout: 10000 });
+  statutVu = true;
+} catch (e) {}
+if (!statutVu) fail('statut après Réessayer : « ' + (await E.textContent('#syStatus')).trim() + ' »');
 console.log('Réessayer : relais revenu → « Relais joints », prouvé ✓');
 relaisRevenu.close();
 
