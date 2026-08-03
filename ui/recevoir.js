@@ -318,8 +318,7 @@ export function openImportMails(){
       leaveAnalysis();
       sh.setTitle('Analyse interrompue');
       sh.body.innerHTML =
-        `<p class="hint warn" style="margin:8px 0 12px">${ic('square-alert', 'ic-14')} ${esc(rec.error)}</p>
-         <p class="hint">Aucune piste n’a été ajoutée.</p>`;
+        `<p class="hint warn" style="margin:8px 0 12px">${ic('square-alert', 'ic-14')} ${esc(rec.error)}</p>`;
       sh.setFoot([
         btn('← Retour', 'btn-ghost', mails),
         btn('Oublier et recommencer', 'btn-primary', async () => { await clearMailAnalysis(rec.mid); mails(); })
@@ -466,7 +465,7 @@ export function mergePreviewInto(sh, obj, opts){
          ${dry.addedCt ? `<li>${ic('contact', 'ic-14')} <b>${dry.addedCt}</b> contact${dry.addedCt > 1 ? 's' : ''} ajouté${dry.addedCt > 1 ? 's' : ''}</li>` : ''}
          ${dry.conflicts ? `<li class="rc-warn">${ic('square-alert', 'ic-14')} <b>${dry.conflicts}</b> divergence${dry.conflicts > 1 ? 's' : ''} — l’existant est gardé</li>` : ''}
        </ul>
-       ${obj.kind === 'full' ? `<p class="hint">${ic('info-box', 'ic-14')} Seules les pistes arrivent ici. Pour tout restaurer, va dans « Moi ».</p>` : ''}
+       ${obj.kind === 'full' ? `<p class="hint">${ic('info-box', 'ic-14')} Pour tout restaurer, va dans « Moi ».</p>` : ''}
        ${opts.select && n ? `<div class="pick-list pk-inverse" style="margin:10px 0 4px">
          ${obj.companies.slice(0, 200).map((c, i) =>
            `<button class="pick pk on" data-sel="${i}" aria-pressed="true">

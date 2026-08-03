@@ -51,9 +51,13 @@ await page.click('#lkForgot');
 await page.waitForSelector('#rcPhrase');
 await page.fill('#rcPhrase', oldPhrase.toUpperCase());          /* tolérance de casse */
 await page.click('.modal-f .btn-primary');                       /* Vérifier */
-await page.waitForSelector('.lk-why', { timeout: 20000 });       /* annonce D7 */
-await page.click('.modal-f .btn-primary');                       /* Continuer */
-await page.waitForSelector('.modal .pad-k');
+/* La phrase prouvée mène DIRECTEMENT au nouveau code. L'écran d'annonce
+   racontait les trois étapes suivantes sans rien afficher de réel : on
+   vient de prouver sa phrase, on veut son app, pas un sommaire. Ce qu'il
+   disait d'utile — les anciennes copies s'ouvrent encore avec l'ancienne
+   phrase — se lit sur l'écran de la nouvelle copie, là où ça compte. */
+await page.waitForSelector('.modal .pad-k', { timeout: 20000 });
+if (await page.$('.lk-why')) fail('l’écran d’annonce est revenu dans la récupération');
 const tap = async code => { for (const d of code) await page.click(`.modal .pad-k[data-d="${d}"]`); };
 await tap('731945');
 await page.waitForTimeout(250);
@@ -70,6 +74,9 @@ await page.fill('#vw1', words[n1]);
 await page.fill('#vw2', words[n2]);
 await page.click('.modal-f .btn-primary');                       /* Continuer → rotation */
 await page.waitForSelector('.modal-f button:has-text("Télécharger")', { timeout: 30000 });
+/* le fait qu'on ne peut pas deviner a bien suivi jusqu'ici */
+if (!/anciennes copies s.ouvrent encore/.test(await page.locator('.modal-b').innerText()))
+  fail('l’avertissement sur les anciennes copies s’est perdu en route');
 const dl = page.waitForEvent('download');
 await page.click('.modal-f button:has-text("Télécharger")');
 await dl;

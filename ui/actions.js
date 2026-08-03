@@ -159,7 +159,7 @@ export function askClose(c, opts){
             <b>${CLOSE_REASONS[k].label}</b>
           </button>`).join('')}
      </div>
-     <p class="hint">${ic('archive', 'ic-14')} Elle reste dans « Mes pistes », tu peux la rouvrir.</p>`;
+     <p class="hint">${ic('archive', 'ic-14')} Elle reste dans « Mes pistes ».</p>`;
   sh.body.querySelectorAll('.pick-close').forEach(b =>
     b.addEventListener('click', () => {
       closePiste(c, b.dataset.r);

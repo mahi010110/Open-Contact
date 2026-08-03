@@ -128,7 +128,7 @@ function openDeviceSheet(d, onDone){
   /* le quotidien visible ; l'administration de flotte repliée (N10) —
      de la sécurité, rare, non bloquante (loi #8) */
   sh.body.innerHTML =
-    `<p class="hint" style="margin:0 0 10px">Vu ${agoLabel(d.seen || 0)}. Une commande s’applique quand il se reconnecte.</p>
+    `<p class="hint" style="margin:0 0 10px">Vu ${agoLabel(d.seen || 0)}.</p>
      <div class="pick-list">
        <button class="pick" id="dvRemove"><b>Retirer de mes appareils</b></button>
      </div>
@@ -275,7 +275,7 @@ export function openAppareils(){
              : '')}
          ${getRing() && !iAmMain ? `<p class="hint" style="margin-top:6px">Seul ton appareil principal peut gérer les autres.</p>` : ''}
          ${1 + devs.length > DEVICES_MAX
-           ? `<p class="hint warn" style="margin-top:6px">Plus de ${DEVICES_MAX} appareils — change la phrase de liaison pour écarter ceux que tu ne reconnais pas.</p>`
+           ? `<p class="hint warn" style="margin-top:6px">Plus de ${DEVICES_MAX} appareils — change la phrase pour écarter les inconnus.</p>`
            : ''}
        </div>
        ${relaySettingsHTML(relays, turn)}

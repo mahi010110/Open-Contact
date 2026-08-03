@@ -196,7 +196,7 @@ function openRecovery(onUnlocked){
       `<div class="field"><label for="rcPhrase">Ta phrase de secours</label>
          <textarea id="rcPhrase" rows="3" autocapitalize="none" autocomplete="off"
            placeholder="Les 12 mots, dans l’ordre, séparés par des espaces"></textarea>
-         <p class="hint" id="rcHint">Celle que tu as écrite sur papier en protégeant tes données.</p></div>`;
+         <p class="hint" id="rcHint">Celle que tu as écrite sur papier.</p></div>`;
     sh.setFoot([btn('Vérifier', 'btn-primary', async () => {
       const phrase = q('#rcPhrase').value;
       const bad = phraseUnknownWords(phrase);
@@ -213,21 +213,17 @@ function openRecovery(onUnlocked){
         return;
       }
       oldPhrase = phrase;
-      stepAnnounce();
+      stepNewPin();
     })]);
   };
 
-  const stepAnnounce = () => {
-    sh.setTitle('Récupération');
-    sh.body.innerHTML =
-      `<div class="lk-whys">
-         <div class="lk-why">${ic('switch', 'ic-14')} <span>Cet appareil devient ton appareil principal. L’ancien est écarté.</span></div>
-         <div class="lk-why">${ic('lock', 'ic-14')} <span>Ton code et ta phrase sont renouvelés.</span></div>
-         <div class="lk-why">${ic('save', 'ic-14')} <span>Une nouvelle copie chiffrée termine le parcours.</span></div>
-       </div>
-       <p class="hint">Tes anciennes copies s’ouvrent toujours avec l’ancienne phrase. Détruis celles que tu ne veux plus.</p>`;
-    sh.setFoot([btn('Continuer', 'btn-primary', stepNewPin)]);
-  };
+  /* L'écran d'annonce est parti — le même défaut que l'accueil du
+     parcours de protection : quatre phrases qui racontent les trois
+     étapes suivantes, aucune donnée, un bouton pour passer. On vient de
+     prouver sa phrase de secours ; on veut son app, pas un sommaire.
+     Le seul fait qu'on ne peut PAS deviner — les anciennes copies
+     s'ouvrent encore avec l'ancienne phrase — descend sur l'écran de la
+     nouvelle copie, là où il veut dire quelque chose. */
 
   const stepNewPin = () => {
     sh.setTitle('Nouveau code');
@@ -242,7 +238,7 @@ function openRecovery(onUnlocked){
 
   const doRotate = async () => {
     sh.setTitle('Renouvellement…');
-    sh.body.innerHTML = '<p class="hint" style="margin:12px 0">Nouvelles clés, données re-scellées — quelques secondes.</p>';
+    sh.body.innerHTML = '';   /* le titre dit « Renouvellement… » : le redire dessous n'ajoute rien */
     sh.setFoot(null);
     /* ordre vital : la nouvelle métadonnée D'ABORD (elle embarque
        l'ancienne clé scellée sous la nouvelle — `prev`), le
@@ -258,7 +254,8 @@ function openRecovery(onUnlocked){
     await recoverRing(oldPhrase, newPhrase).catch(() => {});
     logJ('Récupération d’urgence : protection et phrase renouvelées');
     backupCeremony(sh, newPhrase, finish,
-      'Presque fini : une nouvelle copie chiffrée, à garder ailleurs.');
+      'Presque fini : une nouvelle copie chiffrée, à garder ailleurs. '
+      + 'Tes anciennes copies s’ouvrent encore avec l’ancienne phrase.');
   };
 
   const finish = () => {
@@ -326,13 +323,16 @@ function phraseCeremony(sh, phrase, onOk){
          <div class="field"><label for="vw2">Mot n°${b + 1}</label>
            <input id="vw2" autocapitalize="none" autocomplete="off"></div>
        </div>
-       <p class="hint" id="vwHint">Recopie ces deux mots depuis ton papier.</p>`;
+       <p class="hint" id="vwHint" hidden></p>`;
     sh.setFoot([
       btn('Revoir la phrase', 'btn-ghost', show),
       btn('Continuer', 'btn-primary', () => {
         const w1 = q('#vw1').value.trim().toLowerCase();
         const w2 = q('#vw2').value.trim().toLowerCase();
         if (w1 !== words[a] || w2 !== words[b]){
+          /* la ligne n'existe QUE pour dire l'erreur : au repos, deux
+             champs nommés « Mot n°3 » et « Mot n°9 » se comprennent seuls */
+          q('#vwHint').hidden = false;
           q('#vwHint').textContent = 'Ce n’est pas ça — reprends ton papier.';
           q('#vwHint').classList.add('warn');
           return;
@@ -533,7 +533,7 @@ export function openProtectFlow(){
      à quatre, et commence par le seul qui demande quelque chose. */
   const stepPin = () => {
     sh.setTitle('Ton code');
-    sh.body.innerHTML = `<p class="hint" style="margin:0 0 10px">Six chiffres, demandés à chaque ouverture. Tu pourras l’enlever.</p><div id="lkPad"></div>`;
+    sh.body.innerHTML = `<p class="hint" style="margin:0 0 10px">Six chiffres, demandés à chaque ouverture.</p><div id="lkPad"></div>`;
     sh.setFoot(null);
     newCodePad(q('#lkPad'), code => {
       pin = code;
