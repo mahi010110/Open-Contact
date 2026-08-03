@@ -282,12 +282,12 @@ await attendre(E, async () => {
    dit ce qui était affiché à la place. */
 let statutVu = false;
 try {
-  await attendre(E, () => /Prêt/.test(document.querySelector('#syStatus')?.textContent || ''),
+  await attendre(E, () => /En attente de ton autre appareil/.test(document.querySelector('#syStatus')?.textContent || ''),
     { timeout: 10000 });
   statutVu = true;
 } catch (e) {}
 if (!statutVu) fail('statut après Réessayer : « ' + (await E.textContent('#syStatus')).trim() + ' »');
-console.log('Réessayer : relais revenu → « Prêt », prouvé ✓');
+console.log('Réessayer : relais revenu → « En attente », prouvé ✓');
 relaisRevenu.close();
 
 await E.evaluate(async () => {

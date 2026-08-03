@@ -200,8 +200,14 @@ export function openAppareils(){
       return `${ic('radio', 'ic-14')} <b>${sy.peers}</b> appareil${sy.peers > 1 ? 's' : ''} relié${sy.peers > 1 ? 's' : ''} — à jour`;
     if (sy.state === 'link')
       return `${ic('radio', 'ic-14')} <b>${sy.peers}</b> appareil${sy.peers > 1 ? 's' : ''} relié${sy.peers > 1 ? 's' : ''} — premier échange…`;
+    /* Le statut dit l'ÉTAT, pas la marche à suivre : la ligne juste
+       au-dessus donne déjà le chemin exact (« Moi → Mes appareils →
+       Entrer une phrase »), et deux fois la même consigne à deux lignes
+       d'écart, c'est une de trop. Le compte de relais part avec :
+       « 5/5 » ne veut rien dire pour qui lit, et le détail vit dans
+       « Connexion avancée » pour qui le cherche. */
     if (sy.state === 'wait')
-      return `${ic('clock', 'ic-14')} Prêt (${r.open}/${r.total}) — ouvre OpenContact sur ton autre appareil`;
+      return `${ic('clock', 'ic-14')} En attente de ton autre appareil`;
     if (sy.state === 'norelay' || sy.state === 'err')
       return `${ic('square-alert', 'ic-14')} Pas de connexion — ton réseau la bloque ?${reessayer}`;
     if (sy.state === 'rtcfail')
@@ -249,7 +255,11 @@ export function openAppareils(){
               ${sy.prevProfile ? '<button class="btn btn-sm" id="syKeepProf">Garder plutôt la mienne</button>' : ''}</li>` : ''}
          </ul>` : ''}</div>
        <div class="sy-devs">
-         <div class="lbl-row" style="margin-bottom:6px"><label>Appareils reliés</label></div>
+         ${/* « Appareils reliés » au-dessus d'une liste où l'on est SEUL
+              annonce un pluriel qui n'existe pas, et redit ce que le
+              statut vient de dire. La légende attend d'avoir quelque
+              chose à coiffer. */''}
+         ${devs.length || comp ? '<div class="lbl-row" style="margin-bottom:6px"><label>Appareils reliés</label></div>' : ''}
          <div class="dev-row"><b>${esc(self.name)}</b>${roleTag(self.id)}<span class="dev-sub">cet appareil</span></div>
          ${devs.map(d => iAmMain && roleOf(d.id)
            ? `<button class="dev-row dev-open" data-dev="${esc(d.id)}"><b>${esc(d.name)}</b>${roleTag(d.id)}
@@ -456,7 +466,7 @@ export function openPromo(){
       else if (stage === 'rtcfail')
         setStatus(`${ic('square-alert', 'ic-14')} Quelqu’un est là, mais rien ne passe — prends le QR ou le fichier`);
       else if (stage === 'wait')
-        setStatus(`${ic('clock', 'ic-14')} Prêt — personne d’autre pour l’instant…`);
+        setStatus(`${ic('clock', 'ic-14')} En attente de ton groupe`);
       else
         setStatus(`${ic('clock', 'ic-14')} Connexion…`);
     };
