@@ -34,19 +34,63 @@ const KEY_FNS = {
 };
 const STR_KEY = { az: 1, action: 1 };   /* comparées par collation, pas par soustraction */
 
+/* ---------- chercher comme on TAPE ----------
+   Deux réflexes d'un étudiant français, sur un téléphone, que la
+   recherche ne servait pas :
+   — il tape SANS accent (« societe », « cyberdefense ») alors que la
+     fiche en porte — mesuré : zéro résultat, sans rien pour le dire ;
+   — il tape DEUX mots (« cyber lyon ») en croyant restreindre. Comme
+     les champs étaient concaténés dans un ordre fixe et comparés
+     littéralement, deux mots venus de deux champs ne se touchaient
+     jamais : zéro résultat là encore, y compris quand les deux mots
+     sont bel et bien dans la fiche.
+   On plie donc les accents des deux côtés, et chaque mot se cherche
+   pour lui-même : TOUS doivent être là, n'importe où, dans n'importe
+   quel ordre. Le coût est nul — la dépense, c'est de construire la
+   chaîne d'une piste, et elle se construit toujours une seule fois. */
+export function fold(s){
+  return String(s == null ? '' : s)
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')   /* é → e, ç → c, ï → i … */
+    .replace(/[‘’‛`]/g, "'")             /* « l’ESN » se tape « l'ESN » */
+    .toLowerCase();
+}
+/* Plier CARACTÈRE PAR CARACTÈRE, en garantissant la même longueur :
+   une position trouvée dans la chaîne pliée désigne alors la même
+   lettre dans l'originale. C'est ce qui permet de montrer le mot
+   trouvé tel qu'il est ÉCRIT, accents compris. Un caractère dont le
+   pliage changerait la longueur (rarissime) reste tel quel : mieux
+   vaut ne pas le surligner que désaligner tout ce qui suit. */
+export function foldAligned(s){
+  const str = String(s == null ? '' : s);
+  let out = '';
+  for (const ch of str){
+    const f = fold(ch);
+    if (f.length === ch.length){ out += f; continue; }
+    const low = ch.toLowerCase();
+    out += (low.length === ch.length) ? low : ch;
+  }
+  return out;
+}
+export function queryWords(q){
+  return fold(q).split(/\s+/).filter(Boolean);
+}
+
 function blobOf(c){
   const cts = (c.contacts || []).map(t => [t.name, t.role, t.email, t.phone, t.note].join(' ')).join(' ');
   const pos = (c.positions || []).map(p => POSITIONS[p]).join(' ');
-  return [c.name, c.city, c.address, c.desc, c.techs, c.tips, c.process,
-          DOMAINS[c.domain]?.label, pos, cts].join(' ').toLowerCase();
+  return fold([c.name, c.city, c.address, c.desc, c.techs, c.tips, c.process,
+          DOMAINS[c.domain]?.label, pos, cts].join(' '));
 }
 export function filterCompanies(companies, opts){
   const { domain = '', status = '', sort = 'recent', dir = '', userPos = null } = opts || {};
-  const q = String((opts && opts.q) || '').trim().toLowerCase();
+  const words = queryWords(opts && opts.q);
   const arr = companies.filter(c => {
     if (domain && c.domain !== domain) return false;
     if (status && c.status !== status) return false;
-    if (q && !blobOf(c).includes(q)) return false;
+    if (words.length){
+      const b = blobOf(c);
+      if (!words.every(w => b.includes(w))) return false;
+    }
     return true;
   });
   /* niveaux : `sorts` (multi) sinon le couple {sort, dir} historique ;
@@ -75,4 +119,109 @@ export function filterCompanies(companies, opts){
     return (B.c.updatedAt || 0) - (A.c.updatedAt || 0);   /* départage final : les récentes d'abord */
   });
   return deco.map(x => x.c);
+}
+
+/* ---------- POURQUOI cette piste est-elle là ? ----------
+   Chercher « SOC » remontait une ligne qui affiche nom · action ·
+   statut · ville : le mot trouvé vit dans `techs`, invisible. Un
+   résultat qu'on ne peut pas expliquer se relit une deuxième fois,
+   ou se prend pour une erreur.
+   Les champs sont rangés dans l'ordre où ils EXPLIQUENT le mieux —
+   un contact d'abord, c'est la raison la plus fréquente qu'une ligne
+   ne montre pas ; le nom et la ville en dernier, ils sont déjà à
+   l'écran. L'appelant dit ce qu'il affiche déjà (`skip`), et rien ne
+   se dit deux fois. */
+function hintFields(c){
+  const out = [];
+  const put = (field, text) => { const s = String(text || '').trim(); if (s) out.push({ field, text: s }); };
+  (c.contacts || []).forEach(t =>
+    put('contact', [[t.name, t.role].filter(Boolean).join(' — '), t.email, t.phone, t.note]
+      .filter(Boolean).join(' · ')));
+  put('techs', c.techs);
+  put('desc', c.desc);
+  put('tips', c.tips);
+  put('process', c.process);
+  put('address', c.address);
+  put('positions', (c.positions || []).map(p => POSITIONS[p]).filter(Boolean).join(', '));
+  put('domain', DOMAINS[c.domain] && DOMAINS[c.domain].label);
+  put('name', c.name);
+  put('city', c.city);
+  return out;
+}
+export const HINT_MAX = 64;
+/* l'extrait autour de la trouvaille, + les positions à surligner.
+   Le moteur ne rend JAMAIS de HTML : il rend du texte et des couples
+   [début, longueur], l'interface échappe et habille (règle de sens
+   unique — `engine/` ne connaît pas l'écran). */
+function excerpt(text, words, max){
+  const low = foldAligned(text);
+  const found = [];
+  for (const w of words){
+    let i = low.indexOf(w);
+    while (i >= 0){ found.push([i, w.length]); i = low.indexOf(w, i + w.length); }
+  }
+  if (!found.length) return null;
+  /* deux mots cherchés peuvent se recouvrir (« cy » et « cyber ») :
+     on fond les plages, sinon les balises s'imbriqueraient */
+  found.sort((a, b) => a[0] - b[0] || b[1] - a[1]);
+  const merged = [];
+  for (const [s, l] of found){
+    const last = merged[merged.length - 1];
+    if (last && s <= last[0] + last[1]) last[1] = Math.max(last[1], s + l - last[0]);
+    else merged.push([s, l]);
+  }
+  /* la fenêtre s'ouvre un peu AVANT la trouvaille — un extrait qui
+     commence pile sur le mot cherché perd le mot qui le porte — et
+     se cale sur une frontière de mot quand il y en a une */
+  const first = merged[0][0];
+  let a = Math.max(0, first - 12);
+  if (a > 0){
+    const sp = text.indexOf(' ', a - 1);
+    if (sp >= 0 && sp < first) a = sp + 1;
+  }
+  const b = Math.min(text.length, a + max);
+  const head = a > 0 ? '…' : '';
+  return {
+    text: head + text.slice(a, b) + (b < text.length ? '…' : ''),
+    marks: merged.filter(([s]) => s >= a && s < b)
+      .map(([s, l]) => [s - a + head.length, Math.min(l, b - s)])
+  };
+}
+export function searchHint(c, q, opts){
+  const words = queryWords(q);
+  if (!words.length) return null;
+  const skip = new Set((opts && opts.skip) || []);
+  const max = (opts && opts.max) || HINT_MAX;
+  const fields = hintFields(c);
+  /* Si ce qui est DÉJÀ à l'écran explique tous les mots, il n'y a rien
+     à révéler. Chercher « cyber » sur « Cyberdéfense Lyon » n'a pas
+     besoin d'une deuxième ligne pour ajouter « Cybersécurité » : ce
+     serait de l'encre sur ce que l'œil vient de lire, exactement le
+     papier peint que la règle du regard interdit. La ligne ne parle
+     donc que quand elle a quelque chose de neuf à dire. */
+  if (skip.size){
+    const vu = fold(fields.filter(f => skip.has(f.field)).map(f => f.text).join(' '));
+    if (words.every(w => vu.includes(w))) return null;
+  }
+  for (const f of fields){
+    if (skip.has(f.field)) continue;
+    const cut = excerpt(f.text, words, max);
+    if (cut) return { field: f.field, text: cut.text, marks: cut.marks };
+  }
+  return null;
+}
+
+/* ---------- le bac « contacts à rattacher » ----------
+   Il vit au-dessus de la liste et ignorait la recherche : chercher
+   « Nadia » affichait Nadia dans le bac ET « Rien ne correspond à
+   Nadia » juste en dessous. Un écran ne peut pas se contredire. */
+export function filterOrphans(orphans, q){
+  const words = queryWords(q);
+  const arr = (orphans || []).slice();
+  if (!words.length) return arr;
+  return arr.filter(o => {
+    const b = fold([o.name, o.role, o.email, o.phone, o.note, o.link,
+      (o.extra && o.extra.company) || ''].join(' '));
+    return words.every(w => b.includes(w));
+  });
 }

@@ -121,6 +121,68 @@ if (sizes.small < 44 || sizes.iconW < 44 || sizes.iconH < 44)
   fail('cibles tactiles trop petites : ' + JSON.stringify(sizes));
 console.log('orphelin lisible + cibles tactiles 44 px ✓');
 
+/* F7 : la recherche. Trois pannes silencieuses — elles rendaient ZÉRO
+   résultat sans jamais dire pourquoi, ce qui se lit comme « je n'ai
+   pas cette piste » : le mot tapé sans accent, les deux mots venus de
+   deux champs, et le bac « à rattacher » qui ignorait la recherche.
+   On ajoute une piste accentuée le temps du contrôle, puis on rend
+   les données d'origine — la suite du scénario compte deux pistes. */
+const DEUX = await page.evaluate(async () => {
+  const st = await import('./engine/storage.js');
+  const avant = await st.kvGet(st.DATA_KEY);
+  const d = JSON.parse(avant);
+  d.push({ id: 'accent', name: 'Cyberdéfense Lyon', status: 'todo', city: 'Lyon',
+    techs: 'SOC managé, Fortinet', updatedAt: 3, contacts: [] });
+  await st.kvSet(st.DATA_KEY, JSON.stringify(d));
+  return avant;
+});
+await page.reload({ waitUntil: 'load' });
+await page.waitForSelector('#piQ');
+const chercher = async txt => {
+  await page.fill('#piQ', txt);
+  await page.waitForTimeout(260);                       /* la frappe est amortie (180 ms) */
+  return page.evaluate(() => ({
+    noms: [...document.querySelectorAll('#piBody .row-item h3')].map(n => n.textContent),
+    compte: document.querySelector('#piCount')?.textContent || '',
+    marques: [...document.querySelectorAll('#piBody .ri-hit mark')].map(n => n.textContent),
+    hits: [...document.querySelectorAll('#piBody .ri-hit')].map(n => n.textContent),
+    bacOuvert: document.querySelector('.tr-orph')?.open || false,
+    bacLignes: document.querySelectorAll('.tr-orph .orow').length,
+    vide: document.querySelector('.empty-list')?.textContent.trim().split('\n')[0] || ''
+  }));
+};
+const sansAccent = await chercher('cyberdefense');
+if (!sansAccent.noms.includes('Cyberdéfense Lyon'))
+  fail('« cyberdefense » sans accent ne trouve pas « Cyberdéfense Lyon » : ' + JSON.stringify(sansAccent.noms));
+const deuxMots = await chercher('atelier camille');
+if (deuxMots.noms.join() !== 'Atelier local')
+  fail('« atelier camille » (nom + contact) : ' + JSON.stringify(deuxMots.noms));
+if (!/1 sur 3/.test(deuxMots.compte)) fail('le compte ne dit pas la part filtrée : « ' + deuxMots.compte + ' »');
+if (!deuxMots.marques.some(m => /Camille/i.test(m)))
+  fail('le mot trouvé n’est pas montré sur la ligne : ' + JSON.stringify(deuxMots.hits));
+/* le nom répond déjà : pas de deuxième ligne pour redire la même chose */
+const deja = await chercher('atelier');
+if (deja.hits.length) fail('la ligne explique ce que le nom montre déjà : ' + JSON.stringify(deja.hits));
+/* le bac suit, et s'ouvre — sinon l'écran se contredit tout seul */
+const bac = await chercher('recrutement');
+if (!bac.bacOuvert || bac.bacLignes !== 1) fail('le bac « à rattacher » ne suit pas la recherche');
+if (!/Aucune piste/.test(bac.vide)) fail('l’écran vide ne nomme pas l’objet : « ' + bac.vide + ' »');
+/* Échap vide le champ ; « / » y ramène le curseur */
+await page.keyboard.press('Escape');
+await page.waitForTimeout(260);
+const vide = await page.evaluate(() => document.querySelector('#piQ').value);
+if (vide !== '') fail('Échap ne vide pas la recherche');
+await page.click('#view-pistes h2');
+await page.keyboard.press('/');
+const focus = await page.evaluate(() => document.activeElement && document.activeElement.id);
+if (focus !== 'piQ') fail('« / » ne ramène pas au champ de recherche (focus : ' + focus + ')');
+await page.evaluate(async avant => {
+  const st = await import('./engine/storage.js');
+  await st.kvSet(st.DATA_KEY, avant);
+}, DEUX);
+console.log('recherche : accents pliés, deux mots, le pourquoi montré, le bac qui suit, « / » et Échap ✓');
+
+
 /* Effet miroir F1 : sans messagerie, le contrôle de campagne explique le
    prérequis et ne laisse pas Valider promettre une action impossible. */
 await page.evaluate(async () => {

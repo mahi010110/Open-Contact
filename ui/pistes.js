@@ -9,10 +9,10 @@
 import { esc, distKm } from '../engine/utils.js';
 import { STATUSES, CLOSE_REASONS, DOMAINS, pushHist } from '../engine/model.js';
 import { scoreOf } from '../engine/score.js';
-import { filterCompanies } from '../engine/filter.js';
+import { filterCompanies, filterOrphans, searchHint } from '../engine/filter.js';
 import { S, bus, isClosed, hasDemo, addDemo, ctLabel, deletePiste, undeletePiste,
          removeOrphan, saveOrphans, saveData, logJ } from './state.js';
-import { $, ic, toast, showUndo, bindDeleteGesture, openSheet, softReorder } from './dom.js';
+import { $, ic, toast, showUndo, bindDeleteGesture, openSheet, softReorder, topSheet } from './dom.js';
 import { openAffinerSheet } from './affiner.js';
 import { sortState, sortArgs, sortHasDist, sortChipHTML, bindSortChip } from './sort.js';
 import { relLabel, diffDays, dueMarkHTML } from './dates.js';
@@ -52,6 +52,24 @@ const moreBtn = (key, n) =>
 const mqWide = matchMedia('(min-width:901px)');
 mqWide.addEventListener('change', () => { if (S.route === 'pistes') renderPistes(); });
 
+/* « / » ouvre la recherche — le raccourci que CLAUDE.md §5 promet
+   depuis toujours et que le code n'avait jamais eu. Il ne se pose pas
+   dans `renderPistes` : cette fonction se rejoue à chaque re-rendu, et
+   y accrocher un écouteur en empilerait un par visite de l'écran.
+   Aucune borne de largeur : appuyer sur « / » suppose un vrai clavier,
+   ce qui fait la borne tout seul. */
+document.addEventListener('keydown', e => {
+  if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (S.route !== 'pistes' || topSheet()) return;
+  const t = e.target;
+  if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName || ''))) return;
+  const inp = document.querySelector('#piQ');
+  if (!inp) return;
+  e.preventDefault();          /* sinon le « / » s'écrit dans le champ */
+  inp.focus();
+  inp.select();
+});
+
 /* en tri « Près de moi » (à n'importe quel niveau), la distance s'affiche */
 const kmBit = c => (sortHasDist(st) && st.userPos && c.lat != null)
   ? Math.round(distKm(st.userPos.lat, st.userPos.lng, c.lat, c.lng)) + ' km' : '';
@@ -70,6 +88,25 @@ function dueHTML(c){
      lui-même reste écrit dans la sous-ligne, là où on le lit. */
   if (isClosed(c) || !c.nextAction) return '';
   return dueMarkHTML(c.nextAction);        /* LA marque, partagée avec « Aujourd'hui » */
+}
+
+/* ---- POURQUOI cette ligne est-elle là ? ----
+   Chercher « SOC » remontait une piste dont la ligne affiche nom ·
+   action · statut · ville : le mot vit dans les technos, invisible.
+   Un résultat qu'on ne peut pas expliquer se relit deux fois, ou se
+   prend pour une erreur. Le moteur rend le champ, l'extrait et les
+   positions à surligner — jamais du HTML : l'échappement est ici.
+   La ligne ne parle QUE si elle a du neuf à dire : chercher « cyber »
+   sur « Cyberdéfense Lyon » n'ajoute rien, le nom a déjà répondu. */
+function hintHTML(c, skip){
+  const h = q ? searchHint(c, q, { skip }) : null;
+  if (!h) return '';
+  let out = '', i = 0;
+  for (const [s, l] of h.marks){
+    out += esc(h.text.slice(i, s)) + '<mark>' + esc(h.text.slice(s, s + l)) + '</mark>';
+    i = s + l;
+  }
+  return `<div class="ri-hit">${out + esc(h.text.slice(i))}</div>`;
 }
 
 function rowHTML(c){
@@ -91,6 +128,7 @@ function rowHTML(c){
          <div class="ri-main" role="button" tabindex="0" aria-label="Ouvrir ${esc(c.name)}">
            <h3>${esc(c.name)}</h3>
            <div class="ri-sub">${bits.join(' · ')}</div>
+           ${hintHTML(c, ['name', 'city'])}
          </div>
          ${dueHTML(c)}
        </div>
@@ -115,6 +153,9 @@ function cardHTML(c){
            <b>${esc(c.name)}</b>
            ${bits.length ? `<span class="bc-sub">${bits.map(esc).join(' · ')}</span>` : ''}
            ${na}
+           ${/* la carte montre le domaine, la ligne mobile non : elle a
+                donc un champ de moins à révéler */''}
+           ${hintHTML(c, ['name', 'city', 'domain'])}
            <span class="bc-foot">${foot.join(' · ')}</span>
          </div>
        </div>
@@ -203,12 +244,18 @@ function chipsRowHTML(){
 }
 
 function orphansHTML(){
-  if (!S.orphans.length) return '';
+  /* Le bac suit la recherche. Il l'ignorait : chercher « Nadia »
+     l'affichait ici ET « Rien ne correspond » juste en dessous — un
+     écran qui se contredit. Et quand une recherche le trouve, il
+     s'ouvre : un `<details>` replié cache exactement ce qu'on
+     cherchait. */
+  const list = filterOrphans(S.orphans, q);
+  if (!list.length) return '';
   /* ligne calme, repliée (#13) : présente, mais ne vole plus la place */
   return (
-    `<details class="tranche tr-orph">
-       <summary class="tr-h">${ic('contact', 'ic-14')} Contacts à rattacher <span class="tr-n">${S.orphans.length}</span></summary>
-       <div class="rows">${S.orphans.map(o => {
+    `<details class="tranche tr-orph"${q ? ' open' : ''}>
+       <summary class="tr-h">${ic('contact', 'ic-14')} Contacts à rattacher <span class="tr-n">${list.length}</span></summary>
+       <div class="rows">${list.map(o => {
          const title = ctLabel(o);
          const sameAsTitle = v => String(v || '').trim().toLocaleLowerCase() === String(title).trim().toLocaleLowerCase();
          const contact = [o.email, o.phone].filter(v => v && !sameAsTitle(v))[0] || '';
@@ -250,7 +297,9 @@ export function renderPistes(){
     `<div class="page-inner${wide ? ' page-wide' : ''}">
        <div class="td-head">
          <h2>Mes pistes</h2>
-         <div class="td-date">${S.companies.length} piste${S.companies.length > 1 ? 's' : ''}</div>
+         ${/* le compte se réécrit à chaque frappe (renderBody) : sans lui,
+              on ne sait pas si l'on regarde 3 pistes sur 3 ou 3 sur 40 */''}
+         <div class="td-date" id="piCount"></div>
          ${(CAMPAGNES && nCamps) ? `<button class="btn btn-sm" id="piCamps">${ic('flag', 'ic-14')} Campagnes (${nCamps})</button>` : ''}
          ${nAlive ? `<button class="btn btn-sm" id="piProspect">${ic('mail', 'ic-14')} Prospecter</button>` : ''}
        </div>
@@ -276,6 +325,12 @@ export function renderPistes(){
     const alive = all.filter(c => !isClosed(c));
     const closed = all.filter(isClosed);
 
+    const tout = S.companies.length;
+    const cnt = root.querySelector('#piCount');
+    if (cnt) cnt.textContent = (q || ftOn()) && all.length !== tout
+      ? `${all.length} sur ${tout}`
+      : `${tout} piste${tout > 1 ? 's' : ''}`;
+
     let html = orphansHTML();
     if (!S.companies.length){
       html +=
@@ -289,8 +344,11 @@ export function renderPistes(){
            </div>
          </div>`;
     } else if (!all.length){
+      /* « Aucune PISTE », pas « rien » : le bac juste au-dessus peut
+         très bien avoir trouvé quelqu'un, et les deux phrases se
+         contrediraient. Nommer l'objet suffit à les réconcilier. */
       html +=
-        `<div class="empty-list">Rien ne correspond${q ? ` à « ${esc(q)} »` : ' au filtre'}.
+        `<div class="empty-list">Aucune piste ne correspond${q ? ` à « ${esc(q)} »` : ' au filtre'}.
            ${ftOn() ? '<button class="linklike" id="piFtClear">Tout montrer</button>' : ''}
          </div>`;
     } else {
@@ -359,6 +417,16 @@ export function renderPistes(){
   input.addEventListener('input', () => {
     clearTimeout(h);
     h = setTimeout(() => { q = input.value; renderBody(); }, 180);
+  });
+  /* Échap vide la recherche, puis rend le clavier. Deux temps : la
+     première touche efface (on veut revoir toute la liste), la
+     seconde quitte le champ — annuler ne doit jamais coûter la souris. */
+  input.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    if (!input.value){ input.blur(); return; }
+    clearTimeout(h);
+    input.value = ''; q = '';
+    renderBody();
   });
   /* les puces d'état et le corps se re-rendent ensemble, la recherche
      reste le même nœud (le curseur ne saute pas) ; les lignes retrouvées
