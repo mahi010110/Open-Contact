@@ -255,19 +255,25 @@ export function openAppareils(){
            ${st.profile === 'remote' ? `<li>${ic('user', 'ic-14')} profil : la version la plus récente a été prise
               ${sy.prevProfile ? '<button class="btn btn-sm" id="syKeepProf">Garder plutôt la mienne</button>' : ''}</li>` : ''}
          </ul>` : ''}</div>
-       <div class="sy-devs">
-         ${/* « Appareils reliés » au-dessus d'une liste où l'on est SEUL
-              annonce un pluriel qui n'existe pas, et redit ce que le
-              statut vient de dire. La légende attend d'avoir quelque
-              chose à coiffer. */''}
-         ${devs.length || comp ? '<div class="lbl-row" style="margin-bottom:6px"><label>Appareils reliés</label></div>' : ''}
-         <div class="dev-row"><b>${esc(self.name)}</b>${roleTag(self.id)}<span class="dev-sub">cet appareil</span></div>
-         ${devs.map(d => iAmMain && roleOf(d.id)
-           ? `<button class="dev-row dev-open" data-dev="${esc(d.id)}"><b>${esc(d.name)}</b>${roleTag(d.id)}
-                <span class="dev-sub">${agoLabel(d.seen || 0)} · gérer ›</span></button>`
-           : `<div class="dev-row hov-row"><b>${esc(d.name)}</b>${roleTag(d.id)}<span class="dev-sub">${agoLabel(d.seen || 0)}</span>
-                <button class="abtn abtn-sm abtn-del hov-soft" data-rm="${esc(d.id)}" aria-label="Retirer ${esc(d.name)}" title="Retirer">${ic('trash', 'ic-14')}</button>
-              </div>`).join('')}
+       ${/* ---- LA GRAPPE ----
+            Un tronc part de CET appareil et descend ; chaque appareil
+            relié s'y accroche par une patte. Plein = ça circule.
+            Pointillé = pas encore fait. Le dessin ne change pas de un à
+            douze appareils, et la case creuse dit le vide qui attend
+            sans qu'une phrase ait à le dire. */''}
+       <div class="sy-devs sy-grappe">
+         <div class="dev-row dev-moi"><b>${esc(self.name)}</b>${roleTag(self.id)}<span class="dev-sub">cet appareil</span></div>
+         ${devs.length
+           ? devs.map((d, i) => `<div class="sy-br${i === devs.length - 1 && !comp ? ' sy-fin' : ''}">${
+               iAmMain && roleOf(d.id)
+                 ? `<button class="dev-row dev-open" data-dev="${esc(d.id)}"><b>${esc(d.name)}</b>${roleTag(d.id)}
+                      <span class="dev-sub">${agoLabel(d.seen || 0)} · gérer ›</span></button>`
+                 : `<div class="dev-row hov-row"><b>${esc(d.name)}</b>${roleTag(d.id)}<span class="dev-sub">${agoLabel(d.seen || 0)}</span>
+                      <button class="abtn abtn-sm abtn-del hov-soft" data-rm="${esc(d.id)}" aria-label="Retirer ${esc(d.name)}" title="Retirer">${ic('trash', 'ic-14')}</button>
+                    </div>`}</div>`).join('')
+           : `<div class="sy-br sy-fin sy-attente">
+                <div class="dev-row dev-creux"><b>en attente</b></div>
+              </div>`}
          ${comp ? compRowHTML(comp)
            : (COMPAGNON && iAmMain
              ? (isDesktop()

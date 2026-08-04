@@ -1068,6 +1068,34 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted);
 }
 .sy-devs{margin-top:16px}
+/* ---- LA GRAPPE : un tronc, une patte par appareil ----
+   Le lien devient un DESSIN. Plein et teal quand ça circule, pointillé
+   et gris quand rien n'est encore relié : l'état se lit sans lire. Le
+   même dessin tient de un à douze appareils — c'est la liste qui
+   existait déjà, plus un trait qui descend. */
+.sy-grappe{display:flex;flex-direction:column}
+.sy-br{position:relative;padding-left:28px;margin-top:8px}
+.sy-br::before{                       /* le tronc, jusqu'à la patte */
+  content:'';position:absolute;left:9px;top:-8px;bottom:0;
+  border-left:3px solid var(--accent);
+}
+.sy-br.sy-fin::before{bottom:50%}     /* le dernier arrête le tronc */
+.sy-br::after{                        /* la patte vers la boîte */
+  content:'';position:absolute;left:9px;top:50%;width:13px;
+  border-top:3px solid var(--accent);
+}
+.sy-br.sy-attente::before,.sy-br.sy-attente::after{
+  border-color:var(--border-frame);border-style:dashed;border-width:2px;
+}
+/* mon appareil porte le trait plus franc : c'est de lui que part le tronc */
+.dev-moi{border-bottom-width:2px}
+/* la case qui attend : creuse, tramée, sans relief — un emplacement, pas un objet */
+.dev-creux{
+  border:1px dashed var(--border-frame);border-radius:0;padding-left:10px;
+  background:var(--surface-chrome);background-image:var(--dither-img);background-size:var(--dither-size);
+  color:var(--text-disabled);
+}
+.dev-creux b{font-weight:400;color:var(--text-disabled)}
 /* une ligne = une phrase + sa date. Le canal, le nombre et la date
    s'empilaient en L sur deux rangs : trois blocs que l'œil devait
    recomposer avant de comprendre. */
