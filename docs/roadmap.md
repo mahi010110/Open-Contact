@@ -10,7 +10,7 @@ web — livré, c'est cette feuille de route —, l'ordinateur et le téléphone
 La surface ordinateur a la sienne : `compagnon/roadmap.md`. On ne re-discute
 pas la répartition ici, on l'applique.
 
-Dernière mise à jour : 4 août 2026 — cache `oc-v117`, 109 auto-tests verts
+Dernière mise à jour : 4 août 2026 — cache `oc-v118`, 109 auto-tests verts
 (`node tests/e2e/unitaires.mjs`).
 
 ---

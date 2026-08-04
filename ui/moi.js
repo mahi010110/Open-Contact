@@ -37,7 +37,10 @@ export function downloadBackup(pass){
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-    /* l'état « N pistes depuis ta dernière copie » repart d'ici (#4) */
+    /* Plus rien ne l'AFFICHE (l'état de la carte est parti le 4 août 2026),
+       mais on continue de l'écrire : c'est un fait daté, il voyage déjà
+       dans le `.oc` et la sync, et le jour où un état revient il repart
+       d'une vraie date au lieu d'une ardoise vide. */
     S.profile.flags.lastBackupAt = Date.now();
     saveProfile();
     logJ('Copie téléchargée' + (pass ? ' (chiffrée)' : ''));
@@ -212,16 +215,13 @@ function syncLabel(){
   if (sy.state === 'rtcfail') return 'rien ne passe';
   return 'en attente';
 }
-/* « N pistes depuis ta dernière copie » — l'état qui pousse au geste (#4) ;
-   se calme quand les appareils reliés dupliquent déjà les données */
-function backupState(){
-  const last = Number((S.profile.flags || {}).lastBackupAt) || 0;
-  return {
-    last,
-    linked: !!getSync().phrase,
-    n: S.companies.filter(c => (c.updatedAt || 0) > last).length
-  };
-}
+/* L'état de la copie (« aucune copie », « N pistes depuis ta copie »,
+   « à jour », « en double ») est RETIRÉ — décision du mainteneur, 4 août
+   2026. C'était la décision #4 : un compteur qui pousse au geste. Il
+   poussait à chaque passage, et la carte porte déjà son verbe.
+   `lastBackupAt` continue d'être écrit (voir `downloadBackup`) : c'est un
+   fait, pas un affichage — le jour où un état revient ici, il ne repart
+   pas d'une ardoise vide. */
 
 /* les lignes de Réglages — des portes, plus des boutons (#7) : la ligne
    entière se tape, le réglage s'ouvre dans sa feuille. C'est la décision
@@ -390,23 +390,7 @@ export function renderMoi(){
 
   const p = S.profile;
   const pReady = p.name && p.email;
-  const bk = backupState();
   const showBackup = !!(S.companies.length || p.name);   /* rien à copier = carte absente */
-  /* l'état, jamais l'explication (A) : un mot, ou un chiffre quand il
-     pousse à agir (décision #11).
-     C'est l'ÉTAT qui porte la marque, pas le bouton. Sans serveur ni
-     compte, « aucune copie » est la seule situation où tout peut
-     disparaître d'un coup — c'est elle qui doit sauter aux yeux, tandis
-     que « Télécharger » est là de toute façon et ne dit rien de neuf.
-     Même langage que l'échéance d'une piste (.mark) : deux crans
-     seulement portent un cadre, et ce qui va bien ne met rien. */
-  const bkState = bk.linked
-    ? '<span class="pd">en double</span>'
-    : !bk.last
-      ? '<span class="mark mark-late">aucune copie</span>'
-      : bk.n
-        ? `<span class="mark mark-soon">${bk.n} piste${bk.n > 1 ? 's' : ''} depuis ta copie</span>`
-        : '<span class="pd">à jour</span>';
 
   /* « Moi » est une FEUILLE DE PROPRIÉTÉS, pas une pile de cartes.
      Trois règles d'origine, appliquées telles quelles :
@@ -454,11 +438,17 @@ export function renderMoi(){
        <div id="moiDocs"></div>
      </fieldset>`;
 
+  /* Le bord ambre part avec l'état qu'il soulignait : un cadre qui crie
+     sans qu'aucun mot ne dise pourquoi serait pire que les deux. La
+     classe `.fs-alert` reste au kit (CLAUDE.md §6), simplement plus
+     posée ici.
+     « privé inclus » prend la place laissée libre — c'est la seule chose
+     que la carte ne peut PAS dire autrement : ce fichier emporte le
+     suivi privé, et ça se sait avant de l'envoyer à quelqu'un. */
   const copie = showBackup ? `
-     <fieldset class="fset${!bk.linked && !bk.last ? ' fs-alert' : ''}">
+     <fieldset class="fset">
        <legend>Ma copie</legend>
        <div class="fs-state">
-         ${bkState}
          <span class="tag-priv">${ic('lock', 'ic-14')} privé inclus</span>
        </div>
        <div class="pc-actions">

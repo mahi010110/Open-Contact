@@ -75,6 +75,20 @@ Réglages) :
 Restent : les avertissements de sécurité au moment du geste (flux de
 protection, Connexions) — `CLAUDE.md §7` les autorise.
 
+> **Suite, 4 août 2026 — deux de ces états sont partis à leur tour**, sur
+> décision du mainteneur, capture à l'appui. L'état de la copie (`aucune
+> copie` / `N pistes depuis ta copie` / `à jour` / `en double`) et son bord
+> ambre : le compteur poussait au geste **à chaque passage**, et la carte
+> porte déjà son verbe (« Télécharger »). `privé inclus` prend la place —
+> c'est la seule chose que la carte ne peut pas dire autrement. Et
+> `OpenContact 6.3.0` en pied de page : en ligne, il n'y aura qu'une
+> version, un numéro n'y distingue plus rien.
+>
+> Ce que ça coûte, et c'est assumé : `aucune copie` était le seul endroit
+> où l'app disait « tout peut disparaître d'un coup ». Le jour où il faut
+> le redire, `lastBackupAt` est toujours écrit — l'état repart d'un fait,
+> pas d'une ardoise vide.
+
 **Deuxième passe (captures du mainteneur).** La première n'avait traité
 que « Moi / Réglages ». Le même défaut vivait dans cinq autres écrans —
 16 boutons, vus en maquette avant / après :
