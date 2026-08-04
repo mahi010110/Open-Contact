@@ -86,7 +86,6 @@ export function diagnosticData(x){
   const documents = Array.isArray(x.documents) ? x.documents : [];
   const profile = x.profile || {};
   return {
-    version: String(x.version || ''),
     navigateur: nav.nom + (nav.version ? ' ' + nav.version : ''),
     systeme: systemFromUA(x.ua),
     /* la langue de l'interface du navigateur — deux lettres suffisent
@@ -114,7 +113,11 @@ export function diagnosticData(x){
 
 /* Le texte à coller. Format STABLE — une ligne par groupe, toujours
    les mêmes, même quand la valeur est zéro : c'est ce qui permet de
-   comparer deux rapports d'un coup d'œil. */
+   comparer deux rapports d'un coup d'œil.
+
+   PAS de numéro de version : OpenContact en ligne, c'est une seule
+   app à une seule adresse, pas un parc de versions à identifier.
+   L'écrire ne servirait qu'à faire lire une ligne de plus. */
 export function diagnosticText(d){
   d = d || {};
   const ecran = d.largeur + '×' + d.hauteur;
@@ -123,7 +126,6 @@ export function diagnosticText(d){
      enverrait chercher un poids qui n'est pas là */
   const taille = o => (o ? fmtSize(o) : '0 Ko');
   return [
-    'OpenContact ' + d.version,
     `Appareil : ${d.navigateur} · ${d.systeme} · ${ecran} · ${d.langue}`,
     `Affichage : ${d.installee ? 'installée' : 'onglet'} · thème ${d.theme} · ` +
       (d.enLigne ? 'en ligne' : 'hors ligne'),

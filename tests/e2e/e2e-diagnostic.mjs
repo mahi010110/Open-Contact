@@ -2,9 +2,9 @@
    sans serveur (docs/roadmap.md §3). Ce que ce scénario prouve, et qui
    ne se voit pas dans les auto-tests du moteur :
 
-   · la ligne existe dans Réglages, au pouce comme au poste, et porte
-     la version — celle qui flottait seule en bas de l'écran a disparu,
-     elle ne se dit plus deux fois ;
+   · la ligne existe dans Réglages, au pouce comme au poste, et SANS
+     état : aucun numéro de version ne s'affiche nulle part sur cet
+     écran — en ligne, il n'y en a qu'une ;
    · le texte est MONTRÉ avant de partir, et ce qu'on lit est ce qui
      part : le presse-papier reçoit exactement le bloc affiché ;
    · aucune donnée personnelle réellement enregistrée n'y entre — le
@@ -71,7 +71,7 @@ const mPage = await mCtx.newPage();
 watchErrors(mPage);
 await seed(mPage);
 
-/* la ligne porte la version — et elle est la SEULE à la porter */
+/* la ligne ne porte aucun numéro de version — ni elle, ni l'écran */
 const ligne = await mPage.evaluate(() => {
   const b = document.querySelector('#moiDiag');
   if (!b) return null;
@@ -79,23 +79,23 @@ const ligne = await mPage.evaluate(() => {
     nom: b.querySelector('.rg-n').textContent.trim(),
     etat: b.querySelector('.rg-s').textContent.trim(),
     h: Math.round(b.getBoundingClientRect().height),
-    ver: !!document.querySelector('.moi-ver')
+    ver: /\d+\.\d+\.\d+/.test(document.querySelector('#view-moi').textContent)
   };
 });
 if (!ligne) fail('pas de ligne « Signaler un problème » dans Réglages');
 else {
   if (ligne.nom !== 'Signaler un problème') fail('libellé inattendu : ' + ligne.nom);
-  if (!/^\d+\.\d+\.\d+$/.test(ligne.etat)) fail('la ligne doit porter la version : ' + ligne.etat);
+  if (ligne.etat) fail('la ligne ne porte plus d’état : ' + ligne.etat);
   if (ligne.h < 44) fail('cible sous 44 px au pouce : ' + ligne.h);
-  if (ligne.ver) fail('la version se dit deux fois — la ligne seule doit la porter');
+  if (ligne.ver) fail('un numéro de version traîne encore dans les Réglages');
 }
 
 const txt = await ouvrirDiag(mPage);
 const lignes = txt.split('\n');
-if (lignes.length !== 6) fail('le rapport doit tenir 6 lignes stables : ' + lignes.length);
-if (!lignes[0].startsWith('OpenContact ')) fail('la version ouvre le rapport : ' + lignes[0]);
-if (lignes[1] !== 'Appareil : Chrome 130 · Android · 390×844 · fr-FR')
-  fail('l’appareil réel doit figurer, tel quel : ' + lignes[1]);
+if (lignes.length !== 5) fail('le rapport doit tenir 5 lignes stables : ' + lignes.length);
+if (/\d+\.\d+\.\d+/.test(txt)) fail('plus aucun numéro de version dans le rapport');
+if (lignes[0] !== 'Appareil : Chrome 130 · Android · 390×844 · fr-FR')
+  fail('l’appareil réel ouvre le rapport, tel quel : ' + lignes[0]);
 if (!/2 piste\(s\) · 1 contact\(s\) · 1 à rattacher/.test(txt)) fail('comptes faux : ' + txt);
 if (!/1 modèle\(s\) · journal 1 ligne\(s\)/.test(txt)) fail('modèles / journal faux : ' + txt);
 
@@ -117,7 +117,17 @@ await mPage.click('.modal-f .btn-primary');
 const presse = await mPage.evaluate(() => navigator.clipboard.readText());
 if (presse !== txt) fail('le presse-papier ne rend pas le bloc affiché');
 if (!/Copié/.test(await mPage.locator('#toast').innerText())) fail('aucun retour après la copie');
-console.log('téléphone : ligne à 44 px, 6 lignes, rien de personnel, copie fidèle ✓');
+/* un seul geste, un seul bouton : le retour ne nomme aucune
+   destination, l'app n'en connaît aucune */
+const feuille = await mPage.evaluate(() => ({
+  pied: [...document.querySelectorAll('.modal-f .btn')].map(b => b.textContent.trim()),
+  mots: document.querySelector('.modal').textContent
+}));
+if (feuille.pied.length !== 1 || feuille.pied[0] !== 'Copier')
+  fail('un seul bouton « Copier » : ' + JSON.stringify(feuille.pied));
+if (/github|issue/i.test(feuille.mots))
+  fail('la feuille ne nomme aucun hébergeur — le dépôt déménagera, elle non');
+console.log('téléphone : ligne à 44 px, 5 lignes, rien de personnel, copie fidèle ✓');
 
 await mPage.evaluate(async () => (await import('./ui/dom.js')).topSheet()?.close());
 
@@ -145,8 +155,8 @@ const dTxt = await ouvrirDiag(dPage);
    tranche, et il se vérifie sur un vrai navigateur, pas seulement en
    unitaire — un rapport d'Edge lu « Chrome » enverrait chercher un
    bug sur le mauvais moteur */
-if (dTxt.split('\n')[1] !== 'Appareil : Edge 130 · Windows · 1280×800 · fr-FR')
-  fail('l’appareil du poste doit figurer, tel quel : ' + dTxt.split('\n')[1]);
+if (dTxt.split('\n')[0] !== 'Appareil : Edge 130 · Windows · 1280×800 · fr-FR')
+  fail('l’appareil du poste ouvre le rapport, tel quel : ' + dTxt.split('\n')[0]);
 /* au large, aucune ligne n'a besoin d'être repliée : le rapport se lit
    ligne à ligne, comme il sera lu dans l'issue. On compte les lignes
    RENDUES (une boîte par ligne visuelle), pas la hauteur du bloc — un
@@ -156,16 +166,19 @@ const rendues = await dPage.evaluate(() => {
   r.selectNodeContents(document.querySelector('.diag'));
   return new Set([...r.getClientRects()].map(x => Math.round(x.top))).size;
 });
-if (rendues !== 6) fail('au poste, le rapport doit tenir six lignes : ' + rendues);
+if (rendues !== 5) fail('au poste, le rapport doit tenir cinq lignes : ' + rendues);
 
-/* la sortie vers GitHub existe et vise bien un formulaire d'issue —
-   on l'inspecte, on ne la suit pas : un test ne part pas sur le réseau */
-const issues = await dPage.evaluate(async () => (await import('./ui/diagnostic.js')).ISSUES_URL);
-if (!/^https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/issues\/new$/.test(issues))
-  fail('adresse de dépôt d’issue inattendue : ' + issues);
+/* AUCUNE sortie vers un hébergeur : le dépôt déménagera, l'écran non.
+   Ce contrôle est le garde-fou de cette promesse — il rougit le jour
+   où quelqu'un recolle un lien en dur dans la feuille. */
+const liens = await dPage.evaluate(() =>
+  [...document.querySelectorAll('.modal a, .modal [href]')].map(a => a.getAttribute('href')));
+if (liens.length) fail('la feuille ne renvoie vers aucun site : ' + JSON.stringify(liens));
+const src = await (await fetch(base + '/ui/diagnostic.js')).text();
+if (/github|http/i.test(src)) fail('une adresse en dur est revenue dans ui/diagnostic.js');
 await dPage.waitForTimeout(350);
 await dPage.screenshot({ path: SHOTS + '/91-diagnostic-desktop.png' });
-console.log('ordinateur : même porte, six lignes non repliées, sortie vers ' + issues + ' ✓');
+console.log('ordinateur : même porte, cinq lignes non repliées, aucune adresse en dur ✓');
 await dCtx.close();
 
 console.log(errors.length ? 'Erreurs console : ' + errors.join(' | ') : 'Zéro erreur console.');

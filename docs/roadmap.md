@@ -10,8 +10,8 @@ web — livré, c'est cette feuille de route —, l'ordinateur et le téléphone
 La surface ordinateur a la sienne : `compagnon/roadmap.md`. On ne re-discute
 pas la répartition ici, on l'applique.
 
-Dernière mise à jour : 4 août 2026 — version applicative 6.4.0, cache
-`oc-v116`, 109 auto-tests verts (`node tests/e2e/unitaires.mjs`).
+Dernière mise à jour : 4 août 2026 — cache `oc-v117`, 109 auto-tests verts
+(`node tests/e2e/unitaires.mjs`).
 
 ---
 
@@ -161,10 +161,18 @@ Dépôt déjà public. Conditions d'entrée :
 - Tests réels mobile + ordinateur terminés (§1.3).
 - Domaine et documents prêts (§2).
 - **Un chemin de retour d'expérience sans serveur** — **livré** (4 août 2026).
-  Réglages → « Signaler un problème » montre un rapport de six lignes
-  (version, navigateur, système, écran, langue, affichage, thème, rang de
-  stockage, poids des données, protection, appareils reliés, comptes du
-  suivi), le copie, et ouvre le formulaire d'issue du dépôt.
+  Réglages → « Signaler un problème » montre un rapport de cinq lignes
+  (navigateur, système, écran, langue, affichage, thème, rang de stockage,
+  poids des données, protection, appareils reliés, comptes du suivi) et le
+  copie. Un seul geste, un seul bouton.
+
+  **Aucun numéro de version, et aucune destination nommée** — décision du
+  mainteneur, 4 août : en ligne, OpenContact est une seule app à une seule
+  adresse, un numéro n'y distingue rien ; et l'écran ne renvoie vers aucun
+  hébergeur, parce que le dépôt déménagera un jour et que l'écran, lui,
+  doit survivre. Le presse-papier va où l'étudiant veut — message, mail,
+  formulaire. `e2e-diagnostic.mjs` monte la garde sur les deux : il rougit
+  le jour où un numéro ou une adresse en dur y revient.
 
   Ce qui tient la promesse : `engine/diagnostic.js` ne reçoit le suivi que
   pour le **compter** — il n'émet que des nombres, des booléens et des
@@ -172,8 +180,8 @@ Dépôt déjà public. Conditions d'entrée :
   lui passant un suivi plein de noms, d'adresses et d'e-mails, et en
   relisant le bloc affiché. L'écran le MONTRE en entier avant de le copier
   (il se replie plutôt que de défiler, pour être lisible en 390 px) : la
-  promesse « rien de personnel » est prouvée par la lecture, pas par une
-  phrase.
+  promesse « rien de personnel » est prouvée par la lecture — et c'est
+  pour ça que la phrase qui la promettait a pu partir.
 
   *Reste hors périmètre, et volontairement :* le rapport ne part pas tout
   seul. Ce serait de la télémétrie (`CLAUDE.md` §10), et c'est l'étudiant

@@ -6,7 +6,7 @@
    restauration, aide condensée — et le coup de pouce IA, rangé
    ici sans faire d'ombre au reste.
    ============================================================ */
-import { APP_VERSION, normalizeCompany, normalizeContact, normalizeProfile } from '../engine/model.js';
+import { normalizeCompany, normalizeContact, normalizeProfile } from '../engine/model.js';
 import { fullPayload, parseInput } from '../engine/exchange.js';
 import { encryptOC2 } from '../engine/crypto.js';
 import { fmtSize, todayISO, esc } from '../engine/utils.js';
@@ -270,13 +270,14 @@ function reglagesRowsHTML(){
      a son icône propre — un écran d'ordinateur — sur SES feuilles,
      là où elle distingue quelque chose (#4). */
   if (COMPAGNON) rows.push(['moiComp', 'Le Compagnon', 'pas installé', false]);
-  /* Sans compte ni analytique, une bêta ne renvoie rien : le seul
-     chemin de retour est un texte que l'étudiant copie lui-même
-     (docs/roadmap.md §3). La ligne porte la VERSION en état — c'est
-     la première chose qu'on demande quand quelque chose cloche, et
-     elle vit désormais là où elle sert au lieu de flotter seule en
-     bas de l'écran. */
-  rows.push(['moiDiag', 'Signaler un problème', APP_VERSION, false]);
+  /* Sans compte ni analytique, une app locale ne renvoie rien : le
+     seul chemin de retour est un texte que l'étudiant copie lui-même
+     (docs/roadmap.md §3).
+     SANS état : la ligne portait le numéro de version, il est parti
+     avec lui. En ligne, OpenContact est une seule app à une seule
+     adresse — un numéro n'y distingue plus rien, il se lisait juste
+     à chaque passage dans les réglages. */
+  rows.push(['moiDiag', 'Signaler un problème', '', false]);
   return (
     rows.map(([id, nom, etat, dep], i) =>
       rgRow(id, nom, etat, i === rows.length - 1, dep)).join('') +

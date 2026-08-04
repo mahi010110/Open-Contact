@@ -40,14 +40,12 @@ const PLAFOND = {
   toastCar: 79,        /* le plus long : « Connexion interrompue — … » */
   confirmations: 8,    /* portes bloquantes dans les écrans visibles */
   /* phrases d'explication dans les feuilles visibles.
-     211 → 219 le 4 août 2026, pour les 8 mots de « Signaler un
-     problème » : « Aucun nom, aucune adresse — que des nombres. »
-     C'est le cas que §7 réserve à une phrase entière — la sécurité,
-     au moment du geste. Le texte de diagnostic part hors de l'app,
-     vers une issue PUBLIQUE : ce qu'il ne contient pas est la seule
-     chose que la lecture du bloc ne donne pas d'un coup d'œil, et
-     sans elle personne ne colle rien. */
-  motsExplication: 219
+     Monté à 219 le 4 août 2026 pour une phrase de « Signaler un
+     problème », REDESCENDU à 211 le jour même : le mainteneur l'a
+     retirée — le bloc de diagnostic est affiché en entier, il prouve
+     déjà ce que la phrase promettait. Le terrain gagné se reverrouille
+     ici, sinon il se reperd. */
+  motsExplication: 211
 };
 
 const fichiers = readdirSync(UI).filter(f => f.endsWith('.js') && !HORS_ECRAN.has(f));

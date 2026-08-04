@@ -1010,7 +1010,6 @@ export async function runSelfTests(){
         '06 12 34 56 78', '12 rue des Lilas, 31000 Toulouse', 'Relance envoyée',
         'Mahi Étudiant', 'mahi@exemple.fr', 'Mon modèle de relance'];
       const d = diagnosticData({
-        version: '6.4.0',
         ua: 'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 Chrome/130.0.0.0 Mobile Safari/537.36',
         langue: 'fr-FR', largeur: 390, hauteur: 844, theme: 'dark', backend: 'idb',
         installee: true, enLigne: false, protection: true, relie: true,
@@ -1038,17 +1037,19 @@ export async function runSelfTests(){
       const brut = JSON.stringify(d) + '\n' + txt;
       for (const s of secrets)
         if (brut.includes(s)) throw new Error('« ' + s +' » a fui dans le diagnostic');
-      /* le texte reste lisible et STABLE : six lignes, toujours les mêmes */
-      eq(txt.split('\n').length, 6);
-      ok(txt.startsWith('OpenContact 6.4.0\n'));
+      /* le texte reste lisible et STABLE : cinq lignes, toujours les
+         mêmes — et AUCUN numéro de version, il ne distingue plus rien */
+      eq(txt.split('\n').length, 5);
+      ok(txt.startsWith('Appareil : '));
+      ok(!/\d+\.\d+\.\d+/.test(txt));
       ok(txt.includes('390×844') && txt.includes('2 piste(s)') && txt.includes('hors ligne'));
     },
     'diagnostic : une app vide se raconte quand même, sans mentir sur les poids': () => {
       /* le premier rapport d'un étudiant sera souvent celui-là : rien
          de saisi, un bug au démarrage. Il doit rester complet — et ne
          pas inventer « 1 Ko » de documents là où il n'y en a aucun. */
-      const txt = diagnosticText(diagnosticData({ version: '6.4.0', backend: 'memory' }));
-      eq(txt.split('\n').length, 6);
+      const txt = diagnosticText(diagnosticData({ backend: 'memory' }));
+      eq(txt.split('\n').length, 5);
       ok(txt.includes('mémoire (rien ne survit)'));
       ok(txt.includes('Documents : 0 (0 Ko)'));
       ok(txt.includes('sans protection') && txt.includes('appareils non reliés'));
