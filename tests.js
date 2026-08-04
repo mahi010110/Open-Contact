@@ -42,6 +42,7 @@ import { makeMission, missionUsable, revokeMission, foldCampaignReport,
          signMission, openMissionWire } from './engine/mission.js';
 import { normCode, pairKey } from './engine/companion.js';
 import { osFromUA, assetsForOS, DIST_PAGE } from './engine/distribution.js';
+import { browserFromUA, systemFromUA, diagnosticData, diagnosticText } from './engine/diagnostic.js';
 import { AI_FAMILIES, browserProviders, aiComplete, draftPrompt } from './engine/ai.js';
 import { normaliseMailAnalysis } from './ui/analyse.js';
 
@@ -977,6 +978,81 @@ export async function runSelfTests(){
       eq(assetsForOS(assets, 'autre').length, 0);
       eq(assetsForOS(null, 'linux').length, 0);
       ok(/^https:\/\/github\.com\/.+\/releases\/latest$/.test(DIST_PAGE));
+    },
+    'diagnostic : le navigateur et le système, au grain qui sert': () => {
+      /* Edge, Opera et Chrome-sur-iOS se déclarent tous « Chrome » ou
+         « Safari » : c'est l'ORDRE des motifs qui tranche, et c'est lui
+         qu'on épingle ici — une inversion rendrait tous les rapports
+         d'Edge illisibles sans que rien ne le signale. */
+      const nav = ua => browserFromUA(ua).nom + ' ' + browserFromUA(ua).version;
+      eq(nav('Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 Edg/130.0.0.0'), 'Edge 130');
+      eq(nav('Mozilla/5.0 (Windows NT 10.0) Chrome/129.0.0.0 Safari/537.36 OPR/115.0.0.0'), 'Opera 115');
+      eq(nav('Mozilla/5.0 (Linux; Android 15) AppleWebKit/537.36 Chrome/130.0.0.0 Mobile Safari/537.36'), 'Chrome 130');
+      eq(nav('Mozilla/5.0 (Linux; Android 15) AppleWebKit/537.36 SamsungBrowser/27.0 Chrome/125.0.0.0 Mobile Safari/537.36'), 'Samsung Internet 27');
+      eq(nav('Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 CriOS/130.0.0.0 Mobile/15E148 Safari/604.1'), 'Chrome 130');
+      eq(nav('Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 Version/17.5 Mobile/15E148 Safari/604.1'), 'Safari 17');
+      eq(nav('Mozilla/5.0 (X11; Linux x86_64; rv:131.0) Gecko/20100101 Firefox/131.0'), 'Firefox 131');
+      eq(browserFromUA('').nom, 'inconnu');
+      eq(systemFromUA('Mozilla/5.0 (Linux; Android 15; Pixel 9) Mobile'), 'Android');
+      eq(systemFromUA('Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X)'), 'iOS');
+      eq(systemFromUA('Mozilla/5.0 (Windows NT 10.0; Win64; x64)'), 'Windows');
+      eq(systemFromUA('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'), 'macOS');
+      eq(systemFromUA('Mozilla/5.0 (X11; CrOS x86_64)'), 'ChromeOS');
+      eq(systemFromUA('Mozilla/5.0 (X11; Linux x86_64)'), 'Linux');
+      eq(systemFromUA(''), 'inconnu');
+    },
+    'diagnostic : rien de personnel n’en sort — que des nombres': () => {
+      /* L'invariant du module : il reçoit tout le suivi, il n'en rend
+         que des comptes. Le texte part hors de l'app (presse-papier →
+         issue publique) — c'est le seul endroit de l'app où une fuite
+         serait publique ET définitive. */
+      const secrets = ['Dassault Systèmes', 'Jean Dupont', 'jean.dupont@exemple.fr',
+        '06 12 34 56 78', '12 rue des Lilas, 31000 Toulouse', 'Relance envoyée',
+        'Mahi Étudiant', 'mahi@exemple.fr', 'Mon modèle de relance'];
+      const d = diagnosticData({
+        version: '6.4.0',
+        ua: 'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 Chrome/130.0.0.0 Mobile Safari/537.36',
+        langue: 'fr-FR', largeur: 390, hauteur: 844, theme: 'dark', backend: 'idb',
+        installee: true, enLigne: false, protection: true, relie: true,
+        companies: [
+          { name: 'Dassault Systèmes', address: '12 rue des Lilas, 31000 Toulouse',
+            contacts: [{ name: 'Jean Dupont', email: 'jean.dupont@exemple.fr', phone: '06 12 34 56 78' }] },
+          { name: 'Autre Boîte', contacts: [] }
+        ],
+        orphans: [{ name: 'Jean Dupont', email: 'jean.dupont@exemple.fr' }],
+        tombs: [{ id: 'c1', t: 1 }, { id: 'c2', t: 2 }, { id: 'c3', t: 3 }],
+        journal: [{ t: 1, txt: 'Relance envoyée' }],
+        profile: { name: 'Mahi Étudiant', email: 'mahi@exemple.fr',
+                   templates: [{ name: 'Mon modèle de relance', body: 'Bonjour' }] },
+        documents: [{ key: 'cv_1', size: 240000 }, { key: 'lm_1', size: 180000 }]
+      });
+      /* les faits, d'abord */
+      eq([d.pistes, d.contacts, d.arattacher, d.suppressions], [2, 1, 1, 3]);
+      eq([d.documents, d.modeles, d.journal], [2, 1, 1]);
+      eq(d.navigateur + ' · ' + d.systeme, 'Chrome 130 · Android');
+      eq([d.installee, d.enLigne, d.protection, d.relie, d.theme], [true, false, true, true, 'sombre']);
+      eq(d.stockage, 'IndexedDB');
+      ok(d.octets > 0 && d.octetsDocs === 420000);
+      /* puis l'invariant, sur l'objet ET sur le texte qui part */
+      const txt = diagnosticText(d);
+      const brut = JSON.stringify(d) + '\n' + txt;
+      for (const s of secrets)
+        if (brut.includes(s)) throw new Error('« ' + s +' » a fui dans le diagnostic');
+      /* le texte reste lisible et STABLE : six lignes, toujours les mêmes */
+      eq(txt.split('\n').length, 6);
+      ok(txt.startsWith('OpenContact 6.4.0\n'));
+      ok(txt.includes('390×844') && txt.includes('2 piste(s)') && txt.includes('hors ligne'));
+    },
+    'diagnostic : une app vide se raconte quand même, sans mentir sur les poids': () => {
+      /* le premier rapport d'un étudiant sera souvent celui-là : rien
+         de saisi, un bug au démarrage. Il doit rester complet — et ne
+         pas inventer « 1 Ko » de documents là où il n'y en a aucun. */
+      const txt = diagnosticText(diagnosticData({ version: '6.4.0', backend: 'memory' }));
+      eq(txt.split('\n').length, 6);
+      ok(txt.includes('mémoire (rien ne survit)'));
+      ok(txt.includes('Documents : 0 (0 Ko)'));
+      ok(txt.includes('sans protection') && txt.includes('appareils non reliés'));
+      ok(txt.includes('inconnu') && txt.includes('0×0'));
     },
     'aides : relances dues — retard d’abord, pistes travaillées ensuite': () => {
       const comps = [

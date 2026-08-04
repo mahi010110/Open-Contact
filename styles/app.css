@@ -826,9 +826,21 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 .rg-row>.ic{flex:none;color:var(--text-muted)}
 .rg-row:hover .rg-n{color:var(--text-link)}
 .rg-foot{padding:12px 0 2px;border-top:1px dashed var(--border-soft);margin-top:2px}
-.moi-ver{
-  margin-top:18px;text-align:center;
-  font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);
+/* « Signaler un problème » : le texte à coller se lit EN ENTIER avant
+   de partir — c'est ce qui remplace la promesse « rien de personnel »
+   par une preuve. Bloc mono, sélectionnable, jamais un champ : rien
+   ne s'y saisit.
+   Il REPLIE ses lignes au lieu de défiler : aligner les rapports pour
+   les comparer est le confort du mainteneur, lire ce qu'on envoie est
+   la raison d'être de l'écran — sur un 390 px, défiler cachait la
+   moitié de chaque ligne. Ce qui part n'en dépend pas : la copie prend
+   la chaîne, jamais le rendu. */
+.diag{
+  margin:10px 0 0;padding:10px 12px;
+  background:var(--surface-field);border:1px solid var(--border-soft);
+  font-family:var(--font-mono);font-size:var(--text-11);line-height:1.6;
+  color:var(--text-body);user-select:text;
+  white-space:pre-wrap;overflow-wrap:anywhere;
 }
 
 /* ============ FEUILLES (fenêtres système) ============ */

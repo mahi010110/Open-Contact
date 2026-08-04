@@ -39,7 +39,15 @@ const HORS_ECRAN = new Set(['campagnes.js', 'compagnon.js', 'connexions.js',
 const PLAFOND = {
   toastCar: 79,        /* le plus long : « Connexion interrompue — … » */
   confirmations: 8,    /* portes bloquantes dans les écrans visibles */
-  motsExplication: 211 /* phrases d'explication dans les feuilles visibles */
+  /* phrases d'explication dans les feuilles visibles.
+     211 → 219 le 4 août 2026, pour les 8 mots de « Signaler un
+     problème » : « Aucun nom, aucune adresse — que des nombres. »
+     C'est le cas que §7 réserve à une phrase entière — la sécurité,
+     au moment du geste. Le texte de diagnostic part hors de l'app,
+     vers une issue PUBLIQUE : ce qu'il ne contient pas est la seule
+     chose que la lecture du bloc ne donne pas d'un coup d'œil, et
+     sans elle personne ne colle rien. */
+  motsExplication: 219
 };
 
 const fichiers = readdirSync(UI).filter(f => f.endsWith('.js') && !HORS_ECRAN.has(f));

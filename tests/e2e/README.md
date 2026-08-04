@@ -27,6 +27,7 @@ binaire>`. Les captures vont dans `captures/` (non versionné).
 | `e2e-compagnon-reponses.mjs` | Le VRAI binaire + faux IMAP : réponse détectée en boîte → relances arrêtées seules, fiche marquée « réponse » au repli — sauté sans binaire |
 | `e2e-compagnon-scan.mjs` | Le VRAI binaire + corpus piégé + faux Ollama : « ton ordinateur lit tes e-mails » → aperçu multi-sélection, injection neutralisée, tri respecté — sauté sans binaire |
 | `e2e-ux-audit.mjs` | Priorités de l'audit : actions impossibles désactivées, copie Compagnon mobile, relais avancés, cibles 44 px, doublon orphelin et disponibilité IA honnête |
+| `e2e-diagnostic.mjs` | « Signaler un problème » : la ligne porte la version (et la seule), le rapport tient six lignes stables, **aucune donnée personnelle d'un vrai suivi n'y entre**, le presse-papier rend exactement le bloc affiché, tout se lit sans défiler en 390 px |
 | `e2e-sobriete.mjs` | **Les couches ne repoussent pas.** Trois plafonds tenus à la main, sur les écrans visibles : longueur d'un toast (une phrase, un tiret cadratin), nombre de confirmations bloquantes, mots d'explication dans les feuilles. Aucun navigateur — il lit `ui/*.js`. Ajouter une porte ou une phrase oblige à monter le plafond **ici**, exprès |
 
 Le résumé de `tous.mjs` distingue **joués**, **sautés** et **échoués**. Les

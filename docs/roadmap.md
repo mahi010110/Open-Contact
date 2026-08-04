@@ -10,8 +10,8 @@ web — livré, c'est cette feuille de route —, l'ordinateur et le téléphone
 La surface ordinateur a la sienne : `compagnon/roadmap.md`. On ne re-discute
 pas la répartition ici, on l'applique.
 
-Dernière mise à jour : 31 juillet 2026 — version applicative 6.3.0, cache
-`oc-v74`, 100 auto-tests verts (`node tests/e2e/unitaires.mjs`).
+Dernière mise à jour : 4 août 2026 — version applicative 6.4.0, cache
+`oc-v116`, 109 auto-tests verts (`node tests/e2e/unitaires.mjs`).
 
 ---
 
@@ -160,12 +160,24 @@ Dépôt déjà public. Conditions d'entrée :
 - Sauvegardes et restaurations prouvées (§1.4).
 - Tests réels mobile + ordinateur terminés (§1.3).
 - Domaine et documents prêts (§2).
-- **Un chemin de retour d'expérience sans serveur** : sans compte ni
-  analytics, une bêta ne renvoie rien par défaut. Prévoir un « Signaler un
-  problème » qui produit un texte de diagnostic copiable (version, backend de
-  stockage, navigateur, taille des données — **aucune donnée personnelle**) à
-  coller dans une issue. Sans ça, la bêta revient silencieuse ou coûte un
-  entretien par étudiant.
+- **Un chemin de retour d'expérience sans serveur** — **livré** (4 août 2026).
+  Réglages → « Signaler un problème » montre un rapport de six lignes
+  (version, navigateur, système, écran, langue, affichage, thème, rang de
+  stockage, poids des données, protection, appareils reliés, comptes du
+  suivi), le copie, et ouvre le formulaire d'issue du dépôt.
+
+  Ce qui tient la promesse : `engine/diagnostic.js` ne reçoit le suivi que
+  pour le **compter** — il n'émet que des nombres, des booléens et des
+  étiquettes fixes. Deux auto-tests et `e2e-diagnostic.mjs` le vérifient en
+  lui passant un suivi plein de noms, d'adresses et d'e-mails, et en
+  relisant le bloc affiché. L'écran le MONTRE en entier avant de le copier
+  (il se replie plutôt que de défiler, pour être lisible en 390 px) : la
+  promesse « rien de personnel » est prouvée par la lecture, pas par une
+  phrase.
+
+  *Reste hors périmètre, et volontairement :* le rapport ne part pas tout
+  seul. Ce serait de la télémétrie (`CLAUDE.md` §10), et c'est l'étudiant
+  qui colle.
 
 Démarrer par un petit groupe d'étudiants, puis ouvrir.
 

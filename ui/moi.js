@@ -22,6 +22,7 @@ import { isProtected, openProtectFlow, openManageSheet, verrouLabel, requireCode
 import { openConnexions, openAssistantIA, mailStateLabel, mailAccount, aiStateLabel, aiConnection } from './connexions.js';
 import { loadCompanion, openAddCompanion, openCompanionSheet } from './compagnon.js';
 import { COMPAGNON, IA, ENVOI_DIRECT } from './perimetre.js';
+import { openDiagnostic } from './diagnostic.js';
 import { DIST_PAGE } from '../engine/distribution.js';
 
 /* ---------- garder une copie (.oc complet) ---------- */
@@ -269,6 +270,13 @@ function reglagesRowsHTML(){
      a son icône propre — un écran d'ordinateur — sur SES feuilles,
      là où elle distingue quelque chose (#4). */
   if (COMPAGNON) rows.push(['moiComp', 'Le Compagnon', 'pas installé', false]);
+  /* Sans compte ni analytique, une bêta ne renvoie rien : le seul
+     chemin de retour est un texte que l'étudiant copie lui-même
+     (docs/roadmap.md §3). La ligne porte la VERSION en état — c'est
+     la première chose qu'on demande quand quelque chose cloche, et
+     elle vit désormais là où elle sert au lieu de flotter seule en
+     bas de l'écran. */
+  rows.push(['moiDiag', 'Signaler un problème', APP_VERSION, false]);
   return (
     rows.map(([id, nom, etat, dep], i) =>
       rgRow(id, nom, etat, i === rows.length - 1, dep)).join('') +
@@ -313,6 +321,7 @@ function bindReglages(box){
     const st = q('#moiCompSt');
     if (a && st) st.textContent = 'associé — ' + (a.nom || 'ton ordinateur');
   }).catch(() => {});
+  q('#moiDiag').addEventListener('click', openDiagnostic);
   const rf = q('#moiRestoreFile');
   /* restaurer = rare et sensible (#4) : rangé ici, le code d'abord */
   q('#moiRestore').addEventListener('click', async () => {
@@ -366,13 +375,10 @@ export function renderMoi(){
            <button class="abtn" id="moiBack" aria-label="Retour à Moi">${ic('chevron-left', 'ic-14')}</button>
            <h2>Réglages</h2>
          </div>
+         ${/* La version ne flotte plus seule en bas : elle est l'ÉTAT de
+              « Signaler un problème », dans la liste. C'est le même
+              chiffre, à l'endroit où on le cherche — quand ça cloche. */''}
          <fieldset class="fset fset-plain">${reglagesRowsHTML()}</fieldset>
-         ${/* la version quitte l'écran « Moi » — elle n'y aidait en rien et
-              pesait une ligne — mais elle ne disparaît pas : la barre de
-              statut qui la porte au poste n'existe pas au pouce, et c'est
-              la première chose qu'on demande quand quelque chose cloche.
-              Elle se range donc où vit l'information technique. */''}
-         <div class="moi-ver">OpenContact ${APP_VERSION}</div>
        </div>`;
     root.querySelector('#moiBack').addEventListener('click', closeReglages);
     bindEdgeBack(root);
