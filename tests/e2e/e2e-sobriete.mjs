@@ -48,8 +48,13 @@ const PLAFOND = {
      199 le 5 août : « Mes appareils » décrivait le chemin vers l'écran
      où l'on se trouve déjà (« Moi → Mes appareils → Entrer une
      phrase »). La consigne dit maintenant quoi faire du QR affiché
-     juste au-dessus — plus court, et enfin utile. */
-  motsExplication: 199
+     juste au-dessus — plus court, et enfin utile.
+     193 le même jour : les deux consignes restantes disaient ce que
+     l'écran MONTRE — un QR se scanne sans qu'on le dise, des points
+     sous un œil barré se comprennent seuls — et « Six chiffres »
+     légendait un pavé qui affiche six cases vides. Ce qui se voit ne
+     se lit pas. */
+  motsExplication: 193
 };
 
 const fichiers = readdirSync(UI).filter(f => f.endsWith('.js') && !HORS_ECRAN.has(f));

@@ -272,13 +272,13 @@ export function openAppareils(){
            <div class="qr-wrap qr-mini" id="syQr" role="img" aria-label="QR de la phrase de liaison"></div>
            <button class="btn btn-sm" id="syCopy">${ic('copy', 'ic-14')} Copier la phrase</button>
          </div>` : ''}
-       ${/* La consigne décrivait l'écran où l'on se trouve — « Moi → Mes
-            appareils → Entrer une phrase » à quelqu'un qui vient
-            d'ouvrir cette feuille-là. Elle dit maintenant quoi faire de
-            ce qui est affiché juste au-dessus. */''}
-       <p class="hint" style="text-align:center">${phraseShown
-         ? 'Scanne ce code depuis ton autre appareil — ou tape la phrase.'
-         : 'Affiche la phrase pour relier un appareil de plus.'}</p>
+       ${/* Plus une seule consigne ici. Elle décrivait d'abord l'écran où
+            l'on se trouve, puis ce qu'il montre : un QR sous un titre
+            « Mes appareils », avec un bouton « Copier la phrase » à
+            côté, n'a besoin de personne pour dire qu'il se scanne — et
+            des points à la place de la phrase, sous un œil barré, se
+            comprennent sans qu'on les commente. Ce qui se voit ne se
+            lit pas deux fois. */''}
        <div class="sy-status" id="syStatus">${statusHTML()}</div>
        <div class="sy-log">${st ? `
          <ul class="rc-lines">

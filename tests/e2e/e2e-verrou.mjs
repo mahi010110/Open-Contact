@@ -55,8 +55,18 @@ await page.waitForSelector('.modal');
    plus dans le plus long parcours de l'app. */
 await page.waitForSelector('.modal .pad-k');
 if (await page.$('.modal-f button')) fail('le parcours de protection rouvre sur une porte');
-if (!/Six chiffres/.test(await page.locator('.modal-b').innerText()))
-  fail('le pavé ne dit plus ce qu’il attend');
+/* Le pavé ne LÉGENDE plus « Six chiffres » : il affiche six cases
+   vides, et compter des cases est plus rapide que lire qu'il y en a
+   six. On vérifie donc ce que l'utilisateur VOIT — les cases, et le
+   repère d'étape qui dit où l'on en est dans le parcours. */
+const vuSurLePave = await page.evaluate(() => ({
+  cases: document.querySelectorAll('.modal-b .lock-dots .dot').length,
+  etapes: document.querySelectorAll('.modal-b .pf-steps span').length,
+  faites: document.querySelectorAll('.modal-b .pf-steps span.on').length
+}));
+if (vuSurLePave.cases !== 6) fail('le pavé n’affiche pas six cases : ' + vuSurLePave.cases);
+if (vuSurLePave.etapes !== 3 || vuSurLePave.faites !== 1)
+  fail('le repère d’étape ne dit pas « 1 sur 3 » : ' + JSON.stringify(vuSurLePave));
 await snap(page, 'protege-code');
 const tapCode = async code => {
   for (const d of code) await page.click(`.modal .pad-k[data-d="${d}"]`);

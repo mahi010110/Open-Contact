@@ -192,7 +192,7 @@ function openRecovery(onUnlocked){
   let oldPhrase = '', un = null, newPin = '', newPhrase = '';
 
   const stepPhrase = () => {
-    sh.body.innerHTML =
+    sh.body.innerHTML = stepsHTML(1, 4) +
       `<div class="field"><label for="rcPhrase">Ta phrase de secours</label>
          <textarea id="rcPhrase" rows="3" autocapitalize="none" autocomplete="off"
            placeholder="Les 12 mots, dans l’ordre, séparés par des espaces"></textarea>
@@ -227,12 +227,12 @@ function openRecovery(onUnlocked){
 
   const stepNewPin = () => {
     sh.setTitle('Nouveau code');
-    sh.body.innerHTML = '<div id="rcPad"></div>';
+    sh.body.innerHTML = stepsHTML(2, 4) + '<div id="rcPad"></div>';
     sh.setFoot(null);
     newCodePad(q('#rcPad'), code => {
       newPin = code;
       newPhrase = makeVaultPhrase();
-      phraseCeremony(sh, newPhrase, doRotate);
+      phraseCeremony(sh, newPhrase, doRotate, [3, 4]);
     });
   };
 
@@ -254,8 +254,8 @@ function openRecovery(onUnlocked){
     await recoverRing(oldPhrase, newPhrase).catch(() => {});
     logJ('Récupération d’urgence : protection et phrase renouvelées');
     backupCeremony(sh, newPhrase, finish,
-      'Presque fini : une nouvelle copie chiffrée, à garder ailleurs. '
-      + 'Tes anciennes copies s’ouvrent encore avec l’ancienne phrase.');
+      'Une nouvelle copie chiffrée, à garder ailleurs. '
+      + 'Tes anciennes copies s’ouvrent encore avec l’ancienne phrase.', [4, 4]);
   };
 
   const finish = () => {
@@ -275,6 +275,18 @@ export function isWeakPin(code){
   return asc.includes(code) || desc.includes(code);
 }
 
+/* ---------- où j'en suis, sans le lire ----------
+   Protéger ses données, c'est quatre écrans à la suite, et rien ne
+   disait où l'on en était : on avançait dans un couloir sans savoir
+   s'il en restait un ou cinq. La seule indication vivait dans un mot
+   — « Dernière étape : » — au milieu d'une phrase du dernier écran,
+   c'est-à-dire trop tard et à l'endroit où on ne la cherche pas.
+   Trois traits, pleins derrière, vides devant. Ça se comprend sans
+   être lu, ça ne coûte pas un mot, et le parcours cesse de se subir. */
+const stepsHTML = (i, n) =>
+  `<div class="pf-steps" role="img" aria-label="Étape ${i} sur ${n}">${
+    Array.from({ length: n }, (_, k) => `<span${k < i ? ' class="on"' : ''}></span>`).join('')}</div>`;
+
 /* ---------- cérémonies communes ---------- */
 /* choisir un code : saisie + confirmation, codes triviaux refusés */
 function newCodePad(root, onDone){
@@ -293,12 +305,13 @@ function newCodePad(root, onDone){
   return pad;
 }
 /* la phrase : affichée, écrite sur papier, 2 mots re-vérifiés */
-function phraseCeremony(sh, phrase, onOk){
+function phraseCeremony(sh, phrase, onOk, etape){
   const q = s => sh.body.querySelector(s);
+  const pas = etape ? stepsHTML(etape[0], etape[1]) : '';
   const show = () => {
     sh.setTitle('Ta phrase de secours');
     sh.body.innerHTML =
-      `<ol class="phrase-grid">${phrase.split(' ').map(w => `<li>${esc(w)}</li>`).join('')}</ol>
+      pas + `<ol class="phrase-grid">${phrase.split(' ').map(w => `<li>${esc(w)}</li>`).join('')}</ol>
        ${/* Une seule phrase, et c'est la seule de tout le parcours qui
             mérite d'être entière : la sécurité l'exige, au moment du
             geste (§7). « Rien à voir avec ta phrase de liaison
@@ -313,7 +326,7 @@ function phraseCeremony(sh, phrase, onOk){
     const a = Math.floor(Math.random() * 6), b = 6 + Math.floor(Math.random() * 6);
     sh.setTitle('Vérifions');
     sh.body.innerHTML =
-      `${/* deux mots de six lettres : ils tiennent côte à côte même au
+      pas + `${/* deux mots de six lettres : ils tiennent côte à côte même au
              pouce. La règle générale (un champ par rang sous 901 px)
              existe pour les valeurs longues — un email, un rôle — pas
              pour ça. */''}
@@ -344,14 +357,25 @@ function phraseCeremony(sh, phrase, onOk){
   show();
 }
 /* la sauvegarde chiffrée bloquante (D15/D7) — chiffrée avec la phrase */
-function backupCeremony(sh, phrase, onOk, introTxt){
+function backupCeremony(sh, phrase, onOk, introTxt, etape){
   sh.setTitle('Ta copie');
-  sh.body.innerHTML =
-    /* Une ligne au lieu de deux. « Chiffrée » se disait deux fois, et
-       « elle seule l'ouvre » redisait ce que la phrase de secours vient
-       d'être présentée comme étant. Ce qui reste est ce qu'on ne peut
-       pas deviner : où la mettre. */
-    `<p class="pd" style="margin:0 0 10px">${introTxt || 'Dernière étape : une copie de tout, chiffrée par ta phrase de secours. Garde-la ailleurs — clé USB, autre disque.'}</p>`;
+  const pas = etape ? stepsHTML(etape[0], etape[1]) : '';
+  /* Le test muet : masquer les explications vidait CET écran, et lui
+     seul — tout son corps était une phrase. Or c'est l'étape qu'on ne
+     peut PAS sauter. « Une copie de tout » promettait ce qu'on peut
+     MONTRER : ce qu'elle contient, compté sur les vraies données. On
+     voit ce qu'on sauvegarde au lieu de le lire, et le chiffrement
+     descend en attribut du fichier plutôt qu'en promesse. */
+  const quoiHTML =
+    `<ul class="rc-lines cp-what">
+       <li class="cp-file" hidden></li>
+       <li>${ic('briefcase', 'ic-14')} <b>${S.companies.length}</b> piste${S.companies.length > 1 ? 's' : ''}</li>
+       ${S.orphans.length ? `<li>${ic('contact', 'ic-14')} <b>${S.orphans.length}</b> contact${S.orphans.length > 1 ? 's' : ''} à rattacher</li>` : ''}
+       <li>${ic('user', 'ic-14')} ton profil, tes modèles</li>
+       <li>${ic('lock', 'ic-14')} chiffrée par ta phrase de secours</li>
+     </ul>`;
+  sh.body.innerHTML = pas +
+    (introTxt ? `<p class="pd" style="margin:0 0 10px">${introTxt}</p>` : '') + quoiHTML;
   const fname = 'opencontact-copie-' + todayISO() + '.oc';
   const bDl = btn('Télécharger la copie', 'btn-primary', async () => {
     const txt = await encryptOC2(fullPayload(S.companies, S.profile, S.orphans, S.tombs), phrase);
@@ -362,15 +386,20 @@ function backupCeremony(sh, phrase, onOk, introTxt){
     A.click();
     A.remove();
     setTimeout(() => URL.revokeObjectURL(A.href), 4000);
-    /* La seule étape FORCÉE du parcours ne disait pas qu'elle avait
-       marché : mesuré, le texte était mot pour mot identique avant et
-       après, et aucun toast. Sur un téléphone, un téléchargement ne se
-       voit pas — le nom du fichier est le seul FAIT qui prouve qu'il
-       existe, et il remplace la consigne qui vient d'être suivie.
-       Une donnée, pas une phrase de plus (§6). */
-    sh.body.innerHTML =
-      `<p class="pd" style="margin:0 0 10px">${ic('check', 'ic-14')} <b>${esc(fname)}</b>
-         — mets-la ailleurs qu’ici : clé USB, autre disque.</p>`;
+    /* La seule étape FORCÉE ne disait pas qu'elle avait marché : mesuré,
+       le texte était mot pour mot identique avant et après, et aucun
+       toast. Sur un téléphone, un téléchargement ne se voit pas — le nom
+       du fichier est le seul FAIT qui prouve qu'il existe.
+       Il s'AJOUTE à l'inventaire au lieu de le remplacer : ce qu'on
+       vient de lire reste vrai, et rien ne disparaît sous le doigt.
+       Le conseil, lui, est transitoire — il désigne un fichier qui
+       existe enfin, et un toast est fait pour ça. */
+    const li = sh.body.querySelector('.cp-file');
+    if (li){
+      li.hidden = false;
+      li.innerHTML = `${ic('check', 'ic-14')} <b>${esc(fname)}</b>`;
+    }
+    toast('Copie faite — mets-la ailleurs qu’ici.');
     bEnd.disabled = false;
     bEnd.classList.add('btn-primary');
     bDl.classList.remove('btn-primary');
@@ -543,12 +572,14 @@ export function openProtectFlow(){
      à quatre, et commence par le seul qui demande quelque chose. */
   const stepPin = () => {
     sh.setTitle('Ton code');
-    sh.body.innerHTML = `<p class="hint" style="margin:0 0 10px">Six chiffres, demandés à chaque ouverture.</p><div id="lkPad"></div>`;
+    /* « Six chiffres » : le pavé affiche SIX cases vides. Compter des
+       cases est immédiat, lire qu'il y en a six ne l'est pas plus. */
+    sh.body.innerHTML = stepsHTML(1, 3) + `<div id="lkPad"></div>`;
     sh.setFoot(null);
     newCodePad(q('#lkPad'), code => {
       pin = code;
       phrase = phrase || makeVaultPhrase();
-      phraseCeremony(sh, phrase, () => backupCeremony(sh, phrase, finish));
+      phraseCeremony(sh, phrase, () => backupCeremony(sh, phrase, finish, null, [3, 3]), [2, 3]);
     });
   };
 
@@ -661,8 +692,8 @@ export function openManageSheet(){
       backupCeremony(s2, neuve, () => {
         s2.close(null, true);
         toast('Nouvelle phrase enregistrée ✓');
-      }, 'Une copie neuve, chiffrée par cette phrase. Tes anciennes copies s’ouvrent encore avec l’ancienne.');
-    });
+      }, 'Une copie neuve, chiffrée par cette phrase. Tes anciennes copies s’ouvrent encore avec l’ancienne.', [3, 3]);
+    }, [2, 3]);
   });
 
   const changePin = () => askCurrentPin('Ton code actuel', cur => {

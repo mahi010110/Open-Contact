@@ -1011,6 +1011,22 @@ details.pcard-details[open]>summary{margin-bottom:10px}
    changer la phrase de liaison ne sont pas le même geste, et leurs
    bords se touchaient à 6 px (CLAUDE.md §5) */
 .lk-set{display:flex;flex-direction:column;align-items:flex-start;gap:2px;margin-top:8px}
+/* ---- OÙ J'EN SUIS, SANS LE LIRE ----
+   Protéger ses données, c'est quatre écrans à la suite. Rien ne disait
+   où l'on en était : on avançait dans un couloir sans savoir s'il en
+   restait un ou cinq. Des traits pleins derrière, vides devant —
+   « 98 » jusqu'au bout : deux états francs, aucun dégradé, aucun
+   compte à lire. */
+.pf-steps{display:flex;gap:5px;margin:0 0 14px}
+.pf-steps span{
+  width:26px;height:5px;flex:none;
+  background:var(--surface-field);border:1px solid var(--border-strong);
+}
+.pf-steps span.on{background:var(--accent);border-color:var(--accent)}
+/* le fichier produit rejoint l'inventaire de la copie : il est le seul
+   fait NEUF de la liste, il porte donc la seule encre forte */
+.cp-what .cp-file{border-color:var(--accent);color:var(--text-body)}
+.cp-what .cp-file b{font-family:var(--font-mono);font-size:var(--text-12);word-break:break-all}
 .lk-set .lk-cut{color:var(--red)}
 .lk-set .lk-cut:hover{color:var(--red)}
 .sy-log{margin-top:10px}
