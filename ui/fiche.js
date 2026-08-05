@@ -185,7 +185,12 @@ export function openFiche(c){
                <summary>+ ${knownCts.length} personne${knownCts.length > 1 ? 's' : ''} connue${knownCts.length > 1 ? 's' : ''}</summary>
                <div class="ctc-list">${knownCts.map(t => ctRowHTML(t, false)).join('')}</div>
              </details>` : ''}`
-         : '<p class="hint" style="margin:0">Personne pour l’instant — ajoute au moins un email.</p>'}
+         /* « ajoute au moins un email » répétait le bouton « + Ajouter »
+            posé sur la même rangée, à quarante pixels. Et sans adresse,
+            le composeur le dit lui-même au moment où ça coûte quelque
+            chose (« Pas d'email — Copier, puis LinkedIn »). Reste le
+            seul mot qui rend le vide présentable. */
+         : '<p class="hint" style="margin:0">Personne pour l’instant.</p>'}
        </div>
        ${know ? `
          <details class="fi-hist" id="fiKnow"${wide ? ' open' : ''}><summary>À savoir</summary>

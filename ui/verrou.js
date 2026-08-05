@@ -196,18 +196,26 @@ function openRecovery(onUnlocked){
       `<div class="field"><label for="rcPhrase">Ta phrase de secours</label>
          <textarea id="rcPhrase" rows="3" autocapitalize="none" autocomplete="off"
            placeholder="Les 12 mots, dans l’ordre, séparés par des espaces"></textarea>
-         <p class="hint" id="rcHint">Celle que tu as écrite sur papier.</p></div>`;
+         ${/* Trois textes pour un champ : le libellé le nomme, l'invite
+              donne la forme, et « Celle que tu as écrite sur papier »
+              ne faisait que rappeler. Cette ligne n'existe QUE pour
+              dire l'erreur — même dessin que « Vérifions » juste
+              au-dessus, où elle attend déjà d'avoir quelque chose à
+              signaler. */''}
+         <p class="hint" id="rcHint" hidden></p></div>`;
     sh.setFoot([btn('Vérifier', 'btn-primary', async () => {
       const phrase = q('#rcPhrase').value;
       const bad = phraseUnknownWords(phrase);
       const hint = q('#rcHint');
       if (bad.length){
+        hint.hidden = false;
         hint.textContent = 'Mot inconnu : « ' + bad[0] + ' » — vérifie l’orthographe.';
         hint.classList.add('warn');
         return;
       }
       try { un = await unlockWithPhrase(meta, phrase); }
       catch (e) {
+        hint.hidden = false;
         hint.textContent = 'Ce n’est pas la bonne phrase. Vérifie l’ordre des mots.';
         hint.classList.add('warn');
         return;

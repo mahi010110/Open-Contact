@@ -53,8 +53,13 @@ const PLAFOND = {
      l'écran MONTRE — un QR se scanne sans qu'on le dise, des points
      sous un œil barré se comprennent seuls — et « Six chiffres »
      légendait un pavé qui affiche six cases vides. Ce qui se voit ne
-     se lit pas. */
-  motsExplication: 193
+     se lit pas.
+     180 le 5 août, après un passage sur TOUTE l'app : la fiche redisait
+     son bouton « + Ajouter » à quarante pixels de lui, et le champ de
+     la phrase de secours portait TROIS textes — libellé, invite, puis
+     un rappel. Cette dernière ligne n'existe plus que pour dire
+     l'erreur, comme celle de « Vérifions » juste au-dessus. */
+  motsExplication: 180
 };
 
 const fichiers = readdirSync(UI).filter(f => f.endsWith('.js') && !HORS_ECRAN.has(f));

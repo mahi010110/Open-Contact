@@ -146,9 +146,12 @@ export function openMail(c, opts){
       aMail.href = 'mailto:' + encodeURIComponent(email) +
         '?subject=' + encodeURIComponent(q('#mSubj').value) +
         '&body=' + encodeURIComponent(q('#mBody').value);
+      /* « Destinataire : » redisait le libellé du champ posé deux rangs
+         plus haut. L'adresse seule, sous un champ intitulé
+         « Destinataire », ne peut être que celle du destinataire. */
       q('#mHint').innerHTML = acct
         ? `Depuis <b>${esc(acct.email || 'ta messagerie')}</b> → ${esc(email)}`
-        : `Destinataire : ${esc(email)}` + (ENVOI_DIRECT
+        : `${esc(email)}` + (ENVOI_DIRECT
             ? ` <button class="linklike" id="mDirect" style="min-height:0;padding:0 4px">Envoyer directement depuis l’app ?</button>`
             : '');
       q('#mDirect')?.addEventListener('click', () => openConnexions());

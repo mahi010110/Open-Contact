@@ -1,7 +1,7 @@
 /* E2E P1 : création du verrou, scellement, rechargement → écran
    verrouillé, mauvais code, bon code, re-authentification.
    390×844 (tactile) puis 1280×800, thème clair puis sombre. */
-import { chromium, chromiumPath, ROOT, SHOTS, ouvrirReglages } from './outils.mjs';
+import { chromium, chromiumPath, ROOT, SHOTS, ouvrirReglages, attendre } from './outils.mjs';
 import http from 'http';
 import { readFile, stat } from 'fs/promises';
 import path from 'path';
@@ -95,9 +95,18 @@ const dl = page.waitForEvent('download');
 await page.click('.modal-f .btn-primary');
 await dl;
 await snap(page, 'sauvegarde-bloquante');
+/* Le fichier produit rejoint l'inventaire : c'est LUI le signe que le
+   téléchargement a eu lieu, pas un toast. */
+if (!/opencontact-copie-\d{4}-\d{2}-\d{2}\.oc/.test(await page.locator('.modal-b').innerText()))
+  fail('la copie ne nomme pas le fichier produit');
 /* Terminer devient actif après le téléchargement */
 await page.click('.modal-f button:has-text("Terminer"):not([disabled])');
-await page.waitForSelector('.toast.on', { timeout: 15000 });
+/* On attend le RÉSULTAT, pas un toast : un toast peut venir d'ailleurs
+   dans le même écran (le téléchargement en pose un), et l'attendre
+   rendait la main avant que le coffre soit écrit — le contrôle suivant
+   lisait alors « non protégé » sur une protection en cours d'écriture. */
+await attendre(page, async () => !!(await (await import('./engine/storage.js')).kvGet('oc_vault_v1')),
+  { timeout: 20000, message: 'le coffre est écrit' });
 /* refuser la biométrie si proposée */
 const bioSheet = await page.$('.modal-confirm');
 if (bioSheet) await page.click('.modal-confirm .modal-h .x');   /* la croix refuse (R2) */
