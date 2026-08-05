@@ -11,12 +11,13 @@
    ============================================================ */
 import { esc } from '../engine/utils.js';
 import { fnv } from '../engine/crypto.js';
-import { sharePayload } from '../engine/exchange.js';
+import { sharePayload, linkWrap, linkParse } from '../engine/exchange.js';
 import { PROMO_KEY, RELAYS_KEY, TURN_KEY, kvGet, kvSet } from '../engine/storage.js';
 import { parseTurn, turnText } from '../engine/transport.js';
 import { S, bus, isClosed, logJ } from './state.js';
 import { openSheet, confirmSheet, toast, btn, ic } from './dom.js';
 import { mergePreviewInto } from './recevoir.js';
+import { makeQrSvg, startScan } from './qr.js';
 import { getSync, startSync, breakLink, keepMyProfile, makePhrase, openRoom, leaveRoom,
          watchLiaison, deviceSelf, loadDevices, removeDevice, DEVICES_MAX,
          getRing, amMain, ringDo, ringMakeMain } from './synclive.js';
@@ -42,9 +43,22 @@ const turnList = async () => {
     return Array.isArray(t) ? t : [];
   } catch (e) { return []; }
 };
-const relaySettingsHTML = (urls, turn) =>
+/* `extra` : les réglages du LIEN lui-même (changer la phrase, rompre).
+   Ils vivaient dispersés — un lien flottant sous la liste et un bouton
+   dans le pied — alors qu'ils répondent à la même question que les
+   relais : « comment cette liaison est-elle réglée ? ». Un seul volet
+   replié, donc, au lieu de trois affordances à trier du regard ; et le
+   titre suit ce qu'il contient. */
+const relaySettingsHTML = (urls, turn, extra) =>
   `<details class="pcard pcard-details sy-relays" style="margin-top:14px">
-     <summary><h3>${ic('settings-2', 'ic-14')} Connexion avancée</h3></summary>
+     <summary><h3>${ic('settings-2', 'ic-14')} ${extra ? 'Réglages du lien' : 'Connexion avancée'}</h3></summary>
+     ${/* Ce qu'on vient chercher EN PREMIER se lit en premier : on ouvre
+          ce volet pour changer la phrase ou couper le lien bien plus
+          souvent que pour saisir un relais. Posés en bas, ces deux
+          gestes vivaient sous deux zones de texte qu'il fallait
+          dépasser. */''}
+     ${extra || ''}
+     ${extra ? '<div class="lbl-row" style="margin-top:14px"><label>Connexion</label></div>' : ''}
      ${/* l'intro dit QUAND s'en servir ; la forme à respecter descend sous
           SON champ, là où on la lit au moment de taper. Mélangées, elles
           faisaient une phrase que personne ne finit. */''}
@@ -174,13 +188,17 @@ function openDeviceSheet(d, onDone){
 /* ============ Mes appareils : gestion du lien persistant ============ */
 export function openAppareils(){
   let onSync = null;
+  /* la caméra du scan de phrase : elle se coupe quelle que soit la
+     façon de quitter — retour, fermeture, ou scan réussi */
+  const stopCam = () => { if (stopCam.fn){ stopCam.fn(); stopCam.fn = null; } };
+  stopCam.fn = null;
   /* N11 : la phrase donne accès à tout le privé — masquée par défaut
      dès qu'un appareil est relié, révélée d'un tap ; visible tant
      qu'on est en train de relier (il faut pouvoir la recopier) */
   let revealPhrase = null;
   const sh = openSheet({
     title: 'Mes appareils', icon: 'switch', clearToast: true,
-    onClose: () => { if (onSync){ document.removeEventListener('oc:sync', onSync); onSync = null; } }
+    onClose: () => { stopCam(); if (onSync){ document.removeEventListener('oc:sync', onSync); onSync = null; } }
   });
   const q = s => sh.body.querySelector(s);
 
@@ -243,7 +261,24 @@ export function openAppareils(){
       `<div class="sy-phrase"><span>${phraseShown ? esc(sy.phrase) : '••••• – •••••'}</span>
          <button class="abtn abtn-sm" id="syEye" aria-label="${phraseShown ? 'Masquer' : 'Afficher'} la phrase"
                  title="${phraseShown ? 'Masquer' : 'Afficher'}">${ic(phraseShown ? 'eye-off' : 'eye', 'ic-14')}</button></div>
-       <p class="hint" style="text-align:center">Sur l’autre appareil : <b>Moi → Mes appareils → Entrer une phrase</b>.</p>
+       ${/* Relier DEUX DE SES PROPRES APPAREILS demandait de retaper douze
+            caractères à la main, sans faute, sur un clavier de téléphone —
+            alors que donner une piste à un camarade a QR, fichier et
+            presse-papier depuis toujours. On soignait l'inconnu et on
+            laissait l'utilisateur recopier pour lui-même.
+            Le QR porte le même secret que la phrase : il n'apparaît donc
+            QUE quand elle est à l'écran, et disparaît avec elle. */''}
+       ${phraseShown ? `<div class="sy-link">
+           <div class="qr-wrap qr-mini" id="syQr" role="img" aria-label="QR de la phrase de liaison"></div>
+           <button class="btn btn-sm" id="syCopy">${ic('copy', 'ic-14')} Copier la phrase</button>
+         </div>` : ''}
+       ${/* La consigne décrivait l'écran où l'on se trouve — « Moi → Mes
+            appareils → Entrer une phrase » à quelqu'un qui vient
+            d'ouvrir cette feuille-là. Elle dit maintenant quoi faire de
+            ce qui est affiché juste au-dessus. */''}
+       <p class="hint" style="text-align:center">${phraseShown
+         ? 'Scanne ce code depuis ton autre appareil — ou tape la phrase.'
+         : 'Affiche la phrase pour relier un appareil de plus.'}</p>
        <div class="sy-status" id="syStatus">${statusHTML()}</div>
        <div class="sy-log">${st ? `
          <ul class="rc-lines">
@@ -278,8 +313,11 @@ export function openAppareils(){
            ? `<p class="hint warn" style="margin-top:6px">Plus de ${DEVICES_MAX} appareils — change la phrase pour écarter les inconnus.</p>`
            : ''}
        </div>
-       ${relaySettingsHTML(relays, turn)}
-       <button class="linklike" id="syNewPhrase" style="margin-top:12px">Changer la phrase de liaison</button>`;
+       ${relaySettingsHTML(relays, turn,
+         `<div class="lk-set">
+            <button class="linklike" id="syNewPhrase">Changer la phrase de liaison</button>
+            <button class="linklike lk-cut" id="syBreak">Rompre le lien</button>
+          </div>`)}`;
 
     q('#syEye')?.addEventListener('click', () => { revealPhrase = !phraseShown; renderLinked(); });
     q('#syRetry')?.addEventListener('click', () => startSync(sy.phrase, true));
@@ -307,19 +345,33 @@ export function openAppareils(){
       }));
     wireComp(q, comp, render);
     wireRelays(q, sy.phrase, render);
-    sh.setFoot([
-      btn('Rompre le lien', 'btn-ghost', async () => {
-        const ok = await confirmSheet({
-          title: 'Rompre le lien ?', danger: true, okLabel: 'Rompre', icon: 'switch',
-          msg: 'Cet appareil ne se synchronisera plus. Rien n’est effacé — tes pistes restent ici, les autres appareils gardent les leurs.'
-        });
-        if (!ok) return;
-        if (!await requireCode('Ton code, pour rompre le lien')) return;
-        await breakLink();
-        toast('Lien rompu');
-        render();
-      })
-    ]);
+    /* le QR se peint après coup : `makeQrSvg` est asynchrone, et un
+       re-rendu peut avoir eu lieu entre-temps — d'où le test du nœud */
+    if (phraseShown) makeQrSvg(linkWrap(sy.phrase))
+      .then(svg => { const n = q('#syQr'); if (n) n.innerHTML = svg; })
+      .catch(() => { const n = q('#syQr'); if (n) n.remove(); });
+    q('#syCopy')?.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(sy.phrase); toast('Phrase copiée.'); }
+      catch (e) { toast('Copie impossible ici — tape-la à la main.'); }
+    });
+    q('#syBreak')?.addEventListener('click', async () => {
+      const ok = await confirmSheet({
+        title: 'Rompre le lien ?', danger: true, okLabel: 'Rompre', icon: 'switch',
+        msg: 'Cet appareil ne se synchronisera plus. Rien n’est effacé — tes pistes restent ici, les autres appareils gardent les leurs.'
+      });
+      if (!ok) return;
+      if (!await requireCode('Ton code, pour rompre le lien')) return;
+      await breakLink();
+      toast('Lien rompu');
+      render();
+    });
+    /* Pied vide, exprès. `setFoot` pose son bouton à ~96 % de la
+       hauteur — l'endroit le plus facile à atteindre au pouce — et
+       « Rompre le lien » l'occupait SEUL, sur un écran qui n'a rien à
+       valider : la meilleure place offerte au seul geste qui coupe.
+       Il rejoint « Changer la phrase » dans les réglages du lien, où
+       l'on ne va que délibérément. */
+    sh.setFoot(null);
   }
 
   async function renderStart(changing){
@@ -351,16 +403,50 @@ export function openAppareils(){
     wireRelays(q, '', render);
     q('#syNew').addEventListener('click', () => { startSync(makePhrase()); render(); });
     q('#syJoin').addEventListener('click', () => {
+      /* Le scan D'ABORD, la saisie en repli : viser un QR ne peut pas
+         se tromper de lettre, retaper si. Sans caméra — ordinateur de
+         salle, permission refusée — le champ reste, et il devient le
+         chemin normal sans que rien ne se casse. */
       sh.body.innerHTML =
-        `<div class="field"><label for="syPhrase">Phrase de l’autre appareil</label>
+        `<div class="scan-box" id="syScanBox" hidden><video id="syVideo" playsinline muted></video><div class="scan-mark"></div></div>
+         <button class="btn" id="syScan" style="width:100%">${ic('grid-3x3', 'ic-14')} Scanner le QR de l’autre appareil</button>
+         <p class="hint" id="syScanHint" hidden></p>
+         <div class="field" style="margin-top:12px"><label for="syPhrase">Ou tape la phrase</label>
            <input id="syPhrase" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="ex : k7m3p-9xq2f"></div>`;
-      const go = () => {
-        const v = q('#syPhrase').value.trim().toLowerCase();
-        if (v){ startSync(v); render(); }
+      const go = v => {
+        const p = String(v ?? q('#syPhrase').value).trim().toLowerCase();
+        if (!p) return;
+        stopCam();
+        startSync(p);
+        render();
       };
+      q('#syScan').addEventListener('click', async () => {
+        q('#syScanBox').hidden = false;
+        q('#syScan').hidden = true;
+        try {
+          stopCam();
+          stopCam.fn = await startScan(q('#syVideo'), raw => {
+            const p = linkParse(raw);
+            if (!p){
+              /* un QR qui n'est pas une phrase de liaison : on le dit et
+                 on continue de viser, plutôt que de relier n'importe quoi */
+              const h = q('#syScanHint');
+              if (h){ h.hidden = false; h.textContent = 'Ce QR n’est pas une phrase de liaison.'; h.classList.add('warn'); }
+              return true;
+            }
+            go(p);
+            return false;
+          });
+        } catch (e) {
+          q('#syScanBox').hidden = true;
+          const h = q('#syScanHint');
+          if (h){ h.hidden = false; h.textContent = 'Caméra indisponible — tape la phrase.'; }
+          q('#syPhrase').focus();
+        }
+      });
       q('#syPhrase').addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
-      sh.setFoot([btn('← Retour', 'btn-ghost', () => renderStart(changing)), btn('Relier', 'btn-primary', go)]);
-      q('#syPhrase').focus();
+      sh.setFoot([btn('← Retour', 'btn-ghost', () => { stopCam(); renderStart(changing); }),
+                  btn('Relier', 'btn-primary', () => go())]);
     });
   }
 

@@ -992,10 +992,27 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   letter-spacing:.08em;padding:10px 16px;user-select:all;
   border:1px dashed var(--border-strong);background:var(--surface-chrome);
 }
+/* ---- relier sans retaper : le QR de la phrase, et le presse-papier ----
+   Le QR reste PETIT. Il ne se scanne pas de loin comme celui d'un
+   partage à un camarade : les deux appareils sont dans les mêmes mains,
+   à trente centimètres. Lui donner la largeur d'une carte de partage en
+   ferait l'objet dominant d'un écran dont le sujet est ailleurs — la
+   liaison, son état, mes appareils. */
+.sy-link{display:flex;flex-direction:column;align-items:center;gap:8px;margin:0 0 10px}
+.qr-wrap.qr-mini{max-width:168px;padding:10px;margin:0}
+@media (min-width:901px){ .qr-wrap.qr-mini{max-width:168px} }
 .sy-status{
   display:flex;align-items:center;gap:8px;justify-content:center;margin-top:12px;
   font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted);
 }
+/* les deux réglages du lien, au fond du volet : ils se lisent à gauche,
+   à la suite, et celui qui COUPE porte le rouge — jamais l'inverse */
+/* 8 px sous le résumé qui ouvre le volet : ouvrir les réglages et
+   changer la phrase de liaison ne sont pas le même geste, et leurs
+   bords se touchaient à 6 px (CLAUDE.md §5) */
+.lk-set{display:flex;flex-direction:column;align-items:flex-start;gap:2px;margin-top:8px}
+.lk-set .lk-cut{color:var(--red)}
+.lk-set .lk-cut:hover{color:var(--red)}
 .sy-log{margin-top:10px}
 .pr-send{width:100%;margin-top:12px}
 /* ---- Échanger : deux verbes héros + pied discret ---- */

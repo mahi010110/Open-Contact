@@ -18,7 +18,7 @@ import { PIN_LEN, makeVaultPhrase, phraseUnknownWords,
          rotateVaultResumable, prevKeyOf, clearPrev } from '../engine/vault.js';
 import { VAULT_KEY, kvGet, kvSet, kvDel,
          vaultAttach, vaultDetach, vaultSealAll, vaultOpenAll, vaultReseal } from '../engine/storage.js';
-import { ensureRing, recoverRing } from './synclive.js';
+import { ensureRing, recoverRing, rekeyRing } from './synclive.js';
 import { S, bus, logJ } from './state.js';
 import { el, ic, btn, toast, openSheet, confirmSheet } from './dom.js';
 
@@ -352,15 +352,25 @@ function backupCeremony(sh, phrase, onOk, introTxt){
        d'être présentée comme étant. Ce qui reste est ce qu'on ne peut
        pas deviner : où la mettre. */
     `<p class="pd" style="margin:0 0 10px">${introTxt || 'Dernière étape : une copie de tout, chiffrée par ta phrase de secours. Garde-la ailleurs — clé USB, autre disque.'}</p>`;
+  const fname = 'opencontact-copie-' + todayISO() + '.oc';
   const bDl = btn('Télécharger la copie', 'btn-primary', async () => {
     const txt = await encryptOC2(fullPayload(S.companies, S.profile, S.orphans, S.tombs), phrase);
     const A = document.createElement('a');
     A.href = URL.createObjectURL(new Blob([txt], { type: 'application/octet-stream' }));
-    A.download = 'opencontact-copie-' + todayISO() + '.oc';
+    A.download = fname;
     document.body.append(A);
     A.click();
     A.remove();
     setTimeout(() => URL.revokeObjectURL(A.href), 4000);
+    /* La seule étape FORCÉE du parcours ne disait pas qu'elle avait
+       marché : mesuré, le texte était mot pour mot identique avant et
+       après, et aucun toast. Sur un téléphone, un téléchargement ne se
+       voit pas — le nom du fichier est le seul FAIT qui prouve qu'il
+       existe, et il remplace la consigne qui vient d'être suivie.
+       Une donnée, pas une phrase de plus (§6). */
+    sh.body.innerHTML =
+      `<p class="pd" style="margin:0 0 10px">${ic('check', 'ic-14')} <b>${esc(fname)}</b>
+         — mets-la ailleurs qu’ici : clé USB, autre disque.</p>`;
     bEnd.disabled = false;
     bEnd.classList.add('btn-primary');
     bDl.classList.remove('btn-primary');
@@ -576,12 +586,20 @@ export function openManageSheet(){
        <div class="pick-list">
          <button class="pick" id="vgLock"><b>Verrouiller maintenant</b></button>
          <button class="pick" id="vgPin"><b>Changer mon code</b></button>
+         ${/* Le papier se perd, et la phrase ne se REVOIT pas : elle n'est
+              jamais écrite sur le disque, seul un enrobage de la clé
+              maîtresse l'est. La seule porte honnête est donc d'en
+              refaire une — avec le code, qu'on a encore. Sans elle,
+              un code oublié devenait définitif sans que rien ne le
+              dise. */''}
+         <button class="pick" id="vgPhrase"><b>Refaire ma phrase de secours</b></button>
          ${bioAvailable() ? `<button class="pick" id="vgBio"><b>${bioEnrolled() ? 'Retirer' : 'Activer'} l’empreinte / le visage</b></button>` : ''}
        </div>
        <button class="linklike" id="vgOff" style="margin-top:14px;color:var(--red)">Ne plus protéger…</button>`;
     const q = s => sh.body.querySelector(s);
     q('#vgLock').addEventListener('click', () => { sh.close(); lockNow(); });
     q('#vgPin').addEventListener('click', changePin);
+    q('#vgPhrase').addEventListener('click', redoPhrase);
     q('#vgBio')?.addEventListener('click', async () => {
       if (bioEnrolled()){ await dropBio(); toast('Retiré.'); render(); return; }
       askCurrentPin('Ton code actuel', async pin => {
@@ -611,6 +629,42 @@ export function openManageSheet(){
     s2.body.innerHTML = '<div id="cpPad" class="rq-pad"></div>';
     proofPad(s2, code => { s2.close(null, true); then(code); });
   };
+  /* ---- refaire la phrase de secours (papier perdu, code encore su) ----
+     Même chaîne que la récupération d'urgence, à une différence près :
+     l'accès est prouvé par le CODE, pas par l'ancienne phrase — c'est
+     tout l'objet. Le code, lui, ne change pas.
+     Trois conséquences, dans l'ordre où elles arrivent :
+     ① le coffre se re-scelle sous une clé neuve (rotateVaultResumable
+        pose d'abord la métadonnée, qui embarque l'ancienne clé : une
+        coupure ici se rattrape au prochain déverrouillage) ;
+     ② l'anneau d'appareils doit porter la clé de la nouvelle phrase,
+        sinon le secours d'urgence désignerait encore l'ancienne — et on
+        ne s'en apercevrait que le jour où il faut s'en servir ;
+     ③ les copies déjà exportées restent chiffrées par l'ANCIENNE
+        phrase. Ça ne se devine pas, donc ça se dit — au moment où l'on
+        propose d'en faire une neuve. */
+  const redoPhrase = () => askCurrentPin('Ton code, pour refaire la phrase', async pin => {
+    const s2 = openSheet({ title: 'Nouvelle phrase de secours', icon: 'lock' });
+    const neuve = makeVaultPhrase();
+    phraseCeremony(s2, neuve, async () => {
+      s2.setTitle('Renouvellement…');
+      s2.body.innerHTML = '';
+      s2.setFoot(null);
+      const rot = await rotateVaultResumable(meta, { pin }, pin, neuve);
+      meta = rot.meta;
+      await saveMeta();
+      await vaultReseal(rot.oldKey, rot.key);
+      meta = clearPrev(meta);
+      await saveMeta();
+      await rekeyRing(neuve).catch(() => {});
+      logJ('Phrase de secours renouvelée');
+      backupCeremony(s2, neuve, () => {
+        s2.close(null, true);
+        toast('Nouvelle phrase enregistrée ✓');
+      }, 'Une copie neuve, chiffrée par cette phrase. Tes anciennes copies s’ouvrent encore avec l’ancienne.');
+    });
+  });
+
   const changePin = () => askCurrentPin('Ton code actuel', cur => {
     const s2 = openSheet({ title: 'Nouveau code', icon: 'lock', className: 'modal-confirm' });
     s2.body.innerHTML = '<div id="npPad"></div>';

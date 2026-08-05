@@ -108,6 +108,27 @@ export function rdvParse(raw){
   return rdvNorm(s.slice(5)) || null;
 }
 
+/* ---------- la phrase de LIAISON de MES appareils (OCL1) ----------
+   Relier deux de ses propres appareils obligeait à retaper douze
+   caractères à la main, sans faute, sur un clavier de téléphone —
+   alors que partager avec un camarade a QR, fichier et presse-papier
+   depuis toujours. On soignait l'inconnu et on laissait l'utilisateur
+   recopier pour lui-même.
+   Préfixe distinct du rendez-vous (OCR1) : les deux se scannent au
+   même genre d'endroit et ne veulent pas dire la même chose — l'un
+   ouvre une salle de partage communautaire, l'autre donne accès à
+   TOUT le privé. Les confondre serait la pire erreur possible, donc
+   ils ne se ressemblent pas.
+   Ce QR porte un secret : il ne s'affiche que quand la phrase elle-même
+   est à l'écran (côté interface). */
+export const linkWrap = phrase => 'OCL1.' + String(phrase || '').trim().toLowerCase();
+export function linkParse(raw){
+  const s = String(raw || '').trim();
+  if (!/^OCL1\./i.test(s)) return null;
+  const p = s.slice(5).trim().toLowerCase();
+  return /^[a-z0-9][a-z0-9-]{3,39}$/.test(p) ? p : null;
+}
+
 /* ---------- OCQP : QR animé (multi-parties) ----------
    Quand l'OCQ1 déborde d'un QR lisible, la chaîne complète est découpée
    en tranches « OCQP.<i>.<n>.<tranche> » (i de 1 à n) que l'émetteur fait

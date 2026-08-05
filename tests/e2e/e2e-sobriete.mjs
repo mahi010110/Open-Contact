@@ -44,8 +44,12 @@ const PLAFOND = {
      problème », REDESCENDU à 211 le jour même : le mainteneur l'a
      retirée — le bloc de diagnostic est affiché en entier, il prouve
      déjà ce que la phrase promettait. Le terrain gagné se reverrouille
-     ici, sinon il se reperd. */
-  motsExplication: 211
+     ici, sinon il se reperd.
+     199 le 5 août : « Mes appareils » décrivait le chemin vers l'écran
+     où l'on se trouve déjà (« Moi → Mes appareils → Entrer une
+     phrase »). La consigne dit maintenant quoi faire du QR affiché
+     juste au-dessus — plus court, et enfin utile. */
+  motsExplication: 199
 };
 
 const fichiers = readdirSync(UI).filter(f => f.endsWith('.js') && !HORS_ECRAN.has(f));

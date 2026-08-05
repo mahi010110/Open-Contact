@@ -126,6 +126,27 @@ les fiches passent par la connexion — exclusivement en `sharePayload`
 ancien ignore ce préfixe sans casse ; le repli hors ligne reste
 OCQ1/OCQP et le fichier `.oc`.
 
+### Phrase de liaison de MES appareils — OCL1 (QR, jamais communautaire)
+
+```
+OCL1.<phrase de liaison>
+```
+
+Le QR affiché par « Mes appareils » pour éviter de **retaper** la phrase
+sur le second appareil. Il porte la phrase telle quelle, en minuscules —
+`linkWrap` / `linkParse` (`engine/exchange.js`), 4 à 40 caractères
+`[a-z0-9-]`, jamais un tiret en tête.
+
+**Le préfixe est distinct de OCR1, et ça n'est pas cosmétique.** Un
+rendez-vous ouvre une salle de partage *communautaire* (vue partageable
+seulement) ; une phrase de liaison donne accès à **tout le privé** de
+son propriétaire (§5). Les confondre serait la pire erreur du format :
+`linkParse` refuse un OCR1 et `rdvParse` refuse un OCL1, et `tests.js`
+verrouille les deux sens.
+
+Ce QR porte donc un secret : l'interface ne l'affiche **que** lorsque la
+phrase elle-même est à l'écran, et il disparaît avec elle.
+
 ### Compact multi-parties — OCQP (QR animé)
 
 ```

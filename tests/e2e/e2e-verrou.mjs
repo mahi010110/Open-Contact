@@ -234,6 +234,76 @@ console.log('desktop clavier : déverrouillé ✓');
 await page.waitForTimeout(300);
 await snap(page, 'desktop-moi-sombre');
 
+/* ---------- refaire la phrase de secours (papier perdu, code su) ----------
+   La phrase ne se REVOIT pas — elle n'est jamais écrite sur le disque,
+   seul un enrobage de la clé maîtresse l'est. La seule porte honnête
+   est d'en refaire une. Ce qui doit être vrai après :
+   la NEUVE ouvre le coffre, l'ANCIENNE n'ouvre plus rien, le code
+   marche toujours, et l'anneau porte la clé de la neuve — sinon la
+   récupération d'urgence désignerait encore l'ancienne phrase, et on
+   ne s'en apercevrait que le jour où il faut s'en servir. */
+const phraseDe = () => page.evaluate(() =>
+  [...document.querySelectorAll('.phrase-grid li')].map(n => n.textContent.trim()).join(' '));
+const ceremonie = async () => {
+  const mots = (await phraseDe()).split(' ');
+  await page.click('.modal-f button:has-text("Je l’ai écrite")');
+  await page.waitForSelector('#vw1');
+  const idx = await page.evaluate(() =>
+    [...document.querySelectorAll('.modal-b label')].map(l => +l.textContent.replace(/\D/g, '')));
+  await page.fill('#vw1', mots[idx[0] - 1]);
+  await page.fill('#vw2', mots[idx[1] - 1]);
+  await page.click('.modal-f button:has-text("Continuer")');
+  return mots.join(' ');
+};
+await page.evaluate(async () => (await import('./ui/verrou.js')).openManageSheet());
+await page.waitForSelector('#vgPhrase');
+await page.click('#vgPhrase');
+await page.waitForSelector('.modal-confirm .pad-k');
+for (const d of '280941') await page.click(`.modal-confirm .pad-k[data-d="${d}"]`);
+await page.waitForSelector('.phrase-grid', { timeout: 15000 });
+const neuve = await ceremonie();
+await page.waitForSelector('.modal-f button:has-text("Télécharger")', { timeout: 25000 });
+const dl2 = page.waitForEvent('download').catch(() => null);
+await page.click('.modal-f button:has-text("Télécharger")');
+await dl2;
+await page.waitForTimeout(400);
+/* la copie dit enfin ce qu'elle a produit — une DONNÉE, pas une phrase */
+const ditLeFichier = await page.evaluate(() => {
+  /* les feuilles s'empilent : c'est la DERNIÈRE qui porte la copie */
+  const o = [...document.querySelectorAll('.overlay .modal-b')];
+  return (o[o.length - 1]?.innerText || '').trim();
+});
+if (!/opencontact-copie-\d{4}-\d{2}-\d{2}\.oc/.test(ditLeFichier))
+  fail('la copie ne nomme pas le fichier produit : « ' + ditLeFichier + ' »');
+await page.click('.modal-f button:has-text("Terminer")');
+await page.waitForTimeout(700);
+const preuve = await page.evaluate(async ([fraiche]) => {
+  const st = await import('./engine/storage.js');
+  const v = await import('./engine/vault.js');
+  const ring = await import('./engine/ring.js');
+  const meta = JSON.parse(await st.kvGet(st.VAULT_KEY) || 'null');
+  const ouvre = async p => { try { await v.unlockWithPhrase(meta, p); return true; } catch (e) { return false; } };
+  const r = JSON.parse(await st.kvGet(st.RING_KEY) || 'null');
+  const rec = await ring.recoveryKeys(fraiche);
+  const principal = r && r.ring ? (r.ring.devices || []).find(d => d.id === r.ring.main) : null;
+  return {
+    neuve: await ouvre(fraiche),
+    bidon: await ouvre('cerise hibou madrier levier filet rayon graine histoire buisson saule naval ruche'),
+    code: await (async () => { try { await v.unlockWithPin(meta, '280941'); return true; } catch (e) { return false; } })(),
+    anneauSuit: r && r.ring ? r.ring.recovery === rec.pub : 'pas d’anneau',
+    signe: (r && r.ring && principal) ? await ring.verifyRing(r.ring, principal.pub) : 'pas d’anneau',
+    pistes: (await import('./ui/state.js')).S.companies.length
+  };
+}, [neuve]);
+if (!preuve.neuve) fail('la NOUVELLE phrase n’ouvre pas le coffre');
+if (preuve.bidon) fail('une phrase quelconque ouvre le coffre');
+if (!preuve.code) fail('le code n’ouvre plus le coffre après renouvellement');
+if (preuve.anneauSuit !== true && preuve.anneauSuit !== 'pas d’anneau')
+  fail('l’anneau porte encore la clé de l’ancienne phrase — la récupération d’urgence serait morte en silence');
+if (preuve.signe === false) fail('l’anneau re-clé n’est plus signé par son principal');
+if (!preuve.pistes) fail('les données ne sont plus lisibles après renouvellement');
+console.log('phrase de secours refaite : la neuve ouvre, le code marche, l’anneau suit ✓');
+
 console.log(errors.length ? 'Erreurs console : ' + errors.join(' | ') : 'Zéro erreur console.');
 if (errors.length) process.exitCode = 1;
 await browser.close();

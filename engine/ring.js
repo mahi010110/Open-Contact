@@ -148,6 +148,29 @@ export async function ringTransfer(ring, privSeed, newMainId){
   });
   return signRing(out, privSeed);
 }
+/* ---------- renouveler la clé de secours, SANS l'ancienne phrase ----------
+   Refaire sa phrase de secours quand on a perdu le papier mais gardé son
+   code : l'anneau doit suivre, sinon la clé de secours qu'il porte
+   désignerait encore l'ancienne phrase et la récupération d'urgence
+   deviendrait impossible en silence.
+   Ça marche parce que `mergeRing` a DEUX chemins : le chemin de secours
+   exige la clé de secours (qu'on n'a plus), mais le chemin normal accepte
+   tout anneau signé par le principal CONNU dès que `seq` monte. Le
+   principal peut donc changer la clé de secours avec sa propre clé
+   d'appareil — les autres vérifient avec la sienne, qu'ils connaissent
+   déjà. La génération ne bouge pas : personne n'est écarté, rien ne se
+   récupère, c'est le même anneau avec un secours neuf.
+   Réservé au PRINCIPAL : signé par un autre, les autres appareils
+   rejetteraient la signature — d'où le refus explicite plutôt qu'un
+   anneau que personne n'accepterait. */
+export async function ringRekey(ring, privSeed, selfId, newRecoveryPub){
+  if (!ring || ring.main !== selfId) throw new Error('principal');
+  if (!newRecoveryPub) throw new Error('clef');
+  const out = Object.assign({}, ring, {
+    recovery: newRecoveryPub, seq: (ring.seq || 0) + 1, updatedAt: Date.now()
+  });
+  return signRing(out, privSeed);
+}
 /* récupération d'urgence : signée par la clé de SECOURS (preuve de la
    phrase), génération incrémentée, nouveau principal, nouvelle clé de
    secours (celle de la nouvelle phrase) — l'ancien principal est écarté */

@@ -14,7 +14,7 @@ import { APP_VERSION, normalizeCompany, normalizeContact, normalizeProfile,
          PROMPTS_MAX, PROMPT_MAX_LEN } from './engine/model.js';
 import { communityView, parseInput, sharePayload, fullPayload,
          encodeOCQ, splitOCQ, makeOCQJoiner, OCQP_CHUNK,
-         makeRdvCode, rdvNorm, rdvWrap, rdvParse } from './engine/exchange.js';
+         makeRdvCode, rdvNorm, rdvWrap, rdvParse, linkWrap, linkParse } from './engine/exchange.js';
 import { findMatch, mergeIncoming, contactKey } from './engine/merge.js';
 import { syncMerge, mergeTombs, TOMBS_MAX } from './engine/sync.js';
 import { filterCompanies, filterOrphans, searchHint, NATURAL_DIR } from './engine/filter.js';
@@ -30,7 +30,7 @@ import { VAULT_WORDS, PHRASE_LEN, makeVaultPhrase, normVaultPhrase, phraseUnknow
          rotateVaultResumable, prevKeyOf, clearPrev,
          sealValue, openValue, isSealed } from './engine/vault.js';
 import { edAvailable, makeDeviceKeys, recoveryKeys, ringInit, ringAddDevice,
-         ringCommand, ringTransfer, ringRecover, mergeRing, actionsFor,
+         ringCommand, ringTransfer, ringRecover, ringRekey, mergeRing, actionsFor,
          verifyRing, deviceIn } from './engine/ring.js';
 import { DAILY_CAP, buildCampaign, dueSends, dueSendsAll, sentTodayAll,
          markSent, markReplied, markError, stopCompanyTargets,
@@ -95,6 +95,17 @@ export async function runSelfTests(){
       eq(rdvParse(rdvWrap(code)), rdvNorm(code));
       eq(rdvParse('OCR1. K7M3P-9XQ2F '), 'k7m3p9xq2f');   /* tolérant : casse, espaces, tiret */
       eq(rdvParse('OCQ1.abc'), null);                     /* les données ne sont pas un rendez-vous */
+      /* la phrase de liaison de MES appareils : un autre préfixe, exprès.
+         Le rendez-vous ouvre une salle de partage ; la phrase de liaison
+         donne accès à tout le privé — les confondre serait la pire
+         erreur possible, donc ils ne se lisent pas l'un pour l'autre. */
+      eq(linkParse(linkWrap('k7m3p-9xq2f')), 'k7m3p-9xq2f');
+      eq(linkParse(' OCL1.K7M3P-9XQ2F '), 'k7m3p-9xq2f');   /* casse et espaces tolérés */
+      eq(linkParse(rdvWrap('k7m3p9xq2f')), null);           /* un rendez-vous n'est PAS une phrase */
+      eq(rdvParse(linkWrap('k7m3p-9xq2f')), null);          /* et l'inverse non plus */
+      eq(linkParse('OCL1.'), null);
+      eq(linkParse('OCL1.-abc'), null);                     /* pas de tiret en tête */
+      eq(linkParse('n’importe quoi'), null);
       eq(rdvNorm('hello'), '');                           /* trop court une fois normalisé */
     },
     'normalizeCompany : héritage v1, domaine inconnu, extra (D3)': () => {
@@ -885,6 +896,37 @@ export async function runSelfTests(){
       ok(mB2.changed);
       eq(mB2.ring.main, 'B');
       eq(deviceIn(mB2.ring, 'A').role, 'member');
+    },
+    'anneau : le principal renouvelle la clé de secours SANS l’ancienne phrase': async () => {
+      if (!(await edAvailable())) return;
+      const kA = await makeDeviceKeys(), kB = await makeDeviceKeys();
+      const rec = await recoveryKeys('phrase perdue', 15000);
+      let ring = await ringInit({ id: 'A', name: 'A' }, kA.pub, kA.seed, rec.pub);
+      ring = await ringAddDevice(ring, kA.seed, { id: 'B', name: 'B', pub: kB.pub });
+      const mB = await mergeRing(null, ring);            /* B connaît l'anneau et son principal */
+      const neuve = await recoveryKeys('phrase neuve', 15000);
+      /* A refait sa phrase : il signe avec SA clé d'appareil, pas avec
+         l'ancienne clé de secours — c'est tout l'intérêt, il l'a perdue */
+      const rk = await ringRekey(ring, kA.seed, 'A', neuve.pub);
+      const mB2 = await mergeRing(mB.ring, rk);
+      ok(mB2.changed, 'B accepte : signé par le principal qu’il connaît');
+      ok(!mB2.recovered, 'ce n’est pas une récupération — personne n’est écarté');
+      eq(mB2.ring.recovery, neuve.pub);
+      eq(mB2.ring.gen, 1);                               /* la génération ne bouge pas */
+      eq(mB2.ring.main, 'A');
+      eq((mB2.ring.devices || []).length, 2);            /* B est toujours là */
+      /* et la récupération d'urgence marche avec la NOUVELLE phrase */
+      const secours = await ringRecover(mB2.ring, neuve.seed, { id: 'B', name: 'B' }, kB.pub,
+        (await recoveryKeys('encore une autre', 15000)).pub);
+      ok((await mergeRing(mB2.ring, secours)).recovered, 'la phrase neuve ouvre bien le secours');
+      /* l'ancienne, elle, ne prouve plus rien */
+      const vieux = await ringRecover(mB2.ring, rec.seed, { id: 'B', name: 'B' }, kB.pub, neuve.pub);
+      ok(!(await mergeRing(mB2.ring, vieux)).recovered, 'l’ancienne phrase ne récupère plus');
+      /* un appareil qui n'est pas le principal ne peut pas re-clé */
+      let refus = '';
+      try { await ringRekey(mB2.ring, kB.seed, 'B', neuve.pub); }
+      catch (e) { refus = e.message; }
+      eq(refus, 'principal');
     },
     'anneau : récupération par la phrase — vraie acceptée, fausse refusée': async () => {
       if (!(await edAvailable())) return;

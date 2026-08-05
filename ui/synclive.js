@@ -15,7 +15,7 @@ import { normalizeProfile } from '../engine/model.js';
 import { fullPayload } from '../engine/exchange.js';
 import { syncMerge, syncPrivateMerge } from '../engine/sync.js';
 import { edAvailable, makeDeviceKeys, recoveryKeys, ringInit, ringAddDevice,
-         ringCommand, ringTransfer, ringRecover, mergeRing, actionsFor, deviceIn } from '../engine/ring.js';
+         ringCommand, ringTransfer, ringRecover, ringRekey, mergeRing, actionsFor, deviceIn } from '../engine/ring.js';
 import { SYNC_KEY, RELAYS_KEY, TURN_KEY, DEVICE_KEY, DEVICES_KEY, RING_KEY,
          DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, PROMO_KEY, VAULT_KEY,
          CAMPAIGNS_KEY, MAIL_KEY, AI_KEY, MISSIONS_KEY, COMPANION_KEY, ANALYSIS_KEY,
@@ -196,6 +196,26 @@ export async function recoverRing(oldPhrase, newPhrase){
   ringSt.applied = [];
   await saveRingSt();
   logJ('Récupération : cet appareil devient le principal');
+  sendRing();
+  emit();
+  return true;
+}
+/* Refaire sa phrase de secours (papier perdu, code encore connu) :
+   l'anneau doit porter la clé de la NOUVELLE phrase, sinon le secours
+   d'urgence désignerait encore l'ancienne — et ça se saurait le jour
+   où il faut s'en servir, c'est-à-dire trop tard.
+   Signé par la clé de CET appareil, pas par l'ancienne clé de secours
+   qu'on n'a justement plus. Réservé au principal (voir ringRekey).
+   Sans anneau du tout, il n'y a rien à renouveler : la nouvelle phrase
+   vaudra dès qu'un anneau sera créé. */
+export async function rekeyRing(newPhrase){
+  await loadRingSt();
+  if (!ringSt || !ringSt.ring || !ringSt.keys) return false;
+  if (!(await amMain())) return false;
+  const self = await deviceSelf();
+  const newRec = await recoveryKeys(newPhrase);
+  ringSt.ring = await ringRekey(ringSt.ring, ringSt.keys.seed, self.id, newRec.pub);
+  await saveRingSt();
   sendRing();
   emit();
   return true;
