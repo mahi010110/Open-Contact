@@ -281,7 +281,10 @@ export function openImportMails(){
        <div class="lbl-row" style="margin:12px 0 6px"><label>ou à la main</label></div>` : ''}
        <div class="lk-whys">
          <div class="lk-why">${ic('copy', 'ic-14')} <span>Copie le prompt, colle-le dans ton assistant IA avec tes e-mails.</span></div>
-         <div class="lk-why">${ic('clipboard', 'ic-14')} <span>Rapporte ici sa réponse : chaque piste proposée se coche ou s’écarte.</span></div>
+         ${/* « Rapporte ici sa réponse » : le champ dessous s'appelle « La
+              réponse de l'IA », et le tri des pistes se montre à l'écran
+              suivant. Reste la seule chose invisible : il faut sortir de
+              l'app. */''}
        </div>
        ${(COMPAGNON && !assoc) ? `<p class="hint">${ic('lightbulb', 'ic-14')} ${matchMedia('(min-width:901px)').matches
          ? 'Avec le Compagnon, ton ordinateur fait la lecture tout seul — Moi → Mes appareils.'

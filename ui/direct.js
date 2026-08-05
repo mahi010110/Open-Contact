@@ -65,8 +65,7 @@ const relaySettingsHTML = (urls, turn, extra) =>
      <p class="hint">Seulement si ton réseau bloque la liaison — sinon, laisse vide.</p>
      <div class="field"><label for="syRelays">Relais personnalisés</label>
        <textarea id="syRelays" class="ta-s" spellcheck="false" autocapitalize="off"
-         placeholder="wss://relais.exemple.org">${esc(urls.join('\n'))}</textarea>
-       <p class="hint">Une adresse <b>wss://</b> par ligne, huit au maximum.</p></div>
+         placeholder="wss://relais.exemple.org">${esc(urls.join('\n'))}</textarea></div>
      <div class="field"><label for="syTurn">Serveur TURN — si la liaison directe échoue</label>
        <textarea id="syTurn" class="ta-s" spellcheck="false" autocapitalize="off"
          placeholder="turns:relais.exemple.org:443 utilisateur motdepasse">${esc(turnText(turn))}</textarea></div>
@@ -308,7 +307,9 @@ export function openAppareils(){
                ? `<button class="linklike" id="devAddComp" style="margin-top:6px">${ic('plus', 'ic-14')} Ajouter le Compagnon</button>`
                : `<button class="dev-row dev-open" id="devCompInfo"><b>Le Compagnon</b><span class="dev-sub">pas installé · voir ›</span></button>`)
              : '')}
-         ${getRing() && !iAmMain ? `<p class="hint" style="margin-top:6px">Seul ton appareil principal peut gérer les autres.</p>` : ''}
+         ${/* Quand je ne suis pas le principal, les lignes d'appareils sont
+              des <div> sans chevron ni survol : elles ne se proposent pas.
+              Expliquer une absence, c'est la rendre présente. */''}
          ${1 + devs.length > DEVICES_MAX
            ? `<p class="hint warn" style="margin-top:6px">Plus de ${DEVICES_MAX} appareils — change la phrase pour écarter les inconnus.</p>`
            : ''}
@@ -595,7 +596,9 @@ export function openPromo(){
          vide muet (les pistes d'exemple et closes ne partent pas) */
       if (!mine().length){
         zone.innerHTML =
-          `<p class="hint" style="text-align:center">${ic('info-box', 'ic-14')} Rien à partager — ajoute une piste depuis « Mes pistes ».</p>`;
+          /* « ajoute une piste depuis Mes pistes » désigne un onglet de la
+             barre du bas, visible à l'instant même. L'état seul suffit. */
+          `<p class="hint" style="text-align:center">${ic('info-box', 'ic-14')} Rien à partager.</p>`;
         return;
       }
       zone.innerHTML =

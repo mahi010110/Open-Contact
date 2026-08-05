@@ -621,8 +621,10 @@ export function openManageSheet(){
   const sh = openSheet({ title: 'Verrouillage', icon: 'lock' });
   const render = () => {
     sh.body.innerHTML =
-      `<p class="hint" style="margin:0 0 10px">Protégé — se verrouille seul après ${isDesktop() ? '15' : '5'} min d’inactivité.</p>
-       <div class="pick-list">
+      /* « Protégé » est déjà l'étiquette de la ligne qui ouvre cette
+         feuille, et le délai se découvre en s'en servant — le redire ici
+         est une légende sur un écran qui n'a que des gestes. */
+      `<div class="pick-list">
          <button class="pick" id="vgLock"><b>Verrouiller maintenant</b></button>
          <button class="pick" id="vgPin"><b>Changer mon code</b></button>
          ${/* Le papier se perd, et la phrase ne se REVOIT pas : elle n'est

@@ -113,8 +113,9 @@ if (bioSheet) await page.click('.modal-confirm .modal-h .x');   /* la croix refu
 await page.waitForTimeout(400);
 const lbl2 = await page.textContent('#moiVerrou .rg-s');
 /* l'ÉTAT seul : « se verrouille seul » décrit un comportement et ne
-   tenait pas dans la colonne (« protégé — se verrouille s… ») ; le délai
-   exact se dit sur la feuille Verrouillage */
+   tenait pas dans la colonne (« protégé — se verrouille s… »). Le délai
+   ne se dit plus nulle part : il se découvre en s'en servant, et le
+   redire sur la feuille Verrouillage n'aurait sauvé personne. */
 if (lbl2.trim() !== 'protégé') fail('étiquette après création : ' + lbl2);
 await snap(page, 'moi-protege');
 

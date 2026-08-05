@@ -201,7 +201,10 @@ export function openAttach(ct){
                  <b>${ic('plus', 'ic-14')} Créer la piste « ${esc(txt)} »</b>
                </button>`;
     }
-    q('#atList').innerHTML = html || '<p class="hint">Tape le nom de l’entreprise pour la retrouver ou la créer.</p>';
+    /* La liste s'affiche entière quand rien n'est tapé : cette ligne ne
+       paraît donc que s'il n'y a aucune piste. « Tape le nom pour la
+       retrouver » promettait alors de retrouver ce qui n'existe pas. */
+    q('#atList').innerHTML = html || '<p class="hint">Aucune piste.</p>';
     q('#atList').querySelectorAll('.pick[data-id]').forEach(b =>
       b.addEventListener('click', () => attach(S.companies.find(x => x.id === b.dataset.id))));
     const nw = q('#atNew');

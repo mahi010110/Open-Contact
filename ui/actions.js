@@ -158,8 +158,11 @@ export function askClose(c, opts){
          `<button class="pick pick-close" data-r="${k}" style="--c:${CLOSE_REASONS[k].color}">
             <b>${CLOSE_REASONS[k].label}</b>
           </button>`).join('')}
-     </div>
-     <p class="hint">${ic('archive', 'ic-14')} Elle reste dans « Mes pistes ».</p>`;
+     ${/* « Elle reste dans Mes pistes » rassurait sur un geste qui se
+          défait : la fiche d'une piste clôturée porte « Rouvrir », et un
+          toast confirme juste après. Une phrase qui protège d'une peur,
+          pas d'une perte, ne protège personne. */''}
+     </div>`;
   sh.body.querySelectorAll('.pick-close').forEach(b =>
     b.addEventListener('click', () => {
       closePiste(c, b.dataset.r);

@@ -58,8 +58,17 @@ const PLAFOND = {
      son bouton « + Ajouter » à quarante pixels de lui, et le champ de
      la phrase de secours portait TROIS textes — libellé, invite, puis
      un rappel. Cette dernière ligne n'existe plus que pour dire
-     l'erreur, comme celle de « Vérifions » juste au-dessus. */
-  motsExplication: 180
+     l'erreur, comme celle de « Vérifions » juste au-dessus.
+     116 le 5 août, avec un critère plus dur : une phrase reste seulement
+     si l'enlever peut coûter quelque chose d'irréversible. Sept sont
+     parties d'un coup — elles décrivaient le bouton d'à côté (« Elle
+     reste dans Mes pistes », le champ étant suivi d'un « Rouvrir »),
+     répétaient un libellé (« Rapporte ici sa réponse » au-dessus de
+     « La réponse de l'IA »), ou légendaient une règle de saisie que le
+     champ applique déjà. Ne restent que les phrases qui préviennent
+     d'une perte : la phrase de secours sur papier, le plafond
+     d'appareils, « Perdu = irrécupérable ». */
+  motsExplication: 116
 };
 
 const fichiers = readdirSync(UI).filter(f => f.endsWith('.js') && !HORS_ECRAN.has(f));
