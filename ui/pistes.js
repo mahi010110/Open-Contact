@@ -58,16 +58,31 @@ mqWide.addEventListener('change', () => { if (S.route === 'pistes') renderPistes
    y accrocher un écouteur en empilerait un par visite de l'écran.
    Aucune borne de largeur : appuyer sur « / » suppose un vrai clavier,
    ce qui fait la borne tout seul. */
-document.addEventListener('keydown', e => {
-  if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return;
-  if (S.route !== 'pistes' || topSheet()) return;
+/* `n` = une piste de plus, depuis n'importe quel écran. Le poste de
+   commandement n'avait qu'un seul raccourci là où CLAUDE.md §5 en
+   promet plusieurs — et celui-là sert le geste le plus répété.
+   Rien à documenter : les deux touches s'annoncent dans ce qu'elles
+   commandent (voir la pastille du champ de recherche), et une liste
+   de raccourcis serait un écran qui n'affiche aucune donnée (§6). */
+const libre = e => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return false;
+  if (topSheet() || document.querySelector('.lock')) return false;
   const t = e.target;
-  if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName || ''))) return;
+  return !(t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName || '')));
+};
+document.addEventListener('keydown', e => {
+  if (e.key !== '/' || !libre(e)) return;
+  if (S.route !== 'pistes') return;
   const inp = document.querySelector('#piQ');
   if (!inp) return;
   e.preventDefault();          /* sinon le « / » s'écrit dans le champ */
   inp.focus();
   inp.select();
+});
+document.addEventListener('keydown', e => {
+  if ((e.key !== 'n' && e.key !== 'N') || !libre(e)) return;
+  e.preventDefault();
+  openCapture();
 });
 
 /* en tri « Près de moi » (à n'importe quel niveau), la distance s'affiche */
@@ -306,6 +321,13 @@ export function renderPistes(){
        <div class="search-wrap">
          <input class="search" id="piQ" type="search" placeholder="Chercher…"
                 aria-label="Rechercher une piste" value="${esc(q)}">
+         ${/* Un raccourci clavier est invisible par nature : il ne sert
+              qu'à ceux qui devinent, ou il se documente dans un écran
+              d'aide — c'est-à-dire un écran sans données. La touche
+              s'annonce donc DANS ce qu'elle commande, posée au bord du
+              champ qu'elle ouvre. Elle s'efface dès qu'on y tape, et
+              n'existe pas au pouce : il n'y a pas de clavier. */''}
+         ${wide ? '<kbd class="kbd-hint" aria-hidden="true">/</kbd>' : ''}
          <button class="btn" id="piAffiner">${ic('filter', 'ic-14')} Affiner</button>
        </div>
        <div id="piChips">${chipsRowHTML()}</div>
@@ -374,7 +396,8 @@ export function renderPistes(){
       r.querySelector('[role="button"]').addEventListener('keydown', e => {
         if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); open(); }
       });
-      bindDeleteGesture(r, () => removeRow(r.dataset.id));
+      bindDeleteGesture(r, () => removeRow(r.dataset.id),
+        (S.companies.find(x => x.id === r.dataset.id) || {}).name);
     });
     if (wide && body.querySelector('.board')) bindBoardDrag(body);
     body.querySelector('#piFtClear')?.addEventListener('click', () => { ftClear(); renderPistes(); });
@@ -400,7 +423,7 @@ export function renderPistes(){
           bus.refresh();
           toast('Contact récupéré.');
         });
-      });
+      }, ctLabel(o() || {}));
     });
     body.querySelectorAll('[data-more]').forEach(b =>
       b.addEventListener('click', e => {

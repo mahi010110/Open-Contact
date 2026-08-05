@@ -178,7 +178,7 @@ function openDocs(kind, onChange){
           if (onChange) onChange();
           toast('Document restauré.');
         });
-      });
+      }, docTitle(d));
     });
     if (onChange) onChange();
   };

@@ -224,7 +224,8 @@ pensées par contexte**, qui partagent les données et le style.
   feuilles en bas d'écran, gestes tactiles. Une main, un pouce.
 - **Desktop (≥ 901 px)** : navigation en haut + barre de statut, contrôles
   32 px, fenêtres centrées, layouts en colonnes, raccourcis clavier
-  (« / » = recherche).
+  (« / » = recherche, « n » = nouvelle piste — et une touche s'annonce
+  DANS ce qu'elle commande, jamais dans un écran d'aide).
 - **La règle, et son seuil** : par défaut, **un seul dessin** qui s'adapte.
   On n'en fait deux que si l'**usage** diffère vraiment — pas la taille.
   Aujourd'hui c'est le cas sur trois choses : Mes pistes (liste au pouce /

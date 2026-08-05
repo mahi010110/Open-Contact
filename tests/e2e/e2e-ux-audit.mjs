@@ -216,6 +216,29 @@ await page.click('#view-pistes h2');
 await page.keyboard.press('/');
 const focus = await page.evaluate(() => document.activeElement && document.activeElement.id);
 if (focus !== 'piQ') fail('« / » ne ramène pas au champ de recherche (focus : ' + focus + ')');
+/* « n » ouvre une piste de plus, de n'importe où — et JAMAIS quand on
+   tape : un raccourci qui s'invite dans un champ de saisie est un bug,
+   pas un raccourci. */
+await page.keyboard.type('nn');
+if (await page.$('.overlay')) fail('« n » tapé dans la recherche ouvre une feuille');
+await page.fill('#piQ', '');
+await page.click('#view-pistes h2');
+await page.keyboard.press('n');
+await page.waitForSelector('.overlay .modal', { timeout: 4000 });
+if (!/Nouvelle piste/.test(await page.textContent('.mh-t'))) fail('« n » n’ouvre pas la capture');
+await closeSheet();
+await page.waitForTimeout(200);
+/* Un raccourci invisible ne sert que ceux qui devinent : la touche
+   s'annonce DANS le champ qu'elle ouvre, et seulement là où il y a un
+   clavier. On le vérifie au poste, pas au pouce. */
+const badge = await page.evaluate(() => !!document.querySelector('.kbd-hint'));
+if (badge) fail('la pastille de raccourci ne doit pas exister au pouce');
+/* la poubelle NOMME sa cible : sans ça un lecteur d'écran entend
+   « Supprimer » quarante fois sans jamais savoir quoi */
+const poubelles = await page.evaluate(() =>
+  [...document.querySelectorAll('#piBody .hov-del')].map(b => b.getAttribute('aria-label')));
+if (poubelles.length && poubelles.some(l => !/ /.test(String(l))))
+  fail('une poubelle ne nomme pas ce qu’elle supprime : ' + JSON.stringify(poubelles));
 await page.evaluate(async avant => {
   const st = await import('./engine/storage.js');
   await st.kvSet(st.DATA_KEY, avant);

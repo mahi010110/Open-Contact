@@ -230,6 +230,19 @@ html[data-theme="dark"] .field select{
 .hint.warn{color:var(--amber)}
 .search-wrap{position:relative;display:flex;gap:8px;margin-bottom:14px}
 .search-wrap .search{flex:1;min-width:0}
+/* La touche s'annonce dans le champ qu'elle ouvre — l'idiome de tous
+   les postes de commandement, et la seule façon de rendre un raccourci
+   découvrable sans écrire un écran d'aide. Elle est en retrait : c'est
+   une indication, pas une cible ; elle disparaît dès qu'on tape. */
+.kbd-hint{
+  align-self:center;position:relative;z-index:1;pointer-events:none;
+  margin-left:-38px;                /* revient DANS le champ, contre son bord */
+  font-family:var(--font-mono);font-size:var(--text-11);line-height:1;
+  color:var(--text-disabled);background:var(--surface-chrome);
+  border:1px solid var(--border-soft);padding:3px 6px;
+}
+.search-wrap .search:focus ~ .kbd-hint,
+.search-wrap .search:not(:placeholder-shown) ~ .kbd-hint{opacity:0}
 .search{
   width:100%;height:var(--ctl);
   background:var(--surface-field);border:1px solid var(--border-field);border-radius:var(--radius-1);

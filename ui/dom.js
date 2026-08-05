@@ -241,7 +241,12 @@ export function showUndo(msgHTML, onUndo){
    · desktop — poubelle au survol / au focus (accessible clavier).
    L'appelant double toujours onDelete d'un showUndo — jamais de
    confirmation. */
-export function bindDeleteGesture(node, onDelete){
+/* `quoi` nomme la CIBLE. Sans lui, un lecteur d'écran parcourant
+   « Mes pistes » au poste entend « Ouvrir Cyberdéfense Lyon », puis
+   « Supprimer », puis « Ouvrir WebAgence », puis « Supprimer » —
+   quarante fois le même mot sans jamais savoir quoi. Le nom, lui,
+   est déjà là, sur la ligne d'à côté. */
+export function bindDeleteGesture(node, onDelete, quoi){
   const inner = node.querySelector('.sw-in');
   if (!inner || node.__swDel) return;
   node.__swDel = true;
@@ -253,7 +258,9 @@ export function bindDeleteGesture(node, onDelete){
     node.classList.add('sw-gone');
     setTimeout(onDelete, 150);
   };
-  const del = el(`<button class="hov-del" aria-label="Supprimer" title="Supprimer">${ic('trash', 'ic-14')}</button>`);
+  const nom = String(quoi || '').trim();
+  const dit = nom ? 'Supprimer ' + nom : 'Supprimer';
+  const del = el(`<button class="hov-del" aria-label="${esc(dit)}" title="${esc(dit)}">${ic('trash', 'ic-14')}</button>`);
   del.addEventListener('click', e => { e.stopPropagation(); vanish(); });
   inner.append(del);
   if (!matchMedia('(pointer:coarse)').matches) return;
