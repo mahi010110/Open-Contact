@@ -445,8 +445,47 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
   }, t2);
   if (relu !== 'ok') fail('le .oc chiffré ne se rouvre pas avec son mot de passe : ' + relu);
   await lPage.screenshot({ path: SHOTS + '/84-ux-cadenas.png' });
+
+  /* F11 : deux finitions qui se défont toutes seules.
+     ① Une donnée se coupe à sa FIN. Jointes par <br> dans un bloc en
+     `overflow-wrap:anywhere`, formation et adresse se brisaient n'importe
+     où : sur un 360, « …ounchiouene@example » puis « .fr » seul.
+     ② Un cadre ne porte pas de jeton dans sa légende : `tag-priv` y
+     apportait bordure et trame, le filet lui passait derrière, et ça se
+     lisait comme un contrôle (§6 : la bordure appartient à ce qui se tape). */
+  /* la feuille « Donner » est encore ouverte : elle couvrirait la vue */
+  await lPage.evaluate(async () => (await import('./ui/dom.js')).topSheet()?.close());
+  await lPage.setViewportSize({ width: 360, height: 640 });
+  await lPage.goto(base + '/#/moi', { waitUntil: 'load' });
+  /* le profil vit dans IndexedDB une fois l'app démarrée : localStorage
+     n'est plus qu'une source de migration, écrire dedans ne fait rien */
+  await lPage.evaluate(async () => {
+    const st = await import('./engine/storage.js');
+    await st.kvSet(st.PROFILE_KEY, JSON.stringify({
+      name: 'Maheydine Ounchiouene', formation: 'BTS SIO — option SISR',
+      email: 'maheydine.ounchiouene@example.fr' }));
+  });
+  await lPage.reload({ waitUntil: 'load' });
+  await lPage.waitForSelector('.obj-l');
+  const identite = await lPage.evaluate(() => {
+    const lignes = [...document.querySelectorAll('.obj-l')].map(n => {
+      const une = parseFloat(getComputedStyle(n).lineHeight) || 16;
+      return { txt: n.textContent, hauteur: n.getBoundingClientRect().height, une,
+               coupe: n.scrollWidth > n.clientWidth + 1 };
+    });
+    const jeton = document.querySelector('.fset>legend .tag-priv, .fset>legend .tag-share');
+    return { lignes, jeton: !!jeton };
+  });
+  for (const l of identite.lignes)
+    if (l.hauteur > l.une * 1.6)
+      fail(`« ${l.txt.slice(0, 24)} » se replie sur ${Math.round(l.hauteur / l.une)} lignes : une donnée se coupe à sa fin`);
+  if (!identite.lignes.some(l => l.coupe))
+    console.log('   (note : à 360 px rien ne dépassait — le garde ne prouve que le non-repli)');
+  if (identite.jeton) fail('un jeton bordé est revenu dans une légende de cadre');
+  await lPage.screenshot({ path: SHOTS + '/85-ux-identite.png' });
   await lCtx.close();
   console.log('cadenas : la ligne ne grandit pas, le fichier sort chiffré, un mot de passe renoncé s’oublie ✓');
+  console.log('identité : une donnée se coupe à sa fin, aucun jeton bordé en légende ✓');
 }
 
 /* Effet miroir F1 : sans messagerie, le contrôle de campagne explique le

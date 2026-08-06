@@ -420,7 +420,12 @@ export function renderMoi(){
        <div class="obj-m">
          ${p.name
            ? `<span class="obj-n">${esc(p.name)}</span>
-              <div class="obj-s">${[p.formation, p.email].filter(Boolean).map(esc).join('<br>')}</div>`
+              ${/* une ligne par donnée, et chacune se coupe à sa fin. Jointes
+                   par <br> dans un bloc en `overflow-wrap:anywhere`, elles se
+                   brisaient n'importe où : sur un 360, l'adresse rendait
+                   « …ounchiouene@example » puis « .fr » seul sur sa ligne. */''}
+              <div class="obj-s">${[p.formation, p.email].filter(Boolean)
+                 .map(v => `<span class="obj-l" title="${esc(v)}">${esc(v)}</span>`).join('')}</div>`
            : `<p class="obj-empty">Ton nom, ta formation, ton email remplissent
                 chaque email que tu envoies.</p>
               <button class="btn btn-sm btn-primary" id="moiProfil">Remplir mon profil</button>`}
@@ -451,7 +456,7 @@ export function renderMoi(){
      qualifie ce qu'elle nomme au lieu de flotter au-dessus du geste. */
   const copie = showBackup ? `
      <fieldset class="fset">
-       <legend>Ma copie <span class="tag-priv">${ic('lock', 'ic-14')} privé inclus</span></legend>
+       <legend>Ma copie <span class="lg-note">${ic('lock', 'ic-14')} privé inclus</span></legend>
        ${lockRowHTML({ id: 'moiBk', action: 'Télécharger' })}
      </fieldset>` : '';
 

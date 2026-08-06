@@ -692,6 +692,15 @@ details.tranche[open]>summary::before{
   text-transform:uppercase;letter-spacing:var(--tracking-wide);
   color:var(--text-muted);padding:0 6px;margin-left:-6px;
 }
+/* Une précision qui qualifie le cadre se pose DANS sa légende, mais nue :
+   `tag-priv` y apportait sa bordure et sa trame, et le filet du cadre lui
+   passait derrière — un jeton posé en travers du trait, qui se lisait
+   comme un contrôle (§6 : bordure et fond appartiennent à ce qui se
+   tape). Même encre que la légende, un cran plus clair, rien de plus. */
+.lg-note{
+  font-weight:var(--weight-regular);opacity:.8;
+  display:inline-flex;align-items:center;gap:4px;margin-left:2px;
+}
 /* un cadre sans légende (l'écran porte déjà son titre) ne doit pas
    garder l'encoche que le navigateur réserve au `legend` */
 .fset-plain{padding-top:6px}
@@ -713,8 +722,13 @@ details.tranche[open]>summary::before{
 .obj-n{display:block;font-size:var(--text-16);font-weight:var(--weight-bold);margin-bottom:3px}
 .obj-s{
   font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted);
-  line-height:1.6;overflow-wrap:anywhere;
+  line-height:1.6;min-width:0;
 }
+/* Une donnée se coupe à sa fin, elle ne se brise pas au milieu : une
+   adresse rendue « …@example » sur une ligne et « .fr » sur la suivante
+   n'est plus une adresse, c'est un accident. Les points de suspension
+   disent qu'il en reste, et « Modifier » la montre entière. */
+.obj-l{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .obj-empty{font-size:var(--text-13);color:var(--text-muted);line-height:1.5;margin:0 0 10px}
 .obj>.btn{flex:none}
 /* les actions d'une carte se partagent la largeur : deux boutons de
@@ -1072,7 +1086,9 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 /* 8 px sous le résumé qui ouvre le volet : ouvrir les réglages et
    changer la phrase de liaison ne sont pas le même geste, et leurs
    bords se touchaient à 6 px (CLAUDE.md §5) */
-.lk-set{display:flex;flex-direction:column;align-items:flex-start;gap:2px;margin-top:8px}
+.lk-set{margin-top:8px}
+/* la sortie dangereuse se pose sous la liste, alignée sur elle */
+.lk-set>.linklike{margin-top:2px;padding-left:0}
 /* ---- OÙ J'EN SUIS, SANS LE LIRE ----
    Protéger ses données, c'est quatre écrans à la suite. Rien ne disait
    où l'on en était : on avançait dans un couloir sans savoir s'il en

@@ -316,7 +316,15 @@ export function openAppareils(){
        </div>
        ${relaySettingsHTML(relays, turn,
          `<div class="lk-set">
-            <button class="linklike" id="syNewPhrase">Changer la phrase de liaison</button>
+            ${/* Deux mots soulignés flottaient dans 110 px de vide : la cible
+                 fait bien ses 44 px, mais rien ne la DESSINE, et les trois
+                 bords gauches du volet ne s'alignaient pas (57 / 45 / 37 px).
+                 On reprend le dessin de « Verrouillage » — une liste
+                 d'actions, puis la sortie dangereuse en rouge dessous : un
+                 seul langage dans l'app pour ce couple-là. */''}
+            <div class="pick-list">
+              <button class="pick" id="syNewPhrase"><b>Changer la phrase de liaison</b></button>
+            </div>
             <button class="linklike lk-cut" id="syBreak">Rompre le lien</button>
           </div>`)}`;
 
