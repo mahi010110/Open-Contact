@@ -142,9 +142,16 @@ export function openFiche(c){
     /* la complétude et « Modifier » parlent de la FICHE entière, pas du
        dossier : au poste ils montent sur la ligne d'identité, sinon ils
        se retrouvaient sous « À savoir » déplié, hors de l'écran */
+    /* Au pouce, ce bloc vivait TOUT EN BAS, après « À savoir » replié : le
+       seul moyen de modifier une piste était la dernière chose de l'écran.
+       Il monte sur la ligne d'identité, où le poste le met déjà — un seul
+       dessin, et le geste là où on le cherche. Le chiffre, lui, ne suit
+       qu'au poste : un pourcentage sur lequel on n'agit pas est le même
+       papier peint qu'on a retiré des cartes du tableau, et il coûte une
+       ligne entière là où la place manque. */
     const outils =
       `<div class="fi-tools">
-         <span class="fi-score">fiche complète à ${score} %</span>
+         ${wide ? `<span class="fi-score">fiche complète à ${score} %</span>` : ''}
          <button class="btn btn-sm" id="fiEdit">${ic('pencil', 'ic-14')} ${score < 60 ? 'Compléter' : 'Modifier'}</button>
        </div>`;
     /* ---- le travail : où j'en suis, ce que je fais ensuite, ce que je note ---- */
@@ -171,11 +178,21 @@ export function openFiche(c){
            </div>
          </div>`}
        <div class="field"><label for="fiNotes">Mes notes ${ic('lock', 'ic-14')} <span class="lbl-soft">privées</span></label>
-         <textarea id="fiNotes" placeholder="Échange avec M. X le 12/03, rappeler la semaine prochaine…">${esc(val('notes'))}</textarea></div>`;
+         ${/* `rows="1"` est nécessaire : sans lui, `height:auto` retombe sur
+              les DEUX lignes par défaut d'un textarea, et la mesure de
+              `scrollHeight` ne descend jamais sous 66 px — le champ ne
+              pouvait donc pas se replier à sa vraie taille. */''}
+         <textarea id="fiNotes" rows="1" placeholder="Échange avec M. X le 12/03, rappeler la semaine prochaine…">${esc(val('notes'))}</textarea></div>`;
 
     /* ---- le dossier : les gens, ce qu'on sait, l'histoire ---- */
     const dossier =
       `<div class="field">
+         ${/* Essayé : descendre « + Ajouter » en fin de liste pour rendre
+              au libellé sa hauteur de libellé. MESURÉ : le bloc passe de
+              94 à 109 px. Une ligne d'ajout coûte 44 px pleins, l'en-tête
+              n'en rendait que 28 — le bouton partageait déjà sa rangée.
+              Reverti : ce qui paraît plus léger à la lecture du code peut
+              être plus lourd à l'écran. */''}
          <div class="lbl-row"><label>Contacts</label>
            <button class="btn btn-sm" id="fiCtAdd">${ic('plus', 'ic-14')} Ajouter</button></div>
          ${main.length || knownCts.length ? `
@@ -209,7 +226,6 @@ export function openFiche(c){
                </div>` : ''}
            </div>
          </details>` : ''}
-       ${wide ? '' : outils}
        ${(c.history || []).length ? `
          <details class="fi-hist"><summary>Historique</summary>
            <ul class="timeline">${c.history.slice().reverse().slice(0, 10).map(h =>
@@ -220,7 +236,7 @@ export function openFiche(c){
     sh.body.innerHTML = wide
       ? `<div class="fi-top">${sub}${outils}</div>
          <div class="fi-cols"><div>${travail}</div><div>${dossier}</div></div>`
-      : sub + travail + dossier;
+      : `<div class="fi-top">${sub}${outils}</div>` + travail + dossier;
 
     /* branchements */
     const byCt = id => (c.contacts || []).find(t => t.id === id);
@@ -251,10 +267,21 @@ export function openFiche(c){
     }));
     const ro = sh.body.querySelector('#fiReopen');
     if (ro) ro.addEventListener('click', () => { reopenPiste(c); render(); bus.refresh(); toast('Piste rouverte.'); });
-    sh.body.querySelector('#fiNotes').addEventListener('input', e => {
+    /* La zone de notes suit son contenu : deux lignes à vide, elle grandit
+       à mesure qu'on écrit. Le plancher de 68 px de `.field textarea` est
+       GLOBAL — le composeur d'emails en dépend — donc on ne le touche pas,
+       on ajuste ce champ-ci. Plus petite vide, plus grande pleine. */
+    const notes = sh.body.querySelector('#fiNotes');
+    const pousse = () => {
+      notes.style.height = 'auto';
+      notes.style.height = Math.max(44, notes.scrollHeight) + 'px';
+    };
+    notes.addEventListener('input', e => {
+      pousse();
       touch('notes', e.target.value);
       renderFoot();
     });
+    pousse();
     renderFoot();
   };
   render();

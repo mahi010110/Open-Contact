@@ -1462,8 +1462,25 @@ button.ec-row:hover{background:var(--surface-field)}
    deux QUITTE l'application pour ouvrir un plan — se tromper là ne coûte
    pas un tap, ça coûte de perdre sa place. D'où un vrai palier entre le
    cadre et cette ligne, et pas les 8 px d'usage. */
-.fi-tools{display:flex;align-items:center;gap:10px;margin:20px 0 14px;flex-wrap:wrap}
-@media (min-width:901px){ .fi-tools{margin-top:0} }   /* au poste elle monte sur l'identité */
+/* La ligne d'identité porte le sous-titre à gauche et « Modifier » à
+   droite, au pouce comme au poste — le bloc ne vit plus en bas de la
+   feuille. `margin-left:auto` sur les outils : une piste sans ville ni
+   domaine n'a pas de sous-titre, et le bouton ne doit pas sauter à
+   gauche pour autant. */
+.fi-top{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+/* Le sous-titre se coupe à sa fin plutôt que de faire plier la rangée :
+   mesuré à 360 px, « Villeneuve-d'Ascq · Cybersécurité » + « Modifier »
+   passaient sur deux lignes, soit 72 px au lieu de 44. Une donnée s'élide,
+   elle ne pousse pas le geste à la ligne. */
+.fi-top .fi-sub{
+  margin-bottom:0;flex:1;min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.fi-top .fi-tools{margin-left:auto}
+.fi-tools{display:flex;align-items:center;gap:10px;margin:0;flex-wrap:wrap}
+/* la zone de notes suit son contenu (ui/fiche.js) : pas de plancher à
+   68 px ici, c'est le script qui donne la hauteur */
+#fiNotes{min-height:44px;overflow-y:hidden;resize:none}
 /* un chiffre qui bouge deux fois par mois n'a pas à porter un cadre :
    encadré, il se déguisait en chose qui se tape (elle ne se tape pas) */
 .fi-score{
@@ -1481,12 +1498,6 @@ button.ec-row:hover{background:var(--surface-field)}
      seule zone de cette fenêtre où l'on écrit vraiment */
   .fi-cols>div:first-child>.field:last-child{flex:1;display:flex;flex-direction:column;min-height:0}
   .fi-cols>div:first-child>.field:last-child textarea{flex:1;min-height:150px}
-  .fi-top{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-  .fi-top .fi-sub,.fi-top .fi-tools{margin-bottom:10px}
-  /* `margin-left:auto` plutôt que `space-between` : une piste sans ville
-     ni domaine n'a pas de sous-titre, et les outils sautaient alors à
-     gauche. Leur place ne doit pas dépendre du remplissage de la fiche. */
-  .fi-top .fi-tools{margin-left:auto}
   /* Écrire au poste : la fenêtre prend une hauteur franche et la donne
      au message. Les deux menus (destinataire, modèle) cessent aussi de
      tronquer leur libellé — c'est la largeur qui manquait. */
