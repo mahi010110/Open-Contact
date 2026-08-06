@@ -8,7 +8,6 @@
    ============================================================ */
 import { esc, distKm } from '../engine/utils.js';
 import { STATUSES, CLOSE_REASONS, DOMAINS, pushHist } from '../engine/model.js';
-import { scoreOf } from '../engine/score.js';
 import { filterCompanies, filterOrphans, searchHint } from '../engine/filter.js';
 import { S, bus, isClosed, hasDemo, addDemo, ctLabel, deletePiste, undeletePiste,
          removeOrphan, saveOrphans, saveData, logJ } from './state.js';
@@ -158,9 +157,15 @@ function cardHTML(c){
   const na = c.nextAction
     ? `<span class="bc-na">${esc(c.nextActionText || 'Faire le point')} ${dueHTML(c)}</span>`
     : `<span class="bc-na bc-none">${inCamp ? 'en campagne' : 'à planifier'}</span>`;
-  const foot = [];
-  if ((c.contacts || []).length) foot.push(ic('contact', 'ic-14') + ' ' + c.contacts.length);
-  foot.push('complète à ' + scoreOf(c) + ' %');
+  /* « complète à N % » vivait ici sur CHAQUE carte, et valait le même
+     chiffre d'une carte à l'autre — quatre pistes à contacter, quatre
+     fois « complète à 37 % ». C'est le papier peint de §6.1 : une encre
+     qui ne varie pas ne signale rien, et le remplissage d'une fiche
+     n'est jamais la réponse à « laquelle je travaille maintenant ».
+     Le chiffre reste sur la fiche, où il légende « Compléter » — et la
+     carte rejoint la ligne mobile, qui ne l'a jamais montré. */
+  const foot = (c.contacts || []).length
+    ? ic('contact', 'ic-14') + ' ' + c.contacts.length : '';
   return (
     `<div class="bcard" data-id="${c.id}" draggable="true">
        <div class="sw-in">
@@ -171,7 +176,7 @@ function cardHTML(c){
            ${/* la carte montre le domaine, la ligne mobile non : elle a
                 donc un champ de moins à révéler */''}
            ${hintHTML(c, ['name', 'city', 'domain'])}
-           <span class="bc-foot">${foot.join(' · ')}</span>
+           ${foot ? `<span class="bc-foot">${foot}</span>` : ''}
          </div>
        </div>
      </div>`);

@@ -393,6 +393,18 @@ html[data-theme="dark"] .field select{
   }
   .td-under .td-triage{width:auto}
   .td-under .td-foot{margin-top:0}
+  /* Le pied se dockait déjà en bas au pouce (voir plus haut) ; au poste
+     il restait collé sous la colonne la plus longue, avec 364 px de vide
+     dessous — l'écran s'arrêtait à 53 % de sa hauteur. Même recette que
+     « Échanger » : la page prend la vue, le tableau prend la région, le
+     pied se pose en bas. Journée chargée, `margin-top:auto` ne prend que
+     la place qui reste. */
+  #view-aujourdhui>.page-inner{display:flex;flex-direction:column;min-height:100%}
+  /* `flex:1` (donc `1 1 0%`) laisserait le tableau RÉTRÉCIR sous son
+     contenu une journée chargée. `1 0 auto` ne fait que prendre la place
+     libre : il grandit, il ne comprime jamais. */
+  #view-aujourdhui>.page-inner>.td-board{flex:1 0 auto}
+  #view-aujourdhui>.page-inner>.td-under{margin-top:auto}
 }
 /* « À trier (N) » — la ligne calme qui regroupe les entrants (#10) */
 .td-triage{
@@ -1463,7 +1475,14 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
    large (une date « sam. 08/08 ») pousse et écrase ses voisines — à
    901 px, la colonne du milieu tombait à 245 px contre 303. `minmax(0,…)`
    rend les trois colonnes vraiment égales, à toutes les largeurs. */
-.board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:start;margin-top:6px}
+/* `align-items:start` laissait chaque colonne s'arrêter sur sa dernière
+   carte : 605 px, 725 px, 310 px côte à côte, et sous les deux courtes
+   un vide qui n'appartenait à personne. Étirées, les trois cadres se
+   partagent la région — §5.2 : « une place qui a un propriétaire n'est
+   plus un manque ». Le fond dithéré des colonnes vides fait le reste. */
+.board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:stretch;margin-top:6px}
+.bcol{display:flex;flex-direction:column}
+.bcol-rows{flex:1}
 .bcol{
   border:1px solid var(--border-strong);background:var(--surface-chrome);
   border-radius:var(--radius-0);box-shadow:var(--shadow-raised);

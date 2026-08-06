@@ -302,6 +302,71 @@ await page.evaluate(async () => (await import('./engine/storage.js')).kvSet('oc_
 await page.goto(base + '/#/pistes');
 console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pistes, une vieille entrée ne promet rien ✓');
 
+/* F9 : le poste de commandement — deux choses qui se reperdent seules.
+   ① Le papier peint : « complète à 37 % » vivait sur CHAQUE carte du
+   tableau, à la même valeur d'une carte à l'autre. §6.1 : une encre qui
+   ne varie pas ne signale rien.
+   ② La région sans propriétaire : les colonnes s'arrêtaient sur leur
+   dernière carte (605 / 725 / 310 px côte à côte) et « Aujourd'hui »
+   s'arrêtait à 53 % de la hauteur, le pied flottant sous un trou.
+   Étirées, elles se partagent la région — et la cible de dépôt d'une
+   colonne courte triple au passage, ce qui se vérifie ici. */
+{
+  const dCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+  const dPage = await dCtx.newPage();
+  watchErrors(dPage);
+  await dPage.goto(base + '/#/pistes', { waitUntil: 'load' });
+  await dPage.evaluate(d => localStorage.setItem('oc_data_v3', JSON.stringify(d)),
+    [['Alpha', 'todo'], ['Beta', 'todo'], ['Gamma', 'active'], ['Delta', 'reply']].map(([name, status], i) =>
+      ({ id: 'bc' + i, name, city: 'Lille', domain: 'esn', status, contacts: [], updatedAt: Date.now() - i })));
+  await dPage.reload({ waitUntil: 'load' });
+  await attendre(dPage, () => document.querySelectorAll('.bcol').length === 3, { message: 'le tableau' });
+
+  const board = await dPage.evaluate(() => ({
+    pubs: [...document.querySelectorAll('.bcard')].filter(c => /complète à/.test(c.textContent)).length,
+    cartes: document.querySelectorAll('.bcard').length,
+    hauteurs: [...document.querySelectorAll('.bcol')].map(c => Math.round(c.getBoundingClientRect().height))
+  }));
+  if (board.pubs) fail(`« complète à N % » de retour sur ${board.pubs}/${board.cartes} cartes du tableau`);
+  if (new Set(board.hauteurs).size !== 1)
+    fail('les colonnes du tableau ne se partagent plus la région : ' + JSON.stringify(board.hauteurs));
+
+  /* on lâche une carte tout en bas d'une colonne d'UNE seule carte :
+     ce point n'appartenait à rien avant l'étirement */
+  const pose = await dPage.evaluate(() => {
+    const carte = [...document.querySelectorAll('.bcard')].find(c => c.textContent.includes('Alpha'));
+    const col = document.querySelector('.bcol[data-st="reply"]');
+    const r = col.getBoundingClientRect();
+    const x = r.left + r.width / 2, y = r.bottom - 40;
+    if (document.elementFromPoint(x, y)?.closest('.bcol') !== col) return 'le bas de la colonne ne vise rien';
+    const dt = new DataTransfer();
+    carte.dispatchEvent(new DragEvent('dragstart', { bubbles: true, dataTransfer: dt }));
+    for (const t of ['dragover', 'drop'])
+      col.dispatchEvent(new DragEvent(t, { bubbles: true, cancelable: true, dataTransfer: dt, clientX: x, clientY: y }));
+    return 'ok';
+  });
+  if (pose !== 'ok') fail('dépôt en bas de colonne : ' + pose);
+  await attendre(dPage, async () =>
+    (await import('./ui/state.js')).S.companies.find(c => c.name === 'Alpha')?.status === 'reply',
+    { message: 'la carte lâchée en bas de colonne change de statut' });
+
+  /* « Aujourd'hui » : le pied est un pied, il se pose en bas */
+  await dPage.goto(base + '/#/aujourdhui', { waitUntil: 'load' });
+  await dPage.waitForSelector('.td-board');
+  const jour = await dPage.evaluate(() => {
+    const v = document.querySelector('#view-aujourdhui');
+    const p = document.querySelector('.td-under');
+    return { rempli: p ? Math.round(100 * p.getBoundingClientRect().bottom / v.getBoundingClientRect().bottom) : null,
+             comprime: [...document.querySelectorAll('.bcol-rows')].some(c => c.scrollHeight > c.clientHeight + 1) };
+  });
+  if (jour.rempli !== null && jour.rempli < 85)
+    fail(`le pied d'« Aujourd'hui » flotte à ${jour.rempli} % de la hauteur — la région n'est pas prise`);
+  if (jour.comprime) fail('une colonne du jour est comprimée sous son contenu');
+  await dPage.screenshot({ path: SHOTS + '/83-ux-poste-region.png' });
+  await dCtx.close();
+  console.log('poste : plus de « complète à N % », les colonnes se partagent la région, le pied se pose en bas ✓');
+}
+
 /* Effet miroir F1 : sans messagerie, le contrôle de campagne explique le
    prérequis et ne laisse pas Valider promettre une action impossible. */
 await page.evaluate(async () => {
