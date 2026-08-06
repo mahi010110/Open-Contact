@@ -647,6 +647,76 @@ for (const [nom, ptr] of [['doigt', true], ['souris', false]]){
     `page tenue, aucun libellé coupé aux deux bouts ✓`);
 }
 
+/* F14 : deux critères WCAG nommés, que rien ne vérifiait.
+   · 1.4.10 Reflow — à 320 px de large, aucun défilement horizontal.
+     C'est l'équivalent d'un zoom à 400 % sur un écran de 1280.
+   · 1.4.12 Text Spacing — l'utilisateur peut imposer interligne 1,5×,
+     lettres 0,12em, mots 0,16em, paragraphes 2× ; rien ne doit se
+     couper. Une feuille de style personnelle fait exactement ça.
+   Le `-webkit-line-clamp` est EXCLU du compte : il pose des points de
+   suspension, c'est une troncature annoncée et le texte entier reste à
+   un tap. Sans cette exclusion l'instrument criait au loup sur les deux
+   lignes tronquées de « Mes pistes », qui vont très bien. */
+{
+  const ESPACEMENT = `* { line-height:1.5 !important; letter-spacing:0.12em !important;
+    word-spacing:0.16em !important; } p { margin-bottom:2em !important; }`;
+  for (const [quoi, largeur, css] of [
+    ['1.4.10 reflow à 320 px', 320, ''],
+    ['1.4.10 reflow à 320 px, police 24 px', 320, ':root{font-size:24px}'],
+    ['1.4.12 espacement du texte', 390, ESPACEMENT]
+  ]){
+    const wCtx = await browser.newContext({ viewport: { width: largeur, height: 640 }, hasTouch: true });
+    const wPage = await wCtx.newPage();
+    watchErrors(wPage);
+    await wPage.goto(base + '/#/pistes', { waitUntil: 'load' });
+    await wPage.evaluate(async () => {
+      const st = await import('./engine/storage.js');
+      await st.kvInit();
+      await st.kvSet(st.DATA_KEY, JSON.stringify([
+        { id: 'w1', name: 'Orange Cyberdefense', city: 'Villeneuve-d’Ascq', domain: 'cyber',
+          status: 'active', nextActionText: 'Relancer Madame Bertrand', nextAction: '2026-08-03', contacts: [] },
+        { id: 'w2', name: 'Capgemini', city: 'Valenciennes', domain: 'esn', status: 'todo', contacts: [] }]));
+    });
+    await wPage.reload({ waitUntil: 'load' });
+    await attendre(wPage, async () => (await import('./ui/state.js')).S.companies.length === 2);
+    for (const r of ['aujourdhui', 'pistes', 'echanger', 'moi']){
+      await wPage.goto(base + '/#/' + r, { waitUntil: 'load' });
+      if (css) await wPage.addStyleTag({ content: css });
+      await wPage.waitForTimeout(300);
+      const m = await wPage.evaluate(() => {
+        const coupes = [];
+        for (const n of document.querySelectorAll('main *')){
+          if (!n.getClientRects().length) continue;
+          const s = getComputedStyle(n);
+          if (!/hidden|clip/.test(s.overflowY)) continue;
+          if (s.webkitLineClamp && s.webkitLineClamp !== 'none') continue;
+          if (n.scrollHeight > n.clientHeight + 2 &&
+              [...n.childNodes].some(c => c.nodeType === 3 && c.textContent.trim()))
+            coupes.push(`${(n.id ? '#' + n.id : n.className || n.tagName).toString().slice(0, 24)} ` +
+              `« ${n.textContent.trim().slice(0, 22)} »`);
+        }
+        /* Le document n'est PAS le conteneur qui défile ici : `.view` a
+           `overflow-y:auto`, ce qui rend son axe X « auto » lui aussi.
+           Un contenu trop large y défile donc EN SILENCE, sans jamais
+           faire grandir `documentElement.scrollWidth`. Vérifié en
+           cassant : un `min-width:400px` sur `.page-inner` passait le
+           contrôle au vert. On interroge tous les scrollers. */
+        const boites = [document.documentElement, ...document.querySelectorAll('.view, main, .modal-b')];
+        const trop = boites
+          .filter(n => n.getClientRects?.().length !== 0 && n.scrollWidth > n.clientWidth + 1)
+          .map(n => `${(n.id ? '#' + n.id : n.className || n.tagName).toString().slice(0, 20)} ` +
+            `${n.scrollWidth}>${n.clientWidth}`);
+        return { defile: trop.length > 0, ou: trop, coupes: [...new Set(coupes)] };
+      });
+      if (m.defile) fail(`${quoi} — ${r} : défilement horizontal — ${m.ou.join(' · ')}`);
+      for (const c of m.coupes.slice(0, 3))
+        fail(`${quoi} — ${r} : texte rogné en hauteur, sans ellipsis — ${c}`);
+    }
+    await wCtx.close();
+    console.log(`   ${quoi} ✓`);
+  }
+}
+
 /* Effet miroir F1 : sans messagerie, le contrôle de campagne explique le
    prérequis et ne laisse pas Valider promettre une action impossible. */
 await page.evaluate(async () => {
