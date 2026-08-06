@@ -206,8 +206,12 @@ net. Sources uniques : `styles/tokens/` et le kit `design/`.
 - **Motion** : les **objets** restent « 98 » — nets, instantanés, `steps()`
   pour le feedback. Seul le **déplacement entre états** est doux (feuille qui
   monte, fenêtre qui se pose, liste qui se réorganise) : court, `ease-out`,
-  senti sans être vu. `transform`/`opacity` uniquement, transitions CSS,
-  `prefers-reduced-motion` coupe tout.
+  senti sans être vu. `transform`/`opacity` par défaut, transitions CSS,
+  `prefers-reduced-motion` coupe tout. **Une exception, nommée** : un contrôle
+  qui *change de forme pour faire de la place* à un autre (le cadenas du mot
+  de passe, §6) s'anime sur `flex-grow` — une largeur en `auto` ne se
+  transitionne pas, et `scaleX` écraserait le texte. Elle reste bornée à ça :
+  deux enfants d'une même ligne qui échangent leur place, jamais une page.
 - **Thème sombre obligatoire** : tout élément neuf se vérifie dans les deux
   thèmes.
 
@@ -285,6 +289,7 @@ avec un motif existant.
 | Choisir une date | chips « Demain / +3 j / +7 j / Lundi » + date précise validée par OK (jamais de fermeture sur `change` seul — roue iOS) |
 | Confirmer un geste risqué | `confirmSheet` (danger = `btn-danger`). **Une porte se décide** : elle ne se justifie que si elle montre ce qu'on ne peut PAS deviner (« ce fichier contient 12 pistes, tu en as 3 »). Une question dont le message dit qu'il n'y a rien à perdre ne protège personne |
 | Geste lourd réversible | `showUndo(msg, onUndo)` — barre Annuler ~30 s. **Il remplace la confirmation**, il ne s'y ajoute pas : demander ET offrir d'annuler, c'est payer deux fois |
+| Demander un mot de passe **facultatif** | `lockRowHTML` + `bindLockRow` — au repos un bouton compact « Chiffrer » au bout de la ligne d'action ; tapé, il **s'étire en champ sur place** et l'action voisine se serre. **La ligne ne change pas de hauteur** : rien ne pousse ce qui est dessous. `value()` rend `''` serrure fermée, donc l'appelant n'a jamais à connaître l'état ; refermer **oublie** ce qui était tapé |
 | Retour discret | `toast()` — court, ponctuel, jamais deux phrases. Un tiret cadratin au maximum, et ce qui le suit doit être un **geste** (« — passe par le fichier »), jamais un rassurement (« — tout est revenu comme avant ») |
 | Marquer partagé vs privé | `tag-share` / `tag-priv` |
 | Dire qu'un état **réclame quelque chose** | `.mark` + un cran : `mark-late` · `mark-now` · `mark-soon` · `mark-far`. **Un seul langage d'urgence dans toute l'app**, échelle monotone, et **ce qui ne réclame rien n'affiche rien** — c'est le vide en face qui fait ressortir le reste. Un cadre entier peut prendre le bord ambre (`.fset.fs-alert`) quand son état peut tout coûter |

@@ -12,7 +12,7 @@ import { sharePayload, encodeOCQ, splitOCQ, makeRdvCode, rdvNorm, rdvWrap } from
 import { filterCompanies } from '../engine/filter.js';
 import { encryptOC2 } from '../engine/crypto.js';
 import { S, isClosed, logJ } from './state.js';
-import { openSheet, toast, btn, ic, softReorder } from './dom.js';
+import { openSheet, toast, btn, ic, softReorder, lockRowHTML, bindLockRow } from './dom.js';
 import { sortState, sortArgs } from './sort.js';
 import { filterState, filterArgs, affinerBtnHTML, bindAffinerBtn } from './affiner.js';
 import { openRoom, leaveRoom, watchLiaison } from './synclive.js';
@@ -312,22 +312,19 @@ export function openDonner(){
          <button class="pick" id="dnDl"><b>${ic('download', 'ic-14')} Télécharger</b><span>${fname}</span></button>
          <button class="pick" id="dnCopy"><b>${ic('copy', 'ic-14')} Copier</b></button>
        </div>
-       <label class="ckline" style="margin-top:12px"><input type="checkbox" id="dnCrypt"> Chiffrer</label>
-       <div class="field" id="dnPassF" hidden>
-         <label for="dnPass">Mot de passe</label>
-         <input id="dnPass" type="password" autocomplete="new-password">
-         <p class="hint">Perdu = irrécupérable.</p>
-       </div>`;
-    q('#dnCrypt').addEventListener('change', e => {
-      q('#dnPassF').hidden = !e.target.checked;
-      if (e.target.checked) q('#dnPass').focus();
-    });
+       ${/* Le même objet que « Ma copie » (ui/dom.js) : la case à cocher,
+            son libellé, le champ et son cadre pesaient quatre lignes pour
+            une question facultative. Ici le cadenas n'a pas de bouton à
+            côté de lui — les trois sorties sont au-dessus — il prend donc
+            la ligne entière en s'ouvrant. */''}
+       <div style="margin-top:12px">${lockRowHTML({ id: 'dnCrypt' })}</div>
+       <p class="hint" id="dnWarn" hidden>Perdu = irrécupérable.</p>`;
+    const lock = bindLockRow(sh.body, 'dnCrypt', on => { q('#dnWarn').hidden = !on; });
     const make = async () => {
-      const crypt = q('#dnCrypt').checked;
-      const pass = crypt ? q('#dnPass').value : '';
-      if (crypt && !pass){
-        toast('Choisis un mot de passe — ou décoche « Chiffrer ».');
-        q('#dnPass').focus();
+      const pass = lock.value();
+      if (lock.on() && !pass){
+        toast('Choisis un mot de passe — ou referme le cadenas.');
+        q('#dnCryptPass').focus();
         return null;
       }
       const payload = sharePayload(chosen(), keepFn);

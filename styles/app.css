@@ -800,20 +800,57 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   background:var(--surface-chrome);border:1px solid var(--border-soft);
   padding:1px 5px;border-radius:var(--radius-1);word-break:break-word;
 }
-/* « Garder une copie » : le mot de passe est facultatif, donc au repos il
-   ne pèse qu'une icône posée à côté du geste (#8 — l'avancé se replie
-   derrière un signe, jamais une phrase). Tapée, elle ouvre le champ. */
-.bk-lock.on{background:var(--teal-wash);border-color:var(--accent);color:var(--accent)}
-.bk-line{
-  display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;
-  animation:oc-up var(--dur-2) var(--ease-out);
+/* ---- le mot de passe facultatif : une ligne, deux états (ui/dom.js) ----
+   Au repos : [ Télécharger ][ 🔒 Chiffrer ]. Tapé, le cadenas s'étire en
+   champ et « Télécharger » se serre sur son texte — la ligne garde sa
+   hauteur, donc rien ne pousse ce qui est dessous.
+
+   L'étirement se joue sur `flex-grow`, pas sur `width` : une largeur en
+   `auto` ne s'anime pas, alors qu'un `flex-grow` de 0 à 1 se transitionne
+   et laisse le navigateur répartir la place restante. Les deux enfants
+   changent en même temps, ce qui suffit à faire lire le geste comme un
+   échange de place et non comme deux animations. */
+.lockrow{display:flex;align-items:center;gap:8px;min-width:0}
+.lr-do{flex:1 1 auto;min-width:0;transition:flex-grow var(--dur-3) var(--ease-out)}
+.lockrow.on .lr-do{flex-grow:0}
+/* fermé, le groupe est un bouton ; ouvert, il devient LE champ — c'est
+   lui qui porte le cadre, et le cadenas passe à plat dedans, où il sert
+   d'icône et de bouton pour refermer */
+.lr-pw{
+  display:flex;align-items:center;flex:0 1 auto;min-width:0;
+  border:1px solid transparent;border-radius:var(--radius-1);
+  transition:flex-grow var(--dur-3) var(--ease-out);
 }
-.bk-pass{
-  flex:1 1 150px;min-width:0;height:var(--ctl);padding:0 10px;
-  background:var(--surface-field);border:1px solid var(--border-field);
-  box-shadow:var(--bevel-field);border-radius:var(--radius-1);font-size:var(--input-fs);
+.lockrow.on .lr-pw{
+  flex:1 1 auto;
+  background:var(--surface-field);border-color:var(--border-field);
+  box-shadow:var(--bevel-field);
 }
-.bk-pass::placeholder{color:var(--text-muted)}
+.lr-lock{flex:0 0 auto;display:inline-flex;align-items:center;gap:7px}
+.lockrow.on .lr-lock{
+  background:none;border-color:transparent;box-shadow:none;
+  color:var(--accent);padding-right:2px;
+}
+/* le mot cède la place à la saisie : c'est le seul endroit où il part,
+   et il part parce que le champ dit désormais la même chose */
+.lr-w{
+  display:inline-block;overflow:hidden;white-space:nowrap;max-width:9em;
+  transition:max-width var(--dur-3) var(--ease-out),opacity var(--dur-2) var(--ease-out);
+}
+.lockrow.on .lr-w{max-width:0;opacity:0}
+.lr-pass{
+  flex:0 1 0;min-width:0;width:0;overflow:hidden;
+  height:var(--ctl);padding:0;border:0;background:none;opacity:0;
+  font-size:var(--input-fs);color:var(--text-body);
+  transition:flex-grow var(--dur-3) var(--ease-out),opacity var(--dur-2) var(--ease-out);
+}
+.lockrow.on .lr-pass{flex:1 1 0;width:auto;padding:0 10px 0 2px;opacity:1}
+.lr-pass::placeholder{color:var(--text-muted)}
+.lr-pass:focus{outline:none}
+.lockrow.on .lr-pw:focus-within{outline:2px solid var(--accent);outline-offset:1px}
+@media (prefers-reduced-motion:reduce){
+  .lr-do,.lr-pw,.lr-pass,.lr-w{transition:none}
+}
 /* « Moi » éclaté (#20) : colonnes desktop, porte Réglages mobile */
 .moi-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
 .moi-cols .pcard:last-child,.moi-cols .fset:last-child{margin-bottom:0}

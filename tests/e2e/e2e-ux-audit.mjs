@@ -367,6 +367,88 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
   console.log('poste : plus de « complète à N % », les colonnes se partagent la région, le pied se pose en bas ✓');
 }
 
+/* F10 : le mot de passe facultatif, un seul objet aux deux endroits.
+   « Ma copie » ouvrait une ligne SOUS le bouton (+52 px), « Fichier »
+   empilait case + libellé + champ + note (+100 px). Le cadenas s'étire
+   maintenant en champ sur place. Trois choses se vérifient ici, parce
+   que ce sont celles qui cassent en silence : la ligne ne grandit pas,
+   le fichier produit est VRAIMENT chiffré quand la serrure est ouverte,
+   et un mot de passe tapé puis renoncé ne repart pas avec le fichier. */
+{
+  const lCtx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, acceptDownloads: true });
+  const lPage = await lCtx.newPage();
+  watchErrors(lPage);
+  await lPage.goto(base + '/#/moi', { waitUntil: 'load' });
+  await lPage.evaluate(() => localStorage.setItem('oc_data_v3', JSON.stringify(
+    [{ id: 'lr1', name: 'Piste Témoin', city: 'Lille', status: 'active', contacts: [] }])));
+  await lPage.reload({ waitUntil: 'load' });
+  await lPage.waitForSelector('#moiBkLock');
+
+  const hFset = () => lPage.evaluate(() => Math.round(
+    document.querySelector('#moiBk').closest('.fset').getBoundingClientRect().height));
+  const hRepos = await hFset();
+  await lPage.click('#moiBkLock');
+  await lPage.waitForTimeout(400);
+  const hOuvert = await hFset();
+  if (hOuvert !== hRepos)
+    fail(`« Ma copie » grandit à l'ouverture (${hRepos} → ${hOuvert} px) : la saisie doit tenir dans la ligne`);
+  const memeLigne = await lPage.evaluate(() => Math.abs(
+    document.querySelector('#moiBkDo').getBoundingClientRect().top -
+    document.querySelector('#moiBkPass').getBoundingClientRect().top) < 6);
+  if (!memeLigne) fail('la saisie n’est pas sur la ligne de « Télécharger »');
+
+  /* le fichier produit est-il chiffré pour de bon ? */
+  const lire = async () => {
+    const [dl] = await Promise.all([lPage.waitForEvent('download'), lPage.click('#moiBkDo')]);
+    const flux = await dl.createReadStream();
+    let t = ''; for await (const c of flux) t += c;
+    return t.slice(0, 6);
+  };
+  await lPage.fill('#moiBkPass', 'colibri-1789');
+  if (!(await lire()).startsWith('OC2.'))
+    fail('serrure ouverte, la copie téléchargée n’est pas chiffrée');
+  /* renoncer doit VRAIMENT oublier : re-taper le cadenas vide le champ */
+  await lPage.click('#moiBkLock');
+  await lPage.waitForTimeout(300);
+  const oubli = await lPage.evaluate(() => document.querySelector('#moiBkPass').value);
+  if (oubli !== '') fail('un mot de passe renoncé survit dans le champ : ' + JSON.stringify(oubli));
+  if ((await lire()).startsWith('OC2.'))
+    fail('serrure refermée, la copie sort quand même chiffrée');
+
+  /* le même objet dans « Donner → Fichier » */
+  await lPage.goto(base + '/#/echanger', { waitUntil: 'load' });
+  await lPage.waitForSelector('#ecGive');
+  await lPage.click('#ecGive');
+  await attendre(lPage, () => [...document.querySelectorAll('.modal button, .modal .pick')]
+    .some(b => /fichier/i.test(b.textContent)), { message: 'le choix du canal' });
+  await lPage.evaluate(() => [...document.querySelectorAll('.modal button, .modal .pick')]
+    .find(b => /fichier/i.test(b.textContent)).click());
+  await lPage.waitForSelector('#dnCryptLock');
+  const memeMotif = await lPage.evaluate(() => !!document.querySelector('#dnCrypt.lockrow')
+    && !!document.querySelector('#dnCryptPass.lr-pass'));
+  if (!memeMotif) fail('« Fichier » n’emploie pas le motif partagé du cadenas');
+  const avertAvant = await lPage.evaluate(() => document.querySelector('#dnWarn').hidden);
+  await lPage.click('#dnCryptLock');
+  await lPage.waitForTimeout(300);
+  const avertApres = await lPage.evaluate(() => document.querySelector('#dnWarn').hidden);
+  if (!avertAvant || avertApres)
+    fail('« Perdu = irrécupérable » doit paraître à l’ouverture de la serrure, et seulement là');
+  await lPage.fill('#dnCryptPass', 'colibri-1789');
+  const [dl2] = await Promise.all([lPage.waitForEvent('download'), lPage.click('#dnDl')]);
+  const flux2 = await dl2.createReadStream();
+  let t2 = ''; for await (const c of flux2) t2 += c;
+  if (!t2.startsWith('OC2.')) fail('« Fichier » : serrure ouverte, le .oc n’est pas chiffré');
+  /* et il se relit — un chiffrement qu'on ne sait pas rouvrir est une perte */
+  const relu = await lPage.evaluate(async txt => {
+    try { return (await (await import('./engine/crypto.js')).decryptOC2(txt, 'colibri-1789')) ? 'ok' : 'vide'; }
+    catch (e) { return String(e); }
+  }, t2);
+  if (relu !== 'ok') fail('le .oc chiffré ne se rouvre pas avec son mot de passe : ' + relu);
+  await lPage.screenshot({ path: SHOTS + '/84-ux-cadenas.png' });
+  await lCtx.close();
+  console.log('cadenas : la ligne ne grandit pas, le fichier sort chiffré, un mot de passe renoncé s’oublie ✓');
+}
+
 /* Effet miroir F1 : sans messagerie, le contrôle de campagne explique le
    prérequis et ne laisse pas Valider promettre une action impossible. */
 await page.evaluate(async () => {

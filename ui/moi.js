@@ -14,7 +14,8 @@ import { mergeTombs } from '../engine/sync.js';
 import { docGet, docPut } from '../engine/storage.js';
 import { listDocs, docKind, docTitle, pickPdf, removeDoc } from './docs.js';
 import { S, bus, saveData, saveProfile, saveOrphans, saveTombs, logJ } from './state.js';
-import { $, ic, toast, btn, openSheet, confirmSheet, showUndo, bindDeleteGesture } from './dom.js';
+import { $, ic, toast, btn, openSheet, confirmSheet, showUndo, bindDeleteGesture,
+         lockRowHTML, bindLockRow } from './dom.js';
 import { openProfil, openTemplates } from './profil.js';
 import { openAppareils } from './direct.js';
 import { getSync } from './synclive.js';
@@ -442,24 +443,16 @@ export function renderMoi(){
      sans qu'aucun mot ne dise pourquoi serait pire que les deux. La
      classe `.fs-alert` reste au kit (CLAUDE.md §6), simplement plus
      posée ici.
-     « privé inclus » prend la place laissée libre — c'est la seule chose
-     que la carte ne peut PAS dire autrement : ce fichier emporte le
-     suivi privé, et ça se sait avant de l'envoyer à quelqu'un. */
+     « privé inclus » reste — c'est la seule chose que la carte ne peut
+     PAS dire autrement : ce fichier emporte le suivi privé, et ça se
+     sait avant de l'envoyer à quelqu'un. Il monte simplement DANS la
+     légende, où il ne coûte plus sa propre ligne : un cadre nommé
+     « Ma copie » a de la place à droite de son nom, et l'étiquette y
+     qualifie ce qu'elle nomme au lieu de flotter au-dessus du geste. */
   const copie = showBackup ? `
      <fieldset class="fset">
-       <legend>Ma copie</legend>
-       <div class="fs-state">
-         <span class="tag-priv">${ic('lock', 'ic-14')} privé inclus</span>
-       </div>
-       <div class="pc-actions">
-         <button class="btn btn-sm" id="moiBackup">Télécharger</button>
-         <button class="btn icon-btn bk-lock" id="moiBkLock" aria-pressed="false"
-                 aria-label="Protéger la copie par un mot de passe" title="Protéger par un mot de passe">${ic('lock', 'ic-14')}</button>
-       </div>
-       <div class="bk-line" id="moiBkLine" hidden>
-         <input id="moiBkPass" class="bk-pass" type="password" autocomplete="new-password"
-                placeholder="Mot de passe" aria-label="Mot de passe de la copie">
-       </div>
+       <legend>Ma copie <span class="tag-priv">${ic('lock', 'ic-14')} privé inclus</span></legend>
+       ${lockRowHTML({ id: 'moiBk', action: 'Télécharger' })}
      </fieldset>` : '';
 
   /* « General first, Advanced last » : les réglages ferment la page.
@@ -485,22 +478,12 @@ export function renderMoi(){
 
   root.querySelector('#moiProfil').addEventListener('click', () => openProfil());
   root.querySelector('#moiTpl').addEventListener('click', openTemplates);
-  /* le mot de passe est facultatif : au repos il ne pèse qu'une icône à
-     côté du geste (#8 — l'avancé se replie derrière un signe, jamais une
-     phrase). Tapée, elle ouvre le champ ; re-tapée, elle le referme et
-     l'oublie. Un seul contrôle, deux états (#19-4). */
-  const bkPass = root.querySelector('#moiBkPass');
-  const bkLine = root.querySelector('#moiBkLine');
-  const bkLock = root.querySelector('#moiBkLock');
-  bkLock?.addEventListener('click', () => {
-    const on = bkLine.hidden;
-    bkLine.hidden = !on;
-    bkLock.classList.toggle('on', on);
-    bkLock.setAttribute('aria-pressed', String(on));
-    if (on) bkPass.focus(); else bkPass.value = '';
-  });
-  root.querySelector('#moiBackup')?.addEventListener('click', () =>
-    downloadBackup(bkLine && !bkLine.hidden ? bkPass.value : ''));
+  /* le mot de passe est facultatif : au repos il ne pèse qu'un bouton
+     compact au bout de la ligne (#8 — l'avancé se replie derrière un
+     signe, jamais une phrase). Tapé, il s'étire en champ ; re-tapé, il
+     se referme et l'oublie. Un seul contrôle, deux états (#19-4). */
+  const bk = root.querySelector('#moiBk') ? bindLockRow(root, 'moiBk') : null;
+  root.querySelector('#moiBkDo')?.addEventListener('click', () => downloadBackup(bk.value()));
   if (wide) bindReglages(root);
   else root.querySelector('#moiReglages').addEventListener('click', () => {
     reglagesOpen = true;

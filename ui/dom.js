@@ -325,6 +325,61 @@ export function softReorder(sel){
   };
 }
 
+/* ---------- le mot de passe facultatif (motif partagé) ----------
+   Deux endroits produisent un fichier qu'on peut chiffrer : « Ma copie »
+   dans Moi, et « Fichier » quand on donne. Ils le demandaient de deux
+   façons différentes — un cadenas qui ouvrait une ligne EN DESSOUS d'un
+   côté, une case « Chiffrer » suivie d'un libellé, d'un champ et d'une
+   note de l'autre. Deux dessins pour la même question, et dans les deux
+   cas la feuille grandissait sous le doigt.
+
+   Un seul objet désormais : au repos un bouton compact « Chiffrer » ;
+   tapé, il S'ÉTIRE en champ de saisie sur place, et l'action voisine se
+   serre pour lui faire la place. La LIGNE ne change pas de hauteur, donc
+   rien ne pousse ce qui est dessous — c'est ce qui rend l'ouverture
+   lisible : on voit où va le doigt, pas une page qui saute.
+
+   `action` (optionnel) est le bouton qui partage la ligne — « Ma copie »
+   lui donne « Télécharger », « Fichier » n'en a pas (ses trois sorties
+   sont au-dessus) et la commande prend alors toute la largeur. */
+export function lockRowHTML({ id, action = '', mot = 'Chiffrer', invite = 'Mot de passe' }){
+  return (
+    `<div class="lockrow" id="${id}">
+       ${action ? `<button class="btn btn-sm lr-do" id="${id}Do">${action}</button>` : ''}
+       <div class="lr-pw">
+         <button type="button" class="btn btn-sm lr-lock" id="${id}Lock" aria-pressed="false"
+                 aria-controls="${id}Pass" aria-label="Protéger par un mot de passe"
+                 >${ic('lock', 'ic-14')}<span class="lr-w">${mot}</span></button>
+         <input id="${id}Pass" class="lr-pass" type="password" autocomplete="new-password"
+                placeholder="${invite}" aria-label="${invite}" disabled>
+       </div>
+     </div>`);
+}
+/* Rend `{ on, value, node }` — `value()` vaut '' tant que le cadenas est
+   fermé, donc l'appelant n'a jamais à se demander dans quel état il est.
+   `onToggle` sert à ceux qui ont autre chose à montrer (l'avertissement
+   « Perdu = irrécupérable » ne s'affiche que la serrure ouverte). */
+export function bindLockRow(root, id, onToggle){
+  const row = root.querySelector('#' + id);
+  const lock = root.querySelector('#' + id + 'Lock');
+  const pass = root.querySelector('#' + id + 'Pass');
+  const set = on => {
+    row.classList.toggle('on', on);
+    lock.setAttribute('aria-pressed', String(on));
+    pass.disabled = !on;
+    /* fermé, le champ s'oublie : un mot de passe tapé puis renoncé ne
+       doit pas repartir avec le fichier au clic suivant */
+    if (on) pass.focus(); else pass.value = '';
+    onToggle?.(on);
+  };
+  lock.addEventListener('click', () => set(!row.classList.contains('on')));
+  /* Échap referme la serrure sans fermer la feuille qui la porte */
+  pass.addEventListener('keydown', e => {
+    if (e.key === 'Escape'){ e.stopPropagation(); set(false); lock.focus(); }
+  });
+  return { node: row, on: () => row.classList.contains('on'), value: () => (row.classList.contains('on') ? pass.value : '') };
+}
+
 /* confirmation simple — remplace confirm() natif */
 export function confirmSheet(o){
   return new Promise(resolve => {
