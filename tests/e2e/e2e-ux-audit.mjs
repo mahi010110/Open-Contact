@@ -538,6 +538,56 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
   console.log('identité : une donnée se coupe à sa fin, aucun jeton bordé en légende ✓');
 }
 
+/* F12 : la largeur dit le DESSIN, le pointeur dit la MAIN.
+   `--ctl` basculait de 44 à 32 px sur la seule largeur : une tablette
+   tactile en paysage (1024-1366 px) recevait donc l'ergonomie souris —
+   10 cibles sur 11 sous 44 px, la plus petite à 30 px, pour un doigt.
+   Et `--input-fs` retombait à 14 px, ce qui rouvre le zoom automatique
+   d'iOS au focus d'un champ, exactement ce que le 16 px évite au pouce.
+   On vérifie les deux mains sur la MÊME largeur : c'est le pointeur, et
+   lui seul, qui doit faire la différence. */
+for (const [nom, ptr] of [['doigt', true], ['souris', false]]){
+  const tCtx = await browser.newContext({ viewport: { width: 1180, height: 820 }, hasTouch: ptr });
+  const tPage = await tCtx.newPage();
+  watchErrors(tPage);
+  await tPage.goto(base + '/#/pistes', { waitUntil: 'load' });
+  await tPage.evaluate(async () => {
+    const st = await import('./engine/storage.js');
+    await st.kvInit();
+    await st.kvSet(st.DATA_KEY, JSON.stringify([
+      { id: 'tt', name: 'Sopra Steria', city: 'Lille', domain: 'esn', status: 'todo', contacts: [] }]));
+  });
+  await tPage.reload({ waitUntil: 'load' });
+  await attendre(tPage, async () => (await import('./ui/state.js')).S.companies.length === 1);
+  const erg = await tPage.evaluate(() => {
+    const cs = getComputedStyle(document.documentElement);
+    const petites = [...document.querySelectorAll('button, a[href], input, select')]
+      .filter(n => n.getClientRects().length && !n.closest('.bottomnav'))
+      .map(n => ({ t: (n.textContent || n.getAttribute('aria-label') || n.tagName).trim().slice(0, 22),
+                   h: Math.round(n.getBoundingClientRect().height) }))
+      .filter(c => c.h < 44);
+    return { ctl: cs.getPropertyValue('--ctl').trim(), fs: cs.getPropertyValue('--input-fs').trim(),
+             fin: matchMedia('(pointer:fine)').matches, petites,
+             colonnes: document.querySelectorAll('.bcol').length };
+  });
+  if (erg.fin !== !ptr)
+    console.log(`   (le contexte « ${nom} » rend pointer:${erg.fin ? 'fine' : 'coarse'} — contrôle ignoré)`);
+  else if (ptr){
+    if (erg.ctl !== '44px') fail(`tablette au doigt : --ctl vaut ${erg.ctl}, la main veut 44 px`);
+    if (parseInt(erg.fs, 10) < 16)
+      fail(`tablette au doigt : --input-fs à ${erg.fs} — iOS zoomera à la mise au point`);
+    if (erg.petites.length)
+      fail(`tablette au doigt : ${erg.petites.length} cible(s) sous 44 px — ` +
+        erg.petites.map(c => `${c.h}px « ${c.t} »`).join(' · '));
+  } else if (erg.ctl !== '32px')
+    fail(`tablette à la souris : --ctl vaut ${erg.ctl}, la souris veut 32 px`);
+  /* et le DESSIN, lui, ne bouge pas : 1180 px reste le tableau */
+  if (erg.colonnes !== 3)
+    fail(`à 1180 px le tableau doit rester en 3 colonnes (${nom}) — vu ${erg.colonnes}`);
+  await tCtx.close();
+  console.log(`   ergonomie « ${nom} » @1180 : --ctl ${erg.ctl}, champs ${erg.fs}, tableau 3 colonnes ✓`);
+}
+
 /* Effet miroir F1 : sans messagerie, le contrôle de campagne explique le
    prérequis et ne laisse pas Valider promettre une action impossible. */
 await page.evaluate(async () => {

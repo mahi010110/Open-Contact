@@ -222,14 +222,31 @@ net. Sources uniques : `styles/tokens/` et le kit `design/`.
 Ce ne sont pas des pages qui se redimensionnent : ce sont **deux interfaces
 pensées par contexte**, qui partagent les données et le style.
 
-- **Breakpoint unique : 901 px** (`matchMedia('(min-width:901px)')`, avec
-  re-rendu au franchissement — voir `ui/pistes.js`).
-- **Mobile (< 901 px)** : navigation en bas, contrôles 44 px (`--ctl`),
-  feuilles en bas d'écran, gestes tactiles. Une main, un pouce.
-- **Desktop (≥ 901 px)** : navigation en haut + barre de statut, contrôles
-  32 px, fenêtres centrées, layouts en colonnes, raccourcis clavier
-  (« / » = recherche, « n » = nouvelle piste — et une touche s'annonce
-  DANS ce qu'elle commande, jamais dans un écran d'aide).
+**Deux questions, pas une.** La **largeur** dit le *dessin* — combien de
+colonnes tiennent, où va la navigation. Le **pointeur** dit la *main* —
+quelle taille doit faire une cible. Ce sont deux choses différentes, et
+les confondre coûte cher : une tablette tactile en paysage fait 1024 à
+1366 px, elle recevait donc l'ergonomie souris. Mesuré : 10 cibles sur
+11 sous 44 px, la plus petite à 30 px, pour un doigt.
+
+- **Le dessin — breakpoint unique : 901 px** (`matchMedia('(min-width:901px)')`,
+  avec re-rendu au franchissement — voir `ui/pistes.js`).
+- **La main — `(pointer:fine)`** : une souris, un trackpad ou un stylet la
+  valident (iPad + trackpad compris), un doigt non. `--ctl` et
+  `--input-fs` ne descendent à l'ergonomie souris **qu'avec les deux**
+  (`@media (min-width:901px) and (pointer:fine)`). Un `--input-fs` sous
+  16 px rouvre le zoom automatique d'iOS à la mise au point d'un champ.
+- **Mobile (< 901 px)** : navigation en bas, feuilles en bas d'écran,
+  gestes tactiles. Une main, un pouce.
+- **Desktop (≥ 901 px)** : navigation en haut + barre de statut, fenêtres
+  centrées, layouts en colonnes, raccourcis clavier (« / » = recherche,
+  « n » = nouvelle piste — et une touche s'annonce DANS ce qu'elle
+  commande, jamais dans un écran d'aide).
+- **Au doigt, 44 px** (`--control-h-touch`, plancher d'Apple et de WCAG
+  2.5.5 AAA) ; **à la souris, 32 px** (`--control-h`, bien au-dessus du
+  plancher WCAG 2.5.8 AA de 24 px). Toute cible neuve part de `--ctl` :
+  une hauteur en dur se retrouve à 30 px sous un doigt, ce qui est
+  exactement ce qui était arrivé à la navigation haute.
 - **La règle, et son seuil** : par défaut, **un seul dessin** qui s'adapte.
   On n'en fait deux que si l'**usage** diffère vraiment — pas la taille.
   Aujourd'hui c'est le cas sur trois choses : Mes pistes (liste au pouce /

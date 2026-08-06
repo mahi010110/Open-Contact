@@ -13,7 +13,20 @@
   --ctl:var(--control-h-touch);      /* mobile d'abord : cibles 44px */
   --input-fs:16px;                   /* pas de zoom iOS */
 }
-@media (min-width:901px){
+/* La largeur dit le DESSIN, le pointeur dit la MAIN — ce ne sont pas la
+   même question, et 901 px seul répondait aux deux.
+   Une tablette tactile en paysage fait 1024 à 1366 px : elle passait donc
+   en ergonomie souris. Mesuré, 10 cibles sur 11 tombaient sous 44 px, la
+   plus petite à 30 px, pour un doigt — sous le plancher d'Apple (44 pt)
+   comme sous WCAG 2.5.5 (44×44). Et `--input-fs` redescendait à 14 px,
+   ce qui rouvre le zoom automatique d'iOS à la mise au point d'un champ,
+   exactement ce que le 16 px ci-dessus existe pour éviter.
+   `pointer:fine` est la bonne question : une souris, un trackpad ou un
+   stylet la valident (iPad + trackpad compris) ; un doigt non. Le §5 de
+   CLAUDE.md ne bouge pas — le tableau, la nav haute et les colonnes
+   restent commandés par la largeur, parce que c'est l'USAGE qui change
+   là. Seule l'ergonomie suit désormais ce qui touche l'écran. */
+@media (min-width:901px) and (pointer:fine){
   :root{ --ctl:var(--control-h); --input-fs:var(--text-14); }
 }
 
@@ -73,7 +86,11 @@ input,select,textarea{font-family:inherit;color:var(--text-body)}
   letter-spacing:.02em;text-transform:uppercase;
 }
 .topnav{display:none;gap:2px;align-items:center}
+/* la nav haute suit `--ctl` comme tout le reste : 32 px sous une souris,
+   44 px sous un doigt. Sans hauteur minimale elle restait à 30 px — la
+   cible la plus tapée de l'app, et la plus petite, sur une tablette. */
 .topnav a{
+  display:inline-flex;align-items:center;min-height:var(--ctl);
   text-decoration:none;color:var(--text-muted);font-size:var(--text-13);font-weight:var(--weight-semibold);
   border:1px solid transparent;border-radius:var(--radius-1);padding:5px 10px;
 }
