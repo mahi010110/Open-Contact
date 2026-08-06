@@ -566,7 +566,13 @@ for (const [nom, ptr] of [['doigt', true], ['souris', false]]){
       .map(n => ({ t: (n.textContent || n.getAttribute('aria-label') || n.tagName).trim().slice(0, 22),
                    h: Math.round(n.getBoundingClientRect().height) }))
       .filter(c => c.h < 44);
-    return { ctl: cs.getPropertyValue('--ctl').trim(), fs: cs.getPropertyValue('--input-fs').trim(),
+    /* la taille CALCULÉE d'un vrai champ, pas le token : depuis que
+       `--input-fs` vaut `max(16px, 1rem)`, lire la variable rend une
+       expression que `parseInt` transforme en NaN — et `NaN < 16` étant
+       faux, le contrôle passait au vert sans rien vérifier. */
+    const champ = document.querySelector('#piQ, input, textarea');
+    return { ctl: cs.getPropertyValue('--ctl').trim(),
+             fs: champ ? Math.round(parseFloat(getComputedStyle(champ).fontSize)) : 0,
              fin: matchMedia('(pointer:fine)').matches, petites,
              colonnes: document.querySelectorAll('.bcol').length };
   });
@@ -574,8 +580,8 @@ for (const [nom, ptr] of [['doigt', true], ['souris', false]]){
     console.log(`   (le contexte « ${nom} » rend pointer:${erg.fin ? 'fine' : 'coarse'} — contrôle ignoré)`);
   else if (ptr){
     if (erg.ctl !== '44px') fail(`tablette au doigt : --ctl vaut ${erg.ctl}, la main veut 44 px`);
-    if (parseInt(erg.fs, 10) < 16)
-      fail(`tablette au doigt : --input-fs à ${erg.fs} — iOS zoomera à la mise au point`);
+    if (erg.fs < 16)
+      fail(`tablette au doigt : champ rendu à ${erg.fs}px — iOS zoomera à la mise au point`);
     if (erg.petites.length)
       fail(`tablette au doigt : ${erg.petites.length} cible(s) sous 44 px — ` +
         erg.petites.map(c => `${c.h}px « ${c.t} »`).join(' · '));
@@ -585,7 +591,60 @@ for (const [nom, ptr] of [['doigt', true], ['souris', false]]){
   if (erg.colonnes !== 3)
     fail(`à 1180 px le tableau doit rester en 3 colonnes (${nom}) — vu ${erg.colonnes}`);
   await tCtx.close();
-  console.log(`   ergonomie « ${nom} » @1180 : --ctl ${erg.ctl}, champs ${erg.fs}, tableau 3 colonnes ✓`);
+  console.log(`   ergonomie « ${nom} » @1180 : --ctl ${erg.ctl}, champs ${erg.fs}px, tableau 3 colonnes ✓`);
+}
+
+/* F13 : l'app suit la police choisie par l'utilisateur.
+   Toute l'échelle était en px : quelqu'un qui agrandit la police par
+   défaut de son navigateur pour y voir — la première chose que fait une
+   vision basse — n'obtenait RIEN. Mesuré : racine à 24 px, tout restait
+   à 20 / 14 / 13. En `rem`, l'échelle suit. Ce qui se vérifie ici, c'est
+   les deux moitiés : que ça grandisse, ET que la page tienne quand même
+   (l'avertissement d'Apple : ce qui rentre à taille normale déborde à
+   taille accessible). */
+{
+  const mesures = [];
+  for (const racine of [16, 24]){
+    const zCtx = await browser.newContext({ viewport: { width: 360, height: 640 }, hasTouch: true });
+    const zPage = await zCtx.newPage();
+    watchErrors(zPage);
+    await zPage.addInitScript(px => {
+      addEventListener('DOMContentLoaded', () =>
+        document.documentElement.style.setProperty('font-size', px + 'px'));
+    }, racine);
+    await zPage.goto(base + '/#/pistes', { waitUntil: 'load' });
+    await zPage.evaluate(async () => {
+      const st = await import('./engine/storage.js');
+      await st.kvInit();
+      await st.kvSet(st.DATA_KEY, JSON.stringify([
+        { id: 'z1', name: 'Orange Cyberdefense', city: 'Villeneuve-d’Ascq', domain: 'cyber',
+          status: 'active', nextActionText: 'Relancer Awa', nextAction: '2026-08-03', contacts: [] }]));
+    });
+    await zPage.reload({ waitUntil: 'load' });
+    await attendre(zPage, async () => (await import('./ui/state.js')).S.companies.length === 1);
+    const z = await zPage.evaluate(() => {
+      const px = s => { const n = document.querySelector(s); return n ? parseFloat(getComputedStyle(n).fontSize) : 0; };
+      /* un libellé coupé AUX DEUX BOUTS : le début part avec la fin */
+      const coupes = [...document.querySelectorAll('.bottomnav .bn-l')]
+        .filter(n => n.scrollWidth > n.clientWidth + 1 && getComputedStyle(n).textOverflow !== 'ellipsis')
+        .map(n => n.textContent);
+      return { titre: px('#view-pistes h2'), champ: px('#piQ'),
+        deborde: document.documentElement.scrollWidth > innerWidth + 1, coupes };
+    });
+    if (z.deborde) fail(`racine ${racine}px : la page déborde en largeur`);
+    if (z.coupes.length) fail(`racine ${racine}px : libellé coupé aux deux bouts — ${z.coupes.join(', ')}`);
+    /* le champ ne descend JAMAIS sous 16 px, sinon iOS zoome au focus */
+    if (z.champ < 16) fail(`racine ${racine}px : champ à ${z.champ}px — iOS zoomera à la mise au point`);
+    mesures.push({ racine, titre: z.titre });
+    if (racine === 24) await zPage.screenshot({ path: SHOTS + '/87-ux-texte-agrandi.png' });
+    await zCtx.close();
+  }
+  const [petit, grand] = mesures;
+  if (!(grand.titre > petit.titre * 1.3))
+    fail(`l'échelle ne suit pas la police de l'utilisateur : ${petit.titre}px à racine 16, ` +
+      `${grand.titre}px à racine 24 — une échelle en px ignore ce réglage`);
+  console.log(`   police de l'utilisateur suivie : titre ${petit.titre}px → ${grand.titre}px, ` +
+    `page tenue, aucun libellé coupé aux deux bouts ✓`);
 }
 
 /* Effet miroir F1 : sans messagerie, le contrôle de campagne explique le

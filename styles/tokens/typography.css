@@ -10,18 +10,27 @@
   --font-mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace;
   --font-pixel:'Silkscreen',var(--font-mono);
 
-  /* Échelle (px) — resserrée, utilitaire */
-  --text-11:11px;   /* micro-étiquettes, mentions */
-  --text-12:12px;   /* légendes, meta */
-  --text-13:13px;   /* UI secondaire, boutons compacts */
-  --text-14:14px;   /* UI par défaut, corps dense */
-  --text-15:15px;   /* corps de lecture */
-  --text-16:16px;   /* sous-titres */
-  --text-20:20px;   /* titres de page */
-  --text-26:26px;   /* grands titres */
-  --text-34:34px;   /* affichage (rare) */
+  /* Échelle — resserrée, utilitaire. En `rem`, donc RELATIVE à la police
+     par défaut du navigateur : quelqu'un qui l'a agrandie pour y voir
+     (réglage d'accessibilité, la première chose que fait une vision
+     basse) est enfin suivi. En px, l'app l'ignorait complètement —
+     mesuré : racine à 24 px, tout restait à 20 / 14 / 13.
+     Les noms gardent leur chiffre : c'est la taille rendue quand la
+     racine vaut 16 px, le cas de tout le monde ou presque. */
+  --text-11:0.6875rem;   /* micro-étiquettes, mentions */
+  --text-12:0.75rem;     /* légendes, meta */
+  --text-13:0.8125rem;   /* UI secondaire, boutons compacts */
+  --text-14:0.875rem;    /* UI par défaut, corps dense */
+  --text-15:0.9375rem;   /* corps de lecture */
+  --text-16:1rem;        /* sous-titres */
+  --text-20:1.25rem;     /* titres de page */
+  --text-26:1.625rem;    /* grands titres */
+  --text-34:2.125rem;    /* affichage (rare) */
 
-  /* Silkscreen : tailles autorisées */
+  /* Silkscreen : tailles autorisées. Elles restent en PX, exprès — une
+     police pixel n'existe qu'à ses tailles natives, et l'étirer à
+     18,75 px la rend floue, ce qui casse l'identité « nette, sans flou »
+     (CLAUDE.md §4) bien plus qu'un titre qui ne grandit pas. */
   --pixel-8:8px;
   --pixel-16:16px;
   --pixel-24:24px;

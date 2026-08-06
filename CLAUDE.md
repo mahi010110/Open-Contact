@@ -201,6 +201,18 @@ net. Sources uniques : `styles/tokens/` et le kit `design/`.
   longtemps sans leur trame à cause de ça.)
 - **Typo** : Silkscreen (titres pixel), IBM Plex Mono (données, dates,
   compteurs), Public Sans (texte courant). Pas d'autre police.
+  **L'échelle (`--text-*`) est en `rem`**, donc relative à la police par
+  défaut du navigateur : quelqu'un qui l'a agrandie pour y voir est
+  suivi. Les noms gardent leur chiffre — `--text-14` rend 14 px quand la
+  racine vaut 16, le cas de presque tout le monde. Une taille en px en
+  dur ignore ce réglage : toute l'app le faisait, et une racine à 24 px
+  ne changeait rien. **Exception : `--pixel-*` reste en px** — une police
+  pixel n'existe qu'à ses tailles natives, l'étirer la rend floue et
+  casse l'identité « nette, sans flou » plus qu'un titre qui ne grandit
+  pas. Corollaire à vérifier sur tout écran neuf : ce qui rentre à taille
+  normale doit tenir à taille agrandie, et **un libellé trop long s'élide
+  — il ne se coupe jamais aux deux bouts** (centré dans un
+  `overflow:hidden`, « Aujourd'hui » rendait « ujourd'hu »).
 - **Icônes** : pixelarticons via `ic('nom', 'ic-14')`. Pas d'emoji dans
   l'interface, pas d'autre pack.
 - **Motion** : les **objets** restent « 98 » — nets, instantanés, `steps()`

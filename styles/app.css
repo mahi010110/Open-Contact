@@ -11,7 +11,10 @@
 :root{
   --nav-h:53px;
   --ctl:var(--control-h-touch);      /* mobile d'abord : cibles 44px */
-  --input-fs:16px;                   /* pas de zoom iOS */
+  /* `max()` et pas 16px sec : le plancher reste 16 px — en dessous, iOS
+     zoome tout seul à la mise au point d'un champ — mais la valeur suit
+     la police choisie par l'utilisateur quand il l'a agrandie. */
+  --input-fs:max(16px, 1rem);
 }
 /* La largeur dit le DESSIN, le pointeur dit la MAIN — ce ne sont pas la
    même question, et 901 px seul répondait aux deux.
@@ -129,6 +132,12 @@ input,select,textarea{font-family:inherit;color:var(--text-body)}
   white-space:nowrap;overflow:hidden;
 }
 .bottomnav a.on{background:var(--select-bg);color:var(--select-text);border-color:var(--border-strong)}
+/* Un libellé d'onglet trop long était coupé AUX DEUX BOUTS : centré dans
+   un `overflow:hidden`, « Aujourd'hui » rendait « ujourd'hu ». On perd
+   alors le début, qui est justement ce qu'on lit. Le libellé prend sa
+   propre boîte pour pouvoir s'élider — la fin s'en va, le début reste.
+   Ça se voit dès qu'un utilisateur agrandit sa police. */
+.bn-l{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* Le ⊕ était la cible la PLUS ÉTROITE de la barre (52 px) pour le geste
    le plus précieux de l'app — noter une entreprise qu'on vient de
    croiser. Il passe à 64 px : c'est le maximum mesuré avant que
