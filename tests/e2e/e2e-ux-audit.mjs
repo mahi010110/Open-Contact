@@ -316,9 +316,14 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
   const dPage = await dCtx.newPage();
   watchErrors(dPage);
   await dPage.goto(base + '/#/pistes', { waitUntil: 'load' });
+  /* des noms et des villes de la vraie vie : c'est leur LONGUEUR qui fait
+     replier une ligne de liste, et un jeu d'essai en « Alpha / Beta »
+     laisse passer exactement le défaut qu'on veut attraper */
   await dPage.evaluate(d => localStorage.setItem('oc_data_v3', JSON.stringify(d)),
-    [['Alpha', 'todo'], ['Beta', 'todo'], ['Gamma', 'active'], ['Delta', 'reply']].map(([name, status], i) =>
-      ({ id: 'bc' + i, name, city: 'Lille', domain: 'esn', status, contacts: [], updatedAt: Date.now() - i })));
+    [['Orange Cyberdefense', 'Villeneuve-d’Ascq', 'todo'], ['Capgemini', 'Valenciennes', 'todo'],
+     ['Worldline', 'Seclin', 'active'], ['Sopra Steria', 'Valenciennes', 'reply']]
+      .map(([name, city, status], i) =>
+        ({ id: 'bc' + i, name, city, domain: 'esn', status, contacts: [], updatedAt: Date.now() - i })));
   await dPage.reload({ waitUntil: 'load' });
   await attendre(dPage, () => document.querySelectorAll('.bcol').length === 3, { message: 'le tableau' });
 
@@ -334,7 +339,7 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
   /* on lâche une carte tout en bas d'une colonne d'UNE seule carte :
      ce point n'appartenait à rien avant l'étirement */
   const pose = await dPage.evaluate(() => {
-    const carte = [...document.querySelectorAll('.bcard')].find(c => c.textContent.includes('Alpha'));
+    const carte = [...document.querySelectorAll('.bcard')].find(c => c.textContent.includes('Orange Cyberdefense'));
     const col = document.querySelector('.bcol[data-st="reply"]');
     const r = col.getBoundingClientRect();
     const x = r.left + r.width / 2, y = r.bottom - 40;
@@ -347,7 +352,7 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
   });
   if (pose !== 'ok') fail('dépôt en bas de colonne : ' + pose);
   await attendre(dPage, async () =>
-    (await import('./ui/state.js')).S.companies.find(c => c.name === 'Alpha')?.status === 'reply',
+    (await import('./ui/state.js')).S.companies.find(c => c.name === 'Orange Cyberdefense')?.status === 'reply',
     { message: 'la carte lâchée en bas de colonne change de statut' });
 
   /* « Aujourd'hui » : le pied est un pied, il se pose en bas */
@@ -363,6 +368,51 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
     fail(`le pied d'« Aujourd'hui » flotte à ${jour.rempli} % de la hauteur — la région n'est pas prise`);
   if (jour.comprime) fail('une colonne du jour est comprimée sous son contenu');
   await dPage.screenshot({ path: SHOTS + '/83-ux-poste-region.png' });
+
+  /* Une liste se BALAIE : ses lignes ont toutes la même hauteur et le
+     chevron tombe toujours au même endroit. `.pk-m` ne portait sa
+     structure que sous `.pk` (les listes à cocher) ; sous `.pick` seul,
+     ses deux enfants coulaient en ligne comme du texte — « Capgemini À
+     contacter · » puis « Valenciennes » à la ligne, le chevron chassé au
+     bas d'une boîte deux fois trop haute, et une hauteur par longueur de
+     nom. On le vérifie au pouce ET au poste : c'est la même liste. */
+  for (const [lw, lh] of [[360, 640], [1280, 800]]){
+    await dPage.setViewportSize({ width: lw, height: lh });
+    await dPage.goto(base + '/#/echanger', { waitUntil: 'load' });
+    await dPage.evaluate(async () => {
+      const st = await import('./engine/storage.js');
+      const { S } = await import('./ui/state.js');
+      await st.kvSet(st.JOURNAL_KEY, JSON.stringify([{ t: Date.now() - 3600e3, sens: 'donne',
+        canal: 'fichier', txt: 'Donné (fichier) : 4 piste(s)', ids: S.companies.map(c => c.id) }]));
+    });
+    await dPage.reload({ waitUntil: 'load' });
+    await attendre(dPage, () => !!document.querySelector('button.ec-row'), { message: 'le fil' });
+    await dPage.click('button.ec-row');
+    await attendre(dPage, () => document.querySelectorAll('.modal-b .pick').length >= 4,
+      { message: 'les lignes de l’échange' });
+    const reg = await dPage.evaluate(() => {
+      const rows = [...document.querySelectorAll('.modal-b .pick')];
+      return {
+        n: rows.length,
+        hauteurs: [...new Set(rows.map(r => Math.round(r.getBoundingClientRect().height)))],
+        chevrons: [...new Set(rows.map(r => {
+          const c = r.querySelector('.ic');
+          return c ? Math.round(r.getBoundingClientRect().right - c.getBoundingClientRect().right) : null;
+        }))],
+        deborde: rows.some(r => {
+          const m = r.querySelector('.pk-m'), b = m && m.querySelector('b');
+          return b && b.getBoundingClientRect().width > m.getBoundingClientRect().width + 1;
+        })
+      };
+    });
+    if (reg.hauteurs.length !== 1)
+      fail(`@${lw} les lignes d'une liste n'ont pas la même hauteur : ${JSON.stringify(reg.hauteurs)}`);
+    if (reg.chevrons.length !== 1)
+      fail(`@${lw} le chevron ne tombe pas au même endroit : ${JSON.stringify(reg.chevrons)}`);
+    if (reg.deborde) fail(`@${lw} un nom déborde de son bloc au lieu de se couper`);
+    console.log(`   liste d'échange @${lw} : ${reg.n} lignes × ${reg.hauteurs[0]} px, chevron à ${reg.chevrons[0]} px ✓`);
+    if (lw === 360) await dPage.screenshot({ path: SHOTS + '/86-ux-lignes-pouce.png' });
+  }
   await dCtx.close();
   console.log('poste : plus de « complète à N % », les colonnes se partagent la région, le pied se pose en bas ✓');
 }

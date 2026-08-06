@@ -1296,6 +1296,19 @@ button.ec-row:hover{background:var(--surface-field)}
   font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted);
   margin-left:auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
+/* `.pk-m` = le bloc « nom + son état » d'une ligne de liste. Il portait
+   sa structure UNIQUEMENT sous `.pk` (les listes à cocher) : sous
+   `.pick`, ses deux enfants coulaient en ligne comme du texte, et la
+   ligne s'enroulait — « Capgemini À contacter · » puis « Valenciennes »
+   à la ligne, le chevron chassé tout en bas d'une boîte deux fois trop
+   haute, et des hauteurs de lignes toutes différentes selon la longueur
+   du nom. Six listes vivaient avec ça (échanges, réception, don,
+   prospection, « → qui », appareils). Le nom tient sa ligne, l'état la
+   sienne, chacun se coupe à sa fin, et le chevron garde sa place. */
+.pick .pk-m,.pk .pk-m{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;text-align:left}
+.pick .pk-m>b,.pick .pk-m>span,.pk .pk-m b,.pk .pk-m span{
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
 .pick .pk-m span{font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted)}
 .pick:disabled{opacity:.62;cursor:not-allowed;box-shadow:none}
 .pick:active{box-shadow:var(--bevel-down);transform:translate(1px,1px)}
@@ -1586,8 +1599,6 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 
 /* ============ SÉLECTION (Prospecter) ============ */
 .pk{justify-content:flex-start}
-.pk .pk-m{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;text-align:left}
-.pk .pk-m b,.pk .pk-m span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* la personne posée sur la ligne d'état : son icône se lit dans l'encre
    de la ligne, pas plus fort qu'elle */
 .pk .pk-m span .ic{vertical-align:-2px;margin-right:1px}
