@@ -198,12 +198,19 @@ function boardHTML(alive){
 function moveStatus(id, k){
   const c = S.companies.find(x => x.id === id);
   if (!c || isClosed(c) || !STATUSES[k] || c.status === k) return;
+  /* La carte lâchée disparaissait d'une colonne et réapparaissait dans
+     l'autre : l'œil perdait ce qu'il suivait, juste après l'avoir suivi
+     à la souris. Le FLIP existe déjà et sert pour la recherche — il ne
+     passait simplement pas par ici, parce que `bus.refresh()` re-rend
+     sans lui. C'est « la liste qui se réorganise » de CLAUDE.md §4. */
+  const glisse = softReorder('#piBody .row-item, #piBody .bcard');
   c.status = k;
   pushHist(c, 'Statut → ' + STATUSES[k].label);
   logJ(c.name + ' — Statut → ' + STATUSES[k].label, c.id);
   c.updatedAt = Date.now();
   saveData();
   bus.refresh();
+  glisse();
   toast(c.name + ' → ' + STATUSES[k].label);   /* toast affiche du texte brut : esc() doublerait l'échappement */
 }
 

@@ -325,6 +325,83 @@ export function softReorder(sel){
   };
 }
 
+/* ---------- une section qui se déplie ne saute plus (#38) ----------
+   « Bientôt », « Clôturées », « À savoir », un contact : la page sautait
+   d'un coup. C'est un DÉPLACEMENT ENTRE ÉTATS, pas un objet — donc doux,
+   selon la règle de CLAUDE.md §4, qui l'autorise déjà.
+
+   On anime la hauteur du `<details>` LUI-MÊME, pas celle de son contenu :
+   les sections de l'app n'ont pas la même structure interne (une seule
+   boîte ici, six champs là), et viser le contenu aurait demandé un
+   emballage dans chacune. Le `<details>`, lui, est toujours là.
+
+   Un seul écouteur délégué sur le document couvre toutes les sections,
+   présentes et à venir — y compris celles qu'une feuille crée après coup.
+   Le clavier passe par là aussi : Entrée et Espace sur un `summary`
+   émettent un `click`. */
+const FOLD_MAX = 620;      /* au-delà, l'ouverture s'étire trop : instantané */
+
+function foldAnim(d, de, vers, apres){
+  d.__folding = true;
+  let fini = false;
+  const fin = () => {
+    if (fini) return;
+    fini = true;
+    d.style.transition = d.style.height = d.style.overflow = d.style.flexShrink = '';
+    d.__folding = false;
+    apres();
+  };
+  d.style.overflow = 'hidden';
+  /* Une section repliable est souvent enfant d'un conteneur flex (la vue
+     « Aujourd'hui » l'est) : sans ce verrou, flex la comprime pendant
+     l'animation et la hauteur qu'on vient de poser ne tient pas. Mesuré :
+     le cadre rendait 25 px alors que son propre résumé en fait 44. */
+  d.style.flexShrink = '0';
+  d.style.height = de + 'px';
+  /* Cette lecture n'est PAS décorative : elle force le navigateur à
+     calculer la mise en page, donc à ENGAGER la hauteur de départ. Sans
+     elle il fusionne les deux affectations et passe directement à la
+     valeur finale — aucune transition, sauf si un autre code a provoqué
+     un calcul entre-temps. C'est exactement ce qui rendait l'animation
+     tantôt présente tantôt absente. */
+  void d.offsetHeight;
+  d.style.transition = 'height var(--dur-3) var(--ease-out)';
+  d.style.height = vers + 'px';
+  d.addEventListener('transitionend', e => {
+    /* les enfants transitionnent aussi : seule LA hauteur du cadre compte */
+    if (e.target === d && e.propertyName === 'height') fin();
+  });
+  /* filet : un `transitionend` peut ne jamais venir (onglet caché,
+     élément retiré du DOM en cours de route) — sans lui, la section
+     resterait figée à une hauteur en dur. */
+  setTimeout(fin, 600);
+}
+
+export function installFoldMotion(){
+  document.addEventListener('click', e => {
+    const sum = e.target.closest && e.target.closest('summary');
+    if (!sum) return;
+    const d = sum.parentElement;
+    if (!d || d.tagName !== 'DETAILS') return;
+    if (d.__folding){ e.preventDefault(); return; }   /* un geste à la fois */
+    if (matchMedia('(prefers-reduced-motion:reduce)').matches) return;
+    /* On mesure les DEUX hauteurs réelles en basculant `open` — le
+       navigateur ne repeint pas entre deux lectures dans la même tâche,
+       donc rien ne clignote. Prendre la hauteur du `summary` comme
+       approximation ne marchait pas : sous un conteneur flex, le cadre
+       fermé peut être plus COURT que son propre résumé. */
+    const etait = d.open;
+    const ferme = etait ? (d.open = false, d.getBoundingClientRect().height)
+                        : d.getBoundingClientRect().height;
+    const ouvert = etait ? (d.open = true, d.getBoundingClientRect().height)
+                         : (d.open = true, d.getBoundingClientRect().height);
+    if (ouvert - ferme > FOLD_MAX){ d.open = !etait; return; }   /* trop long : net */
+    e.preventDefault();
+    if (etait) foldAnim(d, ouvert, ferme, () => { d.open = false; });
+    else       foldAnim(d, ferme, ouvert, () => {});
+  });
+}
+
 /* ---------- le mot de passe facultatif (motif partagé) ----------
    Deux endroits produisent un fichier qu'on peut chiffrer : « Ma copie »
    dans Moi, et « Fichier » quand on donne. Ils le demandaient de deux

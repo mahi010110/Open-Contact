@@ -717,6 +717,88 @@ for (const [nom, ptr] of [['doigt', true], ['souris', false]]){
   }
 }
 
+/* F15 : les deux déplacements entre états qui sautaient (#38).
+   ① Une carte lâchée dans une autre colonne se téléportait.
+   ② Une section repliée s'ouvrait d'un coup.
+   Les deux sont « le déplacement entre états » que CLAUDE.md §4 autorise
+   à être doux — et les deux doivent redevenir instantanés dès que le
+   système demande moins d'animation.
+
+   ATTENTION en modifiant ce bloc : ne lisez PAS la géométrie de la
+   section juste avant de la cliquer. Cette lecture force un calcul de
+   mise en page, ce qui suffit à faire démarrer la transition — un garde
+   écrit comme ça passe au vert même quand l'animation est cassée. C'est
+   exactement ce défaut-là qui a été trouvé ici. */
+for (const [nom, motion] of [['normal', 'no-preference'], ['mouvement réduit', 'reduce']]){
+  const doux = motion === 'no-preference';
+  const mCtx = await browser.newContext({ viewport: { width: 1280, height: 800 }, reducedMotion: motion });
+  const mPage = await mCtx.newPage();
+  watchErrors(mPage);
+  await mPage.goto(base + '/#/pistes', { waitUntil: 'load' });
+  await mPage.evaluate(async () => {
+    const st = await import('./engine/storage.js');
+    await st.kvInit();
+    await st.kvSet(st.DATA_KEY, JSON.stringify([
+      { id: 'mv1', name: 'Capgemini', city: 'Valenciennes', domain: 'esn', status: 'todo', contacts: [] },
+      { id: 'mv2', name: 'Worldline', city: 'Seclin', domain: 'esn', status: 'active', contacts: [] },
+      { id: 'mv3', name: 'Atos', city: 'Paris', domain: 'esn', status: 'todo', contacts: [],
+        nextAction: '2026-08-14', nextActionText: 'Relancer le service RH' }]));
+  });
+  await mPage.reload({ waitUntil: 'load' });
+  await attendre(mPage, () => document.querySelectorAll('.bcard').length >= 3, { message: 'le tableau' });
+
+  /* ① la carte : combien d'images portent une transformée ? */
+  const img = await mPage.evaluate(async () => {
+    const carte = [...document.querySelectorAll('.bcard')].find(c => c.textContent.includes('Capgemini'));
+    const col = document.querySelector('.bcol[data-st="reply"]');
+    const r = col.getBoundingClientRect();
+    const dt = new DataTransfer();
+    carte.dispatchEvent(new DragEvent('dragstart', { bubbles: true, dataTransfer: dt }));
+    for (const t of ['dragover', 'drop'])
+      col.dispatchEvent(new DragEvent(t, { bubbles: true, cancelable: true, dataTransfer: dt,
+        clientX: r.left + r.width / 2, clientY: r.bottom - 40 }));
+    const vus = []; const t0 = performance.now();
+    await new Promise(res => {
+      const tick = () => {
+        const c = [...document.querySelectorAll('.bcard')].find(x => x.textContent.includes('Capgemini'));
+        if (c) vus.push(getComputedStyle(c).transform);
+        if (performance.now() - t0 < 420) requestAnimationFrame(tick); else res();
+      };
+      requestAnimationFrame(tick);
+    });
+    return vus.filter(t => t && t !== 'none').length;
+  });
+  if (doux && img < 3) fail(`la carte déposée se téléporte encore (${img} images animées)`);
+  if (!doux && img > 0) fail(`mouvement réduit demandé, la carte glisse quand même (${img} images)`);
+
+  /* ② la section repliée, au pouce */
+  await mPage.setViewportSize({ width: 390, height: 844 });
+  await mPage.goto(base + '/#/aujourdhui', { waitUntil: 'load' });
+  await attendre(mPage, () => !!document.querySelector('details.tr-soon summary'),
+    { message: 'la section « Bientôt »' });
+  const pli = await mPage.evaluate(async () => {
+    const d = document.querySelector('details.tr-soon');
+    const hs = []; const t0 = performance.now();
+    d.querySelector('summary').click();
+    await new Promise(res => {
+      const tick = () => {
+        hs.push(Math.round(d.getBoundingClientRect().height));
+        if (performance.now() - t0 < 420) requestAnimationFrame(tick); else res();
+      };
+      requestAnimationFrame(tick);
+    });
+    const deb = hs[0], fin = hs[hs.length - 1];
+    return { ouvert: d.open, deb, fin, inter: hs.filter(h => h > deb + 2 && h < fin - 2).length };
+  });
+  if (!pli.ouvert) fail('la section « Bientôt » ne s’ouvre plus');
+  if (doux && pli.inter < 3)
+    fail(`la section s'ouvre encore d'un coup (${pli.deb}→${pli.fin} px, ${pli.inter} images)`);
+  if (!doux && pli.inter > 1)
+    fail(`mouvement réduit demandé, la section s'anime quand même (${pli.inter} images)`);
+  await mCtx.close();
+  console.log(`   mouvements [${nom}] : carte ${img} images · section ${pli.deb}→${pli.fin} px, ${pli.inter} images ✓`);
+}
+
 /* Effet miroir F1 : sans messagerie, le contrôle de campagne explique le
    prérequis et ne laisse pas Valider promettre une action impossible. */
 await page.evaluate(async () => {

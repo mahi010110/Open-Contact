@@ -9,7 +9,7 @@ import { APP_VERSION } from './engine/model.js';
 import { THEME_KEY, kvInit, kvGet, kvSet } from './engine/storage.js';
 import { initVerrou } from './ui/verrou.js';
 import { S, bus, loadAll, reloadFromStorage } from './ui/state.js';
-import { $, $$, toast } from './ui/dom.js';
+import { $, $$, toast, installFoldMotion } from './ui/dom.js';
 import { renderToday } from './ui/today.js';
 import { renderPistes } from './ui/pistes.js';
 import { renderEchanger } from './ui/echanger.js';
@@ -70,6 +70,9 @@ function applyTheme(t, persist){
   const t0 = await kvGet(THEME_KEY);
   applyTheme((t0 === 'light' || t0 === 'dark') ? t0
     : (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'), false);
+  /* un seul écouteur pour TOUTES les sections repliables, posé avant que
+     le premier écran se dessine (ui/dom.js) */
+  installFoldMotion();
   await initVerrou();
   await loadAll();
   /* quatre chargements indépendants : en parallèle, pas en file — chaque
