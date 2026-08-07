@@ -146,13 +146,35 @@ function applyTheme(t, persist){
   /* PWA : hors-ligne après la première visite — enregistré en dernier,
      zéro impact sur le démarrage */
   if ('serviceWorker' in navigator){
+    /* Une version neuve pouvait rester invisible indéfiniment : rien ne
+       DEMANDAIT la mise à jour, on attendait que le navigateur y pense —
+       ce qu'une app posée sur l'écran d'accueil ne provoque presque
+       jamais, faute de navigation. Et même une fois le nouveau service
+       worker actif, la page continuait de tourner sur le code déjà
+       chargé : il fallait deviner qu'il fallait rouvrir, deux fois.
+       Désormais on demande à chaque ouverture et à chaque retour dans
+       l'app, et quand le nouveau prend la main on relit la page une
+       seule fois. La mise à jour arrive donc à la PREMIÈRE ouverture. */
+    const avaitUnSW = !!navigator.serviceWorker.controller;
+    let relu = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      /* à la toute première visite il n'y avait pas de contrôleur : la
+         page est déjà la bonne, la relire ne servirait à rien */
+      if (!avaitUnSW || relu) return;
+      relu = true;
+      location.reload();
+    });
     navigator.serviceWorker.register('sw.js').then(reg => {
+      const demander = () => reg.update().catch(() => {});
+      demander();
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) demander(); });
       reg.addEventListener('updatefound', () => {
         const w = reg.installing;
         if (!w) return;
         w.addEventListener('statechange', () => {
+          /* le rechargement suit tout seul — on annonce, on n'ordonne pas */
           if (w.state === 'installed' && navigator.serviceWorker.controller)
-            toast('Nouvelle version prête — elle s’appliquera à la prochaine ouverture.');
+            toast('Nouvelle version — un instant.');
         });
       });
     }).catch(() => {});

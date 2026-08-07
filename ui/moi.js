@@ -6,7 +6,7 @@
    restauration, aide condensée — et le coup de pouce IA, rangé
    ici sans faire d'ombre au reste.
    ============================================================ */
-import { normalizeCompany, normalizeContact, normalizeProfile } from '../engine/model.js';
+import { normalizeCompany, normalizeContact, normalizeProfile, APP_VERSION } from '../engine/model.js';
 import { fullPayload, parseInput } from '../engine/exchange.js';
 import { encryptOC2 } from '../engine/crypto.js';
 import { fmtSize, todayISO, esc } from '../engine/utils.js';
@@ -479,6 +479,11 @@ export function renderMoi(){
               <span class="rg-s">${verrouLabel()}</span>
               ${ic('chevron-right', 'ic-14')}
             </button>`}
+       ${/* La barre de statut qui portait la version est masquée au pouce :
+            sur téléphone, RIEN ne disait quelle version tournait. Il
+            fallait chercher un détail d'interface pour deviner si la mise
+            à jour était passée — on a perdu des heures là-dessus. */''}
+       <p class="moi-ver">OpenContact ${APP_VERSION}</p>
      </div>`;
 
   root.querySelector('#moiProfil').addEventListener('click', () => openProfil());
