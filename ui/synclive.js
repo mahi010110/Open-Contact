@@ -17,7 +17,7 @@ import { syncMerge, syncPrivateMerge } from '../engine/sync.js';
 import { edAvailable, makeDeviceKeys, recoveryKeys, ringInit, ringAddDevice,
          ringCommand, ringTransfer, ringRecover, ringRekey, mergeRing, actionsFor, deviceIn } from '../engine/ring.js';
 import { SYNC_KEY, RELAYS_KEY, TURN_KEY, DEVICE_KEY, DEVICES_KEY, RING_KEY,
-         DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, PROMO_KEY, VAULT_KEY,
+         DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, GROUP_KEY, PROMO_KEY, VAULT_KEY,
          CAMPAIGNS_KEY, MAIL_KEY, AI_KEY, MISSIONS_KEY, COMPANION_KEY, ANALYSIS_KEY,
          PROPOSALS_KEY, kvGet, kvSet, kvDel, docClear } from '../engine/storage.js';
 import { relayTally, liaisonStage } from '../engine/transport.js';
@@ -279,7 +279,7 @@ async function onRingMsg(incoming){
       /* TOUT ce qui est à l'utilisateur part : données, suivi,
          campagnes, jetons de messagerie, clés d'IA, missions,
          identité d'appareil, documents (CV, lettre) */
-      for (const k of [DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY,
+      for (const k of [DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, GROUP_KEY,
                        SYNC_KEY, RELAYS_KEY, TURN_KEY, PROMO_KEY, DEVICE_KEY, DEVICES_KEY, RING_KEY, VAULT_KEY,
                        CAMPAIGNS_KEY, MAIL_KEY, AI_KEY, MISSIONS_KEY, COMPANION_KEY, ANALYSIS_KEY,
                        PROPOSALS_KEY]) await kvDel(k);
@@ -375,7 +375,7 @@ const sendState = () => {
       sendAgain = false;
       const priv = await privateState();
       if (!sendFull || !live.peers) return;
-      const payload = Object.assign(fullPayload(S.companies, S.profile, S.orphans, S.tombs), priv);
+      const payload = Object.assign(fullPayload(S.companies, S.profile, S.orphans, S.tombs, S.groupe), priv);
       const j = JSON.stringify(payload);
       if (j !== lastSent){
         lastSent = j;           /* rien de neuf = stop au ping-pong */
@@ -476,16 +476,18 @@ async function join(phrase, force){
   let receiveQueue = Promise.resolve();
   full.onMessage = obj => { receiveQueue = receiveQueue.then(async () => {
     if (!obj || obj.kind !== 'full' || !Array.isArray(obj.companies)) return;
-    const r2 = syncMerge(obj, { companies: S.companies, orphans: S.orphans, profile: S.profile, tombs: S.tombs });
+    const r2 = syncMerge(obj, { companies: S.companies, orphans: S.orphans,
+                                profile: S.profile, tombs: S.tombs, groupe: S.groupe });
     const minePrivate = await privateState();
     const rPriv = syncPrivateMerge(obj, minePrivate);
     const st = r2.stats;
-    const changed = st.addedC + st.updatedC + st.removedC + st.addedO +
+    const changed = st.addedC + st.updatedC + st.removedC + st.addedO + st.addedG +
       (st.profile === 'remote' ? 1 : 0) + rPriv.stats.campaigns + rPriv.stats.missions;
     if (changed){
       const snap = {
         companies: JSON.stringify(S.companies), orphans: JSON.stringify(S.orphans),
         profile: JSON.stringify(S.profile), tombs: JSON.stringify(S.tombs),
+        groupe: JSON.stringify(S.groupe),
         campaigns: JSON.stringify(minePrivate.campaigns), missions: JSON.stringify(minePrivate.missions)
       };
       if (st.profile === 'remote' && !live.prevProfile) live.prevProfile = snap.profile;
@@ -498,7 +500,8 @@ async function join(phrase, force){
       showUndo(`${ic('check', 'ic-14')} Appareils synchronisés.`, () => {
         applySynced({
           companies: JSON.parse(snap.companies), orphans: JSON.parse(snap.orphans),
-          profile: JSON.parse(snap.profile), tombs: JSON.parse(snap.tombs)
+          profile: JSON.parse(snap.profile), tombs: JSON.parse(snap.tombs),
+          groupe: JSON.parse(snap.groupe)
         });
         writePrivateState({ campaigns: JSON.parse(snap.campaigns), missions: JSON.parse(snap.missions) });
         live.lastStats = null;

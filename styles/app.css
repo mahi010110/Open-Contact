@@ -1212,6 +1212,48 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   .ec-actes{align-self:start}
   .ec-cols .ec-fil{margin-top:0}
 }
+/* ---- mon groupe ----
+   La liste emprunte les lignes de « Réglages » (.rg-row) : même
+   grammaire, même hauteur de cible, même trait pointillé qui dit la
+   frontière. Rien de neuf à apprendre pour l'œil, et rien de neuf à
+   maintenir — seul le conteneur porte un nom à lui. */
+.gr-list{display:flex;flex-direction:column}
+.gr-list .gr-w:last-child .gr-row{border-bottom:0}
+/* Les coordonnées d'une personne se LISENT, elles ne se tapent pas :
+   du texte posé, jamais un cadre surélevé (§6, règle de sobriété 3). */
+.gr-coord{
+  margin:0 0 10px;font-family:var(--font-mono);font-size:var(--text-12);
+  line-height:1.7;color:var(--text-body);
+}
+/* Ce que MON profil emporte, montré avant de partir. Encadré au trait
+   discontinu comme la phrase de liaison : c'est une donnée qu'on
+   vérifie du regard, pas une commande. */
+.gr-carte{
+  margin:0 0 12px;padding:10px 12px;
+  border:1px dashed var(--border-strong);background:var(--surface-chrome);
+  font-family:var(--font-mono);font-size:var(--text-12);line-height:1.7;
+}
+.gr-bilan{
+  display:flex;align-items:center;gap:7px;margin:0;
+  font-size:var(--text-13);color:var(--text-muted);
+}
+.gr-bilan .ic{flex:none}
+/* Le message tout prêt : il se LIT et se sélectionne, il ne se tape
+   pas. `user-select:all` pour que le doigt qui ne trouve pas le bouton
+   puisse quand même l'attraper d'un appui long. */
+.gr-mot{
+  margin:10px 0 0;padding:12px 14px;user-select:all;
+  border-left:3px solid var(--accent);background:var(--teal-wash);
+  font-size:var(--text-14);line-height:1.6;
+}
+/* Une déclaration qui MÈNE quelque part se tape : elle prend la
+   hauteur de cible et son chevron. Celle qui ne résout personne reste
+   du texte — promettre une ouverture qui n'arrive pas coûte plus cher
+   qu'un chevron manquant (même règle que le fil des échanges). */
+button.fi-vecu{
+  width:100%;min-height:var(--ctl);text-align:left;cursor:pointer;font:inherit;
+}
+button.fi-vecu b{flex:1;min-width:0}
 /* ---- Donner : ce qui part (compteur + élagage), au-dessus du canal —
    un filet sépare les deux questions : QUOI, puis COMMENT ---- */
 .dn-src{margin:0 0 12px;padding-bottom:10px;border-bottom:1px dashed var(--border-soft)}

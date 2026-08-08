@@ -134,7 +134,13 @@ planifier.
 Statuts, notes, actions, historique, journal = suivi privé. Seule exception :
 la sync entre les appareils **de la même personne** (`CONTRAT.md` §5). C'est
 le seul invariant qui engage les données **d'autres personnes** que
-l'utilisateur — les contacts qu'un camarade lui a partagés.
+l'utilisateur — les contacts qu'un camarade lui a partagés, et **mon groupe**
+(`oc_group_v1`), qui est plus strict encore : ces coordonnées-là ne sont même
+pas celles de l'utilisateur, il ne peut donc pas décider de les faire
+circuler. Elles ne sortent dans aucun partage, jamais, sans exception
+d'interface. Deux choses seulement traversent en nommant quelqu'un, et
+toujours **sur déclaration explicite au moment du geste** : `vecuQui` (un
+prénom, §8) et `card` (MON profil, celui de personne d'autre).
 
 **② On n'écrase jamais silencieusement.**
 Fusionner = compléter les vides. Une divergence est comptée et montrée,
@@ -485,7 +491,8 @@ feuilles secondaires, jamais dans le titre.
 | une personne chez elle | **contact** (« destinataire » reste dans le composeur : c'est le mot du courrier) | personne — sauf le pronom (« personne pour l'instant ») |
 | l'écran d'une piste | **fiche** | détail |
 | le fichier de tout mon suivi | **copie** (`opencontact-copie-*.oc`) | sauvegarde, export, archive |
-| les camarades avec qui on partage | **groupe** | promo, camarades |
+| les camarades avec qui on partage | **groupe** | promo, camarades, amis |
+| ce que je donne de moi à mon groupe | **mon profil** (partiel, comme la fiche d'une piste) | carte, carte de visite |
 
 Ça se vérifie mécaniquement — extraire les chaînes de `ui/*.js` **et de
 `index.html`** (la coque compte aussi, c'est là que « sauvegarde » avait
@@ -535,6 +542,40 @@ stage » se joue. Le prénom n'est pas un détail d'affichage, c'est ce qui
 transforme la donnée en geste. Corollaire de garde : tout champ neuf qui
 voyage se teste d'abord sur l'invariant ① — `e2e-vecu.mjs` vérifie la fuite
 AVANT la fonctionnalité, et ses cinq mutations le prouvent.
+
+**Et un prénom ne mène quelque part que s'il désigne quelqu'un.** D'où
+**mon groupe** (`oc_group_v1`, `ui/groupe.js`) : on échange son profil par QR
+ou par fichier, et `vecuQui` se résout alors en une personne — le bandeau de
+la fiche devient tapable et donne le message tout prêt. Trois règles en
+sortent, et elles valent au-delà de cet écran :
+
+1. **Une liste de gens n'est pas un carnet d'adresses.** Chaque ligne porte
+   ce qui a RÉELLEMENT circulé avec la personne (`bilanMembre`) et mène à un
+   geste. Une liste triée par ordre alphabétique aurait répondu « qui je
+   connais » ; triée par ce qu'on a reçu, elle répond **« qui m'aide »**.
+2. **On ne devine jamais entre deux homonymes.** Deux « Léa » dans le groupe
+   et `trouverMembre` rend `null` : le bandeau redevient du texte. Écrire au
+   mauvais camarade en croyant l'app coûte plus cher qu'une porte fermée.
+   Règle générale : **une résolution ambiguë n'en est pas une.**
+3. **Quand un canal est mesurablement meilleur, l'app le dit — au lieu de
+   pousser vers le sien.** Une demande de vive voix aboutit **34 fois** plus
+   souvent que par e-mail (Roghanizad & Bohns, 2017), et celui qui écrit ne
+   sent aucune différence. « Demander à Léa » propose donc d'aller la voir, et
+   garde le message pour ceux qui ne sont pas dans la même pièce. C'est aussi
+   la seule phrase d'explication qui ait fait monter le plafond de
+   `e2e-sobriete.mjs` (116 → 126) : le critère y passe de « prévient d'une
+   perte » à « prévient d'une perte **ou d'une erreur qu'on ne peut pas voir
+   venir** ».
+
+**Ce que ce lot a appris sur les gardes.** Une première version de
+`e2e-groupe.mjs` vérifiait l'invariant en appelant les fonctions du moteur
+avec un groupe fabriqué sur place — elle prouvait seulement qu'elles
+n'inventent pas ce qu'on ne leur donne pas. Une mutation posée dans un
+ÉCRAN (là où `S.groupe` est réellement à portée) est passée sans la faire
+broncher. **Un contrôle de fuite doit partir de l'état RÉEL de l'app et lire
+les octets qui sortent par le vrai bouton**, jamais du moteur appelé à la
+main. Depuis, `e2e-groupe.mjs` remplit `S.groupe`, tape « Donner → Copier »,
+et grep le presse-papier.
 
 ---
 

@@ -21,6 +21,7 @@ doit être repensée, pas forcée.
 | `oc_journal_v1` | Journal privé des actions (200 max). **Deux phrases de `txt` sont relues, pas seulement écrites** : `Donné (canal) : N piste(s)` et `Reçu de <qui\|la promo> : +N piste(s)…` alimentent le fil de l'écran « Échanger » (`engine/assist.js` → `exchangeLog`). Les relire plutôt qu'ajouter un champ garde l'historique DÉJÀ écrit visible ; en échange, ces deux formes sont figées et verrouillées par `tests.js`. Toute autre entrée reste du texte libre, et `Reçu (analyse IA triée)` est exclu par construction (ce n'est pas un échange avec la promo). **`ids` est un champ AJOUTÉ, jamais un renommage** : les entrées d'échange écrites depuis la v6.4 portent les identifiants des pistes concernées (données pour un `Donné`, ajoutées ou complétées pour un `Reçu` — c'est `mergeIncoming().ids` qui fait foi), plafonnés à 200 par entrée. C'est ce qui permet d'ouvrir une ligne de « Tes échanges » sur ce qui a circulé. Une entrée sans `ids` (écrite avant, ou revenue d'une sauvegarde) reste lisible : elle s'affiche, elle ne s'ouvre pas | JSON : tableau `{t, txt, cid, ids?}` |
 | `oc_orphans_v1` | Contacts « à rattacher » (sans entreprise) — l'indice d'entreprise saisi par l'utilisateur voyage dans `extra.company` (D3), consommé au rattachement | JSON : tableau de contacts |
 | `oc_tombs_v1` | Suppressions (tombstones, 500 max) — font voyager les suppressions entre MES appareils | JSON : tableau `{id, t}` |
+| `oc_group_v1` | **Mon groupe** : les camarades avec qui j'échange (200 max) — `{id, prenom, nom, formation, email, phone, link, note}`. **La donnée la plus sensible de l'app, et la seule qui n'est pas celle de l'utilisateur** : c'est la vie privée de ses camarades. Elle ne sort donc dans AUCUN partage communautaire — ni `kind:"share"`, ni OCQ, ni le partage en groupe. Elle voyage vers MES appareils (§5) et dans MA copie (`kind:"full"`, champ `groupe`, ignoré sans casse par un lecteur ancien). Scellée (SEALABLE), emportée par le `wipe`. Seul `prenom` est obligatoire — sans lui l'entrée est refusée, parce qu'elle ne relierait aucune déclaration « j'y suis passé » à personne | JSON : tableau de membres |
 | `oc_sync_v1` | Phrase de liaison de mes appareils | chaîne |
 | `oc_relays_v1` | Relais P2P personnalisés (optionnel — vide = relais publics) | JSON : tableau d'URLs |
 | `oc_turn_v1` | Serveurs TURN personnalisés (optionnel — pour les réseaux qui bloquent le pair-à-pair ; identifiants obligatoires — RTCPeerConnection refuse `turn:` sans eux — et scellés comme les relais) | JSON : tableau `{urls, username, credential}` |
@@ -86,16 +87,26 @@ irrécupérable — c'est le contrat du local-first.
 ```json
 { "v": 4, "app": "5.0.0", "kind": "share", "companies": [] }
 { "v": 4, "app": "5.0.0", "kind": "full",  "profile": {}, "companies": [] }
+{ "v": 4, "app": "5.0.0", "kind": "card",  "card": {}, "companies": [] }
 ```
 
 - `v` : version du **format** (4). `app` : version de l'application émettrice
   (informatif).
 - `kind: "share"` : pistes en **vue communautaire** (voir §3) — jamais de
-  champ privé, jamais de profil.
+  champ privé, jamais **mon groupe**. Champ optionnel `card` : MON profil,
+  et seulement s'il a été **joint explicitement** au moment du geste. Sans
+  ce geste, un partage reste anonyme exactement comme avant.
 - `kind: "full"` : sauvegarde personnelle complète — pistes avec suivi privé,
   plus le profil, plus les champs **optionnels** `orphans` (contacts « à
-  rattacher ») et `tombs` (suppressions) s'il y en a. Un lecteur qui les
-  ignore charge quand même le reste sans erreur.
+  rattacher »), `tombs` (suppressions) et `groupe` (mes camarades, §1) s'il y
+  en a. Un lecteur qui les ignore charge quand même le reste sans erreur.
+- `kind: "card"` : **mon profil seul** — « on échange nos profils », sans
+  aucune piste. `card` porte `{prenom, nom?, formation?, email?, phone?,
+  link?}` : `prenom` obligatoire, le reste selon ce que l'utilisateur a coché
+  (décoché = **absent** du fichier, pas vide dedans). `companies: []` n'est
+  **pas un oubli et ne doit jamais disparaître** : c'est lui qui permet à une
+  version antérieure de lire le fichier, d'y voir zéro piste et de le dire —
+  sans lui, `parseInput` rejetterait un format qu'elle ne connaît pas.
 - Tolérance à la lecture : un simple tableau JSON de pistes est aussi accepté.
 
 ### Compact — OCQ1 (échange par QR)
@@ -104,7 +115,8 @@ irrécupérable — c'est le contrat du local-first.
 OCQ1.<payload share compressé deflate-raw, en base64url>
 ```
 
-Une enveloppe `kind:"share"` (jamais de privé), compressée par l'API native
+Une enveloppe `kind:"share"` **ou `kind:"card"`** (jamais de privé, jamais
+mon groupe), compressée par l'API native
 `CompressionStream` puis encodée base64url. Lu par `parseInput` comme les
 autres formats. Si l'API manque (très vieux navigateur), l'émetteur replie
 vers le fichier `.oc` — le format ne change pas.
@@ -290,6 +302,12 @@ appartiennent à la même personne (`engine/sync.js`, transport P2P chiffré).
    change rien, et deux appareils arrivent au même état quel que soit l'ordre.
 5. La phrase de liaison ne transite jamais en clair : la salle P2P porte un
    hash, les données sont chiffrées de bout en bout.
+6. **Mon groupe fait exception au « plus récent gagne »** : il fusionne par
+   union qui complète les vides (mêmes règles que §4), jamais en bloc.
+   Rencontrer Léa sur le téléphone et Marco sur l'ordinateur doit donner Léa
+   ET Marco — un LWW en aurait perdu un. Deux entrées sont la même personne
+   si elles partagent un e-mail **ou** un prénom+nom complet ; deux prénoms
+   nus identiques restent deux personnes.
 5 bis. **L'état affiché est prouvé** (incident #14) : créer la salle ne vaut
    pas connexion. L'interface distingue relais joints (`getRelaySockets`),
    pair annoncé mais liaison directe en échec (`onJoinError`), pair

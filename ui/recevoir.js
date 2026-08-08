@@ -11,6 +11,8 @@ import { COMPAGNON } from './perimetre.js';
 import { parseInput, makeOCQJoiner, rdvParse, rdvNorm } from '../engine/exchange.js';
 import { mergeIncoming } from '../engine/merge.js';
 import { normalizeCompany } from '../engine/model.js';
+import { normalizeMembre, mergeMembresPreview } from '../engine/groupe.js';
+import { ajouterCarte, carteLigneHTML } from './groupe.js';
 import { S, bus, saveData, logJ } from './state.js';
 import { openSheet, toast, btn, ic, showUndo } from './dom.js';
 import { openRoom, leaveRoom, watchLiaison, deviceSelf, ensureKeys } from './synclive.js';
@@ -451,6 +453,11 @@ async function mergeReadyAnalysisInto(sh, onBack){
    direct (partage en groupe) : mêmes règles, quel que soit le canal ---- */
 export function mergePreviewInto(sh, obj, opts){
   opts = opts || {};
+  /* Un profil peut arriver seul (« on échange nos profils ») ou
+     accroché à des pistes. Seul, ce n'est pas une fusion de pistes :
+     l'écran d'aperçu ne dirait que des zéros. */
+  const carte = normalizeMembre(obj.card);
+  if (carte && !obj.companies.length){ cartePreviewInto(sh, carte, opts); return; }
   /* fusion à blanc sur une copie : l'aperçu dit tout, rien n'est touché */
   const dry = mergeIncoming(obj.companies, JSON.parse(JSON.stringify(S.companies)));
   const n = obj.companies.length;
@@ -467,6 +474,7 @@ export function mergePreviewInto(sh, obj, opts){
          ${dry.enriched ? `<li>${ic('pencil', 'ic-14')} <b>${dry.enriched}</b> complétée${dry.enriched > 1 ? 's' : ''}</li>` : ''}
          ${dry.addedCt ? `<li>${ic('contact', 'ic-14')} <b>${dry.addedCt}</b> contact${dry.addedCt > 1 ? 's' : ''} ajouté${dry.addedCt > 1 ? 's' : ''}</li>` : ''}
          ${dry.conflicts ? `<li class="rc-warn">${ic('square-alert', 'ic-14')} <b>${dry.conflicts}</b> divergence${dry.conflicts > 1 ? 's' : ''} — l’existant est gardé</li>` : ''}
+         ${carteLigneHTML(carte)}
        </ul>
        ${obj.kind === 'full' ? `<p class="hint">${ic('info-box', 'ic-14')} Pour tout restaurer, va dans « Moi ».</p>` : ''}
        ${opts.select && n ? `<div class="pick-list pk-inverse" style="margin:10px 0 4px">
@@ -488,6 +496,10 @@ export function mergePreviewInto(sh, obj, opts){
     if (!chosen.length){ toast('Tout est décoché — rien à fusionner.'); return; }
     const snapshot = JSON.stringify(S.companies);
     const stats = mergeIncoming(chosen, S.companies);
+    /* le profil joint suit les pistes : celui qui les a données entre
+       dans le groupe au même geste, sinon son prénom sur une fiche ne
+       mènerait toujours à personne */
+    if (carte) ajouterCarte(carte, { muet: true });
     saveData();
     logJ('Reçu' + (opts.from ? ' de ' + opts.from : (opts.select ? ' (analyse IA triée)' : ' du groupe')) + ' : +' + stats.addedC + ' piste(s), ' + stats.enriched + ' complétée(s)',
       null, stats.ids);
@@ -515,6 +527,37 @@ export function mergePreviewInto(sh, obj, opts){
      l'écran des e-mails) — c'est la seule exception à « la croix
      suffit ». Quand il ne ferait que fermer, la croix s'en charge. */
   sh.setFoot(opts.onBack ? [btn('Retour', 'btn-ghost', () => opts.onBack(), 'arrow-left'), bGo] : [bGo]);
+}
+
+/* ---- un profil arrivé seul : « on échange nos profils » ----
+   Même grammaire que l'aperçu des pistes : on montre ce qui va entrer,
+   en toutes lettres, AVANT d'écrire quoi que ce soit. Ce sont les
+   données d'une autre personne — la seule chose que l'app stocke sans
+   que l'intéressé voie l'écran, donc ça se montre. */
+function cartePreviewInto(sh, carte, opts){
+  const av = mergeMembresPreview([carte], S.groupe);
+  const rien = !av.stats.added && !av.stats.filled;
+  /* les coordonnées SOUS le nom, sans le redire : `resumeCarte` ouvre
+     par le prénom et le nom, qui sont déjà le titre */
+  const dessous = [carte.formation, carte.email, carte.phone, carte.link].filter(Boolean);
+  sh.setTitle('Profil reçu');
+  sh.body.innerHTML =
+    `<div class="rc-recap">
+       <div class="rc-big">${esc([carte.prenom, carte.nom].filter(Boolean).join(' '))}</div>
+       ${dessous.length ? `<div class="gr-carte">${dessous.map(esc).join('<br>')}</div>` : ''}
+       ${/* Rien à faire ? On le DIT, et le bouton disparaît. Un bouton
+            grisé « Déjà dans ton groupe » serait une action morte —
+            l'app ne grise pas, elle retire (même loi que « Donner »
+            sans rien à donner). */''}
+       ${rien ? `<p class="gr-bilan">${ic('check', 'ic-14')} Déjà dans ton groupe</p>` : ''}
+     </div>`;
+  const boutons = rien ? [] :
+    [btn(av.stats.added ? 'Ajouter à mon groupe' : 'Compléter', 'btn-primary', () => {
+      ajouterCarte(carte);
+      sh.close();
+    })];
+  if (opts.onBack) boutons.unshift(btn('Retour', 'btn-ghost', () => opts.onBack(), 'arrow-left'));
+  sh.setFoot(boutons.length ? boutons : null);
 }
 
 /* ---- « Annuler » ~30 s : l'instantané d'avant fusion, restauré tel quel ---- */

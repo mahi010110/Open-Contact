@@ -11,9 +11,10 @@ import { fullPayload, parseInput } from '../engine/exchange.js';
 import { encryptOC2 } from '../engine/crypto.js';
 import { fmtSize, todayISO, esc } from '../engine/utils.js';
 import { mergeTombs } from '../engine/sync.js';
+import { normalizeMembre } from '../engine/groupe.js';
 import { docGet, docPut } from '../engine/storage.js';
 import { listDocs, docKind, docTitle, pickPdf, removeDoc } from './docs.js';
-import { S, bus, saveData, saveProfile, saveOrphans, saveTombs, logJ } from './state.js';
+import { S, bus, saveData, saveProfile, saveOrphans, saveTombs, saveGroupe, logJ } from './state.js';
 import { $, ic, toast, btn, openSheet, confirmSheet, showUndo, bindDeleteGesture,
          lockRowHTML, bindLockRow } from './dom.js';
 import { openProfil, openTemplates } from './profil.js';
@@ -29,7 +30,7 @@ import { DIST_PAGE } from '../engine/distribution.js';
 /* ---------- garder une copie (.oc complet) ---------- */
 export function downloadBackup(pass){
   const doIt = async () => {
-    const payload = fullPayload(S.companies, S.profile, S.orphans, S.tombs);
+    const payload = fullPayload(S.companies, S.profile, S.orphans, S.tombs, S.groupe);
     const txt = pass ? await encryptOC2(payload, pass) : JSON.stringify(payload);
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([txt], { type: 'application/octet-stream' }));
@@ -80,7 +81,13 @@ async function treatRestore(raw, pass){
   const cur = S.companies.length;
   const ok = await confirmSheet({
     title: 'Restaurer cette copie ?', icon: 'reload', danger: true, okLabel: 'Tout remplacer',
-    msg: `Le fichier contient <b>${n} piste${n > 1 ? 's' : ''}</b>${obj.profile ? ', le profil' : ''}${obj.orphans ? ', ' + obj.orphans.length + ' contact(s) à rattacher' : ''}.<br>
+    msg: `Le fichier contient <b>${n} piste${n > 1 ? 's' : ''}</b>${obj.profile ? ', le profil' : ''}${obj.orphans ? ', ' + obj.orphans.length + ' contact(s) à rattacher' : ''}${
+      /* La porte ne se justifie que par ce qu'on ne peut PAS deviner.
+         Le groupe en fait partie : restaurer une copie d'avant l'échange
+         de profils le remplace, et les prénoms des fiches reçues
+         cesseraient de mener à quelqu'un. */
+      Array.isArray(obj.groupe) && obj.groupe.length
+        ? ', ' + obj.groupe.length + ' camarade' + (obj.groupe.length > 1 ? 's' : '') : ''}.<br>
           Ta base actuelle (<b>${cur} piste${cur > 1 ? 's' : ''}</b>) sera <b>entièrement remplacée</b>.`
     /* « — annulable pendant 30 secondes » est parti : la barre Annuler
        arrive deux secondes plus tard et le dit elle-même. Ce qui reste
@@ -92,7 +99,8 @@ async function treatRestore(raw, pass){
     companies: JSON.stringify(S.companies),
     profile: JSON.stringify(S.profile),
     orphans: JSON.stringify(S.orphans),
-    tombs: JSON.stringify(S.tombs)
+    tombs: JSON.stringify(S.tombs),
+    groupe: JSON.stringify(S.groupe)
   };
   S.companies = obj.companies.map(normalizeCompany);
   if (obj.profile) S.profile = normalizeProfile(obj.profile);
@@ -100,7 +108,11 @@ async function treatRestore(raw, pass){
   /* les suppressions repartent de la sauvegarde : sans ça, une vieille
      pierre tombale re-supprimerait une piste restaurée à la sync suivante */
   S.tombs = mergeTombs(Array.isArray(obj.tombs) ? obj.tombs : [], []);
-  saveData(); saveProfile(); saveOrphans(); saveTombs();
+  /* mon groupe fait partie de MA copie : une restauration qui le
+     perdrait rendrait muettes toutes les déclarations « j'y suis
+     passé » reçues — les prénoms ne mèneraient plus à personne. */
+  S.groupe = (Array.isArray(obj.groupe) ? obj.groupe : []).map(normalizeMembre).filter(Boolean);
+  saveData(); saveProfile(); saveOrphans(); saveTombs(); saveGroupe();
   logJ('Copie restaurée : ' + n + ' piste(s)');
   bus.refresh();
   showUndo(`${ic('check', 'ic-14')} Restauré : ${n} piste${n > 1 ? 's' : ''}.`, () => {
@@ -108,7 +120,8 @@ async function treatRestore(raw, pass){
     S.profile = normalizeProfile(JSON.parse(snap.profile));
     S.orphans = JSON.parse(snap.orphans).map(normalizeContact);
     S.tombs = mergeTombs(JSON.parse(snap.tombs), []);
-    saveData(); saveProfile(); saveOrphans(); saveTombs();
+    S.groupe = JSON.parse(snap.groupe).map(normalizeMembre).filter(Boolean);
+    saveData(); saveProfile(); saveOrphans(); saveTombs(); saveGroupe();
     logJ('Restauration annulée');
     bus.refresh();
     toast('Restauration annulée');

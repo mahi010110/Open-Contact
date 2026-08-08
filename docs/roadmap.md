@@ -10,8 +10,8 @@ web — livré, c'est cette feuille de route —, l'ordinateur et le téléphone
 La surface ordinateur a la sienne : `compagnon/roadmap.md`. On ne re-discute
 pas la répartition ici, on l'applique.
 
-Dernière mise à jour : 4 août 2026 — cache `oc-v118`, 109 auto-tests verts
-(`node tests/e2e/unitaires.mjs`).
+Dernière mise à jour : 8 août 2026 — cache `oc-v138`, 128 auto-tests verts
+(`node tests/e2e/unitaires.mjs`), 17 fichiers E2E.
 
 ---
 
@@ -25,6 +25,13 @@ Dernière mise à jour : 4 août 2026 — cache `oc-v118`, 109 auto-tests verts
 - Coffre facultatif (code, phrase de récupération, chiffrement).
 - Refonte UX complète (23 décisions, phases 0 à 4) — fusionnée dans `main`.
 - **Les 12 défauts de l'audit post-refonte** (§1.1) — tous traités.
+- **Le levier de la recommandation** (août 2026), en deux temps :
+  « j'y suis passé » (`vecu` / `vecuQui`) fait voyager le lien humain avec
+  la piste ; **mon groupe** (`oc_group_v1`) donne un visage au prénom —
+  on échange son profil par QR ou fichier, et le bandeau de la fiche mène
+  au message tout prêt. Motif : ~3 % d'entretiens à froid contre ~40 %
+  quand quelqu'un est dedans. Gardes `e2e-vecu.mjs` et `e2e-groupe.mjs`,
+  12 mutations vérifiées.
 - Auto-tests verts, parcours principaux rejoués en E2E.
 
 > **Nuance conservée.** « Refonte terminée » veut dire : les 23 décisions sont

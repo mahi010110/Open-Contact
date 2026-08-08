@@ -12,9 +12,11 @@ import { APP_VERSION, VECU, normalizeCompany, normalizeContact, normalizeProfile
          pushHist, fillTpl, safeUrl, summarizeChanges,
          isActiveCt, nextActionContact,
          PROMPTS_MAX, PROMPT_MAX_LEN } from './engine/model.js';
-import { communityView, parseInput, sharePayload, fullPayload,
+import { communityView, parseInput, sharePayload, fullPayload, cardPayload,
          encodeOCQ, splitOCQ, makeOCQJoiner, OCQP_CHUNK,
          makeRdvCode, rdvNorm, rdvWrap, rdvParse, linkWrap, linkParse } from './engine/exchange.js';
+import { normalizeMembre, mergeMembres, mergeMembresPreview, trouverMembre,
+         carteDeProfil, CARTE_CHAMPS, GROUPE_MAX } from './engine/groupe.js';
 import { findMatch, mergeIncoming, contactKey } from './engine/merge.js';
 import { syncMerge, mergeTombs, TOMBS_MAX } from './engine/sync.js';
 import { filterCompanies, filterOrphans, searchHint, NATURAL_DIR } from './engine/filter.js';
@@ -1165,6 +1167,149 @@ export async function runSelfTests(){
       const p = k => VECU[k].poids;
       ok(p('alternance') > p('stage') && p('stage') > p('entretien') && p('entretien') > p('connait'));
       eq(Object.keys(VECU).length, 4);
+    },
+    /* ---------- mon groupe ----------
+       Un membre du groupe est la vie privée de QUELQU'UN D'AUTRE :
+       c'est la donnée la plus sensible de l'app, et la seule qu'on
+       stocke sans que la personne concernée voie l'écran. */
+    'groupe : le prénom est obligatoire, tout le reste est facultatif': () => {
+      eq(normalizeMembre({ prenom: 'Léa' }).prenom, 'Léa');
+      eq(normalizeMembre({ name: 'Léa Martin' }).nom, 'Martin');
+      eq(normalizeMembre({ name: 'Jean Pierre De La Tour' }).nom, 'Pierre De La Tour');
+      /* sans prénom, l'entrée ne relie rien : elle est refusée plutôt
+         que gardée en ligne muette */
+      eq(normalizeMembre({ email: 'x@y.test' }), null);
+      eq(normalizeMembre({}), null);
+      eq(normalizeMembre(null), null);
+    },
+    'groupe : un fichier reçu ne fait pas ce qu’il veut': () => {
+      /* mêmes défenses que partout ailleurs : plafonds, lien neutralisé,
+         id régénéré s'il n'est pas un jeton sobre */
+      eq(normalizeMembre({ prenom: 'x'.repeat(200) }).prenom.length, 40);
+      eq(normalizeMembre({ prenom: 'A', note: 'n'.repeat(999) }).note.length, 140);
+      eq(normalizeMembre({ prenom: 'A', link: 'javascript:alert(1)' }).link, '');
+      eq(normalizeMembre({ prenom: 'A', link: 'lea.dev' }).link, 'https://lea.dev');
+      ok(!/[<>"]/.test(normalizeMembre({ prenom: 'A', id: '"><img>' }).id));
+      /* « Léa Marie » donné comme PRÉNOM reste un prénom : le découpage
+         n'a lieu que sur `name`, sinon on invente un nom de famille et
+         on écrit le même mot dans deux champs */
+      const composé = normalizeMembre({ prenom: '  Léa   Marie  ' });
+      eq(composé.prenom, 'Léa Marie');
+      eq(composé.nom, '');
+    },
+    'groupe : deux « Léa » sans nom restent deux personnes': () => {
+      /* Fusionner sur le seul prénom mélangerait deux camarades — donc
+         deux emails, et un message qui part au mauvais. */
+      const g = [];
+      mergeMembres([{ prenom: 'Léa' }, { prenom: 'Léa' }], g);
+      eq(g.length, 2);
+      /* le même email, lui, désigne bien la même personne */
+      const h = [];
+      mergeMembres([{ prenom: 'Léa', email: 'L@X.test' }, { prenom: 'Lea', email: 'l@x.test' }], h);
+      eq(h.length, 1);
+    },
+    'groupe : la fusion complète les vides, jamais elle n’écrase': () => {
+      const g = [normalizeMembre({ prenom: 'Léa', nom: 'Martin', email: 'lea@a.test' })];
+      const st = mergeMembres([{ prenom: 'Léa', nom: 'Martin', email: 'autre@b.test',
+                                 formation: 'BTS SIO' }], g);
+      eq(g.length, 1);
+      eq(g[0].email, 'lea@a.test');        /* l'existant tient */
+      eq(g[0].formation, 'BTS SIO');       /* le vide se comble */
+      eq(st.filled, 1);
+      eq(st.conflicts, 1);                 /* la divergence est comptée, pas importée */
+      /* et c'est bien la MÊME personne : Léa qui redonne son profil
+         depuis une autre adresse ne fait pas une deuxième ligne */
+      eq(g[0].prenom + ' ' + g[0].nom, 'Léa Martin');
+    },
+    'groupe : l’aperçu ne touche à rien': () => {
+      const g = [normalizeMembre({ prenom: 'Léa' })];
+      const av = JSON.stringify(g);
+      const r = mergeMembresPreview([{ prenom: 'Marco' }], g);
+      eq(JSON.stringify(g), av);           /* invariant ② : voir avant d'écrire */
+      eq(r.stats.added, 1);
+      eq(r.apres.length, 2);
+    },
+    'groupe : le plafond tient, et il le dit': () => {
+      const g = [];
+      const st = mergeMembres(Array.from({ length: GROUPE_MAX + 5 },
+        (_, i) => ({ prenom: 'P' + i, email: i + '@x.test' })), g);
+      eq(g.length, GROUPE_MAX);
+      eq(st.skipped, 5);
+    },
+    /* Le point qui transforme « Léa y a fait son stage » en geste. */
+    'groupe : un prénom trouve sa personne — sauf en cas de doute': () => {
+      const g = [normalizeMembre({ prenom: 'Léa', email: 'a@x.test' }),
+                 normalizeMembre({ prenom: 'Marco', email: 'b@x.test' })];
+      eq(trouverMembre(g, 'Lea').email, 'a@x.test');    /* accents pliés */
+      eq(trouverMembre(g, 'LÉA').email, 'a@x.test');
+      eq(trouverMembre(g, 'Awa'), null);
+      eq(trouverMembre(g, ''), null);
+      /* deux homonymes : on ne devine pas. Écrire au mauvais camarade
+         en croyant l'app coûte plus cher qu'un bandeau muet. */
+      g.push(normalizeMembre({ prenom: 'Léa', email: 'c@x.test' }));
+      eq(trouverMembre(g, 'Léa'), null);
+    },
+    'groupe : mon profil ne part QUE par les cases cochées': () => {
+      const p = { name: 'Maheydine Oun', formation: 'BTS SIO', email: 'm@x.test',
+                  phone: '0639980000', portfolio: 'mahey.dev',
+                  letter: 'ma lettre', templates: [{ n: 1 }], prompts: [{ n: 1 }] };
+      const tout = carteDeProfil(p, CARTE_CHAMPS);
+      eq(tout.prenom, 'Maheydine');
+      eq(tout.nom, 'Oun');
+      eq(tout.link, 'https://mahey.dev');
+      /* rien du profil de travail ne suit — ni lettre, ni modèles, ni prompts */
+      eq(Object.keys(tout).sort().join(),
+         ['prenom', 'nom', 'formation', 'email', 'phone', 'link'].sort().join());
+      /* décoché = absent du fichier, pas vide dedans */
+      const min = carteDeProfil(p, ['formation']);
+      eq(min.email, undefined);
+      eq(min.phone, undefined);
+      eq(min.prenom, 'Maheydine');        /* le prénom est le minimum vital */
+      eq(carteDeProfil({ name: '' }, CARTE_CHAMPS), null);
+    },
+    /* L'INVARIANT DU LOT : donner des pistes à Marco ne lui donne
+       jamais le carnet de Léa. */
+    'groupe : rien de mon groupe ne sort dans un partage': () => {
+      const c = normalizeCompany({ name: 'Adrastia', vecu: 'stage' });
+      const carte = carteDeProfil({ name: 'Léa Martin', email: 'lea@x.test' }, CARTE_CHAMPS);
+      const anonyme = JSON.stringify(sharePayload([c], null, 'Léa'));
+      ok(!/lea@x\.test/i.test(anonyme), 'un email a fui sans qu’on joigne rien');
+      ok(!/\bgroupe\b/.test(anonyme), 'le mot groupe apparaît dans un partage');
+      ok(!/\bcard\b/.test(anonyme), 'une carte part sans être demandée');
+      /* joindre SON profil est un geste explicite, et il ne joint que ça */
+      const avec = sharePayload([c], null, 'Léa', carte);
+      eq(avec.card.email, 'lea@x.test');
+      eq(avec.card.prenom, 'Léa');
+      eq(JSON.stringify(avec).includes('groupe'), false);
+      /* ma copie personnelle, elle, contient tout : c'est MA sauvegarde */
+      const mien = fullPayload([c], {}, [], [], [normalizeMembre({ prenom: 'Marco' })]);
+      eq(mien.groupe.length, 1);
+      eq(fullPayload([c], {}, [], [], []).groupe, undefined);
+    },
+    /* Entre MES appareils, tout le reste applique « le plus récent
+       gagne ». Le groupe est l'exception : rencontrer Léa au téléphone
+       et Marco au poste doit donner LES DEUX. */
+    'groupe : entre mes appareils, il s’unit — il ne s’écrase pas': () => {
+      const tel = { companies: [], orphans: [], tombs: [],
+        groupe: [normalizeMembre({ prenom: 'Léa', email: 'lea@x.test' })] };
+      const poste = { companies: [], orphans: [], tombs: [],
+        groupe: [normalizeMembre({ prenom: 'Marco', email: 'marco@x.test' })] };
+      const r = syncMerge(tel, poste);
+      eq(r.groupe.map(m => m.prenom).sort().join(), 'Léa,Marco');
+      eq(r.stats.addedG, 1);
+      /* convergent : dans l'autre sens, le même état */
+      eq(syncMerge(poste, tel).groupe.map(m => m.prenom).sort().join(), 'Léa,Marco');
+      /* idempotent : rejouer ne double personne */
+      eq(syncMerge(tel, { ...poste, groupe: r.groupe }).groupe.length, 2);
+    },
+    'groupe : un profil seul reste lisible par une vieille version': () => {
+      /* `companies: []` n'est pas un oubli : sans lui, `parseInput`
+         d'une version ancienne rejetterait le fichier au lieu de dire
+         « zéro piste ». Un format qui casse ne se rattrape jamais. */
+      const p = cardPayload(carteDeProfil({ name: 'Léa Martin' }, CARTE_CHAMPS));
+      eq(p.kind, 'card');
+      ok(Array.isArray(p.companies) && !p.companies.length);
+      eq(p.card.prenom, 'Léa');
     },
     /* Les pistes sans nouvelles : celles qu'on a contactées, qui n'ont
        pas répondu, et qu'on a laissées sans prochaine action. Le tri

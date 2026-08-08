@@ -11,6 +11,7 @@
    Fonctions pures — jamais d'état global, jamais d'écran.
    ============================================================ */
 import { normalizeCompany, normalizeContact, normalizeProfile } from './model.js';
+import { normalizeMembre, mergeMembres } from './groupe.js';
 
 export const TOMBS_MAX = 500;
 export const PRIVATE_CAMPAIGNS_MAX = 200;
@@ -85,7 +86,13 @@ export function syncMerge(remote, local){
     stats.profile = 'remote';
   }
 
-  return { companies, orphans, profile, tombs, stats };
+  /* mon groupe : union qui complète les vides, jamais le dernier écrit
+     en bloc. Rencontrer Léa sur le téléphone et Marco sur l'ordinateur
+     doit donner Léa ET Marco — le LWW du profil en aurait perdu un. */
+  const groupe = (local.groupe || []).map(m => normalizeMembre(m)).filter(Boolean);
+  stats.addedG = mergeMembres(remote.groupe || [], groupe).added;
+
+  return { companies, orphans, profile, tombs, groupe, stats };
 }
 
 /* ---------- campagnes et bons de mission privés ----------

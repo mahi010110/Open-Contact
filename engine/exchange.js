@@ -56,11 +56,17 @@ function b64urlToBytes(s){
   while (s.length % 4) s += '=';
   return b64ToBytes(s);
 }
-export async function encodeOCQ(list, keep, moi){
+/* Le compacteur ne connaît rien au contenu : il prend une enveloppe et
+   rend la chaîne. Un profil seul (`kind:"card"`) tient dans un QR
+   minuscule et emprunte exactement le même chemin que des pistes. */
+export async function encodeOCQPayload(payload){
   if (typeof CompressionStream === 'undefined') throw new Error('noqr');
-  const json = new TextEncoder().encode(JSON.stringify(sharePayload(list, keep, moi)));
+  const json = new TextEncoder().encode(JSON.stringify(payload));
   const stream = new Blob([json]).stream().pipeThrough(new CompressionStream('deflate-raw'));
   return 'OCQ1.' + b64url(new Uint8Array(await new Response(stream).arrayBuffer()));
+}
+export function encodeOCQ(list, keep, moi, carte){
+  return encodeOCQPayload(sharePayload(list, keep, moi, carte));
 }
 export const OCQ_OUT_MAX = 4000000;   /* octets décompressés : même borne que l'entrée (D4) */
 export async function decodeOCQ(compact){
@@ -207,14 +213,31 @@ export async function parseInput(raw, pass){
 /* `moi` = le prénom du profil. Il ne part QUE sur les pistes où l'on a
    déclaré « j'y suis passé » — jamais sur les autres, jamais tout seul :
    un partage sans déclaration reste anonyme, comme avant. */
-export function sharePayload(list, keep, moi){
+/* `carte` = mon profil, quand l'utilisateur a coché « joindre mon
+   profil ». Il n'est JAMAIS ajouté d'office : un partage reste anonyme
+   par défaut, et ce qui de moi part avec les pistes est un geste, pas
+   un réglage oublié. Un lecteur ancien ignore le champ sans casse. */
+export function sharePayload(list, keep, moi, carte){
   const pick = typeof keep === 'function' ? keep : () => null;
-  return { v: 4, app: APP_VERSION, kind: 'share',
+  const out = { v: 4, app: APP_VERSION, kind: 'share',
     companies: list.map(c => communityView(c, pick(c), moi)) };
+  if (carte && carte.prenom) out.card = carte;
+  return out;
 }
-export function fullPayload(companies, profile, orphans, tombs){
+/* Le profil SEUL — « on échange nos profils », sans aucune piste.
+   `companies: []` n'est pas un oubli : c'est ce qui permet à une
+   version ancienne de lire le fichier, d'y voir zéro piste et de le
+   dire, au lieu de refuser un format qu'elle ne connaît pas. */
+export function cardPayload(carte){
+  return { v: 4, app: APP_VERSION, kind: 'card', card: carte, companies: [] };
+}
+export function fullPayload(companies, profile, orphans, tombs, groupe){
   const out = { v: 4, app: APP_VERSION, kind: 'full', profile, companies };
   if (Array.isArray(orphans) && orphans.length) out.orphans = orphans;
   if (Array.isArray(tombs) && tombs.length) out.tombs = tombs;
+  /* Mon groupe est dans MA copie — c'est ma sauvegarde, elle contient
+     tout ce que j'ai. Il n'est en revanche dans aucun `kind:"share"` :
+     donner des pistes à Marco ne lui donne pas le carnet de Léa. */
+  if (Array.isArray(groupe) && groupe.length) out.groupe = groupe;
   return out;
 }

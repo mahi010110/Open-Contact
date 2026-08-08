@@ -11,13 +11,15 @@ import { esc, fmtDate, isLate, directionsUrl } from '../engine/utils.js';
 import { STATUSES, CLOSE_REASONS, DOMAINS, POSITIONS, VECU, pushHist, summarizeChanges,
          nextActionContact } from '../engine/model.js';
 import { scoreOf } from '../engine/score.js';
-import { bus, isClosed, saveData, reopenPiste, logJ, activateContact } from './state.js';
+import { trouverMembre } from '../engine/groupe.js';
+import { S, bus, isClosed, saveData, reopenPiste, logJ, activateContact } from './state.js';
 import { openSheet, confirmSheet, toast, btn, ic, montrerChange } from './dom.js';
 import { frDate, relLabel } from './dates.js';
 import { askNextAction, askClose } from './actions.js';
 import { openMail } from './mail.js';
 import { openEditPiste } from './edit.js';
 import { openContactEditor, telHref, smsHref, waHref } from './contact.js';
+import { openDemander } from './groupe.js';
 
 const webHref = w => /^https?:\/\//i.test(w) ? w : 'https://' + w;
 const webLabel = w => w.replace(/^https?:\/\//i, '').replace(/\/$/, '');
@@ -250,10 +252,18 @@ export function openFiche(c){
        Ce n'est pas le langage d'urgence (`mark-*`) : rien ne presse ici,
        c'est un ATOUT. D'où sa propre pastille. */
     const v = VECU[c.vecu];
-    const vecuHTML = !v ? '' :
-      `<div class="fi-vecu">${ic('user', 'ic-14')}
-         <b>${c.vecuQui ? esc(c.vecuQui) + ' ' + v.court : 'Tu y es passé — ' + v.label.toLowerCase()}</b>
-       </div>`;
+    /* Et si ce prénom est quelqu'un de mon groupe, le bandeau cesse
+       d'être une information : il devient la porte vers la demande.
+       C'est tout l'intérêt de la chaîne — déclarer, faire circuler,
+       puis pouvoir DEMANDER. Sans personne au bout, il reste du texte
+       (deux « Léa » dans le groupe rendent `null` : on ne devine pas). */
+    const qui = c.vecuQui ? trouverMembre(S.groupe, c.vecuQui) : null;
+    const dedans = !v ? '' :
+      `${ic('user', 'ic-14')}
+       <b>${c.vecuQui ? esc(c.vecuQui) + ' ' + v.court : 'Tu y es passé — ' + v.label.toLowerCase()}</b>`;
+    const vecuHTML = !v ? ''
+      : qui ? `<button class="fi-vecu" id="fiVecu">${dedans}${ic('chevron-right', 'ic-14')}</button>`
+            : `<div class="fi-vecu">${dedans}</div>`;
     const sub = subBits.length ? `<div class="fi-sub">${subBits.map(esc).join(' · ')}</div>` : '';
     sh.body.innerHTML = wide
       ? `<div class="fi-top">${sub}${outils}</div>${vecuHTML}
@@ -263,6 +273,7 @@ export function openFiche(c){
     /* branchements */
     const byCt = id => (c.contacts || []).find(t => t.id === id);
     sh.body.querySelector('#fiEdit').addEventListener('click', () => openEditPiste(c, render));
+    sh.body.querySelector('#fiVecu')?.addEventListener('click', () => openDemander(c, qui, v));
     sh.body.querySelector('#fiCtAdd').addEventListener('click', () =>
       openContactEditor({ company: c, onDone: render }));
     sh.body.querySelectorAll('[data-ct]').forEach(b =>

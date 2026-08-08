@@ -7,7 +7,7 @@
    ============================================================ */
 import { uid, extractCity, todayISO, fmtDate } from './utils.js';
 
-export const APP_VERSION = '6.10.0';
+export const APP_VERSION = '6.11.0';
 
 export const DOMAINS = {
   esn:     { label:'ESN / Services IT',       color:'#4C9FD8' },
@@ -56,11 +56,19 @@ export const POSITIONS = { stage:'Stage', alternance:'Alternance', cdi:'CDI', cd
 
    Vocabulaire fermé, du plus fort au plus faible — l'ordre est le
    contrat, il classe les pistes reçues. */
+/* Trois personnes grammaticales, parce que la déclaration se lit à
+   trois endroits : la case qu'on coche (« je »), la fiche qui la reçoit
+   (« Léa y a fait son stage »), et le message qu'on lui écrit (« tu y as
+   fait ton stage ? »). Une seule forme donnait « tu y a fait son stage ». */
 export const VECU = {
-  alternance: { label:'J’y ai été en alternance', court:'y a été en alternance', poids:4 },
-  stage:      { label:'J’y ai fait mon stage',    court:'y a fait son stage',    poids:3 },
-  entretien:  { label:'J’y ai passé un entretien', court:'y a passé un entretien', poids:2 },
-  connait:    { label:'J’y connais quelqu’un',     court:'y connaît quelqu’un',   poids:1 }
+  alternance: { label:'J’y ai été en alternance',  court:'y a été en alternance',
+                tu:'y as été en alternance',       poids:4 },
+  stage:      { label:'J’y ai fait mon stage',     court:'y a fait son stage',
+                tu:'y as fait ton stage',          poids:3 },
+  entretien:  { label:'J’y ai passé un entretien', court:'y a passé un entretien',
+                tu:'y as passé un entretien',      poids:2 },
+  connait:    { label:'J’y connais quelqu’un',     court:'y connaît quelqu’un',
+                tu:'y connais quelqu’un',          poids:1 }
 };
 
 /* ---------- 5. modèle v3 : plusieurs contacts par piste ----------
@@ -86,11 +94,11 @@ export function safeUrl(u){
    sobre est accepté, tout le reste est régénéré — un id piégé dans un
    fichier reçu ne doit jamais casser le HTML (S2 de l'audit) */
 const ID_RE = /^[A-Za-z0-9._-]{1,64}$/;
-const safeId = v => (typeof v === 'string' && ID_RE.test(v)) ? v : uid();
+export const safeId = v => (typeof v === 'string' && ID_RE.test(v)) ? v : uid();
 /* une date s'affiche parfois telle quelle (frDate) : seule la forme
    AAAA-MM-JJ passe — un horodatage complet est tronqué au jour, tout le
    reste est vidé (S3 de l'audit) */
-const isoDay = v => { const m = /^(\d{4}-\d{2}-\d{2})(?:$|T)/.exec(String(v || '')); return m ? m[1] : ''; };
+export const isoDay = v => { const m = /^(\d{4}-\d{2}-\d{2})(?:$|T)/.exec(String(v || '')); return m ? m[1] : ''; };
 /* « __proto__ » et consorts, posés en clé d'un JSON reçu, détourneraient le
    prototype de l'objet au lieu d'y poser une donnée (S4 de l'audit) */
 const BAD_KEYS = ['__proto__', 'constructor', 'prototype'];

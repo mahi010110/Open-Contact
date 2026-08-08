@@ -10,8 +10,9 @@ import { CLOSE_REASONS, normalizeCompany, normalizeContact,
          normalizeProfile, pushHist } from '../engine/model.js';
 import { contactKey } from '../engine/merge.js';
 import { mergeTombs } from '../engine/sync.js';
+import { normalizeMembre } from '../engine/groupe.js';
 import { DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, THEME_KEY,
-         OLD_V2, OLD_V1, kvInit, kvGet, kvSet, getBackend } from '../engine/storage.js';
+         GROUP_KEY, OLD_V2, OLD_V1, kvInit, kvGet, kvSet, getBackend } from '../engine/storage.js';
 /* `dom.js` n'importe que `engine/utils.js` : pas de cycle. Le sens
    unique de l'architecture est respecté — l'écran appelle le moteur. */
 import { sheetOpen } from './dom.js';
@@ -20,6 +21,7 @@ export const S = {
   companies: [],
   orphans: [],          /* contacts « à rattacher » */
   tombs: [],            /* suppressions — voyagent vers mes autres appareils */
+  groupe: [],           /* mes camarades — PRIVÉ, et c'est la vie privée d'AUTRUI : jamais dans un partage */
   profile: null,
   journal: [],          /* privé, jamais partagé */
   theme: 'light',
@@ -62,16 +64,19 @@ export function saveProfile(){
 }
 export function saveOrphans(){ kvSet(ORPHANS_KEY, JSON.stringify(S.orphans)).then(ok => setSaveWarn(!ok)); tellTabs(); }
 export function saveTombs(){ kvSet(TOMBS_KEY, JSON.stringify(S.tombs)); }
+export function saveGroupe(){ kvSet(GROUP_KEY, JSON.stringify(S.groupe)).then(ok => setSaveWarn(!ok)); tellTabs(); }
 /* applique le résultat d'une sync appareils — SANS re-tamponner le profil
    (saveProfile met updatedAt à maintenant, ce qui fausserait le LWW) */
 export function applySynced(r){
   S.companies = r.companies;
   S.orphans = r.orphans;
   S.tombs = r.tombs;
+  if (r.groupe) S.groupe = r.groupe;
   if (r.profile) S.profile = r.profile;
   kvSet(DATA_KEY, JSON.stringify(S.companies)).then(ok => setSaveWarn(!ok));
   kvSet(ORPHANS_KEY, JSON.stringify(S.orphans));
   kvSet(TOMBS_KEY, JSON.stringify(S.tombs));
+  kvSet(GROUP_KEY, JSON.stringify(S.groupe));
   kvSet(PROFILE_KEY, JSON.stringify(S.profile));
   tellTabs();
 }
@@ -95,10 +100,10 @@ export function logJ(txt, cid, ids){
 
 export async function loadAll(){
   await kvInit();
-  /* les six clés se lisent en parallèle : sept allers-retours IndexedDB
+  /* les clés se lisent en parallèle : autant d'allers-retours IndexedDB
      séquentiels, ça se paie cher sur un vrai téléphone */
-  const [t, pRaw, jRaw, oRaw, tbRaw, raw] = await Promise.all(
-    [THEME_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, DATA_KEY].map(kvGet));
+  const [t, pRaw, jRaw, oRaw, tbRaw, gRaw, raw] = await Promise.all(
+    [THEME_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, GROUP_KEY, DATA_KEY].map(kvGet));
   S.theme = (t === 'light' || t === 'dark') ? t
     : (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
   let p = null;
@@ -108,6 +113,7 @@ export async function loadAll(){
   if (!Array.isArray(S.journal)) S.journal = [];
   try { S.orphans = (JSON.parse(oRaw) || []).map(normalizeContact); } catch (e) { S.orphans = []; }
   try { S.tombs = mergeTombs(JSON.parse(tbRaw) || [], []); } catch (e) { S.tombs = []; }
+  try { S.groupe = (JSON.parse(gRaw) || []).map(normalizeMembre).filter(Boolean); } catch (e) { S.groupe = []; }
   if (raw){
     try { S.companies = (JSON.parse(raw) || []).map(normalizeCompany); } catch (e) { S.companies = []; }
   }

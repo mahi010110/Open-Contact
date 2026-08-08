@@ -25,6 +25,7 @@ export const PROFILE_KEY = 'oc_profile_v1';
 export const JOURNAL_KEY = 'oc_journal_v1';
 export const ORPHANS_KEY = 'oc_orphans_v1';   /* contacts « à rattacher » (sans entreprise) */
 export const TOMBS_KEY = 'oc_tombs_v1';       /* suppressions (tombstones) — pour la sync appareils */
+export const GROUP_KEY = 'oc_group_v1';       /* mon groupe : les camarades (PRIVÉ — données d'autrui, jamais partagées) */
 export const SYNC_KEY = 'oc_sync_v1';         /* phrase de liaison de MES appareils */
 export const RELAYS_KEY = 'oc_relays_v1';     /* relais P2P personnalisés (optionnel) */
 export const TURN_KEY = 'oc_turn_v1';         /* serveurs TURN personnalisés (optionnel — réseaux qui bloquent le P2P) */
@@ -169,7 +170,7 @@ export async function kvDel(k){
    lecture scellée SANS clé attachée lève `verrou` — jamais un
    `null` silencieux qui ferait croire à une base vide. */
 export const SEALABLE = new Set([DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY,
-  TOMBS_KEY, SYNC_KEY, RELAYS_KEY, TURN_KEY, DEVICE_KEY, DEVICES_KEY, PROMO_KEY, RING_KEY,
+  TOMBS_KEY, GROUP_KEY, SYNC_KEY, RELAYS_KEY, TURN_KEY, DEVICE_KEY, DEVICES_KEY, PROMO_KEY, RING_KEY,
   CAMPAIGNS_KEY, MAIL_KEY, AI_KEY, MISSIONS_KEY, COMPANION_KEY, ANALYSIS_KEY,
   PROPOSALS_KEY]);
 let vKey = null;

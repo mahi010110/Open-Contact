@@ -67,8 +67,19 @@ const PLAFOND = {
      « La réponse de l'IA »), ou légendaient une règle de saisie que le
      champ applique déjà. Ne restent que les phrases qui préviennent
      d'une perte : la phrase de secours sur papier, le plafond
-     d'appareils, « Perdu = irrécupérable ». */
-  motsExplication: 116
+     d'appareils, « Perdu = irrécupérable ».
+     126 le 8 août, MONTÉ de dix mots, exprès et une seule fois, pour
+     « Demande-lui en vrai : bien plus efficace qu'un message »
+     (« Demander à … »). Le critère de la ligne au-dessus était « ce qui
+     prévient d'une perte » ; celle-ci n'en prévient pas, elle corrige
+     une croyance fausse et mesurée : la même demande faite de vive voix
+     aboutit 34 fois plus souvent que par e-mail (Roghanizad & Bohns,
+     2017), et celui qui écrit ne sent AUCUNE différence — c'est le seul
+     cas où le silence de l'app laisserait l'utilisateur choisir le
+     mauvais canal en croyant bien faire. Le critère s'élargit donc
+     d'un cran, et d'un seul : préviennent d'une perte, OU d'une erreur
+     que l'utilisateur ne peut pas voir venir. */
+  motsExplication: 126
 };
 
 const fichiers = readdirSync(UI).filter(f => f.endsWith('.js') && !HORS_ECRAN.has(f));
