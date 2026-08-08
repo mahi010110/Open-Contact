@@ -355,9 +355,27 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
     (await import('./ui/state.js')).S.companies.find(c => c.name === 'Orange Cyberdefense')?.status === 'reply',
     { message: 'la carte lâchée en bas de colonne change de statut' });
 
-  /* « Aujourd'hui » : le pied est un pied, il se pose en bas */
+  /* « Aujourd'hui » : le pied est un pied, il se pose en bas.
+     Ce bloc a pour sujet le TABLEAU à trois colonnes — il faut donc du
+     travail planifié pour qu'il existe : sans aucune action, l'écran
+     montre désormais « Par où commencer » à la place (trois colonnes
+     vides ne sont pas une bonne nouvelle, c'est un mur de rien). La
+     nouvelle tranche a son propre garde, `e2e-commencer.mjs`. */
+  await dPage.evaluate(async () => {
+    /* par le MAGASIN, pas par la clé brute : écrire dans `oc_data_v3` à
+       la main ignore le scellement éventuel et se fait écraser par le
+       premier `saveData()` de la page */
+    const { S, saveData } = await import('./ui/state.js');
+    const { isClosed } = await import('./ui/state.js');
+    const c = S.companies.find(x => !isClosed(x)) || S.companies[0];
+    c.nextAction = new Date().toISOString().slice(0, 10);
+    c.nextActionText = 'Relancer';
+    saveData();
+  });
   await dPage.goto(base + '/#/aujourdhui', { waitUntil: 'load' });
-  await dPage.waitForSelector('.td-board');
+  await attendre(dPage, () => !!document.querySelector('.td-board'), {
+    message: 'le tableau du jour — il lui faut du travail planifié pour exister, '
+           + 'sinon l’écran montre « Par où commencer » (garde : e2e-commencer.mjs)' });
   const jour = await dPage.evaluate(() => {
     const v = document.querySelector('#view-aujourdhui');
     const p = document.querySelector('.td-under');
