@@ -169,6 +169,111 @@ const lire = p => p.evaluate(() => {
   await c2.close();
 }
 
+/* ---------- D · les pistes SANS NOUVELLES ----------
+   Le trou suivant, et c'est là que la plupart des recherches s'arrêtent :
+   une piste contactée, sans réponse, à qui on n'a pas donné de suite.
+   Mesuré avant : 0 ligne sur « Aujourd'hui », et dans « Mes pistes » le
+   même « à planifier » qu'elle dorme depuis 5 jours ou depuis 90. */
+const jourISO = n => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
+const MUETTES = [
+  /* du travail prévu : la suggestion doit passer APRÈS lui */
+  { id: 'plan', name: 'Adrastia Systèmes', status: 'active', city: 'Toulouse', domain: 'esn',
+    nextAction: jourISO(0), nextActionText: 'Relancer Nadia',
+    contacts: [{ id: 'k0', name: 'N', role: 'RH', email: 'n@a.test' }], updatedAt: Date.now() },
+  /* engagées puis lâchées, à 5 / 21 / 90 jours */
+  ...[['fraiche', 5, 'active'], ['mure', 21, 'active'], ['perdue', 90, 'reply']].map(([id, d, st]) => ({
+    id, name: { fraiche: 'Vireo', mure: 'Lombard Négoce', perdue: 'Atos' }[id],
+    status: st, city: 'Toulouse', domain: 'esn',
+    contacts: [{ id: 'k' + id, name: 'P', role: 'RH', email: id + '@x.test' }],
+    history: [{ d: jourISO(-d), t: 'Statut → En cours' }], updatedAt: Date.now() - d * 86400000 })),
+  /* jamais engagée : « Par où commencer » s'en occupe, pas cette tranche */
+  { id: 'jamais', name: 'Halcyon Data', status: 'todo', city: 'Toulouse', domain: 'esn',
+    contacts: [{ id: 'kj', name: 'P', role: 'RH', email: 'j@x.test' }],
+    history: [{ d: jourISO(-60), t: 'Piste créée' }], updatedAt: Date.now() - 60 * 86400000 }
+];
+{
+  const { ctx, p } = await ecran(390, MUETTES);
+  const q = await p.evaluate(() => {
+    const v = document.querySelector('#view-aujourdhui');
+    const ligne = n => ({ id: n.dataset.id,
+      gestes: [...n.querySelectorAll('[data-a]')].map(b => b.dataset.a),
+      mark: (n.querySelector('.mark') || {}).textContent || '' });
+    const tr = v.querySelector('.tr-quiet');
+    return { tranche: !!tr, total: tr ? tr.querySelector('.tr-n').textContent.trim() : null,
+      lignes: [...v.querySelectorAll('.act-quiet')].map(ligne),
+      demarrage: v.querySelectorAll('.act-start').length,
+      /* la tranche suit-elle le travail engagé ? */
+      apresLeTravail: (() => {
+        const t = v.querySelector('.tr-quiet'), d = v.querySelector('.tr-due, .tr-late');
+        return !t || !d ? null : t.getBoundingClientRect().top > d.getBoundingClientRect().top;
+      })() };
+  });
+  if (!q.tranche) fail('des pistes se taisent depuis 21 et 90 jours et l’écran n’en dit rien');
+  if (q.lignes.length !== 2)
+    fail(`${q.lignes.length} lignes muettes au lieu de 2 — la piste de 5 jours ou celle jamais engagée s’est glissée dedans : `
+      + JSON.stringify(q.lignes.map(l => l.id)));
+  if (q.lignes.some(l => l.id === 'fraiche'))
+    fail('une piste silencieuse depuis 5 jours est signalée — trop tôt, c’est du harcèlement');
+  if (q.lignes.some(l => l.id === 'jamais'))
+    fail('une piste JAMAIS contactée est comptée comme « sans nouvelles »');
+  if (q.demarrage) fail('« Par où commencer » ET « Sans nouvelles » en même temps — deux tranches de conseils');
+  if (q.apresLeTravail === false) fail('la suggestion est passée DEVANT le travail engagé');
+  /* la sortie : passé le dernier seuil, ce n'est plus « relance encore »,
+     c'est « décide ». Sans ça la pile grandit sans fin — le défaut qui
+     fait abandonner les outils de suivi. */
+  const perdue = q.lignes.find(l => l.id === 'perdue');
+  const mure = q.lignes.find(l => l.id === 'mure');
+  if (!perdue || !perdue.gestes.includes('clore'))
+    fail('90 jours de silence et l’app propose encore de relancer — aucune sortie, la pile enfle');
+  if (!mure || !mure.gestes.includes('plan'))
+    fail('21 jours de silence : c’est le moment de relancer, pas de clore');
+  if (mure.gestes.includes('clore'))
+    fail('21 jours et l’app propose déjà d’abandonner — trop tôt');
+  console.log(`sans nouvelles : ${q.lignes.length} lignes sur ${q.total}, après le travail, `
+    + `${mure.mark.trim()} → relancer et ${perdue.mark.trim()} → clore ✓`);
+
+  /* « Mes pistes » : la durée du silence, là où on scanne */
+  await p.evaluate(() => { location.hash = '#/pistes'; });
+  await p.waitForTimeout(600);
+  const li = await p.evaluate(() => {
+    const t = {};
+    document.querySelectorAll('#view-pistes .row-item').forEach(n => {
+      t[n.dataset.id] = { txt: n.innerText.replace(/\s+/g, ' '),
+                          mark: (n.querySelector('.mark') || {}).textContent || '' };
+    });
+    return t;
+  });
+  if (!/sans nouvelles/.test(li.perdue?.txt || '') || !/90 j/.test(li.perdue?.mark || ''))
+    fail('« Mes pistes » ne dit pas depuis combien de temps une piste se tait : ' + JSON.stringify(li.perdue));
+  if (/sans nouvelles/.test(li.fraiche?.txt || ''))
+    fail('une piste de 5 jours est marquée « sans nouvelles » dans la liste');
+  if (li.jamais?.mark) fail('une piste jamais engagée porte une marque de silence');
+  console.log(`« Mes pistes » : ${li.perdue.mark.trim()} sur la muette, `
+    + `« à planifier » sur la fraîche, rien sur celle jamais engagée ✓`);
+  await p.screenshot({ path: SHOTS + '/92-sans-nouvelles.png' });
+  await ctx.close();
+}
+
+/* ---------- D bis · rien de prévu ET des pistes qui se taisent ----------
+   « Tout est à jour » serait un mensonge : cinq pistes se taisent depuis
+   un mois. La tranche remplace le vide, comme « Par où commencer ». */
+{
+  const sansPlan = MUETTES.filter(c => c.id !== 'plan');
+  const { ctx, p } = await ecran(390, sansPlan);
+  const r = await p.evaluate(() => {
+    const v = document.querySelector('#view-aujourdhui');
+    return { quiet: v.querySelectorAll('.act-quiet').length,
+             demarrage: v.querySelectorAll('.act-start').length,
+             ajour: /Tout est à jour/.test(v.innerText) };
+  });
+  if (r.ajour) fail('« Tout est à jour » alors que des pistes se taisent depuis 90 jours');
+  if (!r.quiet) fail('rien de prévu, des pistes muettes, et l’écran ne montre rien');
+  if (r.demarrage) fail('les deux tranches de suggestion s’affichent ensemble');
+  else console.log(`rien de prévu : ${r.quiet} muettes montrées à la place du vide, `
+    + 'et plus de « Tout est à jour » mensonger ✓');
+  await ctx.close();
+}
+
 console.log(errors.length ? 'Erreurs console : ' + errors.join(' | ') : 'Zéro erreur console.');
 if (errors.length) process.exitCode = 1;
 await browser.close();

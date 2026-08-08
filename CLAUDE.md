@@ -365,6 +365,32 @@ avec un motif existant.
 | Une page = un objet et ses réglages | en-tête `.obj` (icône en haut à gauche + nom) puis des cadres `.fset`. **Le cadre est lourd : deux par écran au maximum, jamais s'il contiendrait tout l'écran.** Ailleurs, `pcard` reste la règle |
 | Recevoir des données | TOUJOURS l'aperçu avant fusion (`mergePreviewInto`) — mêmes règles quel que soit le canal |
 
+**Le silence n'est pas une dette, c'est une décision.** Une piste engagée
+puis laissée sans suite disparaissait : rien sur « Aujourd'hui », et dans
+« Mes pistes » le même « à planifier » qu'elle dorme depuis cinq jours ou
+depuis quatre-vingt-dix. L'app tenait la date et la jetait. Elle la montre
+maintenant, avec **le langage d'urgence de l'app** (`mark-*`), et trois
+règles qui l'empêchent de devenir une pile de reproches — le défaut qui
+fait abandonner les outils de suivi :
+
+- **Seules les pistes ENGAGÉES comptent.** Une piste jamais contactée
+  (`todo`) n'est pas en train de filer entre les doigts ; « Par où
+  commencer » s'en occupe. Les mélanger noierait le signal.
+- **Rien avant sept jours.** Les seuils viennent des données de relance —
+  5 à 7 jours ouvrés avant la première, une à deux semaines avant la
+  seconde — pas du goût : `SILENCE_RELANCE` 7 · `SILENCE_DERNIERE` 21 ·
+  `SILENCE_TROP_TARD` 45 (`engine/assist.js`).
+- **Chaque ligne a une SORTIE.** Passé le dernier seuil, la littérature ne
+  dit plus « relance encore », elle dit « passe à autre chose » : le geste
+  proposé devient **Clore**. Une pile dont chaque ligne peut sortir ne
+  grandit pas sans fin.
+
+**Une seule tranche de suggestion à la fois**, et le silence prime sur le
+démarrage : ranimer une piste déjà engagée vaut mieux qu'en démarrer une
+froide. Elle **suit** le travail planifié, jamais l'inverse — ce qui est
+engagé passe avant ce qui est suggéré. Et « Tout est à jour » ne s'affiche
+plus quand des pistes se taisent : c'était un mensonge.
+
 **Choisir à la place de l'utilisateur est le service rendu.** Vingt-quatre
 pistes non planifiées, c'est vingt-quatre décisions avant le premier geste —
 et le premier geste n'arrive jamais. En proposer **trois** en fait un choix.

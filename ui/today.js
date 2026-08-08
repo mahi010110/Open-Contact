@@ -6,13 +6,13 @@
    jamais culpabilisant. Jamais 40 lignes d'un coup.
    ============================================================ */
 import { esc, todayISO } from '../engine/utils.js';
-import { DOMAINS } from '../engine/model.js';
+import { DOMAINS, STATUSES } from '../engine/model.js';
 import { scoreOf } from '../engine/score.js';
-import { dueFollowups } from '../engine/assist.js';
+import { dueFollowups, silentPistes } from '../engine/assist.js';
 import { S, bus, isClosed, markDone, hasDemo, addDemo, removeDemo } from './state.js';
 import { $, ic, toast, openSheet } from './dom.js';
-import { frToday, frDate, dueMarkHTML } from './dates.js';
-import { askNextAction, reportAction } from './actions.js';
+import { frToday, frDate, dueMarkHTML, silenceMarkHTML } from './dates.js';
+import { askNextAction, reportAction, askClose } from './actions.js';
 import { openMail } from './mail.js';
 import { openFiche } from './fiche.js';
 import { openCapture } from './capture.js';
@@ -132,6 +132,47 @@ function startRowHTML(c){
        </div>
      </div>`);
 }
+/* ---------- « Sans nouvelles » ----------
+   Une piste qu'on a contactée, qui n'a pas répondu, et à qui on n'a pas
+   donné de suite : elle disparaissait. Zéro ligne ici, et dans « Mes
+   pistes » le même « à planifier » qu'elle dorme depuis cinq jours ou
+   depuis trois mois. C'est là que la plupart des recherches s'arrêtent.
+
+   Ce qui empêche cette tranche de devenir une pile de reproches — le
+   piège qui fait abandonner les outils de suivi, et que la spec
+   interdit déjà (« jamais culpabilisant ») : chaque ligne a une SORTIE.
+   Passé le dernier seuil, le moteur ne dit plus « relance », il dit
+   « clore » ; le geste proposé change avec lui. Une pile dont chaque
+   ligne peut sortir ne grandit pas sans fin. */
+function silenceRowHTML(sil){
+  const c = S.companies.find(x => x.id === sil.id);
+  if (!c) return '';
+  const bits = [(STATUSES[c.status] || {}).label, c.city].filter(Boolean);
+  const clore = sil.geste === 'clore';
+  return (
+    `<div class="act-row act-quiet" data-id="${c.id}">
+       <div class="act-in">
+         <div class="act-main" role="button" tabindex="0" aria-label="Ouvrir ${esc(c.name)}">
+           <b class="act-verb">${esc(c.name)}</b>
+           <span class="act-sub">${silenceMarkHTML(sil)}<span class="act-who">${esc(bits.join(' · '))}</span></span>
+         </div>
+         <div class="act-btns">
+           ${joignable(c)
+             ? `<button class="abtn" data-a="mail" aria-label="Écrire à ${esc(c.name)}" title="Écrire">${ic('mail')}</button>` : ''}
+           ${clore
+             ? `<button class="abtn" data-a="clore" aria-label="Clôturer ${esc(c.name)}" title="Clôturer">${ic('archive')}</button>`
+             : `<button class="abtn abtn-ok" data-a="plan" aria-label="Relancer ${esc(c.name)}" title="Relancer">${ic('calendar')}</button>`}
+         </div>
+       </div>
+     </div>`);
+}
+function silenceHTML(items, total){
+  return `<section class="tranche tr-quiet">
+            <h3 class="tr-h">${ic('clock', 'ic-14')} Sans nouvelles <span class="tr-n">${total}</span></h3>
+            <div class="tr-rows">${items.map(silenceRowHTML).join('')}</div>
+          </section>`;
+}
+
 function debutHTML(items){
   return `<section class="tranche tr-start">
             <h3 class="tr-h">${ic('zap', 'ic-14')} Par où commencer</h3>
@@ -223,14 +264,23 @@ export function renderToday(){
 
   const wide = mqWide.matches;
   const rienAFaire = !late.length && !due.length;
-  /* Rien de planifié mais des pistes en réserve : on montre par où
-     commencer, aux deux tailles. Calculé ICI parce que la pleine largeur
-     appartient au TABLEAU à trois colonnes — une seule colonne de trois
-     lignes étirée sur 1660 px envoie ses boutons à l'autre bout de
-     l'écran (mesuré). */
-  const debut = (rienAFaire && !soon.length && noAction.length)
-    ? parOuCommencer(noAction) : null;
-  const tableau = wide && alive.length && !debut;
+  /* UNE SEULE tranche de suggestion à la fois, et le silence prime :
+     ranimer une piste qu'on a déjà engagée vaut mieux que d'en démarrer
+     une froide. Deux tranches de conseils sur un écran qui n'a rien de
+     prévu, c'est le menu qu'on vient de retirer.
+     Calculé ICI parce que la pleine largeur appartient au TABLEAU à
+     trois colonnes — une seule colonne de trois lignes étirée sur
+     1660 px envoie ses boutons à l'autre bout (mesuré). */
+  const muettes = silentPistes(alive, today);
+  const rienDePrevu = rienAFaire && !soon.length;
+  const suggestion = muettes.length
+    ? { html: () => silenceHTML(muettes.slice(0, DEBUT), muettes.length) }
+    : (rienDePrevu && noAction.length)
+      ? { html: () => debutHTML(parOuCommencer(noAction)) } : null;
+  /* elle remplace le vide quand rien n'est prévu ; sinon elle SUIT le
+     travail du jour — ce qui est engagé passe avant ce qui est suggéré */
+  const alaPlace = rienDePrevu && suggestion;
+  const tableau = wide && alive.length && !alaPlace;
   let html =
     `<div class="page-inner${tableau ? ' page-wide' : ''}">
        <div class="td-head">
@@ -255,15 +305,15 @@ export function renderToday(){
            <button class="btn" id="tdeDemo">Voir un exemple</button>
          </div>
        </div>`;
-  } else if (debut){
-    /* Des pistes, aucune action planifiée : ce n'est ni « tout est à
-       jour », ni un écran vide — il y a de quoi travailler tout de
-       suite. On le MONTRE, au lieu d'offrir une porte.
-       Vaut aux deux tailles : au poste, trois colonnes vides ne sont pas
-       « une bonne nouvelle qui se dit », c'est un mur de rien. La
-       promesse « la structure ne bouge pas » parle de l'état de travail
-       normal, pas du démarrage à froid. */
-    html += debutHTML(debut);
+  } else if (alaPlace){
+    /* Rien de prévu, mais il y a de quoi travailler tout de suite : on
+       le MONTRE, au lieu d'offrir une porte — ou pire, d'annoncer « tout
+       est à jour » à quelqu'un dont cinq pistes se taisent depuis un
+       mois. Vaut aux deux tailles : au poste, trois colonnes vides ne
+       sont pas « une bonne nouvelle qui se dit », c'est un mur de rien.
+       La promesse « la structure ne bouge pas » parle de l'état de
+       travail normal, pas du démarrage à froid. */
+    html += suggestion.html();
   } else if (tableau){
     /* le poste : les trois tranches côte à côte, toujours présentes —
        la structure ne bouge pas, seul son contenu change */
@@ -292,6 +342,9 @@ export function renderToday(){
   if (CAMPAGNES) html += campaignLines().map(l =>
     `<button class="camp-line" data-camp="${esc(l.id)}">${ic('flag', 'ic-14')} <span>${esc(l.txt)}</span> <em>Voir</em></button>`).join('');
   if (!wide) html += trancheHTML('soon', 'Bientôt', 'calendar', soon, false);   /* au poste, elle est déjà en colonne */
+  /* du travail est prévu ET des pistes se taisent : la suggestion vient
+     APRÈS l'engagé, jamais devant */
+  if (suggestion && !alaPlace) html += suggestion.html();
   /* ce qui suit le travail du jour — un pied, pas des liens en vrac.
      Sous un tableau à trois colonnes de hauteurs inégales, « 5 pistes
      sans prochaine action » flottait tout seul à gauche, sous un trou. */
@@ -316,7 +369,7 @@ export function renderToday(){
   /* `:not(.act-start)` : une ligne « Par où commencer » n'a ni « Fait »
      ni « Reporter » — les brancher dessus planterait sur un nœud absent,
      et le swipe y proposerait de finir une action qui n'existe pas. */
-  root.querySelectorAll('.act-row:not(.act-start)').forEach(row => {
+  root.querySelectorAll('.act-row:not(.act-start):not(.act-quiet)').forEach(row => {
     const c = byId(row.dataset.id);
     if (!c) return;
     row.querySelector('.act-main').addEventListener('click', () => openFiche(c));
@@ -328,6 +381,19 @@ export function renderToday(){
     row.querySelector('[data-a="report"]').addEventListener('click', () => reportAction(c));
     row.querySelector('[data-a="done"]').addEventListener('click', () => finishRow(row, c));
     bindSwipe(row, c);
+  });
+  root.querySelectorAll('.act-quiet').forEach(row => {
+    const c = byId(row.dataset.id);
+    if (!c) return;
+    const ouvrir = () => openFiche(c);
+    row.querySelector('.act-main').addEventListener('click', ouvrir);
+    row.querySelector('.act-main').addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); ouvrir(); }
+    });
+    row.querySelector('[data-a="mail"]')?.addEventListener('click', () => openMail(c));
+    row.querySelector('[data-a="plan"]')?.addEventListener('click', () =>
+      askNextAction(c, { title: 'Relancer quand ?' }));
+    row.querySelector('[data-a="clore"]')?.addEventListener('click', () => askClose(c, {}));
   });
   root.querySelectorAll('.act-start').forEach(row => {
     const c = byId(row.dataset.id);

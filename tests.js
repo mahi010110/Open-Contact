@@ -37,7 +37,8 @@ import { DAILY_CAP, buildCampaign, dueSends, dueSendsAll, sentTodayAll,
          pauseCampaign, resumeCampaign, stopCampaign, campaignStats,
          inSendWindow, addDays as cAddDays } from './engine/campaign.js';
 import { buildMime, encodeHeader, toB64Url, authUrl, parseCallback, pkcePair } from './engine/mailer.js';
-import { dueFollowups, contactFromSignature, exchangeLog, exchangeTotals, nextActionSuggestions } from './engine/assist.js';
+import { dueFollowups, contactFromSignature, exchangeLog, exchangeTotals, nextActionSuggestions,
+         silentPistes, derniereTrace, SILENCE_RELANCE, SILENCE_DERNIERE, SILENCE_TROP_TARD } from './engine/assist.js';
 import { makeMission, missionUsable, revokeMission, foldCampaignReport,
          signMission, openMissionWire } from './engine/mission.js';
 import { normCode, pairKey } from './engine/companion.js';
@@ -1112,6 +1113,59 @@ export async function runSelfTests(){
       ];
       eq(dueFollowups(comps, '2026-07-16').map(x => x.id), ['c1', 'c2', 'c3']);
       eq(dueFollowups(comps, '2026-07-16')[0].lateDays, 15);
+    },
+    /* Les pistes sans nouvelles : celles qu'on a contactées, qui n'ont
+       pas répondu, et qu'on a laissées sans prochaine action. Le tri
+       fait la moitié du travail — le reste tient dans QUI est exclu. */
+    'aides : sans nouvelles — jamais les pistes qu’on n’a pas engagées': () => {
+      const c = (id, o) => Object.assign({ id, name: id, status: 'active',
+        history: [{ d: '2026-06-01', t: 'Statut → En cours' }] }, o);
+      const l = silentPistes([
+        c('engagee'),                                   /* 45 j de silence */
+        c('jamais', { status: 'todo' }),                /* pas commencée : « Par où commencer » s'en occupe */
+        c('planifiee', { nextAction: '2026-07-20' }),   /* elle a une suite prévue */
+        c('close', { closedReason: 'rejected' }),       /* elle est finie */
+        c('fraiche', { history: [{ d: '2026-07-12', t: 'x' }] })  /* 3 j : trop tôt pour dire quoi que ce soit */
+      ], '2026-07-15');
+      eq(l.map(x => x.id), ['engagee']);
+    },
+    'aides : sans nouvelles — trois crans, tirés des données de relance': () => {
+      const a = j => silentPistes([{ id: 'x', name: 'X', status: 'active',
+        history: [{ d: '2026-07-15', t: 'x' }] }],
+        new Date(Date.UTC(2026, 6, 15 + j)).toISOString().slice(0, 10))[0];
+      eq(a(SILENCE_RELANCE - 1), undefined);                   /* muet avant 7 j */
+      eq(a(SILENCE_RELANCE).cran, 'soon');                     /* première relance */
+      eq(a(SILENCE_DERNIERE - 1).cran, 'soon');
+      eq(a(SILENCE_DERNIERE).cran, 'now');                     /* dernière relance */
+      eq(a(SILENCE_TROP_TARD - 1).cran, 'now');
+      eq(a(SILENCE_TROP_TARD).cran, 'late');
+      /* le geste change AVEC le cran : passé le dernier seuil, relancer
+         ne paie plus — l'app propose la sortie, pas une 3ᵉ relance.
+         C'est ce qui empêche la pile de grandir sans fin. */
+      eq(a(SILENCE_RELANCE).geste, 'relancer');
+      eq(a(SILENCE_TROP_TARD).geste, 'clore');
+    },
+    'aides : sans nouvelles — le plus long d’abord, une réponse pèse plus': () => {
+      const c = (id, jour, status) => ({ id, name: id, status,
+        history: [{ d: jour, t: 'x' }] });
+      const l = silentPistes([
+        c('vieux', '2026-06-01', 'active'),
+        c('recent', '2026-07-01', 'active'),
+        c('recent-repondu', '2026-07-01', 'reply')
+      ], '2026-07-20');
+      eq(l.map(x => x.id), ['vieux', 'recent-repondu', 'recent']);
+    },
+    /* `updatedAt` seul mentirait : corriger une faute dans le nom d'une
+       piste le remet à jour et effacerait trois semaines de silence. */
+    'aides : la dernière trace vient de l’historique, pas d’updatedAt': () => {
+      const c = { id: 'x', name: 'X', status: 'active',
+        history: [{ d: '2026-06-01', t: 'Statut → En cours' }],
+        updatedAt: Date.UTC(2026, 6, 14) };            /* « modifiée hier » */
+      eq(derniereTrace(c, '2026-07-15'), 44);
+      /* sans historique, on se rabat sur updatedAt — mieux que rien */
+      eq(derniereTrace({ updatedAt: Date.UTC(2026, 6, 1) }, '2026-07-15'), 14);
+      /* une date future (horloge de travers) ne crée pas de silence négatif */
+      eq(derniereTrace({ history: [{ d: '2027-01-01', t: 'x' }] }, '2026-07-15'), 0);
     },
     /* Les verbes proposés après « Fait ✓ » : ils suivent l'état de la
        piste, et ne reproposent jamais celui qui est déjà posé — un tap

@@ -6,15 +6,16 @@
    Supprimer une piste = un geste (glisser / poubelle au survol)
    + Annuler ~30 s — c'est le seul endroit où l'on supprime.
    ============================================================ */
-import { esc, distKm } from '../engine/utils.js';
+import { esc, distKm, todayISO } from '../engine/utils.js';
 import { STATUSES, CLOSE_REASONS, DOMAINS, pushHist } from '../engine/model.js';
 import { filterCompanies, filterOrphans, searchHint } from '../engine/filter.js';
+import { silentPistes } from '../engine/assist.js';
 import { S, bus, isClosed, hasDemo, addDemo, ctLabel, deletePiste, undeletePiste,
          removeOrphan, saveOrphans, saveData, logJ } from './state.js';
 import { $, ic, toast, showUndo, bindDeleteGesture, openSheet, softReorder, topSheet } from './dom.js';
 import { openAffinerSheet } from './affiner.js';
 import { sortState, sortArgs, sortHasDist, sortChipHTML, bindSortChip } from './sort.js';
-import { relLabel, diffDays, dueMarkHTML } from './dates.js';
+import { relLabel, diffDays, dueMarkHTML, silenceMarkHTML } from './dates.js';
 import { openFiche } from './fiche.js';
 import { openCapture } from './capture.js';
 import { openContactEditor, openAttach } from './contact.js';
@@ -94,13 +95,24 @@ const kmBit = c => (sortHasDist(st) && st.userPos && c.lat != null)
    la seule qui survive au flou) revient donc à l'échéance, graduée en
    quatre crans d'intensité, et le statut redescend en donnée dans la
    sous-ligne. Il reste écrit UNE fois (#13). */
+/* « sans nouvelles » : engagée, laissée sans suite, et muette depuis
+   assez longtemps pour que ça compte. Calculé par piste — le moteur
+   décide, l'écran affiche. */
+const silenceOf = c => silentPistes([c], todayISO())[0] || null;
+
 function dueHTML(c){
   /* Rien de prévu = RIEN dans la colonne forte. Un « à planifier »
      répété huit fois de suite n'est pas une information, c'est du
      bruit : c'est le vide, en face des deux lignes qui portent une
      échéance, qui dit lesquelles réclament quelque chose. Le mot
-     lui-même reste écrit dans la sous-ligne, là où on le lit. */
-  if (isClosed(c) || !c.nextAction) return '';
+     lui-même reste écrit dans la sous-ligne, là où on le lit.
+     UNE exception, et elle est du même ordre : une piste engagée puis
+     laissée muette RÉCLAME quelque chose, elle aussi. Mesuré : six
+     pistes silencieuses depuis 5 à 90 jours affichaient toutes le même
+     « à planifier », l'app tenant les dates et les jetant. Sous sept
+     jours, toujours rien — trop tôt pour dire quoi que ce soit. */
+  if (isClosed(c)) return '';
+  if (!c.nextAction) return silenceMarkHTML(silenceOf(c));
   return dueMarkHTML(c.nextAction);        /* LA marque, partagée avec « Aujourd'hui » */
 }
 
@@ -130,7 +142,7 @@ function rowHTML(c){
   if (closed) bits.push('<b>' + CLOSE_REASONS[c.closedReason].label + '</b>');
   else {
     if (c.nextAction) bits.push('<b>' + esc(c.nextActionText || 'Faire le point') + '</b>');
-    else if (!enCampagne(c.id)) bits.push('à planifier');
+    else if (!enCampagne(c.id)) bits.push(silenceOf(c) ? 'sans nouvelles' : 'à planifier');
     bits.push(STATUSES[c.status].label);
     if (enCampagne(c.id)) bits.push('en campagne');
   }
@@ -154,9 +166,14 @@ function cardHTML(c){
   const inCamp = enCampagne(c.id);
   /* la carte du tableau porte la MÊME graduation que la ligne mobile :
      un seul langage d'urgence dans toute l'application */
+  /* la carte du poste dit la même chose que la ligne au pouce : muette
+     depuis longtemps est un fait, pas une absence de fait */
+  const sil = c.nextAction ? null : silenceOf(c);
   const na = c.nextAction
     ? `<span class="bc-na">${esc(c.nextActionText || 'Faire le point')} ${dueHTML(c)}</span>`
-    : `<span class="bc-na bc-none">${inCamp ? 'en campagne' : 'à planifier'}</span>`;
+    : sil
+      ? `<span class="bc-na">sans nouvelles ${silenceMarkHTML(sil)}</span>`
+      : `<span class="bc-na bc-none">${inCamp ? 'en campagne' : 'à planifier'}</span>`;
   /* « complète à N % » vivait ici sur CHAQUE carte, et valait le même
      chiffre d'une carte à l'autre — quatre pistes à contacter, quatre
      fois « complète à 37 % ». C'est le papier peint de §6.1 : une encre

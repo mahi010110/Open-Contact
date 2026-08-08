@@ -43,6 +43,16 @@ export function relLabel(iso){
    deux dessins pour un même fait obligent à réapprendre d'un écran à
    l'autre. Elle vit ici parce que ni « Mes pistes » ni « Aujourd'hui »
    ne doit dépendre de l'autre. */
+/* Le silence porte LA MÊME marque que l'échéance : un seul langage
+   d'urgence dans toute l'app (§6). La colonne forte de la ligne dit
+   « quand c'est dû » OU « depuis combien de temps c'est muet » — jamais
+   les deux, puisqu'une piste sans nouvelles est par définition celle qui
+   n'a pas de prochaine action. Le mot « sans nouvelles » vit dans la
+   sous-ligne : seul, « 21 j » se lirait « dans 21 jours ». */
+export function silenceMarkHTML(sil){
+  if (!sil) return '';
+  return `<span class="mark mark-${sil.cran}">${sil.jours} j</span>`;
+}
 export function dueMarkHTML(iso){
   if (!iso) return '';
   const n = diffDays(iso);

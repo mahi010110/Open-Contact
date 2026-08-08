@@ -50,6 +50,73 @@ export function dueFollowups(companies, today){
   out.sort((a, b) => (b.lateDays - a.lateDays) || (b.touches - a.touches));
   return out;
 }
+/* ---------- les pistes SANS NOUVELLES ----------
+   Le trou mesuré : une piste qu'on a contactée, qui n'a jamais répondu
+   et à qui on n'a pas donné de prochaine action, disparaît. Elle
+   n'apparaît nulle part sur « Aujourd'hui », et dans « Mes pistes » elle
+   affiche « à planifier » — le même mot qu'elle dorme depuis cinq jours
+   ou depuis trois mois. L'app tient pourtant la date : elle la jetait.
+
+   DEUX PRÉCAUTIONS, et elles font tout le dessin.
+
+   ① Seules les pistes ENGAGÉES comptent. Une piste jamais contactée
+   (`todo`) n'est pas en train de filer entre les doigts : elle n'a pas
+   commencé, et « Par où commencer » s'en occupe. Traiter les deux
+   pareil noierait le vrai signal sous vingt-quatre lignes.
+
+   ② Le silence n'est pas une DETTE, c'est une DÉCISION. Une pile de
+   retards qui rougit et ne décroît jamais est ce qui fait abandonner
+   les outils de suivi — et la spec dit déjà « jamais culpabilisant ».
+   D'où le troisième cran : passé ~45 jours, la littérature sur la
+   relance ne dit plus « relance encore », elle dit « passe à autre
+   chose ». L'app doit donc proposer la SORTIE, pas une troisième
+   relance. C'est ce qui empêche la pile de grandir.
+
+   Les seuils viennent des données, pas du goût : on relance après
+   5 à 7 jours OUVRÉS (≈ 7 à 10 jours calendaires), une deuxième fois
+   une à deux semaines plus tard, et on s'arrête là.
+     < 7 j   → rien. Trop tôt : harceler ici ferait fuir.
+     7–20 j  → `soon`  — c'est le moment de la première relance
+     21–44 j → `now`   — deuxième et dernière relance
+     ≥ 45 j  → `late`  — relancer ne paie plus : clore, ou décider de
+                         garder en connaissance de cause. */
+export const SILENCE_RELANCE = 7;
+export const SILENCE_DERNIERE = 21;
+export const SILENCE_TROP_TARD = 45;
+
+/* la dernière trace d'activité : l'entrée d'historique la plus récente,
+   sinon `updatedAt`. On ne prend pas `updatedAt` seul — corriger une
+   faute dans le nom d'une piste le remet à jour et effacerait trois
+   semaines de silence. */
+export function derniereTrace(c, today){
+  const hist = (c.history || []).map(h => h && h.d).filter(Boolean).sort();
+  const jour = hist.length ? hist[hist.length - 1]
+    : (c.updatedAt ? new Date(c.updatedAt).toISOString().slice(0, 10) : null);
+  if (!jour || jour > today) return 0;
+  return daysBetween(jour, today);
+}
+
+export function silentPistes(companies, today){
+  const out = [];
+  for (const c of (companies || [])){
+    if (c.closedReason || c.nextAction) continue;
+    if (!c.status || c.status === 'todo') continue;      /* ① jamais engagée */
+    const jours = derniereTrace(c, today);
+    if (jours < SILENCE_RELANCE) continue;               /* trop tôt pour dire quoi que ce soit */
+    const cran = jours >= SILENCE_TROP_TARD ? 'late'
+               : jours >= SILENCE_DERNIERE ? 'now' : 'soon';
+    out.push({ id: c.id, name: c.name, jours, cran, status: c.status,
+      /* passé le dernier seuil, le geste utile n'est plus « relancer » */
+      geste: cran === 'late' ? 'clore' : 'relancer' });
+  }
+  /* le plus silencieux d'abord ; à égalité, celui qui avait répondu —
+     laisser filer une piste qui t'a répondu coûte plus cher que tout */
+  const poids = s => (s === 'reply' ? 2 : 1);
+  out.sort((a, b) => (b.jours - a.jours) || (poids(b.status) - poids(a.status))
+                  || String(a.name).localeCompare(String(b.name), 'fr'));
+  return out;
+}
+
 /* ---------- le fil des échanges, relu dans le journal ----------
    « Échanger » ne montrait que deux portes : aucune donnée de
    l'utilisateur, donc rien à comprendre d'un regard. Ce qu'il a déjà
