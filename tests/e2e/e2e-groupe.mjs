@@ -303,6 +303,126 @@ if (petites.length)
 else console.log('toutes les cibles du groupe tiennent 44 px au doigt ✓');
 await page.screenshot({ path: SHOTS + '/95-groupe-liste.png' });
 
+/* ---------- 8. joindre MON profil à un partage de pistes ----------
+   Le champ `card` était documenté et testé côté moteur, mais AUCUN
+   écran ne le produisait : une capacité injoignable. Ce contrôle part
+   du bouton et lit le fichier — c'est la seule façon de savoir qu'un
+   chemin existe vraiment. */
+const joint = await page.evaluate(async () => {
+  document.querySelectorAll('.overlay .x').forEach(x => x.click());
+  await new Promise(r => setTimeout(r, 200));
+  const { S } = await import('./ui/state.js');
+  const lire = async () => {
+    let txt = '';
+    navigator.clipboard.writeText = t => { txt = t; return Promise.resolve(); };
+    const { openDonner } = await import('./ui/donner.js');
+    openDonner();
+    await new Promise(r => setTimeout(r, 250));
+    const etat = document.getElementById('dnMoi').getAttribute('aria-pressed');
+    const dit = (document.getElementById('dnMoiQ') || {}).textContent || '';
+    const cache = document.getElementById('dnMoiQ').hidden;
+    document.getElementById('dnFile').click();
+    await new Promise(r => setTimeout(r, 200));
+    document.getElementById('dnCopy').click();
+    await new Promise(r => setTimeout(r, 250));
+    document.querySelectorAll('.overlay .x').forEach(x => x.click());
+    await new Promise(r => setTimeout(r, 200));
+    return { txt, etat, dit, cache };
+  };
+  const avant = await lire();                       /* décoché par défaut */
+  S.profile.flags.joindreProfil = true;
+  const apres = await lire();                       /* coché : ça part */
+  return { avant, apres, nom: S.profile.name };
+});
+if (joint.avant.etat !== 'false' || !joint.avant.cache)
+  fail('« Joindre mon profil » est coché d’office — un partage doit rester anonyme par défaut');
+if (JSON.parse(joint.avant.txt).card)
+  fail('mon profil part alors que la case est décochée');
+const carteEnvoyee = JSON.parse(joint.apres.txt).card;
+if (!carteEnvoyee) fail('cocher « Joindre mon profil » ne joint rien — la capacité reste morte');
+else if (carteEnvoyee.prenom !== 'Awa')
+  fail('le profil joint n’est pas le mien : ' + JSON.stringify(carteEnvoyee));
+/* et la ligne DIT ce qu'elle emporte, mot pour mot */
+else if (!joint.apres.dit.includes('Awa') || !joint.apres.dit.includes('awa@moi.test'))
+  fail('la ligne n’annonce pas ce qui part : « ' + joint.apres.dit + ' »');
+else console.log(`joindre mon profil : décoché par défaut, et cochée la ligne dit « ${joint.apres.dit} » ✓`);
+/* le receveur le voit dans l'aperçu, et il entre au même geste */
+const cote = await page.evaluate(async raw => {
+  const { S, saveGroupe } = await import('./ui/state.js');
+  const { parseInput } = await import('./engine/exchange.js');
+  const { mergePreviewInto } = await import('./ui/recevoir.js');
+  const { openSheet } = await import('./ui/dom.js');
+  S.groupe = []; saveGroupe();
+  const sh = openSheet({ title: 'x' });
+  mergePreviewInto(sh, await parseInput(raw), {});
+  await new Promise(r => setTimeout(r, 200));
+  const vu = document.querySelector('.rc-lines').innerText.replace(/\s+/g, ' ').trim();
+  [...document.querySelectorAll('.modal-f .btn')].pop().click();
+  await new Promise(r => setTimeout(r, 300));
+  return { vu, entre: S.groupe.map(m => m.prenom).join() };
+}, joint.apres.txt);
+if (!/Awa/.test(cote.vu)) fail('l’aperçu ne dit pas qu’un profil est joint : ' + cote.vu);
+if (cote.entre !== 'Awa') fail('fusionner les pistes n’ajoute pas la personne au groupe : ' + cote.entre);
+else console.log('reçu : l’aperçu annonce le profil, la fusion le range dans le groupe ✓');
+
+/* la cible et son voisinage : rater « Choisir » coûte un tap, rater
+   « Joindre mon profil » envoie son e-mail — ils ne se touchent pas */
+const voisin = await page.evaluate(async () => {
+  const { openDonner } = await import('./ui/donner.js');
+  openDonner();
+  await new Promise(r => setTimeout(r, 250));
+  const m = document.getElementById('dnMoi').getBoundingClientRect();
+  const c = document.getElementById('dnPick').getBoundingClientRect();
+  document.querySelectorAll('.overlay .x').forEach(x => x.click());
+  await new Promise(r => setTimeout(r, 200));
+  return { h: Math.round(m.height), ecart: Math.round(m.top - c.bottom) };
+});
+if (voisin.h < 44) fail(`« Joindre mon profil » fait ${voisin.h} px sous le doigt`);
+if (voisin.ecart < 8) fail(`${voisin.ecart} px entre « Choisir » et « Joindre mon profil » — deux gestes aux conséquences différentes`);
+else console.log(`la case fait ${voisin.h} px et garde ${voisin.ecart} px de « Choisir » ✓`);
+
+/* ---------- 9. une piste PORTÉE passe en tête de « Par où commencer » ----------
+   ~40 % d'entretiens contre ~3 % : c'est le critère le plus fort de
+   l'écran. Et la raison doit se LIRE sur la ligne — un tri qu'on ne
+   comprend pas ne pousse personne (§6). */
+const tete = await page.evaluate(async () => {
+  const st = await import('./engine/storage.js');
+  const { normalizeCompany } = await import('./engine/model.js');
+  const { normalizeMembre } = await import('./engine/groupe.js');
+  const { S, saveGroupe } = await import('./ui/state.js');
+  document.querySelectorAll('.overlay .x').forEach(x => x.click());
+  S.groupe = [normalizeMembre({ prenom: 'Léa', email: 'lea@promo.test' })];
+  saveGroupe();
+  /* la piste portée est VOLONTAIREMENT la moins bien classée par les
+     autres critères : sans email, sans ville, dernière alphabétiquement */
+  await st.kvSet(st.DATA_KEY, JSON.stringify([
+    normalizeCompany({ name: 'Aalto Cloud', city: 'Lyon', status: 'todo',
+      contacts: [{ name: 'RH', email: 'rh@aalto.test' }] }),
+    normalizeCompany({ name: 'Baltique Réseaux', city: 'Lille', status: 'todo',
+      contacts: [{ name: 'RH', email: 'rh@baltique.test' }] }),
+    normalizeCompany({ name: 'Zephyr SI', status: 'todo', vecu: 'stage', vecuQui: 'Léa' })
+  ]));
+  location.hash = '#aujourdhui';    /* le test précédent nous a laissés sur Échanger */
+  return true;
+});
+await page.reload({ waitUntil: 'load' });
+await attendre(page, async () => (await import('./ui/state.js')).S.companies.length === 3,
+  'les trois pistes ne sont pas chargées');
+await page.waitForTimeout(400);
+const debut = await page.evaluate(() =>
+  [...document.querySelectorAll('.act-start')].map(r => ({
+    nom: r.querySelector('.act-verb').textContent.trim(),
+    pourquoi: (r.querySelector('.act-vecu') || {}).textContent || ''
+  })));
+if (!debut.length) fail('« Par où commencer » n’affiche rien');
+else if (debut[0].nom !== 'Zephyr SI')
+  fail('la piste portée par quelqu’un du groupe n’est pas en tête : ' +
+       debut.map(d => d.nom).join(' · '));
+else if (!/Léa/.test(debut[0].pourquoi))
+  fail('la ligne ne dit pas POURQUOI elle est première : « ' + debut[0].pourquoi + ' »');
+else console.log(`en tête : ${debut[0].nom}, parce que « ${debut[0].pourquoi} » ✓`);
+await page.screenshot({ path: SHOTS + '/96-portee-en-tete.png' });
+
 console.log(errors.length ? 'Erreurs console : ' + errors.join(' | ') : 'Zéro erreur console.');
 if (errors.length) process.exitCode = 1;
 await browser.close();

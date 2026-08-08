@@ -402,10 +402,15 @@ pistes non planifiées, c'est vingt-quatre décisions avant le premier geste —
 et le premier geste n'arrive jamais. En proposer **trois** en fait un choix.
 Le tri doit avoir une raison, et cette raison doit se **voir sur la ligne** :
 un coup de pouce dont on ne comprend pas l'origine ne pousse personne. Ici,
-d'abord ce à quoi on peut écrire tout de suite (une adresse), puis les fiches
-les mieux remplies — et la sous-ligne affiche ville, nombre de contacts,
-secteur, dans cet ordre : au pouce elle s'élide par la fin, et c'est le
-secteur qu'on peut perdre, jamais le nombre de personnes joignables.
+d'abord **celles que quelqu'un de mon groupe peut porter** (~40 % d'entretiens
+contre ~3 %, aucun autre critère de la ligne n'en approche), puis ce à quoi on
+peut écrire tout de suite (une adresse), puis les fiches les mieux remplies —
+et la sous-ligne affiche la recommandation, puis ville, nombre de contacts,
+secteur : au pouce elle s'élide par la fin, donc ce qui décide se met devant,
+et c'est le secteur qu'on peut perdre, jamais le nombre de personnes
+joignables. La recommandation prend l'accent, **jamais un `mark-*`** : le
+langage d'urgence reste à ce qui réclame quelque chose, et là rien ne presse
+— c'est un atout.
 
 **Règles d'écran :** un bouton primaire max par vue ; une suppression unitaire
 réversible se fait au geste + `showUndo`, sans confirmation ; seules les

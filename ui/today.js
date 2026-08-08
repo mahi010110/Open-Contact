@@ -6,7 +6,8 @@
    jamais culpabilisant. Jamais 40 lignes d'un coup.
    ============================================================ */
 import { esc, todayISO } from '../engine/utils.js';
-import { DOMAINS, STATUSES } from '../engine/model.js';
+import { DOMAINS, STATUSES, VECU } from '../engine/model.js';
+import { trouverMembre } from '../engine/groupe.js';
 import { scoreOf } from '../engine/score.js';
 import { dueFollowups, silentPistes } from '../engine/assist.js';
 import { S, bus, isClosed, markDone, hasDemo, addDemo, removeDemo } from './state.js';
@@ -96,8 +97,16 @@ function rowHTML(c){
    existent ici : écrire, ou décider quand. */
 const DEBUT = 3;
 const joignable = c => (c.contacts || []).some(t => t.email);
+/* Le premier critère, avant même l'adresse : quelqu'un de mon groupe
+   est-il déjà passé par là ? Une candidature portée décroche ~40 %
+   d'entretiens contre ~3 % à froid — un facteur treize que rien
+   d'autre sur cette ligne n'approche. Et seulement si le prénom
+   RÉSOUT vers une personne : « quelqu'un y a fait son stage » ne se
+   joue pas, et deux homonymes ne se devinent pas (§8). */
+const porteePar = c => (c.vecu && c.vecuQui) ? trouverMembre(S.groupe, c.vecuQui) : null;
 function parOuCommencer(sansAction){
   return sansAction.slice().sort((a, b) =>
+    (!!porteePar(b) - !!porteePar(a)) ||
     (joignable(b) - joignable(a)) ||
     (scoreOf(b) - scoreOf(a)) ||
     a.name.localeCompare(b.name, 'fr')).slice(0, DEBUT);
@@ -115,12 +124,19 @@ function startRowHTML(c){
     n ? n + ' contact' + (n > 1 ? 's' : '') : '',
     c.domain && c.domain !== 'autre' ? (DOMAINS[c.domain] || DOMAINS.autre).label : ''
   ].filter(Boolean);
+  /* La raison du classement se lit sur la ligne, et EN PREMIER : la
+     sous-ligne s'élide par la fin, donc ce qui décide se met devant.
+     Pas de `mark-*` — ce n'est pas une urgence, c'est un atout ; même
+     traitement que le bandeau de la fiche, l'accent et rien d'autre. */
+  const porte = porteePar(c);
+  const pourquoi = porte
+    ? `<span class="act-vecu">${esc(porte.prenom + ' ' + VECU[c.vecu].court)}</span>` : '';
   return (
     `<div class="act-row act-start" data-id="${c.id}">
        <div class="act-in">
          <div class="act-main" role="button" tabindex="0" aria-label="Ouvrir ${esc(c.name)}">
            <b class="act-verb">${esc(c.name)}</b>
-           <span class="act-sub"><span class="act-who">${esc(bits.join(' · '))}</span></span>
+           <span class="act-sub">${pourquoi}<span class="act-who">${esc(bits.join(' · '))}</span></span>
          </div>
          <div class="act-btns">
            ${/* pas d'adresse, pas de bouton : une capacité absente est

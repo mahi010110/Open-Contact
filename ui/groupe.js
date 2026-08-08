@@ -40,7 +40,7 @@ const champsChoisis = () => {
   const f = (S.profile && S.profile.flags && S.profile.flags.carte);
   return Array.isArray(f) ? f.filter(k => CARTE_CHAMPS.includes(k)) : ['formation', 'email'];
 };
-const maCarte = () => carteDeProfil(S.profile, ['prenom'].concat(champsChoisis()));
+export const maCarte = () => carteDeProfil(S.profile, ['prenom'].concat(champsChoisis()));
 
 const nomComplet = m => [m.prenom, m.nom].filter(Boolean).join(' ');
 

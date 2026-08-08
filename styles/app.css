@@ -525,6 +525,11 @@ details.tranche[open]>summary::before{
   font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);
 }
 .act-sub .act-who{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* La raison qui a fait monter la ligne : de l'accent, jamais un
+   `mark-*`. Le langage d'urgence reste réservé à ce qui RÉCLAME
+   quelque chose — ici rien ne presse, c'est un atout. Elle ne
+   s'élide pas : c'est le reste de la sous-ligne qui cède. */
+.act-sub .act-vecu{flex:none;color:var(--accent);font-weight:var(--weight-semibold)}
 /* Sur les plus petits écrans il manquait 7 px au nom, pris par les
    retraits de la ligne. On les rend — jamais les 8 px entre les gestes,
    qui protègent le doigt. */
@@ -1265,6 +1270,19 @@ button.fi-vecu b{flex:1;min-width:0}
    exactement ce que je corrige ailleurs. */
 #dnList>.listbar{margin-top:8px}
 .dn-count{flex:1;font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted)}
+/* « Joindre mon profil » et son contenu : la case sur sa ligne, ce
+   qu'elle emporte dessous, en donnée (mono, discret) — jamais une
+   phrase qui explique, toujours les champs eux-mêmes. Le retrait
+   aligne le texte sur le libellé, pas sur la case. */
+/* 8 px sous « Choisir », pas 2 : rater « Choisir » coûte un tap pour
+   replier, rater « Joindre mon profil » envoie son e-mail à
+   quelqu'un. Deux conséquences qui n'ont rien à voir ne partagent
+   pas une arête (§5, règle 3). */
+.dn-moi{display:flex;flex-direction:column;margin-top:8px}
+.dn-moi-q{
+  padding-left:22px;font-family:var(--font-mono);font-size:var(--text-11);
+  color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
 
 .qr-prog,.scan-prog{
   margin-top:8px;text-align:center;
