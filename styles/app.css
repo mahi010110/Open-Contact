@@ -1222,7 +1222,15 @@ details.pcard-details[open]>summary{margin-bottom:10px}
    grammaire, même hauteur de cible, même trait pointillé qui dit la
    frontière. Rien de neuf à apprendre pour l'œil, et rien de neuf à
    maintenir — seul le conteneur porte un nom à lui. */
+/* La ligne n'est plus tapable — elle ne mène nulle part, elle montre
+   et elle s'efface. Elle garde pourtant la hauteur d'une cible : la
+   poubelle vit DEDANS, et un glissement l'emporte. Sans `min-height`
+   elle tombait à 38 px sous le doigt (mesuré par le garde). */
 .gr-list{display:flex;flex-direction:column}
+.gr-row{
+  display:flex;align-items:center;gap:10px;width:100%;min-height:var(--ctl);
+  border-bottom:1px dashed var(--border-soft);
+}
 .gr-list .gr-w:last-child .gr-row{border-bottom:0}
 /* Les coordonnées d'une personne se LISENT, elles ne se tapent pas :
    du texte posé, jamais un cadre surélevé (§6, règle de sobriété 3). */

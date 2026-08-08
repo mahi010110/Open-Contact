@@ -17,7 +17,7 @@ doit être repensée, pas forcée.
 | Clé | Contenu | Format |
 |---|---|---|
 | `oc_data_v3` | Les pistes (partagé + suivi privé) | JSON : tableau de pistes |
-| `oc_profile_v1` | Profil, modèles d'emails, prompts IA (8 × 4 000 car. max), fiches confirmées, flags, `updatedAt` (LWW appareils). Deux drapeaux décident de ce qui sort de MOI : `flags.carte` (les champs du profil qui voyagent — défaut `['formation','email']`) et `flags.joindreProfil` (joindre mon profil à un partage de pistes — défaut **faux**, un partage est anonyme tant qu'on n'a pas dit le contraire). Retenus d'une fois sur l'autre, mais jamais silencieux : l'écran affiche le contenu exact avant chaque départ | JSON : objet profil |
+| `oc_profile_v1` | Profil, modèles d'emails, prompts IA (8 × 4 000 car. max), fiches confirmées, flags, `updatedAt` (LWW appareils). Un seul drapeau décide de ce qui sort de MOI : `flags.joindreProfil` (joindre mon profil à un partage de pistes — défaut **faux**, un partage est anonyme tant qu'on n'a pas dit le contraire). Retenu d'une fois sur l'autre, mais jamais silencieux : la case affiche le contenu exact avant chaque départ. Le CHOIX des champs, lui, n'est pas réglable — c'est une décision du produit (`CARTE_ENVOI`), pas une case de plus à cocher | JSON : objet profil |
 | `oc_journal_v1` | Journal privé des actions (200 max). **Deux phrases de `txt` sont relues, pas seulement écrites** : `Donné (canal) : N piste(s)` et `Reçu de <qui\|la promo> : +N piste(s)…` alimentent le fil de l'écran « Échanger » (`engine/assist.js` → `exchangeLog`). Les relire plutôt qu'ajouter un champ garde l'historique DÉJÀ écrit visible ; en échange, ces deux formes sont figées et verrouillées par `tests.js`. Toute autre entrée reste du texte libre, et `Reçu (analyse IA triée)` est exclu par construction (ce n'est pas un échange avec la promo). **`ids` est un champ AJOUTÉ, jamais un renommage** : les entrées d'échange écrites depuis la v6.4 portent les identifiants des pistes concernées (données pour un `Donné`, ajoutées ou complétées pour un `Reçu` — c'est `mergeIncoming().ids` qui fait foi), plafonnés à 200 par entrée. C'est ce qui permet d'ouvrir une ligne de « Tes échanges » sur ce qui a circulé. Une entrée sans `ids` (écrite avant, ou revenue d'une sauvegarde) reste lisible : elle s'affiche, elle ne s'ouvre pas | JSON : tableau `{t, txt, cid, ids?}` |
 | `oc_orphans_v1` | Contacts « à rattacher » (sans entreprise) — l'indice d'entreprise saisi par l'utilisateur voyage dans `extra.company` (D3), consommé au rattachement | JSON : tableau de contacts |
 | `oc_tombs_v1` | Suppressions (tombstones, 500 max) — font voyager les suppressions entre MES appareils | JSON : tableau `{id, t}` |
@@ -87,26 +87,27 @@ irrécupérable — c'est le contrat du local-first.
 ```json
 { "v": 4, "app": "5.0.0", "kind": "share", "companies": [] }
 { "v": 4, "app": "5.0.0", "kind": "full",  "profile": {}, "companies": [] }
-{ "v": 4, "app": "5.0.0", "kind": "card",  "card": {}, "companies": [] }
 ```
 
 - `v` : version du **format** (4). `app` : version de l'application émettrice
   (informatif).
 - `kind: "share"` : pistes en **vue communautaire** (voir §3) — jamais de
   champ privé, jamais **mon groupe**. Champ optionnel `card` : MON profil,
-  et seulement s'il a été **joint explicitement** au moment du geste. Sans
-  ce geste, un partage reste anonyme exactement comme avant.
+  et seulement s'il a été **joint explicitement** au moment du geste (case
+  « Joindre mon profil », décochée par défaut). Ce qui part est un jeu
+  **fixe** — `{prenom, formation?, email?}` (`CARTE_ENVOI`) : pas de
+  sélecteur de champs, donc jamais de téléphone dans un fichier qui circule
+  de main en main. Le lecteur, lui, accueille tout le vocabulaire (`nom`,
+  `phone`, `link`) : une autre version peut l'émettre.
 - `kind: "full"` : sauvegarde personnelle complète — pistes avec suivi privé,
   plus le profil, plus les champs **optionnels** `orphans` (contacts « à
   rattacher »), `tombs` (suppressions) et `groupe` (mes camarades, §1) s'il y
   en a. Un lecteur qui les ignore charge quand même le reste sans erreur.
-- `kind: "card"` : **mon profil seul** — « on échange nos profils », sans
-  aucune piste. `card` porte `{prenom, nom?, formation?, email?, phone?,
-  link?}` : `prenom` obligatoire, le reste selon ce que l'utilisateur a coché
-  (décoché = **absent** du fichier, pas vide dedans). `companies: []` n'est
-  **pas un oubli et ne doit jamais disparaître** : c'est lui qui permet à une
-  version antérieure de lire le fichier, d'y voir zéro piste et de le dire —
-  sans lui, `parseInput` rejetterait un format qu'elle ne connaît pas.
+- **Pas d'enveloppe « profil seul ».** Elle a existé une journée, avec son
+  écran, son QR et son fichier : un second rituel d'échange à côté de celui
+  qui existait déjà. Le profil voyage accroché aux pistes, par le seul canal
+  qu'il y ait. Un fichier qui ne porterait qu'un `card` reste lu sans code
+  dédié — `card` se lit sur n'importe quelle enveloppe.
 - Tolérance à la lecture : un simple tableau JSON de pistes est aussi accepté.
 
 ### Compact — OCQ1 (échange par QR)
@@ -115,8 +116,8 @@ irrécupérable — c'est le contrat du local-first.
 OCQ1.<payload share compressé deflate-raw, en base64url>
 ```
 
-Une enveloppe `kind:"share"` **ou `kind:"card"`** (jamais de privé, jamais
-mon groupe), compressée par l'API native
+Une enveloppe `kind:"share"` (jamais de privé, jamais mon groupe),
+compressée par l'API native
 `CompressionStream` puis encodée base64url. Lu par `parseInput` comme les
 autres formats. Si l'API manque (très vieux navigateur), l'émetteur replie
 vers le fichier `.oc` — le format ne change pas.

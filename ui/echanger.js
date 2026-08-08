@@ -16,7 +16,6 @@ import { frDate, diffDays } from './dates.js';
 import { openDonner } from './donner.js';
 import { openRecevoir } from './recevoir.js';
 import { openPromo } from './direct.js';
-import { groupeDoorHTML, openGroupe } from './groupe.js';
 import { openFiche } from './fiche.js';
 
 /* Deux conceptions, pas une page élastique : au pouce, une colonne —
@@ -152,11 +151,7 @@ export function renderEchanger(){
      <button class="pcard moi-door" id="ecPromo">
        <span class="md-m"><b>${ic('radio', 'ic-14')} Partage en groupe</b></span>
        ${ic('chevron-right', 'ic-14')}
-     </button>
-     ${/* Les gens, juste sous les deux verbes : c'est avec eux que ça
-          circule, et c'est le prénom d'un d'entre eux qui rend une
-          déclaration « j'y suis passé » actionnable. */''}
-     ${groupeDoorHTML()}`;
+     </button>`;
   /* Pas de rappel de confidentialité ICI. Il répétait, en pied d'écran
      et en permanence, ce que « Donner » dit déjà au moment du geste —
      « Seules les fiches partent — jamais ton suivi privé » — c'est-à-dire
@@ -179,7 +174,6 @@ export function renderEchanger(){
   root.querySelector('#ecGive')?.addEventListener('click', openDonner);
   root.querySelector('#ecRecv').addEventListener('click', openRecevoir);
   root.querySelector('#ecPromo').addEventListener('click', openPromo);
-  root.querySelector('#ecGroupe').addEventListener('click', openGroupe);
   const fil = filVisible();
   root.querySelectorAll('[data-fil]').forEach(b =>
     b.addEventListener('click', () => { const x = fil[+b.dataset.fil]; if (x) openEchange(x); }));

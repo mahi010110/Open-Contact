@@ -18,8 +18,7 @@ import { filterState, filterArgs, affinerBtnHTML, bindAffinerBtn } from './affin
 import { openRoom, leaveRoom, watchLiaison } from './synclive.js';
 import { makeQrSvg } from './qr.js';
 import { whoCandidates, whoLineHTML, whoInline, openWhoPicker } from './qui.js';
-import { maCarte } from './groupe.js';
-import { resumeCarte } from '../engine/groupe.js';
+import { maCarte, monProfilEnClair } from './groupe.js';
 import { saveProfile } from './state.js';
 
 /* Le prénom qui accompagne « j'y suis passé ». Il ne part QUE sur les
@@ -199,7 +198,7 @@ export function openDonner(){
       b.innerHTML = ic(joindre ? 'checkbox-on' : 'checkbox', 'ic-14') + '<span>Joindre mon profil</span>';
       const quoi = q('#dnMoiQ');
       quoi.hidden = !joindre;
-      quoi.textContent = joindre ? resumeCarte(maCarte()).join(' · ') : '';
+      quoi.textContent = joindre ? monProfilEnClair() : '';
     };
     q('#dnMoi')?.addEventListener('click', () => {
       joindre = !joindre;

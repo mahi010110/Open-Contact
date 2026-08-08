@@ -12,6 +12,7 @@ import { encryptOC2 } from '../engine/crypto.js';
 import { fmtSize, todayISO, esc } from '../engine/utils.js';
 import { mergeTombs } from '../engine/sync.js';
 import { normalizeMembre } from '../engine/groupe.js';
+import { groupeLabel, openGroupeReglages } from './groupe.js';
 import { docGet, docPut } from '../engine/storage.js';
 import { listDocs, docKind, docTitle, pickPdf, removeDoc } from './docs.js';
 import { S, bus, saveData, saveProfile, saveOrphans, saveTombs, saveGroupe, logJ } from './state.js';
@@ -265,6 +266,14 @@ function reglagesRowsHTML(){
     ['moiVerrou', 'Protection', verrouLabel(), false],
     ['moiSync', 'Mes appareils', syncLabel(), false]
   ];
+  /* Mon groupe n'a pas de place dans le quotidien : il se remplit tout
+     seul en donnant des pistes, et il sert sur la FICHE, pas dans un
+     écran à visiter. Il apparaît ici — avec Protection et Mes
+     appareils — parce que ce sont les coordonnées de quelqu'un
+     d'AUTRE : pouvoir les voir et les effacer est un devoir. Absent
+     tant qu'il est vide : une ligne qui ne mène à rien n'est pas une
+     ligne. */
+  if (S.groupe.length) rows.push(['moiGroupe', 'Mon groupe', groupeLabel(), false]);
   /* le pré-requis ne remplace l'état que s'il n'y a rien à dire : une
      messagerie déjà branchée le dit, même si le coffre a disparu.
      Deux lignes attendaient la MÊME chose et le disaient chacune dans
@@ -316,6 +325,7 @@ function bindReglages(box){
   q('#moiVerrou').addEventListener('click', () =>
     isProtected() ? openManageSheet() : openProtectFlow());
   q('#moiSync').addEventListener('click', openAppareils);
+  q('#moiGroupe')?.addEventListener('click', openGroupeReglages);
   /* N9 : l'état a dit « à protéger d'abord » — la ligne y mène tout droit.
      Les trois lignes suivantes peuvent être absentes (CLAUDE.md §0) : on
      branche ce qui existe, jamais ce qui devrait exister. */

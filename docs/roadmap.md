@@ -25,13 +25,17 @@ Dernière mise à jour : 8 août 2026 — cache `oc-v138`, 128 auto-tests verts
 - Coffre facultatif (code, phrase de récupération, chiffrement).
 - Refonte UX complète (23 décisions, phases 0 à 4) — fusionnée dans `main`.
 - **Les 12 défauts de l'audit post-refonte** (§1.1) — tous traités.
-- **Le levier de la recommandation** (août 2026), en deux temps :
-  « j'y suis passé » (`vecu` / `vecuQui`) fait voyager le lien humain avec
-  la piste ; **mon groupe** (`oc_group_v1`) donne un visage au prénom —
-  on échange son profil par QR ou fichier, et le bandeau de la fiche mène
-  au message tout prêt. Motif : ~3 % d'entretiens à froid contre ~40 %
-  quand quelqu'un est dedans. Gardes `e2e-vecu.mjs` et `e2e-groupe.mjs`,
-  12 mutations vérifiées.
+- **Le levier de la recommandation** (août 2026). « J'y suis passé »
+  (`vecu` / `vecuQui`) fait voyager le lien humain avec la piste ; **mon
+  groupe** (`oc_group_v1`) donne un visage au prénom. Motif : ~3 %
+  d'entretiens à froid contre ~40 % quand quelqu'un est dedans.
+  **Livré deux fois** : la première version ajoutait quatre feuilles et une
+  porte — un second produit greffé au premier. Réécrite en la vidant : une
+  case dans « Donner », le groupe qui se remplit tout seul, et le bandeau
+  de la fiche qui mène au message. « Échanger » est rendu tel qu'il était.
+  Gardes `e2e-vecu.mjs` et `e2e-groupe.mjs` — ce dernier compte désormais
+  **la surface** (feuilles, portes) avec un budget motivé, au même titre
+  qu'un invariant.
 - Auto-tests verts, parcours principaux rejoués en E2E.
 
 > **Nuance conservée.** « Refonte terminée » veut dire : les 23 décisions sont

@@ -36,6 +36,13 @@ const coupe = (v, n) => String(v || '').trim().replace(/\s+/g, ' ').slice(0, n);
    drapeaux : rien de tout ça ne regarde le groupe. Ce qui part est ce
    qui sert à recontacter quelqu'un et à savoir qui il est. */
 export const CARTE_CHAMPS = ['prenom', 'nom', 'formation', 'email', 'phone', 'link'];
+/* Ce qu'OpenContact envoie réellement — un sous-ensemble FIXE du
+   vocabulaire ci-dessus. Le reste reste lisible à l'arrivée (une autre
+   version peut l'émettre) mais ne part jamais d'ici : un sélecteur de
+   champs aurait fait payer à l'utilisateur une décision que le produit
+   sait prendre, et le téléphone d'un camarade n'a rien à faire dans un
+   fichier qui circule. */
+export const CARTE_ENVOI = ['prenom', 'formation', 'email'];
 
 /* Le prénom est le SEUL champ obligatoire : c'est lui qui relie une
    déclaration « j'y suis passé » à une personne. Sans lui, l'entrée

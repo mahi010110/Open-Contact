@@ -56,17 +56,11 @@ function b64urlToBytes(s){
   while (s.length % 4) s += '=';
   return b64ToBytes(s);
 }
-/* Le compacteur ne connaît rien au contenu : il prend une enveloppe et
-   rend la chaîne. Un profil seul (`kind:"card"`) tient dans un QR
-   minuscule et emprunte exactement le même chemin que des pistes. */
-export async function encodeOCQPayload(payload){
+export async function encodeOCQ(list, keep, moi, carte){
   if (typeof CompressionStream === 'undefined') throw new Error('noqr');
-  const json = new TextEncoder().encode(JSON.stringify(payload));
+  const json = new TextEncoder().encode(JSON.stringify(sharePayload(list, keep, moi, carte)));
   const stream = new Blob([json]).stream().pipeThrough(new CompressionStream('deflate-raw'));
   return 'OCQ1.' + b64url(new Uint8Array(await new Response(stream).arrayBuffer()));
-}
-export function encodeOCQ(list, keep, moi, carte){
-  return encodeOCQPayload(sharePayload(list, keep, moi, carte));
 }
 export const OCQ_OUT_MAX = 4000000;   /* octets décompressés : même borne que l'entrée (D4) */
 export async function decodeOCQ(compact){
@@ -224,13 +218,12 @@ export function sharePayload(list, keep, moi, carte){
   if (carte && carte.prenom) out.card = carte;
   return out;
 }
-/* Le profil SEUL — « on échange nos profils », sans aucune piste.
-   `companies: []` n'est pas un oubli : c'est ce qui permet à une
-   version ancienne de lire le fichier, d'y voir zéro piste et de le
-   dire, au lieu de refuser un format qu'elle ne connaît pas. */
-export function cardPayload(carte){
-  return { v: 4, app: APP_VERSION, kind: 'card', card: carte, companies: [] };
-}
+/* Pas d'enveloppe « profil seul ». Elle a existé une journée, avec son
+   écran, son QR et son fichier : un deuxième rituel d'échange à côté de
+   celui qui existait déjà. Le profil voyage désormais accroché aux
+   pistes, par le seul canal qu'il y ait — et un fichier qui n'aurait
+   qu'un `card` reste lisible sans code dédié, puisque `card` se lit sur
+   n'importe quelle enveloppe. */
 export function fullPayload(companies, profile, orphans, tombs, groupe){
   const out = { v: 4, app: APP_VERSION, kind: 'full', profile, companies };
   if (Array.isArray(orphans) && orphans.length) out.orphans = orphans;

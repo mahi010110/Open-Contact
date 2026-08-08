@@ -12,11 +12,11 @@ import { APP_VERSION, VECU, normalizeCompany, normalizeContact, normalizeProfile
          pushHist, fillTpl, safeUrl, summarizeChanges,
          isActiveCt, nextActionContact,
          PROMPTS_MAX, PROMPT_MAX_LEN } from './engine/model.js';
-import { communityView, parseInput, sharePayload, fullPayload, cardPayload,
+import { communityView, parseInput, sharePayload, fullPayload,
          encodeOCQ, splitOCQ, makeOCQJoiner, OCQP_CHUNK,
          makeRdvCode, rdvNorm, rdvWrap, rdvParse, linkWrap, linkParse } from './engine/exchange.js';
 import { normalizeMembre, mergeMembres, mergeMembresPreview, trouverMembre,
-         carteDeProfil, CARTE_CHAMPS, GROUPE_MAX } from './engine/groupe.js';
+         carteDeProfil, CARTE_CHAMPS, CARTE_ENVOI, GROUPE_MAX } from './engine/groupe.js';
 import { findMatch, mergeIncoming, contactKey } from './engine/merge.js';
 import { syncMerge, mergeTombs, TOMBS_MAX } from './engine/sync.js';
 import { filterCompanies, filterOrphans, searchHint, NATURAL_DIR } from './engine/filter.js';
@@ -1302,14 +1302,22 @@ export async function runSelfTests(){
       /* idempotent : rejouer ne double personne */
       eq(syncMerge(tel, { ...poste, groupe: r.groupe }).groupe.length, 2);
     },
-    'groupe : un profil seul reste lisible par une vieille version': () => {
-      /* `companies: []` n'est pas un oubli : sans lui, `parseInput`
-         d'une version ancienne rejetterait le fichier au lieu de dire
-         « zéro piste ». Un format qui casse ne se rattrape jamais. */
-      const p = cardPayload(carteDeProfil({ name: 'Léa Martin' }, CARTE_CHAMPS));
-      eq(p.kind, 'card');
-      ok(Array.isArray(p.companies) && !p.companies.length);
-      eq(p.card.prenom, 'Léa');
+    /* Ce qu'on ENVOIE est un sous-ensemble fixe : trois champs, décidés
+       par le produit. Le vocabulaire complet reste LISIBLE à l'arrivée
+       (une autre version peut l'émettre), mais rien de plus ne part
+       d'ici — surtout pas un numéro de téléphone dans un fichier qui
+       circule de main en main. */
+    'groupe : ce qui part de moi est fixe, et plus court que ce qui se lit': () => {
+      const p = { name: 'Maheydine Oun', formation: 'BTS SIO', email: 'm@x.test',
+                  phone: '0639980000', portfolio: 'mahey.dev' };
+      const envoi = carteDeProfil(p, CARTE_ENVOI);
+      eq(Object.keys(envoi).sort().join(), 'email,formation,prenom');
+      eq(envoi.phone, undefined);
+      eq(envoi.link, undefined);
+      /* le lecteur, lui, sait accueillir davantage */
+      ok(CARTE_ENVOI.every(k => CARTE_CHAMPS.includes(k)));
+      ok(CARTE_CHAMPS.length > CARTE_ENVOI.length);
+      eq(normalizeMembre({ prenom: 'Léa', phone: '0755530011' }).phone, '0755530011');
     },
     /* Les pistes sans nouvelles : celles qu'on a contactées, qui n'ont
        pas répondu, et qu'on a laissées sans prochaine action. Le tri
