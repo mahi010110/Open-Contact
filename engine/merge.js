@@ -5,7 +5,7 @@
    d'état global, jamais de DOM.
    ============================================================ */
 import { uid, todayISO, normName, extractCity, distKm } from './utils.js';
-import { normalizeCompany } from './model.js';
+import { normalizeCompany, VECU } from './model.js';
 
 export function contactKey(ct){
   const e = (ct.email || '').trim().toLowerCase();
@@ -64,6 +64,18 @@ export function mergeIncoming(list, companies){
       stats.ids.push(x.id);
     } else {
       let touched = false;
+      /* « j'y suis passé » : on garde LE PLUS FORT, pas le premier arrivé.
+         Deux camarades partagent la même boîte, l'un y connaît quelqu'un,
+         l'autre y a fait son alternance — c'est l'alternance qui ouvre la
+         porte. Le vocabulaire est ordonné pour ça (VECU[].poids), et
+         l'existant n'est jamais écrasé par plus faible : l'invariant ②
+         tient dans les deux sens. */
+      const poids = v => (VECU[v] || {}).poids || 0;
+      if (x.vecu && poids(x.vecu) > poids(ex.vecu)){
+        ex.vecu = x.vecu;
+        if (x.vecuQui) ex.vecuQui = x.vecuQui; else delete ex.vecuQui;
+        touched = true;
+      } else if (x.vecu && ex.vecu && x.vecu !== ex.vecu) stats.conflicts++;
       for (const f of ['desc','address','city','website','techs','process','tips']){
         if (!ex[f] && x[f]){ ex[f] = String(x[f]); touched = true; }
         else if (ex[f] && x[f] && differ(ex[f], x[f])) stats.conflicts++;

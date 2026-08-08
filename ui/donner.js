@@ -19,6 +19,11 @@ import { openRoom, leaveRoom, watchLiaison } from './synclive.js';
 import { makeQrSvg } from './qr.js';
 import { whoCandidates, whoLineHTML, whoInline, openWhoPicker } from './qui.js';
 
+/* Le prénom qui accompagne « j'y suis passé ». Il ne part QUE sur les
+   pistes portant une déclaration (voir communityView) : un partage sans
+   déclaration reste anonyme, exactement comme avant. */
+const moiQui = () => String((S.profile && S.profile.name) || '').trim().split(/\s+/)[0] || '';
+
 const QR_HARD_MAX = 1800;     /* caractères par QR : au-delà, rendez-vous P2P ou QR animé */
 
 export function openDonner(){
@@ -190,7 +195,7 @@ export function openDonner(){
        nombre et rouvrirait une autre liste */
     const ids = chosen().map(c => c.id);
     let compact = null;
-    try { compact = await encodeOCQ(chosen(), keepFn); } catch (e) {}
+    try { compact = await encodeOCQ(chosen(), keepFn, moiQui()); } catch (e) {}
     if (my !== gen) return;
     if (compact && compact.length <= QR_HARD_MAX){ stepQRData(compact, n, ids); return; }
     if (navigator.onLine){ stepQRRdv(compact, n, ids); return; }
@@ -289,7 +294,7 @@ export function openDonner(){
        <button class="linklike" id="dnOffline" style="display:flex;margin:2px auto 0">Sans réseau ?</button>`;
     q('#dnOffline').addEventListener('click', fallback);
     const give = r.makeAction('give');
-    const payload = sharePayload(chosen(), keepFn);
+    const payload = sharePayload(chosen(), keepFn, moiQui());
     r.onPeerJoin = () => {
       give.send(payload);
       sent++;
@@ -327,7 +332,7 @@ export function openDonner(){
         q('#dnCryptPass').focus();
         return null;
       }
-      const payload = sharePayload(chosen(), keepFn);
+      const payload = sharePayload(chosen(), keepFn, moiQui());
       const txt = pass ? await encryptOC2(payload, pass) : JSON.stringify(payload);
       logJ('Donné (fichier' + (pass ? ' chiffré' : '') + ') : ' + n + ' piste(s)', null, ids);
       return txt;

@@ -521,6 +521,21 @@ données chiffrées de pair à pair. Le lien est **persistant** (`ui/synclive.js
 Transport : Trystero (vendorisé) via relais Nostr publics, personnalisables
 (`oc_relays_v1`).
 
+**Ce qui vaut d'être partagé n'est pas l'adresse, c'est le lien humain.**
+Mesuré : une candidature à froid décroche un entretien dans ~3 % des cas,
+une candidature portée par quelqu'un qui est dedans dans ~40 % — un rapport
+de 40 pour 1. Une promo entière a déjà fait des stages : ce réseau existe,
+et le partage, anonyme par construction, n'en transportait rien. D'où
+`vecu` / `vecuQui` (`CONTRAT.md` §3) : le **seul** endroit où un partage
+cesse d'être anonyme, et seulement **sur déclaration explicite** — pas de
+déclaration, pas de prénom, exactement comme avant. La règle qui en sort et
+qui vaut pour la suite : **une information qui ne mène à personne ne mène à
+rien.** « Quelqu'un y a fait son stage » ne se joue pas ; « Léa y a fait son
+stage » se joue. Le prénom n'est pas un détail d'affichage, c'est ce qui
+transforme la donnée en geste. Corollaire de garde : tout champ neuf qui
+voyage se teste d'abord sur l'invariant ① — `e2e-vecu.mjs` vérifie la fuite
+AVANT la fonctionnalité, et ses cinq mutations le prouvent.
+
 ---
 
 ## 9. Livrer — la checklist

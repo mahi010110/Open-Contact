@@ -19,7 +19,7 @@ function extraSans(extra, prives){
 /* `keep` (facultatif) : les seuls contacts à faire sortir, par id.
    Absent ou null = tous, comme avant. Une liste VIDE est un choix, pas
    un oubli : la fiche part seule, sans personne — « Donner » l'autorise. */
-export function communityView(c, keep){
+export function communityView(c, keep, moi){
   const garder = keep ? new Set(keep) : null;
   const out = {
     name: c.name, city: c.city, domain: c.domain, desc: c.desc, address: c.address,
@@ -32,6 +32,16 @@ export function communityView(c, keep){
     }),
     lat: c.lat, lng: c.lng, verifiedAt: c.verifiedAt, confirmations: c.confirmations, updatedAt: c.updatedAt
   };
+  /* « j'y suis passé » : la seule chose qui transforme une candidature à
+     froid (3 % d'entretiens) en candidature portée (40 %). Elle ne fuit
+     pas — l'utilisateur l'a écrite sur sa piste en sachant qu'elle
+     voyagerait. Le prénom l'accompagne, sinon la phrase reçue serait
+     « quelqu'un y a fait son stage » : personne à qui écrire. */
+  if (c.vecu){
+    out.vecu = c.vecu;
+    const qui = String(c.vecuQui || moi || '').trim();
+    if (qui) out.vecuQui = qui;
+  }
   const ex = extraSans(c.extra, ['nextActionCt']);
   if (ex) out.extra = ex;
   return out;
@@ -46,9 +56,9 @@ function b64urlToBytes(s){
   while (s.length % 4) s += '=';
   return b64ToBytes(s);
 }
-export async function encodeOCQ(list, keep){
+export async function encodeOCQ(list, keep, moi){
   if (typeof CompressionStream === 'undefined') throw new Error('noqr');
-  const json = new TextEncoder().encode(JSON.stringify(sharePayload(list, keep)));
+  const json = new TextEncoder().encode(JSON.stringify(sharePayload(list, keep, moi)));
   const stream = new Blob([json]).stream().pipeThrough(new CompressionStream('deflate-raw'));
   return 'OCQ1.' + b64url(new Uint8Array(await new Response(stream).arrayBuffer()));
 }
@@ -194,9 +204,13 @@ export async function parseInput(raw, pass){
    l'utilisateur a retenu pour CETTE piste. Rend null/undefined pour
    « tout », ce qui reste le défaut de tous les canaux. Le format `.oc`
    ne bouge pas : une piste part simplement avec moins de personnes. */
-export function sharePayload(list, keep){
+/* `moi` = le prénom du profil. Il ne part QUE sur les pistes où l'on a
+   déclaré « j'y suis passé » — jamais sur les autres, jamais tout seul :
+   un partage sans déclaration reste anonyme, comme avant. */
+export function sharePayload(list, keep, moi){
   const pick = typeof keep === 'function' ? keep : () => null;
-  return { v: 4, app: APP_VERSION, kind: 'share', companies: list.map(c => communityView(c, pick(c))) };
+  return { v: 4, app: APP_VERSION, kind: 'share',
+    companies: list.map(c => communityView(c, pick(c), moi)) };
 }
 export function fullPayload(companies, profile, orphans, tombs){
   const out = { v: 4, app: APP_VERSION, kind: 'full', profile, companies };

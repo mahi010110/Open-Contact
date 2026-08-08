@@ -8,7 +8,7 @@
 import { esc, normName, extractCity, distKm, todayISO, localISO } from './engine/utils.js';
 import { KDF_ITER, encryptOC2, decryptOC2, deriveKey, bytesToB64,
          fnv, ocKeystream, unsealOC1 } from './engine/crypto.js';
-import { APP_VERSION, normalizeCompany, normalizeContact, normalizeProfile,
+import { APP_VERSION, VECU, normalizeCompany, normalizeContact, normalizeProfile,
          pushHist, fillTpl, safeUrl, summarizeChanges,
          isActiveCt, nextActionContact,
          PROMPTS_MAX, PROMPT_MAX_LEN } from './engine/model.js';
@@ -1113,6 +1113,58 @@ export async function runSelfTests(){
       ];
       eq(dueFollowups(comps, '2026-07-16').map(x => x.id), ['c1', 'c2', 'c3']);
       eq(dueFollowups(comps, '2026-07-16')[0].lateDays, 15);
+    },
+    /* ---------- « j'y suis passé » ----------
+       Mesuré dans les données 2025 : 3 % d'entretiens à froid, 40 % quand
+       quelqu'un est dedans. C'est la seule chose qui change d'un ordre de
+       grandeur, et rien n'en traversait le partage. */
+    'vécu : vocabulaire fermé, et un nom qui ne déborde pas': () => {
+      eq(normalizeCompany({ name: 'A', vecu: 'stage' }).vecu, 'stage');
+      /* valeur inventée = champ absent, pas « autre » : on ne devine pas
+         ce que quelqu'un a vécu */
+      eq(normalizeCompany({ name: 'A', vecu: 'patron' }).vecu, undefined);
+      eq(normalizeCompany({ name: 'A' }).vecu, undefined);
+      /* pas de déclaration, pas de nom qui traîne */
+      eq(normalizeCompany({ name: 'A', vecuQui: 'Léa' }).vecuQui, undefined);
+      eq(normalizeCompany({ name: 'A', vecu: 'stage', vecuQui: '  Léa  ' }).vecuQui, 'Léa');
+      /* un nom reçu finit dans une phrase à l'écran, pas dans un roman */
+      eq(normalizeCompany({ name: 'A', vecu: 'stage', vecuQui: 'x'.repeat(200) }).vecuQui.length, 40);
+    },
+    'vécu : il voyage AVEC un prénom, et seulement s’il existe': () => {
+      const c = normalizeCompany({ name: 'Adrastia', vecu: 'stage', status: 'reply', notes: 'privé' });
+      const sans = normalizeCompany({ name: 'Ostral', status: 'reply', notes: 'privé' });
+      const p = sharePayload([c, sans], null, 'Léa');
+      eq(p.companies[0].vecu, 'stage');
+      eq(p.companies[0].vecuQui, 'Léa');
+      /* un partage sans déclaration reste ANONYME — le prénom ne part pas
+         tout seul, c'est ce qui garde l'invariant ① intact */
+      eq(p.companies[1].vecu, undefined);
+      eq(p.companies[1].vecuQui, undefined);
+      /* et le privé ne bouge pas d'un pouce */
+      eq(p.companies[0].status, undefined);
+      eq(p.companies[0].notes, undefined);
+    },
+    'vécu : la fusion garde le PLUS FORT, jamais le premier arrivé': () => {
+      /* deux camarades, la même boîte : l'un y connaît quelqu'un, l'autre
+         y a fait son alternance. C'est l'alternance qui ouvre la porte. */
+      const mien = [normalizeCompany({ name: 'Adrastia', vecu: 'connait', vecuQui: 'Sam' })];
+      mergeIncoming([{ name: 'Adrastia', vecu: 'alternance', vecuQui: 'Léa' }], mien);
+      eq(mien[0].vecu, 'alternance');
+      eq(mien[0].vecuQui, 'Léa');
+      /* et l'inverse n'écrase rien : l'invariant ② tient dans les deux sens */
+      mergeIncoming([{ name: 'Adrastia', vecu: 'entretien', vecuQui: 'Tom' }], mien);
+      eq(mien[0].vecu, 'alternance');
+      eq(mien[0].vecuQui, 'Léa');
+      /* rien chez moi, quelque chose chez l'autre : je le prends */
+      const vide = [normalizeCompany({ name: 'Ostral' })];
+      mergeIncoming([{ name: 'Ostral', vecu: 'stage', vecuQui: 'Awa' }], vide);
+      eq(vide[0].vecu, 'stage');
+      eq(vide[0].vecuQui, 'Awa');
+    },
+    'vécu : l’ordre du vocabulaire est le contrat de tri': () => {
+      const p = k => VECU[k].poids;
+      ok(p('alternance') > p('stage') && p('stage') > p('entretien') && p('entretien') > p('connait'));
+      eq(Object.keys(VECU).length, 4);
     },
     /* Les pistes sans nouvelles : celles qu'on a contactées, qui n'ont
        pas répondu, et qu'on a laissées sans prochaine action. Le tri

@@ -7,7 +7,7 @@
    ============================================================ */
 import { uid, extractCity, todayISO, fmtDate } from './utils.js';
 
-export const APP_VERSION = '6.9.0';
+export const APP_VERSION = '6.10.0';
 
 export const DOMAINS = {
   esn:     { label:'ESN / Services IT',       color:'#4C9FD8' },
@@ -38,13 +38,38 @@ export const CLOSE_REASONS = {
 };
 export const POSITIONS = { stage:'Stage', alternance:'Alternance', cdi:'CDI', cdd:'CDD', freelance:'Freelance' };
 
+/* ---------- « j'y suis passé » : ce qui vaut quarante candidatures ----------
+   Mesuré dans les données de recrutement 2025 : une candidature à froid
+   décroche un entretien dans 3 % des cas (15 % en 2016), une candidature
+   portée par quelqu'un de l'intérieur dans 40 %. Une recommandation vaut
+   donc une quarantaine d'envois à l'aveugle.
+
+   Or l'app fait circuler des ENTREPRISES dans un groupe. Une promo de
+   BTS SIO où chacun a déjà fait un stage est assise sur ce réseau-là, et
+   rien n'en traversait : le partage est anonyme par construction, le
+   receveur lit « reçu du groupe » sans savoir de qui ni pourquoi.
+
+   `vecu` dit ce qu'on sait de l'INTÉRIEUR. Ce n'est pas une donnée
+   privée dérivée du suivi — c'est une déclaration que l'utilisateur
+   écrit lui-même sur sa piste, en sachant qu'elle voyagera. L'invariant
+   ① tient : rien ne fuit, quelqu'un choisit de dire.
+
+   Vocabulaire fermé, du plus fort au plus faible — l'ordre est le
+   contrat, il classe les pistes reçues. */
+export const VECU = {
+  alternance: { label:'J’y ai été en alternance', court:'y a été en alternance', poids:4 },
+  stage:      { label:'J’y ai fait mon stage',    court:'y a fait son stage',    poids:3 },
+  entretien:  { label:'J’y ai passé un entretien', court:'y a passé un entretien', poids:2 },
+  connait:    { label:'J’y connais quelqu’un',     court:'y connaît quelqu’un',   poids:1 }
+};
+
 /* ---------- 5. modèle v3 : plusieurs contacts par piste ----------
    D3 : les champs inconnus (versions futures) sont conservés dans `extra`
    au lieu d'être perdus silencieusement. */
 const KNOWN_CT = ['id','name','role','email','phone','link','note','conf','extra',
   'activatedAt','src'];         /* champs d'action privés (#14) — jamais dans un partage */
 const KNOWN_C  = ['id','name','city','domain','desc','address','website','techs','positions',
-  'process','tips','contacts','lat','lng','status','notes','appliedAt','nextAction',
+  'process','tips','contacts','lat','lng','vecu','vecuQui','status','notes','appliedAt','nextAction',
   'nextActionText','closedAt','closedReason','nextActionCt',
   'history','verifiedAt','confirmations','demo','createdAt','updatedAt','extra',
   'contact','email','phone'];   /* les 3 derniers : héritage v1, absorbés dans contacts */
@@ -149,6 +174,15 @@ export function normalizeCompany(x){
     demo: !!x.demo,
     createdAt: x.createdAt || Date.now(), updatedAt: x.updatedAt || Date.now()
   };
+  /* « j'y suis passé » — vocabulaire fermé, absent quand vide. `vecuQui`
+     est le prénom de qui l'a vécu : vide chez soi (c'est moi), rempli au
+     moment du partage avec le nom du profil. Un nom reçu est tronqué :
+     il finit dans une phrase à l'écran, pas dans un roman. */
+  if (VECU[x.vecu]){
+    out.vecu = x.vecu;
+    const qui = String(x.vecuQui || '').trim().slice(0, 40);
+    if (qui) out.vecuQui = qui;
+  }
   /* #14 — la personne visée par la prochaine action (privé, optionnel,
      absent quand vide) : un jeton d'id seulement, avec la même migration
      en lecture depuis extra que les champs d'action du contact */

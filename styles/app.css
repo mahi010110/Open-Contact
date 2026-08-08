@@ -1496,6 +1496,16 @@ button.ec-row:hover{background:var(--surface-field)}
    68 px ici, c'est le script qui donne la hauteur */
 /* la hauteur est pilotée en JS (le champ suit son contenu) : ici, juste
    le fait qu'elle GLISSE au lieu de sauter d'une ligne d'un coup */
+/* « J'y suis passé » : un ATOUT, pas une urgence — d'où le teal de
+   l'accent et pas l'échelle `mark-*`, réservée à ce qui presse. Posé
+   tout en haut de la fiche : c'est la seule ligne qui fait passer une
+   candidature de 3 % à 40 % de réponses. */
+.fi-vecu{
+  display:flex;align-items:center;gap:7px;margin:0 0 14px;padding:8px 10px;
+  border:1px solid var(--accent);background:var(--teal-wash);
+  color:var(--accent);font-size:var(--text-13);
+}
+.fi-vecu b{font-weight:var(--weight-semibold)}
 #fiNotes{min-height:44px;overflow-y:hidden;resize:none;
   transition:height var(--dur-2) var(--ease-out)}
 /* un chiffre qui bouge deux fois par mois n'a pas à porter un cadre :

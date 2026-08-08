@@ -5,7 +5,7 @@
    privé (statut, notes, actions) ne passe jamais par ici.
    ============================================================ */
 import { esc, debounce } from '../engine/utils.js';
-import { DOMAINS, POSITIONS, pushHist } from '../engine/model.js';
+import { DOMAINS, POSITIONS, VECU, pushHist } from '../engine/model.js';
 import { suggestAddresses } from '../engine/geo.js';
 import { bus, saveData, logJ } from './state.js';
 import { openSheet, toast, btn } from './dom.js';
@@ -46,6 +46,19 @@ export function sharedFieldsHTML(c){
            `<button class="dchip${c.positions.includes(k) ? ' on' : ''}" data-p="${k}"
                     aria-pressed="${c.positions.includes(k)}">${POSITIONS[k]}</button>`).join('')}
        </div></div>
+     ${/* « J'y suis passé » — la seule chose qui fait passer une
+          candidature de 3 % à 40 % d'entretiens quand elle circule dans
+          le groupe. Des puces, pas une liste déroulante : on répond en
+          un tap, et le champ vide est la réponse la plus fréquente.
+          Re-taper la puce active la retire — c'est la seule façon de
+          revenir en arrière sans ajouter un « aucun » qui alourdirait
+          les cinq choix à six. */''}
+     <div class="field"><label id="edVecuL">J’y suis passé</label>
+       <div class="datechips" role="group" aria-labelledby="edVecuL">
+         ${Object.keys(VECU).map(k =>
+           `<button class="dchip${c.vecu === k ? ' on' : ''}" data-v="${k}"
+                    aria-pressed="${c.vecu === k}">${VECU[k].label}</button>`).join('')}
+       </div></div>
      <div class="field"><label for="edProcess">Process de recrutement</label>
        <textarea id="edProcess" class="ta-s" placeholder="Ex : CV → entretien RH → test technique">${esc(c.process)}</textarea></div>
      <div class="field"><label for="edTips">Conseils pour postuler</label>
@@ -60,6 +73,20 @@ export function bindSharedFields(root){
   const q = s => root.querySelector(s);
   root.querySelectorAll('.dchip').forEach(b =>
     b.addEventListener('click', () => {
+      /* Les postes se cumulent (on cherche stage OU alternance) ; « j'y
+         suis passé » ne peut être qu'UNE chose — on n'a pas fait à la
+         fois son stage ET son alternance là-bas dans la même phrase.
+         Même composant, deux comportements, et c'est la donnée qui
+         décide : `data-v` = exclusif, `data-p` = cumulable. */
+      if (b.dataset.v){
+        const etait = b.classList.contains('on');
+        root.querySelectorAll('.dchip[data-v]').forEach(o => {
+          o.classList.remove('on'); o.setAttribute('aria-pressed', 'false');
+        });
+        if (etait) return;                       /* re-taper = retirer */
+        b.classList.add('on'); b.setAttribute('aria-pressed', 'true');
+        return;
+      }
       b.classList.toggle('on');
       b.setAttribute('aria-pressed', b.classList.contains('on'));
     }));
@@ -107,7 +134,12 @@ export function bindSharedFields(root){
          réécrite à la main invalide les anciennes */
       if (picked){ c.lat = picked.lat; c.lng = picked.lng; }
       else if (c.address !== addrBefore){ c.lat = null; c.lng = null; }
-      c.positions = Array.from(root.querySelectorAll('.dchip.on')).map(b => b.dataset.p);
+      c.positions = Array.from(root.querySelectorAll('.dchip.on[data-p]')).map(b => b.dataset.p);
+      const v = root.querySelector('.dchip.on[data-v]');
+      /* chez soi, `vecuQui` reste vide : c'est moi. Le prénom ne
+         s'attache qu'au moment du partage. */
+      if (v){ c.vecu = v.dataset.v; delete c.vecuQui; }
+      else { delete c.vecu; delete c.vecuQui; }
     }
   };
 }

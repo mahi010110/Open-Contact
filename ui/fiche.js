@@ -8,7 +8,7 @@
    itinéraire — l'édition des champs partagés reste sa feuille.
    ============================================================ */
 import { esc, fmtDate, isLate, directionsUrl } from '../engine/utils.js';
-import { STATUSES, CLOSE_REASONS, DOMAINS, POSITIONS, pushHist, summarizeChanges,
+import { STATUSES, CLOSE_REASONS, DOMAINS, POSITIONS, VECU, pushHist, summarizeChanges,
          nextActionContact } from '../engine/model.js';
 import { scoreOf } from '../engine/score.js';
 import { bus, isClosed, saveData, reopenPiste, logJ, activateContact } from './state.js';
@@ -241,11 +241,24 @@ export function openFiche(c){
              `<li><span class="d">${esc(fmtDate(h.d))}</span><span>${esc(h.t)}</span></li>`).join('')}</ul>
          </details>` : ''}`;
 
+    /* « J'y suis passé » — la seule information de la fiche qui change
+       l'ordre de grandeur du résultat : 3 % d'entretiens à froid contre
+       40 % quand quelqu'un est dedans. Elle se pose donc TOUT EN HAUT,
+       avant le statut, et elle nomme la personne : « Léa y a fait son
+       stage » se termine par « écris à Léa », « quelqu'un y a fait son
+       stage » ne mène nulle part.
+       Ce n'est pas le langage d'urgence (`mark-*`) : rien ne presse ici,
+       c'est un ATOUT. D'où sa propre pastille. */
+    const v = VECU[c.vecu];
+    const vecuHTML = !v ? '' :
+      `<div class="fi-vecu">${ic('user', 'ic-14')}
+         <b>${c.vecuQui ? esc(c.vecuQui) + ' ' + v.court : 'Tu y es passé — ' + v.label.toLowerCase()}</b>
+       </div>`;
     const sub = subBits.length ? `<div class="fi-sub">${subBits.map(esc).join(' · ')}</div>` : '';
     sh.body.innerHTML = wide
-      ? `<div class="fi-top">${sub}${outils}</div>
+      ? `<div class="fi-top">${sub}${outils}</div>${vecuHTML}
          <div class="fi-cols"><div>${travail}</div><div>${dossier}</div></div>`
-      : `<div class="fi-top">${sub}${outils}</div>` + travail + dossier;
+      : `<div class="fi-top">${sub}${outils}</div>${vecuHTML}` + travail + dossier;
 
     /* branchements */
     const byCt = id => (c.contacts || []).find(t => t.id === id);

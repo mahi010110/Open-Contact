@@ -632,7 +632,7 @@ export function openPromo(){
       q('#prSend').addEventListener('click', () => {
         const list = chosen();
         if (!list.length) return;
-        share.send(sharePayload(list, keepFn));
+        share.send(sharePayload(list, keepFn, String((S.profile && S.profile.name) || '').trim().split(/\s+/)[0] || ''));
         logJ('Donné (partage en groupe) : ' + list.length + ' piste(s)', null, list.map(c => c.id));
         toast('Parti vers ' + peers + ' camarade' + (peers > 1 ? 's' : '') + ' ✓');
       });

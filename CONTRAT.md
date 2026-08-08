@@ -190,7 +190,7 @@ Une piste normalisée a exactement ces champs :
 **Partagé** — part dans un fichier `kind:"share"` :
 `name`, `city`, `domain`, `desc`, `address`, `website`, `techs`,
 `positions[]`, `process`, `tips`, `contacts[]`, `lat`, `lng`, `verifiedAt`,
-`confirmations`, `updatedAt` (+ `extra` si présent).
+`confirmations`, `updatedAt`, `vecu`, `vecuQui` (+ `extra` si présent).
 
 **Privé** — ne part **jamais** dans un partage :
 `status`, `notes`, `appliedAt`, `nextAction`, `nextActionText`, `closedAt`,
@@ -231,7 +231,24 @@ est tronqué au jour, le reste est vidé) ; les clés `__proto__`,
   piste **clôturée** (`closedReason` correspondant, `closedAt` déduit de
   `updatedAt`) avec `status: reply` ;
 - `closedReason` : `""` (piste vivante), `won`, `rejected`, `dropped` ;
-- `positions` : `stage`, `alternance`, `cdi`, `cdd`, `freelance`.
+- `positions` : `stage`, `alternance`, `cdi`, `cdd`, `freelance` ;
+- `vecu` : `alternance`, `stage`, `entretien`, `connait` — valeur inconnue
+  → champ **absent** (pas de repli : une déclaration fausse vaut moins que
+  pas de déclaration).
+
+**« J'y suis passé » (`vecu`, `vecuQui`) — partagés, et c'est le point.**
+`vecu` dit le lien qu'une personne a déjà avec la structure ; `vecuQui`
+porte le **prénom** de qui le déclare (40 caractères max, coupé au-delà).
+C'est le seul endroit où un partage cesse d'être anonyme, et il ne le
+devient que sur déclaration : `communityView` n'émet `vecuQui` **que** si
+`vecu` est présent — une piste sans déclaration part exactement aussi
+anonyme qu'avant. Chez soi, `vecuQui` reste vide (« c'est moi ») ; le
+prénom vient du profil au moment du partage, jamais du stockage.
+Fusion : contrairement à la règle générale (§4.1, compléter les vides),
+`vecu` **remplace** quand l'entrant est plus fort — l'ordre est
+`alternance` > `stage` > `entretien` > `connait`. Un entrant plus faible
+ou égal-mais-différent est compté en divergence, jamais importé. Rien
+n'est perdu : c'est un renforcement, pas un écrasement.
 
 **La prochaine action** (privée) : `nextAction` porte la **date** (ISO,
 champ historique inchangé — les anciennes données restent valides),
