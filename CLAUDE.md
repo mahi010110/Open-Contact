@@ -310,7 +310,7 @@ avec un motif existant.
 
 | Besoin | Motif |
 |---|---|
-| Poser une question, éditer | `openSheet` (empilable, focus-trap, Échap, glisser-fermer, `setFoot` REMPLACE les boutons, `guard` = garde-fou avant fermeture) |
+| Poser une question, éditer | `openSheet` (empilable, focus-trap, Échap, glisser-fermer au doigt, barre de titre qui se glisse à la souris, `setFoot` REMPLACE les boutons, `guard` = garde-fou avant fermeture) |
 | Trier une liste | `ui/sort.js` — critère + bascule ↑↓ ; re-tap du critère actif = retour au défaut de l'écran |
 | Filtrer + trier ensemble | `ui/affiner.js` — une feuille, un compte dans le bouton (`Affiner ③`) |
 | Supprimer au geste | `bindDeleteGesture(node, onDelete)` — glisser (mobile) / poubelle au survol (desktop), doublé d'un `showUndo` |
@@ -338,6 +338,22 @@ avec un motif existant.
 réversible se fait au geste + `showUndo`, sans confirmation ; seules les
 actions lourdes ou irréversibles gardent `confirmSheet` ; l'état vide de
 chaque écran enseigne le produit, jamais un simple « aucune donnée ».
+
+**Une feuille ne s'étire pas — elle se déplace.** Mesuré sur les seize
+feuilles de l'app, en 390 × 844 et en 1280 × 800 : chacune est soit au
+plafond (92 dvh, plus rien à gagner), soit assez courte pour tout montrer
+(l'étirer n'ajouterait que du vide). **Aucune n'est les deux** — le
+dimensionnement automatique fait déjà le travail, et un cran « pleine
+hauteur » serait un geste sans effet. Élargir au poste ne sauve rien non
+plus : la fiche passe de 1273 px cachés à 903 px en doublant la largeur.
+Ce qui manquait vraiment, c'est de voir **derrière** : au poste, la barre
+de titre se prend à la souris — l'idiome « 98 » au complet — bornée pour
+que la fenêtre reste toujours rattrapable (80 px visibles sur les côtés,
+44 px de barre en bas, jamais au-dessus du bord haut). La place vaut pour
+toutes les feuilles et dure la session : c'est un réglage de bureau, rien
+n'est écrit. Une **confirmation** en est exclue — une question n'est pas
+une fenêtre qu'on range. Au doigt, la même barre sert déjà à refermer
+d'un glissement : rien n'y change.
 
 **Trois règles de guidage du regard**, tirées d'un audit mesuré (test du flou
 + saillance calculée sur les pixels rendus) :

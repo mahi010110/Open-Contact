@@ -92,6 +92,89 @@ function focusables(root){
     'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
   )).filter(x => x.offsetParent !== null);
 }
+/* ---------- au poste, une fenêtre se prend par sa barre de titre ----------
+   L'identité du produit est un utilitaire de bureau de 98 : là-bas,
+   TOUTE fenêtre se déplace. Ici elle était clouée au centre, et le seul
+   moyen de voir ce qu'elle couvrait était de la fermer.
+
+   Étirer la feuille, en revanche, ne rend rien — mesuré sur les seize
+   feuilles de l'app, aux deux tailles d'écran : chacune est soit au
+   plafond (92 dvh, plus rien à gagner), soit assez courte pour tout
+   montrer (l'étirer n'ajouterait que du vide). Aucune n'est les deux.
+   C'est le dimensionnement automatique qui fait déjà le travail.
+
+   La place choisie vaut pour TOUTES les feuilles et dure le temps de la
+   session : c'est un réglage de bureau, pas une donnée — rien n'est
+   écrit nulle part. Les confirmations en sont exclues : une question
+   n'est pas une fenêtre qu'on range.
+
+   Bornes : au moins 80 px de fenêtre visible sur les côtés, jamais
+   au-dessus du bord haut, 44 px de barre toujours atteignable en bas —
+   une fenêtre qu'on ne peut plus reprendre n'est plus une fenêtre.
+
+   Geste à la souris seule, et c'est assumé (WCAG 2.5.7 vise le
+   glissement dont une TÂCHE dépend) : la place par défaut reste
+   entièrement utilisable, rien ici ne se fait qu'en déplaçant. Un chemin
+   clavier coûterait un arrêt de tabulation avant la croix, sur CHAQUE
+   feuille — payé cent fois par jour pour un confort qu'on prend une
+   fois. */
+let posee = { x: 0, y: 0 };
+function installDeplacement(ov, modal, signal){
+  const h = ov.querySelector('.modal-h');
+  h.title = 'Glisser pour déplacer · double-clic pour recentrer';
+  /* la place AU REPOS : le rectangle rendu porte déjà la translation,
+     on la retranche une fois pour toutes au lieu de la traîner */
+  const repos = () => {
+    const r = modal.getBoundingClientRect();
+    return { l: r.left - posee.x, t: r.top - posee.y, w: r.width };
+  };
+  const serre = rp => {
+    posee.x = Math.max(80 - rp.l - rp.w, Math.min(innerWidth - rp.l - 80, posee.x));
+    posee.y = Math.max(-rp.t, Math.min(innerHeight - rp.t - 44, posee.y));
+  };
+  const pose = () => {
+    modal.style.transform = (posee.x || posee.y) ? `translate(${posee.x}px,${posee.y}px)` : '';
+  };
+  let id = null, ax = 0, ay = 0, rp = null;
+  h.addEventListener('pointerdown', e => {
+    if (e.button !== 0 || (e.target.closest && e.target.closest('button'))) return;
+    id = e.pointerId; rp = repos();
+    ax = e.clientX - posee.x; ay = e.clientY - posee.y;
+    modal.style.transition = 'none';
+    h.classList.add('mh-drag');
+    try { h.setPointerCapture(id); } catch (x) {}
+    e.preventDefault();                     /* pas de sélection de texte */
+  }, { signal });
+  h.addEventListener('pointermove', e => {
+    if (id == null || e.pointerId !== id) return;
+    posee.x = e.clientX - ax; posee.y = e.clientY - ay;
+    serre(rp); pose();
+  }, { signal });
+  const fin = () => {
+    if (id == null) return;
+    try { h.releasePointerCapture(id); } catch (x) {}
+    id = null; rp = null;
+    modal.style.transition = '';
+    h.classList.remove('mh-drag');
+  };
+  h.addEventListener('pointerup', fin, { signal });
+  h.addEventListener('pointercancel', fin, { signal });
+  h.addEventListener('dblclick', e => {
+    if (e.target.closest && e.target.closest('button')) return;
+    posee = { x: 0, y: 0 }; pose();
+  }, { signal });
+  /* L'écran change de taille : la fenêtre pourrait se retrouver dehors.
+     Une feuille qui ATTEND derrière une autre (`ov-behind`, donc
+     `display:none`) rend un rectangle à zéro — la serrer là-dessus
+     écrirait n'importe quoi dans une place partagée par toutes. Elle se
+     resserrera d'elle-même en revenant. */
+  addEventListener('resize', () => {
+    if (!modal.getClientRects().length) return;
+    serre(repos()); pose();
+  }, { signal });
+  return { pose, serre, repos };
+}
+
 export function openSheet(o){
   o = o || {};
   /* Les feuilles qui succèdent directement à une action transitoire peuvent
@@ -102,7 +185,11 @@ export function openSheet(o){
     `<div class="overlay open">
       <div class="modal ${o.className || ''}" role="dialog" aria-modal="true" aria-label="${esc(o.title || '')}">
         <div class="modal-h"><h2>${o.icon ? ic(o.icon, 'ic-14') : ''}<span class="mh-t">${esc(o.title || '')}</span></h2>
-          <button class="x" aria-label="Fermer">✕</button></div>
+          ${/* `title` explicite : sans lui, la croix HÉRITE de l'infobulle
+                de la barre de titre (« Glisser pour déplacer… ») — le
+                navigateur remonte au premier ancêtre qui en porte une, et
+                le bouton annonçait donc le geste du voisin. */''}
+          <button class="x" aria-label="Fermer" title="Fermer">✕</button></div>
         <div class="modal-b"></div>
         <div class="modal-f" hidden></div>
       </div>
@@ -113,6 +200,10 @@ export function openSheet(o){
   else if (o.body) body.append(o.body);
 
   let closed = false;
+  /* les écouteurs posés hors de `ov` (le redimensionnement de la
+     fenêtre) partent avec elle — sinon chaque feuille ouverte en
+     laisserait un derrière elle */
+  const vie = new AbortController();
   const prevFocus = document.activeElement;
   /* o.guard : consulté avant de fermer (léger garde-fou « quitter sans
      enregistrer ? ») — false ou promesse fausse = on reste */
@@ -129,6 +220,7 @@ export function openSheet(o){
       }
     }
     closed = true;
+    vie.abort();
     const i = stack.indexOf(rec);
     if (i >= 0) stack.splice(i, 1);
     ov.remove();
@@ -175,7 +267,20 @@ export function openSheet(o){
       body.scrollHeight - body.clientHeight <= 4 &&
       !e.target.closest('button, a, input, textarea, select, [role="button"], .datechips'));
   }
+  /* déplacement à la souris — pas sur une confirmation, et pas au doigt :
+     là, la barre de titre sert déjà à refermer d'un glissement */
+  const bougeable = matchMedia('(pointer:fine)').matches
+    && !(o.className || '').includes('modal-confirm');
+  if (bougeable && (posee.x || posee.y)){
+    /* une animation l'emporte sur le style en ligne : la fenêtre serait
+       montée au centre puis aurait sauté à sa place 200 ms plus tard */
+    ov.querySelector('.modal').style.animation = 'none';
+  }
   document.body.append(ov);
+  if (bougeable){
+    const m = installDeplacement(ov, ov.querySelector('.modal'), vie.signal);
+    if (posee.x || posee.y){ m.serre(m.repos()); m.pose(); }
+  }
   requestAnimationFrame(() => {
     const f = (o.focus && ov.querySelector(o.focus)) || ov.querySelector('.x');
     try { f.focus({ preventScroll: true }); } catch (e) {}

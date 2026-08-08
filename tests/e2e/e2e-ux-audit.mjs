@@ -622,8 +622,15 @@ for (const [nom, ptr] of [['doigt', true], ['souris', false]]){
     });
     await zPage.reload({ waitUntil: 'load' });
     await attendre(zPage, async () => (await import('./ui/state.js')).S.companies.length === 1);
+    /* Attendre l'écran AVANT de le mesurer. Vu une fois : « Mes pistes »
+       pas encore dessiné, `px()` rendait 0 partout — le contrôle du champ
+       criait « 0 px, iOS zoomera » (faux) pendant que le rapport d'échelle
+       (grand > petit × 1,3) devenait toujours vrai, donc aveugle. Un écran
+       absent doit se DIRE, jamais se laisser mesurer à zéro. */
+    await zPage.waitForSelector('#view-pistes:not([hidden]) h2');
+    await zPage.waitForSelector('#piQ');
     const z = await zPage.evaluate(() => {
-      const px = s => { const n = document.querySelector(s); return n ? parseFloat(getComputedStyle(n).fontSize) : 0; };
+      const px = s => { const n = document.querySelector(s); return n ? parseFloat(getComputedStyle(n).fontSize) : null; };
       /* un libellé coupé AUX DEUX BOUTS : le début part avec la fin */
       const coupes = [...document.querySelectorAll('.bottomnav .bn-l')]
         .filter(n => n.scrollWidth > n.clientWidth + 1 && getComputedStyle(n).textOverflow !== 'ellipsis')
@@ -631,16 +638,21 @@ for (const [nom, ptr] of [['doigt', true], ['souris', false]]){
       return { titre: px('#view-pistes h2'), champ: px('#piQ'),
         deborde: document.documentElement.scrollWidth > innerWidth + 1, coupes };
     });
+    if (z.titre == null || z.champ == null)
+      fail(`racine ${racine}px : « Mes pistes » n'était pas dessiné — rien n'a été mesuré`);
     if (z.deborde) fail(`racine ${racine}px : la page déborde en largeur`);
     if (z.coupes.length) fail(`racine ${racine}px : libellé coupé aux deux bouts — ${z.coupes.join(', ')}`);
     /* le champ ne descend JAMAIS sous 16 px, sinon iOS zoome au focus */
-    if (z.champ < 16) fail(`racine ${racine}px : champ à ${z.champ}px — iOS zoomera à la mise au point`);
+    if (z.champ != null && z.champ < 16)
+      fail(`racine ${racine}px : champ à ${z.champ}px — iOS zoomera à la mise au point`);
     mesures.push({ racine, titre: z.titre });
     if (racine === 24) await zPage.screenshot({ path: SHOTS + '/87-ux-texte-agrandi.png' });
     await zCtx.close();
   }
   const [petit, grand] = mesures;
-  if (!(grand.titre > petit.titre * 1.3))
+  if (!petit.titre || !grand.titre)
+    fail(`échelle non mesurable : titre ${petit.titre} à racine 16, ${grand.titre} à racine 24`);
+  else if (!(grand.titre > petit.titre * 1.3))
     fail(`l'échelle ne suit pas la police de l'utilisateur : ${petit.titre}px à racine 16, ` +
       `${grand.titre}px à racine 24 — une échelle en px ignore ce réglage`);
   console.log(`   police de l'utilisateur suivie : titre ${petit.titre}px → ${grand.titre}px, ` +

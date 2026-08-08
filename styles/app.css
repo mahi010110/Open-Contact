@@ -1002,6 +1002,15 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   .modal-f .btn{flex:0 0 auto}
   .x{min-width:28px;min-height:28px;width:28px;height:28px}
 }
+/* la barre de titre se prend à la souris — le curseur est le seul signe
+   dont ce geste a besoin, et il ne coûte pas un pixel. Au doigt, la même
+   barre sert à refermer d'un glissement : pas de curseur, pas de conflit. */
+@media (pointer:fine){
+  .modal-h{cursor:grab}
+  .modal-h.mh-drag{cursor:grabbing}
+  .modal-h button{cursor:pointer}
+  .modal-confirm .modal-h{cursor:default}
+}
 
 /* champ de gabarit sans code (#17) : texte réel, jetons surlignés en
    douceur — jamais de {{...}} à l'écran */
