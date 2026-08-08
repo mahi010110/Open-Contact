@@ -365,6 +365,16 @@ avec un motif existant.
 | Une page = un objet et ses réglages | en-tête `.obj` (icône en haut à gauche + nom) puis des cadres `.fset`. **Le cadre est lourd : deux par écran au maximum, jamais s'il contiendrait tout l'écran.** Ailleurs, `pcard` reste la règle |
 | Recevoir des données | TOUJOURS l'aperçu avant fusion (`mergePreviewInto`) — mêmes règles quel que soit le canal |
 
+**Choisir à la place de l'utilisateur est le service rendu.** Vingt-quatre
+pistes non planifiées, c'est vingt-quatre décisions avant le premier geste —
+et le premier geste n'arrive jamais. En proposer **trois** en fait un choix.
+Le tri doit avoir une raison, et cette raison doit se **voir sur la ligne** :
+un coup de pouce dont on ne comprend pas l'origine ne pousse personne. Ici,
+d'abord ce à quoi on peut écrire tout de suite (une adresse), puis les fiches
+les mieux remplies — et la sous-ligne affiche ville, nombre de contacts,
+secteur, dans cet ordre : au pouce elle s'élide par la fin, et c'est le
+secteur qu'on peut perdre, jamais le nombre de personnes joignables.
+
 **Règles d'écran :** un bouton primaire max par vue ; une suppression unitaire
 réversible se fait au geste + `showUndo`, sans confirmation ; seules les
 actions lourdes ou irréversibles gardent `confirmSheet` ; l'état vide de
@@ -395,10 +405,21 @@ d'un glissement : rien n'y change.
 2. **Un écran montre les affaires de l'utilisateur, pas des portes.** Un écran
    incapable d'afficher une donnée réelle est un menu : il appartient à la
    navigation, pas à un onglet. Aucune mise en forme ne sauve un écran qui n'a
-   rien à dire.
+   rien à dire. **Corollaire, mesuré** : un écran qui PEUT montrer une donnée
+   et ne le fait pas tombe sous la même règle. « Aujourd'hui » répondait
+   « Rien de planifié » avec zéro ligne et deux portes alors que vingt-quatre
+   pistes venaient d'arriver — l'état exact au sortir du geste phare du
+   produit, recevoir le fichier d'un camarade. Il montre désormais **trois**
+   pistes et leurs gestes (`e2e-commencer.mjs`).
 3. **`page-inner` seul (640 px) sur desktop = écran non conçu.** Flouter la
    capture : si la structure disparaît, ou si la zone la plus contrastée est
-   du vide, c'est raté.
+   du vide, c'est raté. **Une exception, nommée** : un ÉTAT transitoire d'un
+   écran par ailleurs dessiné pour le poste. « Par où commencer » est une
+   colonne de trois lignes ; l'étirer sur 1660 px envoie ses boutons à
+   l'autre bout de l'écran (mesuré) alors que la pleine largeur appartient
+   au tableau à trois colonnes, qui revient dès qu'il y a du travail
+   planifié. La règle vise un écran qui ignore la largeur ; pas un écran
+   qui la rend le temps d'un démarrage à froid.
 
 > **Ce que les instruments ne savent pas faire.** Ils tranchent la mise en
 > page (vide, dominance, largeur) ; ils sont **aveugles à l'emphase** — les

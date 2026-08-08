@@ -6,6 +6,8 @@
    jamais culpabilisant. Jamais 40 lignes d'un coup.
    ============================================================ */
 import { esc, todayISO } from '../engine/utils.js';
+import { DOMAINS } from '../engine/model.js';
+import { scoreOf } from '../engine/score.js';
 import { dueFollowups } from '../engine/assist.js';
 import { S, bus, isClosed, markDone, hasDemo, addDemo, removeDemo } from './state.js';
 import { $, ic, toast, openSheet } from './dom.js';
@@ -72,6 +74,71 @@ function rowHTML(c){
        </div>
      </div>`);
 }
+/* ---------- « Par où commencer » ----------
+   Le cas mesuré : on reçoit le fichier d'un camarade, vingt-quatre
+   pistes arrivent d'un coup, aucune n'est planifiée — et l'écran censé
+   répondre à « je fais quoi maintenant ? » répondait « Rien de
+   planifié », zéro ligne affichée, deux portes. Or il tient la réponse :
+   vingt-quatre pistes. C'est la règle §6 (« un écran montre les affaires
+   de l'utilisateur, pas des portes ») appliquée à l'écran principal.
+
+   TROIS, pas vingt-quatre : vingt-quatre pistes non planifiées, c'est
+   vingt-quatre décisions avant le premier geste, et le premier geste
+   n'arrive jamais. Choisir à la place de l'utilisateur EST le service.
+
+   L'ordre a une raison, et elle se voit sur la ligne : d'abord ce à quoi
+   on peut ÉCRIRE tout de suite (une adresse), ensuite les fiches les
+   mieux remplies (on a le plus à dire). Un coup de pouce sans raison
+   visible ne pousse personne.
+
+   Une ligne sans action n'offre ni « Fait » ni « Reporter » — il n'y a
+   rien à finir ni à repousser. Elle offre les deux seuls gestes qui
+   existent ici : écrire, ou décider quand. */
+const DEBUT = 3;
+const joignable = c => (c.contacts || []).some(t => t.email);
+function parOuCommencer(sansAction){
+  return sansAction.slice().sort((a, b) =>
+    (joignable(b) - joignable(a)) ||
+    (scoreOf(b) - scoreOf(a)) ||
+    a.name.localeCompare(b.name, 'fr')).slice(0, DEBUT);
+}
+function startRowHTML(c){
+  const n = (c.contacts || []).length;
+  /* Le compte de contacts passe DEVANT le secteur : au pouce la
+     sous-ligne s'élide, et c'est le dernier morceau qui saute. « ESN /
+     Services IT » est le plus long et le moins décisif — le nombre de
+     personnes joignables, lui, est exactement ce qui départage. Mesuré :
+     la version secteur-en-second rendait « Toulouse · ESN / Services
+     IT · 3 co… ». */
+  const bits = [
+    c.city,
+    n ? n + ' contact' + (n > 1 ? 's' : '') : '',
+    c.domain && c.domain !== 'autre' ? (DOMAINS[c.domain] || DOMAINS.autre).label : ''
+  ].filter(Boolean);
+  return (
+    `<div class="act-row act-start" data-id="${c.id}">
+       <div class="act-in">
+         <div class="act-main" role="button" tabindex="0" aria-label="Ouvrir ${esc(c.name)}">
+           <b class="act-verb">${esc(c.name)}</b>
+           <span class="act-sub"><span class="act-who">${esc(bits.join(' · '))}</span></span>
+         </div>
+         <div class="act-btns">
+           ${/* pas d'adresse, pas de bouton : une capacité absente est
+                ABSENTE, jamais grisée (§0) */''}
+           ${joignable(c)
+             ? `<button class="abtn" data-a="mail" aria-label="Écrire à ${esc(c.name)}" title="Écrire">${ic('mail')}</button>` : ''}
+           <button class="abtn abtn-ok" data-a="plan" aria-label="Planifier ${esc(c.name)}" title="Planifier">${ic('calendar')}</button>
+         </div>
+       </div>
+     </div>`);
+}
+function debutHTML(items){
+  return `<section class="tranche tr-start">
+            <h3 class="tr-h">${ic('zap', 'ic-14')} Par où commencer</h3>
+            <div class="tr-rows">${items.map(startRowHTML).join('')}</div>
+          </section>`;
+}
+
 function trancheHTML(key, label, icon, items, open){
   if (!items.length) return '';
   const cap = expanded.has(key) ? items.length : CAP;
@@ -156,9 +223,16 @@ export function renderToday(){
 
   const wide = mqWide.matches;
   const rienAFaire = !late.length && !due.length;
-  let porteLeGeste = false;      /* l'état vide offre déjà « Planifier » */
+  /* Rien de planifié mais des pistes en réserve : on montre par où
+     commencer, aux deux tailles. Calculé ICI parce que la pleine largeur
+     appartient au TABLEAU à trois colonnes — une seule colonne de trois
+     lignes étirée sur 1660 px envoie ses boutons à l'autre bout de
+     l'écran (mesuré). */
+  const debut = (rienAFaire && !soon.length && noAction.length)
+    ? parOuCommencer(noAction) : null;
+  const tableau = wide && alive.length && !debut;
   let html =
-    `<div class="page-inner${wide && alive.length ? ' page-wide' : ''}">
+    `<div class="page-inner${tableau ? ' page-wide' : ''}">
        <div class="td-head">
          <h2>Aujourd’hui</h2>
          <div class="td-date">${frToday()}</div>
@@ -181,7 +255,16 @@ export function renderToday(){
            <button class="btn" id="tdeDemo">Voir un exemple</button>
          </div>
        </div>`;
-  } else if (wide){
+  } else if (debut){
+    /* Des pistes, aucune action planifiée : ce n'est ni « tout est à
+       jour », ni un écran vide — il y a de quoi travailler tout de
+       suite. On le MONTRE, au lieu d'offrir une porte.
+       Vaut aux deux tailles : au poste, trois colonnes vides ne sont pas
+       « une bonne nouvelle qui se dit », c'est un mur de rien. La
+       promesse « la structure ne bouge pas » parle de l'état de travail
+       normal, pas du démarrage à froid. */
+    html += debutHTML(debut);
+  } else if (tableau){
     /* le poste : les trois tranches côte à côte, toujours présentes —
        la structure ne bouge pas, seul son contenu change */
     html +=
@@ -190,23 +273,6 @@ export function renderToday(){
          ${colHTML('due', 'Aujourd’hui', 'zap', due, rienAFaire ? 'Tout est à jour ✓' : 'Rien de prévu aujourd’hui')}
          ${colHTML('soon', 'Bientôt', 'calendar', soon,
            noAction.length ? 'Rien de planifié — donne une prochaine action à une piste.' : 'Rien en vue')}
-       </div>`;
-  } else if (rienAFaire && !soon.length && noAction.length){
-    /* Des pistes, aucune action : ce n'est PAS « tout est à jour ». Il y
-       a un prochain geste — planifier — et c'est le seul de l'écran, donc
-       il prend le bouton au lieu d'être expliqué dans un paragraphe sous
-       une coche verte qui dit le contraire. Le lien du pied ferait alors
-       doublon : il s'efface (voir `pied`). */
-    porteLeGeste = true;
-    html +=
-      `<div class="td-empty td-clear">
-         <div class="tde-ic">${ic('calendar', 'ic-24')}</div>
-         <h3>Rien de planifié</h3>
-         <p>Donne une prochaine action à ${noAction.length > 1 ? 'une de tes pistes' : 'ta piste'} —
-            cet écran te dira quoi faire ensuite.</p>
-         <div class="tde-actions">
-           <button class="btn btn-primary" id="tdePlan">${ic('zap', 'ic-14')} Planifier</button>
-         </div>
        </div>`;
   } else if (rienAFaire){
     /* à jour : positif, jamais culpabilisant */
@@ -233,7 +299,9 @@ export function renderToday(){
   if (triage.total){
     pied += `<button class="td-triage" id="tdTriage">${ic('inbox', 'ic-14')} À trier <span class="tr-n">${triage.total}</span></button>`;
   }
-  if (noAction.length && alive.length && !porteLeGeste){
+  /* le lien du pied reste, et il compte VRAI : « Par où commencer » n'en
+     montre que trois, il faut un chemin vers les autres */
+  if (noAction.length && alive.length){
     pied += `<button class="td-foot linklike" id="tdNoAct">${noAction.length} piste${noAction.length > 1 ? 's' : ''} sans prochaine action →</button>`;
   }
   if (hasDemo()){
@@ -245,7 +313,10 @@ export function renderToday(){
 
   /* branchements */
   const byId = id => S.companies.find(x => x.id === id);
-  root.querySelectorAll('.act-row').forEach(row => {
+  /* `:not(.act-start)` : une ligne « Par où commencer » n'a ni « Fait »
+     ni « Reporter » — les brancher dessus planterait sur un nœud absent,
+     et le swipe y proposerait de finir une action qui n'existe pas. */
+  root.querySelectorAll('.act-row:not(.act-start)').forEach(row => {
     const c = byId(row.dataset.id);
     if (!c) return;
     row.querySelector('.act-main').addEventListener('click', () => openFiche(c));
@@ -258,6 +329,18 @@ export function renderToday(){
     row.querySelector('[data-a="done"]').addEventListener('click', () => finishRow(row, c));
     bindSwipe(row, c);
   });
+  root.querySelectorAll('.act-start').forEach(row => {
+    const c = byId(row.dataset.id);
+    if (!c) return;
+    const ouvrir = () => openFiche(c);
+    row.querySelector('.act-main').addEventListener('click', ouvrir);
+    row.querySelector('.act-main').addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); ouvrir(); }
+    });
+    row.querySelector('[data-a="mail"]')?.addEventListener('click', () => openMail(c));
+    row.querySelector('[data-a="plan"]').addEventListener('click', () =>
+      askNextAction(c, { title: 'Et ensuite ?' }));
+  });
   root.querySelectorAll('.tr-more').forEach(b =>
     b.addEventListener('click', () => { expanded.add(b.dataset.tr); renderToday(); }));
   const goPistes = () => { location.hash = '#/pistes'; };
@@ -265,12 +348,6 @@ export function renderToday(){
     b.addEventListener('click', () => openCampaignById(b.dataset.camp)));
   root.querySelector('#tdTriage')?.addEventListener('click', () => openTriage(triage.items));
   root.querySelector('#tdNoAct')?.addEventListener('click', goPistes);
-  /* une seule piste à planifier : on ouvre SA question tout de suite —
-     passer par la liste pour choisir l'unique élément est un tap perdu */
-  root.querySelector('#tdePlan')?.addEventListener('click', () => {
-    if (noAction.length === 1) askNextAction(noAction[0], { title: 'Et ensuite ?' });
-    else goPistes();
-  });
   root.querySelector('#tdeAdd')?.addEventListener('click', () => openCapture());
   root.querySelector('#tdeDemo')?.addEventListener('click', () => { addDemo(); bus.refresh(); toast('Exemple ajouté — retire-le quand tu veux.'); });
   root.querySelector('#tdRmDemo')?.addEventListener('click', () => { removeDemo(); bus.refresh(); toast('Exemple retiré.'); });
