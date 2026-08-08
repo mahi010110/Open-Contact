@@ -17,11 +17,11 @@ doit être repensée, pas forcée.
 | Clé | Contenu | Format |
 |---|---|---|
 | `oc_data_v3` | Les pistes (partagé + suivi privé) | JSON : tableau de pistes |
-| `oc_profile_v1` | Profil, modèles d'emails, prompts IA (8 × 4 000 car. max), fiches confirmées, flags, `updatedAt` (LWW appareils). Un seul drapeau décide de ce qui sort de MOI : `flags.joindreProfil` (joindre mon profil à un partage de pistes — défaut **faux**, un partage est anonyme tant qu'on n'a pas dit le contraire). Retenu d'une fois sur l'autre, mais jamais silencieux : la case affiche le contenu exact avant chaque départ. Le CHOIX des champs, lui, n'est pas réglable — c'est une décision du produit (`CARTE_ENVOI`), pas une case de plus à cocher | JSON : objet profil |
+| `oc_profile_v1` | Profil, modèles d'emails, prompts IA (8 × 4 000 car. max), fiches confirmées, flags, `updatedAt` (LWW appareils). Le **prénom** (premier mot de `name`) est ce qui accompagne une déclaration « j'y suis passé » quand on partage : sans lui, la déclaration ne part pas du tout (§3) | JSON : objet profil |
 | `oc_journal_v1` | Journal privé des actions (200 max). **Deux phrases de `txt` sont relues, pas seulement écrites** : `Donné (canal) : N piste(s)` et `Reçu de <qui\|la promo> : +N piste(s)…` alimentent le fil de l'écran « Échanger » (`engine/assist.js` → `exchangeLog`). Les relire plutôt qu'ajouter un champ garde l'historique DÉJÀ écrit visible ; en échange, ces deux formes sont figées et verrouillées par `tests.js`. Toute autre entrée reste du texte libre, et `Reçu (analyse IA triée)` est exclu par construction (ce n'est pas un échange avec la promo). **`ids` est un champ AJOUTÉ, jamais un renommage** : les entrées d'échange écrites depuis la v6.4 portent les identifiants des pistes concernées (données pour un `Donné`, ajoutées ou complétées pour un `Reçu` — c'est `mergeIncoming().ids` qui fait foi), plafonnés à 200 par entrée. C'est ce qui permet d'ouvrir une ligne de « Tes échanges » sur ce qui a circulé. Une entrée sans `ids` (écrite avant, ou revenue d'une sauvegarde) reste lisible : elle s'affiche, elle ne s'ouvre pas | JSON : tableau `{t, txt, cid, ids?}` |
 | `oc_orphans_v1` | Contacts « à rattacher » (sans entreprise) — l'indice d'entreprise saisi par l'utilisateur voyage dans `extra.company` (D3), consommé au rattachement | JSON : tableau de contacts |
 | `oc_tombs_v1` | Suppressions (tombstones, 500 max) — font voyager les suppressions entre MES appareils | JSON : tableau `{id, t}` |
-| `oc_group_v1` | **Mon groupe** : les camarades avec qui j'échange (200 max) — `{id, prenom, nom, formation, email, phone, link, note}`. **La donnée la plus sensible de l'app, et la seule qui n'est pas celle de l'utilisateur** : c'est la vie privée de ses camarades. Elle ne sort donc dans AUCUN partage communautaire — ni `kind:"share"`, ni OCQ, ni le partage en groupe. Elle voyage vers MES appareils (§5) et dans MA copie (`kind:"full"`, champ `groupe`, ignoré sans casse par un lecteur ancien). Scellée (SEALABLE), emportée par le `wipe`. Seul `prenom` est obligatoire — sans lui l'entrée est refusée, parce qu'elle ne relierait aucune déclaration « j'y suis passé » à personne | JSON : tableau de membres |
+| `oc_group_v1` | **Retirée le 8 août 2026, le jour de son introduction.** Elle a porté un carnet de camarades ; la mesure a montré qu'un tel carnet ne contient que des gens déjà joignables (une piste recommandée de seconde main désigne quelqu'un qui n'y sera jamais). La clé n'est plus ni lue ni écrite, et une valeur restée d'avant est **effacée au chargement** — ce sont les coordonnées de personnes qui n'ont jamais vu cet écran. Le nom reste réservé : il ne sera jamais réutilisé pour autre chose | — |
 | `oc_sync_v1` | Phrase de liaison de mes appareils | chaîne |
 | `oc_relays_v1` | Relais P2P personnalisés (optionnel — vide = relais publics) | JSON : tableau d'URLs |
 | `oc_turn_v1` | Serveurs TURN personnalisés (optionnel — pour les réseaux qui bloquent le pair-à-pair ; identifiants obligatoires — RTCPeerConnection refuse `turn:` sans eux — et scellés comme les relais) | JSON : tableau `{urls, username, credential}` |
@@ -92,22 +92,17 @@ irrécupérable — c'est le contrat du local-first.
 - `v` : version du **format** (4). `app` : version de l'application émettrice
   (informatif).
 - `kind: "share"` : pistes en **vue communautaire** (voir §3) — jamais de
-  champ privé, jamais **mon groupe**. Champ optionnel `card` : MON profil,
-  et seulement s'il a été **joint explicitement** au moment du geste (case
-  « Joindre mon profil », décochée par défaut). Ce qui part est un jeu
-  **fixe** — `{prenom, formation?, email?}` (`CARTE_ENVOI`) : pas de
-  sélecteur de champs, donc jamais de téléphone dans un fichier qui circule
-  de main en main. Le lecteur, lui, accueille tout le vocabulaire (`nom`,
-  `phone`, `link`) : une autre version peut l'émettre.
+  champ privé. **Rien de moi ne part en plus des pistes** : ce qui me nomme
+  tient dans `vecuQui`, sur les seules pistes où j'ai déclaré quelque chose.
+  Un champ `card` a existé une journée ; un fichier qui en porterait un est
+  lu sans erreur, son contenu est simplement ignoré.
 - `kind: "full"` : sauvegarde personnelle complète — pistes avec suivi privé,
   plus le profil, plus les champs **optionnels** `orphans` (contacts « à
   rattacher »), `tombs` (suppressions) et `groupe` (mes camarades, §1) s'il y
   en a. Un lecteur qui les ignore charge quand même le reste sans erreur.
-- **Pas d'enveloppe « profil seul ».** Elle a existé une journée, avec son
-  écran, son QR et son fichier : un second rituel d'échange à côté de celui
-  qui existait déjà. Le profil voyage accroché aux pistes, par le seul canal
-  qu'il y ait. Un fichier qui ne porterait qu'un `card` reste lu sans code
-  dédié — `card` se lit sur n'importe quelle enveloppe.
+- **Pas d'enveloppe « profil seul »**, et plus de profil accroché aux
+  pistes : les deux ont existé une journée. Ce qui circule reste ce qui
+  circulait — des pistes, et un prénom sur celles qu'on recommande.
 - Tolérance à la lecture : un simple tableau JSON de pistes est aussi accepté.
 
 ### Compact — OCQ1 (échange par QR)
@@ -253,10 +248,15 @@ est tronqué au jour, le reste est vidé) ; les clés `__proto__`,
 `vecu` dit le lien qu'une personne a déjà avec la structure ; `vecuQui`
 porte le **prénom** de qui le déclare (40 caractères max, coupé au-delà).
 C'est le seul endroit où un partage cesse d'être anonyme, et il ne le
-devient que sur déclaration : `communityView` n'émet `vecuQui` **que** si
-`vecu` est présent — une piste sans déclaration part exactement aussi
+devient que sur déclaration : `communityView` n'émet `vecu` **que** si un
+prénom l'accompagne — une piste sans déclaration part exactement aussi
 anonyme qu'avant. Chez soi, `vecuQui` reste vide (« c'est moi ») ; le
 prénom vient du profil au moment du partage, jamais du stockage.
+**Les deux vont ensemble, ou aucun ne part.** Un `vecu` orphelin serait
+indiscernable, chez le receveur, de sa propre déclaration : sa fiche lui
+affichait « Tu y es passé » sur une entreprise où il n'a jamais mis les
+pieds (mesuré en jouant le parcours à deux). Et une recommandation
+anonyme ne mène nulle part de toute façon.
 Fusion : contrairement à la règle générale (§4.1, compléter les vides),
 `vecu` **remplace** quand l'entrant est plus fort — l'ordre est
 `alternance` > `stage` > `entretien` > `connait`. Un entrant plus faible

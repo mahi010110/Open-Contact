@@ -386,7 +386,7 @@ function backupCeremony(sh, phrase, onOk, introTxt, etape){
     (introTxt ? `<p class="pd" style="margin:0 0 10px">${introTxt}</p>` : '') + quoiHTML;
   const fname = 'opencontact-copie-' + todayISO() + '.oc';
   const bDl = btn('Télécharger la copie', 'btn-primary', async () => {
-    const txt = await encryptOC2(fullPayload(S.companies, S.profile, S.orphans, S.tombs, S.groupe), phrase);
+    const txt = await encryptOC2(fullPayload(S.companies, S.profile, S.orphans, S.tombs), phrase);
     const A = document.createElement('a');
     A.href = URL.createObjectURL(new Blob([txt], { type: 'application/octet-stream' }));
     A.download = fname;

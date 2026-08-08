@@ -69,6 +69,29 @@ if (sortie.sansMoi !== undefined)
   fail('un prénom s’invente sans profil : ' + sortie.sansMoi);
 else console.log('la déclaration voyage avec son prénom, et seulement là où elle existe ✓');
 
+/* ---------- 1 bis. UNE DÉCLARATION SANS PRÉNOM NE PART PAS ----------
+   Trouvé en jouant le parcours à deux : un donneur qui n'a pas rempli
+   son prénom envoyait `vecu` tout seul. Chez le receveur, rien ne
+   distinguait cette déclaration de la sienne — la fiche lui affichait
+   « Tu y es passé » sur une entreprise où il n'a JAMAIS mis les pieds.
+   L'app mentait. Corrigé à la source : pas de prénom, pas de
+   déclaration qui voyage — une recommandation anonyme ne mène de toute
+   façon nulle part. */
+const muet = await page.evaluate(async () => {
+  const { normalizeCompany } = await import('./engine/model.js');
+  const { sharePayload } = await import('./engine/exchange.js');
+  const c = normalizeCompany({ name: 'Adrastia', vecu: 'stage' });
+  const sans = sharePayload([c], null, '').companies[0];        /* profil sans nom */
+  const avec = sharePayload([c], null, 'Maheydine').companies[0];
+  return { sansVecu: sans.vecu, sansQui: sans.vecuQui,
+           avecVecu: avec.vecu, avecQui: avec.vecuQui };
+});
+if (muet.sansVecu !== undefined || muet.sansQui !== undefined)
+  fail('une déclaration part sans prénom — le receveur lira « Tu y es passé »');
+if (muet.avecVecu !== 'stage' || muet.avecQui !== 'Maheydine')
+  fail('la déclaration ne part plus quand le prénom existe : ' + JSON.stringify(muet));
+else console.log('pas de prénom, pas de déclaration qui voyage — et avec, elle passe ✓');
+
 /* ---------- 2. la fusion garde le plus fort ---------- */
 const fus = await page.evaluate(async () => {
   const { normalizeCompany } = await import('./engine/model.js');
@@ -130,6 +153,56 @@ const rang = await page.evaluate(() => {
 if (rang === false) fail('la déclaration est passée sous le statut');
 await page.screenshot({ path: SHOTS + '/93-vecu-recu.png' });
 
+/* ---------- 3 bis. LE PRÉNOM SUFFIT À AGIR ----------
+   Le bandeau n'a besoin d'aucun carnet de camarades. C'est ce qui le
+   fait marcher AUSSI de seconde main : mesuré, un carnet ne contient
+   que les gens qu'on a déjà joints — jamais celui qui recommande deux
+   échanges plus loin. Là, le message se colle où la promo se parle. */
+const agir = await page.evaluate(async () => {
+  const { openFiche } = await import('./ui/fiche.js');
+  const { S } = await import('./ui/state.js');
+  document.querySelectorAll('.overlay .x').forEach(x => x.click());
+  await new Promise(r => setTimeout(r, 200));
+  openFiche(S.companies.find(c => c.name.startsWith('Adrastia')));
+  await new Promise(r => setTimeout(r, 250));
+  const b = document.querySelector('button.fi-vecu');
+  if (!b) return { tapable: false };
+  b.click();
+  await new Promise(r => setTimeout(r, 250));
+  const feuilles = document.querySelectorAll('.overlay:not(.ov-out)').length;
+  /* la feuille du DESSUS, pas la fiche qui reste dessous */
+  const dessus = [...document.querySelectorAll('.overlay:not(.ov-out)')].pop();
+  return { tapable: true, feuilles,
+           mot: (document.querySelector('.gr-mot') || {}).innerText || '',
+           boutons: [...dessus.querySelectorAll('.modal-f .btn')].map(x => x.innerText.trim()) };
+});
+if (!agir.tapable) fail('le bandeau ne mène nulle part alors qu’il porte un prénom');
+/* la phrase se lit à voix haute : vérifiée mot pour mot. Un `court` en
+   3ᵉ personne réutilisé après « tu » donnait « tu y a fait son stage ». */
+else if (agir.mot.replace(/\s+/g, ' ').trim() !==
+         'Salut Léa, tu y as fait ton stage chez Adrastia Systèmes ? '
+         + 'Je postule là-bas — tu peux me dire à qui écrire ?')
+  fail('le message tout prêt n’est pas la phrase attendue : ' + agir.mot);
+else if (agir.boutons.length !== 1 || !/Copier/.test(agir.boutons[0]))
+  fail('la demande devrait tenir en UN bouton : ' + JSON.stringify(agir.boutons));
+else console.log(`le prénom seul suffit : « ${agir.mot.slice(0, 40)}… », un bouton ✓`);
+
+/* ---------- 3 ter. RIEN NE STOCKE LES CAMARADES ----------
+   `oc_group_v1` a vécu une journée. La clé n'est plus écrite, et une
+   valeur restée d'avant est effacée au chargement : ce sont les
+   coordonnées de gens qui n'ont jamais vu cet écran. */
+const carnet = await page.evaluate(async () => {
+  const st = await import('./engine/storage.js');
+  await st.kvSet(st.GROUP_KEY, JSON.stringify([{ id: 'x', prenom: 'Léa', email: 'l@x.test' }]));
+  const { loadAll, S } = await import('./ui/state.js');
+  await loadAll();
+  await new Promise(r => setTimeout(r, 150));
+  return { reste: await st.kvGet(st.GROUP_KEY), dansS: 'groupe' in S };
+});
+if (carnet.reste != null) fail('une valeur de `oc_group_v1` survit au chargement : ' + carnet.reste);
+if (carnet.dansS) fail('S.groupe existe encore — le carnet est censé avoir disparu');
+else console.log('aucun carnet de camarades : la clé est effacée, l’état ne la connaît plus ✓');
+
 /* ---------- 4. on la déclare en un tap, et une seule ---------- */
 const decl = await page.evaluate(async () => {
   document.querySelector('.overlay .x')?.click();
@@ -156,6 +229,41 @@ if (decl.un.join() !== 'stage' || decl.deux.join() !== 'alternance')
 if (decl.zero !== 0) fail('re-taper la puce active ne la retire pas — aucun retour en arrière');
 if (decl.cumul !== 2) fail('les postes recherchés ont perdu leur cumul : ' + decl.cumul);
 else console.log('déclaration : 4 choix, exclusifs, re-tap pour retirer — et les postes cumulent toujours ✓');
+
+/* ---------- 5. LA PISTE PORTÉE PASSE EN TÊTE ----------
+   ~40 % d'entretiens contre ~3 % : le critère le plus fort de l'écran.
+   Et la raison doit se LIRE sur la ligne — un tri qu'on ne comprend
+   pas ne pousse personne (§6). Ce contrôle vivait dans un fichier
+   supprimé avec le carnet ; une mutation l'a montré. */
+await page.evaluate(async () => {
+  const st = await import('./engine/storage.js');
+  const { normalizeCompany } = await import('./engine/model.js');
+  document.querySelectorAll('.overlay .x').forEach(x => x.click());
+  /* la piste portée est volontairement la MOINS bien classée par les
+     autres critères : sans e-mail, sans ville, dernière alphabétiquement */
+  await st.kvSet(st.DATA_KEY, JSON.stringify([
+    normalizeCompany({ name: 'Aalto Cloud', city: 'Lyon', status: 'todo',
+      contacts: [{ name: 'RH', email: 'rh@aalto.test' }] }),
+    normalizeCompany({ name: 'Zephyr SI', status: 'todo', vecu: 'stage', vecuQui: 'Léa' })
+  ]));
+  location.hash = '#aujourdhui';
+});
+await page.reload({ waitUntil: 'load' });
+await attendre(page, async () => (await import('./ui/state.js')).S.companies.length === 2,
+  'les pistes ne sont pas chargées');
+await page.waitForTimeout(400);
+const debut = await page.evaluate(() =>
+  [...document.querySelectorAll('.act-start')].map(r => ({
+    nom: r.querySelector('.act-verb').textContent.trim(),
+    pourquoi: (r.querySelector('.act-vecu') || {}).textContent || ''
+  })));
+if (!debut.length) fail('« Par où commencer » n’affiche rien');
+else if (debut[0].nom !== 'Zephyr SI')
+  fail('la piste portée n’est pas en tête : ' + debut.map(d => d.nom).join(' · '));
+else if (!/Léa/.test(debut[0].pourquoi))
+  fail('la ligne ne dit pas POURQUOI elle est première : « ' + debut[0].pourquoi + ' »');
+else console.log(`en tête : ${debut[0].nom}, parce que « ${debut[0].pourquoi} » ✓`);
+await page.screenshot({ path: SHOTS + '/94-portee-en-tete.png' });
 
 console.log(errors.length ? 'Erreurs console : ' + errors.join(' | ') : 'Zéro erreur console.');
 if (errors.length) process.exitCode = 1;

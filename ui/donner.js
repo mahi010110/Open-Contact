@@ -18,8 +18,6 @@ import { filterState, filterArgs, affinerBtnHTML, bindAffinerBtn } from './affin
 import { openRoom, leaveRoom, watchLiaison } from './synclive.js';
 import { makeQrSvg } from './qr.js';
 import { whoCandidates, whoLineHTML, whoInline, openWhoPicker } from './qui.js';
-import { maCarte, monProfilEnClair } from './groupe.js';
-import { saveProfile } from './state.js';
 
 /* Le prénom qui accompagne « j'y suis passé ». Il ne part QUE sur les
    pistes portant une déclaration (voir communityView) : un partage sans
@@ -33,10 +31,6 @@ export function openDonner(){
   const alive = () => S.companies.filter(c => !isClosed(c) && !c.demo);
   if (!alive().length){ toast('Rien à donner pour l’instant — ajoute d’abord une piste.'); return; }
   const unsel = new Set();
-  /* joindre mon profil : retenu d'un partage à l'autre, mais jamais
-     appliqué en silence — la ligne dit ce qu'il emporte, à chaque fois */
-  let joindre = !!(S.profile && S.profile.flags && S.profile.flags.joindreProfil);
-  const carteJointe = () => (joindre ? maCarte() : null);
   const st = sortState('recent');
   const ft = filterState();                  /* propre à cet écran (#8) */
   let choosing = false;
@@ -101,20 +95,6 @@ export function openDonner(){
              <span>Choisir</span>${ic('chevron-down', 'ic-14')}
            </button>
          </div>
-         ${/* Ce qui part de MOI avec les pistes. Sans lui, le camarade
-              reçoit « une piste où quelqu'un a fait son stage » : le
-              prénom voyage déjà (vecuQui), mais il ne mène à personne
-              tant que la personne n'est pas dans son groupe.
-              Décoché par défaut à la première ouverture — un partage
-              est anonyme tant qu'on n'a pas dit le contraire — puis le
-              choix se retient, TOUJOURS accompagné de ce qu'il
-              emporte, mot pour mot. Retenu n'est pas silencieux. */''}
-         ${maCarte() ? `<div class="dn-moi">
-           <button class="lb-act" id="dnMoi" aria-pressed="false">
-             ${ic('checkbox', 'ic-14')}<span>Joindre mon profil</span>
-           </button>
-           <span class="dn-moi-q" id="dnMoiQ" hidden></span>
-         </div>` : ''}
          <div id="dnList" hidden></div>
        </div>
        <div class="pick-list">
@@ -188,25 +168,6 @@ export function openDonner(){
       });
       syncCount();
     };
-    /* La ligne dit ce qu'elle emporte, mot pour mot, et seulement quand
-       elle est cochée : décochée, elle n'a rien à annoncer. */
-    const syncMoi = () => {
-      const b = q('#dnMoi');
-      if (!b) return;
-      b.setAttribute('aria-pressed', joindre);
-      b.classList.toggle('on', joindre);
-      b.innerHTML = ic(joindre ? 'checkbox-on' : 'checkbox', 'ic-14') + '<span>Joindre mon profil</span>';
-      const quoi = q('#dnMoiQ');
-      quoi.hidden = !joindre;
-      quoi.textContent = joindre ? monProfilEnClair() : '';
-    };
-    q('#dnMoi')?.addEventListener('click', () => {
-      joindre = !joindre;
-      S.profile.flags.joindreProfil = joindre;
-      saveProfile();
-      syncMoi();
-    });
-    syncMoi();
     q('#dnPick').addEventListener('click', () => { choosing = !choosing; renderList(); });
     /* Rien de coché : le canal ne peut pas partir, mais gronder ne fait
        pas avancer. « Coche au moins une piste » laissait l'écran EXACTEMENT
@@ -234,7 +195,7 @@ export function openDonner(){
        nombre et rouvrirait une autre liste */
     const ids = chosen().map(c => c.id);
     let compact = null;
-    try { compact = await encodeOCQ(chosen(), keepFn, moiQui(), carteJointe()); } catch (e) {}
+    try { compact = await encodeOCQ(chosen(), keepFn, moiQui()); } catch (e) {}
     if (my !== gen) return;
     if (compact && compact.length <= QR_HARD_MAX){ stepQRData(compact, n, ids); return; }
     if (navigator.onLine){ stepQRRdv(compact, n, ids); return; }
@@ -333,7 +294,7 @@ export function openDonner(){
        <button class="linklike" id="dnOffline" style="display:flex;margin:2px auto 0">Sans réseau ?</button>`;
     q('#dnOffline').addEventListener('click', fallback);
     const give = r.makeAction('give');
-    const payload = sharePayload(chosen(), keepFn, moiQui(), carteJointe());
+    const payload = sharePayload(chosen(), keepFn, moiQui());
     r.onPeerJoin = () => {
       give.send(payload);
       sent++;
@@ -371,7 +332,7 @@ export function openDonner(){
         q('#dnCryptPass').focus();
         return null;
       }
-      const payload = sharePayload(chosen(), keepFn, moiQui(), carteJointe());
+      const payload = sharePayload(chosen(), keepFn, moiQui());
       const txt = pass ? await encryptOC2(payload, pass) : JSON.stringify(payload);
       logJ('Donné (fichier' + (pass ? ' chiffré' : '') + ') : ' + n + ' piste(s)', null, ids);
       return txt;

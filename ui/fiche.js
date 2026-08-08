@@ -11,7 +11,6 @@ import { esc, fmtDate, isLate, directionsUrl } from '../engine/utils.js';
 import { STATUSES, CLOSE_REASONS, DOMAINS, POSITIONS, VECU, pushHist, summarizeChanges,
          nextActionContact } from '../engine/model.js';
 import { scoreOf } from '../engine/score.js';
-import { trouverMembre } from '../engine/groupe.js';
 import { S, bus, isClosed, saveData, reopenPiste, logJ, activateContact } from './state.js';
 import { openSheet, confirmSheet, toast, btn, ic, montrerChange } from './dom.js';
 import { frDate, relLabel } from './dates.js';
@@ -19,12 +18,41 @@ import { askNextAction, askClose } from './actions.js';
 import { openMail } from './mail.js';
 import { openEditPiste } from './edit.js';
 import { openContactEditor, telHref, smsHref, waHref } from './contact.js';
-import { openDemander } from './groupe.js';
 
 const webHref = w => /^https?:\/\//i.test(w) ? w : 'https://' + w;
 const webLabel = w => w.replace(/^https?:\/\//i, '').replace(/\/$/, '');
 
 const FORM_FIELDS = ['status', 'nextAction', 'nextActionText', 'nextActionCt', 'notes'];
+
+/* ---------- « Demander à … » ----------
+   Le paiement de « j'y suis passé », et le seul écran que ce levier
+   ajoute à l'app. Une fiche qui dit « Maheydine y a fait son stage »
+   n'a servi à rien tant qu'on ne lui a pas parlé — et ce qui empêche
+   d'y aller n'est pas l'information, c'est la gêne : on sous-estime
+   d'environ moitié la probabilité qu'on nous dise oui (Flynn & Bohns,
+   2008). L'écran n'encourage pas, il enlève le coût : la phrase est
+   déjà écrite.
+
+   Il ne demande RIEN d'autre que le prénom déjà présent sur la piste.
+   C'est ce qui le fait marcher aussi de seconde main — un carnet de
+   camarades, lui, ne contient que les gens qu'on a déjà joints, donc
+   jamais celui qui recommande deux échanges plus loin. */
+function openDemander(c, prenom, v){
+  const sh = openSheet({ title: 'Demander à ' + prenom, icon: 'message-text' });
+  const mot = `Salut ${prenom}, tu ${v.tu} chez ${c.name} ? `
+            + `Je postule là-bas — tu peux me dire à qui écrire ?`;
+  sh.body.innerHTML =
+    /* La seule chose qui ne se devine pas, et elle change tout : vous
+       êtes dans le même cours, et la demande faite là aboutit 34 fois
+       plus souvent que par écrit. Huit mots, parce qu'un neuvième ne
+       dirait rien de plus. */
+    `<p class="hint">${ic('users', 'ic-14')} Demande-lui en vrai : bien plus efficace qu\u2019un message.</p>
+     <div class="gr-mot">${esc(mot)}</div>`;
+  sh.setFoot([btn('Copier le message', 'btn-primary', async () => {
+    try { await navigator.clipboard.writeText(mot); toast('Copié ✓'); sh.close(); }
+    catch (e) { toast('Copie impossible ici — sélectionne le texte.'); }
+  }, 'copy')]);
+}
 
 /* Deux conceptions, pas une fenêtre élastique. Au pouce : une colonne,
    le travail d'abord, le dossier replié — on tient la fiche d'une main.
@@ -252,18 +280,18 @@ export function openFiche(c){
        Ce n'est pas le langage d'urgence (`mark-*`) : rien ne presse ici,
        c'est un ATOUT. D'où sa propre pastille. */
     const v = VECU[c.vecu];
-    /* Et si ce prénom est quelqu'un de mon groupe, le bandeau cesse
-       d'être une information : il devient la porte vers la demande.
-       C'est tout l'intérêt de la chaîne — déclarer, faire circuler,
-       puis pouvoir DEMANDER. Sans personne au bout, il reste du texte
-       (deux « Léa » dans le groupe rendent `null` : on ne devine pas). */
-    const qui = c.vecuQui ? trouverMembre(S.groupe, c.vecuQui) : null;
+    /* Un prénom SUFFIT à rendre le bandeau tapable : le message tout
+       prêt se colle là où la promo se parle vraiment. Il n'a besoin
+       d'aucun carnet — c'est ce qui le fait marcher aussi quand la
+       piste arrive de seconde main, cas où un carnet serait de toute
+       façon vide (il ne contient que les gens qu'on a déjà joints).
+       Sans prénom, c'est MA déclaration : rien à demander. */
     const dedans = !v ? '' :
       `${ic('user', 'ic-14')}
        <b>${c.vecuQui ? esc(c.vecuQui) + ' ' + v.court : 'Tu y es passé — ' + v.label.toLowerCase()}</b>`;
     const vecuHTML = !v ? ''
-      : qui ? `<button class="fi-vecu" id="fiVecu">${dedans}${ic('chevron-right', 'ic-14')}</button>`
-            : `<div class="fi-vecu">${dedans}</div>`;
+      : c.vecuQui ? `<button class="fi-vecu" id="fiVecu">${dedans}${ic('chevron-right', 'ic-14')}</button>`
+                  : `<div class="fi-vecu">${dedans}</div>`;
     const sub = subBits.length ? `<div class="fi-sub">${subBits.map(esc).join(' · ')}</div>` : '';
     sh.body.innerHTML = wide
       ? `<div class="fi-top">${sub}${outils}</div>${vecuHTML}
@@ -273,7 +301,7 @@ export function openFiche(c){
     /* branchements */
     const byCt = id => (c.contacts || []).find(t => t.id === id);
     sh.body.querySelector('#fiEdit').addEventListener('click', () => openEditPiste(c, render));
-    sh.body.querySelector('#fiVecu')?.addEventListener('click', () => openDemander(c, qui, v));
+    sh.body.querySelector('#fiVecu')?.addEventListener('click', () => openDemander(c, c.vecuQui, v));
     sh.body.querySelector('#fiCtAdd').addEventListener('click', () =>
       openContactEditor({ company: c, onDone: render }));
     sh.body.querySelectorAll('[data-ct]').forEach(b =>

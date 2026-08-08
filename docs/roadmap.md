@@ -26,16 +26,17 @@ Dernière mise à jour : 8 août 2026 — cache `oc-v138`, 128 auto-tests verts
 - Refonte UX complète (23 décisions, phases 0 à 4) — fusionnée dans `main`.
 - **Les 12 défauts de l'audit post-refonte** (§1.1) — tous traités.
 - **Le levier de la recommandation** (août 2026). « J'y suis passé »
-  (`vecu` / `vecuQui`) fait voyager le lien humain avec la piste ; **mon
-  groupe** (`oc_group_v1`) donne un visage au prénom. Motif : ~3 %
-  d'entretiens à froid contre ~40 % quand quelqu'un est dedans.
-  **Livré deux fois** : la première version ajoutait quatre feuilles et une
-  porte — un second produit greffé au premier. Réécrite en la vidant : une
-  case dans « Donner », le groupe qui se remplit tout seul, et le bandeau
-  de la fiche qui mène au message. « Échanger » est rendu tel qu'il était.
-  Gardes `e2e-vecu.mjs` et `e2e-groupe.mjs` — ce dernier compte désormais
-  **la surface** (feuilles, portes) avec un budget motivé, au même titre
-  qu'un invariant.
+  (`vecu` / `vecuQui`) fait voyager le lien humain avec la piste : la
+  déclaration part avec un prénom, la piste portée passe en tête de
+  « Par où commencer » avec sa raison lisible, et le bandeau de la fiche
+  donne le message tout prêt. Motif : ~3 % d'entretiens à froid contre
+  ~40 % quand quelqu'un est dedans.
+  **Livré trois fois, et les deux premières sont la leçon** : quatre
+  feuilles et une porte, puis un carnet réduit à une case. Le parcours
+  joué à trois personnes a tranché — un carnet de camarades ne contient
+  que des gens déjà joignables. Tout supprimé ; le levier tient
+  désormais en quatre puces, un bandeau, une ligne colorée et UNE
+  feuille. Garde `e2e-vecu.mjs`.
 - Auto-tests verts, parcours principaux rejoués en E2E.
 
 > **Nuance conservée.** « Refonte terminée » veut dire : les 23 décisions sont

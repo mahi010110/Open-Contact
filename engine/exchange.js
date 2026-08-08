@@ -37,10 +37,15 @@ export function communityView(c, keep, moi){
      pas — l'utilisateur l'a écrite sur sa piste en sachant qu'elle
      voyagerait. Le prénom l'accompagne, sinon la phrase reçue serait
      « quelqu'un y a fait son stage » : personne à qui écrire. */
-  if (c.vecu){
+  /* Une déclaration ne part QU'AVEC un prénom. Sans lui, le receveur ne
+     peut pas la distinguer de la sienne : la fiche lui affichait « Tu y
+     es passé » sur une entreprise où il n'a jamais mis les pieds
+     (mesuré). Et une recommandation anonyme ne mène nulle part de toute
+     façon — « quelqu'un y a fait son stage » ne se joue pas. */
+  const qui = String(c.vecuQui || moi || '').trim();
+  if (c.vecu && qui){
     out.vecu = c.vecu;
-    const qui = String(c.vecuQui || moi || '').trim();
-    if (qui) out.vecuQui = qui;
+    out.vecuQui = qui;
   }
   const ex = extraSans(c.extra, ['nextActionCt']);
   if (ex) out.extra = ex;
@@ -56,9 +61,9 @@ function b64urlToBytes(s){
   while (s.length % 4) s += '=';
   return b64ToBytes(s);
 }
-export async function encodeOCQ(list, keep, moi, carte){
+export async function encodeOCQ(list, keep, moi){
   if (typeof CompressionStream === 'undefined') throw new Error('noqr');
-  const json = new TextEncoder().encode(JSON.stringify(sharePayload(list, keep, moi, carte)));
+  const json = new TextEncoder().encode(JSON.stringify(sharePayload(list, keep, moi)));
   const stream = new Blob([json]).stream().pipeThrough(new CompressionStream('deflate-raw'));
   return 'OCQ1.' + b64url(new Uint8Array(await new Response(stream).arrayBuffer()));
 }
@@ -207,16 +212,15 @@ export async function parseInput(raw, pass){
 /* `moi` = le prénom du profil. Il ne part QUE sur les pistes où l'on a
    déclaré « j'y suis passé » — jamais sur les autres, jamais tout seul :
    un partage sans déclaration reste anonyme, comme avant. */
-/* `carte` = mon profil, quand l'utilisateur a coché « joindre mon
-   profil ». Il n'est JAMAIS ajouté d'office : un partage reste anonyme
-   par défaut, et ce qui de moi part avec les pistes est un geste, pas
-   un réglage oublié. Un lecteur ancien ignore le champ sans casse. */
-export function sharePayload(list, keep, moi, carte){
+/* Rien de moi ne part en plus des pistes. Un champ `card` a existé une
+   journée : il servait à remplir un carnet de camarades, qui s'est
+   avéré ne contenir que des gens déjà joignables. Ce qui traverse en me
+   nommant tient en un mot — `vecuQui`, sur les seules pistes où j'ai
+   déclaré quelque chose. */
+export function sharePayload(list, keep, moi){
   const pick = typeof keep === 'function' ? keep : () => null;
-  const out = { v: 4, app: APP_VERSION, kind: 'share',
+  return { v: 4, app: APP_VERSION, kind: 'share',
     companies: list.map(c => communityView(c, pick(c), moi)) };
-  if (carte && carte.prenom) out.card = carte;
-  return out;
 }
 /* Pas d'enveloppe « profil seul ». Elle a existé une journée, avec son
    écran, son QR et son fichier : un deuxième rituel d'échange à côté de
@@ -224,13 +228,9 @@ export function sharePayload(list, keep, moi, carte){
    pistes, par le seul canal qu'il y ait — et un fichier qui n'aurait
    qu'un `card` reste lisible sans code dédié, puisque `card` se lit sur
    n'importe quelle enveloppe. */
-export function fullPayload(companies, profile, orphans, tombs, groupe){
+export function fullPayload(companies, profile, orphans, tombs){
   const out = { v: 4, app: APP_VERSION, kind: 'full', profile, companies };
   if (Array.isArray(orphans) && orphans.length) out.orphans = orphans;
   if (Array.isArray(tombs) && tombs.length) out.tombs = tombs;
-  /* Mon groupe est dans MA copie — c'est ma sauvegarde, elle contient
-     tout ce que j'ai. Il n'est en revanche dans aucun `kind:"share"` :
-     donner des pistes à Marco ne lui donne pas le carnet de Léa. */
-  if (Array.isArray(groupe) && groupe.length) out.groupe = groupe;
   return out;
 }

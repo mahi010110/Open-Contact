@@ -134,13 +134,11 @@ planifier.
 Statuts, notes, actions, historique, journal = suivi privé. Seule exception :
 la sync entre les appareils **de la même personne** (`CONTRAT.md` §5). C'est
 le seul invariant qui engage les données **d'autres personnes** que
-l'utilisateur — les contacts qu'un camarade lui a partagés, et **mon groupe**
-(`oc_group_v1`), qui est plus strict encore : ces coordonnées-là ne sont même
-pas celles de l'utilisateur, il ne peut donc pas décider de les faire
-circuler. Elles ne sortent dans aucun partage, jamais, sans exception
-d'interface. Deux choses seulement traversent en nommant quelqu'un, et
-toujours **sur déclaration explicite au moment du geste** : `vecuQui` (un
-prénom, §8) et `card` (MON profil, celui de personne d'autre).
+l'utilisateur — les contacts qu'un camarade lui a partagés. **Une seule
+chose traverse en nommant quelqu'un** : `vecuQui`, le prénom de qui déclare
+« j'y suis passé » (§8), et seulement sur déclaration explicite. L'app ne
+stocke aucun carnet de camarades : la seule fois où elle a essayé, la mesure
+a montré qu'un tel carnet ne contient que des gens déjà joignables.
 
 **② On n'écrase jamais silencieusement.**
 Fusionner = compléter les vides. Une divergence est comptée et montrée,
@@ -496,8 +494,7 @@ feuilles secondaires, jamais dans le titre.
 | une personne chez elle | **contact** (« destinataire » reste dans le composeur : c'est le mot du courrier) | personne — sauf le pronom (« personne pour l'instant ») |
 | l'écran d'une piste | **fiche** | détail |
 | le fichier de tout mon suivi | **copie** (`opencontact-copie-*.oc`) | sauvegarde, export, archive |
-| les camarades avec qui on partage | **groupe** | promo, camarades, amis |
-| ce que je donne de moi à mon groupe | **mon profil** (partiel, comme la fiche d'une piste) | carte, carte de visite |
+| les camarades avec qui on partage | **groupe** (le collectif — l'app n'en tient aucune liste) | promo, camarades, amis |
 
 Ça se vérifie mécaniquement — extraire les chaînes de `ui/*.js` **et de
 `index.html`** (la coque compte aussi, c'est là que « sauvegarde » avait
@@ -529,6 +526,83 @@ groupe (P2P), QR, fichier `.oc`, coller.
 inclus), le plus récent gagne (`updatedAt`), suppressions par tombstones.
 Canal : P2P avec phrase de liaison personnelle, hashée pour nommer la salle,
 données chiffrées de pair à pair. Le lien est **persistant** (`ui/synclive.js`).
+
+Transport : Trystero (vendorisé) via relais Nostr publics, personnalisables
+(`oc_relays_v1`).
+
+**Ce qui vaut d'être partagé n'est pas l'adresse, c'est le lien humain.**
+Mesuré : une candidature à froid décroche un entretien dans ~3 % des cas,
+une candidature portée par quelqu'un qui est dedans dans ~40 % — un rapport
+de 40 pour 1. Une promo entière a déjà fait des stages : ce réseau existe,
+et le partage, anonyme par construction, n'en transportait rien. D'où
+`vecu` / `vecuQui` (`CONTRAT.md` §3) : le **seul** endroit où un partage
+cesse d'être anonyme, et seulement **sur déclaration explicite** — pas de
+déclaration, pas de prénom, exactement comme avant. La règle qui en sort et
+qui vaut pour la suite : **une information qui ne mène à personne ne mène à
+rien.** « Quelqu'un y a fait son stage » ne se joue pas ; « Léa y a fait son
+stage » se joue. Le prénom n'est pas un détail d'affichage, c'est ce qui
+transforme la donnée en geste. Corollaire de garde : tout champ neuf qui
+voyage se teste d'abord sur l'invariant ① — `e2e-vecu.mjs` vérifie la fuite
+AVANT la fonctionnalité, et ses cinq mutations le prouvent.
+
+**Et un prénom ne mène quelque part que s'il désigne quelqu'un** — mais
+« désigner » ne veut pas dire « avoir sa fiche ». Le bandeau d'une piste
+reçue est tapable dès qu'il porte un prénom, et il donne le message tout
+prêt à coller là où la promo se parle vraiment.
+
+**Ce lot a été livré trois fois, et les deux premières sont la leçon.**
+
+*① Quatre feuilles neuves et une porte de plus* — une liste de camarades,
+une fiche par personne, « échanger nos profils » avec son QR et son
+fichier. Un second produit greffé au premier. Tout était vert : un garde
+vert sur un écran qui n'aurait pas dû exister ne prouve rien. La loi de
+Tesler nomme la faute — la complexité irréductible est payée par le
+concepteur ou par l'utilisateur, et j'avais choisi l'utilisateur.
+
+*② Le carnet réduit à une case et un écran de réglages* — mieux, mais
+toujours faux. Ce qui l'a tranché est une **mesure**, pas un goût : jouer
+le parcours à trois personnes. Maheydine → Léa → Awa. Chez Awa, la piste
+recommande Maheydine ; son carnet contient Léa. Et il contiendra
+toujours Léa, parce qu'un carnet ne se repartage jamais (invariant ①).
+**Un carnet de camarades ne connaît que les gens qu'on peut déjà
+joindre** — il est vide exactement quand il servirait. Supprimé : la clé
+`oc_group_v1` (effacée au chargement, ce sont les coordonnées de gens
+qui n'ont jamais vu cet écran), le champ `card`, la case dans
+« Donner », l'écran de réglages, 365 lignes de moteur et d'interface.
+
+**Les règles qui restent, et qui valent au-delà de ce lot :**
+
+1. **Un lot se mesure AUSSI en surface ajoutée.** Compter les écrans est
+   un contrôle au même titre qu'un invariant.
+2. **Une donnée qui peut se déduire ne se saisit pas** — les gens ne
+   rangent pas leurs contacts, leurs interactions le font pour eux
+   (graphe social implicite, Google, KDD 2010).
+3. **Chaque option configurable est une décision que le concepteur n'a
+   pas prise.** Un sélecteur de cinq champs est parti pour ça.
+4. **Le parcours se joue à plusieurs, ou il n'est pas joué.** Les deux
+   défauts qui ont tout décidé — « Tu y es passé » affiché à qui n'y
+   est jamais allé, et le carnet vide de seconde main — ne se voyaient
+   qu'en faisant tourner deux puis trois personnes bout en bout.
+   Aucun test unitaire ne les aurait montrés.
+5. **Quand un canal est mesurablement meilleur, l'app le dit** — au lieu
+   de pousser vers le sien. Une demande de vive voix aboutit **34 fois**
+   plus souvent que par e-mail (Roghanizad & Bohns, 2017), et celui qui
+   écrit ne sent aucune différence. C'est la seule phrase d'explication
+   qui ait fait monter le plafond de `e2e-sobriete.mjs` (116 → 126) : le
+   critère y passe de « prévient d'une perte » à « prévient d'une perte
+   **ou d'une erreur qu'on ne peut pas voir venir** ».
+
+**Ce que le levier coûte, au total** : quatre puces dans « Modifier », un
+bandeau sur la fiche, une ligne colorée sur « Aujourd'hui », et UNE
+feuille — « Demander à … », un message et un bouton. Aucun écran à
+visiter, aucune donnée d'autrui stockée.
+
+**Ce que ce lot a appris sur les gardes.** Une première version de
+`e2e-vecu.mjs` vérifiait l'invariant en appelant le moteur avec des
+données fabriquées sur place — elle prouvait seulement qu'il n'invente
+pas ce qu'on ne lui donne pas. Une mutation posée dans un ÉCRAN est
+passée sans la faire broncher. **Un contrôle de fuite part de l'état
+RÉEL de l'app et lit les octets qui sortent par le vrai bouton.**
 
 Transport : Trystero (vendorisé) via relais Nostr publics, personnalisables
 (`oc_relays_v1`).

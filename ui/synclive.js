@@ -375,7 +375,7 @@ const sendState = () => {
       sendAgain = false;
       const priv = await privateState();
       if (!sendFull || !live.peers) return;
-      const payload = Object.assign(fullPayload(S.companies, S.profile, S.orphans, S.tombs, S.groupe), priv);
+      const payload = Object.assign(fullPayload(S.companies, S.profile, S.orphans, S.tombs), priv);
       const j = JSON.stringify(payload);
       if (j !== lastSent){
         lastSent = j;           /* rien de neuf = stop au ping-pong */
@@ -477,17 +477,16 @@ async function join(phrase, force){
   full.onMessage = obj => { receiveQueue = receiveQueue.then(async () => {
     if (!obj || obj.kind !== 'full' || !Array.isArray(obj.companies)) return;
     const r2 = syncMerge(obj, { companies: S.companies, orphans: S.orphans,
-                                profile: S.profile, tombs: S.tombs, groupe: S.groupe });
+                                profile: S.profile, tombs: S.tombs });
     const minePrivate = await privateState();
     const rPriv = syncPrivateMerge(obj, minePrivate);
     const st = r2.stats;
-    const changed = st.addedC + st.updatedC + st.removedC + st.addedO + st.addedG +
+    const changed = st.addedC + st.updatedC + st.removedC + st.addedO +
       (st.profile === 'remote' ? 1 : 0) + rPriv.stats.campaigns + rPriv.stats.missions;
     if (changed){
       const snap = {
         companies: JSON.stringify(S.companies), orphans: JSON.stringify(S.orphans),
         profile: JSON.stringify(S.profile), tombs: JSON.stringify(S.tombs),
-        groupe: JSON.stringify(S.groupe),
         campaigns: JSON.stringify(minePrivate.campaigns), missions: JSON.stringify(minePrivate.missions)
       };
       if (st.profile === 'remote' && !live.prevProfile) live.prevProfile = snap.profile;
@@ -500,8 +499,7 @@ async function join(phrase, force){
       showUndo(`${ic('check', 'ic-14')} Appareils synchronisés.`, () => {
         applySynced({
           companies: JSON.parse(snap.companies), orphans: JSON.parse(snap.orphans),
-          profile: JSON.parse(snap.profile), tombs: JSON.parse(snap.tombs),
-          groupe: JSON.parse(snap.groupe)
+          profile: JSON.parse(snap.profile), tombs: JSON.parse(snap.tombs)
         });
         writePrivateState({ campaigns: JSON.parse(snap.campaigns), missions: JSON.parse(snap.missions) });
         live.lastStats = null;
