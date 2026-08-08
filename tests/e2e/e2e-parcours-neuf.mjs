@@ -109,7 +109,7 @@ const neuve = await D.evaluate(async () => {
   const { S } = await import('./ui/state.js');
   const c = S.companies.find(x => x.name === 'Boulangerie Cyber SARL') || {};
   return { city: c.city, domain: c.domain, techs: c.techs, pos: c.positions,
-           ct: (c.contacts || []).map(t => t.email), reste: !!document.querySelector('.overlay') };
+           ct: (c.contacts || []).map(t => t.email), reste: !!document.querySelector('.overlay:not(.ov-out)') };
 });
 if (neuve.city !== 'Roubaix' || neuve.domain !== 'cyber' || neuve.techs !== 'SOC, Linux')
   fail('les champs complets ne suivent pas la piste : ' + JSON.stringify(neuve));

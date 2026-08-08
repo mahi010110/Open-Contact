@@ -20,7 +20,7 @@ import { VAULT_KEY, kvGet, kvSet, kvDel,
          vaultAttach, vaultDetach, vaultSealAll, vaultOpenAll, vaultReseal } from '../engine/storage.js';
 import { ensureRing, recoverRing, rekeyRing } from './synclive.js';
 import { S, bus, logJ } from './state.js';
-import { el, ic, btn, toast, openSheet, confirmSheet } from './dom.js';
+import { el, ic, btn, toast, openSheet, confirmSheet, sheetOpen } from './dom.js';
 
 let meta = null;          /* métadonnée oc_vault_v1 (null = non protégé) */
 let lockEl = null;        /* l'écran verrouillé, quand il est affiché */
@@ -168,7 +168,7 @@ function showLock(){
     const waitTimer = setInterval(refreshWait, 1000);
     refreshWait();
     const onKey = e => {
-      if (document.querySelector('.overlay')) return;   /* une feuille est ouverte au-dessus */
+      if (sheetOpen()) return;                          /* une feuille est ouverte au-dessus */
       pad.key(e);
     };
     document.addEventListener('keydown', onKey, true);

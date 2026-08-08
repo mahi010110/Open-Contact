@@ -175,8 +175,20 @@ function installDeplacement(ov, modal, signal){
   return { pose, serre, repos };
 }
 
+/* Les feuilles en train de SORTIR. Elles restent 140 ms dans le
+   document pour leurs pixels — et pendant ce temps elles répondent
+   encore à `.modal`, `.modal-confirm`, `.modal-f button`… Une feuille
+   fantôme, quoi : le code (ou un test) qui cherche « la feuille »
+   juste après une fermeture tombait sur la morte.
+   Ouvrir une feuille solde donc d'abord les sorties en cours. Le cas
+   « je referme et j'ouvre autre chose » — de loin le plus fréquent — ne
+   laisse ainsi jamais deux feuilles se ressembler. */
+const sortants = new Set();
+function solderSorties(){ for (const oter of [...sortants]) oter(); }
+
 export function openSheet(o){
   o = o || {};
+  solderSorties();
   /* Les feuilles qui succèdent directement à une action transitoire peuvent
      écarter son ancien toast. Ce choix reste explicite : une confirmation
      importante (biométrie après protection, par exemple) conserve le retour. */
@@ -223,10 +235,35 @@ export function openSheet(o){
     vie.abort();
     const i = stack.indexOf(rec);
     if (i >= 0) stack.splice(i, 1);
-    ov.remove();
+    /* Tout ce qui est LOGIQUE part tout de suite — la pile, la feuille
+       qui attendait derrière, le retour d'appel, le focus. Seuls les
+       PIXELS attendent la sortie. Sans ça, une feuille en train de
+       disparaître resterait « ouverte » pour le reste de l'app pendant
+       140 ms, et un tap rapide se perdrait dedans. */
+    ov.classList.add('ov-out');
+    ov.setAttribute('aria-hidden', 'true');
+    /* `inert` en plus d'`aria-hidden` : pendant ces 140 ms, la feuille
+       qui s'en va garde des boutons focalisables. Sans lui, une
+       tabulation rapide atterrit dans une feuille qu'on ne voit
+       presque plus, et un lecteur d'écran peut encore la parcourir. */
+    ov.inert = true;
     if (rec.behind){ rec.behind.ov.classList.remove('ov-behind'); rec.behind = null; }
     if (o.onClose) o.onClose(result);
     if (prevFocus && prevFocus.focus){ try { prevFocus.focus(); } catch (e) {} }
+    if (matchMedia('(prefers-reduced-motion:reduce)').matches){ ov.remove(); return; }
+    /* `animationend` seul ne suffit pas : un onglet en arrière-plan ne
+       joue pas ses animations, et la feuille resterait dans le document
+       jusqu'au retour. Le délai est le filet. */
+    let parti = false;
+    const oter = () => {
+      if (parti) return;
+      parti = true;
+      sortants.delete(oter);
+      ov.remove();
+    };
+    sortants.add(oter);
+    ov.addEventListener('animationend', e => { if (e.target === ov) oter(); });
+    setTimeout(oter, 600);
   }
   const rec = { ov, close, dismissible: o.dismissible !== false };
   const below = stack[stack.length - 1] || null;
@@ -271,11 +308,6 @@ export function openSheet(o){
      là, la barre de titre sert déjà à refermer d'un glissement */
   const bougeable = matchMedia('(pointer:fine)').matches
     && !(o.className || '').includes('modal-confirm');
-  if (bougeable && (posee.x || posee.y)){
-    /* une animation l'emporte sur le style en ligne : la fenêtre serait
-       montée au centre puis aurait sauté à sa place 200 ms plus tard */
-    ov.querySelector('.modal').style.animation = 'none';
-  }
   document.body.append(ov);
   if (bougeable){
     const m = installDeplacement(ov, ov.querySelector('.modal'), vie.signal);
@@ -311,6 +343,56 @@ export function openSheet(o){
   return api;
 }
 export function topSheet(){ return stack[stack.length - 1] || null; }
+
+/* « Une feuille est-elle ouverte ? » — UNE seule définition. Une feuille
+   qui S'EN VA n'est plus ouverte : depuis qu'elle sort en glissant, elle
+   reste 140 ms dans le document pour ses pixels seulement. Sans cette
+   précision, quatre endroits la comptaient encore — un rechargement
+   différé qui ne partait pas, deux raccourcis clavier muets. */
+export const sheetOpen = () => !!document.querySelector('.overlay:not(.ov-out)');
+
+/* ---------- « ça a changé pendant que tu ne regardais pas » ----------
+   Un changement instantané n'est pas « moins joli » : il n'est PAS VU.
+   C'est de la cécité au changement, et l'app la produisait à chaque
+   modification — on ouvre la fiche d'une piste, on change son statut,
+   on referme, et la ligne derrière est silencieusement différente. Le
+   geste ne se voit jamais atterrir. Pour un outil dont le métier est de
+   pousser à l'action, une action qu'on ne voit pas aboutir ne récompense
+   rien.
+
+   Un lavis d'accent, une fois, sur la SEULE ligne concernée. Le
+   mouvement est pré-attentif — l'œil y va avant la conscience — donc
+   c'est le signal le plus fort de l'interface, et le plus cher : il ne
+   se dépense que là où il répond à une question.
+
+   Trois retenues : rien si la ligne est hors de l'écran (personne ne le
+   verrait, et la classe resterait collée) ; rien en mouvement réduit ;
+   et on attend que la feuille ait fini de sortir, sinon le plus fort du
+   lavis se joue derrière son voile. */
+const msJeton = v =>
+  parseFloat(getComputedStyle(document.documentElement).getPropertyValue(v)) || 0;
+
+export function montrerChange(id){
+  if (!id || matchMedia('(prefers-reduced-motion:reduce)').matches) return;
+  setTimeout(() => {
+    let n = null;
+    /* `.view:not([hidden])` est indispensable : les quatre écrans vivent
+       tous dans le document, seuls trois sont `hidden`. Une même piste a
+       donc une ligne dans « Aujourd'hui » ET une dans « Mes pistes », et
+       la première du document gagnait — celle de l'écran caché, haute de
+       zéro pixel. Le lavis ne s'est jamais affiché nulle part. */
+    try {
+      n = document.querySelector(`.view:not([hidden]) [data-id="${CSS.escape(String(id))}"]`);
+    } catch (e) {}
+    if (!n) return;
+    const r = n.getBoundingClientRect();
+    if (!r.height || r.bottom <= 0 || r.top >= innerHeight) return;
+    n.classList.remove('vu-change');
+    void n.offsetWidth;                    /* rejouer, même ligne deux fois de suite */
+    n.classList.add('vu-change');
+    setTimeout(() => n.classList.remove('vu-change'), msJeton('--dur-vu') + 120);
+  }, msJeton('--dur-out') + 30);
+}
 
 document.addEventListener('keydown', e => {
   if (!stack.length) return;

@@ -43,8 +43,17 @@
   --dur-1:0ms;      /* changements d'état : immédiats, comme à l'époque */
   --dur-2:120ms;    /* apparitions discrètes (toast, page, lignes) */
   --dur-3:200ms;    /* déplacements (feuille, panneau, liste, barre) */
+  /* On n'ENTRE pas comme on SORT. À l'entrée, il y a quelque chose à
+     lire : on décélère, on prend le temps. À la sortie, la décision est
+     déjà prise : attendre pour partir traîne. Material, Carbon et IBM
+     disent la même chose — sortie plus courte, et qui ACCÉLÈRE. */
+  --dur-out:140ms;  /* sorties : 70 % de l'entrée */
+  /* « regarde, ça a changé » : assez long pour être vu par quelqu'un qui
+     revient à l'écran, assez court pour ne pas devenir un décor */
+  --dur-vu:900ms;
   --ease-steps:steps(2, end);           /* les objets qui claquent */
-  --ease-out:cubic-bezier(.2,.9,.3,1);  /* le déplacement doux */
+  --ease-out:cubic-bezier(.2,.9,.3,1);  /* on arrive en décélérant */
+  --ease-in:cubic-bezier(.5,0,.9,.4);   /* on part en accélérant */
 }
 
 html[data-theme="dark"]{

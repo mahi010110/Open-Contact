@@ -746,7 +746,12 @@ export async function runSelfTests(){
         ok(okBtn);                             /* le bouton de validation existe */
         okBtn.click();
         eq(got, { txt: 'Relancer Mme Z', iso: '2030-01-02' });
-        ok(!document.body.contains(sh.ov));    /* la feuille s'est refermée */
+        /* « refermée » ne veut plus dire « retirée du document » : depuis
+           que la sortie glisse, la feuille y reste ~140 ms pour ses seuls
+           pixels. Elle est fermée dès qu'elle porte `ov-out` — la même
+           définition que celle dont le reste de l'app se sert
+           (`sheetOpen`, ui/dom.js). */
+        ok(sh.ov.classList.contains('ov-out') || !document.body.contains(sh.ov));
       } finally {
         try { sh.close(null, true); } catch (e) {}
       }

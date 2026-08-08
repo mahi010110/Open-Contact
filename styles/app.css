@@ -1494,7 +1494,10 @@ button.ec-row:hover{background:var(--surface-field)}
 .fi-tools{display:flex;align-items:center;gap:10px;margin:0;flex-wrap:wrap}
 /* la zone de notes suit son contenu (ui/fiche.js) : pas de plancher à
    68 px ici, c'est le script qui donne la hauteur */
-#fiNotes{min-height:44px;overflow-y:hidden;resize:none}
+/* la hauteur est pilotée en JS (le champ suit son contenu) : ici, juste
+   le fait qu'elle GLISSE au lieu de sauter d'une ligne d'un coup */
+#fiNotes{min-height:44px;overflow-y:hidden;resize:none;
+  transition:height var(--dur-2) var(--ease-out)}
 /* un chiffre qui bouge deux fois par mois n'a pas à porter un cadre :
    encadré, il se déguisait en chose qui se tape (elle ne se tape pas) */
 .fi-score{
@@ -1799,10 +1802,42 @@ body:has(.overlay) .toast{bottom:auto;top:calc(env(safe-area-inset-top) + 62px)}
    ease-out, transform/opacity seulement ; reduced-motion coupe tout
    (base.css). Les objets, eux, gardent steps() — la secousse du verrou. */
 @keyframes oc-fade{from{opacity:0}}
-@keyframes oc-up{from{opacity:0;transform:translateY(12px)}}
+/* `translate` et pas `transform` : c'est une propriété SÉPARÉE, qui se
+   compose avec `transform`. Une fenêtre qu'on a déplacée porte déjà un
+   `transform` en ligne ; une image-clé qui écrit `transform` l'écrasait,
+   et la fenêtre revenait au centre le temps de l'animation. */
+@keyframes oc-up{from{opacity:0;translate:0 12px}}
 .overlay{animation:oc-fade var(--dur-2) var(--ease-out)}
 .overlay .modal{animation:oc-up var(--dur-3) var(--ease-out)}
 .view:not([hidden])>.page-inner{animation:oc-fade var(--dur-2) var(--ease-out)}
+
+/* ---- la sortie (règle du pic et de la fin) ----
+   Une expérience se retient par son sommet et par sa FIN (Kahneman) —
+   et la fin d'une feuille, c'est sa fermeture, répétée des dizaines de
+   fois par session. Elle s'évaporait d'un coup.
+   Elle part maintenant VERS LE BAS : la même direction que le pouce qui
+   la pousse. Michotte l'a montré sur des carrés qui s'entrechoquent —
+   un mouvement n'est perçu comme CAUSÉ par le geste que s'il part sans
+   délai et dans le même sens. */
+@keyframes oc-fade-out{to{opacity:0}}
+@keyframes oc-sheet-out{to{opacity:0;translate:0 18px}}
+.overlay.ov-out{pointer-events:none;animation:oc-fade-out var(--dur-out) var(--ease-in) forwards}
+.overlay.ov-out .modal{animation:oc-sheet-out var(--dur-out) var(--ease-in) forwards}
+
+/* ---- « ça a changé pendant que tu ne regardais pas » ----
+   Un changement instantané n'est pas « moins joli » : il n'est PAS VU.
+   On modifie une piste dans sa fiche, on referme, et la ligne derrière
+   est silencieusement différente — l'action ne se voit jamais atterrir.
+   Un lavis d'accent, une fois, sur la seule ligne concernée. C'est
+   l'encre qui va à ce qui change (§6), sur le canal le plus fort de
+   l'interface — donc à ne dépenser que là. Ce n'est PAS le langage
+   d'urgence : `mark-*` reste réservé à ce qui réclame une action. */
+@keyframes oc-vu{0%{opacity:0} 18%{opacity:.24} 100%{opacity:0}}
+.vu-change::after{
+  content:'';position:absolute;inset:0;z-index:2;pointer-events:none;
+  background:var(--accent);opacity:0;
+  animation:oc-vu var(--dur-vu) var(--ease-out);
+}
 
 /* ============ LE VERROUILLAGE (profil protégé) ============
    Plein écran au-dessus de tout ; pavé 44 px au pouce (mobile),

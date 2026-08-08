@@ -224,6 +224,36 @@ net. Sources uniques : `styles/tokens/` et le kit `design/`.
   de passe, §6) s'anime sur `flex-grow` — une largeur en `auto` ne se
   transitionne pas, et `scaleX` écraserait le texte. Elle reste bornée à ça :
   deux enfants d'une même ligne qui échangent leur place, jamais une page.
+
+  **Le mouvement répond à une question, jamais à un manque de vie.** Il est
+  *pré-attentif* : l'œil y va avant la conscience. C'est donc le signal le
+  plus fort de l'interface et le plus cher — le même piège que la pastille
+  sur chaque ligne (§6, règle 1), un cran plus haut. « Plus d'animation »
+  n'est pas un objectif ; **trois questions** le sont, et rien d'autre ne
+  bouge :
+
+  ① **D'où ça vient ?** — l'entrée. ② **Où est-ce parti ?** — la sortie.
+  ③ **Qu'est-ce qui a changé pendant que je ne regardais pas ?**
+
+  La ③ est celle qu'on oublie, et c'est la plus utile ici : un changement
+  instantané n'est pas « moins joli », il n'est **pas vu** (cécité au
+  changement). Pour un outil dont le métier est de pousser à l'action, une
+  action qu'on ne voit pas aboutir ne récompense rien — d'où le lavis
+  `vu-change` (§6), une fois, sur la seule ligne concernée, et seulement si
+  elle est à l'écran.
+
+  **On n'entre pas comme on sort.** À l'entrée il y a quelque chose à lire :
+  on décélère (`--ease-out`, `--dur-3`). À la sortie la décision est déjà
+  prise : on accélère et on écourte (`--ease-in`, `--dur-out` = 70 % de
+  l'entrée). Et une sortie part **dans le sens du geste qui la cause** — une
+  feuille poussée au pouce s'en va vers le bas : un mouvement n'est perçu
+  comme *causé* que s'il part sans délai et dans la même direction.
+
+  Ça se vérifie : `e2e-mouvement.mjs` fige le verdict attendu de chaque
+  geste — `glisse` **ou `net`**. Le second sens est le vrai garde-fou : il
+  échoue si le thème, un bouton enfoncé ou tout autre objet se met à fondre.
+  C'est ce qui empêche l'animation de proliférer un « juste un petit
+  fondu » à la fois.
 - **Thème sombre obligatoire** : tout élément neuf se vérifie dans les deux
   thèmes.
 
@@ -321,6 +351,7 @@ avec un motif existant.
 | Demander un mot de passe **facultatif** | `lockRowHTML` + `bindLockRow` — au repos un bouton compact « Chiffrer » au bout de la ligne d'action ; tapé, il **s'étire en champ sur place** et l'action voisine se serre. **La ligne ne change pas de hauteur** : rien ne pousse ce qui est dessous. `value()` rend `''` serrure fermée, donc l'appelant n'a jamais à connaître l'état ; refermer **oublie** ce qui était tapé |
 | Retour discret | `toast()` — court, ponctuel, jamais deux phrases. Un tiret cadratin au maximum, et ce qui le suit doit être un **geste** (« — passe par le fichier »), jamais un rassurement (« — tout est revenu comme avant ») |
 | Marquer partagé vs privé | `tag-share` / `tag-priv` |
+| Montrer qu'une ligne **vient de changer** | `montrerChange(id)` — un lavis d'accent, une fois, ~900 ms, sur la seule ligne concernée et seulement si elle est à l'écran. Ce n'est **pas** le langage d'urgence : `mark-*` reste à ce qui réclame une action |
 | Dire qu'un état **réclame quelque chose** | `.mark` + un cran : `mark-late` · `mark-now` · `mark-soon` · `mark-far`. **Un seul langage d'urgence dans toute l'app**, échelle monotone, et **ce qui ne réclame rien n'affiche rien** — c'est le vide en face qui fait ressortir le reste. Un cadre entier peut prendre le bord ambre (`.fset.fs-alert`) quand son état peut tout coûter |
 | Chercher | `filterCompanies({q})` / `filterOrphans` — les accents se plient dans les deux sens et **chaque mot se cherche pour lui-même** (tous présents, ordre libre). « / » ouvre le champ, Échap le vide |
 | Expliquer un résultat | `searchHint(c, q, {skip})` → `.ri-hit` + `<mark>`. Le moteur rend l'extrait ET les positions, jamais du HTML. La ligne ne parle **que** si ce qu'elle affiche déjà ne répond pas — l'appelant dit ce qu'il montre (`skip`), et rien ne se dit deux fois |

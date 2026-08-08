@@ -12,7 +12,7 @@ import { STATUSES, CLOSE_REASONS, DOMAINS, POSITIONS, pushHist, summarizeChanges
          nextActionContact } from '../engine/model.js';
 import { scoreOf } from '../engine/score.js';
 import { bus, isClosed, saveData, reopenPiste, logJ, activateContact } from './state.js';
-import { openSheet, confirmSheet, toast, btn, ic } from './dom.js';
+import { openSheet, confirmSheet, toast, btn, ic, montrerChange } from './dom.js';
 import { frDate, relLabel } from './dates.js';
 import { askNextAction, askClose } from './actions.js';
 import { openMail } from './mail.js';
@@ -44,13 +44,21 @@ export function openFiche(c){
 
   /* une seule fenêtre partout : feuille en bas au pouce, fenêtre centrée
      sur l'ordinateur — jamais un panneau collé au bord */
+  /* A-t-on réellement changé quelque chose pendant cette visite ?
+     Consulter une fiche n'écrit rien — et ne doit donc rien signaler à
+     la fermeture. */
+  let commis = false;
   const sh = openSheet({
     title: c.name, icon: 'briefcase', className: 'modal-fiche',
     guard: () => !dirty() || confirmSheet({
       title: 'Quitter sans enregistrer ?', icon: 'square-alert', danger: true,
       okLabel: 'Quitter',
       msg: 'Tes changements ne sont pas enregistrés.'
-    })
+    }),
+    /* La ligne derrière a changé pendant que la fiche la couvrait. Sans
+       ça, on revient à une liste silencieusement différente : le geste
+       ne se voit jamais atterrir (cécité au changement). */
+    onClose: () => { if (commis) montrerChange(c.id); }
   });
 
   const confirm = () => {
@@ -66,6 +74,7 @@ export function openFiche(c){
       logJ(c.name + ' — ' + sum, c.id);
       c.updatedAt = Date.now();
       saveData();
+      commis = true;
       toast('Enregistré ✓');
     }
     bus.refresh();
@@ -272,16 +281,34 @@ export function openFiche(c){
        GLOBAL — le composeur d'emails en dépend — donc on ne le touche pas,
        on ajuste ce champ-ci. Plus petite vide, plus grande pleine. */
     const notes = sh.body.querySelector('#fiNotes');
-    const pousse = () => {
+    /* `net` = sans transition. La toute première mise à hauteur n'est pas
+       un changement, c'est l'état de départ : la laisser s'animer ferait
+       grandir le champ tout seul à l'ouverture de la fiche, un mouvement
+       que personne n'a demandé. Ensuite, chaque ligne gagnée ou rendue
+       glisse — c'est ce qui empêche le reste du formulaire de sauter
+       d'un cran sous les doigts pendant qu'on écrit. */
+    const pousse = net => {
+      /* Piège mesuré : lire `scrollHeight` juste après `height:auto`
+         FORCE un calcul de style, et la transition part alors de la
+         hauteur d'arrivée — elle ne joue jamais. Il faut donc remettre
+         la hauteur de DÉPART et l'engager (reflow) avant de viser la
+         nouvelle. Même schéma que le dépliage des sections. */
+      const depart = notes.style.height;
+      notes.style.transition = 'none';
       notes.style.height = 'auto';
-      notes.style.height = Math.max(44, notes.scrollHeight) + 'px';
+      const cible = Math.max(44, notes.scrollHeight) + 'px';
+      notes.style.height = depart || cible;
+      void notes.offsetHeight;
+      if (net){ notes.style.height = cible; void notes.offsetHeight; }
+      notes.style.transition = '';
+      notes.style.height = cible;
     };
     notes.addEventListener('input', e => {
       pousse();
       touch('notes', e.target.value);
       renderFoot();
     });
-    pousse();
+    pousse(true);
     renderFoot();
   };
   render();

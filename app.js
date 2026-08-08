@@ -9,7 +9,7 @@ import { APP_VERSION } from './engine/model.js';
 import { THEME_KEY, kvInit, kvGet, kvSet } from './engine/storage.js';
 import { initVerrou } from './ui/verrou.js';
 import { S, bus, loadAll, reloadFromStorage } from './ui/state.js';
-import { $, $$, toast, installFoldMotion } from './ui/dom.js';
+import { $, $$, toast, installFoldMotion, sheetOpen } from './ui/dom.js';
 import { renderToday } from './ui/today.js';
 import { renderPistes } from './ui/pistes.js';
 import { renderEchanger } from './ui/echanger.js';
@@ -33,7 +33,7 @@ function routeFromHash(){
 function render(){
   /* un autre onglet a écrit pendant qu'une feuille était ouverte :
      on recharge maintenant que la voie est libre */
-  if (S.stale && !document.querySelector('.overlay')){ reloadFromStorage(); return; }
+  if (S.stale && !sheetOpen()){ reloadFromStorage(); return; }
   for (const k in VIEWS) $('#view-' + k).hidden = (k !== S.route);
   VIEWS[S.route]();
   $$('[data-r]').forEach(a => {
@@ -109,7 +109,7 @@ function applyTheme(t, persist){
     if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
     const t = e.target;
     if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
-    if (document.querySelector('.overlay')) return;
+    if (sheetOpen()) return;
     e.preventDefault();
     if (S.route !== 'pistes') location.hash = '#/pistes';
     setTimeout(() => { try { $('#piQ').focus(); } catch (x) {} }, 60);

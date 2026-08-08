@@ -451,7 +451,7 @@ export function renderPistes(){
   let h = null;
   input.addEventListener('input', () => {
     clearTimeout(h);
-    h = setTimeout(() => { q = input.value; renderBody(); }, 180);
+    h = setTimeout(() => { q = input.value; glisser(renderBody); }, 180);
   });
   /* Échap vide la recherche, puis rend le clavier. Deux temps : la
      première touche efface (on veut revoir toute la liste), la
@@ -461,19 +461,27 @@ export function renderPistes(){
     if (!input.value){ input.blur(); return; }
     clearTimeout(h);
     input.value = ''; q = '';
-    renderBody();
+    glisser(renderBody);
   });
-  /* les puces d'état et le corps se re-rendent ensemble, la recherche
-     reste le même nœud (le curseur ne saute pas) ; les lignes retrouvées
-     glissent vers leur nouvelle place (#23) */
-  const refresh = () => {
+  /* Redessiner la liste en faisant GLISSER les lignes retrouvées (#23).
+     C'était écrit ici, et ça ne marchait que pour les puces : le champ
+     de recherche appelait `renderBody()` en direct, sans passer par
+     là — donc le geste qui réorganise le plus la liste, celui qu'on
+     fait à chaque frappe, était le seul à sauter. Mesuré : zéro ligne
+     en mouvement, au pouce comme au poste. */
+  const glisser = redessine => {
     const play = softReorder('#piBody .row-item, #piBody .bcard');
+    redessine();
+    play();
+  };
+  /* les puces d'état et le corps se re-rendent ensemble, la recherche
+     reste le même nœud (le curseur ne saute pas) */
+  const refresh = () => glisser(() => {
     const chips = root.querySelector('#piChips');
     chips.innerHTML = chipsRowHTML();
     bindChips(chips);
     renderBody();
-    play();
-  };
+  });
   const bindChips = box => {
     box.querySelectorAll('[data-clear]').forEach(b =>
       b.addEventListener('click', () => {
