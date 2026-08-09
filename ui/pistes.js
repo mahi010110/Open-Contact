@@ -13,7 +13,7 @@ import { silentPistes } from '../engine/assist.js';
 import { S, bus, isClosed, hasDemo, addDemo, ctLabel, deletePiste, undeletePiste,
          removeOrphan, saveOrphans, saveData, logJ } from './state.js';
 import { $, ic, toast, showUndo, bindDeleteGesture, openSheet, softReorder, topSheet,
-         collerEnHaut } from './dom.js';
+         collerEnHaut, clavier } from './dom.js';
 import { openAffinerSheet } from './affiner.js';
 import { sortState, sortArgs, sortHasDist, sortChipHTML, bindSortChip } from './sort.js';
 import { relLabel, diffDays, dueMarkHTML, silenceMarkHTML } from './dates.js';
@@ -354,7 +354,7 @@ export function renderPistes(){
        <div class="stick-guet" aria-hidden="true"></div>
        <div class="search-wrap">
          <input class="search" id="piQ" type="search" placeholder="Chercher…"
-                aria-label="Rechercher une piste" value="${esc(q)}">
+                aria-label="Rechercher une piste" value="${esc(q)}" ${clavier('cherche')}>
          ${/* Un raccourci clavier est invisible par nature : il ne sert
               qu'à ceux qui devinent, ou il se documente dans un écran
               d'aide — c'est-à-dire un écran sans données. La touche
@@ -484,6 +484,12 @@ export function renderPistes(){
      première touche efface (on veut revoir toute la liste), la
      seconde quitte le champ — annuler ne doit jamais coûter la souris. */
   input.addEventListener('keydown', e => {
+    /* Entrée range le clavier. Au pouce il mange la moitié de l'écran :
+       la liste est déjà filtrée à la frappe, donc la seule chose qui
+       reste à faire après avoir tapé, c'est de la VOIR. La touche
+       s'annonce d'ailleurs « Rechercher » (`enterkeyhint`) — la tenir
+       pour rien serait une promesse de plus non tenue. */
+    if (e.key === 'Enter'){ e.preventDefault(); input.blur(); return; }
     if (e.key !== 'Escape') return;
     if (!input.value){ input.blur(); return; }
     clearTimeout(h);

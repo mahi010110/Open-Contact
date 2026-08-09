@@ -631,6 +631,54 @@ function foldAnim(d, de, vers, apres){
   setTimeout(fin, 600);
 }
 
+/* ---------- LE CLAVIER EST UNE DÉCISION DE CONCEPTION ----------
+   Au pouce, ce qu'un champ coûte ne se compte pas en pixels mais en
+   CLAVIER : lequel s'ouvre, et ce qu'il fait au texte pendant qu'on
+   tape. Relevé sur tous les champs de l'app, et trois défauts sortaient
+   du lot — tous invisibles à la relecture, tous payés à chaque saisie :
+
+   ① « Son email ou son téléphone », le champ le plus tapé du produit,
+      arrivait en clavier alphabétique. L'arobase coûte un changement de
+      page de clavier — et surtout **iOS met une majuscule au premier
+      caractère par défaut** : `s@b.test` devient `S@b.test`, une
+      adresse fausse que personne ne relit. La correction automatique
+      finit le travail sur les noms propres : « Barbaste » réécrit en
+      autre chose, une fois, pour toujours.
+   ② Quatre champs `type="url"` sur cinq n'avaient pas `inputmode="url"`
+      — le type suffit sur iOS, pas partout ailleurs.
+   ③ La recherche n'annonçait pas sa touche Entrée.
+
+   D'où ces jeux d'attributs, nommés par ce que le champ EST, jamais par
+   ce qu'il porte comme balise.
+
+   **Ce qui N'A PAS de genre en a un quand même : la prose.** L'objet et
+   le corps d'un mail, une note, une description ne passent par aucune
+   entrée d'ici — et c'est voulu : le correcteur du navigateur y est
+   allumé par défaut, et il doit le rester. Un mail part chez un
+   recruteur ; une faute y coûte plus cher qu'une majuscule. Une entrée
+   vide dans cette table pour le dire serait du code mort — une mutation
+   l'a montré. La règle se garde là où elle se voit, dans
+   `e2e-ux-audit.mjs`. */
+const CLAVIERS = {
+  /* un nom propre : entreprise, personne, ville, techno */
+  nom:      'autocapitalize="words" autocorrect="off" spellcheck="false"',
+  /* « email ou téléphone » : le type reste `text` — `type="email"`
+     rendrait le champ invalide dès qu'on y met un numéro */
+  coord:    'inputmode="email" autocapitalize="off" autocorrect="off" spellcheck="false"',
+  email:    'autocapitalize="off" autocorrect="off" spellcheck="false"',
+  tel:      'autocorrect="off" spellcheck="false"',
+  lien:     'inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false"',
+  cherche:  'enterkeyhint="search" autocapitalize="off" autocorrect="off" spellcheck="false"',
+  /* une phrase de secours se tape EN CLAIR, mot à mot. La correction
+     automatique y est un danger d'une autre catégorie : elle réécrit un
+     mot, la phrase ne rouvre plus rien, et rien à l'écran ne dit
+     pourquoi. Les champs avaient déjà `autocapitalize` — il manquait
+     justement celui qui substitue. (`type="password"` coupe les trois
+     tout seul ; ici le texte est visible, donc rien ne les coupe.) */
+  secret:   'autocapitalize="off" autocorrect="off" spellcheck="false"'
+};
+export function clavier(genre){ return CLAVIERS[genre] || ''; }
+
 /* ---------- UNE BARRE QUI NE SE MONTRE QUE QUAND ELLE SERT ----------
    Une barre collante rend une longue page mesurablement plus rapide à
    parcourir (~22 % chez NN/g), mais elle mange de la hauteur : la même

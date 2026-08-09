@@ -63,6 +63,17 @@ Dernière mise à jour : 8 août 2026 — cache `oc-v138`, 128 auto-tests verts
   l'application (`about:blank`). Le retour est désormais différé et
   l'ouverture suivante le reprend. Gardes `e2e-fenetre.mjs` et
   `e2e-ux-audit.mjs` ; 23 mutations, toutes attrapées.
+- **Le clavier qui s'ouvre** (août 2026). Premier relevé de tous les
+  champs de l'app, et trois défauts invisibles à la relecture, payés à
+  chaque saisie : « Son email ou son téléphone » — le champ le plus tapé
+  du produit — ouvrait un clavier alphabétique, donc iOS majusculait le
+  premier caractère et fabriquait des adresses fausses ; la correction
+  automatique réécrivait les noms d'entreprises ; et **la phrase de
+  secours**, tapée en clair mot à mot, restait corrigeable — un mot
+  substitué et l'accès aux données part sans un message. Un genre par
+  ce que le champ EST (`clavier()` dans `ui/dom.js`), la prose gardant
+  son correcteur. Entrée range aussi le clavier dans la recherche.
+  Gardes `e2e-ux-audit.mjs` et `e2e-recuperation.mjs` ; 8 mutations.
 - **« Moi » possède sa région** (août 2026). L'écran rempli n'occupait
   que 456 px sur 745 et sa ligne de version flottait à 60 % de la
   hauteur au pouce, 50 % au poste — au milieu d'un vide sans

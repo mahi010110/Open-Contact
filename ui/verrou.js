@@ -20,7 +20,7 @@ import { VAULT_KEY, kvGet, kvSet, kvDel,
          vaultAttach, vaultDetach, vaultSealAll, vaultOpenAll, vaultReseal } from '../engine/storage.js';
 import { ensureRing, recoverRing, rekeyRing } from './synclive.js';
 import { S, bus, logJ } from './state.js';
-import { el, ic, btn, toast, openSheet, confirmSheet, sheetOpen } from './dom.js';
+import { el, ic, btn, toast, openSheet, confirmSheet, sheetOpen, clavier } from './dom.js';
 
 let meta = null;          /* métadonnée oc_vault_v1 (null = non protégé) */
 let lockEl = null;        /* l'écran verrouillé, quand il est affiché */
@@ -194,7 +194,7 @@ function openRecovery(onUnlocked){
   const stepPhrase = () => {
     sh.body.innerHTML = stepsHTML(1, 4) +
       `<div class="field"><label for="rcPhrase">Ta phrase de secours</label>
-         <textarea id="rcPhrase" rows="3" autocapitalize="none" autocomplete="off"
+         <textarea id="rcPhrase" rows="3" autocomplete="off" ${clavier('secret')}
            placeholder="Les 12 mots, dans l’ordre, séparés par des espaces"></textarea>
          ${/* Trois textes pour un champ : le libellé le nomme, l'invite
               donne la forme, et « Celle que tu as écrite sur papier »
@@ -340,9 +340,9 @@ function phraseCeremony(sh, phrase, onOk, etape){
              pour ça. */''}
        <div class="grid2 grid2-tight">
          <div class="field"><label for="vw1">Mot n°${a + 1}</label>
-           <input id="vw1" autocapitalize="none" autocomplete="off"></div>
+           <input id="vw1" autocomplete="off" ${clavier('secret')}></div>
          <div class="field"><label for="vw2">Mot n°${b + 1}</label>
-           <input id="vw2" autocapitalize="none" autocomplete="off"></div>
+           <input id="vw2" autocomplete="off" ${clavier('secret')}></div>
        </div>
        <p class="hint" id="vwHint" hidden></p>`;
     sh.setFoot([

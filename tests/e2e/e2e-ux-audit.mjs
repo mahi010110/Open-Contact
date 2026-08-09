@@ -1164,6 +1164,83 @@ for (const [quoi, titre] of [['donner', 'Donner'], ['prospect', 'Prospecter']]){
   else console.log(`feuille « ${titre} » : « Tout / Affiner » tient à y=${b.y}, rien au repos ✓`);
 }
 
+/* ---------- LE CLAVIER QUI S'OUVRE ----------
+   Ce qu'un champ coûte au pouce ne se compte pas en pixels. Mesuré :
+   « Son email ou son téléphone », le champ le plus tapé du produit,
+   ouvrait un clavier alphabétique — l'arobase à une page de distance, et
+   surtout la majuscule automatique d'iOS qui transforme `s@b.test` en
+   `S@b.test`, une adresse fausse que personne ne relit. La correction
+   automatique faisait le reste sur les noms propres.
+   On vérifie donc, champ par champ, que le clavier correspond à ce que
+   le champ EST. Et que la PROSE garde son correcteur : un mail part
+   chez un recruteur, une faute y coûte plus qu'une majuscule. */
+const clav = await nPage.evaluate(async () => {
+  document.querySelectorAll('.overlay .x').forEach(x => x.click());
+  await new Promise(r => setTimeout(r, 300));
+  const { S } = await import('./ui/state.js');
+  const lire = () => [...document.querySelectorAll('.overlay:not(.ov-out) input, .overlay:not(.ov-out) textarea')]
+    .filter(e => e.offsetParent !== null && !['checkbox', 'radio', 'file'].includes(e.type))
+    .map(e => ({ id: e.id, balise: e.tagName,
+      type: e.getAttribute('type') || '', im: e.getAttribute('inputmode') || '',
+      cap: e.getAttribute('autocapitalize') || '', cor: e.getAttribute('autocorrect') || '',
+      sp: e.getAttribute('spellcheck') || '' }));
+  const out = {};
+  (await import('./ui/capture.js')).openCapture();
+  await new Promise(r => setTimeout(r, 450));
+  out.capture = lire();
+  document.querySelectorAll('.overlay .x').forEach(x => x.click());
+  await new Promise(r => setTimeout(r, 300));
+  (await import('./ui/contact.js')).openContactEditor(S.companies[0]);
+  await new Promise(r => setTimeout(r, 450));
+  out.contact = lire();
+  document.querySelectorAll('.overlay .x').forEach(x => x.click());
+  await new Promise(r => setTimeout(r, 300));
+  (await import('./ui/mail.js')).openMail(S.companies[0]);
+  await new Promise(r => setTimeout(r, 500));
+  out.ecrire = lire();
+  document.querySelectorAll('.overlay .x').forEach(x => x.click());
+  await new Promise(r => setTimeout(r, 300));
+  return out;
+});
+const trouve = (l, id) => (l || []).find(e => e.id === id);
+const propre = e => e && e.cor === 'off' && e.sp === 'false';
+const coord = trouve(clav.capture, 'cpCtCoord');
+const nomE = trouve(clav.capture, 'cpName');
+const mail = trouve(clav.contact, 'ceEmail');
+const lien = trouve(clav.contact, 'ceLink');
+const corps = (clav.ecrire || []).find(e => e.balise === 'TEXTAREA');
+if (!coord || coord.im !== 'email' || coord.cap !== 'off')
+  fail(`« email ou téléphone » n'ouvre pas le bon clavier (inputmode=${coord && coord.im}, ` +
+       `majuscule auto=${coord && coord.cap}) — iOS majuscule le premier caractère et casse l'adresse`);
+else if (!propre(nomE))
+  fail('un nom d’entreprise reste soumis à la correction automatique — elle le réécrit, une fois, pour toujours');
+else if (!propre(mail) || mail.cap !== 'off')
+  fail('le champ e-mail d’un contact garde majuscule ou correction automatique');
+else if (!lien || lien.im !== 'url')
+  fail(`un champ lien n'a pas inputmode="url" (${lien && lien.im}) — le type seul ne suffit pas partout`);
+else if (corps && (corps.sp === 'false' || corps.cor === 'off'))
+  fail('le corps du mail a perdu son correcteur — c’est le seul endroit où il doit rester');
+else console.log('claviers : coordonnée en clavier e-mail, noms propres protégés de la correction, prose corrigée ✓');
+
+/* et la touche Entrée de la recherche range le clavier : au pouce il
+   mange la moitié de l'écran, et la liste est déjà filtrée à la frappe */
+const entree = await nPage.evaluate(async () => {
+  document.querySelector('.bottomnav [data-r="pistes"]').click();
+  await new Promise(r => setTimeout(r, 450));
+  const i = document.querySelector('#piQ');
+  const hint = i.getAttribute('enterkeyhint');
+  i.focus();
+  const avant = document.activeElement === i;
+  i.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+  await new Promise(r => setTimeout(r, 200));
+  return { hint, avant, apres: document.activeElement === i };
+});
+if (entree.hint !== 'search')
+  fail(`la recherche n'annonce pas sa touche Entrée (enterkeyhint=${entree.hint})`);
+else if (!entree.avant || entree.apres)
+  fail('Entrée ne range pas le clavier dans la recherche — la touche promet « Rechercher » et ne fait rien');
+else console.log('recherche : la touche dit « Rechercher », et elle range le clavier ✓');
+
 /* ---------- une page possède sa région, pied compris ----------
    « Moi » rempli ne fait que 456 px sur 745 : la ligne de version
    tombait à 60 % de la hauteur au pouce, c'est-à-dire au milieu d'un

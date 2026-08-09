@@ -8,7 +8,7 @@ import { esc, debounce } from '../engine/utils.js';
 import { DOMAINS, POSITIONS, VECU, pushHist } from '../engine/model.js';
 import { suggestAddresses } from '../engine/geo.js';
 import { bus, saveData, logJ } from './state.js';
-import { openSheet, toast, btn } from './dom.js';
+import { openSheet, toast, btn, clavier } from './dom.js';
 
 const FIELDS = ['name','city','domain','desc','website','address','techs','process','tips'];
 
@@ -23,8 +23,8 @@ export function sharedFieldsHTML(c){
   return (
     `<div class="ed-form">
      <div class="grid2">
-       <div class="field"><label for="edName">Entreprise *</label><input id="edName" value="${esc(c.name)}"></div>
-       <div class="field"><label for="edCity">Ville</label><input id="edCity" value="${esc(c.city)}"></div>
+       <div class="field"><label for="edName">Entreprise *</label><input id="edName" value="${esc(c.name)}" ${clavier('nom')}></div>
+       <div class="field"><label for="edCity">Ville</label><input id="edCity" value="${esc(c.city)}" ${clavier('nom')}></div>
      </div>
      <div class="field"><label for="edDomain">Domaine</label>
        <select id="edDomain">${Object.keys(DOMAINS).map(k =>
@@ -33,13 +33,13 @@ export function sharedFieldsHTML(c){
        <textarea id="edDesc" class="ta-s" placeholder="Ce qu'elle fait, pourquoi elle t'intéresse">${esc(c.desc)}</textarea></div>
      <div class="grid2">
        <div class="field"><label for="edWebsite">Site web</label>
-         <input id="edWebsite" type="url" value="${esc(c.website)}" placeholder="https://…" autocomplete="off"></div>
+         <input id="edWebsite" type="url" value="${esc(c.website)}" placeholder="https://…" autocomplete="off" ${clavier('lien')}></div>
        <div class="field ac-wrap"><label for="edAddress">Adresse</label>
-         <input id="edAddress" value="${esc(c.address)}" placeholder="Ex : 12 rue…, 59000 Lille" autocomplete="off">
+         <input id="edAddress" value="${esc(c.address)}" placeholder="Ex : 12 rue…, 59000 Lille" autocomplete="off" ${clavier('nom')}>
          <div class="ac-list" id="edAc" hidden></div></div>
      </div>
      <div class="field"><label for="edTechs">Technos</label>
-       <input id="edTechs" value="${esc(c.techs)}" placeholder="Ex : SOC, Fortinet, Linux" autocomplete="off"></div>
+       <input id="edTechs" value="${esc(c.techs)}" placeholder="Ex : SOC, Fortinet, Linux" autocomplete="off" ${clavier('nom')}></div>
      <div class="field"><label id="edPosL">Postes recherchés</label>
        <div class="datechips" role="group" aria-labelledby="edPosL">
          ${Object.keys(POSITIONS).map(k =>

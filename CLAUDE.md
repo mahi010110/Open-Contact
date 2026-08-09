@@ -415,6 +415,7 @@ avec un motif existant.
 |---|---|
 | Poser une question, éditer | `openSheet` (empilable, focus-trap, Échap, **bouton retour / glissé depuis le bord**, glisser-fermer au doigt, barre de titre qui se glisse à la souris, `setFoot` REMPLACE les boutons, `guard` = garde-fou avant fermeture) |
 | Garder une barre d'outils sous la main | `collerEnHaut(sentinelle, cible)` — la cible ne prend son décor que **décrochée**. Sur une liste courte, rien ne s'ajoute jamais |
+| Poser un champ de saisie | `clavier('nom' \| 'coord' \| 'email' \| 'tel' \| 'lien' \| 'cherche' \| 'secret')` — le genre dit ce que le champ EST, jamais sa balise. **La prose n'a pas de genre** : son correcteur doit rester allumé |
 | Trier une liste | `ui/sort.js` — critère + bascule ↑↓ ; re-tap du critère actif = retour au défaut de l'écran |
 | Filtrer + trier ensemble | `ui/affiner.js` — une feuille, un compte dans le bouton (`Affiner ③`) |
 | Supprimer au geste | `bindDeleteGesture(node, onDelete)` — glisser (mobile) / poubelle au survol (desktop), doublé d'un `showUndo` |
@@ -438,6 +439,31 @@ avec un motif existant.
 | Contenu secondaire | `<details class="pcard pcard-details">` replié |
 | Une page = un objet et ses réglages | en-tête `.obj` (icône en haut à gauche + nom) puis des cadres `.fset`. **Le cadre est lourd : deux par écran au maximum, jamais s'il contiendrait tout l'écran.** Ailleurs, `pcard` reste la règle |
 | Recevoir des données | TOUJOURS l'aperçu avant fusion (`mergePreviewInto`) — mêmes règles quel que soit le canal |
+
+**Au pouce, un champ ne coûte pas des pixels : il coûte un CLAVIER.**
+Lequel s'ouvre, et ce qu'il fait au texte pendant qu'on tape. Relevé sur
+tous les champs de l'app, trois défauts en sont sortis — tous invisibles
+à la relecture, tous payés à chaque saisie :
+
+- **« Son email ou son téléphone »**, le champ le plus tapé du produit,
+  ouvrait un clavier alphabétique. L'arobase est à une page de distance,
+  et surtout **iOS met une majuscule au premier caractère** : `s@b.test`
+  devient `S@b.test`, une adresse fausse que personne ne relit. Le type
+  reste `text` — `type="email"` invaliderait un numéro de téléphone.
+- **La correction automatique réécrit les noms propres.** « Barbaste »
+  devient autre chose, une fois, pour toujours. Elle se coupe partout où
+  la donnée est un nom : entreprise, personne, ville, techno.
+- **La phrase de secours** se tape en clair, mot à mot. Un mot substitué
+  et la phrase ne rouvre plus rien, sans que rien ne l'explique.
+  `type="password"` couperait les trois attributs tout seul ; là, le
+  texte est visible, donc rien ne les coupe. C'est le champ le plus
+  dangereux de l'app, et il est gardé dans `e2e-recuperation.mjs`.
+
+La contrepartie tient en une ligne : **la prose garde son correcteur.**
+Un mail part chez un recruteur, une faute y coûte plus qu'une majuscule.
+Il n'y a donc **pas** d'entrée « prose » dans la table — une entrée vide
+serait du code mort, une mutation l'a montré. La règle se garde là où
+elle se voit, pas là où elle se déclare.
 
 **Le silence n'est pas une dette, c'est une décision.** Une piste engagée
 puis laissée sans suite disparaissait : rien sur « Aujourd'hui », et dans

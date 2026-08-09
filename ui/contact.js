@@ -10,7 +10,7 @@ import { contactFromSignature } from '../engine/assist.js';
 import { findMatch } from '../engine/merge.js';
 import { S, bus, saveData, saveOrphans, logJ, isClosed,
          addOrphan, removeOrphan, attachContact, ctLabel } from './state.js';
-import { openSheet, confirmSheet, toast, btn, ic } from './dom.js';
+import { openSheet, confirmSheet, toast, btn, ic, clavier } from './dom.js';
 
 /* liens natifs vers un numéro (0X XX… français → +33 pour WhatsApp) */
 export const telHref = p => 'tel:' + String(p || '').replace(/[^\d+]/g, '');
@@ -43,21 +43,21 @@ export function openContactEditor(o){
   sh.body.innerHTML =
     `<div class="grid2">
        <div class="field"><label for="ceName">Nom</label>
-         <input id="ceName" value="${esc(src.name || '')}" placeholder="Ex : Nadia Rahmani" autocomplete="off"></div>
+         <input id="ceName" value="${esc(src.name || '')}" placeholder="Ex : Nadia Rahmani" autocomplete="off" ${clavier('nom')}></div>
        <div class="field"><label for="ceRole">Rôle</label>
-         <input id="ceRole" value="${esc(src.role || '')}" placeholder="Ex : RH, team lead" autocomplete="off"></div>
+         <input id="ceRole" value="${esc(src.role || '')}" placeholder="Ex : RH, team lead" autocomplete="off" ${clavier('nom')}></div>
      </div>
      <div class="grid2">
        <div class="field"><label for="ceEmail">Email</label>
-         <input id="ceEmail" type="email" value="${esc(src.email || '')}" autocomplete="off" inputmode="email"></div>
+         <input id="ceEmail" type="email" value="${esc(src.email || '')}" autocomplete="off" inputmode="email" ${clavier('email')}></div>
        <div class="field"><label for="cePhone">Téléphone</label>
-         <input id="cePhone" type="tel" value="${esc(src.phone || '')}" autocomplete="off" inputmode="tel"></div>
+         <input id="cePhone" type="tel" value="${esc(src.phone || '')}" autocomplete="off" inputmode="tel" ${clavier('tel')}></div>
      </div>
      <div class="field"><label for="ceLink">Profil</label>
-       <input id="ceLink" type="url" value="${esc(src.link || '')}" placeholder="Ex : linkedin.com/in/…" autocomplete="off"></div>
+       <input id="ceLink" type="url" value="${esc(src.link || '')}" placeholder="Ex : linkedin.com/in/…" autocomplete="off" ${clavier('lien')}></div>
      ${!c ? `
      <div class="field"><label for="ceCo">Entreprise</label>
-       <input id="ceCo" value="${esc((src.extra && src.extra.company) || '')}" placeholder="Ex : OVHcloud" autocomplete="off">
+       <input id="ceCo" value="${esc((src.extra && src.extra.company) || '')}" placeholder="Ex : OVHcloud" autocomplete="off" ${clavier('nom')}>
        <p class="hint" id="ceCoNote" hidden></p></div>` : ''}
      <div class="field"><label for="ceNote">Note</label>
        <input id="ceNote" value="${esc(src.note || '')}" placeholder="Ex : rencontré au forum de l’IUT" autocomplete="off"></div>

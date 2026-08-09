@@ -13,7 +13,7 @@ import { esc, uid, todayISO, debounce } from '../engine/utils.js';
 import { normalizeCompany, contactHasData } from '../engine/model.js';
 import { findMatch } from '../engine/merge.js';
 import { S, bus, saveData, logJ, addOrphan, attachContact, ctLabel } from './state.js';
-import { openSheet, toast, btn, ic } from './dom.js';
+import { openSheet, toast, btn, ic, clavier } from './dom.js';
 import { openFiche } from './fiche.js';
 import { sharedFieldsHTML, bindSharedFields } from './edit.js';
 
@@ -49,13 +49,13 @@ export function openCapture(prefill){
   const contactHTML = wide
     ? `<div class="grid2">
          <div class="field"><label for="cpCtName">Contact</label>
-           <input id="cpCtName" placeholder="Ex : Nadia Rahmani" autocomplete="off"></div>
+           <input id="cpCtName" placeholder="Ex : Nadia Rahmani" autocomplete="off" ${clavier('nom')}></div>
          <div class="field"><label for="cpCtCoord">Email ou téléphone</label>
-           <input id="cpCtCoord" placeholder="nadia@…  ou  06 12 34 56 78" autocomplete="off"></div>
+           <input id="cpCtCoord" placeholder="nadia@…  ou  06 12 34 56 78" autocomplete="off" ${clavier('coord')}></div>
        </div>`
     : `<div class="lbl-row"><label for="cpCtName">Le contact</label></div>
-       <div class="field"><input id="cpCtName" placeholder="Ex : Nadia Rahmani" autocomplete="off"></div>
-       <div class="field"><input id="cpCtCoord" placeholder="Son email ou son téléphone" autocomplete="off"></div>`;
+       <div class="field"><input id="cpCtName" placeholder="Ex : Nadia Rahmani" autocomplete="off" ${clavier('nom')}></div>
+       <div class="field"><input id="cpCtCoord" placeholder="Son email ou son téléphone" autocomplete="off" ${clavier('coord')}></div>`;
   /* Cette source a DEUX chemins, et un seul demande la surface ordinateur :
      coller ses e-mails soi-même (l'app donne un prompt, on rapporte la
      réponse) ne demande RIEN — ni installation, ni compte, ni clé. Elle passe
@@ -67,7 +67,7 @@ export function openCapture(prefill){
     ? `${sharedFieldsHTML(brouillon)}${contactHTML}${mailsHTML}`
     : `<div class="lbl-row"><label for="cpName">L’entreprise</label></div>
        <div class="field">
-         <input id="cpName" value="${esc(prefill.name || '')}" placeholder="Ex : Orange Cyberdefense" autocomplete="off">
+         <input id="cpName" value="${esc(prefill.name || '')}" placeholder="Ex : Orange Cyberdefense" autocomplete="off" ${clavier('nom')}>
          <div class="dup-note" id="cpDup" hidden></div>
          <button class="linklike" id="cpFromMail" hidden></button>
        </div>

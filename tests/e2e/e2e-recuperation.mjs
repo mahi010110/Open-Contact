@@ -49,6 +49,22 @@ await page.reload({ waitUntil: 'load' });
 await page.waitForSelector('.lock');
 await page.click('#lkForgot');
 await page.waitForSelector('#rcPhrase');
+/* Le champ le plus dangereux de l'app : la phrase se tape EN CLAIR, mot
+   à mot, et la correction automatique d'iOS en réécrit un sans rien
+   dire — la phrase ne rouvre alors plus rien, et l'écran n'a aucun moyen
+   de l'expliquer. `type="password"` couperait les trois attributs tout
+   seul ; ici le texte est visible, donc rien ne les coupe. */
+{
+  const p = await page.evaluate(() => {
+    const e = document.querySelector('#rcPhrase');
+    return { cap: e.getAttribute('autocapitalize'), cor: e.getAttribute('autocorrect'),
+             sp: e.getAttribute('spellcheck') };
+  });
+  if (p.cor !== 'off' || p.sp !== 'false' || !/^(off|none)$/.test(p.cap || ''))
+    fail(`la phrase de secours reste exposée à la correction automatique ` +
+         `(majuscule=${p.cap}, correction=${p.cor}, orthographe=${p.sp})`);
+  else console.log('phrase de secours : ni majuscule, ni correction, ni surlignage — elle se tape telle quelle ✓');
+}
 await page.fill('#rcPhrase', oldPhrase.toUpperCase());          /* tolérance de casse */
 await page.click('.modal-f .btn-primary');                       /* Vérifier */
 /* La phrase prouvée mène DIRECTEMENT au nouveau code. L'écran d'annonce

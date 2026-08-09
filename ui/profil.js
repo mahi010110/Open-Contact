@@ -7,7 +7,7 @@
 import { esc, uid } from '../engine/utils.js';
 import { defaultTemplates } from '../engine/model.js';
 import { S, bus, saveProfile } from './state.js';
-import { openSheet, confirmSheet, toast, showUndo, btn, ic } from './dom.js';
+import { openSheet, confirmSheet, toast, showUndo, btn, ic, clavier } from './dom.js';
 import { tplField, tplSample } from './tplfield.js';
 
 /* ---------- profil ---------- */
@@ -21,20 +21,20 @@ export function openProfil(onDone){
        de cet écran-là. */
     `<div class="grid2">
        <div class="field"><label for="pfName">Prénom & nom</label>
-         <input id="pfName" value="${esc(p.name)}" placeholder="Ex : Sam Martin" autocomplete="name"></div>
+         <input id="pfName" value="${esc(p.name)}" placeholder="Ex : Sam Martin" autocomplete="name" ${clavier('nom')}></div>
        <div class="field"><label for="pfFormation">Formation</label>
          <input id="pfFormation" value="${esc(p.formation)}" placeholder="Ex : BTS SIO 2e année" autocomplete="off"></div>
      </div>
      <div class="grid2">
        <div class="field"><label for="pfPhone">Téléphone</label>
-         <input id="pfPhone" type="tel" value="${esc(p.phone)}" autocomplete="tel"></div>
+         <input id="pfPhone" type="tel" value="${esc(p.phone)}" autocomplete="tel" inputmode="tel" ${clavier('tel')}></div>
        <div class="field"><label for="pfEmail">Email</label>
-         <input id="pfEmail" type="email" value="${esc(p.email)}" autocomplete="email"></div>
+         <input id="pfEmail" type="email" value="${esc(p.email)}" autocomplete="email" inputmode="email" ${clavier('email')}></div>
      </div>
      <div class="field"><label for="pfCv">Lien CV</label>
-       <input id="pfCv" type="url" value="${esc(p.cvUrl)}" placeholder="https://…" autocomplete="off"></div>
+       <input id="pfCv" type="url" value="${esc(p.cvUrl)}" placeholder="https://…" autocomplete="off" ${clavier('lien')}></div>
      <div class="field"><label for="pfPortfolio">Portfolio / LinkedIn</label>
-       <input id="pfPortfolio" type="url" value="${esc(p.portfolio)}" placeholder="https://…" autocomplete="off"></div>`;
+       <input id="pfPortfolio" type="url" value="${esc(p.portfolio)}" placeholder="https://…" autocomplete="off" ${clavier('lien')}></div>`;
   const v = s => sh.body.querySelector(s).value.trim();
   sh.setFoot([
     btn('Enregistrer', 'btn-primary', () => {
