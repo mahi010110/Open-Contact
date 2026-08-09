@@ -924,17 +924,17 @@ await attendre(page, async () => {
 console.log('Compagnon mobile honnête + relais avancés + TURN validés ✓');
 await page.screenshot({ path: SHOTS + '/81-ux-appareils-mobile.png' });
 await closeSheet();
-/* ---------- une ligne de contenu ne porte pas la couleur de la navigation ----------
-   Deux feuilles à cocher, deux langages : « Prospecter » remplissait la
-   ligne cochée de NAVY — la couleur qui dit « tu es sur cet onglet »
-   dans les deux barres et qui habille les barres de titre — pendant que
-   « Donner » dithérait la ligne écartée. Le même aplat disait deux
-   choses sans rapport, et les deux écrans semblaient venir d'apps
-   différentes.
-   Le teal est la couleur de ce qui est retenu (bouton primaire, « j'y
-   suis passé », colonne de dépôt) : les deux modes parlent désormais le
-   même. La règle qu'on verrouille n'est pas une teinte, c'est la
-   séparation — chrome d'un côté, contenu de l'autre. */
+/* ---------- LES DEUX FEUILLES À COCHER PARLENT LE MÊME LANGAGE ----------
+   Trois versions. La ligne cochée a porté le NAVY (la couleur qui dit
+   « tu es sur cet onglet »), puis un lavis teal + liseré — pendant que
+   « Donner », lui, ne remplissait rien et dithérait seulement la ligne
+   écartée. À chaque fois, deux écrans qui ne se ressemblaient pas pour
+   le même geste : cocher une piste. Et sur une carte à deux étages,
+   l'aplat ne couvrait que le haut, coupant l'objet en deux.
+   Verdict : la carte reste entière et calme, et c'est la CASE qui porte
+   l'état. On vérifie donc l'inverse d'avant — qu'aucun aplat n'habille
+   la ligne cochée, dans les DEUX feuilles, et que la case, elle, prend
+   bien l'accent. */
 const nCtx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true });
 const nPage = await nCtx.newPage();
 nPage.on('pageerror', e => errors.push(String(e)));
@@ -952,28 +952,67 @@ const teintes = await nPage.evaluate(async () => {
   const fond = e => e ? getComputedStyle(e).backgroundColor : '';
   const nav = fond(document.querySelector('.bottomnav a.on') || document.querySelector('.topnav a.on'));
   const chrome = fond(document.querySelector('.modal-h'));
-  const { openProspect } = await import('./ui/prospect.js');
-  openProspect();
-  await new Promise(r => setTimeout(r, 400));
-  const pk = document.querySelector('.pk');
-  if (pk) pk.click();
-  await new Promise(r => setTimeout(r, 250));
-  const coche = fond(document.querySelector('.pk.on'));
-  const bord = getComputedStyle(document.querySelector('.pk.on') || document.body).boxShadow;
+  const releve = async ouvrir => {
+    document.querySelectorAll('.overlay .x').forEach(x => x.click());
+    await new Promise(r => setTimeout(r, 280));
+    await ouvrir();
+    await new Promise(r => setTimeout(r, 450));
+    /* on met la liste dans l'état MIXTE : au moins une cochée, au moins
+       une pas cochée — c'est le seul état où la comparaison a un sens */
+    const tous = [...document.querySelectorAll('.pk')];
+    const auDepart = tous.filter(b => b.classList.contains('on')).length;
+    (auDepart ? tous[0] : tous[0])?.click();
+    await new Promise(r => setTimeout(r, 250));
+    const on = document.querySelector('.pk.on');
+    const off = document.querySelector('.pk:not(.on)');
+    const cs = e => e ? getComputedStyle(e) : null;
+    const co = cs(on), cf = cs(off);
+    /* `.ic` peint son masque avec `currentColor` : la couleur de la case
+       se lit donc dans son `background-color` calculé */
+    const teinte = e => e ? getComputedStyle(e).backgroundColor : '';
+    return {
+      cocheFond: co ? co.backgroundColor : '', cocheOmbre: co ? co.boxShadow : '',
+      libreFond: cf ? cf.backgroundColor : '',
+      puce: teinte(on && on.querySelector('.ic-on')),
+      puceLibre: teinte(off && off.querySelector('.ic-off')),
+      dither: cf ? cf.backgroundImage : ''
+    };
+  };
+  const pro = await releve(async () => (await import('./ui/prospect.js')).openProspect());
+  const don = await releve(async () => {
+    (await import('./ui/donner.js')).openDonner();
+    await new Promise(r => setTimeout(r, 400));
+    document.getElementById('dnPick')?.click();
+  });
   document.querySelectorAll('.overlay .x').forEach(x => x.click());
   await new Promise(r => setTimeout(r, 250));
-  return { nav, chrome: chrome || nav, coche, bord };
+  /* la couleur de référence, lue dans les tokens : puisque la carte ne
+     se peint plus, la case est le SEUL porteur de l'état, et elle doit
+     porter l'accent — pas une teinte quelconque */
+  const sonde = document.createElement('span');
+  sonde.style.color = 'var(--accent)';
+  document.body.appendChild(sonde);
+  const accent = getComputedStyle(sonde).color;
+  sonde.remove();
+  return { nav, chrome: chrome || nav, accent, pro, don };
 });
-if (!teintes.coche || teintes.coche === 'rgba(0, 0, 0, 0)')
-  fail('une ligne cochée ne se distingue par aucun fond');
-else if (teintes.coche === teintes.nav)
-  fail(`une ligne cochée porte la couleur de l'onglet actif (${teintes.nav}) — ` +
-       `le contenu ne doit pas se peindre en couleur de navigation`);
-else if (teintes.coche === teintes.chrome)
-  fail(`une ligne cochée porte la couleur des barres de titre (${teintes.chrome})`);
-else if (!/inset/.test(teintes.bord))
-  fail('la ligne cochée n’a plus son liseré d’accent — au flou, le lavis seul ne se voit pas');
-else console.log(`ligne cochée ${teintes.coche} ≠ onglet actif ${teintes.nav} ✓`);
+const rien = c => !c || c === 'rgba(0, 0, 0, 0)';
+const t = teintes;
+if (!rien(t.pro.cocheFond) || !rien(t.don.cocheFond))
+  fail(`une ligne cochée se peint un aplat (Prospecter ${t.pro.cocheFond}, Donner ${t.don.cocheFond}) — ` +
+       `sur une carte à deux étages il ne couvre que le haut, et les deux feuilles cessent de se ressembler`);
+else if (t.pro.cocheFond !== t.don.cocheFond || t.pro.cocheOmbre !== t.don.cocheOmbre)
+  fail('les deux feuilles à cocher n’habillent pas la ligne cochée de la même façon');
+else if (t.pro.cocheFond === t.nav || t.pro.cocheFond === t.chrome)
+  fail('une ligne cochée porte une couleur de châssis');
+else if (t.don.puce !== t.accent || t.pro.puce !== t.accent)
+  fail(`la case cochée ne porte pas l’accent (${t.pro.puce} / ${t.don.puce}, attendu ${t.accent}) — ` +
+       `la carte ne se peignant plus, la case est le SEUL porteur de l’état`);
+else if (t.don.puce === t.don.puceLibre)
+  fail('la case cochée et la case vide ont la même couleur — rien ne distingue les deux états');
+else if (/none/.test(t.don.dither))
+  fail('« Donner » ne marque plus la ligne ÉCARTÉE — c’est le seul état en propre de cette liste');
+else console.log('à cocher : même dessin dans les deux feuilles, l’état dans la case, l’écart dithéré ✓');
 
 /* ---------- chaque onglet garde sa place ----------
    Une barre d'onglets promet qu'on retrouve les choses où on les a

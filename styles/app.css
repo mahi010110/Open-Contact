@@ -1783,32 +1783,33 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 .pk .ic-on{display:none;color:var(--accent)}
 .pk.on .ic-on{display:inline-block}
 .pk.on .ic-off{display:none}
-/* UNE LIGNE COCHÉE EST DU CONTENU, PAS DE LA NAVIGATION.
-   Elle portait `--select-bg` — le navy qui dit « tu es sur cet
-   onglet » dans les deux barres de navigation, et qui habille les
-   barres de titre. Le même aplat disait donc deux choses sans rapport,
-   et une liste de pistes cochées pesait autant que la navigation
-   elle-même. Le teal est la couleur de ce qui est À TOI et de ce qui
-   est retenu (bouton primaire, « j'y suis passé », colonne de dépôt) :
-   c'est celle-ci qui revient, en lavis, l'encre du texte inchangée.
-   Le bord gauche porte l'accent franc — assez pour se voir au flou,
-   assez léger pour que dix lignes cochées ne fassent pas un mur. */
-.pk.on{background:var(--teal-wash);box-shadow:inset 3px 0 0 var(--accent)}
+/* L'ÉTAT VIT DANS LA CASE, PAS DANS UN APLAT.
+   Il y a eu trois versions, et les deux premières sont la leçon.
+   ① La ligne cochée portait `--select-bg`, le navy qui dit « tu es sur
+      cet onglet » dans les deux barres de navigation. Le même aplat
+      disait deux choses sans rapport.
+   ② Elle est passée au lavis teal + liseré d'accent — la bonne famille
+      de couleur, mais toujours un aplat. Résultat mis côte à côte avec
+      « Donner », qui lui ne remplit rien : deux écrans qui ne se
+      ressemblaient pas pour le MÊME geste, cocher une piste. Et sur la
+      carte à deux étages, l'aplat ne couvrait que l'étage du haut — la
+      ligne des personnes restait beige, ce qui coupait l'objet en deux.
+   ③ Donc : rien du tout. La carte reste une carte, entière et calme, et
+      c'est la CASE qui porte l'état — vide, ou cochée en accent. C'est
+      le dessin de « Donner », choisi par le mainteneur comme référence,
+      et c'est le plus sobre : sur vingt-quatre lignes, l'encre ne bouge
+      que là où l'œil la cherche déjà.
+   Ce qui se verrouille reste la séparation : le navy au châssis, le
+   teal au contenu — mais le teal se dit ici par un pictogramme, pas
+   par une surface. */
 .pk.on .ic-on{color:var(--accent)}
-/* ---- listes dont le défaut est « TOUT coché » ----
-   Donner, le partage en groupe, les personnes visées, une proposition
-   d'IA à trier : on part de tout retenu et l'on élague. L'aplat de
-   sélection couvrait alors la liste ENTIÈRE — au flou, un bloc uniforme
-   qui n'apprend rien, alors que la seule chose qui varie est l'écart.
-   C'est donc lui qui se marque : la ligne écartée s'éteint et se dithère,
-   la ligne retenue redevient calme. La case à cocher, elle, ne change
-   pas — elle reste le signe de l'état, et rien d'autre ne bouge.
-   Les listes qui partent de RIEN coché (Prospecter) gardent l'aplat :
-   là, c'est le choix qui est rare, donc c'est lui qui mérite l'encre. */
-.pk-inverse .pk.on{background:none;box-shadow:none}
-.pk-inverse .pk.on .pk-m b{color:var(--text-body)}
-.pk-inverse .pk.on .pk-m span{color:var(--text-muted);opacity:1}
-.pk-inverse .pk.on .ic-on{color:var(--accent)}
+/* ---- ce qu'on a explicitement ÉCARTÉ ----
+   Un seul état de plus, et il n'existe que dans les listes qui partent
+   de « tout coché » (Donner, le partage en groupe, les personnes
+   visées) : là, une ligne non cochée n'est pas « pas encore choisie »,
+   elle est SORTIE de ce qui part. C'est une information, et elle mérite
+   son encre. Dans une liste qui part de rien, cet état n'existe pas —
+   ce n'est pas une inégalité de traitement, c'est un état en moins. */
 .pk-inverse .pk:not(.on){background-image:var(--dither-img);background-size:var(--dither-size);color:var(--text-muted)}
 .pk-inverse .pk:not(.on) .pk-m b{color:var(--text-muted)}
 /* une piste écartée l'est ENTIÈRE : sa commande « qui » s'éteint avec

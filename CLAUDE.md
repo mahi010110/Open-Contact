@@ -194,14 +194,18 @@ net. Sources uniques : `styles/tokens/` et le kit `design/`.
 - **Couleurs** : encre sur papier, accent teal `#0B7268`, sélection navy.
   Toujours par les tokens (`var(--…)`), jamais de couleur en dur.
   **Le navy appartient au CHÂSSIS, le teal au contenu.** `--select-bg`
-  habille l'onglet allumé, les barres de titre, `::selection` : ce qui
-  dit *où tu es*. Une ligne qu'on coche dit *ce que tu as choisi* — elle
-  prend le lavis teal et un liseré d'accent. La règle est née d'un écran
-  côte à côte avec un autre : « Prospecter » remplissait sa ligne cochée
-  de navy pendant que « Donner » dithérait la ligne écartée, et les deux
-  semblaient venir d'applications différentes. Ce qui se verrouille
-  n'est pas une teinte, c'est la **séparation** — châssis d'un côté,
-  contenu de l'autre.
+  habille l'onglet allumé, les barres de titre, `::selection`, le
+  surlignage d'un résultat de recherche : ce qui dit *où tu es* ou *ce
+  que tu as demandé*. Rien d'autre.
+  **Et une ligne qu'on coche ne se peint pas.** Trois versions ont été
+  nécessaires : navy (la couleur du châssis), puis lavis teal + liseré
+  (la bonne famille, mais toujours un aplat), puis rien. Deux raisons
+  ont tranché — mises côte à côte, « Prospecter » et « Donner » ne se
+  ressemblaient pas pour le MÊME geste ; et sur une carte à deux étages
+  l'aplat ne couvre que le haut, ce qui coupe l'objet en deux. L'état
+  vit donc dans la **case**, cochée en accent, et la carte reste
+  entière. Ce qui se verrouille n'est pas une teinte, c'est la
+  **séparation** — châssis d'un côté, contenu de l'autre.
 - **Reliefs** : bevels francs, ombres dures, coins droits (`--bevel-*`,
   `--shadow-*`). L'identité est **nette, sans flou** — un dégradé, une ombre
   floue, un arrondi marqué la cassent. Ça se discute avec le mainteneur, ça ne
@@ -432,7 +436,7 @@ avec un motif existant.
 | Expliquer un résultat | `searchHint(c, q, {skip})` → `.ri-hit` + `<mark>`. Le moteur rend l'extrait ET les positions, jamais du HTML. La ligne ne parle **que** si ce qu'elle affiche déjà ne répond pas — l'appelant dit ce qu'il montre (`skip`), et rien ne se dit deux fois |
 | Proposer un filtre | `.fl-chip` + son **compte**. Ne jamais offrir une valeur absente des données. Liste fermée (statuts) : la puce reste, éteinte. Liste ouverte (domaines) : elle disparaît, sauf si le filtre est actif |
 | Note contextuelle | `<p class="hint">` (+ `warn` si alerte) |
-| Multi-sélection | `.pk` avec icônes checkbox — **jamais pour supprimer**. L'emphase suit le DÉFAUT : parti de rien coché, l'aplat marque le choix ; parti de tout coché, `pk-inverse` marque l'**écart**. **Le défaut se juge feuille par feuille** — « → qui » s'ouvre tout coché pour *donner*, avec une seule personne pour *écrire*. Le coché prend le **lavis teal + un liseré d'accent**, jamais `--select-bg` (voir §4) |
+| Multi-sélection | `.pk` avec icônes checkbox — **jamais pour supprimer**. **Le coché ne porte aucun aplat** : la carte reste entière, l'état vit dans la case (voir §4). Un seul état de plus, `pk-inverse`, et seulement là où la liste part de « tout coché » (Donner, partage en groupe, « → qui » en mode *donner*) : la ligne **écartée** se dithère, parce que là une ligne non cochée n'est pas « pas encore choisie », elle est SORTIE. Ailleurs cet état n'existe pas — c'est un état en moins, pas une inégalité |
 | Choisir qui part / qui est visé | `ui/qui.js` — la ligne « → qui » et sa sous-feuille à cocher |
 | Supprimer un élément | glisser (mobile) / poubelle au survol (desktop) + `showUndo`, sans confirmation |
 | Fermer une barre transitoire | balayer (mobile) / `✕` (desktop) |
@@ -857,6 +861,7 @@ retiré.
 | « Interdits : dégradés, ombres floues, arrondis, glassmorphism » | **assouplie** | Une liste d'interdits absolus légifère contre un futur qu'on ne connaît pas. L'identité « nette, sans flou » est dite positivement : un effet qui l'adoucit se **discute**, il ne se glisse pas |
 | « Concevoir deux réponses » (adaptatif) | **précisée** | Se lisait comme « deux dessins par écran », soit le double de travail. Le défaut est **un seul dessin** ; deux seulement quand l'usage diffère — trois écrans aujourd'hui |
 | « rien > icône > mot > phrase » | **précisée** | La brièveté poussée à bout rend cryptique. La compréhension passe devant : une icône qu'on ne devine pas coûte plus cher qu'un mot |
+| « L'emphase suit le défaut : aplat si l'on part de rien coché, dither si l'on part de tout coché » | **supprimée** (août 2026) | Le raisonnement se tenait — l'encre va à ce qui varie — mais il produisait deux écrans qui ne se ressemblaient pas pour le même geste, et le mainteneur l'a vu avant tout le reste. La ligne cochée ne porte plus rien du tout, partout ; seul l'ÉCART garde sa trame, là où il existe |
 
 *Tranché par l'assistant, à valider :* la reformulation de l'interdit serveur,
 la suppression de « ne pas dégrader l'existant », et le contenu détaillé des

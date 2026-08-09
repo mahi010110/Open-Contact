@@ -63,6 +63,16 @@ Dernière mise à jour : 8 août 2026 — cache `oc-v138`, 128 auto-tests verts
   l'application (`about:blank`). Le retour est désormais différé et
   l'ouverture suivante le reprend. Gardes `e2e-fenetre.mjs` et
   `e2e-ux-audit.mjs` ; 23 mutations, toutes attrapées.
+- **Une ligne cochée ne se peint pas** (août 2026). Troisième et
+  dernière version : la ligne retenue a porté le navy du châssis, puis
+  un lavis teal + liseré, avant de ne plus rien porter du tout. Deux
+  raisons, toutes deux vues sur photo par le mainteneur — mises côte à
+  côte, « Prospecter » et « Donner » ne se ressemblaient pas pour le
+  même geste ; et sur une carte à deux étages l'aplat ne couvrait que le
+  haut, coupant l'objet en deux. L'état vit dans la **case**, la carte
+  reste entière, et les cinq listes à cocher de l'app parlent enfin le
+  même langage. Seul l'ÉCART garde sa trame, là où il existe (les listes
+  qui partent de « tout coché »). 4 mutations.
 - **Le clavier qui s'ouvre** (août 2026). Premier relevé de tous les
   champs de l'app, et trois défauts invisibles à la relecture, payés à
   chaque saisie : « Son email ou son téléphone » — le champ le plus tapé
