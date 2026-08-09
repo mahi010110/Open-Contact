@@ -924,6 +924,278 @@ await attendre(page, async () => {
 console.log('Compagnon mobile honnête + relais avancés + TURN validés ✓');
 await page.screenshot({ path: SHOTS + '/81-ux-appareils-mobile.png' });
 await closeSheet();
+/* ---------- une ligne de contenu ne porte pas la couleur de la navigation ----------
+   Deux feuilles à cocher, deux langages : « Prospecter » remplissait la
+   ligne cochée de NAVY — la couleur qui dit « tu es sur cet onglet »
+   dans les deux barres et qui habille les barres de titre — pendant que
+   « Donner » dithérait la ligne écartée. Le même aplat disait deux
+   choses sans rapport, et les deux écrans semblaient venir d'apps
+   différentes.
+   Le teal est la couleur de ce qui est retenu (bouton primaire, « j'y
+   suis passé », colonne de dépôt) : les deux modes parlent désormais le
+   même. La règle qu'on verrouille n'est pas une teinte, c'est la
+   séparation — chrome d'un côté, contenu de l'autre. */
+const nCtx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true });
+const nPage = await nCtx.newPage();
+nPage.on('pageerror', e => errors.push(String(e)));
+await nPage.goto(base, { waitUntil: 'load' });
+await attendre(nPage, async () => !!(await import('./ui/state.js')).S.profile, 'profil chargé');
+const teintes = await nPage.evaluate(async () => {
+  const { S, saveData } = await import('./ui/state.js');
+  const { normalizeCompany } = await import('./engine/model.js');
+  document.querySelectorAll('.overlay .x').forEach(x => x.click());
+  await new Promise(r => setTimeout(r, 250));
+  S.companies = ['Alpha', 'Beta', 'Gamma'].map((n, i) => normalizeCompany({
+    name: n, city: 'Toulouse', status: 'todo',
+    contacts: [{ name: 'C' + i, email: 'c' + i + '@x.test' }] }));
+  saveData();
+  const fond = e => e ? getComputedStyle(e).backgroundColor : '';
+  const nav = fond(document.querySelector('.bottomnav a.on') || document.querySelector('.topnav a.on'));
+  const chrome = fond(document.querySelector('.modal-h'));
+  const { openProspect } = await import('./ui/prospect.js');
+  openProspect();
+  await new Promise(r => setTimeout(r, 400));
+  const pk = document.querySelector('.pk');
+  if (pk) pk.click();
+  await new Promise(r => setTimeout(r, 250));
+  const coche = fond(document.querySelector('.pk.on'));
+  const bord = getComputedStyle(document.querySelector('.pk.on') || document.body).boxShadow;
+  document.querySelectorAll('.overlay .x').forEach(x => x.click());
+  await new Promise(r => setTimeout(r, 250));
+  return { nav, chrome: chrome || nav, coche, bord };
+});
+if (!teintes.coche || teintes.coche === 'rgba(0, 0, 0, 0)')
+  fail('une ligne cochée ne se distingue par aucun fond');
+else if (teintes.coche === teintes.nav)
+  fail(`une ligne cochée porte la couleur de l'onglet actif (${teintes.nav}) — ` +
+       `le contenu ne doit pas se peindre en couleur de navigation`);
+else if (teintes.coche === teintes.chrome)
+  fail(`une ligne cochée porte la couleur des barres de titre (${teintes.chrome})`);
+else if (!/inset/.test(teintes.bord))
+  fail('la ligne cochée n’a plus son liseré d’accent — au flou, le lavis seul ne se voit pas');
+else console.log(`ligne cochée ${teintes.coche} ≠ onglet actif ${teintes.nav} ✓`);
+
+/* ---------- chaque onglet garde sa place ----------
+   Une barre d'onglets promet qu'on retrouve les choses où on les a
+   laissées ; c'est ce qui distingue un onglet d'un lien. Mesuré avant :
+   trente pistes, on descend, on change d'onglet, on revient — tout en
+   haut. Et retaper l'onglet où l'on est doit, lui, remonter. */
+const garde = await nPage.evaluate(async () => {
+  const { S, saveData } = await import('./ui/state.js');
+  const { normalizeCompany } = await import('./engine/model.js');
+  S.companies = Array.from({ length: 30 }, (_, i) => normalizeCompany({
+    name: 'Piste ' + String(i + 1).padStart(2, '0'), city: 'Toulouse', status: 'todo' }));
+  saveData();
+  const onglet = r => document.querySelector(`.bottomnav [data-r="${r}"]`);
+  const v = () => document.querySelector('#view-pistes');
+  const pause = ms => new Promise(r => setTimeout(r, ms));
+  /* on tape les onglets, on n'écrit pas le hash : c'est le geste réel, et
+     lui seul passe par le lien (donc par la forme « #/pistes ») */
+  onglet('pistes').click();
+  await pause(450);
+  v().scrollTop = 700;
+  await pause(150);
+  const pose = v().scrollTop;
+  onglet('moi').click();
+  await pause(350);
+  onglet('pistes').click();
+  await pause(450);
+  const revenu = v().scrollTop;
+  /* ① re-taper l'onglet où l'on est déjà : le hash ne change même pas,
+     donc rien ne se re-rend — seul `auSommet` peut remonter */
+  onglet('pistes').click();
+  await pause(600);
+  const apresRetap = v().scrollTop;
+  /* ② et la remontée doit TENIR : on repart, on revient. Si `auSommet`
+     n'avait pas oublié la place, on redescendrait à 700 px. */
+  onglet('moi').click();
+  await pause(350);
+  onglet('pistes').click();
+  await pause(450);
+  const apresAllerRetour = v().scrollTop;
+  /* ③ le même écran atteint par une AUTRE écriture du hash (« #pistes »,
+     que le routeur accepte) : la route ne change pas, donc rien ne doit
+     ressusciter l'ancienne position. C'est ce chemin-là qui, avant, lisait
+     le défilement en cours et le réécrivait par-dessus la remontée. */
+  v().scrollTop = 700;
+  await pause(150);
+  onglet('pistes').click();          /* auSommet : on remonte */
+  location.hash = '#pistes';         /* et un hashchange arrive par-dessus */
+  await pause(600);
+  return { pose, revenu, apresRetap, apresAllerRetour, apresHashJumeau: v().scrollTop };
+});
+if (!garde.pose) fail('la liste ne défile pas — mesure impossible');
+else if (garde.revenu !== garde.pose)
+  fail(`la place n'est pas gardée : ${garde.pose}px avant, ${garde.revenu}px en revenant`);
+else if (garde.apresRetap > 4)
+  fail(`retaper l'onglet courant ne remonte pas : ${garde.apresRetap}px`);
+else if (garde.apresAllerRetour > 4)
+  fail(`la remontée ne tient pas : on repart, on revient, et on retombe à ${garde.apresAllerRetour}px`);
+else if (garde.apresHashJumeau > 4)
+  fail(`un hashchange sur la même route ressuscite l'ancienne position : ${garde.apresHashJumeau}px`);
+else console.log(`onglets : la place tient (${garde.pose}px), re-taper remonte, et la remontée tient ✓`);
+
+/* ---------- changer d'onglet s'annonce ----------
+   Le titre du document ne bougeait pas d'une zone à l'autre (quatre
+   entrées identiques dans l'historique) et le focus restait sur l'onglet
+   tapé : au lecteur d'écran, l'écran entier changeait en silence.
+   Un VRAI tap, pas un `.click()` de script : le contour se décide sur la
+   nature du geste (`:focus-visible`), et un clic synthétique est traité
+   comme du clavier. Mesurer avec le mauvais geste ferait croire à un
+   cadre autour du titre à chaque changement d'onglet. */
+await nPage.tap('.bottomnav [data-r="echanger"]');
+await nPage.waitForTimeout(450);
+const dit = await nPage.evaluate(() => {
+  const a = document.activeElement;
+  return { titre: document.title, focus: (a?.textContent || '').trim().slice(0, 20),
+           dansNav: !!a?.closest?.('nav'),
+           vu: a?.matches?.(':focus-visible') ?? false,
+           evite: document.querySelector('#main')?.getAttribute('tabindex') };
+});
+if (!/Échanger/.test(dit.titre))
+  fail(`le titre du document ne suit pas la route : « ${dit.titre} »`);
+else if (dit.dansNav || dit.focus !== 'Échanger')
+  fail(`le focus ne suit pas la route : resté sur « ${dit.focus} »`);
+else if (dit.vu)
+  fail('un contour de focus s’allume sur le titre après un TAP — le focus doit s’entendre, pas se voir');
+else if (dit.evite !== '-1')
+  fail('« Aller au contenu » vise un <main> non focalisable — il ne déplace pas le focus');
+else console.log(`route : titre « ${dit.titre} », focus posé sur le titre d’écran sans contour au doigt ✓`);
+
+/* ---------- ce qui COMMANDE la liste reste avec la liste ----------
+   Mesuré, 40 pistes en 360×640 : à 1200 px de défilement il ne restait à
+   l'écran ni titre, ni recherche, ni état de filtre. Au pouce c'est la
+   barre de commande qui se colle ; au poste c'est le titre de colonne,
+   parce que « / » y ramène déjà le champ de recherche en une touche.
+   Deux réponses, un seul défaut. (Un élément collant s'arrête sur la
+   boîte de CONTENU du défileur : d'où les 16 px de padding dans
+   l'ancrage attendu.) */
+async function colleTop(p, sel){
+  return p.evaluate(async s => {
+    const v = document.querySelector('#view-pistes');
+    v.scrollTop = 1200;
+    await new Promise(r => setTimeout(r, 300));
+    const e = v.querySelector(s);
+    if (!e) return null;
+    const pad = parseFloat(getComputedStyle(v).paddingTop) || 0;
+    return { y: Math.round(e.getBoundingClientRect().top),
+             attendu: Math.round(v.getBoundingClientRect().top + pad),
+             hautVue: Math.round(v.getBoundingClientRect().top) };
+  }, sel);
+}
+await nPage.evaluate(async () => {
+  const { S, saveData } = await import('./ui/state.js');
+  const { normalizeCompany } = await import('./engine/model.js');
+  S.companies = Array.from({ length: 40 }, (_, i) => normalizeCompany({
+    name: 'Piste ' + String(i + 1).padStart(2, '0'), city: 'Toulouse',
+    status: ['todo', 'active', 'reply', 'todo'][i % 4] }));
+  saveData();
+  document.querySelector('.bottomnav [data-r="pistes"]').click();
+  await new Promise(r => setTimeout(r, 450));
+});
+/* au repos, l'objet n'existe pas : ni fond, ni trait, ni relief. Une
+   barre collante ne se justifie qu'au-delà de trois écrans (NN/g) ; son
+   décor ne doit donc rien coûter à une liste de trois lignes. */
+const nu = e => e.fond === 'rgba(0, 0, 0, 0)' && e.trait === '0px' && e.ombre === 'none';
+const peau = p => p.evaluate(() => {
+  const cs = getComputedStyle(document.querySelector('#view-pistes .search-wrap'));
+  return { fond: cs.backgroundColor, trait: cs.borderBottomWidth, ombre: cs.boxShadow };
+});
+/* le décor de décrochage ne doit pas prendre de place : une bordure
+   pousserait le contenu d'un pixel, et l'ancrage du défilement le
+   rattraperait — la liste dérivait d'un pixel par décrochage */
+const traitEnDur = await nPage.evaluate(() =>
+  getComputedStyle(document.querySelector('#view-pistes .search-wrap')).borderBottomWidth);
+const auRepos = await peau(nPage);
+const collePouce = await colleTop(nPage, '.search-wrap');
+const decrochee = await peau(nPage);
+if (!collePouce) fail('pas de barre de commande sur « Mes pistes »');
+else if (collePouce.y !== collePouce.attendu)
+  fail(`au pouce, la barre de commande part avec la liste (y=${collePouce.y}, attendu ${collePouce.attendu})`);
+else if (!nu(auRepos))
+  fail(`au repos la barre de commande pose du décor permanent : fond ${auRepos.fond}, trait ${auRepos.trait}, ombre ${auRepos.ombre}`);
+else if (nu(decrochee))
+  fail('décrochée, la barre de commande ne se distingue pas de la page — rien ne dit qu’on n’est plus en haut');
+else if (decrochee.trait !== traitEnDur)
+  fail(`le décrochage ajoute une bordure (${decrochee.trait}) : elle pousse le contenu et fait dériver la liste — passer par l’ombre`);
+else console.log(`liste au pouce : rien au repos, barre d’outils à y=${collePouce.y} une fois décrochée ✓`);
+
+/* le même défaut vit dans les feuilles à cocher : « Donner » et
+   « Prospecter » ouvrent ~3,5 écrans de liste, et « Tout » comme
+   « Affiner » — les deux gestes qu'on cherche une fois descendu —
+   partaient avec la première ligne. Même motif, mêmes règles. */
+for (const [quoi, titre] of [['donner', 'Donner'], ['prospect', 'Prospecter']]){
+  const b = await nPage.evaluate(async q => {
+    document.querySelectorAll('.overlay .x').forEach(x => x.click());
+    await new Promise(r => setTimeout(r, 300));
+    if (q === 'donner'){
+      (await import('./ui/donner.js')).openDonner();
+      await new Promise(r => setTimeout(r, 400));
+      document.getElementById('dnPick')?.click();
+    } else (await import('./ui/prospect.js')).openProspect();
+    await new Promise(r => setTimeout(r, 500));
+    const bar = document.querySelector('.overlay:not(.ov-out) .listbar');
+    if (!bar) return null;
+    const sc = bar.closest('.modal-b');
+    const peau = () => { const c = getComputedStyle(bar);
+      return { fond: c.backgroundColor, trait: c.borderBottomWidth, ombre: c.boxShadow }; };
+    const repos = peau();
+    const pad = parseFloat(getComputedStyle(sc).paddingTop) || 0;
+    sc.scrollTop = 900;
+    await new Promise(r => setTimeout(r, 350));
+    const r = bar.getBoundingClientRect();
+    const dessus = document.elementFromPoint(Math.round(r.left + r.width / 2), Math.round(r.top - 3));
+    return { deborde: sc.scrollHeight > sc.clientHeight + 200,
+             y: Math.round(r.top), attendu: Math.round(sc.getBoundingClientRect().top + pad),
+             repos, apres: peau(), fuite: !!dessus?.closest?.('.pk-duo') };
+  }, quoi);
+  if (!b) fail(`« ${titre} » : pas de barre « Tout / Affiner »`);
+  else if (!b.deborde) fail(`« ${titre} » : la liste ne déborde pas — mesure impossible`);
+  else if (b.y !== b.attendu)
+    fail(`« ${titre} » : « Tout / Affiner » part avec la liste (y=${b.y}, attendu ${b.attendu})`);
+  else if (!nu(b.repos))
+    fail(`« ${titre} » : la barre pose du décor au repos (fond ${b.repos.fond})`);
+  else if (nu(b.apres))
+    fail(`« ${titre} » : décrochée, la barre ne se distingue pas de la liste`);
+  else if (b.apres.trait !== b.repos.trait)
+    fail(`« ${titre} » : le décrochage ajoute une bordure — elle pousse la liste, passer par l’ombre`);
+  else if (b.fuite)
+    fail(`« ${titre} » : une ligne défile à découvert au-dessus de la barre`);
+  else console.log(`feuille « ${titre} » : « Tout / Affiner » tient à y=${b.y}, rien au repos ✓`);
+}
+await nCtx.close();
+
+const wCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+const wPage = await wCtx.newPage();
+wPage.on('pageerror', e => errors.push(String(e)));
+await wPage.goto(base, { waitUntil: 'load' });
+await attendre(wPage, async () => !!(await import('./ui/state.js')).S.profile, 'profil chargé');
+await wPage.evaluate(async () => {
+  const { S, saveData } = await import('./ui/state.js');
+  const { normalizeCompany } = await import('./engine/model.js');
+  S.companies = Array.from({ length: 40 }, (_, i) => normalizeCompany({
+    name: 'Piste ' + String(i + 1).padStart(2, '0'), city: 'Toulouse',
+    status: ['todo', 'active', 'reply', 'todo'][i % 4] }));
+  saveData();
+  document.querySelector('.topnav [data-r="pistes"]').click();
+  await new Promise(r => setTimeout(r, 450));
+});
+const collePoste = await colleTop(wPage, '.bcol-h');
+if (!collePoste) fail('pas de tableau en colonnes sur « Mes pistes » au poste');
+else if (collePoste.y !== collePoste.hautVue)
+  fail(`au poste, le titre de colonne part avec la liste (y=${collePoste.y}, attendu ${collePoste.hautVue})`);
+else {
+  /* et rien ne défile à découvert au-dessus de lui */
+  const fuite = await wPage.evaluate(() => {
+    const h = document.querySelector('#view-pistes .bcol-h').getBoundingClientRect();
+    const e = document.elementFromPoint(Math.round(h.left + h.width / 2), Math.round(h.top - 3));
+    return e ? (e.closest('.bcard') ? 'une carte' : '') : '';
+  });
+  if (fuite) fail(`au poste, ${fuite} défile à découvert au-dessus du titre de colonne`);
+  else console.log(`tableau au poste : les trois titres de colonne tiennent à y=${collePoste.y}, sans fuite ✓`);
+}
+await wCtx.close();
+
 await browser.close();
 
 /* Le même message honnête est présent dans « Depuis mes e-mails ». Cette
@@ -1006,6 +1278,7 @@ if (IA){
     fail('hors périmètre, les réglages nomment encore l’IA : ' + moiTxt.slice(0, 260));
   console.log('hors périmètre : aucune ligne « Mon assistant IA » dans les réglages ✓');
 }
+
 
 console.log(errors.length ? 'Erreurs console : ' + errors.join(' | ') : 'Zéro erreur console.');
 if (errors.length) process.exitCode = 1;

@@ -10,7 +10,7 @@ import { esc } from '../engine/utils.js';
 import { STATUSES, nextActionContact } from '../engine/model.js';
 import { filterCompanies } from '../engine/filter.js';
 import { S, bus, isClosed } from './state.js';
-import { openSheet, toast, btn, ic, softReorder } from './dom.js';
+import { openSheet, toast, btn, ic, softReorder, collerEnHaut } from './dom.js';
 import { sortState, sortArgs } from './sort.js';
 import { filterState, filterArgs, affinerBtnHTML, bindAffinerBtn } from './affiner.js';
 import { openMail } from './mail.js';
@@ -88,7 +88,8 @@ export function openProspect(){
   const render = () => {
     const list = filterCompanies(alive(), { ...filterArgs(ft), ...sortArgs(st) });
     sh.body.innerHTML =
-      `<div class="listbar">
+      `<div class="stick-guet" aria-hidden="true"></div>
+       <div class="listbar">
          ${/* le mot ne bascule plus : c'est la CASE qui porte l'état, comme
               sur chaque ligne en dessous. « Tout cocher » devenant « Tout
               décocher » d'un tap, la cible changeait de nom sous le doigt
@@ -112,6 +113,7 @@ export function openProspect(){
               ${whoLineHTML(c, keepOf(c), 'ecrire')}
             </div>`).join('')}
        </div>`;
+    collerEnHaut(sh.body.querySelector('.stick-guet'), sh.body.querySelector('.listbar'));
     const bAll = sh.body.querySelector('#pkAll');
     syncAll = () => {
       const tout = list.length > 0 && list.every(c => sel.has(c.id));

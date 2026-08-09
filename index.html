@@ -81,7 +81,11 @@
     <button id="swCopy">Garder une copie</button>
   </div>
 
-  <main class="main" id="main">
+  <!-- `tabindex="-1"` : sans lui, « Aller au contenu » déplaçait le
+       défilement mais PAS le focus — un <main> n'est pas focalisable, et
+       la tabulation suivante repartait de la barre de navigation. Le lien
+       d'évitement existait donc sans éviter quoi que ce soit. -->
+  <main class="main" id="main" tabindex="-1">
     <section class="view" id="view-aujourdhui" hidden aria-label="Aujourd’hui"></section>
     <section class="view" id="view-pistes" hidden aria-label="Mes pistes"></section>
     <section class="view" id="view-echanger" hidden aria-label="Échanger"></section>

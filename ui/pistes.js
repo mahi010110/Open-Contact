@@ -12,7 +12,8 @@ import { filterCompanies, filterOrphans, searchHint } from '../engine/filter.js'
 import { silentPistes } from '../engine/assist.js';
 import { S, bus, isClosed, hasDemo, addDemo, ctLabel, deletePiste, undeletePiste,
          removeOrphan, saveOrphans, saveData, logJ } from './state.js';
-import { $, ic, toast, showUndo, bindDeleteGesture, openSheet, softReorder, topSheet } from './dom.js';
+import { $, ic, toast, showUndo, bindDeleteGesture, openSheet, softReorder, topSheet,
+         collerEnHaut } from './dom.js';
 import { openAffinerSheet } from './affiner.js';
 import { sortState, sortArgs, sortHasDist, sortChipHTML, bindSortChip } from './sort.js';
 import { relLabel, diffDays, dueMarkHTML, silenceMarkHTML } from './dates.js';
@@ -347,6 +348,10 @@ export function renderPistes(){
          ${(CAMPAGNES && nCamps) ? `<button class="btn btn-sm" id="piCamps">${ic('flag', 'ic-14')} Campagnes (${nCamps})</button>` : ''}
          ${nAlive ? `<button class="btn btn-sm" id="piProspect">${ic('mail', 'ic-14')} Prospecter</button>` : ''}
        </div>
+       ${/* le repère qui dit à la barre de commande qu'elle a décroché
+             du haut de page — 1 px, repris par une marge négative, donc
+             sans effet sur la mise en page */''}
+       <div class="stick-guet" aria-hidden="true"></div>
        <div class="search-wrap">
          <input class="search" id="piQ" type="search" placeholder="Chercher…"
                 aria-label="Rechercher une piste" value="${esc(q)}">
@@ -463,6 +468,11 @@ export function renderPistes(){
     body.querySelector('#piAdd')?.addEventListener('click', () => openCapture());
     body.querySelector('#piDemo')?.addEventListener('click', () => { addDemo(); bus.refresh(); toast('Exemple ajouté — retire-le depuis « Aujourd’hui ».'); });
   };
+
+  /* au poste, le titre de colonne porte déjà son fond et son trait : se
+     coller ne lui ajoute aucune encre, il n'a rien à annoncer. Seule la
+     barre de commande du pouce a besoin du repère. */
+  collerEnHaut(root.querySelector('.stick-guet'), root.querySelector('.search-wrap'));
 
   const input = root.querySelector('#piQ');
   let h = null;

@@ -256,6 +256,56 @@ html[data-theme="dark"] .field select{
 .hint.warn{color:var(--amber)}
 .search-wrap{position:relative;display:flex;gap:8px;margin-bottom:14px}
 .search-wrap .search{flex:1;min-width:0}
+/* ---- la barre qui COMMANDE la liste reste avec la liste ----
+   Mesuré, 40 pistes en 360×640 : le titre part à 90 px de défilement,
+   le champ de recherche et « Affiner » avec lui. À 1200 px il ne reste
+   à l'écran ni titre, ni recherche, ni état de filtre — rien que des
+   noms d'entreprises. Revenir chercher coûtait quatre balayages.
+   Une barre d'outils appartient à ce qu'elle outille : elle se colle.
+   On ne colle QUE cette ligne — le titre de l'écran est déjà dit par
+   l'onglet allumé en bas, et les puces de filtre ont leur compte dans
+   « Affiner ③ ». Un pixel permanent de plus se paierait pour rien.
+   Elle mesure ~55 px sur 640, soit le dixième de hauteur que NN/g donne
+   pour plafond utile ; la satisfaction chute au-delà de 20-30 %.
+   AU REPOS ELLE N'EXISTE PAS : ni fond, ni trait, ni relief. Le décor
+   n'apparaît que décrochée (`.est-collee`, posée par la sentinelle de
+   `ui/dom.js`) — sur une liste de trois lignes, rien ne s'ajoute jamais.
+   Le `::after` habille les 16 px de marge haute de la vue : sans lui,
+   les lignes défileraient à découvert au-dessus de la barre. */
+@media (max-width:900px){
+#view-pistes .search-wrap{
+  position:sticky;top:0;z-index:6;
+  margin-left:calc(-14px - env(safe-area-inset-left));
+  margin-right:calc(-14px - env(safe-area-inset-right));
+  margin-bottom:4px;
+  padding:0 calc(14px + env(safe-area-inset-right)) 10px calc(14px + env(safe-area-inset-left));
+}
+/* Le trait se fait à l'OMBRE, pas à la bordure : une bordure qui
+   apparaît pousse le contenu d'un pixel, et l'ancrage du défilement
+   compense — la liste dérivait de 1 px à chaque décrochage (mesuré :
+   700 → 701 → 702). Une ombre ne prend pas de place. */
+#view-pistes .search-wrap.est-collee{
+  background:var(--surface-chrome);
+  box-shadow:0 1px 0 0 var(--border-strong), var(--shadow-raised);
+}
+#view-pistes .search-wrap.est-collee::after{
+  content:'';position:absolute;left:0;right:0;bottom:100%;height:16px;
+  background:var(--surface-chrome);
+}
+}
+/* Au poste, c'est l'autre repère qui manque : les trois colonnes du
+   tableau perdaient leur en-tête au bout d'un écran, et il ne restait
+   que trois piles de cartes sans nom. C'est le même défaut, pas la même
+   réponse — le champ de recherche, lui, revient d'une seule touche
+   (« / »), ce qu'un pouce n'a pas. Le titre de colonne se colle donc au
+   poste, la barre de commande au pouce. */
+@media (min-width:901px){
+  /* `-16px` et non `0` : un élément collant s'arrête sur la boîte de
+     CONTENU du défileur, donc 16 px sous le haut de la vue — et une
+     carte défilait à découvert dans cette bande. Le titre monte jusqu'au
+     bord, sous la barre de l'app, sans laisser de fente. */
+  .bcol-h{position:sticky;top:-16px;z-index:4}
+}
 /* La touche s'annonce dans le champ qu'elle ouvre — l'idiome de tous
    les postes de commandement, et la seule façon de rendre un raccourci
    découvrable sans écrire un écran d'aide. Elle est en retrait : c'est
@@ -280,6 +330,25 @@ html[data-theme="dark"] .field select{
 .sort-on{background:var(--teal-wash);border-color:var(--accent);color:var(--accent)}
 /* barre au-dessus d'une liste de choix (tri dans les feuilles) */
 .listbar{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+/* Le même défaut que sur « Mes pistes », dans une feuille : « Donner »
+   et « Prospecter » ouvrent 2400 px de liste dans 720 px de fenêtre —
+   trois écrans et demi — et « Tout » comme « Affiner » partaient avec la
+   première. Ce sont exactement les deux gestes qu'on cherche une fois
+   descendu. Même motif, mêmes règles : rien au repos, la barre ne prend
+   fond et relief que décrochée, et le trait se fait à l'ombre pour ne
+   pas pousser la liste d'un pixel. Le `::after` couvre les 16 px de
+   marge haute du corps de la feuille. */
+.modal-b .listbar{position:sticky;top:0;z-index:5;
+  margin-left:-18px;margin-right:-18px;padding:0 18px 6px;margin-bottom:4px}
+.modal-b .listbar.est-collee{
+  background:var(--surface-window);
+  box-shadow:0 1px 0 0 var(--border-soft), var(--shadow-raised);
+}
+.modal-b .listbar.est-collee::after{
+  content:'';position:absolute;left:0;right:0;bottom:100%;height:16px;
+  background:var(--surface-window);
+}
+.stick-guet{height:1px;margin-bottom:-1px}
 .listbar .linklike,.listbar>span{flex:1;min-width:0}
 /* Les deux commandes d'une liste — « Tout » et « Affiner » — sont des
    SŒURS : même poids, même grammaire, aux deux bouts de la barre. Elles
@@ -1703,10 +1772,18 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 .pk .ic-on{display:none;color:var(--accent)}
 .pk.on .ic-on{display:inline-block}
 .pk.on .ic-off{display:none}
-.pk.on{background:var(--select-bg)}
-.pk.on .pk-m b{color:var(--select-text)}
-.pk.on .pk-m span{color:var(--select-text);opacity:.75}
-.pk.on .ic-on{color:var(--select-text)}
+/* UNE LIGNE COCHÉE EST DU CONTENU, PAS DE LA NAVIGATION.
+   Elle portait `--select-bg` — le navy qui dit « tu es sur cet
+   onglet » dans les deux barres de navigation, et qui habille les
+   barres de titre. Le même aplat disait donc deux choses sans rapport,
+   et une liste de pistes cochées pesait autant que la navigation
+   elle-même. Le teal est la couleur de ce qui est À TOI et de ce qui
+   est retenu (bouton primaire, « j'y suis passé », colonne de dépôt) :
+   c'est celle-ci qui revient, en lavis, l'encre du texte inchangée.
+   Le bord gauche porte l'accent franc — assez pour se voir au flou,
+   assez léger pour que dix lignes cochées ne fassent pas un mur. */
+.pk.on{background:var(--teal-wash);box-shadow:inset 3px 0 0 var(--accent)}
+.pk.on .ic-on{color:var(--accent)}
 /* ---- listes dont le défaut est « TOUT coché » ----
    Donner, le partage en groupe, les personnes visées, une proposition
    d'IA à trier : on part de tout retenu et l'on élague. L'aplat de
@@ -1717,7 +1794,7 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
    pas — elle reste le signe de l'état, et rien d'autre ne bouge.
    Les listes qui partent de RIEN coché (Prospecter) gardent l'aplat :
    là, c'est le choix qui est rare, donc c'est lui qui mérite l'encre. */
-.pk-inverse .pk.on{background:none}
+.pk-inverse .pk.on{background:none;box-shadow:none}
 .pk-inverse .pk.on .pk-m b{color:var(--text-body)}
 .pk-inverse .pk.on .pk-m span{color:var(--text-muted);opacity:1}
 .pk-inverse .pk.on .ic-on{color:var(--accent)}

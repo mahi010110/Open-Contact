@@ -44,6 +44,25 @@ Dernière mise à jour : 8 août 2026 — cache `oc-v138`, 128 auto-tests verts
   savoir » remonte dans le composeur au-dessus du champ. Motifs : +33 %
   de réponses pour un corps personnalisé, ~7 % → ~17 % avec une accroche
   nourrie de recherche.
+- **Naviguer sans se perdre** (août 2026). Quatre promesses que la barre
+  d'onglets et le bouton retour faisaient sans les tenir : le retour
+  ferme la feuille au lieu de quitter l'écran (glissé depuis le bord
+  d'iOS compris) ; chaque onglet garde sa place et le re-taper remonte ;
+  changer d'écran s'annonce (titre du document, focus sur le titre
+  d'écran, lien d'évitement enfin focalisable) ; et ce qui commande une
+  liste reste avec la liste — barre de recherche au pouce, titre de
+  colonne au poste, « Tout / Affiner » dans « Donner » et
+  « Prospecter », **sans une once d'encre tant qu'elle n'a pas
+  décroché**. Motifs : ~22 % de temps gagné sur une longue page (NN/g),
+  qui ne vaut rien en deçà de trois écrans. Au passage, une ligne cochée
+  ne porte plus la couleur de la navigation.
+  **Un défaut sérieux au passage** : `pushState` est immédiat,
+  `history.back()` non — l'app refermant sans arrêt une feuille pour en
+  ouvrir une autre dans le même geste, le compte d'entrées se décalait
+  d'un cran par tour et, au troisième, le retour suivant sortait de
+  l'application (`about:blank`). Le retour est désormais différé et
+  l'ouverture suivante le reprend. Gardes `e2e-fenetre.mjs` et
+  `e2e-ux-audit.mjs` ; 23 mutations, toutes attrapées.
 - Auto-tests verts, parcours principaux rejoués en E2E.
 
 > **Nuance conservée.** « Refonte terminée » veut dire : les 23 décisions sont

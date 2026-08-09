@@ -230,6 +230,144 @@ const parti = await t.evaluate(() => new Promise(res => {
 if (!parti) fail('au doigt, le glissement vers le bas ne referme plus la feuille');
 else console.log('au doigt : pas d’infobulle souris, et le glissement referme toujours ✓');
 
+/* ---------- le bouton retour ferme la feuille, pas l'écran ----------
+   Mesuré avant : une feuille ouverte, retour → l'app changeait d'onglet
+   ET laissait la feuille par-dessus. C'est le geste le plus utilisé sur
+   Android et iOS ; le laisser traverser une feuille est le défaut de
+   navigation le plus visible qu'une app web puisse avoir.
+   Les trois chemins tordus sont testés, pas seulement le simple : c'est
+   là que ce procédé casse — entrée fantôme après une fermeture par la
+   croix, pile de feuilles, garde-fou qui refuse. */
+const dos = await t.evaluate(async () => {
+  const { openSheet, btn } = await import('./ui/dom.js');
+  /* on relève AUSSI le titre de la feuille encore ouverte : compter ne
+     suffit pas — dépiler par le mauvais bout laisse le même compte, et
+     l'utilisateur se retrouve devant la feuille qu'il n'a pas quittée */
+  const etat = () => {
+    const vivantes = [...document.querySelectorAll('.overlay:not(.ov-out)')];
+    return { hash: location.hash, n: vivantes.length,
+      dessus: vivantes.map(o => o.querySelector('.modal-h b, h2, .modal-h')?.textContent?.trim() || '?').join('+') };
+  };
+  const attendre = () => new Promise(r => setTimeout(r, 320));
+  const out = {};
+
+  location.hash = '#echanger'; await attendre();
+
+  /* ① une feuille, un retour : elle se ferme, la route ne bouge pas */
+  openSheet({ title: 'Une' }); await attendre();
+  history.back(); await attendre();
+  out.simple = etat();
+
+  /* ② fermée par la croix, PUIS retour : on doit quitter la route,
+     pas consommer une entrée fantôme laissée derrière */
+  openSheet({ title: 'Deux' }); await attendre();
+  document.querySelector('.overlay:not(.ov-out) .x').click(); await attendre();
+  history.back(); await attendre();
+  out.apresCroix = etat();
+
+  /* ③ deux feuilles empilées : deux retours, dans l'ordre */
+  location.hash = '#echanger'; await attendre();
+  openSheet({ title: 'Fond' }); await attendre();
+  openSheet({ title: 'Dessus' }); await attendre();
+  out.empilees = etat().n;
+  history.back(); await attendre();
+  out.apresUn = etat();
+  history.back(); await attendre();
+  out.apresDeux = etat();
+
+  /* ④ bis — FERMER POUR ROUVRIR DANS LE MÊME GESTE.
+     C'est ce que fait l'app tout le temps (« Modifier » depuis la fiche,
+     une fiche après l'autre). `history.back()` ne part qu'après le bloc
+     synchrone en cours, `pushState` est immédiat : en rendant l'entrée
+     tout de suite, on empilait par-dessus un retour en vol et le compte
+     se décalait d'un cran par tour. Au troisième, le retour suivant
+     sortait de l'application — sur `about:blank`. On vérifie donc que
+     l'historique ne GONFLE pas, et surtout qu'on est encore chez nous. */
+  location.hash = '#echanger'; await attendre();
+  out.histAvant = history.length;
+  /* et le geste ne doit RIEN faire bouger dans l'historique : la feuille
+     qui s'ouvre reprend l'entrée de celle qui part. Sans cette reprise
+     le compte reste juste, mais chaque « fermer pour rouvrir » — la
+     transition la plus courante de l'app — pousse une entrée pour la
+     retirer aussitôt, et réveille tous les écouteurs de la page. */
+  let bruit = 0;
+  const compteur = () => { bruit++; };
+  addEventListener('popstate', compteur);
+  for (let i = 0; i < 4; i++){
+    document.querySelector('.overlay:not(.ov-out) .x')?.click();
+    openSheet({ title: 'Tour ' + i });                 /* même tick */
+    await attendre();
+  }
+  removeEventListener('popstate', compteur);
+  out.bruit = bruit;
+  out.histApres = history.length;
+  document.querySelector('.overlay:not(.ov-out) .x')?.click(); await attendre();
+  history.back(); await attendre();
+  out.apresBoucle = etat();
+  /* « encore chez nous » se lit dans le DOM, pas dans l'URL : la
+     première entrée de l'app n'a pas de hash, donc l'URL ne distingue
+     pas « revenu à l'accueil » de « sorti ». `#view-aujourdhui` n'existe
+     que dans index.html. (Si l'app était vraiment sortie, l'évaluation
+     entière échouerait — contexte détruit ; c'est l'autre filet.) */
+  out.chezNous = !!document.querySelector('#view-aujourdhui');
+  out.ou = location.href;
+
+  /* ④ ter — DEUX FERMETURES DANS LE MÊME TICK.
+     Trois feuilles, on en referme deux d'un coup : deux retours partent
+     ensemble. Le drapeau qui distinguait « notre » retour de celui de
+     l'utilisateur n'en absorbait qu'un — le second passait pour un geste
+     et emportait la troisième feuille, que personne n'avait quittée. */
+  document.querySelectorAll('.overlay:not(.ov-out) .x').forEach(x => x.click());
+  await attendre();
+  openSheet({ title: 'Un' }); await attendre();
+  openSheet({ title: 'Deux' }); await attendre();
+  openSheet({ title: 'Trois' }); await attendre();
+  const croix = [...document.querySelectorAll('.overlay:not(.ov-out) .x')];
+  croix.pop().click();                 /* la 3ᵉ */
+  croix.pop().click();                 /* la 2ᵉ, même tick */
+  await attendre(); await attendre();
+  out.tickDouble = etat();
+
+  /* ④ un garde-fou qui refuse : la feuille reste, et le retour SUIVANT
+     doit encore marcher — l'entrée rendue ne doit pas être perdue */
+  location.hash = '#echanger'; await attendre();
+  let demande = 0;
+  openSheet({ title: 'Gardée', guard: () => { demande++; return demande === 1 ? false : true; } });
+  await attendre();
+  history.back(); await attendre();
+  out.gardeRefuse = etat();
+  history.back(); await attendre();
+  out.gardeAccepte = etat();
+  return out;
+});
+if (dos.simple.n !== 0) fail('le retour ne ferme pas la feuille');
+else if (dos.simple.hash !== '#echanger')
+  fail('le retour a changé d’écran au lieu de fermer la feuille : ' + dos.simple.hash);
+else if (dos.apresCroix.hash === '#echanger')
+  fail('fermer par la croix laisse une entrée fantôme — le retour suivant ne fait rien');
+else if (dos.empilees !== 2) fail('les deux feuilles ne sont pas empilées : ' + dos.empilees);
+else if (dos.apresUn.n !== 1) fail('le retour ferme les DEUX feuilles d’un coup : ' + dos.apresUn.n);
+else if (!/Fond/.test(dos.apresUn.dessus))
+  fail('le retour dépile par le mauvais bout : il reste « ' + dos.apresUn.dessus + ' », attendu « Fond »');
+else if (dos.apresDeux.n !== 0 || dos.apresDeux.hash !== '#echanger')
+  fail('le second retour ne dépile pas proprement : ' + JSON.stringify(dos.apresDeux));
+else if (dos.histApres > dos.histAvant + 1)
+  fail(`fermer-rouvrir gonfle l’historique : ${dos.histAvant} → ${dos.histApres} en quatre tours`);
+else if (dos.bruit)
+  fail(`fermer pour rouvrir remue l’historique : ${dos.bruit} aller-retour(s) pour rien en quatre tours`);
+else if (!dos.chezNous)
+  fail('après quatre fermer-rouvrir, un retour fait SORTIR de l’application : ' + dos.ou);
+else if (dos.apresBoucle.n !== 0)
+  fail('après la boucle, le retour ne ferme plus rien : ' + JSON.stringify(dos.apresBoucle));
+else if (dos.tickDouble.n !== 1 || !/Un/.test(dos.tickDouble.dessus))
+  fail('deux fermetures dans le même tick en emportent une troisième : il reste « '
+       + dos.tickDouble.dessus + ' » (attendu « Un » seule)');
+else if (dos.gardeRefuse.n !== 1)
+  fail('le garde-fou a refusé mais la feuille s’est fermée quand même');
+else if (dos.gardeAccepte.n !== 0 || dos.gardeAccepte.hash !== '#echanger')
+  fail('après un refus, le retour suivant ne ferme plus : ' + JSON.stringify(dos.gardeAccepte));
+else console.log('retour : ferme la feuille · dépile · respecte le garde-fou · pas d’entrée fantôme ✓');
+
 console.log(errors.length ? 'Erreurs console : ' + errors.join(' | ') : 'Zéro erreur console.');
 if (errors.length) process.exitCode = 1;
 await browser.close();

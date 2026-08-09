@@ -82,6 +82,69 @@ bindBarSwipe(document.getElementById('toast'), hideToast);
 
 /* ---------- feuilles empilables ---------- */
 const stack = [];
+/* ---------- LE BOUTON RETOUR FERME LA FEUILLE, PAS L'ÉCRAN ----------
+   Mesuré : une feuille ouverte, retour → l'app changeait d'onglet ET
+   laissait la feuille par-dessus. C'est le geste le plus utilisé sur
+   Android (bouton système) et sur iOS (glissé depuis le bord) ; le
+   laisser traverser une feuille est le défaut de navigation le plus
+   visible qu'une application web puisse avoir.
+   Le procédé est celui que tout le monde emploie : chaque feuille
+   POUSSE une entrée d'historique à la même adresse (donc sans toucher
+   à la route), et la consomme en se fermant. `internes` distingue les
+   retours que NOUS provoquons de celui de l'utilisateur — sans eux,
+   fermer par la croix déclencherait une deuxième fermeture. */
+let poussees = 0;         /* entrées d'historique qui nous appartiennent */
+let internes = 0;         /* retours que NOUS avons provoqués, en vol */
+let aRendre = 0;          /* retours programmés, pas encore partis */
+let parRetour = false;    /* fermeture provoquée par le bouton retour */
+
+/* Rendre l'entrée est DIFFÉRÉ d'une micro-tâche, et c'est le cœur du
+   procédé. `history.back()` ne prend effet qu'après le bloc synchrone en
+   cours, alors que `pushState` est immédiat ; or l'app referme souvent
+   une feuille pour en ouvrir une autre dans le même geste. On empilait
+   donc une entrée par-dessus un retour en vol, le compte se décalait
+   d'un cran à chaque fois, et au troisième aller-retour le retour
+   suivant sortait de l'application — mesuré, `about:blank`.
+   Différé, le retour peut être ANNULÉ par l'ouverture qui suit : la
+   feuille suivante reprend l'entrée de la précédente. Rien ne bouge
+   dans l'historique, rien ne se décale.
+   `internes` est un COMPTEUR et non un drapeau : deux retours peuvent
+   être en vol en même temps, et un booléen n'en absorbe qu'un — le
+   second serait pris pour un geste de l'utilisateur et fermerait une
+   feuille que personne n'a quittée. */
+function rendreEntree(){
+  if (poussees - aRendre <= 0) return;
+  aRendre++;
+  queueMicrotask(() => {
+    if (!aRendre) return;                   /* une ouverture l'a annulé */
+    aRendre--;
+    poussees--;
+    internes++;
+    history.back();
+  });
+}
+function prendreEntree(){
+  if (aRendre){ aRendre--; return; }        /* on garde l'entrée qui allait partir */
+  poussees++;
+  history.pushState({ oc: poussees }, '', location.href);
+}
+addEventListener('popstate', () => {
+  if (internes){ internes--; return; }
+  if (!poussees) return;                    /* aucune feuille : vraie navigation */
+  poussees--;
+  const dessus = stack[stack.length - 1];
+  if (!dessus) return;
+  parRetour = true;
+  dessus.close();
+  parRetour = false;
+  /* le garde-fou a pu refuser (« quitter sans enregistrer ? ») : la
+     feuille est restée, on lui rend l'entrée qu'on vient de consommer —
+     sinon le retour suivant sortirait de l'app. */
+  if (stack.includes(dessus)){
+    poussees++;
+    history.pushState({ oc: poussees }, '', location.href);
+  }
+});
 /* N8 : une seule surface modale à la fois. Sur desktop, une feuille
    ouverte sur une autre REMPLACE sa fenêtre à l'écran — la précédente
    attend, cachée, et revient à la fermeture. Seules les confirmations
@@ -233,6 +296,9 @@ export function openSheet(o){
     }
     closed = true;
     vie.abort();
+    /* on rend l'entrée d'historique de cette feuille. Pas quand c'est le
+       bouton retour qui ferme : il l'a déjà consommée. */
+    if (!parRetour) rendreEntree();
     const i = stack.indexOf(rec);
     if (i >= 0) stack.splice(i, 1);
     /* Tout ce qui est LOGIQUE part tout de suite — la pile, la feuille
@@ -272,6 +338,7 @@ export function openSheet(o){
     rec.behind = below;
   }
   stack.push(rec);
+  prendreEntree();
   ov.addEventListener('click', e => { if (e.target === ov && o.dismissible !== false) close(); });
   ov.querySelector('.x').addEventListener('click', () => close());
   /* tactile : glisser vers le bas referme — depuis la barre de titre
@@ -562,6 +629,58 @@ function foldAnim(d, de, vers, apres){
      élément retiré du DOM en cours de route) — sans lui, la section
      resterait figée à une hauteur en dur. */
   setTimeout(fin, 600);
+}
+
+/* ---------- UNE BARRE QUI NE SE MONTRE QUE QUAND ELLE SERT ----------
+   Une barre collante rend une longue page mesurablement plus rapide à
+   parcourir (~22 % chez NN/g), mais elle mange de la hauteur : la même
+   source ne la recommande qu'au-delà de trois écrans de contenu, et
+   veut qu'elle reste autour du dixième de la hauteur — la satisfaction
+   tombe passé 20 à 30 %. Elle ne doit donc rien coûter tant qu'il n'y a
+   rien à faire défiler.
+
+   Le comportement s'en charge tout seul : sans débordement, `sticky` ne
+   s'accroche jamais. Ce qui ne s'en charge pas, c'est l'ENCRE — un trait
+   et un fond posés en dur resteraient visibles sur une liste de trois
+   lignes, c'est-à-dire du décor permanent (§6, règle 1). D'où cette
+   sentinelle : la barre ne prend son fond, son trait et son relief que
+   pendant qu'elle est vraiment décrochée du haut de page. C'est aussi ce
+   que dit Material 3 — le bandeau change de fond au défilement pour dire
+   « tu n'es plus en haut ». Le changement est INSTANTANÉ : c'est un
+   objet, et les objets de l'app ne fondent pas (§4).
+
+   Une sentinelle plutôt que la barre elle-même : observer un élément
+   collant donne un résultat qui dépend du padding du défileur et bascule
+   sur un pixel. Un repère de 1 px posé juste avant, lui, sort du champ
+   franchement.
+
+   Un observateur par ÉCRAN, pas une liste : un écran se re-rend à chaque
+   frappe, et sans ce remplacement on empilerait un observateur par rendu
+   sur des nœuds détachés. Rangés par vue, deux écrans ne se marchent
+   jamais dessus. */
+const guetteurs = new Map();
+/* le défileur, quel qu'il soit : une vue d'onglet ou le corps d'une
+   feuille. Le motif sert des deux côtés — c'est la même liste trop
+   longue et la même commande qui s'échappe. */
+function defileurDe(el){
+  for (let p = el.parentElement; p; p = p.parentElement){
+    const o = getComputedStyle(p).overflowY;
+    if (o === 'auto' || o === 'scroll') return p;
+  }
+  return null;
+}
+export function collerEnHaut(sentinelle, cible, classe = 'est-collee'){
+  if (!sentinelle || !cible) return;
+  const root = defileurDe(sentinelle);
+  if (!root || typeof IntersectionObserver !== 'function') return;
+  guetteurs.get(root)?.disconnect();
+  const io = new IntersectionObserver(([e]) => {
+    /* onglet caché : `rootBounds` est nul, on ne conclut rien */
+    if (!e.rootBounds) return;
+    cible.classList.toggle(classe, e.boundingClientRect.top < e.rootBounds.top);
+  }, { root, threshold: 0 });
+  io.observe(sentinelle);
+  guetteurs.set(root, io);
 }
 
 export function installFoldMotion(){

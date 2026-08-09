@@ -42,10 +42,66 @@ function render(){
     if (a.closest('nav')) a.setAttribute('aria-current', on ? 'page' : 'false');
   });
 }
+/* Chaque onglet garde sa place. Mesuré : trente pistes, on descend à
+   900 px, on passe dans « Moi », on revient — et on était remonté tout
+   en haut. Une barre d'onglets promet qu'on retrouve les choses où on
+   les a laissées ; c'est ce qui distingue un onglet d'un lien.
+   La place se garde le temps de la session seulement : rouvrir l'app
+   le lendemain doit repartir du début, pas d'un défilement oublié. */
+const places = Object.create(null);
+let routePrec = null;
+/* Changer d'onglet remplace tout l'écran, et l'app n'en disait rien : le
+   titre du document restait le même sur les quatre zones (l'historique du
+   navigateur affichait donc quatre fois la même ligne), et le curseur de
+   lecture ne bougeait pas — au lecteur d'écran, taper « Mes pistes »
+   n'annonçait rien du tout et il fallait balayer en arrière pour trouver
+   le nouveau contenu. On dit donc les deux : le titre suit la route, et le
+   focus se pose sur le titre de l'écran (`preventScroll` : la place gardée
+   par l'onglet est déjà remise, elle ne doit pas sauter). Le contour ne
+   s'allume pas — l'app ne dessine que `:focus-visible`, et un focus posé
+   par le programme n'en est pas un. */
+const TITRES = { aujourdhui: 'Aujourd’hui', pistes: 'Mes pistes', echanger: 'Échanger', moi: 'Moi' };
+let premierRendu = true;
 function applyRoute(){
-  S.route = routeFromHash();
+  const suivante = routeFromHash();
+  /* Même onglet : c'est un re-tap, pas un changement de zone. On ne
+     relit SURTOUT pas la position courante — la sauver ici écraserait
+     le zéro que `auSommet` vient de poser, et le re-tap ne remonterait
+     jamais. (`#pistes` et `#/pistes` désignent la même route : le hash
+     change, la route non.) */
+  const memeOnglet = suivante === routePrec;
+  if (!memeOnglet && routePrec){
+    const v = $('#view-' + routePrec);
+    if (v) places[routePrec] = v.scrollTop;
+  }
+  S.route = suivante;
+  routePrec = suivante;
   render();
-  $('#view-' + S.route).scrollTop = 0;
+  const v = $('#view-' + suivante);
+  /* après le rendu : `render()` réécrit le contenu, donc toute position
+     posée avant serait effacée */
+  if (v) v.scrollTop = memeOnglet ? 0 : (places[suivante] || 0);
+  document.title = TITRES[suivante] + ' — OpenContact';
+  /* pas au démarrage : personne n'a rien demandé, et voler le focus
+     avant que l'utilisateur ait touché quoi que ce soit ne s'annonce
+     à personne */
+  if (!premierRendu){
+    const h = v && v.querySelector('h2');
+    if (h){ h.tabIndex = -1; h.focus({ preventScroll: true }); }
+  }
+  premierRendu = false;
+}
+/* retaper l'onglet où l'on EST déjà remonte en haut — le geste attendu
+   partout, et le seul moyen de revenir à la racine d'une longue liste
+   sans la remonter au pouce. */
+export function auSommet(route){
+  const v = $('#view-' + route);
+  if (!v) return;
+  /* rien à écrire dans `places` : la position ne s'y enregistre qu'en
+     QUITTANT l'onglet, et elle est relue en direct à ce moment-là. Une
+     mise à zéro ici a été essayée puis retirée — une mutation a montré
+     qu'elle ne changeait aucun résultat, elle était morte. */
+  v.scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion:reduce)').matches ? 'auto' : 'smooth' });
 }
 bus.refresh = render;
 
@@ -98,6 +154,9 @@ function applyTheme(t, persist){
      facile du pouce, au lieu du chevron coincé en haut à gauche. */
   $$('[data-r]').forEach(a => a.addEventListener('click', () => {
     if (a.dataset.r === 'moi' && S.route === 'moi') closeReglages();
+    /* même onglet, deuxième tap : on remonte. Après `closeReglages()`,
+       qui a pu changer ce qui est à l'écran. */
+    if (a.dataset.r === S.route) auSommet(S.route);
   }));
   $('#btnTheme').addEventListener('click', () => applyTheme(S.theme === 'dark' ? 'light' : 'dark', true));
   $('#bnAdd').addEventListener('click', () => openCapture());

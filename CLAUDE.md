@@ -193,6 +193,15 @@ net. Sources uniques : `styles/tokens/` et le kit `design/`.
 
 - **Couleurs** : encre sur papier, accent teal `#0B7268`, sélection navy.
   Toujours par les tokens (`var(--…)`), jamais de couleur en dur.
+  **Le navy appartient au CHÂSSIS, le teal au contenu.** `--select-bg`
+  habille l'onglet allumé, les barres de titre, `::selection` : ce qui
+  dit *où tu es*. Une ligne qu'on coche dit *ce que tu as choisi* — elle
+  prend le lavis teal et un liseré d'accent. La règle est née d'un écran
+  côte à côte avec un autre : « Prospecter » remplissait sa ligne cochée
+  de navy pendant que « Donner » dithérait la ligne écartée, et les deux
+  semblaient venir d'applications différentes. Ce qui se verrouille
+  n'est pas une teinte, c'est la **séparation** — châssis d'un côté,
+  contenu de l'autre.
 - **Reliefs** : bevels francs, ombres dures, coins droits (`--bevel-*`,
   `--shadow-*`). L'identité est **nette, sans flou** — un dégradé, une ombre
   floue, un arrondi marqué la cassent. Ça se discute avec le mainteneur, ça ne
@@ -335,6 +344,61 @@ touche qu'elle-même. Vérifier en 360×640 (le petit téléphone décide) autan
 qu'en 390×844. L'instrument signale toute adjacence : c'est à la lecture de
 trancher si le voisinage coûte quelque chose.
 
+**Naviguer, c'est tenir quatre promesses.** Une barre d'onglets et un
+bouton retour promettent des choses très précises ; les tenir à moitié
+coûte plus cher que ne pas les faire. Les quatre sont mesurées et
+gardées (`e2e-fenetre.mjs`, `e2e-ux-audit.mjs`) :
+
+1. **Le bouton retour ferme la feuille, pas l'écran.** Chaque feuille
+   pousse une entrée d'historique à la MÊME adresse et la consomme en se
+   fermant ; le glissé depuis le bord d'iOS et le bouton système
+   d'Android tombent dessus. Avant, le retour changeait d'onglet ET
+   laissait la feuille par-dessus. Les chemins tordus sont ceux qui
+   cassent : fermeture par la croix (entrée fantôme), feuilles empilées
+   (on dépile par le HAUT — compter ne suffit pas, il faut vérifier
+   *laquelle* reste), garde-fou qui refuse (l'entrée se rend).
+   **Et surtout : `pushState` est immédiat, `history.back()` ne l'est
+   pas.** L'app referme sans arrêt une feuille pour en ouvrir une autre
+   dans le même geste ; en rendant l'entrée tout de suite, on empilait
+   par-dessus un retour en vol, le compte se décalait d'un cran par
+   tour, et au troisième le retour suivant **sortait de l'application**
+   — `about:blank`, mesuré, et invisible pour toutes les gardes d'alors.
+   Le retour est donc **différé d'une micro-tâche**, ce qui permet à
+   l'ouverture suivante de l'annuler et de reprendre l'entrée : rien ne
+   bouge. Corollaire du même ordre : le drapeau qui distingue « notre »
+   retour de celui de l'utilisateur doit être un **compteur** — deux
+   fermetures dans le même tick lancent deux retours, et un booléen n'en
+   absorbe qu'un ; le second passe pour un geste et emporte une feuille
+   que personne n'a quittée.
+2. **Un onglet garde sa place, et le re-taper remonte.** C'est ce qui
+   distingue un onglet d'un lien. La place vaut pour la session, pas au
+   travers d'un rechargement. Attention au piège : `auSommet` et
+   `applyRoute` se marchent dessus si la seconde relit le défilement en
+   cours — même route, on force zéro, on ne sauvegarde rien.
+3. **Changer d'écran s'annonce.** `document.title` suit la route, et le
+   focus se pose sur le `h2` de l'écran (`preventScroll`). Sans ça, un
+   lecteur d'écran n'entend rien et le curseur reste sur l'onglet.
+   Corollaire : un lien d'évitement vise un élément **focalisable**
+   (`tabindex="-1"`) — sinon il déplace le défilement et rien d'autre.
+4. **Ce qui COMMANDE une liste reste avec la liste** — mais seulement
+   quand la liste est longue. Une barre collante fait gagner ~22 % de
+   temps sur une longue page (NN/g) et ne vaut rien en deçà de trois
+   écrans ; au-delà de 20-30 % de la hauteur elle gêne. D'où la règle :
+   le comportement est gratuit (sans débordement, `sticky` ne s'accroche
+   jamais) mais **l'encre ne l'est pas** — fond, trait et relief
+   n'apparaissent que pendant que la barre est vraiment décrochée
+   (`collerEnHaut`, une sentinelle de 1 px). Trois pièges mesurés : un
+   trait qui apparaît **pousse** le contenu et l'ancrage du défilement
+   compense (dérive d'un pixel par décrochage — passer par l'ombre) ; un
+   élément collant s'arrête sur la boîte de **contenu** du défileur,
+   donc sous son `padding`, et ce qui défile dans cette bande se voit ;
+   et deux surfaces différentes appellent deux réponses — au pouce c'est
+   la barre de recherche qui colle, au poste le titre de colonne, parce
+   que « / » y ramène déjà le champ en une touche. **Le motif vaut aussi
+   dans les feuilles** : « Donner » et « Prospecter » ouvrent ~3,5 écrans
+   de liste, et « Tout / Affiner » — les deux gestes qu'on cherche une
+   fois descendu — partaient avec la première ligne.
+
 ---
 
 ## 6. Catalogue des motifs — à réutiliser AVANT d'inventer
@@ -344,7 +408,8 @@ avec un motif existant.
 
 | Besoin | Motif |
 |---|---|
-| Poser une question, éditer | `openSheet` (empilable, focus-trap, Échap, glisser-fermer au doigt, barre de titre qui se glisse à la souris, `setFoot` REMPLACE les boutons, `guard` = garde-fou avant fermeture) |
+| Poser une question, éditer | `openSheet` (empilable, focus-trap, Échap, **bouton retour / glissé depuis le bord**, glisser-fermer au doigt, barre de titre qui se glisse à la souris, `setFoot` REMPLACE les boutons, `guard` = garde-fou avant fermeture) |
+| Garder une barre d'outils sous la main | `collerEnHaut(sentinelle, cible)` — la cible ne prend son décor que **décrochée**. Sur une liste courte, rien ne s'ajoute jamais |
 | Trier une liste | `ui/sort.js` — critère + bascule ↑↓ ; re-tap du critère actif = retour au défaut de l'écran |
 | Filtrer + trier ensemble | `ui/affiner.js` — une feuille, un compte dans le bouton (`Affiner ③`) |
 | Supprimer au geste | `bindDeleteGesture(node, onDelete)` — glisser (mobile) / poubelle au survol (desktop), doublé d'un `showUndo` |
@@ -361,7 +426,7 @@ avec un motif existant.
 | Expliquer un résultat | `searchHint(c, q, {skip})` → `.ri-hit` + `<mark>`. Le moteur rend l'extrait ET les positions, jamais du HTML. La ligne ne parle **que** si ce qu'elle affiche déjà ne répond pas — l'appelant dit ce qu'il montre (`skip`), et rien ne se dit deux fois |
 | Proposer un filtre | `.fl-chip` + son **compte**. Ne jamais offrir une valeur absente des données. Liste fermée (statuts) : la puce reste, éteinte. Liste ouverte (domaines) : elle disparaît, sauf si le filtre est actif |
 | Note contextuelle | `<p class="hint">` (+ `warn` si alerte) |
-| Multi-sélection | `.pk` avec icônes checkbox — **jamais pour supprimer**. L'emphase suit le DÉFAUT : parti de rien coché, l'aplat marque le choix ; parti de tout coché, `pk-inverse` marque l'**écart**. **Le défaut se juge feuille par feuille** — « → qui » s'ouvre tout coché pour *donner*, avec une seule personne pour *écrire* |
+| Multi-sélection | `.pk` avec icônes checkbox — **jamais pour supprimer**. L'emphase suit le DÉFAUT : parti de rien coché, l'aplat marque le choix ; parti de tout coché, `pk-inverse` marque l'**écart**. **Le défaut se juge feuille par feuille** — « → qui » s'ouvre tout coché pour *donner*, avec une seule personne pour *écrire*. Le coché prend le **lavis teal + un liseré d'accent**, jamais `--select-bg` (voir §4) |
 | Choisir qui part / qui est visé | `ui/qui.js` — la ligne « → qui » et sa sous-feuille à cocher |
 | Supprimer un élément | glisser (mobile) / poubelle au survol (desktop) + `showUndo`, sans confirmation |
 | Fermer une barre transitoire | balayer (mobile) / `✕` (desktop) |

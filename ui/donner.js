@@ -12,7 +12,7 @@ import { sharePayload, encodeOCQ, splitOCQ, makeRdvCode, rdvNorm, rdvWrap } from
 import { filterCompanies } from '../engine/filter.js';
 import { encryptOC2 } from '../engine/crypto.js';
 import { S, isClosed, logJ } from './state.js';
-import { openSheet, toast, btn, ic, softReorder, lockRowHTML, bindLockRow } from './dom.js';
+import { openSheet, toast, btn, ic, softReorder, lockRowHTML, bindLockRow, collerEnHaut } from './dom.js';
 import { sortState, sortArgs } from './sort.js';
 import { filterState, filterArgs, affinerBtnHTML, bindAffinerBtn } from './affiner.js';
 import { openRoom, leaveRoom, watchLiaison } from './synclive.js';
@@ -124,7 +124,8 @@ export function openDonner(){
       const list = filterCompanies(alive(), { ...filterArgs(ft), ...sortArgs(st) });
       zone.hidden = false;
       zone.innerHTML =
-        `<div class="listbar">
+        `<div class="stick-guet" aria-hidden="true"></div>
+         <div class="listbar">
            <button class="lb-act" id="dnAll" aria-pressed="${!unsel.size}">
              ${ic(unsel.size ? 'checkbox' : 'checkbox-on', 'ic-14')}<span>Tout</span>
            </button>${affinerBtnHTML(ft, st, { leger: true })}</div>
@@ -143,6 +144,7 @@ export function openDonner(){
               </div>`).join('')}
          </div>`;
       bindAffinerBtn(zone, ft, st, { pool: alive }, () => { const play = softReorder('.modal-b .pk'); renderList(); play(); });
+      collerEnHaut(zone.querySelector('.stick-guet'), zone.querySelector('.listbar'));
       zone.querySelectorAll('.pk').forEach(b =>
         b.addEventListener('click', () => {
           const id = b.dataset.id;
