@@ -21,6 +21,27 @@ import { listDocs, docKind, docTitle, pickPdf } from './docs.js';
 import { mailAccount, freshToken, openConnexions, aiConnection, aiCompleteViaCompanion } from './connexions.js';
 import { IA, ENVOI_DIRECT } from './perimetre.js';
 
+/* Les seuls champs qui nourrissent une accroche : ce qu'ils font, avec
+   quoi ils travaillent, ce qu'un camarade a soufflé. Le process et
+   l'adresse n'aident pas à écrire la première phrase — ils restent sur
+   la fiche. Sans rien de tout ça, le site est la matière : un tap pour
+   aller la chercher. */
+const webH = w => /^https?:\/\//i.test(w) ? w : 'https://' + w;
+function savoirHTML(c){
+  const lignes = [
+    c.desc ? ['En bref', esc(c.desc)] : null,
+    c.techs ? ['Technos', esc(c.techs)] : null,
+    c.tips ? ['Conseils', esc(c.tips)] : null,
+    (!c.desc && !c.techs && !c.tips && c.website)
+      ? ['Site', `<a href="${esc(webH(c.website))}" target="_blank" rel="noopener">${
+          esc(c.website.replace(/^https?:\/\//i, '').replace(/\/$/, ''))} ${ic('external-link', 'ic-14')}</a>`] : null
+  ].filter(Boolean);
+  if (!lignes.length) return '';
+  return `<div class="ml-know"><span class="ml-know-h">À savoir</span>
+    ${lignes.map(([l, v]) => `<div class="fk"><span class="fk-l">${l}</span><span class="fk-v">${v}</span></div>`).join('')}
+  </div>`;
+}
+
 export function openMail(c, opts){
   opts = opts || {};
   const cts = (c.contacts || []).filter(t => t.email);
@@ -59,6 +80,22 @@ export function openMail(c, opts){
          <select id="mTpl">${tpls.map((t, i) => `<option value="${i}">${esc(t.name)}</option>`).join('')}</select></div>
      </div>
      <div class="field"><label for="mSubj">Objet</label><input id="mSubj"></div>
+     ${/* CE QU'ON SAIT D'ELLE, LÀ OÙ ON ÉCRIT SUR ELLE.
+          Le modèle demande une accroche précise en première position ;
+          la matière pour l'écrire — ce qu'ils font, leurs technos, le
+          conseil qu'un camarade a laissé — vivait sur la fiche, DERRIÈRE
+          cette feuille. Il fallait fermer, lire, retenir, rouvrir,
+          taper. C'est exactement le travail que l'app est censée
+          épargner, et c'est le seul endroit où il paie : une accroche
+          nourrie de recherche fait passer les réponses de ~7 % à ~17 %.
+          Rien n'est inventé et rien n'est inséré : ses propres notes,
+          posées sous les yeux, sélectionnables. Le même mot et le même
+          dessin que sur la fiche (« À savoir », `.fk`) — c'est la même
+          chose, elle ne doit pas s'apprendre deux fois.
+          Absent quand il n'y a rien à savoir : un cadre vide dirait
+          seulement qu'on n'a rien préparé, et le site, lui, mène
+          quelque part. */''}
+     ${savoirHTML(c)}
      <div class="field fld-body"><label for="mBody">Message</label><textarea id="mBody"></textarea>
        ${(IA && aiConnection()) ? `<button class="linklike" id="mAi" style="margin-top:2px">${ic('sparkles', 'ic-14')} Proposer un brouillon</button>` : ''}</div>
      <div class="attach-line" id="mAttach"></div>

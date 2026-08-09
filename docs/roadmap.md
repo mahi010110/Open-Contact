@@ -37,6 +37,13 @@ Dernière mise à jour : 8 août 2026 — cache `oc-v138`, 128 auto-tests verts
   que des gens déjà joignables. Tout supprimé ; le levier tient
   désormais en quatre puces, un bandeau, une ligne colorée et UNE
   feuille. Garde `e2e-vecu.mjs`.
+- **Écrire : l'accroche d'abord, la matière sous les yeux** (août 2026).
+  Le gabarit mettait l'accroche personnalisée en 3ᵉ position derrière
+  l'accroche générique que l'APEC cite comme à éviter, et la matière pour
+  l'écrire vivait sur un autre écran. Inversé (69 → ~40 mots), et « À
+  savoir » remonte dans le composeur au-dessus du champ. Motifs : +33 %
+  de réponses pour un corps personnalisé, ~7 % → ~17 % avec une accroche
+  nourrie de recherche.
 - Auto-tests verts, parcours principaux rejoués en E2E.
 
 > **Nuance conservée.** « Refonte terminée » veut dire : les 23 décisions sont

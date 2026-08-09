@@ -118,6 +118,93 @@ if (String(neuve.ct) !== 'sam@boulangeriecyber.fr') fail('le contact ne suit pas
 if (neuve.reste) fail('au bureau, « Terminer » ferme — pas de rafale');
 console.log('Capture au bureau : formulaire complet, un seul bouton, tout est retenu ✓');
 
+/* ---------- écrire : l'accroche d'abord, la matière sous les yeux ----------
+   Mesuré avant : l'accroche personnalisée était en 3ᵉ position sur 5,
+   derrière « l'activité de X a retenu toute mon attention » — l'accroche
+   générique que l'APEC et JobTeaser citent comme à éviter. Et la matière
+   pour l'écrire vivait sur la FICHE, derrière cette feuille.
+   Les deux chiffres qui justifient le lot : un corps personnalisé répond
+   ~33 % plus, une accroche nourrie de recherche fait passer les réponses
+   de ~7 % à ~17 %. */
+const ecrire = await D.evaluate(async () => {
+  const { S, saveData, saveProfile } = await import('./ui/state.js');
+  const { normalizeCompany, defaultTemplates } = await import('./engine/model.js');
+  document.querySelectorAll('.overlay .x').forEach(x => x.click());
+  await new Promise(r => setTimeout(r, 200));
+  S.profile.name = 'Maheydine Oun';
+  S.profile.formation = 'BTS SIO';
+  S.profile.email = 'm@x.test';
+  /* le profil doit être COMPLET : une ligne « Étiquette : {{jeton}} »
+     dont le jeton est vide disparaît (c'est voulu), et un profil creux
+     amputerait le gabarit — le compte de mots ne mesurerait alors plus
+     le gabarit mais le trou. Une mutation l'a montré. */
+  S.profile.phone = '06 39 98 12 34';
+  S.profile.cvUrl = 'https://cv.test/moi.pdf';
+  S.profile.templates = defaultTemplates();
+  saveProfile();
+  const lire = async piste => {
+    document.querySelectorAll('.overlay .x').forEach(x => x.click());
+    await new Promise(r => setTimeout(r, 200));
+    S.companies = [normalizeCompany(piste)];
+    saveData();
+    const { openMail } = await import('./ui/mail.js');
+    openMail(S.companies[0], { ctId: S.companies[0].contacts[0].id });
+    await new Promise(r => setTimeout(r, 350));
+    const corps = document.getElementById('mBody');
+    const sav = document.querySelector('.ml-know');
+    const msg = document.querySelector('.fld-body');
+    return {
+      objet: document.getElementById('mSubj').value,
+      corps: corps.value,
+      savoir: sav ? sav.innerText.replace(/\s+/g, ' ').trim() : '',
+      /* la matière doit être AU-DESSUS du champ où l'on écrit, et les
+         deux visibles ensemble : lire ailleurs et retenir, c'est le
+         travail qu'on essaie justement d'épargner */
+      avant: sav ? sav.getBoundingClientRect().bottom <= msg.getBoundingClientRect().top + 1 : null,
+      ecart: sav ? Math.round(msg.getBoundingClientRect().top - sav.getBoundingClientRect().bottom) : null
+    };
+  };
+  return {
+    riche: await lire({ name: 'Adrastia Systèmes', city: 'Toulouse',
+      desc: 'SOC managé pour les PME', techs: 'Fortinet, Linux',
+      tips: 'passer par le forum', website: 'adrastia.example',
+      process: 'CV → RH → test', contacts: [{ name: 'Nadia', email: 'n@a.test' }] }),
+    siteSeul: await lire({ name: 'Velmont', website: 'velmont.example',
+      contacts: [{ name: 'Marc', email: 'm@v.test' }] }),
+    rien: await lire({ name: 'Ostral', contacts: [{ name: 'X', email: 'x@o.test' }] })
+  };
+});
+
+/* ① l'accroche est le PREMIER bloc après le bonjour */
+const blocs = ecrire.riche.corps.split(/\n\n+/);
+if (!/^\[/.test((blocs[1] || '').trim()))
+  fail('l’accroche personnalisée n’est pas le premier bloc : ' + JSON.stringify(blocs.slice(0, 2)));
+/* ② et le modèle ne souffle plus l'accroche générique à éviter */
+else if (/retenu toute mon attention|votre entreprise m['’]intéresse/i.test(
+           ecrire.riche.corps.replace(/\[[^\]]*\]/g, '')))
+  fail('le modèle contient l’accroche générique que les recruteurs voient dix fois par jour');
+/* ③ court : hors accroche, le corps tient sous 50 mots */
+else {
+  const mots = ecrire.riche.corps.replace(/\[[^\]]*\]/g, '').split(/\s+/).filter(Boolean).length;
+  if (mots > 50) fail(`${mots} mots hors accroche — sous 100 les réponses montent, on vise bien plus court`);
+  else if (ecrire.riche.objet.length < 30 || ecrire.riche.objet.length > 60)
+    fail(`objet de ${ecrire.riche.objet.length} car. — hors de la fenêtre 40-60 qui s’affiche en entier au mobile`);
+  else console.log(`écrire : accroche en 1ᵉʳ bloc, ${mots} mots, objet ${ecrire.riche.objet.length} car. ✓`);
+}
+/* ④ la matière est là, au-dessus du champ, et seulement quand elle existe */
+if (!/SOC managé/.test(ecrire.riche.savoir) || !/Fortinet/.test(ecrire.riche.savoir)
+    || !/forum/.test(ecrire.riche.savoir))
+  fail('« À savoir » n’apporte pas la matière de la fiche : ' + ecrire.riche.savoir);
+else if (/CV → RH/.test(ecrire.riche.savoir))
+  fail('le process est remonté dans le composeur — il n’aide pas à écrire la première phrase');
+else if (!ecrire.riche.avant)
+  fail(`la matière est SOUS le champ message (${ecrire.riche.ecart}px) — on écrit après avoir lu`);
+else if (!/velmont\.example/.test(ecrire.siteSeul.savoir))
+  fail('sans notes, le site devrait être la matière : ' + ecrire.siteSeul.savoir);
+else if (ecrire.rien.savoir)
+  fail('un cadre « À savoir » vide s’affiche alors qu’il n’y a rien à savoir');
+else console.log('« À savoir » : les notes au-dessus du champ, le site en repli, absent si rien ✓');
+
 if (errors.length) fail('erreurs console : ' + JSON.stringify(errors.slice(0, 6)));
 else console.log('Zéro erreur console.');
 console.log(process.exitCode ? 'E2E parcours neuf : ÉCHEC' : 'E2E parcours neuf : OK');

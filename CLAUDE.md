@@ -514,6 +514,34 @@ n'est pas un renoncement, c'est l'action.
 **Un tiret cadratin par phrase au maximum, et jamais pour remplacer un point.**
 Deux phrases courtes se lisent mieux qu'une phrase à charnière.
 
+**Écrire est le geste le plus cher de l'app, et le seul que personne ne
+peut faire à la place de l'étudiant.** Deux mesures le cadrent, et elles
+disent la même chose : un corps personnalisé obtient ~33 % de réponses en
+plus, une accroche nourrie de recherche sur l'entreprise fait passer les
+réponses de ~7 % à ~17 % ; côté français, l'APEC et JobTeaser disent que
+**si les deux premières phrases ne captent pas, le reste n'est pas lu**.
+
+D'où deux règles, tirées d'un modèle qui violait les deux :
+
+1. **L'accroche personnalisée est le PREMIER bloc.** L'ancien gabarit la
+   mettait en 3ᵉ position sur 5, derrière « l'activité de X a retenu
+   toute mon attention » — l'accroche générique que ces mêmes sources
+   citent comme à éviter. On a inversé, et le corps est passé de 69 à
+   ~40 mots. L'objet vise 40-60 caractères : au-delà, il se coupe sur un
+   téléphone.
+2. **La matière se pose là où l'on écrit.** Le gabarit demande une
+   phrase précise sur l'entreprise ; ce qu'on sait d'elle vivait sur la
+   fiche, DERRIÈRE la feuille de rédaction. Il fallait fermer, lire,
+   retenir, rouvrir. « À savoir » (`.ml-know`) remonte donc dans le
+   composeur, **au-dessus** du champ — mêmes lignes et même mot que sur
+   la fiche. Seulement ce qui nourrit une accroche (en bref, technos,
+   conseils) ; sans notes, le site, qui mène quelque part ; rien du tout
+   s'il n'y a rien, parce qu'un cadre vide ne dit que notre impuissance.
+
+**Le crochet du gabarit est le seul endroit de l'app où l'on enseigne au
+moment exact du geste**, et il ne coûte rien : il part avec le brouillon.
+Il dit donc aussi ce qu'il ne faut PAS écrire.
+
 ---
 
 ## 8. Partage & sync — deux mondes à ne pas mélanger

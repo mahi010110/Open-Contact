@@ -7,7 +7,7 @@
    ============================================================ */
 import { uid, extractCity, todayISO, fmtDate } from './utils.js';
 
-export const APP_VERSION = '6.13.0';
+export const APP_VERSION = '6.14.0';
 
 export const DOMAINS = {
   esn:     { label:'ESN / Services IT',       color:'#4C9FD8' },
@@ -207,26 +207,45 @@ export function normalizeCompany(x){
 }
 export function defaultTemplates(){
   return [
-    { id: uid(), name: 'Candidature spontanée', subject: 'Candidature spontanée — {{formation}}',
+    /* L'ACCROCHE EST EN PREMIER, et c'est tout le sujet. Les recruteurs
+       le disent (APEC, JobTeaser) : si les deux premières phrases ne
+       captent pas, le reste n'est pas lu. Les données de prospection
+       disent la même chose autrement — un corps personnalisé répond
+       ~33 % plus, et une accroche nourrie de recherche sur l'entreprise
+       fait passer les réponses de ~7 % à ~17 %.
+       L'ancien modèle mettait le trou personnalisé en 3ᵉ position sur 5,
+       derrière « l'activité de X a retenu toute mon attention » — soit
+       très exactement l'accroche générique que les mêmes sources citent
+       comme à éviter. On a donc inversé : le trou d'abord, la formalité
+       ensuite. 69 mots → ~35, l'essentiel au-dessus de la ligne de
+       flottaison du téléphone.
+       Le crochet dit AUSSI ce qu'il ne faut pas écrire : c'est le seul
+       endroit de l'app où l'on peut enseigner au moment exact du geste,
+       et ça ne coûte rien — le texte part avec le brouillon. */
+    { id: uid(), name: 'Candidature spontanée', subject: 'Candidature stage {{formation}} — {{moi}}',
       body: `Bonjour {{contact}},
 
-Actuellement en formation {{formation}}, je suis à la recherche d'un stage et l'activité de {{entreprise}} a retenu toute mon attention.
+[Une phrase précise sur ce qu'ils font. Pas « votre entreprise m'intéresse » — ils le lisent dix fois par jour.]
 
-[1 à 2 phrases personnalisées : pourquoi cette entreprise, ce que tu peux lui apporter]
+Je suis en {{formation}} et je cherche un stage. Mon CV : {{cv}}
+Je peux passer en parler quand vous voulez.
 
-Vous trouverez mon CV ici : {{cv}}
-Je reste disponible pour un échange.
-
-Merci pour votre attention,
+Bien à vous,
 {{moi}} — {{tel}} — {{email}}` },
-    { id: uid(), name: 'Relance', subject: 'Relance de ma candidature — {{formation}}',
+    /* Une relance qui ne fait que constater le silence n'apporte rien à
+       celui qui la reçoit — et le « restée sans réponse à ce jour » lui
+       reproche à demi-mot un oubli. Celle-ci rouvre avec quelque chose
+       de neuf : c'est ce qui donne une raison de répondre maintenant. */
+    { id: uid(), name: 'Relance', subject: 'Toujours intéressé — {{formation}} chez {{entreprise}}',
       body: `Bonjour {{contact}},
 
-Je me permets de revenir vers vous au sujet de ma candidature envoyée récemment à {{entreprise}}, restée sans réponse à ce jour.
+Je reviens vers vous au sujet de ma candidature pour un stage.
 
-Toujours très motivé(e) à l'idée de rejoindre vos équipes, je reste à votre disposition pour tout échange.
+[Du neuf depuis : un projet fini, une techno apprise, une actu de chez eux. Une relance qui n'apporte rien n'appelle rien.]
 
-Bien cordialement,
+Toujours très motivé pour vous rejoindre — je reste dispo.
+
+Bien à vous,
 {{moi}} — {{tel}} — {{email}}` },
     { id: uid(), name: 'Remerciement après entretien', subject: 'Merci pour notre échange — {{moi}}',
       body: `Bonjour {{contact}},

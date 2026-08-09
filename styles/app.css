@@ -1573,6 +1573,19 @@ button.ec-row:hover{background:var(--surface-field)}
    de « Modifier » à « Compléter » : un mot, pas une couleur d'alerte. */
 .fi-tools .btn{margin-left:auto}
 .fi-know{border:1px solid var(--border-soft);border-radius:var(--radius-1);background:var(--surface-chrome)}
+/* « À savoir » rapatrié dans le composeur : mêmes lignes que sur la
+   fiche, dans un cadre au trait discontinu pour dire que c'est de la
+   matière à lire, pas un champ à remplir. */
+.ml-know{
+  margin:0 0 12px;padding:2px 10px 0;
+  border:1px dashed var(--border-strong);background:var(--surface-chrome);
+}
+.ml-know-h{
+  display:block;padding:7px 0 2px;font-family:var(--font-mono);
+  font-size:var(--text-11);color:var(--text-muted);
+  text-transform:uppercase;letter-spacing:.04em;
+}
+.ml-know .fk{padding-left:0;padding-right:0}
 .fk{display:flex;gap:10px;padding:7px 10px;font-size:var(--text-12);border-bottom:1px dashed var(--border-soft);align-items:baseline}
 .fk:last-child{border-bottom:0}
 .fk-l{
