@@ -966,11 +966,22 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   .lr-do,.lr-pw,.lr-pass,.lr-w{transition:none}
 }
 /* « Moi » éclaté (#20) : colonnes desktop, porte Réglages mobile */
-/* la version, discrète et toujours là — c'est une donnée, pas un titre */
+/* La version, discrète et toujours là — c'est une donnée, pas un titre.
+   Mesuré : « Moi » rempli n'occupe que 456 px sur 745, et la ligne de
+   version tombait à 60 % de la hauteur au pouce, 50 % au poste — c'est-
+   à-dire au MILIEU d'un vide que personne ne possédait. Un pied de page
+   posé là ne se lit pas comme du calme, il se lit comme un oubli.
+   La page prend donc sa région (§5-2) et la version descend au pied. */
+#view-moi .page-inner{display:flex;flex-direction:column;min-height:100%}
 .moi-ver{
   margin:18px 0 0;text-align:center;
   font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-disabled);
 }
+.moi-ver{margin-top:auto;padding-top:18px}
+/* Au poste, la barre d'état porte déjà « OpenContact 6.15.0 », en
+   permanence et en bas : le répéter dans la page dit deux fois la même
+   chose, et la seconde fois au mauvais endroit. */
+@media (min-width:901px){ .moi-ver{display:none} }
 .moi-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
 .moi-cols .pcard:last-child,.moi-cols .fset:last-child{margin-bottom:0}
 /* au pouce, « Réglages » est une porte seule sous les cadres : elle

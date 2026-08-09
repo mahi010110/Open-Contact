@@ -1163,6 +1163,32 @@ for (const [quoi, titre] of [['donner', 'Donner'], ['prospect', 'Prospecter']]){
     fail(`« ${titre} » : une ligne défile à découvert au-dessus de la barre`);
   else console.log(`feuille « ${titre} » : « Tout / Affiner » tient à y=${b.y}, rien au repos ✓`);
 }
+
+/* ---------- une page possède sa région, pied compris ----------
+   « Moi » rempli ne fait que 456 px sur 745 : la ligne de version
+   tombait à 60 % de la hauteur au pouce, c'est-à-dire au milieu d'un
+   vide sans propriétaire. Un pied posé là ne se lit pas comme du calme,
+   il se lit comme un oubli (§5-2). */
+const pied = await nPage.evaluate(async () => {
+  const { S, saveProfile } = await import('./ui/state.js');
+  document.querySelectorAll('.overlay .x').forEach(x => x.click());
+  await new Promise(r => setTimeout(r, 300));
+  S.profile.name = 'Maheydine Oun'; S.profile.email = 'm@x.test';
+  S.profile.formation = 'BTS SIO'; saveProfile();
+  document.querySelector('.bottomnav [data-r="moi"]').click();
+  await new Promise(r => setTimeout(r, 550));
+  const v = document.querySelector('#view-moi');
+  const inner = v.querySelector('.page-inner');
+  const der = inner.lastElementChild;
+  return { remplit: inner.getBoundingClientRect().height >= v.clientHeight - 60,
+           pct: Math.round(der.getBoundingClientRect().top / innerHeight * 100),
+           quoi: der.textContent.replace(/\s+/g, ' ').trim().slice(0, 24) };
+});
+if (!pied.remplit)
+  fail('« Moi » ne prend pas sa région : le vide du bas n’appartient à personne');
+else if (pied.pct < 70)
+  fail(`le pied de « Moi » (« ${pied.quoi} ») flotte à ${pied.pct} % de la hauteur au lieu de se poser en bas`);
+else console.log(`« Moi » au pouce : la page tient sa région, le pied se pose à ${pied.pct} % ✓`);
 await nCtx.close();
 
 const wCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
@@ -1194,6 +1220,23 @@ else {
   if (fuite) fail(`au poste, ${fuite} défile à découvert au-dessus du titre de colonne`);
   else console.log(`tableau au poste : les trois titres de colonne tiennent à y=${collePoste.y}, sans fuite ✓`);
 }
+/* et au poste, la version ne se dit qu'une fois : la barre d'état la
+   porte déjà, en bas, en permanence. La répéter dans la page, c'était
+   la dire deux fois — la seconde au milieu d'un vide. */
+const versions = await wPage.evaluate(async () => {
+  document.querySelector('.topnav [data-r="moi"]').click();
+  await new Promise(r => setTimeout(r, 550));
+  /* on compte les FEUILLES du DOM : la barre d'état imbrique
+     « OpenContact <span>6.15.0</span> », compter les ancêtres ferait
+     voir double là où il n'y a qu'un seul endroit */
+  return [...document.querySelectorAll('body *')]
+    .filter(e => e.offsetParent !== null && !e.children.length
+                 && /\d+\.\d+\.\d+/.test(e.textContent))
+    .map(e => (e.id || e.className || e.tagName) + ' « ' + e.textContent.trim().slice(0, 24) + ' »');
+});
+if (versions.length !== 1)
+  fail(`la version est affichée ${versions.length} fois au poste (${versions.join(' + ')}) — la barre d’état suffit`);
+else console.log(`poste : la version se dit une seule fois (${versions[0]}) ✓`);
 await wCtx.close();
 
 await browser.close();

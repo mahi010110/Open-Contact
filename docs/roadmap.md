@@ -63,6 +63,15 @@ Dernière mise à jour : 8 août 2026 — cache `oc-v138`, 128 auto-tests verts
   l'application (`about:blank`). Le retour est désormais différé et
   l'ouverture suivante le reprend. Gardes `e2e-fenetre.mjs` et
   `e2e-ux-audit.mjs` ; 23 mutations, toutes attrapées.
+- **« Moi » possède sa région** (août 2026). L'écran rempli n'occupait
+  que 456 px sur 745 et sa ligne de version flottait à 60 % de la
+  hauteur au pouce, 50 % au poste — au milieu d'un vide sans
+  propriétaire, ce qui se lit comme un oubli, pas comme du calme. La
+  page prend sa région, le pied se pose en bas, et au poste la ligne
+  disparaît : la barre d'état porte déjà la version, en permanence.
+  3 mutations. *(Contrôlé au passage : « Donner » et « Prospecter »
+  sont bien alignées — les deux sorties de « Donner » tombent à 87 % et
+  93 % en bas de liste, il ne lui manque pas de pied.)*
 - Auto-tests verts, parcours principaux rejoués en E2E.
 
 > **Nuance conservée.** « Refonte terminée » veut dire : les 23 décisions sont

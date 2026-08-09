@@ -326,7 +326,12 @@ gagne pour ce qui se TAPE :
    remplissent par le haut, la place restante lui appartient. Sans lui, une
    liste courte ouvre un trou et une liste longue chasse l'action hors de
    l'écran. Le cadre est aussi ce qui rend le vide présentable : une place
-   qui a un propriétaire n'est plus un manque.
+   qui a un propriétaire n'est plus un manque. **Le pied compte aussi** :
+   « Moi » rempli ne fait que 456 px sur 745, et sa ligne de version
+   tombait à 60 % de la hauteur — au milieu d'un vide que personne ne
+   possédait. Un pied posé là ne se lit pas comme du calme, il se lit
+   comme un oubli. Et ce qu'une autre surface dit déjà en permanence —
+   la barre d'état au poste — ne se répète pas dans la page.
 3. **Deux gestes aux conséquences différentes ne partagent pas une arête.**
    ≥ 8 px entre eux — la visée d'un pouce dérape de plusieurs pixels, et
    ouvrir une fiche n'est pas la clore. Ce qui compte est la
