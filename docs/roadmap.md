@@ -10,8 +10,8 @@ web — livré, c'est cette feuille de route —, l'ordinateur et le téléphone
 La surface ordinateur a la sienne : `compagnon/roadmap.md`. On ne re-discute
 pas la répartition ici, on l'applique.
 
-Dernière mise à jour : 8 août 2026 — cache `oc-v138`, 128 auto-tests verts
-(`node tests/e2e/unitaires.mjs`), 17 fichiers E2E.
+Dernière mise à jour : 12 août 2026 — cache `oc-v145`, 118 auto-tests verts
+(`node tests/e2e/unitaires.mjs`), 28 fichiers E2E.
 
 ---
 
@@ -184,7 +184,7 @@ succès isolé.
    croisées (l'idempotence doit tenir).
 5. Après chaque passe : `?test` → tous les auto-tests verts.
 
-### 1.4 Durabilité des données
+### 1.4 Durabilité des données — **le scénario est rejoué**
 
 C'est ce qui détruirait la confiance le plus vite.
 
@@ -194,6 +194,49 @@ C'est ce qui détruirait la confiance le plus vite.
   complète depuis un `.oc` sur un appareil qui n'a jamais vu ces données, avec
   et sans mot de passe, avec et sans coffre actif.
 - Aucune clé de stockage renommée, aucun format `.oc` cassé (`CONTRAT.md`).
+
+**Livré (12 août 2026) : `e2e-perte.mjs`.** Le scénario était *nommé* depuis
+des mois, jamais **rejoué** — aucun fichier ne le tenait. Il l'est maintenant,
+dans les quatre combinaisons énumérées ci-dessus, par les vrais boutons
+(« Télécharger », puis « Restaurer une copie » et sa question) : semer et
+relire par le moteur n'aurait prouvé que l'aller-retour de `JSON.parse`.
+
+Deux exigences, dont la seconde est celle qu'on oublie : le suivi **privé**
+(notes, statut, historique, prochaine action) et la déclaration « j'y suis
+passé » se relisent sur l'appareil neuf, **et survivent au rechargement** —
+restaurer en mémoire et perdre au redémarrage serait la panne de
+`e2e-stockage.mjs` déplacée d'un cran, avec un « Restauré ✓ » qui ment. Sous
+coffre actif, la copie restaurée s'écrit **scellée** (`OCV1.`) : restaurer ne
+déshabille pas ce qu'on a demandé de protéger. La montée depuis `oc_data_v2`,
+depuis `ais_stage_targets_v1` et depuis un `.oc` du format d'origine (tableau
+nu) est rejouée dans le même fichier. **Verdict : les quatre reprises passent**
+— 8 mutations posées dans le moteur et les écrans, toutes attrapées.
+
+> **Ce que le scénario a trouvé, et qui reste à trancher — les PDF ne
+> voyagent pas.** `fullPayload` porte `profile, companies, orphans, tombs` ;
+> les CV et lettres vivent dans `oc_docs_v1` (`CONTRAT.md`) et **n'entrent
+> dans aucune sortie** : ni la copie, ni la sync entre mes appareils. Un
+> document ne peut même pas être ré-enregistré — on l'ouvre dans un onglet,
+> c'est tout. Donc : téléphone perdu = CV perdu, sans un mot, et la
+> découverte se fait trois semaines plus tard en ouvrant le composeur.
+> L'écran ne promet rien de faux (« Ma copie · privé inclus » dit ce qu'on ne
+> peut pas deviner), mais il ne dit pas non plus ce qui manque.
+>
+> Ce n'est pas corrigé ici, parce que les deux issues sont des décisions du
+> mainteneur, pas des détails d'implémentation :
+> ① **les faire voyager** — ça change le format `.oc` (`CONTRAT.md`), ça
+> alourdit *toutes* les copies, et ça bute sur le plafond de `parseInput`
+> (4 Mo, « troplourd ») : à 8 Mo par PDF (`DOC_MAX`), l'app produirait une
+> copie qu'elle ne sait plus relire — le piège serait pire que le trou.
+> Attention aussi : `fullPayload` sert AUSSI la sync (`ui/synclive.js`), donc
+> l'ajout devrait rester sur les deux chemins qui produisent un fichier, sinon
+> des PDF partiraient en P2P.
+> ② **le dire** — une ligne dans « Ma copie », qui coûte un plafond de
+> `e2e-sobriete.mjs` monté exprès (`CLAUDE.md` §9.7).
+>
+> En attendant, la limite est **épinglée** par `e2e-perte.mjs` §4 : le jour
+> où les documents entrent dans la copie, le contrôle rougit et force la
+> décision au lieu de la laisser se prendre toute seule.
 
 ---
 

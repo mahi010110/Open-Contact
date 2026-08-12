@@ -576,7 +576,16 @@ for (const [nom, ptr] of [['doigt', true], ['souris', false]]){
       { id: 'tt', name: 'Sopra Steria', city: 'Lille', domain: 'esn', status: 'todo', contacts: [] }]));
   });
   await tPage.reload({ waitUntil: 'load' });
-  await attendre(tPage, async () => (await import('./ui/state.js')).S.companies.length === 1);
+  /* Attendre l'ÉTAT ne suffit pas : `S.companies` est rempli dès la
+     lecture du stockage, le tableau se dessine après. Sous charge (la
+     suite complète, plusieurs contextes ouverts), le sondage gagnait la
+     course et on mesurait une page encore vide — `#piQ` absent donnait
+     « champ rendu à 0px » et `.bcol` absent « vu 0 », deux échecs
+     fantômes qui ne se reproduisaient jamais fichier seul. On attend
+     donc CE QU'ON MESURE : le tableau dessiné et le champ présent. */
+  await attendre(tPage, () => document.querySelectorAll('.bcol').length === 3
+    && !!document.querySelector('#piQ, input, textarea'),
+    { message: 'le tableau dessiné et son champ' });
   const erg = await tPage.evaluate(() => {
     const cs = getComputedStyle(document.documentElement);
     const petites = [...document.querySelectorAll('button, a[href], input, select')]
@@ -609,7 +618,9 @@ for (const [nom, ptr] of [['doigt', true], ['souris', false]]){
   if (erg.colonnes !== 3)
     fail(`à 1180 px le tableau doit rester en 3 colonnes (${nom}) — vu ${erg.colonnes}`);
   await tCtx.close();
-  console.log(`   ergonomie « ${nom} » @1180 : --ctl ${erg.ctl}, champs ${erg.fs}px, tableau 3 colonnes ✓`);
+  /* le compte RÉEL, pas un « 3 » écrit à la main : la ligne annonçait
+     « tableau 3 colonnes ✓ » deux lignes sous son propre « vu 0 ». */
+  console.log(`   ergonomie « ${nom} » @1180 : --ctl ${erg.ctl}, champs ${erg.fs}px, tableau ${erg.colonnes} colonnes ✓`);
 }
 
 /* F13 : l'app suit la police choisie par l'utilisateur.

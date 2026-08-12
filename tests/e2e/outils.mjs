@@ -43,7 +43,16 @@ export function chromiumPath(){
    Piège avéré : `page.waitForFunction(async () => …)` ne déballe pas la
    promesse du prédicat — une promesse en attente est « truthy », l'attente
    « réussit » donc immédiatement sans rien vérifier. Ce helper évalue
-   réellement (evaluate attend les fonctions async) et ré-essaie. */
+   réellement (evaluate attend les fonctions async) et ré-essaie.
+
+   Second piège, celui qui rend un scénario INTERMITTENT : attendre l'ÉTAT
+   quand on va mesurer le DOM. `S.companies` est rempli dès la lecture du
+   stockage, l'écran se dessine après — fichier seul la course est gagnée
+   d'avance, sous la charge de `tous.mjs` elle ne l'est plus. C'est ce qui
+   a fait rougir `e2e-ux-audit.mjs` dans la suite complète et lui seul :
+   « champ rendu à 0px » et « 3 colonnes — vu 0 », sur une page encore
+   vide, irreproductibles en le lançant à part. **Attendre ce qu'on
+   mesure** : le nœud dessiné, pas la variable qui le précède. */
 export async function attendre(page, fn, { timeout = 15000, pas = 250, message = '' } = {}){
   const fin = Date.now() + timeout;
   for (;;){
