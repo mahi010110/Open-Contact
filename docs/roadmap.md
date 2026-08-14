@@ -107,6 +107,22 @@ Dernière mise à jour : 8 août 2026 — cache `oc-v138`, 128 auto-tests verts
   3 mutations. *(Contrôlé au passage : « Donner » et « Prospecter »
   sont bien alignées — les deux sorties de « Donner » tombent à 87 % et
   93 % en bas de liste, il ne lui manque pas de pied.)*
+- **Le composeur respire** (août 2026, lot 1 de `docs/audit-2026-08.md`).
+  Deux défauts mesurés sur l'écran le plus cher du produit. ① L'objet se
+  coupait au pouce : 41 caractères visibles sur 350 px quand le gabarit
+  de relance en produit 71 — la seule phrase qui décide si le reste est
+  lu. Il grandit maintenant avec son texte (plafond 4 lignes) et porte
+  son compteur `71/60`, une donnée, jamais une alerte. ② La zone
+  d'écriture avait 170 px fixes pendant que la feuille laissait 164 px
+  inutilisés : 289 px de brouillon dont 168 visibles (58 %), 43 % pour
+  la relance — et sa taille dépendait de ce qu'on savait de
+  l'entreprise. La feuille prend sa hauteur, le champ reçoit un
+  plancher en `dvh` : **58 % → 80 %** et **43 % → 60 %** en 390 × 844,
+  100 % au poste, rien perdu en 360 × 640. Au passage, un menu
+  « Destinataire » à une seule option — un contrôle sans pouvoir qui
+  coûtait 80 px — redevient une ligne de texte. 7 mutations, dont deux
+  qui ont fait supprimer du code mort : la carte « À savoir » ne se
+  comprime à aucune taille, son chevron non plus.
 - Auto-tests verts, parcours principaux rejoués en E2E.
 
 > **Nuance conservée.** « Refonte terminée » veut dire : les 23 décisions sont

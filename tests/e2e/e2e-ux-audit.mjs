@@ -1406,7 +1406,7 @@ const versions = await wPage.evaluate(async () => {
   document.querySelector('.topnav [data-r="moi"]').click();
   await new Promise(r => setTimeout(r, 550));
   /* on compte les FEUILLES du DOM : la barre d'état imbrique
-     « OpenContact <span>6.15.0</span> », compter les ancêtres ferait
+     « OpenContact <span>6.15.1</span> », compter les ancêtres ferait
      voir double là où il n'y a qu'un seul endroit */
   return [...document.querySelectorAll('body *')]
     .filter(e => e.offsetParent !== null && !e.children.length

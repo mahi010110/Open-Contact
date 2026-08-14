@@ -1647,15 +1647,51 @@ button.ec-row:hover{background:var(--surface-field)}
   .ed-form{display:grid;grid-template-columns:1fr 1fr;gap:0 20px;align-items:start}
   .ed-form>.grid2{grid-column:1 / -1}
   .modal-compose{max-width:820px;height:min(88dvh,800px)}
-  /* `flex:1` sur le corps : sans lui il se dimensionne à son contenu et
-     la hauteur gagnée par la fenêtre resterait sous le pied, inutile */
-  .modal-compose .modal-b{flex:1;min-height:0;display:flex;flex-direction:column}
-  .modal-compose .fld-body{flex:1;display:flex;flex-direction:column;min-height:0}
-  .modal-compose .fld-body textarea{flex:1;min-height:240px}
+  .modal-compose .fld-body textarea{min-height:240px}
 }
-/* au pouce, la zone d'écriture garde sa taille : le clavier occupe déjà
-   la moitié basse de l'écran, une zone plus haute ne se verrait pas */
+/* ÉCRIRE : LA ZONE DE RÉDACTION TIENT SA RÉGION — le panneau du §5,
+   appliqué à l'endroit où il manquait.
+   Ce qui varie dans ce composeur, ce n'est pas le message : c'est TOUT
+   CE QUI EST AU-DESSUS. Une piste sans notes et à un seul contact coûte
+   230 px de préambule, une piste bien renseignée en coûte 400 — et
+   c'est le champ de rédaction qui payait la différence. Mesuré en
+   390×844 : 289 px de brouillon dont 168 visibles (58 %), 388 px dont
+   168 pour le gabarit de relance (43 %). La taille de la zone
+   d'écriture décidée par ce qu'on savait de l'entreprise, et la feuille
+   arrêtée à 612 px sur 776 disponibles sans jamais défiler : de la
+   place perdue à côté d'un brouillon coupé.
+   La feuille prend donc son allocation, et le message reçoit un
+   plancher en `dvh` — c'est lui qui rend la place STABLE d'une piste à
+   l'autre. `flex:1` par-dessus le laisse grandir là où il reste de la
+   place, au poste comme sur une piste peu renseignée. */
+.modal-compose{height:92dvh}
+.modal-compose .modal-b{flex:1;min-height:0;display:flex;flex-direction:column}
+/* Rien au-dessus du message ne se serre : ni à qui l'on écrit, ni
+   l'objet, ni ce qu'on sait d'elle. Deux tentatives sont mortes ici et
+   valent d'être dites — un panneau qui défile tranchait la carte
+   « À savoir » au milieu d'une ligne, cadre pointillé compris, ce qui
+   se lit comme un défaut d'affichage ; et le même panneau avec
+   `min-height:0` descendait sous ses propres enfants, le champ Message
+   venant se poser PAR-DESSUS l'objet en 360×640 sans que `.modal-b` en
+   sache rien. Quand tout ne tient pas, c'est la FEUILLE qui défile —
+   comme tout composeur de messagerie. */
+/* PAS de `min-height:0` sur le corps non plus : le cadre garde le
+   plancher de son champ. Il tombait sinon à 134 px pendant que le champ
+   en gardait 170 — le champ débordait sur la ligne d'aide. */
+.modal-compose .fld-body{flex:1;min-height:min(30dvh,300px);display:flex;flex-direction:column}
+.modal-compose .fld-body textarea{flex:1}
 .fld-body textarea{min-height:170px}
+/* L'OBJET S'AFFICHE EN ENTIER — il grandit avec son texte (JS), le
+   plafond de quatre lignes vit dans `ui/mail.js`. `resize:none` : il se
+   dimensionne déjà tout seul, une poignée ne ferait que le dérégler. */
+.fld-subj label{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.fld-subj textarea{min-height:var(--ctl);resize:none;overflow-y:auto}
+/* le compteur est une DONNÉE, pas une alerte : il ne change jamais de
+   couleur. Même famille que les compteurs du produit — mono, discret. */
+.fld-n{font-family:var(--font-mono);font-weight:var(--weight-medium);letter-spacing:0}
+/* une valeur qu'on lit sans pouvoir la changer : ni bordure ni relief —
+   ce qui se tape a un cadre, le reste se pose en texte (§6, sobriété 3) */
+.fld-ro{font-size:var(--input-fs);line-height:1.4;padding:2px 0;color:var(--text-body)}
 /* Une fiche remplie à 43 % ne RÉCLAME rien : elle ne coûte pas une
    opportunité, contrairement à une relance en retard — qui, elle, porte
    déjà l'ambre trois blocs plus haut. Deux ambres sur un écran diluent

@@ -420,6 +420,8 @@ avec un motif existant.
 | Poser une question, éditer | `openSheet` (empilable, focus-trap, Échap, **bouton retour / glissé depuis le bord**, glisser-fermer au doigt, barre de titre qui se glisse à la souris, `setFoot` REMPLACE les boutons, `guard` = garde-fou avant fermeture) |
 | Garder une barre d'outils sous la main | `collerEnHaut(sentinelle, cible)` — la cible ne prend son décor que **décrochée**. Sur une liste courte, rien ne s'ajoute jamais |
 | Poser un champ de saisie | `clavier('nom' \| 'coord' \| 'email' \| 'tel' \| 'lien' \| 'cherche' \| 'secret')` — le genre dit ce que le champ EST, jamais sa balise. **La prose n'a pas de genre** : son correcteur doit rester allumé |
+| Un champ dont la VALEUR doit se lire en entier | il grandit avec son texte, plafonné en lignes (`.fld-subj` + `auTexte`, `ui/mail.js`), et son compteur dit la fenêtre visée (`.fld-n`) — une **donnée**, mono et discrète, qui ne change jamais de couleur : un compteur qui alerte est un avertissement, et un objet trop long ne coûte rien qu'on ne puisse défaire |
+| Montrer une valeur qu'on ne peut pas changer | `.fld-ro` — le libellé du champ, la valeur en texte. **Ni bordure ni relief** : ce qui se tape a un cadre (§6, sobriété 3). Et **un choix à une seule option n'est pas un choix** — le menu devient cette ligne, on lit à qui on écrit, le contrôle part |
 | Trier une liste | `ui/sort.js` — critère + bascule ↑↓ ; re-tap du critère actif = retour au défaut de l'écran |
 | Filtrer + trier ensemble | `ui/affiner.js` — une feuille, un compte dans le bouton (`Affiner ③`) |
 | Supprimer au geste | `bindDeleteGesture(node, onDelete)` — glisser (mobile) / poubelle au survol (desktop), doublé d'un `showUndo` |
@@ -547,9 +549,30 @@ chaque écran enseigne le produit, jamais un simple « aucune donnée ».
 **Une feuille ne s'étire pas — elle se déplace.** Mesuré sur les seize
 feuilles de l'app, en 390 × 844 et en 1280 × 800 : chacune est soit au
 plafond (92 dvh, plus rien à gagner), soit assez courte pour tout montrer
-(l'étirer n'ajouterait que du vide). **Aucune n'est les deux** — le
-dimensionnement automatique fait déjà le travail, et un cran « pleine
-hauteur » serait un geste sans effet. Élargir au poste ne sauve rien non
+(l'étirer n'ajouterait que du vide) — le dimensionnement automatique fait
+déjà le travail, et un cran « pleine hauteur » serait un geste sans effet.
+
+> **Une seule feuille a fait mentir ce relevé, et c'est la plus chère :
+> « Écrire ».** Elle s'arrêtait à 612 px sur 776 disponibles *pendant*
+> qu'elle cachait 42 % du brouillon. Le dimensionnement automatique ne
+> travaille que si quelque chose RÉCLAME la place ; ici, la zone
+> d'écriture avait une hauteur fixe, donc personne ne la réclamait. La
+> règle se précise donc : **une feuille dont un champ doit grandir se
+> donne sa hauteur** (`height:92dvh`) et pose un **plancher en `dvh` sur
+> ce champ** — sans quoi sa taille se met à dépendre de ce qui est écrit
+> au-dessus, et une fiche bien renseignée rétrécit l'endroit où l'on
+> travaille. Deux constructions sont mortes avant celle-là : un panneau
+> défilant au-dessus du champ (il tranchait la carte « À savoir » au
+> milieu d'une ligne, ce qui se lit comme un bug), et le même avec
+> `min-height:0` (le champ Message se posait **par-dessus** l'objet en
+> 360 × 640, invisible à la relecture). Quand tout ne tient pas, c'est
+> la **feuille** qui défile — comme tout composeur de messagerie.
+> Corollaire vérifié deux fois dans ce lot : **une mécanique qui ne
+> s'enclenche jamais est du code mort.** La carte « À savoir » ne s'est
+> comprimée à aucune des trois tailles, son chevron « il y en a plus »
+> non plus — supprimés.
+
+Élargir au poste ne sauve rien non
 plus : la fiche passe de 1273 px cachés à 903 px en doublant la largeur.
 Ce qui manquait vraiment, c'est de voir **derrière** : au poste, la barre
 de titre se prend à la souris — l'idiome « 98 » au complet — bornée pour

@@ -54,11 +54,11 @@ export function openMail(c, opts){
   const advance = () => { if (opts.onDone){ const f = opts.onDone; opts.onDone = null; f(); } };
   /* le composeur prend la place de la fiche (#16, fin du double-modal
      N8) : même fenêtre partout, en bas au pouce, centrée sur l'ordinateur */
-  /* `modal-compose` : au poste, la fenêtre prend de la hauteur et c'est
-     le MESSAGE qui la reçoit. Écrire est la seule chose qu'on fait ici,
-     et 170 px de zone d'écriture — la même valeur au pouce et sur
-     1280x800, huit lignes visibles pour dix écrites, la phrase coupée
-     en deux — c'était l'écran du téléphone resservi tel quel. */
+  /* `modal-compose` : la fenêtre prend sa hauteur et c'est le MESSAGE
+     qui la reçoit. Écrire est la seule chose qu'on fait ici, et 170 px
+     de zone d'écriture — la même valeur au pouce et sur 1280x800, huit
+     lignes visibles pour dix écrites, la phrase coupée en deux —
+     c'était l'écran du téléphone resservi tel quel. */
   const sh = openSheet({
     title: 'Écrire — ' + c.name + (opts.progress ? '  ·  ' + opts.progress : ''),
     icon: 'mail', className: 'modal-compose', focus: cts.length ? '#mSubj' : '#mBody',
@@ -71,15 +71,44 @@ export function openMail(c, opts){
   /* la personne choisie arrive pré-sélectionnée (#14) — jamais devinée */
   const initIdx = Math.max(0, cts.findIndex(t => t.id === opts.ctId));
   sh.body.innerHTML =
-    `<div class="grid2">
-       <div class="field"><label for="mTo">Destinataire</label>
-         <select id="mTo">${cts.length
-           ? cts.map((t, i) => `<option value="${i}"${i === initIdx ? ' selected' : ''}>${esc(t.name || t.email)}${t.role ? ' — ' + esc(t.role) : ''}</option>`).join('')
-           : '<option value="">Aucun email sur cette piste</option>'}</select></div>
+    `${/* LE PRÉAMBULE EST LE CONTENU VARIABLE, PAS LE MESSAGE.
+          À qui, quel modèle, l'objet, ce qu'on sait d'elle : selon la
+          piste, ça pèse de 230 à 400 px — et c'est la zone d'écriture
+          qui payait la différence, jusqu'à ne plus montrer que 43 % du
+          brouillon. Un geste ne peut pas changer de taille selon le
+          remplissage d'une fiche. Le plancher du champ Message est ce
+          qui lui rend sa place (`styles/app.css`, `.fld-body`). */''}
+     <div class="grid2">
+       ${/* UN CHOIX À UNE SEULE OPTION N'EST PAS UN CHOIX. La plupart
+            des pistes portent une seule personne joignable : le menu ne
+            pouvait alors rien faire, et il coûtait 80 px de la hauteur
+            que le message réclame — sur un téléphone, ces 80 px sont
+            trois lignes de brouillon. C'est la règle « indisponible =
+            absent » appliquée à un contrôle sans pouvoir : la donnée
+            reste (on lit à qui on écrit), le contrôle part. */''}
+       <div class="field">${cts.length > 1
+         ? `<label for="mTo">Destinataire</label>
+            <select id="mTo">${cts.map((t, i) => `<option value="${i}"${i === initIdx ? ' selected' : ''}>${esc(t.name || t.email)}${t.role ? ' — ' + esc(t.role) : ''}</option>`).join('')}</select>`
+         : `<label>Destinataire</label>
+            <p class="fld-ro">${cts.length
+              ? esc(cts[0].name || cts[0].email) + (cts[0].role ? ' — ' + esc(cts[0].role) : '')
+              : 'Aucun email sur cette piste'}</p>`}</div>
        <div class="field"><label for="mTpl">Modèle</label>
          <select id="mTpl">${tpls.map((t, i) => `<option value="${i}">${esc(t.name)}</option>`).join('')}</select></div>
      </div>
-     <div class="field"><label for="mSubj">Objet</label><input id="mSubj"></div>
+     ${/* L'OBJET S'AFFICHE EN ENTIER.
+          Une ligne de 350 px montre ~41 caractères. Le gabarit de
+          relance en produit 71 : mesuré, la moitié de l'objet vivait
+          hors du champ, et c'est la seule phrase du message qui décide
+          si le reste sera ouvert. Un champ qui ne montre pas sa propre
+          valeur ne sert à rien — la même règle a déjà fait passer le
+          formulaire de piste à une colonne au pouce.
+          Il grandit donc avec son texte (deux lignes couvrent la
+          fenêtre visée), et le compteur dit le plafond : 60 caractères,
+          au-delà desquels un téléphone coupe l'objet dans sa liste.
+          C'est une DONNÉE, comme le compte de « Affiner ③ » — pas un
+          avertissement : rien ne change de couleur, rien ne bloque. */''}
+     <div class="field fld-subj"><label for="mSubj">Objet<span class="fld-n" id="mSubjN" aria-hidden="true"></span></label><textarea id="mSubj" rows="1" enterkeyhint="next"></textarea></div>
      ${/* CE QU'ON SAIT D'ELLE, LÀ OÙ ON ÉCRIT SUR ELLE.
           Le modèle demande une accroche précise en première position ;
           la matière pour l'écrire — ce qu'ils font, leurs technos, le
@@ -102,7 +131,40 @@ export function openMail(c, opts){
      <p class="hint" id="mHint"></p>`;
 
   const q = s => sh.body.querySelector(s);
-  const currentCt = () => cts[+q('#mTo').value] || (c.contacts || [])[0] || null;
+  /* sans menu (une seule personne joignable), le choix est déjà fait */
+  const currentCt = () => { const m = q('#mTo'); return (m ? cts[+m.value] : cts[0]) || (c.contacts || [])[0] || null; };
+  /* l'objet grandit avec son texte. Le plafond est à quatre lignes —
+     deux fois la fenêtre visée : au-delà, ce n'est plus un objet
+     d'email, et laisser le champ manger la feuille punirait le corps.
+     Un objet n'a pas de ligne : Entrée passe au message, et un
+     copier-coller multiligne se remet à plat en entrant. */
+  const OBJET_CIBLE = 60, OBJET_LIGNES = 4;
+  /* poser la hauteur d'un champ sur son texte. `scrollHeight` ne compte
+     jamais la bordure : sans elle, chaque mesure rogne deux pixels et
+     une dernière ligne finit par se couper. */
+  function auTexte(t, plafond){
+    t.style.height = 'auto';
+    const bord = t.offsetHeight - t.clientHeight;
+    t.style.height = Math.ceil(Math.min(t.scrollHeight, plafond) + bord) + 'px';
+  }
+  /* appelé par `sync()`, donc par TOUS les chemins qui posent un objet —
+     le gabarit, la frappe, le brouillon IA, l'annulation du brouillon.
+     Un chemin qui l'oubliait laissait un champ d'une ligne sur un objet
+     de trois. Le garde-fou de valeur le rend gratuit quand seul le
+     message a bougé : sans lui, chaque caractère du corps relancerait
+     une mesure de mise en page. `force` sert au redimensionnement, où
+     la valeur n'a pas changé mais le repli, si. */
+  let objetVu = null;
+  function syncObjet(force){
+    const t = q('#mSubj');
+    if (!t || (!force && t.value === objetVu)) return;
+    if (t.value.includes('\n')) t.value = t.value.replace(/\s*\n+\s*/g, ' ');
+    objetVu = t.value;
+    const st = getComputedStyle(t);
+    auTexte(t, (parseFloat(st.lineHeight) || 20) * OBJET_LIGNES
+      + parseFloat(st.paddingTop) + parseFloat(st.paddingBottom));
+    q('#mSubjN').textContent = t.value.length + '/' + OBJET_CIBLE;
+  }
   const aMail = document.createElement('a');
   aMail.className = 'btn';
   aMail.textContent = 'Ouvrir dans Mail';
@@ -172,11 +234,17 @@ export function openMail(c, opts){
   const surVisible = () => { if (!document.hidden) auRetour(); };
   document.addEventListener('visibilitychange', surVisible);
   window.addEventListener('focus', auRetour);
+  /* l'objet se replie autrement à chaque largeur : tourner le téléphone
+     laissait un champ de deux lignes contenant une ligne, ou l'inverse */
+  const surTaille = () => { if (sh.body.isConnected) syncObjet(true); };
+  window.addEventListener('resize', surTaille);
   const oublier = () => {
     document.removeEventListener('visibilitychange', surVisible);
     window.removeEventListener('focus', auRetour);
+    window.removeEventListener('resize', surTaille);
   };
   function sync(){
+    syncObjet();
     const ct = currentCt();
     const email = ct && ct.email;
     if (email){
@@ -277,9 +345,14 @@ export function openMail(c, opts){
       onDone: advance
     });
   }
-  q('#mTo').addEventListener('change', fill);
+  q('#mTo')?.addEventListener('change', fill);
   q('#mTpl').addEventListener('change', fill);
   q('#mSubj').addEventListener('input', sync);
+  q('#mSubj').addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    q('#mBody').focus();
+  });
   q('#mBody').addEventListener('input', sync);
   aMail.addEventListener('click', logPrep);
   /* brouillon IA : le texte tombe dans le champ ÉDITABLE — relecture

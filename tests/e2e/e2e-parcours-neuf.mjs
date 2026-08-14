@@ -205,6 +205,114 @@ else if (ecrire.rien.savoir)
   fail('un cadre « À savoir » vide s’affiche alors qu’il n’y a rien à savoir');
 else console.log('« À savoir » : les notes au-dessus du champ, le site en repli, absent si rien ✓');
 
+/* ---------- écrire AU POUCE : le composeur respire ----------
+   Trois défauts mesurés au téléphone, tous invisibles à la relecture.
+   ① L'objet se coupait : un champ d'une ligne montre ~41 caractères sur
+   350 px, le gabarit de relance en produit 71. C'est la seule phrase
+   qui décide si le reste sera lu, et on n'en voyait pas la moitié.
+   ② La zone d'écriture avait une hauteur FIXE de 170 px pendant que la
+   feuille s'arrêtait à 612 px sur 776 disponibles : 289 px de brouillon
+   dont 168 visibles (58 %), 388 px dont 168 pour la relance (43 %).
+   ③ Sa taille dépendait de ce qu'on savait de l'entreprise — une fiche
+   bien remplie rétrécissait le champ où l'on écrit.
+   Le quatrième contrôle ne vient d'aucun défaut de conception mais d'un
+   accident de flex : en donnant `min-height:0` au préambule, le champ
+   Message est venu se poser PAR-DESSUS l'objet, en 360×640 seulement.
+   Rien dans le code ne le disait. On mesure donc le recouvrement. */
+const CORPS_MIN = 200;        /* ~7 lignes : le plancher sous lequel on n'écrit plus */
+async function composeur(P, piste){
+  return P.evaluate(async (piste) => {
+    const { S, saveData, saveProfile } = await import('./ui/state.js');
+    const { normalizeCompany, defaultTemplates } = await import('./engine/model.js');
+    const { topSheet } = await import('./ui/dom.js');
+    let t; let n = 0;
+    while ((t = topSheet()) && n++ < 5){ t.close(null, true); await new Promise(r => setTimeout(r, 120)); }
+    S.profile.name = 'Maheydine Oun'; S.profile.formation = 'BTS SIO SISR';
+    S.profile.email = 'm@x.test'; S.profile.phone = '06 39 98 12 34';
+    S.profile.templates = defaultTemplates();
+    saveProfile();
+    S.companies = [normalizeCompany(piste)];
+    saveData();
+    const { openMail } = await import('./ui/mail.js');
+    openMail(S.companies[0], {});
+    await new Promise(r => setTimeout(r, 400));
+    /* le gabarit le plus long des trois : c'est lui qui décide */
+    const sel = document.querySelector('#mTpl');
+    sel.value = '1'; sel.dispatchEvent(new Event('change'));
+    await new Promise(r => setTimeout(r, 250));
+    const o = document.querySelector('#mSubj'), b = document.querySelector('#mBody');
+    const k = document.querySelector('.ml-know');
+    const bo = o.getBoundingClientRect(), bb = b.getBoundingClientRect();
+    /* et il doit grandir PENDANT qu'on tape, pas seulement au
+       remplissage du gabarit : c'est là qu'on allonge un objet */
+    const avant = Math.round(bo.height);
+    o.value = o.value + ' — candidature spontanée pour la rentrée de septembre';
+    o.dispatchEvent(new Event('input', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 80));
+    const enTapant = { h: Math.round(o.getBoundingClientRect().height),
+      coupe: o.scrollHeight > o.clientHeight + 1,
+      compteur: (document.querySelector('#mSubjN') || {}).textContent || '' };
+    o.value = o.value.replace(' — candidature spontanée pour la rentrée de septembre', '');
+    o.dispatchEvent(new Event('input', { bubbles: true }));
+    return {
+      avant, enTapant,
+      objetLen: o.value.length,
+      objetCoupe: o.scrollHeight > o.clientHeight + 1 || o.scrollWidth > o.clientWidth + 1,
+      compteur: (document.querySelector('#mSubjN') || {}).textContent || '',
+      corpsH: Math.round(bb.height),
+      feuilleH: Math.round(document.querySelector('.modal').getBoundingClientRect().height),
+      /* deux champs ne se chevauchent jamais, à un pixel d'arrondi près */
+      recouvre: bo.bottom > bb.top + 1 && bb.bottom > bo.top + 1,
+      carteEntiere: k ? k.scrollHeight <= k.clientHeight + 1 : null,
+      menu: !!document.querySelector('#mTo')
+    };
+  }, piste);
+}
+const RICHE = { name: 'Cyberprotect Solutions Aquitaine', city: 'Bordeaux',
+  website: 'cyberprotect.example', desc: 'ESN de 40 personnes, SOC ouvert à Mérignac en 2025.',
+  techs: 'Wazuh, Suricata, Debian', tips: 'Léa répond vite le matin — passer par elle.',
+  contacts: [{ name: 'Léa Barbaste', role: 'Responsable du SOC', email: 'lea@cyberprotect.example' }] };
+const NUE = { name: 'Alpha', contacts: [{ name: 'Jo', email: 'jo@alpha.example' }] };
+
+const cRiche = await composeur(M, RICHE);
+const cNue = await composeur(M, NUE);
+if (cRiche.objetLen < 60)
+  fail(`le gabarit de relance ne fait plus que ${cRiche.objetLen} caractères — le contrôle ne mesure plus rien`);
+else if (cRiche.objetCoupe || cNue.objetCoupe)
+  fail('l’objet se coupe encore au pouce — c’est la phrase qui décide si le reste est lu');
+else if (!/^\d+\/60$/.test(cRiche.compteur))
+  fail('le compteur de l’objet ne dit plus la fenêtre visée : ' + JSON.stringify(cRiche.compteur));
+else if (cNue.feuilleH < 0.88 * 844)
+  fail(`sur une piste peu renseignée, le composeur laisse ${844 - cNue.feuilleH}px de feuille inutilisés`);
+else if (cRiche.corpsH < CORPS_MIN || cNue.corpsH < CORPS_MIN)
+  fail(`zone d’écriture de ${Math.min(cRiche.corpsH, cNue.corpsH)}px — sous ${CORPS_MIN} on n’écrit plus, on devine`);
+else if (cNue.corpsH < cRiche.corpsH)
+  fail('une fiche mieux remplie devrait donner PLUS de place, jamais moins');
+else if (cRiche.enTapant.h <= cRiche.avant || cRiche.enTapant.coupe)
+  fail(`l’objet ne grandit pas pendant qu’on tape (${cRiche.avant}px → ${cRiche.enTapant.h}px)`)
+else if (cRiche.enTapant.compteur === cRiche.compteur)
+  fail('le compteur de l’objet ne suit pas la frappe : ' + cRiche.enTapant.compteur);
+else if (cRiche.carteEntiere === false)
+  fail('« À savoir » est coupée : une carte tranchée au milieu d’une ligne se lit comme un défaut');
+else if (cRiche.menu)
+  fail('un menu « Destinataire » à une seule option — un choix à une option n’est pas un choix');
+else console.log(`écrire au pouce : objet ${cRiche.objetLen} car. entier (${cRiche.compteur}), `
+  + `message ${cRiche.corpsH}px sur fiche pleine / ${cNue.corpsH}px sur fiche nue ✓`);
+
+/* le recouvrement se joue sur le PETIT téléphone : c'est lui qui décide */
+const petit = await browser.newContext({ viewport: { width: 360, height: 640 }, hasTouch: true });
+const Pt = await petit.newPage();
+watch(Pt);
+await Pt.goto(base, { waitUntil: 'load' });
+await Pt.waitForSelector('#view-aujourdhui:not([hidden])');
+const cPetit = await composeur(Pt, RICHE);
+if (cPetit.recouvre || cRiche.recouvre)
+  fail('l’objet et le message se recouvrent — un enfant de flex est passé sous son propre plancher');
+else if (cPetit.objetCoupe)
+  fail('l’objet se coupe en 360×640');
+else console.log(`360×640 : objet entier, message ${cPetit.corpsH}px, rien ne se recouvre ✓`);
+await petit.close();
+
 if (errors.length) fail('erreurs console : ' + JSON.stringify(errors.slice(0, 6)));
 else console.log('Zéro erreur console.');
 console.log(process.exitCode ? 'E2E parcours neuf : ÉCHEC' : 'E2E parcours neuf : OK');
