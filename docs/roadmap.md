@@ -63,6 +63,20 @@ Dernière mise à jour : 8 août 2026 — cache `oc-v138`, 128 auto-tests verts
   l'application (`about:blank`). Le retour est désormais différé et
   l'ouverture suivante le reprend. Gardes `e2e-fenetre.mjs` et
   `e2e-ux-audit.mjs` ; 23 mutations, toutes attrapées.
+- **Une puce fait la taille de son mot** (août 2026). Signalé sur photo :
+  « J'y suis passé » rendait quatre blocs pleine largeur empilés. Deux
+  causes, toutes deux mesurées à police agrandie — celle que règle
+  quelqu'un qui veut y voir : les puces étaient en `flex:1 1 auto`
+  (seule sur son rang, une puce s'étirait à 352 px, « CDI » compris), et
+  leur libellé répétait le titre du groupe (« J'y suis passé » →
+  « J'y ai fait mon stage »). Résultat 197 px → 95 px, et la fiche ne
+  dit plus « Tu y es passé — j'y ai été en alternance », qui mélangeait
+  deux personnes grammaticales. Sources : GOV.UK (ne jamais cacher un
+  petit jeu d'options), Material 3 (au-delà de trois options ou avec un
+  libellé long, une grappe de puces qui se replient plutôt qu'un bouton
+  segmenté). 3 mutations. *Reste ouvert : le WAI-ARIA APG veut un
+  `radiogroup` pour des bascules exclusives, ce qui interdirait le
+  re-tap qui efface — arbitrage à rendre.*
 - **Une ligne cochée ne se peint pas** (août 2026). Troisième et
   dernière version : la ligne retenue a porté le navy du châssis, puis
   un lavis teal + liseré, avant de ne plus rien porter du tout. Deux

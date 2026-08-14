@@ -1389,8 +1389,18 @@ button.ec-row:hover{background:var(--surface-field)}
 .date-row input{flex:1;min-width:0}
 .date-row .btn{flex:none}
 .datechips{display:flex;gap:7px;flex-wrap:wrap}
+/* UNE PUCE FAIT LA TAILLE DE SON MOT.
+   Elle était en `flex:1 1 auto` : dès qu'une puce se retrouvait seule
+   sur son rang, elle s'étirait sur toute la largeur. Mesuré à police
+   agrandie — celle que règle quelqu'un qui veut y voir — « J'y suis
+   passé » rendait quatre blocs pleine largeur empilés, 197 px d'écran
+   pour quatre mots, et « CDI » devenait un bouton de 352 px. Un bouton
+   large annonce une action lourde ; ce sont des étiquettes qu'on
+   effleure. Elles se dimensionnent donc sur leur texte et se rangent
+   par rang, comme des puces de filtre — le motif que l'app emploie
+   déjà pour exactement ce geste. */
 .dchip{
-  flex:1 1 auto;min-height:var(--ctl);padding:0 12px;
+  flex:0 1 auto;min-height:var(--ctl);padding:0 12px;
   border:1px solid var(--border-strong);border-radius:var(--radius-1);
   background:var(--surface-chrome);box-shadow:var(--bevel-up), var(--shadow-raised);
   font-weight:var(--weight-semibold);font-size:var(--text-13);

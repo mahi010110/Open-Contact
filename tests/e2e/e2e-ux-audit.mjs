@@ -768,11 +768,17 @@ for (const [nom, motion] of [['normal', 'no-preference'], ['mouvement réduit', 
   await mPage.evaluate(async () => {
     const st = await import('./engine/storage.js');
     await st.kvInit();
+    /* la date se CALCULE. Elle était écrite en dur (« 2026-08-14 ») pour
+       tomber dans « Bientôt » — jusqu'au jour où le calendrier l'a
+       rattrapée : la piste est passée dans « Aujourd'hui », la section
+       « Bientôt » a disparu, et la garde a échoué sans que rien n'ait
+       bougé dans l'app. Une garde ne doit pas se périmer toute seule. */
+    const dans5j = new Date(Date.now() + 5 * 864e5).toISOString().slice(0, 10);
     await st.kvSet(st.DATA_KEY, JSON.stringify([
       { id: 'mv1', name: 'Capgemini', city: 'Valenciennes', domain: 'esn', status: 'todo', contacts: [] },
       { id: 'mv2', name: 'Worldline', city: 'Seclin', domain: 'esn', status: 'active', contacts: [] },
       { id: 'mv3', name: 'Atos', city: 'Paris', domain: 'esn', status: 'todo', contacts: [],
-        nextAction: '2026-08-14', nextActionText: 'Relancer le service RH' }]));
+        nextAction: dans5j, nextActionText: 'Relancer le service RH' }]));
   });
   await mPage.reload({ waitUntil: 'load' });
   await attendre(mPage, () => document.querySelectorAll('.bcard').length >= 3, { message: 'le tableau' });
@@ -1201,6 +1207,63 @@ for (const [quoi, titre] of [['donner', 'Donner'], ['prospect', 'Prospecter']]){
   else if (b.fuite)
     fail(`« ${titre} » : une ligne défile à découvert au-dessus de la barre`);
   else console.log(`feuille « ${titre} » : « Tout / Affiner » tient à y=${b.y}, rien au repos ✓`);
+}
+
+/* ---------- UNE PUCE FAIT LA TAILLE DE SON MOT ----------
+   Les sources se rejoignent : GOV.UK dit de ne jamais cacher un petit
+   jeu d'options dans une liste déroulante (donc : elles restent
+   visibles), et Material 3 dit qu'au-delà de trois options, ou dès
+   qu'un libellé s'allonge, le bouton segmenté ne tient plus — c'est une
+   grappe de puces qui se replient qui devient la réponse lisible.
+   L'app avait les puces, mais en `flex:1 1 auto` : seule sur son rang,
+   une puce s'étirait sur toute la largeur. Mesuré à police agrandie —
+   celle que règle quelqu'un qui veut y voir — « J'y suis passé »
+   rendait quatre blocs pleine largeur empilés, 197 px pour quatre mots.
+   On vérifie donc à police AGRANDIE, seule taille où le défaut sort. */
+{
+  const gCtx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true });
+  const gPage = await gCtx.newPage();
+  gPage.on('pageerror', e => errors.push(String(e)));
+  await gPage.goto(base, { waitUntil: 'load' });
+  await attendre(gPage, async () => !!(await import('./ui/state.js')).S.profile, 'profil chargé');
+  await gPage.evaluate(() => { document.documentElement.style.fontSize = '20px'; });
+  const mesure = await gPage.evaluate(async () => {
+    const { S, saveData } = await import('./ui/state.js');
+    const { normalizeCompany } = await import('./engine/model.js');
+    S.companies = [normalizeCompany({ name: 'Adrastia Systèmes', city: 'Toulouse', status: 'active' })];
+    saveData();
+    (await import('./ui/edit.js')).openEditPiste(S.companies[0]);
+    await new Promise(r => setTimeout(r, 600));
+    const L = document.querySelector('.overlay .modal-b').getBoundingClientRect().width;
+    /* la garde dit sous quelle police elle mesure : sans ça, on pouvait
+       retirer l'agrandissement sans qu'elle bronche, et elle aurait
+       continué à passer en ne vérifiant plus le cas qui l'a motivée */
+    const police = getComputedStyle(document.documentElement).fontSize;
+    return { police, groupes: [...document.querySelectorAll('.overlay .datechips')].map(g => {
+      const b = [...g.querySelectorAll('.dchip')];
+      return { titre: (document.getElementById(g.getAttribute('aria-labelledby')) || {}).textContent || '?',
+               n: b.length,
+               rangs: new Set(b.map(x => Math.round(x.getBoundingClientRect().top))).size,
+               h: Math.round(g.getBoundingClientRect().height),
+               large: Math.round(Math.max(...b.map(x => x.getBoundingClientRect().width / L * 100))) };
+    }) };
+  });
+  await gCtx.close();
+  const puces = mesure.groupes;
+  const etiree = puces.find(g => g.large >= 70);
+  const empilee = puces.find(g => g.n > 2 && g.rangs === g.n);
+  if (parseFloat(mesure.police) < 20)
+    fail(`la garde des puces mesure à ${mesure.police} — elle doit mesurer à police AGRANDIE, ` +
+         `c'est la seule taille où le défaut sort`);
+  else if (!puces.length) fail('plus aucun groupe de puces dans « Modifier »');
+  else if (etiree)
+    fail(`« ${etiree.titre.trim()} » : une puce prend ${etiree.large} % de la largeur — ` +
+         `un bouton large annonce une action lourde, ce sont des étiquettes`);
+  else if (empilee)
+    fail(`« ${empilee.titre.trim()} » : ${empilee.n} puces sur ${empilee.n} rangs (${empilee.h} px) — ` +
+         `elles se sont étirées au lieu de se replier`);
+  else console.log(`puces à ${mesure.police} : ${puces.map(g => g.n + ' sur ' + g.rangs + ' rang(s)').join(', ')}, ` +
+                   `la plus large ${Math.max(...puces.map(g => g.large))} % ✓`);
 }
 
 /* ---------- LE CLAVIER QUI S'OUVRE ----------

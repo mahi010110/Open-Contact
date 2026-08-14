@@ -423,7 +423,8 @@ avec un motif existant.
 | Trier une liste | `ui/sort.js` — critère + bascule ↑↓ ; re-tap du critère actif = retour au défaut de l'écran |
 | Filtrer + trier ensemble | `ui/affiner.js` — une feuille, un compte dans le bouton (`Affiner ③`) |
 | Supprimer au geste | `bindDeleteGesture(node, onDelete)` — glisser (mobile) / poubelle au survol (desktop), doublé d'un `showUndo` |
-| Choisir parmi 2-5 options | `pick-list` / `.pick` |
+| Choisir parmi 2-5 options | `pick-list` / `.pick` — des LIGNES, quand chaque option porte une explication ou déclenche une action |
+| Choisir un attribut court | `.datechips` + `.dchip` — la puce fait la taille de son MOT (`flex:0 1 auto`) et le groupe se replie par rangs. Jamais une liste déroulante : on ne cache pas un petit jeu d'options |
 | Choisir une date | chips « Demain / +3 j / +7 j / Lundi » + date précise validée par OK (jamais de fermeture sur `change` seul — roue iOS) |
 | Confirmer un geste risqué | `confirmSheet` (danger = `btn-danger`). **Une porte se décide** : elle ne se justifie que si elle montre ce qu'on ne peut PAS deviner (« ce fichier contient 12 pistes, tu en as 3 »). Une question dont le message dit qu'il n'y a rien à perdre ne protège personne |
 | Geste lourd réversible | `showUndo(msg, onUndo)` — barre Annuler ~30 s. **Il remplace la confirmation**, il ne s'y ajoute pas : demander ET offrir d'annuler, c'est payer deux fois |
@@ -443,6 +444,34 @@ avec un motif existant.
 | Contenu secondaire | `<details class="pcard pcard-details">` replié |
 | Une page = un objet et ses réglages | en-tête `.obj` (icône en haut à gauche + nom) puis des cadres `.fset`. **Le cadre est lourd : deux par écran au maximum, jamais s'il contiendrait tout l'écran.** Ailleurs, `pcard` reste la règle |
 | Recevoir des données | TOUJOURS l'aperçu avant fusion (`mergePreviewInto`) — mêmes règles quel que soit le canal |
+
+**Une puce fait la taille de son mot, et son mot ne répète pas le titre.**
+Deux sources se rejoignent : GOV.UK dit de **ne jamais cacher** un petit
+jeu d'options dans une liste déroulante — elles restent visibles ;
+Material 3 dit qu'au-delà de trois options, ou dès qu'un libellé
+s'allonge, le bouton segmenté ne tient plus et c'est une **grappe de
+puces qui se replient** qui devient lisible. L'app avait les puces, mais
+en `flex:1 1 auto` : seule sur son rang, une puce s'étirait sur toute la
+largeur. Mesuré à police agrandie — celle que règle quelqu'un qui veut y
+voir — « J'y suis passé » rendait **quatre blocs pleine largeur empilés,
+197 px pour quatre mots**, et « CDI » devenait un bouton de 352 px. Un
+bouton large annonce une action lourde ; ce sont des étiquettes qu'on
+effleure. Deux corollaires :
+
+- **Le libellé de la puce ne répète pas le titre du groupe** (§6, règle
+  de sobriété 1). Sous « J'y suis passé », « J'y ai fait mon stage »
+  disait deux fois la même chose et triplait la largeur : c'est
+  **Stage**. D'où `VECU[].quoi`, à côté des trois personnes
+  grammaticales que la table portait déjà.
+- **Ça se vérifie à police AGRANDIE**, seule taille où le défaut sort.
+
+*Reste ouvert, à trancher avec le mainteneur* : le WAI-ARIA APG dit
+qu'un groupe de bascules **mutuellement exclusives** doit se déclarer
+`radiogroup`, pas `aria-pressed`. « J'y suis passé » est exclusif — mais
+un bouton radio ne se dé-coche pas, et le re-tap qui efface est
+justement ce qui évite d'ajouter un sixième choix « Aucun ». Les deux
+règles s'opposent ; celle du produit tient tant qu'elle n'est pas
+rediscutée.
 
 **Au pouce, un champ ne coûte pas des pixels : il coûte un CLAVIER.**
 Lequel s'ouvre, et ce qu'il fait au texte pendant qu'on tape. Relevé sur

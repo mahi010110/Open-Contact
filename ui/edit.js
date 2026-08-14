@@ -57,7 +57,7 @@ export function sharedFieldsHTML(c){
        <div class="datechips" role="group" aria-labelledby="edVecuL">
          ${Object.keys(VECU).map(k =>
            `<button class="dchip${c.vecu === k ? ' on' : ''}" data-v="${k}"
-                    aria-pressed="${c.vecu === k}">${VECU[k].label}</button>`).join('')}
+                    aria-pressed="${c.vecu === k}">${VECU[k].quoi}</button>`).join('')}
        </div></div>
      <div class="field"><label for="edProcess">Process de recrutement</label>
        <textarea id="edProcess" class="ta-s" placeholder="Ex : CV → entretien RH → test technique">${esc(c.process)}</textarea></div>

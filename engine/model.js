@@ -60,15 +60,21 @@ export const POSITIONS = { stage:'Stage', alternance:'Alternance', cdi:'CDI', cd
    trois endroits : la case qu'on coche (« je »), la fiche qui la reçoit
    (« Léa y a fait son stage »), et le message qu'on lui écrit (« tu y as
    fait ton stage ? »). Une seule forme donnait « tu y a fait son stage ». */
+/* Quatre formes, et chacune a un appelant — c'est la grammaire qui les
+   impose, pas le goût. `quoi` est la plus récente : la puce du
+   formulaire vit SOUS le titre « J'y suis passé », donc répéter « J'y
+   ai… » dans chaque bouton disait deux fois la même chose (§6) et
+   étirait la puce sur toute la largeur. Mesuré à police agrandie :
+   quatre puces sur quatre rangs, 197 px d'écran pour quatre mots. */
 export const VECU = {
-  alternance: { label:'J’y ai été en alternance',  court:'y a été en alternance',
-                tu:'y as été en alternance',       poids:4 },
-  stage:      { label:'J’y ai fait mon stage',     court:'y a fait son stage',
-                tu:'y as fait ton stage',          poids:3 },
-  entretien:  { label:'J’y ai passé un entretien', court:'y a passé un entretien',
-                tu:'y as passé un entretien',      poids:2 },
-  connait:    { label:'J’y connais quelqu’un',     court:'y connaît quelqu’un',
-                tu:'y connais quelqu’un',          poids:1 }
+  alternance: { quoi:'Alternance',           label:'J’y ai été en alternance',
+                court:'y a été en alternance', tu:'y as été en alternance',   poids:4 },
+  stage:      { quoi:'Stage',                label:'J’y ai fait mon stage',
+                court:'y a fait son stage',    tu:'y as fait ton stage',      poids:3 },
+  entretien:  { quoi:'Entretien',            label:'J’y ai passé un entretien',
+                court:'y a passé un entretien', tu:'y as passé un entretien', poids:2 },
+  connait:    { quoi:'Je connais quelqu’un', label:'J’y connais quelqu’un',
+                court:'y connaît quelqu’un',   tu:'y connais quelqu’un',      poids:1 }
 };
 
 /* ---------- 5. modèle v3 : plusieurs contacts par piste ----------

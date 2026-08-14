@@ -288,7 +288,7 @@ export function openFiche(c){
        Sans prénom, c'est MA déclaration : rien à demander. */
     const dedans = !v ? '' :
       `${ic('user', 'ic-14')}
-       <b>${c.vecuQui ? esc(c.vecuQui) + ' ' + v.court : 'Tu y es passé — ' + v.label.toLowerCase()}</b>`;
+       <b>${c.vecuQui ? esc(c.vecuQui) + ' ' + v.court : v.label}</b>`;
     const vecuHTML = !v ? ''
       : c.vecuQui ? `<button class="fi-vecu" id="fiVecu">${dedans}${ic('chevron-right', 'ic-14')}</button>`
                   : `<div class="fi-vecu">${dedans}</div>`;
