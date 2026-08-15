@@ -206,6 +206,23 @@ net. Sources uniques : `styles/tokens/` et le kit `design/`.
   vit donc dans la **case**, cochée en accent, et la carte reste
   entière. Ce qui se verrouille n'est pas une teinte, c'est la
   **séparation** — châssis d'un côté, contenu de l'autre.
+
+  **Trois langages de sélection, et ce qui les sépare est la TAILLE de
+  l'objet.** L'app les employait tous les trois, cohérents, sans qu'ils
+  soient écrits nulle part — c'est la seule chose qui manquait :
+
+  | l'objet | ce qu'il fait quand il est retenu |
+  |---|---|
+  | une **ligne de liste** (`.pk`) | rien du tout — l'état vit dans sa case |
+  | une **puce** (`.dchip`) | elle se remplit d'accent |
+  | un **segment** (`.seg3 .seg`) | il se remplit d'accent, et s'enfonce |
+
+  La règle qui les unit : **un aplat ne se pose que sur un objet qui
+  tient entièrement dedans.** Une puce et un segment font la taille de
+  leur mot — l'aplat les couvre en entier, il DIT l'objet. Une ligne de
+  liste a deux étages ; l'aplat n'en couvre qu'un et coupe l'objet en
+  deux. C'est la même raison, appliquée à trois tailles, et c'est ce qui
+  évite d'avoir à choisir au cas par cas.
 - **Reliefs** : bevels francs, ombres dures, coins droits (`--bevel-*`,
   `--shadow-*`). L'identité est **nette, sans flou** — un dégradé, une ombre
   floue, un arrondi marqué la cassent. Ça se discute avec le mainteneur, ça ne

@@ -375,7 +375,7 @@ export function renderMoi(){
       `<div class="page-inner">
          <div class="td-head td-back">
            <button class="abtn" id="moiBack" aria-label="Retour à Moi">${ic('chevron-left', 'ic-14')}</button>
-           <h2>Réglages</h2>
+           <h1>Réglages</h1>
          </div>
          ${/* La version ne flotte plus seule en bas : elle est l'ÉTAT de
               « Signaler un problème », dans la liste. C'est le même
@@ -469,7 +469,7 @@ export function renderMoi(){
 
   root.innerHTML =
     `<div class="page-inner${wide ? ' page-wide' : ''}">
-       <div class="td-head"><h2>Moi</h2>
+       <div class="td-head"><h1>Moi</h1>
          <div class="td-date td-lock" title="privé — jamais partagé" aria-label="privé — jamais partagé">${ic('lock', 'ic-14')}</div></div>
        ${wide
          ? `<div class="moi-cols"><div>${objet}${envoi}${copie}</div><div>${reglages}</div></div>`

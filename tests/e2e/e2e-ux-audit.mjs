@@ -212,7 +212,7 @@ await page.keyboard.press('Escape');
 await page.waitForTimeout(260);
 const vide = await page.evaluate(() => document.querySelector('#piQ').value);
 if (vide !== '') fail('Échap ne vide pas la recherche');
-await page.click('#view-pistes h2');
+await page.click('#view-pistes h1');
 await page.keyboard.press('/');
 const focus = await page.evaluate(() => document.activeElement && document.activeElement.id);
 if (focus !== 'piQ') fail('« / » ne ramène pas au champ de recherche (focus : ' + focus + ')');
@@ -222,7 +222,7 @@ if (focus !== 'piQ') fail('« / » ne ramène pas au champ de recherche (focus :
 await page.keyboard.type('nn');
 if (await page.$('.overlay')) fail('« n » tapé dans la recherche ouvre une feuille');
 await page.fill('#piQ', '');
-await page.click('#view-pistes h2');
+await page.click('#view-pistes h1');
 await page.keyboard.press('n');
 await page.waitForSelector('.overlay .modal', { timeout: 4000 });
 if (!/Nouvelle piste/.test(await page.textContent('.mh-t'))) fail('« n » n’ouvre pas la capture');
@@ -645,7 +645,7 @@ for (const [nom, ptr] of [['doigt', true], ['souris', false]]){
        criait « 0 px, iOS zoomera » (faux) pendant que le rapport d'échelle
        (grand > petit × 1,3) devenait toujours vrai, donc aveugle. Un écran
        absent doit se DIRE, jamais se laisser mesurer à zéro. */
-    await zPage.waitForSelector('#view-pistes:not([hidden]) h2');
+    await zPage.waitForSelector('#view-pistes:not([hidden]) h1');
     await zPage.waitForSelector('#piQ');
     const z = await zPage.evaluate(() => {
       const px = s => { const n = document.querySelector(s); return n ? parseFloat(getComputedStyle(n).fontSize) : null; };
@@ -653,7 +653,7 @@ for (const [nom, ptr] of [['doigt', true], ['souris', false]]){
       const coupes = [...document.querySelectorAll('.bottomnav .bn-l')]
         .filter(n => n.scrollWidth > n.clientWidth + 1 && getComputedStyle(n).textOverflow !== 'ellipsis')
         .map(n => n.textContent);
-      return { titre: px('#view-pistes h2'), champ: px('#piQ'),
+      return { titre: px('#view-pistes h1'), champ: px('#piQ'),
         deborde: document.documentElement.scrollWidth > innerWidth + 1, coupes };
     });
     if (z.titre == null || z.champ == null)
@@ -1425,7 +1425,7 @@ const versions = await wPage.evaluate(async () => {
   document.querySelector('.topnav [data-r="moi"]').click();
   await new Promise(r => setTimeout(r, 550));
   /* on compte les FEUILLES du DOM : la barre d'état imbrique
-     « OpenContact <span>6.15.3</span> », compter les ancêtres ferait
+     « OpenContact <span>6.15.4</span> », compter les ancêtres ferait
      voir double là où il n'y a qu'un seul endroit */
   return [...document.querySelectorAll('body *')]
     .filter(e => e.offsetParent !== null && !e.children.length
@@ -1520,6 +1520,123 @@ if (IA){
   console.log('hors périmètre : aucune ligne « Mon assistant IA » dans les réglages ✓');
 }
 
+
+/* ---------- LE PLAN DU DOCUMENT, ET SON CONTRASTE ----------
+   Deux contrôles structurels, mesurés sur les quatre écrans dans les
+   deux thèmes.
+   ① Les TITRES. Le document n'avait aucun `h1` : chaque écran démarrait
+     en `h2`, et « Mes pistes » émettait `h1 → h3 → h4` — deux rangs
+     sautés d'un coup, parce que le bac « à rattacher » n'avait pour
+     titre qu'un `<summary>`, qui n'en est pas un. W3C WAI (1.3.1) :
+     commencer par un `h1`, ne jamais sauter de rang. Rien ne change à
+     l'écran — ce sont les balises justes sous le même style.
+   ② Le CONTRASTE. Un seul nœud de texte de toute l'application passait
+     sous le plancher AA : la ligne de version, 2,43:1 en clair et
+     3,54:1 en sombre. « C'est décoratif » n'est pas une exception que
+     WCAG accorde à du texte. Le balayage part des nœuds de TEXTE et
+     remonte chercher le premier fond opaque — un `color` seul ne dit
+     rien sans ce sur quoi il est posé. */
+const SONDE_CONTRASTE = () => {
+  const lum = c => {
+    const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+    return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]);
+  };
+  const rgb = s => {
+    const m = String(s).match(/[\d.]+/g);
+    return m ? m.slice(0, 3).map(Number).concat(m[3] !== undefined ? +m[3] : 1) : null;
+  };
+  /* une couleur translucide se juge une fois POSÉE sur son fond */
+  const melange = (fg, bg) => fg[3] >= 1 ? fg : fg.slice(0, 3).map((v, i) => v * fg[3] + bg[i] * (1 - fg[3]));
+  const fond = el => {
+    for (let n = el; n; n = n.parentElement){
+      const c = rgb(getComputedStyle(n).backgroundColor);
+      if (c && c[3] > 0.95) return c.slice(0, 3);
+    }
+    return [255, 255, 255];
+  };
+  const out = [];
+  const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  const vus = new Set();
+  let n;
+  while ((n = w.nextNode())){
+    if (!(n.nodeValue || '').trim()) continue;
+    const el = n.parentElement;
+    if (!el || vus.has(el)) continue;
+    const r = el.getBoundingClientRect();
+    if (!r.width || !r.height) continue;
+    if (el.closest('[hidden], [aria-hidden="true"], .ov-out')) continue;
+    const cs = getComputedStyle(el);
+    if (cs.visibility === 'hidden' || +cs.opacity < 0.1) continue;
+    vus.add(el);
+    const bg = fond(el);
+    const fg = melange(rgb(cs.color) || [0, 0, 0], bg);
+    const L1 = Math.max(lum(fg), lum(bg)), L2 = Math.min(lum(fg), lum(bg));
+    const px = parseFloat(cs.fontSize);
+    /* 1.4.3 : 3:1 suffit au « grand texte » — 24 px, ou 18,66 px en gras */
+    const gros = px >= 24 || (+cs.fontWeight >= 700 && px >= 18.66);
+    out.push({ t: (n.nodeValue || '').trim().slice(0, 30),
+               q: el.id ? '#' + el.id
+                  : (typeof el.className === 'string' && el.className.trim()
+                     ? '.' + el.className.trim().split(/\s+/)[0] : el.tagName),
+               r: Math.round((L1 + 0.05) / (L2 + 0.05) * 100) / 100, seuil: gros ? 3 : 4.5 });
+  }
+  return out;
+};
+const SONDE_TITRES = route => {
+  const v = document.querySelector('#view-' + route);
+  return [...v.querySelectorAll('h1,h2,h3,h4,h5,h6')]
+    /* une tranche repliée compte : son titre est dans le plan même fermé */
+    .filter(e => e.getBoundingClientRect().height > 0 || e.closest('details:not([open])'))
+    .map(e => ({ n: +e.tagName[1], t: e.textContent.replace(/\s+/g, ' ').trim().slice(0, 24) }));
+};
+{
+  const stBrowser = await chromium.launch({ executablePath: chromiumPath() });
+  for (const theme of ['light', 'dark']){
+    const stCtx = await stBrowser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, colorScheme: theme });
+    const stPage = await stCtx.newPage();
+    stPage.on('pageerror', e => errors.push(String(e)));
+    await stPage.goto(base, { waitUntil: 'load' });
+    await stPage.waitForSelector('#view-aujourdhui:not([hidden])');
+    await stPage.evaluate(async () => {
+      const { S, saveData } = await import('./ui/state.js');
+      const { normalizeCompany } = await import('./engine/model.js');
+      S.profile.name = 'Maheydine'; S.profile.formation = 'BTS SIO'; S.profile.email = 'm@x.test';
+      S.orphans.push({ id: 'ost', name: 'Awa Diallo', role: 'SOC', email: 'a@x.test' });
+      S.companies = [normalizeCompany({ id: 'cst', name: 'Cyberprotect', city: 'Bordeaux',
+        status: 'active', nextActionText: 'Relancer',
+        nextAction: new Date(Date.now() - 2 * 864e5).toISOString().slice(0, 10),
+        contacts: [{ name: 'Léa', email: 'l@x.test' }] })];
+      saveData();
+    });
+    let noeuds = 0; let titres = 0;
+    const bas = []; const plans = [];
+    for (const route of ['aujourdhui', 'pistes', 'echanger', 'moi']){
+      await stPage.evaluate(r => { location.hash = '#/' + r; }, route);
+      await stPage.waitForTimeout(450);
+      const txt = await stPage.evaluate(SONDE_CONTRASTE);
+      noeuds += txt.length;
+      for (const x of txt) if (x.r < x.seuil) bas.push(`${route} · ${x.r}:1 (min ${x.seuil}) ${x.q} « ${x.t} »`);
+      const h = await stPage.evaluate(SONDE_TITRES, route);
+      titres += h.length;
+      const rangs = h.map(x => x.n);
+      if (rangs.filter(x => x === 1).length !== 1)
+        plans.push(`${route} : ${rangs.filter(x => x === 1).length} titre(s) de rang 1`);
+      else if (rangs[0] !== 1) plans.push(`${route} : commence en h${rangs[0]}`);
+      else for (let i = 1; i < rangs.length; i++)
+        if (rangs[i] > rangs[i - 1] + 1){ plans.push(`${route} : h${rangs[i - 1]} → h${rangs[i]} « ${h[i].t} »`); break; }
+    }
+    await stCtx.close();
+    /* les deux sondes se vérifient : un écran vide passerait tout */
+    if (noeuds < 40 || titres < 8)
+      fail(`structure (${theme}) : ${noeuds} nœuds de texte et ${titres} titres — l'instrument ne voit pas l'application`);
+    else if (plans.length)
+      fail(`plan du document (${theme}) — ` + plans.join(' · '));
+    else if (bas.length)
+      fail(`contraste (${theme}) : ${bas.length} texte(s) sous le plancher AA —\n      ` + bas.join('\n      '));
+    else console.log(`structure ${theme} : ${titres} titres sans rang sauté, ${noeuds} textes tous au-dessus de leur plancher ✓`);
+  }
+  await stBrowser.close();
+}
 
 /* ---------- BALAYAGE DES CIBLES : toute la surface, d'un coup ----------
    Les contrôles ponctuels de ce fichier mesuraient des cibles CHOISIES,

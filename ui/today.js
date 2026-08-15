@@ -198,14 +198,14 @@ function silenceRowHTML(sil){
 }
 function silenceHTML(items, total){
   return `<section class="tranche tr-quiet">
-            <h3 class="tr-h">${ic('clock', 'ic-14')} Sans nouvelles <span class="tr-n">${total}</span></h3>
+            <h2 class="tr-h">${ic('clock', 'ic-14')} Sans nouvelles <span class="tr-n">${total}</span></h2>
             <div class="tr-rows">${items.map(silenceRowHTML).join('')}</div>
           </section>`;
 }
 
 function debutHTML(items){
   return `<section class="tranche tr-start">
-            <h3 class="tr-h">${ic('zap', 'ic-14')} Par où commencer</h3>
+            <h2 class="tr-h">${ic('zap', 'ic-14')} Par où commencer</h2>
             <div class="tr-rows">${items.map(startRowHTML).join('')}</div>
           </section>`;
 }
@@ -219,11 +219,15 @@ function trancheHTML(key, label, icon, items, open){
   const head = `${ic(icon, 'ic-14')} ${label} <span class="tr-n">${items.length}</span>`;
   if (key === 'soon'){
     return `<details class="tranche tr-${key}"${open ? ' open' : ''}>
-              <summary class="tr-h">${head}</summary><div class="tr-rows">${rows}${more}</div>
+              ${/* même rang que les tranches non pliables juste au-dessus :
+                   « Bientôt » est un titre, le `<summary>` n'est que son
+                   bouton — sans le `<h3>`, le plan du document perdait
+                   une section sur trois selon qu'elle se replie ou non */''}
+              <summary class="tr-h"><h2>${head}</h2></summary><div class="tr-rows">${rows}${more}</div>
             </details>`;
   }
   return `<section class="tranche tr-${key}">
-            <h3 class="tr-h">${head}</h3><div class="tr-rows">${rows}${more}</div>
+            <h2 class="tr-h">${head}</h2><div class="tr-rows">${rows}${more}</div>
           </section>`;
 }
 
@@ -236,7 +240,7 @@ function colHTML(key, label, icon, items, vide){
   const more = items.length > cap
     ? `<button class="linklike tr-more" data-tr="${key}">Voir les ${items.length - cap} autres</button>` : '';
   return `<section class="bcol tr-${key}" aria-label="${label}">
-            <h3 class="bcol-h">${ic(icon, 'ic-14')} ${label} <span class="tr-n">${items.length}</span></h3>
+            <h2 class="bcol-h">${ic(icon, 'ic-14')} ${label} <span class="tr-n">${items.length}</span></h2>
             ${items.length
               ? `<div class="bcol-rows">${items.slice(0, cap).map(rowHTML).join('')}${more}</div>`
               : `<div class="bcol-empty">${vide}</div>`}
@@ -314,7 +318,7 @@ export function renderToday(){
   let html =
     `<div class="page-inner${tableau ? ' page-wide' : ''}">
        <div class="td-head">
-         <h2>Aujourd’hui</h2>
+         <h1>Aujourd’hui</h1>
          <div class="td-date">${frToday()}</div>
        </div>
        ${/* pas de compte au-dessus d'un « ajoute ta première piste » : on ne
@@ -328,7 +332,7 @@ export function renderToday(){
     html +=
       `<div class="td-empty">
          <div class="tde-ic">${ic('zap', 'ic-24')}</div>
-         <h3>Ta recherche, un jour à la fois</h3>
+         <h2>Ta recherche, un jour à la fois</h2>
          <p>Ajoute une piste, donne-lui une prochaine action — cet écran te dira toujours quoi faire maintenant.</p>
          <div class="tde-actions">
            <button class="btn btn-primary" id="tdeAdd">${ic('plus', 'ic-14')} Ajouter ma première piste</button>
@@ -359,7 +363,7 @@ export function renderToday(){
     html +=
       `<div class="td-empty td-clear">
          <div class="tde-ic ok">${ic('check', 'ic-24')}</div>
-         <h3>Tout est à jour</h3>
+         <h2>Tout est à jour</h2>
          <p>${soon.length
             ? 'Rien d’urgent — la suite est plus bas, repliée exprès.'
             : 'Rien à faire — ajoute une piste quand tu en croises une.'}</p>

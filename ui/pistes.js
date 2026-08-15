@@ -205,7 +205,7 @@ function boardHTML(alive){
     const col = alive.filter(c => c.status === k);
     const { shown, more } = capped(col, 'col-' + k, CAP_COL);
     return `<section class="bcol" data-st="${k}" aria-label="${STATUSES[k].label}">
-              <h3 class="bcol-h" style="--c:${STATUSES[k].color}">${STATUSES[k].label} <span class="tr-n">${col.length}</span></h3>
+              <h2 class="bcol-h" style="--c:${STATUSES[k].color}">${STATUSES[k].label} <span class="tr-n">${col.length}</span></h2>
               <div class="bcol-rows">${shown.map(cardHTML).join('') || '<div class="bcol-empty">—</div>'}${more ? moreBtn('col-' + k, more) : ''}</div>
             </section>`;
   }).join('')}</div>`;
@@ -299,7 +299,11 @@ function orphansHTML(){
   /* ligne calme, repliée (#13) : présente, mais ne vole plus la place */
   return (
     `<details class="tranche tr-orph"${q ? ' open' : ''}>
-       <summary class="tr-h">${ic('contact', 'ic-14')} Contacts à rattacher <span class="tr-n">${list.length}</span></summary>
+       ${/* le titre du bac est un TITRE, pas seulement un résumé pliable :
+            sans lui, ses lignes en `h4` suivaient directement le `h1` de
+            l'écran, ce qui saute deux rangs. Le `<summary>` garde son
+            rôle de bouton, le `<h3>` lui donne sa place dans le plan. */''}
+       <summary class="tr-h"><h2>${ic('contact', 'ic-14')} Contacts à rattacher <span class="tr-n">${list.length}</span></h2></summary>
        <div class="rows">${list.map(o => {
          const title = ctLabel(o);
          const sameAsTitle = v => String(v || '').trim().toLocaleLowerCase() === String(title).trim().toLocaleLowerCase();
@@ -309,7 +313,7 @@ function orphansHTML(){
          return `<div class="orow" data-oid="${o.id}">
                    <div class="sw-in">
                      <div class="o-main" role="button" tabindex="0" aria-label="Modifier ${esc(title)}">
-                       <h4>${esc(title)}</h4>
+                       <h3>${esc(title)}</h3>
                        <div class="o-sub">${sub || 'à compléter'}</div>
                      </div>
                      <button class="btn btn-sm" data-attach="${o.id}">Rattacher</button>
@@ -341,7 +345,7 @@ export function renderPistes(){
   root.innerHTML =
     `<div class="page-inner${wide ? ' page-wide' : ''}">
        <div class="td-head">
-         <h2>Mes pistes</h2>
+         <h1>Mes pistes</h1>
          ${/* le compte se réécrit à chaque frappe (renderBody) : sans lui,
               on ne sait pas si l'on regarde 3 pistes sur 3 ou 3 sur 40 */''}
          <div class="td-date" id="piCount"></div>
@@ -392,7 +396,7 @@ export function renderPistes(){
       html +=
         `<div class="td-empty">
            <div class="tde-ic">${ic('briefcase', 'ic-24')}</div>
-           <h3>Aucune piste pour l’instant</h3>
+           <h2>Aucune piste pour l’instant</h2>
            <p>Chaque entreprise croisée est une piste — même avec juste un nom.</p>
            <div class="tde-actions">
              <button class="btn btn-primary" id="piAdd">${ic('plus', 'ic-14')} Ajouter une piste</button>

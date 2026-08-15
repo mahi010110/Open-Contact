@@ -10,7 +10,7 @@ web — livré, c'est cette feuille de route —, l'ordinateur et le téléphone
 La surface ordinateur a la sienne : `compagnon/roadmap.md`. On ne re-discute
 pas la répartition ici, on l'applique.
 
-Dernière mise à jour : 15 août 2026 — cache `oc-v150`, 118 auto-tests verts
+Dernière mise à jour : 15 août 2026 — cache `oc-v151`, 118 auto-tests verts
 (`node tests/e2e/unitaires.mjs`), 27 fichiers E2E.
 
 ---
@@ -151,6 +151,20 @@ Dernière mise à jour : 15 août 2026 — cache `oc-v150`, 118 auto-tests verts
   « Orange Cy… » disparaît. Source : NN/g, *The Anatomy of a List
   Entry*. Garde `e2e-commencer.mjs` (le contrôle qui tranche : deux
   lignes voisines n'ont jamais la même tête) ; 5 mutations.
+- **Le plan du document, et son contraste** (août 2026, lot 4 de
+  `docs/audit-2026-08.md`). Aucun `h1` nulle part : chaque écran
+  démarrait en `h2`, et « Mes pistes » émettait `h2 → h4 → h3` — un
+  rang sauté, parce que le bac « à rattacher » n'avait pour titre qu'un
+  `<summary>`, qui n'en est pas un. Le titre visible de l'écran devient
+  son `h1` (la route fait la page), les sections passent en `h2`, les
+  items restent en `h3`. En corrigeant, un second saut est apparu que
+  l'audit n'avait pas vu — `h1 → h3` sur les quatre écrans. Et la ligne
+  de version monte de 2,43:1 à 5,4:1 en clair (3,54 → 7,0 en sombre) :
+  c'était le seul nœud de texte de l'app sous le plancher AA. Deux
+  balayages de plus dans `e2e-ux-audit.mjs` — un pour le plan, un pour
+  le contraste, tous deux sur les quatre écrans et les deux thèmes.
+  Les trois langages de sélection sont enfin écrits (`CLAUDE.md` §4).
+  6 mutations. Rien ne change à l'écran.
 - Auto-tests verts, parcours principaux rejoués en E2E.
 
 > **Nuance conservée.** « Refonte terminée » veut dire : les 23 décisions sont

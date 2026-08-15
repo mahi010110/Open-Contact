@@ -438,7 +438,13 @@ html[data-theme="dark"] .field select{
 
 /* ============ TÊTE DE PAGE ============ */
 .td-head{display:flex;align-items:baseline;gap:12px;margin-bottom:14px;flex-wrap:wrap}
-.td-head h2{font-size:var(--text-20);letter-spacing:var(--tracking-tight)}
+/* UN SEUL `h1` PAR ÉCRAN, ET C'EST LE NOM DE L'ÉCRAN.
+   Le document n'en avait aucun : chaque vue commençait en `h2`, ce qui
+   laisse un lecteur d'écran sans point d'entrée et fait sauter un rang
+   d'emblée (W3C WAI, structure de titres, 1.3.1). Le titre visible EST
+   le titre de la page ici — la route en fait une page. Rien ne change à
+   l'écran : c'est la même règle de style, sur la balise juste. */
+.td-head h1{font-size:var(--text-20);letter-spacing:var(--tracking-tight)}
 .td-date{font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted)}
 /* une DATE se pose sur la ligne de base du titre ; une ICÔNE se centre
    dessus — sinon elle pend 3 px trop bas (le cadenas de « Moi ») */
@@ -523,6 +529,13 @@ html[data-theme="dark"] .field select{
   font-family:var(--font-mono);font-size:var(--text-11);
   background:var(--surface-chrome);border:1px solid var(--border-soft);
   padding:0 6px;border-radius:var(--radius-1);
+}
+/* le titre d'une tranche pliable vit DANS son `<summary>` : le résumé
+   garde son rôle de bouton, le `<h3>` sa place dans le plan. Il reprend
+   la mise en page de `.tr-h` pour que rien ne bouge à l'écran. */
+.tr-h>h2{
+  display:flex;align-items:center;gap:7px;
+  font:inherit;color:inherit;letter-spacing:inherit;text-transform:inherit;
 }
 .tr-late .tr-h{color:var(--amber)}
 .tr-late .tr-h .tr-n{border-color:var(--amber);background:var(--amber-wash)}
@@ -653,7 +666,7 @@ details.tranche[open]>summary::before{
   margin-bottom:12px;box-shadow:var(--shadow-raised);
 }
 .tde-ic.ok{background:var(--green-wash);color:var(--green)}
-.td-empty h3{font-size:var(--text-16);font-weight:var(--weight-bold);letter-spacing:var(--tracking-tight);margin-bottom:5px}
+.td-empty h2{font-size:var(--text-16);font-weight:var(--weight-bold);letter-spacing:var(--tracking-tight);margin-bottom:5px}
 .td-empty p{font-size:var(--text-13);color:var(--text-muted);line-height:1.6;max-width:340px;margin:0 auto 14px}
 .td-empty.td-clear p,.ec-vide .td-empty p{margin-bottom:0}
 .ec-vide .td-empty{margin-top:0}
@@ -978,9 +991,16 @@ details.pcard-details[open]>summary{margin-bottom:10px}
    posé là ne se lit pas comme du calme, il se lit comme un oubli.
    La page prend donc sa région (§5-2) et la version descend au pied. */
 #view-moi .page-inner{display:flex;flex-direction:column;min-height:100%}
+/* `--text-muted` et pas `--text-disabled` : mesuré 2,43:1 en clair et
+   3,54:1 en sombre pour du texte de 11 px, sous le plancher AA de 4,5.
+   C'était le SEUL nœud de texte de l'application sous le seuil, sur les
+   quatre écrans et dans les deux thèmes — et « c'est décoratif » n'est
+   pas une exception que WCAG accorde à du texte. Il passe à 5,4:1 et
+   7,0:1 sans changer de rôle : il reste la donnée la plus discrète de
+   la page, simplement lisible. */
 .moi-ver{
   margin:18px 0 0;text-align:center;
-  font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-disabled);
+  font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);
 }
 .moi-ver{margin-top:auto;padding-top:18px}
 /* Au poste, la barre d'état porte déjà « OpenContact 6.15.0 », en
@@ -1777,7 +1797,7 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 }
 .orow .sw-in>.btn{align-self:center}
 .orow .o-main{flex:1;min-width:0;cursor:pointer;display:flex;flex-direction:column;justify-content:center}
-.orow h4{font-size:var(--text-13);font-weight:var(--weight-semibold);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.orow h3{font-size:var(--text-13);font-weight:var(--weight-semibold);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .orow .o-sub{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tr-orph .hint{margin:8px 0 0}
 

@@ -86,7 +86,7 @@ function applyRoute(){
      avant que l'utilisateur ait touché quoi que ce soit ne s'annonce
      à personne */
   if (!premierRendu){
-    const h = v && v.querySelector('h2');
+    const h = v && v.querySelector('h1');
     if (h){ h.tabIndex = -1; h.focus({ preventScroll: true }); }
   }
   premierRendu = false;

@@ -97,7 +97,7 @@ function filHTML(){
      porte déjà son compte, et le badge de l'en-tête dit combien il y en
      a eu. */
   const head =
-    `<h3 class="tr-h">${ic('switch', 'ic-14')} Tes échanges${
+    `<h2 class="tr-h">${ic('switch', 'ic-14')} Tes échanges${
       tot.n ? ` <span class="tr-n">${tot.n}</span>` : ''}</h3>`;
   /* Un état vide enseigne, il ne constate pas. « Rien n'a encore
      circulé » disait qu'il n'y a rien — ce que le vide disait déjà — et
@@ -160,7 +160,7 @@ export function renderEchanger(){
   const priv = '';
   root.innerHTML =
     `<div class="page-inner${wide ? ' page-wide' : ''}">
-       <div class="td-head"><h2>Échanger</h2></div>
+       <div class="td-head"><h1>Échanger</h1></div>
        ${/* Au pouce, l'ordre s'inverse : on LIT ce qui s'est passé en haut,
             on AGIT en bas — là où le pouce arrive sans changer de prise.
             Posés en tête, les deux gestes vivaient à 17 % de la hauteur,
