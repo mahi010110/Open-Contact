@@ -417,7 +417,8 @@ html[data-theme="dark"] .field select{
 .srt-adv[open]>summary{margin-bottom:8px}
 .srt-dir{font-family:var(--font-mono)}
 /* feuille « Filtrer » : chips statut/domaine en deux colonnes — un tap
-   montre seulement, re-tap de l'actif remontre tout */
+   ajoute la valeur, un re-tap la retire, et plusieurs valeurs d'une
+   même famille cohabitent (« cyber ou cloud ») */
 .fl-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:14px}
 .fl-chip{
   display:flex;align-items:center;gap:8px;min-height:var(--ctl);

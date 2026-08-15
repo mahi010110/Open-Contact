@@ -10,7 +10,7 @@ web — livré, c'est cette feuille de route —, l'ordinateur et le téléphone
 La surface ordinateur a la sienne : `compagnon/roadmap.md`. On ne re-discute
 pas la répartition ici, on l'applique.
 
-Dernière mise à jour : 15 août 2026 — cache `oc-v151`, 118 auto-tests verts
+Dernière mise à jour : 15 août 2026 — cache `oc-v152`, 119 auto-tests verts
 (`node tests/e2e/unitaires.mjs`), 27 fichiers E2E.
 
 ---
@@ -165,6 +165,21 @@ Dernière mise à jour : 15 août 2026 — cache `oc-v151`, 118 auto-tests verts
   le contraste, tous deux sur les quatre écrans et les deux thèmes.
   Les trois langages de sélection sont enfin écrits (`CLAUDE.md` §4).
   6 mutations. Rien ne change à l'écran.
+- **Plusieurs filtres à la fois** (août 2026, demandé sur photo). Un
+  seul domaine et un seul statut : taper « cloud » éteignait « cyber »
+  sans prévenir, alors qu'on cherche souvent les deux. Un tap ajoute
+  désormais, un re-tap retire. **Aucun contrôle de plus à l'écran** —
+  les puces étaient déjà là, c'est ce qui se passe au deuxième tap qui
+  change ; le seul ajout visible est une étiquette par valeur retenue
+  sous la recherche, sans quoi on croirait l'app en train de perdre des
+  pistes. Le moteur accepte une valeur ou plusieurs, la forme
+  historique (une chaîne) continue de marcher. Gardes `tests.js` et
+  `e2e-pistes.mjs` ; 6 mutations.
+  *Écarté en cours de route, à la demande du mainteneur : « Tout
+  effacer », le recalcul des compteurs à travers les autres filtres, et
+  le passage des puces à la taille de leur mot — la mesure donnait
+  −51 px sur « Trier » mais +51 px sur « Domaine », et côte à côte la
+  grille se balaie mieux pour une taxinomie.*
 - Auto-tests verts, parcours principaux rejoués en E2E.
 
 > **Nuance conservée.** « Refonte terminée » veut dire : les 23 décisions sont

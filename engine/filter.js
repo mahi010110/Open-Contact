@@ -81,12 +81,25 @@ function blobOf(c){
   return fold([c.name, c.city, c.address, c.desc, c.techs, c.tips, c.process,
           DOMAINS[c.domain]?.label, pos, cts].join(' '));
 }
+/* UN FILTRE ACCEPTE UNE VALEUR, OU PLUSIEURS.
+   À l'intérieur d'une famille les valeurs s'ADDITIONNENT (« cyber ou
+   cloud ») ; d'une famille à l'autre elles se CROISENT (« cyber et en
+   cours »). C'est ce que dit la phrase quand on la prononce à voix
+   haute, et c'est ce que fait tout site de réservation ou de vente :
+   rien à expliquer à l'écran.
+   Une chaîne reste acceptée — c'est la forme historique, et le contrat
+   ne se renomme pas pour un ajout. */
+const retenu = (v, sel) => {
+  if (sel == null || sel === '') return true;
+  if (Array.isArray(sel)) return !sel.length || sel.includes(v);
+  return v === sel;
+};
 export function filterCompanies(companies, opts){
   const { domain = '', status = '', sort = 'recent', dir = '', userPos = null } = opts || {};
   const words = queryWords(opts && opts.q);
   const arr = companies.filter(c => {
-    if (domain && c.domain !== domain) return false;
-    if (status && c.status !== status) return false;
+    if (!retenu(c.domain, domain)) return false;
+    if (!retenu(c.status, status)) return false;
     if (words.length){
       const b = blobOf(c);
       if (!words.every(w => b.includes(w))) return false;

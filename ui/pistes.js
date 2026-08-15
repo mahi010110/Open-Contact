@@ -14,7 +14,7 @@ import { S, bus, isClosed, hasDemo, addDemo, ctLabel, deletePiste, undeletePiste
          removeOrphan, saveOrphans, saveData, logJ } from './state.js';
 import { $, ic, toast, showUndo, bindDeleteGesture, openSheet, softReorder, topSheet,
          collerEnHaut, clavier } from './dom.js';
-import { openAffinerSheet } from './affiner.js';
+import { openAffinerSheet, filterState, filterOn, filterClear, filterArgs } from './affiner.js';
 import { sortState, sortArgs, sortHasDist, sortChipHTML, bindSortChip } from './sort.js';
 import { relLabel, diffDays, dueMarkHTML, silenceMarkHTML } from './dates.js';
 import { openFiche } from './fiche.js';
@@ -31,11 +31,12 @@ const enCampagne = cid => CAMPAGNES && !!campaignOfPiste(cid);
 let q = '';
 const st = sortState('recent');
 
-/* filtre de vue (le temps de la session, comme le tri) : au plus un
-   statut + un domaine — le moteur (filter.js) fait le reste */
-const ft = { status: '', domain: '' };
-const ftOn = () => !!(ft.status || ft.domain);
-const ftClear = () => { ft.status = ''; ft.domain = ''; };
+/* filtre de vue (le temps de la session, comme le tri) : plusieurs
+   statuts, plusieurs domaines — l'état et sa forme vivent dans
+   `ui/affiner.js`, qui est la seule à savoir ce qu'« actif » veut dire */
+const ft = filterState();
+const ftOn = () => filterOn(ft);
+const ftClear = () => filterClear(ft);
 
 /* au-delà de ce cap, la suite s'ouvre d'un tap (« Voir les N autres ») :
    2 000 lignes d'un coup gelaient l'écran ~250 ms à chaque frappe */
@@ -277,12 +278,13 @@ function chipsRowHTML(){
   const bits = [];
   /* une étiquette = un bouton : taper la retire. Pas de ✕ à côté — il
      faisait déjà exactement la même chose. */
-  if (ft.status) bits.push(
-    `<button class="st-chip" data-clear="st" aria-label="Retirer le filtre ${STATUSES[ft.status].label}">
-       <span class="dotc" style="background:${STATUSES[ft.status].color}"></span>${STATUSES[ft.status].label}</button>`);
-  if (ft.domain) bits.push(
-    `<button class="st-chip" data-clear="dom" aria-label="Retirer le filtre ${DOMAINS[ft.domain].label}">
-       <span class="dotc" style="background:${DOMAINS[ft.domain].color}"></span>${DOMAINS[ft.domain].label}</button>`);
+  /* une étiquette par valeur retenue : avec plusieurs filtres, ne pas
+     toutes les montrer ferait croire que l'app a perdu des pistes */
+  const etiq = (grp, defs, k) =>
+    `<button class="st-chip" data-clear="${grp}" data-k="${k}" aria-label="Retirer le filtre ${defs[k].label}">
+       <span class="dotc" style="background:${defs[k].color}"></span>${defs[k].label}</button>`;
+  ft.status.forEach(k => bits.push(etiq('st', STATUSES, k)));
+  ft.domain.forEach(k => bits.push(etiq('dom', DOMAINS, k)));
   const sc = sortChipHTML(st);
   if (sc) bits.push(sc);
   return bits.length ? `<div class="chips-row">${bits.join('')}</div>` : '';
@@ -381,7 +383,7 @@ export function renderPistes(){
      reste le même nœud, le curseur ne saute plus */
   const renderBody = () => {
     const body = root.querySelector('#piBody');
-    const all = filterCompanies(S.companies, { q, status: ft.status, domain: ft.domain, ...sortArgs(st) });
+    const all = filterCompanies(S.companies, { q, ...filterArgs(ft), ...sortArgs(st) });
     const alive = all.filter(c => !isClosed(c));
     const closed = all.filter(isClosed);
 
@@ -522,9 +524,12 @@ export function renderPistes(){
   const bindChips = box => {
     box.querySelectorAll('[data-clear]').forEach(b =>
       b.addEventListener('click', () => {
-        const grp = b.dataset.clear;
-        if (grp === 'st') ft.status = '';
-        else ft.domain = '';
+        /* on retire LA valeur tapée, pas toute la famille : avec deux
+           domaines cochés, effacer les deux d'un coup n'est pas ce que
+           l'étiquette promet */
+        const arr = b.dataset.clear === 'st' ? ft.status : ft.domain;
+        const i = arr.indexOf(b.dataset.k);
+        if (i >= 0) arr.splice(i, 1);
         refresh();
       }));
     bindSortChip(box, st, refresh);

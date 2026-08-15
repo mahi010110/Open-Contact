@@ -81,6 +81,61 @@ await mPage.waitForFunction(() => document.querySelectorAll('#piBody .row-item')
 if (await mPage.$('#piChips .st-chip')) fail('taper chaque puce doit tout enlever');
 console.log('Affiner mobile : filtres + tri combinés, une ligne, taper retire ✓');
 
+/* ---------- PLUSIEURS VALEURS DANS UNE MÊME FAMILLE ----------
+   Avant : taper « cloud » éteignait « cyber » sans prévenir, et on
+   devait choisir entre deux familles qu'on cherche ensemble. Maintenant
+   un tap ajoute, un re-tap retire.
+   La règle à ne jamais inverser : dans UNE famille les valeurs
+   s'additionnent (cyber OU cloud), d'une famille à l'autre elles se
+   croisent (… ET en cours). Une seule ligne de ce contrôle suffirait à
+   attraper l'erreur inverse — c'est celle du milieu. */
+await mPage.click('#piAffiner');
+await mPage.waitForSelector('[data-dom="cyber"]');
+await mPage.click('[data-dom="cyber"]');
+await mPage.click('[data-dom="cloud"]');
+const deux = await mPage.evaluate(() =>
+  [...document.querySelectorAll('.fl-chip.on')].map(b => b.dataset.dom || b.dataset.st).filter(Boolean));
+if (deux.length !== 2 || !deux.includes('cyber') || !deux.includes('cloud'))
+  fail('deux domaines devraient rester allumés ensemble : ' + JSON.stringify(deux));
+await mPage.waitForFunction(() => document.querySelectorAll('#piBody .row-item').length === 3);
+if (String(await names(mPage)) !== 'CloudNine,CyberVille,Cyberdef')
+  fail('dans une famille, les valeurs s’ADDITIONNENT : ' + await names(mPage));
+/* une famille de plus se croise, elle ne s'ajoute pas */
+await mPage.click('[data-st="active"]');
+await mPage.waitForFunction(() => document.querySelectorAll('#piBody .row-item').length === 1);
+if (String(await names(mPage)) !== 'CyberVille')
+  fail('d’une famille à l’autre, les valeurs se CROISENT : ' + await names(mPage));
+/* re-taper retire cette valeur-là, et elle seule */
+await mPage.click('[data-dom="cyber"]');
+await mPage.waitForFunction(() => document.querySelectorAll('.fl-chip.on[data-dom]').length === 1);
+const reste = await mPage.evaluate(() =>
+  document.querySelector('.fl-chip.on[data-dom]').dataset.dom);
+if (reste !== 'cloud') fail('le re-tap doit retirer la valeur tapée, pas sa voisine : ' + reste);
+await mPage.evaluate(async () => (await import('./ui/dom.js')).topSheet()?.close());
+/* et chaque valeur retenue porte SA propre étiquette sous la recherche :
+   sans ça, on croit que l'app a perdu des pistes */
+await mPage.click('#piAffiner');
+await mPage.waitForSelector('[data-dom="cyber"]');
+await mPage.click('[data-dom="cyber"]');
+await mPage.evaluate(async () => (await import('./ui/dom.js')).topSheet()?.close());
+await mPage.waitForFunction(() => document.querySelectorAll('#piChips .st-chip').length === 3);
+const etiq = await mPage.evaluate(() =>
+  [...document.querySelectorAll('#piChips .st-chip')].map(b => b.textContent.trim()));
+if (!etiq.some(t => /Cyber/.test(t)) || !etiq.some(t => /Cloud/.test(t)))
+  fail('les deux domaines doivent avoir chacun leur étiquette : ' + JSON.stringify(etiq));
+/* taper une étiquette n'enlève QUE la sienne */
+await mPage.evaluate(() => [...document.querySelectorAll('#piChips .st-chip')]
+  .find(b => /Cyber/.test(b.textContent)).click());
+await mPage.waitForFunction(() => document.querySelectorAll('#piChips .st-chip').length === 2);
+const apres = await mPage.evaluate(() =>
+  [...document.querySelectorAll('#piChips .st-chip')].map(b => b.textContent.trim()));
+if (!apres.some(t => /Cloud/.test(t)))
+  fail('retirer une étiquette a emporté sa voisine : ' + JSON.stringify(apres));
+console.log(`multi-filtre : deux domaines s’additionnent, le statut croise, `
+  + `re-tap retire la bonne, ${etiq.length} étiquettes distinctes ✓`);
+await mPage.evaluate(() => document.querySelectorAll('#piChips .st-chip').forEach(x => x.click()));
+await mPage.waitForFunction(() => document.querySelectorAll('#piBody .row-item').length === 4);
+
 /* Filtre sans résultat : l'écran explique et offre le retour en un tap.
    On y arrive par une COMBINAISON qui se vide (« Réponse » + « Cyber-
    sécurité » : les deux existent, leur croisement non) — « Affiner »

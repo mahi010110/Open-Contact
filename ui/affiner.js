@@ -19,13 +19,22 @@ import { STATUSES, DOMAINS } from '../engine/model.js';
 import { openSheet, ic } from './dom.js';
 import { sortSectionHTML, bindSortSection, sortIsDefault } from './sort.js';
 
-export const filterState = () => ({ status: '', domain: '' });
-export const filterOn = ft => !!(ft.status || ft.domain);
-export const filterClear = ft => { ft.status = ''; ft.domain = ''; };
+/* PLUSIEURS VALEURS PAR FAMILLE. Un seul domaine à la fois obligeait à
+   choisir entre « cyber » et « cloud » alors qu'on cherche les deux, et
+   taper la seconde éteignait la première sans prévenir. L'ajout ne coûte
+   AUCUN contrôle de plus à l'écran : les puces sont déjà là, c'est ce
+   qui se passe au deuxième tap qui change. */
+export const filterState = () => ({ status: [], domain: [] });
+export const filterOn = ft => !!(ft.status.length || ft.domain.length);
+export const filterClear = ft => { ft.status = []; ft.domain = []; };
 export const filterArgs = ft => ({ status: ft.status, domain: ft.domain });
 /* ce qui est actif, tri compris — le même compte que les étiquettes */
 export const affineCount = (ft, st) =>
-  (ft.status ? 1 : 0) + (ft.domain ? 1 : 0) + (st && !sortIsDefault(st) ? 1 : 0);
+  ft.status.length + ft.domain.length + (st && !sortIsDefault(st) ? 1 : 0);
+const bascule = (arr, k) => {
+  const i = arr.indexOf(k);
+  if (i < 0) arr.push(k); else arr.splice(i, 1);
+};
 
 /* la feuille. `withStatus` : le tableau desktop segmente déjà par
    statut, inutile de le reproposer. `o.pool()` rend la population que
@@ -43,17 +52,21 @@ export function openAffinerSheet(ft, st, o, onChange){
          éteinte (savoir qu'on n'a aucune réponse est une information).
        · Domaine : dix étiquettes d'une taxinomie arbitraire — une case
          vide n'apprend rien, elle disparaît. */
-    const chip = (grp, defs, cur, k, eteint) => {
+    const chip = (grp, defs, sel, k, eteint) => {
+      const on = sel.includes(k);
       const n = compte(grp === 'st' ? 'status' : 'domain', k);
-      return `<button class="fl-chip${cur === k ? ' on' : ''}${eteint ? ' fl-off' : ''}"
-                 data-${grp}="${k}" aria-pressed="${cur === k}"${eteint ? ' disabled' : ''}>
+      /* une puce COCHÉE ne se désactive jamais, même à zéro : c'est le
+         seul moyen de la décocher */
+      const mort = eteint && !on;
+      return `<button class="fl-chip${on ? ' on' : ''}${mort ? ' fl-off' : ''}"
+                 data-${grp}="${k}" aria-pressed="${on}"${mort ? ' disabled' : ''}>
          <span class="dotc" style="background:${defs[k].color}"></span>${defs[k].label}${
         n == null ? '' : `<span class="fl-n">${n}</span>`}</button>`;
     };
     const chipsSt = () => Object.keys(STATUSES)
       .map(k => chip('st', STATUSES, ft.status, k, pool && !compte('status', k))).join('');
     const chipsDom = () => Object.keys(DOMAINS)
-      .filter(k => !pool || compte('domain', k) || ft.domain === k)
+      .filter(k => !pool || compte('domain', k) || ft.domain.includes(k))
       .map(k => chip('dom', DOMAINS, ft.domain, k, false)).join('');
     const dom = chipsDom();
     sh.body.innerHTML =
@@ -66,15 +79,9 @@ export function openAffinerSheet(ft, st, o, onChange){
                 <div class="fl-grid">${dom}</div>` : ''}
        ${sortSectionHTML(st)}`;
     sh.body.querySelectorAll('[data-st]').forEach(b =>
-      b.addEventListener('click', () => {
-        ft.status = (ft.status === b.dataset.st) ? '' : b.dataset.st;
-        onChange(); render();
-      }));
+      b.addEventListener('click', () => { bascule(ft.status, b.dataset.st); onChange(); render(); }));
     sh.body.querySelectorAll('[data-dom]').forEach(b =>
-      b.addEventListener('click', () => {
-        ft.domain = (ft.domain === b.dataset.dom) ? '' : b.dataset.dom;
-        onChange(); render();
-      }));
+      b.addEventListener('click', () => { bascule(ft.domain, b.dataset.dom); onChange(); render(); }));
     bindSortSection(sh.body, st, () => { onChange(); render(); });
   };
   render();

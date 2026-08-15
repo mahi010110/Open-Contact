@@ -606,6 +606,23 @@ export async function runSelfTests(){
       eq(filterCompanies(list, { status: 'active' }).map(c => c.name), ['Bravo']);
       eq(filterCompanies(list, { sort: 'az' }).map(c => c.name), ['Alpha', 'Bravo']);
     },
+    'filtres : plusieurs valeurs s’additionnent, les familles se croisent': () => {
+      const list = [
+        normalizeCompany({ name: 'Cyb', domain: 'cyber', status: 'todo' }),
+        normalizeCompany({ name: 'Cloud', domain: 'cloud', status: 'active' }),
+        normalizeCompany({ name: 'Esn', domain: 'esn', status: 'todo' })
+      ];
+      /* dans une famille : « cyber OU cloud » */
+      eq(filterCompanies(list, { domain: ['cyber', 'cloud'], sort: 'az' }).map(c => c.name),
+         ['Cloud', 'Cyb']);
+      /* d'une famille à l'autre : « (cyber ou cloud) ET à contacter » */
+      eq(filterCompanies(list, { domain: ['cyber', 'cloud'], status: ['todo'] }).map(c => c.name),
+         ['Cyb']);
+      /* un tableau VIDE ne filtre rien — c'est l'état de départ */
+      eq(filterCompanies(list, { domain: [], status: [] }).length, 3);
+      /* la forme historique, une chaîne, marche toujours */
+      eq(filterCompanies(list, { domain: 'esn' }).map(c => c.name), ['Esn']);
+    },
     'recherche : les accents se plient, et DEUX mots cherchent deux mots': () => {
       const list = [
         normalizeCompany({ name: 'Cyberdéfense Lyon', city: 'Lyon', domain: 'cyber',
