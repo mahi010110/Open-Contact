@@ -1733,7 +1733,17 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 }
 .ta-s{min-height:48px}
 .ckline{display:flex;align-items:center;gap:9px;font-size:var(--text-13);min-height:var(--ctl);cursor:pointer;user-select:none}
-.ckline input{width:18px;height:18px;accent-color:var(--accent)}
+/* la case suit la taille de son libellé : en `px` elle restait à 18
+   pendant que le texte grandissait, et quelqu'un qui agrandit sa police
+   pour y voir se retrouvait avec la case la plus petite de l'écran.
+   1,4 em rend 18 px à la taille par défaut — rien ne bouge pour tout le
+   monde, tout suit pour qui en a besoin. `font-size:inherit` n'est pas
+   décoratif : un contrôle de formulaire ne l'hérite PAS, donc sans lui
+   l'`em` se calculait sur la police par défaut du navigateur et la case
+   restait figée à 19 px, exactement le défaut qu'on corrige. La CIBLE, elle,
+   n'a jamais été la case : c'est l'étiquette entière (352 × 44 au
+   pouce), et taper son bord droit bascule bien la case. */
+.ckline input{font-size:inherit;width:1.4em;height:1.4em;accent-color:var(--accent)}
 .dchip.on{background:var(--accent);color:var(--on-accent);box-shadow:var(--bevel-down)}
 .cp-carry{
   display:flex;align-items:center;gap:8px;overflow:hidden;
@@ -1750,11 +1760,18 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
   border-left:3px solid var(--amber);border-radius:var(--radius-0);
   box-shadow:var(--shadow-raised);
 }
+/* La RANGÉE faisait déjà 44 px ; la partie tapable, elle, n'en faisait
+   que 32 — `align-items:center` lui donnait la hauteur de son texte, et
+   les 26 px de marge autour n'appartenaient à personne. Une cible ne se
+   mesure pas sur la ligne qui la contient mais sur ce qui répond au
+   doigt : elle prend donc toute la hauteur de sa rangée (`stretch`), et
+   son contenu se recentre dedans. Le bouton, lui, garde la sienne. */
 .orow .sw-in{
-  display:flex;align-items:center;gap:10px;min-height:var(--control-h-touch);
+  display:flex;align-items:stretch;gap:10px;min-height:var(--control-h-touch);
   padding:7px 8px 7px 12px;
 }
-.orow .o-main{flex:1;min-width:0;cursor:pointer}
+.orow .sw-in>.btn{align-self:center}
+.orow .o-main{flex:1;min-width:0;cursor:pointer;display:flex;flex-direction:column;justify-content:center}
 .orow h4{font-size:var(--text-13);font-weight:var(--weight-semibold);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .orow .o-sub{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tr-orph .hint{margin:8px 0 0}

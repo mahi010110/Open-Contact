@@ -123,6 +123,19 @@ Dernière mise à jour : 8 août 2026 — cache `oc-v138`, 128 auto-tests verts
   coûtait 80 px — redevient une ligne de texte. 7 mutations, dont deux
   qui ont fait supprimer du code mort : la carte « À savoir » ne se
   comprime à aucune taille, son chevron non plus.
+- **Une cible se mesure sur ce qui répond au doigt** (août 2026, lot 2 de
+  `docs/audit-2026-08.md`). Le bac « à rattacher » : la rangée faisait
+  bien 44 px, la partie tapable 32 — `align-items:center` lui donnait la
+  hauteur de son texte et 26 px n'appartenaient à personne. Elle prend
+  maintenant toute la rangée. Le second défaut annoncé, lui, **n'en était
+  pas un** : j'avais mesuré la case à cocher (18 × 18) au lieu de son
+  étiquette (352 × 44, et taper son bord droit la bascule bien). Restait
+  un vrai reproche — la case était figée en pixels pendant que son
+  libellé grandissait : elle suit maintenant sa police (18 px par défaut,
+  27 à police doublée). D'où le balayage promis, qui remplace les
+  contrôles ponctuels : **13 surfaces, 271 cibles au doigt et 319 à la
+  souris**, aucune sous son seuil, aucune exception — et il plante une
+  sonde de 10 px pour prouver qu'il regarde encore. 6 mutations.
 - Auto-tests verts, parcours principaux rejoués en E2E.
 
 > **Nuance conservée.** « Refonte terminée » veut dire : les 23 décisions sont

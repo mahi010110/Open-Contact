@@ -1235,11 +1235,27 @@ for (const [quoi, titre] of [['donner', 'Donner'], ['prospect', 'Prospecter']]){
     (await import('./ui/edit.js')).openEditPiste(S.companies[0]);
     await new Promise(r => setTimeout(r, 600));
     const L = document.querySelector('.overlay .modal-b').getBoundingClientRect().width;
+    /* la case à cocher DOIT suivre sa police. En `px` elle restait à
+       18 pendant que son libellé grandissait — la plus petite chose de
+       l'écran pour qui a justement agrandi pour y voir. On mesure le
+       RAPPORT à la police du libellé, pas une taille absolue : c'est ce
+       rapport qui doit tenir aux deux tailles. */
+    const { topSheet } = await import('./ui/dom.js');
+    let sh; let ns = 0;
+    while ((sh = topSheet()) && ns++ < 4){ sh.close(null, true); await new Promise(r => setTimeout(r, 120)); }
+    (await import('./ui/contact.js')).openContactEditor(null);
+    await new Promise(r => setTimeout(r, 450));
+    const ck = document.querySelector('#ceConf');
+    const cke = ck && ck.closest('label');
+    const caseSuit = ck ? Math.round(ck.getBoundingClientRect().height)
+      / parseFloat(getComputedStyle(cke).fontSize) : 0;
+    (await import('./ui/edit.js')).openEditPiste(S.companies[0]);
+    await new Promise(r => setTimeout(r, 600));
     /* la garde dit sous quelle police elle mesure : sans ça, on pouvait
        retirer l'agrandissement sans qu'elle bronche, et elle aurait
        continué à passer en ne vérifiant plus le cas qui l'a motivée */
     const police = getComputedStyle(document.documentElement).fontSize;
-    return { police, groupes: [...document.querySelectorAll('.overlay .datechips')].map(g => {
+    return { police, caseSuit, groupes: [...document.querySelectorAll('.overlay .datechips')].map(g => {
       const b = [...g.querySelectorAll('.dchip')];
       return { titre: (document.getElementById(g.getAttribute('aria-labelledby')) || {}).textContent || '?',
                n: b.length,
@@ -1256,6 +1272,9 @@ for (const [quoi, titre] of [['donner', 'Donner'], ['prospect', 'Prospecter']]){
     fail(`la garde des puces mesure à ${mesure.police} — elle doit mesurer à police AGRANDIE, ` +
          `c'est la seule taille où le défaut sort`);
   else if (!puces.length) fail('plus aucun groupe de puces dans « Modifier »');
+  else if (mesure.caseSuit < 1.2)
+    fail(`la case « J'ai vérifié » ne fait plus que ${mesure.caseSuit.toFixed(2)} fois la hauteur de sa police ` +
+         `à ${mesure.police} — elle est figée en pixels pendant que son libellé grandit`);
   else if (etiree)
     fail(`« ${etiree.titre.trim()} » : une puce prend ${etiree.large} % de la largeur — ` +
          `un bouton large annonce une action lourde, ce sont des étiquettes`);
@@ -1406,7 +1425,7 @@ const versions = await wPage.evaluate(async () => {
   document.querySelector('.topnav [data-r="moi"]').click();
   await new Promise(r => setTimeout(r, 550));
   /* on compte les FEUILLES du DOM : la barre d'état imbrique
-     « OpenContact <span>6.15.1</span> », compter les ancêtres ferait
+     « OpenContact <span>6.15.2</span> », compter les ancêtres ferait
      voir double là où il n'y a qu'un seul endroit */
   return [...document.querySelectorAll('body *')]
     .filter(e => e.offsetParent !== null && !e.children.length
@@ -1501,6 +1520,151 @@ if (IA){
   console.log('hors périmètre : aucune ligne « Mon assistant IA » dans les réglages ✓');
 }
 
+
+/* ---------- BALAYAGE DES CIBLES : toute la surface, d'un coup ----------
+   Les contrôles ponctuels de ce fichier mesuraient des cibles CHOISIES,
+   une par une. Ce qui leur a échappé est précisément ce qu'on ne pense
+   pas à choisir : dans le bac « à rattacher », la RANGÉE faisait bien
+   44 px mais la partie tapable n'en faisait que 32 — un `<div>` en
+   `role="button"`, invisible pour un sélecteur qui liste
+   `button, a, input, select`.
+   D'où trois règles, qui sont la valeur de ce balayage :
+   ① on mesure ce qui RÉPOND au doigt, donc le plus haut ancêtre
+     interactif — la cible d'une case à cocher est son étiquette entière
+     (352 × 44 ici), jamais la case (18 × 18) ;
+   ② `[role="button"]`, `[tabindex="0"]` et `summary` en font partie ;
+   ③ un élément replié (largeur ou hauteur nulle — la serrure au repos)
+     n'est pas une cible, et un lien EN LIGNE dans une phrase est exempté
+     par 2.5.8 elle-même.
+   Seuils : 44 px au doigt (2.5.5 AAA, la règle du produit) et 24 px à la
+   souris (2.5.8 AA). Les exceptions se NOMMENT ici, jamais en silence. */
+const CIBLE_EXCEPTIONS = [];      /* aucune aujourd'hui, et c'est le but */
+const SONDE_CIBLES = () => {
+  const INTER = 'a[href], button, input, select, textarea, summary, [role="button"], [tabindex="0"]';
+  const effective = n => {
+    let cible = n;
+    for (let p = n.parentElement; p; p = p.parentElement){
+      if (p.matches(INTER) || p.tagName === 'LABEL') cible = p;
+    }
+    return cible;
+  };
+  const vus = new Set(); const out = [];
+  for (const n of document.querySelectorAll(INTER)){
+    const c = effective(n);
+    if (vus.has(c)) continue;
+    vus.add(c);
+    const r = c.getBoundingClientRect();
+    if (!r.width || !r.height) continue;
+    if (c.tagName === 'A' && c.closest('p, .hint, .fk-v')) continue;
+    const cls = typeof c.className === 'string' ? c.className.trim() : '';
+    out.push({ q: c.id ? '#' + c.id
+                 : (cls ? '.' + cls.split(/\s+/).slice(0, 2).join('.') : c.tagName),
+               t: (c.getAttribute('aria-label') || c.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 26),
+               w: Math.round(r.width), h: Math.round(r.height) });
+  }
+  return out;
+};
+async function balayer(P, seuil){
+  const surfaces = [
+    ['Aujourd’hui', 'route', 'aujourdhui'], ['Mes pistes', 'route', 'pistes'],
+    ['Échanger', 'route', 'echanger'], ['Moi', 'route', 'moi'],
+    ['fiche', './ui/fiche.js', 'openFiche', true], ['écrire', './ui/mail.js', 'openMail', true],
+    ['modifier', './ui/edit.js', 'openEditPiste', true],
+    ['contact', './ui/contact.js', 'openContactEditor', false],
+    ['capture', './ui/capture.js', 'openCapture', false],
+    ['donner', './ui/donner.js', 'openDonner', false],
+    ['prospecter', './ui/prospect.js', 'openProspect', false],
+    ['profil', './ui/profil.js', 'openProfil', false],
+    ['modèles', './ui/profil.js', 'openTemplates', false]
+  ];
+  let total = 0; const petites = []; let sondeVue = null;
+  for (const [nom, mod, fn, avecPiste] of surfaces){
+    await P.evaluate(async () => {
+      const { topSheet } = await import('./ui/dom.js');
+      let s; let n = 0;
+      while ((s = topSheet()) && n++ < 6){ s.close(null, true); await new Promise(r => setTimeout(r, 110)); }
+    });
+    await P.evaluate(async ([mod, fn, avecPiste]) => {
+      if (mod === 'route'){ location.hash = '#/' + fn; return; }
+      const { S } = await import('./ui/state.js');
+      const m = await import(mod);
+      const p = S.companies.find(x => x.id === 'cbal');
+      if (avecPiste) m[fn](p, {}); else m[fn](null);
+    }, [mod, fn, avecPiste]);
+    await P.waitForTimeout(420);
+    if (mod !== 'route'){
+      const ouverte = await P.evaluate(() => !!document.querySelector('.overlay:not(.ov-out)'));
+      if (!ouverte){ fail(`balayage : la feuille « ${nom} » ne s’ouvre pas — le contrôle ne mesure rien`); continue; }
+    }
+    const cibles = await P.evaluate(SONDE_CIBLES);
+    total += cibles.length;
+    /* LA SONDE SE VÉRIFIE ELLE-MÊME. Sans ça, retirer `[role="button"]`
+       de la liste des sélecteurs fait simplement voir MOINS de choses au
+       balayage — il continue de passer, en ne regardant plus le cas qui
+       l'a motivé (le bac « à rattacher » est un `<div>` en
+       `role="button"`). On plante donc une cible minuscule de ce type-là
+       et on exige qu'elle soit vue. */
+    if (sondeVue === null){
+      /* en trois temps : la CSP de l'app interdit `new Function`, donc
+         la sonde ne peut pas s'évaluer elle-même dans la page */
+      await P.evaluate(() => {
+        const t = document.createElement('div');
+        t.setAttribute('role', 'button'); t.tabIndex = 0; t.id = 'sondeCible';
+        t.style.cssText = 'position:fixed;left:0;top:0;width:10px;height:10px;z-index:9999';
+        document.body.append(t);
+      });
+      sondeVue = (await P.evaluate(SONDE_CIBLES)).some(c => c.q === '#sondeCible');
+      await P.evaluate(() => { document.getElementById('sondeCible')?.remove(); });
+    }
+    for (const c of cibles){
+      if (c.h >= seuil && c.w >= seuil) continue;
+      if (CIBLE_EXCEPTIONS.includes(c.q)) continue;
+      petites.push(`${nom} · ${c.w}×${c.h} ${c.q} « ${c.t} »`);
+    }
+  }
+  return { total, petites, surfaces: surfaces.length, sondeVue };
+}
+const cbBrowser = await chromium.launch({ executablePath: chromiumPath() });
+for (const [nom, w, h, tactile, seuil] of [['au doigt', 390, 844, true, 44], ['à la souris', 1280, 800, false, 24]]){
+  const cbCtx = await cbBrowser.newContext({ viewport: { width: w, height: h }, hasTouch: tactile });
+  const cbPage = await cbCtx.newPage();
+  cbPage.on('pageerror', e => errors.push(String(e)));
+  await cbPage.goto(base, { waitUntil: 'load' });
+  await cbPage.waitForSelector('#view-aujourdhui:not([hidden])');
+  await cbPage.evaluate(async () => {
+    const { S, saveData } = await import('./ui/state.js');
+    const { normalizeCompany } = await import('./engine/model.js');
+    S.profile.name = 'Maheydine Oun'; S.profile.formation = 'BTS SIO SISR'; S.profile.email = 'm@x.test';
+    S.orphans.push({ id: 'obal', name: 'Awa Diallo', role: 'Alternante SOC', email: 'awa@x.test' });
+    /* normalisée comme une vraie piste : un objet fabriqué à la main
+       n'a ni `positions` ni `tags`, et la feuille « Modifier » explose
+       sur un champ absent — le contrôle mesurerait alors sa propre
+       maladresse au lieu de l'application */
+    S.companies.unshift(normalizeCompany({ id: 'cbal', name: 'Cyberprotect', city: 'Bordeaux',
+      status: 'active', sector: 'cyber', website: 'cyberprotect.example',
+      desc: 'ESN de 40 personnes.', techs: 'Wazuh',
+      next: { what: 'Relancer', when: new Date(Date.now() - 864e5).toISOString().slice(0, 10) },
+      contacts: [{ id: 'pbal', name: 'Léa Barbaste', role: 'RH', email: 'lea@c.test' }] }));
+    saveData();
+    location.hash = '#/pistes';
+    await new Promise(r => setTimeout(r, 350));
+    const d = document.querySelector('.tr-orph'); if (d) d.open = true;
+  });
+  const bal = await balayer(cbPage, seuil);
+  /* le contrôle se vérifie LUI-MÊME : un balayage qui ne trouve presque
+     rien ne prouve rien. Douze cibles par surface est le plancher observé
+     (« Échanger », la plus dépouillée, en compte onze). */
+  if (!bal.sondeVue)
+    fail(`balayage ${nom} : la sonde plantée (un \`role="button"\` de 10 px) n'a pas été vue — ` +
+         `l'instrument ne couvre plus ce qu'il est censé couvrir`);
+  else if (bal.total < 10 * bal.surfaces)
+    fail(`balayage ${nom} : ${bal.total} cibles sur ${bal.surfaces} surfaces — l’instrument ne voit plus l’application`);
+  else if (bal.petites.length)
+    fail(`balayage ${nom} : ${bal.petites.length} cible(s) sous ${seuil}px —\n      ` + bal.petites.join('\n      '));
+  else console.log(`cibles ${nom} : ${bal.total} sur ${bal.surfaces} surfaces, aucune sous ${seuil}px ✓`);
+  await cbCtx.close();
+}
+await cbBrowser.close();
 
 console.log(errors.length ? 'Erreurs console : ' + errors.join(' | ') : 'Zéro erreur console.');
 if (errors.length) process.exitCode = 1;

@@ -306,6 +306,20 @@ les confondre coûte cher : une tablette tactile en paysage fait 1024 à
   plancher WCAG 2.5.8 AA de 24 px). Toute cible neuve part de `--ctl` :
   une hauteur en dur se retrouve à 30 px sous un doigt, ce qui est
   exactement ce qui était arrivé à la navigation haute.
+- **Une cible se mesure sur ce qui RÉPOND au doigt, jamais sur ce qui se
+  voit.** Les deux erreurs sont symétriques et coûtent toutes les deux.
+  D'un côté, la case à cocher de « Contact » paraissait fautive à
+  18 × 18 : sa cible réelle est son `<label>` entier, 352 × 44, et taper
+  le bord droit du libellé la bascule. De l'autre, la rangée du bac
+  « à rattacher » paraissait bonne à 44 px : seuls 32 répondaient, parce
+  qu'`align-items:center` donnait au `role="button"` la hauteur de son
+  texte et laissait 26 px sans propriétaire. On mesure donc le **plus
+  haut ancêtre interactif**, et `[role="button"]`, `[tabindex="0"]` et
+  `summary` comptent autant qu'un `<button>`. Un élément replié
+  (largeur ou hauteur nulle — la serrure au repos) n'est pas une cible ;
+  un lien **en ligne** dans une phrase est exempté par 2.5.8 elle-même.
+  `e2e-ux-audit.mjs` balaie ainsi 13 surfaces dans les deux ergonomies,
+  et ses exceptions se **nomment** — il n'y en a aucune.
 - **La règle, et son seuil** : par défaut, **un seul dessin** qui s'adapte.
   On n'en fait deux que si l'**usage** diffère vraiment — pas la taille.
   Aujourd'hui c'est le cas sur trois choses : Mes pistes (liste au pouce /
