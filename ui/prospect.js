@@ -104,8 +104,17 @@ export function openProspect(){
            `<div class="pk-duo">
               <button class="pick pk${sel.has(c.id) ? ' on' : ''}" data-id="${c.id}" aria-pressed="${sel.has(c.id)}">
                 ${ic('checkbox', 'ic-20 ic-off')}${ic('checkbox-on', 'ic-20 ic-on')}
+                ${/* MÊME SOUS-LIGNE QUE « DONNER ». Les trois listes qui
+                     choisissent des pistes en donnaient trois versions :
+                     statut · ville ici, statut seul là, ville seule dans
+                     le partage en groupe. Un même objet se décrit
+                     partout de la même façon — sinon on réapprend à
+                     chaque écran ce qu'on vient de lire au précédent.
+                     La ville est ce qui manquait le plus : deux pistes
+                     du même secteur ne se distinguent souvent que par
+                     elle. */''}
                 <div class="pk-m"><b>${esc(c.name)}</b>
-                  <span>${STATUSES[c.status].label}${
+                  <span>${STATUSES[c.status].label}${c.city ? ' · ' + esc(c.city) : ''}${
                     /* déjà échappé par whoInline — il porte son icône */
                     whoInline(c, keepOf(c), 'ecrire') && ' · ' + whoInline(c, keepOf(c), 'ecrire')
                     || ''}</span></div>

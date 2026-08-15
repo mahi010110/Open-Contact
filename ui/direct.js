@@ -10,6 +10,7 @@
      aperçu avant fusion que par fichier. Bêta discrète.
    ============================================================ */
 import { esc } from '../engine/utils.js';
+import { STATUSES } from '../engine/model.js';
 import { fnv } from '../engine/crypto.js';
 import { sharePayload, linkWrap, linkParse } from '../engine/exchange.js';
 import { PROMO_KEY, RELAYS_KEY, TURN_KEY, kvGet, kvSet } from '../engine/storage.js';
@@ -25,7 +26,7 @@ import { deviceIn } from '../engine/ring.js';
 import { requireCode } from './verrou.js';
 import { loadCompanion, openAddCompanion, openCompanionSheet, openCompanionPhoneSheet, companionPresence } from './compagnon.js';
 import { COMPAGNON } from './perimetre.js';
-import { whoCandidates, whoLineHTML, openWhoPicker } from './qui.js';
+import { whoCandidates, whoLineHTML, whoInline, openWhoPicker } from './qui.js';
 import { filterCompanies } from '../engine/filter.js';
 import { sortState, sortArgs } from './sort.js';
 import { filterState, filterArgs, affinerBtnHTML, bindAffinerBtn } from './affiner.js';
@@ -624,7 +625,13 @@ export function openPromo(){
              `<div class="pk-duo${unsel.has(c.id) ? ' pk-out' : ''}">
                 <button class="pick pk${unsel.has(c.id) ? '' : ' on'}" data-id="${c.id}" aria-pressed="${!unsel.has(c.id)}">
                   ${ic('checkbox', 'ic-20 ic-off')}${ic('checkbox-on', 'ic-20 ic-on')}
-                  <div class="pk-m"><b>${esc(c.name)}</b>${c.city ? `<span>${esc(c.city)}</span>` : ''}</div>
+                  ${/* la même sous-ligne que « Donner » et « Prospecter » :
+                       le statut manquait ici, et c'est lui qui dit où en
+                       est la piste qu'on s'apprête à faire circuler */''}
+                  <div class="pk-m"><b>${esc(c.name)}</b>
+                    <span>${STATUSES[c.status].label}${c.city ? ' · ' + esc(c.city) : ''}${
+                      whoInline(c, keepOf(c), 'donner') && ' · ' + whoInline(c, keepOf(c), 'donner')
+                      || ''}</span></div>
                 </button>
                 ${whoLineHTML(c, keepOf(c), 'donner')}
               </div>`).join('')}

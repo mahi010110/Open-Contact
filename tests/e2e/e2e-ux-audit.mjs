@@ -981,7 +981,12 @@ const teintes = await nPage.evaluate(async () => {
       libreFond: cf ? cf.backgroundColor : '',
       puce: teinte(on && on.querySelector('.ic-on')),
       puceLibre: teinte(off && off.querySelector('.ic-off')),
-      dither: cf ? cf.backgroundImage : ''
+      dither: cf ? cf.backgroundImage : '',
+      /* la SOUS-LIGNE : le même objet doit se décrire pareil d'un écran
+         à l'autre. « Prospecter » disait le statut seul quand « Donner »
+         disait « statut · ville » — on réapprenait à lire une piste en
+         passant d'une feuille à sa voisine. */
+      sous: (document.querySelector('.pk .pk-m span') || {}).textContent || ''
     };
   };
   const pro = await releve(async () => (await import('./ui/prospect.js')).openProspect());
@@ -1018,7 +1023,13 @@ else if (t.don.puce === t.don.puceLibre)
   fail('la case cochée et la case vide ont la même couleur — rien ne distingue les deux états');
 else if (/none/.test(t.don.dither))
   fail('« Donner » ne marque plus la ligne ÉCARTÉE — c’est le seul état en propre de cette liste');
-else console.log('à cocher : même dessin dans les deux feuilles, l’état dans la case, l’écart dithéré ✓');
+else if (!/Toulouse/.test(t.pro.sous) || !/Toulouse/.test(t.don.sous))
+  fail(`la ville manque à la sous-ligne (Prospecter « ${t.pro.sous.trim()} », Donner « ${t.don.sous.trim()} ») — ` +
+       `deux pistes du même statut ne se distinguent souvent que par elle`);
+else if (!/À contacter/.test(t.pro.sous) || !/À contacter/.test(t.don.sous))
+  fail(`le statut manque à la sous-ligne (Prospecter « ${t.pro.sous.trim()} », Donner « ${t.don.sous.trim()} »)`);
+else console.log('à cocher : même dessin, même sous-ligne (« ' + t.pro.sous.trim().slice(0, 30)
+  + ' »), l’état dans la case, l’écart dithéré ✓');
 
 /* ---------- chaque onglet garde sa place ----------
    Une barre d'onglets promet qu'on retrouve les choses où on les a
@@ -1425,7 +1436,7 @@ const versions = await wPage.evaluate(async () => {
   document.querySelector('.topnav [data-r="moi"]').click();
   await new Promise(r => setTimeout(r, 550));
   /* on compte les FEUILLES du DOM : la barre d'état imbrique
-     « OpenContact <span>6.16.1</span> », compter les ancêtres ferait
+     « OpenContact <span>6.16.2</span> », compter les ancêtres ferait
      voir double là où il n'y a qu'un seul endroit */
   return [...document.querySelectorAll('body *')]
     .filter(e => e.offsetParent !== null && !e.children.length

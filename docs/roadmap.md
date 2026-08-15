@@ -10,7 +10,7 @@ web — livré, c'est cette feuille de route —, l'ordinateur et le téléphone
 La surface ordinateur a la sienne : `compagnon/roadmap.md`. On ne re-discute
 pas la répartition ici, on l'applique.
 
-Dernière mise à jour : 15 août 2026 — cache `oc-v153`, 119 auto-tests verts
+Dernière mise à jour : 15 août 2026 — cache `oc-v154`, 119 auto-tests verts
 (`node tests/e2e/unitaires.mjs`), 27 fichiers E2E.
 
 ---
@@ -197,6 +197,23 @@ Dernière mise à jour : 15 août 2026 — cache `oc-v153`, 119 auto-tests verts
   pas garder ses mots à 200 % — « Aujourd'hui » demande 120 px pour 77,
   et à 320 px de large elle est déjà coupée aujourd'hui. Cinq objets de
   trop dans une barre : décision de dessin à rendre.*
+- **Une piste se décrit pareil partout** (août 2026, demandé sur photo).
+  Les trois listes qui choisissent des pistes en donnaient trois
+  versions : « statut · ville » dans Donner, le statut seul dans
+  Prospecter, la ville seule dans le partage en groupe. Une seule
+  sous-ligne désormais. *Le dessin, lui, était déjà commun — c'est ce
+  que la demande visait, et il n'y avait rien à y faire.*
+  **La trame sur les lignes non cochées a été demandée, mesurée et
+  refusée** : sur une liste qui part de rien coché elle s'applique à
+  toutes les lignes à l'ouverture, et l'écran se lit « rien n'est
+  disponible » au moment où il doit inviter à choisir. Sources : le
+  grisé est la convention de l'indisponible (NN/g), et Material 3
+  demande que la distinction vienne de ce qui est retenu, pas de
+  l'affaiblissement du reste. Elle reste là où elle veut dire « sortie
+  du paquet ».
+  Au passage, `e2e-liaison.mjs` couvre enfin « Choisir ce qui part » —
+  la seule des trois listes que rien n'atteignait, parce qu'elle vit
+  derrière une salle réellement connectée. 4 mutations.
 - Auto-tests verts, parcours principaux rejoués en E2E.
 
 > **Nuance conservée.** « Refonte terminée » veut dire : les 23 décisions sont

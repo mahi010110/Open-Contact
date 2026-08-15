@@ -168,6 +168,21 @@ await attendre(D, () => /Rien à partager/.test(document.querySelector('#prZone'
 if (await D.$('#prSend')) fail('un bouton Envoyer apparaît alors qu’il n’y a rien à partager');
 console.log('groupe : client sans piste voit « Rien à partager » (pas un vide muet) ✓');
 
+/* « Choisir ce qui part » : la seule des trois listes de pistes que rien
+   n'atteignait — elle vit derrière une salle connectée. Elle donnait donc
+   sa propre version de la sous-ligne (la ville seule) pendant que
+   « Donner » disait « statut · ville » et « Prospecter » le statut seul.
+   Trois descriptions du même objet, sur trois écrans qui se suivent.
+   Déplier ne partage RIEN : l'invariant « rien ne part sans clic » juste
+   en dessous continue de le vérifier après ce dépli. */
+await C.click('#prPick');
+await C.waitForSelector('.pick-list .pk .pk-m');
+const ligneGroupe = (await C.textContent('.pick-list .pk .pk-m')).replace(/\s+/g, ' ').trim();
+if (!/À contacter/.test(ligneGroupe) || !/Lille/.test(ligneGroupe))
+  fail('« Choisir ce qui part » ne décrit pas la piste comme les deux autres listes : ' + ligneGroupe);
+else console.log('groupe : la ligne dit « ' + ligneGroupe.slice(0, 46) + ' », comme Donner et Prospecter ✓');
+await C.click('#prPick');   /* on referme : la suite mesure l'écran au repos */
+
 /* INVARIANT (retour utilisateur) : RIEN ne part sans clic « Envoyer ».
    C a 25 pistes et vient d'en éditer une, mais tant qu'il n'a pas cliqué,
    D ne doit avoir reçu AUCUN aperçu. Le partage en groupe n'est jamais
