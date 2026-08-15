@@ -10,7 +10,7 @@ web — livré, c'est cette feuille de route —, l'ordinateur et le téléphone
 La surface ordinateur a la sienne : `compagnon/roadmap.md`. On ne re-discute
 pas la répartition ici, on l'applique.
 
-Dernière mise à jour : 15 août 2026 — cache `oc-v152`, 119 auto-tests verts
+Dernière mise à jour : 15 août 2026 — cache `oc-v153`, 119 auto-tests verts
 (`node tests/e2e/unitaires.mjs`), 27 fichiers E2E.
 
 ---
@@ -180,6 +180,23 @@ Dernière mise à jour : 15 août 2026 — cache `oc-v152`, 119 auto-tests verts
   le passage des puces à la taille de leur mot — la mesure donnait
   −51 px sur « Trier » mais +51 px sur « Domaine », et côte à côte la
   grille se balaie mieux pour une taxinomie.*
+- **Le texte doublé** (août 2026). WCAG 1.4.4 donne le droit d'agrandir
+  le texte de 200 % sans rien perdre ; l'outillage s'arrêtait à 125 %,
+  où tout tient encore — d'où sa **cécité à un défaut photographié sur
+  un vrai téléphone**, le libellé d'onglet coupé. Trois pertes réelles
+  trouvées et réparées, sans un pixel de changement à taille normale
+  (mesuré : la ligne fait 72 px avant comme après) : le nom d'une piste
+  se coupait dans « Mes pistes » et sur « Aujourd'hui » — il plie
+  maintenant —, et « Ajouter ma première piste » sortait de son cadre de
+  30 px. La règle qui en sort : **ce qui porte une identité ne se coupe
+  jamais, ce qui porte une donnée garde le droit de s'élider.**
+  Garde `e2e-ux-audit.mjs`, auto-vérifiée deux fois (elle échoue si elle
+  cesse de doubler la police, et si sa sonde devient aveugle) ;
+  5 mutations.
+  *Une limite reste, nommée avec sa mesure : la barre d'onglets ne peut
+  pas garder ses mots à 200 % — « Aujourd'hui » demande 120 px pour 77,
+  et à 320 px de large elle est déjà coupée aujourd'hui. Cinq objets de
+  trop dans une barre : décision de dessin à rendre.*
 - Auto-tests verts, parcours principaux rejoués en E2E.
 
 > **Nuance conservée.** « Refonte terminée » veut dire : les 23 décisions sont

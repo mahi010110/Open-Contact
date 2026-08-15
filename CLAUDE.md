@@ -247,6 +247,27 @@ net. Sources uniques : `styles/tokens/` et le kit `design/`.
   normale doit tenir à taille agrandie, et **un libellé trop long s'élide
   — il ne se coupe jamais aux deux bouts** (centré dans un
   `overflow:hidden`, « Aujourd'hui » rendait « ujourd'hu »).
+
+  **Le seuil est 200 %, pas 125 %** (WCAG 1.4.4 : doubler le texte sans
+  perdre contenu ni fonction). L'outillage s'arrêtait à 125 %, où tout
+  tient encore — d'où sa cécité à un défaut photographié sur un vrai
+  téléphone. Et ce qui doit tenir se départage : **ce qui porte une
+  IDENTITÉ ne se coupe jamais** — le nom d'une piste, le libellé d'un
+  bouton : ils plient (`-webkit-line-clamp` généreux, `white-space:
+  normal`), et à taille normale rien ne bouge, mesuré. **Ce qui porte
+  une DONNÉE garde le droit de s'élider** : la sous-ligne dit la ville,
+  le statut, l'échéance — la ligne reste compréhensible sans sa fin.
+
+  **Une limite connue, et elle attend une décision : la barre
+  d'onglets.** À 200 %, « Aujourd'hui » demande 120 px pour 77
+  disponibles. Ce n'est pas de la typographie : à 320 px de large le
+  libellé est **déjà** coupé de 2 px à taille normale, et rendre aux
+  quatre onglets les 64 px du ⊕ répare ce cas-là mais pas 150 %. Cinq
+  objets ne tiennent pas dans cette barre. La sortie documentée est
+  celle de Material 3 et d'iOS — à grande police, garder les icônes et
+  lâcher les mots, l'`aria-label` portant le nom pour un lecteur
+  d'écran. C'est un choix de dessin, il se prend avec le mainteneur ;
+  en attendant il est **nommé** dans `e2e-ux-audit.mjs`, avec sa mesure.
 - **Icônes** : pixelarticons via `ic('nom', 'ic-14')`. Pas d'emoji dans
   l'interface, pas d'autre pack.
 - **Motion** : les **objets** restent « 98 » — nets, instantanés, `steps()`
