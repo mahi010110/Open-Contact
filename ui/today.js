@@ -44,6 +44,22 @@ function receivedTodayCount(){
     (c.history || []).some(h => h.t === 'Reçue via partage' && h.d === today)).length;
 }
 
+/* L'ENCRE VA À L'ENTREPRISE, PAS AU VERBE.
+   Mesuré sur huit lignes d'action : le verbe portait l'encre (14 px,
+   gras, en tête) pour UNE seule valeur distincte — « Relancer le service
+   RH » sur les trois quarts des lignes — pendant que l'entreprise, seule
+   chose qui varie toujours, tenait 11 px de gris en seconde position.
+   Trois raisons de l'inverser, dont la dernière est la plus forte :
+   ① la règle que l'app s'est donnée (CLAUDE.md §6 — l'encre va à ce qui
+     change) ; ② NN/g, *The Anatomy of a List Entry* — mettre en avant
+     l'attribut DISTINCTIF ; ③ sur cet écran même, « Par où commencer »
+     et « Sans nouvelles » mettaient DÉJÀ le nom de la piste en tête. La
+     même place portait tantôt une action, tantôt une entreprise : c'est
+     la promesse « chaque information au même endroit d'une ligne à
+     l'autre » qui était rompue, à l'intérieur d'un seul écran.
+   Ce qui reste : le verbe descend en sous-ligne, où il est de toute
+   façon doublé par les trois gestes de droite ; l'échéance garde sa
+   place forte devant lui. */
 function rowHTML(c){
   const verb = c.nextActionText || 'Faire le point';
   const today = todayISO();
@@ -63,8 +79,8 @@ function rowHTML(c){
        <div class="act-under act-under-report">${ic('clock', 'ic-14')} Reporter</div>
        <div class="act-in">
          <div class="act-main" role="button" tabindex="0" aria-label="Ouvrir ${esc(c.name)}">
-           <b class="act-verb">${esc(verb)}</b>
-           <span class="act-sub">${when}<span class="act-who">${esc(c.name)}</span></span>
+           <b class="act-verb">${esc(c.name)}</b>
+           <span class="act-sub">${when}<span class="act-do">${esc(verb)}</span></span>
          </div>
          <div class="act-btns">
            <button class="abtn" data-a="mail" aria-label="Écrire à ${esc(c.name)}" title="Écrire">${ic('mail')}</button>

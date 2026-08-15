@@ -603,6 +603,20 @@ d'un glissement : rien n'y change.
 1. **L'encre va à ce qui change, jamais à ce qui est permanent.** Une pastille
    sur *chaque* ligne n'est pas un signal, c'est un papier peint. Ce qui ne
    réclame rien n'affiche rien.
+
+   **Dans une liste, ça se dit plus précisément : la tête de ligne porte
+   l'attribut DISTINCTIF.** NN/g, *The Anatomy of a List Entry* — mettre
+   en avant ce qui distingue une entrée de sa voisine, et garder chaque
+   information à la même place d'une ligne à l'autre. « Aujourd'hui »
+   faisait l'inverse : sur huit lignes d'action, le verbe portait
+   l'encre — 14 px, gras, en tête — pour **une seule valeur distincte**,
+   pendant que l'entreprise tenait 11 px de gris en seconde position.
+   Le contrôle qui tranche est **la comparaison de deux lignes
+   voisines** : si leurs têtes se ressemblent, la mauvaise chose est
+   mise en avant. Et il y avait pire que la règle : sur ce même écran,
+   « Par où commencer » et « Sans nouvelles » mettaient DÉJÀ le nom en
+   tête. Une même place portait tantôt une action, tantôt une
+   entreprise — la promesse rompue à l'intérieur d'un seul écran.
 2. **Un écran montre les affaires de l'utilisateur, pas des portes.** Un écran
    incapable d'afficher une donnée réelle est un menu : il appartient à la
    navigation, pas à un onglet. Aucune mise en forme ne sauve un écran qui n'a

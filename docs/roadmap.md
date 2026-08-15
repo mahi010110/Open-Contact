@@ -10,7 +10,7 @@ web — livré, c'est cette feuille de route —, l'ordinateur et le téléphone
 La surface ordinateur a la sienne : `compagnon/roadmap.md`. On ne re-discute
 pas la répartition ici, on l'applique.
 
-Dernière mise à jour : 15 août 2026 — cache `oc-v149`, 118 auto-tests verts
+Dernière mise à jour : 15 août 2026 — cache `oc-v150`, 118 auto-tests verts
 (`node tests/e2e/unitaires.mjs`), 27 fichiers E2E.
 
 ---
@@ -136,6 +136,21 @@ Dernière mise à jour : 15 août 2026 — cache `oc-v149`, 118 auto-tests verts
   contrôles ponctuels : **13 surfaces, 271 cibles au doigt et 319 à la
   souris**, aucune sous son seuil, aucune exception — et il plante une
   sonde de 10 px pour prouver qu'il regarde encore. 6 mutations.
+- **L'encre va à l'entreprise** (août 2026, lot 3 de
+  `docs/audit-2026-08.md`). Sur « Aujourd'hui », le verbe portait
+  l'encre — 14 px, gras, en tête — pour une seule valeur distincte sur
+  huit lignes (« Relancer le service RH »), pendant que l'entreprise,
+  seule chose qui varie toujours, tenait 11 px de gris en seconde
+  position. Le reproche décisif n'était pas celui du rapport : sur le
+  MÊME écran, « Par où commencer » et « Sans nouvelles » mettaient déjà
+  le nom en tête, si bien qu'une même place portait tantôt une action,
+  tantôt une entreprise. Les trois formes de ligne parlent maintenant le
+  même langage — le nom d'abord, l'échéance puis le verbe en sous-ligne,
+  les trois gestes inchangés à droite. Au passage, le nom hérite de la
+  place à deux lignes et le contournement qui l'empêchait de se lire
+  « Orange Cy… » disparaît. Source : NN/g, *The Anatomy of a List
+  Entry*. Garde `e2e-commencer.mjs` (le contrôle qui tranche : deux
+  lignes voisines n'ont jamais la même tête) ; 5 mutations.
 - Auto-tests verts, parcours principaux rejoués en E2E.
 
 > **Nuance conservée.** « Refonte terminée » veut dire : les 23 décisions sont

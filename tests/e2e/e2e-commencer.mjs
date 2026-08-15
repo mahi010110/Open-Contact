@@ -274,6 +274,96 @@ const MUETTES = [
   await ctx.close();
 }
 
+/* ---------- L'ENCRE VA À L'ENTREPRISE ----------
+   Mesuré sur huit lignes d'action : le verbe portait l'encre (14 px,
+   gras, en tête) pour UNE seule valeur distincte, pendant que
+   l'entreprise — seule chose qui varie toujours — tenait 11 px de gris
+   en seconde position. Et sur le MÊME écran, « Par où commencer » et
+   « Sans nouvelles » mettaient déjà le nom en tête : la même place
+   portait tantôt une action, tantôt une entreprise.
+   Deux contrôles, et le second est celui qui compte : ① sur une ligne,
+   le plus gros texte est le nom de la piste ; ② deux lignes voisines
+   n'ont jamais le même texte en tête — c'est la définition d'un attribut
+   distinctif, et c'est ce qui aurait échoué AVANT. */
+{
+  const PLANIFIEES = ['Adrastia Systèmes', 'Ostral Cyberdéfense', 'Groupe Ravenel', 'Halcyon Data']
+    .map((name, i) => ({
+      id: 'pl' + i, name, city: 'Toulouse', status: 'active',
+      /* le même verbe partout : c'est le cas réel, une journée de relances */
+      nextActionText: 'Relancer le service RH',
+      nextAction: new Date(Date.now() + (i - 2) * 864e5).toISOString().slice(0, 10),
+      contacts: [{ id: 'c' + i, name: 'Léa', email: 'l' + i + '@x.test' }],
+      createdAt: Date.now(), updatedAt: Date.now()
+    }));
+  for (const largeur of [390, 1280]){
+    const { ctx, p } = await ecran(largeur, PLANIFIEES);
+    await encre(p, `planifiées ${largeur}px`, 4);
+    await ctx.close();
+  }
+  /* Les DEUX autres formes de ligne — « Par où commencer » et « Sans
+     nouvelles » — mettaient déjà le nom en tête, et c'est justement
+     l'argument du lot. Un contrôle qui ne les regarde pas laisse
+     partir la moitié de la cohérence : une mutation posée sur
+     « Par où commencer » est passée sans le faire broncher. */
+  {
+    const { ctx, p } = await ecran(390, RECUES);
+    await encre(p, 'par où commencer', 3);
+    await ctx.close();
+  }
+  {
+    const muettes = RECUES.slice(0, 4).map(c => ({ ...c, status: 'active',
+      history: [{ t: 'Email envoyé', d: new Date(Date.now() - 90 * 864e5).toISOString().slice(0, 10) }] }));
+    const { ctx, p } = await ecran(390, muettes);
+    await encre(p, 'sans nouvelles', 2);
+    await ctx.close();
+  }
+}
+async function encre(p, etiquette, minimum){
+  {
+    /* « Bientôt » est replié au pouce : on l'ouvre, sinon la moitié des
+       lignes n'est pas mesurée et le contrôle se félicite trop vite */
+    await p.evaluate(() => { document.querySelectorAll('#view-aujourdhui details').forEach(d => { d.open = true; }); });
+    await p.waitForTimeout(250);
+    const r = await p.evaluate(() => {
+      /* seulement ce qui est VISIBLE. Une tranche repliée garde ses
+         lignes dans le DOM, avec une police calculable ET des boîtes
+         non nulles — `getClientRects()` ne suffit donc pas à les
+         écarter, et le contrôle se félicitait de mesurer ce que
+         personne ne voit. Le repli se lit sur le `<details>`. */
+      const vues = [...document.querySelectorAll('#view-aujourdhui .act-row')]
+        .filter(r => r.getBoundingClientRect().height > 0 && !r.closest('details:not([open])'));
+      const lignes = vues.map(row => {
+        const t = row.querySelector('.act-verb');
+        const s = row.querySelector('.act-sub');
+        const px = e => e ? parseFloat(getComputedStyle(e).fontSize) : 0;
+        return { tete: (t.textContent || '').trim(), tetePx: px(t),
+                 sousPx: px(s && s.querySelector('.act-do, .act-who')) };
+      });
+      const noms = vues.map(r =>
+        (r.querySelector('.act-main').getAttribute('aria-label') || '').replace(/^Ouvrir\s+/, ''));
+      return { lignes, noms };
+    });
+    if (r.lignes.length < minimum){
+      fail(`encre (${etiquette}) : ${r.lignes.length} ligne(s) mesurée(s) pour ${minimum} attendues — ` +
+           `l’instrument ne voit pas l’écran`);
+      return;
+    }
+    const pasLeNom = r.lignes.filter((l, i) => l.tete !== r.noms[i]);
+    const petit = r.lignes.filter(l => l.tetePx <= l.sousPx);
+    const tetes = r.lignes.map(l => l.tete);
+    const jumelles = tetes.filter((t, i) => i && t === tetes[i - 1]);
+    if (pasLeNom.length)
+      fail(`encre (${etiquette}) : ${pasLeNom.length} ligne(s) ne mettent pas la piste en tête — ` +
+           `« ${pasLeNom[0].tete} » au lieu de « ${r.noms[r.lignes.indexOf(pasLeNom[0])]} »`);
+    else if (petit.length)
+      fail(`encre (${etiquette}) : la tête de ligne (${petit[0].tetePx}px) ne domine pas sa sous-ligne (${petit[0].sousPx}px)`);
+    else if (jumelles.length)
+      fail(`encre (${etiquette}) : deux lignes voisines portent la même tête « ${jumelles[0]} » — ` +
+           `l’attribut distinctif n’est pas celui qui est mis en avant`);
+    else console.log(`encre (${etiquette}) : ${r.lignes.length} lignes, la piste en tête, aucune tête répétée ✓`);
+  }
+}
+
 console.log(errors.length ? 'Erreurs console : ' + errors.join(' | ') : 'Zéro erreur console.');
 if (errors.length) process.exitCode = 1;
 await browser.close();
