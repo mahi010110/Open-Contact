@@ -166,7 +166,14 @@ input,select,textarea{font-family:inherit;color:var(--text-body)}
   background:var(--surface-chrome);color:var(--text-body);
   border:1px solid var(--border-strong);
   box-shadow:var(--bevel-up), var(--shadow-raised);
-  user-select:none;white-space:nowrap;text-decoration:none;
+  /* `white-space:normal` : un libellé de bouton PLIE, il ne déborde pas.
+     Mesuré à police doublée (WCAG 1.4.4) — « Ajouter ma première piste »
+     sortait de son cadre de 30 px, texte par-dessus la bordure. À taille
+     normale rien ne plie : aucun libellé de l'app n'atteint sa largeur
+     disponible, le pliage ne s'enclenche que quand la place manque
+     vraiment. `text-wrap:balance` répartit alors les deux lignes au lieu
+     de laisser un mot seul en bas. */
+  user-select:none;white-space:normal;text-wrap:balance;text-decoration:none;
 }
 .btn:hover{background:var(--surface-window)}
 .btn:active{box-shadow:var(--bevel-down);transform:translate(2px,2px);background:var(--surface-chrome)}
@@ -593,7 +600,9 @@ details.tranche[open]>summary::before{
 .act-main:hover .act-verb{color:var(--text-link)}
 .act-verb{
   font-size:var(--text-14);font-weight:var(--weight-semibold);line-height:1.35;
-  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+  /* trois lignes, pas deux : à police doublée un nom d'entreprise en
+     demande trois, et il ne doit pas se couper (voir `.row-item h3`) */
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
 }
 /* L'échéance d'abord, ce qu'on a prévu de faire ensuite.
    L'asymétrie qui a coûté le plus cher ici est réglée à la racine : le
@@ -731,7 +740,19 @@ details.tranche[open]>summary::before{
   flex:1;min-width:0;align-self:stretch;padding:9px 0;
   display:flex;flex-direction:column;justify-content:center;
 }
-.row-item h3{font-size:var(--text-14);font-weight:var(--weight-semibold);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* LE NOM D'UNE PISTE NE SE COUPE PAS — il plie.
+   Mesuré à police doublée (WCAG 1.4.4, le droit d'agrandir le texte de
+   200 % sans rien perdre) : « Cyberprotect Solutions Aquitaine » rendait
+   « Cyberprotect Sol… », et une piste qu'on ne reconnaît plus ne sert à
+   rien. Deux lignes au lieu d'une élision : à taille normale RIEN ne
+   change — mesuré, la ligne fait 72 px dans les deux cas, aucun nom
+   n'atteint le second rang — et à police doublée les quatre noms
+   redeviennent entiers. C'est la sous-ligne, qui porte des données et
+   non l'identité, qui garde le droit de s'élider. */
+.row-item h3{
+  font-size:var(--text-14);font-weight:var(--weight-semibold);
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+}
 .row-item .ri-sub{
   font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);line-height:1.5;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;

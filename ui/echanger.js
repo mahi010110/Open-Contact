@@ -98,7 +98,7 @@ function filHTML(){
      a eu. */
   const head =
     `<h2 class="tr-h">${ic('switch', 'ic-14')} Tes échanges${
-      tot.n ? ` <span class="tr-n">${tot.n}</span>` : ''}</h3>`;
+      tot.n ? ` <span class="tr-n">${tot.n}</span>` : ''}</h2>`;
   /* Un état vide enseigne, il ne constate pas. « Rien n'a encore
      circulé » disait qu'il n'y a rien — ce que le vide disait déjà — et
      laissait un nouveau venu sans idée de ce que cette place recevra.

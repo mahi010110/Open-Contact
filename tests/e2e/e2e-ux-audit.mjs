@@ -1425,7 +1425,7 @@ const versions = await wPage.evaluate(async () => {
   document.querySelector('.topnav [data-r="moi"]').click();
   await new Promise(r => setTimeout(r, 550));
   /* on compte les FEUILLES du DOM : la barre d'état imbrique
-     « OpenContact <span>6.16.0</span> », compter les ancêtres ferait
+     « OpenContact <span>6.16.1</span> », compter les ancêtres ferait
      voir double là où il n'y a qu'un seul endroit */
   return [...document.querySelectorAll('body *')]
     .filter(e => e.offsetParent !== null && !e.children.length
@@ -1520,6 +1520,98 @@ if (IA){
   console.log('hors périmètre : aucune ligne « Mon assistant IA » dans les réglages ✓');
 }
 
+
+/* ---------- LE TEXTE DOUBLÉ (WCAG 1.4.4, AA) ----------
+   Le droit d'agrandir le texte de 200 % sans perdre ni contenu ni
+   fonction. Jamais mesuré ici, et c'est ce qui a rendu l'outillage
+   AVEUGLE à un défaut photographié sur un vrai téléphone : le libellé
+   d'onglet coupé. Les contrôles de police agrandie s'arrêtaient à
+   125 %, où tout tient encore.
+   Ce qu'on exige : ce qui porte une IDENTITÉ ne se coupe jamais — le
+   nom d'une piste, le libellé d'un bouton. Une piste qu'on ne reconnaît
+   plus ne sert à rien, et un bouton dont le verbe déborde du cadre est
+   cassé. Ce qui porte une DONNÉE garde le droit de s'élider : la
+   sous-ligne dit la ville, le statut, l'échéance — la ligne reste
+   compréhensible sans sa fin.
+   Les exceptions se NOMMENT, avec leur mesure. */
+const ZOOM_EXCEPTIONS = [
+  /* La barre d'onglets. Mesuré : « Aujourd'hui » demande 120 px à 200 %
+     pour 77 disponibles. Ce n'est pas une affaire de typographie —
+     à 320 px de large le libellé est DÉJÀ coupé de 2 px à taille
+     normale, et retirer le ⊕ de la barre (64 px rendus aux quatre
+     onglets) répare 100 % et 320 px mais pas 150 %. Cinq objets ne
+     tiennent pas. La sortie documentée est celle de Material 3 et
+     d'iOS — à grande police, la barre garde ses icônes et lâche ses
+     mots, le lecteur d'écran gardant l'`aria-label`. C'est un choix de
+     dessin : il attend le mainteneur, il ne se glisse pas ici. */
+  '.bn-l',
+  /* Sous-lignes : données, pas identité. Elles s'élident par dessin. */
+  '.act-do', '.o-sub', '.ri-sub', '.fi-sub', '.ctc-sub', '.ec-when', '.pk-m'
+];
+const SONDE_COUPE = () => {
+  const out = [];
+  for (const e of document.querySelectorAll('body *')){
+    const r = e.getBoundingClientRect();
+    if (!r.width || !r.height) continue;
+    /* seulement les éléments qui portent EUX-MÊMES du texte */
+    if (![...e.childNodes].some(n => n.nodeType === 3 && n.nodeValue.trim())) continue;
+    const cs = getComputedStyle(e);
+    const x = e.scrollWidth > e.clientWidth + 1 && /hidden|clip/.test(cs.overflowX);
+    const y = e.scrollHeight > e.clientHeight + 1 && /hidden|clip/.test(cs.overflowY);
+    if (!x && !y) continue;
+    out.push({ cls: (typeof e.className === 'string' ? e.className : '').trim().split(/\s+/),
+               q: e.id ? '#' + e.id : (typeof e.className === 'string' && e.className.trim()
+                  ? '.' + e.className.trim().split(/\s+/)[0] : e.tagName),
+               t: (e.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 26),
+               perdu: x ? e.scrollWidth - e.clientWidth : e.scrollHeight - e.clientHeight });
+  }
+  return { coupes: out, deborde: Math.round(document.documentElement.scrollWidth - innerWidth) };
+};
+{
+  const zBrowser = await chromium.launch({ executablePath: chromiumPath() });
+  const zCtx = await zBrowser.newContext({ viewport: { width: 393, height: 852 }, hasTouch: true });
+  const zPage = await zCtx.newPage();
+  zPage.on('pageerror', e => errors.push(String(e)));
+  await zPage.goto(base, { waitUntil: 'load' });
+  await zPage.waitForSelector('#view-aujourdhui:not([hidden])');
+  await zPage.evaluate(async () => {
+    const { S, saveData } = await import('./ui/state.js');
+    const { normalizeCompany } = await import('./engine/model.js');
+    S.profile.name = 'Maheydine Oun'; S.profile.formation = 'BTS SIO SISR'; S.profile.email = 'm@x.test';
+    S.orphans.push({ id: 'oz', name: 'Awa Diallo', role: 'Alternante SOC', email: 'awa@x.test' });
+    /* un nom LONG : c'est lui qui fait sortir le défaut */
+    S.companies = [normalizeCompany({ id: 'cz', name: 'Cyberprotect Solutions Aquitaine',
+      city: 'Bordeaux', status: 'active', domain: 'cyber', website: 'cyberprotect.example',
+      desc: 'ESN de 40 personnes.', techs: 'Wazuh', nextActionText: 'Relancer le service RH',
+      nextAction: new Date(Date.now() - 2 * 864e5).toISOString().slice(0, 10),
+      contacts: [{ id: 'pz', name: 'Léa Barbaste', role: 'Responsable du SOC', email: 'lea@c.test' }] })];
+    saveData();
+  });
+  await zPage.evaluate(() => { document.documentElement.style.fontSize = '32px'; });
+  const dur = []; let vus = 0; let doublee = false;
+  for (const route of ['aujourdhui', 'pistes', 'echanger', 'moi']){
+    await zPage.evaluate(r => { location.hash = '#/' + r; }, route);
+    await zPage.waitForTimeout(450);
+    doublee = doublee || await zPage.evaluate(() =>
+      parseFloat(getComputedStyle(document.documentElement).fontSize) >= 32);
+    const r = await zPage.evaluate(SONDE_COUPE);
+    vus += r.coupes.length;
+    if (r.deborde > 1) dur.push(`${route} : la page déborde de ${r.deborde}px en largeur`);
+    for (const c of r.coupes){
+      if (ZOOM_EXCEPTIONS.some(x => c.cls.includes(x.slice(1)))) continue;
+      dur.push(`${route} · −${c.perdu}px ${c.q} « ${c.t} »`);
+    }
+  }
+  await zCtx.close(); await zBrowser.close();
+  /* le contrôle dit sous quelle police il mesure — sans ça, retirer
+     l'agrandissement le laisserait passer au vert sans rien vérifier */
+  if (!doublee) fail('texte doublé : la garde ne mesure pas à 200 % — elle ne vérifie plus rien');
+  else if (!vus) fail('texte doublé : aucune coupure détectée nulle part, pas même les exceptions connues — la sonde est aveugle');
+  else if (dur.length)
+    fail(`texte doublé à 200 % : ${dur.length} perte(s) de contenu hors exceptions nommées —\n      ` + dur.join('\n      '));
+  else console.log(`texte doublé à 200 % : rien d'identifiant ne se coupe sur 4 écrans `
+    + `(${vus} élisions, toutes dans les exceptions nommées) ✓`);
+}
 
 /* ---------- LE PLAN DU DOCUMENT, ET SON CONTRASTE ----------
    Deux contrôles structurels, mesurés sur les quatre écrans dans les
