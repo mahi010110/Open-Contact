@@ -240,7 +240,8 @@ a.btn.btn-danger:hover{color:var(--red)}
 .field textarea{min-height:68px;height:auto;padding:8px 10px;resize:vertical;line-height:var(--leading-body)}
 .field input::placeholder,.field textarea::placeholder{color:var(--text-muted)}
 .field select{
-  width:100%;appearance:none;height:var(--ctl);padding:0 30px 0 10px;border-radius:var(--radius-1);
+  width:100%;min-width:0;text-overflow:ellipsis;
+  appearance:none;height:var(--ctl);padding:0 30px 0 10px;border-radius:var(--radius-1);
   font-family:var(--font-ui);font-size:var(--input-fs);font-weight:var(--weight-medium);color:var(--text-body);
   background:var(--surface-field) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath fill='%235C6672' d='M7 8h2v2H7V8Zm4 4H9v-2h2v2Zm2 0v2h-2v-2h2Zm2-2h-2v2h2v-2Zm0 0V8h2v2h-2Z'/%3E%3C/svg%3E") no-repeat right 7px center / 16px 16px;
   border:1px solid var(--border-field);box-shadow:var(--bevel-field);cursor:pointer;
@@ -254,7 +255,17 @@ html[data-theme="dark"] .field select{
    Un champ qui ne montre pas sa propre valeur ne sert à rien — et le
    seuil de 349 px qui traînait ici n'appartenait à aucun contexte : la
    règle de l'application est UN seuil, 901 px. */
+/* `min-width:0` SUR LES ENFANTS, et ce n'est pas décoratif.
+   Par défaut un enfant de grille refuse de descendre sous sa largeur
+   MINIMALE de contenu — et pour un `<select>`, WebKit calcule cette
+   largeur sur son option la plus longue. Résultat sur iPhone, jamais
+   reproductible sous Chromium : « Sophie Fontaine — Directeur des
+   systèmes d'information » élargit la colonne au-delà de la feuille,
+   et toute la feuille « Écrire » se met à glisser de droite à gauche,
+   libellés coupés au bord. `max-width:100%` n'y peut rien : c'est
+   `min-width` qui l'emporte. */
 .grid2{display:grid;grid-template-columns:1fr;gap:10px}
+.grid2>*{min-width:0}
 @media (min-width:901px){ .grid2{grid-template-columns:1fr 1fr} }
 /* l'exception : deux valeurs COURTES et connues d'avance (deux mots de
    la phrase de secours) tiennent côte à côte à toutes les tailles */
@@ -1112,7 +1123,14 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   display:flex;align-items:center;gap:8px;
 }
 .modal-h h2 span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.modal-b{padding:16px 18px;overflow-y:auto}
+/* `overflow-x:hidden` est une CEINTURE, pas une correction : aucune
+   feuille de l'app ne défile latéralement par dessin. Si un jour un
+   contenu déborde quand même — un moteur qui calcule autrement, un
+   libellé qu'on n'avait pas prévu — la feuille ne se met pas à glisser
+   sous le doigt, ce qui est le symptôme le plus déroutant qui soit :
+   on croit avoir cassé l'application. La cause, elle, se corrige à sa
+   source (voir `.grid2>*`). */
+.modal-b{padding:16px 18px;overflow-y:auto;overflow-x:hidden}
 .modal-f{
   padding:12px 18px calc(12px + env(safe-area-inset-bottom));
   border-top:1px solid var(--border-strong);background:var(--surface-chrome);

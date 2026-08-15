@@ -258,6 +258,22 @@ net. Sources uniques : `styles/tokens/` et le kit `design/`.
   une DONNÉE garde le droit de s'élider** : la sous-ligne dit la ville,
   le statut, l'échéance — la ligne reste compréhensible sans sa fin.
 
+  **Une feuille ne défile jamais latéralement**, et la cause type est
+  toujours la même : un enfant de grille ou de flex garde son
+  `min-width:auto`, donc refuse de descendre sous sa largeur MINIMALE
+  de contenu. Pour un `<select>`, WebKit calcule cette largeur sur son
+  **option la plus longue** — Chromium non. Signalé sur photo, jamais
+  reproductible ici : « Écrire » glissait de droite à gauche, libellés
+  coupés au bord. `max-width:100%` n'y peut rien, c'est `min-width` qui
+  l'emporte. Donc `min-width:0` sur les enfants (`.grid2>*`), et
+  `overflow-x:hidden` sur `.modal-b` en **ceinture** — un contenu qu'on
+  n'avait pas prévu ne doit jamais faire glisser la feuille sous le
+  doigt, c'est le symptôme le plus déroutant qui soit.
+  Corollaire de garde, appris ici : **une ceinture rend le symptôme
+  inmesurable.** Le contrôle doit viser la CAUSE (un enfant plus large
+  que la boîte) et se vérifier lui-même en plantant une sonde — sinon
+  il reste vert quand on le retire.
+
   **Une limite connue, et elle attend une décision : la barre
   d'onglets.** À 200 %, « Aujourd'hui » demande 120 px pour 77
   disponibles. Ce n'est pas de la typographie : à 320 px de large le

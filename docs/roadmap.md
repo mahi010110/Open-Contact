@@ -10,7 +10,7 @@ web — livré, c'est cette feuille de route —, l'ordinateur et le téléphone
 La surface ordinateur a la sienne : `compagnon/roadmap.md`. On ne re-discute
 pas la répartition ici, on l'applique.
 
-Dernière mise à jour : 15 août 2026 — cache `oc-v154`, 119 auto-tests verts
+Dernière mise à jour : 15 août 2026 — cache `oc-v155`, 119 auto-tests verts
 (`node tests/e2e/unitaires.mjs`), 27 fichiers E2E.
 
 ---
@@ -214,6 +214,21 @@ Dernière mise à jour : 15 août 2026 — cache `oc-v154`, 119 auto-tests verts
   Au passage, `e2e-liaison.mjs` couvre enfin « Choisir ce qui part » —
   la seule des trois listes que rien n'atteignait, parce qu'elle vit
   derrière une salle réellement connectée. 4 mutations.
+- **La feuille qui glissait de côté** (août 2026, signalé sur photo).
+  Sur « Écrire », toute la feuille pouvait se déplacer de droite à
+  gauche, libellés coupés au bord. Cause : un enfant de grille garde
+  par défaut `min-width:auto` et refuse de descendre sous sa largeur
+  minimale de contenu — et pour un `<select>`, **WebKit calcule cette
+  largeur sur son option la plus longue**, Chromium non. D'où un défaut
+  invisible dans tout mon outillage et bien réel sur iPhone :
+  « Sophie Fontaine — Directeur des systèmes d'information » élargissait
+  la colonne au-delà de la feuille. `min-width:0` sur les enfants, plus
+  `overflow-x:hidden` en ceinture.
+  La garde des 200 % ne regardait que les quatre écrans : elle couvre
+  maintenant **neuf surfaces, feuilles comprises**, mesure la CAUSE (un
+  enfant plus large que sa feuille) et non le symptôme — la ceinture le
+  rendait inmesurable —, et plante une sonde de 9999 px pour prouver
+  qu'elle voit encore. 4 mutations.
 - Auto-tests verts, parcours principaux rejoués en E2E.
 
 > **Nuance conservée.** « Refonte terminée » veut dire : les 23 décisions sont

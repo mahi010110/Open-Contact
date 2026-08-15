@@ -1436,7 +1436,7 @@ const versions = await wPage.evaluate(async () => {
   document.querySelector('.topnav [data-r="moi"]').click();
   await new Promise(r => setTimeout(r, 550));
   /* on compte les FEUILLES du DOM : la barre d'état imbrique
-     « OpenContact <span>6.16.2</span> », compter les ancêtres ferait
+     « OpenContact <span>6.16.3</span> », compter les ancêtres ferait
      voir double là où il n'y a qu'un seul endroit */
   return [...document.querySelectorAll('body *')]
     .filter(e => e.offsetParent !== null && !e.children.length
@@ -1576,7 +1576,35 @@ const SONDE_COUPE = () => {
                t: (e.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 26),
                perdu: x ? e.scrollWidth - e.clientWidth : e.scrollHeight - e.clientHeight });
   }
-  return { coupes: out, deborde: Math.round(document.documentElement.scrollWidth - innerWidth) };
+  /* LE DÉBORDEMENT LATÉRAL D'UNE FEUILLE, mesuré à la CAUSE.
+     `scrollWidth - clientWidth` ne sert à rien ici : `.modal-b` porte
+     `overflow-x:hidden` (la ceinture), donc le symptôme est toujours
+     nul et le contrôle deviendrait infalsifiable — une mutation l'a
+     montré. On mesure donc ce qui DÉPASSE : un enfant plus large que
+     la boîte de contenu de la feuille. Ça survit à la ceinture, et
+     c'est le vrai défaut.
+     Et `min-width` sur les enfants de grille se lit directement : le
+     bug d'origine ne se reproduit PAS sous Chromium (WebKit calcule la
+     largeur minimale d'un `<select>` sur son option la plus longue,
+     pas Chromium), donc la seule mesure honnête est la propriété. */
+  const mb = document.querySelector('.overlay:not(.ov-out) .modal-b');
+  let large = 0; let coupable = '';
+  if (mb){
+    const boite = mb.clientWidth;
+    for (const e of mb.querySelectorAll('*')){
+      const w = e.getBoundingClientRect().width;
+      if (w > boite + 1 && w - boite > large){
+        large = Math.round(w - boite);
+        coupable = e.id ? '#' + e.id
+          : (typeof e.className === 'string' && e.className.trim()
+             ? '.' + e.className.trim().split(/\s+/)[0] : e.tagName);
+      }
+    }
+  }
+  const grilles = [...document.querySelectorAll('.grid2 > *')]
+    .filter(e => getComputedStyle(e).minWidth !== '0px').length;
+  return { coupes: out, deborde: Math.round(document.documentElement.scrollWidth - innerWidth),
+           glisse: large, coupable, grilles };
 };
 {
   const zBrowser = await chromium.launch({ executablePath: chromiumPath() });
@@ -1599,29 +1627,81 @@ const SONDE_COUPE = () => {
     saveData();
   });
   await zPage.evaluate(() => { document.documentElement.style.fontSize = '32px'; });
-  const dur = []; let vus = 0; let doublee = false;
-  for (const route of ['aujourdhui', 'pistes', 'echanger', 'moi']){
-    await zPage.evaluate(r => { location.hash = '#/' + r; }, route);
+  const dur = []; let vus = 0; let doublee = false; let sondeLarge = null; let mesurees = 0;
+  /* LES FEUILLES AUSSI. La garde ne regardait que les quatre écrans, et
+     c'est ce qui l'a laissée passer à côté d'un défaut signalé sur
+     photo : la feuille « Écrire » qui se met à GLISSER latéralement,
+     libellés coupés au bord. Un défilement horizontal dans une feuille
+     n'est jamais voulu — et c'est le symptôme le plus déroutant qui
+     soit, on croit avoir cassé l'application. */
+  const surfaces = [
+    ['aujourdhui', null], ['pistes', null], ['echanger', null], ['moi', null],
+    ['écrire', async p => p.evaluate(async () => { const { S } = await import('./ui/state.js');
+      (await import('./ui/mail.js')).openMail(S.companies[0], {}); })],
+    ['fiche', async p => p.evaluate(async () => { const { S } = await import('./ui/state.js');
+      (await import('./ui/fiche.js')).openFiche(S.companies[0]); })],
+    ['modifier', async p => p.evaluate(async () => { const { S } = await import('./ui/state.js');
+      (await import('./ui/edit.js')).openEditPiste(S.companies[0]); })],
+    ['contact', async p => p.evaluate(async () =>
+      (await import('./ui/contact.js')).openContactEditor(null))],
+    ['capture', async p => p.evaluate(async () => (await import('./ui/capture.js')).openCapture())]
+  ];
+  for (const [nom, ouvrir] of surfaces){
+    await zPage.evaluate(async () => {
+      const { topSheet } = await import('./ui/dom.js');
+      let s; let n = 0;
+      while ((s = topSheet()) && n++ < 5){ s.close(null, true); await new Promise(r => setTimeout(r, 110)); }
+    });
+    if (ouvrir) await ouvrir(zPage);
+    else await zPage.evaluate(r => { location.hash = '#/' + r; }, nom);
     await zPage.waitForTimeout(450);
+    if (ouvrir && !await zPage.evaluate(() => !!document.querySelector('.overlay:not(.ov-out) .modal-b'))){
+      dur.push(`${nom} : la feuille ne s'ouvre pas — le contrôle ne mesure rien`);
+      continue;
+    }
+    /* LA SONDE SE VÉRIFIE : on plante un bloc trop large et on exige
+       qu'elle le voie. Sans ça, `overflow-x:hidden` rend la mesure
+       infalsifiable — tout est toujours à zéro, y compris quand on
+       retire la mesure. Deux mutations l'ont montré. */
+    if (ouvrir && sondeLarge === null){
+      await zPage.evaluate(() => {
+        const d = document.createElement('div');
+        d.id = 'sondeLarge'; d.style.cssText = 'width:9999px;height:2px';
+        document.querySelector('.overlay:not(.ov-out) .modal-b').append(d);
+      });
+      sondeLarge = (await zPage.evaluate(SONDE_COUPE)).glisse > 100;
+      await zPage.evaluate(() => { document.getElementById('sondeLarge')?.remove(); });
+    }
     doublee = doublee || await zPage.evaluate(() =>
       parseFloat(getComputedStyle(document.documentElement).fontSize) >= 32);
     const r = await zPage.evaluate(SONDE_COUPE);
-    vus += r.coupes.length;
-    if (r.deborde > 1) dur.push(`${route} : la page déborde de ${r.deborde}px en largeur`);
+    vus += r.coupes.length; mesurees++;
+    if (r.deborde > 1) dur.push(`${nom} : la page déborde de ${r.deborde}px en largeur`);
+    if (r.glisse > 1)
+      dur.push(`${nom} : ${r.coupable} dépasse la feuille de ${r.glisse}px — elle glissera latéralement`);
+    if (r.grilles)
+      dur.push(`${nom} : ${r.grilles} enfant(s) de grille sans \`min-width:0\` — un <select> à option `
+        + `longue élargit sa colonne sous WebKit et fait glisser toute la feuille`);
     for (const c of r.coupes){
       if (ZOOM_EXCEPTIONS.some(x => c.cls.includes(x.slice(1)))) continue;
-      dur.push(`${route} · −${c.perdu}px ${c.q} « ${c.t} »`);
+      dur.push(`${nom} · −${c.perdu}px ${c.q} « ${c.t} »`);
     }
   }
   await zCtx.close(); await zBrowser.close();
   /* le contrôle dit sous quelle police il mesure — sans ça, retirer
      l'agrandissement le laisserait passer au vert sans rien vérifier */
   if (!doublee) fail('texte doublé : la garde ne mesure pas à 200 % — elle ne vérifie plus rien');
+  else if (mesurees < 9)
+    fail(`texte doublé : ${mesurees} surfaces mesurées au lieu de 9 — écrans ET feuilles, `
+      + `c'est en n'ouvrant aucune feuille que la garde a laissé passer le glissement latéral`);
+  else if (!sondeLarge)
+    fail('texte doublé : la sonde plantée (un bloc de 9999px dans une feuille) n’a pas été vue — '
+      + 'la mesure du dépassement ne mesure plus rien');
   else if (!vus) fail('texte doublé : aucune coupure détectée nulle part, pas même les exceptions connues — la sonde est aveugle');
   else if (dur.length)
     fail(`texte doublé à 200 % : ${dur.length} perte(s) de contenu hors exceptions nommées —\n      ` + dur.join('\n      '));
-  else console.log(`texte doublé à 200 % : rien d'identifiant ne se coupe sur 4 écrans `
-    + `(${vus} élisions, toutes dans les exceptions nommées) ✓`);
+  else console.log(`texte doublé à 200 % : rien d'identifiant ne se coupe, aucune feuille ne glisse, `
+    + `sur ${surfaces.length} surfaces (${vus} élisions, toutes dans les exceptions nommées) ✓`);
 }
 
 /* ---------- LE PLAN DU DOCUMENT, ET SON CONTRASTE ----------
