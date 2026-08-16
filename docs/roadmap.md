@@ -10,7 +10,7 @@ web — livré, c'est cette feuille de route —, l'ordinateur et le téléphone
 La surface ordinateur a la sienne : `compagnon/roadmap.md`. On ne re-discute
 pas la répartition ici, on l'applique.
 
-Dernière mise à jour : 15 août 2026 — cache `oc-v165`, 120 auto-tests verts
+Dernière mise à jour : 15 août 2026 — cache `oc-v166`, 120 auto-tests verts
 (`node tests/e2e/unitaires.mjs`), 28 fichiers E2E.
 
 ---
@@ -469,6 +469,30 @@ Dernière mise à jour : 15 août 2026 — cache `oc-v165`, 120 auto-tests verts
   partait après le rechargement et emmenait la page hors du document,
   où plus aucun import relatif ne résout. Le test ferme désormais par la
   voie silencieuse.*
+- **Les commandes d'« Échanger » parlent enfin la langue de l'app**
+  (août 2026, signalé — « le bouton partage en groupe est mal intégré,
+  et les boutons en général »). Deux causes, toutes deux mesurées.
+  ① **L'ÉCHELLE.** Les trois contrôles faisaient **345 × 76 px** au
+  poste, sur un écran dont toute autre commande fait 33 px — pendant
+  que le reste de l'app tient sa norme : « Prospecter » 106 × 36,
+  « Remplir mon profil » 129 × 36, « Ajouter une piste » 155 × 32,
+  icône À CÔTÉ du mot, largeur au contenu. Le format haut, large et
+  centré est celui du POUCE, où il est juste ; transplanté tel quel au
+  poste il double la maison. Retour à la grammaire de l'app : **Donner
+  107 × 36**, Recevoir 115 × 36 — et 40 px de hauteur rendus à la
+  liste.
+  ② **LES DEUX NATURES.** « Donner » et « Recevoir » sont des VERBES
+  qu'on exécute ; « Partage en groupe » est un LIEU où l'on entre — le
+  mainteneur l'avait tranché en le dessinant comme la porte
+  « Réglages » de « Moi », et trois cellules de taille égale effaçaient
+  cette décision. Une similitude de forme dit une similitude de nature
+  (Gestalt) ; le chevron disait le contraire à l'intérieur d'une boîte
+  qui disait bouton. La porte quitte la famille des boutons — ni fond,
+  ni cadre, ni relief — et se sépare par la distance, au bout de la
+  rangée.
+  Garde sans aucun nombre magique : elle compare l'écran à un vrai
+  frère de la même app (`#piProspect`), donc elle suivra si la maison
+  change d'échelle. 3 mutations.
 - Auto-tests verts, parcours principaux rejoués en E2E.
 
 > **Nuance conservée.** « Refonte terminée » veut dire : les 23 décisions sont

@@ -1426,21 +1426,44 @@ details.pcard-details[open]>summary{margin-bottom:10px}
      canaux d'un échange tiennent sur une ligne au lieu de deux, et
      « Donner » cesse d'être un timbre de 165 px. */
   #view-echanger>.page-inner{max-width:1060px}
-  /* Les trois canaux sur UNE rangée. `.hero2` passe en `display:contents`
-     pour que ses deux boutons deviennent des cellules de la rangée : sans
-     ça, la grille ne voyait qu'un seul enfant et la porte du groupe
-     retombait sur un second rang, à cheval sur la largeur. Un cran de
-     moins en hauteur, et la rangée dit ce qu'elle est — trois façons de
-     faire circuler ses pistes. */
+  /* UNE BARRE D'OUTILS, À L'ÉCHELLE DE L'APP — et deux natures, pas
+     trois cellules identiques.
+
+     ① L'ÉCHELLE. Les trois contrôles faisaient 345 × 76 px sur un écran
+     où toute autre commande fait 33 px. Relevé sur l'app elle-même au
+     poste : « Prospecter » 106 × 36, « Remplir mon profil » 129 × 36,
+     « Ajouter une piste » 155 × 32 — icône À CÔTÉ du mot, largeur au
+     contenu. Le format haut, large et centré est celui du POUCE, où il
+     est juste ; transplanté tel quel au poste il double la norme de la
+     maison. On revient donc à la grammaire de l'app : ligne, largeur au
+     contenu, hauteur de contrôle.
+
+     ② LES DEUX NATURES. « Donner » et « Recevoir » sont des VERBES qu'on
+     exécute ; « Partage en groupe » est un LIEU où l'on entre — le
+     mainteneur l'avait tranché en le dessinant comme la porte
+     « Réglages » de « Moi », et trois cellules de taille égale
+     effaçaient cette décision. Une similitude de forme dit une
+     similitude de nature (Gestalt) ; le chevron disait le contraire à
+     l'intérieur d'une boîte qui disait bouton. La porte quitte donc la
+     famille des boutons : pas de fond, pas de cadre, pas de relief,
+     poussée au bout de la rangée par la distance — ce qui est d'une
+     autre nature se sépare, au lieu de s'aligner. */
   .ec-actes{
-    flex:none;margin-bottom:20px;display:grid;gap:12px;align-items:stretch;
-    grid-template-columns:repeat(3,minmax(0,1fr));
+    flex:none;margin-bottom:18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
   }
-  .ec-actes:has(.hero1){grid-template-columns:repeat(2,minmax(0,1fr))}
   .ec-actes .hero2{display:contents}
-  /* la porte du groupe rejoint la rangée : même hauteur, sa grammaire
-     de carte gardée — c'est une entrée, pas un troisième verbe */
-  .ec-actes .moi-door{min-height:76px;margin:0}
+  .ec-actes .hero{
+    min-height:36px;width:auto;flex:none;flex-direction:row;gap:8px;
+    padding:0 18px;font-size:var(--text-13);
+  }
+  .ec-actes .hero .ic{width:16px;height:16px}
+  .ec-actes .moi-door{
+    margin:0 0 0 auto;width:auto;min-height:36px;padding:0 4px;gap:8px;
+    background:none;border:0;box-shadow:none;
+  }
+  @media (hover:hover){
+    .ec-actes .moi-door:hover{background:none;text-decoration:underline}
+  }
   .ec-cols{
     flex:1;min-height:0;display:grid;
     grid-template-columns:minmax(0,420px) minmax(0,1fr);gap:22px;align-items:start;

@@ -653,6 +653,73 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
       console.log(`liste-détail @${lw} : au pouce la feuille s’ouvre, comme avant ✓`);
     }
   }
+  /* ---- LES COMMANDES D'UN ÉCRAN PARLENT LA LANGUE DE L'APP ----
+     Mesuré : les trois contrôles d'« Échanger » faisaient 345 × 76 px
+     au poste, sur un écran où toute autre commande fait 33 px, et
+     pendant que le reste de l'app tient sa norme — « Prospecter »
+     106 × 36, « Remplir mon profil » 129 × 36, « Ajouter une piste »
+     155 × 32. Le format haut, large et centré est celui du POUCE ;
+     transplanté au poste il double la maison.
+     Le contrôle ne pose AUCUN nombre magique : il compare l'écran à un
+     vrai frère de la même app (`#piProspect`). Si la maison change
+     d'échelle un jour, la garde suit toute seule. */
+  {
+    const eCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+    const eP = await eCtx.newPage();
+    watchErrors(eP);
+    await eP.goto(base + '/#/pistes', { waitUntil: 'load' });
+    await eP.evaluate(async () => {
+      const st = await import('./engine/storage.js');
+      await st.kvInit();
+      await st.kvSet(st.DATA_KEY, JSON.stringify([
+        { id: 'ee', name: 'Étalon SI', city: 'Lille', status: 'todo', contacts: [] }]));
+    });
+    await eP.reload({ waitUntil: 'load' });
+    await attendre(eP, () => !!document.querySelector('#piProspect'),
+      { message: 'le bouton étalon de « Mes pistes »' });
+    const etalon = await eP.evaluate(() => {
+      const r = document.querySelector('#piProspect').getBoundingClientRect();
+      return { h: Math.round(r.height), w: Math.round(r.width) };
+    });
+    await eP.evaluate(() => { location.hash = '#/echanger'; });
+    await attendre(eP, () => !!document.querySelector('#ecGive'),
+      { message: 'les commandes d’Échanger' });
+    const cmd = await eP.evaluate(() => {
+      const lu = s => {
+        const n = document.querySelector(s);
+        if (!n) return null;
+        const r = n.getBoundingClientRect(), st = getComputedStyle(n);
+        return { h: Math.round(r.height), w: Math.round(r.width),
+          boite: parseFloat(st.borderTopWidth) > 0 || st.boxShadow !== 'none'
+                 || st.backgroundColor !== 'rgba(0, 0, 0, 0)' };
+      };
+      return { donner: lu('#ecGive'), recevoir: lu('#ecRecv'), porte: lu('#ecPromo') };
+    });
+    await eCtx.close();
+    if (!etalon.h || !cmd.donner) fail('commandes : étalon ou boutons introuvables — le contrôle ne mesure rien');
+    else {
+      /* la marge est généreuse — on garde l'ÉCHELLE, pas le pixel */
+      const plafond = Math.round(etalon.h * 1.5);
+      for (const [nom, c] of [['Donner', cmd.donner], ['Recevoir', cmd.recevoir], ['Partage en groupe', cmd.porte]])
+        if (c && c.h > plafond)
+          fail(`commandes : « ${nom} » fait ${c.h}px de haut quand l'étalon de l'app en fait `
+            + `${etalon.h} (plafond ${plafond}) — c'est le format du pouce posé sur un écran de bureau`);
+      if (cmd.donner.w > etalon.w * 2.5)
+        fail(`commandes : « Donner » fait ${cmd.donner.w}px de large pour un mot, contre `
+          + `${etalon.w} à l'étalon — un bouton se taille à son contenu`);
+      /* UN VERBE ET UN LIEU NE SE DESSINENT PAS PAREIL. « Partage en
+         groupe » est une PORTE — le mainteneur l'avait tranché en la
+         dessinant comme celle de « Moi ». Lui donner la boîte d'un
+         bouton à côté de deux verbes efface cette décision : une
+         similitude de forme dit une similitude de nature. */
+      if (cmd.porte && cmd.porte.boite)
+        fail('commandes : « Partage en groupe » porte la boîte d’un bouton (cadre, relief ou fond) '
+          + 'alors que c’est une porte — trois formes identiques disent trois choses de même nature');
+      else console.log(`commandes : Donner ${cmd.donner.w}×${cmd.donner.h}, `
+        + `Recevoir ${cmd.recevoir.w}×${cmd.recevoir.h}, la porte sans boîte — `
+        + `à l'échelle de l'app (étalon ${etalon.w}×${etalon.h}) ✓`);
+    }
+  }
   await dCtx.close();
   console.log('poste : plus de « complète à N % », les colonnes se partagent la région, le pied se pose en bas ✓');
 }
