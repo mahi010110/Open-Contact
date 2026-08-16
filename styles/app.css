@@ -1411,27 +1411,27 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   /* le panneau prend TOUTE la hauteur de la vue : les gestes n'ont pas
      besoin de 1060 px, le fil si — et un cadre qui s'arrête à mi-écran
      laisserait sous lui le vide que le cadre servait à supprimer */
-  /* LA MESURE DU FIL EST BORNÉE, et le couple se centre. En `1fr`, la
-     colonne prenait 702 px pour des phrases de 30 à 40 caractères : le
-     trait pointillé courait deux fois plus loin que son texte et le
-     chevron finissait seul à 400 px de la ligne qu'il ouvre. Une
-     longueur de ligne confortable se situe entre 50 et 75 caractères
-     (NN/g, Baymard) ; 620 px à 13 px en tient environ 75, le haut de la
-     fourchette. Le couple 340 + 620 fait 978 px : centré dans les
-     1060 px de la page, le reste tombe des DEUX côtés au lieu de
-     s'entasser à droite. */
-  .ec-cols{
-    flex:1;min-height:0;display:grid;
-    grid-template-columns:minmax(0,340px) minmax(0,620px);gap:18px;
-  }
-  /* et la PAGE se resserre sur ce que ses colonnes demandent — pas la
-     grille seule. Centrer la grille dans une page de 1060 px décrochait
-     le titre « Échanger », resté sur le bord gauche d'origine : un titre
-     qui ne surplombe plus sa colonne n'est plus un titre. La page prend
-     donc 978 px (340 + 18 + 620) et se centre entière : un seul bord
-     gauche pour le titre et pour les deux colonnes. */
-  #view-echanger>.page-inner{max-width:978px}
-  .ec-actes{align-self:start}
+  /* UN SEUL DESSIN, la largeur en plus. « Échanger » avait deux
+     dispositions — gestes à gauche / fil à droite au poste, gestes en
+     bas / fil en haut au pouce — alors que l'USAGE est le même partout :
+     deux verbes et le relevé de ce qui a circulé. La règle du projet
+     (§5) est explicite : un seul dessin par défaut, deux seulement quand
+     l'usage diffère vraiment, pas la taille.
+     Ce que la colonne de gauche coûtait, mesuré : 340 px de large sur
+     149 px de haut, et sous elle 450 px de vide qui n'appartenaient à
+     rien — un canyon entre deux bandes de contenu. Le fil, lui, tenait
+     702 px pour des phrases de 30 à 40 caractères.
+     En une colonne de 720 px : « Donner » passe de 165 à 354 px de
+     large — l'action principale de l'écran cesse d'être un timbre —, le
+     fil garde une longueur de ligne confortable (50 à 75 caractères,
+     NN/g et Baymard), la lecture descend du geste vers son relevé, et le
+     vide restant tombe en BAS de page, là où toute page en a un. */
+  #view-echanger>.page-inner{max-width:720px}
+  /* colonne, pas bloc : le fil reste un PANNEAU qui tient sa région et
+     défile chez lui (`.ec-fil{flex:1}`), donc les deux verbes gardent
+     leur place quel que soit le nombre d'échanges */
+  .ec-cols{flex:1;min-height:0;display:flex;flex-direction:column}
+  .ec-actes{flex:none;margin-bottom:26px}
   .ec-cols .ec-fil{margin-top:0}
 }
 /* Le message tout prêt de « Demander à … » : il se LIT et se

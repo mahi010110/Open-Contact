@@ -10,7 +10,7 @@ web — livré, c'est cette feuille de route —, l'ordinateur et le téléphone
 La surface ordinateur a la sienne : `compagnon/roadmap.md`. On ne re-discute
 pas la répartition ici, on l'applique.
 
-Dernière mise à jour : 15 août 2026 — cache `oc-v162`, 120 auto-tests verts
+Dernière mise à jour : 15 août 2026 — cache `oc-v163`, 120 auto-tests verts
 (`node tests/e2e/unitaires.mjs`), 28 fichiers E2E.
 
 ---
@@ -386,6 +386,31 @@ Dernière mise à jour : 15 août 2026 — cache `oc-v162`, 120 auto-tests verts
   ces neuf relais répondent aujourd'hui. Le bac à sable de développement
   refuse toute connexion sortante, donc le choix repose sur la réputation
   publique des relais, pas sur une mesure. À rejouer à deux téléphones.
+- **« Échanger » au poste : un seul dessin** (août 2026, signalé sur
+  photo — « mal présentée, pas optimisée »). Trois défauts mesurés, dont
+  un vrai bug de mise en page. ① La poubelle du geste de suppression se
+  rangeait SOUS le texte, collée à gauche : `.ec-l .sw-in` n'avait pas
+  `display:flex`, donc chaque échange occupait 65 px pour 33 px de
+  texte, la moitié pour un bouton invisible au repos. C'est ce qui
+  donnait à la liste cet air trop aéré qu'on voyait sans le nommer.
+  ② La date vivait à 364-432 px de la fin de sa phrase — deux objets si
+  éloignés ne se lisent plus comme une seule ligne (proximité, NN/g) —
+  et la place forte de droite appartient dans toute l'app à ce qui
+  RÉCLAME quelque chose ; une date passée ne réclame rien. Elle rejoint
+  la phrase. ③ L'écran avait DEUX dispositions pour un usage identique :
+  gestes à gauche / fil à droite au poste, l'inverse au pouce. La règle
+  du projet (§5) dit un seul dessin par défaut ; deux seulement quand
+  l'usage diffère, pas la taille. Mesuré, la colonne de gauche coûtait
+  340 × 149 px avec 450 px de vide sans propriétaire sous elle. En une
+  colonne de 720 px, « Donner » passe de 165 à 354 px de large, le fil
+  garde une longueur de ligne confortable (50-75 caractères, NN/g et
+  Baymard), et le vide restant tombe en bas de page — là où toute page
+  en a un.
+  Deux gardes générales dans `e2e-ux-audit.mjs` : la poubelle doit
+  croiser verticalement le contenu de sa ligne (tous les porteurs du
+  motif, trois écrans), et la date doit rester à moins de 24 px de sa
+  phrase — mesurée sur l'ENCRE, le `<b>` étant en `flex:1` et sa boîte
+  mentant de 400 px. 2 mutations.
 - Auto-tests verts, parcours principaux rejoués en E2E.
 
 > **Nuance conservée.** « Refonte terminée » veut dire : les 23 décisions sont
