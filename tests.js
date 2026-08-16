@@ -23,7 +23,7 @@ import { DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, SYNC_KEY,
          RELAYS_KEY, TURN_KEY, DEVICE_KEY, DEVICES_KEY, PROMO_KEY, VAULT_KEY,
          ANALYSIS_KEY, SEALABLE, THEME_KEY, VIEW_KEY, OLD_V2, OLD_V1,
          kvGet, kvSet, kvDel, vaultActive, vaultDetach, vaultReseal } from './engine/storage.js';
-import { relayTally, liaisonStage, parseTurn, turnText, TURN_MAX } from './engine/transport.js';
+import { relayTally, liaisonStage, parseTurn, turnText, TURN_MAX, RELAIS_DEFAUT } from './engine/transport.js';
 import { VAULT_WORDS, PHRASE_LEN, makeVaultPhrase, normVaultPhrase, phraseUnknownWords,
          createVault, unlockWithPin, unlockWithPhrase, unlockWithPrf,
          setPin, addPrfWrap, rotateVault,
@@ -329,6 +329,26 @@ export async function runSelfTests(){
       eq(liaisonStage({ ...base, relays: { total: 5, open: 2 }, peers: 1 }), 'link');
       /* « à jour » exige pair + échange réellement reçu */
       eq(liaisonStage({ ...base, relays: { total: 5, open: 2 }, peers: 1, exchanged: true }), 'on');
+    },
+    /* Deux appareils ne se trouvent que sur un relais COMMUN. Sans
+       liste, Trystero en tire cinq sur quarante-trois d'après l'`appId`
+       — les mêmes cinq pour tout le monde, et jamais les autres : cinq
+       pannes possibles pour un seul échec, sans repli. La liste est
+       donc épinglée, et deux propriétés doivent tenir dans le temps. */
+    'transport : la liste de relais garde son ancrage et sa largeur': () => {
+      /* ① les cinq du tirage historique restent, sinon un appareil resté
+         sur l'ancienne version n'a plus AUCUN relais en commun avec un
+         appareil à jour — le partage casserait entre deux camarades */
+      for (const r of ['wss://basspistol.org', 'wss://relay.libernet.app',
+                       'wss://hornetstorage.net/relay', 'wss://nostr-relay.corb.net',
+                       'wss://nostr.sathoarder.com'])
+        eq(RELAIS_DEFAUT.includes(r), true);
+      /* ② et la liste ÉLARGIT : cinq relais, c'est le point de départ,
+         pas l'arrivée — sans marge, une panne redevient fatale */
+      eq(RELAIS_DEFAUT.length > 5, true);
+      /* ③ que des adresses de relais valides, sans doublon */
+      eq(RELAIS_DEFAUT.every(u => /^wss:\/\/[a-z0-9.\-]+(\/[\w\-/]*)?$/.test(u)), true);
+      eq(new Set(RELAIS_DEFAUT).size, RELAIS_DEFAUT.length);
     },
     'transport : parseTurn accepte le bon, refuse le reste': () => {
       eq(parseTurn(''), []);

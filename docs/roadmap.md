@@ -10,7 +10,7 @@ web — livré, c'est cette feuille de route —, l'ordinateur et le téléphone
 La surface ordinateur a la sienne : `compagnon/roadmap.md`. On ne re-discute
 pas la répartition ici, on l'applique.
 
-Dernière mise à jour : 15 août 2026 — cache `oc-v160`, 119 auto-tests verts
+Dernière mise à jour : 15 août 2026 — cache `oc-v161`, 120 auto-tests verts
 (`node tests/e2e/unitaires.mjs`), 28 fichiers E2E.
 
 ---
@@ -357,6 +357,35 @@ Dernière mise à jour : 15 août 2026 — cache `oc-v160`, 119 auto-tests verts
   rang de stockage de façon asynchrone — et le rang « cache » est le plus
   lent des trois. Le contrôle attend désormais que la clé soit
   RELISIBLE, pas que l'état soit peuplé.
+- **Les relais du P2P, épinglés** (août 2026, signalé à l'usage : « le
+  partage P2P ne fonctionne pas »). Deux appareils ne se trouvent que
+  s'ils écoutent le MÊME relais. L'app n'en fournissait aucun : sans
+  liste, Trystero mélange ses **43 relais publics** avec une graine tirée
+  de l'`appId` et n'en garde que **CINQ** — donc les mêmes cinq pour tous
+  les utilisateurs d'OpenContact, à jamais, et jamais les 38 autres. Le
+  tirage nous avait donné cinq relais confidentiels (basspistol,
+  libernet, hornetstorage, corb, sathoarder) pendant que les plus
+  fréquentés de la liste — damus, nos.lol, mostr, purple — restaient
+  inutilisés. Cinq pannes possibles pour un seul échec, aucun repli, et
+  rien de cassé chez nous : exactement le symptôme décrit.
+  `RELAIS_DEFAUT` (`engine/transport.js`) épingle donc **neuf** relais.
+  Les cinq historiques restent, EN TÊTE et exprès : un appareil resté sur
+  l'ancienne version n'écoute qu'eux, et les retirer couperait le partage
+  entre un téléphone à jour et celui d'un camarade qui ne l'est pas. La
+  liste de l'utilisateur (`oc_relays_v1`) reste prioritaire.
+  Deux gardes, à deux niveaux : les unitaires tiennent le CONTENU de la
+  liste (les cinq d'ancrage, la largeur, pas de doublon), `e2e-liaison`
+  tient le CÂBLAGE — les adresses réellement composées par le
+  navigateur. 4 mutations.
+  *Leçon d'outillage : `page.on('websocket')` n'émet que pour une
+  connexion qui S'ÉTABLIT. La première version du contrôle mesurait zéro
+  socket sur un code qui en composait neuf — précisément parce qu'aucune
+  ne s'établissait, c'est-à-dire le cas exact qu'on veut couvrir. On
+  enveloppe `WebSocket` à l'amorçage.*
+  **Ce qui n'est PAS prouvé, et doit l'être sur un vrai réseau :** que
+  ces neuf relais répondent aujourd'hui. Le bac à sable de développement
+  refuse toute connexion sortante, donc le choix repose sur la réputation
+  publique des relais, pas sur une mesure. À rejouer à deux téléphones.
 - Auto-tests verts, parcours principaux rejoués en E2E.
 
 > **Nuance conservée.** « Refonte terminée » veut dire : les 23 décisions sont

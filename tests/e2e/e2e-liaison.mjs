@@ -322,6 +322,76 @@ console.log('groupe : « Pas de connexion » affiché, replis QR/fichier rappel�
 await E.screenshot({ path: SHOTS + '/liaison-norelay-groupe-mobile.png' });
 await E.close();
 
+/* ---------- 6. LES RELAIS RÉELLEMENT COMPOSÉS ----------
+   Deux appareils ne se trouvent que sur un relais COMMUN. Sans liste
+   explicite, Trystero mélange ses 43 relais publics avec une graine
+   tirée de l'`appId` et n'en garde que CINQ — les mêmes pour tous les
+   utilisateurs d'OpenContact, à jamais, et jamais les 38 autres. Ces
+   cinq-là tombent, et le partage meurt partout à la fois sans que rien
+   ne soit cassé chez nous. Les unitaires gardent le CONTENU de la
+   liste ; ce contrôle-ci garde ce qui compte vraiment — les adresses
+   que le navigateur compose pour de bon.
+
+   On enveloppe `WebSocket` au lieu d'écouter `page.on('websocket')` :
+   Playwright n'émet cet évènement que pour une connexion qui S'ÉTABLIT.
+   Une adresse injoignable — le cas exact qu'on veut couvrir, puisque le
+   symptôme rapporté est « rien ne passe » — ne laisse aucune trace. La
+   première version de ce contrôle a mesuré zéro socket sur un code qui
+   en composait neuf. */
+const MOUCHARD = () => {
+  window.__ws = [];
+  const Vrai = WebSocket;
+  const Faux = function (url, ...r){ window.__ws.push(String(url)); return new Vrai(url, ...r); };
+  Faux.prototype = Vrai.prototype;
+  for (const k of ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED']) Faux[k] = Vrai[k];
+  window.WebSocket = Faux;
+};
+const composes = async (avant) => {
+  const ctx = await browser.newContext({ ignoreHTTPSErrors: true,
+    viewport: { width: 393, height: 800 }, hasTouch: true });
+  const p = await ctx.newPage();
+  await p.addInitScript(MOUCHARD);
+  await p.goto(base, { waitUntil: 'load' });
+  await p.waitForSelector('#view-aujourdhui:not([hidden])');
+  if (avant) await avant(p);
+  await p.evaluate(async () => {
+    const { openRoom } = await import('./ui/synclive.js');
+    await openRoom('promo', 'relais-controle', {});
+  });
+  await p.waitForTimeout(2500);
+  const urls = await p.evaluate(() => (window.__ws || []).map(u => u.replace(/\/$/, '')));
+  await ctx.close();
+  return [...new Set(urls)];
+};
+{
+  const { RELAIS_DEFAUT } = await import('../../engine/transport.js');
+  const attendus = RELAIS_DEFAUT.map(u => u.replace(/\/$/, ''));
+  const vus = await composes(null);
+  const manquants = attendus.filter(u => !vus.some(v => v.startsWith(u)));
+  if (!vus.length)
+    fail('relais : aucun WebSocket composé — le contrôle ne mesure plus rien');
+  else if (manquants.length)
+    fail(`relais : ${manquants.length} relais épinglé(s) jamais composé(s) — ${manquants.join(', ')}. `
+      + 'Trystero est retombé sur son tirage de cinq sur quarante-trois : deux camarades '
+      + 'peuvent se retrouver sur des relais différents et ne jamais se voir');
+  else console.log(`relais : les ${attendus.length} relais épinglés sont tous composés `
+    + '(le tirage par défaut n’en donnait que 5) ✓');
+
+  /* et la liste de l'utilisateur reste PRIORITAIRE : celui dont le
+     réseau bloque tout doit garder la main sur son transport */
+  const perso = relay.url.replace(/\/$/, '');
+  const vus2 = await composes(p => p.evaluate(async u => {
+    const st = await import('./engine/storage.js');
+    await st.kvInit();
+    await st.kvSet(st.RELAYS_KEY, JSON.stringify([u]));
+  }, relay.url));
+  const intrus = vus2.filter(u => !u.startsWith(perso));
+  if (!vus2.length) fail('relais perso : aucun WebSocket — le contrôle ne mesure plus rien');
+  else if (intrus.length)
+    fail('relais : la liste de l’utilisateur ne prime plus — ' + intrus.slice(0, 4).join(', '));
+  else console.log('relais : la liste de l’utilisateur reste prioritaire ✓');
+}
+
 if (errors.length){ fail('erreurs console : ' + JSON.stringify(errors.slice(0, 6), null, 1)); }
 else console.log('Zéro erreur console (hors relais volontairement mort).');
 console.log(process.exitCode ? 'E2E liaison : ÉCHEC' : 'E2E liaison : OK');
