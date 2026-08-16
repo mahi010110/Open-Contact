@@ -11,7 +11,7 @@ import { esc, localISO } from '../engine/utils.js';
 import { STATUSES } from '../engine/model.js';
 import { exchangeLog, exchangeTotals } from '../engine/assist.js';
 import { S, isClosed, saveJournal } from './state.js';
-import { $, ic, openSheet, bindDeleteGesture, showUndo } from './dom.js';
+import { $, ic, openSheet, bindDeleteGesture, showUndo, annoncer } from './dom.js';
 import { frDate, diffDays } from './dates.js';
 import { openDonner } from './donner.js';
 import { openRecevoir } from './recevoir.js';
@@ -257,16 +257,58 @@ export function renderEchanger(){
   root.querySelector('#ecRecv').addEventListener('click', openRecevoir);
   root.querySelector('#ecPromo').addEventListener('click', openPromo);
   const fil = filVisible();
+  /* CHANGER DE LIGNE NE RE-REND PAS L'ÉCRAN. La première version
+     appelait `renderEchanger()` : le bouton qu'on venait de taper
+     quittait le document, et le navigateur rendait le focus au `<body>`
+     — au clavier, on repartait en haut de la page à chaque ligne lue.
+     C'est le défaut WCAG 2.4.3 corrigé pour les suppressions deux lots
+     plus tôt, et re-introduit ici par un re-rendu de confort. On
+     échange donc le seul panneau qui change, et la ligne garde le
+     focus. */
+  const choisir = (i) => {
+    const x = fil[i];
+    if (!x) return;
+    filSel = i;
+    const vieux = root.querySelector('.ec-detail');
+    if (vieux){
+      vieux.outerHTML = detailHTML();
+      bindContenu(root.querySelector('.ec-detail'), null);
+    }
+    root.querySelectorAll('.ec-row[data-fil]').forEach(b => {
+      const on = +b.dataset.fil === i;
+      b.classList.toggle('ec-lue', on);
+      if (on) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current');
+    });
+    /* et ça se DIT : tout le côté droit de l'écran vient de changer sans
+       que le focus bouge — sans annonce, qui n'a pas l'écran ne sait
+       même pas qu'il s'est passé quelque chose (WCAG 4.1.3) */
+    const n = x.ids.length;
+    annoncer(`${contenuEchange(x, false).titre} : ${n} piste${n > 1 ? 's' : ''}.`);
+  };
   /* Au poste, taper une ligne la LIT à côté ; au pouce, elle s'ouvre.
      Même geste, deux contenants — voir `detailHTML`. */
   root.querySelectorAll('[data-fil]').forEach(b =>
     b.addEventListener('click', () => {
       const i = +b.dataset.fil;
-      const x = fil[i];
-      if (!x) return;
-      if (wide){ filSel = i; renderEchanger(); }
-      else openEchange(x);
+      if (wide) choisir(i);
+      else { const x = fil[i]; if (x) openEchange(x); }
     }));
+  /* LE CLAVIER, qui est l'efficacité même d'un grand écran : ↑ et ↓
+     passent d'un échange à l'autre sans quitter la main du clavier —
+     c'est ce que fait tout couple liste-détail (WAI-ARIA APG : le focus
+     ROULE dans la liste, il ne la quitte pas). Les lignes trop anciennes
+     pour retrouver leurs pistes ne sont pas focalisables : elles ne
+     mènent nulle part, les flèches n'ont donc rien à y faire. */
+  if (wide) root.querySelector('.ec-body')?.addEventListener('keydown', e => {
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+    const rows = [...root.querySelectorAll('.ec-row[data-fil]')];
+    const ici = rows.indexOf(document.activeElement);
+    const suiv = rows[(ici < 0 ? filSel : ici) + (e.key === 'ArrowDown' ? 1 : -1)];
+    if (!suiv) return;
+    e.preventDefault();
+    suiv.focus();
+    choisir(+suiv.dataset.fil);
+  });
   const det = root.querySelector('.ec-detail');
   if (det) bindContenu(det, null);
   /* SUPPRIMER UNE LIGNE DU FIL — le motif de l'app, pas un bouton de

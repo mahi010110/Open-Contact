@@ -1454,9 +1454,35 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   .ec-detail .ec-quand{margin:8px 0 10px}
   /* « tu es ici » : la couleur du châssis, celle de l'onglet allumé —
      jamais l'accent, qui appartient au contenu (§4) */
+  /* UNE SEULE GRAMMAIRE POUR DEUX LISTES CÔTE À CÔTE. Le fil est une
+     TRANCHE — 33 px, sans cadre, un trait pointillé pour frontière ;
+     c'était une décision assumée (« le journal n'est pas un objet à
+     encadrer »). Le panneau, lui, empilait des `.pick` : 54 px, bordure,
+     relief, fond de carte. Deux listes d'objets à 22 px l'une de
+     l'autre, rendues de deux façons opposées — on réapprenait à lire en
+     traversant l'écran. Et `.pick` est le motif de « choisir parmi
+     2-5 options » (§6) ; ici on en PARCOURT vingt et une.
+     Le panneau prend donc la grammaire de son voisin. Portée au
+     `.ec-detail` seulement : dans une feuille, la carte reste la langue
+     de la feuille. */
+  .ec-detail .pick{
+    min-height:0;padding:9px 2px;gap:2px 10px;
+    border:0;border-bottom:1px dashed var(--border-soft);border-radius:0;
+    background:none;box-shadow:none;font-size:var(--text-13);
+  }
+  /* la dernière n'a pas de trait, mais garde son épaisseur : à
+     `border-width:0` elle perdait 1 px et devenait la seule ligne d'une
+     hauteur différente — ce que le contrôle des listes interdit, à
+     raison (une hauteur qui varie se lit comme un défaut de rendu) */
+  .ec-detail .pick:last-child{border-bottom-color:transparent}
+  .ec-detail .pick .pk-m>b{font-size:var(--text-13);font-weight:var(--weight-semibold)}
+  @media (hover:hover){ .ec-detail .pick:hover{background:var(--surface-field)} }
   /* pas de `:hover` ici — il resterait collé après un tap (§4), et le
      `!important` passe déjà devant la règle de survol de la ligne */
   .ec-lue{background:var(--select-bg)!important}
+  /* la poubelle passait en gris de texte sur le navy : 1,6:1, invisible.
+     Sur la ligne lue, elle prend l'encre du châssis comme le reste. */
+  .ec-cols .ec-l:has(.ec-lue) .hov-del .ic{background:var(--select-text)}
   .ec-lue,.ec-lue>b,.ec-lue .ec-when{color:var(--select-text)}
   .ec-lue .ec-when{opacity:.8}
   .ec-lue .ic{background:var(--select-text)}

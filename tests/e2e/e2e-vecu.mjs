@@ -238,7 +238,17 @@ else console.log('déclaration : 4 choix, exclusifs, re-tap pour retirer — et 
 await page.evaluate(async () => {
   const st = await import('./engine/storage.js');
   const { normalizeCompany } = await import('./engine/model.js');
-  document.querySelectorAll('.overlay .x').forEach(x => x.click());
+  /* Fermer par la CROIX rend une entrée d'historique, et ce retour est
+     DIFFÉRÉ d'une micro-tâche (voir CLAUDE.md §5 : c'est ce qui empêche
+     l'app de sortir sur `about:blank` en enchaînant deux feuilles).
+     Suivi d'un `reload()` immédiat, ce retour partait APRÈS le
+     rechargement et emmenait la page hors du document : plus aucun
+     `import('./ui/state.js')` ne résolvait, et le test mourait sur un
+     code parfaitement sain, un tour sur cinq. On ferme donc par la voie
+     silencieuse, celle qui ne touche pas à l'historique. */
+  const { topSheet } = await import('./ui/dom.js');
+  let s, n = 0;
+  while ((s = topSheet()) && n++ < 6) s.close(null, true);
   /* la piste portée est volontairement la MOINS bien classée par les
      autres critères : sans e-mail, sans ville, dernière alphabétiquement */
   await st.kvSet(st.DATA_KEY, JSON.stringify([

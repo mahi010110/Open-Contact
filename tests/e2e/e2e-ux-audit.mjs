@@ -499,8 +499,23 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
   for (const [lw, lh, poste] of [[1280, 800, true], [390, 844, false]]){
     await dPage.setViewportSize({ width: lw, height: lh });
     await dPage.goto(base + '/#/echanger', { waitUntil: 'load' });
-    await attendre(dPage, () => !!document.querySelector('button.ec-row'),
-      { message: 'le fil de la liste-détail' });
+    /* TROIS échanges, pas un : le clavier ne se mesure qu'entre des
+       lignes. Avec une seule, ↓ n'a nulle part où aller et le contrôle
+       resterait vert en ne vérifiant rien. */
+    await dPage.evaluate(async () => {
+      const st = await import('./engine/storage.js');
+      const { S } = await import('./ui/state.js');
+      const ids = S.companies.map(c => c.id);
+      const J = n => Date.now() - n * 864e5;
+      await st.kvSet(st.JOURNAL_KEY, JSON.stringify([
+        { t: J(1), txt: 'Donné (fichier) : ' + ids.length + ' piste(s)', ids },
+        { t: J(4), txt: 'Reçu de Léa : +2 piste(s)', ids: ids.slice(0, 2) },
+        { t: J(9), txt: 'Donné (QR) : 1 piste(s)', ids: ids.slice(0, 1) }
+      ]));
+    });
+    await dPage.reload({ waitUntil: 'load' });
+    await attendre(dPage, () => document.querySelectorAll('button.ec-row').length >= 3,
+      { message: 'les trois lignes du fil de la liste-détail' });
     const avant = await dPage.evaluate(() => ({
       feuille: !!document.querySelector('.overlay:not(.ov-out)'),
       pane: document.querySelectorAll('.ec-detail .pick').length
@@ -547,8 +562,90 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
         const { topSheet } = await import('./ui/dom.js');
         let s, n = 0; while ((s = topSheet()) && n++ < 4){ s.close(null, true); await new Promise(r => setTimeout(r, 120)); }
       });
-      console.log(`liste-détail @${lw} : le panneau montre ${apres.pane} pistes, `
-        + 'aucune feuille, la ligne lue est marquée, et chaque piste ouvre sa fiche ✓');
+      /* ---- ET CE QUE LA PREMIÈRE VERSION AVAIT OUBLIÉ ----
+         Trois défauts, tous des règles écrites deux lots plus tôt et
+         re-cassées par un re-rendu de confort. Ils ne se voient pas :
+         ils se mesurent. */
+      const clavier = await dPage.evaluate(async () => {
+        const lire = () => ({
+          ligne: document.querySelector('.ec-row[aria-current="true"]')?.dataset.fil,
+          focus: document.activeElement && document.activeElement.classList.contains('ec-row'),
+          surBody: document.activeElement === document.body,
+          dit: (document.getElementById('annonce')?.textContent || '').trim()
+        });
+        const rows = [...document.querySelectorAll('button.ec-row')];
+        document.getElementById('annonce').textContent = '';
+        rows[0].focus();
+        rows[0].click();
+        await new Promise(r => setTimeout(r, 300));
+        const apresClic = lire();
+        /* ↓ puis ↑ : la sélection roule dans la liste sans la quitter */
+        const tape = k => rows[0].dispatchEvent(new KeyboardEvent('keydown',
+          { key: k, bubbles: true, cancelable: true }));
+        document.activeElement.dispatchEvent(new KeyboardEvent('keydown',
+          { key: 'ArrowDown', bubbles: true, cancelable: true }));
+        await new Promise(r => setTimeout(r, 300));
+        const apresBas = lire();
+        document.activeElement.dispatchEvent(new KeyboardEvent('keydown',
+          { key: 'ArrowUp', bubbles: true, cancelable: true }));
+        await new Promise(r => setTimeout(r, 300));
+        return { apresClic, apresBas, apresHaut: lire(), n: rows.length, tape: !!tape };
+      });
+      if (clavier.n < 2)
+        fail('liste-détail : moins de deux lignes — le contrôle du clavier ne mesure rien');
+      if (clavier.apresClic.surBody || !clavier.apresClic.focus)
+        fail('liste-détail : après un clic, le focus retombe sur le `<body>` — '
+          + 'au clavier on repart en haut de la page à chaque ligne lue (WCAG 2.4.3)');
+      if (!/piste/.test(clavier.apresClic.dit))
+        fail(`liste-détail : changer de ligne ne s'annonce pas — tout le côté droit change `
+          + `sans que le focus bouge, donc sans écran on ne sait pas qu'il s'est passé quelque `
+          + `chose (WCAG 4.1.3). Région : « ${clavier.apresClic.dit} »`);
+      if (clavier.apresBas.ligne === clavier.apresClic.ligne)
+        fail('liste-détail : la flèche bas ne change pas de ligne — un couple liste-détail '
+          + 'sans clavier passe à côté de la seule vraie efficacité d’un grand écran');
+      if (!clavier.apresBas.focus)
+        fail('liste-détail : la flèche déplace la sélection mais pas le focus — '
+          + 'le clavier perd la liste au coup suivant');
+      if (clavier.apresHaut.ligne !== clavier.apresClic.ligne)
+        fail('liste-détail : la flèche haut ne revient pas où l’on était');
+
+      /* UNE SEULE GRAMMAIRE. Le fil est une tranche sans cadre ; le
+         panneau empilait des cartes à bordure et relief. Deux listes
+         d'objets à 22 px l'une de l'autre, rendues de deux façons
+         opposées : on réapprend à lire en traversant l'écran. */
+      const gram = await dPage.evaluate(() => {
+        const g = document.querySelector('.ec-l .ec-row');
+        const d = document.querySelector('.ec-detail .pick');
+        if (!g || !d) return null;
+        const lu = n => { const s = getComputedStyle(n);
+          return { bord: parseFloat(s.borderTopWidth) + parseFloat(s.borderLeftWidth),
+                   ombre: s.boxShadow !== 'none' };
+        };
+        return { g: lu(g), d: lu(d) };
+      });
+      if (!gram) fail('liste-détail : grammaires non mesurables — le contrôle ne lit plus rien');
+      else if (gram.d.bord > gram.g.bord + 0.5 || (gram.d.ombre && !gram.g.ombre))
+        fail('liste-détail : le panneau encadre ses lignes quand la liste d’à côté ne le fait '
+          + 'pas — deux grammaires pour deux listes d’objets sur le même écran');
+
+      /* et la poubelle reste lisible sur la ligne peinte : elle passait
+         en gris de texte sur le navy, soit 1,6:1 */
+      const poub = await dPage.evaluate(() => {
+        const lue = document.querySelector('.ec-row[aria-current="true"]');
+        const ico = lue && lue.closest('.ec-l')?.querySelector('.hov-del .ic');
+        if (!ico) return null;
+        const lum = s => { const [r, v, b] = s.match(/\d+/g).map(Number);
+          const f = x => { x /= 255; return x <= .03928 ? x / 12.92 : ((x + .055) / 1.055) ** 2.4; };
+          return .2126 * f(r) + .7152 * f(v) + .0722 * f(b); };
+        const a = lum(getComputedStyle(ico).backgroundColor), b = lum(getComputedStyle(lue).backgroundColor);
+        return Math.round(((Math.max(a, b) + .05) / (Math.min(a, b) + .05)) * 10) / 10;
+      });
+      if (poub !== null && poub < 3)
+        fail(`liste-détail : la poubelle rend ${poub}:1 sur la ligne lue — invisible (plancher 3:1)`);
+
+      console.log(`liste-détail @${lw} : ${apres.pane} pistes au panneau, aucune feuille, `
+        + `la ligne lue est marquée, gardée au focus, annoncée, atteinte au clavier, `
+        + `même grammaire des deux côtés, poubelle à ${poub}:1 ✓`);
     } else {
       if (!apres.feuille)
         fail('liste-détail : au pouce, taper une ligne n’ouvre plus rien — '

@@ -10,7 +10,7 @@ web — livré, c'est cette feuille de route —, l'ordinateur et le téléphone
 La surface ordinateur a la sienne : `compagnon/roadmap.md`. On ne re-discute
 pas la répartition ici, on l'applique.
 
-Dernière mise à jour : 15 août 2026 — cache `oc-v164`, 120 auto-tests verts
+Dernière mise à jour : 15 août 2026 — cache `oc-v165`, 120 auto-tests verts
 (`node tests/e2e/unitaires.mjs`), 28 fichiers E2E.
 
 ---
@@ -443,6 +443,32 @@ Dernière mise à jour : 15 août 2026 — cache `oc-v164`, 120 auto-tests verts
   *Troisième course de la même famille refermée dans la suite : on
   attendait l'ÉTAT (`S.companies`) puis on mesurait le DOM. Le tableau
   rendait « 0 colonne » un tour sur cinq sur un écran sain.*
+- **La critique du lot précédent, mesurée** (août 2026 — « bonne route,
+  mais pas terminé »). Relecture du liste-détail : **trois des cinq
+  défauts trouvés étaient des règles écrites deux lots plus tôt et
+  re-cassées par un re-rendu de confort.** ① Choisir une ligne appelait
+  `renderEchanger()` : le bouton tapé quittait le document et le focus
+  retombait sur le `<body>` — au clavier, retour en haut de page à
+  chaque ligne lue (WCAG 2.4.3, exactement le défaut corrigé pour les
+  suppressions). On échange désormais le seul panneau qui change.
+  ② Tout le côté droit de l'écran changeait **sans un mot** : rien
+  n'était annoncé (WCAG 4.1.3), alors que `annoncer()` avait été bâti
+  pour ça. ③ **Aucun clavier** : un couple liste-détail sans ↑/↓ passe à
+  côté de la seule vraie efficacité d'un grand écran — le focus roule
+  maintenant dans la liste (WAI-ARIA APG), la sélection suit, l'annonce
+  aussi. ④ **Deux grammaires côte à côte** : le fil est une tranche de
+  33 px sans cadre, le panneau empilait des cartes de 54 px à bordure et
+  relief, à 22 px l'une de l'autre — et `.pick` est le motif de
+  « choisir parmi 2-5 options » quand on en parcourt vingt et une. Le
+  panneau prend la grammaire de son voisin. ⑤ La **poubelle** rendait
+  1,6:1 sur la ligne peinte en navy : invisible.
+  6 mutations, toutes attrapées.
+  *Quatrième course refermée dans la suite, et la plus instructive :
+  `e2e-vecu` fermait des feuilles par la CROIX puis rechargeait aussitôt.
+  Fermer rend une entrée d'historique, et ce retour est DIFFÉRÉ — il
+  partait après le rechargement et emmenait la page hors du document,
+  où plus aucun import relatif ne résout. Le test ferme désormais par la
+  voie silencieuse.*
 - Auto-tests verts, parcours principaux rejoués en E2E.
 
 > **Nuance conservée.** « Refonte terminée » veut dire : les 23 décisions sont
