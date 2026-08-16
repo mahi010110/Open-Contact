@@ -142,7 +142,6 @@ export function openContactEditor(o){
         const i = S.orphans.findIndex(x => x.id === src.id);
         S.orphans[i] = normalizeContact(data);
         saveOrphans();
-        toast('Contact mis à jour.');
       } else {
         addOrphan(data);
         toast('Gardé dans « à rattacher »');

@@ -105,7 +105,6 @@ export function openFiche(c){
       c.updatedAt = Date.now();
       saveData();
       commis = true;
-      toast('Enregistré ✓');
     }
     bus.refresh();
     render();
@@ -327,7 +326,7 @@ export function openFiche(c){
       onDone: render
     }));
     const ro = sh.body.querySelector('#fiReopen');
-    if (ro) ro.addEventListener('click', () => { reopenPiste(c); render(); bus.refresh(); toast('Piste rouverte.'); });
+    if (ro) ro.addEventListener('click', () => { reopenPiste(c); render(); bus.refresh(); });
     /* La zone de notes suit son contenu : deux lignes à vide, elle grandit
        à mesure qu'on écrit. Le plancher de 68 px de `.field textarea` est
        GLOBAL — le composeur d'emails en dépend — donc on ne le touche pas,

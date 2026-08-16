@@ -642,9 +642,9 @@ export function openManageSheet(){
     q('#vgPin').addEventListener('click', changePin);
     q('#vgPhrase').addEventListener('click', redoPhrase);
     q('#vgBio')?.addEventListener('click', async () => {
-      if (bioEnrolled()){ await dropBio(); toast('Retiré.'); render(); return; }
+      if (bioEnrolled()){ await dropBio(); render(); return; }
       askCurrentPin('Ton code actuel', async pin => {
-        try { await enrollBio(pin); toast('Activé ✓'); }
+        try { await enrollBio(pin); }
         catch (e) { toast('Pas disponible ici — le code suffit.'); }
         render();
       });
@@ -661,7 +661,6 @@ export function openManageSheet(){
         logJ('Verrouillage retiré');
         sh.close(null, true);
         bus.refresh();
-        toast('Ce n’est plus protégé.');
       });
     });
   };

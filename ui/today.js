@@ -450,7 +450,7 @@ export function renderToday(){
   root.querySelector('#tdNoAct')?.addEventListener('click', goPistes);
   root.querySelector('#tdeAdd')?.addEventListener('click', () => openCapture());
   root.querySelector('#tdeDemo')?.addEventListener('click', () => { addDemo(); bus.refresh(); toast('Exemple ajouté — retire-le quand tu veux.'); });
-  root.querySelector('#tdRmDemo')?.addEventListener('click', () => { removeDemo(); bus.refresh(); toast('Exemple retiré.'); });
+  root.querySelector('#tdRmDemo')?.addEventListener('click', () => { removeDemo(); bus.refresh(); });
 }
 
 /* la ligne se vide : petit temps d'effacement, puis la suite */

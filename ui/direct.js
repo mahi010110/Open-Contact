@@ -372,7 +372,6 @@ export function openAppareils(){
       if (!ok) return;
       if (!await requireCode('Ton code, pour rompre le lien')) return;
       await breakLink();
-      toast('Lien rompu');
       render();
     });
     /* Pied vide, exprès. `setFoot` pose son bouton à ~96 % de la
@@ -390,9 +389,14 @@ export function openAppareils(){
     const turn = await turnList();
     sh.setTitle('Mes appareils');
     sh.body.innerHTML =
-      `<p class="hint" style="margin:0 0 12px">${changing
-         ? 'Nouvelle phrase = nouveau lien — à retaper sur les autres appareils.'
-         : 'Une phrase de liaison, et tes appareils restent à jour — suivi compris.'}</p>
+      /* Pas de phrase d'accueil. « Une phrase de liaison, et tes
+         appareils restent à jour » décrivait les deux boutons posés
+         juste dessous — « Créer une phrase », « Entrer une phrase ».
+         Celle qui reste prévient d'une conséquence invisible : changer
+         de phrase décroche silencieusement les autres appareils. */
+      `${changing
+         ? '<p class="hint" style="margin:0 0 12px">Nouvelle phrase = nouveau lien — à retaper sur les autres appareils.</p>'
+         : ''}
        <div class="pick-list">
          <button class="pick" id="syNew"><b>${ic('sparkles', 'ic-14')} Créer une phrase</b></button>
          <button class="pick" id="syJoin"><b>${ic('switch', 'ic-14')} Entrer une phrase</b></button>

@@ -111,7 +111,6 @@ async function treatRestore(raw, pass){
     saveData(); saveProfile(); saveOrphans(); saveTombs();
     logJ('Restauration annulée');
     bus.refresh();
-    toast('Restauration annulée');
   });
 }
 function askRestorePass(raw){
@@ -177,7 +176,6 @@ function openDocs(kind, onChange){
           await docPut(key, val).catch(() => {});
           render();
           if (onChange) onChange();
-          toast('Document restauré.');
         });
       }, docTitle(d));
     });

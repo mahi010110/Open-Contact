@@ -42,7 +42,6 @@ export function openProfil(onDone){
       p.phone = v('#pfPhone'); p.email = v('#pfEmail');
       p.cvUrl = v('#pfCv'); p.portfolio = v('#pfPortfolio');
       saveProfile();
-      toast('Profil enregistré ✓');
       sh.close();
       bus.refresh();
       if (onDone) onDone();
@@ -75,8 +74,7 @@ export function openTemplates(){
         if (!ok) return;
         S.profile.templates = defaultTemplates();
         saveProfile();
-        toast('Modèles réinitialisés.');
-        render();
+          render();
       }),
       btn('Nouveau modèle', 'btn-primary', () =>
         editTemplate({ id: uid(), name: '', subject: '', body: '' }, render, true), 'plus')
@@ -106,7 +104,6 @@ function editTemplate(t, onBack, isNew){
       t.body = fBody.get();
       if (isNew) S.profile.templates.push(t);
       saveProfile();
-      toast('Modèle enregistré ✓');
       sh.close();
       onBack();
     })

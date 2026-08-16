@@ -209,7 +209,7 @@ function run(pairs){
       ctId: ct && ct.id,
       progress: i + '/' + pairs.length,
       onDone: next,
-      onQuit: () => { toast('Prospection arrêtée.'); bus.refresh(); }
+      onQuit: () => { bus.refresh(); }
     });
   };
   next();

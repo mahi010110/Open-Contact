@@ -32,7 +32,6 @@ export function pickPdf(kind, onDone){
     const key = kind + '_' + uid();
     try {
       await docPut(key, { name: f.name, size: f.size, type: f.type, added: Date.now(), blob: f });
-      toast('Document rangé.');
       if (onDone) onDone(key);
     } catch (e) { toast('Stockage indisponible sur ce navigateur.'); }
   });

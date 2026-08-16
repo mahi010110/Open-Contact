@@ -55,7 +55,16 @@ async function page(inject){
   await p.waitForSelector('#cpName');
   await p.fill('#cpName', 'Orange Cyberdefense');
   await p.click('.modal-f .btn-primary');
-  await attendre(p, `(async()=>((await import('./ui/state.js')).S.companies.length===1))()`, { timeout: 6000 });
+  /* Attendre l'ÉCRITURE, pas l'état en mémoire. `S.companies` est
+     rempli tout de suite ; `saveData()` part vers le rang de stockage de
+     façon asynchrone, et le rang « cache » (Cache API) est le plus lent
+     des trois. Recharger sur la foi de la mémoire, c'est courir contre
+     une écriture qu'on n'a pas attendue — la suite rougissait un tour
+     sur trois sur un code parfaitement sain. On relit donc la clé. */
+  await attendre(p, `(async()=>{
+    const st = await import('./engine/storage.js');
+    return /Orange Cyberdefense/.test(String(await st.kvGet(st.DATA_KEY) || ''));
+  })()`, { timeout: 9000, message: 'la capture doit être écrite sur le rang de stockage' });
 
   await p.reload({ waitUntil: 'load' });
   await p.waitForSelector('.bottomnav');

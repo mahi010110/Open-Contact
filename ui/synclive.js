@@ -506,7 +506,6 @@ async function join(phrase, force){
         live.prevProfile = null;
         bus.refresh();
         emit();
-        toast('Synchronisation annulée');
       });
     }
     /* l'échange est CONFIRMÉ : un instantané complet vient d'arriver.

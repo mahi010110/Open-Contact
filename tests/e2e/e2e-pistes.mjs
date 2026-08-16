@@ -187,11 +187,20 @@ await dPage.waitForFunction(() =>
 const moved = await dPage.evaluate(async () => {
   const { S } = await import('./ui/state.js');
   const c = S.companies.find(x => x.id === 'pi-a');
-  return { status: c.status, hist: (c.history || []).map(h => h.t), toast: document.querySelector('#toast')?.textContent || '' };
+  return { status: c.status, hist: (c.history || []).map(h => h.t),
+    toastOn: !!document.querySelector('#toast.on') };
 });
 if (moved.status !== 'active') fail('statut non changé au dépôt : ' + moved.status);
 if (moved.hist.at(-1) !== 'Statut → En cours') fail('trace d’historique fausse : ' + moved.hist.join(' | '));
-if (!/Cyberdef → En cours/.test(moved.toast)) fail('retour absent après dépôt : ' + moved.toast);
+/* ET AUCUN TOAST. Le retour existe déjà, et il est meilleur : l'attente
+   deux lignes plus haut EXIGE que la carte soit arrivée dans la colonne
+   visée, et elle y glisse sous les yeux (FLIP). Un toast qui redit
+   « Cyberdef → En cours » pendant qu'on regarde Cyberdef arriver dans
+   « En cours » est la définition même du bruit — Material 3 le dit en
+   toutes lettres : pas de snackbar pour une information déjà affichée.
+   Le contrôle est à double sens, comme celui du mouvement : il échoue
+   si le retour disparaît, et il échoue si un toast revient. */
+if (moved.toastOn) fail('un toast est revenu sur le dépôt — le résultat est déjà à l’écran');
 
 /* déposer dans SA colonne = aucun effet, aucune trace */
 const dt2 = await dPage.evaluateHandle(() => new DataTransfer());

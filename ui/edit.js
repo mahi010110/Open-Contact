@@ -166,7 +166,6 @@ export function openEditPiste(c, onDone){
         logJ('Fiche complétée : ' + c.name, c.id);
         c.updatedAt = Date.now();
         saveData();
-        toast('Fiche enregistrée ✓');
       }
       sh.close();
       bus.refresh();

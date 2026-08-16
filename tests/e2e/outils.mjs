@@ -44,12 +44,39 @@ export function chromiumPath(){
    promesse du prédicat — une promesse en attente est « truthy », l'attente
    « réussit » donc immédiatement sans rien vérifier. Ce helper évalue
    réellement (evaluate attend les fonctions async) et ré-essaie. */
-export async function attendre(page, fn, { timeout = 15000, pas = 250, message = '' } = {}){
+/* Deux défauts corrigés le 16 août 2026, tous deux découverts par une
+   suite qui rougissait un tour sur trois sans que rien ne soit cassé :
+
+   ① UN PRÉDICAT QUI JETTE N'EST PAS UN PRÉDICAT FAUX. Presque tous les
+     prédicats font `import('./ui/state.js')`, un chemin RELATIF, résolu
+     contre l'URL du document. Sondé pendant une navigation — juste après
+     `page.reload()` —, le document est momentanément `about:blank` et le
+     spécificateur ne résout plus : `evaluate` LÈVE au lieu de rendre
+     `false`, l'exception traverse la boucle, et le test meurt sur un
+     état parfaitement sain. Une attente doit ré-essayer sur une erreur
+     transitoire ; c'est tout l'intérêt d'attendre. La dernière erreur
+     part quand même dans le message final, sinon on remplace un échec
+     bruyant par un délai muet.
+   ② LE MESSAGE ÉTAIT JETÉ. Neuf appels passent une CHAÎNE en troisième
+     argument ; la déstructuration d'une chaîne rend `undefined` pour
+     `message`, donc le défaut s'appliquait et l'explication écrite par
+     l'auteur du test n'apparaissait jamais. On accepte les deux formes. */
+export async function attendre(page, fn, opts = {}){
+  const { timeout = 15000, pas = 250, message = '' } =
+    typeof opts === 'string' ? { message: opts } : opts;
   const fin = Date.now() + timeout;
+  let derniere = null;
   for (;;){
-    if (await page.evaluate(fn)) return;
+    try {
+      if (await page.evaluate(fn)) return;
+      derniere = null;
+    } catch (e) {
+      derniere = e;                       /* navigation en cours : on repasse */
+    }
     if (Date.now() > fin)
-      throw new Error('attendre() : délai dépassé (' + timeout + ' ms)' + (message ? ' — ' + message : ''));
+      throw new Error('attendre() : délai dépassé (' + timeout + ' ms)'
+        + (message ? ' — ' + message : '')
+        + (derniere ? ' — dernière erreur : ' + String(derniere).split('\n')[0] : ''));
     await new Promise(r => setTimeout(r, pas));
   }
 }

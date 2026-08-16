@@ -540,7 +540,7 @@ avec un motif existant.
 | Geste lourd réversible | `showUndo(msg, onUndo)` — barre Annuler ~30 s. **Il remplace la confirmation**, il ne s'y ajoute pas : demander ET offrir d'annuler, c'est payer deux fois |
 | Demander un mot de passe **facultatif** | `lockRowHTML` + `bindLockRow` — au repos un bouton compact « Chiffrer » au bout de la ligne d'action ; tapé, il **s'étire en champ sur place** et l'action voisine se serre. **La ligne ne change pas de hauteur** : rien ne pousse ce qui est dessous. `value()` rend `''` serrure fermée, donc l'appelant n'a jamais à connaître l'état ; refermer **oublie** ce qui était tapé |
 | Dire ce qui a changé sans qu'on regarde | `annoncer(msg)` — une phrase dans la région vivante de la coque. Les appels se regroupent sur 60 ms et **la dernière gagne** : un geste produit souvent deux annonces (le décor qui suit, puis la conséquence), et c'est la conséquence qu'on garde. Deux fois la même phrase repasse par le vide, sinon elle n'est pas relue |
-| Retour discret | `toast()` — court, ponctuel, jamais deux phrases. Un tiret cadratin au maximum, et ce qui le suit doit être un **geste** (« — passe par le fichier »), jamais un rassurement (« — tout est revenu comme avant ») |
+| Retour discret | `toast()` — **seulement si son message n'est PAS déjà à l'écran** (voir la règle sous la table). Court, ponctuel, jamais deux phrases. Un tiret cadratin au maximum, et ce qui le suit doit être un **geste** (« — passe par le fichier »), jamais un rassurement (« — tout est revenu comme avant ») |
 | Marquer partagé vs privé | `tag-share` / `tag-priv` |
 | Montrer qu'une ligne **vient de changer** | `montrerChange(id)` — un lavis d'accent, une fois, ~900 ms, sur la seule ligne concernée et seulement si elle est à l'écran. Ce n'est **pas** le langage d'urgence : `mark-*` reste à ce qui réclame une action |
 | Dire qu'un état **réclame quelque chose** | `.mark` + un cran : `mark-late` · `mark-now` · `mark-soon` · `mark-far`. **Un seul langage d'urgence dans toute l'app**, échelle monotone, et **ce qui ne réclame rien n'affiche rien** — c'est le vide en face qui fait ressortir le reste. Un cadre entier peut prendre le bord ambre (`.fset.fs-alert`) quand son état peut tout coûter |
@@ -650,6 +650,29 @@ et c'est le secteur qu'on peut perdre, jamais le nombre de personnes
 joignables. La recommandation prend l'accent, **jamais un `mark-*`** : le
 langage d'urgence reste à ce qui réclame quelque chose, et là rien ne presse
 — c'est un atout.
+
+**Un toast ne se justifie que si son message n'est PAS déjà à l'écran.**
+C'est la seule question à se poser, et elle se répond en regardant
+l'écran juste après le geste. L'app en comptait 130 sans qu'aucun garde
+ne bronche — le contrôle de sobriété mesurait leur longueur, jamais leur
+nombre. Trois familles seulement le passent :
+
+① une **erreur** ou un **refus** — rien ne s'est produit, il faut dire
+pourquoi ; ② un résultat **hors de l'écran** — le presse-papier, un
+fichier téléchargé, un autre appareil ; ③ un geste dont la **feuille
+reste ouverte** et où rien d'autre ne bouge (la capture au pouce vide
+ses champs et n'a que ça pour dire que la piste est partie).
+
+Tout le reste part. « Fiche enregistrée ✓ » pendant qu'on regarde la
+fiche enregistrée, le statut redit alors que la carte glisse vers sa
+nouvelle colonne, « … annulée » qui confirme qu'il ne s'est rien passé :
+c'est du bruit, et deux sources le disent — Material 3 (« pas de
+snackbar pour une information déjà affichée ») et NN/g (un message
+transitoire est fugace et interrompt, donc réservé à ce qui n'est pas
+perceptible autrement). **Et depuis que le toast passe par
+`role="status"`, il est LU à voix haute** : chaque toast de trop est une
+interruption de plus pour qui n'a pas l'écran. Le nombre est plafonné
+dans `e2e-sobriete.mjs`.
 
 **Ce qui change sans prendre le focus doit pouvoir se DIRE, et ce qui se
 tape doit avoir un NOM.** Trois règles, toutes tirées d'un relevé sur

@@ -230,7 +230,6 @@ function moveStatus(id, k){
   saveData();
   bus.refresh();
   glisse();
-  toast(c.name + ' → ' + STATUSES[k].label);   /* toast affiche du texte brut : esc() doublerait l'échappement */
 }
 
 /* le tableau se manipule à la souris : glisser une carte vers une autre
@@ -334,7 +333,6 @@ function removeRow(id){
   showUndo(`${ic('check', 'ic-14')} « ${esc(c.name)} » supprimée.`, () => {
     undeletePiste(c);
     bus.refresh();
-    toast('Piste restaurée.');
   });
 }
 

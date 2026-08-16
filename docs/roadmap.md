@@ -10,7 +10,7 @@ web — livré, c'est cette feuille de route —, l'ordinateur et le téléphone
 La surface ordinateur a la sienne : `compagnon/roadmap.md`. On ne re-discute
 pas la répartition ici, on l'applique.
 
-Dernière mise à jour : 15 août 2026 — cache `oc-v159`, 119 auto-tests verts
+Dernière mise à jour : 15 août 2026 — cache `oc-v160`, 119 auto-tests verts
 (`node tests/e2e/unitaires.mjs`), 28 fichiers E2E.
 
 ---
@@ -311,6 +311,52 @@ Dernière mise à jour : 15 août 2026 — cache `oc-v159`, 119 auto-tests verts
   geste. Et un contrôle qui vise le mauvais chemin ne prouve rien : la
   première version mesurait la frappe, précisément là où la retenue
   n'opère pas.*
+- **Le tri des retours** (août 2026, demandé à l'usage : « y'en a trop, et
+  parfois pour rien »). L'app comptait **130 appels à `toast()`**, dont 84
+  sur les écrans visibles, et aucun garde ne s'en émouvait : le contrôle
+  de sobriété mesurait leur LONGUEUR, jamais leur nombre. Passe à critère
+  unique — **un toast ne se justifie que si son message n'est pas déjà à
+  l'écran.** 21 sont partis : « Fiche enregistrée ✓ » pendant qu'on
+  regarde la fiche enregistrée, « Piste restaurée » pendant que la ligne
+  revient sous les yeux, le statut redit alors que la carte glisse dans
+  sa nouvelle colonne, et cinq « … annulée » qui confirmaient qu'il ne
+  s'était rien passé. **84 → 63.** Restent les trois familles qui disent
+  ce qu'on ne peut PAS voir : une erreur ou un refus, un résultat hors de
+  l'écran (presse-papier, fichier, autre appareil), et un geste dont la
+  feuille reste ouverte sans que rien d'autre ne bouge — la capture au
+  pouce en vit. Sources : Material 3 (pas de snackbar pour une
+  information déjà affichée), NN/g (un message transitoire est fugace et
+  interrompt). Et un coût mesurable de plus depuis la veille : chaque
+  toast passe par `role="status"`, donc il est LU à voix haute.
+  La phrase d'accueil de « Mes appareils » part avec eux — elle décrivait
+  les deux boutons posés juste dessous. Le compte des toasts devient un
+  plafond dans `e2e-sobriete.mjs`, et le contrôle du dépôt au tableau
+  passe à double sens : il échoue si le retour disparaît, et il échoue si
+  un toast revient.
+  *Défaut d'outillage découvert au passage, et c'est le plus instructif :
+  le compteur d'explications remplaçait toute interpolation par un seul
+  caractère — une phrase entière écrite dans un ternaire comptait pour UN
+  mot. Sept phrases vivaient hors du compte, dont précisément celle que
+  le mainteneur a vue à l'œil. Le plafond monte de 126 à 155 mots sans
+  qu'une seule phrase ait été ajoutée : c'est le compteur qui voit enfin.*
+- **Deux courses dans la suite E2E** (août 2026, découvertes en livrant le
+  tri des retours : un tour sur trois rougissait sur un code sain, et une
+  suite rouge par intermittence ne vaut pas mieux qu'une suite absente).
+  ① `attendre()` **plantait au lieu de ré-essayer** : presque tous ses
+  prédicats font `import('./ui/state.js')`, un chemin relatif résolu
+  contre l'URL du document — sondé juste après un `reload()`, le document
+  est momentanément `about:blank`, le spécificateur ne résout plus et
+  `evaluate` LÈVE. L'exception traversait la boucle et tuait le test. Une
+  attente ré-essaie maintenant sur erreur transitoire, et rapporte la
+  dernière dans son message de délai. *(Au passage : neuf appels passent
+  une chaîne en troisième argument alors que la signature attend un
+  objet — le message écrit par l'auteur du test n'était jamais affiché.
+  Les deux formes sont acceptées.)*
+  ② `e2e-stockage.mjs` **rechargeait sur la foi de la mémoire** :
+  `S.companies` est rempli tout de suite, mais `saveData()` part vers le
+  rang de stockage de façon asynchrone — et le rang « cache » est le plus
+  lent des trois. Le contrôle attend désormais que la clé soit
+  RELISIBLE, pas que l'état soit peuplé.
 - Auto-tests verts, parcours principaux rejoués en E2E.
 
 > **Nuance conservée.** « Refonte terminée » veut dire : les 23 décisions sont

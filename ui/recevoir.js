@@ -526,6 +526,5 @@ function offerUndo(snapshot, stats){
       saveData();
       logJ('Fusion annulée');
       bus.refresh();
-      toast('Fusion annulée');
     });
 }

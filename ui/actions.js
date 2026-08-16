@@ -94,7 +94,6 @@ export function askNextAction(c, opts){
     }
     setNextAction(c, txt, iso, opts.ctId);
     sh.close();
-    toast('Noté : ' + txt + ' — ' + frDate(iso));
     bus.refresh();
   };
   sh.body.querySelectorAll('.dchip-d').forEach(b =>

@@ -37,6 +37,28 @@ const HORS_ECRAN = new Set(['campagnes.js', 'compagnon.js', 'connexions.js',
 
 /* ---- les plafonds, tenus à la main et à la baisse ---- */
 const PLAFOND = {
+  /* COMBIEN de toasts, et pas seulement leur longueur. Le compte
+     manquait, et c'est exactement le trou par lequel ils sont arrivés :
+     130 appels, 84 sur les écrans visibles, sans qu'aucun garde ne
+     bronche — le mainteneur l'a vu à l'usage (« y'en a trop, et parfois
+     pour rien ») avant l'outillage.
+     63 le 16 août 2026, après une passe à critère unique : **un toast
+     ne se justifie que si son message n'est PAS déjà à l'écran.** Vingt
+     et un sont partis — « Fiche enregistrée ✓ » pendant qu'on regarde
+     la fiche enregistrée, « Piste restaurée » pendant que la ligne
+     revient sous les yeux, et cinq « … annulée » qui confirmaient qu'il
+     ne s'était rien passé. Restent les trois familles qui disent ce
+     qu'on ne peut PAS voir : une erreur ou un refus, un résultat hors
+     de l'écran (presse-papier, fichier, autre appareil), et un geste
+     dont la feuille reste ouverte sans que rien d'autre ne bouge.
+     Sources : Material 3 (« ne pas utiliser un snackbar pour une
+     information déjà affichée »), NN/g (un message transitoire est
+     fugace et interrompt — le réserver à ce qui n'est pas perceptible
+     autrement). Et depuis août 2026 il y a un coût mesurable de plus :
+     chaque toast passe par `role="status"`, donc il est LU à voix
+     haute — soixante-trois interruptions valent mieux que quatre-vingt-
+     quatre. */
+  toasts: 63,
   toastCar: 79,        /* le plus long : « Connexion interrompue — … » */
   confirmations: 8,    /* portes bloquantes dans les écrans visibles */
   /* phrases d'explication dans les feuilles visibles.
@@ -78,8 +100,21 @@ const PLAFOND = {
      cas où le silence de l'app laisserait l'utilisateur choisir le
      mauvais canal en croyant bien faire. Le critère s'élargit donc
      d'un cran, et d'un seul : préviennent d'une perte, OU d'une erreur
-     que l'utilisateur ne peut pas voir venir. */
-  motsExplication: 126
+     que l'utilisateur ne peut pas voir venir.
+     155 le 16 août 2026, et **ce n'est pas du texte en plus — c'est le
+     compteur qui voit enfin.** Il remplaçait toute interpolation par un
+     caractère : une phrase écrite dans un ternaire comptait pour UN mot,
+     quelle que soit sa longueur. Sept phrases vivaient ainsi hors du
+     compte, dont celle que le mainteneur a repérée à l'œil sur « Mes
+     appareils » — « Une phrase de liaison, et tes appareils restent à
+     jour » — qui décrivait les deux boutons posés juste dessous. Elle
+     est partie ; le nombre monte quand même, parce qu'il inclut
+     désormais ce qui était déjà là. L'app en dit MOINS qu'hier, pas
+     plus. Le critère, lui, ne bouge pas : ne restent que les phrases
+     qui préviennent d'une perte ou d'une erreur qu'on ne peut pas voir
+     venir — la phrase de secours sur papier, le plafond d'appareils,
+     « Perdu = irrécupérable », « Nouvelle phrase = nouveau lien ». */
+  motsExplication: 155
 };
 
 const fichiers = readdirSync(UI).filter(f => f.endsWith('.js') && !HORS_ECRAN.has(f));
@@ -112,8 +147,14 @@ for (const t of toasts){
   if (/[.!?]\s+[A-ZÀ-Þ]/.test(t.txt))
     fail(`deux phrases dans un toast (§6 : « court, ponctuel, jamais deux phrases ») — ${ou}`);
 }
+if (toasts.length > PLAFOND.toasts)
+  fail(`${toasts.length} toasts sur les écrans visibles (plafond ${PLAFOND.toasts}). `
+     + `Un toast ne se justifie que si son message n'est PAS déjà à l'écran : une erreur, `
+     + `un résultat hors de l'écran, ou un geste dont rien d'autre ne bouge. `
+     + `Si celui-là en est un, monte le plafond ICI en disant pourquoi.`);
 const plusLong = toasts.reduce((a, t) => Math.max(a, t.txt.length), 0);
-console.log(`① toasts : ${toasts.length} à l'écran · le plus long ${plusLong} car. (plafond ${PLAFOND.toastCar})`);
+console.log(`① toasts : ${toasts.length} à l'écran (plafond ${PLAFOND.toasts})`
+  + ` · le plus long ${plusLong} car. (plafond ${PLAFOND.toastCar})`);
 
 /* ---------- ② les portes bloquantes se comptent ---------- */
 let confirmations = 0;
@@ -134,14 +175,31 @@ if (confirmations > PLAFOND.confirmations)
        `Si la porte est justifiée, monte le plafond ICI en disant pourquoi. — ${ouSont.join(', ')}`);
 console.log(`② confirmations bloquantes : ${confirmations} (plafond ${PLAFOND.confirmations})`);
 
-/* ---------- ③ les explications posées dans les feuilles ---------- */
+/* ---------- ③ les explications posées dans les feuilles ----------
+   VOIR À TRAVERS UNE INTERPOLATION. Le compteur remplaçait tout `${…}`
+   par un seul caractère : une phrase entière écrite dans un ternaire
+   comptait donc pour UN mot, quelle que soit sa longueur. C'est ainsi
+   qu'une phrase d'accueil de onze mots a vécu invisible au compte
+   jusqu'à ce que le mainteneur la voie à l'écran et demande qu'elle
+   parte. On extrait maintenant les littéraux de l'interpolation, et on
+   garde le PLUS LONG : une seule branche d'un ternaire s'affiche à la
+   fois, donc c'est le pire cas qui fait foi.
+   Limite connue, non corrigée : les blocs gardés par un drapeau de
+   périmètre (Compagnon dans `recevoir.js`) sont comptés bien qu'ils
+   soient masqués — le fichier n'est pas dans `HORS_ECRAN`, seulement
+   ses blocs le sont. */
+const auTravers = t => t.replace(/\$\{[^{}]*(\{[^{}]*\}[^{}]*)*\}/g, bloc => {
+  const lits = [...bloc.matchAll(/'((?:\\.|[^'\\])*)'|"((?:\\.|[^"\\])*)"/g)]
+    .map(x => x[1] || x[2] || '').filter(s => s.length > 11);
+  return lits.length ? lits.sort((a, b) => b.length - a.length)[0] : '…';
+});
 let mots = 0, phrases = 0;
 for (const f of fichiers){
   const src = lire(f);
   const re = /class="(?:hint|lk-why)[^"]*"[^>]*>([\s\S]{0,400}?)<\/(?:p|div|span)>/g;
   let m;
   while ((m = re.exec(src))){
-    const txt = m[1].replace(/\$\{[^{}]*(\{[^{}]*\}[^{}]*)*\}/g, '…')
+    const txt = auTravers(m[1])
       .replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
     if (txt.length < 12) continue;
     phrases++;
