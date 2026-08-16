@@ -1,86 +1,143 @@
+<div align="center">
+
 # OpenContact
 
-Outil communautaire et **local-first** pour trouver, enrichir et partager des pistes
-et contacts utiles (stage, alternance, emploi). Sans compte, sans serveur : les
-données vivent sur les appareils et circulent **en direct de pair à pair**
-(WebRTC — sync de ses propres appareils, partage en groupe) ou par fichiers `.oc`
-(le repli qui marche toujours : hors-ligne, réseau bloqué, main à la main).
+**Ta recherche de stage, d'alternance ou d'emploi — et celle de ton groupe.**
 
-## Structure
+Tes données restent sur tes appareils. Pas de compte, pas de serveur, pas de traçage.
 
-| Fichier | Rôle |
+[Essayer](https://mahi010110.github.io/Open-Contact/) ·
+[Les trois surfaces](docs/surfaces.md) ·
+[La suite](docs/feuille-de-route.md) ·
+[Développer](docs/developpement.md)
+
+</div>
+
+---
+
+## Le problème
+
+Tu cherches un stage. Tu as vingt entreprises repérées, trois messages
+envoyés, deux réponses en attente, et une question qui revient chaque fois
+que tu ouvres ton ordinateur : **« je fais quoi maintenant ? »**
+
+Un tableur ne répond pas à ça — il range, il ne pousse pas. Un CRM
+professionnel non plus : il est conçu pour des commerciaux qui gèrent des
+comptes, pas pour un étudiant qui cherche une place.
+
+Et pendant ce temps, ton voisin de classe a fait son stage exactement là où
+tu postules à froid. Il le sait, tu ne le sais pas, et personne n'a d'endroit
+où le dire.
+
+## Ce que fait OpenContact
+
+Un outil de **motivation et d'action**, pas une base de données. Chaque écran
+pousse vers le prochain geste concret.
+
+| L'écran | Ce qu'il te donne |
 |---|---|
-| `index.html` | Structure de l'interface (HTML) |
-| `styles/` | Feuille de production `app.css` + `tokens/` (couleurs, typos, effets — source unique du design) |
-| `app.js` | Amorçage et routeur ; chaque écran vit dans `ui/` |
-| `ui/` | Les écrans et le direct P2P (`direct.js` : mes appareils + partage en groupe) |
-| `engine/` | Le moteur : modèle, stockage (IndexedDB), chiffrement, fusions (communautaire `merge.js`, appareils `sync.js`), score, filtres — aucun accès à l'écran |
-| `assets/` | Polices (WOFF2 + licences OFL), icônes pixel (pixelarticons, MIT), logos, libs vendorisées (jsQR, qrcode-generator, Trystero — MIT) |
-| `design/` | Le kit de design « Utilitaire 98 » : composants de référence, guidelines, maquettes |
-| `tests.js` | Auto-tests du moteur (`?test` dans l'URL, avec `tests-c8.js` et `tests-mcp.js`) |
-| `tests/e2e/` | Scénarios de bout en bout (Playwright, `node tests/e2e/tous.mjs`) |
-| `sw.js` | Service worker : hors-ligne + installation (PWA) |
-| `manifest.webmanifest` | Manifeste d'installation |
-| `icon.svg` | Icône de l'app |
-| `compagnon/` | Le Compagnon (Tauri, **facultatif**) : campagnes app fermée, IMAP/SMTP, analyse d'e-mails, IA locale, serveur MCP local — voir `compagnon/README.md` |
-| `docs/` | L'état des trois surfaces (`surfaces.md`), la feuille de route (`feuille-de-route.md`), le développement (`developpement.md`) |
+| **Aujourd'hui** | Ce qu'il y a à faire, maintenant. Ce qui est planifié, ce qui se tait depuis trop longtemps, et par où commencer quand tu ne sais pas |
+| **Mes pistes** | Toutes tes pistes, leur statut, leur prochaine action. Liste au pouce, tableau à l'écran |
+| **Échanger** | Donner tes pistes à ton groupe, recevoir les leurs, synchroniser tes propres appareils |
+| **Moi** | Ton profil, tes CV et lettres, tes modèles d'e-mails, ta copie de sauvegarde |
 
-## Installer le Compagnon (facultatif)
+Et le geste le plus cher, celui que personne ne peut faire à ta place :
+**écrire**. Le composeur pose sous tes yeux ce que tu sais de l'entreprise —
+parce qu'une accroche nourrie de recherche fait passer les réponses de ~7 % à
+~17 %, et qu'aller la chercher sur un autre écran, personne ne le fait.
 
-Le Compagnon est l'application d'appoint sur l'ordinateur : campagnes qui
-partent même app fermée, détection des réponses, analyse d'e-mails, IA
-locale. La PWA reste complète sans lui.
+## Ce qui le rend différent
 
-- **Depuis l'app** : Moi → Mes appareils → **Ajouter le Compagnon** — la
-  feuille propose le bon fichier pour ton système et guide jusqu'à
-  l'association (le code court s'affiche dans la fenêtre du Compagnon).
-- **À la main** : la [dernière release](https://github.com/mahi010110/Open-Contact/releases/latest)
-  porte des noms stables — `…linux-x64.deb` / `…linux-x64.AppImage`,
-  `…windows-x64-setup.exe` (NSIS), `…macos-universel.dmg` (Intel + Apple
-  Silicon). Construits et fumés par `.github/workflows/release.yml` :
-  chaque paquet est installé/lancé et son canal local doit répondre avant
-  publication.
-- **Paquets NON SIGNÉS** : Windows préviendra (« Informations
-  complémentaires » → « Exécuter quand même ») ; macOS bloquera le premier
-  lancement (clic droit sur l'app → « Ouvrir »). La signature reste un
-  geste du mainteneur.
-- **La première association se fait sur l'ordinateur** (profil protégé et
-  appareil principal requis). Ensuite, depuis le téléphone : dans une
-  campagne, « Mon ordinateur envoie tout seul » — la sync privée fait le
-  relais.
+**Le lien humain voyage avec la piste.** Une candidature à froid décroche un
+entretien dans ~3 % des cas. Une candidature portée par quelqu'un qui est
+dedans : ~40 %. Un rapport de 40 pour 1. Quand un camarade déclare « j'y suis
+passé », son prénom part avec la piste — et l'app te propose d'aller lui
+demander, de vive voix, parce qu'une demande en face aboutit **34 fois** plus
+souvent que par e-mail.
 
-## Le direct (P2P)
+**Tes données ne partent nulle part.** Elles vivent dans ton navigateur. Le
+partage se fait de pair à pair, chiffré, ou par un fichier `.oc` que tu
+passes de la main à la main. Le fichier marche toujours : hors ligne, réseau
+d'établissement bloqué, ou simplement par clé USB.
 
-- **Mes appareils** : une phrase de liaison, et téléphone + ordinateur se
-  synchronisent en entier (suivi privé compris) — le plus récent gagne,
-  les suppressions voyagent (tombstones). `engine/sync.js` + `ui/direct.js`.
-- **Partage en groupe** : un mot de passe de groupe, et les fiches partageables
-  circulent en direct — jamais le privé, aperçu avant chaque fusion.
-- Transport : WebRTC via [Trystero](https://github.com/dmotz/trystero)
-  (vendorisé, 59 Ko) ; la signalisation passe par des relais Nostr publics,
-  les données vont de pair à pair, chiffrées. L'écran dit l'étape **prouvée**
-  (relais joints, pair en face, échange reçu) — jamais « à jour » sur la foi
-  de la salle. Réglages avancés : relais personnalisés (`oc_relays_v1`) si
-  un établissement bloque les relais publics, serveur TURN (`oc_turn_v1`)
-  si le réseau bloque le pair-à-pair.
+**Ton suivi privé reste privé.** Tes statuts, tes notes, ton journal ne
+sortent jamais dans un partage. Seule exception : entre tes propres
+appareils. C'est vérifié par des tests automatiques qui lisent réellement les
+octets qui sortent, pas la théorie.
 
-Règle de sens unique : l'interface (`app.js`) appelle le moteur (`engine/`),
-jamais l'inverse — le moteur reçoit des paramètres et rend des valeurs, sans
-jamais lire ni toucher l'écran.
+**Rien ne s'écrase en silence.** Recevoir des données montre toujours un
+aperçu avant, et laisse ~30 secondes pour annuler après.
 
-Le contrat de données — clés de stockage, format `.oc`, schéma d'une piste,
-invariants de fusion — est figé noir sur blanc dans [`CONTRAT.md`](CONTRAT.md)
-et vérifié par les auto-tests (`?test`).
+## Ce qu'OpenContact ne fera jamais
 
-## Développement
+- Aucun serveur, aucun compte, aucune analytique, aucun traçage.
+- Aucune publicité, aucune revente ou exploitation de tes données.
+- Ton suivi privé ne sort jamais dans un partage avec ton groupe.
+- Aucune donnée écrasée sans aperçu et sans possibilité d'annuler.
 
-**Avant toute contribution — humaine ou assistée par IA — lire
-[`CLAUDE.md`](CLAUDE.md)** : c'est la référence produit & UI/UX qui
-centralise la direction, les invariants, le design « Utilitaire 98 »,
-l'approche adaptative et le catalogue des motifs d'interaction. Aucune
-décision UI/UX ne se prend en dehors de ce cadre.
+Ce n'est pas une intention, c'est une contrainte d'architecture : il n'y a
+nulle part où envoyer quoi que ce soit.
 
-Servir le dossier en local (`python3 -m http.server`) puis ouvrir
-`http://localhost:8000`. L'app est découpée en modules ES : l'ouverture
-directe du fichier (`file://`) ne fonctionne pas, il faut ce petit serveur.
-Auto-tests intégrés : ajouter `?test` à l'URL (résultats en console et en toast).
+## L'essayer
+
+Ouvre **[l'application](https://mahi010110.github.io/Open-Contact/)** dans
+ton navigateur. Rien à installer, rien à créer, aucune adresse à donner.
+
+Sur téléphone, le navigateur te proposera de l'ajouter à l'écran d'accueil :
+elle s'ouvre alors comme une vraie application et marche hors ligne.
+
+## Où en est le projet
+
+OpenContact est **un seul produit sur trois surfaces**, et une seule existe
+aujourd'hui :
+
+| Surface | État |
+|---|---|
+| **Web** (navigateur, installable) | **Livrée** — c'est tout ce qui précède |
+| **Ordinateur** | Code écrit, **chantier en sommeil** — pas installable |
+| **Téléphone** (store) | **Non commencée** |
+
+Le détail, capacité par capacité, est dans **[`docs/surfaces.md`](docs/surfaces.md)**.
+Ce document dit franchement ce qui marche et ce qui n'existe pas — c'est sa
+seule raison d'être.
+
+## Propriété
+
+**OpenContact n'est pas un logiciel open source.** Son code est visible pour
+que chacun puisse le lire, l'auditer et vérifier ce qu'il fait de ses
+données — pas pour être réutilisé.
+
+- **Utiliser l'application** publiée : libre et gratuit, pour tout le monde.
+- **Lire le code**, l'étudier, en citer un extrait, signaler une faille :
+  autorisé.
+- **L'exécuter, l'héberger, le modifier, le redistribuer ou l'exploiter** :
+  interdit sans accord écrit.
+
+Les termes exacts sont dans **[`LICENSE`](LICENSE)**. Les composants écrits
+par d'autres — bibliothèques, polices, icônes — restent sous leurs propres
+licences et sont énumérés dans **[`NOTICE.md`](NOTICE.md)**.
+
+Le dépôt n'accepte pas de contributions extérieures.
+
+## Structure du dépôt
+
+| | |
+|---|---|
+| `index.html`, `app.js` | La coque et le routeur de l'app web |
+| `engine/` | Le moteur : modèle, stockage, fusions, chiffrement, filtres. Fonctions pures, aucun accès à l'écran |
+| `ui/` | Les écrans, un fichier par écran ou par feuille |
+| `styles/` | `app.css` et les `tokens/` — la source unique du design |
+| `assets/` | Polices, icônes, bibliothèques copiées localement, avec leurs licences |
+| `design/` | Le kit de design « Utilitaire 98 » |
+| `compagnon/` | La surface ordinateur (Rust/Tauri) — en sommeil |
+| `tests.js`, `tests/e2e/` | Les auto-tests du moteur et les scénarios de bout en bout |
+| `CONTRAT.md` | Le contrat de données : clés de stockage, format `.oc`, invariants |
+| `CLAUDE.md` | La référence produit & UI/UX — toute décision de conception y répond |
+
+Pour lancer le projet et les tests : **[`docs/developpement.md`](docs/developpement.md)**.
+
+---
+
+<div align="center">
+<sub>Copyright © 2026 Maheydine. Tous droits réservés.</sub>
+</div>
