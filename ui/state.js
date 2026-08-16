@@ -84,6 +84,9 @@ export function applySynced(r){
    Plafond : un gros partage n'a pas à faire enfler la clé de journal.
    Au-delà, la ligne dira son compte et la feuille dira ce qu'elle a. */
 const JOURNAL_IDS_MAX = 200;
+/* le journal se réécrit tel quel : c'est ce qui permet à « Échanger »
+   de retirer une ligne — et à « Annuler » de la remettre à sa place. */
+export function saveJournal(){ kvSet(JOURNAL_KEY, JSON.stringify(S.journal)); }
 export function logJ(txt, cid, ids){
   const e = { t: Date.now(), txt, cid: cid || null };
   const l = (ids || []).filter(Boolean);

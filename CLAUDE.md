@@ -493,6 +493,7 @@ avec un motif existant.
 | Trier une liste | `ui/sort.js` — critère + bascule ↑↓ ; re-tap du critère actif = retour au défaut de l'écran |
 | Filtrer + trier ensemble | `ui/affiner.js` — une feuille, un compte dans le bouton (`Affiner ③`). **Un tap ajoute, un re-tap retire** : plusieurs valeurs d'une même famille cohabitent. Dans UNE famille elles s'additionnent (« cyber ou cloud »), d'une famille à l'autre elles se croisent (« … et en cours ») — c'est ce que dit la phrase à voix haute, donc rien à expliquer à l'écran. Chaque valeur retenue porte SON étiquette sous la recherche : n'en montrer qu'une ferait croire que l'app a perdu des pistes |
 | Supprimer au geste | `bindDeleteGesture(node, onDelete)` — glisser (mobile) / poubelle au survol (desktop), doublé d'un `showUndo` |
+| Un journal, un historique | il RACONTE ce qui est fait : poids de texte courant, jamais le gras d'un titre — deux ou trois niveaux au maximum sur un écran (NN/g, poids visuel), et le journal vient toujours après les gestes qu'il surplombe |
 | Choisir parmi 2-5 options | `pick-list` / `.pick` — des LIGNES, quand chaque option porte une explication ou déclenche une action |
 | Choisir un attribut court | `.datechips` + `.dchip` — la puce fait la taille de son MOT (`flex:0 1 auto`) et le groupe se replie par rangs. Jamais une liste déroulante : on ne cache pas un petit jeu d'options |
 | Choisir une date | chips « Demain / +3 j / +7 j / Lundi » + date précise validée par OK (jamais de fermeture sur `change` seul — roue iOS) |

@@ -1404,10 +1404,20 @@ button.fi-vecu b{flex:1;min-width:0}
    tromper d'un cran coûte un tap pour revenir (CLAUDE.md §5). Les
    anciennes entrées restent des <div> : même dessin, sans le chevron
    ni le survol, parce qu'elles n'ouvrent rien. */
+/* le trait passe de la LIGNE à son cadre : c'est lui qui porte
+   désormais le geste de suppression, et le contenu glisse à l'intérieur */
+.ec-l{border-bottom:1px dashed var(--border-soft)}
+.ec-l:last-of-type{border-bottom:0}
+/* `.sw .sw-in` habille normalement une carte (`--surface-window`). Ici
+   le fil est une TRANCHE, posée à même la page : lui donner un fond de
+   carte le transformerait en liste de boîtes — l'inverse de ce qu'on
+   cherche. Il prend donc le fond de la page, juste assez opaque pour
+   couvrir la poubelle pendant le glissement. */
+.ec-l .sw-in{background:var(--surface-desktop)}
 .ec-row{
   display:flex;align-items:center;gap:10px;width:100%;
   min-height:var(--ctl);padding:9px 0;
-  border:0;border-bottom:1px dashed var(--border-soft);border-radius:0;
+  border:0;border-radius:0;
   background:none;color:var(--text-body);font-family:var(--font-ui);text-align:left;
 }
 button.ec-row{cursor:pointer}
@@ -1419,9 +1429,13 @@ button.ec-row:hover{background:var(--surface-field)}
   margin:0 0 10px;
   font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted);
 }
-.ec-row>b{flex:1;min-width:0;font-size:var(--text-13);font-weight:var(--weight-semibold);
+/* UN JOURNAL N'EST PAS UN TITRE. La ligne portait le même gras que le
+   nom d'une piste (`--weight-semibold`), si bien que l'historique pesait
+   autant que les deux gestes qu'il surplombe — alors qu'il raconte ce
+   qui est DÉJÀ fait. Deux ou trois niveaux de hiérarchie au maximum
+   (NN/g, poids visuel) : ici les gestes, puis le fil, puis la date. */
+.ec-row>b{flex:1;min-width:0;font-size:var(--text-13);font-weight:var(--weight-regular);
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ec-row:last-of-type{border-bottom:0}
 .ec-row-m{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .ec-row-m b{font-size:var(--text-13);font-weight:var(--weight-semibold)}
 .ec-row-m .tag-beta{margin-left:2px}

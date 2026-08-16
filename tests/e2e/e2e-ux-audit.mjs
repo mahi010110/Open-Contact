@@ -282,6 +282,54 @@ const apres = await page.evaluate(() => ({
 }));
 if (apres.ouvrables !== 9 || apres.muettes.length !== 1)
   fail('une entrée sans identifiants ne doit pas promettre une ouverture : ' + JSON.stringify(apres));
+/* LE FIL EST UN JOURNAL, PAS UN TITRE. Il portait le même gras qu'un
+   nom de piste et pesait donc autant que les deux gestes qu'il
+   surplombe — alors qu'il raconte ce qui est DÉJÀ fait. Deux ou trois
+   niveaux au maximum : les gestes, le fil, la date.
+   Et une ligne se retire, avec le motif de l'app — glisser au pouce,
+   poubelle au survol, « Annuler » à la place d'une confirmation. */
+const poids = await page.evaluate(() => {
+  const b = document.querySelector('.ec-row b');
+  const g = document.querySelector('.hero2 .btn.hero span, .hero2 .btn.hero');
+  return { fil: +getComputedStyle(b).fontWeight,
+           geste: g ? +getComputedStyle(g).fontWeight : 0,
+           poubelle: !!document.querySelector('.ec-l .hov-del') };
+});
+if (poids.fil >= 600)
+  fail(`le fil pèse ${poids.fil} — un journal ne porte pas le gras d'un titre, il raconte ce qui est fait`);
+else if (poids.fil >= poids.geste)
+  fail(`le fil (${poids.fil}) pèse autant que les gestes (${poids.geste}) qu'il surplombe`);
+else if (!poids.poubelle)
+  fail('aucune façon de retirer une ligne du fil');
+else {
+  const avant = await page.evaluate(() => document.querySelectorAll('.ec-l').length);
+  /* les DEUX premières : c'est le seul moyen de vérifier que la ligne
+     qui disparaît est bien celle qu'on a désignée. Une mutation qui
+     faisait pointer toutes les lignes sur la même entrée du journal
+     passait sans broncher — on supprimait une ligne, c'en était une
+     autre qui partait, et le compte tombait quand même de un. */
+  const [premier, second] = await page.evaluate(() =>
+    [...document.querySelectorAll('.ec-row b')].slice(0, 2).map(b => b.textContent.trim()));
+  await page.evaluate(() => document.querySelector('.ec-l .hov-del').click());
+  await page.waitForFunction(n => document.querySelectorAll('.ec-l').length === n - 1, avant);
+  const tete = await page.evaluate(() => document.querySelector('.ec-row b').textContent.trim());
+  if (tete !== second)
+    fail(`la ligne supprimée n'est pas celle qu'on a désignée : « ${premier} » visée, `
+      + `« ${tete} » en tête au lieu de « ${second} »`);
+  const undo = await page.evaluate(() =>
+    [...document.querySelectorAll('button')].find(b => /Annuler/i.test(b.textContent)) ? 1 : 0);
+  if (!undo) fail('une ligne retirée sans « Annuler » — le geste est irréversible');
+  await page.evaluate(() =>
+    [...document.querySelectorAll('button')].find(b => /Annuler/i.test(b.textContent)).click());
+  await page.waitForFunction(n => document.querySelectorAll('.ec-l').length === n, avant);
+  /* « Annuler » remet la ligne À SA PLACE, pas à la fin : sinon le fil
+     se réordonnerait tout seul sous les yeux */
+  const rendu = await page.evaluate(() => document.querySelector('.ec-row b').textContent.trim());
+  if (rendu !== premier)
+    fail(`« Annuler » a remis la ligne ailleurs (« ${rendu} » au lieu de « ${premier} »)`);
+  else console.log(`fil : poids ${poids.fil} contre ${poids.geste} aux gestes, `
+    + 'une ligne se retire et « Annuler » la remet à sa place ✓');
+}
 await page.evaluate(() =>
   [...document.querySelectorAll('button.ec-row')].find(n => /Marco/.test(n.textContent)).click());
 await page.waitForSelector('.modal-b .pick-list');
@@ -1436,7 +1484,7 @@ const versions = await wPage.evaluate(async () => {
   document.querySelector('.topnav [data-r="moi"]').click();
   await new Promise(r => setTimeout(r, 550));
   /* on compte les FEUILLES du DOM : la barre d'état imbrique
-     « OpenContact <span>6.16.3</span> », compter les ancêtres ferait
+     « OpenContact <span>6.17.0</span> », compter les ancêtres ferait
      voir double là où il n'y a qu'un seul endroit */
   return [...document.querySelectorAll('body *')]
     .filter(e => e.offsetParent !== null && !e.children.length

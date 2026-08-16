@@ -22,11 +22,18 @@ const browser = await chromium.launch({ executablePath: chromiumPath() });
 const errors = [];
 const fail = m => { console.error('ÉCHEC :', m); process.exitCode = 1; };
 
+/* Des dates RELATIVES à aujourd'hui. Elles étaient écrites en dur
+   (« 2026-08-1 » + i) : le jour où le calendrier les a dépassées,
+   toutes sont tombées dans le passé, la tranche « Bientôt » a cessé
+   d'exister, et le contrôle du dépliement a échoué sur un écran qui
+   n'avait rien de cassé. Deuxième bombe de ce genre dans la série. */
+const JOUR = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
 const PISTES = Array.from({ length: 7 }, (_, i) => ({
   id: 'p' + i,
   name: ['Sopra Steria', 'Airbus Defence', 'Cyberprotect', 'Capgemini', 'Thales SIX', 'Atos', 'Niji'][i],
   status: ['todo', 'contacted', 'reply'][i % 3], city: 'Toulouse', domain: 'esn',
-  nextAction: '2026-08-1' + i, nextActionText: 'Relancer', notes: 'Note.',
+  /* de −3 à +3 jours : en retard, aujourd'hui ET bientôt, toujours */
+  nextAction: JOUR(i - 3), nextActionText: 'Relancer', notes: 'Note.',
   contacts: [{ id: 'c' + i, name: 'Nadia Berthier', role: 'RH', email: 'n@exemple.fr' }],
   updatedAt: 100 - i }));
 

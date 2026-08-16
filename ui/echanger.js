@@ -10,8 +10,8 @@
 import { esc, localISO } from '../engine/utils.js';
 import { STATUSES } from '../engine/model.js';
 import { exchangeLog, exchangeTotals } from '../engine/assist.js';
-import { S, isClosed } from './state.js';
-import { $, ic, openSheet } from './dom.js';
+import { S, isClosed, saveJournal } from './state.js';
+import { $, ic, openSheet, bindDeleteGesture, showUndo } from './dom.js';
 import { frDate, diffDays } from './dates.js';
 import { openDonner } from './donner.js';
 import { openRecevoir } from './recevoir.js';
@@ -117,10 +117,14 @@ function filHTML(){
         /* Le chevron ne se pose que sur les lignes qui MÈNENT quelque
            part : les anciennes entrées, qui n'ont pas gardé leurs
            identifiants, restent du texte — promettre une ouverture
-           qui n'arrive pas coûte plus qu'un chevron manquant. */
-        return x.ids.length
+           qui n'arrive pas coûte plus qu'un chevron manquant.
+           Le `.sw-in` est ce que `bindDeleteGesture` réclame : glisser
+           au pouce, poubelle au survol — le motif de suppression de
+           l'app, pas un bouton de plus dans la ligne. */
+        const dedansLigne = x.ids.length
           ? `<button class="ec-row ec-open" data-fil="${i}">${dedans}${ic('chevron-right', 'ic-14')}</button>`
           : `<div class="ec-row">${dedans}</div>`;
+        return `<div class="ec-l" data-l="${i}"><div class="sw-in">${dedansLigne}</div></div>`;
       }).join('') +
       (reste ? `<button class="linklike tr-more" id="ecMore">Voir les ${reste} autres</button>` : '');
   return `<section class="tranche ec-fil${fil.length ? '' : ' ec-vide'}">
@@ -177,5 +181,26 @@ export function renderEchanger(){
   const fil = filVisible();
   root.querySelectorAll('[data-fil]').forEach(b =>
     b.addEventListener('click', () => { const x = fil[+b.dataset.fil]; if (x) openEchange(x); }));
+  /* SUPPRIMER UNE LIGNE DU FIL — le motif de l'app, pas un bouton de
+     plus : glisser au pouce, poubelle au survol, et la barre « Annuler »
+     à la place d'une confirmation (CLAUDE.md §6). Ce qu'on retire, c'est
+     l'entrée du journal qui a produit la ligne ; « Annuler » la remet à
+     SA place, pas à la fin — sinon l'ordre du fil changerait tout seul. */
+  root.querySelectorAll('.ec-l').forEach(node => {
+    const x = fil[+node.dataset.l];
+    if (!x) return;
+    bindDeleteGesture(node, () => {
+      const e = S.journal[x.i];
+      if (!e) return;
+      S.journal.splice(x.i, 1);
+      saveJournal();
+      renderEchanger();
+      showUndo('Ligne retirée du fil.', () => {
+        S.journal.splice(x.i, 0, e);
+        saveJournal();
+        renderEchanger();
+      });
+    }, 'cette ligne du fil');
+  });
   root.querySelector('#ecMore')?.addEventListener('click', () => { filDeplie = true; renderEchanger(); });
 }

@@ -135,9 +135,15 @@ const RE_DONNE = /^Donné \(([^)]+)\)\s*:\s*(\d+)\s*piste/;
    lisibles — un renommage à l'écran ne réécrit pas l'histoire. Les deux
    formes désignent le même anonyme, d'où la même sortie. */
 const RE_RECU  = /^Reçu (?:du (groupe)|de (la promo|.+?))\s*:\s*\+(\d+)\s*piste/;
+/* `i` = la place de l'entrée dans le journal. Une ligne d'échange est
+   dérivée (un texte analysé), pas stockée : sans cet indice, la ligne
+   qu'on voit ne sait pas désigner l'entrée qui l'a produite — et on ne
+   peut donc pas la supprimer. */
 export function exchangeLog(journal, limit = 8){
   const out = [];
+  let i = -1;
   for (const e of (journal || [])){
+    i++;
     const txt = e && typeof e.txt === 'string' ? e.txt : '';
     /* un journal peut revenir d'une sauvegarde ou d'un autre appareil :
        un horodatage absent ou abîmé vaut 0, jamais NaN — sinon l'écran
@@ -149,11 +155,11 @@ export function exchangeLog(journal, limit = 8){
        n'en a pas : la ligne reste lisible, elle ne s'ouvre juste pas. */
     const ids = Array.isArray(e && e.ids) ? e.ids.filter(x => typeof x === 'string' && x) : [];
     let m = RE_DONNE.exec(txt);
-    if (m){ out.push({ t, sens: 'donne', canal: m[1], n: +m[2], qui: '', ids }); continue; }
+    if (m){ out.push({ i, t, sens: 'donne', canal: m[1], n: +m[2], qui: '', ids }); continue; }
     m = RE_RECU.exec(txt);
     if (m){
       const qui = m[1] ? '' : m[2];                       /* « du groupe » = anonyme */
-      out.push({ t, sens: 'recu', canal: '', n: +m[3], ids,
+      out.push({ i, t, sens: 'recu', canal: '', n: +m[3], ids,
         qui: qui === 'la promo' ? '' : qui });            /* ancienne forme, même sens */
     }
   }

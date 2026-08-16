@@ -10,7 +10,7 @@ web — livré, c'est cette feuille de route —, l'ordinateur et le téléphone
 La surface ordinateur a la sienne : `compagnon/roadmap.md`. On ne re-discute
 pas la répartition ici, on l'applique.
 
-Dernière mise à jour : 15 août 2026 — cache `oc-v155`, 119 auto-tests verts
+Dernière mise à jour : 15 août 2026 — cache `oc-v156`, 119 auto-tests verts
 (`node tests/e2e/unitaires.mjs`), 27 fichiers E2E.
 
 ---
@@ -229,6 +229,24 @@ Dernière mise à jour : 15 août 2026 — cache `oc-v155`, 119 auto-tests verts
   enfant plus large que sa feuille) et non le symptôme — la ceinture le
   rendait inmesurable —, et plante une sonde de 9999 px pour prouver
   qu'elle voit encore. 4 mutations.
+- **Le fil des échanges s'allège, et se retire** (août 2026, signalé sur
+  photo). « Tes échanges » portait le même gras qu'un nom de piste : un
+  journal, qui raconte ce qui est DÉJÀ fait, pesait autant que les deux
+  gestes qu'il surplombe. Passé en poids de texte courant — trois
+  niveaux nets : les gestes, le fil, la date (NN/g, poids visuel :
+  deux ou trois niveaux au maximum). Et chaque ligne se retire au
+  geste de l'app — glisser au pouce, poubelle au survol, « Annuler »
+  à la place d'une confirmation ; « Annuler » remet l'entrée à SA
+  place dans le journal. Le moteur rend l'indice de l'entrée d'origine
+  (`exchangeLog`), sans quoi une ligne dérivée ne sait pas désigner ce
+  qui l'a produite. 4 mutations, dont une qui a fait renforcer la
+  garde : elle vérifiait le compte mais pas QUELLE ligne disparaît —
+  on pouvait en supprimer une et en voir partir une autre.
+  *Au passage, une deuxième bombe à retardement désamorcée :
+  `e2e-mouvement.mjs` semait des dates en dur (2026-08-1x) et sa
+  tranche « Bientôt » a cessé d'exister le jour où le calendrier les a
+  dépassées. Une date qui doit être FUTURE se sème en relatif ; une
+  date passée peut rester en dur.*
 - Auto-tests verts, parcours principaux rejoués en E2E.
 
 > **Nuance conservée.** « Refonte terminée » veut dire : les 23 décisions sont
