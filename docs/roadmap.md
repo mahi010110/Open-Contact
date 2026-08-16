@@ -10,7 +10,7 @@ web — livré, c'est cette feuille de route —, l'ordinateur et le téléphone
 La surface ordinateur a la sienne : `compagnon/roadmap.md`. On ne re-discute
 pas la répartition ici, on l'applique.
 
-Dernière mise à jour : 15 août 2026 — cache `oc-v167`, 120 auto-tests verts
+Dernière mise à jour : 15 août 2026 — cache `oc-v168`, 122 auto-tests verts
 (`node tests/e2e/unitaires.mjs`), 28 fichiers E2E.
 
 ---
@@ -508,6 +508,33 @@ Dernière mise à jour : 15 août 2026 — cache `oc-v167`, 120 auto-tests verts
   succès même après avoir posé un grief. Une ligne verte dans le
   journal pendant qu'un contrôle échoue se lit comme une preuve que
   tout va bien.*
+- **« Échanger » montre ce qui ne circule pas encore** (août 2026,
+  demandé — « sois sérieux, j'aimerais une véritable pensée UX »). Le
+  reproche était juste : trois itérations à perfectionner la
+  présentation d'un REÇU. L'écran répondait à « qu'est-ce qui s'est
+  passé », jamais à « je fais quoi maintenant », et le panneau du poste
+  affichait les pistes **déjà données** — la donnée la moins actionnable
+  de l'app.
+  Or l'onglet existe à cause d'un chiffre (~3 % contre ~40 %), et l'app
+  tenait déjà tout : le journal note quelles pistes sont entrées, de
+  qui, et lesquelles sont sorties. Deux lectures neuves, **zéro donnée
+  nouvelle, zéro écran nouveau** : `recuesDormantes` (ce qu'on t'a donné
+  et que tu n'as pas touché) et `jamaisDonnees` (les tiennes que le
+  groupe n'a jamais vues), la seconde muette tant qu'on n'a jamais
+  donné — sinon ce n'est pas un conseil, c'est un inventaire.
+  **Trois défauts trouvés en JOUANT le parcours à deux, aucun visible à
+  la mesure** : douze lignes identiques (« de Léa · Lille · 19 j »
+  douze fois) — corrigé à trois, comme « Par où commencer » ; le cran
+  d'urgence à 900 px de sa ligne, la faute de proximité corrigée sur le
+  fil et refaite aussitôt — la tranche redescend dans la colonne de
+  420 px ; et un tri sans raison visible — l'ordre passe à « ce à quoi
+  on peut écrire tout de suite », le seul critère qui départage des
+  pistes toutes arrivées le même jour.
+  Le seuil réutilise `SILENCE_RELANCE` plutôt que d'inventer un second
+  chiffre. Garde qui rejoue le parcours dans `e2e-ux-audit.mjs` ;
+  6 mutations. *Une « échappée » n'en était pas : le motif de mutation
+  était ambigu et visait `silentPistes` au lieu de `recuesDormantes` —
+  un motif qui matche deux fonctions teste la mauvaise.*
 - Auto-tests verts, parcours principaux rejoués en E2E.
 
 > **Nuance conservée.** « Refonte terminée » veut dire : les 23 décisions sont

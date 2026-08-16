@@ -630,6 +630,38 @@ fait abandonner les outils de suivi :
   proposé devient **Clore**. Une pile dont chaque ligne peut sortir ne
   grandit pas sans fin.
 
+**Un écran qui raconte le passé ne fait agir personne.** « Échanger » a
+vécu comme un classeur : deux verbes, une porte, et le relevé de ce qui
+avait circulé. Il répondait à « qu'est-ce qui s'est passé », jamais à
+« je fais quoi maintenant » — la seule question que ce produit existe
+pour résoudre (§1). Pire, le panneau du poste montrait les pistes **déjà
+données** : la donnée la moins actionnable de l'app, celle qui ne
+réclame rien et ne mène nulle part.
+
+Or l'onglet existe à cause d'un chiffre : ~3 % d'entretiens à froid
+contre ~40 % portée par quelqu'un (§8). Quand un camarade tend douze
+pistes et qu'elles dorment, **c'est ce 40:1 qui dort** — et l'app le
+savait déjà : le journal note depuis toujours quelles pistes sont
+entrées, de qui, et lesquelles sont sorties. Personne ne le relisait.
+
+La place forte revient donc à **ce qui ne circule pas encore** :
+`recuesDormantes` (reçues, jamais reprises) et, en second seulement,
+`jamaisDonnees`. Le fil reste — une trace a sa valeur — mais au rang de
+trace. Trois règles en sortent, toutes apprises en jouant le parcours à
+deux personnes, aucune visible à la mesure :
+
+- **Le seuil est celui du silence** (`SILENCE_RELANCE`, 7 jours), pas un
+  second chiffre à défendre. Sous une semaine, ce n'est pas de la
+  négligence, c'est le délai normal entre recevoir et s'y mettre.
+- **Trois lignes, jamais douze.** Douze pistes reçues le même jour de la
+  même personne donnaient douze sous-lignes identiques — « de Léa ·
+  Lille · 19 j » répété, un papier peint. C'est l'inventaire que « Par
+  où commencer » a appris à ne pas être.
+- **Le tri a une raison, et elle se voit.** Le critère du 40:1 est déjà
+  satisfait par toutes (elles ont été données) : ce qui les départage
+  ensuite est ce à quoi on peut écrire tout de suite, puis les mieux
+  remplies. L'ancienneté ne trie rien quand tout est arrivé le même jour.
+
 **Une seule tranche de suggestion à la fois**, et le silence prime sur le
 démarrage : ranimer une piste déjà engagée vaut mieux qu'en démarrer une
 froide. Elle **suit** le travail planifié, jamais l'inverse — ce qui est

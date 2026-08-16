@@ -7,9 +7,9 @@
    parce qu'il n'y a rien à comprendre. Tout en bas, le rappel qui
    compte : jamais le privé. La sync de MES appareils vit dans « Moi ».
    ============================================================ */
-import { esc, localISO } from '../engine/utils.js';
+import { esc, localISO, todayISO } from '../engine/utils.js';
 import { STATUSES } from '../engine/model.js';
-import { exchangeLog, exchangeTotals } from '../engine/assist.js';
+import { exchangeLog, exchangeTotals, recuesDormantes, jamaisDonnees } from '../engine/assist.js';
 import { S, isClosed, saveJournal } from './state.js';
 import { $, ic, openSheet, bindDeleteGesture, showUndo, annoncer } from './dom.js';
 import { frDate, diffDays } from './dates.js';
@@ -174,6 +174,68 @@ function filHTML(){
           </section>`;
 }
 
+/* ============================================================
+   CE QUI RÉCLAME QUELQUE CHOSE — la place forte de l'écran
+
+   « Échanger » racontait ce qui a circulé. C'est un classeur : il
+   répond à « qu'est-ce qui s'est passé », jamais à « je fais quoi
+   maintenant » — la seule question que ce produit existe pour
+   résoudre. Pire, le panneau de droite montrait les pistes DÉJÀ
+   données : la donnée la moins actionnable de l'app, celle qui ne
+   demande rien et ne mène nulle part.
+
+   Cet onglet existe pourtant à cause d'un chiffre : ~3 % d'entretiens
+   à froid contre ~40 % quand quelqu'un est dedans. Quand un camarade
+   te tend douze pistes et qu'elles dorment, c'est ce 40:1 qui dort.
+
+   La place forte revient donc à ce qui ne circule PAS encore. Le fil
+   reste — une trace a sa valeur — mais il redescend au rang de trace.
+   Une seule tranche à la fois (§6) : ce qu'on t'a donné passe avant ce
+   que tu n'as pas donné, parce qu'un cadeau qu'on laisse par terre
+   coûte plus cher qu'un cadeau qu'on n'a pas fait. */
+function reprendreHTML(){
+  const dort = recuesDormantes(S.companies, S.journal, todayISO());
+  if (dort.length){
+    /* TROIS, jamais douze. Le parcours joué à deux personnes l'a montré
+       et aucune mesure ne l'aurait fait : douze pistes reçues le même
+       jour de la même personne donnaient douze lignes identiques —
+       « de Léa · Lille · 19 j » répété, un papier peint. C'est
+       exactement l'inventaire que « Par où commencer » a appris à ne pas
+       être : en proposer trois en fait un choix, en lister douze rend la
+       décision à celui qu'on voulait aider.
+       Le compte reste dit UNE fois, dans le titre — c'est là qu'il pèse,
+       et il n'encombre aucune ligne. */
+    const n = dort.length;
+    return `<section class="tranche ec-repr">
+        <h2 class="tr-h">${ic('inbox', 'ic-14')} Reçues, jamais reprises
+          <span class="tr-n">${n}</span></h2>
+        <div class="rows">${dort.slice(0, 3).map(x =>
+          `<button class="ec-rep" data-rep="${esc(x.id)}">
+             <span class="rep-m"><b>${esc(x.name)}</b>
+               <span>${esc([x.qui ? 'de ' + x.qui : 'du groupe', x.city,
+                 x.contacts ? x.contacts + ' contact' + (x.contacts > 1 ? 's' : '') : '']
+                 .filter(Boolean).join(' · '))}</span></span>
+             <span class="mark mark-${x.cran}">${x.jours} j</span>
+           </button>`).join('')}</div>
+      </section>`;
+  }
+  /* rien ne dort : reste l'autre sens de l'échange — mais seulement si
+     l'utilisateur connaît déjà le geste (le moteur rend vide sinon) */
+  const jamais = jamaisDonnees(S.companies, S.journal);
+  if (!jamais.length) return '';
+  const n = jamais.length;
+  return `<section class="tranche ec-repr">
+      <h2 class="tr-h">${ic('share', 'ic-14')} Jamais données
+        <span class="tr-n">${n}</span></h2>
+      <div class="rows">${jamais.slice(0, 3).map(x =>
+        `<button class="ec-rep" data-rep="${esc(x.id)}">
+           <span class="rep-m"><b>${esc(x.name)}</b>
+             <span>${esc([STATUSES[x.status] && STATUSES[x.status].label, x.city]
+               .filter(Boolean).join(' · '))}</span></span>
+         </button>`).join('')}</div>
+    </section>`;
+}
+
 /* ---- LE PANNEAU DE DROITE, au poste seulement ----
    L'écran ne montrait que des PORTES : deux verbes, une entrée de
    groupe, et un relevé de reçus. La règle du produit est pourtant
@@ -248,10 +310,20 @@ export function renderEchanger(){
             le point le plus dur à atteindre d'une main. Au poste, la
             souris ne connaît pas cette contrainte : les gestes gardent
             leur colonne à gauche, en tête de lecture. */''}
+       ${/* Au poste, la tranche vit DANS la colonne de gauche, au-dessus
+             du fil. Pleine largeur, son cran d'urgence tombait à 900 px
+             de la ligne qu'il qualifie — la faute de proximité corrigée
+             sur le fil, refaite aussitôt. Dans une colonne de 420 px il
+             se lit avec sa ligne, comme sur « Mes pistes ». Et la
+             gauche est la première chose lue : c'est bien là que va ce
+             qui réclame quelque chose. */''}
        ${wide
          ? `<div class="ec-actes">${gestes}</div>
-            <div class="ec-cols">${filHTML()}${detailHTML()}</div>`
-         : filHTML() + gestes + priv}
+            <div class="ec-cols">
+              <div class="ec-gauche">${reprendreHTML()}${filHTML()}</div>
+              ${detailHTML()}
+            </div>`
+         : reprendreHTML() + filHTML() + gestes + priv}
      </div>`;
   root.querySelector('#ecGive')?.addEventListener('click', openDonner);
   root.querySelector('#ecRecv').addEventListener('click', openRecevoir);
@@ -309,6 +381,14 @@ export function renderEchanger(){
     suiv.focus();
     choisir(+suiv.dataset.fil);
   });
+  /* une ligne qui réclame mène LÀ OÙ L'ON AGIT : sa fiche, en un tap.
+     Pas de panneau intermédiaire, pas d'aperçu — le geste attendu est
+     d'écrire ou de planifier, et c'est la fiche qui les porte. */
+  root.querySelectorAll('[data-rep]').forEach(b =>
+    b.addEventListener('click', () => {
+      const c = S.companies.find(x => x.id === b.dataset.rep);
+      if (c) openFiche(c);
+    }));
   const det = root.querySelector('.ec-detail');
   if (det) bindContenu(det, null);
   /* SUPPRIMER UNE LIGNE DU FIL — le motif de l'app, pas un bouton de

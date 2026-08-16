@@ -749,6 +749,114 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
           + `porte ${cmd.porte.w}×${cmd.porte.h} sur sa propre ligne, avec sa carte ✓`);
     }
   }
+  /* ---- CE QUI NE CIRCULE PAS ENCORE ----
+     Le parcours joué à deux : Léa donne douze pistes, on n'en touche
+     aucune. C'est le seul test qui ait jamais tranché quoi que ce soit
+     sur ce produit — et ici il a tranché deux fois, sur des choses
+     qu'aucune mesure de pixels n'aurait montrées : douze lignes
+     identiques (« de Léa · Lille · 19 j » douze fois) ne sont pas un
+     conseil mais un inventaire, et le cran d'urgence posé à 900 px de
+     sa ligne ne qualifie plus rien. */
+  {
+    const rCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+    const rP = await rCtx.newPage();
+    watchErrors(rP);
+    await rP.goto(base + '/#/echanger', { waitUntil: 'load' });
+    const semer = async (jours) => {
+      await rP.evaluate(async j => {
+        const st = await import('./engine/storage.js');
+        await st.kvInit();
+        const noms = ['Zephyr SI', 'Aalto Cloud', 'Barbaste Réseau', 'Cerbère', 'Dune Data',
+                      'Eole IT', 'Faro Cyber', 'Gaia', 'Hexa', 'Ionis', 'Jade Ops', 'Kraken'];
+        await st.kvSet(st.DATA_KEY, JSON.stringify([
+          ...noms.map((n, i) => ({ id: 'lea' + i, name: n, city: 'Lille', status: 'todo',
+            updatedAt: 100 + i,
+            contacts: i === 2 ? [{ id: 'k', name: 'Nadia', email: 'n@x.test' }] : [] })),
+          { id: 'lancee', name: 'Déjà Lancée', status: 'active', updatedAt: 9 },
+          { id: 'planif', name: 'Déjà Planifiée', status: 'todo', nextAction: '2099-01-01', updatedAt: 8 }
+        ]));
+        await st.kvSet(st.JOURNAL_KEY, JSON.stringify([
+          { t: Date.now() - j * 864e5, txt: 'Reçu de Léa : +14 piste(s)',
+            ids: [...Array.from({ length: 12 }, (x, i) => 'lea' + i), 'lancee', 'planif'] }
+        ]));
+      }, jours);
+      await rP.reload({ waitUntil: 'load' });
+      await rP.waitForTimeout(700);
+    };
+
+    /* ① sous le seuil, l'app se tait : recevoir puis attendre trois
+       jours n'est pas de la négligence, c'est le délai normal */
+    await semer(3);
+    if (await rP.$('.ec-repr'))
+      fail('circuler : une piste reçue il y a 3 jours est déjà pointée du doigt — '
+        + 'sous le seuil, se taire est la bonne réponse');
+
+    /* ② passé le seuil, l'écran le dit — et CHOISIT */
+    await semer(19);
+    const bloc = await rP.evaluate(() => {
+      const t = document.querySelector('.ec-repr');
+      if (!t) return null;
+      const rows = [...t.querySelectorAll('.ec-rep')];
+      const enc = n => { const rg = document.createRange();
+        rg.selectNodeContents(n); return Math.round(rg.getBoundingClientRect().right); };
+      const m0 = rows[0] && rows[0].querySelector('.mark');
+      return {
+        titre: t.querySelector('.tr-h').innerText.replace(/\s+/g, ' ').trim(),
+        n: rows.length,
+        premiere: rows[0] && rows[0].querySelector('b').textContent.trim(),
+        sousLignes: rows.map(r => r.querySelector('.rep-m>span').textContent.trim()),
+        ecartMark: m0 ? Math.round(m0.getBoundingClientRect().left - enc(rows[0].querySelector('.rep-m'))) : -1,
+        avantLeFil: !!(t.compareDocumentPosition(document.querySelector('.ec-fil'))
+                       & Node.DOCUMENT_POSITION_FOLLOWING)
+      };
+    });
+    if (!bloc) fail('circuler : douze pistes reçues et jamais touchées, et l’écran n’en dit rien');
+    else {
+      /* CHOISIR À LA PLACE DE L'UTILISATEUR EST LE SERVICE RENDU. Douze
+         lignes, c'est douze décisions avant le premier geste — et le
+         premier geste n'arrive jamais. Trois en font un choix. */
+      if (bloc.n !== 3)
+        fail(`circuler : ${bloc.n} lignes proposées — douze pistes reçues, c'est douze décisions `
+          + 'avant le premier geste. Trois en font un choix (§6)');
+      /* le compte se dit UNE fois, dans le titre, pas sur chaque ligne */
+      if (!/12/.test(bloc.titre))
+        fail(`circuler : le titre ne dit pas combien dorment — « ${bloc.titre} »`);
+      /* et l'ordre a une RAISON, visible sur la ligne : celle à qui on
+         peut écrire tout de suite passe devant */
+      if (bloc.premiere !== 'Barbaste Réseau')
+        fail(`circuler : « ${bloc.premiere} » en tête — celle qui porte une adresse doit passer `
+          + 'devant, c’est la seule à laquelle on peut écrire maintenant');
+      if (new Set(bloc.sousLignes).size < 2)
+        fail('circuler : les trois sous-lignes disent la même chose — un papier peint, pas un tri');
+      /* le cran d'urgence qualifie SA ligne : au-delà, il ne qualifie
+         plus rien (proximité, NN/g) */
+      if (bloc.ecartMark < 0 || bloc.ecartMark > 320)
+        fail(`circuler : le cran d’urgence est à ${bloc.ecartMark}px de sa ligne — trop loin pour `
+          + 'qu’on les lise ensemble');
+      /* et la place forte : ce qui réclame passe AVANT la trace */
+      if (!bloc.avantLeFil)
+        fail('circuler : le fil des échanges passe avant ce qui réclame un geste — '
+          + 'un classeur ne se met pas devant le travail à faire');
+    }
+    /* ③ une ligne mène LÀ OÙ L'ON AGIT : sa fiche, en un tap */
+    await rP.click('.ec-rep');
+    await rP.waitForTimeout(450);
+    if (!await rP.$('.overlay:not(.ov-out) #fiNotes'))
+      fail('circuler : une ligne qui réclame un geste n’ouvre pas sa fiche');
+    await rP.evaluate(async () => {
+      const { topSheet } = await import('./ui/dom.js');
+      let s, n = 0; while ((s = topSheet()) && n++ < 4){ s.close(null, true); await new Promise(r => setTimeout(r, 120)); }
+    });
+    /* ④ ni « Déjà Lancée » ni « Déjà Planifiée » : elles ne dorment pas,
+       et `silentPistes` les couvre déjà ailleurs */
+    const fuite = await rP.evaluate(() =>
+      [...document.querySelectorAll('.ec-rep b')].map(n => n.textContent.trim())
+        .filter(t => /Déjà/.test(t)));
+    if (fuite.length) fail('circuler : ' + fuite.join(', ') + ' — engagée ou planifiée, elle ne dort pas');
+    else console.log(`circuler : 12 dorment depuis 19 j, l'écran en propose 3 avec leur raison, `
+      + `le cran à ${bloc.ecartMark}px de sa ligne, avant le fil ✓`);
+    await rCtx.close();
+  }
   await dCtx.close();
   console.log('poste : plus de « complète à N % », les colonnes se partagent la région, le pied se pose en bas ✓');
 }

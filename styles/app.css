@@ -1353,6 +1353,31 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 }
 .sy-log{margin-top:10px}
 .pr-send{width:100%;margin-top:12px}
+/* ---- Échanger : ce qui réclame quelque chose ----
+   La tranche de tête. Même grammaire que le fil qu'elle surplombe et
+   que « En retard » sur « Aujourd'hui » : un libellé en petites
+   capitales, son compte, puis des lignes au trait. Elle ne s'encadre
+   pas — ce serait un objet de plus à lire, alors qu'il s'agit de la
+   même chose qu'ailleurs : des pistes qui réclament un geste. */
+.ec-repr{margin:0 0 20px}
+.ec-rep{
+  display:flex;align-items:center;gap:10px;width:100%;
+  min-height:var(--ctl);padding:9px 0;
+  border:0;border-bottom:1px dashed var(--border-soft);border-radius:0;
+  background:none;color:var(--text-body);font-family:var(--font-ui);
+  text-align:left;cursor:pointer;
+}
+.ec-rep:last-child{border-bottom-color:transparent}
+@media (hover:hover){ .ec-rep:hover{background:var(--surface-field)} }
+.rep-m{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+/* la TÊTE porte l'attribut distinctif — le nom de la piste, jamais le
+   donneur : deux lignes voisines viennent souvent de la même personne
+   (NN/g, « The Anatomy of a List Entry ») */
+.rep-m>b{font-size:var(--text-13);font-weight:var(--weight-semibold);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rep-m>span{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
 /* ---- Échanger : deux verbes héros + pied discret ---- */
 .hero2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
 /* rien à donner : « Recevoir » reste seul et prend toute la largeur —
@@ -1473,7 +1498,12 @@ details.pcard-details[open]>summary{margin-bottom:10px}
     grid-template-columns:minmax(0,420px) minmax(0,1fr);gap:22px;align-items:start;
   }
   .ec-cols>*{min-width:0;max-height:100%}
-  .ec-cols .ec-fil{margin-top:0;height:100%}
+  /* la colonne de gauche empile ce qui réclame, puis la trace : c'est
+     le fil qui prend la place restante et défile, jamais la tranche de
+     tête — trois lignes qui appellent un geste ne se cachent pas */
+  .ec-gauche{display:flex;flex-direction:column;min-height:0;height:100%}
+  .ec-gauche .ec-repr{flex:none;margin-bottom:18px}
+  .ec-cols .ec-fil{margin-top:0;min-height:0;flex:1}
   /* le panneau lu défile chez lui : vingt pistes données ne poussent
      jamais la liste ni la page */
   .ec-detail{min-width:0;height:100%;display:flex;flex-direction:column;overflow:hidden}

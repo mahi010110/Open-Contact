@@ -38,7 +38,8 @@ import { DAILY_CAP, buildCampaign, dueSends, dueSendsAll, sentTodayAll,
          inSendWindow, addDays as cAddDays } from './engine/campaign.js';
 import { buildMime, encodeHeader, toB64Url, authUrl, parseCallback, pkcePair } from './engine/mailer.js';
 import { dueFollowups, contactFromSignature, exchangeLog, exchangeTotals, nextActionSuggestions,
-         silentPistes, derniereTrace, SILENCE_RELANCE, SILENCE_DERNIERE, SILENCE_TROP_TARD } from './engine/assist.js';
+         silentPistes, derniereTrace, recuesDormantes, jamaisDonnees,
+         SILENCE_RELANCE, SILENCE_DERNIERE, SILENCE_TROP_TARD } from './engine/assist.js';
 import { makeMission, missionUsable, revokeMission, foldCampaignReport,
          signMission, openMissionWire } from './engine/mission.js';
 import { normCode, pairKey } from './engine/companion.js';
@@ -1217,6 +1218,65 @@ export async function runSelfTests(){
         c('fraiche', { history: [{ d: '2026-07-12', t: 'x' }] })  /* 3 j : trop tôt pour dire quoi que ce soit */
       ], '2026-07-15');
       eq(l.map(x => x.id), ['engagee']);
+    },
+    /* CE QUI NE CIRCULE PAS ENCORE. « Échanger » racontait ce qui a
+       circulé — un classeur. Ces deux lectures répondent à « qu'est-ce
+       que je fais maintenant », et sans une donnée nouvelle : le
+       journal note déjà quelles pistes sont entrées, de qui, et
+       lesquelles sont sorties. */
+    'aides : reçues et jamais reprises — qui compte, et à partir de quand': () => {
+      const J = jour => Date.UTC(2026, 6, jour);
+      const journal = [
+        { t: J(1),  txt: 'Reçu de Léa : +3 piste(s)',    ids: ['dort', 'lancee', 'planif'] },
+        { t: J(9),  txt: 'Reçu du groupe : +1 piste(s)', ids: ['fraiche'] },
+        { t: J(5),  txt: 'Reçu de Awa : +1 piste(s)',    ids: ['dort'] },
+        { t: J(2),  txt: 'Donné (QR) : 1 piste(s)',      ids: ['mienne'] }
+      ];
+      const c = (id, o) => Object.assign({ id, name: id, status: 'todo' }, o);
+      const l = recuesDormantes([
+        c('dort'),                                  /* reçue, jamais touchée */
+        c('lancee', { status: 'active' }),          /* engagée : plus dormante */
+        c('planif', { nextAction: '2026-07-20' }),  /* une suite est prévue */
+        c('fraiche'),                               /* reçue il y a 6 j : trop tôt */
+        c('mienne'),                                /* la tienne, jamais reçue */
+        c('close', { closedReason: 'rejected' })
+      ], journal, '2026-07-15');
+      eq(l.map(x => x.id), ['dort']);
+      /* le PREMIER donneur, pas le dernier : c'est lui qui te l'a mise
+         dans les mains, et c'est à lui qu'on peut revenir en parler */
+      eq(l[0].qui, 'Léa');
+      eq(l[0].jours, 14);
+      /* L'ORDRE fait le service rendu : ce à quoi on peut écrire TOUT
+         DE SUITE passe devant, puis les mieux remplies. Douze pistes
+         reçues le même jour ont le même âge — l'ancienneté ne trie rien
+         et ne vient qu'en dernier. */
+      const w = (id, o) => Object.assign({ id, name: id, status: 'todo' }, o);
+      const meme = [{ t: J(1), txt: 'Reçu de Léa : +3 piste(s)', ids: ['nue', 'deux', 'mail'] }];
+      const tri = recuesDormantes([
+        w('nue'),
+        w('deux', { contacts: [{ name: 'A' }, { name: 'B' }] }),
+        w('mail', { contacts: [{ name: 'C', email: 'c@x.test' }] })
+      ], meme, '2026-07-15');
+      eq(tri.map(x => x.id), ['mail', 'deux', 'nue']);
+      /* le seuil est celui du silence, pas un second chiffre à défendre */
+      eq(recuesDormantes([c('fraiche')],
+        [{ t: J(9), txt: 'Reçu du groupe : +1 piste(s)', ids: ['fraiche'] }],
+        new Date(J(9 + SILENCE_RELANCE)).toISOString().slice(0, 10)).length, 1);
+      eq(recuesDormantes([c('fraiche')],
+        [{ t: J(9), txt: 'Reçu du groupe : +1 piste(s)', ids: ['fraiche'] }],
+        new Date(J(9 + SILENCE_RELANCE - 1)).toISOString().slice(0, 10)).length, 0);
+    },
+    'aides : jamais données — muet tant qu’on n’a jamais donné': () => {
+      const c = (id, o) => Object.assign({ id, name: id, status: 'todo', updatedAt: 1 }, o);
+      const pistes = [c('a', { updatedAt: 3 }), c('b', { updatedAt: 9 }),
+                      c('close', { closedReason: 'won' }), c('demo', { demo: true })];
+      /* aucun don encore : le grand bouton « Donner » dit déjà tout, et
+         lister toutes ses pistes ne serait pas un conseil mais un
+         inventaire */
+      eq(jamaisDonnees(pistes, [{ t: 1, txt: 'Reçu du groupe : +1 piste(s)', ids: ['a'] }]), []);
+      /* dès qu'on a donné une fois, le reste devient une vraie question */
+      const l = jamaisDonnees(pistes, [{ t: 1, txt: 'Donné (QR) : 1 piste(s)', ids: ['a'] }]);
+      eq(l.map(x => x.id), ['b']);                 /* ni « a » donnée, ni close, ni demo */
     },
     'aides : sans nouvelles — trois crans, tirés des données de relance': () => {
       const a = j => silentPistes([{ id: 'x', name: 'X', status: 'active',
