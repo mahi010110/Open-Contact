@@ -1,7 +1,7 @@
 {
   "name": "OpenContact — pistes & contacts partagés",
   "short_name": "OpenContact",
-  "description": "Trouve, enrichis et partage des pistes de stage, d'alternance ou d'emploi avec ta promo. Local-first, sans compte, open source.",
+  "description": "Trouve, enrichis et partage des pistes de stage, d'alternance ou d'emploi avec ton groupe. Tes données restent sur tes appareils, sans compte et sans serveur.",
   "lang": "fr",
   "start_url": "./",
   "scope": "./",

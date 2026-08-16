@@ -1,0 +1,204 @@
+OpenContact — Licence propriétaire à source visible
+====================================================
+
+Copyright (c) 2026 Maheydine (github.com/mahi010110).
+Tous droits réservés. / All rights reserved.
+
+Le texte français ci-dessous fait foi. An English translation follows,
+for information only.
+
+
+-------------------------------------------------------------------
+1. Ce que couvre cette licence
+-------------------------------------------------------------------
+
+« Le Logiciel » désigne le code source, les fichiers de configuration,
+les textes, les maquettes et la documentation contenus dans ce dépôt,
+à l'exception des composants tiers énumérés au point 6.
+
+« Le Titulaire » désigne le détenteur du copyright nommé ci-dessus.
+
+Le Logiciel n'est PAS un logiciel libre et n'est PAS open source. Sa
+publication sur un dépôt public sert la transparence et l'examen : elle
+n'emporte aucune cession de droits.
+
+
+-------------------------------------------------------------------
+2. Ce qui est permis
+-------------------------------------------------------------------
+
+Le Titulaire accorde à toute personne, gratuitement, le droit :
+
+  a) de CONSULTER et de LIRE le code source de ce dépôt, à des fins
+     d'étude personnelle, d'évaluation, de vérification de sécurité ou
+     de curiosité technique ;
+
+  b) de CITER de courts extraits du code, dans un cadre pédagogique,
+     journalistique ou critique, à condition d'indiquer clairement leur
+     origine et de renvoyer à ce dépôt ;
+
+  c) de SIGNALER au Titulaire toute faille, erreur ou remarque.
+
+Ces droits s'exercent tels quels. Ils ne s'étendent à rien d'autre.
+
+
+-------------------------------------------------------------------
+3. Utiliser l'application (distinct du code)
+-------------------------------------------------------------------
+
+L'application OpenContact, telle que publiée et mise en ligne par le
+Titulaire, peut être UTILISÉE librement et gratuitement par toute
+personne, à titre personnel, pour ce à quoi elle sert : suivre sa
+recherche de stage, d'alternance ou d'emploi, et partager des pistes.
+
+Cette permission porte sur l'application publiée. Elle ne confère aucun
+droit sur son code source, lequel demeure régi par les points 2 et 4.
+
+Les données produites par une personne en se servant de l'application
+lui appartiennent entièrement. Le Logiciel ne les transmet à personne :
+elles restent sur ses appareils.
+
+
+-------------------------------------------------------------------
+4. Ce qui est interdit sans accord écrit préalable
+-------------------------------------------------------------------
+
+Sauf autorisation écrite et expresse du Titulaire, il est interdit :
+
+  a) d'exécuter, d'héberger, de déployer ou de mettre à disposition le
+     Logiciel, en tout ou en partie, sur quelque support que ce soit ;
+
+  b) de le reproduire ou de le copier, au-delà des copies techniques
+     transitoires nécessaires à sa simple consultation ;
+
+  c) de le modifier, de l'adapter, de le traduire, ou d'en tirer une
+     œuvre dérivée ;
+
+  d) de le distribuer, de le revendre, de le louer, de le sous-licencier
+     ou de le transmettre à un tiers ;
+
+  e) de l'exploiter commercialement, directement ou indirectement, y
+     compris au sein d'un produit ou d'un service payant ;
+
+  f) d'en retirer, d'en masquer ou d'en altérer les mentions de
+     copyright, de licence ou d'attribution ;
+
+  g) de s'en servir comme jeu de données d'entraînement, d'ajustement ou
+     d'évaluation pour un modèle d'apprentissage automatique, quel qu'il
+     soit ;
+
+  h) de reprendre le nom « OpenContact », son logo ou son identité
+     visuelle pour désigner un autre produit ou service.
+
+Toute demande d'autorisation s'adresse au Titulaire (point 8).
+
+
+-------------------------------------------------------------------
+5. Le fork sur GitHub
+-------------------------------------------------------------------
+
+Ce dépôt est public sur GitHub. Les conditions d'utilisation de GitHub
+prévoient que tout dépôt public peut être « forké » par les utilisateurs
+de la plateforme, et le Titulaire ne peut pas l'empêcher tant que le
+dépôt reste public.
+
+Un tel fork est toléré comme un fait de la plateforme. Il ne confère
+AUCUN des droits refusés au point 4 : le code forké reste soumis à la
+présente licence, et son détenteur ne peut ni l'exécuter, ni le
+déployer, ni le modifier, ni l'exploiter.
+
+
+-------------------------------------------------------------------
+6. Composants tiers
+-------------------------------------------------------------------
+
+Le Logiciel incorpore des composants écrits par d'autres — bibliothèques,
+polices de caractères, jeux d'icônes. Ces composants ne sont PAS couverts
+par la présente licence : chacun reste régi par sa propre licence, et
+demeure la propriété de son auteur.
+
+Ils sont énumérés dans NOTICE.md, avec le texte de leur licence.
+
+
+-------------------------------------------------------------------
+7. Absence de garantie et de responsabilité
+-------------------------------------------------------------------
+
+LE LOGICIEL EST FOURNI « EN L'ÉTAT », SANS GARANTIE D'AUCUNE SORTE,
+EXPRESSE OU IMPLICITE, Y COMPRIS SANS GARANTIE DE QUALITÉ MARCHANDE,
+D'ADÉQUATION À UN USAGE PARTICULIER OU D'ABSENCE DE CONTREFAÇON.
+
+LE TITULAIRE NE POURRA ÊTRE TENU RESPONSABLE D'AUCUNE RÉCLAMATION,
+D'AUCUN DOMMAGE NI D'AUCUNE AUTRE RESPONSABILITÉ, CONTRACTUELLE,
+DÉLICTUELLE OU AUTRE, DÉCOULANT DU LOGICIEL, DE SON UTILISATION OU DE
+TOUTE OPÉRATION S'Y RAPPORTANT.
+
+
+-------------------------------------------------------------------
+8. Réserve de droits et contact
+-------------------------------------------------------------------
+
+Tous les droits non expressément accordés par la présente licence sont
+réservés au Titulaire.
+
+Le Titulaire conserve la faculté pleine et entière d'exploiter, de
+céder, de vendre le Logiciel, ou de le republier sous d'autres termes —
+y compris une licence libre — sans que la présente licence ne l'en
+empêche ni ne l'y oblige.
+
+Le Titulaire peut modifier les termes de cette licence pour les versions
+futures. La version applicable à une copie donnée est celle qui
+l'accompagne.
+
+Demandes d'autorisation, de licence commerciale ou de partenariat :
+github.com/mahi010110/Open-Contact
+
+
+===================================================================
+English translation — for information only.
+The French text above prevails in case of divergence.
+===================================================================
+
+OpenContact — Proprietary, source-visible licence
+Copyright (c) 2026 Maheydine (github.com/mahi010110). All rights reserved.
+
+This is NOT open source software. The source is published for
+transparency and review, not to transfer any rights.
+
+PERMITTED, free of charge: viewing and reading the source code for
+personal study, evaluation or security review; quoting short excerpts
+with clear attribution and a link to this repository; reporting issues
+to the copyright holder.
+
+USING THE APP: the OpenContact application, as published online by the
+copyright holder, may be used freely and free of charge by anyone, for
+personal purposes. This covers the published application only, and
+grants no rights over its source code. Data a person creates while using
+the app belongs entirely to that person and stays on their devices.
+
+PROHIBITED without prior written permission: running, hosting, deploying
+or otherwise making the software available; copying it beyond the
+transient copies needed to view it; modifying, adapting, translating it
+or creating derivative works; distributing, reselling, renting,
+sublicensing or transferring it; commercial exploitation of any kind;
+removing or altering copyright, licence or attribution notices; using it
+as training, fine-tuning or evaluation data for any machine learning
+model; using the "OpenContact" name, logo or visual identity for another
+product or service.
+
+GITHUB FORKS: this repository is public, and GitHub's Terms of Service
+allow any public repository to be forked. Such forks are a fact of the
+platform and are tolerated as such. They grant none of the rights denied
+above: forked copies remain subject to this licence.
+
+THIRD-PARTY COMPONENTS are not covered by this licence. Each remains
+under its own terms and belongs to its author. See NOTICE.md.
+
+NO WARRANTY. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY
+KIND, EXPRESS OR IMPLIED. THE COPYRIGHT HOLDER SHALL NOT BE LIABLE FOR
+ANY CLAIM, DAMAGES OR OTHER LIABILITY ARISING FROM THE SOFTWARE OR ITS
+USE.
+
+ALL RIGHTS NOT EXPRESSLY GRANTED ARE RESERVED. The copyright holder
+retains full freedom to exploit, assign, sell or republish the software
+under different terms, including an open source licence.
