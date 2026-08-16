@@ -437,6 +437,29 @@ touche qu'elle-même. Vérifier en 360×640 (le petit téléphone décide) autan
 qu'en 390×844. L'instrument signale toute adjacence : c'est à la lecture de
 trancher si le voisinage coûte quelque chose.
 
+**Un geste tactile ne se termine pas toujours par `touchend`.** Le
+système reprend un toucher quand il veut — le défilement prend la main,
+une notification tombe, l'application passe en arrière-plan — et il
+envoie `touchcancel` à la place. **`touchend` n'arrive alors jamais.**
+Un geste qui DÉPLACE quelque chose et n'écoute que la fin laisse donc
+son objet décalé et sa classe posée, indéfiniment : une ligne coincée
+de travers qui découvre une bande de fond, une feuille arrêtée à
+mi-hauteur. Les quatre gestes de l'app étaient dans ce cas, et c'est la
+moitié du « petit bug qui persiste » signalé sur photo — l'autre moitié
+étant le survol collé (§4). Deux règles :
+
+- **Tout geste qui bouge rend son `touchcancel`**, et il ramène au même
+  repos que `touchend` — un seul `auRepos()` partagé, jamais deux
+  chemins de rangement qui divergeront.
+- **`touchstart` remet au repos AVANT de commencer.** Ceinture, pour le
+  cas où même l'annulation manque : sans elle, un état coincé survit à
+  tous les gestes suivants, ce qui est exactement ce qu'on a vu.
+
+Corollaire d'outillage, appris ici : **on mesure le style EN LIGNE, pas
+le calculé.** Une transition CSS rend encore l'ancienne valeur à
+l'instant où on la lit ; la première version du contrôle a conclu
+« rien n'a bougé » d'un geste qui suivait pourtant le doigt.
+
 **Naviguer, c'est tenir quatre promesses.** Une barre d'onglets et un
 bouton retour promettent des choses très précises ; les tenir à moitié
 coûte plus cher que ne pas les faire. Les quatre sont mesurées et

@@ -364,6 +364,9 @@ function bindEdgeBack(root){
     x0 = null;
     if (dx > 60 && dy < 50) closeReglages();
   });
+  /* sans ça, un geste repris par le système laisse `x0` armé : le tap
+     suivant se mesure depuis un départ qui n'est plus le sien */
+  root.addEventListener('touchcancel', () => { x0 = null; });
 }
 
 export function renderMoi(){

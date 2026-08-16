@@ -469,8 +469,14 @@ function bindSwipe(row, c){
   if (!matchMedia('(pointer:coarse)').matches) return;
   const inner = row.querySelector('.act-in');
   let x0 = null, y0 = null, dx = 0, active = false;
+  const auRepos = () => {
+    x0 = null; dx = 0; active = false;
+    inner.style.transform = '';
+    row.classList.remove('swipe-done', 'swipe-report');
+  };
   row.addEventListener('touchstart', e => {
-    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; dx = 0; active = false;
+    auRepos();
+    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY;
   }, { passive: true });
   row.addEventListener('touchmove', e => {
     if (x0 == null) return;
@@ -486,11 +492,12 @@ function bindSwipe(row, c){
   }, { passive: true });
   row.addEventListener('touchend', () => {
     if (active){
-      if (dx > 72){ finishRow(row, c); x0 = null; return; }
+      /* la ligne part en s'effaçant : elle garde son décalage pendant
+         les 160 ms de `act-gone` — la remettre droite la ferait sauter */
+      if (dx > 72){ x0 = null; dx = 0; active = false; finishRow(row, c); return; }
       if (dx < -72) reportAction(c);
     }
-    inner.style.transform = '';
-    row.classList.remove('swipe-done', 'swipe-report');
-    x0 = null;
+    auRepos();
   });
+  row.addEventListener('touchcancel', () => { if (x0 != null) auRepos(); });
 }

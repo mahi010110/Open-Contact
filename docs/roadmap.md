@@ -10,7 +10,7 @@ web — livré, c'est cette feuille de route —, l'ordinateur et le téléphone
 La surface ordinateur a la sienne : `compagnon/roadmap.md`. On ne re-discute
 pas la répartition ici, on l'applique.
 
-Dernière mise à jour : 15 août 2026 — cache `oc-v157`, 119 auto-tests verts
+Dernière mise à jour : 15 août 2026 — cache `oc-v158`, 119 auto-tests verts
 (`node tests/e2e/unitaires.mjs`), 27 fichiers E2E.
 
 ---
@@ -265,6 +265,25 @@ Dernière mise à jour : 15 août 2026 — cache `oc-v157`, 119 auto-tests verts
   (32 fausses fautes), et « déjà protégé » se décide par la profondeur
   d'accolades, pas en regardant les lignes précédentes — sinon des
   règles consécutives passent au travers.*
+- **Le geste repris par le système** (août 2026, même signalement que le
+  survol collé — « c'est général, sur tout le site »). `touchend`
+  n'arrive pas toujours : quand le défilement prend la main, qu'une
+  notification tombe ou que l'app passe en arrière-plan, le système
+  envoie `touchcancel` à la place. **Aucun des quatre gestes de l'app ne
+  l'écoutait** — la barre Annuler, la feuille qu'on glisse, la
+  suppression d'une ligne, le balayage d'« Aujourd'hui ». L'objet
+  restait donc décalé et sa classe posée : une ligne de travers
+  découvrant une bande de fond, une feuille arrêtée à mi-hauteur. Chacun
+  rend maintenant son annulation, vers le même `auRepos()` que la fin
+  normale, et `touchstart` remet au repos en ceinture. Garde à deux
+  étages dans `e2e-ux-audit.mjs` : le TEXTE (tout `touchmove` a son
+  `touchcancel` sur la même cible, commentaires ignorés) et le
+  COMPORTEMENT (annulation jouée sur une ligne et sur une feuille, avec
+  une sonde qui exige que l'objet ait VRAIMENT bougé avant d'exiger
+  qu'il soit revenu). 6 mutations. *Leçon d'outillage : on mesure le
+  style en ligne, pas le calculé — une transition CSS rend encore
+  l'ancienne valeur, et la première version du contrôle a conclu « rien
+  n'a bougé » d'un geste qui suivait pourtant le doigt.*
 - Auto-tests verts, parcours principaux rejoués en E2E.
 
 > **Nuance conservée.** « Refonte terminée » veut dire : les 23 décisions sont

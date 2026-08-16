@@ -35,11 +35,23 @@ function barX(onClose){
 }
 /* glisser horizontalement une barre centrée (transform -50%) la ferme ;
    sous le seuil, elle revient — les minuteurs restent le secours */
+/* ⚠ Tout geste tactile qui DÉPLACE quelque chose doit rendre son
+   `touchcancel` : le système reprend un toucher à tout moment (le
+   défilement prend la main, une notification tombe, l'app passe en
+   arrière-plan) et `touchend` n'arrive alors JAMAIS. Sans ce retour au
+   repos, l'objet reste décalé et sa classe reste posée — c'est le
+   « petit bug qui persiste ». Ceinture en plus : `touchstart` remet au
+   repos avant de commencer, pour le cas où même l'annulation manque. */
 function bindBarSwipe(bar, dismiss){
   if (!matchMedia('(pointer:coarse)').matches) return;
   let x0 = null, y0 = null, dx = 0, active = false;
+  const auRepos = () => {
+    x0 = null; dx = 0; active = false;
+    bar.style.transition = ''; bar.style.transform = ''; bar.style.opacity = '';
+  };
   bar.addEventListener('touchstart', e => {
-    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; dx = 0; active = false;
+    auRepos();
+    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY;
   }, { passive: true });
   bar.addEventListener('touchmove', e => {
     if (x0 == null) return;
@@ -58,9 +70,9 @@ function bindBarSwipe(bar, dismiss){
     x0 = null;
     bar.style.transition = '';
     if (active && Math.abs(dx) > 64){ dismiss(); return; }
-    bar.style.transform = '';
-    bar.style.opacity = '';
+    auRepos();
   });
+  bar.addEventListener('touchcancel', () => { if (x0 != null) auRepos(); });
 }
 
 let toastTimer = null;
@@ -348,9 +360,14 @@ export function openSheet(o){
     const modal = ov.querySelector('.modal');
     const bindDrag = (zone, guard) => {
       let y0 = null, dy = 0;
+      const auRepos = () => {
+        y0 = null; dy = 0;
+        modal.style.transition = ''; modal.style.transform = '';
+      };
       zone.addEventListener('touchstart', e => {
         if (guard && !guard(e)) return;
-        y0 = e.touches[0].clientY; dy = 0;
+        auRepos();
+        y0 = e.touches[0].clientY;
         modal.style.transition = 'none';
       }, { passive: true });
       zone.addEventListener('touchmove', e => {
@@ -361,10 +378,10 @@ export function openSheet(o){
       zone.addEventListener('touchend', () => {
         if (y0 == null) return;
         modal.style.transition = '';
-        if (dy > 90) close();
-        else modal.style.transform = '';
-        y0 = null;
+        if (dy > 90){ y0 = null; close(); return; }
+        auRepos();
       });
+      zone.addEventListener('touchcancel', () => { if (y0 != null) auRepos(); });
     };
     bindDrag(ov.querySelector('.modal-h'));
     bindDrag(body, e =>
@@ -520,8 +537,14 @@ export function bindDeleteGesture(node, onDelete, quoi){
   if (!matchMedia('(pointer:coarse)').matches) return;
   node.prepend(el(`<div class="sw-under" aria-hidden="true">${ic('trash', 'ic-14')} Supprimer</div>`));
   let x0 = null, y0 = null, dx = 0, active = false, endedAt = 0;
+  const auRepos = () => {
+    x0 = null; dx = 0; active = false;
+    inner.style.transform = '';
+    node.classList.remove('swipe-del');
+  };
   node.addEventListener('touchstart', e => {
-    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; dx = 0; active = false;
+    auRepos();
+    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY;
   }, { passive: true });
   node.addEventListener('touchmove', e => {
     if (x0 == null) return;
@@ -536,14 +559,12 @@ export function bindDeleteGesture(node, onDelete, quoi){
   }, { passive: true });
   node.addEventListener('touchend', () => {
     if (x0 == null) return;
-    x0 = null;
-    if (active){
-      endedAt = Date.now();
-      if (dx < -72){ inner.style.transform = ''; node.classList.remove('swipe-del'); vanish(); return; }
-    }
-    inner.style.transform = '';
-    node.classList.remove('swipe-del');
+    const partir = active && dx < -72;
+    if (active) endedAt = Date.now();
+    auRepos();
+    if (partir) vanish();
   });
+  node.addEventListener('touchcancel', () => { if (x0 != null) auRepos(); });
   /* le clic fantôme qui suit un glissement n'ouvre rien */
   node.addEventListener('click', e => {
     if (Date.now() - endedAt < 400){ e.stopPropagation(); e.preventDefault(); }

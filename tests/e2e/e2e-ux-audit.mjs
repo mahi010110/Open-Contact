@@ -1,7 +1,7 @@
 /* E2E corrections prioritaires de l'audit UX : aucune action primaire morte,
    parcours Compagnon mobile honnête, relais avancés accessibles, cibles au
    pouce, contact sans doublon et fournisseurs IA non livrés non activables. */
-import { readFileSync } from 'fs';
+import { readFileSync, readdirSync } from 'fs';
 import { chromium, chromiumPath, SHOTS, serveRepo, attendre } from './outils.mjs';
 import { COMPAGNON, IA } from '../../ui/perimetre.js';
 
@@ -1685,6 +1685,126 @@ if (IA){
     else if (!aLaSouris) fail('survol : à la souris, plus rien ne réagit — la garde a tué le survol au lieu de le borner');
     else console.log(`survol : ${total} règles, toutes sous \`@media (hover:hover)\` — `
       + 'inerte au doigt, vivant à la souris ✓');
+  }
+}
+
+
+/* ---------- UN GESTE REPRIS PAR LE SYSTÈME REVIENT AU REPOS ----------
+   L'autre moitié du « petit bug qui persiste », et la plus visible :
+   `touchend` n'arrive PAS toujours. Le système reprend un toucher quand
+   il veut — le défilement prend la main, une notification tombe, l'app
+   passe en arrière-plan, un appel arrive — et il envoie `touchcancel` à
+   la place. Un geste qui déplace quelque chose et n'écoute que
+   `touchend` laisse alors son objet décalé et sa classe posée : une
+   ligne coincée de travers qui découvre une bande de fond, une feuille
+   arrêtée à mi-hauteur. Aucun des quatre gestes de l'app ne l'écoutait.
+   Deux contrôles : le TEXTE (un geste qui bouge sans son annulation se
+   voit à la lecture, même si aucun scénario ne le déclenche) et le
+   COMPORTEMENT (l'annulation peut être branchée et ne rien remettre en
+   place). Le second se vérifie lui-même : il exige que l'objet ait
+   VRAIMENT bougé avant d'exiger qu'il soit revenu — sinon il resterait
+   vert le jour où le geste cesse d'exister. */
+{
+  const dir = new URL('../../ui/', import.meta.url);
+  const manquants = []; let gestes = 0;
+  for (const f of readdirSync(dir).filter(n => n.endsWith('.js'))){
+    const js = readFileSync(new URL(f, dir), 'utf8');
+    /* `X.addEventListener('touchmove'` → X est l'objet qui écoute ; on
+       exige que le MÊME X écoute aussi l'annulation, dans le même
+       fichier. Les commentaires ne comptent pas : ce dépôt en a qui
+       citent ces noms d'événement. */
+    const net = js.replace(/\/\*[\s\S]*?\*\//g, '');
+    const cibles = new Set([...net.matchAll(/(\w+)\.addEventListener\(\s*'touchmove'/g)].map(m => m[1]));
+    const annulent = new Set([...net.matchAll(/(\w+)\.addEventListener\(\s*'touchcancel'/g)].map(m => m[1]));
+    for (const c of cibles){
+      gestes++;
+      if (!annulent.has(c)) manquants.push(`${f} · ${c}`);
+    }
+  }
+  if (gestes < 3)
+    fail(`geste annulé : ${gestes} geste(s) tactile(s) trouvé(s) — le contrôle ne lit plus rien`);
+  else if (manquants.length)
+    fail(`geste annulé : ${manquants.length} geste(s) déplacent un objet sans écouter \`touchcancel\` — `
+      + `l'objet restera de travers quand le système reprendra le toucher —\n      `
+      + manquants.join('\n      '));
+  else {
+    const gBrowser = await chromium.launch({ executablePath: chromiumPath() });
+    const c = await gBrowser.newContext({ viewport: { width: 393, height: 800 },
+      hasTouch: true, isMobile: true });
+    const pg = await c.newPage();
+    await pg.goto(base, { waitUntil: 'load' });
+    await pg.waitForSelector('#view-aujourdhui:not([hidden])');
+    await pg.evaluate(async () => {
+      const { S, saveData } = await import('./ui/state.js');
+      const { normalizeCompany } = await import('./engine/model.js');
+      S.companies = [normalizeCompany({ id: 'gc', name: 'Geste Annulé', city: 'Nantes', status: 'todo' })];
+      saveData(); location.hash = '#/pistes';
+    });
+    await pg.waitForSelector('.row-item .sw-in');
+    /* le glissement de suppression : on le pousse à −40 px (au-delà du
+       seuil de 24 qui allume `swipe-del`), puis le système le reprend */
+    const ligne = await pg.evaluate(() => {
+      const node = document.querySelector('.row-item');
+      const inner = node.querySelector('.sw-in');
+      const b = node.getBoundingClientRect();
+      const y = b.top + b.height / 2, x = b.left + b.width - 24;
+      const jeter = (type, cx) => {
+        const t = new Touch({ identifier: 7, target: node, clientX: cx, clientY: y });
+        const fini = type === 'touchend' || type === 'touchcancel';
+        node.dispatchEvent(new TouchEvent(type,
+          { touches: fini ? [] : [t], changedTouches: [t], bubbles: true, cancelable: true }));
+      };
+      jeter('touchstart', x);
+      jeter('touchmove', x - 40);
+      /* le style EN LIGNE, pas le calculé : une transition CSS rend
+         encore l'ancienne valeur à l'instant où on la lit, et la mesure
+         dirait « rien n'a bougé » d'un geste qui suit pourtant le doigt */
+      const pendant = inner.style.transform;
+      const marquee = node.classList.contains('swipe-del');
+      jeter('touchcancel', x - 40);
+      const apres = inner.style.transform;
+      return { pendant, marquee, apres, collee: node.classList.contains('swipe-del') };
+    });
+    const bouge = t => !!t && t !== 'none';
+    /* la sonde : sans mouvement pendant le geste, il n'y a rien à
+       remettre en place et le contrôle ne prouverait rien */
+    if (!bouge(ligne.pendant) || !ligne.marquee)
+      fail('geste annulé : la ligne ne bouge même pas pendant le glissement — '
+        + 'le contrôle ne mesure plus le geste qu’il prétend garder');
+    else if (bouge(ligne.apres) || ligne.collee)
+      fail('geste annulé : le système reprend le toucher et la ligne reste de travers '
+        + `(transform « ${ligne.apres} », classe collée : ${ligne.collee}) — c’est la bande grise qui persiste`);
+
+    /* et la feuille, la plus visible des quatre : arrêtée à mi-hauteur,
+       elle cache l'écran derrière un rectangle qui ne repart plus */
+    await pg.click('#piProspect');
+    await pg.waitForSelector('.modal-h');
+    const feuille = await pg.evaluate(() => {
+      const h = document.querySelector('.modal-h');
+      const modal = h.closest('.modal');
+      const b = h.getBoundingClientRect();
+      const x = b.left + b.width / 2, y0 = b.top + b.height / 2;
+      const jeter = (type, cy) => {
+        const t = new Touch({ identifier: 9, target: h, clientX: x, clientY: cy });
+        const fini = type === 'touchend' || type === 'touchcancel';
+        h.dispatchEvent(new TouchEvent(type,
+          { touches: fini ? [] : [t], changedTouches: [t], bubbles: true, cancelable: true }));
+      };
+      jeter('touchstart', y0);
+      jeter('touchmove', y0 + 50);
+      const pendant = modal.style.transform;
+      jeter('touchcancel', y0 + 50);
+      return { pendant, apres: modal.style.transform };
+    });
+    await c.close();
+    await gBrowser.close();
+    if (!bouge(feuille.pendant))
+      fail('geste annulé : la feuille ne suit pas le pouce — le contrôle ne mesure plus rien');
+    else if (bouge(feuille.apres))
+      fail('geste annulé : le système reprend le toucher et la feuille reste arrêtée à mi-hauteur '
+        + `(transform « ${feuille.apres} »)`);
+    else console.log(`geste annulé : ${gestes} gestes tactiles rendent leur \`touchcancel\` — `
+      + 'ligne et feuille reviennent au repos ✓');
   }
 }
 
