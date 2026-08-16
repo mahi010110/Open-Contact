@@ -7,10 +7,14 @@ l'idée, ou on discute la règle avec le mainteneur. Jamais d'exception
 silencieuse.
 
 À lire avec : `CONTRAT.md` (le contrat de données, vérifié par `?test`),
-`docs/roadmap.md` (la feuille de route de la surface web), `compagnon/roadmap.md`
-(celle de la surface ordinateur, en sommeil), `design/` (le kit « Utilitaire 98 »).
-Le « pourquoi » de l'interface actuelle vit dans `docs/refonte-calibrage.md`
-(23 décisions) et `docs/finition-calibrage.md`.
+`docs/surfaces.md` (ce qui est livré, ce qui dort, ce qui n'existe pas),
+`docs/feuille-de-route.md` (quoi faire et dans quel ordre), `design/` (le kit
+« Utilitaire 98 »).
+
+**Le « pourquoi » de l'interface vit ICI, dans les §4 à §8.** Les journaux de
+calibrage qui l'ont produit ont été supprimés en août 2026, une fois leurs
+règles distillées dans ce fichier : un raisonnement qui compte finit dans la
+règle, jamais dans une archive que personne ne relit.
 
 ---
 
@@ -962,87 +966,6 @@ données fabriquées sur place — elle prouvait seulement qu'il n'invente
 pas ce qu'on ne lui donne pas. Une mutation posée dans un ÉCRAN est
 passée sans la faire broncher. **Un contrôle de fuite part de l'état
 RÉEL de l'app et lit les octets qui sortent par le vrai bouton.**
-
-Transport : Trystero (vendorisé) via relais Nostr publics, personnalisables
-(`oc_relays_v1`).
-
-**Ce qui vaut d'être partagé n'est pas l'adresse, c'est le lien humain.**
-Mesuré : une candidature à froid décroche un entretien dans ~3 % des cas,
-une candidature portée par quelqu'un qui est dedans dans ~40 % — un rapport
-de 40 pour 1. Une promo entière a déjà fait des stages : ce réseau existe,
-et le partage, anonyme par construction, n'en transportait rien. D'où
-`vecu` / `vecuQui` (`CONTRAT.md` §3) : le **seul** endroit où un partage
-cesse d'être anonyme, et seulement **sur déclaration explicite** — pas de
-déclaration, pas de prénom, exactement comme avant. La règle qui en sort et
-qui vaut pour la suite : **une information qui ne mène à personne ne mène à
-rien.** « Quelqu'un y a fait son stage » ne se joue pas ; « Léa y a fait son
-stage » se joue. Le prénom n'est pas un détail d'affichage, c'est ce qui
-transforme la donnée en geste. Corollaire de garde : tout champ neuf qui
-voyage se teste d'abord sur l'invariant ① — `e2e-vecu.mjs` vérifie la fuite
-AVANT la fonctionnalité, et ses cinq mutations le prouvent.
-
-**Et un prénom ne mène quelque part que s'il désigne quelqu'un.** D'où
-**mon groupe** (`oc_group_v1`) — mais la façon dont il entre dans l'app est
-la vraie décision, et elle a coûté une réécriture complète.
-
-> **Ton groupe n'est pas une liste que tu construis, c'est la TRACE de ce que
-> tu as échangé.** On coche « Joindre mon profil » en donnant ses pistes ; le
-> camarade entre tout seul chez celui qui reçoit ; le prénom devient tapable
-> là où il sert — sur la fiche. Aucun écran à visiter, aucun rituel à
-> apprendre.
-
-**La première version faisait l'inverse**, et c'est l'erreur à ne pas
-refaire : quatre feuilles neuves (une liste, une personne, « échanger nos
-profils » avec son QR et son fichier, une demande) plus une porte de plus sur
-« Échanger » — un deuxième produit greffé à côté du premier, avec son propre
-rituel d'échange à côté de celui qui existait déjà. Tout était vert :
-invariants tenus, cibles à 44 px, onze mutations attrapées. **Un garde vert
-sur un écran qui n'aurait pas dû exister ne prouve rien.** Cinq règles en
-sortent :
-
-1. **Un lot se mesure AUSSI en surface ajoutée.** La loi de Tesler dit que la
-   complexité irréductible est payée soit par le concepteur, soit par
-   l'utilisateur ; une fonctionnalité qui ajoute des écrans a choisi le
-   second. `e2e-groupe.mjs` compte donc les feuilles et les portes, avec un
-   **budget motivé en toutes lettres** — même mécanique que les plafonds de
-   sobriété, et le seul garde-fou contre un « juste une porte de plus ».
-2. **Une donnée qui peut se déduire ne se saisit pas.** Les gens ne rangent
-   pas leurs contacts ; leurs interactions le font pour eux, et plus
-   justement (graphe social implicite, Google, KDD 2010). Avant d'ajouter un
-   écran de gestion, chercher le geste qui existe déjà et s'y accrocher.
-3. **Chaque option configurable est une décision que le concepteur n'a pas
-   prise.** Le sélecteur de champs du profil (cinq puces) est parti : ce qui
-   part est **fixe** — prénom, formation, e-mail (`CARTE_ENVOI`). Le choix
-   qui reste est binaire : joindre, ou pas.
-4. **On ne devine jamais entre deux homonymes.** Deux « Léa » et
-   `trouverMembre` rend `null` : le bandeau redevient du texte. Règle
-   générale : **une résolution ambiguë n'en est pas une.**
-5. **Quand un canal est mesurablement meilleur, l'app le dit — au lieu de
-   pousser vers le sien.** Une demande de vive voix aboutit **34 fois** plus
-   souvent que par e-mail (Roghanizad & Bohns, 2017), et celui qui écrit ne
-   sent aucune différence. « Demander à Léa » propose donc d'aller la voir.
-   C'est la seule phrase d'explication qui ait fait monter le plafond de
-   `e2e-sobriete.mjs` (116 → 126) : le critère y passe de « prévient d'une
-   perte » à « prévient d'une perte **ou d'une erreur qu'on ne peut pas voir
-   venir** ».
-
-**Ce qui garde le droit d'être un écran.** Deux feuilles, pas plus :
-« Demander à … », le seul geste que la chaîne entière sert à produire ; et
-« Réglages · Mon groupe », qui n'est pas une fonctionnalité mais un devoir —
-l'app stocke les coordonnées de camarades qui n'ont jamais vu son écran,
-pouvoir les regarder et les effacer n'est pas négociable. Elle vit avec
-« Protection » et « Mes appareils », et **disparaît quand le groupe est
-vide**.
-
-**Ce que ce lot a appris sur les gardes.** Une première version de
-`e2e-groupe.mjs` vérifiait l'invariant en appelant les fonctions du moteur
-avec un groupe fabriqué sur place — elle prouvait seulement qu'elles
-n'inventent pas ce qu'on ne leur donne pas. Une mutation posée dans un
-ÉCRAN (là où `S.groupe` est réellement à portée) est passée sans la faire
-broncher. **Un contrôle de fuite doit partir de l'état RÉEL de l'app et lire
-les octets qui sortent par le vrai bouton**, jamais du moteur appelé à la
-main. Depuis, `e2e-groupe.mjs` remplit `S.groupe`, tape « Donner → Copier »,
-et grep le presse-papier.
 
 ---
 

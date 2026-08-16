@@ -2,7 +2,7 @@
    OpenContact — moteur · diagnostic
    Sans compte ni serveur, une bêta ne renvoie RIEN par défaut :
    le seul chemin de retour est un texte que l'étudiant copie et
-   colle lui-même dans une issue (docs/roadmap.md §3). Ce module
+   colle lui-même dans une issue (docs/feuille-de-route.md). Ce module
    fabrique ce texte.
 
    Sa règle tient en une ligne : **il ne reçoit des données que

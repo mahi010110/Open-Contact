@@ -271,7 +271,7 @@ function reglagesRowsHTML(){
   if (COMPAGNON) rows.push(['moiComp', 'Le Compagnon', 'pas installé', false]);
   /* Sans compte ni analytique, une app locale ne renvoie rien : le
      seul chemin de retour est un texte que l'étudiant copie lui-même
-     (docs/roadmap.md §3).
+     (docs/feuille-de-route.md).
      SANS état : la ligne portait le numéro de version, il est parti
      avec lui. En ligne, OpenContact est une seule app à une seule
      adresse — un numéro n'y distingue plus rien, il se lisait juste

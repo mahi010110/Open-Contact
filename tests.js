@@ -250,7 +250,7 @@ export async function runSelfTests(){
       catch (e) { eq(e.message, 'tropdepistes'); }
     },
 
-    /* — tests de sécurité (docs/audit-securite.md) — */
+    /* — tests de sécurité — */
     'OC2 : contenu altéré → refusé (tag GCM)': async () => {
       const enc = await encryptOC2({ a: 1 }, 'mdp');
       const p = enc.split('.');

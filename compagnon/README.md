@@ -1,9 +1,21 @@
 # OpenContact Compagnon
 
-L'application d'appoint sur l'ordinateur (D17/D18, `compagnon/fable5/ETUDE-COMPAGNON.md`) :
-elle prend ce qu'un navigateur ne peut pas garantir — envois de campagne
-app fermée, secrets dans le trousseau du système, IMAP/SMTP, analyse
-d'e-mails — et **rien d'autre**. La PWA reste complète sans elle.
+La surface **ordinateur** d'OpenContact : elle prend ce qu'un navigateur ne
+peut pas garantir — envois de campagne app fermée, secrets dans le trousseau
+du système, IMAP/SMTP, analyse d'e-mails — et **rien d'autre**. Le web reste
+complet sans elle.
+
+> **Chantier en sommeil.** Le code de cette surface est écrit et testé, mais
+> elle n'est **pas livrée** : elle ne s'installe pas aujourd'hui, et ses
+> capacités sont masquées dans l'app web (`ui/perimetre.js`). Voir
+> [`docs/surfaces.md`](../docs/surfaces.md) pour l'état réel des trois
+> surfaces.
+>
+> Le dossier garde le nom `compagnon/` pour une raison technique : le crate
+> Rust, le binaire installé et le point d'entrée local
+> (`127.0.0.1:17095/oc-compagnon`) portent ce nom, et le renommer casserait
+> toute version déjà installée. À l'écran, la surface s'appelle
+> **OpenContact pour ordinateur**.
 
 ## Architecture (hybride Tauri)
 

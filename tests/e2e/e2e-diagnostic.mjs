@@ -1,5 +1,5 @@
 /* E2E « Signaler un problème » — le seul chemin de retour d'une bêta
-   sans serveur (docs/roadmap.md §3). Ce que ce scénario prouve, et qui
+   sans serveur (docs/feuille-de-route.md). Ce que ce scénario prouve, et qui
    ne se voit pas dans les auto-tests du moteur :
 
    · la ligne existe dans Réglages, au pouce comme au poste, et SANS
