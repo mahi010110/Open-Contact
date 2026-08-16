@@ -1402,17 +1402,35 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   .ec-fil + .hero2{margin-top:16px}
 }
 .ec-tot{margin:-2px 0 6px}
-.ec-when{flex:none;white-space:nowrap;font-family:var(--font-mono);
+/* la date vit DANS la phrase (voir ui/echanger.js) : elle garde sa typo
+   de donnée — mono, discrète — sans quitter la ligne de texte */
+.ec-when{white-space:nowrap;font-family:var(--font-mono);
   font-size:var(--text-11);color:var(--text-muted)}
 .ec-when b{color:var(--text-body);font-weight:var(--weight-semibold)}
 @media (min-width:901px){
   /* le panneau prend TOUTE la hauteur de la vue : les gestes n'ont pas
      besoin de 1060 px, le fil si — et un cadre qui s'arrête à mi-écran
      laisserait sous lui le vide que le cadre servait à supprimer */
+  /* LA MESURE DU FIL EST BORNÉE, et le couple se centre. En `1fr`, la
+     colonne prenait 702 px pour des phrases de 30 à 40 caractères : le
+     trait pointillé courait deux fois plus loin que son texte et le
+     chevron finissait seul à 400 px de la ligne qu'il ouvre. Une
+     longueur de ligne confortable se situe entre 50 et 75 caractères
+     (NN/g, Baymard) ; 620 px à 13 px en tient environ 75, le haut de la
+     fourchette. Le couple 340 + 620 fait 978 px : centré dans les
+     1060 px de la page, le reste tombe des DEUX côtés au lieu de
+     s'entasser à droite. */
   .ec-cols{
     flex:1;min-height:0;display:grid;
-    grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:18px;
+    grid-template-columns:minmax(0,340px) minmax(0,620px);gap:18px;
   }
+  /* et la PAGE se resserre sur ce que ses colonnes demandent — pas la
+     grille seule. Centrer la grille dans une page de 1060 px décrochait
+     le titre « Échanger », resté sur le bord gauche d'origine : un titre
+     qui ne surplombe plus sa colonne n'est plus un titre. La page prend
+     donc 978 px (340 + 18 + 620) et se centre entière : un seul bord
+     gauche pour le titre et pour les deux colonnes. */
+  #view-echanger>.page-inner{max-width:978px}
   .ec-actes{align-self:start}
   .ec-cols .ec-fil{margin-top:0}
 }
@@ -1467,7 +1485,15 @@ button.fi-vecu b{flex:1;min-width:0}
    carte le transformerait en liste de boîtes — l'inverse de ce qu'on
    cherche. Il prend donc le fond de la page, juste assez opaque pour
    couvrir la poubelle pendant le glissement. */
-.ec-l .sw-in{background:var(--surface-desktop)}
+/* Et la ligne du fil EST une ligne. Sans `display:flex`, `.sw-in` reste
+   un BLOC : la poubelle du geste de suppression se posait SOUS le texte,
+   collée à gauche, et chaque échange occupait 65 px de haut dont la
+   moitié pour un bouton invisible au repos. Mesuré : ligne 33 px, cadre
+   65 px, poubelle à y+33 et x=0. Tous les autres porteurs du motif
+   (`.row-item`, `.doc-row`, `.orow`) posent ce `flex` ; le fil l'avait
+   oublié en naissant, et le trop-plein d'air se lisait comme un dessin
+   raté avant qu'on en trouve la cause. */
+.ec-l .sw-in{display:flex;align-items:center;background:var(--surface-desktop)}
 .ec-row{
   display:flex;align-items:center;gap:10px;width:100%;
   min-height:var(--ctl);padding:9px 0;

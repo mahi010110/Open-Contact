@@ -1808,6 +1808,105 @@ if (IA){
   }
 }
 
+
+/* ---------- UNE LIGNE RESTE UNE LIGNE ----------
+   Le motif de suppression pose une poubelle DANS la ligne (`.sw-in`).
+   Si le porteur oublie `display:flex`, `.sw-in` reste un bloc et la
+   poubelle se range SOUS le texte, collée à gauche : la ligne double de
+   hauteur pour un bouton invisible au repos, et la liste prend un air
+   de dessin raté sans qu'on en voie la cause. C'est arrivé au fil des
+   échanges — 33 px de texte dans un cadre de 65 — et ça s'est vu à
+   l'œil avant de se mesurer. Tous les autres porteurs (`.row-item`,
+   `.doc-row`, `.orow`) posaient bien ce `flex` ; celui-là est né sans.
+   Le contrôle vaut pour TOUS : la poubelle doit croiser verticalement
+   le contenu de sa ligne. */
+{
+  const lBrowser = await chromium.launch({ executablePath: chromiumPath() });
+  const lc = await lBrowser.newContext({ viewport: { width: 1280, height: 800 } });
+  const lp = await lc.newPage();
+  await lp.goto(base, { waitUntil: 'load' });
+  await lp.waitForSelector('#view-aujourdhui:not([hidden])');
+  const J = n => Date.now() - n * 864e5;
+  await lp.evaluate(async j => {
+    const st = await import('./engine/storage.js');
+    await st.kvInit();
+    await st.kvSet(st.DATA_KEY, JSON.stringify([
+      { id: 'e1', name: 'Empilement SI', city: 'Lille', status: 'todo', updatedAt: 2 },
+      { id: 'e2', name: 'Ligne Témoin', city: 'Lyon', status: 'todo', updatedAt: 1 }]));
+    await st.kvSet(st.JOURNAL_KEY, JSON.stringify(j));
+  }, [{ txt: 'Donné (QR) : 7 pistes', t: J(3), ids: ['e1'] },
+      { txt: 'Reçu de Léa : +3 pistes', t: J(1), ids: ['e2'] }]);
+  await lp.reload({ waitUntil: 'load' });
+  await lp.waitForSelector('#view-aujourdhui:not([hidden])');
+
+  const empiles = [];
+  let vues = 0;
+  for (const route of ['pistes', 'echanger', 'moi']){
+    await lp.evaluate(r => { location.hash = '#/' + r; }, route);
+    await lp.waitForTimeout(500);
+    const r = await lp.evaluate(() => {
+      const out = [];
+      for (const n of document.querySelectorAll('.sw')){
+        const inner = n.querySelector('.sw-in');
+        const del = n.querySelector('.hov-del');
+        if (!inner || !del) continue;
+        const ri = inner.getBoundingClientRect(), rd = del.getBoundingClientRect();
+        if (!ri.height || !rd.height) continue;
+        /* la poubelle croise-t-elle la bande verticale du CONTENU ?
+           empilée, elle est entièrement sous lui. On compare à ce qui
+           n'est pas elle : le premier enfant de la ligne. */
+        const frere = [...inner.children].find(c => c !== del);
+        const rf = frere ? frere.getBoundingClientRect() : ri;
+        out.push({ q: n.className.split(' ')[0],
+          croise: rd.top < rf.bottom - 2 && rd.bottom > rf.top + 2,
+          h: Math.round(ri.height), hc: Math.round(rf.height) });
+      }
+      return out;
+    });
+    vues += r.length;
+    for (const x of r) if (!x.croise) empiles.push(`${route} · .${x.q} (cadre ${x.h}px, contenu ${x.hc}px)`);
+  }
+  /* la sonde : sans lignes vues, l'absence d'empilement ne prouve rien */
+  if (vues < 4)
+    fail(`ligne : ${vues} ligne(s) supprimables trouvées — le contrôle ne mesure plus rien`);
+  else if (empiles.length)
+    fail(`ligne : ${empiles.length} ligne(s) où la poubelle se range SOUS le texte au lieu d'être `
+      + `dedans — il manque \`display:flex\` sur leur \`.sw-in\` —\n      ` + empiles.join('\n      '));
+  else console.log(`ligne : ${vues} lignes supprimables, la poubelle reste dans la ligne ✓`);
+
+  /* ---------- ET LA DATE RESTE AVEC SA PHRASE ----------
+     Jetée au bord droit d'une colonne de 700 px, elle vivait à plus de
+     400 px de la fin du texte : deux objets si loin l'un de l'autre ne
+     se lisent plus comme une seule ligne (principe de proximité, NN/g).
+     La place forte de droite appartient d'ailleurs, dans toute l'app, à
+     ce qui RÉCLAME quelque chose — une date passée ne réclame rien. */
+  await lp.evaluate(() => { location.hash = '#/echanger'; });
+  await lp.waitForTimeout(500);
+  const loin = await lp.evaluate(() => {
+    const out = [];
+    for (const l of document.querySelectorAll('#view-echanger .ec-l')){
+      const b = l.querySelector('.ec-row > b'), d = l.querySelector('.ec-when');
+      if (!b || !d) { out.push({ ecart: -1 }); continue; }
+      /* l'ENCRE, pas la boîte : le `<b>` est en `flex:1`, sa boîte
+         s'étire sur toute la colonne et mentirait de 400 px */
+      const rg = document.createRange();
+      rg.setStartBefore(b.firstChild); rg.setEndBefore(d);
+      out.push({ ecart: Math.round(d.getBoundingClientRect().left - rg.getBoundingClientRect().right) });
+    }
+    return out;
+  });
+  const MAX_ECART = 24;
+  if (!loin.length) fail('date : aucune ligne de fil — le contrôle ne mesure plus rien');
+  else if (loin.some(x => x.ecart < 0)) fail('date : une ligne du fil n’a plus de date');
+  else if (loin.some(x => x.ecart > MAX_ECART))
+    fail(`date : la date s’éloigne de sa phrase (${Math.max(...loin.map(x => x.ecart))}px, `
+      + `plafond ${MAX_ECART}) — au-delà, la ligne se lit comme deux objets sans rapport`);
+  else console.log(`date : elle reste collée à sa phrase sur ${loin.length} lignes `
+    + `(${Math.max(...loin.map(x => x.ecart))}px au plus) ✓`);
+  await lc.close();
+  await lBrowser.close();
+}
+
 /* ---------- LE TEXTE DOUBLÉ (WCAG 1.4.4, AA) ----------
    Le droit d'agrandir le texte de 200 % sans perdre ni contenu ni
    fonction. Jamais mesuré ici, et c'est ce qui a rendu l'outillage

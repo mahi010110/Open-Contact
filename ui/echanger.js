@@ -111,9 +111,18 @@ function filHTML(){
         const phrase = x.sens === 'donne'
           ? `${quoi} donnée${x.n > 1 ? 's' : ''} · ${x.canal}`
           : `${quoi} reçue${x.n > 1 ? 's' : ''} · ${x.qui || 'le groupe'}`;
+        /* LA DATE FAIT PARTIE DE LA PHRASE. Jetée à droite de la ligne,
+           elle vivait à 364-432 px de la fin du texte : deux objets si
+           éloignés ne se lisent plus comme une seule ligne (principe de
+           PROXIMITÉ — ce qui est proche est perçu comme lié, NN/g). Et
+           la place forte de droite appartient, dans toute l'app, à ce
+           qui RÉCLAME quelque chose (`mark-*`, l'échéance d'une piste) ;
+           une date passée ne réclame rien. Elle rejoint donc la phrase,
+           derrière le même point médian que le canal — c'est déjà la
+           grammaire des sous-lignes de l'app, « statut · ville · qui ». */
         const dedans =
-          `<b>${ic(x.sens === 'donne' ? 'share' : 'inbox', 'ic-14')} ${esc(phrase)}</b>
-           <span class="ec-when">${quand(x.t)}</span>`;
+          `<b>${ic(x.sens === 'donne' ? 'share' : 'inbox', 'ic-14')} ${esc(phrase)}<span
+             class="ec-when"> · ${quand(x.t)}</span></b>`;
         /* Le chevron ne se pose que sur les lignes qui MÈNENT quelque
            part : les anciennes entrées, qui n'ont pas gardé leurs
            identifiants, restent du texte — promettre une ouverture
