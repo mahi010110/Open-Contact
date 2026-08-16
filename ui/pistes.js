@@ -13,7 +13,7 @@ import { silentPistes } from '../engine/assist.js';
 import { S, bus, isClosed, hasDemo, addDemo, ctLabel, deletePiste, undeletePiste,
          removeOrphan, saveOrphans, saveData, logJ } from './state.js';
 import { $, ic, toast, showUndo, bindDeleteGesture, openSheet, softReorder, topSheet,
-         collerEnHaut, clavier } from './dom.js';
+         collerEnHaut, clavier, annoncer } from './dom.js';
 import { openAffinerSheet, filterState, filterOn, filterClear, filterArgs } from './affiner.js';
 import { sortState, sortArgs, sortHasDist, sortChipHTML, bindSortChip } from './sort.js';
 import { relLabel, diffDays, dueMarkHTML, silenceMarkHTML } from './dates.js';
@@ -392,6 +392,13 @@ export function renderPistes(){
     if (cnt) cnt.textContent = (q || ftOn()) && all.length !== tout
       ? `${all.length} sur ${tout}`
       : `${tout} piste${tout > 1 ? 's' : ''}`;
+    /* Filtrer réorganise tout l'écran sans rien annoncer : quelqu'un qui
+       ne voit pas l'écran tape trois lettres et n'apprend jamais qu'il
+       ne reste qu'une piste. C'est le DÉCOR qui suit un geste, jamais sa
+       conséquence — une annonce plus tardive dans le même souffle
+       (« supprimée, Annuler pendant 30 s ») la remplace, exprès. */
+    if (cnt && (q || ftOn()))
+      annoncer(`${all.length} piste${all.length > 1 ? 's' : ''} sur ${tout}.`);
 
     let html = orphansHTML();
     if (!S.companies.length){

@@ -159,6 +159,21 @@ const GESTES = [
              return a.animationName + '|' + Math.round(parseFloat(a.opacity) * 50); },
       () => mod.topSheet().close(null, true), 900), m);
   }],
+  /* ② La barre Annuler est le seul objet du produit qui apparaît SANS
+     qu'on l'ait demandé, et qui repart tout seul. Elle se posait en
+     douceur puis s'évaporait d'un coup : une expérience se retient par
+     sa fin, et la sienne n'existait pas. */
+  ['Fermer la barre Annuler', 'glisse', async p => {
+    await p.evaluate(async () => {
+      const { showUndo } = await import('./ui/dom.js');
+      showUndo('Test.', () => {});
+      await new Promise(r => setTimeout(r, 300));
+    });
+    return p.evaluate(() => window.__film('.undo-bar',
+      n => getComputedStyle(n).opacity.slice(0, 4) + '|' + getComputedStyle(n).transform.slice(-9),
+      () => document.querySelector('.undo-bar .bar-x').click(), 400));
+  }],
+
   /* ---- et ce qui doit RESTER NET ---- */
   /* Les objets gardent leur netteté « 98 » : un thème qui se fond serait
      une page entière en mouvement pour un réglage qu'on prend une fois. */
@@ -197,6 +212,39 @@ for (const [nom, attendu, fn] of GESTES){
     fail(`« ${nom} » s'est mis à glisser (${r.inter} états) — le mouvement doit rester rare`);
   await fermerTout(p);
   await p.waitForTimeout(200);
+}
+
+/* ---- une sortie part DANS LE SENS du geste qui la cause ----
+   Un mouvement n'est perçu comme CAUSÉ que s'il part sans délai et dans
+   la même direction que le geste. Une barre poussée vers la droite qui
+   s'en irait vers le bas se lit comme deux évènements sans rapport. */
+{
+  const sens = await p.evaluate(async () => {
+    const { showUndo } = await import('./ui/dom.js');
+    showUndo('Test.', () => {});
+    await new Promise(r => setTimeout(r, 300));
+    const bar = document.querySelector('.undo-bar');
+    const b = bar.getBoundingClientRect();
+    const y = b.top + b.height / 2;
+    const jeter = (type, cx) => {
+      const t = new Touch({ identifier: 3, target: bar, clientX: cx, clientY: y });
+      const fini = type === 'touchend' || type === 'touchcancel';
+      bar.dispatchEvent(new TouchEvent(type,
+        { touches: fini ? [] : [t], changedTouches: [t], bubbles: true, cancelable: true }));
+    };
+    const x = b.left + b.width / 2;
+    jeter('touchstart', x); jeter('touchmove', x + 40); jeter('touchmove', x + 90);
+    jeter('touchend', x + 90);
+    await new Promise(r => setTimeout(r, 60));
+    /* le style EN LIGNE : le calculé rend encore l'ancienne valeur */
+    return bar.style.transform;
+  });
+  const versLaDroite = /calc\(-50% \+ (\d+)px\)/.test(sens);
+  if (!versLaDroite)
+    fail(`la barre balayée vers la droite ne part pas vers la droite (transform « ${sens} ») — `
+      + 'une sortie qui ignore le geste ne se lit pas comme causée par lui');
+  else console.log(`Barre balayée à droite            sens      droite         ${sens}`);
+  await p.evaluate(() => document.querySelector('.undo-bar')?.remove());
 }
 await ctx.close();
 

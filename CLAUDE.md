@@ -539,6 +539,7 @@ avec un motif existant.
 | Confirmer un geste risqué | `confirmSheet` (danger = `btn-danger`). **Une porte se décide** : elle ne se justifie que si elle montre ce qu'on ne peut PAS deviner (« ce fichier contient 12 pistes, tu en as 3 »). Une question dont le message dit qu'il n'y a rien à perdre ne protège personne |
 | Geste lourd réversible | `showUndo(msg, onUndo)` — barre Annuler ~30 s. **Il remplace la confirmation**, il ne s'y ajoute pas : demander ET offrir d'annuler, c'est payer deux fois |
 | Demander un mot de passe **facultatif** | `lockRowHTML` + `bindLockRow` — au repos un bouton compact « Chiffrer » au bout de la ligne d'action ; tapé, il **s'étire en champ sur place** et l'action voisine se serre. **La ligne ne change pas de hauteur** : rien ne pousse ce qui est dessous. `value()` rend `''` serrure fermée, donc l'appelant n'a jamais à connaître l'état ; refermer **oublie** ce qui était tapé |
+| Dire ce qui a changé sans qu'on regarde | `annoncer(msg)` — une phrase dans la région vivante de la coque. Les appels se regroupent sur 60 ms et **la dernière gagne** : un geste produit souvent deux annonces (le décor qui suit, puis la conséquence), et c'est la conséquence qu'on garde. Deux fois la même phrase repasse par le vide, sinon elle n'est pas relue |
 | Retour discret | `toast()` — court, ponctuel, jamais deux phrases. Un tiret cadratin au maximum, et ce qui le suit doit être un **geste** (« — passe par le fichier »), jamais un rassurement (« — tout est revenu comme avant ») |
 | Marquer partagé vs privé | `tag-share` / `tag-priv` |
 | Montrer qu'une ligne **vient de changer** | `montrerChange(id)` — un lavis d'accent, une fois, ~900 ms, sur la seule ligne concernée et seulement si elle est à l'écran. Ce n'est **pas** le langage d'urgence : `mark-*` reste à ce qui réclame une action |
@@ -649,6 +650,38 @@ et c'est le secteur qu'on peut perdre, jamais le nombre de personnes
 joignables. La recommandation prend l'accent, **jamais un `mark-*`** : le
 langage d'urgence reste à ce qui réclame quelque chose, et là rien ne presse
 — c'est un atout.
+
+**Ce qui change sans prendre le focus doit pouvoir se DIRE, et ce qui se
+tape doit avoir un NOM.** Trois règles, toutes tirées d'un relevé sur
+l'app réelle — le socle était bon, ce sont les trois trous qui restaient :
+
+- **Un message d'état s'annonce** (WCAG 4.1.3). Le toast et
+  l'avertissement de sauvegarde le faisaient déjà ; les deux qui
+  comptent le plus, non — la **barre Annuler**, c'est-à-dire le filet de
+  sécurité de tout le produit (invariant ②), et le **compte qui reste
+  après un filtre**. Quelqu'un qui n'a pas l'écran supprimait une piste
+  et n'apprenait jamais qu'il pouvait la reprendre. La région vit dans
+  `index.html`, pas dans le message : **elle doit exister avant qu'on
+  écrive dedans**, sinon la plupart des lecteurs d'écran ne la lisent
+  pas — et elle se cache par `clip-path`, jamais par `display:none` ni
+  `visibility:hidden`, qui la sortiraient de l'arbre d'accessibilité.
+  *(Sources : WAI-ARIA APG et MDN sur les régions vivantes — la région
+  doit préexister à sa mise à jour ; la technique « visuellement cachée,
+  lue quand même » est celle du WAI et de GOV.UK.)*
+- **Le focus ne tombe pas par terre** (WCAG 2.4.3). Quand l'élément qui
+  le porte quitte le document, le navigateur le rend au `<body>` :
+  mesuré, supprimer la deuxième ligne d'une liste renvoyait tout en haut
+  de la page. Le motif vise la **place**, pas l'identité — la ligne
+  suivante, sinon la précédente, sinon le titre de l'écran. Et il ne
+  déplace le focus **que s'il était dans ce qui part** : une suppression
+  au doigt ou à la souris ne doit rien voler. *(C'est la règle du
+  WAI-ARIA APG sur le retrait d'un élément focalisé — rendre la main au
+  voisin le plus proche, jamais au document.)*
+- **Le `placeholder` n'est pas un nom.** Il disparaît dès qu'on tape, et
+  il ne compte pas pour tous les lecteurs d'écran. Le champ le plus tapé
+  du produit vivait dessus, au pouce seulement — au poste il avait son
+  libellé. `e2e-annonce.mjs` balaie les 13 surfaces dans les deux
+  ergonomies et **ne compte jamais le `placeholder`**.
 
 **Règles d'écran :** un bouton primaire max par vue ; une suppression unitaire
 réversible se fait au geste + `showUndo`, sans confirmation ; seules les

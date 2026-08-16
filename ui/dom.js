@@ -69,10 +69,47 @@ function bindBarSwipe(bar, dismiss){
     if (x0 == null) return;
     x0 = null;
     bar.style.transition = '';
-    if (active && Math.abs(dx) > 64){ dismiss(); return; }
+    /* le SENS part avec la décision : ce qui s'en va suit le doigt */
+    if (active && Math.abs(dx) > 64){ dismiss(Math.sign(dx)); return; }
     auRepos();
   });
   bar.addEventListener('touchcancel', () => { if (x0 != null) auRepos(); });
+}
+
+/* ---------- l'annonceur : dire ce qui a changé sans qu'on regarde ----
+   WCAG 4.1.3 « Messages d'état » (AA) : un message qui apparaît sans
+   prendre le focus doit être annonçable. Deux l'étaient déjà (le toast,
+   l'avertissement de sauvegarde) ; les deux qui comptent le plus ne
+   l'étaient pas — la barre Annuler, c'est-à-dire le filet de sécurité
+   de tout le produit (invariant ②), et le nombre de pistes qui reste
+   après un filtre. Quelqu'un qui n'a pas l'écran supprimait une piste
+   et n'apprenait jamais qu'il pouvait la reprendre.
+   La région vit dans `index.html` : elle doit exister AVANT qu'on
+   écrive dedans, sinon la plupart des lecteurs d'écran ne la lisent
+   pas. Ici on ne fait qu'y poser du texte. */
+/* Un seul créneau, et c'est la DERNIÈRE phrase qui part. Un geste
+   déclenche souvent deux annonces dans le même souffle : supprimer une
+   piste re-rend la liste (« 3 pistes sur 4 ») PUIS pose la barre
+   Annuler. Sans regroupement, les deux sont lues — ou pire, le compte
+   arrive en dernier et recouvre le seul message qui dit comment
+   revenir en arrière. La dernière appelée est celle qui compte : c'est
+   la conséquence du geste, le reste n'est que le décor qui suit.
+   Une première version offrait un délai réglable à l'appelant. Mesure
+   faite : le changer de 500 ms à 0 ne changeait RIEN — la recherche est
+   déjà retenue en amont. C'était un réglage mort, il est parti. */
+let annonceT = null, annonceDire = '';
+export function annoncer(msg){
+  annonceDire = String(msg || '');
+  if (annonceT) return;
+  annonceT = setTimeout(() => {
+    annonceT = null;
+    const n = document.getElementById('annonce');
+    if (!n) return;
+    /* vider d'abord : deux fois le MÊME texte n'est pas relu, et le
+       compte de résultats repasse sans cesse par les mêmes valeurs */
+    n.textContent = '';
+    requestAnimationFrame(() => { n.textContent = annonceDire; });
+  }, 60);
 }
 
 let toastTimer = null;
@@ -498,10 +535,31 @@ export function showUndo(msgHTML, onUndo){
   document.querySelector('.undo-bar')?.remove();
   clearTimeout(undoTimer);
   const bar = el(`<div class="undo-bar"><span>${msgHTML}</span></div>`);
-  bar.append(btn('Annuler', 'btn-sm', () => { bar.remove(); onUndo(); }, 'undo'), barX(() => bar.remove()));
-  bindBarSwipe(bar, () => bar.remove());
+  /* Elle est entrée en se posant ; elle ne doit pas s'évaporer. Une
+     expérience se retient par sa FIN, et la fin part DANS LE SENS du
+     geste qui la cause : balayée, elle suit le doigt ; expirée ou
+     fermée d'une croix, elle redescend d'où elle est venue. Sans
+     direction, on ne perçoit pas le départ comme causé. */
+  const partir = (sens = 0) => {
+    if (bar.__part) return;
+    bar.__part = true;
+    clearTimeout(undoTimer);
+    if (matchMedia('(prefers-reduced-motion:reduce)').matches){ bar.remove(); return; }
+    bar.style.transition = `transform var(--dur-out) var(--ease-in), opacity var(--dur-out) var(--ease-in)`;
+    bar.style.transform = sens
+      ? `translateX(calc(-50% + ${sens * 140}px))`
+      : 'translateX(-50%) translateY(18px)';
+    bar.style.opacity = '0';
+    setTimeout(() => bar.remove(), 220);
+  };
+  bar.append(btn('Annuler', 'btn-sm', () => { bar.remove(); onUndo(); }, 'undo'), barX(() => partir()));
+  bindBarSwipe(bar, sens => partir(sens));
   document.body.append(bar);
-  undoTimer = setTimeout(() => bar.remove(), 30000);
+  /* le filet de sécurité du produit doit s'entendre, pas seulement se
+     voir : sans ça, on supprime une piste et on n'apprend jamais qu'on
+     peut la reprendre */
+  annoncer(bar.querySelector('span').textContent.trim() + ' Annuler pendant 30 secondes.');
+  undoTimer = setTimeout(() => partir(), 30000);
 }
 
 /* ---------- suppression au geste — le motif unique ----------
@@ -517,6 +575,41 @@ export function showUndo(msgHTML, onUndo){
    « Supprimer », puis « Ouvrir WebAgence », puis « Supprimer » —
    quarante fois le même mot sans jamais savoir quoi. Le nom, lui,
    est déjà là, sur la ligne d'à côté. */
+/* ---------- le focus ne tombe pas par terre ----------
+   Quand l'élément qui porte le focus quitte le document, le navigateur
+   le rend au `<body>` : au clavier, on se retrouve en haut de la page.
+   Mesuré ici — supprimer la deuxième ligne d'une liste de quarante
+   renvoyait tout en haut, place perdue, à refaire quarante fois.
+   WCAG 2.4.3 (ordre du focus).
+   Deux précautions qui font tout : on ne déplace le focus QUE s'il
+   était dans ce qui part (une suppression à la souris ou au doigt ne
+   doit rien voler), et on vise la place, pas l'identité — la ligne
+   suivante, sinon la précédente, sinon le titre de l'écran quand la
+   liste s'est vidée. */
+function focusApresRetrait(node){
+  if (!node.contains(document.activeElement)) return () => {};
+  const cle = n => {
+    if (!n || !n.dataset) return null;
+    for (const k of ['id', 'oid', 'l'])
+      if (n.dataset[k] != null && n.dataset[k] !== '')
+        return `[data-${k}="${CSS.escape(n.dataset[k])}"]`;
+    return null;
+  };
+  const apres = cle(node.nextElementSibling);
+  const avant = cle(node.previousElementSibling);
+  const secours = node.closest('.overlay, .view');
+  return () => {
+    const ligne = (apres && document.querySelector(apres))
+               || (avant && document.querySelector(avant));
+    const cible = ligne
+      ? (ligne.querySelector('button,a[href],[role="button"],[tabindex="0"]') || ligne)
+      : (secours && secours.querySelector('h2, .modal-h .x')) || document.getElementById('main');
+    if (!cible) return;
+    if (!cible.matches('a[href],button,input,select,textarea,summary,[tabindex]')) cible.tabIndex = -1;
+    try { cible.focus(); } catch (e) {}
+  };
+}
+
 export function bindDeleteGesture(node, onDelete, quoi){
   const inner = node.querySelector('.sw-in');
   if (!inner || node.__swDel) return;
@@ -526,8 +619,9 @@ export function bindDeleteGesture(node, onDelete, quoi){
   const vanish = () => {
     if (gone) return;
     gone = true;
+    const reprendre = focusApresRetrait(node);
     node.classList.add('sw-gone');
-    setTimeout(onDelete, 150);
+    setTimeout(() => { onDelete(); setTimeout(reprendre, 0); }, 150);
   };
   const nom = String(quoi || '').trim();
   const dit = nom ? 'Supprimer ' + nom : 'Supprimer';

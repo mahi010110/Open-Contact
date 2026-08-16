@@ -10,8 +10,8 @@ web — livré, c'est cette feuille de route —, l'ordinateur et le téléphone
 La surface ordinateur a la sienne : `compagnon/roadmap.md`. On ne re-discute
 pas la répartition ici, on l'applique.
 
-Dernière mise à jour : 15 août 2026 — cache `oc-v158`, 119 auto-tests verts
-(`node tests/e2e/unitaires.mjs`), 27 fichiers E2E.
+Dernière mise à jour : 15 août 2026 — cache `oc-v159`, 119 auto-tests verts
+(`node tests/e2e/unitaires.mjs`), 28 fichiers E2E.
 
 ---
 
@@ -284,6 +284,33 @@ Dernière mise à jour : 15 août 2026 — cache `oc-v158`, 119 auto-tests verts
   style en ligne, pas le calculé — une transition CSS rend encore
   l'ancienne valeur, et la première version du contrôle a conclu « rien
   n'a bougé » d'un geste qui suivait pourtant le doigt.*
+- **Ce qui vient de se passer se dit** (août 2026). Premier relevé
+  d'accessibilité complet sur les 13 surfaces : le socle était bon
+  — 583 éléments interactifs, tous nommés sauf un — mais **les trois
+  trous restants étaient au même endroit du produit**, le moment où
+  l'on retire quelque chose. ① La **barre Annuler** n'était pas un
+  message d'état (WCAG 4.1.3) : sans écran, on supprimait une piste et
+  on n'apprenait jamais qu'on pouvait la reprendre — le filet de
+  sécurité du produit (invariant ②) n'existait que pour ceux qui
+  voient. ② Le **focus retombait sur le `<body>`** après chaque
+  suppression au clavier (WCAG 2.4.3) : sur une liste de quarante
+  lignes à ranger, quarante retours en haut de page. ③ « Son email ou
+  son téléphone », **le champ le plus tapé du produit**, n'avait de nom
+  qu'au poste ; au pouce il vivait sur son `placeholder`, qui disparaît
+  dès qu'on tape. Une région vivante unique dans la coque
+  (`annoncer()`), le focus qui passe à la ligne voisine — sinon
+  l'écran —, et le champ nommé. **Et la barre Annuler sort enfin comme
+  elle est entrée** : balayée elle part du côté du doigt, expirée elle
+  redescend (`--ease-in`, `--dur-out`), au lieu de s'évaporer. Garde
+  neuve `e2e-annonce.mjs` + deux gestes dans `e2e-mouvement.mjs` ;
+  12 mutations.
+  *Deux leçons d'outillage. Un réglage de temporisation offert à
+  l'appelant s'est révélé MORT — le passer de 500 ms à 0 ne changeait
+  rien de mesurable, la recherche étant déjà retenue en amont ; il est
+  parti au profit d'un regroupement qui, lui, s'enclenche à chaque
+  geste. Et un contrôle qui vise le mauvais chemin ne prouve rien : la
+  première version mesurait la frappe, précisément là où la retenue
+  n'opère pas.*
 - Auto-tests verts, parcours principaux rejoués en E2E.
 
 > **Nuance conservée.** « Refonte terminée » veut dire : les 23 décisions sont

@@ -55,7 +55,8 @@ export function openCapture(prefill){
        </div>`
     : `<div class="lbl-row"><label for="cpCtName">Le contact</label></div>
        <div class="field"><input id="cpCtName" placeholder="Ex : Nadia Rahmani" autocomplete="off" ${clavier('nom')}></div>
-       <div class="field"><input id="cpCtCoord" placeholder="Son email ou son téléphone" autocomplete="off" ${clavier('coord')}></div>`;
+       <div class="field"><input id="cpCtCoord" aria-label="Son email ou son téléphone"
+         placeholder="Son email ou son téléphone" autocomplete="off" ${clavier('coord')}></div>`;
   /* Cette source a DEUX chemins, et un seul demande la surface ordinateur :
      coller ses e-mails soi-même (l'app donne un prompt, on rapporte la
      réponse) ne demande RIEN — ni installation, ni compte, ni clé. Elle passe

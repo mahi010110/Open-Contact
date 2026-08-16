@@ -110,6 +110,14 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+<!-- L'annonceur. Il ne se voit jamais ; il dit à voix haute ce que
+     l'écran vient de montrer sans qu'on le regarde — la barre Annuler
+     qui se pose, le nombre de pistes qui reste après un filtre.
+     Il vit ICI, dans la coque, et pas dans le message : une région
+     vivante doit exister AVANT qu'on écrive dedans, sinon la plupart
+     des lecteurs d'écran ne la lisent pas. -->
+<div id="annonce" class="visuellement-cache" role="status" aria-live="polite" aria-atomic="true"></div>
+
 <script type="module" src="app.js"></script>
 </body>
 </html>
