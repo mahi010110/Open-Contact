@@ -284,6 +284,22 @@ net. Sources uniques : `styles/tokens/` et le kit `design/`.
   lâcher les mots, l'`aria-label` portant le nom pour un lecteur
   d'écran. C'est un choix de dessin, il se prend avec le mainteneur ;
   en attendant il est **nommé** dans `e2e-ux-audit.mjs`, avec sa mesure.
+- **Le survol NE SE LÈVE PAS au doigt.** iOS applique `:hover` au tap et
+  le LAISSE jusqu'au tap suivant : chaque règle non gardée devient une
+  trace qui reste — une ligne blanche au milieu d'une liste, un fond
+  gris sous un bouton. Signalé sur photo et décrit comme « général, sur
+  tout le site » : c'était 30 règles sur 34. **Toute règle de survol vit
+  sous `@media (hover:hover)`**, dans les tokens comme dans `app.css` —
+  les deux dernières nues vivaient dans les tokens, et une première
+  passe les a manquées pour cette seule raison.
+  **Et `:active` ne part JAMAIS avec elle.** Les deux voyagent souvent
+  dans la même liste de sélecteurs ; envelopper l'ensemble supprime le
+  seul retour d'appui qui reste sur un téléphone — on tape, rien ne
+  bouge. Les règles se scindent.
+  Corollaire d'outillage : un contrôle qui lit du CSS doit ignorer les
+  COMMENTAIRES. Ce fichier en contient qui citent des sélecteurs de
+  survol, et les compter faisait rendre 32 fautes là où il n'y en avait
+  aucune.
 - **Icônes** : pixelarticons via `ic('nom', 'ic-14')`. Pas d'emoji dans
   l'interface, pas d'autre pack.
 - **Motion** : les **objets** restent « 98 » — nets, instantanés, `steps()`

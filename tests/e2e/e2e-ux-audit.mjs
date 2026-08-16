@@ -1,6 +1,7 @@
 /* E2E corrections prioritaires de l'audit UX : aucune action primaire morte,
    parcours Compagnon mobile honnête, relais avancés accessibles, cibles au
    pouce, contact sans doublon et fournisseurs IA non livrés non activables. */
+import { readFileSync } from 'fs';
 import { chromium, chromiumPath, SHOTS, serveRepo, attendre } from './outils.mjs';
 import { COMPAGNON, IA } from '../../ui/perimetre.js';
 
@@ -1484,7 +1485,7 @@ const versions = await wPage.evaluate(async () => {
   document.querySelector('.topnav [data-r="moi"]').click();
   await new Promise(r => setTimeout(r, 550));
   /* on compte les FEUILLES du DOM : la barre d'état imbrique
-     « OpenContact <span>6.17.0</span> », compter les ancêtres ferait
+     « OpenContact <span>6.17.1</span> », compter les ancêtres ferait
      voir double là où il n'y a qu'un seul endroit */
   return [...document.querySelectorAll('body *')]
     .filter(e => e.offsetParent !== null && !e.children.length
@@ -1579,6 +1580,113 @@ if (IA){
   console.log('hors périmètre : aucune ligne « Mon assistant IA » dans les réglages ✓');
 }
 
+
+/* ---------- LE SURVOL NE COLLE PAS AU DOIGT ----------
+   Sur un téléphone, `:hover` ne se lève pas : iOS l'applique au tap et
+   le LAISSE jusqu'à ce qu'on tape ailleurs. Chaque règle de survol non
+   protégée devient donc une trace qui reste — une ligne blanche au
+   milieu d'une liste, un fond gris sous un bouton. Signalé sur photo,
+   et décrit comme « général, sur tout le site » : c'était 30 règles sur
+   34 qui n'étaient pas gardées.
+   Deux contrôles, parce qu'aucun des deux ne suffit : le TEXTE de la
+   feuille de style (une règle non protégée se voit à la lecture, même
+   si aucun test ne la déclenche), et le COMPORTEMENT réel dans les deux
+   ergonomies (la règle peut être protégée et le média mal écrit). */
+{
+  /* TOUTES les feuilles, pas seulement `app.css` : les deux dernières
+     règles nues vivaient dans les tokens, et une première passe les a
+     manquées pour cette seule raison.
+     Et la lecture doit ignorer les COMMENTAIRES : ce fichier en contient
+     qui CITENT des sélecteurs de survol, et les compter faisait rendre
+     32 fautes là où il n'y en avait aucune. */
+  const feuilles = ['../../styles/app.css', '../../styles/tokens/base.css',
+    '../../styles/tokens/colors.css', '../../styles/tokens/typography.css'];
+  const nues = []; let total = 0;
+  for (const f of feuilles){
+    let css;
+    try { css = readFileSync(new URL(f, import.meta.url), 'utf8'); } catch (e) { continue; }
+    total += (css.match(/:hover/g) || []).length;
+    const lignes = css.split('\n');
+    let commentaire = false; let prof = 0; const gardes = [];
+    for (const l of lignes){
+      const debutEnCommentaire = commentaire;
+      for (let k = 0; k < l.length; k++){
+        if (!commentaire && l.startsWith('/*', k)){ commentaire = true; k++; }
+        else if (commentaire && l.startsWith('*/', k)){ commentaire = false; k++; }
+      }
+      if (!debutEnCommentaire && /hover\s*:\s*hover/.test(l) && l.includes('{')) gardes.push(prof);
+      const sel = l.split('{')[0];
+      if (!debutEnCommentaire && l.includes('{') && /:hover/.test(sel) && !gardes.length)
+        nues.push(f.split('/').pop() + ' · ' + sel.trim().slice(0, 52));
+      prof += (l.match(/{/g) || []).length - (l.match(/}/g) || []).length;
+      while (gardes.length && prof <= gardes[gardes.length - 1]) gardes.pop();
+    }
+  }
+  if (total < 20)
+    fail(`survol : ${total} règles trouvées dans la feuille de style — le contrôle ne lit plus rien`);
+  else if (nues.length)
+    fail(`survol : ${nues.length} règle(s) hors de \`@media (hover:hover)\` — elles resteront collées `
+      + `après un tap sur un téléphone —\n      ` + nues.join('\n      '));
+  else {
+    /* et sur pièces : au doigt le survol est inerte, à la souris il vit */
+    const hBrowser = await chromium.launch({ executablePath: chromiumPath() });
+    const lire = async (tactile) => {
+      const c = await hBrowser.newContext({ viewport: { width: tactile ? 393 : 1280, height: 800 },
+        hasTouch: tactile, isMobile: tactile });
+      const pg = await c.newPage();
+      await pg.goto(base, { waitUntil: 'load' });
+      await pg.waitForSelector('#view-aujourdhui:not([hidden])');
+      await pg.evaluate(async () => {
+        const { S, saveData } = await import('./ui/state.js');
+        const { normalizeCompany } = await import('./engine/model.js');
+        S.companies = [normalizeCompany({ id: 'ch', name: 'Survol', city: 'Toulouse', status: 'todo' })];
+        saveData(); location.hash = '#/pistes';
+      });
+      /* un `.btn` ordinaire : présent aux deux ergonomies, et c'est la
+         règle de survol la plus répandue de l'app */
+      await pg.waitForSelector('#piProspect');
+      const cible = await pg.$('#piProspect');
+      const av = await cible.evaluate(n => getComputedStyle(n).backgroundColor);
+      await cible.hover();
+      await pg.waitForTimeout(200);
+      const ap = await cible.evaluate(n => getComputedStyle(n).backgroundColor);
+      await c.close();
+      return av !== ap;
+    };
+    const auDoigt = await lire(true);
+    const aLaSouris = await lire(false);
+    /* `:active` NE PART PAS avec le survol. Il voyage souvent dans la
+       même liste de sélecteurs (`:hover,:active{…}`), et l'envelopper
+       tout entier supprime le SEUL retour d'appui qui reste sur un
+       téléphone : on tape, rien ne bouge. Les règles se scindent. */
+    const cActif = await hBrowser.newContext({ viewport: { width: 393, height: 800 },
+      hasTouch: true, isMobile: true });
+    const pActif = await cActif.newPage();
+    await pActif.goto(base, { waitUntil: 'load' });
+    await pActif.waitForSelector('#view-aujourdhui:not([hidden])');
+    /* `#tdeAdd` et pas `.btn-primary` : au pouce, le premier
+       `.btn-primary` du document est celui du bandeau de bureau, caché */
+    await pActif.waitForSelector('#tdeAdd');
+    const bp = await pActif.$('#tdeAdd');
+    const repos = await bp.evaluate(n => getComputedStyle(n).backgroundColor);
+    const boite = await bp.boundingBox();
+    await pActif.mouse.move(boite.x + boite.width / 2, boite.y + boite.height / 2);
+    await pActif.mouse.down();
+    await pActif.waitForTimeout(120);
+    const presse = await bp.evaluate(n => getComputedStyle(n).backgroundColor);
+    await pActif.mouse.up();
+    await cActif.close();
+    await hBrowser.close();
+    if (repos === presse)
+      fail('au doigt, presser le bouton principal ne change rien — `:active` est parti avec le survol, '
+        + 'et c’est le seul retour d’appui qui reste sur un téléphone');
+    else
+    if (auDoigt) fail('survol : au doigt, survoler une ligne la peint quand même — la trace restera collée');
+    else if (!aLaSouris) fail('survol : à la souris, plus rien ne réagit — la garde a tué le survol au lieu de le borner');
+    else console.log(`survol : ${total} règles, toutes sous \`@media (hover:hover)\` — `
+      + 'inerte au doigt, vivant à la souris ✓');
+  }
+}
 
 /* ---------- LE TEXTE DOUBLÉ (WCAG 1.4.4, AA) ----------
    Le droit d'agrandir le texte de 200 % sans perdre ni contenu ni

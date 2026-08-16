@@ -10,7 +10,7 @@ web — livré, c'est cette feuille de route —, l'ordinateur et le téléphone
 La surface ordinateur a la sienne : `compagnon/roadmap.md`. On ne re-discute
 pas la répartition ici, on l'applique.
 
-Dernière mise à jour : 15 août 2026 — cache `oc-v156`, 119 auto-tests verts
+Dernière mise à jour : 15 août 2026 — cache `oc-v157`, 119 auto-tests verts
 (`node tests/e2e/unitaires.mjs`), 27 fichiers E2E.
 
 ---
@@ -247,6 +247,24 @@ Dernière mise à jour : 15 août 2026 — cache `oc-v156`, 119 auto-tests verts
   tranche « Bientôt » a cessé d'exister le jour où le calendrier les a
   dépassées. Une date qui doit être FUTURE se sème en relatif ; une
   date passée peut rester en dur.*
+- **Le survol qui reste collé** (août 2026, signalé sur photo). Sur un
+  téléphone, `:hover` ne se lève pas : iOS l'applique au tap et le
+  laisse jusqu'au tap suivant. **30 règles sur 34** n'étaient pas
+  gardées — d'où des traces qui persistent un peu partout, une ligne
+  blanche au milieu d'une liste, un fond gris sous un bouton ; le
+  mainteneur l'a décrit comme « général, sur tout le site », et c'était
+  exactement ça. Toutes les règles de survol passent sous
+  `@media (hover:hover)`, tokens compris. **`:active` reste dehors** :
+  les deux voyageaient dans les mêmes listes de sélecteurs, et tout
+  envelopper aurait supprimé le seul retour d'appui d'un téléphone —
+  six règles scindées pour ça. Garde à deux étages dans
+  `e2e-ux-audit.mjs` : le TEXTE des feuilles (une règle nue se voit à la
+  lecture) et le COMPORTEMENT réel dans les deux ergonomies. 5
+  mutations. *Deux passes ratées avant la bonne, et leurs leçons sont
+  écrites : un contrôle qui lit du CSS doit ignorer les commentaires
+  (32 fausses fautes), et « déjà protégé » se décide par la profondeur
+  d'accolades, pas en regardant les lignes précédentes — sinon des
+  règles consécutives passent au travers.*
 - Auto-tests verts, parcours principaux rejoués en E2E.
 
 > **Nuance conservée.** « Refonte terminée » veut dire : les 23 décisions sont

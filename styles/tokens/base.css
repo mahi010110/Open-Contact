@@ -23,7 +23,11 @@ body{
 :focus-visible{outline:var(--focus-outline);outline-offset:var(--focus-offset)}
 
 a{color:var(--text-link);text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
-a:hover{color:var(--text-link-hover)}
+/* Le survol NE SE LÈVE PAS au doigt : iOS l'applique au tap et le laisse
+   jusqu'au tap suivant. Non gardée, cette règle-ci teintait le libellé
+   d'un bouton tapé — et elle a survécu à une première passe parce
+   qu'elle vit dans les tokens, pas dans `app.css`. */
+@media (hover:hover){ a:hover{color:var(--text-link-hover)} }
 
 code,kbd,samp{font-family:var(--font-mono);font-size:0.92em}
 kbd{
@@ -44,7 +48,7 @@ hr{border:0;border-top:1px solid var(--border-soft);margin:var(--space-5) 0}
   border:1px solid var(--border-strong);
   box-shadow:var(--bevel-up);
 }
-::-webkit-scrollbar-thumb:hover{background:var(--gray-2)}
+@media (hover:hover){ ::-webkit-scrollbar-thumb:hover{background:var(--gray-2)} }
 ::-webkit-scrollbar-corner{background:var(--surface-chrome)}
 
 @media (prefers-reduced-motion:reduce){

@@ -97,7 +97,9 @@ input,select,textarea{font-family:inherit;color:var(--text-body)}
   text-decoration:none;color:var(--text-muted);font-size:var(--text-13);font-weight:var(--weight-semibold);
   border:1px solid transparent;border-radius:var(--radius-1);padding:5px 10px;
 }
+@media (hover:hover){
 .topnav a:hover{color:var(--text-body);background:var(--surface-chrome)}
+}
 .topnav a.on{color:var(--select-text);background:var(--select-bg);border-color:var(--border-strong)}
 .hdr-actions{display:flex;gap:8px;margin-left:auto;align-items:center}
 .hdr .btn-cta{display:none}
@@ -175,11 +177,16 @@ input,select,textarea{font-family:inherit;color:var(--text-body)}
      de laisser un mot seul en bas. */
   user-select:none;white-space:normal;text-wrap:balance;text-decoration:none;
 }
+@media (hover:hover){
 .btn:hover{background:var(--surface-window)}
+}
 .btn:active{box-shadow:var(--bevel-down);transform:translate(2px,2px);background:var(--surface-chrome)}
 .btn:disabled,.btn-off{pointer-events:none;color:var(--text-disabled);box-shadow:var(--bevel-up);opacity:.6}
 .btn-primary{background:var(--accent);border-color:var(--border-strong);color:var(--on-accent)}
-.btn-primary:hover,.btn-primary:active{background:var(--accent-hover)}
+.btn-primary:active{background:var(--accent-hover)}
+@media (hover:hover){
+.btn-primary:hover{background:var(--accent-hover)}
+}
 /* Un bouton peut être un LIEN : « Ouvrir dans Mail », « Appeler »,
    « Itinéraire ». Le fond était protégé du survol (`.btn-primary:hover`),
    l'ENCRE ne l'était pas — et `a:hover` (0,1,1) bat `.btn-primary` (0,1,0).
@@ -188,13 +195,23 @@ input,select,textarea{font-family:inherit;color:var(--text-body)}
    disparaissait purement et simplement. Au doigt c'est pire qu'à la
    souris — iOS garde le survol collé après le tap, donc le bouton se
    vide AU MOMENT où on s'en sert, et le reste. */
+@media (hover:hover){
 a.btn:hover{color:var(--text-body)}
+}
+@media (hover:hover){
 a.btn.btn-primary:hover{color:var(--on-accent)}
+}
+@media (hover:hover){
 a.btn.btn-danger:hover{color:var(--red)}
+}
 .btn-danger{color:var(--red)}
+@media (hover:hover){
 .btn-danger:hover{background:var(--red-wash)}
+}
 .btn-ghost{background:transparent;border-color:transparent;box-shadow:none;color:var(--text-muted)}
+@media (hover:hover){
 .btn-ghost:hover{background:var(--surface-chrome);color:var(--text-body)}
+}
 .btn-ghost:active{transform:none;box-shadow:var(--bevel-down)}
 .btn-sm{min-height:36px;padding:2px 11px;font-size:var(--text-12)}
 /* Mobile et écran tactile : même les actions compactes restent au pouce. */
@@ -209,7 +226,9 @@ a.btn.btn-danger:hover{color:var(--red)}
 }
 /* le pictogramme accompagne, il ne se souligne pas avec le mot */
 .linklike .ic{text-decoration:none}
+@media (hover:hover){
 .linklike:hover{color:var(--text-link-hover)}
+}
 
 /* ============ ÉTIQUETTES ============ */
 .tag-share,.tag-priv,.tag-beta{
@@ -385,7 +404,9 @@ html[data-theme="dark"] .field select{
 .lb-act:first-child{margin-left:-8px}      /* le mot s'aligne sur la liste */
 .listbar>.lb-act:last-child{margin-left:auto;margin-right:-8px}
 .lb-act .ic{flex:none}
+@media (hover:hover){
 .lb-act:hover{color:var(--text-link)}
+}
 .lb-act[aria-pressed="true"]{color:var(--accent)}
 .lb-act[aria-pressed="true"] .ic{color:var(--accent)}
 /* Un filtre actif se dit UNE fois : par son compte. J'avais ajouté en
@@ -608,7 +629,9 @@ details.tranche[open]>summary::before{
    ouvrait la fiche au lieu de marquer « Fait ». Deux conséquences très
    différentes ne doivent pas partager une arête. */
 .act-main{flex:1;min-width:0;padding:9px 0 9px 12px;cursor:pointer;display:flex;flex-direction:column;gap:2px}
+@media (hover:hover){
 .act-main:hover .act-verb{color:var(--text-link)}
+}
 .act-verb{
   font-size:var(--text-14);font-weight:var(--weight-semibold);line-height:1.35;
   /* trois lignes, pas deux : à police doublée un nom d'entreprise en
@@ -671,9 +694,18 @@ details.tranche[open]>summary::before{
   display:inline-flex;align-items:center;justify-content:center;
   background:none;border:0;padding:0;color:var(--text-muted);border-radius:var(--radius-1);
 }
-.abtn:hover,.abtn:focus-visible,.abtn:active{color:var(--text-body)}
-.abtn-ok:hover,.abtn-ok:focus-visible,.abtn-ok:active{color:var(--green)}
-.abtn-del:hover,.abtn-del:focus-visible,.abtn-del:active{color:var(--red)}
+.abtn:focus-visible, .abtn:active{color:var(--text-body)}
+@media (hover:hover){
+.abtn:hover{color:var(--text-body)}
+}
+.abtn-ok:focus-visible, .abtn-ok:active{color:var(--green)}
+@media (hover:hover){
+.abtn-ok:hover{color:var(--green)}
+}
+.abtn-del:focus-visible, .abtn-del:active{color:var(--red)}
+@media (hover:hover){
+.abtn-del:hover{color:var(--red)}
+}
 .act-gone{transition:opacity 150ms var(--ease-out),transform 150ms var(--ease-out);opacity:0;transform:translateX(20px)}
 
 /* ============ ÉTATS VIDES ============ */
@@ -721,7 +753,10 @@ details.tranche[open]>summary::before{
 @media (hover:hover){
   .sw:hover .hov-del,.sw:focus-within .hov-del{opacity:1;pointer-events:auto}
 }
-.hov-del:hover,.hov-del:focus-visible{color:var(--red)}
+.hov-del:focus-visible{color:var(--red)}
+@media (hover:hover){
+.hov-del:hover{color:var(--red)}
+}
 /* même discrétion pour une action qui n'a PAS de geste de remplacement :
    effacée tant qu'on ne survole pas sa ligne, mais simplement visible
    là où le survol n'existe pas (au doigt, sinon elle serait inatteignable) */
@@ -742,7 +777,9 @@ details.tranche[open]>summary::before{
 .row-item .sw-in{
   display:flex;align-items:center;gap:10px;min-height:var(--control-h-touch);padding:0 12px;
 }
+@media (hover:hover){
 .row-item:hover .sw-in{background:var(--surface-field)}
+}
 .row-item .dotc{width:8px;height:8px;border-radius:0;border:1px solid var(--border-strong);flex:none}
 /* la zone qui ouvre la fiche prend TOUTE la hauteur de la ligne : à
    35 px, les quelques pixels de marge haut et bas ne réagissaient pas,
@@ -949,7 +986,9 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   font:inherit;font-weight:var(--weight-semibold);color:var(--text-body);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;min-height:var(--ctl);
 }
+@media (hover:hover){
 .pr-name:hover{color:var(--text-link)}
+}
 .pr-hint{flex:none;color:var(--text-muted)}
 .prompt-row .abtn-sm{margin-left:0;flex:none}
 .pr-foot{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
@@ -1074,7 +1113,9 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
 .rg-row>.ic{flex:none;color:var(--text-muted)}
+@media (hover:hover){
 .rg-row:hover .rg-n{color:var(--text-link)}
+}
 .rg-foot{padding:12px 0 2px;border-top:1px dashed var(--border-soft);margin-top:2px}
 /* « Signaler un problème » : le texte à coller se lit EN ENTIER avant
    de partir — c'est ce qui remplace la promesse « rien de personnel »
@@ -1183,7 +1224,9 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 }
 /* le repère ne se réveille qu'au moment où l'on vient toucher le jeton —
    pas quand on écrit à côté */
+@media (hover:hover){
 .tvar:hover{background:var(--teal-wash);color:var(--accent);border-bottom-color:var(--accent)}
+}
 
 /* une seule ligne d'aide à la place des neuf boutons d'insertion */
 .tpl-insert{
@@ -1231,7 +1274,9 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 }
 .pk-who>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pk-who>.ic{flex:none;color:var(--text-muted)}
+@media (hover:hover){
 .pk-who:hover{color:var(--text-link);text-decoration:underline}
+}
 .pk-who:active{box-shadow:var(--bevel-down)}
 .pk-who.pk-add{color:var(--accent);padding-left:40px}
 
@@ -1296,7 +1341,9 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 .cp-what .cp-file{border-color:var(--accent);color:var(--text-body)}
 .cp-what .cp-file b{font-family:var(--font-mono);font-size:var(--text-12);word-break:break-all}
 .lk-set .lk-cut{color:var(--red)}
+@media (hover:hover){
 .lk-set .lk-cut:hover{color:var(--red)}
+}
 .sy-log{margin-top:10px}
 .pr-send{width:100%;margin-top:12px}
 /* ---- Échanger : deux verbes héros + pied discret ---- */
@@ -1421,7 +1468,9 @@ button.fi-vecu b{flex:1;min-width:0}
   background:none;color:var(--text-body);font-family:var(--font-ui);text-align:left;
 }
 button.ec-row{cursor:pointer}
+@media (hover:hover){
 button.ec-row:hover{background:var(--surface-field)}
+}
 .ec-body .tr-more{margin-top:10px}
 /* le rappel de contexte en tête de la feuille d'un échange : de qui,
    par quel canal, quel jour — la ligne qu'on vient de taper */
@@ -1461,7 +1510,10 @@ button.ec-row:hover{background:var(--surface-field)}
   font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-body);
   border:0;background:none;cursor:pointer;
 }
-.ac-item:hover,.ac-item:focus{background:var(--select-bg);color:var(--select-text)}
+.ac-item:focus{background:var(--select-bg);color:var(--select-text)}
+@media (hover:hover){
+.ac-item:hover{background:var(--select-bg);color:var(--select-text)}
+}
 .ac-item+.ac-item{border-top:1px solid var(--border-soft)}
 
 .date-row{display:flex;gap:8px;align-items:stretch}
@@ -1898,7 +1950,9 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 .bcard .sw-in{display:flex;align-items:flex-start;gap:8px;padding:9px 11px}
 .bcard .bc-main{flex:1;display:flex;flex-direction:column;gap:3px;text-align:left;min-width:0}
 .bcard .hov-del{align-self:flex-start}
+@media (hover:hover){
 .bcard:hover .sw-in{background:var(--surface-field)}
+}
 .bcard b{font-size:var(--text-13);font-weight:var(--weight-semibold)}
 .bc-sub,.bc-foot{
   font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);
@@ -2065,7 +2119,9 @@ body:has(#saveWarn:not([hidden])) .toast{top:calc(env(safe-area-inset-top) + 148
   background:none;border:1px solid var(--border-soft);border-radius:var(--radius-1);
   color:var(--text-muted);font-size:12px;line-height:1;padding:0;
 }
+@media (hover:hover){
 .bar-x:hover{background:var(--surface-chrome);color:var(--text-body)}
+}
 @media (hover:hover){ .bar-x{display:inline-flex} }
 body:has(.overlay) .toast{bottom:auto;top:calc(env(safe-area-inset-top) + 62px)}
 @media (min-width:901px){ .toast{bottom:44px} }
@@ -2188,7 +2244,9 @@ html.oc-locked .undo-bar{display:none}
   width:100%;text-align:left;background:none;border:0;cursor:pointer;
   color:inherit;font:inherit;
 }
+@media (hover:hover){
 .dev-open:hover{background:var(--surface-chrome)}
+}
 .pick-danger{border-left:3px solid var(--red)}
 .pick-danger b{color:var(--red)}
 /* campagnes : la ligne groupée d'Aujourd'hui + la feuille du jour */
