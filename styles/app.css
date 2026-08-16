@@ -1411,28 +1411,58 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   /* le panneau prend TOUTE la hauteur de la vue : les gestes n'ont pas
      besoin de 1060 px, le fil si — et un cadre qui s'arrête à mi-écran
      laisserait sous lui le vide que le cadre servait à supprimer */
-  /* UN SEUL DESSIN, la largeur en plus. « Échanger » avait deux
-     dispositions — gestes à gauche / fil à droite au poste, gestes en
-     bas / fil en haut au pouce — alors que l'USAGE est le même partout :
-     deux verbes et le relevé de ce qui a circulé. La règle du projet
-     (§5) est explicite : un seul dessin par défaut, deux seulement quand
-     l'usage diffère vraiment, pas la taille.
-     Ce que la colonne de gauche coûtait, mesuré : 340 px de large sur
-     149 px de haut, et sous elle 450 px de vide qui n'appartenaient à
-     rien — un canyon entre deux bandes de contenu. Le fil, lui, tenait
-     702 px pour des phrases de 30 à 40 caractères.
-     En une colonne de 720 px : « Donner » passe de 165 à 354 px de
-     large — l'action principale de l'écran cesse d'être un timbre —, le
-     fil garde une longueur de ligne confortable (50 à 75 caractères,
-     NN/g et Baymard), la lecture descend du geste vers son relevé, et le
-     vide restant tombe en BAS de page, là où toute page en a un. */
-  #view-echanger>.page-inner{max-width:720px}
-  /* colonne, pas bloc : le fil reste un PANNEAU qui tient sa région et
-     défile chez lui (`.ec-fil{flex:1}`), donc les deux verbes gardent
-     leur place quel que soit le nombre d'échanges */
-  .ec-cols{flex:1;min-height:0;display:flex;flex-direction:column}
-  .ec-actes{flex:none;margin-bottom:26px}
-  .ec-cols .ec-fil{margin-top:0}
+  /* LISTE-DÉTAIL. Deux étapes ont mené ici, et la seconde ne renie pas
+     la première : on a d'abord SUPPRIMÉ une colonne qui ne montrait
+     rien (340 px de large, 149 px de haut, 450 px de vide sous elle),
+     puis on en a ajouté une qui montre une DONNÉE — les pistes que
+     l'échange retenu a fait circuler. La règle n'a pas bougé : une
+     colonne se mérite par ce qu'elle affiche.
+     C'est le motif liste-détail (Material 3 « list-detail », Apple HIG
+     « split view ») : on parcourt à gauche, on lit à droite, sans ouvrir
+     ni perdre sa place. Et c'est la seule chose qui justifie DEUX
+     dessins ici (§5) : au pouce on descend puis on remonte, au poste on
+     garde les deux sous les yeux — un usage qui diffère, pas une taille.
+     La barre d'actions passe au-dessus, sur toute la largeur : les trois
+     canaux d'un échange tiennent sur une ligne au lieu de deux, et
+     « Donner » cesse d'être un timbre de 165 px. */
+  #view-echanger>.page-inner{max-width:1060px}
+  /* Les trois canaux sur UNE rangée. `.hero2` passe en `display:contents`
+     pour que ses deux boutons deviennent des cellules de la rangée : sans
+     ça, la grille ne voyait qu'un seul enfant et la porte du groupe
+     retombait sur un second rang, à cheval sur la largeur. Un cran de
+     moins en hauteur, et la rangée dit ce qu'elle est — trois façons de
+     faire circuler ses pistes. */
+  .ec-actes{
+    flex:none;margin-bottom:20px;display:grid;gap:12px;align-items:stretch;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+  .ec-actes:has(.hero1){grid-template-columns:repeat(2,minmax(0,1fr))}
+  .ec-actes .hero2{display:contents}
+  /* la porte du groupe rejoint la rangée : même hauteur, sa grammaire
+     de carte gardée — c'est une entrée, pas un troisième verbe */
+  .ec-actes .moi-door{min-height:76px;margin:0}
+  .ec-cols{
+    flex:1;min-height:0;display:grid;
+    grid-template-columns:minmax(0,420px) minmax(0,1fr);gap:22px;align-items:start;
+  }
+  .ec-cols>*{min-width:0;max-height:100%}
+  .ec-cols .ec-fil{margin-top:0;height:100%}
+  /* le panneau lu défile chez lui : vingt pistes données ne poussent
+     jamais la liste ni la page */
+  .ec-detail{min-width:0;height:100%;display:flex;flex-direction:column;overflow:hidden}
+  .ec-detail-b{flex:1;min-height:0;overflow:auto}
+  .ec-detail .ec-quand{margin:8px 0 10px}
+  /* « tu es ici » : la couleur du châssis, celle de l'onglet allumé —
+     jamais l'accent, qui appartient au contenu (§4) */
+  /* pas de `:hover` ici — il resterait collé après un tap (§4), et le
+     `!important` passe déjà devant la règle de survol de la ligne */
+  .ec-lue{background:var(--select-bg)!important}
+  .ec-lue,.ec-lue>b,.ec-lue .ec-when{color:var(--select-text)}
+  .ec-lue .ec-when{opacity:.8}
+  .ec-lue .ic{background:var(--select-text)}
+  /* la ligne retenue s'étend jusqu'au bord du panneau : la poubelle du
+     geste de suppression est du décor de survol, pas une marge */
+  .ec-cols .ec-l:has(.ec-lue) .sw-in{background:var(--select-bg)}
 }
 /* Le message tout prêt de « Demander à … » : il se LIT et se
    sélectionne, il ne se tape pas. `user-select:all` pour que le doigt

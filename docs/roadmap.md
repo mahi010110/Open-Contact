@@ -10,7 +10,7 @@ web — livré, c'est cette feuille de route —, l'ordinateur et le téléphone
 La surface ordinateur a la sienne : `compagnon/roadmap.md`. On ne re-discute
 pas la répartition ici, on l'applique.
 
-Dernière mise à jour : 15 août 2026 — cache `oc-v163`, 120 auto-tests verts
+Dernière mise à jour : 15 août 2026 — cache `oc-v164`, 120 auto-tests verts
 (`node tests/e2e/unitaires.mjs`), 28 fichiers E2E.
 
 ---
@@ -411,6 +411,38 @@ Dernière mise à jour : 15 août 2026 — cache `oc-v163`, 120 auto-tests verts
   motif, trois écrans), et la date doit rester à moins de 24 px de sa
   phrase — mesurée sur l'ENCRE, le `<b>` étant en `flex:1` et sa boîte
   mentant de 400 px. 2 mutations.
+- **« Échanger » au poste : liste-détail** (août 2026, demandé — « plus
+  osé, cherche l'efficacité sur desktop »). L'écran ne montrait que des
+  PORTES : deux verbes, une entrée de groupe, un relevé de reçus. La
+  règle du produit est pourtant écrite (§6) — un écran montre les
+  affaires de l'utilisateur, pas des portes — et son corollaire mesuré :
+  un écran qui PEUT montrer une donnée et ne le fait pas tombe sous la
+  même règle. Or il l'avait, la donnée : les pistes que chaque échange a
+  fait circuler, cachées derrière un clic et une feuille modale.
+  Au poste elles se posent à côté de la liste — motif liste-détail,
+  celui de Material 3 (« list-detail ») et d'Apple HIG (« split
+  view ») : on parcourt à gauche, on lit à droite, sans ouvrir ni perdre
+  sa place. La ligne la plus récente est retenue d'emblée, comme le veut
+  ce motif sur un grand écran ; un panneau vide à l'arrivée serait la
+  porte qu'on vient de supprimer. La ligne lue prend le navy du châssis,
+  la couleur qui dit « tu es ici » (§4), et perd son chevron : elle ne
+  mène plus ailleurs, elle se lit à côté. Les trois canaux passent sur
+  UNE rangée au-dessus (`display:contents` sur `.hero2`), un cran de
+  hauteur en moins.
+  **Et c'est bien deux dessins, assumés** : au pouce on descend dans une
+  feuille et on remonte, un écran à la fois ; au poste on garde les deux
+  sous les yeux. §5 l'autorise exactement à cette condition — un usage
+  qui diffère, pas une taille. Le contenu d'un échange est écrit UNE
+  fois et sert les deux contenants.
+  Garde à double sens dans `e2e-ux-audit.mjs` : au poste aucune feuille
+  ne s'ouvre, le panneau se remplit, la ligne lue est marquée ET visible,
+  et chaque piste du panneau ouvre sa fiche ; au pouce la feuille
+  s'ouvre comme avant. 5 mutations — dont deux « échappées » qui n'en
+  étaient pas : le garde-fou d'index répare un `filSel` hors bornes, et
+  la sélection reste visible parce que deux règles la peignent.
+  *Troisième course de la même famille refermée dans la suite : on
+  attendait l'ÉTAT (`S.companies`) puis on mesurait le DOM. Le tableau
+  rendait « 0 colonne » un tour sur cinq sur un écran sain.*
 - Auto-tests verts, parcours principaux rejoués en E2E.
 
 > **Nuance conservée.** « Refonte terminée » veut dire : les 23 décisions sont

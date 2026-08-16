@@ -455,10 +455,16 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
     await dPage.reload({ waitUntil: 'load' });
     await attendre(dPage, () => !!document.querySelector('button.ec-row'), { message: 'le fil' });
     await dPage.click('button.ec-row');
-    await attendre(dPage, () => document.querySelectorAll('.modal-b .pick').length >= 4,
-      { message: 'les lignes de l’échange' });
+    /* Le contenu d'un échange vit dans DEUX contenants selon
+       l'ergonomie : une feuille au pouce (on descend, on remonte), le
+       panneau de droite au poste (motif liste-détail — on lit à côté
+       sans rien ouvrir). Le contrôle regarde donc les deux : ce qu'il
+       garde, c'est la ligne `.pick` elle-même, la même des deux côtés. */
+    await attendre(dPage,
+      () => document.querySelectorAll('.modal-b .pick, .ec-detail .pick').length >= 4,
+      { message: 'les lignes de l’échange, en feuille ou en panneau' });
     const reg = await dPage.evaluate(() => {
-      const rows = [...document.querySelectorAll('.modal-b .pick')];
+      const rows = [...document.querySelectorAll('.modal-b .pick, .ec-detail .pick')];
       return {
         n: rows.length,
         hauteurs: [...new Set(rows.map(r => Math.round(r.getBoundingClientRect().height)))],
@@ -479,6 +485,76 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
     if (reg.deborde) fail(`@${lw} un nom déborde de son bloc au lieu de se couper`);
     console.log(`   liste d'échange @${lw} : ${reg.n} lignes × ${reg.hauteurs[0]} px, chevron à ${reg.chevrons[0]} px ✓`);
     if (lw === 360) await dPage.screenshot({ path: SHOTS + '/86-ux-lignes-pouce.png' });
+  }
+  /* ---- LISTE-DÉTAIL : au poste on lit à côté, au pouce on ouvre ----
+     L'écran ne montrait que des portes — deux verbes, une entrée de
+     groupe, un relevé de reçus — alors qu'il tenait la donnée : les
+     pistes que chaque échange a fait circuler, cachées derrière un clic
+     et une modale. Au poste elles vivent dans le panneau de droite
+     (Material 3 « list-detail », Apple HIG « split view »).
+     Le contrôle est à DOUBLE SENS, comme celui du mouvement : au poste
+     aucune feuille ne doit s'ouvrir et le panneau doit se remplir ; au
+     pouce la feuille doit s'ouvrir comme avant. Sans le second sens, on
+     casserait le téléphone sans s'en apercevoir. */
+  for (const [lw, lh, poste] of [[1280, 800, true], [390, 844, false]]){
+    await dPage.setViewportSize({ width: lw, height: lh });
+    await dPage.goto(base + '/#/echanger', { waitUntil: 'load' });
+    await attendre(dPage, () => !!document.querySelector('button.ec-row'),
+      { message: 'le fil de la liste-détail' });
+    const avant = await dPage.evaluate(() => ({
+      feuille: !!document.querySelector('.overlay:not(.ov-out)'),
+      pane: document.querySelectorAll('.ec-detail .pick').length
+    }));
+    if (poste && !avant.pane)
+      fail('liste-détail : au poste, le panneau est vide à l’arrivée — la ligne la plus '
+        + 'récente doit être lue d’emblée, sinon on a remplacé une porte par un vide');
+    await dPage.click('button.ec-row');
+    await dPage.waitForTimeout(450);
+    const apres = await dPage.evaluate(() => ({
+      feuille: !!document.querySelector('.overlay:not(.ov-out)'),
+      pane: document.querySelectorAll('.ec-detail .pick').length,
+      marquee: !!document.querySelector('.ec-row[aria-current="true"]')
+    }));
+    if (poste){
+      if (apres.feuille)
+        fail('liste-détail : au poste, taper une ligne ouvre encore une feuille — '
+          + 'le panneau est là pour éviter exactement ça');
+      if (!apres.pane) fail('liste-détail : au poste, le panneau ne se remplit pas');
+      if (!apres.marquee)
+        fail('liste-détail : la ligne lue ne se signale pas (`aria-current`) — '
+          + 'rien ne dit à quelle ligne appartient ce qu’on lit à droite');
+      /* et elle se VOIT : un état de sélection qui ne change aucun pixel
+         n'existe pas pour qui regarde l'écran */
+      const contraste = await dPage.evaluate(() => {
+        const lue = document.querySelector('.ec-row[aria-current="true"]');
+        const autre = [...document.querySelectorAll('.ec-row')].find(n => n !== lue);
+        if (!lue || !autre) return null;
+        return getComputedStyle(lue).backgroundColor !== getComputedStyle(autre).backgroundColor;
+      });
+      if (contraste === false)
+        fail('liste-détail : la ligne lue ne se distingue pas de ses voisines à l’écran');
+      /* et le panneau MÈNE quelque part : sans ce contrôle, débrancher
+         ses lignes le rendrait décoratif sans rien faire rougir — une
+         liste de pistes qu'on ne peut pas ouvrir vaut moins que la
+         feuille qu'on vient de supprimer */
+      await dPage.click('.ec-detail .pick');
+      await dPage.waitForTimeout(450);
+      const fiche = await dPage.evaluate(() =>
+        !!document.querySelector('.overlay:not(.ov-out) #fiNotes'));
+      if (!fiche)
+        fail('liste-détail : une piste du panneau n’ouvre pas sa fiche — le panneau ne mène nulle part');
+      await dPage.evaluate(async () => {
+        const { topSheet } = await import('./ui/dom.js');
+        let s, n = 0; while ((s = topSheet()) && n++ < 4){ s.close(null, true); await new Promise(r => setTimeout(r, 120)); }
+      });
+      console.log(`liste-détail @${lw} : le panneau montre ${apres.pane} pistes, `
+        + 'aucune feuille, la ligne lue est marquée, et chaque piste ouvre sa fiche ✓');
+    } else {
+      if (!apres.feuille)
+        fail('liste-détail : au pouce, taper une ligne n’ouvre plus rien — '
+          + 'le panneau n’existe pas sur un téléphone, la feuille est le seul chemin');
+      console.log(`liste-détail @${lw} : au pouce la feuille s’ouvre, comme avant ✓`);
+    }
   }
   await dCtx.close();
   console.log('poste : plus de « complète à N % », les colonnes se partagent la région, le pied se pose en bas ✓');
@@ -626,6 +702,13 @@ for (const [nom, ptr] of [['doigt', true], ['souris', false]]){
   });
   await tPage.reload({ waitUntil: 'load' });
   await attendre(tPage, async () => (await import('./ui/state.js')).S.companies.length === 1);
+  /* et attendre le DESSIN, pas seulement l'état : `S.companies` est
+     rempli avant que le tableau soit re-rendu. Lire dans cet intervalle
+     rendait « 0 colonne » sur un écran parfaitement sain — troisième
+     course de cette famille dans la suite, toujours la même cause :
+     on attend la donnée et on mesure le DOM. */
+  await attendre(tPage, () => document.querySelectorAll('#piBody .bcol').length === 3,
+    { message: 'le tableau à trois colonnes doit être rendu' });
   const erg = await tPage.evaluate(() => {
     const cs = getComputedStyle(document.documentElement);
     const petites = [...document.querySelectorAll('button, a[href], input, select')]
