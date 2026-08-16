@@ -10,7 +10,7 @@ web — livré, c'est cette feuille de route —, l'ordinateur et le téléphone
 La surface ordinateur a la sienne : `compagnon/roadmap.md`. On ne re-discute
 pas la répartition ici, on l'applique.
 
-Dernière mise à jour : 15 août 2026 — cache `oc-v166`, 120 auto-tests verts
+Dernière mise à jour : 15 août 2026 — cache `oc-v167`, 120 auto-tests verts
 (`node tests/e2e/unitaires.mjs`), 28 fichiers E2E.
 
 ---
@@ -490,9 +490,24 @@ Dernière mise à jour : 15 août 2026 — cache `oc-v166`, 120 auto-tests verts
   qui disait bouton. La porte quitte la famille des boutons — ni fond,
   ni cadre, ni relief — et se sépare par la distance, au bout de la
   rangée.
+  **Corrigé une fois de trop, et c'est la leçon du lot.** Pour
+  distinguer la porte des deux verbes, je lui avais retiré son fond,
+  son cadre et son relief, et poussée au bout de la rangée : elle
+  devenait « quasiment inexistante » — vu par le mainteneur, pas par la
+  mesure. **Se distinguer n'est pas s'effacer.** Ce qui sépare une
+  porte de deux verbes n'est pas MOINS d'encre, c'est une autre PLACE
+  et une autre FORME : sa propre ligne, toute la largeur (1060 × 49),
+  sa carte et son chevron. Les verbes se taillent à leur mot, elle
+  s'étend — on ne les confond pas, et on la voit.
   Garde sans aucun nombre magique : elle compare l'écran à un vrai
   frère de la même app (`#piProspect`), donc elle suivra si la maison
-  change d'échelle. 3 mutations.
+  change d'échelle — et elle tient les DEUX bords de l'erreur : la
+  porte doit garder sa boîte, ne jamais être plus petite qu'un verbe,
+  et rester sur sa propre ligne. 6 mutations.
+  *Au passage, un défaut du garde lui-même : il imprimait sa ligne de
+  succès même après avoir posé un grief. Une ligne verte dans le
+  journal pendant qu'un contrôle échoue se lit comme une preuve que
+  tout va bien.*
 - Auto-tests verts, parcours principaux rejoués en E2E.
 
 > **Nuance conservée.** « Refonte terminée » veut dire : les 23 décisions sont

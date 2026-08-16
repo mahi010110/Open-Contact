@@ -1457,13 +1457,17 @@ details.pcard-details[open]>summary{margin-bottom:10px}
     padding:0 18px;font-size:var(--text-13);
   }
   .ec-actes .hero .ic{width:16px;height:16px}
-  .ec-actes .moi-door{
-    margin:0 0 0 auto;width:auto;min-height:36px;padding:0 4px;gap:8px;
-    background:none;border:0;box-shadow:none;
-  }
-  @media (hover:hover){
-    .ec-actes .moi-door:hover{background:none;text-decoration:underline}
-  }
+  /* LA PORTE GARDE SA CARTE, ET SA LIGNE. Première correction ratée :
+     pour la distinguer des deux verbes je lui avais retiré son fond,
+     son cadre et son relief, et poussée au bout de la rangée — elle
+     devenait quasi inexistante. Se distinguer n'est pas s'effacer.
+     Ce qui la sépare des verbes n'est pas moins d'encre, c'est une
+     autre PLACE et une autre FORME : elle prend sa propre ligne, sur
+     toute la largeur, avec le chevron au bout — la grammaire d'une
+     porte, celle de « Réglages » dans « Moi ». Les deux verbes se
+     taillent à leur mot ; elle s'étend. On ne les confond pas, et on
+     la voit. */
+  .ec-actes .moi-door{flex:1 0 100%;margin:4px 0 0;min-height:49px}
   .ec-cols{
     flex:1;min-height:0;display:grid;
     grid-template-columns:minmax(0,420px) minmax(0,1fr);gap:22px;align-items:start;

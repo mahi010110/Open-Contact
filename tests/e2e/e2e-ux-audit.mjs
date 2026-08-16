@@ -693,7 +693,12 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
           boite: parseFloat(st.borderTopWidth) > 0 || st.boxShadow !== 'none'
                  || st.backgroundColor !== 'rgba(0, 0, 0, 0)' };
       };
-      return { donner: lu('#ecGive'), recevoir: lu('#ecRecv'), porte: lu('#ecPromo') };
+      const out = { donner: lu('#ecGive'), recevoir: lu('#ecRecv'), porte: lu('#ecPromo') };
+      /* « sur sa propre ligne » se mesure, il ne se décrète pas : le
+         haut de la porte doit tomber SOUS le bas du dernier verbe */
+      const v = document.querySelector('#ecRecv'), p = document.querySelector('#ecPromo');
+      if (v && p) out.porte.seule = p.getBoundingClientRect().top >= v.getBoundingClientRect().bottom - 2;
+      return out;
     });
     await eCtx.close();
     if (!etalon.h || !cmd.donner) fail('commandes : étalon ou boutons introuvables — le contrôle ne mesure rien');
@@ -707,17 +712,41 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
       if (cmd.donner.w > etalon.w * 2.5)
         fail(`commandes : « Donner » fait ${cmd.donner.w}px de large pour un mot, contre `
           + `${etalon.w} à l'étalon — un bouton se taille à son contenu`);
-      /* UN VERBE ET UN LIEU NE SE DESSINENT PAS PAREIL. « Partage en
-         groupe » est une PORTE — le mainteneur l'avait tranché en la
-         dessinant comme celle de « Moi ». Lui donner la boîte d'un
-         bouton à côté de deux verbes efface cette décision : une
-         similitude de forme dit une similitude de nature. */
-      if (cmd.porte && cmd.porte.boite)
-        fail('commandes : « Partage en groupe » porte la boîte d’un bouton (cadre, relief ou fond) '
-          + 'alors que c’est une porte — trois formes identiques disent trois choses de même nature');
-      else console.log(`commandes : Donner ${cmd.donner.w}×${cmd.donner.h}, `
-        + `Recevoir ${cmd.recevoir.w}×${cmd.recevoir.h}, la porte sans boîte — `
-        + `à l'échelle de l'app (étalon ${etalon.w}×${etalon.h}) ✓`);
+      /* UN VERBE ET UN LIEU NE SE DESSINENT PAS PAREIL — MAIS SE
+         DISTINGUER N'EST PAS S'EFFACER. Deux erreurs opposées ont été
+         faites sur cette seule porte, et le contrôle tient les deux
+         bords :
+         · d'abord trois cellules identiques, qui effaçaient la
+           différence de nature entre deux VERBES qu'on exécute et un
+           LIEU où l'on entre ;
+         · puis, pour l'en distinguer, une porte dépouillée de son fond,
+           de son cadre et de son relief et poussée au bout de la
+           rangée — « quasiment inexistante », et c'est le mainteneur
+           qui l'a vu.
+         Ce qui la sépare n'est donc pas MOINS d'encre, c'est une autre
+         PLACE et une autre FORME : sa propre ligne, toute la largeur,
+         sa carte et son chevron. On exige les trois. */
+      let porteOk = true;
+      const grief = m => { porteOk = false; fail(m); };
+      if (!cmd.porte) grief('commandes : la porte du groupe a disparu — le contrôle ne mesure rien');
+      else {
+        if (!cmd.porte.boite)
+          grief('commandes : « Partage en groupe » n’a plus ni fond, ni cadre, ni relief — '
+            + 'se distinguer des deux verbes ne veut pas dire disparaître');
+        if (cmd.porte.h < cmd.donner.h || cmd.porte.w < cmd.donner.w)
+          grief(`commandes : la porte (${cmd.porte.w}×${cmd.porte.h}) est plus petite qu’un verbe `
+            + `(${cmd.donner.w}×${cmd.donner.h}) — elle n’est pas une note de bas de page`);
+        if (!cmd.porte.seule)
+          grief('commandes : la porte partage sa ligne avec les verbes — une similitude de place '
+            + 'dit une similitude de nature, et ce n’est pas un troisième verbe');
+      }
+      /* une ligne de succès imprimée pendant qu'un grief vient d'être
+         posé est pire que pas de ligne du tout : elle se lit dans le
+         journal comme une preuve que tout va bien */
+      if (porteOk)
+        console.log(`commandes : Donner ${cmd.donner.w}×${cmd.donner.h}, `
+          + `Recevoir ${cmd.recevoir.w}×${cmd.recevoir.h} (étalon ${etalon.w}×${etalon.h}), `
+          + `porte ${cmd.porte.w}×${cmd.porte.h} sur sa propre ligne, avec sa carte ✓`);
     }
   }
   await dCtx.close();
