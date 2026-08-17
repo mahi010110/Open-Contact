@@ -7,8 +7,9 @@
 Tes données restent sur tes appareils. Pas de compte, pas de serveur, pas de traçage.
 
 [Essayer](https://mahi010110.github.io/Open-Contact/) ·
-[Les trois surfaces](docs/surfaces.md) ·
+[Les trois applications](docs/surfaces.md) ·
 [La suite](docs/feuille-de-route.md) ·
+[Déployer](docs/deployer.md) ·
 [Développer](docs/developpement.md)
 
 </div>

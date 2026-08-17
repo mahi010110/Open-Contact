@@ -181,3 +181,7 @@ niveau d'expertise :
 
 C'est tout. Pas « est-ce que c'est avancé », pas « est-ce que c'est pour les
 experts » : est-ce que ça marche **tout de suite, pour tout le monde**.
+
+La question ② est aussi ce qui décide de l'ordre de **mise à disposition**
+des trois applications — stores, signatures, certificats. Le détail, les
+coûts et l'ordre recommandé sont dans [`deployer.md`](deployer.md).
