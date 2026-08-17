@@ -31,6 +31,10 @@ choses, et aucune ne dépend de quelqu'un d'extérieur.
 - [ ] **Essais sur vrai matériel** — un vrai téléphone d'entrée de gamme, un
       vrai réseau d'établissement. Les scénarios automatiques passent à côté
       de tout ce qui relève du doigt, de la lenteur et du wifi filtré.
+      En particulier : **prouver que les neuf relais épinglés répondent**
+      (`RELAIS_DEFAUT`, `engine/transport.js`) — le bac à sable de
+      développement refuse toute connexion sortante, leur choix repose donc
+      sur la réputation, pas sur une mesure. À rejouer à deux téléphones.
 - [ ] **Durabilité des données** — prouver qu'une installation neuve, puis
       une montée de version, ne perdent rien. C'est l'invariant qui coûte le
       plus cher s'il casse.

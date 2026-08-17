@@ -20,7 +20,7 @@ import { SYNC_KEY, RELAYS_KEY, TURN_KEY, DEVICE_KEY, DEVICES_KEY, RING_KEY,
          DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, GROUP_KEY, PROMO_KEY, VAULT_KEY,
          CAMPAIGNS_KEY, MAIL_KEY, AI_KEY, MISSIONS_KEY, COMPANION_KEY, ANALYSIS_KEY,
          PROPOSALS_KEY, kvGet, kvSet, kvDel, docClear } from '../engine/storage.js';
-import { relayTally, liaisonStage } from '../engine/transport.js';
+import { relayTally, liaisonStage, RELAIS_DEFAUT } from '../engine/transport.js';
 import { S, bus, applySynced, saveProfile, logJ } from './state.js';
 import { ic, toast, showUndo } from './dom.js';
 
@@ -66,6 +66,11 @@ export async function openRoom(kind, phrase, callbacks){
   const { joinRoom } = await loadLib();
   const id = kind + '-' + (await sha256hex('opencontact·' + kind + '·' + phrase)).slice(0, 24);
   const cfg = { appId: 'opencontact', password: phrase };
+  /* Les relais sont ÉPINGLÉS (`RELAIS_DEFAUT`, voir engine/transport.js) :
+     sans liste, Trystero n'en tire que cinq sur quarante-trois, les
+     mêmes pour tout le monde — cinq pannes possibles pour un seul échec,
+     et aucun repli. La liste de l'utilisateur reste prioritaire. */
+  cfg.relayConfig = { urls: RELAIS_DEFAUT };
   try {
     const urls = JSON.parse(await kvGet(RELAYS_KEY) || 'null');
     if (Array.isArray(urls) && urls.length) cfg.relayConfig = { urls };

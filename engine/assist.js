@@ -182,6 +182,106 @@ function daysBetween(a, b){
   return Math.round((d2 - d1) / 86400000);
 }
 
+/* ============================================================
+   CE QUI NE CIRCULE PAS ENCORE
+
+   « Échanger » racontait ce qui a circulé : un classeur, qui répond
+   à « qu'est-ce qui s'est passé ? ». Or le produit dit de lui-même
+   qu'il est un outil de MOTIVATION ET D'ACTION, et cet onglet existe
+   à cause d'un seul chiffre — une candidature à froid décroche un
+   entretien dans ~3 % des cas, portée par quelqu'un qui est dedans
+   dans ~40 %. Un rapport de 40 pour 1, dont l'écran ne faisait rien.
+
+   Ces deux lectures ne demandent AUCUNE donnée nouvelle : le journal
+   note déjà quelles pistes sont entrées, de qui, et lesquelles sont
+   sorties (`logJ(..., ids)`). Tout est là depuis le début, personne
+   ne le relisait.
+   ============================================================ */
+
+/* ---------- ① ce qu'on t'a donné et que tu n'as pas touché ----------
+   Le cas le plus cher du produit : un camarade te tend douze pistes,
+   elles atterrissent dans « Mes pistes » indifférenciées, et elles y
+   dorment. Le 40:1 est là, intact, inutilisé.
+   Le seuil réutilise `SILENCE_RELANCE` — sept jours — plutôt que d'en
+   inventer un second : sous une semaine ce n'est pas de la négligence,
+   c'est le délai normal entre recevoir et s'y mettre. Un chiffre de
+   moins à défendre, et le même mot dans toute l'app.
+   `qui` vient du PREMIER don : c'est celui qui te l'a mise dans les
+   mains, et c'est à lui que tu peux revenir en parler. */
+export function recuesDormantes(companies, journal, today){
+  const venue = new Map();
+  for (const x of exchangeLog(journal, 0)){
+    if (x.sens !== 'recu' || !x.t) continue;
+    const jour = new Date(x.t).toISOString().slice(0, 10);
+    for (const id of x.ids){
+      const dejaVu = venue.get(id);
+      if (!dejaVu || jour < dejaVu.jour) venue.set(id, { jour, qui: x.qui || '' });
+    }
+  }
+  const out = [];
+  for (const c of (companies || [])){
+    if (!c || c.demo || c.closedReason) continue;
+    /* « pas touchée » au sens strict : jamais engagée ET rien de prévu.
+       Une piste qu'on a contactée puis laissée filer est déjà couverte
+       par `silentPistes` — deux tranches pour le même objet noieraient
+       le signal (§6 : une seule tranche de suggestion à la fois). */
+    if (c.status !== 'todo' || c.nextAction) continue;
+    const v = venue.get(c.id);
+    if (!v || v.jour > today) continue;
+    const jours = daysBetween(v.jour, today);
+    if (jours < SILENCE_RELANCE) continue;
+    /* les MÊMES crans que le silence : l'app n'a qu'un seul langage
+       d'urgence (§6), et en ouvrir un second pour ce cas-ci obligerait
+       à réapprendre à lire une couleur d'un écran à l'autre */
+    const cran = jours >= SILENCE_TROP_TARD ? 'late'
+               : jours >= SILENCE_DERNIERE ? 'now' : 'soon';
+    out.push({ id: c.id, name: c.name, qui: v.qui, jours, cran,
+      city: c.city || '', contacts: (c.contacts || []).length,
+      joignable: (c.contacts || []).some(t => t && t.email) });
+  }
+  /* L'ORDRE EST CELUI DE « Par où commencer », et pour la même raison :
+     choisir à la place de l'utilisateur est le service rendu. Douze
+     pistes reçues, c'est douze décisions avant le premier geste — et le
+     premier geste n'arrive jamais.
+     Le critère du 40:1 (quelqu'un peut la porter) est déjà satisfait
+     par TOUTES : elles ont été données. Ce qui les départage ensuite est
+     donc ce à quoi on peut écrire tout de suite, puis les mieux
+     remplies. L'ancienneté ne vient qu'après : douze pistes arrivées le
+     même jour ont toutes le même âge, il ne trie rien. */
+  out.sort((a, b) => (b.joignable - a.joignable)
+                  || (b.contacts - a.contacts)
+                  || (b.jours - a.jours)
+                  || String(a.name).localeCompare(String(b.name), 'fr'));
+  return out;
+}
+
+/* ---------- ② les tiennes que le groupe n'a jamais vues ----------
+   L'autre sens du même échange. Volontairement SECOND : tant qu'on n'a
+   jamais donné, le grand bouton « Donner » dit déjà tout, et lister
+   vingt-quatre pistes « jamais données » à quelqu'un qui vient
+   d'arriver n'est pas un conseil, c'est un inventaire. La fonction rend
+   donc une liste vide tant qu'aucun don n'a eu lieu : c'est l'appelant
+   qui choisit d'afficher, mais le moteur ne fabrique pas un reproche
+   pour un geste que l'utilisateur ne connaît pas encore. */
+export function jamaisDonnees(companies, journal){
+  const sorties = new Set();
+  let aDejaDonne = false;
+  for (const x of exchangeLog(journal, 0)){
+    if (x.sens !== 'donne') continue;
+    aDejaDonne = true;
+    for (const id of x.ids) sorties.add(id);
+  }
+  if (!aDejaDonne) return [];
+  return (companies || [])
+    .filter(c => c && !c.demo && !c.closedReason && !sorties.has(c.id))
+    .map(c => ({ id: c.id, name: c.name, city: c.city || '',
+      status: c.status, updatedAt: c.updatedAt || 0 }))
+    /* la plus récente d'abord : c'est celle que le groupe n'a pas
+       encore vue passer, et celle qu'on a le plus en tête */
+    .sort((a, b) => (b.updatedAt - a.updatedAt)
+                 || String(a.name).localeCompare(String(b.name), 'fr'));
+}
+
 /* ---------- signature → contact (heuristique locale) ----------
    Colle une signature d'email : on en tire nom, rôle, email,
    téléphone, lien — tout ce qui est reconnaissable, sans jamais

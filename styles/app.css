@@ -1353,6 +1353,31 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 }
 .sy-log{margin-top:10px}
 .pr-send{width:100%;margin-top:12px}
+/* ---- Échanger : ce qui réclame quelque chose ----
+   La tranche de tête. Même grammaire que le fil qu'elle surplombe et
+   que « En retard » sur « Aujourd'hui » : un libellé en petites
+   capitales, son compte, puis des lignes au trait. Elle ne s'encadre
+   pas — ce serait un objet de plus à lire, alors qu'il s'agit de la
+   même chose qu'ailleurs : des pistes qui réclament un geste. */
+.ec-repr{margin:0 0 20px}
+.ec-rep{
+  display:flex;align-items:center;gap:10px;width:100%;
+  min-height:var(--ctl);padding:9px 0;
+  border:0;border-bottom:1px dashed var(--border-soft);border-radius:0;
+  background:none;color:var(--text-body);font-family:var(--font-ui);
+  text-align:left;cursor:pointer;
+}
+.ec-rep:last-child{border-bottom-color:transparent}
+@media (hover:hover){ .ec-rep:hover{background:var(--surface-field)} }
+.rep-m{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+/* la TÊTE porte l'attribut distinctif — le nom de la piste, jamais le
+   donneur : deux lignes voisines viennent souvent de la même personne
+   (NN/g, « The Anatomy of a List Entry ») */
+.rep-m>b{font-size:var(--text-13);font-weight:var(--weight-semibold);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rep-m>span{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
 /* ---- Échanger : deux verbes héros + pied discret ---- */
 .hero2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
 /* rien à donner : « Recevoir » reste seul et prend toute la largeur —
@@ -1402,19 +1427,151 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   .ec-fil + .hero2{margin-top:16px}
 }
 .ec-tot{margin:-2px 0 6px}
-.ec-when{flex:none;white-space:nowrap;font-family:var(--font-mono);
+/* la date vit DANS la phrase (voir ui/echanger.js) : elle garde sa typo
+   de donnée — mono, discrète — sans quitter la ligne de texte */
+.ec-when{white-space:nowrap;font-family:var(--font-mono);
   font-size:var(--text-11);color:var(--text-muted)}
 .ec-when b{color:var(--text-body);font-weight:var(--weight-semibold)}
 @media (min-width:901px){
   /* le panneau prend TOUTE la hauteur de la vue : les gestes n'ont pas
      besoin de 1060 px, le fil si — et un cadre qui s'arrête à mi-écran
      laisserait sous lui le vide que le cadre servait à supprimer */
+  /* LISTE-DÉTAIL. Deux étapes ont mené ici, et la seconde ne renie pas
+     la première : on a d'abord SUPPRIMÉ une colonne qui ne montrait
+     rien (340 px de large, 149 px de haut, 450 px de vide sous elle),
+     puis on en a ajouté une qui montre une DONNÉE — les pistes que
+     l'échange retenu a fait circuler. La règle n'a pas bougé : une
+     colonne se mérite par ce qu'elle affiche.
+     C'est le motif liste-détail (Material 3 « list-detail », Apple HIG
+     « split view ») : on parcourt à gauche, on lit à droite, sans ouvrir
+     ni perdre sa place. Et c'est la seule chose qui justifie DEUX
+     dessins ici (§5) : au pouce on descend puis on remonte, au poste on
+     garde les deux sous les yeux — un usage qui diffère, pas une taille.
+     La barre d'actions passe au-dessus, sur toute la largeur : les trois
+     canaux d'un échange tiennent sur une ligne au lieu de deux, et
+     « Donner » cesse d'être un timbre de 165 px. */
+  #view-echanger>.page-inner{max-width:1060px}
+  /* UNE BARRE D'OUTILS, À L'ÉCHELLE DE L'APP — et deux natures, pas
+     trois cellules identiques.
+
+     ① L'ÉCHELLE. Les trois contrôles faisaient 345 × 76 px sur un écran
+     où toute autre commande fait 33 px. Relevé sur l'app elle-même au
+     poste : « Prospecter » 106 × 36, « Remplir mon profil » 129 × 36,
+     « Ajouter une piste » 155 × 32 — icône À CÔTÉ du mot, largeur au
+     contenu. Le format haut, large et centré est celui du POUCE, où il
+     est juste ; transplanté tel quel au poste il double la norme de la
+     maison. On revient donc à la grammaire de l'app : ligne, largeur au
+     contenu, hauteur de contrôle.
+
+     ② LES DEUX NATURES. « Donner » et « Recevoir » sont des VERBES qu'on
+     exécute ; « Partage en groupe » est un LIEU où l'on entre — le
+     mainteneur l'avait tranché en le dessinant comme la porte
+     « Réglages » de « Moi », et trois cellules de taille égale
+     effaçaient cette décision. Une similitude de forme dit une
+     similitude de nature (Gestalt) ; le chevron disait le contraire à
+     l'intérieur d'une boîte qui disait bouton. La porte quitte donc la
+     famille des boutons : pas de fond, pas de cadre, pas de relief,
+     poussée au bout de la rangée par la distance — ce qui est d'une
+     autre nature se sépare, au lieu de s'aligner. */
+  .ec-actes{
+    flex:none;margin-bottom:18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  }
+  .ec-actes .hero2{display:contents}
+  .ec-actes .hero{
+    min-height:36px;width:auto;flex:none;flex-direction:row;gap:8px;
+    padding:0 18px;font-size:var(--text-13);
+  }
+  .ec-actes .hero .ic{width:16px;height:16px}
+  /* LA HIÉRARCHIE SE DIT PAR L'EMPHASE, PAS PAR LA TAILLE.
+     Trois essais ratés avant celui-ci, et chacun disait la même chose
+     par un autre moyen : trois cellules identiques (la nature de la
+     porte effacée), puis une porte dépouillée et rejetée au bord (elle
+     disparaissait), puis une bande pleine largeur (elle écrasait tout).
+     La sortie est documentée et je ne l'avais pas essayée — Material 3 :
+     l'importance d'une action se lit à son EMPHASE, rempli > contourné >
+     discret, une seule action principale par écran. Trois contrôles de
+     même hauteur, taillés à leur mot, d'emphase décroissante :
+     « Donner » rempli, « Recevoir » contourné, « Partage en groupe »
+     contourné et en encre sourde. Rien ne s'étire, rien ne disparaît,
+     et l'ordre d'importance se lit d'un coup d'œil.
+     Au pouce, rien de tout ça : la porte y reste une ligne pleine
+     largeur avec son chevron, parce qu'un doigt veut une grande cible
+     et qu'une colonne unique n'a pas de rangée à composer. */
+  .ec-actes .moi-door{
+    flex:0 0 auto;width:auto;margin:0;min-height:36px;padding:0 14px;gap:8px;
+    font-size:var(--text-13);color:var(--text-muted);
+  }
+  .ec-actes .moi-door .md-m{flex:none}
+  .ec-actes .moi-door b{font-weight:var(--weight-regular)}
   .ec-cols{
     flex:1;min-height:0;display:grid;
-    grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:18px;
+    /* LA PROPORTION SUIT L'IMPORTANCE. En 420 / 618, la colonne qui
+       porte le travail à faire était plus étroite que celle qui porte
+       un reçu — un rapport de 0,68 exactement à l'envers de ce que
+       l'écran veut dire. Les deux restent dans la fourchette de
+       lisibilité (50-75 caractères), c'est le rapport qui parle. */
+    grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:22px;align-items:start;
   }
-  .ec-actes{align-self:start}
-  .ec-cols .ec-fil{margin-top:0}
+  .ec-cols>*{min-width:0;max-height:100%}
+  /* la colonne de gauche empile ce qui réclame, puis la trace : c'est
+     le fil qui prend la place restante et défile, jamais la tranche de
+     tête — trois lignes qui appellent un geste ne se cachent pas */
+  .ec-gauche{display:flex;flex-direction:column;min-height:0;height:100%}
+  .ec-gauche .ec-repr{flex:none;margin-bottom:18px}
+  .ec-cols .ec-fil{margin-top:0;min-height:0;flex:1}
+  /* le panneau lu défile chez lui : vingt pistes données ne poussent
+     jamais la liste ni la page */
+  .ec-detail{min-width:0;height:100%;display:flex;flex-direction:column;overflow:hidden}
+  .ec-detail-b{flex:1;min-height:0;overflow:auto}
+  .ec-detail .ec-quand{margin:8px 0 10px}
+  /* « tu es ici » : la couleur du châssis, celle de l'onglet allumé —
+     jamais l'accent, qui appartient au contenu (§4) */
+  /* UNE SEULE GRAMMAIRE POUR DEUX LISTES CÔTE À CÔTE. Le fil est une
+     TRANCHE — 33 px, sans cadre, un trait pointillé pour frontière ;
+     c'était une décision assumée (« le journal n'est pas un objet à
+     encadrer »). Le panneau, lui, empilait des `.pick` : 54 px, bordure,
+     relief, fond de carte. Deux listes d'objets à 22 px l'une de
+     l'autre, rendues de deux façons opposées — on réapprenait à lire en
+     traversant l'écran. Et `.pick` est le motif de « choisir parmi
+     2-5 options » (§6) ; ici on en PARCOURT vingt et une.
+     Le panneau prend donc la grammaire de son voisin. Portée au
+     `.ec-detail` seulement : dans une feuille, la carte reste la langue
+     de la feuille. */
+  .ec-detail .pick{
+    min-height:var(--ctl);padding:9px 2px;gap:1px 10px;
+    border:0;border-bottom:1px dashed var(--border-soft);border-radius:0;
+    background:none;box-shadow:none;font-size:var(--text-13);
+  }
+  /* la dernière n'a pas de trait, mais garde son épaisseur : à
+     `border-width:0` elle perdait 1 px et devenait la seule ligne d'une
+     hauteur différente — ce que le contrôle des listes interdit, à
+     raison (une hauteur qui varie se lit comme un défaut de rendu) */
+  .ec-detail .pick:last-child{border-bottom-color:transparent}
+  .ec-detail .pick .pk-m>b{font-size:var(--text-13);font-weight:var(--weight-semibold)}
+  /* UN RANG À DEUX ÉTAGES A UNE SEULE HAUTEUR. Mesuré : 49 px à
+     gauche, 54 px à droite — deux listes de même nature posées côte à
+     côte, dont le PAS dérivait de 4 px par ligne. Au bout de quatre
+     rangs elles étaient décalées d'une demi-ligne : ça ne se nomme pas,
+     ça se ressent comme un défaut de finition.
+     Les hauteurs de ligne sont donc FIXÉES des deux côtés — laissées à
+     l'héritage, elles dépendaient de la taille du conteneur, qui n'est
+     pas la même pour un bouton `.pick` et pour une ligne de tranche. */
+  .ec-detail .pick .pk-m span{font-size:var(--text-11)}
+  .ec-repr .rep-m>b,.ec-detail .pick .pk-m>b,
+  .ec-repr .rep-m>span,.ec-detail .pick .pk-m span{line-height:1.35}
+  @media (hover:hover){ .ec-detail .pick:hover{background:var(--surface-field)} }
+  /* pas de `:hover` ici — il resterait collé après un tap (§4), et le
+     `!important` passe déjà devant la règle de survol de la ligne */
+  .ec-lue{background:var(--select-bg)!important}
+  /* la poubelle passait en gris de texte sur le navy : 1,6:1, invisible.
+     Sur la ligne lue, elle prend l'encre du châssis comme le reste. */
+  .ec-cols .ec-l:has(.ec-lue) .hov-del .ic{background:var(--select-text)}
+  .ec-lue,.ec-lue>b,.ec-lue .ec-when{color:var(--select-text)}
+  .ec-lue .ec-when{opacity:.8}
+  .ec-lue .ic{background:var(--select-text)}
+  /* la ligne retenue s'étend jusqu'au bord du panneau : la poubelle du
+     geste de suppression est du décor de survol, pas une marge */
+  .ec-cols .ec-l:has(.ec-lue) .sw-in{background:var(--select-bg)}
 }
 /* Le message tout prêt de « Demander à … » : il se LIT et se
    sélectionne, il ne se tape pas. `user-select:all` pour que le doigt
@@ -1467,7 +1624,15 @@ button.fi-vecu b{flex:1;min-width:0}
    carte le transformerait en liste de boîtes — l'inverse de ce qu'on
    cherche. Il prend donc le fond de la page, juste assez opaque pour
    couvrir la poubelle pendant le glissement. */
-.ec-l .sw-in{background:var(--surface-desktop)}
+/* Et la ligne du fil EST une ligne. Sans `display:flex`, `.sw-in` reste
+   un BLOC : la poubelle du geste de suppression se posait SOUS le texte,
+   collée à gauche, et chaque échange occupait 65 px de haut dont la
+   moitié pour un bouton invisible au repos. Mesuré : ligne 33 px, cadre
+   65 px, poubelle à y+33 et x=0. Tous les autres porteurs du motif
+   (`.row-item`, `.doc-row`, `.orow`) posent ce `flex` ; le fil l'avait
+   oublié en naissant, et le trop-plein d'air se lisait comme un dessin
+   raté avant qu'on en trouve la cause. */
+.ec-l .sw-in{display:flex;align-items:center;background:var(--surface-desktop)}
 .ec-row{
   display:flex;align-items:center;gap:10px;width:100%;
   min-height:var(--ctl);padding:9px 0;

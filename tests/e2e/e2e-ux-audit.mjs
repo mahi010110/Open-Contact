@@ -455,10 +455,16 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
     await dPage.reload({ waitUntil: 'load' });
     await attendre(dPage, () => !!document.querySelector('button.ec-row'), { message: 'le fil' });
     await dPage.click('button.ec-row');
-    await attendre(dPage, () => document.querySelectorAll('.modal-b .pick').length >= 4,
-      { message: 'les lignes de l’échange' });
+    /* Le contenu d'un échange vit dans DEUX contenants selon
+       l'ergonomie : une feuille au pouce (on descend, on remonte), le
+       panneau de droite au poste (motif liste-détail — on lit à côté
+       sans rien ouvrir). Le contrôle regarde donc les deux : ce qu'il
+       garde, c'est la ligne `.pick` elle-même, la même des deux côtés. */
+    await attendre(dPage,
+      () => document.querySelectorAll('.modal-b .pick, .ec-detail .pick').length >= 4,
+      { message: 'les lignes de l’échange, en feuille ou en panneau' });
     const reg = await dPage.evaluate(() => {
-      const rows = [...document.querySelectorAll('.modal-b .pick')];
+      const rows = [...document.querySelectorAll('.modal-b .pick, .ec-detail .pick')];
       return {
         n: rows.length,
         hauteurs: [...new Set(rows.map(r => Math.round(r.getBoundingClientRect().height)))],
@@ -479,6 +485,486 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
     if (reg.deborde) fail(`@${lw} un nom déborde de son bloc au lieu de se couper`);
     console.log(`   liste d'échange @${lw} : ${reg.n} lignes × ${reg.hauteurs[0]} px, chevron à ${reg.chevrons[0]} px ✓`);
     if (lw === 360) await dPage.screenshot({ path: SHOTS + '/86-ux-lignes-pouce.png' });
+  }
+  /* ---- LISTE-DÉTAIL : au poste on lit à côté, au pouce on ouvre ----
+     L'écran ne montrait que des portes — deux verbes, une entrée de
+     groupe, un relevé de reçus — alors qu'il tenait la donnée : les
+     pistes que chaque échange a fait circuler, cachées derrière un clic
+     et une modale. Au poste elles vivent dans le panneau de droite
+     (Material 3 « list-detail », Apple HIG « split view »).
+     Le contrôle est à DOUBLE SENS, comme celui du mouvement : au poste
+     aucune feuille ne doit s'ouvrir et le panneau doit se remplir ; au
+     pouce la feuille doit s'ouvrir comme avant. Sans le second sens, on
+     casserait le téléphone sans s'en apercevoir. */
+  for (const [lw, lh, poste] of [[1280, 800, true], [390, 844, false]]){
+    await dPage.setViewportSize({ width: lw, height: lh });
+    await dPage.goto(base + '/#/echanger', { waitUntil: 'load' });
+    /* TROIS échanges, pas un : le clavier ne se mesure qu'entre des
+       lignes. Avec une seule, ↓ n'a nulle part où aller et le contrôle
+       resterait vert en ne vérifiant rien. */
+    await dPage.evaluate(async () => {
+      const st = await import('./engine/storage.js');
+      const { S } = await import('./ui/state.js');
+      const ids = S.companies.map(c => c.id);
+      const J = n => Date.now() - n * 864e5;
+      await st.kvSet(st.JOURNAL_KEY, JSON.stringify([
+        { t: J(1), txt: 'Donné (fichier) : ' + ids.length + ' piste(s)', ids },
+        { t: J(4), txt: 'Reçu de Léa : +2 piste(s)', ids: ids.slice(0, 2) },
+        { t: J(9), txt: 'Donné (QR) : 1 piste(s)', ids: ids.slice(0, 1) }
+      ]));
+    });
+    await dPage.reload({ waitUntil: 'load' });
+    await attendre(dPage, () => document.querySelectorAll('button.ec-row').length >= 3,
+      { message: 'les trois lignes du fil de la liste-détail' });
+    const avant = await dPage.evaluate(() => ({
+      feuille: !!document.querySelector('.overlay:not(.ov-out)'),
+      pane: document.querySelectorAll('.ec-detail .pick').length
+    }));
+    if (poste && !avant.pane)
+      fail('liste-détail : au poste, le panneau est vide à l’arrivée — la ligne la plus '
+        + 'récente doit être lue d’emblée, sinon on a remplacé une porte par un vide');
+    await dPage.click('button.ec-row');
+    await dPage.waitForTimeout(450);
+    const apres = await dPage.evaluate(() => ({
+      feuille: !!document.querySelector('.overlay:not(.ov-out)'),
+      pane: document.querySelectorAll('.ec-detail .pick').length,
+      marquee: !!document.querySelector('.ec-row[aria-current="true"]')
+    }));
+    if (poste){
+      if (apres.feuille)
+        fail('liste-détail : au poste, taper une ligne ouvre encore une feuille — '
+          + 'le panneau est là pour éviter exactement ça');
+      if (!apres.pane) fail('liste-détail : au poste, le panneau ne se remplit pas');
+      if (!apres.marquee)
+        fail('liste-détail : la ligne lue ne se signale pas (`aria-current`) — '
+          + 'rien ne dit à quelle ligne appartient ce qu’on lit à droite');
+      /* et elle se VOIT : un état de sélection qui ne change aucun pixel
+         n'existe pas pour qui regarde l'écran */
+      const contraste = await dPage.evaluate(() => {
+        const lue = document.querySelector('.ec-row[aria-current="true"]');
+        const autre = [...document.querySelectorAll('.ec-row')].find(n => n !== lue);
+        if (!lue || !autre) return null;
+        return getComputedStyle(lue).backgroundColor !== getComputedStyle(autre).backgroundColor;
+      });
+      if (contraste === false)
+        fail('liste-détail : la ligne lue ne se distingue pas de ses voisines à l’écran');
+      /* et le panneau MÈNE quelque part : sans ce contrôle, débrancher
+         ses lignes le rendrait décoratif sans rien faire rougir — une
+         liste de pistes qu'on ne peut pas ouvrir vaut moins que la
+         feuille qu'on vient de supprimer */
+      await dPage.click('.ec-detail .pick');
+      await dPage.waitForTimeout(450);
+      const fiche = await dPage.evaluate(() =>
+        !!document.querySelector('.overlay:not(.ov-out) #fiNotes'));
+      if (!fiche)
+        fail('liste-détail : une piste du panneau n’ouvre pas sa fiche — le panneau ne mène nulle part');
+      await dPage.evaluate(async () => {
+        const { topSheet } = await import('./ui/dom.js');
+        let s, n = 0; while ((s = topSheet()) && n++ < 4){ s.close(null, true); await new Promise(r => setTimeout(r, 120)); }
+      });
+      /* ---- ET CE QUE LA PREMIÈRE VERSION AVAIT OUBLIÉ ----
+         Trois défauts, tous des règles écrites deux lots plus tôt et
+         re-cassées par un re-rendu de confort. Ils ne se voient pas :
+         ils se mesurent. */
+      const clavier = await dPage.evaluate(async () => {
+        const lire = () => ({
+          ligne: document.querySelector('.ec-row[aria-current="true"]')?.dataset.fil,
+          focus: document.activeElement && document.activeElement.classList.contains('ec-row'),
+          surBody: document.activeElement === document.body,
+          dit: (document.getElementById('annonce')?.textContent || '').trim()
+        });
+        const rows = [...document.querySelectorAll('button.ec-row')];
+        document.getElementById('annonce').textContent = '';
+        rows[0].focus();
+        rows[0].click();
+        await new Promise(r => setTimeout(r, 300));
+        const apresClic = lire();
+        /* ↓ puis ↑ : la sélection roule dans la liste sans la quitter */
+        const tape = k => rows[0].dispatchEvent(new KeyboardEvent('keydown',
+          { key: k, bubbles: true, cancelable: true }));
+        document.activeElement.dispatchEvent(new KeyboardEvent('keydown',
+          { key: 'ArrowDown', bubbles: true, cancelable: true }));
+        await new Promise(r => setTimeout(r, 300));
+        const apresBas = lire();
+        document.activeElement.dispatchEvent(new KeyboardEvent('keydown',
+          { key: 'ArrowUp', bubbles: true, cancelable: true }));
+        await new Promise(r => setTimeout(r, 300));
+        return { apresClic, apresBas, apresHaut: lire(), n: rows.length, tape: !!tape };
+      });
+      if (clavier.n < 2)
+        fail('liste-détail : moins de deux lignes — le contrôle du clavier ne mesure rien');
+      if (clavier.apresClic.surBody || !clavier.apresClic.focus)
+        fail('liste-détail : après un clic, le focus retombe sur le `<body>` — '
+          + 'au clavier on repart en haut de la page à chaque ligne lue (WCAG 2.4.3)');
+      if (!/piste/.test(clavier.apresClic.dit))
+        fail(`liste-détail : changer de ligne ne s'annonce pas — tout le côté droit change `
+          + `sans que le focus bouge, donc sans écran on ne sait pas qu'il s'est passé quelque `
+          + `chose (WCAG 4.1.3). Région : « ${clavier.apresClic.dit} »`);
+      if (clavier.apresBas.ligne === clavier.apresClic.ligne)
+        fail('liste-détail : la flèche bas ne change pas de ligne — un couple liste-détail '
+          + 'sans clavier passe à côté de la seule vraie efficacité d’un grand écran');
+      if (!clavier.apresBas.focus)
+        fail('liste-détail : la flèche déplace la sélection mais pas le focus — '
+          + 'le clavier perd la liste au coup suivant');
+      if (clavier.apresHaut.ligne !== clavier.apresClic.ligne)
+        fail('liste-détail : la flèche haut ne revient pas où l’on était');
+
+      /* UNE SEULE GRAMMAIRE. Le fil est une tranche sans cadre ; le
+         panneau empilait des cartes à bordure et relief. Deux listes
+         d'objets à 22 px l'une de l'autre, rendues de deux façons
+         opposées : on réapprend à lire en traversant l'écran. */
+      const gram = await dPage.evaluate(() => {
+        const g = document.querySelector('.ec-l .ec-row');
+        const d = document.querySelector('.ec-detail .pick');
+        if (!g || !d) return null;
+        const lu = n => { const s = getComputedStyle(n);
+          return { bord: parseFloat(s.borderTopWidth) + parseFloat(s.borderLeftWidth),
+                   ombre: s.boxShadow !== 'none' };
+        };
+        return { g: lu(g), d: lu(d) };
+      });
+      if (!gram) fail('liste-détail : grammaires non mesurables — le contrôle ne lit plus rien');
+      else if (gram.d.bord > gram.g.bord + 0.5 || (gram.d.ombre && !gram.g.ombre))
+        fail('liste-détail : le panneau encadre ses lignes quand la liste d’à côté ne le fait '
+          + 'pas — deux grammaires pour deux listes d’objets sur le même écran');
+
+      /* et la poubelle reste lisible sur la ligne peinte : elle passait
+         en gris de texte sur le navy, soit 1,6:1 */
+      const poub = await dPage.evaluate(() => {
+        const lue = document.querySelector('.ec-row[aria-current="true"]');
+        const ico = lue && lue.closest('.ec-l')?.querySelector('.hov-del .ic');
+        if (!ico) return null;
+        const lum = s => { const [r, v, b] = s.match(/\d+/g).map(Number);
+          const f = x => { x /= 255; return x <= .03928 ? x / 12.92 : ((x + .055) / 1.055) ** 2.4; };
+          return .2126 * f(r) + .7152 * f(v) + .0722 * f(b); };
+        const a = lum(getComputedStyle(ico).backgroundColor), b = lum(getComputedStyle(lue).backgroundColor);
+        return Math.round(((Math.max(a, b) + .05) / (Math.min(a, b) + .05)) * 10) / 10;
+      });
+      if (poub !== null && poub < 3)
+        fail(`liste-détail : la poubelle rend ${poub}:1 sur la ligne lue — invisible (plancher 3:1)`);
+
+      console.log(`liste-détail @${lw} : ${apres.pane} pistes au panneau, aucune feuille, `
+        + `la ligne lue est marquée, gardée au focus, annoncée, atteinte au clavier, `
+        + `même grammaire des deux côtés, poubelle à ${poub}:1 ✓`);
+    } else {
+      if (!apres.feuille)
+        fail('liste-détail : au pouce, taper une ligne n’ouvre plus rien — '
+          + 'le panneau n’existe pas sur un téléphone, la feuille est le seul chemin');
+      console.log(`liste-détail @${lw} : au pouce la feuille s’ouvre, comme avant ✓`);
+    }
+  }
+  /* ---- LES COMMANDES D'UN ÉCRAN PARLENT LA LANGUE DE L'APP ----
+     Mesuré : les trois contrôles d'« Échanger » faisaient 345 × 76 px
+     au poste, sur un écran où toute autre commande fait 33 px, et
+     pendant que le reste de l'app tient sa norme — « Prospecter »
+     106 × 36, « Remplir mon profil » 129 × 36, « Ajouter une piste »
+     155 × 32. Le format haut, large et centré est celui du POUCE ;
+     transplanté au poste il double la maison.
+     Le contrôle ne pose AUCUN nombre magique : il compare l'écran à un
+     vrai frère de la même app (`#piProspect`). Si la maison change
+     d'échelle un jour, la garde suit toute seule. */
+  {
+    const eCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+    const eP = await eCtx.newPage();
+    watchErrors(eP);
+    await eP.goto(base + '/#/pistes', { waitUntil: 'load' });
+    await eP.evaluate(async () => {
+      const st = await import('./engine/storage.js');
+      await st.kvInit();
+      await st.kvSet(st.DATA_KEY, JSON.stringify([
+        { id: 'ee', name: 'Étalon SI', city: 'Lille', status: 'todo', contacts: [] }]));
+    });
+    await eP.reload({ waitUntil: 'load' });
+    await attendre(eP, () => !!document.querySelector('#piProspect'),
+      { message: 'le bouton étalon de « Mes pistes »' });
+    const etalon = await eP.evaluate(() => {
+      const r = document.querySelector('#piProspect').getBoundingClientRect();
+      return { h: Math.round(r.height), w: Math.round(r.width) };
+    });
+    await eP.evaluate(() => { location.hash = '#/echanger'; });
+    await attendre(eP, () => !!document.querySelector('#ecGive'),
+      { message: 'les commandes d’Échanger' });
+    const cmd = await eP.evaluate(() => {
+      const lu = s => {
+        const n = document.querySelector(s);
+        if (!n) return null;
+        const r = n.getBoundingClientRect(), st = getComputedStyle(n);
+        return { h: Math.round(r.height), w: Math.round(r.width),
+          boite: parseFloat(st.borderTopWidth) > 0 || st.boxShadow !== 'none'
+                 || st.backgroundColor !== 'rgba(0, 0, 0, 0)' };
+      };
+      const out = { donner: lu('#ecGive'), recevoir: lu('#ecRecv'), porte: lu('#ecPromo') };
+      out.largeurPage = Math.round(
+        document.querySelector('#view-echanger .page-inner').getBoundingClientRect().width);
+      const d = document.querySelector('#ecGive'), p = document.querySelector('#ecPromo');
+      if (d && p){
+        /* même RANGÉE : c'est l'emphase qui doit les distinguer, pas la
+           place — trois contrôles alignés se comparent d'un coup d'œil */
+        out.porte.memeRangee = Math.abs(p.getBoundingClientRect().top
+                                      - d.getBoundingClientRect().top) < 4;
+        out.porte.memeFond = getComputedStyle(p).backgroundColor
+                          === getComputedStyle(d).backgroundColor;
+      }
+      return out;
+    });
+    /* ---- ET LE POUCE GARDE SON DESSIN ----
+       Rien ne protégeait le téléphone d'une retouche faite pour
+       l'écran : c'est exactement ce qui vient d'arriver — une tranche
+       ajoutée au poste s'est invitée sur mobile sans que personne ne
+       l'ait demandé. Le contrôle fige donc les deux ergonomies, parce
+       que ce sont DEUX dessins : au pouce la porte est une ligne pleine
+       largeur avec son chevron (une grande cible, une seule colonne),
+       au poste un contrôle taillé à son mot dans une rangée. */
+    await eP.setViewportSize({ width: 390, height: 844 });
+    /* de quoi FAIRE APPARAÎTRE la tranche du poste si elle descendait :
+       sans piste dormante elle ne rend rien, et le contrôle resterait
+       vert en ne regardant rien — c'est ce qu'il faisait */
+    await eP.evaluate(async () => {
+      const st = await import('./engine/storage.js');
+      const { S } = await import('./ui/state.js');
+      await st.kvSet(st.JOURNAL_KEY, JSON.stringify([
+        { t: Date.now() - 19 * 864e5, txt: 'Reçu de Léa : +1 piste(s)',
+          ids: S.companies.map(c => c.id) }
+      ]));
+    });
+    await eP.reload({ waitUntil: 'load' });
+    await eP.evaluate(() => { location.hash = '#/aujourdhui'; });
+    await eP.waitForTimeout(200);
+    await eP.evaluate(() => { location.hash = '#/echanger'; });
+    await attendre(eP, () => !!document.querySelector('#ecPromo'),
+      { message: 'la porte au pouce' });
+    const pouce = await eP.evaluate(() => {
+      const p = document.querySelector('#ecPromo');
+      const inner = document.querySelector('#view-echanger .page-inner');
+      const g = document.querySelector('#ecGive');
+      return {
+        pleine: p.getBoundingClientRect().width >= inner.getBoundingClientRect().width - 4,
+        chevron: p.querySelectorAll('.ic').length >= 2,
+        hauteurVerbe: g ? Math.round(g.getBoundingClientRect().height) : 0,
+        /* ce que le poste a gagné ne descend PAS ici tout seul */
+        trancheDuPoste: !!document.querySelector('#view-echanger .ec-repr')
+      };
+    });
+    if (!pouce.pleine)
+      fail('commandes @pouce : la porte n’occupe plus toute la largeur — au doigt, une seule '
+        + 'colonne et de grandes cibles ; le dessin du poste n’a rien à faire ici');
+    if (!pouce.chevron)
+      fail('commandes @pouce : la porte a perdu son chevron — sur une ligne pleine largeur, '
+        + 'c’est lui qui dit qu’elle mène ailleurs');
+    if (pouce.hauteurVerbe < 60)
+      fail(`commandes @pouce : « Donner » ne fait plus que ${pouce.hauteurVerbe}px — le format `
+        + 'du pouce est haut et large, c’est au poste qu’il se resserre');
+    /* « Reçues, jamais reprises » est né POUR LE POSTE, et il y reste
+       tant que le mainteneur n'en décide pas autrement. Ce n'est pas
+       une loi d'ergonomie, c'est une DÉCISION — donc la descendre au
+       pouce demandera de venir la changer ici, exprès, au lieu de se
+       produire toute seule au détour d'une retouche. C'est exactement
+       ce qui vient d'arriver, et personne ne l'avait demandé. */
+    if (pouce.trancheDuPoste)
+      fail('commandes @pouce : la tranche « reçues, jamais reprises » s’est invitée sur le '
+        + 'téléphone — elle a été conçue pour le poste. Si elle doit descendre ici, ça se '
+        + 'décide et ça se change dans ce contrôle, pas au détour d’une retouche d’écran');
+    if (pouce.pleine && pouce.chevron && pouce.hauteurVerbe >= 60 && !pouce.trancheDuPoste)
+      console.log(`commandes @pouce : porte pleine largeur avec chevron, verbes à `
+        + `${pouce.hauteurVerbe}px — le dessin du doigt est intact ✓`);
+    await eCtx.close();
+    if (!etalon.h || !cmd.donner) fail('commandes : étalon ou boutons introuvables — le contrôle ne mesure rien');
+    else {
+      /* la marge est généreuse — on garde l'ÉCHELLE, pas le pixel */
+      const plafond = Math.round(etalon.h * 1.5);
+      for (const [nom, c] of [['Donner', cmd.donner], ['Recevoir', cmd.recevoir], ['Partage en groupe', cmd.porte]])
+        if (c && c.h > plafond)
+          fail(`commandes : « ${nom} » fait ${c.h}px de haut quand l'étalon de l'app en fait `
+            + `${etalon.h} (plafond ${plafond}) — c'est le format du pouce posé sur un écran de bureau`);
+      if (cmd.donner.w > etalon.w * 2.5)
+        fail(`commandes : « Donner » fait ${cmd.donner.w}px de large pour un mot, contre `
+          + `${etalon.w} à l'étalon — un bouton se taille à son contenu`);
+      /* UN VERBE ET UN LIEU NE SE DESSINENT PAS PAREIL — MAIS SE
+         DISTINGUER N'EST PAS S'EFFACER. Deux erreurs opposées ont été
+         faites sur cette seule porte, et le contrôle tient les deux
+         bords :
+         · d'abord trois cellules identiques, qui effaçaient la
+           différence de nature entre deux VERBES qu'on exécute et un
+           LIEU où l'on entre ;
+         · puis, pour l'en distinguer, une porte dépouillée de son fond,
+           de son cadre et de son relief et poussée au bout de la
+           rangée — « quasiment inexistante », et c'est le mainteneur
+           qui l'a vu.
+         Ce qui la sépare n'est donc pas MOINS d'encre, c'est une autre
+         PLACE et une autre FORME : sa propre ligne, toute la largeur,
+         sa carte et son chevron. On exige les trois. */
+      let porteOk = true;
+      const grief = m => { porteOk = false; fail(m); };
+      /* TROIS ESSAIS RATÉS SUR CE SEUL OBJET, et le contrôle tient
+         maintenant les trois bords, parce que les trois ont été
+         franchis :
+         · trois cellules identiques — la nature de la porte effacée ;
+         · une porte dépouillée et rejetée au bord — invisible ;
+         · une bande pleine largeur — elle écrasait la rangée.
+         La sortie est celle de Material 3 : l'importance se lit à
+         l'EMPHASE (rempli > contourné > discret), pas à la taille ni à
+         la place. Donc : une boîte, à l'échelle des verbes, sur la même
+         rangée, taillée à son mot — et jamais le fond de l'action
+         principale. */
+      if (!cmd.porte) grief('commandes : la porte du groupe a disparu — le contrôle ne mesure rien');
+      else {
+        if (!cmd.porte.boite)
+          grief('commandes : « Partage en groupe » n’a plus ni fond, ni cadre, ni relief — '
+            + 'se distinguer des deux verbes ne veut pas dire disparaître');
+        if (cmd.porte.h < cmd.donner.h)
+          grief(`commandes : la porte (${cmd.porte.h}px) est plus courte qu’un verbe `
+            + `(${cmd.donner.h}px) — elle n’est pas une note de bas de page`);
+        if (cmd.porte.w > cmd.largeurPage * 0.5)
+          grief(`commandes : la porte fait ${cmd.porte.w}px sur ${cmd.largeurPage} — une bande `
+            + 'pleine largeur écrase la rangée qu’elle devait rejoindre ; un contrôle se taille '
+            + 'à son mot');
+        if (!cmd.porte.memeRangee)
+          grief('commandes : la porte a quitté la rangée des verbes — au poste, trois contrôles '
+            + 'alignés se comparent d’un coup d’œil ; c’est l’emphase qui les distingue');
+        if (cmd.porte.memeFond)
+          grief('commandes : la porte porte le fond de l’action principale — une seule action '
+            + 'remplie par écran (Material 3), sinon la hiérarchie ne se lit plus');
+      }
+      if (porteOk)
+        console.log(`commandes @poste : Donner ${cmd.donner.w}×${cmd.donner.h} rempli, `
+          + `Recevoir ${cmd.recevoir.w}×${cmd.recevoir.h} contourné, `
+          + `porte ${cmd.porte.w}×${cmd.porte.h} sourde — même rangée, emphase décroissante `
+          + `(étalon de l'app ${etalon.w}×${etalon.h}) ✓`);
+    }
+  }
+  /* ---- CE QUI NE CIRCULE PAS ENCORE ----
+     Le parcours joué à deux : Léa donne douze pistes, on n'en touche
+     aucune. C'est le seul test qui ait jamais tranché quoi que ce soit
+     sur ce produit — et ici il a tranché deux fois, sur des choses
+     qu'aucune mesure de pixels n'aurait montrées : douze lignes
+     identiques (« de Léa · Lille · 19 j » douze fois) ne sont pas un
+     conseil mais un inventaire, et le cran d'urgence posé à 900 px de
+     sa ligne ne qualifie plus rien. */
+  {
+    const rCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+    const rP = await rCtx.newPage();
+    watchErrors(rP);
+    await rP.goto(base + '/#/echanger', { waitUntil: 'load' });
+    const semer = async (jours) => {
+      await rP.evaluate(async j => {
+        const st = await import('./engine/storage.js');
+        await st.kvInit();
+        const noms = ['Zephyr SI', 'Aalto Cloud', 'Barbaste Réseau', 'Cerbère', 'Dune Data',
+                      'Eole IT', 'Faro Cyber', 'Gaia', 'Hexa', 'Ionis', 'Jade Ops', 'Kraken'];
+        await st.kvSet(st.DATA_KEY, JSON.stringify([
+          ...noms.map((n, i) => ({ id: 'lea' + i, name: n, city: 'Lille', status: 'todo',
+            updatedAt: 100 + i,
+            contacts: i === 2 ? [{ id: 'k', name: 'Nadia', email: 'n@x.test' }] : [] })),
+          { id: 'lancee', name: 'Déjà Lancée', status: 'active', updatedAt: 9 },
+          { id: 'planif', name: 'Déjà Planifiée', status: 'todo', nextAction: '2099-01-01', updatedAt: 8 }
+        ]));
+        await st.kvSet(st.JOURNAL_KEY, JSON.stringify([
+          { t: Date.now() - j * 864e5, txt: 'Reçu de Léa : +14 piste(s)',
+            ids: [...Array.from({ length: 12 }, (x, i) => 'lea' + i), 'lancee', 'planif'] }
+        ]));
+      }, jours);
+      await rP.reload({ waitUntil: 'load' });
+      await rP.waitForTimeout(700);
+    };
+
+    /* ① sous le seuil, l'app se tait : recevoir puis attendre trois
+       jours n'est pas de la négligence, c'est le délai normal */
+    await semer(3);
+    if (await rP.$('.ec-repr'))
+      fail('circuler : une piste reçue il y a 3 jours est déjà pointée du doigt — '
+        + 'sous le seuil, se taire est la bonne réponse');
+
+    /* ② passé le seuil, l'écran le dit — et CHOISIT */
+    await semer(19);
+    const bloc = await rP.evaluate(() => {
+      const t = document.querySelector('.ec-repr');
+      if (!t) return null;
+      const rows = [...t.querySelectorAll('.ec-rep')];
+      const enc = n => { const rg = document.createRange();
+        rg.selectNodeContents(n); return Math.round(rg.getBoundingClientRect().right); };
+      const m0 = rows[0] && rows[0].querySelector('.mark');
+      return {
+        titre: t.querySelector('.tr-h').innerText.replace(/\s+/g, ' ').trim(),
+        n: rows.length,
+        premiere: rows[0] && rows[0].querySelector('b').textContent.trim(),
+        sousLignes: rows.map(r => r.querySelector('.rep-m>span').textContent.trim()),
+        ecartMark: m0 ? Math.round(m0.getBoundingClientRect().left - enc(rows[0].querySelector('.rep-m'))) : -1,
+        avantLeFil: !!(t.compareDocumentPosition(document.querySelector('.ec-fil'))
+                       & Node.DOCUMENT_POSITION_FOLLOWING)
+      };
+    });
+    if (!bloc) fail('circuler : douze pistes reçues et jamais touchées, et l’écran n’en dit rien');
+    else {
+      /* CHOISIR À LA PLACE DE L'UTILISATEUR EST LE SERVICE RENDU. Douze
+         lignes, c'est douze décisions avant le premier geste — et le
+         premier geste n'arrive jamais. Trois en font un choix. */
+      if (bloc.n !== 3)
+        fail(`circuler : ${bloc.n} lignes proposées — douze pistes reçues, c'est douze décisions `
+          + 'avant le premier geste. Trois en font un choix (§6)');
+      /* le compte se dit UNE fois, dans le titre, pas sur chaque ligne */
+      if (!/12/.test(bloc.titre))
+        fail(`circuler : le titre ne dit pas combien dorment — « ${bloc.titre} »`);
+      /* et l'ordre a une RAISON, visible sur la ligne : celle à qui on
+         peut écrire tout de suite passe devant */
+      if (bloc.premiere !== 'Barbaste Réseau')
+        fail(`circuler : « ${bloc.premiere} » en tête — celle qui porte une adresse doit passer `
+          + 'devant, c’est la seule à laquelle on peut écrire maintenant');
+      if (new Set(bloc.sousLignes).size < 2)
+        fail('circuler : les trois sous-lignes disent la même chose — un papier peint, pas un tri');
+      /* le cran d'urgence qualifie SA ligne : au-delà, il ne qualifie
+         plus rien (proximité, NN/g) */
+      if (bloc.ecartMark < 0 || bloc.ecartMark > 320)
+        fail(`circuler : le cran d’urgence est à ${bloc.ecartMark}px de sa ligne — trop loin pour `
+          + 'qu’on les lise ensemble');
+      /* et la place forte : ce qui réclame passe AVANT la trace */
+      if (!bloc.avantLeFil)
+        fail('circuler : le fil des échanges passe avant ce qui réclame un geste — '
+          + 'un classeur ne se met pas devant le travail à faire');
+    }
+    /* ⑤ PROPORTIONS ET COHÉRENCE, les deux choses qu'on ne nomme pas
+       mais qu'on ressent. Deux défauts mesurés ici :
+       · la colonne qui porte le TRAVAIL À FAIRE était plus étroite que
+         celle qui porte un reçu (420 contre 618, rapport 0,68) — l'écran
+         disait le contraire de ce qu'il veut dire ;
+       · deux listes de même nature côte à côte avaient un PAS différent
+         (49 px et 54 px), donc elles se décalaient d'une demi-ligne au
+         bout de quatre rangs. */
+    const prop = await rP.evaluate(() => {
+      const b = s => { const n = document.querySelector(s);
+        return n ? Math.round(n.getBoundingClientRect().width) : 0; };
+      const h = s => { const n = document.querySelector(s);
+        return n ? Math.round(n.getBoundingClientRect().height) : 0; };
+      return { g: b('.ec-gauche'), d: b('.ec-detail'),
+               rangGauche: h('.ec-rep'), rangDroite: h('.ec-detail .pick') };
+    });
+    if (!prop.g || !prop.d) fail('proportions : colonnes introuvables — le contrôle ne mesure rien');
+    else {
+      if (prop.g <= prop.d)
+        fail(`proportions : la colonne du travail à faire (${prop.g}px) n'est pas plus large que `
+          + `celle du relevé (${prop.d}px) — la place dit l'importance, ici elle dit l'inverse`);
+      if (prop.rangGauche && prop.rangDroite && Math.abs(prop.rangGauche - prop.rangDroite) > 1)
+        fail(`proportions : deux listes de même nature au pas différent (${prop.rangGauche}px et `
+          + `${prop.rangDroite}px) — au bout de quatre rangs elles se décalent d'une demi-ligne`);
+    }
+
+    /* ③ une ligne mène LÀ OÙ L'ON AGIT : sa fiche, en un tap */
+    await rP.click('.ec-rep');
+    await rP.waitForTimeout(450);
+    if (!await rP.$('.overlay:not(.ov-out) #fiNotes'))
+      fail('circuler : une ligne qui réclame un geste n’ouvre pas sa fiche');
+    await rP.evaluate(async () => {
+      const { topSheet } = await import('./ui/dom.js');
+      let s, n = 0; while ((s = topSheet()) && n++ < 4){ s.close(null, true); await new Promise(r => setTimeout(r, 120)); }
+    });
+    /* ④ ni « Déjà Lancée » ni « Déjà Planifiée » : elles ne dorment pas,
+       et `silentPistes` les couvre déjà ailleurs */
+    const fuite = await rP.evaluate(() =>
+      [...document.querySelectorAll('.ec-rep b')].map(n => n.textContent.trim())
+        .filter(t => /Déjà/.test(t)));
+    if (fuite.length) fail('circuler : ' + fuite.join(', ') + ' — engagée ou planifiée, elle ne dort pas');
+    else console.log(`circuler : 12 dorment depuis 19 j, l'écran en propose 3 avec leur raison, `
+      + `le cran à ${bloc.ecartMark}px de sa ligne, avant le fil ✓`);
+    await rCtx.close();
   }
   await dCtx.close();
   console.log('poste : plus de « complète à N % », les colonnes se partagent la région, le pied se pose en bas ✓');
@@ -626,6 +1112,13 @@ for (const [nom, ptr] of [['doigt', true], ['souris', false]]){
   });
   await tPage.reload({ waitUntil: 'load' });
   await attendre(tPage, async () => (await import('./ui/state.js')).S.companies.length === 1);
+  /* et attendre le DESSIN, pas seulement l'état : `S.companies` est
+     rempli avant que le tableau soit re-rendu. Lire dans cet intervalle
+     rendait « 0 colonne » sur un écran parfaitement sain — troisième
+     course de cette famille dans la suite, toujours la même cause :
+     on attend la donnée et on mesure le DOM. */
+  await attendre(tPage, () => document.querySelectorAll('#piBody .bcol').length === 3,
+    { message: 'le tableau à trois colonnes doit être rendu' });
   const erg = await tPage.evaluate(() => {
     const cs = getComputedStyle(document.documentElement);
     const petites = [...document.querySelectorAll('button, a[href], input, select')]
@@ -1806,6 +2299,105 @@ if (IA){
     else console.log(`geste annulé : ${gestes} gestes tactiles rendent leur \`touchcancel\` — `
       + 'ligne et feuille reviennent au repos ✓');
   }
+}
+
+
+/* ---------- UNE LIGNE RESTE UNE LIGNE ----------
+   Le motif de suppression pose une poubelle DANS la ligne (`.sw-in`).
+   Si le porteur oublie `display:flex`, `.sw-in` reste un bloc et la
+   poubelle se range SOUS le texte, collée à gauche : la ligne double de
+   hauteur pour un bouton invisible au repos, et la liste prend un air
+   de dessin raté sans qu'on en voie la cause. C'est arrivé au fil des
+   échanges — 33 px de texte dans un cadre de 65 — et ça s'est vu à
+   l'œil avant de se mesurer. Tous les autres porteurs (`.row-item`,
+   `.doc-row`, `.orow`) posaient bien ce `flex` ; celui-là est né sans.
+   Le contrôle vaut pour TOUS : la poubelle doit croiser verticalement
+   le contenu de sa ligne. */
+{
+  const lBrowser = await chromium.launch({ executablePath: chromiumPath() });
+  const lc = await lBrowser.newContext({ viewport: { width: 1280, height: 800 } });
+  const lp = await lc.newPage();
+  await lp.goto(base, { waitUntil: 'load' });
+  await lp.waitForSelector('#view-aujourdhui:not([hidden])');
+  const J = n => Date.now() - n * 864e5;
+  await lp.evaluate(async j => {
+    const st = await import('./engine/storage.js');
+    await st.kvInit();
+    await st.kvSet(st.DATA_KEY, JSON.stringify([
+      { id: 'e1', name: 'Empilement SI', city: 'Lille', status: 'todo', updatedAt: 2 },
+      { id: 'e2', name: 'Ligne Témoin', city: 'Lyon', status: 'todo', updatedAt: 1 }]));
+    await st.kvSet(st.JOURNAL_KEY, JSON.stringify(j));
+  }, [{ txt: 'Donné (QR) : 7 pistes', t: J(3), ids: ['e1'] },
+      { txt: 'Reçu de Léa : +3 pistes', t: J(1), ids: ['e2'] }]);
+  await lp.reload({ waitUntil: 'load' });
+  await lp.waitForSelector('#view-aujourdhui:not([hidden])');
+
+  const empiles = [];
+  let vues = 0;
+  for (const route of ['pistes', 'echanger', 'moi']){
+    await lp.evaluate(r => { location.hash = '#/' + r; }, route);
+    await lp.waitForTimeout(500);
+    const r = await lp.evaluate(() => {
+      const out = [];
+      for (const n of document.querySelectorAll('.sw')){
+        const inner = n.querySelector('.sw-in');
+        const del = n.querySelector('.hov-del');
+        if (!inner || !del) continue;
+        const ri = inner.getBoundingClientRect(), rd = del.getBoundingClientRect();
+        if (!ri.height || !rd.height) continue;
+        /* la poubelle croise-t-elle la bande verticale du CONTENU ?
+           empilée, elle est entièrement sous lui. On compare à ce qui
+           n'est pas elle : le premier enfant de la ligne. */
+        const frere = [...inner.children].find(c => c !== del);
+        const rf = frere ? frere.getBoundingClientRect() : ri;
+        out.push({ q: n.className.split(' ')[0],
+          croise: rd.top < rf.bottom - 2 && rd.bottom > rf.top + 2,
+          h: Math.round(ri.height), hc: Math.round(rf.height) });
+      }
+      return out;
+    });
+    vues += r.length;
+    for (const x of r) if (!x.croise) empiles.push(`${route} · .${x.q} (cadre ${x.h}px, contenu ${x.hc}px)`);
+  }
+  /* la sonde : sans lignes vues, l'absence d'empilement ne prouve rien */
+  if (vues < 4)
+    fail(`ligne : ${vues} ligne(s) supprimables trouvées — le contrôle ne mesure plus rien`);
+  else if (empiles.length)
+    fail(`ligne : ${empiles.length} ligne(s) où la poubelle se range SOUS le texte au lieu d'être `
+      + `dedans — il manque \`display:flex\` sur leur \`.sw-in\` —\n      ` + empiles.join('\n      '));
+  else console.log(`ligne : ${vues} lignes supprimables, la poubelle reste dans la ligne ✓`);
+
+  /* ---------- ET LA DATE RESTE AVEC SA PHRASE ----------
+     Jetée au bord droit d'une colonne de 700 px, elle vivait à plus de
+     400 px de la fin du texte : deux objets si loin l'un de l'autre ne
+     se lisent plus comme une seule ligne (principe de proximité, NN/g).
+     La place forte de droite appartient d'ailleurs, dans toute l'app, à
+     ce qui RÉCLAME quelque chose — une date passée ne réclame rien. */
+  await lp.evaluate(() => { location.hash = '#/echanger'; });
+  await lp.waitForTimeout(500);
+  const loin = await lp.evaluate(() => {
+    const out = [];
+    for (const l of document.querySelectorAll('#view-echanger .ec-l')){
+      const b = l.querySelector('.ec-row > b'), d = l.querySelector('.ec-when');
+      if (!b || !d) { out.push({ ecart: -1 }); continue; }
+      /* l'ENCRE, pas la boîte : le `<b>` est en `flex:1`, sa boîte
+         s'étire sur toute la colonne et mentirait de 400 px */
+      const rg = document.createRange();
+      rg.setStartBefore(b.firstChild); rg.setEndBefore(d);
+      out.push({ ecart: Math.round(d.getBoundingClientRect().left - rg.getBoundingClientRect().right) });
+    }
+    return out;
+  });
+  const MAX_ECART = 24;
+  if (!loin.length) fail('date : aucune ligne de fil — le contrôle ne mesure plus rien');
+  else if (loin.some(x => x.ecart < 0)) fail('date : une ligne du fil n’a plus de date');
+  else if (loin.some(x => x.ecart > MAX_ECART))
+    fail(`date : la date s’éloigne de sa phrase (${Math.max(...loin.map(x => x.ecart))}px, `
+      + `plafond ${MAX_ECART}) — au-delà, la ligne se lit comme deux objets sans rapport`);
+  else console.log(`date : elle reste collée à sa phrase sur ${loin.length} lignes `
+    + `(${Math.max(...loin.map(x => x.ecart))}px au plus) ✓`);
+  await lc.close();
+  await lBrowser.close();
 }
 
 /* ---------- LE TEXTE DOUBLÉ (WCAG 1.4.4, AA) ----------
