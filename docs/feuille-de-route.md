@@ -4,7 +4,7 @@
 concevoir — ça, c'est `CLAUDE.md`. Et il ne redit pas l'état des surfaces —
 ça, c'est [`surfaces.md`](surfaces.md).
 
-*Dernière mise à jour : 16 août 2026.*
+*Dernière mise à jour : 17 août 2026.*
 
 ---
 
@@ -67,10 +67,11 @@ reste en découle.
 Dans cet ordre, et seulement si les retours le justifient :
 
 1. **Corriger ce que la bêta remonte.** Rien d'autre ne passe avant.
-2. **Trancher le sort du code en sommeil** — celui de la surface ordinateur
-   et des capacités reportées. Suppression franche, ou réveil. La décision
-   ne se prend pas avant d'avoir des utilisateurs : aujourd'hui elle serait
-   prise à l'aveugle.
+2. **Rouvrir le chantier de l'application ordinateur** — le sort du code
+   n'est plus en question : il devient la fondation des applications
+   installées (§4). Ce qui reste à trancher après la bêta, c'est le
+   périmètre exact de la première version, et le sort des capacités
+   reportées par choix (brouillon IA, envoi direct).
 3. **Ramener le brouillon par IA** avec ta propre clé, si les retours
    montrent que la rédaction est bien le point de blocage.
 4. **Import de données publiques** pour amorcer une liste de pistes sans
@@ -80,14 +81,18 @@ Dans cet ordre, et seulement si les retours le justifient :
 
 ## 4. Les surfaces suivantes
 
-**L'ordinateur** ne se rouvre pas sur une envie mais sur une preuve d'usage
-de la surface web — par exemple : dix étudiants l'utilisent encore un mois
-après l'avoir installée. Tant que le seuil n'est pas atteint, elle dort. Ses
-défauts connus sont listés dans [`surfaces.md`](surfaces.md) et devront être
-corrigés avant toute reprise.
+**La direction est arrêtée** *(17 août 2026)* : OpenContact sera **trois
+applications** — web, ordinateur, téléphone — construites sur la même base.
+Le concept du « Compagnon », application d'appoint à côté du produit, est
+abandonné ; son code n'est pas perdu, il devient la fondation des
+applications installées. La coquille native exécute le même moteur que le
+web, et elle sait produire l'ordinateur **et** le téléphone.
 
-**Le téléphone** vient après, et seulement si l'app installée depuis le
-navigateur montre ses limites à l'usage. Aujourd'hui elle ne les montre pas.
+La file ne change pas : le web d'abord, ses retours ensuite, puis
+**l'ordinateur** (le code en est le plus proche — corriger d'abord ses
+défauts connus, listés dans [`surfaces.md`](surfaces.md)), puis **le
+téléphone** sur la même base. En attendant, l'app web installée depuis le
+navigateur reste le chemin du téléphone.
 
 ---
 

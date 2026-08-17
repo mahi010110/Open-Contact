@@ -94,8 +94,8 @@ aujourd'hui :
 | Surface | État |
 |---|---|
 | **Web** (navigateur, installable) | **Livrée** — c'est tout ce qui précède |
-| **Ordinateur** | Code écrit, **chantier en sommeil** — pas installable |
-| **Téléphone** (store) | **Non commencée** |
+| **Ordinateur** | **La prochaine** — base native écrite, pas livrée aujourd'hui |
+| **Téléphone** (store) | **Ensuite** — même base native ; en attendant, l'app web s'installe depuis le navigateur |
 
 Le détail, capacité par capacité, est dans **[`docs/surfaces.md`](docs/surfaces.md)**.
 Ce document dit franchement ce qui marche et ce qui n'existe pas — c'est sa
@@ -129,7 +129,7 @@ Le dépôt n'accepte pas de contributions extérieures.
 | `styles/` | `app.css` et les `tokens/` — la source unique du design |
 | `assets/` | Polices, icônes, bibliothèques copiées localement, avec leurs licences |
 | `design/` | Le kit de design « Utilitaire 98 » |
-| `compagnon/` | La surface ordinateur (Rust/Tauri) — en sommeil |
+| `compagnon/` | La base native (Rust/Tauri) des futures applications ordinateur et téléphone — chantier en attente |
 | `tests.js`, `tests/e2e/` | Les auto-tests du moteur et les scénarios de bout en bout |
 | `CONTRAT.md` | Le contrat de données : clés de stockage, format `.oc`, invariants |
 | `CLAUDE.md` | La référence produit & UI/UX — toute décision de conception y répond |
@@ -139,5 +139,5 @@ Pour lancer le projet et les tests : **[`docs/developpement.md`](docs/developpem
 ---
 
 <div align="center">
-<sub>Copyright © 2026 Maheydine. Tous droits réservés.</sub>
+<sub>Copyright © 2026 Maheydine Saadi Hamed Ounchiouene. Tous droits réservés.</sub>
 </div>

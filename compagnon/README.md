@@ -1,21 +1,24 @@
 # OpenContact Compagnon
 
-La surface **ordinateur** d'OpenContact : elle prend ce qu'un navigateur ne
-peut pas garantir — envois de campagne app fermée, secrets dans le trousseau
-du système, IMAP/SMTP, analyse d'e-mails — et **rien d'autre**. Le web reste
-complet sans elle.
+La **base native** d'OpenContact : la coquille (Tauri) qui deviendra les
+applications **ordinateur et téléphone**, exécutant le même moteur
+`engine/` que le web. Elle prend ce qu'un navigateur ne peut pas garantir —
+envois de campagne app fermée, secrets dans le trousseau du système,
+IMAP/SMTP, analyse d'e-mails. Le web reste complet sans elle.
 
-> **Chantier en sommeil.** Le code de cette surface est écrit et testé, mais
-> elle n'est **pas livrée** : elle ne s'installe pas aujourd'hui, et ses
-> capacités sont masquées dans l'app web (`ui/perimetre.js`). Voir
-> [`docs/surfaces.md`](../docs/surfaces.md) pour l'état réel des trois
-> surfaces.
+> **Le concept « Compagnon » est abandonné** *(décision du 17 août 2026)* :
+> plus d'application d'appoint à côté du produit — trois applications d'un
+> même produit, sur cette base. Le chantier est en attente : le code est
+> écrit et testé, mais **rien n'est livré ni maintenu** (la release v0.1.0
+> appartient à l'ancien concept), et ses capacités sont masquées dans l'app
+> web (`ui/perimetre.js`). Voir [`docs/surfaces.md`](../docs/surfaces.md)
+> pour l'état réel et l'ordre des chantiers.
 >
 > Le dossier garde le nom `compagnon/` pour une raison technique : le crate
-> Rust, le binaire installé et le point d'entrée local
-> (`127.0.0.1:17095/oc-compagnon`) portent ce nom, et le renommer casserait
-> toute version déjà installée. À l'écran, la surface s'appelle
-> **OpenContact pour ordinateur**.
+> Rust, le binaire de la v0.1.0 et le point d'entrée local
+> (`127.0.0.1:17095/oc-compagnon`) portent ce nom. Tout se renommera d'un
+> seul geste à la reprise du chantier. À l'écran, les surfaces s'appellent
+> **OpenContact pour ordinateur** et **OpenContact pour téléphone**.
 
 ## Architecture (hybride Tauri)
 

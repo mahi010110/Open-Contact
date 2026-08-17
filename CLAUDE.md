@@ -29,9 +29,15 @@ qui partagent les mêmes données et le même vocabulaire.
 | **L'ordinateur** | **en sommeil** | ce qu'un navigateur ne peut pas garantir : travailler application fermée, parler IMAP/SMTP, faire tourner une IA locale |
 | **Le téléphone** (store) | non commencée | la même chose que le web, mieux intégrée à l'appareil (caméra, partage, notifications) |
 
-*(Le dossier `compagnon/` garde son nom technique — c'est la coquille qui
-deviendra la surface ordinateur. « Le Compagnon » ne se dit plus à l'écran :
-c'est **OpenContact pour ordinateur**.)*
+*(Décision du mainteneur, 17 août 2026 : le « Compagnon » — une application
+d'appoint à côté du produit — est **abandonné comme concept**. Le code de
+`compagnon/` n'est pas jeté : la coquille native (Tauri) devient la
+fondation des applications **ordinateur ET téléphone**, qui exécuteront le
+même moteur `engine/` que le web. Le dossier garde son nom technique tant
+que ce chantier n'est pas rouvert — le crate, le binaire et le point
+d'entrée local portent ce nom, et tout se renommera d'un seul geste à la
+reprise. À l'écran comme dans la doc : **OpenContact pour ordinateur**,
+**OpenContact pour téléphone**.)*
 
 ### Les deux questions, avant d'ajouter quoi que ce soit
 
@@ -108,10 +114,12 @@ n'est perdue (une clé d'IA ou un jeton de messagerie déjà en place reste
 lisible, simplement plus affiché). La suppression franche se décidera après la
 première bêta.
 
-**Le déclencheur de la surface ordinateur** *(à remplir par le mainteneur)* :
-elle ne se rouvre pas sur une envie, mais sur une preuve d'usage — par
-exemple « dix étudiants l'utilisent encore un mois après l'avoir installée ».
-Tant que le seuil n'est pas atteint, elle dort.
+**L'ordre des chantiers** *(décision du mainteneur, 17 août 2026)* : la
+direction est arrêtée — trois applications sur une même base, et une file.
+Le web se présente d'abord et récolte ses retours ; l'ordinateur s'ouvre
+ensuite, sur la coquille native déjà écrite ; le téléphone suit, sur cette
+même coquille. Ce n'est plus un seuil à deviner, c'est une file à suivre —
+et les retours du web passent toujours devant.
 
 ## 1. Le produit en une phrase
 
