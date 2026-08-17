@@ -1482,20 +1482,35 @@ details.pcard-details[open]>summary{margin-bottom:10px}
     padding:0 18px;font-size:var(--text-13);
   }
   .ec-actes .hero .ic{width:16px;height:16px}
-  /* LA PORTE GARDE SA CARTE, ET SA LIGNE. Première correction ratée :
-     pour la distinguer des deux verbes je lui avais retiré son fond,
-     son cadre et son relief, et poussée au bout de la rangée — elle
-     devenait quasi inexistante. Se distinguer n'est pas s'effacer.
-     Ce qui la sépare des verbes n'est pas moins d'encre, c'est une
-     autre PLACE et une autre FORME : elle prend sa propre ligne, sur
-     toute la largeur, avec le chevron au bout — la grammaire d'une
-     porte, celle de « Réglages » dans « Moi ». Les deux verbes se
-     taillent à leur mot ; elle s'étend. On ne les confond pas, et on
-     la voit. */
-  .ec-actes .moi-door{flex:1 0 100%;margin:4px 0 0;min-height:49px}
+  /* LA HIÉRARCHIE SE DIT PAR L'EMPHASE, PAS PAR LA TAILLE.
+     Trois essais ratés avant celui-ci, et chacun disait la même chose
+     par un autre moyen : trois cellules identiques (la nature de la
+     porte effacée), puis une porte dépouillée et rejetée au bord (elle
+     disparaissait), puis une bande pleine largeur (elle écrasait tout).
+     La sortie est documentée et je ne l'avais pas essayée — Material 3 :
+     l'importance d'une action se lit à son EMPHASE, rempli > contourné >
+     discret, une seule action principale par écran. Trois contrôles de
+     même hauteur, taillés à leur mot, d'emphase décroissante :
+     « Donner » rempli, « Recevoir » contourné, « Partage en groupe »
+     contourné et en encre sourde. Rien ne s'étire, rien ne disparaît,
+     et l'ordre d'importance se lit d'un coup d'œil.
+     Au pouce, rien de tout ça : la porte y reste une ligne pleine
+     largeur avec son chevron, parce qu'un doigt veut une grande cible
+     et qu'une colonne unique n'a pas de rangée à composer. */
+  .ec-actes .moi-door{
+    flex:0 0 auto;width:auto;margin:0;min-height:36px;padding:0 14px;gap:8px;
+    font-size:var(--text-13);color:var(--text-muted);
+  }
+  .ec-actes .moi-door .md-m{flex:none}
+  .ec-actes .moi-door b{font-weight:var(--weight-regular)}
   .ec-cols{
     flex:1;min-height:0;display:grid;
-    grid-template-columns:minmax(0,420px) minmax(0,1fr);gap:22px;align-items:start;
+    /* LA PROPORTION SUIT L'IMPORTANCE. En 420 / 618, la colonne qui
+       porte le travail à faire était plus étroite que celle qui porte
+       un reçu — un rapport de 0,68 exactement à l'envers de ce que
+       l'écran veut dire. Les deux restent dans la fourchette de
+       lisibilité (50-75 caractères), c'est le rapport qui parle. */
+    grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:22px;align-items:start;
   }
   .ec-cols>*{min-width:0;max-height:100%}
   /* la colonne de gauche empile ce qui réclame, puis la trace : c'est
@@ -1523,7 +1538,7 @@ details.pcard-details[open]>summary{margin-bottom:10px}
      `.ec-detail` seulement : dans une feuille, la carte reste la langue
      de la feuille. */
   .ec-detail .pick{
-    min-height:0;padding:9px 2px;gap:2px 10px;
+    min-height:var(--ctl);padding:9px 2px;gap:1px 10px;
     border:0;border-bottom:1px dashed var(--border-soft);border-radius:0;
     background:none;box-shadow:none;font-size:var(--text-13);
   }
@@ -1533,6 +1548,17 @@ details.pcard-details[open]>summary{margin-bottom:10px}
      raison (une hauteur qui varie se lit comme un défaut de rendu) */
   .ec-detail .pick:last-child{border-bottom-color:transparent}
   .ec-detail .pick .pk-m>b{font-size:var(--text-13);font-weight:var(--weight-semibold)}
+  /* UN RANG À DEUX ÉTAGES A UNE SEULE HAUTEUR. Mesuré : 49 px à
+     gauche, 54 px à droite — deux listes de même nature posées côte à
+     côte, dont le PAS dérivait de 4 px par ligne. Au bout de quatre
+     rangs elles étaient décalées d'une demi-ligne : ça ne se nomme pas,
+     ça se ressent comme un défaut de finition.
+     Les hauteurs de ligne sont donc FIXÉES des deux côtés — laissées à
+     l'héritage, elles dépendaient de la taille du conteneur, qui n'est
+     pas la même pour un bouton `.pick` et pour une ligne de tranche. */
+  .ec-detail .pick .pk-m span{font-size:var(--text-11)}
+  .ec-repr .rep-m>b,.ec-detail .pick .pk-m>b,
+  .ec-repr .rep-m>span,.ec-detail .pick .pk-m span{line-height:1.35}
   @media (hover:hover){ .ec-detail .pick:hover{background:var(--surface-field)} }
   /* pas de `:hover` ici — il resterait collé après un tap (§4), et le
      `!important` passe déjà devant la règle de survol de la ligne */

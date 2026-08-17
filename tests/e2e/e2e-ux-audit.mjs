@@ -694,12 +694,79 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
                  || st.backgroundColor !== 'rgba(0, 0, 0, 0)' };
       };
       const out = { donner: lu('#ecGive'), recevoir: lu('#ecRecv'), porte: lu('#ecPromo') };
-      /* « sur sa propre ligne » se mesure, il ne se décrète pas : le
-         haut de la porte doit tomber SOUS le bas du dernier verbe */
-      const v = document.querySelector('#ecRecv'), p = document.querySelector('#ecPromo');
-      if (v && p) out.porte.seule = p.getBoundingClientRect().top >= v.getBoundingClientRect().bottom - 2;
+      out.largeurPage = Math.round(
+        document.querySelector('#view-echanger .page-inner').getBoundingClientRect().width);
+      const d = document.querySelector('#ecGive'), p = document.querySelector('#ecPromo');
+      if (d && p){
+        /* même RANGÉE : c'est l'emphase qui doit les distinguer, pas la
+           place — trois contrôles alignés se comparent d'un coup d'œil */
+        out.porte.memeRangee = Math.abs(p.getBoundingClientRect().top
+                                      - d.getBoundingClientRect().top) < 4;
+        out.porte.memeFond = getComputedStyle(p).backgroundColor
+                          === getComputedStyle(d).backgroundColor;
+      }
       return out;
     });
+    /* ---- ET LE POUCE GARDE SON DESSIN ----
+       Rien ne protégeait le téléphone d'une retouche faite pour
+       l'écran : c'est exactement ce qui vient d'arriver — une tranche
+       ajoutée au poste s'est invitée sur mobile sans que personne ne
+       l'ait demandé. Le contrôle fige donc les deux ergonomies, parce
+       que ce sont DEUX dessins : au pouce la porte est une ligne pleine
+       largeur avec son chevron (une grande cible, une seule colonne),
+       au poste un contrôle taillé à son mot dans une rangée. */
+    await eP.setViewportSize({ width: 390, height: 844 });
+    /* de quoi FAIRE APPARAÎTRE la tranche du poste si elle descendait :
+       sans piste dormante elle ne rend rien, et le contrôle resterait
+       vert en ne regardant rien — c'est ce qu'il faisait */
+    await eP.evaluate(async () => {
+      const st = await import('./engine/storage.js');
+      const { S } = await import('./ui/state.js');
+      await st.kvSet(st.JOURNAL_KEY, JSON.stringify([
+        { t: Date.now() - 19 * 864e5, txt: 'Reçu de Léa : +1 piste(s)',
+          ids: S.companies.map(c => c.id) }
+      ]));
+    });
+    await eP.reload({ waitUntil: 'load' });
+    await eP.evaluate(() => { location.hash = '#/aujourdhui'; });
+    await eP.waitForTimeout(200);
+    await eP.evaluate(() => { location.hash = '#/echanger'; });
+    await attendre(eP, () => !!document.querySelector('#ecPromo'),
+      { message: 'la porte au pouce' });
+    const pouce = await eP.evaluate(() => {
+      const p = document.querySelector('#ecPromo');
+      const inner = document.querySelector('#view-echanger .page-inner');
+      const g = document.querySelector('#ecGive');
+      return {
+        pleine: p.getBoundingClientRect().width >= inner.getBoundingClientRect().width - 4,
+        chevron: p.querySelectorAll('.ic').length >= 2,
+        hauteurVerbe: g ? Math.round(g.getBoundingClientRect().height) : 0,
+        /* ce que le poste a gagné ne descend PAS ici tout seul */
+        trancheDuPoste: !!document.querySelector('#view-echanger .ec-repr')
+      };
+    });
+    if (!pouce.pleine)
+      fail('commandes @pouce : la porte n’occupe plus toute la largeur — au doigt, une seule '
+        + 'colonne et de grandes cibles ; le dessin du poste n’a rien à faire ici');
+    if (!pouce.chevron)
+      fail('commandes @pouce : la porte a perdu son chevron — sur une ligne pleine largeur, '
+        + 'c’est lui qui dit qu’elle mène ailleurs');
+    if (pouce.hauteurVerbe < 60)
+      fail(`commandes @pouce : « Donner » ne fait plus que ${pouce.hauteurVerbe}px — le format `
+        + 'du pouce est haut et large, c’est au poste qu’il se resserre');
+    /* « Reçues, jamais reprises » est né POUR LE POSTE, et il y reste
+       tant que le mainteneur n'en décide pas autrement. Ce n'est pas
+       une loi d'ergonomie, c'est une DÉCISION — donc la descendre au
+       pouce demandera de venir la changer ici, exprès, au lieu de se
+       produire toute seule au détour d'une retouche. C'est exactement
+       ce qui vient d'arriver, et personne ne l'avait demandé. */
+    if (pouce.trancheDuPoste)
+      fail('commandes @pouce : la tranche « reçues, jamais reprises » s’est invitée sur le '
+        + 'téléphone — elle a été conçue pour le poste. Si elle doit descendre ici, ça se '
+        + 'décide et ça se change dans ce contrôle, pas au détour d’une retouche d’écran');
+    if (pouce.pleine && pouce.chevron && pouce.hauteurVerbe >= 60 && !pouce.trancheDuPoste)
+      console.log(`commandes @pouce : porte pleine largeur avec chevron, verbes à `
+        + `${pouce.hauteurVerbe}px — le dessin du doigt est intact ✓`);
     await eCtx.close();
     if (!etalon.h || !cmd.donner) fail('commandes : étalon ou boutons introuvables — le contrôle ne mesure rien');
     else {
@@ -728,25 +795,41 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
          sa carte et son chevron. On exige les trois. */
       let porteOk = true;
       const grief = m => { porteOk = false; fail(m); };
+      /* TROIS ESSAIS RATÉS SUR CE SEUL OBJET, et le contrôle tient
+         maintenant les trois bords, parce que les trois ont été
+         franchis :
+         · trois cellules identiques — la nature de la porte effacée ;
+         · une porte dépouillée et rejetée au bord — invisible ;
+         · une bande pleine largeur — elle écrasait la rangée.
+         La sortie est celle de Material 3 : l'importance se lit à
+         l'EMPHASE (rempli > contourné > discret), pas à la taille ni à
+         la place. Donc : une boîte, à l'échelle des verbes, sur la même
+         rangée, taillée à son mot — et jamais le fond de l'action
+         principale. */
       if (!cmd.porte) grief('commandes : la porte du groupe a disparu — le contrôle ne mesure rien');
       else {
         if (!cmd.porte.boite)
           grief('commandes : « Partage en groupe » n’a plus ni fond, ni cadre, ni relief — '
             + 'se distinguer des deux verbes ne veut pas dire disparaître');
-        if (cmd.porte.h < cmd.donner.h || cmd.porte.w < cmd.donner.w)
-          grief(`commandes : la porte (${cmd.porte.w}×${cmd.porte.h}) est plus petite qu’un verbe `
-            + `(${cmd.donner.w}×${cmd.donner.h}) — elle n’est pas une note de bas de page`);
-        if (!cmd.porte.seule)
-          grief('commandes : la porte partage sa ligne avec les verbes — une similitude de place '
-            + 'dit une similitude de nature, et ce n’est pas un troisième verbe');
+        if (cmd.porte.h < cmd.donner.h)
+          grief(`commandes : la porte (${cmd.porte.h}px) est plus courte qu’un verbe `
+            + `(${cmd.donner.h}px) — elle n’est pas une note de bas de page`);
+        if (cmd.porte.w > cmd.largeurPage * 0.5)
+          grief(`commandes : la porte fait ${cmd.porte.w}px sur ${cmd.largeurPage} — une bande `
+            + 'pleine largeur écrase la rangée qu’elle devait rejoindre ; un contrôle se taille '
+            + 'à son mot');
+        if (!cmd.porte.memeRangee)
+          grief('commandes : la porte a quitté la rangée des verbes — au poste, trois contrôles '
+            + 'alignés se comparent d’un coup d’œil ; c’est l’emphase qui les distingue');
+        if (cmd.porte.memeFond)
+          grief('commandes : la porte porte le fond de l’action principale — une seule action '
+            + 'remplie par écran (Material 3), sinon la hiérarchie ne se lit plus');
       }
-      /* une ligne de succès imprimée pendant qu'un grief vient d'être
-         posé est pire que pas de ligne du tout : elle se lit dans le
-         journal comme une preuve que tout va bien */
       if (porteOk)
-        console.log(`commandes : Donner ${cmd.donner.w}×${cmd.donner.h}, `
-          + `Recevoir ${cmd.recevoir.w}×${cmd.recevoir.h} (étalon ${etalon.w}×${etalon.h}), `
-          + `porte ${cmd.porte.w}×${cmd.porte.h} sur sa propre ligne, avec sa carte ✓`);
+        console.log(`commandes @poste : Donner ${cmd.donner.w}×${cmd.donner.h} rempli, `
+          + `Recevoir ${cmd.recevoir.w}×${cmd.recevoir.h} contourné, `
+          + `porte ${cmd.porte.w}×${cmd.porte.h} sourde — même rangée, emphase décroissante `
+          + `(étalon de l'app ${etalon.w}×${etalon.h}) ✓`);
     }
   }
   /* ---- CE QUI NE CIRCULE PAS ENCORE ----
@@ -838,6 +921,32 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
         fail('circuler : le fil des échanges passe avant ce qui réclame un geste — '
           + 'un classeur ne se met pas devant le travail à faire');
     }
+    /* ⑤ PROPORTIONS ET COHÉRENCE, les deux choses qu'on ne nomme pas
+       mais qu'on ressent. Deux défauts mesurés ici :
+       · la colonne qui porte le TRAVAIL À FAIRE était plus étroite que
+         celle qui porte un reçu (420 contre 618, rapport 0,68) — l'écran
+         disait le contraire de ce qu'il veut dire ;
+       · deux listes de même nature côte à côte avaient un PAS différent
+         (49 px et 54 px), donc elles se décalaient d'une demi-ligne au
+         bout de quatre rangs. */
+    const prop = await rP.evaluate(() => {
+      const b = s => { const n = document.querySelector(s);
+        return n ? Math.round(n.getBoundingClientRect().width) : 0; };
+      const h = s => { const n = document.querySelector(s);
+        return n ? Math.round(n.getBoundingClientRect().height) : 0; };
+      return { g: b('.ec-gauche'), d: b('.ec-detail'),
+               rangGauche: h('.ec-rep'), rangDroite: h('.ec-detail .pick') };
+    });
+    if (!prop.g || !prop.d) fail('proportions : colonnes introuvables — le contrôle ne mesure rien');
+    else {
+      if (prop.g <= prop.d)
+        fail(`proportions : la colonne du travail à faire (${prop.g}px) n'est pas plus large que `
+          + `celle du relevé (${prop.d}px) — la place dit l'importance, ici elle dit l'inverse`);
+      if (prop.rangGauche && prop.rangDroite && Math.abs(prop.rangGauche - prop.rangDroite) > 1)
+        fail(`proportions : deux listes de même nature au pas différent (${prop.rangGauche}px et `
+          + `${prop.rangDroite}px) — au bout de quatre rangs elles se décalent d'une demi-ligne`);
+    }
+
     /* ③ une ligne mène LÀ OÙ L'ON AGIT : sa fiche, en un tap */
     await rP.click('.ec-rep');
     await rP.waitForTimeout(450);

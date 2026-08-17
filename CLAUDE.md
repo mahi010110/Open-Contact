@@ -825,6 +825,38 @@ d'un glissement : rien n'y change.
 > chiffre peut donc récompenser la suppression de la seule couleur qui devait
 > rester. La mesure propose, l'œil tranche.
 
+**La hiérarchie se dit par l'EMPHASE, jamais par la taille ni par la
+place.** Trois essais ratés sur un seul objet — la porte « Partage en
+groupe » d'« Échanger » — avant d'arriver à ce que Material 3 écrit
+noir sur blanc : rempli > contourné > discret, **une seule action
+remplie par écran**. Les trois erreurs valent d'être nommées, parce
+qu'elles sont symétriques : ① trois cellules identiques (la nature de
+la porte effacée) ; ② une porte dépouillée de sa boîte et rejetée au
+bord (invisible — « se distinguer n'est pas s'effacer ») ; ③ une bande
+pleine largeur (elle écrase la rangée qu'elle devait rejoindre). La
+sortie tient en une ligne : **trois contrôles de même hauteur, taillés
+à leur mot, d'emphase décroissante.**
+
+**Et un dessin fait pour un écran ne descend pas tout seul sur
+l'autre.** Une tranche ajoutée au poste s'est invitée sur le téléphone
+au détour d'une retouche, sans que personne ne l'ait demandé. Ce n'est
+pas une faute d'ergonomie, c'est une faute de PÉRIMÈTRE — et la seule
+défense est de figer les deux ergonomies dans le contrôle : au pouce la
+porte est une ligne pleine largeur avec son chevron (une grande cible,
+une colonne), au poste un contrôle dans une rangée. Descendre l'une
+chez l'autre demande de venir le changer là, exprès.
+
+**Les proportions disent l'importance, et le pas se partage.** Deux
+mesures à faire sur tout écran à deux colonnes : la colonne qui porte
+le TRAVAIL À FAIRE est la plus large (elle valait 0,68 de celle qui
+portait un reçu — l'écran disait l'inverse de ce qu'il veut dire), et
+deux listes de même nature posées côte à côte ont le MÊME pas. À 49 px
+contre 54, elles se décalent d'une demi-ligne au bout de quatre rangs :
+ça ne se nomme pas, ça se ressent comme un défaut de finition. Les
+hauteurs de ligne se FIXENT — laissées à l'héritage, elles dépendent du
+conteneur, qui n'est pas le même pour un bouton et pour une ligne de
+tranche.
+
 **Trois règles de sobriété**, à vérifier sur tout écran neuf ou retouché :
 
 1. **Un bouton ne répète jamais le titre de sa carte.** Le titre dit de quoi

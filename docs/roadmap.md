@@ -10,7 +10,7 @@ web — livré, c'est cette feuille de route —, l'ordinateur et le téléphone
 La surface ordinateur a la sienne : `compagnon/roadmap.md`. On ne re-discute
 pas la répartition ici, on l'applique.
 
-Dernière mise à jour : 15 août 2026 — cache `oc-v168`, 122 auto-tests verts
+Dernière mise à jour : 15 août 2026 — cache `oc-v169`, 122 auto-tests verts
 (`node tests/e2e/unitaires.mjs`), 28 fichiers E2E.
 
 ---
@@ -535,6 +535,33 @@ Dernière mise à jour : 15 août 2026 — cache `oc-v168`, 122 auto-tests verts
   6 mutations. *Une « échappée » n'en était pas : le motif de mutation
   était ambigu et visait `silentPistes` au lieu de `recuesDormantes` —
   un motif qui matche deux fonctions teste la mauvaise.*
+- **La rangée d'« Échanger », au quatrième essai** (août 2026). Trois
+  versions rejetées à l'œil par le mainteneur avant la bonne, et elles
+  sont symétriques : trois cellules identiques (la nature de la porte
+  effacée), une porte dépouillée et rejetée au bord (invisible), une
+  bande pleine largeur (elle écrasait la rangée). La sortie était
+  documentée et je ne l'avais pas essayée — **Material 3 : l'importance
+  se lit à l'EMPHASE**, rempli > contourné > discret, une seule action
+  remplie par écran. Trois contrôles de même hauteur, taillés à leur
+  mot : Donner 107 × 36 rempli, Recevoir 115 × 36 contourné, Partage en
+  groupe 171 × 36 en encre sourde.
+  **Le pouce est rendu à son dessin.** Une tranche ajoutée au poste
+  s'était invitée sur le téléphone sans que personne ne l'ait demandé —
+  faute de périmètre, pas d'ergonomie. Le contrôle fige désormais les
+  DEUX ergonomies : au pouce la porte reste une ligne pleine largeur
+  avec son chevron et les verbes à 76 px, au poste la rangée resserrée.
+  **Et une passe de proportions**, demandée : la colonne qui porte le
+  travail à faire était plus étroite que celle qui porte un reçu (420
+  contre 618, rapport 0,68) — elle passe à 1,15 ; et deux listes de même
+  nature côte à côte avaient un pas différent (49 px et 54), donc se
+  décalaient d'une demi-ligne au bout de quatre rangs. Les hauteurs de
+  ligne sont fixées des deux côtés.
+  7 mutations, dont celle qui rejoue ma propre faute de périmètre.
+  *Deux sondes mortes trouvées en chemin : le contrôle du pouce ne
+  pouvait pas voir la tranche du poste faute de piste dormante à
+  l'écran, et un motif de mutation ambigu visait `silentPistes` au lieu
+  de `recuesDormantes`. Une garde qui ne peut pas échouer est verte pour
+  rien.*
 - Auto-tests verts, parcours principaux rejoués en E2E.
 
 > **Nuance conservée.** « Refonte terminée » veut dire : les 23 décisions sont

@@ -293,7 +293,12 @@ export function renderEchanger(){
           de « Moi » — on tape la carte entière. -->
      <button class="pcard moi-door" id="ecPromo">
        <span class="md-m"><b>${ic('radio', 'ic-14')} Partage en groupe</b></span>
-       ${ic('chevron-right', 'ic-14')}
+       ${/* Le chevron dit « cette LIGNE mène ailleurs ». Il n'a de sens
+            que sur une ligne pleine largeur — au pouce. Au poste, la
+            porte devient un contrôle taillé à son mot : un chevron
+            coincé dans un bouton de 170 px ne promet plus rien, il
+            encombre. */''}
+       ${wide ? '' : ic('chevron-right', 'ic-14')}
      </button>`;
   /* Pas de rappel de confidentialité ICI. Il répétait, en pied d'écran
      et en permanence, ce que « Donner » dit déjà au moment du geste —
@@ -317,13 +322,17 @@ export function renderEchanger(){
              se lit avec sa ligne, comme sur « Mes pistes ». Et la
              gauche est la première chose lue : c'est bien là que va ce
              qui réclame quelque chose. */''}
+       ${/* Le POUCE ne change pas. Il garde le dessin qu'il avait : on
+             lit en haut, on agit en bas, les deux verbes au-dessus de la
+             barre et la porte en pleine largeur — un doigt, une colonne,
+             de grandes cibles. Ce qui suit ne concerne que le poste. */''}
        ${wide
          ? `<div class="ec-actes">${gestes}</div>
             <div class="ec-cols">
               <div class="ec-gauche">${reprendreHTML()}${filHTML()}</div>
               ${detailHTML()}
             </div>`
-         : reprendreHTML() + filHTML() + gestes + priv}
+         : filHTML() + gestes + priv}
      </div>`;
   root.querySelector('#ecGive')?.addEventListener('click', openDonner);
   root.querySelector('#ecRecv').addEventListener('click', openRecevoir);
