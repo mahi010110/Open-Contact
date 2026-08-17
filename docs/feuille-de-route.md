@@ -35,9 +35,13 @@ choses, et aucune ne dépend de quelqu'un d'extérieur.
       (`RELAIS_DEFAUT`, `engine/transport.js`) — le bac à sable de
       développement refuse toute connexion sortante, leur choix repose donc
       sur la réputation, pas sur une mesure. À rejouer à deux téléphones.
-- [ ] **Durabilité des données** — prouver qu'une installation neuve, puis
+- [x] **Durabilité des données** — prouver qu'une installation neuve, puis
       une montée de version, ne perdent rien. C'est l'invariant qui coûte le
-      plus cher s'il casse.
+      plus cher s'il casse : sans serveur, ce qui disparaît ici a disparu
+      pour de bon. `e2e-durabilite.mjs` écrit un suivi complet (les 20 clés
+      persistantes), déploie une version neuve, et vérifie que tout survit
+      octet pour octet — puis que l'app le **relit** réellement à l'écran.
+      *(août 2026)*
 - [ ] **Pages confidentialité et aide** — courtes, honnêtes. La liste « ce
       qu'OpenContact ne fera jamais » y a sa place : c'est ce qui permet à un
       établissement de faire confiance à l'outil.
