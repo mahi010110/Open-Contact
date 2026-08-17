@@ -37,7 +37,13 @@ Le Titulaire accorde à toute personne, gratuitement, le droit :
      journalistique ou critique, à condition d'indiquer clairement leur
      origine et de renvoyer à ce dépôt ;
 
-  c) de SIGNALER au Titulaire toute faille, erreur ou remarque.
+  c) de SIGNALER au Titulaire toute faille, erreur ou remarque ;
+
+  d) de CONSERVER une copie locale du dépôt, à la seule fin d'exercer
+     les droits ci-dessus. On ne lit pas sérieusement du code sans le
+     cloner, et un droit qu'on ne peut pas exercer n'en est pas un.
+     Cette copie ne peut être ni exécutée, ni déployée, ni modifiée, ni
+     transmise à un tiers.
 
 Ces droits s'exercent tels quels. Ils ne s'étendent à rien d'autre.
 
@@ -68,8 +74,8 @@ Sauf autorisation écrite et expresse du Titulaire, il est interdit :
   a) d'exécuter, d'héberger, de déployer ou de mettre à disposition le
      Logiciel, en tout ou en partie, sur quelque support que ce soit ;
 
-  b) de le reproduire ou de le copier, au-delà des copies techniques
-     transitoires nécessaires à sa simple consultation ;
+  b) de le reproduire ou de le copier, au-delà de la copie de lecture
+     permise au point 2 d) ;
 
   c) de le modifier, de l'adapter, de le traduire, ou d'en tirer une
      œuvre dérivée ;
@@ -168,7 +174,9 @@ transparency and review, not to transfer any rights.
 PERMITTED, free of charge: viewing and reading the source code for
 personal study, evaluation or security review; quoting short excerpts
 with clear attribution and a link to this repository; reporting issues
-to the copyright holder.
+to the copyright holder; keeping a local copy of the repository for the
+sole purpose of exercising those rights — that copy may not be run,
+deployed, modified or passed on.
 
 USING THE APP: the OpenContact application, as published online by the
 copyright holder, may be used freely and free of charge by anyone, for
