@@ -38,8 +38,8 @@ await attendre(page, async () => (await import('./ui/state.js')).S.companies.len
 
 /* ---------- la ligne « → qui » dit la bonne chose d'emblée ---------- */
 await page.evaluate(async () => (await import('./ui/donner.js')).openDonner());
-await page.waitForSelector('#dnPick');
-await page.click('#dnPick');
+/* La liste est là D'EMBLÉE : le pli a disparu avec la descente des deux
+   canaux dans le pied de la feuille. */
 await page.waitForSelector('.pk-duo');
 /* La commande « qui » n'existe QUE s'il y a un choix. Avec une seule
    personne, son nom n'est pas une commande : il se pose sur la ligne
@@ -79,7 +79,7 @@ await page.click('.overlay:last-of-type .modal-h .x');
 await page.waitForTimeout(250);
 const l1 = await lignes();
 if (l1.Capgemini.qui !== '2 sur 3') fail('quelqu’un d’écarté = le compte : ' + l1.Capgemini.qui);
-const compte = (await page.textContent('#dnCount')).replace(/\s+/g, ' ').trim();
+const compte = (await page.textContent('.dn-cut')).replace(/\s+/g, ' ').trim();
 if (!/1 personne écartée/.test(compte)) fail('l’écran doit dire ce qui manque : ' + compte);
 console.log('écarter quelqu’un : « 2 sur 3 », et le compteur le dit ✓');
 

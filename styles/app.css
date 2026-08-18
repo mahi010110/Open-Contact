@@ -432,28 +432,54 @@ html[data-theme="dark"] .field select{
 .lb-fold[aria-expanded="true"] .ic{transform:rotate(180deg);color:var(--accent)}
 @media (prefers-reduced-motion:reduce){.lb-fold .ic{transition:none}}
 /* ---- la barre de commande d'une liste à cocher (ui/affiner.js) ----
-   UNE rangée qui remplace les deux d'avant : la case et son compte, le
-   champ de recherche, « Affiner », le pli. Le champ prend ce qui reste
-   (`flex:1 1 96px`), les commandes gardent leur taille.
+   UN GRAND CHAMP, et deux icônes à sa droite. C'est le même bloc que
+   « Mes pistes » (`.search-wrap` = le champ puis « Affiner »), avec le
+   pli en plus : deux écrans qui font la même chose se ressemblent.
 
-   `flex-wrap` : à texte doublé les quatre ne tiennent plus dans 324 px.
-   Elles passent alors à la ligne — la redistribution que WCAG 1.4.10
-   demande — au lieu d'être rognées ou de faire glisser la feuille. */
-.lb-cmd{flex-wrap:wrap}
-/* le `margin-left:auto` de la règle générale collerait le pli au bord
-   dès que la barre passe à deux lignes : ici c'est le champ qui pousse */
-.lb-cmd>.lb-act:last-child{margin-left:0}
-/* La case d'en-tête tient l'AXE des cases de la liste : c'est ce qui la
-   fait lire « tout cocher » sans avoir besoin du mot. Une ligne de liste
-   est en retrait de son cadre (1 px de trait + 14 px de marge
-   intérieure) ; la case d'en-tête reprend ce retrait au lieu du -8 px
-   des autres commandes. Mesuré, et gardé : le contrôle échoue si l'axe
-   se décale. */
-.lb-cmd>.lb-all{flex:none;gap:6px;margin-left:6px}
-/* le compte tient lieu d'étiquette à la case : une donnée, donc mono,
-   et du poids — c'est ce qui partira */
-.lb-n{font-family:var(--font-mono);font-weight:var(--weight-semibold);font-variant-numeric:tabular-nums}
-.lb-cmd .lb-q{flex:1 1 96px;width:auto;min-width:0}
+   La loupe vit DANS le champ. Sans elle, une boîte de texte posée au-
+   dessus d'une liste ne dit pas ce qu'elle fait — NN/g recommande un
+   pictogramme simple et contrasté, et c'est lui qui transforme « un
+   champ » en « la recherche ». Elle est décorative pour un lecteur
+   d'écran : le champ porte déjà son nom. */
+/* À texte doublé, le champ et ses deux commandes ne tiennent plus : les
+   commandes passent SOUS le champ (WCAG 1.4.10) plutôt que de l'écraser
+   à quelques caractères. Le plancher de 190 px est ce qui déclenche le
+   repli — sans lui, `flex:1` rétrécit le champ indéfiniment et rien ne
+   passe jamais à la ligne. */
+.lb-cmd{gap:6px;flex-wrap:wrap}
+.lb-find{position:relative;flex:1 1 190px;min-width:0;margin-bottom:0}
+.lb-find .srch-i{
+  position:absolute;left:10px;top:50%;transform:translateY(-50%);
+  pointer-events:none;color:var(--text-muted);
+  -webkit-mask-image:url(../assets/icons/search.svg);mask-image:url(../assets/icons/search.svg);
+}
+.lb-cmd .lb-q{width:100%;padding-left:32px}
+/* les deux commandes prennent la hauteur du champ, jamais moins que la
+   cible du doigt (`--ctl`) */
+.lb-cmd>.btn{flex:none;min-width:var(--ctl);height:var(--ctl)}
+
+/* la case « tout cocher » : une commande, pas un champ — elle prend la
+   boîte des deux autres pour que la rangée soit un objet, pas trois.
+
+   ALIGNÉE À GAUCHE, jamais centrée. Centrée, l'icône se déplaçait dès
+   que le compte apparaissait à côté d'elle — donc l'axe des cases
+   bougeait au fil de la sélection, et l'axe est précisément ce qui
+   permet à cette case de se passer du mot « Tout ». Le retrait de 15 px
+   est celui d'une ligne de liste (1 px de trait + 14 px de marge
+   intérieure) : les deux cases tombent sur la même colonne, quoi qu'il
+   y ait dans le bouton. */
+/* ce qui ne partira pas, dit dans le pied, contre le bord opposé aux
+   deux canaux : une DONNÉE (mono, discrète), pas un avertissement — un
+   compte qui prend une couleur d'alerte crie pour un geste qu'on peut
+   défaire d'un tap */
+.dn-cut{margin-right:auto;align-self:center;
+  font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
+.lb-all{gap:4px;justify-content:flex-start;padding:0 8px 0 15px}
+.lb-all[aria-pressed="true"] .ic{color:var(--accent)}
+/* le compte est une DONNÉE : mono, chiffres de largeur fixe pour qu'il
+   ne danse pas quand on coche */
+.lb-n{font-family:var(--font-mono);font-size:var(--text-12);
+  font-variant-numeric:tabular-nums}
 /* feuille « Trier » : la pile des niveaux (principal + départages) */
 /* puces d'état sous la recherche (#8) — la croix enlève, la puce de tri
    s'inverse au tap ; le sens vit dans la puce */

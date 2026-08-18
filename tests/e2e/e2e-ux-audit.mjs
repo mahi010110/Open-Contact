@@ -1532,11 +1532,7 @@ const teintes = await nPage.evaluate(async () => {
     };
   };
   const pro = await releve(async () => (await import('./ui/prospect.js')).openProspect());
-  const don = await releve(async () => {
-    (await import('./ui/donner.js')).openDonner();
-    await new Promise(r => setTimeout(r, 400));
-    document.getElementById('dnPick')?.click();
-  });
+  const don = await releve(async () => (await import('./ui/donner.js')).openDonner());
   document.querySelectorAll('.overlay .x').forEach(x => x.click());
   await new Promise(r => setTimeout(r, 250));
   /* la couleur de référence, lue dans les tokens : puisque la carte ne
@@ -1728,8 +1724,7 @@ for (const [quoi, titre] of [['donner', 'Donner'], ['prospect', 'Prospecter']]){
     await new Promise(r => setTimeout(r, 300));
     if (q === 'donner'){
       (await import('./ui/donner.js')).openDonner();
-      await new Promise(r => setTimeout(r, 400));
-      document.getElementById('dnPick')?.click();
+
     } else (await import('./ui/prospect.js')).openProspect();
     await new Promise(r => setTimeout(r, 500));
     const bar = document.querySelector('.overlay:not(.ov-out) .listbar');
@@ -1862,11 +1857,16 @@ for (const [quoi, titre] of [['donner', 'Donner'], ['prospect', 'Prospecter']]){
 
    Ce qui se garde ici, et pourquoi :
 
-   ① UNE rangée. La recherche est arrivée en même temps que la fusion
-     des deux rangées d'avant : si un jour elle repasse à deux, le gain
-     est rendu et la demande n'est plus tenue. Mesuré à taille normale
-     — à 200 % la barre a le DROIT de se replier (WCAG 1.4.10), c'est
-     même ce qu'on veut.
+   ① UNE rangée, et le CHAMP y domine. Première version : quatre
+     commandes à 44 px se partageaient 324 px et il restait 146 px au
+     champ — 18 caractères. NN/g demande qu'un champ de recherche tienne
+     une requête ordinaire sans défiler (~27 caractères) ; en dessous il
+     ne se lit même plus comme une recherche, mais comme un bout
+     d'interface coincé entre deux boutons. C'est ce que le mainteneur a
+     vu avant la mesure, et c'est pourquoi « Tout » est descendu en tête
+     de liste. Le plancher gardé ici est donc une PART : le champ prend
+     au moins les deux tiers de la barre. Mesuré à taille normale — à
+     200 % la barre a le DROIT de se replier (WCAG 1.4.10).
 
    ② La case d'en-tête dans l'AXE des cases de la liste. C'est la seule
      raison pour laquelle elle peut se passer du mot « Tout » : décalée,
@@ -1878,12 +1878,24 @@ for (const [quoi, titre] of [['donner', 'Donner'], ['prospect', 'Prospecter']]){
    ④ Les trois feuilles appellent la MÊME fonction. C'est le contrôle
      qui empêche la divergence de revenir : il lit la source, donc il
      tient même pour le partage en groupe, qui demande un pair réel et
-     ne se joue pas ici (e2e-liaison.mjs s'en charge). */
+     ne se joue pas ici (e2e-liaison.mjs s'en charge).
+
+   ⑤ AUCUN PLI ne revient. Il existait pour dégager de la liste ce qui
+     vivait au-dessus d'elle — les deux canaux de « Donner », le bouton
+     d'envoi du partage en groupe. Descendus dans le pied (§5 : ce qui
+     compte se tape en bas), ils ne sont plus jamais enterrés, et le pli
+     n'a plus d'objet. C'est ce qui rend la barre tenable : à 360 px,
+     quatre commandes à 44 px ne laissent que 174 px au champ. Un pli
+     qui revient reprend cette place — le contrôle échoue donc si l'un
+     des trois fichiers réintroduit `pli:` ou un état `choosing`. */
 {
   for (const f of ['donner.js', 'prospect.js', 'direct.js']){
     const src = readFileSync(new URL('../../ui/' + f, import.meta.url), 'utf8');
     if (!/barreListeHTML\(/.test(src))
       fail(`ui/${f} n’utilise plus la barre partagée — les trois listes vont rediverger`);
+    if (/\bpli:\s*true|let\s+choosing\b/.test(src))
+      fail(`ui/${f} : un pli est revenu — il reprend 50 px au champ de recherche, ` +
+           'et il n’a plus d’objet depuis que l’action vit dans le pied');
   }
   const bCtx = await browser.newContext({ viewport: { width: 360, height: 640 }, hasTouch: true });
   const bPage = await bCtx.newPage();
@@ -1903,17 +1915,32 @@ for (const [quoi, titre] of [['donner', 'Donner'], ['prospect', 'Prospecter']]){
     const m = await bPage.evaluate(async q => {
       document.querySelectorAll('.overlay .x').forEach(x => x.click());
       await new Promise(r => setTimeout(r, 300));
-      if (q === 'donner'){
-        (await import('./ui/donner.js')).openDonner();
-        await new Promise(r => setTimeout(r, 400));
-        document.getElementById('dnPick')?.click();
-      } else (await import('./ui/prospect.js')).openProspect();
+      if (q === 'donner') (await import('./ui/donner.js')).openDonner();
+      else (await import('./ui/prospect.js')).openProspect();
       await new Promise(r => setTimeout(r, 500));
       const bar = document.querySelector('.overlay:not(.ov-out) .lb-cmd');
       if (!bar) return null;
       const rangs = new Set([...bar.children]
         .map(k => Math.round(k.getBoundingClientRect().top))).size;
-      const tete = bar.querySelector('[data-tout] .ic')?.getBoundingClientRect();
+      /* la BOÎTE de contenu, pas la boîte : la barre déborde de ses
+         marges négatives pour couvrir le padding de la feuille, et la
+         comparer à sa largeur brute sous-estimait le champ de 7 points */
+      const cs = getComputedStyle(bar);
+      const dedans = bar.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+      const ch = bar.querySelector('.lb-q');
+      const largeurChamp = bar.querySelector('.lb-find').getBoundingClientRect().width;
+      const part = Math.round(100 * largeurChamp / dedans);
+      /* et la largeur en CARACTÈRES, la mesure de NN/g : on écrit une
+         requête réelle et on regarde combien il en tient */
+      const cv = document.createElement('canvas').getContext('2d');
+      const st2 = getComputedStyle(ch);
+      cv.font = st2.fontSize + ' ' + st2.fontFamily;
+      const echantillon = 'sainte-colombe-sur-lot';
+      const cars = Math.floor((ch.clientWidth - 32) /
+        (cv.measureText(echantillon).width / echantillon.length));
+      /* « Tout » n'est plus dans la barre : il est la première LIGNE de
+         la liste, et c'est là que son axe se mesure */
+      const tete = document.querySelector('.overlay:not(.ov-out) [data-tout] .ic')?.getBoundingClientRect();
       const ligne = [...document.querySelectorAll('.overlay:not(.ov-out) .pk .ic')]
         .map(n => n.getBoundingClientRect()).find(r => r.width > 0);
       const champ = bar.querySelector('[data-q]');
@@ -1928,13 +1955,19 @@ for (const [quoi, titre] of [['donner', 'Donner'], ['prospect', 'Prospecter']]){
       await new Promise(r => setTimeout(r, 400));
       const vide = [...document.querySelectorAll('.overlay:not(.ov-out) .hint')]
         .some(n => /Aucune piste/.test(n.textContent));
-      return { rangs, champ: !!champ, avant, apres, vide,
+      return { rangs, champ: !!champ, avant, apres, vide, part, cars,
+               largeurChamp: Math.round(largeurChamp),
                axe: (tete && ligne) ? Math.round(ligne.x - tete.x) : null };
     }, quoi);
     if (!m) fail(`« ${titre} » : pas de barre partagée (.lb-cmd)`);
     else if (m.rangs !== 1)
       fail(`« ${titre} » : la barre tient sur ${m.rangs} rangées à taille normale — ` +
            'le gain de place qui payait la recherche est rendu');
+    else if (m.part < 66 || m.cars < 24)
+      fail(`« ${titre} » : le champ ne prend que ${m.part}% de la barre ` +
+           `(${m.largeurChamp}px, ${m.cars} caractères) — en dessous des deux tiers, ` +
+           'ou de 24 caractères, il ne se lit plus comme une recherche mais comme ' +
+           'un champ coincé entre des boutons (NN/g en demande ~27)');
     else if (m.axe === null || Math.abs(m.axe) > 2)
       fail(`« ${titre} » : la case d’en-tête est décalée de ${m.axe}px de celles de la liste — ` +
            'sans cet axe elle ne se lit plus « tout cocher » et il lui faut son mot');
@@ -1942,8 +1975,9 @@ for (const [quoi, titre] of [['donner', 'Donner'], ['prospect', 'Prospecter']]){
       fail(`« ${titre} » : la recherche ne réduit pas la liste (${m.avant} → ${m.apres})`);
     else if (!m.vide)
       fail(`« ${titre} » : une recherche sans résultat laisse un vide muet`);
-    else console.log(`barre « ${titre} » : 1 rangée, case dans l’axe (${m.axe}px), ` +
-                     `recherche ${m.avant}→${m.apres} et le vide se dit ✓`);
+    else console.log(`barre « ${titre} » : 1 rangée, champ ${m.part}% ` +
+                     `(${m.largeurChamp}px, ${m.cars} caractères), ` +
+                     `case dans l’axe (${m.axe}px), recherche ${m.avant}→${m.apres}, le vide se dit ✓`);
   }
   await bCtx.close();
 }

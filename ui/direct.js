@@ -562,7 +562,8 @@ export function openPromo(){
     sh.body.innerHTML =
       `<div class="sy-status" id="prStatus">${ic('radio', 'ic-14')} Connexion…</div>
        <div id="prZone"></div>`;
-    sh.setFoot([btn('Quitter le groupe', 'btn-ghost', () => { leave(); ask(); })]);
+    const bQuit = btn('Quitter le groupe', 'btn-ghost', () => { leave(); ask(); });
+    sh.setFoot([bQuit]);
     const setStatus = txt => { const el = q('#prStatus'); if (el) el.innerHTML = txt; };
     /* le statut dit l'étape prouvée — pas « personne » quand c'est le
        transport qui est mort (#14) */
@@ -591,7 +592,6 @@ export function openPromo(){
     /* ce qui part : tout par défaut, élagable d'un tap */
     const unsel = new Set();
     const chosen = () => mine().filter(c => !unsel.has(c.id));
-    let choosing = false;
     /* qui part, piste par piste (#2) — c'est le canal le plus exposé :
        un envoi live à toute une salle, pas un fichier qu'on relit */
     const keepMap = new Map();
@@ -606,13 +606,39 @@ export function openPromo(){
     const ft = filterState();
     let qs = '';                 /* ce qu'on cherche dans la liste */
     const listed = () => filterCompanies(mine(), { q: qs, ...filterArgs(ft), ...sortArgs(st) });
+    /* L'ENVOI VIT DANS LE PIED. Il était dans le corps, au-dessus de la
+       liste : au pouce il partait avec le défilement, et « Choisir ce qui
+       part » n'existait que pour le dégager. §5 le dit — l'action
+       principale se tape en bas. Il rejoint « Quitter le groupe », en
+       action remplie contre une action fantôme : rempli > contourné >
+       discret (Material 3), une seule remplie par écran. */
+    const bSend = btn('Envoyer', 'btn-primary', () => {
+      const list = chosen();
+      if (!list.length) return;
+      share.send(sharePayload(list, keepFn, String((S.profile && S.profile.name) || '').trim().split(/\s+/)[0] || ''));
+      logJ('Donné (partage en groupe) : ' + list.length + ' piste(s)', null, list.map(c => c.id));
+      toast('Parti vers ' + peers + ' camarade' + (peers > 1 ? 's' : '') + ' ✓');
+    }, 'share');
+    /* le compte se dit une fois, dans le bouton — et l'action se coupe
+       quand elle est impossible plutôt que de gronder au tap */
+    /* le pied se repose ici : `bSend` a besoin de la salle et de la
+       sélection, qui n'existent qu'à ce point du branchement */
+    sh.setFoot([bQuit, bSend]);
+    const majEnvoi = () => {
+      const n2 = chosen().length;
+      bSend.disabled = !n2 || !peers;
+      bSend.innerHTML = ic('share', 'ic-14') + ' Envoyer' +
+        (n2 ? ' ' + n2 + ' piste' + (n2 > 1 ? 's' : '') : '');
+      const z = q('#prZone');
+      if (z) majTout(z, { tout: !unsel.size, n: n2, total: mine().length });
+    };
     const refreshStatus = () => {
       const n = chosen().length;
       if (peers) setStatus(`${ic('radio', 'ic-14')} <b>${peers}</b> camarade${peers > 1 ? 's' : ''} dans le groupe`);
       else if (watch) watch.tick();   /* l'étape honnête reprend la main */
       const zone = q('#prZone');
       if (!zone) return;
-      if (!peers){ zone.innerHTML = ''; return; }
+      if (!peers){ zone.innerHTML = ''; majEnvoi(); return; }
       /* connecté mais rien de partageable : le DIRE, ne pas laisser un
          vide muet (les pistes d'exemple et closes ne partent pas) */
       if (!mine().length){
@@ -620,29 +646,18 @@ export function openPromo(){
           /* « ajoute une piste depuis Mes pistes » désigne un onglet de la
              barre du bas, visible à l'instant même. L'état seul suffit. */
           `<p class="hint" style="text-align:center">${ic('info-box', 'ic-14')} Rien à partager.</p>`;
+        majEnvoi();
         return;
       }
-      zone.innerHTML =
-        `<button class="btn btn-primary pr-send" id="prSend"${n ? '' : ' disabled'}>${ic('share', 'ic-14')} Envoyer ${n ? n + ' piste' + (n > 1 ? 's' : '') : '…'}</button>
-         <div style="text-align:center;margin-top:6px"><span class="tag-share">jamais le privé</span></div>
-         ${choosing ? '' : `<button class="lb-act lb-fold" id="prPick" style="margin-top:6px" aria-expanded="false">
-           <span>Choisir ce qui part</span>${ic('chevron-down', 'ic-14')}
-         </button>`}
-         ${/* La liste dépliée prend la MÊME barre que « Donner » et
-              « Prospecter » — et elle COLLE, ce qu'elle ne faisait pas :
-              cette feuille était la seule des trois où « Tout » partait
-              avec la première ligne. Le pli y entre aussi : on replie
-              sans avoir à remonter. */''}
-         ${choosing ? barreListeHTML({ q: qs, ft, st, tout: !unsel.size,
-             n: chosen().length, total: mine().length, pli: true }) +
-           '<div id="prItems"></div>' : ''}`;
-      q('#prSend').addEventListener('click', () => {
-        const list = chosen();
-        if (!list.length) return;
-        share.send(sharePayload(list, keepFn, String((S.profile && S.profile.name) || '').trim().split(/\s+/)[0] || ''));
-        logJ('Donné (partage en groupe) : ' + list.length + ' piste(s)', null, list.map(c => c.id));
-        toast('Parti vers ' + peers + ' camarade' + (peers > 1 ? 's' : '') + ' ✓');
-      });
+      /* MÊME DESSIN QUE « DONNER », et pour la même raison. Le bouton
+         d'envoi vivait dans le CORPS, au-dessus de la liste : au pouce
+         il partait avec le défilement, et un pli existait juste pour le
+         dégager. Descendu dans le pied (§5 : ce qui compte se tape en
+         bas), plus rien n'est enterré — le pli, l'état `choosing` et la
+         ligne « Choisir ce qui part » disparaissent tous les trois, et
+         la commande qu'ils coûtaient revient au champ de recherche. */
+      zone.innerHTML = barreListeHTML({ q: qs, ft, st, tout: !unsel.size,
+        n: chosen().length, total: mine().length }) + '<div id="prItems"></div>';
       /* les LIGNES seules : la barre reste en place, donc le champ de
          recherche garde son curseur et le clavier ne se referme pas */
       const renderItems = () => {
@@ -683,34 +698,20 @@ export function openPromo(){
         majEnvoi();
         direCombien(list.length, qs);
       };
-      /* le bouton d'envoi et la case d'en-tête disent le même compte */
-      const majEnvoi = () => {
-        const n2 = chosen().length;
-        const send = q('#prSend');
-        if (send){
-          send.disabled = !n2;
-          send.innerHTML = `${ic('share', 'ic-14')} Envoyer ${n2 ? n2 + ' piste' + (n2 > 1 ? 's' : '') : '…'}`;
-        }
-        majTout(zone, { tout: !unsel.size, n: n2, total: mine().length });
-      };
-      q('#prPick')?.addEventListener('click', () => { choosing = true; refreshStatus(); });
-      if (choosing){
-        const glisser = () => { const play = softReorder('.modal-b .pk'); renderItems(); play(); };
-        bindBarreListe(zone, {
-          ft, st, pool: mine,
-          onQ: v => { qs = v; glisser(); },
-          onTout: () => {
-            const rienDecoche = unsel.size === 0;
-            unsel.clear();
-            if (rienDecoche) mine().forEach(c => unsel.add(c.id));
-            renderItems();
-          },
-          onPli: () => { choosing = false; refreshStatus(); },
-          onAffine: glisser
-        });
-        collerEnHaut(zone.querySelector('.stick-guet'), zone.querySelector('.listbar'));
-        renderItems();
-      }
+      const glisser = () => { const play = softReorder('.modal-b .pk'); renderItems(); play(); };
+      bindBarreListe(zone, {
+        ft, st, pool: mine,
+        onQ: v => { qs = v; glisser(); },
+        onTout: () => {
+          const rienDecoche = unsel.size === 0;
+          unsel.clear();
+          if (rienDecoche) mine().forEach(c => unsel.add(c.id));
+          renderItems();
+        },
+        onAffine: glisser
+      });
+      collerEnHaut(zone.querySelector('.stick-guet'), zone.querySelector('.listbar'));
+      renderItems();
     };
     const showNext = () => {
       if (showing || !queue.length) return;

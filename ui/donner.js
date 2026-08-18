@@ -35,7 +35,6 @@ export function openDonner(){
   const st = sortState('recent');
   const ft = filterState();                  /* propre à cet écran (#8) */
   let qs = '';                               /* ce qu'on cherche dans la liste */
-  let choosing = false;
   const chosen = () => alive().filter(c => !unsel.has(c.id));
   /* qui part, piste par piste (#2) : tout le monde par défaut — une
      entrée n'apparaît ici que si on y a touché, et `keepFn` rend alors
@@ -76,49 +75,47 @@ export function openDonner(){
     /* mobile = le terrain : QR d'abord ; desktop = le poste : fichier
        d'abord, le QR devient le pont vers le téléphone (#18) */
     const wide = matchMedia('(min-width:901px)').matches;
-    /* la SITUATION en gras, le moyen en donnée : au moment de donner, la
-       question qu'on se pose est « l'autre est là, ou pas ? » — pas « QR
-       ou fichier ? ». Le moyen reste écrit dessous, personne n'est perdu. */
-    const optQR = `<button class="pick" id="dnQR"><b>${ic('grid-3x3', 'ic-14')} En personne</b><span>${wide ? 'QR à scanner avec un téléphone' : 'QR à scanner'}</span></button>`;
-    const optFile = `<button class="pick" id="dnFile"><b>${ic('file', 'ic-14')} À distance</b><span>fichier .oc</span></button>`;
-    /* ce qui part AVANT comment ça part : on ne choisit pas un canal sans
-       savoir ce qu'on met dedans. La liste dépliée pousse les deux choix
-       vers le bas — c'est l'ordre de lecture, et le pouce les trouve mieux. */
-    /* Pas de rappel de confidentialité en tête. Il se lisait à chaque
-       ouverture, disait une règle du produit et non un geste à faire, et
-       repoussait vers le bas la seule chose qui se décide ici : ce qui
-       part. Ce que l'app ne partage jamais, elle ne le partage jamais —
-       l'écrire cent fois ne le rend pas plus vrai. */
-    sh.body.innerHTML =
-      `<div class="dn-src">
-         <div class="dn-what">
-           <span class="dn-count" id="dnCount"></span>
-           <button class="lb-act lb-fold" id="dnPick" aria-expanded="false">
-             <span>Choisir</span>${ic('chevron-down', 'ic-14')}
-           </button>
-         </div>
-         <div id="dnList" hidden></div>
-       </div>
-       <div class="pick-list">
-         ${wide ? optFile + optQR : optQR + optFile}
-       </div>`;
+    /* LA SITUATION D'ABORD, LE MOYEN DERRIÈRE. La question qu'on se pose
+       en donnant est « l'autre est là, ou pas ? » — pas « QR ou
+       fichier ? ». Mais le moyen ne se supprime pas : §6 garde ce qui
+       porte un NOM DE FICHIER, et « .oc » est ce qu'on cherchera plus
+       tard dans ses téléchargements. Il passe donc derrière le point
+       médian, la grammaire de sous-information de l'app, au lieu de
+       tenir une seconde ligne que le pied ne peut pas porter. Le mot est
+       « fichier », pas « .oc » : c'est celui que l'étudiant connaît, et
+       l'extension se lit de toute façon sur l'écran suivant.
+       Une seule action remplie par écran (Material 3) — celle que la
+       surface rend la plus probable : le QR au pouce, le fichier au poste. */
+    const bQR = btn('En personne · QR', wide ? '' : 'btn-primary', stepQR, 'grid-3x3');
+    const bFile = btn('À distance · fichier', wide ? 'btn-primary' : '', stepFile, 'file');
+    bQR.id = 'dnQR'; bFile.id = 'dnFile';
+    /* CE QUI MANQUE SE DIT LÀ OÙ L'ON DÉCIDE. Écarter quelqu'un dans la
+       fiche d'une piste se voit sur SA ligne (« 2 sur 3 ») — mais vingt
+       lignes plus bas, plus rien ne le rappelle. Le total vivait en tête
+       d'écran, au-dessus de la liste ; il rejoint le pied, à côté des
+       deux canaux : c'est l'instant où l'on envoie, donc le dernier
+       moment utile pour apprendre qu'une personne ne partira pas. Un
+       ÉTAT, pas une explication — il ne se montre que s'il a quelque
+       chose à dire. */
+    const sCut = document.createElement('span');
+    sCut.className = 'dn-cut';
+    sCut.hidden = true;
+    sh.setFoot(wide ? [sCut, bFile, bQR] : [sCut, bQR, bFile]);
+    sh.body.innerHTML = barreListeHTML({ q: qs, ft, st, tout: !unsel.size,
+      n: chosen().length, total: alive().length }) + '<div id="dnItems"></div>';
+
     const syncCount = () => {
       const k = chosen().length;
       const t = alive().length;
       const cut = cutCount();
-      q('#dnCount').textContent = (k === t ? k : k + ' / ' + t) + ' piste' + (t > 1 ? 's' : '') +
-        (cut ? ' · ' + cut + ' personne' + (cut > 1 ? 's' : '') + ' écartée' + (cut > 1 ? 's' : '') : '');
-      /* le mot ne bascule plus — « Choisir » puis « Replier » sur la même
-         cible obligeait à relire pour savoir où l'on en était. Le chevron
-         dit l'état, comme partout ailleurs dans l'app. */
-      q('#dnPick').setAttribute('aria-expanded', choosing);
-      /* UNE seule rangée, jamais deux. Repliée, c'est cette ligne-ci —
-         le compte et « Choisir ». Dépliée, c'est la barre collante, qui
-         reprend le compte dans sa case et le pli dans son chevron. Les
-         laisser toutes les deux à l'écran, c'était dire deux fois la
-         même chose et manger 44 px de liste. */
-      q('.dn-what').hidden = choosing;
       majTout(sh.body, { tout: !unsel.size, n: k, total: t });
+      sCut.hidden = !cut;
+      if (cut) sCut.textContent =
+        cut + ' personne' + (cut > 1 ? 's' : '') + ' écartée' + (cut > 1 ? 's' : '');
+      /* rien de coché = rien à envoyer : l'action est IMPOSSIBLE, elle se
+         désactive. Avant, elle dépliait la liste pour dire ce qui
+         manquait — un détour qui n'existe plus, la liste étant là. */
+      for (const b of [bQR, bFile]) b.disabled = !k;
     };
     const listed = () => filterCompanies(alive(), { q: qs, ...filterArgs(ft), ...sortArgs(st) });
     /* Les LIGNES seules. Séparées de la barre parce que le champ de
@@ -163,44 +160,20 @@ export function openDonner(){
       syncCount();
       direCombien(list.length, qs);
     };
-    /* la barre, posée UNE fois par dépliement */
-    const renderList = () => {
-      const zone = q('#dnList');
-      if (!choosing){ zone.hidden = true; zone.innerHTML = ''; syncCount(); return; }
-      zone.hidden = false;
-      zone.innerHTML = barreListeHTML({ q: qs, ft, st, tout: !unsel.size,
-        n: chosen().length, total: alive().length, pli: true }) + '<div id="dnItems"></div>';
-      const glisser = () => { const play = softReorder('.modal-b .pk'); renderItems(); play(); };
-      bindBarreListe(zone, {
-        ft, st, pool: alive,
-        onQ: v => { qs = v; glisser(); },
-        onTout: () => {
-          const rienDecoche = unsel.size === 0;
-          unsel.clear();
-          if (rienDecoche) alive().forEach(c => unsel.add(c.id));
-          renderItems();
-        },
-        onPli: () => { choosing = false; renderList(); },
-        onAffine: glisser
-      });
-      collerEnHaut(zone.querySelector('.stick-guet'), zone.querySelector('.listbar'));
-      renderItems();
-    };
-    q('#dnPick').addEventListener('click', () => { choosing = !choosing; renderList(); });
-    /* Rien de coché : le canal ne peut pas partir, mais gronder ne fait
-       pas avancer. « Coche au moins une piste » laissait l'écran EXACTEMENT
-       où il était, avec la liste encore repliée — la chose à faire cachée
-       derrière un deuxième tap qu'il fallait deviner. Le bouton ouvre donc
-       le choix : un tap, et on est là où il faut. */
-    const need = fn => () => {
-      if (chosen().length){ fn(); return; }
-      if (!choosing){ choosing = true; renderList(); }
-    };
-    q('#dnQR').addEventListener('click', need(stepQR));
-    q('#dnFile').addEventListener('click', need(stepFile));
-    sh.setFoot(null);
-    renderList();
-    syncCount();
+    const glisser = () => { const play = softReorder('.modal-b .pk'); renderItems(); play(); };
+    bindBarreListe(sh.body, {
+      ft, st, pool: alive,
+      onQ: v => { qs = v; glisser(); },
+      onTout: () => {
+        const rienDecoche = unsel.size === 0;
+        unsel.clear();
+        if (rienDecoche) alive().forEach(c => unsel.add(c.id));
+        renderItems();
+      },
+      onAffine: glisser
+    });
+    collerEnHaut(sh.body.querySelector('.stick-guet'), sh.body.querySelector('.listbar'));
+    renderItems();
   };
 
   /* ---- QR : petit lot → QR de données (hors ligne, un scan) ;

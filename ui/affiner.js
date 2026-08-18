@@ -149,27 +149,28 @@ export function bindAffinerBtn(root, ft, st, o, onChange){
    La sous-ligne dit déjà statut · ville · qui.
    ============================================================ */
 export function barreListeHTML(o){
-  const n = o.n | 0;
-  const pistes = n > 1 ? 'pistes' : 'piste';
   return (
     `<div class="stick-guet" aria-hidden="true"></div>
      <div class="listbar lb-cmd">
-       <button class="lb-act lb-all" data-tout aria-pressed="${!!o.tout}"
-               aria-label="${o.tout ? 'Ne rien garder' : 'Tout garder'} — ${n} ${pistes} sur ${o.total | 0}">
-         ${ic(o.tout ? 'checkbox-on' : 'checkbox', 'ic-20')}<span class="lb-n">${n}</span>
+       <button class="btn icon-btn lb-all" data-tout aria-pressed="${!!o.tout}"
+               aria-label="${o.tout ? 'Ne rien garder' : 'Tout garder'} — ${o.n | 0} piste${(o.n | 0) > 1 ? 's' : ''} sur ${o.total | 0}">
+         ${ic(o.tout ? 'checkbox-on' : 'checkbox', 'ic-20')}${o.tout ? '' : `<span class="lb-n">${o.n | 0}</span>`}
        </button>
-       <input class="search lb-q" data-q type="search" value="${esc(o.q || '')}"
-              placeholder="Chercher…" aria-label="Chercher une piste" ${clavier('cherche')}>
-       ${affinerBtnHTML(o.ft, o.st, { leger: true })}
-       ${o.pli ? `<button class="lb-act lb-fold" data-pli aria-expanded="true"
-               aria-label="Replier la liste">${ic('chevron-down', 'ic-14')}</button>` : ''}
+       <div class="search-wrap lb-find">
+         <span class="ic ic-14 srch-i" aria-hidden="true"></span>
+         <input class="search lb-q" data-q type="search" value="${esc(o.q || '')}"
+                placeholder="Chercher une piste…" aria-label="Chercher une piste" ${clavier('cherche')}>
+       </div>
+       ${affinerBtnHTML(o.ft, o.st)}
+       ${o.pli ? `<button class="btn icon-btn lb-fold" data-pli aria-expanded="true"
+               aria-label="Replier la liste" title="Replier">${ic('chevron-down', 'ic-14')}</button>` : ''}
      </div>`);
 }
 
-/* La case et son compte se rafraîchissent SANS toucher au reste de la
-   barre — sinon le champ de recherche serait recréé à chaque tap sur une
-   ligne. Une seule source pour ce fragment, ici, sous peine de voir la
-   barre et sa mise à jour se contredire. */
+/* La case se rafraîchit SANS toucher au reste de la barre — sinon le
+   champ de recherche serait recréé à chaque tap sur une ligne, et le
+   curseur sauterait. Une seule source pour ce fragment, ici, sous peine
+   de voir la barre et sa mise à jour se contredire. */
 export function majTout(zone, o){
   const b = zone.querySelector('[data-tout]');
   if (!b) return;
@@ -177,7 +178,13 @@ export function majTout(zone, o){
   b.setAttribute('aria-pressed', !!o.tout);
   b.setAttribute('aria-label',
     `${o.tout ? 'Ne rien garder' : 'Tout garder'} — ${n} piste${n > 1 ? 's' : ''} sur ${o.total | 0}`);
-  b.innerHTML = ic(o.tout ? 'checkbox-on' : 'checkbox', 'ic-20') + `<span class="lb-n">${n}</span>`;
+  /* L'ENCRE VA À CE QUI CHANGE (§6). Tout coché — le cas par défaut de
+     « Donner » et du partage en groupe — la case suffit : écrire « 24 »
+     à côté d'une case pleine dit deux fois la même chose. Dès qu'on
+     écarte quelque chose, le compte apparaît, et c'est là qu'il devient
+     une information. */
+  b.innerHTML = ic(o.tout ? 'checkbox-on' : 'checkbox', 'ic-20') +
+    (o.tout ? '' : `<span class="lb-n">${n}</span>`);
 }
 
 /* Le champ NE DOIT PAS être re-rendu à la frappe — sinon le curseur
@@ -200,7 +207,9 @@ export function bindBarreListe(zone, o){
     inp.value = '';
     o.onQ('');
   });
-  zone.querySelector('[data-tout]')?.addEventListener('click', o.onTout);
+  /* délégation : « Tout » vit dans les lignes, qui se re-rendent à chaque
+     frappe — un écouteur posé sur le nœud partirait avec lui */
+  zone.addEventListener('click', e => { if (e.target.closest('[data-tout]')) o.onTout(); });
   zone.querySelector('[data-pli]')?.addEventListener('click', o.onPli);
   bindAffinerBtn(zone, o.ft, o.st, { pool: o.pool }, o.onAffine);
 }

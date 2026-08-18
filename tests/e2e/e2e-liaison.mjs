@@ -165,7 +165,12 @@ for (const p of [C, D])
    jamais rester muet sans bouton ni explication (retour utilisateur). */
 await attendre(D, () => /Rien à partager/.test(document.querySelector('#prZone')?.textContent || ''),
   { timeout: 8000, message: 'message « rien à partager » côté client sans piste' });
-if (await D.$('#prSend')) fail('un bouton Envoyer apparaît alors qu’il n’y a rien à partager');
+/* L'envoi vit dans le pied et ne disparaît plus : il se DÉSACTIVE, ce
+   qui est la bonne conduite (une action impossible se coupe, elle ne
+   s'évanouit pas — on saurait sinon qu'elle a existé sans savoir
+   pourquoi elle est partie). */
+if (!(await D.$('.modal-f .btn-primary[disabled]')))
+  fail('l’envoi n’est pas désactivé alors qu’il n’y a rien à partager');
 console.log('groupe : client sans piste voit « Rien à partager » (pas un vide muet) ✓');
 
 /* « Choisir ce qui part » : la seule des trois listes de pistes que rien
@@ -175,23 +180,18 @@ console.log('groupe : client sans piste voit « Rien à partager » (pas un vide
    Trois descriptions du même objet, sur trois écrans qui se suivent.
    Déplier ne partage RIEN : l'invariant « rien ne part sans clic » juste
    en dessous continue de le vérifier après ce dépli. */
-await C.click('#prPick');
+/* La liste est là D'EMBLÉE : plus de « Choisir ce qui part » à déplier.
+   Le bouton d'envoi vivait au-dessus d'elle, et le pli n'existait que
+   pour le dégager ; descendu dans le pied, plus rien n'est enterré. */
 await C.waitForSelector('.pick-list .pk .pk-m');
+if (await C.$('#prPick'))
+  fail('partage en groupe : le pli est revenu alors que l’envoi vit dans le pied');
+if (!(await C.$('.modal-f .btn-primary')))
+  fail('partage en groupe : l’envoi n’est pas dans le pied de la feuille');
 const ligneGroupe = (await C.textContent('.pick-list .pk .pk-m')).replace(/\s+/g, ' ').trim();
 if (!/À contacter/.test(ligneGroupe) || !/Lille/.test(ligneGroupe))
   fail('« Choisir ce qui part » ne décrit pas la piste comme les deux autres listes : ' + ligneGroupe);
 else console.log('groupe : la ligne dit « ' + ligneGroupe.slice(0, 46) + ' », comme Donner et Prospecter ✓');
-/* On referme — et c'est ici que se vérifie la demande : le pli vit
-   DÉSORMAIS DANS LA BARRE COLLANTE, pas au-dessus de la liste. Sur
-   ~3,5 écrans de pistes, replier obligeait sinon à remonter tout en
-   haut. « Choisir ce qui part » n'existe donc plus quand la liste est
-   dépliée : c'est le chevron de la barre qui referme. */
-if (!(await C.$('.lb-cmd [data-pli]')))
-  fail('partage en groupe : le pli n’est pas dans la barre collante — il faut remonter pour replier');
-if (await C.$('#prPick'))
-  fail('partage en groupe : deux commandes de pli à l’écran en même temps');
-await C.click('.lb-cmd [data-pli]');
-await C.waitForSelector('#prPick');   /* replié : la ligne d'appel revient */
 
 /* INVARIANT (retour utilisateur) : RIEN ne part sans clic « Envoyer ».
    C a 25 pistes et vient d'en éditer une, mais tant qu'il n'a pas cliqué,
@@ -208,8 +208,7 @@ if (await D.$('.rc-big')) fail('AUTO-ENVOI : D a reçu un aperçu sans que C ait
 console.log('groupe : rien ne part sans clic « Envoyer », même après édition (invariant tenu) ✓');
 
 /* clic « Envoyer » → l'envoi part (pas de confirmation : geste direct) */
-await C.waitForSelector('#prSend');
-await C.click('#prSend');
+await C.click('.modal-f .btn-primary');
 await D.waitForSelector('.rc-big', { timeout: 20000 });
 const recap = (await D.textContent('.rc-big')).trim();
 if (!/25 pistes/.test(recap)) fail('aperçu groupe : ' + recap);
