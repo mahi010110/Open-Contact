@@ -26,7 +26,7 @@ qui partagent les mêmes données et le même vocabulaire.
 | Surface | État | Ce qu'elle apporte de plus |
 |---|---|---|
 | **Le web** (PWA, installable) | **livrée** | tout le quotidien : capturer, agir, écrire, partager avec son groupe, synchroniser ses appareils |
-| **L'ordinateur** | **en sommeil** | ce qu'un navigateur ne peut pas garantir : travailler application fermée, parler IMAP/SMTP, faire tourner une IA locale |
+| **L'ordinateur** | **la prochaine** | ce qu'un navigateur ne peut pas garantir : travailler application fermée, parler IMAP/SMTP, faire tourner une IA locale |
 | **Le téléphone** (store) | non commencée | la même chose que le web, mieux intégrée à l'appareil (caméra, partage, notifications) |
 
 *(Décision du mainteneur, 17 août 2026 : le « Compagnon » — une application
@@ -44,8 +44,8 @@ reprise. À l'écran comme dans la doc : **OpenContact pour ordinateur**,
 > **① Est-ce que ça marche pour quelqu'un qui ouvre l'app dans son
 > navigateur, sur son téléphone, sans compte et sans rien installer ?**
 > Oui → c'est du web, donc de partout.
-> Non → c'est une capacité de la **surface ordinateur**, aujourd'hui en
-> sommeil. **L'installation est ce qui fait une autre surface** — pas la
+> Non → c'est une capacité de la **surface ordinateur**, la prochaine à
+> s'ouvrir. **L'installation est ce qui fait une autre surface** — pas la
 > complexité, pas le niveau d'expertise.
 >
 > **② Est-ce que ça engage le mainteneur dans une démarche permanente**
@@ -63,7 +63,7 @@ autres. Ni grisée, ni « bientôt » : absente.
 
 ### La répartition
 
-`WEB` = partout, dès aujourd'hui · `PC` = surface ordinateur, en sommeil ·
+`WEB` = partout, dès aujourd'hui · `PC` = surface ordinateur, pas encore livrée ·
 `⏸` = reporté par choix (voir l'état plus bas).
 
 | | Où |
@@ -104,7 +104,7 @@ mainteneur dans une déclaration chez Google et Microsoft. L'option « je colle
 mon propre identifiant » le rendrait pourtant disponible sans aucune démarche
 — à rouvrir quand tu voudras.
 
-### État au 2 août 2026
+### Ce qui est masqué à l'écran (2 août 2026)
 
 La surface web se recentre sur ses bases avant sa première mise à
 disposition. Tout ce qui est marqué `PC` ou `⏸` est **présent dans le code

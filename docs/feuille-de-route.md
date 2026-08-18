@@ -11,9 +11,15 @@ concevoir — ça, c'est `CLAUDE.md`. Et il ne redit pas l'état des surfaces �
 ## Là où on en est
 
 La surface web est **fonctionnellement complète** et n'attend plus de
-fonctionnalité pour être montrée. 119 auto-tests verts, 28 scénarios de bout
-en bout joués dans un vrai navigateur, en deux tailles d'écran et deux
+fonctionnalité pour être montrée. 122 auto-tests verts, et 17 scénarios de
+bout en bout joués dans un vrai navigateur, en deux tailles d'écran et deux
 thèmes.
+
+La suite en compte 29 : les 12 autres sont **sautés, pas verts** — ils
+appartiennent aux capacités masquées (`ui/perimetre.js`) et à la surface
+ordinateur, dont le binaire n'est pas construit ici. Compter un scénario
+sauté comme réussi est exactement ce que `developpement.md` interdit ; ce
+chiffre-là est celui qu'on relit pour décider qu'on est prêt.
 
 Ce qui reste avant de la mettre entre les mains d'étudiants tient en peu de
 choses, et aucune ne dépend de quelqu'un d'extérieur.
@@ -38,10 +44,18 @@ choses, et aucune ne dépend de quelqu'un d'extérieur.
 - [x] **Durabilité des données** — prouver qu'une installation neuve, puis
       une montée de version, ne perdent rien. C'est l'invariant qui coûte le
       plus cher s'il casse : sans serveur, ce qui disparaît ici a disparu
-      pour de bon. `e2e-durabilite.mjs` écrit un suivi complet (les 20 clés
-      persistantes), déploie une version neuve, et vérifie que tout survit
-      octet pour octet — puis que l'app le **relit** réellement à l'écran.
+      pour de bon. `e2e-durabilite.mjs` écrit un suivi complet — les 20 clés
+      persistantes **et les CV et lettres**, qui vivent dans une base à part
+      (`oc_docs_v1`) — déploie une version neuve, attend que le service
+      worker neuf prenne réellement la main, et vérifie que tout survit
+      octet pour octet, puis que l'app le **relit** vraiment.
       *(août 2026)*
+- [ ] **Compléter `tests/e2e/README.md`** — `developpement.md` promet « le
+      détail de **chaque** scénario » ; le tableau en décrit 15 sur 29.
+      Manquent notamment `e2e-annonce`, `e2e-commencer`, `e2e-fenetre`,
+      `e2e-mouvement`, `e2e-vecu`, `e2e-stockage`, `e2e-pistes`. Le lot de
+      documentation visait un dépôt qu'un inconnu peut lire ; là il lui
+      manque la moitié des gardes.
 - [ ] **Pages confidentialité et aide** — courtes, honnêtes. La liste « ce
       qu'OpenContact ne fera jamais » y a sa place : c'est ce qui permet à un
       établissement de faire confiance à l'outil.
@@ -76,6 +90,15 @@ Dans cet ordre, et seulement si les retours le justifient :
    installées (§4). Ce qui reste à trancher après la bêta, c'est le
    périmètre exact de la première version, et le sort des capacités
    reportées par choix (brouillon IA, envoi direct).
+
+   **À faire dans le même geste que le drapeau, jamais après : rendre à
+   l'écran le mot du produit.** Le mot « Compagnon » est encore dans des
+   textes visibles — une ligne de réglages intitulée « Le Compagnon »
+   (`ui/moi.js`), les titres de feuille de `ui/compagnon.js`, et plusieurs
+   phrases de `ui/campagnes.js`. Ils ne se voient pas aujourd'hui, les
+   drapeaux étant à `false` ; le jour où l'un repasse à `true`, le concept
+   abandonné réapparaît d'un coup. C'est la règle §7 de `CLAUDE.md` — un
+   objet, UN mot — et le mot est **OpenContact pour ordinateur**.
 3. **Ramener le brouillon par IA** avec ta propre clé, si les retours
    montrent que la rédaction est bien le point de blocage.
 4. **Import de données publiques** pour amorcer une liste de pistes sans

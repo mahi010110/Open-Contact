@@ -28,8 +28,8 @@ et en toast. Ils doivent être **100 % verts**, toujours.
 **Tout, sans navigateur à piloter à la main** :
 
 ```sh
-node tests/e2e/unitaires.mjs      # les auto-tests du moteur (119)
-node tests/e2e/tous.mjs           # tout : unitaires + 28 scénarios
+node tests/e2e/unitaires.mjs      # les auto-tests du moteur (122)
+node tests/e2e/tous.mjs           # tout : unitaires + 29 scénarios
 node tests/e2e/e2e-verrou.mjs     # un seul scénario
 ```
 

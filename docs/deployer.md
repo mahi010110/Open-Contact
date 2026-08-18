@@ -153,7 +153,12 @@ Android demandera d'autoriser « les sources inconnues », une fois.
 - Chaque version passe par une **revue humaine** chez Apple, qui peut
   refuser. Compte quelques jours.
 - Il n'existe **aucun équivalent du fichier direct** : hors du store, on ne
-  peut pas installer sur un iPhone. C'est le store ou rien.
+  peut pas installer sur un iPhone. C'est le store ou rien. *(Depuis le
+  règlement européen sur les marchés numériques, une distribution hors store
+  existe en Europe — mais elle exige le même abonnement à 99 €/an, la
+  validation d'Apple et des conditions supplémentaires. Pour un projet
+  d'étudiant, la conclusion ne change pas ; comme pour Google, à revérifier
+  le jour où la question se pose.)*
 
 > **Le piège irréversible, et il n'y en a qu'un : la clé Android.**
 > Pour publier une application Android, tu la signes avec une clé que tu
