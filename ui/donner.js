@@ -14,7 +14,8 @@ import { encryptOC2 } from '../engine/crypto.js';
 import { S, isClosed, logJ } from './state.js';
 import { openSheet, toast, btn, ic, softReorder, lockRowHTML, bindLockRow, collerEnHaut } from './dom.js';
 import { sortState, sortArgs } from './sort.js';
-import { filterState, filterArgs, affinerBtnHTML, bindAffinerBtn } from './affiner.js';
+import { filterState, filterArgs, barreListeHTML, bindBarreListe, majTout,
+         direCombien, rienTrouveHTML } from './affiner.js';
 import { openRoom, leaveRoom, watchLiaison } from './synclive.js';
 import { makeQrSvg } from './qr.js';
 import { whoCandidates, whoLineHTML, whoInline, openWhoPicker } from './qui.js';
@@ -33,6 +34,7 @@ export function openDonner(){
   const unsel = new Set();
   const st = sortState('recent');
   const ft = filterState();                  /* propre à cet écran (#8) */
+  let qs = '';                               /* ce qu'on cherche dans la liste */
   let choosing = false;
   const chosen = () => alive().filter(c => !unsel.has(c.id));
   /* qui part, piste par piste (#2) : tout le monde par défaut — une
@@ -110,26 +112,24 @@ export function openDonner(){
          cible obligeait à relire pour savoir où l'on en était. Le chevron
          dit l'état, comme partout ailleurs dans l'app. */
       q('#dnPick').setAttribute('aria-expanded', choosing);
-      /* la case « Tout » porte l'état : elle suit chaque tap individuel */
-      const bAll = q('#dnAll');
-      if (bAll){
-        const tout = !unsel.size;
-        bAll.setAttribute('aria-pressed', tout);
-        bAll.innerHTML = ic(tout ? 'checkbox-on' : 'checkbox', 'ic-14') + '<span>Tout</span>';
-      }
+      /* UNE seule rangée, jamais deux. Repliée, c'est cette ligne-ci —
+         le compte et « Choisir ». Dépliée, c'est la barre collante, qui
+         reprend le compte dans sa case et le pli dans son chevron. Les
+         laisser toutes les deux à l'écran, c'était dire deux fois la
+         même chose et manger 44 px de liste. */
+      q('.dn-what').hidden = choosing;
+      majTout(sh.body, { tout: !unsel.size, n: k, total: t });
     };
-    const renderList = () => {
-      const zone = q('#dnList');
-      if (!choosing){ zone.hidden = true; zone.innerHTML = ''; syncCount(); return; }
-      const list = filterCompanies(alive(), { ...filterArgs(ft), ...sortArgs(st) });
-      zone.hidden = false;
-      zone.innerHTML =
-        `<div class="stick-guet" aria-hidden="true"></div>
-         <div class="listbar">
-           <button class="lb-act" id="dnAll" aria-pressed="${!unsel.size}">
-             ${ic(unsel.size ? 'checkbox' : 'checkbox-on', 'ic-14')}<span>Tout</span>
-           </button>${affinerBtnHTML(ft, st, { leger: true })}</div>
-         <div class="pick-list pk-inverse">
+    const listed = () => filterCompanies(alive(), { q: qs, ...filterArgs(ft), ...sortArgs(st) });
+    /* Les LIGNES seules. Séparées de la barre parce que le champ de
+       recherche ne doit pas être recréé à chaque frappe : le curseur
+       sauterait et le clavier se refermerait sous le doigt. */
+    const renderItems = () => {
+      const box = q('#dnItems');
+      if (!box) return;
+      const list = listed();
+      box.innerHTML = !list.length ? rienTrouveHTML() :
+        `<div class="pick-list pk-inverse">
            ${list.map(c =>
              `<div class="pk-duo${unsel.has(c.id) ? ' pk-out' : ''}">
                 <button class="pick pk${unsel.has(c.id) ? '' : ' on'}" data-id="${c.id}" aria-pressed="${!unsel.has(c.id)}">
@@ -143,9 +143,7 @@ export function openDonner(){
                 ${whoLineHTML(c, keepOf(c), 'donner')}
               </div>`).join('')}
          </div>`;
-      bindAffinerBtn(zone, ft, st, { pool: alive }, () => { const play = softReorder('.modal-b .pk'); renderList(); play(); });
-      collerEnHaut(zone.querySelector('.stick-guet'), zone.querySelector('.listbar'));
-      zone.querySelectorAll('.pk').forEach(b =>
+      box.querySelectorAll('.pk').forEach(b =>
         b.addEventListener('click', () => {
           const id = b.dataset.id;
           unsel.has(id) ? unsel.delete(id) : unsel.add(id);
@@ -157,18 +155,36 @@ export function openDonner(){
           b.setAttribute('aria-pressed', !unsel.has(id));
           syncCount();
         }));
-      zone.querySelectorAll('[data-who]').forEach(b =>
+      box.querySelectorAll('[data-who]').forEach(b =>
         b.addEventListener('click', () => {
           const c = alive().find(x => x.id === b.dataset.who);
-          if (c) openWhoPicker(c, keepOf(c), { verbe: 'donner', onChange: renderList });
+          if (c) openWhoPicker(c, keepOf(c), { verbe: 'donner', onChange: renderItems });
         }));
-      zone.querySelector('#dnAll').addEventListener('click', () => {
-        const rienDecoche = unsel.size === 0;
-        unsel.clear();
-        if (rienDecoche) alive().forEach(c => unsel.add(c.id));
-        renderList();
-      });
       syncCount();
+      direCombien(list.length, qs);
+    };
+    /* la barre, posée UNE fois par dépliement */
+    const renderList = () => {
+      const zone = q('#dnList');
+      if (!choosing){ zone.hidden = true; zone.innerHTML = ''; syncCount(); return; }
+      zone.hidden = false;
+      zone.innerHTML = barreListeHTML({ q: qs, ft, st, tout: !unsel.size,
+        n: chosen().length, total: alive().length, pli: true }) + '<div id="dnItems"></div>';
+      const glisser = () => { const play = softReorder('.modal-b .pk'); renderItems(); play(); };
+      bindBarreListe(zone, {
+        ft, st, pool: alive,
+        onQ: v => { qs = v; glisser(); },
+        onTout: () => {
+          const rienDecoche = unsel.size === 0;
+          unsel.clear();
+          if (rienDecoche) alive().forEach(c => unsel.add(c.id));
+          renderItems();
+        },
+        onPli: () => { choosing = false; renderList(); },
+        onAffine: glisser
+      });
+      collerEnHaut(zone.querySelector('.stick-guet'), zone.querySelector('.listbar'));
+      renderItems();
     };
     q('#dnPick').addEventListener('click', () => { choosing = !choosing; renderList(); });
     /* Rien de coché : le canal ne peut pas partir, mais gronder ne fait

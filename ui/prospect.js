@@ -12,7 +12,8 @@ import { filterCompanies } from '../engine/filter.js';
 import { S, bus, isClosed } from './state.js';
 import { openSheet, toast, btn, ic, softReorder, collerEnHaut } from './dom.js';
 import { sortState, sortArgs } from './sort.js';
-import { filterState, filterArgs, affinerBtnHTML, bindAffinerBtn } from './affiner.js';
+import { filterState, filterArgs, barreListeHTML, bindBarreListe, majTout,
+         direCombien, rienTrouveHTML } from './affiner.js';
 import { openMail } from './mail.js';
 import { openContactEditor } from './contact.js';
 import { openCampaignWizard } from './campagnes.js';
@@ -68,6 +69,7 @@ export function openProspect(){
   });
   /* la case « Tout » PORTE l'état : elle doit donc suivre chaque tap
      individuel, sinon elle affiche un état périmé dès la seconde ligne */
+  let qs = '';                 /* ce qu'on cherche dans la liste */
   let syncAll = () => {};
   const sync = () => {
     const n = nWho();
@@ -81,25 +83,20 @@ export function openProspect(){
     verbe: 'ecrire',
     /* plus personne de retenu = la piste n'est plus prospectée : le dire
        tout de suite plutôt que l'écarter en silence au « Continuer » */
-    onChange: keep => { if (!keep.size) sel.delete(c.id); render(); },
-    onAdd: () => openContactEditor({ company: c, onDone: () => { sel.add(c.id); render(); } })
+    onChange: keep => { if (!keep.size) sel.delete(c.id); renderItems(); sync(); },
+    onAdd: () => openContactEditor({ company: c, onDone: () => { sel.add(c.id); renderItems(); sync(); } })
   });
 
-  const render = () => {
-    const list = filterCompanies(alive(), { ...filterArgs(ft), ...sortArgs(st) });
-    sh.body.innerHTML =
-      `<div class="stick-guet" aria-hidden="true"></div>
-       <div class="listbar">
-         ${/* le mot ne bascule plus : c'est la CASE qui porte l'état, comme
-              sur chaque ligne en dessous. « Tout cocher » devenant « Tout
-              décocher » d'un tap, la cible changeait de nom sous le doigt
-              et le regard devait relire pour savoir où il en était. */''}
-         <button class="lb-act" id="pkAll" aria-pressed="${!!sel.size}">
-           ${ic(sel.size ? 'checkbox-on' : 'checkbox', 'ic-14')}<span>Tout</span>
-         </button>
-         ${affinerBtnHTML(ft, st, { leger: true })}
-       </div>
-       <div class="pick-list">
+  const listed = () => filterCompanies(alive(), { q: qs, ...filterArgs(ft), ...sortArgs(st) });
+
+  /* Les LIGNES seules — la barre se pose une fois (`render`), sinon le
+     champ de recherche serait recréé à chaque frappe. */
+  const renderItems = () => {
+    const box = sh.body.querySelector('#pkItems');
+    if (!box) return;
+    const list = listed();
+    box.innerHTML = !list.length ? rienTrouveHTML() :
+      `<div class="pick-list">
          ${list.map(c =>
            `<div class="pk-duo">
               <button class="pick pk${sel.has(c.id) ? ' on' : ''}" data-id="${c.id}" aria-pressed="${sel.has(c.id)}">
@@ -109,27 +106,16 @@ export function openProspect(){
                      statut · ville ici, statut seul là, ville seule dans
                      le partage en groupe. Un même objet se décrit
                      partout de la même façon — sinon on réapprend à
-                     chaque écran ce qu'on vient de lire au précédent.
-                     La ville est ce qui manquait le plus : deux pistes
-                     du même secteur ne se distinguent souvent que par
-                     elle. */''}
+                     chaque écran ce qu'on vient de lire au précédent. */''}
                 <div class="pk-m"><b>${esc(c.name)}</b>
                   <span>${STATUSES[c.status].label}${c.city ? ' · ' + esc(c.city) : ''}${
-                    /* déjà échappé par whoInline — il porte son icône */
                     whoInline(c, keepOf(c), 'ecrire') && ' · ' + whoInline(c, keepOf(c), 'ecrire')
                     || ''}</span></div>
               </button>
               ${whoLineHTML(c, keepOf(c), 'ecrire')}
             </div>`).join('')}
        </div>`;
-    collerEnHaut(sh.body.querySelector('.stick-guet'), sh.body.querySelector('.listbar'));
-    const bAll = sh.body.querySelector('#pkAll');
-    syncAll = () => {
-      const tout = list.length > 0 && list.every(c => sel.has(c.id));
-      bAll.setAttribute('aria-pressed', tout);
-      bAll.innerHTML = ic(tout ? 'checkbox-on' : 'checkbox', 'ic-14') + '<span>Tout</span>';
-    };
-    sh.body.querySelectorAll('.pk').forEach(b =>
+    box.querySelectorAll('.pk').forEach(b =>
       b.addEventListener('click', () => {
         const id = b.dataset.id;
         if (sel.has(id)){ sel.delete(id); }
@@ -139,36 +125,51 @@ export function openProspect(){
              par défaut revient — sinon « Continuer » l'ignorerait */
           const c = alive().find(x => x.id === id);
           const d = c && !keepOf(c).size && defaultCt(c);
-          if (d){ keepOf(c).add(d.id); render(); return; }
+          if (d){ keepOf(c).add(d.id); renderItems(); return; }
         }
         b.classList.toggle('on', sel.has(id));
         b.setAttribute('aria-pressed', sel.has(id));
         sync();
       }));
-    sh.body.querySelectorAll('[data-who]').forEach(b =>
-      b.addEventListener('click', () => {
-        const c = alive().find(x => x.id === b.dataset.who);
-        if (c) pickWho(c);
-      }));
-    sh.body.querySelectorAll('[data-addct]').forEach(b =>
-      b.addEventListener('click', () => {
-        const c = alive().find(x => x.id === b.dataset.addct);
-        if (c) openContactEditor({ company: c, onDone: () => { sel.add(c.id); render(); } });
-      }));
-    /* le lien dit ce que le tap va faire, et il porte sur ce qui est
-       AFFICHÉ — filtrer puis « Tout cocher » remplace l'ancien raccourci
-       « Cocher les N à contacter », en mieux (#8) */
-    sh.body.querySelector('#pkAll').addEventListener('click', () => {
-      if (sel.size) sel.clear();
-      else for (const c of list){
-        sel.add(c.id);
-        const d = !keepOf(c).size && defaultCt(c);
-        if (d) keepOf(c).add(d.id);
-      }
-      render();
+    box.querySelectorAll('[data-who]').forEach(b => {
+      const c = alive().find(x => x.id === b.dataset.who);
+      if (c) b.addEventListener('click', () => pickWho(c));
     });
-    bindAffinerBtn(sh.body, ft, st, { pool: alive }, () => { const play = softReorder('.modal-b .pk'); render(); play(); });
+    box.querySelectorAll('[data-addct]').forEach(b => {
+      const c = alive().find(x => x.id === b.dataset.addct);
+      if (c) b.addEventListener('click', () =>
+        openContactEditor({ company: c, onDone: () => { sel.add(c.id); renderItems(); sync(); } }));
+    });
     sync();
+    direCombien(list.length, qs);
+  };
+
+  const render = () => {
+    sh.body.innerHTML = barreListeHTML({ q: qs, ft, st,
+      tout: listed().length > 0 && listed().every(c => sel.has(c.id)),
+      n: sel.size, total: alive().length }) + '<div id="pkItems"></div>';
+    const glisser = () => { const play = softReorder('.modal-b .pk'); renderItems(); play(); };
+    /* la case porte l'état, et elle vise ce qui est AFFICHÉ : filtrer
+       puis tout cocher remplace l'ancien « Cocher les N à contacter » */
+    syncAll = () => majTout(sh.body, {
+      tout: listed().length > 0 && listed().every(c => sel.has(c.id)),
+      n: sel.size, total: alive().length });
+    bindBarreListe(sh.body, {
+      ft, st, pool: alive,
+      onQ: v => { qs = v; glisser(); },
+      onTout: () => {
+        if (sel.size) sel.clear();
+        else for (const c of listed()){
+          sel.add(c.id);
+          const d = !keepOf(c).size && defaultCt(c);
+          if (d) keepOf(c).add(d.id);
+        }
+        renderItems();
+      },
+      onAffine: glisser
+    });
+    collerEnHaut(sh.body.querySelector('.stick-guet'), sh.body.querySelector('.listbar'));
+    renderItems();
   };
   sh.setFoot([bGo]);
   render();

@@ -16,7 +16,7 @@ import { sharePayload, linkWrap, linkParse } from '../engine/exchange.js';
 import { PROMO_KEY, RELAYS_KEY, TURN_KEY, kvGet, kvSet } from '../engine/storage.js';
 import { parseTurn, turnText } from '../engine/transport.js';
 import { S, bus, isClosed, logJ } from './state.js';
-import { openSheet, confirmSheet, toast, btn, ic } from './dom.js';
+import { openSheet, confirmSheet, toast, btn, ic, softReorder, collerEnHaut } from './dom.js';
 import { mergePreviewInto } from './recevoir.js';
 import { makeQrSvg, startScan } from './qr.js';
 import { getSync, startSync, breakLink, keepMyProfile, makePhrase, openRoom, leaveRoom,
@@ -29,7 +29,8 @@ import { COMPAGNON } from './perimetre.js';
 import { whoCandidates, whoLineHTML, whoInline, openWhoPicker } from './qui.js';
 import { filterCompanies } from '../engine/filter.js';
 import { sortState, sortArgs } from './sort.js';
-import { filterState, filterArgs, affinerBtnHTML, bindAffinerBtn } from './affiner.js';
+import { filterState, filterArgs, barreListeHTML, bindBarreListe, majTout,
+         direCombien, rienTrouveHTML } from './affiner.js';
 
 const isDesktop = () => matchMedia('(min-width:901px)').matches;
 const relayList = async () => {
@@ -192,10 +193,6 @@ export function openAppareils(){
      façon de quitter — retour, fermeture, ou scan réussi */
   const stopCam = () => { if (stopCam.fn){ stopCam.fn(); stopCam.fn = null; } };
   stopCam.fn = null;
-  /* N11 : la phrase donne accès à tout le privé — masquée par défaut
-     dès qu'un appareil est relié, révélée d'un tap ; visible tant
-     qu'on est en train de relier (il faut pouvoir la recopier) */
-  let revealPhrase = null;
   const sh = openSheet({
     title: 'Mes appareils', icon: 'switch', clearToast: true,
     onClose: () => { stopCam(); if (onSync){ document.removeEventListener('oc:sync', onSync); onSync = null; } }
@@ -255,12 +252,23 @@ export function openAppareils(){
     const comp = await loadCompanion();
     const relays = await relayList();
     const turn = await turnList();
-    const phraseShown = revealPhrase === null ? !devs.length : revealPhrase;
     sh.setTitle('Mes appareils');
+    /* PLUS D'ŒIL. Il masquait la phrase — et le QR avec elle, puisque
+       les deux portent le même secret. Sur le papier c'était cohérent ;
+       à l'écran il ne se lisait pas comme le contrôle de la phrase :
+       posé au bord droit par le `margin-left:auto` des petites actions,
+       il vivait à 220 px de ce qu'il commandait. Deux objets si éloignés
+       ne se lisent plus comme liés (proximité, NN/g) — c'est la même
+       faute que la date du fil, à un autre endroit.
+
+       Le recoller aurait suffi à le rendre lisible. Le mainteneur a
+       tranché autrement : la protection qu'il offrait est mince (on est
+       sur SON téléphone, dans un écran qu'on ouvre pour relier), et elle
+       coûtait un contrôle, un état, et une feuille qui saute de 200 px
+       quand le QR apparaît. Un contrôle en moins vaut mieux qu'un
+       contrôle bien rangé. */
     sh.body.innerHTML =
-      `<div class="sy-phrase"><span>${phraseShown ? esc(sy.phrase) : '••••• – •••••'}</span>
-         <button class="abtn abtn-sm" id="syEye" aria-label="${phraseShown ? 'Masquer' : 'Afficher'} la phrase"
-                 title="${phraseShown ? 'Masquer' : 'Afficher'}">${ic(phraseShown ? 'eye-off' : 'eye', 'ic-14')}</button></div>
+      `<div class="sy-phrase"><span>${esc(sy.phrase)}</span></div>
        ${/* Relier DEUX DE SES PROPRES APPAREILS demandait de retaper douze
             caractères à la main, sans faute, sur un clavier de téléphone —
             alors que donner une piste à un camarade a QR, fichier et
@@ -268,10 +276,10 @@ export function openAppareils(){
             laissait l'utilisateur recopier pour lui-même.
             Le QR porte le même secret que la phrase : il n'apparaît donc
             QUE quand elle est à l'écran, et disparaît avec elle. */''}
-       ${phraseShown ? `<div class="sy-link">
+       <div class="sy-link">
            <div class="qr-wrap qr-mini" id="syQr" role="img" aria-label="QR de la phrase de liaison"></div>
            <button class="btn btn-sm" id="syCopy">${ic('copy', 'ic-14')} Copier la phrase</button>
-         </div>` : ''}
+         </div>
        ${/* Plus une seule consigne ici. Elle décrivait d'abord l'écran où
             l'on se trouve, puis ce qu'il montre : un QR sous un titre
             « Mes appareils », avec un bouton « Copier la phrase » à
@@ -329,7 +337,6 @@ export function openAppareils(){
             <button class="linklike lk-cut" id="syBreak">Rompre le lien</button>
           </div>`)}`;
 
-    q('#syEye')?.addEventListener('click', () => { revealPhrase = !phraseShown; renderLinked(); });
     q('#syRetry')?.addEventListener('click', () => startSync(sy.phrase, true));
     q('#syKeepProf')?.addEventListener('click', keepMyProfile);
     q('#syNewPhrase')?.addEventListener('click', async () => {
@@ -357,7 +364,7 @@ export function openAppareils(){
     wireRelays(q, sy.phrase, render);
     /* le QR se peint après coup : `makeQrSvg` est asynchrone, et un
        re-rendu peut avoir eu lieu entre-temps — d'où le test du nœud */
-    if (phraseShown) makeQrSvg(linkWrap(sy.phrase))
+    makeQrSvg(linkWrap(sy.phrase))
       .then(svg => { const n = q('#syQr'); if (n) n.innerHTML = svg; })
       .catch(() => { const n = q('#syQr'); if (n) n.remove(); });
     q('#syCopy')?.addEventListener('click', async () => {
@@ -597,7 +604,8 @@ export function openPromo(){
        il manquait ici, cet écran étant arrivé après les autres (#8) */
     const st = sortState('recent');
     const ft = filterState();
-    const listed = () => filterCompanies(mine(), { ...filterArgs(ft), ...sortArgs(st) });
+    let qs = '';                 /* ce qu'on cherche dans la liste */
+    const listed = () => filterCompanies(mine(), { q: qs, ...filterArgs(ft), ...sortArgs(st) });
     const refreshStatus = () => {
       const n = chosen().length;
       if (peers) setStatus(`${ic('radio', 'ic-14')} <b>${peers}</b> camarade${peers > 1 ? 's' : ''} dans le groupe`);
@@ -617,29 +625,17 @@ export function openPromo(){
       zone.innerHTML =
         `<button class="btn btn-primary pr-send" id="prSend"${n ? '' : ' disabled'}>${ic('share', 'ic-14')} Envoyer ${n ? n + ' piste' + (n > 1 ? 's' : '') : '…'}</button>
          <div style="text-align:center;margin-top:6px"><span class="tag-share">jamais le privé</span></div>
-         <button class="lb-act lb-fold" id="prPick" style="margin-top:6px" aria-expanded="${choosing}">
+         ${choosing ? '' : `<button class="lb-act lb-fold" id="prPick" style="margin-top:6px" aria-expanded="false">
            <span>Choisir ce qui part</span>${ic('chevron-down', 'ic-14')}
-         </button>
-         ${choosing ? `<div class="listbar" style="margin-top:8px">
-           <button class="lb-act" id="prAll" aria-pressed="${!unsel.size}">
-             ${ic(unsel.size ? 'checkbox' : 'checkbox-on', 'ic-14')}<span>Tout</span>
-           </button>${affinerBtnHTML(ft, st, { leger: true })}</div>
-         <div class="pick-list pk-inverse">
-           ${listed().map(c =>
-             `<div class="pk-duo${unsel.has(c.id) ? ' pk-out' : ''}">
-                <button class="pick pk${unsel.has(c.id) ? '' : ' on'}" data-id="${c.id}" aria-pressed="${!unsel.has(c.id)}">
-                  ${ic('checkbox', 'ic-20 ic-off')}${ic('checkbox-on', 'ic-20 ic-on')}
-                  ${/* la même sous-ligne que « Donner » et « Prospecter » :
-                       le statut manquait ici, et c'est lui qui dit où en
-                       est la piste qu'on s'apprête à faire circuler */''}
-                  <div class="pk-m"><b>${esc(c.name)}</b>
-                    <span>${STATUSES[c.status].label}${c.city ? ' · ' + esc(c.city) : ''}${
-                      whoInline(c, keepOf(c), 'donner') && ' · ' + whoInline(c, keepOf(c), 'donner')
-                      || ''}</span></div>
-                </button>
-                ${whoLineHTML(c, keepOf(c), 'donner')}
-              </div>`).join('')}
-         </div>` : ''}`;
+         </button>`}
+         ${/* La liste dépliée prend la MÊME barre que « Donner » et
+              « Prospecter » — et elle COLLE, ce qu'elle ne faisait pas :
+              cette feuille était la seule des trois où « Tout » partait
+              avec la première ligne. Le pli y entre aussi : on replie
+              sans avoir à remonter. */''}
+         ${choosing ? barreListeHTML({ q: qs, ft, st, tout: !unsel.size,
+             n: chosen().length, total: mine().length, pli: true }) +
+           '<div id="prItems"></div>' : ''}`;
       q('#prSend').addEventListener('click', () => {
         const list = chosen();
         if (!list.length) return;
@@ -647,39 +643,74 @@ export function openPromo(){
         logJ('Donné (partage en groupe) : ' + list.length + ' piste(s)', null, list.map(c => c.id));
         toast('Parti vers ' + peers + ' camarade' + (peers > 1 ? 's' : '') + ' ✓');
       });
-      q('#prPick').addEventListener('click', () => { choosing = !choosing; refreshStatus(); });
-      bindAffinerBtn(zone, ft, st, { pool: mine }, refreshStatus);
-      q('#prAll')?.addEventListener('click', () => {
-        const rienDecoche = unsel.size === 0;
-        unsel.clear();
-        if (rienDecoche) mine().forEach(c => unsel.add(c.id));
-        refreshStatus();
-      });
-      zone.querySelectorAll('[data-who]').forEach(b =>
-        b.addEventListener('click', () => {
-          const c = mine().find(x => x.id === b.dataset.who);
-          if (c) openWhoPicker(c, keepOf(c), { verbe: 'donner', onChange: refreshStatus });
-        }));
-      zone.querySelectorAll('.pk').forEach(b =>
-        b.addEventListener('click', () => {
-          const id = b.dataset.id;
-          unsel.has(id) ? unsel.delete(id) : unsel.add(id);
-          b.classList.toggle('on', !unsel.has(id));
-          /* une piste écartée l'est ENTIÈRE : sa commande « qui » avec elle */
-          b.parentElement.classList.toggle('pk-out', unsel.has(id));
-          b.setAttribute('aria-pressed', !unsel.has(id));
-          const n2 = chosen().length;
-          const send = q('#prSend');
+      /* les LIGNES seules : la barre reste en place, donc le champ de
+         recherche garde son curseur et le clavier ne se referme pas */
+      const renderItems = () => {
+        const box = q('#prItems');
+        if (!box) return;
+        const list = listed();
+        box.innerHTML = !list.length ? rienTrouveHTML() :
+          `<div class="pick-list pk-inverse">
+             ${list.map(c =>
+               `<div class="pk-duo${unsel.has(c.id) ? ' pk-out' : ''}">
+                  <button class="pick pk${unsel.has(c.id) ? '' : ' on'}" data-id="${c.id}" aria-pressed="${!unsel.has(c.id)}">
+                    ${ic('checkbox', 'ic-20 ic-off')}${ic('checkbox-on', 'ic-20 ic-on')}
+                    ${/* la même sous-ligne que « Donner » et « Prospecter » :
+                         le statut dit où en est la piste qu'on fait circuler */''}
+                    <div class="pk-m"><b>${esc(c.name)}</b>
+                      <span>${STATUSES[c.status].label}${c.city ? ' · ' + esc(c.city) : ''}${
+                        whoInline(c, keepOf(c), 'donner') && ' · ' + whoInline(c, keepOf(c), 'donner')
+                        || ''}</span></div>
+                  </button>
+                  ${whoLineHTML(c, keepOf(c), 'donner')}
+                </div>`).join('')}
+           </div>`;
+        box.querySelectorAll('[data-who]').forEach(b =>
+          b.addEventListener('click', () => {
+            const c = mine().find(x => x.id === b.dataset.who);
+            if (c) openWhoPicker(c, keepOf(c), { verbe: 'donner', onChange: renderItems });
+          }));
+        box.querySelectorAll('.pk').forEach(b =>
+          b.addEventListener('click', () => {
+            const id = b.dataset.id;
+            unsel.has(id) ? unsel.delete(id) : unsel.add(id);
+            b.classList.toggle('on', !unsel.has(id));
+            /* une piste écartée l'est ENTIÈRE : sa commande « qui » avec elle */
+            b.parentElement.classList.toggle('pk-out', unsel.has(id));
+            b.setAttribute('aria-pressed', !unsel.has(id));
+            majEnvoi();
+          }));
+        majEnvoi();
+        direCombien(list.length, qs);
+      };
+      /* le bouton d'envoi et la case d'en-tête disent le même compte */
+      const majEnvoi = () => {
+        const n2 = chosen().length;
+        const send = q('#prSend');
+        if (send){
           send.disabled = !n2;
           send.innerHTML = `${ic('share', 'ic-14')} Envoyer ${n2 ? n2 + ' piste' + (n2 > 1 ? 's' : '') : '…'}`;
-          /* la case « Tout » porte l'état : elle suit chaque tap */
-          const bAll = q('#prAll');
-          if (bAll){
-            const tout = !unsel.size;
-            bAll.setAttribute('aria-pressed', tout);
-            bAll.innerHTML = ic(tout ? 'checkbox-on' : 'checkbox', 'ic-14') + '<span>Tout</span>';
-          }
-        }));
+        }
+        majTout(zone, { tout: !unsel.size, n: n2, total: mine().length });
+      };
+      q('#prPick')?.addEventListener('click', () => { choosing = true; refreshStatus(); });
+      if (choosing){
+        const glisser = () => { const play = softReorder('.modal-b .pk'); renderItems(); play(); };
+        bindBarreListe(zone, {
+          ft, st, pool: mine,
+          onQ: v => { qs = v; glisser(); },
+          onTout: () => {
+            const rienDecoche = unsel.size === 0;
+            unsel.clear();
+            if (rienDecoche) mine().forEach(c => unsel.add(c.id));
+            renderItems();
+          },
+          onPli: () => { choosing = false; refreshStatus(); },
+          onAffine: glisser
+        });
+        collerEnHaut(zone.querySelector('.stick-guet'), zone.querySelector('.listbar'));
+        renderItems();
+      }
     };
     const showNext = () => {
       if (showing || !queue.length) return;

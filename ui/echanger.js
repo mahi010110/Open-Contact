@@ -137,18 +137,29 @@ function filHTML(){
         const phrase = x.sens === 'donne'
           ? `${quoi} donnée${x.n > 1 ? 's' : ''} · ${x.canal}`
           : `${quoi} reçue${x.n > 1 ? 's' : ''} · ${x.qui || 'le groupe'}`;
-        /* LA DATE FAIT PARTIE DE LA PHRASE. Jetée à droite de la ligne,
-           elle vivait à 364-432 px de la fin du texte : deux objets si
-           éloignés ne se lisent plus comme une seule ligne (principe de
-           PROXIMITÉ — ce qui est proche est perçu comme lié, NN/g). Et
-           la place forte de droite appartient, dans toute l'app, à ce
-           qui RÉCLAME quelque chose (`mark-*`, l'échéance d'une piste) ;
-           une date passée ne réclame rien. Elle rejoint donc la phrase,
-           derrière le même point médian que le canal — c'est déjà la
-           grammaire des sous-lignes de l'app, « statut · ville · qui ». */
+        /* LA DATE TIENT SA COLONNE — et c'est un retour en arrière assumé.
+           Elle avait rejoint la phrase au nom de la PROXIMITÉ (ce qui est
+           proche est perçu comme lié, NN/g), parce qu'au poste elle
+           vivait à 400 px du texte. Le remède a produit un défaut pire,
+           photographié au pouce : la ligne entière s'élidant d'un bloc,
+           c'est la DATE qui se faisait couper — « sam. 08/… » — dès que
+           le canal s'allongeait (« le groupe » plutôt que « QR »).
+
+           La même source tranche l'arbitrage, et dans l'autre sens :
+           NN/g, *The Anatomy of a List Entry*, demande que chaque
+           information garde LA MÊME PLACE d'une ligne à l'autre — c'est
+           ce qui permet de balayer une colonne au lieu de lire chaque
+           ligne. Des dates en escalier, dont certaines tronquées, ne se
+           balaient pas.
+
+           Donc : la date sort de la phrase, ne rétrécit jamais
+           (`flex:none`), et c'est la PHRASE qui s'élide — elle porte
+           l'identité de la ligne en tête (« 24 pistes reçues »), ce qui
+           se perd en bout est le canal. La proximité reste tenue au
+           poste par la colonne de gauche, large de 550 px, pas de 1000. */
         const dedans =
-          `<b>${ic(x.sens === 'donne' ? 'share' : 'inbox', 'ic-14')} ${esc(phrase)}<span
-             class="ec-when"> · ${quand(x.t)}</span></b>`;
+          `<b>${ic(x.sens === 'donne' ? 'share' : 'inbox', 'ic-14')} ${esc(phrase)}</b>
+           <span class="ec-when">${quand(x.t)}</span>`;
         /* Le chevron ne se pose que sur les lignes qui MÈNENT quelque
            part : les anciennes entrées, qui n'ont pas gardé leurs
            identifiants, restent du texte — promettre une ouverture

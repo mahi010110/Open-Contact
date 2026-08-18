@@ -113,8 +113,22 @@ const PLAFOND = {
      plus. Le critère, lui, ne bouge pas : ne restent que les phrases
      qui préviennent d'une perte ou d'une erreur qu'on ne peut pas voir
      venir — la phrase de secours sur papier, le plafond d'appareils,
-     « Perdu = irrécupérable », « Nouvelle phrase = nouveau lien ». */
-  motsExplication: 155
+     « Perdu = irrécupérable », « Nouvelle phrase = nouveau lien ».
+
+     160 le 18 août 2026 : +5 pour « Aucune piste ne correspond. », le
+     vide de la recherche qui arrive dans les trois feuilles à cocher.
+     Ce n'est pas une explication, c'est un ÉTAT — et §6 l'exige :
+     l'état vide d'un écran enseigne, il ne se tait pas. Sans lui la
+     liste disparaît sous les doigts et se lit comme une panne.
+     Deux raisons de n'en payer que cinq. La phrase ne redit PAS ce
+     qu'on a cherché : le mot tapé est dans le champ juste au-dessus,
+     et c'est la règle des toasts (ne rien dire qui soit déjà à
+     l'écran) appliquée à un vide ; il est en revanche dit à voix haute
+     par `direCombien`, là où il n'y a pas de champ à regarder. Et elle
+     est ÉCRITE UNE FOIS, dans `barreListeHTML` : trois feuilles la
+     partagent. Avant la barre commune, la même arrivée aurait coûté
+     trois phrases. */
+  motsExplication: 160
 };
 
 const fichiers = readdirSync(UI).filter(f => f.endsWith('.js') && !HORS_ECRAN.has(f));

@@ -1762,6 +1762,192 @@ for (const [quoi, titre] of [['donner', 'Donner'], ['prospect', 'Prospecter']]){
   else console.log(`feuille « ${titre} » : « Tout / Affiner » tient à y=${b.y}, rien au repos ✓`);
 }
 
+/* ---------- LE FIL : LA DATE TIENT SA COLONNE ----------
+   Photographié au pouce : « 24 pistes reçues · le groupe · sam. 08/… ».
+   La date vivait dans la phrase, la ligne s'élidait d'un bloc, et
+   c'était la DATE qui se faisait couper — celle des lignes au canal le
+   plus long, donc jamais les mêmes. NN/g (*The Anatomy of a List
+   Entry*) demande l'inverse : chaque information à la MÊME place d'une
+   ligne à l'autre, c'est ce qui permet de balayer au lieu de lire.
+
+   Deux mesures, et la seconde est celle qui manquait : entière (une
+   date coupée ne dit plus rien) ET alignée (des bords droits en
+   escalier ne se balaient pas). Le contrôle plante sa propre sonde —
+   il vérifie qu'il VOIT une ligne au canal long, sinon il passerait au
+   vert sur un fil qui n'exerce pas le défaut. */
+{
+  const dCtx = await browser.newContext({ viewport: { width: 360, height: 640 }, hasTouch: true });
+  const dPage = await dCtx.newPage();
+  dPage.on('pageerror', e => errors.push(String(e)));
+  await dPage.goto(base, { waitUntil: 'load' });
+  await dPage.evaluate(async () => {
+    const st = await import('./engine/storage.js');
+    await st.kvInit();
+    const j = Date.now();
+    await st.kvSet(st.JOURNAL_KEY, JSON.stringify([
+      { t: j - 9 * 864e5, txt: 'Donné (QR) : 24 piste(s)', ids: ['a'] },
+      { t: j - 10 * 864e5, txt: 'Donné (fichier) : 24 piste(s)', ids: ['a'] },
+      { t: j - 10 * 864e5, txt: 'Reçu du groupe : +24 piste(s)', ids: ['a'] },
+      { t: j - 40 * 864e5, txt: 'Reçu de Marie-Charlotte : +7 piste(s)', ids: ['a'] }
+    ]));
+    await st.kvSet(st.DATA_KEY, JSON.stringify([{ id: 'a', name: 'Adrastia', status: 'todo', updatedAt: 1 }]));
+  });
+  await dPage.goto(base + '/#/echanger');
+  await dPage.reload({ waitUntil: 'load' });
+  await dPage.waitForSelector('.ec-when', { timeout: 8000 });
+  const d = await dPage.evaluate(() => {
+    const q = [...document.querySelectorAll('.ec-l .ec-when')];
+    return { dates: q.map(n => ({ txt: n.textContent.trim(),
+               droite: Math.round(n.getBoundingClientRect().right),
+               coupe: n.scrollWidth > n.clientWidth + 1 })),
+             canalLong: [...document.querySelectorAll('.ec-row>b')]
+               .some(n => /le groupe|Marie-Charlotte/.test(n.textContent)) };
+  });
+  const coupees = d.dates.filter(x => x.coupe || !x.txt);
+  const bords = new Set(d.dates.map(x => x.droite));
+  if (d.dates.length < 3)
+    fail(`fil : ${d.dates.length} date(s) mesurée(s), trop peu pour prouver quoi que ce soit`);
+  else if (!d.canalLong)
+    fail('fil : aucune ligne au canal long — le contrôle ne peut pas voir le défaut qu’il garde');
+  else if (coupees.length)
+    fail(`fil : ${coupees.length} date(s) coupée(s) — « ${coupees[0].txt}… »`);
+  else if (bords.size !== 1)
+    fail(`fil : les dates ne tiennent pas une colonne (${bords.size} bords droits : ${[...bords].join(', ')})`);
+  else console.log(`fil : ${d.dates.length} dates entières, une seule colonne à x=${[...bords][0]} ✓`);
+  await dCtx.close();
+}
+
+/* ---------- « MES APPAREILS » : PLUS D'ŒIL ----------
+   Il masquait la phrase ET le QR — mais posé au bord droit par le
+   `margin-left:auto` des petites actions, il vivait à 220 px de ce
+   qu'il commandait, et ne se lisait donc pas comme son contrôle
+   (proximité, NN/g). Décision du mainteneur : l'enlever plutôt que le
+   ranger. Ce qui se garde, c'est qu'il ne revienne pas — et surtout
+   que la phrase et son QR soient bien LÀ, sinon on aurait retiré la
+   bascule et le contenu avec. */
+{
+  const oCtx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true });
+  const oPage = await oCtx.newPage();
+  oPage.on('pageerror', e => errors.push(String(e)));
+  await oPage.goto(base, { waitUntil: 'load' });
+  await oPage.evaluate(async () => {
+    const st = await import('./engine/storage.js');
+    await st.kvInit();
+    await st.kvSet(st.SYNC_KEY, 'mphyt-x3m4m');
+  });
+  await oPage.reload({ waitUntil: 'load' });
+  await oPage.evaluate(async () => (await import('./ui/direct.js')).openAppareils());
+  await oPage.waitForSelector('.sy-phrase', { timeout: 8000 });
+  await oPage.waitForTimeout(900);
+  const o = await oPage.evaluate(() => ({
+    oeil: !!document.querySelector('#syEye'),
+    phrase: (document.querySelector('.sy-phrase span')?.textContent || '').trim(),
+    qr: !!document.querySelector('#syQr svg'),
+    copier: !!document.querySelector('#syCopy')
+  }));
+  if (o.oeil) fail('« Mes appareils » : l’œil est revenu');
+  else if (o.phrase !== 'mphyt-x3m4m')
+    fail(`« Mes appareils » : la phrase ne s’affiche pas en clair (« ${o.phrase} »)`);
+  else if (!o.qr || !o.copier)
+    fail(`« Mes appareils » : la phrase est là mais ${!o.qr ? 'son QR' : 'le bouton copier'} a disparu avec l’œil`);
+  else console.log('« Mes appareils » : plus d’œil, la phrase et son QR sont en clair ✓');
+  await oCtx.close();
+}
+
+/* ---------- LA BARRE D'UNE LISTE À COCHER : UNE RANGÉE ----------
+   Trois feuilles choisissent des pistes dans la même liste — Donner,
+   Prospecter, partage en groupe — et elles divergeaient : le pli dans
+   deux, la barre collante dans deux, jamais les mêmes deux. Elles
+   partagent maintenant `barreListeHTML` (ui/affiner.js).
+
+   Ce qui se garde ici, et pourquoi :
+
+   ① UNE rangée. La recherche est arrivée en même temps que la fusion
+     des deux rangées d'avant : si un jour elle repasse à deux, le gain
+     est rendu et la demande n'est plus tenue. Mesuré à taille normale
+     — à 200 % la barre a le DROIT de se replier (WCAG 1.4.10), c'est
+     même ce qu'on veut.
+
+   ② La case d'en-tête dans l'AXE des cases de la liste. C'est la seule
+     raison pour laquelle elle peut se passer du mot « Tout » : décalée,
+     elle redevient une icône orpheline et l'argument tombe.
+
+   ③ La recherche RÉDUIT vraiment la liste, et le vide se dit. Un champ
+     qui ne filtre pas est pire que pas de champ.
+
+   ④ Les trois feuilles appellent la MÊME fonction. C'est le contrôle
+     qui empêche la divergence de revenir : il lit la source, donc il
+     tient même pour le partage en groupe, qui demande un pair réel et
+     ne se joue pas ici (e2e-liaison.mjs s'en charge). */
+{
+  for (const f of ['donner.js', 'prospect.js', 'direct.js']){
+    const src = readFileSync(new URL('../../ui/' + f, import.meta.url), 'utf8');
+    if (!/barreListeHTML\(/.test(src))
+      fail(`ui/${f} n’utilise plus la barre partagée — les trois listes vont rediverger`);
+  }
+  const bCtx = await browser.newContext({ viewport: { width: 360, height: 640 }, hasTouch: true });
+  const bPage = await bCtx.newPage();
+  bPage.on('pageerror', e => errors.push(String(e)));
+  bPage.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
+  await bPage.goto(base, { waitUntil: 'load' });
+  await attendre(bPage, async () => !!(await import('./ui/state.js')).S.profile, 'profil chargé');
+  await bPage.evaluate(async () => {
+    const { S, saveData } = await import('./ui/state.js');
+    const { normalizeCompany } = await import('./engine/model.js');
+    S.companies = Array.from({ length: 12 }, (_, i) => normalizeCompany({
+      name: (i === 3 ? 'Maison Cazalbou' : 'Adrastia ' + i), city: 'Toulouse', status: 'todo',
+      contacts: [{ name: 'Manon Girard', email: 'm' + i + '@x.test' }] }));
+    saveData();
+  });
+  for (const [quoi, titre] of [['donner', 'Donner'], ['prospect', 'Prospecter']]){
+    const m = await bPage.evaluate(async q => {
+      document.querySelectorAll('.overlay .x').forEach(x => x.click());
+      await new Promise(r => setTimeout(r, 300));
+      if (q === 'donner'){
+        (await import('./ui/donner.js')).openDonner();
+        await new Promise(r => setTimeout(r, 400));
+        document.getElementById('dnPick')?.click();
+      } else (await import('./ui/prospect.js')).openProspect();
+      await new Promise(r => setTimeout(r, 500));
+      const bar = document.querySelector('.overlay:not(.ov-out) .lb-cmd');
+      if (!bar) return null;
+      const rangs = new Set([...bar.children]
+        .map(k => Math.round(k.getBoundingClientRect().top))).size;
+      const tete = bar.querySelector('[data-tout] .ic')?.getBoundingClientRect();
+      const ligne = [...document.querySelectorAll('.overlay:not(.ov-out) .pk .ic')]
+        .map(n => n.getBoundingClientRect()).find(r => r.width > 0);
+      const champ = bar.querySelector('[data-q]');
+      const avant = document.querySelectorAll('.overlay:not(.ov-out) .pk-m b').length;
+      /* la recherche, par le vrai chemin : on tape, on attend l'anti-rebond */
+      champ.value = 'cazalbou';
+      champ.dispatchEvent(new Event('input', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 400));
+      const apres = document.querySelectorAll('.overlay:not(.ov-out) .pk-m b').length;
+      champ.value = 'zzzzzz';
+      champ.dispatchEvent(new Event('input', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 400));
+      const vide = [...document.querySelectorAll('.overlay:not(.ov-out) .hint')]
+        .some(n => /Aucune piste/.test(n.textContent));
+      return { rangs, champ: !!champ, avant, apres, vide,
+               axe: (tete && ligne) ? Math.round(ligne.x - tete.x) : null };
+    }, quoi);
+    if (!m) fail(`« ${titre} » : pas de barre partagée (.lb-cmd)`);
+    else if (m.rangs !== 1)
+      fail(`« ${titre} » : la barre tient sur ${m.rangs} rangées à taille normale — ` +
+           'le gain de place qui payait la recherche est rendu');
+    else if (m.axe === null || Math.abs(m.axe) > 2)
+      fail(`« ${titre} » : la case d’en-tête est décalée de ${m.axe}px de celles de la liste — ` +
+           'sans cet axe elle ne se lit plus « tout cocher » et il lui faut son mot');
+    else if (!(m.avant > m.apres && m.apres >= 1))
+      fail(`« ${titre} » : la recherche ne réduit pas la liste (${m.avant} → ${m.apres})`);
+    else if (!m.vide)
+      fail(`« ${titre} » : une recherche sans résultat laisse un vide muet`);
+    else console.log(`barre « ${titre} » : 1 rangée, case dans l’axe (${m.axe}px), ` +
+                     `recherche ${m.avant}→${m.apres} et le vide se dit ✓`);
+  }
+  await bCtx.close();
+}
+
 /* ---------- UNE PUCE FAIT LA TAILLE DE SON MOT ----------
    Les sources se rejoignent : GOV.UK dit de ne jamais cacher un petit
    jeu d'options dans une liste déroulante (donc : elles restent
@@ -2367,35 +2553,43 @@ if (IA){
       + `dedans — il manque \`display:flex\` sur leur \`.sw-in\` —\n      ` + empiles.join('\n      '));
   else console.log(`ligne : ${vues} lignes supprimables, la poubelle reste dans la ligne ✓`);
 
-  /* ---------- ET LA DATE RESTE AVEC SA PHRASE ----------
-     Jetée au bord droit d'une colonne de 700 px, elle vivait à plus de
-     400 px de la fin du texte : deux objets si loin l'un de l'autre ne
-     se lisent plus comme une seule ligne (principe de proximité, NN/g).
-     La place forte de droite appartient d'ailleurs, dans toute l'app, à
-     ce qui RÉCLAME quelque chose — une date passée ne réclame rien. */
+  /* ---------- ET LA LIGNE DU FIL RESTE LISIBLE D'UN TRAIT ----------
+     RÈGLE REMPLACÉE, et il faut dire pourquoi. Elle exigeait que la date
+     reste à moins de 24 px de sa phrase — la proximité de NN/g : deux
+     objets trop éloignés ne se lisent plus comme une seule ligne. Le
+     remède a produit un défaut pire, photographié au pouce : la ligne
+     s'élidant d'un bloc, c'était la DATE qui se faisait couper
+     (« sam. 08/… ») dès que le canal s'allongeait.
+
+     La même source tranche dans l'autre sens pour une LISTE : *The
+     Anatomy of a List Entry* demande que chaque information garde la
+     même place d'une ligne à l'autre — sans quoi on lit chaque ligne au
+     lieu de balayer une colonne. Alignement et intégrité ont donc
+     gagné ; ils sont gardés plus haut (une seule colonne, aucune date
+     coupée).
+
+     Ce qui restait vrai dans l'ancienne règle est ce qui se garde ici :
+     la proximité ne casse pas à 24 px, elle casse quand la LIGNE devient
+     trop large pour se lire d'un trait. Le plafond est donc la longueur
+     de ligne lisible — 640 px, la même que `page-inner`, celle que NN/g
+     et Baymard donnent pour 50-75 caractères. Une colonne de 550 px
+     passe ; rendre un jour le fil pleine largeur (1660 px) le fait
+     échouer, et c'est exactement le cas que l'ancienne règle voulait
+     empêcher. */
   await lp.evaluate(() => { location.hash = '#/echanger'; });
   await lp.waitForTimeout(500);
-  const loin = await lp.evaluate(() => {
-    const out = [];
-    for (const l of document.querySelectorAll('#view-echanger .ec-l')){
-      const b = l.querySelector('.ec-row > b'), d = l.querySelector('.ec-when');
-      if (!b || !d) { out.push({ ecart: -1 }); continue; }
-      /* l'ENCRE, pas la boîte : le `<b>` est en `flex:1`, sa boîte
-         s'étire sur toute la colonne et mentirait de 400 px */
-      const rg = document.createRange();
-      rg.setStartBefore(b.firstChild); rg.setEndBefore(d);
-      out.push({ ecart: Math.round(d.getBoundingClientRect().left - rg.getBoundingClientRect().right) });
-    }
-    return out;
-  });
-  const MAX_ECART = 24;
-  if (!loin.length) fail('date : aucune ligne de fil — le contrôle ne mesure plus rien');
-  else if (loin.some(x => x.ecart < 0)) fail('date : une ligne du fil n’a plus de date');
-  else if (loin.some(x => x.ecart > MAX_ECART))
-    fail(`date : la date s’éloigne de sa phrase (${Math.max(...loin.map(x => x.ecart))}px, `
-      + `plafond ${MAX_ECART}) — au-delà, la ligne se lit comme deux objets sans rapport`);
-  else console.log(`date : elle reste collée à sa phrase sur ${loin.length} lignes `
-    + `(${Math.max(...loin.map(x => x.ecart))}px au plus) ✓`);
+  const LIGNE_MAX = 640;
+  const fil = await lp.evaluate(() => [...document.querySelectorAll('#view-echanger .ec-l')]
+    .map(l => ({ large: Math.round(l.getBoundingClientRect().width),
+                 date: !!l.querySelector('.ec-when'),
+                 texte: !!l.querySelector('.ec-row > b') })));
+  if (!fil.length) fail('fil : aucune ligne — le contrôle ne mesure plus rien');
+  else if (fil.some(x => !x.date || !x.texte)) fail('fil : une ligne a perdu sa date ou sa phrase');
+  else if (fil.some(x => x.large > LIGNE_MAX))
+    fail(`fil : une ligne fait ${Math.max(...fil.map(x => x.large))}px de large (plafond ${LIGNE_MAX}) — `
+      + 'au-delà, la phrase et sa date ne se lisent plus d’un trait');
+  else console.log(`fil : ${fil.length} lignes lisibles d’un trait `
+    + `(${Math.max(...fil.map(x => x.large))}px au plus, plafond ${LIGNE_MAX}) ✓`);
   await lc.close();
   await lBrowser.close();
 }

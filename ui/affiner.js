@@ -15,8 +15,9 @@
    L'état est propre à chaque écran : filtrer dans Prospecter ne
    touche pas ce que montre « Mes pistes ».
    ============================================================ */
+import { esc } from '../engine/utils.js';
 import { STATUSES, DOMAINS } from '../engine/model.js';
-import { openSheet, ic } from './dom.js';
+import { openSheet, ic, clavier, annoncer } from './dom.js';
 import { sortSectionHTML, bindSortSection, sortIsDefault } from './sort.js';
 
 /* PLUSIEURS VALEURS PAR FAMILLE. Un seul domaine à la fois obligeait à
@@ -115,3 +116,108 @@ export function bindAffinerBtn(root, ft, st, o, onChange){
   root.querySelector('[data-affiner]')?.addEventListener('click', () =>
     openAffinerSheet(ft, st, o || {}, onChange));
 }
+
+/* ============================================================
+   LA BARRE D'UNE LISTE À COCHER — une rangée, et une seule.
+
+   Trois feuilles choisissent des pistes dans la même liste — Donner,
+   Prospecter, partage en groupe — et chacune portait sa propre barre :
+   le pli existait dans deux, la barre collante dans deux, mais jamais
+   les mêmes deux. Elle est ici, une fois, pour qu'elles ne divergent
+   plus.
+
+   UNE RANGÉE, et elle REMPLACE les deux d'avant — le compte et son pli
+   au-dessus, « Tout » et « Affiner » en dessous. Au-dessus d'une liste,
+   sur un téléphone, la hauteur est ce qui coûte le plus cher : ajouter
+   la recherche en ajoutant une rangée aurait rendu d'une main ce qu'elle
+   prend de l'autre. Ici la recherche arrive ET une rangée s'en va.
+
+   La case en tête se passe du mot « Tout » : elle est dans l'axe des
+   cases de la liste, c'est-à-dire la position universelle du « tout
+   cocher ». Son compte lui tient lieu d'étiquette — et un compte est
+   une DONNÉE, ce que la règle de sobriété (§6) garde toujours.
+
+   `flex-wrap` : à texte doublé, quatre commandes ne tiennent plus sur
+   324 px. Elles passent à la ligne plutôt que d'être coupées
+   (WCAG 1.4.10, redistribution) — une rangée à taille normale, deux à
+   200 %, et rien ne disparaît.
+
+   Ce que la barre ne fait PAS : expliquer pourquoi une ligne est là
+   (`searchHint`). Sur la page « Mes pistes » l'extrait a sa place, on y
+   vit ; dans une feuille on est venu cocher, et une ligne d'explication
+   par piste rendrait à la liste la hauteur qu'on vient de lui gagner.
+   La sous-ligne dit déjà statut · ville · qui.
+   ============================================================ */
+export function barreListeHTML(o){
+  const n = o.n | 0;
+  const pistes = n > 1 ? 'pistes' : 'piste';
+  return (
+    `<div class="stick-guet" aria-hidden="true"></div>
+     <div class="listbar lb-cmd">
+       <button class="lb-act lb-all" data-tout aria-pressed="${!!o.tout}"
+               aria-label="${o.tout ? 'Ne rien garder' : 'Tout garder'} — ${n} ${pistes} sur ${o.total | 0}">
+         ${ic(o.tout ? 'checkbox-on' : 'checkbox', 'ic-20')}<span class="lb-n">${n}</span>
+       </button>
+       <input class="search lb-q" data-q type="search" value="${esc(o.q || '')}"
+              placeholder="Chercher…" aria-label="Chercher une piste" ${clavier('cherche')}>
+       ${affinerBtnHTML(o.ft, o.st, { leger: true })}
+       ${o.pli ? `<button class="lb-act lb-fold" data-pli aria-expanded="true"
+               aria-label="Replier la liste">${ic('chevron-down', 'ic-14')}</button>` : ''}
+     </div>`);
+}
+
+/* La case et son compte se rafraîchissent SANS toucher au reste de la
+   barre — sinon le champ de recherche serait recréé à chaque tap sur une
+   ligne. Une seule source pour ce fragment, ici, sous peine de voir la
+   barre et sa mise à jour se contredire. */
+export function majTout(zone, o){
+  const b = zone.querySelector('[data-tout]');
+  if (!b) return;
+  const n = o.n | 0;
+  b.setAttribute('aria-pressed', !!o.tout);
+  b.setAttribute('aria-label',
+    `${o.tout ? 'Ne rien garder' : 'Tout garder'} — ${n} piste${n > 1 ? 's' : ''} sur ${o.total | 0}`);
+  b.innerHTML = ic(o.tout ? 'checkbox-on' : 'checkbox', 'ic-20') + `<span class="lb-n">${n}</span>`;
+}
+
+/* Le champ NE DOIT PAS être re-rendu à la frappe — sinon le curseur
+   saute et le clavier se referme au doigt. La barre se pose donc une
+   fois, et `onQ` ne redessine que les LIGNES. C'est la même séparation
+   que « Mes pistes » (la recherche y reste le même nœud). */
+export function bindBarreListe(zone, o){
+  const inp = zone.querySelector('[data-q]');
+  let h = null;
+  inp?.addEventListener('input', () => {
+    clearTimeout(h);
+    h = setTimeout(() => o.onQ(inp.value), 180);
+  });
+  /* Échap vide, puis rend le clavier — deux temps, comme « Mes pistes » */
+  inp?.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    e.stopPropagation();          /* sinon la feuille se ferme sous les doigts */
+    if (!inp.value){ inp.blur(); return; }
+    clearTimeout(h);
+    inp.value = '';
+    o.onQ('');
+  });
+  zone.querySelector('[data-tout]')?.addEventListener('click', o.onTout);
+  zone.querySelector('[data-pli]')?.addEventListener('click', o.onPli);
+  bindAffinerBtn(zone, o.ft, o.st, { pool: o.pool }, o.onAffine);
+}
+
+/* Ce qui reste après une recherche se DIT : quelqu'un qui n'a pas
+   l'écran tape trois lettres et n'apprend jamais combien de pistes
+   restent (WCAG 4.1.3). Le vide se dit aussi, et il nomme ce qu'on a
+   cherché — « aucun résultat » tout court laisse croire à une panne. */
+export function direCombien(k, q){
+  if (!q) return;
+  annoncer(k ? `${k} piste${k > 1 ? 's' : ''} trouvée${k > 1 ? 's' : ''}`
+             : 'Aucune piste pour « ' + q + ' »');
+}
+/* Le vide ne REDIT pas ce qu'on a cherché : le mot tapé est dans le
+   champ, deux centimètres au-dessus. C'est la règle des toasts appliquée
+   à un état vide — ne rien dire qui soit déjà à l'écran. Il le redit en
+   revanche à VOIX HAUTE (`direCombien`), parce que là il n'y a pas de
+   champ à regarder. */
+export const rienTrouveHTML = () =>
+  `<p class="hint" style="text-align:center;margin:14px 0">${ic('search', 'ic-14')} Aucune piste ne correspond.</p>`;

@@ -181,7 +181,17 @@ const ligneGroupe = (await C.textContent('.pick-list .pk .pk-m')).replace(/\s+/g
 if (!/À contacter/.test(ligneGroupe) || !/Lille/.test(ligneGroupe))
   fail('« Choisir ce qui part » ne décrit pas la piste comme les deux autres listes : ' + ligneGroupe);
 else console.log('groupe : la ligne dit « ' + ligneGroupe.slice(0, 46) + ' », comme Donner et Prospecter ✓');
-await C.click('#prPick');   /* on referme : la suite mesure l'écran au repos */
+/* On referme — et c'est ici que se vérifie la demande : le pli vit
+   DÉSORMAIS DANS LA BARRE COLLANTE, pas au-dessus de la liste. Sur
+   ~3,5 écrans de pistes, replier obligeait sinon à remonter tout en
+   haut. « Choisir ce qui part » n'existe donc plus quand la liste est
+   dépliée : c'est le chevron de la barre qui referme. */
+if (!(await C.$('.lb-cmd [data-pli]')))
+  fail('partage en groupe : le pli n’est pas dans la barre collante — il faut remonter pour replier');
+if (await C.$('#prPick'))
+  fail('partage en groupe : deux commandes de pli à l’écran en même temps');
+await C.click('.lb-cmd [data-pli]');
+await C.waitForSelector('#prPick');   /* replié : la ligne d'appel revient */
 
 /* INVARIANT (retour utilisateur) : RIEN ne part sans clic « Envoyer ».
    C a 25 pistes et vient d'en éditer une, mais tant qu'il n'a pas cliqué,

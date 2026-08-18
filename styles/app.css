@@ -431,6 +431,29 @@ html[data-theme="dark"] .field select{
 .lb-fold[aria-expanded="true"]{color:var(--accent)}
 .lb-fold[aria-expanded="true"] .ic{transform:rotate(180deg);color:var(--accent)}
 @media (prefers-reduced-motion:reduce){.lb-fold .ic{transition:none}}
+/* ---- la barre de commande d'une liste à cocher (ui/affiner.js) ----
+   UNE rangée qui remplace les deux d'avant : la case et son compte, le
+   champ de recherche, « Affiner », le pli. Le champ prend ce qui reste
+   (`flex:1 1 96px`), les commandes gardent leur taille.
+
+   `flex-wrap` : à texte doublé les quatre ne tiennent plus dans 324 px.
+   Elles passent alors à la ligne — la redistribution que WCAG 1.4.10
+   demande — au lieu d'être rognées ou de faire glisser la feuille. */
+.lb-cmd{flex-wrap:wrap}
+/* le `margin-left:auto` de la règle générale collerait le pli au bord
+   dès que la barre passe à deux lignes : ici c'est le champ qui pousse */
+.lb-cmd>.lb-act:last-child{margin-left:0}
+/* La case d'en-tête tient l'AXE des cases de la liste : c'est ce qui la
+   fait lire « tout cocher » sans avoir besoin du mot. Une ligne de liste
+   est en retrait de son cadre (1 px de trait + 14 px de marge
+   intérieure) ; la case d'en-tête reprend ce retrait au lieu du -8 px
+   des autres commandes. Mesuré, et gardé : le contrôle échoue si l'axe
+   se décale. */
+.lb-cmd>.lb-all{flex:none;gap:6px;margin-left:6px}
+/* le compte tient lieu d'étiquette à la case : une donnée, donc mono,
+   et du poids — c'est ce qui partira */
+.lb-n{font-family:var(--font-mono);font-weight:var(--weight-semibold);font-variant-numeric:tabular-nums}
+.lb-cmd .lb-q{flex:1 1 96px;width:auto;min-width:0}
 /* feuille « Trier » : la pile des niveaux (principal + départages) */
 /* puces d'état sous la recherche (#8) — la croix enlève, la puce de tri
    s'inverse au tap ; le sens vit dans la puce */
@@ -1427,9 +1450,11 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   .ec-fil + .hero2{margin-top:16px}
 }
 .ec-tot{margin:-2px 0 6px}
-/* la date vit DANS la phrase (voir ui/echanger.js) : elle garde sa typo
-   de donnée — mono, discrète — sans quitter la ligne de texte */
-.ec-when{white-space:nowrap;font-family:var(--font-mono);
+/* la date tient sa COLONNE (voir ui/echanger.js) : typo de donnée —
+   mono, discrète — et surtout `flex:none`, elle ne rétrécit jamais.
+   C'est la phrase qui s'élide ; une date coupée en deux ne dit plus
+   rien, et des dates en escalier ne se balaient pas. */
+.ec-when{flex:none;white-space:nowrap;font-family:var(--font-mono);
   font-size:var(--text-11);color:var(--text-muted)}
 .ec-when b{color:var(--text-body);font-weight:var(--weight-semibold)}
 @media (min-width:901px){
