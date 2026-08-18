@@ -50,12 +50,15 @@ choses, et aucune ne dépend de quelqu'un d'extérieur.
       worker neuf prenne réellement la main, et vérifie que tout survit
       octet pour octet, puis que l'app le **relit** vraiment.
       *(août 2026)*
-- [ ] **Compléter `tests/e2e/README.md`** — `developpement.md` promet « le
-      détail de **chaque** scénario » ; le tableau en décrit 15 sur 29.
-      Manquent notamment `e2e-annonce`, `e2e-commencer`, `e2e-fenetre`,
-      `e2e-mouvement`, `e2e-vecu`, `e2e-stockage`, `e2e-pistes`. Le lot de
-      documentation visait un dépôt qu'un inconnu peut lire ; là il lui
-      manque la moitié des gardes.
+- [x] **`tests/e2e/README.md` décrit les 29 scénarios** — il en décrivait 15,
+      alors que `developpement.md` promet « le détail de **chaque** scénario ».
+      Manquaient les gardes les plus récentes, celles qu'on relit justement
+      pour savoir ce qui est déjà couvert. Le tableau est désormais rangé par
+      intention (le socle, protéger, faire circuler, les écrans, la surface
+      ordinateur, les gardes transverses) et chaque ligne dit **pourquoi** un
+      scénario peut être sauté. `tous.mjs` refuse maintenant de démarrer si un
+      fichier n'y figure pas : la promesse ne peut plus se défaire seule.
+      *(août 2026)*
 - [ ] **Pages confidentialité et aide** — courtes, honnêtes. La liste « ce
       qu'OpenContact ne fera jamais » y a sa place : c'est ce qui permet à un
       établissement de faire confiance à l'outil.

@@ -36,7 +36,9 @@ node tests/e2e/e2e-verrou.mjs     # un seul scénario
 Prérequis : Node ≥ 20 et Playwright avec un Chromium. La résolution est
 automatique ; elle se force par `OC_PLAYWRIGHT` et `OC_CHROMIUM`. Le détail
 de chaque scénario — et ce qu'il prouve — est dans
-[`tests/e2e/README.md`](../tests/e2e/README.md).
+[`tests/e2e/README.md`](../tests/e2e/README.md). « Chaque » est vérifié :
+`tous.mjs` refuse de démarrer tant qu'un scénario n'y est pas décrit, avant
+même de construire quoi que ce soit.
 
 Le résumé distingue **joués**, **sautés** et **échoués**. Un scénario sauté
 n'est pas un scénario vert : les scénarios de la surface ordinateur sont

@@ -2,13 +2,29 @@
    scénario de bout en bout, en série. Sortie non nulle si un seul
    rougit. Usage : node tests/e2e/tous.mjs */
 import { spawn, spawnSync } from 'child_process';
-import { existsSync, readdirSync } from 'fs';
+import { existsSync, readdirSync, readFileSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
 const DIR = path.dirname(fileURLToPath(import.meta.url));
 const scripts = ['unitaires.mjs',
   ...readdirSync(DIR).filter(f => f.startsWith('e2e-') && f.endsWith('.mjs')).sort()];
+/* `docs/developpement.md` promet que le détail de CHAQUE scénario est dans
+   README.md. La promesse s'était défaite toute seule : 15 lignes pour 29
+   fichiers, et les gardes les plus récentes manquaient — celles qu'on
+   relit justement pour savoir ce qui est déjà couvert. Un document qui
+   décrit la moitié du code est pire qu'un document absent : on le croit.
+   Le contrôle est ici, dans le lanceur, et il ARRÊTE — la mise à jour du
+   README fait partie du geste qui ajoute un scénario, pas d'un rangement
+   ultérieur qui n'arrive jamais. */
+const readme = readFileSync(path.join(DIR, 'README.md'), 'utf8');
+const nonDecrits = scripts.filter(s => !readme.includes('`' + s + '`'));
+if (nonDecrits.length){
+  console.error(`\nScénario(s) absent(s) de tests/e2e/README.md : ${nonDecrits.join(', ')}`);
+  console.error('Ajoute sa ligne — ce que le scénario PROUVE, pas ce qu\'il fait — puis relance.');
+  process.exit(1);
+}
+
 const natifs = new Set(['e2e-c8-telephone.mjs', 'e2e-compagnon-envoi.mjs',
   'e2e-compagnon-ia.mjs', 'e2e-compagnon-reponses.mjs', 'e2e-compagnon-scan.mjs',
   'e2e-mcp.mjs']);
