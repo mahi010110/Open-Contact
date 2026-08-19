@@ -432,50 +432,81 @@ html[data-theme="dark"] .field select{
 .lb-fold[aria-expanded="true"] .ic{transform:rotate(180deg);color:var(--accent)}
 @media (prefers-reduced-motion:reduce){.lb-fold .ic{transition:none}}
 /* ---- la barre de commande d'une liste à cocher (ui/affiner.js) ----
-   UN GRAND CHAMP, et deux icônes à sa droite. C'est le même bloc que
-   « Mes pistes » (`.search-wrap` = le champ puis « Affiner »), avec le
-   pli en plus : deux écrans qui font la même chose se ressemblent.
+   UN SEUL OBJET, pas trois. Elle a d'abord été une case biseautée, un
+   champ blanc et un entonnoir biseauté posés côte à côte : trois boîtes
+   de natures différentes, dont deux presque vides pour un glyphe de
+   20 px — le défaut que §6 nomme déjà pour « Affiner » dans une feuille
+   (« un cadre presque vide, plus lourd que les lignes qu'il commande »).
 
-   La loupe vit DANS le champ. Sans elle, une boîte de texte posée au-
-   dessus d'une liste ne dit pas ce qu'elle fait — NN/g recommande un
-   pictogramme simple et contrasté, et c'est lui qui transforme « un
-   champ » en « la recherche ». Elle est décorative pour un lecteur
-   d'écran : le champ porte déjà son nom. */
-/* PAS DE REPLI À LA LIGNE. Il paraissait juste — laisser les commandes
-   passer sous le champ plutôt que de l'écraser — mais sur un vrai
-   téléphone il a produit l'entonnoir SEUL sur une deuxième ligne, ce qui
-   se lit comme une interface cassée. Une rangée qui reste une rangée,
-   avec un champ plus court, vaut mieux qu'une rangée qui se disloque.
-   Photographié avant de le croire. */
-.lb-cmd{gap:6px;flex-wrap:nowrap}
-.lb-find{position:relative;flex:1 1 auto;min-width:0;margin-bottom:0}
+   C'est maintenant une barre d'outils au sens « Utilitaire 98 » : un
+   cadre, un fond, et des SEGMENTS séparés d'un trait d'un pixel. Le
+   champ domine parce qu'il est le segment élastique ; les deux
+   commandes tiennent leur mot de fin. Le relief appartient à
+   l'ensemble, plus à chaque morceau. */
+.lb-cmd{display:block}
+/* La HAUTEUR se pose sur les segments, pas sur le cadre. Posée sur le
+   cadre, le trait d'un pixel de chaque côté la rognait : les trois
+   cibles rendaient 42 px pour un plancher de 44 (WCAG 2.5.5). Le cadre
+   grandit donc de deux pixels, et chaque segment fait sa vraie taille. */
+.lb-box{
+  display:flex;align-items:stretch;width:100%;min-width:0;
+  background:var(--surface-field);
+  border:1px solid var(--border-field);border-radius:var(--radius-1);
+  box-shadow:var(--bevel-field);
+  overflow:hidden;
+}
+/* la mise au point se voit sur l'OBJET, pas sur le champ seul — sinon
+   deux reliefs se superposent et la barre se disloque à l'œil */
+.lb-box:focus-within{border-color:var(--accent)}
+.lb-seg{
+  flex:none;min-width:var(--ctl);min-height:var(--ctl);
+  display:inline-flex;align-items:center;justify-content:center;gap:4px;
+  background:none;border:0;padding:0 10px;border-radius:0;
+  color:var(--text-muted);font:inherit;font-size:var(--text-13);
+  cursor:pointer;
+}
+.lb-seg .ic{flex:none}
+.lb-seg.on,.lb-seg[aria-pressed="true"]{color:var(--accent)}
+.lb-seg.on .ic,.lb-seg[aria-pressed="true"] .ic{color:var(--accent)}
+@media (hover:hover){
+.lb-seg:hover{background:var(--surface-chrome);color:var(--text-body)}
+}
+.lb-seg:active{background:var(--surface-chrome)}
+/* le trait qui sépare deux segments : un pixel, comme une barre
+   d'outils — jamais une marge, qui ferait trois objets à nouveau */
+.lb-find + .lb-seg,.lb-seg + .lb-find{border-left:1px solid var(--border-soft)}
+.lb-find{position:relative;flex:1;min-width:0;min-height:var(--ctl);display:flex;align-items:center}
 .lb-find .srch-i{
   position:absolute;left:10px;top:50%;transform:translateY(-50%);
   pointer-events:none;color:var(--text-muted);
   -webkit-mask-image:url(../assets/icons/search.svg);mask-image:url(../assets/icons/search.svg);
 }
-.lb-cmd .lb-q{width:100%;padding-left:32px}
-/* les deux commandes prennent la hauteur du champ, jamais moins que la
-   cible du doigt (`--ctl`) */
-.lb-cmd>.btn{flex:none;min-width:var(--ctl);height:var(--ctl)}
+/* le champ n'a plus ni cadre ni fond : il EST le milieu de la barre */
+.lb-q{
+  flex:1;width:100%;min-width:0;height:100%;
+  background:none;border:0;box-shadow:none;border-radius:0;
+  padding:0 10px 0 32px;font-size:var(--input-fs);color:var(--text-body);
+}
+.lb-q:focus{outline:none}
+.lb-q::placeholder{color:var(--text-muted)}
+.lb-q::-webkit-search-cancel-button,.lb-q::-webkit-search-decoration{-webkit-appearance:none;appearance:none}
+/* le compte, quand la sélection est partielle : une donnée, mono */
+.lb-n{font-family:var(--font-mono);font-size:var(--text-12);
+  font-variant-numeric:tabular-nums}
 
-/* la case « tout cocher » : une commande, pas un champ — elle prend la
-   boîte des deux autres pour que la rangée soit un objet, pas trois.
-
-   ALIGNÉE À GAUCHE, jamais centrée. Centrée, l'icône se déplaçait dès
-   que le compte apparaissait à côté d'elle — donc l'axe des cases
-   bougeait au fil de la sélection, et l'axe est précisément ce qui
-   permet à cette case de se passer du mot « Tout ». Le retrait de 15 px
-   est celui d'une ligne de liste (1 px de trait + 14 px de marge
-   intérieure) : les deux cases tombent sur la même colonne, quoi qu'il
-   y ait dans le bouton. */
 /* ce qui ne partira pas, dit dans le pied, contre le bord opposé aux
    deux canaux : une DONNÉE (mono, discrète), pas un avertissement — un
    compte qui prend une couleur d'alerte crie pour un geste qu'on peut
    défaire d'un tap */
 .dn-cut{margin-right:auto;align-self:center;
   font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
-.lb-all{gap:4px;justify-content:flex-start;width:auto;min-width:var(--ctl);padding:0 8px 0 15px}
+/* La case tient l'AXE des cases de la liste : c'est ce qui la fait lire
+   « tout cocher » sans le mot. Une ligne de liste est en retrait de son
+   cadre (1 px de trait + 14 px de marge) ; le segment reprend ce retrait
+   — et il aligne à GAUCHE, sinon l'icône se déplacerait dès que le
+   compte apparaît à côté d'elle, et l'axe bougerait au fil de la
+   sélection. */
+.lb-all{justify-content:flex-start;padding:0 10px 0 14px}
 .lb-all[aria-pressed="true"] .ic{color:var(--accent)}
 /* le compte est une DONNÉE : mono, chiffres de largeur fixe pour qu'il
    ne danse pas quand on coche */

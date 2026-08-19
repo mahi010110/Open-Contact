@@ -102,6 +102,13 @@ export function openAffinerSheet(ft, st, o, onChange){
 export function affinerBtnHTML(ft, st, o){
   const n = affineCount(ft, st);
   const lbl = n ? `Affiner — ${n} actif${n > 1 ? 's' : ''}` : 'Affiner';
+  /* `seg` : à l'intérieur de la barre d'une liste, où le bouton n'a plus
+     sa propre boîte — c'est la barre entière qui en est une */
+  if (o && o.seg)
+    return (
+      `<button class="lb-seg${n ? ' on' : ''}" data-affiner
+               aria-label="${lbl}" title="${lbl}">${ic('filter', 'ic-14')}${
+        n ? `<span class="af-n">${n}</span>` : ''}</button>`);
   if (o && o.leger)
     return (
       `<button class="lb-act${n ? ' on' : ''}" data-affiner
@@ -152,25 +159,21 @@ export function barreListeHTML(o){
   return (
     `<div class="stick-guet" aria-hidden="true"></div>
      <div class="listbar lb-cmd">
-       <button class="btn icon-btn lb-all" data-tout aria-pressed="${!!o.tout}"
-               aria-label="${o.tout ? 'Ne rien garder' : 'Tout garder'} — ${o.n | 0} piste${(o.n | 0) > 1 ? 's' : ''} sur ${o.total | 0}">
-         ${ic(o.tout ? 'checkbox-on' : 'checkbox', 'ic-20')}${compteHTML(o)}
-       </button>
-       <div class="search-wrap lb-find">
-         <span class="ic ic-14 srch-i" aria-hidden="true"></span>
-         <input class="search lb-q" data-q type="search" value="${esc(o.q || '')}"
-                placeholder="Chercher une piste…" aria-label="Chercher une piste" ${clavier('cherche')}>
+       <div class="lb-box">
+         <button class="lb-seg lb-all" data-tout aria-pressed="${!!o.tout}"
+                 aria-label="${o.tout ? 'Ne rien garder' : 'Tout garder'} — ${o.n | 0} piste${(o.n | 0) > 1 ? 's' : ''} sur ${o.total | 0}">
+           ${ic(o.tout ? 'checkbox-on' : 'checkbox', 'ic-20')}${compteHTML(o)}
+         </button>
+         <div class="lb-find">
+           <span class="ic ic-14 srch-i" aria-hidden="true"></span>
+           <input class="lb-q" data-q type="search" value="${esc(o.q || '')}"
+                  placeholder="Chercher une piste…" aria-label="Chercher une piste" ${clavier('cherche')}>
+         </div>
+         ${affinerBtnHTML(o.ft, o.st, { seg: true })}
        </div>
-       ${affinerBtnHTML(o.ft, o.st)}
-       ${o.pli ? `<button class="btn icon-btn lb-fold" data-pli aria-expanded="true"
-               aria-label="Replier la liste" title="Replier">${ic('chevron-down', 'ic-14')}</button>` : ''}
      </div>`);
 }
 
-/* La case se rafraîchit SANS toucher au reste de la barre — sinon le
-   champ de recherche serait recréé à chaque tap sur une ligne, et le
-   curseur sauterait. Une seule source pour ce fragment, ici, sous peine
-   de voir la barre et sa mise à jour se contredire. */
 /* L'ENCRE VA À CE QUI CHANGE (§6). Le compte n'apparaît que s'il AJOUTE
    quelque chose, c'est-à-dire sur une sélection PARTIELLE. Tout coché,
    la case pleine le dit déjà ; rien de coché, la case vide le dit aussi
