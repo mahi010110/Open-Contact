@@ -109,9 +109,17 @@ export function openDonner(){
       const t = alive().length;
       const cut = cutCount();
       majTout(sh.body, { tout: !unsel.size, n: k, total: t });
-      sCut.hidden = !cut;
-      if (cut) sCut.textContent =
-        cut + ' personne' + (cut > 1 ? 's' : '') + ' écartée' + (cut > 1 ? 's' : '');
+      /* CE QUI PART SE COMPTE DANS LE PIED, pas dans la barre. Les deux
+         autres feuilles ont ce compte dans leur bouton d'action
+         (« Continuer (3) », « Envoyer 3 pistes ») ; « Donner » n'en a pas,
+         ses deux canaux ne portent pas de nombre. Il vit donc ici, à
+         côté d'eux — l'instant où l'on décide — et seulement quand il
+         dit quelque chose : tout coché et personne d'écarté, il se tait. */
+      const bouts = [];
+      if (k !== t) bouts.push(`${k} / ${t} pistes`);
+      if (cut) bouts.push(cut + ' personne' + (cut > 1 ? 's' : '') + ' écartée' + (cut > 1 ? 's' : ''));
+      sCut.hidden = !bouts.length;
+      sCut.textContent = bouts.join(' · ');
       /* rien de coché = rien à envoyer : l'action est IMPOSSIBLE, elle se
          désactive. Avant, elle dépliait la liste pour dire ce qui
          manquait — un détour qui n'existe plus, la liste étant là. */

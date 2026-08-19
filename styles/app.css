@@ -494,15 +494,19 @@ html[data-theme="dark"] .field select{
 .lb-q:focus{outline:none}
 .lb-q::placeholder{color:var(--text-muted)}
 .lb-q::-webkit-search-cancel-button,.lb-q::-webkit-search-decoration{-webkit-appearance:none;appearance:none}
-/* le compte, quand la sélection est partielle : une donnée, mono */
-.lb-n{font-family:var(--font-mono);font-size:var(--text-12);
-  font-variant-numeric:tabular-nums}
 
 /* ce qui ne partira pas, dit dans le pied, contre le bord opposé aux
    deux canaux : une DONNÉE (mono, discrète), pas un avertissement — un
    compte qui prend une couleur d'alerte crie pour un geste qu'on peut
    défaire d'un tap */
-.dn-cut{margin-right:auto;align-self:center;
+/* Ce qui part, compté au-dessus des deux canaux — sur SA ligne, pas
+   glissé à côté d'eux. Posé dans la rangée, il poussait « À distance »
+   au rang suivant : le pied passait à deux rangs par accident, et les
+   deux canaux perdaient leur symétrie. Une ligne pleine largeur le rend
+   délibéré, et elle n'existe que quand il y a quelque chose à dire.
+   C'est une DONNÉE — mono, discrète, jamais une couleur d'alerte : un
+   compte qui crie pour un geste défaisable d'un tap. */
+.dn-cut{flex:1 0 100%;order:-1;text-align:left;
   font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
 /* La case tient l'AXE des cases de la liste : c'est ce qui la fait lire
    « tout cocher » sans le mot. Une ligne de liste est en retrait de son
@@ -512,10 +516,6 @@ html[data-theme="dark"] .field select{
    sélection. */
 .lb-all{justify-content:flex-start;padding:0 10px 0 14px}
 .lb-all[aria-pressed="true"] .ic{color:var(--accent)}
-/* le compte est une DONNÉE : mono, chiffres de largeur fixe pour qu'il
-   ne danse pas quand on coche */
-.lb-n{font-family:var(--font-mono);font-size:var(--text-12);
-  font-variant-numeric:tabular-nums}
 /* feuille « Trier » : la pile des niveaux (principal + départages) */
 /* puces d'état sous la recherche (#8) — la croix enlève, la puce de tri
    s'inverse au tap ; le sens vit dans la puce */

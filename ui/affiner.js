@@ -104,11 +104,15 @@ export function affinerBtnHTML(ft, st, o){
   const lbl = n ? `Affiner — ${n} actif${n > 1 ? 's' : ''}` : 'Affiner';
   /* `seg` : à l'intérieur de la barre d'une liste, où le bouton n'a plus
      sa propre boîte — c'est la barre entière qui en est une */
+  /* Dans la barre, l'entonnoir n'a pas sa pastille : il PREND L'ACCENT
+     dès qu'un filtre est actif, et c'est déjà le signal. Le nombre de
+     critères se lit dans la feuille qui les porte, en un tap — le
+     savoir d'avance ne change aucune décision, et deux chiffres dans
+     une rangée de trois segments, c'est du bruit qui bouge. */
   if (o && o.seg)
     return (
       `<button class="lb-seg${n ? ' on' : ''}" data-affiner
-               aria-label="${lbl}" title="${lbl}">${ic('filter', 'ic-14')}${
-        n ? `<span class="af-n">${n}</span>` : ''}</button>`);
+               aria-label="${lbl}" title="${lbl}">${ic('filter', 'ic-14')}</button>`);
   if (o && o.leger)
     return (
       `<button class="lb-act${n ? ' on' : ''}" data-affiner
@@ -162,7 +166,7 @@ export function barreListeHTML(o){
        <div class="lb-box">
          <button class="lb-seg lb-all" data-tout aria-pressed="${!!o.tout}"
                  aria-label="${o.tout ? 'Ne rien garder' : 'Tout garder'} — ${o.n | 0} piste${(o.n | 0) > 1 ? 's' : ''} sur ${o.total | 0}">
-           ${ic(o.tout ? 'checkbox-on' : 'checkbox', 'ic-20')}${compteHTML(o)}
+           ${ic(o.tout ? 'checkbox-on' : 'checkbox', 'ic-20')}
          </button>
          <div class="lb-find">
            <span class="ic ic-14 srch-i" aria-hidden="true"></span>
@@ -174,17 +178,6 @@ export function barreListeHTML(o){
      </div>`);
 }
 
-/* L'ENCRE VA À CE QUI CHANGE (§6). Le compte n'apparaît que s'il AJOUTE
-   quelque chose, c'est-à-dire sur une sélection PARTIELLE. Tout coché,
-   la case pleine le dit déjà ; rien de coché, la case vide le dit aussi
-   — et « 0 » est la valeur la moins informative qui soit, posée là où
-   elle se lit justement le plus. Photographié avant d'être vu :
-   « ☐ 0 » en tête de « Prospecter », qui ne disait rien deux fois. */
-const compteHTML = o => {
-  const n = o.n | 0, t = o.total | 0;
-  return (n === 0 || n === t) ? '' : `<span class="lb-n">${n}</span>`;
-};
-
 export function majTout(zone, o){
   const b = zone.querySelector('[data-tout]');
   if (!b) return;
@@ -192,7 +185,14 @@ export function majTout(zone, o){
   b.setAttribute('aria-pressed', !!o.tout);
   b.setAttribute('aria-label',
     `${o.tout ? 'Ne rien garder' : 'Tout garder'} — ${n} piste${n > 1 ? 's' : ''} sur ${o.total | 0}`);
-  b.innerHTML = ic(o.tout ? 'checkbox-on' : 'checkbox', 'ic-20') + compteHTML(o);
+  /* PAS DE CHIFFRE DANS LA BARRE. La case dit déjà ce qu'elle a à dire :
+     pleine = tout, vide = pas tout. Le nombre à côté ne faisait que
+     répéter la case, et il le faisait mal — il changeait de largeur à
+     chaque tap, donc la barre bougeait sous le doigt. Ce qui a besoin
+     d'être compté l'est là où l'on décide : le pied de la feuille, à
+     côté de l'action. Le compte reste dans `aria-label`, parce que
+     quelqu'un qui n'a pas l'écran n'a pas la case non plus. */
+  b.innerHTML = ic(o.tout ? 'checkbox-on' : 'checkbox', 'ic-20');
 }
 
 /* Le champ NE DOIT PAS être re-rendu à la frappe — sinon le curseur
