@@ -715,12 +715,32 @@ details.tranche[open]>summary::before{
 .act-under-report{background:var(--amber-wash);color:var(--amber);justify-content:flex-end}
 .swipe-done .act-under-done{opacity:1}
 .swipe-report .act-under-report{opacity:1}
-.act-in{position:relative;display:flex;align-items:center;background:var(--surface-window);transition:transform 60ms linear}
+/* LES ICÔNES NE VOLENT PAS LA PLACE DU NOM À TEXTE AGRANDI.
+   Trois icônes ne grandissent pas avec le texte : leur largeur est
+   figée par `--ctl`. Mesuré en 320 px, la rangée fait 290 px dont 148
+   pour les gestes — le nom de la piste, qui est l'attribut distinctif
+   de la ligne (§6), n'en garde que 134, quelle que soit la taille du
+   texte. À 150 % il lui faut quatre rangs pour trois disponibles, et
+   « Thales Digital Identity and Security » perdait sa fin.
+   La rangée se replie donc : les gestes passent DESSOUS et le nom
+   prend toute la largeur. Le seuil est un plancher en `rem` sur la
+   colonne du nom — il suit la police, sans média query, et l'ordre de
+   lecture ne change pas. 6,5 rem est mesuré, pas choisi : c'est la
+   seule valeur qui laisse 100 % ET 125 % strictement identiques
+   (134 px en 320, 170 en 360, 200 en 390) et qui replie exactement aux
+   tailles où le nom se coupait — 150 % en 320 px, 175 % en 360.
+   C'est WCAG 1.4.10 (le contenu se réorganise, il ne se perd pas).
+   `column-gap` remplace la marge : la zone morte de 8 px entre ouvrir
+   la fiche et les gestes reste, et `margin-left:auto` garde les gestes
+   à droite une fois repliés. */
+.act-in{position:relative;display:flex;align-items:center;flex-wrap:wrap;
+  column-gap:8px;row-gap:8px;
+  background:var(--surface-window);transition:transform 60ms linear}
 /* Une zone morte entre OUVRIR la fiche et les trois gestes : leurs
    bords se touchaient (0 px mesuré), et un pouce posé à la frontière
    ouvrait la fiche au lieu de marquer « Fait ». Deux conséquences très
    différentes ne doivent pas partager une arête. */
-.act-main{flex:1;min-width:0;padding:9px 0 9px 12px;cursor:pointer;display:flex;flex-direction:column;gap:2px}
+.act-main{flex:1;min-width:6.5rem;padding:9px 0 9px 12px;cursor:pointer;display:flex;flex-direction:column;gap:2px}
 @media (hover:hover){
 .act-main:hover .act-verb{color:var(--text-link)}
 }
@@ -773,7 +793,7 @@ details.tranche[open]>summary::before{
    mesuré) : un pouce posé à la frontière ouvrait la fiche au lieu de
    marquer « Fait ». 8 px partout, et chaque geste ne touche plus que
    lui-même quand la visée dérape de 6 px. */
-.act-btns{display:flex;flex:none;margin-left:8px;padding-right:4px;gap:8px}
+.act-btns{display:flex;flex:none;margin-left:auto;padding-right:4px;gap:8px}
 /* actions d'une ligne : des icônes nues, jamais des boutons — au survol,
    au focus ou au tap, SEULE LA COULEUR change. Aucun aplat de fond,
    aucun biseau : le carré derrière l'icône était le bruit à retirer. */
@@ -2206,7 +2226,12 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 }
 .orow .sw-in>.btn{align-self:center}
 .orow .o-main{flex:1;min-width:0;cursor:pointer;display:flex;flex-direction:column;justify-content:center}
-.orow h3{font-size:var(--text-13);font-weight:var(--weight-semibold);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* le nom d'une personne est une IDENTITÉ : il plie, il ne s'ampute
+   pas — même règle que `.row-item h3`, même motif. Mesuré à 200 % en
+   320 px : « Awa Diallo » perdait 5 px dans une colonne de 123. C'est
+   la sous-ligne (rôle, adresse) qui garde le droit de s'élider. */
+.orow h3{font-size:var(--text-13);font-weight:var(--weight-semibold);
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .orow .o-sub{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tr-orph .hint{margin:8px 0 0}
 

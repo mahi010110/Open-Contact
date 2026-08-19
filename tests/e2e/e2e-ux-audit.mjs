@@ -2759,7 +2759,21 @@ const ZOOM_EXCEPTIONS = [
      dessin : il attend le mainteneur, il ne se glisse pas ici. */
   '.bn-l',
   /* Sous-lignes : données, pas identité. Elles s'élident par dessin. */
-  '.act-do', '.o-sub', '.ri-sub', '.fi-sub', '.ctc-sub', '.ec-when', '.pk-m'
+  '.act-do', '.o-sub', '.ri-sub', '.fi-sub', '.ctc-sub', '.ec-when', '.pk-m',
+  /* L'en-tête d'objet et l'état d'un réglage : des DONNÉES. `.obj-l`
+     porte la formation et l'adresse — et une adresse rendue
+     « …@example » sur une ligne et « .fr » sur la suivante n'est plus
+     une adresse, c'est un accident, ce que dit déjà sa règle CSS.
+     `.rg-s` dit « non protégé », « 3 modèles » : l'état, jamais le nom
+     du réglage, qui est à sa gauche et ne se coupe pas. */
+  '.obj-l', '.rg-s',
+  /* La BARRE DE TITRE d'une feuille. C'est du châssis, pas du contenu :
+     police pixel (`--pixel-8`, qui ne grandit pas — §4), fond navy,
+     et elle sert à empoigner la fenêtre. Windows 98 élidait son titre,
+     et l'identité vit dans le corps juste dessous — mesuré à 200 % en
+     320 px, « Écrire — Thales… » perd 40 px dans sa barre pendant que
+     le corps affiche « Destinataire · Léa Barbaste » en clair. */
+  '.mh-t'
 ];
 const SONDE_COUPE = () => {
   const out = [];
@@ -2841,7 +2855,14 @@ const SONDE_COUPE = () => {
 };
 {
   const zBrowser = await chromium.launch({ executablePath: chromiumPath() });
-  const zCtx = await zBrowser.newContext({ viewport: { width: 393, height: 852 }, hasTouch: true });
+  /* LE PETIT TÉLÉPHONE DÉCIDE (CLAUDE.md §5). Ce balayage vivait en
+     393×852, et c'est ce qui l'a rendu aveugle : à cette largeur aucun
+     nom d'entreprise réel ne se coupe à 200 %, si bien que remettre le
+     plafond de `.row-item h3` à deux rangs passait au vert. En 320 px —
+     la largeur la plus étroite qu'on prétende servir — cinq pertes de
+     contenu sont sorties d'un coup. Mesurer au plus large, c'est ne pas
+     mesurer. */
+  const zCtx = await zBrowser.newContext({ viewport: { width: 320, height: 640 }, hasTouch: true });
   const zPage = await zCtx.newPage();
   zPage.on('pageerror', e => errors.push(String(e)));
   await zPage.goto(base, { waitUntil: 'load' });
@@ -2852,7 +2873,7 @@ const SONDE_COUPE = () => {
     S.profile.name = 'Maheydine Oun'; S.profile.formation = 'BTS SIO SISR'; S.profile.email = 'm@x.test';
     S.orphans.push({ id: 'oz', name: 'Awa Diallo', role: 'Alternante SOC', email: 'awa@x.test' });
     /* un nom LONG : c'est lui qui fait sortir le défaut */
-    S.companies = [normalizeCompany({ id: 'cz', name: 'Cyberprotect Solutions Aquitaine',
+    S.companies = [normalizeCompany({ id: 'cz', name: 'Thales Digital Identity and Security',
       city: 'Bordeaux', status: 'active', domain: 'cyber', website: 'cyberprotect.example',
       desc: 'ESN de 40 personnes.', techs: 'Wazuh', nextActionText: 'Relancer le service RH',
       nextAction: new Date(Date.now() - 2 * 864e5).toISOString().slice(0, 10),

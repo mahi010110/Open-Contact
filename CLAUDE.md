@@ -445,6 +445,33 @@ les confondre coûte cher : une tablette tactile en paysage fait 1024 à
   surface absente : le balayage sème un profil rempli, donc le bouton
   « Compléter mon profil » n'existait jamais. Ajouter une taille de
   texte ne rattrape jamais un état qu'on n'ouvre pas.
+  Second corollaire, du même ordre : **on mesure au plus ÉTROIT.** Le
+  balayage à 200 % vivait en 393 px ; à cette largeur aucun nom
+  d'entreprise réel ne se coupe, si bien qu'on pouvait remettre le
+  défaut d'origine sans que rien ne rougisse. Passé en 320 px — la
+  largeur la plus étroite qu'on prétende servir — cinq pertes de
+  contenu sont sorties d'un coup. **Mesurer au plus large, c'est ne pas
+  mesurer.**
+
+- **Une icône ne grandit pas avec le texte, et c'est elle qui vole la
+  place.** Le piège est contre-intuitif : à texte agrandi on cherche la
+  faute dans la typographie, alors qu'elle est dans le MOBILIER. Mesuré
+  sur « Aujourd'hui » en 320 px : la rangée fait 290 px dont **148 pour
+  trois icônes** — figées par `--ctl` — et le nom de la piste, qui est
+  l'attribut distinctif de la ligne (§6), n'en garde que 134 quelle que
+  soit la taille du texte. À 150 % il lui faut quatre rangs pour trois
+  disponibles.
+  La réponse est celle de WCAG 1.4.10 : **le contenu se réorganise, il
+  ne se perd pas** — les gestes passent dessous, le nom prend toute la
+  largeur. Deux points qui font que ça tient :
+  ① **le seuil est un plancher en `rem` sur la colonne du texte**, pas
+  une média query : il suit la police du navigateur tout seul, et l'app
+  n'a pas un réglage de plus ;
+  ② **la valeur se mesure, elle ne se choisit pas.** 6,5 rem est la
+  seule qui laisse 100 % ET 125 % strictement identiques au pixel près
+  (134 px en 320, 170 en 360, 200 en 390) et qui replie exactement aux
+  tailles où le nom se coupait. Un demi-rem de plus repliait à 125 % ;
+  un demi-rem de moins laissait un défaut en 360 px.
 
 - **Une cible se mesure sur ce qui RÉPOND au doigt, jamais sur ce qui se
   voit.** Les deux erreurs sont symétriques et coûtent toutes les deux.
