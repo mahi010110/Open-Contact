@@ -1849,6 +1849,77 @@ for (const [quoi, titre] of [['donner', 'Donner'], ['prospect', 'Prospecter']]){
   await oCtx.close();
 }
 
+/* ---------- LA BARRE D'ONGLETS NE COUPE JAMAIS UN NOM ----------
+   La limite que le projet portait nommée depuis des mois. Mesuré avant :
+   à 320 px « Aujourd'hui » est DÉJÀ élidé à taille normale (57 px rendus
+   pour 59 voulus), et à 200 % il reçoit 57 px pour 119 — trois libellés
+   sur quatre coupés. Un onglet coupé perd ce qui le distingue.
+
+   Aucune des deux sources n'autorise la coupe. Material 3 : « use short
+   text labels and don't truncate text, the truncation may obscure
+   important destination information ». Apple HIG : « tab bar items
+   should always have labels ». M3 donne la sortie pour quatre ou cinq
+   destinations — l'active porte son libellé, les inactives leur icône —
+   et c'est la cascade de `reglerNav` (app.js).
+
+   TROIS choses se gardent ici, et la troisième est la seule qui compte
+   vraiment :
+
+   ① aucun libellé coupé, à aucune combinaison largeur × police ;
+   ② chaque onglet garde un NOM accessible même sans son mot — sinon le
+     repli rendrait la barre muette, ce qui serait pire que la coupe ;
+   ③ la cascade ne se déclenche PAS TROP. Un repli qui tomberait tout de
+     suite au rang « icônes seules » passerait ① et ② sans broncher tout
+     en détruisant le dessin. On exige donc que le cas confortable —
+     390 px à taille normale — montre bien les QUATRE mots. C'est la
+     sonde de ce contrôle : sans elle il serait vert pour rien. */
+{
+  const NOMS = ['Aujourd’hui', 'Pistes', 'Échanger', 'Moi'];
+  for (const w of [320, 360, 390]){
+    for (const racine of [16, 32]){
+      const nCtx = await browser.newContext({ viewport: { width: w, height: 700 }, hasTouch: true });
+      const nPg = await nCtx.newPage();
+      nPg.on('pageerror', e => errors.push(String(e)));
+      await nPg.goto(base, { waitUntil: 'load' });
+      await nPg.evaluate(r => { document.documentElement.style.fontSize = r + 'px'; }, racine);
+      await nPg.waitForTimeout(400);
+      const m = await nPg.evaluate(() => {
+        const nav = document.querySelector('.bottomnav');
+        const ong = [...nav.querySelectorAll('a[data-r]')];
+        return {
+          rang: nav.classList.contains('nav-icones') ? 3 : nav.classList.contains('nav-actif') ? 2 : 1,
+          coupes: [...nav.querySelectorAll('.bn-l')]
+            .filter(n => getComputedStyle(n).display !== 'none' && n.scrollWidth > n.clientWidth + 1)
+            .map(n => n.textContent),
+          noms: ong.map(a => (a.getAttribute('aria-label') || a.textContent || '').trim()),
+          motsVus: ong.filter(a => {
+            const l = a.querySelector('.bn-l');
+            return l && getComputedStyle(l).display !== 'none';
+          }).length,
+          petites: ong.map(a => { const r = a.getBoundingClientRect();
+            return Math.round(Math.min(r.width, r.height)); }).filter(v => v < 44)
+        };
+      });
+      const cas = `${w}px à ${Math.round(racine / 16 * 100)}%`;
+      if (m.coupes.length)
+        fail(`onglets ${cas} : libellé coupé — ${m.coupes.join(', ')} (M3 : ne jamais tronquer)`);
+      else if (m.noms.join('|') !== NOMS.join('|'))
+        fail(`onglets ${cas} : un onglet a perdu son nom accessible — ${m.noms.join(', ')}`);
+      else if (m.petites.length)
+        fail(`onglets ${cas} : ${m.petites.length} cible(s) sous 44px (${m.petites.join(', ')})`);
+      /* ③ la sonde : dès 360 px à taille normale — le téléphone ordinaire —
+         RIEN ne doit se replier. Éprouvée : une cascade qui tombe d'emblée
+         au rang « icônes seules » passe ① et ②, et n'est attrapée que là. */
+      else if (w >= 360 && racine === 16 && (m.rang !== 1 || m.motsVus !== 4))
+        fail(`onglets ${cas} : la cascade se replie alors que tout tient `
+           + `(rang ${m.rang}, ${m.motsVus}/4 mots) — elle mangerait les libellés pour rien`);
+      else console.log(`onglets ${cas} : rang ${m.rang}, ${m.motsVus}/4 mots, aucun coupé, `
+                     + 'les quatre noms restent ✓');
+      await nCtx.close();
+    }
+  }
+}
+
 /* ---------- LA BARRE D'UNE LISTE À COCHER : UNE RANGÉE ----------
    Trois feuilles choisissent des pistes dans la même liste — Donner,
    Prospecter, partage en groupe — et elles divergeaient : le pli dans

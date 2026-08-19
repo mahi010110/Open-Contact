@@ -98,12 +98,17 @@
     <span>OpenContact <span id="sbVer"></span></span>
   </footer>
 
+  <!-- Chaque onglet porte son nom en `aria-label` : le mot visible peut
+       DISPARAÎTRE (voir `reglerNav`, app.js) quand la place manque, et un
+       onglet sans nom s'annoncerait « lien ». Apple le demande sans
+       condition — un libellé sur chaque élément interactif, y compris
+       ceux qui n'ont qu'une icône. -->
   <nav class="bottomnav" aria-label="Navigation mobile">
-    <a href="#/aujourdhui" data-r="aujourdhui"><span class="ic" style="-webkit-mask-image:url(assets/icons/zap.svg);mask-image:url(assets/icons/zap.svg)" aria-hidden="true"></span><span class="bn-l">Aujourd’hui</span></a>
-    <a href="#/pistes" data-r="pistes"><span class="ic" style="-webkit-mask-image:url(assets/icons/briefcase.svg);mask-image:url(assets/icons/briefcase.svg)" aria-hidden="true"></span><span class="bn-l">Pistes</span></a>
+    <a href="#/aujourdhui" data-r="aujourdhui" aria-label="Aujourd’hui"><span class="ic" style="-webkit-mask-image:url(assets/icons/zap.svg);mask-image:url(assets/icons/zap.svg)" aria-hidden="true"></span><span class="bn-l">Aujourd’hui</span></a>
+    <a href="#/pistes" data-r="pistes" aria-label="Pistes"><span class="ic" style="-webkit-mask-image:url(assets/icons/briefcase.svg);mask-image:url(assets/icons/briefcase.svg)" aria-hidden="true"></span><span class="bn-l">Pistes</span></a>
     <button class="bn-add" id="bnAdd" aria-label="Ajouter une piste"><span class="ic ic-20" style="-webkit-mask-image:url(assets/icons/plus.svg);mask-image:url(assets/icons/plus.svg)" aria-hidden="true"></span></button>
-    <a href="#/echanger" data-r="echanger"><span class="ic" style="-webkit-mask-image:url(assets/icons/share.svg);mask-image:url(assets/icons/share.svg)" aria-hidden="true"></span><span class="bn-l">Échanger</span></a>
-    <a href="#/moi" data-r="moi"><span class="ic" style="-webkit-mask-image:url(assets/icons/user.svg);mask-image:url(assets/icons/user.svg)" aria-hidden="true"></span><span class="bn-l">Moi</span></a>
+    <a href="#/echanger" data-r="echanger" aria-label="Échanger"><span class="ic" style="-webkit-mask-image:url(assets/icons/share.svg);mask-image:url(assets/icons/share.svg)" aria-hidden="true"></span><span class="bn-l">Échanger</span></a>
+    <a href="#/moi" data-r="moi" aria-label="Moi"><span class="ic" style="-webkit-mask-image:url(assets/icons/user.svg);mask-image:url(assets/icons/user.svg)" aria-hidden="true"></span><span class="bn-l">Moi</span></a>
   </nav>
 
 </div><!-- /.app -->

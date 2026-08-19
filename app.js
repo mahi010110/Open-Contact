@@ -41,7 +41,77 @@ function render(){
     a.classList.toggle('on', on);
     if (a.closest('nav')) a.setAttribute('aria-current', on ? 'page' : 'false');
   });
+  reglerNav();
 }
+/* ============================================================
+   LA BARRE D'ONGLETS À TEXTE AGRANDI — la limite que le projet
+   avait nommée sans la résoudre.
+
+   Mesuré : à 320 px « Aujourd'hui » est DÉJÀ élidé à taille normale
+   (57 px rendus pour 59 voulus) ; à 200 % il reçoit 57 px pour 119.
+   Trois libellés sur quatre y sont coupés. Un onglet coupé perd
+   justement ce qui le distingue.
+
+   Les deux sources disent la même chose, et aucune n'autorise à
+   couper : Material 3 — « use short text labels and don't truncate
+   text, the truncation may obscure important destination
+   information » — et Apple HIG — « tab bar items should always have
+   labels », l'icône seule n'étant qu'un cas rare et revu.
+
+   Material 3 donne en revanche la sortie exacte pour quatre ou cinq
+   destinations : la destination ACTIVE porte son icône et son
+   libellé, les inactives se réduisent à leur icône. On l'applique en
+   cascade, et seulement quand la place manque VRAIMENT — mesurée, pas
+   devinée :
+
+     ① tout tient        → les quatre libellés ;
+     ② ça déborde        → le libellé de l'onglet actif seul (M3) ;
+     ③ ça déborde encore → les icônes seules (320 px + 200 %, le seul
+                           cas où même un libellé isolé ne rentre pas).
+
+   Le nom ne disparaît jamais pour autant : il vit dans `aria-label`,
+   posé une fois pour toutes dans `index.html`. Sans lui, cacher le mot
+   rendrait l'onglet muet — c'est le piège de ce genre de repli.
+   ============================================================ */
+function reglerNav(){
+  const nav = document.querySelector('.bottomnav');
+  /* PAS `offsetParent` : la barre est en `position:fixed`, et un élément
+     fixe n'a JAMAIS de parent de positionnement — le test sortait donc
+     toujours, et la cascade n'a rien réglé du tout jusqu'à ce qu'on la
+     mesure. C'est le style calculé qui dit si elle est à l'écran. */
+  if (!nav || getComputedStyle(nav).display === 'none') return;   /* au poste : absente */
+  const deborde = () => [...nav.querySelectorAll('.bn-l')]
+    .some(n => n.scrollWidth > n.clientWidth + 1);
+  /* on repart du plus généreux à chaque appel : la largeur et la taille
+     du texte peuvent avoir CHANGÉ dans les deux sens (rotation, réglage
+     système), et un repli qui ne se relève jamais serait pire que pas
+     de repli */
+  nav.classList.remove('nav-actif', 'nav-icones');
+  if (!deborde()) return;
+  nav.classList.add('nav-actif');
+  if (!deborde()) return;
+  nav.classList.add('nav-icones');
+}
+/* La barre se re-règle quand la place change — et quand l'onglet actif
+   change, puisque c'est LUI qui garde son mot au rang ②. */
+let navT = null;
+const replanifierNav = () => {
+  clearTimeout(navT);
+  navT = setTimeout(reglerNav, 60);
+};
+window.addEventListener('resize', replanifierNav);
+/* le zoom texte d'un navigateur ne déclenche pas `resize` sur tous les
+   moteurs : on écoute aussi la taille RENDUE de la barre */
+if (window.ResizeObserver){
+  /* on observe un LIBELLÉ, pas la barre : agrandir la police du
+     navigateur ne change ni la largeur ni la hauteur de la barre (elles
+     sont fixes) — donc l'observer sur la barre ne se déclenchait jamais.
+     Le mot, lui, grandit : c'est le seul signal fiable. */
+  const ro = new ResizeObserver(replanifierNav);
+  const temoin = document.querySelector('.bottomnav .bn-l');
+  if (temoin) ro.observe(temoin);
+}
+
 /* Chaque onglet garde sa place. Mesuré : trente pistes, on descend à
    900 px, on passe dans « Moi », on revient — et on était remonté tout
    en haut. Une barre d'onglets promet qu'on retrouve les choses où on

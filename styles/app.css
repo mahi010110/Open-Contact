@@ -147,6 +147,18 @@ input,select,textarea{font-family:inherit;color:var(--text-body)}
    propre boîte pour pouvoir s'élider — la fin s'en va, le début reste.
    Ça se voit dès qu'un utilisateur agrandit sa police. */
 .bn-l{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* ---- les deux replis de la barre (voir `reglerNav`, app.js) ----
+   ② la destination ACTIVE garde son mot, les autres se réduisent à leur
+     icône — la règle de Material 3 pour quatre ou cinq destinations. Et
+     l'onglet actif prend la place que les trois autres rendent : sans
+     ça il hériterait d'un quart de barre et son mot serait coupé quand
+     même, ce qui reviendrait à n'avoir rien fait.
+   ③ plus rien ne tient (320 px et texte doublé) : les icônes seules. Le
+     nom reste dans `aria-label`, donc la barre n'est jamais muette. */
+.bottomnav.nav-actif a:not(.on) .bn-l,
+.bottomnav.nav-icones .bn-l{display:none}
+.bottomnav.nav-actif a:not(.on){flex:0 1 auto;min-width:var(--control-h-touch)}
+.bottomnav.nav-actif a.on{flex:1 1 auto}
 /* Le ⊕ était la cible la PLUS ÉTROITE de la barre (52 px) pour le geste
    le plus précieux de l'app — noter une entreprise qu'on vient de
    croiser. Il passe à 64 px : c'est le maximum mesuré avant que

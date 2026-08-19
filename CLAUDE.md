@@ -286,16 +286,33 @@ net. Sources uniques : `styles/tokens/` et le kit `design/`.
   que la boîte) et se vérifier lui-même en plantant une sonde — sinon
   il reste vert quand on le retire.
 
-  **Une limite connue, et elle attend une décision : la barre
-  d'onglets.** À 200 %, « Aujourd'hui » demande 120 px pour 77
-  disponibles. Ce n'est pas de la typographie : à 320 px de large le
-  libellé est **déjà** coupé de 2 px à taille normale, et rendre aux
-  quatre onglets les 64 px du ⊕ répare ce cas-là mais pas 150 %. Cinq
-  objets ne tiennent pas dans cette barre. La sortie documentée est
-  celle de Material 3 et d'iOS — à grande police, garder les icônes et
-  lâcher les mots, l'`aria-label` portant le nom pour un lecteur
-  d'écran. C'est un choix de dessin, il se prend avec le mainteneur ;
-  en attendant il est **nommé** dans `e2e-ux-audit.mjs`, avec sa mesure.
+  **La barre d'onglets ne coupe plus un nom** *(19 août 2026 — c'était la
+  limite que ce fichier portait nommée sans la résoudre)*. Mesuré : à
+  320 px « Aujourd'hui » était DÉJÀ élidé à taille normale (57 px rendus
+  pour 59 voulus), et à 200 % il recevait 57 px pour 119 — trois libellés
+  sur quatre coupés. Les deux sources interdisent la coupe : Material 3
+  (« ne jamais tronquer un libellé de destination : la troncature masque
+  l'information ») et Apple HIG (« un onglet porte toujours un libellé »).
+  M3 donne la sortie pour quatre ou cinq destinations, et c'est une
+  **cascade mesurée** (`reglerNav`, `app.js`) — jamais un seuil deviné :
+
+  ① tout tient → les quatre mots · ② ça déborde → le mot de l'onglet
+  ACTIF seul, les autres à l'icône, et l'actif prend la place rendue ·
+  ③ ça déborde encore (320 px à 200 %) → les icônes seules.
+
+  **Le nom ne disparaît jamais** : il vit dans `aria-label`, posé une
+  fois dans `index.html`. Sans lui le repli rendrait la barre muette —
+  pire que la coupe qu'il corrige.
+
+  Deux pièges, tous deux invisibles à la relecture : un élément
+  `position:fixed` n'a **jamais** d'`offsetParent`, donc le test de
+  visibilité sortait toujours et la cascade ne réglait rien ; et
+  agrandir la police du navigateur ne change ni la largeur ni la hauteur
+  d'une barre aux dimensions fixes — c'est le MOT qu'il faut observer,
+  pas la barre. Corollaire de garde : le contrôle doit vérifier que la
+  cascade ne se déclenche **pas trop**, sinon un repli permanent
+  passerait pour un succès.
+
 - **Le survol NE SE LÈVE PAS au doigt.** iOS applique `:hover` au tap et
   le LAISSE jusqu'au tap suivant : chaque règle non gardée devient une
   trace qui reste — une ligne blanche au milieu d'une liste, un fond
