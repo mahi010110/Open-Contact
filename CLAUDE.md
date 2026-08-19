@@ -404,6 +404,23 @@ les confondre coûte cher : une tablette tactile en paysage fait 1024 à
   plancher WCAG 2.5.8 AA de 24 px). Toute cible neuve part de `--ctl` :
   une hauteur en dur se retrouve à 30 px sous un doigt, ce qui est
   exactement ce qui était arrivé à la navigation haute.
+- **On mesure aussi dans la BANDE INTERMÉDIAIRE, pas seulement à 100 %
+  et à 200 %.** Les contrôles balayaient les deux extrêmes ; les trois
+  défauts photographiés sur un vrai téléphone en août 2026 vivaient tous
+  entre. 113 % et 125 % sont le réglage que les gens mettent vraiment
+  pour y voir, et **la police réelle d'un iPhone est déjà plus grande
+  que le 16 px du bac à sable** : un repli calculé au pixel près se
+  déclenche donc en permanence sur un appareil réel, jamais en
+  émulation. `e2e-ux-audit.mjs` balaie maintenant les cibles à 125 %
+  aussi.
+  Corollaire, appris en éprouvant ce passage à la mutation et plus
+  précieux que lui : **un contrôle ne garde que les ÉTATS qu'il met en
+  place.** Le premier défaut trouvé — une action de 17 px dans le
+  composeur — n'était pas caché par la taille du texte mais par une
+  surface absente : le balayage sème un profil rempli, donc le bouton
+  « Compléter mon profil » n'existait jamais. Ajouter une taille de
+  texte ne rattrape jamais un état qu'on n'ouvre pas.
+
 - **Une cible se mesure sur ce qui RÉPOND au doigt, jamais sur ce qui se
   voit.** Les deux erreurs sont symétriques et coûtent toutes les deux.
   D'un côté, la case à cocher de « Contact » paraissait fautive à

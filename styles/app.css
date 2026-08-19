@@ -298,6 +298,10 @@ html[data-theme="dark"] .field select{
 .grid2.grid2-tight{grid-template-columns:1fr 1fr}
 .hint{font-size:var(--text-12);color:var(--text-muted);margin-top:7px;line-height:1.5}
 .hint.warn{color:var(--amber)}
+/* une note qui PORTE UNE ACTION : elle cesse d'être une ligne de texte et
+   devient une rangée, pour que le contrôle qu'elle contient garde la
+   taille du doigt sans que le texte se colle à lui (ui/mail.js) */
+.hint-act{display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px}
 .search-wrap{position:relative;display:flex;gap:8px;margin-bottom:14px}
 .search-wrap .search{flex:1;min-width:0}
 /* ---- la barre qui COMMANDE la liste reste avec la liste ----

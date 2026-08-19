@@ -264,11 +264,22 @@ export function openMail(c, opts){
       aMail.removeAttribute('href');
       q('#mHint').textContent = 'Pas d’email — Copier, puis LinkedIn ou le site.';
     }
-    /* profil vide = message sans signature : un lien, au même poids que son
-       voisin, qui s'efface de lui-même dès qu'un nom est saisi */
+    /* Profil vide = le message part SANS SIGNATURE, chez un recruteur.
+       Le lien reste au poids de son voisin — mais il garde le plancher du
+       doigt (`--ctl`), que `min-height:0` lui retirait : il rendait 17 px
+       de haut. L'exemption WCAG pour un lien « en ligne » ne le couvre
+       pas — il n'est pas DANS une phrase, il est collé derrière une
+       adresse e-mail, et il ouvre une feuille entière. La ligne grandit
+       donc de 27 px, et seulement dans cet état-là : elle disparaît au
+       premier nom saisi. */
     if (!S.profile.name){
-      const b = el(`<button class="linklike" id="mProfil" style="min-height:0;padding:0 4px">Compléter mon profil</button>`);
+      const b = el(`<button class="linklike" id="mProfil">Compléter mon profil</button>`);
       b.addEventListener('click', () => openProfil(() => { if (sh.body.isConnected) fill(); }));
+      q('#mHint').classList.add('hint-act');
+      /* l'espace reste dans le DOM : la grille flex l'ignore pour le
+         dessin (c'est `gap` qui écarte), mais tout ce qui LIT le texte —
+         extraction, copie, outil d'assistance — verrait sinon
+         « sophie@x.testCompléter mon profil » d'un seul tenant */
       q('#mHint').append(' ', b);
     }
     syncFoot();

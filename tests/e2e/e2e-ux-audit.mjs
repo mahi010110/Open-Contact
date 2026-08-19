@@ -3011,22 +3011,32 @@ async function balayer(P, seuil){
     ['donner', './ui/donner.js', 'openDonner', false],
     ['prospecter', './ui/prospect.js', 'openProspect', false],
     ['profil', './ui/profil.js', 'openProfil', false],
-    ['modèles', './ui/profil.js', 'openTemplates', false]
+    ['modèles', './ui/profil.js', 'openTemplates', false],
+    /* LE COMPOSEUR AVEC UN PROFIL VIDE. Sans cette surface, le balayage
+       ne voyait jamais « Compléter mon profil » — il sème un profil
+       rempli, donc le bouton n'existe pas. La mutation qui remettait le
+       `min-height:0` fautif passait au vert : le passage à 125 % était
+       vert POUR RIEN sur le défaut même qui l'avait motivé. Un état que
+       le contrôle ne met jamais en place est un état qu'il ne garde pas. */
+    ['écrire sans profil', './ui/mail.js', 'openMail', true, true]
   ];
   let total = 0; const petites = []; let sondeVue = null;
-  for (const [nom, mod, fn, avecPiste] of surfaces){
+  for (const [nom, mod, fn, avecPiste, sansProfil] of surfaces){
     await P.evaluate(async () => {
       const { topSheet } = await import('./ui/dom.js');
       let s; let n = 0;
       while ((s = topSheet()) && n++ < 6){ s.close(null, true); await new Promise(r => setTimeout(r, 110)); }
     });
-    await P.evaluate(async ([mod, fn, avecPiste]) => {
+    await P.evaluate(async ([mod, fn, avecPiste, sansProfil]) => {
       if (mod === 'route'){ location.hash = '#/' + fn; return; }
       const { S } = await import('./ui/state.js');
+      /* le nom se retire le temps de cette surface, et revient juste
+         après : les surfaces suivantes doivent retrouver l'app normale */
+      if (sansProfil) S.profile.name = '';
       const m = await import(mod);
       const p = S.companies.find(x => x.id === 'cbal');
       if (avecPiste) m[fn](p, {}); else m[fn](null);
-    }, [mod, fn, avecPiste]);
+    }, [mod, fn, avecPiste, sansProfil]);
     await P.waitForTimeout(420);
     if (mod !== 'route'){
       const ouverte = await P.evaluate(() => !!document.querySelector('.overlay:not(.ov-out)'));
@@ -3057,16 +3067,40 @@ async function balayer(P, seuil){
       if (CIBLE_EXCEPTIONS.includes(c.q)) continue;
       petites.push(`${nom} · ${c.w}×${c.h} ${c.q} « ${c.t} »`);
     }
+    if (sansProfil) await P.evaluate(async () => {
+      (await import('./ui/state.js')).S.profile.name = 'Maheydine Oun';
+    });
   }
   return { total, petites, surfaces: surfaces.length, sondeVue };
 }
 const cbBrowser = await chromium.launch({ executablePath: chromiumPath() });
-for (const [nom, w, h, tactile, seuil] of [['au doigt', 390, 844, true, 44], ['à la souris', 1280, 800, false, 24]]){
+/* TROIS passages, et le troisième vient d'une leçon. Le balayage se
+   faisait à taille de texte par défaut ; l'autre contrôle de zoom saute
+   directement à 200 %. Entre les deux — 113 % et 125 %, le réglage que
+   les gens mettent VRAIMENT pour y voir — personne ne regardait. Les
+   trois défauts photographiés sur le téléphone du mainteneur en août
+   2026 vivaient tous dans cette bande : ce qui tient à 100 % et ce qui
+   se replie à 200 % ne dit rien de ce qui se passe au milieu.
+   Et une honnêteté, parce que la mutation l'a montrée : le premier
+   défaut sorti de cette bande — « Compléter mon profil », 17 px de haut
+   dans le composeur, un `min-height:0` posé à la main qui annulait le
+   plancher du doigt — n'était PAS caché par la taille du texte. Il
+   était caché par une SURFACE ABSENTE : le balayage sème un profil
+   rempli, donc ce bouton n'existait jamais. Remettre le défaut passait
+   au vert tant que la surface manquait, à 100 % comme à 125 %.
+   La leçon vaut plus que le passage lui-même : un contrôle ne garde que
+   les ÉTATS qu'il met en place. Ajouter une taille de texte ne rattrape
+   jamais un état qu'on n'ouvre pas. */
+for (const [nom, w, h, tactile, seuil, racine] of [
+    ['au doigt', 390, 844, true, 44, 0],
+    ['au doigt, texte à 125 %', 390, 844, true, 44, 20],
+    ['à la souris', 1280, 800, false, 24, 0]]){
   const cbCtx = await cbBrowser.newContext({ viewport: { width: w, height: h }, hasTouch: tactile });
   const cbPage = await cbCtx.newPage();
   cbPage.on('pageerror', e => errors.push(String(e)));
   await cbPage.goto(base, { waitUntil: 'load' });
   await cbPage.waitForSelector('#view-aujourdhui:not([hidden])');
+  if (racine) await cbPage.evaluate(r => { document.documentElement.style.fontSize = r + 'px'; }, racine);
   await cbPage.evaluate(async () => {
     const { S, saveData } = await import('./ui/state.js');
     const { normalizeCompany } = await import('./engine/model.js');
