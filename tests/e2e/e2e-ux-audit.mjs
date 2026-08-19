@@ -2805,8 +2805,39 @@ const SONDE_COUPE = () => {
   }
   const grilles = [...document.querySelectorAll('.grid2 > *')]
     .filter(e => getComputedStyle(e).minWidth !== '0px').length;
+  /* UNE BOÎTE QUI COUPE ET DONT LE CONTENU NE TIENT PAS.
+     Défaut différent d'une élision, et invisible à la mesure du dessus :
+     là-haut on regarde les éléments qui portent EUX-MÊMES du texte ; ici
+     c'est un CONTENEUR qui rabote des enfants entiers. La cause type est
+     toujours la même — dans une colonne flex de hauteur bornée, un
+     enfant garde `flex-shrink:1`, donc il rétrécit sous sa propre
+     hauteur de contenu, et `overflow:auto` sur le parent n'y change
+     rien : le débordement n'existe plus, donc rien ne défile. Si
+     l'enfant coupe (le motif de suppression au geste pose
+     `overflow:hidden`), son texte se fait raboter net.
+     Mesuré sur le fil d'« Échanger » : une rangée de 88 px logée dans
+     une ligne de 35 px, 44 px d'encre coupés par le trait pointillé.
+     C'est le défaut photographié sur le téléphone du mainteneur.
+     Les champs de formulaire sont hors sujet : la hauteur de contenu
+     d'un `<textarea>` dépasse sa boîte par construction. */
+  const ecrases = [];
+  for (const e of document.querySelectorAll('body *')){
+    const r = e.getBoundingClientRect();
+    if (!r.width || !r.height) continue;
+    if (/^(TEXTAREA|SELECT|INPUT)$/.test(e.tagName)) continue;
+    /* ce qui porte son propre texte relève de la mesure d'élision */
+    if ([...e.childNodes].some(n => n.nodeType === 3 && n.nodeValue.trim())) continue;
+    if (!/hidden|clip/.test(getComputedStyle(e).overflowY)) continue;
+    const perdu = e.scrollHeight - e.clientHeight;
+    if (perdu <= 1) continue;
+    ecrases.push({ q: e.id ? '#' + e.id
+                     : (typeof e.className === 'string' && e.className.trim()
+                        ? '.' + e.className.trim().split(/\s+/).slice(0, 2).join('.') : e.tagName),
+                   perdu, h: Math.round(r.height),
+                   t: (e.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 30) });
+  }
   return { coupes: out, deborde: Math.round(document.documentElement.scrollWidth - innerWidth),
-           glisse: large, coupable, grilles };
+           glisse: large, coupable, grilles, ecrases };
 };
 {
   const zBrowser = await chromium.launch({ executablePath: chromiumPath() });
@@ -2816,7 +2847,7 @@ const SONDE_COUPE = () => {
   await zPage.goto(base, { waitUntil: 'load' });
   await zPage.waitForSelector('#view-aujourdhui:not([hidden])');
   await zPage.evaluate(async () => {
-    const { S, saveData } = await import('./ui/state.js');
+    const { S, saveData, saveJournal } = await import('./ui/state.js');
     const { normalizeCompany } = await import('./engine/model.js');
     S.profile.name = 'Maheydine Oun'; S.profile.formation = 'BTS SIO SISR'; S.profile.email = 'm@x.test';
     S.orphans.push({ id: 'oz', name: 'Awa Diallo', role: 'Alternante SOC', email: 'awa@x.test' });
@@ -2826,10 +2857,29 @@ const SONDE_COUPE = () => {
       desc: 'ESN de 40 personnes.', techs: 'Wazuh', nextActionText: 'Relancer le service RH',
       nextAction: new Date(Date.now() - 2 * 864e5).toISOString().slice(0, 10),
       contacts: [{ id: 'pz', name: 'Léa Barbaste', role: 'Responsable du SOC', email: 'lea@c.test' }] })];
+    /* LE FIL D'« ÉCHANGER » DOIT AVOIR DES LIGNES. Sans journal, la
+       tranche rend son état vide et la surface la plus dense de l'app
+       n'exerce rien — le contrôle serait vert sur un écran qu'il
+       n'ouvre pas (CLAUDE.md §5, « un contrôle ne garde que les ÉTATS
+       qu'il met en place »). Les canaux longs sont ceux qui font
+       plier la phrase.
+       SIX lignes, et le chiffre est mesuré : à 393×852 trois lignes
+       TIENNENT dans la région même à 200 %, donc rien n'a besoin de
+       rétrécir et la mutation passait au vert. Six débordent sur tous
+       les téléphones essayés (320×640 à 393×852). Un contrôle qui ne
+       serre pas la région ne garde rien. */
+    const j = Date.now();
+    const canaux = ['Donné (QR) : 24 piste(s)', 'Reçu du groupe : +24 piste(s)',
+      'Reçu de Marie-Charlotte : +7 piste(s)'];
+    S.journal = [];
+    for (let i = 0; i < 6; i++)
+      S.journal.push({ t: j - (i + 1) * 864e5, txt: canaux[i % 3], ids: ['cz'] });
+    saveJournal();
     saveData();
   });
   await zPage.evaluate(() => { document.documentElement.style.fontSize = '32px'; });
   const dur = []; let vus = 0; let doublee = false; let sondeLarge = null; let mesurees = 0;
+  let sondeEcrase = null; let filVu = false;
   /* LES FEUILLES AUSSI. La garde ne regardait que les quatre écrans, et
      c'est ce qui l'a laissée passer à côté d'un défaut signalé sur
      photo : la feuille « Écrire » qui se met à GLISSER latéralement,
@@ -2888,6 +2938,27 @@ const SONDE_COUPE = () => {
       if (ZOOM_EXCEPTIONS.some(x => c.cls.includes(x.slice(1)))) continue;
       dur.push(`${nom} · −${c.perdu}px ${c.q} « ${c.t} »`);
     }
+    for (const c of r.ecrases)
+      dur.push(`${nom} · ${c.q} écrase son contenu de ${c.perdu}px (boîte ${c.h}px) « ${c.t} »`);
+    if (nom === 'echanger')
+      filVu = await zPage.evaluate(() => document.querySelectorAll('.ec-l').length >= 6);
+    /* LA SONDE DE L'ÉCRASEMENT SE VÉRIFIE ELLE-MÊME : on plante une
+       boîte qui coupe et dont l'enfant est deux fois trop haut, et on
+       exige qu'elle soit vue. Sans ça, restreindre le balayage — aux
+       seuls éléments à texte, par exemple — le rendrait simplement
+       aveugle sans jamais rougir. C'est ce qui s'était passé. */
+    if (sondeEcrase === null){
+      await zPage.evaluate(() => {
+        const b = document.createElement('div');
+        b.id = 'sondeEcrase';
+        b.style.cssText = 'position:fixed;left:0;bottom:0;width:40px;height:20px;overflow:hidden;z-index:9999';
+        const k = document.createElement('div');
+        k.style.cssText = 'height:60px'; k.textContent = 'x';
+        b.append(k); document.body.append(b);
+      });
+      sondeEcrase = (await zPage.evaluate(SONDE_COUPE)).ecrases.some(c => c.q === '#sondeEcrase');
+      await zPage.evaluate(() => { document.getElementById('sondeEcrase')?.remove(); });
+    }
   }
   await zCtx.close(); await zBrowser.close();
   /* le contrôle dit sous quelle police il mesure — sans ça, retirer
@@ -2899,6 +2970,12 @@ const SONDE_COUPE = () => {
   else if (!sondeLarge)
     fail('texte doublé : la sonde plantée (un bloc de 9999px dans une feuille) n’a pas été vue — '
       + 'la mesure du dépassement ne mesure plus rien');
+  else if (!sondeEcrase)
+    fail('texte doublé : la sonde d’écrasement (un enfant de 60px dans une boîte de 20px qui coupe) '
+      + 'n’a pas été vue — la mesure de l’écrasement ne mesure plus rien');
+  else if (!filVu)
+    fail('texte doublé : le fil d’« Échanger » n’a pas ses six lignes — la surface la plus dense '
+      + 'de l’app n’exerce rien, et à trois lignes la région ne serre même pas');
   else if (!vus) fail('texte doublé : aucune coupure détectée nulle part, pas même les exceptions connues — la sonde est aveugle');
   else if (dur.length)
     fail(`texte doublé à 200 % : ${dur.length} perte(s) de contenu hors exceptions nommées —\n      ` + dur.join('\n      '));

@@ -888,10 +888,19 @@ details.tranche[open]>summary::before{
    change — mesuré, la ligne fait 72 px dans les deux cas, aucun nom
    n'atteint le second rang — et à police doublée les quatre noms
    redeviennent entiers. C'est la sous-ligne, qui porte des données et
-   non l'identité, qui garde le droit de s'élider. */
+   non l'identité, qui garde le droit de s'élider.
+
+   TROIS RANGS, ET PAS DEUX. Deux ne suffisaient pas : mesuré à 200 %
+   sur un 320 px, « Thales Digital Identity and Security » perdait
+   encore 37 px — son dernier rang. Et le troisième rang ne coûte
+   RIEN : à 100 % la ligne fait 55 px avec deux comme avec trois (aucun
+   nom n'atteint le second rang), et à 200 % elle faisait déjà 162 px —
+   le plafond coupait donc le nom DANS une boîte qui avait la place.
+   Un quatrième rang, lui, n'ajoute plus rien : le plafond reste, il
+   protège toujours la liste d'un nom qui s'emballe. */
 .row-item h3{
   font-size:var(--text-14);font-weight:var(--weight-semibold);
-  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
 }
 .row-item .ri-sub{
   font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);line-height:1.5;
@@ -1483,6 +1492,18 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 .ec-fil{margin-top:18px;display:flex;flex-direction:column}
 /* le corps glisse, la légende reste — elle vit dans le trait du cadre */
 .ec-body{flex:1;min-height:0;display:flex;flex-direction:column;overflow:auto;-webkit-overflow-scrolling:touch}
+/* UNE LIGNE NE SE FAIT PAS ÉCRASER POUR TENIR DANS LE CADRE. Dans une
+   colonne flex de hauteur bornée, un enfant garde `flex-shrink:1` : il
+   RÉTRÉCIT sous sa propre hauteur de contenu, et `overflow:auto` sur le
+   parent n'y change rien — le débordement n'existe plus, donc rien ne
+   défile. Ici la ligne porte en plus `overflow:hidden` (le motif de
+   suppression au geste), si bien que le texte comprimé se faisait
+   raboter net : mesuré à 200 % en 360×640, une rangée de 88 px logée
+   dans une ligne de 35 px, 44 px d'encre coupés par le trait pointillé.
+   C'est le défaut photographié sur le téléphone du mainteneur.
+   Les lignes gardent donc leur hauteur, et c'est le CORPS qui défile —
+   ce que WCAG 1.4.10 demande d'ailleurs à texte agrandi. */
+.ec-body>*{flex:none}
 /* La phrase se pose EN HAUT de la région, là où commencerait la première
    ligne — pas au milieu. Centrée, elle tombait au centre optique de la
    page au poste : la seule encre de 640 px de haut, posée sur du vide, ce
@@ -1742,8 +1763,31 @@ button.ec-row:hover{background:var(--surface-field)}
    autant que les deux gestes qu'il surplombe — alors qu'il raconte ce
    qui est DÉJÀ fait. Deux ou trois niveaux de hiérarchie au maximum
    (NN/g, poids visuel) : ici les gestes, puis le fil, puis la date. */
+/* LA PHRASE PLIE, ELLE NE S'AMPUTE PAS. Elle était en `nowrap` +
+   ellipse : à texte agrandi elle rendait « 4 pistes do… », « 24 pistes
+   reç… » — on ne sait plus si c'est donné ou reçu, c'est-à-dire
+   exactement ce que la ligne existe pour dire. §4 tranche : ce qui porte
+   une IDENTITÉ plie (`-webkit-line-clamp` généreux), ce qui porte une
+   DONNÉE s'élide. La date, elle, garde sa colonne — c'est la donnée.
+   Ce que ça coûte, mesuré : à 100 % rien ne plie nulle part (44 px
+   partout, le dessin ne bouge pas d'un pixel) ; à 125 % sur un 360 px
+   les deux phrases les plus longues passent à deux lignes (62 px) ;
+   au-delà, tout plie. C'est le bon échange — une ligne de deux rangs
+   se lit, « 24 pistes reç… » ne se lit pas.
+
+   Le nombre de lignes n'est PAS plafonné, et c'est délibéré : un
+   `-webkit-line-clamp` a été essayé, il reproduisait la photo — un
+   `-webkit-box` empêche la rangée de rendre sa vraie hauteur, la
+   deuxième ligne se faisait couper par l'`overflow:hidden` du motif de
+   suppression. On ne contraint pas une boîte qu'un parent coupe déjà.
+
+   Et l'interligne se FIXE. Laissé à `normal`, la hauteur de boîte suit
+   la police de si près que l'encre des jambages en dépasse ; avec
+   `overflow:hidden` juste à côté, elle se fait raboter. Invisible en
+   émulation, photographiée sur un vrai téléphone : le trait pointillé
+   passait à travers les lettres. */
 .ec-row>b{flex:1;min-width:0;font-size:var(--text-13);font-weight:var(--weight-regular);
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  line-height:1.35;white-space:normal;overflow-wrap:break-word}
 .ec-row-m{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .ec-row-m b{font-size:var(--text-13);font-weight:var(--weight-semibold)}
 .ec-row-m .tag-beta{margin-left:2px}

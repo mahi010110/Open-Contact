@@ -286,6 +286,31 @@ net. Sources uniques : `styles/tokens/` et le kit `design/`.
   que la boîte) et se vérifier lui-même en plantant une sonde — sinon
   il reste vert quand on le retire.
 
+  **Et la même faute existe VERTICALEMENT, en pire.** Dans une colonne
+  flex de hauteur bornée, un enfant garde `flex-shrink:1` : il rétrécit
+  **sous sa propre hauteur de contenu**, et `overflow:auto` sur le
+  parent n'y change rien — le débordement n'existe plus, donc rien ne
+  défile. Si l'enfant coupe (une ligne du motif de suppression au geste
+  porte `overflow:hidden`), son texte se fait **raboter net**. Mesuré
+  sur le fil d'« Échanger », à 200 % en 360×640 : une rangée de 88 px
+  logée dans une ligne de 35 px, 44 px d'encre coupés — le trait
+  pointillé passait à travers les lettres. C'est la photo du mainteneur,
+  et c'est aussi ce que le remède prématuré reproduisait : un
+  `-webkit-line-clamp` posé là ENFERME la rangée au lieu de la libérer.
+  **On ne contraint pas une boîte qu'un parent coupe déjà** — on rend
+  aux enfants leur hauteur (`flex:none`) et c'est le CONTENEUR qui
+  défile, ce que WCAG 1.4.10 demande d'ailleurs à texte agrandi.
+
+  Deux corollaires de garde, tous deux payés ici :
+  ① Le balayage d'élision ne regarde que les éléments qui portent
+  eux-mêmes du texte ; **un conteneur qui rabote des enfants entiers lui
+  est invisible.** C'est une mesure de plus, pas la même.
+  ② **Un contrôle ne serre que ce qu'il remplit.** Trois lignes de
+  journal TIENNENT dans la région à 393×852 même à 200 %, donc rien
+  n'avait besoin de rétrécir et la mutation passait au vert. Il en faut
+  six. Le même piège que le profil vide du composeur, une surface plus
+  loin.
+
   **La barre d'onglets : une limite qui reste, et un remède qui a échoué**
   *(19 août 2026)*. Mesuré : à 320 px « Aujourd'hui » est élidé à taille
   normale (57 px rendus pour 59 voulus), et davantage à texte agrandi.
