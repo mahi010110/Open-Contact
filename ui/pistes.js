@@ -165,6 +165,9 @@ function rowHTML(c){
 
 function cardHTML(c){
   const bits = [kmBit(c), c.city, c.domain !== 'autre' ? DOMAINS[c.domain].label : ''].filter(Boolean);
+  /* ce qui ne se perd pas / ce qui se perd — voir l'ordre plus bas */
+  const bitsAvant = [kmBit(c), c.city].filter(Boolean);
+  const bitsApres = [c.domain !== 'autre' ? DOMAINS[c.domain].label : ''].filter(Boolean);
   const inCamp = enCampagne(c.id);
   /* la carte du tableau porte la MÊME graduation que la ligne mobile :
      un seul langage d'urgence dans toute l'application */
@@ -183,6 +186,15 @@ function cardHTML(c){
      n'est jamais la réponse à « laquelle je travaille maintenant ».
      Le chiffre reste sur la fiche, où il légende « Compléter » — et la
      carte rejoint la ligne mobile, qui ne l'a jamais montré. */
+  /* LE COMPTE DE PERSONNES REJOINT LA SOUS-LIGNE. Il tenait une
+     QUATRIÈME ligne à lui seul, pour un chiffre — et Material 3 plafonne
+     un élément de liste à trois lignes de texte (au-delà, c'est une
+     carte à média, ce que celle-ci n'est pas). La carte disait donc en
+     quatre lignes ce que la ligne au pouce dit en une : on réapprenait à
+     lire une piste en passant du téléphone au poste, exactement le
+     défaut que §6 a tranché pour les trois feuilles à cocher.
+     Il rejoint les autres attributs derrière le même point médian —
+     la grammaire de sous-ligne de toute l'app. */
   const foot = (c.contacts || []).length
     ? ic('contact', 'ic-14') + ' ' + c.contacts.length : '';
   return (
@@ -190,12 +202,21 @@ function cardHTML(c){
        <div class="sw-in">
          <div class="bc-main" role="button" tabindex="0" aria-label="Ouvrir ${esc(c.name)}">
            <b>${esc(c.name)}</b>
-           ${bits.length ? `<span class="bc-sub">${bits.map(esc).join(' · ')}</span>` : ''}
+           ${/* L'ORDRE DÉCIDE CE QU'ON PERD. La sous-ligne s'élide par la
+                fin ; §6 dit lequel des deux se sacrifie — « c'est le
+                secteur qu'on peut perdre, jamais le nombre de personnes
+                joignables ». Le compte passe donc AVANT le domaine.
+                Mesuré : « Sainte-Colombe · Cloud / Hébergeur · … »
+                perdait le compte sur les villes longues. */''}
+           ${(bits.length || foot)
+             ? `<span class="bc-sub">${[
+                 ...bitsAvant.map(esc), foot, ...bitsApres.map(esc)
+               ].filter(Boolean).join(' · ')}</span>`
+             : ''}
            ${na}
            ${/* la carte montre le domaine, la ligne mobile non : elle a
                 donc un champ de moins à révéler */''}
            ${hintHTML(c, ['name', 'city', 'domain'])}
-           ${foot ? `<span class="bc-foot">${foot}</span>` : ''}
          </div>
        </div>
      </div>`);

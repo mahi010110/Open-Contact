@@ -2213,7 +2213,7 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 .bcard:hover .sw-in{background:var(--surface-field)}
 }
 .bcard b{font-size:var(--text-13);font-weight:var(--weight-semibold)}
-.bc-sub,.bc-foot{
+.bc-sub{
   font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;
 }
@@ -2222,6 +2222,9 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
 }
 .bc-na .mark{display:inline-block;margin-left:2px;vertical-align:baseline}
+/* le compte de personnes vit dans la sous-ligne : son icône s'assoit sur
+   la ligne de texte au lieu de flotter */
+.bc-sub .ic{vertical-align:-2px;margin-right:1px}
 .bc-none{color:var(--text-muted)}
 .bcol-empty{padding:18px 10px;text-align:center;color:var(--text-muted);font-size:var(--text-12);background-image:var(--dither-img);background-size:var(--dither-size)}
 /* glisser une carte vers une autre colonne = changer le statut :

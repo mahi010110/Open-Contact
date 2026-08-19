@@ -1849,6 +1849,72 @@ for (const [quoi, titre] of [['donner', 'Donner'], ['prospect', 'Prospecter']]){
   await oCtx.close();
 }
 
+/* ---------- LA CARTE DU TABLEAU TIENT EN TROIS LIGNES ----------
+   Elle en empilait QUATRE : le nom, la sous-ligne, l'action, puis le
+   compte de personnes seul sur son rang — un chiffre pour une ligne
+   entière. Material 3 plafonne un élément de liste à trois lignes de
+   texte ; au-delà, c'est une carte à média, ce que celle-ci n'est pas.
+   Et la ligne au pouce disait déjà la même piste en UNE sous-ligne : on
+   réapprenait à lire une piste en passant du téléphone au poste, le
+   défaut que §6 a tranché pour les trois feuilles à cocher.
+
+   Mesuré : la carte passe de ~100 px à 76-80 px, et les douze pistes de
+   démonstration tiennent à l'écran sans défiler au lieu de six.
+
+   Deux choses se gardent, et la seconde vient d'une capture :
+
+   ① trois lignes au maximum, compte de personnes compris ;
+   ② l'ORDRE de la sous-ligne. Elle s'élide par la fin, et §6 dit lequel
+     des deux attributs se sacrifie : « c'est le secteur qu'on peut
+     perdre, jamais le nombre de personnes joignables ». Le compte doit
+     donc précéder le domaine — sur « Sainte-Colombe · Cloud /
+     Hébergeur · … » c'était lui qui sautait. */
+{
+  const kCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+  const kPg = await kCtx.newPage();
+  kPg.on('pageerror', e => errors.push(String(e)));
+  await kPg.goto(base, { waitUntil: 'load' });
+  await attendre(kPg, async () => !!(await import('./ui/state.js')).S.profile, 'profil chargé');
+  await kPg.evaluate(async () => {
+    const { S, saveData } = await import('./ui/state.js');
+    const { normalizeCompany } = await import('./engine/model.js');
+    S.companies = ['Sainte-Colombe-sur-Lot SI', 'Adrastia Systèmes', 'Halcyon Data']
+      .map((n, i) => normalizeCompany({ id: 'k' + i, name: n, city: 'Sainte-Colombe',
+        status: 'todo', domain: 'cloud',
+        contacts: [{ id: 'a' + i, name: 'Sophie Fontaine', email: 's' + i + '@t.test' },
+                   { id: 'b' + i, name: 'Hugo Perrin', email: 'h' + i + '@t.test' }] }));
+    saveData();
+    location.hash = '#/pistes';
+  });
+  await kPg.waitForSelector('.bcard .bc-sub', { timeout: 8000 });
+  await kPg.waitForTimeout(400);
+  const k = await kPg.evaluate(() => {
+    const c = document.querySelector('.bcard');
+    const lignes = [...c.querySelectorAll('.bc-main > *')]
+      .filter(n => n.getBoundingClientRect().height > 0).length;
+    const sub = c.querySelector('.bc-sub');
+    const txt = (sub.textContent || '').replace(/\s+/g, ' ').trim();
+    /* la position du compte et celle du domaine DANS la chaîne : c'est
+       l'ordre qui décide de ce qui disparaît quand ça élide */
+    const iCompte = txt.search(/\d/);
+    const iDom = txt.indexOf('Cloud');
+    return { lignes, txt, iCompte, iDom,
+             h: Math.round(c.getBoundingClientRect().height) };
+  });
+  if (k.lignes > 3)
+    fail(`carte du tableau : ${k.lignes} lignes (plafond 3, Material 3) — `
+       + 'la quatrième était le compte de personnes seul sur son rang');
+  else if (k.iCompte < 0 || k.iDom < 0)
+    fail(`carte du tableau : compte ou domaine absent de la sous-ligne « ${k.txt} » — `
+       + 'le contrôle ne mesure plus l’ordre qu’il garde');
+  else if (k.iCompte > k.iDom)
+    fail(`carte du tableau : le compte de personnes est APRÈS le domaine dans « ${k.txt} » — `
+       + 'la sous-ligne s’élide par la fin, et §6 dit que c’est le secteur qu’on perd, pas les personnes');
+  else console.log(`carte du tableau : ${k.lignes} lignes, ${k.h}px, `
+                 + `« ${k.txt} » — le compte passe avant le domaine ✓`);
+  await kCtx.close();
+}
+
 /* ---------- LA BARRE D'ONGLETS : LE NOM SURVIT ----------
    CASCADE ANNULÉE, et c'est la leçon. Elle repliait les libellés dès
    qu'un seul manquait d'un pixel — à 320 px « Aujourd'hui » manque de
