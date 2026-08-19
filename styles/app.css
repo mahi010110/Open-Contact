@@ -147,18 +147,6 @@ input,select,textarea{font-family:inherit;color:var(--text-body)}
    propre boîte pour pouvoir s'élider — la fin s'en va, le début reste.
    Ça se voit dès qu'un utilisateur agrandit sa police. */
 .bn-l{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-/* ---- les deux replis de la barre (voir `reglerNav`, app.js) ----
-   ② la destination ACTIVE garde son mot, les autres se réduisent à leur
-     icône — la règle de Material 3 pour quatre ou cinq destinations. Et
-     l'onglet actif prend la place que les trois autres rendent : sans
-     ça il hériterait d'un quart de barre et son mot serait coupé quand
-     même, ce qui reviendrait à n'avoir rien fait.
-   ③ plus rien ne tient (320 px et texte doublé) : les icônes seules. Le
-     nom reste dans `aria-label`, donc la barre n'est jamais muette. */
-.bottomnav.nav-actif a:not(.on) .bn-l,
-.bottomnav.nav-icones .bn-l{display:none}
-.bottomnav.nav-actif a:not(.on){flex:0 1 auto;min-width:var(--control-h-touch)}
-.bottomnav.nav-actif a.on{flex:1 1 auto}
 /* Le ⊕ était la cible la PLUS ÉTROITE de la barre (52 px) pour le geste
    le plus précieux de l'app — noter une entreprise qu'on vient de
    croiser. Il passe à 64 px : c'est le maximum mesuré avant que
@@ -453,13 +441,14 @@ html[data-theme="dark"] .field select{
    pictogramme simple et contrasté, et c'est lui qui transforme « un
    champ » en « la recherche ». Elle est décorative pour un lecteur
    d'écran : le champ porte déjà son nom. */
-/* À texte doublé, le champ et ses deux commandes ne tiennent plus : les
-   commandes passent SOUS le champ (WCAG 1.4.10) plutôt que de l'écraser
-   à quelques caractères. Le plancher de 190 px est ce qui déclenche le
-   repli — sans lui, `flex:1` rétrécit le champ indéfiniment et rien ne
-   passe jamais à la ligne. */
-.lb-cmd{gap:6px;flex-wrap:wrap}
-.lb-find{position:relative;flex:1 1 190px;min-width:0;margin-bottom:0}
+/* PAS DE REPLI À LA LIGNE. Il paraissait juste — laisser les commandes
+   passer sous le champ plutôt que de l'écraser — mais sur un vrai
+   téléphone il a produit l'entonnoir SEUL sur une deuxième ligne, ce qui
+   se lit comme une interface cassée. Une rangée qui reste une rangée,
+   avec un champ plus court, vaut mieux qu'une rangée qui se disloque.
+   Photographié avant de le croire. */
+.lb-cmd{gap:6px;flex-wrap:nowrap}
+.lb-find{position:relative;flex:1 1 auto;min-width:0;margin-bottom:0}
 .lb-find .srch-i{
   position:absolute;left:10px;top:50%;transform:translateY(-50%);
   pointer-events:none;color:var(--text-muted);
@@ -486,7 +475,7 @@ html[data-theme="dark"] .field select{
    défaire d'un tap */
 .dn-cut{margin-right:auto;align-self:center;
   font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
-.lb-all{gap:4px;justify-content:flex-start;padding:0 8px 0 15px}
+.lb-all{gap:4px;justify-content:flex-start;width:auto;min-width:var(--ctl);padding:0 8px 0 15px}
 .lb-all[aria-pressed="true"] .ic{color:var(--accent)}
 /* le compte est une DONNÉE : mono, chiffres de largeur fixe pour qu'il
    ne danse pas quand on coche */

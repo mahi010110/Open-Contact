@@ -286,32 +286,31 @@ net. Sources uniques : `styles/tokens/` et le kit `design/`.
   que la boîte) et se vérifier lui-même en plantant une sonde — sinon
   il reste vert quand on le retire.
 
-  **La barre d'onglets ne coupe plus un nom** *(19 août 2026 — c'était la
-  limite que ce fichier portait nommée sans la résoudre)*. Mesuré : à
-  320 px « Aujourd'hui » était DÉJÀ élidé à taille normale (57 px rendus
-  pour 59 voulus), et à 200 % il recevait 57 px pour 119 — trois libellés
-  sur quatre coupés. Les deux sources interdisent la coupe : Material 3
-  (« ne jamais tronquer un libellé de destination : la troncature masque
-  l'information ») et Apple HIG (« un onglet porte toujours un libellé »).
-  M3 donne la sortie pour quatre ou cinq destinations, et c'est une
-  **cascade mesurée** (`reglerNav`, `app.js`) — jamais un seuil deviné :
+  **La barre d'onglets : une limite qui reste, et un remède qui a échoué**
+  *(19 août 2026)*. Mesuré : à 320 px « Aujourd'hui » est élidé à taille
+  normale (57 px rendus pour 59 voulus), et davantage à texte agrandi.
+  Les deux sources interdisent pourtant la coupe — Material 3 (« ne
+  jamais tronquer un libellé de destination ») et Apple HIG (« un onglet
+  porte toujours un libellé »).
 
-  ① tout tient → les quatre mots · ② ça déborde → le mot de l'onglet
-  ACTIF seul, les autres à l'icône, et l'actif prend la place rendue ·
-  ③ ça déborde encore (320 px à 200 %) → les icônes seules.
+  La sortie de M3 pour quatre destinations — l'onglet ACTIF garde son
+  mot, les autres tombent à l'icône — a été implémentée, puis **retirée
+  après une photo du téléphone du mainteneur**. Elle se déclenchait dès
+  qu'un seul libellé manquait d'un pixel, donc en permanence sur un vrai
+  appareil, et rendait trois onglets sur quatre muets. **Un repli qui
+  coûte trois noms pour en sauver deux pixels coûte plus que le défaut
+  qu'il corrige** — et aucune mesure en émulation ne pouvait le dire :
+  la police réelle d'un iPhone est plus grande que le 16 px du bac à
+  sable.
 
-  **Le nom ne disparaît jamais** : il vit dans `aria-label`, posé une
-  fois dans `index.html`. Sans lui le repli rendrait la barre muette —
-  pire que la coupe qu'il corrige.
+  Ce qui est gardé : chaque onglet porte son nom en `aria-label`. Un mot
+  élidé s'annonçait tronqué à un lecteur d'écran ; il s'annonce entier.
 
-  Deux pièges, tous deux invisibles à la relecture : un élément
-  `position:fixed` n'a **jamais** d'`offsetParent`, donc le test de
-  visibilité sortait toujours et la cascade ne réglait rien ; et
-  agrandir la police du navigateur ne change ni la largeur ni la hauteur
-  d'une barre aux dimensions fixes — c'est le MOT qu'il faut observer,
-  pas la barre. Corollaire de garde : le contrôle doit vérifier que la
-  cascade ne se déclenche **pas trop**, sinon un repli permanent
-  passerait pour un succès.
+  **Ce qui reste à trancher** : « Aujourd'hui » est trop long. M3 le dit
+  dans l'autre sens — *use short text labels* — et la vraie réponse est
+  de raccourcir le mot, pas de le cacher. Ça touche §7 (un objet, un
+  mot) : l'onglet, le titre de l'écran et `document.title` changeraient
+  ensemble. Décision du mainteneur.
 
 - **Le survol NE SE LÈVE PAS au doigt.** iOS applique `:hover` au tap et
   le LAISSE jusqu'au tap suivant : chaque règle non gardée devient une

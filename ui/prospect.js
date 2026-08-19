@@ -60,10 +60,16 @@ export function openProspect(){
   const allPairs = () => alive().filter(c => sel.has(c.id)).flatMap(pairsOf);
   const nWho = () => allPairs().filter(p => p.ct).length;
 
+  /* UNE ACTION IMPOSSIBLE SE DÉSACTIVE, elle ne gronde pas. Le bouton
+     portait `btn-off` — qui coupe le pointeur mais PAS le clavier : les
+     deux toasts (« Coche au moins une piste », « Choisis au moins un
+     contact ») étaient donc injoignables à la souris et joignables à la
+     tabulation, c'est-à-dire du grondement réservé à ceux qui n'ont pas
+     de souris. `disabled` coupe les deux, et la raison est à l'écran :
+     aucune case cochée, et le bouton sans son compte. */
   const bGo = btn('Continuer', 'btn-primary', () => {
-    if (!sel.size){ toast('Coche au moins une piste.'); return; }
     const pairs = allPairs();
-    if (!pairs.some(p => p.ct)){ toast('Choisis au moins un contact.'); return; }
+    if (!pairs.some(p => p.ct)) return;
     sh.close();
     chooseMode(pairs);
   });
@@ -74,7 +80,7 @@ export function openProspect(){
   const sync = () => {
     const n = nWho();
     bGo.textContent = n ? `Continuer (${n})` : 'Continuer';
-    bGo.classList.toggle('btn-off', !n);
+    bGo.disabled = !n;
     syncAll();
   };
 

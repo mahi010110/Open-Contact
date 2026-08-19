@@ -32,8 +32,14 @@ const UI = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..'
    travaille pas — et on ne compte pas — une phrase que personne ne peut
    lire aujourd'hui. Ces fichiers reviendront au compte avec leur
    surface. */
+/* `prospect.js` en est SORTI le 19 août 2026 : la feuille « Prospecter »
+   s'ouvre depuis « Mes pistes » (`#piProspect`) sans aucun drapeau — elle
+   est donc à l'écran, et elle échappait au compte depuis toujours. Un
+   écran entier exempté est exactement le trou par lequel les couches
+   reviennent : le garde était vert sans regarder. Seule l'option
+   « En campagne » qu'elle contient est masquée, pas la feuille. */
 const HORS_ECRAN = new Set(['campagnes.js', 'compagnon.js', 'connexions.js',
-  'analyse.js', 'propositions.js', 'prospect.js', 'perimetre.js']);
+  'analyse.js', 'propositions.js', 'perimetre.js']);
 
 /* ---- les plafonds, tenus à la main et à la baisse ---- */
 const PLAFOND = {
@@ -57,8 +63,18 @@ const PLAFOND = {
      autrement). Et depuis août 2026 il y a un coût mesurable de plus :
      chaque toast passe par `role="status"`, donc il est LU à voix
      haute — soixante-trois interruptions valent mieux que quatre-vingt-
-     quatre. */
-  toasts: 63,
+     quatre.
+     64 le 19 août 2026, et ce n'est PAS un toast de plus : c'est
+     « Prospecter » qui entre enfin dans le compte. La feuille s'ouvre
+     depuis « Mes pistes » sans drapeau, et elle en portait trois que
+     personne ne comptait. Deux sont partis dans le même geste — ils
+     grondaient (« Coche au moins une piste », « Choisis au moins un
+     contact ») sur un bouton que `btn-off` rendait inerte à la souris
+     mais pas au clavier : du reproche réservé à ceux qui tabulent. Le
+     bouton est vraiment `disabled`, la raison est à l'écran. Reste
+     « Série terminée — N pistes traitées », qui dit ce qu'aucun écran
+     ne montre : la série est finie. */
+  toasts: 64,
   toastCar: 79,        /* le plus long : « Connexion interrompue — … » */
   confirmations: 8,    /* portes bloquantes dans les écrans visibles */
   /* phrases d'explication dans les feuilles visibles.

@@ -154,7 +154,7 @@ export function barreListeHTML(o){
      <div class="listbar lb-cmd">
        <button class="btn icon-btn lb-all" data-tout aria-pressed="${!!o.tout}"
                aria-label="${o.tout ? 'Ne rien garder' : 'Tout garder'} — ${o.n | 0} piste${(o.n | 0) > 1 ? 's' : ''} sur ${o.total | 0}">
-         ${ic(o.tout ? 'checkbox-on' : 'checkbox', 'ic-20')}${o.tout ? '' : `<span class="lb-n">${o.n | 0}</span>`}
+         ${ic(o.tout ? 'checkbox-on' : 'checkbox', 'ic-20')}${compteHTML(o)}
        </button>
        <div class="search-wrap lb-find">
          <span class="ic ic-14 srch-i" aria-hidden="true"></span>
@@ -171,6 +171,17 @@ export function barreListeHTML(o){
    champ de recherche serait recréé à chaque tap sur une ligne, et le
    curseur sauterait. Une seule source pour ce fragment, ici, sous peine
    de voir la barre et sa mise à jour se contredire. */
+/* L'ENCRE VA À CE QUI CHANGE (§6). Le compte n'apparaît que s'il AJOUTE
+   quelque chose, c'est-à-dire sur une sélection PARTIELLE. Tout coché,
+   la case pleine le dit déjà ; rien de coché, la case vide le dit aussi
+   — et « 0 » est la valeur la moins informative qui soit, posée là où
+   elle se lit justement le plus. Photographié avant d'être vu :
+   « ☐ 0 » en tête de « Prospecter », qui ne disait rien deux fois. */
+const compteHTML = o => {
+  const n = o.n | 0, t = o.total | 0;
+  return (n === 0 || n === t) ? '' : `<span class="lb-n">${n}</span>`;
+};
+
 export function majTout(zone, o){
   const b = zone.querySelector('[data-tout]');
   if (!b) return;
@@ -178,13 +189,7 @@ export function majTout(zone, o){
   b.setAttribute('aria-pressed', !!o.tout);
   b.setAttribute('aria-label',
     `${o.tout ? 'Ne rien garder' : 'Tout garder'} — ${n} piste${n > 1 ? 's' : ''} sur ${o.total | 0}`);
-  /* L'ENCRE VA À CE QUI CHANGE (§6). Tout coché — le cas par défaut de
-     « Donner » et du partage en groupe — la case suffit : écrire « 24 »
-     à côté d'une case pleine dit deux fois la même chose. Dès qu'on
-     écarte quelque chose, le compte apparaît, et c'est là qu'il devient
-     une information. */
-  b.innerHTML = ic(o.tout ? 'checkbox-on' : 'checkbox', 'ic-20') +
-    (o.tout ? '' : `<span class="lb-n">${n}</span>`);
+  b.innerHTML = ic(o.tout ? 'checkbox-on' : 'checkbox', 'ic-20') + compteHTML(o);
 }
 
 /* Le champ NE DOIT PAS être re-rendu à la frappe — sinon le curseur

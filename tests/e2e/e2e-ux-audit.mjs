@@ -1849,75 +1849,44 @@ for (const [quoi, titre] of [['donner', 'Donner'], ['prospect', 'Prospecter']]){
   await oCtx.close();
 }
 
-/* ---------- LA BARRE D'ONGLETS NE COUPE JAMAIS UN NOM ----------
-   La limite que le projet portait nommée depuis des mois. Mesuré avant :
-   à 320 px « Aujourd'hui » est DÉJÀ élidé à taille normale (57 px rendus
-   pour 59 voulus), et à 200 % il reçoit 57 px pour 119 — trois libellés
-   sur quatre coupés. Un onglet coupé perd ce qui le distingue.
+/* ---------- LA BARRE D'ONGLETS : LE NOM SURVIT ----------
+   CASCADE ANNULÉE, et c'est la leçon. Elle repliait les libellés dès
+   qu'un seul manquait d'un pixel — à 320 px « Aujourd'hui » manque de
+   2 px — et rendait alors trois onglets sur quatre muets. Sur le
+   téléphone du mainteneur, dont le texte est plus grand que le 16 px
+   émulé ici, elle se déclenchait tout le temps : trois icônes et un
+   onglet large. Le remède coûtait plus que le défaut qu'il corrigeait,
+   et aucune mesure d'ici ne pouvait le dire — il a fallu une photo.
 
-   Aucune des deux sources n'autorise la coupe. Material 3 : « use short
-   text labels and don't truncate text, the truncation may obscure
-   important destination information ». Apple HIG : « tab bar items
-   should always have labels ». M3 donne la sortie pour quatre ou cinq
-   destinations — l'active porte son libellé, les inactives leur icône —
-   et c'est la cascade de `reglerNav` (app.js).
+   Ce qui RESTE, parce que c'est un gain net et sans effet visible :
+   chaque onglet porte son nom en `aria-label`. Un onglet dont le mot
+   s'élide (« Aujourd'… ») s'annonçait tronqué aux lecteurs d'écran ;
+   maintenant il s'annonce entier, quoi qu'il arrive au pixel.
 
-   TROIS choses se gardent ici, et la troisième est la seule qui compte
-   vraiment :
-
-   ① aucun libellé coupé, à aucune combinaison largeur × police ;
-   ② chaque onglet garde un NOM accessible même sans son mot — sinon le
-     repli rendrait la barre muette, ce qui serait pire que la coupe ;
-   ③ la cascade ne se déclenche PAS TROP. Un repli qui tomberait tout de
-     suite au rang « icônes seules » passerait ① et ② sans broncher tout
-     en détruisant le dessin. On exige donc que le cas confortable —
-     390 px à taille normale — montre bien les QUATRE mots. C'est la
-     sonde de ce contrôle : sans elle il serait vert pour rien. */
+   Ce qui reste ouvert, et qui appartient au mainteneur : « Aujourd'hui »
+   est trop long pour un onglet à 320 px. Material 3 le dit dans l'autre
+   sens — « use short text labels » — et la vraie réponse est de
+   raccourcir le mot, pas de le cacher. Ça touche §7 (un objet, un mot),
+   donc l'écran et son titre changeraient avec. */
 {
   const NOMS = ['Aujourd’hui', 'Pistes', 'Échanger', 'Moi'];
-  for (const w of [320, 360, 390]){
-    for (const racine of [16, 32]){
-      const nCtx = await browser.newContext({ viewport: { width: w, height: 700 }, hasTouch: true });
-      const nPg = await nCtx.newPage();
-      nPg.on('pageerror', e => errors.push(String(e)));
-      await nPg.goto(base, { waitUntil: 'load' });
-      await nPg.evaluate(r => { document.documentElement.style.fontSize = r + 'px'; }, racine);
-      await nPg.waitForTimeout(400);
-      const m = await nPg.evaluate(() => {
-        const nav = document.querySelector('.bottomnav');
-        const ong = [...nav.querySelectorAll('a[data-r]')];
-        return {
-          rang: nav.classList.contains('nav-icones') ? 3 : nav.classList.contains('nav-actif') ? 2 : 1,
-          coupes: [...nav.querySelectorAll('.bn-l')]
-            .filter(n => getComputedStyle(n).display !== 'none' && n.scrollWidth > n.clientWidth + 1)
-            .map(n => n.textContent),
-          noms: ong.map(a => (a.getAttribute('aria-label') || a.textContent || '').trim()),
-          motsVus: ong.filter(a => {
-            const l = a.querySelector('.bn-l');
-            return l && getComputedStyle(l).display !== 'none';
-          }).length,
-          petites: ong.map(a => { const r = a.getBoundingClientRect();
-            return Math.round(Math.min(r.width, r.height)); }).filter(v => v < 44)
-        };
-      });
-      const cas = `${w}px à ${Math.round(racine / 16 * 100)}%`;
-      if (m.coupes.length)
-        fail(`onglets ${cas} : libellé coupé — ${m.coupes.join(', ')} (M3 : ne jamais tronquer)`);
-      else if (m.noms.join('|') !== NOMS.join('|'))
-        fail(`onglets ${cas} : un onglet a perdu son nom accessible — ${m.noms.join(', ')}`);
-      else if (m.petites.length)
-        fail(`onglets ${cas} : ${m.petites.length} cible(s) sous 44px (${m.petites.join(', ')})`);
-      /* ③ la sonde : dès 360 px à taille normale — le téléphone ordinaire —
-         RIEN ne doit se replier. Éprouvée : une cascade qui tombe d'emblée
-         au rang « icônes seules » passe ① et ②, et n'est attrapée que là. */
-      else if (w >= 360 && racine === 16 && (m.rang !== 1 || m.motsVus !== 4))
-        fail(`onglets ${cas} : la cascade se replie alors que tout tient `
-           + `(rang ${m.rang}, ${m.motsVus}/4 mots) — elle mangerait les libellés pour rien`);
-      else console.log(`onglets ${cas} : rang ${m.rang}, ${m.motsVus}/4 mots, aucun coupé, `
-                     + 'les quatre noms restent ✓');
-      await nCtx.close();
-    }
-  }
+  const nCtx = await browser.newContext({ viewport: { width: 320, height: 700 }, hasTouch: true });
+  const nPg = await nCtx.newPage();
+  nPg.on('pageerror', e => errors.push(String(e)));
+  await nPg.goto(base, { waitUntil: 'load' });
+  await nPg.waitForSelector('.bottomnav a[data-r]');
+  const m = await nPg.evaluate(() => {
+    const ong = [...document.querySelectorAll('.bottomnav a[data-r]')];
+    return { noms: ong.map(a => (a.getAttribute('aria-label') || '').trim()),
+             elide: [...document.querySelectorAll('.bottomnav .bn-l')]
+               .filter(n => n.scrollWidth > n.clientWidth + 1).map(n => n.textContent) };
+  });
+  if (m.noms.join('|') !== NOMS.join('|'))
+    fail(`onglets : un nom accessible manque — ${JSON.stringify(m.noms)} ; `
+       + 'sans lui, un libellé élidé s’annonce tronqué');
+  else console.log(`onglets : les quatre noms sont portés en clair par aria-label `
+    + `(${m.elide.length} mot(s) élidé(s) à 320 px, le nom reste entier) ✓`);
+  await nCtx.close();
 }
 
 /* ---------- LA BARRE D'UNE LISTE À COCHER : UNE RANGÉE ----------
