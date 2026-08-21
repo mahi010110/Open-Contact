@@ -331,11 +331,14 @@ net. Sources uniques : `styles/tokens/` et le kit `design/`.
   Ce qui est gardé : chaque onglet porte son nom en `aria-label`. Un mot
   élidé s'annonçait tronqué à un lecteur d'écran ; il s'annonce entier.
 
-  **Ce qui reste à trancher** : « Aujourd'hui » est trop long. M3 le dit
-  dans l'autre sens — *use short text labels* — et la vraie réponse est
-  de raccourcir le mot, pas de le cacher. Ça touche §7 (un objet, un
-  mot) : l'onglet, le titre de l'écran et `document.title` changeraient
-  ensemble. Décision du mainteneur.
+  **Tranché : le mot reste** *(décision du mainteneur, 21 août 2026)*.
+  M3 dit bien *use short text labels*, et la vraie réponse aurait été de
+  raccourcir le mot plutôt que de le cacher — mais raccourcir touche §7
+  (un objet, UN mot) : l'onglet, le titre de l'écran et `document.title`
+  changeraient ensemble, pour deux pixels sur la seule largeur de
+  320 px. Le mot dit ce que l'écran est ; l'abréger coûterait plus que
+  l'élision. La limite est donc **assumée, pas ouverte** — elle ne se
+  rediscute que si un retour de bêta la signale sur un vrai appareil.
 
 - **Le survol NE SE LÈVE PAS au doigt.** iOS applique `:hover` au tap et
   le LAISSE jusqu'au tap suivant : chaque règle non gardée devient une
