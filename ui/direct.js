@@ -673,7 +673,7 @@ export function openPromo(){
                     ${/* la même sous-ligne que « Donner » et « Prospecter » :
                          le statut dit où en est la piste qu'on fait circuler */''}
                     <div class="pk-m"><b>${esc(c.name)}</b>
-                      <span>${STATUSES[c.status].label}${c.city ? ' · ' + esc(c.city) : ''}${
+                      <span class="pk-s">${STATUSES[c.status].label}${c.city ? ' · ' + esc(c.city) : ''}${
                         whoInline(c, keepOf(c), 'donner') && ' · ' + whoInline(c, keepOf(c), 'donner')
                         || ''}</span></div>
                   </button>

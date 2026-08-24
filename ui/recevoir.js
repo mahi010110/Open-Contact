@@ -474,7 +474,7 @@ export function mergePreviewInto(sh, obj, opts){
            `<button class="pick pk on" data-sel="${i}" aria-pressed="true">
               ${ic('checkbox', 'ic-20 ic-off')}${ic('checkbox-on', 'ic-20 ic-on')}
               <div class="pk-m"><b>${esc(c.name || '')}</b>
-                <span>${esc([c.city, (c.contacts || []).length ? (c.contacts.length + ' contact' + (c.contacts.length > 1 ? 's' : '')) : ''].filter(Boolean).join(' · '))}</span></div>
+                <span class="pk-s">${esc([c.city, (c.contacts || []).length ? (c.contacts.length + ' contact' + (c.contacts.length > 1 ? 's' : '')) : ''].filter(Boolean).join(' · '))}</span></div>
             </button>`).join('')}
        </div>` : ''}
        ${/* « Rien n'est écrasé, tu peux annuler juste après » : l'écran

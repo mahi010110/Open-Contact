@@ -2760,6 +2760,16 @@ const ZOOM_EXCEPTIONS = [
   '.bn-l',
   /* Sous-lignes : données, pas identité. Elles s'élident par dessin. */
   '.act-do', '.o-sub', '.ri-sub', '.fi-sub', '.ctc-sub', '.ec-when', '.pk-m',
+  /* `.pk-s` — la sous-ligne d'une ligne à cocher : « statut · ville ·
+     qui est visé ». Elle vivait en `<span>` NU dans les six listes, ce
+     qui la rendait innommable : une exception qui ne peut pas se
+     nommer force à ouvrir la garde pour tout le monde. Elle porte
+     désormais son nom, comme ses cinq sœurs. */
+  /* `.bc-sub` — la sous-ligne de la carte du tableau. Elle n'existe
+     qu'au poste : elle serait une exception MORTE tant que la garde ne
+     mesurait que le pouce, et c'est ce qui a fait ajouter le passage
+     au poste plutôt que l'exception seule. */
+  '.pk-s', '.bc-sub',
   /* L'en-tête d'objet et l'état d'un réglage : des DONNÉES. `.obj-l`
      porte la formation et l'adresse — et une adresse rendue
      « …@example » sur une ligne et « .fr » sur la suivante n'est plus
@@ -2853,21 +2863,10 @@ const SONDE_COUPE = () => {
   return { coupes: out, deborde: Math.round(document.documentElement.scrollWidth - innerWidth),
            glisse: large, coupable, grilles, ecrases };
 };
-{
-  const zBrowser = await chromium.launch({ executablePath: chromiumPath() });
-  /* LE PETIT TÉLÉPHONE DÉCIDE (CLAUDE.md §5). Ce balayage vivait en
-     393×852, et c'est ce qui l'a rendu aveugle : à cette largeur aucun
-     nom d'entreprise réel ne se coupe à 200 %, si bien que remettre le
-     plafond de `.row-item h3` à deux rangs passait au vert. En 320 px —
-     la largeur la plus étroite qu'on prétende servir — cinq pertes de
-     contenu sont sorties d'un coup. Mesurer au plus large, c'est ne pas
-     mesurer. */
-  const zCtx = await zBrowser.newContext({ viewport: { width: 320, height: 640 }, hasTouch: true });
-  const zPage = await zCtx.newPage();
-  zPage.on('pageerror', e => errors.push(String(e)));
-  await zPage.goto(base, { waitUntil: 'load' });
-  await zPage.waitForSelector('#view-aujourdhui:not([hidden])');
-  await zPage.evaluate(async () => {
+/* LA MÊME GRAINE POUR LES DEUX ERGONOMIES. Extraite parce que le
+   poste doit voir exactement ce que voit le pouce — deux jeux de
+   données différents rendraient les deux relevés incomparables. */
+const GRAINE_ZOOM = async () => {
     const { S, saveData, saveJournal } = await import('./ui/state.js');
     const { normalizeCompany } = await import('./engine/model.js');
     S.profile.name = 'Maheydine Oun'; S.profile.formation = 'BTS SIO SISR'; S.profile.email = 'm@x.test';
@@ -2897,7 +2896,22 @@ const SONDE_COUPE = () => {
       S.journal.push({ t: j - (i + 1) * 864e5, txt: canaux[i % 3], ids: ['cz'] });
     saveJournal();
     saveData();
-  });
+  };
+{
+  const zBrowser = await chromium.launch({ executablePath: chromiumPath() });
+  /* LE PETIT TÉLÉPHONE DÉCIDE (CLAUDE.md §5). Ce balayage vivait en
+     393×852, et c'est ce qui l'a rendu aveugle : à cette largeur aucun
+     nom d'entreprise réel ne se coupe à 200 %, si bien que remettre le
+     plafond de `.row-item h3` à deux rangs passait au vert. En 320 px —
+     la largeur la plus étroite qu'on prétende servir — cinq pertes de
+     contenu sont sorties d'un coup. Mesurer au plus large, c'est ne pas
+     mesurer. */
+  const zCtx = await zBrowser.newContext({ viewport: { width: 320, height: 640 }, hasTouch: true });
+  const zPage = await zCtx.newPage();
+  zPage.on('pageerror', e => errors.push(String(e)));
+  await zPage.goto(base, { waitUntil: 'load' });
+  await zPage.waitForSelector('#view-aujourdhui:not([hidden])');
+  await zPage.evaluate(GRAINE_ZOOM);
   await zPage.evaluate(() => { document.documentElement.style.fontSize = '32px'; });
   const dur = []; let vus = 0; let doublee = false; let sondeLarge = null; let mesurees = 0;
   let sondeEcrase = null; let filVu = false;
@@ -2917,7 +2931,15 @@ const SONDE_COUPE = () => {
       (await import('./ui/edit.js')).openEditPiste(S.companies[0]); })],
     ['contact', async p => p.evaluate(async () =>
       (await import('./ui/contact.js')).openContactEditor(null))],
-    ['capture', async p => p.evaluate(async () => (await import('./ui/capture.js')).openCapture())]
+    ['capture', async p => p.evaluate(async () => (await import('./ui/capture.js')).openCapture())],
+    /* LES DEUX FEUILLES DU GESTE PHARE. Elles manquaient, et c'est ce
+       qui a laissé passer un nom de piste amputé DÈS 100 % sur un
+       320 px : dans une liste où l'on coche, « Société Générale G… »
+       ne se distingue plus de son homonyme — une erreur de décision,
+       pas d'esthétique. Le défaut ne s'est vu qu'en balayant le poste
+       à la main, ce que la garde ne faisait pas non plus. */
+    ['donner', async p => p.evaluate(async () => (await import('./ui/donner.js')).openDonner(null))],
+    ['prospecter', async p => p.evaluate(async () => (await import('./ui/prospect.js')).openProspect(null))]
   ];
   for (const [nom, ouvrir] of surfaces){
     await zPage.evaluate(async () => {
@@ -2981,13 +3003,75 @@ const SONDE_COUPE = () => {
       await zPage.evaluate(() => { document.getElementById('sondeEcrase')?.remove(); });
     }
   }
-  await zCtx.close(); await zBrowser.close();
+  await zCtx.close();
+
+  /* ---- ET LE POSTE, À LA MÊME POLICE ----
+     L'app a DEUX ergonomies (§5), et cette garde n'en mesurait qu'une.
+     Le poste porte des objets que le pouce n'a pas du tout : la carte
+     du tableau à trois colonnes, les titres de colonne collants, la
+     barre d'état. Aucun n'était vu à texte doublé. Le relevé fait à la
+     main y a trouvé le défaut de ce lot — un nom de piste amputé dans
+     une liste à cocher — avant que le balayage au pouce ne sache le
+     voir. Six surfaces suffisent : les quatre écrans, plus la fiche et
+     « Donner », les seules dont le dessin diffère vraiment du pouce. */
+  const wCtx = await zBrowser.newContext({ viewport: { width: 1280, height: 800 } });
+  const wPage = await wCtx.newPage();
+  wPage.on('pageerror', e => errors.push(String(e)));
+  await wPage.goto(base, { waitUntil: 'load' });
+  await wPage.waitForSelector('#view-aujourdhui:not([hidden])');
+  await wPage.evaluate(GRAINE_ZOOM);
+  await wPage.evaluate(() => { document.documentElement.style.fontSize = '32px'; });
+  let carteVue = false;
+  /* CE PASSAGE SE VÉRIFIE LUI-MÊME. Sans ça, le débrancher — rendre un
+     relevé vide au lieu d'appeler la sonde — laisse `mesurees` à son
+     compte et la garde reste verte : elle dirait mesurer 17 surfaces
+     en n'en lisant que 11. On exige donc que le poste rapporte des
+     élisions QUI LUI SONT PROPRES ; il en a (`.bc-sub`, la sous-ligne
+     de la carte du tableau, n'existe qu'ici). */
+  const vusAvantPoste = vus;
+  for (const [nom, ouvrir] of [
+    ['aujourdhui', null], ['pistes', null], ['echanger', null], ['moi', null],
+    ['fiche', async p => p.evaluate(async () => { const { S } = await import('./ui/state.js');
+      (await import('./ui/fiche.js')).openFiche(S.companies[0]); })],
+    ['donner', async p => p.evaluate(async () => (await import('./ui/donner.js')).openDonner(null))]
+  ]){
+    await wPage.evaluate(async () => {
+      const { topSheet } = await import('./ui/dom.js');
+      let s; let n = 0;
+      while ((s = topSheet()) && n++ < 5){ s.close(null, true); await new Promise(r => setTimeout(r, 110)); }
+    });
+    if (ouvrir) await ouvrir(wPage);
+    else await wPage.evaluate(r => { location.hash = '#/' + r; }, nom);
+    await wPage.waitForTimeout(450);
+    const r = await wPage.evaluate(SONDE_COUPE);
+    vus += r.coupes.length; mesurees++;
+    /* la carte du tableau n'existe qu'ici : si elle manque, ce passage
+       ne mesure pas l'ergonomie qu'il prétend mesurer */
+    if (nom === 'pistes')
+      carteVue = await wPage.evaluate(() => !!document.querySelector('.bcard'));
+    if (r.deborde > 1) dur.push(`poste · ${nom} : la page déborde de ${r.deborde}px en largeur`);
+    for (const c of r.coupes){
+      if (ZOOM_EXCEPTIONS.some(x => c.cls.includes(x.slice(1)))) continue;
+      dur.push(`poste · ${nom} · −${c.perdu}px ${c.q} « ${c.t} »`);
+    }
+    for (const c of r.ecrases)
+      dur.push(`poste · ${nom} · ${c.q} écrase son contenu de ${c.perdu}px (boîte ${c.h}px) « ${c.t} »`);
+  }
+  const vusPoste = vus - vusAvantPoste;
+  await wCtx.close(); await zBrowser.close();
   /* le contrôle dit sous quelle police il mesure — sans ça, retirer
      l'agrandissement le laisserait passer au vert sans rien vérifier */
   if (!doublee) fail('texte doublé : la garde ne mesure pas à 200 % — elle ne vérifie plus rien');
-  else if (mesurees < 9)
-    fail(`texte doublé : ${mesurees} surfaces mesurées au lieu de 9 — écrans ET feuilles, `
-      + `c'est en n'ouvrant aucune feuille que la garde a laissé passer le glissement latéral`);
+  else if (mesurees < 17)
+    fail(`texte doublé : ${mesurees} surfaces mesurées au lieu de 17 — écrans ET feuilles, `
+      + `au pouce ET au poste ; c'est en n'ouvrant aucune feuille que la garde a laissé passer `
+      + `le glissement latéral, et en ignorant le poste qu'elle a laissé passer le nom amputé`);
+  else if (!carteVue)
+    fail('texte doublé : la carte du tableau (`.bcard`) n’est pas rendue au poste — '
+      + 'ce passage ne mesure pas l’ergonomie qu’il prétend mesurer');
+  else if (vusPoste <= 0)
+    fail('texte doublé : le passage au poste n’a rapporté aucune élision, pas même celles '
+      + 'qu’il est seul à voir — il compte des surfaces sans les lire');
   else if (!sondeLarge)
     fail('texte doublé : la sonde plantée (un bloc de 9999px dans une feuille) n’a pas été vue — '
       + 'la mesure du dépassement ne mesure plus rien');
@@ -3001,7 +3085,8 @@ const SONDE_COUPE = () => {
   else if (dur.length)
     fail(`texte doublé à 200 % : ${dur.length} perte(s) de contenu hors exceptions nommées —\n      ` + dur.join('\n      '));
   else console.log(`texte doublé à 200 % : rien d'identifiant ne se coupe, aucune feuille ne glisse, `
-    + `sur ${surfaces.length} surfaces (${vus} élisions, toutes dans les exceptions nommées) ✓`);
+    + `sur ${mesurees} surfaces (${surfaces.length} au pouce en 320 px, ${mesurees - surfaces.length} `
+    + `au poste en 1280 px) — ${vus} élisions, toutes dans les exceptions nommées ✓`);
 }
 
 /* ---------- LE PLAN DU DOCUMENT, ET SON CONTRASTE ----------

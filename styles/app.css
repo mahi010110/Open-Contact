@@ -1911,8 +1911,26 @@ button.ec-row:hover{background:var(--surface-field)}
    prospection, « → qui », appareils). Le nom tient sa ligne, l'état la
    sienne, chacun se coupe à sa fin, et le chevron garde sa place. */
 .pick .pk-m,.pk .pk-m{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;text-align:left}
-.pick .pk-m>b,.pick .pk-m>span,.pk .pk-m b,.pk .pk-m span{
+/* LA SOUS-LIGNE S'ÉLIDE : « statut · ville · qui est visé », des
+   données — la ligne reste compréhensible sans sa fin (§4). */
+.pick .pk-m>span,.pk .pk-m span{
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+/* LE NOM PLIE : c'est l'identité de la ligne, et dans une liste où
+   l'on COCHE, un nom amputé n'est pas un défaut d'esthétique, c'est
+   une erreur de décision — « Société Générale G… » ne se distingue
+   plus de son homonyme. Il était en `nowrap` + ellipse, et se coupait
+   dès 100 % sur un 320 px : l'état quotidien d'un petit téléphone, pas
+   un cas limite. Trois rangs, la même valeur et la même raison que
+   `.row-item h3` — l'app n'a qu'une règle pour ça.
+   Ce que ça coûte, mesuré : à 390 px et au poste, RIEN (pas de 52 px
+   inchangé, aucun nom n'atteint le second rang) ; en 320 et 360 px les
+   seules lignes qui grandissent (52 → 71 px) sont celles dont le nom
+   se faisait couper. Le pas ne se casse que là où de l'information se
+   perdait. */
+.pick .pk-m>b,.pk .pk-m b{
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
+  overflow-wrap:break-word;
 }
 .pick .pk-m span{font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted)}
 .pick:disabled{opacity:.62;cursor:not-allowed;box-shadow:none}

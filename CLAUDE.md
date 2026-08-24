@@ -455,6 +455,25 @@ les confondre coûte cher : une tablette tactile en paysage fait 1024 à
   largeur la plus étroite qu'on prétende servir — cinq pertes de
   contenu sont sorties d'un coup. **Mesurer au plus large, c'est ne pas
   mesurer.**
+  Troisième corollaire, et le plus coûteux des trois : **une garde qui
+  ne mesure qu'une ergonomie ne mesure pas l'app.** Le balayage à 200 %
+  ne connaissait que le pouce, alors que le poste porte des objets que
+  le pouce n'a pas du tout — la carte du tableau à trois colonnes, les
+  titres de colonne collants, la barre d'état. C'est en relevant le
+  poste à la main qu'un nom de piste amputé est sorti, dans les listes
+  à cocher, **dès 100 % sur un 320 px** : l'état quotidien d'un petit
+  téléphone, que le balayage au pouce ne voyait pas non plus parce que
+  les deux feuilles concernées n'étaient pas dans sa liste. Deux
+  angles morts qui se recouvraient.
+
+- **Une exception qui ne peut pas se NOMMER force à ouvrir la garde
+  pour tout le monde.** Les exceptions d'élision se désignent par
+  classe ; la sous-ligne des six listes à cocher vivait en `<span>` nu.
+  Impossible de dire « celle-là est une donnée » sans dire « tous les
+  `span` sont des données ». Elle porte son nom (`.pk-s`), comme ses
+  cinq sœurs. **Tout ce qui a le droit de s'élider doit être
+  nommable** — sinon l'exception se prend au niveau du type de balise,
+  et la garde ne garde plus rien.
 
 - **Une icône ne grandit pas avec le texte, et c'est elle qui vole la
   place.** Le piège est contre-intuitif : à texte agrandi on cherche la
@@ -651,7 +670,7 @@ avec un motif existant.
 | Proposer un filtre | `.fl-chip` + son **compte**. Ne jamais offrir une valeur absente des données. Liste fermée (statuts) : la puce reste, éteinte. Liste ouverte (domaines) : elle disparaît, sauf si le filtre est actif |
 | Note contextuelle | `<p class="hint">` (+ `warn` si alerte) |
 | Décrire une piste dans un TABLEAU | trois lignes au maximum — nom, sous-ligne, action. Material 3 plafonne un élément de liste à trois lignes de texte ; au-delà c'est une carte à média. La carte du poste en empilait quatre, la quatrième étant le compte de personnes SEUL sur son rang, pendant que la ligne au pouce disait la même piste en une sous-ligne — on réapprenait à lire une piste en changeant d'appareil. **Et l'ordre décide de ce qu'on perd** : la sous-ligne s'élide par la fin, donc le compte de personnes passe avant le domaine — c'est le secteur qu'on peut perdre, jamais le nombre de gens joignables |
-| Décrire une piste dans une liste à cocher | **une seule sous-ligne pour les trois** (Donner, Prospecter, partage en groupe) : `statut · ville · qui est visé`. Elles en donnaient trois versions ; on réapprenait à lire une piste en passant d'une feuille à sa voisine. La ville n'est pas décorative — deux pistes du même statut ne se distinguent souvent que par elle |
+| Décrire une piste dans une liste à cocher | **le nom plie, la sous-ligne s'élide** — dans une liste où l'on COCHE, un nom amputé n'est pas un défaut d'esthétique mais une erreur de décision : « Société Générale G… » ne se distingue plus de son homonyme. Trois rangs, la même valeur et la même raison que `.row-item h3`. Et **une seule sous-ligne pour les trois** (Donner, Prospecter, partage en groupe) : `statut · ville · qui est visé`. Elles en donnaient trois versions ; on réapprenait à lire une piste en passant d'une feuille à sa voisine. La ville n'est pas décorative — deux pistes du même statut ne se distinguent souvent que par elle |
 | Multi-sélection | `.pk` avec icônes checkbox — **jamais pour supprimer**. **Le coché ne porte aucun aplat** : la carte reste entière, l'état vit dans la case (voir §4). Un seul état de plus, `pk-inverse`, et seulement là où la liste part de « tout coché » (Donner, partage en groupe, « → qui » en mode *donner*) : la ligne **écartée** se dithère, parce que là une ligne non cochée n'est pas « pas encore choisie », elle est SORTIE. Ailleurs cet état n'existe pas — c'est un état en moins, pas une inégalité. **Généraliser la trame a été demandé, mesuré, refusé** : sur une liste qui part de rien coché, elle s'applique à TOUTES les lignes à l'ouverture et l'écran se lit « rien n'est disponible » au moment précis où il doit inviter à choisir. Deux sources le disent — le grisé est la convention universelle de l'INDISPONIBLE (NN/g), et Material 3 demande que la distinction vienne de ce qui est **retenu**, jamais de l'affaiblissement du reste |
 | Choisir qui part / qui est visé | `ui/qui.js` — la ligne « → qui » et sa sous-feuille à cocher |
 | Supprimer un élément | glisser (mobile) / poubelle au survol (desktop) + `showUndo`, sans confirmation |

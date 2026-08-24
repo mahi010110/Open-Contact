@@ -140,7 +140,7 @@ export function openDonner(){
                 <button class="pick pk${unsel.has(c.id) ? '' : ' on'}" data-id="${c.id}" aria-pressed="${!unsel.has(c.id)}">
                   ${ic('checkbox', 'ic-20 ic-off')}${ic('checkbox-on', 'ic-20 ic-on')}
                   <div class="pk-m"><b>${esc(c.name)}</b>
-                    <span>${STATUSES[c.status].label}${c.city ? ' · ' + esc(c.city) : ''}${
+                    <span class="pk-s">${STATUSES[c.status].label}${c.city ? ' · ' + esc(c.city) : ''}${
                       /* déjà échappé par whoInline — il porte son icône */
                       whoInline(c, keepOf(c), 'donner') && ' · ' + whoInline(c, keepOf(c), 'donner')
                       || ''}</span></div>
