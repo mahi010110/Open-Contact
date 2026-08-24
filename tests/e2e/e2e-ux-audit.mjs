@@ -3340,9 +3340,19 @@ const cbBrowser = await chromium.launch({ executablePath: chromiumPath() });
    La leçon vaut plus que le passage lui-même : un contrôle ne garde que
    les ÉTATS qu'il met en place. Ajouter une taille de texte ne rattrape
    jamais un état qu'on n'ouvre pas. */
+/* AU PLUS ÉTROIT, ICI AUSSI. Le balayage des élisions est passé en
+   320 px et cinq défauts en sont sortis ; celui des cibles vivait
+   encore en 390. Une cible dont la LARGEUR vient du conteneur rétrécit
+   avec lui, donc 320 px est le cas dur — et 640 px de haut serre en
+   plus la région, ce que 844 ne fait pas. Mesuré avant de déplacer :
+   297 cibles, aucune sous 44 px, exactement comme en 390. Le
+   déplacement ne corrige rien aujourd'hui ; il rend la garde plus
+   sévère pour demain, et surtout il aligne les deux balayages sur la
+   même règle — deux instruments qui mesurent des largeurs différentes
+   finissent par se contredire. */
 for (const [nom, w, h, tactile, seuil, racine] of [
-    ['au doigt', 390, 844, true, 44, 0],
-    ['au doigt, texte à 125 %', 390, 844, true, 44, 20],
+    ['au doigt', 320, 640, true, 44, 0],
+    ['au doigt, texte à 125 %', 320, 640, true, 44, 20],
     ['à la souris', 1280, 800, false, 24, 0]]){
   const cbCtx = await cbBrowser.newContext({ viewport: { width: w, height: h }, hasTouch: tactile });
   const cbPage = await cbCtx.newPage();
