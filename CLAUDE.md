@@ -1017,6 +1017,23 @@ feuilles secondaires, jamais dans le titre.
 `index.html`** (la coque compte aussi, c'est là que « sauvegarde » avait
 survécu), puis regrouper les synonymes. Un compte ne tranche pas seul : il
 faut relire la phrase. « Copie impossible ici » parle du presse-papier.
+C'est le cinquième compte de `e2e-sobriete.mjs`, plafond zéro, et il rend
+la PHRASE et sa ligne — jamais le seul chiffre.
+
+**Le premier relevé a donné raison à la règle, mot pour mot.** Trois
+dérives, toutes dans des textes qu'on ne relit jamais : l'`aria-label`
+de la ligne « → qui » — c'est-à-dire **le seul nom qu'entend un lecteur
+d'écran** — et deux infobulles de jeton. Aucune dans un titre, aucune
+dans un bouton. Corollaire à tenir : **ce qui n'est lu que par une
+machine dérive en premier**, parce que personne ne le relit en
+regardant l'écran.
+
+Deux pièges d'outillage, payés tous les deux : ce dépôt écrit beaucoup
+de commentaires, dont certains **citent les mots interdits** pour dire
+pourquoi ils le sont — les compter rendait des fautes là où il n'y en
+avait aucune. Et un commentaire retiré doit laisser ses **sauts de
+ligne** : sans ça le contrôle désigne la mauvaise ligne, on cherche là
+où il n'y a rien, et on finit par ne plus le croire.
 
 **Le plus court qui reste compris.** L'ordre est bien : rien, une icône, un
 mot, une phrase — mais **la compréhension passe avant la brièveté**. Si un mot

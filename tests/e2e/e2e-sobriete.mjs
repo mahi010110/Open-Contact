@@ -151,7 +151,14 @@ const PLAFOND = {
      Ce qui reste au kit exprès se nomme dans KIT_GARDE, pas ici.
      Terrain gagné le 25 août 2026 : 20 classes et 1 identifiant, 69
      lignes de style, dont les restes de deux passes récentes. */
-  surfaceMorte: 0
+  surfaceMorte: 0,
+  /* ZÉRO aussi, et pour la même raison : un mot hors charte n'a pas de
+     contrepartie — il fait apprendre deux fois le même objet. Ce qui
+     est légitime (le pronom « personne », l'idiome « en personne », le
+     poste « team lead ») se nomme dans MOTS_GARDE, phrase entière.
+     Terrain gagné le 25 août 2026 : trois occurrences, toutes dans des
+     textes secondaires — un `aria-label` et deux infobulles. */
+  motsHorsCharte: 0
 };
 
 const fichiers = readdirSync(UI).filter(f => f.endsWith('.js') && !HORS_ECRAN.has(f));
@@ -368,12 +375,130 @@ const KIT_GARDE = [
   globalThis.__surfaceMorte = total;
 }
 
+/* ============================================================
+   ⑤ UN OBJET, UN MOT — le vocabulaire, compté
+
+   `CLAUDE.md` §7 fixe cinq objets et leur mot, et annonce que « ça se
+   vérifie mécaniquement — extraire les chaînes de `ui/*.js` ET de
+   `index.html` ». Personne ne le faisait. Le document note pourtant
+   d'où vient la dérive : « le glissement se fait toujours dans les
+   feuilles secondaires, jamais dans le titre ». Le premier relevé l'a
+   confirmé mot pour mot — trois occurrences, toutes dans des textes
+   qu'on ne relit jamais : l'`aria-label` de la ligne « → qui » (le
+   SEUL nom qu'entend un lecteur d'écran) et deux infobulles de jeton.
+
+   « Un compte ne tranche pas seul : il faut relire la phrase » (§7) —
+   le contrôle rend donc la PHRASE, jamais le seul chiffre.
+   ============================================================ */
+const MOTS = [
+  ['une entreprise suivie', 'piste',   ['boîte', 'boite', 'société', 'societe']],
+  ['une personne chez elle', 'contact', ['personne']],
+  ["l'écran d'une piste",   'fiche',   ['détail', 'detail']],
+  ['le fichier du suivi',   'copie',   ['sauvegarde', 'export', 'archive']],
+  ['les camarades',         'groupe',  ['promo', 'camarade', 'ami']],
+  ['le produit',            '—',       ['CRM', 'lead']]
+];
+
+/* Les exceptions se NOMMENT, avec leur raison — comme partout ailleurs.
+   Chacune est une phrase entière : une exception par mot-clé serait un
+   trou, une exception par phrase reste vérifiable à l'œil. */
+const MOTS_GARDE = [
+  /* §7 l'écrit lui-même : « personne — sauf le pronom
+     (« personne pour l'instant ») ». C'est la phrase citée. */
+  'Personne pour l’instant.',
+  /* « en personne » est l'idiome du face-à-face, pas un objet. Et
+     c'est précisément le canal que §8 recommande : une demande de
+     vive voix aboutit 34 fois plus souvent que par e-mail. */
+  'En personne · QR',
+  /* « team lead » est un INTITULÉ DE POSTE réel, pas le jargon
+     commercial que §7 bannit. Ici en exemple de champ, et là en
+     donnée de démonstration. */
+  'Ex : RH, team lead',
+  'Team lead infra'
+];
+
+{
+  /* les chaînes qui ARRIVENT À L'ÉCRAN : deux mots au moins, des
+     lettres françaises, et ni sélecteur, ni clé, ni URL */
+  const versEcran = t => {
+    if (t.length < 3) return false;
+    if (/^[a-z0-9_-]+$/i.test(t)) return false;
+    if (/^(https?:|data:|\/|#|\.|\$\{)/.test(t)) return false;
+    if (/^[\w-]+\/[\w-]+$/.test(t)) return false;
+    return /[A-ZÀ-ÿà-ÿ]/.test(t) && /\s/.test(t);
+  };
+  /* un identifiant d'icône n'est pas du texte : `ic('archive')` a fait
+     sortir « archive » d'un bouton qui dit « Clôturer » */
+  const sansIcones = l => l.replace(/\bic\(\s*(['"`])[^'"`]*\1/g, 'ic(');
+
+  const derives = []; let chaines = 0;
+  const sources = [['index.html', readFileSync(path.join(RACINE, 'index.html'), 'utf8')]];
+  for (const f of fichiers) sources.push([f, lire(f)]);
+
+  for (const [nom, src] of sources) {
+    /* LES COMMENTAIRES NE PARLENT À PERSONNE, et ce dépôt en écrit
+       beaucoup — dont des phrases qui citent les mots interdits pour
+       expliquer pourquoi ils le sont. Les compter rendait trois fautes
+       là où il n'y en avait aucune (même piège que le contrôle de
+       survol, §4). On les retire d'abord, sur le fichier ENTIER : un
+       commentaire de bloc court sur plusieurs lignes. */
+    /* On remplace chaque commentaire par AUTANT DE SAUTS DE LIGNE
+       qu'il en occupait : sinon les numéros rendus désignent une
+       autre ligne que la fautive, et le contrôle envoie un humain
+       au mauvais endroit — mesuré, `qui.js:38` pour une faute qui
+       vit en 58. Un contrôle qui accuse la mauvaise ligne coûte
+       plus cher que pas de contrôle : on cherche là où il n'y a
+       rien, et on finit par ne plus le croire. */
+    const nu = src
+      .replace(/\/\*[\s\S]*?\*\//g, c => c.replace(/[^\n]/g, ' '))
+      .replace(/^(\s*)\/\/.*$/gm, '$1');
+    const lignes = nu.split('\n');
+    lignes.forEach((ligne, i) => {
+      for (const m of sansIcones(ligne).matchAll(/(['"`])((?:\\.|(?!\1)[^\\])*)\1/g)) {
+        const t = m[2].trim();
+        if (!versEcran(t)) continue;
+        chaines++;
+        if (MOTS_GARDE.some(g => t.includes(g))) continue;
+        for (const [objet, bon, mauvais] of MOTS)
+          for (const mot of mauvais)
+            if (new RegExp(`(^|[^\\wÀ-ÿ])${mot}s?([^\\wÀ-ÿ]|$)`, 'i').test(t))
+              derives.push(`${nom}:${i + 1} « ${mot} » pour ${objet} — le mot est « ${bon} » :\n        « ${t.slice(0, 100)} »`);
+      }
+    });
+  }
+
+  /* LA SONDE PASSE PAR LE MÊME CHEMIN : une phrase fautive plantée
+     dans le flux doit ressortir. Sans elle, un `versEcran` trop strict
+     rendrait le compte nul pour toujours — la faute exacte que la
+     sonde de la surface morte a déjà attrapée une fois. */
+  const appat = 'Ta ' + 'société' + ' préférée';
+  let sondeVue = false;
+  for (const [objet, bon, mauvais] of MOTS)
+    for (const mot of mauvais)
+      if (versEcran(appat) && new RegExp(`(^|[^\\wÀ-ÿ])${mot}s?([^\\wÀ-ÿ]|$)`, 'i').test(appat))
+        sondeVue = true;
+
+  if (!sondeVue)
+    fail('vocabulaire : la sonde (une phrase volontairement fautive) n’est pas ressortie — '
+      + 'le filtre est trop strict et le compte vaudra zéro quoi qu’il arrive');
+  else if (chaines < 300)
+    fail(`vocabulaire : ${chaines} chaînes seulement lues à l’écran — le collecteur ne voit plus l’app`);
+  else if (derives.length > PLAFOND.motsHorsCharte)
+    fail(`vocabulaire : ${derives.length} mot(s) hors charte (plafond ${PLAFOND.motsHorsCharte}) —\n      `
+      + derives.join('\n      ')
+      + '\n      Relis la phrase avant de corriger : un compte ne tranche pas seul (§7).');
+  else console.log(`⑤ vocabulaire : ${derives.length} mot(s) hors charte `
+    + `(plafond ${PLAFOND.motsHorsCharte}) sur ${chaines} chaînes à l'écran`);
+  globalThis.__motsHorsCharte = derives.length;
+}
+
 /* Le rappel qui fait descendre les plafonds : ce qui est gagné se garde. */
 const marge = [
   ['toastCar', PLAFOND.toastCar - plusLong],
   ['confirmations', PLAFOND.confirmations - confirmations],
   ['motsExplication', PLAFOND.motsExplication - mots],
-  ['surfaceMorte', PLAFOND.surfaceMorte - globalThis.__surfaceMorte]
+  ['surfaceMorte', PLAFOND.surfaceMorte - globalThis.__surfaceMorte],
+  ['motsHorsCharte', PLAFOND.motsHorsCharte - globalThis.__motsHorsCharte]
 ].filter(([, d]) => d > 0);
 if (marge.length)
   console.log('↓ terrain gagné, à verrouiller dans PLAFOND : ' +

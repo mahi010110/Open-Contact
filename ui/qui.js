@@ -55,7 +55,7 @@ export function whoLineHTML(c, keep, verbe){
       : '';
   if (cts.length === 1) return '';
   return `<button class="pk-who" data-who="${esc(c.id)}"
-                  aria-label="Personnes visées chez ${esc(c.name)}">
+                  aria-label="Contacts visés chez ${esc(c.name)}">
             ${ic(verbe === 'ecrire' ? 'mail' : 'contact', 'ic-14')}
             <span>${esc(whoLabel(cts, keep))}</span>${ic('chevron-down', 'ic-14')}
           </button>`;
