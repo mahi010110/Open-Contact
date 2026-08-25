@@ -26,18 +26,19 @@ qui partagent les mêmes données et le même vocabulaire.
 | Surface | État | Ce qu'elle apporte de plus |
 |---|---|---|
 | **Le web** (PWA, installable) | **livrée** | tout le quotidien : capturer, agir, écrire, partager avec son groupe, synchroniser ses appareils |
-| **L'ordinateur** | **la prochaine** | ce qu'un navigateur ne peut pas garantir : travailler application fermée, parler IMAP/SMTP, faire tourner une IA locale |
+| **L’ordinateur** | **la prochaine** | ce qu'un navigateur ne peut pas garantir : travailler application fermée, parler IMAP/SMTP, faire tourner une IA locale |
 | **Le téléphone** (store) | non commencée | la même chose que le web, mieux intégrée à l'appareil (caméra, partage, notifications) |
 
-*(Décision du mainteneur, 17 août 2026 : le « Compagnon » — une application
-d'appoint à côté du produit — est **abandonné comme concept**. Le code de
-`compagnon/` n'est pas jeté : la coquille native (Tauri) devient la
-fondation des applications **ordinateur ET téléphone**, qui exécuteront le
-même moteur `engine/` que le web. Le dossier garde son nom technique tant
-que ce chantier n'est pas rouvert — le crate, le binaire et le point
-d'entrée local portent ce nom, et tout se renommera d'un seul geste à la
-reprise. À l'écran comme dans la doc : **OpenContact pour ordinateur**,
-**OpenContact pour téléphone**.)*
+*(Décision du mainteneur, 17 août 2026, appliquée au code le 25 août :
+**trois applications d'un seul produit**, jamais un produit et son
+satellite. La coquille native de `natif/` (Rust/Tauri) est la fondation
+commune des applications **ordinateur ET téléphone** : elle exécute le
+même moteur `engine/` que le web, sans le réécrire. Les noms suivent :
+`natif/` est le dossier, la surface s'appelle **OpenContact pour
+ordinateur** ou **pour téléphone**, à l'écran comme dans la doc. Une
+seule chose garde son ancien nom et ne bougera jamais — la clé de
+stockage `oc_companion_v1` : §10 interdit de renommer une clé, et une
+association d'appareil déjà en place se perdrait.)*
 
 ### Les deux questions, avant d'ajouter quoi que ce soit
 
@@ -56,7 +57,7 @@ Pas « est-ce que c'est avancé », pas « est-ce que c'est pour les experts » 
 est-ce que ça marche **tout de suite, pour tout le monde**.
 
 **La règle qui ne bouge pas : les surfaces partagent des données, jamais des
-dépendances.** Le web reste entier si l'ordinateur n'existe pas.
+dépendances.** Le web reste entier si l’ordinateur n'existe pas.
 
 **Corollaire.** Une capacité d'une surface absente **n'apparaît pas** sur les
 autres. Ni grisée, ni « bientôt » : absente.
@@ -116,7 +117,7 @@ première bêta.
 
 **L'ordre des chantiers** *(décision du mainteneur, 17 août 2026)* : la
 direction est arrêtée — trois applications sur une même base, et une file.
-Le web se présente d'abord et récolte ses retours ; l'ordinateur s'ouvre
+Le web se présente d'abord et récolte ses retours ; l’ordinateur s'ouvre
 ensuite, sur la coquille native déjà écrite ; le téléphone suit, sur cette
 même coquille. Ce n'est plus un seuil à deviner, c'est une file à suivre —
 et les retours du web passent toujours devant.
@@ -132,7 +133,7 @@ C'est un outil de **motivation et d'action**, pas une base de données : chaque
 planifier.
 
 - **Utilisateur type** : étudiant BTS SIO / BUT, sur son téléphone, entre deux
-  cours. Le mobile est le contexte premier ; l'ordinateur est le poste de
+  cours. Le mobile est le contexte premier ; l’ordinateur est le poste de
   commandement (tableau, saisie longue).
 - **Local-first** : les données vivent sur les appareils et circulent en P2P
   ou par fichier `.oc`. Le fichier `.oc` est LE repli universel — il marche

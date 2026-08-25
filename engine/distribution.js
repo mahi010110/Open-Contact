@@ -1,5 +1,5 @@
 /* ============================================================
-   OpenContact — moteur · distribution du Compagnon
+   OpenContact — moteur · distribution de l’ordinateur
    D'où viennent les installateurs : les GitHub Releases du dépôt,
    construites par `release.yml` sous des noms STABLES. Ici : dire
    quel système utilise la personne, choisir le bon fichier dans la
@@ -15,7 +15,7 @@ export const DIST_PAGE = `https://github.com/${DIST_REPO}/releases/latest`;
 const DIST_API = `https://api.github.com/repos/${DIST_REPO}/releases/latest`;
 
 /* le système d'après le navigateur — un téléphone n'installe pas
-   le Compagnon, il répond « autre » et l'écran s'adapte */
+   l’ordinateur, il répond « autre » et l'écran s'adapte */
 export function osFromUA(ua){
   const s = String(ua || '');
   if (/android|iphone|ipad|ipod|mobile/i.test(s)) return 'autre';

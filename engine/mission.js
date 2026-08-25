@@ -1,7 +1,7 @@
 /* ============================================================
-   OpenContact — moteur · missions du Compagnon (contrat)
+   OpenContact — moteur · missions de l’ordinateur (contrat)
    Une mission est un bon de travail borné que la PWA confie au
-   Compagnon (l'app locale facultative) : exécuter les envois
+   Ordinateur (l'app locale facultative) : exécuter les envois
    d'une campagne app fermée, ou analyser un périmètre d'e-mails.
    Le contrat tient en trois règles (SPECIFICATIONS §8.2) :
    · IDEMPOTENTE — un identifiant stable ; deux canaux ou une
@@ -47,7 +47,7 @@ export function revokeMission(m){
    { m, sig, dev } — `m` est la chaîne JSON EXACTE qui a été signée
    (Ed25519 de l'appareil émetteur) : on vérifie les octets, PUIS on
    parse — aucune canonicalisation à maintenir des deux côtés. Le
-   Compagnon retrouve la clé publique de `dev` dans l'anneau appris à
+   Ordinateur retrouve la clé publique de `dev` dans l'anneau appris à
    l'association, et son cœur Rust re-vérifie tout (D17). */
 export async function signMission(m, devId, seedB64){
   const s = JSON.stringify(m);

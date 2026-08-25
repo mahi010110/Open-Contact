@@ -1,9 +1,9 @@
 /* E2E corrections prioritaires de l'audit UX : aucune action primaire morte,
-   parcours Compagnon mobile honnête, relais avancés accessibles, cibles au
+   parcours « l’ordinateur depuis un téléphone » honnête, relais avancés accessibles, cibles au
    pouce, contact sans doublon et fournisseurs IA non livrés non activables. */
 import { readFileSync, readdirSync } from 'fs';
 import { chromium, chromiumPath, SHOTS, serveRepo, attendre } from './outils.mjs';
-import { COMPAGNON, IA } from '../../ui/perimetre.js';
+import { ORDINATEUR, IA } from '../../ui/perimetre.js';
 
 const { server, base } = await serveRepo();
 const browser = await chromium.launch({ executablePath: chromiumPath() });
@@ -1405,38 +1405,38 @@ await page.waitForSelector('#toast.on');
 await page.evaluate(async () => (await import('./ui/direct.js')).openAppareils());
 await page.waitForSelector('.sy-relays');
 if (await page.$('#toast.on')) fail('un ancien toast recouvre la nouvelle feuille');
-/* Le correctif F2 (la copie honnête du Compagnon sur téléphone) ne se
-   vérifie que si le Compagnon est à l'écran. Hors périmètre (CLAUDE.md §0),
+/* Le correctif F2 (la copie honnête de l’ordinateur sur téléphone) ne se
+   vérifie que si l’ordinateur est à l'écran. Hors périmètre (CLAUDE.md §0),
    c'est SON ABSENCE qui est la règle — on vérifie donc l'inverse, plutôt
-   que de sauter en silence : rien ne doit nommer le Compagnon ici. */
+   que de sauter en silence : rien ne doit nommer l’ordinateur ici. */
 const deviceText = await page.locator('.modal-b').innerText();
-if (COMPAGNON){
+if (ORDINATEUR){
   /* la ligne dit l'ÉTAT, pas la phrase (même règle que la liste des
      Réglages) : « pas installé · voir › ». Le chemin — c'est un logiciel
-     d'ordinateur — se dit sur l'écran d'après, vérifié juste en dessous. */
-  if (!/Le Compagnon[\s\S]*pas installé/.test(deviceText))
-    fail('la ligne Compagnon n’annonce pas son état : ' + deviceText.slice(0, 220));
+     d’ordinateur — se dit sur l'écran d'après, vérifié juste en dessous. */
+  if (!/L’ordinateur[\s\S]*pas installé/.test(deviceText))
+    fail('la ligne Ordinateur n’annonce pas son état : ' + deviceText.slice(0, 220));
   if (/depuis ton ordinateur/.test(deviceText))
-    fail('la ligne Compagnon réexplique au lieu de dire son état : ' + deviceText.slice(0, 220));
+    fail('la ligne Ordinateur réexplique au lieu de dire son état : ' + deviceText.slice(0, 220));
   if (await page.$('#devAddComp')) fail('le téléphone ne doit pas proposer un appairage local impossible');
   /* la ligne s'ouvre : le téléphone apprend le chemin (ordinateur d'abord),
      peut s'envoyer le lien, et sait quoi faire ensuite depuis ici */
   await page.click('#devCompInfo');
   await page.waitForSelector('.modal-f .btn-primary');
   const phoneTxt = await page.locator('.modal-b').last().innerText();
-  if (!/depuis ton ordinateur/.test(phoneTxt) || !/Ajouter le Compagnon/.test(phoneTxt))
-    fail('feuille Compagnon téléphone : chemin absent — ' + phoneTxt.slice(0, 200));
+  if (!/depuis ton ordinateur/.test(phoneTxt) || !/Ajouter l’ordinateur/.test(phoneTxt))
+    fail('feuille « l’ordinateur depuis un téléphone » : chemin absent — ' + phoneTxt.slice(0, 200));
   if (!/depuis ce téléphone/.test(phoneTxt))
-    fail('feuille Compagnon téléphone : l’usage depuis le téléphone manque');
+    fail('feuille « l’ordinateur depuis un téléphone » : l’usage depuis le téléphone manque');
   if (!/Copier le lien/.test(await page.locator('.modal-f').last().innerText()))
-    fail('feuille Compagnon téléphone : pas de lien à copier');
+    fail('feuille « l’ordinateur depuis un téléphone » : pas de lien à copier');
   await page.evaluate(async () => (await import('./ui/dom.js')).topSheet()?.close());
 } else {
-  if (/Compagnon/.test(deviceText))
-    fail('hors périmètre, « Mes appareils » nomme encore le Compagnon : ' + deviceText.slice(0, 220));
+  if (/Ordinateur/.test(deviceText))
+    fail('hors périmètre, « Mes appareils » nomme encore l’ordinateur : ' + deviceText.slice(0, 220));
   if (await page.$('#devAddComp') || await page.$('#devCompInfo'))
-    fail('hors périmètre, une entrée Compagnon subsiste dans « Mes appareils »');
-  console.log('Mes appareils : aucune trace du Compagnon (hors périmètre) ✓');
+    fail('hors périmètre, une entrée Ordinateur subsiste dans « Mes appareils »');
+  console.log('Mes appareils : aucune trace de l’ordinateur (hors périmètre) ✓');
 }
 await page.click('.sy-relays summary');
 await page.fill('#syRelays', 'https://pas-un-relais.example');
@@ -1469,7 +1469,7 @@ await attendre(page, async () => {
   return t.length === 1 && t[0].urls === 'turns:turn.exemple.org:443' &&
     t[0].username === 'etudiant' && t[0].credential === 'secret';
 });
-console.log('Compagnon mobile honnête + relais avancés + TURN validés ✓');
+console.log('« l’ordinateur depuis un téléphone » honnête + relais avancés + TURN validés ✓');
 await page.screenshot({ path: SHOTS + '/81-ux-appareils-mobile.png' });
 await closeSheet();
 /* ---------- LES DEUX FEUILLES À COCHER PARLENT LE MÊME LANGAGE ----------
@@ -2330,14 +2330,14 @@ await attendre(receivePage, async () => !!(await import('./ui/state.js')).S.prof
 await receivePage.evaluate(async () => (await import('./ui/recevoir.js')).openImportMails());
 await receivePage.waitForSelector('#rcMailTxt');
 const scanText = await receivePage.locator('.modal-b').innerText();
-if (COMPAGNON){
+if (ORDINATEUR){
   if (!/s.installe et s.associe depuis ton ordinateur/i.test(scanText) || /Moi → Mes appareils/.test(scanText))
-    fail('copie Compagnon mobile ambiguë : ' + scanText.slice(0, 260));
+    fail('copie « l’ordinateur depuis un téléphone » ambiguë : ' + scanText.slice(0, 260));
 } else {
   /* Hors périmètre, la source garde son chemin « je colle » — il ne demande
      ni installation ni compte — mais ne vante plus une surface absente. */
-  if (/Compagnon/.test(scanText))
-    fail('hors périmètre, « Depuis mes e-mails » nomme encore le Compagnon : ' + scanText.slice(0, 260));
+  if (/Ordinateur/.test(scanText))
+    fail('hors périmètre, « Depuis mes e-mails » nomme encore l’ordinateur : ' + scanText.slice(0, 260));
   if (!/Copie le prompt/.test(scanText))
     fail('le chemin « je colle » a disparu alors qu\'il ne demande rien : ' + scanText.slice(0, 260));
   console.log('Depuis mes e-mails : chemin « je colle » intact, aucune surface absente vantée ✓');
@@ -2346,7 +2346,7 @@ console.log('Depuis mes e-mails : consigne mobile réalisable ✓');
 
 /* F6 IA : le branchement par clé n'est proposé que si `IA` est allumé, et
    seules les familles JOIGNABLES y figurent — une famille qui passe par
-   l'ordinateur n'apparaît qu'avec cette surface (loi #6). Éteint, ce n'est
+   l’ordinateur n'apparaît qu'avec cette surface (loi #6). Éteint, ce n'est
    pas un trou à ignorer : on vérifie l'INVERSE, c'est-à-dire que la ligne a
    bien quitté les réglages. La page propre du scénario précédent reste
    indépendante du test réseau. */
@@ -2381,7 +2381,7 @@ if (IA){
     fail('famille joignable mal nommée : ' + JSON.stringify(aiUi));
   if (Object.values(aiUi).some(f => f.off) || /pas encore disponible/.test(JSON.stringify(aiUi)))
     fail('une famille est proposée sans pouvoir répondre : ' + JSON.stringify(aiUi));
-  if (COMPAGNON ? viaPC.some(k => !/via ton ordinateur/.test(aiUi[k].txt))
+  if (ORDINATEUR ? viaPC.some(k => !/via ton ordinateur/.test(aiUi[k].txt))
                 : viaPC.length)
     fail('familles « via ton ordinateur » incohérentes avec la surface : ' + JSON.stringify(aiUi));
   console.log('connexions IA : chaque famille dit son chemin, aucune grisée ✓');

@@ -1,0 +1,17 @@
+# Ce dépôt n'a pas d'étape de build : tout ce qui sert à faire tourner
+# l'app est vendorisé dans `assets/` avec sa licence. Ce fichier ne
+# couvre donc que ce qu'une MACHINE produit en local.
+#
+# Deux règles vivent déjà ailleurs, au plus près de ce qu'elles gardent,
+# et ne sont pas répétées ici : `natif/.gitignore` (les artefacts Rust)
+# et `tests/e2e/captures/.gitignore` (les captures des scénarios).
+
+# Dépendances installées localement (Playwright & co. pour les tests)
+node_modules/
+
+# Système et éditeurs
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/

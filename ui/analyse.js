@@ -2,15 +2,15 @@
    OpenContact — interface · analyses d'e-mails en attente
    Une mission mail-scan peut finir pendant que la feuille, l'onglet
    ou l'application est fermé. On mémorise donc son identifiant AVANT
-   de la confier, puis on reprend l'interrogation du Compagnon après
+   de la confier, puis on reprend l'interrogation de l’ordinateur après
    déverrouillage. Le résultat reste une enveloppe `share` ordinaire :
    ce module la valide et la garde scellée, mais ne fusionne rien.
    ============================================================ */
 import { ANALYSIS_KEY, kvGet, kvSet, kvDel } from '../engine/storage.js';
 import { parseInput } from '../engine/exchange.js';
-import { probeCompanion, companionCall } from '../engine/companion.js';
+import { probeOrdinateur, ordinateurCall } from '../engine/ordinateur.js';
 import { bus } from './state.js';
-import { loadCompanion } from './compagnon.js';
+import { loadOrdinateur } from './ordinateur.js';
 
 const ACTIVE = new Set(['sending', 'running']);
 const TWO_DAYS = 2 * 86400000;       /* même durée que la mission mail-scan */
@@ -92,7 +92,7 @@ export function subscribeMailAnalysis(fn){
 }
 
 /* Écrit AVANT l'appel réseau : même si l'app disparaît juste après que
-   le Compagnon a accepté le bon, son `mid` reste retrouvable. */
+   l’ordinateur a accepté le bon, son `mid` reste retrouvable. */
 export async function beginMailAnalysis(rec){
   await loadMailAnalysis();
   if (current && (ACTIVE.has(current.state) || current.state === 'ready')) throw new Error('analyse-en-attente');
@@ -140,12 +140,12 @@ export async function reconcileMailAnalysis(){
   if (job){ await job; return current; }
   const mid = current.mid;
   job = (async () => {
-    const assoc = await loadCompanion().catch(() => null);
+    const assoc = await loadOrdinateur().catch(() => null);
     if (!assoc) return { delay: 10000 };
-    const found = await probeCompanion();
+    const found = await probeOrdinateur();
     if (!found) return { delay: 10000 };
     let rep;
-    try { rep = await companionCall(found.base, assoc.k, { t: 'analyse-etat', mid }); }
+    try { rep = await ordinateurCall(found.base, assoc.k, { t: 'analyse-etat', mid }); }
     catch (e) { return { delay: 6000 }; }
     /* Une ancienne interrogation peut finir après « oublier » puis une
        nouvelle analyse : sa réponse ne doit jamais contaminer le nouveau mid. */

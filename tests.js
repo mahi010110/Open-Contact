@@ -42,7 +42,7 @@ import { dueFollowups, contactFromSignature, exchangeLog, exchangeTotals, nextAc
          SILENCE_RELANCE, SILENCE_DERNIERE, SILENCE_TROP_TARD } from './engine/assist.js';
 import { makeMission, missionUsable, revokeMission, foldCampaignReport,
          signMission, openMissionWire } from './engine/mission.js';
-import { normCode, pairKey } from './engine/companion.js';
+import { normCode, pairKey } from './engine/ordinateur.js';
 import { osFromUA, assetsForOS, DIST_PAGE } from './engine/distribution.js';
 import { browserFromUA, systemFromUA, diagnosticData, diagnosticText } from './engine/diagnostic.js';
 import { AI_FAMILIES, browserProviders, aiComplete, draftPrompt } from './engine/ai.js';
@@ -988,7 +988,7 @@ export async function runSelfTests(){
       const bad = await ringRecover(ring, badRec.seed, { id: 'B', name: 'B' }, kB.pub, newRec.pub);
       ok(!(await mergeRing(ring, bad)).changed);
     },
-    'missions Compagnon : bornées, révocables, rapport replié sans doublon': () => {
+    'missions Ordinateur : bornées, révocables, rapport replié sans doublon': () => {
       const m = makeMission('campaign-run', { campaignId: 'cp1' }, { at: 1000, mid: 'ms1' });
       ok(missionUsable(m, 1000 + 86400000));                    /* dans la fenêtre */
       ok(!missionUsable(m, 1000 + 31 * 86400000));              /* expirée */
@@ -1006,11 +1006,11 @@ export async function runSelfTests(){
       eq(c.log.length, 1);
       eq(dueSends(c, '2026-07-16').length, 0);
     },
-    'missions Compagnon : fil signé — vecteur figé, altération et expiration refusées': async () => {
+    'missions Ordinateur : fil signé — vecteur figé, altération et expiration refusées': async () => {
       if (!(await edAvailable())) return;
       /* graine fixe 0..31 : la signature Ed25519 est DÉTERMINISTE — ce
-         vecteur est vérifié à l'identique par le cœur Rust du Compagnon
-         (compagnon/coeur). S'il casse, le format du fil a changé. */
+         vecteur est vérifié à l'identique par le cœur Rust de l’ordinateur
+         (natif/coeur). S'il casse, le format du fil a changé. */
       const seedB64 = btoa(String.fromCharCode(...Array.from({ length: 32 }, (_, i) => i)));
       const pub = 'A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg';
       const m = { v: 1, mid: 'ms-test-1', kind: 'campaign-run', params: { cpId: 'cp1' },
@@ -1026,12 +1026,12 @@ export async function runSelfTests(){
       /* signée mais expirée = rien (missionUsable est dans le fil) */
       eq(await openMissionWire(wire, pub, 1755216000001), null);
     },
-    'compagnon : code toléré à la saisie, clé du code = vecteur du cœur Rust': async () => {
+    'ordinateur : code toléré à la saisie, clé du code = vecteur du cœur Rust': async () => {
       eq(normCode(' abcd 2345 '), 'ABCD-2345');
       eq(normCode('abcd-2345'), 'ABCD-2345');
       eq(normCode('AB'), 'AB');
       /* la dérivation (PBKDF2 « code: », 120 000 itér.) DOIT donner la
-         même clé que compagnon/coeur (enveloppe.rs, vecteur figé) : on
+         même clé que natif/coeur (enveloppe.rs, vecteur figé) : on
          scelle avec la clé dérivée, on ouvre avec la clé brute du vecteur */
       const selB64 = btoa(String.fromCharCode(...Array.from({ length: 16 }, (_, i) => i)));
       const k = await pairKey('abcd2345', selB64);
@@ -1040,9 +1040,9 @@ export async function runSelfTests(){
       const kBrut = await crypto.subtle.importKey('raw', raw, { name: 'AES-GCM' }, false, ['decrypt']);
       eq(await openValue(kBrut, 'canal', env), 'preuve');
     },
-    'compagnon : distribution — le bon fichier pour le bon système': () => {
+    'ordinateur : distribution — le bon fichier pour le bon système': () => {
       /* le système d'après le navigateur ; un téléphone = « autre »,
-         il ne télécharge pas, il apprend que ça se passe sur l'ordinateur */
+         il ne télécharge pas, il apprend que ça se passe sur l’ordinateur */
       eq(osFromUA('Mozilla/5.0 (Windows NT 10.0; Win64; x64)'), 'windows');
       eq(osFromUA('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'), 'mac');
       eq(osFromUA('Mozilla/5.0 (X11; Linux x86_64)'), 'linux');
@@ -1053,10 +1053,10 @@ export async function runSelfTests(){
       /* le choix dans la liste RÉELLE des assets — deb avant AppImage,
          setup.exe pour Windows, dmg pour macOS, rien pour « autre » */
       const assets = [
-        { name: 'OpenContact-Compagnon-linux-x64.AppImage', url: 'u1' },
-        { name: 'OpenContact-Compagnon-linux-x64.deb', url: 'u2' },
-        { name: 'OpenContact-Compagnon-windows-x64-setup.exe', url: 'u3' },
-        { name: 'OpenContact-Compagnon-macos-universel.dmg', url: 'u4' }
+        { name: 'OpenContact-Ordinateur-linux-x64.AppImage', url: 'u1' },
+        { name: 'OpenContact-Ordinateur-linux-x64.deb', url: 'u2' },
+        { name: 'OpenContact-Ordinateur-windows-x64-setup.exe', url: 'u3' },
+        { name: 'OpenContact-Ordinateur-macos-universel.dmg', url: 'u4' }
       ];
       eq(assetsForOS(assets, 'linux').map(a => a.url), ['u2', 'u1']);
       eq(assetsForOS(assets, 'windows').map(a => a.url), ['u3']);
@@ -1433,15 +1433,15 @@ export async function runSelfTests(){
     },
     'IA : familles, prompt cadré, erreurs sans réseau': async () => {
       eq(browserProviders().sort(), ['anthropic', 'gemini', 'openrouter']);
-      ok(AI_FAMILIES.chatgpt.channel === 'companion' && !AI_FAMILIES.chatgpt.key);
-      ok(AI_FAMILIES.ollama.channel === 'companion' && !AI_FAMILIES.ollama.key);
-      ok(AI_FAMILIES.openai.channel === 'companion' && AI_FAMILIES.openai.key);
+      ok(AI_FAMILIES.chatgpt.channel === 'ordinateur' && !AI_FAMILIES.chatgpt.key);
+      ok(AI_FAMILIES.ollama.channel === 'ordinateur' && !AI_FAMILIES.ollama.key);
+      ok(AI_FAMILIES.openai.channel === 'ordinateur' && AI_FAMILIES.openai.key);
       const p = draftPrompt({ company: { name: 'OVHcloud', city: 'Roubaix' },
         contactName: 'Théo', profile: { name: 'Mahé', formation: 'BTS SIO' } });
       ok(/OVHcloud \(Roubaix\)/.test(p) && /Théo/.test(p) && /Mahé, BTS SIO/.test(p));
       ok(/120 mots max/.test(p));
       try { await aiComplete({ provider: 'openai', key: 'x' }, 'test'); throw new Error('parti !'); }
-      catch (e) { eq(e.message, 'viacompagnon'); }
+      catch (e) { eq(e.message, 'viaordinateur'); }
       try { await aiComplete({ provider: 'anthropic', key: '' }, 'test'); throw new Error('parti !'); }
       catch (e) { eq(e.message, 'cle'); }
       try { await aiComplete({ provider: 'openrouter', key: '' }, 'test'); throw new Error('parti !'); }
@@ -1577,7 +1577,7 @@ export async function runSelfTests(){
       eq(campaignStats(c).replied, 1);
       eq(campaignStats(c).done, 2);
       /* sans tid, c'est toute l'entreprise qui se tait (fiche en
-         « réponse », rapport de l'ordinateur : aucun des deux ne sait qui) */
+         « réponse », rapport de l’ordinateur : aucun des deux ne sait qui) */
       let d = buildCampaign({ steps, launchAt: '2026-07-16', targets: [
         { cid: 'cap', name: 'Léa', email: 'lea@cap.fr' },
         { cid: 'cap', name: 'Marc', email: 'marc@cap.fr' }

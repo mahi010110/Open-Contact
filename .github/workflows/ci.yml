@@ -3,7 +3,7 @@
 #  · pwa        : les auto-tests unitaires (?test) dans un vrai Chromium ;
 #  · transport  : la sonde des relais Nostr publics réellement choisis par
 #                 l'app — la CI rougit si le transport public est mort (#14) ;
-#  · compagnon  : cargo test --locked + build release du binaire natif ;
+#  · ordinateur  : cargo test --locked + build release du binaire natif ;
 #  · scenarios  : la suite de bout en bout entière (tests/e2e/tous.mjs),
 #                 scénarios natifs compris — elle reconstruit le binaire
 #                 et le pilote sous xvfb, comme en développement ; la
@@ -51,8 +51,8 @@ jobs:
       - name: Auto-tests (?test)
         run: node tests/e2e/unitaires.mjs
 
-  compagnon:
-    name: Compagnon — cargo test + build
+  ordinateur:
+    name: Ordinateur — cargo test + build
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -68,13 +68,13 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: compagnon
+          workspaces: natif
       - name: Moteur partagé (preparer.mjs)
-        run: node compagnon/preparer.mjs
+        run: node natif/preparer.mjs
       - name: Tests Rust (cœur + coquille)
-        run: cargo test --locked --manifest-path compagnon/Cargo.toml
+        run: cargo test --locked --manifest-path natif/Cargo.toml
       - name: Build release du binaire
-        run: cargo build --locked --release -p oc-compagnon --manifest-path compagnon/Cargo.toml
+        run: cargo build --locked --release -p oc-natif --manifest-path natif/Cargo.toml
 
   scenarios:
     name: Bout en bout — suite complète (vrai binaire)
@@ -99,9 +99,9 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: compagnon
+          workspaces: natif
       - name: Moteur partagé (preparer.mjs)
-        run: node compagnon/preparer.mjs
+        run: node natif/preparer.mjs
       - name: Suite complète (unitaires + scénarios, natifs compris)
         run: node tests/e2e/tous.mjs
       - name: Captures d'écran des scénarios

@@ -87,7 +87,7 @@ export async function verifyRing(ring, pubB64url){
 }
 
 /* signature générique d'un texte par une graine d'appareil — les
-   missions du Compagnon voyagent signées ainsi (engine/mission.js),
+   missions de l’ordinateur voyagent signées ainsi (engine/mission.js),
    et le cœur Rust vérifie les mêmes octets */
 export async function edSign(seedB64, text){
   const priv = await privFromStored(seedB64);
@@ -119,7 +119,7 @@ export async function ringAddDevice(ring, privSeed, dev){
   if (deviceIn(ring, dev.id)) return ring;
   const out = Object.assign({}, ring, {
     devices: ring.devices.concat([{ id: dev.id, name: String(dev.name || 'Appareil').slice(0, 40),
-      pub: dev.pub, role: dev.role === 'companion' ? 'companion' : 'member', addedAt: Date.now() }]),
+      pub: dev.pub, role: dev.role === 'ordinateur' ? 'ordinateur' : 'member', addedAt: Date.now() }]),
     seq: (ring.seq || 0) + 1, updatedAt: Date.now()
   });
   return signRing(out, privSeed);

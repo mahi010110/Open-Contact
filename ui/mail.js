@@ -18,7 +18,7 @@ import { openSheet, toast, btn, el, ic, showUndo } from './dom.js';
 import { askNextAction } from './actions.js';
 import { openProfil } from './profil.js';
 import { listDocs, docKind, docTitle, pickPdf } from './docs.js';
-import { mailAccount, freshToken, openConnexions, aiConnection, aiCompleteViaCompanion } from './connexions.js';
+import { mailAccount, freshToken, openConnexions, aiConnection, aiCompleteViaOrdinateur } from './connexions.js';
 import { IA, ENVOI_DIRECT } from './perimetre.js';
 
 /* Les seuls champs qui nourrissent une accroche : ce qu'ils font, avec
@@ -53,7 +53,7 @@ export function openMail(c, opts){
   let done = false;
   const advance = () => { if (opts.onDone){ const f = opts.onDone; opts.onDone = null; f(); } };
   /* le composeur prend la place de la fiche (#16, fin du double-modal
-     N8) : même fenêtre partout, en bas au pouce, centrée sur l'ordinateur */
+     N8) : même fenêtre partout, en bas au pouce, centrée sur l’ordinateur */
   /* `modal-compose` : la fenêtre prend sa hauteur et c'est le MESSAGE
      qui la reçoit. Écrire est la seule chose qu'on fait ici, et 170 px
      de zone d'écriture — la même valeur au pouce et sur 1280x800, huit
@@ -383,8 +383,8 @@ export function openMail(c, opts){
         company: c, contactName: ct && ct.name, contactRole: ct && ct.role,
         profile: S.profile, intent: tpl && tpl.name
       });
-      const txt = conn && conn.channel === 'companion'
-        ? await aiCompleteViaCompanion(conn, prompt, { cancelled: () => !sh.body.isConnected })
+      const txt = conn && conn.channel === 'ordinateur'
+        ? await aiCompleteViaOrdinateur(conn, prompt, { cancelled: () => !sh.body.isConnected })
         : await aiComplete(conn, prompt);
       if (!sh.body.isConnected) return;   /* feuille fermée entre-temps */
       if (txt){
@@ -409,8 +409,8 @@ export function openMail(c, opts){
       toast(e.message === 'quota' ? 'Quota IA atteint — le modèle reste là.'
         : e.message === 'cle' ? 'Clé refusée — vérifie-la dans Connexions.'
         : e.message === 'modele' ? 'Choisis un modèle dans Connexions — la liste vient du fournisseur.'
-        : e.message === 'compagnon' ? 'Associe le Compagnon dans « Mes appareils » d’abord.'
-        : e.message === 'eteint' ? 'Ton ordinateur est éteint — ouvre le Compagnon.'
+        : e.message === 'ordinateur' ? 'Associe l’ordinateur dans « Mes appareils » d’abord.'
+        : e.message === 'eteint' ? 'Ton ordinateur est éteint — ouvre l’ordinateur.'
         : e.message === 'runtime' ? 'Le moteur IA de ton ordinateur ne répond pas — il est bien installé ?'
         : e.message === 'occupe' ? 'Une rédaction est déjà en cours — un instant.'
         : 'L’IA ne répond pas — le modèle reste là.');

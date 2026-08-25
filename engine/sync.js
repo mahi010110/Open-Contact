@@ -91,7 +91,7 @@ export function syncMerge(remote, local){
 /* ---------- campagnes et bons de mission privés ----------
    Ces deux collections empruntent le MÊME canal que les fiches, mais
    ne font jamais partie d'un partage communautaire ni d'un OCQ. Une
-   campagne peut être mise à jour sur l'ordinateur (journal replié) et
+   campagne peut être mise à jour sur l’ordinateur (journal replié) et
    sur le téléphone (réponse, reprise en main) : le plus récent fournit
    la forme, puis les faits irréversibles sont réunis. */
 const campaignTime = c => Number(c && c.updatedAt) || 0;

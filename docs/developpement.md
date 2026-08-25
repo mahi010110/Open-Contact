@@ -115,7 +115,7 @@ plus complet :
 |---|---|
 | **pwa** | Les auto-tests du moteur dans un vrai Chromium |
 | **transport** | Les relais publics réellement utilisés par l'app sont-ils joignables — la CI rougit si le transport public meurt, même sans commit |
-| **compagnon** | `cargo test` + construction du binaire natif |
+| **ordinateur** | `cargo test` + construction du binaire natif |
 | **scenarios** | La suite de bout en bout entière, liaison pair-à-pair jouée avec deux vrais navigateurs et un relais local |
 
 Aucun secret n'est requis : tout tourne contre des doubles locaux, sauf la

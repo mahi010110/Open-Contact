@@ -37,8 +37,8 @@ export const RING_KEY = 'oc_devring_v1';      /* anneau d'appareils signé + cl�
 export const CAMPAIGNS_KEY = 'oc_campaigns_v1'; /* campagnes de prospection (privé) */
 export const MAIL_KEY = 'oc_mail_v1';         /* connexions messagerie (jetons — toujours sous coffre) */
 export const AI_KEY = 'oc_ai_v1';             /* connexions IA (clés — toujours sous coffre) */
-export const MISSIONS_KEY = 'oc_missions_v1'; /* bons de mission confiés au Compagnon */
-export const COMPANION_KEY = 'oc_companion_v1'; /* association au Compagnon (clé de canal — toujours sous coffre) */
+export const MISSIONS_KEY = 'oc_missions_v1'; /* bons de mission confiés à l’ordinateur */
+export const ORDINATEUR_KEY = 'oc_companion_v1'; /* association à l’ordinateur (clé de canal — toujours sous coffre) */
 export const ANALYSIS_KEY = 'oc_analysis_v1'; /* dernière analyse d'e-mails à reprendre / trier */
 export const PROPOSALS_KEY = 'oc_proposals_v1'; /* propositions de l'assistant IA (MCP) à trier */
 export const THEME_KEY = 'oc_theme';
@@ -171,7 +171,7 @@ export async function kvDel(k){
    `null` silencieux qui ferait croire à une base vide. */
 export const SEALABLE = new Set([DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY,
   TOMBS_KEY, GROUP_KEY, SYNC_KEY, RELAYS_KEY, TURN_KEY, DEVICE_KEY, DEVICES_KEY, PROMO_KEY, RING_KEY,
-  CAMPAIGNS_KEY, MAIL_KEY, AI_KEY, MISSIONS_KEY, COMPANION_KEY, ANALYSIS_KEY,
+  CAMPAIGNS_KEY, MAIL_KEY, AI_KEY, MISSIONS_KEY, ORDINATEUR_KEY, ANALYSIS_KEY,
   PROPOSALS_KEY]);
 let vKey = null;
 export function vaultAttach(key){ vKey = key || null; }

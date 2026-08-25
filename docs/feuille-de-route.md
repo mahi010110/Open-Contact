@@ -94,14 +94,6 @@ Dans cet ordre, et seulement si les retours le justifient :
    périmètre exact de la première version, et le sort des capacités
    reportées par choix (brouillon IA, envoi direct).
 
-   **À faire dans le même geste que le drapeau, jamais après : rendre à
-   l'écran le mot du produit.** Le mot « Compagnon » est encore dans des
-   textes visibles — une ligne de réglages intitulée « Le Compagnon »
-   (`ui/moi.js`), les titres de feuille de `ui/compagnon.js`, et plusieurs
-   phrases de `ui/campagnes.js`. Ils ne se voient pas aujourd'hui, les
-   drapeaux étant à `false` ; le jour où l'un repasse à `true`, le concept
-   abandonné réapparaît d'un coup. C'est la règle §7 de `CLAUDE.md` — un
-   objet, UN mot — et le mot est **OpenContact pour ordinateur**.
 3. **Ramener le brouillon par IA** avec ta propre clé, si les retours
    montrent que la rédaction est bien le point de blocage.
 4. **Import de données publiques** pour amorcer une liste de pistes sans
@@ -113,13 +105,13 @@ Dans cet ordre, et seulement si les retours le justifient :
 
 **La direction est arrêtée** *(17 août 2026)* : OpenContact sera **trois
 applications** — web, ordinateur, téléphone — construites sur la même base.
-Le concept du « Compagnon », application d'appoint à côté du produit, est
+Le concept du « Ordinateur », application d'appoint à côté du produit, est
 abandonné ; son code n'est pas perdu, il devient la fondation des
 applications installées. La coquille native exécute le même moteur que le
-web, et elle sait produire l'ordinateur **et** le téléphone.
+web, et elle sait produire l’ordinateur **et** le téléphone.
 
 La file ne change pas : le web d'abord, ses retours ensuite, puis
-**l'ordinateur** (le code en est le plus proche — corriger d'abord ses
+**l’ordinateur** (le code en est le plus proche — corriger d'abord ses
 défauts connus, listés dans [`surfaces.md`](surfaces.md)), puis **le
 téléphone** sur la même base. En attendant, l'app web installée depuis le
 navigateur reste le chemin du téléphone.

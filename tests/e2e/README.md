@@ -64,20 +64,20 @@ binaire natif**, qui demande `cargo` et `xvfb-run`.
 | `e2e-envoi.mjs` | Envoi direct Gmail intercepté, « Depuis {adresse} », expiration → reconnexion sans perdre le brouillon, `mailto:` intact — sauté sans `ENVOI_DIRECT` |
 | `e2e-campagne.mjs` | Bifurcation → assistant → contrôle → envois du jour interceptés, plafond, **fenêtre d'envoi (samedi = retenu)**, réponse → relances annulées — sauté sans `CAMPAGNES` |
 | `e2e-ia.mjs` | « Proposer un brouillon » intercepté, quota (429) proprement, rien de perdu — sauté sans `IA` |
-| `e2e-analyse.mjs` | « Depuis mes e-mails » : prompt copié, aperçu multi-sélection, lien piégé neutralisé, confiance non transmise — sauté sans `COMPAGNON` |
+| `e2e-analyse.mjs` | « Depuis mes e-mails » : prompt copié, aperçu multi-sélection, lien piégé neutralisé, confiance non transmise — sauté sans `ORDINATEUR` |
 | `e2e-oauth-sw.mjs` | Le service worker ne détourne jamais `oauth.html` ; le jeton revient par postMessage — sauté sans `ENVOI_DIRECT` |
 
 ## La surface ordinateur *(sautés sans le binaire natif, ou hors périmètre)*
 
 | Scénario | Ce qu'il prouve |
 |---|---|
-| `e2e-compagnon.mjs` | Appairage du Compagnon contre un faux au protocole exact : mauvais code refusé, clé de canal scellée, anneau (rôle companion), présence, rupture propre |
-| `e2e-compagnon-envoi.mjs` | Le VRAI binaire (xvfb) : campagne confiée par l'assistant, envois SMTP réels vers un puits local, kill −9 + relance = zéro doublon, rapport replié, reprise en main — sauté si `compagnon/target` n'est pas construit |
-| `e2e-compagnon-reponses.mjs` | Le VRAI binaire + faux IMAP : réponse détectée en boîte → relances arrêtées seules, fiche marquée « réponse » au repli — sauté sans binaire |
-| `e2e-compagnon-scan.mjs` | Le VRAI binaire + corpus piégé + faux Ollama : « ton ordinateur lit tes e-mails » → aperçu multi-sélection, injection neutralisée, tri respecté — sauté sans binaire |
-| `e2e-compagnon-ia.mjs` | Le VRAI binaire, rédaction « via ton ordinateur » sur trois runtimes (Ollama local, OpenAI par clé, abonnement ChatGPT). La règle d'or : **aucun modèle implicite** — on choisit dans la liste que le runtime sert vraiment. Le prompt porte la piste, **jamais le suivi privé** ; la clé ne touche jamais le disque du Compagnon — sauté sans binaire |
-| `e2e-c8-telephone.mjs` | Le VRAI binaire : une campagne préparée sur un **téléphone** qui ne connaît le Compagnon que par l'anneau. Son bon signé emprunte le rail privé de « Mes appareils », et l'envoi n'a lieu **qu'une fois** malgré plusieurs rejeux de sync — sauté sans binaire |
-| `e2e-mcp.mjs` | Le serveur MCP local du VRAI Compagnon, au protocole réel : découverte d'outils (aucune suppression ni écriture directe), lecture bornée **sans champ privé**, dépôt d'une proposition normale puis hostile, aperçu multi-sélection, aucune écriture avant validation, révocation immédiate. Survit à un verrouillage et à un kill −9 — sauté sans binaire |
+| `e2e-ordinateur.mjs` | Appairage de l’ordinateur contre un faux au protocole exact : mauvais code refusé, clé de canal scellée, anneau (rôle ordinateur), présence, rupture propre |
+| `e2e-ordinateur-envoi.mjs` | Le VRAI binaire (xvfb) : campagne confiée par l'assistant, envois SMTP réels vers un puits local, kill −9 + relance = zéro doublon, rapport replié, reprise en main — sauté si `natif/target` n'est pas construit |
+| `e2e-ordinateur-reponses.mjs` | Le VRAI binaire + faux IMAP : réponse détectée en boîte → relances arrêtées seules, fiche marquée « réponse » au repli — sauté sans binaire |
+| `e2e-ordinateur-scan.mjs` | Le VRAI binaire + corpus piégé + faux Ollama : « ton ordinateur lit tes e-mails » → aperçu multi-sélection, injection neutralisée, tri respecté — sauté sans binaire |
+| `e2e-ordinateur-ia.mjs` | Le VRAI binaire, rédaction « via ton ordinateur » sur trois runtimes (Ollama local, OpenAI par clé, abonnement ChatGPT). La règle d'or : **aucun modèle implicite** — on choisit dans la liste que le runtime sert vraiment. Le prompt porte la piste, **jamais le suivi privé** ; la clé ne touche jamais le disque de l’ordinateur — sauté sans binaire |
+| `e2e-c8-telephone.mjs` | Le VRAI binaire : une campagne préparée sur un **téléphone** qui ne connaît l’ordinateur que par l'anneau. Son bon signé emprunte le rail privé de « Mes appareils », et l'envoi n'a lieu **qu'une fois** malgré plusieurs rejeux de sync — sauté sans binaire |
+| `e2e-mcp.mjs` | Le serveur MCP local du VRAI Ordinateur, au protocole réel : découverte d'outils (aucune suppression ni écriture directe), lecture bornée **sans champ privé**, dépôt d'une proposition normale puis hostile, aperçu multi-sélection, aucune écriture avant validation, révocation immédiate. Survit à un verrouillage et à un kill −9 — sauté sans binaire |
 
 ## Les gardes transverses — celles qui empêchent de revenir en arrière
 

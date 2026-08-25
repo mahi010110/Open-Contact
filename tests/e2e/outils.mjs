@@ -81,7 +81,7 @@ export async function attendre(page, fn, opts = {}){
   }
 }
 
-/* ---------- le canal local du Compagnon (binaire natif) ----------
+/* ---------- le canal local de l’ordinateur (binaire natif) ----------
    Il écoute sur l'un de ces trois ports et n'expose `appairage` que
    pendant qu'un appairage attend un code. Attendre en silence puis
    mourir sur « délai dépassé » n'apprend RIEN : c'est ce qui a rendu
@@ -94,7 +94,7 @@ export async function sonderCanal(pret = info => info && info.appairage){
   const vu = [];
   for (const port of CANAL_PORTS){
     try {
-      const r = await fetch(`http://127.0.0.1:${port}/oc-compagnon`, { signal: AbortSignal.timeout(800) });
+      const r = await fetch(`http://127.0.0.1:${port}/oc-natif`, { signal: AbortSignal.timeout(800) });
       if (!r.ok){ vu.push(port + ' : HTTP ' + r.status); continue; }
       const info = await r.json();
       if (pret(info)){ vu.push(port + ' : prêt'); return { info, port, vu }; }
@@ -121,7 +121,7 @@ export async function attendreCanal({ timeout = 30000, pas = 400, journal = null
     await new Promise(res => setTimeout(res, pas));
   }
   const lignes = journal ? String(journal() || '').split('\n').filter(Boolean).slice(-25) : [];
-  throw new Error('canal du Compagnon : rien après ' + Math.round(timeout / 1000) + ' s\n'
+  throw new Error('canal de l’ordinateur : rien après ' + Math.round(timeout / 1000) + ' s\n'
     + '  sondes : ' + vu.join(' · ')
     + (lignes.length ? '\n  dernières lignes du binaire :\n' + lignes.map(l => '    ' + l).join('\n')
                      : '\n  (le binaire n’a rien écrit — stdout/stderr vides ou non capturés)'));

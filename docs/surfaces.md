@@ -9,11 +9,11 @@ qui partagent les mêmes données et le même vocabulaire. Une seule est livrée
 | Surface | État | Ce qu'elle apporte de plus |
 |---|---|---|
 | **Le web** (navigateur, installable) | ✅ **Livrée** | Tout le quotidien |
-| **L'ordinateur** | ⏸ **La prochaine — base écrite, pas livrée** | Ce qu'un navigateur ne peut pas garantir |
+| **L’ordinateur** | ⏸ **La prochaine — base écrite, pas livrée** | Ce qu'un navigateur ne peut pas garantir |
 | **Le téléphone** (store) | ⬜ **Ensuite — non commencée** | Une meilleure intégration à l'appareil |
 
 **La règle qui ne bouge pas : les surfaces partagent des données, jamais des
-dépendances.** Le web reste entier si l'ordinateur n'existe pas.
+dépendances.** Le web reste entier si l’ordinateur n'existe pas.
 
 **Corollaire, et il compte pour toi qui lis :** une capacité absente d'une
 surface **n'apparaît pas** dessus. Ni grisée, ni marquée « bientôt » :
@@ -62,13 +62,12 @@ dans le presse-papier.
 
 ---
 
-## ⏸ L'ordinateur — la prochaine, base écrite, pas livrée
+## ⏸ L’ordinateur — la prochaine, base écrite, pas livrée
 
 **À lire en premier : cette surface n'est pas livrée.** Une release d'essai
-de l'ancien « Compagnon » (v0.1.0, juillet 2026) reste téléchargeable sur
-GitHub — paquets non signés — mais elle appartient à un concept abandonné :
-rien n'y est maintenu, et l'installer n'est pas recommandé aujourd'hui. Le
-code, lui, est écrit et testé dans `compagnon/`, et il attend la reprise.
+(v0.1.0, juillet 2026) reste téléchargeable sur GitHub — paquets non
+signés, plus maintenus : **ne l'installe pas**. Le code, lui, est écrit et
+testé dans `natif/`, et il attend son tour.
 
 Ses capacités sont **masquées dans l'app web** par quatre drapeaux
 (`ui/perimetre.js`). Rien n'a été supprimé, aucune donnée déjà enregistrée
@@ -100,25 +99,11 @@ charabia au modèle ; elle appelle Ollama en dur au lieu de passer par
 l'assistant configuré ; et la détection des réponses se trompe dans les deux
 sens. Ces défauts sont connus et documentés, pas découverts.
 
-### Pourquoi le dossier s'appelle encore `compagnon/`
-
-C'était le nom d'une phase antérieure du projet — « le Compagnon », une
-application d'appoint à côté du produit. Ce concept est **abandonné**
-(décision du 17 août 2026) : il y a trois applications d'un même produit,
-pas un produit et son satellite. Le code, lui, sert la suite — la coquille
-native est la fondation des applications ordinateur **et** téléphone.
-
-Le dossier garde ce nom pour une raison purement technique : le crate Rust,
-le binaire de la release v0.1.0 et le point d'entrée local
-(`127.0.0.1:17095/oc-compagnon`) le portent. Tout se renommera d'un seul
-geste à la reprise du chantier, jamais avant. À l'écran et dans cette
-documentation, la surface s'appelle **OpenContact pour ordinateur**.
-
 ### Quand s'ouvre-t-elle ?
 
 La direction est arrêtée : trois applications, dans une file — le web
-d'abord, ses retours ensuite, puis l'ordinateur, puis le téléphone.
-L'ordinateur est **la prochaine application** ; il s'ouvre après les
+d'abord, ses retours ensuite, puis l’ordinateur, puis le téléphone.
+L’ordinateur est **la prochaine application** ; il s'ouvre après les
 premiers retours du web, en commençant par corriger les défauts connus
 listés ci-dessus.
 
@@ -128,7 +113,7 @@ listés ci-dessus.
 
 Rien n'existe encore — pas de code propre à cette surface, pas de maquette.
 Mais son chemin est **décidé** : elle se construira sur la **même coquille
-native que l'ordinateur** (la coquille Tauri du dossier `compagnon/` sait
+native que l’ordinateur** (la coquille Tauri du dossier `natif/` sait
 produire les deux), avec le même moteur `engine/` que le web. Un seul code,
 trois applications.
 
@@ -155,7 +140,7 @@ côté, pour des raisons différentes :
 Aucune installation, aucune démarche : c'est ta clé qui porte le coût. Mais
 ça demande de comprendre ce qu'est une clé d'API avant d'en tirer quoi que ce
 soit, et ce n'est pas le public visé. Le jour où ça revient, ça revient sur
-**le web**, jamais sur l'ordinateur.
+**le web**, jamais sur l’ordinateur.
 
 **L'envoi direct par Gmail ou Outlook** (OAuth). Ça engagerait le mainteneur
 dans une déclaration permanente chez Google et Microsoft — examen, validation,

@@ -64,7 +64,7 @@ Ce n'est pas pressé. Une adresse en `github.io` fonctionne exactement pareil.
 
 ---
 
-## 2. L'ordinateur — gratuit, mais Windows et macOS vont râler
+## 2. L’ordinateur — gratuit, mais Windows et macOS vont râler
 
 **Comment ça marche.** Ton code est transformé en un fichier d'installation,
 un par système :
@@ -117,10 +117,10 @@ la porte**.
 
 ### Ce que la base actuelle permet
 
-Le code de `compagnon/` utilise **Tauri version 2**, qui sait produire des
+Le code de `natif/` utilise **Tauri version 2**, qui sait produire des
 applications Android et iOS à partir du même code. Techniquement, la route
-existe : une seule base pour l'ordinateur et le téléphone. C'est pour ça que
-le concept du « Compagnon » a été abandonné au profit de trois applications
+existe : une seule base pour l’ordinateur et le téléphone. C'est pour ça que
+le concept du « Ordinateur » a été abandonné au profit de trois applications
 d'un même produit — voir [`surfaces.md`](surfaces.md).
 
 ### Android — deux chemins très différents
@@ -237,7 +237,7 @@ engagement que quand des utilisateurs réels le réclament.
 | **Ordinateur** non signé | 0 € | aucune | chantier à rouvrir |
 | Signature Windows | ~300 € / an | renouvellement | plus tard |
 | Signature macOS | 99 € / an | compte Apple | plus tard |
-| **Android** fichier direct | 0 € | aucune | après l'ordinateur |
+| **Android** fichier direct | 0 € | aucune | après l’ordinateur |
 | **Android** Play Store | 25 € une fois | 12 testeurs, 14 jours | si la demande est là |
 | **iOS** App Store | 99 € / an | revue Apple + un Mac | en dernier |
 

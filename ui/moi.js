@@ -21,8 +21,8 @@ import { openAppareils } from './direct.js';
 import { getSync } from './synclive.js';
 import { isProtected, openProtectFlow, openManageSheet, verrouLabel, requireCode } from './verrou.js';
 import { openConnexions, openAssistantIA, mailStateLabel, mailAccount, aiStateLabel, aiConnection } from './connexions.js';
-import { loadCompanion, openAddCompanion, openCompanionSheet } from './compagnon.js';
-import { COMPAGNON, IA, ENVOI_DIRECT } from './perimetre.js';
+import { loadOrdinateur, openAddOrdinateur, openOrdinateurSheet } from './ordinateur.js';
+import { ORDINATEUR, IA, ENVOI_DIRECT } from './perimetre.js';
 import { openDiagnostic } from './diagnostic.js';
 import { DIST_PAGE } from '../engine/distribution.js';
 
@@ -245,7 +245,7 @@ function reglagesRowsHTML(){
   const prot = isProtected();
   /* les lignes se composent avant de s'écrire : le recentrage en retire
      (CLAUDE.md §0), et c'est la DERNIÈRE présente qui porte `rg-last` —
-     sinon masquer le Compagnon laisserait un trait en bas de liste */
+     sinon masquer l’ordinateur laisserait un trait en bas de liste */
   const rows = [
     ['moiVerrou', 'Protection', verrouLabel(), false],
     ['moiSync', 'Mes appareils', syncLabel(), false]
@@ -265,10 +265,10 @@ function reglagesRowsHTML(){
     !prot && !aiConnection()]);
   /* l'état, pas la phrase : « il s'installe sur ton ordinateur » se
      dit sur le 2ᵉ écran, là où on peut vraiment le faire (#21).
-     Cette liste reste sans pictogramme (voir plus haut) ; le Compagnon
-     a son icône propre — un écran d'ordinateur — sur SES feuilles,
+     Cette liste reste sans pictogramme (voir plus haut) ; l’ordinateur
+     a son icône propre — un écran d’ordinateur — sur SES feuilles,
      là où elle distingue quelque chose (#4). */
-  if (COMPAGNON) rows.push(['moiComp', 'Le Compagnon', 'pas installé', false]);
+  if (ORDINATEUR) rows.push(['moiComp', 'L’ordinateur', 'pas installé', false]);
   /* Sans compte ni analytique, une app locale ne renvoie rien : le
      seul chemin de retour est un texte que l'étudiant copie lui-même
      (docs/feuille-de-route.md).
@@ -309,15 +309,15 @@ function bindReglages(box){
   q('#moiAi')?.addEventListener('click', () =>
     isProtected() ? openAssistantIA() : openProtectFlow());
   q('#moiComp')?.addEventListener('click', async () => {
-    const assoc = await loadCompanion().catch(() => null);
-    if (assoc){ openCompanionSheet(assoc); return; }
-    if (mqWideMoi.matches){ openAddCompanion(); return; }
+    const assoc = await loadOrdinateur().catch(() => null);
+    if (assoc){ openOrdinateurSheet(assoc); return; }
+    if (mqWideMoi.matches){ openAddOrdinateur(); return; }
     try {
       await navigator.clipboard.writeText(DIST_PAGE);
       toast('Lien copié — ouvre-le sur ton ordinateur.');
     } catch (e) { toast('Copie impossible ici — le lien : ' + DIST_PAGE); }
   });
-  if (COMPAGNON) loadCompanion().then(a => {
+  if (ORDINATEUR) loadOrdinateur().then(a => {
     const st = q('#moiCompSt');
     if (a && st) st.textContent = 'associé — ' + (a.nom || 'ton ordinateur');
   }).catch(() => {});

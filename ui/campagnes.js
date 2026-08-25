@@ -4,7 +4,7 @@
    Prospecter, le vécu est UNE ligne groupée par jour dans
    « Aujourd'hui » (D13) — tap → la feuille du jour, chaque envoi
    déclenché par l'utilisateur (par ligne ou « Tout envoyer »),
-   rien d'automatique sans Compagnon. Une réponse marquée sur la
+   rien d'automatique sans Ordinateur. Une réponse marquée sur la
    fiche arrête les relances de cette piste (non débrayable) ;
    la réconciliation se fait à l'affichage, sans crochet invasif.
    ============================================================ */
@@ -16,14 +16,14 @@ import { buildCampaign, dueSends, dueSendsAll, markSent, markReplied, markError,
 import { sendMail } from '../engine/mailer.js';
 import { CAMPAIGNS_KEY, MISSIONS_KEY, kvGet, kvSet } from '../engine/storage.js';
 import { makeMission, signMission } from '../engine/mission.js';
-import { probeCompanion, companionCall } from '../engine/companion.js';
+import { probeOrdinateur, ordinateurCall } from '../engine/ordinateur.js';
 import { S, bus, saveData, logJ, isClosed } from './state.js';
 import { openSheet, confirmSheet, toast, showUndo, btn, ic } from './dom.js';
 import { mailAccount, freshToken, openConnexions } from './connexions.js';
 import { requireCode } from './verrou.js';
-import { loadCompanion } from './compagnon.js';
+import { loadOrdinateur } from './ordinateur.js';
 import { tplField, tplSample } from './tplfield.js';
-import { deviceSelf, ensureKeys, getRing, ringCompanion } from './synclive.js';
+import { deviceSelf, ensureKeys, getRing, ringOrdinateur } from './synclive.js';
 
 let campaigns = null;
 
@@ -32,7 +32,7 @@ export async function loadCampaigns(){
   catch (e) { campaigns = []; }
   if (!Array.isArray(campaigns)) campaigns = [];
   /* en arrière-plan : confier ce qui attend, replier le journal */
-  reconcileCompanion().catch(() => {});
+  reconcileOrdinateur().catch(() => {});
   return campaigns;
 }
 const syncNotice = () => document.dispatchEvent(new CustomEvent('oc:change'));
@@ -45,7 +45,7 @@ const live = () => all().filter(c => c.state === 'ready' || c.state === 'paused'
 const dueFor = (c, today) => dueSendsAll(all().map(x => x.id === c.id ? c : x), today)
   .filter(d => d.cpId === c.id);
 
-/* ---------- les bons de mission (campagnes confiées au Compagnon) ---------- */
+/* ---------- les bons de mission (campagnes confiées à l’ordinateur) ---------- */
 let missions = null;
 async function loadMissions(){
   try { missions = JSON.parse(await kvGet(MISSIONS_KEY) || '[]') || []; }
@@ -58,7 +58,7 @@ const missionOf = cpId => (missions || []).find(m => m.cpId === cpId && m.state 
 
 /* La sync privée écrit le stockage sans importer ce module (pas de cycle
    d'imports) : cet événement recharge les caches puis remet la mission au
-   Compagnon local. Plusieurs notifications rapprochées convergent. */
+   Ordinateur local. Plusieurs notifications rapprochées convergent. */
 let privateReload = null;
 let privateReloadAgain = false;
 document.addEventListener('oc:campaigns-sync', () => {
@@ -69,7 +69,7 @@ document.addEventListener('oc:campaigns-sync', () => {
     if (!Array.isArray(campaigns)) campaigns = [];
     if (!Array.isArray(missions)) missions = [];
     bus.refresh();
-    return reconcileCompanion();
+    return reconcileOrdinateur();
   }).catch(() => {}).finally(() => {
     privateReload = null;
     if (privateReloadAgain){
@@ -80,7 +80,7 @@ document.addEventListener('oc:campaigns-sync', () => {
 });
 
 /* bâtir + signer le bon : la campagne part FIGÉE, la garde Rust du
-   Compagnon re-vérifie la signature à chaque lecture */
+   Ordinateur re-vérifie la signature à chaque lecture */
 async function buildCampaignMission(c){
   const self = await deviceSelf();
   const keys = await ensureKeys();
@@ -94,42 +94,42 @@ async function buildCampaignMission(c){
     state: 'a_confier', stops: [] };
 }
 async function remettreMission(rec, assoc0, found0){
-  const assoc = assoc0 || await loadCompanion();
+  const assoc = assoc0 || await loadOrdinateur();
   if (!assoc) return false;
-  const found = found0 || await probeCompanion();
+  const found = found0 || await probeOrdinateur();
   if (!found) return false;
   try {
-    const rep = await companionCall(found.base, assoc.k, { t: 'mission', wire: rec.wire });
+    const rep = await ordinateurCall(found.base, assoc.k, { t: 'mission', wire: rec.wire });
     if (rep && rep.t === 'mission-ok'){ rec.state = 'confiee'; await saveMissions(); return true; }
   } catch (e) {}
   return false;
 }
 
 /* la réconciliation : confier ce qui attend, signaler les réponses,
-   replier le journal du Compagnon (idempotent — jamais un doublon) */
+   replier le journal de l’ordinateur (idempotent — jamais un doublon) */
 let reconcileJob = null;
-async function doReconcileCompanion(){
-  const assoc = await loadCompanion().catch(() => null);
+async function doReconcileOrdinateur(){
+  const assoc = await loadOrdinateur().catch(() => null);
   if (!assoc || !campaigns) return;
   await loadMissions();
   const autos = all().filter(c => c.auto);
   if (!autos.length &&
       !missions.some(m => m.state === 'a_confier' || (m.state === 'revoquee' && !m.revOk))) return;
-  const found = await probeCompanion();
+  const found = await probeOrdinateur();
   if (!found) return;
   /* L'anneau peut avoir accueilli le téléphone après l'association du
-     Compagnon. Le fil signé reste intact ; seule la liste publique des
+     Ordinateur. Le fil signé reste intact ; seule la liste publique des
      appareils est rafraîchie avant sa vérification. */
   const ring = getRing();
   if (ring){
-    try { await companionCall(found.base, assoc.k, { t: 'anneau', ring }); }
+    try { await ordinateurCall(found.base, assoc.k, { t: 'anneau', ring }); }
     catch (e) {}
   }
   for (const rec of missions.filter(m => m.state === 'a_confier')) await remettreMission(rec, assoc, found);
-  /* révocations en attente (l'ordinateur était éteint au moment du geste) */
+  /* révocations en attente (l’ordinateur était éteint au moment du geste) */
   for (const rec of missions.filter(m => m.state === 'revoquee' && !m.revOk)){
     try {
-      const r = await companionCall(found.base, assoc.k, { t: 'revoquer', mid: rec.mid });
+      const r = await ordinateurCall(found.base, assoc.k, { t: 'revoquer', mid: rec.mid });
       if (r && r.t === 'ok'){ rec.revOk = true; await saveMissions(); }
     } catch (e) {}
   }
@@ -138,12 +138,12 @@ async function doReconcileCompanion(){
     if (!rec) continue;
     for (const t of c.targets){
       if (t.state === 'replied' && !rec.stops.includes(t.cid)){
-        /* le Compagnon raisonne par PISTE (`arreter-cible` porte un cid) :
+        /* l’ordinateur raisonne par PISTE (`arreter-cible` porte un cid) :
            tant qu'une autre personne de cette entreprise attend un envoi,
            on ne lui demande rien — sinon il couperait tout le monde */
         if (c.targets.some(x => x.cid === t.cid && x.state === 'active')) continue;
         try {
-          await companionCall(found.base, assoc.k, { t: 'arreter-cible', cid: t.cid });
+          await ordinateurCall(found.base, assoc.k, { t: 'arreter-cible', cid: t.cid });
           rec.stops.push(t.cid);
           await saveMissions();
         } catch (e) {}
@@ -151,19 +151,19 @@ async function doReconcileCompanion(){
     }
   }
   try {
-    const rap = await companionCall(found.base, assoc.k, { t: 'rapport' });
+    const rap = await ordinateurCall(found.base, assoc.k, { t: 'rapport' });
     if (rap && rap.t === 'rapport'){
       if (Array.isArray(rap.journal)) await foldJournal(rap.journal);
       if (Array.isArray(rap.reponses) && rap.reponses.length) await foldReponses(rap.reponses);
     }
   } catch (e) {}
 }
-export async function reconcileCompanion(){
+export async function reconcileOrdinateur(){
   if (reconcileJob) return reconcileJob;
-  reconcileJob = doReconcileCompanion().finally(() => { reconcileJob = null; });
+  reconcileJob = doReconcileOrdinateur().finally(() => { reconcileJob = null; });
   return reconcileJob;
 }
-/* les réponses DÉTECTÉES par l'ordinateur : relances arrêtées (déjà
+/* les réponses DÉTECTÉES par l’ordinateur : relances arrêtées (déjà
    fait là-bas), fiche marquée ici — la boucle produit ↔ suivi se ferme */
 async function foldReponses(cids){
   let changed = false;
@@ -253,7 +253,7 @@ export function campaignLines(){
   for (const c of all()){
     const st = campaignStats(c);
     if (c.state === 'ready' && c.auto){
-      /* confiée au Compagnon : l'ordinateur appuie, la ligne raconte */
+      /* confiée à l’ordinateur : l’ordinateur appuie, la ligne raconte */
       out.push({ id: c.id, txt: `${c.name} — ton ordinateur s’en occupe · ${st.sent} envoyé${st.sent > 1 ? 's' : ''}${st.replied ? ' · ' + st.replied + ' réponse' + (st.replied > 1 ? 's' : '') : ''}` });
     } else if (c.state === 'ready'){
       const due = dueFor(c, today);
@@ -281,7 +281,7 @@ export function openCampaignById(id){
    L'accès n'existe que s'il y en a (loi #6). */
 export const liveCampaignsCount = () => live().length;
 export function openCampaignsHome(){
-  /* sur l'ordinateur la liste s'efface derrière le jour puis revient
+  /* sur l’ordinateur la liste s'efface derrière le jour puis revient
      (N8) ; au pouce elle se referme — une décision à la fois */
   const wide = matchMedia('(min-width:901px)').matches;
   const sh = openSheet({ title: 'Campagnes', icon: 'flag' });
@@ -353,10 +353,10 @@ export function openCampaignWizard(list){
   /* le récap compte les pistes ; les personnes ne s'affichent que
      lorsqu'elles sont plus nombreuses (Décision 11) */
   const nPistes = () => new Set(targets.map(t => t.cid)).size;
-  let compAssoc = null;   /* association locale, seulement sur l'ordinateur */
-  let compRing = null;    /* Compagnon connu de l'anneau, visible aussi du téléphone */
-  const companionReady = Promise.all([
-    loadCompanion().catch(() => null), ringCompanion().catch(() => null)
+  let compAssoc = null;   /* association locale, seulement sur l’ordinateur */
+  let compRing = null;    /* Ordinateur connu de l'anneau, visible aussi du téléphone */
+  const ordinateurReady = Promise.all([
+    loadOrdinateur().catch(() => null), ringOrdinateur().catch(() => null)
   ]).then(([a, r]) => { compAssoc = a; compRing = r; });
   const draft = {
     name: 'Prospection — ' + monthName(),
@@ -402,7 +402,7 @@ export function openCampaignWizard(list){
       draft.r1 = fR1.get();
       draft.r2 = fR2.get();
       if (!draft.subject.trim() || !draft.body.trim()){ toast('Un objet et un message — il manque l’un des deux.'); return; }
-      await companionReady;
+      await ordinateurReady;
       stepControl();
     })]);
   };
@@ -420,7 +420,7 @@ export function openCampaignWizard(list){
            <span>${ic('clock', 'ic-14')} ${DAILY_CAP} envois max par jour, ${SEND_WINDOW_TXT}</span>
            <span>${ic('check', 'ic-14')} S’arrête seule si on te répond</span>
            <span>${ic('mail', 'ic-14')} ${draft.auto
-             ? 'Depuis <b>ton ordinateur</b> (Compagnon)'
+             ? 'Depuis <b>ton ordinateur</b> (Ordinateur)'
              : (acct ? 'Depuis <b>' + esc(acct.email || 'ta messagerie') + '</b>' : '<em>Aucune messagerie connectée</em>')}</span>
          </div>
        </div>
@@ -431,7 +431,7 @@ export function openCampaignWizard(list){
            <b>Je valide chaque jour</b></button>
          <button class="pick${draft.auto ? ' on' : ''}" id="czAutoOpt" aria-pressed="${draft.auto}">
            <b>Mon ordinateur envoie tout seul</b><span>${compAssoc
-             ? esc(compAssoc.nom || 'Compagnon') + ' · même app fermée'
+             ? esc(compAssoc.nom || 'Ordinateur') + ' · même app fermée'
              : 'dès qu’il te rejoint'}</span></button>
        </div>
        <p class="hint" id="czCompEtat"></p>` : ''}
@@ -446,7 +446,7 @@ export function openCampaignWizard(list){
     q('#czCx')?.addEventListener('click', () => openConnexions());
     q('#czManu')?.addEventListener('click', () => { draft.auto = false; stepControl(); });
     q('#czAutoOpt')?.addEventListener('click', () => { draft.auto = true; stepControl(); });
-    /* honnêteté : l'ordinateur est-il là, sa messagerie est-elle réglée ? */
+    /* honnêteté : l’ordinateur est-il là, sa messagerie est-elle réglée ? */
     if (draft.auto && !compAssoc){
       const el = q('#czCompEtat');
       if (el) el.textContent = 'Ton ordinateur prendra la campagne dès qu’il te rejoint.';
@@ -454,21 +454,21 @@ export function openCampaignWizard(list){
       (async () => {
         const el = q('#czCompEtat');
         if (!el) return;
-        const found = await probeCompanion();
+        const found = await probeOrdinateur();
         if (!found){ el.textContent = 'Ton ordinateur est éteint — la campagne partira à son réveil.'; return; }
         try {
-          const pong = await companionCall(found.base, compAssoc.k, { t: 'ping' });
+          const pong = await ordinateurCall(found.base, compAssoc.k, { t: 'ping' });
           el.textContent = pong && pong.messagerie === false
-            ? 'Règle d’abord la messagerie dans la fenêtre du Compagnon.'
+            ? 'Règle d’abord la messagerie dans la fenêtre de l’ordinateur.'
             : '';
         } catch (e) {}
       })();
     }
     const bOk = btn('Valider la campagne', 'btn-primary', async () => {
       if (!draft.auto && !mailAccount()){ toast('Connecte d’abord ta messagerie.'); return; }
-      if (draft.auto && !(compAssoc || await ringCompanion())){
+      if (draft.auto && !(compAssoc || await ringOrdinateur())){
         draft.auto = false;
-        toast('Aucun Compagnon n’est relié pour l’instant.');
+        toast('Aucun ordinateur n’est relié pour l’instant.');
         stepControl();
         return;
       }
@@ -497,7 +497,7 @@ export function openCampaignWizard(list){
       saveData();
       logJ('Campagne validée : ' + c.name + ' (' + targets.length + ' pistes' + (c.auto ? ', confiée' : '') + ')');
       if (c.auto){
-        /* le bon signé part tout de suite si l'ordinateur répond,
+        /* le bon signé part tout de suite si l’ordinateur répond,
            sinon il attend — la réconciliation le remettra */
         await loadMissions();
         try {
@@ -587,7 +587,7 @@ export function openCampaignDay(c0){
     }
   };
 
-  /* campagne confiée : l'ordinateur appuie — ici on regarde et on
+  /* campagne confiée : l’ordinateur appuie — ici on regarde et on
      peut reprendre la main, jamais envoyer en double */
   const renderAuto = () => {
     const st = campaignStats(c);
@@ -602,13 +602,13 @@ export function openCampaignDay(c0){
     (async () => {
       const el = q('#czCompLive');
       if (!el) return;
-      const assoc = await loadCompanion();
-      const found = assoc && await probeCompanion();
+      const assoc = await loadOrdinateur();
+      const found = assoc && await probeOrdinateur();
       if (!found){ el.innerHTML = `${ic('clock', 'ic-14')} Ton ordinateur est éteint — il rattrapera à son réveil.`; return; }
       try {
-        const pong = await companionCall(found.base, assoc.k, { t: 'ping' });
+        const pong = await ordinateurCall(found.base, assoc.k, { t: 'ping' });
         el.innerHTML = pong && pong.messagerie === false
-          ? `${ic('square-alert', 'ic-14')} Règle la messagerie dans la fenêtre du Compagnon — rien ne part sans elle.`
+          ? `${ic('square-alert', 'ic-14')} Règle la messagerie dans la fenêtre de l’ordinateur — rien ne part sans elle.`
           : `${ic('radio', 'ic-14')} Ton ordinateur est prêt.`;
       } catch (e) { el.innerHTML = `${ic('clock', 'ic-14')} Ton ordinateur ne répond pas — il rattrapera.`; }
     })();
@@ -620,12 +620,12 @@ export function openCampaignDay(c0){
       await loadMissions();
       const rec = missionOf(c.id);
       try {
-        const assoc = await loadCompanion();
-        const found = assoc && await probeCompanion();
+        const assoc = await loadOrdinateur();
+        const found = assoc && await probeOrdinateur();
         if (found && rec){
-          const r = await companionCall(found.base, assoc.k, { t: 'revoquer', mid: rec.mid });
+          const r = await ordinateurCall(found.base, assoc.k, { t: 'revoquer', mid: rec.mid });
           if (r && r.t === 'ok') rec.revOk = true;
-          const rap = await companionCall(found.base, assoc.k, { t: 'rapport' });
+          const rap = await ordinateurCall(found.base, assoc.k, { t: 'rapport' });
           if (rap && Array.isArray(rap.journal)) await foldJournal(rap.journal);
         }
       } catch (e) {}
@@ -811,8 +811,8 @@ export function openCampaignDay(c0){
       : null);
   };
   render();
-  /* fraîcheur : replier le journal du Compagnon puis re-peindre */
-  if (c.auto) reconcileCompanion().then(() => {
+  /* fraîcheur : replier le journal de l’ordinateur puis re-peindre */
+  if (c.auto) reconcileOrdinateur().then(() => {
     c = all().find(x => x.id === c.id) || c;
     if (sh.body.isConnected) render();
   }).catch(() => {});

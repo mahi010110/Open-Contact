@@ -1,11 +1,11 @@
-# OpenContact Compagnon — paquets NON SIGNÉS, à la demande.
+# OpenContact Ordinateur — paquets NON SIGNÉS, à la demande.
 # Prouve que le binaire se construit sur les trois systèmes visés et
 # produit les artefacts d'essai : .deb (Linux), .app + .dmg (macOS),
 # installateur NSIS (Windows). La config Tauri ne cible que le deb et
 # l'AppImage locaux — chaque OS demande donc SES bundles explicitement.
 # La signature et la publication restent un geste du mainteneur
 # (spec §8.3) : rien ici ne signe ni ne distribue.
-name: Paquets Compagnon
+name: Paquets Ordinateur
 
 on:
   workflow_dispatch:
@@ -43,15 +43,15 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: compagnon
+          workspaces: natif
       - name: CLI Tauri
         run: cargo install tauri-cli --version '^2' --locked
       - name: Construire (bundles de l'OS, non signés)
-        working-directory: compagnon/src-tauri
+        working-directory: natif/src-tauri
         run: cargo tauri build --bundles ${{ matrix.bundles }}
       - uses: actions/upload-artifact@v4
         with:
-          name: compagnon-${{ matrix.os }}
+          name: ordinateur-${{ matrix.os }}
           path: |
-            compagnon/target/release/bundle/
+            natif/target/release/bundle/
           if-no-files-found: error

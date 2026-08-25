@@ -1,6 +1,6 @@
 /* Tests C8 séparés du corpus historique : ils restent lancés par ?test. */
 import { syncPrivateMerge, mergeMissions } from './engine/sync.js';
-import { CAMPAIGNS_KEY, MISSIONS_KEY, COMPANION_KEY } from './engine/storage.js';
+import { CAMPAIGNS_KEY, MISSIONS_KEY, ORDINATEUR_KEY } from './engine/storage.js';
 
 export async function runC8Tests(){
   const R = [];
@@ -21,7 +21,7 @@ export async function runC8Tests(){
     'sync appareils C8 : campagne et bon signé convergent sans doublon': () => {
       eq(CAMPAIGNS_KEY, 'oc_campaigns_v1');
       eq(MISSIONS_KEY, 'oc_missions_v1');
-      eq(COMPANION_KEY, 'oc_companion_v1');
+      eq(ORDINATEUR_KEY, 'oc_companion_v1');
       const wire = mission('a_confier').wire;
       const phone = {
         campaigns: [{ id: 'campagne-test', name: 'Campagne test', auto: true,

@@ -130,7 +130,7 @@ Le dépôt n'accepte pas de contributions extérieures.
 | `styles/` | `app.css` et les `tokens/` — la source unique du design |
 | `assets/` | Polices, icônes, bibliothèques copiées localement, avec leurs licences |
 | `design/` | Le kit de design « Utilitaire 98 » |
-| `compagnon/` | La base native (Rust/Tauri) des futures applications ordinateur et téléphone — chantier en attente |
+| `natif/` | La base native (Rust/Tauri) des futures applications ordinateur et téléphone — chantier en attente |
 | `tests.js`, `tests/e2e/` | Les auto-tests du moteur et les scénarios de bout en bout |
 | `CONTRAT.md` | Le contrat de données : clés de stockage, format `.oc`, invariants |
 | `CLAUDE.md` | La référence produit & UI/UX — toute décision de conception y répond |

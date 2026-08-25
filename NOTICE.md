@@ -56,11 +56,11 @@ Textes intégraux : `assets/fonts/OFL-Silkscreen.txt`,
 L'OFL impose deux choses qui valent d'être dites : ces polices ne peuvent pas
 être vendues seules, et un dérivé ne peut pas reprendre leur nom réservé.
 
-## Surface ordinateur — `compagnon/`
+## Surface ordinateur — `natif/`
 
 L'application de bureau est écrite en Rust (Tauri). Ses dépendances sont
-déclarées dans `compagnon/Cargo.toml` et verrouillées dans
-`compagnon/Cargo.lock` ; elles sont récupérées à la compilation, pas copiées
+déclarées dans `natif/Cargo.toml` et verrouillées dans
+`natif/Cargo.lock` ; elles sont récupérées à la compilation, pas copiées
 ici. Leurs licences respectives s'appliquent.
 
 Cette surface n'est pas livrée aujourd'hui — voir [`docs/surfaces.md`](docs/surfaces.md).

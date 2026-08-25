@@ -1,22 +1,22 @@
 /* ============================================================
    OpenContact — interface · propositions de l'assistant IA (P8-2)
-   Un assistant IA compatible, branché sur le Compagnon, peut
+   Un assistant IA compatible, branché sur l’ordinateur, peut
    déposer des propositions de pistes. Elles n'écrivent JAMAIS
    rien : ce module les rapporte ici, les garde scellées
    (`oc_proposals_v1`) et les fait passer par le même aperçu
    multi-sélection que tout contenu reçu — fusion sans écrasement,
    Annuler ~30 s, ou écart explicite. Fermer l'aperçu ne consomme
    rien ; seule une fusion ou un écart règle une proposition.
-   Il pousse aussi au Compagnon le résumé en liste blanche
+   Il pousse aussi à l’ordinateur le résumé en liste blanche
    (engine/mcp.js) que l'assistant a le droit de lire.
    ============================================================ */
 import { PROPOSALS_KEY, kvGet, kvSet, kvDel } from '../engine/storage.js';
 import { parseInput } from '../engine/exchange.js';
-import { probeCompanion, companionCall } from '../engine/companion.js';
+import { probeOrdinateur, ordinateurCall } from '../engine/ordinateur.js';
 import { buildMcpResume } from '../engine/mcp.js';
 import { S, bus, logJ } from './state.js';
 import { openSheet, toast, showUndo, ic } from './dom.js';
-import { loadCompanion } from './compagnon.js';
+import { loadOrdinateur } from './ordinateur.js';
 
 const LIST_MAX = 5;      /* propositions en attente, au plus */
 const DONE_MAX = 50;     /* pids déjà réglés, gardés pour l'idempotence */
@@ -28,7 +28,7 @@ let loaded = false;
 
 /* Forme normalisée : { v:1, actif, list:[{pid, at, n, share}], done:[{pid, a}] }.
    `actif` mémorise que l'assistant a été autorisé : tant qu'il est faux,
-   la PWA ne sonde jamais le Compagnon pour rien. Un pid réglé prime sur
+   la PWA ne sonde jamais l’ordinateur pour rien. Un pid réglé prime sur
    une entrée en attente — rejouer une proposition déjà fusionnée ou
    écartée ne la fait jamais réapparaître. */
 export function normaliseProposals(value){
@@ -85,7 +85,7 @@ export function subscribeProposals(fn){
 }
 
 /* réglée = fusionnée ou écartée — retirée d'ici, mémorisée dans `done`,
-   et le Compagnon est prévenu (best effort, re-tenté au prochain tour) */
+   et l’ordinateur est prévenu (best effort, re-tenté au prochain tour) */
 async function consumeProposal(pid, action){
   const rec = pendingProposals().find(p => p.pid === pid);
   if (!rec) return null;
@@ -108,7 +108,7 @@ async function restoreProposal(rec){
     done: ((current && current.done) || []).filter(d => d.pid !== rec.pid)
   });
 }
-/* la feuille du Compagnon a autorisé ou coupé l'assistant : c'est ce
+/* la feuille de l’ordinateur a autorisé ou coupé l'assistant : c'est ce
    souvenir qui permet — ou interdit — les sondes en arrière-plan */
 export async function setAssistantActive(on){
   await loadProposals();
@@ -119,19 +119,19 @@ export async function setAssistantActive(on){
   });
 }
 async function ack(pid, action){
-  const assoc = await loadCompanion().catch(() => null);
+  const assoc = await loadOrdinateur().catch(() => null);
   if (!assoc) return;
-  const found = await probeCompanion();
+  const found = await probeOrdinateur();
   if (!found) return;
-  await companionCall(found.base, assoc.k, { t: 'proposition-reglee', pid, action });
+  await ordinateurCall(found.base, assoc.k, { t: 'proposition-reglee', pid, action });
 }
 
-/* ---------- la conversation avec le Compagnon ---------- */
+/* ---------- la conversation avec l’ordinateur ---------- */
 let job = null;
 let lastResume = '';
 let lastRun = 0;
 
-/* Rapporte les propositions en attente chez le Compagnon (dédupliquées
+/* Rapporte les propositions en attente chez l’ordinateur (dédupliquées
    par pid, celles déjà réglées re-signalées) et pousse le résumé en
    liste blanche. Ne sonde JAMAIS tant que l'assistant n'a pas été
    autorisé ici, ni sans association : silence total. */
@@ -140,12 +140,12 @@ export async function reconcileProposals(){
   job = (async () => {
     await loadProposals();
     if (!current || !current.actif) return current;
-    const assoc = await loadCompanion().catch(() => null);
+    const assoc = await loadOrdinateur().catch(() => null);
     if (!assoc) return current;
-    const found = await probeCompanion();
+    const found = await probeOrdinateur();
     if (!found) return current;
     let rep;
-    try { rep = await companionCall(found.base, assoc.k, { t: 'propositions' }); }
+    try { rep = await ordinateurCall(found.base, assoc.k, { t: 'propositions' }); }
     catch (e) { return current; }
     if (!rep || rep.t !== 'propositions') return current;
     const done = new Set(((current && current.done) || []).map(d => d.pid));
@@ -174,13 +174,13 @@ export async function reconcileProposals(){
     }
     if (next) await persist(next);
     if (!rep.actif){
-      /* coupé côté Compagnon (ou association refaite) : on cesse de sonder */
+      /* coupé côté Ordinateur (ou association refaite) : on cesse de sonder */
       if (current && current.actif) await persist(Object.assign({}, current, { actif: false }));
     } else {
       const resume = JSON.stringify(buildMcpResume(S.companies));
       if (resume !== lastResume){
         try {
-          const r2 = await companionCall(found.base, assoc.k,
+          const r2 = await ordinateurCall(found.base, assoc.k,
             { t: 'resume', resume: JSON.parse(resume) });
           if (r2 && r2.t === 'ok') lastResume = resume;
         } catch (e) {}

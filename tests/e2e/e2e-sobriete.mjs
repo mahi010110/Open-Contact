@@ -38,7 +38,7 @@ const UI = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..'
    écran entier exempté est exactement le trou par lequel les couches
    reviennent : le garde était vert sans regarder. Seule l'option
    « En campagne » qu'elle contient est masquée, pas la feuille. */
-const HORS_ECRAN = new Set(['campagnes.js', 'compagnon.js', 'connexions.js',
+const HORS_ECRAN = new Set(['campagnes.js', 'ordinateur.js', 'connexions.js',
   'analyse.js', 'propositions.js', 'perimetre.js']);
 
 /* ---- les plafonds, tenus à la main et à la baisse ---- */
@@ -144,7 +144,7 @@ const PLAFOND = {
      est ÉCRITE UNE FOIS, dans `barreListeHTML` : trois feuilles la
      partagent. Avant la barre commune, la même arrivée aurait coûté
      trois phrases. */
-  motsExplication: 160,
+  motsExplication: 159,
   /* ZÉRO, et c'est le seul plafond qui puisse honnêtement valoir zéro :
      un style sans porteur n'a pas de contrepartie à peser — il ne rend
      service à personne, il ne fait qu'attendre d'être lu par erreur.
@@ -229,7 +229,7 @@ console.log(`② confirmations bloquantes : ${confirmations} (plafond ${PLAFOND.
    garde le PLUS LONG : une seule branche d'un ternaire s'affiche à la
    fois, donc c'est le pire cas qui fait foi.
    Limite connue, non corrigée : les blocs gardés par un drapeau de
-   périmètre (Compagnon dans `recevoir.js`) sont comptés bien qu'ils
+   périmètre (Ordinateur dans `recevoir.js`) sont comptés bien qu'ils
    soient masqués — le fichier n'est pas dans `HORS_ECRAN`, seulement
    ses blocs le sont. */
 const auTravers = t => t.replace(/\$\{[^{}]*(\{[^{}]*\}[^{}]*)*\}/g, bloc => {

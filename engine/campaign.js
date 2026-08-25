@@ -13,7 +13,7 @@
    effectués fait foi — rejouer le journal ou re-demander les
    envois dus ne crée jamais un doublon. Aucun envoi automatique
    ici : ce moteur ne fait que dire « voilà ce qui est dû » et
-   enregistrer « voilà ce qui est parti » (D13 : sans Compagnon,
+   enregistrer « voilà ce qui est parti » (D13 : sans Ordinateur,
    c'est l'utilisateur qui appuie).
 
    Un modèle « cadré » (étapes libres) est accepté par les
@@ -90,7 +90,7 @@ export function buildCampaign(o){
     name: String(o.name || 'Campagne').slice(0, 80),
     model: 'fixe',
     state: 'ready',                    /* ready | paused | stopped | done */
-    auto: false,                       /* true = confiée au Compagnon (par campagne) */
+    auto: false,                       /* true = confiée à l’ordinateur (par campagne) */
     from: String(o.from || ''),
     createdAt: o.launchAt,
     steps,
@@ -148,7 +148,7 @@ export function dueSends(c, today){
 
 /* ---------- le plafond GLOBAL (15/j toutes campagnes) ----------
    dueSends plafonne DANS une campagne ; ces deux fonctions font foi
-   dès qu'il en existe plusieurs — la feuille du jour et le Compagnon
+   dès qu'il en existe plusieurs — la feuille du jour et l’ordinateur
    passent par elles, jamais par dueSends seul. */
 export function sentTodayAll(cs, today){
   return (cs || []).reduce((n, c) => n + sentToday(c, today), 0);
@@ -190,7 +190,7 @@ export function markError(c, tid){
    Capgemini et voir Marc et Sofia cesser d'être relancés parce que Léa a
    répondu, c'est perdre deux pistes sans raison. Sans `tid`, toute
    l'entreprise — c'est le seul signal disponible quand la fiche passe en
-   « réponse » ou que l'ordinateur rapporte une piste : ni l'un ni
+   « réponse » ou que l’ordinateur rapporte une piste : ni l'un ni
    l'autre ne sait QUI a répondu, et on ne devine pas. */
 export function markReplied(c, cid, tid){
   const vise = t => t.state === 'active' && (tid ? t.tid === tid : t.cid === cid);

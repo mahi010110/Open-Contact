@@ -25,8 +25,8 @@ if (nonDecrits.length){
   process.exit(1);
 }
 
-const natifs = new Set(['e2e-c8-telephone.mjs', 'e2e-compagnon-envoi.mjs',
-  'e2e-compagnon-ia.mjs', 'e2e-compagnon-reponses.mjs', 'e2e-compagnon-scan.mjs',
+const natifs = new Set(['e2e-c8-telephone.mjs', 'e2e-ordinateur-envoi.mjs',
+  'e2e-ordinateur-ia.mjs', 'e2e-ordinateur-reponses.mjs', 'e2e-ordinateur-scan.mjs',
   'e2e-mcp.mjs']);
 
 /* Le recentrage (CLAUDE.md §0) masque des capacités à l'écran sans rien
@@ -40,18 +40,18 @@ const exigences = new Map([
   ['e2e-envoi.mjs', 'ENVOI_DIRECT'],
   ['e2e-oauth-sw.mjs', 'ENVOI_DIRECT'],
   ['e2e-ia.mjs', 'IA'],
-  ['e2e-analyse.mjs', 'COMPAGNON'],
-  ['e2e-compagnon.mjs', 'COMPAGNON'],
-  ...[...natifs].map(f => [f, 'COMPAGNON'])
+  ['e2e-analyse.mjs', 'ORDINATEUR'],
+  ['e2e-ordinateur.mjs', 'ORDINATEUR'],
+  ...[...natifs].map(f => [f, 'ORDINATEUR'])
 ]);
 const horsPerimetre = s => {
   const flag = exigences.get(s);
   return (flag && !perim[flag]) ? flag : '';
 };
-const compDir = path.resolve(DIR, '..', '..', 'compagnon');
-const bin = path.join(compDir, 'target', 'debug', 'oc-compagnon');
+const compDir = path.resolve(DIR, '..', '..', 'ordinateur');
+const bin = path.join(compDir, 'target', 'debug', 'oc-natif');
 
-/* Les scénarios natifs lancent target/debug/oc-compagnon. `cargo test` ne
+/* Les scénarios natifs lancent target/debug/oc-natif. `cargo test` ne
    régénère PAS cet exécutable — on testerait sinon un binaire périmé (piège
    avéré : un correctif ou un nouveau handler absent du binaire fait échouer
    ou passer à tort). On le reconstruit donc ICI, avant les scénarios, dès que
@@ -63,16 +63,16 @@ let nativeReason = '';
 if (!hasXvfb){
   nativeReason = 'xvfb-run absent';
 } else if (hasCargo){
-  console.log('⚙  cargo build -p oc-compagnon (binaire natif à jour avant les scénarios)…');
-  const b = spawnSync('cargo', ['build', '-p', 'oc-compagnon'], { cwd: compDir, stdio: 'inherit' });
-  if (b.status !== 0) nativeReason = 'échec de la construction du binaire Compagnon';
+  console.log('⚙  cargo build -p oc-natif (binaire natif à jour avant les scénarios)…');
+  const b = spawnSync('cargo', ['build', '-p', 'oc-natif'], { cwd: compDir, stdio: 'inherit' });
+  if (b.status !== 0) nativeReason = 'échec de la construction du binaire Ordinateur';
 } else if (!existsSync(bin)){
-  nativeReason = 'binaire Compagnon absent (ni Cargo pour le construire)';
+  nativeReason = 'binaire Ordinateur absent (ni Cargo pour le construire)';
 } else {
   console.log('⚠  Cargo absent : scénarios natifs joués contre le binaire EXISTANT (peut être ancien).');
 }
 
-/* Un scénario qui meurt en route peut laisser SON Compagnon vivant sur le
+/* Un scénario qui meurt en route peut laisser SON Ordinateur vivant sur le
    canal local (17095) : le suivant hérite alors d'un pair inconnu et tout
    rougit en cascade — un seul flake devient six échecs illisibles. On
    moissonne donc les survivants de CE dépôt (chemin exact du binaire)
@@ -86,13 +86,13 @@ function balayer(){
   if (r.error){
     if (!pkillDit){
       pkillDit = true;
-      console.log('⚠  pkill introuvable : les Compagnons survivants ne seront pas moissonnés ' +
+      console.log('⚠  pkill introuvable : les Ordinateurs survivants ne seront pas moissonnés ' +
                   '— un scénario natif qui meurt peut faire rougir les suivants.');
     }
     return;
   }
   if (r.status === 0)
-    console.log('⚠  processus Compagnon survivant moissonné (isolation des scénarios)');
+    console.log('⚠  processus Ordinateur survivant moissonné (isolation des scénarios)');
 }
 
 balayer();
