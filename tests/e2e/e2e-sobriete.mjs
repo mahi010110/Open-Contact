@@ -144,7 +144,14 @@ const PLAFOND = {
      est ÉCRITE UNE FOIS, dans `barreListeHTML` : trois feuilles la
      partagent. Avant la barre commune, la même arrivée aurait coûté
      trois phrases. */
-  motsExplication: 160
+  motsExplication: 160,
+  /* ZÉRO, et c'est le seul plafond qui puisse honnêtement valoir zéro :
+     un style sans porteur n'a pas de contrepartie à peser — il ne rend
+     service à personne, il ne fait qu'attendre d'être lu par erreur.
+     Ce qui reste au kit exprès se nomme dans KIT_GARDE, pas ici.
+     Terrain gagné le 25 août 2026 : 20 classes et 1 identifiant, 69
+     lignes de style, dont les restes de deux passes récentes. */
+  surfaceMorte: 0
 };
 
 const fichiers = readdirSync(UI).filter(f => f.endsWith('.js') && !HORS_ECRAN.has(f));
@@ -242,11 +249,131 @@ if (mots > PLAFOND.motsExplication)
        `monte le plafond ICI — sinon coupe (CLAUDE.md §6-§7).`);
 console.log(`③ explications dans les feuilles : ${phrases} phrases, ${mots} mots (plafond ${PLAFOND.motsExplication})`);
 
+/* ============================================================
+   ④ LA SURFACE MORTE — ce que le style habille et que personne ne pose
+
+   `CLAUDE.md` porte deux règles que rien ne vérifiait : « une mécanique
+   qui ne s'enclenche jamais est du code mort » (§6) et « un lot se
+   mesure AUSSI en surface ajoutée » (§8). Elles ont déjà coûté cher —
+   la carte « À savoir » et son chevron supprimés, le carnet de
+   camarades et ses 365 lignes — mais elles se découvraient à l'œil,
+   des mois plus tard, une par une.
+
+   Le premier relevé a trouvé 20 classes et 1 identifiant que plus
+   personne ne posait : deux dessins abandonnés (les prompts, l'ancienne
+   liste de contacts, cette dernière dupliquée mot pour mot sous
+   `.ctc-body`) et surtout les restes de MES propres passes — le pli de
+   « Donner » et celui de la barre de liste, dissous en descendant
+   l'action dans le pied. C'est la leçon : un lot qui retire un
+   contrôle laisse son style derrière lui, et personne ne le voit.
+
+   Deux précautions apprises en construisant l'instrument :
+   ① les COMMENTAIRES CSS citent des sélecteurs à foison — on les
+     retire avant de lire (même piège que le contrôle de survol, §4) ;
+   ② l'app pose ses classes conditionnelles avec un ESPACE EN TÊTE
+     (`class="tranche ec-fil${vide ? '' : ' ec-vide'}"`). Sans en tenir
+     compte, huit classes bien vivantes passaient pour mortes — et
+     l'instrument aurait fait supprimer du code utile. Un contrôle qui
+     se trompe dans ce sens-là est pire que pas de contrôle.
+   ============================================================ */
+const STYLES = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'styles');
+const RACINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+
+/* Les exceptions se NOMMENT, avec leur raison — comme partout ailleurs. */
+const KIT_GARDE = [
+  /* `.fset.fs-alert` : le bord ambre d'un cadre dont l'état peut tout
+     coûter. Son dernier porteur est parti avec l'état qu'il soulignait,
+     mais `CLAUDE.md` §6 le NOMME dans le catalogue des motifs. Le
+     supprimer ferait pointer la référence sur du vide — exactement la
+     faute qu'on corrige ailleurs. Il reste au kit, déclaré. */
+  'fs-alert'
+];
+
+{
+  let css = readFileSync(path.join(STYLES, 'app.css'), 'utf8');
+  for (const f of readdirSync(path.join(STYLES, 'tokens')))
+    css += '\n' + readFileSync(path.join(STYLES, 'tokens', f), 'utf8');
+  const nu = css.replace(/\/\*[\s\S]*?\*\//g, '');
+
+  const classes = new Map(); const ids = new Map();
+  for (const bloc of nu.split('}')) {
+    const i = bloc.indexOf('{');
+    if (i === -1) continue;
+    const sel = bloc.slice(0, i);
+    if (/^\s*@/.test(sel)) continue;
+    for (const m of sel.matchAll(/\.(-?[_a-zA-Z][\w-]*)/g))
+      classes.set(m[1], (classes.get(m[1]) || 0) + 1);
+    for (const m of sel.matchAll(/#(-?[_a-zA-Z][\w-]*)/g))
+      ids.set(m[1], (ids.get(m[1]) || 0) + 1);
+  }
+
+  /* tout ce que l'app, la coque et les scénarios peuvent poser */
+  let code = '';
+  for (const d of ['ui', 'engine']) {
+    for (const f of readdirSync(path.join(RACINE, d)))
+      if (f.endsWith('.js')) code += '\n' + readFileSync(path.join(RACINE, d, f), 'utf8');
+  }
+  for (const f of ['index.html', 'app.js', 'sw.js', 'tests.js'])
+    { try { code += '\n' + readFileSync(path.join(RACINE, f), 'utf8'); } catch {} }
+  for (const f of readdirSync(path.join(RACINE, 'tests', 'e2e')))
+    if (f.endsWith('.mjs')) code += '\n' + readFileSync(path.join(RACINE, 'tests', 'e2e', f), 'utf8');
+
+  const posees = new Set();
+  for (const m of code.matchAll(/class\s*=\s*["'`]([^"'`]*)["'`]/g))
+    for (const c of m[1].split(/[\s${}()?:+'"`]+/)) if (c) posees.add(c);
+  for (const m of code.matchAll(/classList\.\w+\(([^)]*)\)/g))
+    for (const c of m[1].matchAll(/['"`]([\w- ]+)['"`]/g))
+      for (const x of c[1].split(/\s+/)) if (x) posees.add(x);
+  for (const m of code.matchAll(/className\s*\+?=\s*["'`]([^"'`]*)["'`]/g))
+    for (const c of m[1].split(/\s+/)) if (c) posees.add(c);
+  for (const m of code.matchAll(/\.(?:querySelector|querySelectorAll|closest|matches)\(\s*["'`]([^"'`]+)["'`]/g))
+    for (const c of m[1].matchAll(/\.(-?[_a-zA-Z][\w-]*)/g)) posees.add(c[1]);
+  /* l'espace en tête compte — voir ② plus haut */
+  for (const m of code.matchAll(/['"`]\s*([a-z][\w-]*(?:\s+[a-z][\w-]*)*)\s*['"`]/g))
+    for (const c of m[1].split(/\s+/)) if (/^[a-z][\w-]*$/.test(c)) posees.add(c);
+
+  /* LA SONDE PASSE PAR LE MÊME CHEMIN QUE LA MESURE, sinon elle ne
+     prouve rien : une première version se contentait de vérifier
+     qu'une chaîne inventée n'était pas dans le collecteur — vrai
+     presque toujours, donc muet. Un collecteur trop gourmand (qui
+     « voit » tout ce que le style définit) la passait au vert alors
+     qu'il rendait le compte nul pour toujours. Mesuré, mutation à
+     l'appui. La sonde est donc une classe SEULEMENT stylée : elle doit
+     ressortir du filtre, exactement comme une vraie classe morte. */
+  /* le nom se COMPOSE : écrit d'un bloc, il apparaîtrait littéralement
+     dans ce fichier — que le collecteur lit — et se verrait lui-même. */
+  const sonde = 'zz' + '-sonde' + '-morte';
+  classes.set(sonde, 1);
+
+  const mortes = [...classes.keys()].filter(c => !posees.has(c) && !KIT_GARDE.includes(c));
+  const idsMorts = [...ids.keys()].filter(i => !new RegExp(`\\b${i}\\b`).test(code));
+
+  const sondeVue = mortes.includes(sonde);
+  const i = mortes.indexOf(sonde);
+  if (i !== -1) mortes.splice(i, 1);
+  classes.delete(sonde);
+
+  const total = mortes.length + idsMorts.length;
+  if (!sondeVue)
+    fail('surface morte : la sonde (une classe que rien ne pose) n’est pas ressortie — ' +
+         'le collecteur ratisse trop large, et le compte vaudra zéro quoi qu’il arrive');
+  else if (total > PLAFOND.surfaceMorte)
+    fail(`surface morte : ${total} sélecteur(s) que personne ne pose ` +
+         `(plafond ${PLAFOND.surfaceMorte}) — ` +
+         [...mortes.map(c => '.' + c), ...idsMorts.map(i => '#' + i)].join(', ') +
+         '. Retire le style avec le dessin qu\'il habillait, ou nomme-le dans ' +
+         'KIT_GARDE en disant pourquoi il reste.');
+  else console.log(`④ surface morte : ${total} sélecteur(s) sans porteur ` +
+    `(plafond ${PLAFOND.surfaceMorte}) · ${classes.size} classes et ${ids.size} ids stylés`);
+  globalThis.__surfaceMorte = total;
+}
+
 /* Le rappel qui fait descendre les plafonds : ce qui est gagné se garde. */
 const marge = [
   ['toastCar', PLAFOND.toastCar - plusLong],
   ['confirmations', PLAFOND.confirmations - confirmations],
-  ['motsExplication', PLAFOND.motsExplication - mots]
+  ['motsExplication', PLAFOND.motsExplication - mots],
+  ['surfaceMorte', PLAFOND.surfaceMorte - globalThis.__surfaceMorte]
 ].filter(([, d]) => d > 0);
 if (marge.length)
   console.log('↓ terrain gagné, à verrouiller dans PLAFOND : ' +

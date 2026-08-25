@@ -1165,7 +1165,25 @@ RÉEL de l'app et lit les octets qui sortent par le vrai bouton.**
    confirmation, phrase d'explication) ne passe qu'en montant un plafond
    **dans ce fichier**, exprès — c'est ce qui empêche une passe de
    nettoyage de se défaire toute seule, un « juste un toast » à la fois.
-8. Commits en français, descriptifs, focalisés.
+   **Le quatrième compte est la SURFACE MORTE**, et son plafond vaut
+   zéro : un style que plus personne ne pose n'a aucune contrepartie à
+   peser, il attend seulement d'être lu par erreur. Ce qui reste au kit
+   exprès — un motif que §6 nomme mais qu'aucun écran ne porte
+   aujourd'hui — se déclare dans `KIT_GARDE`, avec sa raison.
+8. **Un lot qui RETIRE un contrôle emporte son style avec lui.** C'est la
+   faute la plus discrète du dépôt, et c'est la mienne autant qu'une
+   autre : le premier relevé a trouvé 21 sélecteurs orphelins, dont le
+   pli de « Donner » et celui de la barre de liste — dissous quelques
+   jours plus tôt en descendant l'action dans le pied, et dont le CSS
+   était resté. Deux dessins abandonnés dormaient à côté, l'un dupliqué
+   mot pour mot sous un autre parent. 69 lignes.
+   La leçon d'outillage vaut autant : **un contrôle qui peut se tromper
+   dans le sens de la SUPPRESSION se conçoit à l'envers.** Le collecteur
+   ratait `class="… ${x ? '' : ' ec-vide'}"` — l'espace en tête — et
+   déclarait mortes sept classes bien vivantes. Il ne suffit pas qu'il
+   échoue : il doit échouer **bruyamment et en les nommant**, pour qu'un
+   humain voie tout de suite que l'instrument a tort, pas le code.
+9. Commits en français, descriptifs, focalisés.
 
 ---
 
