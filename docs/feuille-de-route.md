@@ -59,9 +59,15 @@ choses, et aucune ne dépend de quelqu'un d'extérieur.
       scénario peut être sauté. `tous.mjs` refuse maintenant de démarrer si un
       fichier n'y figure pas : la promesse ne peut plus se défaire seule.
       *(août 2026)*
-- [ ] **Pages confidentialité et aide** — courtes, honnêtes. La liste « ce
-      qu'OpenContact ne fera jamais » y a sa place : c'est ce qui permet à un
-      établissement de faire confiance à l'outil.
+- [x] **Pages confidentialité et aide** — `confidentialite.html` et
+      `aide.html`, servies avec l'app et précachées : elles répondent hors
+      ligne, parce que quelqu'un qui vérifie ce que l'app fait de ses données
+      ne doit pas dépendre du réseau pour l'apprendre. La page de
+      confidentialité dit ce qui est enregistré, ce qui sort et à quel geste,
+      **ce que voient les relais** (ils ne peuvent pas lire, mais ils voient
+      qu'une connexion a lieu), et le seul appel tiers que l'app fait pour
+      l'utilisateur — Nominatim, quand il tape une adresse. Un paragraphe est
+      écrit pour un établissement. *(août 2026)*
 
 **Le chemin de retour existe déjà.** Réglages → « Signaler un problème »
 produit un rapport de cinq lignes (navigateur, système, écran, poids des

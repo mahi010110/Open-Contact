@@ -300,6 +300,11 @@ const KIT_GARDE = [
   let css = readFileSync(path.join(STYLES, 'app.css'), 'utf8');
   for (const f of readdirSync(path.join(STYLES, 'tokens')))
     css += '\n' + readFileSync(path.join(STYLES, 'tokens', f), 'utf8');
+  /* `doc.css` habille les pages qui se LISENT (confidentialité, aide).
+     Une feuille que personne ne contrôle est le trou par lequel la
+     surface morte revient : elle entre dans le compte comme le reste,
+     et les pages qui la portent entrent dans le collecteur plus bas. */
+  css += '\n' + readFileSync(path.join(RACINE, 'doc.css'), 'utf8');
   const nu = css.replace(/\/\*[\s\S]*?\*\//g, '');
 
   const classes = new Map(); const ids = new Map();
@@ -320,7 +325,8 @@ const KIT_GARDE = [
     for (const f of readdirSync(path.join(RACINE, d)))
       if (f.endsWith('.js')) code += '\n' + readFileSync(path.join(RACINE, d, f), 'utf8');
   }
-  for (const f of ['index.html', 'app.js', 'sw.js', 'tests.js'])
+  for (const f of ['index.html', 'app.js', 'sw.js', 'tests.js',
+                   'confidentialite.html', 'aide.html', 'oauth.html'])
     { try { code += '\n' + readFileSync(path.join(RACINE, f), 'utf8'); } catch {} }
   for (const f of readdirSync(path.join(RACINE, 'tests', 'e2e')))
     if (f.endsWith('.mjs')) code += '\n' + readFileSync(path.join(RACINE, 'tests', 'e2e', f), 'utf8');
@@ -406,10 +412,12 @@ const MOTS_GARDE = [
   /* §7 l'écrit lui-même : « personne — sauf le pronom
      (« personne pour l'instant ») ». C'est la phrase citée. */
   'Personne pour l’instant.',
-  /* « en personne » est l'idiome du face-à-face, pas un objet. Et
-     c'est précisément le canal que §8 recommande : une demande de
-     vive voix aboutit 34 fois plus souvent que par e-mail. */
-  'En personne · QR',
+  /* « en personne » est l'idiome du face-à-face, pas un objet — il ne
+     peut pas désigner un contact, donc l'exemption vaut partout où il
+     apparaît, pas seulement dans le libellé du canal. Et c'est
+     précisément le canal que §8 recommande : une demande de vive voix
+     aboutit 34 fois plus souvent que par e-mail. */
+  'En personne',
   /* « team lead » est un INTITULÉ DE POSTE réel, pas le jargon
      commercial que §7 bannit. Ici en exemple de champ, et là en
      donnée de démonstration. */
@@ -432,7 +440,12 @@ const MOTS_GARDE = [
   const sansIcones = l => l.replace(/\bic\(\s*(['"`])[^'"`]*\1/g, 'ic(');
 
   const derives = []; let chaines = 0;
-  const sources = [['index.html', readFileSync(path.join(RACINE, 'index.html'), 'utf8')]];
+  /* les pages qui se lisent parlent à l'utilisateur comme un écran :
+     la charte des mots vaut pour elles aussi, sinon « un objet, UN
+     mot » s'arrête à la porte de l'app */
+  const sources = [];
+  for (const f of ['index.html', 'confidentialite.html', 'aide.html'])
+    sources.push([f, readFileSync(path.join(RACINE, f), 'utf8')]);
   for (const f of fichiers) sources.push([f, lire(f)]);
 
   for (const [nom, src] of sources) {
@@ -454,8 +467,19 @@ const MOTS_GARDE = [
       .replace(/^(\s*)\/\/.*$/gm, '$1');
     const lignes = nu.split('\n');
     lignes.forEach((ligne, i) => {
-      for (const m of sansIcones(ligne).matchAll(/(['"`])((?:\\.|(?!\1)[^\\])*)\1/g)) {
-        const t = m[2].trim();
+      /* DANS UNE PAGE, LA PROSE EST ENTRE LES BALISES, pas entre
+         quotes. Le collecteur ne lisait que les chaînes littérales :
+         il « lisait » `index.html` sans voir une seule de ses phrases,
+         c'est-à-dire précisément l'endroit où §7 dit que « sauvegarde »
+         avait survécu. Une mutation l'a prouvé — le mot posé dans une
+         page passait au vert. On ajoute donc le texte nu de chaque
+         ligne, entre `>` et `<`. */
+      const morceaux = [...sansIcones(ligne).matchAll(/(['"`])((?:\\.|(?!\1)[^\\])*)\1/g)]
+        .map(m => m[2]);
+      if (/\.html$/.test(nom))
+        for (const m of ligne.matchAll(/>([^<>]+)</g)) morceaux.push(m[1]);
+      for (const brut of morceaux) {
+        const t = brut.trim();
         if (!versEcran(t)) continue;
         chaines++;
         if (MOTS_GARDE.some(g => t.includes(g))) continue;

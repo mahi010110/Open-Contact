@@ -276,6 +276,13 @@ function reglagesRowsHTML(){
      avec lui. En ligne, OpenContact est une seule app à une seule
      adresse — un numéro n'y distingue plus rien, il se lisait juste
      à chaque passage dans les réglages. */
+  /* UNE seule ligne pour deux pages, et elle mène à l'aide : c'est ce
+     qu'un étudiant cherche depuis l'app. La confidentialité, elle, se
+     lit surtout AVANT d'installer quoi que ce soit — un établissement
+     qui vérifie ne passe pas par les réglages — mais les deux pages se
+     renvoient l'une à l'autre, donc rien n'est enterré. Elles sont
+     précachées : elles répondent hors ligne comme le reste. */
+  rows.push(['moiAide', 'Aide et confidentialité', '', false]);
   rows.push(['moiDiag', 'Signaler un problème', '', false]);
   return (
     rows.map(([id, nom, etat, dep], i) =>
@@ -321,6 +328,8 @@ function bindReglages(box){
     const st = q('#moiCompSt');
     if (a && st) st.textContent = 'associé — ' + (a.nom || 'ton ordinateur');
   }).catch(() => {});
+  q('#moiAide').addEventListener('click', () =>
+    window.open('aide.html', '_blank', 'noopener'));
   q('#moiDiag').addEventListener('click', openDiagnostic);
   const rf = q('#moiRestoreFile');
   /* restaurer = rare et sensible (#4) : rangé ici, le code d'abord */

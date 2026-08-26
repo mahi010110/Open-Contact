@@ -1178,6 +1178,14 @@ RÉEL de l'app et lit les octets qui sortent par le vrai bouton.**
 3. `?test` : tous les auto-tests verts, y compris les nouveaux.
 4. `CONTRAT.md` à jour si une clé, un format ou un invariant a bougé.
 5. `sw.js` : bump `oc-vN` + `PRECACHE` si un fichier précaché a changé.
+   **Et `PRECACHE` est ATOMIQUE** : `cache.addAll` échoue en entier si un
+   seul fichier manque, donc le service worker ne s'installe pas du tout.
+   Corollaire payé le 25 août : deux scénarios servaient une copie du
+   dépôt à partir d'une liste tenue À LA MAIN ; trois fichiers précachés
+   de plus ont suffi à la faire diverger, et l'échec ne disait pas
+   pourquoi. La liste se DÉDUIT de `PRECACHE` (`copierDeploiement`,
+   `tests/e2e/outils.mjs`) — une liste qu'on tient à la main finit
+   toujours par mentir.
 6. Textes relus, thème sombre vérifié, cibles tactiles ≥ 44 px sur mobile.
 7. **Sobriété** : `e2e-sobriete.mjs` vert. Une couche de plus (toast long,
    confirmation, phrase d'explication) ne passe qu'en montant un plafond

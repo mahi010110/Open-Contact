@@ -88,6 +88,12 @@ Deux règles en découlent, et elles ne se négocient pas :
 précaché incrémente `CACHE` (`oc-vN`) et met à jour `PRECACHE`.** Oublier ce
 geste, c'est servir l'ancienne version à tous ceux qui ont déjà ouvert l'app.
 
+`PRECACHE` est **atomique** : `cache.addAll` échoue en entier si un seul
+fichier manque, et le service worker ne s'installe alors pas du tout. C'est
+pourquoi les scénarios qui servent une copie du dépôt la construisent à
+partir de `PRECACHE` (`copierDeploiement`) plutôt que d'une liste tenue à la
+main — celle-ci avait fini par mentir.
+
 ---
 
 ## Avant de livrer

@@ -48,16 +48,14 @@
    attrapée. Vérifier le stockage NE remplace pas vérifier ce que
    l'app retrouve.
    ============================================================ */
-import { chromium, chromiumPath, ROOT } from './outils.mjs';
+import { chromium, chromiumPath, ROOT, copierDeploiement } from './outils.mjs';
 import http from 'http';
 import { readFile, writeFile, cp, rm, mkdtemp } from 'fs/promises';
 import { tmpdir } from 'os';
 import path from 'path';
 
 const dir = await mkdtemp(path.join(tmpdir(), 'oc-durabilite-'));
-for (const f of ['index.html','app.js','theme.js','sw.js','manifest.webmanifest','icon.svg',
-                 'engine','ui','styles','assets','tests.js','tests-c8.js','tests-mcp.js','oauth.html'])
-  await cp(path.join(ROOT, f), path.join(dir, f), { recursive:true }).catch(() => {});
+await copierDeploiement(dir);
 
 const MIME = { '.html':'text/html', '.js':'text/javascript', '.mjs':'text/javascript',
   '.css':'text/css', '.json':'application/json', '.svg':'image/svg+xml', '.png':'image/png',
@@ -67,10 +65,20 @@ const srv = http.createServer(async (q, r) => {
     let p = decodeURIComponent(new URL(q.url, 'http://x').pathname);
     if (p === '/') p = '/index.html';
     const f = path.join(dir, p);
+    /* LIRE AVANT D'ÉCRIRE L'ENTÊTE. Écrit d'abord, un 200 est déjà parti
+       quand la lecture échoue : le `catch` tente alors un 404 sur des
+       entêtes envoyés, Node jette `ERR_HTTP_HEADERS_SENT`, et c'est le
+       PROCESSUS DE TEST qui meurt — un fichier manquant se signalait
+       donc comme un scénario en échec, sans dire lequel ni pourquoi.
+       `serveRepo` (outils.mjs) fait déjà dans le bon ordre. */
+    const data = await readFile(f);
     r.writeHead(200, { 'content-type':MIME[path.extname(f)] || 'application/octet-stream',
                        'cache-control':'no-cache' });
-    r.end(await readFile(f));
-  } catch (e) { r.writeHead(404); r.end(); }
+    r.end(data);
+  } catch (e) {
+    if (!r.headersSent) r.writeHead(404);
+    r.end();
+  }
 });
 await new Promise(r => srv.listen(0, '127.0.0.1', r));
 const base = 'http://127.0.0.1:' + srv.address().port;

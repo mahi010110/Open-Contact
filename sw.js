@@ -4,7 +4,7 @@
    arrière-plan — la version suivante s'applique à l'ouverture d'après.
    Jamais mis en cache : le géocodage (données fraîches) et les tuiles de
    carte (volume) — la carte demande donc du réseau, tout le reste non. */
-const CACHE = 'oc-v181';
+const CACHE = 'oc-v182';
 const PRECACHE = ['./', './index.html', './app.js', './theme.js', './tests.js', './tests-c8.js', './tests-mcp.js',
   './engine/crypto.js', './engine/exchange.js', './engine/filter.js',
   './engine/geo.js', './engine/merge.js', './engine/model.js',
@@ -15,6 +15,10 @@ const PRECACHE = ['./', './index.html', './app.js', './theme.js', './tests.js', 
   './ui/pistes.js', './ui/moi.js', './ui/perimetre.js', './ui/echanger.js', './ui/direct.js', './ui/synclive.js',
   './ui/contact.js', './ui/edit.js', './ui/docs.js', './ui/tplfield.js', './ui/prospect.js', './ui/analyse.js', './ui/propositions.js',
   './ui/diagnostic.js', './ui/qr.js', './ui/qui.js', './ui/affiner.js', './ui/donner.js', './ui/recevoir.js', './ui/profil.js', './ui/connexions.js', './ui/campagnes.js', './ui/ordinateur.js', './oauth.html',
+  /* les pages qui se LISENT : elles doivent répondre hors ligne comme
+     le reste — quelqu'un qui vérifie ce que l’app fait de ses données
+     ne doit pas dépendre du réseau pour l'apprendre */
+  './confidentialite.html', './aide.html', './doc.css',
   './assets/vendor/qrcode-generator.mjs', './assets/vendor/jsQR.js',
   './assets/vendor/trystero-nostr.min.js',
   './manifest.webmanifest', './icon.svg',

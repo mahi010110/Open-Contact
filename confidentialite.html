@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'; frame-src 'none'">
+<meta name="referrer" content="no-referrer">
+<title>Confidentialité — OpenContact</title>
+<meta name="description" content="Ce qu'OpenContact fait de tes données : elles restent sur ton appareil. Ce qui sort, quand, et ce que voient les relais.">
+<meta name="theme-color" id="metaTheme" content="#F7F6F1">
+<link rel="icon" href="assets/logo/piste-a-reseau.svg">
+<script src="theme.js"></script>
+<link rel="stylesheet" href="styles/tokens/fonts.css">
+<link rel="stylesheet" href="styles/tokens/colors.css">
+<link rel="stylesheet" href="styles/tokens/typography.css">
+<link rel="stylesheet" href="styles/tokens/spacing.css">
+<link rel="stylesheet" href="styles/tokens/effects.css">
+<link rel="stylesheet" href="styles/tokens/base.css">
+<link rel="stylesheet" href="doc.css">
+</head>
+<body>
+<a class="skip" href="#main">Aller au contenu</a>
+<header class="dh">
+  <a class="dh-back" href="./">← OpenContact</a>
+  <h1>Confidentialité</h1>
+</header>
+
+<main id="main" class="dp" tabindex="-1">
+
+<p class="lede">Tes données restent sur ton appareil. Il n'y a pas de serveur
+OpenContact où elles pourraient aller : ce n'est pas une promesse, c'est
+qu'il n'en existe aucun.</p>
+
+<h2>Ce qui est enregistré, et où</h2>
+
+<p>Tout vit dans le stockage de ton navigateur, sur l'appareil que tu
+utilises — comme un fichier sur ton disque. Personne d'autre n'y accède,
+nous compris.</p>
+
+<ul class="dl">
+  <li><b>Tes pistes et tes contacts</b> — noms, adresses, notes.</li>
+  <li><b>Ton suivi</b> — statuts, prochaines actions, historique, journal.
+      C'est la partie privée : elle ne sort jamais dans un partage.</li>
+  <li><b>Ton profil</b> — nom, formation, adresse e-mail, modèles de messages,
+      CV et lettres que tu déposes.</li>
+  <li><b>Tes réglages</b> — thème, appareils reliés, relais choisis.</li>
+</ul>
+
+<p>Si tu actives la protection par mot de passe, ce qui est sensible est
+chiffré <em>sur l'appareil</em>, et la clé ne quitte jamais celui-ci.</p>
+
+<h2>Ce qui sort, et seulement quand tu le demandes</h2>
+
+<p>Rien ne part tout seul. Aucun envoi au démarrage, aucun envoi en fond.
+Quatre gestes — et un seul d'entre eux te concerne sans que tu l'aies
+choisi, il est plus bas.</p>
+
+<ul class="dl">
+  <li><b>Un fichier <code>.oc</code></b> — tu l'enregistres, tu le donnes à
+      qui tu veux. Il ne transite par personne.</li>
+  <li><b>Un QR code</b> — d'un écran à l'autre, sans réseau du tout.</li>
+  <li><b>Un partage avec ton groupe</b> — de pair à pair, chiffré, et sans
+      ton suivi privé.</li>
+  <li><b>La synchronisation entre tes propres appareils</b> — de pair à pair,
+      chiffré ; là, tout circule, y compris le privé, parce que ce sont tes
+      appareils.</li>
+</ul>
+
+<p>Écrire un e-mail ouvre <b>ton</b> logiciel de courrier avec le message
+prêt. OpenContact n'envoie rien et ne voit pas ce que tu envoies.</p>
+
+<h2>Le seul appel extérieur que l'app fait pour toi</h2>
+
+<p>Quand tu tapes une adresse dans une fiche, l'app demande ses coordonnées à
+<b>Nominatim</b>, le service d'adresses d'OpenStreetMap. Ce service reçoit
+alors l'adresse que tu as tapée, et rien d'autre — ni ton nom, ni tes pistes,
+ni un identifiant. Si tu ne saisis pas d'adresse, cet appel n'a jamais lieu ;
+hors ligne, il échoue sans rien casser.</p>
+
+<h2>Ce que voient les relais</h2>
+
+<p>Le partage et la synchronisation passent par des <b>relais publics</b> pour
+que deux appareils se trouvent. Il faut être précis sur ce qu'ils voient :</p>
+
+<ul class="dl">
+  <li><b>Ils ne peuvent pas lire ce qui passe</b> — le contenu est chiffré
+      entre les deux appareils.</li>
+  <li><b>Ils ne savent pas de quoi il s'agit</b> — le nom du salon est une
+      empreinte, pas ton mot de passe ni un nom de groupe.</li>
+  <li><b>Ils voient qu'une connexion a lieu</b>, et depuis quelle adresse IP
+      — comme n'importe quel site que tu visites.</li>
+</ul>
+
+<p>Tu peux remplacer ces relais par les tiens dans les réglages. Et tu peux
+t'en passer entièrement : le fichier <code>.oc</code> et le QR code font le
+même travail sans aucun réseau.</p>
+
+<h2>Ce qu'OpenContact ne fera jamais</h2>
+
+<ul class="dl">
+  <li>Aucun compte, aucun serveur, aucune analytique, aucun traçage.</li>
+  <li>Aucune publicité, aucune revente ni exploitation de tes données.</li>
+  <li>Ton suivi privé ne sort jamais dans un partage avec ton groupe.</li>
+  <li>Aucune donnée écrasée sans un aperçu avant et la possibilité d'annuler.</li>
+  <li>Aucun suivi d'ouverture des e-mails — pas de pixel espion.</li>
+</ul>
+
+<p class="note">Ce ne sont pas des intentions : des tests automatiques lisent
+réellement les octets qui sortent à chaque partage et vérifient que le privé
+n'y est pas. Le code est lisible par n'importe qui.</p>
+
+<h2>Tout effacer</h2>
+
+<p>Ce sont tes données, sur ton appareil : efface le site dans les réglages de
+ton navigateur et il ne reste rien. Aucune copie ailleurs, donc rien à nous
+demander. Pense à garder un fichier <code>.oc</code> avant, si tu veux
+retrouver ton suivi plus tard.</p>
+
+<h2>Pour un établissement</h2>
+
+<p>OpenContact ne collecte rien et ne reçoit rien : il n'y a ni compte, ni
+serveur, ni sous-traitant. L'outil s'exécute entièrement dans le navigateur de
+l'étudiant, et les données ne quittent son appareil que par un geste qu'il
+fait lui-même. Un établissement qui souhaite le vérifier peut lire le code —
+il est public — et rejouer les tests qui contrôlent ces règles.</p>
+
+<footer class="df">
+  <p><a href="aide.html">Aide</a> · <a href="./">Ouvrir OpenContact</a></p>
+  <p class="note">Une question, un doute, une erreur dans cette page ? Le
+  rapport que produit « Signaler un problème », dans les réglages de l'app,
+  ne contient aucune donnée personnelle et s'affiche en entier avant d'être
+  copié.</p>
+</footer>
+
+</main>
+</body>
+</html>

@@ -156,3 +156,42 @@ export async function serveRepo(){
   await new Promise(r => server.listen(0, '127.0.0.1', r));
   return { server, base: `http://127.0.0.1:${server.address().port}` };
 }
+
+/* ============================================================
+   COPIER UN DÉPLOIEMENT — la liste se DÉDUIT, elle ne se tient pas
+
+   Deux scénarios servent une copie du dépôt pour rejouer une mise à
+   jour ou une migration. Leur liste de fichiers était écrite à la
+   main : le jour où l'app a précaché trois fichiers de plus, ils ont
+   manqué dans la copie, `cache.addAll` a échoué — il est atomique, un
+   seul 404 fait tout tomber — le service worker ne s'est jamais
+   installé, et les deux scénarios ont échoué SANS dire pourquoi.
+
+   La liste vient donc de `PRECACHE`, dans `sw.js` : ce que l'app
+   promet de servir hors ligne est exactement ce qu'une copie doit
+   contenir. Elle ne peut plus diverger.
+   ============================================================ */
+export async function copierDeploiement(dest){
+  const { cp } = await import('node:fs/promises');
+  const sw = await readFile(path.join(ROOT, 'sw.js'), 'utf8');
+  const bloc = sw.match(/PRECACHE\s*=\s*\[([\s\S]*?)\]/);
+  if (!bloc) throw new Error('copierDeploiement : PRECACHE introuvable dans sw.js');
+  /* les commentaires du bloc citent des chemins : on les retire d'abord */
+  const nu = bloc[1].replace(/\/\*[\s\S]*?\*\//g, ' ');
+  const cibles = new Set(['sw.js', 'theme.js', 'manifest.webmanifest',
+    /* chargés par `?test`, jamais précachés : ils ne servent pas
+       l'utilisateur, mais les scénarios en ont besoin */
+    'tests.js', 'tests-c8.js', 'tests-mcp.js']);
+  for (const m of nu.matchAll(/'([^']+)'/g)){
+    const p = m[1].replace(/^\.\//, '').replace(/^\//, '');
+    if (!p || /^https?:/.test(p)) continue;
+    /* on copie le DOSSIER de tête : `./ui/mail.js` → `ui` */
+    cibles.add(p.includes('/') ? p.slice(0, p.indexOf('/')) : p);
+  }
+  let n = 0;
+  for (const f of cibles){
+    try { await cp(path.join(ROOT, f), path.join(dest, f), { recursive: true }); n++; }
+    catch { /* une entrée absente se verra au 404, pas ici */ }
+  }
+  return n;
+}

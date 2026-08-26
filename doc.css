@@ -1,0 +1,101 @@
+/* ============================================================
+   OpenContact — les pages qui se LISENT (confidentialité, aide)
+
+   Elles ne sont pas des écrans de l'app : elles doivent se lire
+   sans rien installer, par quelqu'un qui n'a peut-être jamais
+   ouvert OpenContact — un étudiant qui hésite, un établissement
+   qui vérifie. D'où une feuille à part, courte, plutôt que de
+   faire porter à `app.css` un usage qui n'est pas le sien.
+
+   Elles empruntent en revanche TOUS les tokens : mêmes couleurs,
+   mêmes polices, même thème sombre. Une page d'aide qui ne
+   ressemble pas au produit n'inspire pas confiance.
+
+   Une seule mesure de confort : la colonne de lecture est bornée
+   à 62 caractères (`--doc-mesure`). Au-delà, l'œil perd sa ligne
+   en revenant à la marge — c'est la seule règle typographique
+   qu'une page de texte doit à son lecteur.
+   ============================================================ */
+:root{ --doc-mesure:38rem; }
+
+body{
+  margin:0;background:var(--surface-desktop);color:var(--text-body);
+  font-family:var(--font-ui);font-size:var(--text-15);line-height:1.65;
+}
+
+/* le lien d'évitement : invisible tant qu'on ne l'atteint pas au
+   clavier — et il vise un élément focalisable, sinon il ne
+   déplacerait que le défilement (CLAUDE.md §5) */
+.skip{
+  position:absolute;left:-9999px;top:0;z-index:10;
+  padding:10px 14px;background:var(--select-bg);color:var(--select-text);
+}
+.skip:focus{left:0}
+
+/* ---- l'en-tête : le châssis, donc le navy ---- */
+.dh{
+  background:var(--titlebar-accent-bg);color:var(--on-navy);
+  border-bottom:1px solid var(--border-strong);
+  padding:10px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+}
+.dh h1{
+  margin:0;font-family:var(--font-pixel);font-size:var(--pixel-16);
+  font-weight:400;text-transform:uppercase;letter-spacing:.1em;
+}
+/* 44 px de haut : c'est un lien qu'on tape au pouce comme un autre */
+.dh-back{
+  color:var(--on-navy);text-decoration:none;font-family:var(--font-mono);
+  font-size:var(--text-13);display:inline-flex;align-items:center;
+  min-height:var(--control-h-touch);
+}
+.dh-back:hover,.dh-back:focus-visible{text-decoration:underline}
+
+/* ---- le corps ---- */
+.dp{
+  max-width:var(--doc-mesure);margin:0 auto;padding:26px 18px 60px;
+  outline:none;
+  /* DE LA PROSE SE RÉORGANISE, ELLE NE DÉBORDE PAS (WCAG 1.4.10).
+     Mesuré : à 320 px et texte doublé, « qu'OpenContact » — quatorze
+     caractères insécables — poussait la page 9 px trop loin, et une
+     page qui glisse sous le doigt est le symptôme le plus déroutant
+     qui soit. `break-word` ne coupe QUE le mot qui ne tient pas seul
+     sur sa ligne : à taille normale, rien ne change. */
+  overflow-wrap:break-word;
+}
+.dp h2{
+  font-size:var(--text-20);font-weight:var(--weight-bold);
+  margin:34px 0 10px;padding-top:16px;
+  border-top:1px dashed var(--border-soft);
+}
+.dp h2:first-of-type{border-top:0;padding-top:0;margin-top:24px}
+.dp p{margin:0 0 14px}
+.dp code{
+  font-family:var(--font-mono);font-size:.92em;
+  background:var(--surface-chrome);border:1px solid var(--border-soft);
+  padding:1px 5px;border-radius:var(--radius-1);
+}
+.dp a{color:var(--text-link)}
+
+/* la phrase d'ouverture porte la réponse : elle se lit avant tout
+   le reste, donc elle prend le poids — jamais une couleur d'alerte */
+.lede{
+  font-size:var(--text-16);font-weight:var(--weight-semibold);
+  border-left:3px solid var(--accent);padding-left:14px;margin-bottom:24px;
+}
+
+.dl{margin:0 0 16px;padding-left:22px}
+.dl li{margin-bottom:8px}
+
+.note{font-size:var(--text-13);color:var(--text-muted)}
+
+.df{
+  margin-top:40px;padding-top:18px;border-top:1px solid var(--border-strong);
+}
+.df p{margin:0 0 8px}
+/* les liens de pied se tapent aussi : ils gardent la hauteur du doigt */
+.df a{display:inline-flex;align-items:center;min-height:var(--control-h-touch)}
+
+@media (min-width:901px){
+  .dh{padding:10px 26px}
+  .dp{padding:34px 26px 80px}
+}
