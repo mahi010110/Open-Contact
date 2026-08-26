@@ -1225,13 +1225,13 @@ RÉEL de l'app et lit les octets qui sortent par le vrai bouton.**
    un fichier `.html` sert ce fichier.** La version intermédiaire, qui
    dérivait l'exemption de `PRECACHE`, liait deux questions sans
    rapport — « est-ce une page ? » et « la promet-on hors ligne ? » —
-   et la page de présentation, qui répond oui puis non, serait retombée
-   dans le trou.
+   et une page livrée sans être promise hors ligne serait retombée dans
+   le trou.
 
    **Et un garde SAUTÉ ne garde rien.** Celui-ci s'appelait
    `e2e-oauth-sw.mjs` et ne couvrait qu'`oauth.html` : il était donc
    rangé avec l'envoi direct, c'est-à-dire **sauté tant que cette
-   capacité reste masquée** (§0). En lui confiant trois pages livrées
+   capacité reste masquée** (§0). En lui confiant les pages livrées
    et visibles, on lui confiait un travail que la suite ne faisait
    jamais — le défaut pouvait revenir sur un vert. Un scénario qui
    garde du visible ne se conditionne à aucun drapeau, et son nom doit

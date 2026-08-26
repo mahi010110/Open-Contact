@@ -4,7 +4,7 @@
    arrière-plan — la version suivante s'applique à l'ouverture d'après.
    Jamais mis en cache : le géocodage (données fraîches) et les tuiles de
    carte (volume) — la carte demande donc du réseau, tout le reste non. */
-const CACHE = 'oc-v184';
+const CACHE = 'oc-v185';
 const PRECACHE = ['./', './index.html', './app.js', './theme.js', './tests.js', './tests-c8.js', './tests-mcp.js',
   './engine/crypto.js', './engine/exchange.js', './engine/filter.js',
   './engine/geo.js', './engine/merge.js', './engine/model.js',
@@ -17,13 +17,10 @@ const PRECACHE = ['./', './index.html', './app.js', './theme.js', './tests.js', 
   './ui/diagnostic.js', './ui/qr.js', './ui/qui.js', './ui/affiner.js', './ui/donner.js', './ui/recevoir.js', './ui/profil.js', './ui/connexions.js', './ui/campagnes.js', './ui/ordinateur.js', './oauth.html',
   /* les pages qui se LISENT : elles doivent répondre hors ligne comme
      le reste — quelqu'un qui vérifie ce que l’app fait de ses données
-     ne doit pas dépendre du réseau pour l'apprendre.
-     `presentation.html` n'est PAS ici, exprès : elle s'adresse à qui
+     ne doit pas dépendre du réseau pour l'apprendre. La page qui
+     PRÉSENTE le produit n'est pas dans ce dépôt : elle s'adresse à qui
      n'a pas encore l'app, donc à quelqu'un qui est en ligne par
-     définition. Ses trois captures pèsent 300 ko que personne
-     n'installerait pour ne jamais les rouvrir. Elle se met malgré
-     tout en cache toute seule à la première visite — la stratégie de
-     ce fichier range ce qu'elle sert. */
+     définition. */
   './confidentialite.html', './aide.html', './doc.css',
   './assets/vendor/qrcode-generator.mjs', './assets/vendor/jsQR.js',
   './assets/vendor/trystero-nostr.min.js',
@@ -127,7 +124,7 @@ const PRECACHE = ['./', './index.html', './app.js', './theme.js', './tests.js', 
    `index.html`, sinon un rechargement hors ligne sur `#/pistes`
    rendrait un 404. Mais le dépôt ne contient PAS que l'app — il
    contient aussi des pages qui se lisent seules : le retour OAuth,
-   l'aide, la confidentialité, la présentation.
+   l'aide, la confidentialité.
 
    Cette exception a été écrite deux fois de la mauvaise façon. D'abord
    en nommant `oauth.html` à la main : les deux pages ajoutées ensuite
@@ -135,8 +132,9 @@ const PRECACHE = ['./', './index.html', './app.js', './theme.js', './tests.js', 
    worker installé, donc jamais chez celui qui venait de les écrire.
    Puis en dérivant la liste de `PRECACHE` : mieux, mais ça liait deux
    questions sans rapport — « est-ce une page ? » et « la promet-on
-   hors ligne ? ». La page de présentation répond oui à la première et
-   non à la seconde, et elle serait retombée dans le trou.
+   hors ligne ? ». Une page livrée sans être promise hors ligne — la
+   présentation du produit, par exemple, qui vit dans son propre dépôt
+   — serait retombée dans le trou.
 
    La règle est donc la plus simple des trois, et elle n'a rien à
    tenir : **une navigation qui NOMME un fichier `.html` sert ce

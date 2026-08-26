@@ -47,7 +47,7 @@ console.log('service worker au contrôle ✓');
 const PAGES = (await readdir(ROOT))
   .filter(n => n.endsWith('.html') && n !== 'index.html')
   .sort();
-if (PAGES.length < 4)
+if (PAGES.length < 3)
   fail('seulement ' + PAGES.length + ' page(s) relevée(s) à la racine — le relevé est cassé, pas le SW');
 for (const nom of PAGES){
   const attendu = (await readFile(path.join(ROOT, nom), 'utf8')).match(/<title>([^<]*)<\/title>/)?.[1].trim();

@@ -300,8 +300,8 @@ const KIT_GARDE = [
   let css = readFileSync(path.join(STYLES, 'app.css'), 'utf8');
   for (const f of readdirSync(path.join(STYLES, 'tokens')))
     css += '\n' + readFileSync(path.join(STYLES, 'tokens', f), 'utf8');
-  /* Les feuilles des pages qui se LISENT (`doc.css`) et de la page qui
-     PRÉSENTE (`site.css`). Une feuille que personne ne contrôle est le
+  /* Les feuilles des pages qui se LISENT (`doc.css` aujourd'hui, et
+     toute autre demain). Une feuille que personne ne contrôle est le
      trou par lequel la surface morte revient. La liste se relève à la
      racine : nommer les fichiers un par un, c'est se préparer à en
      oublier un — ce qui vient d'arriver deux fois dans ce lot. */

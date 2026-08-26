@@ -32,14 +32,16 @@ choses, et aucune ne dépend de quelqu'un d'extérieur.
       et les composants tiers sont attribués. *(août 2026)*
 - [x] **Documentation publique** — un dépôt lisible par quelqu'un qui
       découvre le projet. *(août 2026)*
-- [x] **Site de présentation** — `presentation.html`, une page qui
-      explique le produit à quelqu'un qui n'ouvrira pas l'app tout de
-      suite. Trois captures de l'app RÉELLE, refabriquées d'une commande
-      (`node tests/e2e/captures-site.mjs`) pour qu'elles ne deviennent
-      pas un mensonge poli le jour où un écran change. Elle n'est pas
-      précachée, exprès : elle s'adresse à qui est en ligne, et ses
-      captures pèsent 300 ko que personne n'installerait pour ne jamais
-      les rouvrir. *(août 2026)*
+- [x] **Site de présentation** — il vit dans son propre dépôt,
+      [`Opn...`](https://github.com/mahi010110/Opn...), en ligne sur
+      <https://mahi010110.github.io/Opn.../>. Page statique sans étape de build, mêmes tokens
+      « Utilitaire 98 », polices vendorisées, captures de l'application
+      réelle dans les deux thèmes (`outils/captures.mjs`) et un
+      vérificateur qui plante une sonde avant de mesurer
+      (`outils/verifier.mjs`). Ses deux scripts s'appuient sur
+      l'outillage de CE dépôt, attendu à côté — ou désigné par
+      `OC_REPO`. *(août 2026)*
+
 - [ ] **Essais sur vrai matériel** — un vrai téléphone d'entrée de gamme, un
       vrai réseau d'établissement. Les scénarios automatiques passent à côté
       de tout ce qui relève du doigt, de la lenteur et du wifi filtré.
