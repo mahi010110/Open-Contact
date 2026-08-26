@@ -4,7 +4,7 @@
    arrière-plan — la version suivante s'applique à l'ouverture d'après.
    Jamais mis en cache : le géocodage (données fraîches) et les tuiles de
    carte (volume) — la carte demande donc du réseau, tout le reste non. */
-const CACHE = 'oc-v182';
+const CACHE = 'oc-v183';
 const PRECACHE = ['./', './index.html', './app.js', './theme.js', './tests.js', './tests-c8.js', './tests-mcp.js',
   './engine/crypto.js', './engine/exchange.js', './engine/filter.js',
   './engine/geo.js', './engine/merge.js', './engine/model.js',
@@ -114,6 +114,31 @@ const PRECACHE = ['./', './index.html', './app.js', './theme.js', './tests.js', 
   './assets/icons/zap.svg',
   './assets/logo/piste-a-reseau.svg'];
 
+/* ============================================================
+   LES PAGES QUI SE SERVENT ELLES-MÊMES
+
+   L'app est une page unique : toute navigation doit reservir
+   `index.html`, sinon un rechargement hors ligne sur `#/pistes`
+   rendrait un 404. Mais le dépôt ne contient PAS que l'app — il
+   contient aussi des pages qui se lisent seules : le retour OAuth,
+   l'aide, la confidentialité.
+
+   Cette exception était écrite à la main, et elle ne nommait
+   qu'`oauth.html`. Les deux pages ajoutées ensuite se sont donc fait
+   avaler en silence : taper « Aide et confidentialité » dans les
+   réglages rouvrait l'app, et seulement chez les gens qui l'avaient
+   déjà ouverte une fois — c'est-à-dire tout le monde sauf celui qui
+   vient de la livrer. Une liste tenue à la main finit toujours par
+   mentir ; celle-ci le fait sans bruit, ce qui est pire.
+
+   Elle se DÉDUIT donc de `PRECACHE` : tout `.html` qu'on promet de
+   servir hors ligne est une page à part entière et se sert
+   lui-même. Une page neuve n'a plus rien à déclarer ici.
+   ============================================================ */
+const PAGES = new Set(
+  PRECACHE.filter(p => p.endsWith('.html')).map(p => p.replace(/^\.\//, ''))
+);
+
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE).then(c => c.addAll(PRECACHE)).then(() => self.skipWaiting())
@@ -143,12 +168,13 @@ self.addEventListener('fetch', e => {
      réponse d'API resservie est un mensonge (sel d'appairage périmé,
      quota fantôme…) */
   if (url.origin !== location.origin) return;
-  /* toute navigation ressert l'app (page unique) — SAUF le retour
-     OAuth : oauth.html doit se servir lui-même, sinon la fenêtre
-     d'autorisation rouvre l'app et le jeton n'arrive jamais */
-  const req = (e.request.mode === 'navigate')
-    ? new Request(url.pathname.endsWith('/oauth.html') ? './oauth.html' : './index.html')
-    : e.request;
+  /* une navigation qui NOMME une de nos pages la sert elle-même ;
+     tout le reste ressert l'app (page unique) — voir PAGES plus haut */
+  let req = e.request;
+  if (e.request.mode === 'navigate'){
+    const nom = url.pathname.split('/').pop();
+    req = new Request(PAGES.has(nom) ? './' + nom : './index.html');
+  }
   e.respondWith(
     caches.open(CACHE).then(async c => {
       const cached = await c.match(req);

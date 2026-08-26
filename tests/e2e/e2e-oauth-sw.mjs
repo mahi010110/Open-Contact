@@ -1,11 +1,23 @@
-/* E2E durcissement : le retour OAuth sous service worker.
-   Le SW ressert index.html à toute navigation (app une-page) — il ne
-   doit JAMAIS détourner oauth.html, sinon la fenêtre d'autorisation
-   rouvre l'app et le jeton n'arrive pas. On vérifie, SW au contrôle :
-   1. une navigation vers /oauth.html sert bien la page de retour ;
+/* E2E durcissement : LES PAGES QUI NE SONT PAS L'APP, sous service
+   worker. Le SW ressert index.html à toute navigation (app une-page) —
+   il ne doit détourner AUCUNE des pages qui se lisent seules : le
+   retour OAuth (sinon le jeton n'arrive jamais), l'aide et la
+   confidentialité (sinon les réglages rouvrent l'app).
+
+   Ce scénario ne gardait qu'`oauth.html`, nommé à la main. Les deux
+   pages livrées ensuite se sont fait avaler en silence, et le défaut
+   ne se voyait QUE service worker installé — donc jamais chez celui
+   qui vient de les écrire. La liste des pages se déduit maintenant de
+   `PRECACHE` : une page neuve est gardée sans que personne y pense.
+
+   On vérifie, SW au contrôle :
+   1. chaque page de `PRECACHE` se sert ELLE-MÊME, titre à l'appui ;
    2. le postMessage same-origin (le vrai canal du jeton) fonctionne ;
-   3. une navigation normale ressert bien l'app. */
-import { chromium, chromiumPath, SHOTS, serveRepo } from './outils.mjs';
+   3. une navigation normale ressert bien l'app ;
+   4. hors ligne pour de vrai, et le thème posé avant le premier pixel. */
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+import { chromium, chromiumPath, SHOTS, serveRepo, ROOT } from './outils.mjs';
 
 const { server, base } = await serveRepo();
 const browser = await chromium.launch({ executablePath: chromiumPath() });
@@ -22,12 +34,26 @@ await page.waitForFunction(() => navigator.serviceWorker && navigator.serviceWor
   .catch(() => fail('le service worker n’a jamais pris le contrôle'));
 console.log('service worker au contrôle ✓');
 
-/* 2. navigation directe vers oauth.html — elle doit se servir ELLE-MÊME */
+/* 2. CHAQUE page de PRECACHE se sert elle-même sous le SW.
+   La liste vient de `sw.js`, et le titre attendu du fichier sur disque :
+   rien n'est écrit ici qu'il faudrait penser à mettre à jour. */
+const swSrc = await readFile(path.join(ROOT, 'sw.js'), 'utf8');
+const PAGES = [...swSrc.matchAll(/'\.\/([\w.-]+\.html)'/g)]
+  .map(m => m[1])
+  .filter(n => n !== 'index.html');
+if (PAGES.length < 3)
+  fail('seulement ' + PAGES.length + ' page(s) relevée(s) dans PRECACHE — le relevé est cassé, pas le SW');
+for (const nom of PAGES){
+  const attendu = (await readFile(path.join(ROOT, nom), 'utf8')).match(/<title>([^<]*)<\/title>/)?.[1].trim();
+  if (!attendu){ fail(nom + ' n’a pas de <title> — impossible de prouver qu’elle se sert elle-même'); continue; }
+  const q = nom === 'oauth.html' ? '#access_token=TEST&token_type=bearer' : '';
+  await page.goto(base + '/' + nom + q, { waitUntil: 'load' });
+  const vu = (await page.title()).trim();
+  if (vu !== attendu) fail(nom + ' détournée par le SW — titre servi : « ' + vu + ' » au lieu de « ' + attendu + ' »');
+  else if (await page.$('#app, .bottomnav')) fail(nom + ' détournée : l’app a été servie à la place');
+  else console.log(nom.padEnd(22) + ' servie intacte sous le SW ✓');
+}
 await page.goto(base + '/oauth.html#access_token=TEST&token_type=bearer', { waitUntil: 'load' });
-const title = await page.title();
-if (title !== 'OpenContact — connexion') fail('oauth.html détourné par le SW — titre servi : ' + title);
-if (await page.$('#app, .bottomnav')) fail('oauth.html détourné : l’app a été servie à la place');
-console.log('oauth.html servi intact sous le SW ✓');
 await page.screenshot({ path: SHOTS + '/60-oauth-sous-sw.png' });
 
 /* 3. le vrai canal : popup ouverte par l'app, jeton reçu par postMessage */

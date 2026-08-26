@@ -1186,6 +1186,19 @@ RÉEL de l'app et lit les octets qui sortent par le vrai bouton.**
    pourquoi. La liste se DÉDUIT de `PRECACHE` (`copierDeploiement`,
    `tests/e2e/outils.mjs`) — une liste qu'on tient à la main finit
    toujours par mentir.
+
+   **Et une page qui n'est PAS l'app se prouve sous le service worker.**
+   Le SW ressert `index.html` à toute navigation — c'est ce qui fait
+   qu'un rechargement sur `#/pistes` ne rend pas un 404. Une page qui
+   se lit seule (le retour OAuth, l'aide, la confidentialité) doit donc
+   être exemptée, et cette exemption était une liste écrite à la main
+   qui ne nommait qu'`oauth.html`. Les deux pages livrées ensuite se
+   sont fait avaler **en silence** : taper « Aide et confidentialité »
+   rouvrait l'app. Le piège tient en une phrase : **le défaut n'existe
+   que service worker installé, donc jamais chez celui qui vient
+   d'écrire la page.** L'exemption se déduit maintenant de `PRECACHE`
+   (`PAGES`, `sw.js`) et `e2e-oauth-sw.mjs` garde CHAQUE page de la
+   liste, titre du fichier à l'appui — plus rien à déclarer.
 6. Textes relus, thème sombre vérifié, cibles tactiles ≥ 44 px sur mobile.
 7. **Sobriété** : `e2e-sobriete.mjs` vert. Une couche de plus (toast long,
    confirmation, phrase d'explication) ne passe qu'en montant un plafond
