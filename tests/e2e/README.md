@@ -65,7 +65,6 @@ binaire natif**, qui demande `cargo` et `xvfb-run`.
 | `e2e-campagne.mjs` | Bifurcation → assistant → contrôle → envois du jour interceptés, plafond, **fenêtre d'envoi (samedi = retenu)**, réponse → relances annulées — sauté sans `CAMPAGNES` |
 | `e2e-ia.mjs` | « Proposer un brouillon » intercepté, quota (429) proprement, rien de perdu — sauté sans `IA` |
 | `e2e-analyse.mjs` | « Depuis mes e-mails » : prompt copié, aperçu multi-sélection, lien piégé neutralisé, confiance non transmise — sauté sans `ORDINATEUR` |
-| `e2e-oauth-sw.mjs` | Le service worker ne détourne jamais `oauth.html` ; le jeton revient par postMessage — sauté sans `ENVOI_DIRECT` |
 
 ## La surface ordinateur *(sautés sans le binaire natif, ou hors périmètre)*
 
@@ -84,5 +83,6 @@ binaire natif**, qui demande `cargo` et `xvfb-run`.
 | Scénario | Ce qu'il prouve |
 |---|---|
 | `e2e-ux-audit.mjs` | Le balayage large : cibles ≥ 44 px au doigt et ≥ 24 px à la souris sur 13 surfaces, survol inerte au doigt, `touchcancel` rendu par chaque geste, texte doublé à 200 % sans rien perdre, hiérarchie des titres, adjacence des cibles, actions impossibles désactivées |
+| `e2e-pages-sw.mjs` | **Le service worker n'avale aucune page.** Il ressert `index.html` à toute navigation — c'est ce qui fait qu'un rechargement hors ligne sur `#/pistes` ne rend pas un 404 — et il doit épargner les pages qui se lisent seules : aide, confidentialité, présentation, retour OAuth. La liste vient du DISQUE et le titre attendu du fichier : une page neuve est gardée sans que personne y pense. Prouve aussi le retour du jeton par postMessage, le rechargement hors ligne pour de vrai (serveur coupé) et le thème posé avant le premier pixel, processeur bridé ×8 |
 | `e2e-diagnostic.mjs` | « Signaler un problème » : le rapport tient cinq lignes stables, **aucune donnée personnelle d'un vrai suivi n'y entre**, le presse-papier rend exactement le bloc affiché, tout se lit sans défiler en 390 px — et **ni numéro de version ni adresse d'hébergeur** nulle part, sur l'écran comme dans la source |
-| `e2e-sobriete.mjs` | **Les couches ne repoussent pas.** Trois plafonds tenus à la main, sur les écrans visibles : longueur d'un toast (une phrase, un tiret cadratin), nombre de confirmations bloquantes, mots d'explication dans les feuilles. Aucun navigateur — il lit `ui/*.js`. Ajouter une porte ou une phrase oblige à monter le plafond **ici**, exprès |
+| `e2e-sobriete.mjs` | **Les couches ne repoussent pas.** Cinq plafonds tenus à la main, sur les écrans visibles : nombre et longueur des toasts, confirmations bloquantes, mots d'explication dans les feuilles, **surface morte** (plafond zéro) et **vocabulaire** (§7, plafond zéro). Aucun navigateur — il lit `ui/*.js`, les feuilles de style et la prose des pages. Ajouter une porte ou une phrase oblige à monter le plafond **ici**, exprès |

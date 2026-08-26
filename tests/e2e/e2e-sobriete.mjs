@@ -300,11 +300,13 @@ const KIT_GARDE = [
   let css = readFileSync(path.join(STYLES, 'app.css'), 'utf8');
   for (const f of readdirSync(path.join(STYLES, 'tokens')))
     css += '\n' + readFileSync(path.join(STYLES, 'tokens', f), 'utf8');
-  /* `doc.css` habille les pages qui se LISENT (confidentialité, aide).
-     Une feuille que personne ne contrôle est le trou par lequel la
-     surface morte revient : elle entre dans le compte comme le reste,
-     et les pages qui la portent entrent dans le collecteur plus bas. */
-  css += '\n' + readFileSync(path.join(RACINE, 'doc.css'), 'utf8');
+  /* Les feuilles des pages qui se LISENT (`doc.css`) et de la page qui
+     PRÉSENTE (`site.css`). Une feuille que personne ne contrôle est le
+     trou par lequel la surface morte revient. La liste se relève à la
+     racine : nommer les fichiers un par un, c'est se préparer à en
+     oublier un — ce qui vient d'arriver deux fois dans ce lot. */
+  for (const f of readdirSync(RACINE))
+    if (f.endsWith('.css')) css += '\n' + readFileSync(path.join(RACINE, f), 'utf8');
   const nu = css.replace(/\/\*[\s\S]*?\*\//g, '');
 
   const classes = new Map(); const ids = new Map();
@@ -325,8 +327,10 @@ const KIT_GARDE = [
     for (const f of readdirSync(path.join(RACINE, d)))
       if (f.endsWith('.js')) code += '\n' + readFileSync(path.join(RACINE, d, f), 'utf8');
   }
-  for (const f of ['index.html', 'app.js', 'sw.js', 'tests.js',
-                   'confidentialite.html', 'aide.html', 'oauth.html'])
+  /* toutes les pages du dépôt, relevées à la racine, plus l'amorçage */
+  for (const f of readdirSync(RACINE))
+    if (f.endsWith('.html')) code += '\n' + readFileSync(path.join(RACINE, f), 'utf8');
+  for (const f of ['app.js', 'sw.js', 'tests.js'])
     { try { code += '\n' + readFileSync(path.join(RACINE, f), 'utf8'); } catch {} }
   for (const f of readdirSync(path.join(RACINE, 'tests', 'e2e')))
     if (f.endsWith('.mjs')) code += '\n' + readFileSync(path.join(RACINE, 'tests', 'e2e', f), 'utf8');
@@ -409,14 +413,15 @@ const MOTS = [
    Chacune est une phrase entière : une exception par mot-clé serait un
    trou, une exception par phrase reste vérifiable à l'œil. */
 const MOTS_GARDE = [
-  /* §7 l'écrit lui-même : « personne — sauf le pronom
-     (« personne pour l'instant ») ». C'est la phrase citée. */
-  'Personne pour l’instant.',
-  /* « en personne » est l'idiome du face-à-face, pas un objet — il ne
-     peut pas désigner un contact, donc l'exemption vaut partout où il
-     apparaît, pas seulement dans le libellé du canal. Et c'est
-     précisément le canal que §8 recommande : une demande de vive voix
-     aboutit 34 fois plus souvent que par e-mail. */
+  /* « Personne pour l'instant. » et « personne ne … » ne sont PLUS
+     nommés ici : la règle du pronom (EXEMPT, plus bas) les couvre
+     toutes, et une exemption par phrase se serait allongée d'un titre
+     à chaque page neuve. Une garde qu'on remplace emporte ses
+     entrées — sinon elle attend d'être relue par erreur (§9). */
+  /* « en personne » est l'idiome du face-à-face : le mot y suit « en »,
+     donc pas de déterminant, donc le pronom l'exempte déjà… sauf que
+     ce n'est pas un pronom mais une locution. On la nomme quand même,
+     parce que sa raison n'est pas celle de la règle. */
   'En personne',
   /* « team lead » est un INTITULÉ DE POSTE réel, pas le jargon
      commercial que §7 bannit. Ici en exemple de champ, et là en
@@ -424,6 +429,33 @@ const MOTS_GARDE = [
   'Ex : RH, team lead',
   'Team lead infra'
 ];
+
+/* Une exemption qui est une CONSTRUCTION, pas une phrase. §7 exempte le
+   pronom « personne » et cite une phrase en exemple ; nommer les
+   phrases une à une revient à ré-autoriser le mot un titre à la fois.
+   La négation se reconnaît à ce qui suit : « personne ne … »,
+   « personne n'a … ». Tout autre emploi désigne quelqu'un, et c'est
+   « contact » qu'il faut. */
+const EXEMPT = {
+  /* En français, « personne » n'est le NOM que précédé d'un
+     déterminant : « une personne », « cette personne », « les
+     personnes ». Sans déterminant, c'est le pronom négatif —
+     « personne ne sait », « il ne transite par personne »,
+     « personne d'autre n'y accède ». Un seul test suffit donc, et il
+     tranche les six cas relevés dans le bon sens.
+     La première version regardait ce qui SUIT (« personne ne … ») :
+     elle laissait passer le pronom en fin de phrase et manquait
+     « personne d'autre ». Une exemption qui liste des tournures les
+     manque toutes sauf celles qu'on a vues. */
+  /* Le déterminant se lit collé au mot, ET il commence à une frontière
+     de mot : sans la frontière, le « l » d'« il » passait pour un
+     article. Ni « de » ni « d' » n'y sont : « il ne dépend de
+     personne » est le pronom, alors que le nom prend toujours son
+     article — « de la personne », « d'une personne » — qui se
+     reconnaît par `la` ou `une`. C'est la sonde qui l'a dit ; à la
+     relecture, la liste paraissait juste. */
+  personne: (avant) => !/(?:^|[^\wÀ-ÿ])(?:l[ae]|les|l['’]|un|une|des|cette|cet|ce|ces|[mts](?:on|a|es)|leurs?|quelques?|aux?|du|chaque|toutes?|plusieurs)\s*$/i.test(avant)
+};
 
 {
   /* les chaînes qui ARRIVENT À L'ÉCRAN : deux mots au moins, des
@@ -443,12 +475,38 @@ const MOTS_GARDE = [
   /* les pages qui se lisent parlent à l'utilisateur comme un écran :
      la charte des mots vaut pour elles aussi, sinon « un objet, UN
      mot » s'arrête à la porte de l'app */
+  /* LA PROSE D'UNE PAGE NE TIENT PAS SUR UNE LIGNE. Le relevé cherchait
+     du texte entre `>` et `<` SUR LA MÊME LIGNE : un paragraphe écrit
+     sur quatre lignes — c'est-à-dire tous — n'en offrait aucune, et le
+     contrôle lisait la page sans y voir une phrase. Deuxième version du
+     même angle mort que §7 décrit, en plus discret : il ne rendait pas
+     zéro, il rendait « presque tout », ce qui ne se remarque pas.
+     On efface donc les balises EN GARDANT les sauts de ligne : la prose
+     reste à sa ligne d'origine, et le rapport désigne le bon endroit. */
+  const blanc = m => m.replace(/[^\n]/g, ' ');
+  const prose = src => src
+    .replace(/<(script|style)[\s\S]*?<\/\1>/gi, blanc)
+    .replace(/<!--[\s\S]*?-->/g, blanc)
+    .replace(/<[^>]*>/g, blanc)
+    .replace(/&nbsp;|&#160;|&#8239;|&#x202f;/gi, ' ')
+    .replace(/&amp;/gi, '&').replace(/&lt;/gi, '<').replace(/&gt;/gi, '>');
+
   const sources = [];
-  for (const f of ['index.html', 'confidentialite.html', 'aide.html'])
+  for (const f of readdirSync(RACINE).filter(n => n.endsWith('.html')).sort())
     sources.push([f, readFileSync(path.join(RACINE, f), 'utf8')]);
   for (const f of fichiers) sources.push([f, lire(f)]);
 
-  for (const [nom, src] of sources) {
+  const proses = {};
+  for (const [nom, src] of sources)
+    if (/\.html$/.test(nom)) proses[nom] = prose(src).split('\n');
+
+  /* LE RELEVÉ EST UNE FONCTION, et c'est la sonde qui l'exige. Tant
+     qu'elle refaisait le test de son côté, elle ne prouvait que la
+     table `MOTS` — jamais le CHEMIN qui mène jusqu'à elle. C'est
+     exactement par là que la lecture ligne à ligne d'une page a
+     survécu : la sonde était verte, et le collecteur ne voyait aucun
+     paragraphe. Elle passe désormais par ici, comme un vrai fichier. */
+  const relever = (nom, src, compter) => {
     /* LES COMMENTAIRES NE PARLENT À PERSONNE, et ce dépôt en écrit
        beaucoup — dont des phrases qui citent les mots interdits pour
        expliquer pourquoi ils le sont. Les compter rendait trois fautes
@@ -476,35 +534,67 @@ const MOTS_GARDE = [
          ligne, entre `>` et `<`. */
       const morceaux = [...sansIcones(ligne).matchAll(/(['"`])((?:\\.|(?!\1)[^\\])*)\1/g)]
         .map(m => m[2]);
-      if (/\.html$/.test(nom))
-        for (const m of ligne.matchAll(/>([^<>]+)</g)) morceaux.push(m[1]);
+      if (/\.html$/.test(nom)) morceaux.push(proses[nom][i] || '');
       for (const brut of morceaux) {
         const t = brut.trim();
         if (!versEcran(t)) continue;
-        chaines++;
+        if (compter) chaines++;
         if (MOTS_GARDE.some(g => t.includes(g))) continue;
         for (const [objet, bon, mauvais] of MOTS)
-          for (const mot of mauvais)
-            if (new RegExp(`(^|[^\\wÀ-ÿ])${mot}s?([^\\wÀ-ÿ]|$)`, 'i').test(t))
+          for (const mot of mauvais) {
+            const re = new RegExp(`(^|[^\\wÀ-ÿ])${mot}s?([^\\wÀ-ÿ]|$)`, 'ig');
+            let m, faute = false;
+            while ((m = re.exec(t))) {
+              /* ce qui PRÉCÈDE le mot : c'est là que se lit le déterminant */
+              if (EXEMPT[mot] && EXEMPT[mot](t.slice(0, m.index + (m[1] ? m[1].length : 0)))) continue;
+              faute = true; break;
+            }
+            if (faute)
               derives.push(`${nom}:${i + 1} « ${mot} » pour ${objet} — le mot est « ${bon} » :\n        « ${t.slice(0, 100)} »`);
+          }
       }
     });
-  }
+  };
 
-  /* LA SONDE PASSE PAR LE MÊME CHEMIN : une phrase fautive plantée
-     dans le flux doit ressortir. Sans elle, un `versEcran` trop strict
-     rendrait le compte nul pour toujours — la faute exacte que la
-     sonde de la surface morte a déjà attrapée une fois. */
+  for (const [nom, src] of sources) relever(nom, src, true);
+
+  /* LA SONDE PASSE PAR LE MÊME CHEMIN, jusqu'au bout : une PAGE
+     fabriquée sur place, avec sa faute au milieu d'un paragraphe
+     écrit sur trois lignes — la forme exacte que le collecteur ne
+     savait pas lire. Elle emprunte `relever`, donc `prose`, donc tout
+     ce qui pourrait se casser. Un contrôle qui refait le test de son
+     côté ne garde que sa propre copie. */
   const appat = 'Ta ' + 'société' + ' préférée';
-  let sondeVue = false;
-  for (const [objet, bon, mauvais] of MOTS)
-    for (const mot of mauvais)
-      if (versEcran(appat) && new RegExp(`(^|[^\\wÀ-ÿ])${mot}s?([^\\wÀ-ÿ]|$)`, 'i').test(appat))
-        sondeVue = true;
+  /* L'EXEMPTION SE SONDE DANS LES DEUX SENS. Une règle qui exempte
+     trop ne casse rien : elle rend zéro, et zéro se lit comme une
+     réussite. La page fabriquée porte donc les deux cas — le pronom,
+     qui doit PASSER, et le nom déterminé, qui doit ÊTRE PRIS. Sans le
+     second, élargir l'exemption jusqu'à tout autoriser resterait vert. */
+  const nomDetermine = 'Prévenir cette ' + 'personne' + ' avant demain.';
+  const pronom = 'Personne' + ' ne le saura, et il ne dépend de personne.';
+  const pageSonde = 'zz-sonde.html';
+  const faux = '<!DOCTYPE html>\n<body>\n<p>Une phrase qui commence ici,\n'
+    + appat + ' au milieu,\net qui finit là.</p>\n'
+    + '<p>' + nomDetermine + '</p>\n<p>' + pronom + '</p>\n</body>';
+  proses[pageSonde] = prose(faux).split('\n');
+  const avant = derives.length;
+  relever(pageSonde, faux, false);
+  const prises = derives.slice(avant);
+  derives.length = avant;   /* la sonde ne compte pas dans le verdict */
+  const sondeVue = prises.some(d => d.includes('société'));
+  const sondeNom = prises.some(d => d.includes('cette personne'));
+  const sondePronom = prises.some(d => d.includes('ne le saura'));
 
   if (!sondeVue)
-    fail('vocabulaire : la sonde (une phrase volontairement fautive) n’est pas ressortie — '
-      + 'le filtre est trop strict et le compte vaudra zéro quoi qu’il arrive');
+    fail('vocabulaire : la sonde (une page fabriquée, faute au milieu d’un '
+      + 'paragraphe sur trois lignes) n’est pas ressortie — le collecteur ne lit '
+      + 'plus la prose des pages, et le compte vaudra zéro quoi qu’il arrive');
+  else if (!sondeNom)
+    fail('vocabulaire : « cette personne » n’est plus relevé — l’exemption du '
+      + 'pronom s’est élargie jusqu’au nom, et le compte vaudra zéro sans rien dire');
+  else if (sondePronom)
+    fail('vocabulaire : « personne ne le saura » est relevé comme une faute — '
+      + 'l’exemption du pronom ne fonctionne plus, §7 l’autorise pourtant');
   else if (chaines < 300)
     fail(`vocabulaire : ${chaines} chaînes seulement lues à l’écran — le collecteur ne voit plus l’app`);
   else if (derives.length > PLAFOND.motsHorsCharte)

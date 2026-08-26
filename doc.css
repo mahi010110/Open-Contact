@@ -69,7 +69,7 @@ body{
 }
 .dp h2:first-of-type{border-top:0;padding-top:0;margin-top:24px}
 .dp p{margin:0 0 14px}
-.dp code{
+code{
   font-family:var(--font-mono);font-size:.92em;
   background:var(--surface-chrome);border:1px solid var(--border-soft);
   padding:1px 5px;border-radius:var(--radius-1);
@@ -92,8 +92,13 @@ body{
   margin-top:40px;padding-top:18px;border-top:1px solid var(--border-strong);
 }
 .df p{margin:0 0 8px}
-/* les liens de pied se tapent aussi : ils gardent la hauteur du doigt */
-.df a{display:inline-flex;align-items:center;min-height:var(--control-h-touch)}
+/* Les liens de pied se tapent aussi : ils gardent la hauteur du doigt.
+   La LARGEUR compte autant, et elle manquait — mesuré à 320 px,
+   « Aide » ne faisait que 32 px de large. Un lien en ligne dans une
+   phrase est certes exempté du plancher de 44 px (WCAG 2.5.5), mais
+   l'exemption est une permission, pas un objectif : huit pixels de
+   part et d'autre suffisent à sortir du débat. */
+.df a{display:inline-flex;align-items:center;min-height:var(--control-h-touch);padding:0 8px}
 
 @media (min-width:901px){
   .dh{padding:10px 26px}

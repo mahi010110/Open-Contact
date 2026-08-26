@@ -38,7 +38,6 @@ const perim = await import(path.resolve(DIR, '..', '..', 'ui', 'perimetre.js'));
 const exigences = new Map([
   ['e2e-campagne.mjs', 'CAMPAGNES'],
   ['e2e-envoi.mjs', 'ENVOI_DIRECT'],
-  ['e2e-oauth-sw.mjs', 'ENVOI_DIRECT'],
   ['e2e-ia.mjs', 'IA'],
   ['e2e-analyse.mjs', 'ORDINATEUR'],
   ['e2e-ordinateur.mjs', 'ORDINATEUR'],

@@ -32,8 +32,14 @@ choses, et aucune ne dépend de quelqu'un d'extérieur.
       et les composants tiers sont attribués. *(août 2026)*
 - [x] **Documentation publique** — un dépôt lisible par quelqu'un qui
       découvre le projet. *(août 2026)*
-- [ ] **Site de présentation** — une page qui explique le produit à
-      quelqu'un qui n'ouvrira pas l'app tout de suite.
+- [x] **Site de présentation** — `presentation.html`, une page qui
+      explique le produit à quelqu'un qui n'ouvrira pas l'app tout de
+      suite. Trois captures de l'app RÉELLE, refabriquées d'une commande
+      (`node tests/e2e/captures-site.mjs`) pour qu'elles ne deviennent
+      pas un mensonge poli le jour où un écran change. Elle n'est pas
+      précachée, exprès : elle s'adresse à qui est en ligne, et ses
+      captures pèsent 300 ko que personne n'installerait pour ne jamais
+      les rouvrir. *(août 2026)*
 - [ ] **Essais sur vrai matériel** — un vrai téléphone d'entrée de gamme, un
       vrai réseau d'établissement. Les scénarios automatiques passent à côté
       de tout ce qui relève du doigt, de la lenteur et du wifi filtré.

@@ -1,5 +1,9 @@
 /* E2E durcissement : LES PAGES QUI NE SONT PAS L'APP, sous service
-   worker. Le SW ressert index.html à toute navigation (app une-page) —
+   worker. (Ce scénario s'appelait `e2e-oauth-sw.mjs` : il ne gardait
+   qu'`oauth.html`, donc il était rangé avec l'envoi direct et SAUTÉ
+   tant que cette capacité reste masquée. Il garde maintenant quatre
+   pages livrées et visibles — le laisser sauté, c'était le laisser
+   vert pendant que le défaut revenait.) Le SW ressert index.html à toute navigation (app une-page) —
    il ne doit détourner AUCUNE des pages qui se lisent seules : le
    retour OAuth (sinon le jeton n'arrive jamais), l'aide et la
    confidentialité (sinon les réglages rouvrent l'app).
@@ -15,7 +19,7 @@
    2. le postMessage same-origin (le vrai canal du jeton) fonctionne ;
    3. une navigation normale ressert bien l'app ;
    4. hors ligne pour de vrai, et le thème posé avant le premier pixel. */
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { chromium, chromiumPath, SHOTS, serveRepo, ROOT } from './outils.mjs';
 
@@ -34,15 +38,17 @@ await page.waitForFunction(() => navigator.serviceWorker && navigator.serviceWor
   .catch(() => fail('le service worker n’a jamais pris le contrôle'));
 console.log('service worker au contrôle ✓');
 
-/* 2. CHAQUE page de PRECACHE se sert elle-même sous le SW.
-   La liste vient de `sw.js`, et le titre attendu du fichier sur disque :
-   rien n'est écrit ici qu'il faudrait penser à mettre à jour. */
-const swSrc = await readFile(path.join(ROOT, 'sw.js'), 'utf8');
-const PAGES = [...swSrc.matchAll(/'\.\/([\w.-]+\.html)'/g)]
-  .map(m => m[1])
-  .filter(n => n !== 'index.html');
-if (PAGES.length < 3)
-  fail('seulement ' + PAGES.length + ' page(s) relevée(s) dans PRECACHE — le relevé est cassé, pas le SW');
+/* 2. CHAQUE page du dépôt se sert elle-même sous le SW.
+   La liste vient du DISQUE, pas de `PRECACHE` : une page peut très bien
+   exister sans être promise hors ligne (la présentation, dont les
+   captures pèsent 300 ko que personne n'installerait pour rien). Le
+   titre attendu se lit dans le fichier : rien n'est écrit ici qu'il
+   faudrait penser à mettre à jour. */
+const PAGES = (await readdir(ROOT))
+  .filter(n => n.endsWith('.html') && n !== 'index.html')
+  .sort();
+if (PAGES.length < 4)
+  fail('seulement ' + PAGES.length + ' page(s) relevée(s) à la racine — le relevé est cassé, pas le SW');
 for (const nom of PAGES){
   const attendu = (await readFile(path.join(ROOT, nom), 'utf8')).match(/<title>([^<]*)<\/title>/)?.[1].trim();
   if (!attendu){ fail(nom + ' n’a pas de <title> — impossible de prouver qu’elle se sert elle-même'); continue; }
@@ -124,4 +130,4 @@ console.log('serveur coupé → rechargement : l’app revit du cache (v' + vers
 console.log(errors.length ? 'Erreurs console : ' + errors.join(' | ') : 'Zéro erreur console.');
 if (errors.length) process.exitCode = 1;
 await browser.close();
-console.log(process.exitCode ? 'E2E oauth-sw : ÉCHEC' : 'E2E oauth-sw : OK');
+console.log(process.exitCode ? 'E2E pages-sw : ÉCHEC' : 'E2E pages-sw : OK');

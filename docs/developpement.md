@@ -45,6 +45,27 @@ n'est pas un scénario vert : les scénarios de la surface ordinateur sont
 sautés tant que son binaire n'est pas construit, et ceux des capacités
 masquées le sont selon les drapeaux de `ui/perimetre.js`.
 
+### Un scénario qui rougit sous charge n'est pas « un aléa »
+
+Un scénario vert seul et rouge dans la suite entière a une cause, et
+c'est presque toujours la même : **il échantillonne une course au lieu
+d'attendre une condition.** La machine plus chargée déplace le curseur,
+rien de plus.
+
+L'exemple à retenir vient de `e2e-stockage.mjs`. Il attendait que le rang
+de stockage soit choisi (`getBackend()`), puis lisait `S.companies` tout
+de suite — alors que l'état se remplit *après*, quand l'amorçage a relu la
+clé. Sur une machine au repos l'amorçage gagnait la course ; sous charge,
+non.
+
+Deux règles en sortent :
+
+- **On attend la condition, on ne la lit pas.** `attendre()` existe pour
+  ça, avec son message.
+- **L'assertion reste après l'attente.** Un dépassement de délai dit
+  seulement « ça n'est pas arrivé » ; l'assertion dit *ce qu'on a trouvé
+  à la place*, et c'est ça qui fait gagner une heure.
+
 ---
 
 ## L'architecture en dix lignes

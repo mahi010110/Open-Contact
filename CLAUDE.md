@@ -1021,6 +1021,28 @@ faut relire la phrase. « Copie impossible ici » parle du presse-papier.
 C'est le cinquième compte de `e2e-sobriete.mjs`, plafond zéro, et il rend
 la PHRASE et sa ligne — jamais le seul chiffre.
 
+**Et le relevé doit lire la PROSE, pas seulement les chaînes.** Deux
+versions du même angle mort se sont succédé, et la seconde est la plus
+instructive : le collecteur ne lisait que le texte situé entre `>` et
+`<` **sur une même ligne**. Or une page écrit ses paragraphes sur
+quatre ou cinq lignes — donc toutes. Il ne rendait pas zéro, ce qui se
+serait vu : il rendait « presque tout », et une page entière de
+présentation y est passée sans qu'une seule phrase soit lue. On efface
+donc les balises **en gardant les sauts de ligne**, pour que la faute
+garde son numéro.
+
+**Une exemption est une CONSTRUCTION, pas une liste de phrases.** §7
+exempte le pronom « personne » et en cite une occurrence ; nommer les
+phrases une à une revient à ré-autoriser le mot un titre à la fois. La
+règle tient en une ligne de grammaire — en français, « personne » n'est
+un nom que précédé d'un déterminant — et elle tranche les six cas
+relevés dans le bon sens, dont deux qui dormaient depuis la veille dans
+une page livrée. Corollaire, et c'est la sonde qui l'a dit contre la
+relecture : **une exemption se sonde dans les DEUX sens.** Trop large,
+elle ne casse rien — elle rend zéro, et zéro se lit comme une réussite.
+La page fabriquée porte donc le pronom, qui doit passer, *et* le nom
+déterminé, qui doit être pris.
+
 **Le premier relevé a donné raison à la règle, mot pour mot.** Trois
 dérives, toutes dans des textes qu'on ne relit jamais : l'`aria-label`
 de la ligne « → qui » — c'est-à-dire **le seul nom qu'entend un lecteur
@@ -1197,8 +1219,23 @@ RÉEL de l'app et lit les octets qui sortent par le vrai bouton.**
    rouvrait l'app. Le piège tient en une phrase : **le défaut n'existe
    que service worker installé, donc jamais chez celui qui vient
    d'écrire la page.** L'exemption se déduit maintenant de `PRECACHE`
-   (`PAGES`, `sw.js`) et `e2e-oauth-sw.mjs` garde CHAQUE page de la
-   liste, titre du fichier à l'appui — plus rien à déclarer.
+   `sw.js` et `e2e-pages-sw.mjs` garde CHAQUE page trouvée sur le
+   DISQUE, titre du fichier à l'appui — plus rien à déclarer. La règle
+   finale ne tient d'ailleurs aucune liste : **une navigation qui nomme
+   un fichier `.html` sert ce fichier.** La version intermédiaire, qui
+   dérivait l'exemption de `PRECACHE`, liait deux questions sans
+   rapport — « est-ce une page ? » et « la promet-on hors ligne ? » —
+   et la page de présentation, qui répond oui puis non, serait retombée
+   dans le trou.
+
+   **Et un garde SAUTÉ ne garde rien.** Celui-ci s'appelait
+   `e2e-oauth-sw.mjs` et ne couvrait qu'`oauth.html` : il était donc
+   rangé avec l'envoi direct, c'est-à-dire **sauté tant que cette
+   capacité reste masquée** (§0). En lui confiant trois pages livrées
+   et visibles, on lui confiait un travail que la suite ne faisait
+   jamais — le défaut pouvait revenir sur un vert. Un scénario qui
+   garde du visible ne se conditionne à aucun drapeau, et son nom doit
+   dire ce qu'il garde : le fichier s'appelle `e2e-pages-sw.mjs`.
 6. Textes relus, thème sombre vérifié, cibles tactiles ≥ 44 px sur mobile.
 7. **Sobriété** : `e2e-sobriete.mjs` vert. Une couche de plus (toast long,
    confirmation, phrase d'explication) ne passe qu'en montant un plafond

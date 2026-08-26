@@ -4,7 +4,7 @@
    arrière-plan — la version suivante s'applique à l'ouverture d'après.
    Jamais mis en cache : le géocodage (données fraîches) et les tuiles de
    carte (volume) — la carte demande donc du réseau, tout le reste non. */
-const CACHE = 'oc-v183';
+const CACHE = 'oc-v184';
 const PRECACHE = ['./', './index.html', './app.js', './theme.js', './tests.js', './tests-c8.js', './tests-mcp.js',
   './engine/crypto.js', './engine/exchange.js', './engine/filter.js',
   './engine/geo.js', './engine/merge.js', './engine/model.js',
@@ -17,7 +17,13 @@ const PRECACHE = ['./', './index.html', './app.js', './theme.js', './tests.js', 
   './ui/diagnostic.js', './ui/qr.js', './ui/qui.js', './ui/affiner.js', './ui/donner.js', './ui/recevoir.js', './ui/profil.js', './ui/connexions.js', './ui/campagnes.js', './ui/ordinateur.js', './oauth.html',
   /* les pages qui se LISENT : elles doivent répondre hors ligne comme
      le reste — quelqu'un qui vérifie ce que l’app fait de ses données
-     ne doit pas dépendre du réseau pour l'apprendre */
+     ne doit pas dépendre du réseau pour l'apprendre.
+     `presentation.html` n'est PAS ici, exprès : elle s'adresse à qui
+     n'a pas encore l'app, donc à quelqu'un qui est en ligne par
+     définition. Ses trois captures pèsent 300 ko que personne
+     n'installerait pour ne jamais les rouvrir. Elle se met malgré
+     tout en cache toute seule à la première visite — la stratégie de
+     ce fichier range ce qu'elle sert. */
   './confidentialite.html', './aide.html', './doc.css',
   './assets/vendor/qrcode-generator.mjs', './assets/vendor/jsQR.js',
   './assets/vendor/trystero-nostr.min.js',
@@ -121,23 +127,22 @@ const PRECACHE = ['./', './index.html', './app.js', './theme.js', './tests.js', 
    `index.html`, sinon un rechargement hors ligne sur `#/pistes`
    rendrait un 404. Mais le dépôt ne contient PAS que l'app — il
    contient aussi des pages qui se lisent seules : le retour OAuth,
-   l'aide, la confidentialité.
+   l'aide, la confidentialité, la présentation.
 
-   Cette exception était écrite à la main, et elle ne nommait
-   qu'`oauth.html`. Les deux pages ajoutées ensuite se sont donc fait
-   avaler en silence : taper « Aide et confidentialité » dans les
-   réglages rouvrait l'app, et seulement chez les gens qui l'avaient
-   déjà ouverte une fois — c'est-à-dire tout le monde sauf celui qui
-   vient de la livrer. Une liste tenue à la main finit toujours par
-   mentir ; celle-ci le fait sans bruit, ce qui est pire.
+   Cette exception a été écrite deux fois de la mauvaise façon. D'abord
+   en nommant `oauth.html` à la main : les deux pages ajoutées ensuite
+   se sont fait avaler en silence, et le défaut n'existait que service
+   worker installé, donc jamais chez celui qui venait de les écrire.
+   Puis en dérivant la liste de `PRECACHE` : mieux, mais ça liait deux
+   questions sans rapport — « est-ce une page ? » et « la promet-on
+   hors ligne ? ». La page de présentation répond oui à la première et
+   non à la seconde, et elle serait retombée dans le trou.
 
-   Elle se DÉDUIT donc de `PRECACHE` : tout `.html` qu'on promet de
-   servir hors ligne est une page à part entière et se sert
-   lui-même. Une page neuve n'a plus rien à déclarer ici.
+   La règle est donc la plus simple des trois, et elle n'a rien à
+   tenir : **une navigation qui NOMME un fichier `.html` sert ce
+   fichier.** Tout le reste — la racine, les routes en `#` — ressert
+   l'app. Une page neuve marche sans que personne y pense.
    ============================================================ */
-const PAGES = new Set(
-  PRECACHE.filter(p => p.endsWith('.html')).map(p => p.replace(/^\.\//, ''))
-);
 
 self.addEventListener('install', e => {
   e.waitUntil(
@@ -168,12 +173,11 @@ self.addEventListener('fetch', e => {
      réponse d'API resservie est un mensonge (sel d'appairage périmé,
      quota fantôme…) */
   if (url.origin !== location.origin) return;
-  /* une navigation qui NOMME une de nos pages la sert elle-même ;
-     tout le reste ressert l'app (page unique) — voir PAGES plus haut */
+  /* voir « LES PAGES QUI SE SERVENT ELLES-MÊMES » plus haut */
   let req = e.request;
   if (e.request.mode === 'navigate'){
     const nom = url.pathname.split('/').pop();
-    req = new Request(PAGES.has(nom) ? './' + nom : './index.html');
+    req = new Request(/\.html$/.test(nom) ? './' + nom : './index.html');
   }
   e.respondWith(
     caches.open(CACHE).then(async c => {
