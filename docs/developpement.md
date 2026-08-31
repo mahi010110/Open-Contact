@@ -45,6 +45,27 @@ n'est pas un scénario vert : les scénarios de la surface ordinateur sont
 sautés tant que son binaire n'est pas construit, et ceux des capacités
 masquées le sont selon les drapeaux de `ui/perimetre.js`.
 
+### Un scénario qui rougit sous charge n'est pas « un aléa »
+
+Un scénario vert seul et rouge dans la suite entière a une cause, et
+c'est presque toujours la même : **il échantillonne une course au lieu
+d'attendre une condition.** La machine plus chargée déplace le curseur,
+rien de plus.
+
+L'exemple à retenir vient de `e2e-stockage.mjs`. Il attendait que le rang
+de stockage soit choisi (`getBackend()`), puis lisait `S.companies` tout
+de suite — alors que l'état se remplit *après*, quand l'amorçage a relu la
+clé. Sur une machine au repos l'amorçage gagnait la course ; sous charge,
+non.
+
+Deux règles en sortent :
+
+- **On attend la condition, on ne la lit pas.** `attendre()` existe pour
+  ça, avec son message.
+- **L'assertion reste après l'attente.** Un dépassement de délai dit
+  seulement « ça n'est pas arrivé » ; l'assertion dit *ce qu'on a trouvé
+  à la place*, et c'est ça qui fait gagner une heure.
+
 ---
 
 ## L'architecture en dix lignes
@@ -88,6 +109,12 @@ Deux règles en découlent, et elles ne se négocient pas :
 précaché incrémente `CACHE` (`oc-vN`) et met à jour `PRECACHE`.** Oublier ce
 geste, c'est servir l'ancienne version à tous ceux qui ont déjà ouvert l'app.
 
+`PRECACHE` est **atomique** : `cache.addAll` échoue en entier si un seul
+fichier manque, et le service worker ne s'installe alors pas du tout. C'est
+pourquoi les scénarios qui servent une copie du dépôt la construisent à
+partir de `PRECACHE` (`copierDeploiement`) plutôt que d'une liste tenue à la
+main — celle-ci avait fini par mentir.
+
 ---
 
 ## Avant de livrer
@@ -115,7 +142,7 @@ plus complet :
 |---|---|
 | **pwa** | Les auto-tests du moteur dans un vrai Chromium |
 | **transport** | Les relais publics réellement utilisés par l'app sont-ils joignables — la CI rougit si le transport public meurt, même sans commit |
-| **compagnon** | `cargo test` + construction du binaire natif |
+| **ordinateur** | `cargo test` + construction du binaire natif |
 | **scenarios** | La suite de bout en bout entière, liaison pair-à-pair jouée avec deux vrais navigateurs et un relais local |
 
 Aucun secret n'est requis : tout tourne contre des doubles locaux, sauf la

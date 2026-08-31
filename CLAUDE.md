@@ -26,18 +26,19 @@ qui partagent les mêmes données et le même vocabulaire.
 | Surface | État | Ce qu'elle apporte de plus |
 |---|---|---|
 | **Le web** (PWA, installable) | **livrée** | tout le quotidien : capturer, agir, écrire, partager avec son groupe, synchroniser ses appareils |
-| **L'ordinateur** | **la prochaine** | ce qu'un navigateur ne peut pas garantir : travailler application fermée, parler IMAP/SMTP, faire tourner une IA locale |
+| **L’ordinateur** | **la prochaine** | ce qu'un navigateur ne peut pas garantir : travailler application fermée, parler IMAP/SMTP, faire tourner une IA locale |
 | **Le téléphone** (store) | non commencée | la même chose que le web, mieux intégrée à l'appareil (caméra, partage, notifications) |
 
-*(Décision du mainteneur, 17 août 2026 : le « Compagnon » — une application
-d'appoint à côté du produit — est **abandonné comme concept**. Le code de
-`compagnon/` n'est pas jeté : la coquille native (Tauri) devient la
-fondation des applications **ordinateur ET téléphone**, qui exécuteront le
-même moteur `engine/` que le web. Le dossier garde son nom technique tant
-que ce chantier n'est pas rouvert — le crate, le binaire et le point
-d'entrée local portent ce nom, et tout se renommera d'un seul geste à la
-reprise. À l'écran comme dans la doc : **OpenContact pour ordinateur**,
-**OpenContact pour téléphone**.)*
+*(Décision du mainteneur, 17 août 2026, appliquée au code le 25 août :
+**trois applications d'un seul produit**, jamais un produit et son
+satellite. La coquille native de `natif/` (Rust/Tauri) est la fondation
+commune des applications **ordinateur ET téléphone** : elle exécute le
+même moteur `engine/` que le web, sans le réécrire. Les noms suivent :
+`natif/` est le dossier, la surface s'appelle **OpenContact pour
+ordinateur** ou **pour téléphone**, à l'écran comme dans la doc. Une
+seule chose garde son ancien nom et ne bougera jamais — la clé de
+stockage `oc_companion_v1` : §10 interdit de renommer une clé, et une
+association d'appareil déjà en place se perdrait.)*
 
 ### Les deux questions, avant d'ajouter quoi que ce soit
 
@@ -56,7 +57,7 @@ Pas « est-ce que c'est avancé », pas « est-ce que c'est pour les experts » 
 est-ce que ça marche **tout de suite, pour tout le monde**.
 
 **La règle qui ne bouge pas : les surfaces partagent des données, jamais des
-dépendances.** Le web reste entier si l'ordinateur n'existe pas.
+dépendances.** Le web reste entier si l’ordinateur n'existe pas.
 
 **Corollaire.** Une capacité d'une surface absente **n'apparaît pas** sur les
 autres. Ni grisée, ni « bientôt » : absente.
@@ -116,7 +117,7 @@ première bêta.
 
 **L'ordre des chantiers** *(décision du mainteneur, 17 août 2026)* : la
 direction est arrêtée — trois applications sur une même base, et une file.
-Le web se présente d'abord et récolte ses retours ; l'ordinateur s'ouvre
+Le web se présente d'abord et récolte ses retours ; l’ordinateur s'ouvre
 ensuite, sur la coquille native déjà écrite ; le téléphone suit, sur cette
 même coquille. Ce n'est plus un seuil à deviner, c'est une file à suivre —
 et les retours du web passent toujours devant.
@@ -132,7 +133,7 @@ C'est un outil de **motivation et d'action**, pas une base de données : chaque
 planifier.
 
 - **Utilisateur type** : étudiant BTS SIO / BUT, sur son téléphone, entre deux
-  cours. Le mobile est le contexte premier ; l'ordinateur est le poste de
+  cours. Le mobile est le contexte premier ; l’ordinateur est le poste de
   commandement (tableau, saisie longue).
 - **Local-first** : les données vivent sur les appareils et circulent en P2P
   ou par fichier `.oc`. Le fichier `.oc` est LE repli universel — il marche
@@ -331,11 +332,14 @@ net. Sources uniques : `styles/tokens/` et le kit `design/`.
   Ce qui est gardé : chaque onglet porte son nom en `aria-label`. Un mot
   élidé s'annonçait tronqué à un lecteur d'écran ; il s'annonce entier.
 
-  **Ce qui reste à trancher** : « Aujourd'hui » est trop long. M3 le dit
-  dans l'autre sens — *use short text labels* — et la vraie réponse est
-  de raccourcir le mot, pas de le cacher. Ça touche §7 (un objet, un
-  mot) : l'onglet, le titre de l'écran et `document.title` changeraient
-  ensemble. Décision du mainteneur.
+  **Tranché : le mot reste** *(décision du mainteneur, 21 août 2026)*.
+  M3 dit bien *use short text labels*, et la vraie réponse aurait été de
+  raccourcir le mot plutôt que de le cacher — mais raccourcir touche §7
+  (un objet, UN mot) : l'onglet, le titre de l'écran et `document.title`
+  changeraient ensemble, pour deux pixels sur la seule largeur de
+  320 px. Le mot dit ce que l'écran est ; l'abréger coûterait plus que
+  l'élision. La limite est donc **assumée, pas ouverte** — elle ne se
+  rediscute que si un retour de bêta la signale sur un vrai appareil.
 
 - **Le survol NE SE LÈVE PAS au doigt.** iOS applique `:hover` au tap et
   le LAISSE jusqu'au tap suivant : chaque règle non gardée devient une
@@ -452,6 +456,25 @@ les confondre coûte cher : une tablette tactile en paysage fait 1024 à
   largeur la plus étroite qu'on prétende servir — cinq pertes de
   contenu sont sorties d'un coup. **Mesurer au plus large, c'est ne pas
   mesurer.**
+  Troisième corollaire, et le plus coûteux des trois : **une garde qui
+  ne mesure qu'une ergonomie ne mesure pas l'app.** Le balayage à 200 %
+  ne connaissait que le pouce, alors que le poste porte des objets que
+  le pouce n'a pas du tout — la carte du tableau à trois colonnes, les
+  titres de colonne collants, la barre d'état. C'est en relevant le
+  poste à la main qu'un nom de piste amputé est sorti, dans les listes
+  à cocher, **dès 100 % sur un 320 px** : l'état quotidien d'un petit
+  téléphone, que le balayage au pouce ne voyait pas non plus parce que
+  les deux feuilles concernées n'étaient pas dans sa liste. Deux
+  angles morts qui se recouvraient.
+
+- **Une exception qui ne peut pas se NOMMER force à ouvrir la garde
+  pour tout le monde.** Les exceptions d'élision se désignent par
+  classe ; la sous-ligne des six listes à cocher vivait en `<span>` nu.
+  Impossible de dire « celle-là est une donnée » sans dire « tous les
+  `span` sont des données ». Elle porte son nom (`.pk-s`), comme ses
+  cinq sœurs. **Tout ce qui a le droit de s'élider doit être
+  nommable** — sinon l'exception se prend au niveau du type de balise,
+  et la garde ne garde plus rien.
 
 - **Une icône ne grandit pas avec le texte, et c'est elle qui vole la
   place.** Le piège est contre-intuitif : à texte agrandi on cherche la
@@ -648,7 +671,7 @@ avec un motif existant.
 | Proposer un filtre | `.fl-chip` + son **compte**. Ne jamais offrir une valeur absente des données. Liste fermée (statuts) : la puce reste, éteinte. Liste ouverte (domaines) : elle disparaît, sauf si le filtre est actif |
 | Note contextuelle | `<p class="hint">` (+ `warn` si alerte) |
 | Décrire une piste dans un TABLEAU | trois lignes au maximum — nom, sous-ligne, action. Material 3 plafonne un élément de liste à trois lignes de texte ; au-delà c'est une carte à média. La carte du poste en empilait quatre, la quatrième étant le compte de personnes SEUL sur son rang, pendant que la ligne au pouce disait la même piste en une sous-ligne — on réapprenait à lire une piste en changeant d'appareil. **Et l'ordre décide de ce qu'on perd** : la sous-ligne s'élide par la fin, donc le compte de personnes passe avant le domaine — c'est le secteur qu'on peut perdre, jamais le nombre de gens joignables |
-| Décrire une piste dans une liste à cocher | **une seule sous-ligne pour les trois** (Donner, Prospecter, partage en groupe) : `statut · ville · qui est visé`. Elles en donnaient trois versions ; on réapprenait à lire une piste en passant d'une feuille à sa voisine. La ville n'est pas décorative — deux pistes du même statut ne se distinguent souvent que par elle |
+| Décrire une piste dans une liste à cocher | **le nom plie, la sous-ligne s'élide** — dans une liste où l'on COCHE, un nom amputé n'est pas un défaut d'esthétique mais une erreur de décision : « Société Générale G… » ne se distingue plus de son homonyme. Trois rangs, la même valeur et la même raison que `.row-item h3`. Et **une seule sous-ligne pour les trois** (Donner, Prospecter, partage en groupe) : `statut · ville · qui est visé`. Elles en donnaient trois versions ; on réapprenait à lire une piste en passant d'une feuille à sa voisine. La ville n'est pas décorative — deux pistes du même statut ne se distinguent souvent que par elle |
 | Multi-sélection | `.pk` avec icônes checkbox — **jamais pour supprimer**. **Le coché ne porte aucun aplat** : la carte reste entière, l'état vit dans la case (voir §4). Un seul état de plus, `pk-inverse`, et seulement là où la liste part de « tout coché » (Donner, partage en groupe, « → qui » en mode *donner*) : la ligne **écartée** se dithère, parce que là une ligne non cochée n'est pas « pas encore choisie », elle est SORTIE. Ailleurs cet état n'existe pas — c'est un état en moins, pas une inégalité. **Généraliser la trame a été demandé, mesuré, refusé** : sur une liste qui part de rien coché, elle s'applique à TOUTES les lignes à l'ouverture et l'écran se lit « rien n'est disponible » au moment précis où il doit inviter à choisir. Deux sources le disent — le grisé est la convention universelle de l'INDISPONIBLE (NN/g), et Material 3 demande que la distinction vienne de ce qui est **retenu**, jamais de l'affaiblissement du reste |
 | Choisir qui part / qui est visé | `ui/qui.js` — la ligne « → qui » et sa sous-feuille à cocher |
 | Supprimer un élément | glisser (mobile) / poubelle au survol (desktop) + `showUndo`, sans confirmation |
@@ -995,6 +1018,45 @@ feuilles secondaires, jamais dans le titre.
 `index.html`** (la coque compte aussi, c'est là que « sauvegarde » avait
 survécu), puis regrouper les synonymes. Un compte ne tranche pas seul : il
 faut relire la phrase. « Copie impossible ici » parle du presse-papier.
+C'est le cinquième compte de `e2e-sobriete.mjs`, plafond zéro, et il rend
+la PHRASE et sa ligne — jamais le seul chiffre.
+
+**Et le relevé doit lire la PROSE, pas seulement les chaînes.** Deux
+versions du même angle mort se sont succédé, et la seconde est la plus
+instructive : le collecteur ne lisait que le texte situé entre `>` et
+`<` **sur une même ligne**. Or une page écrit ses paragraphes sur
+quatre ou cinq lignes — donc toutes. Il ne rendait pas zéro, ce qui se
+serait vu : il rendait « presque tout », et une page entière de
+présentation y est passée sans qu'une seule phrase soit lue. On efface
+donc les balises **en gardant les sauts de ligne**, pour que la faute
+garde son numéro.
+
+**Une exemption est une CONSTRUCTION, pas une liste de phrases.** §7
+exempte le pronom « personne » et en cite une occurrence ; nommer les
+phrases une à une revient à ré-autoriser le mot un titre à la fois. La
+règle tient en une ligne de grammaire — en français, « personne » n'est
+un nom que précédé d'un déterminant — et elle tranche les six cas
+relevés dans le bon sens, dont deux qui dormaient depuis la veille dans
+une page livrée. Corollaire, et c'est la sonde qui l'a dit contre la
+relecture : **une exemption se sonde dans les DEUX sens.** Trop large,
+elle ne casse rien — elle rend zéro, et zéro se lit comme une réussite.
+La page fabriquée porte donc le pronom, qui doit passer, *et* le nom
+déterminé, qui doit être pris.
+
+**Le premier relevé a donné raison à la règle, mot pour mot.** Trois
+dérives, toutes dans des textes qu'on ne relit jamais : l'`aria-label`
+de la ligne « → qui » — c'est-à-dire **le seul nom qu'entend un lecteur
+d'écran** — et deux infobulles de jeton. Aucune dans un titre, aucune
+dans un bouton. Corollaire à tenir : **ce qui n'est lu que par une
+machine dérive en premier**, parce que personne ne le relit en
+regardant l'écran.
+
+Deux pièges d'outillage, payés tous les deux : ce dépôt écrit beaucoup
+de commentaires, dont certains **citent les mots interdits** pour dire
+pourquoi ils le sont — les compter rendait des fautes là où il n'y en
+avait aucune. Et un commentaire retiré doit laisser ses **sauts de
+ligne** : sans ça le contrôle désigne la mauvaise ligne, on cherche là
+où il n'y a rien, et on finit par ne plus le croire.
 
 **Le plus court qui reste compris.** L'ordre est bien : rien, une icône, un
 mot, une phrase — mais **la compréhension passe avant la brièveté**. Si un mot
@@ -1138,12 +1200,66 @@ RÉEL de l'app et lit les octets qui sortent par le vrai bouton.**
 3. `?test` : tous les auto-tests verts, y compris les nouveaux.
 4. `CONTRAT.md` à jour si une clé, un format ou un invariant a bougé.
 5. `sw.js` : bump `oc-vN` + `PRECACHE` si un fichier précaché a changé.
+   **Et `PRECACHE` est ATOMIQUE** : `cache.addAll` échoue en entier si un
+   seul fichier manque, donc le service worker ne s'installe pas du tout.
+   Corollaire payé le 25 août : deux scénarios servaient une copie du
+   dépôt à partir d'une liste tenue À LA MAIN ; trois fichiers précachés
+   de plus ont suffi à la faire diverger, et l'échec ne disait pas
+   pourquoi. La liste se DÉDUIT de `PRECACHE` (`copierDeploiement`,
+   `tests/e2e/outils.mjs`) — une liste qu'on tient à la main finit
+   toujours par mentir.
+
+   **Et une page qui n'est PAS l'app se prouve sous le service worker.**
+   Le SW ressert `index.html` à toute navigation — c'est ce qui fait
+   qu'un rechargement sur `#/pistes` ne rend pas un 404. Une page qui
+   se lit seule (le retour OAuth, l'aide, la confidentialité) doit donc
+   être exemptée, et cette exemption était une liste écrite à la main
+   qui ne nommait qu'`oauth.html`. Les deux pages livrées ensuite se
+   sont fait avaler **en silence** : taper « Aide et confidentialité »
+   rouvrait l'app. Le piège tient en une phrase : **le défaut n'existe
+   que service worker installé, donc jamais chez celui qui vient
+   d'écrire la page.** L'exemption se déduit maintenant de `PRECACHE`
+   `sw.js` et `e2e-pages-sw.mjs` garde CHAQUE page trouvée sur le
+   DISQUE, titre du fichier à l'appui — plus rien à déclarer. La règle
+   finale ne tient d'ailleurs aucune liste : **une navigation qui nomme
+   un fichier `.html` sert ce fichier.** La version intermédiaire, qui
+   dérivait l'exemption de `PRECACHE`, liait deux questions sans
+   rapport — « est-ce une page ? » et « la promet-on hors ligne ? » —
+   et une page livrée sans être promise hors ligne serait retombée dans
+   le trou.
+
+   **Et un garde SAUTÉ ne garde rien.** Celui-ci s'appelait
+   `e2e-oauth-sw.mjs` et ne couvrait qu'`oauth.html` : il était donc
+   rangé avec l'envoi direct, c'est-à-dire **sauté tant que cette
+   capacité reste masquée** (§0). En lui confiant les pages livrées
+   et visibles, on lui confiait un travail que la suite ne faisait
+   jamais — le défaut pouvait revenir sur un vert. Un scénario qui
+   garde du visible ne se conditionne à aucun drapeau, et son nom doit
+   dire ce qu'il garde : le fichier s'appelle `e2e-pages-sw.mjs`.
 6. Textes relus, thème sombre vérifié, cibles tactiles ≥ 44 px sur mobile.
 7. **Sobriété** : `e2e-sobriete.mjs` vert. Une couche de plus (toast long,
    confirmation, phrase d'explication) ne passe qu'en montant un plafond
    **dans ce fichier**, exprès — c'est ce qui empêche une passe de
    nettoyage de se défaire toute seule, un « juste un toast » à la fois.
-8. Commits en français, descriptifs, focalisés.
+   **Le quatrième compte est la SURFACE MORTE**, et son plafond vaut
+   zéro : un style que plus personne ne pose n'a aucune contrepartie à
+   peser, il attend seulement d'être lu par erreur. Ce qui reste au kit
+   exprès — un motif que §6 nomme mais qu'aucun écran ne porte
+   aujourd'hui — se déclare dans `KIT_GARDE`, avec sa raison.
+8. **Un lot qui RETIRE un contrôle emporte son style avec lui.** C'est la
+   faute la plus discrète du dépôt, et c'est la mienne autant qu'une
+   autre : le premier relevé a trouvé 21 sélecteurs orphelins, dont le
+   pli de « Donner » et celui de la barre de liste — dissous quelques
+   jours plus tôt en descendant l'action dans le pied, et dont le CSS
+   était resté. Deux dessins abandonnés dormaient à côté, l'un dupliqué
+   mot pour mot sous un autre parent. 69 lignes.
+   La leçon d'outillage vaut autant : **un contrôle qui peut se tromper
+   dans le sens de la SUPPRESSION se conçoit à l'envers.** Le collecteur
+   ratait `class="… ${x ? '' : ' ec-vide'}"` — l'espace en tête — et
+   déclarait mortes sept classes bien vivantes. Il ne suffit pas qu'il
+   échoue : il doit échouer **bruyamment et en les nommant**, pour qu'un
+   humain voie tout de suite que l'instrument a tort, pas le code.
+9. Commits en français, descriptifs, focalisés.
 
 ---
 

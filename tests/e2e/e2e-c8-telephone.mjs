@@ -1,7 +1,7 @@
 /* E2E C8 : une campagne est préparée sur un téléphone qui connaît le
-   Compagnon dans l'anneau, mais n'a aucune association locale. Son bon
-   signé emprunte le rail privé de « Mes appareils » ; l'ordinateur le
-   remet au VRAI Compagnon, qui accepte la clé du téléphone dans l'anneau
+   Ordinateur dans l'anneau, mais n'a aucune association locale. Son bon
+   signé emprunte le rail privé de « Mes appareils » ; l’ordinateur le
+   remet au VRAI Ordinateur, qui accepte la clé du téléphone dans l'anneau
    et envoie une seule fois, même après plusieurs rejeux de sync. */
 import { chromium, chromiumPath, SHOTS, serveRepo, ROOT, attendreCanal } from './outils.mjs';
 import { spawn } from 'child_process';
@@ -10,9 +10,9 @@ import net from 'net';
 import os from 'os';
 import path from 'path';
 
-const BIN = path.join(ROOT, 'compagnon', 'target', 'debug', 'oc-compagnon');
+const BIN = path.join(ROOT, 'ordinateur', 'target', 'debug', 'oc-natif');
 if (!existsSync(BIN)) {
-  console.log('binaire absent (cargo build -p oc-compagnon) — scénario sauté');
+  console.log('binaire absent (cargo build -p oc-natif) — scénario sauté');
   process.exit(0);
 }
 
@@ -42,7 +42,7 @@ await new Promise(r => sink.listen(2528, '127.0.0.1', r));
 
 const xdg = mkdtempSync(path.join(os.tmpdir(), 'oc-c8-'));
 const CODE = 'ABCD-2345';
-const compagnon = spawn('xvfb-run', ['-a', 'dbus-run-session', '--', BIN], {
+const ordinateur = spawn('xvfb-run', ['-a', 'dbus-run-session', '--', BIN], {
   env: Object.assign({}, process.env, {
     XDG_DATA_HOME: xdg,
     OC_APPAIRAGE_AUTO: CODE,
@@ -54,9 +54,9 @@ const compagnon = spawn('xvfb-run', ['-a', 'dbus-run-session', '--', BIN], {
   stdio: ['ignore', 'pipe', 'pipe'], detached: true
 });
 let journalBin = '';
-compagnon.stdout.on('data', d => { journalBin = (journalBin + d).slice(-4000); });
-compagnon.stderr.on('data', d => { journalBin = (journalBin + d).slice(-4000); });
-const arreter = () => { try { process.kill(-compagnon.pid, 'SIGKILL'); } catch (e) {} };
+ordinateur.stdout.on('data', d => { journalBin = (journalBin + d).slice(-4000); });
+ordinateur.stderr.on('data', d => { journalBin = (journalBin + d).slice(-4000); });
+const arreter = () => { try { process.kill(-ordinateur.pid, 'SIGKILL'); } catch (e) {} };
 const attendre = async (fn, ms, quoi) => {
   const t0 = Date.now();
   for (;;) {
@@ -68,7 +68,7 @@ const attendre = async (fn, ms, quoi) => {
 const sonde = async () => {
   for (const port of [17095, 17096, 17097]) {
     try {
-      const r = await fetch(`http://127.0.0.1:${port}/oc-compagnon`, { signal: AbortSignal.timeout(700) });
+      const r = await fetch(`http://127.0.0.1:${port}/oc-natif`, { signal: AbortSignal.timeout(700) });
       if (r.ok) return await r.json();
     } catch (e) {}
   }
@@ -106,7 +106,7 @@ const unlock = async page => {
 const piste = { id: 'p-c8', name: 'Atelier C8', city: 'Lille', status: 'todo',
   contacts: [{ id: 'k-c8', name: 'Nora', email: 'nora@exemple.fr' }], updatedAt: 1 };
 
-/* L'ordinateur principal crée l'anneau et y inscrit d'abord le téléphone. */
+/* L’ordinateur principal crée l'anneau et y inscrit d'abord le téléphone. */
 await desktop.goto(desktopBase, { waitUntil: 'load' });
 await desktop.evaluate(async p => {
   const st = await import('./engine/storage.js');
@@ -138,28 +138,28 @@ const phoneKeys = await desktop.evaluate(async () => {
 await desktop.reload({ waitUntil: 'load' });
 await unlock(desktop);
 
-/* Appairage réel. L'anneau transmis au Compagnon contient déjà le téléphone. */
+/* Appairage réel. L'anneau transmis à l’ordinateur contient déjà le téléphone. */
 const finalRing = await desktop.evaluate(async code => {
-  const { probeCompanion, pairCompanion } = await import('./engine/companion.js');
+  const { probeOrdinateur, pairOrdinateur } = await import('./engine/ordinateur.js');
   const st = await import('./engine/storage.js');
-  const { deviceSelf, ensureKeys, getRing, ringAddCompanion } = await import('./ui/synclive.js');
-  const found = await probeCompanion();
+  const { deviceSelf, ensureKeys, getRing, ringAddOrdinateur } = await import('./ui/synclive.js');
+  const found = await probeOrdinateur();
   const self = await deviceSelf();
   const keys = await ensureKeys();
-  const rep = await pairCompanion(found.base, code, found.info.appairage.s,
+  const rep = await pairOrdinateur(found.base, code, found.info.appairage.s,
     { id: self.id, name: self.name, pub: keys.pub }, getRing());
-  await st.kvSet(st.COMPANION_KEY, JSON.stringify({
-    k: rep.k, id: rep.compagnon.id, nom: rep.compagnon.name, pub: rep.compagnon.pub, at: Date.now()
+  await st.kvSet(st.ORDINATEUR_KEY, JSON.stringify({
+    k: rep.k, id: rep.ordinateur.id, nom: rep.ordinateur.name, pub: rep.ordinateur.pub, at: Date.now()
   }));
-  await ringAddCompanion({ id: rep.compagnon.id, name: rep.compagnon.name, pub: rep.compagnon.pub });
-  const maj = await (await import('./engine/companion.js')).companionCall(found.base, rep.k,
+  await ringAddOrdinateur({ id: rep.ordinateur.id, name: rep.ordinateur.name, pub: rep.ordinateur.pub });
+  const maj = await (await import('./engine/ordinateur.js')).ordinateurCall(found.base, rep.k,
     { t: 'anneau', ring: getRing() });
-  if (!maj || maj.t !== 'ok') throw new Error('anneau-compagnon');
+  if (!maj || maj.t !== 'ok') throw new Error('anneau-ordinateur');
   return getRing();
 }, CODE);
 
 /* Le téléphone reçoit l'anneau par « Mes appareils », sans recevoir la
-   clé de canal locale du Compagnon. */
+   clé de canal locale de l’ordinateur. */
 await phone.goto(phoneBase, { waitUntil: 'load' });
 await phone.evaluate(async ({ p, keys, ring }) => {
   const st = await import('./engine/storage.js');
@@ -202,23 +202,23 @@ const payload = await phone.evaluate(async () => {
   return {
     campaigns: JSON.parse(await st.kvGet(st.CAMPAIGNS_KEY) || '[]'),
     missions: JSON.parse(await st.kvGet(st.MISSIONS_KEY) || '[]'),
-    assoc: await st.kvGet(st.COMPANION_KEY)
+    assoc: await st.kvGet(st.ORDINATEUR_KEY)
   };
 });
-if (payload.assoc) fail('le téléphone ne doit pas posséder la clé locale du Compagnon');
+if (payload.assoc) fail('le téléphone ne doit pas posséder la clé locale de l’ordinateur');
 if (payload.campaigns.length !== 1 || payload.missions.length !== 1) fail('campagne/mission téléphone absente');
 if (payload.missions[0].wire.dev !== 'telephone-c8') fail('bon non signé par le téléphone');
 const wireExact = JSON.stringify(payload.missions[0].wire);
 console.log('téléphone : auto proposé, bon signé prêt, aucune clé locale ✓');
 
-/* Le rail privé existant converge sur l'ordinateur, qui est le seul à
-   parler au canal local du Compagnon. */
+/* Le rail privé existant converge sur l’ordinateur, qui est le seul à
+   parler au canal local de l’ordinateur. */
 await desktop.evaluate(async p => {
   const sync = await import('./ui/synclive.js');
   const campagnes = await import('./ui/campagnes.js');
   await sync.applyPrivatePayload(p);
   await campagnes.loadCampaigns();
-  await campagnes.reconcileCompanion();
+  await campagnes.reconcileOrdinateur();
 }, { campaigns: payload.campaigns, missions: payload.missions });
 await attendre(() => messages.length >= 1, 30000, 'premier envoi C8');
 
@@ -228,7 +228,7 @@ await desktop.evaluate(async p => {
   const sync = await import('./ui/synclive.js');
   const campagnes = await import('./ui/campagnes.js');
   await Promise.all([sync.applyPrivatePayload(p), sync.applyPrivatePayload(p), sync.applyPrivatePayload(p)]);
-  await Promise.all([campagnes.reconcileCompanion(), campagnes.reconcileCompanion(), campagnes.reconcileCompanion()]);
+  await Promise.all([campagnes.reconcileOrdinateur(), campagnes.reconcileOrdinateur(), campagnes.reconcileOrdinateur()]);
 }, { campaigns: payload.campaigns, missions: payload.missions });
 await new Promise(r => setTimeout(r, 2500));
 if (messages.length !== 1) fail('double envoi C8 : ' + messages.length);

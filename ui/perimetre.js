@@ -2,7 +2,7 @@
    OpenContact — le périmètre visible (CLAUDE.md §0)
 
    Le recentrage de juillet 2026 : ce qui appartient au
-   Compagnon, ou ce qui est reporté par choix, est PRÉSENT dans
+   Ordinateur, ou ce qui est reporté par choix, est PRÉSENT dans
    le code mais MASQUÉ à l'écran.
 
    Rien n'est supprimé. Aucune clé de stockage ne bouge. Aucune
@@ -20,7 +20,7 @@
 
 /* Tout ce qui exige une application installée : travail fenêtre fermée,
    analyse automatique de la boîte mail, IA locale, serveur MCP. */
-export const COMPAGNON = false;
+export const ORDINATEUR = false;
 
 /* Campagnes : séquence 1 message + 2 relances, plafond quotidien,
    fenêtre d'envoi, arrêt sur réponse. Le moteur et les écrans restent

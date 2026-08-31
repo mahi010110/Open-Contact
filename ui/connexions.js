@@ -11,7 +11,7 @@
 import { MAIL_CLIENTS, authUrl, parseCallback, pkcePair,
          exchangeOutlookCode, refreshOutlook, whoAmI } from '../engine/mailer.js';
 import { AI_FAMILIES } from '../engine/ai.js';
-import { COMPAGNON } from './perimetre.js';
+import { ORDINATEUR } from './perimetre.js';
 import { MAIL_KEY, AI_KEY, kvGet, kvSet } from '../engine/storage.js';
 import { esc } from '../engine/utils.js';
 import { S, bus, logJ } from './state.js';
@@ -37,12 +37,12 @@ const saveAi = () => kvSet(AI_KEY, JSON.stringify(ai || {}));
 
 /* la connexion IA utilisable — clé navigateur (Claude, Gemini,
    OpenRouter) ou « via ton ordinateur » (Ollama, OpenAI, ChatGPT :
-   le Compagnon fait l'appel, la clé ne fait que passer, chiffrée) */
+   l’ordinateur fait l'appel, la clé ne fait que passer, chiffrée) */
 /* Les familles réellement joignables ici et maintenant (loi #6). Celles qui
-   passent par l'ordinateur n'existent que si cette surface est là — sinon la
+   passent par l’ordinateur n'existent que si cette surface est là — sinon la
    feuille proposerait un choix qui échoue au premier appel. */
 export const familles = () =>
-  Object.keys(AI_FAMILIES).filter(k => AI_FAMILIES[k].channel === 'browser' || COMPAGNON);
+  Object.keys(AI_FAMILIES).filter(k => AI_FAMILIES[k].channel === 'browser' || ORDINATEUR);
 
 export function aiConnection(){
   if (!ai || !ai.provider) return null;
@@ -61,32 +61,32 @@ export function aiStateLabel(){
   return 'aucune';
 }
 
-/* un travail IA confié à l'ordinateur (texte ou liste de modèles) :
+/* un travail IA confié à l’ordinateur (texte ou liste de modèles) :
    demande courte sur le canal chiffré, suivi jusqu'au résultat,
-   ANNULABLE — fermer la feuille abandonne vraiment (le Compagnon tue
+   ANNULABLE — fermer la feuille abandonne vraiment (l’ordinateur tue
    ou jette le travail). Mêmes codes d'erreur courts que le chemin
-   navigateur, plus `compagnon` (pas associé) et `eteint`. */
-async function companionIaJob(payload, opts){
+   navigateur, plus `ordinateur` (pas associé) et `eteint`. */
+async function ordinateurIaJob(payload, opts){
   opts = opts || {};
-  const { probeCompanion, companionCall } = await import('../engine/companion.js');
-  const { loadCompanion } = await import('./compagnon.js');
-  const assoc = await loadCompanion().catch(() => null);
-  if (!assoc) throw new Error('compagnon');
-  const found = await probeCompanion();
+  const { probeOrdinateur, ordinateurCall } = await import('../engine/ordinateur.js');
+  const { loadOrdinateur } = await import('./ordinateur.js');
+  const assoc = await loadOrdinateur().catch(() => null);
+  if (!assoc) throw new Error('ordinateur');
+  const found = await probeOrdinateur();
   if (!found) throw new Error('eteint');
   const jid = 'ia-' + Math.random().toString(36).slice(2, 10);
   let rep;
   try {
-    rep = await companionCall(found.base, assoc.k, Object.assign({ t: 'ia-demarrer', jid }, payload));
+    rep = await ordinateurCall(found.base, assoc.k, Object.assign({ t: 'ia-demarrer', jid }, payload));
   } catch (e) { throw new Error('eteint'); }
   if (!rep || rep.t !== 'ok') throw new Error((rep && rep.e) || 'echec');
-  const abandonner = () => { companionCall(found.base, assoc.k, { t: 'ia-annuler', jid }).catch(() => {}); };
+  const abandonner = () => { ordinateurCall(found.base, assoc.k, { t: 'ia-annuler', jid }).catch(() => {}); };
   const debut = Date.now();
   while (Date.now() - debut < 200000){
     await new Promise(r => setTimeout(r, 1200));
     if (opts.cancelled && opts.cancelled()){ abandonner(); throw new Error('annule'); }
     let et;
-    try { et = await companionCall(found.base, assoc.k, { t: 'ia-etat', jid }); }
+    try { et = await ordinateurCall(found.base, assoc.k, { t: 'ia-etat', jid }); }
     catch (e) { throw new Error('eteint'); }
     if (!et || et.t !== 'ia' || et.etat === 'inconnue') throw new Error('echec');
     if (et.etat === 'fini') return et;
@@ -95,15 +95,15 @@ async function companionIaJob(payload, opts){
   abandonner();
   throw new Error('indispo');
 }
-export async function aiCompleteViaCompanion(conn, prompt, opts){
+export async function aiCompleteViaOrdinateur(conn, prompt, opts){
   opts = opts || {};
-  const et = await companionIaJob({ provider: conn.provider, key: conn.key || '',
+  const et = await ordinateurIaJob({ provider: conn.provider, key: conn.key || '',
     model: conn.model || '', prompt, system: opts.system || '' }, opts);
-  /* même borne que le Compagnon (oc_coeur TEXTE_MAX) — ceinture locale */
+  /* même borne que l’ordinateur (oc_coeur TEXTE_MAX) — ceinture locale */
   return String(et.texte || '').trim().slice(0, 20000);
 }
-export async function aiModelsViaCompanion(provider, key){
-  const et = await companionIaJob({ op: 'modeles', provider, key: key || '' }, {});
+export async function aiModelsViaOrdinateur(provider, key){
+  const et = await ordinateurIaJob({ op: 'modeles', provider, key: key || '' }, {});
   return Array.isArray(et.modeles) ? et.modeles : [];
 }
 const acct = p => (mail && mail[p]) || null;
@@ -273,7 +273,7 @@ export async function openAssistantIA(){
 }
 
 /* la feuille IA : chaque famille dit son chemin — « ici » (clé
-   navigateur) ou « via ton ordinateur » (le Compagnon fait l'appel).
+   navigateur) ou « via ton ordinateur » (l’ordinateur fait l'appel).
    Une décision à la fois ; couper reste possible d'un geste. */
 function openAiSheet(after){
   const sh = openSheet({ title: 'Assistant IA', icon: 'sparkles' });
@@ -286,7 +286,7 @@ function openAiSheet(after){
          ${familles().map(k => {
            const f = AI_FAMILIES[k];
            const on = ai && ai.provider === k;
-           const voie = f.channel === 'companion'
+           const voie = f.channel === 'ordinateur'
              ? (f.key ? 'Clé API · via ton ordinateur'
                : (k === 'ollama' ? 'Local · via ton ordinateur' : 'Abonnement · via ton ordinateur'))
              : 'Clé API · ici';
@@ -316,7 +316,7 @@ function openAiSheet(after){
   const intro = k =>
     k === 'ollama' ? 'Ollama tourne sur ton ordinateur : rien ne sort, aucune clé, hors ligne une fois le modèle installé.'
     : k === 'chatgpt' ? 'Ton abonnement ChatGPT, par l’outil officiel Codex connecté sur ton ordinateur. Aucune clé à coller.'
-    : AI_FAMILIES[k].channel === 'companion'
+    : AI_FAMILIES[k].channel === 'ordinateur'
       ? 'Ta clé sert l’appel depuis ton ordinateur, puis s’oublie là-bas — elle n’y est jamais gardée.'
       : 'L’appel part d’ici, avec ta clé.';
   const enregistrer = async (k, key, model) => {
@@ -358,13 +358,13 @@ function openAiSheet(after){
     sh.setFoot([btn('← Retour', 'btn-ghost', () => { sh.setFoot(null); f.key ? etapeCle(k, '') : render(); })]);
     let liste;
     try {
-      liste = f.channel === 'companion'
-        ? await aiModelsViaCompanion(k, key)
+      liste = f.channel === 'ordinateur'
+        ? await aiModelsViaOrdinateur(k, key)
         : await (await import('../engine/ai.js')).aiListModels({ provider: k, key });
     } catch (e) {
       if (e.message === 'cle'){ etapeCle(k, 'Clé refusée — vérifie-la.'); return; }
       etapeLibre(k, key,
-        e.message === 'compagnon' ? 'Associe d’abord le Compagnon (Mes appareils) — tu choisiras dans sa liste ensuite.'
+        e.message === 'ordinateur' ? 'Associe d’abord l’ordinateur (Mes appareils) — tu choisiras dans sa liste ensuite.'
         : e.message === 'eteint' ? 'Ton ordinateur est éteint — sa liste attendra. Tu peux taper un nom en attendant.'
         : e.message === 'runtime' ? 'Le moteur IA de ton ordinateur ne répond pas — sa liste attendra.'
         : 'La liste des modèles est injoignable pour l’instant.');

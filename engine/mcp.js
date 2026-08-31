@@ -1,6 +1,6 @@
 /* ============================================================
    OpenContact — moteur · résumé pour l'assistant IA (P8-2)
-   Le Compagnon peut exposer un serveur local à un assistant IA
+   L’ordinateur peut exposer un serveur local à un assistant IA
    compatible. Ce module construit le SEUL contenu qu'il a le
    droit de lire : un résumé de pistes en liste blanche stricte —
    nom, ville, domaine, postes, dernière activité — plus le suivi

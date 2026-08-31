@@ -17,7 +17,7 @@ import { renderMoi } from './ui/moi.js';
 import { openCapture } from './ui/capture.js';
 import { downloadBackup, closeReglages } from './ui/moi.js';
 import { initSyncLive } from './ui/synclive.js';
-import { COMPAGNON, CAMPAGNES } from './ui/perimetre.js';
+import { ORDINATEUR, CAMPAGNES } from './ui/perimetre.js';
 
 const VIEWS = {
   aujourdhui: renderToday,
@@ -136,8 +136,8 @@ function applyTheme(t, persist){
   await Promise.all([
     import('./ui/connexions.js').then(m => m.loadMail()).catch(() => {}),
     CAMPAGNES ? import('./ui/campagnes.js').then(m => m.loadCampaigns()).catch(() => {}) : null,
-    COMPAGNON ? import('./ui/analyse.js').then(m => m.loadMailAnalysis()).catch(() => {}) : null,
-    COMPAGNON ? import('./ui/propositions.js').then(m => m.loadProposals()).catch(() => {}) : null
+    ORDINATEUR ? import('./ui/analyse.js').then(m => m.loadMailAnalysis()).catch(() => {}) : null,
+    ORDINATEUR ? import('./ui/propositions.js').then(m => m.loadProposals()).catch(() => {}) : null
   ]);
   applyTheme(S.theme, false);
   $('#sbVer').textContent = APP_VERSION;
@@ -180,9 +180,9 @@ function applyTheme(t, persist){
      salle en arrière-plan et y RESTE — différé pour un démarrage net */
   setTimeout(() => { initSyncLive().catch(() => {}); }, 2000);
 
-  /* propositions de l'assistant IA (Compagnon associé) : rapportées en
+  /* propositions de l'assistant IA (Ordinateur associé) : rapportées en
      arrière-plan, sobrement — rien ne s'ajoute sans l'aperçu */
-  if (COMPAGNON) setTimeout(() => {
+  if (ORDINATEUR) setTimeout(() => {
     import('./ui/propositions.js').then(m => m.startProposalsLoop()).catch(() => {});
   }, 2500);
 

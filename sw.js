@@ -4,17 +4,24 @@
    arrière-plan — la version suivante s'applique à l'ouverture d'après.
    Jamais mis en cache : le géocodage (données fraîches) et les tuiles de
    carte (volume) — la carte demande donc du réseau, tout le reste non. */
-const CACHE = 'oc-v177';
+const CACHE = 'oc-v186';
 const PRECACHE = ['./', './index.html', './app.js', './theme.js', './tests.js', './tests-c8.js', './tests-mcp.js',
   './engine/crypto.js', './engine/exchange.js', './engine/filter.js',
   './engine/geo.js', './engine/merge.js', './engine/model.js',
   './engine/score.js', './engine/storage.js', './engine/sync.js', './engine/utils.js',
-  './engine/vault.js', './engine/ring.js', './engine/campaign.js', './engine/mailer.js', './engine/assist.js', './engine/ai.js', './engine/mission.js', './engine/companion.js', './engine/mcp.js', './engine/distribution.js', './engine/transport.js', './engine/diagnostic.js',
+  './engine/vault.js', './engine/ring.js', './engine/campaign.js', './engine/mailer.js', './engine/assist.js', './engine/ai.js', './engine/mission.js', './engine/ordinateur.js', './engine/mcp.js', './engine/distribution.js', './engine/transport.js', './engine/diagnostic.js',
   './ui/dom.js', './ui/dates.js', './ui/state.js', './ui/actions.js', './ui/sort.js', './ui/verrou.js',
   './ui/mail.js', './ui/capture.js', './ui/fiche.js', './ui/today.js',
   './ui/pistes.js', './ui/moi.js', './ui/perimetre.js', './ui/echanger.js', './ui/direct.js', './ui/synclive.js',
   './ui/contact.js', './ui/edit.js', './ui/docs.js', './ui/tplfield.js', './ui/prospect.js', './ui/analyse.js', './ui/propositions.js',
-  './ui/diagnostic.js', './ui/qr.js', './ui/qui.js', './ui/affiner.js', './ui/donner.js', './ui/recevoir.js', './ui/profil.js', './ui/connexions.js', './ui/campagnes.js', './ui/compagnon.js', './oauth.html',
+  './ui/diagnostic.js', './ui/qr.js', './ui/qui.js', './ui/affiner.js', './ui/donner.js', './ui/recevoir.js', './ui/profil.js', './ui/connexions.js', './ui/campagnes.js', './ui/ordinateur.js', './oauth.html',
+  /* les pages qui se LISENT : elles doivent répondre hors ligne comme
+     le reste — quelqu'un qui vérifie ce que l’app fait de ses données
+     ne doit pas dépendre du réseau pour l'apprendre. La page qui
+     PRÉSENTE le produit n'est pas dans ce dépôt : elle s'adresse à qui
+     n'a pas encore l'app, donc à quelqu'un qui est en ligne par
+     définition. */
+  './confidentialite.html', './aide.html', './doc.css',
   './assets/vendor/qrcode-generator.mjs', './assets/vendor/jsQR.js',
   './assets/vendor/trystero-nostr.min.js',
   './manifest.webmanifest', './icon.svg',
@@ -110,6 +117,31 @@ const PRECACHE = ['./', './index.html', './app.js', './theme.js', './tests.js', 
   './assets/icons/zap.svg',
   './assets/logo/piste-a-reseau.svg'];
 
+/* ============================================================
+   LES PAGES QUI SE SERVENT ELLES-MÊMES
+
+   L'app est une page unique : toute navigation doit reservir
+   `index.html`, sinon un rechargement hors ligne sur `#/pistes`
+   rendrait un 404. Mais le dépôt ne contient PAS que l'app — il
+   contient aussi des pages qui se lisent seules : le retour OAuth,
+   l'aide, la confidentialité.
+
+   Cette exception a été écrite deux fois de la mauvaise façon. D'abord
+   en nommant `oauth.html` à la main : les deux pages ajoutées ensuite
+   se sont fait avaler en silence, et le défaut n'existait que service
+   worker installé, donc jamais chez celui qui venait de les écrire.
+   Puis en dérivant la liste de `PRECACHE` : mieux, mais ça liait deux
+   questions sans rapport — « est-ce une page ? » et « la promet-on
+   hors ligne ? ». Une page livrée sans être promise hors ligne — la
+   présentation du produit, par exemple, qui vit dans son propre dépôt
+   — serait retombée dans le trou.
+
+   La règle est donc la plus simple des trois, et elle n'a rien à
+   tenir : **une navigation qui NOMME un fichier `.html` sert ce
+   fichier.** Tout le reste — la racine, les routes en `#` — ressert
+   l'app. Une page neuve marche sans que personne y pense.
+   ============================================================ */
+
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE).then(c => c.addAll(PRECACHE)).then(() => self.skipWaiting())
@@ -135,16 +167,16 @@ self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
   /* seulement NOTRE origine : les API (géocodage, messagerie, IA) et
-     le canal local du Compagnon ne passent JAMAIS par le cache — une
+     le canal local de l’ordinateur ne passent JAMAIS par le cache — une
      réponse d'API resservie est un mensonge (sel d'appairage périmé,
      quota fantôme…) */
   if (url.origin !== location.origin) return;
-  /* toute navigation ressert l'app (page unique) — SAUF le retour
-     OAuth : oauth.html doit se servir lui-même, sinon la fenêtre
-     d'autorisation rouvre l'app et le jeton n'arrive jamais */
-  const req = (e.request.mode === 'navigate')
-    ? new Request(url.pathname.endsWith('/oauth.html') ? './oauth.html' : './index.html')
-    : e.request;
+  /* voir « LES PAGES QUI SE SERVENT ELLES-MÊMES » plus haut */
+  let req = e.request;
+  if (e.request.mode === 'navigate'){
+    const nom = url.pathname.split('/').pop();
+    req = new Request(/\.html$/.test(nom) ? './' + nom : './index.html');
+  }
   e.respondWith(
     caches.open(CACHE).then(async c => {
       const cached = await c.match(req);

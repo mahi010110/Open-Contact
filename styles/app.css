@@ -428,13 +428,6 @@ html[data-theme="dark"] .field select{
    même où l'on vient de s'en servir. */
 .lb-act.on{color:var(--accent)}
 .lb-act.on .ic{color:var(--accent)}
-/* le repli d'une liste : le mot se fige, le chevron tourne. « Choisir »
-   qui devient « Replier » sur la même cible oblige à relire pour savoir
-   où l'on en est — l'état appartient au signe, pas au libellé. */
-.lb-fold .ic{transition:transform var(--dur-1) var(--ease-out)}
-.lb-fold[aria-expanded="true"]{color:var(--accent)}
-.lb-fold[aria-expanded="true"] .ic{transform:rotate(180deg);color:var(--accent)}
-@media (prefers-reduced-motion:reduce){.lb-fold .ic{transition:none}}
 /* ---- la barre de commande d'une liste à cocher (ui/affiner.js) ----
    UN SEUL OBJET, pas trois. Elle a d'abord été une case biseautée, un
    champ blanc et un entonnoir biseauté posés côte à côte : trois boîtes
@@ -589,13 +582,6 @@ html[data-theme="dark"] .field select{
   display:inline-flex;align-items:center;gap:6px;margin:0 0 10px;
   font-family:var(--font-mono);font-size:var(--text-12);font-weight:var(--weight-semibold);color:var(--green);
 }
-.td-chip{
-  display:inline-flex;align-items:center;gap:7px;margin:0 8px 10px 0;
-  min-height:36px;padding:4px 12px;border:1px solid var(--border-strong);border-radius:var(--radius-1);
-  background:var(--surface-window);box-shadow:var(--shadow-raised);
-  font-family:var(--font-mono);font-size:var(--text-12);font-weight:var(--weight-medium);color:var(--text-body);
-}
-.td-chip:active{box-shadow:var(--bevel-down);transform:translate(1px,1px)}
 .td-foot{margin-top:16px;display:flex}
 /* le pied d'« Aujourd'hui » : au pouce les lignes s'empilent comme
    avant ; au poste elles se rangent sur un rang sous un filet, pour
@@ -981,8 +967,6 @@ details.tranche[open]>summary::before{
 .pcard h3{font-size:var(--text-14);font-weight:var(--weight-bold);margin-bottom:4px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
 .pcard .pd{font-size:var(--text-12);color:var(--text-muted);line-height:1.55;margin-bottom:10px}
 .pcard .pd:last-child{margin-bottom:0}
-.pcard-soon{background-image:var(--dither-img);background-size:var(--dither-size);}
-.pcard-soon h3{color:var(--text-muted)}
 
 /* ============ GROUP BOX (feuille de propriétés 98) ============
    Le cadre fin dont la légende est posée DANS le trait. Les guidelines
@@ -1019,7 +1003,6 @@ details.tranche[open]>summary::before{
    signal que le bac « Contacts à rattacher », et seulement quand c'est
    vrai. Un cadre alerté en permanence ne serait plus une alerte. */
 .fset.fs-alert{border-left:3px solid var(--amber)}
-.fs-state{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:2px 0 10px}
 
 /* ============ EN-TÊTE D'OBJET ============
    « Put the object's name on the first page » + « display the appropriate
@@ -1097,34 +1080,6 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   padding:calc((var(--ctl) - 20px) / 2) 0;
 }
 .doc-size{flex:none;font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
-/* coup de pouce IA : une ligne = un prompt — taper copie, ✎ édite,
-   supprimer au geste (glisser / poubelle, comme partout) */
-.prompt-row{border-bottom:1px dashed var(--border-soft);font-size:var(--text-13)}
-.prompt-row:last-of-type{border-bottom:0}
-.prompt-row .sw-in{display:flex;align-items:center;gap:8px;min-height:var(--ctl);padding:2px 0}
-.pr-name{
-  flex:1;min-width:0;text-align:left;background:none;border:0;padding:0;
-  font:inherit;font-weight:var(--weight-semibold);color:var(--text-body);
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;min-height:var(--ctl);
-}
-@media (hover:hover){
-.pr-name:hover{color:var(--text-link)}
-}
-.pr-hint{flex:none;color:var(--text-muted)}
-.prompt-row .abtn-sm{margin-left:0;flex:none}
-.pr-foot{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
-.help-list{list-style:none;margin:0;padding:0}
-.help-list li{
-  font-size:var(--text-13);color:var(--text-muted);line-height:1.6;
-  padding:7px 0;border-bottom:1px dashed var(--border-soft);
-}
-.help-list li:last-child{border-bottom:0}
-.help-list b{color:var(--text-body)}
-.tpl-vars{
-  font-family:var(--font-mono);font-size:var(--text-11);
-  background:var(--surface-chrome);border:1px solid var(--border-soft);
-  padding:1px 5px;border-radius:var(--radius-1);word-break:break-word;
-}
 /* ---- le mot de passe facultatif : une ligne, deux états (ui/dom.js) ----
    Au repos : [ Télécharger ][ 🔒 Chiffrer ]. Tapé, le cadenas s'étire en
    champ et « Télécharger » se serre sur son texte — la ligne garde sa
@@ -1466,7 +1421,6 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 .lk-set .lk-cut:hover{color:var(--red)}
 }
 .sy-log{margin-top:10px}
-.pr-send{width:100%;margin-top:12px}
 /* ---- Échanger : ce qui réclame quelque chose ----
    La tranche de tête. Même grammaire que le fil qu'elle surplombe et
    que « En retard » sur « Aujourd'hui » : un libellé en petites
@@ -1552,7 +1506,6 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   .ec-fil{margin:2px 0 0}
   .ec-fil + .hero2{margin-top:16px}
 }
-.ec-tot{margin:-2px 0 6px}
 /* la date tient sa COLONNE (voir ui/echanger.js) : typo de donnée —
    mono, discrète — et surtout `flex:none`, elle ne rétrécit jamais.
    C'est la phrase qui s'élide ; une date coupée en deux ne dit plus
@@ -1717,17 +1670,6 @@ button.fi-vecu{
   width:100%;min-height:var(--ctl);text-align:left;cursor:pointer;font:inherit;
 }
 button.fi-vecu b{flex:1;min-width:0}
-/* ---- Donner : ce qui part (compteur + élagage), au-dessus du canal —
-   un filet sépare les deux questions : QUOI, puis COMMENT ---- */
-.dn-src{margin:0 0 12px;padding-bottom:10px;border-bottom:1px dashed var(--border-soft)}
-.dn-what{display:flex;align-items:center;gap:8px}
-/* « Choisir » déplie la liste, « Affiner » ouvre une feuille : deux
-   conséquences différentes, et leurs bords se touchaient (mesuré à 0 px,
-   208 → 208). Huit pixels — le chiffre de la règle, pas un de plus :
-   j'avais posé 10 sans raison, et un écart choisi au hasard est
-   exactement ce que je corrige ailleurs. */
-#dnList>.listbar{margin-top:8px}
-.dn-count{flex:1;font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted)}
 
 .qr-prog,.scan-prog{
   margin-top:8px;text-align:center;
@@ -1911,8 +1853,26 @@ button.ec-row:hover{background:var(--surface-field)}
    prospection, « → qui », appareils). Le nom tient sa ligne, l'état la
    sienne, chacun se coupe à sa fin, et le chevron garde sa place. */
 .pick .pk-m,.pk .pk-m{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;text-align:left}
-.pick .pk-m>b,.pick .pk-m>span,.pk .pk-m b,.pk .pk-m span{
+/* LA SOUS-LIGNE S'ÉLIDE : « statut · ville · qui est visé », des
+   données — la ligne reste compréhensible sans sa fin (§4). */
+.pick .pk-m>span,.pk .pk-m span{
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+/* LE NOM PLIE : c'est l'identité de la ligne, et dans une liste où
+   l'on COCHE, un nom amputé n'est pas un défaut d'esthétique, c'est
+   une erreur de décision — « Société Générale G… » ne se distingue
+   plus de son homonyme. Il était en `nowrap` + ellipse, et se coupait
+   dès 100 % sur un 320 px : l'état quotidien d'un petit téléphone, pas
+   un cas limite. Trois rangs, la même valeur et la même raison que
+   `.row-item h3` — l'app n'a qu'une règle pour ça.
+   Ce que ça coûte, mesuré : à 390 px et au poste, RIEN (pas de 52 px
+   inchangé, aucun nom n'atteint le second rang) ; en 320 et 360 px les
+   seules lignes qui grandissent (52 → 71 px) sont celles dont le nom
+   se faisait couper. Le pas ne se casse que là où de l'information se
+   perdait. */
+.pick .pk-m>b,.pk .pk-m b{
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
+  overflow-wrap:break-word;
 }
 .pick .pk-m span{font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted)}
 .pick:disabled{opacity:.62;cursor:not-allowed;box-shadow:none}
@@ -1928,7 +1888,6 @@ button.ec-row:hover{background:var(--surface-field)}
 
 /* ============ FICHE PISTE ============ */
 .fi-sub{font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted);margin-bottom:8px}
-.fi-desc{font-size:var(--text-13);color:var(--text-muted);line-height:1.55;margin-bottom:12px}
 .fi-closed{
   display:flex;align-items:center;gap:8px;flex-wrap:wrap;
   border:1px solid var(--border-strong);border-left:3px solid var(--c);
@@ -1979,16 +1938,6 @@ button.ec-row:hover{background:var(--surface-field)}
   border-left:4px solid transparent;border-right:4px solid transparent;
   border-top:5px solid var(--accent);border-bottom:0;
 }
-.ct-list{display:flex;flex-direction:column;gap:6px}
-.ct{background:var(--surface-chrome);border:1px solid var(--border-soft);border-radius:var(--radius-1);padding:8px 10px;font-size:var(--text-12)}
-.ct .ct-h{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
-.ct .ct-h b{font-weight:var(--weight-bold)}
-.ct .ct-role{color:var(--text-muted)}
-.ct .ct-meta{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);margin-top:3px;word-break:break-all}
-.ct .ct-acts{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
-.ct .ct-acts .btn{flex:1 1 auto;padding:5px 10px;font-size:var(--text-12)}
-@media (min-width:901px){ .ct .ct-acts .btn{flex:0 0 auto} }
-.ct .ct-note{font-size:var(--text-12);color:var(--text-muted);margin-top:6px;font-style:italic}
 /* contacts compacts (#15) : une ligne par personne, dépliable — les
    règles .ct-* (meta, acts, note) servent aussi dans .ctc-body */
 .ctc-list{display:flex;flex-direction:column;gap:6px}

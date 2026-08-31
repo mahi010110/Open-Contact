@@ -3,28 +3,28 @@
    Trois familles (D5), toutes optionnelles — sans IA, tout marche :
    · clé API navigateur : Anthropic, Gemini, OpenRouter (les trois
      autorisent l'appel direct depuis un navigateur) ;
-   · via l'ordinateur (le Compagnon) : Ollama local, OpenAI par clé
+   · via l’ordinateur (l’ordinateur) : Ollama local, OpenAI par clé
      (api.openai.com refuse le navigateur) et l'abonnement ChatGPT
      (outil officiel Codex, mode non interactif documenté).
    Ici : la fabrique d'un appel « texte → texte » côté navigateur et
    la découverte des modèles RÉELLEMENT servis (aiListModels) — aucun
    modèle codé en dur, jamais : l'utilisateur choisit dans la liste
    vivante du fournisseur, et ce qui est affiché est ce qui est
-   utilisé. Le chemin Compagnon vit dans ui/connexions.js (canal
+   utilisé. Le chemin Ordinateur vit dans ui/connexions.js (canal
    chiffré).
    L'IA ne fait que PROPOSER : le texte retombe dans un champ
    éditable, jamais un envoi. Fonctions + fetch, aucun accès au
    DOM. La clé n'est jamais mise dans un log ni un prompt système
-   inutile — et jamais stockée par le Compagnon.
+   inutile — et jamais stockée par l’ordinateur.
    ============================================================ */
 
 export const AI_FAMILIES = {
   gemini:     { label: 'Gemini',     channel: 'browser', key: true },
   anthropic:  { label: 'Claude',     channel: 'browser', key: true },
   openrouter: { label: 'OpenRouter', channel: 'browser', key: true },
-  openai:     { label: 'OpenAI',     channel: 'companion', key: true },
-  ollama:     { label: 'Ollama',     channel: 'companion', key: false },
-  chatgpt:    { label: 'ChatGPT',    channel: 'companion', key: false }
+  openai:     { label: 'OpenAI',     channel: 'ordinateur', key: true },
+  ollama:     { label: 'Ollama',     channel: 'ordinateur', key: false },
+  chatgpt:    { label: 'ChatGPT',    channel: 'ordinateur', key: false }
 };
 export const browserProviders = () =>
   Object.keys(AI_FAMILIES).filter(k => AI_FAMILIES[k].channel === 'browser');
@@ -73,7 +73,7 @@ export async function aiListModels(conn){
     const j = await r.json();
     return (j.data || []).map(m => ({ id: m.id, nom: m.name || m.id }));
   }
-  throw new Error('viacompagnon');
+  throw new Error('viaordinateur');
 }
 
 /* un appel navigateur direct — Anthropic ou Gemini. Rend le TEXTE
@@ -91,7 +91,7 @@ export async function aiComplete(conn, prompt, opts){
 async function appel(conn, prompt, opts, signal){
   const provider = conn.provider;
   const fam = AI_FAMILIES[provider];
-  if (!fam || fam.channel !== 'browser') throw new Error('viacompagnon');
+  if (!fam || fam.channel !== 'browser') throw new Error('viaordinateur');
   if (!conn.key) throw new Error('cle');
   const model = conn.model;
   if (!model) throw new Error('modele');   /* jamais de modèle implicite */
@@ -151,7 +151,7 @@ async function appel(conn, prompt, opts, signal){
     const c = (j.candidates || [])[0];
     return ((c && c.content && c.content.parts) || []).map(p => p.text || '').join('').trim();
   }
-  throw new Error('viacompagnon');
+  throw new Error('viaordinateur');
 }
 
 /* le prompt d'un brouillon d'email — cadré, concret, sans fioriture.

@@ -18,7 +18,7 @@ import { edAvailable, makeDeviceKeys, recoveryKeys, ringInit, ringAddDevice,
          ringCommand, ringTransfer, ringRecover, ringRekey, mergeRing, actionsFor, deviceIn } from '../engine/ring.js';
 import { SYNC_KEY, RELAYS_KEY, TURN_KEY, DEVICE_KEY, DEVICES_KEY, RING_KEY,
          DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, GROUP_KEY, PROMO_KEY, VAULT_KEY,
-         CAMPAIGNS_KEY, MAIL_KEY, AI_KEY, MISSIONS_KEY, COMPANION_KEY, ANALYSIS_KEY,
+         CAMPAIGNS_KEY, MAIL_KEY, AI_KEY, MISSIONS_KEY, ORDINATEUR_KEY, ANALYSIS_KEY,
          PROPOSALS_KEY, kvGet, kvSet, kvDel, docClear } from '../engine/storage.js';
 import { relayTally, liaisonStage, RELAIS_DEFAUT } from '../engine/transport.js';
 import { S, bus, applySynced, saveProfile, logJ } from './state.js';
@@ -152,9 +152,9 @@ async function loadRingSt(){
 }
 const saveRingSt = () => kvSet(RING_KEY, JSON.stringify(ringSt));
 export const getRing = () => (ringSt && ringSt.ring) || null;
-export async function ringCompanion(){
+export async function ringOrdinateur(){
   await loadRingSt();
-  return ((getRing() && getRing().devices) || []).find(d => d && d.role === 'companion') || null;
+  return ((getRing() && getRing().devices) || []).find(d => d && d.role === 'ordinateur') || null;
 }
 export async function amMain(){
   const r = getRing();
@@ -245,14 +245,14 @@ export async function ringMakeMain(targetId){
   emit();
   return true;
 }
-/* le principal inscrit le Compagnon dans l'anneau (rôle companion) —
+/* le principal inscrit l’ordinateur dans l'anneau (rôle ordinateur) —
    identité apprise sur le canal local authentifié par le code court */
-export async function ringAddCompanion(dev){
+export async function ringAddOrdinateur(dev){
   if (!(await amMain())) return false;
   ringSt.ring = await ringAddDevice(ringSt.ring, ringSt.keys.seed,
-    { id: dev.id, name: dev.name, pub: dev.pub, role: 'companion' });
+    { id: dev.id, name: dev.name, pub: dev.pub, role: 'ordinateur' });
   await saveRingSt();
-  logJ('Compagnon associé : ' + dev.name);
+  logJ('Ordinateur associé : ' + dev.name);
   sendRing();
   emit();
   return true;
@@ -286,7 +286,7 @@ async function onRingMsg(incoming){
          identité d'appareil, documents (CV, lettre) */
       for (const k of [DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, GROUP_KEY,
                        SYNC_KEY, RELAYS_KEY, TURN_KEY, PROMO_KEY, DEVICE_KEY, DEVICES_KEY, RING_KEY, VAULT_KEY,
-                       CAMPAIGNS_KEY, MAIL_KEY, AI_KEY, MISSIONS_KEY, COMPANION_KEY, ANALYSIS_KEY,
+                       CAMPAIGNS_KEY, MAIL_KEY, AI_KEY, MISSIONS_KEY, ORDINATEUR_KEY, ANALYSIS_KEY,
                        PROPOSALS_KEY]) await kvDel(k);
       await docClear().catch(() => {});   /* toutes les variantes CV & lettres */
       location.replace(location.pathname);

@@ -64,25 +64,25 @@ binaire natif**, qui demande `cargo` et `xvfb-run`.
 | `e2e-envoi.mjs` | Envoi direct Gmail intercepté, « Depuis {adresse} », expiration → reconnexion sans perdre le brouillon, `mailto:` intact — sauté sans `ENVOI_DIRECT` |
 | `e2e-campagne.mjs` | Bifurcation → assistant → contrôle → envois du jour interceptés, plafond, **fenêtre d'envoi (samedi = retenu)**, réponse → relances annulées — sauté sans `CAMPAGNES` |
 | `e2e-ia.mjs` | « Proposer un brouillon » intercepté, quota (429) proprement, rien de perdu — sauté sans `IA` |
-| `e2e-analyse.mjs` | « Depuis mes e-mails » : prompt copié, aperçu multi-sélection, lien piégé neutralisé, confiance non transmise — sauté sans `COMPAGNON` |
-| `e2e-oauth-sw.mjs` | Le service worker ne détourne jamais `oauth.html` ; le jeton revient par postMessage — sauté sans `ENVOI_DIRECT` |
+| `e2e-analyse.mjs` | « Depuis mes e-mails » : prompt copié, aperçu multi-sélection, lien piégé neutralisé, confiance non transmise — sauté sans `ORDINATEUR` |
 
 ## La surface ordinateur *(sautés sans le binaire natif, ou hors périmètre)*
 
 | Scénario | Ce qu'il prouve |
 |---|---|
-| `e2e-compagnon.mjs` | Appairage du Compagnon contre un faux au protocole exact : mauvais code refusé, clé de canal scellée, anneau (rôle companion), présence, rupture propre |
-| `e2e-compagnon-envoi.mjs` | Le VRAI binaire (xvfb) : campagne confiée par l'assistant, envois SMTP réels vers un puits local, kill −9 + relance = zéro doublon, rapport replié, reprise en main — sauté si `compagnon/target` n'est pas construit |
-| `e2e-compagnon-reponses.mjs` | Le VRAI binaire + faux IMAP : réponse détectée en boîte → relances arrêtées seules, fiche marquée « réponse » au repli — sauté sans binaire |
-| `e2e-compagnon-scan.mjs` | Le VRAI binaire + corpus piégé + faux Ollama : « ton ordinateur lit tes e-mails » → aperçu multi-sélection, injection neutralisée, tri respecté — sauté sans binaire |
-| `e2e-compagnon-ia.mjs` | Le VRAI binaire, rédaction « via ton ordinateur » sur trois runtimes (Ollama local, OpenAI par clé, abonnement ChatGPT). La règle d'or : **aucun modèle implicite** — on choisit dans la liste que le runtime sert vraiment. Le prompt porte la piste, **jamais le suivi privé** ; la clé ne touche jamais le disque du Compagnon — sauté sans binaire |
-| `e2e-c8-telephone.mjs` | Le VRAI binaire : une campagne préparée sur un **téléphone** qui ne connaît le Compagnon que par l'anneau. Son bon signé emprunte le rail privé de « Mes appareils », et l'envoi n'a lieu **qu'une fois** malgré plusieurs rejeux de sync — sauté sans binaire |
-| `e2e-mcp.mjs` | Le serveur MCP local du VRAI Compagnon, au protocole réel : découverte d'outils (aucune suppression ni écriture directe), lecture bornée **sans champ privé**, dépôt d'une proposition normale puis hostile, aperçu multi-sélection, aucune écriture avant validation, révocation immédiate. Survit à un verrouillage et à un kill −9 — sauté sans binaire |
+| `e2e-ordinateur.mjs` | Appairage de l’ordinateur contre un faux au protocole exact : mauvais code refusé, clé de canal scellée, anneau (rôle ordinateur), présence, rupture propre |
+| `e2e-ordinateur-envoi.mjs` | Le VRAI binaire (xvfb) : campagne confiée par l'assistant, envois SMTP réels vers un puits local, kill −9 + relance = zéro doublon, rapport replié, reprise en main — sauté si `natif/target` n'est pas construit |
+| `e2e-ordinateur-reponses.mjs` | Le VRAI binaire + faux IMAP : réponse détectée en boîte → relances arrêtées seules, fiche marquée « réponse » au repli — sauté sans binaire |
+| `e2e-ordinateur-scan.mjs` | Le VRAI binaire + corpus piégé + faux Ollama : « ton ordinateur lit tes e-mails » → aperçu multi-sélection, injection neutralisée, tri respecté — sauté sans binaire |
+| `e2e-ordinateur-ia.mjs` | Le VRAI binaire, rédaction « via ton ordinateur » sur trois runtimes (Ollama local, OpenAI par clé, abonnement ChatGPT). La règle d'or : **aucun modèle implicite** — on choisit dans la liste que le runtime sert vraiment. Le prompt porte la piste, **jamais le suivi privé** ; la clé ne touche jamais le disque de l’ordinateur — sauté sans binaire |
+| `e2e-c8-telephone.mjs` | Le VRAI binaire : une campagne préparée sur un **téléphone** qui ne connaît l’ordinateur que par l'anneau. Son bon signé emprunte le rail privé de « Mes appareils », et l'envoi n'a lieu **qu'une fois** malgré plusieurs rejeux de sync — sauté sans binaire |
+| `e2e-mcp.mjs` | Le serveur MCP local du VRAI Ordinateur, au protocole réel : découverte d'outils (aucune suppression ni écriture directe), lecture bornée **sans champ privé**, dépôt d'une proposition normale puis hostile, aperçu multi-sélection, aucune écriture avant validation, révocation immédiate. Survit à un verrouillage et à un kill −9 — sauté sans binaire |
 
 ## Les gardes transverses — celles qui empêchent de revenir en arrière
 
 | Scénario | Ce qu'il prouve |
 |---|---|
 | `e2e-ux-audit.mjs` | Le balayage large : cibles ≥ 44 px au doigt et ≥ 24 px à la souris sur 13 surfaces, survol inerte au doigt, `touchcancel` rendu par chaque geste, texte doublé à 200 % sans rien perdre, hiérarchie des titres, adjacence des cibles, actions impossibles désactivées |
+| `e2e-pages-sw.mjs` | **Le service worker n'avale aucune page.** Il ressert `index.html` à toute navigation — c'est ce qui fait qu'un rechargement hors ligne sur `#/pistes` ne rend pas un 404 — et il doit épargner les pages qui se lisent seules : aide, confidentialité, présentation, retour OAuth. La liste vient du DISQUE et le titre attendu du fichier : une page neuve est gardée sans que personne y pense. Prouve aussi le retour du jeton par postMessage, le rechargement hors ligne pour de vrai (serveur coupé) et le thème posé avant le premier pixel, processeur bridé ×8 |
 | `e2e-diagnostic.mjs` | « Signaler un problème » : le rapport tient cinq lignes stables, **aucune donnée personnelle d'un vrai suivi n'y entre**, le presse-papier rend exactement le bloc affiché, tout se lit sans défiler en 390 px — et **ni numéro de version ni adresse d'hébergeur** nulle part, sur l'écran comme dans la source |
-| `e2e-sobriete.mjs` | **Les couches ne repoussent pas.** Trois plafonds tenus à la main, sur les écrans visibles : longueur d'un toast (une phrase, un tiret cadratin), nombre de confirmations bloquantes, mots d'explication dans les feuilles. Aucun navigateur — il lit `ui/*.js`. Ajouter une porte ou une phrase oblige à monter le plafond **ici**, exprès |
+| `e2e-sobriete.mjs` | **Les couches ne repoussent pas.** Cinq plafonds tenus à la main, sur les écrans visibles : nombre et longueur des toasts, confirmations bloquantes, mots d'explication dans les feuilles, **surface morte** (plafond zéro) et **vocabulaire** (§7, plafond zéro). Aucun navigateur — il lit `ui/*.js`, les feuilles de style et la prose des pages. Ajouter une porte ou une phrase oblige à monter le plafond **ici**, exprès |

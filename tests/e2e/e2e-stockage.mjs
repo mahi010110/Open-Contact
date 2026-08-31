@@ -69,6 +69,18 @@ async function page(inject){
   await p.reload({ waitUntil: 'load' });
   await p.waitForSelector('.bottomnav');
   await attendre(p, `(async()=>((await import('./engine/storage.js')).getBackend()==='cache'))()`, { timeout: 9000 });
+  /* L'ÉTAT SE REMPLIT APRÈS LE CHOIX DU RANG. `getBackend()` répond dès
+     que le rang est décidé ; `S.companies`, lui, attend que l'amorçage
+     ait relu la clé. Lire tout de suite, c'est échantillonner une
+     course : la suite entière rougissait ici sur du code sain, et un
+     lancement isolé passait toujours — la signature exacte de ce qu'on
+     range à tort dans « les aléas de la machine ». C'est la même faute
+     que l'écriture non attendue quelques lignes plus haut.
+     On attend la condition, et l'assertion qui suit reste : elle dit ce
+     qu'on a VRAIMENT trouvé si le contenu est faux, ce qu'un simple
+     dépassement de délai ne dirait pas. */
+  await attendre(p, `(async()=>((await import('./ui/state.js')).S.companies.length>0))()`,
+    { timeout: 9000, message: 'la piste devait survivre au rechargement' }).catch(() => {});
   const apres = await p.evaluate(async () => (await import('./ui/state.js')).S.companies.map(c => c.name));
   if (apres.length !== 1 || apres[0] !== 'Orange Cyberdefense')
     fail('la piste devait survivre au rechargement, trouvé : ' + JSON.stringify(apres));

@@ -62,7 +62,7 @@ function contenuEchange(x, rappel = true){
        ${pistes.length ? `<div class="pick-list">${pistes.map(c =>
           `<button class="pick" data-id="${esc(c.id)}">
              <div class="pk-m"><b>${esc(c.name)}</b>
-               <span>${esc([STATUSES[c.status] && STATUSES[c.status].label, c.city]
+               <span class="pk-s">${esc([STATUSES[c.status] && STATUSES[c.status].label, c.city]
                  .filter(Boolean).join(' · '))}</span></div>
              ${ic('chevron-right', 'ic-14')}
            </button>`).join('')}</div>` : ''}

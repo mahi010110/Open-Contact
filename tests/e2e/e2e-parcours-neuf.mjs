@@ -41,6 +41,104 @@ if (!/Aucune piste|Ajoute une piste|première piste/i.test(piEmpty))
   fail('Mes pistes vide n’enseigne pas : ' + JSON.stringify(piEmpty));
 else console.log('Mes pistes vide : état enseignant ✓');
 
+/* ---------- L'APP NEUVE AU PLUS DUR : 320 px, texte doublé ----------
+   C'est le tout premier écran d'un étudiant, et c'était l'angle mort
+   de tous les autres balayages : ils SÈMENT des données, donc aucun ne
+   voit jamais l'app vide. Le corollaire vaut ici plus qu'ailleurs — un
+   contrôle ne garde que les états qu'il met en place.
+   Les quatre écrans, sans une seule piste, à 320 × 640 et 200 % : rien
+   ne doit se perdre, rien ne doit déborder, et le doigt doit garder ses
+   44 px. Mesuré propre avant d'être gardé ; ce qui suit empêche la
+   première impression de se dégrader sans qu'on le voie. */
+{
+  const nCtx = await browser.newContext({ viewport: { width: 320, height: 640 }, hasTouch: true });
+  const N = await nCtx.newPage();
+  watch(N);
+  await N.goto(base, { waitUntil: 'load' });      /* aucune graine : app neuve */
+  await N.waitForSelector('#view-aujourdhui:not([hidden])');
+  await N.evaluate(() => { document.documentElement.style.fontSize = '32px'; });
+  /* la barre d'onglets est une limite ASSUMÉE (CLAUDE.md §4, tranchée
+     par le mainteneur le 21 août 2026) : son libellé s'élide, et son
+     nom entier vit dans l'`aria-label`. Elle ne compte donc pas ici. */
+  const EXC = ['bn-l', 'rg-s', 'obj-l', 'pk-s', 'act-do', 'o-sub', 'ri-sub', 'fi-sub',
+               'ctc-sub', 'ec-when', 'pk-m', 'mh-t'];
+  const durs = []; let sondeVue = null; let ecrans = 0;
+  for (const r of ['aujourdhui', 'pistes', 'echanger', 'moi']){
+    await N.evaluate(x => { location.hash = '#/' + x; }, r);
+    await N.waitForTimeout(500);
+    /* LA SONDE SE VÉRIFIE : on plante une boîte trop étroite pour son
+       texte et on exige qu'elle soit vue. Sans ça, restreindre le
+       balayage le rendrait aveugle sans jamais rougir. */
+    if (sondeVue === null){
+      await N.evaluate(() => {
+        const d = document.createElement('div');
+        d.id = 'sondeVide'; d.textContent = 'un texte bien trop long pour cette boîte';
+        d.style.cssText = 'position:fixed;left:0;bottom:0;width:30px;height:14px;'
+          + 'overflow:hidden;white-space:nowrap;z-index:9999';
+        document.body.append(d);
+      });
+      sondeVue = await N.evaluate(() => {
+        const d = document.getElementById('sondeVide');
+        return d.scrollWidth > d.clientWidth + 1;
+      });
+      await N.evaluate(() => { document.getElementById('sondeVide')?.remove(); });
+    }
+    const m = await N.evaluate(EXC => {
+      const perdus = [], petites = [];
+      for (const e of document.querySelectorAll('body *')){
+        const b = e.getBoundingClientRect();
+        if (!b.width || !b.height) continue;
+        if (e.closest('[hidden], [aria-hidden="true"], .ov-out')) continue;
+        if (/^(TEXTAREA|SELECT|INPUT)$/.test(e.tagName)) continue;
+        const cls = typeof e.className === 'string' ? e.className.trim().split(/\s+/) : [];
+        const q = e.id ? '#' + e.id : (cls[0] ? '.' + cls[0] : e.tagName);
+        const t = (e.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 30);
+        const cs = getComputedStyle(e);
+        const propre = [...e.childNodes].some(n => n.nodeType === 3 && n.nodeValue.trim());
+        if (propre){
+          const x = e.scrollWidth > e.clientWidth + 1 && /hidden|clip/.test(cs.overflowX);
+          const y = e.scrollHeight > e.clientHeight + 1 && /hidden|clip/.test(cs.overflowY);
+          if ((x || y) && !EXC.some(k => cls.includes(k)))
+            perdus.push(`${q} perd ${x ? e.scrollWidth - e.clientWidth : e.scrollHeight - e.clientHeight}px « ${t} »`);
+        } else if (/hidden|clip/.test(cs.overflowY) && e.scrollHeight - e.clientHeight > 1){
+          perdus.push(`${q} écrase son contenu de ${e.scrollHeight - e.clientHeight}px « ${t} »`);
+        }
+      }
+      const INTER = 'button, a[href], [role="button"], [tabindex="0"], summary, label';
+      for (const n of document.querySelectorAll(INTER)){
+        const b = n.getBoundingClientRect();
+        if (!b.width || !b.height) continue;
+        if (n.closest('[hidden], [aria-hidden="true"], .ov-out')) continue;
+        if (n.tagName === 'A' && n.closest('p, .hint, .fk-v')) continue;
+        if (b.height < 44 || b.width < 44)
+          petites.push(`${Math.round(b.width)}×${Math.round(b.height)} `
+            + (n.id ? '#' + n.id : (typeof n.className === 'string' && n.className.trim()
+               ? '.' + n.className.trim().split(/\s+/)[0] : n.tagName)));
+      }
+      return { perdus, petites, deborde: Math.round(document.documentElement.scrollWidth - innerWidth),
+               enseigne: (document.querySelector('.view:not([hidden])')?.textContent || '')
+                 .replace(/\s+/g, ' ').trim().length };
+    }, EXC);
+    ecrans++;
+    if (m.deborde > 1) durs.push(`${r} : la page déborde de ${m.deborde}px`);
+    for (const x of m.perdus) durs.push(`${r} · ${x}`);
+    for (const x of m.petites) durs.push(`${r} · cible ${x}`);
+    /* un écran vide qui n'a RIEN à dire est le défaut que §6 nomme :
+       « l'état vide enseigne le produit, jamais un simple aucune donnée » */
+    if (m.enseigne < 60) durs.push(`${r} : l'écran vide ne dit presque rien (${m.enseigne} caractères)`);
+  }
+  if (!sondeVue)
+    fail('app neuve : la sonde plantée (un texte trop long dans une boîte de 30px) n’a pas été vue — '
+      + 'le balayage ne mesure plus rien');
+  else if (ecrans < 4)
+    fail(`app neuve : ${ecrans} écrans mesurés au lieu de 4`);
+  else if (durs.length)
+    fail(`app neuve à 320 px et 200 % : ${durs.length} défaut(s) —\n      ` + durs.join('\n      '));
+  else console.log('app neuve à 320 px et 200 % : les 4 écrans vides enseignent, '
+    + 'rien ne se perd, le doigt garde ses 44 px ✓');
+  await nCtx.close();
+}
+
 /* première capture — deux blocs (#7) : l'entreprise + le contact, ensemble */
 await M.click('#bnAdd');
 await M.waitForSelector('#cpName');

@@ -24,8 +24,8 @@ import { getSync, startSync, breakLink, keepMyProfile, makePhrase, openRoom, lea
          getRing, amMain, ringDo, ringMakeMain } from './synclive.js';
 import { deviceIn } from '../engine/ring.js';
 import { requireCode } from './verrou.js';
-import { loadCompanion, openAddCompanion, openCompanionSheet, openCompanionPhoneSheet, companionPresence } from './compagnon.js';
-import { COMPAGNON } from './perimetre.js';
+import { loadOrdinateur, openAddOrdinateur, openOrdinateurSheet, openOrdinateurPhoneSheet, ordinateurPresence } from './ordinateur.js';
+import { ORDINATEUR } from './perimetre.js';
 import { whoCandidates, whoLineHTML, whoInline, openWhoPicker } from './qui.js';
 import { filterCompanies } from '../engine/filter.js';
 import { sortState, sortArgs } from './sort.js';
@@ -109,17 +109,17 @@ function wireRelays(q, phrase, rerender){
   });
   q('#syPublicRelays')?.addEventListener('click', () => save([], []));
 }
-/* la ligne Compagnon — présente avec ou sans phrase de liaison */
+/* la ligne Ordinateur — présente avec ou sans phrase de liaison */
 const compRowHTML = comp => comp
-  ? `<button class="dev-row dev-open" id="devComp"><b>${esc(comp.nom || 'Compagnon')}</b> <span class="tag-beta">compagnon</span>
+  ? `<button class="dev-row dev-open" id="devComp"><b>${esc(comp.nom || 'Ordinateur')}</b> <span class="tag-beta">ordinateur</span>
        <span class="dev-sub" id="devCompSub">état… · gérer ›</span></button>`
   : '';
 function wireComp(q, comp, render){
-  q('#devAddComp')?.addEventListener('click', () => openAddCompanion(render));
-  q('#devCompInfo')?.addEventListener('click', () => openCompanionPhoneSheet());
+  q('#devAddComp')?.addEventListener('click', () => openAddOrdinateur(render));
+  q('#devCompInfo')?.addEventListener('click', () => openOrdinateurPhoneSheet());
   if (!comp) return;
-  q('#devComp')?.addEventListener('click', () => openCompanionSheet(comp, render));
-  companionPresence().then(p => {
+  q('#devComp')?.addEventListener('click', () => openOrdinateurSheet(comp, render));
+  ordinateurPresence().then(p => {
     const el = q('#devCompSub');
     if (el) el.textContent = (p && p.state === 'on' ? 'prêt' : 'éteint') + ' · gérer ›';
   });
@@ -239,7 +239,7 @@ export function openAppareils(){
   const roleTag = id => {
     const role = roleOf(id);
     if (role === 'main') return ' <span class="tag-main">principal</span>';
-    if (role === 'companion') return ' <span class="tag-beta">compagnon</span>';
+    if (role === 'ordinateur') return ' <span class="tag-beta">ordinateur</span>';
     return '';
   };
 
@@ -249,7 +249,7 @@ export function openAppareils(){
     const devs = await loadDevices();
     const st = sy.lastStats;
     const iAmMain = await amMain();
-    const comp = await loadCompanion();
+    const comp = await loadOrdinateur();
     const relays = await relayList();
     const turn = await turnList();
     sh.setTitle('Mes appareils');
@@ -311,10 +311,10 @@ export function openAppareils(){
                 <button class="abtn abtn-sm abtn-del hov-soft" data-rm="${esc(d.id)}" aria-label="Retirer ${esc(d.name)}" title="Retirer">${ic('trash', 'ic-14')}</button>
               </div>`).join('')}
          ${comp ? compRowHTML(comp)
-           : (COMPAGNON && iAmMain
+           : (ORDINATEUR && iAmMain
              ? (isDesktop()
-               ? `<button class="linklike" id="devAddComp" style="margin-top:6px">${ic('plus', 'ic-14')} Ajouter le Compagnon</button>`
-               : `<button class="dev-row dev-open" id="devCompInfo"><b>Le Compagnon</b><span class="dev-sub">pas installé · voir ›</span></button>`)
+               ? `<button class="linklike" id="devAddComp" style="margin-top:6px">${ic('plus', 'ic-14')} Ajouter l’ordinateur</button>`
+               : `<button class="dev-row dev-open" id="devCompInfo"><b>L’ordinateur</b><span class="dev-sub">pas installé · voir ›</span></button>`)
              : '')}
          ${/* Quand je ne suis pas le principal, les lignes d'appareils sont
               des <div> sans chevron ni survol : elles ne se proposent pas.
@@ -391,7 +391,7 @@ export function openAppareils(){
   }
 
   async function renderStart(changing){
-    const comp = await loadCompanion();
+    const comp = await loadOrdinateur();
     const relays = await relayList();
     const turn = await turnList();
     sh.setTitle('Mes appareils');
@@ -412,11 +412,11 @@ export function openAppareils(){
            <div class="lbl-row" style="margin-bottom:6px"><label>Appareils reliés</label></div>
            ${compRowHTML(comp)}
          </div>` : ''}
-       ${COMPAGNON && !changing && !comp && isDesktop()
-         ? `<button class="linklike" id="devAddComp" style="margin-top:12px">${ic('plus', 'ic-14')} Ajouter le Compagnon</button>`
+       ${ORDINATEUR && !changing && !comp && isDesktop()
+         ? `<button class="linklike" id="devAddComp" style="margin-top:12px">${ic('plus', 'ic-14')} Ajouter l’ordinateur</button>`
          : ''}
-       ${COMPAGNON && !changing && !comp && !isDesktop()
-         ? `<div class="sy-devs"><button class="dev-row dev-open" id="devCompInfo"><b>Le Compagnon</b><span class="dev-sub">pas installé · voir ›</span></button></div>`
+       ${ORDINATEUR && !changing && !comp && !isDesktop()
+         ? `<div class="sy-devs"><button class="dev-row dev-open" id="devCompInfo"><b>L’ordinateur</b><span class="dev-sub">pas installé · voir ›</span></button></div>`
          : ''}
        ${relaySettingsHTML(relays, turn)}`;
     sh.setFoot(changing ? [btn('← Retour', 'btn-ghost', render)] : null);
@@ -673,7 +673,7 @@ export function openPromo(){
                     ${/* la même sous-ligne que « Donner » et « Prospecter » :
                          le statut dit où en est la piste qu'on fait circuler */''}
                     <div class="pk-m"><b>${esc(c.name)}</b>
-                      <span>${STATUSES[c.status].label}${c.city ? ' · ' + esc(c.city) : ''}${
+                      <span class="pk-s">${STATUSES[c.status].label}${c.city ? ' · ' + esc(c.city) : ''}${
                         whoInline(c, keepOf(c), 'donner') && ' · ' + whoInline(c, keepOf(c), 'donner')
                         || ''}</span></div>
                   </button>

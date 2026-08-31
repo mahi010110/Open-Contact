@@ -20,7 +20,7 @@ import { campaignLines, openCampaignById } from './campagnes.js';
 import { mailAnalysis } from './analyse.js';
 import { openPendingMailAnalysis } from './recevoir.js';
 import { pendingProposals, openPendingProposals } from './propositions.js';
-import { COMPAGNON, CAMPAGNES } from './perimetre.js';
+import { ORDINATEUR, CAMPAGNES } from './perimetre.js';
 
 const CAP = 8;                      /* lignes visibles par tranche avant « voir plus » */
 const expanded = new Set();         /* tranches dépliées à la main (le temps de la session) */
@@ -258,11 +258,11 @@ function triageItems(){
   if (recv) items.push({
     n: recv, icon: 'inbox', label: 'Reçu du groupe',
     open: () => { location.hash = '#/pistes'; } });
-  const analysis = COMPAGNON ? mailAnalysis() : null;
+  const analysis = ORDINATEUR ? mailAnalysis() : null;
   if (analysis && analysis.state === 'ready') items.push({
     n: analysis.count, icon: 'sparkles', label: 'Pistes lues dans tes e-mails',
     open: openPendingMailAnalysis });
-  const nProps = COMPAGNON ? pendingProposals().reduce((n, p) => n + p.n, 0) : 0;
+  const nProps = ORDINATEUR ? pendingProposals().reduce((n, p) => n + p.n, 0) : 0;
   if (nProps) items.push({
     n: nProps, icon: 'sparkles', label: 'Ton assistant propose',
     open: openPendingProposals });

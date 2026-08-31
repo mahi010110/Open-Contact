@@ -1,9 +1,9 @@
 /* E2E corrections prioritaires de l'audit UX : aucune action primaire morte,
-   parcours Compagnon mobile honnête, relais avancés accessibles, cibles au
+   parcours « l’ordinateur depuis un téléphone » honnête, relais avancés accessibles, cibles au
    pouce, contact sans doublon et fournisseurs IA non livrés non activables. */
 import { readFileSync, readdirSync } from 'fs';
 import { chromium, chromiumPath, SHOTS, serveRepo, attendre } from './outils.mjs';
-import { COMPAGNON, IA } from '../../ui/perimetre.js';
+import { ORDINATEUR, IA } from '../../ui/perimetre.js';
 
 const { server, base } = await serveRepo();
 const browser = await chromium.launch({ executablePath: chromiumPath() });
@@ -1405,38 +1405,38 @@ await page.waitForSelector('#toast.on');
 await page.evaluate(async () => (await import('./ui/direct.js')).openAppareils());
 await page.waitForSelector('.sy-relays');
 if (await page.$('#toast.on')) fail('un ancien toast recouvre la nouvelle feuille');
-/* Le correctif F2 (la copie honnête du Compagnon sur téléphone) ne se
-   vérifie que si le Compagnon est à l'écran. Hors périmètre (CLAUDE.md §0),
+/* Le correctif F2 (la copie honnête de l’ordinateur sur téléphone) ne se
+   vérifie que si l’ordinateur est à l'écran. Hors périmètre (CLAUDE.md §0),
    c'est SON ABSENCE qui est la règle — on vérifie donc l'inverse, plutôt
-   que de sauter en silence : rien ne doit nommer le Compagnon ici. */
+   que de sauter en silence : rien ne doit nommer l’ordinateur ici. */
 const deviceText = await page.locator('.modal-b').innerText();
-if (COMPAGNON){
+if (ORDINATEUR){
   /* la ligne dit l'ÉTAT, pas la phrase (même règle que la liste des
      Réglages) : « pas installé · voir › ». Le chemin — c'est un logiciel
-     d'ordinateur — se dit sur l'écran d'après, vérifié juste en dessous. */
-  if (!/Le Compagnon[\s\S]*pas installé/.test(deviceText))
-    fail('la ligne Compagnon n’annonce pas son état : ' + deviceText.slice(0, 220));
+     d’ordinateur — se dit sur l'écran d'après, vérifié juste en dessous. */
+  if (!/L’ordinateur[\s\S]*pas installé/.test(deviceText))
+    fail('la ligne Ordinateur n’annonce pas son état : ' + deviceText.slice(0, 220));
   if (/depuis ton ordinateur/.test(deviceText))
-    fail('la ligne Compagnon réexplique au lieu de dire son état : ' + deviceText.slice(0, 220));
+    fail('la ligne Ordinateur réexplique au lieu de dire son état : ' + deviceText.slice(0, 220));
   if (await page.$('#devAddComp')) fail('le téléphone ne doit pas proposer un appairage local impossible');
   /* la ligne s'ouvre : le téléphone apprend le chemin (ordinateur d'abord),
      peut s'envoyer le lien, et sait quoi faire ensuite depuis ici */
   await page.click('#devCompInfo');
   await page.waitForSelector('.modal-f .btn-primary');
   const phoneTxt = await page.locator('.modal-b').last().innerText();
-  if (!/depuis ton ordinateur/.test(phoneTxt) || !/Ajouter le Compagnon/.test(phoneTxt))
-    fail('feuille Compagnon téléphone : chemin absent — ' + phoneTxt.slice(0, 200));
+  if (!/depuis ton ordinateur/.test(phoneTxt) || !/Ajouter l’ordinateur/.test(phoneTxt))
+    fail('feuille « l’ordinateur depuis un téléphone » : chemin absent — ' + phoneTxt.slice(0, 200));
   if (!/depuis ce téléphone/.test(phoneTxt))
-    fail('feuille Compagnon téléphone : l’usage depuis le téléphone manque');
+    fail('feuille « l’ordinateur depuis un téléphone » : l’usage depuis le téléphone manque');
   if (!/Copier le lien/.test(await page.locator('.modal-f').last().innerText()))
-    fail('feuille Compagnon téléphone : pas de lien à copier');
+    fail('feuille « l’ordinateur depuis un téléphone » : pas de lien à copier');
   await page.evaluate(async () => (await import('./ui/dom.js')).topSheet()?.close());
 } else {
-  if (/Compagnon/.test(deviceText))
-    fail('hors périmètre, « Mes appareils » nomme encore le Compagnon : ' + deviceText.slice(0, 220));
+  if (/Ordinateur/.test(deviceText))
+    fail('hors périmètre, « Mes appareils » nomme encore l’ordinateur : ' + deviceText.slice(0, 220));
   if (await page.$('#devAddComp') || await page.$('#devCompInfo'))
-    fail('hors périmètre, une entrée Compagnon subsiste dans « Mes appareils »');
-  console.log('Mes appareils : aucune trace du Compagnon (hors périmètre) ✓');
+    fail('hors périmètre, une entrée Ordinateur subsiste dans « Mes appareils »');
+  console.log('Mes appareils : aucune trace de l’ordinateur (hors périmètre) ✓');
 }
 await page.click('.sy-relays summary');
 await page.fill('#syRelays', 'https://pas-un-relais.example');
@@ -1469,7 +1469,7 @@ await attendre(page, async () => {
   return t.length === 1 && t[0].urls === 'turns:turn.exemple.org:443' &&
     t[0].username === 'etudiant' && t[0].credential === 'secret';
 });
-console.log('Compagnon mobile honnête + relais avancés + TURN validés ✓');
+console.log('« l’ordinateur depuis un téléphone » honnête + relais avancés + TURN validés ✓');
 await page.screenshot({ path: SHOTS + '/81-ux-appareils-mobile.png' });
 await closeSheet();
 /* ---------- LES DEUX FEUILLES À COCHER PARLENT LE MÊME LANGAGE ----------
@@ -2330,14 +2330,14 @@ await attendre(receivePage, async () => !!(await import('./ui/state.js')).S.prof
 await receivePage.evaluate(async () => (await import('./ui/recevoir.js')).openImportMails());
 await receivePage.waitForSelector('#rcMailTxt');
 const scanText = await receivePage.locator('.modal-b').innerText();
-if (COMPAGNON){
+if (ORDINATEUR){
   if (!/s.installe et s.associe depuis ton ordinateur/i.test(scanText) || /Moi → Mes appareils/.test(scanText))
-    fail('copie Compagnon mobile ambiguë : ' + scanText.slice(0, 260));
+    fail('copie « l’ordinateur depuis un téléphone » ambiguë : ' + scanText.slice(0, 260));
 } else {
   /* Hors périmètre, la source garde son chemin « je colle » — il ne demande
      ni installation ni compte — mais ne vante plus une surface absente. */
-  if (/Compagnon/.test(scanText))
-    fail('hors périmètre, « Depuis mes e-mails » nomme encore le Compagnon : ' + scanText.slice(0, 260));
+  if (/Ordinateur/.test(scanText))
+    fail('hors périmètre, « Depuis mes e-mails » nomme encore l’ordinateur : ' + scanText.slice(0, 260));
   if (!/Copie le prompt/.test(scanText))
     fail('le chemin « je colle » a disparu alors qu\'il ne demande rien : ' + scanText.slice(0, 260));
   console.log('Depuis mes e-mails : chemin « je colle » intact, aucune surface absente vantée ✓');
@@ -2346,7 +2346,7 @@ console.log('Depuis mes e-mails : consigne mobile réalisable ✓');
 
 /* F6 IA : le branchement par clé n'est proposé que si `IA` est allumé, et
    seules les familles JOIGNABLES y figurent — une famille qui passe par
-   l'ordinateur n'apparaît qu'avec cette surface (loi #6). Éteint, ce n'est
+   l’ordinateur n'apparaît qu'avec cette surface (loi #6). Éteint, ce n'est
    pas un trou à ignorer : on vérifie l'INVERSE, c'est-à-dire que la ligne a
    bien quitté les réglages. La page propre du scénario précédent reste
    indépendante du test réseau. */
@@ -2381,7 +2381,7 @@ if (IA){
     fail('famille joignable mal nommée : ' + JSON.stringify(aiUi));
   if (Object.values(aiUi).some(f => f.off) || /pas encore disponible/.test(JSON.stringify(aiUi)))
     fail('une famille est proposée sans pouvoir répondre : ' + JSON.stringify(aiUi));
-  if (COMPAGNON ? viaPC.some(k => !/via ton ordinateur/.test(aiUi[k].txt))
+  if (ORDINATEUR ? viaPC.some(k => !/via ton ordinateur/.test(aiUi[k].txt))
                 : viaPC.length)
     fail('familles « via ton ordinateur » incohérentes avec la surface : ' + JSON.stringify(aiUi));
   console.log('connexions IA : chaque famille dit son chemin, aucune grisée ✓');
@@ -2760,6 +2760,16 @@ const ZOOM_EXCEPTIONS = [
   '.bn-l',
   /* Sous-lignes : données, pas identité. Elles s'élident par dessin. */
   '.act-do', '.o-sub', '.ri-sub', '.fi-sub', '.ctc-sub', '.ec-when', '.pk-m',
+  /* `.pk-s` — la sous-ligne d'une ligne à cocher : « statut · ville ·
+     qui est visé ». Elle vivait en `<span>` NU dans les six listes, ce
+     qui la rendait innommable : une exception qui ne peut pas se
+     nommer force à ouvrir la garde pour tout le monde. Elle porte
+     désormais son nom, comme ses cinq sœurs. */
+  /* `.bc-sub` — la sous-ligne de la carte du tableau. Elle n'existe
+     qu'au poste : elle serait une exception MORTE tant que la garde ne
+     mesurait que le pouce, et c'est ce qui a fait ajouter le passage
+     au poste plutôt que l'exception seule. */
+  '.pk-s', '.bc-sub',
   /* L'en-tête d'objet et l'état d'un réglage : des DONNÉES. `.obj-l`
      porte la formation et l'adresse — et une adresse rendue
      « …@example » sur une ligne et « .fr » sur la suivante n'est plus
@@ -2853,21 +2863,10 @@ const SONDE_COUPE = () => {
   return { coupes: out, deborde: Math.round(document.documentElement.scrollWidth - innerWidth),
            glisse: large, coupable, grilles, ecrases };
 };
-{
-  const zBrowser = await chromium.launch({ executablePath: chromiumPath() });
-  /* LE PETIT TÉLÉPHONE DÉCIDE (CLAUDE.md §5). Ce balayage vivait en
-     393×852, et c'est ce qui l'a rendu aveugle : à cette largeur aucun
-     nom d'entreprise réel ne se coupe à 200 %, si bien que remettre le
-     plafond de `.row-item h3` à deux rangs passait au vert. En 320 px —
-     la largeur la plus étroite qu'on prétende servir — cinq pertes de
-     contenu sont sorties d'un coup. Mesurer au plus large, c'est ne pas
-     mesurer. */
-  const zCtx = await zBrowser.newContext({ viewport: { width: 320, height: 640 }, hasTouch: true });
-  const zPage = await zCtx.newPage();
-  zPage.on('pageerror', e => errors.push(String(e)));
-  await zPage.goto(base, { waitUntil: 'load' });
-  await zPage.waitForSelector('#view-aujourdhui:not([hidden])');
-  await zPage.evaluate(async () => {
+/* LA MÊME GRAINE POUR LES DEUX ERGONOMIES. Extraite parce que le
+   poste doit voir exactement ce que voit le pouce — deux jeux de
+   données différents rendraient les deux relevés incomparables. */
+const GRAINE_ZOOM = async () => {
     const { S, saveData, saveJournal } = await import('./ui/state.js');
     const { normalizeCompany } = await import('./engine/model.js');
     S.profile.name = 'Maheydine Oun'; S.profile.formation = 'BTS SIO SISR'; S.profile.email = 'm@x.test';
@@ -2897,7 +2896,22 @@ const SONDE_COUPE = () => {
       S.journal.push({ t: j - (i + 1) * 864e5, txt: canaux[i % 3], ids: ['cz'] });
     saveJournal();
     saveData();
-  });
+  };
+{
+  const zBrowser = await chromium.launch({ executablePath: chromiumPath() });
+  /* LE PETIT TÉLÉPHONE DÉCIDE (CLAUDE.md §5). Ce balayage vivait en
+     393×852, et c'est ce qui l'a rendu aveugle : à cette largeur aucun
+     nom d'entreprise réel ne se coupe à 200 %, si bien que remettre le
+     plafond de `.row-item h3` à deux rangs passait au vert. En 320 px —
+     la largeur la plus étroite qu'on prétende servir — cinq pertes de
+     contenu sont sorties d'un coup. Mesurer au plus large, c'est ne pas
+     mesurer. */
+  const zCtx = await zBrowser.newContext({ viewport: { width: 320, height: 640 }, hasTouch: true });
+  const zPage = await zCtx.newPage();
+  zPage.on('pageerror', e => errors.push(String(e)));
+  await zPage.goto(base, { waitUntil: 'load' });
+  await zPage.waitForSelector('#view-aujourdhui:not([hidden])');
+  await zPage.evaluate(GRAINE_ZOOM);
   await zPage.evaluate(() => { document.documentElement.style.fontSize = '32px'; });
   const dur = []; let vus = 0; let doublee = false; let sondeLarge = null; let mesurees = 0;
   let sondeEcrase = null; let filVu = false;
@@ -2917,7 +2931,15 @@ const SONDE_COUPE = () => {
       (await import('./ui/edit.js')).openEditPiste(S.companies[0]); })],
     ['contact', async p => p.evaluate(async () =>
       (await import('./ui/contact.js')).openContactEditor(null))],
-    ['capture', async p => p.evaluate(async () => (await import('./ui/capture.js')).openCapture())]
+    ['capture', async p => p.evaluate(async () => (await import('./ui/capture.js')).openCapture())],
+    /* LES DEUX FEUILLES DU GESTE PHARE. Elles manquaient, et c'est ce
+       qui a laissé passer un nom de piste amputé DÈS 100 % sur un
+       320 px : dans une liste où l'on coche, « Société Générale G… »
+       ne se distingue plus de son homonyme — une erreur de décision,
+       pas d'esthétique. Le défaut ne s'est vu qu'en balayant le poste
+       à la main, ce que la garde ne faisait pas non plus. */
+    ['donner', async p => p.evaluate(async () => (await import('./ui/donner.js')).openDonner(null))],
+    ['prospecter', async p => p.evaluate(async () => (await import('./ui/prospect.js')).openProspect(null))]
   ];
   for (const [nom, ouvrir] of surfaces){
     await zPage.evaluate(async () => {
@@ -2981,13 +3003,75 @@ const SONDE_COUPE = () => {
       await zPage.evaluate(() => { document.getElementById('sondeEcrase')?.remove(); });
     }
   }
-  await zCtx.close(); await zBrowser.close();
+  await zCtx.close();
+
+  /* ---- ET LE POSTE, À LA MÊME POLICE ----
+     L'app a DEUX ergonomies (§5), et cette garde n'en mesurait qu'une.
+     Le poste porte des objets que le pouce n'a pas du tout : la carte
+     du tableau à trois colonnes, les titres de colonne collants, la
+     barre d'état. Aucun n'était vu à texte doublé. Le relevé fait à la
+     main y a trouvé le défaut de ce lot — un nom de piste amputé dans
+     une liste à cocher — avant que le balayage au pouce ne sache le
+     voir. Six surfaces suffisent : les quatre écrans, plus la fiche et
+     « Donner », les seules dont le dessin diffère vraiment du pouce. */
+  const wCtx = await zBrowser.newContext({ viewport: { width: 1280, height: 800 } });
+  const wPage = await wCtx.newPage();
+  wPage.on('pageerror', e => errors.push(String(e)));
+  await wPage.goto(base, { waitUntil: 'load' });
+  await wPage.waitForSelector('#view-aujourdhui:not([hidden])');
+  await wPage.evaluate(GRAINE_ZOOM);
+  await wPage.evaluate(() => { document.documentElement.style.fontSize = '32px'; });
+  let carteVue = false;
+  /* CE PASSAGE SE VÉRIFIE LUI-MÊME. Sans ça, le débrancher — rendre un
+     relevé vide au lieu d'appeler la sonde — laisse `mesurees` à son
+     compte et la garde reste verte : elle dirait mesurer 17 surfaces
+     en n'en lisant que 11. On exige donc que le poste rapporte des
+     élisions QUI LUI SONT PROPRES ; il en a (`.bc-sub`, la sous-ligne
+     de la carte du tableau, n'existe qu'ici). */
+  const vusAvantPoste = vus;
+  for (const [nom, ouvrir] of [
+    ['aujourdhui', null], ['pistes', null], ['echanger', null], ['moi', null],
+    ['fiche', async p => p.evaluate(async () => { const { S } = await import('./ui/state.js');
+      (await import('./ui/fiche.js')).openFiche(S.companies[0]); })],
+    ['donner', async p => p.evaluate(async () => (await import('./ui/donner.js')).openDonner(null))]
+  ]){
+    await wPage.evaluate(async () => {
+      const { topSheet } = await import('./ui/dom.js');
+      let s; let n = 0;
+      while ((s = topSheet()) && n++ < 5){ s.close(null, true); await new Promise(r => setTimeout(r, 110)); }
+    });
+    if (ouvrir) await ouvrir(wPage);
+    else await wPage.evaluate(r => { location.hash = '#/' + r; }, nom);
+    await wPage.waitForTimeout(450);
+    const r = await wPage.evaluate(SONDE_COUPE);
+    vus += r.coupes.length; mesurees++;
+    /* la carte du tableau n'existe qu'ici : si elle manque, ce passage
+       ne mesure pas l'ergonomie qu'il prétend mesurer */
+    if (nom === 'pistes')
+      carteVue = await wPage.evaluate(() => !!document.querySelector('.bcard'));
+    if (r.deborde > 1) dur.push(`poste · ${nom} : la page déborde de ${r.deborde}px en largeur`);
+    for (const c of r.coupes){
+      if (ZOOM_EXCEPTIONS.some(x => c.cls.includes(x.slice(1)))) continue;
+      dur.push(`poste · ${nom} · −${c.perdu}px ${c.q} « ${c.t} »`);
+    }
+    for (const c of r.ecrases)
+      dur.push(`poste · ${nom} · ${c.q} écrase son contenu de ${c.perdu}px (boîte ${c.h}px) « ${c.t} »`);
+  }
+  const vusPoste = vus - vusAvantPoste;
+  await wCtx.close(); await zBrowser.close();
   /* le contrôle dit sous quelle police il mesure — sans ça, retirer
      l'agrandissement le laisserait passer au vert sans rien vérifier */
   if (!doublee) fail('texte doublé : la garde ne mesure pas à 200 % — elle ne vérifie plus rien');
-  else if (mesurees < 9)
-    fail(`texte doublé : ${mesurees} surfaces mesurées au lieu de 9 — écrans ET feuilles, `
-      + `c'est en n'ouvrant aucune feuille que la garde a laissé passer le glissement latéral`);
+  else if (mesurees < 17)
+    fail(`texte doublé : ${mesurees} surfaces mesurées au lieu de 17 — écrans ET feuilles, `
+      + `au pouce ET au poste ; c'est en n'ouvrant aucune feuille que la garde a laissé passer `
+      + `le glissement latéral, et en ignorant le poste qu'elle a laissé passer le nom amputé`);
+  else if (!carteVue)
+    fail('texte doublé : la carte du tableau (`.bcard`) n’est pas rendue au poste — '
+      + 'ce passage ne mesure pas l’ergonomie qu’il prétend mesurer');
+  else if (vusPoste <= 0)
+    fail('texte doublé : le passage au poste n’a rapporté aucune élision, pas même celles '
+      + 'qu’il est seul à voir — il compte des surfaces sans les lire');
   else if (!sondeLarge)
     fail('texte doublé : la sonde plantée (un bloc de 9999px dans une feuille) n’a pas été vue — '
       + 'la mesure du dépassement ne mesure plus rien');
@@ -3001,7 +3085,8 @@ const SONDE_COUPE = () => {
   else if (dur.length)
     fail(`texte doublé à 200 % : ${dur.length} perte(s) de contenu hors exceptions nommées —\n      ` + dur.join('\n      '));
   else console.log(`texte doublé à 200 % : rien d'identifiant ne se coupe, aucune feuille ne glisse, `
-    + `sur ${surfaces.length} surfaces (${vus} élisions, toutes dans les exceptions nommées) ✓`);
+    + `sur ${mesurees} surfaces (${surfaces.length} au pouce en 320 px, ${mesurees - surfaces.length} `
+    + `au poste en 1280 px) — ${vus} élisions, toutes dans les exceptions nommées ✓`);
 }
 
 /* ---------- LE PLAN DU DOCUMENT, ET SON CONTRASTE ----------
@@ -3255,9 +3340,19 @@ const cbBrowser = await chromium.launch({ executablePath: chromiumPath() });
    La leçon vaut plus que le passage lui-même : un contrôle ne garde que
    les ÉTATS qu'il met en place. Ajouter une taille de texte ne rattrape
    jamais un état qu'on n'ouvre pas. */
+/* AU PLUS ÉTROIT, ICI AUSSI. Le balayage des élisions est passé en
+   320 px et cinq défauts en sont sortis ; celui des cibles vivait
+   encore en 390. Une cible dont la LARGEUR vient du conteneur rétrécit
+   avec lui, donc 320 px est le cas dur — et 640 px de haut serre en
+   plus la région, ce que 844 ne fait pas. Mesuré avant de déplacer :
+   297 cibles, aucune sous 44 px, exactement comme en 390. Le
+   déplacement ne corrige rien aujourd'hui ; il rend la garde plus
+   sévère pour demain, et surtout il aligne les deux balayages sur la
+   même règle — deux instruments qui mesurent des largeurs différentes
+   finissent par se contredire. */
 for (const [nom, w, h, tactile, seuil, racine] of [
-    ['au doigt', 390, 844, true, 44, 0],
-    ['au doigt, texte à 125 %', 390, 844, true, 44, 20],
+    ['au doigt', 320, 640, true, 44, 0],
+    ['au doigt, texte à 125 %', 320, 640, true, 44, 20],
     ['à la souris', 1280, 800, false, 24, 0]]){
   const cbCtx = await cbBrowser.newContext({ viewport: { width: w, height: h }, hasTouch: tactile });
   const cbPage = await cbCtx.newPage();

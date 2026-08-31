@@ -33,7 +33,15 @@ choses, et aucune ne dépend de quelqu'un d'extérieur.
 - [x] **Documentation publique** — un dépôt lisible par quelqu'un qui
       découvre le projet. *(août 2026)*
 - [ ] **Site de présentation** — une page qui explique le produit à
-      quelqu'un qui n'ouvrira pas l'app tout de suite.
+      quelqu'un qui n'ouvrira pas l'app tout de suite. Une première
+      version a existé dans un dépôt à part ; elle est reprise depuis le
+      début, sur une base neuve. Deux choses à décider en la refaisant :
+      **le nom du dépôt fait l'adresse** — c'est ce lien qu'un étudiant
+      colle dans une conversation, donc il doit se dicter à voix haute —
+      et **l'outillage du site dépend de celui-ci** (ses scripts
+      importaient `tests/e2e/outils.mjs`), ce qui est une dépendance à
+      assumer ou à couper franchement.
+
 - [ ] **Essais sur vrai matériel** — un vrai téléphone d'entrée de gamme, un
       vrai réseau d'établissement. Les scénarios automatiques passent à côté
       de tout ce qui relève du doigt, de la lenteur et du wifi filtré.
@@ -59,9 +67,15 @@ choses, et aucune ne dépend de quelqu'un d'extérieur.
       scénario peut être sauté. `tous.mjs` refuse maintenant de démarrer si un
       fichier n'y figure pas : la promesse ne peut plus se défaire seule.
       *(août 2026)*
-- [ ] **Pages confidentialité et aide** — courtes, honnêtes. La liste « ce
-      qu'OpenContact ne fera jamais » y a sa place : c'est ce qui permet à un
-      établissement de faire confiance à l'outil.
+- [x] **Pages confidentialité et aide** — `confidentialite.html` et
+      `aide.html`, servies avec l'app et précachées : elles répondent hors
+      ligne, parce que quelqu'un qui vérifie ce que l'app fait de ses données
+      ne doit pas dépendre du réseau pour l'apprendre. La page de
+      confidentialité dit ce qui est enregistré, ce qui sort et à quel geste,
+      **ce que voient les relais** (ils ne peuvent pas lire, mais ils voient
+      qu'une connexion a lieu), et le seul appel tiers que l'app fait pour
+      l'utilisateur — Nominatim, quand il tape une adresse. Un paragraphe est
+      écrit pour un établissement. *(août 2026)*
 
 **Le chemin de retour existe déjà.** Réglages → « Signaler un problème »
 produit un rapport de cinq lignes (navigateur, système, écran, poids des
@@ -94,14 +108,6 @@ Dans cet ordre, et seulement si les retours le justifient :
    périmètre exact de la première version, et le sort des capacités
    reportées par choix (brouillon IA, envoi direct).
 
-   **À faire dans le même geste que le drapeau, jamais après : rendre à
-   l'écran le mot du produit.** Le mot « Compagnon » est encore dans des
-   textes visibles — une ligne de réglages intitulée « Le Compagnon »
-   (`ui/moi.js`), les titres de feuille de `ui/compagnon.js`, et plusieurs
-   phrases de `ui/campagnes.js`. Ils ne se voient pas aujourd'hui, les
-   drapeaux étant à `false` ; le jour où l'un repasse à `true`, le concept
-   abandonné réapparaît d'un coup. C'est la règle §7 de `CLAUDE.md` — un
-   objet, UN mot — et le mot est **OpenContact pour ordinateur**.
 3. **Ramener le brouillon par IA** avec ta propre clé, si les retours
    montrent que la rédaction est bien le point de blocage.
 4. **Import de données publiques** pour amorcer une liste de pistes sans
@@ -113,13 +119,13 @@ Dans cet ordre, et seulement si les retours le justifient :
 
 **La direction est arrêtée** *(17 août 2026)* : OpenContact sera **trois
 applications** — web, ordinateur, téléphone — construites sur la même base.
-Le concept du « Compagnon », application d'appoint à côté du produit, est
+Le concept du « Ordinateur », application d'appoint à côté du produit, est
 abandonné ; son code n'est pas perdu, il devient la fondation des
 applications installées. La coquille native exécute le même moteur que le
-web, et elle sait produire l'ordinateur **et** le téléphone.
+web, et elle sait produire l’ordinateur **et** le téléphone.
 
 La file ne change pas : le web d'abord, ses retours ensuite, puis
-**l'ordinateur** (le code en est le plus proche — corriger d'abord ses
+**l’ordinateur** (le code en est le plus proche — corriger d'abord ses
 défauts connus, listés dans [`surfaces.md`](surfaces.md)), puis **le
 téléphone** sur la même base. En attendant, l'app web installée depuis le
 navigateur reste le chemin du téléphone.

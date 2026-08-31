@@ -55,7 +55,7 @@ export function whoLineHTML(c, keep, verbe){
       : '';
   if (cts.length === 1) return '';
   return `<button class="pk-who" data-who="${esc(c.id)}"
-                  aria-label="Personnes visées chez ${esc(c.name)}">
+                  aria-label="Contacts visés chez ${esc(c.name)}">
             ${ic(verbe === 'ecrire' ? 'mail' : 'contact', 'ic-14')}
             <span>${esc(whoLabel(cts, keep))}</span>${ic('chevron-down', 'ic-14')}
           </button>`;
@@ -87,7 +87,7 @@ export function openWhoPicker(c, keep, o){
            `<button class="pick pk${keep.has(t.id) ? ' on' : ''}" data-ct="${esc(t.id)}" aria-pressed="${keep.has(t.id)}">
               ${ic('checkbox', 'ic-20 ic-off')}${ic('checkbox-on', 'ic-20 ic-on')}
               <div class="pk-m"><b>${esc(whoName(t))}</b>
-                <span>${esc([t.role, t.email || t.phone].filter(Boolean).join(' · ')) || '—'}</span></div>
+                <span class="pk-s">${esc([t.role, t.email || t.phone].filter(Boolean).join(' · ')) || '—'}</span></div>
             </button>`).join('')}
          ${o.onAdd ? `<button class="pick" data-addct><b>${ic('plus', 'ic-14')} Ajouter quelqu’un</b></button>` : ''}
        </div>`;

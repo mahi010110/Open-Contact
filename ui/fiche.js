@@ -73,7 +73,7 @@ export function openFiche(c){
   };
 
   /* une seule fenêtre partout : feuille en bas au pouce, fenêtre centrée
-     sur l'ordinateur — jamais un panneau collé au bord */
+     sur l’ordinateur — jamais un panneau collé au bord */
   /* A-t-on réellement changé quelque chose pendant cette visite ?
      Consulter une fiche n'écrit rien — et ne doit donc rien signaler à
      la fermeture. */

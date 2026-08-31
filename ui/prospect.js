@@ -114,7 +114,7 @@ export function openProspect(){
                      partout de la même façon — sinon on réapprend à
                      chaque écran ce qu'on vient de lire au précédent. */''}
                 <div class="pk-m"><b>${esc(c.name)}</b>
-                  <span>${STATUSES[c.status].label}${c.city ? ' · ' + esc(c.city) : ''}${
+                  <span class="pk-s">${STATUSES[c.status].label}${c.city ? ' · ' + esc(c.city) : ''}${
                     whoInline(c, keepOf(c), 'ecrire') && ' · ' + whoInline(c, keepOf(c), 'ecrire')
                     || ''}</span></div>
               </button>

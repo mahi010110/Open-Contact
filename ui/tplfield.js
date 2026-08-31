@@ -48,7 +48,7 @@ export function tplField(el, o){
       const k = m[1];
       const v = sample[k] || FALLBACK[k] || k;
       return `<span class="tvar" data-k="${esc(k)}" contenteditable="false"
-                    title="Se remplit tout seul selon la personne">${esc(v)}</span>`;
+                    title="Se remplit tout seul selon le contact">${esc(v)}</span>`;
     }).join('');
   };
   render(o.value);
@@ -70,7 +70,7 @@ export function tplField(el, o){
       span.className = 'tvar';
       span.dataset.k = k;
       span.contentEditable = 'false';
-      span.title = 'Se remplit tout seul selon la personne';
+      span.title = 'Se remplit tout seul selon le contact';
       span.textContent = sample[k] || FALLBACK[k] || k;
       const s = window.getSelection();
       if (s && s.rangeCount && el.contains(s.anchorNode)){

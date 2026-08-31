@@ -3,7 +3,7 @@
    Une piste = l'entreprise ET le contact, saisis ensemble. Deux
    formulaires, un par appareil : au pouce trois champs et la
    rafale (« Suivant » enchaîne, « Compléter » ouvre la fiche) ;
-   sur l'ordinateur le formulaire complet d'emblée — le même que
+   sur l’ordinateur le formulaire complet d'emblée — le même que
    « Modifier » — et un seul bouton, « Terminer ». Une personne
    sans entreprise part dans le bac « à rattacher » — jamais
    bloqué, rien ne se perd. L'anti-doublon (moteur) demande avant
@@ -167,7 +167,7 @@ export function openCapture(prefill){
   };
 
   /* Le bouton primaire dit ce qu'il fait sur CET appareil : au pouce
-     « Suivant » enchaîne la piste d'après, sur l'ordinateur « Terminer »
+     « Suivant » enchaîne la piste d'après, sur l’ordinateur « Terminer »
      ferme — le formulaire y est déjà complet, il n'y a rien à compléter. */
   const LABEL = wide ? 'Terminer' : 'Suivant';
   const bPrim = btn(LABEL, 'btn-primary', () => {

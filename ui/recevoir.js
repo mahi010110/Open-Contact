@@ -7,7 +7,7 @@
    ~30 s (instantané restauré tel quel).
    ============================================================ */
 import { esc } from '../engine/utils.js';
-import { COMPAGNON } from './perimetre.js';
+import { ORDINATEUR } from './perimetre.js';
 import { parseInput, makeOCQJoiner, rdvParse, rdvNorm } from '../engine/exchange.js';
 import { mergeIncoming } from '../engine/merge.js';
 import { normalizeCompany } from '../engine/model.js';
@@ -15,9 +15,9 @@ import { S, bus, saveData, logJ } from './state.js';
 import { openSheet, toast, btn, ic, showUndo } from './dom.js';
 import { openRoom, leaveRoom, watchLiaison, deviceSelf, ensureKeys } from './synclive.js';
 import { startScan } from './qr.js';
-import { probeCompanion, companionCall } from '../engine/companion.js';
+import { probeOrdinateur, ordinateurCall } from '../engine/ordinateur.js';
 import { makeMission, signMission } from '../engine/mission.js';
-import { loadCompanion } from './compagnon.js';
+import { loadOrdinateur } from './ordinateur.js';
 import { requireCode } from './verrou.js';
 import { mailAnalysis, beginMailAnalysis, markMailAnalysisRunning,
          failMailAnalysis, clearMailAnalysis, reconcileMailAnalysis,
@@ -230,7 +230,7 @@ export function openRecevoir(){
 /* ---- depuis mes e-mails : une source de la capture (#5) ----
    L'IA lit chez toi, propose ici — feuille autonome, ouverte depuis
    « Ajouter une piste ». Le prompt guidé reste le repli. Avec le
-   Compagnon, la mission est mémorisée avant son départ : fermer cette
+   Ordinateur, la mission est mémorisée avant son départ : fermer cette
    feuille ou l'app ne la perd plus, et le résultat revient dans le
    même aperçu triable. */
 export function openImportMails(){
@@ -259,7 +259,7 @@ export function openImportMails(){
     const prompt = (S.profile.prompts.find(p => /mails?|e-?mails?/i.test(p.name)) || S.profile.prompts[0]);
     /* la lecture automatique de la boîte est de la surface ordinateur ;
        le chemin « je colle » qui suit, lui, marche partout */
-    const assoc = COMPAGNON ? await loadCompanion().catch(() => null) : null;
+    const assoc = ORDINATEUR ? await loadOrdinateur().catch(() => null) : null;
     if (view !== gen || !sh.body.isConnected) return;
     const pending = mailAnalysis();
     const pendingPick = pending ? (pending.state === 'ready'
@@ -286,9 +286,9 @@ export function openImportMails(){
               suivant. Reste la seule chose invisible : il faut sortir de
               l'app. */''}
        </div>
-       ${(COMPAGNON && !assoc) ? `<p class="hint">${ic('lightbulb', 'ic-14')} ${matchMedia('(min-width:901px)').matches
-         ? 'Avec le Compagnon, ton ordinateur fait la lecture tout seul — Moi → Mes appareils.'
-         : 'Le Compagnon s’installe et s’associe depuis ton ordinateur — ouvre OpenContact là-bas.'}</p>` : ''}
+       ${(ORDINATEUR && !assoc) ? `<p class="hint">${ic('lightbulb', 'ic-14')} ${matchMedia('(min-width:901px)').matches
+         ? 'Avec l’ordinateur, ton ordinateur fait la lecture tout seul — Moi → Mes appareils.'
+         : 'L’ordinateur s’installe et s’associe depuis ton ordinateur — ouvre OpenContact là-bas.'}</p>` : ''}
        <div class="field" style="margin-top:10px"><label for="rcMailTxt">La réponse de l’IA</label>
          <textarea id="rcMailTxt" style="min-height:120px" placeholder="Colle ici le texte produit par l’assistant"></textarea></div>`;
     q('#rcLastAnalysis')?.addEventListener('click', showReady);
@@ -341,20 +341,20 @@ export function openImportMails(){
         if (!rec || rec.mid !== mid){ mails(); return; }
         const st = q('#rcScanSt');
         if (st) st.textContent = 'Annulation auprès de ton ordinateur…';
-        const assoc2 = await loadCompanion().catch(() => null);
-        const found = assoc2 && await probeCompanion();
+        const assoc2 = await loadOrdinateur().catch(() => null);
+        const found = assoc2 && await probeOrdinateur();
         if (!found){
-          if (st) st.textContent = 'Ton ordinateur ne répond pas : ouvre le Compagnon pour confirmer l’annulation.';
+          if (st) st.textContent = 'Ton ordinateur ne répond pas : ouvre l’ordinateur pour confirmer l’annulation.';
           return;
         }
         try {
-          const rep = await companionCall(found.base, assoc2.k, { t: 'revoquer', mid });
+          const rep = await ordinateurCall(found.base, assoc2.k, { t: 'revoquer', mid });
           if (!rep || rep.t !== 'ok') throw new Error('revoquer');
           await clearMailAnalysis(mid);
           toast('Analyse annulée');
           mails();
         } catch (e) {
-          if (st) st.textContent = 'Annulation non confirmée — réessaie quand le Compagnon répond.';
+          if (st) st.textContent = 'Annulation non confirmée — réessaie quand l’ordinateur répond.';
         }
       };
       sh.setFoot([btn('Annuler l’analyse', 'btn-ghost', cancel)]);
@@ -376,11 +376,11 @@ export function openImportMails(){
         else showProgress(old.mid);
         return;
       }
-      const assoc2 = await loadCompanion().catch(() => null);
+      const assoc2 = await loadOrdinateur().catch(() => null);
       if (!assoc2) return;
       if (!await requireCode('Ton code, pour lancer la lecture')) return;
-      const found = await probeCompanion();
-      if (!found){ toast('Ton ordinateur est éteint — ouvre le Compagnon d’abord.'); return; }
+      const found = await probeOrdinateur();
+      if (!found){ toast('Ton ordinateur est éteint — ouvre l’ordinateur d’abord.'); return; }
       try {
         const self = await deviceSelf();
         const keys = await ensureKeys();
@@ -391,7 +391,7 @@ export function openImportMails(){
         });
         showProgress(m.mid);
         let rep;
-        try { rep = await companionCall(found.base, assoc2.k, { t: 'mission', wire }); }
+        try { rep = await ordinateurCall(found.base, assoc2.k, { t: 'mission', wire }); }
         catch (e) {
           /* Le paquet a pu être accepté avant la coupure : garder le mid
              et laisser la réconciliation trancher, plutôt que le perdre. */
@@ -400,7 +400,7 @@ export function openImportMails(){
           return;
         }
         if (!rep || rep.t !== 'mission-ok'){
-          await failMailAnalysis(m.mid, 'Le Compagnon a refusé cette analyse.');
+          await failMailAnalysis(m.mid, 'L’ordinateur a refusé cette analyse.');
           return;
         }
         await markMailAnalysisRunning(m.mid);
@@ -474,7 +474,7 @@ export function mergePreviewInto(sh, obj, opts){
            `<button class="pick pk on" data-sel="${i}" aria-pressed="true">
               ${ic('checkbox', 'ic-20 ic-off')}${ic('checkbox-on', 'ic-20 ic-on')}
               <div class="pk-m"><b>${esc(c.name || '')}</b>
-                <span>${esc([c.city, (c.contacts || []).length ? (c.contacts.length + ' contact' + (c.contacts.length > 1 ? 's' : '')) : ''].filter(Boolean).join(' · '))}</span></div>
+                <span class="pk-s">${esc([c.city, (c.contacts || []).length ? (c.contacts.length + ' contact' + (c.contacts.length > 1 ? 's' : '')) : ''].filter(Boolean).join(' · '))}</span></div>
             </button>`).join('')}
        </div>` : ''}
        ${/* « Rien n'est écrasé, tu peux annuler juste après » : l'écran

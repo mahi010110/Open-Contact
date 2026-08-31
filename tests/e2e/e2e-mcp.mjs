@@ -1,11 +1,11 @@
-/* E2E P8-2 : le serveur MCP local du VRAI Compagnon, au protocole réel.
-   Un client JSON-RPC (stdio) lance `oc-compagnon --mcp` comme le ferait
+/* E2E P8-2 : le serveur MCP local du VRAI Ordinateur, au protocole réel.
+   Un client JSON-RPC (stdio) lance `oc-natif --mcp` comme le ferait
    un client IA compatible : initialisation, découverte des outils
    (aucune suppression ni écriture directe), lecture bornée sans champ
    privé, dépôt d'une proposition normale puis hostile, rejeu idempotent.
-   Côté PWA : autorisation depuis la feuille du Compagnon, proposition
+   Côté PWA : autorisation depuis la feuille de l’ordinateur, proposition
    retrouvée après rechargement + verrouillage + redémarrage (kill -9)
-   du Compagnon, aperçu multi-sélection (décocher, fusionner, Annuler,
+   de l’ordinateur, aperçu multi-sélection (décocher, fusionner, Annuler,
    écarter), aucune écriture avant validation, révocation immédiate.
    Vérifié à 1280×800 (clair) et 390×844 (sombre, cibles ≥ 44 px).
    Sauté proprement si le binaire n'est pas construit. */
@@ -15,32 +15,32 @@ import { existsSync, mkdtempSync } from 'fs';
 import os from 'os';
 import path from 'path';
 
-const BIN = path.join(ROOT, 'compagnon', 'target', 'debug', 'oc-compagnon');
+const BIN = path.join(ROOT, 'ordinateur', 'target', 'debug', 'oc-natif');
 if (!existsSync(BIN)){
-  console.log('binaire absent (cargo build -p oc-compagnon) — scénario sauté');
+  console.log('binaire absent (cargo build -p oc-natif) — scénario sauté');
   process.exit(0);
 }
 
 const fail = m => { console.error('ÉCHEC :', m); process.exitCode = 1; };
 const ok = (v, m) => { if (!v) fail(m); };
 
-/* ---------- le vrai Compagnon (coquille + canal) ---------- */
+/* ---------- le vrai Ordinateur (coquille + canal) ---------- */
 const xdg = mkdtempSync(path.join(os.tmpdir(), 'oc-mcp-'));
 const CODE = 'ABCD-2345';
-const envCompagnon = Object.assign({}, process.env, {
+const envOrdinateur = Object.assign({}, process.env, {
   XDG_DATA_HOME: xdg,
   OC_APPAIRAGE_AUTO: CODE,
   OC_INTEGRATION_TEST: '1'
 });
-let compagnon = null;
+let ordinateur = null;
 let journalBin = '';
-function lancerCompagnon(){
-  compagnon = spawn('xvfb-run', ['-a', 'dbus-run-session', '--', BIN],
-    { env: envCompagnon, stdio: ['ignore', 'pipe', 'pipe'], detached: true });
-  compagnon.stdout.on('data', d => { journalBin = (journalBin + d).slice(-4000); });
-  compagnon.stderr.on('data', d => { journalBin = (journalBin + d).slice(-4000); });
+function lancerOrdinateur(){
+  ordinateur = spawn('xvfb-run', ['-a', 'dbus-run-session', '--', BIN],
+    { env: envOrdinateur, stdio: ['ignore', 'pipe', 'pipe'], detached: true });
+  ordinateur.stdout.on('data', d => { journalBin = (journalBin + d).slice(-4000); });
+  ordinateur.stderr.on('data', d => { journalBin = (journalBin + d).slice(-4000); });
 }
-const tuerCompagnon = () => { try { process.kill(-compagnon.pid, 'SIGKILL'); } catch (e) {} };
+const tuerOrdinateur = () => { try { process.kill(-ordinateur.pid, 'SIGKILL'); } catch (e) {} };
 const attendre = async (fn, ms, quoi) => {
   const t0 = Date.now();
   for (;;){
@@ -55,7 +55,7 @@ const canalPret = () => attendreCanal({
 /* ---------- un client MCP au protocole réel (JSON-RPC sur stdio) ---------- */
 class ClientMcp {
   constructor(){
-    this.proc = spawn(BIN, ['--mcp'], { env: envCompagnon, stdio: ['pipe', 'pipe', 'pipe'] });
+    this.proc = spawn(BIN, ['--mcp'], { env: envOrdinateur, stdio: ['pipe', 'pipe', 'pipe'] });
     this.proc.stderr.resume();
     this.buf = '';
     this.pend = new Map();
@@ -101,7 +101,7 @@ const page = await context.newPage();
 const errors = [];
 page.on('console', m => {
   if (m.type() !== 'error') return;
-  /* le scénario ÉTEINT le Compagnon exprès : la sonde du canal local qui
+  /* le scénario ÉTEINT l’ordinateur exprès : la sonde du canal local qui
      échoue alors est le chemin hors-ligne normal, rattrapé par l'app —
      tout autre message reste une erreur */
   if (/ERR_CONNECTION_REFUSED/.test(m.text()) && /127\.0\.0\.1:1709\d/.test(m.location()?.url || '')) return;
@@ -137,37 +137,37 @@ await page.evaluate(async () => {
 await page.reload({ waitUntil: 'load' });
 await deverrouiller();
 await page.evaluate(async () => (await import('./ui/synclive.js')).ensureRing(localStorage.getItem('t_phrase')));
-/* le Compagnon part seulement maintenant : son code d'appairage (2 min)
+/* l’ordinateur part seulement maintenant : son code d'appairage (2 min)
    n'a pas à survivre au démarrage du navigateur */
-lancerCompagnon();
+lancerOrdinateur();
 await canalPret();
 await page.evaluate(async code => {
-  const { probeCompanion, pairCompanion } = await import('./engine/companion.js');
+  const { probeOrdinateur, pairOrdinateur } = await import('./engine/ordinateur.js');
   const st = await import('./engine/storage.js');
-  const { deviceSelf, ensureKeys, getRing, ringAddCompanion } = await import('./ui/synclive.js');
-  const found = await probeCompanion();
+  const { deviceSelf, ensureKeys, getRing, ringAddOrdinateur } = await import('./ui/synclive.js');
+  const found = await probeOrdinateur();
   const self = await deviceSelf();
   const keys = await ensureKeys();
-  const rep = await pairCompanion(found.base, code, found.info.appairage.s,
+  const rep = await pairOrdinateur(found.base, code, found.info.appairage.s,
     { id: self.id, name: self.name, pub: keys.pub }, getRing());
-  await st.kvSet(st.COMPANION_KEY, JSON.stringify({
-    k: rep.k, id: rep.compagnon.id, nom: rep.compagnon.name, pub: rep.compagnon.pub, at: Date.now() }));
-  await ringAddCompanion({ id: rep.compagnon.id, name: rep.compagnon.name, pub: rep.compagnon.pub });
+  await st.kvSet(st.ORDINATEUR_KEY, JSON.stringify({
+    k: rep.k, id: rep.ordinateur.id, nom: rep.ordinateur.name, pub: rep.ordinateur.pub, at: Date.now() }));
+  await ringAddOrdinateur({ id: rep.ordinateur.id, name: rep.ordinateur.name, pub: rep.ordinateur.pub });
 }, CODE);
 console.log('appairé ✓');
 
 /* l'autorisation, par la vraie feuille : Ton assistant IA → Autoriser → code */
-const openCompanionSheet = () => page.evaluate(async () => {
+const openOrdinateurSheet = () => page.evaluate(async () => {
   const st = await import('./engine/storage.js');
-  const assoc = JSON.parse(await st.kvGet(st.COMPANION_KEY));
-  (await import('./ui/compagnon.js')).openCompanionSheet(assoc);
+  const assoc = JSON.parse(await st.kvGet(st.ORDINATEUR_KEY));
+  (await import('./ui/ordinateur.js')).openOrdinateurSheet(assoc);
 });
-await openCompanionSheet();
+await openOrdinateurSheet();
 await page.waitForSelector('#cgMcp');
 await attendre(() => page.evaluate(() =>
   document.querySelector('#cgMcpSt')?.textContent.includes('coupé')), 10000, 'état assistant coupé');
 await page.waitForTimeout(300);
-await page.screenshot({ path: SHOTS + '/95-mcp-feuille-compagnon.png' });
+await page.screenshot({ path: SHOTS + '/95-mcp-feuille-ordinateur.png' });
 await page.click('#cgMcp');
 await page.waitForSelector('.modal-f .btn-primary:has-text("Autoriser")');
 await page.click('.modal-f .btn-primary:has-text("Autoriser")');
@@ -181,9 +181,9 @@ await attendre(() => page.evaluate(async () => {
   const r = await m.loadProposals();
   return !!(r && r.actif);
 }), 10000, 'autorisation mémorisée');
-await page.keyboard.press('Escape');   /* referme la feuille du Compagnon */
+await page.keyboard.press('Escape');   /* referme la feuille de l’ordinateur */
 await page.waitForFunction(() => !document.querySelector('.overlay'));
-/* le résumé part vers le Compagnon */
+/* le résumé part vers l’ordinateur */
 await page.evaluate(async () => (await import('./ui/propositions.js')).reconcileProposals());
 console.log('assistant autorisé depuis la PWA ✓');
 
@@ -259,10 +259,10 @@ ok(avant === 'Alpha Cyber,Beta Cloud', 'écriture directe détectée : ' + avant
 await c1.fermer();
 console.log('proposition déposée, hostiles refusées, aucune écriture directe ✓');
 
-/* ---------- 9 : la proposition survit au redémarrage du Compagnon ---------- */
-tuerCompagnon();
+/* ---------- 9 : la proposition survit au redémarrage de l’ordinateur ---------- */
+tuerOrdinateur();
 await new Promise(r => setTimeout(r, 800));
-lancerCompagnon();
+lancerOrdinateur();
 await canalPret();
 
 /* ---------- 10-11 : la PWA la rapporte, la garde scellée, la retrouve ---------- */
@@ -290,7 +290,7 @@ await deverrouiller();
 await page.waitForSelector('#tdTriage', { timeout: 15000 });
 await page.waitForTimeout(300);
 await page.screenshot({ path: SHOTS + '/96-mcp-chip-aujourdhui.png' });
-console.log('proposition scellée, retrouvée après rechargement + kill du Compagnon ✓');
+console.log('proposition scellée, retrouvée après rechargement + kill de l’ordinateur ✓');
 
 /* ---------- 12-15 : aperçu, décocher, fusion sûre, Annuler ---------- */
 await page.click('#tdTriage');
@@ -334,16 +334,16 @@ ok(etat.pending === 0 && JSON.stringify(etat.done) === '["fusion"]', 'propositio
 ok(await page.evaluate(async () =>
   !(await import('./ui/propositions.js')).pendingProposals().length),
   'proposition encore listée après fusion');
-/* le Compagnon n'a plus rien en attente (réglée) */
-const resteCompagnon = await page.evaluate(async () => {
+/* l’ordinateur n'a plus rien en attente (réglée) */
+const resteOrdinateur = await page.evaluate(async () => {
   const st = await import('./engine/storage.js');
-  const { probeCompanion, companionCall } = await import('./engine/companion.js');
-  const assoc = JSON.parse(await st.kvGet(st.COMPANION_KEY));
-  const found = await probeCompanion();
-  const rep = await companionCall(found.base, assoc.k, { t: 'propositions' });
+  const { probeOrdinateur, ordinateurCall } = await import('./engine/ordinateur.js');
+  const assoc = JSON.parse(await st.kvGet(st.ORDINATEUR_KEY));
+  const found = await probeOrdinateur();
+  const rep = await ordinateurCall(found.base, assoc.k, { t: 'propositions' });
   return rep.liste.length;
 });
-ok(resteCompagnon === 0, 'proposition non réglée côté Compagnon');
+ok(resteOrdinateur === 0, 'proposition non réglée côté Ordinateur');
 /* Annuler ~30 s : tout revient comme avant */
 await page.click('.undo-bar .btn-sm');
 await attendre(() => page.evaluate(async () => {
@@ -396,7 +396,7 @@ await page.waitForSelector('#tdTriage', { timeout: 10000 });
 console.log('mobile sombre, cibles ≥ 44 px, écarter + retour ✓');
 
 /* ---------- 17 : révocation locale immédiate ---------- */
-await openCompanionSheet();
+await openOrdinateurSheet();
 await page.waitForSelector('#cgMcp');
 ok((await page.evaluate(() => Math.round(document.querySelector('#cgMcp').getBoundingClientRect().height))) >= 44,
   'cible tactile de la ligne assistant');
@@ -417,7 +417,7 @@ console.log('révocation immédiate depuis la PWA + arrêt propre ✓');
 
 console.log(errors.length ? 'Erreurs console : ' + errors.join(' | ') : 'Zéro erreur console.');
 if (errors.length) process.exitCode = 1;
-tuerCompagnon();
+tuerOrdinateur();
 await browser.close();
 server.close();
 console.log(process.exitCode ? 'E2E mcp : ÉCHEC' : 'E2E mcp : OK');

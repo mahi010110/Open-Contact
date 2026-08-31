@@ -38,7 +38,7 @@ const UI = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..'
    écran entier exempté est exactement le trou par lequel les couches
    reviennent : le garde était vert sans regarder. Seule l'option
    « En campagne » qu'elle contient est masquée, pas la feuille. */
-const HORS_ECRAN = new Set(['campagnes.js', 'compagnon.js', 'connexions.js',
+const HORS_ECRAN = new Set(['campagnes.js', 'ordinateur.js', 'connexions.js',
   'analyse.js', 'propositions.js', 'perimetre.js']);
 
 /* ---- les plafonds, tenus à la main et à la baisse ---- */
@@ -144,7 +144,21 @@ const PLAFOND = {
      est ÉCRITE UNE FOIS, dans `barreListeHTML` : trois feuilles la
      partagent. Avant la barre commune, la même arrivée aurait coûté
      trois phrases. */
-  motsExplication: 160
+  motsExplication: 159,
+  /* ZÉRO, et c'est le seul plafond qui puisse honnêtement valoir zéro :
+     un style sans porteur n'a pas de contrepartie à peser — il ne rend
+     service à personne, il ne fait qu'attendre d'être lu par erreur.
+     Ce qui reste au kit exprès se nomme dans KIT_GARDE, pas ici.
+     Terrain gagné le 25 août 2026 : 20 classes et 1 identifiant, 69
+     lignes de style, dont les restes de deux passes récentes. */
+  surfaceMorte: 0,
+  /* ZÉRO aussi, et pour la même raison : un mot hors charte n'a pas de
+     contrepartie — il fait apprendre deux fois le même objet. Ce qui
+     est légitime (le pronom « personne », l'idiome « en personne », le
+     poste « team lead ») se nomme dans MOTS_GARDE, phrase entière.
+     Terrain gagné le 25 août 2026 : trois occurrences, toutes dans des
+     textes secondaires — un `aria-label` et deux infobulles. */
+  motsHorsCharte: 0
 };
 
 const fichiers = readdirSync(UI).filter(f => f.endsWith('.js') && !HORS_ECRAN.has(f));
@@ -215,7 +229,7 @@ console.log(`② confirmations bloquantes : ${confirmations} (plafond ${PLAFOND.
    garde le PLUS LONG : une seule branche d'un ternaire s'affiche à la
    fois, donc c'est le pire cas qui fait foi.
    Limite connue, non corrigée : les blocs gardés par un drapeau de
-   périmètre (Compagnon dans `recevoir.js`) sont comptés bien qu'ils
+   périmètre (Ordinateur dans `recevoir.js`) sont comptés bien qu'ils
    soient masqués — le fichier n'est pas dans `HORS_ECRAN`, seulement
    ses blocs le sont. */
 const auTravers = t => t.replace(/\$\{[^{}]*(\{[^{}]*\}[^{}]*)*\}/g, bloc => {
@@ -242,11 +256,363 @@ if (mots > PLAFOND.motsExplication)
        `monte le plafond ICI — sinon coupe (CLAUDE.md §6-§7).`);
 console.log(`③ explications dans les feuilles : ${phrases} phrases, ${mots} mots (plafond ${PLAFOND.motsExplication})`);
 
+/* ============================================================
+   ④ LA SURFACE MORTE — ce que le style habille et que personne ne pose
+
+   `CLAUDE.md` porte deux règles que rien ne vérifiait : « une mécanique
+   qui ne s'enclenche jamais est du code mort » (§6) et « un lot se
+   mesure AUSSI en surface ajoutée » (§8). Elles ont déjà coûté cher —
+   la carte « À savoir » et son chevron supprimés, le carnet de
+   camarades et ses 365 lignes — mais elles se découvraient à l'œil,
+   des mois plus tard, une par une.
+
+   Le premier relevé a trouvé 20 classes et 1 identifiant que plus
+   personne ne posait : deux dessins abandonnés (les prompts, l'ancienne
+   liste de contacts, cette dernière dupliquée mot pour mot sous
+   `.ctc-body`) et surtout les restes de MES propres passes — le pli de
+   « Donner » et celui de la barre de liste, dissous en descendant
+   l'action dans le pied. C'est la leçon : un lot qui retire un
+   contrôle laisse son style derrière lui, et personne ne le voit.
+
+   Deux précautions apprises en construisant l'instrument :
+   ① les COMMENTAIRES CSS citent des sélecteurs à foison — on les
+     retire avant de lire (même piège que le contrôle de survol, §4) ;
+   ② l'app pose ses classes conditionnelles avec un ESPACE EN TÊTE
+     (`class="tranche ec-fil${vide ? '' : ' ec-vide'}"`). Sans en tenir
+     compte, huit classes bien vivantes passaient pour mortes — et
+     l'instrument aurait fait supprimer du code utile. Un contrôle qui
+     se trompe dans ce sens-là est pire que pas de contrôle.
+   ============================================================ */
+const STYLES = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'styles');
+const RACINE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+
+/* Les exceptions se NOMMENT, avec leur raison — comme partout ailleurs. */
+const KIT_GARDE = [
+  /* `.fset.fs-alert` : le bord ambre d'un cadre dont l'état peut tout
+     coûter. Son dernier porteur est parti avec l'état qu'il soulignait,
+     mais `CLAUDE.md` §6 le NOMME dans le catalogue des motifs. Le
+     supprimer ferait pointer la référence sur du vide — exactement la
+     faute qu'on corrige ailleurs. Il reste au kit, déclaré. */
+  'fs-alert'
+];
+
+{
+  let css = readFileSync(path.join(STYLES, 'app.css'), 'utf8');
+  for (const f of readdirSync(path.join(STYLES, 'tokens')))
+    css += '\n' + readFileSync(path.join(STYLES, 'tokens', f), 'utf8');
+  /* Les feuilles des pages qui se LISENT (`doc.css` aujourd'hui, et
+     toute autre demain). Une feuille que personne ne contrôle est le
+     trou par lequel la surface morte revient. La liste se relève à la
+     racine : nommer les fichiers un par un, c'est se préparer à en
+     oublier un — ce qui vient d'arriver deux fois dans ce lot. */
+  for (const f of readdirSync(RACINE))
+    if (f.endsWith('.css')) css += '\n' + readFileSync(path.join(RACINE, f), 'utf8');
+  const nu = css.replace(/\/\*[\s\S]*?\*\//g, '');
+
+  const classes = new Map(); const ids = new Map();
+  for (const bloc of nu.split('}')) {
+    const i = bloc.indexOf('{');
+    if (i === -1) continue;
+    const sel = bloc.slice(0, i);
+    if (/^\s*@/.test(sel)) continue;
+    for (const m of sel.matchAll(/\.(-?[_a-zA-Z][\w-]*)/g))
+      classes.set(m[1], (classes.get(m[1]) || 0) + 1);
+    for (const m of sel.matchAll(/#(-?[_a-zA-Z][\w-]*)/g))
+      ids.set(m[1], (ids.get(m[1]) || 0) + 1);
+  }
+
+  /* tout ce que l'app, la coque et les scénarios peuvent poser */
+  let code = '';
+  for (const d of ['ui', 'engine']) {
+    for (const f of readdirSync(path.join(RACINE, d)))
+      if (f.endsWith('.js')) code += '\n' + readFileSync(path.join(RACINE, d, f), 'utf8');
+  }
+  /* toutes les pages du dépôt, relevées à la racine, plus l'amorçage */
+  for (const f of readdirSync(RACINE))
+    if (f.endsWith('.html')) code += '\n' + readFileSync(path.join(RACINE, f), 'utf8');
+  for (const f of ['app.js', 'sw.js', 'tests.js'])
+    { try { code += '\n' + readFileSync(path.join(RACINE, f), 'utf8'); } catch {} }
+  for (const f of readdirSync(path.join(RACINE, 'tests', 'e2e')))
+    if (f.endsWith('.mjs')) code += '\n' + readFileSync(path.join(RACINE, 'tests', 'e2e', f), 'utf8');
+
+  const posees = new Set();
+  for (const m of code.matchAll(/class\s*=\s*["'`]([^"'`]*)["'`]/g))
+    for (const c of m[1].split(/[\s${}()?:+'"`]+/)) if (c) posees.add(c);
+  for (const m of code.matchAll(/classList\.\w+\(([^)]*)\)/g))
+    for (const c of m[1].matchAll(/['"`]([\w- ]+)['"`]/g))
+      for (const x of c[1].split(/\s+/)) if (x) posees.add(x);
+  for (const m of code.matchAll(/className\s*\+?=\s*["'`]([^"'`]*)["'`]/g))
+    for (const c of m[1].split(/\s+/)) if (c) posees.add(c);
+  for (const m of code.matchAll(/\.(?:querySelector|querySelectorAll|closest|matches)\(\s*["'`]([^"'`]+)["'`]/g))
+    for (const c of m[1].matchAll(/\.(-?[_a-zA-Z][\w-]*)/g)) posees.add(c[1]);
+  /* l'espace en tête compte — voir ② plus haut */
+  for (const m of code.matchAll(/['"`]\s*([a-z][\w-]*(?:\s+[a-z][\w-]*)*)\s*['"`]/g))
+    for (const c of m[1].split(/\s+/)) if (/^[a-z][\w-]*$/.test(c)) posees.add(c);
+
+  /* LA SONDE PASSE PAR LE MÊME CHEMIN QUE LA MESURE, sinon elle ne
+     prouve rien : une première version se contentait de vérifier
+     qu'une chaîne inventée n'était pas dans le collecteur — vrai
+     presque toujours, donc muet. Un collecteur trop gourmand (qui
+     « voit » tout ce que le style définit) la passait au vert alors
+     qu'il rendait le compte nul pour toujours. Mesuré, mutation à
+     l'appui. La sonde est donc une classe SEULEMENT stylée : elle doit
+     ressortir du filtre, exactement comme une vraie classe morte. */
+  /* le nom se COMPOSE : écrit d'un bloc, il apparaîtrait littéralement
+     dans ce fichier — que le collecteur lit — et se verrait lui-même. */
+  const sonde = 'zz' + '-sonde' + '-morte';
+  classes.set(sonde, 1);
+
+  const mortes = [...classes.keys()].filter(c => !posees.has(c) && !KIT_GARDE.includes(c));
+  const idsMorts = [...ids.keys()].filter(i => !new RegExp(`\\b${i}\\b`).test(code));
+
+  const sondeVue = mortes.includes(sonde);
+  const i = mortes.indexOf(sonde);
+  if (i !== -1) mortes.splice(i, 1);
+  classes.delete(sonde);
+
+  const total = mortes.length + idsMorts.length;
+  if (!sondeVue)
+    fail('surface morte : la sonde (une classe que rien ne pose) n’est pas ressortie — ' +
+         'le collecteur ratisse trop large, et le compte vaudra zéro quoi qu’il arrive');
+  else if (total > PLAFOND.surfaceMorte)
+    fail(`surface morte : ${total} sélecteur(s) que personne ne pose ` +
+         `(plafond ${PLAFOND.surfaceMorte}) — ` +
+         [...mortes.map(c => '.' + c), ...idsMorts.map(i => '#' + i)].join(', ') +
+         '. Retire le style avec le dessin qu\'il habillait, ou nomme-le dans ' +
+         'KIT_GARDE en disant pourquoi il reste.');
+  else console.log(`④ surface morte : ${total} sélecteur(s) sans porteur ` +
+    `(plafond ${PLAFOND.surfaceMorte}) · ${classes.size} classes et ${ids.size} ids stylés`);
+  globalThis.__surfaceMorte = total;
+}
+
+/* ============================================================
+   ⑤ UN OBJET, UN MOT — le vocabulaire, compté
+
+   `CLAUDE.md` §7 fixe cinq objets et leur mot, et annonce que « ça se
+   vérifie mécaniquement — extraire les chaînes de `ui/*.js` ET de
+   `index.html` ». Personne ne le faisait. Le document note pourtant
+   d'où vient la dérive : « le glissement se fait toujours dans les
+   feuilles secondaires, jamais dans le titre ». Le premier relevé l'a
+   confirmé mot pour mot — trois occurrences, toutes dans des textes
+   qu'on ne relit jamais : l'`aria-label` de la ligne « → qui » (le
+   SEUL nom qu'entend un lecteur d'écran) et deux infobulles de jeton.
+
+   « Un compte ne tranche pas seul : il faut relire la phrase » (§7) —
+   le contrôle rend donc la PHRASE, jamais le seul chiffre.
+   ============================================================ */
+const MOTS = [
+  ['une entreprise suivie', 'piste',   ['boîte', 'boite', 'société', 'societe']],
+  ['une personne chez elle', 'contact', ['personne']],
+  ["l'écran d'une piste",   'fiche',   ['détail', 'detail']],
+  ['le fichier du suivi',   'copie',   ['sauvegarde', 'export', 'archive']],
+  ['les camarades',         'groupe',  ['promo', 'camarade', 'ami']],
+  ['le produit',            '—',       ['CRM', 'lead']]
+];
+
+/* Les exceptions se NOMMENT, avec leur raison — comme partout ailleurs.
+   Chacune est une phrase entière : une exception par mot-clé serait un
+   trou, une exception par phrase reste vérifiable à l'œil. */
+const MOTS_GARDE = [
+  /* « Personne pour l'instant. » et « personne ne … » ne sont PLUS
+     nommés ici : la règle du pronom (EXEMPT, plus bas) les couvre
+     toutes, et une exemption par phrase se serait allongée d'un titre
+     à chaque page neuve. Une garde qu'on remplace emporte ses
+     entrées — sinon elle attend d'être relue par erreur (§9). */
+  /* « en personne » est l'idiome du face-à-face : le mot y suit « en »,
+     donc pas de déterminant, donc le pronom l'exempte déjà… sauf que
+     ce n'est pas un pronom mais une locution. On la nomme quand même,
+     parce que sa raison n'est pas celle de la règle. */
+  'En personne',
+  /* « team lead » est un INTITULÉ DE POSTE réel, pas le jargon
+     commercial que §7 bannit. Ici en exemple de champ, et là en
+     donnée de démonstration. */
+  'Ex : RH, team lead',
+  'Team lead infra'
+];
+
+/* Une exemption qui est une CONSTRUCTION, pas une phrase. §7 exempte le
+   pronom « personne » et cite une phrase en exemple ; nommer les
+   phrases une à une revient à ré-autoriser le mot un titre à la fois.
+   La négation se reconnaît à ce qui suit : « personne ne … »,
+   « personne n'a … ». Tout autre emploi désigne quelqu'un, et c'est
+   « contact » qu'il faut. */
+const EXEMPT = {
+  /* En français, « personne » n'est le NOM que précédé d'un
+     déterminant : « une personne », « cette personne », « les
+     personnes ». Sans déterminant, c'est le pronom négatif —
+     « personne ne sait », « il ne transite par personne »,
+     « personne d'autre n'y accède ». Un seul test suffit donc, et il
+     tranche les six cas relevés dans le bon sens.
+     La première version regardait ce qui SUIT (« personne ne … ») :
+     elle laissait passer le pronom en fin de phrase et manquait
+     « personne d'autre ». Une exemption qui liste des tournures les
+     manque toutes sauf celles qu'on a vues. */
+  /* Le déterminant se lit collé au mot, ET il commence à une frontière
+     de mot : sans la frontière, le « l » d'« il » passait pour un
+     article. Ni « de » ni « d' » n'y sont : « il ne dépend de
+     personne » est le pronom, alors que le nom prend toujours son
+     article — « de la personne », « d'une personne » — qui se
+     reconnaît par `la` ou `une`. C'est la sonde qui l'a dit ; à la
+     relecture, la liste paraissait juste. */
+  personne: (avant) => !/(?:^|[^\wÀ-ÿ])(?:l[ae]|les|l['’]|un|une|des|cette|cet|ce|ces|[mts](?:on|a|es)|leurs?|quelques?|aux?|du|chaque|toutes?|plusieurs)\s*$/i.test(avant)
+};
+
+{
+  /* les chaînes qui ARRIVENT À L'ÉCRAN : deux mots au moins, des
+     lettres françaises, et ni sélecteur, ni clé, ni URL */
+  const versEcran = t => {
+    if (t.length < 3) return false;
+    if (/^[a-z0-9_-]+$/i.test(t)) return false;
+    if (/^(https?:|data:|\/|#|\.|\$\{)/.test(t)) return false;
+    if (/^[\w-]+\/[\w-]+$/.test(t)) return false;
+    return /[A-ZÀ-ÿà-ÿ]/.test(t) && /\s/.test(t);
+  };
+  /* un identifiant d'icône n'est pas du texte : `ic('archive')` a fait
+     sortir « archive » d'un bouton qui dit « Clôturer » */
+  const sansIcones = l => l.replace(/\bic\(\s*(['"`])[^'"`]*\1/g, 'ic(');
+
+  const derives = []; let chaines = 0;
+  /* les pages qui se lisent parlent à l'utilisateur comme un écran :
+     la charte des mots vaut pour elles aussi, sinon « un objet, UN
+     mot » s'arrête à la porte de l'app */
+  /* LA PROSE D'UNE PAGE NE TIENT PAS SUR UNE LIGNE. Le relevé cherchait
+     du texte entre `>` et `<` SUR LA MÊME LIGNE : un paragraphe écrit
+     sur quatre lignes — c'est-à-dire tous — n'en offrait aucune, et le
+     contrôle lisait la page sans y voir une phrase. Deuxième version du
+     même angle mort que §7 décrit, en plus discret : il ne rendait pas
+     zéro, il rendait « presque tout », ce qui ne se remarque pas.
+     On efface donc les balises EN GARDANT les sauts de ligne : la prose
+     reste à sa ligne d'origine, et le rapport désigne le bon endroit. */
+  const blanc = m => m.replace(/[^\n]/g, ' ');
+  const prose = src => src
+    .replace(/<(script|style)[\s\S]*?<\/\1>/gi, blanc)
+    .replace(/<!--[\s\S]*?-->/g, blanc)
+    .replace(/<[^>]*>/g, blanc)
+    .replace(/&nbsp;|&#160;|&#8239;|&#x202f;/gi, ' ')
+    .replace(/&amp;/gi, '&').replace(/&lt;/gi, '<').replace(/&gt;/gi, '>');
+
+  const sources = [];
+  for (const f of readdirSync(RACINE).filter(n => n.endsWith('.html')).sort())
+    sources.push([f, readFileSync(path.join(RACINE, f), 'utf8')]);
+  for (const f of fichiers) sources.push([f, lire(f)]);
+
+  const proses = {};
+  for (const [nom, src] of sources)
+    if (/\.html$/.test(nom)) proses[nom] = prose(src).split('\n');
+
+  /* LE RELEVÉ EST UNE FONCTION, et c'est la sonde qui l'exige. Tant
+     qu'elle refaisait le test de son côté, elle ne prouvait que la
+     table `MOTS` — jamais le CHEMIN qui mène jusqu'à elle. C'est
+     exactement par là que la lecture ligne à ligne d'une page a
+     survécu : la sonde était verte, et le collecteur ne voyait aucun
+     paragraphe. Elle passe désormais par ici, comme un vrai fichier. */
+  const relever = (nom, src, compter) => {
+    /* LES COMMENTAIRES NE PARLENT À PERSONNE, et ce dépôt en écrit
+       beaucoup — dont des phrases qui citent les mots interdits pour
+       expliquer pourquoi ils le sont. Les compter rendait trois fautes
+       là où il n'y en avait aucune (même piège que le contrôle de
+       survol, §4). On les retire d'abord, sur le fichier ENTIER : un
+       commentaire de bloc court sur plusieurs lignes. */
+    /* On remplace chaque commentaire par AUTANT DE SAUTS DE LIGNE
+       qu'il en occupait : sinon les numéros rendus désignent une
+       autre ligne que la fautive, et le contrôle envoie un humain
+       au mauvais endroit — mesuré, `qui.js:38` pour une faute qui
+       vit en 58. Un contrôle qui accuse la mauvaise ligne coûte
+       plus cher que pas de contrôle : on cherche là où il n'y a
+       rien, et on finit par ne plus le croire. */
+    const nu = src
+      .replace(/\/\*[\s\S]*?\*\//g, c => c.replace(/[^\n]/g, ' '))
+      .replace(/^(\s*)\/\/.*$/gm, '$1');
+    const lignes = nu.split('\n');
+    lignes.forEach((ligne, i) => {
+      /* DANS UNE PAGE, LA PROSE EST ENTRE LES BALISES, pas entre
+         quotes. Le collecteur ne lisait que les chaînes littérales :
+         il « lisait » `index.html` sans voir une seule de ses phrases,
+         c'est-à-dire précisément l'endroit où §7 dit que « sauvegarde »
+         avait survécu. Une mutation l'a prouvé — le mot posé dans une
+         page passait au vert. On ajoute donc le texte nu de chaque
+         ligne, entre `>` et `<`. */
+      const morceaux = [...sansIcones(ligne).matchAll(/(['"`])((?:\\.|(?!\1)[^\\])*)\1/g)]
+        .map(m => m[2]);
+      if (/\.html$/.test(nom)) morceaux.push(proses[nom][i] || '');
+      for (const brut of morceaux) {
+        const t = brut.trim();
+        if (!versEcran(t)) continue;
+        if (compter) chaines++;
+        if (MOTS_GARDE.some(g => t.includes(g))) continue;
+        for (const [objet, bon, mauvais] of MOTS)
+          for (const mot of mauvais) {
+            const re = new RegExp(`(^|[^\\wÀ-ÿ])${mot}s?([^\\wÀ-ÿ]|$)`, 'ig');
+            let m, faute = false;
+            while ((m = re.exec(t))) {
+              /* ce qui PRÉCÈDE le mot : c'est là que se lit le déterminant */
+              if (EXEMPT[mot] && EXEMPT[mot](t.slice(0, m.index + (m[1] ? m[1].length : 0)))) continue;
+              faute = true; break;
+            }
+            if (faute)
+              derives.push(`${nom}:${i + 1} « ${mot} » pour ${objet} — le mot est « ${bon} » :\n        « ${t.slice(0, 100)} »`);
+          }
+      }
+    });
+  };
+
+  for (const [nom, src] of sources) relever(nom, src, true);
+
+  /* LA SONDE PASSE PAR LE MÊME CHEMIN, jusqu'au bout : une PAGE
+     fabriquée sur place, avec sa faute au milieu d'un paragraphe
+     écrit sur trois lignes — la forme exacte que le collecteur ne
+     savait pas lire. Elle emprunte `relever`, donc `prose`, donc tout
+     ce qui pourrait se casser. Un contrôle qui refait le test de son
+     côté ne garde que sa propre copie. */
+  const appat = 'Ta ' + 'société' + ' préférée';
+  /* L'EXEMPTION SE SONDE DANS LES DEUX SENS. Une règle qui exempte
+     trop ne casse rien : elle rend zéro, et zéro se lit comme une
+     réussite. La page fabriquée porte donc les deux cas — le pronom,
+     qui doit PASSER, et le nom déterminé, qui doit ÊTRE PRIS. Sans le
+     second, élargir l'exemption jusqu'à tout autoriser resterait vert. */
+  const nomDetermine = 'Prévenir cette ' + 'personne' + ' avant demain.';
+  const pronom = 'Personne' + ' ne le saura, et il ne dépend de personne.';
+  const pageSonde = 'zz-sonde.html';
+  const faux = '<!DOCTYPE html>\n<body>\n<p>Une phrase qui commence ici,\n'
+    + appat + ' au milieu,\net qui finit là.</p>\n'
+    + '<p>' + nomDetermine + '</p>\n<p>' + pronom + '</p>\n</body>';
+  proses[pageSonde] = prose(faux).split('\n');
+  const avant = derives.length;
+  relever(pageSonde, faux, false);
+  const prises = derives.slice(avant);
+  derives.length = avant;   /* la sonde ne compte pas dans le verdict */
+  const sondeVue = prises.some(d => d.includes('société'));
+  const sondeNom = prises.some(d => d.includes('cette personne'));
+  const sondePronom = prises.some(d => d.includes('ne le saura'));
+
+  if (!sondeVue)
+    fail('vocabulaire : la sonde (une page fabriquée, faute au milieu d’un '
+      + 'paragraphe sur trois lignes) n’est pas ressortie — le collecteur ne lit '
+      + 'plus la prose des pages, et le compte vaudra zéro quoi qu’il arrive');
+  else if (!sondeNom)
+    fail('vocabulaire : « cette personne » n’est plus relevé — l’exemption du '
+      + 'pronom s’est élargie jusqu’au nom, et le compte vaudra zéro sans rien dire');
+  else if (sondePronom)
+    fail('vocabulaire : « personne ne le saura » est relevé comme une faute — '
+      + 'l’exemption du pronom ne fonctionne plus, §7 l’autorise pourtant');
+  else if (chaines < 300)
+    fail(`vocabulaire : ${chaines} chaînes seulement lues à l’écran — le collecteur ne voit plus l’app`);
+  else if (derives.length > PLAFOND.motsHorsCharte)
+    fail(`vocabulaire : ${derives.length} mot(s) hors charte (plafond ${PLAFOND.motsHorsCharte}) —\n      `
+      + derives.join('\n      ')
+      + '\n      Relis la phrase avant de corriger : un compte ne tranche pas seul (§7).');
+  else console.log(`⑤ vocabulaire : ${derives.length} mot(s) hors charte `
+    + `(plafond ${PLAFOND.motsHorsCharte}) sur ${chaines} chaînes à l'écran`);
+  globalThis.__motsHorsCharte = derives.length;
+}
+
 /* Le rappel qui fait descendre les plafonds : ce qui est gagné se garde. */
 const marge = [
   ['toastCar', PLAFOND.toastCar - plusLong],
   ['confirmations', PLAFOND.confirmations - confirmations],
-  ['motsExplication', PLAFOND.motsExplication - mots]
+  ['motsExplication', PLAFOND.motsExplication - mots],
+  ['surfaceMorte', PLAFOND.surfaceMorte - globalThis.__surfaceMorte],
+  ['motsHorsCharte', PLAFOND.motsHorsCharte - globalThis.__motsHorsCharte]
 ].filter(([, d]) => d > 0);
 if (marge.length)
   console.log('↓ terrain gagné, à verrouiller dans PLAFOND : ' +
