@@ -32,15 +32,15 @@ choses, et aucune ne dépend de quelqu'un d'extérieur.
       et les composants tiers sont attribués. *(août 2026)*
 - [x] **Documentation publique** — un dépôt lisible par quelqu'un qui
       découvre le projet. *(août 2026)*
-- [x] **Site de présentation** — il vit dans son propre dépôt,
-      [`Opn...`](https://github.com/mahi010110/Opn...), en ligne sur
-      <https://mahi010110.github.io/Opn.../>. Page statique sans étape de build, mêmes tokens
-      « Utilitaire 98 », polices vendorisées, captures de l'application
-      réelle dans les deux thèmes (`outils/captures.mjs`) et un
-      vérificateur qui plante une sonde avant de mesurer
-      (`outils/verifier.mjs`). Ses deux scripts s'appuient sur
-      l'outillage de CE dépôt, attendu à côté — ou désigné par
-      `OC_REPO`. *(août 2026)*
+- [ ] **Site de présentation** — une page qui explique le produit à
+      quelqu'un qui n'ouvrira pas l'app tout de suite. Une première
+      version a existé dans un dépôt à part ; elle est reprise depuis le
+      début, sur une base neuve. Deux choses à décider en la refaisant :
+      **le nom du dépôt fait l'adresse** — c'est ce lien qu'un étudiant
+      colle dans une conversation, donc il doit se dicter à voix haute —
+      et **l'outillage du site dépend de celui-ci** (ses scripts
+      importaient `tests/e2e/outils.mjs`), ce qui est une dépendance à
+      assumer ou à couper franchement.
 
 - [ ] **Essais sur vrai matériel** — un vrai téléphone d'entrée de gamme, un
       vrai réseau d'établissement. Les scénarios automatiques passent à côté

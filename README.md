@@ -7,7 +7,6 @@
 Tes données restent sur tes appareils. Pas de compte, pas de serveur, pas de traçage.
 
 [Essayer](https://mahi010110.github.io/Open-Contact/) ·
-[Présentation](https://mahi010110.github.io/Opn.../) ·
 [Aide](https://mahi010110.github.io/Open-Contact/aide.html) ·
 [Confidentialité](https://mahi010110.github.io/Open-Contact/confidentialite.html) ·
 [Les trois applications](docs/surfaces.md) ·
