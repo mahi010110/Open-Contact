@@ -42,6 +42,20 @@ choses, et aucune ne dépend de quelqu'un d'extérieur.
       importaient `tests/e2e/outils.mjs`), ce qui est une dépendance à
       assumer ou à couper franchement.
 
+- [ ] **Deux relais épinglés sont muets** — premier relevé des NEUF, le
+      1ᵉʳ septembre 2026 : **7 sur 9 répondent**. Sont muets
+      `wss://hornetstorage.net/relay` (refus la veille, connexion refusée
+      le lendemain — il pourrit) et `wss://relay.damus.io`.
+      Une réserve à garder en tête avant de trancher : damus est l'un des
+      plus gros relais Nostr publics, et l'échec est vu depuis une forge
+      dont les adresses sont partagées par beaucoup de monde. « Muet
+      depuis GitHub » n'est pas « muet depuis le téléphone d'un
+      étudiant » — c'est justement ce que les essais sur vrai matériel
+      diront. Hornetstorage, lui, échoue de deux façons différentes deux
+      jours de suite : celui-là se remplace.
+      Sept relais sains suffisent largement (il en faut deux), donc rien
+      ne presse — mais une liste qu'on ne relit pas se vide toute seule.
+
 - [ ] **Essais sur vrai matériel** — un vrai téléphone d'entrée de gamme, un
       vrai réseau d'établissement. Les scénarios automatiques passent à côté
       de tout ce qui relève du doigt, de la lenteur et du wifi filtré.
