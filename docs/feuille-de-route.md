@@ -45,10 +45,18 @@ choses, et aucune ne dépend de quelqu'un d'extérieur.
 - [ ] **Essais sur vrai matériel** — un vrai téléphone d'entrée de gamme, un
       vrai réseau d'établissement. Les scénarios automatiques passent à côté
       de tout ce qui relève du doigt, de la lenteur et du wifi filtré.
-      En particulier : **prouver que les neuf relais épinglés répondent**
-      (`RELAIS_DEFAUT`, `engine/transport.js`) — le bac à sable de
-      développement refuse toute connexion sortante, leur choix repose donc
-      sur la réputation, pas sur une mesure. À rejouer à deux téléphones.
+      **Les relais, eux, sont mesurés** — pas par un téléphone, par la
+      forge : `sonde-relais-publics.mjs` ouvre une vraie WebSocket sur
+      chacun des neuf de `RELAIS_DEFAUT`, envoie un REQ NIP-01 et attend
+      l'EOSE, à chaque exécution. Elle ne sondait que cinq d'entre eux
+      jusqu'au 1ᵉʳ septembre : elle laissait le bundle vendorisé faire sa
+      propre sélection, si bien que les quatre relais ajoutés parce qu'ils
+      sont les plus fréquentés n'avaient jamais été vérifiés. Elle lit
+      maintenant la liste à sa source, et nomme les muets.
+      Reste donc ce qu'aucune forge ne peut jouer : **le doigt, la lenteur
+      et le wifi filtré d'un établissement**, sur un vrai téléphone
+      d'entrée de gamme — et la découverte de pair en WebRTC, qui demande
+      deux réseaux réels.
 - [x] **Durabilité des données** — prouver qu'une installation neuve, puis
       une montée de version, ne perdent rien. C'est l'invariant qui coûte le
       plus cher s'il casse : sans serveur, ce qui disparaît ici a disparu
