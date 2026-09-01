@@ -2876,7 +2876,16 @@ const GRAINE_ZOOM = async () => {
       city: 'Bordeaux', status: 'active', domain: 'cyber', website: 'cyberprotect.example',
       desc: 'ESN de 40 personnes.', techs: 'Wazuh', nextActionText: 'Relancer le service RH',
       nextAction: new Date(Date.now() - 2 * 864e5).toISOString().slice(0, 10),
-      contacts: [{ id: 'pz', name: 'Léa Barbaste', role: 'Responsable du SOC', email: 'lea@c.test' }] })];
+      /* UN NOM COURT NE MESURE RIEN. Le nom du contact était « Léa
+         Barbaste » : à 200 % il tombait pile sur la limite, et il n'a
+         perdu que TROIS pixels — assez pour rougir sur le runner de la
+         forge, pas assez sur cette machine, où la police rend trois
+         pixels de moins. Le même écran perdait en réalité 219 px avec
+         un nom français ordinaire. On sème donc le cas RÉEL, comme
+         pour le nom d'entreprise juste au-dessus : un contrôle qui
+         frôle son seuil ne garde rien, il le frôle. */
+      contacts: [{ id: 'pz', name: 'Marie-Charlotte Vandenberghe',
+                   role: 'Responsable du SOC', email: 'lea@c.test' }] })];
     /* LE FIL D'« ÉCHANGER » DOIT AVOIR DES LIGNES. Sans journal, la
        tranche rend son état vide et la surface la plus dense de l'app
        n'exerce rien — le contrôle serait vert sur un écran qu'il

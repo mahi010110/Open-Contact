@@ -1945,16 +1945,32 @@ button.ec-row:hover{background:var(--surface-field)}
 .ctc>summary{
   list-style:none;cursor:pointer;user-select:none;
   display:flex;align-items:center;gap:8px;min-height:var(--ctl);padding:5px 10px;
+  /* à texte doublé, le nom et son rôle ne tiennent plus côte à côte :
+     le rôle passe au rang suivant plutôt que l'un des deux soit rogné
+     (WCAG 1.4.10 — le contenu se réorganise, il ne se perd pas) */
+  flex-wrap:wrap;
 }
 .ctc>summary::-webkit-details-marker{display:none}
 .ctc>summary::before{content:'▸';font-size:9px;color:var(--text-muted);flex:none}
 .ctc[open]>summary::before{content:'▾'}
+/* LE NOM D'UN CONTACT EST UNE IDENTITÉ : IL PLIE, IL NE S'ÉLIDE PAS.
+   C'est la règle de §6 pour les listes à cocher, et elle vaut ici pour
+   la même raison — « Léa Barbaste » amputé ne se distingue plus de son
+   homonyme, et un nom coupé n'est pas un défaut d'esthétique mais une
+   erreur d'identification. Le rôle qui l'accompagne, lui, est une
+   DONNÉE : il garde le droit de s'élider.
+   Le plafond de 62 % et le `nowrap` faisaient l'inverse : à texte
+   doublé le nom se rognait de 3 px. Trois pixels, c'est un seuil que
+   les métriques de police font basculer — ça tenait sur ma machine, ça
+   ne tenait pas sur le runner. La correction ne vise donc pas les trois
+   pixels, elle retire la contrainte qui les produit. */
 .ctc>summary b{
-  flex:none;max-width:62%;
+  flex:0 1 auto;min-width:0;
   font-size:var(--text-13);font-weight:var(--weight-semibold);
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  white-space:normal;overflow-wrap:break-word;
 }
 .ctc-sub{
+  flex:1 1 auto;
   font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);
   min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
