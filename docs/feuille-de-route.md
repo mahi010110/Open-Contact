@@ -42,8 +42,22 @@ choses, et aucune ne dépend de quelqu'un d'extérieur.
       importaient `tests/e2e/outils.mjs`), ce qui est une dépendance à
       assumer ou à couper franchement.
 
-- [ ] **Deux relais épinglés sont muets** — premier relevé des NEUF, le
-      1ᵉʳ septembre 2026 : **7 sur 9 répondent**. Sont muets
+- [ ] **Deux relais épinglés sont muets** — et **la sonde qui le dit sait
+      maintenant se taire quand elle n'a rien mesuré**. Elle ne le savait pas :
+      sans réseau sortant, les neuf échouaient de la même façon et le rapport
+      rendait « ÉPINGLÉS MUETS — à remplacer dans RELAIS_DEFAUT » suivi des
+      NEUF. Qui suit ce conseil remplace neuf relais en bonne santé. Mesuré le
+      4 septembre 2026 depuis un bac à sable dont le mandataire rend 403 sur
+      les WebSockets : TCP **et** TLS ouvraient jusqu'à `relay.damus.io` — zéro
+      relais en cause, neuf accusés. Deux contrôles l'ont réparée, sans une
+      dépendance de plus : un **relais local** sondé par la même fonction (« ma
+      sonde sait-elle encore reconnaître un relais sain ? ») et une **connexion
+      TCP nue** vers chaque relais qui échoue (« le chemin est-il coupé au
+      socket, ou plus haut ? »). Elle sépare donc le *muet* — il ouvre la
+      WebSocket puis se tait, c'est sa faute, il se nomme — du *coupé plus
+      haut*, qu'elle refuse d'accuser. `e2e-sonde-relais.mjs` prouve les trois
+      rangements en local, sans réseau. *(septembre 2026)*
+      Le relevé du 1ᵉʳ septembre reste donc valable : **7 sur 9 répondent**. Sont muets
       `wss://hornetstorage.net/relay` (refus la veille, connexion refusée
       le lendemain — il pourrit) et `wss://relay.damus.io`.
       Une réserve à garder en tête avant de trancher : damus est l'un des
