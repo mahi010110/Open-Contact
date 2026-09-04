@@ -25,12 +25,40 @@ body{
 
 /* le lien d'évitement : invisible tant qu'on ne l'atteint pas au
    clavier — et il vise un élément focalisable, sinon il ne
-   déplacerait que le défilement (CLAUDE.md §5) */
+   déplacerait que le défilement (CLAUDE.md §5).
+   MÊME DESSIN QUE DANS L'APP (`app.css`). Il en avait un second ici :
+   même contrôle, deux apparences et deux techniques (un `left:-9999px`
+   qui saute, contre un onglet qui descend). Un produit qui dessine deux
+   fois le même objet apprend deux fois à celui qui s'en sert — §7
+   le dit des mots, ça vaut autant des contrôles. */
 .skip{
-  position:absolute;left:-9999px;top:0;z-index:10;
-  padding:10px 14px;background:var(--select-bg);color:var(--select-text);
+  position:fixed;top:-48px;left:10px;z-index:5000;
+  display:inline-flex;align-items:center;min-height:var(--control-h-touch);
+  background:var(--accent);color:var(--on-accent);
+  font-weight:var(--weight-bold);font-size:var(--text-13);padding:10px 14px;
+  border:1px solid var(--border-strong);border-top:0;text-decoration:none;
+  transition:top 120ms;
 }
-.skip:focus{left:0}
+.skip:focus{top:0}
+
+/* ---- LA FENÊTRE ----
+   La barre de titre pose le navy du châssis : c'est l'idiome `.modal-h`
+   de l'app, et elle PROMET une fenêtre. Sous elle, le texte était posé
+   à nu sur `--surface-desktop` — le fond qui vit DERRIÈRE les fenêtres,
+   jamais une surface où l'on écrit. Au poste, la colonne flottait donc
+   sur le bureau : une barre de titre sans rien dessous, c'est-à-dire
+   exactement l'endroit où cette feuille manquait son propre but.
+
+   Le document prend son papier, et le reste est déjà écrit dans les
+   tokens : contour franc, ombre dure, coins droits, aucun flou.
+   · au pouce, la fenêtre est MAXIMISÉE — papier bord à bord, aucun
+     trait sur les côtés : un cadre y volerait de la largeur à la seule
+     chose qui compte, la ligne de texte ;
+   · au poste, le bureau se voit autour, donc le papier prend son
+     contour et son ombre.
+   La géométrie du texte ne bouge pas d'un pixel : la fenêtre fait la
+   largeur que `.dp` avait déjà, et la mesure reste à 61 caractères. */
+.dw{ background:var(--surface-window);min-height:100dvh }
 
 /* ---- l'en-tête : le châssis, donc le navy ---- */
 .dh{
@@ -42,18 +70,46 @@ body{
   margin:0;font-family:var(--font-pixel);font-size:var(--pixel-16);
   font-weight:400;text-transform:uppercase;letter-spacing:.1em;
 }
-/* 44 px de haut : c'est un lien qu'on tape au pouce comme un autre */
-.dh-back{
+/* Un seul dessin pour les deux : le retour à l'app et la page sœur sont
+   la même chose, une porte posée dans la barre de titre. Elles se tapent
+   au pouce comme n'importe quelle autre — 44 px de haut, et 44 px de
+   large, parce que la HAUTEUR ne suffit pas : « Aide » ne faisait que
+   31 px. Le mot est court, la cible aussi, et l'exemption des liens en
+   ligne (WCAG 2.5.5) ne couvre pas une porte. On élargit donc la BOÎTE
+   sans déplacer le mot — les pixels gagnés se prennent du côté
+   intérieur, là où il n'y a que du vide. Un `padding` aurait rentré le
+   libellé et cassé l'alignement de la barre. */
+.dh-back,.dh-sib{
   color:var(--on-navy);text-decoration:none;font-family:var(--font-mono);
   font-size:var(--text-13);display:inline-flex;align-items:center;
-  min-height:var(--control-h-touch);
+  min-height:var(--control-h-touch);min-width:var(--control-h-touch);
 }
-.dh-back:hover,.dh-back:focus-visible{text-decoration:underline}
+/* LA PAGE SŒUR EST DANS LA BARRE DE TITRE, pas seulement au pied.
+   Les réglages de l'app n'ont qu'UNE ligne pour les deux pages — « Aide
+   et confidentialité » — et elle ouvre l'aide. Qui venait pour la
+   confidentialité traversait 2 900 px avant de trouver le lien : c'est
+   la définition d'« enterré ». Poussée à droite, elle ne coûte pas un
+   rang de plus tant que la largeur le permet, et se range sous le titre
+   quand elle ne rentre plus. */
+.dh-sib{margin-left:auto;justify-content:flex-end}
+/* `:focus-visible` NE PART PAS avec le survol : ce sont deux états
+   différents, et les envelopper ensemble priverait de repère celui qui
+   tabule sur un appareil tactile. Même leçon que `:active`, §4. */
+.dh-back:focus-visible,.dh-sib:focus-visible{text-decoration:underline}
+@media (hover:hover){
+  .dh-back:hover,.dh-sib:hover{text-decoration:underline}
+}
 
-/* ---- le corps ---- */
-.dp{
-  max-width:var(--doc-mesure);margin:0 auto;padding:26px 18px 60px;
-  outline:none;
+/* ---- le corps, et le pied qui partage sa colonne ----
+   Le pied a QUITTÉ `<main>` : un `<footer>` posé dedans n'est pas un
+   repère `contentinfo`, il est rattaché à la section qui le contient —
+   donc invisible à qui navigue par repères, c'est-à-dire précisément
+   à qui cherche le lien vers l'autre page sans lire les 2 900 px qui
+   le précèdent. Sorti de `<main>`, il doit porter lui-même la
+   géométrie de la colonne. */
+.dp,.df{
+  max-width:var(--doc-mesure);margin-left:auto;margin-right:auto;
+  padding-left:18px;padding-right:18px;
   /* DE LA PROSE SE RÉORGANISE, ELLE NE DÉBORDE PAS (WCAG 1.4.10).
      Mesuré : à 320 px et texte doublé, « qu'OpenContact » — quatorze
      caractères insécables — poussait la page 9 px trop loin, et une
@@ -62,6 +118,7 @@ body{
      sur sa ligne : à taille normale, rien ne change. */
   overflow-wrap:break-word;
 }
+.dp{padding-top:26px;padding-bottom:0;outline:none}
 .dp h2{
   font-size:var(--text-20);font-weight:var(--weight-bold);
   margin:34px 0 10px;padding-top:16px;
@@ -87,9 +144,17 @@ body{
 .dl li{margin-bottom:8px}
 
 .note{font-size:var(--text-13);color:var(--text-muted)}
+/* La date de révision : une DONNÉE, donc mono et discrète (§4). Un
+   établissement qui vérifie doit pouvoir dire quelle version il a lue —
+   sans elle, « nous avons contrôlé cette page » ne veut rien dire. */
+.drev{
+  font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted);
+  margin:0 0 20px;
+}
 
 .df{
-  margin-top:40px;padding-top:18px;border-top:1px solid var(--border-strong);
+  margin-top:40px;padding-top:18px;padding-bottom:60px;
+  border-top:1px solid var(--border-strong);
 }
 .df p{margin:0 0 8px}
 /* Les liens de pied se tapent aussi : ils gardent la hauteur du doigt.
@@ -101,6 +166,12 @@ body{
 .df a{display:inline-flex;align-items:center;min-height:var(--control-h-touch);padding:0 8px}
 
 @media (min-width:901px){
+  .dw{
+    max-width:var(--doc-mesure);margin:28px auto 44px;min-height:0;
+    border:1px solid var(--border-strong);box-shadow:var(--shadow-window);
+  }
   .dh{padding:10px 26px}
-  .dp{padding:34px 26px 80px}
+  .dp,.df{padding-left:26px;padding-right:26px}
+  .dp{padding-top:34px}
+  .df{padding-bottom:44px}
 }

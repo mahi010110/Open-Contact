@@ -7,6 +7,14 @@
 <meta name="referrer" content="no-referrer">
 <title>Confidentialité — OpenContact</title>
 <meta name="description" content="Ce qu'OpenContact fait de tes données : elles restent sur ton appareil. Ce qui sort, quand, et ce que voient les relais.">
+<!-- ces deux pages s'envoient par lien — à un camarade, à un professeur,
+     à un établissement qui vérifie. Sans ces lignes, le lien arrive nu
+     dans la conversation où il est collé. Même jeu que dans `index.html`. -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="Confidentialité — OpenContact">
+<meta property="og:description" content="Tes données restent sur ton appareil : il n'existe aucun serveur OpenContact. Ce qui sort, quand, et ce que voient les relais.">
+<meta property="og:locale" content="fr_FR">
+<meta name="twitter:card" content="summary">
 <meta name="theme-color" id="metaTheme" content="#F7F6F1">
 <link rel="icon" href="assets/logo/piste-a-reseau.svg">
 <script src="theme.js"></script>
@@ -20,9 +28,12 @@
 </head>
 <body>
 <a class="skip" href="#main">Aller au contenu</a>
+<div class="dw">
+
 <header class="dh">
   <a class="dh-back" href="./">← OpenContact</a>
   <h1>Confidentialité</h1>
+  <a class="dh-sib" href="aide.html">Aide</a>
 </header>
 
 <main id="main" class="dp" tabindex="-1">
@@ -30,6 +41,8 @@
 <p class="lede">Tes données restent sur ton appareil. Il n'y a pas de serveur
 OpenContact où elles pourraient aller : ce n'est pas une promesse, c'est
 qu'il n'en existe aucun.</p>
+
+<p class="drev">Page revue le 4 septembre 2026.</p>
 
 <h2>Ce qui est enregistré, et où</h2>
 
@@ -52,8 +65,8 @@ chiffré <em>sur l'appareil</em>, et la clé ne quitte jamais celui-ci.</p>
 <h2>Ce qui sort, et seulement quand tu le demandes</h2>
 
 <p>Rien ne part tout seul. Aucun envoi au démarrage, aucun envoi en fond.
-Quatre gestes — et un seul d'entre eux te concerne sans que tu l'aies
-choisi, il est plus bas.</p>
+Quatre gestes font sortir des données, et tu les déclenches tous les
+quatre.</p>
 
 <ul class="dl">
   <li><b>Un fichier <code>.oc</code></b> — tu l'enregistres, tu le donnes à
@@ -69,6 +82,9 @@ choisi, il est plus bas.</p>
 <p>Écrire un e-mail ouvre <b>ton</b> logiciel de courrier avec le message
 prêt. OpenContact n'envoie rien et ne voit pas ce que tu envoies.</p>
 
+<p>Une seule chose part sans que tu l'aies demandée, et elle ne fait partie
+d'aucun de ces quatre gestes : c'est juste en dessous.</p>
+
 <h2>Le seul appel extérieur que l'app fait pour toi</h2>
 
 <p>Quand tu tapes une adresse dans une fiche, l'app demande ses coordonnées à
@@ -77,10 +93,15 @@ alors l'adresse que tu as tapée, et rien d'autre — ni ton nom, ni tes pistes,
 ni un identifiant. Si tu ne saisis pas d'adresse, cet appel n'a jamais lieu ;
 hors ligne, il échoue sans rien casser.</p>
 
+<p>Cette page-ci et la page d'aide, elles, ne parlent à personne du tout :
+leur en-tête de sécurité interdit toute connexion sortante, et il se lit
+dans leur source.</p>
+
 <h2>Ce que voient les relais</h2>
 
-<p>Le partage et la synchronisation passent par des <b>relais publics</b> pour
-que deux appareils se trouvent. Il faut être précis sur ce qu'ils voient :</p>
+<p>Pour que deux appareils se trouvent, le partage et la synchronisation
+passent par des <b>relais publics</b> — des serveurs du réseau Nostr, tenus
+par des tiers. Il faut être précis sur ce qu'ils voient :</p>
 
 <ul class="dl">
   <li><b>Ils ne peuvent pas lire ce qui passe</b> — le contenu est chiffré
@@ -91,9 +112,10 @@ que deux appareils se trouvent. Il faut être précis sur ce qu'ils voient :</p>
       — comme n'importe quel site que tu visites.</li>
 </ul>
 
-<p>Tu peux remplacer ces relais par les tiens dans les réglages. Et tu peux
-t'en passer entièrement : le fichier <code>.oc</code> et le QR code font le
-même travail sans aucun réseau.</p>
+<p>Tu peux remplacer ces relais par les tiens : le champ vit dans
+<b>Connexion avancée</b>, au moment de relier tes appareils ou d'ouvrir un
+partage en groupe. Et tu peux t'en passer entièrement : le fichier
+<code>.oc</code> et le QR code font le même travail sans aucun réseau.</p>
 
 <h2>Ce qu'OpenContact ne fera jamais</h2>
 
@@ -124,6 +146,8 @@ l'étudiant, et les données ne quittent son appareil que par un geste qu'il
 fait lui-même. Un établissement qui souhaite le vérifier peut lire le code —
 il est public — et rejouer les tests qui contrôlent ces règles.</p>
 
+</main>
+
 <footer class="df">
   <p><a href="aide.html">Aide</a> ·
      <a href="./">Ouvrir OpenContact</a></p>
@@ -133,6 +157,6 @@ il est public — et rejouer les tests qui contrôlent ces règles.</p>
   copié.</p>
 </footer>
 
-</main>
+</div>
 </body>
 </html>

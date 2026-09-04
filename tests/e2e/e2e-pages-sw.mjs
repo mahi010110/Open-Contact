@@ -1,8 +1,8 @@
 /* E2E durcissement : LES PAGES QUI NE SONT PAS L'APP, sous service
    worker. (Ce scénario s'appelait `e2e-oauth-sw.mjs` : il ne gardait
    qu'`oauth.html`, donc il était rangé avec l'envoi direct et SAUTÉ
-   tant que cette capacité reste masquée. Il garde maintenant quatre
-   pages livrées et visibles — le laisser sauté, c'était le laisser
+   tant que cette capacité reste masquée. Il garde maintenant toutes
+   les pages livrées et visibles — le laisser sauté, c'était le laisser
    vert pendant que le défaut revenait.) Le SW ressert index.html à toute navigation (app une-page) —
    il ne doit détourner AUCUNE des pages qui se lisent seules : le
    retour OAuth (sinon le jeton n'arrive jamais), l'aide et la

@@ -98,6 +98,21 @@ choses, et aucune ne dépend de quelqu'un d'extérieur.
       qu'une connexion a lieu), et le seul appel tiers que l'app fait pour
       l'utilisateur — Nominatim, quand il tape une adresse. Un paragraphe est
       écrit pour un établissement. *(août 2026)*
+- [x] **Les pages de lecture, mesurées** — elles étaient livrées, visibles et
+      liées depuis les réglages, mais **aucun garde ne les regardait** : les
+      surfaces d'`e2e-ux-audit.mjs` sont des routes, et une page qui n'est pas
+      l'app n'en est pas une. `e2e-pages-lecture.mjs` les balaie désormais
+      comme des écrans — 320 à 1280 px, 100 / 125 / 200 % de texte, les deux
+      thèmes — et trois sondes prouvent que la mesure sait rougir. La même
+      passe a corrigé ce que personne ne voyait : une règle de survol nue dans
+      `doc.css` (le garde du survol lisait quatre feuilles de style sur huit,
+      liste écrite à la main — elle a fini par mentir, comme les autres), une
+      cible de 31 px, un pied posé dans `<main>` qui n'était donc pas un
+      repère `contentinfo`, et cinq inexactitudes de texte — dont un chemin de
+      réglages qui n'existe pas et un canal nommé « En direct » là où l'app dit
+      « Partage en groupe » (§7). Les deux pages se nomment maintenant l'une
+      l'autre **dans la barre de titre** : la ligne des réglages en ouvre une
+      seule, et l'autre était à 2 900 px de défilement. *(septembre 2026)*
 
 **Le chemin de retour existe déjà.** Réglages → « Signaler un problème »
 produit un rapport de cinq lignes (navigateur, système, écran, poids des

@@ -2418,8 +2418,24 @@ if (IA){
      Et la lecture doit ignorer les COMMENTAIRES : ce fichier en contient
      qui CITENT des sélecteurs de survol, et les compter faisait rendre
      32 fautes là où il n'y en avait aucune. */
-  const feuilles = ['../../styles/app.css', '../../styles/tokens/base.css',
-    '../../styles/tokens/colors.css', '../../styles/tokens/typography.css'];
+  /* LA LISTE SE DÉDUIT DU DISQUE. Elle était écrite à la main — quatre
+     fichiers sur huit — et elle a fini par mentir, comme toutes celles
+     de ce dépôt qu'on a tenues à la main (`PRECACHE`, les pages du
+     service worker). Ce qui manquait n'était pas un token de plus mais
+     `doc.css`, la feuille des pages qui se LISENT : elle y portait une
+     règle de survol nue depuis sa naissance, et le garde était vert
+     parce qu'il ne l'ouvrait pas. Une feuille neuve est gardée
+     désormais sans que personne y pense. */
+  const feuilles = [
+    ...readdirSync(new URL('../../styles/', import.meta.url))
+      .filter(n => n.endsWith('.css')).map(n => '../../styles/' + n),
+    ...readdirSync(new URL('../../styles/tokens/', import.meta.url))
+      .filter(n => n.endsWith('.css')).map(n => '../../styles/tokens/' + n),
+    ...readdirSync(new URL('../../', import.meta.url))
+      .filter(n => n.endsWith('.css')).map(n => '../../' + n)
+  ].sort();
+  if (feuilles.length < 6)
+    fail(`survol : ${feuilles.length} feuille(s) relevée(s) sur le disque — le relevé est cassé, pas le CSS`);
   const nues = []; let total = 0;
   for (const f of feuilles){
     let css;
