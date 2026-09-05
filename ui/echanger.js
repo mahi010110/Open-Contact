@@ -409,7 +409,17 @@ export function renderEchanger(){
     const vieux = root.querySelector('.ec-detail');
     if (vieux){
       vieux.outerHTML = detailHTML();
-      bindContenu(root.querySelector('.ec-detail'), null);
+      const neuf = root.querySelector('.ec-detail');
+      /* ① D'OÙ ÇA VIENT ? — la seule question qui justifie un mouvement
+         ici (§4). Tout le côté droit de l'écran change d'un coup, à
+         500 px du doigt qui l'a causé : sans rien, le changement n'est
+         pas VU (cécité au changement), et le lecteur d'écran était déjà
+         mieux servi que l'œil — `annoncer()` le disait, l'écran non.
+         Le panneau entre donc du côté de sa cause, la liste, c'est-à-dire
+         par la gauche. L'élément est neuf à chaque fois : l'animation
+         rejoue sans qu'on ait à retirer la classe. */
+      neuf.classList.add('ec-detail-neuf');
+      bindContenu(neuf, null);
     }
     root.querySelectorAll('.ec-row[data-fil]').forEach(b => {
       const on = +b.dataset.fil === i;
@@ -477,5 +487,19 @@ export function renderEchanger(){
       });
     }, 'cette ligne du fil');
   });
-  root.querySelector('#ecMore')?.addEventListener('click', () => { filDeplie = true; renderEchanger(); });
+  /* ① D'OÙ ÇA VIENT ? — les lignes révélées se déplient, elles ne
+     surgissent pas. L'app le fait déjà partout ailleurs quand une
+     section s'ouvre (`e2e-mouvement.mjs` fige ce verdict pour
+     « Déplier une section ») ; le fil était le seul endroit où le même
+     geste sautait. On marque APRÈS le rendu les lignes qui n'étaient
+     pas là avant : aucun drapeau à porter dans l'état, et rien à
+     défaire. */
+  root.querySelector('#ecMore')?.addEventListener('click', () => {
+    const avant = filVisible().length;
+    filDeplie = true;
+    renderEchanger();
+    $('#view-echanger').querySelectorAll('.ec-l').forEach((n, i) => {
+      if (i >= avant) n.classList.add('ec-neuve');
+    });
+  });
 }

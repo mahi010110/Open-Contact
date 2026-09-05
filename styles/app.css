@@ -1710,10 +1710,34 @@ button.fi-vecu b{flex:1;min-width:0}
   background:none;color:var(--text-body);font-family:var(--font-ui);text-align:left;
 }
 button.ec-row{cursor:pointer}
+/* LE CHEVRON EST UNE AFFORDANCE, PAS DU CONTENU. Il héritait de
+   l'encre de corps : huit glyphes sombres identiques, un par rang,
+   aussi présents que les noms — la définition du papier peint (§6,
+   règle 1). L'app a déjà tranché ailleurs (`.rg-row>.ic`) : sourd. */
+.ec-row>.ic{color:var(--text-muted)}
 @media (hover:hover){
 button.ec-row:hover{background:var(--surface-field)}
 }
 .ec-body .tr-more{margin-top:10px}
+
+/* ---- LE MOUVEMENT DU FIL, ET SEULEMENT DEUX ----
+   « Plus d'animation » n'est pas un objectif (§4) : le mouvement est
+   pré-attentif, donc c'est le signal le plus cher de l'interface. Il ne
+   répond qu'à trois questions, et les deux gestes d'ici répondent tous
+   deux à la PREMIÈRE — d'où ça vient ?
+   Rien d'autre ne bouge sur cet écran, exprès : ni le survol, ni la
+   ligne retenue, ni les deux verbes. `transform` et `opacity`
+   uniquement, et `prefers-reduced-motion` coupe tout depuis le socle. */
+@keyframes ec-deplie{ from{opacity:0;transform:translateY(-5px)} to{opacity:1;transform:none} }
+/* les lignes révélées par « Voir les N autres » : elles se déplient vers
+   le bas, dans le sens où la liste s'allonge */
+.ec-neuve{animation:ec-deplie var(--dur-3) var(--ease-out) both}
+
+@keyframes ec-arrive{ from{opacity:0;transform:translateX(-6px)} to{opacity:1;transform:none} }
+/* le panneau lu, au poste : il arrive de la gauche, du côté de la
+   liste qui vient de le demander. Court — c'est une apparition
+   discrète (`--dur-2`), pas un déplacement de fenêtre. */
+.ec-detail-neuf{animation:ec-arrive var(--dur-2) var(--ease-out) both}
 /* le rappel de contexte en tête de la feuille d'un échange : de qui,
    par quel canal, quel jour — la ligne qu'on vient de taper */
 .ec-quand{
@@ -1757,12 +1781,19 @@ button.ec-row:hover{background:var(--surface-field)}
    Rien n'est en gras : un journal raconte ce qui est DÉJÀ fait, il ne
    doit pas peser autant que les deux gestes qu'il surplombe. */
 .ec-dir{
-  flex:none;font-size:var(--text-13);color:var(--text-muted);
-  line-height:1.35;
+  flex:none;line-height:1.35;
+  /* LE SENS EST UNE DONNÉE, PAS UN TITRE — donc la typo de donnée de
+     l'app : mono, 11 px, sourde, comme le compte et la date. À 13 px en
+     Public Sans il faisait la taille du NOM et lui disputait le regard,
+     alors qu'il ne prend que deux valeurs. Descendu ici, la rangée se
+     lit comme ce qu'elle est : un nom, seul en encre de corps, entre
+     trois colonnes de données. Et le mono aligne « Reçu » et « Donné »
+     au caractère près, ce que la police de texte ne faisait pas. */
+  font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);
   /* la colonne se cale sur le plus long des deux mots — « Donné ». En
      `rem`, donc elle suit la police du navigateur au lieu de coincer le
      texte agrandi contre le nom. */
-  min-width:3.1rem;
+  min-width:2.6rem;
 }
 .ec-avec{
   font-size:var(--text-13);color:var(--text-body);line-height:1.35;

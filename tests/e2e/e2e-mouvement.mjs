@@ -64,6 +64,17 @@ async function prepare(ctx){
   await p.evaluate(async d => {
     const st = await import('./engine/storage.js');
     await st.kvInit(); await st.kvSet(st.DATA_KEY, JSON.stringify(d));
+    /* de quoi remplir le fil d'« Échanger » : dix échanges, donc deux
+       de plus que le plafond de huit — sans eux « Voir les 2 autres »
+       n'existe pas et le geste ne se joue pas */
+    const j = Date.now();
+    await st.kvSet(st.JOURNAL_KEY, JSON.stringify(
+      Array.from({ length: 10 }, (_, i) => ({
+        t: j - (i + 1) * 26e5,
+        txt: i % 2 ? 'Donné (QR) : ' + (i + 1) + ' piste(s)'
+                   : 'Reçu de Léa : +' + (i + 1) + ' piste(s)',
+        ids: ['p0', 'p1']
+      }))));
   }, PISTES);
   await p.reload({ waitUntil: 'load' });
   await attendre(p, async () => (await import('./ui/state.js')).S.companies.length === 7);
@@ -177,6 +188,52 @@ const GESTES = [
   /* ---- et ce qui doit RESTER NET ---- */
   /* Les objets gardent leur netteté « 98 » : un thème qui se fond serait
      une page entière en mouvement pour un réglage qu'on prend une fois. */
+  /* ---- LE FIL DES ÉCHANGES ----
+     Deux gestes, deux fois la même question : ① d'où ça vient ?
+     Rien d'autre ne bouge sur cet écran, et le troisième cas ci-dessous
+     est là pour le prouver — c'est le sens « net » qui empêche
+     l'animation de proliférer un « juste un petit fondu » à la fois. */
+  ['Déplier le fil des échanges', 'glisse', async p => {
+    await p.evaluate(() => { location.hash = '#/echanger'; });
+    await p.waitForSelector('#ecMore', { timeout: 8000 });
+    await p.waitForTimeout(300);
+    return p.evaluate(() => window.__film(
+      /* la 9ᵉ ligne : elle n'existait pas avant le tap */
+      () => document.querySelectorAll('.ec-l')[8] || null,
+      n => Math.round(getComputedStyle(n).opacity * 100) + '|' + getComputedStyle(n).transform,
+      () => document.querySelector('#ecMore').click()));
+  }],
+  /* Au poste seulement : tout le côté droit change d'un coup, à 500 px
+     du doigt qui l'a causé. Sans mouvement, le changement n'est pas VU —
+     et le lecteur d'écran était mieux servi que l'œil, puisque
+     `annoncer()` le disait déjà. */
+  ['Le panneau lu arrive (poste)', 'glisse', async p => {
+    await p.setViewportSize({ width: 1280, height: 850 });
+    await p.evaluate(() => { location.hash = '#/echanger'; });
+    await p.waitForSelector('.ec-detail', { timeout: 8000 });
+    await p.waitForTimeout(300);
+    const r = await p.evaluate(() => window.__film('.ec-detail',
+      n => Math.round(getComputedStyle(n).opacity * 100) + '|' + getComputedStyle(n).transform,
+      () => document.querySelectorAll('.ec-row[data-fil]')[3].click()));
+    await p.setViewportSize({ width: 390, height: 850 });
+    return r;
+  }],
+  /* ET LA CONTRE-ÉPREUVE : la ligne retenue prend le navy du châssis
+     D'UN COUP. C'est un OBJET, pas un déplacement — §4 les veut nets et
+     instantanés. Si elle se met à fondre un jour, c'est ici que ça
+     rougit. */
+  ['La ligne retenue se peint (poste)', 'net', async p => {
+    await p.setViewportSize({ width: 1280, height: 850 });
+    await p.evaluate(() => { location.hash = '#/echanger'; });
+    await p.waitForSelector('.ec-detail', { timeout: 8000 });
+    await p.waitForTimeout(300);
+    const r = await p.evaluate(() => window.__film(
+      () => document.querySelectorAll('.ec-row[data-fil]')[2],
+      n => getComputedStyle(n).backgroundColor,
+      () => document.querySelectorAll('.ec-row[data-fil]')[2].click(), 400));
+    await p.setViewportSize({ width: 390, height: 850 });
+    return r;
+  }],
   ['Basculer clair / sombre', 'net', async p => {
     const r = await p.evaluate(() => window.__film('body',
       n => getComputedStyle(n).backgroundColor,

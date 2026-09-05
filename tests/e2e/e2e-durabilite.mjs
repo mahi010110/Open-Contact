@@ -187,7 +187,38 @@ console.log(`suivi écrit        : ${Object.keys(SUIVI).length} clés + ${DOCS.l
    valeur `OCV1.` sans clé attachée (c'est le bon comportement : jamais un
    `null` silencieux qui ferait croire à une base vide), ce qui rendrait
    justement les clés les plus critiques inmesurables ici. */
-const lire = () => p.evaluate(ks => new Promise((res, rej) => {
+/* UNE LECTURE PENDANT UNE NAVIGATION N'EST PAS UNE LECTURE FAUSSE —
+   ET LA NAVIGATION N'EST PAS UN BUG. Ce scénario publie exprès une
+   version neuve, et l'app RELIT alors sa page une seule fois quand le
+   service worker neuf prend la main (`app.js`, `controllerchange`) :
+   c'est précisément le comportement qu'on est en train de vérifier.
+   Tout ce qui lit la page après la montée de version doit donc
+   supporter que le document parte sous ses pieds, une fois.
+   `p.evaluate` LÈVE — « Execution context was destroyed » — quand le
+   document part sous ses pieds, et les deux lecteurs de ce scénario
+   l'appelaient nus : le contrôle mourait au lieu de juger, sous charge
+   seulement, donc jamais chez celui qui vient de l'écrire. C'est
+   exactement la leçon déjà écrite dans `outils.mjs` pour `attendre()` —
+   « une attente doit ré-essayer sur une erreur transitoire » — et les
+   lectures brutes ne l'avaient pas reçue.
+   On ne réessaie QUE sur cette erreur-là : une base absente, un blob
+   vide, une clé perdue doivent continuer de faire échouer le scénario
+   tout de suite. */
+const transitoire = e => /Execution context was destroyed|Target closed|navigating/i.test(String(e));
+async function malgreNavigation(fn, quoi){
+  let derniere = null;
+  for (let i = 0; i < 12; i++){
+    try { return await fn(); }
+    catch (e) {
+      if (!transitoire(e)) throw e;
+      derniere = e;
+      await new Promise(r => setTimeout(r, 200));
+    }
+  }
+  throw new Error(quoi + ' : la page n’a jamais tenu en place — ' + String(derniere).split('\n')[0]);
+}
+
+const lireBrut = () => p.evaluate(ks => new Promise((res, rej) => {
   const rq = indexedDB.open('oc_kv_v1', 1);
   rq.onerror = () => rej(rq.error);
   rq.onsuccess = () => {
@@ -208,7 +239,7 @@ const lire = () => p.evaluate(ks => new Promise((res, rej) => {
 /* Même principe que `lire()` : la base BRUTE, pas `listDocs()`. On
    compare les octets du PDF eux-mêmes — un nom et une taille intacts
    au-dessus d'un blob vide se liraient comme une réussite. */
-const lireDocs = () => p.evaluate(() => new Promise((res, rej) => {
+const lireDocsBrut = () => p.evaluate(() => new Promise((res, rej) => {
   const rq = indexedDB.open('oc_docs_v1', 1);
   rq.onupgradeneeded = () => { rq.result.createObjectStore('docs'); };
   rq.onerror = () => rej(rq.error);
@@ -234,6 +265,11 @@ const lireDocs = () => p.evaluate(() => new Promise((res, rej) => {
     } catch (e) { db.close(); rej(e); }
   };
 }));
+
+/* les deux lecteurs que tout le scénario emploie, à l'abri d'une
+   navigation en vol — et d'elle seule */
+const lire = () => malgreNavigation(lireBrut, 'lecture de oc_kv_v1');
+const lireDocs = () => malgreNavigation(lireDocsBrut, 'lecture de oc_docs_v1');
 
 const avant = await lire();
 const malEcrites = Object.keys(SUIVI).filter(k => avant[k] !== SUIVI[k]);
@@ -385,11 +421,11 @@ if (docsAbsents.length)
 else console.log(`                    ${docsVus.length} documents relus par listDocs() ✓`);
 
 /* --- 7. la sonde : ce contrôle sait-il encore échouer ? --- */
-await p.evaluate(async () => {
+await malgreNavigation(() => p.evaluate(async () => {
   const st = await import('./engine/storage.js');
   await st.kvInit();
   await st.kvDel('oc_profile_v1');
-});
+}), 'effacement de la clé témoin');
 const sonde = await lire();
 const vueParLaSonde = sonde.oc_profile_v1 !== SUIVI.oc_profile_v1;
 if (!vueParLaSonde) fail('le contrôle est AVEUGLE : une clé effacée ne le fait pas broncher');
@@ -397,10 +433,10 @@ else console.log('sonde             : une clé effacée est bien détectée ✓'
 
 /* La sonde de `oc_kv_v1` ne prouve rien de `oc_docs_v1` : ce sont deux
    lecteurs différents, et c'est justement le second qui manquait. */
-await p.evaluate(async () => {
+await malgreNavigation(() => p.evaluate(async () => {
   const st = await import('./engine/storage.js');
   await st.docDel('cv_durab1');
-});
+}), 'effacement du PDF témoin');
 const sondeDocs = await lireDocs();
 if (sondeDocs.cv_durab1 && sondeDocs.cv_durab1.octets === DOCS[0].octets)
   fail('le contrôle est AVEUGLE aux documents : un PDF effacé ne le fait pas broncher');
