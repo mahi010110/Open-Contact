@@ -1647,7 +1647,7 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   /* la poubelle passait en gris de texte sur le navy : 1,6:1, invisible.
      Sur la ligne lue, elle prend l'encre du châssis comme le reste. */
   .ec-cols .ec-l:has(.ec-lue) .hov-del .ic{background:var(--select-text)}
-  .ec-lue,.ec-lue>b,.ec-lue .ec-when{color:var(--select-text)}
+  .ec-lue,.ec-lue .ec-dir,.ec-lue .ec-avec,.ec-lue .ec-n,.ec-lue .ec-when{color:var(--select-text)}
   .ec-lue .ec-when{opacity:.8}
   .ec-lue .ic{background:var(--select-text)}
   /* la ligne retenue s'étend jusqu'au bord du panneau : la poubelle du
@@ -1704,7 +1704,7 @@ button.fi-vecu b{flex:1;min-width:0}
    raté avant qu'on en trouve la cause. */
 .ec-l .sw-in{display:flex;align-items:center;background:var(--surface-desktop)}
 .ec-row{
-  display:flex;align-items:center;gap:10px;width:100%;
+  display:flex;align-items:center;flex-wrap:wrap;column-gap:10px;row-gap:2px;width:100%;
   min-height:var(--ctl);padding:9px 0;
   border:0;border-radius:0;
   background:none;color:var(--text-body);font-family:var(--font-ui);text-align:left;
@@ -1748,8 +1748,111 @@ button.ec-row:hover{background:var(--surface-field)}
    `overflow:hidden` juste à côté, elle se fait raboter. Invisible en
    émulation, photographiée sur un vrai téléphone : le trait pointillé
    passait à travers les lettres. */
-.ec-row>b{flex:1;min-width:0;font-size:var(--text-13);font-weight:var(--weight-regular);
-  line-height:1.35;white-space:normal;overflow-wrap:break-word}
+/* ---- LES TROIS VALEURS DE LA LIGNE, ET LEUR ENCRE ----
+   Une seule valeur porte l'encre : AVEC QUI. C'est la seule qui varie
+   vraiment d'une ligne à l'autre (Léa, le groupe, QR, fichier, Awa) —
+   le sens ne prend que deux valeurs et le compte est une donnée. §6,
+   règle 1 : l'encre va à ce qui change. Rendu ainsi, le fil offre un
+   seul point sombre par rang, et la colonne des noms se balaie.
+   Rien n'est en gras : un journal raconte ce qui est DÉJÀ fait, il ne
+   doit pas peser autant que les deux gestes qu'il surplombe. */
+.ec-dir{
+  flex:none;font-size:var(--text-13);color:var(--text-muted);
+  line-height:1.35;
+  /* la colonne se cale sur le plus long des deux mots — « Donné ». En
+     `rem`, donc elle suit la police du navigateur au lieu de coincer le
+     texte agrandi contre le nom. */
+  min-width:3.1rem;
+}
+.ec-avec{
+  font-size:var(--text-13);color:var(--text-body);line-height:1.35;
+  /* L'IDENTITÉ PLIE, ELLE NE S'AMPUTE PAS (§4). « Marie-Charlotte »
+     coupé n'est plus personne ; c'est le compte, à côté, qui a le droit
+     de disparaître. */
+  white-space:normal;overflow-wrap:break-word;
+}
+.ec-n{
+  font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);
+  line-height:1.35;white-space:nowrap;
+}
+/* ---- LE PLANCHER, ET POURQUOI LA RANGÉE SE REPLIE ----
+   Quatre valeurs sur un rang de 292 px ne tiennent pas à texte agrandi,
+   et une colonne étranglée ne rétrécit pas : elle CASSE LE MOT. Mesuré
+   à 320 px / 200 % avant ce plancher : « Léa » rendu L / é / a, une
+   lettre par rang. Le nom est l'identité de la ligne — c'est même la
+   seule raison pour laquelle on l'a mis en avant.
+
+   Le remède est celui que §5 a déjà écrit pour « Aujourd'hui » et que
+   `.act-in` / `.act-main` porte : conteneur repliable, et un PLANCHER
+   EN REM sur la colonne du texte. En rem, il suit la police du
+   navigateur tout seul — pas de média query, pas un réglage de plus.
+   Sous le plancher, la rangée se replie et la date passe dessous
+   (WCAG 1.4.10 : le contenu se réorganise, il ne se perd pas).
+
+   6 rem est MESURÉ, pas choisi. Balayage de 0 à 6,5 rem sur 320 / 360 /
+   390 px × 100 → 200 % : c'est la plus petite valeur qui ne casse plus
+   un seul mot (5,5 en cassait encore à 320/200 % et 360/150 %), et elle
+   ne rallonge aucun rang à 100 %. La même valeur tient au poste, où
+   elle laisse 100 %, 125 % ET 150 % identiques au pixel près — sans
+   elle, 1280 px à 200 % rendait des rangs de 159 px et cinq mots
+   cassés.
+   Ce qu'elle coûte, dit franchement : à 320 px et 125 % seulement, le
+   rang moyen passe de 61 à 68 px, parce que la rangée se replie là où
+   l'ancienne phrase tenait encore. C'est le prix d'un nom qui ne se
+   coupe jamais et qui commence toujours au même x — et le panneau
+   défile, donc rien ne se perd. */
+.ec-row>.ec-quoi{flex:1;min-width:6rem}
+/* AU POUCE : deux colonnes, pas quatre. La rangée fait 332 px sur un
+   360 — le nom et le compte forment donc UNE phrase qui plie ensemble,
+   séparés par le point médian de l'app. Une quatrième colonne y volerait
+   la largeur à la seule chose qu'on lit vraiment. */
+.ec-n::before{content:' · ';color:var(--text-muted)}
+
+/* Ce média vient APRÈS les règles de base, et ce n'est pas un détail de
+   rangement : posé plus haut dans le fichier — là où vit le reste du
+   dessin de poste — il était écrasé par elles à spécificité égale, et
+   le registre ne s'est jamais affiché. Une règle de surface se pose
+   après ce qu'elle surcharge, ou elle ne surcharge rien. */
+@media (min-width:901px){
+  /* ---- AU POSTE, LA LIGNE DEVIENT UN REGISTRE ----
+     Et c'est ici que les deux surfaces divergent vraiment, pour une
+     raison d'USAGE, pas de taille (§5) : au pouce on LIT une ligne à la
+     fois pour retrouver une chose ; au poste le fil est un NAVIGATEUR —
+     on descend aux flèches et le contenu se lit à droite, donc on
+     COMPARE des rangs entre eux.
+
+     Ce que ça change, mesuré : la rangée fait 555 px et le texte s'y
+     arrêtait à 249, laissant 306 px de vide au milieu — plus de la
+     moitié du rang. La date ne peut pas revenir dans la phrase :
+     l'annexe dit pourquoi (la ligne s'élidait d'un bloc et c'est la
+     DATE qui se faisait couper). Mais ce vide peut se remplir de
+     STRUCTURE plutôt que de rien : le compte quitte la phrase et prend
+     sa propre colonne, alignée à droite.
+
+     Elle est en IBM Plex Mono, et c'est ce qui la rend utile : l'unité
+     ayant partout la même largeur, aligner les fins de cellule aligne
+     les CHIFFRES. « 3 », « 24 » et « 100 » se comparent d'un coup d'œil
+     au lieu de flotter au fil du texte — c'est exactement ce qu'un
+     grand écran doit rendre et qu'un téléphone ne peut pas offrir. */
+  .ec-quoi{display:contents}
+  /* `.ec-avec` reste un enfant de `.ec-quoi` dans le DOM — c'est le
+     RENDU que `display:contents` aplatit, pas l'arbre. Le sélecteur
+     enfant direct ne le voyait donc jamais. */
+  .ec-row .ec-avec{flex:1;min-width:6rem}
+  .ec-n{flex:none;text-align:right;min-width:5.2rem}
+  .ec-n::before{content:none}
+  /* LA DATE PREND UNE LARGEUR FIXE, et c'est ce qui rend la colonne des
+     comptes possible. Mesuré sans elle : « aujourd'hui » fait 72 px,
+     « hier » 26 — le compte, posé juste avant, se faisait pousser de
+     46 px selon la date de la ligne, et ses trois bords droits tombaient
+     à 551, 597 et 557. Une colonne qui bouge d'une ligne à l'autre ne se
+     balaie pas, c'est-à-dire qu'elle ne sert plus à rien.
+     Le même réglage règle le second défaut du relevé : 10 px seulement
+     séparaient deux colonnes de même gris et de même police, qui se
+     lisaient comme un seul bloc. La date étant calée à droite dans une
+     boîte fixe, l'écart se creuse tout seul là où la date est courte. */
+  .ec-when{min-width:4.8rem;text-align:right}
+}
 .ec-row-m{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .ec-row-m b{font-size:var(--text-13);font-weight:var(--weight-semibold)}
 .ec-row-m .tag-beta{margin-left:2px}

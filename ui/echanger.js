@@ -133,10 +133,47 @@ function filHTML(){
   const corps = !fil.length
     ? `<p class="ec-rien">Les pistes que tu donnes et celles que tu reçois s’inscrivent ici.</p>`
     : fil.map((x, i) => {
-        const quoi = x.n + ' piste' + (x.n > 1 ? 's' : '');
-        const phrase = x.sens === 'donne'
-          ? `${quoi} donnée${x.n > 1 ? 's' : ''} · ${x.canal}`
-          : `${quoi} reçue${x.n > 1 ? 's' : ''} · ${x.qui || 'le groupe'}`;
+        /* ---- L'ANATOMIE D'UNE LIGNE DU FIL ----
+           Relevé sur l'écran réel, huit lignes : « 12 pistes », « 3
+           pistes », « 7 pistes », « 24 pistes »… Les huit têtes de ligne
+           étaient un NOMBRE suivi du même mot. Or la tête porte
+           l'attribut distinctif (§6, règle 1 — NN/g, *The Anatomy of a
+           List Entry*), et le contrôle qui tranche est la comparaison de
+           deux lignes voisines : si leurs têtes se ressemblent, la
+           mauvaise chose est mise en avant. Elles se ressemblaient
+           toutes.
+           Ce qui distingue vraiment deux échanges, c'est AVEC QUI —
+           Léa, le groupe, Awa — ou PAR QUOI — QR, fichier. Et c'était
+           écrit en FIN de phrase, c'est-à-dire dans la zone qui s'élide
+           la première : l'identité de la ligne rangée à l'endroit le
+           plus fragile. Mesuré à 360 px : la phrase demandait 225 px
+           pour 225 disponibles — elle tenait au pixel près, et le
+           moindre nom long la faisait plier sur le mot qui compte.
+
+           La ligne se range donc en trois valeurs, de la plus
+           discriminante à la moins :
+             ① le SENS, en colonne fixe — c'est le partage binaire que
+               l'œil cherche d'abord, et une colonne alignée se balaie
+               sans se lire (NN/g : chaque information à la même place
+               d'une ligne à l'autre) ;
+             ② AVEC QUI, qui prend l'encre : c'est la seule valeur
+               vraiment variable de la ligne, donc la seule qui mérite
+               l'encre (§6, règle 1) ;
+             ③ le COMPTE, une donnée, en typo de donnée et en gris.
+           La date ne bouge pas : sa colonne est un acquis, et l'annexe
+           dit pourquoi on ne la ramène pas dans la phrase.
+
+           PAS DE PICTOGRAMME de sens. Il doublait le mot qu'il
+           accompagnait (`inbox` + « reçues ») et repoussait de 24 px les
+           deux premiers mots — la raison exacte pour laquelle les lignes
+           de Réglages n'en portent pas (`ui/moi.js`) : « on scanne une
+           liste par ses deux premiers mots à gauche ; une icône aide
+           quand elle éclaire un libellé obscur ». « Reçu » et « Donné »
+           n'ont rien d'obscur, et §7 tranche pareil — le mot gagne sur
+           l'icône qu'on ne devine pas. */
+        const sens = x.sens === 'donne' ? 'Donné' : 'Reçu';
+        const avec = x.sens === 'donne' ? x.canal : (x.qui || 'le groupe');
+        const compte = x.n + ' piste' + (x.n > 1 ? 's' : '');
         /* LA DATE TIENT SA COLONNE — et c'est un retour en arrière assumé.
            Elle avait rejoint la phrase au nom de la PROXIMITÉ (ce qui est
            proche est perçu comme lié, NN/g), parce qu'au poste elle
@@ -157,8 +194,16 @@ function filHTML(){
            l'identité de la ligne en tête (« 24 pistes reçues »), ce qui
            se perd en bout est le canal. La proximité reste tenue au
            poste par la colonne de gauche, large de 550 px, pas de 1000. */
+        /* `.ec-quoi` n'est PAS un emballage décoratif : c'est lui qui
+           porte la seule vraie différence entre les deux surfaces.
+           Au pouce il reste `inline` — « Léa · 12 pistes » forme une
+           seule phrase qui plie, parce qu'une rangée de 332 px ne tient
+           pas quatre colonnes. Au poste il passe en `display:contents`
+           et ses deux enfants deviennent des colonnes du registre. */
         const dedans =
-          `<b>${ic(x.sens === 'donne' ? 'share' : 'inbox', 'ic-14')} ${esc(phrase)}</b>
+          `<span class="ec-dir">${esc(sens)}</span>
+           <span class="ec-quoi"><span class="ec-avec">${esc(avec)}</span>
+             <span class="ec-n">${esc(compte)}</span></span>
            <span class="ec-when">${quand(x.t)}</span>`;
         /* Le chevron ne se pose que sur les lignes qui MÈNENT quelque
            part : les anciennes entrées, qui n'ont pas gardé leurs

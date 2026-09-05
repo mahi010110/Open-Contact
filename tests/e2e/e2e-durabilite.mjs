@@ -360,8 +360,25 @@ else console.log(`à l'écran         : ${vues.length} pistes relues (${vues.joi
    `listDocs()` attrape ses erreurs et rend `[]` — une base perdue
    s'afficherait « aucun document » sans un mot, et prouver que les
    octets sont là ne consolerait personne. */
-const docsVus = await p.evaluate(async () =>
-  (await import('./ui/docs.js')).listDocs().then(l => l.map(d => d.key))).catch(() => []);
+/* ET ON ATTEND L'ÉVÉNEMENT ICI AUSSI. Ce contrôle interrogeait UNE
+   fois, juste après celui des pistes — qui, lui, avait appris à
+   boucler. C'était la même course déguisée, à dix lignes d'écart, et
+   elle mordait : deux échecs sur cinq passages, toujours sur cette
+   ligne, le jour où deux fichiers précachés ont grossi assez pour
+   décaler l'amorçage de quelques dizaines de millisecondes.
+   Le piège est PIRE ici que pour les pistes, et le commentaire du
+   dessous le dit déjà sans en tirer la conséquence : `listDocs()`
+   attrape ses erreurs et rend `[]`. Une base pas encore ouverte est
+   donc indiscernable d'une base perdue — la garde la plus chère du
+   produit criait au loup une fois sur deux, et une garde qu'on
+   n'écoute plus ne garde plus rien. */
+let docsVus = [];
+for (let i = 0; i < 40; i++){
+  docsVus = await p.evaluate(async () =>
+    (await import('./ui/docs.js')).listDocs().then(l => l.map(d => d.key))).catch(() => []);
+  if (docsVus.length >= DOCS.length) break;
+  await new Promise(r => setTimeout(r, 400));
+}
 const docsAbsents = DOCS.map(d => d.key).filter(k => !docsVus.includes(k));
 if (docsAbsents.length)
   fail(`documents stockés mais PAS RELUS par l’app : ${docsAbsents.join(', ')}`);

@@ -290,12 +290,22 @@ if (apres.ouvrables !== 9 || apres.muettes.length !== 1)
    Et une ligne se retire, avec le motif de l'app — glisser au pouce,
    poubelle au survol, « Annuler » à la place d'une confirmation. */
 const poids = await page.evaluate(() => {
-  const b = document.querySelector('.ec-row b');
+  /* LE PLUS LOURD DE LA RANGÉE, pas un élément nommé. La version d'avant
+     lisait `.ec-row b` : le jour où l'anatomie de la ligne a changé, le
+     sélecteur n'a plus rien trouvé et le scénario est mort sur un
+     `getComputedStyle(null)` — un garde qui tombe en panne au lieu de
+     juger. On relève donc le poids MAXIMAL parmi ce qui porte du texte
+     dans la ligne : la règle (« un journal ne pèse pas comme un titre »)
+     ne dépend d'aucun nom de classe, donc elle survit au prochain
+     dessin. */
+  const dans = [...document.querySelectorAll('.ec-row *')]
+    .filter(n => n.textContent.trim() && !n.querySelector('*'));
   const g = document.querySelector('.hero2 .btn.hero span, .hero2 .btn.hero');
-  return { fil: +getComputedStyle(b).fontWeight,
+  return { fil: dans.length ? Math.max(...dans.map(n => +getComputedStyle(n).fontWeight)) : 0,
            geste: g ? +getComputedStyle(g).fontWeight : 0,
            poubelle: !!document.querySelector('.ec-l .hov-del') };
 });
+if (!poids.fil) fail('le relevé du poids du fil ne trouve plus aucun texte — le contrôle ne contrôle rien');
 if (poids.fil >= 600)
   fail(`le fil pèse ${poids.fil} — un journal ne porte pas le gras d'un titre, il raconte ce qui est fait`);
 else if (poids.fil >= poids.geste)
@@ -309,11 +319,18 @@ else {
      faisait pointer toutes les lignes sur la même entrée du journal
      passait sans broncher — on supprimait une ligne, c'en était une
      autre qui partait, et le compte tombait quand même de un. */
-  const [premier, second] = await page.evaluate(() =>
-    [...document.querySelectorAll('.ec-row b')].slice(0, 2).map(b => b.textContent.trim()));
+  /* Une ligne se nomme par SON TEXTE ENTIER, pas par un enfant choisi.
+     La version d'avant lisait `.ec-row b` : elle a cessé de désigner
+     quoi que ce soit le jour où la rangée s'est réorganisée en
+     colonnes, et le scénario est mort au lieu de juger. Le texte de la
+     rangée, lui, reste son identité quel que soit son dessin. */
+  const nomDeLigne = () => [...document.querySelectorAll('.ec-row')]
+    .map(n => n.textContent.replace(/\s+/g, ' ').trim());
+  const [premier, second] = (await page.evaluate(nomDeLigne)).slice(0, 2);
+  if (!premier || !second) fail('le fil ne rend plus de lignes nommables — le contrôle ne contrôle rien');
   await page.evaluate(() => document.querySelector('.ec-l .hov-del').click());
   await page.waitForFunction(n => document.querySelectorAll('.ec-l').length === n - 1, avant);
-  const tete = await page.evaluate(() => document.querySelector('.ec-row b').textContent.trim());
+  const tete = (await page.evaluate(nomDeLigne))[0];
   if (tete !== second)
     fail(`la ligne supprimée n'est pas celle qu'on a désignée : « ${premier} » visée, `
       + `« ${tete} » en tête au lieu de « ${second} »`);
@@ -325,7 +342,7 @@ else {
   await page.waitForFunction(n => document.querySelectorAll('.ec-l').length === n, avant);
   /* « Annuler » remet la ligne À SA PLACE, pas à la fin : sinon le fil
      se réordonnerait tout seul sous les yeux */
-  const rendu = await page.evaluate(() => document.querySelector('.ec-row b').textContent.trim());
+  const rendu = (await page.evaluate(nomDeLigne))[0];
   if (rendu !== premier)
     fail(`« Annuler » a remis la ligne ailleurs (« ${rendu} » au lieu de « ${premier} »)`);
   else console.log(`fil : poids ${poids.fil} contre ${poids.geste} aux gestes, `
@@ -1795,7 +1812,9 @@ for (const [quoi, titre] of [['donner', 'Donner'], ['prospect', 'Prospecter']]){
     return { dates: q.map(n => ({ txt: n.textContent.trim(),
                droite: Math.round(n.getBoundingClientRect().right),
                coupe: n.scrollWidth > n.clientWidth + 1 })),
-             canalLong: [...document.querySelectorAll('.ec-row>b')]
+             /* la sonde lit la RANGÉE, pas un enfant nommé : le canal
+                long peut vivre dans n'importe laquelle de ses colonnes */
+             canalLong: [...document.querySelectorAll('.ec-row')]
                .some(n => /le groupe|Marie-Charlotte/.test(n.textContent)) };
   });
   const coupees = d.dates.filter(x => x.coupe || !x.txt);
@@ -1810,6 +1829,185 @@ for (const [quoi, titre] of [['donner', 'Donner'], ['prospect', 'Prospecter']]){
     fail(`fil : les dates ne tiennent pas une colonne (${bords.size} bords droits : ${[...bords].join(', ')})`);
   else console.log(`fil : ${d.dates.length} dates entières, une seule colonne à x=${[...bords][0]} ✓`);
   await dCtx.close();
+}
+
+/* ---------- LE FIL : LA TÊTE DE LIGNE PORTE CE QUI DISTINGUE ----------
+   Relevé sur l'écran réel : les huit têtes étaient « 12 pistes », « 3
+   pistes », « 7 pistes », « 24 pistes »… — un nombre, puis le même mot,
+   huit fois de suite. NN/g (*The Anatomy of a List Entry*) et §6 règle 1
+   demandent l'inverse, et donnent le contrôle qui tranche : COMPARER
+   DEUX LIGNES VOISINES. Si leurs têtes se ressemblent, la mauvaise
+   chose est mise en avant. Ce qui distingue deux échanges, c'est avec
+   QUI — Léa, le groupe, Awa — ou par QUOI — QR, fichier ; et c'était
+   écrit en fin de phrase, donc dans la zone qui s'élide la première.
+
+   Trois choses se gardent ici, et aucune n'était mesurée :
+   ① la tête ne commence pas par le compte, et la valeur distinctive
+     porte l'encre la plus sombre de la rangée ;
+   ② le nom ne CASSE JAMAIS un mot, à aucune taille — c'est ce que le
+     plancher de 6 rem achète, et sans lui « Léa » rendait L / é / a ;
+   ③ au poste, la colonne des comptes est alignée ET ses chiffres le
+     sont : c'est la seule raison d'être du registre, et elle tient à
+     un détail (la date à largeur fixe) qu'une retouche peut défaire
+     sans que rien ne se voie. */
+{
+  const graine = async (pg) => {
+    await pg.goto(base, { waitUntil: 'load' });
+    await pg.evaluate(async () => {
+      const st = await import('./engine/storage.js');
+      await st.kvInit();
+      const j = Date.now();
+      await st.kvSet(st.JOURNAL_KEY, JSON.stringify([
+        { t: j - 1 * 36e5, txt: 'Reçu de Léa : +12 piste(s)', ids: ['a'] },
+        { t: j - 26 * 36e5, txt: 'Donné (QR) : 3 piste(s)', ids: ['a'] },
+        { t: j - 50 * 36e5, txt: 'Reçu du groupe : +7 piste(s)', ids: ['a'] },
+        { t: j - 74 * 36e5, txt: 'Donné (fichier) : 24 piste(s)', ids: ['a'] },
+        { t: j - 99 * 36e5, txt: 'Reçu de Marie-Charlotte : +2 piste(s)', ids: ['a'] },
+        { t: j - 130 * 36e5, txt: 'Donné (fichier) : 100 piste(s)', ids: ['a'] }
+      ]));
+      await st.kvSet(st.DATA_KEY, JSON.stringify([{ id: 'a', name: 'Adrastia', status: 'todo', updatedAt: 1 }]));
+    });
+    await pg.goto(base + '/#/echanger');
+    await pg.reload({ waitUntil: 'load' });
+    /* ON ATTEND LA LIGNE, PAS SA COLONNE. Attendre `.ec-avec` faisait
+       MOURIR le scénario quand l'anatomie disparaissait — c'est-à-dire
+       précisément le défaut que le bloc suivant existe pour nommer.
+       Un garde qui tombe en panne ne garde rien : il attend ce qui
+       existe toujours, et il JUGE ce qui peut manquer. */
+    await pg.waitForSelector('.ec-l', { timeout: 8000 });
+  };
+  /* un mot est CASSÉ si la boîte qui le met en page est plus étroite que
+     lui. On lit la boîte qui met VRAIMENT en page — `.ec-quoi` au pouce,
+     `.ec-avec` au poste, que `display:contents` promeut en élément flex :
+     un span inline rend `clientWidth` 0, ce qui rendait la première
+     version de ce détecteur vraie partout, donc muette. */
+  const CASSE = () => {
+    const out = [];
+    const mes = document.createElement('span');
+    mes.style.cssText = 'position:absolute;visibility:hidden;white-space:pre';
+    document.body.append(mes);
+    for (const l of document.querySelectorAll('.ec-l')){
+      const nom = l.querySelector('.ec-avec');
+      if (!nom) continue;
+      const boite = [nom, l.querySelector('.ec-quoi')].find(n => n && n.clientWidth > 0);
+      if (!boite) continue;
+      mes.style.font = getComputedStyle(nom).font;
+      let pire = 0, mot = '';
+      for (const m of nom.textContent.trim().split(/\s+/)){
+        mes.textContent = m;
+        const w = mes.getBoundingClientRect().width;
+        if (w > pire){ pire = w; mot = m; }
+      }
+      if (boite.clientWidth + 0.5 < pire) out.push(mot + ' (' + Math.round(pire) + 'px dans ' + boite.clientWidth + ')');
+    }
+    mes.remove();
+    return out;
+  };
+
+  /* ① la tête, au pouce */
+  {
+    const c = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true });
+    const pg = await c.newPage();
+    pg.on('pageerror', e => errors.push(String(e)));
+    await graine(pg);
+    const t = await pg.evaluate(() => {
+      const lum = s => { const [r,g,b] = (s.match(/\d+/g)||[0,0,0]).slice(0,3).map(Number);
+        return 0.2126*r + 0.7152*g + 0.0722*b; };
+      return [...document.querySelectorAll('.ec-l')].map(l => {
+        const a = l.querySelector('.ec-avec'), n = l.querySelector('.ec-n');
+        return {
+          avec: a ? a.textContent.trim() : null,
+          encreAvec: a ? lum(getComputedStyle(a).color) : 0,
+          encreN: n ? lum(getComputedStyle(n).color) : 0
+        };
+      });
+    });
+    if (t.length < 5) fail(`fil : ${t.length} ligne(s) — trop peu pour comparer des voisines`);
+    else if (t.some(x => x.avec === null))
+      fail('fil : une ligne ne porte plus de colonne distinctive — l’anatomie a été défaite');
+    else {
+      /* C'EST LA COLONNE DISTINCTIVE QU'ON INSPECTE, PAS LA RANGÉE. La
+         première version lisait le texte de la rangée entière : il
+         commence par « Reçu » ou « Donné », donc jamais par un chiffre,
+         et le contrôle était vrai quoi qu'il arrive. Mesuré par mutation
+         — remettre le compte en tête, c'est-à-dire le défaut même que ce
+         bloc existe pour garder, passait au vert. */
+      const chiffree = t.filter(x => /^\d/.test(x.avec));
+      if (chiffree.length)
+        fail(`fil : ${chiffree.length} ligne(s) dont la tête commence par le compte — elle doit `
+          + `porter ce qui DISTINGUE, pas ce qui se répète (« ${chiffree[0].avec}… »)`);
+      /* deux voisines ne se ressemblent pas : c'est le contrôle même de §6 */
+      const jumelles = t.slice(1).filter((x, i) => x.avec && x.avec === t[i].avec).length;
+      if (jumelles > 1)
+        fail(`fil : ${jumelles} paires de voisines ont la même tête — la mauvaise chose est mise en avant`);
+      /* l'encre va à ce qui change : le nom plus sombre que le compte */
+      const pale = t.filter(x => x.encreAvec >= x.encreN);
+      if (pale.length)
+        fail(`fil : sur ${pale.length} ligne(s), le compte est aussi sombre que le nom — `
+          + 'l’encre doit aller à ce qui distingue (§6, règle 1)');
+      if (!chiffree.length && jumelles <= 1 && !pale.length)
+        console.log(`fil : ${t.length} têtes de ligne portent ce qui distingue, l’encre y va ✓`);
+    }
+    await c.close();
+  }
+
+  /* ② aucun mot cassé, nulle part */
+  {
+    const vus = [];
+    for (const [w, h, pc] of [[320,640,100],[320,640,125],[320,640,200],[360,640,150],
+                              [390,844,200],[1280,800,200]]){
+      const c = await browser.newContext({ viewport: { width: w, height: h },
+        hasTouch: w < 901, isMobile: w < 901 });
+      const pg = await c.newPage();
+      pg.on('pageerror', e => errors.push(String(e)));
+      await graine(pg);
+      if (pc !== 100) await pg.evaluate(f => { document.documentElement.style.fontSize = f + 'px'; },
+        Math.round(16 * pc / 100));
+      await pg.waitForTimeout(250);
+      for (const m of await pg.evaluate(CASSE)) vus.push(`${w}px/${pc}% : ${m}`);
+      await c.close();
+    }
+    if (vus.length)
+      fail('fil : le nom se fait casser au milieu d’un mot — le plancher de la colonne a sauté —\n      '
+        + vus.join('\n      '));
+    else console.log('fil : le nom ne casse aucun mot, de 320 à 1280 px et jusqu’à 200 % ✓');
+  }
+
+  /* ③ le registre du poste : colonnes ET chiffres alignés */
+  {
+    const c = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+    const pg = await c.newPage();
+    pg.on('pageerror', e => errors.push(String(e)));
+    await graine(pg);
+    const r = await pg.evaluate(() => {
+      const uniq = a => [...new Set(a)];
+      const droit = sel => uniq([...document.querySelectorAll('.ec-l ' + sel)]
+        .map(n => Math.round(n.getBoundingClientRect().right)));
+      /* les CHIFFRES, pas la cellule : c'est le mono qui les aligne, et
+         c'est ce qui rend deux comptes comparables d'un coup d'œil */
+      const chiffres = uniq([...document.querySelectorAll('.ec-l .ec-n')].map(e => {
+        const m = (e.textContent.match(/^\d+/) || [''])[0];
+        if (!m) return null;
+        const rg = document.createRange();
+        rg.setStart(e.firstChild, 0); rg.setEnd(e.firstChild, m.length);
+        return Math.round(rg.getBoundingClientRect().right);
+      }).filter(x => x !== null));
+      return { n: droit('.ec-n'), dates: droit('.ec-when'), chiffres,
+               lignes: document.querySelectorAll('.ec-l').length };
+    });
+    if (r.lignes < 5) fail(`fil au poste : ${r.lignes} ligne(s) — trop peu pour prouver un alignement`);
+    else if (r.n.length !== 1)
+      fail(`fil au poste : la colonne des comptes n’est pas alignée (${r.n.length} bords droits : `
+        + `${r.n.join(', ')}) — une date à largeur variable la pousse`);
+    else if (r.chiffres.length !== 1)
+      fail(`fil au poste : les chiffres ne s’alignent pas (${r.chiffres.join(', ')}) — `
+        + 'le registre ne se compare plus d’un coup d’œil');
+    else if (r.dates.length !== 1)
+      fail(`fil au poste : les dates ne tiennent pas une colonne (${r.dates.join(', ')})`);
+    else console.log(`fil au poste : comptes et chiffres alignés à x=${r.n[0]} / ${r.chiffres[0]}, `
+      + `dates à x=${r.dates[0]} ✓`);
+    await c.close();
+  }
 }
 
 /* ---------- « MES APPAREILS » : PLUS D'ŒIL ----------
@@ -2738,7 +2936,9 @@ if (IA){
   const fil = await lp.evaluate(() => [...document.querySelectorAll('#view-echanger .ec-l')]
     .map(l => ({ large: Math.round(l.getBoundingClientRect().width),
                  date: !!l.querySelector('.ec-when'),
-                 texte: !!l.querySelector('.ec-row > b') })));
+                 /* « la ligne porte du texte » se vérifie sur la rangée
+                    elle-même : un sélecteur d'enfant fige un dessin */
+                 texte: !!(l.querySelector('.ec-row')?.textContent || '').trim() })));
   if (!fil.length) fail('fil : aucune ligne — le contrôle ne mesure plus rien');
   else if (fil.some(x => !x.date || !x.texte)) fail('fil : une ligne a perdu sa date ou sa phrase');
   else if (fil.some(x => x.large > LIGNE_MAX))
