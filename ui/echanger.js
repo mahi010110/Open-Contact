@@ -86,11 +86,43 @@ function openEchange(x){
   bindContenu(sh.body, () => sh.close());
 }
 
-/* le fil montre 8 lignes, comme les autres listes de l'app — et,
-   comme elles, il se déplie d'un tap. Il ne le faisait pas : le
-   compte de l'en-tête annonçait douze échanges au-dessus de huit
-   lignes, sans rien pour aller voir les quatre autres. */
-const FIL_CAP = 8;
+/* ---- LE FIL DÉFILE, IL NE SE PAGINE PAS ----
+   Il s'arrêtait à 8 lignes et offrait « Voir les N autres ». Le geste
+   était juste — le compte de l'en-tête annonçait douze échanges
+   au-dessus de huit lignes, il fallait bien un chemin vers les quatre
+   autres — mais le PLAFOND, lui, était emprunté à un voisin dont ce
+   n'était pas la situation.
+
+   Deux différences, et elles décident :
+   ① `today.js` plafonne à 8 parce que plusieurs tranches partagent UN
+     seul défilement : sans plafond, « En retard » enterrerait
+     « Bientôt ». `pistes.js` plafonne à 60 pour une raison mesurée —
+     2 000 lignes gelaient l'écran 250 ms à chaque frappe. Le fil, lui,
+     est SEUL dans sa propre région défilante (`.ec-body`), et les deux
+     verbes vivent en dehors, épinglés sous elle : le plafond ne
+     protégeait donc rien. Un bouton « voir plus » posé dans une boîte
+     qui défile déjà fait remonter le doigt pour rouvrir ce que le
+     défilement allait chercher tout seul.
+   ② Il se déclenchait à 8, très en dessous de tous les seuils publiés.
+     Baymard place le passage à « load more » entre 30 et 70 articles
+     (10 à 30 au premier écran sur mobile) ; NN/g réserve pagination et
+     « load more » aux listes LONGUES et homogènes qu'on fouille pour y
+     trouver un élément précis — leur bénéfice est de dire où l'on en
+     est et ce qu'il reste à faire. Ici la liste est courte, finie,
+     chronologique, et l'ascenseur dit déjà tout ça honnêtement (c'est
+     la différence entre une liste complète dans une région bornée et
+     un défilement infini, que NN/g reproche justement de mentir sur la
+     longueur restante).
+
+   Le plafond ne disparaît pas pour autant : il redevient ce qu'il est
+   chez `pistes.js`, un garde-fou de PERFORMANCE, et il se pose là où la
+   mesure le demande. Relevé sur cet écran, rendu complet du fil :
+   10 lignes → 4 ms · 50 → 8 ms · 200 → 65 ms · 500 → 200 ms — et un
+   téléphone d'entrée de gamme multiplie ça par quatre à huit. 50 tient
+   dans la bande que Baymard recommande et laisse le bouton invisible
+   pour qui a une vie normale : un étudiant fait quelques dizaines
+   d'échanges sur toute sa recherche, pas cinquante. */
+const FIL_CAP = 50;
 let filDeplie = false;
 /* Au poste, la ligne retenue et son contenu vivent CÔTE À CÔTE (motif
    liste-détail : Material 3 « list-detail », Apple HIG « split view »).

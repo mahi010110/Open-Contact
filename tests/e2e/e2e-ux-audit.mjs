@@ -271,18 +271,68 @@ const fil = await page.evaluate(() => ({
   more: document.querySelector('#ecMore')?.textContent || '',
   hauteur: Math.round(document.querySelector('.ec-row').getBoundingClientRect().height)
 }));
-if (fil.lignes !== 8 || !/Voir les 2 autres/.test(fil.more))
-  fail('le fil ne se plafonne pas à 8 avec sa suite : ' + JSON.stringify(fil));
+/* LE FIL DÉFILE, IL NE SE PAGINE PAS. Il s'arrêtait à 8 lignes avec un
+   « Voir les N autres » — un bouton « voir plus » posé DANS une boîte
+   qui défile déjà, et déclenché très en dessous de tous les seuils
+   publiés (Baymard place le passage à « load more » entre 30 et 70).
+   Dix échanges se rendent donc en entier, et c'est l'ascenseur du
+   panneau qui fait le travail. */
+if (fil.lignes !== 10)
+  fail(`le fil rend ${fil.lignes} ligne(s) sur 10 — sous le plafond, la liste est ENTIÈRE`);
+if (fil.more)
+  fail('le fil propose « voir plus » pour dix échanges — le défilement du panneau y suffit : ' + fil.more);
 if (fil.badge !== '10') fail('le compte de l’en-tête ne dit pas le total : ' + fil.badge);
 if (fil.hauteur < 44) fail('une ligne qui s’ouvre doit faire 44 px au pouce : ' + fil.hauteur);
-await page.click('#ecMore');
-await page.waitForFunction(() => document.querySelectorAll('.ec-row').length === 10);
+/* une entrée d'avant le champ `ids` ne promet pas une ouverture */
 const apres = await page.evaluate(() => ({
   ouvrables: document.querySelectorAll('button.ec-row').length,
   muettes: [...document.querySelectorAll('div.ec-row')].map(n => n.textContent.replace(/\s+/g, ' ').trim())
 }));
 if (apres.ouvrables !== 9 || apres.muettes.length !== 1)
   fail('une entrée sans identifiants ne doit pas promettre une ouverture : ' + JSON.stringify(apres));
+/* ET LE PLAFOND EXISTE ENCORE, pour la raison de `pistes.js` : la
+   performance. Mesuré sur cet écran — 50 lignes 8 ms, 500 lignes
+   200 ms, et un téléphone d'entrée de gamme multiplie par quatre à
+   huit. Sans ce second relevé, on aurait pu le retirer tout à fait
+   sans que rien ne bronche. */
+{
+  const gros = await page.evaluate(async () => {
+    const st = await import('./engine/storage.js');
+    const now = Date.now();
+    await st.kvSet(st.JOURNAL_KEY, JSON.stringify(
+      Array.from({ length: 60 }, (_, i) => ({
+        t: now - (i + 1) * 36e5, txt: 'Donné (fichier) : 1 piste(s)', ids: ['avec-mail'] }))));
+    return true;
+  });
+  if (gros){
+    await page.reload({ waitUntil: 'load' });
+    await page.waitForSelector('.ec-row');
+    const c = await page.evaluate(() => ({
+      lignes: document.querySelectorAll('.ec-row').length,
+      more: document.querySelector('#ecMore')?.textContent || ''
+    }));
+    if (c.lignes !== 50 || !/Voir les 10 autres/.test(c.more))
+      fail('au-delà du plafond, le fil doit s’arrêter à 50 et offrir la suite : ' + JSON.stringify(c));
+    else console.log('fil : 10 échanges rendus en entier ; à 60, plafond à 50 et la suite s’ouvre ✓');
+  }
+  /* ON REND L'ÉTAT QU'ON A EMPRUNTÉ. Ce relevé écrit soixante entrées
+     dans le journal ; les contrôles suivants comptent sur les dix du
+     début, et le scénario mourait dessus en attendant une ligne qui ne
+     venait pas. Un contrôle qui laisse le terrain sali fait échouer son
+     voisin, et c'est le voisin qu'on va chercher. */
+  await page.evaluate(async () => {
+    const st = await import('./engine/storage.js');
+    const h = 3600000, now = Date.now();
+    const j = [{ t: now - 40 * h, txt: 'Donné (QR) : 3 piste(s)' }];
+    for (let i = 0; i < 8; i++)
+      j.push({ t: now - (30 - i) * h, txt: 'Donné (fichier) : 1 piste(s)', ids: ['avec-mail'] });
+    j.push({ t: now - h, txt: 'Reçu de Marco : +2 piste(s), 0 complétée(s)',
+      ids: ['sans-mail', 'disparue-depuis'] });
+    await st.kvSet(st.JOURNAL_KEY, JSON.stringify(j));
+  });
+  await page.reload({ waitUntil: 'load' });
+  await page.waitForSelector('.ec-row');
+}
 /* LE FIL EST UN JOURNAL, PAS UN TITRE. Il portait le même gras qu'un
    nom de piste et pesait donc autant que les deux gestes qu'il
    surplombe — alors qu'il raconte ce qui est DÉJÀ fait. Deux ou trois

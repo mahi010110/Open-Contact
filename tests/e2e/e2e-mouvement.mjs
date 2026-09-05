@@ -64,12 +64,15 @@ async function prepare(ctx){
   await p.evaluate(async d => {
     const st = await import('./engine/storage.js');
     await st.kvInit(); await st.kvSet(st.DATA_KEY, JSON.stringify(d));
-    /* de quoi remplir le fil d'« Échanger » : dix échanges, donc deux
-       de plus que le plafond de huit — sans eux « Voir les 2 autres »
-       n'existe pas et le geste ne se joue pas */
+    /* de quoi remplir le fil d'« Échanger » AU-DELÀ de son plafond.
+       Il valait huit ; il vaut cinquante depuis qu'on a cessé de
+       paginer une liste courte posée dans une région qui défile déjà —
+       le plafond n'est plus qu'un garde-fou de performance. Il faut
+       donc dépasser CINQUANTE pour que « Voir les N autres » existe et
+       que le geste se joue. */
     const j = Date.now();
     await st.kvSet(st.JOURNAL_KEY, JSON.stringify(
-      Array.from({ length: 10 }, (_, i) => ({
+      Array.from({ length: 55 }, (_, i) => ({
         t: j - (i + 1) * 26e5,
         txt: i % 2 ? 'Donné (QR) : ' + (i + 1) + ' piste(s)'
                    : 'Reçu de Léa : +' + (i + 1) + ' piste(s)',
@@ -198,8 +201,8 @@ const GESTES = [
     await p.waitForSelector('#ecMore', { timeout: 8000 });
     await p.waitForTimeout(300);
     return p.evaluate(() => window.__film(
-      /* la 9ᵉ ligne : elle n'existait pas avant le tap */
-      () => document.querySelectorAll('.ec-l')[8] || null,
+      /* la 51ᵉ ligne : elle n'existait pas avant le tap */
+      () => document.querySelectorAll('.ec-l')[50] || null,
       n => Math.round(getComputedStyle(n).opacity * 100) + '|' + getComputedStyle(n).transform,
       () => document.querySelector('#ecMore').click()));
   }],
