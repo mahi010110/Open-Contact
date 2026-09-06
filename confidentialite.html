@@ -46,7 +46,7 @@ serveur, donc il n'existe nulle part où elles pourraient partir.</p>
 <h2 id="enregistre">Ce qui est enregistré, et où</h2>
 
 <p>Tout est stocké par ton navigateur, sur l'appareil que tu utilises, comme
-un fichier sur ton disque. Nous n'y avons pas accès.</p>
+un fichier sur ton disque. Personne d'autre n'y a accès.</p>
 
 <ul class="dl">
   <li><b>Tes pistes et tes contacts</b> : noms, adresses, notes.</li>
@@ -91,9 +91,10 @@ service reçoit l'adresse que tu as tapée, et rien d'autre : ni ton nom, ni tes
 pistes, ni un identifiant. Si tu ne saisis pas d'adresse, cet appel n'a jamais
 lieu. Hors ligne, il échoue sans conséquence.</p>
 
-<p>Ces deux pages n'établissent elles-mêmes aucune connexion. Leur politique
-de sécurité (Content-Security-Policy) l'interdit, et elle est visible dans
-leur code source.</p>
+<p>Ces deux pages ne se connectent à aucun service extérieur. Elles ne
+chargent que leur propre feuille de style et leurs polices, depuis le même
+serveur qu'elles. Leur politique de sécurité (Content-Security-Policy)
+interdit tout le reste, et elle est visible dans leur code source.</p>
 
 <h2 id="relais">Ce que voient les relais</h2>
 
@@ -132,9 +133,10 @@ trouve. Le code est public.</p>
 <h2 id="effacer">Tout effacer</h2>
 
 <p>Ce sont tes données, sur ton appareil. Efface le site dans les réglages de
-ton navigateur et il n'en reste rien. Il n'existe aucune copie ailleurs, donc
-rien à nous demander. Pense à télécharger un fichier <code>.oc</code> avant,
-si tu veux retrouver ton suivi plus tard.</p>
+ton navigateur et il n'en reste rien. Comme il n'existe aucune copie
+ailleurs, tu n'as aucune demande de suppression à adresser à qui que ce soit.
+Pense à télécharger un fichier <code>.oc</code> avant, si tu veux retrouver
+ton suivi plus tard.</p>
 
 <h2 id="etablissement">Pour un établissement</h2>
 
@@ -144,7 +146,7 @@ l'étudiant, et les données ne quittent son appareil que par un geste qu'il
 fait lui-même. Le code est public, et les tests qui contrôlent ces règles
 peuvent être rejoués par n'importe qui.</p>
 
-<h2 id="nous-ecrire">Nous écrire</h2>
+<h2 id="poser-une-question">Poser une question</h2>
 
 <p>OpenContact est un projet ouvert, sans support commercial. Pour une
 question sur cette page, un doute ou une erreur à signaler, ouvre un ticket
