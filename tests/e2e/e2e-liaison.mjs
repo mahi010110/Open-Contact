@@ -342,13 +342,22 @@ console.log('sync : « Pas de connexion » affiché sans jargon, Réessayer pré
 }
 
 /* « Réessayer » n'est pas un bouton décoratif : le relais renaît sur le
-   même port, un tap, et la liaison se rétablit réellement */
+   même port, un tap, et la liaison se rétablit réellement.
+   ON EXIGE `vivants`, PAS SEULEMENT `open` — et c'est plus fort qu'avant :
+   depuis qu'un socket ouvert ne suffit plus à faire un relais joint, se
+   contenter de `open >= 1` laisserait passer un relais qui accepte la
+   connexion et se tait, c'est-à-dire exactement la panne d'à côté.
+   Le délai suit la condition : il faut maintenant l'aller-retour complet
+   (socket, abonnement, première réponse) et non la seule ouverture du
+   socket. Trente secondes suffisaient en isolé et tombaient sous la
+   charge de la suite entière ; c'est le délai qui s'ajuste, jamais la
+   condition qu'on affaiblit. */
 const relaisRevenu = await startLocalRelay({ tls: true, port: portMort });
 await E.click('#syRetry');
 await attendre(E, async () => {
   const sy = (await import('./ui/synclive.js')).getSync();
-  return sy.state === 'wait' && sy.relays.open >= 1;
-}, { timeout: 30000, message: 'liaison rétablie après Réessayer' });
+  return sy.state === 'wait' && sy.relays.open >= 1 && sy.relays.vivants >= 1;
+}, { timeout: 60000, message: 'liaison rétablie après Réessayer (relais vivant, pas seulement ouvert)' });
 /* Le moteur reprend AVANT que l'écran le dise : `attendre` ci-dessus rend
    la main sur l'ÉTAT, et le libellé se réécrit au tick suivant, quand
    l'abonné se rejoue. Lu dans la foulée, il portait encore la phrase
