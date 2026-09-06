@@ -92,7 +92,20 @@ else {
 
 const txt = await ouvrirDiag(mPage);
 const lignes = txt.split('\n');
-if (lignes.length !== 5) fail('le rapport doit tenir 5 lignes stables : ' + lignes.length);
+/* SIX LIGNES DEPUIS LE 6 SEPTEMBRE 2026, et la sixième est celle qui
+   manquait le plus. Le rapport ne disait rien du TRANSPORT : quand le
+   partage reste « en attente », ni celui qui est bloqué ni celui qui
+   l'aide ne pouvait savoir si les relais étaient joints, muets, ou si
+   c'était le réseau. C'est précisément la panne qu'on ne peut pas voir
+   à distance, donc précisément celle qu'un rapport doit porter.
+   Elle n'a pas été fondue dans la ligne « Stockage » : celle-ci porte
+   déjà quatre valeurs et passerait à deux rangs sur un téléphone, ce
+   qui coûte plus qu'une ligne de plus. Ce que le format promet reste
+   tenu — une ligne par sujet, toujours les mêmes, et tout se lit sans
+   défiler (vérifié plus bas). */
+if (lignes.length !== 6) fail('le rapport doit tenir 6 lignes stables : ' + lignes.length);
+if (!/^Transport : \d+ relais · \d+ joint\(s\) · \d+ qui répond\(ent\)$/.test(lignes[3]))
+  fail('la ligne de transport manque ou a changé de forme : ' + lignes[3]);
 if (/\d+\.\d+\.\d+/.test(txt)) fail('plus aucun numéro de version dans le rapport');
 if (lignes[0] !== 'Appareil : Chrome 130 · Android · 390×844 · fr-FR')
   fail('l’appareil réel ouvre le rapport, tel quel : ' + lignes[0]);
@@ -127,7 +140,7 @@ if (feuille.pied.length !== 1 || feuille.pied[0] !== 'Copier')
   fail('un seul bouton « Copier » : ' + JSON.stringify(feuille.pied));
 if (/github|issue/i.test(feuille.mots))
   fail('la feuille ne nomme aucun hébergeur — le dépôt déménagera, elle non');
-console.log('téléphone : ligne à 44 px, 5 lignes, rien de personnel, copie fidèle ✓');
+console.log('téléphone : ligne à 44 px, 6 lignes dont le transport, rien de personnel, copie fidèle ✓');
 
 await mPage.evaluate(async () => (await import('./ui/dom.js')).topSheet()?.close());
 
@@ -166,7 +179,7 @@ const rendues = await dPage.evaluate(() => {
   r.selectNodeContents(document.querySelector('.diag'));
   return new Set([...r.getClientRects()].map(x => Math.round(x.top))).size;
 });
-if (rendues !== 5) fail('au poste, le rapport doit tenir cinq lignes : ' + rendues);
+if (rendues !== 6) fail('au poste, le rapport doit tenir six lignes : ' + rendues);
 
 /* AUCUNE sortie vers un hébergeur : le dépôt déménagera, l'écran non.
    Ce contrôle est le garde-fou de cette promesse — il rougit le jour
@@ -178,7 +191,7 @@ const src = await (await fetch(base + '/ui/diagnostic.js')).text();
 if (/github|http/i.test(src)) fail('une adresse en dur est revenue dans ui/diagnostic.js');
 await dPage.waitForTimeout(350);
 await dPage.screenshot({ path: SHOTS + '/91-diagnostic-desktop.png' });
-console.log('ordinateur : même porte, cinq lignes non repliées, aucune adresse en dur ✓');
+console.log('ordinateur : même porte, six lignes non repliées, aucune adresse en dur ✓');
 await dCtx.close();
 
 console.log(errors.length ? 'Erreurs console : ' + errors.join(' | ') : 'Zéro erreur console.');

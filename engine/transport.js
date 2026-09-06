@@ -47,15 +47,32 @@ export const RELAIS_DEFAUT = [
   'wss://purplerelay.com'
 ];
 
-/* compte les WebSockets de relais par état (readyState 0/1) */
-export function relayTally(socks){
-  const t = { total: 0, open: 0, pending: 0 };
+/* compte les WebSockets de relais par état (readyState 0/1), et — c'est
+   la moitié qui manquait — combien ont RÉELLEMENT répondu.
+
+   UN SOCKET OUVERT N'EST PAS UN RELAIS QUI MARCHE. C'est l'erreur de
+   l'incident #14 refaite un étage plus bas : là on déduisait « à jour »
+   de la simple création de la salle, ici on déduisait « relais joint »
+   de `readyState === 1`. Un relais qui accepte la connexion puis ne
+   relaie rien comptait donc comme joint, et l'écran affichait « En
+   attente de ton autre appareil » indéfiniment — c'est-à-dire qu'il
+   accusait le pair absent d'une panne qui n'était pas la sienne, et
+   invitait à patienter devant quelque chose qui n'arriverait jamais.
+
+   `repondu` est l'ensemble des relais dont on a reçu au moins un
+   message. Absent, on ne conclut RIEN : `vivants` vaut `open`, et
+   personne n'est accusé — un appelant qui ne sait pas ne doit pas
+   faire dire à cette fonction ce qu'il ignore. */
+export function relayTally(socks, repondu){
+  const t = { total: 0, open: 0, pending: 0, vivants: 0 };
   for (const k in (socks || {})){
     const s = socks[k];
     if (!s) continue;
     t.total++;
-    if (s.readyState === 1) t.open++;
-    else if (s.readyState === 0) t.pending++;
+    if (s.readyState === 1){
+      t.open++;
+      if (!repondu || repondu.has(k)) t.vivants++;
+    } else if (s.readyState === 0) t.pending++;
   }
   return t;
 }
@@ -65,7 +82,7 @@ export function relayTally(socks){
    · link       — pair connecté, premier échange pas encore arrivé
    · norelay    — aucun relais joignable passé le délai de grâce
    · rtcfail    — un pair s'est annoncé mais la liaison directe échoue
-   · wait       — relais joints, personne en face pour l'instant
+   · wait       — relais joints ET vivants, personne en face pour l'instant
    · connecting — tout le reste (démarrage, relais en cours) */
 export function liaisonStage({ relays, peers, exchanged, rtcFail, graceOver }){
   if (peers > 0) return exchanged ? 'on' : 'link';
@@ -73,6 +90,15 @@ export function liaisonStage({ relays, peers, exchanged, rtcFail, graceOver }){
   if (r.total && !r.open) return graceOver ? 'norelay' : 'connecting';
   if (rtcFail) return 'rtcfail';
   if (!r.total || !r.open) return 'connecting';
+  /* DES SOCKETS OUVERTS, MAIS PAS UN RELAIS QUI RÉPONDE. Ce n'est pas
+     « personne en face » : c'est le transport qui est muet, et attendre
+     n'y changera rien. On rend `norelay`, donc le même message et le
+     même remède que « pas de connexion » — deux états qui appellent le
+     MÊME geste se disent pareil (c'est la décision déjà écrite dans
+     `ui/direct.js`), et ce qui les sépare vit dans le diagnostic, là où
+     ça sert à réparer. */
+  const vivants = r.vivants === undefined ? r.open : r.vivants;
+  if (!vivants) return graceOver ? 'norelay' : 'connecting';
   return 'wait';
 }
 

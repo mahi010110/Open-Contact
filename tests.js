@@ -307,12 +307,37 @@ export async function runSelfTests(){
     },
 
     /* — l'état honnête d'une liaison P2P (incident #14) — */
-    'transport : relayTally compte les sockets par état': () => {
-      eq(relayTally(null), { total: 0, open: 0, pending: 0 });
-      eq(relayTally({}), { total: 0, open: 0, pending: 0 });
-      eq(relayTally({
-        a: { readyState: 1 }, b: { readyState: 0 }, c: { readyState: 3 }, d: null
-      }), { total: 3, open: 1, pending: 1 });
+    'transport : relayTally compte les sockets par état, ET ceux qui répondent': () => {
+      eq(relayTally(null), { total: 0, open: 0, pending: 0, vivants: 0 });
+      eq(relayTally({}), { total: 0, open: 0, pending: 0, vivants: 0 });
+      const socks = { a: { readyState: 1 }, b: { readyState: 0 }, c: { readyState: 3 }, d: null };
+      /* SANS PREUVE, ON N'ACCUSE PERSONNE : un appelant qui ne sait pas
+         qui a répondu ne doit pas faire dire à cette fonction que les
+         relais sont muets. `vivants` vaut alors `open`. */
+      eq(relayTally(socks), { total: 3, open: 1, pending: 1, vivants: 1 });
+      /* AVEC la preuve : un socket ouvert qui n'a jamais parlé n'est
+         pas un relais qui marche. C'est la panne qui laissait l'écran
+         sur « En attente de ton autre appareil », indéfiniment. */
+      eq(relayTally(socks, new Set()), { total: 3, open: 1, pending: 1, vivants: 0 });
+      eq(relayTally(socks, new Set(['a'])), { total: 3, open: 1, pending: 1, vivants: 1 });
+      /* un relais qui a répondu mais dont le socket est retombé ne
+         compte pas : c'est `readyState` qui commande l'ouverture */
+      eq(relayTally({ z: { readyState: 3 } }, new Set(['z'])),
+         { total: 1, open: 0, pending: 0, vivants: 0 });
+    },
+    'transport : des sockets ouverts mais muets ne sont pas une attente': () => {
+      const base = { peers: 0, exchanged: false, rtcFail: false, graceOver: true };
+      /* sept relais joints, aucun qui parle : attendre n'y changera
+         rien, donc on dit la panne au lieu d'accuser le pair absent */
+      eq(liaisonStage({ ...base, relays: { total: 9, open: 7, vivants: 0 } }), 'norelay');
+      /* avant le délai de grâce, on ne crie pas au loup */
+      eq(liaisonStage({ ...base, graceOver: false, relays: { total: 9, open: 7, vivants: 0 } }),
+         'connecting');
+      /* un seul relais qui répond suffit à rendre l'attente honnête */
+      eq(liaisonStage({ ...base, relays: { total: 9, open: 7, vivants: 1 } }), 'wait');
+      /* et un pair connecté prime sur tout le reste */
+      eq(liaisonStage({ ...base, peers: 1, exchanged: true,
+        relays: { total: 9, open: 7, vivants: 0 } }), 'on');
     },
     'transport : la salle seule ne vaut jamais « à jour »': () => {
       const base = { relays: { total: 5, open: 0 }, peers: 0, exchanged: false, rtcFail: false, graceOver: false };
@@ -1123,9 +1148,13 @@ export async function runSelfTests(){
       const brut = JSON.stringify(d) + '\n' + txt;
       for (const s of secrets)
         if (brut.includes(s)) throw new Error('« ' + s +' » a fui dans le diagnostic');
-      /* le texte reste lisible et STABLE : cinq lignes, toujours les
-         mêmes — et AUCUN numéro de version, il ne distingue plus rien */
-      eq(txt.split('\n').length, 5);
+      /* le texte reste lisible et STABLE : six lignes, toujours les
+         mêmes — et AUCUN numéro de version, il ne distingue plus rien.
+         La sixième est le TRANSPORT, ajoutée le 6 septembre 2026 : le
+         rapport n'en disait rien, et c'est pourtant la seule panne
+         qu'on ne peut pas voir à distance. */
+      eq(txt.split('\n').length, 6);
+      ok(/Transport : \d+ relais · \d+ joint\(s\) · \d+ qui répond\(ent\)/.test(txt));
       ok(txt.startsWith('Appareil : '));
       ok(!/\d+\.\d+\.\d+/.test(txt));
       ok(txt.includes('390×844') && txt.includes('2 piste(s)') && txt.includes('hors ligne'));
@@ -1135,8 +1164,11 @@ export async function runSelfTests(){
          de saisi, un bug au démarrage. Il doit rester complet — et ne
          pas inventer « 1 Ko » de documents là où il n'y en a aucun. */
       const txt = diagnosticText(diagnosticData({ backend: 'memory' }));
-      eq(txt.split('\n').length, 5);
+      eq(txt.split('\n').length, 6);
       ok(txt.includes('mémoire (rien ne survit)'));
+      /* sans transport connu, la ligne existe quand même et dit zéro :
+         une ligne qui disparaît casse la comparaison entre rapports */
+      ok(txt.includes('Transport : 0 relais · 0 joint(s) · 0 qui répond(ent)'));
       ok(txt.includes('Documents : 0 (0 Ko)'));
       ok(txt.includes('sans protection') && txt.includes('appareils non reliés'));
       ok(txt.includes('inconnu') && txt.includes('0×0'));

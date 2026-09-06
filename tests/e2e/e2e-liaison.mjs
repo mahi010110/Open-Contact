@@ -288,6 +288,59 @@ if (!await E.$('#syRetry')) fail('bouton Réessayer absent en panne de relais');
 await E.screenshot({ path: SHOTS + '/liaison-norelay-mobile.png' });
 console.log('sync : « Pas de connexion » affiché sans jargon, Réessayer présent ✓');
 
+/* ---------- LE RELAIS MUET : la panne qu'un socket ouvert cache ----------
+   Signalée à l'usage : « le partage ne fonctionne pas », et l'écran
+   restait sur « En attente de ton autre appareil », indéfiniment.
+   Le relais mort ci-dessus REFUSE le socket, donc l'app le voyait. Un
+   relais qui l'ACCEPTE puis se tait comptait au contraire comme joint
+   (`readyState === 1`), et l'app en concluait « des relais, mais
+   personne en face » — elle accusait le pair absent d'une panne qui
+   n'était pas la sienne, et invitait à patienter devant quelque chose
+   qui n'arriverait jamais.
+   C'est l'erreur de l'incident #14 un étage plus bas. Ici on plante un
+   relais muet et on exige le même verdict que pour un relais mort :
+   l'utilisateur a le même problème, donc il lit la même phrase et a le
+   même bouton. */
+{
+  const muet = await startLocalRelay({ tls: true, muet: true });
+  const portMuet = new URL(muet.url).port;
+  const M = await mk(mobile);
+  await M.goto(base, { waitUntil: 'load' });
+  await M.evaluate(async port => {
+    const st = await import('./engine/storage.js');
+    await st.kvInit();
+    await st.kvSet(st.RELAYS_KEY, JSON.stringify(['wss://127.0.0.1:' + port + '/']));
+  }, portMuet);
+  await M.click('.bottomnav a[data-r="moi"]');
+  await ouvrirReglages(M);
+  await M.click('#moiSync');
+  await M.waitForSelector('#syNew');
+  await M.click('#syNew');
+  /* la SONDE d'abord : le socket doit vraiment s'ouvrir, sinon on
+     mesure un relais mort déguisé et le contrôle ne prouve rien */
+  await attendre(M, async () => {
+    const r = (await import('./ui/synclive.js')).relaySnapshot();
+    return r.open > 0;
+  }, { timeout: 30000, message: 'le socket vers le relais muet ne s’est jamais ouvert' });
+  const vu = await M.evaluate(async () => {
+    const sl = await import('./ui/synclive.js');
+    return { snap: sl.relaySnapshot(), etat: sl.getSync().state };
+  });
+  if (!vu.snap.open) fail('le relais muet n’a pas accepté le socket — le cas n’est pas joué');
+  if (vu.snap.vivants) fail('un relais muet est compté comme vivant : ' + JSON.stringify(vu.snap));
+  await attendre(M, () => /Pas de connexion/.test(document.querySelector('#syStatus')?.textContent || ''),
+    { timeout: 40000, message: 'relais muet : l’app doit dire « Pas de connexion », pas « En attente »' });
+  const syM = await M.evaluate(async () => (await import('./ui/synclive.js')).getSync());
+  if (syM.state !== 'norelay') fail('relais muet : état attendu norelay, obtenu ' + syM.state);
+  if (/En attente/.test(await M.textContent('#syStatus')))
+    fail('relais muet : l’écran invite encore à attendre un pair qui ne viendra pas');
+  if (!await M.$('#syRetry')) fail('relais muet : bouton Réessayer absent');
+  console.log('relais muet : socket ouvert, ' + vu.snap.open + ' joint(s), 0 vivant → '
+    + '« Pas de connexion » et non « En attente » ✓');
+  await M.context().close();
+  muet.close();
+}
+
 /* « Réessayer » n'est pas un bouton décoratif : le relais renaît sur le
    même port, un tap, et la liaison se rétablit réellement */
 const relaisRevenu = await startLocalRelay({ tls: true, port: portMort });

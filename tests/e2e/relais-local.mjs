@@ -101,7 +101,12 @@ function makeDecoder(onText, onClose, onPing){
 }
 
 /* ---- le relais : NIP-01 réduit à ce que Trystero utilise ---- */
-export async function startLocalRelay({ silent = true, tls = false, port = 0 } = {}){
+/* `muet` : le relais accepte la connexion WebSocket et ne répond
+   PLUS JAMAIS. C'est la panne qu'un `readyState === 1` ne voit pas, et
+   celle qui laissait l'app sur « En attente de ton autre appareil »
+   indéfiniment. Sans ce double, on ne peut pas prouver la correction :
+   un relais mort refuse le socket, un relais muet l'accepte. */
+export async function startLocalRelay({ silent = true, tls = false, port = 0, muet = false } = {}){
   const conns = new Set();          /* { sock, send, subs: Map<subId, filtres[]> } */
   const log = (...a) => { if (!silent) console.log('[relais]', ...a); };
 
@@ -135,6 +140,7 @@ export async function startLocalRelay({ silent = true, tls = false, port = 0 } =
       let msg;
       try { msg = JSON.parse(text); } catch (e) { return; }
       if (!Array.isArray(msg)) return;
+      if (muet) return;                    /* il écoute et ne dit rien */
       if (msg[0] === 'EVENT' && msg[1] && msg[1].id){
         const ev = msg[1];
         log('EVENT kind', ev.kind);

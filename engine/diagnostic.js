@@ -107,7 +107,16 @@ export function diagnosticData(x){
     modeles: compte(profile.templates),
     journal: compte(x.journal),
     protection: !!x.protection,
-    relie: !!x.relie
+    relie: !!x.relie,
+    /* LES RELAIS, PARCE QUE C'EST LA PANNE QU'ON NE PEUT PAS VOIR À
+       DISTANCE. Le rapport ne disait rien du transport : quand le
+       partage reste « en attente », personne — ni celui qui aide, ni
+       celui qui est bloqué — ne savait si les relais étaient joints,
+       muets, ou si c'était le réseau. Trois nombres suffisent, et
+       aucun n'est personnel. */
+    relais: n(x.relais && x.relais.total),
+    relaisJoints: n(x.relais && x.relais.open),
+    relaisVivants: n(x.relais && x.relais.vivants)
   };
 }
 
@@ -132,6 +141,13 @@ export function diagnosticText(d){
     `Stockage : ${d.stockage} · ${taille(d.octets)} · ` +
       (d.protection ? 'protection activée' : 'sans protection') + ' · ' +
       (d.relie ? 'appareils reliés' : 'appareils non reliés'),
+    /* Les relais rejoignent la ligne des appareils reliés plutôt que
+       d'en ouvrir une sixième : le format tient en CINQ lignes stables,
+       et c'est ce qui permet de comparer deux rapports d'un coup d'œil.
+       « joints » compte les sockets ouverts, « répondent » ceux qui ont
+       vraiment parlé — l'écart entre les deux EST le diagnostic. */
+    `Transport : ${d.relais} relais · ${d.relaisJoints} joint(s) · ` +
+      `${d.relaisVivants} qui répond(ent)`,
     `Suivi : ${d.pistes} piste(s) · ${d.contacts} contact(s) · ` +
       `${d.arattacher} à rattacher · ${d.suppressions} suppression(s)`,
     `Documents : ${d.documents} (${taille(d.octetsDocs)}) · ` +

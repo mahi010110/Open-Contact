@@ -32,9 +32,33 @@ let libM = null;    /* le module chargé — pour sonder l'état réel des relai
 const loadLib = () => libP || (libP = import('../assets/vendor/trystero-nostr.min.js')
   .then(m => (libM = m), e => { libP = null; throw e; }));
 
-/* l'état réel des WebSockets vers les relais — {total, open, pending}.
-   Sans bibliothèque chargée : rien à sonder, tout à zéro. */
-export const relaySnapshot = () => relayTally(libM && libM.getRelaySockets());
+/* LES RELAIS QUI ONT RÉPONDU AU MOINS UNE FOIS. Un socket ouvert ne
+   prouve rien (voir `relayTally`) : un relais qui accepte la connexion
+   puis se tait laissait l'écran sur « En attente de ton autre
+   appareil », indéfiniment.
+   On écoute donc le PREMIER message de chaque socket, sans toucher à
+   la bibliothèque vendorisée ni à son protocole — n'importe quelle
+   réponse suffit à prouver que le relais parle.
+   L'ensemble ne fait que grandir, et c'est voulu : un relais qui a
+   répondu une fois ne sera jamais accusé plus tard sur un doute. Un
+   socket refermé sort de toute façon du compte par son `readyState`. */
+const relaisQuiRepondent = new Set();
+function ecouterRelais(socks){
+  for (const k in (socks || {})){
+    const s = socks[k];
+    if (!s || s.__ocEcoute) continue;
+    s.__ocEcoute = true;
+    s.addEventListener('message', () => relaisQuiRepondent.add(k), { once: true });
+  }
+}
+
+/* l'état réel des WebSockets vers les relais — {total, open, pending,
+   vivants}. Sans bibliothèque chargée : rien à sonder, tout à zéro. */
+export const relaySnapshot = () => {
+  const socks = libM && libM.getRelaySockets();
+  ecouterRelais(socks);
+  return relayTally(socks, relaisQuiRepondent);
+};
 
 /* délai de grâce avant de déclarer « aucun relais joignable » : les
    sockets se (re)connectent, on ne crie pas au loup au premier instant */
