@@ -141,12 +141,21 @@ export function openRecevoir(){
     let joined = false;
     /* l'étape prouvée, pas une attente muette : relais morts ou liaison
        directe en échec se DISENT, avec le repli (QR hors ligne, fichier) */
-    const w = watchLiaison(() => joined ? 1 : 0, stage => {
+    const w = watchLiaison(() => joined ? 1 : 0, (stage, cause) => {
       if (my !== gen || joined) return;
       const el = q('#rcRdvSt');
       if (!el) return;
       if (stage === 'norelay')
         el.innerHTML = `${ic('square-alert', 'ic-14')} Pas de connexion — demande un QR hors ligne ou un fichier.`;
+      /* les trois pannes d'`onJoinError` appellent trois gestes : refaire
+         le rendez-vous, ou renoncer au direct. Les confondre envoyait
+         chercher un fichier à qui avait juste scanné un vieux QR. */
+      else if (stage === 'rtcfail' && cause === 'motdepasse')
+        el.innerHTML = `${ic('square-alert', 'ic-14')} Ce n’est pas le même code — refaites le rendez-vous.`;
+      else if (stage === 'rtcfail' && cause === 'turnmuet')
+        el.innerHTML = `${ic('square-alert', 'ic-14')} Ton serveur TURN ne répond pas — prends le QR hors ligne ou le fichier.`;
+      else if (stage === 'rtcfail' && cause === 'sansturn')
+        el.innerHTML = `${ic('square-alert', 'ic-14')} Vos deux réseaux refusent la liaison directe — prends le QR hors ligne ou le fichier.`;
       else if (stage === 'rtcfail')
         el.innerHTML = `${ic('square-alert', 'ic-14')} L’autre appareil est là, mais rien ne passe — prends le QR hors ligne ou le fichier.`;
       else if (stage === 'wait')
