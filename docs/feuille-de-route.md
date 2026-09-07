@@ -87,6 +87,24 @@ choses, et aucune ne dépend de quelqu'un d'extérieur.
       faut en retenir ici tient en une ligne : **un commentaire qui affirme
       une qualité sans l'avoir mesurée est une dette, pas une garantie.**
 
+- [x] **La liaison P2P dit enfin POURQUOI elle échoue** — signalé à l'usage,
+      captures de deux téléphones à l'appui : l'un « En attente de ton groupe »,
+      l'autre « Quelqu'un est là, mais rien ne passe ». Le second innocente les
+      relais (pour qu'un pair s'annonce, la salle et le relais ont fonctionné),
+      et ce n'était donc pas la piste des relais muets qu'on suivait depuis
+      deux jours. La cause réelle : `onJoinError` était câblé `() => fail()`
+      aux quatre appels, et Trystero y fait passer **trois** pannes — code de
+      salle différent, aucun TURN configuré, TURN injoignable. L'app les
+      confondait en une phrase, alors que la première se répare en dix
+      secondes. `causeLiaison` les nomme, l'écran le dit, et le rapport
+      « Signaler un problème » le porte. Gardé à deux niveaux dans
+      `e2e-liaison.mjs` (le câblage ET les appelants), 5 mutations attrapées.
+      *(septembre 2026)*
+      **Ce qui reste hors de portée, et le restera** : sans TURN, deux
+      appareils en données mobiles ne peuvent pas se joindre directement, et
+      un TURN est un serveur — §10 et la question ② l'interdisent. Le repli
+      (`.oc`, QR) est la réponse du produit, pas un pis-aller.
+
 - [ ] **Essais sur vrai matériel** — un vrai téléphone d'entrée de gamme, un
       vrai réseau d'établissement. Les scénarios automatiques passent à côté
       de tout ce qui relève du doigt, de la lenteur et du wifi filtré.

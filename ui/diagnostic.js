@@ -15,7 +15,7 @@ import { diagnosticData, diagnosticText } from '../engine/diagnostic.js';
 import { getBackend } from '../engine/storage.js';
 import { esc } from '../engine/utils.js';
 import { listDocs } from './docs.js';
-import { getSync, relaySnapshot } from './synclive.js';
+import { getSync, relaySnapshot, echecLiaison } from './synclive.js';
 import { isProtected } from './verrou.js';
 import { S } from './state.js';
 import { btn, toast, openSheet } from './dom.js';
@@ -38,6 +38,7 @@ export async function collectDiagnostic(){
     protection: isProtected(),
     relie: !!sy.phrase,
     relais: relaySnapshot(),
+    echec: echecLiaison(),
     companies: S.companies,
     orphans: S.orphans,
     tombs: S.tombs,

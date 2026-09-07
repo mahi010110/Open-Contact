@@ -1239,6 +1239,45 @@ bandeau sur la fiche, une ligne colorée sur « Aujourd'hui », et UNE
 feuille — « Demander à … », un message et un bouton. Aucun écran à
 visiter, aucune donnée d'autrui stockée.
 
+**Un rappel qui jette son argument perd ce que rien ne retrouve.**
+`onJoinError` était câblé `() => watch.fail()` aux quatre appels : la
+bibliothèque y fait passer **trois** pannes, et l'app les recevait
+toutes pour n'en afficher qu'une phrase. Or elles appellent des gestes
+opposés — un **code différent des deux côtés** se retape en dix
+secondes, un **manque de TURN** ne se répare pas du tout par le même
+bout, et un **TURN qui ne répond pas** est encore autre chose. Envoyer
+chercher le QR à quelqu'un qui s'est trompé d'une lettre, c'est le
+faire renoncer au canal qui vaut 40 pour 1.
+
+Trois choses en sortent, et la première est la plus générale :
+
+- **Le commentaire du dépôt disait la mélecture.** Il affirmait
+  « pair annoncé mais liaison DIRECTE en échec », donc tout le monde
+  — moi compris, deux fois dans la même journée — a diagnostiqué du
+  NAT devant un écran qui pouvait dire « mauvais mot de passe ». Une
+  phrase qui interprète une bibliothèque **se vérifie dans la
+  bibliothèque**, sinon elle devient la source de vérité de tout le
+  monde et personne ne rouvre le bundle.
+- **On lit le texte, et on se tait quand on ne sait pas.** Il n'y a
+  pas de code d'erreur : `causeLiaison` reconnaît trois formulations et
+  rend `inconnu` pour tout le reste. Une quatrième panne, ou un texte
+  qui change à la prochaine version, ne doit **jamais** produire une
+  cause fausse — se tromper de cause coûte plus cher que ne pas savoir.
+- **Ça se garde à deux niveaux, parce que ça se perd à deux endroits.**
+  Le câblage interne (la cause arrive-t-elle à l'écran ?) et les
+  APPELANTS (un rappel qui ignore son argument reperd tout, et ça ne se
+  voit dans aucun rendu). Le second est un contrôle de source, et c'est
+  le seul qui attrape la forme exacte du défaut d'origine.
+
+**Et ce qui n'est pas réparable se dit.** Deux téléphones en données
+mobiles sont chacun derrière le NAT de leur opérateur ; sans TURN,
+aucun chemin direct n'existe, et un TURN est un serveur — donc §10 et
+la question ② l'interdisent au mainteneur. L'app ne peut pas faire
+mieux que **nommer la panne et proposer le repli** : le fichier `.oc`
+et le QR, qui n'ont jamais eu besoin du réseau. La liste des relais et
+la santé du transport n'y changent rien, et c'est justement pour ça
+qu'il fallait cesser de les accuser.
+
 **Ce que ce lot a appris sur les gardes.** Une première version de
 `e2e-vecu.mjs` vérifiait l'invariant en appelant le moteur avec des
 données fabriquées sur place — elle prouvait seulement qu'il n'invente

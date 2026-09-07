@@ -116,7 +116,12 @@ export function diagnosticData(x){
        aucun n'est personnel. */
     relais: n(x.relais && x.relais.total),
     relaisJoints: n(x.relais && x.relais.open),
-    relaisVivants: n(x.relais && x.relais.vivants)
+    relaisVivants: n(x.relais && x.relais.vivants),
+    /* POURQUOI la dernière liaison directe a échoué, si elle a échoué.
+       Sans ça, « 9 relais · 7 qui répondent » se lit « tout va bien »
+       alors que la liaison échoue juste après, pour une raison que
+       seul cet écran peut rapporter. */
+    echec: String((x.echec || '')).slice(0, 20)
   };
 }
 
@@ -147,7 +152,8 @@ export function diagnosticText(d){
        « joints » compte les sockets ouverts, « répondent » ceux qui ont
        vraiment parlé — l'écart entre les deux EST le diagnostic. */
     `Transport : ${d.relais} relais · ${d.relaisJoints} joint(s) · ` +
-      `${d.relaisVivants} qui répond(ent)`,
+      `${d.relaisVivants} qui répond(ent)` +
+      (d.echec ? ` · dernier échec : ${d.echec}` : ''),
     `Suivi : ${d.pistes} piste(s) · ${d.contacts} contact(s) · ` +
       `${d.arattacher} à rattacher · ${d.suppressions} suppression(s)`,
     `Documents : ${d.documents} (${taille(d.octetsDocs)}) · ` +

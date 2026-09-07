@@ -23,7 +23,7 @@ import { DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, SYNC_KEY,
          RELAYS_KEY, TURN_KEY, DEVICE_KEY, DEVICES_KEY, PROMO_KEY, VAULT_KEY,
          ANALYSIS_KEY, SEALABLE, THEME_KEY, VIEW_KEY, OLD_V2, OLD_V1,
          kvGet, kvSet, kvDel, vaultActive, vaultDetach, vaultReseal } from './engine/storage.js';
-import { relayTally, liaisonStage, parseTurn, turnText, TURN_MAX, RELAIS_DEFAUT } from './engine/transport.js';
+import { causeLiaison, relayTally, liaisonStage, parseTurn, turnText, TURN_MAX, RELAIS_DEFAUT } from './engine/transport.js';
 import { VAULT_WORDS, PHRASE_LEN, makeVaultPhrase, normVaultPhrase, phraseUnknownWords,
          createVault, unlockWithPin, unlockWithPhrase, unlockWithPrf,
          setPin, addPrfWrap, rotateVault,
@@ -307,6 +307,26 @@ export async function runSelfTests(){
     },
 
     /* — l'état honnête d'une liaison P2P (incident #14) — */
+    'transport : causeLiaison nomme la panne, et se tait quand elle ne sait pas': () => {
+      /* les trois textes que Trystero rend par `onJoinError` — vérifiés
+         dans le bundle vendorisé, pas devinés */
+      eq(causeLiaison({ error: 'incorrect room password when decrypting offer' }), 'motdepasse');
+      eq(causeLiaison({ error: 'incorrect room password when decrypting answer' }), 'motdepasse');
+      eq(causeLiaison({ error: 'could not connect to peer abc after exchanging SDP; '
+        + 'configure TURN servers with turnConfig or rtcConfig.iceServers' }), 'sansturn');
+      eq(causeLiaison({ error: 'could not connect to peer abc after exchanging SDP; '
+        + 'check that your TURN server URLs and credentials are reachable by both peers' }), 'turnmuet');
+      /* une chaîne nue passe aussi : l'appelant ne doit pas avoir à
+         connaître la forme de l'objet */
+      eq(causeLiaison('incorrect room password when decrypting offer'), 'motdepasse');
+      /* ON NE DEVINE PAS. Un texte que la prochaine version changerait
+         doit rendre `inconnu` — jamais une cause fausse, qui enverrait
+         retaper un code à qui a besoin d'un TURN. */
+      eq(causeLiaison({ error: 'quelque chose de neuf' }), 'inconnu');
+      eq(causeLiaison(null), 'inconnu');
+      eq(causeLiaison(undefined), 'inconnu');
+      eq(causeLiaison({}), 'inconnu');
+    },
     'transport : relayTally compte les sockets par état, ET ceux qui répondent': () => {
       eq(relayTally(null), { total: 0, open: 0, pending: 0, vivants: 0 });
       eq(relayTally({}), { total: 0, open: 0, pending: 0, vivants: 0 });

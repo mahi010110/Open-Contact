@@ -271,7 +271,7 @@ export function openDonner(){
         el.innerHTML = `${ic('clock', 'ic-14')} Connexion…`;
     });
     try {
-      [r, svg] = await Promise.all([openRoom('give', rdvNorm(code), { onJoinError: () => w.fail() }),
+      [r, svg] = await Promise.all([openRoom('give', rdvNorm(code), { onJoinError: e => w.fail(e) }),
         makeQrSvg(rdvWrap(code))]);
     } catch (e) {
       w.stop();
