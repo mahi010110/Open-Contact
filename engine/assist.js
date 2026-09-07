@@ -134,7 +134,15 @@ const RE_DONNE = /^Donné \(([^)]+)\)\s*:\s*(\d+)\s*piste/;
    entrées écrites avant le changement de mot, et elles doivent rester
    lisibles — un renommage à l'écran ne réécrit pas l'histoire. Les deux
    formes désignent le même anonyme, d'où la même sortie. */
-const RE_RECU  = /^Reçu (?:du (groupe)|de (la promo|.+?))\s*:\s*\+(\d+)\s*piste/;
+/* Le nombre de COMPLÉTÉES est capturé en plus, et le groupe est
+   facultatif : un journal écrit avant — ou revenu d'une sauvegarde —
+   n'a que le premier chiffre, et il doit rester lisible.
+   Sans lui, un échange qui n'apportait aucune piste NEUVE s'affichait
+   « 0 piste », ce qui se lit comme un échec alors que le transfert a
+   parfaitement fonctionné : le receveur avait déjà tout. C'est le
+   défaut qui a fait conclure « le partage ne marche pas » sur une
+   capture où il venait de marcher. */
+const RE_RECU  = /^Reçu (?:du (groupe)|de (la promo|.+?))\s*:\s*\+(\d+)\s*piste\(?s?\)?(?:\s*,\s*(\d+)\s*complét)?/;
 /* `i` = la place de l'entrée dans le journal. Une ligne d'échange est
    dérivée (un texte analysé), pas stockée : sans cet indice, la ligne
    qu'on voit ne sait pas désigner l'entrée qui l'a produite — et on ne
@@ -159,7 +167,7 @@ export function exchangeLog(journal, limit = 8){
     m = RE_RECU.exec(txt);
     if (m){
       const qui = m[1] ? '' : m[2];                       /* « du groupe » = anonyme */
-      out.push({ i, t, sens: 'recu', canal: '', n: +m[3], ids,
+      out.push({ i, t, sens: 'recu', canal: '', n: +m[3], enrichi: +(m[4] || 0), ids,
         qui: qui === 'la promo' ? '' : qui });            /* ancienne forme, même sens */
     }
   }

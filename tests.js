@@ -1415,7 +1415,22 @@ export async function runSelfTests(){
       eq(fil.find(x => x.t === 20).qui, '');                /* ancienne forme : « la promo » = anonyme */
       eq(fil.find(x => x.t === 45).qui, '');                /* nouvelle forme : « du groupe » = idem */
       eq(fil.find(x => x.t === 45).n, 9);
+      eq(fil.find(x => x.t === 45).enrichi, 1);            /* les complétées sont retenues */
       eq(fil.find(x => x.t === 30).n, 12);
+      /* UN ÉCHANGE QUI N'APPORTE RIEN DE NEUF A QUAND MÊME MARCHÉ.
+         Le receveur avait déjà tout : `n` vaut 0, et c'est `enrichi`
+         qui dit ce qui s'est passé. Sans lui la ligne rendait
+         « 0 piste », ce qui se lit comme une panne — le défaut qui a
+         fait conclure « le partage ne marche pas ». */
+      const rien = exchangeLog([{ t: 5, txt: 'Reçu de Léa : +0 piste(s), 12 complétée(s)' }]);
+      eq(rien.length, 1);
+      eq(rien[0].n, 0);
+      eq(rien[0].enrichi, 12);
+      /* et une entrée d'AVANT ce champ reste lisible : elle ne rend
+         pas NaN, elle rend 0 */
+      const vieux = exchangeLog([{ t: 5, txt: 'Reçu du groupe : +3 piste(s)' }]);
+      eq(vieux[0].n, 3);
+      eq(vieux[0].enrichi, 0);
       ok(!fil.some(x => x.t === 70), 'l’analyse IA n’est pas un échange avec la promo');
       eq(exchangeLog(j, 2).length, 2);
       eq(exchangeLog(j, 0).length, 7);                      /* 0 = tout */

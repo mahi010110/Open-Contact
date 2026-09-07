@@ -205,7 +205,15 @@ function filHTML(){
            l'icône qu'on ne devine pas. */
         const sens = x.sens === 'donne' ? 'Donné' : 'Reçu';
         const avec = x.sens === 'donne' ? x.canal : (x.qui || 'le groupe');
-        const compte = x.n + ' piste' + (x.n > 1 ? 's' : '');
+        /* « 0 piste » se lit comme un échec. Or un échange qui n'apporte
+           aucune piste NEUVE a parfaitement fonctionné : le receveur
+           avait déjà tout. La ligne dit donc ce qui s'est passé — les
+           pistes complétées si elles existent, sinon « rien de neuf ». */
+        const compte = x.n > 0
+          ? x.n + ' piste' + (x.n > 1 ? 's' : '')
+          : (x.enrichi > 0
+              ? x.enrichi + ' complétée' + (x.enrichi > 1 ? 's' : '')
+              : 'rien de neuf');
         /* LA DATE TIENT SA COLONNE — et c'est un retour en arrière assumé.
            Elle avait rejoint la phrase au nom de la PROXIMITÉ (ce qui est
            proche est perçu comme lié, NN/g), parce qu'au poste elle
