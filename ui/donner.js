@@ -257,12 +257,23 @@ export function openDonner(){
     let sent = 0;
     /* l'attente dit l'étape prouvée — relais morts ou liaison directe
        en échec basculent d'eux-mêmes vers le repli affiché */
-    const w = watchLiaison(() => sent, stage => {
+    /* « Liaison impossible » disait la même chose pour les trois pannes
+       que Trystero fait passer par `onJoinError` (voir `causeLiaison`).
+       Sur ce chemin-ci ça coûte le plus cher : le camarade est en face,
+       il vient de scanner, et l'écran ne dit pas s'il faut refaire le
+       QR ou passer au fichier. */
+    const w = watchLiaison(() => sent, (stage, cause) => {
       if (my !== gen || sent) return;
       const el = q('#dnRdvSt');
       if (!el) return;
       if (stage === 'norelay')
         el.innerHTML = `${ic('square-alert', 'ic-14')} Pas de connexion`;
+      else if (stage === 'rtcfail' && cause === 'motdepasse')
+        el.innerHTML = `${ic('square-alert', 'ic-14')} Ce n’est pas le même code`;
+      else if (stage === 'rtcfail' && cause === 'sansturn')
+        el.innerHTML = `${ic('square-alert', 'ic-14')} Vos deux réseaux refusent la liaison`;
+      else if (stage === 'rtcfail' && cause === 'turnmuet')
+        el.innerHTML = `${ic('square-alert', 'ic-14')} Ton serveur TURN ne répond pas`;
       else if (stage === 'rtcfail')
         el.innerHTML = `${ic('square-alert', 'ic-14')} Liaison impossible`;
       else if (stage === 'wait')

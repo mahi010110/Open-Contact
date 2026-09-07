@@ -523,6 +523,66 @@ const composes = async (avant) => {
   else console.log('liaison : les 4 rappels `onJoinError` transmettent leur erreur ✓');
 }
 
+{
+  /* ③ TOUS LES ÉCRANS, pas un seul. La cause a été câblée dans le
+     partage en groupe et OUBLIÉE sur le rendez-vous QR — deux écrans
+     sur trois affichaient donc encore la même phrase pour trois pannes,
+     et c'est justement là que ça coûte le plus cher : le camarade est
+     en face, il vient de scanner, et rien ne dit s'il faut refaire le
+     QR ou passer au fichier. Un correctif à moitié appliqué ne se voit
+     dans aucun rendu ; il se garde à la source.
+     On vise la RÈGLE, pas la forme de l'appel : tout endroit qui rend
+     l'état `rtcfail` doit brancher sur la cause. Une première version
+     lisait la liste des paramètres de `watchLiaison`, et ratait le
+     rappel passé par son nom (`stageStatus`) — elle a rendu 2 sites
+     sur 3, et elle l'a dit au lieu de conclure. */
+  const { readFileSync, readdirSync } = await import('fs');
+  const path = await import('path');
+  const dir = path.join(ROOT, 'ui');
+  /* UNE exception, et elle se NOMME (§5). `syncLabel` rend une
+     ÉTIQUETTE de deux mots au bout d'une ligne de réglages — « rien ne
+     passe » —, pas un message d'état : nommer la cause là ferait entrer
+     une phrase dans une ligne de liste, et le détail vit déjà sur
+     l'écran que cette ligne ouvre (§7, le plus court qui reste
+     compris). L'exemption se vérifie elle-même plus bas : le jour où
+     cette fonction se met à rendre des phrases, elle en sort. */
+  const EXEMPT = new Map([['moi.js', 'syncLabel']]);
+  const sourds = [];
+  let vus = 0, exemptes = 0;
+  for (const nom of readdirSync(dir).filter(n => n.endsWith('.js'))){
+    const src = readFileSync(path.join(dir, nom), 'utf8');
+    const re = /'rtcfail'/g;
+    let m, dejaDit = false;
+    while ((m = re.exec(src))){
+      vus++;
+      /* la branche qui rend cet état lit-elle la cause ? on regarde le
+         voisinage immédiat, là où vivent les `else if` de la série */
+      const autour = src.slice(Math.max(0, m.index - 1200), m.index + 1200);
+      if (/\bcause\b/.test(autour)) continue;
+      const fn = EXEMPT.get(nom);
+      /* l'exemption ne vaut QUE si la ligne rend encore une étiquette
+         courte, dans la fonction nommée */
+      const ligne = src.slice(src.lastIndexOf('\n', m.index) + 1, src.indexOf('\n', m.index));
+      const rendu = (ligne.match(/return\s+'([^']*)'/) || [])[1];
+      if (fn && src.includes(fn) && rendu !== undefined && rendu.length <= 20){ exemptes++; continue; }
+      if (dejaDit) continue;
+      dejaDit = true;
+      sourds.push(nom + ' (ligne ' + (src.slice(0, m.index).split('\n').length) + ')'
+        + (fn ? ' — l’exemption « ' + fn + ' » ne s’applique plus : ce n’est plus une étiquette courte' : ''));
+    }
+  }
+  if (exemptes !== 1)
+    fail('liaison : ' + exemptes + ' exemption(s) au lieu d’une — l’exception nommée a bougé, relis-la');
+  if (vus < 4)
+    fail('liaison : seulement ' + vus + ' rendu(s) de `rtcfail` relevé(s) — le contrôle est cassé, pas le code');
+  else if (sourds.length)
+    fail('liaison : ' + sourds.length + ' écran(s) rendent `rtcfail` sans lire la cause —\n      '
+      + sourds.join('\n      ')
+      + '\n      Trois pannes y arrivent, et elles appellent trois gestes opposés.');
+  else console.log('liaison : les ' + vus + ' rendus de `rtcfail` branchent sur la cause '
+    + '(1 exemption nommée : l’étiquette de la ligne de réglages) ✓');
+}
+
 if (errors.length){ fail('erreurs console : ' + JSON.stringify(errors.slice(0, 6), null, 1)); }
 else console.log('Zéro erreur console (hors relais volontairement mort).');
 console.log(process.exitCode ? 'E2E liaison : ÉCHEC' : 'E2E liaison : OK');
