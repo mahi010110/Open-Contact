@@ -225,6 +225,10 @@ export function openAppareils(){
       return `${ic('clock', 'ic-14')} En attente de ton autre appareil`;
     if (sy.state === 'norelay' || sy.state === 'err')
       return `${ic('square-alert', 'ic-14')} Pas de connexion — ton réseau la bloque ?${reessayer}`;
+    if (sy.state === 'rtcfail' && sy.cause === 'motdepasse')
+      return `${ic('square-alert', 'ic-14')} Ce n’est pas la même phrase des deux côtés — refais la liaison`;
+    if (sy.state === 'rtcfail' && sy.cause === 'turnmuet')
+      return `${ic('square-alert', 'ic-14')} Ton serveur TURN ne répond pas — vérifie-le dans Connexion avancée`;
     if (sy.state === 'rtcfail')
       return `${ic('square-alert', 'ic-14')} Ton autre appareil est là, mais rien ne passe — essaie Connexion avancée`;
     return `${ic('clock', 'ic-14')} Connexion…`;
@@ -567,10 +571,20 @@ export function openPromo(){
     const setStatus = txt => { const el = q('#prStatus'); if (el) el.innerHTML = txt; };
     /* le statut dit l'étape prouvée — pas « personne » quand c'est le
        transport qui est mort (#14) */
-    const stageStatus = stage => {
+    /* TROIS pannes passent par `rtcfail`, et elles appellent trois
+       gestes opposés : retaper le code, poser un TURN, ou renoncer au
+       direct. Les dire pareil, c'était envoyer chercher le QR quelqu'un
+       qui s'est juste trompé d'une lettre. */
+    const stageStatus = (stage, cause) => {
       if (peers) return;   /* refreshStatus a la main dès qu'on est en face */
       if (stage === 'norelay')
         setStatus(`${ic('square-alert', 'ic-14')} Pas de connexion — le QR et le fichier .oc marchent toujours.`);
+      else if (stage === 'rtcfail' && cause === 'motdepasse')
+        setStatus(`${ic('square-alert', 'ic-14')} Ce n’est pas le même code des deux côtés — retapez-le ensemble`);
+      else if (stage === 'rtcfail' && cause === 'turnmuet')
+        setStatus(`${ic('square-alert', 'ic-14')} Ton serveur TURN ne répond pas — prends le QR ou le fichier`);
+      else if (stage === 'rtcfail' && cause === 'sansturn')
+        setStatus(`${ic('square-alert', 'ic-14')} Vos deux réseaux refusent la liaison directe — prends le QR ou le fichier`);
       else if (stage === 'rtcfail')
         setStatus(`${ic('square-alert', 'ic-14')} Quelqu’un est là, mais rien ne passe — prends le QR ou le fichier`);
       else if (stage === 'wait')
@@ -580,7 +594,8 @@ export function openPromo(){
     };
     watch = watchLiaison(() => peers, stageStatus);
     try {
-      room = await openRoom('promo', pass, { onJoinError: () => watch && watch.fail() });   /* préfixe historique — compat */
+      room = await openRoom('promo', pass,
+        { onJoinError: e => watch && watch.fail(e) });   /* préfixe historique — compat */
     } catch (e) {
       leave();
       setStatus(`${ic('square-alert', 'ic-14')} Pas de connexion — réseau bloqué ? Le fichier .oc marche toujours.`);

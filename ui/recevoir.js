@@ -155,7 +155,7 @@ export function openRecevoir(){
         el.innerHTML = `${ic('clock', 'ic-14')} Connexion…`;
     });
     try {
-      r = await openRoom('give', code, { onJoinError: () => w.fail() });
+      r = await openRoom('give', code, { onJoinError: e => w.fail(e) });
     } catch (e) {
       w.stop();
       if (my !== gen) return;

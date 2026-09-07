@@ -8,7 +8,7 @@
    · pannes DITES : aucun relais joignable → l'écran le dit, sur la sync
      ET sur le groupe — plus jamais « en liaison » dans le vide. */
 import net from 'net';
-import { chromium, chromiumPath, SHOTS, serveRepo, attendre, ouvrirReglages } from './outils.mjs';
+import { chromium, chromiumPath, SHOTS, serveRepo, attendre, ouvrirReglages, ROOT } from './outils.mjs';
 import { startLocalRelay } from './relais-local.mjs';
 
 const { server, base } = await serveRepo();
@@ -342,13 +342,22 @@ console.log('sync : « Pas de connexion » affiché sans jargon, Réessayer pré
 }
 
 /* « Réessayer » n'est pas un bouton décoratif : le relais renaît sur le
-   même port, un tap, et la liaison se rétablit réellement */
+   même port, un tap, et la liaison se rétablit réellement.
+   ON EXIGE `vivants`, PAS SEULEMENT `open` — et c'est plus fort qu'avant :
+   depuis qu'un socket ouvert ne suffit plus à faire un relais joint, se
+   contenter de `open >= 1` laisserait passer un relais qui accepte la
+   connexion et se tait, c'est-à-dire exactement la panne d'à côté.
+   Le délai suit la condition : il faut maintenant l'aller-retour complet
+   (socket, abonnement, première réponse) et non la seule ouverture du
+   socket. Trente secondes suffisaient en isolé et tombaient sous la
+   charge de la suite entière ; c'est le délai qui s'ajuste, jamais la
+   condition qu'on affaiblit. */
 const relaisRevenu = await startLocalRelay({ tls: true, port: portMort });
 await E.click('#syRetry');
 await attendre(E, async () => {
   const sy = (await import('./ui/synclive.js')).getSync();
-  return sy.state === 'wait' && sy.relays.open >= 1;
-}, { timeout: 30000, message: 'liaison rétablie après Réessayer' });
+  return sy.state === 'wait' && sy.relays.open >= 1 && sy.relays.vivants >= 1;
+}, { timeout: 60000, message: 'liaison rétablie après Réessayer (relais vivant, pas seulement ouvert)' });
 /* Le moteur reprend AVANT que l'écran le dise : `attendre` ci-dessus rend
    la main sur l'ÉTAT, et le libellé se réécrit au tick suivant, quand
    l'abonné se rejoue. Lu dans la foulée, il portait encore la phrase
@@ -452,6 +461,66 @@ const composes = async (avant) => {
   else if (intrus.length)
     fail('relais : la liste de l’utilisateur ne prime plus — ' + intrus.slice(0, 4).join(', '));
   else console.log('relais : la liste de l’utilisateur reste prioritaire ✓');
+}
+
+/* ---- LA CAUSE DE L'ÉCHEC ARRIVE JUSQU'À L'ÉCRAN ----
+   Trystero fait passer TROIS pannes par le seul rappel `onJoinError` —
+   un code différent des deux côtés, aucun TURN configuré, un TURN qui
+   ne répond pas. L'app les recevait toutes et les jetait
+   (`onJoinError: () => watch.fail()` ignorait son argument), donc elle
+   disait « rien ne passe » aussi bien à qui s'était trompé d'une lettre
+   qu'à qui avait besoin d'un serveur. Deux niveaux de garde, parce que
+   la panne se perd à deux endroits différents. */
+{
+  /* ① le CÂBLAGE interne : `fail(err)` rend la cause à l'écran */
+  const ctx = await browser.newContext({ ignoreHTTPSErrors: true,
+    viewport: { width: 393, height: 800 }, hasTouch: true });
+  const p = await ctx.newPage();
+  await p.goto(base, { waitUntil: 'load' });
+  await p.waitForSelector('#view-aujourdhui:not([hidden])');
+  const vu = await p.evaluate(async () => {
+    const { watchLiaison } = await import('./ui/synclive.js');
+    const out = [];
+    const w = watchLiaison(() => 0, (stage, cause) => out.push([stage, cause || '']));
+    w.fail({ error: 'incorrect room password when decrypting offer' });
+    const apresMdp = out[out.length - 1];
+    const w2 = watchLiaison(() => 0, (stage, cause) => out.push([stage, cause || '']));
+    w2.fail({ error: 'could not connect to peer x after exchanging SDP; '
+      + 'configure TURN servers with turnConfig or rtcConfig.iceServers' });
+    const apresTurn = out[out.length - 1];
+    w.stop(); w2.stop();
+    return { apresMdp, apresTurn };
+  });
+  if (vu.apresMdp[0] !== 'rtcfail' || vu.apresMdp[1] !== 'motdepasse')
+    fail('liaison : un code différent n’arrive pas à l’écran — reçu ' + JSON.stringify(vu.apresMdp)
+      + '. L’app renverra chercher le QR quelqu’un qui doit juste retaper son code');
+  else if (vu.apresTurn[0] !== 'rtcfail' || vu.apresTurn[1] !== 'sansturn')
+    fail('liaison : le manque de TURN n’arrive pas à l’écran — reçu ' + JSON.stringify(vu.apresTurn));
+  else console.log('liaison : la cause de l’échec (code / TURN) arrive jusqu’à l’écran ✓');
+  await ctx.close();
+}
+{
+  /* ② les APPELANTS : un rappel qui ignore son argument reperd tout, et
+     ça ne se voit dans aucun rendu — c'est la forme exacte du défaut
+     d'origine, donc elle se garde à la source. */
+  const { readFileSync, readdirSync } = await import('fs');
+  const path = await import('path');
+  const dir = path.join(ROOT, 'ui');
+  const sourds = [];
+  for (const nom of readdirSync(dir).filter(n => n.endsWith('.js'))){
+    const src = readFileSync(path.join(dir, nom), 'utf8');
+    const re = /onJoinError\s*:\s*(\([^)]*\)|[A-Za-z_$][\w$]*)\s*=>/g;
+    let m;
+    while ((m = re.exec(src))){
+      const args = m[1].replace(/[()]/g, '').trim();
+      if (!args) sourds.push(nom + ' : « onJoinError: ' + m[1] + ' => … »');
+    }
+  }
+  if (sourds.length)
+    fail('liaison : ' + sourds.length + ' rappel(s) `onJoinError` jettent leur erreur —\n      '
+      + sourds.join('\n      ')
+      + '\n      Trystero y fait passer trois pannes qui appellent trois gestes opposés.');
+  else console.log('liaison : les 4 rappels `onJoinError` transmettent leur erreur ✓');
 }
 
 if (errors.length){ fail('erreurs console : ' + JSON.stringify(errors.slice(0, 6), null, 1)); }

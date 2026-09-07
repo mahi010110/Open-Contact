@@ -20,7 +20,7 @@ import { SYNC_KEY, RELAYS_KEY, TURN_KEY, DEVICE_KEY, DEVICES_KEY, RING_KEY,
          DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, GROUP_KEY, PROMO_KEY, VAULT_KEY,
          CAMPAIGNS_KEY, MAIL_KEY, AI_KEY, MISSIONS_KEY, ORDINATEUR_KEY, ANALYSIS_KEY,
          PROPOSALS_KEY, kvGet, kvSet, kvDel, docClear } from '../engine/storage.js';
-import { relayTally, liaisonStage, RELAIS_DEFAUT } from '../engine/transport.js';
+import { causeLiaison, relayTally, liaisonStage, RELAIS_DEFAUT } from '../engine/transport.js';
 import { S, bus, applySynced, saveProfile, logJ } from './state.js';
 import { ic, toast, showUndo } from './dom.js';
 
@@ -51,6 +51,17 @@ function ecouterRelais(socks){
     s.addEventListener('message', () => relaisQuiRepondent.add(k), { once: true });
   }
 }
+/* ON S'ABONNE TÔT, PAS AU PREMIER SONDAGE. `watchLiaison` ne relève
+   qu'à 2 s, et un relais Nostr sain répond bien avant — son EOSE
+   arrivait donc AVANT qu'on écoute, et il ne comptait jamais comme
+   vivant. Zéro vivant vaut « Pas de connexion » : le remède du commit
+   précédent pouvait donc inventer la panne qu'il servait à voir. Les
+   sockets naissent de façon échelonnée, on repasse donc plusieurs fois
+   pendant les deux premières secondes. */
+function ecouterTot(){
+  for (const d of [0, 60, 150, 300, 600, 1000, 1500])
+    setTimeout(() => { try { ecouterRelais(libM && libM.getRelaySockets()); } catch (e) {} }, d);
+}
 
 /* l'état réel des WebSockets vers les relais — {total, open, pending,
    vivants}. Sans bibliothèque chargée : rien à sonder, tout à zéro. */
@@ -69,14 +80,25 @@ const GRACE_MS = 12000;
    `fail()` se branche sur onJoinError (pair annoncé, liaison en échec). */
 export function watchLiaison(getPeers, cb){
   const t0 = Date.now();
-  let rtcFail = false;
+  let rtcFail = false, cause = '';
   const tick = () => cb(liaisonStage({
     relays: relaySnapshot(), peers: getPeers(), exchanged: getPeers() > 0,
     rtcFail, graceOver: Date.now() - t0 > GRACE_MS
-  }));
+  }), cause);
   const iv = setInterval(tick, 2000);
-  return { stop: () => clearInterval(iv), fail: () => { rtcFail = true; tick(); }, tick };
+  /* `fail` reçoit l'erreur de Trystero et la garde : trois pannes très
+     différentes passent par ce seul rappel, et les jeter revenait à
+     dire « rien ne passe » aussi bien à qui s'est trompé de code qu'à
+     qui a besoin d'un TURN (engine/transport.js, `causeLiaison`). */
+  return { stop: () => clearInterval(iv), tick,
+    fail: err => { rtcFail = true; cause = causeLiaison(err); dernierEchec = cause; tick(); } };
 }
+
+/* la dernière cause d'échec vue dans la session — le rapport « Signaler
+   un problème » la porte : c'est la panne qu'on ne peut pas voir à
+   distance, donc celle qu'un rapport doit dire. */
+let dernierEchec = '';
+export const echecLiaison = () => dernierEchec;
 
 async function sha256hex(s){
   const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
@@ -104,7 +126,9 @@ export async function openRoom(kind, phrase, callbacks){
     const turn = JSON.parse(await kvGet(TURN_KEY) || 'null');
     if (Array.isArray(turn) && turn.length) cfg.turnConfig = turn;
   } catch (e) {}
-  return joinRoom(cfg, id, callbacks);
+  const r = joinRoom(cfg, id, callbacks);
+  ecouterTot();   /* voir `ecouterTot` : un relais sain répond avant le premier sondage */
+  return r;
 }
 /* Quitter une salle POUR DE BON — à utiliser partout, jamais
    `room.leave()` seul. `leave()` est ASYNCHRONE (départ annoncé aux
@@ -331,7 +355,8 @@ const live = {
   peers: 0,
   relays: { total: 0, open: 0, pending: 0 },
   exchanged: false,    /* un échange a réellement été reçu — condition de « à jour » */
-  rtcFail: false,      /* pair annoncé mais liaison directe en échec */
+  rtcFail: false,      /* pair annoncé mais liaison en échec */
+  cause: '',           /* POURQUOI — `causeLiaison`, engine/transport.js */
   since: 0,            /* départ de la (re)connexion — pour le délai de grâce */
   phrase: '',
   lastStats: null,     /* dernier lot appliqué (affiché par la feuille) */
@@ -436,6 +461,7 @@ async function closeRoom(){
   live.relays = { total: 0, open: 0, pending: 0 };
   live.exchanged = false;
   live.rtcFail = false;
+  live.cause = '';
   await leaveRoom(old);
 }
 
@@ -458,11 +484,15 @@ async function join(phrase, force){
   try {
     r = await openRoom('sync', phrase, {
       /* un appareil s'est annoncé via les relais mais la liaison
-         directe n'aboutit pas (NAT/pare-feu) — on le dit, on ne
-         laisse plus « en liaison » mentir */
-      onJoinError: () => {
+         n'aboutit pas — on le dit, on ne laisse plus « en liaison »
+         mentir. Et on garde POURQUOI : Trystero fait passer par ce
+         rappel aussi bien un code différent qu'un manque de TURN, et
+         ces deux-là ne se réparent pas du tout pareil. */
+      onJoinError: e => {
         if (my !== gen) return;
-        if (!live.rtcFail) logJ('Sync appareils : pair en vue, liaison directe en échec');
+        live.cause = causeLiaison(e);
+        dernierEchec = live.cause;
+        if (!live.rtcFail) logJ('Sync appareils : pair en vue, liaison en échec (' + live.cause + ')');
         live.rtcFail = true;
         refreshStage(false);
       }

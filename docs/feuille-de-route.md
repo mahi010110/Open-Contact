@@ -4,18 +4,18 @@
 concevoir — ça, c'est `CLAUDE.md`. Et il ne redit pas l'état des surfaces —
 ça, c'est [`surfaces.md`](surfaces.md).
 
-*Dernière mise à jour : 17 août 2026.*
+*Dernière mise à jour : 7 septembre 2026.*
 
 ---
 
 ## Là où on en est
 
 La surface web est **fonctionnellement complète** et n'attend plus de
-fonctionnalité pour être montrée. 122 auto-tests verts, et 17 scénarios de
+fonctionnalité pour être montrée. 123 auto-tests verts, et 21 scénarios de
 bout en bout joués dans un vrai navigateur, en deux tailles d'écran et deux
 thèmes.
 
-La suite en compte 29 : les 12 autres sont **sautés, pas verts** — ils
+La suite en compte 32 : les 11 autres sont **sautés, pas verts** — ils
 appartiennent aux capacités masquées (`ui/perimetre.js`) et à la surface
 ordinateur, dont le binaire n'est pas construit ici. Compter un scénario
 sauté comme réussi est exactement ce que `developpement.md` interdit ; ce
@@ -69,6 +69,41 @@ choses, et aucune ne dépend de quelqu'un d'extérieur.
       jours de suite : celui-là se remplace.
       Sept relais sains suffisent largement (il en faut deux), donc rien
       ne presse — mais une liste qu'on ne relit pas se vide toute seule.
+
+- [x] **L'anneau de focus, mesuré** — il ne l'avait jamais été : le jeton
+      portait le commentaire « pointillé 98, lisible partout », c'est-à-dire
+      une intention. Relevé en photographiant les 150 contrôles de l'app non
+      focalisés puis focalisés, **49 étaient sous le plancher de WCAG 2.2
+      SC 2.4.11**, dont les trois listes principales du produit — la ligne du
+      fil ne rendait *rien* au doigt, la ligne d'une piste un quart, la rangée
+      d'« Aujourd'hui » un huitième. Cause : `outline-offset` pose l'anneau
+      dehors, et c'est exactement là que le `overflow:hidden` du motif de
+      suppression au geste le coupe. La rangée porte donc l'anneau à la place
+      du contrôle qui la remplit, le trait passe à 2 px, et le fil — seul cas
+      sans dehors — le pose dedans, sur la boîte qui peint. `e2e-focus.mjs`
+      garde les trois critères (aire, contraste, forme) sur 4 écrans × 2
+      ergonomies × 2 thèmes, avec trois sondes. *(septembre 2026)*
+      Le détail du raisonnement est descendu dans `CLAUDE.md` §4 ; ce qu'il
+      faut en retenir ici tient en une ligne : **un commentaire qui affirme
+      une qualité sans l'avoir mesurée est une dette, pas une garantie.**
+
+- [x] **La liaison P2P dit enfin POURQUOI elle échoue** — signalé à l'usage,
+      captures de deux téléphones à l'appui : l'un « En attente de ton groupe »,
+      l'autre « Quelqu'un est là, mais rien ne passe ». Le second innocente les
+      relais (pour qu'un pair s'annonce, la salle et le relais ont fonctionné),
+      et ce n'était donc pas la piste des relais muets qu'on suivait depuis
+      deux jours. La cause réelle : `onJoinError` était câblé `() => fail()`
+      aux quatre appels, et Trystero y fait passer **trois** pannes — code de
+      salle différent, aucun TURN configuré, TURN injoignable. L'app les
+      confondait en une phrase, alors que la première se répare en dix
+      secondes. `causeLiaison` les nomme, l'écran le dit, et le rapport
+      « Signaler un problème » le porte. Gardé à deux niveaux dans
+      `e2e-liaison.mjs` (le câblage ET les appelants), 5 mutations attrapées.
+      *(septembre 2026)*
+      **Ce qui reste hors de portée, et le restera** : sans TURN, deux
+      appareils en données mobiles ne peuvent pas se joindre directement, et
+      un TURN est un serveur — §10 et la question ② l'interdisent. Le repli
+      (`.oc`, QR) est la réponse du produit, pas un pis-aller.
 
 - [ ] **Essais sur vrai matériel** — un vrai téléphone d'entrée de gamme, un
       vrai réseau d'établissement. Les scénarios automatiques passent à côté

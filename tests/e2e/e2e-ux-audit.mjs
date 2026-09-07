@@ -1931,6 +1931,23 @@ for (const [quoi, titre] of [['donner', 'Donner'], ['prospect', 'Prospecter']]){
      `.ec-avec` au poste, que `display:contents` promeut en élément flex :
      un span inline rend `clientWidth` 0, ce qui rendait la première
      version de ce détecteur vraie partout, donc muette. */
+  /* UNE DONNÉE NE SE REND PAS EN DEUX MORCEAUX. Le sens, le compte et la
+     date sont des valeurs atomiques : si l'une occupe plusieurs
+     fragments de ligne, c'est qu'elle a été coupée par un retour à la
+     ligne. C'est ce qui est arrivé au compte — un point médian posé en
+     `::before` avec une espace devant partait seul en tête du rang
+     suivant, « · 24 pistes », photographié sur un vrai téléphone à
+     125 %. Le NOM, lui, a le droit de plier : c'est une identité, et
+     §4 veut qu'elle plie plutôt que de s'amputer. */
+  const MORCEAUX = () => [...document.querySelectorAll('.ec-l')].flatMap(l =>
+    ['.ec-dir', '.ec-n', '.ec-when'].map(sel => {
+      const n = l.querySelector(sel);
+      if (!n) return null;
+      const parts = n.getClientRects().length;
+      return parts > 1 ? sel + ' rendu en ' + parts + ' morceaux : « '
+        + n.textContent.trim() + ' »' : null;
+    }).filter(Boolean));
+
   const CASSE = () => {
     const out = [];
     const mes = document.createElement('span');
@@ -2003,9 +2020,12 @@ for (const [quoi, titre] of [['donner', 'Donner'], ['prospect', 'Prospecter']]){
 
   /* ② aucun mot cassé, nulle part */
   {
-    const vus = [];
+    const vus = [], coupes = [];
+    /* 390 px à 125 % EST le cas photographié : la largeur du téléphone
+       de référence, au réglage de texte que met vraiment quelqu'un qui
+       veut y voir. Il manquait au balayage. */
     for (const [w, h, pc] of [[320,640,100],[320,640,125],[320,640,200],[360,640,150],
-                              [390,844,200],[1280,800,200]]){
+                              [390,844,125],[390,844,150],[390,844,200],[1280,800,200]]){
       const c = await browser.newContext({ viewport: { width: w, height: h },
         hasTouch: w < 901, isMobile: w < 901 });
       const pg = await c.newPage();
@@ -2015,12 +2035,17 @@ for (const [quoi, titre] of [['donner', 'Donner'], ['prospect', 'Prospecter']]){
         Math.round(16 * pc / 100));
       await pg.waitForTimeout(250);
       for (const m of await pg.evaluate(CASSE)) vus.push(`${w}px/${pc}% : ${m}`);
+      for (const m of await pg.evaluate(MORCEAUX)) coupes.push(`${w}px/${pc}% : ${m}`);
       await c.close();
     }
     if (vus.length)
       fail('fil : le nom se fait casser au milieu d’un mot — le plancher de la colonne a sauté —\n      '
         + vus.join('\n      '));
-    else console.log('fil : le nom ne casse aucun mot, de 320 à 1280 px et jusqu’à 200 % ✓');
+    else if (coupes.length)
+      fail('fil : une DONNÉE est rendue en plusieurs morceaux — un séparateur ou un chiffre '
+        + 'part seul à la ligne —\n      ' + coupes.join('\n      '));
+    else console.log('fil : le nom ne casse aucun mot et aucune donnée ne se coupe en deux, '
+      + 'de 320 à 1280 px et jusqu’à 200 % ✓');
   }
 
   /* ③ le registre du poste : colonnes ET chiffres alignés */

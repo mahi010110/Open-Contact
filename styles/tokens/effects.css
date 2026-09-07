@@ -32,8 +32,18 @@
   --dither-strong:var(--dither-strong-img) 0 0 / var(--dither-size);
   --scanlines:repeating-linear-gradient(0deg, color-mix(in srgb, var(--ink) 6%, transparent) 0 1px, transparent 1px 3px);
 
-  /* Focus clavier : pointillé 98, lisible partout */
-  --focus-outline:1px dotted var(--focus-ring);
+  /* Focus clavier : pointillé 98. « Lisible partout » était une
+     INTENTION, jamais une mesure — relevé sur les 150 contrôles de
+     l'app, le trait de 1 px rendait 65 % de l'aire exigée par WCAG 2.2
+     SC 2.4.11 sur un bouton de 32 px, 78 % sur la marque. Le critère
+     demande, au plus facile des deux, l'aire d'un périmètre de 2 px ou
+     celle d'un trait de 4 px le long du plus petit côté ; un pointillé
+     n'encre que la moitié de sa bande, donc 1 px en rend le quart.
+     2 px n'est pas moins « 98 » : la case de focus de l'époque faisait
+     un pixel d'un écran à 96 ppp, soit deux à trois sur un téléphone
+     d'aujourd'hui. C'est le trait qui rattrape la densité, pas le
+     dessin qui change. */
+  --focus-outline:2px dotted var(--focus-ring);
   --focus-offset:2px;
 
   /* Mouvement (#23) : les OBJETS restent « 98 » — nets, instantanés,

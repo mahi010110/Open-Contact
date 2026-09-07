@@ -1,8 +1,12 @@
 /* ============================================================
    OpenContact — moteur · état honnête d'une liaison P2P
    Dire où en est réellement le transport à partir de faits bruts :
-   sockets de relais (getRelaySockets), pair annoncé mais liaison
-   directe en échec (onJoinError), pair connecté, échange reçu.
+   sockets de relais (getRelaySockets), pair annoncé mais liaison en
+   échec (onJoinError), pair connecté, échange reçu.
+   ATTENTION à `onJoinError` : ce commentaire a longtemps dit « liaison
+   DIRECTE en échec », et c'était une mélecture de la bibliothèque. Elle
+   y fait passer trois pannes, dont un code de salle différent, qui n'a
+   rien à voir avec le réseau — voir `causeLiaison` plus bas.
    « À jour » ne se déduit JAMAIS de la simple création de la
    salle — c'est la leçon de l'incident #14.
    Fonctions pures, aucun accès au DOM ni au réseau.
@@ -81,7 +85,9 @@ export function relayTally(socks, repondu){
    · on         — pair connecté ET un échange a réellement été reçu
    · link       — pair connecté, premier échange pas encore arrivé
    · norelay    — aucun relais joignable passé le délai de grâce
-   · rtcfail    — un pair s'est annoncé mais la liaison directe échoue
+   · rtcfail    — un pair s'est annoncé et la liaison a échoué ; la
+                  CAUSE (`causeLiaison`) dit laquelle des trois, et
+                  elles n'appellent pas le même geste
    · wait       — relais joints ET vivants, personne en face pour l'instant
    · connecting — tout le reste (démarrage, relais en cours) */
 export function liaisonStage({ relays, peers, exchanged, rtcFail, graceOver }){
@@ -100,6 +106,43 @@ export function liaisonStage({ relays, peers, exchanged, rtcFail, graceOver }){
   const vivants = r.vivants === undefined ? r.open : r.vivants;
   if (!vivants) return graceOver ? 'norelay' : 'connecting';
   return 'wait';
+}
+
+/* ---------- POURQUOI LA LIAISON DIRECTE A ÉCHOUÉ ----------
+   Trystero rend TROIS pannes par le même rappel `onJoinError`, et
+   l'app les jetait toutes les trois : `onJoinError: () => watch.fail()`
+   ignorait son argument. Elles appellent pourtant des gestes OPPOSÉS,
+   et deux d'entre elles se réparent en dix secondes :
+
+   · « incorrect room password when decrypting offer / answer »
+     → ce n'est pas le même code des deux côtés. Rien à voir avec le
+       réseau : on retape le code. (Le cas est rare quand la salle est
+       nommée par un hash du code, comme ici — mais une salle rejointe
+       par une version de l'app qui dérivait autrement le produirait.)
+   · « … configure TURN servers with turnConfig … »
+     → les deux appareils se sont bien trouvés et ont échangé leur SDP,
+       mais aucun chemin direct n'existe entre leurs réseaux, et AUCUN
+       TURN n'est configuré. C'est le cas de deux téléphones en données
+       mobiles, chacun derrière le NAT de son opérateur.
+   · « … check that your TURN server URLs and credentials are reachable … »
+     → un TURN est configuré et c'est LUI qui ne répond pas.
+
+   La bibliothèque distingue les deux derniers en regardant si un TURN
+   est déclaré (`turnConfig` ou `rtcConfig.iceServers`) : le texte n'est
+   donc pas décoratif, il porte un fait qu'on ne peut pas retrouver
+   autrement depuis l'application.
+
+   On lit le TEXTE parce que c'est tout ce que la bibliothèque donne —
+   il n'y a pas de code d'erreur. Un texte qui changerait à la prochaine
+   version rendrait `inconnu`, jamais une cause fausse : on ne devine
+   pas, on se tait. */
+export function causeLiaison(err){
+  const t = String((err && err.error) || err || '').toLowerCase();
+  if (!t) return 'inconnu';
+  if (t.includes('incorrect room password')) return 'motdepasse';
+  if (t.includes('urls and credentials')) return 'turnmuet';
+  if (t.includes('configure turn servers')) return 'sansturn';
+  return 'inconnu';
 }
 
 /* serveurs TURN personnalisés — une ligne par serveur :
