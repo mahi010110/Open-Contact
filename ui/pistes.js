@@ -153,7 +153,7 @@ function rowHTML(c){
   return (
     `<div class="row-item${closed ? ' row-closed' : ''}" data-id="${c.id}">
        <div class="sw-in">
-         <div class="ri-main" role="button" tabindex="0" aria-label="Ouvrir ${esc(c.name)}">
+         <div class="ri-main sw-cible" role="button" tabindex="0" aria-label="Ouvrir ${esc(c.name)}">
            <h3>${esc(c.name)}</h3>
            <div class="ri-sub">${bits.join(' · ')}</div>
            ${hintHTML(c, ['name', 'city'])}

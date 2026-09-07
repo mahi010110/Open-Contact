@@ -357,6 +357,63 @@ net. Sources uniques : `styles/tokens/` et le kit `design/`.
   COMMENTAIRES. Ce fichier en contient qui citent des sélecteurs de
   survol, et les compter faisait rendre 32 fautes là où il n'y en avait
   aucune.
+- **L'anneau de focus se VOIT, et ça se mesure en pixels.** Le jeton
+  disait « pointillé 98, lisible partout » : une intention, jamais un
+  relevé. Photographié sur les 150 contrôles de l'app, non focalisés
+  puis focalisés, le trait de 1 px en rendait 49 sous le plancher de
+  WCAG 2.2 SC 2.4.11. **On ne lit pas le CSS** — c'est le seul relevé
+  qui survive à un anneau rogné par un ancêtre ou peint sous un enfant
+  opaque, et aucun des deux ne se voit dans une feuille de style.
+
+  Le critère offre **deux** aires minimales et retient la plus facile :
+  un périmètre de 2 px autour du contrôle, ou un trait de 4 px le long
+  de son plus petit côté. Ne mesurer que la première sur-accuse — une
+  rangée de 523×36 exigerait 2 252 px² au lieu de 144, le relevé rend
+  « tout est faux », et un rapport pareil ne se corrige pas. C'est
+  exactement la faute de la sonde des relais, neuf relais sains accusés
+  d'un coup ; elle s'est rejouée ici mot pour mot.
+
+  Trois choses en sont sorties, et la troisième est la plus chère :
+
+  ① **Un pointillé n'encre que la moitié de sa bande**, donc 1 px en
+  rend le quart. 2 px n'est pas moins « 98 » : la case de focus de
+  l'époque faisait un pixel d'un écran à 96 ppp, soit deux à trois sur
+  un téléphone d'aujourd'hui. C'est le trait qui rattrape la densité,
+  pas le dessin qui change.
+
+  ② **`outline-offset` pose l'anneau DEHORS, et `overflow:hidden` le
+  coupe là.** Le rognage est celui du motif de suppression au geste
+  (§6), et le contrôle qui ouvre une ligne la remplit bord à bord : la
+  ligne du fil ne rendait **rien** au doigt, la ligne d'une piste un
+  quart — deux traits verticaux au lieu d'un cadre —, la rangée
+  d'« Aujourd'hui » un huitième. Les trois listes principales du
+  produit. La **rangée** porte donc l'anneau à la place du contrôle qui
+  la remplit : `overflow` rogne les descendants d'un élément, jamais son
+  propre contour. Le contrôle se nomme (`sw-cible`) ; la rangée, elle,
+  se **déduit** — le motif est toujours `rangée > enveloppe > contrôle`,
+  donc `:has(> * > …)`, et aucune des deux enveloppes n'est nommée. Une
+  première version disait `.sw:has(…)` et ratait « Aujourd'hui », dont
+  la rangée porte son propre geste : deux rangées sur trois passaient de
+  « rogné » à « rien du tout ».
+
+  ③ **Un anneau intérieur se pose sur la boîte qui PEINT.** Le fil n'a
+  aucun dehors — trois boîtes de même largeur s'emboîtent, et la plus
+  extérieure défile —, l'anneau va donc dedans. Posé sur la rangée, il
+  rendait **103 %, au vert**, pendant que l'œil ne voyait qu'un liseré
+  d'un pixel : l'enveloppe est positionnée et opaque, elle le recouvrait.
+  D'où le troisième critère du garde, qui ne vient pas de WCAG mais du
+  produit — **l'anneau touche au moins trois bords sur quatre, coins
+  exclus.** WCAG se satisfait d'un trait ; §4 dit un rectangle. Sans ce
+  critère le pire défaut du lot repassait au vert, et c'est l'instance
+  la plus nette de « la mesure propose, l'œil tranche » (§6).
+
+  Corollaire de garde, appris deux fois dans ce lot : **un bord se
+  compte sans ses coins.** Mesurés par simple proximité, les deux
+  extrémités d'un trait horizontal tombent aussi dans les bandes gauche
+  et droite — le liseré rendait trois côtés sur quatre et la sonde
+  restait verte. Chaque bord ne compte que le milieu de sa longueur.
+  `e2e-focus.mjs` balaie 4 écrans × 2 ergonomies × 2 thèmes et remet les
+  trois défauts d'origine en sondes.
 - **Icônes** : pixelarticons via `ic('nom', 'ic-14')`. Pas d'emoji dans
   l'interface, pas d'autre pack.
 - **Motion** : les **objets** restent « 98 » — nets, instantanés, `steps()`

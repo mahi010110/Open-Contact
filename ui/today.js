@@ -78,7 +78,7 @@ function rowHTML(c){
        <div class="act-under act-under-done">${ic('check', 'ic-14')} Fait</div>
        <div class="act-under act-under-report">${ic('clock', 'ic-14')} Reporter</div>
        <div class="act-in">
-         <div class="act-main" role="button" tabindex="0" aria-label="Ouvrir ${esc(c.name)}">
+         <div class="act-main sw-cible" role="button" tabindex="0" aria-label="Ouvrir ${esc(c.name)}">
            <b class="act-verb">${esc(c.name)}</b>
            <span class="act-sub">${when}<span class="act-do">${esc(verb)}</span></span>
          </div>
@@ -148,7 +148,7 @@ function startRowHTML(c){
   return (
     `<div class="act-row act-start" data-id="${c.id}">
        <div class="act-in">
-         <div class="act-main" role="button" tabindex="0" aria-label="Ouvrir ${esc(c.name)}">
+         <div class="act-main sw-cible" role="button" tabindex="0" aria-label="Ouvrir ${esc(c.name)}">
            <b class="act-verb">${esc(c.name)}</b>
            <span class="act-sub">${pourquoi}<span class="act-who">${esc(bits.join(' · '))}</span></span>
          </div>
@@ -182,7 +182,7 @@ function silenceRowHTML(sil){
   return (
     `<div class="act-row act-quiet" data-id="${c.id}">
        <div class="act-in">
-         <div class="act-main" role="button" tabindex="0" aria-label="Ouvrir ${esc(c.name)}">
+         <div class="act-main sw-cible" role="button" tabindex="0" aria-label="Ouvrir ${esc(c.name)}">
            <b class="act-verb">${esc(c.name)}</b>
            <span class="act-sub">${silenceMarkHTML(sil)}<span class="act-who">${esc(bits.join(' · '))}</span></span>
          </div>

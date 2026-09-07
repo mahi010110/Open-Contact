@@ -837,6 +837,37 @@ details.tranche[open]>summary::before{
 }
 .swipe-del .sw-under{opacity:1}
 .sw-gone{transition:opacity 150ms var(--ease-out),transform 150ms var(--ease-out);opacity:0;transform:translateX(-20px)}
+/* ---- L'ANNEAU DE FOCUS D'UNE RANGÉE QUI SE ROGNE ----
+   `overflow:hidden` est ce qui garde la poubelle cachée sous la rangée
+   pendant le glissement. Mais un `outline` se dessine À L'EXTÉRIEUR du
+   contrôle (`--focus-offset`), c'est-à-dire exactement là où ce rognage
+   tombe — et le contrôle qui OUVRE la rangée la remplit bord à bord.
+   Mesuré sur les 150 contrôles de l'app, avant / après focus, en
+   comptant les pixels qui changent : la ligne du fil ne rendait RIEN au
+   doigt (0 % de l'aire exigée, contraste 0), la ligne d'une piste un
+   quart, la rangée d'« Aujourd'hui » un huitième. Ce quart n'était même
+   pas un cadre : les deux bords verticaux survivaient, le haut et le bas
+   étaient coupés — deux traits qui ne disent rien.
+   C'est la RANGÉE qui porte l'anneau, donc : `overflow` rogne les
+   descendants d'un élément, jamais son propre contour. Le contrôle rend
+   le sien pour qu'il n'y en ait pas deux.
+   Et le contrôle concerné se NOMME (`sw-cible`) : sans nom, la règle
+   devrait désigner `.ri-main`, `.act-main` et `.ec-row` une par une,
+   c'est-à-dire une liste tenue à la main — et une liste tenue à la main
+   finit toujours par mentir (§9).
+   La rangée, elle, ne se nomme pas : elle se DÉDUIT. Le motif est
+   toujours `rangée > enveloppe > contrôle` — `.sw-in` pour une piste et
+   pour le fil, `.act-in` pour « Aujourd'hui » —, donc la rangée est le
+   GRAND-PARENT, et `:has(> * > …)` la désigne sans nommer aucune des
+   deux enveloppes. Une première version disait `.sw:has(…)` : elle
+   ratait « Aujourd'hui », dont la rangée porte son propre geste (Fait /
+   Reporter) et n'a donc jamais reçu la classe `sw`. Deux rangées sur
+   trois passaient de « rogné » à « rien du tout ».
+   Le garde de `e2e-ux-audit.mjs` mesure l'aire réellement rendue : une
+   rangée neuve qui oublie le nom, ou qui le pose à une autre
+   profondeur, rougit sans que personne ait à y penser. */
+.sw-cible:focus-visible{outline:none}
+:has(> * > .sw-cible:focus-visible){outline:var(--focus-outline);outline-offset:var(--focus-offset)}
 /* poubelle au survol (souris) : un élément du flux, pas un survol
    flottant — la colonne est réservée, rien ne saute ni ne déborde. Nue
    comme toute action de ligne : ni cadre, ni biseau, ni ombre, ni aplat
@@ -1603,7 +1634,15 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   /* le panneau lu défile chez lui : vingt pistes données ne poussent
      jamais la liste ni la page */
   .ec-detail{min-width:0;height:100%;display:flex;flex-direction:column;overflow:hidden}
-  .ec-detail-b{flex:1;min-height:0;overflow:auto}
+  /* les 5 px sont ceux de l'anneau de focus : le panneau défile et ses
+     lignes le remplissent bord à bord, donc sans eux l'anneau d'une
+     ligne `.pick` est rogné et ne rend plus qu'un trait en bas. Même
+     cause et même remède que la ligne du fil, une colonne plus loin. */
+  .ec-detail-b{flex:1;min-height:0;overflow:auto;padding:5px}
+  /* le titre est le FRÈRE du panneau, pas son enfant : sans les mêmes
+     5 px il resterait 5 px à gauche de ses propres lignes. C'est tout
+     le panneau qui rentre, pas ses lignes toutes seules. */
+  .ec-detail>.tr-h{padding-inline:5px}
   .ec-detail .ec-quand{margin:8px 0 10px}
   /* « tu es ici » : la couleur du châssis, celle de l'onglet allumé —
      jamais l'accent, qui appartient au contenu (§4) */
@@ -1702,10 +1741,12 @@ button.fi-vecu b{flex:1;min-width:0}
    (`.row-item`, `.doc-row`, `.orow`) posent ce `flex` ; le fil l'avait
    oublié en naissant, et le trop-plein d'air se lisait comme un dessin
    raté avant qu'on en trouve la cause. */
-.ec-l .sw-in{display:flex;align-items:center;background:var(--surface-desktop)}
+/* les 5 px de droite sont ceux de la poubelle du survol : collée au
+   bord de la rangée, son anneau de focus était rogné du même coup */
+.ec-l .sw-in{display:flex;align-items:center;background:var(--surface-desktop);padding-right:5px}
 .ec-row{
   display:flex;align-items:center;flex-wrap:wrap;column-gap:10px;row-gap:2px;width:100%;
-  min-height:var(--ctl);padding:9px 0;
+  min-height:var(--ctl);padding:9px 5px;
   border:0;border-radius:0;
   background:none;color:var(--text-body);font-family:var(--font-ui);text-align:left;
 }
@@ -1718,6 +1759,32 @@ button.ec-row{cursor:pointer}
 @media (hover:hover){
 button.ec-row:hover{background:var(--surface-field)}
 }
+/* ---- L'ANNEAU DE FOCUS DU FIL, LE SEUL CAS SANS DEHORS ----
+   Ailleurs, une rangée rognée peut porter l'anneau à la place de son
+   contrôle : son propre contour échappe à son propre `overflow`. Le fil
+   n'a pas cette issue. Trois boîtes de MÊME largeur s'emboîtent —
+   `.ec-row` remplit `.ec-l`, qui remplit `.ec-body`, qui défile — donc
+   l'anneau posé dehors est rogné à chaque étage. Mesuré : 0 % de l'aire
+   exigée au pouce. (Les 42 % relevés au poste ne venaient même pas de
+   l'anneau : c'était la poubelle qui apparaît au `:focus-within`.)
+   Il se pose donc DEDANS, et la rangée gagne les 5 px de rembourrage
+   qui l'empêchent de mordre le « R » de « Reçu ». C'est le seul endroit
+   de l'app qui déroge à `--focus-offset`, et il est nommé.
+   Et il se pose sur l'ENVELOPPE, pas sur la rangée. Posé sur `.ec-l`,
+   il rendait la mesure au vert — 103 % — pendant que l'œil ne voyait
+   RIEN : `.sw-in` est positionnée et opaque (c'est elle qui couvre la
+   poubelle pendant le glissement), donc elle recouvrait l'anneau
+   dessiné sous elle, et il ne restait que le mince liseré du bas.
+   Un anneau intérieur se pose sur la boîte qui PEINT, sinon il passe
+   dessous. C'est la limite de l'instrument, écrite ici pour qu'elle ne
+   se repaie pas : la mesure propose, l'œil tranche (§6). */
+.ec-l:has(.sw-cible:focus-visible){outline:none}
+.ec-l:has(.sw-cible:focus-visible)>.sw-in{outline:var(--focus-outline);outline-offset:-2px}
+/* la poubelle du fil pour la même raison : 32 px dans une rangée de 36,
+   il lui reste 2 px de chaque côté. À `--focus-offset` (2 px d'écart +
+   2 de trait) son anneau perdait le haut et le bas et se lisait comme
+   deux crochets ; collé au bord, il tient tout entier. */
+.ec-l .hov-del:focus-visible{outline-offset:0}
 .ec-body .tr-more{margin-top:10px}
 
 /* ---- LE MOUVEMENT DU FIL, ET SEULEMENT DEUX ----

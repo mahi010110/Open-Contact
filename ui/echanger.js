@@ -250,7 +250,7 @@ function filHTML(){
            la couleur qui dit « tu es ici » (§4). */
         const lue = mqWide.matches && i === filSel;
         const dedansLigne = x.ids.length
-          ? `<button class="ec-row ec-open${lue ? ' ec-lue' : ''}" data-fil="${i}"${
+          ? `<button class="ec-row ec-open sw-cible${lue ? ' ec-lue' : ''}" data-fil="${i}"${
               lue ? ' aria-current="true"' : ''}>${dedans}${
               mqWide.matches ? '' : ic('chevron-right', 'ic-14')}</button>`
           : `<div class="ec-row">${dedans}</div>`;
