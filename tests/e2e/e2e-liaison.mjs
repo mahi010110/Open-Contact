@@ -481,6 +481,77 @@ const composes = async (avant) => {
    disait « rien ne passe » aussi bien à qui s'était trompé d'une lettre
    qu'à qui avait besoin d'un serveur. Deux niveaux de garde, parce que
    la panne se perd à deux endroits différents. */
+/* ---- LE NAT D'OPÉRATEUR, REPRODUIT ----
+   C'est la panne que les gens rencontrent vraiment, et rien ne la
+   jouait : les deux appareils se trouvent par le relais, échangent
+   leur SDP, et AUCUN chemin direct ne s'établit. Deux téléphones en
+   données mobiles sont dans ce cas — chacun derrière le NAT de son
+   opérateur, sans TURN pour les relier.
+
+   On la reproduit en retirant au receveur tout candidat ICE : les
+   « trickle » (`addIceCandidate`) ET ceux embarqués dans le SDP
+   distant. Le second est indispensable — sans lui, deux pages de la
+   même machine se relient par la boucle locale et le transfert
+   RÉUSSIT, ce qui a fait passer une première version de ce contrôle
+   pour une reproduction alors qu'elle ne prouvait rien.
+
+   Ce que ça garde : que la panne se DISE, des deux côtés, avec le
+   geste qui va avec. Le message a été livré sans jamais avoir été vu
+   dans un navigateur ; il l'est maintenant. */
+{
+  const COUPE_ICE = () => {
+    RTCPeerConnection.prototype.addIceCandidate = function(){ return Promise.resolve(); };
+    const srd = RTCPeerConnection.prototype.setRemoteDescription;
+    RTCPeerConnection.prototype.setRemoteDescription = function (d, ...r){
+      if (d && d.sdp)
+        d = { type: d.type, sdp: String(d.sdp).split('\n')
+          .filter(l => !/^a=candidate:/.test(l.trim())).join('\n') };
+      return srd.call(this, d, ...r);
+    };
+  };
+  const G = await mk(mobile), P = await mk(mobile);
+  for (const p of [G, P]){
+    await p.addInitScript(COUPE_ICE);
+    await p.goto(base, { waitUntil: 'load' });
+    await p.waitForSelector('#view-aujourdhui:not([hidden])');
+  }
+  await seed(G, 'nat', 26);
+  await seed(P, 'natr', 0);
+  for (const p of [G, P]){ await p.reload({ waitUntil: 'load' }); await p.waitForSelector('#view-aujourdhui:not([hidden])'); }
+
+  await G.click('.bottomnav a[data-r="echanger"]');
+  await G.waitForSelector('#ecGive'); await G.click('#ecGive');
+  await G.waitForSelector('#dnQR'); await G.click('#dnQR');
+  await G.waitForSelector('.sy-phrase span', { timeout: 25000 });
+  const codeNat = (await G.textContent('.sy-phrase span')).trim();
+  await P.click('.bottomnav a[data-r="echanger"]');
+  await P.waitForSelector('#ecRecv'); await P.click('#ecRecv');
+  await P.waitForSelector('#rcScan'); await P.click('#rcScan');
+  await P.waitForSelector('#rcCode');
+  await P.fill('#rcCode', codeNat);
+  await P.waitForSelector('#rcCodeGo:not([hidden])');
+  await P.click('#rcCodeGo');
+
+  const dit = async (page, sel) => {
+    for (let i = 0; i < 40; i++){
+      const t = ((await page.textContent(sel).catch(() => '')) || '').trim();
+      if (/refusent/.test(t)) return t;
+      await page.waitForTimeout(2000);
+    }
+    return ((await page.textContent(sel).catch(() => '')) || '').trim();
+  };
+  const dG = await dit(G, '#dnRdvSt');
+  const dP = await dit(P, '#rcRdvSt');
+  if (!/refusent la liaison/.test(dG))
+    fail('NAT : le donneur ne dit pas que les réseaux refusent la liaison — « ' + dG + ' ». '
+      + 'Sans ça, la panne la plus fréquente du P2P se lit comme une panne au hasard');
+  else if (!/refusent la liaison directe/.test(dP) || !/fichier/.test(dP))
+    fail('NAT : le receveur ne dit pas la panne ET son repli — « ' + dP + ' »');
+  else console.log('NAT d’opérateur reproduit : les deux écrans nomment la panne '
+    + 'et proposent le repli ✓');
+  await G.close(); await P.close();
+}
+
 {
   /* ① le CÂBLAGE interne : `fail(err)` rend la cause à l'écran */
   const ctx = await browser.newContext({ ignoreHTTPSErrors: true,
