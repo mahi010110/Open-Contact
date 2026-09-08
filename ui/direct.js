@@ -731,9 +731,26 @@ export function openPromo(){
     const showNext = () => {
       if (showing || !queue.length) return;
       showing = true;
-      const { obj, from } = queue.shift();
-      const psh = openSheet({ title: 'Reçu en direct', icon: 'inbox', onClose: () => { showing = false; showNext(); } });
-      mergePreviewInto(psh, obj, { from });
+      const { obj, from, key } = queue.shift();
+      /* UN APERÇU FERMÉ SANS FUSIONNER N'A PAS CONSOMMÉ L'ENVOI.
+         L'empreinte se pose à la RÉCEPTION — c'est ce qui empêche un
+         re-clic de rouvrir deux fois la même feuille. Mais le receveur
+         qui regarde, hésite et referme se retrouvait piégé : le même
+         envoi renvoyé était jeté en silence, sans aucun moyen de le
+         redemander, pendant que l'expéditeur lisait « Parti vers 1
+         camarade ✓ ». Mesuré de bout en bout : douze pistes envoyées,
+         aperçu fermé, renvoi — zéro piste et rien à l'écran.
+         On oublie donc l'empreinte quand rien n'a été fusionné.
+         Le report d'une micro-tâche n'est pas un détail : `sh.close()`
+         appelle `onClose` AVANT `opts.onDone` (voir `mergePreviewInto`),
+         donc lu tout de suite, un aperçu FUSIONNÉ passerait aussi pour
+         abandonné. C'est le même report que le bouton retour (§5). */
+      let fusionne = false;
+      const psh = openSheet({ title: 'Reçu en direct', icon: 'inbox', onClose: () => {
+        showing = false;
+        queueMicrotask(() => { if (!fusionne) seen.delete(key); showNext(); });
+      } });
+      mergePreviewInto(psh, obj, { from, onDone: () => { fusionne = true; } });
     };
     share.onMessage = (obj, meta) => {
       if (!obj || obj.kind !== 'share' || !Array.isArray(obj.companies)) return;
@@ -749,7 +766,7 @@ export function openPromo(){
       if (seen.has(key)) return;
       seen.add(key);
       if (seen.size > 30) seen.delete(seen.values().next().value);
-      queue.push({ obj, from: 'camarade ' + String((meta && meta.peerId) || '').slice(0, 4) });
+      queue.push({ obj, key, from: 'camarade ' + String((meta && meta.peerId) || '').slice(0, 4) });
       showNext();
     };
     room.onPeerJoin = () => { peers++; refreshStatus(); };

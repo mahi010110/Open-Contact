@@ -219,6 +219,51 @@ await attendre(D, async () => (await import('./ui/state.js')).S.companies.length
 console.log('partage en groupe réel : 25 pistes envoyées, aperçu, fusion ✓');
 await C.screenshot({ path: SHOTS + '/liaison-groupe-bureau.png' });
 
+/* ---- UN APERÇU FERMÉ SANS FUSIONNER N'A PAS CONSOMMÉ L'ENVOI ----
+   L'empreinte d'un envoi se pose à la RÉCEPTION : c'est ce qui empêche
+   un re-clic de rouvrir deux fois la même feuille. Mais le receveur qui
+   regarde, hésite et referme se retrouvait PIÉGÉ — le même envoi
+   renvoyé était jeté en silence, sans aucun moyen de le redemander,
+   pendant que l'expéditeur lisait « Parti vers 1 camarade ✓ ».
+   Reproduit de bout en bout avant correction : douze pistes envoyées,
+   aperçu fermé, renvoi, zéro piste et rien à l'écran.
+   On garde les DEUX moitiés — sans la seconde, « ne jamais oublier »
+   passerait le contrôle et rouvrirait la feuille à chaque re-clic. */
+{
+  await C.evaluate(async () => {
+    const { S, saveData } = await import('./ui/state.js');
+    const { normalizeCompany } = await import('./engine/model.js');
+    S.companies.push(normalizeCompany({ id: 'renvoi-1', name: 'Renvoi SARL', city: 'Douai', status: 'todo' }));
+    saveData();
+  });
+  await C.waitForTimeout(600);
+  await C.click('.modal-f .btn-primary');
+  await D.waitForSelector('.rc-big', { timeout: 20000 });
+  /* le receveur referme SANS fusionner */
+  await D.evaluate(async () => { const { topSheet } = await import('./ui/dom.js'); topSheet()?.close(null, true); });
+  await D.waitForTimeout(1200);
+  await C.click('.modal-f .btn-primary');
+  let revu = true;
+  try { await D.waitForSelector('.rc-big', { timeout: 15000 }); } catch (e) { revu = false; }
+  if (!revu)
+    fail('renvoi : l’aperçu fermé sans fusionner a CONSOMMÉ l’envoi — le même envoi renvoyé '
+      + 'ne réapparaît pas, et l’expéditeur lit pourtant « Parti vers 1 camarade ✓ ». '
+      + 'Le receveur n’a aucun moyen de le redemander');
+  else {
+    await fusionner(D);
+    await attendre(D, async () => (await import('./ui/state.js')).S.companies.some(c => c.name === 'Renvoi SARL'),
+      { timeout: 15000, message: 'fusion après renvoi' });
+    /* et l'autre moitié : une fois FUSIONNÉ, le même envoi ne revient plus */
+    await D.waitForTimeout(800);
+    await C.click('.modal-f .btn-primary');
+    await C.waitForTimeout(4000);
+    if (await D.$('.rc-big'))
+      fail('renvoi : l’envoi DÉJÀ fusionné rouvre quand même l’aperçu — le dédoublonnage ne sert plus à rien');
+    else console.log('renvoi : aperçu fermé sans fusionner → l’envoi revient ; '
+      + 'une fois fusionné → il ne revient plus ✓');
+  }
+}
+
 /* ============ 3. Rendez-vous QR : donner ↔ recevoir par code ============ */
 /* fermer les feuilles de groupe des deux côtés */
 for (const p of [C, D])
