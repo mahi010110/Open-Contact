@@ -506,6 +506,21 @@ les confondre coûte cher : une tablette tactile en paysage fait 1024 à
   surface absente : le balayage sème un profil rempli, donc le bouton
   « Compléter mon profil » n'existait jamais. Ajouter une taille de
   texte ne rattrape jamais un état qu'on n'ouvre pas.
+  Deux corollaires d'outillage viennent du même endroit, et tous deux
+  ont produit un FAUX VERT — le sens qui rassure, donc le pire.
+  ① **Un état FUGACE se lit après l'avoir effacé.** Le toast dure
+  3,4 s et une boucle de mesure va plus vite : en lisant `#toast` sans
+  le vider d'abord, on relit celui du geste PRÉCÉDENT. Trois refus
+  muets sont ainsi passés pour trois refus expliqués.
+  ② **Semer des données sans RECHARGER mesure l'état d'avant.** L'app
+  a chargé son état à l'ouverture ; écrire dans le stockage ne le lui
+  dit pas. Une première mesure de charge rendait « 0 ligne rendue »
+  avec des temps flatteurs : elle chronométrait une liste vide.
+  Dans les deux cas le remède est le même — **un contrôle vérifie
+  qu'il a mesuré quelque chose avant de conclure** (des lignes rendues,
+  un toast à lui), sinon il rend zéro et zéro se lit comme une
+  réussite.
+
   Second corollaire, du même ordre : **on mesure au plus ÉTROIT.** Le
   balayage à 200 % vivait en 393 px ; à cette largeur aucun nom
   d'entreprise réel ne se coupe, si bien qu'on pouvait remettre le

@@ -11,11 +11,11 @@ concevoir — ça, c'est `CLAUDE.md`. Et il ne redit pas l'état des surfaces �
 ## Là où on en est
 
 La surface web est **fonctionnellement complète** et n'attend plus de
-fonctionnalité pour être montrée. 123 auto-tests verts, et 21 scénarios de
+fonctionnalité pour être montrée. 124 auto-tests verts, et 22 scénarios de
 bout en bout joués dans un vrai navigateur, en deux tailles d'écran et deux
 thèmes.
 
-La suite en compte 32 : les 11 autres sont **sautés, pas verts** — ils
+La suite en compte 33 : les 11 autres sont **sautés, pas verts** — ils
 appartiennent aux capacités masquées (`ui/perimetre.js`) et à la surface
 ordinateur, dont le binaire n'est pas construit ici. Compter un scénario
 sauté comme réussi est exactement ce que `developpement.md` interdit ; ce
