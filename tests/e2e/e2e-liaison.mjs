@@ -243,6 +243,15 @@ await D.waitForSelector('.sy-phrase span', { timeout: 20000 });   /* écran rend
 const code = (await D.textContent('.sy-phrase span')).trim();
 console.log('code de rendez-vous affiché :', code);
 
+/* LE DÉLAI QUE MET UNE VRAIE PERSONNE. Ce contrôle rejoignait en une
+   seconde — ce que personne ne fait : on sort son téléphone, on ouvre
+   l'app, on tape « Recevoir », « En personne », puis on vise. Trente
+   secondes est un minimum honnête, et la bibliothèque fait expirer les
+   offres (`offerExpiryTimer`) : un rendez-vous qui ne survit pas au
+   temps de sortir son téléphone ne sert à rien.
+   Mesuré à 0, 10, 25, 45 et 75 s avant d'écrire cette ligne : les cinq
+   passent. On en fige un, celui qui ressemble à la vie. */
+await D.waitForTimeout(30000);
 await C.click('.topnav a[data-r="echanger"]');
 await C.waitForSelector('#ecRecv');
 await C.click('#ecRecv');
@@ -260,7 +269,8 @@ await attendre(C, async () => (await import('./ui/state.js')).S.companies.some(c
   { timeout: 15000, message: 'fusion après rendez-vous' });
 const stD = (await D.textContent('#dnRdvSt').catch(() => '')).trim();
 if (!/Envoyé/.test(stD)) fail('statut donneur après envoi : ' + stD);
-console.log('rendez-vous QR réel (code tapé) : 26 pistes passées, statut « ' + stD + ' » ✓');
+console.log('rendez-vous QR réel (code tapé, 30 s après l’affichage du QR) : '
+  + '26 pistes passées, statut « ' + stD + ' » ✓');
 await C.close();
 await D.close();
 
