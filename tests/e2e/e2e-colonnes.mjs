@@ -168,8 +168,8 @@ const semer = p => p.evaluate(async () => {
       nextAction: J(-2), nextActionText: 'Relancer', notes: 'Note. '.repeat(6),
       techs: 'Azure, Python', updatedAt: 9,
       contacts: [{ id: 'c1', name: 'Nadia Bensaïd', role: 'RH', email: 'n@ex.fr' }] },
-    { id: 'p2', name: 'Société Générale Global Solution Centre', city: 'Paris',
-      status: 'todo', domain: 'banque', updatedAt: 8, contacts: [] },
+    { id: 'p2', name: 'Société Générale Global Solution Centre', city: 'Saint-Étienne-du-Rouvray',
+      status: 'todo', domain: 'banque / assurance et services financiers', updatedAt: 8, contacts: [] },
     { id: 'p3', name: 'OVH', city: 'Roubaix', status: 'reply', domain: 'cloud',
       nextAction: J(1), nextActionText: 'Envoyer le CV', updatedAt: 7,
       contacts: [{ id: 'c3', name: 'Léa', role: 'CTO', email: 'l@o.fr' }] },
@@ -194,8 +194,15 @@ const semer = p => p.evaluate(async () => {
   await st.kvSet(st.JOURNAL_KEY, JSON.stringify([
     { t: j - 1 * 864e5, txt: 'Donné (QR) : 24 piste(s)', ids: ['cbal'] },
     { t: j - 2 * 864e5, txt: 'Reçu de Léa : +0 piste(s), 0 complétée(s)', ids: ['p2'] },
-    { t: j - 3 * 864e5, txt: 'Reçu de Marie-Charlotte : +0 piste(s), 148 complétée(s)', ids: ['p3'] },
-    { t: j - 4 * 864e5, txt: 'Donné (fichier chiffré) : 100 piste(s)', ids: ['p4'] },
+    /* QUATRE CHIFFRES, et ce n'est pas une coquetterie. Tout l'intérêt
+       des colonnes partagées est qu'un compte plus large élargisse la
+       COLONNE pour tout le monde au lieu de décaler sa seule rangée.
+       Tant que la graine plafonnait à trois chiffres, cette promesse
+       n'était prouvée par rien — et c'est exactement l'erreur qui avait
+       laissé passer le premier remède, calé sur « 24 pistes » devant un
+       « 148 complétées » qu'il n'avait jamais vu. */
+    { t: j - 3 * 864e5, txt: 'Reçu de Marie-Charlotte : +0 piste(s), 1480 complétée(s)', ids: ['p3'] },
+    { t: j - 4 * 864e5, txt: 'Donné (fichier chiffré) : 1000 piste(s)', ids: ['p4'] },
     { t: j - 5 * 864e5, txt: 'Donné (partage en groupe) : 7 piste(s)', ids: ['p5'] },
     { t: j - 6 * 864e5, txt: 'Fait : Relancer Léa — Capgemini' }
   ]));
