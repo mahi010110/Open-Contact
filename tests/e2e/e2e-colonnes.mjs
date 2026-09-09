@@ -43,18 +43,34 @@ const browser = await chromium.launch({ executablePath: chromiumPath() });
 const fail = m => { console.error('ÉCHEC :', m); process.exitCode = 1; };
 const errors = [];
 
+/* LES SURFACES, ET POURQUOI CELLES-LÀ. §5 : « un contrôle ne garde que
+   les ÉTATS qu'il met en place ». La première version en ouvrait 13 et
+   laissait dehors des feuilles LIVRÉES et visibles — dont le partage en
+   groupe, qui est pourtant la TROISIÈME des listes à cocher que §6
+   nomme d'un seul souffle avec Donner et Prospecter. Une garde qui
+   couvre deux sœurs sur trois ne garde pas le motif, elle garde deux
+   écrans.
+   Ce qui reste dehors est dehors pour une raison : les campagnes,
+   l'ordinateur et l'analyse des mails sont masqués par `ui/perimetre.js`
+   (§0), donc les ouvrir mesurerait un écran que personne ne voit. */
 const SURFACES = [
-  ['Aujourd’hui', 'route', 'aujourdhui'], ['Mes pistes', 'route', 'pistes'],
-  ['Échanger', 'route', 'echanger'], ['Moi', 'route', 'moi'],
-  ['fiche', './ui/fiche.js', 'openFiche', true],
-  ['modifier', './ui/edit.js', 'openEditPiste', true],
-  ['écrire', './ui/mail.js', 'openMail', true],
-  ['contact', './ui/contact.js', 'openContactEditor', false],
-  ['donner', './ui/donner.js', 'openDonner', false],
-  ['prospecter', './ui/prospect.js', 'openProspect', false],
-  ['recevoir', './ui/recevoir.js', 'openRecevoir', false],
-  ['profil', './ui/profil.js', 'openProfil', false],
-  ['modèles', './ui/profil.js', 'openTemplates', false]
+  ['Aujourd’hui', 'route', 'aujourdhui', 'rien'], ['Mes pistes', 'route', 'pistes', 'rien'],
+  ['Échanger', 'route', 'echanger', 'rien'], ['Moi', 'route', 'moi', 'rien'],
+  ['fiche', './ui/fiche.js', 'openFiche', 'piste'],
+  ['modifier', './ui/edit.js', 'openEditPiste', 'piste'],
+  ['écrire', './ui/mail.js', 'openMail', 'piste'],
+  ['contact', './ui/contact.js', 'openContactEditor', 'rien'],
+  ['capture', './ui/capture.js', 'openCapture', 'rien'],
+  ['rattacher', './ui/contact.js', 'openAttach', 'orphelin'],
+  ['affiner', './ui/affiner.js', 'openAffinerSheet', 'affiner'],
+  ['→ qui', './ui/qui.js', 'openWhoPicker', 'qui'],
+  ['donner', './ui/donner.js', 'openDonner', 'rien'],
+  ['prospecter', './ui/prospect.js', 'openProspect', 'rien'],
+  ['partage en groupe', './ui/direct.js', 'openPromo', 'rien'],
+  ['recevoir', './ui/recevoir.js', 'openRecevoir', 'rien'],
+  ['verrouillage', './ui/verrou.js', 'openProtectFlow', 'rien'],
+  ['profil', './ui/profil.js', 'openProfil', 'rien'],
+  ['modèles', './ui/profil.js', 'openTemplates', 'rien']
 ];
 
 /* AUCUNE EXEMPTION AUJOURD'HUI, et c'est volontaire : §5 demande qu'une
@@ -106,6 +122,20 @@ const SONDE = (exemptes) => {
     });
     for (const [cls, vals] of Object.entries(parClasse)){
       if (new Set(vals.map(v => v.i)).size < 3) continue;
+      /* UNE COLONNE, C'EST UNE CELLULE PAR RANGÉE. Quand une classe
+         paraît DEUX fois dans la même rangée, ce n'est pas une colonne
+         qui dérive : c'est une grappe ou une grille, et elle a autant
+         d'abscisses que de colonnes, par construction. Sans ce filtre le
+         balayage accusait `.fl-chip` d'« Affiner » sur six tailles — or
+         `.fl-grid` est une grille à DEUX colonnes parfaitement tenues
+         (x=19 et x=184, toutes larges de 158), empilée trois fois.
+         C'est la faute que ce dépôt a déjà payée deux fois (la sonde des
+         relais, puis celle du focus) : sur-accuser rend un rapport que
+         personne ne corrige. Le critère ne se relâche pas pour autant —
+         une vraie colonne reste vérifiée à l'unité près. */
+      const parRang = {};
+      vals.forEach(v => { parRang[v.i] = (parRang[v.i] || 0) + 1; });
+      if (Object.values(parRang).some(n => n > 1)) continue;
       const G = new Set(vals.map(v => v.l)), D = new Set(vals.map(v => v.r));
       if (G.size > 1 && D.size > 1)
         out.push({ type: 'bord', liste: L.sig, cls, n: new Set(vals.map(v => v.i)).size,
@@ -150,6 +180,12 @@ const semer = p => p.evaluate(async () => {
     { id: 'p6', name: 'Orange Cyberdefense', city: 'Lyon', status: 'reply', domain: 'cyber',
       updatedAt: 4, contacts: [] }
   ]));
+  /* un contact « à rattacher », sans quoi la feuille du bac ne s'ouvre
+     sur rien et le balayage croirait l'avoir mesurée */
+  await st.kvSet(st.ORPHANS_KEY, JSON.stringify([
+    { id: 'o1', name: 'Nadia Bensaïd', email: 'recrutement@exemple.fr' },
+    { id: 'o2', name: 'Marie-Charlotte Vandenberghe', email: 'mc@exemple.fr' }
+  ]));
   const j = Date.now();
   /* LE CONTENU LE PLUS LARGE QUE L'APP SACHE PRODUIRE, pas le plus
      commode : « rien de neuf » et « 148 complétées » partagent la
@@ -179,17 +215,37 @@ for (const [W, ergo, Z] of [[320, 'pouce', 1], [360, 'pouce', 1], [390, 'pouce',
   if (Z !== 1) await p.addStyleTag({ content: `html{font-size:${16 * Z}px}` });
   await p.waitForSelector('#view-aujourdhui:not([hidden])');
 
-  for (const [nom, mod, fn, avecPiste] of SURFACES){
+  for (const [nom, mod, fn, quoi] of SURFACES){
     await p.evaluate(async () => { const { topSheet } = await import('./ui/dom.js');
       let s, n = 0; while ((s = topSheet()) && n++ < 5){ s.close(null, true);
         await new Promise(r => setTimeout(r, 110)); } });
-    await p.evaluate(async ([mod, fn, avecPiste]) => {
+    await p.evaluate(async ([mod, fn, quoi]) => {
       if (mod === 'route'){ location.hash = '#/' + fn; return; }
       const { S } = await import('./ui/state.js');
       const m = await import(mod);
       const c = S.companies.find(x => x.id === 'cbal');
-      if (avecPiste) m[fn](c, {}); else m[fn](null);
-    }, [mod, fn, avecPiste]).catch(() => {});
+      /* LES ARGUMENTS SONT COPIÉS SUR LES VRAIS APPELS, pas devinés :
+         une feuille ouverte avec un objet de fantaisie mesure un écran
+         qui n'existe pas. Chacun vient du site d'appel de l'app. */
+      if (quoi === 'piste'){ m[fn](c, {}); return; }
+      if (quoi === 'orphelin'){
+        const st = await import('./engine/storage.js');
+        const o = JSON.parse((await st.kvGet(st.ORPHANS_KEY)) || '[]')[0];
+        m[fn](o); return;
+      }
+      if (quoi === 'affiner'){
+        const a = await import('./ui/affiner.js');
+        const so = await import('./ui/sort.js');
+        m[fn](a.filterState(), so.sortState('recent'),
+          { withStatus: true, pool: () => S.companies }, () => {});
+        return;
+      }
+      if (quoi === 'qui'){
+        m[fn](c, new Set((c.contacts || []).map(x => x.id)), { verbe: 'donner' });
+        return;
+      }
+      m[fn](null);
+    }, [mod, fn, quoi]).catch(() => {});
     await p.waitForTimeout(430);
     const r = await p.evaluate(SONDE, EXEMPTES);
     vuesListes += await p.evaluate(() => document.querySelectorAll('.pk,.row-item,.ec-l,.pick').length);
