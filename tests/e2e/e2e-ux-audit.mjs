@@ -1824,7 +1824,7 @@ for (const [quoi, titre] of [['donner', 'Donner'], ['prospect', 'Prospecter']]){
   else console.log(`feuille « ${titre} » : « Tout / Affiner » tient à y=${b.y}, rien au repos ✓`);
 }
 
-/* ---------- LE FIL : LA DATE TIENT SA COLONNE ----------
+/* ---------- LE FIL : LES COLONNES DE DONNÉES TIENNENT ----------
    Photographié au pouce : « 24 pistes reçues · le groupe · sam. 08/… ».
    La date vivait dans la phrase, la ligne s'élidait d'un bloc, et
    c'était la DATE qui se faisait couper — celle des lignes au canal le
@@ -1832,13 +1832,40 @@ for (const [quoi, titre] of [['donner', 'Donner'], ['prospect', 'Prospecter']]){
    Entry*) demande l'inverse : chaque information à la MÊME place d'une
    ligne à l'autre, c'est ce qui permet de balayer au lieu de lire.
 
-   Deux mesures, et la seconde est celle qui manquait : entière (une
-   date coupée ne dit plus rien) ET alignée (des bords droits en
-   escalier ne se balaient pas). Le contrôle plante sa propre sonde —
-   il vérifie qu'il VOIT une ligne au canal long, sinon il passerait au
-   vert sur un fil qui n'exerce pas le défaut. */
-{
-  const dCtx = await browser.newContext({ viewport: { width: 360, height: 640 }, hasTouch: true });
+   CE CONTRÔLE A ÉTÉ VERT PENDANT TOUT LE DÉFAUT SUIVANT, et c'est sa
+   leçon. Il gardait la date, et la date seule ; le mainteneur a
+   photographié un fil où le COMPTE occupait quatre abscisses
+   différentes, parce qu'il suivait le nom dans la même phrase. Deux
+   angles morts se recouvraient, et aucun n'était une subtilité :
+
+   ① il ne mesurait qu'une COLONNE sur les deux. La règle de NN/g ne
+     parle pas de la date, elle parle de « chaque information » ;
+   ② il ne semait que des canaux COURTS — « QR », « fichier ». Les deux
+     qui débordaient, « partage en groupe » et « QR rendez-vous »,
+     n'entraient jamais dans sa graine, si bien que le fil mesuré
+     n'exerçait pas le défaut. Sa sonde `canalLong` cherchait bien un
+     canal long… du côté REÇU, où le nom d'une personne joue ce rôle,
+     jamais du côté DONNÉ, qui est celui qui cassait.
+   Et il mesurait à 360 px, alors que §5 dit de mesurer AU PLUS ÉTROIT :
+   la rangée à deux étages sortait à 320.
+
+   Ce qui se garde donc maintenant : les deux colonnes tiennent chacune
+   UN bord, les dates restent entières, et AUCUNE rangée ne passe à deux
+   étages toute seule — ce dernier point étant le symptôme le plus
+   déroutant, puisque aucun texte ne se replie et que la liste grandit
+   quand même.
+
+   TROIS LARGEURS, ET LA TROISIÈME EST CELLE QUI COMPTE POUR LE DERNIER
+   POINT. À 320 et 360 px le nom se replie sur TOUTES les lignes : les
+   rangées y font 52 px d'un bout à l'autre, donc une rangée de trop ne
+   se détache de rien et le contrôle est aveugle à ce symptôme-là (il y
+   garde les colonnes, qui sont l'autre moitié). C'est à 390 px que les
+   rangées tiennent sur un étage et qu'un canal trop long en fait une
+   déborder SEULE — la ligne isolée du fil photographié. Une garde qui
+   ne mesure qu'au plus étroit rate donc précisément ce cas ; §5 dit de
+   mesurer au plus étroit, pas d'y mesurer SEULEMENT. */
+for (const L of [320, 360, 390]){
+  const dCtx = await browser.newContext({ viewport: { width: L, height: 640 }, hasTouch: true });
   const dPage = await dCtx.newPage();
   dPage.on('pageerror', e => errors.push(String(e)));
   await dPage.goto(base, { waitUntil: 'load' });
@@ -1849,6 +1876,18 @@ for (const [quoi, titre] of [['donner', 'Donner'], ['prospect', 'Prospecter']]){
     await st.kvSet(st.JOURNAL_KEY, JSON.stringify([
       { t: j - 9 * 864e5, txt: 'Donné (QR) : 24 piste(s)', ids: ['a'] },
       { t: j - 10 * 864e5, txt: 'Donné (fichier) : 24 piste(s)', ids: ['a'] },
+      /* LES DEUX QUI DÉBORDAIENT. Ils sont écrits par `ui/direct.js` et
+         `ui/donner.js` sous cette forme exacte : c'est la graine qui
+         manquait, et sans elle tout le reste du contrôle est décoratif. */
+      { t: j - 11 * 864e5, txt: 'Donné (partage en groupe) : 24 piste(s)', ids: ['a'] },
+      { t: j - 12 * 864e5, txt: 'Donné (QR rendez-vous) : 7 piste(s)', ids: ['a'] },
+      { t: j - 13 * 864e5, txt: 'Donné (fichier chiffré) : 100 piste(s)', ids: ['a'] },
+      /* UN CANAL QUE LA TABLE NE CONNAÎT PAS. `canalCourt` le laisse
+         passer tel quel — c'est sa règle, on se tait plutôt que
+         d'inventer — donc les colonnes doivent tenir SANS que rien ne
+         raccourcisse. Sans cette ligne, le contrôle prouverait que la
+         table est bien câblée, pas que la mise en page tient. */
+      { t: j - 14 * 864e5, txt: 'Donné (pigeon voyageur) : 3 piste(s)', ids: ['a'] },
       { t: j - 10 * 864e5, txt: 'Reçu du groupe : +24 piste(s)', ids: ['a'] },
       { t: j - 40 * 864e5, txt: 'Reçu de Marie-Charlotte : +7 piste(s)', ids: ['a'] }
     ]));
@@ -1858,26 +1897,69 @@ for (const [quoi, titre] of [['donner', 'Donner'], ['prospect', 'Prospecter']]){
   await dPage.reload({ waitUntil: 'load' });
   await dPage.waitForSelector('.ec-when', { timeout: 8000 });
   const d = await dPage.evaluate(() => {
-    const q = [...document.querySelectorAll('.ec-l .ec-when')];
-    return { dates: q.map(n => ({ txt: n.textContent.trim(),
-               droite: Math.round(n.getBoundingClientRect().right),
-               coupe: n.scrollWidth > n.clientWidth + 1 })),
-             /* la sonde lit la RANGÉE, pas un enfant nommé : le canal
-                long peut vivre dans n'importe laquelle de ses colonnes */
-             canalLong: [...document.querySelectorAll('.ec-row')]
-               .some(n => /le groupe|Marie-Charlotte/.test(n.textContent)) };
+    const lire = sel => [...document.querySelectorAll('.ec-l ' + sel)].map(n => ({
+      txt: n.textContent.trim(),
+      droite: Math.round(n.getBoundingClientRect().right),
+      coupe: n.scrollWidth > n.clientWidth + 1
+    }));
+    const rangs = [...document.querySelectorAll('.ec-l .ec-row')];
+    return { dates: lire('.ec-when'), comptes: lire('.ec-n'),
+             /* LA SONDE MESURE LE TEXTE, PAS LA BOÎTE — et les deux
+                versions ratées disent pourquoi.
+                ① Elle a d'abord cherché les formes COURTES (« groupe »,
+                  « QR ») : elle prouvait que `canalCourt` était câblé,
+                  ce qui est une autre question, et elle rougissait sur
+                  du code sain dès qu'on touchait à la table.
+                ② Puis elle a lu `scrollWidth` sur la cellule. Or cette
+                  boîte n'existe QUE dans le dessin correct : rendez à
+                  `.ec-quoi` son `flex`, et `.ec-avec` redevient un span
+                  inline dont le `scrollWidth` vaut 0. La sonde accusait
+                  donc la graine — « aucun canal assez long » — au moment
+                  précis où le défaut qu'elle garde était sous ses yeux.
+                Elle mesure maintenant la largeur RENDUE du mot dans une
+                sonde à part : cette valeur ne dépend d'aucune mise en
+                page, donc elle dit la même chose sur un dessin sain et
+                sur un dessin cassé. */
+             large: (() => {
+               const cs = [...document.querySelectorAll('.ec-l .ec-avec')];
+               if (!cs.length) return 0;
+               const d = document.createElement('span');
+               d.style.cssText = 'position:absolute;visibility:hidden;white-space:pre;font:'
+                 + getComputedStyle(cs[0]).font;
+               document.body.appendChild(d);
+               const w = Math.max(...cs.map(n => { d.textContent = n.textContent.trim();
+                 return d.offsetWidth; }));
+               d.remove();
+               return Math.round(w);
+             })(),
+             brut: [...document.querySelectorAll('.ec-l .ec-avec')].map(n => n.textContent.trim()),
+             /* deux étages : la rangée dépasse d'une demi-ligne la plus
+                courte du lot — on compare les rangs entre eux, pas à un
+                nombre écrit en dur qui suivrait mal une taille de texte */
+             hauts: rangs.map(n => Math.round(n.getBoundingClientRect().height)) };
   });
-  const coupees = d.dates.filter(x => x.coupe || !x.txt);
-  const bords = new Set(d.dates.map(x => x.droite));
-  if (d.dates.length < 3)
-    fail(`fil : ${d.dates.length} date(s) mesurée(s), trop peu pour prouver quoi que ce soit`);
-  else if (!d.canalLong)
-    fail('fil : aucune ligne au canal long — le contrôle ne peut pas voir le défaut qu’il garde');
+  const bords = c => new Set(c.map(x => x.droite));
+  const coupees = [...d.dates, ...d.comptes].filter(x => x.coupe || !x.txt);
+  const hMin = Math.min(...d.hauts);
+  const deuxEtages = d.hauts.filter(h => h > hMin + 6);
+  if (d.dates.length < 5 || d.comptes.length < 5)
+    fail(`fil ${L}px : ${d.dates.length} date(s) / ${d.comptes.length} compte(s) — trop peu pour prouver quoi que ce soit`);
+  else if (d.large < 70)
+    fail(`fil ${L}px : la cellule de canal la plus large fait ${d.large} px (vus : ${d.brut.join(' | ')}) — `
+      + 'aucune n’est assez longue pour avoir jamais déplacé une colonne, le contrôle ne prouve rien');
   else if (coupees.length)
-    fail(`fil : ${coupees.length} date(s) coupée(s) — « ${coupees[0].txt}… »`);
-  else if (bords.size !== 1)
-    fail(`fil : les dates ne tiennent pas une colonne (${bords.size} bords droits : ${[...bords].join(', ')})`);
-  else console.log(`fil : ${d.dates.length} dates entières, une seule colonne à x=${[...bords][0]} ✓`);
+    fail(`fil ${L}px : ${coupees.length} valeur(s) coupée(s) — « ${coupees[0].txt}… »`);
+  else if (bords(d.dates).size !== 1)
+    fail(`fil ${L}px : les dates ne tiennent pas une colonne (${bords(d.dates).size} bords droits : `
+      + `${[...bords(d.dates)].join(', ')})`);
+  else if (bords(d.comptes).size !== 1)
+    fail(`fil ${L}px : les comptes ne tiennent pas une colonne (${bords(d.comptes).size} bords droits : `
+      + `${[...bords(d.comptes)].join(', ')}) — c’est le défaut photographié`);
+  else if (deuxEtages.length)
+    fail(`fil ${L}px : ${deuxEtages.length} rangée(s) à deux étages (${deuxEtages.join(', ')} px `
+      + `contre ${hMin}) — rien ne s’est replié, la liste a grandi quand même`);
+  else console.log(`fil ${L}px : ${d.dates.length} rangs de ${hMin} px, date à x=${[...bords(d.dates)][0]}, `
+    + `compte à x=${[...bords(d.comptes)][0]}, canaux « ${[...new Set(d.brut)].join(' · ')} » ✓`);
   await dCtx.close();
 }
 

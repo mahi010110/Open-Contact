@@ -174,6 +174,30 @@ export function exchangeLog(journal, limit = 8){
   out.sort((a, b) => (b.t || 0) - (a.t || 0));
   return limit > 0 ? out.slice(0, limit) : out;
 }
+/* LE CANAL, DIT AVEC LE MOT DU BOUTON.
+   Le journal écrit le nom interne du geste ; le fil, lui, est une
+   trace qu'on BALAIE. Deux d'entre eux ne tenaient pas dans leur
+   colonne et cassaient l'alignement de toute la liste — mesuré sur
+   les quatre lignes d'un vrai fil : le compte occupait QUATRE
+   abscisses différentes et la date TROIS, et « partage en groupe »
+   poussait le compte à la ligne dès 360 px.
+   « QR rendez-vous » est en plus un second mot pour ce que le lecteur
+   voit comme un QR — §7 (un objet, UN mot) l'interdit, et le mot juste
+   est celui qu'il a lu sur le bouton : QR, fichier, groupe.
+   On ne renomme RIEN dans le journal : les entrées déjà écrites
+   gardent leur texte et se lisent par cette table, sinon un historique
+   entier changerait de mot en même temps que l'écran. */
+export function canalCourt(canal){
+  const c = String(canal || '').toLowerCase();
+  if (!c) return '';
+  if (c.includes('groupe') || c.includes('promo')) return 'groupe';
+  if (c.includes('qr')) return 'QR';
+  /* « fichier chiffré » garde son adjectif : le cadenas est un fait du
+     partage, et il tient dans la colonne. On ne raccourcit que ce qui
+     est mesuré trop long. */
+  return String(canal);
+}
+
 /* ce qui a circulé en tout — le compte que l'écran affiche en tête */
 export function exchangeTotals(journal){
   const all = exchangeLog(journal, 0);

@@ -9,7 +9,7 @@
    ============================================================ */
 import { esc, localISO, todayISO } from '../engine/utils.js';
 import { STATUSES } from '../engine/model.js';
-import { exchangeLog, exchangeTotals, recuesDormantes, jamaisDonnees } from '../engine/assist.js';
+import { canalCourt, exchangeLog, exchangeTotals, recuesDormantes, jamaisDonnees } from '../engine/assist.js';
 import { S, isClosed, saveJournal } from './state.js';
 import { $, ic, openSheet, bindDeleteGesture, showUndo, annoncer } from './dom.js';
 import { frDate, diffDays } from './dates.js';
@@ -58,7 +58,11 @@ function contenuEchange(x, rappel = true){
          FEUILLE : là, la ligne qu'on vient de taper a disparu derrière.
          Au poste elle reste à l'écran, à 22 px sur la gauche — le rappel
          serait la même phrase écrite deux fois côte à côte. */
-      `${rappel ? `<p class="ec-quand">${esc(donne ? x.canal : (x.qui || 'le groupe'))} · ${quand(x.t)}</p>` : ''}
+      /* LE MÊME MOT QUE LA LIGNE QUI A OUVERT CETTE FEUILLE. §7 le
+         demande, et prévient que le glissement se fait toujours ICI —
+         dans la feuille secondaire, jamais dans le titre : la rangée
+         disait « groupe », ce rappel disait « partage en groupe ». */
+      `${rappel ? `<p class="ec-quand">${esc(donne ? canalCourt(x.canal) : (x.qui || 'groupe'))} · ${quand(x.t)}</p>` : ''}
        ${pistes.length ? `<div class="pick-list">${pistes.map(c =>
           `<button class="pick" data-id="${esc(c.id)}">
              <div class="pk-m"><b>${esc(c.name)}</b>
@@ -204,7 +208,15 @@ function filHTML(){
            n'ont rien d'obscur, et §7 tranche pareil — le mot gagne sur
            l'icône qu'on ne devine pas. */
         const sens = x.sens === 'donne' ? 'Donné' : 'Reçu';
-        const avec = x.sens === 'donne' ? x.canal : (x.qui || 'le groupe');
+        /* « groupe », sans article, des deux côtés. L'article ne se
+           voyait pas tant que la colonne d'en face disait « partage en
+           groupe » ; une fois les deux raccourcis, « Reçu · le groupe »
+           et « Donné · groupe » se sont retrouvés l'un sous l'autre —
+           le même objet écrit de deux façons dans une colonne qu'on
+           BALAIE. C'est ce que §7 interdit, et la colonne d'à côté
+           tranche la forme : on y lit « Marie-Charlotte », pas
+           « de Marie-Charlotte ». */
+        const avec = x.sens === 'donne' ? canalCourt(x.canal) : (x.qui || 'groupe');
         /* « 0 piste » se lit comme un échec. Or un échange qui n'apporte
            aucune piste NEUVE a parfaitement fonctionné : le receveur
            avait déjà tout. La ligne dit donc ce qui s'est passé — les
@@ -234,12 +246,18 @@ function filHTML(){
            l'identité de la ligne en tête (« 24 pistes reçues »), ce qui
            se perd en bout est le canal. La proximité reste tenue au
            poste par la colonne de gauche, large de 550 px, pas de 1000. */
-        /* `.ec-quoi` n'est PAS un emballage décoratif : c'est lui qui
-           porte la seule vraie différence entre les deux surfaces.
-           Au pouce il reste `inline` — « Léa · 12 pistes » forme une
-           seule phrase qui plie, parce qu'une rangée de 332 px ne tient
-           pas quatre colonnes. Au poste il passe en `display:contents`
-           et ses deux enfants deviennent des colonnes du registre. */
+        /* `.ec-quoi` n'est PAS un emballage décoratif, et son rôle a
+           changé : il est en `display:contents` à TOUTES les largeurs,
+           donc ses deux enfants sont des colonnes de la rangée — pas
+           une phrase qui plie. Il portait la différence entre les deux
+           surfaces jusqu'à ce qu'une mesure la démente : tant que le
+           compte suivait le nom, son abscisse dépendait de la longueur
+           du nom, et le fil rendait quatre abscisses différentes pour
+           lui. Ce que garde le poste n'est plus le mécanisme, ce sont
+           des colonnes plus larges (`styles/app.css`).
+           L'enveloppe reste : `display:contents` aplatit le RENDU, pas
+           l'arbre — c'est elle qui donne au canal court et au compte
+           leur seul parent commun. */
         const dedans =
           `<span class="ec-dir">${esc(sens)}</span>
            <span class="ec-quoi"><span class="ec-avec">${esc(avec)}</span>

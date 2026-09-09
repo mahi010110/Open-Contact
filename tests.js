@@ -38,7 +38,7 @@ import { DAILY_CAP, buildCampaign, dueSends, dueSendsAll, sentTodayAll,
          inSendWindow, addDays as cAddDays } from './engine/campaign.js';
 import { buildMime, encodeHeader, toB64Url, authUrl, parseCallback, pkcePair } from './engine/mailer.js';
 import { dueFollowups, contactFromSignature, exchangeLog, exchangeTotals, nextActionSuggestions,
-         silentPistes, derniereTrace, recuesDormantes, jamaisDonnees,
+         silentPistes, derniereTrace, recuesDormantes, jamaisDonnees, canalCourt,
          SILENCE_RELANCE, SILENCE_DERNIERE, SILENCE_TROP_TARD } from './engine/assist.js';
 import { makeMission, missionUsable, revokeMission, foldCampaignReport,
          signMission, openMissionWire } from './engine/mission.js';
@@ -1462,6 +1462,42 @@ export async function runSelfTests(){
       eq(avecIds.find(x => x.t === 1).ids, ['pi-a', 'pi-b']);
       eq(avecIds.find(x => x.t === 2).ids, []);          /* champ abîmé : ignoré, pas de casse */
       eq(avecIds.find(x => x.t === 3).ids, ['pi-c']);    /* seules les chaînes non vides passent */
+    },
+    /* LE MOT DU CANAL, ET LA COLONNE QU'IL TIENT.
+       Deux choses se jouent ici, et la seconde est la plus chère :
+       ① §7 — « QR rendez-vous » est un second mot pour ce que le
+         lecteur a tapé sous le nom « QR » ;
+       ② la LARGEUR — mesuré sur un vrai fil, « partage en groupe »
+         poussait le compte à la ligne dès 360 px et faisait occuper
+         au compte quatre abscisses différentes.
+       Et la règle qui garde l'histoire : le JOURNAL n'est jamais
+       réécrit. Une entrée d'avant ce lot garde son texte, se relit
+       telle quelle, et c'est cette table — et elle seule — qui la dit
+       court à l'écran. */
+    'aides : canalCourt dit le canal avec le mot du bouton': () => {
+      eq(canalCourt('partage en groupe'), 'groupe');
+      eq(canalCourt('QR rendez-vous'), 'QR');
+      eq(canalCourt('QR'), 'QR');
+      eq(canalCourt('fichier'), 'fichier');
+      /* l'adjectif reste : le cadenas est un fait du partage, et il
+         tient dans la colonne — on ne raccourcit que ce qui déborde */
+      eq(canalCourt('fichier chiffré'), 'fichier chiffré');
+      /* la forme d'avant le renommage passe par la même porte */
+      eq(canalCourt('partage promo'), 'groupe');
+      /* UN CANAL QU'ON NE CONNAÎT PAS SE DIT TEL QUEL. C'est la même
+         règle que `causeLiaison` : on se tait plutôt que d'inventer.
+         Rendre '' effacerait la colonne d'une entrée légitime. */
+      eq(canalCourt('pigeon voyageur'), 'pigeon voyageur');
+      eq(canalCourt(''), '');
+      eq(canalCourt(null), '');
+      eq(canalCourt(undefined), '');
+      /* et le fil s'en sert sans que le journal bouge d'un caractère */
+      const fil = exchangeLog([
+        { t: 1, txt: 'Donné (partage en groupe) : 7 piste(s)' },
+        { t: 2, txt: 'Donné (QR rendez-vous) : 2 piste(s)' }
+      ]);
+      eq(fil.map(x => x.canal).join(','), 'QR rendez-vous,partage en groupe');
+      eq(fil.map(x => canalCourt(x.canal)).join(','), 'QR,groupe');
     },
     'fusion : les pistes touchées sont nommées — « Tes échanges » les rouvre': () => {
       const comps = [normalizeCompany({ id: 'pi-ex', name: 'Alpha', city: 'Lille' })];
