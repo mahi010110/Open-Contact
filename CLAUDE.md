@@ -742,7 +742,7 @@ avec un motif existant.
 | Expliquer un résultat | `searchHint(c, q, {skip})` → `.ri-hit` + `<mark>`. Le moteur rend l'extrait ET les positions, jamais du HTML. La ligne ne parle **que** si ce qu'elle affiche déjà ne répond pas — l'appelant dit ce qu'il montre (`skip`), et rien ne se dit deux fois |
 | Proposer un filtre | `.fl-chip` + son **compte**. Ne jamais offrir une valeur absente des données. Liste fermée (statuts) : la puce reste, éteinte. Liste ouverte (domaines) : elle disparaît, sauf si le filtre est actif |
 | Note contextuelle | `<p class="hint">` (+ `warn` si alerte) |
-| Aligner les valeurs d'une LISTE | **la liste déclare ses colonnes, la rangée les emprunte** — `display:grid` sur le conteneur + `grid-template-columns:subgrid` sur chaque niveau jusqu'à la rangée (`.ec-body` → `.ec-l` → `.sw-in` → `.ec-row`). Sous `@supports` (sans subgrid il resterait un `display:grid` SANS pistes, soit une colonne unique — pire que le défaut) et sous `@container (min-width:…em)` (au-delà d'un certain grossissement les colonnes ne tiennent plus : on rend la main au flex, qui replie au lieu de rogner). **Un `min-width` n'est PAS une colonne** : c'est un plancher, la rangée se dimensionne toujours seule, et la colonne souple n'absorbe l'écart que jusqu'à toucher SON plancher — passé là, tout ce qui suit dérive. Deux pièges de seuil, payés : `rem` dans une **média** query se résout contre la police INITIALE du navigateur, donc la règle ne se déclenche jamais quand la page se donne sa taille — seul `em` dans une **requête de conteneur** suit la police calculée ; et un conteneur grid de hauteur définie **étire ses pistes** (`align-content` vaut `stretch`), ce qui a rendu des rangs de 256 px pour 44 px de contrôle |
+| Aligner les valeurs d'une LISTE | **le critère d'abord** : une valeur répétée doit garder un bord STABLE — le gauche si elle est calée à gauche, le droit sinon (NN/g, *The Anatomy of a List Entry* : une liste se balaie, l'œil descend une colonne). Exiger « tout est aligné » serait faux — une sous-ligne qui s'élide a un bord droit qui varie. **Un `min-width` n'est PAS une colonne** : c'est un plancher, la rangée se dimensionne toujours seule, et la colonne souple n'absorbe l'écart que jusqu'à toucher SON plancher — passé là, tout ce qui suit dérive. La cause est presque toujours qu'une valeur partage sa boîte avec un voisin de longueur variable : le remède est de raccourcir le voisin (`canalCourt`), pas de choisir une largeur. **`subgrid` a été essayé et RETIRÉ** — voir l'annexe : il alignait tout et il a cassé l'app sur un vrai téléphone. Une largeur fixe marche aussi, mais elle ne RENTRE pas toujours : au fil, réserver 6,25 rem au compte chasse le chevron sur un second étage sous 390 px, mesuré sur toutes les combinaisons de colonne, de date et de gouttière. Quand l'arithmétique refuse, la limite s'ASSUME et se nomme dans `e2e-colonnes.mjs` avec sa raison |
 | Décrire une piste dans un TABLEAU | trois lignes au maximum — nom, sous-ligne, action. Material 3 plafonne un élément de liste à trois lignes de texte ; au-delà c'est une carte à média. La carte du poste en empilait quatre, la quatrième étant le compte de personnes SEUL sur son rang, pendant que la ligne au pouce disait la même piste en une sous-ligne — on réapprenait à lire une piste en changeant d'appareil. **Et l'ordre décide de ce qu'on perd** : la sous-ligne s'élide par la fin, donc le compte de personnes passe avant le domaine — c'est le secteur qu'on peut perdre, jamais le nombre de gens joignables |
 | Décrire une piste dans une liste à cocher | **le nom plie, la sous-ligne s'élide** — dans une liste où l'on COCHE, un nom amputé n'est pas un défaut d'esthétique mais une erreur de décision : « Société Générale G… » ne se distingue plus de son homonyme. Trois rangs, la même valeur et la même raison que `.row-item h3`. Et **une seule sous-ligne pour les trois** (Donner, Prospecter, partage en groupe) : `statut · ville · qui est visé`. Elles en donnaient trois versions ; on réapprenait à lire une piste en passant d'une feuille à sa voisine. La ville n'est pas décorative — deux pistes du même statut ne se distinguent souvent que par elle |
 | Multi-sélection | `.pk` avec icônes checkbox — **jamais pour supprimer**. **Le coché ne porte aucun aplat** : la carte reste entière, l'état vit dans la case (voir §4). Un seul état de plus, `pk-inverse`, et seulement là où la liste part de « tout coché » (Donner, partage en groupe, « → qui » en mode *donner*) : la ligne **écartée** se dithère, parce que là une ligne non cochée n'est pas « pas encore choisie », elle est SORTIE. Ailleurs cet état n'existe pas — c'est un état en moins, pas une inégalité. **Généraliser la trame a été demandé, mesuré, refusé** : sur une liste qui part de rien coché, elle s'applique à TOUTES les lignes à l'ouverture et l'écran se lit « rien n'est disponible » au moment précis où il doit inviter à choisir. Deux sources le disent — le grisé est la convention universelle de l'INDISPONIBLE (NN/g), et Material 3 demande que la distinction vienne de ce qui est **retenu**, jamais de l'affaiblissement du reste |
@@ -1034,10 +1034,13 @@ il n'y en a aucune.
 
 Deux corollaires, tous deux payés :
 ① **La cause est presque toujours qu'une valeur partage sa boîte avec
-un voisin de longueur variable.** Le remède n'est pas de choisir une
-largeur, c'est de sortir la valeur dans sa propre colonne — un plancher
-choisi pour « 24 pistes » ne dit rien de « 148 complétées », et le
-premier remède l'a appris en dérivant dès 360 px à taille normale.
+un voisin de longueur variable**, et le remède se prend EN AMONT, dans
+le texte : c'est `canalCourt` — « groupe » au lieu de « partage en
+groupe » — qui a réglé le défaut photographié, pas une largeur. Choisir
+une largeur ne fait que déplacer le problème : un plancher calé sur
+« 24 pistes » ne dit rien de « 148 complétées », et une colonne fixe
+assez large pour tout le vocabulaire ne rentre plus sur un petit
+téléphone. Quand l'arithmétique refuse, la limite s'assume et se nomme.
 ② **Ce qu'on perçoit d'une liste est son PAS, pas la hauteur de son
 contrôle.** Les deux gardes du fil mesuraient `.ec-row` ; l'enveloppe a
 gonflé à 256 px pendant qu'elle restait à 44, et les deux sont restés
@@ -1340,6 +1343,41 @@ RÉEL de l'app et lit les octets qui sortent par le vrai bouton.**
 2. **Vérifier en lançant réellement** : serveur statique + Playwright,
    390×844 ET 1280×800, thème clair ET sombre, zéro erreur console. On ne
    livre pas sur la foi d'une relecture.
+
+   **Et « réellement » veut dire SUR LE MOTEUR DE L'UTILISATEUR, ou au
+   socle le plus commun.** L'environnement de développement n'a que
+   Chromium ; l'utilisateur type de §1 est sur un iPhone, donc sur
+   WebKit, qui n'est mesuré ici par rien. Une mise en page bâtie sur des
+   fonctionnalités récentes — `subgrid`, `container-type`, `@container`,
+   et pire, les trois empilées — est alors un **pari**, pas une
+   livraison : elle a rendu le fil illisible sur le téléphone du
+   mainteneur, rangées rabotées à quelques pixels d'encre, pendant que
+   les onze scénarios restaient verts.
+   La règle : **ce qui ne peut pas être mesuré sur le moteur de
+   l'utilisateur se tient au socle que tout moteur rend depuis des
+   années.** Flex plutôt que grid de dernière génération, une propriété
+   plutôt que trois qui se combinent. Moins élégant, vérifiable partout.
+   Et le corollaire qui coûte le plus cher : **un vert n'est pas une
+   preuve, c'est une preuve SUR CE QUI A ÉTÉ MESURÉ.** Ici la suite
+   entière était verte, la capture d'écran de l'émulateur était belle,
+   et l'app était cassée.
+
+   **ET TOUTE RETOUCHE VISIBLE SE TERMINE PAR UNE CAPTURE QU'ON REGARDE**
+   *(règle du mainteneur, septembre 2026)*. Pas un chiffre vert : une
+   image, ouverte et lue. Les deux ergonomies et les deux thèmes, sur
+   l'écran touché. C'est une étape de la livraison, pas un réflexe
+   facultatif — et le dépôt en a la preuve trois fois plutôt qu'une :
+   · l'enveloppe gonflée à 256 px pour 44 px de contrôle, que les DEUX
+     gardes du fil ont laissée passer parce qu'ils mesuraient la
+     rangée ;
+   · le chevron chassé seul sur un second étage sous chaque ligne,
+     qu'aucun critère de colonne ne pouvait voir ;
+   · et l'inverse, qui compte autant : une largeur fixe mesurée bonne
+     partout, retirée après l'avoir REGARDÉE.
+   La mesure dit si c'est conforme ; seule l'image dit si c'est
+   regardable. §6 le disait déjà pour l'emphase — « la mesure propose,
+   l'œil tranche » — et ce n'était pas assez fort : l'œil ne tranche que
+   si on lui montre quelque chose.
 3. `?test` : tous les auto-tests verts, y compris les nouveaux.
 4. `CONTRAT.md` à jour si une clé, un format ou un invariant a bougé.
 5. `sw.js` : bump `oc-vN` + `PRECACHE` si un fichier précaché a changé.
@@ -1436,6 +1474,7 @@ retiré.
 | « rien > icône > mot > phrase » | **précisée** | La brièveté poussée à bout rend cryptique. La compréhension passe devant : une icône qu'on ne devine pas coûte plus cher qu'un mot |
 | « La date du fil vit DANS la phrase » | **remplacée** (août 2026) | La proximité (NN/g) disait de la coller au texte, et c'était juste contre une date jetée à 400 px. Appliquée, elle a produit pire : la ligne s'élidant d'un bloc, c'est la DATE qui se coupait — « sam. 08/… » — dès que le canal s'allongeait. La même source tranche l'inverse pour une LISTE (*The Anatomy of a List Entry* : chaque information à la même place d'une ligne à l'autre, sinon on lit au lieu de balayer). La date tient donc sa colonne et ne rétrécit jamais ; c'est la phrase qui s'élide. Ce qui restait vrai est gardé autrement : la proximité ne casse pas à 24 px, elle casse quand la LIGNE dépasse la longueur lisible — plafond 640 px |
 | « L'emphase suit le défaut : aplat si l'on part de rien coché, dither si l'on part de tout coché » | **supprimée** (août 2026) | Le raisonnement se tenait — l'encre va à ce qui varie — mais il produisait deux écrans qui ne se ressemblaient pas pour le même geste, et le mainteneur l'a vu avant tout le reste. La ligne cochée ne porte plus rien du tout, partout ; seul l'ÉCART garde sa trame, là où il existe |
+| « La liste déclare ses colonnes, la rangée les emprunte (`subgrid`) » | **supprimée** (septembre 2026), trois jours après avoir été écrite | Elle était juste sur le fond — les pistes déclarées une fois, la colonne dimensionnée sur la colonne entière, aucune constante à voir dériver — et elle a **cassé l'app sur le téléphone du mainteneur** : les rangées rendaient une tranche d'encre de quelques pixels, le trait pointillé passant à travers les lettres. La cause de la cause est la seule qui compte : `subgrid` sur trois niveaux, `container-type` et `@container` n'avaient été vérifiés que sur **Chromium, le seul moteur installé dans l'environnement de développement**. Safari n'a jamais été mesuré une seule fois, et c'est le moteur de l'utilisateur. Trois fonctionnalités récentes empilées sur le moteur qu'on ne peut pas tester, ce n'est pas de l'audace, c'est un pari |
 
 *Tranché par l'assistant, à valider :* la reformulation de l'interdit serveur,
 la suppression de « ne pas dégrader l'existant », et le contenu détaillé des

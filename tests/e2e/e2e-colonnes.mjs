@@ -73,10 +73,44 @@ const SURFACES = [
   ['modèles', './ui/profil.js', 'openTemplates', 'rien']
 ];
 
-/* AUCUNE EXEMPTION AUJOURD'HUI, et c'est volontaire : §5 demande qu'une
-   exception soit NOMMABLE. Le jour où une liste doit y échapper, elle se
-   nomme ici avec sa raison — pas au niveau du type de balise. */
-const EXEMPTES = [];
+/* UNE SEULE EXEMPTION, ET ELLE EST ASSUMÉE, PAS OUVERTE.
+   §5 demande qu'une exception soit NOMMABLE : celle-ci nomme sa liste,
+   ses deux classes et sa raison, et rien d'autre au monde n'y échappe.
+
+   Le fil ne peut pas tenir ses deux colonnes de données sous 390 px, et
+   c'est de l'ARITHMÉTIQUE. Réserver une vraie colonne au compte demande
+   6,25 rem — mesuré, parce que le vocabulaire de cette colonne va de
+   « 7 pistes » à « 1480 complétées », et que même « rien de neuf »
+   dépasse l'ancien plancher. Avec elle, cinq colonnes plus le plancher
+   de 6 rem du nom (§4 : une identité plie, elle ne s'ampute jamais)
+   demandent plus que les 292 à 332 px d'un petit téléphone, et c'est le
+   CHEVRON qui part sur un second étage, seul, sous chaque rangée.
+   Balayé de 5,75 à 6,5 rem de colonne, de 4,2 à 4,8 rem de date et de
+   5 à 8 px de gouttière : aucune combinaison ne le sauve sous 390 px,
+   ni à 125 %.
+
+   Une colonne fixe a donc été écrite, mesurée, puis RETIRÉE — elle
+   troquait une dérive rare contre un chevron orphelin sur chaque
+   rangée, ce qui est pire. Et le mécanisme qui, lui, réglait tout
+   (`subgrid`) a cassé l'app sur le téléphone du mainteneur : il
+   n'était vérifié que sur Chromium, seul moteur installé ici.
+
+   Ce qui a réglé le défaut d'origine — le compte à quatre abscisses
+   photographié — c'est `canalCourt`, en amont : le canal dit « groupe »
+   et non « partage en groupe », donc il ne pousse plus rien.
+
+   LA QUESTION QUI RESTE EST DE TEXTE, PAS DE CSS, et elle appartient au
+   mainteneur : ce compte a-t-il besoin de répéter « pistes » à chaque
+   rangée (§6, règle 1 — l'encre va à ce qui change, et un mot répété
+   huit fois est du papier peint) ? Raccourci, tout rentre, et
+   l'exemption disparaît. */
+const EXEMPTES = [
+  { liste: 'ec-l', cls: 'ec-n',
+    pourquoi: 'le vocabulaire du compte va de 8 à 15 caractères ; lui réserver sa colonne '
+      + 'chasse le chevron sur un second étage sous 390 px' },
+  { liste: 'ec-l', cls: 'ec-when',
+    pourquoi: 'même cause : la date ne bouge que sur la rangée que le compte a fait replier' }
+];
 
 const SONDE = (exemptes) => {
   const out = [];
@@ -103,7 +137,7 @@ const SONDE = (exemptes) => {
     }
   });
   for (const L of listes){
-    if (exemptes.some(e => L.sig.includes(e))) continue;
+
     /* ① LES VALEURS ONT-ELLES UN BORD ? */
     const parClasse = {};
     L.rows.forEach((r, i) => {
@@ -137,6 +171,9 @@ const SONDE = (exemptes) => {
       vals.forEach(v => { parRang[v.i] = (parRang[v.i] || 0) + 1; });
       if (Object.values(parRang).some(n => n > 1)) continue;
       const G = new Set(vals.map(v => v.l)), D = new Set(vals.map(v => v.r));
+      /* l'exemption vise UNE classe DANS UNE liste — jamais une classe
+         partout, jamais une liste en entier */
+      if (exemptes.some(e => L.sig.includes(e.liste) && cls.split('.').includes(e.cls))) continue;
       if (G.size > 1 && D.size > 1)
         out.push({ type: 'bord', liste: L.sig, cls, n: new Set(vals.map(v => v.i)).size,
           g: [...G].slice(0, 4), d: [...D].slice(0, 4), ex: vals.slice(0, 3).map(v => v.t) });
@@ -168,8 +205,8 @@ const semer = p => p.evaluate(async () => {
       nextAction: J(-2), nextActionText: 'Relancer', notes: 'Note. '.repeat(6),
       techs: 'Azure, Python', updatedAt: 9,
       contacts: [{ id: 'c1', name: 'Nadia Bensaïd', role: 'RH', email: 'n@ex.fr' }] },
-    { id: 'p2', name: 'Société Générale Global Solution Centre', city: 'Paris',
-      status: 'todo', domain: 'banque', updatedAt: 8, contacts: [] },
+    { id: 'p2', name: 'Société Générale Global Solution Centre', city: 'Saint-Étienne-du-Rouvray',
+      status: 'todo', domain: 'banque / assurance et services financiers', updatedAt: 8, contacts: [] },
     { id: 'p3', name: 'OVH', city: 'Roubaix', status: 'reply', domain: 'cloud',
       nextAction: J(1), nextActionText: 'Envoyer le CV', updatedAt: 7,
       contacts: [{ id: 'c3', name: 'Léa', role: 'CTO', email: 'l@o.fr' }] },
@@ -194,8 +231,15 @@ const semer = p => p.evaluate(async () => {
   await st.kvSet(st.JOURNAL_KEY, JSON.stringify([
     { t: j - 1 * 864e5, txt: 'Donné (QR) : 24 piste(s)', ids: ['cbal'] },
     { t: j - 2 * 864e5, txt: 'Reçu de Léa : +0 piste(s), 0 complétée(s)', ids: ['p2'] },
-    { t: j - 3 * 864e5, txt: 'Reçu de Marie-Charlotte : +0 piste(s), 148 complétée(s)', ids: ['p3'] },
-    { t: j - 4 * 864e5, txt: 'Donné (fichier chiffré) : 100 piste(s)', ids: ['p4'] },
+    /* QUATRE CHIFFRES, et ce n'est pas une coquetterie. Tout l'intérêt
+       des colonnes partagées est qu'un compte plus large élargisse la
+       COLONNE pour tout le monde au lieu de décaler sa seule rangée.
+       Tant que la graine plafonnait à trois chiffres, cette promesse
+       n'était prouvée par rien — et c'est exactement l'erreur qui avait
+       laissé passer le premier remède, calé sur « 24 pistes » devant un
+       « 148 complétées » qu'il n'avait jamais vu. */
+    { t: j - 3 * 864e5, txt: 'Reçu de Marie-Charlotte : +0 piste(s), 1480 complétée(s)', ids: ['p3'] },
+    { t: j - 4 * 864e5, txt: 'Donné (fichier chiffré) : 1000 piste(s)', ids: ['p4'] },
     { t: j - 5 * 864e5, txt: 'Donné (partage en groupe) : 7 piste(s)', ids: ['p5'] },
     { t: j - 6 * 864e5, txt: 'Fait : Relancer Léa — Capgemini' }
   ]));
