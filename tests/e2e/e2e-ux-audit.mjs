@@ -1936,12 +1936,38 @@ for (const L of [320, 360, 390]){
              /* deux étages : la rangée dépasse d'une demi-ligne la plus
                 courte du lot — on compare les rangs entre eux, pas à un
                 nombre écrit en dur qui suivrait mal une taille de texte */
-             hauts: rangs.map(n => Math.round(n.getBoundingClientRect().height)) };
+             /* la hauteur de la rangée ET celle de son CONTENU. Une
+                rangée plus haute que ses sœurs n'est un défaut que si
+                rien n'a grandi dedans : sous colonnes partagées, celle
+                dont le nom se replie GRANDIT, et c'est correct — c'est
+                le comportement d'un tableau. Ce qui n'est jamais
+                correct, c'est une rangée qui gonfle à contenu égal. */
+             hauts: rangs.map(n => {
+               const rb = n.getBoundingClientRect();
+               const k = [...n.querySelectorAll('*')]
+                 .map(x => x.getBoundingClientRect()).filter(b => b.height > 0 && b.width > 0);
+               const c = k.length ? Math.max(...k.map(b => b.bottom)) - Math.min(...k.map(b => b.top)) : 0;
+               return { h: Math.round(rb.height), c: Math.round(c) };
+             }),
+             /* ET LE PAS DE LA LISTE, PAS SEULEMENT LA HAUTEUR DU
+                CONTRÔLE. Les deux gardes du fil mesuraient `.ec-row` ;
+                en passant la liste en grid, l'ENVELOPPE s'est mise à
+                gonfler — `align-content` vaut `stretch` par défaut, et
+                une région défilante donne au conteneur une hauteur
+                définie, donc le surplus part dans les pistes. Rangs de
+                256 px au lieu de 44, liste six fois trop haute, et les
+                deux gardes AU VERT parce que `.ec-row` valait toujours
+                44. C'est la capture d'écran qui l'a vu. Ce qu'on
+                perçoit d'une liste est son PAS : on le mesure. */
+             pas: [...document.querySelectorAll('.ec-l')]
+               .map(n => Math.round(n.getBoundingClientRect().height)) };
   });
   const bords = c => new Set(c.map(x => x.droite));
   const coupees = [...d.dates, ...d.comptes].filter(x => x.coupe || !x.txt);
-  const hMin = Math.min(...d.hauts);
-  const deuxEtages = d.hauts.filter(h => h > hMin + 6);
+  const hMin = Math.min(...d.hauts.map(x => x.h));
+  const cMin = Math.min(...d.hauts.map(x => x.c));
+  /* gonflée = plus haute que la plus courte SANS que son contenu ait grandi */
+  const deuxEtages = d.hauts.filter(x => x.h > hMin + 6 && x.c <= cMin + 2).map(x => x.h);
   if (d.dates.length < 5 || d.comptes.length < 5)
     fail(`fil ${L}px : ${d.dates.length} date(s) / ${d.comptes.length} compte(s) — trop peu pour prouver quoi que ce soit`);
   else if (d.large < 70)
@@ -1958,7 +1984,10 @@ for (const L of [320, 360, 390]){
   else if (deuxEtages.length)
     fail(`fil ${L}px : ${deuxEtages.length} rangée(s) à deux étages (${deuxEtages.join(', ')} px `
       + `contre ${hMin}) — rien ne s’est replié, la liste a grandi quand même`);
-  else console.log(`fil ${L}px : ${d.dates.length} rangs de ${hMin} px, date à x=${[...bords(d.dates)][0]}, `
+  else if (d.pas.some(h => h > Math.max(...d.hauts.map(x => x.h)) + 14))
+    fail(`fil ${L}px : le PAS de la liste (${[...new Set(d.pas)].join(', ')} px) dépasse la rangée `
+      + `(${hMin} px) — l’enveloppe gonfle, la rangée non : c’est le défaut qu’aucun garde ne voyait`);
+  else console.log(`fil ${L}px : ${d.dates.length} rangs de ${[...new Set(d.hauts.map(x => x.h))].join('/')} px, date à x=${[...bords(d.dates)][0]}, `
     + `compte à x=${[...bords(d.comptes)][0]}, canaux « ${[...new Set(d.brut)].join(' · ')} » ✓`);
   await dCtx.close();
 }

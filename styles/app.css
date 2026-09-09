@@ -1962,6 +1962,134 @@ button.ec-row:hover{background:var(--surface-field)}
    séparation est déjà faite par la forme. Le poste s'en passait déjà —
    les deux surfaces disent maintenant la même chose de la même façon. */
 
+/* ---- LA LISTE DÉFINIT SES COLONNES, PAS CHAQUE RANGÉE ----
+   C'est la correction de FOND, et elle rend impossible toute une
+   famille de défauts — celle qui a produit le fil photographié, puis
+   son premier remède incomplet.
+
+   LE DÉFAUT DE FOND : `min-width` est un PLANCHER, pas une colonne.
+   Chaque rangée calculait sa mise en page toute seule ; les colonnes
+   ne coïncidaient que tant qu'aucune n'avait besoin de grandir. La
+   colonne souple (le nom) absorbe l'écart — jusqu'à toucher SON
+   plancher. Passé ce point, tout ce qui suit dérive. Mesuré avec le
+   contenu que l'app produit vraiment (« rien de neuf », « 148
+   complétées », « 100 pistes ») : le compte occupait deux abscisses
+   dès 360 et 390 px À TAILLE NORMALE. Un plancher choisi pour
+   « 24 pistes » ne dit rien de « 148 complétées ».
+
+   LE REMÈDE EST STRUCTUREL : les pistes de colonnes sont déclarées UNE
+   fois, sur la liste, et chaque rangée les emprunte (`subgrid`). La
+   largeur d'une colonne devient le maximum de la colonne ENTIÈRE, pas
+   de la rangée : un compte à quatre chiffres élargit la colonne pour
+   tout le monde et l'alignement tient tout seul. Il n'y a plus de
+   constante à choisir, donc plus de constante à voir dériver.
+   (`.sw-under` est en `position:absolute` : il ne prend aucune piste.
+   Le glissement de suppression déplace par `transform`, qui est
+   visuel — il ne change aucune largeur.)
+
+   DEUX GARDES AUTOUR, ET ELLES SONT NÉCESSAIRES :
+   ① `@supports` — sans subgrid, `grid-template-columns:subgrid` est
+     jeté et il resterait un `display:grid` SANS pistes, c'est-à-dire
+     une colonne unique : bien pire que le défaut réparé. Les
+     navigateurs sans subgrid gardent donc le dessin en flex.
+   ② `min-width:18rem` — le seuil est en REM, donc il suit la police du
+     navigateur (§5) et se déclenche à texte agrandi sans média query de
+     taille. Au-delà de ~17 rem de large, les cinq colonnes ne tiennent
+     tout simplement plus : mesuré, la coupure commence à 16,8 rem en
+     320 px, 16,4 en 360 et 16,3 en 390, et le dernier rang propre est à
+     17,8 / 18,0 / 17,7. WCAG 1.4.10 tranche ce cas — le contenu se
+     RÉORGANISE, il ne se perd pas — donc sous ce seuil on rend la main
+     au flex, qui replie la rangée au lieu de la rogner. Aligner des
+     colonnes qui ne tiennent pas serait les rogner. */
+/* ---- LA LISTE DÉFINIT SES COLONNES, PAS CHAQUE RANGÉE ----
+   Correction de FOND : elle rend impossible toute une famille de
+   défauts, celle qui a produit le fil photographié puis son premier
+   remède incomplet.
+
+   LE DÉFAUT DE FOND : `min-width` est un PLANCHER, pas une colonne.
+   Chaque rangée calculait sa mise en page toute seule ; les colonnes ne
+   coïncidaient que tant qu'aucune n'avait besoin de grandir. La colonne
+   souple (le nom) absorbe l'écart — jusqu'à toucher SON plancher. Passé
+   ce point, tout ce qui suit dérive. Mesuré avec le contenu que l'app
+   produit vraiment — « rien de neuf », « 148 complétées », « 100
+   pistes » — le compte occupait deux abscisses dès 360 et 390 px À
+   TAILLE NORMALE. Un plancher calé sur « 24 pistes » ne dit rien de
+   « 148 complétées », et c'est le premier remède qui l'a appris.
+
+   LE REMÈDE EST STRUCTUREL : les pistes sont déclarées UNE fois, sur la
+   liste, et chaque rangée les emprunte (`subgrid`). La largeur d'une
+   colonne devient le maximum de la COLONNE entière, pas de la rangée :
+   un compte à quatre chiffres élargit la colonne pour tout le monde et
+   l'alignement tient tout seul. Il n'y a plus de constante à choisir,
+   donc plus de constante à voir dériver.
+   (`.sw-under` est en `position:absolute` : il ne prend aucune piste.
+   Le glissement de suppression déplace par `transform`, qui est visuel
+   et ne change aucune largeur.)
+
+   DEUX GARDES AUTOUR, ET AUCUNE N'EST DÉCORATIVE :
+   ① `@supports` — sans subgrid, `grid-template-columns:subgrid` est
+     jeté et il resterait un `display:grid` SANS pistes, c'est-à-dire
+     une colonne unique : bien pire que le défaut réparé. Ces
+     navigateurs gardent le dessin en flex.
+   ② `@container` en `em` — le seuil, et le seul outil juste des trois
+     essayés. `@media (min-width:18rem)` est FAUX : dans une média
+     query, `rem` se résout contre la police INITIALE du navigateur,
+     jamais contre celle que la page se donne, si bien que la règle ne
+     se déclenchait jamais sous l'instrument et rendait « ok » sur une
+     règle morte. Ne poser aucun seuil ne suffit pas non plus : à 200 %,
+     cinq colonnes n'existent pas dans 362 px. `em` dans une requête de
+     conteneur se résout contre la police CALCULÉE du conteneur, qui
+     suit celle du navigateur — mesuré sur `.ec-fil` : 25,9 em à
+     390 px/100 %, 17,2 à 150 %, 12,9 à 200 %. Le registre tient
+     jusqu'à ~17 em, d'où 16 em ; sous ce seuil la rangée reprend le
+     flex, qui se replie au lieu de couper (WCAG 1.4.10 : le contenu se
+     réorganise, il ne se perd pas). */
+.ec-fil{container-type:inline-size}
+@supports (grid-template-columns:subgrid){
+  @container (min-width:16em){
+    /* `align-content:start` N'EST PAS UN DÉTAIL DE RANGEMENT. `.ec-body`
+       remplit la région qui défile (§5, le motif du panneau) : il a donc
+       une hauteur DÉFINIE, plus grande que ses rangées. Un conteneur
+       grid dans ce cas répartit le surplus entre ses pistes automatiques
+       — cinq échanges rendaient des rangs de 256 px au lieu de 44, la
+       liste six fois trop haute. En flex, `.ec-body` ne faisait rien de
+       tel ; c'est un effet de bord du passage à grid, et le seul.
+       Aucun des deux gardes ne l'a vu : tous deux mesurent `.ec-row`,
+       qui restait à 44 px — c'est l'ENVELOPPE qui gonflait. La capture
+       d'écran l'a montré en un coup d'œil (§6 : la mesure propose,
+       l'œil tranche), et le garde du fil mesure maintenant le PAS de la
+       liste, pas la hauteur du contrôle. */
+    /* SIX PISTES, PAS CINQ : la poubelle du survol a la sienne. Elle est
+       SŒUR de la rangée, pas sa fille — en flex elle prenait sa place au
+       bout de la ligne, en grid elle s'est empilée DESSOUS, et
+       `.sw-in` est passée de 53 à 85 px. Le `overflow:hidden` du geste
+       de suppression rognait alors 4 px du texte au poste à 200 %.
+       Une piste réservée rend au dessin son intention d'origine — « la
+       colonne est réservée, rien ne saute ni ne déborde » — et au pouce
+       la poubelle est en `display:none`, donc la piste vaut zéro. */
+    .ec-body{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto auto auto;
+      align-content:start}
+    .ec-l{grid-column:1/-1;display:grid;grid-template-columns:subgrid}
+    .ec-l>.sw-in{grid-column:1/-1;display:grid;grid-template-columns:subgrid}
+    .ec-l>.sw-in>.hov-del{grid-column:6;align-self:center}
+    .ec-row{grid-column:1/6;display:grid;grid-template-columns:subgrid;align-items:center}
+    /* LES DONNÉES SE REPLIENT AU LIEU D'ÊTRE ROGNÉES. Une piste `auto`
+       descend jusqu'à son MIN-CONTENT ; `white-space:nowrap` fait de la
+       chaîne entière ce min-content, donc la piste ne rétrécit plus,
+       déborde, et `overflow:hidden` (le motif de suppression au geste)
+       la coupe net. En rendant le retour à la ligne, la rangée GRANDIT
+       au lieu de perdre du texte.
+       ET LES PLANCHERS TOMBENT AVEC : ils étaient la béquille du
+       dessin d'avant. Sous subgrid ils n'ont plus rien à tenir, et
+       pire, ils empêchent la piste de rétrécir — ils rouvraient
+       exactement le rognage que le repli venait de fermer. Un réglage
+       qui existe pour compenser un mauvais mécanisme se supprime en
+       corrigeant le mécanisme (§6). */
+    .ec-row>.ec-n,.ec-row>.ec-when{white-space:normal}
+    .ec-row>.ec-n,.ec-row>.ec-when,.ec-row>.ec-avec{min-width:0}
+  }
+}
+
 
 /* Ce média vient APRÈS les règles de base, et ce n'est pas un détail de
    rangement : posé plus haut dans le fichier — là où vit le reste du

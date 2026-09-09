@@ -742,6 +742,7 @@ avec un motif existant.
 | Expliquer un résultat | `searchHint(c, q, {skip})` → `.ri-hit` + `<mark>`. Le moteur rend l'extrait ET les positions, jamais du HTML. La ligne ne parle **que** si ce qu'elle affiche déjà ne répond pas — l'appelant dit ce qu'il montre (`skip`), et rien ne se dit deux fois |
 | Proposer un filtre | `.fl-chip` + son **compte**. Ne jamais offrir une valeur absente des données. Liste fermée (statuts) : la puce reste, éteinte. Liste ouverte (domaines) : elle disparaît, sauf si le filtre est actif |
 | Note contextuelle | `<p class="hint">` (+ `warn` si alerte) |
+| Aligner les valeurs d'une LISTE | **la liste déclare ses colonnes, la rangée les emprunte** — `display:grid` sur le conteneur + `grid-template-columns:subgrid` sur chaque niveau jusqu'à la rangée (`.ec-body` → `.ec-l` → `.sw-in` → `.ec-row`). Sous `@supports` (sans subgrid il resterait un `display:grid` SANS pistes, soit une colonne unique — pire que le défaut) et sous `@container (min-width:…em)` (au-delà d'un certain grossissement les colonnes ne tiennent plus : on rend la main au flex, qui replie au lieu de rogner). **Un `min-width` n'est PAS une colonne** : c'est un plancher, la rangée se dimensionne toujours seule, et la colonne souple n'absorbe l'écart que jusqu'à toucher SON plancher — passé là, tout ce qui suit dérive. Deux pièges de seuil, payés : `rem` dans une **média** query se résout contre la police INITIALE du navigateur, donc la règle ne se déclenche jamais quand la page se donne sa taille — seul `em` dans une **requête de conteneur** suit la police calculée ; et un conteneur grid de hauteur définie **étire ses pistes** (`align-content` vaut `stretch`), ce qui a rendu des rangs de 256 px pour 44 px de contrôle |
 | Décrire une piste dans un TABLEAU | trois lignes au maximum — nom, sous-ligne, action. Material 3 plafonne un élément de liste à trois lignes de texte ; au-delà c'est une carte à média. La carte du poste en empilait quatre, la quatrième étant le compte de personnes SEUL sur son rang, pendant que la ligne au pouce disait la même piste en une sous-ligne — on réapprenait à lire une piste en changeant d'appareil. **Et l'ordre décide de ce qu'on perd** : la sous-ligne s'élide par la fin, donc le compte de personnes passe avant le domaine — c'est le secteur qu'on peut perdre, jamais le nombre de gens joignables |
 | Décrire une piste dans une liste à cocher | **le nom plie, la sous-ligne s'élide** — dans une liste où l'on COCHE, un nom amputé n'est pas un défaut d'esthétique mais une erreur de décision : « Société Générale G… » ne se distingue plus de son homonyme. Trois rangs, la même valeur et la même raison que `.row-item h3`. Et **une seule sous-ligne pour les trois** (Donner, Prospecter, partage en groupe) : `statut · ville · qui est visé`. Elles en donnaient trois versions ; on réapprenait à lire une piste en passant d'une feuille à sa voisine. La ville n'est pas décorative — deux pistes du même statut ne se distinguent souvent que par elle |
 | Multi-sélection | `.pk` avec icônes checkbox — **jamais pour supprimer**. **Le coché ne porte aucun aplat** : la carte reste entière, l'état vit dans la case (voir §4). Un seul état de plus, `pk-inverse`, et seulement là où la liste part de « tout coché » (Donner, partage en groupe, « → qui » en mode *donner*) : la ligne **écartée** se dithère, parce que là une ligne non cochée n'est pas « pas encore choisie », elle est SORTIE. Ailleurs cet état n'existe pas — c'est un état en moins, pas une inégalité. **Généraliser la trame a été demandé, mesuré, refusé** : sur une liste qui part de rien coché, elle s'applique à TOUTES les lignes à l'ouverture et l'écran se lit « rien n'est disponible » au moment précis où il doit inviter à choisir. Deux sources le disent — le grisé est la convention universelle de l'INDISPONIBLE (NN/g), et Material 3 demande que la distinction vienne de ce qui est **retenu**, jamais de l'affaiblissement du reste |
@@ -1013,6 +1014,37 @@ d'un glissement : rien n'y change.
    au tableau à trois colonnes, qui revient dès qu'il y a du travail
    planifié. La règle vise un écran qui ignore la largeur ; pas un écran
    qui la rend le temps d'un démarrage à froid.
+
+**Dans une liste, une valeur a UN BORD — ou elle ne se balaie pas.**
+C'est la généralisation du défaut signalé sur photo (le compte du fil
+occupait quatre abscisses), et elle vaut pour toute liste, pas pour
+celle-là. NN/g, *The Anatomy of a List Entry* : une liste se BALAIE —
+l'œil descend une colonne et compare des entrées entre elles — donc
+chaque information garde la même place d'une ligne à l'autre. Une
+valeur qui se déplace oblige à LIRE chaque ligne.
+
+Le critère est mécanique, et c'est ce qui le rend utile : **une valeur
+répétée doit avoir un bord STABLE** — le gauche si elle est calée à
+gauche, le droit si elle est calée à droite. Exiger « tout est aligné »
+serait faux : une sous-ligne qui s'élide a un bord droit qui varie, et
+c'est correct. Mais une valeur dont les DEUX bords bougent n'est ancrée
+à rien. `e2e-colonnes.mjs` balaie ainsi 13 surfaces × 6 tailles sans
+qu'aucune liste ait à se déclarer, et ses exceptions se **nomment** —
+il n'y en a aucune.
+
+Deux corollaires, tous deux payés :
+① **La cause est presque toujours qu'une valeur partage sa boîte avec
+un voisin de longueur variable.** Le remède n'est pas de choisir une
+largeur, c'est de sortir la valeur dans sa propre colonne — un plancher
+choisi pour « 24 pistes » ne dit rien de « 148 complétées », et le
+premier remède l'a appris en dérivant dès 360 px à taille normale.
+② **Ce qu'on perçoit d'une liste est son PAS, pas la hauteur de son
+contrôle.** Les deux gardes du fil mesuraient `.ec-row` ; l'enveloppe a
+gonflé à 256 px pendant qu'elle restait à 44, et les deux sont restés
+verts. On mesure donc l'écart entre une rangée et ce qu'elle contient.
+Et **une rangée plus haute que ses sœurs n'est un défaut que si rien
+n'a grandi dedans** : sous colonnes partagées, celle dont le nom se
+replie grandit, et c'est le comportement normal d'un tableau.
 
 > **Ce que les instruments ne savent pas faire.** Ils tranchent la mise en
 > page (vide, dominance, largeur) ; ils sont **aveugles à l'emphase** — les
