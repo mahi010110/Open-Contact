@@ -1745,7 +1745,12 @@ button.fi-vecu b{flex:1;min-width:0}
    bord de la rangée, son anneau de focus était rogné du même coup */
 .ec-l .sw-in{display:flex;align-items:center;background:var(--surface-desktop);padding-right:5px}
 .ec-row{
-  display:flex;align-items:center;flex-wrap:wrap;column-gap:10px;row-gap:2px;width:100%;
+  /* 8 px et non 10 : à 320 px les quatre colonnes plus le chevron
+     demandent 289 px pour 282 disponibles, et c'est le CHEVRON qui
+     était chassé sur un second étage — toutes les rangées passaient de
+     44 à 52 px sans qu'aucun texte ne se replie. Deux pixels par
+     gouttière rendent les sept qui manquaient. */
+  display:flex;align-items:center;flex-wrap:wrap;column-gap:8px;row-gap:2px;width:100%;
   min-height:var(--ctl);padding:9px 5px;
   border:0;border-radius:0;
   background:none;color:var(--text-body);font-family:var(--font-ui);text-align:left;
@@ -1899,14 +1904,54 @@ button.ec-row:hover{background:var(--surface-field)}
    l'ancienne phrase tenait encore. C'est le prix d'un nom qui ne se
    coupe jamais et qui commence toujours au même x — et le panneau
    défile, donc rien ne se perd. */
-.ec-row>.ec-quoi{flex:1;min-width:6rem}
-/* AU POUCE : deux colonnes, pas quatre. La rangée fait 332 px sur un
-   360 — le nom et le compte forment donc UNE phrase qui plie ensemble.
-   Une quatrième colonne y volerait la largeur à la seule chose qu'on lit
-   vraiment.
-
-   PAS DE POINT MÉDIAN ENTRE EUX, et c'est une correction. Il vivait dans
-   un `::before` sur le compte, précédé d'une espace : la coupure tombait
+/* LE COMPTE A SA COLONNE, COMME LA DATE — à toutes les largeurs.
+   Ce dessin disait « au pouce : deux colonnes, pas quatre », le nom et
+   le compte formant une phrase qui plie ensemble. La conséquence était
+   inévitable et le mainteneur l'a vue avant moi : le compte SUIT le
+   nom, donc son abscisse dépend de la longueur du nom. Mesuré sur un
+   vrai fil, à 320, 360, 390 et 430 px : quatre abscisses différentes
+   pour le compte, trois pour la date, et la ligne « partage en
+   groupe » à deux étages sous 390 px.
+   Or c'est précisément ce que NN/g (*The Anatomy of a List Entry*)
+   interdit et que ce dépôt a déjà tranché pour la date : chaque
+   information à la même place d'une ligne à l'autre, sinon on LIT au
+   lieu de balayer. Ce qui valait pour la date vaut pour le compte.
+   Le nom garde son droit de PLIER (§4 : une identité ne s'ampute
+   jamais) — il plie dans SA colonne, et les deux colonnes de données
+   ne bougent plus. Un canal trop long fait donc grandir sa seule
+   rangée, il ne déplace plus rien. */
+.ec-quoi{display:contents}
+/* 6 REM, ET C'EST LE PLANCHER D'ORIGINE — repris tel quel après
+   l'avoir cassé. En sortant le compte de la phrase j'ai descendu ce
+   plancher à 3 rem, en mesurant la seule chose que je regardais : les
+   colonnes tenaient, les rangs faisaient 44 px, le chevron restait sur
+   son étage. Ce que 3 rem coûtait ne se voyait pas là — il se voyait
+   dans le garde d'à côté, qui gardait autre chose : « Marie-Charlotte »
+   se faisait CASSER AU MILIEU D'UN MOT à 320 et 360 px. §4 l'interdit
+   sans réserve : ce qui porte une identité plie, il ne s'ampute jamais.
+   Le balayage complet — planchers de 3 à 6 rem × largeurs 320/360/390/
+   430 × 100 % et 125 % — ne laisse qu'une valeur propre partout, et
+   c'est celle qui était déjà là.
+   Ce que 6 rem coûte, dit franchement : à 320 px les rangées font 52 px
+   au lieu de 44, parce que le nom se replie. Elles le font TOUTES, donc
+   la liste garde son pas — c'est le prix d'un nom entier, et le panneau
+   défile. */
+.ec-row .ec-avec{flex:1;min-width:6rem}
+.ec-n{flex:none;text-align:right;min-width:3.9rem}
+/* LA DATE PREND UNE LARGEUR FIXE, et c'est ce qui rend la colonne des
+   comptes possible. Mesuré sans elle : « aujourd'hui » fait 72 px,
+   « hier » 26 — le compte, posé juste avant, se faisait pousser de
+   46 px selon la date de la ligne, et ses trois bords droits tombaient
+   à 551, 597 et 557. Une colonne qui bouge d'une ligne à l'autre ne se
+   balaie pas, c'est-à-dire qu'elle ne sert plus à rien.
+   Le même réglage règle un second défaut du relevé : 10 px seulement
+   séparaient deux colonnes de même gris et de même police, qui se
+   lisaient comme un seul bloc. La date étant calée à droite dans une
+   boîte fixe, l'écart se creuse tout seul là où la date est courte. */
+.ec-when{min-width:4.8rem;text-align:right}
+/* PAS DE POINT MÉDIAN ENTRE LE NOM ET LE COMPTE, et c'est une
+   correction. Il vivait dans un `::before` sur le compte,
+   précédé d'une espace : la coupure tombait
    sur cette espace, et le point partait à la ligne suivante EN TÊTE —
    « · 24 pistes », un signe de ponctuation orphelin ouvrant un rang.
    Photographié sur un vrai téléphone, et reproduit à 390 px / 125 %,
@@ -1916,7 +1961,135 @@ button.ec-row:hover{background:var(--surface-field)}
    d'encre sombre en Public Sans contre 11 px de gris en mono, la
    séparation est déjà faite par la forme. Le poste s'en passait déjà —
    les deux surfaces disent maintenant la même chose de la même façon. */
-.ec-n{margin-left:.55em}
+
+/* ---- LA LISTE DÉFINIT SES COLONNES, PAS CHAQUE RANGÉE ----
+   C'est la correction de FOND, et elle rend impossible toute une
+   famille de défauts — celle qui a produit le fil photographié, puis
+   son premier remède incomplet.
+
+   LE DÉFAUT DE FOND : `min-width` est un PLANCHER, pas une colonne.
+   Chaque rangée calculait sa mise en page toute seule ; les colonnes
+   ne coïncidaient que tant qu'aucune n'avait besoin de grandir. La
+   colonne souple (le nom) absorbe l'écart — jusqu'à toucher SON
+   plancher. Passé ce point, tout ce qui suit dérive. Mesuré avec le
+   contenu que l'app produit vraiment (« rien de neuf », « 148
+   complétées », « 100 pistes ») : le compte occupait deux abscisses
+   dès 360 et 390 px À TAILLE NORMALE. Un plancher choisi pour
+   « 24 pistes » ne dit rien de « 148 complétées ».
+
+   LE REMÈDE EST STRUCTUREL : les pistes de colonnes sont déclarées UNE
+   fois, sur la liste, et chaque rangée les emprunte (`subgrid`). La
+   largeur d'une colonne devient le maximum de la colonne ENTIÈRE, pas
+   de la rangée : un compte à quatre chiffres élargit la colonne pour
+   tout le monde et l'alignement tient tout seul. Il n'y a plus de
+   constante à choisir, donc plus de constante à voir dériver.
+   (`.sw-under` est en `position:absolute` : il ne prend aucune piste.
+   Le glissement de suppression déplace par `transform`, qui est
+   visuel — il ne change aucune largeur.)
+
+   DEUX GARDES AUTOUR, ET ELLES SONT NÉCESSAIRES :
+   ① `@supports` — sans subgrid, `grid-template-columns:subgrid` est
+     jeté et il resterait un `display:grid` SANS pistes, c'est-à-dire
+     une colonne unique : bien pire que le défaut réparé. Les
+     navigateurs sans subgrid gardent donc le dessin en flex.
+   ② `min-width:18rem` — le seuil est en REM, donc il suit la police du
+     navigateur (§5) et se déclenche à texte agrandi sans média query de
+     taille. Au-delà de ~17 rem de large, les cinq colonnes ne tiennent
+     tout simplement plus : mesuré, la coupure commence à 16,8 rem en
+     320 px, 16,4 en 360 et 16,3 en 390, et le dernier rang propre est à
+     17,8 / 18,0 / 17,7. WCAG 1.4.10 tranche ce cas — le contenu se
+     RÉORGANISE, il ne se perd pas — donc sous ce seuil on rend la main
+     au flex, qui replie la rangée au lieu de la rogner. Aligner des
+     colonnes qui ne tiennent pas serait les rogner. */
+/* ---- LA LISTE DÉFINIT SES COLONNES, PAS CHAQUE RANGÉE ----
+   Correction de FOND : elle rend impossible toute une famille de
+   défauts, celle qui a produit le fil photographié puis son premier
+   remède incomplet.
+
+   LE DÉFAUT DE FOND : `min-width` est un PLANCHER, pas une colonne.
+   Chaque rangée calculait sa mise en page toute seule ; les colonnes ne
+   coïncidaient que tant qu'aucune n'avait besoin de grandir. La colonne
+   souple (le nom) absorbe l'écart — jusqu'à toucher SON plancher. Passé
+   ce point, tout ce qui suit dérive. Mesuré avec le contenu que l'app
+   produit vraiment — « rien de neuf », « 148 complétées », « 100
+   pistes » — le compte occupait deux abscisses dès 360 et 390 px À
+   TAILLE NORMALE. Un plancher calé sur « 24 pistes » ne dit rien de
+   « 148 complétées », et c'est le premier remède qui l'a appris.
+
+   LE REMÈDE EST STRUCTUREL : les pistes sont déclarées UNE fois, sur la
+   liste, et chaque rangée les emprunte (`subgrid`). La largeur d'une
+   colonne devient le maximum de la COLONNE entière, pas de la rangée :
+   un compte à quatre chiffres élargit la colonne pour tout le monde et
+   l'alignement tient tout seul. Il n'y a plus de constante à choisir,
+   donc plus de constante à voir dériver.
+   (`.sw-under` est en `position:absolute` : il ne prend aucune piste.
+   Le glissement de suppression déplace par `transform`, qui est visuel
+   et ne change aucune largeur.)
+
+   DEUX GARDES AUTOUR, ET AUCUNE N'EST DÉCORATIVE :
+   ① `@supports` — sans subgrid, `grid-template-columns:subgrid` est
+     jeté et il resterait un `display:grid` SANS pistes, c'est-à-dire
+     une colonne unique : bien pire que le défaut réparé. Ces
+     navigateurs gardent le dessin en flex.
+   ② `@container` en `em` — le seuil, et le seul outil juste des trois
+     essayés. `@media (min-width:18rem)` est FAUX : dans une média
+     query, `rem` se résout contre la police INITIALE du navigateur,
+     jamais contre celle que la page se donne, si bien que la règle ne
+     se déclenchait jamais sous l'instrument et rendait « ok » sur une
+     règle morte. Ne poser aucun seuil ne suffit pas non plus : à 200 %,
+     cinq colonnes n'existent pas dans 362 px. `em` dans une requête de
+     conteneur se résout contre la police CALCULÉE du conteneur, qui
+     suit celle du navigateur — mesuré sur `.ec-fil` : 25,9 em à
+     390 px/100 %, 17,2 à 150 %, 12,9 à 200 %. Le registre tient
+     jusqu'à ~17 em, d'où 16 em ; sous ce seuil la rangée reprend le
+     flex, qui se replie au lieu de couper (WCAG 1.4.10 : le contenu se
+     réorganise, il ne se perd pas). */
+.ec-fil{container-type:inline-size}
+@supports (grid-template-columns:subgrid){
+  @container (min-width:16em){
+    /* `align-content:start` N'EST PAS UN DÉTAIL DE RANGEMENT. `.ec-body`
+       remplit la région qui défile (§5, le motif du panneau) : il a donc
+       une hauteur DÉFINIE, plus grande que ses rangées. Un conteneur
+       grid dans ce cas répartit le surplus entre ses pistes automatiques
+       — cinq échanges rendaient des rangs de 256 px au lieu de 44, la
+       liste six fois trop haute. En flex, `.ec-body` ne faisait rien de
+       tel ; c'est un effet de bord du passage à grid, et le seul.
+       Aucun des deux gardes ne l'a vu : tous deux mesurent `.ec-row`,
+       qui restait à 44 px — c'est l'ENVELOPPE qui gonflait. La capture
+       d'écran l'a montré en un coup d'œil (§6 : la mesure propose,
+       l'œil tranche), et le garde du fil mesure maintenant le PAS de la
+       liste, pas la hauteur du contrôle. */
+    /* SIX PISTES, PAS CINQ : la poubelle du survol a la sienne. Elle est
+       SŒUR de la rangée, pas sa fille — en flex elle prenait sa place au
+       bout de la ligne, en grid elle s'est empilée DESSOUS, et
+       `.sw-in` est passée de 53 à 85 px. Le `overflow:hidden` du geste
+       de suppression rognait alors 4 px du texte au poste à 200 %.
+       Une piste réservée rend au dessin son intention d'origine — « la
+       colonne est réservée, rien ne saute ni ne déborde » — et au pouce
+       la poubelle est en `display:none`, donc la piste vaut zéro. */
+    .ec-body{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto auto auto;
+      align-content:start}
+    .ec-l{grid-column:1/-1;display:grid;grid-template-columns:subgrid}
+    .ec-l>.sw-in{grid-column:1/-1;display:grid;grid-template-columns:subgrid}
+    .ec-l>.sw-in>.hov-del{grid-column:6;align-self:center}
+    .ec-row{grid-column:1/6;display:grid;grid-template-columns:subgrid;align-items:center}
+    /* LES DONNÉES SE REPLIENT AU LIEU D'ÊTRE ROGNÉES. Une piste `auto`
+       descend jusqu'à son MIN-CONTENT ; `white-space:nowrap` fait de la
+       chaîne entière ce min-content, donc la piste ne rétrécit plus,
+       déborde, et `overflow:hidden` (le motif de suppression au geste)
+       la coupe net. En rendant le retour à la ligne, la rangée GRANDIT
+       au lieu de perdre du texte.
+       ET LES PLANCHERS TOMBENT AVEC : ils étaient la béquille du
+       dessin d'avant. Sous subgrid ils n'ont plus rien à tenir, et
+       pire, ils empêchent la piste de rétrécir — ils rouvraient
+       exactement le rognage que le repli venait de fermer. Un réglage
+       qui existe pour compenser un mauvais mécanisme se supprime en
+       corrigeant le mécanisme (§6). */
+    .ec-row>.ec-n,.ec-row>.ec-when{white-space:normal}
+    .ec-row>.ec-n,.ec-row>.ec-when,.ec-row>.ec-avec{min-width:0}
+  }
+}
+
 
 /* Ce média vient APRÈS les règles de base, et ce n'est pas un détail de
    rangement : posé plus haut dans le fichier — là où vit le reste du
@@ -1944,23 +2117,16 @@ button.ec-row:hover{background:var(--surface-field)}
      les CHIFFRES. « 3 », « 24 » et « 100 » se comparent d'un coup d'œil
      au lieu de flotter au fil du texte — c'est exactement ce qu'un
      grand écran doit rendre et qu'un téléphone ne peut pas offrir. */
-  .ec-quoi{display:contents}
-  /* `.ec-avec` reste un enfant de `.ec-quoi` dans le DOM — c'est le
-     RENDU que `display:contents` aplatit, pas l'arbre. Le sélecteur
-     enfant direct ne le voyait donc jamais. */
-  .ec-row .ec-avec{flex:1;min-width:6rem}
-  .ec-n{flex:none;text-align:right;min-width:5.2rem;margin-left:0}
-  /* LA DATE PREND UNE LARGEUR FIXE, et c'est ce qui rend la colonne des
-     comptes possible. Mesuré sans elle : « aujourd'hui » fait 72 px,
-     « hier » 26 — le compte, posé juste avant, se faisait pousser de
-     46 px selon la date de la ligne, et ses trois bords droits tombaient
-     à 551, 597 et 557. Une colonne qui bouge d'une ligne à l'autre ne se
-     balaie pas, c'est-à-dire qu'elle ne sert plus à rien.
-     Le même réglage règle le second défaut du relevé : 10 px seulement
-     séparaient deux colonnes de même gris et de même police, qui se
-     lisaient comme un seul bloc. La date étant calée à droite dans une
-     boîte fixe, l'écart se creuse tout seul là où la date est courte. */
-  .ec-when{min-width:4.8rem;text-align:right}
+  /* LE MÉCANISME EST DESCENDU DANS LES RÈGLES DE BASE : les colonnes du
+     compte et de la date valent maintenant à TOUTES les largeurs, parce
+     que « chaque information à la même place d'une ligne à l'autre » ne
+     dépend pas de la taille de l'écran. Ce qui reste ici est ce qui
+     diffère vraiment — des colonnes plus GÉNÉREUSES, que seule la
+     largeur du poste permet.
+     (`.ec-avec` reste un enfant de `.ec-quoi` dans le DOM : c'est le
+     RENDU que `display:contents` aplatit, pas l'arbre, donc le
+     sélecteur enfant direct ne le verrait jamais.) */
+  .ec-n{min-width:5.2rem}
 }
 .ec-row-m{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .ec-row-m b{font-size:var(--text-13);font-weight:var(--weight-semibold)}
