@@ -245,9 +245,21 @@ export function openDonner(){
     const my = enter();
     await leaving;
     if (my !== gen) return;
-    const fallback = () => {
-      if (compact){ toast('Pas de connexion — QR hors ligne.'); stepQRData(compact, n, ids); }
-      else { toast('Pas de connexion — passe par le fichier.'); stepFile(); }
+    /* LE REPLI NE RÉAFFIRME PAS UNE CAUSE QU'IL NE CONNAÎT PAS.
+       Il partait toujours sur « Pas de connexion », y compris après un
+       écran qui venait d'afficher « Ce n'est pas le même code » : l'app
+       se contredisait en une phrase, sur le seul chemin où le camarade
+       est en face et attend.
+       Quand le repli s'impose TOUT SEUL (la salle n'ouvre pas), rien
+       n'est encore à l'écran et le toast est justifié — c'est la
+       famille ① de §6, un refus qui doit dire pourquoi. Quand c'est
+       l'utilisateur qui le demande, la cause est DÉJÀ affichée
+       au-dessus et l'écran suivant porte son propre titre : le toast
+       redirait ce qu'on regarde, ce que §6 interdit. */
+    const fallback = (auto) => {
+      if (auto) toast(compact ? 'Pas de connexion — QR hors ligne.'
+                              : 'Pas de connexion — passe par le fichier.');
+      if (compact) stepQRData(compact, n, ids); else stepFile();
     };
     sh.setTitle(`QR — ${n} piste${n > 1 ? 's' : ''}`);
     sh.body.innerHTML = `<div class="qr-prog">${ic('clock', 'ic-14')} Connexion…</div>`;
@@ -266,6 +278,17 @@ export function openDonner(){
       if (my !== gen || sent) return;
       const el = q('#dnRdvSt');
       if (!el) return;
+      /* LE REPLI PREND LE MOT DU MOMENT. Sous une panne nommée, « Sans
+         réseau ? » pose une question qui ne correspond plus : le réseau
+         est là, c'est la liaison qui refuse. §8 demande de nommer la
+         panne ET de proposer le repli — le proposer, c'est en dire le
+         GESTE (§6 : ce qui suit un tiret est un geste, jamais un
+         rassurement). La question ne reste que pendant l'attente, où
+         elle est encore la bonne. */
+      const sortie = q('#dnOffline');
+      if (sortie) sortie.textContent = stage === 'rtcfail' || stage === 'norelay'
+        ? (compact ? 'Passer par le QR hors ligne' : 'Passer par le fichier')
+        : 'Sans réseau ?';
       if (stage === 'norelay')
         el.innerHTML = `${ic('square-alert', 'ic-14')} Pas de connexion`;
       else if (stage === 'rtcfail' && cause === 'motdepasse')
@@ -286,7 +309,7 @@ export function openDonner(){
         makeQrSvg(rdvWrap(code))]);
     } catch (e) {
       w.stop();
-      if (my === gen) fallback();
+      if (my === gen) fallback(true);
       return;
     }
     if (my !== gen){ w.stop(); await leaveRoom(r); return; }
@@ -302,7 +325,7 @@ export function openDonner(){
        <div class="sy-phrase"><span>${esc(code)}</span></div>
        <div class="qr-prog" id="dnRdvSt">${ic('clock', 'ic-14')} Connexion…</div>
        <button class="linklike" id="dnOffline" style="display:flex;margin:2px auto 0">Sans réseau ?</button>`;
-    q('#dnOffline').addEventListener('click', fallback);
+    q('#dnOffline').addEventListener('click', () => fallback(false));
     const give = r.makeAction('give');
     const payload = sharePayload(chosen(), keepFn, moiQui());
     r.onPeerJoin = () => {
