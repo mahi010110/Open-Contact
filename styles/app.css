@@ -2307,7 +2307,14 @@ button.ec-row:hover{background:var(--surface-field)}
    feuille. `margin-left:auto` sur les outils : une piste sans ville ni
    domaine n'a pas de sous-titre, et le bouton ne doit pas sauter à
    gauche pour autant. */
-.fi-top{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.fi-top{display:flex;align-items:flex-start;gap:12px;margin-bottom:10px}
+/* l'en-tête d'objet prend la place, les outils restent à sa droite ;
+   `margin-bottom:0` parce que c'est `.fi-top` qui porte l'écart */
+.fi-top .fi-obj{flex:1;min-width:0;margin-bottom:0}
+/* LE NOM PLIE, IL NE SE COUPE PAS (§4 : une identité ne s'ampute
+   jamais). `.obj-n` est un bloc, donc il passe à la ligne tout seul —
+   c'est la sous-ligne, une DONNÉE, qui garde le droit de s'élider. */
+.fi-obj .obj-n{overflow-wrap:break-word}
 /* Le sous-titre se coupe à sa fin plutôt que de faire plier la rangée :
    mesuré à 360 px, « Villeneuve-d'Ascq · Cybersécurité » + « Modifier »
    passaient sur deux lignes, soit 72 px au lieu de 44. Une donnée s'élide,

@@ -301,7 +301,34 @@ export function openFiche(c){
     const vecuHTML = !v ? ''
       : c.vecuQui ? `<button class="fi-vecu" id="fiVecu">${dedans}${ic('chevron-right', 'ic-14')}</button>`
                   : `<div class="fi-vecu">${dedans}</div>`;
-    const sub = subBits.length ? `<div class="fi-sub">${subBits.map(esc).join(' · ')}</div>` : '';
+    /* ---- LA FICHE DIT ENFIN DE QUELLE PISTE ELLE PARLE ----
+       Elle s'ouvrait sur « Toulouse · ESN » : une sous-ligne SANS son
+       sujet. Le nom n'existait que dans le châssis, et mesuré, il y est
+       le texte le moins lisible de l'écran — 8 px de police pixel qui
+       ne grandissent JAMAIS (§4 garde `--pixel-*` en px, à raison : une
+       police pixel étirée devient floue), pendant qu'une étiquette de
+       section passe de 11 à 22 px à 200 %. Et à 320 px « Société
+       Générale Global Solution Centre » s'y fait COUPER, ce que §4
+       interdit pour une identité.
+       On ne touche pas au châssis pour autant : le navy dit OÙ TU ES
+       (§4), c'est son travail, et la barre est partagée par les seize
+       feuilles. C'est le CONTENU qui doit porter le nom — et le motif
+       existe déjà, `.obj` (§6 : un besoin se résout d'abord avec un
+       motif existant). « Moi » s'en sert pour la même chose : icône,
+       nom en `--text-16` gras, sous-ligne en dessous. En `rem`, donc il
+       suit la police du navigateur, et il PLIE au lieu de se couper. */
+    const sub =
+      `<div class="obj fi-obj">
+         ${/* la MÊME icône que le châssis : un objet, une icône — la
+              mallette dit « une piste » dans toute l'app, et en mettre
+              une autre ici ferait réapprendre le même objet d'un endroit
+              à l'autre (§7, appliqué à l'image plutôt qu'au mot) */''}
+         ${ic('briefcase', 'ic-16')}
+         <div class="obj-m">
+           <span class="obj-n">${esc(c.name)}</span>
+           ${subBits.length ? `<div class="obj-s"><span class="obj-l">${subBits.map(esc).join(' · ')}</span></div>` : ''}
+         </div>
+       </div>`;
     sh.body.innerHTML = wide
       ? `<div class="fi-top">${sub}${outils}</div>${vecuHTML}
          <div class="fi-cols"><div>${travail}</div><div>${dossier}</div></div>`
