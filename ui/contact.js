@@ -191,9 +191,22 @@ export function openAttach(ct){
       .filter(c => !nq || normName(c.name).includes(nq) || normName(c.city).includes(nq))
       .slice(0, 12);
     let html = list.map(c =>
+      /* LA MÊME LIGNE DE PISTE QUE PARTOUT AILLEURS (§6). Cette liste
+         CHOISIT une piste, comme Donner, Prospecter, le partage en
+         groupe et « Échanger » — et elle était la seule à l'écrire en
+         `<b>` + `<span>` nu, c'est-à-dire en ligne, la sous-ligne jetée
+         à droite par `margin-left:auto`. Mesuré à 320, 390 et 1280 : le
+         `<b>` étant `flex:none`, un nom long faisait DÉCROCHER la
+         sous-ligne sur un second rang, toujours collée au bord droit.
+         Sur quatre pistes, « À contacter · … » se posait donc à quatre
+         abscisses ET sur deux hauteurs différentes : la liste ne se
+         balayait plus, il fallait lire chaque rangée.
+         `pk-m` / `pk-s` règle les deux d'un coup — deux étages, un bord
+         gauche commun — et donne à la sous-ligne le NOM sans lequel §5
+         ne peut pas lui accorder le droit de s'élider. */
       `<button class="pick" data-id="${c.id}">
-         <b>${esc(c.name)}</b>
-         <span>${isClosed(c) ? 'clôturée' : STATUSES[c.status].label}${c.city ? ' · ' + esc(c.city) : ''}</span>
+         <div class="pk-m"><b>${esc(c.name)}</b>
+           <span class="pk-s">${isClosed(c) ? 'clôturée' : STATUSES[c.status].label}${c.city ? ' · ' + esc(c.city) : ''}</span></div>
        </button>`).join('');
     if (txt && !S.companies.some(c => normName(c.name) === nq)){
       html += `<button class="pick" id="atNew">
