@@ -181,6 +181,70 @@ const CHARGE = k => ({ fn: async k => {
   await ctx.close();
 }
 
+/* ============ 3. LA FICHE, DANS SES DEUX ÉTATS EXTRÊMES ============
+   Même règle, appliquée à l'objet central du produit : toutes les
+   gardes qui ouvrent une fiche sèment une piste BIEN REMPLIE —
+   `S.companies[0]` d'un jeu d'essai complet. Personne n'ouvre donc :
+   · la piste NEUVE, celle qu'on vient de capturer et qui n'a qu'un nom.
+     C'est pourtant l'état où toute fiche commence, et celui où un écran
+     qui suppose une donnée plante ;
+   · la piste CLÔTURÉE, qui remplace le travail par son motif de
+     clôture et un « Rouvrir » — un dessin que rien ne mesurait.
+   On y vérifie ce qui vaut pour les deux : l'écran s'ouvre, il dit de
+   QUELLE piste il parle (§4 : une identité ne se coupe jamais), aucune
+   cible ne passe sous 44 px au doigt, et rien ne défile latéralement. */
+{
+  /* LE NOM EST LONG, ET C'EST LA MOITIÉ DU CONTRÔLE. Avec « Adrastia »,
+     la vérification anti-coupure ne mord jamais : le mot tient à 320 px,
+     donc on pouvait remettre l'élision sans que rien ne rougisse (§4 —
+     un contrôle ne serre que ce qu'il remplit). Le nom du jeu d'essai
+     est donc le plus long qu'on ait vu passer. */
+  const LONG = 'Groupement Interprofessionnel des Systèmes Informatiques Réunis';
+  const CAS = [
+    ['neuve', { id: 'n1', name: LONG, status: 'todo', updatedAt: 1, contacts: [] }],
+    ['clôturée', { id: 'n1', name: LONG, city: 'Villeneuve-d’Ascq', status: 'reply', domain: 'esn',
+      closedReason: 'rejected', closedAt: '2026-09-01', updatedAt: 1, contacts: [] }]
+  ];
+  for (const [nom, piste] of CAS){
+    const ctx = await browser.newContext({ viewport: { width: 320, height: 844 },
+      hasTouch: true, isMobile: true });
+    const p = await ctx.newPage();
+    p.on('pageerror', e => errors.push(`fiche ${nom}: ` + String(e).slice(0, 90)));
+    await p.goto(base, { waitUntil: 'load' });
+    await p.evaluate(async x => { const st = await import('./engine/storage.js');
+      await st.kvInit(); await st.kvSet(st.DATA_KEY, JSON.stringify([x])); }, piste);
+    await p.reload({ waitUntil: 'load' });
+    await p.waitForSelector('#view-aujourdhui:not([hidden])');
+    await p.evaluate(async () => { const { S } = await import('./ui/state.js');
+      const m = await import('./ui/fiche.js'); m.openFiche(S.companies[0], {}); })
+      .catch(e => fail(`fiche ${nom} : l’ouverture lève — ${String(e.message).slice(0, 80)}`));
+    await p.waitForTimeout(700);
+    const d = await p.evaluate(() => {
+      const sh = document.querySelector('.overlay:not(.ov-out)');
+      if (!sh) return { absent: true };
+      const b = sh.querySelector('.modal-b');
+      const nom = sh.querySelector('.fi-obj .obj-n');
+      const petites = [...sh.querySelectorAll('button,a,[role="button"],summary')]
+        .filter(n => { const r = n.getBoundingClientRect();
+          return r.width > 2 && r.height > 2 && r.height < 44; })
+        .map(n => n.textContent.replace(/\s+/g, ' ').trim().slice(0, 18) || '(sans texte)');
+      return { texte: b.innerText.replace(/\s+/g, ' ').trim().length,
+        nom: nom ? nom.textContent.trim() : '',
+        nomCoupe: nom ? nom.scrollWidth > nom.clientWidth + 1 : true,
+        petites: [...new Set(petites)], lateral: b.scrollWidth > b.clientWidth + 1 };
+    });
+    if (d.absent) fail(`fiche ${nom} : la feuille ne s’ouvre pas`);
+    else if (d.texte < 40) fail(`fiche ${nom} : quasi muette (${d.texte} caractères)`);
+    else if (!d.nom) fail(`fiche ${nom} : l’écran ne dit pas de quelle piste il parle`);
+    else if (d.nomCoupe) fail(`fiche ${nom} : le nom « ${d.nom} » est coupé — §4 l’interdit pour une identité`);
+    else if (d.petites.length) fail(`fiche ${nom} : cible(s) sous 44 px — ${d.petites.join(', ')}`);
+    else if (d.lateral) fail(`fiche ${nom} : la feuille défile latéralement`);
+    else console.log(`fiche ${nom} : s’ouvre, se nomme (« ${d.nom} »), `
+      + `${d.texte} caractères, aucune cible sous 44 px ✓`);
+    await ctx.close();
+  }
+}
+
 console.log(errors.length ? 'Erreurs console : ' + errors.slice(0, 4).join(' | ') : 'Zéro erreur console.');
 if (errors.length) process.exitCode = 1;
 await browser.close();
