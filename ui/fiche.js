@@ -177,7 +177,7 @@ export function openFiche(c){
     const dirs = directionsUrl(c);
     const score = scoreOf(c);
     const subBits = [c.city, c.domain !== 'autre' ? (DOMAINS[c.domain] || DOMAINS.autre).label : ''].filter(Boolean);
-    const know = c.desc || c.website || c.techs || (c.positions || []).length || c.process || c.tips || c.address || dirs;
+    const know = c.desc || c.website || c.techs || (c.positions || []).length || c.process || c.tips || c.address;
     const cts = c.contacts || [];
     const main = cts.filter(t => t.activatedAt || t.src !== 'promo')
       .sort((a, b) => String(b.activatedAt || '').localeCompare(String(a.activatedAt || '')));
@@ -206,7 +206,13 @@ export function openFiche(c){
     const travail =
       `${closed ? `
          <div class="fi-closed" style="--c:${CLOSE_REASONS[c.closedReason].color}">
-           ${ic('archive', 'ic-14')} Clôturée — <b>${CLOSE_REASONS[c.closedReason].label}</b>${c.closedAt ? ' · ' + esc(fmtDate(c.closedAt)) : ''}
+           ${/* La phrase dans SA boîte, et « Rouvrir » à côté d'elle. Le
+                bandeau repliait ses enfants (`flex-wrap`) et jetait le
+                bouton à droite (`margin-left:auto`) : mesuré, à 125 % et
+                à 200 % il DÉCROCHAIT sur un rang à lui avec 182 à 221 px
+                de vide à sa gauche. Une phrase qui s'allonge doit faire
+                grandir sa boîte, pas chasser le geste hors de la rangée. */''}
+           <span class="fic-t">${ic('archive', 'ic-14')} Clôturée — <b>${CLOSE_REASONS[c.closedReason].label}</b>${c.closedAt ? ' · ' + esc(fmtDate(c.closedAt)) : ''}</span>
            <button class="btn btn-sm" id="fiReopen">Rouvrir</button>
          </div>` : `
          <div class="field"><label>Où j’en suis</label>
@@ -268,10 +274,32 @@ export function openFiche(c){
                 <span class="fk-v fk-tags">${c.positions.map(p => `<span class="fk-tag">${POSITIONS[p]}</span>`).join('')}</span></div>` : ''}
              ${c.process ? `<div class="fk"><span class="fk-l">Process</span><span class="fk-v">${esc(c.process)}</span></div>` : ''}
              ${c.tips ? `<div class="fk"><span class="fk-l">Conseils</span><span class="fk-v">${esc(c.tips)}</span></div>` : ''}
-             ${(c.address || dirs) ? `
-               <div class="fi-row">${ic('map-pin', 'ic-14')} <span>${esc(c.address || c.city)}</span>
-                 ${dirs ? `<a class="btn btn-sm" href="${esc(dirs)}" target="_blank" rel="noopener">${ic('directions', 'ic-14')} Itinéraire</a>` : ''}
-               </div>` : ''}
+             ${/* L'ADRESSE EST UNE LIGNE DE LA CARTE, PAS UNE BANDE À PART.
+                   Elle vivait en `.fi-row` : une épingle, un `<span>` sans nom,
+                   et « Itinéraire » collé à droite par `margin-left:auto`.
+                   Mesuré aux quatre largeurs : le bouton DÉCROCHAIT sur sa
+                   propre rangée à CHACUNE, puis filait au bord avec 184 à
+                   294 px de vide à sa gauche — le seul objet de la fiche dont
+                   les deux bords bougeaient. Elle prend donc le motif de ses
+                   cinq sœurs (`.fk` + son libellé), ce qui lui donne d'un coup
+                   la colonne du poste, le repli au pouce, et un NOM — §5 :
+                   tout ce qui a le droit de s'élider doit être nommable.
+                   Le geste se pose SOUS la valeur, calé sur son bord gauche :
+                   taillé à son mot, un bord stable, plus jamais de vide.
+                   L'épingle part — le libellé dit déjà « Adresse », et une
+                   icône ne grandit pas avec le texte : c'est elle qui vole la
+                   place (§5).
+                   Et la rangée ne s'affiche plus SANS adresse. Sans elle,
+                   `directionsUrl` retombait sur la ville, donc la carte
+                   « À savoir » s'ouvrait pour redire le mot que l'en-tête de
+                   la fiche affiche deux centimètres plus haut, et proposer un
+                   itinéraire vers un centre-ville. « Combien de km » a déjà sa
+                   réponse ailleurs, et meilleure : le tri par distance. */''}
+             ${c.address ? `
+               <div class="fk"><span class="fk-l">Adresse</span>
+                 <span class="fk-v fk-go">${esc(c.address)}
+                   <a class="btn btn-sm" href="${esc(dirs)}" target="_blank" rel="noopener">${ic('directions', 'ic-14')} Itinéraire</a>
+                 </span></div>` : ''}
            </div>
          </details>` : ''}
        ${(c.history || []).length ? `

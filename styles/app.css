@@ -2120,7 +2120,15 @@ button.ec-row:hover{background:var(--surface-field)}
   background:var(--surface-chrome);box-shadow:var(--bevel-up), var(--shadow-raised);
   font:inherit;font-size:var(--text-14);color:var(--text-body);text-align:left;
 }
-.pick b{font-weight:var(--weight-semibold);flex:none}
+/* LE LIBELLÉ PREND LA PLACE, LA NOTE SUIT — et c'est lui qui plie quand
+   il n'y en a plus. En `flex:none`, le libellé ne cédait rien : c'est la
+   note qui décrochait, et `margin-left:auto` la jetait alors seule au
+   bord droit d'un rang à elle. Mesuré à 320 px, à 125 % et à 200 % :
+   « coller le texte » passait sous « Par message » pendant que ses deux
+   sœurs gardaient la leur en ligne — trois lignes qui ne se lisaient
+   plus pareil. C'est `flex-grow` qui tient la note à droite désormais,
+   et la note ne décroche donc plus jamais. */
+.pick b{font-weight:var(--weight-semibold);flex:1 1 auto;min-width:0}
 /* `>` et pas un espace : la donnée de droite est un ENFANT DIRECT du
    bouton. Sans le chevron, la règle attrapait aussi la ligne d'état
    nichée dans `.pk-m` (« À contacter · ✉ Chloé »), que le `margin-left:auto`
@@ -2128,7 +2136,7 @@ button.ec-row:hover{background:var(--surface-field)}
    par rapport aux autres selon qu'elles portaient un contact ou non. */
 .pick>span{
   font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted);
-  margin-left:auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  flex:none;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
 /* `.pk-m` = le bloc « nom + son état » d'une ligne de liste. Il portait
    sa structure UNIQUEMENT sous `.pk` (les listes à cocher) : sous
@@ -2176,12 +2184,13 @@ button.ec-row:hover{background:var(--surface-field)}
 /* ============ FICHE PISTE ============ */
 .fi-sub{font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted);margin-bottom:8px}
 .fi-closed{
-  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  display:flex;align-items:center;gap:8px;
   border:1px solid var(--border-strong);border-left:3px solid var(--c);
   background:var(--surface-chrome);padding:10px 12px;margin-bottom:14px;
   font-size:var(--text-13);
 }
-.fi-closed .btn{margin-left:auto}
+.fi-closed .fic-t{flex:1;min-width:0}
+.fi-closed .btn{flex:none}
 .seg3{display:flex}
 .seg3 .seg{
   flex:1;min-height:var(--ctl);padding:4px 6px;
@@ -2201,11 +2210,6 @@ button.ec-row:hover{background:var(--surface-field)}
 .na-cur b{font-size:var(--text-14)}
 .na-cur span{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
 .na-none{font-size:var(--text-12);color:var(--text-muted);line-height:1.5}
-.fi-row{
-  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
-  font-size:var(--text-13);color:var(--text-muted);margin-bottom:12px;
-}
-.fi-row .btn{margin-left:auto}
 .fi-hist{margin-top:4px}
 /* « À savoir » et « Historique » s'ouvrent d'un tap — même règle, et
    surtout MÊME SIGNE que « Bientôt » : sans le triangle, ces deux mots
@@ -2304,17 +2308,40 @@ button.ec-row:hover{background:var(--surface-field)}
    cadre et cette ligne, et pas les 8 px d'usage. */
 /* La ligne d'identité porte le sous-titre à gauche et « Modifier » à
    droite, au pouce comme au poste — le bloc ne vit plus en bas de la
-   feuille. `margin-left:auto` sur les outils : une piste sans ville ni
-   domaine n'a pas de sous-titre, et le bouton ne doit pas sauter à
-   gauche pour autant. */
-.fi-top{display:flex;align-items:flex-start;gap:12px;margin-bottom:10px}
-/* l'en-tête d'objet prend la place, les outils restent à sa droite ;
-   `margin-bottom:0` parce que c'est `.fi-top` qui porte l'écart */
-.fi-top .fi-obj{flex:1;min-width:0;margin-bottom:0}
+   feuille. C'est `flex-grow` sur `.fi-obj` qui tient les outils à
+   droite, et non plus `margin-left:auto` : le bloc d'identité absorbe
+   la place libre même sans sous-titre, donc le geste ne saute pas à
+   gauche pour autant. La nuance compte depuis que la rangée se replie —
+   `margin-left:auto` aurait jeté « Compléter » seul au bord droit d'un
+   rang à lui, 230 px de vide à sa gauche, le défaut même qu'on venait
+   de corriger sur l'itinéraire et sur le bandeau de clôture. */
+.fi-top{display:flex;align-items:flex-start;gap:12px;margin-bottom:10px;flex-wrap:wrap}
+/* LE NOM PASSE AVANT LE GESTE QUAND LA PLACE MANQUE (§5, WCAG 1.4.10 :
+   le contenu se réorganise, il ne se perd pas). « Compléter » ne
+   grandit pas avec le texte mais il prend sa part à toutes les tailles :
+   mesuré, il laissait 138 px au nom sur un 320 px — et
+   « Interprofessionnel » en demande 141 À 100 %. Le nom d'une piste se
+   cassait donc en plein mot dans l'état le plus ordinaire qui soit, un
+   petit téléphone sans réglage particulier.
+   Le seuil est un PLANCHER EN REM, pas une media query : il suit la
+   police du navigateur tout seul, sans un réglage de plus dans l'app.
+   Et la valeur se MESURE : balayée de 10 à 13 rem sur 4 largeurs × 5
+   tailles de police, 10,5 est la plus petite qui replie à 320 px à
+   100 % — 10,25 y laisse encore le mot coupé — et c'est aussi celle
+   qui replie le MOINS ailleurs (12 fois contre 14 à 11 rem). Elle ne
+   change strictement rien là où le nom tenait déjà. Reste un cas que
+   nulle mise en page ne sauve : 320 px à 200 %, où le mot seul demande
+   282 px pour une feuille qui n'en offre que 254. C'est là que
+   `hyphens` sert. */
+.fi-top .fi-obj{flex:1 1 10.5rem;min-width:0;margin-bottom:0}
 /* LE NOM PLIE, IL NE SE COUPE PAS (§4 : une identité ne s'ampute
    jamais). `.obj-n` est un bloc, donc il passe à la ligne tout seul —
    c'est la sous-ligne, une DONNÉE, qui garde le droit de s'élider. */
-.fi-obj .obj-n{overflow-wrap:break-word}
+/* `hyphens` d'abord, la casse brutale seulement en dernier recours : un
+   mot plus long que la boîte existe (à 200 % sur un 320 px), et
+   « Inter-professionnel » se lit, « Interprofessionne / l » un peu
+   moins, « Grou / pem / ent » pas du tout. */
+.fi-obj .obj-n{overflow-wrap:break-word;hyphens:auto}
 /* Le sous-titre se coupe à sa fin plutôt que de faire plier la rangée :
    mesuré à 360 px, « Villeneuve-d'Ascq · Cybersécurité » + « Modifier »
    passaient sur deux lignes, soit 72 px au lieu de 44. Une donnée s'élide,
@@ -2323,7 +2350,6 @@ button.ec-row:hover{background:var(--surface-field)}
   margin-bottom:0;flex:1;min-width:0;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
-.fi-top .fi-tools{margin-left:auto}
 .fi-tools{display:flex;align-items:center;gap:10px;margin:0;flex-wrap:wrap}
 /* la zone de notes suit son contenu (ui/fiche.js) : pas de plancher à
    68 px ici, c'est le script qui donne la hauteur */
@@ -2466,6 +2492,13 @@ button.ec-row:hover{background:var(--surface-field)}
 /* le site est un LIEN à part entière dans sa ligne de données, pas un mot
    au milieu d'une phrase : il obéit à la règle des cibles */
 a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
+/* L'adresse porte un GESTE, pas seulement une valeur. Il se pose sous
+   elle, calé sur son bord gauche, taillé à son mot : un bord stable
+   dans les deux ergonomies (§6, « une valeur a UN BORD »). `.fk-v` est
+   déjà la boîte qui tient la colonne du poste — le geste vit DEDANS,
+   pour ne pas avoir à réinventer cette colonne une seconde fois. */
+.fk-go{display:flex;flex-direction:column}
+.fk-go .btn{align-self:flex-start;margin-top:6px}
 .fk-tags{display:flex;gap:5px;flex-wrap:wrap}
 .fk-tag{
   border:1px solid var(--border-strong);background:var(--surface-window);

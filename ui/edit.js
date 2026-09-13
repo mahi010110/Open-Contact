@@ -8,7 +8,7 @@ import { esc, debounce } from '../engine/utils.js';
 import { DOMAINS, POSITIONS, VECU, pushHist } from '../engine/model.js';
 import { suggestAddresses } from '../engine/geo.js';
 import { bus, saveData, logJ } from './state.js';
-import { openSheet, toast, btn, clavier } from './dom.js';
+import { openSheet, toast, btn, clavier, champGrandit } from './dom.js';
 
 const FIELDS = ['name','city','domain','desc','website','address','techs','process','tips'];
 
@@ -113,6 +113,14 @@ export function bindSharedFields(root){
         acHide();
       }));
   }, 350);
+  /* LES TROIS CHAMPS DE PROSE SE LISENT EN ENTIER (§6, le motif nommé
+     « un champ dont la VALEUR doit se lire en entier »). Ils restaient
+     bloqués à 48 px : mesuré à 320 px, « Ils recrutent surtout en
+     janvier et en juin. Le test porte s… » se faisait couper en
+     hauteur, et trois champs d'un coup à 125 %. Ce sont les phrases que
+     l'utilisateur écrit pour s'en resservir au moment de candidater —
+     l'élision ne se justifie que pour un aperçu, jamais pour ça. */
+  root.querySelectorAll('textarea.ta-s').forEach(champGrandit);
   q('#edAddress').addEventListener('input', e => { picked = null; acSearch(e.target.value.trim()); });
   q('#edAddress').addEventListener('blur', () => setTimeout(acHide, 150));
 
