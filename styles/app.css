@@ -2508,6 +2508,18 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 @media (max-width:900px), (pointer:coarse){
   .abtn-sm{width:44px;height:44px}
 }
+/* UN CHAMP D'UNE SEULE LIGNE QUI SE REPLIE POUR SE LIRE. Même dessin
+   qu'un `<input>` tant que la valeur tient — `min-height:var(--ctl)` lui
+   donne la hauteur d'une cible, donc rien ne bouge à l'ouverture d'une
+   fiche ordinaire. `resize:none` parce que la hauteur est calculée
+   (`champGrandit`) : une poignée qui se bat avec le script est une
+   promesse qu'on ne tient pas. `overflow-y:hidden` parce qu'il n'y a
+   PAS de plafond ici — contrairement à l'objet d'un mail, qui vise
+   40-60 caractères et garde le sien. */
+.fld-1l textarea{
+  min-height:var(--ctl);height:auto;resize:none;overflow-y:hidden;
+  padding:4px 10px;
+}
 .ta-s{min-height:48px}
 .ckline{display:flex;align-items:center;gap:9px;font-size:var(--text-13);min-height:var(--ctl);cursor:pointer;user-select:none}
 /* la case suit la taille de son libellé : en `px` elle restait à 18

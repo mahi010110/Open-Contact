@@ -34,12 +34,26 @@ export function sharedFieldsHTML(c){
      <div class="grid2">
        <div class="field"><label for="edWebsite">Site web</label>
          <input id="edWebsite" type="url" value="${esc(c.website)}" placeholder="https://…" autocomplete="off" ${clavier('lien')}></div>
-       <div class="field ac-wrap"><label for="edAddress">Adresse</label>
-         <input id="edAddress" value="${esc(c.address)}" placeholder="Ex : 12 rue…, 59000 Lille" autocomplete="off" ${clavier('nom')}>
+       ${/* UNE ADRESSE NE TIENT PAS SUR UN RANG DE TÉLÉPHONE, et un
+            `<input>` ne sait pas se replier — il défile. Mesuré avec une
+            adresse ordinaire : 33 à 194 px de texte cachés à TOUTES les
+            largeurs de téléphone, 390 px à 100 % compris. Ce n'est pas
+            un cas extrême, c'est le cas courant.
+            Elle devient donc un champ qui grandit — le motif que §6
+            nomme et que le composeur emploie déjà pour l'objet d'un
+            mail. Elle reste une valeur d'UNE ligne : Entrée passe au
+            champ suivant et un collage multiligne se recolle, comme
+            dans un `<input>`. `.ac-list` suit toute seule, elle se pose
+            sous l'enveloppe et non sous le champ. */''}
+       <div class="field ac-wrap fld-1l"><label for="edAddress">Adresse</label>
+         <textarea id="edAddress" rows="1" placeholder="Ex : 12 rue…, 59000 Lille" autocomplete="off" enterkeyhint="next" ${clavier('nom')}>${esc(c.address)}</textarea>
          <div class="ac-list" id="edAc" hidden></div></div>
      </div>
-     <div class="field"><label for="edTechs">Technos</label>
-       <input id="edTechs" value="${esc(c.techs)}" placeholder="Ex : SOC, Fortinet, Linux" autocomplete="off" ${clavier('nom')}></div>
+     ${/* même mesure, même réponse : une liste de technos cachait 6 à
+          160 px. Et c'est le dernier champ de texte de la feuille,
+          d'où « done » plutôt que « next ». */''}
+     <div class="field fld-1l"><label for="edTechs">Technos</label>
+       <textarea id="edTechs" rows="1" placeholder="Ex : SOC, Fortinet, Linux" autocomplete="off" enterkeyhint="done" ${clavier('nom')}>${esc(c.techs)}</textarea></div>
      <div class="field"><label id="edPosL">Postes recherchés</label>
        <div class="datechips" role="group" aria-labelledby="edPosL">
          ${Object.keys(POSITIONS).map(k =>
@@ -109,6 +123,10 @@ export function bindSharedFields(root){
         e.preventDefault();
         picked = sug[+b.dataset.i];
         q('#edAddress').value = picked.label;
+        /* une suggestion est plus longue que ce qu'on a tapé : sans ce
+           rappel, le champ garde la hauteur de la frappe et recoupe ce
+           qu'on vient de choisir */
+        pousseAdresse();
         if (!q('#edCity').value.trim() && picked.city) q('#edCity').value = picked.city;
         acHide();
       }));
@@ -121,6 +139,36 @@ export function bindSharedFields(root){
      l'utilisateur écrit pour s'en resservir au moment de candidater —
      l'élision ne se justifie que pour un aperçu, jamais pour ça. */
   root.querySelectorAll('textarea.ta-s').forEach(champGrandit);
+
+  /* ---- LES DEUX VALEURS D'UNE SEULE LIGNE ----
+     Elles se REPLIENT pour se lire, mais elles ne deviennent pas de la
+     prose pour autant : la valeur reste sur un rang logique. Deux
+     choses le tiennent, et l'ordre compte — on nettoie AVANT de
+     mesurer la hauteur, sinon un collage multiligne fait grandir le
+     champ d'un rang qui disparaît aussitôt.
+     ① Entrée ne pose pas de saut de ligne, elle passe à la suite.
+     ② Un collage multiligne se recolle sur place, curseur gardé —
+        exactement ce qu'un `<input>` fait, et ce que le modèle attend
+        d'`address` et de `techs`, qui voyagent dans un `.oc`. */
+  const uneLigne = (id, apres) => {
+    const ta = q(id);
+    ta.addEventListener('input', () => {
+      if (!/[\r\n]/.test(ta.value)) return;
+      const i = ta.selectionStart;
+      ta.value = ta.value.replace(/[\r\n]+/g, ' ');
+      ta.selectionStart = ta.selectionEnd = i;
+    });
+    const pousse = champGrandit(ta);
+    ta.addEventListener('keydown', e => {
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      if (apres) q(apres).focus(); else ta.blur();
+    });
+    return pousse;
+  };
+  const pousseAdresse = uneLigne('#edAddress', '#edTechs');
+  uneLigne('#edTechs', null);
+
   q('#edAddress').addEventListener('input', e => { picked = null; acSearch(e.target.value.trim()); });
   q('#edAddress').addEventListener('blur', () => setTimeout(acHide, 150));
 

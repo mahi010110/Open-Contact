@@ -1356,6 +1356,95 @@ for (const [nom, ptr] of [['doigt', true], ['souris', false]]){
   }
 }
 
+/* UNE VALEUR ENREGISTRÉE SE LIT EN ENTIER DANS SON CHAMP.
+   Le bloc WCAG ci-dessus ne voit pas les formulaires : il exige
+   `overflow:hidden` et un enfant texte, or un `<input>` n'a ni l'un ni
+   l'autre — il DÉFILE, en silence, et c'est précisément le défaut.
+
+   Mesuré avec une adresse ordinaire (« 12 rue du Rempart
+   Saint-Étienne, 31000 Toulouse ») : 33 à 194 px cachés à TOUTES les
+   largeurs de téléphone, 390 px à 100 % compris. Ce n'est pas un cas
+   extrême, c'est le cas courant — et ce qui est caché, ce sont les
+   phrases que l'utilisateur a écrites lui-même.
+
+   LE CRITÈRE NE VISE QUE LES CHAMPS QUI PORTENT UNE VALEUR
+   ENREGISTRÉE, et c'est ce qui l'empêche de sur-accuser : une
+   recherche défile en toute légitimité (la requête est transitoire),
+   et l'objet d'un mail garde son plafond exprès (§6 : il vise 40-60
+   caractères, au-delà il se coupe sur un téléphone). Les trois
+   feuilles balayées sont celles où l'on SAISIT ce qui sera relu plus
+   tard.
+
+   `<select>` en est dehors par le type : il élide par dessin (§6, une
+   liste fermée), il ne cache pas une phrase. */
+{
+  const LONG = {
+    address: '12 rue du Rempart Saint-Étienne, 31000 Toulouse',
+    techs: 'SOC, Fortinet, Linux, Suricata, Elastic, Python',
+    desc: 'ESN toulousaine de 120 personnes, spécialisée en cybersécurité industrielle.',
+    tips: 'Ils recrutent surtout en janvier et en juin. Le test porte sur du réseau.'
+  };
+  let champsVus = 0;
+  for (const [W, Z] of [[320, 1], [320, 1.25], [360, 1], [390, 1], [390, 1.25], [1280, 1]]){
+    const fCtx = await browser.newContext({ viewport: { width: W, height: 860 },
+      hasTouch: W < 901, isMobile: W < 901 });
+    const fp = await fCtx.newPage();
+    watchErrors(fp);
+    await fp.goto(base, { waitUntil: 'load' });
+    await fp.evaluate(async L => {
+      const st = await import('./engine/storage.js'); await st.kvInit();
+      await st.kvSet(st.DATA_KEY, JSON.stringify([{ id: 'f1', name: 'Adrastia',
+        city: 'Toulouse', domain: 'esn', status: 'todo', website: 'https://adrastia.fr',
+        address: L.address, techs: L.techs, desc: L.desc, tips: L.tips,
+        process: L.tips, updatedAt: Date.now(), contacts: [] }]));
+    }, LONG);
+    await fp.reload({ waitUntil: 'load' });
+    if (Z !== 1) await fp.addStyleTag({ content: `html{font-size:${16 * Z}px}` });
+    await fp.waitForSelector('#view-aujourdhui:not([hidden])');
+    for (const [nom, mod, fn] of [
+      ['modifier', './ui/edit.js', 'openEditPiste'],
+      ['capture', './ui/capture.js', 'openCapture'],
+      ['contact', './ui/contact.js', 'openContactEditor']
+    ]){
+      await fp.evaluate(async () => { const { topSheet } = await import('./ui/dom.js');
+        let s, n = 0; while ((s = topSheet()) && n++ < 4){ s.close(null, true);
+          await new Promise(r => setTimeout(r, 110)); } });
+      await fp.evaluate(async ([mod, fn]) => {
+        const { S } = await import('./ui/state.js');
+        const m = await import(mod);
+        if (fn === 'openEditPiste') m[fn](S.companies[0]); else m[fn](null);
+      }, [mod, fn]).catch(() => {});
+      await fp.waitForTimeout(420);
+      const r = await fp.evaluate(() => {
+        const out = []; let vus = 0;
+        const sel = 'textarea, input:not([type]), input[type="text"], input[type="url"],'
+          + ' input[type="tel"], input[type="email"], input[type="search"]';
+        document.querySelectorAll('.overlay ' + sel).forEach(n => {
+          if (!n.getClientRects().length || !n.value) return;
+          vus++;
+          const cW = n.scrollWidth - n.clientWidth, cH = n.scrollHeight - n.clientHeight;
+          if (cW > 1 || cH > 1)
+            out.push(`${n.id || n.name || n.tagName} cache ${Math.max(cW, cH)} px `
+              + `(« …${n.value.slice(-22)} »)`);
+        });
+        return { out, vus };
+      });
+      champsVus += r.vus;
+      for (const x of r.out)
+        fail(`valeur cachée ${W}px@${Z * 100}% · ${nom} · ${x} — une valeur enregistrée se lit `
+          + 'en entier dans son champ : elle se replie, elle ne défile pas');
+    }
+    await fCtx.close();
+  }
+  /* Zéro se lit comme une réussite : sans champ rempli rencontré, le
+     balayage n'a rien mesuré et le dit au lieu de conclure. */
+  if (champsVus < 20)
+    fail(`valeurs : ${champsVus} champs remplis rencontrés seulement — le balayage ne voit plus l’app`);
+  else if (!process.exitCode)
+    console.log(`   valeurs enregistrées : ${champsVus} champs remplis sur 3 feuilles × 6 tailles, `
+      + 'aucun ne cache la sienne ✓');
+}
+
 /* F15 : les deux déplacements entre états qui sautaient (#38).
    ① Une carte lâchée dans une autre colonne se téléportait.
    ② Une section repliée s'ouvrait d'un coup.
