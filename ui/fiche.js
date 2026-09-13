@@ -143,12 +143,22 @@ export function openFiche(c){
       t.conf === 'ok' ? '<span class="conf-ok">vérifié ✓</span>'
         : t.conf === 'doubt' ? '<span class="conf-doubt">à confirmer ?</span>' : ''
     ].filter(Boolean).join(' · ');
+    /* LE MOT VISIBLE RESTE COURT, LE NOM ENTENDU DIT À QUI.
+       À l'œil, « Écrire » dans la carte de Manon ne peut pas se
+       confondre : la carte porte son nom juste au-dessus. À l'oreille,
+       rien ne les sépare — une fiche à trois contacts annonce « Écrire,
+       Écrire, Écrire » et trois fois « Modifier ». §7 le dit : ce qui
+       n'est lu que par une machine dérive en premier, parce que
+       personne ne le relit en regardant l'écran. On ne rallonge donc
+       pas le libellé (§6 : le plus court qui reste compris), on nomme
+       la cible. */
+    const pour = esc(title);
     const acts = [
-      t.email ? `<button class="btn" data-write="${t.id}">${ic('mail', 'ic-14')} Écrire</button>` : '',
-      t.phone ? `<a class="btn" data-act="${t.id}" href="${esc(telHref(t.phone))}">${ic('phone', 'ic-14')} Appeler</a>
-                 <a class="btn" data-act="${t.id}" href="${esc(smsHref(t.phone))}">${ic('message-text', 'ic-14')} SMS</a>
-                 <a class="btn" data-act="${t.id}" href="${esc(waHref(t.phone))}" target="_blank" rel="noopener">${ic('message-text', 'ic-14')} WhatsApp</a>` : '',
-      t.link ? `<a class="btn" data-act="${t.id}" href="${esc(t.link)}" target="_blank" rel="noopener">${ic('external-link', 'ic-14')} Profil</a>` : ''
+      t.email ? `<button class="btn" data-write="${t.id}" aria-label="Écrire à ${pour}">${ic('mail', 'ic-14')} Écrire</button>` : '',
+      t.phone ? `<a class="btn" data-act="${t.id}" href="${esc(telHref(t.phone))}" aria-label="Appeler ${pour}">${ic('phone', 'ic-14')} Appeler</a>
+                 <a class="btn" data-act="${t.id}" href="${esc(smsHref(t.phone))}" aria-label="Envoyer un SMS à ${pour}">${ic('message-text', 'ic-14')} SMS</a>
+                 <a class="btn" data-act="${t.id}" href="${esc(waHref(t.phone))}" target="_blank" rel="noopener" aria-label="Écrire à ${pour} sur WhatsApp">${ic('message-text', 'ic-14')} WhatsApp</a>` : '',
+      t.link ? `<a class="btn" data-act="${t.id}" href="${esc(t.link)}" target="_blank" rel="noopener" aria-label="Ouvrir le profil de ${pour}">${ic('external-link', 'ic-14')} Profil</a>` : ''
     ].filter(Boolean).join('');
     return (
       `<details class="ctc"${ouvert ? ' open' : ''}>
@@ -157,7 +167,7 @@ export function openFiche(c){
            ${meta ? `<div class="ct-meta">${esc(meta)}</div>` : ''}
            ${acts ? `<div class="ct-acts">${acts}</div>` : ''}
            ${t.note ? `<div class="ct-note">${esc(t.note)}</div>` : ''}
-           <button class="linklike" data-ct="${t.id}">${ic('pencil', 'ic-14')} Modifier</button>
+           <button class="linklike" data-ct="${t.id}" aria-label="Modifier ${pour}">${ic('pencil', 'ic-14')} Modifier</button>
          </div>
        </details>`);
   };
@@ -190,7 +200,7 @@ export function openFiche(c){
     const outils =
       `<div class="fi-tools">
          ${wide ? `<span class="fi-score">fiche complète à ${score} %</span>` : ''}
-         <button class="btn btn-sm" id="fiEdit">${ic('pencil', 'ic-14')} ${score < 60 ? 'Compléter' : 'Modifier'}</button>
+         <button class="btn btn-sm" id="fiEdit" aria-label="${score < 60 ? 'Compléter' : 'Modifier'} la piste ${esc(c.name)}">${ic('pencil', 'ic-14')} ${score < 60 ? 'Compléter' : 'Modifier'}</button>
        </div>`;
     /* ---- le travail : où j'en suis, ce que je fais ensuite, ce que je note ---- */
     const travail =
@@ -210,7 +220,7 @@ export function openFiche(c){
              ${val('nextAction')
                ? `<div class="na-cur"><b>${esc(val('nextActionText') || 'Faire le point')}</b>
                     <span>${frDate(val('nextAction'))} · ${relLabel(val('nextAction'))}${naPerson ? ' · ' + esc(naPerson.name || naPerson.email) : ''}</span></div>
-                  <button class="btn btn-sm" id="fiNa">Modifier</button>`
+                  <button class="btn btn-sm" id="fiNa" aria-label="Modifier la prochaine action">Modifier</button>`
                : `<div class="na-cur na-none">Aucune — planifie la suite</div>
                   <button class="btn btn-sm" id="fiNa">Planifier</button>`}
            </div>

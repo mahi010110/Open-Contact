@@ -2263,8 +2263,17 @@ button.ec-row:hover{background:var(--surface-field)}
 }
 .ctc-body{padding:2px 10px 10px;border-top:1px dashed var(--border-soft)}
 .ctc-body .ct-acts{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
-.ctc-body .ct-acts .btn{flex:1 1 auto;padding:5px 10px;font-size:var(--text-12)}
-@media (min-width:901px){ .ctc-body .ct-acts .btn{flex:0 0 auto} }
+/* CHAQUE CONTRÔLE FAIT LA TAILLE DE SON MOT — c'est le cas déjà tranché
+   pour les puces (§6), qui se rejouait ici sans qu'on le voie.
+   `flex:1 1 auto` répartit la place restante entre les contrôles : seul
+   sur son rang, « Écrire » prenait donc les 348 px de la carte, et
+   « WhatsApp » en faisait autant sous les trois autres. Un bouton large
+   annonce une action lourde ; joindre quelqu'un par SMS n'en est pas
+   une, et surtout WhatsApp se retrouvait plus en avant qu'« Appeler »
+   alors que rien ne le justifie (M3 : l'emphase dit l'importance).
+   Le poste portait déjà `flex:0 0 auto` — c'est le pouce, l'ergonomie
+   la plus contrainte, qui avait gardé la mauvaise valeur. */
+.ctc-body .ct-acts .btn{flex:0 1 auto;padding:5px 10px;font-size:var(--text-12)}
 .ctc-body .ct-meta{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);margin-top:6px;word-break:break-all}
 .ctc-body .ct-note{font-size:var(--text-12);color:var(--text-muted);margin-top:6px;font-style:italic}
 .ctc-body .linklike{margin-top:8px}
@@ -2418,11 +2427,33 @@ button.ec-row:hover{background:var(--surface-field)}
   text-transform:uppercase;letter-spacing:.04em;
 }
 .ml-know .fk{padding-left:0;padding-right:0}
-.fk{display:flex;gap:10px;padding:7px 10px;font-size:var(--text-12);border-bottom:1px dashed var(--border-soft);align-items:baseline}
+/* ---- AU POUCE, L'ÉTIQUETTE SE MET AU-DESSUS DE SA VALEUR ----
+   La colonne de gauche était fixée à 72 px. Mesuré sur un corps de
+   388 px : 72 px d'étiquette plus la gouttière et le rembourrage, c'est
+   **24 % de la largeur** dépensés pour des mots qui ne changent JAMAIS
+   (§6, règle 1 : l'encre va à ce qui change, pas à ce qui est
+   permanent). Il restait 248 px au contenu, d'où trois à quatre rangs
+   de repli sur « Process », « Conseils » et « En bref ».
+   La source est constante sur ce point : sur un écran étroit, une
+   étiquette posée À GAUCHE « ne laisse que très peu de place au champ »
+   (Baymard, position des libellés), et l'empilement est le motif prévu
+   quand la place horizontale manque (ServiceNow Horizon,
+   *label value stacked*). L'étiquette reprend donc sa ligne, le contenu
+   prend les 388 px, et on relit sans balayer de gauche à droite.
+   AU POSTE ELLE RESTE À GAUCHE : la place existe, et les deux colonnes
+   se balaient mieux qu'une suite de paires empilées (§5 — on ne fait
+   deux dessins que si l'usage diffère, et ici c'est la LARGEUR
+   disponible qui diffère vraiment). */
+.fk{display:block;padding:7px 10px;font-size:var(--text-12);
+  border-bottom:1px dashed var(--border-soft)}
 .fk:last-child{border-bottom:0}
 .fk-l{
-  flex:none;width:72px;font-family:var(--font-mono);font-size:var(--text-11);
+  display:block;margin-bottom:2px;font-family:var(--font-mono);font-size:var(--text-11);
   color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;
+}
+@media (min-width:901px){
+  .fk{display:flex;gap:10px;align-items:baseline}
+  .fk-l{display:inline;flex:none;width:72px;margin-bottom:0}
 }
 .fk-v{min-width:0;line-height:1.5;word-break:break-word}
 /* le site est un LIEN à part entière dans sa ligne de données, pas un mot
