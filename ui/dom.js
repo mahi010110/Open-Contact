@@ -944,3 +944,44 @@ export function confirmSheet(o){
     ]);
   });
 }
+
+/* ---- UN CHAMP DE PROSE SE LIT EN ENTIER ----
+   §6 nomme déjà ce motif — « un champ dont la VALEUR doit se lire en
+   entier : il grandit avec son texte ». Il existait pourtant en deux
+   exemplaires privés, `auTexte` dans le composeur et `pousse` dans la
+   fiche, et le formulaire « Modifier » n'en avait AUCUN : ses trois
+   champs de prose restaient bloqués à 48 px de haut.
+
+   Mesuré au plus étroit (§5), à 320 px : « Ils recrutent surtout en
+   janvier et en juin. Le test porte s… » — la phrase est coupée en
+   HAUTEUR, et à 125 % trois champs le sont d'un coup. Le texte n'est
+   pas perdu, le champ défile ; mais lire ses propres notes en faisant
+   défiler une boîte de trois lignes sur un téléphone, ce n'est pas lire.
+
+   La source est constante : le repli vaut mieux que la coupe, et
+   l'élision ne se justifie que pour un APERÇU — un texte facultatif,
+   dont on n'a pas besoin en entier (SAP Fiori, Primer). Ici c'est
+   l'inverse : ce sont les phrases que l'utilisateur a écrites lui-même
+   pour s'en resservir au moment de candidater.
+
+   Pas de plafond : la feuille défile déjà, et c'est le précédent
+   d'« Écrire » (§6) — quand tout ne tient pas, c'est la FEUILLE qui
+   défile, pas le champ où l'on travaille. Le plafond du composeur, lui,
+   reste : là il borne un OBJET d'email, qui vise 40-60 caractères.
+   (`auTexte` et `pousse` ne sont pas migrés ici : le premier porte ce
+   plafond, le second une transition mesurée pour ne pas faire sauter le
+   formulaire sous les doigts. Les fondre demanderait de toucher deux
+   surfaces fortement gardées pour un défaut qui n'est pas le leur.) */
+export function champGrandit(ta){
+  if (!ta) return;
+  const pousse = () => {
+    ta.style.height = 'auto';
+    /* la bordure ne compte pas dans `scrollHeight` : sans elle, chaque
+       mesure rogne deux pixels et la dernière ligne finit par se couper */
+    const bord = ta.offsetHeight - ta.clientHeight;
+    ta.style.height = Math.ceil(ta.scrollHeight + bord) + 'px';
+  };
+  ta.addEventListener('input', pousse);
+  pousse();
+  return pousse;
+}
