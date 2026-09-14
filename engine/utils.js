@@ -23,9 +23,29 @@ export function normName(s){
   return String(s || '').toLowerCase().normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
 }
+/* LA VILLE EST SUR LA DERNIÈRE LIGNE, PUIS APRÈS LA DERNIÈRE VIRGULE.
+   Une adresse postale s'écrit sur plusieurs lignes (GOV.UK : un champ
+   libre « gère n'importe quel format et accepte le copier-coller »), et
+   la découper par la seule virgule ne marche alors plus du tout :
+   « 12 rue du Rempart Saint-Étienne \n 31000 Toulouse » n'en contient
+   AUCUNE, donc l'ancienne version rendait l'adresse entière comme
+   « ville ». Ce n'est pas cosmétique — cette ville sert à remplir `city`
+   sur une piste reçue sans ville (`model.js`) et surtout à l'anti-doublon
+   (`merge.js`), qui se serait mis à comparer des adresses entières.
+   Sur une adresse d'UNE ligne le résultat est identique au caractère
+   près : c'est le cas d'usage historique, et il ne bouge pas. */
 export function extractCity(addr){
-  const last = String(addr || '').split(',').pop() || '';
+  const lignes = String(addr || '').split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+  const derniere = lignes.length ? lignes[lignes.length - 1] : '';
+  const last = derniere.split(',').pop() || '';
   return last.replace(/^\s*\d{4,5}\s*/, '').trim();
+}
+/* UNE ADRESSE QUI VOYAGE SE REMET SUR UN RANG. Un saut de ligne encodé
+   en `%0A` dans une URL de navigation n'est pas une adresse que Google
+   ou Apple savent géocoder ; la virgule, si. La donnée garde ses lignes,
+   c'est seulement ce qui SORT vers un service tiers qui se replie. */
+export function surUnRang(s){
+  return String(s || '').split(/\r?\n/).map(x => x.trim()).filter(Boolean).join(', ');
 }
 export function distKm(a, b, c, d){
   const r = Math.PI / 180, R = 6371;
@@ -45,7 +65,7 @@ export function fmtSize(n){
 /* itinéraire vers la piste : l'app de navigation de l'appareil prend le relais
    (lit navigator.userAgent — environnement, pas écran) */
 export function directionsUrl(c){
-  const dest = c.address || (c.lat != null ? c.lat + ',' + c.lng : (c.city || ''));
+  const dest = surUnRang(c.address) || (c.lat != null ? c.lat + ',' + c.lng : (c.city || ''));
   if (!dest) return '';
   const e = encodeURIComponent(dest), ua = navigator.userAgent;
   if (/iPad|iPhone|iPod/.test(ua)) return 'https://maps.apple.com/?daddr=' + e;

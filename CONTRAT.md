@@ -208,6 +208,24 @@ Ni `id`, ni `demo`, ni `createdAt` ne circulent non plus.
 **Un contact** : `id`, `name`, `role`, `email`, `phone`, `link`, `note`,
 `conf` (`""` | `"ok"` | `"doubt"`) (+ `extra` si présent).
 
+**`address` peut contenir des SAUTS DE LIGNE.** C'est un champ libre au
+sens du GOV.UK Design System : l'utilisateur y écrit son adresse dans la
+forme qu'il veut, et elle voyage telle quelle. Aucune clé ne bouge et le
+format `.oc` ne change pas — c'est toujours une chaîne JSON — mais trois
+lectures doivent le savoir, et les trois sont dans le moteur :
+
+- `extractCity(address)` prend la **dernière ligne non vide**, puis ce qui
+  suit la dernière virgule, puis retire le code postal. Sur une adresse
+  d'un seul rang le résultat est identique au caractère près.
+- `surUnRang(address)` recolle les lignes par une virgule pour tout ce qui
+  **sort vers un service tiers** — l'itinéraire, la recherche d'adresse.
+  Un `%0A` au milieu d'une destination ne se géocode pas.
+- l'affichage garde les lignes (`white-space:pre-line`) : sans ça le HTML
+  les replierait et le champ libre ne servirait à rien.
+
+Une adresse reçue d'un camarade peut donc arriver multi-ligne. Rien à
+migrer : une valeur d'un seul rang reste valide et se lit pareil.
+
 **Champs d'action (v7, décision #14) — optionnels, absents quand vides,
 privés.** Au contact : `activatedAt` (jour `AAAA-MM-JJ` — le contact est
 « activé » : on lui a écrit ou posé une action ; absent = simple nom

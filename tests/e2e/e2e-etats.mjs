@@ -245,6 +245,127 @@ const CHARGE = k => ({ fn: async k => {
   }
 }
 
+/* ---- ④ L'ADRESSE SUR PLUSIEURS LIGNES ----
+   Encore un état que personne ne sème : toutes les gardes du dépôt
+   écrivent l'adresse sur un rang. Depuis qu'elle se saisit en champ
+   libre (GOV.UK : « gère n'importe quel format, permet le
+   copier-coller, évite de deviner quelle partie va dans quelle case »),
+   un saut de ligne traverse l'app de bout en bout, et il casse trois
+   choses si personne ne les tient :
+
+   · le HTML replie tout espace blanc, donc la fiche réafficherait sur
+     UN rang ce qui a été écrit sur trois — le champ libre ne servirait
+     alors à rien ;
+   · un `%0A` au milieu d'une destination de navigation ne se géocode
+     pas : ce qui SORT vers un service tiers se replie (`surUnRang`),
+     la donnée non ;
+   · `extractCity` découpait sur la seule virgule, et une adresse
+     multi-ligne n'en a souvent AUCUNE — elle rendait alors l'adresse
+     entière comme « ville », ce qui nourrit l'anti-doublon (`merge.js`)
+     et remplit `city` sur une piste reçue sans ville.
+
+   Le moteur est déjà couvert à l'unité (`?test`, six cas, deux
+   mutations) ; ce qui se perd ici est le CÂBLAGE — Entrée avalée par
+   un garde-fou d'un autre âge, un `esc()` qui écrase les lignes, une
+   URL construite sur la valeur brute. Aucun de ces trois ne se voit
+   dans un rendu statique. */
+{
+  const ADR = '12 rue du Rempart Saint-Étienne\n31000 Toulouse';
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 900 },
+    hasTouch: true, isMobile: true });
+  const p = await ctx.newPage();
+  p.on('pageerror', e => errors.push('adresse: ' + String(e).slice(0, 90)));
+  await p.goto(base, { waitUntil: 'load' });
+  await p.evaluate(async () => { const st = await import('./engine/storage.js');
+    await st.kvInit();
+    await st.kvSet(st.DATA_KEY, JSON.stringify([{ id: 'ad1', name: 'Adrastia', city: '',
+      status: 'todo', domain: 'esn', address: '', updatedAt: 1, contacts: [] }])); });
+  await p.reload({ waitUntil: 'load' });
+  await p.waitForSelector('#view-aujourdhui:not([hidden])');
+
+  /* ① ENTRÉE FAIT UN RETOUR À LA LIGNE. C'est la mutation la plus
+     probable : un `preventDefault` sur Entrée est le réflexe de tout
+     champ qu'on croit d'un seul rang. */
+  await p.evaluate(async () => { const { S } = await import('./ui/state.js');
+    (await import('./ui/edit.js')).openEditPiste(S.companies[0]); });
+  await p.waitForTimeout(420);
+  const champ = await p.evaluate(() => !!document.getElementById('edAddress'));
+  if (!champ){
+    fail('adresse : le champ n’a pas été rencontré — la garde ne mesure rien');
+  } else {
+    await p.click('#edAddress');
+    await p.type('#edAddress', '12 rue du Rempart Saint-Étienne');
+    await p.keyboard.press('Enter');
+    await p.type('#edAddress', '31000 Toulouse');
+    const saisie = await p.evaluate(() => {
+      const t = document.getElementById('edAddress');
+      return { v: t.value, cache: t.scrollHeight - t.clientHeight,
+        focus: document.activeElement && document.activeElement.id };
+    });
+    if (!/\n/.test(saisie.v))
+      fail(`adresse : Entrée n’a pas posé de retour à la ligne (« ${saisie.v} ») — `
+        + 'un champ libre accepte le format que l’utilisateur choisit');
+    else if (saisie.focus !== 'edAddress')
+      fail(`adresse : Entrée a déplacé le focus vers « ${saisie.focus} » au lieu d’aller à la ligne`);
+    else if (saisie.cache > 1)
+      fail(`adresse : ${saisie.cache} px de saisie cachés — le champ ne suit pas sa valeur`);
+
+    /* ② LA VALEUR GARDE SES LIGNES JUSQU'AU STOCKAGE, et la ville se
+       déduit de la DERNIÈRE — c'est `model.js` qui normalise, donc on
+       recharge : sans ça on mesurerait l'état d'avant (piège ②). */
+    await p.evaluate(() => { const b = [...document.querySelectorAll('.modal-f button, .modal-f .btn')]
+      .find(x => /enregistr/i.test(x.textContent)); if (b) b.click(); });
+    await p.waitForTimeout(600);
+    await p.reload({ waitUntil: 'load' });
+    await p.waitForSelector('#view-aujourdhui:not([hidden])');
+    const garde = await p.evaluate(async () => { const { S } = await import('./ui/state.js');
+      return { a: S.companies[0].address, ville: S.companies[0].city }; });
+    if (!/\n/.test(garde.a))
+      fail(`adresse : les lignes n’ont pas survécu à l’enregistrement (« ${garde.a} »)`);
+    if (garde.ville !== 'Toulouse')
+      fail(`adresse : la ville déduite est « ${garde.ville} » et non « Toulouse » — `
+        + '`extractCity` doit lire la DERNIÈRE ligne, pas découper sur la seule virgule');
+
+    /* ③ LA FICHE LES RÉAFFICHE, ET L'ITINÉRAIRE SE REPLIE. */
+    await p.evaluate(async () => { const { S } = await import('./ui/state.js');
+      (await import('./ui/fiche.js')).openFiche(S.companies[0], {}); });
+    await p.waitForTimeout(420);
+    await p.evaluate(() => document.querySelectorAll('.overlay details').forEach(d => { d.open = true; }));
+    await p.waitForTimeout(200);
+    const vue = await p.evaluate(() => {
+      const v = document.querySelector('.overlay .fk-lignes');
+      if (!v) return { absent: true };
+      const cs = getComputedStyle(v);
+      const a = v.querySelector('a.btn');
+      /* ON MESURE LE TEXTE SEUL, PAS LA BOÎTE. Le `<span>` porte aussi
+         le bouton « Itinéraire » : divisée par l'interligne, sa hauteur
+         rendait cinq rangs et serait restée ≥ 2 même avec les sauts de
+         ligne avalés — un contrôle qui ne peut pas rougir. Une plage
+         posée sur le seul nœud de texte rend un rectangle PAR LIGNE
+         rendue : c'est le compte qu'on veut, et il est mesuré, pas lu
+         dans une feuille de style (un ancêtre peut la neutraliser, §4). */
+      const rg = document.createRange(); rg.setStart(v.firstChild, 0);
+      rg.setEnd(v.firstChild, v.firstChild.length);
+      const rangs = [...rg.getClientRects()].filter(x => x.width > 1).length;
+      return { ws: cs.whiteSpace, rangs, href: a && a.getAttribute('href'),
+        txt: v.firstChild.textContent.trim().slice(0, 40) };
+    });
+    if (vue.absent) fail('adresse : la ligne d’adresse n’est pas rendue sur la fiche');
+    else {
+      if (vue.rangs < 2)
+        fail(`adresse : la fiche la rend sur ${vue.rangs} rang — le HTML a replié les sauts de ligne `
+          + `(white-space « ${vue.ws} »)`);
+      if (!vue.href) fail('adresse : aucun itinéraire proposé alors qu’une adresse existe');
+      else if (/%0A/.test(vue.href))
+        fail(`adresse : l’itinéraire part avec un saut de ligne encodé — ${vue.href.slice(0, 80)}`);
+      else if (!process.exitCode)
+        console.log(`adresse multi-ligne : Entrée va à la ligne, les lignes survivent, la fiche les `
+          + `rend sur ${vue.rangs} rangs, la ville se déduit, l’itinéraire part sur un rang ✓`);
+    }
+  }
+  await ctx.close();
+}
+
 console.log(errors.length ? 'Erreurs console : ' + errors.slice(0, 4).join(' | ') : 'Zéro erreur console.');
 if (errors.length) process.exitCode = 1;
 await browser.close();

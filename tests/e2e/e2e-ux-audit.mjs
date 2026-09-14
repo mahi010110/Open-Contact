@@ -1379,7 +1379,10 @@ for (const [nom, ptr] of [['doigt', true], ['souris', false]]){
    liste fermée), il ne cache pas une phrase. */
 {
   const LONG = {
-    address: '12 rue du Rempart Saint-Étienne, 31000 Toulouse',
+    /* MULTI-LIGNE, parce que c'est la forme réelle depuis que l'adresse
+       est un champ libre (GOV.UK). Semée sur un rang, la garde ne
+       mesurait plus le format que les gens saisissent. */
+    address: '12 rue du Rempart Saint-Étienne\n31000 Toulouse',
     techs: 'SOC, Fortinet, Linux, Suricata, Elastic, Python',
     desc: 'ESN toulousaine de 120 personnes, spécialisée en cybersécurité industrielle.',
     tips: 'Ils recrutent surtout en janvier et en juin. Le test porte sur du réseau.'

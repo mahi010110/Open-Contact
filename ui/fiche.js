@@ -286,6 +286,10 @@ export function openFiche(c){
                    tout ce qui a le droit de s'élider doit être nommable.
                    Le geste se pose SOUS la valeur, calé sur son bord gauche :
                    taillé à son mot, un bord stable, plus jamais de vide.
+                   Et l'adresse GARDE SES LIGNES (`fk-lignes`) : depuis
+                   qu'elle se saisit en champ libre, le HTML avalerait
+                   sinon les retours à la ligne, et le format que
+                   l'utilisateur a choisi ne se reverrait jamais.
                    L'épingle part — le libellé dit déjà « Adresse », et une
                    icône ne grandit pas avec le texte : c'est elle qui vole la
                    place (§5).
@@ -297,7 +301,7 @@ export function openFiche(c){
                    réponse ailleurs, et meilleure : le tri par distance. */''}
              ${c.address ? `
                <div class="fk"><span class="fk-l">Adresse</span>
-                 <span class="fk-v fk-go">${esc(c.address)}
+                 <span class="fk-v fk-go fk-lignes">${esc(c.address)}
                    <a class="btn btn-sm" href="${esc(dirs)}" target="_blank" rel="noopener">${ic('directions', 'ic-14')} Itinéraire</a>
                  </span></div>` : ''}
            </div>

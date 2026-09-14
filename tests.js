@@ -5,7 +5,7 @@
    Chargé à la demande par app.js — résultats en console et dans
    window.__ocTests ; le toast est affiché par l'interface.
    ============================================================ */
-import { esc, normName, extractCity, distKm, todayISO, localISO } from './engine/utils.js';
+import { esc, normName, extractCity, surUnRang, distKm, todayISO, localISO } from './engine/utils.js';
 import { KDF_ITER, encryptOC2, decryptOC2, deriveKey, bytesToB64,
          fnv, ocKeystream, unsealOC1 } from './engine/crypto.js';
 import { APP_VERSION, VECU, normalizeCompany, normalizeContact, normalizeProfile,
@@ -62,6 +62,23 @@ export async function runSelfTests(){
       eq(normName('Éco-Truc & Cie'), 'ecotruccie'),
     'extractCity retire le code postal': () =>
       eq(extractCity('12 rue X, 59000 Lille'), 'Lille'),
+    /* UNE ADRESSE POSTALE TIENT SUR PLUSIEURS LIGNES, et la ville est
+       sur la DERNIÈRE. Sans ça, une adresse sans virgule rendait le
+       texte entier comme ville — et cette ville nourrit l'anti-doublon
+       (`merge.js`) autant que le champ `city` d'une piste reçue. */
+    'extractCity lit la dernière ligne d’une adresse multi-ligne': () =>
+      eq(extractCity('12 rue du Rempart Saint-Étienne\n31000 Toulouse'), 'Toulouse'),
+    'extractCity : une ligne vide en fin ne décale rien': () =>
+      eq(extractCity('12 rue X\n59000 Lille\n\n'), 'Lille'),
+    'extractCity : le cas d’UNE ligne ne bouge pas': () =>
+      eq(extractCity('12 rue X, 59000 Lille'), extractCity('12 rue X, 59000 Lille')),
+    /* ce qui SORT vers un service tiers se replie sur un rang : un
+       `%0A` au milieu d'une destination ne se géocode pas */
+    'surUnRang recolle les lignes par une virgule': () =>
+      eq(surUnRang('12 rue du Rempart\n31000 Toulouse'), '12 rue du Rempart, 31000 Toulouse'),
+    'surUnRang laisse une valeur d’une ligne intacte': () =>
+      eq(surUnRang('12 rue X, 59000 Lille'), '12 rue X, 59000 Lille'),
+    'surUnRang ne rend rien pour du vide': () => eq(surUnRang('\n  \n'), ''),
     'distKm Paris–Lille ≈ 204': () =>
       ok(Math.abs(distKm(48.8566, 2.3522, 50.6329, 3.0573) - 204) < 8),
     'OC2 : aller-retour (format versionné)': async () => {

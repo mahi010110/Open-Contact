@@ -4,7 +4,7 @@
    site, adresse, technos, postes, process, conseils. Le suivi
    privé (statut, notes, actions) ne passe jamais par ici.
    ============================================================ */
-import { esc, debounce } from '../engine/utils.js';
+import { esc, debounce, surUnRang } from '../engine/utils.js';
 import { DOMAINS, POSITIONS, VECU, pushHist } from '../engine/model.js';
 import { suggestAddresses } from '../engine/geo.js';
 import { bus, saveData, logJ } from './state.js';
@@ -45,8 +45,8 @@ export function sharedFieldsHTML(c){
             champ suivant et un collage multiligne se recolle, comme
             dans un `<input>`. `.ac-list` suit toute seule, elle se pose
             sous l'enveloppe et non sous le champ. */''}
-       <div class="field ac-wrap fld-1l"><label for="edAddress">Adresse</label>
-         <textarea id="edAddress" rows="1" placeholder="Ex : 12 rue…, 59000 Lille" autocomplete="off" enterkeyhint="next" ${clavier('nom')}>${esc(c.address)}</textarea>
+       <div class="field ac-wrap fld-adr"><label for="edAddress">Adresse</label>
+         <textarea id="edAddress" rows="2" placeholder="Ex : 12 rue du Rempart\n31000 Toulouse" autocomplete="off" ${clavier('nom')}>${esc(c.address)}</textarea>
          <div class="ac-list" id="edAc" hidden></div></div>
      </div>
      ${/* même mesure, même réponse : une liste de technos cachait 6 à
@@ -113,7 +113,7 @@ export function bindSharedFields(root){
   const acSearch = debounce(async v => {
     if (v.length < 4){ acHide(); return; }
     const sug = await suggestAddresses(v);
-    if (q('#edAddress').value.trim() !== v) return;   /* la frappe a continué */
+    if (surUnRang(q('#edAddress').value) !== v) return;   /* la frappe a continué */
     if (!sug.length){ acHide(); return; }
     acBox.innerHTML = sug.map((s, i) =>
       `<button type="button" class="ac-item" data-i="${i}">${esc(s.label)}</button>`).join('');
@@ -140,36 +140,44 @@ export function bindSharedFields(root){
      l'élision ne se justifie que pour un aperçu, jamais pour ça. */
   root.querySelectorAll('textarea.ta-s').forEach(champGrandit);
 
-  /* ---- LES DEUX VALEURS D'UNE SEULE LIGNE ----
-     Elles se REPLIENT pour se lire, mais elles ne deviennent pas de la
-     prose pour autant : la valeur reste sur un rang logique. Deux
-     choses le tiennent, et l'ordre compte — on nettoie AVANT de
-     mesurer la hauteur, sinon un collage multiligne fait grandir le
-     champ d'un rang qui disparaît aussitôt.
-     ① Entrée ne pose pas de saut de ligne, elle passe à la suite.
-     ② Un collage multiligne se recolle sur place, curseur gardé —
-        exactement ce qu'un `<input>` fait, et ce que le modèle attend
-        d'`address` et de `techs`, qui voyagent dans un `.oc`. */
-  const uneLigne = (id, apres) => {
-    const ta = q(id);
-    ta.addEventListener('input', () => {
-      if (!/[\r\n]/.test(ta.value)) return;
-      const i = ta.selectionStart;
-      ta.value = ta.value.replace(/[\r\n]+/g, ' ');
-      ta.selectionStart = ta.selectionEnd = i;
-    });
-    const pousse = champGrandit(ta);
-    ta.addEventListener('keydown', e => {
-      if (e.key !== 'Enter') return;
-      e.preventDefault();
-      if (apres) q(apres).focus(); else ta.blur();
-    });
-    return pousse;
-  };
-  const pousseAdresse = uneLigne('#edAddress', '#edTechs');
-  uneLigne('#edTechs', null);
+  /* ---- UNE ADRESSE POSTALE N'EST PAS UNE VALEUR D'UN RANG ----
+     C'est le champ libre du GOV.UK Design System, et ses avantages sont
+     ceux que le DWP écrit noir sur blanc : il « gère n'importe quel
+     format d'adresse, permet le copier-coller, et évite à l'utilisateur
+     de deviner quelle partie va dans quelle case ». Son seul défaut
+     déclaré — on ne peut pas en extraire les sous-parties — ne coûte
+     rien ICI : `address` est une chaîne unique dans le modèle, jamais
+     découpée, et l'app ne se sert jamais de ses morceaux.
+     Entrée fait donc un retour à la ligne, comme dans tout champ libre,
+     et une adresse collée garde la forme qu'elle avait.
+     Ce qui sort vers un service tiers se replie, lui : `surUnRang`
+     (moteur) recolle les lignes par une virgule pour l'itinéraire et
+     pour la recherche d'adresse — un `%0A` au milieu d'une destination
+     ne se géocode pas. La donnée garde ses lignes, l'URL non. */
+  const pousseAdresse = champGrandit(q('#edAddress'));
 
-  q('#edAddress').addEventListener('input', e => { picked = null; acSearch(e.target.value.trim()); });
+  /* ---- LES TECHNOS RESTENT UNE VALEUR D'UN SEUL RANG ----
+     Ce n'est pas une adresse : c'est une énumération séparée par des
+     virgules, et rien n'y attend de retour à la ligne. Elle se replie
+     pour se LIRE (le champ grandit) sans devenir de la prose pour
+     autant. L'ordre compte — on nettoie AVANT de mesurer la hauteur,
+     sinon un collage multiligne fait grandir le champ d'un rang qui
+     disparaît aussitôt. */
+  const techs = q('#edTechs');
+  techs.addEventListener('input', () => {
+    if (!/[\r\n]/.test(techs.value)) return;
+    const i = techs.selectionStart;
+    techs.value = techs.value.replace(/[\r\n]+/g, ' ');
+    techs.selectionStart = techs.selectionEnd = i;
+  });
+  champGrandit(techs);
+  techs.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    techs.blur();
+  });
+
+  q('#edAddress').addEventListener('input', e => { picked = null; acSearch(surUnRang(e.target.value)); });
   q('#edAddress').addEventListener('blur', () => setTimeout(acHide, 150));
 
   return {
@@ -182,7 +190,9 @@ export function bindSharedFields(root){
       c.domain = q('#edDomain').value;
       c.desc = q('#edDesc').value.trim();
       c.website = q('#edWebsite').value.trim();
-      c.address = q('#edAddress').value.trim();
+      /* les lignes se gardent — c'est la forme que l'utilisateur a
+         choisie ; seules les lignes vides de début et de fin partent */
+      c.address = q('#edAddress').value.replace(/^[\s\r\n]+|[\s\r\n]+$/g, '');
       c.techs = q('#edTechs').value.trim();
       c.process = q('#edProcess').value.trim();
       c.tips = q('#edTips').value.trim();
