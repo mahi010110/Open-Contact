@@ -2497,6 +2497,12 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
    dans les deux ergonomies (§6, « une valeur a UN BORD »). `.fk-v` est
    déjà la boîte qui tient la colonne du poste — le geste vit DEDANS,
    pour ne pas avoir à réinventer cette colonne une seconde fois. */
+/* UNE VALEUR QUI A ÉTÉ SAISIE EN LIGNES SE RELIT EN LIGNES. Le HTML
+   replie tout espace blanc, sauts de ligne compris : sans ceci, une
+   adresse écrite sur trois rangs se réaffiche sur un seul et le champ
+   libre ne sert à rien. `pre-line` garde les retours et replie le
+   reste — une double espace tapée par erreur ne se voit pas. */
+.fk-lignes{white-space:pre-line}
 .fk-go{display:flex;flex-direction:column}
 .fk-go .btn{align-self:flex-start;margin-top:6px}
 .fk-tags{display:flex;gap:5px;flex-wrap:wrap}
@@ -2519,6 +2525,19 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 .fld-1l textarea{
   min-height:var(--ctl);height:auto;resize:none;overflow-y:hidden;
   padding:4px 10px;
+}
+/* UNE ADRESSE POSTALE EST UN CHAMP LIBRE, ET SA HAUTEUR DE DÉPART
+   ENSEIGNE SON FORMAT. Deux lignes au repos, c'est ce qui dit « tu peux
+   aller à la ligne » sans qu'aucune phrase n'ait à le dire — et c'est
+   aussi ce qui permet au `placeholder` de montrer une adresse sur deux
+   lignes sans se faire rogner (un champ d'une ligne l'aurait coupé, et
+   personne ne l'aurait vu : un placeholder ne compte pas dans
+   `scrollHeight`, donc `champGrandit` ne l'aurait pas rattrapé).
+   Au-delà, c'est `champGrandit` qui donne la hauteur : `resize:none`
+   parce qu'une poignée qui se bat avec le script est une promesse qu'on
+   ne tient pas, `overflow-y:hidden` parce qu'il n'y a pas de plafond. */
+.fld-adr textarea{
+  min-height:calc(2 * 1.5em + 18px);height:auto;resize:none;overflow-y:hidden;
 }
 .ta-s{min-height:48px}
 .ckline{display:flex;align-items:center;gap:9px;font-size:var(--text-13);min-height:var(--ctl);cursor:pointer;user-select:none}
