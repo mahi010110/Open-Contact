@@ -20,7 +20,7 @@ import { SYNC_KEY, RELAYS_KEY, TURN_KEY, DEVICE_KEY, DEVICES_KEY, RING_KEY,
          DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, GROUP_KEY, PROMO_KEY, VAULT_KEY,
          CAMPAIGNS_KEY, MAIL_KEY, AI_KEY, MISSIONS_KEY, ORDINATEUR_KEY, ANALYSIS_KEY,
          PROPOSALS_KEY, kvGet, kvSet, kvDel, docClear } from '../engine/storage.js';
-import { causeLiaison, relayTally, liaisonStage, RELAIS_DEFAUT } from '../engine/transport.js';
+import { causeLiaison, relayTally, liaisonStage, RELAIS_DEFAUT, TURN_DEFAUT } from '../engine/transport.js';
 import { S, bus, applySynced, saveProfile, logJ } from './state.js';
 import { ic, toast, showUndo } from './dom.js';
 
@@ -144,11 +144,17 @@ export async function openRoom(kind, phrase, callbacks){
     const urls = JSON.parse(await kvGet(RELAYS_KEY) || 'null');
     if (Array.isArray(urls) && urls.length) cfg.relayConfig = { urls };
   } catch (e) {}
+  /* LE TURN NE SE RÈGLE PAS : il est là, ou la liaison échoue entre
+     deux réseaux différents. Celui de l'utilisateur prime ; sinon on
+     compose les adresses mesurées (`TURN_DEFAUT`, vide tant qu'aucune
+     n'a prouvé qu'elle porte une liaison). Il ne sert QUE si le chemin
+     direct échoue — c'est WebRTC qui en décide, pas nous. */
+  cfg.turnConfig = TURN_DEFAUT;
   try {
-    /* TURN personnalisé : pour les réseaux qui bloquent le pair-à-pair */
     const turn = JSON.parse(await kvGet(TURN_KEY) || 'null');
     if (Array.isArray(turn) && turn.length) cfg.turnConfig = turn;
   } catch (e) {}
+  if (!cfg.turnConfig.length) delete cfg.turnConfig;
   const r = joinRoom(cfg, id, callbacks);
   ecouterTot();   /* voir `ecouterTot` : un relais sain répond avant le premier sondage */
   return r;

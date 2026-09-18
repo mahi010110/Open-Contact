@@ -77,6 +77,37 @@ export const RELAIS_DEFAUT = [
   'wss://nostr.data.haus'
 ];
 
+/* ---------- LE RELAIS DE SECOURS DU TUYAU DIRECT (TURN) ----------
+   Les relais ci-dessus servent à SE TROUVER. Se PARLER est une autre
+   affaire : deux appareils sur des réseaux différents — deux
+   téléphones en données mobiles, chacun derrière le NAT de son
+   opérateur — n'ont souvent aucun chemin direct. Ils se trouvent,
+   échangent leur SDP, et la liaison échoue quand même. C'est la
+   troisième panne de `causeLiaison` (`sansturn`), et l'app ne savait
+   que la nommer.
+
+   Un TURN est le relais standard de ce cas-là. Deux choses le rendent
+   admissible ici, et elles doivent rester vraies :
+   ① **Il ne peut rien lire.** Il relaie des paquets déjà chiffrés de
+     bout en bout par WebRTC (DTLS) : il voit passer des octets
+     opaques, jamais une piste ni un contact. Ce qu'il apprend, ce
+     sont les adresses IP des deux pairs et le volume échangé — à
+     dire honnêtement, et la raison pour laquelle il ne s'emploie
+     QUE si le chemin direct a échoué.
+   ② **Ce n'est pas un serveur d'OpenContact** (§10). C'est de
+     l'infrastructure publique tierce, exactement le statut des
+     relais Nostr que l'app compose déjà par défaut. Le mainteneur
+     n'en tient aucun, ne déclare rien, ne renouvelle rien.
+
+   La liste est VIDE tant qu'aucune adresse n'a été mesurée : un TURN
+   n'entre ici qu'après avoir prouvé deux choses — qu'il alloue pour
+   nous, et que deux pairs qui s'interdisent tout candidat local se
+   joignent à travers lui (`tests/e2e/sonde-turn.mjs`). Allouer ne
+   suffit pas : c'est la même leçon que « répondre n'est pas relayer »,
+   un étage plus loin.
+   Le TURN de l'utilisateur (`oc_turn_v1`) reste prioritaire. */
+export const TURN_DEFAUT = [];
+
 /* compte les WebSockets de relais par état (readyState 0/1), et — c'est
    la moitié qui manquait — combien ont RÉELLEMENT répondu.
 
