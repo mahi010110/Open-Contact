@@ -101,12 +101,27 @@ function makeDecoder(onText, onClose, onPing){
 }
 
 /* ---- le relais : NIP-01 réduit à ce que Trystero utilise ---- */
-/* `muet` : le relais accepte la connexion WebSocket et ne répond
-   PLUS JAMAIS. C'est la panne qu'un `readyState === 1` ne voit pas, et
-   celle qui laissait l'app sur « En attente de ton autre appareil »
-   indéfiniment. Sans ce double, on ne peut pas prouver la correction :
-   un relais mort refuse le socket, un relais muet l'accepte. */
-export async function startLocalRelay({ silent = true, tls = false, port = 0, muet = false, hote = '127.0.0.1' } = {}){
+/* TROIS PANNES, ET ELLES NE SE RESSEMBLENT PAS. Un relais qui parle
+   n'est pas un relais qui RELAIE, et c'est l'incident #14 refait un
+   étage plus haut : là on déduisait « vivant » de `readyState === 1`,
+   ici on le déduisait de « il nous a envoyé un message » — et un EOSE
+   est un message. Or un EOSE ne prouve qu'une chose : le relais a lu
+   notre abonnement. Il ne dit rien de ce que le produit a besoin de
+   savoir, qui est « mon annonce atteindra-t-elle l'autre ? ».
+
+   · `muet`  — il accepte la WebSocket et ne répond PLUS JAMAIS.
+   · `sourd` — il répond tout (EOSE, OK true) et ne TRANSMET jamais un
+     événement. C'est la panne d'un relais qui a cessé d'accepter les
+     événements éphémères sans le dire : l'app le compte vivant et
+     reste sur « En attente de ton groupe » à l'infini.
+   · `refus` — il répond `OK false` à nos annonces (relais payant,
+     liste blanche d'auteurs, types d'événements restreints). C'est
+     aujourd'hui la panne la PLUS courante d'un relais Nostr public,
+     et c'est la seule qui dise explicitement non. L'app n'écoutait
+     pas cette réponse, donc ce « non » se perdait.
+   Sans ces doubles, aucune correction n'est démontrable. */
+export async function startLocalRelay({ silent = true, tls = false, port = 0, muet = false,
+                                        sourd = false, refus = false, hote = '127.0.0.1' } = {}){
   const conns = new Set();          /* { sock, send, subs: Map<subId, filtres[]> } */
   const log = (...a) => { if (!silent) console.log('[relais]', ...a); };
 
@@ -144,7 +159,9 @@ export async function startLocalRelay({ silent = true, tls = false, port = 0, mu
       if (msg[0] === 'EVENT' && msg[1] && msg[1].id){
         const ev = msg[1];
         log('EVENT kind', ev.kind);
+        if (refus){ conn.send(['OK', ev.id, false, 'restricted: not accepted here']); return; }
         conn.send(['OK', ev.id, true, '']);
+        if (sourd) return;              /* il dit oui et ne transmet rien */
         for (const c of conns)
           for (const [subId, filters] of c.subs)
             if (filters.some(f => matches(ev, f))){ c.send(['EVENT', subId, ev]); break; }

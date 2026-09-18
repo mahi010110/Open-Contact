@@ -20,7 +20,7 @@ import { SYNC_KEY, RELAYS_KEY, TURN_KEY, DEVICE_KEY, DEVICES_KEY, RING_KEY,
          DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, GROUP_KEY, PROMO_KEY, VAULT_KEY,
          CAMPAIGNS_KEY, MAIL_KEY, AI_KEY, MISSIONS_KEY, ORDINATEUR_KEY, ANALYSIS_KEY,
          PROPOSALS_KEY, kvGet, kvSet, kvDel, docClear } from '../engine/storage.js';
-import { causeLiaison, relayTally, liaisonStage, RELAIS_DEFAUT } from '../engine/transport.js';
+import { causeLiaison, classerTrame, relayTally, liaisonStage, RELAIS_DEFAUT } from '../engine/transport.js';
 import { S, bus, applySynced, saveProfile, logJ } from './state.js';
 import { ic, toast, showUndo } from './dom.js';
 
@@ -32,23 +32,38 @@ let libM = null;    /* le module chargé — pour sonder l'état réel des relai
 const loadLib = () => libP || (libP = import('../assets/vendor/trystero-nostr.min.js')
   .then(m => (libM = m), e => { libP = null; throw e; }));
 
-/* LES RELAIS QUI ONT RÉPONDU AU MOINS UNE FOIS. Un socket ouvert ne
-   prouve rien (voir `relayTally`) : un relais qui accepte la connexion
-   puis se tait laissait l'écran sur « En attente de ton autre
-   appareil », indéfiniment.
-   On écoute donc le PREMIER message de chaque socket, sans toucher à
-   la bibliothèque vendorisée ni à son protocole — n'importe quelle
-   réponse suffit à prouver que le relais parle.
-   L'ensemble ne fait que grandir, et c'est voulu : un relais qui a
-   répondu une fois ne sera jamais accusé plus tard sur un doute. Un
-   socket refermé sort de toute façon du compte par son `readyState`. */
-const relaisQuiRepondent = new Set();
+/* CE QUE CHAQUE RELAIS FAIT VRAIMENT, en trois ensembles.
+   Un socket ouvert ne prouve rien (voir `relayTally`) ; et — c'est la
+   moitié qu'il manquait encore — un relais qui PARLE ne prouve pas
+   qu'il RELAIE. On lisait le PREMIER message de chaque socket et on
+   s'arrêtait là (`{ once: true }`), si bien qu'un EOSE suffisait à
+   déclarer le transport sain. Un relais qui refuse nos annonces
+   (`OK … false`, `AUTH`, relais payant ou à liste blanche — la panne
+   la plus courante d'un relais public aujourd'hui) était donc compté
+   vivant, et les TROIS canaux restaient sur « En attente » à l'infini.
+
+   On écoute donc TOUTES les trames, et `classerTrame` (moteur) les
+   range. Aucun accès à la bibliothèque vendorisée, aucun protocole
+   réimplémenté : on lit ce qui passe déjà sur le socket.
+
+   Les ensembles ne font que grandir, et c'est voulu : un relais qui a
+   relayé une fois ne sera jamais accusé plus tard sur un doute. Un
+   socket refermé sort de toute façon du compte par son `readyState`.
+   Un refus, lui, ne s'oublie pas — il ne dépend pas du moment. */
+const relaisQuiParlent = new Set();
+const relaisQuiRelaient = new Set();
+const relaisQuiRefusent = new Set();
 function ecouterRelais(socks){
   for (const k in (socks || {})){
     const s = socks[k];
     if (!s || s.__ocEcoute) continue;
     s.__ocEcoute = true;
-    s.addEventListener('message', () => relaisQuiRepondent.add(k), { once: true });
+    s.addEventListener('message', e => {
+      relaisQuiParlent.add(k);
+      const quoi = classerTrame(e.data);
+      if (quoi === 'relaie') relaisQuiRelaient.add(k);
+      else if (quoi === 'refus') relaisQuiRefusent.add(k);
+    });
   }
 }
 /* ON S'ABONNE TÔT, PAS AU PREMIER SONDAGE. `watchLiaison` ne relève
@@ -64,11 +79,12 @@ function ecouterTot(){
 }
 
 /* l'état réel des WebSockets vers les relais — {total, open, pending,
-   vivants}. Sans bibliothèque chargée : rien à sonder, tout à zéro. */
+   vivants, relaient, refus}. Sans bibliothèque chargée : rien à
+   sonder, tout à zéro. */
 export const relaySnapshot = () => {
   const socks = libM && libM.getRelaySockets();
   ecouterRelais(socks);
-  return relayTally(socks, relaisQuiRepondent);
+  return relayTally(socks, relaisQuiParlent, relaisQuiRelaient, relaisQuiRefusent);
 };
 
 /* délai de grâce avant de déclarer « aucun relais joignable » : les
@@ -351,7 +367,7 @@ function sendRing(){
 
 /* ---------- l'état vivant ---------- */
 const live = {
-  state: 'off',        /* off · connecting · norelay · wait · rtcfail · link · on · err */
+  state: 'off',        /* off · connecting · norelay · relaisrefus · wait · rtcfail · link · on · err */
   peers: 0,
   relays: { total: 0, open: 0, pending: 0 },
   exchanged: false,    /* un échange a réellement été reçu — condition de « à jour » */

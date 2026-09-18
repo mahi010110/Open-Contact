@@ -59,18 +59,30 @@ choses, et aucune ne dépend de quelqu'un d'extérieur.
       WebSocket puis se tait, c'est sa faute, il se nomme — du *coupé plus
       haut*, qu'elle refuse d'accuser. `e2e-sonde-relais.mjs` prouve les trois
       rangements en local, sans réseau. *(septembre 2026)*
-      Le relevé du 1ᵉʳ septembre reste donc valable : **7 sur 9 répondent**. Sont muets
-      `wss://hornetstorage.net/relay` (refus la veille, connexion refusée
-      le lendemain — il pourrit) et `wss://relay.damus.io`.
-      Une réserve à garder en tête avant de trancher : damus est l'un des
-      plus gros relais Nostr publics, et l'échec est vu depuis une forge
-      dont les adresses sont partagées par beaucoup de monde. « Muet
-      depuis GitHub » n'est pas « muet depuis le téléphone d'un
-      étudiant » — c'est justement ce que les essais sur vrai matériel
-      diront. Hornetstorage, lui, échoue de deux façons différentes deux
-      jours de suite : celui-là se remplace.
-      Sept relais sains suffisent largement (il en faut deux), donc rien
-      ne presse — mais une liste qu'on ne relit pas se vide toute seule.
+      **LE RELEVÉ « 7 SUR 9 RÉPONDENT » EST PÉRIMÉ — il mesurait la
+      mauvaise chose** *(18 septembre 2026)*. Il déclarait un relais sain
+      sur un **EOSE**, c'est-à-dire sur « il a lu mon abonnement ». Or ce
+      que le produit a besoin de savoir est tout autre : « mon annonce
+      atteindra-t-elle l'autre ? » Un relais peut répondre EOSE toute la
+      journée en **refusant** chaque événement qu'on lui confie (relais
+      payant, liste blanche d'auteurs, types d'événements restreints —
+      la norme sur Nostr public aujourd'hui) ou en les **jetant** sans
+      rien dire. Les deux passaient pour sains.
+      C'est la panne rapportée à l'usage, et elle explique ce qu'aucune
+      autre hypothèse n'expliquait : les **trois** canaux P2P bloqués
+      ensemble sur « En attente », sur des réseaux qui marchent, avec un
+      code scanné donc sans faute de frappe possible.
+      La sonde mesure désormais le vrai : **deux connexions** sur le même
+      relais, l'une s'abonne, l'autre publie, et l'événement doit
+      traverser — avec le **type dérivé du nom de la salle**, comme la
+      bibliothèque (`20000 + hash mod 10000`), parce qu'un type fixe
+      passait à côté des relais qui filtrent par type. Elle distingue
+      `relaie` / `refus` (avec sa raison) / `sourd` / `muet` / `coupé`.
+      **Il n'y a donc plus aucun relevé valable sur les neuf, et il ne
+      peut pas s'en faire d'ici** : le bac à sable rend 403 sur toute
+      WebSocket sortante. À rejouer depuis un réseau ouvert :
+      `OC_SONDE_RELAIS=1 node tests/e2e/sonde-relais-publics.mjs`.
+      C'est ce relevé, et lui seul, qui dira quelles adresses garder.
 
 - [x] **L'anneau de focus, mesuré** — il ne l'avait jamais été : le jeton
       portait le commentaire « pointillé 98, lisible partout », c'est-à-dire
@@ -150,6 +162,48 @@ choses, et aucune ne dépend de quelqu'un d'extérieur.
       sortante — voir l'entrée des relais muets) et **Safari**, dont le
       navigateur ne se télécharge pas ici. L'utilisateur type est sur un
       iPhone : c'est toujours le moteur que personne ne mesure.
+
+- [x] **Les trois canaux P2P bloqués ensemble : un relais qui PARLE
+      n'est pas un relais qui RELAIE** *(septembre 2026)*. Signalé à
+      l'usage, et le seul signalement dont aucune hypothèse de transport
+      ne rendait compte : groupe, rendez-vous QR **et** sync bloqués
+      ensemble sur « En attente », sur des réseaux mobiles qui
+      fonctionnent, avec un code **scanné** — donc sans la faute de
+      frappe corrigée juste au-dessus. Trois canaux qui tombent ensemble
+      ne partagent qu'une chose : la découverte du pair par les relais.
+
+      **La faute était la même que l'incident #14, un étage plus haut
+      encore.** On y avait appris qu'un socket ouvert ne fait pas un
+      relais joint ; on déduisait ensuite « vivant » de « il nous a
+      envoyé un message » — et un EOSE est un message. Mesuré, trois
+      relais côte à côte, **un seul appareil dans la salle** : le relais
+      sain renvoie notre propre annonce (5 trames `EVENT` en 16 s), le
+      relais **sourd** (il dit oui et ne transmet rien) et celui qui
+      **refuse** (`OK … false`) n'en renvoient aucune — et l'app comptait
+      les trois vivants, donc affichait « En attente de ton groupe » à
+      l'infini. Elle accusait le camarade absent d'une panne qui était
+      celle du transport.
+
+      Ce qui est corrigé, et ce qui est délibérément laissé de côté :
+      · le **refus** est lu (`classerTrame` : `OK … false`, `CLOSED`,
+        `AUTH`, et un `NOTICE` seulement s'il porte un mot de refus
+        connu — on ne devine pas). Un relais qui dit non n'est plus
+        compté vivant, et l'écran nomme la panne **avec le geste
+        inverse** de « pas de connexion » : le réseau va bien, c'est la
+        liste qu'il faut changer. Dire « pas de connexion » à quelqu'un
+        dont la connexion est parfaite l'envoie réparer ce qui marche.
+      · le relais **sourd** n'est PAS accusé par l'app. Elle n'a qu'une
+        connexion : elle ne peut pas prouver qu'un relais ne relaie pas,
+        et un relais sain qui ne renverrait pas notre propre annonce
+        serait innocent. Cette hypothèse n'est mesurée que sur le relais
+        local, donc elle ne sort pas de l'app — se tromper de cause
+        coûte plus cher que ne pas savoir (§8). C'est la **sonde**, qui
+        ouvre deux connexions, qui tranche.
+      · le compte `relaient` part dans le **diagnostic**, là où il sert
+        à réparer : « 9 relais · 9 joints · 9 qui répondent · **0 qui
+        relaient** » est le rapport qui nomme la panne des trois canaux
+        d'un coup d'œil, et aucun des deux nombres d'avant ne pouvait la
+        montrer.
 
 - [ ] **Essais sur vrai matériel** — un vrai téléphone d'entrée de gamme, un
       vrai réseau d'établissement. Les scénarios automatiques passent à côté

@@ -286,11 +286,13 @@ export function openDonner(){
          rassurement). La question ne reste que pendant l'attente, où
          elle est encore la bonne. */
       const sortie = q('#dnOffline');
-      if (sortie) sortie.textContent = stage === 'rtcfail' || stage === 'norelay'
+      if (sortie) sortie.textContent = stage === 'rtcfail' || stage === 'norelay' || stage === 'relaisrefus'
         ? (compact ? 'Passer par le QR hors ligne' : 'Passer par le fichier')
         : 'Sans réseau ?';
       if (stage === 'norelay')
         el.innerHTML = `${ic('square-alert', 'ic-14')} Pas de connexion`;
+      else if (stage === 'relaisrefus')
+        el.innerHTML = `${ic('square-alert', 'ic-14')} Les relais refusent nos annonces`;
       else if (stage === 'rtcfail' && cause === 'motdepasse')
         el.innerHTML = `${ic('square-alert', 'ic-14')} Ce n’est pas le même code`;
       else if (stage === 'rtcfail' && cause === 'sansturn')

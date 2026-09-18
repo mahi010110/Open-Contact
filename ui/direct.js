@@ -225,6 +225,13 @@ export function openAppareils(){
       return `${ic('clock', 'ic-14')} En attente de ton autre appareil`;
     if (sy.state === 'norelay' || sy.state === 'err')
       return `${ic('square-alert', 'ic-14')} Pas de connexion — ton réseau la bloque ?${reessayer}`;
+    /* LE REFUS N'EST PAS UNE PANNE DE RÉSEAU, ET LE GESTE EST L'INVERSE.
+       « Pas de connexion » envoie réparer un wifi qui marche très bien :
+       ici les relais répondent, et ils répondent NON (relais payant,
+       liste blanche, authentification exigée). Ce qui se change est la
+       LISTE, et elle se change juste en dessous. */
+    if (sy.state === 'relaisrefus')
+      return `${ic('square-alert', 'ic-14')} Les relais refusent nos annonces — change-les dans Connexion avancée`;
     if (sy.state === 'rtcfail' && sy.cause === 'motdepasse')
       return `${ic('square-alert', 'ic-14')} Ce n’est pas la même phrase des deux côtés — refais la liaison`;
     if (sy.state === 'rtcfail' && sy.cause === 'turnmuet')
@@ -596,6 +603,15 @@ export function openPromo(){
       if (peers) return;   /* refreshStatus a la main dès qu'on est en face */
       if (stage === 'norelay')
         setStatus(`${ic('square-alert', 'ic-14')} Pas de connexion — le QR et le fichier .oc marchent toujours.`);
+      /* LE MÊME PATRON QUE SON FRÈRE LE PLUS PROCHE. « Ton serveur TURN
+         ne répond pas — vérifie-le dans Connexion avancée » nomme le
+         réglage sans réciter le chemin pour y aller ; une première
+         version disait « dans « Mes appareils › Connexion avancée », ou
+         prends le QR » et rendait TROIS lignes là où tous les autres
+         états en font une (vu sur capture, pas sur un compte de
+         caractères). Le repli, lui, est déjà la phrase de `norelay`. */
+      else if (stage === 'relaisrefus')
+        setStatus(`${ic('square-alert', 'ic-14')} Les relais refusent nos annonces — change-les dans Connexion avancée.`);
       else if (stage === 'rtcfail' && cause === 'motdepasse')
         setStatus(`${ic('square-alert', 'ic-14')} Ce n’est pas le même code des deux côtés — retapez-le ensemble`);
       else if (stage === 'rtcfail' && cause === 'turnmuet')

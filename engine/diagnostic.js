@@ -117,6 +117,15 @@ export function diagnosticData(x){
     relais: n(x.relais && x.relais.total),
     relaisJoints: n(x.relais && x.relais.open),
     relaisVivants: n(x.relais && x.relais.vivants),
+    /* ET LES DEUX QUI DISENT SI LE TRANSPORT SERT À QUELQUE CHOSE.
+       « Qui répondent » ne prouve que la parole : un EOSE suffit à le
+       faire monter. « Qui relaient » compte ceux dont un ÉVÉNEMENT est
+       revenu, « refusés » ceux qui ont dit non explicitement. Trois
+       relais joints, trois qui répondent, ZÉRO qui relaient : c'est le
+       rapport qui nomme la panne des trois canaux à la fois, et aucun
+       des deux nombres précédents ne pouvait la montrer. */
+    relaisQuiRelaient: n(x.relais && x.relais.relaient),
+    relaisRefuses: n(x.relais && x.relais.refus),
     /* POURQUOI la dernière liaison directe a échoué, si elle a échoué.
        Sans ça, « 9 relais · 7 qui répondent » se lit « tout va bien »
        alors que la liaison échoue juste après, pour une raison que
@@ -152,7 +161,8 @@ export function diagnosticText(d){
        « joints » compte les sockets ouverts, « répondent » ceux qui ont
        vraiment parlé — l'écart entre les deux EST le diagnostic. */
     `Transport : ${d.relais} relais · ${d.relaisJoints} joint(s) · ` +
-      `${d.relaisVivants} qui répond(ent)` +
+      `${d.relaisVivants} qui répond(ent) · ${d.relaisQuiRelaient} qui relaie(nt)` +
+      (d.relaisRefuses ? ` · ${d.relaisRefuses} refus` : '') +
       (d.echec ? ` · dernier échec : ${d.echec}` : ''),
     `Suivi : ${d.pistes} piste(s) · ${d.contacts} contact(s) · ` +
       `${d.arattacher} à rattacher · ${d.suppressions} suppression(s)`,

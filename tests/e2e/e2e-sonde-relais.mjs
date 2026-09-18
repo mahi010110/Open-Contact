@@ -97,17 +97,25 @@ async function portMort(){
 {
   const casse = await controleLocal();
   if (casse) fail('le contrôle local échoue alors que rien n’est cassé — ' + casse);
-  else bilan('contrôle local : un relais qui répond EOSE est bien vu « sain » ✓');
+  else bilan('contrôle local, DANS LES DEUX SENS : un relais sain sort « relaie », '
+    + 'un relais sourd sort « sourd » ✓');
 }
 
 /* ---- ② chaque panne est rangée au bon endroit ---- */
 const sain1 = await startLocalRelay();
 const sain2 = await startLocalRelay();
 const muet = await relaisMuet();
+/* LES DEUX PANNES QUI ONT COÛTÉ LE PLUS CHER, et qu'aucun relevé ne
+   voyait : le relais SOURD répond tout et ne transmet rien, le relais
+   qui REFUSE dit non explicitement. L'ancien relevé les déclarait tous
+   deux « sains » sur leur EOSE — d'où un rapport « 7 sur 9 répondent »
+   pendant que les trois canaux P2P étaient morts. */
+const sourd = await startLocalRelay({ sourd: true });
+const refus = await startLocalRelay({ refus: true });
 const coupe = await chemincoupe();
 const mort = await portMort();
 {
-  const liste = [sain1.url, sain2.url, muet.url, coupe.url, mort.url];
+  const liste = [sain1.url, sain2.url, muet.url, sourd.url, refus.url, coupe.url, mort.url];
   const r = await relever(liste);
   const v = verdict({ ...r, total: liste.length });
   const dedans = (arr, u) => arr.some(x => x.startsWith(u));
@@ -116,8 +124,21 @@ const mort = await portMort();
     fail('les deux relais sains ne sont pas vus : ' + JSON.stringify(r.sains));
   if (!dedans(r.suspects, muet.url))
     fail('le relais MUET n’est pas nommé — c’est pourtant sa faute : ' + JSON.stringify(r.suspects));
-  if (r.suspects.length !== 1)
-    fail('un innocent est accusé avec le muet : ' + JSON.stringify(r.suspects));
+  /* le cœur de ce lot : sourd et refus sont nommés, et nommés DIFFÉREMMENT —
+     l'un fait chercher une autre liste, l'autre porte la raison du non */
+  const ligneDe = u => r.suspects.find(x => x.startsWith(u)) || '';
+  if (!dedans(r.suspects, sourd.url))
+    fail('LE RELAIS SOURD PASSE POUR SAIN : il répond EOSE et ne transmet aucun événement — '
+      + 'c’est exactement le rapport « 7 sur 9 répondent » avec les trois canaux morts');
+  else if (!/SOURD/.test(ligneDe(sourd.url)))
+    fail('le relais sourd est nommé, mais pas comme tel : ' + ligneDe(sourd.url));
+  if (!dedans(r.suspects, refus.url))
+    fail('LE RELAIS QUI REFUSE PASSE POUR SAIN : il répond « OK false » à chaque annonce');
+  else if (!/REFUSE/.test(ligneDe(refus.url)) || !/restricted/.test(ligneDe(refus.url)))
+    fail('le refus est nommé sans sa RAISON, qui est la seule chose qui aide : '
+      + ligneDe(refus.url));
+  if (r.suspects.length !== 3)
+    fail('un innocent est accusé avec les trois fautifs : ' + JSON.stringify(r.suspects));
   if (!dedans(r.coupes, coupe.url) || !/coupé plus haut/.test(r.coupes.join(' ')))
     fail('le chemin coupé n’est pas reconnu comme tel : ' + JSON.stringify(r.coupes));
   if (!dedans(r.coupes, mort.url) || !/injoignable/.test(r.coupes.join(' ')))
@@ -126,11 +147,12 @@ const mort = await portMort();
     fail('deux relais sains suffisent (plancher ' + PLANCHER + '), et le verdict rend ' + v.code);
   if (!v.mesure) fail('le verdict se dit « rien mesuré » alors que deux relais ont répondu');
   const txt = v.lignes.join('\n');
-  if (!/ÉPINGLÉS MUETS/.test(txt)) fail('le rapport ne propose pas de remplacer le relais muet');
+  if (!/ÉPINGLÉS QUI NE RELAIENT PAS/.test(txt))
+    fail('le rapport ne propose pas de remplacer les relais qui ne relaient pas');
   if (txt.split('NON MESURÉS')[1]?.includes(muet.url))
     fail('le relais muet est rangé chez les non mesurés — il serait blanchi à tort');
-  bilan('cinq relais, cinq états : sain ×2, muet nommé, chemin coupé et port fermé '
-    + 'mis à part sans être accusés ✓');
+  bilan('sept relais, sept états : relaient ×2, muet / SOURD / REFUS nommés chacun '
+    + 'à son nom, chemin coupé et port fermé mis à part sans être accusés ✓');
 }
 
 /* ---- ③ LA BRANCHE QUI COMPTE : aucune WebSocket ne s'ouvre ----
@@ -147,7 +169,7 @@ const mort = await portMort();
   if (v.mesure) fail('la sonde croit avoir mesuré quelque chose alors qu’elle n’a rien mesuré');
   if (!/NE DIT RIEN SUR LES RELAIS/.test(txt))
     fail('sans réseau, le rapport ne prévient pas qu’il ne prouve rien :\n' + txt);
-  if (/ÉPINGLÉS MUETS|à remplacer/.test(txt))
+  if (/ÉPINGLÉS QUI NE RELAIENT PAS|à remplacer/.test(txt))
     fail('sans réseau, le rapport propose QUAND MÊME de remplacer des adresses — '
       + 'c’est le défaut d’origine, neuf relais sains accusés :\n' + txt);
   if (v.code !== 1) fail('sans réseau, la sonde devrait échouer bruyamment, pas rendre 0');
@@ -172,5 +194,5 @@ const mort = await portMort();
     + 'la prudence n’a pas coûté le silence ✓');
 }
 
-sain1.close(); sain2.close(); muet.close(); coupe.close();
+sain1.close(); sain2.close(); muet.close(); sourd.close(); refus.close(); coupe.close();
 console.log(process.exitCode ? 'E2E sonde relais : ÉCHEC' : 'E2E sonde relais : OK');

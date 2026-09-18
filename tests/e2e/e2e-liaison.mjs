@@ -502,6 +502,98 @@ console.log('sync : « Pas de connexion » affiché sans jargon, Réessayer pré
   muet.close();
 }
 
+/* ---------- LE RELAIS QUI PARLE ET NE RELAIE RIEN ----------
+   La panne rapportée à l'usage, et la PIRE des trois : les trois
+   canaux P2P (groupe, rendez-vous QR, sync) bloqués sur « En attente »
+   pendant que tout allait bien par ailleurs.
+
+   Le relais muet d'à côté se tait, donc l'app finissait par le voir. Un
+   relais qui RÉPOND — EOSE, `OK … true` — et ne transmet jamais un
+   événement était au contraire compté vivant : l'app lisait « des
+   relais, mais personne en face » et accusait le camarade absent d'une
+   panne qui était celle du transport. Même faute qu'en dessous, un
+   étage plus haut encore : on déduisait « il relaie » de « il parle ».
+
+   Deux mondes, deux verdicts, et ce sont eux qui séparent la
+   correction d'une devinette :
+
+   · un relais qui REFUSE (`OK … false` — relais payant, liste blanche,
+     type d'événement restreint : la panne la plus courante d'un relais
+     public) doit être nommé, et le geste est l'INVERSE de « pas de
+     connexion » : le réseau de l'utilisateur va bien, c'est la liste
+     qu'il faut changer. Dire « pas de connexion » à quelqu'un dont la
+     connexion est parfaite l'envoie réparer ce qui marche.
+   · un relais SOURD (il dit oui, et ne transmet rien) ne se fait PAS
+     accuser : l'app n'a qu'une connexion, elle ne peut pas prouver
+     qu'il ne relaie pas — un relais sain qui ne renverrait pas notre
+     propre annonce serait innocent. On exige donc qu'elle se taise et
+     reste sur « En attente », et c'est la sonde (deux connexions) qui
+     tranche, hors de l'app. Se tromper de cause coûte plus cher que
+     ne pas savoir (§8).
+   Le compte `relaient` est relevé dans les deux cas : il ne juge pas,
+   il part dans le diagnostic, là où il sert à réparer. */
+{
+  const cas = [
+    { nom: 'refus', opts: { refus: true }, etat: 'relaisrefus', dit: /refusent nos annonces/i },
+    { nom: 'sourd', opts: { sourd: true }, etat: 'wait', dit: /En attente/ }
+  ];
+  for (const c of cas){
+    const relais = await startLocalRelay({ tls: true, ...c.opts });
+    const P = await mk(mobile);
+    await P.goto(base, { waitUntil: 'load' });
+    await P.evaluate(async url => {
+      const st = await import('./engine/storage.js');
+      await st.kvInit();
+      await st.kvSet(st.RELAYS_KEY, JSON.stringify([url]));
+    }, relais.url);
+    await P.reload({ waitUntil: 'load' });
+    await P.click('.bottomnav a[data-r="echanger"]');
+    await P.waitForSelector('#ecPromo');
+    await P.click('#ecPromo');
+    await P.waitForSelector('#prPass');
+    await P.fill('#prPass', 'labo-relais-' + c.nom);
+    await P.click('.modal-f .btn-primary');
+    await P.waitForSelector('#prStatus');
+    /* le socket DOIT s'ouvrir, sinon on mesure un relais mort déguisé */
+    await attendre(P, async () => (await import('./ui/synclive.js')).relaySnapshot().open > 0,
+      { timeout: 30000, message: 'le socket vers le relais ' + c.nom + ' ne s’est pas ouvert' });
+    /* passé le délai de grâce, l'app a fini de douter */
+    await P.waitForTimeout(15000);
+    const snap = await P.evaluate(async () => (await import('./ui/synclive.js')).relaySnapshot());
+    const st = (await P.textContent('#prStatus') || '').replace(/\s+/g, ' ').trim();
+    /* PAS DE ✓ APRÈS UN ÉCHEC : une ligne verte posée juste à côté d'un
+       rouge est la ligne qu'on retient, et c'est la règle que
+       `e2e-sonde-relais.mjs` s'était déjà donnée. On note l'état du
+       verdict avant le bloc, et on ne conclut que si rien n'a rougi. */
+    const avant = process.exitCode || 0;
+    if (!snap.open) fail('relais ' + c.nom + ' : socket fermé, le cas n’est pas joué');
+    if (snap.relaient)
+      fail('relais ' + c.nom + ' : un événement est compté relayé alors que ce relais '
+        + 'ne transmet rien — ' + JSON.stringify(snap));
+    if (c.nom === 'refus'){
+      if (!snap.refus) fail('relais refus : le « non » du relais n’est pas lu — ' + JSON.stringify(snap));
+      if (snap.vivants) fail('relais refus : compté vivant alors qu’il a dit non — ' + JSON.stringify(snap));
+      if (/En attente/.test(st))
+        fail('relais refus : l’écran invite encore à attendre un camarade qui ne '
+          + 'pourra JAMAIS arriver — c’est le défaut d’origine, sur les trois canaux');
+      if (!c.dit.test(st))
+        fail('relais refus : l’écran ne nomme pas le refus — « ' + st + ' »');
+      if ((process.exitCode || 0) === avant)
+        console.log('relais qui REFUSE : ' + snap.refus + ' refus lu(s), 0 vivant → l’écran '
+          + 'nomme la panne et le geste (« ' + st.slice(0, 64) + '… ») ✓');
+    } else {
+      if (!c.dit.test(st))
+        fail('relais sourd : l’app devrait se TAIRE (elle ne peut pas le prouver seule) '
+          + 'et rester sur « En attente » — obtenu « ' + st + ' »');
+      if ((process.exitCode || 0) === avant)
+        console.log('relais SOURD : 0 événement relayé, relevé sans accusation — '
+          + 'l’app se tait, la sonde tranche ✓');
+    }
+    await P.context().close();
+    relais.close();
+  }
+}
+
 /* « Réessayer » n'est pas un bouton décoratif : le relais renaît sur le
    même port, un tap, et la liaison se rétablit réellement.
    ON EXIGE `vivants`, PAS SEULEMENT `open` — et c'est plus fort qu'avant :

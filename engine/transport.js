@@ -51,6 +51,66 @@ export const RELAIS_DEFAUT = [
   'wss://purplerelay.com'
 ];
 
+/* ---------- CE QUE DIT UNE TRAME DE RELAIS ----------
+   Un relais qui PARLE n'est pas un relais qui RELAIE, et c'est
+   l'incident #14 refait un étage plus haut. Là on déduisait « joint »
+   de `readyState === 1` ; ici on déduisait « vivant » de « il nous a
+   envoyé un message » — et un EOSE est un message. Or un EOSE ne
+   prouve qu'une chose : le relais a lu notre abonnement. Il ne dit
+   RIEN de ce que le produit a besoin de savoir, qui est « mon annonce
+   atteindra-t-elle l'autre ? ».
+
+   Mesuré, trois relais côte à côte, un seul appareil dans la salle :
+   le relais sain renvoie notre propre annonce (5 trames `EVENT` en
+   16 s) ; le relais sourd et le relais qui refuse n'en renvoient
+   aucune — et l'app comptait les trois « vivants », donc affichait
+   « En attente de ton groupe » à l'infini. Elle accusait le camarade
+   absent d'une panne qui était celle du transport, sur les TROIS
+   canaux à la fois (groupe, rendez-vous QR, sync).
+
+   On classe donc la trame, en trois valeurs et pas deux :
+
+   · `relaie` — un `EVENT` est passé. C'est la seule preuve positive.
+   · `refus`  — le relais dit NON, explicitement : `OK … false` (NIP-20
+     « restricted: », « blocked: », « rate-limited: »…), `CLOSED` sur
+     notre abonnement, ou `AUTH` — il réclame une authentification que
+     la bibliothèque ne sait pas faire, donc rien ne passera jamais.
+     C'est aujourd'hui la panne la plus courante d'un relais public.
+   · `parle`  — tout le reste (EOSE, `OK … true`, inconnu).
+
+   ON NE DEVINE PAS. Un `NOTICE` est du texte libre : il ne compte
+   comme refus que s'il porte un des mots de refus connus. Un relais
+   bavard qui dit bonjour ne doit pas être accusé — se tromper de
+   cause coûte plus cher que ne pas savoir (§8), et c'est la même
+   règle que `causeLiaison` plus bas. */
+const MOTS_REFUS = /restricted|blocked|rate-?limit|auth[- ]?required|payment|paid|invalid|pow:|not accept|forbidden|unauthorized/i;
+/* la trame la plus GROSSE est aussi la plus fréquente : un `EVENT`
+   porte le SDP d'une liaison, plusieurs kilo-octets, et elles passent
+   toutes par ici. On lit donc son type au PRÉFIXE, sans re-parser un
+   message que la bibliothèque parse déjà juste après. Le plafond qui
+   suit garde la même idée : un verdict (`OK`, `NOTICE`, `CLOSED`,
+   `AUTH`) est toujours court, donc rien de long n'a besoin d'être
+   analysé pour savoir qu'il n'en est pas un. */
+const VERDICT_MAX = 2048;
+export function classerTrame(data){
+  const brut = String(data == null ? '' : data);
+  if (/^\s*\[\s*"EVENT"/.test(brut)) return 'relaie';
+  if (brut.length > VERDICT_MAX) return 'parle';
+  let m;
+  try { m = JSON.parse(brut); } catch (e) { return 'parle'; }
+  if (!Array.isArray(m) || !m.length) return 'parle';
+  const type = String(m[0]).toUpperCase();
+  if (type === 'EVENT') return 'relaie';
+  /* `OK` porte son verdict en troisième position : faux = refusé */
+  if (type === 'OK') return m[2] === false ? 'refus' : 'parle';
+  if (type === 'CLOSED') return 'refus';
+  /* `AUTH` n'est pas un refus poli, c'est un mur : la bibliothèque ne
+     signe aucun défi NIP-42, donc aucune annonce ne passera. */
+  if (type === 'AUTH') return 'refus';
+  if (type === 'NOTICE') return MOTS_REFUS.test(String(m[1] || '')) ? 'refus' : 'parle';
+  return 'parle';
+}
+
 /* compte les WebSockets de relais par état (readyState 0/1), et — c'est
    la moitié qui manquait — combien ont RÉELLEMENT répondu.
 
@@ -63,19 +123,34 @@ export const RELAIS_DEFAUT = [
    accusait le pair absent d'une panne qui n'était pas la sienne, et
    invitait à patienter devant quelque chose qui n'arriverait jamais.
 
-   `repondu` est l'ensemble des relais dont on a reçu au moins un
+   `parlent` est l'ensemble des relais dont on a reçu au moins un
    message. Absent, on ne conclut RIEN : `vivants` vaut `open`, et
    personne n'est accusé — un appelant qui ne sait pas ne doit pas
-   faire dire à cette fonction ce qu'il ignore. */
-export function relayTally(socks, repondu){
-  const t = { total: 0, open: 0, pending: 0, vivants: 0 };
+   faire dire à cette fonction ce qu'il ignore.
+
+   `relaient` (un `EVENT` est passé) et `refusent` (il a dit non) sont
+   les deux ensembles que `classerTrame` alimente. Ils ne changent pas
+   le sens de `vivants` — sauf pour un relais qui REFUSE, retiré des
+   vivants parce qu'un relais qui répond « non » n'est pas un relais
+   joignable, c'est un relais fermé qui répond poliment.
+   `relaient` reste un COMPTE, jamais un verdict : un relais sain qui
+   ne renverrait pas notre propre annonce ne doit pas se faire
+   accuser, et cette hypothèse-là n'est mesurée que sur le relais
+   local. Elle se mesure sur les vrais relais par la sonde
+   (`sonde-relais-publics.mjs`), qui n'en a pas besoin — elle ouvre
+   deux connexions. */
+export function relayTally(socks, parlent, relaient, refusent){
+  const t = { total: 0, open: 0, pending: 0, vivants: 0, relaient: 0, refus: 0 };
   for (const k in (socks || {})){
     const s = socks[k];
     if (!s) continue;
     t.total++;
     if (s.readyState === 1){
       t.open++;
-      if (!repondu || repondu.has(k)) t.vivants++;
+      const refuse = !!(refusent && refusent.has(k));
+      if (refuse) t.refus++;
+      if (relaient && relaient.has(k)) t.relaient++;
+      if (!refuse && (!parlent || parlent.has(k))) t.vivants++;
     } else if (s.readyState === 0) t.pending++;
   }
   return t;
@@ -85,6 +160,14 @@ export function relayTally(socks, repondu){
    · on         — pair connecté ET un échange a réellement été reçu
    · link       — pair connecté, premier échange pas encore arrivé
    · norelay    — aucun relais joignable passé le délai de grâce
+   · relaisrefus— les relais joints REFUSENT nos annonces (`OK … false`,
+                  `CLOSED`, `AUTH`) : le réseau de l'utilisateur va
+                  bien, c'est la LISTE qui ne va pas. Le geste est
+                  donc l'inverse de « pas de connexion » — on ne
+                  redémarre pas son wifi, on change de relais. Dire
+                  « pas de connexion » à quelqu'un dont la connexion
+                  est parfaite l'envoie réparer ce qui marche, et c'est
+                  la faute déjà payée par `causeLiaison`
    · rtcfail    — un pair s'est annoncé et la liaison a échoué ; la
                   CAUSE (`causeLiaison`) dit laquelle des trois, et
                   elles n'appellent pas le même geste
@@ -96,6 +179,13 @@ export function liaisonStage({ relays, peers, exchanged, rtcFail, graceOver }){
   if (r.total && !r.open) return graceOver ? 'norelay' : 'connecting';
   if (rtcFail) return 'rtcfail';
   if (!r.total || !r.open) return 'connecting';
+  /* UN RELAIS QUI DIT NON N'EST PAS UN RELAIS QUI SE TAIT. Le refus
+     est explicite et sans ambiguïté : aucune annonce ne passera par
+     celui-là, jamais, et attendre n'y changera rien. On ne le dit
+     qu'une fois le délai de grâce passé et s'il ne reste AUCUN relais
+     vivant — un seul relais sain suffit à faire circuler, donc un
+     refus au milieu d'une liste saine ne regarde personne. */
+  if (graceOver && r.refus && !r.vivants) return 'relaisrefus';
   /* DES SOCKETS OUVERTS, MAIS PAS UN RELAIS QUI RÉPONDE. Ce n'est pas
      « personne en face » : c'est le transport qui est muet, et attendre
      n'y changera rien. On rend `norelay`, donc le même message et le

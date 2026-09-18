@@ -332,6 +332,21 @@ appartiennent à la même personne (`engine/sync.js`, transport P2P chiffré).
    pair annoncé mais liaison directe en échec (`onJoinError`), pair
    connecté, et n'annonce « à jour » qu'après un échange réellement reçu
    (`engine/transport.js::liaisonStage`, vérifié par `?test`).
+   **Et un relais qui PARLE n'est pas un relais qui RELAIE** — la même
+   faute un étage plus haut. « Vivant » se déduisait de « il nous a
+   envoyé un message », et un EOSE est un message : un relais qui refuse
+   nos annonces (`OK … false`, `CLOSED`, `AUTH` — relais payant, liste
+   blanche, type restreint) était compté sain, et les TROIS canaux P2P
+   restaient sur « En attente » sans fin. `classerTrame` range chaque
+   trame en `relaie` / `refus` / `parle` ; un refus sort des vivants et
+   l'étape devient `relaisrefus`, qui appelle le geste INVERSE de « pas
+   de connexion » (le réseau va bien, c'est la liste qui ne va pas).
+   Un relais **sourd** — il dit oui et ne transmet rien — n'est en
+   revanche jamais accusé par l'app : avec une seule connexion elle ne
+   peut pas le prouver. Ce relevé-là appartient à la sonde
+   (`tests/e2e/sonde-relais-publics.mjs`, deux connexions, type
+   d'événement dérivé du nom de la salle comme la bibliothèque), et le
+   compte `relaient` ne sert qu'au diagnostic.
 6. Le **partage en groupe** (ex-« salle de promo » — le préfixe technique
    `promo-` et la clé `oc_promo_v1` ne changent pas), lui, passe exclusivement par `sharePayload`
    (vue communautaire, §3) et l'aperçu avant fusion (§4) — mêmes règles que

@@ -24,7 +24,8 @@ import { DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, SYNC_KEY,
          RELAYS_KEY, TURN_KEY, DEVICE_KEY, DEVICES_KEY, PROMO_KEY, VAULT_KEY,
          ANALYSIS_KEY, SEALABLE, THEME_KEY, VIEW_KEY, OLD_V2, OLD_V1,
          kvGet, kvSet, kvDel, vaultActive, vaultDetach, vaultReseal } from './engine/storage.js';
-import { causeLiaison, relayTally, liaisonStage, parseTurn, turnText, TURN_MAX, RELAIS_DEFAUT } from './engine/transport.js';
+import { causeLiaison, classerTrame, relayTally, liaisonStage, parseTurn, turnText,
+         TURN_MAX, RELAIS_DEFAUT } from './engine/transport.js';
 import { VAULT_WORDS, PHRASE_LEN, makeVaultPhrase, normVaultPhrase, phraseUnknownWords,
          createVault, unlockWithPin, unlockWithPhrase, unlockWithPrf,
          setPin, addPrfWrap, rotateVault,
@@ -362,22 +363,90 @@ export async function runSelfTests(){
       eq(causeLiaison({}), 'inconnu');
     },
     'transport : relayTally compte les sockets par état, ET ceux qui répondent': () => {
-      eq(relayTally(null), { total: 0, open: 0, pending: 0, vivants: 0 });
-      eq(relayTally({}), { total: 0, open: 0, pending: 0, vivants: 0 });
+      const vide = { total: 0, open: 0, pending: 0, vivants: 0, relaient: 0, refus: 0 };
+      eq(relayTally(null), vide);
+      eq(relayTally({}), vide);
       const socks = { a: { readyState: 1 }, b: { readyState: 0 }, c: { readyState: 3 }, d: null };
       /* SANS PREUVE, ON N'ACCUSE PERSONNE : un appelant qui ne sait pas
          qui a répondu ne doit pas faire dire à cette fonction que les
          relais sont muets. `vivants` vaut alors `open`. */
-      eq(relayTally(socks), { total: 3, open: 1, pending: 1, vivants: 1 });
+      eq(relayTally(socks), { total: 3, open: 1, pending: 1, vivants: 1, relaient: 0, refus: 0 });
       /* AVEC la preuve : un socket ouvert qui n'a jamais parlé n'est
          pas un relais qui marche. C'est la panne qui laissait l'écran
          sur « En attente de ton autre appareil », indéfiniment. */
-      eq(relayTally(socks, new Set()), { total: 3, open: 1, pending: 1, vivants: 0 });
-      eq(relayTally(socks, new Set(['a'])), { total: 3, open: 1, pending: 1, vivants: 1 });
+      eq(relayTally(socks, new Set()), { total: 3, open: 1, pending: 1, vivants: 0, relaient: 0, refus: 0 });
+      eq(relayTally(socks, new Set(['a'])), { total: 3, open: 1, pending: 1, vivants: 1, relaient: 0, refus: 0 });
       /* un relais qui a répondu mais dont le socket est retombé ne
          compte pas : c'est `readyState` qui commande l'ouverture */
       eq(relayTally({ z: { readyState: 3 } }, new Set(['z'])),
-         { total: 1, open: 0, pending: 0, vivants: 0 });
+         { total: 1, open: 0, pending: 0, vivants: 0, relaient: 0, refus: 0 });
+      /* UN RELAIS QUI A RELAYÉ se compte à part : c'est la seule preuve
+         positive que le transport sert à quelque chose. Il reste vivant,
+         évidemment. */
+      eq(relayTally(socks, new Set(['a']), new Set(['a'])),
+         { total: 3, open: 1, pending: 1, vivants: 1, relaient: 1, refus: 0 });
+      /* ET UN RELAIS QUI DIT NON N'EST PAS UN RELAIS VIVANT. Il parle,
+         donc l'ancien compte le déclarait sain ; il a pourtant répondu
+         « non » et rien ne passera jamais par lui. C'est la panne qui
+         bloquait les TROIS canaux sur « En attente ». */
+      eq(relayTally(socks, new Set(['a']), null, new Set(['a'])),
+         { total: 3, open: 1, pending: 1, vivants: 0, relaient: 0, refus: 1 });
+    },
+    'transport : un relais qui PARLE n’est pas un relais qui RELAIE': () => {
+      /* Un EOSE ne prouve qu'une chose : le relais a lu notre
+         abonnement. Le produit, lui, a besoin de savoir si son annonce
+         atteindra l'autre — et la seule preuve positive est qu'un
+         ÉVÉNEMENT soit passé. Mesuré sur trois relais côte à côte : le
+         sain renvoie notre propre annonce, le sourd et celui qui refuse
+         n'en renvoient aucune, et l'app comptait les trois vivants. */
+      eq(classerTrame(JSON.stringify(['EVENT', 'sub', { id: 'x' }])), 'relaie');
+      /* UN GROS ÉVÉNEMENT SE RECONNAÎT SANS ÊTRE RELU. Les `EVENT`
+         portent le SDP des liaisons — plusieurs kilo-octets, et ce sont
+         les plus fréquents : on lit le préfixe, donc un événement de
+         50 Ko se classe sans un seul JSON.parse. */
+      eq(classerTrame('["EVENT","sub",{"content":"' + 'x'.repeat(50000) + '"}]'), 'relaie');
+      /* et rien de long ne devient un verdict : un refus est court */
+      eq(classerTrame('["NOTICE","' + 'restricted '.repeat(500) + '"]'), 'parle');
+      eq(classerTrame(null), 'parle');
+      eq(classerTrame(JSON.stringify(['EOSE', 'sub'])), 'parle');
+      eq(classerTrame(JSON.stringify(['OK', 'id', true, ''])), 'parle');
+      /* les refus EXPLICITES, ceux qui ne laissent aucun doute */
+      eq(classerTrame(JSON.stringify(['OK', 'id', false, 'restricted: not accepted'])), 'refus');
+      eq(classerTrame(JSON.stringify(['CLOSED', 'sub', 'auth-required: …'])), 'refus');
+      /* `AUTH` n'est pas un refus poli, c'est un mur : la bibliothèque
+         ne signe aucun défi NIP-42, donc rien ne passera jamais */
+      eq(classerTrame(JSON.stringify(['AUTH', 'defi'])), 'refus');
+      /* ON NE DEVINE PAS : un NOTICE est du texte libre. Il ne compte
+         comme refus que s'il porte un mot de refus connu — un relais
+         bavard qui dit bonjour ne doit pas être accusé (§8). */
+      eq(classerTrame(JSON.stringify(['NOTICE', 'restricted: paid relay'])), 'refus');
+      eq(classerTrame(JSON.stringify(['NOTICE', 'bonjour et bienvenue'])), 'parle');
+      /* et rien d'illisible ne devient une accusation */
+      eq(classerTrame('pas du json'), 'parle');
+      eq(classerTrame(''), 'parle');
+      eq(classerTrame('[]'), 'parle');
+      eq(classerTrame(JSON.stringify(['MACHIN'])), 'parle');
+    },
+    'transport : un relais qui refuse appelle le geste INVERSE de « pas de connexion »': () => {
+      const base = { peers: 0, exchanged: false, rtcFail: false, graceOver: true };
+      /* Les relais répondent NON : le réseau de l'utilisateur va très
+         bien, c'est la LISTE qui ne va pas. Dire « pas de connexion »
+         l'enverrait réparer son wifi — la faute déjà payée par
+         `causeLiaison`, où trois pannes sortaient en une phrase. */
+      eq(liaisonStage({ ...base, relays: { total: 9, open: 9, vivants: 0, refus: 9 } }), 'relaisrefus');
+      /* avant le délai de grâce, on ne crie pas au loup */
+      eq(liaisonStage({ ...base, graceOver: false,
+        relays: { total: 9, open: 9, vivants: 0, refus: 9 } }), 'connecting');
+      /* UN SEUL RELAIS SAIN SUFFIT À FAIRE CIRCULER : un refus au milieu
+         d'une liste saine ne regarde personne, et l'attente redevient
+         honnête. */
+      eq(liaisonStage({ ...base, relays: { total: 9, open: 9, vivants: 1, refus: 8 } }), 'wait');
+      /* et un pair en face prime sur tout le reste */
+      eq(liaisonStage({ ...base, peers: 1, exchanged: true,
+        relays: { total: 9, open: 9, vivants: 0, refus: 9 } }), 'on');
+      /* SANS REFUS, rien ne change : des sockets ouverts et muets
+         restent « pas de connexion », même remède, même phrase */
+      eq(liaisonStage({ ...base, relays: { total: 9, open: 9, vivants: 0, refus: 0 } }), 'norelay');
     },
     'transport : des sockets ouverts mais muets ne sont pas une attente': () => {
       const base = { peers: 0, exchanged: false, rtcFail: false, graceOver: true };
@@ -1222,7 +1291,10 @@ export async function runSelfTests(){
       ok(txt.includes('mémoire (rien ne survit)'));
       /* sans transport connu, la ligne existe quand même et dit zéro :
          une ligne qui disparaît casse la comparaison entre rapports */
-      ok(txt.includes('Transport : 0 relais · 0 joint(s) · 0 qui répond(ent)'));
+      /* « qui relaie(nt) » rejoint la ligne : c'est le nombre qui nomme
+         la panne des trois canaux, et ni « joints » ni « répondent » ne
+         pouvaient la montrer. Le format reste à CINQ lignes stables. */
+      ok(txt.includes('Transport : 0 relais · 0 joint(s) · 0 qui répond(ent) · 0 qui relaie(nt)'));
       ok(txt.includes('Documents : 0 (0 Ko)'));
       ok(txt.includes('sans protection') && txt.includes('appareils non reliés'));
       ok(txt.includes('inconnu') && txt.includes('0×0'));

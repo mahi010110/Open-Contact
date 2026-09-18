@@ -147,6 +147,10 @@ export function openRecevoir(){
       if (!el) return;
       if (stage === 'norelay')
         el.innerHTML = `${ic('square-alert', 'ic-14')} Pas de connexion — demande un QR hors ligne ou un fichier.`;
+      /* les relais répondent NON : le réseau va bien, c'est la liste
+         qui ne va pas — et le QR hors ligne, lui, n'en a pas besoin */
+      else if (stage === 'relaisrefus')
+        el.innerHTML = `${ic('square-alert', 'ic-14')} Les relais refusent nos annonces — demande le QR hors ligne.`;
       /* les trois pannes d'`onJoinError` appellent trois gestes : refaire
          le rendez-vous, ou renoncer au direct. Les confondre envoyait
          chercher un fichier à qui avait juste scanné un vieux QR. */
