@@ -45,11 +45,23 @@
 import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { chromium, chromiumPath, ROOT } from './outils.mjs';
 import { startLocalRelay } from './relais-local.mjs';
 import { RELAIS_DEFAUT } from '../../engine/transport.js';
 
 const ATTENTE_MS = 20000;   /* un relais chargé met plusieurs secondes */
+
+/* DEUX USAGES, UN SEUL INSTRUMENT.
+   · routine (défaut) : les relais que l'app compose vraiment. C'est ce
+     que la CI joue à chaque poussée — le mode qui garde le transport.
+   · exploration (OC_RELAIS_SOURCE=candidats) : les relais par défaut de
+     la bibliothèque, moins ceux déjà épinglés. Sert UNE fois, à choisir
+     des remplaçants sur mesure plutôt que sur réputation. Il ne tourne
+     pas en routine : quarante relais, c'est dix minutes.
+   Le mode routine ne change pas d'un iota — un instrument dont on
+   modifie la mesure en même temps qu'on s'en sert ne prouve rien. */
+const MODE_CANDIDATS = process.env.OC_RELAIS_SOURCE === 'candidats';
 
 /* La page est servie par NOTRE serveur, avec une copie du bundle
    vendorisé : on sonde le relais, pas l'application — pas de service
@@ -138,11 +150,24 @@ if (!process.env.OC_SONDE_RELAIS){
   process.exit(0);
 }
 
+/* la liste à sonder — en exploration, elle vient de la bibliothèque
+   elle-même : aucune adresse écrite à la main, donc rien à maintenir */
+async function aSonder(){
+  if (!MODE_CANDIDATS) return RELAIS_DEFAUT;
+  const { defaultRelayUrls } = await import(
+    pathToFileURL(path.join(ROOT, 'assets/vendor/trystero-nostr.min.js')).href);
+  const deja = new Set(RELAIS_DEFAUT);
+  return (defaultRelayUrls || []).filter(u => !deja.has(u));
+}
+
 const { srv, base } = await serveur();
 const browser = await chromium.launch({ executablePath: chromiumPath() });
 let sortie = 0;
 try {
-  console.log('relais épinglés par l’app : ' + RELAIS_DEFAUT.length);
+  const relais = await aSonder();
+  console.log(MODE_CANDIDATS
+    ? 'EXPLORATION — ' + relais.length + ' candidats (défauts de la bibliothèque, hors épinglés)'
+    : 'relais épinglés par l’app : ' + relais.length);
 
   /* ① contrôle : la sonde sait-elle voir une découverte qui marche ? */
   const local = await startLocalRelay({ tls: true });
@@ -159,7 +184,7 @@ try {
 
   /* ② les relais réellement composés par l'app */
   const porteurs = [], muets = [], coupes = [], bizarres = [];
-  for (const url of RELAIS_DEFAUT){
+  for (const url of relais){
     const r = await decouverte(browser, base, url);
     if (r.etat === 'découverte'){ porteurs.push(url); console.log('✓ ' + url + ' — la découverte passe'); }
     else if (r.etat === 'muet'){ muets.push(url); console.log('✗ ' + url + ' — MUET : socket ouverte, aucune découverte'); }
@@ -167,7 +192,7 @@ try {
     else { bizarres.push([url, r.erreurs.join(' | ')]); console.log('? ' + url + ' — pair trouvé puis liaison en échec : ' + r.erreurs.join(' | ')); }
   }
 
-  console.log('\n' + porteurs.length + '/' + RELAIS_DEFAUT.length + ' relais portent réellement la découverte.');
+  console.log('\n' + porteurs.length + '/' + relais.length + ' relais portent réellement la découverte.');
   if (muets.length){
     console.log('\nLECTURE OK, ÉCRITURE MUETTE — ces relais rendent « En attente » à l’infini :');
     muets.forEach(u => console.log('  · ' + u));
@@ -178,9 +203,15 @@ try {
   }
   bizarres.forEach(([u, e]) => console.log('\n? ' + u + ' — à regarder : ' + e));
 
-  /* Le seuil vaut ce qu'il vaut : DEUX porteurs suffisent à ce que deux
-     appareils se trouvent, en dessous le transport public est mort. */
-  if (porteurs.length < 2){
+  if (MODE_CANDIDATS){
+    /* Une EXPLORATION ne rougit pas : elle ne garde rien, elle propose.
+       Un candidat muet n'est pas une régression, c'est un renseignement. */
+    console.log('\nCANDIDATS RETENUS — à recopier dans RELAIS_DEFAUT :');
+    porteurs.forEach(u => console.log("  '" + u + "',"));
+    console.log('\n(à re-mesurer par le mode routine une fois épinglés : c’est lui qui garde.)');
+  } else if (porteurs.length < 2){
+    /* Le seuil vaut ce qu'il vaut : DEUX porteurs suffisent à ce que deux
+       appareils se trouvent, en dessous le transport public est mort. */
     console.log('\nÉCHEC : moins de deux relais portent la découverte — le partage et la sync ne peuvent pas marcher.');
     sortie = 1;
   }
