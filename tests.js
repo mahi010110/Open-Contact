@@ -14,7 +14,8 @@ import { APP_VERSION, VECU, normalizeCompany, normalizeContact, normalizeProfile
          PROMPTS_MAX, PROMPT_MAX_LEN } from './engine/model.js';
 import { communityView, parseInput, sharePayload, fullPayload,
          encodeOCQ, splitOCQ, makeOCQJoiner, OCQP_CHUNK,
-         makeRdvCode, rdvNorm, rdvWrap, rdvParse, linkWrap, linkParse } from './engine/exchange.js';
+         makeRdvCode, rdvNorm, rdvWrap, rdvParse, linkWrap, linkParse,
+         promoNorm } from './engine/exchange.js';
 import { findMatch, mergeIncoming, contactKey } from './engine/merge.js';
 import { syncMerge, mergeTombs, TOMBS_MAX } from './engine/sync.js';
 import { filterCompanies, filterOrphans, searchHint, NATURAL_DIR } from './engine/filter.js';
@@ -126,6 +127,22 @@ export async function runSelfTests(){
       eq(linkParse('OCL1.-abc'), null);                     /* pas de tiret en tête */
       eq(linkParse('n’importe quoi'), null);
       eq(rdvNorm('hello'), '');                           /* trop court une fois normalisé */
+    },
+    'Code du groupe : deux personnes le tapent, une seule salle': () => {
+      /* La salle du partage en groupe est un hash du code. Sans mise en
+         forme commune, « SIO-Lille-2026 » et « sio-lille-2026 » ouvrent
+         deux salles, et les deux écrans attendent pour toujours sans un
+         mot — mesuré de bout en bout. C'est le seul code de l'app que
+         DEUX personnes tapent chacune de son côté. */
+      eq(promoNorm(' SIO-Lille-2026 '), 'sio-lille-2026');
+      eq(promoNorm('Sio-Lille-2026'), promoNorm('sio-lille-2026'));
+      /* un clavier de téléphone met la majuscule tout seul en tête */
+      eq(promoNorm('Promo bts'), 'promo bts');
+      /* les espaces INTÉRIEURS restent : deux codes, pas un */
+      ok(promoNorm('sio lille') !== promoNorm('siolille'));
+      eq(promoNorm('sio   lille'), 'sio lille');   /* mais ils se rangent */
+      eq(promoNorm(''), '');
+      eq(promoNorm(null), '');
     },
     'normalizeCompany : héritage v1, domaine inconnu, extra (D3)': () => {
       const c = normalizeCompany({ name: 'X', contact: 'Ana', email: 'a@b.fr', domain: 'zzz', champFutur: 42 });

@@ -4,22 +4,24 @@
 concevoir — ça, c'est `CLAUDE.md`. Et il ne redit pas l'état des surfaces —
 ça, c'est [`surfaces.md`](surfaces.md).
 
-*Dernière mise à jour : 7 septembre 2026.*
+*Dernière mise à jour : 18 septembre 2026.*
 
 ---
 
 ## Là où on en est
 
 La surface web est **fonctionnellement complète** et n'attend plus de
-fonctionnalité pour être montrée. 124 auto-tests verts, et 22 scénarios de
+fonctionnalité pour être montrée. 132 auto-tests verts, et 26 scénarios de
 bout en bout joués dans un vrai navigateur, en deux tailles d'écran et deux
 thèmes.
 
-La suite en compte 33 : les 11 autres sont **sautés, pas verts** — ils
-appartiennent aux capacités masquées (`ui/perimetre.js`) et à la surface
-ordinateur, dont le binaire n'est pas construit ici. Compter un scénario
-sauté comme réussi est exactement ce que `developpement.md` interdit ; ce
-chiffre-là est celui qu'on relit pour décider qu'on est prêt.
+La suite en compte 38 : les 12 autres sont **sautés, pas verts** — ils
+appartiennent aux capacités masquées (`ui/perimetre.js`), à la surface
+ordinateur, dont le binaire n'est pas construit ici, et depuis septembre
+au laboratoire à deux réseaux, qui demande root et `iproute2`
+(`OC_LABO_RESEAUX=1`). Compter un scénario sauté comme réussi est
+exactement ce que `developpement.md` interdit ; ce chiffre-là est celui
+qu'on relit pour décider qu'on est prêt.
 
 Ce qui reste avant de la mettre entre les mains d'étudiants tient en peu de
 choses, et aucune ne dépend de quelqu'un d'extérieur.
@@ -105,6 +107,50 @@ choses, et aucune ne dépend de quelqu'un d'extérieur.
       un TURN est un serveur — §10 et la question ② l'interdisent. Le repli
       (`.oc`, QR) est la réponse du produit, pas un pis-aller.
 
+- [x] **Une majuscule séparait deux camarades, en silence** — et **deux
+      vrais réseaux le disent maintenant**. Cherché du côté du transport,
+      trouvé du côté du texte : la salle du partage en groupe est un hash
+      du code, et le code partait **tel quel**. « SIO-Lille-2026 » d'un
+      côté, « sio-lille-2026 » de l'autre, deux salles — et les deux
+      écrans affichant « En attente de ton groupe » pour toujours, sans
+      un mot. C'était le seul code de l'app que **deux personnes** tapent
+      chacune de son côté, et le seul qui n'était pas mis en forme : le
+      rendez-vous QR (`rdvNorm`) et la phrase de liaison passaient déjà
+      en minuscules. La majuscule n'est même pas une faute d'attention —
+      un clavier de téléphone la met tout seul en tête de champ.
+      `promoNorm` la range, le champ montre la forme retenue, et les
+      trois champs par lesquels passe une liaison coupent enfin
+      `autocorrect` (ils avaient tous `autocapitalize`, aucun n'avait
+      celui **qui substitue un mot** — sur Safari, le moteur de
+      l'utilisateur type). *(septembre 2026)*
+
+      **Ce que l'instrument a coûté, et ce qu'il rapporte.** Jusqu'ici les
+      deux navigateurs vivaient sur la même machine et se reliaient par la
+      boucle locale : « ça ne marche pas quand on n'est pas sur le même
+      wifi » n'était ni reproductible ni réfutable.
+      `e2e-reseaux-separes.mjs` monte donc deux réseaux réels (espaces de
+      noms Linux, un NAT par côté, un STUN local) et joue le partage en
+      groupe de l'un à l'autre. Trois mondes, trois verdicts figés : deux
+      box **passent** (3 s), une box et un mobile **passent**, deux
+      mobiles **ne passent pas** et l'écran nomme la panne et le repli.
+      Deux leçons en sont sorties, toutes deux dans le sens qui accuse
+      l'app à tort :
+      · un `MASQUERADE` nu **n'est pas une box** — le paquet entrant
+        arrive avant la sortie, s'inscrit dans le suivi de connexions
+        pour le compte du routeur et vole le port, si bien que même un
+        **WebRTC nu** échouait ;
+      · d'où la règle que le scénario s'impose : **le témoin d'abord.**
+        Un WebRTC nu traverse le laboratoire avant qu'OpenContact n'y
+        touche, et son rouge accuse l'instrument, jamais l'application.
+        C'est la faute de la sonde des relais, rejouée un étage plus bas
+        — et elle a bien failli faire écrire « le P2P est cassé ».
+
+      **Ce qui n'a pas pu être mesuré, et qui reste donc ouvert** : les
+      relais publics (le bac à sable rend 403 sur toute WebSocket
+      sortante — voir l'entrée des relais muets) et **Safari**, dont le
+      navigateur ne se télécharge pas ici. L'utilisateur type est sur un
+      iPhone : c'est toujours le moteur que personne ne mesure.
+
 - [ ] **Essais sur vrai matériel** — un vrai téléphone d'entrée de gamme, un
       vrai réseau d'établissement. Les scénarios automatiques passent à côté
       de tout ce qui relève du doigt, de la lenteur et du wifi filtré.
@@ -118,8 +164,11 @@ choses, et aucune ne dépend de quelqu'un d'extérieur.
       maintenant la liste à sa source, et nomme les muets.
       Reste donc ce qu'aucune forge ne peut jouer : **le doigt, la lenteur
       et le wifi filtré d'un établissement**, sur un vrai téléphone
-      d'entrée de gamme — et la découverte de pair en WebRTC, qui demande
-      deux réseaux réels.
+      d'entrée de gamme. La découverte de pair en WebRTC, elle, n'est plus
+      de ce lot : `e2e-reseaux-separes.mjs` monte deux réseaux réels et
+      deux NAT (`OC_LABO_RESEAUX=1`, root et `iproute2` exigés). Ce qu'il
+      ne remplace pas : **Safari**, qui ne se télécharge pas dans cet
+      environnement, et les relais publics, injoignables d'ici.
 - [x] **Durabilité des données** — prouver qu'une installation neuve, puis
       une montée de version, ne perdent rien. C'est l'invariant qui coûte le
       plus cher s'il casse : sans serveur, ce qui disparaît ici a disparu

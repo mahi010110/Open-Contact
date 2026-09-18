@@ -12,11 +12,11 @@
 import { esc } from '../engine/utils.js';
 import { STATUSES } from '../engine/model.js';
 import { fnv } from '../engine/crypto.js';
-import { sharePayload, linkWrap, linkParse } from '../engine/exchange.js';
+import { sharePayload, linkWrap, linkParse, promoNorm } from '../engine/exchange.js';
 import { PROMO_KEY, RELAYS_KEY, TURN_KEY, kvGet, kvSet } from '../engine/storage.js';
 import { parseTurn, turnText } from '../engine/transport.js';
 import { S, bus, isClosed, logJ } from './state.js';
-import { openSheet, confirmSheet, toast, btn, ic, softReorder, collerEnHaut } from './dom.js';
+import { openSheet, confirmSheet, toast, btn, ic, softReorder, collerEnHaut, clavier } from './dom.js';
 import { mergePreviewInto } from './recevoir.js';
 import { makeQrSvg, startScan } from './qr.js';
 import { getSync, startSync, breakLink, keepMyProfile, makePhrase, openRoom, leaveRoom,
@@ -437,7 +437,7 @@ export function openAppareils(){
          <button class="btn" id="syScan" style="width:100%">${ic('grid-3x3', 'ic-14')} Scanner le QR de l’autre appareil</button>
          <p class="hint" id="syScanHint" hidden></p>
          <div class="field" style="margin-top:12px"><label for="syPhrase">Ou tape la phrase</label>
-           <input id="syPhrase" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="ex : k7m3p-9xq2f"></div>`;
+           <input id="syPhrase" autocomplete="off" ${clavier('secret')} placeholder="ex : k7m3p-9xq2f"></div>`;
       const go = v => {
         const p = String(v ?? q('#syPhrase').value).trim().toLowerCase();
         if (!p) return;
@@ -532,18 +532,35 @@ export function openPromo(){
     sh.body.innerHTML =
       `<div class="field"><label for="prPass">Mot de passe du groupe</label>
          <div class="date-row">
-           <input id="prPass" autocomplete="off" autocapitalize="off" placeholder="ex : sio-lille-2026"
+           <input id="prPass" autocomplete="off" ${clavier('secret')} placeholder="ex : sio-lille-2026"
                   title="Appui long pour copier" value="${esc(last)}">
            <button class="btn icon-btn" id="prGen" aria-label="Générer un code fort" title="Générer un code fort">${ic('reload', 'ic-14')}</button>
          </div></div>`;
-    const go = () => { const v = q('#prPass').value.trim(); if (v){ kvSet(PROMO_KEY, v); enter(v); } };
+    /* LE CODE SE MET EN FORME, ET ÇA SE VOIT. Deux personnes le tapent
+       chacune de son côté : la salle se dérive donc du code NORMALISÉ
+       (`promoNorm`), sinon une majuscule — celle qu'un clavier de
+       téléphone met tout seul — ouvre deux salles et les deux écrans
+       attendent pour toujours. Le champ montre la forme retenue au lieu
+       de la garder pour lui : ce qu'on lit est ce qui part. */
+    const go = () => { const v = promoNorm(q('#prPass').value); if (v){ kvSet(PROMO_KEY, v); enter(v); } };
     const copier = async (msg) => {
-      const v = q('#prPass').value.trim();
+      const v = promoNorm(q('#prPass').value);
       if (!v) return;
       try { await navigator.clipboard.writeText(v); toast(msg); }
       catch (e) { toast('Copie impossible ici — recopie-le à la main.'); }
     };
     q('#prPass').addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+    /* la minuscule se pose PENDANT la frappe (même longueur, le curseur
+       ne bouge pas) ; le reste de la mise en forme attend « Entrer » —
+       raboter les espaces sous le doigt effacerait celui qu'on est en
+       train de taper. */
+    q('#prPass').addEventListener('input', e => {
+      const v = e.target.value.toLowerCase();
+      if (v === e.target.value) return;
+      const p = e.target.selectionStart;
+      e.target.value = v;
+      try { e.target.setSelectionRange(p, p); } catch (err) {}
+    });
     q('#prGen').addEventListener('click', () => {
       q('#prPass').value = makePhrase();
       copier('Code généré et copié — partage-le au groupe.');

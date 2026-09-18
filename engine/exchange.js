@@ -116,6 +116,26 @@ export function rdvNorm(txt){
   return (s.length >= 8 && s.length <= 24) ? s : '';
 }
 export const rdvWrap = code => 'OCR1.' + code;
+
+/* ---------- LE CODE DU GROUPE (préfixe de salle « promo- ») ----------
+   Le seul code de l'app que DEUX PERSONNES tapent chacune de son côté,
+   et le seul qui n'était pas mis en forme. Le rendez-vous (`rdvNorm`) et
+   la phrase de liaison passent tous deux en minuscules ; celui-là
+   partait tel quel dans le hash de la salle. « SIO-Lille-2026 » et
+   « sio-lille-2026 » ouvraient donc DEUX salles, et les deux écrans
+   affichaient « En attente de ton groupe » — indéfiniment, sans une
+   ligne pour dire pourquoi. Mesuré : sur le même réseau où le partage
+   se relie en 3 secondes, une majuscule d'écart attend pour toujours.
+   La majuscule n'est même pas une faute d'attention : un clavier de
+   téléphone la met tout seul en tête de champ.
+   Ce qu'on ne touche PAS : l'espace intérieur ne disparaît pas
+   (« sio lille » et « siolille » sont deux codes, pas un), et rien
+   d'autre n'est filtré — le code est un mot choisi par le groupe, pas
+   un alphabet fermé comme le rendez-vous. */
+export function promoNorm(txt){
+  return String(txt || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
 /* lecture d'un QR : rend le code canonique, ou null si ce n'en est pas un */
 export function rdvParse(raw){
   const s = String(raw || '').trim();

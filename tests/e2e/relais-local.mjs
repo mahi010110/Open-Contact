@@ -106,7 +106,7 @@ function makeDecoder(onText, onClose, onPing){
    celle qui laissait l'app sur « En attente de ton autre appareil »
    indéfiniment. Sans ce double, on ne peut pas prouver la correction :
    un relais mort refuse le socket, un relais muet l'accepte. */
-export async function startLocalRelay({ silent = true, tls = false, port = 0, muet = false } = {}){
+export async function startLocalRelay({ silent = true, tls = false, port = 0, muet = false, hote = '127.0.0.1' } = {}){
   const conns = new Set();          /* { sock, send, subs: Map<subId, filtres[]> } */
   const log = (...a) => { if (!silent) console.log('[relais]', ...a); };
 
@@ -161,8 +161,11 @@ export async function startLocalRelay({ silent = true, tls = false, port = 0, mu
     sock.on('close', bye);
   });
 
-  await new Promise(r => server.listen(port, '127.0.0.1', r));
-  const url = (tls ? 'wss' : 'ws') + '://127.0.0.1:' + server.address().port;
+  await new Promise(r => server.listen(port, hote, r));
+  /* `hote` sert le laboratoire à deux réseaux (e2e-reseaux-separes.mjs) :
+     deux navigateurs dans des espaces de noms réseau distincts ne
+     joignent pas 127.0.0.1. Par défaut rien ne change. */
+  const url = (tls ? 'wss' : 'ws') + '://' + hote + ':' + server.address().port;
   return {
     url,
     server,

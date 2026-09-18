@@ -12,7 +12,7 @@ import { parseInput, makeOCQJoiner, rdvParse, rdvNorm } from '../engine/exchange
 import { mergeIncoming } from '../engine/merge.js';
 import { normalizeCompany } from '../engine/model.js';
 import { S, bus, saveData, logJ } from './state.js';
-import { openSheet, toast, btn, ic, showUndo } from './dom.js';
+import { openSheet, toast, btn, ic, showUndo, clavier } from './dom.js';
 import { openRoom, leaveRoom, watchLiaison, deviceSelf, ensureKeys } from './synclive.js';
 import { startScan } from './qr.js';
 import { probeOrdinateur, ordinateurCall } from '../engine/ordinateur.js';
@@ -98,7 +98,7 @@ export function openRecevoir(){
        <p class="hint" style="text-align:center" id="rcScanHint">Vise le QR.</p>
        <div class="field" style="margin-top:10px"><label for="rcCode">Ou le code affiché</label>
          <div class="date-row">
-           <input id="rcCode" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="ex : k7m3p-9xq2f">
+           <input id="rcCode" autocomplete="off" ${clavier('secret')} placeholder="ex : k7m3p-9xq2f">
            <button class="btn btn-primary" id="rcCodeGo" hidden>OK</button>
          </div></div>`;
     sh.setFoot([btn('← Retour', 'btn-ghost', menu)]);

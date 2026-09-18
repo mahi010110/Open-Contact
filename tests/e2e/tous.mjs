@@ -47,6 +47,13 @@ const horsPerimetre = s => {
   const flag = exigences.get(s);
   return (flag && !perim[flag]) ? flag : '';
 };
+/* Ce que la machine de tout le monde ne peut pas faire : deux vrais
+   réseaux demandent root et `iproute2`. */
+const surDemande = new Map([
+  ['e2e-reseaux-separes.mjs',
+    { env: 'OC_LABO_RESEAUX', pourquoi: 'deux réseaux réels : root et iproute2 exigés' }]
+]);
+
 const compDir = path.resolve(DIR, '..', '..', 'ordinateur');
 const bin = path.join(compDir, 'target', 'debug', 'oc-natif');
 
@@ -103,6 +110,17 @@ for (const s of scripts){
     sautes++;
     console.log(`↷ sauté — hors périmètre : ${hp} est masqué à l'écran (CLAUDE.md §0). ` +
       `Le code et ce scénario restent valides ; repasser ${hp} à true dans ui/perimetre.js les rejoue.`);
+    continue;
+  }
+  /* SUR DEMANDE — un scénario qui ne peut pas s'exécuter partout se
+     déclare ici, pas dans son propre code : sinon il sort 0 et le
+     résumé le compte VERT, alors qu'il n'a rien mesuré. « Un scénario
+     sauté n'est pas un scénario vert » est la première ligne du README ;
+     c'est le lanceur qui la tient. */
+  if (surDemande.has(s) && process.env[surDemande.get(s).env] !== '1'){
+    sautes++;
+    console.log('↷ sauté — ' + surDemande.get(s).pourquoi
+      + ` (${surDemande.get(s).env}=1 pour le jouer)`);
     continue;
   }
   if (natifs.has(s) && nativeReason){

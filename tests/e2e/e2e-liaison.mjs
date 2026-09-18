@@ -264,6 +264,112 @@ await C.screenshot({ path: SHOTS + '/liaison-groupe-bureau.png' });
   }
 }
 
+/* ---- LE CODE DU GROUPE : UNE MAJUSCULE NE FAIT PAS DEUX SALLES ----
+   La salle est un hash du code, et le code partait tel quel : « SIO-Lille-2026 »
+   d'un côté, « sio-lille-2026 » de l'autre, deux salles, et les deux écrans
+   affichant « En attente de ton groupe » POUR TOUJOURS, sans un mot. C'est le
+   seul code de l'app que deux personnes tapent chacune de son côté — et la
+   majuscule est mise par le clavier du téléphone, pas par l'utilisateur.
+   Reproduit dans un laboratoire à deux réseaux avant correction : sur le
+   réseau où le partage se relie en 3 s, l'écart de casse attendait sans fin.
+   On rejoue les deux moitiés : la casse ne sépare plus, et un code
+   VRAIMENT différent sépare toujours (sans quoi « tout le monde dans la
+   même salle » passerait ce contrôle). */
+{
+  const quitter = p => p.evaluate(async () => {
+    const { topSheet } = await import('./ui/dom.js');
+    let s; let n = 0;
+    while ((s = topSheet()) && n++ < 4){ s.close(null, true); await new Promise(r => setTimeout(r, 150)); }
+  });
+  const entrer = async (p, nav, code) => {
+    await p.click(nav + ' a[data-r="echanger"]');
+    await p.waitForSelector('#ecPromo');
+    await p.click('#ecPromo');
+    await p.waitForSelector('#prPass');
+    await p.fill('#prPass', code);
+    await p.click('.modal-f .btn-primary');
+    await p.waitForSelector('#prStatus');
+  };
+  const statut = async p => (await p.textContent('#prStatus') || '').replace(/\s+/g, ' ').trim();
+  const relies = async (a, b, ms) => {
+    for (let i = 0; i < ms / 1000; i++){
+      await a.waitForTimeout(1000);
+      if (/camarade/.test(await statut(a)) && /camarade/.test(await statut(b))) return true;
+    }
+    return false;
+  };
+  for (const p of [C, D]) await quitter(p);
+  await entrer(C, '.topnav', 'SIO-Lille-2026');
+  await entrer(D, '.bottomnav', 'sio-lille-2026');
+  if (!(await relies(C, D, 45000)))
+    fail('groupe : « SIO-Lille-2026 » et « sio-lille-2026 » n’ouvrent pas la même salle — '
+      + 'une majuscule que le clavier du téléphone met tout seul sépare deux camarades, '
+      + 'et les deux écrans attendent sans rien dire (statut C : ' + (await statut(C)) + ')');
+  else console.log('groupe : une majuscule d’écart ne fait plus deux salles ✓');
+
+  for (const p of [C, D]) await quitter(p);
+  await entrer(C, '.topnav', 'sio-lille-2026');
+  await entrer(D, '.bottomnav', 'sio-lille-2027');
+  if (await relies(C, D, 12000))
+    fail('groupe : deux codes DIFFÉRENTS ouvrent la même salle — la mise en forme '
+      + 'du code ne se contente pas de ranger la casse, elle efface le code');
+  else console.log('groupe : deux codes différents restent deux salles ✓');
+  for (const p of [C, D]) await quitter(p);
+}
+
+/* ---- CE QUI SE TAPE MOT À MOT NE SE FAIT PAS RÉÉCRIRE ----
+   Les trois champs par lesquels passe une liaison P2P — code du groupe,
+   phrase de liaison, code de rendez-vous — se tapent caractère par
+   caractère et doivent correspondre à l'octet près. Ils avaient tous
+   `autocapitalize`, aucun n'avait `autocorrect` : c'est pourtant CELUI-LÀ
+   qui substitue un mot, sur le moteur de l'utilisateur type (§1 : un
+   iPhone, donc Safari). Un mot substitué, et la salle change sans que
+   rien à l'écran ne le dise. Le genre `clavier('secret')` existait déjà
+   pour ça — il ne servait qu'au coffre. On mesure le DOM rendu, pas la
+   source : c'est l'attribut qui arrive au navigateur qui compte. */
+{
+  const attrs = async (p, sel) => p.$eval(sel, el => ({
+    autocorrect: el.getAttribute('autocorrect'), autocapitalize: el.getAttribute('autocapitalize'),
+    spellcheck: el.getAttribute('spellcheck')
+  }));
+  const exige = (nom, a) => {
+    if (a.autocorrect === 'off' && a.autocapitalize === 'off' && a.spellcheck === 'false') return true;
+    fail(nom + ' : un code qui se tape mot à mot laisse le clavier le réécrire — ' + JSON.stringify(a));
+    return false;
+  };
+  let bons = 0;
+  await C.click('.topnav a[data-r="echanger"]');
+  await C.waitForSelector('#ecPromo');
+  await C.click('#ecPromo');
+  await C.waitForSelector('#prPass');
+  if (exige('code du groupe', await attrs(C, '#prPass'))) bons++;
+  await C.evaluate(async () => (await import('./ui/dom.js')).topSheet()?.close(null, true));
+
+  /* « Recevoir » porte le champ du code de rendez-vous */
+  await C.click('.topnav a[data-r="echanger"]');
+  await C.waitForSelector('#ecRecv');
+  await C.click('#ecRecv');
+  await C.waitForSelector('#rcScan');
+  await C.click('#rcScan');
+  await C.waitForSelector('#rcCode');
+  if (exige('code de rendez-vous', await attrs(C, '#rcCode'))) bons++;
+  await C.evaluate(async () => (await import('./ui/dom.js')).topSheet()?.close(null, true));
+
+  await C.click('.topnav a[data-r="moi"]');
+  await ouvrirReglages(C);
+  await C.click('#moiSync');
+  await C.waitForSelector('#syJoin');
+  await C.click('#syJoin');
+  await C.waitForSelector('#syPhrase');
+  if (exige('phrase de liaison', await attrs(C, '#syPhrase'))) bons++;
+  await C.evaluate(async () => {
+    const { topSheet } = await import('./ui/dom.js');
+    let s; let n = 0;
+    while ((s = topSheet()) && n++ < 4){ s.close(null, true); await new Promise(r => setTimeout(r, 120)); }
+  });
+  if (bons === 3) console.log('les 3 codes qui se tapent coupent correction ET majuscule automatiques ✓');
+}
+
 /* ============ 3. Rendez-vous QR : donner ↔ recevoir par code ============ */
 /* fermer les feuilles de groupe des deux côtés */
 for (const p of [C, D])

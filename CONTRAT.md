@@ -27,7 +27,7 @@ doit être repensée, pas forcée.
 | `oc_turn_v1` | Serveurs TURN personnalisés (optionnel — pour les réseaux qui bloquent le pair-à-pair ; identifiants obligatoires — RTCPeerConnection refuse `turn:` sans eux — et scellés comme les relais) | JSON : tableau `{urls, username, credential}` |
 | `oc_device_v1` | Cet appareil — identité annoncée à la sync | JSON : `{id, name}` |
 | `oc_devices_v1` | Appareils reliés déjà vus (12 max, consultables et élagables) | JSON : tableau `{id, name, seen}` |
-| `oc_promo_v1` | Dernier mot de passe de partage en groupe (confort de saisie) | chaîne |
+| `oc_promo_v1` | Dernier mot de passe de partage en groupe (confort de saisie). **Rangé sous sa forme normalisée** (`promoNorm` : sans blancs de bord, en minuscules, espaces intérieurs réduits à un) — c'est cette forme, et elle seule, qui nomme la salle | chaîne |
 | `oc_vault_v1` | Métadonnée du coffre (profil protégé) : enveloppes de la clé maîtresse par code / phrase de secours / PRF — **jamais la clé en clair**. Pendant une rotation, `prev` porte l'ANCIENNE clé maîtresse scellée sous la nouvelle (`OCV1.`) : la métadonnée s'écrit avant le re-scellement, une interruption se reprend au déverrouillage suivant sans perte, puis `prev` est retiré | JSON : `{v, gen, at, wraps, prev?}` |
 | `oc_devring_v1` | Anneau d'appareils : registre signé (appareil principal, membres, commandes) + clés Ed25519 de CET appareil + commandes déjà appliquées | JSON : `{ring, keys, applied}` |
 | `oc_campaigns_v1` | Campagnes de prospection (privé — messages figés au montage, journal des envois faits ; chaque envoi porte un identifiant stable `id.cible.étape` : rejouer ne double jamais). Plafond de 15 envois/jour **global, toutes campagnes confondues** (`dueSendsAll` fait foi dès qu'il en existe plusieurs) et fenêtre d'envoi imposée : jours ouvrés, 8 h – 19 h locales | JSON : tableau de campagnes |
@@ -335,7 +335,18 @@ appartiennent à la même personne (`engine/sync.js`, transport P2P chiffré).
 6. Le **partage en groupe** (ex-« salle de promo » — le préfixe technique
    `promo-` et la clé `oc_promo_v1` ne changent pas), lui, passe exclusivement par `sharePayload`
    (vue communautaire, §3) et l'aperçu avant fusion (§4) — mêmes règles que
-   par fichier, quel que soit le canal.
+   par fichier, quel que soit le canal. **La salle se dérive du code
+   NORMALISÉ** (`promoNorm`, `engine/exchange.js`) : c'est le seul code de
+   l'app que deux personnes tapent chacune de son côté, et il partait tel
+   quel dans le hash. « SIO-Lille-2026 » et « sio-lille-2026 » ouvraient
+   deux salles, les deux écrans affichant « En attente de ton groupe »
+   sans fin ni explication — alors que la majuscule est mise par le
+   clavier du téléphone, pas par l'utilisateur. Le rendez-vous QR
+   (`rdvNorm`) et la phrase de liaison passaient déjà en minuscules ;
+   celui-là ne le faisait pas. Conséquence assumée : un code contenant
+   des majuscules ne relie plus une version d'avant à une version
+   d'après — il ne reliait de toute façon que deux appareils dont les
+   claviers se comportaient pareil.
 7. **L'anneau d'appareils** (`engine/ring.js`, quand le profil est protégé) :
    le registre voyage avec la sync, signé **en bloc** (Ed25519) par
    l'appareil principal ; une commande (verrouiller, retirer, effacer,

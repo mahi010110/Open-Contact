@@ -140,7 +140,7 @@ export async function ouvrirReglages(page){
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css',
   '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png',
   '.webmanifest': 'application/manifest+json', '.woff2': 'font/woff2', '.txt': 'text/plain' };
-export async function serveRepo(){
+export async function serveRepo({ hote = '127.0.0.1' } = {}){
   const server = http.createServer(async (req, res) => {
     try {
       let p = decodeURIComponent(new URL(req.url, 'http://x').pathname);
@@ -153,8 +153,11 @@ export async function serveRepo(){
       res.end();
     }
   });
-  await new Promise(r => server.listen(0, '127.0.0.1', r));
-  return { server, base: `http://127.0.0.1:${server.address().port}` };
+  /* `hote` sert le laboratoire à deux réseaux (e2e-reseaux-separes.mjs) :
+     deux navigateurs dans des espaces de noms réseau distincts ne
+     joignent pas 127.0.0.1. Par défaut rien ne change. */
+  await new Promise(r => server.listen(0, hote, r));
+  return { server, base: `http://${hote}:${server.address().port}` };
 }
 
 /* ============================================================
