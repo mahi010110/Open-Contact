@@ -223,6 +223,14 @@ export function openAppareils(){
        « Connexion avancée » pour qui le cherche. */
     if (sy.state === 'wait')
       return `${ic('clock', 'ic-14')} En attente de ton autre appareil`;
+    /* LA MÊME PANNE, DEUX CAUSES, ET UNE SEULE EST LA SIENNE. « Ton
+       réseau la bloque ? » envoie changer de wifi — c'est le bon
+       réflexe quand rien ne répond. Mais quand les relais ont répondu
+       « non » à nos publications, changer de réseau ne changera rien,
+       et la question fait chercher une heure au mauvais endroit. On ne
+       devine pas : `refus` ne se pose que sur leur réponse directe. */
+    if (sy.state === 'norelay' && sy.relays && sy.relays.refus)
+      return `${ic('square-alert', 'ic-14')} Pas de connexion — les relais refusent la liaison${reessayer}`;
     if (sy.state === 'norelay' || sy.state === 'err')
       return `${ic('square-alert', 'ic-14')} Pas de connexion — ton réseau la bloque ?${reessayer}`;
     if (sy.state === 'rtcfail' && sy.cause === 'motdepasse')

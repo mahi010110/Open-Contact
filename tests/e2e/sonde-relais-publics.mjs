@@ -3,6 +3,18 @@
    La CI ne doit pas rester verte quand les relais Nostr publics que
    l'application compose sont morts ou muets.
 
+   ELLE NE MESURE QU'UNE MOITIÉ, ET IL FAUT LE SAVOIR EN LISANT SON
+   RAPPORT. Un REQ suivi d'un EOSE prouve que le relais LIT. La
+   découverte, elle, a besoin qu'il ÉCRIVE : deux appareils ne se
+   trouvent que si l'événement éphémère qui porte leur présence est
+   réellement relayé. Un relais qui sert les lectures et refuse les
+   écritures sort donc « sain » d'ici tout en étant inutilisable —
+   mesuré le 18/09 : sept relais « sains », quatre seulement portaient
+   la découverte. « 7 sur 9 répondent » ne veut pas dire « le partage
+   marche », et ne doit jamais se lire comme tel.
+   L'autre moitié vit dans `sonde-decouverte-relais.mjs`, jouée par le
+   même job de CI, juste après celle-ci.
+
    ELLE SONDAIT LA LISTE D'AVANT L'ÉPINGLAGE. Cette sonde laissait le
    bundle vendorisé faire SA sélection (mélange déterministe par
    appId) — ce qui était juste tant que l'app s'en remettait à lui.

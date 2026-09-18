@@ -44,28 +44,6 @@ jobs:
       - name: Sonde de découverte — deux vrais pairs par relais (écriture)
         run: OC_SONDE_RELAIS=1 node tests/e2e/sonde-decouverte-relais.mjs
 
-  # TEMPORAIRE — à retirer une fois les remplaçants choisis. Sonde les
-  # 38 relais par défaut de la bibliothèque qui ne sont pas encore
-  # épinglés, pour choisir sur mesure et non sur réputation. Job séparé
-  # exprès : le job de routine ci-dessus ne bouge pas pendant qu'on s'en
-  # sert de référence.
-  exploration:
-    name: TEMPORAIRE — candidats de remplacement
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - name: Playwright + Chromium
-        run: |
-          npm i -g playwright
-          playwright install --with-deps chromium
-          echo "OC_PLAYWRIGHT=$(npm root -g)/playwright/index.mjs" >> "$GITHUB_ENV"
-      - name: Découverte réelle, relais candidats
-        run: OC_SONDE_RELAIS=1 OC_RELAIS_SOURCE=candidats node tests/e2e/sonde-decouverte-relais.mjs
-
   pwa:
     name: PWA — auto-tests unitaires
     runs-on: ubuntu-latest

@@ -422,12 +422,14 @@ export async function runSelfTests(){
        pannes possibles pour un seul échec, sans repli. La liste est
        donc épinglée, et deux propriétés doivent tenir dans le temps. */
     'transport : la liste de relais garde son ancrage et sa largeur': () => {
-      /* ① les cinq du tirage historique restent, sinon un appareil resté
-         sur l'ancienne version n'a plus AUCUN relais en commun avec un
-         appareil à jour — le partage casserait entre deux camarades */
-      for (const r of ['wss://basspistol.org', 'wss://relay.libernet.app',
-                       'wss://hornetstorage.net/relay', 'wss://nostr-relay.corb.net',
-                       'wss://nostr.sathoarder.com'])
+      /* ① LE PONT ENTRE VERSIONS TIENT — mais seulement par ce qui en est
+         un. Un appareil resté sur l'ancienne version n'écoute que les
+         cinq du tirage par défaut ; trois d'entre eux ne portent plus
+         rien pour personne (mesuré deux fois le 18/09), donc les garder
+         n'aurait relié aucun camarade. Ces deux-là, si : ce sont eux le
+         terrain commun, et les retirer casserait vraiment le partage
+         entre un téléphone à jour et celui qui ne l'est pas. */
+      for (const r of ['wss://nostr-relay.corb.net', 'wss://nostr.sathoarder.com'])
         eq(RELAIS_DEFAUT.includes(r), true);
       /* ② et la liste ÉLARGIT : cinq relais, c'est le point de départ,
          pas l'arrivée — sans marge, une panne redevient fatale */
@@ -435,6 +437,16 @@ export async function runSelfTests(){
       /* ③ que des adresses de relais valides, sans doublon */
       eq(RELAIS_DEFAUT.every(u => /^wss:\/\/[a-z0-9.\-]+(\/[\w\-/]*)?$/.test(u)), true);
       eq(new Set(RELAIS_DEFAUT).size, RELAIS_DEFAUT.length);
+      /* ④ CE QUI A ÉTÉ MESURÉ MUET NE REVIENT PAS EN DOUCE. Ces quatre
+         répondaient parfaitement aux lectures et ne relayaient rien, aux
+         deux passages du 18/09 : les réinscrire sur leur bonne mine
+         coûterait quatre sockets et une redondance en peinture. Pour en
+         reprendre un : le re-mesurer d'abord (mode routine de
+         `sonde-decouverte-relais.mjs`), puis le retirer d'ici, dans le
+         même geste. */
+      for (const r of ['wss://basspistol.org', 'wss://relay.libernet.app',
+                       'wss://hornetstorage.net/relay', 'wss://purplerelay.com'])
+        eq(RELAIS_DEFAUT.includes(r), false);
     },
     'transport : parseTurn accepte le bon, refuse le reste': () => {
       eq(parseTurn(''), []);

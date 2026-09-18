@@ -57,18 +57,35 @@ choses, et aucune ne dépend de quelqu'un d'extérieur.
       WebSocket puis se tait, c'est sa faute, il se nomme — du *coupé plus
       haut*, qu'elle refuse d'accuser. `e2e-sonde-relais.mjs` prouve les trois
       rangements en local, sans réseau. *(septembre 2026)*
-      Le relevé du 1ᵉʳ septembre reste donc valable : **7 sur 9 répondent**. Sont muets
-      `wss://hornetstorage.net/relay` (refus la veille, connexion refusée
-      le lendemain — il pourrit) et `wss://relay.damus.io`.
-      Une réserve à garder en tête avant de trancher : damus est l'un des
-      plus gros relais Nostr publics, et l'échec est vu depuis une forge
-      dont les adresses sont partagées par beaucoup de monde. « Muet
-      depuis GitHub » n'est pas « muet depuis le téléphone d'un
-      étudiant » — c'est justement ce que les essais sur vrai matériel
-      diront. Hornetstorage, lui, échoue de deux façons différentes deux
-      jours de suite : celui-là se remplace.
-      Sept relais sains suffisent largement (il en faut deux), donc rien
-      ne presse — mais une liste qu'on ne relit pas se vide toute seule.
+      **RÉPONDRE N'EST PAS RELAYER — et « sept sur neuf » était une
+      illusion** *(18 septembre 2026)*. Cette sonde envoie un REQ et
+      attend l'EOSE : elle mesure une **lecture**. Or pour que deux
+      appareils se trouvent, la bibliothèque doit **publier** un
+      événement éphémère signé, et un relais public peut servir les
+      lectures en refusant les écritures (NIP-42, allow-list, paiement,
+      anti-spam). Un tel relais était donc noté « sain », compté
+      « vivant », et l'app affichait « En attente » à l'infini devant
+      une découverte impossible — l'erreur de l'incident #14 pour la
+      troisième fois, un étage plus bas chaque fois.
+      `sonde-decouverte-relais.mjs` mesure l'autre moitié : deux vrais
+      pairs Trystero, un relais à la fois, la bibliothèque vendorisée et
+      sa signature. Relevé deux fois le 18/09, à cinq heures d'écart :
+      **7 sur 9 répondaient, 4 puis 5 seulement portaient la
+      découverte**, et les quatre muets étaient les mêmes aux deux
+      passages — basspistol, libernet, hornetstorage, purplerelay.
+      La liste est donc refaite **sur mesure** : sur 38 candidats de la
+      bibliothèque, 19 portaient la découverte, cinq sont entrés (cinq
+      opérateurs distincts, ni test ni pré-production). `corb` et
+      `sathoarder` restent : ce sont les seuls du tirage historique qui
+      portent encore, donc le seul pont qui vaille avec un appareil pas
+      à jour.
+      La réserve tient toujours — « muet depuis la forge » n'est pas
+      « muet depuis le téléphone d'un étudiant », des adresses partagées
+      se font limiter. C'est pourquoi l'app ne se fie plus à cette liste
+      seule : elle écarte en direct, sur chaque appareil, tout relais qui
+      répond `OK false` à ses publications, et le rapport de diagnostic
+      les compte. Une liste qu'on ne relit pas se vide toute seule ; une
+      liste qu'on ne mesure qu'à moitié se vide **sans qu'on le voie**.
 
 - [x] **L'anneau de focus, mesuré** — il ne l'avait jamais été : le jeton
       portait le commentaire « pointillé 98, lisible partout », c'est-à-dire
@@ -109,13 +126,13 @@ choses, et aucune ne dépend de quelqu'un d'extérieur.
       vrai réseau d'établissement. Les scénarios automatiques passent à côté
       de tout ce qui relève du doigt, de la lenteur et du wifi filtré.
       **Les relais, eux, sont mesurés** — pas par un téléphone, par la
-      forge : `sonde-relais-publics.mjs` ouvre une vraie WebSocket sur
-      chacun des neuf de `RELAIS_DEFAUT`, envoie un REQ NIP-01 et attend
-      l'EOSE, à chaque exécution. Elle ne sondait que cinq d'entre eux
-      jusqu'au 1ᵉʳ septembre : elle laissait le bundle vendorisé faire sa
-      propre sélection, si bien que les quatre relais ajoutés parce qu'ils
-      sont les plus fréquentés n'avaient jamais été vérifiés. Elle lit
-      maintenant la liste à sa source, et nomme les muets.
+      forge, et en **deux moitiés** : `sonde-relais-publics.mjs` ouvre une
+      vraie WebSocket sur chacun de `RELAIS_DEFAUT`, envoie un REQ NIP-01
+      et attend l'EOSE (la lecture) ; `sonde-decouverte-relais.mjs` fait
+      se trouver deux vrais pairs Trystero à travers chaque relais pris
+      isolément (l'écriture, celle dont dépend la découverte). La seconde
+      manquait, et c'est ce qui a laissé quatre relais muets passer pour
+      sains pendant des semaines.
       Reste donc ce qu'aucune forge ne peut jouer : **le doigt, la lenteur
       et le wifi filtré d'un établissement**, sur un vrai téléphone
       d'entrée de gamme — et la découverte de pair en WebRTC, qui demande

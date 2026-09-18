@@ -451,6 +451,14 @@ console.log('sync : « Pas de connexion » affiché sans jargon, Réessayer pré
   });
   if (!/qui refuse\(nt\) de relayer/.test(rapport))
     fail('le rapport de diagnostic ne dit pas que les relais refusent : ' + rapport);
+  /* ET L'ÉCRAN NE DOIT PAS ENVOYER CHERCHER AU MAUVAIS ENDROIT. « Ton
+     réseau la bloque ? » est juste quand rien ne répond ; ici les relais
+     ont répondu « non », et changer de wifi ne changera rien. */
+  const phrase = await R.textContent('#syStatus');
+  if (/réseau/.test(phrase))
+    fail('relais restreint : l’écran accuse le réseau de l’utilisateur — « ' + phrase.trim() + ' »');
+  if (!/refusent/.test(phrase))
+    fail('relais restreint : l’écran ne nomme pas la cause connue — « ' + phrase.trim() + ' »');
   console.log('relais qui LIT et REFUSE d’écrire : ' + vuR.snap.refus + ' refus, 0 vivant → '
     + '« Pas de connexion », et le rapport le dit ✓');
   await R.context().close();

@@ -1224,6 +1224,29 @@ données chiffrées de pair à pair. Le lien est **persistant** (`ui/synclive.js
 Transport : Trystero (vendorisé) via relais Nostr publics, personnalisables
 (`oc_relays_v1`).
 
+**Un relais qui RÉPOND n'est pas un relais qui RELAIE**, et cette erreur
+s'est faite trois fois, un étage plus bas chaque fois : « à jour » déduit
+de la création de la salle (#14), « relais joint » déduit de
+`readyState === 1`, puis « relais utilisable » déduit d'un EOSE. À chaque
+fois le même dégât — c'est le **pair absent** qu'on accusait, et l'écran
+faisait patienter devant quelque chose qui ne pouvait pas arriver.
+
+La règle qui en sort vaut au-delà des relais : **une sonde doit mesurer
+la CAPACITÉ dont la fonctionnalité dépend, pas celle qui est commode à
+mesurer.** Ici la découverte a besoin d'une ÉCRITURE (publier un
+événement éphémère signé) ; on ne sondait qu'une LECTURE (REQ → EOSE),
+et les relais publics ont massivement ajouté des restrictions d'écriture
+en continuant de servir les lectures. Mesuré le 18/09 : sept relais
+« sains », **quatre** qui portaient la découverte. Les deux moitiés sont
+sondées depuis (`sonde-relais-publics.mjs` et
+`sonde-decouverte-relais.mjs`), et un relais n'entre dans
+`RELAIS_DEFAUT` que **mesuré porteur**.
+
+Corollaire dans l'app : elle ne se fie plus à la liste seule. Un relais
+qui répond `OK false` à nos publications est écarté **en direct, sur cet
+appareil-là** — parce que « muet depuis la forge » n'est pas « muet
+depuis le téléphone d'un étudiant », et que l'inverse est vrai aussi.
+
 **Ce qui vaut d'être partagé n'est pas l'adresse, c'est le lien humain.**
 Mesuré : une candidature à froid décroche un entretien dans ~3 % des cas,
 une candidature portée par quelqu'un qui est dedans dans ~40 % — un rapport

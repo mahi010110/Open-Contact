@@ -24,31 +24,57 @@
    la sync meurent partout à la fois, sans que rien ne soit cassé chez
    nous : c'est exactement le symptôme rapporté.
 
-   On épingle donc la liste, et deux règles la gouvernent :
+   On épingle donc la liste, et trois règles la gouvernent :
 
-   ① **Les cinq historiques restent, en tête.** Un appareil resté sur
-     l'ancienne version n'écoute qu'eux ; les garder, c'est garantir un
-     terrain commun entre deux versions de l'app. Les retirer couperait
-     le partage entre un téléphone à jour et celui d'un camarade qui ne
-     l'est pas — le contraire du service rendu.
-   ② **On élargit.** Cinq relais, c'est cinq pannes possibles pour un
-     seul échec. Une liste explicite n'est PAS tronquée par Trystero
-     (`relayConfig.urls` passe entière), donc la redondance est réelle.
+   ① **Un relais n'entre et ne reste que MESURÉ.** Pas sur sa
+     réputation, pas sur sa présence dans la liste d'origine : il faut
+     qu'une sonde l'ait vu porter une découverte entre deux vrais pairs
+     (`tests/e2e/sonde-decouverte-relais.mjs`). C'est la règle qui
+     manquait — quatre des neuf épinglés répondaient parfaitement aux
+     lectures et ne relayaient RIEN, ce qui laissait l'écran « En
+     attente » à l'infini (voir `relayTally`).
+   ② **On élargit, sans doublon d'opérateur.** Une liste explicite
+     n'est PAS tronquée par Trystero (`relayConfig.urls` passe
+     entière — vérifié dans le bundle, pas dans la documentation), donc
+     la redondance est réelle. Mais deux adresses du même opérateur
+     tombent ensemble : elles ne comptent que pour une. Et pas
+     d'instance qui se déclare de test ou de pré-production.
+   ③ **Le terrain commun entre versions se garde, mais seulement ce
+     qui en est un.** Un appareil resté sur l'ancienne version n'écoute
+     que les cinq du tirage par défaut ; trois d'entre eux
+     (basspistol, libernet, hornetstorage) ne portent plus rien pour
+     PERSONNE, donc les garder n'aurait relié aucun camarade — c'était
+     de la redondance en peinture. `corb` et `sathoarder` restent, et
+     ce sont eux qui font le pont.
+
+   RELEVÉ DU 18 SEPTEMBRE 2026, deux passages à cinq heures d'écart,
+   depuis la forge : 7 relais sur 9 répondaient en lecture, 4 puis 5
+   seulement portaient la découverte, et les quatre muets étaient les
+   MÊMES aux deux passages. Sur 38 candidats de la bibliothèque, 19
+   portaient la découverte ; cinq sont retenus ci-dessous.
+   Une réserve à garder : « muet depuis la forge » n'est pas « muet
+   depuis le téléphone d'un étudiant » — des adresses partagées par
+   beaucoup de monde se font limiter. C'est pourquoi l'app ne se fie
+   plus à cette liste seule : elle écarte en direct, sur chaque
+   appareil, tout relais qui refuse ses publications.
 
    La liste de l'utilisateur (`oc_relays_v1`) reste prioritaire : celui
    dont le réseau bloque tout garde la main. */
 export const RELAIS_DEFAUT = [
-  /* les cinq du tirage historique — compatibilité entre versions */
-  'wss://basspistol.org',
-  'wss://relay.libernet.app',
-  'wss://hornetstorage.net/relay',
+  /* le pont entre versions : les seuls du tirage historique qui
+     portent encore la découverte */
   'wss://nostr-relay.corb.net',
   'wss://nostr.sathoarder.com',
-  /* les plus fréquentés de la liste vendorisée, jamais tirés jusqu'ici */
+  /* déjà épinglés, mesurés porteurs */
   'wss://relay.damus.io',
   'wss://nos.lol',
   'wss://relay.mostr.pub',
-  'wss://purplerelay.com'
+  /* entrants du 18/09, mesurés porteurs, cinq opérateurs distincts */
+  'wss://bucket.coracle.social',
+  'wss://relay.froth.zone',
+  'wss://nostr-01.yakihonne.com',
+  'wss://relay.mostro.network',
+  'wss://nostr.data.haus'
 ];
 
 /* compte les WebSockets de relais par état (readyState 0/1), et — c'est
