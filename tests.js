@@ -1295,6 +1295,13 @@ export async function runSelfTests(){
          la panne des trois canaux, et ni « joints » ni « répondent » ne
          pouvaient la montrer. Le format reste à CINQ lignes stables. */
       ok(txt.includes('Transport : 0 relais · 0 joint(s) · 0 qui répond(ent) · 0 qui relaie(nt)'));
+      /* LE COMPTE DE REFUS N'APPARAÎT QUE S'IL Y EN A. Un « · 0 refus »
+         permanent serait du décor (§6, règle 1) ; un refus, lui, est la
+         panne elle-même et il se nomme. */
+      ok(!txt.includes('refus'));
+      const refuse = diagnosticText(diagnosticData({ backend: 'memory',
+        relais: { total: 9, open: 9, vivants: 0, relaient: 0, refus: 9 } }));
+      ok(refuse.includes('9 relais · 9 joint(s) · 0 qui répond(ent) · 0 qui relaie(nt) · 9 refus'));
       ok(txt.includes('Documents : 0 (0 Ko)'));
       ok(txt.includes('sans protection') && txt.includes('appareils non reliés'));
       ok(txt.includes('inconnu') && txt.includes('0×0'));

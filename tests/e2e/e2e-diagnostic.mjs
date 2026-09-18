@@ -104,7 +104,16 @@ const lignes = txt.split('\n');
    tenu — une ligne par sujet, toujours les mêmes, et tout se lit sans
    défiler (vérifié plus bas). */
 if (lignes.length !== 6) fail('le rapport doit tenir 6 lignes stables : ' + lignes.length);
-if (!/^Transport : \d+ relais · \d+ joint\(s\) · \d+ qui répond\(ent\)$/.test(lignes[3]))
+/* DEUX NOMBRES DE PLUS DEPUIS LE 18 SEPTEMBRE, et c'est le second qui
+   nomme la panne : « qui répond(ent) » ne prouve que la PAROLE — un
+   EOSE suffit à le faire monter — pendant que « qui relaie(nt) »
+   compte les relais dont un événement est revenu. Trois relais joints,
+   trois qui répondent, ZÉRO qui relaient : c'est le rapport qui dit
+   d'un coup d'œil pourquoi les trois canaux P2P restent « en attente »,
+   et ni l'un ni l'autre des deux nombres d'avant ne pouvait le montrer.
+   Le compte de refus, lui, n'apparaît QUE s'il y en a : un « · 0 refus »
+   permanent serait du décor (§6, règle 1). */
+if (!/^Transport : \d+ relais · \d+ joint\(s\) · \d+ qui répond\(ent\) · \d+ qui relaie\(nt\)$/.test(lignes[3]))
   fail('la ligne de transport manque ou a changé de forme : ' + lignes[3]);
 if (/\d+\.\d+\.\d+/.test(txt)) fail('plus aucun numéro de version dans le rapport');
 if (lignes[0] !== 'Appareil : Chrome 130 · Android · 390×844 · fr-FR')
