@@ -25,14 +25,24 @@ jobs:
   transport:
     name: Transport public — relais joignables
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Sonde des relais réellement choisis par l'app
+      - name: Playwright + Chromium
+        run: |
+          npm i -g playwright
+          playwright install --with-deps chromium
+          echo "OC_PLAYWRIGHT=$(npm root -g)/playwright/index.mjs" >> "$GITHUB_ENV"
+      - name: Sonde des relais réellement choisis par l'app (lecture)
         run: OC_SONDE_RELAIS=1 node tests/e2e/sonde-relais-publics.mjs
+      # La lecture ne suffit pas : la découverte a besoin d'une ÉCRITURE.
+      # Un relais qui répond EOSE et refuse les publications rend
+      # « En attente de ton groupe » à l'infini — voir l'en-tête de la sonde.
+      - name: Sonde de découverte — deux vrais pairs par relais (écriture)
+        run: OC_SONDE_RELAIS=1 node tests/e2e/sonde-decouverte-relais.mjs
 
   pwa:
     name: PWA — auto-tests unitaires
