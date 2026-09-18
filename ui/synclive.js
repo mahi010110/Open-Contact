@@ -43,12 +43,35 @@ const loadLib = () => libP || (libP = import('../assets/vendor/trystero-nostr.mi
    répondu une fois ne sera jamais accusé plus tard sur un doute. Un
    socket refermé sort de toute façon du compte par son `readyState`. */
 const relaisQuiRepondent = new Set();
+/* LES RELAIS QUI REFUSENT DE RELAYER. Répondre n'est pas relayer : un
+   relais peut servir les lectures et refuser les écritures, et la
+   découverte a besoin d'une écriture (voir `relayTally`). On ne
+   condamne que sur une preuve NON AMBIGUË — sa réponse directe à
+   notre publication, `["OK", <id>, false, <raison>]`. Un `NOTICE` ne
+   compte pas : il est trop général pour dire de quoi il parle, et se
+   tromper de cause coûte plus cher que ne pas savoir.
+   Et un relais qui nous DÉLIVRE un événement se rachète aussitôt : il
+   relaie, quoi qu'il ait refusé par ailleurs (un plafond de débit
+   passager ne doit pas le condamner pour la session). */
+const relaisQuiRefusent = new Set();
 function ecouterRelais(socks){
   for (const k in (socks || {})){
     const s = socks[k];
     if (!s || s.__ocEcoute) continue;
     s.__ocEcoute = true;
-    s.addEventListener('message', () => relaisQuiRepondent.add(k), { once: true });
+    s.addEventListener('message', e => {
+      relaisQuiRepondent.add(k);
+      /* on ne déplie que ce qui peut être un verdict : les événements
+         relayés sont nombreux et gros, les accusés de réception non */
+      const d = e && e.data;
+      if (typeof d !== 'string' || d.length > 2048) return;
+      if (d.indexOf('"OK"') < 0 && d.indexOf('"EVENT"') < 0) return;
+      let m;
+      try { m = JSON.parse(d); } catch (x) { return; }
+      if (!Array.isArray(m)) return;
+      if (m[0] === 'OK' && m[2] === false) relaisQuiRefusent.add(k);
+      else if (m[0] === 'EVENT') relaisQuiRefusent.delete(k);
+    });
   }
 }
 /* ON S'ABONNE TÔT, PAS AU PREMIER SONDAGE. `watchLiaison` ne relève
@@ -68,7 +91,7 @@ function ecouterTot(){
 export const relaySnapshot = () => {
   const socks = libM && libM.getRelaySockets();
   ecouterRelais(socks);
-  return relayTally(socks, relaisQuiRepondent);
+  return relayTally(socks, relaisQuiRepondent, relaisQuiRefusent);
 };
 
 /* délai de grâce avant de déclarer « aucun relais joignable » : les

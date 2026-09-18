@@ -345,22 +345,45 @@ export async function runSelfTests(){
       eq(causeLiaison({}), 'inconnu');
     },
     'transport : relayTally compte les sockets par état, ET ceux qui répondent': () => {
-      eq(relayTally(null), { total: 0, open: 0, pending: 0, vivants: 0 });
-      eq(relayTally({}), { total: 0, open: 0, pending: 0, vivants: 0 });
+      eq(relayTally(null), { total: 0, open: 0, pending: 0, vivants: 0, refus: 0 });
+      eq(relayTally({}), { total: 0, open: 0, pending: 0, vivants: 0, refus: 0 });
       const socks = { a: { readyState: 1 }, b: { readyState: 0 }, c: { readyState: 3 }, d: null };
       /* SANS PREUVE, ON N'ACCUSE PERSONNE : un appelant qui ne sait pas
          qui a répondu ne doit pas faire dire à cette fonction que les
          relais sont muets. `vivants` vaut alors `open`. */
-      eq(relayTally(socks), { total: 3, open: 1, pending: 1, vivants: 1 });
+      eq(relayTally(socks), { total: 3, open: 1, pending: 1, vivants: 1, refus: 0 });
       /* AVEC la preuve : un socket ouvert qui n'a jamais parlé n'est
          pas un relais qui marche. C'est la panne qui laissait l'écran
          sur « En attente de ton autre appareil », indéfiniment. */
-      eq(relayTally(socks, new Set()), { total: 3, open: 1, pending: 1, vivants: 0 });
-      eq(relayTally(socks, new Set(['a'])), { total: 3, open: 1, pending: 1, vivants: 1 });
+      eq(relayTally(socks, new Set()), { total: 3, open: 1, pending: 1, vivants: 0, refus: 0 });
+      eq(relayTally(socks, new Set(['a'])), { total: 3, open: 1, pending: 1, vivants: 1, refus: 0 });
       /* un relais qui a répondu mais dont le socket est retombé ne
          compte pas : c'est `readyState` qui commande l'ouverture */
       eq(relayTally({ z: { readyState: 3 } }, new Set(['z'])),
-         { total: 1, open: 0, pending: 0, vivants: 0 });
+         { total: 1, open: 0, pending: 0, vivants: 0, refus: 0 });
+    },
+    'transport : RÉPONDRE N’EST PAS RELAYER — un relais qui refuse ne vit pas': () => {
+      const socks = { a: { readyState: 1 }, b: { readyState: 1 } };
+      const ont = new Set(['a', 'b']);
+      /* les deux répondent : sans autre information, les deux vivent */
+      eq(relayTally(socks, ont), { total: 2, open: 2, pending: 0, vivants: 2, refus: 0 });
+      /* `a` a répondu « OK false » à notre publication : il est poli et
+         ne portera rien. Il sort des vivants et se compte à part — ce
+         nombre est ce qui manquait au rapport de diagnostic, où
+         « 9 qui répondent » se lisait « tout va bien ». */
+      eq(relayTally(socks, ont, new Set(['a'])),
+         { total: 2, open: 2, pending: 0, vivants: 1, refus: 1 });
+      /* TOUS refusent : plus personne pour porter la découverte. C'est
+         le cas mesuré le 18/09 chez qui ne joignait que des relais
+         restreints — l'écran disait « En attente » à l'infini. */
+      eq(relayTally(socks, ont, new Set(['a', 'b'])),
+         { total: 2, open: 2, pending: 0, vivants: 0, refus: 2 });
+      /* et c'est bien « Pas de connexion » qui en sort, pas une attente */
+      eq(liaisonStage({ peers: 0, exchanged: false, rtcFail: false, graceOver: true,
+                        relays: { total: 2, open: 2, vivants: 0, refus: 2 } }), 'norelay');
+      /* un socket fermé qui aurait refusé ne se compte nulle part */
+      eq(relayTally({ z: { readyState: 0 } }, new Set(['z']), new Set(['z'])),
+         { total: 1, open: 0, pending: 1, vivants: 0, refus: 0 });
     },
     'transport : des sockets ouverts mais muets ne sont pas une attente': () => {
       const base = { peers: 0, exchanged: false, rtcFail: false, graceOver: true };
@@ -1209,6 +1232,22 @@ export async function runSelfTests(){
       ok(txt.includes('Documents : 0 (0 Ko)'));
       ok(txt.includes('sans protection') && txt.includes('appareils non reliés'));
       ok(txt.includes('inconnu') && txt.includes('0×0'));
+    },
+    'diagnostic : les relais qui refusent de relayer se disent': () => {
+      /* SANS ce nombre, le rapport disait « 9 relais · 9 joints ·
+         9 qui répondent » pendant que la découverte était impossible —
+         la fausse bonne nouvelle parfaite, et le lecteur cherchait la
+         panne ailleurs. */
+      const avec = diagnosticText(diagnosticData({
+        relais: { total: 9, open: 9, vivants: 5, refus: 4 } }));
+      ok(avec.includes('9 relais · 9 joint(s) · 5 qui répond(ent) · 4 qui refuse(nt) de relayer'));
+      /* mais rien à signaler ne s'écrit pas : l'encre va à ce qui change */
+      const sans = diagnosticText(diagnosticData({
+        relais: { total: 9, open: 9, vivants: 9, refus: 0 } }));
+      ok(!sans.includes('refuse'));
+      /* et la ligne garde son compte : six lignes, toujours les mêmes */
+      eq(avec.split('\n').length, 6);
+      eq(sans.split('\n').length, 6);
     },
     'aides : relances dues — retard d’abord, pistes travaillées ensuite': () => {
       const comps = [

@@ -105,8 +105,18 @@ function makeDecoder(onText, onClose, onPing){
    PLUS JAMAIS. C'est la panne qu'un `readyState === 1` ne voit pas, et
    celle qui laissait l'app sur « En attente de ton autre appareil »
    indéfiniment. Sans ce double, on ne peut pas prouver la correction :
-   un relais mort refuse le socket, un relais muet l'accepte. */
-export async function startLocalRelay({ silent = true, tls = false, port = 0, muet = false } = {}){
+   un relais mort refuse le socket, un relais muet l'accepte.
+
+   `refus` : il LIT normalement (REQ → EOSE) et REFUSE les écritures
+   (EVENT → OK false), sans rien retransmettre. C'est la panne d'un
+   relais public d'aujourd'hui — NIP-42, allow-list, paiement,
+   anti-spam — et c'est la plus trompeuse des trois : il répond, donc
+   il passait pour vivant, et l'app attendait un pair qui ne pouvait
+   pas être annoncé. Mesuré sur les relais épinglés le 18/09 : quatre
+   sur neuf étaient dans cet état exact pendant que la sonde de lecture
+   en rendait sept sur neuf « sains ». */
+export async function startLocalRelay({ silent = true, tls = false, port = 0,
+                                        muet = false, refus = false } = {}){
   const conns = new Set();          /* { sock, send, subs: Map<subId, filtres[]> } */
   const log = (...a) => { if (!silent) console.log('[relais]', ...a); };
 
@@ -144,6 +154,12 @@ export async function startLocalRelay({ silent = true, tls = false, port = 0, mu
       if (msg[0] === 'EVENT' && msg[1] && msg[1].id){
         const ev = msg[1];
         log('EVENT kind', ev.kind);
+        if (refus){
+          /* la forme exacte d'un relais restreint : il répond, poliment,
+             et ne relaie rien — c'est sa réponse qui le trahit */
+          conn.send(['OK', ev.id, false, 'restricted: we do not accept events from this pubkey']);
+          return;
+        }
         conn.send(['OK', ev.id, true, '']);
         for (const c of conns)
           for (const [subId, filters] of c.subs)

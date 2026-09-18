@@ -66,16 +66,35 @@ export const RELAIS_DEFAUT = [
    `repondu` est l'ensemble des relais dont on a reçu au moins un
    message. Absent, on ne conclut RIEN : `vivants` vaut `open`, et
    personne n'est accusé — un appelant qui ne sait pas ne doit pas
-   faire dire à cette fonction ce qu'il ignore. */
-export function relayTally(socks, repondu){
-  const t = { total: 0, open: 0, pending: 0, vivants: 0 };
+   faire dire à cette fonction ce qu'il ignore.
+
+   ET RÉPONDRE N'EST PAS RELAYER — c'est la même erreur, encore un
+   étage plus bas, et elle a été mesurée. Pour que deux appareils se
+   trouvent, la bibliothèque doit PUBLIER (un événement éphémère signé
+   porte la présence puis le SDP) ; or un relais peut servir les
+   lectures et refuser les écritures — NIP-42, allow-list, paiement,
+   anti-spam, ce que les relais publics ont massivement ajouté. Il
+   répond donc (son EOSE suffisait à le dire « vivant »), l'app rendait
+   `wait`, et l'écran affichait « En attente de ton groupe » devant
+   quelque chose qui n'arriverait jamais. Relevé du 18/09 sur les neuf
+   relais épinglés : sept répondaient en lecture, QUATRE seulement
+   portaient la découverte.
+   `refus` est l'ensemble des relais qui ont répondu `OK false` à une
+   de nos publications — une réponse directe, sans ambiguïté, à ce
+   qu'on leur a demandé de relayer. Ceux-là ne comptent plus comme
+   vivants : leur socket est ouverte, ils sont polis, et ils ne
+   porteront rien. */
+export function relayTally(socks, repondu, refus){
+  const t = { total: 0, open: 0, pending: 0, vivants: 0, refus: 0 };
   for (const k in (socks || {})){
     const s = socks[k];
     if (!s) continue;
     t.total++;
     if (s.readyState === 1){
       t.open++;
-      if (!repondu || repondu.has(k)) t.vivants++;
+      const refuse = !!(refus && refus.has(k));
+      if (refuse) t.refus++;
+      if (!refuse && (!repondu || repondu.has(k))) t.vivants++;
     } else if (s.readyState === 0) t.pending++;
   }
   return t;

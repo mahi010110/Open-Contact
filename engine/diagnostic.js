@@ -117,6 +117,11 @@ export function diagnosticData(x){
     relais: n(x.relais && x.relais.total),
     relaisJoints: n(x.relais && x.relais.open),
     relaisVivants: n(x.relais && x.relais.vivants),
+    /* CEUX QUI RÉPONDENT ET NE RELAIENT RIEN. Sans ce nombre, le
+       rapport disait « 9 relais · 9 joints · 9 qui répondent » pendant
+       que la découverte était impossible : la fausse bonne nouvelle
+       parfaite, et le lecteur cherchait la panne ailleurs. */
+    relaisRefus: n(x.relais && x.relais.refus),
     /* POURQUOI la dernière liaison directe a échoué, si elle a échoué.
        Sans ça, « 9 relais · 7 qui répondent » se lit « tout va bien »
        alors que la liaison échoue juste après, pour une raison que
@@ -150,9 +155,14 @@ export function diagnosticText(d){
        d'en ouvrir une sixième : le format tient en CINQ lignes stables,
        et c'est ce qui permet de comparer deux rapports d'un coup d'œil.
        « joints » compte les sockets ouverts, « répondent » ceux qui ont
-       vraiment parlé — l'écart entre les deux EST le diagnostic. */
+       vraiment parlé — l'écart entre les deux EST le diagnostic. Le
+       troisième écart est le plus trompeur : un relais qui répond et
+       REFUSE de relayer ne se voyait nulle part, et c'est lui qui
+       laissait l'écran « en attente ». Il ne s'affiche que s'il y en
+       a — l'encre va à ce qui change. */
     `Transport : ${d.relais} relais · ${d.relaisJoints} joint(s) · ` +
       `${d.relaisVivants} qui répond(ent)` +
+      (d.relaisRefus ? ` · ${d.relaisRefus} qui refuse(nt) de relayer` : '') +
       (d.echec ? ` · dernier échec : ${d.echec}` : ''),
     `Suivi : ${d.pistes} piste(s) · ${d.contacts} contact(s) · ` +
       `${d.arattacher} à rattacher · ${d.suppressions} suppression(s)`,

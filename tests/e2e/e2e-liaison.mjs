@@ -396,6 +396,67 @@ console.log('sync : « Pas de connexion » affiché sans jargon, Réessayer pré
   muet.close();
 }
 
+/* RÉPONDRE N'EST PAS RELAYER — la même erreur, encore un étage plus bas,
+   et celle-ci a été MESURÉE dans le monde réel : le 18/09, quatre des
+   neuf relais épinglés lisaient parfaitement et refusaient les
+   écritures, pendant que la sonde de lecture en rendait sept sur neuf
+   « sains ». Ils répondaient, donc ils passaient pour vivants, donc
+   l'écran disait « En attente de ton autre appareil » devant une
+   découverte qui ne pouvait pas avoir lieu.
+   Le double est un relais qui répond EOSE aux REQ et « OK false » aux
+   EVENT. SON CONTRÔLE EST DANS L'ASSERTION : `refus` ne peut être posé
+   qu'en lisant une réponse reçue de lui — s'il était simplement muet,
+   ce compteur resterait à zéro et le scénario échouerait au lieu de
+   rejouer le cas d'à côté sans le savoir. */
+{
+  const restreint = await startLocalRelay({ tls: true, refus: true });
+  const portR = new URL(restreint.url).port;
+  const R = await mk(mobile);
+  await R.goto(base, { waitUntil: 'load' });
+  await R.evaluate(async port => {
+    const st = await import('./engine/storage.js');
+    await st.kvInit();
+    await st.kvSet(st.RELAYS_KEY, JSON.stringify(['wss://127.0.0.1:' + port + '/']));
+  }, portR);
+  await R.click('.bottomnav a[data-r="moi"]');
+  await ouvrirReglages(R);
+  await R.click('#moiSync');
+  await R.waitForSelector('#syNew');
+  await R.click('#syNew');
+  /* il doit d'abord REFUSER — c'est ce refus qui prouve qu'il parle */
+  await attendre(R, async () => {
+    const r = (await import('./ui/synclive.js')).relaySnapshot();
+    return r.refus > 0;
+  }, { timeout: 30000, message: 'le relais restreint n’a jamais refusé une publication — le cas n’est pas joué' });
+  const vuR = await R.evaluate(async () => {
+    const sl = await import('./ui/synclive.js');
+    return { snap: sl.relaySnapshot(), etat: sl.getSync().state };
+  });
+  if (!vuR.snap.open) fail('le relais restreint n’a pas accepté le socket — le cas n’est pas joué');
+  if (!vuR.snap.refus) fail('le relais restreint n’a pas été vu refuser — le cas n’est pas joué');
+  if (vuR.snap.vivants) fail('un relais qui refuse de relayer est compté vivant : ' + JSON.stringify(vuR.snap));
+  await attendre(R, () => /Pas de connexion/.test(document.querySelector('#syStatus')?.textContent || ''),
+    { timeout: 40000, message: 'relais restreint : l’app doit dire « Pas de connexion », pas « En attente »' });
+  const syR = await R.evaluate(async () => (await import('./ui/synclive.js')).getSync());
+  if (syR.state !== 'norelay') fail('relais restreint : état attendu norelay, obtenu ' + syR.state);
+  if (/En attente/.test(await R.textContent('#syStatus')))
+    fail('relais restreint : l’écran invite encore à attendre un pair qui ne peut pas être annoncé');
+  if (!await R.$('#syRetry')) fail('relais restreint : bouton Réessayer absent');
+  /* et le rapport de diagnostic doit le DIRE : c'est lui qui affichait
+     « 9 qui répondent » sans que rien ne puisse passer */
+  const rapport = await R.evaluate(async () => {
+    const { diagnosticData, diagnosticText } = await import('./engine/diagnostic.js');
+    const { relaySnapshot } = await import('./ui/synclive.js');
+    return diagnosticText(diagnosticData({ relais: relaySnapshot() }));
+  });
+  if (!/qui refuse\(nt\) de relayer/.test(rapport))
+    fail('le rapport de diagnostic ne dit pas que les relais refusent : ' + rapport);
+  console.log('relais qui LIT et REFUSE d’écrire : ' + vuR.snap.refus + ' refus, 0 vivant → '
+    + '« Pas de connexion », et le rapport le dit ✓');
+  await R.context().close();
+  restreint.close();
+}
+
 /* « Réessayer » n'est pas un bouton décoratif : le relais renaît sur le
    même port, un tap, et la liaison se rétablit réellement.
    ON EXIGE `vivants`, PAS SEULEMENT `open` — et c'est plus fort qu'avant :
