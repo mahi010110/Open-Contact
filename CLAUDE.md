@@ -1344,14 +1344,48 @@ Trois choses en sortent, et la première est la plus générale :
   voit dans aucun rendu). Le second est un contrôle de source, et c'est
   le seul qui attrape la forme exacte du défaut d'origine.
 
-**Et ce qui n'est pas réparable se dit.** Deux téléphones en données
-mobiles sont chacun derrière le NAT de leur opérateur ; sans TURN,
-aucun chemin direct n'existe, et un TURN est un serveur — donc §10 et
-la question ② l'interdisent au mainteneur. L'app ne peut pas faire
-mieux que **nommer la panne et proposer le repli** : le fichier `.oc`
-et le QR, qui n'ont jamais eu besoin du réseau. La liste des relais et
-la santé du transport n'y changent rien, et c'est justement pour ça
-qu'il fallait cesser de les accuser.
+**Et ce qui n'est pas réparable ne se dit pas : il se CONTOURNE.**
+Deux téléphones en données mobiles sont chacun derrière le NAT de leur
+opérateur, et sans TURN aucun chemin direct n'existe. Un TURN **tiers**
+serait pourtant admissible — il relaie des octets déjà chiffrés par
+WebRTC, il ne peut rien lire, et c'est exactement le statut des relais
+Nostr que l'app compose déjà ; ce que §10 interdit, c'est que le
+mainteneur en TIENNE un. Mesuré le 18 septembre 2026 : sur dix adresses
+publiques sans inscription, **zéro** alloue, les deux contrôles de la
+sonde verts. Un TURN ouvert à tous se fait vider ; ceux qui tiennent
+demandent un compte, que la question ② refuse. La place reste ouverte
+(`TURN_DEFAUT`, `tests/e2e/sonde-turn.mjs`) et vide par mesure.
+
+**Donc la garantie ne passe plus par le tuyau.** Elle passe par le seul
+canal qui n'a besoin de rien : le QR **porte les fiches dans l'image**
+(OCQ1, animé en plusieurs parties au-delà d'une taille) — ni relais, ni
+NAT, ni réseau. La version précédente de cette règle disait que l'app
+ne pouvait faire mieux que **nommer la panne et proposer le repli** ;
+c'était encore trop cher. Devant un camarade qui attend, une phrase à
+lire demande de comprendre un problème de transport pour donner trois
+contacts, et un bouton à trouver demande de deviner où. **Les deux
+moitiés basculent donc toutes seules** : « Donner » quitte le
+rendez-vous et affiche le QR de données, « Recevoir » rouvre son
+scanner. Trois points qui tiennent la règle :
+
+- **Les deux côtés, ou aucun.** Un donneur qui bascule seul affiche un
+  QR que personne ne scanne — l'échange s'arrête au même endroit, avec
+  un écran de plus. C'est le corollaire de « le parcours se joue à
+  plusieurs », appliqué à un repli.
+- **Une seule panne ne bascule pas : le code retapé de travers**
+  (`motdepasse`). Retaper coûte dix secondes ; envoyer scanner une
+  suite de QR pour ça, c'est la faute que ce même §8 nomme déjà.
+- **Le toast dit la panne, pas la nuance.** « Liaison impossible »
+  couvre le relais qui lâche et le chemin direct qui manque : les
+  distinguer n'ouvre aucun geste différent une fois l'écran déjà
+  changé. C'est §6 — ce qui suit le tiret est le geste, et le geste
+  est le même.
+
+Corollaire de garde, et il coûte : un contrôle de basculement doit
+prouver qu'il a **joué la bonne panne**. `e2e-liaison.mjs` lit
+`echecLiaison()` après coup et exige `sansturn` — sans ça, un relais
+local qui tombe ferait passer le scénario au vert en reproduisant une
+panne qui n'est pas celle du NAT.
 
 **Ce que ce lot a appris sur les gardes.** Une première version de
 `e2e-vecu.mjs` vérifiait l'invariant en appelant le moteur avec des

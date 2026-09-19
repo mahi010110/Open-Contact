@@ -250,15 +250,23 @@ export function openDonner(){
        écran qui venait d'afficher « Ce n'est pas le même code » : l'app
        se contredisait en une phrase, sur le seul chemin où le camarade
        est en face et attend.
-       Quand le repli s'impose TOUT SEUL (la salle n'ouvre pas), rien
-       n'est encore à l'écran et le toast est justifié — c'est la
+       Quand le repli s'impose TOUT SEUL (la salle n'ouvre pas, ou la
+       liaison ne prend pas), l'écran change sous le pouce sans qu'on
+       l'ait demandé et le toast est justifié — c'est la
        famille ① de §6, un refus qui doit dire pourquoi. Quand c'est
        l'utilisateur qui le demande, la cause est DÉJÀ affichée
        au-dessus et l'écran suivant porte son propre titre : le toast
        redirait ce qu'on regarde, ce que §6 interdit. */
-    const fallback = (auto) => {
-      if (auto) toast(compact ? 'Pas de connexion — QR hors ligne.'
-                              : 'Pas de connexion — passe par le fichier.');
+    const fallback = auto => {
+      /* « Liaison impossible » couvre les deux pannes qui basculent —
+         aucun relais ne porte la découverte, ou les deux appareils se
+         sont trouvés sans pouvoir se parler. Les distinguer ici
+         n'ouvrirait aucun geste : dans les deux cas l'app a déjà
+         changé d'écran, et le mot qui compte est celui du repli. La
+         seule distinction qui change quelque chose — le code retapé de
+         travers — ne passe jamais par ici. */
+      if (auto) toast(compact ? 'Liaison impossible — QR hors ligne.'
+        : 'Liaison impossible — passe par le fichier.');
       if (compact) stepQRData(compact, n, ids); else stepFile();
     };
     sh.setTitle(`QR — ${n} piste${n > 1 ? 's' : ''}`);
@@ -267,38 +275,37 @@ export function openDonner(){
     const code = makeRdvCode();
     let r, svg;
     let sent = 0;
-    /* l'attente dit l'étape prouvée — relais morts ou liaison directe
-       en échec basculent d'eux-mêmes vers le repli affiché */
-    /* « Liaison impossible » disait la même chose pour les trois pannes
-       que Trystero fait passer par `onJoinError` (voir `causeLiaison`).
-       Sur ce chemin-ci ça coûte le plus cher : le camarade est en face,
-       il vient de scanner, et l'écran ne dit pas s'il faut refaire le
-       QR ou passer au fichier. */
+    /* L'écran ne dit que ce qui est PROUVÉ, et il ne dit plus les
+       pannes : elles basculent. `causeLiaison` reste indispensable
+       pour autant — c'est elle qui distingue la seule panne qui ne
+       doit PAS basculer, le code retapé de travers. */
     const w = watchLiaison(() => sent, (stage, cause) => {
       if (my !== gen || sent) return;
       const el = q('#dnRdvSt');
       if (!el) return;
-      /* LE REPLI PREND LE MOT DU MOMENT. Sous une panne nommée, « Sans
-         réseau ? » pose une question qui ne correspond plus : le réseau
-         est là, c'est la liaison qui refuse. §8 demande de nommer la
-         panne ET de proposer le repli — le proposer, c'est en dire le
-         GESTE (§6 : ce qui suit un tiret est un geste, jamais un
-         rassurement). La question ne reste que pendant l'attente, où
-         elle est encore la bonne. */
-      const sortie = q('#dnOffline');
-      if (sortie) sortie.textContent = stage === 'rtcfail' || stage === 'norelay'
-        ? (compact ? 'Passer par le QR hors ligne' : 'Passer par le fichier')
-        : 'Sans réseau ?';
-      if (stage === 'norelay')
-        el.innerHTML = `${ic('square-alert', 'ic-14')} Pas de connexion`;
-      else if (stage === 'rtcfail' && cause === 'motdepasse')
+      /* LE REPLI SE PREND TOUT SEUL — c'est le chemin où quelqu'un est
+         EN FACE et attend. Lui laisser un bouton à trouver, c'est lui
+         demander de comprendre une panne de transport pour donner trois
+         contacts. Le QR hors ligne porte les fiches dans l'image : il
+         ne demande ni relais, ni NAT, ni réseau du tout — donc il
+         marche partout, toujours. On y va.
+         UNE EXCEPTION, et elle compte : « ce n'est pas le même code »
+         n'est pas une panne de réseau. Retaper coûte dix secondes,
+         pendant qu'un basculement enverrait scanner une suite de QR
+         pour rien — la faute que §8 nomme, envoyer chercher le repli à
+         qui s'est trompé d'une lettre. Là, l'écran garde sa phrase. */
+      if (stage === 'norelay' || (stage === 'rtcfail' && cause !== 'motdepasse')){
+        w.stop();
+        fallback(true);
+        return;
+      }
+      /* TROIS ÉTATS SUFFISENT DÉSORMAIS. Décrire ici les pannes qui
+         basculent serait du code que rien n'atteint, et un code mort
+         ment sur ce que l'écran fait (§9). Le bouton « Sans réseau ? »
+         garde son mot pour la même raison : sous le seul état d'erreur
+         qui reste affiché, le réseau n'est pas en cause. */
+      if (stage === 'rtcfail' && cause === 'motdepasse')
         el.innerHTML = `${ic('square-alert', 'ic-14')} Ce n’est pas le même code`;
-      else if (stage === 'rtcfail' && cause === 'sansturn')
-        el.innerHTML = `${ic('square-alert', 'ic-14')} Vos deux réseaux refusent la liaison`;
-      else if (stage === 'rtcfail' && cause === 'turnmuet')
-        el.innerHTML = `${ic('square-alert', 'ic-14')} Ton serveur TURN ne répond pas`;
-      else if (stage === 'rtcfail')
-        el.innerHTML = `${ic('square-alert', 'ic-14')} Liaison impossible`;
       else if (stage === 'wait')
         el.innerHTML = `${ic('clock', 'ic-14')} En attente…`;
       else

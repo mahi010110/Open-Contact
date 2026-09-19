@@ -73,8 +73,29 @@ const PLAFOND = {
      mais pas au clavier : du reproche réservé à ceux qui tabulent. Le
      bouton est vraiment `disabled`, la raison est à l'écran. Reste
      « Série terminée — N pistes traitées », qui dit ce qu'aucun écran
-     ne montre : la série est finie. */
-  toasts: 64,
+     ne montre : la série est finie.
+     116 le 18 septembre 2026, ET CE N'EST PAS UNE PERMISSION : c'est le
+     compte qui devient vrai. Le collecteur n'a jamais lu qu'un appel
+     sur deux — il exigeait une chaîne collée à la parenthèse, donc
+     tout ce qui passait par une ternaire, un `||` de repli ou une
+     concaténation lui échappait. Dix-sept appels muets, cinquante-
+     quatre messages jamais pesés. Les trois passes de nettoyage ci-
+     dessus ont donc travaillé sur la moitié de la surface, et le
+     plafond de 64 gardait une moitié en croyant garder le tout.
+     Ce qui rassure : sur les cinquante-quatre messages découverts,
+     AUCUN ne dépasse 79 caractères, aucun ne porte deux cadratins,
+     aucun ne fait deux phrases — ce sont des toasts bien écrits qui
+     n'étaient pas comptés, pas des fautes cachées. Le chiffre monte,
+     la qualité n'a pas bougé.
+     Ce qui reste à faire, et qui ne se fait pas dans le même geste :
+     repasser ces cinquante-quatre au critère unique (« son message
+     n'est-il pas DÉJÀ à l'écran ? »). Beaucoup sont des erreurs de
+     lecture de fichier ou des rangements hors de l'écran, donc légitimes
+     — mais pas tous, et la passe mérite d'être menée pour elle-même,
+     écran par écran, avec le mainteneur. En attendant, le plafond est
+     posé sur le relevé : il ne descend plus tout seul, et il ne monte
+     plus sans qu'on vienne le dire ici. */
+  toasts: 116,
   toastCar: 79,        /* le plus long : « Connexion interrompue — … » */
   confirmations: 8,    /* portes bloquantes dans les écrans visibles */
   /* phrases d'explication dans les feuilles visibles.
@@ -169,17 +190,60 @@ let ko = 0;
 const fail = m => { console.error('ÉCHEC :', m); ko = 1; };
 
 /* ---------- ① un toast dit UNE chose ---------- */
+/* LE COLLECTEUR LIT L'ARGUMENT ENTIER, PAS SON PREMIER CARACTÈRE.
+   La première version exigeait une chaîne COLLÉE à la parenthèse
+   (`toast('…')`) : tout ce qui commençait par autre chose lui
+   échappait — `toast(compact ? 'A' : 'B')`, `toast(ERRS[e] || '…')`,
+   `toast(nom + ' → rangé ✓')`. Mesuré : 62 messages vus sur 116, dix-sept
+   appels muets. Le compte ne rendait pas zéro, ce qui se serait vu : il
+   rendait la moitié, sous un plafond, au vert. C'est la faute du
+   collecteur de surface morte, un an plus tard et dans l'autre sens —
+   une mesure qui se trompe vers le BAS se lit comme une réussite.
+   On prend donc l'argument par équilibrage de parenthèses, puis TOUTES
+   les chaînes qu'il contient : une ternaire porte deux messages, et
+   c'est bien deux messages qu'on doit peser. `toast(msg)` n'en porte
+   aucun — la variable est relayée, son texte est compté là où il
+   s'écrit. */
+const argToast = (src, i) => {   /* i pointe la parenthèse ouvrante */
+  let prof = 0, guil = null, ech = false;
+  for (let k = i; k < src.length; k++){
+    const c = src[k];
+    if (guil){
+      if (ech) ech = false;
+      else if (c === '\\') ech = true;
+      else if (c === guil) guil = null;
+      continue;
+    }
+    if (c === "'" || c === '"' || c === '`'){ guil = c; continue; }
+    if (c === '(') prof++;
+    else if (c === ')'){ prof--; if (!prof) return src.slice(i + 1, k); }
+  }
+  return '';   /* parenthèse jamais refermée : le fichier ne compile pas */
+};
 const toasts = [];
 for (const f of fichiers){
   const src = lire(f);
-  const re = /\btoast\(\s*(['"`])((?:\\.|(?!\1)[\s\S])*?)\1/g;
+  const re = /\btoast\(/g;
   let m;
   while ((m = re.exec(src))){
-    /* une interpolation vaut un mot : on mesure la phrase, pas la donnée */
-    const txt = m[2].replace(/\\'/g, "'").replace(/\$\{[^}]*\}/g, '…');
-    toasts.push({ f, ligne: ligneDe(src, m.index), txt });
+    const arg = argToast(src, m.index + 5);
+    const reS = /(['"`])((?:\\.|(?!\1)[\s\S])*?)\1/g;
+    let s;
+    while ((s = reS.exec(arg))){
+      /* une interpolation vaut un mot : on mesure la phrase, pas la donnée */
+      const txt = s[2].replace(/\\'/g, "'").replace(/\$\{[^}]*\}/g, '…');
+      if (!txt.trim()) continue;   /* '' d'un repli, ' ' d'une jointure */
+      toasts.push({ f, ligne: ligneDe(src, m.index), txt });
+    }
   }
 }
+/* LE COLLECTEUR SE PROUVE : une sonde plantée dans sa faute d'origine.
+   Sans ça, le jour où il redeviendra myope il rendra un petit nombre,
+   et un petit nombre passe sous le plafond sans que personne ne cille. */
+if (!toasts.some(t => t.f === 'donner.js' && /QR hors ligne/.test(t.txt)))
+  fail('le collecteur de toasts ne voit plus les messages portés par une ternaire '
+     + '(`toast(compact ? … : …)` dans donner.js) — il compte moins qu’il n’y en a, '
+     + 'et un compte trop bas passe le plafond en silence');
 for (const t of toasts){
   const ou = `${t.f}:${t.ligne}  « ${t.txt} »`;
   if (t.txt.length > PLAFOND.toastCar)

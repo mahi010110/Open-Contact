@@ -139,25 +139,32 @@ export function openRecevoir(){
     sh.setFoot([btn('← Retour', 'btn-ghost', menu)]);
     let r;
     let joined = false;
-    /* l'étape prouvée, pas une attente muette : relais morts ou liaison
-       directe en échec se DISENT, avec le repli (QR hors ligne, fichier) */
+    /* un seul chemin de repli, partagé par la salle qui n'ouvre pas et
+       par la liaison qui ne prend pas : deux rangements qui divergent
+       finissent toujours par diverger pour de bon. */
+    const replier = () => {
+      w.stop();
+      leaveRdv();
+      toast('Liaison impossible — scanne le QR hors ligne.');
+      scan();
+    };
     const w = watchLiaison(() => joined ? 1 : 0, (stage, cause) => {
       if (my !== gen || joined) return;
       const el = q('#rcRdvSt');
       if (!el) return;
-      if (stage === 'norelay')
-        el.innerHTML = `${ic('square-alert', 'ic-14')} Pas de connexion — demande un QR hors ligne ou un fichier.`;
-      /* les trois pannes d'`onJoinError` appellent trois gestes : refaire
-         le rendez-vous, ou renoncer au direct. Les confondre envoyait
-         chercher un fichier à qui avait juste scanné un vieux QR. */
-      else if (stage === 'rtcfail' && cause === 'motdepasse')
+      /* LES DEUX MOITIÉS BASCULENT ENSEMBLE. En face, « Donner » quitte
+         le rendez-vous tout seul et affiche le QR hors ligne, qui porte
+         les fiches dans l'image — ni relais, ni NAT, ni réseau. Si ce
+         côté-ci restait sur une phrase à lire, l'échange s'arrêterait
+         quand même : il faut quelqu'un qui SCANNE. On rouvre donc le
+         scanner, et les deux téléphones se retrouvent sans qu'on leur
+         demande de comprendre une panne de transport.
+         MÊME EXCEPTION QU'EN FACE : « ce n'est pas le même code » n'est
+         pas une panne de réseau, et l'autre écran ne bascule pas non
+         plus — refaire le rendez-vous coûte dix secondes (§8). */
+      if (stage === 'norelay' || (stage === 'rtcfail' && cause !== 'motdepasse')){ replier(); return; }
+      if (stage === 'rtcfail' && cause === 'motdepasse')
         el.innerHTML = `${ic('square-alert', 'ic-14')} Ce n’est pas le même code — refaites le rendez-vous.`;
-      else if (stage === 'rtcfail' && cause === 'turnmuet')
-        el.innerHTML = `${ic('square-alert', 'ic-14')} Ton serveur TURN ne répond pas — prends le QR hors ligne ou le fichier.`;
-      else if (stage === 'rtcfail' && cause === 'sansturn')
-        el.innerHTML = `${ic('square-alert', 'ic-14')} Vos deux réseaux refusent la liaison directe — prends le QR hors ligne ou le fichier.`;
-      else if (stage === 'rtcfail')
-        el.innerHTML = `${ic('square-alert', 'ic-14')} L’autre appareil est là, mais rien ne passe — prends le QR hors ligne ou le fichier.`;
       else if (stage === 'wait')
         el.innerHTML = `${ic('clock', 'ic-14')} En attente de l’autre appareil…`;
       else
@@ -168,8 +175,7 @@ export function openRecevoir(){
     } catch (e) {
       w.stop();
       if (my !== gen) return;
-      toast('Pas de connexion — demande un QR hors ligne ou un fichier.');
-      menu();
+      replier();
       return;
     }
     if (my !== gen){ w.stop(); await leaveRoom(r); return; }

@@ -105,7 +105,22 @@ export const RELAIS_DEFAUT = [
    joignent à travers lui (`tests/e2e/sonde-turn.mjs`). Allouer ne
    suffit pas : c'est la même leçon que « répondre n'est pas relayer »,
    un étage plus loin.
-   Le TURN de l'utilisateur (`oc_turn_v1`) reste prioritaire. */
+   Le TURN de l'utilisateur (`oc_turn_v1`) reste prioritaire.
+
+   RELEVÉ DU 18 SEPTEMBRE 2026 : dix adresses publiques sans
+   inscription éprouvées, **zéro** n'alloue. Les deux contrôles de la
+   sonde étaient verts — en politique normale des candidats `srflx`
+   sortent, donc le réseau d'ici fonctionne et personne n'est accusé à
+   tort. Un TURN ouvert à tous se fait vider par le premier venu ; ceux
+   qui survivent demandent un compte, ce que la question ② de §0
+   interdit. La liste reste donc vide par MESURE, pas par oubli.
+
+   CE QUE ÇA CHANGE, ET C'EST LÀ QUE ÇA SE JOUE : la garantie ne pouvait
+   plus venir du tuyau. Elle vient du canal qui n'a besoin de rien — le
+   QR hors ligne, qui porte les fiches DANS l'image. `ui/donner.js` et
+   `ui/recevoir.js` y basculent tout seuls dès que la liaison est
+   perdue : c'est la seule réponse qui tienne « sur n'importe quel
+   réseau, n'importe quel appareil ». */
 export const TURN_DEFAUT = [];
 
 /* compte les WebSockets de relais par état (readyState 0/1), et — c'est

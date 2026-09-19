@@ -44,39 +44,6 @@ jobs:
       - name: Sonde de découverte — deux vrais pairs par relais (écriture)
         run: OC_SONDE_RELAIS=1 node tests/e2e/sonde-decouverte-relais.mjs
 
-  # TEMPORAIRE — à retirer une fois les adresses TURN choisies. Éprouve
-  # des TURN publics : allouent-ils, et deux pairs qui s'interdisent
-  # tout candidat local se joignent-ils à travers ? C'est la simulation
-  # de « deux réseaux mobiles », reproduite sur une seule machine.
-  turn:
-    name: TEMPORAIRE — TURN publics candidats
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - name: Playwright + Chromium
-        run: |
-          npm i -g playwright
-          playwright install --with-deps chromium
-          echo "OC_PLAYWRIGHT=$(npm root -g)/playwright/index.mjs" >> "$GITHUB_ENV"
-      - name: Allocation et traversée réelles
-        env:
-          OC_TURN_CANDIDATS: |
-            turn:openrelay.metered.ca:80 openrelayproject openrelayproject
-            turn:openrelay.metered.ca:443 openrelayproject openrelayproject
-            turns:openrelay.metered.ca:443 openrelayproject openrelayproject
-            turn:staticauth.openrelay.metered.ca:80 openrelayproject openrelayproject
-            turn:staticauth.openrelay.metered.ca:443 openrelayproject openrelayproject
-            turns:staticauth.openrelay.metered.ca:443 openrelayproject openrelayproject
-            turn:freeturn.tel:3478 free free
-            turns:freeturn.tel:5349 free free
-            turn:freestun.net:3478 free free
-            turns:freestun.net:5350 free free
-        run: OC_SONDE_RELAIS=1 node tests/e2e/sonde-turn.mjs
-
   pwa:
     name: PWA — auto-tests unitaires
     runs-on: ubuntu-latest

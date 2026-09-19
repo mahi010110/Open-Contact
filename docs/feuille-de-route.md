@@ -117,10 +117,26 @@ choses, et aucune ne dépend de quelqu'un d'extérieur.
       « Signaler un problème » le porte. Gardé à deux niveaux dans
       `e2e-liaison.mjs` (le câblage ET les appelants), 5 mutations attrapées.
       *(septembre 2026)*
-      **Ce qui reste hors de portée, et le restera** : sans TURN, deux
-      appareils en données mobiles ne peuvent pas se joindre directement, et
-      un TURN est un serveur — §10 et la question ② l'interdisent. Le repli
-      (`.oc`, QR) est la réponse du produit, pas un pis-aller.
+      **Et le cas qu'on croyait hors de portée a trouvé sa réponse
+      ailleurs.** Sans TURN, deux appareils en données mobiles n'ont
+      aucun chemin direct. Un TURN **tiers** était pourtant recevable —
+      il relaie des octets déjà chiffrés par WebRTC, même statut que les
+      relais Nostr ; ce que §10 interdit, c'est d'en TENIR un. Mesuré le
+      18 septembre 2026 avec `sonde-turn.mjs` : sur dix adresses
+      publiques sans inscription, **zéro** alloue, les deux contrôles de
+      la sonde verts (des candidats `srflx` sortent en politique normale,
+      donc le réseau d'ici fonctionne — on n'accuse personne à tort).
+      `TURN_DEFAUT` reste donc vide par MESURE, avec sa sonde prête pour
+      le jour où une adresse tiendra.
+      **La garantie est venue du canal qui n'a besoin de rien** : le QR
+      porte les fiches DANS l'image. Les deux moitiés basculent
+      maintenant toutes seules — « Donner » quitte le rendez-vous et
+      affiche le QR de données, « Recevoir » rouvre son scanner — sauf
+      pour la seule panne qui se répare en dix secondes, le code retapé
+      de travers. Gardé dans `e2e-liaison.mjs` : le basculement se
+      vérifie SANS UN CLIC, et le scénario prouve d'abord qu'il a joué la
+      bonne panne (`echecLiaison()` doit rendre `sansturn`).
+      Captures : `captures-repli-auto.mjs`, 2 ergonomies × 2 thèmes.
 
 - [ ] **Essais sur vrai matériel** — un vrai téléphone d'entrée de gamme, un
       vrai réseau d'établissement. Les scénarios automatiques passent à côté

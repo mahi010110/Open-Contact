@@ -609,9 +609,17 @@ const composes = async (avant) => {
    RÉUSSIT, ce qui a fait passer une première version de ce contrôle
    pour une reproduction alors qu'elle ne prouvait rien.
 
-   Ce que ça garde : que la panne se DISE, des deux côtés, avec le
-   geste qui va avec. Le message a été livré sans jamais avoir été vu
-   dans un navigateur ; il l'est maintenant. */
+   CE QUE ÇA GARDE A CHANGÉ DE NATURE. Nommer la panne ne suffisait
+   pas : devant un camarade qui attend, une phrase à lire demande de
+   comprendre un problème de transport pour donner trois contacts.
+   Les deux moitiés BASCULENT donc toutes seules — le donneur affiche
+   le QR hors ligne, qui porte les fiches dans l'image, et le receveur
+   rouvre son scanner. Le contrôle vérifie le basculement SANS UN SEUL
+   CLIC, et il vérifie aussi qu'il a bien joué le cas : le toast du
+   donneur doit dire « Liaison impossible », ce qui ne peut venir que
+   d'un `rtcfail` — les deux pairs se sont TROUVÉS puis n'ont pas pu se
+   parler. Un simple « Pas de connexion » voudrait dire que les relais
+   ont lâché, c'est-à-dire une autre panne que celle qu'on reproduit. */
 {
   const COUPE_ICE = () => {
     RTCPeerConnection.prototype.addIceCandidate = function(){ return Promise.resolve(); };
@@ -646,23 +654,64 @@ const composes = async (avant) => {
   await P.waitForSelector('#rcCodeGo:not([hidden])');
   await P.click('#rcCodeGo');
 
-  const dit = async (page, sel) => {
-    for (let i = 0; i < 40; i++){
-      const t = ((await page.textContent(sel).catch(() => '')) || '').trim();
-      if (/refusent/.test(t)) return t;
+  /* UN TOAST EST FUGACE (§5) : on ne peut pas le lire en boucle, il
+     dure 3,4 s. On l'enregistre à la source, par observation du nœud
+     que `toast()` remplit — rien n'est manqué, rien n'est relu deux
+     fois. */
+  const ENREGISTRER_TOASTS = () => {
+    window.__toasts = [];
+    const t = document.getElementById('toast');
+    new MutationObserver(() => {
+      const s = (t.textContent || '').trim();
+      if (s && window.__toasts[window.__toasts.length - 1] !== s) window.__toasts.push(s);
+    }).observe(t, { childList: true, characterData: true, subtree: true });
+  };
+  await G.evaluate(ENREGISTRER_TOASTS);
+  await P.evaluate(ENREGISTRER_TOASTS);
+
+  /* AUCUN CLIC ENTRE ICI ET LÀ : c'est tout l'objet du contrôle. */
+  const bascule = async (page, sel) => {
+    for (let i = 0; i < 45; i++){
+      if (await page.$(sel)) return true;
       await page.waitForTimeout(2000);
     }
-    return ((await page.textContent(sel).catch(() => '')) || '').trim();
+    return false;
   };
-  const dG = await dit(G, '#dnRdvSt');
-  const dP = await dit(P, '#rcRdvSt');
-  if (!/refusent la liaison/.test(dG))
-    fail('NAT : le donneur ne dit pas que les réseaux refusent la liaison — « ' + dG + ' ». '
-      + 'Sans ça, la panne la plus fréquente du P2P se lit comme une panne au hasard');
-  else if (!/refusent la liaison directe/.test(dP) || !/fichier/.test(dP))
-    fail('NAT : le receveur ne dit pas la panne ET son repli — « ' + dP + ' »');
-  else console.log('NAT d’opérateur reproduit : les deux écrans nomment la panne '
-    + 'et proposent le repli ✓');
+  const okG = await bascule(G, '.qr-wrap[aria-label="QR à faire scanner"]');
+  const okP = await bascule(P, '#rcCode');
+  const tG = await G.evaluate(() => window.__toasts || []);
+  const tP = await P.evaluate(() => window.__toasts || []);
+  const prog = ((await G.textContent('#dnQrProg').catch(() => '')) || '').trim();
+  /* LE CONTRÔLE QUI DIT QU'ON A JOUÉ LA BONNE PANNE. Le toast ne peut
+     plus le dire — « Liaison impossible » couvre les deux — et c'est
+     très bien à l'écran, mais ici il faut la cause exacte : sans elle,
+     un relais local qui tombe ferait passer ce scénario au vert en
+     reproduisant une panne qui n'est PAS celle du NAT. `echecLiaison()`
+     rend la dernière cause diagnostiquée de la session. */
+  const causeG = await G.evaluate(() =>
+    import('./ui/synclive.js').then(m => m.echecLiaison()));
+
+  if (!okG)
+    fail('NAT : le donneur reste sur son rendez-vous — il faudrait qu’il trouve tout seul '
+      + 'le repli pendant que son camarade attend. Toasts vus : ' + JSON.stringify(tG));
+  else if (causeG !== 'sansturn')
+    fail('NAT : le donneur a basculé, mais la panne jouée n’est pas celle du NAT — '
+      + '`echecLiaison()` rend « ' + causeG + ' », attendu « sansturn » (les deux pairs '
+      + 'se sont trouvés puis n’ont pas pu se parler faute de chemin direct). Le '
+      + 'scénario ne reproduit plus ce qu’il prétend reproduire');
+  else if (!tG.some(x => /Liaison impossible/.test(x)))
+    fail('NAT : le donneur a basculé sans dire pourquoi — l’écran change sous le pouce '
+      + 'et rien ne l’explique. Toasts vus : ' + JSON.stringify(tG));
+  else if (!/partie 1\/[2-9]/.test(prog))
+    fail('NAT : le donneur n’affiche pas un QR de données en plusieurs parties — « '
+      + prog + ' ». Le repli doit PORTER les fiches, pas rouvrir un rendez-vous');
+  else if (!okP)
+    fail('NAT : le receveur ne rouvre pas son scanner — le donneur affiche un QR que '
+      + 'personne ne scanne. Toasts vus : ' + JSON.stringify(tP));
+  else if (!tP.some(x => /scanne le QR hors ligne/.test(x)))
+    fail('NAT : le receveur a changé d’écran sans dire pourquoi — toasts ' + JSON.stringify(tP));
+  else console.log('NAT d’opérateur reproduit : sans un seul clic, le donneur passe au QR '
+    + 'hors ligne (' + prog + ') et le receveur rouvre son scanner ✓');
   await G.close(); await P.close();
 }
 

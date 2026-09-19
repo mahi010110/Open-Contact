@@ -34,6 +34,17 @@
      réseau d'ici est coupé, et les échecs qui suivent ne sont pas
      la faute des serveurs — on n'accuse personne.
 
+   CE QU'ELLE A MESURÉ, LE 18 SEPTEMBRE 2026 : dix adresses publiques
+   sans inscription (openrelay.metered.ca, freeturn.tel, freestun.net,
+   en UDP et en TLS), **zéro allocation**. Les deux contrôles étaient
+   verts — en politique normale des candidats `srflx` sortaient, donc le
+   réseau de la forge fonctionne et l'échec appartient bien aux
+   serveurs. Un TURN ouvert à tous se fait vider par le premier venu ;
+   ceux qui survivent demandent un compte, ce que la question ② de §0
+   interdit. `TURN_DEFAUT` reste donc vide PAR MESURE, et cette sonde
+   attend, prête, le jour où une adresse tiendra — elle s'appelle avec
+   `OC_TURN_CANDIDATS`, une adresse par ligne.
+
    Réseau sortant requis : ne tourne que si OC_SONDE_RELAIS=1.
    ============================================================ */
 import http from 'node:http';
