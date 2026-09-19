@@ -702,7 +702,14 @@ const composes = async (avant) => {
   else if (!tG.some(x => /Liaison impossible/.test(x)))
     fail('NAT : le donneur a basculé sans dire pourquoi — l’écran change sous le pouce '
       + 'et rien ne l’explique. Toasts vus : ' + JSON.stringify(tG));
-  else if (!/partie 1\/[2-9]/.test(prog))
+  /* ON N'ASSERTE PAS UNE VALEUR QUI BOUGE. Le QR animé tourne toutes
+     les 900 ms : exiger « partie 1/7 », c'est jouer à pile ou face
+     selon l'instant où la mesure tombe. Une mutation l'a dit — elle a
+     fait rougir CE contrôle-ci (« partie 3/7 ») au lieu de celui
+     qu'elle cassait, et un garde qui accuse le mauvais endroit se
+     corrige mal. Ce qui ne bouge pas, et qui est ce qu'on veut
+     prouver : il y a PLUSIEURS parties, donc le QR porte les fiches. */
+  else if (!/partie \d+\/[2-9]/.test(prog))
     fail('NAT : le donneur n’affiche pas un QR de données en plusieurs parties — « '
       + prog + ' ». Le repli doit PORTER les fiches, pas rouvrir un rendez-vous');
   else if (!okP)
