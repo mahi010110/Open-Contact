@@ -140,16 +140,41 @@ export const TURN_DEFAUT = [];
    ne coûte pas seulement du temps — ça coûte l'échange, parce que le
    camarade en face finit par ranger son téléphone.
 
-   LES DEUX DÉLAIS NE SONT PAS LE MÊME, et ce n'est pas un réglage :
-   · le DONNEUR affiche son QR et attend que l'autre sorte son téléphone,
-     ouvre l'app et vise. Mesuré dans `e2e-liaison.mjs` : trente
-     secondes est le minimum honnête. On laisse donc une large marge
-     par-dessus, sinon on couperait un échange parfaitement normal ;
-   · le RECEVEUR vient de scanner — l'autre est là, dans la salle, son
-     QR encore allumé. Si rien ne s'annonce en trente secondes, ce n'est
-     plus une question de patience. */
-export const SANS_PAIR_DONNEUR_MS = 60000;
-export const SANS_PAIR_RECEVEUR_MS = 30000;
+   COMBIEN DE TEMPS ? La première version disait soixante secondes côté
+   donneur, pour ne pas couper un échange normal — et c'était un
+   raisonnement d'ingénieur, pas d'utilisateur. **Personne ne fixe un
+   écran qui tourne pendant une minute** : on range son téléphone bien
+   avant, et le basculement arrive après que l'échange a échoué. Un
+   repli qui se déclenche trop tard n'existe pas.
+
+   Le calcul se refait donc dans l'autre sens, et il est simple :
+   BASCULER TÔT NE COÛTE RIEN. Le QR de données transfère exactement la
+   même chose, se scanne avec le même scanner, et un receveur qui arrive
+   APRÈS la bascule vise simplement l'écran qui est là — il reçoit tout.
+   Ce qu'on perd est la vitesse du P2P ; ce qu'on gagne est que ça
+   aboutisse. Entre les deux, pour deux personnes qui sont face à face,
+   le choix ne se discute pas.
+
+   MAIS IL Y A UN PLANCHER, ET IL EST MESURÉ. Descendu à vingt secondes,
+   le donneur abandonnait AVANT que son camarade arrive : `e2e-liaison`
+   tient trente secondes pour le temps qu'une vraie personne met à
+   sortir son téléphone, ouvrir l'app et viser — et le scénario a rougi
+   tout seul. Un receveur qui TAPE le code (pas de caméra) se retrouve
+   alors devant une salle que plus personne n'habite.
+   Quarante-cinq secondes : au-dessus du plancher humain, sous la minute
+   qui paraît infinie.
+
+   ET LE VRAI REMÈDE À L'IMPATIENCE N'EST PAS LE DÉLAI — c'est que la
+   sortie soit LISIBLE dès la première seconde. Le bouton sous le QR dit
+   désormais où il mène (« Passer au QR hors ligne ») au lieu de poser
+   une question sur le réseau. Qui ne veut pas attendre n'attend pas ;
+   le délai n'est plus qu'un filet pour qui ne tape rien.
+
+   Le receveur va plus vite : il vient de scanner, l'autre est là avec
+   son QR allumé. Si rien ne s'annonce, ce n'est déjà plus une question
+   de patience. */
+export const SANS_PAIR_DONNEUR_MS = 45000;
+export const SANS_PAIR_RECEVEUR_MS = 15000;
 
 /* compte les WebSockets de relais par état (readyState 0/1), et — c'est
    la moitié qui manquait — combien PORTENT réellement quelque chose.
@@ -185,8 +210,8 @@ export const SANS_PAIR_RECEVEUR_MS = 30000;
    Signalé à l'usage par le mainteneur, deux appareils, trois
    fonctions, le même écran qui tourne.
 
-   LA RÈGLE, ENFIN À SA PLACE : la découverte dépend d'une publication
-   ACCEPTÉE. La preuve en est `["OK", <id>, true]` — le relais dit
+   LA RÈGLE, ET SA LIMITE — APPRISE EN LA DÉPASSANT : la découverte
+   dépend d'une publication ACCEPTÉE. La preuve en est `["OK", <id>, true]` — le relais dit
    lui-même qu'il a pris notre événement — ou un `EVENT` qu'il nous
    DÉLIVRE, ce qui prouve qu'il relaie. Tout le reste (EOSE, NOTICE,
    silence) ne dit rien de cette capacité-là. On ne mesure donc plus
@@ -200,7 +225,7 @@ export const SANS_PAIR_RECEVEUR_MS = 30000;
    refus explicite, et qui n'ont jamais rien porté. Les deux servent le
    diagnostic — ils appellent des gestes différents, l'un se remplace,
    l'autre se re-mesure. */
-export function relayTally(socks, portent, refus){
+export function relayTally(socks, repondu, refus, portent){
   const t = { total: 0, open: 0, pending: 0, vivants: 0, refus: 0, muets: 0 };
   for (const k in (socks || {})){
     const s = socks[k];
@@ -208,15 +233,38 @@ export function relayTally(socks, portent, refus){
     t.total++;
     if (s.readyState === 1){
       t.open++;
-      const refuse = !!(refus && refus.has(k));
+      /* TROIS MESURES, ET CHACUNE A SA PLACE — les confondre a coûté
+         deux régressions dans la même soirée :
+         · `repondu` — a-t-il dit UN mot ? Un socket accepté par un
+           serveur qui ne répond jamais rien est un trou noir, et ça,
+           l'app le savait déjà : c'est une preuve, pas une supposition ;
+         · `refus` — a-t-il répondu « OK false » à NOTRE publication ?
+           Preuve directe, sans ambiguïté ;
+         · `portent` — a-t-il prouvé qu'il relaie ? Cette dernière
+           RENSEIGNE le diagnostic et ne condamne personne : son absence
+           n'est pas une preuve, c'est un délai qui n'est pas écoulé. */
+      const parle = !repondu || repondu.has(k);
+      const porte = !!(portent && portent.has(k));
+      const refuse = !!(refus && refus.has(k)) && !porte;
       if (refuse) t.refus++;
-      /* sans preuve de portage, on ne sait pas : on n'accuse pas */
-      if (!portent){ t.vivants++; continue; }
-      /* un relais qui a PORTÉ au moins une fois compte, même s'il a
-         refusé par ailleurs — un plafond de débit passager ne le
-         condamne pas pour la session */
-      if (portent.has(k)) t.vivants++;
-      else if (!refuse) t.muets++;
+      /* ON NE CONDAMNE QUE SUR UNE PREUVE, JAMAIS SUR UN SILENCE.
+         Une version de cette fonction exigeait la preuve INVERSE — un
+         relais ne vivait qu'après avoir montré qu'il portait. C'était
+         trop sévère, et ça s'est vu tout de suite sur un vrai téléphone :
+         en données mobiles, dix WebSockets s'ouvrent lentement et les
+         accusés arrivent en ordre dispersé. L'app criait « Pas de
+         connexion » PENDANT que la liaison s'établissait, et le partage
+         en groupe — qui marchait — s'est mis à paraître cassé.
+         Un faux positif de panne coûte plus cher que l'attente qu'il
+         prétend abréger : il fait RENONCER. La sortie de l'attente vaine
+         n'a d'ailleurs jamais eu besoin de ce jugement — c'est un délai
+         qui la donne (`SANS_PAIR_*`), et un délai ne se trompe sur
+         personne. */
+      if (parle && !refuse) t.vivants++;
+      /* `muets` ne juge rien : il RENSEIGNE. Il parle, il ne refuse pas,
+         et il n'a encore rien porté — c'est ce que le rapport doit
+         pouvoir dire à qui cherche pourquoi rien ne passe. */
+      if (parle && !refuse && portent && !porte) t.muets++;
     } else if (s.readyState === 0) t.pending++;
   }
   return t;

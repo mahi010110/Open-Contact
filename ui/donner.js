@@ -339,11 +339,18 @@ export function openDonner(){
          geste de l'autre personne est partie — un QR affiché et un code
          lisible n'ont pas besoin qu'on dise à quoi ils servent. Restent
          les deux seules choses qui ne se devinent pas : où en est la
-         liaison, et par où passer si le réseau est mort. */
+         liaison, et par où passer si le réseau est mort.
+         LE BOUTON DIT LE GESTE, PAS UNE QUESTION. « Sans réseau ? »
+         demandait à l'utilisateur de diagnostiquer son propre transport
+         pour deviner que ce bouton le sauverait — alors que §7 demande
+         un verbe, et que la compréhension passe avant la brièveté.
+         Le mot dit maintenant où l'on va, et c'est le même que celui du
+         basculement automatique : un objet, UN mot. */
       `<div class="qr-wrap" role="img" aria-label="QR de rendez-vous">${svg}</div>
        <div class="sy-phrase"><span>${esc(code)}</span></div>
        <div class="qr-prog" id="dnRdvSt">${ic('clock', 'ic-14')} Connexion…</div>
-       <button class="linklike" id="dnOffline" style="display:flex;margin:2px auto 0">Sans réseau ?</button>`;
+       <button class="linklike" id="dnOffline" style="display:flex;margin:2px auto 0">${
+         compact ? 'Passer au QR hors ligne' : 'Passer par le fichier'}</button>`;
     q('#dnOffline').addEventListener('click', () => fallback(false));
     const give = r.makeAction('give');
     const payload = sharePayload(chosen(), keepFn, moiQui());

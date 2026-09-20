@@ -514,21 +514,33 @@ console.log('sync : « Pas de connexion » affiché sans jargon, Réessayer pré
   if (vuA.snap.refus)
     fail('le relais avaleur a REFUSÉ quelque chose — c’est le cas d’à côté qui est joué, '
       + 'pas le silence : ' + JSON.stringify(vuA.snap));
-  if (vuA.snap.vivants)
-    fail('UN RELAIS QUI AVALE EN SILENCE EST COMPTÉ VIVANT : ' + JSON.stringify(vuA.snap)
-      + '. C’est la panne des deux téléphones — l’app mesure le bavardage (EOSE, NOTICE) '
-      + 'au lieu du PORTAGE (OK true, EVENT délivré), et l’écran tourne indéfiniment');
+  /* ET IL RESTE VIVANT — C'EST VOULU, ET ÇA A COÛTÉ DE L'APPRENDRE.
+     Une version condamnait le silence : un relais ne vivait qu'après
+     avoir prouvé qu'il portait. Sur un vrai téléphone en données
+     mobiles, où dix WebSockets s'ouvrent lentement et où les accusés
+     arrivent en ordre dispersé, l'app s'est mise à crier « Pas de
+     connexion » PENDANT que la liaison s'établissait — et le partage en
+     groupe, qui marchait, a paru cassé. Un faux positif de panne fait
+     RENONCER : il coûte plus cher que l'attente qu'il abrège.
+     Le silence RENSEIGNE donc (le rapport le dit) sans JUGER, et c'est
+     un délai qui sort de l'attente vaine — un délai ne se trompe sur
+     personne. */
+  if (!vuA.snap.vivants)
+    fail('un relais SILENCIEUX est déclaré mort : ' + JSON.stringify(vuA.snap)
+      + '. Rien ne prouve encore qu’il ne portera pas, et accuser sur un silence fait '
+      + 'crier « Pas de connexion » pendant qu’une liaison s’établit — c’est la régression '
+      + 'rapportée à l’usage, où le partage en groupe a paru cassé');
 
-  await attendre(A2, () => /Pas de connexion/.test(document.querySelector('#syStatus')?.textContent || ''),
-    { timeout: 40000,
-      message: 'relais avaleur : l’app doit dire « Pas de connexion », jamais « En attente »' });
-  const syA = await A2.evaluate(async () => (await import('./ui/synclive.js')).getSync());
-  if (syA.state !== 'norelay')
-    fail('relais avaleur : état attendu norelay, obtenu ' + syA.state);
-  if (/En attente/.test(await A2.textContent('#syStatus')))
-    fail('relais avaleur : l’écran invite encore à attendre un pair qui ne peut pas être annoncé');
-  console.log('relais qui AVALE en silence : ' + vuA.snap.muets + ' muet(s), 0 vivant → '
-    + '« Pas de connexion » au lieu de « En attente » ✓');
+  /* et le RAPPORT, lui, doit le dire : c'est là que le silence sert */
+  const rapportA = await A2.evaluate(async () => {
+    const { diagnosticData, diagnosticText } = await import('./engine/diagnostic.js');
+    const { relaySnapshot } = await import('./ui/synclive.js');
+    return diagnosticText(diagnosticData({ relais: relaySnapshot() }));
+  });
+  if (!/qui avale\(nt\) en silence/.test(rapportA))
+    fail('le rapport ne dit pas que des relais avalent en silence : ' + rapportA);
+  console.log('relais qui AVALE en silence : ' + vuA.snap.muets + ' muet(s) compté(s), toujours '
+    + 'vivant(s) — le rapport le dit, l’écran n’invente pas de panne ✓');
   await A2.context().close();
   avaleur.close();
 }

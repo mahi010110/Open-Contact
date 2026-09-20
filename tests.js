@@ -353,12 +353,19 @@ export async function runSelfTests(){
          qui a porté ne doit pas faire dire à cette fonction que les
          relais sont muets. `vivants` vaut alors `open`. */
       eq(relayTally(socks), { total: 3, open: 1, pending: 1, vivants: 1, refus: 0, muets: 0 });
-      /* AVEC la preuve : un socket ouvert qui n'a rien porté n'est pas
-         un relais qui marche — et il se compte à part, parce que
-         « il ne porte rien » et « il refuse » appellent deux gestes
-         différents. C'est la panne qui laissait l'écran sur « En
-         attente de ton autre appareil », indéfiniment. */
-      eq(relayTally(socks, new Set()), { total: 3, open: 1, pending: 1, vivants: 0, refus: 0, muets: 1 });
+      /* LE SILENCE SE COMPTE, MAIS IL NE CONDAMNE PAS. Un socket ouvert
+         qui n'a encore rien porté rejoint `muets` — c'est ce que le
+         rapport de diagnostic doit pouvoir dire — et il reste VIVANT.
+         Une version exigeait la preuve inverse, et elle a fait crier
+         « Pas de connexion » sur un vrai téléphone pendant que la
+         liaison s'établissait : en données mobiles les accusés arrivent
+         en ordre dispersé. Un faux positif de panne fait RENONCER, ce
+         qui coûte plus cher que l'attente qu'il prétend abréger. */
+      eq(relayTally(socks, new Set(), new Set(), new Set()),
+         { total: 3, open: 1, pending: 1, vivants: 0, refus: 0, muets: 0 });
+      /* il parle, mais n'a rien porté : vivant, et COMPTÉ pour le rapport */
+      eq(relayTally(socks, new Set(['a']), new Set(), new Set()),
+         { total: 3, open: 1, pending: 1, vivants: 1, refus: 0, muets: 1 });
       eq(relayTally(socks, new Set(['a'])), { total: 3, open: 1, pending: 1, vivants: 1, refus: 0, muets: 0 });
       /* un relais qui a porté mais dont le socket est retombé ne
          compte pas : c'est `readyState` qui commande l'ouverture */
@@ -375,35 +382,37 @@ export async function runSelfTests(){
          Ce qui le distingue d'un relais sain n'est PAS son bavardage :
          c'est qu'il n'a jamais rien porté. */
       const socks = { a: { readyState: 1 }, b: { readyState: 1 } };
-      const avale = relayTally(socks, new Set(), new Set());
-      eq(avale, { total: 2, open: 2, pending: 0, vivants: 0, refus: 0, muets: 2 });
-      /* et l'écran doit le DIRE, pas inviter à patienter */
+      const avale = relayTally(socks, new Set(['a', 'b']), new Set(), new Set());
+      /* ils se COMPTENT — le rapport peut le dire — mais ils restent
+         vivants : rien ne prouve encore qu'ils ne porteront pas. */
+      eq(avale, { total: 2, open: 2, pending: 0, vivants: 2, refus: 0, muets: 2 });
+      /* L'ÉCRAN N'INVENTE DONC PAS UNE PANNE. C'est le délai
+         (`SANS_PAIR_*`) qui sort de l'attente vaine, pas un jugement sur
+         le silence — un délai ne se trompe sur personne. */
       eq(liaisonStage({ peers: 0, exchanged: false, rtcFail: false, graceOver: true,
-                        relays: avale }), 'norelay');
-      /* un seul qui porte, et l'attente redevient honnête */
+                        relays: avale }), 'wait');
+      /* et un refus EXPLICITE, lui, condamne toujours */
       eq(liaisonStage({ peers: 0, exchanged: false, rtcFail: false, graceOver: true,
-                        relays: relayTally(socks, new Set(['b']), new Set()) }), 'wait');
+                        relays: relayTally(socks, new Set(['a', 'b']), new Set(['a', 'b']), new Set()) }), 'norelay');
     },
     'transport : RÉPONDRE N’EST PAS RELAYER — un relais qui refuse ne vit pas': () => {
       const socks = { a: { readyState: 1 }, b: { readyState: 1 } };
       const ont = new Set(['a', 'b']);
       /* les deux ont porté : les deux vivent */
       eq(relayTally(socks, ont), { total: 2, open: 2, pending: 0, vivants: 2, refus: 0, muets: 0 });
-      /* `a` a répondu « OK false » : il se compte à part — ce nombre
-         est ce qui manquait au rapport de diagnostic, où « 9 qui
-         répondent » se lisait « tout va bien ». Mais il avait DÉJÀ
-         porté : un plafond de débit passager ne le condamne pas pour la
-         session, donc il reste vivant. */
-      eq(relayTally(socks, ont, new Set(['a'])),
-         { total: 2, open: 2, pending: 0, vivants: 2, refus: 1, muets: 0 });
-      /* celui qui refuse SANS avoir jamais porté, lui, sort des vivants */
-      eq(relayTally(socks, new Set(['b']), new Set(['a'])),
+      /* `a` a répondu « OK false » MAIS il avait déjà porté : un plafond
+         de débit passager ne le condamne pas pour la session. */
+      eq(relayTally(socks, ont, new Set(['a']), ont),
+         { total: 2, open: 2, pending: 0, vivants: 2, refus: 0, muets: 0 });
+      /* celui qui refuse SANS avoir jamais porté, lui, sort des vivants
+         — c'est la seule preuve sur laquelle on condamne. */
+      eq(relayTally(socks, ont, new Set(['a']), new Set(['b'])),
          { total: 2, open: 2, pending: 0, vivants: 1, refus: 1, muets: 0 });
       /* AUCUN n'a porté et tous refusent : plus personne pour la
          découverte. C'est le cas mesuré le 18/09 chez qui ne joignait
          que des relais restreints — l'écran disait « En attente » à
          l'infini. */
-      eq(relayTally(socks, new Set(), new Set(['a', 'b'])),
+      eq(relayTally(socks, ont, new Set(['a', 'b']), new Set()),
          { total: 2, open: 2, pending: 0, vivants: 0, refus: 2, muets: 0 });
       /* et c'est bien « Pas de connexion » qui en sort, pas une attente */
       eq(liaisonStage({ peers: 0, exchanged: false, rtcFail: false, graceOver: true,

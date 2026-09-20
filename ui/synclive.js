@@ -55,6 +55,12 @@ const loadLib = () => libP || (libP = import('../assets/vendor/trystero-nostr.mi
    différents, et se tromper de cause coûte plus cher que ne pas
    savoir. Un relais qui porte ensuite s'en trouve racheté — un
    plafond de débit passager ne le condamne pas pour la session. */
+/* A-T-IL DIT UN MOT ? La mesure la plus ancienne, et elle reste juste :
+   un socket accepté par un serveur qui ne répond JAMAIS rien est un trou
+   noir. L'ensemble ne fait que grandir — un relais qui a parlé une fois
+   ne sera plus accusé sur un doute ; un socket refermé sort de toute
+   façon du compte par son `readyState`. */
+const relaisQuiRepondent = new Set();
 const relaisQuiPortent = new Set();
 const relaisQuiRefusent = new Set();
 function ecouterRelais(socks){
@@ -63,6 +69,7 @@ function ecouterRelais(socks){
     if (!s || s.__ocEcoute) continue;
     s.__ocEcoute = true;
     s.addEventListener('message', e => {
+      relaisQuiRepondent.add(k);
       /* on ne déplie que ce qui peut être un verdict : les événements
          relayés sont nombreux et gros, les accusés de réception non */
       const d = e && e.data;
@@ -94,7 +101,7 @@ function ecouterTot(){
 export const relaySnapshot = () => {
   const socks = libM && libM.getRelaySockets();
   ecouterRelais(socks);
-  return relayTally(socks, relaisQuiPortent, relaisQuiRefusent);
+  return relayTally(socks, relaisQuiRepondent, relaisQuiRefusent, relaisQuiPortent);
 };
 
 /* délai de grâce avant de déclarer « aucun relais joignable » : les
