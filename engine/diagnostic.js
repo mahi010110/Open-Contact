@@ -122,6 +122,12 @@ export function diagnosticData(x){
        que la découverte était impossible : la fausse bonne nouvelle
        parfaite, et le lecteur cherchait la panne ailleurs. */
     relaisRefus: n(x.relais && x.relais.refus),
+    /* ET LE TROISIÈME ÉTAT, celui qui manquait encore : ouvert, sans
+       refus, et qui n'a jamais rien porté. Il avale en silence. Sans ce
+       compte, un rapport pouvait dire « 10 relais · 10 joints · 0 qui
+       porte » sans que rien n'explique pourquoi, et « il refuse » ne
+       se répare pas comme « il ne répond pas ». */
+    relaisMuets: n(x.relais && x.relais.muets),
     /* POURQUOI la dernière liaison directe a échoué, si elle a échoué.
        Sans ça, « 9 relais · 7 qui répondent » se lit « tout va bien »
        alors que la liaison échoue juste après, pour une raison que
@@ -161,8 +167,9 @@ export function diagnosticText(d){
        laissait l'écran « en attente ». Il ne s'affiche que s'il y en
        a — l'encre va à ce qui change. */
     `Transport : ${d.relais} relais · ${d.relaisJoints} joint(s) · ` +
-      `${d.relaisVivants} qui répond(ent)` +
+      `${d.relaisVivants} qui porte(nt)` +
       (d.relaisRefus ? ` · ${d.relaisRefus} qui refuse(nt) de relayer` : '') +
+      (d.relaisMuets ? ` · ${d.relaisMuets} qui avale(nt) en silence` : '') +
       (d.echec ? ` · dernier échec : ${d.echec}` : ''),
     `Suivi : ${d.pistes} piste(s) · ${d.contacts} contact(s) · ` +
       `${d.arattacher} à rattacher · ${d.suppressions} suppression(s)`,

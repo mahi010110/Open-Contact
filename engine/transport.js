@@ -124,7 +124,7 @@ export const RELAIS_DEFAUT = [
 export const TURN_DEFAUT = [];
 
 /* compte les WebSockets de relais par état (readyState 0/1), et — c'est
-   la moitié qui manquait — combien ont RÉELLEMENT répondu.
+   la moitié qui manquait — combien PORTENT réellement quelque chose.
 
    UN SOCKET OUVERT N'EST PAS UN RELAIS QUI MARCHE. C'est l'erreur de
    l'incident #14 refaite un étage plus bas : là on déduisait « à jour »
@@ -134,11 +134,6 @@ export const TURN_DEFAUT = [];
    attente de ton autre appareil » indéfiniment — c'est-à-dire qu'il
    accusait le pair absent d'une panne qui n'était pas la sienne, et
    invitait à patienter devant quelque chose qui n'arriverait jamais.
-
-   `repondu` est l'ensemble des relais dont on a reçu au moins un
-   message. Absent, on ne conclut RIEN : `vivants` vaut `open`, et
-   personne n'est accusé — un appelant qui ne sait pas ne doit pas
-   faire dire à cette fonction ce qu'il ignore.
 
    ET RÉPONDRE N'EST PAS RELAYER — c'est la même erreur, encore un
    étage plus bas, et elle a été mesurée. Pour que deux appareils se
@@ -151,13 +146,34 @@ export const TURN_DEFAUT = [];
    quelque chose qui n'arriverait jamais. Relevé du 18/09 sur les neuf
    relais épinglés : sept répondaient en lecture, QUATRE seulement
    portaient la découverte.
-   `refus` est l'ensemble des relais qui ont répondu `OK false` à une
-   de nos publications — une réponse directe, sans ambiguïté, à ce
-   qu'on leur a demandé de relayer. Ceux-là ne comptent plus comme
-   vivants : leur socket est ouverte, ils sont polis, et ils ne
-   porteront rien. */
-export function relayTally(socks, repondu, refus){
-  const t = { total: 0, open: 0, pending: 0, vivants: 0, refus: 0 };
+   ET LA MÊME FAUTE S'EST REFAITE UNE QUATRIÈME FOIS, la voici nommée.
+   On comptait vivant tout relais ayant répondu QUOI QUE CE SOIT — son
+   EOSE de lecture suffisait — en n'écartant que ceux qui refusent
+   POLIMENT (`OK false`). Or un relais peut avaler une publication **en
+   silence** : socket ouverte, lectures servies, et pas un mot sur ce
+   qu'on lui a donné à relayer. Il n'est ni muet ni refusant au sens de
+   la version précédente, donc il restait vivant — et l'écran rendait
+   « En attente » indéfiniment, sur les trois surfaces à la fois.
+   Signalé à l'usage par le mainteneur, deux appareils, trois
+   fonctions, le même écran qui tourne.
+
+   LA RÈGLE, ENFIN À SA PLACE : la découverte dépend d'une publication
+   ACCEPTÉE. La preuve en est `["OK", <id>, true]` — le relais dit
+   lui-même qu'il a pris notre événement — ou un `EVENT` qu'il nous
+   DÉLIVRE, ce qui prouve qu'il relaie. Tout le reste (EOSE, NOTICE,
+   silence) ne dit rien de cette capacité-là. On ne mesure donc plus
+   « a-t-il parlé » mais « a-t-il PORTÉ », et c'est enfin la capacité
+   dont la fonctionnalité dépend (§8).
+
+   `portent` absent, on ne conclut RIEN : `vivants` vaut `open`, et
+   personne n'est accusé — un appelant qui ne sait pas ne doit pas
+   faire dire à cette fonction ce qu'il ignore.
+   `refus` reste compté à part, et `muets` le rejoint : ouverts, sans
+   refus explicite, et qui n'ont jamais rien porté. Les deux servent le
+   diagnostic — ils appellent des gestes différents, l'un se remplace,
+   l'autre se re-mesure. */
+export function relayTally(socks, portent, refus){
+  const t = { total: 0, open: 0, pending: 0, vivants: 0, refus: 0, muets: 0 };
   for (const k in (socks || {})){
     const s = socks[k];
     if (!s) continue;
@@ -166,7 +182,13 @@ export function relayTally(socks, repondu, refus){
       t.open++;
       const refuse = !!(refus && refus.has(k));
       if (refuse) t.refus++;
-      if (!refuse && (!repondu || repondu.has(k))) t.vivants++;
+      /* sans preuve de portage, on ne sait pas : on n'accuse pas */
+      if (!portent){ t.vivants++; continue; }
+      /* un relais qui a PORTÉ au moins une fois compte, même s'il a
+         refusé par ailleurs — un plafond de débit passager ne le
+         condamne pas pour la session */
+      if (portent.has(k)) t.vivants++;
+      else if (!refuse) t.muets++;
     } else if (s.readyState === 0) t.pending++;
   }
   return t;

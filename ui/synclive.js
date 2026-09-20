@@ -32,27 +32,30 @@ let libM = null;    /* le module chargé — pour sonder l'état réel des relai
 const loadLib = () => libP || (libP = import('../assets/vendor/trystero-nostr.min.js')
   .then(m => (libM = m), e => { libP = null; throw e; }));
 
-/* LES RELAIS QUI ONT RÉPONDU AU MOINS UNE FOIS. Un socket ouvert ne
-   prouve rien (voir `relayTally`) : un relais qui accepte la connexion
-   puis se tait laissait l'écran sur « En attente de ton autre
-   appareil », indéfiniment.
-   On écoute donc le PREMIER message de chaque socket, sans toucher à
-   la bibliothèque vendorisée ni à son protocole — n'importe quelle
-   réponse suffit à prouver que le relais parle.
-   L'ensemble ne fait que grandir, et c'est voulu : un relais qui a
-   répondu une fois ne sera jamais accusé plus tard sur un doute. Un
-   socket refermé sort de toute façon du compte par son `readyState`. */
-const relaisQuiRepondent = new Set();
-/* LES RELAIS QUI REFUSENT DE RELAYER. Répondre n'est pas relayer : un
-   relais peut servir les lectures et refuser les écritures, et la
-   découverte a besoin d'une écriture (voir `relayTally`). On ne
-   condamne que sur une preuve NON AMBIGUË — sa réponse directe à
-   notre publication, `["OK", <id>, false, <raison>]`. Un `NOTICE` ne
-   compte pas : il est trop général pour dire de quoi il parle, et se
-   tromper de cause coûte plus cher que ne pas savoir.
-   Et un relais qui nous DÉLIVRE un événement se rachète aussitôt : il
-   relaie, quoi qu'il ait refusé par ailleurs (un plafond de débit
-   passager ne doit pas le condamner pour la session). */
+/* LES RELAIS QUI PORTENT VRAIMENT QUELQUE CHOSE.
+
+   Trois versions de cette mesure se sont succédé, chacune un cran plus
+   près de la capacité réelle : « socket ouverte », puis « il a
+   répondu », puis « il n'a pas refusé poliment ». Toutes les trois
+   se trompaient de la même façon, et la troisième a laissé passer le
+   cas le plus courant : un relais qui avale la publication **en
+   silence**. Socket ouverte, lectures servies, pas un mot sur ce qu'on
+   lui a donné à relayer — donc jamais dans `relaisQuiRefusent`, donc
+   compté vivant, donc « En attente » à l'infini. Mesuré sur deux vrais
+   téléphones, sur les trois fonctions à la fois.
+
+   CE QUI COMPTE EST LA PREUVE DE PORTAGE, et il y en a exactement deux,
+   toutes deux non ambiguës et déjà présentes sur le même socket :
+   · `["OK", <id>, true]` — il dit lui-même avoir PRIS notre événement ;
+   · `["EVENT", …]` qu'il nous DÉLIVRE — il relaie, c'est prouvé.
+   Un EOSE, un NOTICE ou le silence ne disent rien de cette capacité-là.
+
+   `relaisQuiRefusent` reste tenu à part, pour le seul diagnostic :
+   « il refuse » et « il ne répond pas » appellent des gestes
+   différents, et se tromper de cause coûte plus cher que ne pas
+   savoir. Un relais qui porte ensuite s'en trouve racheté — un
+   plafond de débit passager ne le condamne pas pour la session. */
+const relaisQuiPortent = new Set();
 const relaisQuiRefusent = new Set();
 function ecouterRelais(socks){
   for (const k in (socks || {})){
@@ -60,7 +63,6 @@ function ecouterRelais(socks){
     if (!s || s.__ocEcoute) continue;
     s.__ocEcoute = true;
     s.addEventListener('message', e => {
-      relaisQuiRepondent.add(k);
       /* on ne déplie que ce qui peut être un verdict : les événements
          relayés sont nombreux et gros, les accusés de réception non */
       const d = e && e.data;
@@ -69,8 +71,9 @@ function ecouterRelais(socks){
       let m;
       try { m = JSON.parse(d); } catch (x) { return; }
       if (!Array.isArray(m)) return;
-      if (m[0] === 'OK' && m[2] === false) relaisQuiRefusent.add(k);
-      else if (m[0] === 'EVENT') relaisQuiRefusent.delete(k);
+      if (m[0] === 'OK' && m[2] === false){ relaisQuiRefusent.add(k); return; }
+      if (m[0] === 'OK' && m[2] === true){ relaisQuiPortent.add(k); relaisQuiRefusent.delete(k); return; }
+      if (m[0] === 'EVENT'){ relaisQuiPortent.add(k); relaisQuiRefusent.delete(k); }
     });
   }
 }
@@ -91,7 +94,7 @@ function ecouterTot(){
 export const relaySnapshot = () => {
   const socks = libM && libM.getRelaySockets();
   ecouterRelais(socks);
-  return relayTally(socks, relaisQuiRepondent, relaisQuiRefusent);
+  return relayTally(socks, relaisQuiPortent, relaisQuiRefusent);
 };
 
 /* délai de grâce avant de déclarer « aucun relais joignable » : les

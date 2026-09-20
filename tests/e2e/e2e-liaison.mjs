@@ -465,6 +465,74 @@ console.log('sync : « Pas de connexion » affiché sans jargon, Réessayer pré
   restreint.close();
 }
 
+/* ET LE PIRE DES QUATRE : LE RELAIS QUI AVALE EN SILENCE.
+   C'est la panne rencontrée sur deux vrais téléphones, sur les trois
+   fonctions à la fois, après que les trois corrections précédentes
+   étaient livrées et vertes. Il lit (REQ → EOSE), il prend nos
+   publications sans un mot — ni `OK true`, ni `OK false` — et ne
+   retransmet rien. Il n'est donc ni muet, ni refusant : l'app le
+   comptait vivant et rendait « En attente » à l'infini.
+
+   CE SCÉNARIO EST CELUI QUI DISTINGUE LES DEUX MESURES. Un relais sain
+   bavarde ET porte ; seul celui-ci fait l'un sans l'autre. Sans lui, on
+   ne peut pas prouver que l'app mesure le PORTAGE plutôt que le
+   bavardage — les trois autres doubles passent aussi bien avec
+   l'ancienne règle qu'avec la nouvelle.
+   SON CONTRÔLE EST DANS L'ASSERTION : on exige `muets > 0`, ce qui ne
+   peut être vrai que si le socket est OUVERT et qu'il a répondu à
+   autre chose. S'il était simplement mort, ce compteur resterait à
+   zéro et le scénario échouerait au lieu de rejouer le cas d'à côté
+   sans le savoir. */
+{
+  const avaleur = await startLocalRelay({ tls: true, avale: true });
+  const portA = new URL(avaleur.url).port;
+  const A2 = await mk(mobile);
+  await A2.goto(base, { waitUntil: 'load' });
+  await A2.evaluate(async port => {
+    const st = await import('./engine/storage.js');
+    await st.kvInit();
+    await st.kvSet(st.RELAYS_KEY, JSON.stringify(['wss://127.0.0.1:' + port + '/']));
+  }, portA);
+  await A2.click('.bottomnav a[data-r="moi"]');
+  await ouvrirReglages(A2);
+  await A2.click('#moiSync');
+  await A2.waitForSelector('#syNew');
+  await A2.click('#syNew');
+
+  await attendre(A2, async () => {
+    const r = (await import('./ui/synclive.js')).relaySnapshot();
+    return r.open > 0 && r.muets > 0;
+  }, { timeout: 30000,
+       message: 'le relais avaleur n’a jamais été vu ouvert-et-muet — le cas n’est pas joué' });
+
+  const vuA = await A2.evaluate(async () => {
+    const sl = await import('./ui/synclive.js');
+    return { snap: sl.relaySnapshot(), etat: sl.getSync().state };
+  });
+  if (!vuA.snap.open)
+    fail('le relais avaleur n’a pas accepté le socket — le cas n’est pas joué');
+  if (vuA.snap.refus)
+    fail('le relais avaleur a REFUSÉ quelque chose — c’est le cas d’à côté qui est joué, '
+      + 'pas le silence : ' + JSON.stringify(vuA.snap));
+  if (vuA.snap.vivants)
+    fail('UN RELAIS QUI AVALE EN SILENCE EST COMPTÉ VIVANT : ' + JSON.stringify(vuA.snap)
+      + '. C’est la panne des deux téléphones — l’app mesure le bavardage (EOSE, NOTICE) '
+      + 'au lieu du PORTAGE (OK true, EVENT délivré), et l’écran tourne indéfiniment');
+
+  await attendre(A2, () => /Pas de connexion/.test(document.querySelector('#syStatus')?.textContent || ''),
+    { timeout: 40000,
+      message: 'relais avaleur : l’app doit dire « Pas de connexion », jamais « En attente »' });
+  const syA = await A2.evaluate(async () => (await import('./ui/synclive.js')).getSync());
+  if (syA.state !== 'norelay')
+    fail('relais avaleur : état attendu norelay, obtenu ' + syA.state);
+  if (/En attente/.test(await A2.textContent('#syStatus')))
+    fail('relais avaleur : l’écran invite encore à attendre un pair qui ne peut pas être annoncé');
+  console.log('relais qui AVALE en silence : ' + vuA.snap.muets + ' muet(s), 0 vivant → '
+    + '« Pas de connexion » au lieu de « En attente » ✓');
+  await A2.context().close();
+  avaleur.close();
+}
+
 /* « Réessayer » n'est pas un bouton décoratif : le relais renaît sur le
    même port, un tap, et la liaison se rétablit réellement.
    ON EXIGE `vivants`, PAS SEULEMENT `open` — et c'est plus fort qu'avant :

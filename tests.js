@@ -344,46 +344,73 @@ export async function runSelfTests(){
       eq(causeLiaison(undefined), 'inconnu');
       eq(causeLiaison({}), 'inconnu');
     },
-    'transport : relayTally compte les sockets par état, ET ceux qui répondent': () => {
-      eq(relayTally(null), { total: 0, open: 0, pending: 0, vivants: 0, refus: 0 });
-      eq(relayTally({}), { total: 0, open: 0, pending: 0, vivants: 0, refus: 0 });
+    'transport : relayTally compte les sockets par état, ET ceux qui PORTENT': () => {
+      const vide = { total: 0, open: 0, pending: 0, vivants: 0, refus: 0, muets: 0 };
+      eq(relayTally(null), vide);
+      eq(relayTally({}), vide);
       const socks = { a: { readyState: 1 }, b: { readyState: 0 }, c: { readyState: 3 }, d: null };
       /* SANS PREUVE, ON N'ACCUSE PERSONNE : un appelant qui ne sait pas
-         qui a répondu ne doit pas faire dire à cette fonction que les
+         qui a porté ne doit pas faire dire à cette fonction que les
          relais sont muets. `vivants` vaut alors `open`. */
-      eq(relayTally(socks), { total: 3, open: 1, pending: 1, vivants: 1, refus: 0 });
-      /* AVEC la preuve : un socket ouvert qui n'a jamais parlé n'est
-         pas un relais qui marche. C'est la panne qui laissait l'écran
-         sur « En attente de ton autre appareil », indéfiniment. */
-      eq(relayTally(socks, new Set()), { total: 3, open: 1, pending: 1, vivants: 0, refus: 0 });
-      eq(relayTally(socks, new Set(['a'])), { total: 3, open: 1, pending: 1, vivants: 1, refus: 0 });
-      /* un relais qui a répondu mais dont le socket est retombé ne
+      eq(relayTally(socks), { total: 3, open: 1, pending: 1, vivants: 1, refus: 0, muets: 0 });
+      /* AVEC la preuve : un socket ouvert qui n'a rien porté n'est pas
+         un relais qui marche — et il se compte à part, parce que
+         « il ne porte rien » et « il refuse » appellent deux gestes
+         différents. C'est la panne qui laissait l'écran sur « En
+         attente de ton autre appareil », indéfiniment. */
+      eq(relayTally(socks, new Set()), { total: 3, open: 1, pending: 1, vivants: 0, refus: 0, muets: 1 });
+      eq(relayTally(socks, new Set(['a'])), { total: 3, open: 1, pending: 1, vivants: 1, refus: 0, muets: 0 });
+      /* un relais qui a porté mais dont le socket est retombé ne
          compte pas : c'est `readyState` qui commande l'ouverture */
       eq(relayTally({ z: { readyState: 3 } }, new Set(['z'])),
-         { total: 1, open: 0, pending: 0, vivants: 0, refus: 0 });
+         { total: 1, open: 0, pending: 0, vivants: 0, refus: 0, muets: 0 });
+    },
+    'transport : AVALER EN SILENCE n’est ni répondre ni refuser': () => {
+      /* LA PANNE DES DEUX TÉLÉPHONES, réduite à ses termes. Un relais
+         ouvre le socket, sert les lectures, puis prend nos publications
+         SANS UN MOT : ni `OK true`, ni `OK false`. Les trois mesures
+         précédentes le comptaient vivant — socket ouvert, il a parlé,
+         il n'a pas refusé — et l'écran tournait à l'infini sur les
+         trois surfaces à la fois.
+         Ce qui le distingue d'un relais sain n'est PAS son bavardage :
+         c'est qu'il n'a jamais rien porté. */
+      const socks = { a: { readyState: 1 }, b: { readyState: 1 } };
+      const avale = relayTally(socks, new Set(), new Set());
+      eq(avale, { total: 2, open: 2, pending: 0, vivants: 0, refus: 0, muets: 2 });
+      /* et l'écran doit le DIRE, pas inviter à patienter */
+      eq(liaisonStage({ peers: 0, exchanged: false, rtcFail: false, graceOver: true,
+                        relays: avale }), 'norelay');
+      /* un seul qui porte, et l'attente redevient honnête */
+      eq(liaisonStage({ peers: 0, exchanged: false, rtcFail: false, graceOver: true,
+                        relays: relayTally(socks, new Set(['b']), new Set()) }), 'wait');
     },
     'transport : RÉPONDRE N’EST PAS RELAYER — un relais qui refuse ne vit pas': () => {
       const socks = { a: { readyState: 1 }, b: { readyState: 1 } };
       const ont = new Set(['a', 'b']);
-      /* les deux répondent : sans autre information, les deux vivent */
-      eq(relayTally(socks, ont), { total: 2, open: 2, pending: 0, vivants: 2, refus: 0 });
-      /* `a` a répondu « OK false » à notre publication : il est poli et
-         ne portera rien. Il sort des vivants et se compte à part — ce
-         nombre est ce qui manquait au rapport de diagnostic, où
-         « 9 qui répondent » se lisait « tout va bien ». */
+      /* les deux ont porté : les deux vivent */
+      eq(relayTally(socks, ont), { total: 2, open: 2, pending: 0, vivants: 2, refus: 0, muets: 0 });
+      /* `a` a répondu « OK false » : il se compte à part — ce nombre
+         est ce qui manquait au rapport de diagnostic, où « 9 qui
+         répondent » se lisait « tout va bien ». Mais il avait DÉJÀ
+         porté : un plafond de débit passager ne le condamne pas pour la
+         session, donc il reste vivant. */
       eq(relayTally(socks, ont, new Set(['a'])),
-         { total: 2, open: 2, pending: 0, vivants: 1, refus: 1 });
-      /* TOUS refusent : plus personne pour porter la découverte. C'est
-         le cas mesuré le 18/09 chez qui ne joignait que des relais
-         restreints — l'écran disait « En attente » à l'infini. */
-      eq(relayTally(socks, ont, new Set(['a', 'b'])),
-         { total: 2, open: 2, pending: 0, vivants: 0, refus: 2 });
+         { total: 2, open: 2, pending: 0, vivants: 2, refus: 1, muets: 0 });
+      /* celui qui refuse SANS avoir jamais porté, lui, sort des vivants */
+      eq(relayTally(socks, new Set(['b']), new Set(['a'])),
+         { total: 2, open: 2, pending: 0, vivants: 1, refus: 1, muets: 0 });
+      /* AUCUN n'a porté et tous refusent : plus personne pour la
+         découverte. C'est le cas mesuré le 18/09 chez qui ne joignait
+         que des relais restreints — l'écran disait « En attente » à
+         l'infini. */
+      eq(relayTally(socks, new Set(), new Set(['a', 'b'])),
+         { total: 2, open: 2, pending: 0, vivants: 0, refus: 2, muets: 0 });
       /* et c'est bien « Pas de connexion » qui en sort, pas une attente */
       eq(liaisonStage({ peers: 0, exchanged: false, rtcFail: false, graceOver: true,
                         relays: { total: 2, open: 2, vivants: 0, refus: 2 } }), 'norelay');
       /* un socket fermé qui aurait refusé ne se compte nulle part */
       eq(relayTally({ z: { readyState: 0 } }, new Set(['z']), new Set(['z'])),
-         { total: 1, open: 0, pending: 1, vivants: 0, refus: 0 });
+         { total: 1, open: 0, pending: 1, vivants: 0, refus: 0, muets: 0 });
     },
     'transport : des sockets ouverts mais muets ne sont pas une attente': () => {
       const base = { peers: 0, exchanged: false, rtcFail: false, graceOver: true };
@@ -1226,7 +1253,7 @@ export async function runSelfTests(){
          rapport n'en disait rien, et c'est pourtant la seule panne
          qu'on ne peut pas voir à distance. */
       eq(txt.split('\n').length, 6);
-      ok(/Transport : \d+ relais · \d+ joint\(s\) · \d+ qui répond\(ent\)/.test(txt));
+      ok(/Transport : \d+ relais · \d+ joint\(s\) · \d+ qui porte\(nt\)/.test(txt));
       ok(txt.startsWith('Appareil : '));
       ok(!/\d+\.\d+\.\d+/.test(txt));
       ok(txt.includes('390×844') && txt.includes('2 piste(s)') && txt.includes('hors ligne'));
@@ -1240,26 +1267,35 @@ export async function runSelfTests(){
       ok(txt.includes('mémoire (rien ne survit)'));
       /* sans transport connu, la ligne existe quand même et dit zéro :
          une ligne qui disparaît casse la comparaison entre rapports */
-      ok(txt.includes('Transport : 0 relais · 0 joint(s) · 0 qui répond(ent)'));
+      ok(txt.includes('Transport : 0 relais · 0 joint(s) · 0 qui porte(nt)'));
       ok(txt.includes('Documents : 0 (0 Ko)'));
       ok(txt.includes('sans protection') && txt.includes('appareils non reliés'));
       ok(txt.includes('inconnu') && txt.includes('0×0'));
     },
-    'diagnostic : les relais qui refusent de relayer se disent': () => {
-      /* SANS ce nombre, le rapport disait « 9 relais · 9 joints ·
+    'diagnostic : les relais qui refusent ET ceux qui avalent se disent': () => {
+      /* SANS ces nombres, le rapport disait « 9 relais · 9 joints ·
          9 qui répondent » pendant que la découverte était impossible —
          la fausse bonne nouvelle parfaite, et le lecteur cherchait la
          panne ailleurs. */
       const avec = diagnosticText(diagnosticData({
         relais: { total: 9, open: 9, vivants: 5, refus: 4 } }));
-      ok(avec.includes('9 relais · 9 joint(s) · 5 qui répond(ent) · 4 qui refuse(nt) de relayer'));
+      ok(avec.includes('9 relais · 9 joint(s) · 5 qui porte(nt) · 4 qui refuse(nt) de relayer'));
+      /* ET LE TROISIÈME ÉTAT, celui des deux téléphones : ouverts, ne
+         refusant rien, et ne portant rien. « Il refuse » se répare en
+         changeant de relais ; « il avale » demande de le re-mesurer.
+         Deux gestes différents, donc deux mots différents. */
+      const silence = diagnosticText(diagnosticData({
+        relais: { total: 10, open: 10, vivants: 0, refus: 0, muets: 10 } }));
+      ok(silence.includes('10 relais · 10 joint(s) · 0 qui porte(nt) · 10 qui avale(nt) en silence'));
+      ok(!silence.includes('refuse'));
       /* mais rien à signaler ne s'écrit pas : l'encre va à ce qui change */
       const sans = diagnosticText(diagnosticData({
-        relais: { total: 9, open: 9, vivants: 9, refus: 0 } }));
-      ok(!sans.includes('refuse'));
+        relais: { total: 9, open: 9, vivants: 9, refus: 0, muets: 0 } }));
+      ok(!sans.includes('refuse') && !sans.includes('avale'));
       /* et la ligne garde son compte : six lignes, toujours les mêmes */
       eq(avec.split('\n').length, 6);
       eq(sans.split('\n').length, 6);
+      eq(silence.split('\n').length, 6);
     },
     'aides : relances dues — retard d’abord, pistes travaillées ensuite': () => {
       const comps = [

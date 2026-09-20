@@ -114,9 +114,20 @@ function makeDecoder(onText, onClose, onPing){
    il passait pour vivant, et l'app attendait un pair qui ne pouvait
    pas être annoncé. Mesuré sur les relais épinglés le 18/09 : quatre
    sur neuf étaient dans cet état exact pendant que la sonde de lecture
-   en rendait sept sur neuf « sains ». */
+   en rendait sept sur neuf « sains ».
+
+   `avale` : LE PIRE DES QUATRE, et celui qui a échappé à toutes les
+   versions précédentes. Il lit normalement (REQ → EOSE) et prend nos
+   publications SANS RIEN DIRE — ni `OK true`, ni `OK false` — et sans
+   rien retransmettre. Il n'est donc ni muet (il parle), ni refusant
+   (il ne refuse rien) : l'app le comptait vivant, et rendait « En
+   attente » à l'infini. C'est la panne que le mainteneur a rencontrée
+   sur deux vrais téléphones, sur les trois fonctions à la fois.
+   Ce double est ce qui rend la correction PROUVABLE : sans lui, on ne
+   peut pas distinguer « l'app mesure le portage » de « l'app mesure
+   le bavardage », puisque le relais sain fait les deux. */
 export async function startLocalRelay({ silent = true, tls = false, port = 0,
-                                        muet = false, refus = false } = {}){
+                                        muet = false, refus = false, avale = false } = {}){
   const conns = new Set();          /* { sock, send, subs: Map<subId, filtres[]> } */
   const log = (...a) => { if (!silent) console.log('[relais]', ...a); };
 
@@ -160,6 +171,11 @@ export async function startLocalRelay({ silent = true, tls = false, port = 0,
           conn.send(['OK', ev.id, false, 'restricted: we do not accept events from this pubkey']);
           return;
         }
+        /* il avale : rien ne sort, et RIEN NE LE DIT. Pas d'accusé, pas
+           de refus, pas de retransmission — seul le silence sur CETTE
+           publication-là le distingue d'un relais sain, et c'est
+           précisément ce que l'app doit savoir lire. */
+        if (avale) return;
         conn.send(['OK', ev.id, true, '']);
         for (const c of conns)
           for (const [subId, filters] of c.subs)
