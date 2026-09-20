@@ -43,6 +43,11 @@ jobs:
       # « En attente de ton groupe » à l'infini — voir l'en-tête de la sonde.
       - name: Sonde de découverte — deux vrais pairs par relais (écriture)
         run: OC_SONDE_RELAIS=1 node tests/e2e/sonde-decouverte-relais.mjs
+      # Le contraste rapporté à l'usage : le partage en groupe passe, le
+      # rendez-vous QR reste sur « En attente ». Les deux chemins joués
+      # dans la même page contre les VRAIS relais, le groupe en témoin.
+      - name: Sonde rendez-vous QR vs partage en groupe (vrais relais)
+        run: OC_SONDE_RELAIS=1 node tests/e2e/sonde-rdv-reel.mjs
 
   pwa:
     name: PWA — auto-tests unitaires
