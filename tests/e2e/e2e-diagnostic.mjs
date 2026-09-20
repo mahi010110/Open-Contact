@@ -104,7 +104,16 @@ const lignes = txt.split('\n');
    tenu — une ligne par sujet, toujours les mêmes, et tout se lit sans
    défiler (vérifié plus bas). */
 if (lignes.length !== 6) fail('le rapport doit tenir 6 lignes stables : ' + lignes.length);
-if (!/^Transport : \d+ relais · \d+ joint\(s\) · \d+ qui répond\(ent\)$/.test(lignes[3]))
+/* LE MOT EST « PORTE », PAS « RÉPOND », et l'écart n'est pas cosmétique :
+   un relais qui répond sans rien relayer est exactement celui qui laissait
+   l'écran « En attente » à l'infini (CLAUDE.md §8). Cette garde disait
+   encore l'ancien mot et rougissait sur du code juste.
+   Les trois queues sont OPTIONNELLES et se gardent ici plutôt que d'être
+   ignorées par un `.*` : elles ne s'affichent que s'il y a quelque chose
+   à dire, et ce sont elles qui portent le diagnostic. Une garde ancrée
+   sur la seule forme courte re-casserait au premier relais qui refuse —
+   c'est-à-dire le jour où le rapport sert enfin à quelque chose. */
+if (!/^Transport : \d+ relais · \d+ joint\(s\) · \d+ qui porte\(nt\)( · \d+ qui refuse\(nt\) de relayer)?( · \d+ qui avale\(nt\) en silence)?( · dernier échec : .+)?$/.test(lignes[3]))
   fail('la ligne de transport manque ou a changé de forme : ' + lignes[3]);
 if (/\d+\.\d+\.\d+/.test(txt)) fail('plus aucun numéro de version dans le rapport');
 if (lignes[0] !== 'Appareil : Chrome 130 · Android · 390×844 · fr-FR')

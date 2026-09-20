@@ -160,12 +160,15 @@ export function diagnosticText(d){
     /* Les relais rejoignent la ligne des appareils reliés plutôt que
        d'en ouvrir une sixième : le format tient en CINQ lignes stables,
        et c'est ce qui permet de comparer deux rapports d'un coup d'œil.
-       « joints » compte les sockets ouverts, « répondent » ceux qui ont
-       vraiment parlé — l'écart entre les deux EST le diagnostic. Le
-       troisième écart est le plus trompeur : un relais qui répond et
-       REFUSE de relayer ne se voyait nulle part, et c'est lui qui
-       laissait l'écran « en attente ». Il ne s'affiche que s'il y en
-       a — l'encre va à ce qui change. */
+       « joints » compte les sockets ouverts, « portent » ceux qui ont
+       PRIS une publication — l'écart entre les deux EST le diagnostic.
+       Le mot compte : « répond » a désigné ce chiffre pendant quatre
+       versions, et c'est ce mot qui rendait « 9 relais · 9 joints · 9 qui
+       répondent » rassurant pendant que rien ne passait (§8). Les deux
+       queues sont les écarts les plus trompeurs — un relais qui refuse
+       poliment, un autre qui avale en silence — et elles appellent des
+       gestes différents : l'un se remplace, l'autre se re-mesure. Elles
+       ne s'affichent que s'il y en a : l'encre va à ce qui change. */
     `Transport : ${d.relais} relais · ${d.relaisJoints} joint(s) · ` +
       `${d.relaisVivants} qui porte(nt)` +
       (d.relaisRefus ? ` · ${d.relaisRefus} qui refuse(nt) de relayer` : '') +
