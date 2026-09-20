@@ -123,6 +123,34 @@ export const RELAIS_DEFAUT = [
    réseau, n'importe quel appareil ». */
 export const TURN_DEFAUT = [];
 
+/* ---------- ON N'ATTEND PAS QUELQU'UN POUR TOUJOURS ----------
+   Le pire défaut du rendez-vous n'était aucune des quatre pannes de
+   relais : c'était l'ABSENCE DE SORTIE. Tant qu'un relais porte, l'état
+   reste `wait` — honnêtement, il n'y a rien à signaler — et l'écran
+   affiche « En attente » indéfiniment. Si les deux appareils n'ouvrent
+   pas le même relais à temps, ils s'attendent sans jamais se croiser, et
+   personne ne vient le leur dire. Mesuré sur la forge : le receveur
+   n'avait qu'UN relais ouvert sur dix pendant que le donneur en avait
+   neuf — ça a marché parce que cet unique relais était l'un des bons.
+   Sur un téléphone en données mobiles, où ouvrir dix connexions est
+   lent, ce coup de chance n'est pas garanti.
+
+   Or l'app a une sortie qui marche TOUJOURS et ne la prenait jamais : le
+   QR hors ligne porte les fiches dans l'image. Attendre plus longtemps
+   ne coûte pas seulement du temps — ça coûte l'échange, parce que le
+   camarade en face finit par ranger son téléphone.
+
+   LES DEUX DÉLAIS NE SONT PAS LE MÊME, et ce n'est pas un réglage :
+   · le DONNEUR affiche son QR et attend que l'autre sorte son téléphone,
+     ouvre l'app et vise. Mesuré dans `e2e-liaison.mjs` : trente
+     secondes est le minimum honnête. On laisse donc une large marge
+     par-dessus, sinon on couperait un échange parfaitement normal ;
+   · le RECEVEUR vient de scanner — l'autre est là, dans la salle, son
+     QR encore allumé. Si rien ne s'annonce en trente secondes, ce n'est
+     plus une question de patience. */
+export const SANS_PAIR_DONNEUR_MS = 60000;
+export const SANS_PAIR_RECEVEUR_MS = 30000;
+
 /* compte les WebSockets de relais par état (readyState 0/1), et — c'est
    la moitié qui manquait — combien PORTENT réellement quelque chose.
 

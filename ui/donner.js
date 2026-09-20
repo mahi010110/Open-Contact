@@ -17,6 +17,7 @@ import { sortState, sortArgs } from './sort.js';
 import { filterState, filterArgs, barreListeHTML, bindBarreListe, majTout,
          direCombien, rienTrouveHTML } from './affiner.js';
 import { openRoom, leaveRoom, watchLiaison } from './synclive.js';
+import { SANS_PAIR_DONNEUR_MS } from '../engine/transport.js';
 import { makeQrSvg } from './qr.js';
 import { whoCandidates, whoLineHTML, whoInline, openWhoPicker } from './qui.js';
 
@@ -279,10 +280,21 @@ export function openDonner(){
        pannes : elles basculent. `causeLiaison` reste indispensable
        pour autant — c'est elle qui distingue la seule panne qui ne
        doit PAS basculer, le code retapé de travers. */
+    const depuis = Date.now();
     const w = watchLiaison(() => sent, (stage, cause) => {
       if (my !== gen || sent) return;
       const el = q('#dnRdvSt');
       if (!el) return;
+      /* PERSONNE NE VIENT, ET ÇA AUSSI SE DIT. Tant qu'un relais porte,
+         l'état reste `wait` et rien ne se passe — jamais. C'est le
+         défaut le plus coûteux du rendez-vous, parce qu'il ne ressemble
+         pas à une panne : l'écran a l'air occupé. Passé le délai, on
+         prend la sortie qui marche toujours. */
+      if (stage === 'wait' && Date.now() - depuis > SANS_PAIR_DONNEUR_MS){
+        w.stop();
+        fallback(true);
+        return;
+      }
       /* LE REPLI SE PREND TOUT SEUL — c'est le chemin où quelqu'un est
          EN FACE et attend. Lui laisser un bouton à trouver, c'est lui
          demander de comprendre une panne de transport pour donner trois

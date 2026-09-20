@@ -14,6 +14,7 @@ import { normalizeCompany } from '../engine/model.js';
 import { S, bus, saveData, logJ } from './state.js';
 import { openSheet, toast, btn, ic, showUndo } from './dom.js';
 import { openRoom, leaveRoom, watchLiaison, deviceSelf, ensureKeys } from './synclive.js';
+import { SANS_PAIR_RECEVEUR_MS } from '../engine/transport.js';
 import { startScan } from './qr.js';
 import { probeOrdinateur, ordinateurCall } from '../engine/ordinateur.js';
 import { makeMission, signMission } from '../engine/mission.js';
@@ -142,6 +143,7 @@ export function openRecevoir(){
     /* un seul chemin de repli, partagé par la salle qui n'ouvre pas et
        par la liaison qui ne prend pas : deux rangements qui divergent
        finissent toujours par diverger pour de bon. */
+    const depuis = Date.now();
     const replier = () => {
       w.stop();
       leaveRdv();
@@ -163,6 +165,12 @@ export function openRecevoir(){
          pas une panne de réseau, et l'autre écran ne bascule pas non
          plus — refaire le rendez-vous coûte dix secondes (§8). */
       if (stage === 'norelay' || (stage === 'rtcfail' && cause !== 'motdepasse')){ replier(); return; }
+      /* ET PERSONNE NE VIENT. On vient de scanner : l'autre est là, son
+         QR allumé. Si rien ne s'annonce, les deux appareils ne se sont
+         pas trouvés sur un même relais — attendre n'y changera rien, et
+         son écran à lui a basculé sur le QR hors ligne. On rouvre donc
+         le scanner : il n'y a plus qu'à viser. */
+      if (stage === 'wait' && Date.now() - depuis > SANS_PAIR_RECEVEUR_MS){ replier(); return; }
       if (stage === 'rtcfail' && cause === 'motdepasse')
         el.innerHTML = `${ic('square-alert', 'ic-14')} Ce n’est pas le même code — refaites le rendez-vous.`;
       else if (stage === 'wait')

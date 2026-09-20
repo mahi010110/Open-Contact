@@ -533,6 +533,70 @@ console.log('sync : « Pas de connexion » affiché sans jargon, Réessayer pré
   avaleur.close();
 }
 
+/* PERSONNE NE VIENT — ET ÇA DOIT FINIR.
+   Le défaut le plus coûteux du rendez-vous n'était aucune panne de
+   relais : c'était l'absence de SORTIE. Tant qu'un relais porte, l'état
+   reste `wait`, honnêtement, et l'écran affiche « En attente » pour
+   toujours. Deux appareils qui n'ouvrent pas le même relais à temps
+   s'attendent sans jamais se croiser, et rien ne vient le leur dire.
+   C'est la panne rapportée à l'usage, et elle ne ressemble pas à une
+   panne : l'écran a l'air occupé.
+   Ici le relais est SAIN et il n'y a simplement personne en face. C'est
+   le contrôle : si le relais était muet ou refusant, on rejouerait un
+   cas déjà gardé plus haut, et `vivants` le dirait. */
+{
+  const sain = await startLocalRelay({ tls: true });
+  const portS = new URL(sain.url).port;
+  const seul = await mk(mobile);
+  await seul.goto(base, { waitUntil: 'load' });
+  await seul.evaluate(async port => {
+    const st = await import('./engine/storage.js');
+    await st.kvInit();
+    await st.kvSet(st.RELAYS_KEY, JSON.stringify(['wss://127.0.0.1:' + port + '/']));
+    const rnd = len => Array.from(crypto.getRandomValues(new Uint8Array(len)))
+      .map(b => b.toString(16).padStart(2, '0')).join('');
+    await st.kvSet(st.DATA_KEY, JSON.stringify(Array.from({ length: 26 }, (x, i) => ({
+      id: 'seul-' + i, name: 'Piste seule ' + i, city: 'Lille',
+      status: 'todo', desc: rnd(120), updatedAt: 1000 + i
+    }))));
+  }, portS);
+  await seul.reload({ waitUntil: 'load' });
+  await seul.waitForSelector('#view-aujourdhui:not([hidden])');
+  await seul.click('.bottomnav a[data-r="echanger"]');
+  await seul.waitForSelector('#ecGive'); await seul.click('#ecGive');
+  await seul.waitForSelector('#dnQR'); await seul.click('#dnQR');
+  await seul.waitForSelector('.sy-phrase span', { timeout: 30000 });
+
+  /* CONTRÔLE : le relais porte vraiment. Sans ça on prouverait le
+     basculement d'une panne déjà gardée ailleurs, pas celui de
+     l'attente vaine. */
+  await attendre(seul, async () => (await import('./ui/synclive.js')).relaySnapshot().vivants > 0,
+    { timeout: 30000, message: 'le relais sain n’a jamais porté — le cas joué n’est pas l’attente vaine' });
+  /* ON N'ASSERTE PAS UN ÉTAT QUI BOUGE SANS L'ATTENDRE. `relaySnapshot()`
+     dit la vérité tout de suite ; l'écran, lui, ne se réécrit qu'au tic
+     suivant de `watchLiaison` — toutes les deux secondes. Lu une seule
+     fois juste après le contrôle, il rendait encore « Connexion… », et
+     le scénario accusait le code d'un décalage qui était le sien. */
+  await attendre(seul, () => /attente/i.test(document.querySelector('#dnRdvSt')?.textContent || ''),
+    { timeout: 20000, pas: 500,
+      message: 'attente vaine : l’écran ne dit jamais qu’il attend, alors qu’un relais porte' });
+
+  /* et maintenant le délai passe, SANS UN SEUL CLIC */
+  const bascule = await seul.waitForSelector('.qr-wrap[aria-label="QR à faire scanner"]',
+    { timeout: 90000 }).then(() => true).catch(() => false);
+  const progS = ((await seul.textContent('#dnQrProg').catch(() => '')) || '').trim();
+  if (!bascule)
+    fail('ATTENTE VAINE : le donneur attend indéfiniment un pair qui ne vient pas. '
+      + 'C’est la panne rapportée à l’usage — l’écran a l’air occupé et ne mène nulle part, '
+      + 'alors que le QR hors ligne porte les fiches et marche toujours');
+  else if (!/partie \d+\/[2-9]/.test(progS))
+    fail('attente vaine : le donneur a basculé sans porter les fiches — « ' + progS + ' »');
+  else console.log('attente vaine : personne ne vient → le donneur passe seul au QR hors ligne ('
+    + progS + ') ✓');
+  await seul.context().close();
+  sain.close();
+}
+
 /* « Réessayer » n'est pas un bouton décoratif : le relais renaît sur le
    même port, un tap, et la liaison se rétablit réellement.
    ON EXIGE `vivants`, PAS SEULEMENT `open` — et c'est plus fort qu'avant :
