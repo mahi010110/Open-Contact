@@ -104,7 +104,12 @@ const lignes = txt.split('\n');
    tenu — une ligne par sujet, toujours les mêmes, et tout se lit sans
    défiler (vérifié plus bas). */
 if (lignes.length !== 6) fail('le rapport doit tenir 6 lignes stables : ' + lignes.length);
-if (!/^Transport : \d+ relais · \d+ joint\(s\) · \d+ qui répond\(ent\)$/.test(lignes[3]))
+/* « qui PORTE », pas « qui répond » : répondre n'est pas relayer, et le
+   mot rassurant était justement ce qui faisait lire « 9 relais · 9
+   joints · 9 qui répondent » comme « tout va bien » pendant que rien ne
+   passait. Les deux queues facultatives disent les deux états qui
+   appellent des gestes différents — il refuse, ou il avale en silence. */
+if (!/^Transport : \d+ relais · \d+ joint\(s\) · \d+ qui porte\(nt\)( · \d+ qui refuse\(nt\) de relayer)?( · \d+ qui avale\(nt\) en silence)?$/.test(lignes[3]))
   fail('la ligne de transport manque ou a changé de forme : ' + lignes[3]);
 if (/\d+\.\d+\.\d+/.test(txt)) fail('plus aucun numéro de version dans le rapport');
 if (lignes[0] !== 'Appareil : Chrome 130 · Android · 390×844 · fr-FR')
