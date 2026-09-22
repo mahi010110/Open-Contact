@@ -66,12 +66,13 @@ jobs:
   # Le monde réel ne se rejoue pas à chaque poussée : il se mesure quand
   # on cherche une panne.
   deux-machines:
-    name: P2P entre deux machines — ${{ matrix.role }}
+    name: P2P entre deux machines — paire ${{ matrix.paire }} ${{ matrix.role }}
     if: github.event_name == 'workflow_dispatch'
     strategy:
       fail-fast: false
       matrix:
         role: [A, B]
+        paire: [livree-1, livree-2, sans-damus-1, sans-damus-2]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -85,12 +86,15 @@ jobs:
           playwright install --with-deps chromium
           echo "OC_PLAYWRIGHT=$(npm root -g)/playwright/index.mjs" >> "$GITHUB_ENV"
       - name: Une machine, la vraie app, les vrais relais
-        run: OC_ROLE=${{ matrix.role }} OC_SALLE=${{ github.run_id }}-${{ github.run_attempt }} node tests/e2e/sonde-deux-machines.mjs
+        run: |
+          case "${{ matrix.paire }}" in sans-damus-*) export OC_SANS_RELAIS=relay.damus.io ;; esac
+          OC_ROLE=${{ matrix.role }} OC_SALLE=${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.paire }} node tests/e2e/sonde-deux-machines.mjs
+          mkdir -p j && mv journal-${{ matrix.role }}.json j/
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: journal-${{ matrix.role }}
-          path: journal-${{ matrix.role }}.json
+          name: journal-${{ matrix.paire }}-${{ matrix.role }}
+          path: j/journal-${{ matrix.role }}.json
 
   deux-machines-bilan:
     name: P2P entre deux machines — bilan
@@ -106,9 +110,12 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           pattern: journal-*
-          merge-multiple: true
-      - name: Les deux journaux croisés
-        run: node tests/e2e/sonde-deux-machines.mjs --bilan journal-A.json journal-B.json
+      - name: Les deux journaux croisés, paire par paire
+        run: |
+          for p in livree-1 livree-2 sans-damus-1 sans-damus-2; do
+            echo; echo "################ PAIRE $p ################"
+            node tests/e2e/sonde-deux-machines.mjs --bilan journal-$p-A/journal-A.json journal-$p-B/journal-B.json || true
+          done
 
   pwa:
     name: PWA — auto-tests unitaires

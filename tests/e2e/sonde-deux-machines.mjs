@@ -42,7 +42,12 @@ if (process.argv[2] === '--bilan'){
     dire(`  erreurs ICE (STUN/TURN) : ${J.erreursIce.slice(0, 6).join(' | ') || 'aucune'}`);
     dire(`  paires : ${J.paires.slice(0, 8).join(' | ') || 'aucune'}`);
     dire(`  chronologie ICE : ${J.trace.slice(0, 30).join(' · ')}`);
+    dire(`  écrans successifs : ${(J.ecrans || []).join(' → ')}`);
+    dire(`  relais composés : ${Array.isArray(J.relaisComposes) ? J.relaisComposes.map(court).join(', ') : J.relaisComposes}`);
   }
+  const echecs = [A, B].map(J => J.trace.filter(x => / (failed|disconnected)$/.test(x)).length);
+  const premiere = echecs.every(n => !n) ? 'RÉUSSIE' : 'ÉCHOUÉE (' + echecs.join('/') + ' échec(s) ICE avant la liaison)';
+  dire(`\n=== première tentative : ${premiere} · reliés : ${A.relie && B.relie ? 'OUI' : 'NON'}`);
   for (const [X, Y] of [[A, B], [B, A]]){
     const recu = new Map(Y.recus.map(r => [r.id, r]));
     const ack = new Map(X.acks.map(a => [a.id, a]));
@@ -156,8 +161,13 @@ const SONDE_STUN = async () => {
 /* Playwright n'est chargé que pour une machine : le bilan n'en a pas besoin */
 const { chromium, chromiumPath, serveRepo } = await import('./outils.mjs');
 const { server, base } = await serveRepo();
-const browser = await chromium.launch({ executablePath: chromiumPath() });
-const journal = { role: ROLE, navigateur: 'Chromium ' + browser.version() };
+/* OC_NAVIGATEUR=webkit : le moteur de Safari, celui de l'iPhone — la
+   même sonde, l'autre moteur (Playwright l'installe sur un runner) */
+const WEBKIT = process.env.OC_NAVIGATEUR === 'webkit';
+const browser = WEBKIT
+  ? await (await import(process.env.OC_PLAYWRIGHT || 'playwright')).webkit.launch()
+  : await chromium.launch({ executablePath: chromiumPath() });
+const journal = { role: ROLE, navigateur: (WEBKIT ? 'WebKit ' : 'Chromium ') + browser.version() };
 try {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true,
     ignoreHTTPSErrors: !!process.env.OC_RELAIS_LOCAL });
@@ -166,13 +176,19 @@ try {
   p.on('console', m => { if (m.type() === 'error') console.log('   [console]', m.text().slice(0, 200)); });
   await p.goto(base, { waitUntil: 'load' });
   await p.waitForSelector('#view-aujourdhui:not([hidden])');
-  /* essai local seulement : un relais du poste au lieu des vrais */
-  if (process.env.OC_RELAIS_LOCAL){
-    await p.evaluate(async u => { const st = await import('./engine/storage.js');
-      await st.kvInit(); await st.kvSet(st.RELAYS_KEY, JSON.stringify([u])); }, process.env.OC_RELAIS_LOCAL);
+  /* essai local : un relais du poste au lieu des vrais.
+     OC_SANS_RELAIS=a,b : la liste livrée MOINS ces relais — l'épreuve
+     d'un correctif, jouée dans les mêmes conditions que le constat */
+  const liste = process.env.OC_RELAIS_LOCAL ? [process.env.OC_RELAIS_LOCAL]
+    : process.env.OC_SANS_RELAIS ? (await import('../../engine/transport.js')).RELAIS_DEFAUT
+      .filter(u => !process.env.OC_SANS_RELAIS.split(',').some(x => x && u.includes(x))) : null;
+  if (liste){
+    await p.evaluate(async l => { const st = await import('./engine/storage.js');
+      await st.kvInit(); await st.kvSet(st.RELAYS_KEY, JSON.stringify(l)); }, liste);
     await p.reload({ waitUntil: 'load' });
     await p.waitForSelector('#view-aujourdhui:not([hidden])');
   }
+  journal.relaisComposes = liste || 'RELAIS_DEFAUT';
   Object.assign(journal, await p.evaluate(SONDE_STUN));
   console.log(ROLE + ' · NAT : ' + journal.nat);
   for (const s of journal.stun) console.log('   ' + s.url + ' → ' + (s.srflx.join(', ') || 'RIEN ' + s.erreurs.join(' | ')));
@@ -189,7 +205,8 @@ try {
   while (Date.now() - t0 < ATTENTE){
     await p.waitForTimeout(1000);
     const s = ((await p.textContent('#prStatus').catch(() => '')) || '').trim();
-    if (vus[vus.length - 1] !== s){ vus.push(s); console.log('   ' + ((Date.now() - t0) / 1000).toFixed(0) + ' s · « ' + s + ' »'); }
+    const sec = ((Date.now() - t0) / 1000).toFixed(0);
+    if (!vus.length || vus[vus.length - 1].split(' s · ')[1] !== s){ vus.push(sec + ' s · ' + s); console.log('   ' + sec + ' s · « ' + s + ' »'); }
     if (/camarade/.test(s)){ relie = true; break; }
   }
   /* on reste un moment : l'autre machine finit peut-être sa négociation */
@@ -211,7 +228,7 @@ try {
       envoyes: J.envoyes, acks: J.acks, recus: J.recus, candsLocaux: J.candsLocaux, candsSdp: J.candsSdp,
       candsTrickle: J.candsTrickle, erreursIce: J.erreursIce, trace: J.trace };
   });
-  Object.assign(journal, fin, { relie, ecran: vus[vus.length - 1] || '', ecrans: vus });
+  Object.assign(journal, fin, { relie, ecran: (vus[vus.length - 1] || '').split(' s · ')[1] || '', ecrans: vus });
   console.log(ROLE + ' · ' + (relie ? 'RELIÉ' : 'PAS RELIÉ') + ' · écran « ' + journal.ecran + ' »'
     + (journal.echec ? ' · cause ' + journal.echec : ''));
 } catch (e) {
