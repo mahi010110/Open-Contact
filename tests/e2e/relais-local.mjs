@@ -126,10 +126,30 @@ function makeDecoder(onText, onClose, onPing){
    Ce double est ce qui rend la correction PROUVABLE : sans lui, on ne
    peut pas distinguer « l'app mesure le portage » de « l'app mesure
    le bavardage », puisque le relais sain fait les deux. */
-export async function startLocalRelay({ silent = true, tls = false, port = 0,
-                                        muet = false, refus = false, avale = false } = {}){
+/* `limite` : { n, ms } — au-delà de `n` publications par adresse IP sur
+   une fenêtre glissante de `ms`, il répond `OK false "rate-limited"` et
+   ne relaie pas. C'est l'anti-spam des relais publics, et il ne choisit
+   pas ses victimes : il frappe ce qui arrive EN DERNIER dans une rafale.
+   Dans une négociation Trystero, ce sont les candidats ICE de la réponse
+   — ceux dont dépend une liaison entre deux réseaux (voir
+   `sonde-candidats-relais.mjs`).
+   `perdCandidats` : il refuse les seuls événements qui portent un
+   candidat ICE (les clés du contenu sont en clair). Aucun relais réel ne
+   vise ainsi ; c'est le cas ISOLÉ, pour prouver le mécanisme sans
+   dépendre d'un seuil.
+   `hote` : l'adresse d'écoute (le labo NAT écoute hors de la boucle). */
+export async function startLocalRelay({ silent = true, tls = false, port = 0, hote = '127.0.0.1',
+                                        muet = false, refus = false, avale = false,
+                                        limite = null, perdCandidats = false } = {}){
   const conns = new Set();          /* { sock, send, subs: Map<subId, filtres[]> } */
   const log = (...a) => { if (!silent) console.log('[relais]', ...a); };
+  const recents = new Map();        /* IP → horodatages des publications acceptées */
+  const stats = { recus: 0, refuses: 0, raisons: {} };
+  const refuser = (conn, ev, raison) => {
+    stats.refuses++;
+    stats.raisons[raison] = (stats.raisons[raison] || 0) + 1;
+    conn.send(['OK', ev.id, false, raison]);
+  };
 
   const matches = (ev, f) => {
     if (f.kinds && !f.kinds.includes(ev.kind)) return false;
@@ -176,6 +196,19 @@ export async function startLocalRelay({ silent = true, tls = false, port = 0,
            publication-là le distingue d'un relais sain, et c'est
            précisément ce que l'app doit savoir lire. */
         if (avale) return;
+        stats.recus++;
+        if (perdCandidats && /"candidate"\s*:/.test(String(ev.content || ''))){
+          refuser(conn, ev, 'rate-limited: slow down');
+          return;
+        }
+        if (limite){
+          const ip = conn.sock.remoteAddress || '?';
+          const maintenant = Date.now();
+          const t = (recents.get(ip) || []).filter(x => maintenant - x < limite.ms);
+          if (t.length >= limite.n){ recents.set(ip, t); refuser(conn, ev, 'rate-limited: slow down'); return; }
+          t.push(maintenant);
+          recents.set(ip, t);
+        }
         conn.send(['OK', ev.id, true, '']);
         for (const c of conns)
           for (const [subId, filters] of c.subs)
@@ -193,11 +226,12 @@ export async function startLocalRelay({ silent = true, tls = false, port = 0,
     sock.on('close', bye);
   });
 
-  await new Promise(r => server.listen(port, '127.0.0.1', r));
-  const url = (tls ? 'wss' : 'ws') + '://127.0.0.1:' + server.address().port;
+  await new Promise(r => server.listen(port, hote, r));
+  const url = (tls ? 'wss' : 'ws') + '://' + hote + ':' + server.address().port;
   return {
     url,
     server,
+    stats,
     clients: () => conns.size,
     close: () => { for (const c of conns) try { c.sock.destroy(); } catch (e) {} server.close(); }
   };

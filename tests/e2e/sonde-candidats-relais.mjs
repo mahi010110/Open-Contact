@@ -94,6 +94,7 @@ window.WebSocket = class extends WS {
 };
 /* les candidats que CET appareil rassemble, par type (host, srflx…) */
 const PC = window.RTCPeerConnection;
+let sansChemin = false;
 window.RTCPeerConnection = class extends PC {
   constructor(c){
     super(c);
@@ -102,9 +103,23 @@ window.RTCPeerConnection = class extends PC {
       if (t) J.cands[t] = (J.cands[t] || 0) + 1;
     });
   }
+  /* SANS CHEMIN DIRECT : aucune adresse de l'autre n'est retenue, ni
+     celles du SDP ni celles qui suivent. La liaison ne peut donc pas se
+     faire en trois millisecondes par la boucle locale, et la
+     bibliothèque publie TOUTE sa rafale de candidats — host et srflx,
+     tentative et nouvelle tentative — exactement comme entre deux
+     vrais réseaux. Ce qui se publie reste intact : on mesure ce que le
+     relais en fait. */
+  setRemoteDescription(d){
+    if (sansChemin && d && d.sdp)
+      d = { type: d.type, sdp: d.sdp.split(/\\r\\n/).filter(l => !/^a=(candidate|end-of-candidates)/.test(l)).join('\\r\\n') };
+    return super.setRemoteDescription(d);
+  }
+  addIceCandidate(c){ return sansChemin ? Promise.resolve() : super.addIceCandidate(c); }
 };
 const { joinRoom } = await import('/trystero.js');
-window.__rejoindre = (relais, salle, phrase) => {
+window.__rejoindre = (relais, salle, phrase, sc) => {
+  sansChemin = !!sc;
   const room = joinRoom({ appId: 'opencontact', password: phrase, relayConfig: { urls: relais } },
     salle, { onJoinError: e => J.erreurs.push(String((e && e.error) || e)) });
   room.onPeerJoin = () => { J.pair = true; };
@@ -128,8 +143,9 @@ async function serveur(){
   return { srv, base: 'http://127.0.0.1:' + srv.address().port };
 }
 
-/* deux pairs, une liste de relais : que devient chaque événement ? */
-async function jouer(browser, base, relais){
+/* deux pairs, une liste de relais : que devient chaque événement ?
+   `sansChemin` : voir la page — la rafale entière part, rien ne relie. */
+async function jouer(browser, base, relais, { sansChemin = false, attente = ATTENTE_MS } = {}){
   const phrase = 'sonde-' + Math.random().toString(36).slice(2, 10);
   const salle = 'sonde-' + Math.random().toString(36).slice(2, 10);
   const pages = [];
@@ -139,12 +155,12 @@ async function jouer(browser, base, relais){
       const p = await ctx.newPage();
       await p.goto(base + '/', { waitUntil: 'load' });
       await p.waitForFunction(() => window.__pret === true, { timeout: 10000 });
-      await p.evaluate(([r, s, f]) => window.__rejoindre(r, s, f), [relais, salle, phrase]);
+      await p.evaluate(([r, s, f, sc]) => window.__rejoindre(r, s, f, sc), [relais, salle, phrase, sansChemin]);
       pages.push(p);
     }
     const t0 = Date.now();
     let pair = false;
-    while (Date.now() - t0 < ATTENTE_MS){
+    while (Date.now() - t0 < attente){
       await pages[0].waitForTimeout(500);
       const e = await Promise.all(pages.map(p => p.evaluate(() => window.__J.pair)));
       if (e.every(Boolean)){ pair = true; break; }
@@ -240,23 +256,57 @@ try {
     process.exit(1);
   }
   console.log('\ncontrôle : relais local, chaque candidat livré — la sonde sait mesurer ✓');
+
+  /* ①bis LA SIMULATION JOUE-T-ELLE LA BONNE PANNE ? Dans les deux sens,
+     sinon zéro perte se lirait comme une réussite : sans chemin direct,
+     un relais sain doit tout livrer SANS relier (sinon la simulation
+     laisse passer la boucle locale), et un relais qui perd les
+     candidats doit être PRIS. */
+  const sain = await startLocalRelay({});
+  let sc;
+  try { sc = await jouer(browser, base, [sain.url], { sansChemin: true, attente: 12000 }); }
+  finally { sain.close(); }
+  const burst = ['candidat'].map(t => (bilan(sc.A, sc.B)[t] || { envoyes: 0 }).envoyes
+    + (bilan(sc.B, sc.A)[t] || { envoyes: 0 }).envoyes)[0];
+  const perdant = await startLocalRelay({ perdCandidats: true });
+  let pc;
+  try { pc = await jouer(browser, base, [perdant.url], { sansChemin: true, attente: 12000 }); }
+  finally { perdant.close(); }
+  if (sc.pair || !burst || perdCandidats(sc) || !perdCandidats(pc)){
+    dire('CONTRÔLE — sans chemin, relais sain', sc);
+    dire('CONTRÔLE — sans chemin, relais qui perd les candidats', pc);
+    console.log('\nAUCUNE CONCLUSION : la simulation « sans chemin direct » ne joue pas la bonne panne.');
+    process.exit(1);
+  }
+  console.log('contrôle : sans chemin direct, ' + burst + ' candidats publiés, tous livrés, aucune liaison ;'
+    + ' un relais qui les perd est pris ✓');
   if (process.env.OC_SONDE_LOCAL_SEUL) process.exit(0);
 
-  /* ② chaque relais seul, puis la liste entière, comme l'app la compose */
-  const pertes = [];
-  for (const url of RELAIS_DEFAUT){
-    const r = await jouer(browser, base, [url]);
-    dire(court(url), r);
-    if (r.pair && perdCandidats(r)) pertes.push(url);
-  }
+  /* ② la liste entière, comme l'app la compose — liaison normale */
   const tous = await jouer(browser, base, RELAIS_DEFAUT);
-  dire('LA LISTE ENTIÈRE (' + RELAIS_DEFAUT.length + ' relais, comme l’app)', tous);
+  dire('LA LISTE ENTIÈRE (' + RELAIS_DEFAUT.length + ' relais, comme l’app) · liaison normale', tous);
+
+  /* ③ SANS CHEMIN DIRECT — le cas de deux réseaux : toute la rafale de
+     candidats part, et c'est elle qu'on veut voir arriver. La liste
+     entière deux fois (le relais qui porte la réponse change d'un tour
+     à l'autre), puis chaque relais seul. */
+  const pertes = [];
+  for (const tour of [1, 2]){
+    const r = await jouer(browser, base, RELAIS_DEFAUT, { sansChemin: true });
+    dire('SANS CHEMIN DIRECT · liste entière, tour ' + tour, r);
+    if (perdCandidats(r)) pertes.push('liste entière, tour ' + tour);
+  }
+  for (const url of RELAIS_DEFAUT){
+    const r = await jouer(browser, base, [url], { sansChemin: true, attente: 15000 });
+    dire('SANS CHEMIN DIRECT · ' + court(url), r);
+    const neg = ['offre', 'réponse'].some(t => (bilan(r.A, r.B)[t] || bilan(r.B, r.A)[t] || {}).livres);
+    if (neg && perdCandidats(r)) pertes.push(url);
+  }
 
   console.log('\n' + (pertes.length
-    ? 'RELAIS QUI PORTENT LA DÉCOUVERTE MAIS PERDENT DES CANDIDATS — entre deux réseaux, la liaison y échoue :\n'
-      + pertes.map(u => '  · ' + u).join('\n')
-    : 'Aucun relais, pris seul, ne perd de candidat depuis cette machine.'));
-  if (perdCandidats(tous)) console.log('La liste entière PERD des candidats : c’est la configuration réelle de l’app.');
+    ? 'OFFRE OU RÉPONSE LIVRÉE, MAIS DES CANDIDATS PERDUS — entre deux réseaux, la liaison y échoue '
+      + 'alors que sur un même réseau elle passe :\n' + pertes.map(u => '  · ' + u).join('\n')
+    : 'Aucune perte de candidat depuis cette machine, même en rafale complète.'));
 } catch (e) {
   console.error('la sonde elle-même a échoué : ' + (e && e.message));
   sortie = 1;
