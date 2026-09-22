@@ -72,7 +72,7 @@ jobs:
       fail-fast: false
       matrix:
         role: [A, B]
-        paire: [attente-1, attente-2, attente-3, sans-damus-attente-1, sans-damus-attente-2, webkit-attente]
+        paire: [vieilli-1, vieilli-2, vieilli-3, webkit-vieilli]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -91,6 +91,8 @@ jobs:
           case "${{ matrix.paire }}" in sans-damus-*) export OC_SANS_RELAIS=relay.damus.io ;; esac
           # B arrive une minute après A, comme un camarade qui sort son téléphone
           case "${{ matrix.paire }}" in *attente*) [ "${{ matrix.role }}" = B ] && export OC_DELAI_MS=60000 ;; esac
+          # les DEUX réserves d'offres périmées : quel que soit l'offreur, son offre a plus de 57 s
+          case "${{ matrix.paire }}" in *vieilli*) export OC_VIEILLIR_MS=65000 ;; esac
           # le moteur de l'iPhone côté B
           case "${{ matrix.paire }}" in webkit-*) [ "${{ matrix.role }}" = B ] && export OC_NAVIGATEUR=webkit ;; esac
           OC_ROLE=${{ matrix.role }} OC_SALLE=${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.paire }} node tests/e2e/sonde-deux-machines.mjs
@@ -117,7 +119,7 @@ jobs:
           pattern: journal-*
       - name: Les deux journaux croisés, paire par paire
         run: |
-          for p in attente-1 attente-2 attente-3 sans-damus-attente-1 sans-damus-attente-2 webkit-attente; do
+          for p in vieilli-1 vieilli-2 vieilli-3 webkit-vieilli; do
             echo; echo "################ PAIRE $p ################"
             node tests/e2e/sonde-deux-machines.mjs --bilan journal-$p-A/journal-A.json journal-$p-B/journal-B.json || true
           done

@@ -196,6 +196,14 @@ try {
   /* OC_DELAI_MS : on arrive APRÈS l'autre, comme un camarade qui sort son
      téléphone — celui qui attend a publié pendant tout ce temps */
   if (process.env.OC_DELAI_MS) await p.waitForTimeout(Number(process.env.OC_DELAI_MS));
+  /* OC_VIEILLIR_MS : une salle ouverte d'abord, puis l'attente — la
+     réserve d'offres a périmé quand on entre dans le groupe (le cas de
+     « Mes appareils », qui en ouvre une au démarrage de l'app) */
+  if (process.env.OC_VIEILLIR_MS){
+    await p.evaluate(async () => { const sl = await import('./ui/synclive.js');
+      window.__chauffe = await sl.openRoom('promo', 'chauffe-' + Math.random().toString(36).slice(2), {}); });
+    await p.waitForTimeout(Number(process.env.OC_VIEILLIR_MS));
+  }
   /* la vraie app : « Partage en groupe », même mot de passe des deux côtés */
   await p.click('.bottomnav a[data-r="echanger"]');
   await p.waitForSelector('#ecPromo'); await p.click('#ecPromo');
