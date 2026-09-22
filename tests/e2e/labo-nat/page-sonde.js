@@ -19,7 +19,12 @@ window.RTCPeerConnection = class extends PC {
     const note = (x) => (J.trace || (J.trace = [])).push(((Date.now() - T0) / 1000).toFixed(1) + 's pc' + n + ' ' + x);
     const cnt = sdp => (String(sdp || '').match(/a=candidate:[^\r\n]*/g) || []).map(l => l.split(' ')[7]).join(',');
     const sl = this.setLocalDescription.bind(this), sr = this.setRemoteDescription.bind(this);
-    this.setRemoteDescription = d => { if (d && d.type) note('remote ' + d.type + ' [' + cnt(d.sdp) + ']'); return sr(d); };
+    this.setRemoteDescription = d => { if (d && d.type){ note('remote ' + d.type + ' [' + cnt(d.sdp) + ']');
+      (J.sdps || (J.sdps = [])).push('pc' + n + ' REÇU ' + d.type + '\n' + d.sdp); }
+      return sr(d).catch(e => { note('remote ÉCHEC ' + e.message); throw e; }); };
+    this.setLocalDescription = d => sl(d).then(r => { const l = this.localDescription;
+      if (this.remoteDescription || (l && l.type === 'answer')) note('local ' + (l && l.type) + ' posée');
+      return r; }, e => { note('local ÉCHEC ' + e.message); throw e; });
     this.addEventListener('iceconnectionstatechange', () => { if (this.remoteDescription) note('ice ' + this.iceConnectionState); });
     this.addEventListener('icegatheringstatechange', () => { if (this.remoteDescription) note('gathering ' + this.iceGatheringState); });
     this.addEventListener('icecandidate', e => { const t = e.candidate && e.candidate.type; if (t) J.cands[t] = (J.cands[t] || 0) + 1; }); }
@@ -47,4 +52,8 @@ window.__rejoindre = (relais, salle, phrase) => {
   room.onPeerJoin = () => { J.pair = true; };
   window.__room = room;
 };
+/* vieillir la réserve d'offres : une salle quelconque, tout de suite —
+   comme « Mes appareils » qui en ouvre une au démarrage de l'app */
+window.__chauffer = relais => joinRoom({ appId: 'opencontact', password: 'chauffe', relayConfig: { urls: relais },
+  rtcConfig: { iceServers: [{ urls: 'stun:100.64.9.1:19302' }] } }, 'chauffe-' + Math.random().toString(36).slice(2));
 window.__pret = true;

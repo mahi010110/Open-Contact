@@ -8,7 +8,7 @@ jour volontaire = fichier modifié → à investiguer.
 
 jsQR.js                    Apache-2.0  sha256 bc40c8a15196236b2314db0856f72ca0b49980cd5413b8c852a7349f5fee0859
 qrcode-generator.mjs       MIT   sha256 e4e021710660c0426e4bad9436a96dafa688b50ec7e0c4dbd773ba18108de5b8
-trystero-nostr.min.js      MIT   sha256 1df45817ad892a529b37b012be2b2bbfbceec3284f8e2c6f8ea636dc4622d15a
+trystero-nostr.min.js      MIT   sha256 ab49eb7c5f6c96078d49eafb4a35b2328b3828b2d09291fb27cce9cc09ab0f36
 
 trystero-nostr.min.js : construit depuis trystero 0.25.3 (npm, alias
 @trystero-p2p/nostr) avec esbuild —
@@ -19,6 +19,42 @@ trystero-nostr.min.js : construit depuis trystero 0.25.3 (npm, alias
 Les exports getRelaySockets / defaultRelayUrls servent l'état honnête de
 la liaison (incident #14) : l'app sonde les WebSockets des relais au lieu
 de croire la salle sur parole.
+
+DEUX CORRECTIONS appliquées au bundle construit (sha256 d'origine
+1df45817ad892a529b37b012be2b2bbfbceec3284f8e2c6f8ea636dc4622d15a),
+présentes à l'identique dans 0.25.4, la dernière version publiée —
+à réappliquer à chaque mise à jour tant que la bibliothèque les porte.
+
+  LE DÉFAUT. Trystero garde une réserve de 20 offres préparées à
+  l'avance. Une offre de plus de 57 s est « relancée » : annulation
+  (rollback) de l'offre, restartIce(), createOffer({iceRestart:true}).
+  Or annuler la PREMIÈRE offre d'une connexion retire le transport
+  qu'elle avait créé — c'est la norme, Chromium l'applique : l'offre
+  relancée n'a plus AUCUNE section m=. Pas de canal de données, pas
+  d'ICE, pas un candidat : l'autre répond une réponse vide, rien ne
+  peut se relier, et la bibliothèque rapporte « configure TURN
+  servers » — l'écran dit « Vos deux réseaux refusent la liaison
+  directe ». Celui qui attend dans une salle depuis plus d'une minute
+  (ou dont « Mes appareils » a ouvert une salle au démarrage) ne peut
+  donc plus faire une seule offre valable.
+  Mesuré : labo NAT (tests/e2e/labo-nat/), réserves vieillies de 65 s,
+  4 échecs sur 4 — sur deux réseaux ET sur un même réseau ; entre deux
+  vraies machines de la CI, la seule paire tombée l'a été exactement là.
+
+  ① dans la stratégie, l'offre tirée de la réserve :
+     avant  ve=async C=>{let D=await C.getOffer(Date.now()-C.created>Ge);
+     après  ve=async C=>{if(Date.now()-C.created>Ge)throw N("stale pooled offer");let D=await C.getOffer(!1);
+     → une offre périmée est jetée ; le repli que la réserve a déjà
+       (checkout : détruire, puis makeOffer) en fabrique une NEUVE.
+  ② dans la réserve, recycle() (offre restée sans réponse) :
+     avant  …e.setHandlers({connect:Z,close:Z,error:Z}),e.getOffer(!0).then(
+     après  …e.setHandlers({connect:Z,close:Z,error:Z}),Promise.reject(0).then(
+     → elle n'est plus relancée (donc vidée) puis remise en réserve :
+       elle est détruite, par le .catch() déjà en place.
+
+  Après correction, même labo : 6 reliés sur 6 en 0,5 s. Gardé par
+  tests/e2e/e2e-offre-perimee.mjs, qui rejoue aussi le défaut
+  d'origine pour prouver qu'il sait encore échouer.
 
 À la prochaine mise à jour d'une lib : remplacer le fichier, sa licence
 si besoin, et l'empreinte ci-dessus dans le même commit.
