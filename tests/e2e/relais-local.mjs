@@ -137,10 +137,17 @@ function makeDecoder(onText, onClose, onPing){
    candidat ICE (les clés du contenu sont en clair). Aucun relais réel ne
    vise ainsi ; c'est le cas ISOLÉ, pour prouver le mécanisme sans
    dépendre d'un seuil.
+   `filtre` : (événement, IP) → raison de refus, ou rien — le cas isolé
+   général : viser une étape de la négociation (perdre la RÉPONSE, dont
+   la perte a une signature à elle), ou une adresse (le bannissement par
+   IP d'un relais public, qui laisse LIRE et refuse d'écrire).
+   `delai` : ms avant de retransmettre — un relais lent perd la course
+   de l'offre, et c'est le premier arrivé qui porte la réponse.
    `hote` : l'adresse d'écoute (le labo NAT écoute hors de la boucle). */
 export async function startLocalRelay({ silent = true, tls = false, port = 0, hote = '127.0.0.1',
                                         muet = false, refus = false, avale = false,
-                                        limite = null, perdCandidats = false } = {}){
+                                        limite = null, perdCandidats = false, filtre = null,
+                                        delai = 0 } = {}){
   const conns = new Set();          /* { sock, send, subs: Map<subId, filtres[]> } */
   const log = (...a) => { if (!silent) console.log('[relais]', ...a); };
   const recents = new Map();        /* IP → horodatages des publications acceptées */
@@ -201,6 +208,8 @@ export async function startLocalRelay({ silent = true, tls = false, port = 0, ho
           refuser(conn, ev, 'rate-limited: slow down');
           return;
         }
+        const raison = filtre && filtre(ev, conn.sock.remoteAddress || '');
+        if (raison){ refuser(conn, ev, raison); return; }
         if (limite){
           const ip = conn.sock.remoteAddress || '?';
           const maintenant = Date.now();
@@ -210,9 +219,12 @@ export async function startLocalRelay({ silent = true, tls = false, port = 0, ho
           recents.set(ip, t);
         }
         conn.send(['OK', ev.id, true, '']);
-        for (const c of conns)
-          for (const [subId, filters] of c.subs)
-            if (filters.some(f => matches(ev, f))){ c.send(['EVENT', subId, ev]); break; }
+        const diffuser = () => {
+          for (const c of conns)
+            for (const [subId, filters] of c.subs)
+              if (filters.some(f => matches(ev, f))){ c.send(['EVENT', subId, ev]); break; }
+        };
+        if (delai) setTimeout(diffuser, delai); else diffuser();
       } else if (msg[0] === 'REQ' && typeof msg[1] === 'string'){
         conn.subs.set(msg[1], msg.slice(2).filter(f => f && typeof f === 'object'));
         log('REQ', msg[1]);
