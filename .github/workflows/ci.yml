@@ -48,6 +48,15 @@ jobs:
       # dans la même page contre les VRAIS relais, le groupe en témoin.
       - name: Sonde rendez-vous QR vs partage en groupe (vrais relais)
         run: OC_SONDE_RELAIS=1 node tests/e2e/sonde-rdv-reel.mjs
+      # La découverte ne suffit pas ENTRE DEUX RÉSEAUX : la réponse part
+      # sans adresse, ses candidats ICE suivent un par un par un seul
+      # relais. Les sondes ci-dessus font tourner les deux pairs sur la
+      # même machine, où ces candidats ne servent à rien — elles ne
+      # peuvent donc pas voir un relais qui les perd. Informative : elle
+      # relève, elle ne fait pas rougir la CI sur un seuil de débit tiers.
+      - name: Sonde des candidats ICE — arrivent-ils de l'autre côté ?
+        continue-on-error: true
+        run: OC_SONDE_RELAIS=1 node tests/e2e/sonde-candidats-relais.mjs
 
   pwa:
     name: PWA — auto-tests unitaires
