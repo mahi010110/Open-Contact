@@ -193,6 +193,9 @@ try {
   console.log(ROLE + ' · NAT : ' + journal.nat);
   for (const s of journal.stun) console.log('   ' + s.url + ' → ' + (s.srflx.join(', ') || 'RIEN ' + s.erreurs.join(' | ')));
 
+  /* OC_DELAI_MS : on arrive APRÈS l'autre, comme un camarade qui sort son
+     téléphone — celui qui attend a publié pendant tout ce temps */
+  if (process.env.OC_DELAI_MS) await p.waitForTimeout(Number(process.env.OC_DELAI_MS));
   /* la vraie app : « Partage en groupe », même mot de passe des deux côtés */
   await p.click('.bottomnav a[data-r="echanger"]');
   await p.waitForSelector('#ecPromo'); await p.click('#ecPromo');

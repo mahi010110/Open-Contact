@@ -72,22 +72,27 @@ jobs:
       fail-fast: false
       matrix:
         role: [A, B]
-        paire: [livree-1, livree-2, sans-damus-1, sans-damus-2]
+        paire: [attente-1, attente-2, attente-3, sans-damus-attente-1, sans-damus-attente-2, webkit-attente]
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Playwright + Chromium
+      - name: Playwright + Chromium (et WebKit pour la paire qui le demande)
         run: |
           npm i -g playwright
           playwright install --with-deps chromium
+          case "${{ matrix.paire }}" in webkit-*) playwright install --with-deps webkit ;; esac
           echo "OC_PLAYWRIGHT=$(npm root -g)/playwright/index.mjs" >> "$GITHUB_ENV"
       - name: Une machine, la vraie app, les vrais relais
         run: |
           case "${{ matrix.paire }}" in sans-damus-*) export OC_SANS_RELAIS=relay.damus.io ;; esac
+          # B arrive une minute après A, comme un camarade qui sort son téléphone
+          case "${{ matrix.paire }}" in *attente*) [ "${{ matrix.role }}" = B ] && export OC_DELAI_MS=60000 ;; esac
+          # le moteur de l'iPhone côté B
+          case "${{ matrix.paire }}" in webkit-*) [ "${{ matrix.role }}" = B ] && export OC_NAVIGATEUR=webkit ;; esac
           OC_ROLE=${{ matrix.role }} OC_SALLE=${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.paire }} node tests/e2e/sonde-deux-machines.mjs
           mkdir -p j && mv journal-${{ matrix.role }}.json j/
       - uses: actions/upload-artifact@v4
@@ -112,7 +117,7 @@ jobs:
           pattern: journal-*
       - name: Les deux journaux croisés, paire par paire
         run: |
-          for p in livree-1 livree-2 sans-damus-1 sans-damus-2; do
+          for p in attente-1 attente-2 attente-3 sans-damus-attente-1 sans-damus-attente-2 webkit-attente; do
             echo; echo "################ PAIRE $p ################"
             node tests/e2e/sonde-deux-machines.mjs --bilan journal-$p-A/journal-A.json journal-$p-B/journal-B.json || true
           done
