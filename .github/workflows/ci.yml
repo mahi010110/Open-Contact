@@ -58,6 +58,13 @@ jobs:
         continue-on-error: true
         timeout-minutes: 10
         run: OC_SONDE_RELAIS=1 node tests/e2e/sonde-candidats-relais.mjs
+      # Quand AUCUN chemin direct n'existe, les fiches du rendez-vous
+      # passent par les relais eux-mêmes (engine/portage.js). La taille
+      # d'une part et le rythme d'envoi se MESURENT ici, relais par relais.
+      - name: Sonde du portage — taille et rafale que les relais portent
+        continue-on-error: true
+        timeout-minutes: 6
+        run: OC_SONDE_RELAIS=1 node tests/e2e/sonde-portage-relais.mjs
 
   # DEUX MACHINES, DEUX RÉSEAUX, LA VRAIE CHAÎNE — à la main seulement.
   # Deux jobs = deux VM, deux adresses publiques, deux NAT : l'app telle
