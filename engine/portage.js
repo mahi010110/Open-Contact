@@ -54,7 +54,7 @@ import { gonflerBorne } from './exchange.js';
 export const PORTAGE_PART = 9000;       /* octets compressés par part */
 export const PORTAGE_PARTS_MAX = 64;    /* au-delà : fichier ou QR hors ligne */
 export const PORTAGE_ITER = 100000;     /* PBKDF2 : le sujet ne se devine pas depuis le code */
-const TYPES = ['demande', 'part', 'recu', 'repli', 'present'];
+const TYPES = ['demande', 'part', 'recu', 'repli', 'present', 'hello', 'ring'];
 
 /* code canonique → { sujet, cle }. Un seul PBKDF2 donne les deux :
    16 octets pour nommer le sujet, 32 pour la clé. Le sujet est ce que
@@ -98,10 +98,16 @@ export async function ouvrir(k, txt){
 }
 
 const idOk = x => typeof x === 'string' && x.length > 0 && x.length <= 64;
+const texte = (x, max) => x == null || (typeof x === 'string' && x.length <= max);
 const entier = (x, max) => Number.isInteger(x) && x >= 0 && x < max;
 export function messageValide(m){
   if (!m || typeof m !== 'object' || !TYPES.includes(m.t) || !idOk(m.de)) return false;
   if (m.t === 'present') return true;
+  if (m.t === 'hello')
+    return idOk(m.id) && texte(m.nom, 80) && texte(m.pub, 100) && texte(m.sig, 200)
+      && typeof m.xpub === 'string' && m.xpub.length >= 40 && m.xpub.length <= 200;
+  if (m.t === 'ring') return !!m.ring && typeof m.ring === 'object' && !Array.isArray(m.ring);
+  if (m.pour != null && !idOk(m.pour)) return false;
   if (m.t === 'demande')
     return idOk(m.r) && (m.x == null || idOk(m.x)) && (m.manque == null
       || (Array.isArray(m.manque) && m.manque.length <= PORTAGE_PARTS_MAX
@@ -115,11 +121,16 @@ export function messageValide(m){
 /* le partage → { x, n, parts } : JSON compressé, découpé, chaque
    morceau en base64. `x` nomme CET envoi — un receveur ne mélange
    jamais les parts de deux envois. */
-export async function decouper(payload, taille = PORTAGE_PART){
+async function compresser(payload){
   if (typeof CompressionStream === 'undefined') throw new Error('noqr');
   const json = new TextEncoder().encode(JSON.stringify(payload));
   const stream = new Blob([json]).stream().pipeThrough(new CompressionStream('deflate-raw'));
-  const z = new Uint8Array(await new Response(stream).arrayBuffer());
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+export async function decouper(payload, taille = PORTAGE_PART){
+  return morceler(await compresser(payload), taille);
+}
+function morceler(z, taille){
   const n = Math.max(1, Math.ceil(z.length / taille));
   if (n > PORTAGE_PARTS_MAX) throw new Error('troplourd');
   const parts = [];
@@ -130,12 +141,63 @@ export async function decouper(payload, taille = PORTAGE_PART){
 
 /* les parts reçues → le partage. Même lecture BORNÉE que le QR : un
    envoi obèse ou piégé est refusé, jamais déplié en mémoire. */
-export async function rassembler(parts){
+const recoller = parts => {
   const morceaux = parts.map(b64ToBytes);
   const tout = new Uint8Array(morceaux.reduce((s, m) => s + m.length, 0));
   let o = 0;
   for (const m of morceaux){ tout.set(m, o); o += m.length; }
-  return gonflerBorne(tout);
+  return tout;
+};
+export async function rassembler(parts){
+  return gonflerBorne(recoller(parts));
+}
+
+/* ---------- « Mes appareils » : une clé qui ne se devine pas ----------
+   Ce qui voyage entre MES appareils est privé — notes, suivi, campagnes.
+   La phrase de liaison (dix caractères) protège la présence et l'anneau,
+   comme elle protège déjà la signalisation ; elle ne suffirait pas aux
+   données : quelqu'un qui enregistre les relais pourrait l'essayer hors
+   ligne, candidat après candidat. Les données sont donc chiffrées sous
+   une clé NÉE D'UN ÉCHANGE entre deux appareils (ECDH P-256 → HKDF →
+   AES-GCM) : chacun garde sa moitié secrète, seules les moitiés
+   publiques passent, et deviner la phrase n'en donne aucune. */
+const ECDH = { name: 'ECDH', namedCurve: 'P-256' };
+const octets = s => new TextEncoder().encode(s);
+export async function makeCleEchange(){
+  const k = await crypto.subtle.generateKey(ECDH, true, ['deriveBits']);
+  return {
+    pub: bytesToB64(new Uint8Array(await crypto.subtle.exportKey('raw', k.publicKey))),
+    priv: bytesToB64(new Uint8Array(await crypto.subtle.exportKey('pkcs8', k.privateKey)))
+  };
+}
+/* ma moitié secrète + sa moitié publique → la clé que NOUS DEUX seuls
+   savons fabriquer. Symétrique : chacun obtient la même. */
+export async function cleEntre(privB64, pubB64, idA, idB){
+  const priv = await crypto.subtle.importKey('pkcs8', b64ToBytes(privB64), ECDH, false, ['deriveBits']);
+  const pub = await crypto.subtle.importKey('raw', b64ToBytes(pubB64), ECDH, false, []);
+  const secret = await crypto.subtle.deriveBits({ name: 'ECDH', public: pub }, priv, 256);
+  const hk = await crypto.subtle.importKey('raw', secret, 'HKDF', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    { name: 'HKDF', hash: 'SHA-256', salt: octets('opencontact·appareils·v1'),
+      info: octets([String(idA), String(idB)].sort().join('|')) },
+    hk, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+}
+/* le partage compressé PUIS chiffré sous la clé d'échange, découpé :
+   ce que portent les parts ne s'ouvre qu'avec cette clé */
+export async function decouperScelle(payload, cle, taille = PORTAGE_PART){
+  const z = await compresser(payload);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, cle, z));
+  const tout = new Uint8Array(12 + ct.length);
+  tout.set(iv, 0); tout.set(ct, 12);
+  return morceler(tout, taille);
+}
+export async function rassemblerScelle(parts, cle){
+  const tout = recoller(parts);
+  let z;
+  try { z = new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: tout.subarray(0, 12) }, cle, tout.subarray(12))); }
+  catch (e) { throw new Error('motdepasse'); }
+  return gonflerBorne(z);
 }
 
 /* la récolte du receveur : les parts arrivent dans le désordre, en

@@ -25,7 +25,7 @@ import { DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, SYNC_KEY,
          kvGet, kvSet, kvDel, vaultActive, vaultDetach, vaultReseal } from './engine/storage.js';
 import { causeLiaison, relayTally, liaisonStage, parseTurn, turnText, TURN_MAX, RELAIS_DEFAUT } from './engine/transport.js';
 import { clePortage, sceller as scellerPortage, ouvrir as ouvrirPortageMsg, decouper, rassembler, recolte,
-         PORTAGE_PART, PORTAGE_PARTS_MAX } from './engine/portage.js';
+         PORTAGE_PART, PORTAGE_PARTS_MAX, makeCleEchange, cleEntre, decouperScelle, rassemblerScelle } from './engine/portage.js';
 import { VAULT_WORDS, PHRASE_LEN, makeVaultPhrase, normVaultPhrase, phraseUnknownWords,
          createVault, unlockWithPin, unlockWithPhrase, unlockWithPrf,
          setPin, addPrfWrap, rotateVault,
@@ -557,6 +557,30 @@ export async function runSelfTests(){
       rec.oublier('x1');
       eq(rec.manque('x1'), null);
       eq(rec.enCours(), ['x2']);
+    },
+    /* « MES APPAREILS » : la clé des données ne dépend PAS de la phrase */
+    'portage : deux appareils fabriquent la même clé, un troisième non': async () => {
+      const A = await makeCleEchange(), B = await makeCleEchange(), C = await makeCleEchange();
+      const kAB = await cleEntre(A.priv, B.pub, 'dev-a', 'dev-b');
+      const kBA = await cleEntre(B.priv, A.pub, 'dev-b', 'dev-a');
+      const kCB = await cleEntre(C.priv, B.pub, 'dev-a', 'dev-b');
+      const privee = { kind: 'full', companies: [{ name: 'Piste', notes: 'note intime' }] };
+      const e = await decouperScelle(privee, kAB, 40);
+      ok(e.n > 1);
+      eq(await rassemblerScelle(e.parts, kBA), privee);
+      let e1 = '', e2 = '';
+      try { await rassemblerScelle(e.parts, kCB); } catch (x) { e1 = x.message; }
+      try { await rassembler(e.parts); } catch (x) { e2 = x.message; }
+      eq(e1, 'motdepasse');
+      eq(e2, 'format');
+    },
+    'portage : la présence d’un appareil se valide, une présence tronquée non': async () => {
+      const k = await clePortage('abcde23456', 'appareils');
+      const A = await makeCleEchange();
+      const bon = { t: 'hello', de: 's1', id: 'dev-a', nom: 'iPhone · Safari', pub: '', sig: '', xpub: A.pub };
+      eq((await ouvrirPortageMsg(k, await scellerPortage(k, bon))).xpub, A.pub);
+      eq(await ouvrirPortageMsg(k, await scellerPortage(k, Object.assign({}, bon, { xpub: 'court' }))), null);
+      eq(await ouvrirPortageMsg(k, await scellerPortage(k, Object.assign({}, bon, { id: '' }))), null);
     },
     'portage : un envoi trop gros refuse de se découper': async () => {
       const u = new Uint8Array(PORTAGE_PART * (PORTAGE_PARTS_MAX + 16));

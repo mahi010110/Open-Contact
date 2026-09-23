@@ -18,19 +18,23 @@
    Le chemin direct est coupé des deux côtés, comme dans
    `e2e-liaison.mjs` — et le témoin des canaux de données le prouve.
    ============================================================ */
-import { chromium, chromiumPath, serveRepo, attendre } from './outils.mjs';
+import { chromium, chromiumPath, serveRepo, attendre, ouvrirReglages } from './outils.mjs';
 import { startLocalRelay } from './relais-local.mjs';
+import { clePortage, ouvrir as ouvrirMsg, rassembler } from '../../engine/portage.js';
 
 let fautes = 0;
 const fail = m => { fautes++; console.error('✗ ' + m); };
 
 /* ce que le relais voit passer sur le sujet du portage */
 const vus = [];
+const parSujet = new Map();      /* sujet → contenus, pour rejouer l'observateur */
 let grosses = 0, perdue = false;
 const relay = await startLocalRelay({ tls: true, filtre: ev => {
   const x = (ev.tags || []).find(t => t[0] === 'x');
   if (!x || !/^oc-portage-/.test(x[1])) return null;
   vus.push(String(ev.content || ''));
+  if (!parSujet.has(x[1])) parSujet.set(x[1], []);
+  parSujet.get(x[1]).push(String(ev.content || ''));
   /* la troisième part publiée se perd, une fois */
   if (String(ev.content || '').length > 1500 && ++grosses === 3 && !perdue){ perdue = true; return 'rate-limited: slow down'; }
   return null;
@@ -58,8 +62,8 @@ const COUPE_ICE = () => {
   };
 };
 
-const page = async n => {
-  const ctx = await browser.newContext({ ignoreHTTPSErrors: true, viewport: { width: 390, height: 844 }, hasTouch: true });
+const page = async (n, vue = { width: 390, height: 844 }) => {
+  const ctx = await browser.newContext({ ignoreHTTPSErrors: true, viewport: vue, hasTouch: vue.width < 900 });
   const p = await ctx.newPage();
   await p.addInitScript(COUPE_ICE);
   await p.goto(base, { waitUntil: 'load' });
@@ -73,7 +77,8 @@ const page = async n => {
       .map(b => b.toString(16).padStart(2, '0')).join('');
     await st.kvSet(st.DATA_KEY, JSON.stringify(Array.from({ length: n }, (x, i) => ({
       id: 'gros-' + i, name: 'Piste portée ' + i, city: 'Roubaix',
-      status: 'todo', desc: rnd(120), updatedAt: 1000 + i
+      status: 'todo', desc: rnd(120), updatedAt: 1000 + i,
+      notes: 'note intime ' + i
     }))));
   }, [relay.url, n]);
   await p.reload({ waitUntil: 'load' });
@@ -166,6 +171,77 @@ try {
         + ' »), et les 40 pistes arrivent par les relais ✓');
     }
     await C.context().close(); await D.context().close();
+  }
+
+  /* ④ « MES APPAREILS », SANS CHEMIN DIRECT. Ce qui passe est PRIVÉ.
+     Deux de mes appareils liés par la phrase, aucun canal possible entre
+     eux : les 25 pistes doivent arriver, dans les deux sens, et l'écran
+     doit dire « relié — à jour ». Puis on joue l'OBSERVATEUR : il a tout
+     enregistré sur les relais, et on lui DONNE la phrase — ce qu'un
+     attaquant obstiné finirait par deviner. Il ouvre la présence ; il
+     ne doit rien lire des données, qui sont chiffrées sous une clé née
+     d'un échange entre les deux appareils. */
+  {
+    const A = await page(25, { width: 1280, height: 800 }), B = await page(0);
+    await A.click('.topnav a[data-r="moi"]');
+    await ouvrirReglages(A);
+    await A.click('#moiSync');
+    await A.waitForSelector('#syNew'); await A.click('#syNew');
+    await A.waitForSelector('.sy-phrase span');
+    const phrase = (await A.textContent('.sy-phrase span')).trim();
+    await B.click('.bottomnav a[data-r="moi"]');
+    await ouvrirReglages(B);
+    await B.click('#moiSync');
+    await B.waitForSelector('#syJoin'); await B.click('#syJoin');
+    await B.fill('#syPhrase', phrase);
+    await B.click('.modal-f .btn-primary');
+    const arrive = await attendre(B, async () => (await import('./ui/state.js')).S.companies.length === 25,
+      { timeout: 45000, pas: 500 }).then(() => true, () => false);
+    await B.evaluate(async () => {
+      const { S, saveData } = await import('./ui/state.js');
+      const { normalizeCompany } = await import('./engine/model.js');
+      S.companies.push(normalizeCompany({ id: 'retour-b', name: 'Retour Mobile SARL', city: 'Roubaix', status: 'todo' }));
+      saveData();
+    });
+    const revient = arrive && await attendre(A, async () =>
+      (await import('./ui/state.js')).S.companies.some(c => c.id === 'retour-b'),
+      { timeout: 45000, pas: 500 }).then(() => true, () => false);
+    const etats = await Promise.all([A, B].map(p => p.evaluate(async () => {
+      const sy = (await import('./ui/synclive.js')).getSync();
+      return { state: sy.state, peers: sy.peers, exchanged: sy.exchanged };
+    })));
+    const stA = ((await A.textContent('#syStatus').catch(() => '')) || '').trim();
+    const canauxS = [await A.evaluate(() => window.__canauxOuverts), await B.evaluate(() => window.__canauxOuverts)];
+    if (canauxS.some(Boolean)) fail('appareils : un canal direct s’est ouvert — le scénario ne coupe plus rien');
+    else if (!arrive) fail('MES APPAREILS SANS DIRECT : les 25 pistes n’arrivent pas par les relais — états '
+      + JSON.stringify(etats) + ' · « ' + stA + ' »');
+    else if (!revient) fail('mes appareils : la piste ajoutée sur le téléphone ne revient pas au bureau');
+    else if (!etats.every(e => e.state === 'on' && e.peers >= 1))
+      fail('mes appareils : les données passent, mais l’écran ne le dit pas — ' + JSON.stringify(etats));
+    else console.log('mes appareils sans chemin direct : 25 pistes au téléphone, 1 au bureau, « ' + stA + ' » ✓');
+
+    /* l'observateur, phrase en main */
+    const k = await clePortage(phrase.replace(/\s/g, ''), 'appareils');
+    const k2 = await clePortage(phrase, 'appareils');
+    const brut = [...(parSujet.get(k.sujet) || []), ...(k2.sujet !== k.sujet ? parSujet.get(k2.sujet) || [] : [])];
+    const lus = (await Promise.all(brut.map(c => ouvrirMsg(k, c).then(m => m || ouvrirMsg(k2, c))))).filter(Boolean);
+    const parts = lus.filter(m => m.t === 'part');
+    const hellos = lus.filter(m => m.t === 'hello');
+    let lisible = false;
+    for (const x of new Set(parts.map(m => m.x))){
+      const ps = parts.filter(m => m.x === x).sort((a, b) => a.i - b.i);
+      const uniques = [...new Map(ps.map(m => [m.i, m.d])).values()];
+      try { const obj = await rassembler(uniques); if (obj) lisible = true; } catch (e) {}
+    }
+    const enClair = lus.some(m => /note intime|Piste portée|Retour Mobile/.test(JSON.stringify(m)));
+    if (!brut.length || !hellos.length || !parts.length)
+      fail('observateur : rien de la sync relevé sur le relais (' + brut.length + ' événement(s), '
+        + hellos.length + ' présence(s), ' + parts.length + ' part(s)) — le contrôle ne mesure rien');
+    else if (lisible || enClair)
+      fail('OBSERVATEUR : avec la phrase, les données PRIVÉES de la sync se lisent sur le relais');
+    else console.log('observateur avec la phrase : ' + hellos.length + ' présences ouvertes, ' + parts.length
+      + ' parts illisibles — les données privées ne dépendent pas de la phrase ✓');
+    await A.context().close(); await B.context().close();
   }
 
   /* ② le relais n'a vu que du chiffré */
