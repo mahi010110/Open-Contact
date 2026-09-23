@@ -66,15 +66,26 @@ export const RELAIS_DEFAUT = [
   'wss://nostr-relay.corb.net',
   'wss://nostr.sathoarder.com',
   /* déjà épinglés, mesurés porteurs */
-  'wss://relay.damus.io',
   'wss://nos.lol',
   'wss://relay.mostr.pub',
-  /* entrants du 18/09, mesurés porteurs, cinq opérateurs distincts */
+  /* entrants du 18/09, mesurés porteurs */
   'wss://bucket.coracle.social',
   'wss://relay.froth.zone',
   'wss://nostr-01.yakihonne.com',
-  'wss://relay.mostro.network',
   'wss://nostr.data.haus'
+  /* SORTIS LE 23/09, MESURÉS NUISIBLES entre deux vraies machines
+     (tests/e2e/sonde-deux-machines.mjs) :
+     · relay.damus.io — il porte la découverte, puis limite chaque
+       client à quelques publications par minute (« rate-limited: you
+       are noting too much ») et bannit. Le trafic NORMAL de l'app —
+       une annonce toutes les 5,3 s, par salle et par relais — l'y
+       mène en moins d'une minute. Or Trystero répond UNIQUEMENT par le
+       relais qui a livré l'offre, et damus, rapide, gagne souvent la
+       course : il a refusé une réponse, la liaison est tombée, l'écran
+       a accusé « vos deux réseaux ». Sans lui, 4 paires sur 4 reliées
+       du premier coup.
+     · relay.mostro.network — socket ouverte, publications avalées sans
+       un mot, à chacun des cinq relevés du 21 au 23/09. */
 ];
 
 /* ---------- LE RELAIS DE SECOURS DU TUYAU DIRECT (TURN) ----------
