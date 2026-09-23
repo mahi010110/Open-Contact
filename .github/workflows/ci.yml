@@ -200,9 +200,84 @@ jobs:
           pattern: rdv-*
       - name: Les deux moitiés croisées, paire par paire
         run: |
-          for p in rdv-1 rdv-2 rdv-webkit-recoit rdv-webkit-donne; do
+          for p in rdv-1 rdv-webkit-recoit sans-direct-1 sans-direct-2 sans-direct-webkit-recoit sans-direct-webkit-donne; do
             echo; echo "################ $p ################"
             node tests/e2e/sonde-deux-machines.mjs --bilan rdv-$p-A/journal-A.json rdv-$p-B/journal-B.json || true
+          done
+
+  # AVANT / APRÈS — « au début le P2P marchait très bien ». Le transport
+  # d'origine (bibliothèque du 10 juillet, relais tirés par défaut) et
+  # l'actuel, joués au même instant entre deux vraies machines, avec et
+  # sans chemin direct, et croisés. À la main seulement.
+  avant-apres-horloge:
+    name: Avant / après — l'heure commune
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    outputs:
+      t0: ${{ steps.h.outputs.t0 }}
+    steps:
+      - id: h
+        run: echo "t0=$(( ($(date +%s) + 240) * 1000 ))" >> "$GITHUB_OUTPUT"
+
+  avant-apres:
+    name: Avant / après — ${{ matrix.paire }} ${{ matrix.role }}
+    needs: avant-apres-horloge
+    if: github.event_name == 'workflow_dispatch'
+    strategy:
+      fail-fast: false
+      matrix:
+        role: [A, B]
+        paire: [origine, actuelle, croisee, origine-sans-direct, actuelle-sans-direct]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # la bibliothèque d'origine se lit dans l'historique
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Playwright + Chromium
+        run: |
+          npm i -g playwright
+          playwright install --with-deps chromium
+          echo "OC_PLAYWRIGHT=$(npm root -g)/playwright/index.mjs" >> "$GITHUB_ENV"
+      - name: Un transport par machine, la même salle
+        run: |
+          case "${{ matrix.paire }}/${{ matrix.role }}" in
+            origine*|croisee/A) export OC_VERSION=origine ;;
+            *) export OC_VERSION=actuelle ;;
+          esac
+          case "${{ matrix.paire }}" in *sans-direct) export OC_SANS_DIRECT=1 ;; esac
+          OC_ROLE=${{ matrix.role }} OC_T0=${{ needs.avant-apres-horloge.outputs.t0 }} \
+            OC_SALLE=${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.paire }} \
+            node tests/e2e/sonde-avant-apres.mjs
+          mkdir -p j && mv journal-${{ matrix.role }}.json j/
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aa-${{ matrix.paire }}-${{ matrix.role }}
+          path: j/journal-${{ matrix.role }}.json
+
+  avant-apres-bilan:
+    name: Avant / après — bilan
+    needs: avant-apres
+    if: always() && github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: aa-*
+      - name: Les deux moitiés croisées, paire par paire
+        run: |
+          for p in origine actuelle croisee origine-sans-direct actuelle-sans-direct; do
+            echo; echo "################ $p ################"
+            node tests/e2e/sonde-avant-apres.mjs --bilan aa-$p-A/journal-A.json aa-$p-B/journal-B.json || true
           done
 
   pwa:
