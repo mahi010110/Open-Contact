@@ -1,21 +1,17 @@
 /* ============================================================
-   CAPTURES — le repli hors ligne se prend TOUT SEUL
+   CAPTURES — les fiches passent PAR LES RELAIS
 
    §9 : toute retouche visible se termine par une capture QU'ON
-   REGARDE, les deux ergonomies et les deux thèmes. Ce qui change
-   ici n'est pas un pixel mais un ENCHAÎNEMENT : la liaison directe
-   échoue, et les deux téléphones passent d'eux-mêmes au QR hors
-   ligne — celui qui donne l'affiche, celui qui reçoit rouvre son
-   scanner. Sans image, on ne vérifie que des chiffres.
+   REGARDE, les deux ergonomies et les deux thèmes. Le portage ajoute
+   deux phrases à l'écran : « Relié — envoi… » chez celui qui donne,
+   « Relié — réception… 2/5 » chez celui qui reçoit, pendant que les
+   parts arrivent. On les photographie en train de se produire.
 
-   La panne est reproduite comme dans `e2e-liaison.mjs` : on retire
-   au receveur tout candidat ICE, les « trickle » ET ceux embarqués
-   dans le SDP. Sans le second, deux pages de la même machine se
-   relient par la boucle locale et il ne se passe rien.
-   Depuis la 6.30, les relais PORTENT les fiches quand le direct
-   échoue (engine/portage.js) : pour voir le repli, le relais refuse
-   donc aussi les parts du portage — c'est le seul cas où il reste.
-   Le portage lui-même se photographie dans `captures-portage.mjs`.
+   Aucun chemin direct (candidats ICE retirés des deux côtés), 300
+   pistes pour avoir plusieurs parts, et un relais qui en perd UNE
+   une fois : c'est ce qui laisse l'état intermédiaire à l'écran assez
+   longtemps pour qu'on le voie — et c'est aussi ce qui arrive sur un
+   relais public chargé.
 
    Outil de développement : rien ici n'est chargé par l'app.
    ============================================================ */
@@ -24,15 +20,13 @@ import { chromium, chromiumPath, SHOTS, serveRepo, attendre } from './outils.mjs
 import { startLocalRelay } from './relais-local.mjs';
 
 const { server, base } = await serveRepo();
+let grosses = 0;
 const relais = await startLocalRelay({ tls: true, filtre: ev => {
   const x = (ev.tags || []).find(t => t[0] === 'x');
-  return x && /^oc-portage-/.test(x[1]) && String(ev.content || '').length > 1500
-    ? 'invalid: event too large' : null;
+  if (!x || !/^oc-portage-/.test(x[1]) || String(ev.content || '').length <= 1500) return null;
+  return ++grosses % 1000 === 3 ? 'rate-limited: slow down' : null;
 } });
-/* une fausse caméra, sinon le scanner du receveur rend « Caméra
-   indisponible » et la capture montrerait un cas de bord */
-const browser = await chromium.launch({ executablePath: chromiumPath(),
-  args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'] });
+const browser = await chromium.launch({ executablePath: chromiumPath() });
 
 const COUPE_ICE = () => {
   RTCPeerConnection.prototype.addIceCandidate = function(){ return Promise.resolve(); };
@@ -52,17 +46,16 @@ const ERGOS = [
 
 for (const [nomErgo, opts] of ERGOS){
   for (const theme of ['clair', 'sombre']){
+    grosses = 0;
     const pages = [];
     const ctxs = [];
-    for (const [role, n] of [['donneur', 26], ['receveur', 0]]){
-      const ctx = await browser.newContext({ ignoreHTTPSErrors: true, permissions: ['camera'], ...opts });
+    for (const [role, n] of [['donneur', 300], ['receveur', 0]]){
+      const ctx = await browser.newContext({ ignoreHTTPSErrors: true, ...opts });
       const p = await ctx.newPage();
-      if (theme === 'sombre') await p.emulateMedia({ colorScheme: 'dark' });
       await p.addInitScript(COUPE_ICE);
       await p.goto(base, { waitUntil: 'load' });
-      /* le thème se pose dans le STOCKAGE puis on recharge : `app.js`
-         réécrit l'attribut au démarrage, et une capture « sombre »
-         posée sur le `dataset` sortait en clair sans rien signaler */
+      /* le thème se pose dans le STOCKAGE puis on recharge (voir
+         captures-repli-auto.mjs : un `dataset` posé à la main ment) */
       await p.evaluate(async ([url, n, role, sombre]) => {
         const st = await import('./engine/storage.js');
         await st.kvInit();
@@ -103,18 +96,21 @@ for (const [nomErgo, opts] of ERGOS){
     await P.waitForSelector('#rcCodeGo:not([hidden])');
     await P.click('#rcCodeGo');
 
-    /* AVANT : le rendez-vous, des deux côtés — c'est la moitié de
-       l'image, sans quoi on ne voit pas d'où l'app est partie */
-    await G.screenshot({ path: path.join(SHOTS, `repli-auto-avant-donneur-${nomErgo}-${theme}.png`) });
+    /* PENDANT : les deux phrases du portage, prises sur le fait */
+    await attendre(P, () => /réception… \d+\/\d+/.test(document.querySelector('#rcRdvSt')?.textContent || ''),
+      { timeout: 40000, pas: 100, message: 'le receveur n’a jamais dit que les parts arrivaient' });
+    await P.screenshot({ path: path.join(SHOTS, `portage-receveur-pendant-${nomErgo}-${theme}.png`) });
+    await attendre(G, () => /envoi…/.test(document.querySelector('#dnRdvSt')?.textContent || ''),
+      { timeout: 10000, pas: 100, message: 'le donneur n’a jamais dit qu’il envoyait' }).catch(() => {});
+    await G.screenshot({ path: path.join(SHOTS, `portage-donneur-pendant-${nomErgo}-${theme}.png`) });
 
-    /* APRÈS : on attend le basculement, jamais un délai */
-    await attendre(G, () => !!document.querySelector('.qr-wrap[aria-label="QR à faire scanner"]'),
-      { timeout: 120000, pas: 1000, message: 'le donneur n’a jamais basculé sur le QR hors ligne' });
-    await attendre(P, () => !!document.querySelector('#rcCode'),
-      { timeout: 60000, pas: 1000, message: 'le receveur n’a jamais rouvert son scanner' });
-    await G.waitForTimeout(400);
+    /* APRÈS : l'aperçu chez l'un, « Envoyé ✓ » chez l'autre */
+    await P.waitForSelector('.rc-big', { timeout: 40000 });
+    await attendre(G, () => /Envoyé/.test(document.querySelector('#dnRdvSt')?.textContent || ''),
+      { timeout: 15000, pas: 200, message: 'le donneur n’a jamais su que c’était arrivé' });
+    await G.waitForTimeout(300);
     for (const [nom, p] of [['donneur', G], ['receveur', P]]){
-      const f = path.join(SHOTS, `repli-auto-${nom}-${nomErgo}-${theme}.png`);
+      const f = path.join(SHOTS, `portage-${nom}-apres-${nomErgo}-${theme}.png`);
       await p.screenshot({ path: f });
       console.log('capture : ' + f);
     }

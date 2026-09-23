@@ -29,7 +29,7 @@ doit être repensée, pas forcée.
 | `oc_devices_v1` | Appareils reliés déjà vus (12 max, consultables et élagables) | JSON : tableau `{id, name, seen}` |
 | `oc_promo_v1` | Dernier mot de passe de partage en groupe (confort de saisie) | chaîne |
 | `oc_vault_v1` | Métadonnée du coffre (profil protégé) : enveloppes de la clé maîtresse par code / phrase de secours / PRF — **jamais la clé en clair**. Pendant une rotation, `prev` porte l'ANCIENNE clé maîtresse scellée sous la nouvelle (`OCV1.`) : la métadonnée s'écrit avant le re-scellement, une interruption se reprend au déverrouillage suivant sans perte, puis `prev` est retiré | JSON : `{v, gen, at, wraps, prev?}` |
-| `oc_devring_v1` | Anneau d'appareils : registre signé (appareil principal, membres, commandes) + clés Ed25519 de CET appareil + commandes déjà appliquées | JSON : `{ring, keys, applied}` |
+| `oc_devring_v1` | Anneau d'appareils : registre signé (appareil principal, membres, commandes) + clés Ed25519 de CET appareil + commandes déjà appliquées + (6.30) sa moitié d'échange ECDH P-256 pour le portage de la sync | JSON : `{ring, keys, applied, xkeys?}` — `xkeys = {pub, priv}` (brut / PKCS#8, base64), créé au premier besoin ; absent = rien à migrer |
 | `oc_campaigns_v1` | Campagnes de prospection (privé — messages figés au montage, journal des envois faits ; chaque envoi porte un identifiant stable `id.cible.étape` : rejouer ne double jamais). Plafond de 15 envois/jour **global, toutes campagnes confondues** (`dueSendsAll` fait foi dès qu'il en existe plusieurs) et fenêtre d'envoi imposée : jours ouvrés, 8 h – 19 h locales | JSON : tableau de campagnes |
 | `oc_mail_v1` | Connexions messagerie : jetons OAuth et adresse d'envoi — **exige le profil protégé** (valeur toujours scellée) | JSON : `{gmail, outlook, clients}` |
 | `oc_ai_v1` | Connexions IA : fournisseur actif + clé API — **exige le profil protégé** (valeur toujours scellée) ; la clé ne sort jamais dans un log ni un export. `provider` ∈ {`anthropic`, `gemini`, `openrouter`} (appel navigateur direct) ∪ {`ollama`, `openai`, `chatgpt`} (l'appel part de l’ordinateur : la demande voyage sur le canal chiffré de l’ordinateur, la clé y sert l'appel puis s'oublie — jamais écrite là-bas, ni disque ni journal). `model` : choisi par l'utilisateur **dans la liste vivante du fournisseur** (aucun modèle implicite ni codé en dur — un appel sans modèle est refusé `modele`) ; seule exception : `chatgpt` avec `model` vide = le modèle réglé dans Codex par l'utilisateur, affiché comme tel | JSON : `{provider, key, model}` |
@@ -133,6 +133,58 @@ les fiches passent par la connexion — exclusivement en `sharePayload`
 (vue communautaire, §3) avec l'aperçu avant fusion (§4). Un lecteur
 ancien ignore ce préfixe sans casse ; le repli hors ligne reste
 OCQ1/OCQP et le fichier `.oc`.
+
+**Portage par relais (6.30).** Quand aucun chemin direct ne s'ouvre
+(NAT d'opérateur, pas de TURN), les fiches du rendez-vous passent par
+les relais Nostr qui ont trouvé l'autre appareil (`engine/portage.js`).
+Même contenu (`sharePayload`, jamais le privé), même aperçu avant
+fusion, autre tuyau :
+
+- **clé et sujet** : PBKDF2-SHA-256(code normalisé, sel
+  `opencontact·portage·v1`, 100 000 itérations, 48 octets) — les 16
+  premiers nomment le sujet `oc-portage-<32 hex>`, les 32 suivants
+  sont la clé AES-GCM. Le code n'est jamais publié ;
+- **message** : `<iv base64>.<chiffré base64>`, le clair étant un
+  objet JSON `{ t, de, … }` publié en événement **éphémère** (rien
+  n'est stocké par le relais). `de` = identifiant de pair de
+  l'expéditeur ;
+- `demande { r, manque }` — le receveur ; `manque` = indices absents,
+  ou `null` pour tout ;
+- `part { x, i, n, d }` — le donneur, en réponse seulement ; `d` =
+  base64 d'un morceau (≤ 9 000 octets) du `sharePayload` compressé en
+  deflate-raw ; `n` ≤ 64 ; `x` nomme l'envoi ;
+- `recu { r }` — tout est arrivé ; `repli { r }` — le receveur passe
+  au QR hors ligne, le donneur bascule avec lui.
+
+**Dans un partage en groupe**, même mécanique avec le mot de passe du
+groupe et le sel `opencontact·portage·groupe·v1` (un code et un mot de
+passe égaux ne tombent jamais sur le même sujet). Chacun publie
+`present {}` toutes les 5 s : un camarade entendu sans liaison directe
+compte dans le groupe. Les parts partent à l'envoi, à tous ceux qui
+écoutent ; `demande { r, x, manque }` redemande ce qui manque de
+l'envoi `x`.
+
+**« Mes appareils » (données PRIVÉES)** passe aussi par les relais,
+mais la phrase de liaison n'y protège que l'enveloppe (sel
+`opencontact·portage·appareils·v1`). Les données sont chiffrées pour
+CHAQUE appareil sous une clé née d'un échange : ECDH P-256 entre ma
+moitié secrète et sa moitié publique → HKDF-SHA-256 (sel
+`opencontact·appareils·v1`, info = les deux identifiants d'appareil
+triés, joints par `|`) → AES-GCM. Deviner la phrase n'ouvre donc
+aucune donnée.
+
+- `hello { id, nom, pub, xpub, sig }` toutes les 5 s — `xpub` = moitié
+  publique d'échange, `sig` = signature Ed25519 de
+  `oc-xpub:<id>:<xpub>` par `pub`. Un appareil que l'anneau connaît
+  doit présenter SA clé `pub` et une signature valide, sinon il est
+  ignoré ;
+- `ring { ring }` — l'anneau signé, comme sur le canal direct ;
+- `part { pour, x, i, n, d }` — `d` = morceau de
+  `iv(12) ‖ AES-GCM(deflate-raw(fullPayload + privé))`, pour
+  l'appareil `pour` seul ; `demande { r, x, manque, pour }` redemande.
+
+Tout message qui ne s'ouvre pas avec la clé, ou mal formé, est ignoré.
+Le rassemblage suit la même borne de décompression que OCQ1 (4 Mo).
 
 ### Phrase de liaison de MES appareils — OCL1 (QR, jamais communautaire)
 

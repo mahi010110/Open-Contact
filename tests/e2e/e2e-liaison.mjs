@@ -740,130 +740,171 @@ const composes = async (avant) => {
    qu'à qui avait besoin d'un serveur. Deux niveaux de garde, parce que
    la panne se perd à deux endroits différents. */
 /* ---- LE NAT D'OPÉRATEUR, REPRODUIT ----
-   C'est la panne que les gens rencontrent vraiment, et rien ne la
-   jouait : les deux appareils se trouvent par le relais, échangent
-   leur SDP, et AUCUN chemin direct ne s'établit. Deux téléphones en
-   données mobiles sont dans ce cas — chacun derrière le NAT de son
-   opérateur, sans TURN pour les relier.
+   C'est la panne que les gens rencontrent vraiment : les deux appareils
+   se trouvent par le relais, échangent leur SDP, et AUCUN chemin direct
+   ne s'établit. Un téléphone en données mobiles face à un autre réseau
+   est dans ce cas — le NAT de l'opérateur, sans TURN pour le contourner.
+   Photographié sur un iPhone en 5G : « En attente de l'autre appareil… »
+   pendant que l'autre appareil était là.
 
-   On la reproduit en retirant au receveur tout candidat ICE : les
-   « trickle » (`addIceCandidate`) ET ceux embarqués dans le SDP
-   distant. Le second est indispensable — sans lui, deux pages de la
-   même machine se relient par la boucle locale et le transfert
-   RÉUSSIT, ce qui a fait passer une première version de ce contrôle
-   pour une reproduction alors qu'elle ne prouvait rien.
+   On la reproduit en retirant aux DEUX pages tout candidat ICE : les
+   « trickle » (`addIceCandidate`) ET ceux embarqués dans le SDP distant.
+   Le second est indispensable — sans lui, deux pages de la même machine
+   se relient par la boucle locale et le transfert RÉUSSIT, ce qui a
+   fait passer une première version de ce contrôle pour une
+   reproduction alors qu'elle ne prouvait rien.
 
-   CE QUE ÇA GARDE A CHANGÉ DE NATURE. Nommer la panne ne suffisait
-   pas : devant un camarade qui attend, une phrase à lire demande de
-   comprendre un problème de transport pour donner trois contacts.
-   Les deux moitiés BASCULENT donc toutes seules — le donneur affiche
-   le QR hors ligne, qui porte les fiches dans l'image, et le receveur
-   rouvre son scanner. Le contrôle vérifie le basculement SANS UN SEUL
-   CLIC, et il vérifie aussi qu'il a bien joué le cas : le toast du
-   donneur doit dire « Liaison impossible », ce qui ne peut venir que
-   d'un `rtcfail` — les deux pairs se sont TROUVÉS puis n'ont pas pu se
-   parler. Un simple « Pas de connexion » voudrait dire que les relais
-   ont lâché, c'est-à-dire une autre panne que celle qu'on reproduit. */
-{
-  const COUPE_ICE = () => {
-    RTCPeerConnection.prototype.addIceCandidate = function(){ return Promise.resolve(); };
-    const srd = RTCPeerConnection.prototype.setRemoteDescription;
-    RTCPeerConnection.prototype.setRemoteDescription = function (d, ...r){
-      if (d && d.sdp)
-        d = { type: d.type, sdp: String(d.sdp).split('\n')
-          .filter(l => !/^a=candidate:/.test(l.trim())).join('\n') };
-      return srd.call(this, d, ...r);
-    };
+   CE QUE ÇA GARDE A CHANGÉ DEUX FOIS. D'abord nommer la panne ; puis
+   basculer tout seul sur le QR hors ligne. Maintenant les fiches
+   PASSENT : les relais qui ont trouvé l'autre appareil les portent,
+   chiffrées par le code (engine/portage.js). Le contrôle prouve qu'il a
+   joué la bonne panne par la seule preuve qui ne ment pas : AUCUN canal
+   de données ne s'est ouvert, sur aucune des deux pages. Si le direct
+   passait, le vert d'ici ne dirait rien du portage. */
+const COUPE_ICE = () => {
+  RTCPeerConnection.prototype.addIceCandidate = function(){ return Promise.resolve(); };
+  const srd = RTCPeerConnection.prototype.setRemoteDescription;
+  RTCPeerConnection.prototype.setRemoteDescription = function (d, ...r){
+    if (d && d.sdp)
+      d = { type: d.type, sdp: String(d.sdp).split('\n')
+        .filter(l => !/^a=candidate:/.test(l.trim())).join('\n') };
+    return srd.call(this, d, ...r);
   };
+  /* le témoin : un canal de données qui s'ouvre = le direct a marché */
+  window.__canauxOuverts = 0;
+  const compter = ch => ch && ch.addEventListener('open', () => { window.__canauxOuverts++; });
+  const cdc = RTCPeerConnection.prototype.createDataChannel;
+  RTCPeerConnection.prototype.createDataChannel = function (...a){ const ch = cdc.apply(this, a); compter(ch); return ch; };
+  const ael = RTCPeerConnection.prototype.addEventListener;
+  const Orig = window.RTCPeerConnection;
+  window.RTCPeerConnection = class extends Orig {
+    constructor(...a){ super(...a); ael.call(this, 'datachannel', e => compter(e.channel)); }
+  };
+};
+/* UN TOAST EST FUGACE (§5) : on ne peut pas le lire en boucle, il
+   dure 3,4 s. On l'enregistre à la source, par observation du nœud
+   que `toast()` remplit — rien n'est manqué, rien n'est relu deux
+   fois. */
+const ENREGISTRER_TOASTS = () => {
+  window.__toasts = [];
+  const t = document.getElementById('toast');
+  new MutationObserver(() => {
+    const s = (t.textContent || '').trim();
+    if (s && window.__toasts[window.__toasts.length - 1] !== s) window.__toasts.push(s);
+  }).observe(t, { childList: true, characterData: true, subtree: true });
+};
+/* deux pages sans chemin direct, reliées au relais `url`, et le
+   rendez-vous engagé : G donne 26 pistes, P tape le code */
+const rdvSansDirect = async (url, prefixe) => {
   const G = await mk(mobile), P = await mk(mobile);
   for (const p of [G, P]){
     await p.addInitScript(COUPE_ICE);
     await p.goto(base, { waitUntil: 'load' });
     await p.waitForSelector('#view-aujourdhui:not([hidden])');
   }
-  await seed(G, 'nat', 26);
-  await seed(P, 'natr', 0);
+  const semer = (page, n) => page.evaluate(async ([url, prefixe, n]) => {
+    const st = await import('./engine/storage.js');
+    await st.kvInit();
+    await st.kvSet(st.RELAYS_KEY, JSON.stringify([url]));
+    if (!n) return;
+    const rnd = len => Array.from(crypto.getRandomValues(new Uint8Array(len)))
+      .map(b => b.toString(16).padStart(2, '0')).join('');
+    await st.kvSet(st.DATA_KEY, JSON.stringify(Array.from({ length: n }, (x, i) => ({
+      id: prefixe + '-' + i, name: 'Piste ' + prefixe + ' ' + i, city: 'Lille',
+      status: 'todo', desc: rnd(120), updatedAt: 1000 + i
+    }))));
+  }, [url, prefixe, n]);
+  await semer(G, 26);
+  await semer(P, 0);
   for (const p of [G, P]){ await p.reload({ waitUntil: 'load' }); await p.waitForSelector('#view-aujourdhui:not([hidden])'); }
-
   await G.click('.bottomnav a[data-r="echanger"]');
   await G.waitForSelector('#ecGive'); await G.click('#ecGive');
   await G.waitForSelector('#dnQR'); await G.click('#dnQR');
   await G.waitForSelector('.sy-phrase span', { timeout: 25000 });
-  const codeNat = (await G.textContent('.sy-phrase span')).trim();
+  const code = (await G.textContent('.sy-phrase span')).trim();
   await P.click('.bottomnav a[data-r="echanger"]');
   await P.waitForSelector('#ecRecv'); await P.click('#ecRecv');
   await P.waitForSelector('#rcScan'); await P.click('#rcScan');
   await P.waitForSelector('#rcCode');
-  await P.fill('#rcCode', codeNat);
+  await P.fill('#rcCode', code);
   await P.waitForSelector('#rcCodeGo:not([hidden])');
-  await P.click('#rcCodeGo');
-
-  /* UN TOAST EST FUGACE (§5) : on ne peut pas le lire en boucle, il
-     dure 3,4 s. On l'enregistre à la source, par observation du nœud
-     que `toast()` remplit — rien n'est manqué, rien n'est relu deux
-     fois. */
-  const ENREGISTRER_TOASTS = () => {
-    window.__toasts = [];
-    const t = document.getElementById('toast');
-    new MutationObserver(() => {
-      const s = (t.textContent || '').trim();
-      if (s && window.__toasts[window.__toasts.length - 1] !== s) window.__toasts.push(s);
-    }).observe(t, { childList: true, characterData: true, subtree: true });
-  };
   await G.evaluate(ENREGISTRER_TOASTS);
   await P.evaluate(ENREGISTRER_TOASTS);
+  await P.click('#rcCodeGo');
+  return { G, P };
+};
+const canaux = p => p.evaluate(() => window.__canauxOuverts);
+const toasts = p => p.evaluate(() => window.__toasts || []);
 
-  /* AUCUN CLIC ENTRE ICI ET LÀ : c'est tout l'objet du contrôle. */
+/* ① LE RELAIS PORTE : les fiches passent, SANS UN SEUL CLIC */
+{
+  const { G, P } = await rdvSansDirect(relay.url, 'nat');
+  const recu = await P.waitForSelector('.rc-big', { timeout: 45000 }).then(() => true).catch(() => false);
+  const recap = recu ? (await P.textContent('.rc-big')).trim() : '';
+  await attendre(G, () => /Envoyé/.test(document.querySelector('#dnRdvSt')?.textContent || ''),
+    { timeout: 15000, pas: 500 }).catch(() => {});
+  const stG = ((await G.textContent('#dnRdvSt').catch(() => '')) || '').trim();
+  const [cG, cP] = [await canaux(G), await canaux(P)];
+  const [tG, tP] = [await toasts(G), await toasts(P)];
+  if (cG || cP)
+    fail('NAT : un canal direct s’est ouvert (' + cG + ' / ' + cP + ') — le scénario ne coupe plus '
+      + 'le chemin direct, et ce qui suit ne prouve rien du portage');
+  else if (!recu)
+    fail('NAT : les fiches ne passent pas par les relais. Le receveur reste sans aperçu alors que les '
+      + 'deux appareils se sont trouvés — c’est la panne de la 5G. Écran : « '
+      + ((await P.textContent('.modal-b').catch(() => '')) || '').trim().slice(0, 120) + ' » · toasts '
+      + JSON.stringify(tP));
+  else if (!/26 pistes/.test(recap))
+    fail('NAT : l’aperçu reçu par les relais ne compte pas les 26 pistes — « ' + recap + ' »');
+  else if (!/Envoyé ✓ — 1 appareil/.test(stG))
+    fail('NAT : les fiches sont arrivées, mais le donneur ne le sait pas — « ' + stG + ' »');
+  else if ([...tG, ...tP].some(x => /Liaison impossible/.test(x)))
+    fail('NAT : un côté a basculé sur le QR hors ligne alors que les relais portaient — '
+      + JSON.stringify([tG, tP]));
+  else console.log('NAT d’opérateur reproduit : aucun canal direct, et les 26 pistes passent par les '
+    + 'relais sans un seul clic — le donneur affiche « ' + stG + ' » ✓');
+  await G.context().close(); await P.context().close();
+}
+
+/* ② LE RELAIS REFUSE LES PARTS : l'ancienne garantie tient toujours.
+   Un relais peut refuser un gros événement. Alors ni le direct ni le
+   portage ne passent, et les DEUX écrans basculent ensemble sur le QR
+   hors ligne, qui porte les fiches dans l'image — le receveur prévient
+   le donneur (`repli`) au lieu de le laisser attendre seul. */
+{
+  const avare = await startLocalRelay({ tls: true, filtre: ev => {
+    const x = (ev.tags || []).find(t => t[0] === 'x');
+    return x && /^oc-portage-/.test(x[1]) && String(ev.content || '').length > 1500
+      ? 'invalid: event too large' : null;
+  } });
+  const { G, P } = await rdvSansDirect(avare.url, 'avare');
   const bascule = async (page, sel) => {
-    for (let i = 0; i < 45; i++){
+    for (let i = 0; i < 30; i++){
       if (await page.$(sel)) return true;
       await page.waitForTimeout(2000);
     }
     return false;
   };
-  const okG = await bascule(G, '.qr-wrap[aria-label="QR à faire scanner"]');
   const okP = await bascule(P, '#rcCode');
-  const tG = await G.evaluate(() => window.__toasts || []);
-  const tP = await P.evaluate(() => window.__toasts || []);
+  const okG = await bascule(G, '.qr-wrap[aria-label="QR à faire scanner"]');
+  const [tG, tP] = [await toasts(G), await toasts(P)];
   const prog = ((await G.textContent('#dnQrProg').catch(() => '')) || '').trim();
-  /* LE CONTRÔLE QUI DIT QU'ON A JOUÉ LA BONNE PANNE. Le toast ne peut
-     plus le dire — « Liaison impossible » couvre les deux — et c'est
-     très bien à l'écran, mais ici il faut la cause exacte : sans elle,
-     un relais local qui tombe ferait passer ce scénario au vert en
-     reproduisant une panne qui n'est PAS celle du NAT. `echecLiaison()`
-     rend la dernière cause diagnostiquée de la session. */
-  const causeG = await G.evaluate(() =>
-    import('./ui/synclive.js').then(m => m.echecLiaison()));
-
-  if (!okG)
-    fail('NAT : le donneur reste sur son rendez-vous — il faudrait qu’il trouve tout seul '
-      + 'le repli pendant que son camarade attend. Toasts vus : ' + JSON.stringify(tG));
-  else if (causeG !== 'sansturn')
-    fail('NAT : le donneur a basculé, mais la panne jouée n’est pas celle du NAT — '
-      + '`echecLiaison()` rend « ' + causeG + ' », attendu « sansturn » (les deux pairs '
-      + 'se sont trouvés puis n’ont pas pu se parler faute de chemin direct). Le '
-      + 'scénario ne reproduit plus ce qu’il prétend reproduire');
-  else if (!tG.some(x => /Liaison impossible/.test(x)))
-    fail('NAT : le donneur a basculé sans dire pourquoi — l’écran change sous le pouce '
-      + 'et rien ne l’explique. Toasts vus : ' + JSON.stringify(tG));
-  /* ON N'ASSERTE PAS UNE VALEUR QUI BOUGE. Le QR animé tourne toutes
-     les 900 ms : exiger « partie 1/7 », c'est jouer à pile ou face
-     selon l'instant où la mesure tombe. Une mutation l'a dit — elle a
-     fait rougir CE contrôle-ci (« partie 3/7 ») au lieu de celui
-     qu'elle cassait, et un garde qui accuse le mauvais endroit se
-     corrige mal. Ce qui ne bouge pas, et qui est ce qu'on veut
-     prouver : il y a PLUSIEURS parties, donc le QR porte les fiches. */
+  if (!avare.stats.raisons['invalid: event too large'])
+    fail('portage refusé : le relais n’a refusé aucune part — le cas joué n’est pas celui-là');
+  else if (await P.$('.rc-big'))
+    fail('portage refusé : le receveur a quand même reçu — rien n’a été coupé');
+  else if (!okP || !tP.some(x => /scanne le QR hors ligne/.test(x)))
+    fail('portage refusé : le receveur ne rouvre pas son scanner, ou sans dire pourquoi — '
+      + JSON.stringify(tP));
+  else if (!okG)
+    fail('portage refusé : le donneur reste sur son rendez-vous pendant que son camarade a déjà '
+      + 'rouvert le scanner — les deux côtés, ou aucun (§8). Toasts : ' + JSON.stringify(tG));
   else if (!/partie \d+\/[2-9]/.test(prog))
-    fail('NAT : le donneur n’affiche pas un QR de données en plusieurs parties — « '
-      + prog + ' ». Le repli doit PORTER les fiches, pas rouvrir un rendez-vous');
-  else if (!okP)
-    fail('NAT : le receveur ne rouvre pas son scanner — le donneur affiche un QR que '
-      + 'personne ne scanne. Toasts vus : ' + JSON.stringify(tP));
-  else if (!tP.some(x => /scanne le QR hors ligne/.test(x)))
-    fail('NAT : le receveur a changé d’écran sans dire pourquoi — toasts ' + JSON.stringify(tP));
-  else console.log('NAT d’opérateur reproduit : sans un seul clic, le donneur passe au QR '
-    + 'hors ligne (' + prog + ') et le receveur rouvre son scanner ✓');
-  await G.close(); await P.close();
+    fail('portage refusé : le donneur a basculé sans porter les fiches — « ' + prog + ' »');
+  else console.log('portage refusé par le relais : les deux écrans passent ensemble au QR hors ligne ('
+    + prog + ') ✓');
+  await G.context().close(); await P.context().close();
+  avare.close();
 }
 
 {

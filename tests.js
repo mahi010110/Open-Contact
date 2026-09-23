@@ -24,6 +24,8 @@ import { DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, SYNC_KEY,
          ANALYSIS_KEY, SEALABLE, THEME_KEY, VIEW_KEY, OLD_V2, OLD_V1,
          kvGet, kvSet, kvDel, vaultActive, vaultDetach, vaultReseal } from './engine/storage.js';
 import { causeLiaison, relayTally, liaisonStage, parseTurn, turnText, TURN_MAX, RELAIS_DEFAUT } from './engine/transport.js';
+import { clePortage, sceller as scellerPortage, ouvrir as ouvrirPortageMsg, decouper, rassembler, recolte,
+         PORTAGE_PART, PORTAGE_PARTS_MAX, makeCleEchange, cleEntre, decouperScelle, rassemblerScelle } from './engine/portage.js';
 import { VAULT_WORDS, PHRASE_LEN, makeVaultPhrase, normVaultPhrase, phraseUnknownWords,
          createVault, unlockWithPin, unlockWithPhrase, unlockWithPrf,
          setPin, addPrfWrap, rotateVault,
@@ -487,8 +489,105 @@ export async function runSelfTests(){
          trafic normal de l'app, et a refusé une RÉPONSE en pleine
          négociation entre deux vraies machines — la liaison est tombée.
          mostro avale sans un mot, cinq relevés sur cinq. */
-      for (const r of ['wss://relay.damus.io', 'wss://relay.mostro.network'])
+      for (const r of ['wss://relay.damus.io', 'wss://relay.mostro.network', 'wss://relay.mostr.pub'])
         eq(RELAIS_DEFAUT.includes(r), false);
+    },
+    /* LE PORTAGE PAR RELAIS (engine/portage.js) : le tuyau qui reste
+       quand aucun chemin direct ne s'ouvre entre deux téléphones. */
+    'portage : aller-retour d’un partage découpé, parts dans le désordre et en double': async () => {
+      const list = Array.from({ length: 60 }, (_, i) => ({ id: 'p' + i, name: 'Piste ' + i,
+        city: 'Lille', contacts: [{ id: 'c' + i, name: 'Contact ' + i, email: 'c' + i + '@ex.test' }] }));
+      const payload = sharePayload(list, null, '');
+      const k = await clePortage('abcde23456');
+      const { x, n, parts } = await decouper(payload, 120);
+      ok(n > 2);
+      const rec = recolte();
+      eq(rec.manque(), null);
+      let fini = null;
+      const ordre = parts.map((_, i) => i).reverse();
+      for (const i of [ordre[0], ...ordre]){
+        const m = await ouvrirPortageMsg(k, await scellerPortage(k, { t: 'part', de: 'A', x, i, n, d: parts[i] }));
+        ok(m);
+        fini = rec.ajouter(m) || fini;
+        if (!fini) ok(rec.manque().length > 0);
+      }
+      ok(fini);
+      eq(await rassembler(fini), JSON.parse(JSON.stringify(payload)));
+    },
+    'portage : sans le bon code, un message ne s’ouvre pas': async () => {
+      const k1 = await clePortage('abcde23456');
+      const k2 = await clePortage('abcde23457');
+      ok(k1.sujet !== k2.sujet);
+      ok(/^oc-portage-[0-9a-f]{32}$/.test(k1.sujet));
+      /* le sujet que voit un relais ne contient pas le code */
+      ok(!k1.sujet.includes('abcde'));
+      const txt = await scellerPortage(k1, { t: 'demande', de: 'B', r: 'r1', manque: null });
+      eq(await ouvrirPortageMsg(k2, txt), null);
+      eq((await ouvrirPortageMsg(k1, txt)).r, 'r1');
+      eq(await ouvrirPortageMsg(k1, 'bruit.pas-du-base64'), null);
+      eq(await ouvrirPortageMsg(k1, txt.slice(0, -4) + 'AAAA'), null);
+    },
+    'portage : un message mal formé est refusé, même scellé': async () => {
+      const k = await clePortage('abcde23456');
+      for (const m of [
+        { t: 'ordre', de: 'A' },
+        { t: 'part', de: 'A', x: 'x', i: 3, n: 3, d: 'QQ==' },
+        { t: 'part', de: 'A', x: 'x', i: 0, n: PORTAGE_PARTS_MAX + 1, d: 'QQ==' },
+        { t: 'part', de: 'A', x: 'x', i: 0, n: 1, d: 'Q'.repeat(PORTAGE_PART * 2) },
+        { t: 'demande', de: 'A', r: 'r', manque: [-1] },
+        { t: 'recu', de: '', r: 'r' }
+      ]) eq(await ouvrirPortageMsg(k, await scellerPortage(k, m)), null);
+    },
+    'portage : un groupe et un rendez-vous ne partagent jamais un sujet': async () => {
+      const rdv = await clePortage('abcde23456');
+      const grp = await clePortage('abcde23456', 'groupe');
+      ok(rdv.sujet !== grp.sujet);
+      const txt = await scellerPortage(grp, { t: 'present', de: 'C' });
+      eq(await ouvrirPortageMsg(rdv, txt), null);
+      eq((await ouvrirPortageMsg(grp, txt)).t, 'present');
+    },
+    'portage : la récolte d’un groupe suit plusieurs envois et les oublie': async () => {
+      const rec = recolte();
+      const m = (x, i, n) => ({ t: 'part', de: 'A', x, i, n, d: 'QQ==' });
+      eq(rec.ajouter(m('x1', 0, 2)), null);
+      eq(rec.ajouter(m('x2', 1, 3)), null);
+      eq(rec.manque('x1'), [1]);
+      eq(rec.manque('x2'), [0, 2]);
+      ok(rec.ajouter(m('x1', 1, 2)));
+      rec.oublier('x1');
+      eq(rec.manque('x1'), null);
+      eq(rec.enCours(), ['x2']);
+    },
+    /* « MES APPAREILS » : la clé des données ne dépend PAS de la phrase */
+    'portage : deux appareils fabriquent la même clé, un troisième non': async () => {
+      const A = await makeCleEchange(), B = await makeCleEchange(), C = await makeCleEchange();
+      const kAB = await cleEntre(A.priv, B.pub, 'dev-a', 'dev-b');
+      const kBA = await cleEntre(B.priv, A.pub, 'dev-b', 'dev-a');
+      const kCB = await cleEntre(C.priv, B.pub, 'dev-a', 'dev-b');
+      const privee = { kind: 'full', companies: [{ name: 'Piste', notes: 'note intime' }] };
+      const e = await decouperScelle(privee, kAB, 40);
+      ok(e.n > 1);
+      eq(await rassemblerScelle(e.parts, kBA), privee);
+      let e1 = '', e2 = '';
+      try { await rassemblerScelle(e.parts, kCB); } catch (x) { e1 = x.message; }
+      try { await rassembler(e.parts); } catch (x) { e2 = x.message; }
+      eq(e1, 'motdepasse');
+      eq(e2, 'format');
+    },
+    'portage : la présence d’un appareil se valide, une présence tronquée non': async () => {
+      const k = await clePortage('abcde23456', 'appareils');
+      const A = await makeCleEchange();
+      const bon = { t: 'hello', de: 's1', id: 'dev-a', nom: 'iPhone · Safari', pub: '', sig: '', xpub: A.pub };
+      eq((await ouvrirPortageMsg(k, await scellerPortage(k, bon))).xpub, A.pub);
+      eq(await ouvrirPortageMsg(k, await scellerPortage(k, Object.assign({}, bon, { xpub: 'court' }))), null);
+      eq(await ouvrirPortageMsg(k, await scellerPortage(k, Object.assign({}, bon, { id: '' }))), null);
+    },
+    'portage : un envoi trop gros refuse de se découper': async () => {
+      const u = new Uint8Array(PORTAGE_PART * (PORTAGE_PARTS_MAX + 16));
+      for (let i = 0; i < u.length; i += 65536) crypto.getRandomValues(u.subarray(i, i + 65536));
+      let e = '';
+      try { await decouper({ bruit: bytesToB64(u) }); } catch (x) { e = x.message; }
+      eq(e, 'troplourd');
     },
     'transport : parseTurn accepte le bon, refuse le reste': () => {
       eq(parseTurn(''), []);

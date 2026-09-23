@@ -15,12 +15,17 @@ import { normalizeProfile } from '../engine/model.js';
 import { fullPayload } from '../engine/exchange.js';
 import { syncMerge, syncPrivateMerge } from '../engine/sync.js';
 import { edAvailable, makeDeviceKeys, recoveryKeys, ringInit, ringAddDevice,
-         ringCommand, ringTransfer, ringRecover, ringRekey, mergeRing, actionsFor, deviceIn } from '../engine/ring.js';
+         ringCommand, ringTransfer, ringRecover, ringRekey, mergeRing, actionsFor, deviceIn,
+         edSign, edVerify } from '../engine/ring.js';
 import { SYNC_KEY, RELAYS_KEY, TURN_KEY, DEVICE_KEY, DEVICES_KEY, RING_KEY,
          DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, GROUP_KEY, PROMO_KEY, VAULT_KEY,
          CAMPAIGNS_KEY, MAIL_KEY, AI_KEY, MISSIONS_KEY, ORDINATEUR_KEY, ANALYSIS_KEY,
          PROPOSALS_KEY, kvGet, kvSet, kvDel, docClear } from '../engine/storage.js';
-import { causeLiaison, relayTally, liaisonStage, RELAIS_DEFAUT, TURN_DEFAUT } from '../engine/transport.js';
+import { causeLiaison, relayTally, liaisonStage, RELAIS_DEFAUT, TURN_DEFAUT,
+         PORTAGE_APRES_MS, PORTAGE_RELANCE_MS, PORTAGE_PAS_MS } from '../engine/transport.js';
+import { clePortage, sceller, ouvrir as ouvrirMessage, recolte, makeCleEchange, cleEntre,
+         decouperScelle, rassemblerScelle } from '../engine/portage.js';
+import { fnv } from '../engine/crypto.js';
 import { S, bus, applySynced, saveProfile, logJ } from './state.js';
 import { ic, toast, showUndo } from './dom.js';
 
@@ -169,6 +174,51 @@ export async function openRoom(kind, phrase, callbacks){
   ecouterTot();   /* voir `ecouterTot` : un relais sain répond avant le premier sondage */
   return r;
 }
+/* LE PORTAGE PAR RELAIS (engine/portage.js) — le tuyau qui reste
+   quand aucun chemin direct ne s'ouvre. Il emprunte les relais que
+   la salle vient d'ouvrir (`relayTopic`, exposé par le bundle — voir
+   assets/vendor/VERSIONS.txt) : pas une connexion de plus, et les
+   mêmes relais que ceux qui ont trouvé l'autre appareil.
+   `surMessage` ne reçoit que des messages scellés avec le code ET
+   venus de quelqu'un d'autre. Les relais qui s'ouvrent après coup
+   sont rattrapés : on repasse toutes les secondes. */
+export async function ouvrirPortage(code, surMessage, espace = 'rdv'){
+  const lib = await loadLib();
+  const T = lib.relayTopic;
+  const k = await clePortage(code, espace);
+  const moi = lib.selfId;
+  const vus = new Set();
+  const abonnes = new Map();          /* client relais → désabonnement */
+  let ferme = false;
+  const recevoir = async (t, contenu) => {
+    if (ferme || vus.has(contenu)) return;
+    if (vus.size > 400) vus.clear();  /* une mémoire courte suffit : les doublons arrivent ensemble */
+    vus.add(contenu);                 /* le même événement arrive par plusieurs relais */
+    const m = await ouvrirMessage(k, contenu);
+    if (m && m.de !== moi && !ferme) surMessage(m);
+  };
+  const rattraper = () => {
+    for (const c of T.clients()) if (!abonnes.has(c)) abonnes.set(c, T.subscribe(c, k.sujet, recevoir));
+  };
+  rattraper();
+  const iv = setInterval(rattraper, 1000);
+  return {
+    moi,
+    envoyer: async msg => {
+      if (ferme) return;
+      const txt = await sceller(k, Object.assign({ de: moi }, msg));
+      for (const c of T.clients()) T.publish(c, k.sujet, txt).catch(() => {});
+    },
+    fermer: () => {
+      if (ferme) return;
+      ferme = true;
+      clearInterval(iv);
+      for (const stop of abonnes.values()) try { stop(); } catch (e) {}
+      abonnes.clear();
+    }
+  };
+}
+
 /* Quitter une salle POUR DE BON — à utiliser partout, jamais
    `room.leave()` seul. `leave()` est ASYNCHRONE (départ annoncé aux
    relais, connexions fermées, abonnements retirés) et rend une
@@ -257,6 +307,17 @@ export async function ensureKeys(){
   ringSt = Object.assign({ ring: null, applied: [] }, ringSt || {}, { keys });
   await saveRingSt();
   return keys;
+}
+/* la moitié d'échange de CET appareil (engine/portage.js, `cleEntre`) —
+   créée au premier besoin, gardée avec ses clés d'identité */
+async function ensureEchange(){
+  await loadRingSt();
+  if (ringSt && ringSt.xkeys) return ringSt.xkeys;
+  let xkeys;
+  try { xkeys = await makeCleEchange(); } catch (e) { return null; }
+  ringSt = Object.assign({ ring: null, keys: null, applied: [] }, ringSt || {}, { xkeys });
+  await saveRingSt();
+  return xkeys;
 }
 /* à l'activation de la protection : cet appareil devient le principal */
 export async function ensureRing(recoveryPhrase){
@@ -386,6 +447,7 @@ let sendRingRaw = null;
 function sendRing(){
   const r = getRing();
   if (r && sendRingRaw) sendRingRaw(r);
+  if (r && portageSync) portageSync.ring(r);
 }
 
 /* ---------- l'état vivant ---------- */
@@ -410,7 +472,7 @@ function refreshStage(force){
   if (!room) return;
   const relays = relaySnapshot();
   const stage = liaisonStage({
-    relays, peers: live.peers, exchanged: live.exchanged,
+    relays, peers: recompter(), exchanged: live.exchanged,
     rtcFail: live.rtcFail, graceOver: Date.now() - live.since > GRACE_MS
   });
   const moved = stage !== live.state ||
@@ -430,6 +492,11 @@ function stopWatch(){
 let room = null;
 let sendFull = null;
 let sendHello = null;
+/* les appareils reliés EN DIRECT ; `live.peers` y ajoute ceux qu'on
+   n'entend que par les relais (voir `ouvrirPortageSync`) */
+let directs = 0;
+let portageSync = null;
+const recompter = () => (live.peers = directs + (portageSync ? portageSync.horsDirect().length : 0));
 let lastSent = '';
 let sendJob = null;
 let sendAgain = false;
@@ -461,19 +528,21 @@ export async function applyPrivatePayload(payload){
 }
 
 const sendState = () => {
-  if (!sendFull || !live.peers) return;
+  if (!(sendFull && directs) && !(portageSync && portageSync.horsDirect().length)) return;
   if (sendJob){ sendAgain = true; return; }
   sendJob = (async () => {
     do {
       sendAgain = false;
       const priv = await privateState();
-      if (!sendFull || !live.peers) return;
       const payload = Object.assign(fullPayload(S.companies, S.profile, S.orphans, S.tombs), priv);
       const j = JSON.stringify(payload);
-      if (j !== lastSent){
+      if (sendFull && directs && j !== lastSent){
         lastSent = j;           /* rien de neuf = stop au ping-pong */
         sendFull(payload);
       }
+      /* ceux qu'aucune liaison directe n'atteint : par les relais,
+         chiffré pour chacun (voir `ouvrirPortageSync`) */
+      if (portageSync) portageSync.envoyer(payload, j);
     } while (sendAgain);
   })().catch(() => {}).finally(() => {
     sendJob = null;
@@ -496,6 +565,8 @@ async function closeRoom(){
   sendHello = null;
   sendRingRaw = null;
   lastSent = '';
+  if (portageSync){ portageSync.fermer(); portageSync = null; }
+  directs = 0;
   live.peers = 0;
   live.relays = { total: 0, open: 0, pending: 0 };
   live.exchanged = false;
@@ -553,8 +624,12 @@ async function join(phrase, force){
   if (my !== gen) return;
   const hello = r.makeAction('hello');
   sendHello = () => hello.send({ id: self.id, name: self.name, pub: keys ? keys.pub : '' });
-  hello.onMessage = async obj => {
+  const appareilDuPair = new Map();     /* pair WebRTC → appareil */
+  hello.onMessage = async (obj, meta) => {
     if (!obj || !obj.id || obj.id === self.id) return;
+    const pid = meta && meta.peerId;
+    if (pid) appareilDuPair.set(pid, obj.id);
+    if (portageSync) portageSync.direct(obj.id, true);
     await upsertDevice(obj.id, obj.name);
     /* je suis le principal : un appareil du canal authentifié qui
        annonce sa clé entre dans l'anneau (signé, propagé) */
@@ -572,7 +647,8 @@ async function join(phrase, force){
   const full = r.makeAction('full');
   sendFull = d => full.send(d);
   let receiveQueue = Promise.resolve();
-  full.onMessage = obj => { receiveQueue = receiveQueue.then(async () => {
+  const recevoirComplet = obj => { receiveQueue = receiveQueue.then(async () => {
+    if (my !== gen) return;
     if (!obj || obj.kind !== 'full' || !Array.isArray(obj.companies)) return;
     const r2 = syncMerge(obj, { companies: S.companies, orphans: S.orphans,
                                 profile: S.profile, tombs: S.tombs });
@@ -613,19 +689,184 @@ async function join(phrase, force){
     refreshStage(true);
     sendState();   /* converge : ne repart que si quelque chose a changé */
   }).catch(() => {}); };
+  full.onMessage = recevoirComplet;
 
   r.onPeerJoin = () => {
-    live.peers++;
+    directs++;
+    recompter();
     refreshStage(true);
     if (sendHello) sendHello();
     sendRing();
     sendState();
   };
-  r.onPeerLeave = () => {
-    live.peers = Math.max(0, live.peers - 1);
-    if (!live.peers) live.exchanged = false;   /* prochaine liaison = nouvelle preuve */
+  r.onPeerLeave = pid => {
+    directs = Math.max(0, directs - 1);
+    const dev = appareilDuPair.get(pid);
+    if (dev && portageSync) portageSync.direct(dev, false);
+    if (!recompter()) live.exchanged = false;   /* prochaine liaison = nouvelle preuve */
     refreshStage(true);
   };
+
+  /* LES RELAIS PORTENT AUSSI LA SYNC — quand aucun chemin direct ne
+     s'ouvre entre deux de mes appareils (le NAT d'un opérateur
+     mobile). Sans lui, « En attente de ton autre appareil » pendant
+     que l'autre appareil était là. */
+  try { await ouvrirPortageSync(phrase, self, keys, my, recevoirComplet); } catch (e) {}
+}
+
+/* ---------- le portage de « Mes appareils » ----------
+   Même tuyau que le rendez-vous et le groupe (engine/portage.js), avec
+   une différence qui compte : ce qui passe est PRIVÉ. Deux couches :
+   · la présence (`hello`) et l'anneau voyagent sous la phrase de
+     liaison — exactement ce qu'elle protège déjà dans la signalisation ;
+   · les données, elles, sont chiffrées pour CHAQUE appareil sous une
+     clé née d'un échange (ECDH) entre lui et moi — la phrase n'y entre
+     pas. Enregistrer les relais et deviner la phrase n'ouvre rien.
+   La moitié publique d'échange est signée par l'identité Ed25519 de
+   l'appareil : un appareil que l'anneau connaît ne peut pas être
+   imité avec une autre clé. */
+const PRESENCE_MS = 5000;
+const PRESENCE_OUBLI_MS = 16000;
+async function ouvrirPortageSync(phrase, self, keys, my, recevoirComplet){
+  const xk = await ensureEchange();
+  if (!xk || my !== gen) return;
+  let sig = '';
+  if (keys) try { sig = await edSign(keys.seed, 'oc-xpub:' + self.id + ':' + xk.pub); } catch (e) {}
+  const entendus = new Map();      /* appareil → { id, xpub, premier, dernier, cle, envoye } */
+  const parSession = new Map();    /* identifiant de session (`de`) → appareil */
+  const enDirect = new Set();
+  const rec = recolte();
+  const envois = new Map();        /* x → envoi chiffré, pour qui en redemande une part */
+  const relances = new Map();
+  const minuteries = [];
+  let file = Promise.resolve();
+  let p = null;
+  let ferme = false;
+  const cleDe = d => d.cle || (d.cle = cleEntre(xk.priv, d.xpub, self.id, d.id));
+  const horsDirect = () => {
+    const t = Date.now();
+    return [...entendus.values()].filter(d => !enDirect.has(d.id)
+      && t - d.premier > PORTAGE_APRES_MS && t - d.dernier < PRESENCE_OUBLI_MS);
+  };
+  const publier = (e, quoi) => (file = file.then(async () => {
+    for (const i of quoi){
+      if (ferme) return;
+      await p.envoyer({ t: 'part', pour: e.pour, x: e.x, i, n: e.n, d: e.parts[i] });
+      await new Promise(res => setTimeout(res, PORTAGE_PAS_MS));
+    }
+  }).catch(() => {}));
+  /* une sauvegarde en appelle souvent une autre : on n'envoie que le
+     DERNIER état, une seconde et demie après le dernier changement */
+  let attente = null, dernier = null;
+  const vider = async () => {
+    attente = null;
+    if (ferme || !dernier) return;
+    const { payload, j } = dernier;
+    const empreinte = j.length + ':' + fnv(j).toString(36);
+    for (const d of horsDirect()){
+      if (d.envoye === empreinte) continue;
+      d.envoye = empreinte;
+      try {
+        const e = await decouperScelle(payload, await cleDe(d));
+        e.pour = d.id;
+        envois.set(e.x, e);
+        if (envois.size > 6) envois.delete(envois.keys().next().value);
+        publier(e, e.parts.map((_, i) => i));
+      } catch (x) { d.envoye = ''; }
+    }
+  };
+  const surHello = async m => {
+    if (m.id === self.id) return;
+    /* un appareil que l'anneau connaît garde SA clé d'identité */
+    const anneau = getRing();
+    const connu = anneau ? deviceIn(anneau, m.id) : null;
+    if (connu && connu.pub && connu.pub !== m.pub) return;
+    if (m.pub && m.sig){
+      if (!(await edVerify(m.pub, m.sig, 'oc-xpub:' + m.id + ':' + m.xpub).catch(() => false))) return;
+    } else if (connu && connu.pub) return;
+    const t = Date.now();
+    parSession.set(m.de, m.id);
+    let d = entendus.get(m.id);
+    if (d && d.xpub === m.xpub && t - d.dernier < PRESENCE_OUBLI_MS){ d.dernier = t; return; }
+    d = { id: m.id, xpub: m.xpub, premier: t, dernier: t, cle: null, envoye: '' };
+    entendus.set(m.id, d);
+    await upsertDevice(m.id, m.nom || '');
+    /* comme la présence directe : je suis le principal, un appareil qui
+       annonce sa clé sur le canal de la phrase entre dans l'anneau */
+    if (m.pub && await amMain() && !deviceIn(getRing(), m.id)){
+      ringSt.ring = await ringAddDevice(getRing(), ringSt.keys.seed, { id: m.id, name: m.nom, pub: m.pub });
+      await saveRingSt();
+    }
+    /* le direct garde sa chance ; ensuite on se parle par les relais */
+    minuteries.push(setTimeout(() => {
+      if (ferme) return;
+      recompter(); refreshStage(true); sendRing(); sendState();
+    }, PORTAGE_APRES_MS + 500));
+    emit();
+  };
+  const surPart = async m => {
+    if (m.pour !== self.id) return;
+    const d = entendus.get(parSession.get(m.de));
+    if (!d) return;                 /* sa présence n'est pas encore arrivée */
+    const parts = rec.ajouter(m);
+    if (!parts){
+      if (!relances.has(m.x)){
+        let tours = 0;
+        const t = setInterval(() => {
+          const manque = rec.manque(m.x);
+          if (ferme || !manque || !manque.length || ++tours > 10){ clearInterval(t); relances.delete(m.x); return; }
+          p.envoyer({ t: 'demande', r: self.id, x: m.x, manque, pour: d.id }).catch(() => {});
+        }, PORTAGE_RELANCE_MS);
+        relances.set(m.x, t);
+        minuteries.push(t);
+      }
+      return;
+    }
+    rec.oublier(m.x);
+    clearInterval(relances.get(m.x));
+    relances.delete(m.x);
+    let obj;
+    try { obj = await rassemblerScelle(parts, await cleDe(d)); } catch (e) { return; }
+    recevoirComplet(obj);
+  };
+  p = await ouvrirPortage(phrase, m => {
+    if (ferme) return;
+    if (m.t === 'hello'){ surHello(m).catch(() => {}); return; }
+    if (m.t === 'ring'){ onRingMsg(m.ring).catch(() => {}); return; }
+    if (m.t === 'part'){ surPart(m).catch(() => {}); return; }
+    if (m.t === 'demande' && m.pour === self.id && m.x && envois.has(m.x)){
+      const e = envois.get(m.x);
+      const quoi = Array.isArray(m.manque) && m.manque.length ? m.manque.filter(i => i < e.n) : e.parts.map((_, i) => i);
+      publier(e, quoi);
+    }
+  }, 'appareils');
+  if (ferme || my !== gen){ p.fermer(); return; }
+  const annoncer = () => p.envoyer({ t: 'hello', id: self.id, nom: self.name,
+    pub: keys ? keys.pub : '', xpub: xk.pub, sig }).catch(() => {});
+  portageSync = {
+    horsDirect,
+    direct: (id, oui) => { oui ? enDirect.add(id) : enDirect.delete(id); },
+    envoyer: (payload, j) => { dernier = { payload, j }; if (!attente) attente = setTimeout(vider, 1500); },
+    ring: r => p.envoyer({ t: 'ring', ring: r }).catch(() => {}),
+    fermer: () => {
+      ferme = true;
+      clearTimeout(attente);
+      minuteries.forEach(t => { clearTimeout(t); clearInterval(t); });
+      p.fermer();
+    }
+  };
+  annoncer();
+  minuteries.push(setInterval(annoncer, PRESENCE_MS));
+  /* le compte suit les présences qui arrivent et celles qui s'éteignent */
+  let compte = live.peers;
+  minuteries.push(setInterval(() => {
+    const avant = compte;
+    compte = recompter();
+    if (compte !== avant){
+      if (!compte) live.exchanged = false;
+      refreshStage(true);
+    }
+  }, 1000));
 }
 
 /* ---------- l'API de la feuille de gestion ---------- */
