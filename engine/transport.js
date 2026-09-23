@@ -67,7 +67,6 @@ export const RELAIS_DEFAUT = [
   'wss://nostr.sathoarder.com',
   /* déjà épinglés, mesurés porteurs */
   'wss://nos.lol',
-  'wss://relay.mostr.pub',
   /* entrants du 18/09, mesurés porteurs */
   'wss://bucket.coracle.social',
   'wss://relay.froth.zone',
@@ -85,7 +84,11 @@ export const RELAIS_DEFAUT = [
        a accusé « vos deux réseaux ». Sans lui, 4 paires sur 4 reliées
        du premier coup.
      · relay.mostro.network — socket ouverte, publications avalées sans
-       un mot, à chacun des cinq relevés du 21 au 23/09. */
+       un mot, à chacun des cinq relevés du 21 au 23/09.
+     · relay.mostr.pub — le même soir, sa poignée de main WebSocket
+       rend une REDIRECTION (301) : injoignable pour les trois sondes
+       (lecture, découverte, portage). Un relais qui ne s'ouvre pas ne
+       porte rien, et chaque appareil retentait sa connexion en vain. */
 ];
 
 /* ---------- LE RELAIS DE SECOURS DU TUYAU DIRECT (TURN) ----------
@@ -186,6 +189,21 @@ export const TURN_DEFAUT = [];
    de patience. */
 export const SANS_PAIR_DONNEUR_MS = 45000;
 export const SANS_PAIR_RECEVEUR_MS = 15000;
+
+/* LE PORTAGE PAR RELAIS (engine/portage.js) et son rythme.
+   Le chemin direct garde la première chance : entre deux appareils qui
+   PEUVENT se relier, il prend une à deux secondes (mesuré entre deux
+   vraies machines). Passé `PORTAGE_APRES_MS` sans liaison, le receveur
+   demande les fiches par les relais, et redemande ce qui lui manque
+   toutes les `PORTAGE_RELANCE_MS`. Le repli hors ligne n'est plus
+   déclenché par l'échec du direct — le portage peut encore porter —
+   mais par le SILENCE : rien reçu de l'autre depuis
+   `PORTAGE_SILENCE_MS`. `PORTAGE_PAS_MS` espace les parts d'une même
+   réponse : une rafale trop serrée se fait limiter par les relais. */
+export const PORTAGE_APRES_MS = 4000;
+export const PORTAGE_RELANCE_MS = 3000;
+export const PORTAGE_SILENCE_MS = 12000;
+export const PORTAGE_PAS_MS = 150;
 
 /* compte les WebSockets de relais par état (readyState 0/1), et — c'est
    la moitié qui manquait — combien PORTENT réellement quelque chose.

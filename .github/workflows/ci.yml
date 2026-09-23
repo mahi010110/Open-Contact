@@ -153,7 +153,9 @@ jobs:
       fail-fast: false
       matrix:
         role: [A, B]
-        paire: [rdv-1, rdv-2, rdv-webkit-recoit, rdv-webkit-donne]
+        # « sans-direct » : aucun candidat ICE n'entre — le NAT d'opérateur.
+        # Les fiches ne peuvent passer que par les relais (portage).
+        paire: [rdv-1, rdv-webkit-recoit, sans-direct-1, sans-direct-2, sans-direct-webkit-recoit, sans-direct-webkit-donne]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -169,8 +171,9 @@ jobs:
       - name: Le rendez-vous, une moitié par machine
         run: |
           case "${{ matrix.paire }}/${{ matrix.role }}" in
-            rdv-webkit-recoit/B|rdv-webkit-donne/A) export OC_NAVIGATEUR=webkit ;;
+            *webkit-recoit/B|*webkit-donne/A) export OC_NAVIGATEUR=webkit ;;
           esac
+          case "${{ matrix.paire }}" in sans-direct*) export OC_SANS_DIRECT=1 ;; esac
           OC_PARCOURS=rdv OC_ROLE=${{ matrix.role }} OC_T0=${{ needs.rendez-vous-horloge.outputs.t0 }} \
             OC_SALLE=${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.paire }} OC_DELAI_RECEVEUR_MS=20000 \
             node tests/e2e/sonde-deux-machines.mjs

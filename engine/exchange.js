@@ -69,8 +69,13 @@ export async function encodeOCQ(list, keep, moi){
 }
 export const OCQ_OUT_MAX = 4000000;   /* octets décompressés : même borne que l'entrée (D4) */
 export async function decodeOCQ(compact){
+  return gonflerBorne(b64urlToBytes(String(compact).slice(5)));
+}
+/* deflate-raw → objet JSON, en lecture BORNÉE. Partagé par le QR
+   compact et par le portage par relais (engine/portage.js) : deux
+   chemins qui décompressent ce qu'un inconnu a pu fabriquer. */
+export async function gonflerBorne(bytes){
   if (typeof DecompressionStream === 'undefined') throw new Error('noqr');
-  const bytes = b64urlToBytes(String(compact).slice(5));
   const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
   /* lecture bornée : un blob de quelques Ko peut gonfler en Go
      (bombe de décompression) — au-delà de la borne, on refuse */

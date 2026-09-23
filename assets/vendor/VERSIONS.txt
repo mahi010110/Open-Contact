@@ -8,7 +8,7 @@ jour volontaire = fichier modifié → à investiguer.
 
 jsQR.js                    Apache-2.0  sha256 bc40c8a15196236b2314db0856f72ca0b49980cd5413b8c852a7349f5fee0859
 qrcode-generator.mjs       MIT   sha256 e4e021710660c0426e4bad9436a96dafa688b50ec7e0c4dbd773ba18108de5b8
-trystero-nostr.min.js      MIT   sha256 ab49eb7c5f6c96078d49eafb4a35b2328b3828b2d09291fb27cce9cc09ab0f36
+trystero-nostr.min.js      MIT   sha256 402bfef0a206dc87cef497e20c3066b80ef19e54060dc3675f4cd8a1e94d7a8d
 
 trystero-nostr.min.js : construit depuis trystero 0.25.3 (npm, alias
 @trystero-p2p/nostr) avec esbuild —
@@ -55,6 +55,30 @@ présentes à l'identique dans 0.25.4, la dernière version publiée —
   Après correction, même labo : 6 reliés sur 6 en 0,5 s. Gardé par
   tests/e2e/e2e-offre-perimee.mjs, qui rejoue aussi le défaut
   d'origine pour prouver qu'il sait encore échouer.
+
+UN AJOUT, en plus des deux corrections : `relayTopic`, le portage par
+relais (engine/portage.js). Quand deux téléphones se trouvent par les
+relais mais qu'aucun chemin direct ne s'ouvre (NAT d'opérateur, pas de
+TURN), les fiches du rendez-vous passent par ces mêmes relais. La
+bibliothèque sait déjà signer, publier et s'abonner à un sujet — il
+suffisait de le laisser voir, sur les relais qu'elle a déjà ouverts.
+
+  ③ dans le registre des relais (Nn), à la suite de getSockets :
+     avant  …return c?[[r,c]]:[]}))}}
+     après  …return c?[[r,c]]:[]})),clients:()=>we(n)}}
+  ④ avant l'export final :
+     avant  .map(e=>"wss://"+e);export{…,Y as selfId};
+     après  .map(e=>"wss://"+e),ocPortage={clients:()=>Rr.clients(),
+              publish:async(c,t,x)=>c.send(await ps(t,x)),
+              subscribe:(c,t,f)=>(ws(c,t,f),()=>Ps(c,t))};
+            export{…,Y as selfId,ocPortage as relayTopic};
+     → publish signe un événement ÉPHÉMÈRE (kind 20000+, rien n'est
+       stocké) avec la clé de la page, exactement comme les annonces ;
+       subscribe réutilise l'abonnement groupé du relais.
+
+  Gardé par tests/e2e/e2e-liaison.mjs (le NAT d'opérateur reproduit :
+  aucun canal direct, les fiches passent quand même), et mesuré sur
+  les relais publics par tests/e2e/sonde-portage-relais.mjs.
 
 À la prochaine mise à jour d'une lib : remplacer le fichier, sa licence
 si besoin, et l'empreinte ci-dessus dans le même commit.

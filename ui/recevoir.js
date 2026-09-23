@@ -13,8 +13,9 @@ import { mergeIncoming } from '../engine/merge.js';
 import { normalizeCompany } from '../engine/model.js';
 import { S, bus, saveData, logJ } from './state.js';
 import { openSheet, toast, btn, ic, showUndo } from './dom.js';
-import { openRoom, leaveRoom, watchLiaison, deviceSelf, ensureKeys } from './synclive.js';
-import { SANS_PAIR_RECEVEUR_MS } from '../engine/transport.js';
+import { openRoom, leaveRoom, watchLiaison, deviceSelf, ensureKeys, ouvrirPortage } from './synclive.js';
+import { SANS_PAIR_RECEVEUR_MS, PORTAGE_APRES_MS, PORTAGE_RELANCE_MS, PORTAGE_SILENCE_MS } from '../engine/transport.js';
+import { recolte, rassembler } from '../engine/portage.js';
 import { startScan } from './qr.js';
 import { probeOrdinateur, ordinateurCall } from '../engine/ordinateur.js';
 import { makeMission, signMission } from '../engine/mission.js';
@@ -44,8 +45,10 @@ export function openRecevoir(){
      sans laisser la salle précédente se fermer laisserait la liaison
      en morceaux des deux côtés (voir leaveRoom) */
   let leaving = Promise.resolve();
-  const leaveRdv = () => {
+  let portage = null;       /* le portage par relais du rendez-vous en cours */
+  const leaveRdv = ({ garderPortage = false } = {}) => {
     if (rdvWatch){ rdvWatch.stop(); rdvWatch = null; }
+    if (portage){ if (!garderPortage) portage.fermer(); portage = null; }
     const old = room;
     room = null;
     leaving = leaving.then(() => leaveRoom(old));
@@ -139,19 +142,30 @@ export function openRecevoir(){
     sh.body.innerHTML = `<div class="qr-prog">${ic('clock', 'ic-14')} Connexion…</div>`;
     sh.setFoot([btn('← Retour', 'btn-ghost', menu)]);
     let r;
-    let joined = false;
+    let joined = false, joinedAt = 0;
+    let got = false;
+    /* la dernière part arrivée PAR LES RELAIS — tant qu'elles arrivent,
+       l'échange avance, même sans chemin direct */
+    let dernier = 0;
+    const rec = recolte();
+    const direReception = () => {
+      const el = q('#rcRdvSt'), a = rec.avance();
+      if (el) el.innerHTML = `${ic('radio', 'ic-14')} Relié — réception…${a && a.n > 1 ? ' ' + a.recues + '/' + a.n : ''}`;
+    };
+    const demandeId = Math.random().toString(36).slice(2, 12);
     /* un seul chemin de repli, partagé par la salle qui n'ouvre pas et
        par la liaison qui ne prend pas : deux rangements qui divergent
        finissent toujours par diverger pour de bon. */
     const depuis = Date.now();
     const replier = () => {
       w.stop();
+      if (portage && portage.repli) portage.repli();
       leaveRdv();
       toast('Liaison impossible — scanne le QR hors ligne.');
       scan();
     };
     const w = watchLiaison(() => joined ? 1 : 0, (stage, cause) => {
-      if (my !== gen || joined) return;
+      if (my !== gen || joined || got) return;
       const el = q('#rcRdvSt');
       if (!el) return;
       /* LES DEUX MOITIÉS BASCULENT ENSEMBLE. En face, « Donner » quitte
@@ -161,22 +175,34 @@ export function openRecevoir(){
          quand même : il faut quelqu'un qui SCANNE. On rouvre donc le
          scanner, et les deux téléphones se retrouvent sans qu'on leur
          demande de comprendre une panne de transport.
-         MÊME EXCEPTION QU'EN FACE : « ce n'est pas le même code » n'est
+         Sans relais, rien ne passe — ni direct ni portage : on bascule. */
+      if (stage === 'norelay'){ replier(); return; }
+      /* MÊME EXCEPTION QU'EN FACE : « ce n'est pas le même code » n'est
          pas une panne de réseau, et l'autre écran ne bascule pas non
          plus — refaire le rendez-vous coûte dix secondes (§8). */
-      if (stage === 'norelay' || (stage === 'rtcfail' && cause !== 'motdepasse')){ replier(); return; }
-      /* ET PERSONNE NE VIENT. On vient de scanner : l'autre est là, son
-         QR allumé. Si rien ne s'annonce, les deux appareils ne se sont
-         pas trouvés sur un même relais — attendre n'y changera rien, et
-         son écran à lui a basculé sur le QR hors ligne. On rouvre donc
-         le scanner : il n'y a plus qu'à viser. */
-      if (stage === 'wait' && Date.now() - depuis > SANS_PAIR_RECEVEUR_MS){ replier(); return; }
-      if (stage === 'rtcfail' && cause === 'motdepasse')
+      if (stage === 'rtcfail' && cause === 'motdepasse'){
         el.innerHTML = `${ic('square-alert', 'ic-14')} Ce n’est pas le même code — refaites le rendez-vous.`;
-      else if (stage === 'wait')
-        el.innerHTML = `${ic('clock', 'ic-14')} En attente de l’autre appareil…`;
-      else
-        el.innerHTML = `${ic('clock', 'ic-14')} Connexion…`;
+        return;
+      }
+      /* L'ÉCHEC DU DIRECT NE FAIT PLUS BASCULER. C'était la panne de la
+         5G : les deux téléphones se trouvaient par les relais, le NAT de
+         l'opérateur fermait le chemin direct, et l'écran attendait
+         « l'autre appareil » qui était pourtant là. Les relais portent
+         maintenant les fiches (engine/portage.js) : tant que des parts
+         arrivent, l'échange avance. On ne bascule que sur le SILENCE. */
+      if (dernier){
+        if (Date.now() - dernier > PORTAGE_SILENCE_MS){ replier(); return; }
+        direReception();
+        return;
+      }
+      /* ET PERSONNE NE VIENT. On vient de scanner : l'autre est là, son
+         QR allumé. Si rien n'arrive — ni liaison, ni une seule part par
+         les relais —, son écran à lui a basculé sur le QR hors ligne.
+         On rouvre donc le scanner : il n'y a plus qu'à viser. */
+      const attend = stage === 'wait' || stage === 'rtcfail';
+      if (attend && Date.now() - depuis > SANS_PAIR_RECEVEUR_MS){ replier(); return; }
+      el.innerHTML = attend ? `${ic('clock', 'ic-14')} En attente de l’autre appareil…`
+        : `${ic('clock', 'ic-14')} Connexion…`;
     });
     try {
       r = await openRoom('give', code, { onJoinError: e => w.fail(e) });
@@ -190,23 +216,68 @@ export function openRecevoir(){
     room = r;
     rdvWatch = w;
     sh.body.innerHTML = `<div class="qr-prog" id="rcRdvSt">${ic('clock', 'ic-14')} Connexion…</div>`;
-    const give = r.makeAction('give');
-    let got = false;
-    give.onMessage = obj => {
-      if (got || !obj || obj.kind !== 'share' || !Array.isArray(obj.companies)) return;
+    /* LE MÊME CONTRÔLE, QUEL QUE SOIT LE TUYAU. Direct ou relais, ce qui
+       arrive est ce qu'un autre appareil a fabriqué : même borne que
+       par fichier (D4), même aperçu avant fusion. */
+    const accepter = obj => {
+      if (got || my !== gen || !obj || obj.kind !== 'share' || !Array.isArray(obj.companies)) return false;
       obj.companies = obj.companies.filter(x => x && typeof x === 'object' && x.name).slice(0, 2000);
-      if (!obj.companies.length) return;
-      /* même borne que par fichier (D4) : un envoi obèse est ignoré */
-      if (JSON.stringify(obj.companies).length > 4000000) return;
+      if (!obj.companies.length) return false;
+      if (JSON.stringify(obj.companies).length > 4000000) return false;
       got = true;
+      return true;
+    };
+    const give = r.makeAction('give');
+    give.onMessage = obj => {
+      if (!accepter(obj)) return;
       leaveRdv();
       mergePreviewInto(sh, obj, { onBack: menu });
     };
     r.onPeerJoin = () => {
       joined = true;
+      joinedAt = Date.now();
       const el = q('#rcRdvSt');
       if (el) el.innerHTML = `${ic('radio', 'ic-14')} Relié — réception…`;
     };
+    /* LE PORTAGE — la voie qui reste quand le direct ne s'ouvre pas.
+       Le direct garde sa chance (`PORTAGE_APRES_MS`) ; ensuite on
+       demande par les relais, et on redemande ce qui manque. Si le
+       portage ne s'ouvre pas (navigateur trop ancien), rien ne change :
+       le direct et le repli restent ce qu'ils étaient. */
+    let p = null;
+    let t1 = null, iv = null;
+    try {
+      p = await ouvrirPortage(code, async m => {
+        if (got || my !== gen || m.t !== 'part') return;
+        dernier = Date.now();
+        const parts = rec.ajouter(m);
+        if (!parts){ direReception(); return; }
+        let obj;
+        try { obj = await rassembler(parts); } catch (e) { return; }
+        if (!accepter(obj)) return;
+        clearTimeout(t1); clearInterval(iv);
+        /* « reçu » part AVANT de quitter, deux fois : sans lui, l'écran
+           d'en face ne saurait jamais que c'est arrivé */
+        const fini = { t: 'recu', r: demandeId };
+        await p.envoyer(fini).catch(() => {});
+        setTimeout(() => p.envoyer(fini).catch(() => {}).finally(() => p.fermer()), 1200);
+        leaveRdv({ garderPortage: true });
+        mergePreviewInto(sh, obj, { onBack: menu });
+      });
+    } catch (e) { p = null; }
+    if (my !== gen){ if (p) p.fermer(); return; }
+    if (p){
+      const demander = () => {
+        if (got || my !== gen) return;
+        if (joined && Date.now() - joinedAt < PORTAGE_APRES_MS) return;
+        p.envoyer({ t: 'demande', r: demandeId, manque: rec.manque() }).catch(() => {});
+      };
+      t1 = setTimeout(() => { demander(); iv = setInterval(demander, PORTAGE_RELANCE_MS); }, PORTAGE_APRES_MS);
+      portage = {
+        fermer: () => { clearTimeout(t1); clearInterval(iv); p.fermer(); },
+        repli: () => p.envoyer({ t: 'repli', r: demandeId }).catch(() => {})
+      };
+    }
   };
 
   /* ---- coller ---- */

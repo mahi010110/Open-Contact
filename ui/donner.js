@@ -16,8 +16,9 @@ import { openSheet, toast, btn, ic, softReorder, lockRowHTML, bindLockRow, colle
 import { sortState, sortArgs } from './sort.js';
 import { filterState, filterArgs, barreListeHTML, bindBarreListe, majTout,
          direCombien, rienTrouveHTML } from './affiner.js';
-import { openRoom, leaveRoom, watchLiaison } from './synclive.js';
-import { SANS_PAIR_DONNEUR_MS } from '../engine/transport.js';
+import { openRoom, leaveRoom, watchLiaison, ouvrirPortage } from './synclive.js';
+import { SANS_PAIR_DONNEUR_MS, PORTAGE_SILENCE_MS, PORTAGE_RELANCE_MS, PORTAGE_PAS_MS } from '../engine/transport.js';
+import { decouper } from '../engine/portage.js';
 import { makeQrSvg } from './qr.js';
 import { whoCandidates, whoLineHTML, whoInline, openWhoPicker } from './qui.js';
 
@@ -54,12 +55,14 @@ export function openDonner(){
   /* salle de rendez-vous éventuelle : fermée à chaque changement d'écran */
   let room = null;
   let rdvWatch = null;     /* honnêteté de la liaison du rendez-vous */
+  let portage = null;      /* le portage par relais du rendez-vous en cours */
   let gen = 0;
   /* les départs s'enchaînent et s'attendent — une salle qu'on quitte
      met un instant à se fermer vraiment (voir leaveRoom) */
   let leaving = Promise.resolve();
   const leaveRdv = () => {
     if (rdvWatch){ rdvWatch.stop(); rdvWatch = null; }
+    if (portage){ portage.fermer(); portage = null; }
     const old = room;
     room = null;
     leaving = leaving.then(() => leaveRoom(old));
@@ -276,6 +279,13 @@ export function openDonner(){
     const code = makeRdvCode();
     let r, svg;
     let sent = 0;
+    /* les appareils SERVIS, par leur identifiant de pair : un receveur
+       relié en direct puis par les relais ne compte qu'une fois */
+    const servis = new Set();
+    /* la dernière demande reçue PAR LES RELAIS : un receveur est là et
+       le portage avance, même si le chemin direct a échoué */
+    let demandeVue = 0;
+    let echecDepuis = 0;
     /* L'écran ne dit que ce qui est PROUVÉ, et il ne dit plus les
        pannes : elles basculent. `causeLiaison` reste indispensable
        pour autant — c'est elle qui distingue la seule panne qui ne
@@ -290,7 +300,8 @@ export function openDonner(){
          défaut le plus coûteux du rendez-vous, parce qu'il ne ressemble
          pas à une panne : l'écran a l'air occupé. Passé le délai, on
          prend la sortie qui marche toujours. */
-      if (stage === 'wait' && Date.now() - depuis > SANS_PAIR_DONNEUR_MS){
+      const portageVif = demandeVue && Date.now() - demandeVue < PORTAGE_SILENCE_MS;
+      if (stage === 'wait' && !portageVif && Date.now() - depuis > SANS_PAIR_DONNEUR_MS){
         w.stop();
         fallback(true);
         return;
@@ -306,9 +317,27 @@ export function openDonner(){
          pendant qu'un basculement enverrait scanner une suite de QR
          pour rien — la faute que §8 nomme, envoyer chercher le repli à
          qui s'est trompé d'une lettre. Là, l'écran garde sa phrase. */
-      if (stage === 'norelay' || (stage === 'rtcfail' && cause !== 'motdepasse')){
+      if (stage === 'norelay'){
         w.stop();
         fallback(true);
+        return;
+      }
+      /* L'ÉCHEC DU DIRECT NE SUFFIT PLUS À BASCULER. Il prouve que
+         l'autre appareil est LÀ — on l'a trouvé par les relais — et ces
+         mêmes relais peuvent porter les fiches (engine/portage.js). Le
+         receveur les demande dans les secondes qui suivent ; on lui
+         laisse `PORTAGE_SILENCE_MS` pour le faire. Seul un receveur
+         muet (une version d'avant le portage) fait encore basculer. */
+      if (stage === 'rtcfail' && cause !== 'motdepasse'){
+        if (!echecDepuis) echecDepuis = Date.now();
+        if (!portageVif && Date.now() - echecDepuis > PORTAGE_SILENCE_MS){
+          w.stop();
+          fallback(true);
+          return;
+        }
+      }
+      if (portageVif){
+        el.innerHTML = `${ic('radio', 'ic-14')} Relié — envoi…`;
         return;
       }
       /* TROIS ÉTATS SUFFISENT DÉSORMAIS. Décrire ici les pannes qui
@@ -318,7 +347,7 @@ export function openDonner(){
          qui reste affiché, le réseau n'est pas en cause. */
       if (stage === 'rtcfail' && cause === 'motdepasse')
         el.innerHTML = `${ic('square-alert', 'ic-14')} Ce n’est pas le même code`;
-      else if (stage === 'wait')
+      else if (stage === 'wait' || stage === 'rtcfail')
         el.innerHTML = `${ic('clock', 'ic-14')} En attente…`;
       else
         el.innerHTML = `${ic('clock', 'ic-14')} Connexion…`;
@@ -354,13 +383,61 @@ export function openDonner(){
     q('#dnOffline').addEventListener('click', () => fallback(false));
     const give = r.makeAction('give');
     const payload = sharePayload(chosen(), keepFn, moiQui());
-    r.onPeerJoin = () => {
-      give.send(payload);
-      sent++;
+    const servi = qui => {
+      if (my !== gen || servis.has(qui)) return;
+      servis.add(qui);
+      sent = servis.size;
       if (sent === 1) logJ('Donné (QR rendez-vous) : ' + n + ' piste(s)', null, ids);
       const el = q('#dnRdvSt');
       if (el) el.innerHTML = `${ic('check', 'ic-14')} Envoyé ✓ — ${sent} appareil${sent > 1 ? 's' : ''}`;
     };
+    r.onPeerJoin = peerId => {
+      give.send(payload);
+      servi(peerId || 'direct-' + servis.size);
+    };
+    /* LE PORTAGE : on ne publie qu'en RÉPONSE à une demande — un
+       événement éphémère n'atteint que qui écoute à l'instant où il
+       passe. Les parts sont préparées une fois, envoyées à la file et
+       espacées (une rafale se fait limiter), et seulement celles qui
+       MANQUENT quand le receveur le précise. */
+    let decoupe = null;
+    let file = Promise.resolve();
+    const recents = new Map();       /* demande → dernier envoi (anti-écho) */
+    const occupe = new Set();        /* une réponse en cours ne s'empile pas */
+    try {
+      const p = await ouvrirPortage(rdvNorm(code), m => {
+        if (my !== gen) return;
+        if (m.t === 'recu'){ servi(m.de); return; }
+        /* le receveur n'a rien vu venir et rouvre son scanner : on
+           bascule avec lui, sinon il viserait un QR qui ne porte rien */
+        if (m.t === 'repli'){
+          if (!sent){ w.stop(); fallback(true); }
+          return;
+        }
+        if (m.t !== 'demande' || servis.has(m.de)) return;
+        demandeVue = Date.now();
+        const cle = m.r + ':' + JSON.stringify(m.manque || null);
+        if (occupe.has(m.r) || Date.now() - (recents.get(cle) || 0) < PORTAGE_RELANCE_MS - 500) return;
+        recents.set(cle, Date.now());
+        occupe.add(m.r);
+        if (!sent){
+          const el = q('#dnRdvSt');
+          if (el) el.innerHTML = `${ic('radio', 'ic-14')} Relié — envoi…`;
+        }
+        file = file.then(async () => {
+          if (!decoupe) decoupe = decouper(payload);
+          const { x, n: total, parts } = await decoupe;
+          const quoi = Array.isArray(m.manque) && m.manque.length
+            ? m.manque.filter(i => i < total) : parts.map((_, i) => i);
+          for (const i of quoi){
+            if (my !== gen) return;
+            await p.envoyer({ t: 'part', x, i, n: total, d: parts[i] });
+            await new Promise(res => setTimeout(res, PORTAGE_PAS_MS));
+          }
+        }).catch(() => {}).finally(() => occupe.delete(m.r));
+      });
+      if (my !== gen) p.fermer(); else portage = p;
+    } catch (e) { /* sans portage : le direct et le repli restent */ }
   };
 
   /* ---- fichier .oc : case « Chiffrer », 3 sorties ---- */

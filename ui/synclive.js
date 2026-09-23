@@ -21,6 +21,7 @@ import { SYNC_KEY, RELAYS_KEY, TURN_KEY, DEVICE_KEY, DEVICES_KEY, RING_KEY,
          CAMPAIGNS_KEY, MAIL_KEY, AI_KEY, MISSIONS_KEY, ORDINATEUR_KEY, ANALYSIS_KEY,
          PROPOSALS_KEY, kvGet, kvSet, kvDel, docClear } from '../engine/storage.js';
 import { causeLiaison, relayTally, liaisonStage, RELAIS_DEFAUT, TURN_DEFAUT } from '../engine/transport.js';
+import { clePortage, sceller, ouvrir as ouvrirMessage } from '../engine/portage.js';
 import { S, bus, applySynced, saveProfile, logJ } from './state.js';
 import { ic, toast, showUndo } from './dom.js';
 
@@ -169,6 +170,51 @@ export async function openRoom(kind, phrase, callbacks){
   ecouterTot();   /* voir `ecouterTot` : un relais sain répond avant le premier sondage */
   return r;
 }
+/* LE PORTAGE PAR RELAIS (engine/portage.js) — le tuyau qui reste
+   quand aucun chemin direct ne s'ouvre. Il emprunte les relais que
+   la salle vient d'ouvrir (`relayTopic`, exposé par le bundle — voir
+   assets/vendor/VERSIONS.txt) : pas une connexion de plus, et les
+   mêmes relais que ceux qui ont trouvé l'autre appareil.
+   `surMessage` ne reçoit que des messages scellés avec le code ET
+   venus de quelqu'un d'autre. Les relais qui s'ouvrent après coup
+   sont rattrapés : on repasse toutes les secondes. */
+export async function ouvrirPortage(code, surMessage){
+  const lib = await loadLib();
+  const T = lib.relayTopic;
+  const k = await clePortage(code);
+  const moi = lib.selfId;
+  const vus = new Set();
+  const abonnes = new Map();          /* client relais → désabonnement */
+  let ferme = false;
+  const recevoir = async (t, contenu) => {
+    if (ferme || vus.has(contenu)) return;
+    if (vus.size > 400) vus.clear();  /* une mémoire courte suffit : les doublons arrivent ensemble */
+    vus.add(contenu);                 /* le même événement arrive par plusieurs relais */
+    const m = await ouvrirMessage(k, contenu);
+    if (m && m.de !== moi && !ferme) surMessage(m);
+  };
+  const rattraper = () => {
+    for (const c of T.clients()) if (!abonnes.has(c)) abonnes.set(c, T.subscribe(c, k.sujet, recevoir));
+  };
+  rattraper();
+  const iv = setInterval(rattraper, 1000);
+  return {
+    moi,
+    envoyer: async msg => {
+      if (ferme) return;
+      const txt = await sceller(k, Object.assign({ de: moi }, msg));
+      for (const c of T.clients()) T.publish(c, k.sujet, txt).catch(() => {});
+    },
+    fermer: () => {
+      if (ferme) return;
+      ferme = true;
+      clearInterval(iv);
+      for (const stop of abonnes.values()) try { stop(); } catch (e) {}
+      abonnes.clear();
+    }
+  };
+}
+
 /* Quitter une salle POUR DE BON — à utiliser partout, jamais
    `room.leave()` seul. `leave()` est ASYNCHRONE (départ annoncé aux
    relais, connexions fermées, abonnements retirés) et rend une

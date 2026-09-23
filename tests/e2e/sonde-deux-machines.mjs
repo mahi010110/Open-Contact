@@ -168,6 +168,10 @@ const SONDE_STUN = async () => {
    « En personne » (le scanner s'allume) → tape le code. On relève chaque
    écran avec son heure, et l'issue : les fiches passent en P2P, ou l'app
    bascule sur le QR hors ligne. */
+const parQuoi = async p => {
+  const n = await p.evaluate(() => window.__canauxOuverts);
+  return n === 0 ? ' — PAR LES RELAIS (aucun canal direct)' : n > 0 ? ' — en direct' : '';
+};
 async function rendezVous(p){
   const t = () => ((Date.now() - T0) / 1000).toFixed(1) + ' s';
   const ecrans = [];
@@ -201,7 +205,7 @@ async function rendezVous(p){
       await p.waitForTimeout(500);
       const st = await p.evaluate(() => document.querySelector('#dnRdvSt')?.textContent || '');
       noter(st);
-      if (/Envoyé/.test(st)){ issue = 'P2P : fiches envoyées'; break; }
+      if (/Envoyé/.test(st)){ issue = 'P2P : fiches envoyées' + await parQuoi(p); break; }
       if (await p.$('.qr-wrap[aria-label="QR à faire scanner"]')){ issue = 'BASCULE sur le QR hors ligne'; break; }
     }
     noter('issue : ' + issue);
@@ -221,7 +225,7 @@ async function rendezVous(p){
   while (Date.now() - T0 < 150000){
     await p.waitForTimeout(500);
     noter(await p.evaluate(() => document.querySelector('#rcRdvSt')?.textContent || ''));
-    if (await p.$('.rc-big')){ issue = 'P2P : fiches reçues'; break; }
+    if (await p.$('.rc-big')){ issue = 'P2P : fiches reçues' + await parQuoi(p); break; }
     if (ecrans.some(e => /Liaison impossible/.test(e)) && await p.$('#rcScan, #rcVideo, #rcCode')){ issue = 'BASCULE : scanner rouvert'; break; }
   }
   noter('issue : ' + issue);
@@ -259,6 +263,29 @@ try {
        l'interception du code ; le transport, lui, n'en dépend pas */
     ...(PARCOURS === 'rdv' ? { serviceWorkers: 'block' } : {}) });
   await ctx.addInitScript(INSTRUMENT);
+  /* OC_SANS_DIRECT=1 : le NAT d'opérateur, joué pour de vrai entre deux
+     machines — aucun candidat ICE n'entre, aucun chemin direct ne peut
+     s'ouvrir. Il ne reste que les relais publics pour porter les fiches
+     (engine/portage.js). Le témoin compte les canaux de données ouverts :
+     zéro prouve que ce qui passe est passé par les relais. */
+  if (process.env.OC_SANS_DIRECT) await ctx.addInitScript(() => {
+    RTCPeerConnection.prototype.addIceCandidate = function(){ return Promise.resolve(); };
+    const srd = RTCPeerConnection.prototype.setRemoteDescription;
+    RTCPeerConnection.prototype.setRemoteDescription = function (d, ...r){
+      if (d && d.sdp) d = { type: d.type, sdp: String(d.sdp).split('\n')
+        .filter(l => !/^a=candidate:/.test(l.trim())).join('\n') };
+      return srd.call(this, d, ...r);
+    };
+    window.__canauxOuverts = 0;
+    const compter = ch => ch && ch.addEventListener('open', () => { window.__canauxOuverts++; });
+    const cdc = RTCPeerConnection.prototype.createDataChannel;
+    RTCPeerConnection.prototype.createDataChannel = function (...a){ const ch = cdc.apply(this, a); compter(ch); return ch; };
+    const ael = RTCPeerConnection.prototype.addEventListener;
+    const Orig = window.RTCPeerConnection;
+    window.RTCPeerConnection = class extends Orig {
+      constructor(...a){ super(...a); ael.call(this, 'datachannel', e => compter(e.channel)); }
+    };
+  });
   if (PARCOURS === 'rdv'){
     if (!WEBKIT) await ctx.grantPermissions(['camera']);
     /* le seul écart avec l'app livrée : makeRdvCode rend le code convenu */

@@ -134,6 +134,31 @@ les fiches passent par la connexion — exclusivement en `sharePayload`
 ancien ignore ce préfixe sans casse ; le repli hors ligne reste
 OCQ1/OCQP et le fichier `.oc`.
 
+**Portage par relais (6.30).** Quand aucun chemin direct ne s'ouvre
+(NAT d'opérateur, pas de TURN), les fiches du rendez-vous passent par
+les relais Nostr qui ont trouvé l'autre appareil (`engine/portage.js`).
+Même contenu (`sharePayload`, jamais le privé), même aperçu avant
+fusion, autre tuyau :
+
+- **clé et sujet** : PBKDF2-SHA-256(code normalisé, sel
+  `opencontact·portage·v1`, 100 000 itérations, 48 octets) — les 16
+  premiers nomment le sujet `oc-portage-<32 hex>`, les 32 suivants
+  sont la clé AES-GCM. Le code n'est jamais publié ;
+- **message** : `<iv base64>.<chiffré base64>`, le clair étant un
+  objet JSON `{ t, de, … }` publié en événement **éphémère** (rien
+  n'est stocké par le relais). `de` = identifiant de pair de
+  l'expéditeur ;
+- `demande { r, manque }` — le receveur ; `manque` = indices absents,
+  ou `null` pour tout ;
+- `part { x, i, n, d }` — le donneur, en réponse seulement ; `d` =
+  base64 d'un morceau (≤ 9 000 octets) du `sharePayload` compressé en
+  deflate-raw ; `n` ≤ 64 ; `x` nomme l'envoi ;
+- `recu { r }` — tout est arrivé ; `repli { r }` — le receveur passe
+  au QR hors ligne, le donneur bascule avec lui.
+
+Tout message qui ne s'ouvre pas avec la clé, ou mal formé, est ignoré.
+Le rassemblage suit la même borne de décompression que OCQ1 (4 Mo).
+
 ### Phrase de liaison de MES appareils — OCL1 (QR, jamais communautaire)
 
 ```
