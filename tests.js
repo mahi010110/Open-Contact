@@ -483,6 +483,12 @@ export async function runSelfTests(){
       for (const r of ['wss://basspistol.org', 'wss://relay.libernet.app',
                        'wss://hornetstorage.net/relay', 'wss://purplerelay.com'])
         eq(RELAIS_DEFAUT.includes(r), false);
+      /* ⑤ NI CE QUI A ÉTÉ MESURÉ NUISIBLE. damus limite puis bannit le
+         trafic normal de l'app, et a refusé une RÉPONSE en pleine
+         négociation entre deux vraies machines — la liaison est tombée.
+         mostro avale sans un mot, cinq relevés sur cinq. */
+      for (const r of ['wss://relay.damus.io', 'wss://relay.mostro.network'])
+        eq(RELAIS_DEFAUT.includes(r), false);
     },
     'transport : parseTurn accepte le bon, refuse le reste': () => {
       eq(parseTurn(''), []);

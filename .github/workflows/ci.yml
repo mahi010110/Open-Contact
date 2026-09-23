@@ -25,7 +25,7 @@ jobs:
   transport:
     name: Transport public — relais joignables
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -48,6 +48,81 @@ jobs:
       # dans la même page contre les VRAIS relais, le groupe en témoin.
       - name: Sonde rendez-vous QR vs partage en groupe (vrais relais)
         run: OC_SONDE_RELAIS=1 node tests/e2e/sonde-rdv-reel.mjs
+      # La découverte ne suffit pas ENTRE DEUX RÉSEAUX : la réponse part
+      # sans adresse, ses candidats ICE suivent un par un par un seul
+      # relais. Les sondes ci-dessus font tourner les deux pairs sur la
+      # même machine, où ces candidats ne servent à rien — elles ne
+      # peuvent donc pas voir un relais qui les perd. Informative : elle
+      # relève, elle ne fait pas rougir la CI sur un seuil de débit tiers.
+      - name: Sonde des candidats ICE — arrivent-ils de l'autre côté ?
+        continue-on-error: true
+        timeout-minutes: 10
+        run: OC_SONDE_RELAIS=1 node tests/e2e/sonde-candidats-relais.mjs
+
+  # DEUX MACHINES, DEUX RÉSEAUX, LA VRAIE CHAÎNE — à la main seulement.
+  # Deux jobs = deux VM, deux adresses publiques, deux NAT : l'app telle
+  # que livrée, les vrais relais, les vrais STUN. Chacune journalise sa
+  # négociation, le bilan croise les deux et dit où la liaison s'arrête.
+  # Le monde réel ne se rejoue pas à chaque poussée : il se mesure quand
+  # on cherche une panne.
+  deux-machines:
+    name: P2P entre deux machines — paire ${{ matrix.paire }} ${{ matrix.role }}
+    if: github.event_name == 'workflow_dispatch'
+    strategy:
+      fail-fast: false
+      matrix:
+        role: [A, B]
+        paire: [vieilli-1, vieilli-2, vieilli-3, webkit-vieilli]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Playwright + Chromium (et WebKit pour la paire qui le demande)
+        run: |
+          npm i -g playwright
+          playwright install --with-deps chromium
+          case "${{ matrix.paire }}" in webkit-*) playwright install --with-deps webkit ;; esac
+          echo "OC_PLAYWRIGHT=$(npm root -g)/playwright/index.mjs" >> "$GITHUB_ENV"
+      - name: Une machine, la vraie app, les vrais relais
+        run: |
+          case "${{ matrix.paire }}" in sans-damus-*) export OC_SANS_RELAIS=relay.damus.io ;; esac
+          # B arrive une minute après A, comme un camarade qui sort son téléphone
+          case "${{ matrix.paire }}" in *attente*) [ "${{ matrix.role }}" = B ] && export OC_DELAI_MS=60000 ;; esac
+          # les DEUX réserves d'offres périmées : quel que soit l'offreur, son offre a plus de 57 s
+          case "${{ matrix.paire }}" in *vieilli*) export OC_VIEILLIR_MS=65000 ;; esac
+          # le moteur de l'iPhone côté B
+          case "${{ matrix.paire }}" in webkit-*) [ "${{ matrix.role }}" = B ] && export OC_NAVIGATEUR=webkit ;; esac
+          OC_ROLE=${{ matrix.role }} OC_SALLE=${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.paire }} node tests/e2e/sonde-deux-machines.mjs
+          mkdir -p j && mv journal-${{ matrix.role }}.json j/
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: journal-${{ matrix.paire }}-${{ matrix.role }}
+          path: j/journal-${{ matrix.role }}.json
+
+  deux-machines-bilan:
+    name: P2P entre deux machines — bilan
+    needs: deux-machines
+    if: always() && github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: journal-*
+      - name: Les deux journaux croisés, paire par paire
+        run: |
+          for p in vieilli-1 vieilli-2 vieilli-3 webkit-vieilli; do
+            echo; echo "################ PAIRE $p ################"
+            node tests/e2e/sonde-deux-machines.mjs --bilan journal-$p-A/journal-A.json journal-$p-B/journal-B.json || true
+          done
 
   pwa:
     name: PWA — auto-tests unitaires
