@@ -56,6 +56,18 @@ async function page(bundle){
     viewport: { width: 390, height: 844 }, hasTouch: true });
   if (bundle) await ctx.route('**/assets/vendor/trystero-nostr.min.js',
     r => r.fulfill({ status: 200, contentType: 'application/javascript', body: bundle }));
+  /* le témoin : un canal de données qui s'ouvre = le DIRECT a relié */
+  await ctx.addInitScript(() => {
+    window.__canauxOuverts = 0;
+    const compter = ch => ch && ch.addEventListener('open', () => { window.__canauxOuverts++; });
+    const PC = window.RTCPeerConnection;
+    const cdc = PC.prototype.createDataChannel;
+    PC.prototype.createDataChannel = function (...a){ const ch = cdc.apply(this, a); compter(ch); return ch; };
+    const ael = PC.prototype.addEventListener;
+    window.RTCPeerConnection = class extends PC {
+      constructor(...a){ super(...a); ael.call(this, 'datachannel', e => compter(e.channel)); }
+    };
+  });
   const p = await ctx.newPage();
   await p.goto(base, { waitUntil: 'load' });
   await p.waitForSelector('#view-aujourdhui:not([hidden])');
@@ -80,8 +92,14 @@ async function groupe(p, mdp){
   await p.click('.modal-f .btn-primary');
   await p.waitForSelector('#prStatus');
 }
+/* ON MESURE LE DIRECT, PAS L'ÉCRAN. Depuis la 6.30, « 1 camarade dans
+   le groupe » s'affiche aussi pour un camarade qu'on n'entend que par
+   les relais (engine/portage.js) : l'écran ne distingue plus une
+   liaison directe d'un portage, et le défaut d'origine remis en place
+   passait au vert sur la foi de l'écran. Or c'est le DIRECT que ce
+   défaut cassait — le témoin est donc un canal de données ouvert. */
 const relies = ps => Promise.all(ps.map(p => attendre(p,
-  () => /camarade/.test(document.querySelector('#prStatus')?.textContent || ''),
+  () => window.__canauxOuverts > 0,
   { timeout: ATTENTE_MS, pas: 500 }).then(() => true, () => false)));
 
 try {
