@@ -178,10 +178,10 @@ export async function openRoom(kind, phrase, callbacks){
    `surMessage` ne reçoit que des messages scellés avec le code ET
    venus de quelqu'un d'autre. Les relais qui s'ouvrent après coup
    sont rattrapés : on repasse toutes les secondes. */
-export async function ouvrirPortage(code, surMessage){
+export async function ouvrirPortage(code, surMessage, espace = 'rdv'){
   const lib = await loadLib();
   const T = lib.relayTopic;
-  const k = await clePortage(code);
+  const k = await clePortage(code, espace);
   const moi = lib.selfId;
   const vus = new Set();
   const abonnes = new Map();          /* client relais → désabonnement */

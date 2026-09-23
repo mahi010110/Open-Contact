@@ -156,6 +156,16 @@ fusion, autre tuyau :
 - `recu { r }` — tout est arrivé ; `repli { r }` — le receveur passe
   au QR hors ligne, le donneur bascule avec lui.
 
+**Dans un partage en groupe**, même mécanique avec le mot de passe du
+groupe et le sel `opencontact·portage·groupe·v1` (un code et un mot de
+passe égaux ne tombent jamais sur le même sujet). Chacun publie
+`present {}` toutes les 5 s : un camarade entendu sans liaison directe
+compte dans le groupe. Les parts partent à l'envoi, à tous ceux qui
+écoutent ; `demande { r, x, manque }` redemande ce qui manque de
+l'envoi `x`. « Mes appareils » n'emprunte pas ce chemin : ses données
+sont privées, et la phrase de liaison seule ne suffit pas à les
+protéger sur un relais.
+
 Tout message qui ne s'ouvre pas avec la clé, ou mal formé, est ignoré.
 Le rassemblage suit la même borne de décompression que OCQ1 (4 Mo).
 

@@ -538,6 +538,26 @@ export async function runSelfTests(){
         { t: 'recu', de: '', r: 'r' }
       ]) eq(await ouvrirPortageMsg(k, await scellerPortage(k, m)), null);
     },
+    'portage : un groupe et un rendez-vous ne partagent jamais un sujet': async () => {
+      const rdv = await clePortage('abcde23456');
+      const grp = await clePortage('abcde23456', 'groupe');
+      ok(rdv.sujet !== grp.sujet);
+      const txt = await scellerPortage(grp, { t: 'present', de: 'C' });
+      eq(await ouvrirPortageMsg(rdv, txt), null);
+      eq((await ouvrirPortageMsg(grp, txt)).t, 'present');
+    },
+    'portage : la récolte d’un groupe suit plusieurs envois et les oublie': async () => {
+      const rec = recolte();
+      const m = (x, i, n) => ({ t: 'part', de: 'A', x, i, n, d: 'QQ==' });
+      eq(rec.ajouter(m('x1', 0, 2)), null);
+      eq(rec.ajouter(m('x2', 1, 3)), null);
+      eq(rec.manque('x1'), [1]);
+      eq(rec.manque('x2'), [0, 2]);
+      ok(rec.ajouter(m('x1', 1, 2)));
+      rec.oublier('x1');
+      eq(rec.manque('x1'), null);
+      eq(rec.enCours(), ['x2']);
+    },
     'portage : un envoi trop gros refuse de se découper': async () => {
       const u = new Uint8Array(PORTAGE_PART * (PORTAGE_PARTS_MAX + 16));
       for (let i = 0; i < u.length; i += 65536) crypto.getRandomValues(u.subarray(i, i + 65536));

@@ -129,6 +129,45 @@ try {
   else console.log('300 pistes : ' + grosses + ' publications de parts, dont une perdue puis redemandée : l’aperçu compte les 300, '
     + 'l’écran a dit « ' + progres[progres.length - 1] + ' », le donneur « ' + stG + ' » ✓');
 
+  await G.context().close(); await P.context().close();
+
+  /* ③ LE GROUPE, SANS CHEMIN DIRECT. Deux camarades entrent dans le
+     même groupe ; aucun canal ne peut s'ouvrir entre eux. Ils doivent
+     quand même se COMPTER (« 1 camarade dans le groupe ») — sinon le
+     bouton d'envoi reste éteint et l'écran dit « En attente de ton
+     groupe » pendant que le groupe est là — et l'envoi doit arriver. */
+  {
+    const C = await page(40), D = await page(0);
+    const entrer = async p => {
+      await p.click('.bottomnav a[data-r="echanger"]');
+      await p.waitForSelector('#ecPromo'); await p.click('#ecPromo');
+      await p.waitForSelector('#prPass'); await p.fill('#prPass', 'groupe-sans-direct');
+      await p.click('.modal-f .btn-primary');
+      await p.waitForSelector('#prStatus');
+    };
+    await entrer(C); await entrer(D);
+    const compte = await Promise.all([C, D].map(p => attendre(p,
+      () => /1<\/b> camarade|1 camarade/.test(document.querySelector('#prStatus')?.innerHTML || ''),
+      { timeout: 30000, pas: 500 }).then(() => true, () => false)));
+    const stC = ((await C.textContent('#prStatus').catch(() => '')) || '').trim();
+    if (!compte.every(Boolean))
+      fail('GROUPE SANS DIRECT : les deux camarades ne se comptent pas — « ' + stC + ' ». C’est la '
+        + 'capture de la 5G : « En attente de ton groupe » pendant que le groupe est là');
+    else {
+      await C.waitForSelector('.modal-f .btn-primary:not([disabled])', { timeout: 10000 });
+      await C.click('.modal-f .btn-primary');
+      const recu = await D.waitForSelector('.rc-big', { timeout: 30000 }).then(() => true).catch(() => false);
+      const recap = recu ? (await D.textContent('.rc-big')).trim() : '';
+      const canauxG = [await C.evaluate(() => window.__canauxOuverts), await D.evaluate(() => window.__canauxOuverts)];
+      if (canauxG.some(Boolean)) fail('groupe : un canal direct s’est ouvert — le scénario ne coupe plus rien');
+      else if (!recu) fail('GROUPE SANS DIRECT : l’envoi n’arrive pas par les relais');
+      else if (!/40 pistes/.test(recap)) fail('groupe : l’aperçu ne compte pas les 40 pistes — « ' + recap + ' »');
+      else console.log('groupe sans chemin direct : les deux camarades se comptent (« ' + stC
+        + ' »), et les 40 pistes arrivent par les relais ✓');
+    }
+    await C.context().close(); await D.context().close();
+  }
+
   /* ② le relais n'a vu que du chiffré */
   const clair = vus.filter(c => /Piste|Roubaix|companies|share/.test(c) || c.includes(code.replace('-', '')));
   if (!vus.length) fail('aucun événement de portage relevé — le contrôle de lecture ne mesure rien');

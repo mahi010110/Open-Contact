@@ -14,14 +14,15 @@ import { STATUSES } from '../engine/model.js';
 import { fnv } from '../engine/crypto.js';
 import { sharePayload, linkWrap, linkParse } from '../engine/exchange.js';
 import { PROMO_KEY, RELAYS_KEY, TURN_KEY, kvGet, kvSet } from '../engine/storage.js';
-import { parseTurn, turnText } from '../engine/transport.js';
+import { parseTurn, turnText, PORTAGE_APRES_MS, PORTAGE_RELANCE_MS, PORTAGE_PAS_MS } from '../engine/transport.js';
+import { decouper, recolte, rassembler } from '../engine/portage.js';
 import { S, bus, isClosed, logJ } from './state.js';
 import { openSheet, confirmSheet, toast, btn, ic, softReorder, collerEnHaut } from './dom.js';
 import { mergePreviewInto } from './recevoir.js';
 import { makeQrSvg, startScan } from './qr.js';
 import { getSync, startSync, breakLink, keepMyProfile, makePhrase, openRoom, leaveRoom,
          watchLiaison, deviceSelf, loadDevices, removeDevice, DEVICES_MAX,
-         getRing, amMain, ringDo, ringMakeMain } from './synclive.js';
+         getRing, amMain, ringDo, ringMakeMain, ouvrirPortage } from './synclive.js';
 import { deviceIn } from '../engine/ring.js';
 import { requireCode } from './verrou.js';
 import { loadOrdinateur, openAddOrdinateur, openOrdinateurSheet, openOrdinateurPhoneSheet, ordinateurPresence } from './ordinateur.js';
@@ -508,10 +509,18 @@ export function openAppareils(){
 }
 
 /* ============ Partage en groupe : communautaire, en direct ============ */
+/* « je suis là », par les relais : assez souvent pour qu'un camarade
+   arrivé se compte vite, assez rarement pour ne pas se faire limiter —
+   le même rythme que les annonces de la bibliothèque (5,3 s). Une
+   présence qui se tait trois fois de suite est partie. */
+const PRESENCE_MS = 5000;
+const PRESENCE_OUBLI_MS = 16000;
 export function openPromo(){
   let room = null;
   let peers = 0;
   let watch = null;         /* honnêteté de la liaison (relais / pair / WebRTC) */
+  let portage = null;       /* les relais qui portent quand le direct manque */
+  let minuteries = [];
   const queue = [];         /* payloads reçus, présentés un par un */
   const seen = new Set();   /* le même envoi ne se représente pas */
   let showing = false;
@@ -521,6 +530,9 @@ export function openPromo(){
   let leaving = Promise.resolve();
   const leave = () => {
     if (watch){ watch.stop(); watch = null; }
+    if (portage){ portage.fermer(); portage = null; }
+    minuteries.forEach(t => { clearInterval(t); clearTimeout(t); });
+    minuteries = [];
     const old = room;
     room = null;
     peers = 0;
@@ -583,8 +595,24 @@ export function openPromo(){
        gestes opposés : retaper le code, poser un TURN, ou renoncer au
        direct. Les dire pareil, c'était envoyer chercher le QR quelqu'un
        qui s'est juste trompé d'une lettre. */
+    /* LES CAMARADES QU'AUCUNE LIAISON DIRECTE N'ATTEINT. Un téléphone
+       en données mobiles trouve son groupe par les relais, puis le NAT
+       de l'opérateur ferme le chemin direct : l'écran restait sur « En
+       attente de ton groupe » pendant que le groupe était là. Chacun
+       dit donc « je suis là » par les relais (engine/portage.js), et
+       celui qu'on entend sans lui être relié compte quand même — les
+       fiches lui partent par ces mêmes relais. Le direct garde sa
+       chance d'abord (`PORTAGE_APRES_MS`), comme au rendez-vous. */
+    const directs = new Set();
+    const vus = new Map();       /* id → { premier, dernier } : présences entendues par les relais */
+    const horsDirect = () => {
+      const t = Date.now();
+      return [...vus].filter(([id, v]) => !directs.has(id)
+        && t - v.premier > PORTAGE_APRES_MS && t - v.dernier < PRESENCE_OUBLI_MS).map(([id]) => id);
+    };
+    const presents = () => peers + horsDirect().length;
     const stageStatus = (stage, cause) => {
-      if (peers) return;   /* refreshStatus a la main dès qu'on est en face */
+      if (presents()) return;   /* refreshStatus a la main dès qu'on est en face */
       if (stage === 'norelay')
         setStatus(`${ic('square-alert', 'ic-14')} Pas de connexion — le QR et le fichier .oc marchent toujours.`);
       else if (stage === 'rtcfail' && cause === 'motdepasse')
@@ -600,7 +628,7 @@ export function openPromo(){
       else
         setStatus(`${ic('clock', 'ic-14')} Connexion…`);
     };
-    watch = watchLiaison(() => peers, stageStatus);
+    watch = watchLiaison(() => presents(), stageStatus);
     try {
       room = await openRoom('promo', pass,
         { onJoinError: e => watch && watch.fail(e) });   /* préfixe historique — compat */
@@ -635,12 +663,24 @@ export function openPromo(){
        principale se tape en bas. Il rejoint « Quitter le groupe », en
        action remplie contre une action fantôme : rempli > contourné >
        discret (Material 3), une seule remplie par écran. */
-    const bSend = btn('Envoyer', 'btn-primary', () => {
+    const bSend = btn('Envoyer', 'btn-primary', async () => {
       const list = chosen();
       if (!list.length) return;
-      share.send(sharePayload(list, keepFn, String((S.profile && S.profile.name) || '').trim().split(/\s+/)[0] || ''));
+      const payload = sharePayload(list, keepFn, String((S.profile && S.profile.name) || '').trim().split(/\s+/)[0] || '');
+      const n = presents();
+      if (peers) share.send(payload);
+      /* ceux qu'on n'atteint pas en direct : par les relais, en parts —
+         ils écoutent déjà, et redemandent ce qui leur manque */
+      if (portage && horsDirect().length){
+        try {
+          const d = await decouper(payload);
+          envois.set(d.x, d);
+          if (envois.size > 5) envois.delete(envois.keys().next().value);
+          publier(d, d.parts.map((_, i) => i));
+        } catch (e) { /* trop gros pour les relais : le direct et le fichier restent */ }
+      }
       logJ('Donné (partage en groupe) : ' + list.length + ' piste(s)', null, list.map(c => c.id));
-      toast('Parti vers ' + peers + ' camarade' + (peers > 1 ? 's' : '') + ' ✓');
+      toast('Parti vers ' + n + ' camarade' + (n > 1 ? 's' : '') + ' ✓');
     }, 'share');
     /* le compte se dit une fois, dans le bouton — et l'action se coupe
        quand elle est impossible plutôt que de gronder au tap */
@@ -649,19 +689,19 @@ export function openPromo(){
     sh.setFoot([bQuit, bSend]);
     const majEnvoi = () => {
       const n2 = chosen().length;
-      bSend.disabled = !n2 || !peers;
+      bSend.disabled = !n2 || !presents();
       bSend.innerHTML = ic('share', 'ic-14') + ' Envoyer' +
         (n2 ? ' ' + n2 + ' piste' + (n2 > 1 ? 's' : '') : '');
       const z = q('#prZone');
       if (z) majTout(z, { tout: !unsel.size, n: n2, total: mine().length });
     };
     const refreshStatus = () => {
-      const n = chosen().length;
-      if (peers) setStatus(`${ic('radio', 'ic-14')} <b>${peers}</b> camarade${peers > 1 ? 's' : ''} dans le groupe`);
+      const n = presents();
+      if (n) setStatus(`${ic('radio', 'ic-14')} <b>${n}</b> camarade${n > 1 ? 's' : ''} dans le groupe`);
       else if (watch) watch.tick();   /* l'étape honnête reprend la main */
       const zone = q('#prZone');
       if (!zone) return;
-      if (!peers){ zone.innerHTML = ''; majEnvoi(); return; }
+      if (!n){ zone.innerHTML = ''; majEnvoi(); return; }
       /* connecté mais rien de partageable : le DIRE, ne pas laisser un
          vide muet (les pistes d'exemple et closes ne partent pas) */
       if (!mine().length){
@@ -760,7 +800,10 @@ export function openPromo(){
       } });
       mergePreviewInto(psh, obj, { from, onDone: () => { fusionne = true; } });
     };
-    share.onMessage = (obj, meta) => {
+    /* DIRECT OU PAR LES RELAIS, UN ENVOI SE REÇOIT PAREIL : mêmes
+       bornes, même empreinte (le même envoi arrivé par les deux
+       chemins ne s'ouvre qu'une fois), même aperçu avant fusion. */
+    const recevoirPartage = (obj, peerId) => {
       if (!obj || obj.kind !== 'share' || !Array.isArray(obj.companies)) return;
       obj.companies = obj.companies.filter(x => x && typeof x === 'object' && x.name).slice(0, 2000);
       if (!obj.companies.length) return;
@@ -774,12 +817,79 @@ export function openPromo(){
       if (seen.has(key)) return;
       seen.add(key);
       if (seen.size > 30) seen.delete(seen.values().next().value);
-      queue.push({ obj, key, from: 'camarade ' + String((meta && meta.peerId) || '').slice(0, 4) });
+      queue.push({ obj, key, from: 'camarade ' + String(peerId || '').slice(0, 4) });
       showNext();
     };
-    room.onPeerJoin = () => { peers++; refreshStatus(); };
-    room.onPeerLeave = () => { peers = Math.max(0, peers - 1); refreshStatus(); };
+    share.onMessage = (obj, meta) => recevoirPartage(obj, meta && meta.peerId);
+    room.onPeerJoin = id => { directs.add(id); peers = directs.size; refreshStatus(); };
+    room.onPeerLeave = id => { directs.delete(id); peers = directs.size; refreshStatus(); };
     refreshStatus();
+
+    /* ---- le portage du groupe ---- */
+    const salle = room;
+    const rec = recolte();
+    const envois = new Map();        /* x → { x, n, parts } : ce que j'ai envoyé, pour qui le redemande */
+    const relances = new Map();      /* x → redemande en cours */
+    const occupe = new Set();
+    let file = Promise.resolve();
+    const publier = ({ x, n, parts }, quoi) => (file = file.then(async () => {
+      for (const i of quoi){
+        if (!portage) return;
+        await portage.envoyer({ t: 'part', x, i, n, d: parts[i] });
+        await new Promise(r => setTimeout(r, PORTAGE_PAS_MS));
+      }
+    }).catch(() => {}));
+    const recevoirPart = async m => {
+      const parts = rec.ajouter(m);
+      if (!parts){
+        if (!relances.has(m.x)){
+          let tours = 0;
+          const t = setInterval(() => {
+            const manque = rec.manque(m.x);
+            if (!portage || !manque || !manque.length || ++tours > 10){ clearInterval(t); relances.delete(m.x); return; }
+            portage.envoyer({ t: 'demande', r: portage.moi, x: m.x, manque }).catch(() => {});
+          }, PORTAGE_RELANCE_MS);
+          relances.set(m.x, t);
+          minuteries.push(t);
+        }
+        return;
+      }
+      rec.oublier(m.x);
+      clearInterval(relances.get(m.x));
+      relances.delete(m.x);
+      let obj;
+      try { obj = await rassembler(parts); } catch (e) { return; }
+      recevoirPartage(obj, m.de);
+    };
+    let p = null;
+    try {
+      p = await ouvrirPortage(pass, m => {
+        if (m.t === 'present'){
+          const v = vus.get(m.de), t = Date.now();
+          vus.set(m.de, { premier: v && t - v.dernier < PRESENCE_OUBLI_MS ? v.premier : t, dernier: t });
+          return;
+        }
+        if (m.t === 'demande' && m.x && envois.has(m.x)){
+          const cle = m.r + ':' + m.x;
+          if (occupe.has(cle)) return;
+          occupe.add(cle);
+          const d = envois.get(m.x);
+          const quoi = Array.isArray(m.manque) && m.manque.length ? m.manque.filter(i => i < d.n) : d.parts.map((_, i) => i);
+          publier(d, quoi).finally(() => occupe.delete(cle));
+          return;
+        }
+        if (m.t === 'part') recevoirPart(m);
+      }, 'groupe');
+    } catch (e) { p = null; }
+    if (!p) return;
+    if (room !== salle){ p.fermer(); return; }
+    portage = p;
+    const direPresent = () => { if (portage) portage.envoyer({ t: 'present' }).catch(() => {}); };
+    direPresent();
+    minuteries.push(setInterval(direPresent, PRESENCE_MS));
+    /* le compte suit les présences qui arrivent et celles qui s'éteignent */
+    let compte = presents();
+    minuteries.push(setInterval(() => { const n = presents(); if (n !== compte){ compte = n; refreshStatus(); } }, 1000));
   }
   ask();
 }

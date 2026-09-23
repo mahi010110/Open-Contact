@@ -29,7 +29,11 @@
      donneur puisse dire « Envoyé ✓ » ;
    · repli   — le receveur : « rien n'arrive, je passe au QR hors
      ligne » — les deux écrans basculent ENSEMBLE (§8), le donneur ne
-     reste pas seul sur un rendez-vous que plus personne n'habite.
+     reste pas seul sur un rendez-vous que plus personne n'habite ;
+   · present — dans un GROUPE seulement : « je suis là », répété. C'est
+     ce qui compte les camarades qu'aucune liaison directe n'atteint.
+     Dans un groupe, les parts partent à l'envoi (tous écoutent déjà) ;
+     la demande y porte `x`, l'envoi dont il manque des parts.
    Un événement éphémère n'atteint que qui écoute AU MOMENT où il
    passe : c'est pour ça que le donneur n'envoie qu'en RÉPONSE à une
    demande, et que le receveur redemande tant qu'il lui manque quelque
@@ -50,18 +54,20 @@ import { gonflerBorne } from './exchange.js';
 export const PORTAGE_PART = 9000;       /* octets compressés par part */
 export const PORTAGE_PARTS_MAX = 64;    /* au-delà : fichier ou QR hors ligne */
 export const PORTAGE_ITER = 100000;     /* PBKDF2 : le sujet ne se devine pas depuis le code */
-const SEL = 'opencontact·portage·v1';
-const TYPES = ['demande', 'part', 'recu', 'repli'];
+const TYPES = ['demande', 'part', 'recu', 'repli', 'present'];
 
 /* code canonique → { sujet, cle }. Un seul PBKDF2 donne les deux :
    16 octets pour nommer le sujet, 32 pour la clé. Le sujet est ce que
-   voit un relais ; sans le code, il ne mène à rien. */
-export async function clePortage(code){
+   voit un relais ; sans le code, il ne mène à rien.
+   `espace` sépare les usages : le code d'un rendez-vous et le mot de
+   passe d'un groupe ne tombent jamais sur le même sujet, même égaux. */
+const selDe = espace => espace === 'rdv' ? 'opencontact·portage·v1' : 'opencontact·portage·' + espace + '·v1';
+export async function clePortage(code, espace = 'rdv'){
   if (!(crypto && crypto.subtle)) throw new Error('nocrypto');
   const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(String(code)),
     'PBKDF2', false, ['deriveBits']);
   const bits = new Uint8Array(await crypto.subtle.deriveBits(
-    { name: 'PBKDF2', salt: new TextEncoder().encode(SEL), iterations: PORTAGE_ITER, hash: 'SHA-256' },
+    { name: 'PBKDF2', salt: new TextEncoder().encode(selDe(espace)), iterations: PORTAGE_ITER, hash: 'SHA-256' },
     base, 48 * 8));
   const sujet = 'oc-portage-' + Array.from(bits.subarray(0, 16)).map(b => b.toString(16).padStart(2, '0')).join('');
   const cle = await crypto.subtle.importKey('raw', bits.subarray(16, 48), { name: 'AES-GCM' }, false,
@@ -95,8 +101,9 @@ const idOk = x => typeof x === 'string' && x.length > 0 && x.length <= 64;
 const entier = (x, max) => Number.isInteger(x) && x >= 0 && x < max;
 export function messageValide(m){
   if (!m || typeof m !== 'object' || !TYPES.includes(m.t) || !idOk(m.de)) return false;
+  if (m.t === 'present') return true;
   if (m.t === 'demande')
-    return idOk(m.r) && (m.manque == null
+    return idOk(m.r) && (m.x == null || idOk(m.x)) && (m.manque == null
       || (Array.isArray(m.manque) && m.manque.length <= PORTAGE_PARTS_MAX
           && m.manque.every(i => entier(i, PORTAGE_PARTS_MAX))));
   if (m.t === 'recu' || m.t === 'repli') return idOk(m.r);
@@ -153,13 +160,22 @@ export function recolte(){
       if (!courant || reste(e) < reste(courant)) courant = e;
       return reste(e) === 0 ? e.parts.slice() : null;
     },
-    /* null : rien reçu encore (on demande tout) ; sinon les indices absents */
-    manque(){
-      if (!courant) return null;
+    /* null : rien reçu encore (on demande tout) ; sinon les indices
+       absents — de l'envoi le plus avancé, ou de l'envoi `x` */
+    manque(x){
+      const e = x == null ? courant : envois.get(x);
+      if (!e) return null;
       const out = [];
-      courant.parts.forEach((p, i) => { if (!p) out.push(i); });
+      e.parts.forEach((p, i) => { if (!p) out.push(i); });
       return out;
     },
+    /* un envoi rassemblé libère sa place (un groupe en reçoit plusieurs) */
+    oublier(x){
+      const e = envois.get(x);
+      envois.delete(x);
+      if (e && e === courant) courant = null;
+    },
+    enCours: () => [...envois.keys()],
     /* combien de parts sur combien — pour dire que ça avance */
     avance(){ return courant ? { recues: courant.n - reste(courant), n: courant.n } : null; }
   };
