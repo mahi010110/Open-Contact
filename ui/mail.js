@@ -8,7 +8,7 @@
    propose la suite — la boucle qui entretient « Aujourd'hui ».
    ============================================================ */
 import { esc, todayISO } from '../engine/utils.js';
-import { fillTpl, pushHist } from '../engine/model.js';
+import { fillTpl, pushHist, modeleConseille } from '../engine/model.js';
 import { sendMail } from '../engine/mailer.js';
 import { bytesToB64 } from '../engine/crypto.js';
 import { docGet } from '../engine/storage.js';
@@ -70,6 +70,8 @@ export function openMail(c, opts){
   const acct = ENVOI_DIRECT ? mailAccount() : null;
   /* la personne choisie arrive pré-sélectionnée (#14) — jamais devinée */
   const initIdx = Math.max(0, cts.findIndex(t => t.id === opts.ctId));
+  /* le modèle aussi arrive pré-choisi, d'après le statut de la piste */
+  const tplInit = modeleConseille(tpls, c);
   sh.body.innerHTML =
     `${/* LE PRÉAMBULE EST LE CONTENU VARIABLE, PAS LE MESSAGE.
           À qui, quel modèle, l'objet, ce qu'on sait d'elle : selon la
@@ -94,7 +96,7 @@ export function openMail(c, opts){
               ? esc(cts[0].name || cts[0].email) + (cts[0].role ? ' — ' + esc(cts[0].role) : '')
               : 'Aucun email sur cette piste'}</p>`}</div>
        <div class="field"><label for="mTpl">Modèle</label>
-         <select id="mTpl">${tpls.map((t, i) => `<option value="${i}">${esc(t.name)}</option>`).join('')}</select></div>
+         <select id="mTpl">${tpls.map((t, i) => `<option value="${i}"${i === tplInit ? ' selected' : ''}>${esc(t.name)}</option>`).join('')}</select></div>
      </div>
      ${/* L'OBJET S'AFFICHE EN ENTIER.
           Une ligne de 350 px montre ~41 caractères. Le gabarit de
@@ -270,9 +272,16 @@ export function openMail(c, opts){
        de haut. L'exemption WCAG pour un lien « en ligne » ne le couvre
        pas — il n'est pas DANS une phrase, il est collé derrière une
        adresse e-mail, et il ouvre une feuille entière. La ligne grandit
-       donc de 27 px, et seulement dans cet état-là : elle disparaît au
-       premier nom saisi. */
-    if (!S.profile.name){
+       donc de 27 px, et seulement dans cet état-là : elle disparaît dès
+       que le nom, la formation et la recherche sont là. */
+    /* Et pas seulement sans nom. Sans formation, la présentation du modèle
+       se lit « Je suis en et je cherche… » ; sans recherche choisie, elle
+       dit « un stage » à qui cherche une alternance. Les deux se voient
+       dans le message juste en dessous, mais pas ce qui les répare — le
+       lien le dit, ICI, au moment où ça compte (aide au moment du geste,
+       NN/g). L'école et le téléphone n'y sont pas : leur absence retire
+       une ligne, elle ne rend rien faux. */
+    if (!S.profile.name || !String(S.profile.formation || '').trim() || !S.profile.recherche){
       const b = el(`<button class="linklike" id="mProfil">Compléter mon profil</button>`);
       b.addEventListener('click', () => openProfil(() => { if (sh.body.isConnected) fill(); }));
       q('#mHint').classList.add('hint-act');

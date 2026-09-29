@@ -127,14 +127,13 @@ export async function attendreCanal({ timeout = 30000, pas = 400, journal = null
                      : '\n  (le binaire n’a rien écrit — stdout/stderr vides ou non capturés)'));
 }
 
-/* Depuis « Moi » : atteint les lignes de Réglages — porte à ouvrir sur
-   mobile (#20), colonne déjà dépliée sur desktop. */
+/* Depuis « Moi » : atteint les lignes « Mes appareils », « Protection »…
+   Elles vivaient derrière une porte « Réglages » au pouce (#20) ; depuis
+   le 29 septembre 2026 elles sont sur « Moi » même, dans les deux
+   ergonomies. Le nom reste : une vingtaine de scénarios l'appellent, et
+   il dit toujours ce qu'on vient chercher. */
 export async function ouvrirReglages(page){
-  await page.waitForSelector('#moiReglages, #moiVerrou');
-  if (!(await page.$('#moiVerrou'))){
-    await page.click('#moiReglages');
-    await page.waitForSelector('#moiVerrou');
-  }
+  await page.waitForSelector('#moiVerrou');
 }
 
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css',

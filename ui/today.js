@@ -6,7 +6,7 @@
    jamais culpabilisant. Jamais 40 lignes d'un coup.
    ============================================================ */
 import { esc, todayISO } from '../engine/utils.js';
-import { DOMAINS, STATUSES, VECU } from '../engine/model.js';
+import { DOMAINS, STATUSES, VECU, prendCeQueJeCherche, PREND_MOT } from '../engine/model.js';
 import { scoreOf } from '../engine/score.js';
 import { dueFollowups, silentPistes } from '../engine/assist.js';
 import { S, bus, isClosed, markDone, hasDemo, addDemo, removeDemo } from './state.js';
@@ -118,9 +118,17 @@ const joignable = c => (c.contacts || []).some(t => t.email);
    ligne n'approche. Le prénom suffit : c'est lui qui rend la chose
    jouable (« quelqu'un y a fait son stage » ne se joue pas). */
 const porteePar = c => (c.vecu && c.vecuQui) ? c.vecuQui : null;
+/* Le deuxième critère : la piste PREND-ELLE ce que tu cherches ? Un
+   alternant à qui l'on propose d'abord trois entreprises qui ne prennent
+   que des stagiaires perd trois candidatures avant la première utile.
+   Trois rangs, pas deux : « oui », puis « on ne sait pas » (une piste
+   muette n'a rien refusé), puis « non ». Sans recherche choisie dans le
+   profil, le critère ne départage rien — l'ordre d'avant est intact. */
+const rangPrend = c => { const v = prendCeQueJeCherche(c, S.profile.recherche); return v === true ? 2 : v === null ? 1 : 0; };
 function parOuCommencer(sansAction){
   return sansAction.slice().sort((a, b) =>
     (!!porteePar(b) - !!porteePar(a)) ||
+    (rangPrend(b) - rangPrend(a)) ||
     (joignable(b) - joignable(a)) ||
     (scoreOf(b) - scoreOf(a)) ||
     a.name.localeCompare(b.name, 'fr')).slice(0, DEBUT);
@@ -143,8 +151,12 @@ function startRowHTML(c){
      Pas de `mark-*` — ce n'est pas une urgence, c'est un atout ; même
      traitement que le bandeau de la fiche, l'accent et rien d'autre. */
   const porte = porteePar(c);
+  /* Une raison, la plus forte : quelqu'un du groupe d'abord (40 contre 3),
+     sinon « prend des alternants » — le critère qui l'a fait monter. */
+  const prend = !porte && prendCeQueJeCherche(c, S.profile.recherche) === true;
   const pourquoi = porte
-    ? `<span class="act-vecu">${esc(porte + ' ' + VECU[c.vecu].court)}</span>` : '';
+    ? `<span class="act-vecu">${esc(porte + ' ' + VECU[c.vecu].court)}</span>`
+    : prend ? `<span class="act-vecu">${esc(PREND_MOT[S.profile.recherche])}</span>` : '';
   return (
     `<div class="act-row act-start" data-id="${c.id}">
        <div class="act-in">

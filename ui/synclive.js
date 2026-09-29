@@ -18,9 +18,7 @@ import { edAvailable, makeDeviceKeys, recoveryKeys, ringInit, ringAddDevice,
          ringCommand, ringTransfer, ringRecover, ringRekey, mergeRing, actionsFor, deviceIn,
          edSign, edVerify } from '../engine/ring.js';
 import { SYNC_KEY, RELAYS_KEY, TURN_KEY, DEVICE_KEY, DEVICES_KEY, RING_KEY,
-         DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, GROUP_KEY, PROMO_KEY, VAULT_KEY,
-         CAMPAIGNS_KEY, MAIL_KEY, AI_KEY, MISSIONS_KEY, ORDINATEUR_KEY, ANALYSIS_KEY,
-         PROPOSALS_KEY, kvGet, kvSet, kvDel, docClear } from '../engine/storage.js';
+         CAMPAIGNS_KEY, MISSIONS_KEY, kvGet, kvSet, effacerCetAppareil } from '../engine/storage.js';
 import { causeLiaison, relayTally, liaisonStage, RELAIS_DEFAUT, TURN_DEFAUT,
          PORTAGE_APRES_MS, PORTAGE_RELANCE_MS, PORTAGE_PAS_MS } from '../engine/transport.js';
 import { clePortage, sceller, ouvrir as ouvrirMessage, recolte, makeCleEchange, cleEntre,
@@ -432,11 +430,7 @@ async function onRingMsg(incoming){
       /* TOUT ce qui est à l'utilisateur part : données, suivi,
          campagnes, jetons de messagerie, clés d'IA, missions,
          identité d'appareil, documents (CV, lettre) */
-      for (const k of [DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, GROUP_KEY,
-                       SYNC_KEY, RELAYS_KEY, TURN_KEY, PROMO_KEY, DEVICE_KEY, DEVICES_KEY, RING_KEY, VAULT_KEY,
-                       CAMPAIGNS_KEY, MAIL_KEY, AI_KEY, MISSIONS_KEY, ORDINATEUR_KEY, ANALYSIS_KEY,
-                       PROPOSALS_KEY]) await kvDel(k);
-      await docClear().catch(() => {});   /* toutes les variantes CV & lettres */
+      await effacerCetAppareil();   /* la même liste que « Effacer cet appareil » */
       location.replace(location.pathname);
       return;
     }

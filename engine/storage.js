@@ -254,6 +254,24 @@ export const docGet = k => idbReq('readonly', s => s.get(k));
 export const docPut = (k, v) => idbReq('readwrite', s => s.put(v, k));
 export const docDel = k => idbReq('readwrite', s => s.delete(k));
 export const docClear = () => idbReq('readwrite', s => s.clear());
+
+/* ---------- tout effacer sur CET appareil ----------
+   UNE liste, pour les deux chemins : l'effacement commandé à distance par
+   l'appareil principal (`synclive.js`) et « Effacer cet appareil » (Moi).
+   Deux listes tenues à la main finissent par diverger — c'est la leçon
+   de `PRECACHE` (CLAUDE.md §9-5) — et celle d'ici en a déjà payé le
+   prix : elle oubliait les deux clés de migration d'avant la v3. Or une
+   base vide RELIT `oc_data_v2` au chargement suivant : un appareil
+   « effacé » pouvait ressusciter des pistes vieilles de deux versions.
+   Le thème n'y est pas : c'est un réglage d'affichage, pas une donnée. */
+export const CLES_A_EFFACER = [DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, GROUP_KEY,
+  SYNC_KEY, RELAYS_KEY, TURN_KEY, PROMO_KEY, DEVICE_KEY, DEVICES_KEY, RING_KEY, VAULT_KEY,
+  CAMPAIGNS_KEY, MAIL_KEY, AI_KEY, MISSIONS_KEY, ORDINATEUR_KEY, ANALYSIS_KEY, PROPOSALS_KEY,
+  OLD_V2, OLD_V1];
+export async function effacerCetAppareil(){
+  for (const k of CLES_A_EFFACER) await kvDel(k);
+  await docClear().catch(() => {});   /* toutes les variantes CV & lettres */
+}
 /* la liste des documents (variantes nommées, #4) : clés + entrées d'un
    seul mouvement — les clés héritées cv / lettre restent des variantes
    comme les autres */

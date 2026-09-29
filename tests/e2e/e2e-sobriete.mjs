@@ -97,7 +97,18 @@ const PLAFOND = {
      plus sans qu'on vienne le dire ici. */
   toasts: 116,
   toastCar: 79,        /* le plus long : « Connexion interrompue — … » */
-  confirmations: 8,    /* portes bloquantes dans les écrans visibles */
+  /* portes bloquantes dans les écrans visibles.
+     9 le 29 septembre 2026 : « Mon profil » prend le garde-fou de la
+     fiche, mot pour mot, et pour la même raison. Il passe de six champs
+     à onze, qui se tapent en plusieurs minutes ; un glissé vers le bas
+     les jetait sans un mot. La question ne se pose QUE si quelque chose
+     a changé — ouvrir, lire et refermer ne demande rien.
+     10 le même jour : « Effacer cet appareil ». C'est le cas pour lequel
+     la porte existe — un geste qui ne se rattrape PAS, aucun « Annuler »
+     possible une fois la base vidée — et elle montre ce qu'on ne peut
+     pas deviner : combien de pistes et de documents partent, et s'il
+     existe encore une copie récente ou un autre appareil (§6). */
+  confirmations: 10,
   /* phrases d'explication dans les feuilles visibles.
      Monté à 219 le 4 août 2026 pour une phrase de « Signaler un
      problème », REDESCENDU à 211 le jour même : le mainteneur l'a
@@ -164,8 +175,42 @@ const PLAFOND = {
      par `direCombien`, là où il n'y a pas de champ à regarder. Et elle
      est ÉCRITE UNE FOIS, dans `barreListeHTML` : trois feuilles la
      partagent. Avant la barre commune, la même arrivée aurait coûté
-     trois phrases. */
-  motsExplication: 159,
+     trois phrases.
+
+     202 le 29 septembre 2026 : +43, pour quatre phrases qui préviennent
+     toutes d'une erreur qu'on ne peut PAS voir venir — le critère posé
+     le 8 août, rien de plus large.
+     · CV et Lettres (29 mots) : sur le web l'app écrit par `mailto:`, qui
+       ne joint rien. La feuille promettait « Ton CV partira avec tes
+       emails » ; l'étudiant rangeait son PDF, envoyait vingt candidatures,
+       et aucun recruteur ne l'a reçu. Il ne voit pas le mail arrivé : il
+       ne pouvait pas le découvrir. La phrase reste même quand un PDF est
+       rangé, parce que c'est là qu'on croit l'affaire réglée.
+     · « Il manque le @ ou le domaine. » (7) : une adresse fausse dans la
+       signature, et plus aucune réponse n'arrive — sans rien qui le dise.
+     · « La fin tombe avant le début. » (6) : c'est la raison d'un
+       enregistrement retenu. Sans elle, le bouton ne fait rien, et un
+       refus muet est pire qu'un refus expliqué.
+     Deux de ces phrases vivaient d'abord dans une constante, hors de
+     portée du relevé : elles sont réécrites en clair dans le gabarit
+     pour qu'il les compte. Un plafond qui ne voit pas tout ment dans le
+     sens qui rassure.
+
+     211 le même jour, +9 : « Tes 24 pistes n'existent que sur cet
+     appareil. » C'est l'état de copie retiré le 4 août, revenu sous une
+     condition qui le rend rare — il ne parle QUE quand aucun filet
+     n'existe (ni autre appareil vu depuis 30 jours, ni copie depuis 30
+     jours, et au moins 5 pistes), et se tait dès qu'un seul existe.
+     Il prévient de la perte la plus lourde de l'app, et la moins
+     visible : rien ne dit sinon que tout vit dans ce seul navigateur.
+
+     227 le même jour, +16 : « Safari efface les données d'un site non
+     ouvert depuis sept jours. Celles d'une app installée restent. » Dans
+     la feuille « Installer l'app », et SEULEMENT sur iPhone, où elle est
+     vraie (WebKit, 2023). Sans elle, installer se lit comme un confort
+     alors que c'est le filet le plus simple contre la perte de tout le
+     suivi — la même famille que la phrase du dessus. */
+  motsExplication: 227,
   /* ZÉRO, et c'est le seul plafond qui puisse honnêtement valoir zéro :
      un style sans porteur n'a pas de contrepartie à peser — il ne rend
      service à personne, il ne fait qu'attendre d'être lu par erreur.

@@ -7,7 +7,7 @@
    ============================================================ */
 import { uid, extractCity, todayISO, fmtDate } from './utils.js';
 
-export const APP_VERSION = '6.30.0';
+export const APP_VERSION = '6.32.0';
 
 export const DOMAINS = {
   esn:     { label:'ESN / Services IT',       color:'#4C9FD8' },
@@ -30,6 +30,120 @@ export const STATUSES = {
   reply:  { label:'Réponse',     color:'#9B7FD4' }
 };
 export const LEGACY_STATUSES = { sent:'active', followup:'active', interview:'reply' };
+
+/* ---------- ce que l'étudiant cherche (profil) ----------
+   OpenContact sert trois recherches (CLAUDE.md §1) et le modèle de
+   candidature n'en connaissait qu'une : « je cherche un stage », écrit en
+   dur. Un alternant devait retoucher chaque mail — ou l'envoyait faux.
+   Les recruteurs demandent la même chose dans les trois cas, dès le
+   premier paragraphe : le type, la période, et pour l'alternance le
+   rythme (L'Étudiant, Hellowork, Welcome to the Jungle). `type` est le
+   mot de l'objet du mail ; vide pour l'emploi, où « Candidature
+   emploi » ne se dit pas. */
+export const RECHERCHES = {
+  stage:      { label: 'Stage',      un: 'un stage',       type: 'stage' },
+  alternance: { label: 'Alternance', un: 'une alternance', type: 'alternance' },
+  emploi:     { label: 'Emploi',     un: 'un emploi',      type: '' }
+};
+const ISO_JOUR = /^\d{4}-\d{2}-\d{2}$/;
+const MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet',
+              'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+const MOIS_COURT = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.',
+                    'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+const jourDe = iso => {
+  if (!ISO_JOUR.test(String(iso || ''))) return null;
+  const [y, m, d] = iso.split('-').map(Number);
+  const t = Date.UTC(y, m - 1, d);
+  const u = new Date(t);
+  /* « 2027-02-31 » passe la forme mais pas le calendrier */
+  return u.getUTCMonth() === m - 1 && u.getUTCDate() === d ? { y, m, d, t } : null;
+};
+/* « 6 janvier 2027 », « 1er septembre » — la date telle qu'on l'écrit */
+export function dateLongue(iso, annee = true, court = false){
+  const j = jourDe(iso);
+  if (!j) return '';
+  return (j.d === 1 ? '1er' : String(j.d)) + ' ' + (court ? MOIS_COURT : MOIS)[j.m - 1]
+    + (annee ? ' ' + j.y : '');
+}
+/* La durée se DÉDUIT des deux dates, elle ne se saisit pas (§8) : un
+   champ de plus serait un champ qui peut contredire les deux autres.
+   Un stage se dit en semaines tant qu'il est court, en mois au-delà
+   de trois ; une alternance en mois, ou en années rondes. Les bornes
+   sont incluses : du lundi 6 au vendredi 7 du mois suivant, c'est
+   cinq semaines de travail. `null` si la fin précède le début. */
+export function dureeRecherche(debut, fin, recherche){
+  const a = jourDe(debut), b = jourDe(fin);
+  if (!a || !b || b.t < a.t) return null;
+  const jours = Math.round((b.t - a.t) / 86400000) + 1;
+  const semaines = Math.round(jours / 7);
+  if (recherche !== 'alternance' && semaines < 13){
+    if (semaines < 1) return jours + ' jour' + (jours > 1 ? 's' : '');
+    return semaines + ' semaine' + (semaines > 1 ? 's' : '');
+  }
+  const mois = Math.max(1, Math.round(jours / 30.44));
+  if (mois % 12 === 0) return (mois / 12) + ' an' + (mois > 12 ? 's' : '');
+  return mois + ' mois';
+}
+export const periodeValide = (debut, fin) => !debut || !fin || dureeRecherche(debut, fin, '') !== null;
+/* la phrase du mail : « un stage de 6 semaines, du 6 janvier au 14
+   février 2027 ». Sans choix, c'est « un stage » — exactement ce que
+   le modèle disait avant : personne ne voit son mail changer tant
+   qu'il n'a rien rempli. */
+export function phraseRecherche(p){
+  p = p || {};
+  const cle = RECHERCHES[p.recherche] ? p.recherche : '';
+  const r = RECHERCHES[cle || 'stage'];
+  if (!cle) return r.un;
+  const d = jourDe(p.debut), f = cle === 'emploi' ? null : jourDe(p.fin);
+  const duree = d && f ? dureeRecherche(p.debut, p.fin, cle) : null;
+  if (cle === 'stage' && duree)
+    return `${r.un} de ${duree}, du ${dateLongue(p.debut, d.y !== f.y)} au ${dateLongue(p.fin)}`;
+  if (duree) return `${r.un} de ${duree} à partir du ${dateLongue(p.debut)}`;
+  if (d) return `${r.un} à partir du ${dateLongue(p.debut)}`;
+  return r.un;
+}
+/* Une piste PREND-ELLE ce que tu cherches ? Ses « postes » (stage,
+   alternance, CDI…) le disent quand ils sont remplis — souvent par un
+   camarade qui y est passé. Trois réponses, jamais deux : `null` quand
+   on ne sait pas (rien de choisi, ou la piste ne dit rien). Une piste
+   muette n'est pas une piste qui refuse, et la classer derrière celles
+   qui disent non serait inventer. L'emploi, c'est un CDI ou un CDD. */
+const POSTES_DE = { stage: ['stage'], alternance: ['alternance'], emploi: ['cdi', 'cdd'] };
+export function prendCeQueJeCherche(c, recherche){
+  const voulus = POSTES_DE[recherche];
+  const postes = (c && c.positions) || [];
+  if (!voulus || !postes.length) return null;
+  return postes.some(p => voulus.includes(p));
+}
+/* ce que la ligne dit, quand c'est la raison du classement */
+export const PREND_MOT = { stage: 'prend des stagiaires', alternance: 'prend des alternants', emploi: 'recrute' };
+/* la même chose en une ligne d'écran — « Stage · 6 janv. → 14 févr. 2027 » */
+export function resumeRecherche(p){
+  p = p || {};
+  const r = RECHERCHES[p.recherche];
+  if (!r) return '';
+  const d = jourDe(p.debut), f = p.recherche === 'emploi' ? null : jourDe(p.fin);
+  const duree = d && f ? dureeRecherche(p.debut, p.fin, p.recherche) : null;
+  if (p.recherche === 'stage' && duree)
+    return `${r.label} · ${dateLongue(p.debut, d.y !== f.y, true)} → ${dateLongue(p.fin, true, true)}`;
+  if (d) return `${r.label} · ${duree ? duree + ' ' : ''}dès le ${dateLongue(p.debut, true, true)}`;
+  return r.label;
+}
+/* Ce qui manque pour qu'un mail de candidature dise qui tu es et ce que
+   tu veux. Le nom n'y est pas : sans lui, l'écran montre déjà autre
+   chose. Le téléphone non plus : il est utile, jamais indispensable. */
+export function manquesProfil(p){
+  p = p || {};
+  const out = [];
+  if (!String(p.formation || '').trim()) out.push('formation');
+  if (!String(p.ecole || '').trim()) out.push('école');
+  if (!RECHERCHES[p.recherche]) out.push('stage ou alternance');
+  if (!String(p.email || '').trim()) out.push('email');
+  return out;
+}
+/* une adresse qu'un recruteur peut utiliser — pas une validation RFC,
+   juste de quoi attraper l'oubli du @ ou du domaine */
+export const emailPlausible = s => /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(String(s || '').trim());
 /* clôture (privée) : la piste quitte le quotidien, reste dans la liste */
 export const CLOSE_REASONS = {
   won:      { label:'Décroché',  color:'#2FA070' },
@@ -211,6 +325,70 @@ export function normalizeCompany(x){
   }
   return out;
 }
+const SIGNATURE = `Bien à vous,
+{{moi}}
+{{ecole}}
+{{tel}} — {{email}}`;
+const MODELE_CANDIDATURE = `Bonjour {{contact}},
+
+[Une phrase précise sur ce qu'ils font. Pas « votre entreprise m'intéresse » — ils le lisent dix fois par jour.]
+
+Je suis en {{formation}} et je cherche {{recherche}}.
+Rythme : {{rythme}}
+Mon CV : {{cv}}
+Je peux passer en parler quand vous voulez.
+
+${SIGNATURE}`;
+const MODELE_RELANCE = `Bonjour {{contact}},
+
+Je reviens vers vous au sujet de ma candidature.
+
+[Du neuf depuis : un projet fini, une techno apprise, une actu de chez eux. Une relance qui n'apporte rien n'appelle rien.]
+
+Toujours très motivé pour vous rejoindre — je reste dispo.
+
+${SIGNATURE}`;
+/* Les modèles de départ tels que la 6.30 les écrivait. Un modèle que
+   l'étudiant n'a JAMAIS retouché — objet et corps identiques au
+   caractère près — passe à la version d'aujourd'hui : sans ça, l'école
+   et la recherche n'atteindraient jamais les mails de ceux qui ont
+   déjà l'app, c'est-à-dire de tout le monde. Un modèle modifié, même
+   d'une virgule, n'est jamais touché (invariant ②). */
+const MODELES_6_30 = {
+  'Candidature spontanée': {
+    avant: { subject: 'Candidature stage {{formation}} — {{moi}}', body: `Bonjour {{contact}},
+
+[Une phrase précise sur ce qu'ils font. Pas « votre entreprise m'intéresse » — ils le lisent dix fois par jour.]
+
+Je suis en {{formation}} et je cherche un stage. Mon CV : {{cv}}
+Je peux passer en parler quand vous voulez.
+
+Bien à vous,
+{{moi}} — {{tel}} — {{email}}` },
+    apres: { subject: 'Candidature {{type}} {{formation}} — {{moi}}', body: MODELE_CANDIDATURE }
+  },
+  'Relance': {
+    avant: { subject: 'Toujours intéressé — {{formation}} chez {{entreprise}}', body: `Bonjour {{contact}},
+
+Je reviens vers vous au sujet de ma candidature pour un stage.
+
+[Du neuf depuis : un projet fini, une techno apprise, une actu de chez eux. Une relance qui n'apporte rien n'appelle rien.]
+
+Toujours très motivé pour vous rejoindre — je reste dispo.
+
+Bien à vous,
+{{moi}} — {{tel}} — {{email}}` },
+    apres: { subject: 'Toujours intéressé — {{formation}} chez {{entreprise}}', body: MODELE_RELANCE }
+  }
+};
+export function majModelesDefaut(templates){
+  if (!Array.isArray(templates)) return templates;
+  return templates.map(t => {
+    const m = t && MODELES_6_30[t.name];
+    if (!m || t.subject !== m.avant.subject || t.body !== m.avant.body) return t;
+    return { ...t, subject: m.apres.subject, body: m.apres.body };
+  });
+}
 export function defaultTemplates(){
   return [
     /* L'ACCROCHE EST EN PREMIER, et c'est tout le sujet. Les recruteurs
@@ -227,32 +405,24 @@ export function defaultTemplates(){
        flottaison du téléphone.
        Le crochet dit AUSSI ce qu'il ne faut pas écrire : c'est le seul
        endroit de l'app où l'on peut enseigner au moment exact du geste,
-       et ça ne coûte rien — le texte part avec le brouillon. */
-    { id: uid(), name: 'Candidature spontanée', subject: 'Candidature stage {{formation}} — {{moi}}',
-      body: `Bonjour {{contact}},
-
-[Une phrase précise sur ce qu'ils font. Pas « votre entreprise m'intéresse » — ils le lisent dix fois par jour.]
-
-Je suis en {{formation}} et je cherche un stage. Mon CV : {{cv}}
-Je peux passer en parler quand vous voulez.
-
-Bien à vous,
-{{moi}} — {{tel}} — {{email}}` },
+       et ça ne coûte rien — le texte part avec le brouillon.
+       « Mon CV » a sa PROPRE ligne. Collé à la phrase de présentation,
+       il l'emportait avec lui : une ligne qui finit par « : {{cv}} »
+       saute en entier quand le lien manque — et avec elle « Je suis en
+       BTS SIO et je cherche un stage », c'est-à-dire tout ce que le
+       recruteur doit savoir. C'était le cas de quiconque n'avait pas
+       de lien de CV. Même raison pour « Rythme », qui ne vaut que pour
+       l'alternance et disparaît seul pour les autres. L'école signe le
+       mail, sur sa ligne : dans la phrase, sa préposition dépend du nom
+       (« au lycée », « à l'IUT », « à Epitech ») et se tromperait. */
+    { id: uid(), name: 'Candidature spontanée', subject: 'Candidature {{type}} {{formation}} — {{moi}}',
+      body: MODELE_CANDIDATURE },
     /* Une relance qui ne fait que constater le silence n'apporte rien à
        celui qui la reçoit — et le « restée sans réponse à ce jour » lui
        reproche à demi-mot un oubli. Celle-ci rouvre avec quelque chose
        de neuf : c'est ce qui donne une raison de répondre maintenant. */
     { id: uid(), name: 'Relance', subject: 'Toujours intéressé — {{formation}} chez {{entreprise}}',
-      body: `Bonjour {{contact}},
-
-Je reviens vers vous au sujet de ma candidature pour un stage.
-
-[Du neuf depuis : un projet fini, une techno apprise, une actu de chez eux. Une relance qui n'apporte rien n'appelle rien.]
-
-Toujours très motivé pour vous rejoindre — je reste dispo.
-
-Bien à vous,
-{{moi}} — {{tel}} — {{email}}` },
+      body: MODELE_RELANCE },
     { id: uid(), name: 'Remerciement après entretien', subject: 'Merci pour notre échange — {{moi}}',
       body: `Bonjour {{contact}},
 
@@ -287,7 +457,8 @@ Je collerai ce JSON dans OpenContact : Échanger → Recevoir → Coller.`
   }];
 }
 export function defaultProfile(){
-  return { name:'', formation:'', phone:'', email:'', cvUrl:'', portfolio:'', letter:'',
+  return { name:'', formation:'', ecole:'', recherche:'', debut:'', fin:'', rythme:'',
+           phone:'', email:'', cvUrl:'', portfolio:'', letter:'',
            templates: defaultTemplates(), prompts: defaultPrompts(),
            confirmedIds: [], flags: {}, updatedAt: 0 };
 }
@@ -297,6 +468,13 @@ export function normalizeProfile(raw){
   if (raw && typeof raw === 'object')
     for (const k of Object.keys(raw)) if (!BAD_KEYS.includes(k)) profile[k] = raw[k];
   if (!Array.isArray(profile.templates) || !profile.templates.length) profile.templates = defaultTemplates();
+  else profile.templates = majModelesDefaut(profile.templates);
+  /* les champs de la recherche : un choix connu ou rien, une date qui
+     existe ou rien — ils arrivent aussi d'un fichier ou d'un autre
+     appareil, donc de n'importe où */
+  for (const k of ['ecole', 'rythme']) profile[k] = String(profile[k] || '').trim().slice(0, 120);
+  if (!RECHERCHES[profile.recherche]) profile.recherche = '';
+  for (const k of ['debut', 'fin']) if (!jourDe(profile[k])) profile[k] = '';
   if (!Array.isArray(profile.prompts) || !profile.prompts.length) profile.prompts = defaultPrompts();
   profile.prompts = profile.prompts.slice(0, PROMPTS_MAX).map(p => ({
     name: (String((p && p.name) || '').trim() || 'Prompt').slice(0, 60),
@@ -356,6 +534,34 @@ function refermeLigne(ligne, creux){
   /* il ne reste que de la ponctuation : la ligne ne dit plus rien */
   return /[\p{L}\p{N}]/u.test(out) ? out : null;
 }
+/* LE MODÈLE QUI CONVIENT À LA PISTE. Le composeur s'ouvrait toujours
+   sur le premier — la candidature — y compris pour relancer quelqu'un à
+   qui l'on a déjà écrit : l'étudiant devait penser à changer de modèle,
+   ou renvoyait sa candidature une seconde fois. Le statut le dit déjà :
+   jamais contactée → la candidature ; en cours (on attend) → la relance.
+   Une réponse reçue ne décide rien (remercier ? répondre ? préparer un
+   entretien ?) : on garde le premier, comme avant. Les modèles se
+   reconnaissent par leur NOM de départ — un modèle renommé ou retiré
+   laisse simplement le premier, jamais une erreur. */
+const MODELE_PAR_STATUT = { todo: 'Candidature spontanée', active: 'Relance' };
+export function modeleConseille(templates, c){
+  const nom = MODELE_PAR_STATUT[c && c.status];
+  const i = nom ? (templates || []).findIndex(t => t && t.name === nom) : -1;
+  return i >= 0 ? i : 0;
+}
+/* les jetons qui viennent de la recherche et de l'école — partagés avec
+   l'aperçu du composeur de modèles, pour qu'un jeton se lise pareil
+   dans l'éditeur et dans le mail */
+export function jetonsRecherche(profile){
+  const p = profile || {};
+  const r = RECHERCHES[p.recherche] || RECHERCHES.stage;
+  return {
+    ecole: String(p.ecole || '').trim(),
+    type: r.type,
+    recherche: phraseRecherche(p),
+    rythme: p.recherche === 'alternance' ? String(p.rythme || '').trim() : ''
+  };
+}
 /* remplit un gabarit {{variable}} avec la piste, le contact visé et le profil */
 export function fillTpl(str, c, ct, profile){
   const m = {
@@ -364,7 +570,8 @@ export function fillTpl(str, c, ct, profile){
     ville: c.city || extractCity(c.address),
     moi: profile.name || '', formation: profile.formation || '',
     tel: profile.phone || '', email: profile.email || '',
-    cv: profile.cvUrl || '', portfolio: profile.portfolio || ''
+    cv: profile.cvUrl || '', portfolio: profile.portfolio || '',
+    ...jetonsRecherche(profile)
   };
   const creux = k => !m[k];
   return String(str || '')

@@ -9,14 +9,16 @@
    aux modèles d'emails.
    ============================================================ */
 import { esc } from '../engine/utils.js';
+import { jetonsRecherche } from '../engine/model.js';
 import { S } from './state.js';
 
 /* quand une valeur d'exemple manque, le jeton se lit en français —
    la même table nomme les jetons insérables (« Insérer : … ») */
 export const TPL_LABELS = {
   contact: 'la personne', entreprise: 'l’entreprise', ville: 'la ville',
-  moi: 'ton nom', formation: 'ta formation', tel: 'ton téléphone',
-  email: 'ton email', cv: 'ton CV', portfolio: 'ton portfolio'
+  moi: 'ton nom', formation: 'ta formation', ecole: 'ton école',
+  recherche: 'ce que tu cherches', type: 'stage ou alternance', rythme: 'ton rythme',
+  tel: 'ton téléphone', email: 'ton email', cv: 'ton CV', portfolio: 'ton portfolio'
 };
 const FALLBACK = TPL_LABELS;
 
@@ -29,7 +31,10 @@ export function tplSample(company, ct){
     ville: (company && company.city) || '',
     moi: p.name || '', formation: p.formation || '',
     tel: p.phone || '', email: p.email || '',
-    cv: p.cvUrl || '', portfolio: p.portfolio || ''
+    cv: p.cvUrl || '', portfolio: p.portfolio || '',
+    /* les mêmes valeurs que le mail : « un stage » tant que rien n'est
+       choisi, parce que c'est ce qui partira */
+    ...jetonsRecherche(p)
   };
 }
 

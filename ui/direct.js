@@ -417,9 +417,15 @@ export function openAppareils(){
       `${changing
          ? '<p class="hint" style="margin:0 0 12px">Nouvelle phrase = nouveau lien — à retaper sur les autres appareils.</p>'
          : ''}
+       ${/* QUEL APPAREIL FAIT QUOI : c'était la seule chose que les deux
+            boutons ne disaient pas. L'étudiant a deux écrans devant lui et
+            devait deviner lequel « crée » et lequel « entre » — puis
+            retenir sur l'un ce qu'il fallait refaire sur l'autre. La note
+            de la ligne le dit, là où il choisit (`.pick` + sa note, le
+            motif des choix qui portent une précision — §6). */''}
        <div class="pick-list">
-         <button class="pick" id="syNew"><b>${ic('sparkles', 'ic-14')} Créer une phrase</b></button>
-         <button class="pick" id="syJoin"><b>${ic('switch', 'ic-14')} Entrer une phrase</b></button>
+         <button class="pick" id="syNew"><b>${ic('sparkles', 'ic-14')} Créer une phrase</b><span>sur le premier appareil</span></button>
+         <button class="pick" id="syJoin"><b>${ic('switch', 'ic-14')} Entrer une phrase</b><span>sur l’appareil à ajouter</span></button>
        </div>
        ${comp ? `<div class="sy-devs" style="margin-top:14px">
            <div class="lbl-row" style="margin-bottom:6px"><label>Appareils reliés</label></div>
