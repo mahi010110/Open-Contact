@@ -2865,10 +2865,9 @@ if (IA){
   await aiPage.screenshot({ path: SHOTS + '/82-ux-ia-disponibilite.png' });
 } else {
   await aiPage.goto(base + '/#/moi', { waitUntil: 'load' });
-  /* plus de porte « Réglages » (décision #20 revue le 29 septembre 2026) :
-     les lignes vivent sur « Moi » même, au pouce comme au poste */
+  /* sur téléphone, Réglages est le 2ᵉ écran de « Moi » (la porte #20) */
+  await aiPage.click('#moiReglages');
   await aiPage.waitForSelector('#moiVerrou');
-  if (await aiPage.$('#moiReglages')) fail('la porte « Réglages » est revenue au pouce');
   const moiTxt = await aiPage.locator('#view-moi').innerText();
   if (await aiPage.$('#moiAi')) fail('hors périmètre, la ligne « Mon assistant IA » subsiste');
   if (/assistant IA|clé API/i.test(moiTxt))

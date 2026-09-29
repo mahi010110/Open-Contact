@@ -209,8 +209,17 @@ const PLAFOND = {
      la feuille « Installer l'app », et SEULEMENT sur iPhone, où elle est
      vraie (WebKit, 2023). Sans elle, installer se lit comme un confort
      alors que c'est le filet le plus simple contre la perte de tout le
-     suivi — la même famille que la phrase du dessus. */
-  motsExplication: 227,
+     suivi — la même famille que la phrase du dessus.
+
+     225 le même jour, −2, après relecture par le mainteneur sur son
+     téléphone : les phrases ci-dessus sont RÉÉCRITES en mots de tous les
+     jours (§7) — « Adresse incomplète (exemple : …) », « La date de fin
+     est avant la date de début. », « Tes 24 pistes sont enregistrées
+     seulement sur cet appareil. ». La feuille CV ne dit plus que le fait
+     (« L'app ne peut pas joindre ton CV à un email. ») : le bouton juste
+     dessous, « Ajouter le lien de mon CV », dit le geste, et la phrase
+     qui le répétait est partie. */
+  motsExplication: 225,
   /* ZÉRO, et c'est le seul plafond qui puisse honnêtement valoir zéro :
      un style sans porteur n'a pas de contrepartie à peser — il ne rend
      service à personne, il ne fait qu'attendre d'être lu par erreur.
@@ -515,7 +524,12 @@ const MOTS = [
   ["l'écran d'une piste",   'fiche',   ['détail', 'detail']],
   ['le fichier du suivi',   'copie',   ['sauvegarde', 'export', 'archive']],
   ['les camarades',         'groupe',  ['promo', 'camarade', 'ami']],
-  ['le produit',            '—',       ['CRM', 'lead']]
+  ['le produit',            '—',       ['CRM', 'lead']],
+  /* §7, « des mots de tous les jours, jamais des images » : le
+     mainteneur les a retirés de l'écran après les avoir lus sur son
+     téléphone. On dit le fait (« enregistrées seulement sur cet
+     appareil »), pas une métaphore qu'il faut décoder. */
+  ['une image à la place du fait', 'le fait, en clair', ['abri', 'filet']]
 ];
 
 /* Les exceptions se NOMMENT, avec leur raison — comme partout ailleurs.

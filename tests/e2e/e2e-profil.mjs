@@ -129,7 +129,8 @@ await page.click('#moiDocs [data-kind="cv"]');
 await page.waitForSelector('#docLien');
 const cvTxt = await page.textContent('.modal');
 okSi(!cvTxt.includes('partira avec tes emails'), 'plus de promesse de pièce jointe sur le web');
-okSi(cvTxt.includes('c’est le lien de ton profil qui part'), 'la feuille dit ce qui part vraiment');
+okSi(cvTxt.includes('L’app ne peut pas joindre ton CV à un email')
+  && cvTxt.includes('Ajouter le lien de mon CV'), 'la feuille dit ce qui part vraiment, et le geste qui le règle');
 await page.click('#docLien');
 await page.waitForSelector('#pfCv');
 await page.waitForTimeout(300);

@@ -604,6 +604,10 @@ html[data-theme="dark"] .field select{
    l'écran : c'est la même règle de style, sur la balise juste. */
 .td-head h1{font-size:var(--text-20);letter-spacing:var(--tracking-tight)}
 .td-date{font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted)}
+/* le retour d'un 2ᵉ écran : nu, comme la poubelle au survol — un chevron
+   qui n'est pas un bouton encadré. La ligne se centre sur le titre. */
+.td-back{align-items:center;gap:4px}
+.td-back .abtn{width:auto;min-width:32px;color:var(--text-muted)}
 .done-line{
   display:inline-flex;align-items:center;gap:6px;margin:0 0 10px;
   font-family:var(--font-mono);font-size:var(--text-12);font-weight:var(--weight-semibold);color:var(--green);
@@ -1051,6 +1055,9 @@ details.tranche[open]>summary::before{
   font-weight:var(--weight-regular);opacity:.8;
   display:inline-flex;align-items:center;gap:4px;margin-left:2px;
 }
+/* un cadre sans légende (l'écran porte déjà son titre) ne doit pas
+   garder l'encoche que le navigateur réserve au `legend` */
+.fset-plain{padding-top:6px}
 .fset .pd{font-size:var(--text-12);color:var(--text-muted);line-height:1.55;margin:0}
 /* le cadre entier prend le bord ambre quand l'état qu'il porte est celui
    qui peut TOUT coûter (aucune copie, sans serveur derrière) — même
@@ -1227,25 +1234,18 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 @media (min-width:901px){ .moi-ver{display:none} }
 .moi-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
 .moi-cols .pcard:last-child,.moi-cols .fset:last-child{margin-bottom:0}
-/* LE BAS DE « MOI » : des lignes sans cadre (deux cadres par écran au
-   maximum, §6), alignées sur le contenu des cadres — 1 px de trait et
-   12 px de retrait, le nom tombe pile sous « Modèles d'emails ». */
-.moi-bas{padding:0 13px;margin-bottom:6px}
-/* « Effacer cet appareil » : le seul geste rouge de l'écran, en lien —
+/* au pouce, « Réglages » est une porte seule sous les cadres : elle
+   s'aligne sur leur contenu (même retrait) sans porter de cadre à elle */
+.rg-row.moi-rg{padding:0 13px}   /* 1px de cadre + 12px de retrait : le nom tombe pile sous « Modèles d'emails » */
+/* « Effacer cet appareil » : le seul geste rouge de Réglages, en lien —
    il se trouve quand on le cherche, il n'attire pas l'œil sinon. La
-   hauteur du doigt reste la sienne (--ctl). */
-.moi-efface{color:var(--red);min-height:var(--ctl);margin-top:4px}
-/* « À l'abri » : la copie se range sous les deux lignes, séparée d'elles
-   par le même pointillé que les lignes entre elles */
-.abri-copie{padding-top:10px;border-top:1px dashed var(--border-soft)}
-.abri-copie .lockrow{margin-top:4px}
-.abri-copie #moiRestore{margin-top:6px}
-.abri-l{
-  font-size:var(--text-11);font-weight:var(--weight-bold);letter-spacing:var(--tracking-wide);
-  text-transform:uppercase;color:var(--text-muted);
-}
-.abri-etat{display:flex;align-items:flex-start;gap:6px;margin:6px 0 2px}
-.abri-etat .ic{flex:none;margin-top:1px}
+   hauteur du doigt reste la sienne (--ctl). Il passe à la ligne sous
+   « Restaurer une copie » : deux gestes aux conséquences opposées ne
+   partagent pas une arête (§5-3). */
+.moi-efface{display:flex;color:var(--red);min-height:var(--ctl);margin-top:8px}
+/* l'état « sans copie », au-dessus du bouton qui le règle */
+.copie-etat{display:flex;align-items:flex-start;gap:6px;margin:2px 0 8px}
+.copie-etat .ic{flex:none;margin-top:1px}
 /* « Installer l'app » : deux gestes, numérotés parce qu'ils se FONT dans
    cet ordre — c'est une séquence, le numéro dit quelque chose de vrai */
 .inst-pas{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:10px;
@@ -1284,6 +1284,7 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 @media (hover:hover){
 .rg-row:hover .rg-n{color:var(--text-link)}
 }
+.rg-foot{padding:12px 0 2px;border-top:1px dashed var(--border-soft);margin-top:2px}
 /* « Signaler un problème » : le texte à coller se lit EN ENTIER avant
    de partir — c'est ce qui remplace la promesse « rien de personnel »
    par une preuve. Bloc mono, sélectionnable, jamais un champ : rien
