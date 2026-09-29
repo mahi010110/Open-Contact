@@ -596,7 +596,9 @@ export function mergePreviewInto(sh, obj, opts){
             « va dans Moi » envoyait refaire le chemin jusqu'aux Réglages
             pour rouvrir le même fichier. Le geste est posé ici, avec la
             même question et le même Annuler que depuis « Moi ». */''}
-       ${obj.kind === 'full' ? `<button class="linklike" id="rcRestore">${ic('reload', 'ic-14')} Tout remplacer par cette copie</button>` : ''}
+       ${obj.kind === 'full' ? `<div class="pick-list pick-sortie">
+            <button class="pick pick-danger" id="rcRestore"><b>${ic('reload', 'ic-14')} Tout remplacer par cette copie</b></button>
+          </div>` : ''}
        ${opts.select && n ? `<div class="pick-list pk-inverse" style="margin:10px 0 4px">
          ${obj.companies.slice(0, 200).map((c, i) =>
            `<button class="pick pk on" data-sel="${i}" aria-pressed="true">

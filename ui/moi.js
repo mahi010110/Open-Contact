@@ -342,14 +342,27 @@ function reglagesRowsHTML(){
   return (
     rows.map(([id, nom, etat, dep], i) =>
       rgRow(id, nom, etat, i === rows.length - 1, dep)).join('') +
+    /* DEUX GESTES QUI CHANGENT TOUT NE SONT PAS DES LIENS. Ils vivaient en
+       mots soulignés sous la liste : la forme d'un lien, qui promet
+       d'emmener ailleurs, pour les deux gestes les plus lourds de l'écran
+       (NN/g : un lien emmène, un bouton agit). Ils deviennent des boutons,
+       chacun avec son pictogramme ET son mot, et ils vivent SOUS les
+       portes, qui mènent quelque part, parce qu'eux agissent tout de suite.
+       L'effacement a son propre groupe, en rouge, en dernier (Apple :
+       le destructif se distingue, jamais comme action principale) — deux
+       conséquences opposées ne partagent pas une arête (§5-3). */
     `<div class="rg-foot">
-       <button class="linklike" id="moiRestore">${ic('reload', 'ic-14')} Restaurer une copie</button>
+       <div class="pick-list">
+         <button class="pick" id="moiRestore"><b>${ic('reload', 'ic-14')} Restaurer une copie</b></button>
+       </div>
        <input type="file" id="moiRestoreFile" accept=".oc,.txt,.json,application/octet-stream,application/json,text/plain" hidden>
        ${/* Partir proprement d'un poste du lycée, du CDI, d'un ordinateur
             prêté : l'effacement n'existait qu'à distance. Absent quand il
             n'y a rien à effacer. */''}
        ${(S.companies.length || S.profile.name)
-         ? `<button class="linklike moi-efface" id="moiEfface">${ic('trash', 'ic-14')} Effacer cet appareil</button>` : ''}
+         ? `<div class="pick-list pick-sortie">
+              <button class="pick pick-danger" id="moiEfface"><b>${ic('trash', 'ic-14')} Effacer cet appareil</b></button>
+            </div>` : ''}
      </div>`);
 }
 /* Qui a vu ces pistes ailleurs ? La liste des appareils vit dans le

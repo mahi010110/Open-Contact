@@ -35,8 +35,8 @@ import { VAULT_WORDS, PHRASE_LEN, makeVaultPhrase, normVaultPhrase, phraseUnknow
          rotateVaultResumable, prevKeyOf, clearPrev,
          sealValue, openValue, isSealed } from './engine/vault.js';
 import { edAvailable, makeDeviceKeys, recoveryKeys, ringInit, ringAddDevice,
-         ringCommand, ringTransfer, ringRecover, ringRekey, mergeRing, actionsFor,
-         verifyRing, deviceIn } from './engine/ring.js';
+         ringCommand, ringTransfer, ringRecover, ringRekey, ringRename, nomAppareil,
+         mergeRing, actionsFor, verifyRing, deviceIn } from './engine/ring.js';
 import { DAILY_CAP, buildCampaign, dueSends, dueSendsAll, sentTodayAll,
          markSent, markReplied, markError, stopCompanyTargets,
          pauseCampaign, resumeCampaign, stopCampaign, campaignStats,
@@ -1286,6 +1286,35 @@ export async function runSelfTests(){
       ok(mB.changed);
       const forged = await ringCommand(ring, kB.seed, 'wipe', 'A');   /* signé par B */
       ok(!(await mergeRing(mB.ring, forged)).changed);
+    },
+    'anneau : seul le principal renomme — un nom changé ailleurs est refusé': async () => {
+      eq(nomAppareil('  iPhone   de\tSam \n'), 'iPhone de Sam');
+      eq(nomAppareil('x'.repeat(60)).length, 40);
+      if (!(await edAvailable())) return;
+      const kA = await makeDeviceKeys(), kB = await makeDeviceKeys();
+      const rec = await recoveryKeys('x', 15000);
+      let ring = await ringInit({ id: 'A', name: 'iPhone · Safari' }, kA.pub, kA.seed, rec.pub);
+      ring = await ringAddDevice(ring, kA.seed, { id: 'B', name: 'iPhone · Safari', pub: kB.pub });
+      const chezB = (await mergeRing(null, ring)).ring;
+      /* le principal renomme B : signé, accepté par B, seq monté */
+      const r2 = await ringRename(ring, kA.seed, 'A', 'B', 'iPhone de Léa');
+      ok(await verifyRing(r2, kA.pub));
+      eq(r2.seq, ring.seq + 1);
+      const m = await mergeRing(chezB, r2);
+      ok(m.changed);
+      eq(deviceIn(m.ring, 'B').name, 'iPhone de Léa');
+      /* B n'est pas le principal : refus explicite */
+      try { await ringRename(chezB, kB.seed, 'B', 'B', 'Moi'); throw new Error('accepté !'); }
+      catch (e) { eq(e.message, 'principal'); }
+      /* un nom changé à la main, sans la signature du principal, ne passe pas */
+      const falsifie = JSON.parse(JSON.stringify(r2));
+      falsifie.devices.find(d => d.id === 'A').name = 'Usurpé';
+      falsifie.seq += 1;
+      ok(!(await mergeRing(m.ring, falsifie)).changed);
+      /* nom vide refusé ; même nom = rien à re-signer */
+      try { await ringRename(r2, kA.seed, 'A', 'B', '   '); throw new Error('accepté !'); }
+      catch (e) { eq(e.message, 'vide'); }
+      eq((await ringRename(r2, kA.seed, 'A', 'B', ' iPhone de Léa ')).seq, r2.seq);
     },
     'anneau : commandes ciblées, appliquées une seule fois': async () => {
       if (!(await edAvailable())) return;

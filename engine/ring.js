@@ -148,6 +148,35 @@ export async function ringTransfer(ring, privSeed, newMainId){
   });
   return signRing(out, privSeed);
 }
+/* ---------- renommer un appareil — le principal seul ----------
+   Deux iPhone reliés s'appelaient tous deux « iPhone · Safari » : le nom
+   deviné ne distingue rien dès qu'on a deux appareils du même genre.
+   Le nom vit DANS l'anneau signé (voir `canon`) : le principal le change
+   en signant un anneau neuf, `seq` monte, et chaque appareil l'accepte
+   par le chemin normal de `mergeRing`. Un nom changé ailleurs n'a pas la
+   signature du principal : il est refusé comme n'importe quelle
+   falsification. « Seul le principal renomme » n'est donc pas une règle
+   d'écran qu'on pourrait contourner — c'est la cryptographie qui la tient.
+   Même principe que `ringRekey` : un refus explicite plutôt qu'un anneau
+   que personne n'accepterait. */
+export function nomAppareil(brut){
+  return String(brut == null ? '' : brut)
+    .replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 40).trim();
+}
+export async function ringRename(ring, privSeed, selfId, targetId, brut){
+  if (!ring || ring.main !== selfId) throw new Error('principal');
+  const cible = deviceIn(ring, targetId);
+  if (!cible) throw new Error('inconnu');
+  const nom = nomAppareil(brut);
+  if (!nom) throw new Error('vide');
+  if (nom === cible.name) return ring;       /* rien ne change : rien ne se re-signe */
+  const out = Object.assign({}, ring, {
+    devices: ring.devices.map(d => d.id === targetId ? Object.assign({}, d, { name: nom }) : d),
+    seq: (ring.seq || 0) + 1, updatedAt: Date.now()
+  });
+  return signRing(out, privSeed);
+}
+
 /* ---------- renouveler la clé de secours, SANS l'ancienne phrase ----------
    Refaire sa phrase de secours quand on a perdu le papier mais gardé son
    code : l'anneau doit suivre, sinon la clé de secours qu'il porte
