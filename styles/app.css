@@ -830,10 +830,6 @@ details.tranche[open]>summary::before{
 @media (hover:hover){
 .abtn-ok:hover{color:var(--green)}
 }
-.abtn-del:focus-visible, .abtn-del:active{color:var(--red)}
-@media (hover:hover){
-.abtn-del:hover{color:var(--red)}
-}
 .act-gone{transition:opacity 150ms var(--ease-out),transform 150ms var(--ease-out);opacity:0;transform:translateX(20px)}
 
 /* ============ ÉTATS VIDES ============ */
@@ -915,13 +911,6 @@ details.tranche[open]>summary::before{
 .hov-del:focus-visible{color:var(--red)}
 @media (hover:hover){
 .hov-del:hover{color:var(--red)}
-}
-/* même discrétion pour une action qui n'a PAS de geste de remplacement :
-   effacée tant qu'on ne survole pas sa ligne, mais simplement visible
-   là où le survol n'existe pas (au doigt, sinon elle serait inatteignable) */
-@media (hover:hover) and (pointer:fine){
-  .hov-soft{opacity:0;pointer-events:none}
-  .hov-row:hover .hov-soft,.hov-row:focus-within .hov-soft{opacity:1;pointer-events:auto}
 }
 
 /* ============ LISTE DES PISTES ============ */
@@ -1237,12 +1226,6 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 /* au pouce, « Réglages » est une porte seule sous les cadres : elle
    s'aligne sur leur contenu (même retrait) sans porter de cadre à elle */
 .rg-row.moi-rg{padding:0 13px}   /* 1px de cadre + 12px de retrait : le nom tombe pile sous « Modèles d'emails » */
-/* « Effacer cet appareil » : le seul geste rouge de Réglages, en lien —
-   il se trouve quand on le cherche, il n'attire pas l'œil sinon. La
-   hauteur du doigt reste la sienne (--ctl). Il passe à la ligne sous
-   « Restaurer une copie » : deux gestes aux conséquences opposées ne
-   partagent pas une arête (§5-3). */
-.moi-efface{display:flex;color:var(--red);min-height:var(--ctl);margin-top:8px}
 /* l'état « sans copie », au-dessus du bouton qui le règle */
 .copie-etat{display:flex;align-items:flex-start;gap:6px;margin:2px 0 8px}
 .copie-etat .ic{flex:none;margin-top:1px}
@@ -1490,8 +1473,6 @@ details.pcard-details[open]>summary{margin-bottom:10px}
    changer la phrase de liaison ne sont pas le même geste, et leurs
    bords se touchaient à 6 px (CLAUDE.md §5) */
 .lk-set{margin-top:8px}
-/* la sortie dangereuse se pose sous la liste, alignée sur elle */
-.lk-set>.linklike{margin-top:2px;padding-left:0}
 /* ---- OÙ J'EN SUIS, SANS LE LIRE ----
    Protéger ses données, c'est quatre écrans à la suite. Rien ne disait
    où l'on en était : on avançait dans un couloir sans savoir s'il en
@@ -1508,10 +1489,6 @@ details.pcard-details[open]>summary{margin-bottom:10px}
    fait NEUF de la liste, il porte donc la seule encre forte */
 .cp-what .cp-file{border-color:var(--accent);color:var(--text-body)}
 .cp-what .cp-file b{font-family:var(--font-mono);font-size:var(--text-12);word-break:break-all}
-.lk-set .lk-cut{color:var(--red)}
-@media (hover:hover){
-.lk-set .lk-cut:hover{color:var(--red)}
-}
 .sy-log{margin-top:10px}
 /* ---- Échanger : ce qui réclame quelque chose ----
    La tranche de tête. Même grammaire que le fil qu'elle surplombe et
@@ -2571,10 +2548,6 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
   border:1px solid var(--border-strong);background:var(--surface-window);
   padding:1px 7px;border-radius:var(--radius-1);font-size:var(--text-11);font-weight:var(--weight-semibold);
 }
-.abtn-sm{width:32px;height:32px;margin-left:auto}
-@media (max-width:900px), (pointer:coarse){
-  .abtn-sm{width:44px;height:44px}
-}
 /* UN CHAMP D'UNE SEULE LIGNE QUI SE REPLIE POUR SE LIRE. Même dessin
    qu'un `<input>` tant que la valeur tient — `min-height:var(--ctl)` lui
    donne la hauteur d'une cible, donc rien ne bouge à l'ouverture d'une
@@ -2995,6 +2968,19 @@ html.oc-locked .undo-bar{display:none}
 }
 .pick-danger{border-left:3px solid var(--red)}
 .pick-danger b{color:var(--red)}
+/* UN GESTE QUI CHANGE DES DONNÉES EST UN BOUTON, et un geste destructif
+   a son propre groupe. Il vivait en mot souligné — la forme d'un lien,
+   qui promet d'emmener ailleurs — sous la liste qu'il côtoyait (NN/g :
+   un lien emmène, un bouton agit). Il devient une ligne `.pick-danger`,
+   pictogramme ET mot, séparée des autres gestes par plus que leur écart
+   ordinaire : deux conséquences opposées ne partagent pas une arête
+   (§5-3), et le destructif ne se pose jamais là où le pouce tape par
+   habitude (Apple). Employée par Effacer cet appareil, Rompre le lien,
+   Ne plus protéger, Tout remplacer par cette copie, Retirer un
+   appareil. */
+.pick-sortie{margin-top:16px}
+/* une ligne d'appareil s'ouvre : le chevron le dit, comme partout */
+.dev-open>.ic{flex:none;color:var(--text-muted)}
 /* campagnes : la ligne groupée d'Aujourd'hui + la feuille du jour */
 .camp-line{
   display:flex;align-items:center;gap:8px;width:100%;margin:0 0 10px;

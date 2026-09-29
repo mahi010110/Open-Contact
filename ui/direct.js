@@ -17,13 +17,13 @@ import { PROMO_KEY, RELAYS_KEY, TURN_KEY, kvGet, kvSet } from '../engine/storage
 import { parseTurn, turnText, PORTAGE_APRES_MS, PORTAGE_RELANCE_MS, PORTAGE_PAS_MS } from '../engine/transport.js';
 import { decouper, recolte, rassembler } from '../engine/portage.js';
 import { S, bus, isClosed, logJ } from './state.js';
-import { openSheet, confirmSheet, toast, btn, ic, softReorder, collerEnHaut } from './dom.js';
+import { openSheet, confirmSheet, toast, btn, ic, softReorder, collerEnHaut, clavier } from './dom.js';
 import { mergePreviewInto } from './recevoir.js';
 import { makeQrSvg, startScan } from './qr.js';
 import { getSync, startSync, breakLink, keepMyProfile, makePhrase, openRoom, leaveRoom,
          watchLiaison, deviceSelf, loadDevices, removeDevice, DEVICES_MAX,
-         getRing, amMain, ringDo, ringMakeMain, ouvrirPortage } from './synclive.js';
-import { deviceIn } from '../engine/ring.js';
+         getRing, amMain, ringDo, ringMakeMain, ringRenommer, nomDe, ouvrirPortage } from './synclive.js';
+import { deviceIn, nomAppareil } from '../engine/ring.js';
 import { requireCode } from './verrou.js';
 import { loadOrdinateur, openAddOrdinateur, openOrdinateurSheet, openOrdinateurPhoneSheet, ordinateurPresence } from './ordinateur.js';
 import { ORDINATEUR } from './perimetre.js';
@@ -74,8 +74,12 @@ const relaySettingsHTML = (urls, turn, extra) =>
          placeholder="turns:relais.exemple.org:443 utilisateur motdepasse">${esc(turnText(turn))}</textarea></div>
      ${/* la seule action de la carte : elle se voit. Elle flottait en bas
           à gauche, en gris, plus discrète que les champs qu'elle valide. */''}
-     <div class="pc-actions"><button class="btn btn-sm btn-primary" id="sySaveRelays">Enregistrer</button></div>
-     <button class="linklike" id="syPublicRelays"${urls.length || (turn && turn.length) ? '' : ' hidden'}>Réinitialiser</button>
+     ${/* « Réinitialiser » CHANGE un réglage : c'est un bouton, à côté
+          de celui qu'il défait — plus un mot souligné qui se lisait comme
+          un lien vers une autre page (NN/g : un lien emmène, un bouton
+          agit). */''}
+     <div class="pc-actions"><button class="btn btn-sm btn-primary" id="sySaveRelays">Enregistrer</button>
+       <button class="btn btn-sm" id="syPublicRelays"${urls.length || (turn && turn.length) ? '' : ' hidden'}>Réinitialiser</button></div>
    </details>`;
 function parseRelays(raw){
   const values = String(raw || '').split(/[\n,]+/).map(x => x.trim()).filter(Boolean);
@@ -135,20 +139,30 @@ const agoLabel = t => {
   return 'il y a ' + Math.round(h / 24) + ' j';
 };
 
-/* ---------- feuille d'un appareil : les commandes du principal ----------
-   Chaque geste re-demande le code ; la commande voyage dans l'anneau
-   signé et s'applique quand l'appareil se reconnecte — l'interface
-   est honnête sur cette limite. */
-function openDeviceSheet(d, onDone){
-  const sh = openSheet({ title: d.name, icon: 'switch' });
-  /* le quotidien visible ; l'administration de flotte repliée (N10) —
-     de la sécurité, rare, non bloquante (loi #8) */
+/* ---------- feuille d'un appareil ----------
+   UNE LIGNE QU'ON TAPE, PUIS DES GESTES NOMMÉS. Hors du principal, la
+   ligne portait une poubelle nue, en permanence : une icône seule pour
+   le geste le plus lourd de la liste, sans un mot (l'icône d'une action
+   destructive ne se devine pas, elle se lit — NN/g, et le motif de tous
+   les écrans « mes appareils » : Apple, Google). Chaque appareil s'ouvre
+   désormais dans sa feuille, et c'est là que vivent ses gestes, chacun
+   avec son nom ; le destructif en rouge, dans son propre groupe, en
+   dernier. Pour le principal, les commandes voyagent dans l'anneau signé
+   et s'appliquent quand l'appareil se reconnecte — l'interface est
+   honnête sur cette limite. Chaque commande re-demande le code ;
+   renommer, non : un nom ne coûte rien à défaire. */
+function openDeviceSheet(d, onDone, { principal = false, soi = false } = {}){
+  const sh = openSheet({ title: nomDe(d.id, d.name), icon: 'switch' });
+  const avance = principal && !soi;
   sh.body.innerHTML =
-    `<p class="hint" style="margin:0 0 10px">Vu ${agoLabel(d.seen || 0)}.</p>
-     <div class="pick-list">
-       <button class="pick" id="dvRemove"><b>Retirer de mes appareils</b></button>
-     </div>
-     <details class="srt-adv" style="margin-top:10px">
+    `<p class="hint" style="margin:0 0 10px">${soi ? 'Cet appareil.' : 'Vu ' + agoLabel(d.seen || 0) + '.'}</p>
+     ${principal ? `<div class="pick-list">
+       <button class="pick" id="dvRename"><b>${ic('pencil', 'ic-14')} Renommer</b></button>
+     </div>` : ''}
+     ${soi ? '' : `<div class="pick-list pick-sortie">
+       <button class="pick pick-danger" id="dvRemove"><b>${ic('trash', 'ic-14')} ${principal ? 'Retirer de mes appareils' : 'Retirer de la liste'}</b></button>
+     </div>`}
+     ${avance ? `<details class="srt-adv" style="margin-top:10px">
        <summary>Sécurité avancée</summary>
        <div class="pick-list">
          <button class="pick" id="dvLock"><b>Verrouiller cet appareil</b><span>à sa prochaine connexion</span></button>
@@ -156,8 +170,9 @@ function openDeviceSheet(d, onDone){
          <button class="pick" id="dvBan"><b>Retirer et changer les clés</b><span>appareil perdu ou douteux</span></button>
          <button class="pick pick-danger" id="dvWipe"><b>Effacer ses données</b><span>à sa prochaine connexion</span></button>
        </div>
-     </details>`;
+     </details>` : ''}`;
   const q = s => sh.body.querySelector(s);
+  q('#dvRename')?.addEventListener('click', () => openRenommer(d, () => { sh.close(null, true); onDone(); }));
   const doCmd = async (cmd, confirmOpts, doneMsg) => {
     if (confirmOpts && !await confirmSheet(confirmOpts)) return;
     if (!await requireCode('Ton code, pour confirmer')) return;
@@ -167,24 +182,70 @@ function openDeviceSheet(d, onDone){
     toast(doneMsg);
     onDone();
   };
+  const nom = esc(nomDe(d.id, d.name));
+  q('#dvRemove')?.addEventListener('click', async () => {
+    if (principal) return doCmd('remove', { title: 'Retirer cet appareil ?', danger: true, okLabel: 'Retirer', icon: 'trash',
+      msg: `<b>${nom}</b> sort de tes appareils et ne se synchronisera plus. Rien n’y est effacé.` },
+      'Retiré — il l’apprendra à sa prochaine connexion.');
+    /* sans anneau, la liste n'est qu'un souvenir de cet appareil : on
+       l'y efface, et on dit ce que ça ne fait PAS */
+    const ok = await confirmSheet({
+      title: 'Retirer cet appareil ?', danger: true, okLabel: 'Retirer', icon: 'trash',
+      msg: `<b>${nom}</b> sort de la liste. Il connaît encore la phrase — pour l’écarter vraiment, change aussi la phrase de liaison.`
+    });
+    if (!ok) return;
+    if (!await requireCode('Ton code, pour retirer')) return;
+    await removeDevice(d.id);
+    sh.close(null, true);
+    onDone();
+  });
+  if (!avance) return;
   q('#dvLock').addEventListener('click', () =>
     doCmd('lock', null, 'Il se verrouillera dès qu’il se reconnectera.'));
   q('#dvMain').addEventListener('click', () =>
     doCmd('main', { title: 'Transférer le rôle ?', okLabel: 'Transférer', icon: 'switch',
-      msg: `<b>${esc(d.name)}</b> devient ton appareil principal. Celui-ci redevient un appareil ordinaire.` },
+      msg: `<b>${nom}</b> devient ton appareil principal. Celui-ci redevient un appareil ordinaire.` },
       'Rôle transféré ✓'));
-  q('#dvRemove').addEventListener('click', () =>
-    doCmd('remove', { title: 'Retirer cet appareil ?', danger: true, okLabel: 'Retirer', icon: 'trash',
-      msg: `<b>${esc(d.name)}</b> sort de tes appareils et ne se synchronisera plus. Rien n’y est effacé.` },
-      'Retiré — il l’apprendra à sa prochaine connexion.'));
   q('#dvBan').addEventListener('click', () =>
     doCmd('ban', { title: 'Retirer et changer les clés ?', danger: true, okLabel: 'Retirer', icon: 'trash',
-      msg: `<b>${esc(d.name)}</b> est écarté et les clés du groupe changent. Il connaît encore la phrase de liaison — <b>change-la aussi</b> pour l’écarter vraiment.` },
+      msg: `<b>${nom}</b> est écarté et les clés du groupe changent. Il connaît encore la phrase de liaison — <b>change-la aussi</b> pour l’écarter vraiment.` },
       'Écarté. Pense à changer la phrase de liaison.'));
   q('#dvWipe').addEventListener('click', () =>
     doCmd('wipe', { title: 'Effacer ses données ?', danger: true, okLabel: 'Effacer', icon: 'square-alert',
-      msg: `<b>${esc(d.name)}</b> effacera ses données OpenContact à sa prochaine connexion. Si quelqu’un l’en empêche, change aussi les clés et la phrase.` },
+      msg: `<b>${nom}</b> effacera ses données OpenContact à sa prochaine connexion. Si quelqu’un l’en empêche, change aussi les clés et la phrase.` },
       'Demandé — il effacera à sa prochaine connexion.'));
+}
+
+/* Renommer : un champ, déjà rempli, et le nom qui part signé. Le champ
+   s'ouvre SÉLECTIONNÉ — on vient pour remplacer « iPhone · Safari »,
+   pas pour le compléter. Un nom vide se dit sous le champ (§6). */
+function openRenommer(d, onDone){
+  const sh = openSheet({ title: 'Renommer', icon: 'pencil', focus: '#dvNom' });
+  sh.body.innerHTML =
+    `<div class="field"><label for="dvNom">Nom de l’appareil</label>
+       <input id="dvNom" maxlength="40" autocomplete="off" ${clavier('nom')} aria-describedby="dvNomErr"
+         value="${esc(nomDe(d.id, d.name))}">
+       <p class="hint warn" id="dvNomErr" hidden>Donne-lui un nom.</p></div>`;
+  const champ = sh.body.querySelector('#dvNom');
+  requestAnimationFrame(() => champ.select());
+  const go = async () => {
+    if (!nomAppareil(champ.value)){
+      champ.setAttribute('aria-invalid', 'true');
+      sh.body.querySelector('#dvNomErr').hidden = false;
+      champ.focus();
+      return;
+    }
+    await ringRenommer(d.id, champ.value);
+    sh.close(null, true);
+    onDone();
+  };
+  champ.addEventListener('input', () => {
+    if (!nomAppareil(champ.value)) return;
+    champ.removeAttribute('aria-invalid');
+    sh.body.querySelector('#dvNomErr').hidden = true;
+  });
+  champ.addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); go(); } });
+  sh.setFoot([btn('Enregistrer', 'btn-primary', go)]);
 }
 
 /* ============ Mes appareils : gestion du lien persistant ============ */
@@ -316,13 +377,15 @@ export function openAppareils(){
               statut vient de dire. La légende attend d'avoir quelque
               chose à coiffer. */''}
          ${devs.length || comp ? '<div class="lbl-row" style="margin-bottom:6px"><label>Appareils reliés</label></div>' : ''}
-         <div class="dev-row"><b>${esc(self.name)}</b>${roleTag(self.id)}<span class="dev-sub">cet appareil</span></div>
-         ${devs.map(d => iAmMain && roleOf(d.id)
-           ? `<button class="dev-row dev-open" data-dev="${esc(d.id)}"><b>${esc(d.name)}</b>${roleTag(d.id)}
-                <span class="dev-sub">${agoLabel(d.seen || 0)} · gérer ›</span></button>`
-           : `<div class="dev-row hov-row"><b>${esc(d.name)}</b>${roleTag(d.id)}<span class="dev-sub">${agoLabel(d.seen || 0)}</span>
-                <button class="abtn abtn-sm abtn-del hov-soft" data-rm="${esc(d.id)}" aria-label="Retirer ${esc(d.name)}" title="Retirer">${ic('trash', 'ic-14')}</button>
-              </div>`).join('')}
+         ${/* Le principal se renomme aussi lui-même : sa ligne s'ouvre ;
+              pour les autres, « cet appareil » n'a rien à proposer. */''}
+         ${iAmMain && roleOf(self.id)
+           ? `<button class="dev-row dev-open" data-soi="1"><b>${esc(nomDe(self.id, self.name))}</b>${roleTag(self.id)}
+                <span class="dev-sub">cet appareil</span>${ic('chevron-right', 'ic-14')}</button>`
+           : `<div class="dev-row"><b>${esc(nomDe(self.id, self.name))}</b>${roleTag(self.id)}<span class="dev-sub">cet appareil</span></div>`}
+         ${devs.map(d =>
+           `<button class="dev-row dev-open" data-dev="${esc(d.id)}"><b>${esc(nomDe(d.id, d.name))}</b>${roleTag(d.id)}
+              <span class="dev-sub">${agoLabel(d.seen || 0)}</span>${ic('chevron-right', 'ic-14')}</button>`).join('')}
          ${comp ? compRowHTML(comp)
            : (ORDINATEUR && iAmMain
              ? (isDesktop()
@@ -342,12 +405,15 @@ export function openAppareils(){
                  fait bien ses 44 px, mais rien ne la DESSINE, et les trois
                  bords gauches du volet ne s'alignaient pas (57 / 45 / 37 px).
                  On reprend le dessin de « Verrouillage » — une liste
-                 d'actions, puis la sortie dangereuse en rouge dessous : un
-                 seul langage dans l'app pour ce couple-là. */''}
+                 d'actions, puis la sortie dangereuse dans SON groupe, en
+                 rouge, avec son pictogramme : un bouton, plus un mot
+                 souligné qui se lisait comme un lien vers ailleurs. */''}
             <div class="pick-list">
               <button class="pick" id="syNewPhrase"><b>Changer la phrase de liaison</b></button>
             </div>
-            <button class="linklike lk-cut" id="syBreak">Rompre le lien</button>
+            <div class="pick-list pick-sortie">
+              <button class="pick pick-danger" id="syBreak"><b>${ic('logout', 'ic-14')} Rompre le lien</b></button>
+            </div>
           </div>`)}`;
 
     q('#syRetry')?.addEventListener('click', () => startSync(sy.phrase, true));
@@ -355,24 +421,15 @@ export function openAppareils(){
     q('#syNewPhrase')?.addEventListener('click', async () => {
       if (await requireCode('Ton code, pour changer la phrase')) renderStart(true);
     });
-    sh.body.querySelectorAll('[data-rm]').forEach(b =>
-      b.addEventListener('click', async () => {
-        const d = devs.find(x => x.id === b.dataset.rm);
-        const ok = await confirmSheet({
-          title: 'Retirer cet appareil ?', danger: true, okLabel: 'Retirer', icon: 'trash',
-          msg: `<b>${esc(d ? d.name : 'Appareil')}</b> sort de la liste. Il connaît encore la phrase — pour l’écarter vraiment, change aussi la phrase de liaison.`
-        });
-        if (!ok) return;
-        if (!await requireCode('Ton code, pour retirer')) return;
-        await removeDevice(b.dataset.rm);
-        render();
-      }));
-    /* je suis le principal : chaque appareil s'ouvre en feuille de gestion */
+    /* chaque appareil s'ouvre dans sa feuille ; ce que la feuille propose
+       dépend de qui je suis — le principal y gère, les autres y retirent */
     sh.body.querySelectorAll('[data-dev]').forEach(b =>
       b.addEventListener('click', () => {
         const d = devs.find(x => x.id === b.dataset.dev);
-        if (d) openDeviceSheet(d, render);
+        if (d) openDeviceSheet(d, render, { principal: iAmMain && !!roleOf(d.id) });
       }));
+    q('[data-soi]')?.addEventListener('click', () =>
+      openDeviceSheet(self, render, { principal: true, soi: true }));
     wireComp(q, comp, render);
     wireRelays(q, sy.phrase, render);
     /* le QR se peint après coup : `makeQrSvg` est asynchrone, et un

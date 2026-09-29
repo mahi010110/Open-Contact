@@ -671,7 +671,12 @@ export function openManageSheet(){
          <button class="pick" id="vgPhrase"><b>Refaire ma phrase de secours</b></button>
          ${bioAvailable() ? `<button class="pick" id="vgBio"><b>${bioEnrolled() ? 'Retirer' : 'Activer'} l’empreinte / le visage</b></button>` : ''}
        </div>
-       <button class="linklike" id="vgOff" style="margin-top:14px;color:var(--red)">Ne plus protéger…</button>`;
+       ${/* un geste qui retire la protection n'est pas un lien : il a son
+            groupe, en rouge, en dernier — le même dessin que « Rompre le
+            lien » et « Effacer cet appareil » */''}
+       <div class="pick-list pick-sortie">
+         <button class="pick pick-danger" id="vgOff"><b>${ic('lock', 'ic-14')} Ne plus protéger</b></button>
+       </div>`;
     const q = s => sh.body.querySelector(s);
     q('#vgLock').addEventListener('click', () => { sh.close(); lockNow(); });
     q('#vgPin').addEventListener('click', changePin);

@@ -15,8 +15,8 @@ import { normalizeProfile } from '../engine/model.js';
 import { fullPayload } from '../engine/exchange.js';
 import { syncMerge, syncPrivateMerge } from '../engine/sync.js';
 import { edAvailable, makeDeviceKeys, recoveryKeys, ringInit, ringAddDevice,
-         ringCommand, ringTransfer, ringRecover, ringRekey, mergeRing, actionsFor, deviceIn,
-         edSign, edVerify } from '../engine/ring.js';
+         ringCommand, ringTransfer, ringRecover, ringRekey, ringRename, nomAppareil,
+         mergeRing, actionsFor, deviceIn, edSign, edVerify } from '../engine/ring.js';
 import { SYNC_KEY, RELAYS_KEY, TURN_KEY, DEVICE_KEY, DEVICES_KEY, RING_KEY,
          CAMPAIGNS_KEY, MISSIONS_KEY, kvGet, kvSet, effacerCetAppareil } from '../engine/storage.js';
 import { causeLiaison, relayTally, liaisonStage, RELAIS_DEFAUT, TURN_DEFAUT,
@@ -248,14 +248,27 @@ function guessName(){
     : /Chrome\//.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari' : '';
   return os + (br ? ' · ' + br : '');
 }
-export async function deviceSelf(){
-  try {
-    const d = JSON.parse(await kvGet(DEVICE_KEY) || 'null');
-    if (d && d.id) return d;
-  } catch (e) {}
-  const d = { id: uid(), name: guessName() };
-  await kvSet(DEVICE_KEY, JSON.stringify(d));
-  return d;
+/* UNE SEULE IDENTITÉ, MÊME DEMANDÉE DEUX FOIS À LA FOIS. La première
+   lecture trouve le stockage vide et fabrique un identifiant ; deux
+   premières lectures simultanées en fabriquaient DEUX — la dernière
+   écrite gagnait sur le disque, pendant que la sync gardait l'autre en
+   mémoire et l'annonçait. L'appareil changeait d'identité au lancement
+   suivant, et ses pairs le voyaient apparaître deux fois. Mesuré en
+   reliant deux navigateurs : l'identifiant lu par l'écran n'était pas
+   celui que la liaison annonçait. La promesse est donc partagée : tous
+   les appelants attendent la même. */
+let selfP = null;
+export function deviceSelf(){
+  if (!selfP) selfP = (async () => {
+    try {
+      const d = JSON.parse(await kvGet(DEVICE_KEY) || 'null');
+      if (d && d.id) return d;
+    } catch (e) {}
+    const d = { id: uid(), name: guessName() };
+    await kvSet(DEVICE_KEY, JSON.stringify(d));
+    return d;
+  })().catch(e => { selfP = null; throw e; });
+  return selfP.then(d => Object.assign({}, d));
 }
 export async function loadDevices(){
   try { return JSON.parse(await kvGet(DEVICES_KEY) || '[]') || []; } catch (e) { return []; }
@@ -271,6 +284,29 @@ export async function removeDevice(id){
   await kvSet(DEVICES_KEY, JSON.stringify(list));
 }
 export const DEVICES_MAX = 5;
+
+/* ---------- le nom d'un appareil ----------
+   Dès qu'un anneau existe, c'est LUI qui fait foi : le principal a signé
+   ce nom. Sinon, celui que l'appareil annonce de lui-même. */
+export function nomDe(id, annonce){
+  const d = getRing() && deviceIn(getRing(), id);
+  return (d && d.name) || annonce || 'Appareil';
+}
+/* Le principal m'a renommé : j'adopte ce nom, et c'est lui que
+   j'annonce désormais — sans ça, je continuerais de me présenter sous
+   l'ancien à chaque reconnexion. */
+let nomAdopte = null;
+async function adopterMonNom(){
+  const self = await deviceSelf();
+  const d = getRing() && deviceIn(getRing(), self.id);
+  if (!d || !d.name || d.name === self.name) return false;
+  const renomme = Object.assign({}, self, { name: d.name });
+  await kvSet(DEVICE_KEY, JSON.stringify(renomme));
+  selfP = Promise.resolve(renomme);
+  nomAdopte = d.name;
+  if (sendHello) sendHello();
+  return true;
+}
 
 /* ---------- l'anneau d'appareils (appareil principal) ----------
    État persistant : { keys: {pub, seed}, ring, applied: [cid…] } —
@@ -382,6 +418,20 @@ export async function ringDo(cmd, targetId){
   emit();
   return true;
 }
+/* renommer — le principal seul (engine/ring.js, `ringRename`) ; les
+   autres appareils l'apprennent avec l'anneau, comme toute commande */
+export async function ringRenommer(targetId, brut){
+  if (!(await amMain())) return false;
+  const self = await deviceSelf();
+  const avant = nomDe(targetId);
+  ringSt.ring = await ringRename(ringSt.ring, ringSt.keys.seed, self.id, targetId, brut);
+  await saveRingSt();
+  await adopterMonNom();
+  logJ('Appareil renommé : ' + avant + ' → ' + nomAppareil(brut));
+  sendRing();
+  emit();
+  return true;
+}
 export async function ringMakeMain(targetId){
   if (!(await amMain())) return false;
   ringSt.ring = await ringTransfer(ringSt.ring, ringSt.keys.seed, targetId);
@@ -414,6 +464,7 @@ async function onRingMsg(incoming){
   ringSt = Object.assign({ keys: null, applied: [] }, ringSt || {}, { ring: r.ring });
   await saveRingSt();
   if (r.recovered) toast('Ton appareil principal a changé — récupération d’urgence.');
+  await adopterMonNom();
   const self = await deviceSelf();
   const acts = actionsFor(r.ring, self.id, ringSt.applied);
   for (const a of acts){
@@ -617,7 +668,7 @@ async function join(phrase, force){
      rebranche pas nos rappels par-dessus les siens */
   if (my !== gen) return;
   const hello = r.makeAction('hello');
-  sendHello = () => hello.send({ id: self.id, name: self.name, pub: keys ? keys.pub : '' });
+  sendHello = () => hello.send({ id: self.id, name: nomAdopte || self.name, pub: keys ? keys.pub : '' });
   const appareilDuPair = new Map();     /* pair WebRTC → appareil */
   hello.onMessage = async (obj, meta) => {
     if (!obj || !obj.id || obj.id === self.id) return;

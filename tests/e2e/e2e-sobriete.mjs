@@ -239,8 +239,15 @@ const PLAFOND = {
        ce qu'on ne peut pas deviner (« personne ne peut rouvrir… »), et
        où les pistes existent encore. C'est l'écran qui porte le geste
        le plus lourd de l'app, sans confirmation derrière (§6 : ne pas
-       payer deux fois) — il doit donc tout dire lui-même. */
-  motsExplication: 267,
+       payer deux fois) — il doit donc tout dire lui-même.
+
+     272 le 30 septembre 2026, +5, pour les appareils renommés : « Donne-
+     lui un nom. », l'erreur d'un champ vide, dite sous le champ (§6) ; et
+     la ligne d'état de la feuille d'un appareil, qui dit maintenant
+     « Cet appareil. » quand le principal ouvre sa propre ligne — une
+     DONNÉE (où l'on est), pas une explication, que le relevé compte
+     parce qu'elle vit dans un `hint`. */
+  motsExplication: 272,
   /* ZÉRO, et c'est le seul plafond qui puisse honnêtement valoir zéro :
      un style sans porteur n'a pas de contrepartie à peser — il ne rend
      service à personne, il ne fait qu'attendre d'être lu par erreur.
