@@ -56,7 +56,7 @@ export function openProfil(onDone, opts = {}){
     `<div class="field fld-1l"><label for="${id}">${label}</label>
        <textarea id="${id}" rows="1" ${attrs}>${esc(val)}</textarea></div>`;
   sh.body.innerHTML =
-    `<fieldset class="pf-grp"><legend>Toi</legend>
+    `<fieldset class="pf-grp"><legend>Nom et formation</legend>
        <div class="field"><label for="pfName">Prénom et nom</label>
          <input id="pfName" value="${esc(d.name)}" placeholder="Ex : Sam Martin" autocomplete="name" ${clavier('nom')}></div>
        ${/* Formation et école se REPLIENT au lieu de défiler : « Lycée
@@ -80,17 +80,17 @@ export function openProfil(onDone, opts = {}){
        </div>
        <div id="pfRech"></div>
      </fieldset>
-     <fieldset class="pf-grp"><legend>Pour te répondre</legend>
+     <fieldset class="pf-grp"><legend>Coordonnées</legend>
        <div class="grid2">
          <div class="field"><label for="pfEmail">Email</label>
            <input id="pfEmail" type="email" value="${esc(d.email)}" autocomplete="email" inputmode="email"
                   aria-describedby="pfEmailErr" ${clavier('email')}>
-           <p class="hint warn" id="pfEmailErr" hidden>Il manque le @ ou le domaine.</p></div>
+           <p class="hint warn" id="pfEmailErr" hidden>Adresse incomplète (exemple : prenom.nom@gmail.com).</p></div>
          <div class="field"><label for="pfPhone">Téléphone</label>
            <input id="pfPhone" type="tel" value="${esc(d.phone)}" autocomplete="tel" inputmode="tel" ${clavier('tel')}></div>
        </div>
      </fieldset>
-     <fieldset class="pf-grp"><legend>Tes liens</legend>
+     <fieldset class="pf-grp"><legend>Liens</legend>
        <div class="grid2">
          <div class="field"><label for="pfCv">Lien de ton CV</label>
            <input id="pfCv" type="url" value="${esc(d.cvUrl)}" placeholder="https://…" autocomplete="url" ${clavier('lien')}></div>
@@ -104,7 +104,7 @@ export function openProfil(onDone, opts = {}){
           candidature, remplies —, pas une explication. Ce qui manque s'y
           lit en creux, à sa place dans la phrase. */''}
      <div class="pf-ap" aria-labelledby="pfApL">
-       <span class="pf-ap-l" id="pfApL">Dans tes emails</span>
+       <span class="pf-ap-l" id="pfApL">Aperçu de ton email</span>
        <div class="pf-ap-t" id="pfAp"></div>
      </div>`;
 
@@ -122,7 +122,7 @@ export function openProfil(onDone, opts = {}){
              <span class="fld-n pf-duree" id="pfDuree">${duree || ''}</span></div>
            <input id="pfFin" type="date" value="${esc(d.fin)}" aria-describedby="pfPerErr"></div>` : ''}
        </div>
-       <p class="hint warn" id="pfPerErr" hidden>La fin tombe avant le début.</p>
+       <p class="hint warn" id="pfPerErr" hidden>La date de fin est avant la date de début.</p>
        ${d.recherche === 'alternance'
          ? un('pfRythme', 'Rythme', d.rythme, 'placeholder="Ex : 3 jours en entreprise, 2 à l’école" autocomplete="off" enterkeyhint="done"')
          : ''}`;

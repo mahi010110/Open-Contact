@@ -1180,6 +1180,20 @@ n'est pas un renoncement, c'est l'action.
 **Un tiret cadratin par phrase au maximum, et jamais pour remplacer un point.**
 Deux phrases courtes se lisent mieux qu'une phrase à charnière.
 
+**Des mots de tous les jours, jamais des images** *(règle du mainteneur,
+29 septembre 2026)*. « À l'abri », « Mettre à l'abri », « filet » ont été
+retirés le jour même, après essai sur un téléphone : ils sonnaient comme
+une app écrite par une machine, et il fallait les traduire pour les
+comprendre. Un libellé dit ce que fait le geste avec les mots qu'on
+emploierait à voix haute — « Enregistrer », « Télécharger », « Effacer
+cet appareil », « À compléter », « Coordonnées ». Si un mot demande une
+seconde de réflexion, ce n'est pas le bon. Ça vaut aussi pour les
+messages d'erreur : ils disent quoi corriger (« Adresse incomplète
+(exemple : prenom.nom@gmail.com) »), pas une notion technique. Les deux
+images retirées sont refusées par le relevé du vocabulaire
+(`e2e-sobriete.mjs`, compte ⑤) : elles ne reviennent pas par une
+feuille secondaire.
+
 **Écrire est le geste le plus cher de l'app, et le seul que personne ne
 peut faire à la place de l'étudiant.** Deux mesures le cadrent, et elles
 disent la même chose : un corps personnalisé obtient ~33 % de réponses en
@@ -1535,13 +1549,11 @@ retiré.
 | « L'emphase suit le défaut : aplat si l'on part de rien coché, dither si l'on part de tout coché » | **supprimée** (août 2026) | Le raisonnement se tenait — l'encre va à ce qui varie — mais il produisait deux écrans qui ne se ressemblaient pas pour le même geste, et le mainteneur l'a vu avant tout le reste. La ligne cochée ne porte plus rien du tout, partout ; seul l'ÉCART garde sa trame, là où il existe |
 | « La liste déclare ses colonnes, la rangée les emprunte (`subgrid`) » | **supprimée** (septembre 2026), trois jours après avoir été écrite | Elle était juste sur le fond — les pistes déclarées une fois, la colonne dimensionnée sur la colonne entière, aucune constante à voir dériver — et elle a **cassé l'app sur le téléphone du mainteneur** : les rangées rendaient une tranche d'encre de quelques pixels, le trait pointillé passant à travers les lettres. La cause de la cause est la seule qui compte : `subgrid` sur trois niveaux, `container-type` et `@container` n'avaient été vérifiés que sur **Chromium, le seul moteur installé dans l'environnement de développement**. Safari n'a jamais été mesuré une seule fois, et c'est le moteur de l'utilisateur. Trois fonctionnalités récentes empilées sur le moteur qu'on ne peut pas tester, ce n'est pas de l'audace, c'est un pari |
 
-| « Au pouce, Réglages est le 2ᵉ écran de Moi » (la porte #20) | **supprimée** (29 septembre 2026) | La porte cachait quatre lignes derrière un mot qui ne promet ni « mon ordinateur » ni « ma copie » : on ne suit un mot que s'il SENT ce qu'on cherche (parfum d'information, Pirolli & Card), et personne ne cherche la synchronisation sous « Réglages ». Pendant ce temps, 306 px restaient vides sous elle en 390 × 844 — la zone du pouce (§5) — et le poste montrait déjà les mêmes lignes dépliées. « Moi » se range maintenant par USAGE en deux cadres : « Ce que j'envoie » et « À l'abri » (appareils, protection, copie ET restauration côte à côte — les deux moitiés d'un même geste), puis les lignes du bas. Un seul dessin pour les deux ergonomies |
-| « Aucun état de copie sur Moi » (décision #4, 4 août 2026) | **précisée** (29 septembre 2026) | L'état retiré parlait à CHAQUE passage (« N pistes depuis ta copie ») : c'était un papier peint, et le retirer était juste. Mais le silence complet laissait ignorer la perte la plus lourde de l'app — tout vit dans un seul navigateur, et Safari efface un site non ouvert depuis sept jours. L'état revient sous une condition qui le rend rare (`sansFilet`, engine/assist.js) : il ne parle que quand AUCUN filet n'existe — ni appareil vu depuis 30 jours, ni copie depuis 30 jours, et au moins 5 pistes — et se tait dès qu'un seul existe. Il nomme le fait (« Tes 24 pistes n'existent que sur cet appareil »), jamais la consigne : les deux gestes qui le règlent sont juste dessous |
+| « Moi » sur un seul écran, sans porte « Réglages », avec un cadre « À l'abri » | **retirée** (29 septembre 2026, le jour même), par le mainteneur après essai sur son téléphone | L'idée partait d'une mesure juste — 306 px vides sous la porte en 390 × 844, et des lignes utiles cachées derrière le mot « Réglages ». Sur le vrai téléphone, l'écran unique s'est lu plus chargé que l'ancien, la ligne de copie serrait son bouton sur deux lignes, et le mot inventé « À l'abri » sonnait comme une app écrite par une machine (voir §7). **La porte #20 et le cadre « Ma copie » restent.** Ce qui a été gardé du lot vit à l'intérieur de ce dessin : l'état « sans copie » dans « Ma copie », « Installer l'app » et « Effacer cet appareil » dans Réglages |
+| « Aucun état de copie sur Moi » (décision #4, 4 août 2026) | **précisée** (29 septembre 2026) | L'état retiré parlait à CHAQUE passage (« N pistes depuis ta copie ») : c'était un papier peint, et le retirer était juste. Mais le silence complet laissait ignorer la perte la plus lourde de l'app — tout vit dans un seul navigateur, et Safari efface un site non ouvert depuis sept jours. L'état revient dans le cadre « Ma copie », sous une condition qui le rend rare (`sansFilet`, engine/assist.js) : au moins 5 pistes, ni copie ni autre appareil vus depuis 30 jours. Il se tait dès qu'une copie ou un appareil existe. Il dit le fait en mots simples (« Tes 24 pistes sont enregistrées seulement sur cet appareil »), et le bouton qui le règle est juste dessous |
 
 *Tranché par l'assistant, à valider :* la reformulation de l'interdit serveur,
 la suppression de « ne pas dégrader l'existant », et le contenu détaillé des
 §4 à §9 (design, adaptatif, motifs, textes, checklist), gardés depuis la
-version précédente et resserrés. Et, le 29 septembre 2026, à la demande du mainteneur
-(« élargis ton champ d'action ») : la suppression de la porte « Réglages »
-et le retour de l'état de copie sous condition — les deux lignes juste
-au-dessus.
+version précédente et resserrés. Et, le 29 septembre 2026, le retour de
+l'état de copie sous condition — la ligne juste au-dessus.

@@ -1,14 +1,16 @@
 /* ============================================================
-   « Moi » rangé par usage — et le profil qui sert ailleurs.
+   « Moi » — et le profil qui sert ailleurs.
 
-   Trois questions, trois endroits : est-ce que mes emails me
-   présentent bien (« Ce que j'envoie »), est-ce que je risque de tout
-   perdre (« À l'abri »), qui m'aide si ça cloche (le bas). Ce scénario
+   Au pouce : le profil, « Ce que j'envoie », « Ma copie », puis la
+   porte « Réglages » (#20). Le mainteneur a essayé « Moi » sur un seul
+   écran et l'a refusé sur son téléphone : la porte reste. Ce scénario
    garde ce qui se défait en silence :
 
-   ① la porte « Réglages » ne revient pas au pouce ;
-   ② « sans filet » ne parle QUE sans filet, et se tait dès qu'une copie
-     part — il a été retiré une fois pour avoir parlé à chaque passage ;
+   ① au pouce, la porte « Réglages » est là, et ses lignes derrière ;
+   ② l'avertissement « enregistrées seulement sur cet appareil » ne
+     parle que sans copie récente ni autre appareil, et se tait dès
+     qu'une copie part — il a été retiré une fois pour avoir parlé à
+     chaque passage ;
    ③ au doigt, la copie passe par la feuille de partage (une copie
      restée sur le téléphone ne rattrape pas un téléphone perdu), et
      renoncer au partage ne compte pas comme une copie ;
@@ -18,7 +20,7 @@
      les pistes qui prennent ce que tu cherches, et le composeur montre
      « Compléter mon profil » quand le mail partirait faux.
    ============================================================ */
-import { chromium, chromiumPath, serveRepo, attendre } from './outils.mjs';
+import { chromium, chromiumPath, serveRepo, attendre, ouvrirReglages } from './outils.mjs';
 
 const { server, base } = await serveRepo();
 const browser = await chromium.launch({ executablePath: chromiumPath() });
@@ -73,35 +75,37 @@ async function page({ largeur = 390, profil = PROFIL, data = pistes(24), partage
 }
 const lastBackupAt = p => p.evaluate(async () => (await import('./ui/state.js')).S.profile.flags.lastBackupAt || 0);
 
-/* ---------- ① et ② : pas de porte, et « sans filet » au bon moment ---------- */
+/* ---------- ① et ② : la porte, et l'avertissement au bon moment ---------- */
 {
   const { ctx, p } = await page({ partage: 'accepte' });
-  await p.waitForSelector('#moiVerrou');
-  okSi(!(await p.$('#moiReglages')), 'plus de porte « Réglages » : les lignes sont sur « Moi »');
-  okSi(!!(await p.$('#moiSync')) && !!(await p.$('#moiRestore')), 'appareils et restauration à portée, sans détour');
-  await attendre(p, () => !!document.querySelector('#moiFilet'), { message: 'l’état « sans filet »' });
-  okSi((await p.textContent('#moiFilet')).includes('Tes 24 pistes n’existent que sur cet appareil'),
-    'sans filet : l’état nomme le fait');
-  okSi(await p.$eval('#moiAbri', e => e.classList.contains('fs-alert')), 'et le cadre prend le bord ambre');
+  await p.waitForSelector('#moiProfil');
+  okSi(!!(await p.$('#moiReglages')) && !(await p.$('#moiVerrou')),
+    'au pouce, « Réglages » est une porte : ses lignes sont derrière');
+  await attendre(p, () => !!document.querySelector('#moiFilet'), { message: 'l’avertissement sans copie' });
+  okSi((await p.textContent('#moiFilet')).includes('Tes 24 pistes sont enregistrées seulement sur cet appareil'),
+    'sans copie ni autre appareil : l’état nomme le fait');
+  okSi(await p.$eval('#moiCopie', e => e.classList.contains('fs-alert')), 'et « Ma copie » prend le bord ambre');
+  const mots = (await p.textContent('#view-moi')).toLowerCase();
+  okSi(!/\babri|\bfilet/.test(mots),'aucune image à la place du fait (§7)');
 
   /* ③ la copie par la feuille de partage */
-  okSi((await p.textContent('#moiBkDo')).trim() === 'Mettre à l’abri', 'au doigt, le bouton dit le but');
+  okSi((await p.textContent('#moiBkDo')).trim() === 'Enregistrer', 'au doigt, le bouton dit « Enregistrer »');
   await p.click('#moiBkDo');
   await attendre(p, () => (window.__partages || []).length === 1, { message: 'la feuille de partage reçoit la copie' });
   const [[fichier]] = await p.evaluate(() => window.__partages);
   okSi(/^opencontact-copie-\d{4}-\d{2}-\d{2}\.oc\.txt$/.test(fichier.name) && fichier.size > 100,
     'le `.oc` refusé par le partage repart en `.oc.txt` — même nom, même contenu');
   okSi(await lastBackupAt(p) > 0, 'la copie partagée compte comme une copie');
-  await attendre(p, () => !document.querySelector('#moiFilet'), { message: '« sans filet » se tait après la copie' });
-  okSi(!(await p.$eval('#moiAbri', e => e.classList.contains('fs-alert'))), 'et le bord ambre part avec lui');
+  await attendre(p, () => !document.querySelector('#moiFilet'), { message: 'l’avertissement se tait après la copie' });
+  okSi(!(await p.$eval('#moiCopie', e => e.classList.contains('fs-alert'))), 'et le bord ambre part avec lui');
   await ctx.close();
 }
 {
   /* peu de pistes : rien ne vaut d'inquiéter */
   const { ctx, p } = await page({ data: pistes(3) });
-  await p.waitForSelector('#moiVerrou');
+  await p.waitForSelector('#moiProfil');
   await p.waitForTimeout(400);
-  okSi(!(await p.$('#moiFilet')), 'trois pistes : aucun « sans filet »');
+  okSi(!(await p.$('#moiFilet')), 'trois pistes : aucun avertissement');
   await ctx.close();
 }
 {
@@ -112,7 +116,7 @@ const lastBackupAt = p => p.evaluate(async () => (await import('./ui/state.js'))
   await p.click('#moiBkDo');
   await p.waitForTimeout(500);
   okSi(await lastBackupAt(p) === 0, 'partage abandonné : aucune copie comptée');
-  okSi(!!(await p.$('#moiFilet')), 'et « sans filet » reste — il n’y a toujours pas de filet');
+  okSi(!!(await p.$('#moiFilet')), 'et l’avertissement reste — il n’y a toujours pas de copie');
   await ctx.close();
 }
 {
@@ -128,14 +132,15 @@ const lastBackupAt = p => p.evaluate(async () => (await import('./ui/state.js'))
 /* ---------- ④ effacer cet appareil ---------- */
 {
   const { ctx, p } = await page();
+  await ouvrirReglages(p);
   await p.waitForSelector('#moiEfface');
   /* une vieille clé d'avant la v3 : une base vide la relit au chargement */
   await p.evaluate(() => localStorage.setItem('oc_data_v2', JSON.stringify([{ id: 'v2', name: 'Revenante', status: 'todo' }])));
   await p.click('#moiEfface');
   await p.waitForSelector('text=Effacer cet appareil ?');
   const msg = await p.textContent('.modal');
-  okSi(msg.includes('24 pistes') && msg.includes('ce sera définitif'),
-    'la question montre ce qu’on ne peut pas deviner : combien part, et qu’aucun filet n’existe');
+  okSi(msg.includes('24 pistes') && msg.includes('tout sera perdu'),
+    'la question montre ce qu’on ne peut pas deviner : combien part, et qu’aucune copie n’existe');
   /* le rechargement, pas une navigation quelconque : les feuilles poussent
      et consomment des entrées d'historique, que `waitForNavigation`
      prendrait pour elle — et l'on mesurerait la page d'AVANT */
@@ -143,7 +148,7 @@ const lastBackupAt = p => p.evaluate(async () => (await import('./ui/state.js'))
   await p.click('.modal .btn-danger');
   await recharge;
   await p.goto(base + '/#/moi', { waitUntil: 'load' });
-  await p.waitForSelector('#moiProfil');
+  await ouvrirReglages(p);
   const apres = await p.evaluate(async () => {
     const { S } = await import('./ui/state.js');
     return { n: S.companies.length, nom: S.profile.name, v2: localStorage.getItem('oc_data_v2') };
@@ -199,8 +204,9 @@ const UA_IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleW
 const UA_ANDROID = 'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36';
 {
   const { ctx, p } = await page({ ua: UA_IPHONE });
+  await ouvrirReglages(p);
   await p.waitForSelector('#moiInstall');
-  okSi(true, 'iPhone dans Safari : la ligne « Installer l’app » est dans « À l’abri »');
+  okSi(true, 'iPhone dans Safari : la ligne « Installer l’app » est dans Réglages');
   await p.click('#moiInstall');
   await p.waitForSelector('.inst-pas');
   const txt = await p.textContent('.modal');
@@ -212,6 +218,7 @@ const UA_ANDROID = 'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 
 {
   /* Android : l'invite du système, rejouée au moment où on la demande */
   const { ctx, p } = await page({ ua: UA_ANDROID });
+  await ouvrirReglages(p);
   await p.waitForSelector('#moiInstall');
   await p.evaluate(() => {
     const e = new Event('beforeinstallprompt');
@@ -227,13 +234,13 @@ const UA_ANDROID = 'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 
 }
 {
   const { ctx, p } = await page({ installee: true });
-  await p.waitForSelector('#moiVerrou');
+  await ouvrirReglages(p);
   okSi(!(await p.$('#moiInstall')), 'déjà installée : aucune ligne');
   await ctx.close();
 }
 {
   const { ctx, p } = await page({ largeur: 1280 });
-  await p.waitForSelector('#moiVerrou');
+  await ouvrirReglages(p);
   okSi(!(await p.$('#moiInstall')), 'au poste : aucune ligne');
   await ctx.close();
 }
@@ -243,7 +250,7 @@ const UA_ANDROID = 'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 
   const qui = [{ id: 'r', name: 'Relancée SA', status: 'active', updatedAt: 1,
     contacts: [{ id: 'cr', name: 'Rémi', email: 'remi@relancee.test' }] }];
   const { ctx, p } = await page({ data: qui });
-  await p.waitForSelector('#moiVerrou');
+  await p.waitForSelector('#moiProfil');
   const choisi = await p.evaluate(async () => {
     const { S } = await import('./ui/state.js');
     (await import('./ui/mail.js')).openMail(S.companies[0], { ctId: 'cr' });
@@ -259,7 +266,7 @@ const UA_ANDROID = 'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 
 /* ---------- Mes appareils : quel appareil fait quoi ---------- */
 {
   const { ctx, p } = await page();
-  await p.waitForSelector('#moiSync');
+  await ouvrirReglages(p);
   await p.click('#moiSync');
   await p.waitForSelector('#syNew');
   okSi((await p.textContent('#syNew')).includes('sur le premier appareil')

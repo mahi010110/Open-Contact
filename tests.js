@@ -895,7 +895,7 @@ export async function runSelfTests(){
       eq(resumeRecherche({}), '');
     },
     'profil : ce qui manque à un mail de candidature, dans l’ordre du mail': () => {
-      eq(manquesProfil({}).join(), 'formation,école,stage ou alternance,email');
+      eq(manquesProfil({}).join(), 'formation,école,ce que tu cherches,email');
       eq(manquesProfil({ formation: 'BTS', ecole: 'X', recherche: 'stage', email: 'a@b.fr' }).length, 0);
       ok(emailPlausible('sam.martin@lycee.fr'));
       ok(!emailPlausible('sam.martin@lycee'));      /* le domaine manque */

@@ -7,7 +7,7 @@
    ============================================================ */
 import { uid, extractCity, todayISO, fmtDate } from './utils.js';
 
-export const APP_VERSION = '6.32.0';
+export const APP_VERSION = '6.32.1';
 
 export const DOMAINS = {
   esn:     { label:'ESN / Services IT',       color:'#4C9FD8' },
@@ -137,7 +137,7 @@ export function manquesProfil(p){
   const out = [];
   if (!String(p.formation || '').trim()) out.push('formation');
   if (!String(p.ecole || '').trim()) out.push('école');
-  if (!RECHERCHES[p.recherche]) out.push('stage ou alternance');
+  if (!RECHERCHES[p.recherche]) out.push('ce que tu cherches');
   if (!String(p.email || '').trim()) out.push('email');
   return out;
 }

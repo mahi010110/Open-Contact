@@ -15,7 +15,7 @@ import { renderPistes } from './ui/pistes.js';
 import { renderEchanger } from './ui/echanger.js';
 import { renderMoi } from './ui/moi.js';
 import { openCapture } from './ui/capture.js';
-import { downloadBackup } from './ui/moi.js';
+import { downloadBackup, closeReglages } from './ui/moi.js';
 import { ecouterInstallation } from './ui/installer.js';
 import { initSyncLive } from './ui/synclive.js';
 import { ORDINATEUR, CAMPAGNES } from './ui/perimetre.js';
@@ -154,8 +154,13 @@ function applyTheme(t, persist){
   /* navigation */
   window.addEventListener('hashchange', applyRoute);
   /* retaper l'onglet où l'on est déjà remonte à sa racine — le hash ne
-     change pas, donc `hashchange` ne suffit pas */
+     change pas, donc `hashchange` ne suffit pas. Aujourd'hui c'est
+     « Moi » qui en a besoin : ça referme Réglages depuis la zone la plus
+     facile du pouce, au lieu du chevron coincé en haut à gauche. */
   $$('[data-r]').forEach(a => a.addEventListener('click', () => {
+    if (a.dataset.r === 'moi' && S.route === 'moi') closeReglages();
+    /* même onglet, deuxième tap : on remonte. Après `closeReglages()`,
+       qui a pu changer ce qui est à l'écran. */
     if (a.dataset.r === S.route) auSommet(S.route);
   }));
   $('#btnTheme').addEventListener('click', () => applyTheme(S.theme === 'dark' ? 'light' : 'dark', true));

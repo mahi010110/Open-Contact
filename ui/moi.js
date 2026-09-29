@@ -177,8 +177,8 @@ const DOC_KINDS = ENVOI_DIRECT ? {
   cv: { label: 'CV', add: 'Ajouter un CV', vide: 'Ton CV partira avec tes emails.' },
   lm: { label: 'Lettres', add: 'Ajouter une lettre', vide: 'Ta lettre partira avec tes emails.' }
 } : {
-  cv: { label: 'CV', add: 'Ajouter un CV', vide: 'Aucun CV rangé ici.' },
-  lm: { label: 'Lettres', add: 'Ajouter une lettre', vide: 'Aucune lettre rangée ici.' }
+  cv: { label: 'CV', add: 'Ajouter un CV', vide: 'Aucun CV enregistré.' },
+  lm: { label: 'Lettres', add: 'Ajouter une lettre', vide: 'Aucune lettre enregistrée.' }
 };
 
 function openDocs(kind, onChange){
@@ -200,9 +200,9 @@ function openDocs(kind, onChange){
          ne lit que le texte posé dans le gabarit, et deux phrases rangées
          dans une constante lui échappaient */
       + (ENVOI_DIRECT ? '' : kind === 'cv'
-        ? `<p class="hint">Un email ne joint pas de fichier : c’est le lien de ton profil qui part.</p>
-           <button class="linklike" id="docLien">${ic('link', 'ic-14')} Mettre le lien</button>`
-        : `<p class="hint">Un email ne joint pas de fichier : ta lettre, c’est le message lui-même.</p>`);
+        ? `<p class="hint">L’app ne peut pas joindre ton CV à un email.</p>
+           <button class="linklike" id="docLien">${ic('link', 'ic-14')} Ajouter le lien de mon CV</button>`
+        : `<p class="hint">L’app ne peut pas joindre ta lettre à un email : écris-la dans le message.</p>`);
     sh.body.querySelector('#docLien')?.addEventListener('click', () => {
       sh.close();
       openProfil(null, { focus: '#pfCv' });
@@ -257,7 +257,7 @@ async function renderDocs(){
     /* le lien du profil est ce qui part VRAIMENT dans un email : la
        ligne qui dirait « aucun » à côté d'un CV en ligne mentirait */
     const etat = [n ? n + ' document' + (n > 1 ? 's' : '') : '',
-                  kind === 'cv' && S.profile.cvUrl ? 'lien' : ''].filter(Boolean).join(' · ');
+                  kind === 'cv' && S.profile.cvUrl ? 'lien ajouté' : ''].filter(Boolean).join(' · ');
     return `<button class="rg-row${i === kinds.length - 1 ? ' rg-last' : ''}" data-kind="${kind}">
               <span class="rg-n">${DOC_KINDS[kind].label}</span>
               <span class="rg-s">${etat || 'aucun'}</span>
@@ -268,23 +268,7 @@ async function renderDocs(){
     b.addEventListener('click', () => openDocs(b.dataset.kind, renderDocs)));
 }
 
-/* ---------- l'écran : un objet, deux cadres rangés par USAGE ----------
-   « Moi » répond à trois questions, dans cet ordre : est-ce que mes
-   emails me présentent bien ? (le profil, « Ce que j'envoie ») ; est-ce
-   que je risque de tout perdre ? (« À l'abri ») ; et qui m'aide si ça
-   cloche ? (les lignes du bas). Avant, la deuxième vivait à trois
-   endroits — la copie ici, la restauration et les appareils derrière une
-   porte « Réglages » — alors que télécharger et restaurer sont les deux
-   moitiés d'un même geste : le jour où l'on doit restaurer, on cherche
-   là où l'on a téléchargé.
-
-   PLUS DE PORTE « RÉGLAGES » AU POUCE (décision #20, revue le 29 septembre
-   2026). Elle cachait quatre lignes derrière un mot qui ne promet ni
-   « mon ordinateur » ni « ma copie » (parfum d'information, Pirolli &
-   Card) — pendant que 306 px restaient vides sous elle, en 390 × 844,
-   dans la zone la plus facile du pouce (§5). Le poste les montrait déjà
-   dépliées : il reste UN dessin pour les deux ergonomies, ce que §5
-   demande par défaut. */
+/* ---------- l'écran : Profil & données + Réglages (#20) ---------- */
 function syncLabel(){
   const sy = getSync();
   if (!sy.phrase) return 'non relié';
@@ -294,21 +278,90 @@ function syncLabel(){
   if (sy.state === 'rtcfail') return 'rien ne passe';
   return 'en attente';
 }
+/* L'état de la copie à chaque passage (« aucune copie », « N pistes
+   depuis ta copie ») est RETIRÉ — décision du mainteneur, 4 août 2026 :
+   il poussait à chaque passage, et la carte porte déjà son verbe. Il ne
+   revient que sous condition, dans « Ma copie » (voir `renderMoi`). */
 
-/* les lignes : des portes, pas des boutons (#7) — la ligne entière se
-   tape, le réglage s'ouvre dans sa feuille. PAS de pictogramme : on
-   scanne une liste par ses deux premiers mots (NN/g), et l'icône les
-   repoussait de 22 px — assez pour que « Mes appareils » passe à deux
-   lignes sur un vrai téléphone. */
+/* les lignes de Réglages — des portes, plus des boutons (#7) : la ligne
+   entière se tape, le réglage s'ouvre dans sa feuille. C'est la décision
+   #21 (« le nom d'abord, l'écran ensuite ») et la même grammaire que les
+   tiroirs CV / Lettres. Messagerie et IA exigent le code : sans
+   protection, l'ÉTAT dit le vrai premier geste — « à protéger » — et
+   taper mène quand même à la protection (N9 reste réglé).
+
+   PAS de pictogramme : on scanne une liste par ses deux premiers mots à
+   gauche (NN/g), et l'icône les repoussait de 22 px — assez pour que
+   « Mes appareils » passe à deux lignes sur un vrai téléphone. Une icône
+   aide quand elle éclaire un libellé obscur ; ici les libellés sont
+   clairs, elle ne faisait que prendre la place. */
 const rgRow = (id, nom, etat, last, dep) =>
   `<button class="rg-row${last ? ' rg-last' : ''}${dep ? ' rg-dep' : ''}" id="${id}">
      <span class="rg-n">${nom}</span>
      <span class="rg-s"${id === 'moiSync' ? ' id="moiSyncSt"' : (id === 'moiComp' ? ' id="moiCompSt"' : '')}>${etat}</span>
      ${ic('chevron-right', 'ic-14')}
    </button>`;
-const lignes = rows => rows.map(([id, nom, etat, dep], i) =>
-  rgRow(id, nom, etat, i === rows.length - 1, dep)).join('');
 
+function reglagesRowsHTML(){
+  const prot = isProtected();
+  /* les lignes se composent avant de s'écrire : le recentrage en retire
+     (CLAUDE.md §0), et c'est la DERNIÈRE présente qui porte `rg-last` —
+     sinon masquer l’ordinateur laisserait un trait en bas de liste */
+  const rows = [
+    ['moiVerrou', 'Protection', verrouLabel(), false],
+    ['moiSync', 'Mes appareils', syncLabel(), false]
+  ];
+  /* au doigt, tant que l'app vit dans le navigateur : sur iPhone,
+     l'installer protège les données de l'effacement des sept jours de
+     Safari (ui/installer.js) */
+  if (proposerInstallation()) rows.push(['moiInstall', 'Installer l’app', 'pas installée', false]);
+  /* le pré-requis ne remplace l'état que s'il n'y a rien à dire : une
+     messagerie déjà branchée le dit, même si le coffre a disparu.
+     Deux lignes attendaient la MÊME chose et le disaient chacune dans
+     son coin (« à protéger », deux fois) : rien ne montrait que c'est
+     la ligne du dessus qui les débloque toutes les deux. Elles nomment
+     donc leur cause et s'effacent tant qu'elle n'est pas levée — taper
+     mène quand même à la protection (N9 reste réglé). */
+  if (ENVOI_DIRECT) rows.push(['moiCx', 'Ma messagerie',
+    (!prot && !mailAccount()) ? 'après Protection' : mailStateLabel(),
+    !prot && !mailAccount()]);
+  if (IA) rows.push(['moiAi', 'Mon assistant IA',
+    (!prot && !aiConnection()) ? 'après Protection' : aiStateLabel(),
+    !prot && !aiConnection()]);
+  /* l'état, pas la phrase : « il s'installe sur ton ordinateur » se
+     dit sur le 2ᵉ écran, là où on peut vraiment le faire (#21).
+     Cette liste reste sans pictogramme (voir plus haut) ; l’ordinateur
+     a son icône propre — un écran d’ordinateur — sur SES feuilles,
+     là où elle distingue quelque chose (#4). */
+  if (ORDINATEUR) rows.push(['moiComp', 'L’ordinateur', 'pas installé', false]);
+  /* Sans compte ni analytique, une app locale ne renvoie rien : le
+     seul chemin de retour est un texte que l'étudiant copie lui-même
+     (docs/feuille-de-route.md).
+     SANS état : la ligne portait le numéro de version, il est parti
+     avec lui. En ligne, OpenContact est une seule app à une seule
+     adresse — un numéro n'y distingue plus rien, il se lisait juste
+     à chaque passage dans les réglages. */
+  /* UNE seule ligne pour deux pages, et elle mène à l'aide : c'est ce
+     qu'un étudiant cherche depuis l'app. La confidentialité, elle, se
+     lit surtout AVANT d'installer quoi que ce soit — un établissement
+     qui vérifie ne passe pas par les réglages — mais les deux pages se
+     renvoient l'une à l'autre, donc rien n'est enterré. Elles sont
+     précachées : elles répondent hors ligne comme le reste. */
+  rows.push(['moiAide', 'Aide et confidentialité', '', false]);
+  rows.push(['moiDiag', 'Signaler un problème', '', false]);
+  return (
+    rows.map(([id, nom, etat, dep], i) =>
+      rgRow(id, nom, etat, i === rows.length - 1, dep)).join('') +
+    `<div class="rg-foot">
+       <button class="linklike" id="moiRestore">${ic('reload', 'ic-14')} Restaurer une copie</button>
+       <input type="file" id="moiRestoreFile" accept=".oc,.txt,.json,application/octet-stream,application/json,text/plain" hidden>
+       ${/* Partir proprement d'un poste du lycée, du CDI, d'un ordinateur
+            prêté : l'effacement n'existait qu'à distance. Absent quand il
+            n'y a rien à effacer. */''}
+       ${(S.companies.length || S.profile.name)
+         ? `<button class="linklike moi-efface" id="moiEfface">${ic('trash', 'ic-14')} Effacer cet appareil</button>` : ''}
+     </div>`);
+}
 /* Qui a vu ces pistes ailleurs ? La liste des appareils vit dans le
    stockage (lecture asynchrone) : elle est gardée ici et relue à chaque
    rendu. Tant qu'elle n'est pas lue, on ne SAIT pas — et on ne dit rien :
@@ -330,75 +383,6 @@ function relireAppareils(){
   }).catch(() => {});
 }
 
-/* ---------- « À l'abri » : ne rien perdre, ne rien laisser lire ---------- */
-function abriHTML(showBackup, filet){
-  const n = S.companies.length;
-  return `<fieldset class="fset${filet ? ' fs-alert' : ''}" id="moiAbri">
-       <legend>À l’abri</legend>
-       ${/* LE SEUL ÉTAT DE COPIE, ET IL NE PARLE QUE SANS FILET. Celui du
-            4 août parlait à chaque passage (« N pistes depuis ta copie »)
-            et il est parti pour ça. Celui-ci ne dit rien tant qu'un
-            appareil relié ou une copie récente rattraperait la perte —
-            `sansFilet`, engine/assist.js. Il nomme le fait, pas la
-            consigne : les deux gestes qui le règlent sont juste dessous.
-            Le bord ambre du cadre revient avec lui : §6 le réserve à un
-            état qui peut tout coûter, et c'est exactement celui-là. */''}
-       ${filet ? `<p class="hint warn abri-etat" id="moiFilet">${ic('square-alert', 'ic-14')} Tes ${n} pistes n’existent que sur cet appareil.</p>` : ''}
-       ${lignes([
-         ['moiSync', 'Mes appareils', syncLabel(), false],
-         ['moiVerrou', 'Protection', verrouLabel(), false],
-         /* au doigt, tant que l'app vit dans le navigateur : sur iPhone,
-            l'installer est ce qui la soustrait à l'effacement des sept
-            jours — c'est un filet, sa place est ici (ui/installer.js) */
-         ...(proposerInstallation() ? [['moiInstall', 'Installer l’app', 'pas installée', false]] : [])
-       ])}
-       <div class="abri-copie">
-         ${showBackup ? `
-         ${/* « privé inclus » : la seule chose que le bouton ne peut PAS dire
-              autrement — ce fichier emporte le suivi privé, et ça se sait
-              avant de l'envoyer à quelqu'un. */''}
-         <div class="lbl-row"><span class="abri-l">Ma copie <span class="lg-note">privé inclus</span></span></div>
-         ${lockRowHTML({ id: 'moiBk', action: partageCopie() ? 'Mettre à l’abri' : 'Télécharger' })}` : ''}
-         ${/* Restaurer vit À CÔTÉ de télécharger — et reste là même sans
-              rien à copier : le cas le plus fréquent de restauration est
-              justement un appareil neuf, donc vide. */''}
-         <button class="linklike" id="moiRestore">${ic('reload', 'ic-14')} Restaurer une copie</button>
-         <input type="file" id="moiRestoreFile" accept=".oc,.txt,.json,application/octet-stream,application/json,text/plain" hidden>
-       </div>
-     </fieldset>`;
-}
-
-/* ---------- le bas : ce qui ne sert que quand ça cloche ---------- */
-function basHTML(showBackup){
-  const prot = isProtected();
-  const rows = [];
-  /* le pré-requis ne remplace l'état que s'il n'y a rien à dire ; les trois
-     lignes suivantes peuvent être absentes (CLAUDE.md §0) : on branche ce
-     qui existe, jamais ce qui devrait exister */
-  if (ENVOI_DIRECT) rows.push(['moiCx', 'Ma messagerie',
-    (!prot && !mailAccount()) ? 'après Protection' : mailStateLabel(),
-    !prot && !mailAccount()]);
-  if (IA) rows.push(['moiAi', 'Mon assistant IA',
-    (!prot && !aiConnection()) ? 'après Protection' : aiStateLabel(),
-    !prot && !aiConnection()]);
-  if (ORDINATEUR) rows.push(['moiComp', 'L’ordinateur', 'pas installé', false]);
-  /* UNE ligne pour deux pages, et elle mène à l'aide : c'est ce qu'un
-     étudiant cherche depuis l'app. Les deux pages se renvoient l'une à
-     l'autre, et elles répondent hors ligne comme le reste. */
-  rows.push(['moiAide', 'Aide et confidentialité', '', false]);
-  rows.push(['moiDiag', 'Signaler un problème', '', false]);
-  return `<div class="moi-bas">
-       ${lignes(rows)}
-       ${/* PARTIR PROPREMENT. L'effacement n'existait qu'à distance, commandé
-            par l'appareil principal : sur un poste du lycée, au CDI ou sur
-            l'ordinateur d'un proche, rien ne permettait de partir sans
-            laisser son suivi — et les contacts que le groupe a donnés avec.
-            Une sortie visible rend aussi l'essai moins risqué. Absente
-            quand il n'y a rien à effacer. */''}
-       ${showBackup ? `<button class="linklike moi-efface" id="moiEfface">${ic('trash', 'ic-14')} Effacer cet appareil</button>` : ''}
-     </div>`;
-}
-
 /* l'état du lien vit : peers, liaison, rupture */
 function bindSyncLive(root){
   if (root.__onSync) document.removeEventListener('oc:sync', root.__onSync);
@@ -406,17 +390,19 @@ function bindSyncLive(root){
     if (root.hidden){ document.removeEventListener('oc:sync', root.__onSync); root.__onSync = null; return; }
     const lbl = root.querySelector('#moiSyncSt');
     if (lbl) lbl.textContent = syncLabel();
-    /* un appareil vient de se montrer : il peut suffire à lever « sans filet » */
     relireAppareils();
   };
   document.addEventListener('oc:sync', root.__onSync);
 }
 
-function bindLignes(box){
+function bindReglages(box){
   const q = s => box.querySelector(s);
   q('#moiVerrou').addEventListener('click', () =>
     isProtected() ? openManageSheet() : openProtectFlow());
   q('#moiSync').addEventListener('click', openAppareils);
+  /* N9 : l'état a dit « à protéger d'abord » — la ligne y mène tout droit.
+     Les trois lignes suivantes peuvent être absentes (CLAUDE.md §0) : on
+     branche ce qui existe, jamais ce qui devrait exister. */
   q('#moiCx')?.addEventListener('click', () =>
     isProtected() ? openConnexions() : openProtectFlow());
   q('#moiAi')?.addEventListener('click', () =>
@@ -438,23 +424,77 @@ function bindLignes(box){
     window.open('aide.html', '_blank', 'noopener'));
   q('#moiDiag').addEventListener('click', openDiagnostic);
   const rf = q('#moiRestoreFile');
-  /* restaurer = rare et sensible (#4) : le code d'abord */
+  /* restaurer = rare et sensible (#4) : rangé ici, le code d'abord */
   q('#moiRestore').addEventListener('click', async () => {
     if (await requireCode('Ton code, pour restaurer')) rf.click();
   });
   rf.addEventListener('change', () => { if (rf.files[0]) restoreFile(rf.files[0]); });
-  q('#moiEfface')?.addEventListener('click', effacerIci);
   q('#moiInstall')?.addEventListener('click', installer);
+  q('#moiEfface')?.addEventListener('click', effacerIci);
 }
 /* installée pendant qu'on regarde : la ligne part d'elle-même */
 document.addEventListener('oc:installee', () => { if (S.route === 'moi') renderMoi(); });
 
+/* mobile : Réglages est le 2ᵉ écran de « Moi » (la porte #20) — un vrai
+   écran re-rendu par bus.refresh, jamais une feuille qui gèlerait ses états */
+let reglagesOpen = false;
 const mqWideMoi = matchMedia('(min-width:901px)');
 mqWideMoi.addEventListener('change', () => { if (S.route === 'moi') renderMoi(); });
+
+/* Revenir de Réglages : le chevron le fait, mais il vit dans le coin le
+   plus dur à atteindre au pouce. Deux chemins s'y ajoutent — jamais ne le
+   remplacent (Apple HIG : un geste complète un bouton visible) :
+   · retaper « Moi » dans la barre du bas, comme un onglet iOS qu'on
+     retape pour remonter à sa racine — c'est la zone la plus facile ;
+   · glisser depuis le bord gauche. */
+export function closeReglages(){
+  if (!reglagesOpen) return false;
+  reglagesOpen = false;
+  renderMoi();
+  return true;
+}
+function bindEdgeBack(root){
+  let x0 = null, y0 = null;
+  root.addEventListener('touchstart', e => {
+    const t = e.touches[0];
+    x0 = t.clientX <= 24 ? t.clientX : null;   /* depuis le bord seulement */
+    y0 = t.clientY;
+  }, { passive: true });
+  root.addEventListener('touchend', e => {
+    if (x0 == null) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - x0, dy = Math.abs(t.clientY - y0);
+    x0 = null;
+    if (dx > 60 && dy < 50) closeReglages();
+  });
+  /* sans ça, un geste repris par le système laisse `x0` armé : le tap
+     suivant se mesure depuis un départ qui n'est plus le sien */
+  root.addEventListener('touchcancel', () => { x0 = null; });
+}
 
 export function renderMoi(){
   const root = $('#view-moi');
   const wide = mqWideMoi.matches;
+
+  if (!wide && reglagesOpen){
+    root.innerHTML =
+      `<div class="page-inner">
+         <div class="td-head td-back">
+           <button class="abtn" id="moiBack" aria-label="Retour à Moi">${ic('chevron-left', 'ic-14')}</button>
+           <h1>Réglages</h1>
+         </div>
+         ${/* La version ne flotte plus seule en bas : elle est l'ÉTAT de
+              « Signaler un problème », dans la liste. C'est le même
+              chiffre, à l'endroit où on le cherche — quand ça cloche. */''}
+         <fieldset class="fset fset-plain">${reglagesRowsHTML()}</fieldset>
+       </div>`;
+    root.querySelector('#moiBack').addEventListener('click', closeReglages);
+    bindEdgeBack(root);
+    bindReglages(root);
+    bindSyncLive(root);
+    return;
+  }
+
   const p = S.profile;
   const manques = manquesProfil(p);
   const pReady = p.name && !manques.length;
@@ -508,7 +548,7 @@ export function renderMoi(){
        ${p.name ? `<div class="obj-s">${[[p.formation, p.ecole].filter(Boolean).join(' · '),
                                     resumeRecherche(p), p.email].filter(Boolean)
                  .map(v => `<span class="obj-l" title="${esc(v)}">${esc(v)}</span>`).join('')}
-                ${manques.length ? `<span class="obj-l obj-creux">${manques.map(m => esc(m) + ' ?').join(' · ')}</span>` : ''}</div>` : ''}
+                ${manques.length ? `<span class="obj-l obj-creux">À compléter : ${esc(manques.join(', '))}</span>` : ''}</div>` : ''}
      </div>`;
 
   const envoi =
@@ -521,42 +561,76 @@ export function renderMoi(){
        </button>
        <div id="moiDocs"></div>
      </fieldset>`;
-  const filet = showBackup && etatFilet();
-  const abri = abriHTML(showBackup, filet);
-  const bas = basHTML(showBackup);
 
-  /* « General first, Advanced last » : ce qui ne sert que quand ça cloche
-     ferme la page. Au poste, la colonne de droite porte l'abri et le bas :
-     l'ordre de lecture reste le même, de gauche à droite. */
+  /* « privé inclus » reste — c'est la seule chose que la carte ne peut
+     PAS dire autrement : ce fichier emporte le suivi privé, et ça se
+     sait avant de l'envoyer à quelqu'un. Il monte simplement DANS la
+     légende, où il ne coûte plus sa propre ligne : un cadre nommé
+     « Ma copie » a de la place à droite de son nom, et l'étiquette y
+     qualifie ce qu'elle nomme au lieu de flotter au-dessus du geste. */
+  /* L'état de la copie revient, mais seulement quand elle manque VRAIMENT
+     (`sansFilet`, engine/assist.js) : au moins 5 pistes, ni copie ni autre
+     appareil depuis 30 jours. Il dit le fait en mots simples ; le bouton
+     qui le règle est juste dessous. Le bord ambre du cadre revient avec
+     lui — §6 le réserve à un état qui peut tout coûter.
+     Le verbe dit ce qui se passe : au doigt la copie passe par la
+     feuille de partage du téléphone (Fichiers, Drive, un mail à soi),
+     donc « Enregistrer » ; au poste c'est un téléchargement.
+     Pas d'image à la place du fait (§7) : « à l'abri », « filet » ont
+     été lus sur le téléphone du mainteneur et retirés. */
+  const filet = showBackup && etatFilet();
+  const copie = showBackup ? `
+     <fieldset class="fset${filet ? ' fs-alert' : ''}" id="moiCopie">
+       <legend>Ma copie <span class="lg-note">privé inclus</span></legend>
+       ${filet ? `<p class="hint warn copie-etat" id="moiFilet">${ic('square-alert', 'ic-14')} Tes ${S.companies.length} pistes sont enregistrées seulement sur cet appareil.</p>` : ''}
+       ${lockRowHTML({ id: 'moiBk', action: partageCopie() ? 'Enregistrer' : 'Télécharger' })}
+     </fieldset>` : '';
+
+  /* « General first, Advanced last » : les réglages ferment la page.
+     Au pouce c'est une porte ; à la souris, la 2ᵉ colonne les déplie. */
+  const reglages = `<fieldset class="fset">
+       <legend>Réglages</legend>
+       ${reglagesRowsHTML()}
+     </fieldset>`;
+
   root.innerHTML =
     `<div class="page-inner${wide ? ' page-wide' : ''}">
        ${/* PLUS DE CADENAS À CÔTÉ DU TITRE. Il disait « privé », pendant
             que celui de « Chiffrer » disait « mot de passe » et que la
-            ligne « Protection » disait « non protégé » : trois sens pour
-            un signe, et le titre affirmait « verrouillé » au-dessus d'un
-            état qui dit le contraire. Toute l'app est privée par défaut ;
-            le cadenas ne sert plus qu'à ce qui verrouille. */''}
+            ligne du bas disait « non protégé » : trois sens pour un signe,
+            et le titre affirmait « verrouillé » juste au-dessus d'un état
+            qui dit le contraire. Toute l'app est privée par défaut ; le
+            cadenas ne sert plus qu'à ce qui verrouille. */''}
        <div class="td-head"><h1>Moi</h1></div>
        ${wide
-         ? `<div class="moi-cols"><div>${objet}${envoi}</div><div>${abri}${bas}</div></div>`
-         : objet + envoi + abri + bas}
-       ${/* La barre de statut qui porte la version est masquée au pouce :
+         ? `<div class="moi-cols"><div>${objet}${envoi}${copie}</div><div>${reglages}</div></div>`
+         : objet + envoi + copie +
+           `<button class="rg-row rg-last moi-rg" id="moiReglages">
+              <span class="rg-n">Réglages</span>
+              <span class="rg-s">${verrouLabel()}</span>
+              ${ic('chevron-right', 'ic-14')}
+            </button>`}
+       ${/* La barre de statut qui portait la version est masquée au pouce :
             sur téléphone, RIEN ne disait quelle version tournait. Il
             fallait chercher un détail d'interface pour deviner si la mise
-            à jour était passée — on a perdu des heures là-dessus. Elle
-            ferme maintenant une page pleine, au lieu de flotter seule au
-            milieu d'un vide. */''}
+            à jour était passée — on a perdu des heures là-dessus. */''}
        <p class="moi-ver">OpenContact ${APP_VERSION}</p>
      </div>`;
 
   root.querySelector('#moiProfil').addEventListener('click', () => openProfil());
   root.querySelector('#moiTpl').addEventListener('click', openTemplates);
   /* le mot de passe est facultatif : au repos il ne pèse qu'un bouton
-     compact au bout de la ligne (#8). Tapé, il s'étire en champ ; re-tapé,
-     il se referme et l'oublie. Un seul contrôle, deux états (#19-4). */
+     compact au bout de la ligne (#8 — l'avancé se replie derrière un
+     signe, jamais une phrase). Tapé, il s'étire en champ ; re-tapé, il
+     se referme et l'oublie. Un seul contrôle, deux états (#19-4). */
   const bk = root.querySelector('#moiBk') ? bindLockRow(root, 'moiBk') : null;
   root.querySelector('#moiBkDo')?.addEventListener('click', () => downloadBackup(bk.value()));
-  bindLignes(root);
+  if (wide) bindReglages(root);
+  else root.querySelector('#moiReglages').addEventListener('click', () => {
+    reglagesOpen = true;
+    renderMoi();
+    root.scrollTop = 0;
+  });
   bindSyncLive(root);
   renderDocs();
   relireAppareils();
@@ -574,12 +648,14 @@ async function effacerIci(){
   const n = S.companies.length;
   const filet = !sansFilet({ pistes: Math.max(n, FILET_MIN_PISTES),
     derniereCopie: (S.profile.flags || {}).lastBackupAt || 0, appareils: appareilsVus || [] });
+  const quoi = [`Tes <b>${n} piste${n > 1 ? 's' : ''}</b>`, 'ton profil'];
+  if (docs.length) quoi.push(`tes <b>${docs.length} document${docs.length > 1 ? 's' : ''}</b>`);
   const ok = await confirmSheet({
     title: 'Effacer cet appareil ?', icon: 'trash', danger: true, okLabel: 'Tout effacer',
-    msg: `<b>${n} piste${n > 1 ? 's' : ''}</b>, ton profil${docs.length ? ` et <b>${docs.length} document${docs.length > 1 ? 's' : ''}</b>` : ''} partent de cet appareil.<br>
+    msg: `${quoi.slice(0, -1).join(', ')} et ${quoi[quoi.length - 1]} seront supprimés de cet appareil.<br>
           ${filet
-            ? 'Une copie récente ou un autre appareil les garde encore.'
-            : '<b>Ni copie récente ni autre appareil</b> : ce sera définitif.'}`
+            ? 'Tu pourras les récupérer avec ta copie récente ou ton autre appareil.'
+            : '<b>Tu n’as ni copie récente ni autre appareil relié</b> : tout sera perdu.'}`
   });
   if (!ok) return;
   await effacerCetAppareil();
