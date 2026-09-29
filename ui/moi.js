@@ -6,7 +6,8 @@
    restauration, aide condensée — et le coup de pouce IA, rangé
    ici sans faire d'ombre au reste.
    ============================================================ */
-import { normalizeCompany, normalizeContact, normalizeProfile, APP_VERSION } from '../engine/model.js';
+import { normalizeCompany, normalizeContact, normalizeProfile, APP_VERSION,
+         resumeRecherche, manquesProfil } from '../engine/model.js';
 import { fullPayload, parseInput } from '../engine/exchange.js';
 import { encryptOC2 } from '../engine/crypto.js';
 import { fmtSize, todayISO, esc } from '../engine/utils.js';
@@ -127,9 +128,21 @@ function askRestorePass(raw){
    La carte ne montre que deux lignes — « CV » et « Lettres » — quel que
    soit le nombre de documents : elle ne grandit plus. Taper une ligne
    ouvre la liste de ce type, où vivent l'ajout et les gestes. */
-const DOC_KINDS = {
+/* « Ton CV partira avec tes emails » était FAUX sur le web : l'app y
+   écrit par `mailto:`, qui ne sait rien joindre, et la ligne de pièce
+   jointe du composeur n'existe qu'avec l'envoi direct (§0, masqué). Un
+   étudiant rangeait son CV ici, envoyait vingt candidatures, et aucun
+   recruteur ne l'a jamais reçu — une erreur qu'il ne pouvait pas voir
+   venir, puisqu'il ne voit pas le mail arrivé. La phrase dit donc ce
+   qui marche VRAIMENT : le lien du profil, qui part dans le mail. Elle
+   reste affichée même quand un PDF est rangé : c'est justement là
+   qu'on croit l'affaire réglée. */
+const DOC_KINDS = ENVOI_DIRECT ? {
   cv: { label: 'CV', add: 'Ajouter un CV', vide: 'Ton CV partira avec tes emails.' },
   lm: { label: 'Lettres', add: 'Ajouter une lettre', vide: 'Ta lettre partira avec tes emails.' }
+} : {
+  cv: { label: 'CV', add: 'Ajouter un CV', vide: 'Aucun CV rangé ici.' },
+  lm: { label: 'Lettres', add: 'Ajouter une lettre', vide: 'Aucune lettre rangée ici.' }
 };
 
 function openDocs(kind, onChange){
@@ -138,7 +151,7 @@ function openDocs(kind, onChange){
   const render = async () => {
     const docs = (await listDocs()).filter(d => docKind(d.key) === kind);
     if (!sh.body.isConnected) return;
-    sh.body.innerHTML = docs.length
+    sh.body.innerHTML = (docs.length
       ? docs.map(d =>
           `<div class="doc-row" data-key="${esc(d.key)}">
              <div class="sw-in">
@@ -146,7 +159,18 @@ function openDocs(kind, onChange){
                <span class="doc-size">${fmtSize(d.size)}</span>
              </div>
            </div>`).join('')
-      : `<p class="doc-vide">${k.vide}</p>`;
+      : `<p class="doc-vide">${k.vide}</p>`)
+      /* écrites EN CLAIR ici, pas dans DOC_KINDS : le relevé de sobriété
+         ne lit que le texte posé dans le gabarit, et deux phrases rangées
+         dans une constante lui échappaient */
+      + (ENVOI_DIRECT ? '' : kind === 'cv'
+        ? `<p class="hint">Un email ne joint pas de fichier : c’est le lien de ton profil qui part.</p>
+           <button class="linklike" id="docLien">${ic('link', 'ic-14')} Mettre le lien</button>`
+        : `<p class="hint">Un email ne joint pas de fichier : ta lettre, c’est le message lui-même.</p>`);
+    sh.body.querySelector('#docLien')?.addEventListener('click', () => {
+      sh.close();
+      openProfil(null, { focus: '#pfCv' });
+    });
     /* taper le nom ouvre le PDF */
     sh.body.querySelectorAll('.doc-name').forEach(m => {
       const open = async () => {
@@ -194,9 +218,13 @@ async function renderDocs(){
      avec ses propres classes et sa propre CSS pour rien */
   box.innerHTML = kinds.map((kind, i) => {
     const n = docs.filter(d => docKind(d.key) === kind).length;
+    /* le lien du profil est ce qui part VRAIMENT dans un email : la
+       ligne qui dirait « aucun » à côté d'un CV en ligne mentirait */
+    const etat = [n ? n + ' document' + (n > 1 ? 's' : '') : '',
+                  kind === 'cv' && S.profile.cvUrl ? 'lien' : ''].filter(Boolean).join(' · ');
     return `<button class="rg-row${i === kinds.length - 1 ? ' rg-last' : ''}" data-kind="${kind}">
               <span class="rg-n">${DOC_KINDS[kind].label}</span>
-              <span class="rg-s">${n ? n + ' document' + (n > 1 ? 's' : '') : 'aucun'}</span>
+              <span class="rg-s">${etat || 'aucun'}</span>
               ${ic('chevron-right', 'ic-14')}
             </button>`;
   }).join('');
@@ -400,7 +428,8 @@ export function renderMoi(){
   }
 
   const p = S.profile;
-  const pReady = p.name && p.email;
+  const manques = manquesProfil(p);
+  const pReady = p.name && !manques.length;
   const showBackup = !!(S.companies.length || p.name);   /* rien à copier = carte absente */
 
   /* « Moi » est une FEUILLE DE PROPRIÉTÉS, pas une pile de cartes.
@@ -425,22 +454,33 @@ export function renderMoi(){
        C'est le VERBE du bouton qui porte l'écart — « Compléter » tant
        qu'il reste quelque chose, « Modifier » ensuite : un mot, pas un
        objet de plus. */
-    `<div class="obj">
+    `<div class="obj${p.name ? ' obj-moi' : ''}">
        ${ic('user', 'ic-24')}
        <div class="obj-m">
          ${p.name
-           ? `<span class="obj-n">${esc(p.name)}</span>
-              ${/* une ligne par donnée, et chacune se coupe à sa fin. Jointes
-                   par <br> dans un bloc en `overflow-wrap:anywhere`, elles se
-                   brisaient n'importe où : sur un 360, l'adresse rendait
-                   « …ounchiouene@example » puis « .fr » seul sur sa ligne. */''}
-              <div class="obj-s">${[p.formation, p.email].filter(Boolean)
-                 .map(v => `<span class="obj-l" title="${esc(v)}">${esc(v)}</span>`).join('')}</div>`
-           : `<p class="obj-empty">Ton nom, ta formation, ton email remplissent
-                chaque email que tu envoies.</p>
+           ? `<span class="obj-n">${esc(p.name)}</span>`
+           : `<p class="obj-empty">Ta formation, ton école et ce que tu cherches
+                remplissent chaque email que tu envoies.</p>
               <button class="btn btn-sm btn-primary" id="moiProfil">Remplir mon profil</button>`}
        </div>
        ${p.name ? `<button class="btn btn-sm" id="moiProfil">${pReady ? 'Modifier' : 'Compléter'}</button>` : ''}
+       ${/* Les données passent SOUS le bouton, sur toute la largeur. À côté
+            de lui, elles perdaient 80 px : « Alternance · 2 ans dès le 1er
+            sep… » rendait la date, c'est-à-dire la seule chose qu'on vient
+            lire. Le nom reste face au bouton qui le modifie.
+            Une ligne par donnée, et chacune se coupe à sa fin. Jointes par
+            <br> dans un bloc en `overflow-wrap:anywhere`, elles se brisaient
+            n'importe où : sur un 360, l'adresse rendait « …@example » puis
+            « .fr » seul sur sa ligne.
+            Formation et école sur UNE ligne : ce sont deux moitiés de la
+            même réponse (« où tu en es »), et la ligne peut s'élider — c'est
+            une donnée (§4). Ce qui MANQUE se lit en creux, sans couleur ni
+            pastille : remplir son profil n'est pas urgent, mais un manque
+            nommé se comble, un « Compléter » vague se remet à plus tard. */''}
+       ${p.name ? `<div class="obj-s">${[[p.formation, p.ecole].filter(Boolean).join(' · '),
+                                    resumeRecherche(p), p.email].filter(Boolean)
+                 .map(v => `<span class="obj-l" title="${esc(v)}">${esc(v)}</span>`).join('')}
+                ${manques.length ? `<span class="obj-l obj-creux">${manques.map(m => esc(m) + ' ?').join(' · ')}</span>` : ''}</div>` : ''}
      </div>`;
 
   const envoi =
@@ -466,7 +506,7 @@ export function renderMoi(){
      qualifie ce qu'elle nomme au lieu de flotter au-dessus du geste. */
   const copie = showBackup ? `
      <fieldset class="fset">
-       <legend>Ma copie <span class="lg-note">${ic('lock', 'ic-14')} privé inclus</span></legend>
+       <legend>Ma copie <span class="lg-note">privé inclus</span></legend>
        ${lockRowHTML({ id: 'moiBk', action: 'Télécharger' })}
      </fieldset>` : '';
 
@@ -479,8 +519,13 @@ export function renderMoi(){
 
   root.innerHTML =
     `<div class="page-inner${wide ? ' page-wide' : ''}">
-       <div class="td-head"><h1>Moi</h1>
-         <div class="td-date td-lock" title="privé — jamais partagé" aria-label="privé — jamais partagé">${ic('lock', 'ic-14')}</div></div>
+       ${/* PLUS DE CADENAS À CÔTÉ DU TITRE. Il disait « privé », pendant
+            que celui de « Chiffrer » disait « mot de passe » et que la
+            ligne du bas disait « non protégé » : trois sens pour un signe,
+            et le titre affirmait « verrouillé » juste au-dessus d'un état
+            qui dit le contraire. Toute l'app est privée par défaut ; le
+            cadenas ne sert plus qu'à ce qui verrouille. */''}
+       <div class="td-head"><h1>Moi</h1></div>
        ${wide
          ? `<div class="moi-cols"><div>${objet}${envoi}${copie}</div><div>${reglages}</div></div>`
          : objet + envoi + copie +

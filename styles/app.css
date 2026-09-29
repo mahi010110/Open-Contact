@@ -298,6 +298,39 @@ html[data-theme="dark"] .field select{
 .grid2.grid2-tight{grid-template-columns:1fr 1fr}
 .hint{font-size:var(--text-12);color:var(--text-muted);margin-top:7px;line-height:1.5}
 .hint.warn{color:var(--amber)}
+
+/* ============ MON PROFIL ============
+   Quatre groupes rangés dans l'ordre où le recruteur lit. Pas de cadre
+   par groupe : quatre `fieldset` encadrés dans une feuille, c'est deux
+   de plus que ce que §6 tolère sur une page entière. Un filet et un
+   titre en casse de phrase suffisent — et le titre ne ressemble pas aux
+   libellés de champ (capitales grises), sinon on ne sait plus lequel
+   coiffe l'autre. Le `legend` flotte pour sortir du trait : posé
+   dessus, il le couperait comme une encoche de group box 98. */
+.pf-grp{border:0;margin:0;padding:0;min-width:0}
+.pf-grp+.pf-grp{margin-top:4px;padding-top:12px;border-top:1px dashed var(--border-soft)}
+.pf-grp>legend{
+  float:left;width:100%;padding:0;margin:0 0 10px;
+  font-size:var(--text-13);font-weight:var(--weight-bold);color:var(--text-body);
+}
+.pf-grp>legend+*{clear:both}
+.pf-grp .datechips{margin-bottom:12px}
+.pf-duree{font-size:var(--text-12);color:var(--text-muted)}
+/* L'aperçu est une DONNÉE, pas un champ : ni bordure ni fond (§6,
+   sobriété 3 — ce qui se tape a un cadre). Un filet à gauche, comme une
+   citation dans un mail : c'est exactement ce qu'il montre. */
+.pf-ap{margin-top:6px;padding-top:12px;border-top:1px dashed var(--border-soft)}
+.pf-ap-l{
+  display:block;font-size:var(--text-11);font-weight:var(--weight-bold);
+  letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--text-muted);
+}
+.pf-ap-t{
+  margin-top:8px;padding:2px 0 2px 12px;border-left:2px solid var(--border-frame);
+  font-size:var(--text-14);line-height:1.5;color:var(--text-body);overflow-wrap:anywhere;
+}
+.pf-ap-t p{margin:0}
+.pf-ap-t .pf-ap-sep{height:.6em}
+.pf-creux{color:var(--text-muted);text-decoration:underline dotted;text-underline-offset:3px}
 /* une note qui PORTE UNE ACTION : elle cesse d'être une ligne de texte et
    devient une rangée, pour que le contrôle qu'elle contient garde la
    taille du doigt sans que le texte se colle à lui (ui/mail.js) */
@@ -571,9 +604,6 @@ html[data-theme="dark"] .field select{
    l'écran : c'est la même règle de style, sur la balise juste. */
 .td-head h1{font-size:var(--text-20);letter-spacing:var(--tracking-tight)}
 .td-date{font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted)}
-/* une DATE se pose sur la ligne de base du titre ; une ICÔNE se centre
-   dessus — sinon elle pend 3 px trop bas (le cadenas de « Moi ») */
-.td-lock{display:inline-flex;align-items:center;align-self:center}
 /* le retour d'un 2ᵉ écran : nu, comme la poubelle au survol — un chevron
    qui n'est pas un bouton encadré. La ligne se centre sur le titre. */
 .td-back{align-items:center;gap:4px}
@@ -1053,7 +1083,23 @@ details.tranche[open]>summary::before{
    disent qu'il en reste, et « Modifier » la montre entière. */
 .obj-l{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .obj-empty{font-size:var(--text-13);color:var(--text-muted);line-height:1.5;margin:0 0 10px}
+/* Ce qui MANQUE au profil, en creux : la même encre que les données (un
+   gris plus clair tomberait sous 4,5:1, WCAG 1.4.3), un pointillé et un
+   point d'interrogation pour dire « à remplir ». Jamais de couleur :
+   ça ne réclame rien d'urgent (§6, `mark-*` reste à ce qui presse). */
+/* Contrairement aux données, le creux se REPLIE au lieu de s'élider :
+   « formation ? · école ? · stage ou alternance ? · email ? », chaque
+   manque est une tâche, et celle qu'on couperait serait oubliée. */
+.obj-creux{white-space:normal;text-decoration:underline dotted;text-underline-offset:3px}
 .obj>.btn{flex:none}
+/* « Moi » rempli : le nom face à son bouton, les données dessous sur
+   toute la largeur. Une grille, pas un flottant : les lignes élidées
+   (`overflow:hidden`) se rétréciraient à côté du flottant au lieu de
+   passer dessous. Deux colonnes seulement pour les données — l'icône
+   garde la sienne, l'alignement des textes ne bouge pas. */
+.obj-moi{display:grid;grid-template-columns:auto minmax(0,1fr) auto;column-gap:12px;row-gap:2px;align-items:center}
+.obj-moi>.obj-s{grid-column:2 / -1}
+.obj-moi .obj-n{margin-bottom:0}
 /* les actions d'une carte se partagent la largeur : deux boutons de
    libellés inégaux ne peuvent plus finir de tailles différentes. Une
    commande à icône garde la sienne. Le plafond évite l'inverse — un

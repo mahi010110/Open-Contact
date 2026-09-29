@@ -579,7 +579,12 @@ export function openProtectFlow(){
      recentrage a retirées de l'écran. Le parcours passe de cinq écrans
      à quatre, et commence par le seul qui demande quelque chose. */
   const stepPin = () => {
-    sh.setTitle('Ton code');
+    /* « Choisis », pas « Ton code » : c'est le titre de TOUTES les
+       demandes du code existant (`requireCode('Ton code, pour …')`). Le
+       même titre pour créer et pour retrouver fait chercher un code
+       qu'on n'a pas encore — iOS dit « Créez un code », Android
+       « Choisissez un code », et c'est ce qu'on attend. */
+    sh.setTitle('Choisis ton code');
     /* « Six chiffres » : le pavé affiche SIX cases vides. Compter des
        cases est immédiat, lire qu'il y en a six ne l'est pas plus. */
     sh.body.innerHTML = stepsHTML(1, 3) + `<div id="lkPad"></div>`;

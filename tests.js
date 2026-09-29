@@ -10,6 +10,8 @@ import { KDF_ITER, encryptOC2, decryptOC2, deriveKey, bytesToB64,
          fnv, ocKeystream, unsealOC1 } from './engine/crypto.js';
 import { APP_VERSION, VECU, normalizeCompany, normalizeContact, normalizeProfile,
          pushHist, fillTpl, safeUrl, summarizeChanges,
+         RECHERCHES, dateLongue, dureeRecherche, periodeValide, phraseRecherche, resumeRecherche,
+         manquesProfil, emailPlausible, majModelesDefaut, defaultTemplates,
          isActiveCt, nextActionContact,
          PROMPTS_MAX, PROMPT_MAX_LEN } from './engine/model.js';
 import { communityView, parseInput, sharePayload, fullPayload,
@@ -844,6 +846,95 @@ export async function runSelfTests(){
       /* une ligne SANS jeton vide garde sa typographie française */
       eq(fillTpl('Merci {{moi}} !\nBien à vous : {{email}}', c, null, plein),
          'Merci Ana B !\nBien à vous : a@b.fr');
+    },
+    'profil : école et recherche se normalisent — un choix connu, une date qui existe, ou rien': () => {
+      const p = normalizeProfile({ ecole: '  Lycée Eiffel  ', recherche: 'cdi', debut: '2027-02-31', fin: 'demain', rythme: 7 });
+      eq(p.ecole, 'Lycée Eiffel');
+      eq(p.recherche, '');                     /* « cdi » n'est pas une recherche du profil */
+      eq(p.debut, '');                          /* le 31 février n'existe pas */
+      eq(p.fin, '');
+      eq(p.rythme, '7');
+      const vieux = normalizeProfile({ name: 'Moi' });          /* profil d'avant la 6.31 */
+      eq(vieux.ecole, ''); eq(vieux.recherche, ''); eq(vieux.debut, '');
+      ok(Object.keys(RECHERCHES).join() === 'stage,alternance,emploi');
+    },
+    'recherche : la durée se déduit des deux dates, bornes incluses': () => {
+      eq(dateLongue('2027-09-01'), '1er septembre 2027');
+      eq(dateLongue('2027-01-06', false), '6 janvier');
+      eq(dateLongue('2027-02-14', true, true), '14 févr. 2027');
+      eq(dateLongue('2027-02-30'), '');
+      /* du lundi 4 janvier au vendredi 5 février : cinq semaines de travail */
+      eq(dureeRecherche('2027-01-04', '2027-02-05', 'stage'), '5 semaines');
+      eq(dureeRecherche('2027-01-06', '2027-01-08', 'stage'), '3 jours');
+      eq(dureeRecherche('2027-03-01', '2027-08-31', 'stage'), '6 mois');   /* long : en mois */
+      eq(dureeRecherche('2027-09-01', '2029-08-31', 'alternance'), '2 ans');
+      eq(dureeRecherche('2027-09-01', '2028-08-31', 'alternance'), '1 an');
+      eq(dureeRecherche('2027-09-01', '2029-02-28', 'alternance'), '18 mois');
+      eq(dureeRecherche('2027-02-01', '2027-01-01', 'stage'), null);      /* la fin avant le début */
+      ok(!periodeValide('2027-02-01', '2027-01-01'));
+      ok(periodeValide('2027-02-01', ''));                                /* une seule date : rien à contredire */
+    },
+    'recherche : la phrase du mail dit le type, la durée et la période': () => {
+      /* rien choisi : exactement ce que le modèle disait avant */
+      eq(phraseRecherche({}), 'un stage');
+      eq(phraseRecherche({ recherche: 'stage', debut: '2027-01-04', fin: '2027-02-12' }),
+         'un stage de 6 semaines, du 4 janvier au 12 février 2027');
+      /* à cheval sur deux années : chaque date porte la sienne */
+      eq(phraseRecherche({ recherche: 'stage', debut: '2026-12-14', fin: '2027-02-19' }),
+         'un stage de 10 semaines, du 14 décembre 2026 au 19 février 2027');
+      eq(phraseRecherche({ recherche: 'stage', debut: '2027-01-04' }), 'un stage à partir du 4 janvier 2027');
+      eq(phraseRecherche({ recherche: 'alternance', debut: '2027-09-01', fin: '2029-08-31' }),
+         'une alternance de 2 ans à partir du 1er septembre 2027');
+      /* l'emploi n'a pas de fin, même si une date traîne d'avant */
+      eq(phraseRecherche({ recherche: 'emploi', debut: '2027-07-01', fin: '2027-09-01' }),
+         'un emploi à partir du 1er juillet 2027');
+      eq(resumeRecherche({ recherche: 'stage', debut: '2027-01-04', fin: '2027-02-12' }), 'Stage · 4 janv. → 12 févr. 2027');
+      eq(resumeRecherche({ recherche: 'alternance', debut: '2027-09-01', fin: '2029-08-31' }), 'Alternance · 2 ans dès le 1er sept. 2027');
+      eq(resumeRecherche({}), '');
+    },
+    'profil : ce qui manque à un mail de candidature, dans l’ordre du mail': () => {
+      eq(manquesProfil({}).join(), 'formation,école,stage ou alternance,email');
+      eq(manquesProfil({ formation: 'BTS', ecole: 'X', recherche: 'stage', email: 'a@b.fr' }).length, 0);
+      ok(emailPlausible('sam.martin@lycee.fr'));
+      ok(!emailPlausible('sam.martin@lycee'));      /* le domaine manque */
+      ok(!emailPlausible('sam.martin.lycee.fr'));   /* le @ manque */
+      ok(!emailPlausible('sam martin@lycee.fr'));
+    },
+    'modèle de candidature : sans lien de CV, la présentation RESTE': () => {
+      /* Le défaut d'origine : « Je suis en … et je cherche un stage. Mon CV :
+         {{cv}} » sur une seule ligne. Sans lien, la règle « Étiquette :
+         {{jeton}} » faisait sauter la ligne entière — la présentation avec. */
+      const c = normalizeCompany({ name: 'Zeta' });
+      const [cand] = defaultTemplates();
+      const sansCv = normalizeProfile({ name: 'Ana B', formation: 'BTS SIO', email: 'a@b.fr' });
+      ok(fillTpl(cand.body, c, null, sansCv).includes('Je suis en BTS SIO et je cherche un stage.'));
+      ok(!fillTpl(cand.body, c, null, sansCv).includes('Mon CV'));
+      const alt = normalizeProfile({ name: 'Ana B', formation: 'BTS SIO', ecole: 'CFA Afia', recherche: 'alternance',
+        debut: '2027-09-01', fin: '2029-08-31', rythme: '3 jours / 2 jours', email: 'a@b.fr' });
+      const mail = fillTpl(cand.body, c, null, alt);
+      ok(mail.includes('je cherche une alternance de 2 ans à partir du 1er septembre 2027.'));
+      ok(mail.includes('\nRythme : 3 jours / 2 jours\n'));
+      ok(mail.endsWith('Ana B\nCFA Afia\na@b.fr'));
+      eq(fillTpl(cand.subject, c, null, alt), 'Candidature alternance BTS SIO — Ana B');
+      /* le rythme ne suit que l'alternance */
+      ok(!fillTpl(cand.body, c, null, { ...alt, recherche: 'stage' }).includes('Rythme'));
+      /* l'emploi n'écrit pas « Candidature emploi » */
+      eq(fillTpl(cand.subject, c, null, { ...alt, recherche: 'emploi' }), 'Candidature BTS SIO — Ana B');
+    },
+    'modèles de départ : un modèle jamais retouché passe à la version du jour, un modèle retouché jamais': () => {
+      const ancien = { id: 'a1', name: 'Candidature spontanée', subject: 'Candidature stage {{formation}} — {{moi}}',
+        body: 'Bonjour {{contact}},\n\n[Une phrase précise sur ce qu\'ils font. Pas « votre entreprise m\'intéresse » — ils le lisent dix fois par jour.]\n\nJe suis en {{formation}} et je cherche un stage. Mon CV : {{cv}}\nJe peux passer en parler quand vous voulez.\n\nBien à vous,\n{{moi}} — {{tel}} — {{email}}' };
+      const retouche = { ...ancien, id: 'a2', body: ancien.body.replace('Bonjour', 'Salut') };
+      const [neuf, garde] = majModelesDefaut([ancien, retouche]);
+      eq(neuf.id, 'a1');                               /* même modèle, même place */
+      ok(neuf.body.includes('{{recherche}}'));
+      eq(neuf.subject, 'Candidature {{type}} {{formation}} — {{moi}}');
+      ok(garde === retouche);                           /* pas une virgule de changée */
+      /* idempotent, et c'est normalizeProfile qui s'en charge au chargement */
+      eq(JSON.stringify(majModelesDefaut([neuf])), JSON.stringify([neuf]));
+      const p = normalizeProfile({ templates: [ancien, retouche] });
+      ok(p.templates[0].body.includes('{{recherche}}'));
+      eq(p.templates[1].body, retouche.body);
     },
     'score : borné 0–100, croissant avec la complétude': () => {
       const vide = scoreOf(normalizeCompany({ name: 'X' }));
