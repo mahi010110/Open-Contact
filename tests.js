@@ -12,7 +12,7 @@ import { APP_VERSION, VECU, normalizeCompany, normalizeContact, normalizeProfile
          pushHist, fillTpl, safeUrl, summarizeChanges,
          RECHERCHES, dateLongue, dureeRecherche, periodeValide, phraseRecherche, resumeRecherche,
          manquesProfil, emailPlausible, majModelesDefaut, defaultTemplates,
-         prendCeQueJeCherche, PREND_MOT,
+         prendCeQueJeCherche, PREND_MOT, modeleConseille,
          isActiveCt, nextActionContact,
          PROMPTS_MAX, PROMPT_MAX_LEN } from './engine/model.js';
 import { communityView, parseInput, sharePayload, fullPayload,
@@ -969,6 +969,15 @@ export async function runSelfTests(){
       /* tout ce qui se scelle est une donnée : tout ce qui se scelle s'efface */
       for (const k of SEALABLE) ok(CLES_A_EFFACER.includes(k), k + ' (scellable) doit partir');
       ok(!CLES_A_EFFACER.includes(THEME_KEY));                       /* un réglage d'affichage reste */
+    },
+    'composeur : le modèle arrive pré-choisi d’après le statut de la piste': () => {
+      const tpls = defaultTemplates();                    /* Candidature, Relance, Remerciement */
+      eq(modeleConseille(tpls, { status: 'todo' }), 0);
+      eq(modeleConseille(tpls, { status: 'active' }), 1);  /* on attend une réponse : on relance */
+      eq(modeleConseille(tpls, { status: 'reply' }), 0);   /* une réponse ne décide rien : comme avant */
+      /* un modèle renommé ne casse rien : on retombe sur le premier */
+      eq(modeleConseille([{ name: 'Ma relance' }, { name: 'Autre' }], { status: 'active' }), 0);
+      eq(modeleConseille([], null), 0);
     },
     'score : borné 0–100, croissant avec la complétude': () => {
       const vide = scoreOf(normalizeCompany({ name: 'X' }));

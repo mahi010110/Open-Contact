@@ -16,8 +16,13 @@ import { renderEchanger } from './ui/echanger.js';
 import { renderMoi } from './ui/moi.js';
 import { openCapture } from './ui/capture.js';
 import { downloadBackup } from './ui/moi.js';
+import { ecouterInstallation } from './ui/installer.js';
 import { initSyncLive } from './ui/synclive.js';
 import { ORDINATEUR, CAMPAGNES } from './ui/perimetre.js';
+
+/* tôt, avant tout `await` : Chrome peut signaler l'installation dès le
+   chargement, et un écouteur posé après aurait manqué l'événement */
+ecouterInstallation();
 
 const VIEWS = {
   aujourdhui: renderToday,

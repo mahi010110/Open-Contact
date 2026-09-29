@@ -79,7 +79,13 @@ const ligne = await mPage.evaluate(() => {
     nom: b.querySelector('.rg-n').textContent.trim(),
     etat: b.querySelector('.rg-s').textContent.trim(),
     h: Math.round(b.getBoundingClientRect().height),
-    ver: /\d+\.\d+\.\d+/.test(document.querySelector('#view-moi').textContent)
+    /* Les lignes vivaient sur un 2ᵉ écran « Réglages » ; depuis le 29
+       septembre 2026 elles sont sur « Moi » même, dont le pied porte la
+       version AU POUCE — exprès (sur téléphone rien d'autre ne la dit).
+       Ce qu'on garde ici, c'est la règle de la LISTE : aucune ligne ne
+       porte de numéro. Le pied se lit à part, il n'est pas une ligne. */
+    ver: [...document.querySelectorAll('#view-moi .rg-row')]
+      .some(r => /\d+\.\d+\.\d+/.test(r.textContent))
   };
 });
 if (!ligne) fail('pas de ligne « Signaler un problème » dans Réglages');
@@ -87,7 +93,7 @@ else {
   if (ligne.nom !== 'Signaler un problème') fail('libellé inattendu : ' + ligne.nom);
   if (ligne.etat) fail('la ligne ne porte plus d’état : ' + ligne.etat);
   if (ligne.h < 44) fail('cible sous 44 px au pouce : ' + ligne.h);
-  if (ligne.ver) fail('un numéro de version traîne encore dans les Réglages');
+  if (ligne.ver) fail('un numéro de version traîne encore dans une ligne de « Moi »');
 }
 
 const txt = await ouvrirDiag(mPage);

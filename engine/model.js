@@ -534,6 +534,21 @@ function refermeLigne(ligne, creux){
   /* il ne reste que de la ponctuation : la ligne ne dit plus rien */
   return /[\p{L}\p{N}]/u.test(out) ? out : null;
 }
+/* LE MODÈLE QUI CONVIENT À LA PISTE. Le composeur s'ouvrait toujours
+   sur le premier — la candidature — y compris pour relancer quelqu'un à
+   qui l'on a déjà écrit : l'étudiant devait penser à changer de modèle,
+   ou renvoyait sa candidature une seconde fois. Le statut le dit déjà :
+   jamais contactée → la candidature ; en cours (on attend) → la relance.
+   Une réponse reçue ne décide rien (remercier ? répondre ? préparer un
+   entretien ?) : on garde le premier, comme avant. Les modèles se
+   reconnaissent par leur NOM de départ — un modèle renommé ou retiré
+   laisse simplement le premier, jamais une erreur. */
+const MODELE_PAR_STATUT = { todo: 'Candidature spontanée', active: 'Relance' };
+export function modeleConseille(templates, c){
+  const nom = MODELE_PAR_STATUT[c && c.status];
+  const i = nom ? (templates || []).findIndex(t => t && t.name === nom) : -1;
+  return i >= 0 ? i : 0;
+}
 /* les jetons qui viennent de la recherche et de l'école — partagés avec
    l'aperçu du composeur de modèles, pour qu'un jeton se lise pareil
    dans l'éditeur et dans le mail */

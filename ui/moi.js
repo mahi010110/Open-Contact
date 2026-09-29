@@ -26,6 +26,7 @@ import { openConnexions, openAssistantIA, mailStateLabel, mailAccount, aiStateLa
 import { loadOrdinateur, openAddOrdinateur, openOrdinateurSheet } from './ordinateur.js';
 import { ORDINATEUR, IA, ENVOI_DIRECT } from './perimetre.js';
 import { openDiagnostic } from './diagnostic.js';
+import { proposerInstallation, installer } from './installer.js';
 import { DIST_PAGE } from '../engine/distribution.js';
 
 /* ---------- garder une copie (.oc complet) ----------
@@ -345,7 +346,11 @@ function abriHTML(showBackup, filet){
        ${filet ? `<p class="hint warn abri-etat" id="moiFilet">${ic('square-alert', 'ic-14')} Tes ${n} pistes n’existent que sur cet appareil.</p>` : ''}
        ${lignes([
          ['moiSync', 'Mes appareils', syncLabel(), false],
-         ['moiVerrou', 'Protection', verrouLabel(), false]
+         ['moiVerrou', 'Protection', verrouLabel(), false],
+         /* au doigt, tant que l'app vit dans le navigateur : sur iPhone,
+            l'installer est ce qui la soustrait à l'effacement des sept
+            jours — c'est un filet, sa place est ici (ui/installer.js) */
+         ...(proposerInstallation() ? [['moiInstall', 'Installer l’app', 'pas installée', false]] : [])
        ])}
        <div class="abri-copie">
          ${showBackup ? `
@@ -439,7 +444,10 @@ function bindLignes(box){
   });
   rf.addEventListener('change', () => { if (rf.files[0]) restoreFile(rf.files[0]); });
   q('#moiEfface')?.addEventListener('click', effacerIci);
+  q('#moiInstall')?.addEventListener('click', installer);
 }
+/* installée pendant qu'on regarde : la ligne part d'elle-même */
+document.addEventListener('oc:installee', () => { if (S.route === 'moi') renderMoi(); });
 
 const mqWideMoi = matchMedia('(min-width:901px)');
 mqWideMoi.addEventListener('change', () => { if (S.route === 'moi') renderMoi(); });

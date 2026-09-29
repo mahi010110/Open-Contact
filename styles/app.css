@@ -1246,6 +1246,12 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 }
 .abri-etat{display:flex;align-items:flex-start;gap:6px;margin:6px 0 2px}
 .abri-etat .ic{flex:none;margin-top:1px}
+/* « Installer l'app » : deux gestes, numérotés parce qu'ils se FONT dans
+   cet ordre — c'est une séquence, le numéro dit quelque chose de vrai */
+.inst-pas{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:10px;
+  font-size:var(--text-14);line-height:1.5}
+.inst-pas b{font-weight:var(--weight-semibold);white-space:nowrap}
+.inst-pas .ic{vertical-align:-2px}
 .moi-door{
   display:flex;align-items:center;gap:10px;width:100%;
   font:inherit;color:inherit;text-align:left;cursor:pointer;min-height:var(--ctl);

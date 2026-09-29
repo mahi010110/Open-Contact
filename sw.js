@@ -12,7 +12,7 @@ const PRECACHE = ['./', './index.html', './app.js', './theme.js', './tests.js', 
   './engine/vault.js', './engine/ring.js', './engine/campaign.js', './engine/mailer.js', './engine/assist.js', './engine/ai.js', './engine/mission.js', './engine/ordinateur.js', './engine/mcp.js', './engine/distribution.js', './engine/transport.js', './engine/portage.js', './engine/diagnostic.js',
   './ui/dom.js', './ui/dates.js', './ui/state.js', './ui/actions.js', './ui/sort.js', './ui/verrou.js',
   './ui/mail.js', './ui/capture.js', './ui/fiche.js', './ui/today.js',
-  './ui/pistes.js', './ui/moi.js', './ui/perimetre.js', './ui/echanger.js', './ui/direct.js', './ui/synclive.js',
+  './ui/pistes.js', './ui/moi.js', './ui/installer.js', './ui/perimetre.js', './ui/echanger.js', './ui/direct.js', './ui/synclive.js',
   './ui/contact.js', './ui/edit.js', './ui/docs.js', './ui/tplfield.js', './ui/prospect.js', './ui/analyse.js', './ui/propositions.js',
   './ui/diagnostic.js', './ui/qr.js', './ui/qui.js', './ui/affiner.js', './ui/donner.js', './ui/recevoir.js', './ui/profil.js', './ui/connexions.js', './ui/campagnes.js', './ui/ordinateur.js', './oauth.html',
   /* les pages qui se LISENT : elles doivent répondre hors ligne comme

@@ -34,10 +34,18 @@ const pistes = n => Array.from({ length: n }, (_, i) => ({
 
 /* une page « Moi » semée par le vrai stockage, puis RECHARGÉE : semer
    sans recharger mesure l'état d'avant (§5, corollaire ②) */
-async function page({ largeur = 390, profil = PROFIL, data = pistes(24), partage = null, route = 'moi' } = {}){
+async function page({ largeur = 390, profil = PROFIL, data = pistes(24), partage = null, route = 'moi',
+                      ua = null, installee = false } = {}){
   const doigt = largeur < 901;
   const ctx = await browser.newContext({ viewport: { width: largeur, height: doigt ? 844 : 800 },
-    hasTouch: doigt, isMobile: doigt, acceptDownloads: true });
+    hasTouch: doigt, isMobile: doigt, acceptDownloads: true, ...(ua ? { userAgent: ua } : {}) });
+  /* « installée » : le navigateur répondrait `display-mode: standalone` */
+  if (installee) await ctx.addInitScript(() => {
+    const mm = window.matchMedia.bind(window);
+    window.matchMedia = q => /display-mode:\s*standalone/.test(q)
+      ? { matches: true, media: q, addEventListener(){}, removeEventListener(){}, addListener(){}, removeListener(){} }
+      : mm(q);
+  });
   /* La feuille de partage n'existe pas sous Chromium desktop : on la
      simule, et on ENREGISTRE ce qu'elle reçoit. Elle refuse le `.oc` comme
      le fait Chrome (liste fermée d'extensions), pour prouver le repli
@@ -183,6 +191,68 @@ const lastBackupAt = p => p.evaluate(async () => (await import('./ui/state.js'))
   });
   await p.waitForSelector('#mBody');
   okSi(!!(await p.$('#mProfil')), 'recherche non choisie : le composeur propose de compléter le profil');
+  await ctx.close();
+}
+
+/* ---------- installer l'app : au doigt, tant qu'elle ne l'est pas ---------- */
+const UA_IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1';
+const UA_ANDROID = 'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36';
+{
+  const { ctx, p } = await page({ ua: UA_IPHONE });
+  await p.waitForSelector('#moiInstall');
+  okSi(true, 'iPhone dans Safari : la ligne « Installer l’app » est dans « À l’abri »');
+  await p.click('#moiInstall');
+  await p.waitForSelector('.inst-pas');
+  const txt = await p.textContent('.modal');
+  okSi(txt.includes('Partager') && txt.includes('Sur l’écran d’accueil') && txt.includes('⋯'),
+    'sur iPhone, les deux gestes — et le menu ⋯ d’iOS 26');
+  okSi(txt.includes('sept jours'), 'et la raison, qui n’est vraie que sur iPhone');
+  await ctx.close();
+}
+{
+  /* Android : l'invite du système, rejouée au moment où on la demande */
+  const { ctx, p } = await page({ ua: UA_ANDROID });
+  await p.waitForSelector('#moiInstall');
+  await p.evaluate(() => {
+    const e = new Event('beforeinstallprompt');
+    e.prompt = async () => { window.__invite = 'jouée'; };
+    e.userChoice = Promise.resolve({ outcome: 'accepted' });
+    window.dispatchEvent(e);
+  });
+  await p.click('#moiInstall');
+  await attendre(p, () => window.__invite === 'jouée', { message: 'l’invite du système est rejouée' });
+  await attendre(p, () => !document.querySelector('#moiInstall'), { message: 'installée, la ligne part' });
+  okSi(!(await p.$('.inst-pas')), 'Android : l’invite du système, sans feuille — puis la ligne part');
+  await ctx.close();
+}
+{
+  const { ctx, p } = await page({ installee: true });
+  await p.waitForSelector('#moiVerrou');
+  okSi(!(await p.$('#moiInstall')), 'déjà installée : aucune ligne');
+  await ctx.close();
+}
+{
+  const { ctx, p } = await page({ largeur: 1280 });
+  await p.waitForSelector('#moiVerrou');
+  okSi(!(await p.$('#moiInstall')), 'au poste : aucune ligne');
+  await ctx.close();
+}
+
+/* ---------- le composeur ouvre le modèle qui convient ---------- */
+{
+  const qui = [{ id: 'r', name: 'Relancée SA', status: 'active', updatedAt: 1,
+    contacts: [{ id: 'cr', name: 'Rémi', email: 'remi@relancee.test' }] }];
+  const { ctx, p } = await page({ data: qui });
+  await p.waitForSelector('#moiVerrou');
+  const choisi = await p.evaluate(async () => {
+    const { S } = await import('./ui/state.js');
+    (await import('./ui/mail.js')).openMail(S.companies[0], { ctId: 'cr' });
+    await new Promise(r => setTimeout(r, 300));
+    const sel = document.querySelector('#mTpl');
+    return { nom: sel.options[sel.selectedIndex].text, corps: document.querySelector('#mBody').value };
+  });
+  okSi(choisi.nom === 'Relance' && choisi.corps.includes('Je reviens vers vous'),
+    'piste « en cours » : le composeur s’ouvre sur la relance, pas sur une seconde candidature');
   await ctx.close();
 }
 

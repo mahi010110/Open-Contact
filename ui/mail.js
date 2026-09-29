@@ -8,7 +8,7 @@
    propose la suite — la boucle qui entretient « Aujourd'hui ».
    ============================================================ */
 import { esc, todayISO } from '../engine/utils.js';
-import { fillTpl, pushHist } from '../engine/model.js';
+import { fillTpl, pushHist, modeleConseille } from '../engine/model.js';
 import { sendMail } from '../engine/mailer.js';
 import { bytesToB64 } from '../engine/crypto.js';
 import { docGet } from '../engine/storage.js';
@@ -70,6 +70,8 @@ export function openMail(c, opts){
   const acct = ENVOI_DIRECT ? mailAccount() : null;
   /* la personne choisie arrive pré-sélectionnée (#14) — jamais devinée */
   const initIdx = Math.max(0, cts.findIndex(t => t.id === opts.ctId));
+  /* le modèle aussi arrive pré-choisi, d'après le statut de la piste */
+  const tplInit = modeleConseille(tpls, c);
   sh.body.innerHTML =
     `${/* LE PRÉAMBULE EST LE CONTENU VARIABLE, PAS LE MESSAGE.
           À qui, quel modèle, l'objet, ce qu'on sait d'elle : selon la
@@ -94,7 +96,7 @@ export function openMail(c, opts){
               ? esc(cts[0].name || cts[0].email) + (cts[0].role ? ' — ' + esc(cts[0].role) : '')
               : 'Aucun email sur cette piste'}</p>`}</div>
        <div class="field"><label for="mTpl">Modèle</label>
-         <select id="mTpl">${tpls.map((t, i) => `<option value="${i}">${esc(t.name)}</option>`).join('')}</select></div>
+         <select id="mTpl">${tpls.map((t, i) => `<option value="${i}"${i === tplInit ? ' selected' : ''}>${esc(t.name)}</option>`).join('')}</select></div>
      </div>
      ${/* L'OBJET S'AFFICHE EN ENTIER.
           Une ligne de 350 px montre ~41 caractères. Le gabarit de

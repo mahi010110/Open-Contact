@@ -202,8 +202,15 @@ const PLAFOND = {
      n'existe (ni autre appareil vu depuis 30 jours, ni copie depuis 30
      jours, et au moins 5 pistes), et se tait dès qu'un seul existe.
      Il prévient de la perte la plus lourde de l'app, et la moins
-     visible : rien ne dit sinon que tout vit dans ce seul navigateur. */
-  motsExplication: 211,
+     visible : rien ne dit sinon que tout vit dans ce seul navigateur.
+
+     227 le même jour, +16 : « Safari efface les données d'un site non
+     ouvert depuis sept jours. Celles d'une app installée restent. » Dans
+     la feuille « Installer l'app », et SEULEMENT sur iPhone, où elle est
+     vraie (WebKit, 2023). Sans elle, installer se lit comme un confort
+     alors que c'est le filet le plus simple contre la perte de tout le
+     suivi — la même famille que la phrase du dessus. */
+  motsExplication: 227,
   /* ZÉRO, et c'est le seul plafond qui puisse honnêtement valoir zéro :
      un style sans porteur n'a pas de contrepartie à peser — il ne rend
      service à personne, il ne fait qu'attendre d'être lu par erreur.
