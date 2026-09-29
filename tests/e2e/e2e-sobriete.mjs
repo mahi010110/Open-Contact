@@ -94,8 +94,14 @@ const PLAFOND = {
      — mais pas tous, et la passe mérite d'être menée pour elle-même,
      écran par écran, avec le mainteneur. En attendant, le plafond est
      posé sur le relevé : il ne descend plus tout seul, et il ne monte
-     plus sans qu'on vienne le dire ici. */
-  toasts: 116,
+     plus sans qu'on vienne le dire ici.
+     114 le 29 septembre 2026 (les écrans de repli) : « Mot de passe
+     incorrect. » se dit désormais sous le champ, et « Un partage, pas
+     une copie : ouvre-le dans Échanger » a laissé place à l'aperçu,
+     ouvert sur place. Deux toasts de moins, et c'est le critère unique
+     qui les a fait partir : le premier n'était pas à l'écran là où on
+     regardait, le second faisait refaire un chemin. */
+  toasts: 114,
   toastCar: 79,        /* le plus long : « Connexion interrompue — … » */
   /* portes bloquantes dans les écrans visibles.
      9 le 29 septembre 2026 : « Mon profil » prend le garde-fou de la
@@ -218,8 +224,23 @@ const PLAFOND = {
      seulement sur cet appareil. ». La feuille CV ne dit plus que le fait
      (« L'app ne peut pas joindre ton CV à un email. ») : le bouton juste
      dessous, « Ajouter le lien de mon CV », dit le geste, et la phrase
-     qui le répétait est partie. */
-  motsExplication: 225,
+     qui le répétait est partie.
+
+     267 le même jour, +42, pour les écrans de repli — trois phrases, et
+     toutes préviennent d'une perte ou d'une erreur qu'on ne peut pas
+     voir venir (le critère du 8 août, rien de plus large) :
+     · « Ce n'est pas le bon mot de passe. » (7 × 2, Restaurer et
+       Recevoir) : c'était un toast en haut de l'écran pendant que le
+       champ se vidait. Il n'ajoute pas un message, il le DÉPLACE sous
+       le champ, là où WCAG 3.3.1 le veut — et le relevé des toasts
+       descend d'autant ;
+     · « Phrase perdue » (28) : sans elle, code et phrase oubliés
+       laissaient l'écran verrouillé sans aucune sortie. Deux phrases :
+       ce qu'on ne peut pas deviner (« personne ne peut rouvrir… »), et
+       où les pistes existent encore. C'est l'écran qui porte le geste
+       le plus lourd de l'app, sans confirmation derrière (§6 : ne pas
+       payer deux fois) — il doit donc tout dire lui-même. */
+  motsExplication: 267,
   /* ZÉRO, et c'est le seul plafond qui puisse honnêtement valoir zéro :
      un style sans porteur n'a pas de contrepartie à peser — il ne rend
      service à personne, il ne fait qu'attendre d'être lu par erreur.

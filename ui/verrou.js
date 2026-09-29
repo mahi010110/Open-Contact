@@ -16,8 +16,9 @@ import { PIN_LEN, makeVaultPhrase, phraseUnknownWords,
          createVault, unlockWithPin, unlockWithPhrase, unlockWithPrf,
          setPin, addPrfWrap, removePrfWrap,
          rotateVaultResumable, prevKeyOf, clearPrev } from '../engine/vault.js';
-import { VAULT_KEY, kvGet, kvSet, kvDel,
+import { VAULT_KEY, kvGet, kvSet, kvDel, effacerCetAppareil,
          vaultAttach, vaultDetach, vaultSealAll, vaultOpenAll, vaultReseal } from '../engine/storage.js';
+import { enregistrerFichier, partagePossible } from './fichier.js';
 import { ensureRing, recoverRing, rekeyRing } from './synclive.js';
 import { S, bus, logJ } from './state.js';
 import { el, ic, btn, toast, openSheet, confirmSheet, sheetOpen, clavier } from './dom.js';
@@ -202,7 +203,9 @@ function openRecovery(onUnlocked){
               dire l'erreur — même dessin que « Vérifions » juste
               au-dessus, où elle attend déjà d'avoir quelque chose à
               signaler. */''}
-         <p class="hint" id="rcHint" hidden></p></div>`;
+         <p class="hint" id="rcHint" hidden></p></div>
+       <button class="linklike" id="rcPerdue">Je n’ai plus ma phrase</button>`;
+    q('#rcPerdue').addEventListener('click', stepPerdue);
     sh.setFoot([btn('Vérifier', 'btn-primary', async () => {
       const phrase = q('#rcPhrase').value;
       const bad = phraseUnknownWords(phrase);
@@ -223,6 +226,31 @@ function openRecovery(onUnlocked){
       oldPhrase = phrase;
       stepNewPin();
     })]);
+  };
+
+  /* CODE ET PHRASE PERDUS : l'impasse. L'écran verrouillé n'offrait que
+     « Code oublié ? », qui exige la phrase ; sans elle, l'app restait
+     fermée pour toujours, et la seule sortie était d'aller vider le
+     site dans les réglages du navigateur — ce que personne ne devine.
+     C'est la réponse de tous ceux qui chiffrent pour de vrai (Apple
+     pour un iPhone dont on a oublié le code, Bitwarden pour un mot de
+     passe principal perdu) : ce qui est chiffré ne se rouvre pas, on
+     efface et on repart, et on récupère ailleurs ce qui existe ailleurs.
+     L'écran EST la question : il dit ce qu'on ne peut pas deviner —
+     personne ne rouvrira ces données, et où les pistes existent encore.
+     Ajouter une confirmation derrière ferait payer deux fois (§6). */
+  const stepPerdue = () => {
+    sh.setTitle('Phrase perdue');
+    sh.body.innerHTML =
+      `<p class="hint warn">Sans ta phrase, personne ne peut rouvrir les données de cet appareil. Tu peux seulement les effacer et repartir de zéro.</p>
+       <p class="hint">Tes pistes restent sur tes autres appareils reliés, et dans tes copies sans mot de passe.</p>`;
+    sh.setFoot([
+      btn('← Retour', 'btn-ghost', stepPhrase),
+      btn('Tout effacer', 'btn-danger', async () => {
+        await effacerCetAppareil();
+        location.replace(location.pathname);
+      }, 'trash')
+    ]);
   };
 
   /* L'écran d'annonce est parti — le même défaut que l'accueil du
@@ -385,15 +413,16 @@ function backupCeremony(sh, phrase, onOk, introTxt, etape){
   sh.body.innerHTML = pas +
     (introTxt ? `<p class="pd" style="margin:0 0 10px">${introTxt}</p>` : '') + quoiHTML;
   const fname = 'opencontact-copie-' + todayISO() + '.oc';
-  const bDl = btn('Télécharger la copie', 'btn-primary', async () => {
+  /* LA COPIE QU'ON EXIGE doit sortir du téléphone. Elle se contentait de
+     télécharger : sur un iPhone, le fichier restait dans le téléphone
+     même qu'elle devait remplacer, et « mets-la ailleurs » ne disait pas
+     comment. Au doigt, elle passe donc par la feuille de partage, comme
+     celle de « Moi » (ui/fichier.js) ; renoncer ne débloque rien. */
+  const partage = partagePossible();
+  const bDl = btn(partage ? 'Enregistrer la copie' : 'Télécharger la copie', 'btn-primary', async () => {
     const txt = await encryptOC2(fullPayload(S.companies, S.profile, S.orphans, S.tombs), phrase);
-    const A = document.createElement('a');
-    A.href = URL.createObjectURL(new Blob([txt], { type: 'application/octet-stream' }));
-    A.download = fname;
-    document.body.append(A);
-    A.click();
-    A.remove();
-    setTimeout(() => URL.revokeObjectURL(A.href), 4000);
+    const fait = await enregistrerFichier(txt, fname, 'Copie OpenContact');
+    if (fait === 'renonce') return;
     /* La seule étape FORCÉE ne disait pas qu'elle avait marché : mesuré,
        le texte était mot pour mot identique avant et après, et aucun
        toast. Sur un téléphone, un téléchargement ne se voit pas — le nom
@@ -407,7 +436,8 @@ function backupCeremony(sh, phrase, onOk, introTxt, etape){
       li.hidden = false;
       li.innerHTML = `${ic('check', 'ic-14')} <b>${esc(fname)}</b>`;
     }
-    toast('Copie faite — mets-la ailleurs qu’ici.');
+    /* hors de l'écran (§6) : où le fichier est parti ne se voit pas ici */
+    toast(fait === 'partage' ? 'Copie enregistrée ✓' : 'Copie téléchargée — garde-la aussi ailleurs.');
     bEnd.disabled = false;
     bEnd.classList.add('btn-primary');
     bDl.classList.remove('btn-primary');

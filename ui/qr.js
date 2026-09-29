@@ -38,14 +38,19 @@ function loadJsQR(){
    lecture ; onCode qui rend `true` = continuer à scanner (QR animé,
    plusieurs parties), sinon on s'arrête à la première. Deux lectures
    identiques d'affilée ne comptent qu'une fois. Retourne stop().
-   Jette 'camera' si l'accès est refusé. */
+   Jette 'camera-refusee' si l'accès est bloqué (un réglage le rend),
+   'camera-absente' sinon (pas de caméra, ou le navigateur n'en donne
+   aucune) : les deux appellent des gestes différents. */
 export async function startScan(video, onCode){
   let stream;
   try {
     stream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: 'environment' }, audio: false
     });
-  } catch (e) { throw new Error('camera'); }
+  } catch (e) {
+    throw new Error(e && (e.name === 'NotAllowedError' || e.name === 'SecurityError')
+      ? 'camera-refusee' : 'camera-absente');
+  }
   video.srcObject = stream;
   await video.play().catch(() => {});
   let detector = null;

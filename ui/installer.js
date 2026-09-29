@@ -7,7 +7,7 @@
    Policy », 2023). L'utilisateur type (§1) est sur iPhone, et Safari
    ne propose JAMAIS l'installation de lui-même : il faut savoir où
    toucher. Depuis iOS 26, « Partager » s'est même rangé dans le menu
-   « ⋯ ».
+   « ⋯ » — la feuille le dit sans nommer la version.
 
    Sur Android, Chrome sait proposer l'installation : il le signale par
    `beforeinstallprompt`, qu'on garde pour le rejouer au moment où
@@ -65,15 +65,19 @@ export async function installer(){
   sh.body.innerHTML =
     `<ol class="inst-pas">
        ${ios
-         ? `<li>Touche <b>${ic('share', 'ic-14')} Partager</b> — dans la barre de Safari, ou dans le menu <b>⋯</b> depuis iOS 26.</li>
+         ? `<li>Touche <b>${ic('share', 'ic-14')} Partager</b>. Si tu ne le vois pas, il est dans le menu <b>⋯</b>.</li>
             <li>Choisis <b>Sur l’écran d’accueil</b>, puis <b>Ajouter</b>.</li>`
          : `<li>Ouvre le menu <b>⋮</b> du navigateur.</li>
             <li>Choisis <b>Installer l’application</b> ou <b>Ajouter à l’écran d’accueil</b>.</li>`}
      </ol>
-     ${/* la seule phrase de la feuille, et elle prévient d'une perte qu'on
-          ne peut pas voir venir (critère de §8) — seulement là où elle
-          est vraie */''}
-     ${ios ? '<p class="hint warn">Safari efface les données d’un site non ouvert depuis sept jours. Celles d’une app installée restent.</p>' : ''}`;
+     ${/* La raison, dite comme un bénéfice et en noir. La première version
+          disait la règle de Safari en orange (« efface les données d'un
+          site non ouvert depuis sept jours ») : le mainteneur l'a lue
+          comme une alerte technique, pas comme une raison d'installer.
+          « iOS 26 » est parti aussi — un numéro de version ne dit pas où
+          toucher, « si tu ne le vois pas » le dit. Seulement sur iPhone,
+          où c'est vrai. */''}
+     ${ios ? '<p class="hint">Installée, l’app garde tes pistes même si tu ne l’ouvres pas pendant un moment.</p>' : ''}`;
   /* pas de « Compris » : la croix ferme, et un bouton qui la double
      n'ajoute qu'un geste à lire (§7) */
 }

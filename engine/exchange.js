@@ -199,7 +199,10 @@ export async function parseInput(raw, pass){
   } else if (compact.startsWith('OCQ1.')){
     obj = await decodeOCQ(compact);
   } else {
-    obj = JSON.parse(s);
+    /* un PDF, une photo, un texte quelconque : c'est la mauvaise pièce,
+       et l'appelant doit pouvoir le DIRE — jamais relayer le message de
+       JSON.parse, en anglais et technique */
+    try { obj = JSON.parse(s); } catch (e) { throw new Error('format'); }
   }
   if (Array.isArray(obj)) obj = { companies: obj };
   if (!obj || !Array.isArray(obj.companies)) throw new Error('format');

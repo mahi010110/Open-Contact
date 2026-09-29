@@ -480,7 +480,10 @@ export function openAppareils(){
         } catch (e) {
           q('#syScanBox').hidden = true;
           const h = q('#syScanHint');
-          if (h){ h.hidden = false; h.textContent = 'Caméra indisponible — tape la phrase.'; }
+          /* même partage qu'à « Recevoir » : bloquée se débloque, absente non */
+          if (h){ h.hidden = false; h.textContent = e.message === 'camera-refusee'
+            ? 'La caméra est bloquée. Autorise-la dans les réglages du navigateur, ou tape la phrase.'
+            : 'Pas de caméra ici. Tape la phrase affichée sur l’autre appareil.'; }
           q('#syPhrase').focus();
         }
       });

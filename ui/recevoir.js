@@ -25,15 +25,23 @@ import { mailAnalysis, beginMailAnalysis, markMailAnalysisRunning,
          failMailAnalysis, clearMailAnalysis, reconcileMailAnalysis,
          subscribeMailAnalysis } from './analyse.js';
 
+/* Ce qu'on dit quand la lecture échoue. Chaque phrase dit CE QUI NE VA
+   PAS, puis ce qu'on peut faire (NN/g, règles des messages d'erreur ;
+   ISO 24495-1, langage clair) — jamais un mot d'ingénieur (« format
+   compact », « scellement ») ni une question (« est-ce bien… ? ») qui
+   laisse la personne deviner. Le mot de passe faux n'est pas ici : il
+   se dit sur son champ. Et un code inconnu ne remonte JAMAIS tel quel —
+   c'est ainsi qu'un PDF choisi par erreur affichait une erreur de
+   JavaScript en anglais. */
 const ERRS = {
-  vide: 'Rien à lire — le contenu est vide.',
-  format: 'Format non reconnu — est-ce bien un partage OpenContact ?',
-  motdepasse: 'Mot de passe incorrect.',
-  troplourd: 'Fichier trop lourd (plus de 4 Mo) — refusé par prudence.',
-  tropdepistes: 'Plus de 2 000 pistes — refusé par prudence.',
-  altéré: 'Le contenu a été modifié depuis son scellement — refusé.',
-  noqr: 'Ce navigateur ne sait pas lire ce format compact.'
+  vide: 'Rien à lire — colle le message reçu en entier.',
+  format: 'Ce n’est pas un partage OpenContact — vérifie le fichier ou le texte reçu.',
+  troplourd: 'Trop lourd pour être ouvert (plus de 4 Mo).',
+  tropdepistes: 'Plus de 2 000 pistes d’un coup : trop pour être ouvert.',
+  altéré: 'Ce fichier a été modifié après l’envoi — demande-le à nouveau.',
+  noqr: 'Ce navigateur est trop ancien pour ce contenu — passe par le fichier.'
 };
+export const messageLecture = code => ERRS[code] || 'Impossible de lire ce contenu.';
 
 export function openRecevoir(){
   let stopScan = null;
@@ -127,8 +135,15 @@ export function openRecevoir(){
     } catch (e) {
       const box = q('.scan-box');
       if (box) box.hidden = true;
+      /* Refusée et absente appellent deux gestes différents : l'une se
+         débloque dans les réglages, l'autre non. Les confondre sous
+         « indisponible », c'était laisser chercher un réglage qui
+         n'existe pas — ou ne jamais savoir qu'il existe. Le champ du
+         code est juste dessous : c'est lui, le chemin sans caméra. */
       const h = q('#rcScanHint');
-      if (h) h.textContent = 'Caméra indisponible — tape le code, ou passe par le fichier.';
+      if (h) h.textContent = e.message === 'camera-refusee'
+        ? 'La caméra est bloquée. Autorise-la dans les réglages du navigateur, ou tape le code affiché sur l’autre téléphone.'
+        : 'Pas de caméra ici. Tape le code affiché sur l’autre téléphone.';
     }
   };
 
@@ -290,17 +305,28 @@ export function openRecevoir(){
     q('#rcTxt').focus();
   };
 
-  /* ---- mot de passe (fichiers OC2) ---- */
-  const askPass = raw => {
+  /* ---- mot de passe (fichiers OC2) ----
+     `faux` : celui qu'on vient de refuser. Il reste dans le champ,
+     sélectionné, et l'erreur se lit dessous — pas dans un toast en haut
+     de l'écran pendant que le champ se vide (WCAG 3.3.1). */
+  const askPass = (raw, faux) => {
     sh.setTitle('Fichier protégé');
     sh.body.innerHTML =
       `<p class="hint" style="margin:0 0 10px">${ic('lock', 'ic-14')} Chiffré — demande le mot de passe à l’expéditeur.</p>
        <div class="field"><label for="rcPass">Mot de passe</label>
-         <input id="rcPass" type="password" autocomplete="off"></div>`;
-    const go = () => treat(raw, q('#rcPass').value);
+         <input id="rcPass" type="password" autocomplete="off" aria-describedby="rcPassErr">
+         <p class="hint warn" id="rcPassErr" hidden>Ce n’est pas le bon mot de passe.</p></div>`;
+    const champ = q('#rcPass');
+    const go = () => treat(raw, champ.value);
     sh.setFoot([btn('← Retour', 'btn-ghost', menu), btn('Déverrouiller', 'btn-primary', go)]);
-    q('#rcPass').addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
-    q('#rcPass').focus();
+    champ.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+    if (faux != null){
+      champ.value = faux;
+      champ.setAttribute('aria-invalid', 'true');
+      q('#rcPassErr').hidden = false;
+      champ.select();
+    }
+    champ.focus();
   };
 
   /* ---- lecture + aperçu ---- */
@@ -311,8 +337,8 @@ export function openRecevoir(){
       obj = await parseInput(raw, pass);
     } catch (e) {
       if (e.message === 'besoinpass'){ askPass(raw); return; }
-      toast(ERRS[e.message] || 'Lecture impossible : ' + e.message);
-      if (e.message === 'motdepasse') askPass(raw);
+      if (e.message === 'motdepasse'){ askPass(raw, pass); return; }
+      toast(messageLecture(e.message));
       return;
     }
     mergePreviewInto(sh, obj, Object.assign({ onBack: menu }, extra || {}));
@@ -340,7 +366,7 @@ export function openImportMails(){
     try {
       obj = await parseInput(raw);
     } catch (e) {
-      toast(ERRS[e.message] || 'Lecture impossible : ' + e.message);
+      toast(messageLecture(e.message));
       return;
     }
     mergePreviewInto(sh, obj, { select: true, onBack: mails });
@@ -545,6 +571,9 @@ async function mergeReadyAnalysisInto(sh, onBack){
    direct (partage en groupe) : mêmes règles, quel que soit le canal ---- */
 export function mergePreviewInto(sh, obj, opts){
   opts = opts || {};
+  /* la copie telle qu'elle est arrivée, avant que la fusion à blanc
+     n'y touche : c'est elle qu'on restaure si on le demande */
+  const copieBrute = obj.kind === 'full' ? JSON.parse(JSON.stringify(obj)) : null;
   /* fusion à blanc sur une copie : l'aperçu dit tout, rien n'est touché */
   const dry = mergeIncoming(obj.companies, JSON.parse(JSON.stringify(S.companies)));
   const n = obj.companies.length;
@@ -562,7 +591,12 @@ export function mergePreviewInto(sh, obj, opts){
          ${dry.addedCt ? `<li>${ic('contact', 'ic-14')} <b>${dry.addedCt}</b> contact${dry.addedCt > 1 ? 's' : ''} ajouté${dry.addedCt > 1 ? 's' : ''}</li>` : ''}
          ${dry.conflicts ? `<li class="rc-warn">${ic('square-alert', 'ic-14')} <b>${dry.conflicts}</b> divergence${dry.conflicts > 1 ? 's' : ''} — l’existant est gardé</li>` : ''}
        </ul>
-       ${obj.kind === 'full' ? `<p class="hint">${ic('info-box', 'ic-14')} Pour tout restaurer, va dans « Moi ».</p>` : ''}
+       ${/* Une COPIE ouverte ici : fusionner ajoute ses pistes sans rien
+            écraser, et c'est le bon défaut. Mais la phrase qui disait
+            « va dans Moi » envoyait refaire le chemin jusqu'aux Réglages
+            pour rouvrir le même fichier. Le geste est posé ici, avec la
+            même question et le même Annuler que depuis « Moi ». */''}
+       ${obj.kind === 'full' ? `<button class="linklike" id="rcRestore">${ic('reload', 'ic-14')} Tout remplacer par cette copie</button>` : ''}
        ${opts.select && n ? `<div class="pick-list pk-inverse" style="margin:10px 0 4px">
          ${obj.companies.slice(0, 200).map((c, i) =>
            `<button class="pick pk on" data-sel="${i}" aria-pressed="true">
@@ -605,6 +639,12 @@ export function mergePreviewInto(sh, obj, opts){
     }));
   relabel();
   sh.body.querySelector('#rcDiscard')?.addEventListener('click', () => opts.onDiscard());
+  /* chargé au geste : moi.js importe déjà ce fichier-ci, un import
+     en retour ferait une boucle */
+  sh.body.querySelector('#rcRestore')?.addEventListener('click', async () => {
+    const { restaurerObjet } = await import('./moi.js');
+    if (await restaurerObjet(copieBrute)) sh.close();
+  });
   /* « Retour » seulement quand il ramène quelque part (le menu Recevoir,
      l'écran des e-mails) — c'est la seule exception à « la croix
      suffit ». Quand il ne ferait que fermer, la croix s'en charge. */
