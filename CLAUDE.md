@@ -936,6 +936,36 @@ l'app réelle — le socle était bon, ce sont les trois trous qui restaient :
   libellé. `e2e-annonce.mjs` balaie les 13 surfaces dans les deux
   ergonomies et **ne compte jamais le `placeholder`**.
 
+**Un chemin d'échec est un écran comme les autres** *(29 septembre 2026)*.
+Les écrans qu'on voit peu — restaurer, recevoir un fichier, un mot de
+passe faux, la caméra refusée, un code oublié — n'avaient été joués par
+aucun scénario, et c'est là qu'on perd ses données ou qu'on abandonne.
+Relevé en les provoquant un par un (heuristiques NN/g, règles des
+messages d'erreur NN/g, ISO 24495-1, WCAG 3.3.1 et 3.3.3), quatre règles
+en sont sorties :
+
+- **Une erreur ne remonte jamais telle quelle.** Un PDF choisi par
+  erreur affichait « Unexpected token '%' … not valid JSON » : l'erreur
+  du navigateur, en anglais. Le moteur rend un CODE (`format`, `vide`…),
+  l'écran rend une phrase qui dit ce qui ne va pas puis quoi faire, et
+  un code inconnu rend une phrase générique — jamais `e.message`.
+- **Toute impasse a une sortie.** Code ET phrase de secours perdus,
+  l'écran verrouillé restait fermé pour toujours. C'est la réponse de
+  tous ceux qui chiffrent pour de vrai (Apple pour un iPhone, Bitwarden
+  pour un mot de passe principal) : ce qui est chiffré ne se rouvre pas,
+  on efface et on repart, et on récupère ailleurs ce qui existe ailleurs.
+- **Le bon fichier au mauvais endroit s'ouvre là où il est.** « Ouvre-le
+  dans Échanger », « va dans Moi » : l'app savait quoi faire et
+  demandait à la personne de refaire le chemin. Elle le fait elle-même.
+- **L'erreur d'un champ se dit sous le champ, et la saisie reste.** Un
+  toast en haut de l'écran pendant que le champ se vide, c'est une
+  erreur loin de sa cause et une saisie à refaire.
+
+Et la copie que la protection EXIGE suit la même route que celle de
+« Moi » (`ui/fichier.js`) : deux copies qui ne sortaient pas du
+téléphone de la même façon, c'est la plus importante qui y restait.
+`e2e-replis.mjs` joue ces chemins, trois mutations à l'appui.
+
 **Règles d'écran :** un bouton primaire max par vue ; une suppression unitaire
 réversible se fait au geste + `showUndo`, sans confirmation ; seules les
 actions lourdes ou irréversibles gardent `confirmSheet` ; l'état vide de

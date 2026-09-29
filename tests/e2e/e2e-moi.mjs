@@ -211,8 +211,9 @@ const UA_ANDROID = 'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 
   await p.waitForSelector('.inst-pas');
   const txt = await p.textContent('.modal');
   okSi(txt.includes('Partager') && txt.includes('Sur l’écran d’accueil') && txt.includes('⋯'),
-    'sur iPhone, les deux gestes — et le menu ⋯ d’iOS 26');
-  okSi(txt.includes('sept jours'), 'et la raison, qui n’est vraie que sur iPhone');
+    'sur iPhone, les deux gestes — et le menu ⋯ si Partager n’est pas visible');
+  okSi(txt.includes('garde tes pistes') && !txt.includes('iOS 26') && !(await p.$('.modal .hint.warn')),
+    'et la raison, dite comme un bénéfice, sans numéro de version ni alerte orange');
   await ctx.close();
 }
 {

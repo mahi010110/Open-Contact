@@ -273,6 +273,16 @@ export async function runSelfTests(){
       try { await parseInput(many); throw new Error('accepté !'); }
       catch (e) { eq(e.message, 'tropdepistes'); }
     },
+    /* un PDF, une photo, un texte quelconque : la cause est une MAUVAISE
+       PIÈCE, pas une panne. Avant, l'erreur de JSON.parse remontait telle
+       quelle et l'écran affichait « Unexpected token '%' … not valid
+       JSON » — en anglais, à un étudiant qui s'est trompé de fichier. */
+    'parseInput : un fichier qui n’est pas un .oc rend « format », jamais l’erreur brute': async () => {
+      for (const brut of ['%PDF-1.4\n%âãÏÓ\n1 0 obj', 'bonjour', '{ "companies": [', '\u0089PNG\r\n']){
+        try { await parseInput(brut); throw new Error('accepté : ' + brut); }
+        catch (e) { eq(e.message, 'format'); }
+      }
+    },
 
     /* — tests de sécurité — */
     'OC2 : contenu altéré → refusé (tag GCM)': async () => {

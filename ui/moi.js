@@ -27,47 +27,21 @@ import { loadOrdinateur, openAddOrdinateur, openOrdinateurSheet } from './ordina
 import { ORDINATEUR, IA, ENVOI_DIRECT } from './perimetre.js';
 import { openDiagnostic } from './diagnostic.js';
 import { proposerInstallation, installer } from './installer.js';
+import { enregistrerFichier, partagePossible } from './fichier.js';
+import { mergePreviewInto, messageLecture } from './recevoir.js';
 import { DIST_PAGE } from '../engine/distribution.js';
 
 /* ---------- garder une copie (.oc complet) ----------
-   UNE COPIE VAUT PAR L'ENDROIT OÙ ELLE EST. Téléchargée sur un
-   téléphone, elle reste sur ce téléphone : elle rattrape un navigateur
-   vidé, pas un téléphone perdu, volé ou changé — et c'est le cas
-   courant. Au doigt, la copie passe donc par la feuille de partage du
-   système (Web Share, niveau 2) : Drive, Fichiers iCloud, un mail à
-   soi-même — l'étudiant choisit, rien ne passe par nous (§10). Au poste,
-   ou quand le navigateur ne sait pas partager un fichier, c'est le
-   téléchargement d'avant, sans rien perdre. */
-function partageCopie(){
-  return matchMedia('(pointer:coarse)').matches && typeof navigator.canShare === 'function'
-    && typeof navigator.share === 'function';
-}
-/* Chrome n'accepte de partager qu'une liste fermée d'extensions (.txt,
-   .json, .pdf, images…) : un `.oc` y est refusé en silence. On essaie
-   le vrai nom d'abord, puis le même fichier en `.oc.txt` — que
-   « Restaurer » et « Recevoir » lisent pareil. */
-function fichierPartageable(txt, nom){
-  for (const [n, type] of [[nom, 'application/octet-stream'], [nom + '.txt', 'text/plain']]){
-    const f = new File([txt], n, { type });
-    try { if (navigator.canShare({ files: [f] })) return f; } catch (e) {}
-  }
-  return null;
-}
+   Au doigt par la feuille de partage, au poste en téléchargement :
+   la raison vit dans ui/fichier.js, partagée avec la copie que la
+   protection exige. */
 export function downloadBackup(pass){
   const doIt = async () => {
     const payload = fullPayload(S.companies, S.profile, S.orphans, S.tombs);
     const txt = pass ? await encryptOC2(payload, pass) : JSON.stringify(payload);
     const nom = 'opencontact-copie-' + todayISO() + '.oc';
-    const f = partageCopie() ? fichierPartageable(txt, nom) : null;
-    if (f){
-      try {
-        await navigator.share({ files: [f], title: 'Copie OpenContact' });
-      } catch (e) {
-        /* renoncer n'est pas une panne : rien n'est parti, rien à dire */
-        if (e && e.name === 'AbortError') return;
-        telecharger(txt, nom);
-      }
-    } else telecharger(txt, nom);
+    /* renoncer n'est pas une panne : rien n'est parti, rien à dire */
+    if (await enregistrerFichier(txt, nom, 'Copie OpenContact') === 'renonce') return;
     /* Un fait daté : il voyage dans le `.oc` et la sync, et c'est lui
        qui fait taire « sans filet » (engine/assist.js) pendant 30 jours. */
     S.profile.flags.lastBackupAt = Date.now();
@@ -80,16 +54,6 @@ export function downloadBackup(pass){
   };
   return doIt();
 }
-function telecharger(txt, nom){
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([txt], { type: 'application/octet-stream' }));
-  a.download = nom;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-}
-
 /* ---------- restauration (remplace tout, annulable ~30 s) ---------- */
 function restoreFile(file){
   const r = new FileReader();
@@ -101,18 +65,31 @@ async function treatRestore(raw, pass){
   try {
     obj = await parseInput(raw, pass);
   } catch (e) {
+    /* un mot de passe faux se dit SUR le champ, pas dans un toast en
+       haut de l'écran pendant que la feuille se rouvre vide (WCAG 3.3.1,
+       NN/g : l'erreur près de sa cause, et ce qui a été tapé reste) */
     if (e.message === 'besoinpass' || e.message === 'motdepasse'){
-      if (e.message === 'motdepasse') toast('Mot de passe incorrect.');
-      askRestorePass(raw);
+      askRestorePass(raw, e.message === 'motdepasse' ? pass : null);
       return;
     }
-    toast(e.message === 'format' ? 'Ce fichier n’est pas une copie OpenContact.' : 'Lecture impossible : ' + e.message);
+    toast(e.message === 'format' ? 'Ce fichier n’est pas une copie OpenContact.' : messageLecture(e.message));
     return;
   }
+  /* Un partage de camarade, pas une copie : l'intention est claire —
+     récupérer ces pistes. On l'ouvre donc ICI, dans l'aperçu de
+     « Recevoir », au lieu d'envoyer l'étudiant le rouvrir ailleurs. */
   if (obj.kind === 'share'){
-    toast('Un partage, pas une copie : ouvre-le dans Échanger → Recevoir.');
+    mergePreviewInto(openSheet({ title: 'Recevoir', icon: 'inbox' }), obj);
     return;
   }
+  /* le code a été demandé AVANT de choisir le fichier (bindReglages) */
+  restaurerObjet(obj, { dejaProuve: true });
+}
+/* Remplacer tout par une copie DÉJÀ LUE. Exporté pour « Recevoir » :
+   une copie ouverte là-bas se restaure d'un geste, sans refaire le
+   chemin jusqu'aux Réglages. Le code d'abord, comme depuis « Moi ». */
+export async function restaurerObjet(obj, { dejaProuve = false } = {}){
+  if (!dejaProuve && !(await requireCode('Ton code, pour restaurer'))) return false;
   const n = obj.companies.length;
   const cur = S.companies.length;
   const ok = await confirmSheet({
@@ -124,7 +101,7 @@ async function treatRestore(raw, pass){
        ici est ce qu'on ne peut PAS deviner — combien de pistes dans le
        fichier, combien on en a. C'est ça qui justifie la question. */
   });
-  if (!ok) return;
+  if (!ok) return false;
   const snap = {
     companies: JSON.stringify(S.companies),
     profile: JSON.stringify(S.profile),
@@ -149,14 +126,27 @@ async function treatRestore(raw, pass){
     logJ('Restauration annulée');
     bus.refresh();
   });
+  return true;
 }
-function askRestorePass(raw){
+/* `faux` : le mot de passe qu'on vient de refuser. Il revient DANS le
+   champ, sélectionné — une faute de frappe se corrige sans tout
+   retaper — et l'erreur se lit dessous, liée au champ pour un lecteur
+   d'écran. Même motif que l'adresse du profil. */
+function askRestorePass(raw, faux){
   const sh = openSheet({ title: 'Copie protégée', icon: 'lock', focus: '#rsPass' });
   sh.body.innerHTML =
     `<div class="field"><label for="rsPass">Mot de passe de la copie</label>
-       <input id="rsPass" type="password" autocomplete="off"></div>`;
-  const go = () => { const p = sh.body.querySelector('#rsPass').value; sh.close(); treatRestore(raw, p); };
-  sh.body.querySelector('#rsPass').addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+       <input id="rsPass" type="password" autocomplete="off" aria-describedby="rsPassErr">
+       <p class="hint warn" id="rsPassErr" hidden>Ce n’est pas le bon mot de passe.</p></div>`;
+  const champ = sh.body.querySelector('#rsPass');
+  if (faux != null){
+    champ.value = faux;
+    champ.setAttribute('aria-invalid', 'true');
+    sh.body.querySelector('#rsPassErr').hidden = false;
+    requestAnimationFrame(() => champ.select());
+  }
+  const go = () => { const p = champ.value; sh.close(); treatRestore(raw, p); };
+  champ.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
   sh.setFoot([btn('Déverrouiller', 'btn-primary', go)]);
 }
 
@@ -583,7 +573,7 @@ export function renderMoi(){
      <fieldset class="fset${filet ? ' fs-alert' : ''}" id="moiCopie">
        <legend>Ma copie <span class="lg-note">privé inclus</span></legend>
        ${filet ? `<p class="hint warn copie-etat" id="moiFilet">${ic('square-alert', 'ic-14')} Tes ${S.companies.length} pistes sont enregistrées seulement sur cet appareil.</p>` : ''}
-       ${lockRowHTML({ id: 'moiBk', action: partageCopie() ? 'Enregistrer' : 'Télécharger' })}
+       ${lockRowHTML({ id: 'moiBk', action: partagePossible() ? 'Enregistrer' : 'Télécharger' })}
      </fieldset>` : '';
 
   /* « General first, Advanced last » : les réglages ferment la page.
