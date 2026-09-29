@@ -270,9 +270,16 @@ export function openMail(c, opts){
        de haut. L'exemption WCAG pour un lien « en ligne » ne le couvre
        pas — il n'est pas DANS une phrase, il est collé derrière une
        adresse e-mail, et il ouvre une feuille entière. La ligne grandit
-       donc de 27 px, et seulement dans cet état-là : elle disparaît au
-       premier nom saisi. */
-    if (!S.profile.name){
+       donc de 27 px, et seulement dans cet état-là : elle disparaît dès
+       que le nom, la formation et la recherche sont là. */
+    /* Et pas seulement sans nom. Sans formation, la présentation du modèle
+       se lit « Je suis en et je cherche… » ; sans recherche choisie, elle
+       dit « un stage » à qui cherche une alternance. Les deux se voient
+       dans le message juste en dessous, mais pas ce qui les répare — le
+       lien le dit, ICI, au moment où ça compte (aide au moment du geste,
+       NN/g). L'école et le téléphone n'y sont pas : leur absence retire
+       une ligne, elle ne rend rien faux. */
+    if (!S.profile.name || !String(S.profile.formation || '').trim() || !S.profile.recherche){
       const b = el(`<button class="linklike" id="mProfil">Compléter mon profil</button>`);
       b.addEventListener('click', () => openProfil(() => { if (sh.body.isConnected) fill(); }));
       q('#mHint').classList.add('hint-act');

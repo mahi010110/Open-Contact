@@ -196,7 +196,7 @@ choses, et aucune ne dépend de quelqu'un d'extérieur.
       l'autre **dans la barre de titre** : la ligne des réglages en ouvre une
       seule, et l'autre était à 2 900 px de défilement. *(septembre 2026)*
 
-**Le chemin de retour existe déjà.** Réglages → « Signaler un problème »
+**Le chemin de retour existe déjà.** Moi → « Signaler un problème »
 produit un rapport de cinq lignes (navigateur, système, écran, poids des
 données…) et le copie. Aucun envoi automatique : ce serait de la télémétrie,
 et c'est interdit. L'étudiant colle où il veut. Le rapport ne contient aucune

@@ -357,3 +357,30 @@ export function contactFromSignature(text){
   }
   return (out.name || out.email || out.phone) ? out : null;
 }
+
+/* ---------- « sans filet » : tes pistes n'existent qu'ici ----------
+   Tout vit dans ce seul navigateur. Un téléphone perdu, un navigateur
+   vidé — Safari efface de lui-même un site non ouvert depuis sept jours,
+   sauf s'il est posé sur l'écran d'accueil (WebKit, 2023) — et le suivi
+   de plusieurs mois disparaît. Deux filets le rattrapent : un autre
+   appareil relié, ou une copie récente.
+   L'état de la copie a été retiré le 4 août 2026 : il poussait au geste
+   à CHAQUE passage, et un rappel permanent devient un papier peint
+   (§6, règle 1). Celui-ci ne parle que quand il n'y a AUCUN filet —
+   rien d'autre ne rattraperait la perte — et se tait dès qu'un seul
+   existe. Deux seuils, et chacun a sa raison :
+   · 5 pistes : en deçà, perdre coûte cinq minutes de saisie ; au-delà,
+     c'est un suivi (dates, notes, réponses) qu'on ne reconstruit pas ;
+   · 30 jours : l'âge au-delà duquel une copie ne rattrape plus ce qui
+     compte — un mois de relances et de réponses. */
+export const FILET_MIN_PISTES = 5;
+export const FILET_JOURS = 30;
+export function sansFilet({ pistes = 0, derniereCopie = 0, appareils = [], maintenant = Date.now() } = {}){
+  if (pistes < FILET_MIN_PISTES) return false;
+  const seuil = maintenant - FILET_JOURS * 86400000;
+  if (Number(derniereCopie) > seuil) return false;
+  /* un appareil relié ne protège que s'il s'est montré récemment : une
+     phrase créée puis jamais retapée ailleurs ne relie rien */
+  if ((appareils || []).some(d => d && Number(d.seen) > seuil)) return false;
+  return true;
+}

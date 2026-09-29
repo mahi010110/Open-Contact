@@ -12,6 +12,7 @@ import { APP_VERSION, VECU, normalizeCompany, normalizeContact, normalizeProfile
          pushHist, fillTpl, safeUrl, summarizeChanges,
          RECHERCHES, dateLongue, dureeRecherche, periodeValide, phraseRecherche, resumeRecherche,
          manquesProfil, emailPlausible, majModelesDefaut, defaultTemplates,
+         prendCeQueJeCherche, PREND_MOT,
          isActiveCt, nextActionContact,
          PROMPTS_MAX, PROMPT_MAX_LEN } from './engine/model.js';
 import { communityView, parseInput, sharePayload, fullPayload,
@@ -23,7 +24,7 @@ import { filterCompanies, filterOrphans, searchHint, NATURAL_DIR } from './engin
 import { scoreOf } from './engine/score.js';
 import { DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, SYNC_KEY,
          RELAYS_KEY, TURN_KEY, DEVICE_KEY, DEVICES_KEY, PROMO_KEY, VAULT_KEY,
-         ANALYSIS_KEY, SEALABLE, THEME_KEY, VIEW_KEY, OLD_V2, OLD_V1,
+         ANALYSIS_KEY, SEALABLE, THEME_KEY, VIEW_KEY, OLD_V2, OLD_V1, CLES_A_EFFACER,
          kvGet, kvSet, kvDel, vaultActive, vaultDetach, vaultReseal } from './engine/storage.js';
 import { causeLiaison, relayTally, liaisonStage, parseTurn, turnText, TURN_MAX, RELAIS_DEFAUT } from './engine/transport.js';
 import { clePortage, sceller as scellerPortage, ouvrir as ouvrirPortageMsg, decouper, rassembler, recolte,
@@ -43,7 +44,8 @@ import { DAILY_CAP, buildCampaign, dueSends, dueSendsAll, sentTodayAll,
 import { buildMime, encodeHeader, toB64Url, authUrl, parseCallback, pkcePair } from './engine/mailer.js';
 import { dueFollowups, contactFromSignature, exchangeLog, exchangeTotals, nextActionSuggestions,
          silentPistes, derniereTrace, recuesDormantes, jamaisDonnees, canalCourt,
-         SILENCE_RELANCE, SILENCE_DERNIERE, SILENCE_TROP_TARD } from './engine/assist.js';
+         SILENCE_RELANCE, SILENCE_DERNIERE, SILENCE_TROP_TARD,
+         sansFilet, FILET_MIN_PISTES, FILET_JOURS } from './engine/assist.js';
 import { makeMission, missionUsable, revokeMission, foldCampaignReport,
          signMission, openMissionWire } from './engine/mission.js';
 import { normCode, pairKey } from './engine/ordinateur.js';
@@ -935,6 +937,38 @@ export async function runSelfTests(){
       const p = normalizeProfile({ templates: [ancien, retouche] });
       ok(p.templates[0].body.includes('{{recherche}}'));
       eq(p.templates[1].body, retouche.body);
+    },
+    'sans filet : ne parle que quand RIEN ne rattraperait la perte': () => {
+      const J = 86400000, now = Date.UTC(2027, 0, 31);
+      const base = { pistes: 24, derniereCopie: 0, appareils: [], maintenant: now };
+      ok(sansFilet(base));                                                   /* 24 pistes, rien ailleurs */
+      ok(!sansFilet({ ...base, pistes: FILET_MIN_PISTES - 1 }));              /* trop peu pour s'inquiéter */
+      ok(!sansFilet({ ...base, derniereCopie: now - 3 * J }));                /* une copie récente */
+      ok(sansFilet({ ...base, derniereCopie: now - (FILET_JOURS + 1) * J })); /* une copie trop vieille */
+      ok(!sansFilet({ ...base, appareils: [{ id: 'b', seen: now - 2 * J }] })); /* un appareil qui s'est montré */
+      /* une phrase créée puis jamais retapée ailleurs ne relie rien */
+      ok(sansFilet({ ...base, appareils: [{ id: 'b', seen: now - 90 * J }] }));
+      ok(!sansFilet());                                                       /* sans rien : muet */
+    },
+    'recherche : une piste prend-elle ce que tu cherches ? oui, non — ou on ne sait pas': () => {
+      const alt = { positions: ['alternance', 'cdi'] };
+      eq(prendCeQueJeCherche(alt, 'alternance'), true);
+      eq(prendCeQueJeCherche(alt, 'stage'), false);
+      eq(prendCeQueJeCherche(alt, 'emploi'), true);                /* un CDI est un emploi */
+      eq(prendCeQueJeCherche({ positions: [] }, 'stage'), null);   /* la piste ne dit rien */
+      eq(prendCeQueJeCherche(alt, ''), null);                      /* on ne sait pas ce que TU cherches */
+      ok(PREND_MOT.alternance && PREND_MOT.stage && PREND_MOT.emploi);
+    },
+    'effacer cet appareil : une seule liste, qui n’oublie pas les vieilles clés': () => {
+      /* une base vide relit `oc_data_v2` au chargement : l'oublier ici
+         ressuscitait des pistes d'avant la v3 sur un appareil « effacé » */
+      ok(CLES_A_EFFACER.includes(OLD_V2) && CLES_A_EFFACER.includes(OLD_V1));
+      for (const k of [DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, SYNC_KEY,
+                       RELAYS_KEY, TURN_KEY, DEVICE_KEY, DEVICES_KEY, PROMO_KEY, VAULT_KEY, ANALYSIS_KEY])
+        ok(CLES_A_EFFACER.includes(k), k + ' doit partir');
+      /* tout ce qui se scelle est une donnée : tout ce qui se scelle s'efface */
+      for (const k of SEALABLE) ok(CLES_A_EFFACER.includes(k), k + ' (scellable) doit partir');
+      ok(!CLES_A_EFFACER.includes(THEME_KEY));                       /* un réglage d'affichage reste */
     },
     'score : borné 0–100, croissant avec la complétude': () => {
       const vide = scoreOf(normalizeCompany({ name: 'X' }));

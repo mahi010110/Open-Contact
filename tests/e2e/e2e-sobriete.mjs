@@ -102,8 +102,13 @@ const PLAFOND = {
      fiche, mot pour mot, et pour la même raison. Il passe de six champs
      à onze, qui se tapent en plusieurs minutes ; un glissé vers le bas
      les jetait sans un mot. La question ne se pose QUE si quelque chose
-     a changé — ouvrir, lire et refermer ne demande rien. */
-  confirmations: 9,
+     a changé — ouvrir, lire et refermer ne demande rien.
+     10 le même jour : « Effacer cet appareil ». C'est le cas pour lequel
+     la porte existe — un geste qui ne se rattrape PAS, aucun « Annuler »
+     possible une fois la base vidée — et elle montre ce qu'on ne peut
+     pas deviner : combien de pistes et de documents partent, et s'il
+     existe encore une copie récente ou un autre appareil (§6). */
+  confirmations: 10,
   /* phrases d'explication dans les feuilles visibles.
      Monté à 219 le 4 août 2026 pour une phrase de « Signaler un
      problème », REDESCENDU à 211 le jour même : le mainteneur l'a
@@ -189,8 +194,16 @@ const PLAFOND = {
      Deux de ces phrases vivaient d'abord dans une constante, hors de
      portée du relevé : elles sont réécrites en clair dans le gabarit
      pour qu'il les compte. Un plafond qui ne voit pas tout ment dans le
-     sens qui rassure. */
-  motsExplication: 202,
+     sens qui rassure.
+
+     211 le même jour, +9 : « Tes 24 pistes n'existent que sur cet
+     appareil. » C'est l'état de copie retiré le 4 août, revenu sous une
+     condition qui le rend rare — il ne parle QUE quand aucun filet
+     n'existe (ni autre appareil vu depuis 30 jours, ni copie depuis 30
+     jours, et au moins 5 pistes), et se tait dès qu'un seul existe.
+     Il prévient de la perte la plus lourde de l'app, et la moins
+     visible : rien ne dit sinon que tout vit dans ce seul navigateur. */
+  motsExplication: 211,
   /* ZÉRO, et c'est le seul plafond qui puisse honnêtement valoir zéro :
      un style sans porteur n'a pas de contrepartie à peser — il ne rend
      service à personne, il ne fait qu'attendre d'être lu par erreur.

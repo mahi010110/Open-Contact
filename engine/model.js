@@ -7,7 +7,7 @@
    ============================================================ */
 import { uid, extractCity, todayISO, fmtDate } from './utils.js';
 
-export const APP_VERSION = '6.31.0';
+export const APP_VERSION = '6.32.0';
 
 export const DOMAINS = {
   esn:     { label:'ESN / Services IT',       color:'#4C9FD8' },
@@ -102,6 +102,21 @@ export function phraseRecherche(p){
   if (d) return `${r.un} à partir du ${dateLongue(p.debut)}`;
   return r.un;
 }
+/* Une piste PREND-ELLE ce que tu cherches ? Ses « postes » (stage,
+   alternance, CDI…) le disent quand ils sont remplis — souvent par un
+   camarade qui y est passé. Trois réponses, jamais deux : `null` quand
+   on ne sait pas (rien de choisi, ou la piste ne dit rien). Une piste
+   muette n'est pas une piste qui refuse, et la classer derrière celles
+   qui disent non serait inventer. L'emploi, c'est un CDI ou un CDD. */
+const POSTES_DE = { stage: ['stage'], alternance: ['alternance'], emploi: ['cdi', 'cdd'] };
+export function prendCeQueJeCherche(c, recherche){
+  const voulus = POSTES_DE[recherche];
+  const postes = (c && c.positions) || [];
+  if (!voulus || !postes.length) return null;
+  return postes.some(p => voulus.includes(p));
+}
+/* ce que la ligne dit, quand c'est la raison du classement */
+export const PREND_MOT = { stage: 'prend des stagiaires', alternance: 'prend des alternants', emploi: 'recrute' };
 /* la même chose en une ligne d'écran — « Stage · 6 janv. → 14 févr. 2027 » */
 export function resumeRecherche(p){
   p = p || {};
