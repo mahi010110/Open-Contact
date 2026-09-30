@@ -12,7 +12,7 @@ import { STATUSES, CLOSE_REASONS, DOMAINS, POSITIONS, VECU, pushHist, summarizeC
          nextActionContact } from '../engine/model.js';
 import { scoreOf } from '../engine/score.js';
 import { S, bus, isClosed, saveData, reopenPiste, logJ, activateContact } from './state.js';
-import { openSheet, confirmSheet, toast, btn, ic, montrerChange } from './dom.js';
+import { openSheet, confirmSheet, toast, btn, ic, montrerChange, suivreLargeur } from './dom.js';
 import { frDate, relLabel } from './dates.js';
 import { askNextAction, askClose } from './actions.js';
 import { openMail } from './mail.js';
@@ -418,7 +418,11 @@ export function openFiche(c){
       const depart = notes.style.height;
       notes.style.transition = 'none';
       notes.style.height = 'auto';
-      const cible = Math.max(44, notes.scrollHeight) + 'px';
+      /* la bordure ne compte pas dans `scrollHeight` : sans elle, la
+         dernière ligne perd ses deux derniers pixels (même piège que
+         `champGrandit`) */
+      const bord = notes.offsetHeight - notes.clientHeight;
+      const cible = Math.max(44, notes.scrollHeight + bord) + 'px';
       notes.style.height = depart || cible;
       void notes.offsetHeight;
       if (net){ notes.style.height = cible; void notes.offsetHeight; }
@@ -431,6 +435,7 @@ export function openFiche(c){
       renderFoot();
     });
     pousse(true);
+    suivreLargeur(notes, () => pousse(true));
     renderFoot();
   };
   render();

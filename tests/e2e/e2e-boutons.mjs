@@ -24,13 +24,17 @@
      état d'un mot ou une donnée chiffrée (« non », « 3 pistes ») ;
    ⑤ un libellé court : au-delà de quatre mots, il se compte, sous un
      plafond tenu à la baisse.
-   ⑥ au doigt, UN BOUTON SE DESSINE À LA TAILLE QU'ON TOUCHE — 44 px au
-     moins. Le même jour, les boutons étaient descendus à 40 et 32 px
-     dessinés, la cible gardée par une marge invisible ; sur le téléphone
-     du mainteneur le texte remplissait la boîte, à l'étroit, et il les a
-     redemandés comme avant (« c'était beaucoup mieux avant »). Ce
-     critère garde cette décision : redescendre demande de venir le
-     changer ICI, exprès.
+   ⑥ UNE HAUTEUR PAR MAIN — un contrôle se dessine à la hauteur de la
+     main qui le touche (`--ctl`) : 44 px au doigt, 32 à la souris, et la
+     tablette tactile est un doigt. Le même jour, les boutons étaient
+     descendus à 40 et 32 px au doigt ; sur le téléphone du mainteneur le
+     texte remplissait la boîte, et il les a redemandés comme avant. Puis,
+     « la taille doit être adaptée sur téléphone et PC » : le relevé des
+     trois ergonomies a trouvé le compact à 36 px au poste (plus haut que
+     le bouton normal) et, sur tablette, la croix à 28 px et « Donner » à
+     36 SOUS UN DOIGT — des tailles qui suivaient la largeur au lieu de
+     la main. La hiérarchie se dit par l'emphase, jamais par la hauteur
+     (§6) : ce critère exige donc l'égalité, dans les deux sens.
 
    La sonde se vérifie elle-même : une brique, une rangée habillée, une
    liste d'un geste et un sous-titre bavard sont plantés, et chaque
@@ -57,9 +61,12 @@ const ETIRES = {
   '.lockrow:not(.on) > .lr-do': 'la ligne du mot de passe : l’action tient la place que le champ prendra'
 };
 
-/* ⑥ — ce qui a le droit de se dessiner sous 44 px au doigt, et pourquoi.
-   Une exception se NOMME, avec sa raison, jamais en silence. Aucune. */
-const PETITS = {};
+/* ⑥ — ce qui a le droit de ne pas prendre la hauteur de la main, et
+   pourquoi. Une exception se NOMME par sa construction, avec sa raison.
+   Une seule : à la souris, la croix d'une feuille appartient au CHÂSSIS
+   et prend la hauteur de sa barre de titre (`--titlebar-h`), comme les
+   boutons de légende d'une fenêtre de bureau. Au doigt, elle reprend 44. */
+const CHASSIS = '.modal-h .x';
 
 const { server, base } = await serveRepo();
 const browser = await chromium.launch({ executablePath: chromiumPath() });
@@ -85,16 +92,23 @@ const RELEVE = () => {
     c.querySelectorAll('svg,.ic,span').forEach(x => x.remove());
     return c.textContent.replace(/\s+/g, ' ').trim();
   };
-  const out = { etires: [], habilles: [], seuls: [], bavards: [], longs: [], petits: [], vus: 0, exemptes: 0 };
-  /* ⑥ la hauteur DESSINÉE, au doigt seulement (à la souris, --ctl vaut
-     32 exprès) : ce qu'on voit est ce qu'on touche, 44 px au moins */
-  if (matchMedia('(pointer:coarse), (max-width:900px)').matches)
-    for (const b of racine.querySelectorAll('.btn, .dchip:not(.dchip-d), .fl-chip, .seg3 .seg, .x')){
-      if (!vu(b)) continue;
-      const h = b.getBoundingClientRect().height;
-      if (h < 43.5 && !(b.id && (window.__PETITS || []).includes('#' + b.id)))
-        out.petits.push(`« ${nom(b) || b.getAttribute('aria-label') || b.className} » ${Math.round(h)} px`);
-    }
+  const out = { etires: [], habilles: [], seuls: [], bavards: [], longs: [], tailles: [], vus: 0, exemptes: 0 };
+  /* ⑥ la hauteur DESSINÉE est celle de la main : `--ctl` lu tel que le
+     navigateur l'a résolu (44 ou 32), jamais une constante recopiée ici.
+     Un libellé qui plie sur deux rangs a le droit de grandir — pas de
+     rétrécir. */
+  const px = v => parseFloat(getComputedStyle(document.documentElement).getPropertyValue(v));
+  const ctl = px('--ctl'), barre = px('--titlebar-h');
+  const souris = matchMedia('(min-width:901px) and (pointer:fine)').matches;
+  for (const b of racine.querySelectorAll('.btn, .dchip:not(.dchip-d), .fl-chip, .seg3 .seg, .x, .icon-btn')){
+    if (!vu(b)) continue;
+    const h = b.getBoundingClientRect().height;
+    const attendu = souris && b.matches(window.__CHASSIS) ? barre : ctl;
+    const rg = document.createRange(); rg.selectNodeContents(b);
+    const rangs = new Set([...rg.getClientRects()].filter(r => r.width > 1).map(r => Math.round(r.top))).size;
+    if (h < attendu - 0.5 || (rangs <= 1 && h > attendu + 0.5))
+      out.tailles.push(`« ${nom(b) || b.textContent.replace(/\s+/g, ' ').trim() || b.getAttribute('aria-label') || b.className} » ${Math.round(h)} px (attendu ${attendu})`);
+  }
   for (const b of racine.querySelectorAll('.btn')){
     if (!vu(b) || b.closest('.modal-f,.modal-h') || b.classList.contains('btn-primary')) continue;
     out.vus++;
@@ -170,11 +184,14 @@ const SURFACES = [
   ['modèles', p => p.evaluate(() => import('./ui/profil.js').then(m => m.openTemplates()))]
 ];
 
+/* la tablette est un DOIGT sur un dessin de poste : c'est là que les
+   tailles qui suivaient la largeur au lieu de la main se voyaient */
 for (const [ergo, opts] of [['au doigt', { viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true }],
-                             ['à la souris', { viewport: { width: 1280, height: 800 } }]]){
+                             ['à la souris', { viewport: { width: 1280, height: 800 } }],
+                             ['tablette au doigt', { viewport: { width: 1180, height: 820 }, hasTouch: true, isMobile: true }]]){
   const p = await ouvrir(opts);
-  const tout = { etires: [], habilles: [], seuls: [], bavards: [], longs: [], petits: [] };
-  await p.evaluate(([pe, e]) => { window.__PETITS = pe; window.__ETIRES = e; }, [Object.keys(PETITS), Object.keys(ETIRES)]);
+  const tout = { etires: [], habilles: [], seuls: [], bavards: [], longs: [], tailles: [] };
+  await p.evaluate(([c, e]) => { window.__CHASSIS = c; window.__ETIRES = e; }, [CHASSIS, Object.keys(ETIRES)]);
   let vus = 0, exemptes = 0;
   const relever = async nom => {
     await p.waitForTimeout(380);
@@ -202,7 +219,8 @@ for (const [ergo, opts] of [['au doigt', { viewport: { width: 390, height: 844 }
          <button class="pick"><b>Bavarde</b><span>explique quand s'en servir</span></button></div>
        <div class="pick-list"><button class="pick"><b>Seule</b></button></div>
        <button class="btn">Un libellé beaucoup trop long pour un bouton</button>
-       <button class="btn btn-sm" style="min-height:0;height:30px">Timbre</button>`;
+       <button class="btn btn-sm" style="min-height:0;height:30px">Timbre</button>
+       <button class="btn btn-sm" style="min-height:60px">Tuile</button>`;
   });
   const sonde = await p.evaluate(RELEVE);
   await fermer(p);
@@ -213,7 +231,8 @@ for (const [ergo, opts] of [['au doigt', { viewport: { width: 390, height: 844 }
     seuls: sonde.seuls.some(x => /Seule/.test(x)),
     longs: sonde.longs.some(x => /beaucoup trop long/.test(x)),
     /* à la souris, ce critère ne s'applique pas : sa sonde non plus */
-    petits: ergo !== 'au doigt' || sonde.petits.some(x => /Timbre/.test(x))
+    /* dans les DEUX sens : trop petit ET trop haut */
+    tailles: sonde.tailles.some(x => /Timbre/.test(x)) && sonde.tailles.some(x => /Tuile/.test(x))
   };
   for (const [k, ok] of Object.entries(vue))
     if (!ok) fail(`${ergo} : la sonde « ${k} » n'a pas été vue — ce critère ne mesure plus rien`);
@@ -230,13 +249,13 @@ for (const [ergo, opts] of [['au doigt', { viewport: { width: 390, height: 844 }
   dire(tout.habilles, 'une rangée d’action a repris cadre ou ombre — elle redevient une brique');
   dire(tout.seuls, 'une liste d’un seul geste — un geste seul est un bouton à sa taille');
   dire(tout.bavards, 'un sous-titre explique le bouton — à droite, seulement un état d’un mot ou un chiffre');
-  dire(tout.petits, 'au doigt, un bouton se DESSINE sous 44 px — ce qu’on voit est ce qu’on touche '
-    + '(décision du mainteneur, 30 septembre 2026 : « c’était beaucoup mieux avant »)');
+  dire(tout.tailles, 'un contrôle ne se dessine pas à la hauteur de la main (44 au doigt, 32 à la souris) — '
+    + 'la hiérarchie se dit par l’emphase, jamais par la hauteur');
   if (tout.longs.length > PLAFOND_LONGS)
     fail(`${ergo} : ${tout.longs.length} libellé(s) de plus de quatre mots (plafond ${PLAFOND_LONGS}) —\n      `
       + tout.longs.join('\n      '));
   if (!ko) console.log(`${ergo} : ${vus} boutons sur ${SURFACES.length + (ergo === 'au doigt' ? 1 : 0)} vues — `
-    + `aucun étiré, aucune brique, aucun sous-titre bavard, ${tout.longs.length} libellé long${ergo === 'au doigt' ? ', tout dessiné à 44 px au moins' : ''} ✓`);
+    + `aucun étiré, aucune brique, aucun sous-titre bavard, ${tout.longs.length} libellé long, tout à la hauteur de la main ✓`);
   await p.context().close();
 }
 

@@ -1392,12 +1392,19 @@ for (const [nom, ptr] of [['doigt', true], ['souris', false]]){
     address: '12 rue du Rempart Saint-Étienne\n31000 Toulouse',
     techs: 'SOC, Fortinet, Linux, Suricata, Elastic, Python',
     desc: 'ESN toulousaine de 120 personnes, spécialisée en cybersécurité industrielle.',
-    tips: 'Ils recrutent surtout en janvier et en juin. Le test porte sur du réseau.'
+    tips: 'Ils recrutent surtout en janvier et en juin. Le test porte sur du réseau.',
+    /* la fiche, et SES notes : au poste comme sur tablette, une note de
+       trois lignes restait coincée sur une (`flex:1` pose une base de
+       zéro, la hauteur du contenu était ignorée) — et la fiche n'était
+       pas balayée, donc rien n'a rougi */
+    notes: 'Appelé le 12/03 : Nadia rappelle après le comité du 20. Demander le nom du responsable SOC et envoyer le CV en PDF.'
   };
   let champsVus = 0;
-  for (const [W, Z] of [[320, 1], [320, 1.25], [360, 1], [390, 1], [390, 1.25], [1280, 1]]){
+  /* la tablette tactile en paysage : un DOIGT sur un dessin de poste —
+     c'est la combinaison où la fiche perdait ses notes */
+  for (const [W, Z, doigt = W < 901] of [[320, 1], [320, 1.25], [360, 1], [390, 1], [390, 1.25], [1280, 1], [1180, 1, true]]){
     const fCtx = await browser.newContext({ viewport: { width: W, height: 860 },
-      hasTouch: W < 901, isMobile: W < 901 });
+      hasTouch: doigt, isMobile: doigt });
     const fp = await fCtx.newPage();
     watchErrors(fp);
     await fp.goto(base, { waitUntil: 'load' });
@@ -1406,24 +1413,33 @@ for (const [nom, ptr] of [['doigt', true], ['souris', false]]){
       await st.kvSet(st.DATA_KEY, JSON.stringify([{ id: 'f1', name: 'Adrastia',
         city: 'Toulouse', domain: 'esn', status: 'todo', website: 'https://adrastia.fr',
         address: L.address, techs: L.techs, desc: L.desc, tips: L.tips,
-        process: L.tips, updatedAt: Date.now(), contacts: [] }]));
+        process: L.tips, notes: L.notes, updatedAt: Date.now(), contacts: [] },
+        /* une piste NEUVE et une note longue : sa fiche n'a presque rien
+           à droite, donc la colonne des notes ne s'étire pas — c'est là
+           seulement que la note se coinçait. La piste bien remplie
+           ci-dessus la cachait : sa colonne de droite, haute, donnait
+           aux notes toute la place qu'il fallait. */
+        { id: 'f2', name: 'Wavestone', status: 'active', notes: L.notes,
+          updatedAt: Date.now() - 1, contacts: [] }]));
     }, LONG);
     await fp.reload({ waitUntil: 'load' });
     if (Z !== 1) await fp.addStyleTag({ content: `html{font-size:${16 * Z}px}` });
     await fp.waitForSelector('#view-aujourdhui:not([hidden])');
-    for (const [nom, mod, fn] of [
+    for (const [nom, mod, fn, id = 'f1'] of [
       ['modifier', './ui/edit.js', 'openEditPiste'],
       ['capture', './ui/capture.js', 'openCapture'],
-      ['contact', './ui/contact.js', 'openContactEditor']
+      ['contact', './ui/contact.js', 'openContactEditor'],
+      ['fiche', './ui/fiche.js', 'openFiche'],
+      ['fiche neuve', './ui/fiche.js', 'openFiche', 'f2']
     ]){
       await fp.evaluate(async () => { const { topSheet } = await import('./ui/dom.js');
         let s, n = 0; while ((s = topSheet()) && n++ < 4){ s.close(null, true);
           await new Promise(r => setTimeout(r, 110)); } });
-      await fp.evaluate(async ([mod, fn]) => {
+      await fp.evaluate(async ([mod, fn, id]) => {
         const { S } = await import('./ui/state.js');
         const m = await import(mod);
-        if (fn === 'openEditPiste') m[fn](S.companies[0]); else m[fn](null);
-      }, [mod, fn]).catch(() => {});
+        if (fn === 'openEditPiste' || fn === 'openFiche') m[fn](S.companies.find(c => c.id === id)); else m[fn](null);
+      }, [mod, fn, id]).catch(() => {});
       await fp.waitForTimeout(420);
       const r = await fp.evaluate(() => {
         const out = []; let vus = 0;
@@ -1451,7 +1467,7 @@ for (const [nom, ptr] of [['doigt', true], ['souris', false]]){
   if (champsVus < 20)
     fail(`valeurs : ${champsVus} champs remplis rencontrés seulement — le balayage ne voit plus l’app`);
   else if (!process.exitCode)
-    console.log(`   valeurs enregistrées : ${champsVus} champs remplis sur 3 feuilles × 6 tailles, `
+    console.log(`   valeurs enregistrées : ${champsVus} champs remplis sur 5 feuilles × 7 tailles, `
       + 'aucun ne cache la sienne ✓');
 }
 

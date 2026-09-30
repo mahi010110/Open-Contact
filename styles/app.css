@@ -220,11 +220,11 @@ a.btn.btn-danger:hover{color:var(--red)}
 .btn-ghost:hover{background:var(--surface-chrome);color:var(--text-body)}
 }
 .btn-ghost:active{transform:none;box-shadow:var(--bevel-down)}
-.btn-sm{min-height:36px;padding:2px 11px;font-size:var(--text-12)}
-/* Mobile et écran tactile : même les actions compactes restent au pouce. */
-@media (max-width:900px), (pointer:coarse){
-  .btn-sm{min-height:44px}
-}
+/* Le compact se distingue par son TEXTE et son padding, jamais par sa
+   hauteur : il suit la main comme tout le reste (`--ctl`, 44 px au
+   doigt, 32 à la souris). Il était écrit à 36 px — donc, au poste, plus
+   haut que le bouton normal, le champ et la rangée voisins (32). */
+.btn-sm{min-height:var(--ctl);padding:2px 11px;font-size:var(--text-12)}
 .icon-btn{width:var(--ctl);height:var(--ctl);padding:0}
 .linklike{
   background:none;border:0;color:var(--text-link);font-weight:var(--weight-semibold);font-size:var(--text-12);
@@ -1360,7 +1360,13 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   .overlay{align-items:center;padding:22px}
   .modal-f{padding-bottom:12px}
   .modal-f .btn{flex:0 0 auto}
-  .x{min-width:28px;min-height:28px;width:28px;height:28px}
+}
+/* À la souris, la croix appartient au CHÂSSIS : elle prend la hauteur de
+   sa barre de titre, comme les boutons de légende d'une fenêtre de
+   bureau. Elle se décidait sur la LARGEUR — une tablette tactile en
+   paysage recevait donc 28 px sous le doigt. La taille suit la main. */
+@media (min-width:901px) and (pointer:fine){
+  .x{min-width:var(--titlebar-h);min-height:var(--titlebar-h);width:var(--titlebar-h);height:var(--titlebar-h)}
 }
 /* la barre de titre se prend à la souris — le curseur est le seul signe
    dont ce geste a besoin, et il ne coûte pas un pixel. Au doigt, la même
@@ -1646,7 +1652,7 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   }
   .ec-actes .hero2{display:contents}
   .ec-actes .hero{
-    min-height:36px;width:auto;flex:none;flex-direction:row;gap:8px;
+    min-height:var(--ctl);width:auto;flex:none;flex-direction:row;gap:8px;
     padding:0 18px;font-size:var(--text-13);
   }
   /* LA HIÉRARCHIE SE DIT PAR L'EMPHASE, PAS PAR LA TAILLE.
@@ -1665,7 +1671,7 @@ details.pcard-details[open]>summary{margin-bottom:10px}
      largeur avec son chevron, parce qu'un doigt veut une grande cible
      et qu'une colonne unique n'a pas de rangée à composer. */
   .ec-actes .moi-door{
-    flex:0 0 auto;width:auto;margin:0;min-height:36px;padding:0 14px;gap:8px;
+    flex:0 0 auto;width:auto;margin:0;min-height:var(--ctl);padding:0 14px;gap:8px;
     font-size:var(--text-13);color:var(--text-muted);
   }
   .ec-actes .moi-door .md-m{flex:none}
@@ -2475,7 +2481,14 @@ button.ec-row:hover{background:var(--surface-field)}
      trou à gauche, les notes prennent la hauteur qui reste — c'est la
      seule zone de cette fenêtre où l'on écrit vraiment */
   .fi-cols>div:first-child>.field:last-child{flex:1;display:flex;flex-direction:column;min-height:0}
-  .fi-cols>div:first-child>.field:last-child textarea{flex:1;min-height:150px}
+  /* `1 0 auto`, pas `flex:1` : ce dernier pose une base de ZÉRO, et la
+     hauteur que le champ se donne en grandissant était ignorée — au
+     poste comme sur tablette, une note de trois lignes restait coincée
+     sur une, le reste caché sous `overflow:hidden`. La base `auto` garde
+     sa hauteur de contenu ; le reste de la colonne s'ajoute par-dessus.
+     (Le plancher de 150 px qui vivait ici ne s'est jamais appliqué :
+     `#fiNotes` l'écrasait. Il part.) */
+  .fi-cols>div:first-child>.field:last-child textarea{flex:1 0 auto}
   /* Écrire au poste : la fenêtre prend une hauteur franche et la donne
      au message. Les deux menus (destinataire, modèle) cessent aussi de
      tronquer leur libellé — c'est la largeur qui manquait. */
