@@ -50,14 +50,17 @@ se tromper coûte plus cher que ne pas savoir.
 **3. Local d'abord, instantané, hors ligne.** Tes pistes et celles du
 groupe répondent à chaque frappe, sans réseau (invariant ④).
 
-**4. Rien ne quitte l'appareil sans un geste.** La même barre sert à
-retrouver tes pistes — donc parfois à taper le nom d'un contact. Si la
-partie en ligne partait toute seule, « Julie Martin » partirait vers un
-service de l'État. La recherche en ligne est donc **une ligne qu'on
-touche** (« Chercher dans l'annuaire »), jamais un envoi à la frappe. Et
-seuls partent les **étiquettes** et les mots libres de la requête : jamais
-une piste, jamais un contact, jamais le profil. C'est l'esprit de §10
-(aucune télémétrie) appliqué à une recherche.
+**4. La recherche en ligne part toute seule, mais n'emporte que ce qui
+décrit une entreprise** *(décision du mainteneur, 30 septembre 2026 : pas
+de geste à faire)*. Elle part après une courte pause dans la frappe, jamais
+hors ligne, et au rythme que l'annuaire accepte. Le risque que le geste
+couvrait reste réel — la même barre sert à retrouver tes pistes, donc
+parfois à taper le nom d'un contact —, il se règle autrement : **un mot
+qui correspond à un de tes contacts, ou qui n'existe que dans ton suivi
+privé (notes, historique), ne part jamais**. Partent les étiquettes
+(métier, ville, taille) et les mots qui peuvent nommer une entreprise ;
+jamais une piste, jamais un contact, jamais le profil. Une requête dont il
+ne reste rien d'utile après ce tri ne part pas du tout.
 
 **5. Une entreprise = une ligne, quelle que soit sa source.** Trouvée à la
 fois dans tes pistes et dans l'annuaire, elle apparaît **une** fois, dans
@@ -163,9 +166,7 @@ TES PISTES · 2
   Sopra Steria            Lille · en cours
   Wavestone               Lille · à contacter
 
-[ Chercher dans l'annuaire          › ]      ← un geste, jamais automatique
-
-À DÉCOUVRIR · 38                              ← après le geste
+À DÉCOUVRIR · 38                              ← arrive seul, après une pause
   ☐ Orange Cyberdefense   Léa y a fait son stage · 4 km
   ☐ Advens                2 km · 100-199 salariés
   …
@@ -186,9 +187,9 @@ décide du dessin, la main de la taille).
 |---|---|
 | Barre vide, focalisée | deux ou trois recherches proposées depuis le profil (« alternance · Lille ») |
 | Frappe | les étiquettes se forment sous la barre, tes pistes se filtrent à chaque lettre |
-| Aucune de tes pistes ne correspond | la ligne « Chercher dans l'annuaire » passe en tête : c'est le geste utile |
-| Hors ligne | la ligne de l'annuaire dit « hors ligne » et ne se touche pas ; le local marche |
-| L'annuaire ne répond pas | une phrase sous la ligne, dite avec des mots de tous les jours, et le local reste |
+| Aucune de tes pistes ne correspond | « À découvrir » passe en tête |
+| Hors ligne | « À découvrir » dit « hors ligne » ; le local marche |
+| L'annuaire ne répond pas | une phrase sous « À découvrir », dite avec des mots de tous les jours, et le local reste |
 | Aucun résultat en ligne | une proposition d'élargir : retirer l'étiquette la plus étroite, ou agrandir le rayon |
 | Ajout | l'aperçu habituel (combien de nouvelles, combien complétées), puis Annuler ~30 s |
 
@@ -200,12 +201,14 @@ l'on apprend au moment exact du geste, et il part dès qu'on tape (§7).
 
 ## Ce que le lot ne fait pas
 
-- **Aucun envoi automatique**, aucune requête gardée ailleurs, aucun
-  historique de recherche envoyé nulle part.
-- **Aucune personne importée d'office.** Le dirigeant d'une petite
-  entreprise (public, et souvent celui qui décide) s'affiche sur la fiche ;
-  il ne devient un **contact** que si tu l'ajoutes, et il ne voyage dans un
-  partage que dans ce cas.
+- **Aucun mot privé envoyé** (principe 4), aucune requête gardée
+  ailleurs, aucun historique de recherche envoyé nulle part.
+- **Aucune personne importée d'office.** La fiche montre **toutes les
+  informations utiles** de l'annuaire *(décision du mainteneur)* :
+  dirigeant, effectif, date de création, activité, adresse de
+  l'établissement proche, site web. Le dirigeant (public, et souvent celui
+  qui décide dans une petite entreprise) ne devient un **contact** que si
+  tu l'ajoutes, et il ne voyage dans un partage que dans ce cas.
 - **Aucune aspiration** de LinkedIn ni d'un autre site : des liens, pas des
   copies. (La CNIL a sanctionné en 2024 la collecte de coordonnées depuis
   LinkedIn contre la volonté des personnes.)
@@ -229,14 +232,15 @@ l'on apprend au moment exact du geste, et il part dès qu'on tape (§7).
 
 **Les scénarios** (e2e) :
 
-- **aucune requête vers l'extérieur avant le geste** — intercepté, compté,
-  zéro ; et taper le nom d'un contact n'envoie rien, jamais ;
-- le local marche hors ligne, la ligne de l'annuaire le dit ;
+- **aucun mot privé ne sort** — requêtes interceptées et lues : taper le
+  nom d'un contact, un mot de ses notes, n'envoie jamais ce mot ; une
+  requête vidée par le tri ne part pas ;
+- le local marche hors ligne, « À découvrir » le dit ;
 - une entreprise présente des deux côtés n'apparaît qu'une fois ;
 - ajouter passe par l'aperçu et se défait ;
 - pouce, poste, tablette : tailles de la main, barre collante, clavier ;
-- chaque garde se prouve par une mutation (un envoi à la frappe, un
-  doublon, une étiquette qui avale un mot).
+- chaque garde se prouve par une mutation (un nom de contact qui part,
+  un doublon, une étiquette qui avale un mot).
 
 ---
 
@@ -247,18 +251,37 @@ Chacun se livre dans main et se teste sur le téléphone.
 1. **L'interpréteur et les étiquettes**, sur tes pistes et celles du
    groupe. Rien en ligne. Le gain se voit tout de suite : « alternance
    Lille » filtre par ce que ça veut dire, pas par des lettres.
-2. **« Chercher dans l'annuaire »** : la ligne, le geste, la liste à
-   cocher, l'aperçu, le SIREN (un champ de plus dans `CONTRAT.md`, lu en
-   migration douce). Précédé de la preuve CORS.
+2. **« À découvrir »** : la recherche en ligne qui part seule (avec le
+   tri des mots privés), la liste à cocher, l'aperçu, le SIREN (un champ
+   de plus dans `CONTRAT.md`, lu en migration douce). Précédé de la preuve
+   CORS.
 3. **L'enrichissement et les liens** : site web (Wikidata), distance,
-   dirigeant sur la fiche, les trois liens d'un tap.
+   toutes les informations utiles sur la fiche, les trois liens d'un tap.
 
-## Questions pour le mainteneur
+## Avec le réseau
 
-1. La recherche en ligne derrière **un geste** (principe 4) : d'accord ?
-   C'est ce qui protège les noms que tu tapes pour retrouver tes pistes.
-2. Le nom de la section en ligne : « À découvrir » ou « Dans l'annuaire » ?
-3. Le dirigeant d'une petite entreprise affiché sur la fiche : oui ?
+Le réseau ([`reseau.md`](reseau.md)) s'appuie sur cette barre sans rien
+changer à ses lots, qui passent d'abord :
+
+- **La barre mène à la piste d'où part une demande** (« Quelqu'un chez
+  Aztek ? »), y compris pour une entreprise trouvée dans « À découvrir »,
+  qu'on ajoute d'abord.
+- **Le premier critère du classement s'élargit.** Aujourd'hui, c'est
+  « quelqu'un du groupe peut te porter » (« Léa y a fait son stage »).
+  Avec les amis (lot 2 du réseau), le parcours d'un ami compte pareil
+  (« Karim y est en alternance »), et il se lit tout de suite, hors ligne.
+  La famille « Le groupe » de l'interprétation reconnaît alors aussi le
+  prénom d'un ami.
+- **Le principe 4 vaut pour le réseau aussi** : d'une recherche, une
+  demande ne dit que le nom de l'entreprise, jamais un mot privé.
+
+## Décisions du mainteneur (30 septembre 2026)
+
+1. **Pas de geste** avant la recherche en ligne : elle part seule. Le
+   principe 4 garde la protection autrement — aucun mot privé ne sort.
+2. La section en ligne s'appelle **« À découvrir »**.
+3. La fiche montre **toutes les informations utiles** de l'annuaire, le
+   dirigeant compris.
 
 ---
 

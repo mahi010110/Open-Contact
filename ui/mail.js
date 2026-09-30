@@ -8,7 +8,7 @@
    propose la suite — la boucle qui entretient « Aujourd'hui ».
    ============================================================ */
 import { esc, todayISO } from '../engine/utils.js';
-import { fillTpl, pushHist, modeleConseille } from '../engine/model.js';
+import { fillTpl, crochets, remplirTrous, pushHist, modeleConseille } from '../engine/model.js';
 import { sendMail } from '../engine/mailer.js';
 import { bytesToB64 } from '../engine/crypto.js';
 import { docGet } from '../engine/storage.js';
@@ -127,7 +127,8 @@ export function openMail(c, opts){
           seulement qu'on n'a rien préparé, et le site, lui, mène
           quelque part. */''}
      ${savoirHTML(c)}
-     <div class="field fld-body"><label for="mBody">Message</label><textarea id="mBody"></textarea>
+     <div class="field fld-body"><label for="mBody">Message</label><textarea id="mBody" aria-describedby="mTrou"></textarea>
+       <p class="hint warn" id="mTrou" hidden>Remplace le texte entre crochets.</p>
        ${(IA && aiConnection()) ? `<button class="linklike" id="mAi" style="margin-top:2px">${ic('sparkles', 'ic-14')} Proposer un brouillon</button>` : ''}</div>
      <div class="attach-line" id="mAttach"></div>
      <p class="hint" id="mHint"></p>`;
@@ -171,13 +172,56 @@ export function openMail(c, opts){
   aMail.className = 'btn';
   aMail.textContent = 'Ouvrir dans Mail';
   aMail.style.textDecoration = 'none';
+  /* LE CROCHET NE PART JAMAIS CHEZ LE RECRUTEUR. Joué le 30 septembre
+     2026 : profil vide, « Ouvrir dans Mail » envoyait d'un tap la
+     consigne entre crochets, « Je suis en et je cherche un stage » et
+     aucune signature — le tout premier mail d'un étudiant. Tant qu'un
+     crochet reste, les trois sorties s'arrêtent : l'erreur se dit SOUS
+     le champ (§6), la saisie reste, et le crochet est SÉLECTIONNÉ — il
+     suffit de taper pour le remplacer. Aucune porte à franchir : un
+     crochet qu'on veut vraiment envoyer n'existe pas dans un mail de
+     candidature. Inscrit en premier, pour passer avant `logPrep` et
+     `parti` : un mail qui n'est pas parti n'a pas à s'écrire au journal. */
+  aMail.addEventListener('click', e => {
+    if (!pasPret()) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+  });
+  function pasPret(){
+    const t = q('#mBody');
+    const [x] = crochets(t.value);
+    q('#mTrou').hidden = !x;
+    if (!x){ t.removeAttribute('aria-invalid'); return false; }
+    t.setAttribute('aria-invalid', 'true');
+    t.focus();
+    t.setSelectionRange(x.debut, x.fin);
+    return true;
+  }
 
+  /* ce que le modèle a produit, pour savoir plus tard si l'étudiant y a touché */
+  const genere = { objet: '', corps: '' };
   function fill(){
     const t = tpls[+q('#mTpl').value || 0];
     if (!t) return;
     const ct = currentCt();
-    q('#mSubj').value = fillTpl(t.subject, c, ct, S.profile);
-    q('#mBody').value = fillTpl(t.body, c, ct, S.profile);
+    q('#mSubj').value = genere.objet = fillTpl(t.subject, c, ct, S.profile);
+    q('#mBody').value = genere.corps = fillTpl(t.body, c, ct, S.profile, { trous: true });
+    sync();
+  }
+  /* Le profil a été complété depuis le composeur. Un brouillon intact se
+     recalcule en entier (l'école, le téléphone reviennent) ; un brouillon
+     touché garde tout ce que l'étudiant a écrit, seuls ses trous se
+     remplissent. Avant, les deux cas recalculaient : l'accroche qu'on
+     venait d'écrire disparaissait sans un mot (invariant ②). */
+  function apresProfil(){
+    if (!sh.body.isConnected) return;
+    const touche = q('#mBody').value !== genere.corps;
+    if (!touche && q('#mSubj').value === genere.objet){ fill(); return; }
+    q('#mBody').value = remplirTrous(q('#mBody').value, S.profile);
+    if (q('#mSubj').value === genere.objet){
+      const t = tpls[+q('#mTpl').value || 0];
+      if (t) q('#mSubj').value = genere.objet = fillTpl(t.subject, c, currentCt(), S.profile);
+    }
     sync();
   }
   /* indisponible = absent (loi #6) : sans adresse, ni « Envoyer » ni
@@ -247,6 +291,11 @@ export function openMail(c, opts){
   };
   function sync(){
     syncObjet();
+    /* l'erreur part dès que le dernier crochet est remplacé — jamais avant */
+    if (!q('#mTrou').hidden && !crochets(q('#mBody').value).length){
+      q('#mTrou').hidden = true;
+      q('#mBody').removeAttribute('aria-invalid');
+    }
     const ct = currentCt();
     const email = ct && ct.email;
     if (email){
@@ -283,7 +332,7 @@ export function openMail(c, opts){
        une ligne, elle ne rend rien faux. */
     if (!S.profile.name || !String(S.profile.formation || '').trim() || !S.profile.recherche){
       const b = el(`<button class="linklike" id="mProfil">Compléter mon profil</button>`);
-      b.addEventListener('click', () => openProfil(() => { if (sh.body.isConnected) fill(); }));
+      b.addEventListener('click', () => openProfil(apresProfil));
       q('#mHint').classList.add('hint-act');
       /* l'espace reste dans le DOM : la grille flex l'ignore pour le
          dessin (c'est `gap` qui écarte), mais tout ce qui LIT le texte —
@@ -429,6 +478,7 @@ export function openMail(c, opts){
   });
 
   const bCopy = btn('Copier', '', async () => {
+    if (pasPret()) return;
     logPrep();
     try {
       await navigator.clipboard.writeText('Objet : ' + q('#mSubj').value + '\n\n' + q('#mBody').value);
@@ -457,7 +507,7 @@ export function openMail(c, opts){
   const doSend = async () => {
     const ct = currentCt();
     if (!ct || !ct.email){ toast('Ajoute une adresse e-mail — ou copie le message.'); return; }
-    if (sending) return;
+    if (sending || pasPret()) return;
     sending = true;
     logPrep();
     bSend.disabled = true;

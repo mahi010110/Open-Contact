@@ -143,7 +143,12 @@ else console.log('Mes pistes vide : état enseignant ✓');
   await nCtx.close();
 }
 
-/* première capture — deux blocs (#7) : l'entreprise + le contact, ensemble */
+/* première capture — deux blocs (#7) : l'entreprise + le contact, ensemble.
+   Depuis « Aujourd'hui », là où l'app neuve la propose : c'est l'état
+   où le toast s'étirait (voir plus bas), et on ne garde que les états
+   qu'on met en place. */
+await M.click('.bottomnav a[data-r="aujourdhui"]');
+await M.waitForSelector('#view-aujourdhui:not([hidden])');
 await M.click('#bnAdd');
 await M.waitForSelector('#cpName');
 await M.fill('#cpName', 'Boulangerie Cyber SARL');
@@ -152,6 +157,92 @@ await M.fill('#cpCtCoord', 'sam@boulangeriecyber.fr');
 await M.click('.overlay .btn-primary');           /* Ajouter (rafale : reste ouvert) */
 await attendre(M, async () => (await import('./ui/state.js')).S.companies.length === 1,
   { timeout: 8000, message: 'première capture' });
+
+/* ---------- LE TOAST NE S'ÉTIRE JAMAIS ----------
+   Photographié le 30 septembre 2026 en jouant ce parcours-ci : juste
+   après la toute première piste, « ✓ … ajoutée » devenait une colonne
+   de 641 px, du haut de l'écran jusqu'au pied, POSÉE SUR LES CHAMPS où
+   l'on tape la piste suivante. Deux règles se contredisaient : la
+   feuille ancre le toast en HAUT (`bottom:auto`), la ligne du pied
+   d'« Aujourd'hui » le remontait par le BAS — et son sélecteur, qui
+   porte un id, gagnait. Haut et bas posés ensemble, la boîte s'étire
+   entre les deux. L'avertissement de sauvegarde faisait la même faute,
+   dans l'autre sens.
+   On vise la CAUSE : une boîte plus haute que son texte. Et on la
+   mesure dans chaque état qui déplace le toast — c'est la combinaison
+   de deux états qui cassait, pas l'un ou l'autre. */
+const toastEtire = async (p, etat) => p.evaluate(async etat => {
+  const { toast, showUndo, openSheet, topSheet } = await import('./ui/dom.js');
+  const attente = ms => new Promise(r => setTimeout(r, ms));
+  const warn = document.getElementById('saveWarn');
+  if (etat.undo) showUndo('Sonde retirée', () => {});
+  if (etat.warn && warn) warn.hidden = false;
+  const sh = etat.feuille && !topSheet() ? openSheet({ title: 'Sonde' }) : null;
+  await attente(80);
+  toast('Sonde ' + etat.nom);
+  await attente(60);
+  const t = document.getElementById('toast');
+  const r = document.createRange(); r.selectNodeContents(t);
+  const mesure = { boite: Math.round(t.getBoundingClientRect().height),
+                   texte: Math.round(r.getBoundingClientRect().height) };
+  if (sh) sh.close(null, true);
+  if (etat.warn && warn) warn.hidden = true;
+  document.querySelector('.undo-bar')?.remove();
+  await attente(120);
+  return mesure;
+}, etat);
+const etire = m => m.boite > m.texte + 30;   /* 2 × 8 px de marge, 2 px de bord, du jeu */
+{
+  /* ① l'état d'origine, tel qu'il arrive : la feuille de capture encore
+     ouverte, le vrai toast du vrai geste, la ligne du pied posée (elle
+     arrive au rendu qui suit l'ajout — on l'attend, sans quoi on
+     mesurerait l'écran d'avant) */
+  await attendre(M, () => !!document.querySelector('#view-aujourdhui .td-under'),
+    { timeout: 3000, message: 'la ligne du pied d’Aujourd’hui' }).catch(() => {});
+  const reel = await M.evaluate(() => {
+    const t = document.getElementById('toast');
+    const r = document.createRange(); r.selectNodeContents(t);
+    return { boite: Math.round(t.getBoundingClientRect().height),
+             texte: Math.round(r.getBoundingClientRect().height),
+             pied: !!document.querySelector('#view-aujourdhui .td-under'),
+             on: t.classList.contains('on') };
+  });
+  const durs = [];
+  if (!reel.on || !reel.pied)
+    fail(`toast : l'état d'origine n'est plus en place (toast ${reel.on ? 'visible' : 'absent'}, `
+      + `pied ${reel.pied ? 'posé' : 'absent'}) — la mesure ne verrait rien`);
+  else if (etire(reel)) durs.push(`après la première piste : ${reel.boite}px pour ${reel.texte}px de texte`);
+  /* ② chaque état qui déplace le toast, seul puis combiné */
+  const ETATS = [
+    { nom: 'seul' }, { nom: 'feuille', feuille: true },
+    { nom: 'annuler', undo: true }, { nom: 'annuler+feuille', undo: true, feuille: true },
+    { nom: 'sauvegarde', warn: true }, { nom: 'sauvegarde+feuille', warn: true, feuille: true }];
+  await closeSheets(M);
+  for (const e of ETATS){
+    const m = await toastEtire(M, e);
+    if (etire(m)) durs.push(`pouce · ${e.nom} : ${m.boite}px pour ${m.texte}px de texte`);
+  }
+  /* ③ la sonde : un toast qu'on étire exprès DOIT être vu, sinon le
+     critère ne mesure plus rien et resterait vert pour toujours */
+  const sonde = await M.evaluate(async () => {
+    const { toast } = await import('./ui/dom.js');
+    toast('Sonde étirée');
+    const t = document.getElementById('toast');
+    t.style.top = '62px'; t.style.bottom = '141px';
+    await new Promise(r => setTimeout(r, 60));
+    const r = document.createRange(); r.selectNodeContents(t);
+    const m = { boite: Math.round(t.getBoundingClientRect().height),
+                texte: Math.round(r.getBoundingClientRect().height) };
+    t.style.top = ''; t.style.bottom = '';
+    return m;
+  });
+  if (!etire(sonde)) fail('toast : la sonde étirée exprès n’est pas vue — le critère ne mesure plus rien');
+  else if (durs.length) fail(`le toast s'étire : ${durs.length} état(s) —\n      ` + durs.join('\n      '));
+  else console.log(`toast : jamais plus haut que son texte, dans ${ETATS.length + 1} états au pouce, sonde vue ✓`);
+  /* on rouvre la capture pour la suite du parcours, comme on l'avait laissée */
+  await M.click('#bnAdd');
+  await M.waitForSelector('#cpName');
+}
 const withCt = await M.evaluate(async () =>
   (await import('./ui/state.js')).S.companies[0].contacts.map(t => t.email));
 if (String(withCt) !== 'sam@boulangeriecyber.fr') fail('le contact saisi doit suivre la piste : ' + withCt);
@@ -173,6 +264,90 @@ await attendre(M, async () => (await import('./ui/state.js')).S.companies.some(c
   { timeout: 8000, message: 'persistance après rechargement' });
 console.log('La piste survit au rechargement ✓');
 
+/* ---------- LE PREMIER MAIL NE PART JAMAIS CASSÉ ----------
+   Joué le 30 septembre 2026, profil vide, depuis « Aujourd'hui » : le
+   brouillon disait « [Une phrase précise…] », « Je suis en et je
+   cherche un stage », et n'avait pas de signature. « Ouvrir dans Mail »
+   l'envoyait d'un tap. C'est le premier contact de l'étudiant avec un
+   recruteur, et aucun scénario ne l'avait joué avec un profil VIDE —
+   tous le remplissaient d'abord. On ne garde que les états qu'on met en
+   place (§5). Ici : le vrai bouton, le vrai profil vide. */
+{
+  await M.click('.bottomnav a[data-r="aujourdhui"]');
+  await M.waitForSelector('#view-aujourdhui:not([hidden]) .act-start [data-a="mail"]');
+  await M.click('#view-aujourdhui .act-start [data-a="mail"]');
+  await M.waitForSelector('#mBody');
+  /* le mail ne doit pas partir pour de vrai pendant le scénario */
+  await M.evaluate(() => document.addEventListener('click', e => {
+    if (e.target.closest('a[href^="mailto:"]')) e.preventDefault();
+  }, true));
+  const lire = () => M.evaluate(async () => {
+    const t = document.getElementById('mBody');
+    const { S } = await import('./ui/state.js');
+    return {
+      corps: t.value,
+      erreur: !document.getElementById('mTrou').hidden,
+      focus: document.activeElement === t,
+      choix: t.value.slice(t.selectionStart, t.selectionEnd),
+      pied: [...document.querySelectorAll('.overlay .modal-f .btn')].map(b => b.textContent.trim()),
+      prepare: (S.companies[0].history || []).some(h => /Email préparé/.test(h.t))
+    };
+  });
+  const avant = await lire();
+  const durs = [];
+  /* ① les deux manques qui rendent le mail faux se VOIENT, à leur place */
+  if (!avant.corps.includes('Je suis en [ta formation] et je cherche'))
+    durs.push('la formation manquante ne se voit pas : ' + JSON.stringify(avant.corps.split('\n')[4]));
+  if (!/Bien à vous,\n\[ton nom\]$/.test(avant.corps))
+    durs.push('la signature manquante ne se voit pas : ' + JSON.stringify(avant.corps.slice(-40)));
+  /* ② les deux sorties refusent, sans rien noter au journal. « Copier »
+     d'abord : un mail qui partirait à tort ferait basculer le pied, et
+     « Copier » n'y serait plus — la faute doit se NOMMER, pas finir en
+     délai dépassé (une mutation l'a montré). */
+  for (const [nom, sel] of [['Copier', '.overlay .modal-f button.btn'], ['Ouvrir dans Mail', '.overlay .modal-f a.btn']]){
+    await M.evaluate(() => { document.getElementById('mBody').blur(); document.getElementById('mTrou').hidden = true; });
+    const bouton = M.locator(sel).filter({ hasText: nom });
+    if (!(await bouton.count())){
+      durs.push(`« ${nom} » a quitté le pied (${JSON.stringify((await lire()).pied)}) — un geste précédent est parti`);
+      continue;
+    }
+    await bouton.click();
+    await M.waitForTimeout(250);
+    const x = await lire();
+    if (!x.erreur) durs.push(`« ${nom} » avec des crochets : aucune erreur sous le message`);
+    if (!x.focus || !/^\[Une phrase précise/.test(x.choix))
+      durs.push(`« ${nom} » : le premier crochet n'est pas sélectionné (${JSON.stringify(x.choix.slice(0, 30))})`);
+    if (x.prepare) durs.push(`« ${nom} » : un mail qui n'est pas parti s'est noté « Email préparé »`);
+    if (x.pied.includes('Envoyée ✓')) durs.push(`« ${nom} » : le pied est passé à « Envoyée ✓ » alors que rien n'est parti`);
+  }
+  /* ③ l'étudiant écrit son accroche SUR la sélection, puis complète son
+     profil depuis le composeur : l'accroche doit survivre */
+  await M.keyboard.type('Votre SOC pour les boulangeries m’a donné envie d’écrire.');
+  await M.click('#mProfil');
+  await M.waitForSelector('#pfName');
+  await M.fill('#pfName', 'Sam Martin');
+  await M.fill('#pfFormation', 'BTS SIO 2e année');
+  await M.locator('.overlay .modal-f .btn-primary').filter({ hasText: 'Enregistrer' }).last().click();
+  await M.waitForSelector('#pfName', { state: 'detached', timeout: 5000 }).catch(() => {});
+  await M.waitForTimeout(300);
+  const apres = await lire();
+  if (!apres.corps.includes('Votre SOC pour les boulangeries'))
+    durs.push('compléter son profil a effacé l’accroche que l’on venait d’écrire');
+  if (!apres.corps.includes('Je suis en BTS SIO 2e année et je cherche') || !/Sam Martin$/.test(apres.corps))
+    durs.push('les trous ne se sont pas remplis avec le profil : ' + JSON.stringify(apres.corps.slice(-60)));
+  if (apres.erreur) durs.push('l’erreur reste affichée alors qu’il n’y a plus aucun crochet');
+  /* ④ plus un crochet : le mail part */
+  await M.locator('.overlay .modal-f a.btn').filter({ hasText: 'Ouvrir dans Mail' }).click();
+  await M.waitForTimeout(300);
+  const parti = await lire();
+  if (!parti.prepare || !parti.pied.includes('Envoyée ✓'))
+    durs.push('sans crochet, « Ouvrir dans Mail » ne part plus : ' + JSON.stringify(parti.pied));
+  if (durs.length) fail(`premier mail, profil vide : ${durs.length} défaut(s) —\n      ` + durs.join('\n      '));
+  else console.log('premier mail : les manques se voient, rien ne part avec un crochet, '
+    + 'le profil complété remplit les trous sans toucher à l’accroche ✓');
+  await closeSheets(M);
+}
+
 /* ---------- bureau neuf : l'exemple enseigne aussi ---------- */
 const desk = await browser.newContext({ viewport: { width: 1280, height: 800 } });
 const D = await desk.newPage();
@@ -189,6 +364,19 @@ await attendre(D, async () => (await import('./ui/state.js')).S.companies.some(c
   { timeout: 6000, message: 'pistes d’exemple' });
 console.log('Bureau neuf : les pistes d’exemple se posent ✓');
 await D.screenshot({ path: SHOTS + '/parcours-neuf-bureau-demo.png' });
+{
+  /* le toast, au poste aussi : ses règles d'ancrage ne sont pas les
+     mêmes qu'au pouce, et c'est la combinaison qui casse */
+  const durs = [];
+  for (const e of [{ nom: 'seul' }, { nom: 'feuille', feuille: true },
+    { nom: 'annuler+feuille', undo: true, feuille: true },
+    { nom: 'sauvegarde', warn: true }, { nom: 'sauvegarde+feuille', warn: true, feuille: true }]){
+    const m = await toastEtire(D, e);
+    if (etire(m)) durs.push(`poste · ${e.nom} : ${m.boite}px pour ${m.texte}px de texte`);
+  }
+  if (durs.length) fail(`le toast s'étire au poste —\n      ` + durs.join('\n      '));
+  else console.log('toast : jamais plus haut que son texte au poste non plus ✓');
+}
 
 /* ---------- capture au bureau : le formulaire complet (#3) ---------- */
 await D.click('#btnAddTop');

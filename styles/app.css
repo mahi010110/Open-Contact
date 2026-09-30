@@ -2843,15 +2843,24 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 }
 .undo-bar span{flex:1;min-width:0}
 .undo-bar .btn{flex:none}
+/* LE TOAST A UN SEUL ANCRAGE À LA FOIS : le bas, ou le haut quand une
+   feuille est ouverte (`body:has(.overlay) .toast`, plus bas). Chaque
+   règle qui le déplace dit donc de quel côté elle joue. Posés ensemble,
+   haut ET bas étirent la boîte entre les deux : photographié le
+   30 septembre 2026, une colonne de 641 px sur les champs de la
+   capture, juste après la toute première piste — la règle du pied
+   d'« Aujourd'hui », qui porte un id, l'emportait sur `bottom:auto`.
+   Gardé par e2e-parcours-neuf (le toast n'est jamais plus haut que son
+   texte, dans chaque état et chaque combinaison). */
 /* le toast laisse la place à la barre Annuler quand elle est là */
-body:has(.undo-bar) .toast{bottom:calc(var(--nav-h) + 76px + env(safe-area-inset-bottom))}
+body:has(.undo-bar):not(:has(.overlay)) .toast{bottom:calc(var(--nav-h) + 76px + env(safe-area-inset-bottom))}
 /* … et à un PIED posé au pouce, qui occupe la même bande. Mesuré sur
    « Aujourd'hui » : 34 px de recouvrement, et un doigt visant « 1 piste
    sans prochaine action → » touchait LE TOAST — juste après avoir ajouté
    une piste, donc au moment précis où ce lien est le prochain geste.
    Tout écran qui descend une action au pouce doit repasser ici. */
 @media (max-width:900px){
-  body:has(#view-aujourdhui:not([hidden]) .td-under) .toast{
+  body:has(#view-aujourdhui:not([hidden]) .td-under):not(:has(.overlay)) .toast{
     /* 88 et non 76 : à 76 il restait 8 px de recouvrement sur le bord
        HAUT du lien — le centre était libre, le bord non */
     bottom:calc(var(--nav-h) + 88px + env(safe-area-inset-bottom));
@@ -2859,7 +2868,7 @@ body:has(.undo-bar) .toast{bottom:calc(var(--nav-h) + 76px + env(safe-area-inset
 }
 @media (min-width:901px){
   .undo-bar{bottom:40px}
-  body:has(.undo-bar) .toast{bottom:100px}
+  body:has(.undo-bar):not(:has(.overlay)) .toast{bottom:100px}
 }
 
 /* ============ ALERTE SAUVEGARDE / TOAST ============ */
@@ -2879,8 +2888,10 @@ body:has(.undo-bar) .toast{bottom:calc(var(--nav-h) + 76px + env(safe-area-inset
 }
 .save-warn span{flex:1 1 190px;min-width:0}
 .save-warn button{flex:none;margin-left:auto}
-/* le toast s'efface devant lui : il descend d'une voie tant qu'il est là */
-body:has(#saveWarn:not([hidden])) .toast{top:calc(env(safe-area-inset-top) + 148px)}
+/* le toast s'efface devant lui : il descend d'une voie tant qu'il est là.
+   Seulement quand il est ancré en HAUT (feuille ouverte) : ancré en bas,
+   il ne le croise pas, et un `top` posé en plus l'étirait jusqu'au pied. */
+body:has(#saveWarn:not([hidden])):has(.overlay) .toast{top:calc(env(safe-area-inset-top) + 148px)}
 .save-warn button{
   background:var(--surface-window);border:1px solid var(--red);color:var(--red);
   border-radius:var(--radius-1);padding:5px 11px;font-weight:var(--weight-bold);min-height:var(--ctl);

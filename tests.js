@@ -9,7 +9,7 @@ import { esc, normName, extractCity, surUnRang, distKm, todayISO, localISO } fro
 import { KDF_ITER, encryptOC2, decryptOC2, deriveKey, bytesToB64,
          fnv, ocKeystream, unsealOC1 } from './engine/crypto.js';
 import { APP_VERSION, VECU, normalizeCompany, normalizeContact, normalizeProfile,
-         pushHist, fillTpl, safeUrl, summarizeChanges,
+         pushHist, fillTpl, TROUS, crochets, remplirTrous, safeUrl, summarizeChanges,
          RECHERCHES, dateLongue, dureeRecherche, periodeValide, phraseRecherche, resumeRecherche,
          manquesProfil, emailPlausible, majModelesDefaut, defaultTemplates,
          prendCeQueJeCherche, PREND_MOT, modeleConseille,
@@ -932,6 +932,59 @@ export async function runSelfTests(){
       ok(!fillTpl(cand.body, c, null, { ...alt, recherche: 'stage' }).includes('Rythme'));
       /* l'emploi n'écrit pas « Candidature emploi » */
       eq(fillTpl(cand.subject, c, null, { ...alt, recherche: 'emploi' }), 'Candidature BTS SIO — Ana B');
+    },
+    'premier mail : un manque qui rendrait le mail FAUX devient un crochet, jamais un trou muet': () => {
+      /* Le défaut joué le 30 septembre 2026 : profil vide, le premier mail
+         d'un étudiant disait « Je suis en et je cherche un stage » et
+         partait sans signature, d'un tap. */
+      const c = normalizeCompany({ name: 'Aztek' });
+      const [cand] = defaultTemplates();
+      const vide = normalizeProfile({});
+      const brouillon = fillTpl(cand.body, c, null, vide, { trous: true });
+      ok(brouillon.includes('Je suis en [' + TROUS.formation + '] et je cherche un stage.'));
+      ok(brouillon.endsWith('Bien à vous,\n[' + TROUS.moi + ']'));
+      /* l'école, le téléphone, le CV : leur absence retire une ligne, rien de faux */
+      ok(!/Mon CV|Rythme|—/.test(brouillon.split('\n\n').slice(2).join('\n\n')));
+      /* sans l'option, rien ne change pour un envoi en série : pas de crochet inventé */
+      eq(crochets(fillTpl(cand.body, c, null, vide)).length, 1);
+      /* un profil rempli ne laisse QUE l'accroche, avec ou sans l'option */
+      const plein = normalizeProfile({ name: 'Ana B', formation: 'BTS SIO', email: 'a@b.fr' });
+      eq(fillTpl(cand.body, c, null, plein, { trous: true }), fillTpl(cand.body, c, null, plein));
+      /* l'objet ne prend jamais de crochet : c'est au corps de le dire */
+      ok(!/\[/.test(fillTpl(cand.subject, c, null, vide)));
+    },
+    'premier mail : les crochets se trouvent tous, dans l’ordre, à leur place exacte': () => {
+      const c = normalizeCompany({ name: 'Aztek' });
+      const [cand] = defaultTemplates();
+      const brouillon = fillTpl(cand.body, c, null, normalizeProfile({}), { trous: true });
+      const cr = crochets(brouillon);
+      eq(cr.length, 3);
+      ok(/^\[Une phrase précise/.test(cr[0].texte));
+      eq(cr[1].texte, '[' + TROUS.formation + ']');
+      eq(cr[2].texte, '[' + TROUS.moi + ']');
+      for (const x of cr) eq(brouillon.slice(x.debut, x.fin), x.texte);
+      eq(crochets('Bonjour,\nRien à remplir ici.').length, 0);
+      eq(crochets('').length, 0);
+      eq(crochets(null).length, 0);
+      /* un crochet ouvert jamais fermé n'est pas un trou */
+      eq(crochets('Je suis [en BTS').length, 0);
+    },
+    'premier mail : compléter son profil en écrivant remplit les trous SUR PLACE, sans toucher au reste': () => {
+      const c = normalizeCompany({ name: 'Aztek' });
+      const [cand] = defaultTemplates();
+      const brouillon = fillTpl(cand.body, c, null, normalizeProfile({}), { trous: true });
+      /* l'étudiant a écrit son accroche : elle doit survivre au profil */
+      const ecrit = brouillon.replace(crochets(brouillon)[0].texte, 'Votre SOC managé pour les PME m’intéresse.');
+      const apres = remplirTrous(ecrit, normalizeProfile({ name: 'Ana B', formation: 'BTS SIO' }));
+      ok(apres.includes('Votre SOC managé pour les PME m’intéresse.'));
+      ok(apres.includes('Je suis en BTS SIO et je cherche un stage.'));
+      ok(apres.endsWith('Bien à vous,\nAna B'));
+      eq(crochets(apres).length, 0);
+      /* une valeur encore absente laisse son trou */
+      const moitie = remplirTrous(ecrit, normalizeProfile({ name: 'Ana B' }));
+      eq(crochets(moitie).map(x => x.texte).join(), '[' + TROUS.formation + ']');
+      /* rien à remplir : le texte revient tel quel */
+      eq(remplirTrous(ecrit, normalizeProfile({})), ecrit);
     },
     'modèles de départ : un modèle jamais retouché passe à la version du jour, un modèle retouché jamais': () => {
       const ancien = { id: 'a1', name: 'Candidature spontanée', subject: 'Candidature stage {{formation}} — {{moi}}',
