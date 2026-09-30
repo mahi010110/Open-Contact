@@ -280,8 +280,17 @@ const PLAFOND = {
      Restent, et elles restent exprès : les erreurs dites sous leur
      champ, les états (« Aucune piste. », « Cet appareil. »), et les
      phrases qui préviennent d'une perte — la phrase de secours, la
-     copie, le CV que `mailto:` ne joint pas. */
-  motsExplication: 333,
+     copie, le CV que `mailto:` ne joint pas.
+
+     338 le 30 septembre 2026, +5, pour le premier mail : « Remplace le
+     texte entre crochets. », l'erreur d'un champ, dite sous le champ
+     (§6) quand « Ouvrir dans Mail » ou « Copier » refusent un brouillon
+     qui porte encore un crochet. Elle prévient d'une erreur qu'on ne
+     voit pas venir : le tout premier mail d'un étudiant partait chez un
+     recruteur avec la consigne du modèle et sans signature. Le crochet
+     se sélectionne en même temps — la phrase dit pourquoi, la sélection
+     dit où. */
+  motsExplication: 338,
   /* ZÉRO, et c'est le seul plafond qui puisse honnêtement valoir zéro :
      un style sans porteur n'a pas de contrepartie à peser — il ne rend
      service à personne, il ne fait qu'attendre d'être lu par erreur.

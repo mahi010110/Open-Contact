@@ -128,7 +128,7 @@ export function openMail(c, opts){
           quelque part. */''}
      ${savoirHTML(c)}
      <div class="field fld-body"><label for="mBody">Message</label><textarea id="mBody" aria-describedby="mTrou"></textarea>
-       <p class="hint warn" id="mTrou" hidden>Remplace d’abord le texte entre crochets.</p>
+       <p class="hint warn" id="mTrou" hidden>Remplace le texte entre crochets.</p>
        ${(IA && aiConnection()) ? `<button class="linklike" id="mAi" style="margin-top:2px">${ic('sparkles', 'ic-14')} Proposer un brouillon</button>` : ''}</div>
      <div class="attach-line" id="mAttach"></div>
      <p class="hint" id="mHint"></p>`;
