@@ -490,6 +490,24 @@ les confondre coûte cher : une tablette tactile en paysage fait 1024 à
   plancher WCAG 2.5.8 AA de 24 px). Toute cible neuve part de `--ctl` :
   une hauteur en dur se retrouve à 30 px sous un doigt, ce qui est
   exactement ce qui était arrivé à la navigation haute.
+- **Le visuel n'est pas la cible** *(« ça reste trop gros », le
+  mainteneur, 30 septembre 2026)*. 44 px est la taille de ce qui
+  RÉPOND, pas de ce qui se dessine : au doigt, chaque bouton se
+  dessinait à 44 px pour 12 px de texte, une brique sur chaque écran.
+  Material 3 dessine un bouton de 40 dp et une puce de 32 pour une
+  cible de 48 ; Apple, un bouton courant d'environ 34 pt pour 44. Au
+  doigt, donc : **le bouton se dessine à 40 px, l'action compacte, la
+  puce et la croix à 32, le segment à 36**, et une marge invisible
+  centrée (`::before`, `max(100%, 44px)`) rend à chacun sa cible. Les
+  **rangées de liste gardent 44 px** : là, la hauteur est le pas de la
+  liste, pas l'habit d'un bouton. Une marge se DÉCLARE sans répondre
+  si un conteneur la rogne ou si un voisin la recouvre — l'audit la
+  **prouve** donc en touchant ses bords (`elementFromPoint`), et deux
+  défauts en sont sortis : la croix d'une barre de titre de 38 px (la
+  barre porte 44 px au doigt) et deux rangs de puces dont les marges
+  se chevauchaient (12 px entre les rangs). `e2e-boutons.mjs` refuse
+  tout contrôle dessiné au-delà de 40 px au doigt ; ses exceptions se
+  nomment (`#piAffiner`, posé sur la ligne du champ).
 - **On mesure aussi dans la BANDE INTERMÉDIAIRE, pas seulement à 100 %
   et à 200 %.** Les contrôles balayaient les deux extrêmes ; les trois
   défauts photographiés sur un vrai téléphone en août 2026 vivaient tous

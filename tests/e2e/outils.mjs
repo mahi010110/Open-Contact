@@ -137,6 +137,31 @@ export async function ouvrirReglages(page){
   }
 }
 
+/* LA ZONE QUI RÉPOND AU DOIGT, jamais la seule boîte qu'on voit (§5).
+   Au doigt, un bouton se DESSINE plus petit que sa cible (40 ou 32 px)
+   et une marge invisible, son `::before`, rend la cible de 44 px — le
+   doigt la touche comme le reste du bouton (« le visuel n'est pas la
+   cible », styles/app.css). Toute mesure de cible lit donc cette zone :
+   `zoneCible(n)` rend { w, h }, la boîte ou sa marge, la plus grande.
+   S'installe une fois par contexte, avant la première page, et survit
+   aux rechargements : `await installerZone(ctx)`.
+   Ce que la marge DÉCLARE, `e2e-ux-audit.mjs` le PROUVE en touchant
+   ses bords : une marge rognée par un conteneur ne répondrait pas. */
+export const ZONE_CIBLE = `window.zoneCible = n => {
+  const r = n.getBoundingClientRect();
+  let w = r.width, h = r.height;
+  const b = getComputedStyle(n, '::before');
+  if (b.content && b.content !== 'none' && b.content !== 'normal' && b.position === 'absolute'){
+    w = Math.max(w, parseFloat(b.width) || 0);
+    h = Math.max(h, parseFloat(b.height) || 0);
+  }
+  return { w, h };
+};`;
+export async function installerZone(ctx){
+  await ctx.addInitScript(ZONE_CIBLE);
+  for (const p of ctx.pages()) await p.evaluate(ZONE_CIBLE).catch(() => {});
+}
+
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css',
   '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png',
   '.webmanifest': 'application/manifest+json', '.woff2': 'font/woff2', '.txt': 'text/plain' };

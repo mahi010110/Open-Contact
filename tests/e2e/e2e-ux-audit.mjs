@@ -110,7 +110,11 @@ const orphan = await page.locator('.orow').innerText();
 if ((orphan.match(/recrutement@exemple\.fr/g) || []).length !== 1)
   fail('adresse orpheline répétée : ' + orphan);
 const sizes = await page.evaluate(() => {
-  const small = document.querySelector('.orow .btn-sm').getBoundingClientRect();
+  /* la ZONE qui répond au doigt : le bouton se dessine à 32 px (§5) */
+  const b0 = document.querySelector('.orow .btn-sm');
+  const bb = getComputedStyle(b0, '::before');
+  const small = { height: Math.max(b0.getBoundingClientRect().height,
+    bb.position === 'absolute' ? parseFloat(bb.height) || 0 : 0) };
   const icon = document.createElement('button');
   icon.className = 'abtn abtn-sm';
   icon.style.position = 'fixed'; icon.style.left = '0'; icon.style.top = '0';
@@ -808,6 +812,8 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
         pleine: p.getBoundingClientRect().width >= inner.getBoundingClientRect().width - 4,
         chevron: p.querySelectorAll('.ic').length >= 2,
         hauteurVerbe: g ? Math.round(g.getBoundingClientRect().height) : 0,
+        zoneVerbe: g ? Math.round(Math.max(g.getBoundingClientRect().height,
+          parseFloat(getComputedStyle(g, '::before').height) || 0)) : 0,
         /* ce que le poste a gagné ne descend PAS ici tout seul */
         trancheDuPoste: !!document.querySelector('#view-echanger .ec-repr')
       };
@@ -820,14 +826,18 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
         + 'c’est lui qui dit qu’elle mène ailleurs');
     /* LE FORMAT DU POUCE A CHANGÉ, EXPRÈS (30 septembre 2026). Les
        verbes faisaient 95 px de haut, icône au-dessus du mot — le
-       mainteneur : « les boutons beaucoup trop gros ». Ils gardent la
-       largeur (une moitié de rangée chacun, au-dessus de la barre) et
-       prennent la hauteur de TOUT bouton au doigt : la cible de 44 px,
-       l'icône à côté du mot. Le contrôle fige le nouveau dessin dans les
-       deux sens — ni sous la cible, ni revenu en tuile. */
-    if (pouce.hauteurVerbe < 44 || pouce.hauteurVerbe > 56)
-      fail(`commandes @pouce : « Donner » fait ${pouce.hauteurVerbe}px — au doigt, un verbe a la `
-        + 'hauteur de tout bouton (44 px), ni moins (la cible), ni une tuile (décision du 30 septembre)');
+       mainteneur : « les boutons beaucoup trop gros », puis « ça reste
+       trop gros ». Ils gardent la largeur (une moitié de rangée chacun,
+       au-dessus de la barre) et prennent le dessin de TOUT bouton au
+       doigt : 40 px à l'écran, une zone de 44 qui répond (§5, « le
+       visuel n'est pas la cible »). Le contrôle fige les deux moitiés —
+       ni une tuile revenue, ni une cible perdue. */
+    if (pouce.hauteurVerbe < 36 || pouce.hauteurVerbe > 48)
+      fail(`commandes @pouce : « Donner » se dessine à ${pouce.hauteurVerbe}px — au doigt, un verbe a le `
+        + 'dessin de tout bouton (40 px), jamais une tuile (décision du 30 septembre)');
+    if (pouce.zoneVerbe < 44)
+      fail(`commandes @pouce : la zone de « Donner » ne fait que ${pouce.zoneVerbe}px — le visuel `
+        + 'peut descendre, la cible jamais sous 44 px');
     /* « Reçues, jamais reprises » est né POUR LE POSTE, et il y reste
        tant que le mainteneur n'en décide pas autrement. Ce n'est pas
        une loi d'ergonomie, c'est une DÉCISION — donc la descendre au
@@ -838,9 +848,10 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
       fail('commandes @pouce : la tranche « reçues, jamais reprises » s’est invitée sur le '
         + 'téléphone — elle a été conçue pour le poste. Si elle doit descendre ici, ça se '
         + 'décide et ça se change dans ce contrôle, pas au détour d’une retouche d’écran');
-    if (pouce.pleine && pouce.chevron && pouce.hauteurVerbe >= 44 && pouce.hauteurVerbe <= 56 && !pouce.trancheDuPoste)
-      console.log(`commandes @pouce : porte pleine largeur avec chevron, verbes à `
-        + `${pouce.hauteurVerbe}px — le dessin du doigt est intact ✓`);
+    if (pouce.pleine && pouce.chevron && pouce.hauteurVerbe >= 36 && pouce.hauteurVerbe <= 48
+        && pouce.zoneVerbe >= 44 && !pouce.trancheDuPoste)
+      console.log(`commandes @pouce : porte pleine largeur avec chevron, verbes dessinés à `
+        + `${pouce.hauteurVerbe}px pour une cible de ${pouce.zoneVerbe} — le dessin du doigt est intact ✓`);
     await eCtx.close();
     if (!etalon.h || !cmd.donner) fail('commandes : étalon ou boutons introuvables — le contrôle ne mesure rien');
     else {
@@ -1069,9 +1080,12 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
   const hOuvert = await hFset();
   if (hOuvert !== hRepos)
     fail(`« Ma copie » grandit à l'ouverture (${hRepos} → ${hOuvert} px) : la saisie doit tenir dans la ligne`);
-  const memeLigne = await lPage.evaluate(() => Math.abs(
-    document.querySelector('#moiBkDo').getBoundingClientRect().top -
-    document.querySelector('#moiBkPass').getBoundingClientRect().top) < 6);
+  /* « sur la ligne » = même CENTRE : au doigt le bouton se dessine à
+     32 px et le champ fait 44 (§5), leurs hauts ne coïncident plus */
+  const memeLigne = await lPage.evaluate(() => {
+    const m = s => { const r = document.querySelector(s).getBoundingClientRect(); return r.top + r.height / 2; };
+    return Math.abs(m('#moiBkDo') - m('#moiBkPass')) < 4;
+  });
   if (!memeLigne) fail('la saisie n’est pas sur la ligne de « Télécharger »');
 
   /* le fichier produit est-il chiffré pour de bon ? */
@@ -1197,8 +1211,11 @@ for (const [nom, ptr] of [['doigt', true], ['souris', false]]){
     const cs = getComputedStyle(document.documentElement);
     const petites = [...document.querySelectorAll('button, a[href], input, select')]
       .filter(n => n.getClientRects().length && !n.closest('.bottomnav'))
-      .map(n => ({ t: (n.textContent || n.getAttribute('aria-label') || n.tagName).trim().slice(0, 22),
-                   h: Math.round(n.getBoundingClientRect().height) }))
+      /* la ZONE qui répond, pas le dessin (§5) */
+      .map(n => { const b = getComputedStyle(n, '::before');
+        return { t: (n.textContent || n.getAttribute('aria-label') || n.tagName).trim().slice(0, 22),
+                 h: Math.round(Math.max(n.getBoundingClientRect().height,
+                   b.position === 'absolute' ? parseFloat(b.height) || 0 : 0)) }; })
       .filter(c => c.h < 44);
     /* la taille CALCULÉE d'un vrai champ, pas le token : depuis que
        `--input-fs` vaut `max(16px, 1rem)`, lire la variable rend une
@@ -3748,14 +3765,43 @@ const SONDE_CIBLES = () => {
     const c = effective(n);
     if (vus.has(c)) continue;
     vus.add(c);
-    const r = c.getBoundingClientRect();
+    let r = c.getBoundingClientRect();
     if (!r.width || !r.height) continue;
     if (c.tagName === 'A' && c.closest('p, .hint, .fk-v')) continue;
     const cls = typeof c.className === 'string' ? c.className.trim() : '';
-    out.push({ q: c.id ? '#' + c.id
-                 : (cls ? '.' + cls.split(/\s+/).slice(0, 2).join('.') : c.tagName),
+    /* LE VISUEL N'EST PAS LA CIBLE (§5). Au doigt, un bouton se dessine à
+       40 ou 32 px et sa marge invisible (`::before`) rend les 44 : on lit
+       cette zone. Mais une marge DÉCLARÉE ne prouve rien — un conteneur
+       en `overflow:hidden` la rogne sans que rien ne le dise. Quand la
+       zone dépasse la boîte, on la TOUCHE donc à ses bords, comme un
+       doigt : si le bord ne répond pas, la cible est celle qu'on voit. */
+    let w = r.width, h = r.height, marge = '';
+    const b = getComputedStyle(c, '::before');
+    if (b.position === 'absolute' && b.content && b.content !== 'none'){
+      const bw = parseFloat(b.width) || 0, bh = parseFloat(b.height) || 0;
+      if (bw > w + 1 || bh > h + 1){
+        /* `instant` : la feuille défile en douceur, et une sonde qui
+           touche pendant le défilement touche l'endroit d'AVANT */
+        c.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' });
+        r = c.getBoundingClientRect();
+        const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+        const repond = (x, y) => { const e = document.elementFromPoint(x, y); return !!e && (e === c || c.contains(e)); };
+        /* un bouton que rien ne peut toucher en ce moment — sous une
+           feuille ouverte, ou désactivé — ne se prouve pas ICI : il se
+           prouve sur sa propre surface, où il est à nu */
+        if (!repond(cx, cy)){ h = Math.max(h, bh); w = Math.max(w, bw); }
+        else {
+          const hOk = bh <= h + 1 || (repond(cx, cy - bh / 2 + 1) && repond(cx, cy + bh / 2 - 1));
+          const wOk = bw <= w + 1 || (repond(cx - bw / 2 + 1, cy) && repond(cx + bw / 2 - 1, cy));
+          if (hOk) h = Math.max(h, bh); else marge = ' (marge rognée)';
+          if (wOk) w = Math.max(w, bw); else marge = ' (marge rognée)';
+        }
+      }
+    }
+    out.push({ q: (c.id ? '#' + c.id
+                 : (cls ? '.' + cls.split(/\s+/).slice(0, 2).join('.') : c.tagName)) + marge,
                t: (c.getAttribute('aria-label') || c.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 26),
-               w: Math.round(r.width), h: Math.round(r.height) });
+               w: Math.round(w), h: Math.round(h) });
   }
   return out;
 };

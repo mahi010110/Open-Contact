@@ -221,10 +221,9 @@ a.btn.btn-danger:hover{color:var(--red)}
 }
 .btn-ghost:active{transform:none;box-shadow:var(--bevel-down)}
 .btn-sm{min-height:36px;padding:2px 11px;font-size:var(--text-12)}
-/* Mobile et écran tactile : même les actions compactes restent au pouce. */
-@media (max-width:900px), (pointer:coarse){
-  .btn-sm{min-height:44px}
-}
+/* Au doigt, la cible des actions compactes reste de 44 px — mais ce
+   n'est plus leur HAUTEUR : voir « LE VISUEL N'EST PAS LA CIBLE », en
+   fin de feuille. */
 .icon-btn{width:var(--ctl);height:var(--ctl);padding:0}
 .linklike{
   background:none;border:0;color:var(--text-link);font-weight:var(--weight-semibold);font-size:var(--text-12);
@@ -1164,7 +1163,10 @@ details.pcard-details[open]>summary{margin-bottom:10px}
    et laisse le navigateur répartir la place restante. Les deux enfants
    changent en même temps, ce qui suffit à faire lire le geste comme un
    échange de place et non comme deux animations. */
-.lockrow{display:flex;align-items:center;gap:8px;min-width:0}
+/* la rangée tient la hauteur de la CIBLE, pas celle du bouton : au doigt
+   le bouton se dessine à 32 px et le champ ouvert fait 44 px — sans ce
+   plancher, ouvrir le cadenas pousserait tout ce qui est dessous */
+.lockrow{display:flex;align-items:center;gap:8px;min-width:0;min-height:var(--ctl)}
 .lr-do{flex:0 1 auto;min-width:0}
 /* fermé, le groupe est un bouton ; ouvert, il devient LE champ — c'est
    lui qui porte le cadre, et le cadenas passe à plat dedans, où il sert
@@ -1250,6 +1252,10 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   display:flex;align-items:center;gap:10px;width:100%;
   font:inherit;color:inherit;text-align:left;cursor:pointer;min-height:var(--ctl);
 }
+/* une porte est une RANGÉE : elle tient le pas d'une liste (44 px au
+   doigt), pas l'épaisseur d'une carte — 49 px, plus haute que les deux
+   verbes posés juste au-dessus d'elle */
+.pcard.moi-door{padding-top:0;padding-bottom:0}
 .moi-door .md-m{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .moi-door .md-m b{font-size:var(--text-14);font-weight:var(--weight-bold);display:flex;align-items:center;gap:7px}
 .moi-door:active{box-shadow:var(--shadow-pressed)}
@@ -2663,7 +2669,10 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
   padding:7px 8px 7px 12px;
 }
 .orow .sw-in>.btn{align-self:center}
-.orow .o-main{flex:1;min-width:0;cursor:pointer;display:flex;flex-direction:column;justify-content:center}
+.orow .o-main{flex:1;min-width:0;cursor:pointer;display:flex;flex-direction:column;justify-content:center;
+  /* sa hauteur venait du bouton voisin ; il se dessine désormais à 32 px
+     (« le visuel n'est pas la cible »), la rangée tient donc la sienne */
+  min-height:var(--ctl)}
 /* le nom d'une personne est une IDENTITÉ : il plie, il ne s'ampute
    pas — même règle que `.row-item h3`, même motif. Mesuré à 200 % en
    320 px : « Awa Diallo » perdait 5 px dans une colonne de 123. C'est
@@ -3097,3 +3106,44 @@ html.oc-locked .undo-bar{display:none}
   font-family:var(--font-mono);font-size:var(--text-11);line-height:1.6;
   border-radius:var(--radius-1);
 }
+
+/* ============================================================
+   LE VISUEL N'EST PAS LA CIBLE (30 septembre 2026)
+   « Ça reste trop gros. » Au doigt, chaque bouton se DESSINAIT à 44 px
+   de haut — la taille de la cible — avec 12 ou 13 px de texte dedans et
+   une ombre dure en dessous : une grosse boîte pour un petit mot, sur
+   tous les écrans. Or les deux références séparent ce qu'on voit de ce
+   qu'on touche : Material 3 dessine un bouton de 40 dp et une puce de
+   32 dp pour une cible de 48 ; Apple, un bouton courant d'environ 34 pt
+   pour une cible de 44. WCAG 2.5.5 et 2.5.8 mesurent d'ailleurs la
+   zone qui RÉPOND, pas celle qu'on voit (§5).
+   Donc, au doigt : le bouton se dessine à 40 px, l'action compacte, la
+   puce et la croix à 32, le segment à 36 — et une marge invisible,
+   centrée, rend à chacun sa cible de 44 px. Le doigt ne perd rien,
+   l'œil n'a plus de briques. Les rangées de liste gardent leurs 44 px :
+   là, la hauteur EST le pas de la liste, pas l'habit d'un bouton.
+   `e2e-ux-audit.mjs` mesure la zone qui répond — et la PROUVE en
+   touchant ses bords (`elementFromPoint`), parce qu'une marge rognée
+   par un conteneur se déclarerait sans répondre.
+   ============================================================ */
+@media (max-width:900px), (pointer:coarse){
+  .btn{min-height:40px}
+  .btn-sm{min-height:32px}
+  .seg3 .seg{min-height:36px}
+  .dchip:not(.dchip-d),.fl-chip{min-height:32px}
+  .x{min-width:32px;min-height:32px}
+  /* la barre de titre CONTIENT la zone de sa croix : à 38 px, le haut de
+     la zone sortait de la feuille et ne répondait plus */
+  .modal-h{min-height:var(--control-h-touch);padding-right:6px}
+  /* des puces qui se replient : 32 px dessinés + 12 px entre les rangs =
+     un pas de 44, les zones se touchent sans se chevaucher (à 7 px, le
+     bas de l'une appartenait à la suivante) */
+  .datechips,.fl-grid{row-gap:12px}
+  .btn,.seg3 .seg,.dchip,.fl-chip,.x{position:relative}
+  .btn::before,.seg3 .seg::before,.dchip::before,.fl-chip::before,.x::before{
+    content:"";position:absolute;left:50%;top:50%;
+    width:max(100%, var(--control-h-touch));height:max(100%, var(--control-h-touch));
+    transform:translate(-50%,-50%);
+  }
+}
+

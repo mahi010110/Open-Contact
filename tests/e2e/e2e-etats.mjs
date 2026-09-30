@@ -28,7 +28,7 @@
      une liste vide.
    D'où, dans les deux cas, un contrôle qui vérifie qu'il a bien mesuré
    quelque chose avant de conclure. */
-import { chromium, chromiumPath, serveRepo } from './outils.mjs';
+import { chromium, chromiumPath, serveRepo, installerZone } from './outils.mjs';
 
 const { server, base } = await serveRepo();
 const browser = await chromium.launch({ executablePath: chromiumPath() });
@@ -208,6 +208,7 @@ const CHARGE = k => ({ fn: async k => {
   for (const [nom, piste] of CAS){
     const ctx = await browser.newContext({ viewport: { width: 320, height: 844 },
       hasTouch: true, isMobile: true });
+    await installerZone(ctx);
     const p = await ctx.newPage();
     p.on('pageerror', e => errors.push(`fiche ${nom}: ` + String(e).slice(0, 90)));
     await p.goto(base, { waitUntil: 'load' });
@@ -225,8 +226,9 @@ const CHARGE = k => ({ fn: async k => {
       const b = sh.querySelector('.modal-b');
       const nom = sh.querySelector('.fi-obj .obj-n');
       const petites = [...sh.querySelectorAll('button,a,[role="button"],summary')]
+        /* la zone qui répond au doigt, pas la boîte qu'on voit (§5) */
         .filter(n => { const r = n.getBoundingClientRect();
-          return r.width > 2 && r.height > 2 && r.height < 44; })
+          return r.width > 2 && r.height > 2 && zoneCible(n).h < 44; })
         .map(n => n.textContent.replace(/\s+/g, ' ').trim().slice(0, 18) || '(sans texte)');
       return { texte: b.innerText.replace(/\s+/g, ' ').trim().length,
         nom: nom ? nom.textContent.trim() : '',
