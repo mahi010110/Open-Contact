@@ -939,6 +939,15 @@ perceptible autrement). **Et depuis que le toast passe par
 interruption de plus pour qui n'a pas l'écran. Le nombre est plafonné
 dans `e2e-sobriete.mjs`.
 
+**Et le toast n'a qu'UN ancrage à la fois** : le bas, ou le haut quand une
+feuille est ouverte. Chaque règle qui le déplace dit de quel côté elle
+joue. Haut et bas posés ensemble l'étirent entre les deux : juste après
+la toute première piste, « ✓ … ajoutée » devenait une colonne de 641 px
+posée sur les champs de la capture (30 septembre 2026). La règle du pied
+d'« Aujourd'hui », qui porte un id, l'emportait sur `bottom:auto`.
+`e2e-parcours-neuf.mjs` vise la cause : une boîte plus haute que son
+texte, dans chaque état et chaque combinaison, sonde à l'appui.
+
 **Ce qui change sans prendre le focus doit pouvoir se DIRE, et ce qui se
 tape doit avoir un NOM.** Trois règles, toutes tirées d'un relevé sur
 l'app réelle — le socle était bon, ce sont les trois trous qui restaient :
@@ -1365,6 +1374,29 @@ D'où deux règles, tirées d'un modèle qui violait les deux :
 **Le crochet du gabarit est le seul endroit de l'app où l'on enseigne au
 moment exact du geste**, et il ne coûte rien : il part avec le brouillon.
 Il dit donc aussi ce qu'il ne faut PAS écrire.
+
+**Et un crochet ne part jamais chez le recruteur** *(30 septembre 2026)*.
+Joué sur un profil vide, le tout premier mail d'un étudiant partait d'un
+tap avec la consigne entre crochets, « Je suis en et je cherche un
+stage », et sans signature. Aucun scénario ne l'avait vu : tous
+remplissaient le profil d'abord. Deux règles en sortent :
+
+1. **Un manque qui rend le mail FAUX se montre, il ne s'efface pas.** La
+   formation et le nom deviennent « [ta formation] » et « [ton nom] »
+   (`TROUS`, `engine/model.js`), du même dessin que l'accroche. Un manque
+   qui retire seulement une ligne (école, téléphone, CV) continue de
+   l'effacer : son absence ne rend rien faux.
+2. **Tant qu'un crochet reste, rien ne sort.** « Ouvrir dans Mail »,
+   « Copier » et l'envoi s'arrêtent, l'erreur se dit sous le message (§6)
+   et le crochet se sélectionne : il suffit de taper pour le remplacer.
+   Pas de porte à franchir : un crochet qu'on voudrait vraiment envoyer
+   n'existe pas dans une candidature.
+
+Corollaire, payé en le construisant : **compléter son profil depuis le
+composeur ne recalcule plus le brouillon.** Il effaçait sans un mot
+l'accroche qu'on venait d'écrire (invariant ②) ; seuls les trous se
+remplissent désormais (`remplirTrous`). Gardé par `e2e-parcours-neuf.mjs`,
+cinq mutations à l'appui.
 
 ---
 

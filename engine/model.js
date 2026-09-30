@@ -7,7 +7,7 @@
    ============================================================ */
 import { uid, extractCity, todayISO, fmtDate } from './utils.js';
 
-export const APP_VERSION = '6.40.0';
+export const APP_VERSION = '6.41.0';
 
 export const DOMAINS = {
   esn:     { label:'ESN / Services IT',       color:'#4C9FD8' },
@@ -562,8 +562,22 @@ export function jetonsRecherche(profile){
     rythme: p.recherche === 'alternance' ? String(p.rythme || '').trim() : ''
   };
 }
-/* remplit un gabarit {{variable}} avec la piste, le contact visé et le profil */
-export function fillTpl(str, c, ct, profile){
+/* LES DEUX MANQUES QUI RENDENT UN MAIL FAUX. Sans formation, la
+   présentation se lisait « Je suis en et je cherche un stage » ; sans
+   nom, le mail partait sans signature. Chez un recruteur, et c'était le
+   PREMIER mail de quiconque n'avait pas encore rempli son profil — joué
+   le 30 septembre 2026, envoyable d'un tap. Pour le composeur, ces deux
+   jetons ne s'effacent donc plus : ils deviennent un crochet visible, du
+   même dessin que l'accroche à écrire, et un crochet ne part pas
+   (`crochets`, ui/mail.js). L'école, le téléphone, le CV restent
+   effacés : leur absence retire une ligne, elle ne rend rien faux. Les
+   mots sont ceux de l'aperçu du profil (ui/profil.js). */
+export const TROUS = { formation: 'ta formation', moi: 'ton nom' };
+/* remplit un gabarit {{variable}} avec la piste, le contact visé et le profil.
+   `trous` : les manques de `TROUS` deviennent des crochets au lieu de
+   s'effacer — pour un brouillon qu'on relit, jamais pour un envoi en
+   série qui n'a personne pour les remplir. */
+export function fillTpl(str, c, ct, profile, { trous = false } = {}){
   const m = {
     entreprise: c.name || '',
     contact: (ct && ct.name) || 'Madame, Monsieur',
@@ -573,9 +587,32 @@ export function fillTpl(str, c, ct, profile){
     cv: profile.cvUrl || '', portfolio: profile.portfolio || '',
     ...jetonsRecherche(profile)
   };
-  const creux = k => !m[k];
+  const trou = k => trous && !m[k] && Object.hasOwn(TROUS, k);
+  const creux = k => !m[k] && !trou(k);
   return String(str || '')
     .split('\n').map(l => refermeLigne(l, creux)).filter(l => l !== null).join('\n')
     .replace(/\n{3,}/g, '\n\n')
-    .replace(/\{\{(\w+)\}\}/g, (_, k) => m[k] || '');
+    .replace(/\{\{(\w+)\}\}/g, (_, k) => m[k] || (trou(k) ? '[' + TROUS[k] + ']' : ''));
+}
+/* Les passages entre crochets d'un brouillon, dans l'ordre. Un crochet
+   est un trou par construction : l'accroche du modèle, les `TROUS`, et
+   ceux qu'un étudiant pose dans ses propres modèles. Un mail de
+   candidature n'en contient jamais d'autre — c'est ce qui permet de
+   refuser l'envoi sans demander. */
+export function crochets(texte){
+  const out = [];
+  for (const m of String(texte || '').matchAll(/\[[^\[\]]{1,400}\]/g))
+    out.push({ debut: m.index, fin: m.index + m[0].length, texte: m[0] });
+  return out;
+}
+/* Le profil vient d'être complété PENDANT qu'on écrit : les trous de
+   `TROUS` prennent leur valeur sur place. Recalculer le brouillon depuis
+   le modèle effacerait l'accroche que l'étudiant vient d'écrire — sans
+   le dire (invariant ②). Un trou dont la valeur manque encore reste. */
+export function remplirTrous(texte, profile){
+  const p = profile || {};
+  const v = { formation: String(p.formation || '').trim(), moi: String(p.name || '').trim() };
+  let out = String(texte || '');
+  for (const [k, mot] of Object.entries(TROUS)) if (v[k]) out = out.split('[' + mot + ']').join(v[k]);
+  return out;
 }
