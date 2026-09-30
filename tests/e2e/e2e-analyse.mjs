@@ -39,8 +39,9 @@ await page.waitForSelector('#rcMailTxt');
 await page.waitForTimeout(350);
 await page.screenshot({ path: SHOTS + '/50-depuis-mes-emails.png' });
 
-/* copier le prompt : le presse-papier reçoit le prompt du profil */
-await page.click('.modal-f button:has-text("Copier le prompt")');
+/* copier la consigne (étape 1, dans le corps de la feuille) : le
+   presse-papier reçoit la consigne du profil */
+await page.click('#rcPrompt');
 const clip = await page.evaluate(() => navigator.clipboard.readText());
 if (!/JSON|piste|entreprise/i.test(clip)) fail('prompt copié inattendu : ' + clip.slice(0, 60));
 console.log('prompt copié depuis le profil ✓');

@@ -10,7 +10,7 @@ import { DOMAINS, STATUSES, VECU, prendCeQueJeCherche, PREND_MOT } from '../engi
 import { scoreOf } from '../engine/score.js';
 import { dueFollowups, silentPistes } from '../engine/assist.js';
 import { S, bus, isClosed, markDone, hasDemo, addDemo, removeDemo } from './state.js';
-import { $, ic, toast, openSheet } from './dom.js';
+import { $, ic, openSheet } from './dom.js';
 import { frToday, frDate, dueMarkHTML, silenceMarkHTML } from './dates.js';
 import { askNextAction, reportAction, askClose } from './actions.js';
 import { openMail } from './mail.js';
@@ -340,12 +340,18 @@ export function renderToday(){
          ? `<div class="done-line">${ic('check', 'ic-14')} ${done} action${done > 1 ? 's' : ''} faite${done > 1 ? 's' : ''} aujourd’hui</div>` : ''}`;
 
   if (!alive.length && !S.companies.length){
-    /* première visite : la promesse, puis un seul geste */
+    /* première visite : la promesse, puis un seul geste.
+       PLUS DE MODE D'EMPLOI. « Ajoute une piste, donne-lui une prochaine
+       action — cet écran te dira toujours quoi faire maintenant » racontait
+       ce que les deux boutons MONTRENT : « Voir un exemple » remplit
+       l'écran tel qu'il sera, et la première piste ajoutée revient ici
+       sous « Par où commencer », avec son geste. Ce que l'écran suivant
+       montre, celui-ci n'a pas à le dire (Krug : « l'objectif est de
+       supprimer les instructions en rendant tout évident »). */
     html +=
       `<div class="td-empty">
          <div class="tde-ic">${ic('zap', 'ic-24')}</div>
          <h2>Ta recherche, un jour à la fois</h2>
-         <p>Ajoute une piste, donne-lui une prochaine action — cet écran te dira toujours quoi faire maintenant.</p>
          <div class="tde-actions">
            <button class="btn btn-primary" id="tdeAdd">${ic('plus', 'ic-14')} Ajouter ma première piste</button>
            <button class="btn" id="tdeDemo">Voir un exemple</button>
@@ -368,17 +374,20 @@ export function renderToday(){
          ${colHTML('late', 'En retard', 'square-alert', late, 'Rien en retard ✓')}
          ${colHTML('due', 'Aujourd’hui', 'zap', due, rienAFaire ? 'Tout est à jour ✓' : 'Rien de prévu aujourd’hui')}
          ${colHTML('soon', 'Bientôt', 'calendar', soon,
-           noAction.length ? 'Rien de planifié — donne une prochaine action à une piste.' : 'Rien en vue')}
+           /* « — donne une prochaine action à une piste » redisait le
+              lien du pied, « N pistes sans prochaine action → », posé
+              juste dessous */
+           noAction.length ? 'Rien de planifié' : 'Rien en vue')}
        </div>`;
   } else if (rienAFaire){
-    /* à jour : positif, jamais culpabilisant */
+    /* à jour : positif, jamais culpabilisant. Le titre suffit — « la
+       suite est plus bas, repliée exprès » décrivait « Bientôt », qui se
+       voit juste dessous avec son compte ; « ajoute une piste quand tu
+       en croises une » redisait le + de la barre, toujours là. */
     html +=
       `<div class="td-empty td-clear">
          <div class="tde-ic ok">${ic('check', 'ic-24')}</div>
          <h2>Tout est à jour</h2>
-         <p>${soon.length
-            ? 'Rien d’urgent — la suite est plus bas, repliée exprès.'
-            : 'Rien à faire — ajoute une piste quand tu en croises une.'}</p>
        </div>`;
   } else {
     html += trancheHTML('late', 'En retard', 'square-alert', late);
@@ -461,7 +470,9 @@ export function renderToday(){
   root.querySelector('#tdTriage')?.addEventListener('click', () => openTriage(triage.items));
   root.querySelector('#tdNoAct')?.addEventListener('click', goPistes);
   root.querySelector('#tdeAdd')?.addEventListener('click', () => openCapture());
-  root.querySelector('#tdeDemo')?.addEventListener('click', () => { addDemo(); bus.refresh(); toast('Exemple ajouté — retire-le quand tu veux.'); });
+  /* pas de toast : les pistes d'exemple arrivent sous les yeux, et
+     « Retirer les pistes d'exemple » s'affiche au pied du même écran */
+  root.querySelector('#tdeDemo')?.addEventListener('click', () => { addDemo(); bus.refresh(); });
   root.querySelector('#tdRmDemo')?.addEventListener('click', () => { removeDemo(); bus.refresh(); });
 }
 

@@ -101,7 +101,13 @@ const PLAFOND = {
      ouvert sur place. Deux toasts de moins, et c'est le critère unique
      qui les a fait partir : le premier n'était pas à l'écran là où on
      regardait, le second faisait refaire un chemin. */
-  toasts: 114,
+  /* 112 le 30 septembre 2026, −2, par le même critère : « Exemple
+     ajouté — retire-le quand tu veux » pendant que les pistes d'exemple
+     arrivent sous les yeux et que « Retirer les pistes d'exemple »
+     s'affiche au pied du même écran ; « Prompt copié — colle-le dans ton
+     assistant » remplacé par le bouton lui-même, qui devient « Consigne
+     copiée » là où l'on vient de toucher. */
+  toasts: 112,
   toastCar: 79,        /* le plus long : « Connexion interrompue — … » */
   /* portes bloquantes dans les écrans visibles.
      9 le 29 septembre 2026 : « Mon profil » prend le garde-fou de la
@@ -246,8 +252,36 @@ const PLAFOND = {
      la ligne d'état de la feuille d'un appareil, qui dit maintenant
      « Cet appareil. » quand le principal ouvre sa propre ligne — une
      DONNÉE (où l'on est), pas une explication, que le relevé compte
-     parce qu'elle vit dans un `hint`. */
-  motsExplication: 272,
+     parce qu'elle vit dans un `hint`.
+
+     333 le 30 septembre 2026, et c'est une BAISSE : le compteur voit
+     enfin les états vides, les pas numérotés et les branches écrites
+     entre accents graves. Mesurée avec ce même instrument, la version
+     d'avant valait 380 ; celle-ci 333, soit 47 mots de moins. La règle
+     du mainteneur — « le user comprend en regardant, sans avoir à lire
+     ni à chercher » — appliquée par trois questions, dans l'ordre :
+     ① l'écran le dit-il déjà ? la phrase part ; ② raconte-t-elle une
+     suite de gestes ? les gestes deviennent les étapes ; ③ prévient-
+     elle d'une perte ou d'une erreur qu'on ne peut pas voir venir ?
+     elle reste. Sont partis :
+     · « Ajoute une piste, donne-lui une prochaine action — cet écran te
+       dira toujours quoi faire maintenant » (16) : « Voir un exemple »
+       montre l'écran rempli, et la première piste revient sous « Par où
+       commencer » avec son geste ;
+     · « Ta formation, ton école et ce que tu cherches remplissent chaque
+       email » (15) : la feuille du profil le MONTRE, son aperçu se
+       remplit pendant qu'on tape ;
+     · « Rien à faire — ajoute une piste… » et « …la suite est plus bas,
+       repliée exprès » (12) : « Bientôt » se voit juste dessous, et le
+       + ne quitte jamais la barre ;
+     · « Copie le prompt, colle-le dans ton assistant IA avec tes
+       e-mails » (12) devient trois pas numérotés dont le premier EST le
+       bouton — reste la seule étape qui se passe hors de l'app (8).
+     Restent, et elles restent exprès : les erreurs dites sous leur
+     champ, les états (« Aucune piste. », « Cet appareil. »), et les
+     phrases qui préviennent d'une perte — la phrase de secours, la
+     copie, le CV que `mailto:` ne joint pas. */
+  motsExplication: 333,
   /* ZÉRO, et c'est le seul plafond qui puisse honnêtement valoir zéro :
      un style sans porteur n'a pas de contrepartie à peser — il ne rend
      service à personne, il ne fait qu'attendre d'être lu par erreur.
@@ -378,29 +412,69 @@ console.log(`② confirmations bloquantes : ${confirmations} (plafond ${PLAFOND.
    périmètre (Ordinateur dans `recevoir.js`) sont comptés bien qu'ils
    soient masqués — le fichier n'est pas dans `HORS_ECRAN`, seulement
    ses blocs le sont. */
-const auTravers = t => t.replace(/\$\{[^{}]*(\{[^{}]*\}[^{}]*)*\}/g, bloc => {
-  const lits = [...bloc.matchAll(/'((?:\\.|[^'\\])*)'|"((?:\\.|[^"\\])*)"/g)]
-    .map(x => x[1] || x[2] || '').filter(s => s.length > 11);
+const INTERP = /\$\{[^{}]*(\{[^{}]*\}[^{}]*)*\}/g;
+const auTravers = t => t.replace(INTERP, bloc => {
+  /* les trois sortes de littéraux, gabarits compris : une branche écrite
+     entre accents graves (les pas d'« Installer l'app ») comptait pour
+     rien, exactement comme les ternaires avant le 16 août */
+  const lits = [...bloc.matchAll(/'((?:\\.|[^'\\])*)'|"((?:\\.|[^"\\])*)"|`((?:\\.|[^`\\])*)`/g)]
+    .map(x => (x[1] || x[2] || x[3] || '').replace(INTERP, ' ')).filter(s => s.length > 11);
   return lits.length ? lits.sort((a, b) => b.length - a.length)[0] : '…';
 });
+/* QUATRE FAMILLES, PAS UNE. Le relevé ne lisait que les `hint` : une
+   phrase posée dans un état vide lui échappait entièrement, et c'est là
+   que vivaient les plus longues — 16 mots sous « Aujourd'hui » au premier
+   lancement, 15 sous « Moi », 12 dans « Échanger ». Il a fallu les
+   chercher à l'œil sur les captures (30 septembre 2026) : un compteur
+   qui ne voit pas une famille la laisse grandir en silence. Les pas
+   numérotés comptent aussi — une consigne reste une consigne, même
+   rangée en liste —, mais pas ce qui s'y TAPE : un bouton, un libellé
+   de champ, un champ sont des contrôles, pas des phrases. */
+const FAMILLES = [
+  ['hint', /class="(?:hint|lk-why)[^"]*"[^>]*>([\s\S]{0,400}?)<\/(?:p|div|span)>/g],
+  ['état vide', /class="(?:ec-rien|doc-vide|empty-list|obj-empty)[^"]*"[^>]*>([\s\S]{0,400}?)<\/(?:p|div|span)>/g],
+  ['accueil', /class="td-empty[^"]*">[\s\S]{0,300}?<\/h2>\s*<p[^>]*>([\s\S]{0,400}?)<\/p>/g],
+  ['pas', /<ol class="inst-pas[^"]*">([\s\S]{0,1200}?)<\/ol>/g],
+];
 let mots = 0, phrases = 0;
-for (const f of fichiers){
-  const src = lire(f);
-  const re = /class="(?:hint|lk-why)[^"]*"[^>]*>([\s\S]{0,400}?)<\/(?:p|div|span)>/g;
-  let m;
-  while ((m = re.exec(src))){
-    const txt = auTravers(m[1])
-      .replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
-    if (txt.length < 12) continue;
-    phrases++;
-    mots += (txt.match(/\S+/g) || []).length;
+const parFamille = Object.fromEntries(FAMILLES.map(([k]) => [k, 0]));
+const compterExplications = (src, f) => {
+  for (const [k, re] of FAMILLES){
+    re.lastIndex = 0;
+    let m;
+    while ((m = re.exec(src))){
+      const txt = auTravers(m[1])
+        .replace(/<(button|label|textarea)\b[\s\S]*?<\/\1>/g, ' ')
+        .replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+      if (txt.length < 12) continue;
+      const n = (txt.match(/\S+/g) || []).length;
+      if (f){ phrases++; mots += n; parFamille[k] += n; }
+      else return k;                                     /* la sonde : qui l'a vue ? */
+    }
   }
-}
+  return null;
+};
+for (const f of fichiers) compterExplications(lire(f), f);
+/* LA SONDE, dans les deux sens : chaque famille doit reconnaître une
+   phrase fabriquée — sinon elle vaut zéro et zéro se lit comme une
+   réussite —, et un pas fait d'un seul bouton ne doit RIEN compter. */
+const SONDES = {
+  'hint': '<p class="hint">Une phrase fabriquée pour la sonde du relevé.</p>',
+  'état vide': '<p class="ec-rien">Une phrase fabriquée pour la sonde du relevé.</p>',
+  'accueil': '<div class="td-empty"><h2>Titre</h2><p>Une phrase fabriquée pour la sonde du relevé.</p></div>',
+  'pas': '<ol class="inst-pas"><li>${x ? `Une phrase fabriquée pour la sonde` : `du relevé`}</li></ol>'
+};
+for (const [k, html] of Object.entries(SONDES))
+  if (compterExplications(html, null) !== k)
+    fail(`③ la famille « ${k} » ne reconnaît plus sa sonde — le relevé ne la lit plus, il vaudra zéro`);
+if (compterExplications('<ol class="inst-pas"><li><button class="btn">Copier la consigne longue</button></li></ol>', null))
+  fail('③ un pas fait d’un seul bouton est compté comme une phrase — le relevé confond contrôle et explication');
 if (mots > PLAFOND.motsExplication)
   fail(`${mots} mots d'explication dans les feuilles (plafond ${PLAFOND.motsExplication}). ` +
        `Une explication ne se déguise pas en interface : si le mot est nécessaire, ` +
        `monte le plafond ICI — sinon coupe (CLAUDE.md §6-§7).`);
-console.log(`③ explications dans les feuilles : ${phrases} phrases, ${mots} mots (plafond ${PLAFOND.motsExplication})`);
+console.log(`③ explications dans les feuilles : ${phrases} phrases, ${mots} mots (plafond ${PLAFOND.motsExplication})`
+  + ' — ' + Object.entries(parFamille).map(([k, n]) => `${k} ${n}`).join(' · '));
 
 /* ============================================================
    ④ LA SURFACE MORTE — ce que le style habille et que personne ne pose

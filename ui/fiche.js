@@ -227,7 +227,9 @@ export function openFiche(c){
                ? `<div class="na-cur"><b>${esc(val('nextActionText') || 'Faire le point')}</b>
                     <span>${frDate(val('nextAction'))} · ${relLabel(val('nextAction'))}${naPerson ? ' · ' + esc(naPerson.name || naPerson.email) : ''}</span></div>
                   <button class="btn btn-sm" id="fiNa" aria-label="Modifier la prochaine action">Modifier</button>`
-               : `<div class="na-cur na-none">Aucune — planifie la suite</div>
+               /* « Aucune », pas « Aucune — planifie la suite » : le
+                  bouton d'à côté dit déjà le geste (§6, sobriété 1) */
+               : `<div class="na-cur na-none">Aucune</div>
                   <button class="btn btn-sm" id="fiNa">Planifier</button>`}
            </div>
          </div>`}

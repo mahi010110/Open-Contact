@@ -517,22 +517,24 @@ export function renderMoi(){
     /* Ce qui est rempli s'AFFICHE, tout de suite. L'écran exigeait le nom
        ET l'email pour montrer quoi que ce soit : on tapait son nom, et
        l'écran répondait par la même phrase d'accueil, comme si rien
-       n'avait été saisi. Dès qu'il y a un nom, c'est lui qu'on lit — et
-       la phrase, qui n'avait plus rien à apprendre, s'en va.
+       n'avait été saisi. Dès qu'il y a un nom, c'est lui qu'on lit.
+       Et avant le nom, PLUS DE PHRASE du tout (6.35) : « Ta formation, ton
+       école et ce que tu cherches remplissent chaque email » expliquait ce
+       que la feuille du profil MONTRE — son « Aperçu de ton email » se
+       remplit sous les doigts, au moment où ça sert. Le bouton dit le
+       geste, l'aperçu dit pourquoi.
        Ce qui manque ne se signale PAS : ni pastille, ni phrase. Remplir
        son profil n'est pas urgent, et une marque sur cet écran pèserait
        autant qu'un retard de relance sans rien coûter si on l'ignore.
        C'est le VERBE du bouton qui porte l'écart — « Compléter » tant
        qu'il reste quelque chose, « Modifier » ensuite : un mot, pas un
        objet de plus. */
-    `<div class="obj${p.name ? ' obj-moi' : ''}">
+    `<div class="obj${p.name ? ' obj-moi' : ' obj-vide'}">
        ${ic('user', 'ic-24')}
        <div class="obj-m">
          ${p.name
            ? `<span class="obj-n">${esc(p.name)}</span>`
-           : `<p class="obj-empty">Ta formation, ton école et ce que tu cherches
-                remplissent chaque email que tu envoies.</p>
-              <button class="btn btn-sm btn-primary" id="moiProfil">Remplir mon profil</button>`}
+           : `<button class="btn btn-sm btn-primary" id="moiProfil">Remplir mon profil</button>`}
        </div>
        ${p.name ? `<button class="btn btn-sm" id="moiProfil">${pReady ? 'Modifier' : 'Compléter'}</button>` : ''}
        ${/* Les données passent SOUS le bouton, sur toute la largeur. À côté
