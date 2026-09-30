@@ -447,10 +447,19 @@ else console.log('                    un PDF effacé aussi ✓');
    correspondante. L'app refuse alors de rendre une valeur scellée
    plutôt que de rendre `null` — un `null` silencieux ferait croire à
    une base vide, c'est-à-dire à la perte qu'on teste ici. On ne compte
-   donc que le reste. */
-const vrais = errs.filter(e => !/verrou/.test(e));
+   donc que le reste.
+   `relais.test` l'est AUSSI, et pour la même raison : c'est ce scénario
+   qui sème une phrase de liaison et ce relais, qui n'existe pas. L'app
+   tente la liaison au démarrage, comme elle doit ; si la tentative
+   échoue avant la fin du scénario, le navigateur l'écrit en console, et
+   sinon non. Le rouge dépendait donc de l'horloge, pas de l'app (vu le
+   30 septembre 2026 : rouge dans la suite, vert seul). On écarte ce
+   seul hôte, jamais les WebSocket en général : une vraie adresse de
+   relais qui échouerait resterait comptée. */
+const semees = e => /verrou/.test(e) || /wss:\/\/relais\.test\b/.test(e);
+const vrais = errs.filter(e => !semees(e));
 if (vrais.length) fail(`${vrais.length} erreur(s) console : ${vrais.slice(0, 3).join(' | ')}`);
-else console.log(`Zéro erreur console (hors « verrou », attendu : ${errs.length - vrais.length}).`);
+else console.log(`Zéro erreur console (hors « verrou » et relais semé, attendu : ${errs.length - vrais.length}).`);
 
 console.log(rate ? `E2E durabilité : ÉCHEC (${rate})` : 'E2E durabilité : OK');
 await b.close(); srv.close(); await rm(dir, { recursive:true, force:true });
