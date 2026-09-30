@@ -197,9 +197,15 @@ choses, et aucune ne dépend de quelqu'un d'extérieur.
       seule, et l'autre était à 2 900 px de défilement. *(septembre 2026)*
 
 **Le chemin de retour existe déjà.** Moi → « Signaler un problème »
-produit un rapport de cinq lignes (navigateur, système, écran, poids des
-données…) et le copie. Aucun envoi automatique : ce serait de la télémétrie,
-et c'est interdit. L'étudiant colle où il veut. Le rapport ne contient aucune
+produit un rapport de six lignes (navigateur, système, écran, transport,
+poids des données…). Au téléphone il part par la feuille de partage, où
+l'étudiant choisit la conversation ; ailleurs, il se copie. Aucun envoi
+automatique : ce serait de la télémétrie, et c'est interdit. **Aucune
+destination nommée** *(tranché le 30 septembre 2026, à la question « vers
+quelle adresse ? »)* : une adresse personnelle publiée dans l'app se
+moissonne, une adresse dédiée engage une démarche permanente (question ②),
+et l'hébergeur a été retiré par le mainteneur le 4 août. La bêta commence
+par le groupe du mainteneur : ils savent à qui l'envoyer. Le rapport ne contient aucune
 donnée personnelle, et il s'affiche en entier avant d'être copié — la
 promesse se vérifie en lisant, pas en croyant.
 

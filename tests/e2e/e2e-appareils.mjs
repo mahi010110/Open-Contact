@@ -18,6 +18,11 @@
    ⑤ Les gestes qui changent des données sont des BOUTONS, jamais des
      liens : Restaurer une copie, Effacer cet appareil, Rompre le lien —
      le destructif séparé des autres par plus que leur écart ordinaire.
+   ⑥ Sans principal — donc sans protection —, pas de roi : personne ne
+     nomme les autres. Mais chaque appareil se renomme LUI-MÊME, et
+     l'autre côté le voit arriver. Dans un anneau, un appareil ordinaire
+     ne le peut plus : c'est le principal qui nomme, sinon deux autorités
+     se contrediraient d'un écran à l'autre.
    ============================================================ */
 import { chromium, chromiumPath, serveRepo, attendre, ouvrirReglages } from './outils.mjs';
 import { startLocalRelay } from './relais-local.mjs';
@@ -153,6 +158,57 @@ okSi(!(await B.$('#dvRename')) && /Retirer de la liste/.test(await B.textContent
 okSi(await B.evaluate(async id => !(await (await import('./ui/synclive.js')).ringRenommer(id, 'Pirate')), idA),
   'et la commande, appelée à la main, refuse');
 await B.keyboard.press('Escape');
+
+/* ---------- ⑥ sans anneau, chaque appareil se renomme lui-même ---------- */
+/* la liste doit être À L'ÉCRAN : une feuille fermée n'a pas de ligne
+   qui s'ouvre, et ce contrôle serait vert pour rien */
+okSi(await B.evaluate(() => !!document.querySelector('.sy-devs') && !document.querySelector('[data-soi]')),
+  'dans un anneau, la ligne d’un appareil ordinaire ne s’ouvre pas sur lui-même');
+okSi(await B.evaluate(async () => !(await (await import('./ui/synclive.js')).renommerSoi('Pirate'))),
+  'et se renommer soi-même, appelé à la main, refuse : c’est le principal qui nomme');
+const C = await mk({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+const D = await mk({ viewport: { width: 1280, height: 800 } });
+for (const [p, n] of [[D, 2], [C, 0]]){
+  await p.goto(base, { waitUntil: 'load' });
+  await semer(p, n);
+  await p.reload({ waitUntil: 'load' });
+}
+await D.click('.topnav a[data-r="moi"]');
+await ouvrirReglages(D);
+await D.click('#moiSync');
+await D.waitForSelector('#syNew');
+await D.click('#syNew');
+await D.waitForSelector('.sy-phrase span');
+const phrase2 = (await D.textContent('.sy-phrase span')).trim();
+await C.click('.bottomnav a[data-r="moi"]');
+await ouvrirReglages(C);
+await C.click('#moiSync');
+await C.waitForSelector('#syJoin');
+await C.click('#syJoin');
+await C.fill('#syPhrase', phrase2);
+await C.click('.modal-f .btn-primary');
+const idC = await C.evaluate(async () => (await (await import('./ui/synclive.js')).deviceSelf()).id);
+await attendre(D, `!!document.querySelector('[data-dev="${idC}"]')`, { timeout: 45000, message: 'la ligne de C chez D' });
+okSi(await C.evaluate(async () => !(await import('./ui/synclive.js')).getRing()), 'C et D sont reliés, sans anneau ni principal');
+await attendre(C, `!!document.querySelector('.sy-devs [data-soi]')`,
+  { timeout: 20000, message: 'sans principal, la ligne de « cet appareil » s’ouvre (pour se renommer)' });
+await C.click('[data-soi]');
+await C.waitForSelector('#dvRename');
+okSi(!(await C.$('#dvRemove')), 'sans principal, « cet appareil » s’ouvre sur « Renommer », et rien d’autre');
+await C.click('#dvRename');
+await C.waitForSelector('#dvNom');
+await C.fill('#dvNom', 'Téléphone de Sam');
+await C.click('.modal-f .btn-primary');
+await attendre(C, async () => (await (await import('./ui/synclive.js')).deviceSelf()).name === 'Téléphone de Sam',
+  { timeout: 10000, message: 'C garde le nom qu’il s’est donné' });
+await attendre(D, `/Téléphone de Sam/.test(document.querySelector('[data-dev="${idC}"]')?.textContent || '')`,
+  { timeout: 30000, message: 'D voit arriver le nouveau nom de C' });
+okSi(true, 'C s’est renommé lui-même, et D voit « Téléphone de Sam »');
+await D.click(`[data-dev="${idC}"]`);
+await D.waitForSelector('#dvRemove');
+okSi(!(await D.$('#dvRename')), 'sans principal, personne ne renomme les AUTRES : chez D, la ligne de C ne propose que « Retirer »');
+await C.context().close();
+await D.context().close();
 
 /* ---------- ⑤ les gestes qui changent des données sont des boutons ---------- */
 await A.keyboard.press('Escape');

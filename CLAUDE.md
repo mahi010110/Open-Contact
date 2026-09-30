@@ -1363,6 +1363,17 @@ inclus), le plus récent gagne (`updatedAt`), suppressions par tombstones.
 Canal : P2P avec phrase de liaison personnelle, hashée pour nommer la salle,
 données chiffrées de pair à pair. Le lien est **persistant** (`ui/synclive.js`).
 
+**Pas de principal sans code** *(tranché le 30 septembre 2026)*. Le
+principal peut verrouiller, retirer et effacer les autres appareils : un
+téléphone qui porte ce pouvoir sans code le donne à quiconque le ramasse.
+Apple et Google demandent un secret pour effacer un appareil à distance ;
+ici, c'est la protection qui fait le principal. Ce qu'un appareil non
+protégé demandait vraiment — distinguer deux « iPhone · Safari », la
+photo du mainteneur — ne demande aucun pouvoir sur les autres : **sans
+anneau, chaque appareil renomme LUI-MÊME** (`renommerSoi`) et l'annonce.
+Dès qu'un anneau existe, seul le principal nomme : deux autorités sur un
+même nom finiraient par se contredire d'un écran à l'autre.
+
 Transport : Trystero (vendorisé) via relais Nostr publics, personnalisables
 (`oc_relays_v1`).
 

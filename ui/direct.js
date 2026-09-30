@@ -22,7 +22,7 @@ import { mergePreviewInto } from './recevoir.js';
 import { makeQrSvg, startScan } from './qr.js';
 import { getSync, startSync, breakLink, keepMyProfile, makePhrase, openRoom, leaveRoom,
          watchLiaison, deviceSelf, loadDevices, removeDevice, DEVICES_MAX,
-         getRing, amMain, ringDo, ringMakeMain, ringRenommer, nomDe, ouvrirPortage } from './synclive.js';
+         getRing, anneauLu, amMain, ringDo, ringMakeMain, ringRenommer, renommerSoi, nomDe, ouvrirPortage } from './synclive.js';
 import { deviceIn, nomAppareil } from '../engine/ring.js';
 import { requireCode } from './verrou.js';
 import { loadOrdinateur, openAddOrdinateur, openOrdinateurSheet, openOrdinateurPhoneSheet, ordinateurPresence } from './ordinateur.js';
@@ -163,7 +163,7 @@ function openDeviceSheet(d, onDone, { principal = false, soi = false } = {}){
      ${/* UN GESTE SEUL EST UN BOUTON À SA TAILLE, pas une rangée : une
           rangée n'existe que dans une liste. Seul dans son cadre, il
           redevenait la brique pleine largeur qu'on a retirée partout. */''}
-     ${principal ? `<button class="btn btn-sm" id="dvRename">${ic('pencil', 'ic-14')} Renommer</button>` : ''}
+     ${principal || (soi && !getRing()) ? `<button class="btn btn-sm" id="dvRename">${ic('pencil', 'ic-14')} Renommer</button>` : ''}
      ${soi ? '' : `<div class="pick-sortie">
        <button class="btn btn-sm btn-danger" id="dvRemove">${ic('trash', 'ic-14')} ${principal ? 'Retirer de mes appareils' : 'Retirer de la liste'}</button>
      </div>`}
@@ -246,7 +246,10 @@ function openRenommer(d, onDone){
       champ.focus();
       return;
     }
-    await ringRenommer(d.id, champ.value);
+    /* avec un anneau le nom part signé par le principal ; sans anneau,
+       c'est cet appareil qui change le sien */
+    if (getRing()) await ringRenommer(d.id, champ.value);
+    else await renommerSoi(champ.value);
     sh.close(null, true);
     onDone();
   };
@@ -333,7 +336,9 @@ export function openAppareils(){
     const self = await deviceSelf();
     const devs = await loadDevices();
     const st = sy.lastStats;
+    const anneau = await anneauLu();
     const iAmMain = await amMain();
+    const soiOuvert = (iAmMain && !!roleOf(self.id)) || !anneau;
     const comp = await loadOrdinateur();
     const relays = await relayList();
     const turn = await turnList();
@@ -388,9 +393,12 @@ export function openAppareils(){
               statut vient de dire. La légende attend d'avoir quelque
               chose à coiffer. */''}
          ${devs.length || comp ? '<div class="lbl-row" style="margin-bottom:6px"><label>Appareils reliés</label></div>' : ''}
-         ${/* Le principal se renomme aussi lui-même : sa ligne s'ouvre ;
-              pour les autres, « cet appareil » n'a rien à proposer. */''}
-         ${iAmMain && roleOf(self.id)
+         ${/* « Cet appareil » s'ouvre pour se RENOMMER : chez le principal,
+              qui nomme tout l'anneau, et partout tant qu'il n'y a pas
+              d'anneau — chacun choisit alors son propre nom. Un appareil
+              ordinaire d'un anneau n'a rien à proposer : c'est le principal
+              qui nomme. */''}
+         ${soiOuvert
            ? `<button class="dev-row dev-open" data-soi="1"><b>${esc(nomDe(self.id, self.name))}</b>${roleTag(self.id)}
                 <span class="dev-sub">cet appareil</span>${ic('chevron-right', 'ic-14')}</button>`
            : `<div class="dev-row"><b>${esc(nomDe(self.id, self.name))}</b>${roleTag(self.id)}<span class="dev-sub">cet appareil</span></div>`}
@@ -438,7 +446,7 @@ export function openAppareils(){
         if (d) openDeviceSheet(d, render, { principal: iAmMain && !!roleOf(d.id) });
       }));
     q('[data-soi]')?.addEventListener('click', () =>
-      openDeviceSheet(self, render, { principal: true, soi: true }));
+      openDeviceSheet(self, render, { principal: iAmMain && !!roleOf(self.id), soi: true }));
     wireComp(q, comp, render);
     wireRelays(q, sy.phrase, render);
     /* le QR se peint après coup : `makeQrSvg` est asynchrone, et un
