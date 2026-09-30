@@ -490,24 +490,14 @@ les confondre coûte cher : une tablette tactile en paysage fait 1024 à
   plancher WCAG 2.5.8 AA de 24 px). Toute cible neuve part de `--ctl` :
   une hauteur en dur se retrouve à 30 px sous un doigt, ce qui est
   exactement ce qui était arrivé à la navigation haute.
-- **Le visuel n'est pas la cible** *(« ça reste trop gros », le
-  mainteneur, 30 septembre 2026)*. 44 px est la taille de ce qui
-  RÉPOND, pas de ce qui se dessine : au doigt, chaque bouton se
-  dessinait à 44 px pour 12 px de texte, une brique sur chaque écran.
-  Material 3 dessine un bouton de 40 dp et une puce de 32 pour une
-  cible de 48 ; Apple, un bouton courant d'environ 34 pt pour 44. Au
-  doigt, donc : **le bouton se dessine à 40 px, l'action compacte, la
-  puce et la croix à 32, le segment à 36**, et une marge invisible
-  centrée (`::before`, `max(100%, 44px)`) rend à chacun sa cible. Les
-  **rangées de liste gardent 44 px** : là, la hauteur est le pas de la
-  liste, pas l'habit d'un bouton. Une marge se DÉCLARE sans répondre
-  si un conteneur la rogne ou si un voisin la recouvre — l'audit la
-  **prouve** donc en touchant ses bords (`elementFromPoint`), et deux
-  défauts en sont sortis : la croix d'une barre de titre de 38 px (la
-  barre porte 44 px au doigt) et deux rangs de puces dont les marges
-  se chevauchaient (12 px entre les rangs). `e2e-boutons.mjs` refuse
-  tout contrôle dessiné au-delà de 40 px au doigt ; ses exceptions se
-  nomment (`#piAffiner`, posé sur la ligne du champ).
+- **Au doigt, ce qu'on voit est ce qu'on touche : 44 px dessinés**
+  *(décision du mainteneur, 30 septembre 2026 : « c'était beaucoup
+  mieux avant »)*. Un bouton, une puce, un segment, une croix se
+  dessinent à la hauteur de leur cible. La séparation entre dessin et
+  cible (40 et 32 px dessinés, marge invisible autour) a vécu une
+  journée — voir l'annexe. `e2e-boutons.mjs` (⑥) refuse tout contrôle
+  dessiné sous 44 px au doigt ; redescendre demande de venir le
+  changer là, exprès.
 - **On mesure aussi dans la BANDE INTERMÉDIAIRE, pas seulement à 100 %
   et à 200 %.** Les contrôles balayaient les deux extrêmes ; les trois
   défauts photographiés sur un vrai téléphone en août 2026 vivaient tous
@@ -1701,6 +1691,7 @@ retiré.
 
 | « Moi » sur un seul écran, sans porte « Réglages », avec un cadre « À l'abri » | **retirée** (29 septembre 2026, le jour même), par le mainteneur après essai sur son téléphone | L'idée partait d'une mesure juste — 306 px vides sous la porte en 390 × 844, et des lignes utiles cachées derrière le mot « Réglages ». Sur le vrai téléphone, l'écran unique s'est lu plus chargé que l'ancien, la ligne de copie serrait son bouton sur deux lignes, et le mot inventé « À l'abri » sonnait comme une app écrite par une machine (voir §7). **La porte #20 et le cadre « Ma copie » restent.** Ce qui a été gardé du lot vit à l'intérieur de ce dessin : l'état « sans copie » dans « Ma copie », « Installer l'app » et « Effacer cet appareil » dans Réglages |
 | « Aucun état de copie sur Moi » (décision #4, 4 août 2026) | **précisée** (29 septembre 2026) | L'état retiré parlait à CHAQUE passage (« N pistes depuis ta copie ») : c'était un papier peint, et le retirer était juste. Mais le silence complet laissait ignorer la perte la plus lourde de l'app — tout vit dans un seul navigateur, et Safari efface un site non ouvert depuis sept jours. L'état revient dans le cadre « Ma copie », sous une condition qui le rend rare (`sansFilet`, engine/assist.js) : au moins 5 pistes, ni copie ni autre appareil vus depuis 30 jours. Il se tait dès qu'une copie ou un appareil existe. Il dit le fait en mots simples (« Tes 24 pistes sont enregistrées seulement sur cet appareil »), et le bouton qui le règle est juste dessous |
+| « Le visuel n'est pas la cible » : au doigt, boutons dessinés à 40 px, compacts, puces et croix à 32, segments à 36, la cible de 44 px gardée par une marge invisible (6.37.0) | **retirée** (30 septembre 2026, le jour même), par le mainteneur sur son téléphone : « remets l'ancienne taille, c'était beaucoup mieux avant » | Elle s'appuyait sur deux sources justes — Material 3 dessine un bouton de 40 dp pour une cible de 48, Apple un bouton d'environ 34 pt pour 44. Mais sur un vrai iPhone la police est plus grande que les 16 px du bac à sable (§5), et le texte remplissait des boîtes de 32 px : à l'étroit, pas plus léger. Et la marge invisible était une mécanique de plus, qui se fait rogner par un conteneur ou recouvrir par un voisin sans que rien ne se voie — l'audit avait dû apprendre à la prouver en touchant ses bords. Ce que le mainteneur trouvait « trop gros » avant elle était l'ÉCRITURE et les briques, déjà réglées en 6.36.0 ; la hauteur, elle, était bonne |
 | « Télécharger » taillé à son mot, dans « Ma copie » (6.36.0) | **retirée** (30 septembre 2026, le jour même), par le mainteneur : « j'aimais bien comment c'était » | La règle générale était juste — un bouton de 235 px pour un mot annonce une action lourde. Mais cette ligne n'est pas un bouton étiré : c'est un échange de place, où l'action tient la largeur que le champ du mot de passe prendra en s'ouvrant. Taillée à son mot, la ligne gardait un trou à droite et l'ouverture ne se lisait plus comme un échange. L'exception se nomme dans `e2e-boutons.mjs` par sa construction (`.lockrow:not(.on) > .lr-do`), pas par un bouton |
 
 *Tranché par l'assistant, à valider :* la reformulation de l'interdit serveur,
