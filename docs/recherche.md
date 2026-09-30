@@ -258,6 +258,23 @@ Chacun se livre dans main et se teste sur le téléphone.
 3. **L'enrichissement et les liens** : site web (Wikidata), distance,
    toutes les informations utiles sur la fiche, les trois liens d'un tap.
 
+## Avec le réseau
+
+Le réseau ([`reseau.md`](reseau.md)) s'appuie sur cette barre sans rien
+changer à ses lots, qui passent d'abord :
+
+- **La barre mène à la piste d'où part une demande** (« Quelqu'un chez
+  Aztek ? »), y compris pour une entreprise trouvée dans « À découvrir »,
+  qu'on ajoute d'abord.
+- **Le premier critère du classement s'élargit.** Aujourd'hui, c'est
+  « quelqu'un du groupe peut te porter » (« Léa y a fait son stage »).
+  Avec les amis (lot 2 du réseau), le parcours d'un ami compte pareil
+  (« Karim y est en alternance »), et il se lit tout de suite, hors ligne.
+  La famille « Le groupe » de l'interprétation reconnaît alors aussi le
+  prénom d'un ami.
+- **Le principe 4 vaut pour le réseau aussi** : d'une recherche, une
+  demande ne dit que le nom de l'entreprise, jamais un mot privé.
+
 ## Décisions du mainteneur (30 septembre 2026)
 
 1. **Pas de geste** avant la recherche en ligne : elle part seule. Le

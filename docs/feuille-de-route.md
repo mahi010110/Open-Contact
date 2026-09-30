@@ -235,13 +235,33 @@ Dans cet ordre, et seulement si les retours le justifient :
 
 3. **Ramener le brouillon par IA** avec ta propre clé, si les retours
    montrent que la rédaction est bien le point de blocage.
-4. **Import de données publiques** pour amorcer une liste de pistes sans
-   partir de zéro — c'est « À découvrir », dans la barre de recherche
-   ([`recherche.md`](recherche.md)).
-5. **Le réseau** : trouver quelqu'un chez une entreprise parmi ses amis,
-   ses groupes et leurs amis, trois cercles au plus
-   ([`reseau.md`](reseau.md)). Il vient après la barre, qui mène aux
-   pistes d'où partent les demandes.
+### Les deux chantiers décidés *(30 septembre 2026)*
+
+Leur concept est écrit, les décisions du mainteneur y sont notées. **La
+barre d'abord** : c'est elle qui mène aux pistes d'où partent les demandes
+du réseau.
+
+**A. La barre de recherche** — [`recherche.md`](recherche.md). Elle
+remplace l'ancienne ligne « import de données publiques » : amorcer une
+liste de pistes sans partir de zéro, c'est « À découvrir ».
+
+1. L'interpréteur et les étiquettes, sur tes pistes et celles du groupe.
+   Rien en ligne.
+2. « À découvrir » : l'annuaire des entreprises, qui part tout seul sans
+   emporter un mot privé. Précédé de la preuve que l'annuaire répond à un
+   navigateur.
+3. Le site web, la distance, toutes les informations utiles sur la fiche,
+   les liens d'un tap.
+
+**B. Le réseau** — [`reseau.md`](reseau.md). Trouver quelqu'un chez une
+entreprise parmi ses amis, ses groupes et leurs amis, trois cercles au plus.
+
+1. Mon parcours (stages, alternances, emplois dans le profil).
+2. Les amis : se donner son profil, chercher tout de suite dans leur
+   parcours.
+3. La demande à ses amis et à ses groupes, les deux oui, le contact dans la
+   piste.
+4. Les amis de ses amis, jusqu'au troisième cercle.
 
 ---
 
