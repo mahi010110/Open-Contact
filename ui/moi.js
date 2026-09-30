@@ -191,7 +191,7 @@ function openDocs(kind, onChange){
          dans une constante lui échappaient */
       + (ENVOI_DIRECT ? '' : kind === 'cv'
         ? `<p class="hint">L’app ne peut pas joindre ton CV à un email.</p>
-           <button class="linklike" id="docLien">${ic('link', 'ic-14')} Ajouter le lien de mon CV</button>`
+           <button class="linklike" id="docLien">${ic('link', 'ic-14')} Ajouter un lien</button>`
         : `<p class="hint">L’app ne peut pas joindre ta lettre à un email : écris-la dans le message.</p>`);
     sh.body.querySelector('#docLien')?.addEventListener('click', () => {
       sh.close();

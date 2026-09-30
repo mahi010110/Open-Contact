@@ -62,7 +62,7 @@ export function openContactEditor(o){
      <div class="field"><label for="ceNote">Note</label>
        <input id="ceNote" value="${esc(src.note || '')}" placeholder="Ex : rencontré au forum de l’IUT" autocomplete="off"></div>
      <label class="ckline"><input type="checkbox" id="ceConf"${src.conf === 'ok' ? ' checked' : ''}> J’ai vérifié ces coordonnées</label>
-     ${!editing ? `<button class="linklike" id="ceSig">Coller une signature d’email ?</button>
+     ${!editing ? `<button class="linklike" id="ceSig">Coller une signature</button>
      <div class="field" id="ceSigZone" hidden><label for="ceSigTxt">La signature</label>
        <textarea id="ceSigTxt" rows="4" placeholder="Colle la fin de l’email reçu — nom, rôle, téléphone…"></textarea></div>` : ''}`;
   const q = s => sh.body.querySelector(s);
