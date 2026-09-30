@@ -3,16 +3,17 @@
 
    Le mainteneur, le 30 septembre 2026 : « les boutons beaucoup trop
    gros, ou avec trop d'écriture et d'explication — c'est tout ce que je
-   déteste ». Il avait raison sur pièces : « Télécharger » faisait 235 px
-   pour un mot, « Donner » et « Recevoir » 95 px de haut, et chaque
-   feuille d'options empilait des briques pleine largeur, avec un
-   sous-titre qui expliquait chacune (« sur le premier appareil »,
+   déteste ». Il avait raison sur pièces : « Donner » et « Recevoir »
+   faisaient 95 px de haut, et chaque feuille d'options empilait des
+   briques pleine largeur, avec un sous-titre qui expliquait chacune
+   (« sur le premier appareil »,
    « à sa prochaine connexion », « coller le texte »).
 
    L'app n'a plus que trois formes de bouton, et ce scénario les garde :
    ① LE PRIMAIRE — rempli, un par vue ; dans une feuille il tient le pied.
      C'est le seul qui a le droit de s'étirer. Tout autre bouton est
-     taillé à son mot : aucun ne dépasse 60 % de sa boîte.
+     taillé à son mot : aucun ne dépasse 60 % de sa boîte — sauf l'action
+     de la ligne du mot de passe, nommée plus bas avec sa raison.
    ② LA RANGÉE — une liste d'actions est UN cadre et des rangées sans
      relief, comme « Réglages » ou « Modèles d'emails ». Une rangée qui
      reprend cadre ou ombre redevient une brique.
@@ -42,6 +43,17 @@ import { chromium, chromiumPath, serveRepo, ouvrirReglages } from './outils.mjs'
    « Empreinte ou visage · non ». Un libellé long qui revient doit monter
    ce plafond ICI, en disant pourquoi aucun mot ne peut partir. */
 const PLAFOND_LONGS = 0;
+
+/* ① — ce qui a le droit de s'étirer sans être le primaire. Une exception
+   se nomme par sa CONSTRUCTION, pas par un bouton : la ligne du mot de
+   passe (§6) est un échange de place — l'action tient la ligne que le
+   champ prendra en s'ouvrant, puis se serre à son mot. Taillée à son mot
+   (6.36.0), la ligne avait un trou à droite et le geste ne se lisait
+   plus : retiré le jour même, à la demande du mainteneur (« j'aimais
+   bien comment c'était »). Ouverte, elle retombe sous la règle. */
+const ETIRES = {
+  '.lockrow:not(.on) > .lr-do': 'la ligne du mot de passe : l’action tient la place que le champ prendra'
+};
 
 /* ⑥ — ce qui a le droit de se dessiner à 44 px au doigt, et pourquoi.
    Une exception se NOMME, avec sa raison, jamais en silence. */
@@ -73,7 +85,7 @@ const RELEVE = () => {
     c.querySelectorAll('svg,.ic,span').forEach(x => x.remove());
     return c.textContent.replace(/\s+/g, ' ').trim();
   };
-  const out = { etires: [], habilles: [], seuls: [], bavards: [], longs: [], hauts: [], vus: 0 };
+  const out = { etires: [], habilles: [], seuls: [], bavards: [], longs: [], hauts: [], vus: 0, exemptes: 0 };
   /* ⑥ la hauteur DESSINÉE, au doigt seulement (à la souris, --ctl vaut
      déjà 32) : un bouton d'une seule ligne ne dépasse pas 40 px */
   if (matchMedia('(pointer:coarse), (max-width:900px)').matches)
@@ -89,7 +101,9 @@ const RELEVE = () => {
     out.vus++;
     const boite = (b.closest('.modal-b,.page-inner,.fset,.pcard') || racine).getBoundingClientRect();
     const part = b.getBoundingClientRect().width / boite.width;
-    if (part >= 0.6) out.etires.push(`« ${nom(b)} » ${Math.round(part * 100)} %`);
+    if (part < 0.6) continue;
+    if ((window.__ETIRES || []).some(sel => b.matches(sel))){ out.exemptes++; continue; }
+    out.etires.push(`« ${nom(b)} » ${Math.round(part * 100)} %`);
   }
   for (const p of racine.querySelectorAll('.pick:not(.pk)')){
     if (!vu(p)) continue;
@@ -161,12 +175,13 @@ for (const [ergo, opts] of [['au doigt', { viewport: { width: 390, height: 844 }
                              ['à la souris', { viewport: { width: 1280, height: 800 } }]]){
   const p = await ouvrir(opts);
   const tout = { etires: [], habilles: [], seuls: [], bavards: [], longs: [], hauts: [] };
-  await p.evaluate(ids => { window.__HAUTS = ids; }, Object.keys(HAUTS));
-  let vus = 0;
+  await p.evaluate(([h, e]) => { window.__HAUTS = h; window.__ETIRES = e; }, [Object.keys(HAUTS), Object.keys(ETIRES)]);
+  let vus = 0, exemptes = 0;
   const relever = async nom => {
     await p.waitForTimeout(380);
     const r = await p.evaluate(RELEVE);
     vus += r.vus;
+    exemptes += r.exemptes;
     for (const k of Object.keys(tout)) for (const x of r[k]) tout[k].push(`${nom} · ${x}`);
   };
   for (const [nom, ouvre] of SURFACES){ await fermer(p); await ouvre(p); await relever(nom); }
@@ -204,6 +219,10 @@ for (const [ergo, opts] of [['au doigt', { viewport: { width: 390, height: 844 }
   for (const [k, ok] of Object.entries(vue))
     if (!ok) fail(`${ergo} : la sonde « ${k} » n'a pas été vue — ce critère ne mesure plus rien`);
   if (vus < 20) fail(`${ergo} : ${vus} boutons seulement relevés — le balayage ne lit plus l'app`);
+  /* une exception qu'on ne rencontre plus ne sert qu'à laisser passer la
+     suivante : elle se retire, ou le balayage a perdu la ligne */
+  if (!exemptes) fail(`${ergo} : l’exception d’étirement (${Object.keys(ETIRES).join(', ')}) n’a rien exempté — `
+    + 'la ligne du mot de passe n’est plus relevée, ou l’exception est morte');
 
   const dire = (liste, msg) => {
     if (liste.length) fail(`${ergo} : ${msg} —\n      ${liste.join('\n      ')}`);

@@ -1151,12 +1151,15 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 }
 .doc-size{flex:none;font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
 /* ---- le mot de passe facultatif : une ligne, deux états (ui/dom.js) ----
-   Au repos : [ Télécharger ][ 🔒 Chiffrer ], chacun TAILLÉ À SON MOT —
-   « Télécharger » s'étirait sur toute la ligne, un bouton de 235 px
-   pour un mot : la taille annonçait une action lourde, et le mainteneur
-   l'a lu comme ça (30 septembre 2026). Tapé, le cadenas s'étire en champ
-   sur la place libre — la ligne garde sa hauteur, donc rien ne pousse
-   ce qui est dessous.
+   Au repos : [ Télécharger ·········· ][ 🔒 Chiffrer ] — l'action tient
+   la ligne, le cadenas reste compact à son bout. Tapé, ils ÉCHANGENT
+   leur place : le cadenas s'étire en champ, l'action se serre à son mot,
+   et la ligne garde sa hauteur, donc rien ne pousse ce qui est dessous.
+   La place que tient l'action est celle que le champ prendra : c'est ce
+   qui fait lire le geste comme un échange, pas comme un bouton étiré.
+   Taillée à son mot (6.36.0), la ligne avait un trou à droite et
+   l'ouverture ne se lisait plus — retiré le jour même, à la demande du
+   mainteneur (« j'aimais bien comment c'était »).
 
    L'étirement se joue sur `flex-grow`, pas sur `width` : une largeur en
    `auto` ne s'anime pas, alors qu'un `flex-grow` de 0 à 1 se transitionne
@@ -1167,7 +1170,8 @@ details.pcard-details[open]>summary{margin-bottom:10px}
    le bouton se dessine à 32 px et le champ ouvert fait 44 px — sans ce
    plancher, ouvrir le cadenas pousserait tout ce qui est dessous */
 .lockrow{display:flex;align-items:center;gap:8px;min-width:0;min-height:var(--ctl)}
-.lr-do{flex:0 1 auto;min-width:0}
+.lr-do{flex:1 1 auto;min-width:0;transition:flex-grow var(--dur-3) var(--ease-out)}
+.lockrow.on .lr-do{flex-grow:0}
 /* fermé, le groupe est un bouton ; ouvert, il devient LE champ — c'est
    lui qui porte le cadre, et le cadenas passe à plat dedans, où il sert
    d'icône et de bouton pour refermer */
@@ -1204,7 +1208,7 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 .lr-pass:focus{outline:none}
 .lockrow.on .lr-pw:focus-within{outline:2px solid var(--accent);outline-offset:1px}
 @media (prefers-reduced-motion:reduce){
-  .lr-pw,.lr-pass,.lr-w{transition:none}
+  .lr-do,.lr-pw,.lr-pass,.lr-w{transition:none}
 }
 /* « Moi » éclaté (#20) : colonnes desktop, porte Réglages mobile */
 /* La version, discrète et toujours là — c'est une donnée, pas un titre.
