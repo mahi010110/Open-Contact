@@ -27,8 +27,8 @@ await M.goto(base, { waitUntil: 'load' });
 await M.waitForSelector('#view-aujourdhui:not([hidden])');
 
 /* Aujourd'hui vide DOIT enseigner, jamais un « aucune donnée » sec (CLAUDE §6) */
-const tdEmpty = await M.textContent('.td-empty').catch(() => '');
-if (!/première piste|quoi faire|un jour à la fois/i.test(tdEmpty))
+const tdEmpty = await M.textContent('#view-aujourdhui .td-empty').catch(() => '');
+if (!/quoi faire|un jour à la fois/i.test(tdEmpty))
   fail('Aujourd’hui vide n’enseigne pas : ' + JSON.stringify(tdEmpty));
 else console.log('Aujourd’hui vide : état enseignant ✓');
 await M.screenshot({ path: SHOTS + '/parcours-neuf-aujourdhui.png' });
@@ -36,8 +36,12 @@ await M.screenshot({ path: SHOTS + '/parcours-neuf-aujourdhui.png' });
 /* Mes pistes vide : même exigence */
 await M.click('.bottomnav a[data-r="pistes"]');
 await M.waitForSelector('#view-pistes:not([hidden])');
-const piEmpty = await M.textContent('.td-empty, .empty-list').catch(() => '');
-if (!/Aucune piste|Ajoute une piste|première piste/i.test(piEmpty))
+/* l'écran de Mes pistes, pas le premier `.td-empty` du document : les
+   deux vues vivent dans la page, et ce contrôle lisait celui
+   d'« Aujourd'hui » — il ne passait que parce que ce dernier disait
+   « première piste ». Un faux vert, trouvé en changeant un mot. */
+const piEmpty = await M.textContent('#view-pistes .td-empty, #view-pistes .empty-list').catch(() => '');
+if (!/Aucune piste|Ajoute une piste/i.test(piEmpty))
   fail('Mes pistes vide n’enseigne pas : ' + JSON.stringify(piEmpty));
 else console.log('Mes pistes vide : état enseignant ✓');
 

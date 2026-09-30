@@ -2237,24 +2237,26 @@ button.ec-row:hover{background:var(--surface-field)}
    sa cible de 44 px ; seul l'habit disparaît. Les rangées se touchent,
    et §5-3 l'autorise pour une liste : le pointillé dit la frontière.
    Les listes à cocher (`.pk`) ne changent pas — ce sont des fiches à
-   deux étages, pas des gestes. */
-.pick-list:not(:has(.pk)){
+   deux étages, pas des gestes. Portée : les FEUILLES, et les gestes qui
+   continuent la liste de Réglages ; le panneau d'« Échanger » au poste
+   garde sa propre grammaire de tranche (plus haut). */
+.modal-b .pick-list:not(:has(.pk)){
   gap:0;padding:0 12px;
   background:var(--surface-window);border:1px solid var(--border-strong);
   border-radius:var(--radius-0);box-shadow:var(--shadow-raised);
 }
-.pick:not(.pk){
+.rg-foot .pick-list{gap:0}
+.modal-b .pick:not(.pk),.rg-foot .pick{
   border:0;border-bottom:1px dashed var(--border-soft);border-radius:0;
   background:none;box-shadow:none;padding:6px 0;
 }
-.pick:not(.pk):last-child{border-bottom:0}
-.pick:not(.pk):active{box-shadow:none;transform:none;background:var(--surface-chrome)}
+/* la dernière n'a pas de trait, mais garde son épaisseur : à 0 elle
+   perdait 1 px et devenait la seule rangée d'une autre hauteur */
+.modal-b .pick:not(.pk):last-child,.rg-foot .pick:last-child{border-bottom-color:transparent}
+.modal-b .pick:not(.pk):active,.rg-foot .pick:active{box-shadow:none;transform:none;background:var(--surface-chrome)}
 @media (hover:hover){
-.pick:not(.pk):hover b{color:var(--text-link)}
+.modal-b .pick:not(.pk):not(.pick-danger):hover b,.rg-foot .pick:not(.pick-danger):hover b{color:var(--text-link)}
 }
-/* Réglages porte déjà son cadre : ses gestes n'en prennent pas un second
-   (posé APRÈS la règle du cadre, qui a la même force) */
-.rg-foot .pick-list{padding:0;border:0;background:none;box-shadow:none}
 .pick-close b::before{
   content:"";display:inline-block;width:8px;height:8px;margin-right:9px;vertical-align:1px;
   background:var(--c);
@@ -3015,9 +3017,6 @@ html.oc-locked .undo-bar{display:none}
 .dev-open:hover{background:var(--surface-chrome)}
 }
 .pick-danger b{color:var(--red)}
-@media (hover:hover){
-.pick-danger:hover b{color:var(--red)}
-}
 /* UN GESTE QUI CHANGE DES DONNÉES EST UN BOUTON, et un geste destructif
    a son propre groupe. Il vivait en mot souligné — la forme d'un lien,
    qui promet d'emmener ailleurs — sous la liste qu'il côtoyait (NN/g :
