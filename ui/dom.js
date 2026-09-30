@@ -1002,5 +1002,24 @@ export function champGrandit(ta){
   };
   ta.addEventListener('input', pousse);
   pousse();
+  suivreLargeur(ta, pousse);
   return pousse;
+}
+/* Un champ mesuré une fois se trompe dès que sa LARGEUR change : un
+   téléphone qu'on tourne, une fenêtre qui s'élargit, une feuille qui
+   prend sa largeur après la première mesure. Le texte se replie
+   autrement et la dernière ligne passe sous le bord — `overflow:hidden`
+   la cache sans rien dire. On re-mesure donc au changement de largeur,
+   et à lui seul : la hauteur, c'est nous qui la changeons. La première
+   largeur observée re-mesure aussi — elle peut ne pas être celle de la
+   mesure d'ouverture, et re-mesurer ne coûte rien. */
+export function suivreLargeur(el, fn){
+  if (!el || typeof ResizeObserver !== 'function') return;
+  let largeur = 0;
+  new ResizeObserver(([e]) => {
+    const w = Math.round(e.contentRect.width);
+    if (!w || w === largeur) return;
+    largeur = w;
+    fn();
+  }).observe(el);
 }
