@@ -3,7 +3,7 @@
    l'état actif en puces retirables sous la recherche (le sens du tri vit
    dans la puce), et le tableau desktop où déposer une carte dans une
    autre colonne change le statut avec une trace propre. */
-import { chromium, chromiumPath, SHOTS, serveRepo, attendre } from './outils.mjs';
+import { chromium, chromiumPath, SHOTS, serveRepo, attendre, installerZone } from './outils.mjs';
 
 const { server, base } = await serveRepo();
 const browser = await chromium.launch({ executablePath: chromiumPath() });
@@ -36,14 +36,15 @@ const names = page => page.evaluate(() =>
 
 /* ---------- téléphone : filtrer, combiner, tout remontrer ---------- */
 const mCtx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true });
+await installerZone(mCtx);
 const mPage = await mCtx.newPage();
 watchErrors(mPage);
 await seed(mPage);
 
 await mPage.click('#piAffiner');
 await mPage.waitForSelector('.fl-chip');
-const chipH = await mPage.evaluate(() =>
-  document.querySelector('.fl-chip').getBoundingClientRect().height);
+/* la puce se dessine à 32 px ; c'est sa ZONE qui doit faire 44 (§5) */
+const chipH = await mPage.evaluate(() => zoneCible(document.querySelector('.fl-chip')).h);
 if (chipH < 44) fail('chips de filtre sous 44 px au pouce : ' + chipH);
 if (!await mPage.$('.fl-chip[data-st="todo"]')) fail('le statut doit se filtrer en liste (mobile)');
 await mPage.click('[data-dom="cyber"]');

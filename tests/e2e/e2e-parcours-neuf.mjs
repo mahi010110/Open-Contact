@@ -3,7 +3,7 @@
    capture faite à la main, et sa survie au rechargement. Mobile ET bureau.
    (Le hors-ligne réel est couvert par e2e-oauth-sw ; le thème sombre par
    e2e-pistes — ici on ne les redouble pas.) */
-import { chromium, chromiumPath, SHOTS, serveRepo, attendre } from './outils.mjs';
+import { chromium, chromiumPath, SHOTS, serveRepo, attendre, installerZone } from './outils.mjs';
 
 const { server, base } = await serveRepo();
 const browser = await chromium.launch({ executablePath: chromiumPath() });
@@ -56,6 +56,7 @@ else console.log('Mes pistes vide : état enseignant ✓');
    première impression de se dégrader sans qu'on le voie. */
 {
   const nCtx = await browser.newContext({ viewport: { width: 320, height: 640 }, hasTouch: true });
+  await installerZone(nCtx);
   const N = await nCtx.newPage();
   watch(N);
   await N.goto(base, { waitUntil: 'load' });      /* aucune graine : app neuve */
@@ -114,8 +115,10 @@ else console.log('Mes pistes vide : état enseignant ✓');
         if (!b.width || !b.height) continue;
         if (n.closest('[hidden], [aria-hidden="true"], .ov-out')) continue;
         if (n.tagName === 'A' && n.closest('p, .hint, .fk-v')) continue;
-        if (b.height < 44 || b.width < 44)
-          petites.push(`${Math.round(b.width)}×${Math.round(b.height)} `
+        /* la zone qui répond au doigt, pas la boîte qu'on voit (§5) */
+        const z = zoneCible(n);
+        if (z.h < 44 || z.w < 44)
+          petites.push(`${Math.round(z.w)}×${Math.round(z.h)} `
             + (n.id ? '#' + n.id : (typeof n.className === 'string' && n.className.trim()
                ? '.' + n.className.trim().split(/\s+/)[0] : n.tagName)));
       }
