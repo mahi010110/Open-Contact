@@ -4,7 +4,7 @@
 concevoir — ça, c'est `CLAUDE.md`. Et il ne redit pas l'état des surfaces —
 ça, c'est [`surfaces.md`](surfaces.md).
 
-*Dernière mise à jour : 7 septembre 2026.*
+*Dernière mise à jour : 30 septembre 2026.*
 
 ---
 
@@ -236,7 +236,12 @@ Dans cet ordre, et seulement si les retours le justifient :
 3. **Ramener le brouillon par IA** avec ta propre clé, si les retours
    montrent que la rédaction est bien le point de blocage.
 4. **Import de données publiques** pour amorcer une liste de pistes sans
-   partir de zéro.
+   partir de zéro — c'est « À découvrir », dans la barre de recherche
+   ([`recherche.md`](recherche.md)).
+5. **Le réseau** : trouver quelqu'un chez une entreprise parmi ses amis,
+   ses groupes et leurs amis, trois cercles au plus
+   ([`reseau.md`](reseau.md)). Il vient après la barre, qui mène aux
+   pistes d'où partent les demandes.
 
 ---
 
