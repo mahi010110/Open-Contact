@@ -24,11 +24,13 @@
      état d'un mot ou une donnée chiffrée (« non », « 3 pistes ») ;
    ⑤ un libellé court : au-delà de quatre mots, il se compte, sous un
      plafond tenu à la baisse.
-   ⑥ au doigt, LE VISUEL N'EST PAS LA CIBLE (« ça reste trop gros », le
-     même jour) : un bouton se dessine à 40 px au plus, l'action compacte,
-     la puce et la croix à 32, et sa zone de 44 px est une marge
-     invisible — que `e2e-ux-audit.mjs` prouve en la touchant. Rien ne
-     se dessine plus haut que 40, sauf ce qui se NOMME ci-dessous.
+   ⑥ au doigt, UN BOUTON SE DESSINE À LA TAILLE QU'ON TOUCHE — 44 px au
+     moins. Le même jour, les boutons étaient descendus à 40 et 32 px
+     dessinés, la cible gardée par une marge invisible ; sur le téléphone
+     du mainteneur le texte remplissait la boîte, à l'étroit, et il les a
+     redemandés comme avant (« c'était beaucoup mieux avant »). Ce
+     critère garde cette décision : redescendre demande de venir le
+     changer ICI, exprès.
 
    La sonde se vérifie elle-même : une brique, une rangée habillée, une
    liste d'un geste et un sous-titre bavard sont plantés, et chaque
@@ -55,11 +57,9 @@ const ETIRES = {
   '.lockrow:not(.on) > .lr-do': 'la ligne du mot de passe : l’action tient la place que le champ prendra'
 };
 
-/* ⑥ — ce qui a le droit de se dessiner à 44 px au doigt, et pourquoi.
-   Une exception se NOMME, avec sa raison, jamais en silence. */
-const HAUTS = {
-  '#piAffiner': 'posé sur la ligne du champ de recherche, il en prend la hauteur — deux hauteurs sur une même ligne se liraient comme un défaut'
-};
+/* ⑥ — ce qui a le droit de se dessiner sous 44 px au doigt, et pourquoi.
+   Une exception se NOMME, avec sa raison, jamais en silence. Aucune. */
+const PETITS = {};
 
 const { server, base } = await serveRepo();
 const browser = await chromium.launch({ executablePath: chromiumPath() });
@@ -85,16 +85,15 @@ const RELEVE = () => {
     c.querySelectorAll('svg,.ic,span').forEach(x => x.remove());
     return c.textContent.replace(/\s+/g, ' ').trim();
   };
-  const out = { etires: [], habilles: [], seuls: [], bavards: [], longs: [], hauts: [], vus: 0, exemptes: 0 };
+  const out = { etires: [], habilles: [], seuls: [], bavards: [], longs: [], petits: [], vus: 0, exemptes: 0 };
   /* ⑥ la hauteur DESSINÉE, au doigt seulement (à la souris, --ctl vaut
-     déjà 32) : un bouton d'une seule ligne ne dépasse pas 40 px */
+     32 exprès) : ce qu'on voit est ce qu'on touche, 44 px au moins */
   if (matchMedia('(pointer:coarse), (max-width:900px)').matches)
     for (const b of racine.querySelectorAll('.btn, .dchip:not(.dchip-d), .fl-chip, .seg3 .seg, .x')){
-      if (!vu(b) || b.closest('.modal-h')) continue;
+      if (!vu(b)) continue;
       const h = b.getBoundingClientRect().height;
-      const lignes = Math.round((h - 8) / parseFloat(getComputedStyle(b).lineHeight || 18)) || 1;
-      if (h > 41 && lignes <= 1 && !(b.id && window.__HAUTS && window.__HAUTS.includes('#' + b.id)))
-        out.hauts.push(`« ${nom(b) || b.getAttribute('aria-label') || b.className} » ${Math.round(h)} px`);
+      if (h < 43.5 && !(b.id && (window.__PETITS || []).includes('#' + b.id)))
+        out.petits.push(`« ${nom(b) || b.getAttribute('aria-label') || b.className} » ${Math.round(h)} px`);
     }
   for (const b of racine.querySelectorAll('.btn')){
     if (!vu(b) || b.closest('.modal-f,.modal-h') || b.classList.contains('btn-primary')) continue;
@@ -174,8 +173,8 @@ const SURFACES = [
 for (const [ergo, opts] of [['au doigt', { viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true }],
                              ['à la souris', { viewport: { width: 1280, height: 800 } }]]){
   const p = await ouvrir(opts);
-  const tout = { etires: [], habilles: [], seuls: [], bavards: [], longs: [], hauts: [] };
-  await p.evaluate(([h, e]) => { window.__HAUTS = h; window.__ETIRES = e; }, [Object.keys(HAUTS), Object.keys(ETIRES)]);
+  const tout = { etires: [], habilles: [], seuls: [], bavards: [], longs: [], petits: [] };
+  await p.evaluate(([pe, e]) => { window.__PETITS = pe; window.__ETIRES = e; }, [Object.keys(PETITS), Object.keys(ETIRES)]);
   let vus = 0, exemptes = 0;
   const relever = async nom => {
     await p.waitForTimeout(380);
@@ -203,7 +202,7 @@ for (const [ergo, opts] of [['au doigt', { viewport: { width: 390, height: 844 }
          <button class="pick"><b>Bavarde</b><span>explique quand s'en servir</span></button></div>
        <div class="pick-list"><button class="pick"><b>Seule</b></button></div>
        <button class="btn">Un libellé beaucoup trop long pour un bouton</button>
-       <button class="btn" style="min-height:52px">Tuile</button>`;
+       <button class="btn btn-sm" style="min-height:0;height:30px">Timbre</button>`;
   });
   const sonde = await p.evaluate(RELEVE);
   await fermer(p);
@@ -214,7 +213,7 @@ for (const [ergo, opts] of [['au doigt', { viewport: { width: 390, height: 844 }
     seuls: sonde.seuls.some(x => /Seule/.test(x)),
     longs: sonde.longs.some(x => /beaucoup trop long/.test(x)),
     /* à la souris, ce critère ne s'applique pas : sa sonde non plus */
-    hauts: ergo !== 'au doigt' || sonde.hauts.some(x => /Tuile/.test(x))
+    petits: ergo !== 'au doigt' || sonde.petits.some(x => /Timbre/.test(x))
   };
   for (const [k, ok] of Object.entries(vue))
     if (!ok) fail(`${ergo} : la sonde « ${k} » n'a pas été vue — ce critère ne mesure plus rien`);
@@ -231,13 +230,13 @@ for (const [ergo, opts] of [['au doigt', { viewport: { width: 390, height: 844 }
   dire(tout.habilles, 'une rangée d’action a repris cadre ou ombre — elle redevient une brique');
   dire(tout.seuls, 'une liste d’un seul geste — un geste seul est un bouton à sa taille');
   dire(tout.bavards, 'un sous-titre explique le bouton — à droite, seulement un état d’un mot ou un chiffre');
-  dire(tout.hauts, 'au doigt, un bouton se DESSINE au-delà de 40 px — le visuel n’est pas la cible : '
-    + 'dessin à 40 (32 pour le compact), zone de 44 par la marge invisible');
+  dire(tout.petits, 'au doigt, un bouton se DESSINE sous 44 px — ce qu’on voit est ce qu’on touche '
+    + '(décision du mainteneur, 30 septembre 2026 : « c’était beaucoup mieux avant »)');
   if (tout.longs.length > PLAFOND_LONGS)
     fail(`${ergo} : ${tout.longs.length} libellé(s) de plus de quatre mots (plafond ${PLAFOND_LONGS}) —\n      `
       + tout.longs.join('\n      '));
   if (!ko) console.log(`${ergo} : ${vus} boutons sur ${SURFACES.length + (ergo === 'au doigt' ? 1 : 0)} vues — `
-    + `aucun étiré, aucune brique, aucun sous-titre bavard, ${tout.longs.length} libellé long${ergo === 'au doigt' ? ', rien dessiné au-delà de 40 px' : ''} ✓`);
+    + `aucun étiré, aucune brique, aucun sous-titre bavard, ${tout.longs.length} libellé long${ergo === 'au doigt' ? ', tout dessiné à 44 px au moins' : ''} ✓`);
   await p.context().close();
 }
 
