@@ -145,6 +145,7 @@ const stack = [];
 let poussees = 0;         /* entrées d'historique qui nous appartiennent */
 let internes = 0;         /* retours que NOUS avons provoqués, en vol */
 let aRendre = 0;          /* retours programmés, pas encore partis */
+let aPoser = 0;           /* entrées à pousser dès que nos retours atterrissent */
 let parRetour = false;    /* fermeture provoquée par le bouton retour */
 
 /* Rendre l'entrée est DIFFÉRÉ d'une micro-tâche, et c'est le cœur du
@@ -163,6 +164,9 @@ let parRetour = false;    /* fermeture provoquée par le bouton retour */
    feuille que personne n'a quittée. */
 function rendreEntree(){
   if (poussees - aRendre <= 0) return;
+  /* une entrée pas encore posée (voir `prendreEntree`) se rend sans
+     toucher à l'historique : il n'y a rien à reculer */
+  if (aPoser){ aPoser--; poussees--; return; }
   aRendre++;
   queueMicrotask(() => {
     if (!aRendre) return;                   /* une ouverture l'a annulé */
@@ -172,13 +176,28 @@ function rendreEntree(){
     history.back();
   });
 }
+/* Et quand le retour est DÉJÀ parti — une fermeture, un `await`, puis
+   une ouverture —, l'annuler n'est plus possible, et pousser tout de
+   suite rejoue la course : la traversée vise l'entrée d'AVANT le
+   `pushState`, l'entrée neuve tombe dans le vide, et le compte dit une
+   feuille de plus que l'historique n'en porte. Deux fermetures plus
+   tard, le retour sort du document. Mesuré le 30 septembre 2026 : 5
+   exécutions sur 8 d'`e2e-vecu.mjs` sous charge, invisible au calme —
+   c'est-à-dire exactement sur un téléphone lent. L'entrée attend donc
+   que nos retours aient ATTERRI (leur `popstate`) pour se poser : les
+   deux opérations ne se croisent plus. */
 function prendreEntree(){
   if (aRendre){ aRendre--; return; }        /* on garde l'entrée qui allait partir */
   poussees++;
+  if (internes){ aPoser++; return; }        /* un retour est en vol : on posera à l'atterrissage */
   history.pushState({ oc: poussees }, '', location.href);
 }
 addEventListener('popstate', () => {
-  if (internes){ internes--; return; }
+  if (internes){
+    internes--;
+    if (!internes) for (; aPoser > 0; aPoser--) history.pushState({ oc: poussees - aPoser + 1 }, '', location.href);
+    return;
+  }
   if (!poussees) return;                    /* aucune feuille : vraie navigation */
   poussees--;
   const dessus = stack[stack.length - 1];

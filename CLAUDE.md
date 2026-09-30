@@ -696,6 +696,17 @@ gardées (`e2e-fenetre.mjs`, `e2e-ux-audit.mjs`) :
    fermetures dans le même tick lancent deux retours, et un booléen n'en
    absorbe qu'un ; le second passe pour un geste et emporte une feuille
    que personne n'a quittée.
+   **Et quand le retour est DÉJÀ parti** — une fermeture, un `await`,
+   puis une ouverture —, l'annuler n'est plus possible : l'ouverture
+   attend qu'il ait ATTERRI (son `popstate`) pour poser son entrée.
+   Sinon la traversée vise l'entrée d'avant le `pushState`, le compte
+   garde une feuille de trop, et deux retours plus tard on quitte
+   l'écran. Invisible au calme ; 5 fois sur 8 sous charge — c'est-à-dire
+   sur un téléphone lent. Trouvé par un scénario qui échouait « parfois »,
+   et dont le commentaire affirmait qu'une fermeture forcée ne touchait
+   pas l'historique : faux, et c'est ce qui aurait fait classer la
+   panne en aléa. Gardé par `e2e-fenetre.mjs` (④ quater), sans charge :
+   une micro-tâche entre fermer et rouvrir suffit à le rendre certain.
 2. **Un onglet garde sa place, et le re-taper remonte.** C'est ce qui
    distingue un onglet d'un lien. La place vaut pour la session, pas au
    travers d'un rechargement. Attention au piège : `auSommet` et
