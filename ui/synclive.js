@@ -308,6 +308,29 @@ async function adopterMonNom(){
   return true;
 }
 
+/* Sans anneau, personne n'a autorité sur les noms : chaque appareil
+   choisit le SIEN, et l'annonce à la prochaine poignée de main. Ce n'est
+   un pouvoir sur personne d'autre — c'est pour ça qu'il ne demande ni
+   principal, ni code. Dès qu'un anneau existe, c'est le principal qui
+   nomme (`ringRenommer`) : deux autorités sur un même nom finiraient par
+   se contredire d'un écran à l'autre. */
+export async function renommerSoi(brut){
+  await loadRingSt();
+  if (getRing()) return false;
+  const nom = nomAppareil(brut);
+  if (!nom) return false;
+  const self = await deviceSelf();
+  if (nom === self.name) return true;
+  const renomme = Object.assign({}, self, { name: nom });
+  await kvSet(DEVICE_KEY, JSON.stringify(renomme));
+  selfP = Promise.resolve(renomme);
+  nomAdopte = nom;
+  logJ('Appareil renommé : ' + self.name + ' → ' + nom);
+  if (sendHello) sendHello();
+  emit();
+  return true;
+}
+
 /* ---------- l'anneau d'appareils (appareil principal) ----------
    État persistant : { keys: {pub, seed}, ring, applied: [cid…] } —
    scellé au repos quand le profil est protégé (SEALABLE). Les
@@ -323,6 +346,15 @@ async function loadRingSt(){
 }
 const saveRingSt = () => kvSet(RING_KEY, JSON.stringify(ringSt));
 export const getRing = () => (ringSt && ringSt.ring) || null;
+/* l'anneau LU, pas supposé : `getRing()` rend `null` tant que rien ne
+   l'a chargé — hors ligne, la liaison peut ne jamais y arriver. Un
+   écran qui décide « pas d'anneau, donc chacun se nomme » doit d'abord
+   l'avoir lu, sinon un appareil ordinaire se verrait offrir un geste
+   qui refuserait en silence. */
+export async function anneauLu(){
+  await loadRingSt();
+  return getRing();
+}
 export async function ringOrdinateur(){
   await loadRingSt();
   return ((getRing() && getRing().devices) || []).find(d => d && d.role === 'ordinateur') || null;

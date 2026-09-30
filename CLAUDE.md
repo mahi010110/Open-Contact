@@ -696,6 +696,17 @@ gardées (`e2e-fenetre.mjs`, `e2e-ux-audit.mjs`) :
    fermetures dans le même tick lancent deux retours, et un booléen n'en
    absorbe qu'un ; le second passe pour un geste et emporte une feuille
    que personne n'a quittée.
+   **Et quand le retour est DÉJÀ parti** — une fermeture, un `await`,
+   puis une ouverture —, l'annuler n'est plus possible : l'ouverture
+   attend qu'il ait ATTERRI (son `popstate`) pour poser son entrée.
+   Sinon la traversée vise l'entrée d'avant le `pushState`, le compte
+   garde une feuille de trop, et deux retours plus tard on quitte
+   l'écran. Invisible au calme ; 5 fois sur 8 sous charge — c'est-à-dire
+   sur un téléphone lent. Trouvé par un scénario qui échouait « parfois »,
+   et dont le commentaire affirmait qu'une fermeture forcée ne touchait
+   pas l'historique : faux, et c'est ce qui aurait fait classer la
+   panne en aléa. Gardé par `e2e-fenetre.mjs` (④ quater), sans charge :
+   une micro-tâche entre fermer et rouvrir suffit à le rendre certain.
 2. **Un onglet garde sa place, et le re-taper remonte.** C'est ce qui
    distingue un onglet d'un lien. La place vaut pour la session, pas au
    travers d'un rechargement. Attention au piège : `auSommet` et
@@ -1362,6 +1373,17 @@ groupe (P2P), QR, fichier `.oc`, coller.
 inclus), le plus récent gagne (`updatedAt`), suppressions par tombstones.
 Canal : P2P avec phrase de liaison personnelle, hashée pour nommer la salle,
 données chiffrées de pair à pair. Le lien est **persistant** (`ui/synclive.js`).
+
+**Pas de principal sans code** *(tranché le 30 septembre 2026)*. Le
+principal peut verrouiller, retirer et effacer les autres appareils : un
+téléphone qui porte ce pouvoir sans code le donne à quiconque le ramasse.
+Apple et Google demandent un secret pour effacer un appareil à distance ;
+ici, c'est la protection qui fait le principal. Ce qu'un appareil non
+protégé demandait vraiment — distinguer deux « iPhone · Safari », la
+photo du mainteneur — ne demande aucun pouvoir sur les autres : **sans
+anneau, chaque appareil renomme LUI-MÊME** (`renommerSoi`) et l'annonce.
+Dès qu'un anneau existe, seul le principal nomme : deux autorités sur un
+même nom finiraient par se contredire d'un écran à l'autre.
 
 Transport : Trystero (vendorisé) via relais Nostr publics, personnalisables
 (`oc_relays_v1`).

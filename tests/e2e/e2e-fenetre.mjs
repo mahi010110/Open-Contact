@@ -328,6 +328,28 @@ const dos = await t.evaluate(async () => {
   await attendre(); await attendre();
   out.tickDouble = etat();
 
+  /* ④ quater — FERMER, UN `await`, ROUVRIR.
+     Le cas que la reprise ④ bis ne couvre pas : entre la fermeture et
+     l'ouverture, une micro-tâche passe, donc le retour est DÉJÀ parti
+     et ne peut plus être annulé. La traversée vise l'entrée d'avant le
+     `pushState` qui suit ; sans attendre qu'elle atterrisse, l'entrée
+     neuve tombe dans le vide et le compte dit une feuille de trop — le
+     second retour quitte alors l'écran au lieu de fermer la dernière
+     feuille. Mesuré le 30 septembre 2026 dans `e2e-vecu.mjs`, 5 fois sur
+     8 sous charge ; ici, la micro-tâche le rend certain. */
+  location.hash = '#echanger'; await attendre();
+  openSheet({ title: 'Base' }); await attendre();
+  openSheet({ title: 'Haut' }); await attendre();
+  [...document.querySelectorAll('.overlay:not(.ov-out) .x')].pop().click();   /* « Haut », celle du dessus */
+  await Promise.resolve();              /* la micro-tâche passe : le retour est lancé */
+  openSheet({ title: 'Neuve' });        /* avant qu'il n'atterrisse */
+  await attendre();
+  out.courseAvant = etat();
+  history.back(); await attendre();
+  out.courseUn = etat();
+  history.back(); await attendre();
+  out.courseDeux = etat();
+
   /* ④ un garde-fou qui refuse : la feuille reste, et le retour SUIVANT
      doit encore marcher — l'entrée rendue ne doit pas être perdue */
   location.hash = '#echanger'; await attendre();
@@ -362,11 +384,18 @@ else if (dos.apresBoucle.n !== 0)
 else if (dos.tickDouble.n !== 1 || !/Un/.test(dos.tickDouble.dessus))
   fail('deux fermetures dans le même tick en emportent une troisième : il reste « '
        + dos.tickDouble.dessus + ' » (attendu « Un » seule)');
+else if (dos.courseAvant.n !== 2 || !/Neuve/.test(dos.courseAvant.dessus))
+  fail('fermer, attendre, rouvrir : la pile n’est pas « Base+Neuve » : ' + JSON.stringify(dos.courseAvant))
+else if (dos.courseUn.n !== 1 || !/Base/.test(dos.courseUn.dessus))
+  fail('fermer, attendre, rouvrir : le premier retour ne ferme pas « Neuve » : ' + JSON.stringify(dos.courseUn))
+else if (dos.courseDeux.n !== 0 || dos.courseDeux.hash !== '#echanger')
+  fail('fermer, attendre, rouvrir : le compte a une feuille de trop — le second retour quitte l’écran : '
+       + JSON.stringify(dos.courseDeux))
 else if (dos.gardeRefuse.n !== 1)
   fail('le garde-fou a refusé mais la feuille s’est fermée quand même');
 else if (dos.gardeAccepte.n !== 0 || dos.gardeAccepte.hash !== '#echanger')
   fail('après un refus, le retour suivant ne ferme plus : ' + JSON.stringify(dos.gardeAccepte));
-else console.log('retour : ferme la feuille · dépile · respecte le garde-fou · pas d’entrée fantôme ✓');
+else console.log('retour : ferme la feuille · dépile · respecte le garde-fou · pas d’entrée fantôme · fermer-attendre-rouvrir juste ✓');
 
 console.log(errors.length ? 'Erreurs console : ' + errors.join(' | ') : 'Zéro erreur console.');
 if (errors.length) process.exitCode = 1;

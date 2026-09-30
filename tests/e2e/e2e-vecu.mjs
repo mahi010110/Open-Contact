@@ -238,17 +238,24 @@ else console.log('déclaration : 4 choix, exclusifs, re-tap pour retirer — et 
 await page.evaluate(async () => {
   const st = await import('./engine/storage.js');
   const { normalizeCompany } = await import('./engine/model.js');
-  /* Fermer par la CROIX rend une entrée d'historique, et ce retour est
-     DIFFÉRÉ d'une micro-tâche (voir CLAUDE.md §5 : c'est ce qui empêche
-     l'app de sortir sur `about:blank` en enchaînant deux feuilles).
-     Suivi d'un `reload()` immédiat, ce retour partait APRÈS le
-     rechargement et emmenait la page hors du document : plus aucun
-     `import('./ui/state.js')` ne résolvait, et le test mourait sur un
-     code parfaitement sain, un tour sur cinq. On ferme donc par la voie
-     silencieuse, celle qui ne touche pas à l'historique. */
+  /* Toute fermeture rend l'entrée d'historique de sa feuille — la
+     croix comme `close(null, true)`, dont le second argument ne fait
+     que passer le garde-fou (ui/dom.js, `close(result, force)`). Ce
+     commentaire affirmait le contraire, et le test mourait sous charge
+     (5 fois sur 8, huit exemplaires en parallèle, 30 septembre 2026) :
+     le retour est différé d'une micro-tâche (CLAUDE.md §5), la
+     traversée qu'il lance est asynchrone, et suivie d'un `reload()`
+     immédiat elle partait APRÈS — contexte détruit, ou page hors du
+     document où plus aucun `import()` ne résout. On ferme, puis on
+     ATTEND que l'historique se pose : plus aucun `popstate` depuis
+     250 ms. */
   const { topSheet } = await import('./ui/dom.js');
   let s, n = 0;
   while ((s = topSheet()) && n++ < 6) s.close(null, true);
+  if (n) await new Promise(r => {
+    let t = setTimeout(r, 2000);
+    addEventListener('popstate', () => { clearTimeout(t); t = setTimeout(r, 250); });
+  });
   /* la piste portée est volontairement la MOINS bien classée par les
      autres critères : sans e-mail, sans ville, dernière alphabétiquement */
   await st.kvSet(st.DATA_KEY, JSON.stringify([

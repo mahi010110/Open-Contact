@@ -9,7 +9,11 @@
      part : le presse-papier reçoit exactement le bloc affiché ;
    · aucune donnée personnelle réellement enregistrée n'y entre — le
      test unitaire le vérifie sur des données fabriquées, celui-ci sur
-     l'app chargée avec un vrai suivi. */
+     l'app chargée avec un vrai suivi ;
+   · au doigt, là où le téléphone sait partager, le rapport part par sa
+     feuille de partage (« Envoyer ») : exactement le bloc affiché, sans
+     toast ; y renoncer ne fait rien, un partage qui échoue retombe sur
+     la copie. Toujours aucune destination nommée (30 septembre 2026). */
 import { chromium, chromiumPath, SHOTS, serveRepo, attendre, ouvrirReglages } from './outils.mjs';
 
 const { server, base } = await serveRepo();
@@ -198,6 +202,57 @@ await dPage.waitForTimeout(350);
 await dPage.screenshot({ path: SHOTS + '/91-diagnostic-desktop.png' });
 console.log('ordinateur : même porte, six lignes non repliées, aucune adresse en dur ✓');
 await dCtx.close();
+
+/* ---------- au doigt, là où le téléphone sait partager ----------
+   Chromium sous Linux n'a pas de feuille de partage : on en pose une
+   qui ENREGISTRE ce qu'on lui donne, et dont on choisit la réponse —
+   partagé, renoncé (AbortError), ou refusé (toute autre erreur). */
+const sCtx = await browser.newContext({
+  viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, userAgent: UA_TEL,
+  locale: 'fr-FR', permissions: ['clipboard-read', 'clipboard-write']
+});
+await sCtx.addInitScript(() => {
+  window.__partages = [];
+  window.__reponse = 'ok';
+  navigator.canShare = () => true;
+  navigator.share = async d => {
+    window.__partages.push(d);
+    if (window.__reponse === 'renonce') throw new DOMException('annulé', 'AbortError');
+    if (window.__reponse === 'refuse') throw new DOMException('refusé', 'NotAllowedError');
+  };
+});
+const sPage = await sCtx.newPage();
+watchErrors(sPage);
+await seed(sPage);
+const sTxt = await ouvrirDiag(sPage);
+const viderToast = () => sPage.evaluate(() => { const t = document.getElementById('toast'); if (t) t.textContent = ''; });
+const pied = await sPage.evaluate(() => [...document.querySelectorAll('.modal-f .btn')].map(b => b.textContent.trim()));
+if (pied.length !== 1 || pied[0] !== 'Envoyer') fail('au doigt, un seul bouton « Envoyer » : ' + JSON.stringify(pied));
+await viderToast();
+await sPage.click('.modal-f .btn-primary');
+await sPage.waitForTimeout(300);
+const parti = await sPage.evaluate(() => ({ p: window.__partages, t: document.getElementById('toast')?.textContent || '' }));
+if (parti.p.length !== 1 || parti.p[0].text !== sTxt) fail('la feuille de partage ne reçoit pas le bloc affiché : ' + JSON.stringify(parti.p));
+if (parti.t) fail('la feuille de partage dit déjà que c’est parti — pas de toast : « ' + parti.t + ' »');
+/* renoncer : rien ne se passe, ni copie ni message */
+await sPage.evaluate(async () => { window.__reponse = 'renonce'; await navigator.clipboard.writeText('témoin'); });
+await viderToast();
+await sPage.click('.modal-f .btn-primary');
+await sPage.waitForTimeout(300);
+const renonce = await sPage.evaluate(async () => ({ clip: await navigator.clipboard.readText(),
+  t: document.getElementById('toast')?.textContent || '' }));
+if (renonce.clip !== 'témoin' || renonce.t) fail('renoncer au partage doit ne rien faire : ' + JSON.stringify(renonce));
+/* refusé : le geste retombe sur la copie, et le dit */
+await sPage.evaluate(() => { window.__reponse = 'refuse'; });
+await viderToast();
+await sPage.click('.modal-f .btn-primary');
+await attendre(sPage, `/Copié/.test(document.getElementById('toast')?.textContent || '')`,
+  { timeout: 3000, message: 'un partage refusé retombe sur la copie, et le dit' });
+if (await sPage.evaluate(() => navigator.clipboard.readText()) !== sTxt) fail('la copie de repli ne rend pas le bloc affiché');
+if (/github|issue|@/i.test(await sPage.evaluate(() => document.querySelector('.modal').textContent)))
+  fail('la feuille ne nomme toujours aucune destination');
+console.log('au doigt, partage possible : « Envoyer » part par la feuille du téléphone, renoncer ne fait rien, un refus copie ✓');
+await sCtx.close();
 
 console.log(errors.length ? 'Erreurs console : ' + errors.join(' | ') : 'Zéro erreur console.');
 if (errors.length) process.exitCode = 1;
