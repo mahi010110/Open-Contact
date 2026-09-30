@@ -845,8 +845,8 @@ details.tranche[open]>summary::before{
 .tde-ic.ok{background:var(--green-wash);color:var(--green)}
 .td-empty h2{font-size:var(--text-16);font-weight:var(--weight-bold);letter-spacing:var(--tracking-tight);margin-bottom:5px}
 .td-empty p{font-size:var(--text-13);color:var(--text-muted);line-height:1.6;max-width:340px;margin:0 auto 14px}
-.td-empty.td-clear p,.ec-vide .td-empty p{margin-bottom:0}
-.ec-vide .td-empty{margin-top:0}
+/* sans phrase sous le titre, les gestes gardent leur distance au titre */
+.td-empty h2+.tde-actions{margin-top:14px}
 .tde-actions{display:flex;flex-direction:column;gap:8px;max-width:280px;margin:0 auto}
 @media (min-width:520px){.tde-actions{flex-direction:row;justify-content:center;max-width:none}}
 .empty-list{padding:26px 14px;text-align:center;color:var(--text-muted);font-size:var(--text-13);line-height:1.6}
@@ -1071,7 +1071,6 @@ details.tranche[open]>summary::before{
    n'est plus une adresse, c'est un accident. Les points de suspension
    disent qu'il en reste, et « Modifier » la montre entière. */
 .obj-l{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.obj-empty{font-size:var(--text-13);color:var(--text-muted);line-height:1.5;margin:0 0 10px}
 /* Ce qui MANQUE au profil, en creux : la même encre que les données (un
    gris plus clair tomberait sous 4,5:1, WCAG 1.4.3), un pointillé et un
    point d'interrogation pour dire « à remplir ». Jamais de couleur :
@@ -1081,6 +1080,9 @@ details.tranche[open]>summary::before{
    manque est une tâche, et celle qu'on couperait serait oubliée. */
 .obj-creux{white-space:normal;text-decoration:underline dotted;text-underline-offset:3px}
 .obj>.btn{flex:none}
+/* sans nom, l'objet n'a plus que son geste : l'icône se centre sur lui */
+.obj-vide{align-items:center}
+.obj-vide>.ic{margin-top:0}
 /* « Moi » rempli : le nom face à son bouton, les données dessous sur
    toute la largeur. Une grille, pas un flottant : les lignes élidées
    (`overflow:hidden`) se rétréciraient à côté du flottant au lieu de
@@ -1235,6 +1237,10 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   font-size:var(--text-14);line-height:1.5}
 .inst-pas b{font-weight:var(--weight-semibold);white-space:nowrap}
 .inst-pas .ic{vertical-align:-2px}
+/* « Depuis mes e-mails » : les mêmes pas, mais l'étape 1 est un bouton et
+   l'étape 3 un champ — le geste se fait là où il est numéroté */
+.mail-pas .field{margin:6px 0 0}
+.mail-pas textarea{min-height:120px}
 .moi-door{
   display:flex;align-items:center;gap:10px;width:100%;
   font:inherit;color:inherit;text-align:left;cursor:pointer;min-height:var(--ctl);

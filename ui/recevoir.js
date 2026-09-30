@@ -12,7 +12,7 @@ import { parseInput, makeOCQJoiner, rdvParse, rdvNorm } from '../engine/exchange
 import { mergeIncoming } from '../engine/merge.js';
 import { normalizeCompany } from '../engine/model.js';
 import { S, bus, saveData, logJ } from './state.js';
-import { openSheet, toast, btn, ic, showUndo } from './dom.js';
+import { openSheet, toast, btn, ic, showUndo, annoncer } from './dom.js';
 import { openRoom, leaveRoom, watchLiaison, deviceSelf, ensureKeys, ouvrirPortage } from './synclive.js';
 import { SANS_PAIR_RECEVEUR_MS, PORTAGE_APRES_MS, PORTAGE_RELANCE_MS, PORTAGE_SILENCE_MS } from '../engine/transport.js';
 import { recolte, rassembler } from '../engine/portage.js';
@@ -399,30 +399,45 @@ export function openImportMails(){
          <button class="pick" id="rcScan30"><b>${ic('zap', 'ic-14')} Les 30 derniers jours</b></button>
        </div>
        <div class="lbl-row" style="margin:12px 0 6px"><label>ou à la main</label></div>` : ''}
-       <div class="lk-whys">
-         <div class="lk-why">${ic('copy', 'ic-14')} <span>Copie le prompt, colle-le dans ton assistant IA avec tes e-mails.</span></div>
-         ${/* « Rapporte ici sa réponse » : le champ dessous s'appelle « La
-              réponse de l'IA », et le tri des pistes se montre à l'écran
-              suivant. Reste la seule chose invisible : il faut sortir de
-              l'app. */''}
-       </div>
        ${(ORDINATEUR && !assoc) ? `<p class="hint">${ic('lightbulb', 'ic-14')} ${matchMedia('(min-width:901px)').matches
          ? 'Avec l’ordinateur, ton ordinateur fait la lecture tout seul — Moi → Mes appareils.'
          : 'L’ordinateur s’installe et s’associe depuis ton ordinateur — ouvre OpenContact là-bas.'}</p>` : ''}
-       <div class="field" style="margin-top:10px"><label for="rcMailTxt">La réponse de l’IA</label>
-         <textarea id="rcMailTxt" style="min-height:120px" placeholder="Colle ici le texte produit par l’assistant"></textarea></div>`;
+       ${/* TROIS GESTES, DANS L'ORDRE OÙ ILS SE FONT, ET LE PREMIER EST
+            LE BOUTON. La feuille disait « Copie le prompt, colle-le dans
+            ton assistant IA avec tes e-mails » en haut, pendant que le
+            bouton qui copie vivait en bas à gauche, en second plan : on
+            lisait la consigne, puis on CHERCHAIT où la faire. Numérotés,
+            les gestes n'ont plus à être racontés — l'ordre se voit, et
+            chaque étape se fait là où elle est écrite (le motif des pas
+            d'« Installer l'app »). Une seule phrase reste, l'étape 2 :
+            elle se passe HORS de l'app, rien à l'écran ne peut la montrer.
+            « Prompt » est devenu « consigne », le mot de §0 : un mot
+            anglais de technicien n'a rien à faire dans un bouton (§7). */''}
+       <ol class="inst-pas mail-pas">
+         <li><button class="btn btn-sm" id="rcPrompt">${ic('copy', 'ic-14')} Copier la consigne</button></li>
+         <li>Colle-la dans ton assistant IA, avec <span style="white-space:nowrap">tes e-mails</span>.</li>
+         <li><label for="rcMailTxt">Colle sa réponse ici :</label>
+           <div class="field"><textarea id="rcMailTxt"></textarea></div></li>
+       </ol>`;
     q('#rcLastAnalysis')?.addEventListener('click', showReady);
     q('#rcCurrentAnalysis')?.addEventListener('click', () => showProgress(pending.mid));
     q('#rcAnalysisError')?.addEventListener('click', showError);
     q('#rcScan7')?.addEventListener('click', () => scan(7));
     q('#rcScan30')?.addEventListener('click', () => scan(30));
-    sh.setFoot([
-      btn('Copier le prompt', '', async () => {
-        try { await navigator.clipboard.writeText(prompt.text); toast('Prompt copié — colle-le dans ton assistant.'); }
-        catch (e) { toast('Copie impossible ici.'); }
-      }, 'copy'),
-      btn('Lire', 'btn-primary', () => treat(q('#rcMailTxt').value))
-    ]);
+    /* copiée, l'étape le DIT sur place — pas de toast pour un état qui
+       se lit sur le bouton qu'on vient de toucher (§6). Le toast, lui,
+       passait par `role="status"` : un lecteur d'écran l'entendait, et
+       un libellé qui change sous le focus ne s'annonce pas partout. La
+       région vivante de la coque reprend donc la phrase (`annoncer`). */
+    q('#rcPrompt').addEventListener('click', async e => {
+      const b = e.currentTarget;
+      try {
+        await navigator.clipboard.writeText(prompt.text);
+        b.innerHTML = `${ic('check', 'ic-14')} Consigne copiée`;
+        annoncer('Consigne copiée.');
+      } catch (err) { toast('Copie impossible ici.'); }
+    });
+    sh.setFoot([btn('Lire', 'btn-primary', () => treat(q('#rcMailTxt').value))]);
     if (pending && (pending.state === 'sending' || pending.state === 'running'))
       reconcileMailAnalysis().catch(() => {});
 

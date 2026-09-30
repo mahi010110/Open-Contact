@@ -368,11 +368,14 @@ function reprendreHTML(){
 function detailHTML(){
   const fil = filVisible();
   const x = fil[filSel];
+  /* Fil vide : le panneau se TAIT. « Les pistes qu'un échange fait
+     circuler s'affichent ici » répétait, à 580 px de distance, la phrase
+     du fil juste à sa gauche — deux phrases pour un seul vide. Un détail
+     n'a rien à dire tant qu'il n'y a rien à sélectionner. */
+  if (!fil.length) return '<aside class="ec-detail"></aside>';
   if (!x || !x.ids.length)
     return `<aside class="ec-detail">
-              <p class="ec-rien">${fil.length
-                ? 'Cet échange est plus ancien que le suivi de ses pistes : il ne les retrouve pas.'
-                : 'Les pistes qu’un échange fait circuler s’affichent ici.'}</p>
+              <p class="ec-rien">Cet échange est plus ancien que le suivi de ses pistes : il ne les retrouve pas.</p>
             </aside>`;
   const k = contenuEchange(x, false);
   return `<aside class="ec-detail">

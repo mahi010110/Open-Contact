@@ -1225,6 +1225,45 @@ images retirées sont refusées par le relevé du vocabulaire
 (`e2e-sobriete.mjs`, compte ⑤) : elles ne reviennent pas par une
 feuille secondaire.
 
+**Ce qui se voit ne se lit pas** *(règle du mainteneur, 30 septembre
+2026)* : on comprend en regardant ce qu'il faut faire, sans avoir à lire
+ni à chercher. Krug le dit plus sèchement — personne ne lit les
+instructions, l'objectif est de les supprimer en rendant tout évident —
+et Norman l'a dit d'une porte : si elle a besoin d'un mode d'emploi,
+c'est la porte qui est ratée. Une phrase d'explication se trie par
+**trois questions, dans l'ordre**, et c'est ce tri qui rend le choix
+certain au lieu d'une affaire de goût :
+
+1. **L'écran le dit-il déjà ?** Un bouton, un état, un lien juste à côté.
+   → la phrase part. « Aucune — planifie la suite » à côté d'un bouton
+   « Planifier » ; « la suite est plus bas, repliée exprès » au-dessus de
+   « Bientôt ».
+2. **Raconte-t-elle une suite de gestes ?** → les gestes deviennent les
+   étapes, numérotées dans l'ordre où elles se font, et chaque étape se
+   fait là où elle est écrite. « Depuis mes e-mails » disait « Copie le
+   prompt, colle-le… » en haut, pendant que le bouton qui copie vivait en
+   bas à gauche : on lisait, puis on CHERCHAIT. L'étape 1 est maintenant
+   le bouton. Ne reste écrite que l'étape qui se passe hors de l'app.
+   Corollaire : **ce que l'écran suivant montre, celui-ci n'a pas à le
+   dire** — « Voir un exemple » vaut mieux qu'une phrase sur ce que
+   l'écran fera.
+3. **Prévient-elle d'une perte ou d'une erreur qu'on ne peut pas voir
+   venir ?** → elle reste, au plus court. La phrase de secours sur
+   papier, le CV que `mailto:` ne joint pas, les pistes qui ne vivent que
+   sur cet appareil. Les erreurs dites sous leur champ et les états
+   (« Aucune piste. ») ne sont pas des explications.
+
+Deux corollaires payés en l'appliquant. **Un choix à une seule option
+n'est pas un choix, même sur une feuille entière** : sans les campagnes,
+Prospecter passait par « Une par une · maintenant », seul ; le bouton dit
+maintenant « Écrire (n) » et ouvre le composeur. Et **le relevé ne voyait
+pas les états vides** : il ne lisait que les `hint`, et les trois plus
+longues phrases de l'app (16, 15 et 12 mots) vivaient sous un titre
+d'accueil, trouvées à l'œil sur les captures. `e2e-sobriete.mjs` lit
+maintenant quatre familles — `hint`, états vides, accueils, pas
+numérotés —, chacune avec sa sonde, et `e2e-montrer.mjs` vérifie que ce
+qui remplace chaque phrase partie existe bel et bien.
+
 **Écrire est le geste le plus cher de l'app, et le seul que personne ne
 peut faire à la place de l'étudiant.** Deux mesures le cadrent, et elles
 disent la même chose : un corps personnalisé obtient ~33 % de réponses en

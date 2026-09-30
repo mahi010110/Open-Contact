@@ -67,11 +67,19 @@ export function openProspect(){
      tabulation, c'est-à-dire du grondement réservé à ceux qui n'ont pas
      de souris. `disabled` coupe les deux, et la raison est à l'écran :
      aucune case cochée, et le bouton sans son compte. */
-  const bGo = btn('Continuer', 'btn-primary', () => {
+  /* LE VERBE DU GESTE, PAS « CONTINUER ». Sans les campagnes (§0,
+     masquées), l'étape d'après ne proposait qu'UN chemin — « Une par une
+     · maintenant » — sur une feuille entière : un choix à une seule
+     option n'est pas un choix (§6, `.fld-ro`). On va donc droit au
+     premier composeur, et le bouton dit ce qui va se passer. La
+     bifurcation revient avec les campagnes, et « Continuer » avec elle :
+     là, ce qui suit est vraiment une question. */
+  const VERBE = CAMPAGNES ? 'Continuer' : 'Écrire';
+  const bGo = btn(VERBE, 'btn-primary', () => {
     const pairs = allPairs();
     if (!pairs.some(p => p.ct)) return;
     sh.close();
-    chooseMode(pairs);
+    if (CAMPAGNES) chooseMode(pairs); else run(pairs);
   });
   /* la case « Tout » PORTE l'état : elle doit donc suivre chaque tap
      individuel, sinon elle affiche un état périmé dès la seconde ligne */
@@ -79,7 +87,7 @@ export function openProspect(){
   let syncAll = () => {};
   const sync = () => {
     const n = nWho();
-    bGo.textContent = n ? `Continuer (${n})` : 'Continuer';
+    bGo.textContent = n ? `${VERBE} (${n})` : VERBE;
     bGo.disabled = !n;
     syncAll();
   };

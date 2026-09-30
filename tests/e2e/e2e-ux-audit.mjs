@@ -2814,7 +2814,7 @@ if (ORDINATEUR){
      ni installation ni compte — mais ne vante plus une surface absente. */
   if (/Ordinateur/.test(scanText))
     fail('hors périmètre, « Depuis mes e-mails » nomme encore l’ordinateur : ' + scanText.slice(0, 260));
-  if (!/Copie le prompt/.test(scanText))
+  if (!/Copier la consigne/.test(scanText))
     fail('le chemin « je colle » a disparu alors qu\'il ne demande rien : ' + scanText.slice(0, 260));
   console.log('Depuis mes e-mails : chemin « je colle » intact, aucune surface absente vantée ✓');
 }
