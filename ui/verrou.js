@@ -668,14 +668,20 @@ export function openManageSheet(){
               refaire une — avec le code, qu'on a encore. Sans elle,
               un code oublié devenait définitif sans que rien ne le
               dise. */''}
-         <button class="pick" id="vgPhrase"><b>Refaire ma phrase de secours</b></button>
-         ${bioAvailable() ? `<button class="pick" id="vgBio"><b>${bioEnrolled() ? 'Retirer' : 'Activer'} l’empreinte / le visage</b></button>` : ''}
+         ${/* « Changer ma phrase », comme « Changer mon code » juste
+              au-dessus : dans cette feuille, « ma phrase » ne peut être
+              que celle de secours. Et l'empreinte devient une LIGNE D'ÉTAT,
+              comme « Protection · non protégé » dans Réglages — « Activer
+              l'empreinte / le visage » faisait cinq mots et une barre
+              oblique pour un interrupteur (30 septembre 2026). */''}
+         <button class="pick" id="vgPhrase"><b>Changer ma phrase</b></button>
+         ${bioAvailable() ? `<button class="pick" id="vgBio"><b>Empreinte ou visage</b><span>${bioEnrolled() ? 'activée' : 'non'}</span></button>` : ''}
        </div>
        ${/* un geste qui retire la protection n'est pas un lien : il a son
             groupe, en rouge, en dernier — le même dessin que « Rompre le
             lien » et « Effacer cet appareil » */''}
-       <div class="pick-list pick-sortie">
-         <button class="pick pick-danger" id="vgOff"><b>${ic('lock', 'ic-14')} Ne plus protéger</b></button>
+       <div class="pick-sortie">
+         <button class="btn btn-sm btn-danger" id="vgOff">${ic('lock', 'ic-14')} Ne plus protéger</button>
        </div>`;
     const q = s => sh.body.querySelector(s);
     q('#vgLock').addEventListener('click', () => { sh.close(); lockNow(); });

@@ -402,8 +402,8 @@ export function renderEchanger(){
   const aDonner = S.companies.some(c => !isClosed(c) && !c.demo);
   const gestes =
     `<div class="hero2${aDonner ? '' : ' hero1'}">
-       ${aDonner ? `<button class="btn btn-primary hero" id="ecGive">${ic('share', 'ic-20')}<span>Donner</span></button>` : ''}
-       <button class="btn${aDonner ? '' : ' btn-primary'} hero" id="ecRecv">${ic('inbox', 'ic-20')}<span>Recevoir</span></button>
+       ${aDonner ? `<button class="btn btn-primary hero" id="ecGive">${ic('share', 'ic-14')}<span>Donner</span></button>` : ''}
+       <button class="btn${aDonner ? '' : ' btn-primary'} hero" id="ecRecv">${ic('inbox', 'ic-14')}<span>Recevoir</span></button>
      </div>
      <!-- une porte, pas une carte à bouton : « Entrer » ne disait rien de
           plus que la ligne elle-même. Exactement la porte « Réglages »

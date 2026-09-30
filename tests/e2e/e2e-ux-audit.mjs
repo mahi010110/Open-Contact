@@ -818,9 +818,16 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
     if (!pouce.chevron)
       fail('commandes @pouce : la porte a perdu son chevron — sur une ligne pleine largeur, '
         + 'c’est lui qui dit qu’elle mène ailleurs');
-    if (pouce.hauteurVerbe < 60)
-      fail(`commandes @pouce : « Donner » ne fait plus que ${pouce.hauteurVerbe}px — le format `
-        + 'du pouce est haut et large, c’est au poste qu’il se resserre');
+    /* LE FORMAT DU POUCE A CHANGÉ, EXPRÈS (30 septembre 2026). Les
+       verbes faisaient 95 px de haut, icône au-dessus du mot — le
+       mainteneur : « les boutons beaucoup trop gros ». Ils gardent la
+       largeur (une moitié de rangée chacun, au-dessus de la barre) et
+       prennent la hauteur de TOUT bouton au doigt : la cible de 44 px,
+       l'icône à côté du mot. Le contrôle fige le nouveau dessin dans les
+       deux sens — ni sous la cible, ni revenu en tuile. */
+    if (pouce.hauteurVerbe < 44 || pouce.hauteurVerbe > 56)
+      fail(`commandes @pouce : « Donner » fait ${pouce.hauteurVerbe}px — au doigt, un verbe a la `
+        + 'hauteur de tout bouton (44 px), ni moins (la cible), ni une tuile (décision du 30 septembre)');
     /* « Reçues, jamais reprises » est né POUR LE POSTE, et il y reste
        tant que le mainteneur n'en décide pas autrement. Ce n'est pas
        une loi d'ergonomie, c'est une DÉCISION — donc la descendre au
@@ -831,7 +838,7 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
       fail('commandes @pouce : la tranche « reçues, jamais reprises » s’est invitée sur le '
         + 'téléphone — elle a été conçue pour le poste. Si elle doit descendre ici, ça se '
         + 'décide et ça se change dans ce contrôle, pas au détour d’une retouche d’écran');
-    if (pouce.pleine && pouce.chevron && pouce.hauteurVerbe >= 60 && !pouce.trancheDuPoste)
+    if (pouce.pleine && pouce.chevron && pouce.hauteurVerbe >= 44 && pouce.hauteurVerbe <= 56 && !pouce.trancheDuPoste)
       console.log(`commandes @pouce : porte pleine largeur avec chevron, verbes à `
         + `${pouce.hauteurVerbe}px — le dessin du doigt est intact ✓`);
     await eCtx.close();

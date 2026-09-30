@@ -264,15 +264,18 @@ const UA_ANDROID = 'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 
   await ctx.close();
 }
 
-/* ---------- Mes appareils : quel appareil fait quoi ---------- */
+/* ---------- Mes appareils : deux verbes, sans note ----------
+   « sur le premier appareil », « sur l'appareil à ajouter » sont partis
+   le 30 septembre 2026 : les verbes le disent (on CRÉE ce qu'on n'a pas,
+   on ENTRE ce qu'un autre écran affiche), et l'écran suivant le montre. */
 {
   const { ctx, p } = await page();
   await ouvrirReglages(p);
   await p.click('#moiSync');
   await p.waitForSelector('#syNew');
-  okSi((await p.textContent('#syNew')).includes('sur le premier appareil')
-    && (await p.textContent('#syJoin')).includes('sur l’appareil à ajouter'),
-    'chaque choix dit sur quel appareil il se fait');
+  const deux = await p.evaluate(() => ['#syNew', '#syJoin'].map(s => document.querySelector(s).textContent.replace(/\s+/g, ' ').trim()));
+  okSi(deux[0] === 'Créer une phrase' && deux[1] === 'Entrer une phrase',
+    'deux verbes, rien d’autre sur le bouton (lu : ' + deux.join(' | ') + ')');
   await ctx.close();
 }
 

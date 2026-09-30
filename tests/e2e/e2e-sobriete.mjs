@@ -643,11 +643,9 @@ const MOTS_GARDE = [
      toutes, et une exemption par phrase se serait allongée d'un titre
      à chaque page neuve. Une garde qu'on remplace emporte ses
      entrées — sinon elle attend d'être relue par erreur (§9). */
-  /* « en personne » est l'idiome du face-à-face : le mot y suit « en »,
-     donc pas de déterminant, donc le pronom l'exempte déjà… sauf que
-     ce n'est pas un pronom mais une locution. On la nomme quand même,
-     parce que sa raison n'est pas celle de la règle. */
-  'En personne',
+  /* « En personne » est parti le 30 septembre 2026 avec les boutons
+     qui le portaient (Donner, Recevoir : « QR », « Fichier ») — son
+     exemption part avec lui. */
   /* « team lead » est un INTITULÉ DE POSTE réel, pas le jargon
      commercial que §7 bannit. Ici en exemple de champ, et là en
      donnée de démonstration. */

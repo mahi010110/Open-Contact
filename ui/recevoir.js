@@ -74,13 +74,13 @@ export function openRecevoir(){
     leaveRdv();
     sh.setTitle('Recevoir');
     sh.body.innerHTML =
-      /* même grammaire que « Donner » : la situation en gras, le moyen en
-         donnée. Ici trois situations distinctes, parce que celui qui reçoit
-         sait déjà ce qu'il a en main. */
+      /* les mots de « Donner », un par rangée : ce que l'autre a montré
+         ou envoyé. Le titre de la feuille porte le verbe ; « scanner le
+         QR », « .oc », « coller le texte » redisaient chacun leur mot. */
       `<div class="pick-list">
-         <button class="pick" id="rcScan"><b>${ic('grid-3x3', 'ic-14')} En personne</b><span>scanner le QR</span></button>
-         <button class="pick" id="rcFile"><b>${ic('folder', 'ic-14')} Par fichier</b><span>.oc</span></button>
-         <button class="pick" id="rcPaste"><b>${ic('clipboard', 'ic-14')} Par message</b><span>coller le texte</span></button>
+         <button class="pick" id="rcScan"><b>${ic('grid-3x3', 'ic-14')} QR</b></button>
+         <button class="pick" id="rcFile"><b>${ic('folder', 'ic-14')} Fichier</b></button>
+         <button class="pick" id="rcPaste"><b>${ic('clipboard', 'ic-14')} Texte</b></button>
        </div>
        ${/* Rien sous les trois choix : « Aperçu avant fusion — annulable »
             annonçait l'écran suivant, qui s'appelle littéralement « Aperçu
@@ -611,8 +611,8 @@ export function mergePreviewInto(sh, obj, opts){
             « va dans Moi » envoyait refaire le chemin jusqu'aux Réglages
             pour rouvrir le même fichier. Le geste est posé ici, avec la
             même question et le même Annuler que depuis « Moi ». */''}
-       ${obj.kind === 'full' ? `<div class="pick-list pick-sortie">
-            <button class="pick pick-danger" id="rcRestore"><b>${ic('reload', 'ic-14')} Tout remplacer par cette copie</b></button>
+       ${obj.kind === 'full' ? `<div class="pick-sortie">
+            <button class="btn btn-sm btn-danger" id="rcRestore">${ic('reload', 'ic-14')} Restaurer cette copie</button>
           </div>` : ''}
        ${opts.select && n ? `<div class="pick-list pk-inverse" style="margin:10px 0 4px">
          ${obj.companies.slice(0, 200).map((c, i) =>

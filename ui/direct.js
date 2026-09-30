@@ -52,9 +52,13 @@ const turnList = async () => {
    relais : « comment cette liaison est-elle réglée ? ». Un seul volet
    replié, donc, au lieu de trois affordances à trier du regard ; et le
    titre suit ce qu'il contient. */
+/* LE REPLI EST DISCRET, comme « Sécurité avancée » dans la feuille d'un
+   appareil : c'était une boîte en relief au titre gras, plus lourde que
+   les deux gestes posés au-dessus d'elle — l'avancé pesait plus que
+   l'essentiel (30 septembre 2026). */
 const relaySettingsHTML = (urls, turn, extra) =>
-  `<details class="pcard pcard-details sy-relays" style="margin-top:14px">
-     <summary><h3>${ic('settings-2', 'ic-14')} ${extra ? 'Réglages du lien' : 'Connexion avancée'}</h3></summary>
+  `<details class="srt-adv sy-relays" style="margin-top:14px">
+     <summary>${ic('settings-2', 'ic-14')} ${extra ? 'Réglages du lien' : 'Connexion avancée'}</summary>
      ${/* Ce qu'on vient chercher EN PREMIER se lit en premier : on ouvre
           ce volet pour changer la phrase ou couper le lien bien plus
           souvent que pour saisir un relais. Posés en bas, ces deux
@@ -156,19 +160,26 @@ function openDeviceSheet(d, onDone, { principal = false, soi = false } = {}){
   const avance = principal && !soi;
   sh.body.innerHTML =
     `<p class="hint" style="margin:0 0 10px">${soi ? 'Cet appareil.' : 'Vu ' + agoLabel(d.seen || 0) + '.'}</p>
-     ${principal ? `<div class="pick-list">
-       <button class="pick" id="dvRename"><b>${ic('pencil', 'ic-14')} Renommer</b></button>
-     </div>` : ''}
-     ${soi ? '' : `<div class="pick-list pick-sortie">
-       <button class="pick pick-danger" id="dvRemove"><b>${ic('trash', 'ic-14')} ${principal ? 'Retirer de mes appareils' : 'Retirer de la liste'}</b></button>
+     ${/* UN GESTE SEUL EST UN BOUTON À SA TAILLE, pas une rangée : une
+          rangée n'existe que dans une liste. Seul dans son cadre, il
+          redevenait la brique pleine largeur qu'on a retirée partout. */''}
+     ${principal ? `<button class="btn btn-sm" id="dvRename">${ic('pencil', 'ic-14')} Renommer</button>` : ''}
+     ${soi ? '' : `<div class="pick-sortie">
+       <button class="btn btn-sm btn-danger" id="dvRemove">${ic('trash', 'ic-14')} ${principal ? 'Retirer de mes appareils' : 'Retirer de la liste'}</button>
      </div>`}
      ${avance ? `<details class="srt-adv" style="margin-top:10px">
        <summary>Sécurité avancée</summary>
+       ${/* Plus de sous-titres : « à sa prochaine connexion » se dit dans
+            la question qui suit chaque geste, là où il compte ; « appareil
+            perdu ou douteux » expliquait quand s'en servir. L'effacement
+            prend son groupe, comme partout. */''}
        <div class="pick-list">
-         <button class="pick" id="dvLock"><b>Verrouiller cet appareil</b><span>à sa prochaine connexion</span></button>
+         <button class="pick" id="dvLock"><b>Verrouiller cet appareil</b></button>
          <button class="pick" id="dvMain"><b>En faire l’appareil principal</b></button>
-         <button class="pick" id="dvBan"><b>Retirer et changer les clés</b><span>appareil perdu ou douteux</span></button>
-         <button class="pick pick-danger" id="dvWipe"><b>Effacer ses données</b><span>à sa prochaine connexion</span></button>
+         <button class="pick" id="dvBan"><b>Retirer et changer les clés</b></button>
+       </div>
+       <div class="pick-list pick-sortie">
+         <button class="pick pick-danger" id="dvWipe"><b>${ic('trash', 'ic-14')} Effacer ses données</b></button>
        </div>
      </details>` : ''}`;
   const q = s => sh.body.querySelector(s);
@@ -404,15 +415,13 @@ export function openAppareils(){
             ${/* Deux mots soulignés flottaient dans 110 px de vide : la cible
                  fait bien ses 44 px, mais rien ne la DESSINE, et les trois
                  bords gauches du volet ne s'alignaient pas (57 / 45 / 37 px).
-                 On reprend le dessin de « Verrouillage » — une liste
-                 d'actions, puis la sortie dangereuse dans SON groupe, en
-                 rouge, avec son pictogramme : un bouton, plus un mot
-                 souligné qui se lisait comme un lien vers ailleurs. */''}
-            <div class="pick-list">
-              <button class="pick" id="syNewPhrase"><b>Changer la phrase de liaison</b></button>
-            </div>
-            <div class="pick-list pick-sortie">
-              <button class="pick pick-danger" id="syBreak"><b>${ic('logout', 'ic-14')} Rompre le lien</b></button>
+                 Deux boutons TAILLÉS À LEUR MOT (un geste seul n'est pas
+                 une rangée), la sortie dangereuse dans SON groupe, en
+                 rouge, avec son pictogramme — plus un mot souligné qui se
+                 lisait comme un lien vers ailleurs. */''}
+            <button class="btn btn-sm" id="syNewPhrase">Changer la phrase</button>
+            <div class="pick-sortie">
+              <button class="btn btn-sm btn-danger" id="syBreak">${ic('logout', 'ic-14')} Rompre le lien</button>
             </div>
           </div>`)}`;
 
@@ -474,15 +483,15 @@ export function openAppareils(){
       `${changing
          ? '<p class="hint" style="margin:0 0 12px">Nouvelle phrase = nouveau lien — à retaper sur les autres appareils.</p>'
          : ''}
-       ${/* QUEL APPAREIL FAIT QUOI : c'était la seule chose que les deux
-            boutons ne disaient pas. L'étudiant a deux écrans devant lui et
-            devait deviner lequel « crée » et lequel « entre » — puis
-            retenir sur l'un ce qu'il fallait refaire sur l'autre. La note
-            de la ligne le dit, là où il choisit (`.pick` + sa note, le
-            motif des choix qui portent une précision — §6). */''}
+       ${/* DEUX VERBES, SANS NOTE. « sur le premier appareil », « sur
+            l'appareil à ajouter » répétaient ce que les verbes disent :
+            on CRÉE une phrase qu'on n'a pas, on ENTRE celle qu'un autre
+            écran affiche. L'écran suivant le montre de toute façon — la
+            phrase et son QR d'un côté, « En attente de ton autre
+            appareil » ; le scanner de l'autre (30 septembre 2026). */''}
        <div class="pick-list">
-         <button class="pick" id="syNew"><b>${ic('sparkles', 'ic-14')} Créer une phrase</b><span>sur le premier appareil</span></button>
-         <button class="pick" id="syJoin"><b>${ic('switch', 'ic-14')} Entrer une phrase</b><span>sur l’appareil à ajouter</span></button>
+         <button class="pick" id="syNew"><b>${ic('sparkles', 'ic-14')} Créer une phrase</b></button>
+         <button class="pick" id="syJoin"><b>${ic('switch', 'ic-14')} Entrer une phrase</b></button>
        </div>
        ${comp ? `<div class="sy-devs" style="margin-top:14px">
            <div class="lbl-row" style="margin-bottom:6px"><label>Appareils reliés</label></div>
@@ -506,7 +515,7 @@ export function openAppareils(){
          chemin normal sans que rien ne se casse. */
       sh.body.innerHTML =
         `<div class="scan-box" id="syScanBox" hidden><video id="syVideo" playsinline muted></video><div class="scan-mark"></div></div>
-         <button class="btn" id="syScan" style="width:100%">${ic('grid-3x3', 'ic-14')} Scanner le QR de l’autre appareil</button>
+         <button class="btn btn-sm" id="syScan">${ic('grid-3x3', 'ic-14')} Scanner le QR</button>
          <p class="hint" id="syScanHint" hidden></p>
          <div class="field" style="margin-top:12px"><label for="syPhrase">Ou tape la phrase</label>
            <input id="syPhrase" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="ex : k7m3p-9xq2f"></div>`;

@@ -108,7 +108,9 @@ await A.click(`[data-dev="${idB}"]`);
 await A.waitForSelector('#dvRename');
 const feuille = await A.evaluate(() => {
   const rm = document.querySelector('#dvRemove');
-  return { rougeSepare: rm.classList.contains('pick-danger') && !!rm.closest('.pick-sortie'),
+  /* un geste seul est un bouton à sa taille (`.btn-danger`), une rangée
+     de liste reste `.pick-danger` : les deux disent « rouge, à part » */
+  return { rougeSepare: rm.matches('.pick-danger, .btn-danger') && !!rm.closest('.pick-sortie'),
            mot: rm.textContent.trim() };
 });
 okSi(feuille.rougeSepare && /Retirer de mes appareils/.test(feuille.mot),
@@ -170,7 +172,7 @@ okSi(moi.ecart >= 8, 'et l’effacement a son propre groupe (' + Math.round(moi.
 await B.evaluate(() => { const d = document.querySelector('.sy-relays'); if (d) d.open = true; });
 okSi(await B.evaluate(() => {
   const b = document.querySelector('#syBreak');
-  return !!b && b.classList.contains('pick-danger') && !b.classList.contains('linklike') && !!b.closest('.pick-sortie');
+  return !!b && b.matches('.pick-danger, .btn-danger') && !b.classList.contains('linklike') && !!b.closest('.pick-sortie');
 }), '« Rompre le lien » aussi : un bouton rouge, dans son groupe');
 
 if (errors.length) fail('erreurs console : ' + errors.join(' | '));

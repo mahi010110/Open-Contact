@@ -566,7 +566,9 @@ html[data-theme="dark"] .field select{
 .srt-adv>summary{
   cursor:pointer;user-select:none;list-style:none;
   font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);
-  min-height:28px;display:flex;align-items:center;gap:6px;
+  /* discret à l'œil, pas au doigt : la ligne fait la hauteur d'une cible
+     (§5), le texte reste petit */
+  min-height:var(--ctl);display:flex;align-items:center;gap:6px;
 }
 .srt-adv>summary::-webkit-details-marker{display:none}
 .srt-adv>summary::before{content:'▸';font-size:9px}
@@ -847,8 +849,9 @@ details.tranche[open]>summary::before{
 .td-empty p{font-size:var(--text-13);color:var(--text-muted);line-height:1.6;max-width:340px;margin:0 auto 14px}
 /* sans phrase sous le titre, les gestes gardent leur distance au titre */
 .td-empty h2+.tde-actions{margin-top:14px}
-.tde-actions{display:flex;flex-direction:column;gap:8px;max-width:280px;margin:0 auto}
-@media (min-width:520px){.tde-actions{flex-direction:row;justify-content:center;max-width:none}}
+/* les deux gestes d'un vide, TAILLÉS À LEUR MOT et côte à côte — au
+   pouce ils s'empilaient sur 280 px chacun, deux barres pour trois mots */
+.tde-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:0 auto}
 .empty-list{padding:26px 14px;text-align:center;color:var(--text-muted);font-size:var(--text-13);line-height:1.6}
 
 /* ============ SUPPRESSION AU GESTE (motif unique) ============
@@ -1149,9 +1152,12 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 }
 .doc-size{flex:none;font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
 /* ---- le mot de passe facultatif : une ligne, deux états (ui/dom.js) ----
-   Au repos : [ Télécharger ][ 🔒 Chiffrer ]. Tapé, le cadenas s'étire en
-   champ et « Télécharger » se serre sur son texte — la ligne garde sa
-   hauteur, donc rien ne pousse ce qui est dessous.
+   Au repos : [ Télécharger ][ 🔒 Chiffrer ], chacun TAILLÉ À SON MOT —
+   « Télécharger » s'étirait sur toute la ligne, un bouton de 235 px
+   pour un mot : la taille annonçait une action lourde, et le mainteneur
+   l'a lu comme ça (30 septembre 2026). Tapé, le cadenas s'étire en champ
+   sur la place libre — la ligne garde sa hauteur, donc rien ne pousse
+   ce qui est dessous.
 
    L'étirement se joue sur `flex-grow`, pas sur `width` : une largeur en
    `auto` ne s'anime pas, alors qu'un `flex-grow` de 0 à 1 se transitionne
@@ -1159,8 +1165,7 @@ details.pcard-details[open]>summary{margin-bottom:10px}
    changent en même temps, ce qui suffit à faire lire le geste comme un
    échange de place et non comme deux animations. */
 .lockrow{display:flex;align-items:center;gap:8px;min-width:0}
-.lr-do{flex:1 1 auto;min-width:0;transition:flex-grow var(--dur-3) var(--ease-out)}
-.lockrow.on .lr-do{flex-grow:0}
+.lr-do{flex:0 1 auto;min-width:0}
 /* fermé, le groupe est un bouton ; ouvert, il devient LE champ — c'est
    lui qui porte le cadre, et le cadenas passe à plat dedans, où il sert
    d'icône et de bouton pour refermer */
@@ -1197,7 +1202,7 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 .lr-pass:focus{outline:none}
 .lockrow.on .lr-pw:focus-within{outline:2px solid var(--accent);outline-offset:1px}
 @media (prefers-reduced-motion:reduce){
-  .lr-do,.lr-pw,.lr-pass,.lr-w{transition:none}
+  .lr-pw,.lr-pass,.lr-w{transition:none}
 }
 /* « Moi » éclaté (#20) : colonnes desktop, porte Réglages mobile */
 /* La version, discrète et toujours là — c'est une donnée, pas un titre.
@@ -1273,7 +1278,10 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 @media (hover:hover){
 .rg-row:hover .rg-n{color:var(--text-link)}
 }
-.rg-foot{padding:12px 0 2px;border-top:1px dashed var(--border-soft);margin-top:2px}
+/* les deux gestes de Réglages CONTINUENT la liste : mêmes rangées, pas
+   de second cadre dans le premier. Seul l'effacement se détache, par
+   l'air (`.pick-sortie`), en rouge et en dernier. */
+.rg-foot{border-top:1px dashed var(--border-soft)}
 /* « Signaler un problème » : le texte à coller se lit EN ENTIER avant
    de partir — c'est ce qui remplace la promesse « rien de personnel »
    par une preuve. Bloc mono, sélectionnable, jamais un champ : rien
@@ -1526,7 +1534,7 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 /* rien à donner : « Recevoir » reste seul et prend toute la largeur —
    l'indisponible est absent, pas un demi-rang vide à côté (loi #6) */
 .hero2.hero1{grid-template-columns:1fr}
-.hero2 .hero{min-height:76px;flex-direction:column;gap:7px;font-size:var(--text-14)}
+.hero2 .hero{font-size:var(--text-14)}
 
 /* Le fil des échanges : ce que l'écran a enfin à montrer. C'est un
    PANNEAU — un cadre qui tient sa région, où les lignes se remplissent
@@ -1637,7 +1645,6 @@ details.pcard-details[open]>summary{margin-bottom:10px}
     min-height:36px;width:auto;flex:none;flex-direction:row;gap:8px;
     padding:0 18px;font-size:var(--text-13);
   }
-  .ec-actes .hero .ic{width:16px;height:16px}
   /* LA HIÉRARCHIE SE DIT PAR L'EMPHASE, PAS PAR LA TAILLE.
      Trois essais ratés avant celui-ci, et chacun disait la même chose
      par un autre moyen : trois cellules identiques (la nature de la
@@ -2142,11 +2149,10 @@ button.ec-row:hover{background:var(--surface-field)}
 }
 .dchip-d span{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
 .dchip-d.on span{color:var(--on-accent);opacity:.8}
-/* 8 px, le chiffre de la règle — et pas 7. C'est LE motif du choix dans
-   toute l'app, et ses options ont toujours des conséquences distinctes :
-   « Scanner » ouvre la caméra, « Fichier » ouvre le sélecteur, « Coller »
-   lit le presse-papier. Un pixel sous la règle, répété partout, c'est la
-   règle qui ne veut plus rien dire. */
+/* 8 px, le chiffre de la règle — et pas 7 — entre les FICHES d'une liste
+   à cocher (`.pk`). Une liste d'ACTIONS, elle, est faite de rangées qui
+   se touchent (plus bas) : §5-3 l'autorise pour une liste, le pointillé
+   dit la frontière, et se tromper de rangée coûte un tap pour revenir. */
 .pick-list{display:flex;flex-direction:column;gap:8px}
 /* `color` EST OBLIGATOIRE ici. Sans elle, un `<button>` retombe sur la
    couleur de texte du navigateur : encre sous Chromium — donc invisible
@@ -2216,7 +2222,45 @@ button.ec-row:hover{background:var(--surface-field)}
 .pick .pk-m span{font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted)}
 .pick:disabled{opacity:.62;cursor:not-allowed;box-shadow:none}
 .pick:active{box-shadow:var(--bevel-down);transform:translate(1px,1px)}
-.pick-close{border-left:3px solid var(--c)}
+/* ---- LES ACTIONS D'UNE FEUILLE SONT DES RANGÉES, PAS DES BLOCS ----
+   Chaque option était un bouton complet — cadre, relief, ombre, 8 px
+   d'air — et une feuille de cinq gestes devenait une pile de cinq
+   briques pleine largeur. Le mainteneur l'a dit sans détour : « les
+   boutons beaucoup trop gros » (30 septembre 2026). La taille d'un
+   contrôle annonce son poids (Material 3 : l'emphase se dose, une seule
+   action remplie par vue) ; cinq briques égales disent cinq actions
+   lourdes, et aucune.
+   Une liste d'actions prend donc la forme que l'app donne DÉJÀ à ses
+   listes — « Réglages », « Modèles d'emails » : UN cadre, des rangées de
+   hauteur de contrôle séparées d'un pointillé, sans relief. La rangée
+   reste un `<button>` (un geste qui agit n'est jamais un lien) et garde
+   sa cible de 44 px ; seul l'habit disparaît. Les rangées se touchent,
+   et §5-3 l'autorise pour une liste : le pointillé dit la frontière.
+   Les listes à cocher (`.pk`) ne changent pas — ce sont des fiches à
+   deux étages, pas des gestes. Portée : les FEUILLES, et les gestes qui
+   continuent la liste de Réglages ; le panneau d'« Échanger » au poste
+   garde sa propre grammaire de tranche (plus haut). */
+.modal-b .pick-list:not(:has(.pk)){
+  gap:0;padding:0 12px;
+  background:var(--surface-window);border:1px solid var(--border-strong);
+  border-radius:var(--radius-0);box-shadow:var(--shadow-raised);
+}
+.rg-foot .pick-list{gap:0}
+.modal-b .pick:not(.pk),.rg-foot .pick{
+  border:0;border-bottom:1px dashed var(--border-soft);border-radius:0;
+  background:none;box-shadow:none;padding:6px 0;
+}
+/* la dernière n'a pas de trait, mais garde son épaisseur : à 0 elle
+   perdait 1 px et devenait la seule rangée d'une autre hauteur */
+.modal-b .pick:not(.pk):last-child,.rg-foot .pick:last-child{border-bottom-color:transparent}
+.modal-b .pick:not(.pk):active,.rg-foot .pick:active{box-shadow:none;transform:none;background:var(--surface-chrome)}
+@media (hover:hover){
+.modal-b .pick:not(.pk):not(.pick-danger):hover b,.rg-foot .pick:not(.pick-danger):hover b{color:var(--text-link)}
+}
+.pick-close b::before{
+  content:"";display:inline-block;width:8px;height:8px;margin-right:9px;vertical-align:1px;
+  background:var(--c);
+}
 .dup-note{
   background:var(--amber-wash);border:1px solid var(--amber);color:var(--amber);
   border-radius:var(--radius-0);padding:10px 12px;font-size:var(--text-13);line-height:1.5;
@@ -2972,7 +3016,6 @@ html.oc-locked .undo-bar{display:none}
 @media (hover:hover){
 .dev-open:hover{background:var(--surface-chrome)}
 }
-.pick-danger{border-left:3px solid var(--red)}
 .pick-danger b{color:var(--red)}
 /* UN GESTE QUI CHANGE DES DONNÉES EST UN BOUTON, et un geste destructif
    a son propre groupe. Il vivait en mot souligné — la forme d'un lien,
@@ -2981,9 +3024,10 @@ html.oc-locked .undo-bar{display:none}
    pictogramme ET mot, séparée des autres gestes par plus que leur écart
    ordinaire : deux conséquences opposées ne partagent pas une arête
    (§5-3), et le destructif ne se pose jamais là où le pouce tape par
-   habitude (Apple). Employée par Effacer cet appareil, Rompre le lien,
-   Ne plus protéger, Tout remplacer par cette copie, Retirer un
-   appareil. */
+   habitude (Apple). En rangée (`.pick-danger`) quand il continue une
+   liste — Effacer cet appareil, Effacer ses données ; en bouton à sa
+   taille (`.btn-danger`) quand il est seul — Rompre le lien, Ne plus
+   protéger, Restaurer cette copie, Retirer un appareil. */
 .pick-sortie{margin-top:16px}
 /* une ligne d'appareil s'ouvre : le chevron le dit, comme partout */
 .dev-open>.ic{flex:none;color:var(--text-muted)}

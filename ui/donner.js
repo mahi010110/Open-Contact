@@ -79,19 +79,17 @@ export function openDonner(){
     /* mobile = le terrain : QR d'abord ; desktop = le poste : fichier
        d'abord, le QR devient le pont vers le téléphone (#18) */
     const wide = matchMedia('(min-width:901px)').matches;
-    /* LA SITUATION D'ABORD, LE MOYEN DERRIÈRE. La question qu'on se pose
-       en donnant est « l'autre est là, ou pas ? » — pas « QR ou
-       fichier ? ». Mais le moyen ne se supprime pas : §6 garde ce qui
-       porte un NOM DE FICHIER, et « .oc » est ce qu'on cherchera plus
-       tard dans ses téléchargements. Il passe donc derrière le point
-       médian, la grammaire de sous-information de l'app, au lieu de
-       tenir une seconde ligne que le pied ne peut pas porter. Le mot est
-       « fichier », pas « .oc » : c'est celui que l'étudiant connaît, et
-       l'extension se lit de toute façon sur l'écran suivant.
+    /* UN MOT PAR BOUTON, LE MÊME DES DEUX CÔTÉS. « En personne · QR » et
+       « À distance · fichier » disaient la situation PUIS le moyen : deux
+       idées par bouton, lues à chaque don. Le moyen suffit — un QR se
+       montre à quelqu'un qui est là, un fichier part vers quelqu'un qui
+       ne l'est pas — et c'est le mot que l'autre verra dans « Recevoir »
+       (QR · Fichier · Texte) : un objet, un mot (§7), d'un téléphone à
+       l'autre. Le titre de la feuille porte le verbe.
        Une seule action remplie par écran (Material 3) — celle que la
        surface rend la plus probable : le QR au pouce, le fichier au poste. */
-    const bQR = btn('En personne · QR', wide ? '' : 'btn-primary', stepQR, 'grid-3x3');
-    const bFile = btn('À distance · fichier', wide ? 'btn-primary' : '', stepFile, 'file');
+    const bQR = btn('QR', wide ? '' : 'btn-primary', stepQR, 'grid-3x3');
+    const bFile = btn('Fichier', wide ? 'btn-primary' : '', stepFile, 'file');
     bQR.id = 'dnQR'; bFile.id = 'dnFile';
     /* CE QUI MANQUE SE DIT LÀ OÙ L'ON DÉCIDE. Écarter quelqu'un dans la
        fiche d'une piste se voit sur SA ligne (« 2 sur 3 ») — mais vingt
@@ -450,7 +448,7 @@ export function openDonner(){
     sh.body.innerHTML =
       `<div class="pick-list">
          ${navigator.share ? `<button class="pick" id="dnShare"><b>${ic('share', 'ic-14')} Partager</b></button>` : ''}
-         <button class="pick" id="dnDl"><b>${ic('download', 'ic-14')} Télécharger</b><span>${fname}</span></button>
+         <button class="pick" id="dnDl"><b>${ic('download', 'ic-14')} Télécharger</b></button>
          <button class="pick" id="dnCopy"><b>${ic('copy', 'ic-14')} Copier</b></button>
        </div>
        ${/* Le même objet que « Ma copie » (ui/dom.js) : la case à cocher,

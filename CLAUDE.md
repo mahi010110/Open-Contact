@@ -727,10 +727,10 @@ avec un motif existant.
 | Filtrer + trier ensemble | `ui/affiner.js` — une feuille, un compte dans le bouton (`Affiner ③`) **sur une page** ; dans la barre d'une liste à cocher, l'entonnoir prend l'accent et se passe du chiffre — deux compteurs dans une rangée de trois segments, c'est du bruit qui change de largeur à chaque tap. **Un tap ajoute, un re-tap retire** : plusieurs valeurs d'une même famille cohabitent. Dans UNE famille elles s'additionnent (« cyber ou cloud »), d'une famille à l'autre elles se croisent (« … et en cours ») — c'est ce que dit la phrase à voix haute, donc rien à expliquer à l'écran. Chaque valeur retenue porte SON étiquette sous la recherche : n'en montrer qu'une ferait croire que l'app a perdu des pistes |
 | Commander une liste à cocher | `barreListeHTML` + `bindBarreListe` (`ui/affiner.js`) — **UNE rangée, et le CHAMP y domine** : `[tout cocher] [recherche] [Affiner]`, sans un seul chiffre — la case pleine ou vide dit « tout ou pas tout », l'entonnoir en accent dit « ça filtre », et **ce qui se compte se compte là où l'on décide** : dans le pied, à côté de l'action. Un compteur dans la barre change de largeur à chaque tap, donc la rangée bouge sous le doigt. Le champ prend ~70 % de la barre, jamais moins : sous ~24 caractères il ne se lit plus comme une recherche mais comme un champ coincé entre des boutons (NN/g en demande ~27). **C'est de l'arithmétique, pas du goût** — à 360 px on a 324 px utiles et toute cible fait 44 px, donc la barre tient le champ plus DEUX commandes, jamais trois. La case se passe du mot « Tout » parce qu'elle tient l'axe des cases de la liste, et son compte n'apparaît que lorsqu'on a écarté quelque chose — l'encre va à ce qui change. À texte doublé la barre se replie (WCAG 1.4.10). Employée par les trois feuilles qui choisissent des pistes : Donner, Prospecter, partage en groupe |
 | Une liste qui remplit une feuille | **l'action va dans le PIED, jamais au-dessus de la liste** (`setFoot`). C'est §5 appliqué à la lettre, et ça se paie deux fois si on l'oublie : « Donner » posait ses deux canaux dans le corps, à ~17 % de la hauteur, et avait dû inventer un **pli** pour les dégager — un pli qui coûtait ensuite 50 px au champ de recherche. Descendue dans le pied, l'action n'est plus jamais enterrée, le pli n'a plus d'objet, et l'état qui l'accompagnait disparaît. **Un contrôle qui existe pour réparer un mauvais placement se supprime en corrigeant le placement** |
-| Un geste qui CHANGE des données (restaurer, effacer, rompre, retirer, réinitialiser) | **un bouton, jamais un lien** — `.pick` dans une `.pick-list`. Un lien EMMÈNE, un bouton AGIT (NN/g) : « Restaurer une copie », « Effacer cet appareil », « Rompre le lien » vivaient en mots soulignés, c'est-à-dire sous la forme qui promet d'aller ailleurs, pour les gestes les plus lourds de leur écran — le mainteneur l'a vu sur son téléphone. **Le destructif** est un `.pick-danger` : pictogramme ET mot (une icône destructive ne se devine pas, elle se lit), rouge, dans **son propre groupe** (`.pick-sortie`, 16 px au-dessus), en dernier, jamais comme action principale (Apple ; GOV.UK réserve son bouton d'alerte à l'irréversible). Le `.linklike` reste à ce qui emmène ailleurs ou déplie : « Code oublié ? », « Compléter mon profil », « Voir les N autres ». Et un geste lourd sur une LIGNE (un appareil) ne s'y pose pas en icône nue : la ligne s'ouvre (chevron), et ses gestes vivent nommés dans sa feuille. Gardé par `e2e-appareils.mjs` |
+| Un geste qui CHANGE des données (restaurer, effacer, rompre, retirer, réinitialiser) | **un bouton, jamais un lien** — une rangée `.pick` s'il vit dans une liste, un `.btn-sm` taillé à son mot s'il est seul. Un lien EMMÈNE, un bouton AGIT (NN/g) : « Restaurer une copie », « Effacer cet appareil », « Rompre le lien » vivaient en mots soulignés, c'est-à-dire sous la forme qui promet d'aller ailleurs, pour les gestes les plus lourds de leur écran — le mainteneur l'a vu sur son téléphone. **Le destructif** est un `.pick-danger` en liste, un `.btn-danger` seul : pictogramme ET mot (une icône destructive ne se devine pas, elle se lit), rouge, dans **son propre groupe** (`.pick-sortie`, 16 px au-dessus), en dernier, jamais comme action principale (Apple ; GOV.UK réserve son bouton d'alerte à l'irréversible). Le `.linklike` reste à ce qui emmène ailleurs ou déplie : « Code oublié ? », « Compléter mon profil », « Voir les N autres ». Et un geste lourd sur une LIGNE (un appareil) ne s'y pose pas en icône nue : la ligne s'ouvre (chevron), et ses gestes vivent nommés dans sa feuille. Gardé par `e2e-appareils.mjs` |
 | Supprimer au geste | `bindDeleteGesture(node, onDelete)` — glisser (mobile) / poubelle au survol (desktop), doublé d'un `showUndo` |
 | Un journal, un historique | il RACONTE ce qui est fait : poids de texte courant, jamais le gras d'un titre — deux ou trois niveaux au maximum sur un écran (NN/g, poids visuel), et le journal vient toujours après les gestes qu'il surplombe |
-| Choisir parmi 2-5 options | `pick-list` / `.pick` — des LIGNES, quand chaque option porte une explication ou déclenche une action |
+| Choisir parmi 2-5 options | `pick-list` / `.pick` — **UN cadre, des rangées sans relief**, séparées d'un pointillé : la forme de « Réglages » et de « Modèles d'emails ». Plus de pile de briques pleine largeur (voir « La taille dit le rang », sous la table). Une option ne porte pas de sous-titre qui l'explique ; à droite, au plus un état d'un mot ou un chiffre |
 | Choisir un attribut court | `.datechips` + `.dchip` — la puce fait la taille de son MOT (`flex:0 1 auto`) et le groupe se replie par rangs. Jamais une liste déroulante : on ne cache pas un petit jeu d'options |
 | Choisir une date | chips « Demain / +3 j / +7 j / Lundi » + date précise validée par OK (jamais de fermeture sur `change` seul — roue iOS) |
 | Confirmer un geste risqué | `confirmSheet` (danger = `btn-danger`). **Une porte se décide** : elle ne se justifie que si elle montre ce qu'on ne peut PAS deviner (« ce fichier contient 12 pistes, tu en as 3 »). Une question dont le message dit qu'il n'y a rien à perdre ne protège personne |
@@ -1120,13 +1120,46 @@ hauteurs de ligne se FIXENT — laissées à l'héritage, elles dépendent du
 conteneur, qui n'est pas le même pour un bouton et pour une ligne de
 tranche.
 
+**La taille dit le rang, le mot dit le geste** *(règle du mainteneur,
+30 septembre 2026 : « les boutons beaucoup trop gros, ou avec trop
+d'écriture et d'explication — c'est tout ce que je déteste »)*. Mesuré
+le jour même : « Télécharger » faisait 235 px pour un mot, « Donner » et
+« Recevoir » 95 px de haut, et chaque feuille d'options empilait des
+briques pleine largeur avec un sous-titre qui expliquait chacune. La
+taille d'un contrôle annonce son poids (Material 3 : l'emphase se dose,
+une seule action remplie par vue) — cinq briques égales disent cinq
+actions lourdes, et donc aucune. L'app n'a plus que **trois formes** :
+
+1. **Le primaire** — rempli, un seul par vue. Dans une feuille il tient
+   le pied, à la place du pouce. C'est le **seul** qui a le droit de
+   s'étirer.
+2. **Le bouton secondaire** — contouré, `.btn-sm`, **taillé à son mot**.
+   Jamais plus de 60 % de sa boîte. Un geste SEUL est toujours celui-là,
+   même destructif (`.btn-danger`, dans son groupe) : une liste d'un seul
+   geste n'est que la brique d'avant sous un autre nom.
+3. **La rangée** — dans une liste d'au moins deux gestes : un cadre, des
+   rangées de hauteur de contrôle, un pointillé entre elles, aucun
+   relief. La cible reste de 44 px ; seul l'habit part.
+
+Et le mot : **un verbe et son objet, ou le nom seul quand le titre de la
+feuille porte déjà le verbe** — « Recevoir » : QR · Fichier · Texte, les
+mêmes mots que « Donner » de l'autre côté (§7). Au-delà de quatre mots,
+un libellé se compte. Jamais de sous-titre qui dit QUAND ou OÙ s'en
+servir (« sur le premier appareil », « à sa prochaine connexion ») : si
+les verbes ne départagent pas deux boutons, ce sont les verbes qui sont
+faux. Un repli avancé est discret (`.srt-adv`) — il ne pèse jamais plus
+que les gestes qu'il suit. `e2e-boutons.mjs` garde les trois formes et
+les deux règles de mots, sondes et cinq mutations à l'appui.
+
 **Trois règles de sobriété**, à vérifier sur tout écran neuf ou retouché :
 
 1. **Un bouton ne répète jamais le titre de sa carte.** Le titre dit de quoi
    il s'agit, le bouton dit le geste — un verbe (« Mon profil » → « Remplir »).
 2. **Un `<span>` sous un bouton reste** s'il porte un **état ou une donnée**
-   (date, compte, nom de fichier), ou s'il est le **seul** départage entre
-   deux frères. Il **part** s'il explique, encourage ou répète.
+   utile à la décision (date, compte, « non protégé »). Il **part** s'il
+   explique, encourage, répète — ou s'il départage deux frères que leurs
+   verbes devraient départager seuls (retiré le 30 septembre 2026 : c'est
+   cette clause qui avait laissé passer « sur le premier appareil »).
 3. **Une explication ne se déguise jamais en bouton.** Bordure et fond
    surélevé appartiennent à ce qui se tape ; une phrase se pose en texte.
 

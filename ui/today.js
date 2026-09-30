@@ -353,7 +353,7 @@ export function renderToday(){
          <div class="tde-ic">${ic('zap', 'ic-24')}</div>
          <h2>Ta recherche, un jour à la fois</h2>
          <div class="tde-actions">
-           <button class="btn btn-primary" id="tdeAdd">${ic('plus', 'ic-14')} Ajouter ma première piste</button>
+           <button class="btn btn-primary" id="tdeAdd">${ic('plus', 'ic-14')} Ajouter une piste</button>
            <button class="btn" id="tdeDemo">Voir un exemple</button>
          </div>
        </div>`;
