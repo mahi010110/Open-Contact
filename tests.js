@@ -47,6 +47,8 @@ import { dueFollowups, contactFromSignature, exchangeLog, exchangeTotals, nextAc
          SILENCE_RELANCE, SILENCE_DERNIERE, SILENCE_TROP_TARD,
          sansFilet, FILET_MIN_PISTES, FILET_JOURS, aDemarrer } from './engine/assist.js';
 import { rappelICS, lienAgendaGoogle, formeAgenda, RAPPEL_HEURE } from './engine/agenda.js';
+import { interpreter, retirer, remplacer, chercherPistes, raisonDe, propositions, elargir,
+         contexteRecherche, deptDuCp, villeFrequente } from './engine/requete.js';
 import { makeMission, missionUsable, revokeMission, foldCampaignReport,
          signMission, openMissionWire } from './engine/mission.js';
 import { normCode, pairKey } from './engine/ordinateur.js';
@@ -981,6 +983,206 @@ export async function runSelfTests(){
       eq(formeAgenda('Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 Chrome/128.0'), 'google');
       eq(formeAgenda('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/128.0'), 'google');
       eq(formeAgenda(''), 'google');
+    },
+    /* ---------- LA BARRE DE RECHERCHE COMPREND CE QU'ON TAPE ----------
+       docs/recherche.md : « une table d'au moins cent phrases réelles →
+       leurs étiquettes attendues ». La signature lit famille:libellé dans
+       l'ordre, puis le texte resté texte — c'est ce que l'écran montre. */
+    'barre : cent phrases réelles → leurs étiquettes, et l’ambiguïté reste texte': () => {
+      const ctx = { today: '2026-10-01', villes: ['Hem', 'Lille', 'Paris'], prenoms: ['Awa', 'Jean-Marc', 'Léa'] };
+      const sig = q => {
+        const r = interpreter(q, ctx);
+        return [r.etiquettes.map(e => e.famille + ':' + e.label).join(' '),
+                r.texte.length ? '| ' + r.texte.join(' ') : ''].filter(Boolean).join(' ');
+      };
+      const R = 'recherche:', M = 'metier:', L = 'lieu:', S = 'statut:', G = 'groupe:';
+      const TABLE = {
+        'alternance': R + 'Alternance', 'Alternance': R + 'Alternance', 'alternant': R + 'Alternance',
+        'alternants': R + 'Alternance', 'apprentissage': R + 'Alternance', 'contrat pro': R + 'Alternance',
+        'contrat de professionnalisation': R + 'Alternance', 'alternance alternant': R + 'Alternance',
+        'stage': R + 'Stage', 'stages': R + 'Stage', 'stagiaire': R + 'Stage',
+        'stage de fin d’études': R + 'Stage', 'emploi': R + 'Emploi', 'job': R + 'Emploi',
+        'CDI': R + 'CDI', 'cdd': R + 'CDD', 'freelance': R + 'Freelance',
+        'cyber': M + 'Cybersécurité', 'cybersécurité': M + 'Cybersécurité', 'Cybersecurite': M + 'Cybersécurité',
+        'sécurité informatique': M + 'Cybersécurité', 'entreprise cyber': M + 'Cybersécurité',
+        'cloud': M + 'Cloud', 'hébergeur': M + 'Cloud', 'data center': M + 'Cloud',
+        'data': M + 'Data', 'big data': M + 'Data', 'ESN': M + 'ESN', 'SSII': M + 'ESN', 'l’ESN': M + 'ESN',
+        'dev': M + 'Développement', 'développeur web': M + 'Développement', 'SLAM': M + 'Développement',
+        'web': M + 'Développement', 'réseau': M + 'Réseau', 'réseaux': M + 'Réseau',
+        'systèmes et réseaux': M + 'Réseau', 'SISR': M + 'Réseau', 'admin sys': M + 'Réseau',
+        'support': M + 'Support', 'helpdesk': M + 'Support', 'help desk': M + 'Support',
+        'startup': M + 'Startup', 'start-up': M + 'Startup', 'secteur public': M + 'Secteur public',
+        'collectivités': M + 'Secteur public', 'grande entreprise': M + 'Grande entreprise',
+        'industrie': M + 'Industrie', 'santé': M + 'Santé',
+        'Lille': L + 'Lille', 'lille': L + 'Lille', 'Lyon': L + 'Lyon', 'Saint-Étienne': L + 'Saint-Étienne',
+        'St-Etienne': L + 'Saint-Étienne', 'saint étienne': L + 'Saint-Étienne',
+        'Villeneuve-d\'Ascq': L + 'Villeneuve-d’Ascq', 'villeneuve d’ascq': L + 'Villeneuve-d’Ascq',
+        'Aix-en-Provence': L + 'Aix-en-Provence', 'Le Mans': L + 'Le Mans', 'La Rochelle': L + 'La Rochelle',
+        'Clermont-Ferrand': L + 'Clermont-Ferrand', 'Paris': L + 'Paris',
+        'Issy-les-Moulineaux': L + 'Issy-les-Moulineaux', 'Lens': L + 'Lens', 'Hem': L + 'Hem',
+        '59': L + 'Nord (59)', '75': L + 'Paris (75)', '69': L + 'Rhône (69)', '2A': L + 'Corse-du-Sud (2A)',
+        '974': L + 'La Réunion (974)', '59000': L + '59000', 'Nord': L + 'Nord (59)',
+        'Gironde': L + 'Gironde (33)', 'Haute-Garonne': L + 'Haute-Garonne (31)',
+        'Hauts-de-France': L + 'Hauts-de-France', 'IDF': L + 'Île-de-France', 'île-de-france': L + 'Île-de-France',
+        'PACA': L + 'Provence-Alpes-Côte d’Azur', 'Bretagne': L + 'Bretagne',
+        'près de moi': L + 'Près de moi', 'autour de moi': L + 'Près de moi',
+        'à contacter': S + 'À contacter', 'a contacter': S + 'À contacter', 'en cours': S + 'En cours',
+        'réponse': S + 'Réponse', 'entretien': S + 'Réponse', 'sans nouvelles': S + 'Sans nouvelles',
+        'sans réponse': S + 'Sans nouvelles', 'à relancer': S + 'À relancer', 'en retard': S + 'En retard',
+        'aujourd’hui': S + 'Aujourd’hui', 'cette semaine': S + 'Cette semaine', 'à planifier': S + 'À planifier',
+        'clôturées': S + 'Clôturées', 'décroché': S + 'Décroché', 'refusé': S + 'Refusé', 'refus': S + 'Refusé',
+        'abandonné': S + 'Abandonné',
+        'recommandées': G + 'Recommandées', 'piston': G + 'Recommandées', 'Léa': G + 'Léa', 'lea': G + 'Léa',
+        'Jean-Marc': G + 'Jean-Marc',
+        /* l'ambiguïté et le précis restent TEXTE (principe 2) */
+        'Orange': '| orange', 'Capgemini': '| capgemini', 'Fortinet': '| fortinet', 'pentest': '| pentest',
+        'SOC': '| soc', 'Var': '| var', '20': '| 20', '00123': '| 00123', '123': '| 123',
+        'Webhelp': '| webhelp', 'Lillebonne': '| lillebonne', 'Toulousaine': '| toulousaine',
+        'c++': '| c++', 'C#': '| c#', 'node.js': '| node.js', '"Lens"': '| lens', '« Lille »': '| lille',
+        'Groupe Ravenel': '| groupe ravenel',
+        /* les phrases entières */
+        'alternance Lille': R + 'Alternance ' + L + 'Lille', 'alternance à Lille': R + 'Alternance ' + L + 'Lille',
+        'stage cyber Lyon': R + 'Stage ' + M + 'Cybersécurité ' + L + 'Lyon',
+        'cyber 69': M + 'Cybersécurité ' + L + 'Rhône (69)',
+        'alternance BTS SIO SISR': R + 'Alternance ' + M + 'Réseau',
+        'stage dev chez Capgemini à Toulouse': R + 'Stage ' + M + 'Développement ' + L + 'Toulouse | capgemini',
+        'Orange Lille': L + 'Lille | orange', 'orange, lille': L + 'Lille | orange',
+        'cdi paris': R + 'CDI ' + L + 'Paris', 'en cours Lyon': S + 'En cours ' + L + 'Lyon',
+        'sans nouvelles cyber': S + 'Sans nouvelles ' + M + 'Cybersécurité',
+        'Léa alternance': G + 'Léa ' + R + 'Alternance', 'Lumen Data': M + 'Data | lumen',
+        'Mairie de Lille': L + 'Lille | mairie',
+        'alternance idf réseau': R + 'Alternance ' + L + 'Île-de-France ' + M + 'Réseau',
+        'cybersécurité Hauts-de-France alternance': M + 'Cybersécurité ' + L + 'Hauts-de-France ' + R + 'Alternance',
+        'le': '', '': '', '   ': ''
+      };
+      ok(Object.keys(TABLE).length >= 100);
+      const faux = Object.entries(TABLE).filter(([q, v]) => sig(q) !== v).map(([q, v]) => `${q} → ${sig(q)} (attendu ${v})`);
+      if (faux.length) throw new Error(faux.join(' ; '));
+    },
+    'barre : aucun mot perdu — chaque mot finit dans une étiquette, le texte ou la liaison': () => {
+      const ctx = { today: '2026-10-01', villes: ['Lille'], prenoms: ['Léa'] };
+      for (const q of ['stage dev chez Capgemini à Toulouse', 'alternance BTS SIO SISR Lille', '"Lens" c++ Orange',
+                       'Léa en cours 59 Fortinet', 'l’ESN de la région parisienne', 'sans nouvelles à Lyon',
+                       'Saint-Étienne 42000 node.js']){
+        const r = interpreter(q, ctx);
+        r.jetons.forEach((t, k) => {
+          const d = r.destins[k];
+          ok(['etiquette', 'texte', 'liaison'].includes(d));
+          if (d === 'texte') ok(r.texte.some(x => x.includes(t.mot)));
+          if (d === 'etiquette') ok(r.etiquettes.some(e => e.spans.some(([a, b]) => t.debut >= a && t.fin <= b)));
+        });
+      }
+    },
+    'barre : retirer une étiquette retire SES mots du champ, et le mot de liaison qui la précède': () => {
+      const ctx = { today: '2026-10-01', villes: [], prenoms: [] };
+      const sans = (q, famille) => retirer(q, interpreter(q, ctx).etiquettes.find(e => e.famille === famille).spans);
+      eq(sans('alternance à Lille', 'lieu'), 'alternance');
+      eq(sans('stage cyber Lyon', 'metier'), 'stage Lyon');
+      eq(sans('cherche l’ESN', 'metier'), 'cherche');
+      eq(sans('alternance alternant Lyon', 'recherche'), 'Lyon');            /* les deux mots de la même étiquette */
+      eq(sans('sans nouvelles à Lille', 'statut'), 'à Lille');
+      eq(retirer('"Lens" Lille', [[0, 6]]), 'Lille');
+      eq(remplacer('alternance Lille', interpreter('alternance Lille', ctx).etiquettes[1].spans, '59'), 'alternance 59');
+      eq(remplacer('alternance à Lille', interpreter('alternance à Lille', ctx).etiquettes[1].spans, '59'), 'alternance 59');
+      eq(remplacer('à Lille en cours', interpreter('à Lille en cours', ctx).etiquettes[0].spans, '59'), '59 en cours');
+      eq(deptDuCp('59650'), '59'); eq(deptDuCp('20190'), '2A'); eq(deptDuCp('20200'), '2B');
+      eq(deptDuCp('97400'), '974'); eq(deptDuCp('5965'), '');
+    },
+    'barre : chercher — ce qui correspond pleinement passe devant, et la raison se lit': () => {
+      const P = (o) => normalizeCompany({ status: 'todo', domain: 'esn', ...o });
+      const A = P({ id: 'a', name: 'Advalys', city: 'Lille', positions: ['alternance'], vecu: 'alternance', vecuQui: 'Léa', updatedAt: 1 });
+      const B = P({ id: 'b', name: 'Bureau Muet', city: 'Lille', positions: [], updatedAt: 3 });
+      const C = P({ id: 'c', name: 'Cabinet Stages', city: 'Lille', positions: ['stage'], updatedAt: 4 });
+      const D = P({ id: 'd', name: 'Delta Lyon', city: 'Lyon', positions: ['alternance'], updatedAt: 5 });
+      const E = P({ id: 'e', name: 'Écho', city: 'Lille', positions: ['alternance'], updatedAt: 2 });
+      const ctx = contexteRecherche([A, B, C, D, E], '2026-10-01');
+      const r = chercherPistes([A, B, C, D, E], { q: 'alternance Lille', ctx, pertinence: true });
+      /* C refuse (ses postes sont dits, sans alternance) ; D est à Lyon ;
+         B ne dit rien : il reste, APRÈS ceux qui prennent */
+      eq(r.liste.map(c => c.id), ['a', 'e', 'b']);
+      eq(raisonDe(A, r.interp).accent, 'Léa y a été en alternance');      /* la plus forte d'abord */
+      eq(raisonDe(E, r.interp).accent, 'prend des alternants');
+      eq(raisonDe(B, r.interp).accent, '');
+      /* sans pertinence (un tri choisi), le rang reste, l'ordre choisi aussi */
+      eq(chercherPistes([A, B, C, D, E], { q: 'alternance Lille', ctx }).liste.map(c => c.id), ['e', 'a', 'b']);
+    },
+    'barre : une étiquette ne perd JAMAIS ce que le texte trouvait (sauf numéro et état)': () => {
+      const P = (o) => normalizeCompany({ status: 'todo', domain: 'esn', ...o });
+      const L = [
+        P({ id: '1', name: 'Lyon Data Center', city: 'Villeurbanne' }),
+        P({ id: '2', name: 'Cyberdéfense Sud', city: 'Toulouse', domain: 'esn' }),
+        P({ id: '3', name: 'Atelier', city: 'Paris', contacts: [{ name: 'Léa Fontaine', email: 'l@a.test' }] }),
+        P({ id: '4', name: 'Breizh Net', city: 'Nantes', desc: 'clients en Bretagne' }),
+        P({ id: '5', name: 'Alt', city: 'Lille', positions: ['stage'], desc: 'ouvre l’alternance en 2027' }),
+        P({ id: '6', name: 'Phone', city: 'Lyon', contacts: [{ name: 'X', phone: '06 59 12 34 56' }] }),
+        P({ id: '7', name: 'Note', city: 'Lyon', status: 'todo', notes: 'attendre la réponse' })
+      ];
+      const ctx = { today: '2026-10-01', villes: ['Lille', 'Lyon'], prenoms: ['Léa'] };
+      for (const q of ['lyon', 'cyber', 'léa', 'bretagne', 'alternance']){
+        const texte = filterCompanies(L, { q }).map(c => c.id).sort();
+        const barre = chercherPistes(L, { q, ctx }).liste.map(c => c.id);
+        for (const id of texte) if (!barre.includes(id)) throw new Error(`« ${q} » perd la piste ${id}`);
+      }
+      /* « Lyon Data Center » est à Villeurbanne : il reste, mais APRÈS Lyon */
+      eq(chercherPistes(L, { q: 'lyon', ctx }).liste.map(c => c.id).slice(-1), ['1']);
+      /* les deux exceptions, voulues : un numéro n'est plus un bout de téléphone… */
+      ok(!chercherPistes(L, { q: '59', ctx }).liste.some(c => c.id === '6'));
+      /* … et un état n'est pas un mot écrit dans une note */
+      ok(!chercherPistes(L, { q: 'réponse', ctx }).liste.some(c => c.id === '7'));
+    },
+    'barre : les mots de l’écran se cherchent — sans nouvelles, en retard, à planifier, clôturées': () => {
+      const P = (o) => normalizeCompany({ status: 'todo', domain: 'esn', ...o });
+      const today = '2026-10-01';
+      const L = [
+        P({ id: 'muet', name: 'Muet', status: 'active', history: [{ d: '2026-09-01', t: 'Mail envoyé' }], updatedAt: 1 }),
+        P({ id: 'tard', name: 'Tard', status: 'active', nextAction: '2026-09-28', nextActionText: 'Relancer' }),
+        P({ id: 'auj', name: 'Auj', status: 'reply', nextAction: today, nextActionText: 'Appeler' }),
+        P({ id: 'neuf', name: 'Neuf', status: 'todo' }),
+        P({ id: 'fin', name: 'Fin', status: 'active', closedReason: 'won' })
+      ];
+      const ctx = { today, villes: [], prenoms: [] };
+      const ids = q => chercherPistes(L, { q, ctx }).liste.map(c => c.id).sort();
+      eq(ids('sans nouvelles'), ['muet']);
+      eq(ids('en retard'), ['tard']);
+      eq(ids('aujourd’hui'), ['auj']);
+      eq(ids('à relancer'), ['muet', 'tard']);
+      eq(ids('à planifier'), ['neuf']);
+      eq(ids('en cours'), ['muet', 'tard']);
+      eq(ids('décroché'), ['fin']);
+      eq(ids('clôturées'), ['fin']);
+      ok(!ids('en cours').includes('fin'));            /* une piste close n'est plus « en cours » */
+    },
+    'barre : proposer quand c’est vide — jamais une recherche sans réponse, le profil d’abord': () => {
+      const P = (o) => normalizeCompany({ status: 'todo', domain: 'esn', ...o });
+      const L = [
+        P({ id: '1', name: 'Un', city: 'Lille', positions: ['alternance'], vecu: 'stage', vecuQui: 'Awa' }),
+        P({ id: '2', name: 'Deux', city: 'Lille' }),
+        P({ id: '3', name: 'Trois', city: 'Lyon', positions: ['stage'] })
+      ];
+      const ctx = contexteRecherche(L, '2026-10-01');
+      eq(villeFrequente(L), 'Lille');
+      const p = propositions(L, { recherche: 'alternance' }, ctx);
+      eq(p[0].q, 'alternance Lille');
+      eq(p[0].label, 'Alternance · Lille');
+      eq(p[0].n, 2);
+      ok(p.every(x => x.n > 0));
+      ok(p.some(x => x.q === 'recommandées' && x.n === 1));
+      ok(!p.some(x => x.q === 'sans nouvelles'));       /* rien ne se tait : pas de proposition */
+      eq(propositions([], { recherche: 'stage' }, ctx), []);
+    },
+    'barre : élargir — une ville gagne son département, une recherche vide propose ce qu’on retrouve': () => {
+      const P = (o) => normalizeCompany({ status: 'todo', domain: 'esn', ...o });
+      const L = [
+        P({ id: '1', name: 'Un', city: 'Lille', address: '1 rue X\n59000 Lille' }),
+        P({ id: '2', name: 'Deux', city: 'Villeneuve-d’Ascq', address: '2 av Y\n59650 Villeneuve-d’Ascq' }),
+        P({ id: '3', name: 'Orange Business', city: 'Paris' })
+      ];
+      const ctx = contexteRecherche(L, '2026-10-01');
+      const e = elargir(L, 'Lille', { ctx });
+      eq(e[0].label, 'Nord (59)'); eq(e[0].q, '59'); eq(e[0].n, 2); eq(e[0].genre, 'autour');
+      const v = elargir(L, 'Orange Lille', { ctx });
+      ok(v.length && v.every(x => x.genre === 'sans' && x.n > 0));
+      ok(v.some(x => x.q === 'Orange' && x.label === 'Lille'));
     },
     'premier mail : un manque qui rendrait le mail FAUX devient un crochet, jamais un trou muet': () => {
       /* Le défaut joué le 30 septembre 2026 : profil vide, le premier mail

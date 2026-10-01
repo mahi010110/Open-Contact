@@ -40,8 +40,10 @@ function flipDir(l){
   l.dir = (next === (NATURAL_DIR[l.sort] || 'desc')) ? '' : next;
 }
 
-/* demande la position puis applique — « Près de moi » seulement */
-function withPos(st, apply){
+/* demande la position puis applique — « Près de moi », choisi dans le
+   tri ou tapé dans la barre de « Mes pistes » (les deux chemins disent
+   la même chose quand la position manque) */
+export function withPos(st, apply){
   if (st.userPos){ apply(); return; }
   if (!navigator.geolocation){ toast('Pas de géolocalisation sur ce navigateur.'); return; }
   navigator.geolocation.getCurrentPosition(
