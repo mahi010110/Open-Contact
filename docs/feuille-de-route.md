@@ -263,6 +263,11 @@ entreprise parmi ses amis, ses groupes et leurs amis, trois cercles au plus.
    piste.
 4. Les amis de ses amis, jusqu'au troisième cercle.
 
+**Mis de côté, à reprendre** — [`frictions.md`](frictions.md) : les trois
+plus grosses frictions selon le mainteneur (entrer les pistes, écrire les
+mails, les allers-retours avec Gmail), leurs pistes de solution, et ce
+qui reste du relevé du 30 septembre.
+
 ---
 
 ## 4. Les surfaces suivantes
