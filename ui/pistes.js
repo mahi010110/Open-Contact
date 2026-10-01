@@ -24,6 +24,7 @@ import { openContactEditor, openAttach } from './contact.js';
 import { openProspect } from './prospect.js';
 import { campaignOfPiste, liveCampaignsCount, openCampaignsHome } from './campagnes.js';
 import { CAMPAGNES } from './perimetre.js';
+import { suivreDecouverte, decouverteHTML, lierDecouverte } from './decouvrir.js';
 
 /* hors périmètre, aucune piste n'est « en campagne » — la question ne se
    pose plus à l'écran, et « à planifier » reprend sa place (CLAUDE.md §0) */
@@ -344,6 +345,7 @@ function marqueEtiquette(e){
     : e.famille === 'metier' ? 'monitor'
     : e.famille === 'lieu' ? (e.cle === 'proche' ? 'gps' : 'map-pin')
     : e.famille === 'groupe' ? (e.cle === 'recommandee' ? 'users' : 'user')
+    : e.famille === 'taille' ? 'building'
     : (ICONE_ETAT[e.cle] || 'flag');
   return ic(nom, 'ic-14');
 }
@@ -548,6 +550,10 @@ export function renderPistes(){
     }
     premierId = (wide && mqFine.matches && q) ? ((alive[0] || closed[0] || {}).id || null) : null;
     rendreChips();
+    /* « À découvrir » suit la barre : la question part seule après une
+       pause, et seule sa section se redessine quand la réponse arrive —
+       jamais la liste qu'on est en train de lire */
+    suivreDecouverte(interp, { userPos: st.userPos, notifier: majDecouverte });
 
     const tout = S.companies.length;
     const cnt = root.querySelector('#piCount');
@@ -568,7 +574,13 @@ export function renderPistes(){
     }
 
     let html = orphansHTML();
-    if (!S.companies.length){
+    const decouverte = `<div id="piDec">${decouverteHTML()}</div>`;
+    /* Aucune piste ENCORE, et une recherche : c'est exactement le moment
+       où l'annuaire sert le plus — amorcer une liste sans partir de zéro.
+       L'accueil cède la place à ce qu'on vient de demander. */
+    if (!S.companies.length && q){
+      html += decouverte;
+    } else if (!S.companies.length){
       html +=
         `<div class="td-empty">
            <div class="tde-ic">${ic('briefcase', 'ic-24')}</div>
@@ -594,6 +606,7 @@ export function renderPistes(){
         `<div class="empty-list">Aucune piste ne correspond${q ? '' : ' au filtre'}.${retrouver}
            ${ftOn() ? '<button class="linklike" id="piFtClear">Tout montrer</button>' : ''}
          </div>`;
+      html += decouverte;
     } else {
       /* Pendant une recherche, un tableau SANS UNE CARTE n'est que du
          bruit : « refusé » posait trois colonnes vides et tramées
@@ -615,8 +628,10 @@ export function renderPistes(){
              <div class="rows">${shown.map(rowHTML).join('')}${more ? moreBtn('closed', more) : ''}</div>
            </details>`;
       }
+      html += decouverte;
     }
     body.innerHTML = html;
+    lierDecouverte(body.querySelector('#piDec'));
 
     body.querySelectorAll('.row-item, .bcard').forEach(r => {
       const open = () => openById(r.dataset.id);
@@ -663,6 +678,14 @@ export function renderPistes(){
     body.querySelector('#piAdd')?.addEventListener('click', () => openCapture());
     body.querySelector('#piDemo')?.addEventListener('click', () => { addDemo(); bus.refresh(); toast('Exemple ajouté — retire-le depuis « Aujourd’hui ».'); });
   };
+
+  /* la réponse de l'annuaire arrive : on ne redessine QUE sa section */
+  function majDecouverte(){
+    const box = root.querySelector('#piDec');
+    if (!box || !box.isConnected) return;
+    box.innerHTML = decouverteHTML();
+    lierDecouverte(box);
+  }
 
   /* au poste, le titre de colonne porte déjà son fond et son trait : se
      coller ne lui ajoute aucune encre, il n'a rien à annoncer. Seule la
@@ -739,7 +762,7 @@ export function renderPistes(){
      même hauteur), ↑ en tête et Échap remontent dans la barre, la
      recherche intacte. */
   const visible = el => !!el && el.getClientRects().length > 0;
-  const cibles = () => [...root.querySelectorAll('#piBody .o-main, #piBody .ri-main, #piBody .bc-main')].filter(visible);
+  const cibles = () => [...root.querySelectorAll('#piBody .o-main, #piBody .ri-main, #piBody .bc-main, #piBody .dc-main')].filter(visible);
   const premiere = () => (premierId && root.querySelector(`#piBody .bcard[data-id="${premierId}"] .bc-main`)) || cibles()[0] || null;
   const viser = el => {
     el.focus({ preventScroll: true });
@@ -757,7 +780,7 @@ export function renderPistes(){
       if (vers){ e.preventDefault(); viser(vers); }
       return;
     }
-    const cible = t.closest('.bc-main, .ri-main, .o-main');
+    const cible = t.closest('.bc-main, .ri-main, .o-main, .dc-main');
     if (!cible || !/^(Arrow(Up|Down|Left|Right)|Escape)$/.test(e.key)) return;
     if (e.key === 'Escape'){ e.preventDefault(); input.focus(); return; }
     const col = cible.closest('.bcol');
@@ -765,7 +788,8 @@ export function renderPistes(){
     if (col){
       const dans = [...col.querySelectorAll('.bc-main')].filter(visible);
       const i = dans.indexOf(cible);
-      if (e.key === 'ArrowDown') vers = dans[i + 1];
+      /* au bas d'une colonne, ↓ continue dans « À découvrir » */
+      if (e.key === 'ArrowDown') vers = dans[i + 1] || root.querySelector('#piDec .dc-main');
       else if (e.key === 'ArrowUp') vers = i > 0 ? dans[i - 1] : input;
       else {
         const cols = [...root.querySelectorAll('#piBody .bcol')].filter(c => c.querySelector('.bc-main'));
@@ -776,7 +800,9 @@ export function renderPistes(){
         }
       }
     } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp'){
-      const l = cibles();
+      /* dans « À découvrir », ↑ en tête remonte vers les pistes */
+      const l = cible.classList.contains('dc-main') && root.querySelector('#piBody .board')
+        ? [...root.querySelectorAll('#piDec .dc-main')].filter(visible) : cibles();
       const i = l.indexOf(cible);
       vers = e.key === 'ArrowDown' ? l[i + 1] : (i > 0 ? l[i - 1] : input);
     }

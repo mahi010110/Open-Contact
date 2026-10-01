@@ -259,9 +259,10 @@ Chacun se livre dans main et se teste sur le téléphone.
 2. **« À découvrir »** : la recherche en ligne qui part seule (avec le
    tri des mots privés), la liste à cocher, l'aperçu, le SIREN (un champ
    de plus dans `CONTRAT.md`, lu en migration douce). Précédé de la preuve
-   CORS.
+   CORS. **Livré (6.45.0)** — voir « Ce que le lot 2 a appris ».
 3. **L'enrichissement et les liens** : site web (Wikidata), distance,
    toutes les informations utiles sur la fiche, les trois liens d'un tap.
+   **Livré (6.46.0)** — voir « Ce que le lot 3 a appris ».
 
 ## Ce que le lot 1 a appris
 
@@ -302,6 +303,91 @@ feuilles qui choisissent des pistes (Donner, Prospecter, partage en
 groupe) cherchent encore mot à mot : leur barre n'a pas la place d'une
 rangée d'étiquettes, et le principe 1 interdit de comprendre sans le
 montrer.
+
+## Ce que le lot 2 a appris
+
+**La preuve CORS est faite** (`sonde-annuaire.mjs`, job « Transport
+public » de la CI, 1er octobre 2026) : un vrai Chromium, depuis une vraie
+origine, reçoit les réponses de l'annuaire, du service des communes et de
+Wikidata. Le même relevé a fixé ce que le moteur lit, et il a appris trois
+choses qu'aucune documentation ne disait :
+
+1. **L'annuaire limite le débit, et ça se voit.** Des appels rapprochés
+   rendent « 429 Too Many Requests ». Dans un lycée, une classe entière
+   sort par la même adresse : l'app fait une seconde tentative après un
+   court délai, espace ses deux questions, puis dit « L'annuaire est très
+   demandé » avec « Réessayer » — sans accuser le réseau.
+2. **Les établissements renvoyés gardent les FERMÉS.** Montrer une
+   adresse fermée à quelqu'un qui va y postuler, c'est l'envoyer devant
+   une porte close : ils ne servent qu'en dernier recours.
+3. **Un établissement ne porte qu'une chaîne d'adresse** (le siège, lui,
+   porte ses morceaux) : elle se coupe au code postal pour garder les deux
+   lignes du champ libre de l'app.
+
+Et quatre décisions de dessin :
+
+- **Pas de liste à cocher, un geste par ligne.** Le dessin d'origine
+  cochait puis ajoutait « (3) » par le pied. Mais ajouter n'écrase rien
+  (ce qui est déjà dans tes pistes n'apparaît pas), donc l'aperçu « 3
+  nouvelles » n'aurait rien protégé : c'est la porte que §6 refuse.
+  Chaque ligne a « Ajouter » + Annuler 30 s, et la ligne elle-même ouvre
+  l'aperçu — ce que l'annuaire sait, AVANT d'en faire une piste.
+- **Sans métier tapé, l'annuaire cherche dans le numérique** (codes 62,
+  63.11, 58.29). C'est le produit (§1) : « alternance Lille » ne veut pas
+  dire « toutes les entreprises du Nord », boulangeries comprises.
+- **Sans texte ni lieu, rien ne part.** « réseau » seul demanderait toutes
+  les ESN de France. « cyber » seul part en texte (les noms qui le
+  portent), jamais en liste nationale.
+- **Une piste ajoutée garde ce qu'on a cherché** : trouvée par « cyber »,
+  elle prend le domaine Cybersécurité — sinon elle disparaîtrait de
+  l'écran à l'instant où on l'ajoute.
+
+## Ce que le lot 3 a appris
+
+La fiche porte un bloc **« Annuaire »**, sous « À savoir » : ce que tu
+sais passe avant ce que le registre dit. Il montre l'activité, l'effectif,
+l'année de création, le nombre d'établissements, le dirigeant, le site
+trouvé sur Wikidata, et trois liens d'un tap — les anciens de ton école
+chez l'entreprise (LinkedIn, ou « Qui y travaille » sans école au
+profil), ses offres (France Travail), sa fiche officielle.
+
+Cinq décisions, chacune pour une raison qu'on pourrait oublier :
+
+1. **Ce qui part dépend de ce que la piste porte.** Avec un SIREN, la
+   question ne contient QUE ces neuf chiffres publics, et elle part toute
+   seule. Sans SIREN, rien ne part tant qu'on n'appuie pas sur « Trouver
+   dans l'annuaire » — nom et département seulement — et c'est toi qui
+   dis laquelle est la tienne : chercher par le nom en silence montrerait
+   un jour le dirigeant d'un homonyme, une information fausse avec l'air
+   officiel.
+2. **Rien ne part pour un bloc qu'on ne regarde pas.** Au pouce, le bloc
+   est replié comme « À savoir », et la question part quand on le
+   déplie. Au poste il est ouvert, comme le reste du dossier.
+3. **Rien ne change sans geste.** « Ajouter à ma fiche » complète les
+   VIDES seulement (invariant ②), dit à côté de lui ce qu'il ajoutera
+   (« activité · site ») et se défait trente secondes. La position voyage
+   avec l'adresse, jamais seule : posée à côté d'une adresse saisie à la
+   main, elle la contredirait. Le dirigeant ne devient un contact que si
+   on l'ajoute (décision du mainteneur).
+4. **La réponse redessine le bloc, jamais la fiche.** Une fiche qu'on
+   redessine entière quand une réponse arrive vole le curseur à
+   quelqu'un qui écrit ses notes — le garde tape une note pendant la
+   réponse et vérifie qu'elle reste, curseur compris.
+5. **Les liens viennent en tête du cadre.** Les données arrivent du
+   réseau et poussent ce qui est dessous : un lien posé en bas glisserait
+   sous le doigt au moment de le taper (§5, une action se pose toujours
+   au même endroit).
+
+**La distance** n'a pas pris de ligne sur la fiche : « combien de km »
+a déjà sa réponse, et meilleure, dans le tri par distance (la fiche le
+disait déjà). Ce que le lot apporte est la **position** : une piste
+retrouvée dans l'annuaire reçoit les coordonnées de l'établissement avec
+son adresse, donc elle se trie par distance sans géocodage.
+
+**Une entreprise fermée le dit** : la question par SIREN ne filtre pas
+les fermées, exprès, pour que la fiche affiche « fermée depuis le … »
+avec le langage d'urgence de l'app — c'est la seule information du bloc
+qui réclame quelque chose (clore la piste).
 
 ## Avec le réseau
 

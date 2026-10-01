@@ -7,7 +7,7 @@
    ============================================================ */
 import { uid, extractCity, todayISO, fmtDate } from './utils.js';
 
-export const APP_VERSION = '6.44.0';
+export const APP_VERSION = '6.46.0';
 
 export const DOMAINS = {
   esn:     { label:'ESN / Services IT',       color:'#4C9FD8' },
@@ -196,7 +196,7 @@ export const VECU = {
    au lieu d'être perdus silencieusement. */
 const KNOWN_CT = ['id','name','role','email','phone','link','note','conf','extra',
   'activatedAt','src'];         /* champs d'action privés (#14) — jamais dans un partage */
-const KNOWN_C  = ['id','name','city','domain','desc','address','website','techs','positions',
+const KNOWN_C  = ['id','name','city','domain','desc','address','website','techs','positions','siren',
   'process','tips','contacts','lat','lng','vecu','vecuQui','status','notes','appliedAt','nextAction',
   'nextActionText','closedAt','closedReason','nextActionCt',
   'history','verifiedAt','confirmations','demo','createdAt','updatedAt','extra',
@@ -306,6 +306,13 @@ export function normalizeCompany(x){
      est le prénom de qui l'a vécu : vide chez soi (c'est moi), rempli au
      moment du partage avec le nom du profil. Un nom reçu est tronqué :
      il finit dans une phrase à l'écran, pas dans un roman. */
+  /* Le SIREN : neuf chiffres, le même partout (registre, annuaire,
+     Wikidata). Absent quand il n'est pas valide — un numéro faux ferait
+     fusionner deux entreprises différentes. C'est lui qui dit « la même
+     entreprise » quand les noms diffèrent (« Sopra Steria » et « SOPRA
+     STERIA GROUP »). */
+  const siren = String(x.siren == null ? '' : x.siren).replace(/\s/g, '');
+  if (/^\d{9}$/.test(siren)) out.siren = siren;
   if (VECU[x.vecu]){
     out.vecu = x.vecu;
     const qui = String(x.vecuQui || '').trim().slice(0, 40);

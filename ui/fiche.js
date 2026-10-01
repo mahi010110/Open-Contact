@@ -18,6 +18,7 @@ import { askNextAction, askClose } from './actions.js';
 import { openMail } from './mail.js';
 import { openEditPiste } from './edit.js';
 import { openContactEditor, telHref, smsHref, waHref } from './contact.js';
+import { annuaireFicheHTML, lierAnnuaireFiche, annuaireOuvert, oublierFiche } from './fiche-annuaire.js';
 
 const webHref = w => /^https?:\/\//i.test(w) ? w : 'https://' + w;
 const webLabel = w => w.replace(/^https?:\/\//i, '').replace(/\/$/, '');
@@ -88,7 +89,7 @@ export function openFiche(c){
     /* La ligne derrière a changé pendant que la fiche la couvrait. Sans
        ça, on revient à une liste silencieusement différente : le geste
        ne se voit jamais atterrir (cécité au changement). */
-    onClose: () => { if (commis) montrerChange(c.id); }
+    onClose: () => { oublierFiche(); if (commis) montrerChange(c.id); }
   });
 
   const confirm = () => {
@@ -308,6 +309,10 @@ export function openFiche(c){
                  </span></div>` : ''}
            </div>
          </details>` : ''}
+       ${/* ce que l'annuaire public sait de la piste, et trois liens d'un
+            tap (docs/recherche.md, lot 3) — APRÈS « À savoir » : ce que
+            tu sais passe avant ce que le registre dit */''}
+       ${annuaireFicheHTML(c, annuaireOuvert(c, wide))}
        ${(c.history || []).length ? `
          <details class="fi-hist"><summary>Historique</summary>
            <ul class="timeline">${c.history.slice().reverse().slice(0, 10).map(h =>
@@ -372,6 +377,7 @@ export function openFiche(c){
     const byCt = id => (c.contacts || []).find(t => t.id === id);
     sh.body.querySelector('#fiEdit').addEventListener('click', () => openEditPiste(c, render));
     sh.body.querySelector('#fiVecu')?.addEventListener('click', () => openDemander(c, c.vecuQui, v));
+    lierAnnuaireFiche(sh.body, c, { render });
     sh.body.querySelector('#fiCtAdd').addEventListener('click', () =>
       openContactEditor({ company: c, onDone: render }));
     sh.body.querySelectorAll('[data-ct]').forEach(b =>

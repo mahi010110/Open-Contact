@@ -22,10 +22,11 @@
      haut de la page. Sur quarante lignes à ranger, c'est quarante
      retours en haut.
    ============================================================ */
-import { chromium, chromiumPath, serveRepo } from './outils.mjs';
+import { chromium, chromiumPath, serveRepo, annuaireMuetPartout } from './outils.mjs';
 
 const { server, base } = await serveRepo();
 const browser = await chromium.launch({ executablePath: chromiumPath() });
+annuaireMuetPartout(browser);   /* la barre ne parle pas au vrai annuaire (outils.mjs) */
 const errors = [];
 const fail = m => { console.error('ÉCHEC :', m); process.exitCode = 1; };
 

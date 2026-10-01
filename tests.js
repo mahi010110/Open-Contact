@@ -48,7 +48,10 @@ import { dueFollowups, contactFromSignature, exchangeLog, exchangeTotals, nextAc
          sansFilet, FILET_MIN_PISTES, FILET_JOURS, aDemarrer } from './engine/assist.js';
 import { rappelICS, lienAgendaGoogle, formeAgenda, RAPPEL_HEURE } from './engine/agenda.js';
 import { interpreter, retirer, remplacer, chercherPistes, raisonDe, propositions, elargir,
-         contexteRecherche, deptDuCp, villeFrequente } from './engine/requete.js';
+         contexteRecherche, deptDuCp, villeFrequente, deptDePiste } from './engine/requete.js';
+import { questionsAnnuaire, lireAnnuaire, decouvertes, versPiste, motsInterdits, casse,
+         domaineDeNaf, ficheOfficielle, ANNUAIRE, questionSiren, questionNom, questionSite, lireSite,
+         complements, champsDits, dirigeantsAjoutables, liensPiste, WIKIDATA } from './engine/annuaire.js';
 import { makeMission, missionUsable, revokeMission, foldCampaignReport,
          signMission, openMissionWire } from './engine/mission.js';
 import { normCode, pairKey } from './engine/ordinateur.js';
@@ -1033,7 +1036,8 @@ export async function runSelfTests(){
         'clôturées': S + 'Clôturées', 'décroché': S + 'Décroché', 'refusé': S + 'Refusé', 'refus': S + 'Refusé',
         'abandonné': S + 'Abandonné',
         'recommandées': G + 'Recommandées', 'piston': G + 'Recommandées', 'Léa': G + 'Léa', 'lea': G + 'Léa',
-        'Jean-Marc': G + 'Jean-Marc',
+        'Jean-Marc': G + 'Jean-Marc', 'PME': 'taille:PME', 'TPE': 'taille:TPE', 'petite entreprise': 'taille:TPE',
+        'ETI': 'taille:ETI', 'pme lille': 'taille:PME ' + L + 'Lille',
         /* l'ambiguïté et le précis restent TEXTE (principe 2) */
         'Orange': '| orange', 'Capgemini': '| capgemini', 'Fortinet': '| fortinet', 'pentest': '| pentest',
         'SOC': '| soc', 'Var': '| var', '20': '| 20', '00123': '| 00123', '123': '| 123',
@@ -1183,6 +1187,208 @@ export async function runSelfTests(){
       const v = elargir(L, 'Orange Lille', { ctx });
       ok(v.length && v.every(x => x.genre === 'sans' && x.n > 0));
       ok(v.some(x => x.q === 'Orange' && x.label === 'Lille'));
+    },
+    /* ---------- LE SIREN, et « À découvrir » (recherche.md, lot 2) ---------- */
+    'contrat : le SIREN — neuf chiffres ou rien, il voyage, il reconnaît la même entreprise sous un autre nom': () => {
+      eq(normalizeCompany({ name: 'A', siren: '326 820 065' }).siren, '326820065');
+      eq(normalizeCompany({ name: 'A', siren: '12345' }).siren, undefined);      /* un faux numéro fusionnerait deux entreprises */
+      eq(normalizeCompany({ name: 'A' }).siren, undefined);
+      ok(!('siren' in (normalizeCompany({ name: 'A', siren: 'x' }).extra || {})));
+      /* il voyage : public, et c'est lui qui dédoublonne chez le receveur */
+      eq(communityView(normalizeCompany({ name: 'A', siren: '326820065' })).siren, '326820065');
+      /* même numéro, même entreprise, quel que soit le nom */
+      const mes = [normalizeCompany({ id: 'm', name: 'Sopra Steria', city: 'Lille', siren: '326820065' })];
+      const st = mergeIncoming([{ name: 'SOPRA STERIA GROUP', city: 'Annecy', siren: '326820065', website: 'https://soprasteria.test' }], mes);
+      eq(st.addedC, 0); eq(mes.length, 1); eq(mes[0].website, 'https://soprasteria.test');
+      /* deux numéros différents : deux entreprises, même homonymes et même ville */
+      const h = [normalizeCompany({ id: 'h', name: 'Atelier', city: 'Lyon', siren: '111111111' })];
+      eq(mergeIncoming([{ name: 'Atelier', city: 'Lyon', siren: '222222222' }], h).addedC, 1);
+      /* un SIREN reçu complète une piste qui n'en avait pas */
+      const v = [normalizeCompany({ id: 'v', name: 'Lumen Data', city: 'Lille' })];
+      mergeIncoming([{ name: 'Lumen Data', city: 'Lille', siren: '333333333' }], v);
+      eq(v[0].siren, '333333333');
+    },
+    'annuaire : aucun mot privé ne part — contact, note, prénom, profil, état': () => {
+      const L = [normalizeCompany({ name: 'Advalys', city: 'Lille', notes: 'rappeler Bertrand lundi', desc: 'cabinet cyber',
+        vecu: 'stage', vecuQui: 'Léa',
+        contacts: [{ name: 'Julie Marchand', email: 'julie@advalys.test', phone: '06 59 12 34 56' }] })];
+      const interdits = motsInterdits(L, [{ name: 'Nadia Berthier' }], { name: 'Inès Martin', email: 'ines@x.test' });
+      const ctx = { today: '2026-10-01', villes: ['Lille'], prenoms: ['Léa'] };
+      const parts = q => questionsAnnuaire(interpreter(q, ctx), { interdits }).join(' ');
+      for (const q of ['julie', 'Marchand lille', 'bertrand', 'nadia', 'inès', 'Léa', 'sans nouvelles lille', 'en cours'])
+        if (/q=/.test(parts(q)) && /(julie|marchand|bertrand|nadia|ines|lea)/i.test(parts(q)))
+          throw new Error(`« ${q} » emporte un mot privé : ${parts(q)}`);
+      /* rien d'utile après le tri : rien ne part du tout */
+      eq(parts('julie'), ''); eq(parts('bertrand'), ''); eq(parts('Léa'), '');
+      /* l'état de TES pistes ne regarde que toi */
+      eq(parts('sans nouvelles lille'), '');
+      /* un mot de note qui est AUSSI public (« cyber » dans une description) peut partir */
+      ok(/q=cyber/.test(parts('cyber')));
+      /* le mot privé part seul, le reste de la question reste */
+      ok(/departement=59/.test(parts('Marchand lille')) && !/marchand/i.test(parts('Marchand lille')));
+    },
+    'annuaire : la question — le métier en codes, le lieu, la taille, et rien sans texte ni lieu': () => {
+      const ctx = { today: '2026-10-01', villes: [], prenoms: [] };
+      const Q = (q, o) => questionsAnnuaire(interpreter(q, ctx), o || {}).map(u => new URL(u));
+      const [a] = Q('alternance à Lille');
+      eq(a.origin, ANNUAIRE); eq(a.pathname, '/search');
+      eq(a.searchParams.get('departement'), '59');
+      ok(a.searchParams.get('activite_principale').includes('62.01Z'));    /* sans métier : le numérique, c'est le produit */
+      eq(a.searchParams.get('etat_administratif'), 'A');
+      ok(!a.searchParams.has('q'));                                         /* « alternance » ne regarde pas le registre */
+      const c = Q('cyber Lyon');
+      eq(c.length, 2);                                                      /* les noms qui portent « cyber » d'abord */
+      eq(c[0].searchParams.get('q'), 'cyber'); ok(!c[1].searchParams.has('q'));
+      eq(c[0].searchParams.get('departement'), '69');
+      eq(Q('cyber').length, 1);                                             /* seul : pas toutes les ESN de France */
+      eq(Q('réseau').length, 0);                                            /* ni texte ni lieu : rien ne part */
+      eq(Q('alternance').length, 0);
+      eq(Q('59000 dev')[0].searchParams.get('code_postal'), '59000');
+      eq(Q('idf data')[0].searchParams.get('region'), '11');
+      eq(Q('pme Lille')[0].searchParams.get('categorie_entreprise'), 'PME');
+      eq(Q('tpe 59')[0].searchParams.get('tranche_effectif_salarie'), '00,01,02,03');
+      eq(Q('grande entreprise 31')[0].searchParams.get('categorie_entreprise'), 'GE');
+      eq(Q('industrie 59')[0].searchParams.get('section_activite_principale'), 'C');
+      eq(Q('Capgemini Toulouse')[0].searchParams.get('q'), 'capgemini');
+      /* près de moi : les établissements autour du point, rayon borné */
+      const [p] = Q('près de moi', { userPos: { lat: 50.6292, lng: 3.0573 }, rayon: 80 });
+      eq(p.pathname, '/near_point'); eq(p.searchParams.get('radius'), '50'); eq(p.searchParams.get('lat'), '50.62920');
+      eq(Q('près de moi').length, 0);                                       /* sans position : rien */
+    },
+    'annuaire : lire une réponse — le bon établissement, la casse, l’effectif, les dirigeants': () => {
+      const json = { results: [{
+        siren: '326820065', nom_complet: 'SOPRA STERIA GROUP (SOPRA STERIA)', nom_raison_sociale: 'SOPRA STERIA GROUP',
+        sigle: 'SOPRA STERIA', activite_principale: '62.02A', categorie_entreprise: 'GE', tranche_effectif_salarie: '53',
+        date_creation: '1968-01-01', nombre_etablissements_ouverts: 61,
+        siege: { siret: '32682006500001', est_siege: true, numero_voie: '3', type_voie: 'RUE', libelle_voie: 'DU PRE FAUCON',
+                 code_postal: '74940', libelle_commune: 'ANNECY', latitude: '45.91', longitude: '6.13', activite_principale: '62.02A' },
+        matching_etablissements: [
+          { siret: '32682006500102', code_postal: '59000', libelle_commune: 'LILLE', numero_voie: '12',
+            type_voie: 'RUE', libelle_voie: 'NATIONALE', latitude: '50.6366', longitude: '3.0630' },
+          { siret: '32682006500300', code_postal: '59650', libelle_commune: "VILLENEUVE-D'ASCQ", latitude: '50.62', longitude: '3.15' }
+        ],
+        dirigeants: [{ nom: 'DUPONT', prenoms: 'MARIE', qualite: 'Directeur général', type_dirigeant: 'personne physique' },
+                     { denomination: 'CABINET AUDIT', qualite: 'Commissaire aux comptes', type_dirigeant: 'personne morale' }]
+      }, { siren: 'pas-un-siren' }], total_results: 2 };
+      const [r, autre] = lireAnnuaire(json, { ville: 'villeneuve d ascq' });
+      eq(autre, undefined);                                                 /* un résultat sans SIREN valide ne passe pas */
+      eq(r.nom, 'Sopra Steria Group'); eq(r.ville, 'Villeneuve-d’Ascq'); eq(r.cp, '59650'); eq(r.dept, '59');
+      eq(r.effectif, '10 000 salariés et plus'); eq(r.activite, 'Conseil en systèmes et logiciels informatiques');
+      eq(r.dirigeants.map(d => d.nom), ['Marie Dupont', 'Cabinet Audit']); eq(r.dirigeants[0].personne, true);
+      eq(r.siege, false); eq(r.etablissements, 61);
+      /* sans ville cherchée mais avec une position : le plus proche */
+      const [p] = lireAnnuaire(json, { userPos: { lat: 50.637, lng: 3.063 } });
+      eq(p.ville, 'Lille'); eq(p.adresse, '12 Rue Nationale\n59000 Lille'); ok(p.distance < 1);
+      /* sans rien : le premier qui correspond */
+      eq(lireAnnuaire(json)[0].ville, 'Lille');
+      eq(lireAnnuaire(null), []); eq(lireAnnuaire({ results: 'x' }), []);
+      /* la forme RELEVÉE en vrai (sonde-annuaire.mjs) : un établissement ne
+         porte qu'une chaîne d'adresse, et la liste garde les fermés */
+      const vrai = { results: [{ siren: '479766842', nom_raison_sociale: 'CAPGEMINI TECHNOLOGY SERVICES',
+        activite_principale: '62.02A', tranche_effectif_salarie: '53',
+        siege: { est_siege: true, numero_voie: '145', type_voie: 'QUAI', libelle_voie: 'DU PRESIDENT ROOSEVELT',
+                 code_postal: '92130', libelle_commune: 'ISSY-LES-MOULINEAUX', latitude: '48.82', longitude: '2.26',
+                 etat_administratif: 'A' },
+        matching_etablissements: [
+          { adresse: '21 AVENUE LE CORBUSIER 59800 LILLE', code_postal: '59800', libelle_commune: 'LILLE',
+            latitude: '50.6378', longitude: '3.0703', etat_administratif: 'F' },
+          { adresse: 'LILLE LOMME 7 AVENUE MARIE-LOUISE DELWAULLE 59160 LILLE', code_postal: '59160',
+            libelle_commune: 'LILLE', latitude: '50.6314', longitude: '3.0207', etat_administratif: 'A' }] }] };
+      const [cap] = lireAnnuaire(vrai, { ville: 'lille' });
+      eq(cap.adresse, 'Lille Lomme 7 Avenue Marie-Louise Delwaulle\n59160 Lille');   /* l'ouvert, pas le fermé */
+      eq(cap.cp, '59160');
+      eq(lireAnnuaire(vrai)[0].cp, '59160');                     /* même sans ville cherchée */
+      eq(casse('IBM FRANCE'), 'IBM France'); eq(casse('LA POSTE'), 'La Poste'); eq(casse('Orange'), 'Orange');
+      eq(domaineDeNaf('63.11Z'), 'cloud'); eq(domaineDeNaf('62.01Z'), 'esn'); eq(domaineDeNaf('84.11Z'), 'public');
+      eq(domaineDeNaf('25.62B'), 'industrie'); eq(domaineDeNaf('47.11F'), 'commerce'); eq(domaineDeNaf('01.11Z'), 'autre');
+      eq(ficheOfficielle('326820065'), 'https://annuaire-entreprises.data.gouv.fr/entreprise/326820065');
+      eq(ficheOfficielle('12'), '');
+    },
+    'annuaire : une entreprise = une ligne, et l’ajouter garde ce qu’on a cherché': () => {
+      const r = (siren, nom, sigle) => ({ siren, nom, sigle: sigle || '', ville: 'Lille', naf: '62.02A', activite: 'Conseil' });
+      const mes = [normalizeCompany({ name: 'Sopra Steria', siren: '326820065' }), normalizeCompany({ name: 'Lumen Data' }),
+                   normalizeCompany({ name: 'SII' })];
+      const d = decouvertes([[r('326820065', 'Sopra Steria Group'), r('111111111', 'Lumen Data'), r('222222222', 'Advens')],
+                             [r('222222222', 'Advens'), r('333333333', 'Société pour l’informatique', 'SII'), r('444444444', 'Wavestone')]], mes);
+      /* déjà là par SIREN, par nom, par sigle ; et Advens une seule fois */
+      eq(d.map(x => x.nom), ['Advens', 'Wavestone']);
+      const ctx = { today: '2026-10-01', villes: [], prenoms: [] };
+      const p = versPiste({ ...r('222222222', 'Advens'), adresse: '1 Rue X\n59000 Lille', lat: 50.6, lng: 3.0 },
+        interpreter('cyber lille', ctx));
+      eq(p.domain, 'cyber');               /* trouvée par « cyber », elle le reste */
+      eq(p.siren, '222222222'); eq(p.contacts, []);           /* aucune personne importée d'office */
+      eq(normalizeCompany(p).siren, '222222222');
+      eq(versPiste(r('5', 'X'), interpreter('lille', ctx)).domain, 'esn');   /* sinon le code d'activité décide */
+    },
+    'fiche enrichie : la question ne porte QUE le SIREN, ou le nom sur un geste': () => {
+      const u = new URL(questionSiren('326820065'));
+      eq(u.origin, ANNUAIRE); eq(u.searchParams.get('q'), '326820065');
+      eq(u.searchParams.get('etat_administratif'), null);      /* une entreprise fermée doit revenir */
+      eq(questionSiren('3268'), ''); eq(questionSiren('32682006X'), ''); eq(questionSiren(undefined), '');
+      const c = normalizeCompany({ name: 'Orange', city: 'Lille', notes: 'Rappeler Paul lundi',
+        contacts: [{ name: 'Paul Martin', email: 'p@o.test' }] });
+      eq(deptDePiste(c), '59');
+      const n = new URL(questionNom(c, deptDePiste(c)));
+      /* le nom, le département, et RIEN de privé : ni la note, ni le contact */
+      eq([...n.searchParams.keys()].sort(), ['departement', 'etat_administratif', 'per_page', 'q']);
+      eq(n.searchParams.get('q'), 'Orange'); eq(n.searchParams.get('departement'), '59');
+      ok(!n.toString().includes('Paul') && !n.toString().includes('Rappeler'));
+      eq(new URL(questionNom(normalizeCompany({ name: 'Aztek' }))).searchParams.get('departement'), null);
+      eq(questionNom(normalizeCompany({ name: 'X' })), '');
+      eq(deptDePiste(normalizeCompany({ name: 'A', address: '3 rue X\n69002 Lyon' })), '69');
+      eq(deptDePiste(normalizeCompany({ name: 'A' })), '');
+    },
+    'fiche enrichie : le site par Wikidata — le SIREN seul entre dans la requête': () => {
+      const u = new URL(questionSite('479766842'));
+      eq(u.origin + u.pathname, WIKIDATA);
+      ok(u.searchParams.get('query').includes('wdt:P1616 "479766842"'));
+      ok(u.searchParams.get('query').includes('wdt:P856'));
+      eq(questionSite('47976684" } DELETE {'), '');               /* rien d'autre qu'un SIREN n'y entre */
+      eq(lireSite({ results: { bindings: [{ site: { value: 'http://www.capgemini.com' } },
+                                          { site: { value: 'https://www.capgemini.com/fr-fr/' } }] } }),
+         'https://www.capgemini.com/fr-fr/');                        /* https d'abord */
+      eq(lireSite({ results: { bindings: [{ site: { value: 'http://exemple.fr' } }] } }), 'http://exemple.fr');
+      eq(lireSite({ results: { bindings: [{ site: { value: 'javascript:alert(1)' } }] } }), '');
+      eq(lireSite({ results: { bindings: [] } }), ''); eq(lireSite(null), '');
+    },
+    'fiche enrichie : compléter les vides, jamais écraser — et la position suit l’adresse': () => {
+      const r = { siren: '326820065', ville: 'Lille', adresse: '12 Rue Nationale\n59000 Lille', lat: 50.63, lng: 3.06,
+                  activite: 'Conseil en systèmes et logiciels informatiques', naf: '62.02A' };
+      const vide = normalizeCompany({ name: 'Sopra Steria' });
+      eq(complements(vide, r, 'https://www.soprasteria.com'), {
+        siren: '326820065', city: 'Lille', address: '12 Rue Nationale\n59000 Lille', lat: 50.63, lng: 3.06,
+        desc: 'Conseil en systèmes et logiciels informatiques', domain: 'esn', website: 'https://www.soprasteria.com' });
+      /* ce que tu as écrit reste, et la position ne vient pas contredire ton adresse */
+      const plein = normalizeCompany({ name: 'Sopra Steria', city: 'Villeneuve-d’Ascq', address: '1 avenue X\n59650 Villeneuve-d’Ascq',
+        desc: 'ESN', website: 'soprasteria.com', domain: 'cyber', siren: '326820065' });
+      eq(complements(plein, r, 'https://www.soprasteria.com'), {});
+      eq(champsDits(complements(normalizeCompany({ name: 'A', city: 'Lille' }), r, 'https://a.fr')),
+         ['adresse', 'activité', 'secteur', 'site']);
+      eq(complements(vide, null, ''), {});
+      /* le dirigeant : une personne, jamais une société, et pas deux fois */
+      const avec = normalizeCompany({ name: 'A', contacts: [{ name: 'Marie Dupont', role: 'DG' }] });
+      const rr = { dirigeants: [{ nom: 'Marie Dupont', personne: true }, { nom: 'Cabinet Audit', personne: false },
+                                { nom: 'Jean Petit', personne: true }] };
+      eq(dirigeantsAjoutables(avec, rr).map(d => d.nom), ['Jean Petit']);
+      /* une entreprise fermée se lit comme telle */
+      const [f] = lireAnnuaire({ results: [{ siren: '111111111', nom_raison_sociale: 'VIEILLE BOITE',
+        etat_administratif: 'C', date_fermeture: '2024-06-30', siege: { libelle_commune: 'LILLE' } }] });
+      eq(f.fermee, true); eq(f.fermeeLe, '2024-06-30');
+    },
+    'fiche enrichie : trois liens d’un tap — le nom, et l’école pour LinkedIn seulement': () => {
+      const c = normalizeCompany({ name: 'Sopra Steria', siren: '326820065', notes: 'privé' });
+      const [gens, offres, off] = liensPiste(c, { ecole: 'IUT de Lille' });
+      eq(gens.label, 'Anciens de mon école');
+      eq(new URL(gens.url).searchParams.get('keywords'), 'Sopra Steria IUT de Lille');
+      eq(new URL(offres.url).searchParams.get('motsCles'), 'Sopra Steria');
+      ok(!offres.url.includes('IUT'));                                /* l'école ne part que vers LinkedIn */
+      eq(off.url, 'https://annuaire-entreprises.data.gouv.fr/entreprise/326820065');
+      const sans = liensPiste(normalizeCompany({ name: 'Aztek' }), {});
+      eq(sans[0].label, 'Qui y travaille');
+      eq(new URL(sans[0].url).searchParams.get('keywords'), 'Aztek');
+      eq(new URL(sans[2].url).searchParams.get('terme'), 'Aztek');   /* sans SIREN : la recherche officielle */
+      ok(liensPiste(c, {}).every(l => !l.url.includes('priv')));
+      eq(liensPiste(normalizeCompany({ name: '' }), {}), []);
     },
     'premier mail : un manque qui rendrait le mail FAUX devient un crochet, jamais un trou muet': () => {
       /* Le défaut joué le 30 septembre 2026 : profil vide, le premier mail

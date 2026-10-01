@@ -23,10 +23,11 @@
      mot écrit dans une note ;
    ⑦ ce qui change s'entend (la région vivante dit ce qui est compris).
    ============================================================ */
-import { chromium, chromiumPath, serveRepo, SHOTS } from './outils.mjs';
+import { chromium, chromiumPath, serveRepo, SHOTS, annuaireMuetPartout } from './outils.mjs';
 
 const { server, base } = await serveRepo();
 const browser = await chromium.launch({ executablePath: chromiumPath() });
+annuaireMuetPartout(browser);   /* la barre ne parle pas au vrai annuaire (outils.mjs) */
 const errors = [];
 const fail = m => { console.error('ÉCHEC :', m); process.exitCode = 1; };
 

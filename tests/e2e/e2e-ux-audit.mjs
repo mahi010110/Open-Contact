@@ -2,11 +2,12 @@
    parcours « l’ordinateur depuis un téléphone » honnête, relais avancés accessibles, cibles au
    pouce, contact sans doublon et fournisseurs IA non livrés non activables. */
 import { readFileSync, readdirSync } from 'fs';
-import { chromium, chromiumPath, SHOTS, serveRepo, attendre } from './outils.mjs';
+import { chromium, chromiumPath, SHOTS, serveRepo, attendre, annuaireMuetPartout } from './outils.mjs';
 import { ORDINATEUR, IA } from '../../ui/perimetre.js';
 
 const { server, base } = await serveRepo();
 const browser = await chromium.launch({ executablePath: chromiumPath() });
+annuaireMuetPartout(browser);   /* la barre ne parle pas au vrai annuaire (outils.mjs) */
 const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true });
 const page = await ctx.newPage();
 const errors = [];

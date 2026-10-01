@@ -249,9 +249,10 @@ liste de pistes sans partir de zéro, c'est « À découvrir ».
    Rien en ligne. **Livré le 1er octobre 2026 (6.44.0).**
 2. « À découvrir » : l'annuaire des entreprises, qui part tout seul sans
    emporter un mot privé. Précédé de la preuve que l'annuaire répond à un
-   navigateur.
+   navigateur. **Livré le 1er octobre 2026 (6.45.0)**, preuve CORS faite en CI.
 3. Le site web, la distance, toutes les informations utiles sur la fiche,
-   les liens d'un tap.
+   les liens d'un tap. **Livré le 1er octobre 2026 (6.46.0)** : le bloc
+   « Annuaire » de la fiche.
 
 **B. Le réseau** — [`reseau.md`](reseau.md). Trouver quelqu'un chez une
 entreprise parmi ses amis, ses groupes et leurs amis, trois cercles au plus.
