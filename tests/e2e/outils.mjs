@@ -195,3 +195,26 @@ export async function copierDeploiement(dest){
   }
   return n;
 }
+
+/* ============================================================
+   L'ANNUAIRE DES ENTREPRISES, MUET
+   « À découvrir » interroge un service RÉEL dès qu'on tape une question
+   qui décrit une entreprise. Un scénario qui tape dans la barre pour
+   autre chose (une annonce, un mouvement, une cible) ne doit dépendre ni
+   du réseau ni de sa limite de débit : l'annuaire y répond « rien ».
+   Seul `e2e-decouvrir.mjs` le joue vraiment, avec sa propre réponse.
+   ============================================================ */
+const ANNUAIRE_RE = 'https://recherche-entreprises.api.gouv.fr/**';
+export async function annuaireMuet(cible){
+  await cible.route(ANNUAIRE_RE, r => r.fulfill({ status: 200, contentType: 'application/json',
+    headers: { 'access-control-allow-origin': '*' }, body: '{"results":[],"total_results":0}' }));
+}
+/* tous les contextes d'un navigateur, d'un coup — pour les scénarios qui
+   en ouvrent vingt */
+export function annuaireMuetPartout(browser){
+  const nc = browser.newContext.bind(browser);
+  browser.newContext = async (...a) => { const c = await nc(...a); await annuaireMuet(c); return c; };
+  const np = browser.newPage.bind(browser);
+  browser.newPage = async (...a) => { const pg = await np(...a); await annuaireMuet(pg); return pg; };
+  return browser;
+}

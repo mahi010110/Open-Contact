@@ -41,7 +41,7 @@
 <p class="lede">Tes données restent sur ton appareil. OpenContact n'a aucun
 serveur, donc il n'existe nulle part où elles pourraient partir.</p>
 
-<p class="drev">Page revue le 6 septembre 2026.</p>
+<p class="drev">Page revue le 1er octobre 2026.</p>
 
 <h2 id="enregistre">Ce qui est enregistré, et où</h2>
 
@@ -80,16 +80,26 @@ les quatre.</p>
 <p>Écrire un e-mail ouvre <b>ton</b> logiciel de courrier avec le message
 prêt. OpenContact n'envoie rien et ne voit pas ce que tu envoies.</p>
 
-<p>Il reste un cas, décrit dans la section suivante : une donnée qui part sans
-que tu l'aies demandé.</p>
+<p>Il reste deux cas, décrits dans la section suivante : des données qui partent
+sans que tu aies appuyé sur un bouton pour ça.</p>
 
-<h2 id="appel-exterieur">Le seul appel extérieur que l'app fait pour toi</h2>
+<h2 id="appel-exterieur">Les appels extérieurs que l'app fait pour toi</h2>
 
 <p>Quand tu saisis une adresse dans une fiche, l'app demande ses coordonnées
 géographiques à <b>Nominatim</b>, le service d'adresses d'OpenStreetMap. Ce
 service reçoit l'adresse que tu as tapée, et rien d'autre : ni ton nom, ni tes
 pistes, ni un identifiant. Si tu ne saisis pas d'adresse, cet appel n'a jamais
 lieu. Hors ligne, il échoue sans conséquence.</p>
+
+<p>Quand tu cherches dans « Mes pistes », l'app interroge aussi
+l'<b>annuaire des entreprises</b> de l'État (data.gouv.fr), pour te montrer
+sous tes pistes celles que tu n'as pas encore. Il reçoit seulement ce qui
+décrit une entreprise : le métier (sous forme de codes d'activité), le lieu,
+la taille, et les mots qui peuvent être un nom d'entreprise. Il ne reçoit
+<b>jamais</b> le nom d'un de tes contacts, un mot de tes notes ou de ton
+historique, un prénom de ton groupe, ton profil, ni l'état de tes pistes :
+l'app les retire avant de demander, et une recherche qui ne contient que
+ça ne part pas du tout. Hors ligne, rien ne part.</p>
 
 <p>Ces deux pages ne se connectent à aucun service extérieur. Elles ne
 chargent que leur propre feuille de style et leurs polices, depuis le même

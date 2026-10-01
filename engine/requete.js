@@ -13,6 +13,7 @@
      ce que tu cherches   stage · alternance · emploi, CDI, CDD
      métier               cyber · cloud · réseau · dev · support · data…
      lieu                 une ville · 59000 · 59 · Hauts-de-France · près de moi
+     taille               TPE · PME · ETI
      où j'en suis         à contacter · en cours · réponse · sans nouvelles…
      le groupe            un prénom déclaré (« Léa ») · recommandées
      texte                tout le reste : un nom, une techno
@@ -162,6 +163,15 @@ export const STATUT = {
                mots: ['refuse', 'refusee', 'refus', 'rejete', 'rejetee', 'non retenu', 'non retenue'] },
   dropped:   { label: CLOSE_REASONS.dropped.label, mots: ['abandonne', 'abandonnee', 'abandon'] }
 };
+/* La taille. Rien dans une piste ne la dit (l'annuaire, lui, la connaît :
+   « À découvrir » la filtre pour de bon) ; en local elle ne retire donc
+   rien, sauf ce qui la contredit. « Grande entreprise » reste le métier
+   `dsi`, dont c'est déjà le libellé (« DSI / Grande entreprise »). */
+export const TAILLE = {
+  tpe: { label: 'TPE', mots: ['tpe', 'tres petite entreprise', 'petite entreprise', 'petite structure', 'petite boite'] },
+  pme: { label: 'PME', mots: ['pme', 'pmi', 'moyenne entreprise'] },
+  eti: { label: 'ETI', mots: ['eti', 'entreprise de taille intermediaire'] }
+};
 const RECOMMANDEE = ['recommandee', 'recommande', 'recommandation', 'piston'];
 const PROCHE = ['pres de moi', 'autour de moi', 'proche de moi', 'a cote de moi'];
 
@@ -192,6 +202,8 @@ function dictionnaire(ctx){
   for (const [k, d] of Object.entries(METIER))
     for (const m of d.mots) poser(m, { famille: 'metier', cle: k, label: d.label, domaine: d.domaine || '',
       racines: d.racines });
+  for (const [k, d] of Object.entries(TAILLE))
+    for (const m of d.mots) poser(m, { famille: 'taille', cle: k, label: d.label });
   for (const m of RECOMMANDEE) poser(m, { famille: 'groupe', cle: 'recommandee', label: 'Recommandées' });
   for (const m of PROCHE) poser(m, { famille: 'lieu', cle: 'proche', label: 'Près de moi' });
   for (const [k, r] of Object.entries(REGIONS))
@@ -427,6 +439,12 @@ export function force(c, e, ctx, L = lire(c)){
       return 0;
     case 'statut':
       return etat(c, e.cle, (ctx && ctx.today) || todayISO()) ? 2 : 0;
+    case 'taille':
+      /* une startup EST une PME ; une grande entreprise n'en est pas une.
+         Le reste ne dit rien : la piste reste, après. */
+      if (e.cle === 'pme' && c.domain === 'startup') return 2;
+      if (c.domain === 'dsi') return lit();
+      return 1;
     case 'groupe':
       if (e.cle === 'recommandee') return (c.vecu && c.vecuQui) ? 2 : lit();
       return (c.vecu && c.vecuQui && cleDe(c.vecuQui) === e.prenom) ? 2 : lit();

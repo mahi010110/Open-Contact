@@ -32,6 +32,10 @@ export function communityView(c, keep, moi){
     }),
     lat: c.lat, lng: c.lng, verifiedAt: c.verifiedAt, confirmations: c.confirmations, updatedAt: c.updatedAt
   };
+  /* le SIREN est public (le registre le publie) et il voyage : c'est lui
+     qui reconnaît, chez le receveur, l'entreprise qu'il a déjà sous un
+     autre nom */
+  if (c.siren) out.siren = c.siren;
   /* « j'y suis passé » : la seule chose qui transforme une candidature à
      froid (3 % d'entretiens) en candidature portée (40 %). Elle ne fuit
      pas — l'utilisateur l'a écrite sur sa piste en sachant qu'elle

@@ -15,10 +15,11 @@
    glisser. C'est ce second sens qui empêche l'animation de proliférer
    un « juste un petit fondu » à la fois.
    ============================================================ */
-import { chromium, chromiumPath, serveRepo, attendre } from './outils.mjs';
+import { chromium, chromiumPath, serveRepo, attendre, annuaireMuetPartout } from './outils.mjs';
 
 const { server, base } = await serveRepo();
 const browser = await chromium.launch({ executablePath: chromiumPath() });
+annuaireMuetPartout(browser);   /* la barre ne parle pas au vrai annuaire (outils.mjs) */
 const errors = [];
 const fail = m => { console.error('ÉCHEC :', m); process.exitCode = 1; };
 

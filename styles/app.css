@@ -755,6 +755,83 @@ html[data-theme="dark"] .field select{
   display:flex;align-items:center;gap:7px;
   font:inherit;color:inherit;letter-spacing:inherit;text-transform:inherit;
 }
+/* ============ « À DÉCOUVRIR » (docs/recherche.md, lot 2) ============
+   Ce que l'annuaire connaît et que tu n'as pas. Un cadre, des rangées
+   sans relief séparées d'un pointillé — la forme de toute liste de
+   l'app (§6) ; deux gestes par rangée, et 10 px entre eux : ouvrir
+   l'aperçu n'est pas ajouter (§5, deux conséquences, pas d'arête
+   commune). */
+.dc-h{justify-content:space-between}
+/* la source se nomme (la licence de l'annuaire le demande) : discrète,
+   mais une cible entière au doigt — c'est un lien posé seul, pas un mot
+   au milieu d'une phrase */
+.dc-src{
+  display:inline-flex;align-items:center;min-height:var(--ctl);
+  font-family:var(--font-mono);font-size:var(--text-11);font-weight:var(--weight-regular);
+  letter-spacing:0;text-transform:none;color:var(--text-muted);
+}
+.dc-list{
+  background:var(--surface-window);border:1px solid var(--border-strong);
+  border-radius:var(--radius-1);
+}
+.dc-row{
+  display:flex;align-items:center;gap:10px;padding:0 10px;
+  border-bottom:1px dashed var(--border-soft);
+}
+.dc-row:last-child{border-bottom:0}
+.dc-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;padding:9px 0;cursor:pointer;text-align:left}
+/* le nom est l'identité de la ligne : il plie, il ne se coupe pas (§4) */
+.dc-nom{
+  font-size:var(--text-14);font-weight:var(--weight-semibold);color:var(--text-body);
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;
+}
+/* la sous-ligne est une DONNÉE : elle s'élide par la fin — lieu, taille,
+   activité, dans cet ordre, c'est l'activité qu'on peut perdre */
+.dc-data{
+  font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.dc-data>span:empty{display:none}
+.dc-data>span:not(:empty)~span:not(:empty)::before{content:' · '}
+.dc-add{flex:none}
+.dc-tete{display:none}
+.dc-etat{margin:0;padding:10px 2px;font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted)}
+.dc-err{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px}
+.tr-dec .tr-more{margin-top:8px}
+@media (hover:hover){
+  .dc-main:hover .dc-nom{text-decoration:underline;text-underline-offset:3px}
+}
+/* AU POSTE, UN TABLEAU. Une colonne par donnée, et une tête qui les
+   nomme : on compare des entreprises entre elles en descendant une
+   colonne (§6 — une valeur a UN bord). Les colonnes sont des fractions
+   FIXES, partagées par la tête et chaque rangée : ni `subgrid` ni
+   requête de conteneur (§9, le socle que tout moteur rend). L'action
+   prend une largeur fixe, la même dans la tête, pour que le bord droit
+   des données ne dépende pas du mot du bouton. */
+@media (min-width:901px){
+  .tr-dec{--dc-cols:minmax(0,2fr) minmax(0,1.3fr) minmax(0,1fr) minmax(0,2fr);--dc-add:8rem}
+  .dc-tete{
+    display:grid;grid-template-columns:var(--dc-cols) var(--dc-add);column-gap:14px;
+    padding:6px 10px;border-bottom:1px solid var(--border-strong);
+    font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);
+    text-transform:uppercase;letter-spacing:.04em;
+  }
+  .dc-tete>span{min-width:0}
+  .dc-row{display:grid;grid-template-columns:minmax(0,1fr) var(--dc-add);column-gap:14px}
+  .dc-main{display:grid;grid-template-columns:var(--dc-cols);column-gap:14px;align-items:center;padding:6px 0}
+  .dc-nom{font-size:var(--text-13);-webkit-line-clamp:2}
+  .dc-data{display:contents}
+  .dc-data>span{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+  .dc-data>span:empty{display:block}
+  .dc-data>span:not(:empty)~span:not(:empty)::before{content:none}
+  .dc-data>.dc-lieu{color:var(--text-body)}
+  .dc-add{justify-self:start}
+}
+/* l'aperçu : les mêmes rangées que « À savoir » sur la fiche */
+.dc-ap .dc-q{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
+.dc-ap .dc-siren{font-family:var(--font-mono)}
+.dc-off{display:inline-flex;align-items:center;gap:6px;min-height:var(--ctl);margin-top:8px}
 .tr-late .tr-h{color:var(--amber)}
 .tr-late .tr-h .tr-n{border-color:var(--amber);background:var(--amber-wash)}
 /* replier/déplier « Bientôt » est un geste au pouce comme un autre :

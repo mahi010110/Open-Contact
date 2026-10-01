@@ -259,7 +259,7 @@ Chacun se livre dans main et se teste sur le téléphone.
 2. **« À découvrir »** : la recherche en ligne qui part seule (avec le
    tri des mots privés), la liste à cocher, l'aperçu, le SIREN (un champ
    de plus dans `CONTRAT.md`, lu en migration douce). Précédé de la preuve
-   CORS.
+   CORS. **Livré (6.45.0)** — voir « Ce que le lot 2 a appris ».
 3. **L'enrichissement et les liens** : site web (Wikidata), distance,
    toutes les informations utiles sur la fiche, les trois liens d'un tap.
 
@@ -302,6 +302,44 @@ feuilles qui choisissent des pistes (Donner, Prospecter, partage en
 groupe) cherchent encore mot à mot : leur barre n'a pas la place d'une
 rangée d'étiquettes, et le principe 1 interdit de comprendre sans le
 montrer.
+
+## Ce que le lot 2 a appris
+
+**La preuve CORS est faite** (`sonde-annuaire.mjs`, job « Transport
+public » de la CI, 1er octobre 2026) : un vrai Chromium, depuis une vraie
+origine, reçoit les réponses de l'annuaire, du service des communes et de
+Wikidata. Le même relevé a fixé ce que le moteur lit, et il a appris trois
+choses qu'aucune documentation ne disait :
+
+1. **L'annuaire limite le débit, et ça se voit.** Des appels rapprochés
+   rendent « 429 Too Many Requests ». Dans un lycée, une classe entière
+   sort par la même adresse : l'app fait une seconde tentative après un
+   court délai, espace ses deux questions, puis dit « L'annuaire est très
+   demandé » avec « Réessayer » — sans accuser le réseau.
+2. **Les établissements renvoyés gardent les FERMÉS.** Montrer une
+   adresse fermée à quelqu'un qui va y postuler, c'est l'envoyer devant
+   une porte close : ils ne servent qu'en dernier recours.
+3. **Un établissement ne porte qu'une chaîne d'adresse** (le siège, lui,
+   porte ses morceaux) : elle se coupe au code postal pour garder les deux
+   lignes du champ libre de l'app.
+
+Et quatre décisions de dessin :
+
+- **Pas de liste à cocher, un geste par ligne.** Le dessin d'origine
+  cochait puis ajoutait « (3) » par le pied. Mais ajouter n'écrase rien
+  (ce qui est déjà dans tes pistes n'apparaît pas), donc l'aperçu « 3
+  nouvelles » n'aurait rien protégé : c'est la porte que §6 refuse.
+  Chaque ligne a « Ajouter » + Annuler 30 s, et la ligne elle-même ouvre
+  l'aperçu — ce que l'annuaire sait, AVANT d'en faire une piste.
+- **Sans métier tapé, l'annuaire cherche dans le numérique** (codes 62,
+  63.11, 58.29). C'est le produit (§1) : « alternance Lille » ne veut pas
+  dire « toutes les entreprises du Nord », boulangeries comprises.
+- **Sans texte ni lieu, rien ne part.** « réseau » seul demanderait toutes
+  les ESN de France. « cyber » seul part en texte (les noms qui le
+  portent), jamais en liste nationale.
+- **Une piste ajoutée garde ce qu'on a cherché** : trouvée par « cyber »,
+  elle prend le domaine Cybersécurité — sinon elle disparaîtrait de
+  l'écran à l'instant où on l'ajoute.
 
 ## Avec le réseau
 

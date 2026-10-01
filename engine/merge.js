@@ -16,10 +16,17 @@ export function contactKey(ct){
   return n ? 'n:' + n : '';
 }
 export function findMatch(x, companies){
+  /* Le SIREN tranche avant le nom : même numéro, même entreprise, quel
+     que soit son nom (« Sopra Steria » / « SOPRA STERIA GROUP ») ; deux
+     numéros différents, deux entreprises, même homonymes. */
+  if (x.siren){
+    const meme = companies.find(c => c.siren === x.siren);
+    if (meme) return meme;
+  }
   const nk = normName(x.name);
   if (!nk) return null;
   const xCity = normName(x.city || extractCity(x.address));
-  const cands = companies.filter(c => normName(c.name) === nk);
+  const cands = companies.filter(c => normName(c.name) === nk && !(x.siren && c.siren && c.siren !== x.siren));
   if (!cands.length) return null;
   const loose = [];
   for (const c of cands){
@@ -80,6 +87,7 @@ export function mergeIncoming(list, companies){
         if (!ex[f] && x[f]){ ex[f] = String(x[f]); touched = true; }
         else if (ex[f] && x[f] && differ(ex[f], x[f])) stats.conflicts++;
       }
+      if (!ex.siren && x.siren){ ex.siren = x.siren; touched = true; }
       if ((!ex.positions || !ex.positions.length) && x.positions.length){ ex.positions = x.positions; touched = true; }
       else if (ex.positions.length && x.positions.length &&
                ex.positions.slice().sort().join() !== x.positions.slice().sort().join()) stats.conflicts++;

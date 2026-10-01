@@ -250,7 +250,8 @@ Une piste normalisée a exactement ces champs :
 **Partagé** — part dans un fichier `kind:"share"` :
 `name`, `city`, `domain`, `desc`, `address`, `website`, `techs`,
 `positions[]`, `process`, `tips`, `contacts[]`, `lat`, `lng`, `verifiedAt`,
-`confirmations`, `updatedAt`, `vecu`, `vecuQui` (+ `extra` si présent).
+`confirmations`, `updatedAt`, `vecu`, `vecuQui`, `siren` (+ `extra` si
+présent).
 
 **Privé** — ne part **jamais** dans un partage :
 `status`, `notes`, `appliedAt`, `nextAction`, `nextActionText`, `closedAt`,
@@ -332,6 +333,19 @@ Fusion : contrairement à la règle générale (§4.1, compléter les vides),
 `alternance` > `stage` > `entretien` > `connait`. Un entrant plus faible
 ou égal-mais-différent est compté en divergence, jamais importé. Rien
 n'est perdu : c'est un renforcement, pas un écrasement.
+
+**Le SIREN (`siren`, v6.45) — partagé, optionnel, absent quand vide.**
+Neuf chiffres, le numéro que le registre des entreprises publie : les
+espaces sont retirés à la normalisation, toute autre forme rend le champ
+**absent** (un faux numéro ferait fusionner deux entreprises
+différentes). Il arrive quand on ajoute une piste depuis « À découvrir »
+(`engine/annuaire.js`) et il **voyage** : c'est une information publique,
+et c'est lui qui reconnaît chez le receveur l'entreprise qu'il a déjà
+sous un autre nom. Fusion (§4) : `findMatch` le consulte **avant** le
+nom — même numéro, même piste, quel que soit son nom ; deux numéros
+différents, deux pistes, même homonymes — et un SIREN entrant complète
+une piste qui n'en avait pas (la règle générale, compléter les vides).
+Un lecteur ancien le range dans `extra` sans casse.
 
 **La prochaine action** (privée) : `nextAction` porte la **date** (ISO,
 champ historique inchangé — les anciennes données restent valides),
