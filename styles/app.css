@@ -592,6 +592,25 @@ html[data-theme="dark"] .field select{
 /* La croix vit DANS la puce : un seul bouton, qui dit ce qu'il fait
    (Baymard, filtres appliqués). Discrète — c'est le mot qu'on lit. */
 .st-chip .ic-12{margin-left:1px;opacity:.55}
+/* Le panneau des propositions de la barre vide : accroché SOUS la barre,
+   par-dessus la liste — jamais dedans, sinon il la pousse au focus et la
+   remonte au départ du curseur (voir `propsHTML`, ui/pistes.js). Les
+   puces s'y replient par rangs : toutes visibles, rien à faire défiler. */
+#piProps{position:absolute;left:0;right:0;top:100%;z-index:9}
+#piProps:empty{display:none}
+.props-pan{
+  display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;padding:8px;
+  background:var(--surface-window);border:1px solid var(--border-strong);
+  border-radius:var(--radius-1);box-shadow:var(--shadow-raised);
+}
+@media (max-width:900px){
+  /* au pouce la barre déborde jusqu'aux bords (pour coller) : le panneau,
+     lui, s'aligne sur le CHAMP */
+  #view-pistes .search-wrap #piProps{
+    left:calc(14px + env(safe-area-inset-left));right:calc(14px + env(safe-area-inset-right));
+    top:calc(100% - 10px);
+  }
+}
 /* PROPOSÉ, PAS POSÉ. Une recherche que la barre suggère (barre vide) ou
    un élargissement (« Nord (59) +3 ») n'est pas un filtre actif : trait
    pointillé, aucun relief, fond transparent — « tu peux », là où la

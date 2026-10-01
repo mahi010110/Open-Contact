@@ -354,22 +354,33 @@ const ctxBarre = () => contexteRecherche(S.companies, todayISO());
 
 /* l'état actif = des puces sous la recherche, un regard suffit (#8) —
    la croix enlève, taper la puce de tri inverse son sens */
+/* LA BARRE VIDE PROPOSE. Au moment où l'on pose le curseur, deux ou
+   trois recherches qui ont une réponse dans TES pistes, avec leur
+   compte : elles apprennent le vocabulaire sans une phrase (« ce que je
+   tape peut être une ville, un poste, un état ») et elles ne mènent
+   jamais à un écran vide. Seulement si rien ne filtre déjà : des filtres
+   posés ne s'effacent pas pour faire place à des idées.
+   ELLES SE POSENT PAR-DESSUS LA LISTE, jamais dedans. Posées dans la
+   rangée des étiquettes, elles poussaient toute la liste de 50 px au
+   moment du focus, puis la remontaient 150 ms après qu'on était parti —
+   la ligne qu'on venait de viser bougeait sous le doigt (et sous la
+   mesure de l'anneau de focus, qui l'a vu en CI avant nous). Un panneau
+   accroché à la barre, comme toute suggestion de recherche : rien ne
+   bouge en dessous. */
+function propsHTML(){
+  if (q || !barreActive || ftOn() || !sortIsDefault(st)) return '';
+  const props = propositions(S.companies, S.profile, ctxBarre());
+  return props.length
+    ? `<div class="props-pan" role="group" aria-label="Recherches proposées">${props.map(p =>
+        `<button class="prop-chip" data-prop="${esc(p.q)}"
+                 aria-label="Chercher ${esc(p.label)} — ${p.n} piste${p.n > 1 ? 's' : ''}">${
+           ic('search', 'ic-14')}${esc(p.label)}<span class="fl-n">${p.n}</span></button>`).join('')}</div>`
+    : '';
+}
+
+/* l'état actif = des puces sous la recherche, un regard suffit (#8) —
+   la croix enlève, taper la puce de tri inverse son sens */
 function chipsRowHTML(){
-  /* LA BARRE VIDE PROPOSE. Au moment où l'on pose le curseur, deux ou
-     trois recherches qui ont une réponse dans TES pistes, avec leur
-     compte : elles apprennent le vocabulaire sans une phrase (« ce
-     que je tape peut être une ville, un poste, un état ») et elles
-     ne mènent jamais à un écran vide. Seulement si rien ne filtre déjà :
-     des filtres posés ne s'effacent pas pour faire place à des idées. */
-  if (!q && barreActive && !ftOn() && sortIsDefault(st)){
-    const props = propositions(S.companies, S.profile, ctxBarre());
-    return props.length
-      ? `<div class="chips-row props-row" role="group" aria-label="Recherches proposées">${props.map(p =>
-          `<button class="prop-chip" data-prop="${esc(p.q)}"
-                   aria-label="Chercher ${esc(p.label)} — ${p.n} piste${p.n > 1 ? 's' : ''}">${
-             ic('search', 'ic-14')}${esc(p.label)}<span class="fl-n">${p.n}</span></button>`).join('')}</div>`
-      : '';
-  }
   const bits = [];
   /* CE QUE LA BARRE A COMPRIS, une étiquette par chose comprise, dans
      l'ordre où on l'a tapée. Taper l'étiquette retire SES mots du champ :
@@ -489,6 +500,7 @@ export function renderPistes(){
               même place : la suite du geste, là où l'œil est déjà */''}
          ${wide ? '<kbd class="kbd-hint kbd-bas" aria-hidden="true">↓</kbd>' : ''}
          <button class="btn" id="piAffiner">${ic('filter', 'ic-14')} Affiner</button>
+         <div id="piProps"></div>
        </div>
        <div id="piChips"></div>
        <div id="piBody"></div>
@@ -513,9 +525,12 @@ export function renderPistes(){
   };
   const rendreChips = () => {
     const chips = root.querySelector('#piChips');
-    if (!chips) return;
+    const props = root.querySelector('#piProps');
+    if (!chips || !props) return;
     chips.innerHTML = chipsRowHTML();
+    props.innerHTML = propsHTML();
     bindChips(chips);
+    bindChips(props);
   };
 
   /* le corps se re-rend seul pendant la frappe — le champ de recherche
@@ -704,7 +719,7 @@ export function renderPistes(){
        est vide, sinon les pistes — la première étant celle qu'Entrée
        aurait ouverte */
     if (e.key === 'ArrowDown'){
-      const prop = root.querySelector('#piChips .prop-chip');
+      const prop = root.querySelector('#piProps .prop-chip');
       const cible = (!q && prop) || premiere();
       if (cible){ e.preventDefault(); viser(cible); }
       return;
@@ -733,9 +748,9 @@ export function renderPistes(){
   page.addEventListener('keydown', e => {
     const t = e.target instanceof Element ? e.target : null;
     if (!t || e.altKey || e.ctrlKey || e.metaKey) return;
-    const puce = t.closest('#piChips button');
+    const puce = t.closest('#piChips button, #piProps button');
     if (puce && /^Arrow(Left|Right|Up|Down)$/.test(e.key)){
-      const puces = [...root.querySelectorAll('#piChips button')];
+      const puces = [...root.querySelectorAll(puce.closest('#piProps') ? '#piProps button' : '#piChips button')];
       const i = puces.indexOf(puce);
       const vers = e.key === 'ArrowLeft' ? puces[i - 1] : e.key === 'ArrowRight' ? puces[i + 1]
         : e.key === 'ArrowUp' ? input : premiere();

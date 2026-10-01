@@ -98,7 +98,7 @@ const lire = p => p.evaluate(() => {
     etiquettes: [...document.querySelectorAll('#piChips .et-chip')].map(n => n.textContent.trim()),
     /* une proposition : son libellé, et son compte à part — collés dans
        le texte, « Lille 4 » et « Lille 14 » se confondraient */
-    props: [...document.querySelectorAll('#piChips .prop-chip')].map(n => ({
+    props: [...document.querySelectorAll('#piProps .prop-chip, #piChips .prop-chip')].map(n => ({
       t: [...n.childNodes].filter(x => x.nodeType === 3).map(x => x.textContent).join('').replace(/\s+/g, ' ').trim(),
       n: (n.querySelector('.fl-n') || {}).textContent || '' })),
     noms,
@@ -128,8 +128,18 @@ for (const [nom, vp, touch] of [['pouce', { width: 390, height: 844 }, true],
     fail(`${nom} : la première proposition ne vient pas du profil : ${JSON.stringify(v.props)}`);
   else if (v.props.some(x => !(Number(x.n) > 0))) fail(`${nom} : une proposition sans réponse : ${JSON.stringify(v.props)}`);
   else console.log(`${nom} · barre vide : ${v.props.map(x => x.t + ' ' + x.n).join(' | ')} ✓`);
+  /* les propositions se posent PAR-DESSUS la liste : la première ligne ne
+     bouge pas d'un pixel quand le curseur arrive (elle bougeait de 50 px,
+     et l'anneau de focus l'a vu en CI) */
+  const avantY = await p.evaluate(() => document.querySelector('#piBody [data-id]').getBoundingClientRect().top);
+  await p.evaluate(() => document.activeElement.blur());
+  await p.waitForTimeout(250);
+  const sansY = await p.evaluate(() => document.querySelector('#piBody [data-id]').getBoundingClientRect().top);
+  if (Math.abs(avantY - sansY) > 0.5) fail(`${nom} : la liste bouge de ${Math.round(avantY - sansY)} px quand la barre propose`);
+  await p.click('#piQ');
+  await p.waitForTimeout(250);
   /* taper une proposition la pose dans le champ, et range le clavier */
-  await p.click('#piChips .prop-chip');
+  await p.click('#piProps .prop-chip');
   await p.waitForTimeout(300);
   const pr = await lire(p);
   const focus = await p.evaluate(() => document.activeElement && document.activeElement.id);
