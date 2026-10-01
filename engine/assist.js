@@ -230,6 +230,18 @@ function daysBetween(a, b){
    ne le relisait.
    ============================================================ */
 
+/* ---------- « Par où commencer » : ce qui n'a jamais démarré ----------
+   Une piste qu'on vient d'écrire, sans relance planifiée, revenait dans
+   « Par où commencer » avec l'icône mail — comme si on ne lui avait
+   jamais écrit (joué le 30 septembre 2026). §6 le disait pourtant :
+   une piste ENGAGÉE n'est pas à démarrer ; si elle se tait, c'est
+   `silentPistes` qui s'en occupe, au bout de `SILENCE_RELANCE` jours.
+   Le prédicat vit ici pour être le même partout où l'on propose de
+   démarrer, et pour se tester sans écran. */
+export function aDemarrer(c){
+  return !!c && !c.closedReason && (!c.status || c.status === 'todo') && !c.nextAction;
+}
+
 /* ---------- ① ce qu'on t'a donné et que tu n'as pas touché ----------
    Le cas le plus cher du produit : un camarade te tend douze pistes,
    elles atterrissent dans « Mes pistes » indifférenciées, et elles y

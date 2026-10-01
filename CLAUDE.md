@@ -70,6 +70,7 @@ autres. Ni grisée, ni « bientôt » : absente.
 | | Où |
 |---|---|
 | Pistes, fiches, suivi, prochaine action, clôture | WEB |
+| Rappel d'une prochaine action par l'agenda du téléphone | WEB |
 | Capture, anti-doublon, bac « à rattacher » | WEB |
 | Partage au groupe (QR, fichier `.oc`, coller, en direct) | WEB |
 | Sync entre MES appareils | WEB |
@@ -766,7 +767,8 @@ avec un motif existant.
 | Un journal, un historique | il RACONTE ce qui est fait : poids de texte courant, jamais le gras d'un titre — deux ou trois niveaux au maximum sur un écran (NN/g, poids visuel), et le journal vient toujours après les gestes qu'il surplombe |
 | Choisir parmi 2-5 options | `pick-list` / `.pick` — **UN cadre, des rangées sans relief**, séparées d'un pointillé : la forme de « Réglages » et de « Modèles d'emails ». Plus de pile de briques pleine largeur (voir « La taille dit le rang », sous la table). Une option ne porte pas de sous-titre qui l'explique ; à droite, au plus un état d'un mot ou un chiffre |
 | Choisir un attribut court | `.datechips` + `.dchip` — la puce fait la taille de son MOT (`flex:0 1 auto`) et le groupe se replie par rangs. Jamais une liste déroulante : on ne cache pas un petit jeu d'options |
-| Choisir une date | chips « Demain / +3 j / +7 j / Lundi » + date précise validée par OK (jamais de fermeture sur `change` seul — roue iOS) |
+| Choisir une date | chips « Demain / +3 j / +7 j / Lundi » + date précise validée par OK (jamais de fermeture sur `change` seul — roue iOS). **Quand une réponse est conseillée, elle tient le pied** : après un envoi, « Dans 7 jours » (`SILENCE_RELANCE`) sous le pouce, les puces pour un autre jour, la croix pour ne rien prévoir |
+| Rappeler une prochaine action | la case « Me le rappeler dans mon agenda » des feuilles de date (`ouvrirAgenda`, `ui/actions.js`). Une app web ne sonne pas sans serveur (§10) ; l'agenda du téléphone, si. **La forme suit l'appareil, elle ne se demande pas** (`formeAgenda`, `engine/agenda.js`) : un `.ics` pour l'agenda d'Apple, un lien Google Agenda ailleurs — Android n'ouvre pas un `.ics` sans app tierce. Appelé DANS le geste qui choisit la date, sinon le navigateur bloque. La case se souvient (`flags.rappelAgenda`) |
 | Confirmer un geste risqué | `confirmSheet` (danger = `btn-danger`). **Une porte se décide** : elle ne se justifie que si elle montre ce qu'on ne peut PAS deviner (« ce fichier contient 12 pistes, tu en as 3 »). Une question dont le message dit qu'il n'y a rien à perdre ne protège personne |
 | Geste lourd réversible | `showUndo(msg, onUndo)` — barre Annuler ~30 s. **Il remplace la confirmation**, il ne s'y ajoute pas : demander ET offrir d'annuler, c'est payer deux fois |
 | Demander un mot de passe **facultatif** | `lockRowHTML` + `bindLockRow` — au repos un bouton compact « Chiffrer » au bout de la ligne d'action ; tapé, il **s'étire en champ sur place** et l'action voisine se serre. **La ligne ne change pas de hauteur** : rien ne pousse ce qui est dessous. `value()` rend `''` serrure fermée, donc l'appelant n'a jamais à connaître l'état ; refermer **oublie** ce qui était tapé |
@@ -853,7 +855,11 @@ fait abandonner les outils de suivi :
 
 - **Seules les pistes ENGAGÉES comptent.** Une piste jamais contactée
   (`todo`) n'est pas en train de filer entre les doigts ; « Par où
-  commencer » s'en occupe. Les mélanger noierait le signal.
+  commencer » s'en occupe. Les mélanger noierait le signal. **Et
+  l'inverse vaut aussi** *(1er octobre 2026)* : « Par où commencer » ne
+  propose QUE ce qui n'a jamais démarré (`aDemarrer`). Une piste écrite
+  le matin, sans relance prévue, y revenait le soir avec l'icône mail,
+  comme si on ne lui avait jamais écrit.
 - **Rien avant sept jours.** Les seuils viennent des données de relance —
   5 à 7 jours ouvrés avant la première, une à deux semaines avant la
   seconde — pas du goût : `SILENCE_RELANCE` 7 · `SILENCE_DERNIERE` 21 ·

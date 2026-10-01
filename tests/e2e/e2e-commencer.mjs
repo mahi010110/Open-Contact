@@ -156,6 +156,33 @@ const lire = p => p.evaluate(() => {
   await ctx.close();
 }
 
+/* ---------- B ter · une piste déjà écrite n'est pas à recommencer ----------
+   Joué le 30 septembre 2026 : on écrit à Aztek, on ferme « Envoyé ✓ — et
+   ensuite ? » sans rien prévoir, et Aztek revient ici avec l'icône mail,
+   comme si on ne lui avait jamais écrit. Les deux pistes les mieux
+   classées de la graine passent donc « En cours » sans prochaine action :
+   elles doivent sortir de la tranche, et le lien du pied continuer de les
+   compter (il dit « sans prochaine action », c'est le cas). */
+{
+  /* écrites AUJOURD'HUI : une trace du jour, sinon elles passeraient pour
+     silencieuses depuis des années et « Sans nouvelles » prendrait la
+     tranche — ce ne serait plus le cas joué */
+  const jour = new Date().toISOString().slice(0, 10);
+  const ecrites = RECUES.map((c, i) => i < 2
+    ? { ...c, status: 'active', history: [{ d: jour, t: 'Email envoyé — Personne 0' }] } : c);
+  const { ctx, p } = await ecran(390, ecrites);
+  const montrees = await p.evaluate(() =>
+    [...document.querySelectorAll('#view-aujourdhui .act-start .act-verb')].map(n => n.textContent.trim()));
+  const pied = await p.evaluate(() => (document.querySelector('#tdNoAct') || {}).textContent || '');
+  if (!montrees.length) fail('plus aucune piste à démarrer alors que six n’ont jamais été contactées');
+  else if (montrees.some(n => n === ecrites[0].name || n === ecrites[1].name))
+    fail('une piste déjà écrite revient dans « Par où commencer » : ' + JSON.stringify(montrees));
+  else if (!/^8 pistes sans prochaine action/.test(pied.trim()))
+    fail('le lien du pied doit compter toutes les pistes sans suite, écrites comprises : ' + JSON.stringify(pied));
+  else console.log(`déjà écrites : hors de « Par où commencer » (${montrees.join(', ')}), toujours comptées dans le pied ✓`);
+  await ctx.close();
+}
+
 /* ---------- C · une fois planifié, l'écran de travail reprend la main ---------- */
 {
   const jour = n => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
