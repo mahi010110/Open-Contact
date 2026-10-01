@@ -2,7 +2,7 @@
    OpenContact — interface · capture d'une piste (#7, #3)
    Une piste = l'entreprise ET le contact, saisis ensemble. Deux
    formulaires, un par appareil : au pouce trois champs et la
-   rafale (« Suivant » enchaîne, « Compléter » ouvre la fiche) ;
+   rafale (« Ajouter » enchaîne, « Compléter » ouvre la fiche) ;
    sur l’ordinateur le formulaire complet d'emblée — le même que
    « Modifier » — et un seul bouton, « Terminer ». Une personne
    sans entreprise part dans le bac « à rattacher » — jamais
@@ -167,9 +167,14 @@ export function openCapture(prefill){
   };
 
   /* Le bouton primaire dit ce qu'il fait sur CET appareil : au pouce
-     « Suivant » enchaîne la piste d'après, sur l’ordinateur « Terminer »
-     ferme — le formulaire y est déjà complet, il n'y a rien à compléter. */
-  const LABEL = wide ? 'Terminer' : 'Suivant';
+     « Ajouter » enregistre et laisse la feuille ouverte pour la piste
+     d'après, sur l’ordinateur « Terminer » ferme — le formulaire y est
+     déjà complet, il n'y a rien à compléter.
+     Ce n'est plus « Suivant » (1er octobre 2026) : joué sur un téléphone
+     neuf, le mot faisait attendre une étape 2 — on tapait, les champs se
+     vidaient, et rien ne disait que la piste était enregistrée. Le
+     bouton dit le geste, pas la suite (§7). */
+  const LABEL = wide ? 'Terminer' : 'Ajouter';
   const bPrim = btn(LABEL, 'btn-primary', () => {
     const c = save();
     if (c === undefined) return;

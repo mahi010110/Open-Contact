@@ -69,7 +69,7 @@ export function openDonner(){
     return leaving;
   };
   const enter = () => { gen++; leaveRdv(); return gen; };
-  const sh = openSheet({ title: 'Donner', icon: 'share', onClose: () => { gen++; leaveRdv(); } });
+  const sh = openSheet({ title: 'Donner', icon: 'share', className: 'modal-donner', onClose: () => { gen++; leaveRdv(); } });
   const q = s => sh.body.querySelector(s);
 
   /* ---- l'écran : QR ou fichier — tout part par défaut, élagable ---- */
@@ -90,7 +90,13 @@ export function openDonner(){
        surface rend la plus probable : le QR au pouce, le fichier au poste. */
     const bQR = btn('QR', wide ? '' : 'btn-primary', stepQR, 'grid-3x3');
     const bFile = btn('Fichier', wide ? 'btn-primary' : '', stepFile, 'file');
-    bQR.id = 'dnQR'; bFile.id = 'dnFile';
+    /* « Texte » manquait ici, alors que « Recevoir » le propose de l'autre
+       côté : le canal vivait sous « Fichier → Copier », c'est-à-dire sous
+       un autre mot et une étape plus loin. C'est pourtant celui du groupe
+       WhatsApp de la classe — joué le 30 septembre 2026, le plus enfoui
+       des trois. Le pied dit maintenant les trois mots de « Recevoir ». */
+    const bText = btn('Texte', '', donnerTexte, 'clipboard');
+    bQR.id = 'dnQR'; bFile.id = 'dnFile'; bText.id = 'dnText';
     /* CE QUI MANQUE SE DIT LÀ OÙ L'ON DÉCIDE. Écarter quelqu'un dans la
        fiche d'une piste se voit sur SA ligne (« 2 sur 3 ») — mais vingt
        lignes plus bas, plus rien ne le rappelle. Le total vivait en tête
@@ -102,7 +108,7 @@ export function openDonner(){
     const sCut = document.createElement('span');
     sCut.className = 'dn-cut';
     sCut.hidden = true;
-    sh.setFoot(wide ? [sCut, bFile, bQR] : [sCut, bQR, bFile]);
+    sh.setFoot(wide ? [sCut, bFile, bText, bQR] : [sCut, bQR, bFile, bText]);
     sh.body.innerHTML = barreListeHTML({ q: qs, ft, st, tout: !unsel.size,
       n: chosen().length, total: alive().length }) + '<div id="dnItems"></div>';
 
@@ -125,7 +131,7 @@ export function openDonner(){
       /* rien de coché = rien à envoyer : l'action est IMPOSSIBLE, elle se
          désactive. Avant, elle dépliait la liste pour dire ce qui
          manquait — un détour qui n'existe plus, la liste étant là. */
-      for (const b of [bQR, bFile]) b.disabled = !k;
+      for (const b of [bQR, bFile, bText]) b.disabled = !k;
     };
     const listed = () => filterCompanies(alive(), { q: qs, ...filterArgs(ft), ...sortArgs(st) });
     /* Les LIGNES seules. Séparées de la barre parce que le champ de
@@ -438,24 +444,62 @@ export function openDonner(){
     } catch (e) { /* sans portage : le direct et le repli restent */ }
   };
 
-  /* ---- fichier .oc : case « Chiffrer », 3 sorties ---- */
+  /* le même mot pour le même résultat : le fichier OU le texte est parti
+     par la feuille de partage, donc hors de l'écran (§6, famille ②) */
+  const parti = () => toast('Parti ✓');
+
+  /* ---- texte : un geste, pas une étape ----
+     Au téléphone, la feuille de partage l'envoie d'un geste là où la
+     classe se parle ; ailleurs, il se copie. Pas de cadenas : qui veut un
+     mot de passe passe par « Fichier ». Rien ne s'écrit au journal tant
+     que rien n'est parti — un partage annulé n'a rien donné. */
+  const donnerTexte = async () => {
+    const list = chosen();
+    if (!list.length) return;
+    const ids = list.map(c => c.id);
+    const txt = JSON.stringify(sharePayload(list, keepFn, moiQui()));
+    const noter = () => logJ('Donné (texte) : ' + list.length + ' piste(s)', null, ids);
+    if (navigator.share){
+      try {
+        await navigator.share({ title: 'Pistes OpenContact', text: txt });
+        noter();
+        parti();
+        return;
+      } catch (e) {
+        if (e && e.name === 'AbortError') return;      /* annulé : rien ne part */
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(txt);
+      noter();
+      toast('Copié — colle-le où tu veux.');
+    } catch (e) { toast('Copie impossible ici — passe par Fichier.'); }
+  };
+
+  /* ---- fichier .oc : case « Chiffrer », deux sorties ---- */
   const stepFile = () => {
     enter();
     const n = chosen().length;
     const ids = chosen().map(c => c.id);
     const fname = 'opencontact-pistes-' + todayISO() + '.oc';
     sh.setTitle(`Fichier — ${n} piste${n > 1 ? 's' : ''}`);
+    /* « Copier » est parti avec le texte (bouton « Texte » du pied). Sans
+       feuille de partage (un poste sous Linux, Firefox), il ne reste donc
+       qu'un geste : il redevient un bouton à sa taille, parce qu'une liste
+       d'un seul geste n'est que la brique d'avant sous un autre nom (§6). */
+    const dl = `<b>${ic('download', 'ic-14')} Télécharger</b>`;
     sh.body.innerHTML =
-      `<div class="pick-list">
-         ${navigator.share ? `<button class="pick" id="dnShare"><b>${ic('share', 'ic-14')} Partager</b></button>` : ''}
-         <button class="pick" id="dnDl"><b>${ic('download', 'ic-14')} Télécharger</b></button>
-         <button class="pick" id="dnCopy"><b>${ic('copy', 'ic-14')} Copier</b></button>
-       </div>
-       ${/* Le même objet que « Ma copie » (ui/dom.js) : la case à cocher,
+      (navigator.share
+        ? `<div class="pick-list">
+             <button class="pick" id="dnShare"><b>${ic('share', 'ic-14')} Partager</b></button>
+             <button class="pick" id="dnDl">${dl}</button>
+           </div>`
+        : `<button class="btn btn-sm" id="dnDl">${dl}</button>`) +
+      `${/* Le même objet que « Ma copie » (ui/dom.js) : la case à cocher,
             son libellé, le champ et son cadre pesaient quatre lignes pour
             une question facultative. Ici le cadenas n'a pas de bouton à
-            côté de lui — les trois sorties sont au-dessus — il prend donc
-            la ligne entière en s'ouvrant. */''}
+            côté de lui — les sorties sont au-dessus — il prend donc la
+            ligne entière en s'ouvrant. */''}
        <div style="margin-top:12px">${lockRowHTML({ id: 'dnCrypt' })}</div>
        <p class="hint" id="dnWarn" hidden>Perdu = irrécupérable.</p>`;
     const lock = bindLockRow(sh.body, 'dnCrypt', on => { q('#dnWarn').hidden = !on; });
@@ -479,7 +523,7 @@ export function openDonner(){
       try {
         if (navigator.canShare && navigator.canShare({ files: [file] })) await navigator.share({ files: [file], title: 'Pistes OpenContact' });
         else await navigator.share({ title: 'Pistes OpenContact', text: txt });
-        toast('Parti ✓');
+        parti();
       } catch (e) { /* partage annulé : pas une erreur */ }
     });
     q('#dnDl').addEventListener('click', async () => {
@@ -493,12 +537,6 @@ export function openDonner(){
       a.remove();
       setTimeout(() => URL.revokeObjectURL(a.href), 4000);
       toast('Fichier téléchargé ✓');
-    });
-    q('#dnCopy').addEventListener('click', async () => {
-      const txt = await make();
-      if (txt == null) return;
-      try { await navigator.clipboard.writeText(txt); toast('Copié — colle-le où tu veux.'); }
-      catch (e) { toast('Copie impossible ici — passe par Télécharger.'); }
     });
     sh.setFoot([btn('← Retour', 'btn-ghost', stepHow)]);
   };

@@ -151,6 +151,12 @@ await M.click('.bottomnav a[data-r="aujourdhui"]');
 await M.waitForSelector('#view-aujourdhui:not([hidden])');
 await M.click('#bnAdd');
 await M.waitForSelector('#cpName');
+/* le bouton dit le GESTE : il enregistre et laisse la feuille ouverte.
+   « Suivant » faisait attendre une étape 2 (1er octobre 2026). */
+{
+  const mot = (await M.textContent('.overlay .modal-f .btn-primary') || '').trim();
+  if (mot !== 'Ajouter') fail('au pouce, la capture doit dire « Ajouter » : ' + JSON.stringify(mot));
+}
 await M.fill('#cpName', 'Boulangerie Cyber SARL');
 await M.fill('#cpCtName', 'Sam Roubaix');
 await M.fill('#cpCtCoord', 'sam@boulangeriecyber.fr');

@@ -176,6 +176,7 @@ const SURFACES = [
   ['capture', p => p.evaluate(() => import('./ui/capture.js').then(m => m.openCapture()))],
   ['donner', p => p.evaluate(() => import('./ui/donner.js').then(m => m.openDonner()))],
   ['donner · fichier', async p => { await p.evaluate(() => import('./ui/donner.js').then(m => m.openDonner())); await p.click('#dnFile'); }],
+  ['donner · fichier, avec partage', async p => { await p.evaluate(() => { navigator.share = async () => {}; return import('./ui/donner.js').then(m => m.openDonner()); }); await p.click('#dnFile'); }],
   ['recevoir', p => p.evaluate(() => import('./ui/recevoir.js').then(m => m.openRecevoir()))],
   ['depuis mes e-mails', p => p.evaluate(() => import('./ui/recevoir.js').then(m => m.openImportMails()))],
   ['mes appareils', p => p.evaluate(() => import('./ui/direct.js').then(m => m.openAppareils()))],

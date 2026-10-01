@@ -534,6 +534,16 @@ html[data-theme="dark"] .field select{
    compte qui crie pour un geste défaisable d'un tap. */
 .dn-cut{flex:1 0 100%;order:-1;text-align:left;
   font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
+/* Les TROIS canaux sur une rangée, au pouce aussi. La règle générale du
+   pied (`flex:1 1 40%`) en case deux par rang : « Texte », arrivé le
+   1er octobre 2026, tombait seul sur un second rang, étiré sur toute la
+   largeur — un bouton secondaire plus large que le primaire, et la
+   symétrie avec « Recevoir » (QR · Fichier · Texte) perdue. Ici les trois
+   se partagent la rangée ; à texte agrandi ils se replient (WCAG 1.4.10),
+   jamais un libellé coupé. */
+@media (max-width:900px){
+  .modal-donner .modal-f .btn{flex:1 1 0;min-width:max-content}
+}
 /* La case tient l'AXE des cases de la liste : c'est ce qui la fait lire
    « tout cocher » sans le mot. Une ligne de liste est en retrait de son
    cadre (1 px de trait + 14 px de marge) ; le segment reprend ce retrait

@@ -76,7 +76,7 @@ function rowHTML(c){
   return (
     `<div class="act-row" data-id="${c.id}">
        <div class="act-under act-under-done">${ic('check', 'ic-14')} Fait</div>
-       <div class="act-under act-under-report">${ic('clock', 'ic-14')} Reporter</div>
+       <div class="act-under act-under-report">${ic('calendar', 'ic-14')} Reporter</div>
        <div class="act-in">
          <div class="act-main sw-cible" role="button" tabindex="0" aria-label="Ouvrir ${esc(c.name)}">
            <b class="act-verb">${esc(c.name)}</b>
@@ -84,7 +84,12 @@ function rowHTML(c){
          </div>
          <div class="act-btns">
            <button class="abtn" data-a="mail" aria-label="Écrire à ${esc(c.name)}" title="Écrire">${ic('mail')}</button>
-           <button class="abtn" data-a="report" aria-label="Reporter" title="Reporter">${ic('clock')}</button>
+           ${/* le CALENDRIER, comme « Planifier » une tranche plus haut :
+                c'est la même question — quelle date — et elle avait deux
+                dessins. L'horloge, elle, ne se devinait pas (1er octobre
+                2026) ; elle reste à « Sans nouvelles », où elle dit le
+                temps qui passe. */''}
+           <button class="abtn" data-a="report" aria-label="Reporter ${esc(c.name)}" title="Reporter">${ic('calendar')}</button>
            <button class="abtn abtn-ok" data-a="done" aria-label="Fait" title="Fait">${ic('check')}</button>
          </div>
        </div>
