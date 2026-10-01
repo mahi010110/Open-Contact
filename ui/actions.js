@@ -115,7 +115,7 @@ export function askNextAction(c, opts){
 /* « Reporter à quand ? » — le verbe ne change pas, seulement la date */
 export function reportAction(c){
   const choix = dateChoices();
-  const sh = openSheet({ title: 'Reporter', icon: 'clock' });
+  const sh = openSheet({ title: 'Reporter', icon: 'calendar' });
   sh.body.innerHTML =
     `<div class="na-company">${esc(c.nextActionText || 'Faire le point')} — ${esc(c.name)}</div>
      ${/* EXACTEMENT les raccourcis d'« Et ensuite ? ». C'est la même

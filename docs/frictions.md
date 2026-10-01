@@ -75,8 +75,13 @@ brouillons par l'assistant, puis l'envoi direct une fois décidé.
 
 Profil vide, au téléphone, comme un étudiant qui la découvre.
 
-**Corrigées** (6.41.0) : le toast étiré sur la capture, et le premier mail
-qui partait avec ses crochets et sans signature (§6, §7).
+**Corrigées** :
+- 6.41.0 : le toast étiré sur la capture, et le premier mail qui partait
+  avec ses crochets et sans signature (§6, §7) ;
+- 6.42.0 : « Reporter » porte le calendrier de « Planifier » (même
+  question, même dessin) ; la capture dit « Ajouter » au lieu de
+  « Suivant » ; « Donner » propose « Texte » à côté de QR et Fichier,
+  les mots de « Recevoir », et l'envoie par la feuille de partage.
 
 **Restent :**
 
@@ -86,9 +91,6 @@ qui partait avec ses crochets et sans signature (§6, §7).
 | Fermer « Envoyé ✓ — et ensuite ? » ne planifie rien | la piste revient dans « Par où commencer » avec l'icône mail, comme si on ne lui avait jamais écrit | une relance proposée **par défaut** (7 jours, `SILENCE_RELANCE`) ; décider « quand » aide nettement à faire (effet de 0,65, Gollwitzer et Sheeran, 2006) ; et « Par où commencer » ne garde que les pistes jamais contactées, comme §6 le dit déjà |
 | Dire « c'est envoyé » exige de revenir | parti depuis Gmail, l'app croit que rien n'est parti | l'envoi direct le règle ; sinon, le pied « Envoyée ✓ » au retour existe déjà |
 | La page blanche de l'accroche | une piste neuve n'a ni notes ni site à montrer | les brouillons par l'assistant ; le lot 3 de la barre |
-| Des icônes sans mot sur « Aujourd'hui » | enveloppe, horloge, coche : l'horloge (« Reporter ») ne se devine pas | un mot, ou un pictogramme plus parlant (§7 : la compréhension avant la brièveté) |
-| « Suivant » dans la nouvelle piste | le bouton enregistre et vide les champs, le mot fait attendre une étape 2 | un verbe qui dit le geste (« Ajouter ») |
-| Le même canal porte deux noms | « Donner → Fichier → Copier » d'un côté, « Texte » de l'autre ; le groupe WhatsApp de la classe est caché sous « Fichier » | §7 : un objet, un mot — « Texte » des deux côtés |
 
 ---
 

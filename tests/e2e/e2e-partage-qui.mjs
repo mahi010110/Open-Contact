@@ -83,13 +83,33 @@ const compte = (await page.textContent('.dn-cut')).replace(/\s+/g, ' ').trim();
 if (!/1 personne écartée/.test(compte)) fail('l’écran doit dire ce qui manque : ' + compte);
 console.log('écarter quelqu’un : « 2 sur 3 », et le compteur le dit ✓');
 
+/* ---------- UN OBJET, UN MOT, des deux côtés (§7) ----------
+   « Donner » cachait le texte sous « Fichier → Copier » pendant que
+   « Recevoir » l'appelait « Texte » (1er octobre 2026). Les deux
+   feuilles disent désormais les trois mêmes mots. */
+{
+  const donner = await page.evaluate(() =>
+    [...document.querySelectorAll('.overlay:last-of-type .modal-f .btn')].map(b => b.textContent.trim()).sort());
+  const recevoir = await page.evaluate(async () => {
+    (await import('./ui/recevoir.js')).openRecevoir();
+    await new Promise(r => setTimeout(r, 300));
+    const mots = [...document.querySelectorAll('.overlay:last-of-type .modal-b .pick b')].map(b => b.textContent.trim()).sort();
+    (await import('./ui/dom.js')).topSheet()?.close(null, true);
+    await new Promise(r => setTimeout(r, 300));
+    return mots;
+  });
+  if (String(donner) !== String(recevoir))
+    fail(`« Donner » et « Recevoir » ne disent pas les mêmes mots : ${donner} / ${recevoir}`);
+  else console.log(`les deux côtés disent les mêmes mots : ${donner.join(' · ')} ✓`);
+}
+
 /* ---------- ce qui sort RÉELLEMENT du fichier ---------- */
 await page.evaluate(() => {
   window.__copie = null;
   navigator.clipboard.writeText = t => { window.__copie = t; return Promise.resolve(); };
 });
 await page.click('#dnFile');
-await page.waitForSelector('#dnCopy');
+await page.waitForSelector('#dnDl');
 /* Le titre d'une feuille à étapes doit SUIVRE l'étape. `setTitle` visait
    `.modal-h h2 span`, c'est-à-dire le premier span — celui de l'icône :
    il écrivait donc le nouveau titre là où le masque de l'icône le cache,
@@ -104,7 +124,14 @@ const ariaEtape = await page.getAttribute('.overlay:last-of-type .modal', 'aria-
 if (!/Fichier/.test(ariaEtape || ''))
   fail('le nom annoncé du dialogue doit suivre aussi : ' + JSON.stringify(ariaEtape));
 console.log('le titre de la feuille suit l’étape ✓');
-await page.click('#dnCopy');
+/* Ce qui sort se lit par « Texte », le mot de « Recevoir » : le texte et
+   le fichier portent le même contenu, et « Copier » a quitté l'étape
+   « Fichier » pour le pied (1er octobre 2026). Sans feuille de partage
+   — c'est le cas ici —, le texte se copie. */
+await page.evaluate(() => { try { delete navigator.share; } catch (e) {} });
+await page.locator('.overlay:last-of-type .modal-f .btn').filter({ hasText: 'Retour' }).click();
+await page.waitForSelector('#dnText');
+await page.click('#dnText');
 await attendre(page, () => !!window.__copie, { timeout: 6000, message: 'fichier copié' });
 const paye = await page.evaluate(() => JSON.parse(window.__copie));
 const parNom = Object.fromEntries(paye.companies.map(c => [c.name, c]));

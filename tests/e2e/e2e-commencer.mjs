@@ -61,6 +61,12 @@ const lire = p => p.evaluate(() => {
     /* les gestes qui n'ouvrent PAS un autre écran : écrire, planifier,
        finir, reporter — ce sont eux qui font avancer la recherche */
     gestes: [...v.querySelectorAll('.act-row [data-a]')].map(n => n.dataset.a),
+    /* le dessin de chaque geste : « Planifier » et « Reporter » posent la
+       MÊME question — quelle date — donc le même pictogramme (1er octobre
+       2026 : l'horloge de « Reporter » ne se devinait pas) */
+    icones: Object.fromEntries([...v.querySelectorAll('.act-row [data-a] .ic')]
+      .map(i => [i.closest('[data-a]').dataset.a,
+        (i.style.maskImage || i.style.webkitMaskImage || '').replace(/^.*icons\/|\.svg.*$/g, '')])),
     cibles: [...v.querySelectorAll('button, a[href], [role="button"]')]
       .filter(n => n.getClientRects().length).map(cible).filter(Boolean),
     pageWide: !!v.querySelector('.page-inner.page-wide'),
@@ -162,6 +168,8 @@ const lire = p => p.evaluate(() => {
   if (!c.lignes) fail('les actions planifiées ne s’affichent plus');
   if (!c.gestes.includes('done') || !c.gestes.includes('report'))
     fail('les lignes planifiées ont perdu « Fait » / « Reporter »');
+  else if (c.icones.report !== 'calendar')
+    fail(`« Reporter » doit porter le calendrier de « Planifier » — même question, même dessin : ${c.icones.report}`);
   else console.log(`travail planifié : ${c.lignes} lignes, gestes ${[...new Set(c.gestes)].join('+')} ✓`);
   await ctx.close();
 
