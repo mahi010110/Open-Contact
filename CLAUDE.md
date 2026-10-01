@@ -73,6 +73,7 @@ autres. Ni grisée, ni « bientôt » : absente.
 | Rappel d'une prochaine action par l'agenda du téléphone | WEB |
 | « À découvrir » : l'annuaire public des entreprises depuis la barre | WEB |
 | La fiche enrichie : l'annuaire, le site (Wikidata), trois liens d'un tap | WEB |
+| « Mon parcours » dans le profil, et la ligne « Expérience » du mail | WEB |
 | Capture, anti-doublon, bac « à rattacher » | WEB |
 | Partage au groupe (QR, fichier `.oc`, coller, en direct) | WEB |
 | Sync entre MES appareils | WEB |

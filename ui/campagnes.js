@@ -438,7 +438,7 @@ export function openCampaignWizard(list){
        <details class="pcard pcard-details"><summary><h3>${ic('eye', 'ic-14')} Voir les ${targets.length} emails remplis</h3></summary>
          ${targets.slice(0, 30).map(t =>
            `<div class="cz-preview"><b>${esc(t.who || t.name || t.email)}</b> · ${esc(t.company)}<br>
-              <span class="cz-subj">${esc(fillTpl(draft.subject, t.companyObj, t, S.profile))}</span></div>`).join('')}
+              <span class="cz-subj">${esc(fillTpl(draft.subject, t.companyObj, t, S.profile, { companies: S.companies }))}</span></div>`).join('')}
        </details>
        ${skipped.length ? `<p class="hint warn">${skipped.length} piste${skipped.length > 1 ? 's' : ''} sans email — écartée${skipped.length > 1 ? 's' : ''} : ${esc(skipped.map(c => c.name).join(', ').slice(0, 120))}</p>` : ''}
        ${acct || compAvailable ? '' : `<p class="hint warn" id="czCxHint">Connecte ta messagerie pour envoyer depuis l’app. <button class="linklike" id="czCx" style="min-height:0;padding:0 4px">Connecter</button></p>`}

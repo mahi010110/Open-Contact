@@ -6,8 +6,9 @@
    données de l'application — aucun accès au DOM.
    ============================================================ */
 import { uid, extractCity, todayISO, fmtDate } from './utils.js';
+import { normalizeParcours, parcoursDe, phraseParcours } from './parcours.js';
 
-export const APP_VERSION = '6.46.0';
+export const APP_VERSION = '6.47.0';
 
 export const DOMAINS = {
   esn:     { label:'ESN / Services IT',       color:'#4C9FD8' },
@@ -342,10 +343,14 @@ const MODELE_CANDIDATURE = `Bonjour {{contact}},
 
 Je suis en {{formation}} et je cherche {{recherche}}.
 Rythme : {{rythme}}
+Expérience : {{parcours}}
 Mon CV : {{cv}}
 Je peux passer en parler quand vous voulez.
 
 ${SIGNATURE}`;
+/* le même, tel que les versions 6.31 à 6.46 l'écrivaient — avant la
+   ligne « Expérience » (docs/reseau.md, lot 1) */
+const CANDIDATURE_6_31 = MODELE_CANDIDATURE.replace('Expérience : {{parcours}}\n', '');
 const MODELE_RELANCE = `Bonjour {{contact}},
 
 Je reviens vers vous au sujet de ma candidature.
@@ -355,15 +360,16 @@ Je reviens vers vous au sujet de ma candidature.
 Toujours très motivé pour vous rejoindre — je reste dispo.
 
 ${SIGNATURE}`;
-/* Les modèles de départ tels que la 6.30 les écrivait. Un modèle que
+/* Les modèles de départ tels que les versions passées les écrivaient
+   (6.30, puis 6.31 à 6.46). Un modèle que
    l'étudiant n'a JAMAIS retouché — objet et corps identiques au
-   caractère près — passe à la version d'aujourd'hui : sans ça, l'école
+   caractère près à l'une d'elles — passe à la version d'aujourd'hui : sans ça, l'école
    et la recherche n'atteindraient jamais les mails de ceux qui ont
    déjà l'app, c'est-à-dire de tout le monde. Un modèle modifié, même
    d'une virgule, n'est jamais touché (invariant ②). */
-const MODELES_6_30 = {
+const MODELES_ANCIENS = {
   'Candidature spontanée': {
-    avant: { subject: 'Candidature stage {{formation}} — {{moi}}', body: `Bonjour {{contact}},
+    avant: [{ subject: 'Candidature {{type}} {{formation}} — {{moi}}', body: CANDIDATURE_6_31 }, { subject: 'Candidature stage {{formation}} — {{moi}}', body: `Bonjour {{contact}},
 
 [Une phrase précise sur ce qu'ils font. Pas « votre entreprise m'intéresse » — ils le lisent dix fois par jour.]
 
@@ -371,11 +377,11 @@ Je suis en {{formation}} et je cherche un stage. Mon CV : {{cv}}
 Je peux passer en parler quand vous voulez.
 
 Bien à vous,
-{{moi}} — {{tel}} — {{email}}` },
+{{moi}} — {{tel}} — {{email}}` }],
     apres: { subject: 'Candidature {{type}} {{formation}} — {{moi}}', body: MODELE_CANDIDATURE }
   },
   'Relance': {
-    avant: { subject: 'Toujours intéressé — {{formation}} chez {{entreprise}}', body: `Bonjour {{contact}},
+    avant: [{ subject: 'Toujours intéressé — {{formation}} chez {{entreprise}}', body: `Bonjour {{contact}},
 
 Je reviens vers vous au sujet de ma candidature pour un stage.
 
@@ -384,15 +390,15 @@ Je reviens vers vous au sujet de ma candidature pour un stage.
 Toujours très motivé pour vous rejoindre — je reste dispo.
 
 Bien à vous,
-{{moi}} — {{tel}} — {{email}}` },
+{{moi}} — {{tel}} — {{email}}` }],
     apres: { subject: 'Toujours intéressé — {{formation}} chez {{entreprise}}', body: MODELE_RELANCE }
   }
 };
 export function majModelesDefaut(templates){
   if (!Array.isArray(templates)) return templates;
   return templates.map(t => {
-    const m = t && MODELES_6_30[t.name];
-    if (!m || t.subject !== m.avant.subject || t.body !== m.avant.body) return t;
+    const m = t && MODELES_ANCIENS[t.name];
+    if (!m || !m.avant.some(a => t.subject === a.subject && t.body === a.body)) return t;
     return { ...t, subject: m.apres.subject, body: m.apres.body };
   });
 }
@@ -467,7 +473,7 @@ export function defaultProfile(){
   return { name:'', formation:'', ecole:'', recherche:'', debut:'', fin:'', rythme:'',
            phone:'', email:'', cvUrl:'', portfolio:'', letter:'',
            templates: defaultTemplates(), prompts: defaultPrompts(),
-           confirmedIds: [], flags: {}, updatedAt: 0 };
+           parcours: [], confirmedIds: [], flags: {}, updatedAt: 0 };
 }
 /* remet un profil (chargé, importé ou restauré) aux invariants attendus */
 export function normalizeProfile(raw){
@@ -487,6 +493,7 @@ export function normalizeProfile(raw){
     name: (String((p && p.name) || '').trim() || 'Prompt').slice(0, 60),
     text: String((p && p.text) || '').slice(0, PROMPT_MAX_LEN)
   }));
+  profile.parcours = normalizeParcours(profile.parcours);
   if (!Array.isArray(profile.confirmedIds)) profile.confirmedIds = [];
   if (!profile.flags || typeof profile.flags !== 'object') profile.flags = {};
   profile.updatedAt = Number(profile.updatedAt) || 0;   /* LWW entre appareils */
@@ -559,14 +566,16 @@ export function modeleConseille(templates, c){
 /* les jetons qui viennent de la recherche et de l'école — partagés avec
    l'aperçu du composeur de modèles, pour qu'un jeton se lise pareil
    dans l'éditeur et dans le mail */
-export function jetonsRecherche(profile){
+export function jetonsRecherche(profile, companies){
   const p = profile || {};
   const r = RECHERCHES[p.recherche] || RECHERCHES.stage;
   return {
     ecole: String(p.ecole || '').trim(),
     type: r.type,
     recherche: phraseRecherche(p),
-    rythme: p.recherche === 'alternance' ? String(p.rythme || '').trim() : ''
+    rythme: p.recherche === 'alternance' ? String(p.rythme || '').trim() : '',
+    /* ton parcours, déduit de tes pistes compris — d'où `companies` */
+    parcours: phraseParcours(parcoursDe(p, companies))
   };
 }
 /* LES DEUX MANQUES QUI RENDENT UN MAIL FAUX. Sans formation, la
@@ -584,7 +593,7 @@ export const TROUS = { formation: 'ta formation', moi: 'ton nom' };
    `trous` : les manques de `TROUS` deviennent des crochets au lieu de
    s'effacer — pour un brouillon qu'on relit, jamais pour un envoi en
    série qui n'a personne pour les remplir. */
-export function fillTpl(str, c, ct, profile, { trous = false } = {}){
+export function fillTpl(str, c, ct, profile, { trous = false, companies } = {}){
   const m = {
     entreprise: c.name || '',
     contact: (ct && ct.name) || 'Madame, Monsieur',
@@ -592,7 +601,7 @@ export function fillTpl(str, c, ct, profile, { trous = false } = {}){
     moi: profile.name || '', formation: profile.formation || '',
     tel: profile.phone || '', email: profile.email || '',
     cv: profile.cvUrl || '', portfolio: profile.portfolio || '',
-    ...jetonsRecherche(profile)
+    ...jetonsRecherche(profile, companies)
   };
   const trou = k => trous && !m[k] && Object.hasOwn(TROUS, k);
   const creux = k => !m[k] && !trou(k);
