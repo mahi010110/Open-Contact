@@ -123,8 +123,8 @@ function choixHTML(c){
   return (
     `<p class="fa-q">C’est laquelle ?</p>
      <div class="pick-list fa-choix">${e.liste.map(r =>
-       `<button class="pick" data-fa-pick="${esc(r.siren)}"><span class="pk-m"><b>${esc(r.nom)}</b><span>${
-         esc([r.ville, r.effectif, r.activite || r.naf].filter(Boolean).join(' · '))}</span></span>${ic('chevron-right', 'ic-14')}</button>`).join('')}
+       `<button class="pick" data-fa-pick="${esc(r.siren)}"><div class="pk-m"><b>${esc(r.nom)}</b><span>${
+         esc([r.ville, r.effectif, r.activite || r.naf].filter(Boolean).join(' · '))}</span></div>${ic('chevron-right', 'ic-14')}</button>`).join('')}
      </div>`);
 }
 

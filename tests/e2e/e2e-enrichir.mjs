@@ -76,7 +76,8 @@ function services(ctx){
       return route.fulfill({ status: m.statut, contentType: 'text/plain', headers: { 'access-control-allow-origin': '*' }, body: 'non' });
     const q = new URL(u).searchParams.get('q') || '';
     const results = q === '812345678' ? [ADVENS]
-      : /lumen/i.test(q) ? [LUMEN('856123456', 'LUMEN DATA', 'LILLE', '59000'), LUMEN('857000111', 'LUMEN DATA CONSEIL', 'LILLE', '59800')]
+      : /lumen/i.test(q) ? [LUMEN('856123456', 'LUMEN DATA', 'LILLE', '59000'), LUMEN('857000111', 'LUMEN DATA CONSEIL', 'LILLE', '59800'),
+                            LUMEN('858000222', 'LUMEN DATA GLOBAL SOLUTIONS CENTRE DE SERVICES PARTAGES', 'LILLE', '59000')]
       : [];
     return route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' },
       body: JSON.stringify({ results, total_results: results.length }) });
@@ -278,7 +279,14 @@ const annuler = async p => {
   if (u.searchParams.get('q') !== 'Lumen Data' || u.searchParams.get('departement') !== '59')
     fail('la recherche par nom ne porte pas le nom et le département : ' + u.search);
   for (const x of sv.journal){ const w = fuite(x); if (w) fail(`« ${w} » est sorti : ${x}`); }
-  if (b.choix.join('|') !== 'Lumen Data|Lumen Data Conseil') fail('candidats : ' + b.choix);
+  if (b.choix.join('|') !== 'Lumen Data|Lumen Data Conseil|Lumen Data Global Solutions Centre de Services Partages')
+    fail('candidats : ' + b.choix);
+  /* le NOM d'un candidat plie, il ne se coupe jamais — c'est lui qui
+     départage deux homonymes (§6, une liste où l'on choisit). Mesuré en
+     LARGEUR : un nom forcé sur un rang garde sa hauteur et déborde de côté */
+  const coupes = await p.evaluate(() => [...document.querySelectorAll('.fa-choix .pk-m > b')]
+    .filter(x => x.scrollWidth > x.clientWidth + 1 || x.scrollHeight > x.clientHeight + 1).map(x => x.textContent));
+  if (coupes.length) fail('un nom de candidat est coupé : ' + coupes);
   await auFond(p);
   await p.screenshot({ path: `${SHOTS}/98-enrichir-choix-pouce.png` });
   await p.click('[data-fa-pick="856123456"]');
