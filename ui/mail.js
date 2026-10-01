@@ -205,8 +205,8 @@ export function openMail(c, opts){
     const t = tpls[+q('#mTpl').value || 0];
     if (!t) return;
     const ct = currentCt();
-    q('#mSubj').value = genere.objet = fillTpl(t.subject, c, ct, S.profile);
-    q('#mBody').value = genere.corps = fillTpl(t.body, c, ct, S.profile, { trous: true });
+    q('#mSubj').value = genere.objet = fillTpl(t.subject, c, ct, S.profile, { companies: S.companies });
+    q('#mBody').value = genere.corps = fillTpl(t.body, c, ct, S.profile, { trous: true, companies: S.companies });
     sync();
   }
   /* Le profil a été complété depuis le composeur. Un brouillon intact se
@@ -221,7 +221,7 @@ export function openMail(c, opts){
     q('#mBody').value = remplirTrous(q('#mBody').value, S.profile);
     if (q('#mSubj').value === genere.objet){
       const t = tpls[+q('#mTpl').value || 0];
-      if (t) q('#mSubj').value = genere.objet = fillTpl(t.subject, c, currentCt(), S.profile);
+      if (t) q('#mSubj').value = genere.objet = fillTpl(t.subject, c, currentCt(), S.profile, { companies: S.companies });
     }
     sync();
   }

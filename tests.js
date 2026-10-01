@@ -47,6 +47,7 @@ import { dueFollowups, contactFromSignature, exchangeLog, exchangeTotals, nextAc
          SILENCE_RELANCE, SILENCE_DERNIERE, SILENCE_TROP_TARD,
          sansFilet, FILET_MIN_PISTES, FILET_JOURS, aDemarrer } from './engine/assist.js';
 import { rappelICS, lienAgendaGoogle, formeAgenda, RAPPEL_HEURE } from './engine/agenda.js';
+import { normalizeParcours, parcoursDe, periodeParcours, phraseParcours, PARCOURS_MAX } from './engine/parcours.js';
 import { interpreter, retirer, remplacer, chercherPistes, raisonDe, propositions, elargir,
          contexteRecherche, deptDuCp, villeFrequente, deptDePiste } from './engine/requete.js';
 import { questionsAnnuaire, lireAnnuaire, decouvertes, versPiste, motsInterdits, casse,
@@ -1389,6 +1390,64 @@ export async function runSelfTests(){
       eq(new URL(sans[2].url).searchParams.get('terme'), 'Aztek');   /* sans SIREN : la recherche officielle */
       ok(liensPiste(c, {}).every(l => !l.url.includes('priv')));
       eq(liensPiste(normalizeCompany({ name: '' }), {}), []);
+    },
+    'mon parcours : ce qui se saisit, ce qui se déduit des pistes, et rien d’inventé': () => {
+      const l = normalizeParcours([
+        { id: 'a', entreprise: '  Sopra   Steria ', quoi: 'stage', debut: '2025-04', fin: '2025-06' },
+        { entreprise: 'Advens', quoi: 'alternance', debut: '2025-09', fin: '2025-03' },   /* fin avant début : retirée */
+        { entreprise: 'X', quoi: 'cdi' }, { entreprise: '', quoi: 'stage' }, null, 'texte',
+        { id: '<script>', entreprise: 'Y', quoi: 'emploi', debut: '2024-13', pisteId: 'p 1' }
+      ]);
+      eq(l.length, 3);
+      eq(l[0], { id: 'a', entreprise: 'Sopra Steria', quoi: 'stage', debut: '2025-04', fin: '2025-06' });
+      eq(l[1].fin, ''); eq(l[1].debut, '2025-09');
+      ok(l[2].id !== '<script>'); eq(l[2].debut, ''); eq(l[2].pisteId, undefined);
+      eq(normalizeParcours(Array.from({ length: 30 }, (_, i) => ({ entreprise: 'E' + i, quoi: 'stage' }))).length, PARCOURS_MAX);
+      eq(normalizeParcours('x'), []);
+      /* déduit : MA déclaration seulement (sans prénom), stage ou alternance */
+      const pistes = [
+        normalizeCompany({ id: 'p1', name: 'Advens', vecu: 'alternance' }),
+        normalizeCompany({ id: 'p2', name: 'Wavestone', vecu: 'stage', vecuQui: 'Léa' }),
+        normalizeCompany({ id: 'p3', name: 'Orange', vecu: 'entretien' }),
+        normalizeCompany({ id: 'p4', name: 'Sopra Steria', vecu: 'stage' })
+      ];
+      const tout = parcoursDe({ parcours: [{ id: 's', entreprise: 'SOPRA STERIA', quoi: 'stage', debut: '2025-04', fin: '2025-06' }] }, pistes);
+      eq(tout.map(e => e.entreprise), ['SOPRA STERIA', 'Advens']);   /* pas Léa, pas l'entretien, pas deux fois Sopra */
+      eq(tout[1].deduit, true); eq(tout[1].pisteId, 'p1');
+      /* une ligne saisie liée à sa piste prend la place de la déduite */
+      eq(parcoursDe({ parcours: [{ entreprise: 'Advens SAS', quoi: 'alternance', debut: '2025-09', pisteId: 'p1' }] }, pistes)
+        .map(e => e.entreprise), ['Advens SAS', 'Sopra Steria']);
+      /* en cours d'abord, puis le plus récent */
+      const tri = parcoursDe({ parcours: [{ entreprise: 'A', quoi: 'stage', debut: '2023-01', fin: '2023-03' },
+        { entreprise: 'B', quoi: 'emploi', debut: '2024-06', fin: '2024-08' },
+        { entreprise: 'C', quoi: 'alternance', debut: '2025-09' }] }, []);
+      eq(tri.map(e => e.entreprise), ['C', 'B', 'A']);
+      eq(periodeParcours({ debut: '2025-09' }), 'depuis 2025');
+      eq(periodeParcours({ debut: '2024-09', fin: '2025-06' }), '2024-2025');
+      eq(periodeParcours({ debut: '2025-04', fin: '2025-06' }), '2025');
+      eq(periodeParcours({}), '');
+      eq(phraseParcours(tri), 'alternance chez C (depuis 2025), emploi chez B (2024)');
+      eq(phraseParcours([]), '');
+    },
+    'mon parcours : la ligne « Expérience » du mail, et elle part quand il n’y a rien': () => {
+      const c = normalizeCompany({ name: 'Aztek' });
+      const [cand] = defaultTemplates();
+      const p = normalizeProfile({ name: 'Inès Martin', formation: 'BTS SIO',
+        parcours: [{ entreprise: 'Sopra Steria', quoi: 'stage', debut: '2025-04', fin: '2025-06' }] });
+      const m = fillTpl(cand.body, c, null, p, { companies: [normalizeCompany({ id: 'p1', name: 'Advens', vecu: 'alternance' })] });
+      ok(m.includes('Expérience : stage chez Sopra Steria (2025), alternance chez Advens'));
+      /* sans parcours : la ligne disparaît en entier, aucune cicatrice */
+      const vide = fillTpl(cand.body, c, null, normalizeProfile({ name: 'Inès', formation: 'BTS SIO' }), { companies: [] });
+      ok(!vide.includes('Expérience'));
+      /* sans `companies` (un appelant ancien) : la partie saisie reste */
+      ok(fillTpl(cand.body, c, null, p).includes('Expérience : stage chez Sopra Steria (2025)'));
+      /* le modèle de départ des 6.31 à 6.46, jamais retouché, prend la ligne ;
+         un modèle retouché ne bouge pas */
+      const ancien = { ...cand, body: cand.body.replace('Expérience : {{parcours}}\n', '') };
+      eq(majModelesDefaut([ancien])[0].body, cand.body);
+      const retouche = { ...ancien, body: ancien.body + ' ' };
+      eq(majModelesDefaut([retouche])[0].body, retouche.body);
+      eq(normalizeProfile({}).parcours, []);
     },
     'premier mail : un manque qui rendrait le mail FAUX devient un crochet, jamais un trou muet': () => {
       /* Le défaut joué le 30 septembre 2026 : profil vide, le premier mail

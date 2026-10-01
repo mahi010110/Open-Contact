@@ -289,8 +289,16 @@ const PLAFOND = {
      voit pas venir : le tout premier mail d'un étudiant partait chez un
      recruteur avec la consigne du modèle et sans signature. Le crochet
      se sélectionne en même temps — la phrase dit pourquoi, la sélection
-     dit où. */
-  motsExplication: 338,
+     dit où.
+
+     349 le 1er octobre 2026, +11, pour « Mon parcours » (docs/reseau.md,
+     lot 1) : les deux erreurs de l'éditeur d'une expérience, dites sous
+     leur champ (§6, WCAG 3.3.1) — « Écris le nom de l'entreprise. » et
+     « La fin est avant le début. ». La seconde prévient d'une perte qu'on
+     ne voit pas venir : sans elle, une fin saisie avant le début serait
+     retirée en silence par le moteur. Rien d'autre : « en cours » ne
+     s'explique pas, la période s'écrit à côté du champ (« depuis 2025 »). */
+  motsExplication: 349,
   /* ZÉRO, et c'est le seul plafond qui puisse honnêtement valoir zéro :
      un style sans porteur n'a pas de contrepartie à peser — il ne rend
      service à personne, il ne fait qu'attendre d'être lu par erreur.

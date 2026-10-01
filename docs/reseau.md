@@ -211,7 +211,8 @@ Chacun se livre dans main, se teste sur le téléphone, et **sert tout seul**
 1. **Mon parcours.** Le profil apprend ce que tu as fait : entreprise,
    stage / alternance / emploi, dates. Il part rempli de tes « J'y suis
    passé ». Rien ne sort encore. *Sert seul* : ton profil est complet, et le
-   composeur peut s'en servir.
+   composeur peut s'en servir. **Livré (6.47.0)** — voir « Ce que le lot 1
+   a appris ».
 2. **Les amis.** Donner et recevoir un profil — QR en face à face (le même
    geste que « Donner »), ou dans un groupe. La liste d'amis. La recherche
    **instantanée** dans leur parcours, hors ligne. *Sert seul* : « Karim y
@@ -228,6 +229,40 @@ Place dans la feuille de route : après la barre de recherche, qui mène aux
 pistes d'où partent les demandes.
 
 ---
+
+## Ce que le lot 1 a appris
+
+« Mon parcours » est un cadre de « Mon profil », entre « Nom et formation »
+et « Ce que tu cherches » : une ligne par expérience (l'entreprise, puis
+« Stage · 2025 »), et « Ajouter ». Trois décisions :
+
+1. **Ce qui se déduit n'est pas recopié** (§8, règle 2). Une piste où tu
+   as déclaré toi-même « J'y suis passé » — stage ou alternance, sans
+   prénom — est DANS le parcours, lue à chaque fois depuis la piste. Une
+   déclaration d'un camarade (avec son prénom) n'y entre jamais : c'est
+   son parcours, pas le tien. Corriger une ligne déduite (lui donner des
+   dates) la remplace par une ligne saisie liée à sa piste, jamais une
+   seconde ligne. Elle ne se retire pas du parcours : c'est la piste qui
+   la porte, et une ligne qui reviendrait seule serait un mensonge.
+2. **Il sert dès aujourd'hui, et là où ça compte** : le mail de
+   candidature gagne la ligne « Expérience : stage chez Sopra Steria
+   (2025) » — les deux plus récentes. Une expérience en entreprise est ce
+   qu'un recruteur cherche d'abord chez un étudiant, et elle n'était
+   dans aucun mail. Sans parcours, la ligne s'efface en entier, comme
+   « Rythme » hors alternance. L'aperçu du profil la montre pendant qu'on
+   la règle.
+3. **« En cours » ne s'explique pas, il se lit.** Une fin vide veut dire
+   « en cours » : la période s'écrit à côté du champ pendant qu'on choisit
+   les mois (« depuis 2025 »), sans une phrase de plus.
+
+Rien ne sort : le parcours vit dans le profil, que seule la sync entre
+TES appareils transporte. `e2e-parcours.mjs` le vérifie depuis l'état
+réel de l'app.
+
+**Avant le lot 2, deux décisions restent au mainteneur** (« Encore à
+trancher ») : le mot pour « ami » (§7), et la façon dont le groupe entre
+dans le premier cercle — le mainteneur a annoncé sa propre idée du groupe,
+qui n'est pas encore écrite. Le lot 2 ne commence pas sans elles.
 
 ## Comment on saura que c'est juste
 

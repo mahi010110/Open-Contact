@@ -317,6 +317,9 @@ html[data-theme="dark"] .field select{
 .pf-grp>legend+*{clear:both}
 .pf-grp .datechips{margin-bottom:12px}
 .pf-duree{font-size:var(--text-12);color:var(--text-muted)}
+/* « Mon parcours » : la liste des expériences, puis « Ajouter » dessous */
+.pf-par{margin-bottom:8px}
+.ex-quoi{margin:0 0 12px}
 /* L'aperçu est une DONNÉE, pas un champ : ni bordure ni fond (§6,
    sobriété 3 — ce qui se tape a un cadre). Un filet à gauche, comme une
    citation dans un mail : c'est exactement ce qu'il montre. */

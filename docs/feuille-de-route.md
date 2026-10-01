@@ -258,6 +258,10 @@ liste de pistes sans partir de zéro, c'est « À découvrir ».
 entreprise parmi ses amis, ses groupes et leurs amis, trois cercles au plus.
 
 1. Mon parcours (stages, alternances, emplois dans le profil).
+   **Livré le 1er octobre 2026 (6.47.0)** : un cadre de « Mon profil »,
+   rempli de tes « J'y suis passé », et la ligne « Expérience » du mail
+   de candidature. Les lots suivants attendent deux décisions du
+   mainteneur (le mot pour « ami », son idée du groupe).
 2. Les amis : se donner son profil, chercher tout de suite dans leur
    parcours.
 3. La demande à ses amis et à ses groupes, les deux oui, le contact dans la
