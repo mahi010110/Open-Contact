@@ -58,6 +58,15 @@ jobs:
         continue-on-error: true
         timeout-minutes: 10
         run: OC_SONDE_RELAIS=1 node tests/e2e/sonde-candidats-relais.mjs
+      # « À découvrir » (docs/recherche.md, lot 2) interroge l'annuaire
+      # des entreprises, le service des communes et Wikidata DEPUIS LE
+      # NAVIGATEUR : il faut que chacun accepte une autre origine (CORS).
+      # Seul un vrai navigateur en juge. Informative : elle relève les
+      # paramètres acceptés et la forme des réponses, elle ne bloque rien.
+      - name: Sonde des sources ouvertes de « À découvrir » (CORS)
+        continue-on-error: true
+        timeout-minutes: 5
+        run: node tests/e2e/sonde-annuaire.mjs
       # Quand AUCUN chemin direct n'existe, les fiches du rendez-vous
       # passent par les relais eux-mêmes (engine/portage.js). La taille
       # d'une part et le rythme d'envoi se MESURENT ici, relais par relais.
