@@ -203,11 +203,16 @@ export async function copierDeploiement(dest){
    autre chose (une annonce, un mouvement, une cible) ne doit dépendre ni
    du réseau ni de sa limite de débit : l'annuaire y répond « rien ».
    Seul `e2e-decouvrir.mjs` le joue vraiment, avec sa propre réponse.
+   Wikidata de même : la fiche d'une piste qui porte un SIREN y cherche
+   son site (lot 3) — seul `e2e-enrichir.mjs` le joue vraiment.
    ============================================================ */
 const ANNUAIRE_RE = 'https://recherche-entreprises.api.gouv.fr/**';
+const WIKIDATA_RE = 'https://query.wikidata.org/**';
 export async function annuaireMuet(cible){
   await cible.route(ANNUAIRE_RE, r => r.fulfill({ status: 200, contentType: 'application/json',
     headers: { 'access-control-allow-origin': '*' }, body: '{"results":[],"total_results":0}' }));
+  await cible.route(WIKIDATA_RE, r => r.fulfill({ status: 200, contentType: 'application/sparql-results+json',
+    headers: { 'access-control-allow-origin': '*' }, body: '{"results":{"bindings":[]}}' }));
 }
 /* tous les contextes d'un navigateur, d'un coup — pour les scénarios qui
    en ouvrent vingt */

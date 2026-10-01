@@ -413,6 +413,9 @@ function etat(c, cle, today){
   }
   return false;
 }
+/* le département d'une piste — par le code postal de son adresse, sinon
+   par sa ville ; '' si on ne sait pas (rien n'est deviné) */
+export const deptDePiste = c => lire(c || {}).dept;
 export function force(c, e, ctx, L = lire(c)){
   const lit = () => (e.mots.every(w => L.blob.includes(w)) ? 1 : 0);
   switch (e.famille){

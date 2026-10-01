@@ -265,6 +265,11 @@ export function lireAnnuaire(json, o){
       tranche, effectif: TRANCHES[tranche] || '',
       categorie: String(r.categorie_entreprise || ''),
       creation: String(r.date_creation || '').slice(0, 10),
+      /* l'ENTREPRISE entière a cessé (« C ») — une question par SIREN ne
+         filtre pas les fermées, exprès : une piste dont l'entreprise a
+         fermé doit pouvoir le dire */
+      fermee: r.etat_administratif === 'C',
+      fermeeLe: String(r.date_fermeture || '').slice(0, 10),
       etablissements: nombre(r.nombre_etablissements_ouverts) ?? nombre(r.nombre_etablissements),
       dirigeants: (Array.isArray(r.dirigeants) ? r.dirigeants : []).slice(0, 4).map(d => ({
         nom: d.type_dirigeant === 'personne morale' ? casse(d.denomination || '')
@@ -322,3 +327,110 @@ export function versPiste(r, interp){
   };
 }
 export const ficheOfficielle = siren => /^\d{9}$/.test(String(siren || '')) ? FICHE_OFFICIELLE + siren : '';
+
+
+/* ============================================================
+   LOT 3 — la fiche s'enrichit (docs/recherche.md, lot 3)
+
+   Une piste qui porte un SIREN se relit dans l'annuaire : la question ne
+   contient QUE le SIREN — neuf chiffres publics, qui ne disent rien de
+   toi. Une piste sans SIREN se cherche par son NOM, et seulement sur un
+   geste (« Trouver dans l'annuaire ») : c'est toi qui choisis laquelle
+   est la tienne, parce qu'un homonyme rendrait le dirigeant d'une
+   autre entreprise.
+   ============================================================ */
+const SIREN_OK = s => /^\d{9}$/.test(String(s || ''));
+export function questionSiren(siren){
+  if (!SIREN_OK(siren)) return '';
+  /* sans `etat_administratif` : une entreprise FERMÉE doit revenir, pour
+     que la fiche puisse le dire */
+  return `${ANNUAIRE}/search?q=${siren}&per_page=1`;
+}
+/* Le nom de la piste, borné par son département quand on le connaît —
+   « Orange » à Lille rend l'Orange qui a un établissement dans le Nord,
+   et l'établissement montré est celui de la ville de la piste. */
+export function questionNom(c, dept){
+  const q = String((c && c.name) || '').trim();
+  if (q.length < 2) return '';
+  const p = new URLSearchParams({ q });
+  if (dept) p.set('departement', dept);
+  p.set('etat_administratif', 'A');
+  p.set('per_page', '5');
+  return `${ANNUAIRE}/search?${p.toString()}`;
+}
+
+/* ---------- le site web, par Wikidata ----------
+   Propriété P1616 = SIREN, P856 = site officiel. Relevé par la sonde :
+   le service SPARQL répond à une page d'une autre origine. Le SIREN est
+   vérifié (neuf chiffres) AVANT d'entrer dans la requête — rien d'autre
+   n'y entre jamais. */
+export const WIKIDATA = 'https://query.wikidata.org/sparql';
+export function questionSite(siren){
+  if (!SIREN_OK(siren)) return '';
+  const q = `SELECT ?site WHERE { ?e wdt:P1616 "${siren}" . ?e wdt:P856 ?site } LIMIT 3`;
+  return `${WIKIDATA}?format=json&query=${encodeURIComponent(q)}`;
+}
+/* le premier site en https, sinon en http ; rien d'autre ne passe */
+export function lireSite(json){
+  const b = (json && json.results && Array.isArray(json.results.bindings)) ? json.results.bindings : [];
+  const sites = b.map(x => String((x && x.site && x.site.value) || '').trim()).filter(u => /^https?:\/\/[^\s/]+\.[^\s]+$/i.test(u));
+  return sites.find(u => /^https:/i.test(u)) || sites[0] || '';
+}
+
+/* ---------- ce que l'annuaire peut ajouter à une fiche ----------
+   Invariant ② : on COMPLÈTE les vides, on n'écrase jamais. Rend
+   seulement les champs vides que l'annuaire sait remplir — un objet
+   vide si rien. La position voyage AVEC l'adresse : posée seule, elle
+   contredirait une adresse saisie à la main ailleurs. */
+export function complements(c, r, site){
+  const out = {};
+  const vide = v => !String(v == null ? '' : v).trim();
+  if (r){
+    if (!c.siren && SIREN_OK(r.siren)) out.siren = r.siren;
+    if (vide(c.city) && r.ville) out.city = r.ville;
+    if (vide(c.address) && r.adresse){
+      out.address = r.adresse;
+      if (r.lat != null && r.lng != null){ out.lat = r.lat; out.lng = r.lng; }
+    }
+    if (vide(c.desc) && r.activite) out.desc = r.activite;
+    if ((!c.domain || c.domain === 'autre') && domaineDeNaf(r.naf) !== 'autre') out.domain = domaineDeNaf(r.naf);
+  }
+  if (vide(c.website) && site) out.website = site;
+  return out;
+}
+/* le nom de chaque champ, tel que la fiche le dit (pour la donnée posée
+   à côté du geste : « site · adresse ») */
+const NOMS_CHAMP = { city: 'ville', address: 'adresse', desc: 'activité', website: 'site', domain: 'secteur' };
+export const champsDits = comp => Object.keys(comp || {}).map(k => NOMS_CHAMP[k]).filter(Boolean);
+
+/* ---------- un dirigeant devient un contact — seulement si on le veut ----------
+   (décision du mainteneur : la fiche montre le dirigeant ; il ne devient
+   un contact, et ne voyage dans un partage, que si tu l'ajoutes) */
+export function dirigeantsAjoutables(c, r){
+  const deja = new Set((c.contacts || []).map(t => normName(t.name)).filter(Boolean));
+  return ((r && r.dirigeants) || []).filter(d => d.personne && d.nom && !deja.has(normName(d.nom)));
+}
+
+/* ---------- trois liens d'un tap ----------
+   L'app ne lit rien de ces sites : elle ouvre la bonne page, et c'est
+   toi qui regardes (pas d'aspiration — la CNIL a sanctionné en 2024 la
+   collecte de coordonnées depuis LinkedIn). Le nom de l'entreprise part
+   dans le lien, et ton école pour LinkedIn : sur ton geste, vers le
+   site que le bouton nomme. */
+export const LINKEDIN_GENS = 'https://www.linkedin.com/search/results/people/?keywords=';
+export const FRANCE_TRAVAIL = 'https://candidat.francetravail.fr/offres/recherche?motsCles=';
+export const ANNUAIRE_WEB = 'https://annuaire-entreprises.data.gouv.fr/rechercher?terme=';
+export function liensPiste(c, profile){
+  const nom = String((c && c.name) || '').trim();
+  if (!nom) return [];
+  const ecole = String((profile && profile.ecole) || '').trim();
+  return [
+    { cle: 'gens', label: ecole ? 'Anciens de mon école' : 'Qui y travaille',
+      aria: ecole ? `Anciens de ${ecole} chez ${nom}, sur LinkedIn` : `Qui travaille chez ${nom}, sur LinkedIn`,
+      url: LINKEDIN_GENS + encodeURIComponent(ecole ? `${nom} ${ecole}` : nom) },
+    { cle: 'offres', label: 'Offres d’emploi', aria: `Offres chez ${nom}, sur France Travail`,
+      url: FRANCE_TRAVAIL + encodeURIComponent(nom) },
+    { cle: 'officielle', label: 'Fiche officielle', aria: `Fiche officielle de ${nom}, annuaire des entreprises`,
+      url: SIREN_OK(c.siren) ? ficheOfficielle(c.siren) : ANNUAIRE_WEB + encodeURIComponent(nom) }
+  ];
+}

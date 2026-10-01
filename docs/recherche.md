@@ -262,6 +262,7 @@ Chacun se livre dans main et se teste sur le téléphone.
    CORS. **Livré (6.45.0)** — voir « Ce que le lot 2 a appris ».
 3. **L'enrichissement et les liens** : site web (Wikidata), distance,
    toutes les informations utiles sur la fiche, les trois liens d'un tap.
+   **Livré (6.46.0)** — voir « Ce que le lot 3 a appris ».
 
 ## Ce que le lot 1 a appris
 
@@ -340,6 +341,53 @@ Et quatre décisions de dessin :
 - **Une piste ajoutée garde ce qu'on a cherché** : trouvée par « cyber »,
   elle prend le domaine Cybersécurité — sinon elle disparaîtrait de
   l'écran à l'instant où on l'ajoute.
+
+## Ce que le lot 3 a appris
+
+La fiche porte un bloc **« Annuaire »**, sous « À savoir » : ce que tu
+sais passe avant ce que le registre dit. Il montre l'activité, l'effectif,
+l'année de création, le nombre d'établissements, le dirigeant, le site
+trouvé sur Wikidata, et trois liens d'un tap — les anciens de ton école
+chez l'entreprise (LinkedIn, ou « Qui y travaille » sans école au
+profil), ses offres (France Travail), sa fiche officielle.
+
+Cinq décisions, chacune pour une raison qu'on pourrait oublier :
+
+1. **Ce qui part dépend de ce que la piste porte.** Avec un SIREN, la
+   question ne contient QUE ces neuf chiffres publics, et elle part toute
+   seule. Sans SIREN, rien ne part tant qu'on n'appuie pas sur « Trouver
+   dans l'annuaire » — nom et département seulement — et c'est toi qui
+   dis laquelle est la tienne : chercher par le nom en silence montrerait
+   un jour le dirigeant d'un homonyme, une information fausse avec l'air
+   officiel.
+2. **Rien ne part pour un bloc qu'on ne regarde pas.** Au pouce, le bloc
+   est replié comme « À savoir », et la question part quand on le
+   déplie. Au poste il est ouvert, comme le reste du dossier.
+3. **Rien ne change sans geste.** « Ajouter à ma fiche » complète les
+   VIDES seulement (invariant ②), dit à côté de lui ce qu'il ajoutera
+   (« activité · site ») et se défait trente secondes. La position voyage
+   avec l'adresse, jamais seule : posée à côté d'une adresse saisie à la
+   main, elle la contredirait. Le dirigeant ne devient un contact que si
+   on l'ajoute (décision du mainteneur).
+4. **La réponse redessine le bloc, jamais la fiche.** Une fiche qu'on
+   redessine entière quand une réponse arrive vole le curseur à
+   quelqu'un qui écrit ses notes — le garde tape une note pendant la
+   réponse et vérifie qu'elle reste, curseur compris.
+5. **Les liens viennent en tête du cadre.** Les données arrivent du
+   réseau et poussent ce qui est dessous : un lien posé en bas glisserait
+   sous le doigt au moment de le taper (§5, une action se pose toujours
+   au même endroit).
+
+**La distance** n'a pas pris de ligne sur la fiche : « combien de km »
+a déjà sa réponse, et meilleure, dans le tri par distance (la fiche le
+disait déjà). Ce que le lot apporte est la **position** : une piste
+retrouvée dans l'annuaire reçoit les coordonnées de l'établissement avec
+son adresse, donc elle se trie par distance sans géocodage.
+
+**Une entreprise fermée le dit** : la question par SIREN ne filtre pas
+les fermées, exprès, pour que la fiche affiche « fermée depuis le … »
+avec le langage d'urgence de l'app — c'est la seule information du bloc
+qui réclame quelque chose (clore la piste).
 
 ## Avec le réseau
 

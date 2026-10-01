@@ -74,7 +74,7 @@ const attendre = (ms, signal) => new Promise((ok, ko) => {
    Requests » à des appels rapprochés. Dans un lycée, une classe entière
    sort par la même adresse — l'app doit encaisser ce refus. Une seconde
    tentative après un court délai, puis on le dit, sans accuser le réseau. */
-async function lireUrl(u, signal){
+export async function lireUrl(u, signal){
   for (let essai = 0; essai < 2; essai++){
     const res = await fetch(u, { signal, headers: { accept: 'application/json' } });
     if (res.status === 429){

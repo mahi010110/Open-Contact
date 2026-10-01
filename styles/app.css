@@ -832,6 +832,24 @@ html[data-theme="dark"] .field select{
 .dc-ap .dc-q{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
 .dc-ap .dc-siren{font-family:var(--font-mono)}
 .dc-off{display:inline-flex;align-items:center;gap:6px;min-height:var(--ctl);margin-top:8px}
+/* ---- LE BLOC « ANNUAIRE » DE LA FICHE (lot 3) ----
+   Les mêmes rangées que « À savoir » : une étiquette, une valeur. Les
+   trois liens se replient par rangs, taillés à leur mot — un lien qui
+   emmène ailleurs n'est pas une action lourde (§6). Ils viennent EN
+   TÊTE du cadre : ce qui arrive du réseau se pose dessous, et un geste
+   ne glisse jamais sous le doigt pendant qu'une réponse arrive (§5). */
+.fa-liens{display:flex;flex-wrap:wrap;gap:8px}
+.fa-etat{font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted);
+  display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px}
+.fa-act{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px}
+.fa-quoi{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
+.fa-dirs{display:flex;flex-direction:column;gap:6px}
+.fa-dir{display:flex;align-items:center;flex-wrap:wrap;gap:4px 12px}
+.fa-dir .dc-q{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
+.fi-ann .dc-siren{font-family:var(--font-mono)}
+.fa-q{margin:12px 0 6px;font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);
+  text-transform:uppercase;letter-spacing:.04em}
+.fa-choix .pick svg{flex:none;color:var(--text-muted)}
 .tr-late .tr-h{color:var(--amber)}
 .tr-late .tr-h .tr-n{border-color:var(--amber);background:var(--amber-wash)}
 /* replier/déplier « Bientôt » est un geste au pouce comme un autre :
