@@ -75,7 +75,7 @@ export function queryWords(q){
   return fold(q).split(/\s+/).filter(Boolean);
 }
 
-function blobOf(c){
+export function blobOf(c){
   const cts = (c.contacts || []).map(t => [t.name, t.role, t.email, t.phone, t.note].join(' ')).join(' ');
   const pos = (c.positions || []).map(p => POSITIONS[p]).join(' ');
   return fold([c.name, c.city, c.address, c.desc, c.techs, c.tips, c.process,

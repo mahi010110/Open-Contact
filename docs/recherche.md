@@ -1,9 +1,11 @@
 # La barre de recherche — le concept
 
-*Version de travail, 30 septembre 2026. Rien n'est encore construit : ce
-document dit ce qu'on construit, pourquoi, et comment on saura que c'est
-juste. Il se lit avec `CLAUDE.md` (§5 adaptatif, §6 motifs, §8 le lien
-humain) et devient une règle de ce fichier au premier lot livré.*
+*Version de travail, 30 septembre 2026 ; **lot 1 livré le 1er octobre
+2026 (6.44.0)**. Ce document dit ce qu'on construit, pourquoi, et comment
+on saura que c'est juste. Il se lit avec `CLAUDE.md` (§5 adaptatif, §6
+motifs, §8 le lien humain). Ce que le lot 1 a fixé est devenu une règle
+de ce fichier (§6, « Comprendre ce qu'on tape ») ; ce qu'il a appris en
+se construisant est plus bas, sous « Ce que le lot 1 a appris ».*
 
 ---
 
@@ -251,12 +253,55 @@ Chacun se livre dans main et se teste sur le téléphone.
 1. **L'interpréteur et les étiquettes**, sur tes pistes et celles du
    groupe. Rien en ligne. Le gain se voit tout de suite : « alternance
    Lille » filtre par ce que ça veut dire, pas par des lettres.
+   **Livré (6.44.0).** Mesuré sur un jeu réaliste : « alternance lille »
+   rendait 2 pistes, il en rend 4, et propose le Nord (59) pour la
+   cinquième.
 2. **« À découvrir »** : la recherche en ligne qui part seule (avec le
    tri des mots privés), la liste à cocher, l'aperçu, le SIREN (un champ
    de plus dans `CONTRAT.md`, lu en migration douce). Précédé de la preuve
    CORS.
 3. **L'enrichissement et les liens** : site web (Wikidata), distance,
    toutes les informations utiles sur la fiche, les trois liens d'un tap.
+
+## Ce que le lot 1 a appris
+
+Sept décisions prises en le construisant, chacune pour une raison qu'on
+pourrait oublier :
+
+1. **Le précis reste texte.** « pentest », « SOC », « SIEM » auraient pu
+   devenir l'étiquette Cybersécurité ; ce serait élargir une techno à tout
+   un secteur, donc perdre la précision qu'on a tapée. Ils servent en
+   revanche de **preuve** : une piste qui les porte dans ses technos
+   correspond pleinement à « cyber ».
+2. **Ce qui décrit l'étudiant ne filtre pas.** « alternance BTS SIO »
+   exigeait les lettres « bts » dans la fiche et vidait la liste. BTS, SIO,
+   BUT, licence, master sont des mots de liaison ; SISR et SLAM, eux,
+   disent un métier (réseau, développement).
+3. **Une fiche muette reste, une fiche qui dit non sort.** Le poste visé
+   n'est presque jamais renseigné : exiger « alternance » dans les postes
+   rendait 2 pistes sur 4 possibles. Une piste qui ne dit rien passe
+   APRÈS celles qui prennent ; une piste dont les postes sont dits sans
+   alternance ne sort pas.
+4. **Une ville propose son département**, même quand elle trouve : un
+   étudiant de Lille cherche aussi à Villeneuve-d'Ascq. C'est une
+   proposition en pointillé (« Nord (59) +1 »), jamais un élargissement
+   imposé.
+5. **Le vide n'est jamais une impasse** : il propose de retirer chaque
+   étiquette, avec ce qu'on retrouverait (« Sans « Lille » · 1 »), et il
+   ne redit plus ce qu'on a cherché — c'est dans le champ.
+6. **Au poste, Entrée ouvre la première piste**, et la touche s'annonce
+   sur la carte (↵) tant que le curseur est dans la barre. ↓ prend la
+   place de « / » dans la barre : la suite du geste, là où l'œil est.
+7. **Pendant une recherche, un tableau sans carte n'est pas posé** : trois
+   colonnes vides au-dessus de la seule piste trouvée, clôturée, n'étaient
+   que du bruit.
+
+**Restent ouverts** : la famille « taille » (petite, PME, grande) attend
+l'annuaire du lot 2 — rien dans les pistes ne la dit. Et les trois
+feuilles qui choisissent des pistes (Donner, Prospecter, partage en
+groupe) cherchent encore mot à mot : leur barre n'a pas la place d'une
+rangée d'étiquettes, et le principe 1 interdit de comprendre sans le
+montrer.
 
 ## Avec le réseau
 

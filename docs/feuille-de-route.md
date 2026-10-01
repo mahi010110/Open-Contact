@@ -246,7 +246,7 @@ remplace l'ancienne ligne « import de données publiques » : amorcer une
 liste de pistes sans partir de zéro, c'est « À découvrir ».
 
 1. L'interpréteur et les étiquettes, sur tes pistes et celles du groupe.
-   Rien en ligne.
+   Rien en ligne. **Livré le 1er octobre 2026 (6.44.0).**
 2. « À découvrir » : l'annuaire des entreprises, qui part tout seul sans
    emporter un mot privé. Précédé de la preuve que l'annuaire répond à un
    navigateur.

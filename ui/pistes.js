@@ -8,14 +8,15 @@
    ============================================================ */
 import { esc, distKm, todayISO } from '../engine/utils.js';
 import { STATUSES, CLOSE_REASONS, DOMAINS, pushHist } from '../engine/model.js';
-import { filterCompanies, filterOrphans, searchHint } from '../engine/filter.js';
+import { filterOrphans, searchHint } from '../engine/filter.js';
+import { chercherPistes, raisonDe, propositions, elargir, retirer, contexteRecherche } from '../engine/requete.js';
 import { silentPistes } from '../engine/assist.js';
 import { S, bus, isClosed, hasDemo, addDemo, ctLabel, deletePiste, undeletePiste,
          removeOrphan, saveOrphans, saveData, logJ } from './state.js';
 import { $, ic, toast, showUndo, bindDeleteGesture, openSheet, softReorder, topSheet,
          collerEnHaut, clavier, annoncer } from './dom.js';
 import { openAffinerSheet, filterState, filterOn, filterClear, filterArgs } from './affiner.js';
-import { sortState, sortArgs, sortHasDist, sortChipHTML, bindSortChip } from './sort.js';
+import { sortState, sortArgs, sortHasDist, sortChipHTML, bindSortChip, sortIsDefault, withPos } from './sort.js';
 import { relLabel, diffDays, dueMarkHTML, silenceMarkHTML } from './dates.js';
 import { openFiche } from './fiche.js';
 import { openCapture } from './capture.js';
@@ -30,6 +31,18 @@ const enCampagne = cid => CAMPAGNES && !!campaignOfPiste(cid);
 
 let q = '';
 const st = sortState('recent');
+/* ce que la barre a compris de `q` (engine/requete.js) — recalculé à
+   chaque rendu, lu par les lignes pour dire POURQUOI elles sont là */
+let interp = null;
+/* la barre a-t-elle le curseur ? Vide et focalisée, elle propose */
+let barreActive = false;
+/* la carte qu'Entrée ouvrirait depuis la barre, au poste */
+let premierId = null;
+/* « près de moi » ne demande la position qu'UNE fois par session : la
+   demander à chaque frappe ferait sonner l'invite du navigateur en boucle */
+let posDemandee = false;
+const mqFine = matchMedia('(pointer:fine)');
+const procheActif = () => !!(interp && interp.etiquettes.some(e => e.cle === 'proche'));
 
 /* filtre de vue (le temps de la session, comme le tri) : plusieurs
    statuts, plusieurs domaines — l'état et sa forme vivent dans
@@ -87,8 +100,9 @@ document.addEventListener('keydown', e => {
   openCapture();
 });
 
-/* en tri « Près de moi » (à n'importe quel niveau), la distance s'affiche */
-const kmBit = c => (sortHasDist(st) && st.userPos && c.lat != null)
+/* en tri « Près de moi » (à n'importe quel niveau), ou quand on l'a
+   tapé, la distance s'affiche */
+const kmBit = c => ((sortHasDist(st) || procheActif()) && st.userPos && c.lat != null)
   ? Math.round(distKm(st.userPos.lat, st.userPos.lng, c.lat, c.lng)) + ' km' : '';
 
 /* L'encre va à ce qui CHANGE. Le statut d'une piste bouge une fois
@@ -126,19 +140,35 @@ function dueHTML(c){
    positions à surligner — jamais du HTML : l'échappement est ici.
    La ligne ne parle QUE si elle a du neuf à dire : chercher « cyber »
    sur « Cyberdéfense Lyon » n'ajoute rien, le nom a déjà répondu. */
+/* Depuis que la barre COMPREND (engine/requete.js), la ligne dit aussi
+   la raison qui l'a fait monter — une seule, la plus forte : quelqu'un
+   du groupe peut te porter (« Léa y a été en alternance »), sinon la
+   piste prend ce que tu cherches. En accent, jamais en `mark-*` : rien
+   ne presse, c'est un atout (§6). L'extrait suit, sur la MÊME ligne,
+   et c'est lui qui s'élide. Avant, « alternance lille » montrait
+   « …Nationale 59000 Lille » : l'adresse, que la ligne disait déjà. */
 function hintHTML(c, skip){
-  const h = q ? searchHint(c, q, { skip }) : null;
-  if (!h) return '';
+  if (!q || !interp) return '';
+  const r = raisonDe(c, interp);
+  const h = r.mots.length ? searchHint(c, r.mots.join(' '), { skip }) : null;
+  if (!r.accent && !h) return '';
   let out = '', i = 0;
-  for (const [s, l] of h.marks){
-    out += esc(h.text.slice(i, s)) + '<mark>' + esc(h.text.slice(s, s + l)) + '</mark>';
-    i = s + l;
+  if (h){
+    for (const [s, l] of h.marks){
+      out += esc(h.text.slice(i, s)) + '<mark>' + esc(h.text.slice(s, s + l)) + '</mark>';
+      i = s + l;
+    }
+    out += esc(h.text.slice(i));
   }
-  return `<div class="ri-hit">${out + esc(h.text.slice(i))}</div>`;
+  return `<div class="ri-hit">${r.accent ? `<span class="ri-why">${esc(r.accent)}</span>` : ''}${
+    r.accent && h ? ' · ' : ''}${out}</div>`;
 }
 
 function rowHTML(c){
   const closed = isClosed(c);
+  /* la ligne qu'Entrée ouvrirait depuis la barre (au poste, une piste
+     clôturée peut être la première trouvée) */
+  const premier = c.id === premierId;
   /* le verbe d'action d'abord — jamais tronqué (la ligne peut plier) */
   const bits = [];
   if (closed) bits.push('<b>' + CLOSE_REASONS[c.closedReason].label + '</b>');
@@ -151,8 +181,9 @@ function rowHTML(c){
   if (kmBit(c)) bits.push(kmBit(c));
   if (c.city) bits.push(esc(c.city));
   return (
-    `<div class="row-item${closed ? ' row-closed' : ''}" data-id="${c.id}">
+    `<div class="row-item${closed ? ' row-closed' : ''}${premier ? ' est-premier' : ''}" data-id="${c.id}">
        <div class="sw-in">
+         ${premier ? '<kbd class="kbd-enter" aria-hidden="true">↵</kbd>' : ''}
          <div class="ri-main sw-cible" role="button" tabindex="0" aria-label="Ouvrir ${esc(c.name)}">
            <h3>${esc(c.name)}</h3>
            <div class="ri-sub">${bits.join(' · ')}</div>
@@ -197,9 +228,15 @@ function cardHTML(c){
      la grammaire de sous-ligne de toute l'app. */
   const foot = (c.contacts || []).length
     ? ic('contact', 'ic-14') + ' ' + c.contacts.length : '';
+  const premier = c.id === premierId;
   return (
-    `<div class="bcard" data-id="${c.id}" draggable="true">
+    `<div class="bcard${premier ? ' est-premier' : ''}" data-id="${c.id}" draggable="true">
        <div class="sw-in">
+         ${/* La touche Entrée s'annonce SUR la carte qu'elle ouvre (§5 : une
+              touche se dit dans ce qu'elle commande). Visible seulement
+              pendant que le curseur est dans la barre — c'est là qu'Entrée
+              a ce sens. Rien à lire ailleurs, aucun écran d'aide. */''}
+         ${premier ? '<kbd class="kbd-enter" aria-hidden="true">↵</kbd>' : ''}
          <div class="bc-main" role="button" tabindex="0" aria-label="Ouvrir ${esc(c.name)}">
            <b>${esc(c.name)}</b>
            ${/* L'ORDRE DÉCIDE CE QU'ON PERD. La sous-ligne s'élide par la
@@ -292,23 +329,90 @@ function bindBoardDrag(body){
   });
 }
 
+/* La marque de famille d'une étiquette : la pastille du domaine ou du
+   statut quand elle existe (c'est la couleur que l'écran emploie déjà
+   pour eux), sinon une icône — un lieu a son repère, un poste sa
+   mallette. On reconnaît la famille d'un coup d'œil, sans lire. */
+const ICONE_ETAT = { silence: 'clock', relancer: 'clock', retard: 'clock', jour: 'clock',
+  semaine: 'calendar', planifier: 'calendar', prevu: 'calendar',
+  cloturee: 'archive', won: 'archive', rejected: 'archive', dropped: 'archive' };
+const pastille = col => `<span class="dotc" style="background:${col}"></span>`;
+function marqueEtiquette(e){
+  if (e.famille === 'metier' && e.domaine && DOMAINS[e.domaine]) return pastille(DOMAINS[e.domaine].color);
+  if (e.famille === 'statut' && STATUSES[e.cle]) return pastille(STATUSES[e.cle].color);
+  const nom = e.famille === 'recherche' ? 'briefcase'
+    : e.famille === 'metier' ? 'monitor'
+    : e.famille === 'lieu' ? (e.cle === 'proche' ? 'gps' : 'map-pin')
+    : e.famille === 'groupe' ? (e.cle === 'recommandee' ? 'users' : 'user')
+    : (ICONE_ETAT[e.cle] || 'flag');
+  return ic(nom, 'ic-14');
+}
+
+/* le contexte de la barre : les villes écrites dans les fiches et les
+   prénoms déclarés — c'est tout ce que l'interpréteur lit des pistes */
+const ctxBarre = () => contexteRecherche(S.companies, todayISO());
+
+/* l'état actif = des puces sous la recherche, un regard suffit (#8) —
+   la croix enlève, taper la puce de tri inverse son sens */
+/* LA BARRE VIDE PROPOSE. Au moment où l'on pose le curseur, deux ou
+   trois recherches qui ont une réponse dans TES pistes, avec leur
+   compte : elles apprennent le vocabulaire sans une phrase (« ce que je
+   tape peut être une ville, un poste, un état ») et elles ne mènent
+   jamais à un écran vide. Seulement si rien ne filtre déjà : des filtres
+   posés ne s'effacent pas pour faire place à des idées.
+   ELLES SE POSENT PAR-DESSUS LA LISTE, jamais dedans. Posées dans la
+   rangée des étiquettes, elles poussaient toute la liste de 50 px au
+   moment du focus, puis la remontaient 150 ms après qu'on était parti —
+   la ligne qu'on venait de viser bougeait sous le doigt (et sous la
+   mesure de l'anneau de focus, qui l'a vu en CI avant nous). Un panneau
+   accroché à la barre, comme toute suggestion de recherche : rien ne
+   bouge en dessous. */
+function propsHTML(){
+  if (q || !barreActive || ftOn() || !sortIsDefault(st)) return '';
+  const props = propositions(S.companies, S.profile, ctxBarre());
+  return props.length
+    ? `<div class="props-pan" role="group" aria-label="Recherches proposées">${props.map(p =>
+        `<button class="prop-chip" data-prop="${esc(p.q)}"
+                 aria-label="Chercher ${esc(p.label)} — ${p.n} piste${p.n > 1 ? 's' : ''}">${
+           ic('search', 'ic-14')}${esc(p.label)}<span class="fl-n">${p.n}</span></button>`).join('')}</div>`
+    : '';
+}
+
 /* l'état actif = des puces sous la recherche, un regard suffit (#8) —
    la croix enlève, taper la puce de tri inverse son sens */
 function chipsRowHTML(){
   const bits = [];
-  /* une étiquette = un bouton : taper la retire. Pas de ✕ à côté — il
-     faisait déjà exactement la même chose. */
+  /* CE QUE LA BARRE A COMPRIS, une étiquette par chose comprise, dans
+     l'ordre où on l'a tapée. Taper l'étiquette retire SES mots du champ :
+     la barre et les étiquettes ne disent jamais deux choses différentes.
+     La croix est DANS la puce — un seul bouton, qui dit ce qu'il fait. */
+  (interp ? interp.etiquettes : []).forEach((e, i) => bits.push(
+    `<button class="st-chip et-chip" data-et="${i}" aria-label="Retirer « ${esc(e.label)} »">${
+       marqueEtiquette(e)}${esc(e.label)}${ic('close', 'ic-12')}</button>`));
+  /* une ville s'élargit à son département quand ça trouve plus — « Lille »
+     rate Villeneuve-d'Ascq, à deux arrêts de métro. Proposé, pas posé :
+     le trait pointillé dit « tu peux », la puce pleine « c'est actif ». */
+  if (q) for (const x of elargir(S.companies, q, { ctx: ctxBarre(), filtres: filtresVue() }).filter(x => x.genre === 'autour'))
+    bits.push(
+      `<button class="prop-chip" data-prop="${esc(x.q)}"
+               aria-label="Élargir à ${esc(x.label)} — ${x.gagne} piste${x.gagne > 1 ? 's' : ''} de plus">${
+         ic('map-pin', 'ic-14')}${esc(x.label)}<span class="fl-n">+${x.gagne}</span></button>`);
+  /* une étiquette = un bouton : taper la retire. Pas de ✕ À CÔTÉ — il
+     faisait déjà exactement la même chose ; la croix vit DANS la puce,
+     où elle dit le geste sans ajouter une cible. */
   /* une étiquette par valeur retenue : avec plusieurs filtres, ne pas
      toutes les montrer ferait croire que l'app a perdu des pistes */
   const etiq = (grp, defs, k) =>
     `<button class="st-chip" data-clear="${grp}" data-k="${k}" aria-label="Retirer le filtre ${defs[k].label}">
-       <span class="dotc" style="background:${defs[k].color}"></span>${defs[k].label}</button>`;
+       <span class="dotc" style="background:${defs[k].color}"></span>${defs[k].label}${ic('close', 'ic-12')}</button>`;
   ft.status.forEach(k => bits.push(etiq('st', STATUSES, k)));
   ft.domain.forEach(k => bits.push(etiq('dom', DOMAINS, k)));
   const sc = sortChipHTML(st);
   if (sc) bits.push(sc);
   return bits.length ? `<div class="chips-row">${bits.join('')}</div>` : '';
 }
+/* les filtres d'« Affiner » et le tri, tels que le moteur les attend */
+const filtresVue = () => ({ ...filterArgs(ft), ...sortArgs(st) });
 
 function orphansHTML(){
   /* Le bac suit la recherche. Il l'ignorait : chercher « Nadia »
@@ -378,7 +482,12 @@ export function renderPistes(){
              sans effet sur la mise en page */''}
        <div class="stick-guet" aria-hidden="true"></div>
        <div class="search-wrap">
-         <input class="search" id="piQ" type="search" placeholder="Chercher…"
+         ${/* Le texte d'invite ENSEIGNE : « Chercher… » ne disait pas que la
+              barre comprend une ville ou un métier. Trois exemples des
+              familles qu'elle lit, et il part dès qu'on tape (§7 : le seul
+              endroit où l'on apprend au moment exact du geste). Le nom du
+              champ reste dans `aria-label` — un placeholder n'en est pas un. */''}
+         <input class="search" id="piQ" type="search" placeholder="Métier, ville, entreprise…"
                 aria-label="Rechercher une piste" value="${esc(q)}" ${clavier('cherche')}>
          ${/* Un raccourci clavier est invisible par nature : il ne sert
               qu'à ceux qui devinent, ou il se documente dans un écran
@@ -387,9 +496,13 @@ export function renderPistes(){
               champ qu'elle ouvre. Elle s'efface dès qu'on y tape, et
               n'existe pas au pouce : il n'y a pas de clavier. */''}
          ${wide ? '<kbd class="kbd-hint" aria-hidden="true">/</kbd>' : ''}
+         ${/* … et une fois dedans, avec du texte, c'est ↓ qui s'annonce à la
+              même place : la suite du geste, là où l'œil est déjà */''}
+         ${wide ? '<kbd class="kbd-hint kbd-bas" aria-hidden="true">↓</kbd>' : ''}
          <button class="btn" id="piAffiner">${ic('filter', 'ic-14')} Affiner</button>
+         <div id="piProps"></div>
        </div>
-       <div id="piChips">${chipsRowHTML()}</div>
+       <div id="piChips"></div>
        <div id="piBody"></div>
      </div>`;
 
@@ -397,14 +510,44 @@ export function renderPistes(){
     const c = S.companies.find(x => x.id === id);
     if (c) openFiche(c);
   };
+  const input = root.querySelector('#piQ');
+  const page = root.querySelector('.page-inner');
+
+  /* chercher : la barre comprend `q` (engine/requete.js), les filtres
+     d'« Affiner » et le tri choisi suivent. Tant que le tri est celui de
+     l'écran, l'ordre devient celui de la maison — qui peut te porter,
+     à qui tu peux écrire — dès qu'une étiquette est posée. */
+  const calculer = () => {
+    const r = chercherPistes(S.companies, { q, ctx: ctxBarre(), filtres: filtresVue(),
+      pertinence: sortIsDefault(st), userPos: st.userPos });
+    interp = r.interp;
+    return r.liste;
+  };
+  const rendreChips = () => {
+    const chips = root.querySelector('#piChips');
+    const props = root.querySelector('#piProps');
+    if (!chips || !props) return;
+    chips.innerHTML = chipsRowHTML();
+    props.innerHTML = propsHTML();
+    bindChips(chips);
+    bindChips(props);
+  };
 
   /* le corps se re-rend seul pendant la frappe — le champ de recherche
      reste le même nœud, le curseur ne saute plus */
   const renderBody = () => {
     const body = root.querySelector('#piBody');
-    const all = filterCompanies(S.companies, { q, ...filterArgs(ft), ...sortArgs(st) });
+    const all = calculer();
     const alive = all.filter(c => !isClosed(c));
     const closed = all.filter(isClosed);
+    /* « près de moi » a besoin de la position : demandée une fois, au
+       moment où l'étiquette apparaît, et jamais à chaque frappe */
+    if (procheActif() && !st.userPos && !posDemandee){
+      posDemandee = true;
+      withPos(st, () => { if (S.route === 'pistes') glisser(renderBody); });
+    }
+    premierId = (wide && mqFine.matches && q) ? ((alive[0] || closed[0] || {}).id || null) : null;
+    rendreChips();
 
     const tout = S.companies.length;
     const cnt = root.querySelector('#piCount');
@@ -415,9 +558,14 @@ export function renderPistes(){
        ne voit pas l'écran tape trois lettres et n'apprend jamais qu'il
        ne reste qu'une piste. C'est le DÉCOR qui suit un geste, jamais sa
        conséquence — une annonce plus tardive dans le même souffle
-       (« supprimée, Annuler pendant 30 s ») la remplace, exprès. */
-    if (cnt && (q || ftOn()))
-      annoncer(`${all.length} piste${all.length > 1 ? 's' : ''} sur ${tout}.`);
+       (« supprimée, Annuler pendant 30 s ») la remplace, exprès.
+       Ce que la barre a compris se dit avec : l'étiquette se VOIT, elle
+       doit aussi s'entendre. */
+    if (cnt && (q || ftOn())){
+      const compris = interp && interp.etiquettes.length
+        ? ' — ' + interp.etiquettes.map(e => e.label).join(', ') : '';
+      annoncer(`${all.length} piste${all.length > 1 ? 's' : ''} sur ${tout}${compris}.`);
+    }
 
     let html = orphansHTML();
     if (!S.companies.length){
@@ -434,21 +582,35 @@ export function renderPistes(){
     } else if (!all.length){
       /* « Aucune PISTE », pas « rien » : le bac juste au-dessus peut
          très bien avoir trouvé quelqu'un, et les deux phrases se
-         contrediraient. Nommer l'objet suffit à les réconcilier. */
+         contrediraient. Nommer l'objet suffit à les réconcilier.
+         Le vide ne redit pas ce qu'on a cherché — c'est dans le champ,
+         et dans les étiquettes juste au-dessus. Il dit en revanche ce
+         qu'on RETROUVERAIT : une recherche n'est jamais une impasse. */
+      const alt = q ? elargir(S.companies, q, { ctx: ctxBarre(), filtres: filtresVue() })
+        .filter(x => x.genre === 'sans') : [];
+      const retrouver = alt.length ? `<div class="el-alt">${alt.map(x =>
+        `<button class="btn btn-sm" data-prop="${esc(x.q)}">Sans « ${esc(x.label)} »<span class="fl-n">${x.n}</span></button>`).join('')}</div>` : '';
       html +=
-        `<div class="empty-list">Aucune piste ne correspond${q ? ` à « ${esc(q)} »` : ' au filtre'}.
+        `<div class="empty-list">Aucune piste ne correspond${q ? '' : ' au filtre'}.${retrouver}
            ${ftOn() ? '<button class="linklike" id="piFtClear">Tout montrer</button>' : ''}
          </div>`;
     } else {
-      if (wide) html += boardHTML(alive);
+      /* Pendant une recherche, un tableau SANS UNE CARTE n'est que du
+         bruit : « refusé » posait trois colonnes vides et tramées
+         au-dessus de la seule piste trouvée, clôturée, plus bas. Hors
+         recherche il reste — ses colonnes vides disent alors quelque
+         chose (« aucune réponse »). */
+      if (wide){ if (alive.length || !q) html += boardHTML(alive); }
       else {
         const { shown, more } = capped(alive, 'list', CAP_LIST);
         html += `<div class="rows">${shown.map(rowHTML).join('')}${more ? moreBtn('list', more) : ''}</div>`;
       }
       if (closed.length){
         const { shown, more } = capped(closed, 'closed', CAP_LIST);
+        /* pendant une recherche, la tranche s'ouvre — comme le bac : un
+           `<details>` replié cache exactement ce qu'on cherchait */
         html +=
-          `<details class="tranche tr-closed">
+          `<details class="tranche tr-closed"${q ? ' open' : ''}>
              <summary class="tr-h">${ic('archive', 'ic-14')} Clôturées <span class="tr-n">${closed.length}</span></summary>
              <div class="rows">${shown.map(rowHTML).join('')}${more ? moreBtn('closed', more) : ''}</div>
            </details>`;
@@ -467,6 +629,7 @@ export function renderPistes(){
     });
     if (wide && body.querySelector('.board')) bindBoardDrag(body);
     body.querySelector('#piFtClear')?.addEventListener('click', () => { ftClear(); renderPistes(); });
+    body.querySelectorAll('[data-prop]').forEach(b => b.addEventListener('click', () => chercher(b.dataset.prop)));
     /* bac : la ligne édite, le bouton rattache — et le contact se jette
        au geste, comme une piste (jusqu'ici il fallait l'ouvrir pour ça) */
     body.querySelectorAll('.orow').forEach(r => {
@@ -506,12 +669,33 @@ export function renderPistes(){
      barre de commande du pouce a besoin du repère. */
   collerEnHaut(root.querySelector('.stick-guet'), root.querySelector('.search-wrap'));
 
-  const input = root.querySelector('#piQ');
+  /* poser une recherche toute faite — une proposition, un élargissement :
+     le champ la reçoit, comme si on l'avait tapée. Au doigt le clavier se
+     range (la liste est ce qu'on veut voir) ; au poste le curseur reste
+     dans la barre, au bout du texte, pour continuer à taper. */
+  const chercher = texte => {
+    clearTimeout(h);
+    q = texte;
+    input.value = texte;
+    if (mqFine.matches){ input.focus(); input.setSelectionRange(texte.length, texte.length); }
+    else input.blur();
+    glisser(renderBody);
+  };
+
   let h = null;
   input.addEventListener('input', () => {
     clearTimeout(h);
     h = setTimeout(() => { q = input.value; glisser(renderBody); }, 180);
   });
+  /* vide et focalisée, la barre propose ; elle cesse de proposer quand
+     elle perd le curseur — avec un court délai, le temps qu'un tap sur
+     une proposition arrive à destination */
+  input.addEventListener('focus', () => { barreActive = true; if (!q) rendreChips(); });
+  input.addEventListener('blur', () => setTimeout(() => {
+    if (document.activeElement === input || !input.isConnected) return;
+    barreActive = false;
+    if (!q) rendreChips();
+  }, 150));
   /* Échap vide la recherche, puis rend le clavier. Deux temps : la
      première touche efface (on veut revoir toute la liste), la
      seconde quitte le champ — annuler ne doit jamais coûter la souris. */
@@ -520,14 +704,85 @@ export function renderPistes(){
        la liste est déjà filtrée à la frappe, donc la seule chose qui
        reste à faire après avoir tapé, c'est de la VOIR. La touche
        s'annonce d'ailleurs « Rechercher » (`enterkeyhint`) — la tenir
-       pour rien serait une promesse de plus non tenue. */
-    if (e.key === 'Enter'){ e.preventDefault(); input.blur(); return; }
+       pour rien serait une promesse de plus non tenue.
+       AU POSTE, Entrée ouvre la première piste — celle qui porte le
+       ↵ tant que le curseur est dans la barre : « / », trois lettres,
+       Entrée, et la fiche est ouverte, sans quitter le clavier. */
+    if (e.key === 'Enter'){
+      e.preventDefault();
+      if (input.value !== q){ clearTimeout(h); q = input.value; renderBody(); }
+      if (premierId){ openById(premierId); return; }
+      input.blur();
+      return;
+    }
+    /* ↓ descend dans ce que la barre montre : les propositions si elle
+       est vide, sinon les pistes — la première étant celle qu'Entrée
+       aurait ouverte */
+    if (e.key === 'ArrowDown'){
+      const prop = root.querySelector('#piProps .prop-chip');
+      const cible = (!q && prop) || premiere();
+      if (cible){ e.preventDefault(); viser(cible); }
+      return;
+    }
     if (e.key !== 'Escape') return;
     if (!input.value){ input.blur(); return; }
     clearTimeout(h);
     input.value = ''; q = '';
     glisser(renderBody);
   });
+
+  /* ---- AU CLAVIER, DANS LES RÉSULTATS ----
+     La barre promettait « ↓ descend dans les résultats » ; il fallait
+     ensuite TAB à travers chaque carte, colonne après colonne. Les
+     flèches suivent maintenant la forme de l'écran : ↑ ↓ dans la liste
+     ou dans une colonne du tableau, ← → d'une colonne à la voisine (à la
+     même hauteur), ↑ en tête et Échap remontent dans la barre, la
+     recherche intacte. */
+  const visible = el => !!el && el.getClientRects().length > 0;
+  const cibles = () => [...root.querySelectorAll('#piBody .o-main, #piBody .ri-main, #piBody .bc-main')].filter(visible);
+  const premiere = () => (premierId && root.querySelector(`#piBody .bcard[data-id="${premierId}"] .bc-main`)) || cibles()[0] || null;
+  const viser = el => {
+    el.focus({ preventScroll: true });
+    el.scrollIntoView({ block: 'nearest' });
+  };
+  page.addEventListener('keydown', e => {
+    const t = e.target instanceof Element ? e.target : null;
+    if (!t || e.altKey || e.ctrlKey || e.metaKey) return;
+    const puce = t.closest('#piChips button, #piProps button');
+    if (puce && /^Arrow(Left|Right|Up|Down)$/.test(e.key)){
+      const puces = [...root.querySelectorAll(puce.closest('#piProps') ? '#piProps button' : '#piChips button')];
+      const i = puces.indexOf(puce);
+      const vers = e.key === 'ArrowLeft' ? puces[i - 1] : e.key === 'ArrowRight' ? puces[i + 1]
+        : e.key === 'ArrowUp' ? input : premiere();
+      if (vers){ e.preventDefault(); viser(vers); }
+      return;
+    }
+    const cible = t.closest('.bc-main, .ri-main, .o-main');
+    if (!cible || !/^(Arrow(Up|Down|Left|Right)|Escape)$/.test(e.key)) return;
+    if (e.key === 'Escape'){ e.preventDefault(); input.focus(); return; }
+    const col = cible.closest('.bcol');
+    let vers = null;
+    if (col){
+      const dans = [...col.querySelectorAll('.bc-main')].filter(visible);
+      const i = dans.indexOf(cible);
+      if (e.key === 'ArrowDown') vers = dans[i + 1];
+      else if (e.key === 'ArrowUp') vers = i > 0 ? dans[i - 1] : input;
+      else {
+        const cols = [...root.querySelectorAll('#piBody .bcol')].filter(c => c.querySelector('.bc-main'));
+        const voisine = cols[cols.indexOf(col) + (e.key === 'ArrowRight' ? 1 : -1)];
+        if (voisine){
+          const l = [...voisine.querySelectorAll('.bc-main')].filter(visible);
+          vers = l[Math.min(i, l.length - 1)];
+        }
+      }
+    } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp'){
+      const l = cibles();
+      const i = l.indexOf(cible);
+      vers = e.key === 'ArrowDown' ? l[i + 1] : (i > 0 ? l[i - 1] : input);
+    }
+    if (vers){ e.preventDefault(); viser(vers); }
+  });
+
   /* Redessiner la liste en faisant GLISSER les lignes retrouvées (#23).
      C'était écrit ici, et ça ne marchait que pour les puces : le champ
      de recherche appelait `renderBody()` en direct, sans passer par
@@ -541,13 +796,30 @@ export function renderPistes(){
   };
   /* les puces d'état et le corps se re-rendent ensemble, la recherche
      reste le même nœud (le curseur ne saute pas) */
-  const refresh = () => glisser(() => {
-    const chips = root.querySelector('#piChips');
-    chips.innerHTML = chipsRowHTML();
-    bindChips(chips);
-    renderBody();
-  });
+  const refresh = () => glisser(renderBody);
   const bindChips = box => {
+    /* une puce tapée ne vole pas le curseur à la barre : sans ça, toucher
+       une proposition fermait le clavier AVANT que le tap n'arrive */
+    box.querySelectorAll('[data-prop], [data-et]').forEach(b =>
+      b.addEventListener('mousedown', e => { if (document.activeElement === input) e.preventDefault(); }));
+    box.querySelectorAll('[data-prop]').forEach(b => b.addEventListener('click', () => chercher(b.dataset.prop)));
+    box.querySelectorAll('[data-et]').forEach(b =>
+      b.addEventListener('click', () => {
+        const e = interp && interp.etiquettes[Number(b.dataset.et)];
+        if (!e) return;
+        /* Le focus ne tombe pas par terre (§6) : au clavier, la puce qui
+           part rend la main à sa voisine, sinon à la barre */
+        const auClavier = document.activeElement === b;
+        const rang = [...box.querySelectorAll('button')].indexOf(b);
+        clearTimeout(h);
+        q = retirer(q, e.spans);
+        input.value = q;
+        glisser(renderBody);
+        if (auClavier){
+          const reste = [...root.querySelectorAll('#piChips button')];
+          (reste[rang] || reste[rang - 1] || input).focus();
+        }
+      }));
     box.querySelectorAll('[data-clear]').forEach(b =>
       b.addEventListener('click', () => {
         /* on retire LA valeur tapée, pas toute la famille : avec deux
@@ -560,7 +832,6 @@ export function renderPistes(){
       }));
     bindSortChip(box, st, refresh);
   };
-  bindChips(root.querySelector('#piChips'));
   root.querySelector('#piAffiner').addEventListener('click', () =>
     openAffinerSheet(ft, st, { withStatus: !mqWide.matches,
       pool: () => S.companies.filter(c => !isClosed(c)) }, refresh));

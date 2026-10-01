@@ -143,8 +143,11 @@ const GESTES = [
               .find(n => getComputedStyle(n).transform !== 'none')
             || document.querySelector('#piBody [data-id]'),
       n => getComputedStyle(n).transform,
+      /* « n », pas « a » : depuis que la barre comprend ce qu'on tape,
+         « a » est un mot de liaison (« alternance à Lille ») et ne filtre
+         plus rien, exprès — il ne ferait donc plus rien bouger */
       () => { const q = document.querySelector('#piQ');
-              q.value = 'a'; q.dispatchEvent(new Event('input', { bubbles: true })); }));
+              q.value = 'n'; q.dispatchEvent(new Event('input', { bubbles: true })); }));
   }],
   ['Le champ de notes qui grandit', 'glisse', async p => {
     await ouvrirFiche(p);
