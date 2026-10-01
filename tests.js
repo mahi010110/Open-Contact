@@ -9,7 +9,7 @@ import { esc, normName, extractCity, surUnRang, distKm, todayISO, localISO } fro
 import { KDF_ITER, encryptOC2, decryptOC2, deriveKey, bytesToB64,
          fnv, ocKeystream, unsealOC1 } from './engine/crypto.js';
 import { APP_VERSION, VECU, normalizeCompany, normalizeContact, normalizeProfile,
-         pushHist, fillTpl, TROUS, crochets, remplirTrous, safeUrl, summarizeChanges,
+         pushHist, fillTpl, CLOSE_REASONS, TROUS, crochets, remplirTrous, safeUrl, summarizeChanges,
          RECHERCHES, dateLongue, dureeRecherche, periodeValide, phraseRecherche, resumeRecherche,
          manquesProfil, emailPlausible, majModelesDefaut, defaultTemplates,
          prendCeQueJeCherche, PREND_MOT, modeleConseille,
@@ -45,7 +45,8 @@ import { buildMime, encodeHeader, toB64Url, authUrl, parseCallback, pkcePair } f
 import { dueFollowups, contactFromSignature, exchangeLog, exchangeTotals, nextActionSuggestions,
          silentPistes, derniereTrace, recuesDormantes, jamaisDonnees, canalCourt,
          SILENCE_RELANCE, SILENCE_DERNIERE, SILENCE_TROP_TARD,
-         sansFilet, FILET_MIN_PISTES, FILET_JOURS } from './engine/assist.js';
+         sansFilet, FILET_MIN_PISTES, FILET_JOURS, aDemarrer } from './engine/assist.js';
+import { rappelICS, lienAgendaGoogle, formeAgenda, RAPPEL_HEURE } from './engine/agenda.js';
 import { makeMission, missionUsable, revokeMission, foldCampaignReport,
          signMission, openMissionWire } from './engine/mission.js';
 import { normCode, pairKey } from './engine/ordinateur.js';
@@ -932,6 +933,54 @@ export async function runSelfTests(){
       ok(!fillTpl(cand.body, c, null, { ...alt, recherche: 'stage' }).includes('Rythme'));
       /* l'emploi n'écrit pas « Candidature emploi » */
       eq(fillTpl(cand.subject, c, null, { ...alt, recherche: 'emploi' }), 'Candidature BTS SIO — Ana B');
+    },
+    'par où commencer : seulement ce qui n’a jamais démarré': () => {
+      /* le défaut joué : écrire à Aztek, fermer « et ensuite ? », et la
+         retrouver dans « Par où commencer » avec l'icône mail */
+      ok(aDemarrer(normalizeCompany({ name: 'Neuve' })));
+      ok(aDemarrer(normalizeCompany({ name: 'À contacter', status: 'todo' })));
+      ok(!aDemarrer(normalizeCompany({ name: 'Écrite', status: 'active' })));
+      ok(!aDemarrer(normalizeCompany({ name: 'Répondu', status: 'reply' })));
+      ok(!aDemarrer(normalizeCompany({ name: 'Planifiée', status: 'todo', nextAction: '2026-10-08' })));
+      ok(!aDemarrer(normalizeCompany({ name: 'Close', status: 'todo', closedReason: Object.keys(CLOSE_REASONS)[0] })));
+      ok(!aDemarrer(null));
+    },
+    'agenda : le rappel .ics suit la RFC 5545 — heure locale, alarme, échappement, lignes de 75 octets': () => {
+      const ics = rappelICS({ uid: 'p-1/2026', titre: 'Relancer Marc — Aztek, Lille; RH', date: '2026-10-08',
+        details: 'Prochaine action\nOpenContact', maintenant: new Date('2026-10-01T10:00:00Z') });
+      const l = ics.split('\r\n');
+      ok(ics.endsWith('\r\n'), 'fin de ligne CRLF');
+      eq(l[0], 'BEGIN:VCALENDAR');
+      ok(l.includes('DTSTART:20261008T' + RAPPEL_HEURE.replace(':', '') + '00'), 'heure flottante, sans fuseau');
+      ok(l.includes('DTEND:20261008T091500'));
+      ok(l.includes('DTSTAMP:20261001T100000Z'));
+      ok(l.includes('UID:p-12026@opencontact'), 'UID sans caractère spécial');
+      ok(l.includes('TRIGGER:PT0M') && l.includes('BEGIN:VALARM'), 'une alarme fait sonner le téléphone');
+      ok(ics.includes('SUMMARY:Relancer Marc — Aztek\\, Lille\\; RH'), 'virgule et point-virgule échappés');
+      ok(ics.includes('DESCRIPTION:Prochaine action\\nOpenContact'), 'retour à la ligne échappé');
+      const enc = new TextEncoder();
+      ok(l.every(x => enc.encode(x).length <= 75), 'aucune ligne au-delà de 75 octets');
+      const long = rappelICS({ titre: 'é'.repeat(120), date: '2026-10-08' });
+      ok(long.split('\r\n').every(x => enc.encode(x).length <= 75), 'le pliage compte en octets, pas en caractères');
+      ok(long.split('\r\n').some(x => x.startsWith(' ')), 'la suite d’une ligne pliée commence par une espace');
+      /* une date qui n'en est pas une, ou rien à rappeler : rien du tout */
+      eq(rappelICS({ titre: 'x', date: '2026-13-45' }), '');
+      eq(rappelICS({ titre: '  ', date: '2026-10-08' }), '');
+    },
+    'agenda : le lien Google pré-remplit le titre et les deux heures, et la forme suit l’appareil': () => {
+      const u = new URL(lienAgendaGoogle({ titre: 'Relancer Marc — Aztek', date: '2026-10-08', details: 'OpenContact' }));
+      eq(u.origin + u.pathname, 'https://calendar.google.com/calendar/render');
+      eq(u.searchParams.get('action'), 'TEMPLATE');
+      eq(u.searchParams.get('text'), 'Relancer Marc — Aztek');
+      eq(u.searchParams.get('dates'), '20261008T090000/20261008T091500');
+      eq(u.searchParams.get('details'), 'OpenContact');
+      eq(lienAgendaGoogle({ titre: 'x', date: 'demain' }), '');
+      /* l'agenda d'Apple ouvre un .ics, celui d'Android non */
+      eq(formeAgenda('Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15'), 'ics');
+      eq(formeAgenda('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15'), 'ics');
+      eq(formeAgenda('Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 Chrome/128.0'), 'google');
+      eq(formeAgenda('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/128.0'), 'google');
+      eq(formeAgenda(''), 'google');
     },
     'premier mail : un manque qui rendrait le mail FAUX devient un crochet, jamais un trou muet': () => {
       /* Le défaut joué le 30 septembre 2026 : profil vide, le premier mail

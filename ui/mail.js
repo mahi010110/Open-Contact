@@ -13,6 +13,7 @@ import { sendMail } from '../engine/mailer.js';
 import { bytesToB64 } from '../engine/crypto.js';
 import { docGet } from '../engine/storage.js';
 import { aiComplete, draftPrompt, splitDraft } from '../engine/ai.js';
+import { SILENCE_RELANCE } from '../engine/assist.js';
 import { S, bus, saveData, logJ, activateContact } from './state.js';
 import { openSheet, toast, btn, el, ic, showUndo } from './dom.js';
 import { askNextAction } from './actions.js';
@@ -410,6 +411,7 @@ export function openMail(c, opts){
     askNextAction(c, {
       title: 'Envoyé ✓ — et ensuite ?',
       preset: 'Relancer' + (who ? ' ' + who : ''),
+      conseil: SILENCE_RELANCE,                         /* « Dans 7 jours », sous le pouce */
       ctId: ct && ct.id,                                /* la relance vise la personne */
       onDone: advance
     });

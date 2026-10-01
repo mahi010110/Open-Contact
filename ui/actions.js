@@ -6,10 +6,11 @@
    ============================================================ */
 import { esc } from '../engine/utils.js';
 import { CLOSE_REASONS } from '../engine/model.js';
-import { bus, setNextAction, closePiste } from './state.js';
+import { S, bus, setNextAction, closePiste, saveProfile } from './state.js';
 import { openSheet, toast, ic, btn } from './dom.js';
 import { plusDaysISO, nextMondayISO, frDate } from './dates.js';
 import { nextActionSuggestions } from '../engine/assist.js';
+import { rappelICS, lienAgendaGoogle, formeAgenda } from '../engine/agenda.js';
 
 const DATE_CHOICES = [
   ['Demain', () => plusDaysISO(1)],
@@ -26,6 +27,46 @@ const dateChoices = () => {
   return DATE_CHOICES.map(([nom, fn]) => [nom, fn()])
     .filter(([, iso]) => !vus.has(iso) && vus.add(iso));
 };
+
+/* LE RAPPEL PAR L'AGENDA DU TÉLÉPHONE. Une app web ne peut pas prévenir
+   sans serveur (§10) : « je fais quoi maintenant » dépendait de penser à
+   l'ouvrir. L'agenda, lui, sonne. La case vit LÀ où l'on choisit la date
+   — c'est l'instant où le rappel a un sens — et elle se souvient d'une
+   fois sur l'autre (`flags.rappelAgenda`, dans le profil, comme la date
+   de la dernière copie) : qui veut ses rappels les veut à chaque fois.
+   Quelle forme — fichier .ics ou lien Google — l'appareil le dit
+   (`formeAgenda`) : ce n'est pas une question à poser. */
+const agendaHTML = id =>
+  `<label class="ckline"><input type="checkbox" id="${id}"${(S.profile.flags || {}).rappelAgenda ? ' checked' : ''}> Me le rappeler dans mon agenda</label>`;
+function caseAgenda(root, id){
+  const box = root.querySelector('#' + id);
+  box.addEventListener('change', () => {
+    S.profile.flags = S.profile.flags || {};
+    S.profile.flags.rappelAgenda = box.checked;
+    saveProfile();
+  });
+  return () => box.checked;
+}
+/* Appelé DANS le geste qui choisit la date : un téléchargement ou une
+   fenêtre qui s'ouvre hors d'un geste est bloqué par le navigateur. */
+export function ouvrirAgenda(c, txt, iso){
+  const titre = (txt || 'Faire le point') + ' — ' + c.name;
+  const details = 'Prochaine action notée dans OpenContact.';
+  if (formeAgenda(navigator.userAgent) === 'ics'){
+    const ics = rappelICS({ uid: c.id + '-' + iso, titre, date: iso, details });
+    if (!ics) return;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([ics], { type: 'text/calendar;charset=utf-8' }));
+    a.download = 'rappel-' + iso + '.ics';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    return;
+  }
+  const url = lienAgendaGoogle({ titre, date: iso, details });
+  if (url) window.open(url, '_blank', 'noopener');
+}
 
 /* champ date + bouton OK : le bouton apparaît dès qu'une date est posée */
 function bindDateOk(root, inputSel, okSel, pick){
@@ -82,9 +123,12 @@ export function askNextAction(c, opts){
        <div class="date-row">
          <input id="naDate" type="date" min="${plusDaysISO(0)}">
          <button class="btn btn-primary" id="naOk" hidden>OK</button>
-       </div></div>`;
+       </div></div>
+     ${agendaHTML('naAgenda')}`;
+  const veutAgenda = caseAgenda(sh.body, 'naAgenda');
   const pick = iso => {
     const txt = sh.body.querySelector('#naTxt').value.trim() || 'Faire le point';
+    if (veutAgenda()) ouvrirAgenda(c, txt, iso);
     /* mode formulaire (fiche) : la valeur revient à l'appelant, qui
        n'enregistrera qu'au « Confirmer » */
     if (opts.onPick){
@@ -109,6 +153,17 @@ export function askNextAction(c, opts){
     });
     sh.setFoot([btn('OK — garder ' + frDate(opts.presetDate), 'btn-primary', () => pick(opts.presetDate))]);
   }
+  /* LA RÉPONSE CONSEILLÉE SE TAPE EN BAS. Après un envoi, la relance a
+     un délai que les données donnent — 5 à 7 jours ouvrés (§6,
+     `SILENCE_RELANCE`) — et décider QUAND aide nettement à faire
+     (Gollwitzer et Sheeran, 2006). Elle n'était qu'une puce parmi
+     quatre : on fermait la feuille, et rien n'était prévu. Elle tient
+     maintenant le pied, sous le pouce ; les puces restent pour un autre
+     jour, et la croix pour ne rien prévoir. */
+  else if (opts.conseil > 0){
+    const iso = plusDaysISO(opts.conseil);
+    sh.setFoot([btn('Dans ' + opts.conseil + ' jours', 'btn-primary', () => pick(iso))]);
+  }
   return sh;
 }
 
@@ -131,8 +186,11 @@ export function reportAction(c){
        <div class="date-row">
          <input id="rpDate" type="date" min="${plusDaysISO(0)}">
          <button class="btn btn-primary" id="rpOk" hidden>OK</button>
-       </div></div>`;
+       </div></div>
+     ${agendaHTML('rpAgenda')}`;
+  const veutAgenda = caseAgenda(sh.body, 'rpAgenda');
   const pick = iso => {
+    if (veutAgenda()) ouvrirAgenda(c, c.nextActionText, iso);
     /* reporter ne change ni le verbe ni la personne visée (#14) */
     setNextAction(c, c.nextActionText, iso, c.nextActionCt);
     sh.close();

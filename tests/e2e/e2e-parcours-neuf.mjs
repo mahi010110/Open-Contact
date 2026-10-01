@@ -351,7 +351,77 @@ console.log('La piste survit au rechargement ✓');
   if (durs.length) fail(`premier mail, profil vide : ${durs.length} défaut(s) —\n      ` + durs.join('\n      '));
   else console.log('premier mail : les manques se voient, rien ne part avec un crochet, '
     + 'le profil complété remplit les trous sans toucher à l’accroche ✓');
+
+  /* ---------- APRÈS L'ENVOI : la relance conseillée, et l'agenda ----------
+     Joué le 30 septembre 2026 : on fermait « Envoyé ✓ — et ensuite ? »,
+     rien n'était prévu, et la piste revenait dans « Par où commencer »
+     avec l'icône mail. La relance à 7 jours tient maintenant le pied, et
+     la case « Me le rappeler dans mon agenda » fait sonner le téléphone
+     — une app web ne le peut pas seule (§10). */
+  const suite = [];
+  await M.evaluate(() => { window.__agenda = []; window.open = u => { window.__agenda.push(u); return null; }; });
+  await M.locator('.overlay .modal-f .btn').filter({ hasText: 'Envoyée ✓' }).click();
+  await M.waitForSelector('#naAgenda');
+  const pied = await M.evaluate(() =>
+    [...document.querySelectorAll('.overlay:last-of-type .modal-f .btn')].map(b => b.textContent.trim()));
+  if (String(pied) !== 'Dans 7 jours') suite.push('le pied ne propose pas la relance conseillée : ' + JSON.stringify(pied));
+  await M.check('#naAgenda');
+  /* sans la relance conseillée, on prend la puce « +7 jours » : le reste
+     se mesure quand même, et la faute du pied reste NOMMÉE au lieu de
+     finir en délai dépassé (une mutation l'a montré) */
+  if (String(pied) === 'Dans 7 jours') await M.locator('.overlay:last-of-type .modal-f .btn-primary').click();
+  else await M.locator('.overlay:last-of-type .dchip-d').filter({ hasText: '+7 jours' }).click();
+  await M.waitForTimeout(400);
+  const r = await M.evaluate(async () => {
+    const { S } = await import('./ui/state.js');
+    const c = S.companies[0];
+    const j = new Date(); j.setDate(j.getDate() + 7);
+    const attendu = j.getFullYear() + '-' + String(j.getMonth() + 1).padStart(2, '0') + '-' + String(j.getDate()).padStart(2, '0');
+    return { next: c.nextAction, attendu, txt: c.nextActionText, flag: !!(S.profile.flags || {}).rappelAgenda, agenda: window.__agenda };
+  });
+  if (r.next !== r.attendu) suite.push(`« Dans 7 jours » a prévu le ${r.next}, pas le ${r.attendu}`);
+  if (!/^Relancer/.test(r.txt || '')) suite.push('la relance prévue a perdu son verbe : ' + JSON.stringify(r.txt));
+  const lien = r.agenda.length === 1 ? new URL(r.agenda[0]) : null;
+  if (!lien || lien.hostname !== 'calendar.google.com'
+      || lien.searchParams.get('dates') !== r.attendu.replace(/-/g, '') + 'T090000/' + r.attendu.replace(/-/g, '') + 'T091500'
+      || !/Relancer.*Boulangerie Cyber/.test(lien.searchParams.get('text') || ''))
+    suite.push('l’agenda ne reçoit pas le bon rappel : ' + JSON.stringify(r.agenda));
+  if (!r.flag) suite.push('la case de l’agenda ne se souvient pas d’une fois sur l’autre');
+  if (suite.length) fail(`après l'envoi : ${suite.length} défaut(s) —\n      ` + suite.join('\n      '));
+  else console.log('après l’envoi : « Dans 7 jours » sous le pouce, le rappel part dans l’agenda, la case s’en souvient ✓');
   await closeSheets(M);
+}
+
+/* ---------- SUR IPHONE, LE RAPPEL EST UN FICHIER .ics ----------
+   L'agenda d'Apple ouvre un .ics, celui d'Android non : la forme se
+   décide d'après l'appareil, pas par une question. On joue la même
+   case avec l'identité d'un iPhone et on lit le fichier téléchargé. */
+{
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, acceptDownloads: true,
+    userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1' });
+  const I = await ctx.newPage();
+  watch(I);
+  await I.goto(base, { waitUntil: 'load' });
+  await I.waitForSelector('#view-aujourdhui:not([hidden])');
+  await I.evaluate(async () => {
+    const { S, saveData } = await import('./ui/state.js');
+    const { normalizeCompany } = await import('./engine/model.js');
+    S.companies = [normalizeCompany({ name: 'Aztek', nextAction: '2026-12-01', nextActionText: 'Relancer Marc' })];
+    saveData();
+    (await import('./ui/actions.js')).reportAction(S.companies[0]);
+  });
+  await I.waitForSelector('#rpAgenda');
+  await I.check('#rpAgenda');
+  const dl = I.waitForEvent('download', { timeout: 6000 }).catch(() => null);
+  await I.locator('.overlay .dchip-d').first().click();
+  const d = await dl;
+  const ics = d ? (await import('fs')).readFileSync(await d.path(), 'utf8') : '';
+  if (!d) fail('sur iPhone, « Reporter » avec la case cochée ne donne aucun fichier .ics');
+  else if (!/^BEGIN:VCALENDAR\r\n/.test(ics) || !/SUMMARY:Relancer Marc — Aztek/.test(ics) || !/TRIGGER:PT0M/.test(ics)
+           || !/\.ics$/.test(d.suggestedFilename()))
+    fail('le fichier .ics de l’iPhone n’est pas le bon rappel : ' + JSON.stringify(ics.slice(0, 200)));
+  else console.log(`sur iPhone : « Reporter » donne ${d.suggestedFilename()}, avec son alarme ✓`);
+  await ctx.close();
 }
 
 /* ---------- bureau neuf : l'exemple enseigne aussi ---------- */

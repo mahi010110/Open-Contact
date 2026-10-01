@@ -81,14 +81,17 @@ Profil vide, au téléphone, comme un étudiant qui la découvre.
 - 6.42.0 : « Reporter » porte le calendrier de « Planifier » (même
   question, même dessin) ; la capture dit « Ajouter » au lieu de
   « Suivant » ; « Donner » propose « Texte » à côté de QR et Fichier,
-  les mots de « Recevoir », et l'envoie par la feuille de partage.
+  les mots de « Recevoir », et l'envoie par la feuille de partage ;
+- 6.43.0 : après un envoi, « Dans 7 jours » tient le pied de « Et
+  ensuite ? » ; « Par où commencer » ne propose plus une piste déjà
+  écrite ; la case « Me le rappeler dans mon agenda » fait sonner le
+  téléphone (un `.ics` sur iPhone, un lien Google Agenda ailleurs) —
+  **à vérifier sur un vrai iPhone**, où rien ne la mesure ici.
 
 **Restent :**
 
 | Friction | Ce qui se passe | Piste |
 |---|---|---|
-| Rien ne rappelle de revenir | une app web ne peut pas notifier sans serveur ; « je fais quoi maintenant » dépend de penser à l'ouvrir. L'oubli fait partie des raisons qui font lâcher un outil de suivi (Epstein et al., 2015) | ajouter la prochaine action au **calendrier du téléphone** (fichier `.ics` avec alarme) : le calendrier rappelle, sans serveur |
-| Fermer « Envoyé ✓ — et ensuite ? » ne planifie rien | la piste revient dans « Par où commencer » avec l'icône mail, comme si on ne lui avait jamais écrit | une relance proposée **par défaut** (7 jours, `SILENCE_RELANCE`) ; décider « quand » aide nettement à faire (effet de 0,65, Gollwitzer et Sheeran, 2006) ; et « Par où commencer » ne garde que les pistes jamais contactées, comme §6 le dit déjà |
 | Dire « c'est envoyé » exige de revenir | parti depuis Gmail, l'app croit que rien n'est parti | l'envoi direct le règle ; sinon, le pied « Envoyée ✓ » au retour existe déjà |
 | La page blanche de l'accroche | une piste neuve n'a ni notes ni site à montrer | les brouillons par l'assistant ; le lot 3 de la barre |
 

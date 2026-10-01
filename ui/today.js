@@ -8,7 +8,7 @@
 import { esc, todayISO } from '../engine/utils.js';
 import { DOMAINS, STATUSES, VECU, prendCeQueJeCherche, PREND_MOT } from '../engine/model.js';
 import { scoreOf } from '../engine/score.js';
-import { dueFollowups, silentPistes } from '../engine/assist.js';
+import { dueFollowups, silentPistes, aDemarrer } from '../engine/assist.js';
 import { S, bus, isClosed, markDone, hasDemo, addDemo, removeDemo } from './state.js';
 import { $, ic, openSheet } from './dom.js';
 import { frToday, frDate, dueMarkHTML, silenceMarkHTML } from './dates.js';
@@ -310,6 +310,10 @@ export function renderToday(){
   const due = alive.filter(c => c.nextAction === today).sort(byDate);
   const soon = alive.filter(c => c.nextAction && c.nextAction > today).sort(byDate);
   const noAction = alive.filter(c => !c.nextAction);
+  /* « Par où commencer » ne propose que ce qui n'a JAMAIS démarré : une
+     piste qu'on vient d'écrire n'est pas à recommencer (`aDemarrer`). Le
+     lien du pied, lui, compte toujours toutes les pistes sans suite. */
+  const aLancer = noAction.filter(aDemarrer);
   const done = doneTodayCount();
   const triage = triageItems();
 
@@ -326,8 +330,8 @@ export function renderToday(){
   const rienDePrevu = rienAFaire && !soon.length;
   const suggestion = muettes.length
     ? { html: () => silenceHTML(muettes.slice(0, DEBUT), muettes.length) }
-    : (rienDePrevu && noAction.length)
-      ? { html: () => debutHTML(parOuCommencer(noAction)) } : null;
+    : (rienDePrevu && aLancer.length)
+      ? { html: () => debutHTML(parOuCommencer(aLancer)) } : null;
   /* elle remplace le vide quand rien n'est prévu ; sinon elle SUIT le
      travail du jour — ce qui est engagé passe avant ce qui est suggéré */
   const alaPlace = rienDePrevu && suggestion;
