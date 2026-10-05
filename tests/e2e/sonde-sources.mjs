@@ -126,7 +126,7 @@ for (const [nom, url] of DOCUMENTATION){
         if (!op || typeof op !== 'object') continue;
         const params = (op.parameters || []).map(p => p.name || (p.$ref || '').split('/').pop()).filter(Boolean);
         const secu = op.security ? JSON.stringify(op.security) : (j.security ? 'global:' + JSON.stringify(j.security) : 'aucune');
-        console.log(`   ${verbe.toUpperCase()} ${chemin} · sécurité ${secu.slice(0, 80)}${params.length ? ' · ' + params.join(', ').slice(0, 400) : ''}`);
+        console.log(`   ${verbe.toUpperCase()} ${chemin} · sécurité ${secu.slice(0, 80)}${params.length ? ' · ' + params.join(', ') : ''}`);
       }
     }
   } else if (j && j.fields){
@@ -174,6 +174,47 @@ for (const [nom, url] of BRUIT){
   console.log('   convention collective :', compte(x => ((x.complements && x.complements.liste_idcc) || []).join('+') || '—'));
   console.log('   ordre :', j.results.slice(0, 10).map(x => `${x.nom_raison_sociale || x.nom_complet} [${x.tranche_effectif_salarie || '∅'} ${String(x.date_creation || '').slice(0, 4)} ${x.nombre_etablissements_ouverts ?? '?'}ét]`).join(' | ').slice(0, 1200));
   await new Promise(ok => setTimeout(ok, 400));      /* l'annuaire limite le débit */
+}
+/* E. Ce que le CLASSEMENT de la maison devra lire (relevé du 5/10 :
+   sans texte, l'annuaire trie par nombre d'établissements — les mêmes
+   groupes nationaux en tête, partout). Peut-on avoir l'ordre par
+   distance, les PME employeuses, et les signaux d'employeur ? */
+console.log('\nE. CE QUE LE CLASSEMENT LIRA (côté serveur)\n');
+const E = [
+  ['autour de Lille · sort_by_size=false', `${AN}/near_point?lat=50.6292&long=3.0573&radius=10&${NUM}&sort_by_size=false&per_page=10`],
+  ['numérique · Nord · 10-499 salariés', `${AN}/search?${NUM}&departement=59&etat_administratif=A&est_entrepreneur_individuel=false&tranche_effectif_salarie=11,12,21,22,31,32&per_page=10`],
+  ['numérique · Nord · convention renseignée', `${AN}/search?${NUM}&departement=59&etat_administratif=A&est_entrepreneur_individuel=false&convention_collective_renseignee=true&per_page=10`],
+  ['cyber · Nord · sans EI', `${AN}/search?q=cyber&activite_principale=62.02A,62.09Z,62.01Z&departement=59&etat_administratif=A&est_entrepreneur_individuel=false&per_page=10`],
+  ['numérique · Nord · page 20', `${AN}/search?${NUM}&departement=59&etat_administratif=A&est_entrepreneur_individuel=false&per_page=25&page=20`],
+];
+const pos = x => { const m = (x.matching_etablissements || [])[0] || x.siege || {}; return [Number(m.latitude), Number(m.longitude), m.libelle_commune || '']; };
+for (const [nom, url] of E){
+  const r = await lire(url);
+  let j = null; try { j = JSON.parse(r.txt); } catch (e) {}
+  if (!j || !Array.isArray(j.results)){ console.log(`— ${nom} : ${r.statut} ${r.txt.slice(0, 160)}`); continue; }
+  const compte = f => { const m = new Map(); for (const x of j.results){ const k = String(f(x)); m.set(k, (m.get(k) || 0) + 1); } return [...m].map(([k, n]) => `${k}:${n}`).join(' '); };
+  console.log(`— ${nom} : ${r.statut} · total ${j.total_results}`);
+  console.log('   caractère employeur (siège) :', compte(x => x.siege && x.siege.caractere_employeur));
+  console.log('   tranche :', compte(x => x.tranche_effectif_salarie), '· idcc :', compte(x => ((x.complements && x.complements.liste_idcc) || []).length ? 'oui' : 'non'));
+  console.log('   ordre :', j.results.slice(0, 10).map(x => { const [la, lo, v] = pos(x);
+    const d = Number.isFinite(la) ? Math.round(Math.hypot((la - 50.6292) * 111, (lo - 3.0573) * 71)) + 'km' : '?';
+    return `${x.nom_raison_sociale || x.nom_complet} [${x.tranche_effectif_salarie || '∅'} ${v} ${d}]`; }).join(' | ').slice(0, 1400));
+  await new Promise(ok => setTimeout(ok, 400));
+}
+/* le BODACC : à quoi ressemble une procédure collective, pour la lire */
+{
+  const r = await lire('https://bodacc-datadila.opendatasoft.com/api/explore/v2.1/catalog/datasets/annonces-commerciales/records?where=familleavis%3D%22collective%22%20and%20numerodepartement%3D%2259%22&order_by=dateparution%20desc&limit=3');
+  let j = null; try { j = JSON.parse(r.txt); } catch (e) {}
+  console.log(`— BODACC · procédures collectives récentes (59) : ${r.statut} · total ${j && j.total_count}`);
+  for (const x of (j && j.results) || [])
+    console.log('   ', JSON.stringify({ date: x.dateparution, famille: x.familleavis_lib, type: x.typeavis_lib, registre: x.registre, commercant: x.commercant, jugement: x.jugement }).slice(0, 700));
+}
+/* Wikidata : la forme de l'identifiant LinkedIn (P4264), pour en faire un lien */
+{
+  const q = 'SELECT ?siren ?li WHERE { VALUES ?siren { "380129866" "552081317" "542107651" "333773174" } ?e wdt:P1616 ?siren ; wdt:P4264 ?li . }';
+  const r = await lire('https://query.wikidata.org/sparql?format=json&query=' + encodeURIComponent(q));
+  let j = null; try { j = JSON.parse(r.txt); } catch (e) {}
+  console.log(`— Wikidata · P4264 : ${r.statut} ·`, ((j && j.results && j.results.bindings) || []).map(b => b.siren.value + '→' + b.li.value).join(' '));
 }
 const temoin = await page.evaluate(async () => {
   try { await fetch('https://example.com/', { mode: 'no-cors' }); return 'réseau'; } catch (e) { return 'coupé'; }
