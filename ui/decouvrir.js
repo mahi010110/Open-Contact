@@ -22,14 +22,19 @@
 import { esc, uid, todayISO } from '../engine/utils.js';
 import { normalizeCompany } from '../engine/model.js';
 import { questionsAnnuaire, lireAnnuaire, decouvertes, versPiste, motsInterdits, ficheOfficielle,
-         PAR_PAGE } from '../engine/annuaire.js';
+         genreQuestion, PAR_PAGE } from '../engine/annuaire.js';
+import { zoneDe } from '../engine/requete.js';
 import { S, bus, saveData, logJ, deletePiste } from './state.js';
 import { ic, openSheet, btn, showUndo, montrerChange, annoncer } from './dom.js';
 
 const PAUSE = 650;                 /* ms sans frappe avant de demander */
 const cache = new Map();           /* url → réponse : on ne redemande pas ce qu'on a déjà */
-let etat = { cle: '', urls: [], phase: 'repos', listes: [], total: 0, page: 1 };
+let etat = { cle: '', urls: [], phase: 'repos', parQ: [], ordre: [], total: 0, page: 1 };
 let ctrl = null, minut = null, notifier = () => {};
+/* La zone se retire d'un tap, pour la session (docs/sources.md, décision
+   du 5/10 : appliquée d'office, mais visible et défaisable). Rien n'est
+   écrit : c'est un geste sur une recherche, pas un réglage. */
+let sansZone = false, dernier = { interp: null, o: {} };
 
 /* la ville cherchée choisit l'établissement à montrer (le bon, pas le siège) */
 const villeDe = interp => {
@@ -42,15 +47,25 @@ const villeDe = interp => {
 export function suivreDecouverte(interp, o){
   o = o || {};
   notifier = o.notifier || notifier;
-  const urls = questionsAnnuaire(interp, {
-    interdits: motsInterdits(S.companies, S.orphans, S.profile),
-    userPos: o.userPos
-  });
-  const cle = urls.join('|');
+  dernier = { interp, o };
+  /* TA ZONE : seulement quand la question n'a pas de lieu à elle */
+  const aLieu = ((interp && interp.etiquettes) || []).some(e => e.famille === 'lieu');
+  const candidate = aLieu ? null : zoneDe(S.companies);
+  const zone = sansZone ? null : candidate;
+  const base = { interdits: motsInterdits(S.companies, S.orphans, S.profile), userPos: o.userPos };
+  const urls = questionsAnnuaire(interp, { ...base, zone });
+  /* retirée, elle reste PROPOSÉE (en pointillé) tant qu'elle changerait
+     quelque chose : un tap la remet — proposé en pointillé, posé en plein */
+  const proposee = (sansZone && candidate && questionsAnnuaire(interp, { ...base, zone: candidate }).join('|') !== urls.join('|'))
+    ? candidate : null;
+  const cle = urls.join('|') + '#' + (proposee ? proposee.dept : '');
   if (cle === etat.cle) return;
   if (ctrl) ctrl.abort();
   clearTimeout(minut);
-  etat = { cle, urls, phase: 'repos', listes: [], total: 0, page: 1,
+  etat = { cle, urls, phase: 'repos', parQ: urls.map(() => []), ordre: [], total: 0, page: 1,
+           genres: urls.map(genreQuestion),
+           zone: (zone && urls.some(u => new URL(u).searchParams.get('departement') === zone.dept)) ? zone : null,
+           proposee,
            ville: villeDe(interp), userPos: o.userPos || null, interp };
   if (!urls.length) return;
   if (navigator.onLine === false){ etat.phase = 'horsligne'; return; }
@@ -98,7 +113,9 @@ async function charger(cle, page){
       const u = avecPage(u0, page);
       let j = cache.get(u);
       if (!j){
-        if (k > 0) await attendre(250, signal);      /* deux questions : on ne les tire pas d'un coup */
+        /* plusieurs questions : on ne les tire pas d'un coup — RELEVÉ le
+           5/10, l'annuaire rend « 429 » dès une dizaine d'appels serrés */
+        if (k > 0) await attendre(300, signal);
         j = await lireUrl(u, signal);
         cache.set(u, j);
       }
@@ -106,10 +123,18 @@ async function charger(cle, page){
       total = Math.max(total, Number(j && j.total_results) || 0);
     }
     if (cle !== etat.cle) return;
-    etat.listes = page > 1 ? etat.listes.concat(listes) : listes;
+    /* chaque question garde SA liste, pages mises bout à bout : le rang
+       d'une entreprise dans sa question reste son vrai rang (la fusion
+       en dépend) */
+    etat.parQ = etat.parQ.map((l, k) => (page > 1 ? l : []).concat(listes[k] || []));
     etat.total = total;
     etat.page = page;
     etat.phase = 'ok';
+    /* l'ordre de ce qui est DÉJÀ à l'écran ne bouge plus : « Voir 10 de
+       plus » ajoute dessous, il ne rebat pas ce qu'on vient de lire */
+    const classees = classer();
+    const deja = new Set(page > 1 ? etat.ordre : []);
+    etat.ordre = [...(page > 1 ? etat.ordre : []), ...classees.map(r => r.siren).filter(x => !deja.has(x))];
     /* ne parle que s'il a quelque chose de NEUF : « rien dans l'annuaire »
        recouvrirait, une demi-seconde plus tard, le compte de tes pistes
        qu'un lecteur d'écran vient d'entendre — le décor par-dessus
@@ -127,10 +152,12 @@ async function charger(cle, page){
 /* ce qui reste à montrer : une entreprise = une ligne, et rien de ce
    qui est déjà dans tes pistes ; au plus près d'abord quand on sait où
    l'on est */
+const classer = () => decouvertes(etat.parQ, S.companies,
+  { genres: etat.genres, userPos: etat.userPos, ville: etat.ville });
 function visibles(){
-  const l = decouvertes(etat.listes, S.companies);
-  if (etat.userPos) l.sort((a, b) => (a.distance ?? 1e9) - (b.distance ?? 1e9));
-  return l;
+  const l = classer();
+  const rang = new Map(etat.ordre.map((x, i) => [x, i]));
+  return l.sort((a, b) => (rang.get(a.siren) ?? 1e9) - (rang.get(b.siren) ?? 1e9));
 }
 export const decouverteActive = () => etat.phase !== 'repos';
 export const decouverteVide = () => etat.phase === 'ok' && !visibles().length;
@@ -154,8 +181,25 @@ function ligneHTML(r){
 }
 
 /* la section, selon l'état — rien du tout au repos */
+/* la zone, sous le titre : posée (pleine, sa croix la retire) ou
+   proposée (pointillée, un tap la remet) — les deux formes des
+   étiquettes de la barre, au même dessin */
+function zoneHTML(){
+  if (etat.zone) return (
+    `<div class="dc-zone"><button class="st-chip" data-dc-zone="off" aria-label="Retirer la zone ${esc(etat.zone.label)}">${
+      ic('map-pin', 'ic-14')}${esc(etat.zone.label)}${ic('close', 'ic-12')}</button></div>`);
+  if (etat.proposee) return (
+    `<div class="dc-zone"><button class="prop-chip" data-dc-zone="on" aria-label="Chercher dans ${esc(etat.proposee.label)}">${
+      ic('map-pin', 'ic-14')}${esc(etat.proposee.label)}</button></div>`);
+  return '';
+}
 export function decouverteHTML(){
-  if (etat.phase === 'repos') return '';
+  if (etat.phase === 'repos' && !etat.proposee) return '';
+  if (etat.phase === 'repos') return (
+    `<section class="tranche tr-dec" aria-label="À découvrir">
+       <div class="tr-h dc-h"><h2>${ic('search', 'ic-14')} À découvrir</h2></div>
+       ${zoneHTML()}
+     </section>`);
   const l = etat.phase === 'ok' || etat.phase === 'plus' ? visibles() : [];
   let corps;
   if (etat.phase === 'attente' || etat.phase === 'charge')
@@ -187,6 +231,7 @@ export function decouverteHTML(){
               jamais saisies */''}
          <a class="dc-src" href="https://annuaire-entreprises.data.gouv.fr" target="_blank" rel="noopener">annuaire des entreprises</a>
        </div>
+       ${zoneHTML()}
        ${corps}
      </section>`);
 }
@@ -244,6 +289,19 @@ export function lierDecouverte(box){
       if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); ouvrirApercu(r); }
     });
     row.querySelector('[data-add]').addEventListener('click', e => { e.stopPropagation(); ajouter(r); });
+  });
+  box.querySelector('[data-dc-zone]')?.addEventListener('click', e => {
+    sansZone = e.currentTarget.dataset.dcZone === 'off';
+    suivreDecouverte(dernier.interp, dernier.o);
+    notifier();
+    /* le focus ne tombe pas par terre (§6) : la puce qu'on vient de
+       taper a été redessinée — on rend la main à sa remplaçante, sinon
+       au titre de la section, sinon à la barre */
+    requestAnimationFrame(() => {
+      const ici = document.querySelector('#piDec [data-dc-zone]') || document.querySelector('#piDec h2');
+      if (ici){ if (!ici.matches('button')) ici.tabIndex = -1; ici.focus({ preventScroll: true }); }
+      else document.getElementById('piQ')?.focus({ preventScroll: true });
+    });
   });
   box.querySelector('[data-dc-encore]')?.addEventListener('click', () => {
     for (const u of etat.urls) cache.delete(avecPage(u, etat.page || 1));

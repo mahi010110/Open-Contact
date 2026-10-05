@@ -798,6 +798,9 @@ html[data-theme="dark"] .field select{
 .dc-data>span:not(:empty)~span:not(:empty)::before{content:' · '}
 .dc-add{flex:none}
 .dc-tete{display:none}
+/* la zone sous le titre (docs/sources.md) : une étiquette posée, ou
+   proposée en pointillé — le dessin des étiquettes de la barre */
+.dc-zone{display:flex;flex-wrap:wrap;gap:6px;margin:-2px 0 8px}
 .dc-etat{margin:0;padding:10px 2px;font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted)}
 .dc-err{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px}
 .tr-dec .tr-more{margin-top:8px}

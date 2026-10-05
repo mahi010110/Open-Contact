@@ -302,26 +302,16 @@ découvrir » (voir les décisions), la liste ANSSI pour la cyber.
 
 ---
 
-## Décisions à prendre
+## Décisions du mainteneur (5 octobre 2026)
 
-1. **La zone déduite part-elle d'office ?** Aujourd'hui « cyber » seul
-   interroge toute la France. Proposition : la question prend ta zone
-   (le département où sont la plupart de tes pistes), **visible comme une
-   étiquette, avec sa croix** — un tap et elle part sans. L'autre choix :
-   la zone n'est que *proposée* en pointillé, et rien ne change tant
-   qu'on ne la tape pas.
-2. **« Pas pour moi » ?** Un geste de plus sur chaque ligne de « À
-   découvrir » (glisser au doigt, une croix au poste, comme une
-   suppression), qui écarte l'entreprise pour de bon et fait un peu
-   reculer celles qui lui ressemblent. C'est le seul signal que l'app ne
-   peut pas déduire, et il demande une **clé de stockage nouvelle** (la
-   liste des SIREN écartés, privée, de tes appareils seulement). Sans
-   lui, l'adaptation se nourrit de tes pistes seules — ce qui suffit
-   pour commencer.
-3. **La liste ANSSI** (« qualifié ANSSI » sur les entreprises de cyber)
-   demande d'embarquer une liste tirée d'un PDF et de la tenir à jour.
-   Proposition : plus tard, seulement si les étudiants en cyber le
-   demandent.
+1. **La zone déduite part d'office, et se voit.** Une question en ligne
+   sans lieu prend le département de tes pistes, affiché comme une
+   étiquette avec sa croix : un tap et elle part sans.
+2. **« Pas pour moi » : plus tard.** Le classement et la zone d'abord ;
+   la question se rouvre après les essais sur le téléphone. Sans lui, la
+   ressemblance (« comme Advens ») attend aussi — elle n'a pas de quoi
+   départager.
+3. **La liste ANSSI : plus tard**, si les étudiants en cyber la demandent.
 
 ---
 

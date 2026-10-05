@@ -147,9 +147,14 @@ const lireDec = async (p, ms = 3500) => {
   for (const [q, mots] of [['julie lille', ['julie']], ['Marchand alternance Lyon', ['marchand']],
                            ['bertrand', ['bertrand']], ['Léa Bordeaux', ['lea']], ['ines martin Nantes', ['ines', 'martin']],
                            ['sans nouvelles Rennes', []], ['en cours Toulouse', []]]){
+    /* la question d'avant doit avoir FINI — sa jumelle comprise (lot 4
+       des sources : deux questions par recherche, espacées) : sinon sa
+       seconde requête tombe dans la fenêtre de celle-ci et l'accuse */
+    await lireDec(p);
     const avant = an.journal.length;
     await taper(p, q);
     await p.waitForTimeout(1100);
+    await lireDec(p);
     const sortis = an.journal.slice(avant).map(pliees);
     const fuite = sortis.find(x => mots.some(m => x.includes(m)));
     if (fuite) fail(`« ${q} » emporte un mot privé vers l’annuaire : ${fuite}`);
