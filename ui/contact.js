@@ -40,8 +40,14 @@ export function openContactEditor(o){
     title: editing ? ctLabel(src) : (c ? 'Contact — ' + c.name : 'Nouveau contact'),
     icon: 'contact', focus: '#ceName'
   });
+  /* des contacts PROPOSÉS (le dirigeant que l'annuaire connaît) : en
+     pointillé, au moment exact où l'on ajoute quelqu'un — un tap remplit
+     le nom et le rôle, rien ne s'ajoute sans « Enregistrer » */
+  const sugg = !editing ? (o.suggestions || []).filter(x => x && x.nom).slice(0, 3) : [];
   sh.body.innerHTML =
-    `<div class="grid2">
+    `${sugg.length ? `<div class="ce-sugg"><span class="ce-sugg-l">Selon l’annuaire</span>${sugg.map((x, i) =>
+       `<button class="prop-chip" data-sugg="${i}">${esc(x.nom)}${x.qualite ? ` <span class="fl-n">${esc(x.qualite.toLowerCase())}</span>` : ''}</button>`).join('')}</div>` : ''}
+     <div class="grid2">
        <div class="field"><label for="ceName">Nom</label>
          <input id="ceName" value="${esc(src.name || '')}" placeholder="Ex : Nadia Rahmani" autocomplete="off" ${clavier('nom')}></div>
        <div class="field"><label for="ceRole">Rôle</label>
@@ -67,6 +73,12 @@ export function openContactEditor(o){
        <textarea id="ceSigTxt" rows="4" placeholder="Colle la fin de l’email reçu — nom, rôle, téléphone…"></textarea></div>` : ''}`;
   const q = s => sh.body.querySelector(s);
   const v = s => q(s).value.trim();
+  sh.body.querySelectorAll('[data-sugg]').forEach(b => b.addEventListener('click', () => {
+    const x = sugg[Number(b.dataset.sugg)];
+    q('#ceName').value = x.nom;
+    q('#ceRole').value = x.qualite || '';
+    q('#ceEmail').focus();
+  }));
 
   /* coller une signature : les champs VIDES se remplissent — jamais
      d'écrasement de ce qui est déjà tapé (lecture locale, rien ne sort) */

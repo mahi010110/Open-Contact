@@ -24,7 +24,7 @@ import { openContactEditor, openAttach } from './contact.js';
 import { openProspect } from './prospect.js';
 import { campaignOfPiste, liveCampaignsCount, openCampaignsHome } from './campagnes.js';
 import { CAMPAGNES } from './perimetre.js';
-import { suivreDecouverte, decouverteHTML, lierDecouverte } from './decouvrir.js';
+import { suivreDecouverte, decouverteHTML, lierDecouverte, compteDecouverte, zoneEtiquetteHTML, lierZone } from './decouvrir.js';
 
 /* hors périmètre, aucune piste n'est « en campagne » — la question ne se
    pose plus à l'écran, et « à planifier » reprend sa place (CLAUDE.md §0) */
@@ -42,6 +42,15 @@ let premierId = null;
 /* « près de moi » ne demande la position qu'UNE fois par session : la
    demander à chaque frappe ferait sonner l'invite du navigateur en boucle */
 let posDemandee = false;
+/* OÙ L'ON CHERCHE (docs/presentation-recherche.md) : dans tes pistes, ou
+   « À découvrir » — l'annuaire, ce que tu n'as pas encore. Un contrôle à
+   deux segments sous la barre (la barre de portée d'Apple) : la fonction
+   se voit avant d'avoir servi, et son compte se remplit pendant qu'on
+   tape. La portée tient pour la session, comme un onglet garde sa place. */
+let portee = 'pistes';
+/* sans aucune piste, il n'y a rien à chercher chez toi : une recherche
+   tapée ne peut viser que l'annuaire */
+const porteeVue = () => (portee === 'decouvrir' || (!S.companies.length && q)) ? 'decouvrir' : 'pistes';
 const mqFine = matchMedia('(pointer:fine)');
 const procheActif = () => !!(interp && interp.etiquettes.some(e => e.cle === 'proche'));
 
@@ -384,6 +393,7 @@ function propsHTML(){
    la croix enlève, taper la puce de tri inverse son sens */
 function chipsRowHTML(){
   const bits = [];
+  const dec = porteeVue() === 'decouvrir';
   /* CE QUE LA BARRE A COMPRIS, une étiquette par chose comprise, dans
      l'ordre où on l'a tapée. Taper l'étiquette retire SES mots du champ :
      la barre et les étiquettes ne disent jamais deux choses différentes.
@@ -391,10 +401,13 @@ function chipsRowHTML(){
   (interp ? interp.etiquettes : []).forEach((e, i) => bits.push(
     `<button class="st-chip et-chip" data-et="${i}" aria-label="Retirer « ${esc(e.label)} »">${
        marqueEtiquette(e)}${esc(e.label)}${ic('close', 'ic-12')}</button>`));
+  /* dans « À découvrir », ta zone est une étiquette de la question comme
+     les autres — à leur suite, dans la même rangée */
+  if (dec){ const z = zoneEtiquetteHTML(); if (z) bits.push(z); }
   /* une ville s'élargit à son département quand ça trouve plus — « Lille »
      rate Villeneuve-d'Ascq, à deux arrêts de métro. Proposé, pas posé :
      le trait pointillé dit « tu peux », la puce pleine « c'est actif ». */
-  if (q) for (const x of elargir(S.companies, q, { ctx: ctxBarre(), filtres: filtresVue() }).filter(x => x.genre === 'autour'))
+  if (q && !dec) for (const x of elargir(S.companies, q, { ctx: ctxBarre(), filtres: filtresVue() }).filter(x => x.genre === 'autour'))
     bits.push(
       `<button class="prop-chip" data-prop="${esc(x.q)}"
                aria-label="Élargir à ${esc(x.label)} — ${x.gagne} piste${x.gagne > 1 ? 's' : ''} de plus">${
@@ -407,10 +420,13 @@ function chipsRowHTML(){
   const etiq = (grp, defs, k) =>
     `<button class="st-chip" data-clear="${grp}" data-k="${k}" aria-label="Retirer le filtre ${defs[k].label}">
        <span class="dotc" style="background:${defs[k].color}"></span>${defs[k].label}${ic('close', 'ic-12')}</button>`;
-  ft.status.forEach(k => bits.push(etiq('st', STATUSES, k)));
-  ft.domain.forEach(k => bits.push(etiq('dom', DOMAINS, k)));
-  const sc = sortChipHTML(st);
-  if (sc) bits.push(sc);
+  /* les filtres d'« Affiner » et le tri ne regardent que tes pistes */
+  if (!dec){
+    ft.status.forEach(k => bits.push(etiq('st', STATUSES, k)));
+    ft.domain.forEach(k => bits.push(etiq('dom', DOMAINS, k)));
+    const sc = sortChipHTML(st);
+    if (sc) bits.push(sc);
+  }
   return bits.length ? `<div class="chips-row">${bits.join('')}</div>` : '';
 }
 /* les filtres d'« Affiner » et le tri, tels que le moteur les attend */
@@ -505,6 +521,7 @@ export function renderPistes(){
          <div id="piProps"></div>
        </div>
        <div id="piChips"></div>
+       <div id="piPortee"></div>
        <div id="piBody"></div>
      </div>`;
 
@@ -533,6 +550,7 @@ export function renderPistes(){
     props.innerHTML = propsHTML();
     bindChips(chips);
     bindChips(props);
+    lierZone(chips);
   };
 
   /* le corps se re-rend seul pendant la frappe — le champ de recherche
@@ -548,12 +566,16 @@ export function renderPistes(){
       posDemandee = true;
       withPos(st, () => { if (S.route === 'pistes') glisser(renderBody); });
     }
-    premierId = (wide && mqFine.matches && q) ? ((alive[0] || closed[0] || {}).id || null) : null;
-    rendreChips();
+    const dec = porteeVue() === 'decouvrir';
+    page.classList.toggle('pt-dec', dec);
+    premierId = (!dec && wide && mqFine.matches && q) ? ((alive[0] || closed[0] || {}).id || null) : null;
     /* « À découvrir » suit la barre : la question part seule après une
-       pause, et seule sa section se redessine quand la réponse arrive —
-       jamais la liste qu'on est en train de lire */
-    suivreDecouverte(interp, { userPos: st.userPos, notifier: majDecouverte });
+       pause, pour que son compte se remplisse pendant qu'on tape. Barre
+       vide, rien ne part — sauf si l'on a ouvert l'onglet : c'est ce
+       tap qui demande (jamais au démarrage, invariant ④) */
+    suivreDecouverte(interp, { userPos: st.userPos, notifier: majDecouverte, actif: dec });
+    rendreChips();
+    rendrePortee();
 
     const tout = S.companies.length;
     const cnt = root.querySelector('#piCount');
@@ -573,14 +595,17 @@ export function renderPistes(){
       annoncer(`${all.length} piste${all.length > 1 ? 's' : ''} sur ${tout}${compris}.`);
     }
 
-    let html = orphansHTML();
-    const decouverte = `<div id="piDec">${decouverteHTML()}</div>`;
-    /* Aucune piste ENCORE, et une recherche : c'est exactement le moment
-       où l'annuaire sert le plus — amorcer une liste sans partir de zéro.
-       L'accueil cède la place à ce qu'on vient de demander. */
-    if (!S.companies.length && q){
-      html += decouverte;
-    } else if (!S.companies.length){
+    let html = '';
+    /* « À découvrir » : une vue à part entière, pas une section sous tes
+       pistes. Sans aucune piste encore, une recherche tapée y mène
+       d'office — c'est exactement le moment où l'annuaire sert le plus. */
+    if (dec){
+      body.innerHTML = `<div id="piDec">${decouverteHTML()}</div>`;
+      lierDecouverte(body.querySelector('#piDec'), { chercher });
+      return;
+    }
+    html += orphansHTML();
+    if (!S.companies.length){
       html +=
         `<div class="td-empty">
            <div class="tde-ic">${ic('briefcase', 'ic-24')}</div>
@@ -606,7 +631,6 @@ export function renderPistes(){
         `<div class="empty-list">Aucune piste ne correspond${q ? '' : ' au filtre'}.${retrouver}
            ${ftOn() ? '<button class="linklike" id="piFtClear">Tout montrer</button>' : ''}
          </div>`;
-      html += decouverte;
     } else {
       /* Pendant une recherche, un tableau SANS UNE CARTE n'est que du
          bruit : « refusé » posait trois colonnes vides et tramées
@@ -628,10 +652,8 @@ export function renderPistes(){
              <div class="rows">${shown.map(rowHTML).join('')}${more ? moreBtn('closed', more) : ''}</div>
            </details>`;
       }
-      html += decouverte;
     }
     body.innerHTML = html;
-    lierDecouverte(body.querySelector('#piDec'));
 
     body.querySelectorAll('.row-item, .bcard').forEach(r => {
       const open = () => openById(r.dataset.id);
@@ -681,10 +703,48 @@ export function renderPistes(){
 
   /* la réponse de l'annuaire arrive : on ne redessine QUE sa section */
   function majDecouverte(){
+    if (!root.isConnected) return;
+    rendrePortee();
+    if (porteeVue() === 'decouvrir') rendreChips();
     const box = root.querySelector('#piDec');
     if (!box || !box.isConnected) return;
+    /* une réponse redessine la vue, jamais la barre ni le focus qu'on y a */
+    const avait = document.activeElement && box.contains(document.activeElement)
+      ? document.activeElement.closest('[data-siren]')?.dataset.siren : null;
     box.innerHTML = decouverteHTML();
-    lierDecouverte(box);
+    lierDecouverte(box, { chercher });
+    if (avait) box.querySelector(`[data-siren="${avait}"] .dc-main`)?.focus({ preventScroll: true });
+  }
+  /* DEUX ONGLETS DE TEXTE, deux comptes — aucune boîte (demande du
+     mainteneur : léger, discret). Le mot actif en encre, un trait sous
+     lui ; l'autre en gris. Celui de « Mes pistes » dit ce que la barre
+     trouve chez toi, celui d'« À découvrir » se remplit quand l'annuaire
+     a répondu (« … » pendant qu'il cherche). Un tap change de vue sur
+     place ; la barre et ses étiquettes restent. */
+  function rendrePortee(){
+    const box = root.querySelector('#piPortee');
+    if (!box) return;
+    const dec = porteeVue() === 'decouvrir';
+    const d = compteDecouverte();
+    const html =
+      `<div class="portee" role="group" aria-label="Où chercher">
+         ${/* le compte de tes pistes est déjà dans le titre (« 4 sur 9 ») :
+              il ne se redit pas ici */''}
+         <button class="pt${dec ? '' : ' on'}" data-portee="pistes" aria-pressed="${!dec}">Mes pistes</button>
+         <button class="pt${dec ? ' on' : ''}" data-portee="decouvrir" aria-pressed="${dec}"${d.occupe ? ' aria-busy="true"' : ''}>À découvrir${
+           d.texte ? `<span class="pt-n">${d.texte}</span>` : ''}</button>
+       </div>`;
+    if (box.innerHTML === html) return;
+    const focus = document.activeElement && box.contains(document.activeElement) ? document.activeElement.dataset.portee : null;
+    box.innerHTML = html;
+    box.querySelectorAll('[data-portee]').forEach(b => b.addEventListener('click', () => {
+      if (porteeVue() === b.dataset.portee) return;
+      portee = b.dataset.portee;
+      renderBody();
+      root.querySelector(`#piPortee [data-portee="${portee}"]`)?.focus({ preventScroll: true });
+      annoncer(portee === 'decouvrir' ? 'À découvrir : les entreprises de l’annuaire.' : 'Mes pistes.');
+    }));
+    if (focus) box.querySelector(`[data-portee="${focus}"]`)?.focus({ preventScroll: true });
   }
 
   /* au poste, le titre de colonne porte déjà son fond et son trait : se

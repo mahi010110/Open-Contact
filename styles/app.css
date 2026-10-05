@@ -595,6 +595,11 @@ html[data-theme="dark"] .field select{
 /* La croix vit DANS la puce : un seul bouton, qui dit ce qu'il fait
    (Baymard, filtres appliqués). Discrète — c'est le mot qu'on lit. */
 .st-chip .ic-12{margin-left:1px;opacity:.55}
+/* LÉGER (demande du mainteneur, 5 octobre) : sous la barre, une
+   étiquette est une donnée qu'on retire d'un tap, pas un bouton en
+   relief — à plat, sans biseau. Sa cible reste celle du doigt (§5). */
+.chips-row .st-chip{background:var(--surface-window);box-shadow:none}
+.chips-row .st-chip:active{box-shadow:none;background:var(--surface-chrome)}
 /* Le panneau des propositions de la barre vide : accroché SOUS la barre,
    par-dessus la liste — jamais dedans, sinon il la pousse au focus et la
    remonte au départ du curseur (voir `propsHTML`, ui/pistes.js). Les
@@ -758,101 +763,113 @@ html[data-theme="dark"] .field select{
   display:flex;align-items:center;gap:7px;
   font:inherit;color:inherit;letter-spacing:inherit;text-transform:inherit;
 }
-/* ============ « À DÉCOUVRIR » (docs/recherche.md, lot 2) ============
+/* ============ OÙ L'ON CHERCHE : deux onglets de texte ============
+   (docs/presentation-recherche.md) « Mes pistes » et « À découvrir »,
+   chacun avec son compte. LÉGER, à la demande du mainteneur : aucune
+   boîte, aucun aplat — le mot actif en encre et un trait du châssis sous
+   lui (§4 : le navy dit « où tu es »), l'autre en gris. La cible garde
+   sa hauteur de doigt (§5) ; seul l'habit part. */
+.portee{display:flex;gap:22px;margin:-2px 0 10px}
+.pt{
+  display:inline-flex;align-items:center;gap:6px;min-height:var(--ctl);padding:0 1px;
+  background:none;border:0;border-bottom:2px solid transparent;border-radius:0;cursor:pointer;
+  font-size:var(--text-14);font-weight:var(--weight-semibold);color:var(--text-muted);
+}
+.pt.on{color:var(--text-body);border-bottom-color:var(--select-bg)}
+.pt-n{font-family:var(--font-mono);font-size:var(--text-11);font-weight:var(--weight-regular);color:var(--text-muted)}
+.pt[aria-busy="true"] .pt-n{opacity:.6}
+@media (hover:hover){
+  .pt:not(.on):hover{color:var(--text-body)}
+}
+/* « Affiner » ne regarde que tes pistes : dans « À découvrir », il n'est pas.
+   La touche « / » rentre dans le champ par une marge négative que le
+   bouton voisin absorbait : sans lui, le champ débordait de 9 px
+   (mesuré). Elle se pose donc dans le champ, contre son bord droit. */
+.pt-dec #piAffiner,.pt-dec .kbd-bas{display:none}
+.pt-dec .search-wrap .kbd-hint{position:absolute;right:8px;top:50%;transform:translateY(-50%);margin:0}
+
+/* ============ « À DÉCOUVRIR », LA VUE ============
    Ce que l'annuaire connaît et que tu n'as pas. Un cadre, des rangées
    sans relief séparées d'un pointillé — la forme de toute liste de
-   l'app (§6) ; deux gestes par rangée, et 10 px entre eux : ouvrir
-   l'aperçu n'est pas ajouter (§5, deux conséquences, pas d'arête
-   commune). */
-.dc-h{justify-content:space-between}
-/* la source se nomme (la licence de l'annuaire le demande) : discrète,
-   mais une cible entière au doigt — c'est un lien posé seul, pas un mot
-   au milieu d'une phrase */
-.dc-src{
-  display:inline-flex;align-items:center;min-height:var(--ctl);
-  font-family:var(--font-mono);font-size:var(--text-11);font-weight:var(--weight-regular);
-  letter-spacing:0;text-transform:none;color:var(--text-muted);
-}
+   l'app (§6). AUCUN bouton sur une ligne : elle ouvre l'aperçu, qui
+   porte le seul geste plein. */
 .dc-list{
   background:var(--surface-window);border:1px solid var(--border-strong);
   border-radius:var(--radius-1);
 }
-.dc-row{
-  display:flex;align-items:center;gap:10px;padding:0 10px;
-  border-bottom:1px dashed var(--border-soft);
-}
+.dc-row{border-bottom:1px dashed var(--border-soft)}
 .dc-row:last-child{border-bottom:0}
-.dc-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;padding:9px 0;cursor:pointer;text-align:left}
+.dc-main{display:flex;flex-direction:column;gap:3px;min-height:var(--ctl);justify-content:center;
+  padding:9px 12px;cursor:pointer;text-align:left}
 /* le nom est l'identité de la ligne : il plie, il ne se coupe pas (§4) */
 .dc-nom{
   font-size:var(--text-14);font-weight:var(--weight-semibold);color:var(--text-body);
   display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;
 }
-/* la sous-ligne est une DONNÉE : elle s'élide par la fin — lieu, taille,
-   activité, dans cet ordre, c'est l'activité qu'on peut perdre */
-.dc-data{
+/* la sous-ligne est une DONNÉE : où, à quelle distance, quelle taille —
+   elle s'élide par la fin, et c'est la taille qu'on peut perdre */
+.dc-sub{
   font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
-.dc-data>span:empty{display:none}
-.dc-data>span:not(:empty)~span:not(:empty)::before{content:' · '}
-.dc-add{flex:none}
-.dc-tete{display:none}
-.dc-etat{margin:0;padding:10px 2px;font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted)}
+/* ajoutée : un mot, devant — l'état, pas un bouton */
+.dc-ok{display:inline-flex;align-items:center;gap:3px;margin-right:8px;color:var(--accent);font-weight:var(--weight-semibold)}
+.dc-etat{margin:0;padding:12px 2px;font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted)}
 .dc-err{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px}
-.tr-dec .tr-more{margin-top:8px}
+.dc-vue .tr-more{margin-top:6px}
+/* la source se nomme (la licence de l'annuaire le demande) : en pied,
+   discrète, mais une cible entière au doigt */
+.dc-src-l{margin:2px 0 0;font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
+.dc-src{display:inline-flex;align-items:center;min-height:var(--ctl);color:var(--text-muted)}
 @media (hover:hover){
   .dc-main:hover .dc-nom{text-decoration:underline;text-underline-offset:3px}
 }
-/* AU POSTE, UN TABLEAU. Une colonne par donnée, et une tête qui les
-   nomme : on compare des entreprises entre elles en descendant une
-   colonne (§6 — une valeur a UN bord). Les colonnes sont des fractions
-   FIXES, partagées par la tête et chaque rangée : ni `subgrid` ni
-   requête de conteneur (§9, le socle que tout moteur rend). L'action
-   prend une largeur fixe, la même dans la tête, pour que le bord droit
-   des données ne dépende pas du mot du bouton. */
+/* AU POSTE : la liste et l'aperçu CÔTE À CÔTE (Material 3, liste-
+   détail). L'aperçu reste en vue pendant que la liste défile ; la ligne
+   choisie le dit par un liseré du châssis (§4 : « où tu es »), sans
+   aplat. */
 @media (min-width:901px){
-  .tr-dec{--dc-cols:minmax(0,2fr) minmax(0,1.3fr) minmax(0,1fr) minmax(0,2fr);--dc-add:8rem}
-  .dc-tete{
-    display:grid;grid-template-columns:var(--dc-cols) var(--dc-add);column-gap:14px;
-    padding:6px 10px;border-bottom:1px solid var(--border-strong);
-    font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);
-    text-transform:uppercase;letter-spacing:.04em;
-  }
-  .dc-tete>span{min-width:0}
-  .dc-row{display:grid;grid-template-columns:minmax(0,1fr) var(--dc-add);column-gap:14px}
-  .dc-main{display:grid;grid-template-columns:var(--dc-cols);column-gap:14px;align-items:center;padding:6px 0}
-  .dc-nom{font-size:var(--text-13);-webkit-line-clamp:2}
-  .dc-data{display:contents}
-  .dc-data>span{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
-  .dc-data>span:empty{display:block}
-  .dc-data>span:not(:empty)~span:not(:empty)::before{content:none}
-  .dc-data>.dc-lieu{color:var(--text-body)}
-  .dc-add{justify-self:start}
+  .dc-split{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:24px;align-items:start}
+  .dc-detail{position:sticky;top:12px;padding:4px 0 0;max-height:calc(100vh - 140px);overflow:auto}
+  .dc-sel{background:var(--surface-chrome);box-shadow:inset 3px 0 0 var(--select-bg)}
 }
-/* l'aperçu : les mêmes rangées que « À savoir » sur la fiche */
-.dc-ap .dc-q{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
-.dc-ap .dc-siren{font-family:var(--font-mono)}
-.dc-off{display:inline-flex;align-items:center;gap:6px;min-height:var(--ctl);margin-top:8px}
-/* ---- LE BLOC « ANNUAIRE » DE LA FICHE (lot 3) ----
-   Les mêmes rangées que « À savoir » : une étiquette, une valeur. Les
-   trois liens se replient par rangs, taillés à leur mot — un lien qui
-   emmène ailleurs n'est pas une action lourde (§6). Ils viennent EN
-   TÊTE du cadre : ce qui arrive du réseau se pose dessous, et un geste
-   ne glisse jamais sous le doigt pendant qu'une réponse arrive (§5). */
-.fa-liens{display:flex;flex-wrap:wrap;gap:8px}
-.fa-etat{font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted);
-  display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px}
-.fa-act{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px}
+
+/* ============ L'APERÇU — trois niveaux, sans rien de lourd ============
+   QUI (le nom), QUOI ET OÙ (l'activité, puis lieu · taille · âge sur
+   une ligne), COMMENT Y ENTRER (des liens). Le reste en petit gris. */
+.ap-nom{margin:0;font-size:var(--text-16);font-weight:var(--weight-bold);color:var(--text-body);line-height:1.25}
+.ap-act{margin:4px 0 0;font-size:var(--text-13);color:var(--text-body)}
+.ap-faits{margin:4px 0 0;font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
+.ap-agir{display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;margin:12px 0 0}
+.ap-pris{display:inline-flex;align-items:center;gap:6px;font-size:var(--text-13);font-weight:var(--weight-semibold);color:var(--accent)}
+.ap-liens{display:flex;flex-wrap:wrap;gap:0 4px;margin:6px 0 0 -8px}
+.ap-plus{margin:10px 0 0;font-size:var(--text-12);color:var(--text-muted)}
+.ap-plus p{margin:2px 0}
+.ap-plus .linklike{min-height:0;padding:0;font-size:inherit}
+.ap-siren{font-family:var(--font-mono)}
+/* ---- CE QUE L'ANNUAIRE APPORTE À LA FICHE (rangé par usage, léger) ----
+   Plus de bloc à part (docs/presentation-recherche.md) : un lien sous les
+   contacts, quelques rangées et une ligne grise dans « À savoir ». */
+/* sous le nom : une entreprise fermée, au langage d'urgence */
+.fa-etat-nom:not(:empty){display:inline-flex;align-items:center;gap:6px;margin-left:8px}
+.fa-le{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
+/* sous les contacts : « Anciens de mon école », un lien */
+.fa-cts{margin:4px 0 0 -8px}
+.fa-cts:empty{display:none}
+/* dans « À savoir » : la ligne grise de la source et ses liens */
+.fa-pied{padding:6px 10px 8px;font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
+.fa-liens{display:flex;flex-wrap:wrap;gap:0 4px;margin:0 0 2px -8px;font-family:var(--font-ui);font-size:var(--text-13)}
+.fa-etat{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;margin-bottom:4px;font-size:var(--text-12)}
+.fa-etat .linklike{margin-left:-8px;font-family:var(--font-ui)}
+.fa-act{display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;padding:8px 10px 0}
 .fa-quoi{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
-.fa-dirs{display:flex;flex-direction:column;gap:6px}
-.fa-dir{display:flex;align-items:center;flex-wrap:wrap;gap:4px 12px}
-.fa-dir .dc-q{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
-.fi-ann .dc-siren{font-family:var(--font-mono)}
+.fa-siren{font-family:var(--font-mono)}
 .fa-q{margin:12px 0 6px;font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);
   text-transform:uppercase;letter-spacing:.04em}
 .fa-choix .pick svg{flex:none;color:var(--text-muted)}
+/* « Ajouter un contact » : le dirigeant proposé, en pointillé */
+.ce-sugg{display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;margin:0 0 12px}
+.ce-sugg-l{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
 .tr-late .tr-h{color:var(--amber)}
 .tr-late .tr-h .tr-n{border-color:var(--amber);background:var(--amber-wash)}
 /* replier/déplier « Bientôt » est un geste au pouce comme un autre :

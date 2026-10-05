@@ -1,35 +1,51 @@
 /* ============================================================
-   OpenContact — interface · « À découvrir » (docs/recherche.md, lot 2)
+   OpenContact — interface · « À découvrir »
+   (docs/recherche.md, lot 2 ; docs/presentation-recherche.md)
 
-   Sous tes pistes, ce que l'annuaire public des entreprises connaît et
-   que tu n'as pas encore. La question part TOUTE SEULE, après une
-   courte pause dans la frappe (décision du mainteneur : pas de geste à
-   faire), mais elle n'emporte que ce qui décrit une entreprise — le tri
-   vit dans `engine/annuaire.js`, et `e2e-decouvrir.mjs` lit chaque
-   requête qui sort.
+   Ce que l'annuaire public des entreprises connaît et que tu n'as pas
+   encore. C'est une VUE de « Mes pistes », pas une section enterrée
+   sous elles : le contrôle à deux segments sous la barre (ui/pistes.js)
+   la montre avant même qu'on s'en serve, et son compte se remplit
+   pendant qu'on tape — au pouce, au-dessus du clavier.
 
-   UNE LIGNE, DEUX GESTES, et ils ne se ressemblent pas : la ligne ouvre
-   l'aperçu (ce que l'annuaire sait de l'entreprise), le bouton
-   « Ajouter » en fait une piste — sans question, avec Annuler pendant
-   trente secondes (§6 : `showUndo` remplace la confirmation). Ajouter
-   n'écrase rien : ce qui est déjà dans tes pistes n'apparaît pas ici.
+   La question part TOUTE SEULE après une pause dans la frappe (décision
+   du mainteneur), mais n'emporte que ce qui décrit une entreprise — le
+   tri vit dans `engine/annuaire.js`, et `e2e-decouvrir.mjs` lit chaque
+   requête qui sort. Rien ne part au démarrage : barre vide, c'est le
+   TAP sur le segment qui pose la question de ta zone.
 
-   UN DESSIN QUI S'ADAPTE (§5) : la même liste, des lignes au pouce
-   (nom, puis une sous-ligne qui s'élide) et un tableau au poste (une
-   colonne par donnée, des bords qui ne bougent pas d'une ligne à
-   l'autre — §6, « une valeur a UN BORD »).
+   DEUX INTERFACES (§5, l'usage diffère) : au pouce une liste, puis
+   l'aperçu en feuille ; au poste la liste et l'aperçu CÔTE À CÔTE
+   (Material 3, liste-détail) — comparer dix entreprises ne coûte plus
+   dix fenêtres.
+
+   LÉGER (demande du mainteneur, 5 octobre : « pas de gros boutons, pas
+   de rajout dégoulinant ») : AUCUN bouton sur les lignes. La ligne
+   ouvre l'aperçu, et l'aperçu porte le seul geste plein — « Ajouter à
+   mes pistes ». Une entreprise ajoutée garde sa ligne, à sa place, et
+   le dit en un mot (« ✓ dans tes pistes ») : on voit où elle est
+   partie. Annuler 30 s (§6).
    ============================================================ */
 import { esc, uid, todayISO } from '../engine/utils.js';
 import { normalizeCompany } from '../engine/model.js';
 import { questionsAnnuaire, lireAnnuaire, decouvertes, versPiste, motsInterdits, ficheOfficielle,
-         PAR_PAGE } from '../engine/annuaire.js';
+         genreQuestion, liensPiste, PAR_PAGE } from '../engine/annuaire.js';
+import { zoneDe } from '../engine/requete.js';
 import { S, bus, saveData, logJ, deletePiste } from './state.js';
-import { ic, openSheet, btn, showUndo, montrerChange, annoncer } from './dom.js';
+import { ic, openSheet, btn, showUndo, annoncer } from './dom.js';
 
 const PAUSE = 650;                 /* ms sans frappe avant de demander */
 const cache = new Map();           /* url → réponse : on ne redemande pas ce qu'on a déjà */
-let etat = { cle: '', urls: [], phase: 'repos', listes: [], total: 0, page: 1 };
+let etat = { cle: '', urls: [], phase: 'repos', parQ: [], ordre: [], total: 0, page: 1 };
 let ctrl = null, minut = null, notifier = () => {};
+/* La zone se retire d'un tap, pour la session (docs/sources.md, décision
+   du 5/10 : appliquée d'office, mais visible et défaisable). Rien n'est
+   écrit : c'est un geste sur une recherche, pas un réglage. */
+let sansZone = false, dernier = { interp: null, o: {} };
+/* ce que tu as ajouté depuis CETTE liste : la ligne reste, cochée */
+const ajoutees = new Map();          /* siren → id de la piste */
+let choisi = '';                     /* au poste : la ligne dont l'aperçu est ouvert */
+const mqLarge = matchMedia('(min-width:901px)');
 
 /* la ville cherchée choisit l'établissement à montrer (le bon, pas le siège) */
 const villeDe = interp => {
@@ -42,16 +58,34 @@ const villeDe = interp => {
 export function suivreDecouverte(interp, o){
   o = o || {};
   notifier = o.notifier || notifier;
-  const urls = questionsAnnuaire(interp, {
-    interdits: motsInterdits(S.companies, S.orphans, S.profile),
-    userPos: o.userPos
-  });
-  const cle = urls.join('|');
+  dernier = { interp, o };
+  /* TA ZONE : seulement quand la question n'a pas de lieu à elle */
+  const aLieu = ((interp && interp.etiquettes) || []).some(e => e.famille === 'lieu');
+  const candidate = aLieu ? null : zoneDe(S.companies);
+  const zone = sansZone ? null : candidate;
+  const base = { interdits: motsInterdits(S.companies, S.orphans, S.profile), userPos: o.userPos,
+                 parDefaut: !!o.actif };
+  const urls = questionsAnnuaire(interp, { ...base, zone });
+  /* retirée, elle reste PROPOSÉE (en pointillé) tant qu'elle changerait
+     quelque chose : un tap la remet — proposé en pointillé, posé en plein */
+  const proposee = (sansZone && candidate && questionsAnnuaire(interp, { ...base, zone: candidate }).join('|') !== urls.join('|'))
+    ? candidate : null;
+  /* la clé dit aussi D'OÙ vient le lieu : « alternance Lille » et ta
+     zone du Nord posent la même question à l'annuaire, mais pas la même
+     à l'écran (l'une montre l'étiquette de zone, l'autre non) */
+  const cle = urls.join('|') + '#' + (zone ? 'z' + zone.dept : '') + '#' + (proposee ? proposee.dept : '');
   if (cle === etat.cle) return;
   if (ctrl) ctrl.abort();
   clearTimeout(minut);
-  etat = { cle, urls, phase: 'repos', listes: [], total: 0, page: 1,
-           ville: villeDe(interp), userPos: o.userPos || null, interp };
+  ajoutees.clear();
+  choisi = '';
+  etat = { cle, urls, phase: 'repos', parQ: urls.map(() => []), ordre: [], total: 0, page: 1,
+           genres: urls.map(genreQuestion),
+           zone: (zone && urls.some(u => new URL(u).searchParams.get('departement') === zone.dept)) ? zone : null,
+           proposee,
+           ville: villeDe(interp), userPos: o.userPos || null, interp,
+           /* la barre est vide : seul le tap sur le segment a demandé */
+           parDefaut: !(interp && (interp.etiquettes.length || interp.texte.length)) };
   if (!urls.length) return;
   if (navigator.onLine === false){ etat.phase = 'horsligne'; return; }
   etat.phase = 'attente';
@@ -98,7 +132,9 @@ async function charger(cle, page){
       const u = avecPage(u0, page);
       let j = cache.get(u);
       if (!j){
-        if (k > 0) await attendre(250, signal);      /* deux questions : on ne les tire pas d'un coup */
+        /* plusieurs questions : on ne les tire pas d'un coup — RELEVÉ le
+           5/10, l'annuaire rend « 429 » dès une dizaine d'appels serrés */
+        if (k > 0) await attendre(300, signal);
         j = await lireUrl(u, signal);
         cache.set(u, j);
       }
@@ -106,16 +142,25 @@ async function charger(cle, page){
       total = Math.max(total, Number(j && j.total_results) || 0);
     }
     if (cle !== etat.cle) return;
-    etat.listes = page > 1 ? etat.listes.concat(listes) : listes;
+    /* chaque question garde SA liste, pages mises bout à bout : le rang
+       d'une entreprise dans sa question reste son vrai rang (la fusion
+       en dépend) */
+    etat.parQ = etat.parQ.map((l, k) => (page > 1 ? l : []).concat(listes[k] || []));
     etat.total = total;
     etat.page = page;
     etat.phase = 'ok';
+    /* l'ordre de ce qui est DÉJÀ à l'écran ne bouge plus : « Voir 10 de
+       plus » ajoute dessous, il ne rebat pas ce qu'on vient de lire */
+    const classees = classer();
+    const deja = new Set(page > 1 ? etat.ordre : []);
+    etat.ordre = [...(page > 1 ? etat.ordre : []), ...classees.map(r => r.siren).filter(x => !deja.has(x))];
     /* ne parle que s'il a quelque chose de NEUF : « rien dans l'annuaire »
        recouvrirait, une demi-seconde plus tard, le compte de tes pistes
        qu'un lecteur d'écran vient d'entendre — le décor par-dessus
        l'information */
     const n = visibles().length;
     if (n) annoncer(`${n} entreprise${n > 1 ? 's' : ''} à découvrir.`);
+    if (!choisi || !visibles().some(r => r.siren === choisi)) choisi = (visibles()[0] || {}).siren || '';
   } catch (e){
     if (e && e.name === 'AbortError') return;
     if (cle !== etat.cle) return;
@@ -124,41 +169,121 @@ async function charger(cle, page){
   notifier();
 }
 
-/* ce qui reste à montrer : une entreprise = une ligne, et rien de ce
-   qui est déjà dans tes pistes ; au plus près d'abord quand on sait où
-   l'on est */
+/* ce qui reste à montrer : une entreprise = une ligne, rien de ce qui
+   était déjà dans tes pistes — sauf ce que tu viens d'y mettre depuis
+   cette liste, qui garde sa ligne, cochée */
+const classer = () => {
+  const deja = new Set(ajoutees.values());
+  return decouvertes(etat.parQ, S.companies.filter(c => !deja.has(c.id)),
+    { genres: etat.genres, userPos: etat.userPos, ville: etat.ville });
+};
 function visibles(){
-  const l = decouvertes(etat.listes, S.companies);
-  if (etat.userPos) l.sort((a, b) => (a.distance ?? 1e9) - (b.distance ?? 1e9));
-  return l;
+  const l = classer();
+  const rang = new Map(etat.ordre.map((x, i) => [x, i]));
+  return l.sort((a, b) => (rang.get(a.siren) ?? 1e9) - (rang.get(b.siren) ?? 1e9));
 }
 export const decouverteActive = () => etat.phase !== 'repos';
 export const decouverteVide = () => etat.phase === 'ok' && !visibles().length;
+/* le compte du segment : un chiffre, « … » pendant qu'on cherche, rien
+   tant qu'aucune question n'est posée */
+export function compteDecouverte(){
+  if (etat.phase === 'attente' || etat.phase === 'charge') return { texte: '…', occupe: true };
+  if (etat.phase === 'ok' || etat.phase === 'plus'){
+    const n = visibles().length;
+    return { texte: String(n) + (etat.total > etat.page * PAR_PAGE ? '+' : ''), n };
+  }
+  return { texte: '' };
+}
+const estPrise = siren => ajoutees.has(siren) && S.companies.some(c => c.id === ajoutees.get(siren));
 
 const km = d => d == null ? '' : (d < 1 ? '< 1 km' : Math.round(d) + ' km');
+/* La ligne dit ce qui DÉPARTAGE : où, à quelle distance, quelle taille.
+   L'activité — « Conseil en systèmes et logiciels informatiques » neuf
+   fois sur dix — ne départage rien : elle vit dans l'aperçu. */
+const sousLigne = r => [r.ville, km(r.distance), r.effectif].filter(Boolean).join(' · ');
 function ligneHTML(r){
-  const lieu = [r.ville, km(r.distance)].filter(Boolean).join(' · ');
+  const pris = estPrise(r.siren), sel = mqLarge.matches && r.siren === choisi;
   return (
-    `<div class="dc-row" data-siren="${esc(r.siren)}">
-       <div class="dc-main" role="button" tabindex="0" aria-label="Voir ${esc(r.nom)}">
+    `<div class="dc-row${pris ? ' dc-pris' : ''}${sel ? ' dc-sel' : ''}" data-siren="${esc(r.siren)}">
+       <div class="dc-main" role="button" tabindex="0" aria-label="${esc(r.nom)}${pris ? ', dans tes pistes' : ''}"${sel ? ' aria-current="true"' : ''}>
          <span class="dc-nom">${esc(r.nom)}</span>
-         ${/* les trois cellules existent TOUJOURS, vides ou non : au poste
-              ce sont des colonnes, et une cellule absente ferait glisser
-              toutes les suivantes d'un rang (§6, une valeur a UN bord) */''}
-         <span class="dc-data"><span class="dc-lieu">${esc(lieu)}</span><span class="dc-taille">${
-           esc(r.effectif)}</span><span class="dc-act">${esc(r.activite)}</span></span>
+         <span class="dc-sub">${pris ? `<span class="dc-ok">${ic('check', 'ic-12')}dans tes pistes</span>` : ''}${esc(sousLigne(r))}</span>
        </div>
-       <button class="btn btn-sm dc-add" data-add="${esc(r.siren)}" aria-label="Ajouter ${esc(r.nom)} à mes pistes">${
-         ic('plus', 'ic-14')} Ajouter</button>
      </div>`);
 }
 
-/* la section, selon l'état — rien du tout au repos */
+/* LA ZONE vit dans la rangée d'étiquettes de la barre — elle EST une
+   étiquette de la question — : posée (pleine, sa croix la retire) ou
+   proposée (pointillée, un tap la remet). Zéro rangée de plus. */
+export function zoneEtiquetteHTML(){
+  if (etat.zone) return (
+    `<button class="st-chip" data-dc-zone="off" aria-label="Retirer la zone ${esc(etat.zone.label)}">${
+      ic('map-pin', 'ic-14')}${esc(etat.zone.label)}${ic('close', 'ic-12')}</button>`);
+  if (etat.proposee) return (
+    `<button class="prop-chip" data-dc-zone="on" aria-label="Chercher dans ${esc(etat.proposee.label)}">${
+      ic('map-pin', 'ic-14')}${esc(etat.proposee.label)}</button>`);
+  return '';
+}
+export function lierZone(box){
+  box?.querySelector('[data-dc-zone]')?.addEventListener('click', e => {
+    sansZone = e.currentTarget.dataset.dcZone === 'off';
+    suivreDecouverte(dernier.interp, dernier.o);
+    notifier();
+    /* le focus ne tombe pas par terre (§6) : la puce redessinée reprend
+       la main, sinon la barre */
+    requestAnimationFrame(() => {
+      const ici = document.querySelector('#piChips [data-dc-zone]');
+      if (ici) ici.focus({ preventScroll: true });
+      else document.getElementById('piQ')?.focus({ preventScroll: true });
+    });
+  });
+}
+
+/* L'APERÇU — trois niveaux, et rien de lourd : QUI (le nom), QUOI ET OÙ
+   (activité, puis lieu · taille · âge sur une ligne — ce que les
+   étudiants regardent pour choisir : missions, secteur, distance),
+   COMMENT Y ENTRER (les anciens de ton école, les offres — des LIENS :
+   ils emmènent ailleurs, §6). Le reste en petit gris, sans étiquettes.
+   Un seul geste plein : ajouter. */
+export function apercuHTML(r, o){
+  o = o || {};
+  const pris = estPrise(r.siren);
+  const an = (r.creation || '').slice(0, 4);
+  const faits = [[r.ville, km(r.distance)].filter(Boolean).join(' · '), r.effectif, an ? 'depuis ' + an : '']
+    .filter(Boolean).join(' · ');
+  const dir = (r.dirigeants || []).filter(d => d.personne).slice(0, 2)
+    .map(d => `${esc(d.nom)}${d.qualite ? `, ${esc(d.qualite.toLowerCase())}` : ''}`).join(' · ');
+  const liens = liensPiste({ name: r.nom, siren: r.siren }, S.profile).filter(l => l.cle !== 'officielle');
+  const officielle = ficheOfficielle(r.siren);
+  const lien = (url, label, aria) => `<a class="linklike" href="${esc(url)}" target="_blank" rel="noopener"${
+    aria ? ` aria-label="${esc(aria)}"` : ''}>${esc(label)}${ic('external-link', 'ic-12')}</a>`;
+  return (
+    `<div class="ap">
+       <h3 class="ap-nom">${esc(r.nom)}</h3>
+       ${r.activite ? `<p class="ap-act">${esc(r.activite)}</p>` : ''}
+       ${faits ? `<p class="ap-faits">${esc(faits)}</p>` : ''}
+       ${o.panneau ? `<div class="ap-agir">${pris
+         ? `<span class="ap-pris">${ic('check', 'ic-14')}Dans tes pistes</span>
+            <button class="linklike" data-ap-fiche="${esc(r.siren)}">Ouvrir la fiche</button>`
+         : `<button class="btn btn-primary" data-ap-add="${esc(r.siren)}">${ic('plus', 'ic-14')}Ajouter à mes pistes</button>`}</div>` : ''}
+       ${liens.length ? `<div class="ap-liens">${liens.map(l => lien(l.url, l.label, l.aria)).join('')}</div>` : ''}
+       <div class="ap-plus">
+         ${r.adresse ? `<p>${esc(r.adresse.replace(/\n/g, ', '))}</p>` : ''}
+         ${dir ? `<p>${dir}</p>` : ''}
+         <p><span class="ap-siren">SIREN ${esc(r.siren)}</span>${r.etablissements > 1 ? ` · ${esc(r.etablissements + ' établissements')}` : ''}${
+           officielle ? ` · ${lien(officielle, 'fiche officielle')}` : ''}</p>
+       </div>
+     </div>`);
+}
+
+/* la vue, selon l'état */
 export function decouverteHTML(){
-  if (etat.phase === 'repos') return '';
-  const l = etat.phase === 'ok' || etat.phase === 'plus' ? visibles() : [];
+  const l = (etat.phase === 'ok' || etat.phase === 'plus') ? visibles() : [];
   let corps;
-  if (etat.phase === 'attente' || etat.phase === 'charge')
+  if (etat.phase === 'repos')
+    /* aucune question : la barre est vide et tu n'as pas encore de zone */
+    corps = `<p class="dc-etat">Tape un métier et une ville.</p>`;
+  else if (etat.phase === 'attente' || etat.phase === 'charge')
     corps = `<p class="dc-etat" aria-busy="true">Je cherche dans l’annuaire…</p>`;
   else if (etat.phase === 'horsligne')
     corps = `<p class="dc-etat">Hors ligne.</p>`;
@@ -169,82 +294,107 @@ export function decouverteHTML(){
     corps = `<p class="dc-etat">Rien de nouveau dans l’annuaire.</p>`;
   else {
     const reste = etat.total - etat.page * PAR_PAGE;
-    corps =
-      `<div class="dc-list">
-         <div class="dc-tete" aria-hidden="true"><span>Entreprise</span><span>Lieu</span><span>Taille</span><span>Activité</span><span></span></div>
-         ${l.map(ligneHTML).join('')}
-       </div>
+    const liste =
+      `<div class="dc-list">${l.map(ligneHTML).join('')}</div>
        ${reste > 0 ? `<button class="linklike tr-more" data-dc-plus${etat.phase === 'plus' ? ' aria-busy="true"' : ''}>${
          etat.phase === 'plus' ? 'Je cherche…' : 'Voir 10 de plus'}</button>` : ''}`;
+    const r = mqLarge.matches ? (l.find(x => x.siren === choisi) || l[0]) : null;
+    corps = r
+      ? `<div class="dc-split">
+           <div class="dc-col">${liste}</div>
+           <aside class="dc-detail" aria-label="Aperçu de ${esc(r.nom)}">${apercuHTML(r, { panneau: true })}</aside>
+         </div>`
+      : liste;
   }
-  const n = l.length;
   return (
-    `<section class="tranche tr-dec" aria-label="À découvrir">
-       <div class="tr-h dc-h">
-         <h2>${ic('search', 'ic-14')} À découvrir${n ? ` <span class="tr-n">${n}</span>` : ''}</h2>
-         ${/* la source se nomme : la licence de l'annuaire le demande, et
-              c'est ce qui dit d'où viennent des entreprises qu'on n'a
-              jamais saisies */''}
-         <a class="dc-src" href="https://annuaire-entreprises.data.gouv.fr" target="_blank" rel="noopener">annuaire des entreprises</a>
-       </div>
+    `<section class="dc-vue" aria-label="À découvrir">
        ${corps}
+       ${/* la source se nomme : la licence de l'annuaire le demande, et
+            c'est ce qui dit d'où viennent des entreprises qu'on n'a
+            jamais saisies — en pied, discrète */''}
+       <p class="dc-src-l">Source : <a class="dc-src" href="https://annuaire-entreprises.data.gouv.fr" target="_blank" rel="noopener">annuaire des entreprises</a></p>
      </section>`);
 }
 
-/* ajouter : une piste comme si on l'avait saisie, puis Annuler 30 s */
+/* ajouter : une piste comme si on l'avait saisie, puis Annuler 30 s ;
+   la ligne reste, et le dit */
 function ajouter(r){
   const c = normalizeCompany({ ...versPiste(r, etat.interp), id: uid(), createdAt: Date.now() });
   c.history = [{ d: todayISO(), t: 'Ajoutée depuis l’annuaire' }];
   S.companies.push(c);
+  ajoutees.set(r.siren, c.id);
   saveData();
   logJ('Piste ajoutée depuis l’annuaire : ' + c.name, c.id);
   bus.refresh();
-  montrerChange(c.id);
-  showUndo(`${ic('check', 'ic-14')} « ${esc(c.name)} » ajoutée.`, () => { deletePiste(c); bus.refresh(); });
+  showUndo(`${ic('check', 'ic-14')} « ${esc(c.name)} » ajoutée.`, () => {
+    deletePiste(c); ajoutees.delete(r.siren); bus.refresh();
+  });
   return c;
 }
 
-/* l'aperçu : ce que l'annuaire sait, AVANT d'en faire une piste */
-const ligne = (l, v, cls) => v ? `<div class="fk"><span class="fk-l">${l}</span><span class="fk-v${cls ? ' ' + cls : ''}">${v}</span></div>` : '';
-export function apercuHTML(r){
-  const dir = (r.dirigeants || []).filter(d => d.personne).slice(0, 2)
-    .map(d => `${esc(d.nom)}${d.qualite ? ` <span class="dc-q">${esc(d.qualite)}</span>` : ''}`).join('<br>');
-  const officielle = ficheOfficielle(r.siren);
-  return (
-    `<div class="fi-know dc-ap">
-       ${ligne('Activité', esc(r.activite || r.naf))}
-       ${ligne(r.siege ? 'Siège' : 'Adresse', esc(r.adresse), 'fk-lignes')}
-       ${ligne('Distance', esc(km(r.distance)))}
-       ${ligne('Effectif', esc(r.effectif))}
-       ${ligne('Création', esc((r.creation || '').slice(0, 4)))}
-       ${ligne('Sites', r.etablissements > 1 ? esc(r.etablissements + ' établissements') : '')}
-       ${ligne('Dirigeant', dir)}
-       ${ligne('SIREN', esc(r.siren), 'dc-siren')}
-     </div>
-     ${officielle ? `<a class="linklike dc-off" href="${esc(officielle)}" target="_blank" rel="noopener">${
-       ic('external-link', 'ic-14')} Fiche officielle</a>` : ''}`);
-}
+/* au pouce, l'aperçu en feuille ; le pied porte le geste */
 function ouvrirApercu(r){
-  const sh = openSheet({ title: r.nom, icon: 'building' });
+  const sh = openSheet({ title: 'À découvrir', icon: 'building' });
   sh.body.innerHTML = apercuHTML(r);
-  sh.setFoot([btn('Ajouter à mes pistes', 'btn-primary', () => { sh.close(); ajouter(r); }, 'plus')]);
+  sh.setFoot([estPrise(r.siren)
+    ? btn('Ouvrir la fiche', 'btn-primary', () => { sh.close(); ouvrirFiche(r); }, 'briefcase')
+    : btn('Ajouter à mes pistes', 'btn-primary', () => { sh.close(); ajouter(r); }, 'plus')]);
   return sh;
 }
+async function ouvrirFiche(r){
+  const c = S.companies.find(x => x.id === ajoutees.get(r.siren));
+  if (c) (await import('./fiche.js')).openFiche(c);
+}
 
-/* les gestes de la section — posés après chaque rendu */
-export function lierDecouverte(box){
+/* au poste, choisir une ligne met l'aperçu à jour — sans redessiner la
+   liste (le focus et le défilement restent où ils sont) */
+function choisir(box, siren){
+  if (!mqLarge.matches || siren === choisi) return;
+  const r = visibles().find(x => x.siren === siren);
+  const aside = box.querySelector('.dc-detail');
+  if (!r || !aside) return;
+  choisi = siren;
+  box.querySelectorAll('.dc-row').forEach(row => {
+    const on = row.dataset.siren === siren;
+    row.classList.toggle('dc-sel', on);
+    const m = row.querySelector('.dc-main');
+    if (on) m.setAttribute('aria-current', 'true'); else m.removeAttribute('aria-current');
+  });
+  aside.setAttribute('aria-label', 'Aperçu de ' + r.nom);
+  aside.innerHTML = apercuHTML(r, { panneau: true });
+  lierApercu(box, aside);
+}
+function lierApercu(box, aside){
+  const trouve = siren => visibles().find(x => x.siren === siren);
+  aside.querySelector('[data-ap-add]')?.addEventListener('click', e => {
+    const r = trouve(e.currentTarget.dataset.apAdd);
+    if (r){ ajouter(r); requestAnimationFrame(() => document.querySelector('#piBody .dc-detail [data-ap-fiche]')?.focus()); }
+  });
+  aside.querySelector('[data-ap-fiche]')?.addEventListener('click', e => {
+    const r = trouve(e.currentTarget.dataset.apFiche);
+    if (r) ouvrirFiche(r);
+  });
+}
+
+/* les gestes de la vue — posés après chaque rendu */
+export function lierDecouverte(box, o){
   if (!box) return;
+  o = o || {};
   const trouve = siren => visibles().find(x => x.siren === siren);
   box.querySelectorAll('.dc-row').forEach(row => {
     const r = trouve(row.dataset.siren);
     if (!r) return;
     const main = row.querySelector('.dc-main');
-    main.addEventListener('click', () => ouvrirApercu(r));
+    const ouvrir = () => mqLarge.matches ? choisir(box, r.siren) : ouvrirApercu(r);
+    main.addEventListener('click', ouvrir);
+    /* au poste, l'aperçu suit le focus (le clavier parcourt la liste) */
+    main.addEventListener('focus', () => { if (mqLarge.matches) choisir(box, r.siren); });
     main.addEventListener('keydown', e => {
-      if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); ouvrirApercu(r); }
+      if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); ouvrir(); }
     });
-    row.querySelector('[data-add]').addEventListener('click', e => { e.stopPropagation(); ajouter(r); });
   });
+  const aside = box.querySelector('.dc-detail');
+  if (aside) lierApercu(box, aside);
   box.querySelector('[data-dc-encore]')?.addEventListener('click', () => {
     for (const u of etat.urls) cache.delete(avecPage(u, etat.page || 1));
     charger(etat.cle, 1);

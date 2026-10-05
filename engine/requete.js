@@ -546,21 +546,85 @@ export function propositions(companies, profile, ctx, max = 3){
   const vivantes = (companies || []).filter(c => c && !c.closedReason);
   if (!vivantes.length) return [];
   ctx = ctx || contexteRecherche(companies);
-  const out = [];
+  const out = [], vus = new Set();
   const essai = q => {
     if (!q || out.some(p => p.q === q)) return;
     const r = chercherPistes(vivantes, { q, ctx });
     if (!r.liste.length || r.liste.length === vivantes.length) return;   /* qui garde tout ne filtre rien */
+    /* deux propositions qui rendent les MÊMES pistes n'en font qu'une :
+       la plus précise, arrivée la première */
+    const cle = r.liste.map(c => c.id).sort().join('|');
+    if (vus.has(cle)) return;
+    vus.add(cle);
     out.push({ q, n: r.liste.length, label: r.interp.etiquettes.map(e => e.label).join(' · ') || q });
   };
   const mot = MOT_RECHERCHE[profile && profile.recherche];
   const ville = villeFrequente(vivantes);
+  /* ta recherche à toi : ce que tu DÉCLARES chercher, dans ta ville —
+     toujours la première, parce qu'une déduction ne passe jamais devant
+     une intention dite. Puis ton métier du moment, qui la resserre ;
+     s'il rend les mêmes pistes, il ne s'ajoute pas (rien à départager) */
+  const metier = metierDuMoment(vivantes, ctx.today);
   if (mot) essai(ville ? `${mot} ${ville}` : mot);
+  if (metier) essai([mot, METIER[metier].mots[0], ville].filter(Boolean).join(' '));
   essai('recommandées');
   essai('sans nouvelles');
   essai('en retard');
   if (!mot && ville) essai(ville);
   return out.slice(0, max);
+}
+
+/* ---------- s'adapter : ce que tes pistes disent de toi (docs/sources.md) ----------
+   Rien ne se saisit, tout se DÉDUIT (§8, règle 2), et rien ne sort de
+   l'appareil sauf la question qu'on en tire, visible à l'écran.
+
+   TA ZONE : le département où vivent le plus de tes pistes — deux au
+   moins, et sans ex æquo (mieux vaut ne pas comprendre que mal
+   comprendre). Elle borne une question en ligne qui n'a pas de lieu. */
+export function zoneDe(companies){
+  const n = new Map();
+  for (const c of companies || []){
+    if (!c || c.closedReason || c.demo) continue;
+    const d = deptDePiste(c);
+    if (d && DEPARTEMENTS[d]) n.set(d, (n.get(d) || 0) + 1);
+  }
+  const tri = [...n.entries()].sort((a, b) => b[1] - a[1]);
+  if (!tri.length || tri[0][1] < 2 || (tri[1] && tri[1][1] === tri[0][1])) return null;
+  const dept = tri[0][0];
+  return { dept, label: `${DEPARTEMENTS[dept]} (${dept})` };
+}
+/* LE RÉCENT PÈSE PLUS QUE L'ANCIEN : les paliers de la « frecency » de
+   Firefox (documentation du classement de la barre d'adresse, version
+   historique) — moins de 4 jours, 14, 31, 90, au-delà. */
+export const FRAICHEUR = [[4, 100], [14, 70], [31, 50], [90, 30], [Infinity, 10]];
+const jours = (a, b) => Math.round((Date.parse(b + 'T00:00:00Z') - Date.parse(a + 'T00:00:00Z')) / 86400000);
+export function fraicheur(c, today = todayISO()){
+  const dates = (c.history || []).map(h => h && h.d).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d || ''));
+  if (c.createdAt) dates.push(new Date(c.createdAt).toISOString().slice(0, 10));
+  const d = dates.sort().pop();
+  if (!d) return FRAICHEUR[FRAICHEUR.length - 1][1];
+  const age = Math.max(0, jours(d, today));
+  return FRAICHEUR.find(([j]) => age <= j)[1];
+}
+/* TON MÉTIER DU MOMENT : le secteur de tes pistes ENGAGÉES (contactées,
+   en cours, réponse, décrochée), chacune pesée par sa fraîcheur. Une
+   piste jamais contactée ne dit pas encore ce que tu fais ; une piste
+   abandonnée dit plutôt ce que tu ne fais plus. Il faut deux pistes au
+   moins, et un secteur qui l'emporte nettement. */
+const ENGAGEE = c => !c.demo && ((!c.closedReason && (c.status === 'active' || c.status === 'reply')) || c.closedReason === 'won');
+export function metierDuMoment(companies, today = todayISO()){
+  const poids = new Map();
+  let n = 0;
+  for (const c of companies || []){
+    if (!c || !ENGAGEE(c) || !c.domain || c.domain === 'autre') continue;
+    const k = Object.keys(METIER).find(m => METIER[m].domaine === c.domain);
+    if (!k) continue;
+    n++;
+    poids.set(k, (poids.get(k) || 0) + fraicheur(c, today));
+  }
+  const tri = [...poids.entries()].sort((a, b) => b[1] - a[1]);
+  if (n < 2 || !tri.length || (tri[1] && tri[1][1] * 1.5 > tri[0][1])) return '';
+  return tri[0][0];
 }
 
 /* ---------- élargir ----------
