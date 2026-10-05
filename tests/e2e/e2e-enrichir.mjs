@@ -234,7 +234,7 @@ const annuler = async p => {
 
   /* ③ les liens */
   const L = Object.fromEntries(b.liens.map(l => [l.cle, l]));
-  if (b.liens.map(l => l.cle).join() !== 'gens,officielle,offres') fail('liens : ' + b.liens.map(l => l.cle));
+  if (b.liens.map(l => l.cle).join() !== 'gens,offres,officielle') fail('liens : ' + b.liens.map(l => l.cle));
   /* ⑥ chacun à sa place : trouver quelqu'un avec les contacts, le reste dans « À savoir » */
   if (b.liens.map(l => l.zone).join() !== 'contacts,savoir,savoir') fail('les liens ne sont pas à leur place : ' + b.liens.map(l => l.cle + ':' + l.zone));
   if (L.gens.label !== 'Anciens de mon école' || new URL(L.gens.href).searchParams.get('keywords') !== 'Advens Lycée Baggio')

@@ -118,12 +118,12 @@ function donneesHTML(c, e){
     + (!String(c.address || '').trim() ? ligne(r.siege ? 'Siège' : 'Adresse', esc(r.adresse), 'fk-lignes') : ''));
 }
 
-/* LE PIED, une ligne grise : la source (la licence la demande), le
-   SIREN, les liens qui emmènent ailleurs — et, seulement s'il y a des
-   vides à remplir, le seul geste qui change la fiche, avec ce qu'il
-   ajoutera (§6, sobriété 2) */
+/* LE PIED : seulement s'il y a des vides à remplir, le seul geste qui
+   change la fiche, avec ce qu'il ajoutera (§6, sobriété 2) ; les liens
+   qui emmènent ailleurs, à la taille du doigt (§5) ; puis une ligne
+   grise, du texte seul : la source (la licence la demande) et le SIREN */
 function piedHTML(c, e, etat){
-  const liens = ['officielle', 'offres'].map(k => lien(c, k)).filter(Boolean);
+  const liens = ['offres', 'officielle'].map(k => lien(c, k)).filter(Boolean);
   let geste = '';
   if (e && e.phase === 'ok'){
     const comp = complements(c, e.r, e.site);
@@ -132,12 +132,10 @@ function piedHTML(c, e, etat){
     if (dits.length) geste = `<div class="fa-act"><button class="btn btn-sm" data-fa-completer>${ic('plus', 'ic-14')}Compléter ma fiche</button>
       <span class="fa-quoi">${esc(dits.join(' · '))}</span></div>`;
   }
-  const bits = [
-    'Annuaire des entreprises',
-    c.siren ? `<span class="fa-siren">SIREN ${esc(c.siren)}</span>` : '',
-    ...liens.map(lienHTML)
-  ].filter(Boolean);
-  return `${geste}<div class="fa-pied">${etat ? `<div class="fa-etat">${etat}</div>` : ''}<div class="fa-src">${bits.join('<span aria-hidden="true"> · </span>')}</div></div>`;
+  const src = ['Annuaire des entreprises', c.siren ? `<span class="fa-siren">SIREN ${esc(c.siren)}</span>` : '']
+    .filter(Boolean).join('<span aria-hidden="true"> · </span>');
+  return `${geste}<div class="fa-pied">${etat ? `<div class="fa-etat">${etat}</div>` : ''}${
+    liens.length ? `<div class="fa-liens">${liens.map(lienHTML).join('')}</div>` : ''}<div class="fa-src">${src}</div></div>`;
 }
 
 function savoirHTML(c){

@@ -858,7 +858,7 @@ html[data-theme="dark"] .field select{
 .fa-cts:empty{display:none}
 /* dans « À savoir » : la ligne grise de la source et ses liens */
 .fa-pied{padding:6px 10px 8px;font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
-.fa-src .linklike{min-height:0;padding:0;font-size:inherit;font-family:var(--font-ui)}
+.fa-liens{display:flex;flex-wrap:wrap;gap:0 4px;margin:0 0 2px -8px;font-family:var(--font-ui);font-size:var(--text-13)}
 .fa-etat{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;margin-bottom:4px;font-size:var(--text-12)}
 .fa-etat .linklike{margin-left:-8px;font-family:var(--font-ui)}
 .fa-act{display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;padding:8px 10px 0}
