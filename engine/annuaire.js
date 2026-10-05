@@ -130,7 +130,10 @@ export function questionsAnnuaire(interp, o){
      prend le département de tes pistes. L'écran la montre comme une
      étiquette, avec sa croix — l'app ne demande rien en ton nom sans
      que ça se voie. */
-  if (!lieu && !posOk && o.zone && o.zone.dept && (et.length || q)){ p.set('departement', o.zone.dept); lieu = true; }
+  /* `parDefaut` : la vue « À découvrir » ouverte d'un tap, barre vide —
+     le numérique de ta zone (docs/presentation-recherche.md). Jamais au
+     démarrage : c'est le tap qui demande. */
+  if (!lieu && !posOk && o.zone && o.zone.dept && (et.length || q || o.parDefaut)){ p.set('departement', o.zone.dept); lieu = true; }
   /* Sans texte, sans lieu et sans « près de moi », la question
      rendrait la France entière : elle ne part pas. */
   if (!q.length && !lieu && !posOk && !motMetier) return [];
