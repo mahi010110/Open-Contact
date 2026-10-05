@@ -19,11 +19,12 @@
    (Material 3, liste-détail) — comparer dix entreprises ne coûte plus
    dix fenêtres.
 
-   UNE BASCULE PAR LIGNE, pas un bouton répété : `+` en fait une piste,
-   `✓` dit qu'elle y est, et la ligne RESTE à sa place — on voit où est
-   partie l'entreprise. Material 3 réserve l'action répétée sur chaque
-   ligne aux bascules, parce qu'elles disent quelque chose de propre à
-   chaque ligne. Annuler 30 s (§6) dans les deux sens.
+   LÉGER (demande du mainteneur, 5 octobre : « pas de gros boutons, pas
+   de rajout dégoulinant ») : AUCUN bouton sur les lignes. La ligne
+   ouvre l'aperçu, et l'aperçu porte le seul geste plein — « Ajouter à
+   mes pistes ». Une entreprise ajoutée garde sa ligne, à sa place, et
+   le dit en un mot (« ✓ dans tes pistes ») : on voit où elle est
+   partie. Annuler 30 s (§6).
    ============================================================ */
 import { esc, uid, todayISO } from '../engine/utils.js';
 import { normalizeCompany } from '../engine/model.js';
@@ -204,69 +205,74 @@ function ligneHTML(r){
   const pris = estPrise(r.siren), sel = mqLarge.matches && r.siren === choisi;
   return (
     `<div class="dc-row${pris ? ' dc-pris' : ''}${sel ? ' dc-sel' : ''}" data-siren="${esc(r.siren)}">
-       <div class="dc-main" role="button" tabindex="0" aria-label="${esc(r.nom)}"${sel ? ' aria-current="true"' : ''}>
+       <div class="dc-main" role="button" tabindex="0" aria-label="${esc(r.nom)}${pris ? ', dans tes pistes' : ''}"${sel ? ' aria-current="true"' : ''}>
          <span class="dc-nom">${esc(r.nom)}</span>
-         <span class="dc-sub">${esc(sousLigne(r))}</span>
+         <span class="dc-sub">${pris ? `<span class="dc-ok">${ic('check', 'ic-12')}dans tes pistes</span>` : ''}${esc(sousLigne(r))}</span>
        </div>
-       <button class="dc-add${pris ? ' on' : ''}" data-add="${esc(r.siren)}" aria-pressed="${pris}"
-               aria-label="${pris ? `${esc(r.nom)} est dans tes pistes — la retirer` : `Ajouter ${esc(r.nom)} à mes pistes`}">${
-         ic(pris ? 'check' : 'plus', 'ic-16')}</button>
      </div>`);
 }
 
-/* la zone, sous les segments : posée (pleine, sa croix la retire) ou
-   proposée (pointillée, un tap la remet) — les deux formes des
-   étiquettes de la barre, au même dessin */
-function zoneHTML(){
+/* LA ZONE vit dans la rangée d'étiquettes de la barre — elle EST une
+   étiquette de la question — : posée (pleine, sa croix la retire) ou
+   proposée (pointillée, un tap la remet). Zéro rangée de plus. */
+export function zoneEtiquetteHTML(){
   if (etat.zone) return (
-    `<div class="dc-zone"><button class="st-chip" data-dc-zone="off" aria-label="Retirer la zone ${esc(etat.zone.label)}">${
-      ic('map-pin', 'ic-14')}${esc(etat.zone.label)}${ic('close', 'ic-12')}</button></div>`);
+    `<button class="st-chip" data-dc-zone="off" aria-label="Retirer la zone ${esc(etat.zone.label)}">${
+      ic('map-pin', 'ic-14')}${esc(etat.zone.label)}${ic('close', 'ic-12')}</button>`);
   if (etat.proposee) return (
-    `<div class="dc-zone"><button class="prop-chip" data-dc-zone="on" aria-label="Chercher dans ${esc(etat.proposee.label)}">${
-      ic('map-pin', 'ic-14')}${esc(etat.proposee.label)}</button></div>`);
+    `<button class="prop-chip" data-dc-zone="on" aria-label="Chercher dans ${esc(etat.proposee.label)}">${
+      ic('map-pin', 'ic-14')}${esc(etat.proposee.label)}</button>`);
   return '';
 }
+export function lierZone(box){
+  box?.querySelector('[data-dc-zone]')?.addEventListener('click', e => {
+    sansZone = e.currentTarget.dataset.dcZone === 'off';
+    suivreDecouverte(dernier.interp, dernier.o);
+    notifier();
+    /* le focus ne tombe pas par terre (§6) : la puce redessinée reprend
+       la main, sinon la barre */
+    requestAnimationFrame(() => {
+      const ici = document.querySelector('#piChips [data-dc-zone]');
+      if (ici) ici.focus({ preventScroll: true });
+      else document.getElementById('piQ')?.focus({ preventScroll: true });
+    });
+  });
+}
 
-/* L'APERÇU — trois niveaux, pas sept rangées de même poids : QUI (le
-   nom), QUOI ET OÙ (activité, lieu, taille, âge — ce que les étudiants
-   regardent pour choisir : missions, secteur, distance), COMMENT Y
-   ENTRER (les anciens de ton école, les offres). Le reste, plus petit,
-   pour qui le cherche. Le même contenu en feuille au pouce et en
-   panneau au poste. */
-const fait = (icone, v) => v ? `<span class="ap-fait">${ic(icone, 'ic-14')}${esc(v)}</span>` : '';
+/* L'APERÇU — trois niveaux, et rien de lourd : QUI (le nom), QUOI ET OÙ
+   (activité, puis lieu · taille · âge sur une ligne — ce que les
+   étudiants regardent pour choisir : missions, secteur, distance),
+   COMMENT Y ENTRER (les anciens de ton école, les offres — des LIENS :
+   ils emmènent ailleurs, §6). Le reste en petit gris, sans étiquettes.
+   Un seul geste plein : ajouter. */
 export function apercuHTML(r, o){
   o = o || {};
   const pris = estPrise(r.siren);
+  const an = (r.creation || '').slice(0, 4);
+  const faits = [[r.ville, km(r.distance)].filter(Boolean).join(' · '), r.effectif, an ? 'depuis ' + an : '']
+    .filter(Boolean).join(' · ');
   const dir = (r.dirigeants || []).filter(d => d.personne).slice(0, 2)
     .map(d => `${esc(d.nom)}${d.qualite ? `, ${esc(d.qualite.toLowerCase())}` : ''}`).join(' · ');
-  const an = (r.creation || '').slice(0, 4);
   const liens = liensPiste({ name: r.nom, siren: r.siren }, S.profile).filter(l => l.cle !== 'officielle');
   const officielle = ficheOfficielle(r.siren);
-  const plus = [
-    r.adresse ? `<div><dt>${r.siege ? 'Siège' : 'Adresse'}</dt><dd class="fk-lignes">${esc(r.adresse)}</dd></div>` : '',
-    dir ? `<div><dt>Dirigeant</dt><dd>${dir}</dd></div>` : '',
-    r.etablissements > 1 ? `<div><dt>Sites</dt><dd>${esc(r.etablissements + ' établissements')}</dd></div>` : '',
-    `<div><dt>SIREN</dt><dd class="dc-siren">${esc(r.siren)}</dd></div>`
-  ].join('');
+  const lien = (url, label, aria) => `<a class="linklike" href="${esc(url)}" target="_blank" rel="noopener"${
+    aria ? ` aria-label="${esc(aria)}"` : ''}>${esc(label)}${ic('external-link', 'ic-12')}</a>`;
   return (
     `<div class="ap">
        <h3 class="ap-nom">${esc(r.nom)}</h3>
        ${r.activite ? `<p class="ap-act">${esc(r.activite)}</p>` : ''}
-       <div class="ap-faits">
-         ${fait('map-pin', [r.ville, km(r.distance)].filter(Boolean).join(' · '))}
-         ${fait('users', r.effectif)}
-         ${fait('calendar', an ? 'depuis ' + an : '')}
-       </div>
+       ${faits ? `<p class="ap-faits">${esc(faits)}</p>` : ''}
        ${o.panneau ? `<div class="ap-agir">${pris
-         ? `<span class="ap-pris">${ic('check', 'ic-14')} Dans tes pistes</span>
-            <button class="btn btn-sm" data-ap-fiche="${esc(r.siren)}">${ic('briefcase', 'ic-14')} Ouvrir la fiche</button>`
-         : `<button class="btn btn-primary" data-ap-add="${esc(r.siren)}">${ic('plus', 'ic-14')} Ajouter à mes pistes</button>`}</div>` : ''}
-       ${liens.length ? `<div class="ap-liens">${liens.map(l =>
-         `<a class="btn btn-sm" href="${esc(l.url)}" target="_blank" rel="noopener" aria-label="${esc(l.aria)}">${
-           ic('external-link', 'ic-14')}${esc(l.label)}</a>`).join('')}</div>` : ''}
-       <dl class="ap-plus">${plus}</dl>
-       ${officielle ? `<a class="linklike ap-off" href="${esc(officielle)}" target="_blank" rel="noopener">${
-         ic('external-link', 'ic-14')}Fiche officielle</a>` : ''}
+         ? `<span class="ap-pris">${ic('check', 'ic-14')}Dans tes pistes</span>
+            <button class="linklike" data-ap-fiche="${esc(r.siren)}">Ouvrir la fiche</button>`
+         : `<button class="btn btn-primary" data-ap-add="${esc(r.siren)}">${ic('plus', 'ic-14')}Ajouter à mes pistes</button>`}</div>` : ''}
+       ${liens.length ? `<div class="ap-liens">${liens.map(l => lien(l.url, l.label, l.aria)).join('')}</div>` : ''}
+       <div class="ap-plus">
+         ${r.adresse ? `<p>${esc(r.adresse.replace(/\n/g, ', '))}</p>` : ''}
+         ${dir ? `<p>${dir}</p>` : ''}
+         <p><span class="ap-siren">SIREN ${esc(r.siren)}</span>${r.etablissements > 1 ? ` · ${esc(r.etablissements + ' établissements')}` : ''}${
+           officielle ? ` · ${lien(officielle, 'fiche officielle')}` : ''}</p>
+       </div>
      </div>`);
 }
 
@@ -276,11 +282,7 @@ export function decouverteHTML(){
   let corps;
   if (etat.phase === 'repos')
     /* aucune question : la barre est vide et tu n'as pas encore de zone */
-    corps = `<div class="dc-vide">
-               <p class="dc-etat">Tape un métier et une ville.</p>
-               <div class="dc-ex">${['alternance Lille', 'cyber Lyon', 'dev Paris'].map(x =>
-                 `<button class="prop-chip" data-dc-ex="${esc(x)}">${ic('search', 'ic-14')}${esc(x)}</button>`).join('')}</div>
-             </div>`;
+    corps = `<p class="dc-etat">Tape un métier et une ville.</p>`;
   else if (etat.phase === 'attente' || etat.phase === 'charge')
     corps = `<p class="dc-etat" aria-busy="true">Je cherche dans l’annuaire…</p>`;
   else if (etat.phase === 'horsligne')
@@ -306,7 +308,6 @@ export function decouverteHTML(){
   }
   return (
     `<section class="dc-vue" aria-label="À découvrir">
-       ${zoneHTML()}
        ${corps}
        ${/* la source se nomme : la licence de l'annuaire le demande, et
             c'est ce qui dit d'où viennent des entreprises qu'on n'a
@@ -316,7 +317,7 @@ export function decouverteHTML(){
 }
 
 /* ajouter : une piste comme si on l'avait saisie, puis Annuler 30 s ;
-   la ligne reste, cochée */
+   la ligne reste, et le dit */
 function ajouter(r){
   const c = normalizeCompany({ ...versPiste(r, etat.interp), id: uid(), createdAt: Date.now() });
   c.history = [{ d: todayISO(), t: 'Ajoutée depuis l’annuaire' }];
@@ -329,19 +330,6 @@ function ajouter(r){
     deletePiste(c); ajoutees.delete(r.siren); bus.refresh();
   });
   return c;
-}
-/* la bascule dans l'autre sens : la piste qu'on vient d'ajouter repart */
-function retirer(r){
-  const c = S.companies.find(x => x.id === ajoutees.get(r.siren));
-  if (!c) return;
-  const i = S.companies.indexOf(c);
-  deletePiste(c);
-  bus.refresh();
-  showUndo(`« ${esc(c.name)} » retirée de tes pistes.`, () => {
-    S.companies.splice(Math.min(i, S.companies.length), 0, c);
-    saveData();
-    bus.refresh();
-  });
 }
 
 /* au pouce, l'aperçu en feuille ; le pied porte le geste */
@@ -404,31 +392,9 @@ export function lierDecouverte(box, o){
     main.addEventListener('keydown', e => {
       if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); ouvrir(); }
     });
-    row.querySelector('[data-add]').addEventListener('click', e => {
-      e.stopPropagation();
-      const b = e.currentTarget;
-      if (estPrise(r.siren)) retirer(r); else ajouter(r);
-      /* la bascule redessinée garde le focus : on le lui rend */
-      requestAnimationFrame(() => document.querySelector(`#piBody .dc-row[data-siren="${r.siren}"] [data-add]`)?.focus());
-      if (b.isConnected) b.blur();
-    });
   });
   const aside = box.querySelector('.dc-detail');
   if (aside) lierApercu(box, aside);
-  box.querySelectorAll('[data-dc-ex]').forEach(b => b.addEventListener('click', () => o.chercher && o.chercher(b.dataset.dcEx)));
-  box.querySelector('[data-dc-zone]')?.addEventListener('click', e => {
-    sansZone = e.currentTarget.dataset.dcZone === 'off';
-    suivreDecouverte(dernier.interp, dernier.o);
-    notifier();
-    /* le focus ne tombe pas par terre (§6) : la puce qu'on vient de
-       taper a été redessinée — on rend la main à sa remplaçante, sinon
-       à la barre */
-    requestAnimationFrame(() => {
-      const ici = document.querySelector('#piBody [data-dc-zone]');
-      if (ici) ici.focus({ preventScroll: true });
-      else document.getElementById('piQ')?.focus({ preventScroll: true });
-    });
-  });
   box.querySelector('[data-dc-encore]')?.addEventListener('click', () => {
     for (const u of etat.urls) cache.delete(avecPage(u, etat.page || 1));
     charger(etat.cle, 1);

@@ -1,6 +1,6 @@
 /* ============================================================
    « À découvrir » — l'annuaire, sans qu'un mot privé ne sorte
-   (docs/recherche.md, lot 2)
+   (docs/recherche.md, lot 2 ; docs/presentation-recherche.md)
 
    La barre interroge l'annuaire public des entreprises toute seule,
    après une pause dans la frappe. C'est la première fois que l'app
@@ -20,8 +20,11 @@
      `sonde-annuaire.mjs`) : chaque cas se dit, et se répare ;
    ⑤ sans aucune piste, la recherche amorce la liste — c'est là que
      l'annuaire sert le plus ;
-   ⑥ au poste, un tableau dont les colonnes ne bougent pas, et le clavier
-     y descend.
+   ⑥ au poste, la liste et l'aperçu côte à côte (liste-détail) : choisir
+     une ligne, au clic ou au clavier, met l'aperçu à jour sans fenêtre ;
+   ⑦ « À découvrir » est une VUE, visible dès l'ouverture (la barre de
+     portée), son compte se remplit pendant qu'on tape, et RIEN ne part
+     au démarrage.
 
    L'annuaire est REMPLACÉ par une réponse fabriquée à sa forme réelle :
    aucun réseau requis. La CSP de l'app, elle, est la vraie — si elle
@@ -105,28 +108,46 @@ const taper = async (p, txt) => {
 /* la question part après une pause : on attend que la section ait FINI
    (ni « attente » ni « charge ») — sinon on lirait l'état d'avant */
 const lireDec = async (p, ms = 3500) => {
-  await p.waitForFunction(() => {
-    const s = document.querySelector('#piDec');
-    return s && !s.querySelector('[aria-busy="true"]');
-  }, null, { timeout: ms }).catch(() => {});
+  await p.waitForTimeout(150);
+  await p.waitForFunction(() => !document.querySelector('#piDec [aria-busy="true"], #piPortee [aria-busy="true"]'),
+    null, { timeout: ms }).catch(() => {});
   return p.evaluate(() => {
     const s = document.querySelector('#piDec');
     return {
-      present: !!(s && s.querySelector('.tr-dec')),
+      present: !!(s && s.querySelector('.dc-vue')),
       noms: [...document.querySelectorAll('#piDec .dc-nom')].map(n => n.textContent.trim()),
+      pris: [...document.querySelectorAll('#piDec .dc-row.dc-pris .dc-nom')].map(n => n.textContent.trim()),
       etat: (s && s.querySelector('.dc-etat')?.textContent.replace(/\s+/g, ' ').trim()) || '',
-      pistes: [...document.querySelectorAll('#piBody [data-id] h3, #piBody [data-id] b')].map(n => n.textContent.trim())
+      compte: document.querySelector('#piPortee [data-portee="decouvrir"] .pt-n')?.textContent.trim() || '',
+      mesPistes: document.querySelector('#piPortee [data-portee="pistes"] .pt-n')?.textContent.trim() || ''
     };
   });
+};
+/* ouvrir la vue « À découvrir » — le segment sous la barre */
+const versDecouvrir = async p => {
+  await p.click('#piPortee [data-portee="decouvrir"]');
+  await p.waitForSelector('#piDec .dc-vue', { timeout: 3000 }).catch(() => {});
 };
 
 /* ---------- au pouce ---------- */
 {
   const { ctx, p, an } = await ecran({ width: 390, height: 844 }, true, PISTES);
+  /* ⑦ la vue se voit avant d'avoir servi, et rien ne part au démarrage */
+  const depart = await p.evaluate(() => {
+    const b = document.querySelector('#piPortee [data-portee="decouvrir"]');
+    return b ? { y: Math.round(b.getBoundingClientRect().bottom), txt: b.textContent.trim() } : null;
+  });
+  if (!depart) fail('la barre de portée n’existe pas : « À découvrir » ne se voit pas avant d’avoir servi');
+  else if (depart.y > 300) fail(`le segment « À découvrir » est à ${depart.y} px : sous le clavier`);
+  if (an.journal.length) fail('une requête est partie vers l’annuaire au DÉMARRAGE (invariant ④)');
   await taper(p, 'alternance Lille');
   await p.waitForTimeout(900);
+  const avantVue = await lireDec(p);
+  if (!/^\d+\+?$/.test(avantVue.compte)) fail(`pendant la frappe, le segment « À découvrir » ne dit pas son compte (« ${avantVue.compte} »)`);
+  else console.log(`pouce · ⑦ le segment « À découvrir » est là dès l’ouverture (y=${depart && depart.y}), rien ne part au démarrage, et il dit « ${avantVue.compte} » pendant la frappe ✓`);
+  await versDecouvrir(p);
   const d = await lireDec(p);
-  if (!d.present) fail('« alternance Lille » : pas de section « À découvrir »');
+  if (!d.present) fail('« alternance Lille » : la vue « À découvrir » ne s’ouvre pas');
   if (d.noms.join('|') !== 'Advens|Novalink Solutions|Dataflow Nord')
     fail(`« À découvrir » montre ${JSON.stringify(d.noms)}`);
   if (d.noms.includes('Advalys Cyber')) fail('une piste déjà suivie revient dans « À découvrir »');
@@ -136,7 +157,6 @@ const lireDec = async (p, ms = 3500) => {
   if (u.searchParams.has('q')) fail('« alternance » est parti en texte vers l’annuaire : ' + u.search);
   console.log(`pouce · « alternance Lille » : ${d.noms.length} à découvrir, la piste déjà suivie écartée ✓`);
   await p.evaluate(() => document.activeElement.blur());
-  await p.evaluate(() => document.querySelector('#piDec').scrollIntoView({ block: 'start' }));
   await p.screenshot({ path: `${SHOTS}/96-decouvrir-pouce.png` });
 
   /* ① aucun mot privé ne sort — et une question vidée par le tri ne part pas */
@@ -168,33 +188,46 @@ const lireDec = async (p, ms = 3500) => {
   await p.waitForTimeout(900);
   await lireDec(p);
   const n0 = await p.evaluate(async () => (await import('./ui/state.js')).S.companies.length);
+  const ordre0 = (await lireDec(p)).noms;
   await p.click('#piDec .dc-row:has-text("Advens") .dc-add');
   await p.waitForTimeout(400);
   const ap = await lireDec(p);
   const ajout = await p.evaluate(async () => {
     const S = (await import('./ui/state.js')).S;
     const c = S.companies.find(x => x.name === 'Advens');
+    const b = document.querySelector('#piDec .dc-row.dc-pris .dc-add');
     return { n: S.companies.length, siren: c && c.siren, city: c && c.city, contacts: c && c.contacts.length,
-             annuler: !!document.querySelector('.undo-bar') };
+             annuler: !!document.querySelector('.undo-bar'), presse: b && b.getAttribute('aria-pressed'),
+             focus: document.activeElement === b };
   });
   if (ajout.n !== n0 + 1 || ajout.siren !== '812345678' || ajout.city !== 'Lille')
     fail('« Ajouter » ne crée pas la piste attendue : ' + JSON.stringify(ajout));
   if (ajout.contacts) fail('le dirigeant a été importé comme contact — aucune personne d’office');
-  if (ap.noms.includes('Advens')) fail('la piste ajoutée reste dans « À découvrir »');
-  if (!ap.pistes.includes('Advens')) fail('la piste ajoutée n’apparaît pas dans tes pistes : ' + JSON.stringify(ap.pistes));
+  /* la ligne RESTE, cochée, à sa place : on voit où est partie l'entreprise */
+  if (ap.noms.join('|') !== ordre0.join('|') || ap.pris.join('|') !== 'Advens' || ajout.presse !== 'true')
+    fail('la bascule ne garde pas sa ligne cochée à sa place : ' + JSON.stringify({ avant: ordre0, apres: ap.noms, pris: ap.pris }));
+  if (ap.mesPistes !== String(Number(d.mesPistes) + 1)) fail(`le compte de « Mes pistes » ne suit pas l’ajout (${d.mesPistes} → ${ap.mesPistes})`);
   if (!ajout.annuler) fail('pas de barre « Annuler » après l’ajout');
   await p.click('.undo-bar button:has-text("Annuler")');
   await p.waitForTimeout(400);
   const an2 = await lireDec(p);
   const nAnnule = await p.evaluate(async () => (await import('./ui/state.js')).S.companies.length);
-  if (nAnnule !== n0 || !an2.noms.includes('Advens')) fail('« Annuler » ne rend pas l’état d’avant');
-  else console.log('pouce · « Ajouter » : la piste arrive avec son SIREN, sans personne importée, et Annuler la rend ✓');
+  if (nAnnule !== n0 || !an2.noms.includes('Advens') || an2.pris.length) fail('« Annuler » ne rend pas l’état d’avant');
+  else console.log('pouce · « + » : la piste arrive avec son SIREN, sans personne importée, la ligne reste cochée à sa place, et Annuler la rend ✓');
+  /* la bascule dans l'autre sens : ✓ retire, et Annuler la remet */
+  await p.click('#piDec .dc-row:has-text("Advens") .dc-add');
+  await p.waitForTimeout(300);
+  await p.click('#piDec .dc-row:has-text("Advens") .dc-add');
+  await p.waitForTimeout(300);
+  const retire = await p.evaluate(async () => (await import('./ui/state.js')).S.companies.some(c => c.name === 'Advens'));
+  if (retire) fail('« ✓ » ne retire pas la piste qu’on vient d’ajouter');
+  else console.log('pouce · « ✓ » : la bascule retire ce qu’elle vient d’ajouter ✓');
 
   /* l'aperçu, AVANT d'en faire une piste */
   await p.click('#piDec .dc-row:has-text("Dataflow") .dc-main');
   await p.waitForSelector('.overlay .modal', { timeout: 3000 }).catch(() => {});
   const fiche = await p.evaluate(() => ({
-    titre: document.querySelector('.overlay .mh-t')?.textContent || '',
+    titre: document.querySelector('.overlay .ap-nom')?.textContent || '',
     texte: document.querySelector('.overlay .modal-b')?.textContent.replace(/\s+/g, ' ') || '',
     pied: [...document.querySelectorAll('.overlay .modal-f button')].map(b => b.textContent.trim())
   }));
@@ -202,6 +235,13 @@ const lireDec = async (p, ms = 3500) => {
     fail('l’aperçu ne montre pas ce que l’annuaire sait : ' + JSON.stringify(fiche));
   if (!fiche.pied.some(t => /Ajouter à mes pistes/.test(t))) fail('l’aperçu n’offre pas d’ajouter');
   await p.screenshot({ path: `${SHOTS}/96-decouvrir-apercu.png` });
+  /* trois niveaux : le nom en titre, l'activité et les faits, puis les liens */
+  const niveaux = await p.evaluate(() => {
+    const y = s => document.querySelector('.overlay ' + s)?.getBoundingClientRect().top ?? -1;
+    return [y('.ap-nom'), y('.ap-act'), y('.ap-faits'), y('.ap-liens'), y('.ap-plus')];
+  });
+  if (niveaux.some(v => v < 0) || niveaux.some((v, i) => i && v < niveaux[i - 1]))
+    fail('l’aperçu ne dit pas d’abord qui, puis quoi et où, puis comment y entrer : ' + JSON.stringify(niveaux));
   await p.click('.overlay .modal-f button:has-text("Ajouter à mes pistes")');
   await p.waitForTimeout(400);
   if (!(await p.evaluate(async () => (await import('./ui/state.js')).S.companies.some(c => c.siren === '834567890'))))
@@ -271,33 +311,53 @@ const lireDec = async (p, ms = 3500) => {
   await ctx.close();
 }
 
-/* ---------- ⑥ au poste : un tableau, et le clavier y descend ---------- */
+/* ---------- ⑥ au poste : la liste et l'aperçu côte à côte ---------- */
 {
-  const { ctx, p } = await ecran({ width: 1280, height: 800 }, false, PISTES);
+  const { ctx, p, an } = await ecran({ width: 1280, height: 800 }, false, PISTES);
+  if (an.journal.length) fail('au poste, une requête est partie au DÉMARRAGE (invariant ④)');
   await taper(p, 'alternance Lille');
   await p.waitForTimeout(900);
+  await versDecouvrir(p);
   await lireDec(p);
-  const t = await p.evaluate(() => {
-    const tete = document.querySelector('#piDec .dc-tete');
-    const bords = sel => [...document.querySelectorAll(sel)].map(n => Math.round(n.getBoundingClientRect().left));
-    return { tete: !!tete && getComputedStyle(tete).display !== 'none',
-             lieu: bords('#piDec .dc-lieu'), taille: bords('#piDec .dc-taille'), add: bords('#piDec .dc-add') };
+  const g = await p.evaluate(() => {
+    const r = s => document.querySelector(s)?.getBoundingClientRect();
+    const l = r('#piDec .dc-list'), d = r('#piDec .dc-detail');
+    return { liste: l && Math.round(l.right), detail: d && Math.round(d.left), haut: d && Math.round(d.top),
+             nom: document.querySelector('#piDec .dc-detail .ap-nom')?.textContent.trim(),
+             choisie: document.querySelector('#piDec .dc-sel .dc-nom')?.textContent.trim(),
+             fenetre: !!document.querySelector('.overlay .modal') };
   });
-  const stable = a => a.length > 1 && a.every(x => x === a[0]);
-  if (!t.tete) fail('au poste, le tableau n’a pas sa tête de colonnes');
-  if (!stable(t.lieu) || !stable(t.taille) || !stable(t.add))
-    fail('au poste, les colonnes bougent d’une ligne à l’autre : ' + JSON.stringify(t));
-  else console.log('poste · « À découvrir » en tableau : tête de colonnes, bords stables ✓');
-  /* le clavier : du bas d'une colonne du tableau, ↓ descend dans « À découvrir » */
+  if (!g.liste || !g.detail || g.detail <= g.liste) fail('au poste, l’aperçu n’est pas À CÔTÉ de la liste : ' + JSON.stringify(g));
+  if (!g.nom || g.nom !== g.choisie) fail(`au poste, l’aperçu (« ${g.nom} ») ne montre pas la ligne choisie (« ${g.choisie} »)`);
+  else console.log(`poste · ⑥ liste et aperçu côte à côte, la première ligne choisie d’office (« ${g.nom} ») ✓`);
+  /* un clic choisit, sans fenêtre */
+  await p.click('#piDec .dc-row:has-text("Dataflow") .dc-main');
+  await p.waitForTimeout(200);
+  const c = await p.evaluate(() => ({ nom: document.querySelector('#piDec .dc-detail .ap-nom')?.textContent.trim(),
+    fenetre: !!document.querySelector('.overlay .modal') }));
+  if (c.nom !== 'Dataflow Nord' || c.fenetre) fail('au poste, un clic sur une ligne ne met pas l’aperçu à jour, ou ouvre une fenêtre : ' + JSON.stringify(c));
+  /* le clavier : de la barre, ↓ descend dans la liste, et l'aperçu suit le focus */
+  await p.click('#piQ');
   await p.keyboard.press('ArrowDown');
-  for (let i = 0; i < 6; i++) await p.keyboard.press('ArrowDown');
-  const ou = await p.evaluate(() => document.activeElement.closest('.dc-row') ? 'découvrir' : document.activeElement.className);
-  if (ou !== 'découvrir') fail(`au poste, ↓ ne descend pas dans « À découvrir » (focus : ${ou})`);
-  await p.keyboard.press('Enter');
-  await p.waitForSelector('.overlay .modal', { timeout: 3000 }).catch(() => fail('Entrée sur une découverte n’ouvre pas l’aperçu'));
-  await p.keyboard.press('Escape');
-  await p.evaluate(() => document.querySelector('#piDec').scrollIntoView({ block: 'center' }));
+  await p.keyboard.press('ArrowDown');
+  const k = await p.evaluate(() => ({
+    focus: document.activeElement.closest('.dc-row')?.querySelector('.dc-nom')?.textContent.trim(),
+    nom: document.querySelector('#piDec .dc-detail .ap-nom')?.textContent.trim() }));
+  if (!k.focus || k.focus !== k.nom) fail('au poste, l’aperçu ne suit pas le clavier : ' + JSON.stringify(k));
+  else console.log(`poste · ⑥ ↓ depuis la barre parcourt la liste, et l’aperçu suit (« ${k.nom} ») ✓`);
+  /* le geste plein de l'aperçu ajoute, et devient « Ouvrir la fiche » */
+  const n0 = await p.evaluate(async () => (await import('./ui/state.js')).S.companies.length);
+  await p.click('#piDec .dc-detail [data-ap-add]');
+  await p.waitForTimeout(400);
+  const a = await p.evaluate(async () => ({ n: (await import('./ui/state.js')).S.companies.length,
+    ouvrir: !!document.querySelector('#piDec .dc-detail [data-ap-fiche]'),
+    coche: !!document.querySelector('#piDec .dc-sel.dc-pris') }));
+  if (a.n !== n0 + 1 || !a.ouvrir || !a.coche) fail('au poste, « Ajouter à mes pistes » dans l’aperçu ne fait pas son travail : ' + JSON.stringify(a));
+  else console.log('poste · ⑥ « Ajouter à mes pistes » dans l’aperçu : la ligne se coche, l’aperçu propose « Ouvrir la fiche » ✓');
+  await p.evaluate(() => document.activeElement.blur());
   await p.screenshot({ path: `${SHOTS}/96-decouvrir-poste.png` });
+  const large = await p.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1);
+  if (large) fail('au poste, la page défile latéralement');
   await ctx.close();
 }
 

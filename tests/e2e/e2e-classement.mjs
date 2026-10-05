@@ -111,17 +111,23 @@ async function ecran(vp, touch, o = {}){
 const taper = async (p, txt) => { await p.fill('#piQ', ''); await p.click('#piQ'); await p.keyboard.type(txt, { delay: 6 }); };
 const fini = async p => {
   await p.waitForTimeout(900);
-  await p.waitForFunction(() => {
-    const s = document.querySelector('#piDec');
-    return !s || !s.querySelector('[aria-busy="true"]');
-  }, null, { timeout: 5000 }).catch(() => {});
+  await p.waitForFunction(() => !document.querySelector('#piDec [aria-busy="true"], #piPortee [aria-busy="true"]'),
+    null, { timeout: 5000 }).catch(() => {});
+  await p.waitForTimeout(150);
+};
+/* « À découvrir » est une vue : le segment sous la barre l'ouvre */
+const versDecouvrir = async p => {
+  if (await p.$('#piPortee [data-portee="decouvrir"][aria-pressed="true"]')) return;
+  await p.click('#piPortee [data-portee="decouvrir"]');
+  await p.waitForSelector('#piDec .dc-vue', { timeout: 3000 }).catch(() => {});
+  await fini(p);
 };
 const lire = p => p.evaluate(() => ({
   noms: [...document.querySelectorAll('#piDec .dc-nom')].map(n => n.textContent.trim()),
-  tailles: [...document.querySelectorAll('#piDec .dc-taille')].map(n => n.textContent.trim()),
+  tailles: [...document.querySelectorAll('#piDec .dc-sub')].map(n => n.textContent.trim().split(' · ').pop()),
   zone: document.querySelector('#piDec .dc-zone .st-chip')?.textContent.trim() || '',
   proposee: document.querySelector('#piDec .dc-zone .prop-chip')?.textContent.trim() || '',
-  section: !!document.querySelector('#piDec .tr-dec')
+  section: !!document.querySelector('#piDec .dc-vue')
 }));
 
 /* ---------- au pouce ---------- */
@@ -129,6 +135,7 @@ const lire = p => p.evaluate(() => ({
   const { ctx, p, an } = await ecran({ width: 390, height: 844 }, true);
   await taper(p, 'alternance Lille');
   await fini(p);
+  await versDecouvrir(p);
   const d = await lire(p);
   /* ① aucune personne demandée, aucune montrée */
   const sansFiltre = an.journal.filter(u => u.searchParams.get('est_entrepreneur_individuel') !== 'false');
@@ -165,13 +172,13 @@ const lire = p => p.evaluate(() => ({
   /* ④ ta zone : posée, retirée, proposée, reposée — et le focus suit */
   await taper(p, 'réseau');
   await fini(p);
+  await versDecouvrir(p);
   const z = await lire(p);
   const derniere = an.journal[an.journal.length - 1];
   if (z.zone !== 'Nord (59)') fail(`« réseau » sans lieu : l’étiquette de zone dit « ${z.zone} »`);
   if (!derniere || derniere.searchParams.get('departement') !== '59') fail('« réseau » sans lieu ne part pas dans ta zone');
   else console.log('pouce · ④ « réseau » sans lieu : la question prend ta zone, et l’étiquette « Nord (59) » le dit ✓');
   await p.evaluate(() => document.activeElement.blur());
-  await p.evaluate(() => document.querySelector('#piDec').scrollIntoView({ block: 'start' }));
   await p.screenshot({ path: `${SHOTS}/97-classement-zone-pouce.png` });
   const nAvant = an.journal.length;
   await p.click('#piDec .dc-zone .st-chip');
@@ -205,18 +212,18 @@ for (const [vp, touch, sombre, nom] of [[{ width: 390, height: 844 }, true, true
   const { ctx, p } = await ecran(vp, touch, { sombre });
   await taper(p, 'réseau');
   await fini(p);
+  await versDecouvrir(p);
   const z = await lire(p);
   if (z.zone !== 'Nord (59)') fail(`${nom} : pas d’étiquette de zone`);
   /* l'étiquette tient sa cible (§5) et ne déborde pas de la section */
   const g = await p.evaluate(() => {
     const b = document.querySelector('#piDec .dc-zone .st-chip').getBoundingClientRect();
-    const s = document.querySelector('#piDec .tr-dec').getBoundingClientRect();
+    const s = document.querySelector('#piDec .dc-vue').getBoundingClientRect();
     return { h: Math.round(b.height), dedans: b.right <= s.right + 1 };
   });
   const min = touch ? 44 : 32;
   if (g.h < min || !g.dedans) fail(`${nom} : l’étiquette de zone mesure ${g.h} px ou déborde`);
   await p.evaluate(() => document.activeElement.blur());
-  await p.evaluate(() => document.querySelector('#piDec').scrollIntoView({ block: 'center' }));
   await p.screenshot({ path: `${SHOTS}/97-classement-zone-${nom}.png` });
   await ctx.close();
 }
