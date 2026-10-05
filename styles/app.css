@@ -369,11 +369,13 @@ html[data-theme="dark"] .field select{
    apparaît pousse le contenu d'un pixel, et l'ancrage du défilement
    compense — la liste dérivait de 1 px à chaque décrochage (mesuré :
    700 → 701 → 702). Une ombre ne prend pas de place. */
-#view-pistes .search-wrap.est-collee{
+#view-pistes .search-wrap.est-collee,
+#view-pistes .pi-cherche .search-wrap{
   background:var(--surface-chrome);
   box-shadow:0 1px 0 0 var(--border-strong), var(--shadow-raised);
 }
-#view-pistes .search-wrap.est-collee::after{
+#view-pistes .search-wrap.est-collee::after,
+#view-pistes .pi-cherche .search-wrap::after{
   content:'';position:absolute;left:0;right:0;bottom:100%;height:16px;
   background:var(--surface-chrome);
 }
@@ -785,6 +787,18 @@ html[data-theme="dark"] .field select{
    La touche « / » rentre dans le champ par une marge négative que le
    bouton voisin absorbait : sans lui, le champ débordait de 9 px
    (mesuré). Elle se pose donc dans le champ, contre son bord droit. */
+/* pendant la frappe au pouce, la liste a de quoi défiler jusqu'à la
+   barre (ui/pistes.js, `amenerBarre`) — le surplus vit sous le clavier */
+.pi-cherche #piBody{min-height:100vh;min-height:100dvh}
+/* … et l'en-tête s'efface vers le haut, au rythme du clavier. Une
+   exception NOMMÉE à « transform et opacity » (§4), du même ordre que le
+   cadenas : c'est une PLACE qui se rend à la liste, et un `transform`
+   laisserait son trou derrière lui. Bornée à l'en-tête, au pouce. */
+@media (max-width:900px){
+  .hdr{transition:margin-top var(--dur-3) var(--ease-out)}
+  .oc-cherche .hdr{margin-top:-47px}
+}
+@media (prefers-reduced-motion:reduce){ .hdr{transition:none} }
 .pt-dec #piAffiner,.pt-dec .kbd-bas{display:none}
 .pt-dec .search-wrap .kbd-hint{position:absolute;right:8px;top:50%;transform:translateY(-50%);margin:0}
 
