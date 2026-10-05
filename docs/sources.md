@@ -15,15 +15,15 @@ un vrai navigateur — jamais supposé.*
 
 ## Ce qui manque aujourd'hui
 
-Relevé dans le code de la 6.47.0 et dans la mesure du
-[MESURE-BRUIT] :
+Relevé dans le code de la 6.47.0, et mesuré en CI le 5 octobre 2026
+(`sonde-sources.mjs`, partie D, sur le vrai annuaire) :
 
 | # | Le manque | Ce qu'il coûte |
 |---|---|---|
-| 1 | **L'app ne classe rien en ligne** : les entreprises arrivent dans l'ordre de l'annuaire, question par question | l'ordre n'a aucune raison, donc aucune ligne ne peut dire pourquoi elle est là (§6, « le tri doit avoir une raison ») |
-| 2 | **Le bruit** : [MESURE-BRUIT-PHRASE] | un étudiant lit des noms qui ne peuvent pas l'accueillir |
+| 1 | **L'app ne classe rien en ligne** : elle montre l'ordre de l'annuaire, et **sans mot tapé l'annuaire trie par nombre d'établissements**. « numérique · Nord » rend en tête Capgemini, Sopra Steria, Inetum, Orange Business Services, Altran, CGI — les mêmes partout, autour de Lille comme dans tout le Nord | « À découvrir » fait découvrir… les entreprises que tout étudiant connaît déjà, et aucune ligne ne peut dire pourquoi elle est là (§6, « le tri doit avoir une raison ») |
+| 2 | **Le bruit, derrière les géants** : sur 7 897 entreprises du numérique dans le Nord, **3 121 (40 %) sont des entrepreneurs individuels** — une personne, son nom en guise de raison sociale — et **6 379 (81 %) ne déclarent aucun salarié** (zéro, ou taille inconnue). Avec un mot, c'est l'inverse : « cyber · Nord » rend 10 entreprises, dont 7 de taille inconnue et 2 personnes en nom propre | un étudiant lit des noms qui ne peuvent pas l'accueillir — et des noms de personnes que l'app affiche sans qu'elles l'aient demandé, à rebours de « aucune personne importée d'office » |
 | 3 | **« cyber » seul interroge toute la France** | un étudiant de Lille reçoit Rennes et Toulouse ; la distance est le 2ᵉ critère des étudiants (43,8 %) |
-| 4 | **Rien ne dit qui recrute** | c'est pourtant la question : « où est-ce que je peux postuler ? » |
+| 4 | **Rien ne dit qui peut t'accueillir** | c'est pourtant la question : « où est-ce que je peux postuler ? » |
 | 5 | **Une faute de frappe = rien compris** : « alternence », « Lile », « cybersécurté » | jusqu'à 27 % des requêtes portent une faute, une abréviation ou une autre graphie (Baymard) |
 | 6 | **Zéro résultat en ligne = impasse** : « Rien de nouveau dans l'annuaire. » | NN/g : un écran vide doit dire pourquoi et proposer une sortie |
 | 7 | **Rien n'apprend** : un étudiant cyber à Lille et un étudiant dev à Lyon voient le même ordre | l'app sait déjà ce qui leur ressemble — leurs pistes le disent — et ne s'en sert pas |
@@ -32,31 +32,65 @@ Relevé dans le code de la 6.47.0 et dans la mesure du
 
 ## Les sources, mesurées
 
-[TABLE-SOURCES]
+Treize candidates relevées le 5 octobre 2026, depuis un vrai Chromium
+(partie A : la page appelle) puis côté serveur (A bis : pourquoi un refus ;
+B : ce que l'API dit savoir). **La question n'est pas « est-ce une bonne
+source ? » mais « répond-elle à une page web, sans clé ? »** — sans quoi il
+faudrait un serveur OpenContact (§10) ou un compte du mainteneur (§0,
+question ②).
+
+| Source | Depuis le navigateur, sans clé | Ce qu'elle apporte | Sort |
+|---|---|---|---|
+| **Annuaire des entreprises** | ✓ (déjà en service) | ce qu'on ne lui demandait pas : `est_entrepreneur_individuel`, `convention_collective_renseignee`, la liste des conventions (`liste_idcc`), le caractère employeur de l'établissement, l'ordre par taille ou non (`sort_by_size`) | **on s'en sert mieux** — c'est là qu'est le gain (lot 4) |
+| **BODACC** (annonces légales, DILA) | ✓ 0,8 s, licence ouverte | les **procédures collectives** par SIREN : redressement, liquidation | **sur la fiche** : la seule information qui réclame quelque chose (lot 6) |
+| **Géoplateforme** (géocodage de l'IGN, base adresse nationale) | ✓ 1 s, 50 appels/s | la position d'une adresse française, de la même base que celle de l'annuaire | **remplace Nominatim** (1 appel/s, pensé pour le monde) pour placer une piste (lot 6) |
+| **Wikidata** | ✓ 75 ms | en plus du site : l'**identifiant LinkedIn** de l'entreprise (P4264) | « Qui y travaille » mène à **la page de l'entreprise**, plus à une recherche de mots (lot 6) |
+| **OpenStreetMap** (Overpass) | ✓ serveur principal 1,7 à 3 s ; un miroir a mis 230 s, l'autre n'a pas répondu | des bureaux « informatique » avec parfois un site ou un téléphone | **pas maintenant** : couverture mince, service irrégulier |
+| **La Bonne Alternance** | ✗ — l'ancienne API (v1) n'existe plus (404) ; la nouvelle (v3) exige un jeton (401) | « entreprises susceptibles de recruter en alternance », par prédiction | **exclue par la question ②** : un jeton est un compte du mainteneur |
+| **API apprentissage** (offres d'alternance) | ✗ — « Vous devez fournir une clé d'API valide » (401) | les offres d'alternance | **exclue** (②) |
+| **France Travail** (offres), **La Bonne Boîte** | ✗ — compte et clé, connu | offres, prédiction d'embauche | **exclues** (②) — restent des liens |
+| **Prestataires qualifiés ANSSI** | un PDF (catalogue de l'ANSSI) ; aucun jeu de données ouvert | « qualifié ANSSI » pour une entreprise de cyber | **plus tard** : il faudrait embarquer une liste et la tenir à jour |
+| **Apprentis par entreprise** (data.gouv) | aucun jeu de données trouvé | — | rien |
+
+**Ce que la mesure tranche : le gain n'est pas dans une source de plus,
+il est dans la source qu'on a.** La seule source qui aurait dit « elle
+recrute des alternants » est fermée sans clé. Mais l'annuaire porte déjà
+le signal qui s'en approche le plus : **la convention collective n'est
+renseignée que pour une entreprise qui déclare des salariés** (elle vient
+des déclarations sociales des employeurs, avec quelques mois de retard —
+une entreprise créée cette année ne l'a pas encore). Syntec (1486), la convention
+du conseil et des services numériques, figure chez 17 des 25 premières
+entreprises du numérique dans le Nord. L'app ne la demandait pas.
 
 ---
 
 ## Converger : une entreprise, plusieurs témoins
 
-**La clé est le SIREN**, le même partout : l'annuaire le donne, La Bonne
-Alternance donne le SIRET (ses neuf premiers chiffres sont le SIREN), le
-BODACC et Wikidata se lisent par lui. À défaut — une liste qui ne porte que
-des noms —, la correspondance se fait UNE fois, à la construction de la
-liste, et la liste embarquée porte ses SIREN : jamais de rapprochement par
-le nom au moment de la recherche (un homonyme deviendrait un témoin faux).
+Les sources ouvertes ne se recoupent pas : chacune répond à une question
+différente sur la même entreprise. **La clé qui les relie est le SIREN**,
+le même partout : l'annuaire le donne, le BODACC et Wikidata se lisent
+par lui. Elles convergent à deux endroits.
 
-**Une entreprise trouvée par deux sources ne sort qu'une fois**, et chaque
-source qui la connaît devient un **témoin** sur la ligne. Le principe 5 de
-`recherche.md` (une entreprise = une ligne) s'étend aux sources nouvelles.
+**Dans « À découvrir », plusieurs questions font une liste.** Une seule
+question à l'annuaire rend un ordre qui a ses raisons à lui — la taille,
+quand on n'a pas tapé de mot. Deux questions (ce que tu as tapé, et les
+employeurs près de toi) rendent deux ordres, et une entreprise que les
+deux rendent est plus sûrement celle qu'on cherche. Les deux listes se
+fusionnent **sans se calibrer**, par rangs réciproques (*Reciprocal Rank
+Fusion*, Cormack, Clarke et Büttcher, 2009) : chaque entreprise reçoit
+`1 / (60 + son rang)` dans chaque liste qui la contient. Aucun score
+commun n'est nécessaire, la méthode bat les fusions par score dans les
+mesures publiées, et une entreprise que deux questions rendent monte
+d'elle-même. C'est le socle ; le classement de la maison vient dessus.
+Une entreprise = une ligne (principe 5 de `recherche.md`), quel que soit
+le nombre de questions qui l'ont trouvée.
 
-**L'ordre se fusionne sans se calibrer.** Les sources ne notent pas sur la
-même échelle — l'annuaire ne note rien, La Bonne Alternance classe par sa
-prédiction d'embauche. La fusion par rangs réciproques (*Reciprocal Rank
-Fusion*, Cormack, Clarke et Buettcher, 2009) additionne pour chaque
-entreprise `1 / (60 + son rang)` dans chaque source qui la rend : elle n'a
-besoin d'aucun score commun, elle bat les fusions par score dans les
-mesures publiées, et une entreprise que deux sources rendent monte
-naturellement. C'est le socle ; le classement de la maison vient dessus.
+**Sur la fiche, chaque source dit ce qu'elle seule sait** : l'annuaire,
+qui elle est ; le BODACC, si elle traverse une procédure collective ;
+Wikidata, son site et sa page LinkedIn ; la Géoplateforme, où se trouve
+l'adresse que tu as saisie. Aucune ne se rapproche par le nom au moment
+d'afficher — un homonyme deviendrait un témoin faux : sans SIREN, c'est
+toi qui choisis la bonne entreprise (« Trouver dans l'annuaire », lot 3).
 
 ---
 
@@ -66,17 +100,23 @@ Le classement de « À découvrir » suit la même règle que celui des pistes
 (§6, « choisir à la place de l'utilisateur ») : **chaque critère se lit sur
 la ligne**, et la sous-ligne dit le premier qui départage. Dans l'ordre :
 
-1. **Elle recrute** — une offre en cours, ou « embauche souvent des
-   alternants » (La Bonne Alternance), quand tu cherches une alternance.
-   C'est la réponse directe à « où postuler ».
-2. **Elle peut t'accueillir** — elle a des salariés. Une entreprise sans
-   salarié passe en dernier : elle n'est pas cachée (mieux vaut ne pas
-   comprendre que mal comprendre), elle ne passe plus devant.
-3. **Elle est près** — de ta position si tu l'as donnée, sinon de la ville
+1. **Elle emploie des salariés** — une convention collective renseignée,
+   ou une tranche d'effectif déclarée. C'est le signal mesurable le plus
+   proche de « elle peut t'accueillir » : la seule source qui aurait dit
+   « elle recrute des alternants » est fermée sans clé. Une entreprise
+   sans signal passe après : elle n'est pas cachée (mieux vaut ne pas
+   comprendre que mal comprendre — une entreprise créée cette année n'a
+   pas encore de convention), elle ne passe plus devant.
+2. **Elle est près** — de ta position si tu l'as donnée, sinon de la ville
    tapée, sinon de ta zone (plus bas). Par paliers lisibles (moins de 5 km,
    10, 20, 50), jamais au mètre près : deux entreprises à 3,1 et 3,4 km ne
-   se départagent pas par la distance.
-4. **Elle ressemble à ce que tu fais déjà** — voir « S'adapter ».
+   se départagent pas par la distance. La distance est le deuxième critère
+   des étudiants pour choisir une entreprise d'accueil (43,8 %), juste
+   derrière les missions.
+3. **Elle ressemble à ce que tu fais déjà** — voir « S'adapter ».
+
+À égalité, l'ordre de la fusion décide : il garde la trace de ce que
+l'annuaire jugeait pertinent pour le texte tapé.
 
 La raison prend l'accent, **jamais un `mark-*`** : rien ne presse, c'est un
 atout (§6). Et elle nomme : « comme Sopra Steria » vaut mieux que
@@ -92,7 +132,6 @@ mène à rien (§8).
 | Ce qu'elle sait | D'où | Ce qu'elle en fait |
 |---|---|---|
 | **ta zone** | les villes et codes postaux de tes pistes (le département qui en porte le plus) | borne une question qui n'a pas de lieu — « cyber » cherche autour de chez toi, pas dans toute la France |
-| **ce que tu cherches** | le profil (stage, alternance, emploi) | met « recrute en alternance » devant quand tu cherches une alternance |
 | **les métiers qui t'intéressent** | les domaines de tes pistes **engagées** (contactées, en cours, réponse, gagnée) et de ce que tu as ajouté depuis l'annuaire | « comme Sopra Steria » : ce qui ressemble passe devant |
 | **ce qui ne t'intéresse pas** | les pistes que tu as closes « abandonnée » | ce qui leur ressemble perd un peu, jamais tout |
 
@@ -192,7 +231,7 @@ et seulement quand la réponse est vide.
 **Les scénarios** (e2e, requêtes interceptées et lues) :
 
 - **aucun mot privé ne sort**, vers aucune source nouvelle ; une question
-  vers La Bonne Alternance ne porte qu'un métier et un point ;
+  vers le BODACC ou Wikidata ne porte qu'un SIREN ;
 - la zone déduite se voit et se retire, et sa question part sans elle ;
 - hors ligne, panne, limite de débit : chaque source se tait seule, les
   autres continuent ;
@@ -202,13 +241,58 @@ et seulement quand la réponse est vide.
 
 ## Les lots
 
-[LOTS]
+Chacun se livre dans main, se teste sur le téléphone, et se mesure **avant
+et après** sur les mêmes questions réelles (sonde en CI) : combien
+d'entreprises différentes, combien d'employeurs, à quelle distance.
+
+4. **Une liste qui peut t'accueillir.** Rien de nouveau à appeler :
+   l'annuaire, mieux interrogé, et un classement qui dit sa raison.
+   - plus aucune **personne** dans « À découvrir » : les entrepreneurs
+     individuels ne sont plus demandés (40 % du numérique dans le Nord) ;
+   - **deux questions, une liste** : celle d'aujourd'hui, et celle des
+     **employeurs** (convention collective renseignée) près de toi,
+     fusionnées par rangs réciproques — sans quoi les géants nationaux
+     prennent toute la première page ;
+   - le **classement de la maison** (employeur, distance par paliers,
+     ressemblance avec tes pistes engagées) et **sa raison sur la
+     ligne** ;
+   - la **zone déduite** de tes pistes quand la question n'a pas de lieu,
+     visible et retirable.
+5. **Les fautes et le zéro résultat.** La correction proposée en
+   pointillé (prototype mesuré : 38 fautes sur 41 retrouvées, **aucune**
+   correction proposée sur 80 mots justes — noms d'entreprises, technos,
+   prénoms, petites villes), et « À découvrir » qui élargit au lieu de
+   finir sur « Rien de nouveau ».
+6. **La fiche converge.** Une procédure collective en cours se dit
+   (BODACC), « Qui y travaille » ouvre la page LinkedIn de l'entreprise
+   quand Wikidata la connaît, et une adresse se place par le géocodage
+   officiel.
+
+**Après, si tu le veux** : « Pas pour moi » sur une ligne de « À
+découvrir » (voir les décisions), la liste ANSSI pour la cyber.
 
 ---
 
 ## Décisions à prendre
 
-[DECISIONS]
+1. **La zone déduite part-elle d'office ?** Aujourd'hui « cyber » seul
+   interroge toute la France. Proposition : la question prend ta zone
+   (le département où sont la plupart de tes pistes), **visible comme une
+   étiquette, avec sa croix** — un tap et elle part sans. L'autre choix :
+   la zone n'est que *proposée* en pointillé, et rien ne change tant
+   qu'on ne la tape pas.
+2. **« Pas pour moi » ?** Un geste de plus sur chaque ligne de « À
+   découvrir » (glisser au doigt, une croix au poste, comme une
+   suppression), qui écarte l'entreprise pour de bon et fait un peu
+   reculer celles qui lui ressemblent. C'est le seul signal que l'app ne
+   peut pas déduire, et il demande une **clé de stockage nouvelle** (la
+   liste des SIREN écartés, privée, de tes appareils seulement). Sans
+   lui, l'adaptation se nourrit de tes pistes seules — ce qui suffit
+   pour commencer.
+3. **La liste ANSSI** (« qualifié ANSSI » sur les entreprises de cyber)
+   demande d'embarquer une liste tirée d'un PDF et de la tenir à jour.
+   Proposition : plus tard, seulement si les étudiants en cyber le
+   demandent.
 
 ---
 
@@ -220,5 +304,9 @@ tolérance aux fautes ; NN/g, « No results » et pages de résultats vides ;
 Mozilla, documentation du classement de la barre d'adresse (frecency) ;
 J. J. Rocchio, retour de pertinence, et Jannach et al., *Recommender
 Systems: An Introduction*, ch. 3 (recommandation par le contenu) ;
-La Bonne Alternance (France Travail, ministère du Travail), algorithme
-prédictif d'embauche ; [SOURCES-MESUREES].*
+Planète Grandes Écoles et Apec, enquêtes sur les
+critères de choix d'une entreprise d'accueil (missions 66 %, secteur 47 %,
+distance 43,8 %) ; ministère du Travail, jeu de données `siret2idcc`
+(conventions collectives par établissement, tirées de la DSN) ; DILA,
+API BODACC ; IGN, service de géocodage de la Géoplateforme ; mesures du
+5 octobre 2026, `tests/e2e/sonde-sources.mjs`.*
