@@ -18,7 +18,8 @@ import { askNextAction, askClose } from './actions.js';
 import { openMail } from './mail.js';
 import { openEditPiste } from './edit.js';
 import { openContactEditor, telHref, smsHref, waHref } from './contact.js';
-import { annuaireFicheHTML, lierAnnuaireFiche, annuaireOuvert, oublierFiche } from './fiche-annuaire.js';
+import { annuaireEtatHTML, annuaireContactsHTML, annuaireSavoirHTML, lierAnnuaireFiche, oublierFiche,
+         dirigeantsSuggeres } from './fiche-annuaire.js';
 
 const webHref = w => /^https?:\/\//i.test(w) ? w : 'https://' + w;
 const webLabel = w => w.replace(/^https?:\/\//i, '').replace(/\/$/, '');
@@ -62,6 +63,10 @@ function openDemander(c, prenom, v){
    — et les gens DÉPLIÉS, parce que joindre quelqu'un est la raison
    d'ouvrir cette fenêtre et que la hauteur ne manque pas. */
 const mqWide = matchMedia('(min-width:901px)');
+/* le pli de « À savoir », par piste, le temps de la session — ouvert au
+   poste, replié au pouce tant qu'on n'y a pas touché */
+const plisSavoir = new Map();
+const savoirOuvert = (c, wide) => plisSavoir.has(c.id) ? plisSavoir.get(c.id) : wide;
 
 export function openFiche(c){
   /* le tampon : seulement les champs touchés — rien ne s'écrit avant Confirmer */
@@ -178,7 +183,6 @@ export function openFiche(c){
     const dirs = directionsUrl(c);
     const score = scoreOf(c);
     const subBits = [c.city, c.domain !== 'autre' ? (DOMAINS[c.domain] || DOMAINS.autre).label : ''].filter(Boolean);
-    const know = c.desc || c.website || c.techs || (c.positions || []).length || c.process || c.tips || c.address;
     const cts = c.contacts || [];
     const main = cts.filter(t => t.activatedAt || t.src !== 'promo')
       .sort((a, b) => String(b.activatedAt || '').localeCompare(String(a.activatedAt || '')));
@@ -265,9 +269,15 @@ export function openFiche(c){
             chose (« Pas d'email — Copier, puis LinkedIn »). Reste le
             seul mot qui rend le vide présentable. */
          : '<p class="hint" style="margin:0">Personne pour l’instant.</p>'}
+         ${/* trouver quelqu'un à qui écrire : les anciens de ton école chez
+              elle, et le dirigeant que l'annuaire connaît — rangés avec les
+              contacts parce que c'est leur usage (§6), pas avec leur source */''}
+         ${annuaireContactsHTML(c)}
        </div>
-       ${know ? `
-         <details class="fi-hist" id="fiKnow"${wide ? ' open' : ''}><summary>À savoir</summary>
+       ${/* « À savoir » existe toujours : il porte aussi ce que l'annuaire
+            sait de l'entreprise (ou le geste pour l'y retrouver) */''}
+       ${`
+         <details class="fi-hist" id="fiKnow"${savoirOuvert(c, wide) ? ' open' : ''}><summary>À savoir</summary>
            <div class="fi-know">
              ${c.desc ? `<div class="fk"><span class="fk-l">En bref</span><span class="fk-v">${esc(c.desc)}</span></div>` : ''}
              ${c.website ? `<div class="fk"><span class="fk-l">Site</span>
@@ -307,12 +317,11 @@ export function openFiche(c){
                  <span class="fk-v fk-go fk-lignes">${esc(c.address)}
                    <a class="btn btn-sm" href="${esc(dirs)}" target="_blank" rel="noopener">${ic('directions', 'ic-14')} Itinéraire</a>
                  </span></div>` : ''}
+             ${/* ce que l'annuaire public sait, À LA SUITE de ce que tu sais,
+                  dans le même cadre : ta parole d'abord, le registre ensuite */''}
+             ${annuaireSavoirHTML(c)}
            </div>
-         </details>` : ''}
-       ${/* ce que l'annuaire public sait de la piste, et trois liens d'un
-            tap (docs/recherche.md, lot 3) — APRÈS « À savoir » : ce que
-            tu sais passe avant ce que le registre dit */''}
-       ${annuaireFicheHTML(c, annuaireOuvert(c, wide))}
+         </details>`}
        ${(c.history || []).length ? `
          <details class="fi-hist"><summary>Historique</summary>
            <ul class="timeline">${c.history.slice().reverse().slice(0, 10).map(h =>
@@ -365,7 +374,7 @@ export function openFiche(c){
          ${ic('briefcase', 'ic-16')}
          <div class="obj-m">
            <span class="obj-n">${esc(c.name)}</span>
-           ${subBits.length ? `<div class="obj-s"><span class="obj-l">${subBits.map(esc).join(' · ')}</span></div>` : ''}
+           <div class="obj-s">${subBits.length ? `<span class="obj-l">${subBits.map(esc).join(' · ')}</span>` : ''}${annuaireEtatHTML(c)}</div>
          </div>
        </div>`;
     sh.body.innerHTML = wide
@@ -378,8 +387,14 @@ export function openFiche(c){
     sh.body.querySelector('#fiEdit').addEventListener('click', () => openEditPiste(c, render));
     sh.body.querySelector('#fiVecu')?.addEventListener('click', () => openDemander(c, c.vecuQui, v));
     lierAnnuaireFiche(sh.body, c, { render });
+    /* « À savoir » garde son pli le temps de la session : un geste fait
+       dedans (« Compléter ma fiche ») redessine la fiche, et la carte
+       qu'on venait d'ouvrir ne doit pas se refermer sous les doigts */
+    sh.body.querySelector('#fiKnow')?.addEventListener('toggle', e => plisSavoir.set(c.id, e.currentTarget.open));
+    /* le dirigeant que l'annuaire connaît est PROPOSÉ ici, au moment où
+       l'on ajoute quelqu'un — pas posé sur la fiche */
     sh.body.querySelector('#fiCtAdd').addEventListener('click', () =>
-      openContactEditor({ company: c, onDone: render }));
+      openContactEditor({ company: c, onDone: render, suggestions: dirigeantsSuggeres(c) }));
     sh.body.querySelectorAll('[data-ct]').forEach(b =>
       b.addEventListener('click', () =>
         openContactEditor({ company: c, contact: byCt(b.dataset.ct), onDone: render })));
