@@ -1403,12 +1403,19 @@ export async function runSelfTests(){
                          P('cyber', 'active', '2026-10-02'), P('cyber', 'reply', '2026-10-01')], t), 'cyber');
       /* sans écart net, on ne devine pas */
       eq(metierDuMoment([P('cloud', 'active', '2026-10-02'), P('cyber', 'active', '2026-10-02')], t), '');
-      /* la barre vide le propose, et deux propositions qui rendent les mêmes pistes n'en font qu'une */
+      /* la barre vide le propose APRÈS ta recherche déclarée, qu'il resserre ;
+         deux propositions qui rendent les mêmes pistes n'en font qu'une */
+      const ctxL = { today: t, villes: ['Lille', 'Paris'], prenoms: [] };
       const L = [P('cyber', 'active', '2026-10-01', { city: 'Lille' }), P('cyber', 'reply', '2026-09-30', { city: 'Lille' }),
-                 P('esn', 'todo', '', { city: 'Paris' })];
-      const pr = propositions(L, normalizeProfile({ recherche: 'alternance' }), { today: t, villes: ['Lille', 'Paris'], prenoms: [] });
-      eq(pr[0].q, 'alternance cyber Lille');
-      ok(!pr.some(x => x.q === 'alternance Lille'));
+                 P('esn', 'todo', '', { city: 'Lille' }), P('esn', 'todo', '', { city: 'Paris' })];
+      const pr = propositions(L, normalizeProfile({ recherche: 'alternance' }), ctxL);
+      eq(pr[0].q, 'alternance Lille');
+      eq(pr[1].q, 'alternance cyber Lille');
+      const L2 = [P('cyber', 'active', '2026-10-01', { city: 'Lille' }), P('cyber', 'reply', '2026-09-30', { city: 'Lille' }),
+                  P('esn', 'todo', '', { city: 'Paris' })];
+      const pr2 = propositions(L2, normalizeProfile({ recherche: 'alternance' }), ctxL);
+      eq(pr2[0].q, 'alternance Lille');
+      ok(!pr2.some(x => x.q === 'alternance cyber Lille'));
     },
     'fiche enrichie : la question ne porte QUE le SIREN, ou le nom sur un geste': () => {
       const u = new URL(questionSiren('326820065'));

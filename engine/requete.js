@@ -560,11 +560,13 @@ export function propositions(companies, profile, ctx, max = 3){
   };
   const mot = MOT_RECHERCHE[profile && profile.recherche];
   const ville = villeFrequente(vivantes);
-  /* ta recherche à toi : ce que tu cherches, ton métier du moment, ta
-     ville — elle passe devant la recherche générale quand elle trouve */
+  /* ta recherche à toi : ce que tu DÉCLARES chercher, dans ta ville —
+     toujours la première, parce qu'une déduction ne passe jamais devant
+     une intention dite. Puis ton métier du moment, qui la resserre ;
+     s'il rend les mêmes pistes, il ne s'ajoute pas (rien à départager) */
   const metier = metierDuMoment(vivantes, ctx.today);
-  if (metier) essai([mot, METIER[metier].mots[0], ville].filter(Boolean).join(' '));
   if (mot) essai(ville ? `${mot} ${ville}` : mot);
+  if (metier) essai([mot, METIER[metier].mots[0], ville].filter(Boolean).join(' '));
   essai('recommandées');
   essai('sans nouvelles');
   essai('en retard');
