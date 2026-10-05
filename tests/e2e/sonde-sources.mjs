@@ -135,6 +135,33 @@ for (const [nom, url] of LISTES){
     if (i >= 0) console.log('   extrait :', t.slice(Math.max(0, i - 200), i + 600));
   }
 }
+/* D. Le BRUIT de « À découvrir » : un étudiant cherche une entreprise
+   qui peut l'ACCUEILLIR. Combien de ce que l'annuaire rend aujourd'hui
+   sont des indépendants sans salarié ? Et dans quel ordre l'annuaire
+   rend-il une question sans texte — l'app le montre tel quel. */
+console.log('\nD. LE BRUIT DE L’ANNUAIRE (côté serveur)\n');
+const NUM = 'activite_principale=62.01Z,62.02A,62.03Z,62.09Z,63.11Z,58.29C';
+const AN = 'https://recherche-entreprises.api.gouv.fr';
+const BRUIT = [
+  ['numérique · Nord · tel quel', `${AN}/search?${NUM}&departement=59&etat_administratif=A&per_page=25`],
+  ['numérique · Nord · sans entrepreneur individuel', `${AN}/search?${NUM}&departement=59&etat_administratif=A&est_entrepreneur_individuel=false&per_page=25`],
+  ['numérique · Nord · avec salariés', `${AN}/search?${NUM}&departement=59&etat_administratif=A&tranche_effectif_salarie=01,02,03,11,12,21,22,31,32,41,42,51,52,53&per_page=25`],
+  ['cyber · Nord · tel quel', `${AN}/search?q=cyber&activite_principale=62.02A,62.09Z,62.01Z&departement=59&etat_administratif=A&per_page=25`],
+  ['numérique · autour de Lille 10 km', `${AN}/near_point?lat=50.6292&long=3.0573&radius=10&${NUM}&per_page=25`],
+];
+for (const [nom, url] of BRUIT){
+  const r = await lire(url);
+  let j = null; try { j = JSON.parse(r.txt); } catch (e) {}
+  if (!j || !Array.isArray(j.results)){ console.log(`— ${nom} : ${r.statut} ${r.txt.slice(0, 160)}`); continue; }
+  const compte = f => { const m = new Map(); for (const x of j.results){ const k = String(f(x)); m.set(k, (m.get(k) || 0) + 1); } return [...m].map(([k, n]) => `${k}:${n}`).join(' '); };
+  console.log(`— ${nom} : ${r.statut} · total ${j.total_results}`);
+  console.log('   tranche :', compte(x => x.tranche_effectif_salarie));
+  console.log('   nature juridique :', compte(x => x.nature_juridique));
+  console.log('   entrepreneur individuel :', compte(x => x.complements && x.complements.est_entrepreneur_individuel));
+  console.log('   convention collective :', compte(x => ((x.complements && x.complements.liste_idcc) || []).join('+') || '—'));
+  console.log('   ordre :', j.results.slice(0, 10).map(x => `${x.nom_raison_sociale || x.nom_complet} [${x.tranche_effectif_salarie || '∅'} ${String(x.date_creation || '').slice(0, 4)} ${x.nombre_etablissements_ouverts ?? '?'}ét]`).join(' | ').slice(0, 1200));
+  await new Promise(ok => setTimeout(ok, 400));      /* l'annuaire limite le débit */
+}
 const temoin = await page.evaluate(async () => {
   try { await fetch('https://example.com/', { mode: 'no-cors' }); return 'réseau'; } catch (e) { return 'coupé'; }
 });
