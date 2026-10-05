@@ -35,7 +35,6 @@ const NAVIGATEUR = [
   ['API apprentissage · job/v1/search', `https://api.apprentissage.beta.gouv.fr/api/job/v1/search?latitude=${LILLE.lat}&longitude=${LILLE.lon}&radius=30&romes=M1805`],
   ['BODACC · annonces par SIREN', 'https://bodacc-datadila.opendatasoft.com/api/explore/v2.1/catalog/datasets/annonces-commerciales/records?q=326820065&limit=2'],
   ['Overpass · overpass-api.de', `https://overpass-api.de/api/interpreter?data=${enc(OVERPASS_Q)}`],
-  ['Overpass · kumi.systems', `https://overpass.kumi.systems/api/interpreter?data=${enc(OVERPASS_Q)}`],
   ['Overpass · private.coffee', `https://overpass.private.coffee/api/interpreter?data=${enc(OVERPASS_Q)}`],
   ['Géoplateforme · géocodage', 'https://data.geopf.fr/geocodage/search?q=12%20rue%20nationale%2059000%20lille&limit=1'],
   ['API Adresse (ancienne)', 'https://api-adresse.data.gouv.fr/search/?q=12%20rue%20nationale%2059000%20lille&limit=1'],
@@ -78,17 +77,20 @@ const forme = (v, n = 0) => {
 };
 console.log('A. NAVIGATEUR (CORS, sans clé)\n');
 let acceptes = 0;
+const refuses = [];
 for (const [nom, url] of NAVIGATEUR){
   const r = await page.evaluate(async u => {
     const t0 = performance.now();
     try {
-      const res = await fetch(u, { headers: { accept: 'application/json' } });
+      /* borné : un miroir lent (230 s relevés le 5/10 sur kumi.systems)
+         ne doit pas manger le temps des autres mesures */
+      const res = await fetch(u, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(20000) });
       const txt = await res.text();
       let json = null; try { json = JSON.parse(txt); } catch (e) {}
       return { ok: res.ok, statut: res.status, ms: Math.round(performance.now() - t0), json, debut: txt.slice(0, 160) };
     } catch (e){ return { ok: false, statut: 0, erreur: String(e && e.message || e) }; }
   }, url);
-  if (r.statut) acceptes++;
+  if (r.statut) acceptes++; else refuses.push([nom, url]);
   console.log(`${r.ok ? '✓' : r.statut ? '·' : '✗'} ${nom} — ${r.statut || r.erreur}${r.ms ? ' · ' + r.ms + ' ms' : ''}`);
   if (r.json) console.log('   forme :', JSON.stringify(forme(r.json)).slice(0, 900));
   else if (r.debut) console.log('   début :', r.debut.replace(/\s+/g, ' '));
@@ -97,11 +99,22 @@ for (const [nom, url] of NAVIGATEUR){
 /* côté serveur : pas de CORS ici, c'est de la LECTURE de documentation */
 const lire = async (u, o = {}) => {
   try {
-    const res = await fetch(u, { headers: { accept: o.html ? 'text/html' : 'application/json', 'user-agent': 'opencontact-sonde/1 (+github)' } });
+    const res = await fetch(u, { headers: { accept: o.html ? 'text/html' : 'application/json', 'user-agent': 'opencontact-sonde/1 (+github)', origin: 'http://127.0.0.1:8080' },
+      signal: AbortSignal.timeout(20000) });
     const txt = await res.text();
-    return { statut: res.status, txt };
+    return { statut: res.status, txt, acao: res.headers.get('access-control-allow-origin') || '' };
   } catch (e){ return { statut: 0, txt: String(e && e.message || e) }; }
 };
+/* A bis. Un refus du navigateur a deux causes possibles, et elles
+   n'appellent pas la même suite : le service ne répond pas aux pages
+   web (CORS — il faudrait un serveur, §10 l'interdit), ou il demande
+   une clé (question ② de §0). On relit donc chaque refus CÔTÉ SERVEUR,
+   avec une Origin, et on lit l'en-tête qui aurait autorisé la page. */
+console.log('\nA bis. CE QUE LE NAVIGATEUR A REFUSÉ, relu côté serveur\n');
+for (const [nom, url] of refuses){
+  const r = await lire(url);
+  console.log(`— ${nom} : ${r.statut} · access-control-allow-origin « ${r.acao} » · ${r.txt.slice(0, 220).replace(/\s+/g, ' ')}`);
+}
 console.log('\nB. DOCUMENTATION (côté serveur)\n');
 for (const [nom, url] of DOCUMENTATION){
   const r = await lire(url);
