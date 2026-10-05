@@ -21,6 +21,7 @@ import { openProfil } from './profil.js';
 import { listDocs, docKind, docTitle, pickPdf } from './docs.js';
 import { mailAccount, freshToken, openConnexions, aiConnection, aiCompleteViaOrdinateur } from './connexions.js';
 import { IA, ENVOI_DIRECT } from './perimetre.js';
+import { carteConnue } from './fiche-annuaire.js';
 
 /* Les seuls champs qui nourrissent une accroche : ce qu'ils font, avec
    quoi ils travaillent, ce qu'un camarade a soufflé. Le process et
@@ -29,11 +30,21 @@ import { IA, ENVOI_DIRECT } from './perimetre.js';
    aller la chercher. */
 const webH = w => /^https?:\/\//i.test(w) ? w : 'https://' + w;
 function savoirHTML(c){
+  /* Sans « En bref », la carte de l'entreprise (ui/carte.js) a souvent
+     la phrase qui manque — ce qu'elle fait, selon Wikipédia ou
+     l'annuaire — et sa taille, qui dit à qui l'on écrit (« une équipe de
+     150 » ne s'écrit pas comme « un groupe de 50 000 »). Seulement ce que
+     la fiche ouverte a déjà appris : écrire ne lance aucune question. */
+  const k = carteConnue(c);
+  const quoi = !c.desc && k && k.quoi && k.quoi.src !== 'toi' ? k.quoi.texte : '';
+  const taille = k ? k.chiffres.filter(x => x.l === 'salariés' || x.l === 'création')
+    .map(x => x.l === 'salariés' ? x.v + ' salariés' : 'depuis ' + x.v).join(' · ') : '';
   const lignes = [
-    c.desc ? ['En bref', esc(c.desc)] : null,
+    c.desc ? ['En bref', esc(c.desc)] : quoi ? ['Activité', esc(quoi)] : null,
+    taille ? ['Taille', esc(taille)] : null,
     c.techs ? ['Technos', esc(c.techs)] : null,
     c.tips ? ['Conseils', esc(c.tips)] : null,
-    (!c.desc && !c.techs && !c.tips && c.website)
+    (!c.desc && !quoi && !c.techs && !c.tips && c.website)
       ? ['Site', `<a href="${esc(webH(c.website))}" target="_blank" rel="noopener">${
           esc(c.website.replace(/^https?:\/\//i, '').replace(/\/$/, ''))} ${ic('external-link', 'ic-14')}</a>`] : null
   ].filter(Boolean);

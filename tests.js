@@ -54,6 +54,8 @@ import { interpreter, retirer, remplacer, chercherPistes, raisonDe, propositions
 import { questionsAnnuaire, lireAnnuaire, decouvertes, versPiste, motsInterdits, casse,
          domaineDeNaf, ficheOfficielle, ANNUAIRE, questionSiren, questionNom, questionSite, lireSite,
          complements, champsDits, dirigeantsAjoutables, liensPiste, WIKIDATA, genreQuestion } from './engine/annuaire.js';
+import { questionWikidata, lireWikidata, questionResume, lireResume, questionBodacc, lireBodacc, montant,
+         carte, WIKIPEDIA_FR, BODACC, LINKEDIN_PAGE } from './engine/carte.js';
 import { makeMission, missionUsable, revokeMission, foldCampaignReport,
          signMission, openMissionWire } from './engine/mission.js';
 import { normCode, pairKey } from './engine/ordinateur.js';
@@ -1416,6 +1418,99 @@ export async function runSelfTests(){
       const pr2 = propositions(L2, normalizeProfile({ recherche: 'alternance' }), ctxL);
       eq(pr2[0].q, 'alternance Lille');
       ok(!pr2.some(x => x.q === 'alternance cyber Lille'));
+    },
+    'carte : Wikidata et le BODACC ne reçoivent QUE le SIREN, Wikipédia que le titre': () => {
+      const w = new URL(questionWikidata('326820065'));
+      ok(w.searchParams.get('query').includes('wdt:P1616 "326820065"'));
+      eq(questionWikidata('32682006" } DELETE {'), ''); eq(questionWikidata(''), '');
+      const b = new URL(questionBodacc('326820065'));
+      eq(b.origin + b.pathname, BODACC);
+      eq(b.searchParams.get('where'), 'registre like "326820065"');
+      eq(questionBodacc('3268'), '');
+      eq(questionResume('https://fr.wikipedia.org/wiki/Sopra_Steria'), WIKIPEDIA_FR + 'Sopra_Steria');
+      eq(questionResume('https://evil.test/wiki/X'), ''); eq(questionResume(''), '');
+    },
+    'carte : lire Wikidata — https d’abord, la page LinkedIn, une vignette, jamais un « Q1234 »': () => {
+      const B = (o) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, { value: v }]));
+      const r = lireWikidata({ results: { bindings: [
+        B({ site: 'http://www.inetum.com', desc: 'entreprise de services numériques', li: 'inetum', mereLabel: 'Q99999',
+            logo: 'http://commons.wikimedia.org/wiki/Special:FilePath/INETUM%20LOGO.png', article: 'https://fr.wikipedia.org/wiki/Inetum' }),
+        B({ site: 'https://www.inetum.com/', mereLabel: 'Bain Capital' })] } });
+      eq(r.site, 'https://www.inetum.com/');
+      eq(r.linkedin, LINKEDIN_PAGE + 'inetum');
+      eq(r.logo, 'https://commons.wikimedia.org/wiki/Special:FilePath/INETUM%20LOGO.png?width=96');
+      eq(r.groupe, 'Bain Capital');
+      eq(r.article, 'https://fr.wikipedia.org/wiki/Inetum');
+      const vide = lireWikidata({ results: { bindings: [] } });
+      eq([vide.site, vide.linkedin, vide.logo, vide.groupe], ['', '', '', '']);
+      eq(lireWikidata({ results: { bindings: [B({ li: 'x"><script>' })] } }).linkedin, '');
+    },
+    'carte : le résumé — la première phrase, sans parenthèses, coupée à un mot': () => {
+      eq(lireResume({ extract: 'Inetum est une entreprise de services du numérique française (ESN) créée en 1970. Elle emploie 27 000 personnes.' }),
+         'Inetum est une entreprise de services du numérique française créée en 1970.');
+      const long = lireResume({ extract: 'ChapsVision ' + 'est une entreprise française éditrice de logiciels d’analyse des données '.repeat(4) });
+      ok(long.length <= 181 && long.endsWith('…') && !/\s…$/.test(long));
+      eq(lireResume({ type: 'disambiguation', extract: 'Orange peut désigner…' }), '');
+      eq(lireResume(null), '');
+    },
+    'carte : le BODACC — une procédure en cours se lit, une ancienne ou close se tait': () => {
+      const A = (date, jugement) => ({ familleavis: 'collective', dateparution: date, jugement });
+      const t = '2026-10-05';
+      eq(lireBodacc({ results: [A('2026-03-12', JSON.stringify({ nature: 'Jugement d\'ouverture de liquidation judiciaire', date: '2026-03-10' })),
+                                { familleavis: 'dpc', dateparution: '2026-07-01' }] }, t).procedure,
+         { nature: 'liquidation judiciaire', date: '2026-03-10' });
+      eq(lireBodacc({ results: [A('2025-01-08', { nature: 'Jugement d\'ouverture d\'une procédure de redressement judiciaire' })] }, t).procedure.nature,
+         'redressement judiciaire');
+      eq(lireBodacc({ results: [A('2021-05-01', { nature: 'Jugement d\'ouverture de liquidation judiciaire' })] }, t).procedure, null);
+      eq(lireBodacc({ results: [A('2026-02-01', { nature: 'Jugement de clôture de la procédure de sauvegarde' })] }, t).procedure, null);
+      eq(lireBodacc({ results: [A('2026-02-01', 'Jugement prononçant quelque chose de neuf')] }, t).procedure.nature, 'procédure collective');
+      eq(lireBodacc({ results: [] }, t).procedure, null);
+      eq(lireBodacc(null, t).procedure, null);
+    },
+    'carte : un montant se lit d’un coup d’œil': () => {
+      eq(montant(1769858954), '1,8 Md€'); eq(montant(51128553), '51 M€'); eq(montant(8400000), '8,4 M€');
+      eq(montant(84495737), '84 M€'); eq(montant(850000), '850 k€'); eq(montant(0), ''); eq(montant(-3), ''); eq(montant('x'), '');
+    },
+    'carte : l’annuaire lit le dernier chiffre d’affaires réellement déclaré': () => {
+      const [r] = lireAnnuaire({ results: [{ siren: '851035329', nom_raison_sociale: 'CHAPSVISION',
+        finances: { 2023: { ca: 4e7 }, 2024: { ca: 6e7 }, 2025: { ca: 0 } }, complements: { liste_idcc: ['1486'] } }] });
+      eq(r.ca, { annee: '2024', montant: 6e7 });
+      eq(r.conventions, ['1486']);
+      eq(lireAnnuaire({ results: [{ siren: '851035329', nom_raison_sociale: 'X', finances: { 2025: { ca: 0 } } }] })[0].ca, null);
+    },
+    'carte : une valeur par fait — ta parole, puis l’annuaire, puis le reste': () => {
+      const r = { siren: '812345678', nom: 'Advens', tranche: '22', creation: '2009-03-12', etablissements: 4,
+                  activite: 'Conseil en systèmes et logiciels informatiques', ca: { annee: '2024', montant: 51128553 },
+                  dirigeants: [{ nom: 'Thomas Leroy', qualite: 'Président', personne: true },
+                               { nom: 'Cabinet Audit Nord', qualite: 'Commissaire aux comptes', personne: false }] };
+      const k = carte({ r, wd: { desc: 'entreprise française', site: 'https://www.advens.fr/' } });
+      /* « entreprise française » ne dit rien : c'est l'activité qui parle */
+      eq(k.quoi, { texte: 'Conseil en systèmes et logiciels informatiques', src: 'annuaire' });
+      eq(k.activite, '');
+      eq(k.chiffres, [{ v: '100-199', l: 'salariés' }, { v: '51 M€', l: 'CA 2024' }, { v: '2009', l: 'création' }, { v: '4', l: 'sites' }]);
+      eq(k.lignes, [{ l: 'Dirigeant', v: 'Thomas Leroy, président' }]);
+      eq(k.site, 'https://www.advens.fr/');
+      eq(k.sources, ['Annuaire des entreprises', 'Wikidata']);
+      /* Wikipédia dit ce qu'elle fait ; l'activité reste en sous-titre */
+      const k2 = carte({ r, resume: 'Advens est une entreprise française de cybersécurité.', wd: { groupe: 'Advens' } });
+      eq(k2.quoi.src, 'wikipedia'); eq(k2.activite, 'Conseil en systèmes et logiciels informatiques');
+      eq(k2.lignes.length, 1);                                    /* le groupe qui porte son propre nom ne se dit pas */
+      eq(k2.sources, ['Annuaire des entreprises', 'Wikipédia']);
+      /* ta phrase passe devant tout ; le site de la fiche ne se redit pas */
+      const k3 = carte({ piste: { name: 'Advens', desc: 'SOC à Lille, 3 alternants', website: 'advens.fr' }, r,
+                         resume: 'Advens est…', wd: { site: 'https://www.advens.fr/' } });
+      eq(k3.quoi, { texte: 'SOC à Lille, 3 alternants', src: 'toi' }); eq(k3.site, '');
+      /* les géants : « 10 000 + » ; une entreprise sans salarié n'a pas de chiffre d'effectif */
+      eq(carte({ r: { tranche: '53' } }).chiffres[0], { v: '10 000 +', l: 'salariés' });
+      eq(carte({ r: { tranche: '00' } }).chiffres, []);
+    },
+    'carte : une seule alerte, la plus forte — fermée passe devant une procédure': () => {
+      const proc = { procedure: { nature: 'redressement judiciaire', date: '2026-03-10' } };
+      eq(carte({ r: { fermee: true, fermeeLe: '2026-04-01' }, bodacc: proc }).alerte, { texte: 'Entreprise fermée', date: '2026-04-01' });
+      eq(carte({ r: {}, bodacc: proc }).alerte, { texte: 'Redressement judiciaire', date: '2026-03-10' });
+      eq(carte({ r: {}, bodacc: proc }).sources, ['BODACC']);
+      eq(carte({ r: {}, bodacc: { procedure: null } }).alerte, null);
+      eq(carte({ r: {}, bodacc: { procedure: null } }).sources, []);      /* rien à dire, rien à citer */
     },
     'fiche enrichie : la question ne porte QUE le SIREN, ou le nom sur un geste': () => {
       const u = new URL(questionSiren('326820065'));

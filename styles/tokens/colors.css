@@ -39,6 +39,9 @@
   --surface-window:var(--gray-1);
   --surface-chrome:var(--gray-2);
   --surface-field:var(--gray-0);
+  /* le carreau d'un logo d'entreprise : clair dans les DEUX thèmes —
+     un logo sombre sur fond transparent disparaît sur l'anthracite */
+  --surface-logo:#FFFFFF;
   --surface-raised:var(--gray-1);
 
   /* --- Sémantique : texte --- */
@@ -112,6 +115,7 @@ html[data-theme="dark"]{
   --green-wash:#1B2E16;
 
   --surface-field:var(--gray-0);
+  --surface-logo:#E6E9ED;
   /* le cadre doit rester PLUS NET que les pointillés qu'il contient :
      en sombre, `--border-soft` pour les deux les confondait */
   --border-frame:#4E5A68;

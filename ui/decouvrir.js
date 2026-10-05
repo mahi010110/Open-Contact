@@ -33,6 +33,7 @@ import { questionsAnnuaire, lireAnnuaire, decouvertes, versPiste, motsInterdits,
 import { zoneDe } from '../engine/requete.js';
 import { S, bus, saveData, logJ, deletePiste } from './state.js';
 import { ic, openSheet, btn, showUndo, annoncer } from './dom.js';
+import { suivreCarte, carteDe, carteHTML, alerteHTML, sourcesHTML, lierCarte } from './carte.js';
 
 const PAUSE = 650;                 /* ms sans frappe avant de demander */
 const cache = new Map();           /* url → réponse : on ne redemande pas ce qu'on a déjà */
@@ -239,40 +240,41 @@ export function lierZone(box){
   });
 }
 
-/* L'APERÇU — trois niveaux, et rien de lourd : QUI (le nom), QUOI ET OÙ
-   (activité, puis lieu · taille · âge sur une ligne — ce que les
-   étudiants regardent pour choisir : missions, secteur, distance),
-   COMMENT Y ENTRER (les anciens de ton école, les offres — des LIENS :
-   ils emmènent ailleurs, §6). Le reste en petit gris, sans étiquettes.
-   Un seul geste plein : ajouter. */
+/* L'APERÇU — ce qui décide d'abord, et sans un lien à toucher (demande
+   du mainteneur, 5 octobre : « que les infos soient affichées d'une
+   belle façon »). QUI (le nom), OÙ (le lieu, la distance — et une
+   alerte en ligne si l'entreprise a fermé ou traverse une procédure),
+   puis LA CARTE (ui/carte.js) : ce qu'elle fait, quatre chiffres, à qui
+   écrire — les sources mêlées, une valeur par fait. Les liens viennent
+   APRÈS la carte : ce qui arrive du réseau se pose au-dessus d'eux
+   pendant qu'on lit encore, et le seul geste plein vit au pied de la
+   feuille (au poste, juste sous le lieu) — rien ne glisse sous le doigt. */
 export function apercuHTML(r, o){
   o = o || {};
   const pris = estPrise(r.siren);
-  const an = (r.creation || '').slice(0, 4);
-  const faits = [[r.ville, km(r.distance)].filter(Boolean).join(' · '), r.effectif, an ? 'depuis ' + an : '']
-    .filter(Boolean).join(' · ');
-  const dir = (r.dirigeants || []).filter(d => d.personne).slice(0, 2)
-    .map(d => `${esc(d.nom)}${d.qualite ? `, ${esc(d.qualite.toLowerCase())}` : ''}`).join(' · ');
+  const k = carteDe(r);
+  const lieu = [r.ville, km(r.distance)].filter(Boolean).join(' · ');
   const liens = liensPiste({ name: r.nom, siren: r.siren }, S.profile).filter(l => l.cle !== 'officielle');
+  if (k.linkedin) liens.push({ url: k.linkedin, label: 'Page LinkedIn', aria: 'Page LinkedIn de ' + r.nom });
   const officielle = ficheOfficielle(r.siren);
   const lien = (url, label, aria) => `<a class="linklike" href="${esc(url)}" target="_blank" rel="noopener"${
     aria ? ` aria-label="${esc(aria)}"` : ''}>${esc(label)}${ic('external-link', 'ic-12')}</a>`;
   return (
     `<div class="ap">
        <h3 class="ap-nom">${esc(r.nom)}</h3>
-       ${r.activite ? `<p class="ap-act">${esc(r.activite)}</p>` : ''}
-       ${faits ? `<p class="ap-faits">${esc(faits)}</p>` : ''}
+       ${lieu || k.alerte ? `<p class="ap-faits">${esc(lieu)}${alerteHTML(k)}</p>` : ''}
        ${o.panneau ? `<div class="ap-agir">${pris
          ? `<span class="ap-pris">${ic('check', 'ic-14')}Dans tes pistes</span>
             <button class="linklike" data-ap-fiche="${esc(r.siren)}">Ouvrir la fiche</button>`
          : `<button class="btn btn-primary" data-ap-add="${esc(r.siren)}">${ic('plus', 'ic-14')}Ajouter à mes pistes</button>`}</div>` : ''}
+       <div class="ct">${carteHTML(k)}</div>
        ${liens.length ? `<div class="ap-liens">${liens.map(l => lien(l.url, l.label, l.aria)).join('')}</div>` : ''}
        <div class="ap-plus">
          ${r.adresse ? `<p>${esc(r.adresse.replace(/\n/g, ', '))}</p>` : ''}
-         ${dir ? `<p>${dir}</p>` : ''}
-         <p><span class="ap-siren">SIREN ${esc(r.siren)}</span>${r.etablissements > 1 ? ` · ${esc(r.etablissements + ' établissements')}` : ''}${
+         <p><span class="ap-siren">SIREN ${esc(r.siren)}</span>${
            officielle ? ` · ${lien(officielle, 'fiche officielle')}` : ''}</p>
        </div>
+       ${sourcesHTML(k)}
      </div>`);
 }
 
@@ -302,7 +304,7 @@ export function decouverteHTML(){
     corps = r
       ? `<div class="dc-split">
            <div class="dc-col">${liste}</div>
-           <aside class="dc-detail" aria-label="Aperçu de ${esc(r.nom)}">${apercuHTML(r, { panneau: true })}</aside>
+           <aside class="dc-detail" data-siren="${esc(r.siren)}" aria-label="Aperçu de ${esc(r.nom)}">${apercuHTML(r, { panneau: true })}</aside>
          </div>`
       : liste;
   }
@@ -332,10 +334,15 @@ function ajouter(r){
   return c;
 }
 
-/* au pouce, l'aperçu en feuille ; le pied porte le geste */
+/* au pouce, l'aperçu en feuille ; le pied porte le geste. La carte se
+   complète pendant qu'on lit : chaque réponse redessine l'aperçu, jamais
+   le pied */
 function ouvrirApercu(r){
-  const sh = openSheet({ title: 'À découvrir', icon: 'building' });
-  sh.body.innerHTML = apercuHTML(r);
+  let lacher = () => {};
+  const sh = openSheet({ title: 'À découvrir', icon: 'building', onClose: () => lacher() });
+  const dessiner = () => { if (!sh.body.isConnected) return; sh.body.innerHTML = apercuHTML(r); lierCarte(sh.body); };
+  dessiner();
+  lacher = suivreCarte(r.siren, dessiner);
   sh.setFoot([estPrise(r.siren)
     ? btn('Ouvrir la fiche', 'btn-primary', () => { sh.close(); ouvrirFiche(r); }, 'briefcase')
     : btn('Ajouter à mes pistes', 'btn-primary', () => { sh.close(); ajouter(r); }, 'plus')]);
@@ -361,10 +368,30 @@ function choisir(box, siren){
     if (on) m.setAttribute('aria-current', 'true'); else m.removeAttribute('aria-current');
   });
   aside.setAttribute('aria-label', 'Aperçu de ' + r.nom);
+  aside.dataset.siren = siren;
   aside.innerHTML = apercuHTML(r, { panneau: true });
   lierApercu(box, aside);
+  completerPanneau(box, r);
+}
+/* Au poste, l'aperçu suit le clavier : ↓ ↓ ↓ ne doit pas lancer trois
+   questions. La carte ne se complète qu'une fois la ligne posée — une
+   courte pause, comme la barre — et seulement si elle est encore celle
+   qu'on regarde. */
+let pausePanneau = null, lacherPanneau = () => {};
+function completerPanneau(box, r){
+  clearTimeout(pausePanneau);
+  lacherPanneau();
+  pausePanneau = setTimeout(() => {
+    lacherPanneau = suivreCarte(r.siren, () => {
+      const aside = box.isConnected && box.querySelector('.dc-detail');
+      if (!aside || aside.dataset.siren !== r.siren) return;
+      aside.innerHTML = apercuHTML(r, { panneau: true });
+      lierApercu(box, aside);
+    });
+  }, 350);
 }
 function lierApercu(box, aside){
+  lierCarte(aside);
   const trouve = siren => visibles().find(x => x.siren === siren);
   aside.querySelector('[data-ap-add]')?.addEventListener('click', e => {
     const r = trouve(e.currentTarget.dataset.apAdd);
@@ -394,7 +421,11 @@ export function lierDecouverte(box, o){
     });
   });
   const aside = box.querySelector('.dc-detail');
-  if (aside) lierApercu(box, aside);
+  if (aside){
+    lierApercu(box, aside);
+    const r = trouve(aside.dataset.siren);
+    if (r) completerPanneau(box, r);
+  }
   box.querySelector('[data-dc-encore]')?.addEventListener('click', () => {
     for (const u of etat.urls) cache.delete(avecPage(u, etat.page || 1));
     charger(etat.cle, 1);

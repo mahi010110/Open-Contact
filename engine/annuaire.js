@@ -254,6 +254,13 @@ function adresseDe(x){
   if (m) return [casse(m[1], false), m[2] + ' ' + casse(m[3], false)].filter(Boolean).join('\n');
   return casse(brut, false);
 }
+/* la dernière année de chiffre d'affaires réellement déclarée */
+function dernierCA(fin){
+  if (!fin || typeof fin !== 'object') return null;
+  const ans = Object.keys(fin).filter(y => /^\d{4}$/.test(y) && Number(fin[y] && fin[y].ca) > 0).sort();
+  const y = ans.pop();
+  return y ? { annee: y, montant: Number(fin[y].ca) } : null;
+}
 /* Lire une réponse de l'annuaire. `o.ville` (clé pliée) et `o.userPos`
    choisissent l'établissement à montrer : celui de la ville cherchée,
    sinon le plus proche, sinon le premier qui correspond, sinon le siège. */
@@ -320,6 +327,13 @@ export function lireAnnuaire(json, o){
       fermee: r.etat_administratif === 'C',
       fermeeLe: String(r.date_fermeture || '').slice(0, 10),
       etablissements: nombre(r.nombre_etablissements_ouverts) ?? nombre(r.nombre_etablissements),
+      /* RELEVÉ le 5/10 (sonde-carte.mjs) : 30 entreprises sur 37 portent
+         un chiffre d'affaires, presque toujours UNE seule année — et un
+         « 0 » qui n'est pas un chiffre : c'est la marque de comptes
+         déposés confidentiels (le BODACC le dit). Seule la dernière année
+         non nulle se lit. */
+      ca: dernierCA(r.finances),
+      conventions,
       dirigeants: (Array.isArray(r.dirigeants) ? r.dirigeants : []).slice(0, 4).map(d => ({
         nom: d.type_dirigeant === 'personne morale' ? casse(d.denomination || '')
           : [d.prenoms, d.nom].filter(Boolean).map(casse).join(' '),

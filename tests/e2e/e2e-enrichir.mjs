@@ -100,6 +100,12 @@ function services(ctx){
       headers: { 'access-control-allow-origin': '*' },
       body: JSON.stringify({ results: { bindings: site ? [{ site: { type: 'uri', value: site } }] : [] } }) });
   });
+  /* le BODACC et Wikipédia, que la carte interroge aussi (ui/carte.js) :
+     notés, et muets — `e2e-carte.mjs` joue ce qu'ils disent */
+  for (const [hote, type, body] of [['https://bodacc-datadila.opendatasoft.com/**', 'application/json', '{"results":[]}'],
+                                     ['https://fr.wikipedia.org/**', 'application/json', '{}']])
+    ctx.route(hote, route => { journal.push(route.request().url());
+      return route.fulfill({ status: 200, contentType: type, headers: { 'access-control-allow-origin': '*' }, body }); });
   return { journal, regler: m => { mode = m; } };
 }
 const pliees = s => decodeURIComponent(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -140,13 +146,16 @@ const bloc = async (p, ms = 3000) => {
   }, null, { timeout: ms }).catch(() => {});
   return p.evaluate(() => {
     const sav = document.querySelector('#faSavoir'), cts = document.querySelector('#faCts');
+    const carte = document.querySelector('#faCarte');
     const lignes = {};
-    sav?.querySelectorAll('.fk').forEach(f => {
+    document.querySelectorAll('#faCarte .fk, #faSavoir .fk').forEach(f => {
       const l = f.querySelector('.fk-l')?.textContent.trim();
       if (l) lignes[l] = f.querySelector('.fk-v')?.textContent.replace(/\s+/g, ' ').trim();
     });
     return {
       present: !!sav, ouvert: !!document.querySelector('#fiKnow')?.open, lignes,
+      fait: carte?.querySelector('.ct-quoi p')?.textContent.trim() || '',
+      chiffres: [...(carte?.querySelectorAll('.ct-chiffres li') || [])].map(li => li.querySelector('b').textContent + ' ' + li.querySelector('span').textContent),
       ancien: !!document.querySelector('#fiAnn'),
       etat: sav?.querySelector('.fa-etat')?.textContent.replace(/\s+/g, ' ').trim() || '',
       completer: !!sav?.querySelector('[data-fa-completer]'),
@@ -200,14 +209,16 @@ const annuler = async p => {
   await p.evaluate(() => { document.querySelector('#fiNotes').__marque = 1; });
   let b = await bloc(p);
   /* le site arrive APRÈS les données (une seconde question, à Wikidata) */
-  await p.waitForSelector('#faSavoir a.fk-v[href*="advens.fr"]', { timeout: 3000, state: 'attached' }).catch(() => {});
+  await p.waitForSelector('#faCarte a.fk-v[href*="advens.fr"]', { timeout: 3000, state: 'attached' }).catch(() => {});
   b = await bloc(p);
   sv.regler({ statut: 200 });
   if (b.ancien) fail('le bloc « Annuaire » à part existe encore — chaque donnée doit être à sa place');
-  if (b.ouvert) fail('au pouce, « À savoir » est déplié d’office');
+  /* la carte se voit sans rien toucher (demande du mainteneur) */
+  if (!b.ouvert) fail('au pouce, « À savoir » est replié : la carte de l’entreprise ne se voit pas sans toucher');
   if (!(await p.evaluate(() => document.querySelector('#fiNotes')?.__marque)))
     fail('la réponse de l’annuaire a redessiné toute la fiche, pas seulement ses zones');
-  const [qa, qw] = sv.journal;
+  const qa = sv.journal.find(u => u.startsWith('https://recherche-entreprises'));
+  const qw = sv.journal.find(u => u.startsWith('https://query.wikidata.org'));
   const ua = new URL(qa || 'http://x/');
   if (ua.searchParams.get('q') !== '812345678' || [...ua.searchParams.keys()].sort().join() !== 'per_page,q')
     fail('la question à l’annuaire ne porte pas QUE le SIREN : ' + qa);
@@ -217,9 +228,10 @@ const annuler = async p => {
   if (!b.gensVisible) fail('au pouce, « Anciens de mon école » ne se voit pas sans déplier');
   await ouvrirBloc(p);
   b = await bloc(p);
-  if (b.lignes['Activité'] !== 'Conseil en systèmes et logiciels informatiques') fail('activité : ' + JSON.stringify(b.lignes));
-  /* la taille d'un coup d'œil : effectif, âge, sites — une rangée, pas trois */
-  if (b.lignes['Taille'] !== '100-199 salariés · depuis 2009 · 4 sites') fail('taille : ' + b.lignes['Taille']);
+  /* la carte : ce qu'elle fait (sans « En bref » ni Wikipédia, son
+     activité), puis ses chiffres, toujours dans le même ordre */
+  if (b.fait !== 'Conseil en systèmes et logiciels informatiques') fail('ce qu’elle fait : ' + b.fait);
+  if (b.chiffres.join(' | ') !== '100-199 salariés | 2009 création | 4 sites') fail('chiffres : ' + b.chiffres.join(' | '));
   /* les dirigeants qui sont des PERSONNES ; un cabinet n'est personne à qui écrire */
   if (!/^Thomas Leroy, président/.test(b.lignes['Dirigeant'] || '') || /Cabinet/i.test(b.lignes['Dirigeant'] || ''))
     fail('dirigeant : ' + b.lignes['Dirigeant']);
@@ -230,7 +242,7 @@ const annuler = async p => {
      l'annuaire sait remplir — l'adresse, la ville, le secteur sont déjà là */
   if (!b.completer || b.quoi !== 'activité · site') fail(`« Compléter ma fiche » : ${b.completer} « ${b.quoi} »`);
   if (b.siren !== 'SIREN 812345678') fail('la ligne de source ne dit pas le SIREN : ' + b.siren);
-  console.log('pouce · SIREN : le SIREN seul part, activité, taille, dirigeant, site dans « À savoir », la source en ligne grise ✓');
+  console.log('pouce · SIREN : le SIREN seul part ; « À savoir » ouvert montre la carte — ce qu’elle fait, ses chiffres, le dirigeant, le site — et la source en ligne grise ✓');
 
   /* ③ les liens */
   const L = Object.fromEntries(b.liens.map(l => [l.cle, l]));
@@ -330,7 +342,7 @@ const annuler = async p => {
   if (!/Place du Theatre/i.test(c.address || '') || c.lat == null) fail('l’adresse vide ne s’est pas remplie : ' + c.address);
   if (c.domain !== 'cloud') fail('le secteur vide ne s’est pas rempli : ' + c.domain);
   b = await bloc(p);
-  if (b.siren !== 'SIREN 856123456' || b.trouver || !b.lignes['Taille']) fail('après le choix, « À savoir » ne montre pas l’entreprise : ' + JSON.stringify(b));
+  if (b.siren !== 'SIREN 856123456' || b.trouver || !b.chiffres.length) fail('après le choix, « À savoir » ne montre pas l’entreprise : ' + JSON.stringify(b));
   await annuler(p);
   c = await piste(p, 'b');
   if (c.siren || c.address || c.lat != null || c.domain !== 'autre') fail('Annuler n’a pas tout défait : ' + JSON.stringify(c));
@@ -358,7 +370,7 @@ const annuler = async p => {
   sv.regler({ statut: 200 });
   await p.click('[data-fa-encore]');
   b = await bloc(p);
-  if (b.lignes['Activité'] !== 'Conseil en systèmes et logiciels informatiques') fail('après Réessayer, rien ne revient');
+  if (b.fait !== 'Conseil en systèmes et logiciels informatiques') fail('après Réessayer, rien ne revient');
   console.log('hors ligne et panne : chaque cas se dit, Réessayer répare ✓');
   await ctx.close();
 }
@@ -375,7 +387,7 @@ for (const sombre of [false, true]){
   const b = await bloc(p);
   if (!b.ouvert) fail('au poste, « À savoir » n’est pas ouvert');
   if (!sv.journal.length) fail('au poste, rien n’est parti à l’ouverture');
-  if (!/^100-199 salariés/.test(b.lignes['Taille'] || '')) fail('au poste, les données ne sont pas là');
+  if (b.chiffres[0] !== '100-199 salariés') fail('au poste, les données ne sont pas là');
   const note = await p.evaluate(() => ({ v: document.querySelector('#fiNotes').value, f: document.activeElement?.id }));
   if (note.v !== PISTES[0].notes + 'à relire' || note.f !== 'fiNotes') fail('la réponse a redessiné la fiche sous les doigts : ' + JSON.stringify(note));
   const deborde = await p.evaluate(() => {

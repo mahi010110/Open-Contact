@@ -203,16 +203,29 @@ export async function copierDeploiement(dest){
    autre chose (une annonce, un mouvement, une cible) ne doit dépendre ni
    du réseau ni de sa limite de débit : l'annuaire y répond « rien ».
    Seul `e2e-decouvrir.mjs` le joue vraiment, avec sa propre réponse.
-   Wikidata de même : la fiche d'une piste qui porte un SIREN y cherche
-   son site (lot 3) — seul `e2e-enrichir.mjs` le joue vraiment.
+   Wikidata, Wikipédia, le BODACC et Wikimedia de même : la carte d'une
+   entreprise (ui/carte.js) les interroge dès qu'une fiche ou un aperçu
+   s'ouvre — seuls `e2e-enrichir.mjs` et `e2e-carte.mjs` les jouent
+   vraiment.
    ============================================================ */
 const ANNUAIRE_RE = 'https://recherche-entreprises.api.gouv.fr/**';
 const WIKIDATA_RE = 'https://query.wikidata.org/**';
+const BODACC_RE = 'https://bodacc-datadila.opendatasoft.com/**';
+const WIKIPEDIA_RE = 'https://fr.wikipedia.org/**';
+const COMMONS_RE = /^https:\/\/(commons|upload)\.wikimedia\.org\//;
 export async function annuaireMuet(cible){
+  const cors = { 'access-control-allow-origin': '*' };
   await cible.route(ANNUAIRE_RE, r => r.fulfill({ status: 200, contentType: 'application/json',
-    headers: { 'access-control-allow-origin': '*' }, body: '{"results":[],"total_results":0}' }));
+    headers: cors, body: '{"results":[],"total_results":0}' }));
   await cible.route(WIKIDATA_RE, r => r.fulfill({ status: 200, contentType: 'application/sparql-results+json',
-    headers: { 'access-control-allow-origin': '*' }, body: '{"results":{"bindings":[]}}' }));
+    headers: cors, body: '{"results":{"bindings":[]}}' }));
+  await cible.route(BODACC_RE, r => r.fulfill({ status: 200, contentType: 'application/json',
+    headers: cors, body: '{"total_count":0,"results":[]}' }));
+  /* jamais un 404 : le navigateur l'écrirait dans la console, et chaque
+     scénario tient « zéro erreur console » */
+  await cible.route(WIKIPEDIA_RE, r => r.fulfill({ status: 200, contentType: 'application/json', headers: cors, body: '{}' }));
+  await cible.route(COMMONS_RE, r => r.fulfill({ status: 200, contentType: 'image/svg+xml', headers: cors,
+    body: '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>' }));
 }
 /* tous les contextes d'un navigateur, d'un coup — pour les scénarios qui
    en ouvrent vingt */
