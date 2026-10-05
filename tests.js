@@ -49,10 +49,11 @@ import { dueFollowups, contactFromSignature, exchangeLog, exchangeTotals, nextAc
 import { rappelICS, lienAgendaGoogle, formeAgenda, RAPPEL_HEURE } from './engine/agenda.js';
 import { normalizeParcours, parcoursDe, periodeParcours, phraseParcours, PARCOURS_MAX } from './engine/parcours.js';
 import { interpreter, retirer, remplacer, chercherPistes, raisonDe, propositions, elargir,
-         contexteRecherche, deptDuCp, villeFrequente, deptDePiste } from './engine/requete.js';
+         contexteRecherche, deptDuCp, villeFrequente, deptDePiste, zoneDe, metierDuMoment,
+         fraicheur } from './engine/requete.js';
 import { questionsAnnuaire, lireAnnuaire, decouvertes, versPiste, motsInterdits, casse,
          domaineDeNaf, ficheOfficielle, ANNUAIRE, questionSiren, questionNom, questionSite, lireSite,
-         complements, champsDits, dirigeantsAjoutables, liensPiste, WIKIDATA } from './engine/annuaire.js';
+         complements, champsDits, dirigeantsAjoutables, liensPiste, WIKIDATA, genreQuestion } from './engine/annuaire.js';
 import { makeMission, missionUsable, revokeMission, foldCampaignReport,
          signMission, openMissionWire } from './engine/mission.js';
 import { normCode, pairKey } from './engine/ordinateur.js';
@@ -1238,9 +1239,16 @@ export async function runSelfTests(){
       eq(a.searchParams.get('etat_administratif'), 'A');
       ok(!a.searchParams.has('q'));                                         /* « alternance » ne regarde pas le registre */
       const c = Q('cyber Lyon');
-      eq(c.length, 2);                                                      /* les noms qui portent « cyber » d'abord */
+      eq(c.length, 3);                                                      /* les noms qui portent « cyber » d'abord */
       eq(c[0].searchParams.get('q'), 'cyber'); ok(!c[1].searchParams.has('q'));
       eq(c[0].searchParams.get('departement'), '69');
+      /* la jumelle : la même liste, bornée aux employeurs de 10 à 499 salariés */
+      eq(c[2].searchParams.get('tranche_effectif_salarie'), '11,12,21,22,31,32');
+      eq(c.map(u => genreQuestion(u.toString())), ['metier', 'liste', 'liste']);
+      eq(genreQuestion(Q('Capgemini Toulouse')[0].toString()), 'nom');
+      eq(Q('alternance à Lille').length, 2);
+      eq(Q('pme Lille').length, 1);                                         /* une taille tapée décide seule */
+      eq(Q('Capgemini Toulouse').length, 1);
       eq(Q('cyber').length, 1);                                             /* seul : pas toutes les ESN de France */
       eq(Q('réseau').length, 0);                                            /* ni texte ni lieu : rien ne part */
       eq(Q('alternance').length, 0);
@@ -1320,6 +1328,87 @@ export async function runSelfTests(){
       eq(p.siren, '222222222'); eq(p.contacts, []);           /* aucune personne importée d'office */
       eq(normalizeCompany(p).siren, '222222222');
       eq(versPiste(r('5', 'X'), interpreter('lille', ctx)).domain, 'esn');   /* sinon le code d'activité décide */
+    },
+    /* ---------- docs/sources.md, lot 4 : une liste qui peut t'accueillir ---------- */
+    'sources : l’employeur se lit, une personne ne s’affiche pas': () => {
+      const rep = { results: [
+        { siren: '111111111', nom_raison_sociale: 'ADVENS', tranche_effectif_salarie: 'NN', complements: { liste_idcc: ['1486'] } },
+        { siren: '222222222', nom_raison_sociale: 'PETITE SAS', tranche_effectif_salarie: '12' },
+        { siren: '333333333', nom_raison_sociale: 'NOUVELLE', tranche_effectif_salarie: 'NN' },
+        { siren: '444444444', nom_raison_sociale: 'SANS PERSONNE', tranche_effectif_salarie: '00' },
+        { siren: '555555555', nom_complet: 'JEAN DUPONT (CYBER-PENTESTER)', nature_juridique: '1000',
+          complements: { est_entrepreneur_individuel: true } },
+        { siren: '666666666', nom_raison_sociale: 'SIEGE EMPLOYEUR', siege: { caractere_employeur: 'O' } }] };
+      const l = lireAnnuaire(rep);
+      eq(l.map(r => r.employeur), [true, true, null, false, null, true]);
+      eq(l[0].effectif, 'a des salariés');           /* la convention le dit, la tranche ne dit rien */
+      eq(l[1].effectif, '20-49 salariés');
+      eq(l[2].effectif, '');                          /* on ne sait pas : rien ne s'invente */
+      eq(l.map(r => r.personne), [false, false, false, false, true, false]);
+      /* « À découvrir » ne montre jamais une personne… */
+      eq(decouvertes([l], []).map(r => r.siren).includes('555555555'), false);
+      /* … et l'employeur passe devant l'inconnu, qui passe devant celle qui ne déclare personne */
+      eq(decouvertes([l], []).map(r => r.siren), ['111111111', '222222222', '666666666', '333333333', '444444444']);
+    },
+    'sources : plusieurs questions, une liste — fusion par rangs, le nom tapé d’abord': () => {
+      const r = (siren, o) => ({ siren, nom: 'E' + siren, ville: 'Lille', employeur: null, ...o });
+      /* deux questions qui se recoupent : celle que les DEUX rendent monte */
+      const d = decouvertes([[r('1'), r('2'), r('3')], [r('4'), r('3'), r('5')]], []);
+      eq(d[0].siren, '3');
+      eq(d.map(x => x.siren).sort(), ['1', '2', '3', '4', '5']);   /* une entreprise = une ligne */
+      /* un NOM tapé garde l'ordre de l'annuaire, même devant un employeur */
+      const n = decouvertes([[r('9', { employeur: null }), r('8', { employeur: true })], [r('7', { employeur: true })]],
+        [], { genres: ['nom', 'liste'] });
+      eq(n.map(x => x.siren), ['9', '8', '7']);
+      /* un MÉTIER tapé en texte (« cyber ») passe devant la liste large */
+      const m = decouvertes([[r('6')], [r('5', { employeur: true })]], [], { genres: ['metier', 'liste'] });
+      eq(m.map(x => x.siren), ['6', '5']);
+      /* la plus proche, par PALIERS : 3 et 4 km ne se départagent pas par la distance */
+      const p = decouvertes([[r('a', { distance: 30 }), r('b', { distance: 4 }), r('c', { distance: 3 })]], [],
+        { userPos: { lat: 50, lng: 3 } });
+      eq(p.map(x => x.siren), ['b', 'c', 'a']);
+      /* sans position, la ville tapée d'abord */
+      const v = decouvertes([[r('x', { ville: 'Roubaix' }), r('y', { ville: 'Lille' })]], [], { ville: 'lille' });
+      eq(v.map(x => x.siren), ['y', 'x']);
+    },
+    'sources : ta zone — déduite de tes pistes, sans ex æquo, et elle part comme un lieu': () => {
+      const P = (city, o) => normalizeCompany({ name: 'P' + Math.random(), city, ...o });
+      eq(zoneDe([P('Lille'), P('Roubaix'), P('Lyon')]), { dept: '59', label: 'Nord (59)' });
+      eq(zoneDe([P('Lille')]), null);                                   /* une piste ne fait pas une zone */
+      eq(zoneDe([P('Lille'), P('Roubaix'), P('Lyon'), P('Villeurbanne')]), null);   /* ex æquo : on ne devine pas */
+      eq(zoneDe([P('Lille', { closedReason: 'dropped' }), P('Roubaix', { closedReason: 'dropped' }), P('Lyon')]), null);
+      const ctx = { today: '2026-10-05', villes: [], prenoms: [] };
+      const Q = (q, o) => questionsAnnuaire(interpreter(q, ctx), o || {}).map(u => new URL(u));
+      eq(Q('réseau').length, 0);                                        /* sans zone : rien ne part */
+      const [z] = Q('réseau', { zone: { dept: '59' } });
+      eq(z.searchParams.get('departement'), '59');
+      eq(Q('réseau Lyon', { zone: { dept: '59' } })[0].searchParams.get('departement'), '69');   /* un lieu tapé gagne */
+      eq(Q('', { zone: { dept: '59' } }).length, 0);                    /* la barre vide ne demande rien */
+      /* aucune personne demandée, dans aucune question */
+      for (const u of [...Q('cyber Lille'), ...Q('alternance 59'), ...Q('Capgemini Toulouse')])
+        eq(u.searchParams.get('est_entrepreneur_individuel'), 'false');
+    },
+    'sources : le métier du moment — tes pistes engagées, le récent d’abord': () => {
+      const t = '2026-10-05';
+      const P = (domain, status, d, o) => normalizeCompany({ name: 'P' + Math.random(), domain, status,
+        history: d ? [{ d, t: 'x' }] : [], createdAt: Date.parse('2024-01-01'), ...o });
+      eq(fraicheur(P('cyber', 'active', '2026-10-03'), t), 100);
+      eq(fraicheur(P('cyber', 'active', '2026-09-25'), t), 70);
+      eq(fraicheur(P('cyber', 'active', '2025-01-01'), t), 10);
+      eq(metierDuMoment([P('cyber', 'active', '2026-10-01'), P('cyber', 'reply', '2026-09-28')], t), 'cyber');
+      eq(metierDuMoment([P('cyber', 'active', '2026-10-01')], t), '');                    /* une piste ne suffit pas */
+      eq(metierDuMoment([P('cyber', 'todo', '2026-10-01'), P('cyber', 'todo', '2026-10-01')], t), '');   /* jamais contactées */
+      /* le récent l'emporte sur le nombre : deux pistes cloud de l'an dernier < deux cyber de la semaine */
+      eq(metierDuMoment([P('cloud', 'active', '2025-03-01'), P('cloud', 'reply', '2025-03-02'),
+                         P('cyber', 'active', '2026-10-02'), P('cyber', 'reply', '2026-10-01')], t), 'cyber');
+      /* sans écart net, on ne devine pas */
+      eq(metierDuMoment([P('cloud', 'active', '2026-10-02'), P('cyber', 'active', '2026-10-02')], t), '');
+      /* la barre vide le propose, et deux propositions qui rendent les mêmes pistes n'en font qu'une */
+      const L = [P('cyber', 'active', '2026-10-01', { city: 'Lille' }), P('cyber', 'reply', '2026-09-30', { city: 'Lille' }),
+                 P('esn', 'todo', '', { city: 'Paris' })];
+      const pr = propositions(L, normalizeProfile({ recherche: 'alternance' }), { today: t, villes: ['Lille', 'Paris'], prenoms: [] });
+      eq(pr[0].q, 'alternance cyber Lille');
+      ok(!pr.some(x => x.q === 'alternance Lille'));
     },
     'fiche enrichie : la question ne porte QUE le SIREN, ou le nom sur un geste': () => {
       const u = new URL(questionSiren('326820065'));

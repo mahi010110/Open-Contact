@@ -126,6 +126,11 @@ export function questionsAnnuaire(interp, o){
   }
   const q = texte.join(' ').trim();
   const posOk = proche && o.userPos && Number.isFinite(o.userPos.lat) && Number.isFinite(o.userPos.lng);
+  /* TA ZONE (docs/sources.md, « S'adapter ») : une question sans lieu
+     prend le département de tes pistes. L'écran la montre comme une
+     étiquette, avec sa croix — l'app ne demande rien en ton nom sans
+     que ça se voie. */
+  if (!lieu && !posOk && o.zone && o.zone.dept && (et.length || q)){ p.set('departement', o.zone.dept); lieu = true; }
   /* Sans texte, sans lieu et sans « près de moi », la question
      rendrait la France entière : elle ne part pas. */
   if (!q.length && !lieu && !posOk && !motMetier) return [];
@@ -133,6 +138,10 @@ export function questionsAnnuaire(interp, o){
   if (codes.size) p.set('activite_principale', [...codes].join(','));
   else if (sections.size) p.set('section_activite_principale', [...sections].join(','));
   p.set('etat_administratif', 'A');
+  /* RELEVÉ le 5/10 : 40 % du numérique dans le Nord sont des entrepreneurs
+     individuels — des PERSONNES, leur nom en guise de raison sociale. Ni
+     un lieu de stage, ni quelqu'un qu'on montre sans qu'il l'ait demandé. */
+  p.set('est_entrepreneur_individuel', 'false');
   p.set('per_page', String(o.parPage || PAR_PAGE));
   p.set('page', String(o.page || 1));
   const url = (chemin, extra) => {
@@ -153,8 +162,28 @@ export function questionsAnnuaire(interp, o){
   if (q.length >= 3) out.push(url('/search', { q }));
   /* sans texte, la question large ne part que bornée par un lieu —
      « cyber » seul ne demande pas toutes les ESN de France */
-  else if (lieu) out.push(url('/search'));
+  else if (lieu){
+    out.push(url('/search'));
+    /* SA JUMELLE (docs/sources.md, lot 4). RELEVÉ le 5/10 : sans texte,
+       l'annuaire trie par nombre d'établissements, et rien ne le
+       débraye — la première page est toujours Capgemini, Sopra Steria,
+       Inetum… La même question bornée aux employeurs de 10 à 499
+       salariés rend d'autres entreprises, locales, que personne ne
+       voyait. Les deux se fusionnent (`decouvertes`). Une taille tapée
+       décide seule : pas de jumelle. */
+    if (!p.has('categorie_entreprise') && !p.has('tranche_effectif_salarie'))
+      out.push(url('/search', { tranche_effectif_salarie: TRANCHES_MOYENNES }));
+  }
   return out;
+}
+export const TRANCHES_MOYENNES = '11,12,21,22,31,32';
+/* ce qu'une question demande — ce qui décide de son rang dans la fusion :
+   un NOM tapé, un MÉTIER tapé en texte (« cyber »), ou une liste */
+export function genreQuestion(u){
+  let q = '';
+  try { q = new URL(u).searchParams.get('q') || ''; } catch (e) { return 'liste'; }
+  if (!q) return 'liste';
+  return Object.values(MOT_METIER).includes(q) ? 'metier' : 'nom';
 }
 
 /* ---------- lire une réponse ---------- */
@@ -251,6 +280,18 @@ export function lireAnnuaire(json, o){
     const e = choisi.e;
     const naf = r.activite_principale || e.activite_principale || '';
     const tranche = String(r.tranche_effectif_salarie || '');
+    /* RELEVÉ le 5/10 (sonde-sources.mjs, partie D) : 81 % du numérique
+       dans le Nord ne déclare aucun salarié. Trois indices disent qu'une
+       entreprise EMPLOIE — donc qu'elle peut accueillir un stagiaire ou
+       un alternant : une convention collective (elle n'existe que dans
+       les déclarations sociales d'un employeur), une tranche d'effectif,
+       le caractère employeur de l'établissement. Sans aucun, on ne sait
+       pas : une entreprise créée cette année n'a pas encore de convention. */
+    const comp = (r.complements && typeof r.complements === 'object') ? r.complements : {};
+    const conventions = (Array.isArray(comp.liste_idcc) ? comp.liste_idcc : []).map(String).filter(x => /^\d{4}$/.test(x));
+    const carac = String(e.caractere_employeur || (r.siege && r.siege.caractere_employeur) || '');
+    const employeur = (conventions.length || /^(0[1-9]|[1-5]\d)$/.test(tranche) || carac === 'O') ? true
+      : (tranche === '00' || carac === 'N') ? false : null;
     return {
       siren: String(r.siren),
       nom: casse(r.nom_raison_sociale || r.nom_complet || ''),
@@ -262,7 +303,12 @@ export function lireAnnuaire(json, o){
       lat: choisi.lat, lng: choisi.lng,
       siege: !!e.est_siege,
       naf, activite: ACTIVITES[naf] || '',
-      tranche, effectif: TRANCHES[tranche] || '',
+      tranche, effectif: TRANCHES[tranche] || (employeur ? 'a des salariés' : ''),
+      employeur,
+      /* un entrepreneur individuel est une PERSONNE : sa raison sociale est
+         son nom. « À découvrir » ne la montre pas (aucune personne importée
+         d'office) ; la fiche, elle, peut la lire par son SIREN. */
+      personne: String(r.nature_juridique || '') === '1000' || comp.est_entrepreneur_individuel === true,
       categorie: String(r.categorie_entreprise || ''),
       creation: String(r.date_creation || '').slice(0, 10),
       /* l'ENTREPRISE entière a cessé (« C ») — une question par SIREN ne
@@ -282,12 +328,39 @@ export function lireAnnuaire(json, o){
   }).filter(Boolean);
 }
 
-/* ---------- une entreprise = une ligne ----------
+/* ---------- une entreprise = une ligne, plusieurs questions = une liste ----------
    Ce qui est déjà dans tes pistes ne se redit pas dans « À découvrir » :
-   même SIREN, ou même nom (le sigle compte). Plusieurs questions
-   peuvent rendre la même entreprise : elle ne sort qu'une fois, à la
-   place de sa première apparition. */
-export function decouvertes(listes, companies){
+   même SIREN, ou même nom (le sigle compte). Une PERSONNE (entrepreneur
+   individuel) n'y apparaît jamais. Plusieurs questions peuvent rendre la
+   même entreprise : elle ne sort qu'une fois.
+
+   L'ORDRE (docs/sources.md, « Converger » et « Classer ») :
+   · les listes se fusionnent par RANGS RÉCIPROQUES (Cormack et al.,
+     2009) : chaque entreprise reçoit 1/(60 + rang) dans chaque liste qui
+     la contient. Aucun score commun n'est nécessaire, et une entreprise
+     que deux questions rendent monte d'elle-même ;
+   · ce que tu as tapé passe devant : une liste rendue pour un NOM garde
+     l'ordre de l'annuaire (c'est lui qui sait quelle « Orange » tu
+     cherches), une liste rendue pour un MÉTIER tapé en texte (« cyber »)
+     vient ensuite, puis le reste ;
+   · dans chacun de ces rangs, sauf le nom : l'employeur avant l'inconnu
+     avant celle qui ne déclare personne, puis la plus proche — par
+     paliers, jamais au mètre près —, puis la fusion. */
+export const RRF_K = 60;
+const RANG_GENRE = { nom: 0, metier: 1, liste: 2 };
+export const PALIERS_KM = [5, 10, 20, 50];
+const palier = (r, o) => {
+  if (o.userPos && r.distance != null){
+    const i = PALIERS_KM.findIndex(k => r.distance <= k);
+    return i < 0 ? PALIERS_KM.length : i;
+  }
+  if (o.ville) return cleDe(r.ville) === o.ville ? 0 : 1;
+  return 0;
+};
+const rangEmployeur = r => r.employeur === true ? 0 : r.employeur === false ? 2 : 1;
+export function decouvertes(listes, companies, o){
+  o = o || {};
+  const genres = o.genres || [];
   const sirens = new Set(), noms = new Set();
   for (const c of companies || []){
     if (!c) continue;
@@ -295,14 +368,19 @@ export function decouvertes(listes, companies){
     const n = normName(c.name);
     if (n) noms.add(n);
   }
-  const vus = new Set(), out = [];
-  for (const l of listes || []) for (const r of l || []){
-    if (vus.has(r.siren) || sirens.has(r.siren)) continue;
-    if (noms.has(normName(r.nom)) || (r.sigle && noms.has(normName(r.sigle)))) continue;
-    vus.add(r.siren);
-    out.push(r);
-  }
-  return out;
+  const vus = new Map();
+  let ordre = 0;
+  (listes || []).forEach((l, k) => (l || []).forEach((r, i) => {
+    if (!r || r.personne || sirens.has(r.siren)) return;
+    if (noms.has(normName(r.nom)) || (r.sigle && noms.has(normName(r.sigle)))) return;
+    let x = vus.get(r.siren);
+    if (!x){ x = { r, fusion: 0, premier: ordre++, genre: 9 }; vus.set(r.siren, x); }
+    x.fusion += 1 / (RRF_K + i + 1);
+    x.genre = Math.min(x.genre, RANG_GENRE[genres[k]] ?? RANG_GENRE.liste);
+  }));
+  return [...vus.values()].sort((a, b) => (a.genre - b.genre)
+    || (a.genre > 0 ? (rangEmployeur(a.r) - rangEmployeur(b.r)) || (palier(a.r, o) - palier(b.r, o)) : 0)
+    || (b.fusion - a.fusion) || (a.premier - b.premier)).map(x => x.r);
 }
 
 /* ---------- ajouter une découverte à ses pistes ----------
