@@ -119,7 +119,7 @@ const lireDec = async (p, ms = 3500) => {
       pris: [...document.querySelectorAll('#piDec .dc-row.dc-pris .dc-nom')].map(n => n.textContent.trim()),
       etat: (s && s.querySelector('.dc-etat')?.textContent.replace(/\s+/g, ' ').trim()) || '',
       compte: document.querySelector('#piPortee [data-portee="decouvrir"] .pt-n')?.textContent.trim() || '',
-      mesPistes: document.querySelector('#piPortee [data-portee="pistes"] .pt-n')?.textContent.trim() || ''
+      boutons: document.querySelectorAll('#piDec .dc-row button').length
     };
   });
 };
@@ -183,45 +183,39 @@ const versDecouvrir = async p => {
   }
   console.log('pouce · contact, note, prénom, profil, état : rien ne sort, et rien ne part pour rien ✓');
 
-  /* ③ ajouter, d'un geste — puis Annuler */
+  /* ③ ajouter — LÉGER : aucune ligne ne porte de bouton ; la ligne ouvre
+     l'aperçu, qui porte le seul geste plein. La ligne reste, et le dit. */
   await taper(p, 'alternance Lille');
   await p.waitForTimeout(900);
-  await lireDec(p);
-  const n0 = await p.evaluate(async () => (await import('./ui/state.js')).S.companies.length);
   const ordre0 = (await lireDec(p)).noms;
-  await p.click('#piDec .dc-row:has-text("Advens") .dc-add');
-  await p.waitForTimeout(400);
+  if ((await lireDec(p)).boutons) fail('une ligne de « À découvrir » porte un bouton — la liste doit rester légère');
+  const n0 = await p.evaluate(async () => (await import('./ui/state.js')).S.companies.length);
+  await p.click('#piDec .dc-row:has-text("Advens") .dc-main');
+  await p.waitForSelector('.overlay .modal', { timeout: 3000 }).catch(() => {});
+  await p.waitForTimeout(450);
+  await p.click('.overlay .modal-f button:has-text("Ajouter à mes pistes")');
+  await p.waitForTimeout(500);
   const ap = await lireDec(p);
   const ajout = await p.evaluate(async () => {
     const S = (await import('./ui/state.js')).S;
     const c = S.companies.find(x => x.name === 'Advens');
-    const b = document.querySelector('#piDec .dc-row.dc-pris .dc-add');
     return { n: S.companies.length, siren: c && c.siren, city: c && c.city, contacts: c && c.contacts.length,
-             annuler: !!document.querySelector('.undo-bar'), presse: b && b.getAttribute('aria-pressed'),
-             focus: document.activeElement === b };
+             annuler: !!document.querySelector('.undo-bar'),
+             dit: document.querySelector('#piDec .dc-row.dc-pris .dc-ok')?.textContent.trim() || '' };
   });
   if (ajout.n !== n0 + 1 || ajout.siren !== '812345678' || ajout.city !== 'Lille')
-    fail('« Ajouter » ne crée pas la piste attendue : ' + JSON.stringify(ajout));
+    fail('« Ajouter à mes pistes » ne crée pas la piste attendue : ' + JSON.stringify(ajout));
   if (ajout.contacts) fail('le dirigeant a été importé comme contact — aucune personne d’office');
-  /* la ligne RESTE, cochée, à sa place : on voit où est partie l'entreprise */
-  if (ap.noms.join('|') !== ordre0.join('|') || ap.pris.join('|') !== 'Advens' || ajout.presse !== 'true')
-    fail('la bascule ne garde pas sa ligne cochée à sa place : ' + JSON.stringify({ avant: ordre0, apres: ap.noms, pris: ap.pris }));
-  if (ap.mesPistes !== String(Number(d.mesPistes) + 1)) fail(`le compte de « Mes pistes » ne suit pas l’ajout (${d.mesPistes} → ${ap.mesPistes})`);
+  /* la ligne RESTE à sa place, et dit qu'elle est dans tes pistes */
+  if (ap.noms.join('|') !== ordre0.join('|') || ap.pris.join('|') !== 'Advens' || ajout.dit !== 'dans tes pistes')
+    fail('l’entreprise ajoutée ne garde pas sa ligne à sa place : ' + JSON.stringify({ avant: ordre0, apres: ap.noms, pris: ap.pris, dit: ajout.dit }));
   if (!ajout.annuler) fail('pas de barre « Annuler » après l’ajout');
   await p.click('.undo-bar button:has-text("Annuler")');
   await p.waitForTimeout(400);
   const an2 = await lireDec(p);
   const nAnnule = await p.evaluate(async () => (await import('./ui/state.js')).S.companies.length);
   if (nAnnule !== n0 || !an2.noms.includes('Advens') || an2.pris.length) fail('« Annuler » ne rend pas l’état d’avant');
-  else console.log('pouce · « + » : la piste arrive avec son SIREN, sans personne importée, la ligne reste cochée à sa place, et Annuler la rend ✓');
-  /* la bascule dans l'autre sens : ✓ retire, et Annuler la remet */
-  await p.click('#piDec .dc-row:has-text("Advens") .dc-add');
-  await p.waitForTimeout(300);
-  await p.click('#piDec .dc-row:has-text("Advens") .dc-add');
-  await p.waitForTimeout(300);
-  const retire = await p.evaluate(async () => (await import('./ui/state.js')).S.companies.some(c => c.name === 'Advens'));
-  if (retire) fail('« ✓ » ne retire pas la piste qu’on vient d’ajouter');
-  else console.log('pouce · « ✓ » : la bascule retire ce qu’elle vient d’ajouter ✓');
+  else console.log('pouce · aucune ligne ne porte de bouton ; l’aperçu ajoute, la ligne reste à sa place et dit « dans tes pistes », Annuler la rend ✓');
 
   /* l'aperçu, AVANT d'en faire une piste */
   await p.click('#piDec .dc-row:has-text("Dataflow") .dc-main');
@@ -235,13 +229,16 @@ const versDecouvrir = async p => {
     fail('l’aperçu ne montre pas ce que l’annuaire sait : ' + JSON.stringify(fiche));
   if (!fiche.pied.some(t => /Ajouter à mes pistes/.test(t))) fail('l’aperçu n’offre pas d’ajouter');
   await p.screenshot({ path: `${SHOTS}/96-decouvrir-apercu.png` });
-  /* trois niveaux : le nom en titre, l'activité et les faits, puis les liens */
+  /* trois niveaux : le nom en titre, l'activité et les faits, puis les
+     liens — des LIENS, qui emmènent ailleurs (§6), pas des boutons */
   const niveaux = await p.evaluate(() => {
     const y = s => document.querySelector('.overlay ' + s)?.getBoundingClientRect().top ?? -1;
-    return [y('.ap-nom'), y('.ap-act'), y('.ap-faits'), y('.ap-liens'), y('.ap-plus')];
+    return { y: [y('.ap-nom'), y('.ap-act'), y('.ap-faits'), y('.ap-liens'), y('.ap-plus')],
+             boutons: document.querySelectorAll('.overlay .modal-b .btn').length };
   });
-  if (niveaux.some(v => v < 0) || niveaux.some((v, i) => i && v < niveaux[i - 1]))
-    fail('l’aperçu ne dit pas d’abord qui, puis quoi et où, puis comment y entrer : ' + JSON.stringify(niveaux));
+  if (niveaux.y.some(v => v < 0) || niveaux.y.some((v, i) => i && v < niveaux.y[i - 1]))
+    fail('l’aperçu ne dit pas d’abord qui, puis quoi et où, puis comment y entrer : ' + JSON.stringify(niveaux.y));
+  if (niveaux.boutons) fail(`l’aperçu porte ${niveaux.boutons} bouton(s) dans son corps — des liens suffisent, le geste vit au pied`);
   await p.click('.overlay .modal-f button:has-text("Ajouter à mes pistes")');
   await p.waitForTimeout(400);
   if (!(await p.evaluate(async () => (await import('./ui/state.js')).S.companies.some(c => c.siren === '834567890'))))
@@ -303,7 +300,10 @@ const versDecouvrir = async p => {
   const accueil = await p.evaluate(() => !!document.querySelector('#piBody .td-empty'));
   if (!d.noms.length) fail('sans aucune piste, la recherche ne montre rien à découvrir');
   if (accueil) fail('l’accueil « Aucune piste pour l’instant » reste posé au-dessus de la recherche');
-  await p.click('#piDec .dc-add >> nth=0');
+  await p.click('#piDec .dc-main >> nth=0');
+  await p.waitForSelector('.overlay .modal', { timeout: 3000 }).catch(() => {});
+  await p.waitForTimeout(450);
+  await p.click('.overlay .modal-f button:has-text("Ajouter à mes pistes")');
   await p.waitForTimeout(400);
   const n = await p.evaluate(async () => (await import('./ui/state.js')).S.companies.length);
   if (n !== 1) fail('sans aucune piste, « Ajouter » ne crée pas la première');

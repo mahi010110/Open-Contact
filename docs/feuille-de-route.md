@@ -253,6 +253,13 @@ liste de pistes sans partir de zéro, c'est « À découvrir ».
 3. Le site web, la distance, toutes les informations utiles sur la fiche,
    les liens d'un tap. **Livré le 1er octobre 2026 (6.46.0)** : le bloc
    « Annuaire » de la fiche.
+4. Des employeurs d'abord ([`sources.md`](sources.md), lot 4) et une
+   présentation refaite en léger ([`presentation-recherche.md`](presentation-recherche.md)) :
+   « À découvrir » devient un onglet sous la barre, la liste perd ses
+   boutons, le poste montre la liste et l'aperçu côte à côte, et le bloc
+   « Annuaire » de la fiche se range par usage. **Livré le 5 octobre 2026
+   (6.48.0).** Restent, après les essais sur le téléphone : les fautes et
+   le zéro résultat (lot 5), la fiche qui converge (lot 6).
 
 **B. Le réseau** — [`reseau.md`](reseau.md). Trouver quelqu'un chez une
 entreprise parmi ses amis, ses groupes et leurs amis, trois cercles au plus.

@@ -50,99 +50,119 @@ clair et sombre.
 
 ---
 
-## La nouvelle présentation
+## La nouvelle présentation — en léger
 
-### 1. « À découvrir » est une vue, pas une section enterrée
+Une première version a suivi ce relevé à la lettre : un contrôle segmenté
+à deux comptes, une bascule `+` sur chaque ligne, des liens habillés en
+boutons, le dirigeant en puce `+` dans les contacts. Le mainteneur l'a
+regardée le jour même : **« il faut que ce soit léger, discret et
+optimisé au max — pas de gros boutons ni de rajout dégoulinant »**. La
+seconde passe a retiré tout ce qui n'était pas indispensable. Ce qu'elle
+a enlevé, et pourquoi :
 
-Sous la barre de « Mes pistes », **un contrôle à deux segments** :
+| Première version | Livré | Pourquoi |
+|---|---|---|
+| un contrôle segmenté encadré, deux comptes | **deux onglets de texte**, un trait sous l'actif, un seul compte (celui d'« À découvrir ») | un cadre en relief pèse comme un bouton ; le compte de tes pistes est déjà dans le titre de l'écran |
+| une bascule `+` au bout de chaque ligne | **aucun bouton dans la liste** : la ligne ouvre l'aperçu, qui porte le seul geste plein | dix `+` restent dix boutons identiques, le papier peint du défaut n° 4 sous un autre habit |
+| « Anciens de mon école », « Offres » en boutons contourés | **des liens texte** avec ↗ | §6 : un lien emmène ailleurs, un bouton change des données |
+| la zone dans un bandeau de la vue | **une étiquette parmi les autres**, avec sa croix ; retirée, elle revient en pointillé | une seule rangée d'étiquettes, un seul langage : posé en plein, proposé en pointillé |
+| le dirigeant en puce `+` dans les contacts | **proposé dans « Ajouter un contact »**, en pointillé (« Selon l'annuaire ») | il sert au moment où l'on ajoute quelqu'un, pas avant ; un tap remplit le nom et le rôle, rien ne s'ajoute sans « Enregistrer » |
+| sept rangées de données dans la fiche | **quatre au plus** (Activité, Taille, Dirigeant, Site) et **une ligne grise** pour la source, le SIREN, la fiche officielle, les offres | « Taille » dit effectif, âge et sites en une ligne ; la source se lit, elle ne se regarde pas |
+
+### 1. « À découvrir » est un onglet de la barre
 
 ```
-[ Mes pistes · 4 ] [ À découvrir · 10 ]
+Mes pistes   À découvrir 10
+             ──────────
 ```
 
-- Il est là **en permanence** : la fonction se voit avant d'avoir servi.
-- Les deux comptes se remplissent **pendant qu'on tape** : au pouce, ils
-  sont au-dessus du clavier — on voit « 10 » sans rien faire de plus.
+- Il est là **en permanence**, sous la barre : la fonction se voit avant
+  d'avoir servi, et au pouce elle reste au-dessus du clavier.
+- Son compte se remplit **pendant qu'on tape**.
 - Rien ne part du réseau **au démarrage** (invariant ④) : sans recherche
-  tapée, « À découvrir » n'a pas de compte ; c'est le **tap** sur le
-  segment qui pose la question par défaut (ta zone, le numérique,
-  l'employeur d'abord).
-- **Mes pistes vide → À découvrir.** Une recherche qui ne trouve rien dans
-  tes pistes ouvre l'autre segment : c'est la règle de NN/g, et c'est
-  exactement le moment où l'annuaire sert.
-- La portée tient pour la session, comme un onglet garde sa place (§5).
-
-Les étiquettes de la barre valent pour les deux vues ; **la zone**, qui ne
-concerne que l'annuaire, n'apparaît que dans « À découvrir », parmi les
-étiquettes.
+  tapée, c'est le **tap** sur l'onglet qui pose la question par défaut
+  (ta zone, le numérique, l'employeur d'abord).
+- **Sans aucune piste**, une recherche ouvre directement « À découvrir » :
+  c'est la règle de NN/g, et c'est le moment où l'annuaire sert.
+- L'onglet tient pour la session, comme un onglet de navigation (§5).
+- Dans cette vue, « Affiner » s'efface : il trie et filtre TES pistes.
 
 ### 2. Au pouce : une liste, puis l'aperçu en feuille
 
-- **Une ligne** : le nom (il plie, §4), puis une sous-ligne qui s'élide —
-  `Lille · 2 km · 100-199 salariés`. Ce qui départage passe devant ;
-  l'activité, presque toujours la même, ne prend plus de place.
-- **Une bascule au bout** : `+` (44 px, une icône que tout le monde lit,
-  et un nom complet pour le lecteur d'écran). Tapée, elle devient `✓`
-  plein, **la ligne reste à sa place** — on voit où est partie
-  l'entreprise (§4, « où est-ce parti ? ») — et la barre Annuler se pose.
-- **La ligne** ouvre l'aperçu, en feuille.
+- **Une ligne** : le nom (il plie, §4), puis une sous-ligne qui s'élide :
+  `Lille · 2 km · 100-199 salariés`. L'activité, presque toujours la
+  même, ne prend plus de place.
+- **La ligne ouvre l'aperçu.** Son pied porte « Ajouter à mes pistes »,
+  le seul geste plein. Une fois ajoutée, la ligne **reste à sa place** et
+  dit `✓ dans tes pistes` en tête de sa sous-ligne. La barre Annuler se
+  pose.
 
 ### 3. Au poste : la liste et l'aperçu côte à côte
 
-La disposition canonique liste-détail. La liste à gauche, l'aperçu à
+La disposition canonique liste-détail : la liste à gauche, l'aperçu à
 droite, collé en haut pendant que la liste défile. La première ligne est
-choisie d'office ; la flèche ↓ / ↑ change de ligne et l'aperçu suit le
-focus. Comparer dix entreprises ne coûte plus dix fenêtres.
+choisie d'office, marquée d'un liseré navy (le châssis dit *où tu es*,
+§4). ↓ / ↑ depuis la barre parcourt la liste, et l'aperçu suit le focus.
 
 ### 4. L'aperçu : ce qui décide d'abord
 
 ```
 Capgemini Technology Services                 ← le nom, en titre
 Conseil en systèmes et logiciels informatiques
-⌖ Lille · 2 km    ⚇ 10 000 salariés et plus    ◷ depuis 2004
-[↗ Anciens de mon école]  [↗ Offres]
-────────────────────────────────────────────────
-Adresse · Dirigeant · établissements · SIREN · fiche officielle  ← plus petit
-[ + Ajouter à mes pistes ]                    ← le seul geste plein
+Lille · 2 km · 10 000 salariés et plus · depuis 2004
+Qui y travaille ↗   Offres d'emploi ↗          ← des liens
+2 av. … · Thomas Leroy, président              ← plus petit, gris
+SIREN … · 12 établissements · fiche officielle ↗
+[ Ajouter à mes pistes ]                       ← le seul geste plein
 ```
 
-Trois niveaux, pas sept : **qui** (le nom), **quoi et où** (activité, lieu,
-taille, âge), **comment y entrer** (les anciens de ton école, les offres).
-Le reste est là, plus petit, pour qui le cherche.
+Trois niveaux : **qui**, **quoi et où**, **comment y entrer**. Le reste
+est là, en gris, pour qui le cherche. Le corps ne porte aucun bouton.
 
 ### 5. La fiche : chaque donnée de l'annuaire là où elle sert
 
-Le bloc « Annuaire » disparaît ; ce qu'il portait rejoint son usage :
+Le bloc « Annuaire » disparaît. Ce qu'il portait rejoint son usage :
 
-| Ce que l'annuaire apporte | Où ça va | Pourquoi là |
+| Ce que l'annuaire apporte | Où ça va | Sous quelle forme |
 |---|---|---|
-| « Anciens de mon école », « Qui y travaille » | **Contacts** | c'est un moyen de trouver quelqu'un à qui écrire |
-| le dirigeant | **Contacts**, en suggestion avec `+` | c'est un contact possible |
-| activité, effectif, création, établissements, site, offres | **À savoir** | c'est ce qu'on sait de l'entreprise |
-| « Compléter ma fiche » (les vides seulement, avec Annuler) | **À savoir** | il complète ce qui est à côté |
-| entreprise fermée | **en tête de la fiche**, au langage d'urgence | c'est la seule donnée qui réclame quelque chose |
+| « Anciens de mon école » | **Contacts**, sous la liste | un lien ↗ |
+| le dirigeant | **« Ajouter un contact »** | une proposition en pointillé, qui remplit nom et rôle |
+| activité, effectif, âge, sites, dirigeant, site | **À savoir** | quatre rangées au plus |
+| source, SIREN, fiche officielle, offres | **À savoir**, en dernier | une ligne grise |
+| « Compléter ma fiche » | **À savoir**, au-dessus de la ligne grise | un bouton compact, **seulement s'il y a un vide**, avec ce qu'il ajoutera à côté |
+| entreprise fermée | **à côté du nom** | le langage d'urgence (`mark-late`) |
 
-Les règles du lot 3 ne bougent pas : rien ne part pour un bloc qu'on ne
-regarde pas, rien ne change sans geste, une réponse redessine son bloc et
-jamais la fiche.
+**Ce qui part change sur un point, et c'est voulu.** La question par
+SIREN part maintenant **à l'ouverture de la fiche**, et non plus au
+dépliage d'un bloc. Ce qu'elle rapporte sert dans deux endroits qu'on
+regarde sans rien déplier : la marque « fermée » à côté du nom, et le
+dirigeant proposé dans « Ajouter un contact ». Elle ne porte que neuf
+chiffres publics, elle part une fois par fiche et par session, et rien ne
+change dans la fiche sans un geste. Une piste **sans** SIREN ne se cherche
+toujours que sur « Trouver dans l'annuaire ».
 
 ---
 
 ## Les lots
 
-**A. « À découvrir » en vue** — le contrôle segmenté, la liste au pouce
-avec sa bascule, la liste-détail au poste, l'aperçu en trois niveaux. Il
-emporte le lot 4 des sources (l'employeur, la jumelle, ta zone), écrit
-juste avant ce retour.
+**A. « À découvrir » en onglet** : les deux onglets de texte, la liste
+sans bouton, la liste-détail au poste, l'aperçu en trois niveaux, la zone
+parmi les étiquettes. Il emporte le lot 4 des sources (l'employeur, la
+jumelle, ta zone), écrit juste avant ce retour.
 
-**B. La fiche par usage** — le bloc « Annuaire » dissous dans Contacts et
-À savoir.
+**B. La fiche par usage** : le bloc « Annuaire » dissous dans Contacts,
+« Ajouter un contact » et À savoir.
 
-Chacun se livre dans main, se regarde sur captures (pouce, poste, clair,
-sombre, 200 % de texte, 320 px), et se garde : la fonction visible dès
-l'ouverture, aucun appel réseau au démarrage, les comptes au-dessus du
-clavier, la bascule qui garde sa ligne, la liste-détail au poste, aucun
-mot privé qui sorte — le garde d'origine, rejoué tel quel.
+Livrés ensemble. Captures regardées au pouce et au poste, en clair et en
+sombre, à 320 px et à 200 % de texte. Gardes :
+- `e2e-decouvrir.mjs` : l'onglet visible dès l'ouverture, aucun appel au
+  démarrage, le compte pendant la frappe, aucun bouton dans la liste ni
+  dans le corps de l'aperçu, la ligne qui reste à sa place, la
+  liste-détail au poste, aucun mot privé qui sorte (le garde d'origine,
+  rejoué tel quel) ;
+- `e2e-classement.mjs` : la zone parmi les étiquettes ;
+- `e2e-enrichir.mjs` : chaque donnée à sa place, le dirigeant proposé
+  dans « Ajouter un contact » sans s'ajouter tout seul.
 
 ---
 

@@ -2,10 +2,11 @@
    La fiche s'enrichit — l'annuaire, Wikidata, trois liens d'un tap
    (docs/recherche.md, lot 3 ; docs/presentation-recherche.md, lot B)
 
-   Ce que l'annuaire apporte à la fiche est RANGÉ PAR USAGE (§6) : le
-   dirigeant et « Anciens de mon école » avec les contacts, les données,
-   « Compléter ma fiche », les offres et la fiche officielle dans « À
-   savoir », une entreprise fermée sous le nom. Deux services publics
+   Ce que l'annuaire apporte à la fiche est RANGÉ PAR USAGE (§6) :
+   « Anciens de mon école » avec les contacts, le dirigeant proposé dans
+   « Ajouter un contact », les données, « Compléter ma fiche », les offres
+   et la fiche officielle dans « À savoir », une entreprise fermée sous
+   le nom. Deux services publics
    sont interrogés depuis le navigateur. Ce fichier lit chaque requête qui sort, en
    partant de l'état RÉEL de l'app (§8 : un contrôle de fuite lit les
    octets qui sortent par le vrai chemin), et vérifie que rien ne change
@@ -15,19 +16,20 @@
      et le département pour une piste qui n'en porte pas, et seulement
      sur « Trouver dans l'annuaire ». Jamais une note, un contact, le
      profil. La question par SIREN part à l'ouverture de la fiche : ce
-     qu'elle rapporte se montre dans les contacts, qu'on regarde ;
+     qu'elle rapporte sert dès qu'on ajoute un contact ;
    ② ce qui change : « Compléter ma fiche » remplit les VIDES, n'écrase
-     rien, et se défait ; un dirigeant ne devient un contact que si on
-     l'ajoute, et se défait ; choisir « la bonne » attache le SIREN ;
+     rien, et se défait ; un dirigeant ne devient un contact que si on le
+     choisit dans « Ajouter un contact », et rien ne s'ajoute sans
+     « Enregistrer » ; choisir « la bonne » attache le SIREN ;
    ③ les liens : LinkedIn porte l'école, France Travail ne la porte pas,
      la fiche officielle vise le SIREN ; tous s'ouvrent ailleurs ;
    ④ hors ligne, une panne : chaque cas se dit, et se répare ;
    ⑤ au poste : « À savoir » est ouvert, la réponse arrive sans redessiner
      la fiche sous les doigts (les notes en cours restent), aucune feuille
      ne défile de travers, dans les deux thèmes ;
-   ⑥ chaque donnée est À SA PLACE : le dirigeant et les anciens de l'école
-     dans les contacts, le reste dans « À savoir », plus aucun bloc
-     « Annuaire » à part.
+   ⑥ chaque donnée est À SA PLACE : les anciens de l'école dans les
+     contacts, le dirigeant là où l'on ajoute un contact, le reste dans
+     « À savoir », plus aucun bloc « Annuaire » à part.
 
    Les services sont REMPLACÉS par des réponses à leur forme réelle
    (relevée par `sonde-annuaire.mjs`). La CSP de l'app, elle, est la
@@ -149,8 +151,8 @@ const bloc = async (p, ms = 3000) => {
       etat: sav?.querySelector('.fa-etat')?.textContent.replace(/\s+/g, ' ').trim() || '',
       completer: !!sav?.querySelector('[data-fa-completer]'),
       quoi: sav?.querySelector('.fa-quoi')?.textContent.trim() || '',
-      dirs: [...(cts?.querySelectorAll('[data-fa-dir]') || [])].map(b => b.dataset.faDir),
-      dirTexte: cts?.querySelector('.fa-sugg')?.textContent.replace(/\s+/g, ' ').trim() || '',
+      siren: sav?.querySelector('.fa-siren')?.textContent.trim() || '',
+      gensVisible: !!cts?.querySelector('[data-lien="gens"]')?.getClientRects().length,
       trouver: !!sav?.querySelector('[data-fa-trouver]'),
       choix: [...(sav?.querySelectorAll('[data-fa-pick] b') || [])].map(b => b.textContent.trim()),
       liens: [...document.querySelectorAll('#faCts [data-lien], #faSavoir [data-lien]')].map(a => ({ cle: a.dataset.lien, href: a.href,
@@ -194,7 +196,7 @@ const annuler = async p => {
      de notes serait un AUTRE nœud */
   sv.regler({ statut: 200, retard: 400 });
   await ouvrirFiche(p, 'a');
-  await p.waitForSelector('#faSavoir');
+  await p.waitForSelector('#faSavoir', { state: 'attached' });
   await p.evaluate(() => { document.querySelector('#fiNotes').__marque = 1; });
   let b = await bloc(p);
   /* le site arrive APRÈS les données (une seconde question, à Wikidata) */
@@ -211,28 +213,28 @@ const annuler = async p => {
     fail('la question à l’annuaire ne porte pas QUE le SIREN : ' + qa);
   if (!qw || !/query\.wikidata\.org/.test(qw) || !pliees(qw).includes('812345678')) fail('le site n’a pas été cherché sur Wikidata : ' + qw);
   for (const u of sv.journal){ const w = fuite(u); if (w) fail(`« ${w} » est sorti : ${u}`); }
-  /* ⑥ le dirigeant est dans les CONTACTS, visible sans rien déplier */
-  /* Claire Petit est déjà un contact : on ne la propose pas deux fois */
-  if (b.dirs.join() !== 'Thomas Leroy') fail('dirigeants proposés : ' + b.dirs);
-  if (!/Président/.test(b.dirTexte) || /Cabinet/.test(b.dirTexte)) fail('la suggestion du dirigeant : ' + b.dirTexte);
-  const dirVisible = await p.evaluate(() => { const x = document.querySelector('#faCts .fa-sugg'); return !!x && x.getClientRects().length > 0; });
-  if (!dirVisible) fail('au pouce, le dirigeant suggéré ne se voit pas sans déplier');
+  /* ⑥ « Anciens de mon école » est avec les CONTACTS, visible sans rien déplier */
+  if (!b.gensVisible) fail('au pouce, « Anciens de mon école » ne se voit pas sans déplier');
   await ouvrirBloc(p);
   b = await bloc(p);
   if (b.lignes['Activité'] !== 'Conseil en systèmes et logiciels informatiques') fail('activité : ' + JSON.stringify(b.lignes));
-  if (b.lignes['Effectif'] !== '100-199 salariés') fail('effectif : ' + b.lignes['Effectif']);
-  if (b.lignes['Création'] !== '2009') fail('création : ' + b.lignes['Création']);
+  /* la taille d'un coup d'œil : effectif, âge, sites — une rangée, pas trois */
+  if (b.lignes['Taille'] !== '100-199 salariés · depuis 2009 · 4 sites') fail('taille : ' + b.lignes['Taille']);
+  /* les dirigeants qui sont des PERSONNES ; un cabinet n'est personne à qui écrire */
+  if (!/^Thomas Leroy, président/.test(b.lignes['Dirigeant'] || '') || /Cabinet/i.test(b.lignes['Dirigeant'] || ''))
+    fail('dirigeant : ' + b.lignes['Dirigeant']);
   if (!/advens\.fr/.test(b.lignes['Site'] || '')) fail('le site Wikidata ne se montre pas : ' + JSON.stringify(b.lignes));
   if (b.lignes['Siège'] || /Rue de la Bassée/.test(Object.values(b.lignes).filter((v, i, a) => a.indexOf(v) !== i).join()))
     fail('l’adresse se redit alors que la fiche l’a déjà');
   /* la fiche n'a ni site ni « En bref » : ce sont les deux seuls vides que
      l'annuaire sait remplir — l'adresse, la ville, le secteur sont déjà là */
   if (!b.completer || b.quoi !== 'activité · site') fail(`« Compléter ma fiche » : ${b.completer} « ${b.quoi} »`);
-  console.log('pouce · SIREN : le SIREN seul part, le dirigeant dans les contacts, activité, effectif, site dans « À savoir » ✓');
+  if (b.siren !== 'SIREN 812345678') fail('la ligne de source ne dit pas le SIREN : ' + b.siren);
+  console.log('pouce · SIREN : le SIREN seul part, activité, taille, dirigeant, site dans « À savoir », la source en ligne grise ✓');
 
   /* ③ les liens */
   const L = Object.fromEntries(b.liens.map(l => [l.cle, l]));
-  if (b.liens.map(l => l.cle).join() !== 'gens,offres,officielle') fail('liens : ' + b.liens.map(l => l.cle));
+  if (b.liens.map(l => l.cle).join() !== 'gens,officielle,offres') fail('liens : ' + b.liens.map(l => l.cle));
   /* ⑥ chacun à sa place : trouver quelqu'un avec les contacts, le reste dans « À savoir » */
   if (b.liens.map(l => l.zone).join() !== 'contacts,savoir,savoir') fail('les liens ne sont pas à leur place : ' + b.liens.map(l => l.cle + ':' + l.zone));
   if (L.gens.label !== 'Anciens de mon école' || new URL(L.gens.href).searchParams.get('keywords') !== 'Advens Lycée Baggio')
@@ -265,18 +267,30 @@ const annuler = async p => {
   if ((apres.history || []).some(h => /annuaire/i.test(h.t))) fail('Annuler laisse une ligne d’historique');
   console.log('pouce · « Compléter ma fiche » : le vide se remplit, rien d’écrasé, « À savoir » reste ouvert, Annuler défait ✓');
 
-  /* ② un dirigeant devient un contact — seulement sur geste, et se défait */
-  await p.click('[data-fa-dir="Thomas Leroy"]');
-  await p.waitForTimeout(200);
+  /* ② le dirigeant est PROPOSÉ là où l'on ajoute un contact — un tap
+     remplit le nom et le rôle, rien ne s'ajoute sans « Enregistrer ».
+     Claire Petit est déjà un contact : on ne la propose pas deux fois ;
+     un cabinet n'est personne à qui écrire */
+  await p.evaluate(() => document.querySelector('#fiCtAdd').scrollIntoView({ block: 'center' }));
+  await p.click('#fiCtAdd');
+  await p.waitForSelector('.ce-sugg [data-sugg]', { timeout: 3000 }).catch(() => {});
+  await p.waitForTimeout(400);
+  const sugg = await p.evaluate(() => [...document.querySelectorAll('.ce-sugg [data-sugg]')].map(x => x.textContent.replace(/\s+/g, ' ').trim()));
+  if (sugg.length !== 1 || !/^Thomas Leroy président$/.test(sugg[0])) fail('« Ajouter un contact » propose : ' + JSON.stringify(sugg));
+  const nAvant = (await piste(p, 'a')).contacts.length;
+  await p.click('.ce-sugg [data-sugg="0"]');
+  const rempli = await p.evaluate(() => ({ nom: document.querySelector('#ceName').value, role: document.querySelector('#ceRole').value,
+    focus: document.activeElement?.id }));
+  if (rempli.nom !== 'Thomas Leroy' || rempli.role !== 'Président' || rempli.focus !== 'ceEmail')
+    fail('un tap sur la suggestion ne remplit pas nom et rôle : ' + JSON.stringify(rempli));
+  if ((await piste(p, 'a')).contacts.length !== nAvant) fail('le dirigeant est devenu contact sans « Enregistrer »');
+  await p.screenshot({ path: `${SHOTS}/98-enrichir-contact-pouce.png` });
+  await p.click('.overlay:last-child .modal-f button:has-text("Enregistrer")');
+  await p.waitForTimeout(300);
   apres = await piste(p, 'a');
   const t = (apres.contacts || []).find(x => x.name === 'Thomas Leroy');
   if (!t || t.role !== 'Président') fail('le dirigeant n’est pas devenu contact : ' + JSON.stringify(apres.contacts));
-  b = await bloc(p);
-  if (b.dirs.length) fail('le dirigeant ajouté reste proposé');
-  await annuler(p);
-  apres = await piste(p, 'a');
-  if ((apres.contacts || []).some(x => x.name === 'Thomas Leroy')) fail('Annuler n’a pas retiré le contact');
-  console.log('pouce · dirigeant → contact sur geste, Annuler le retire ✓');
+  console.log('pouce · le dirigeant proposé dans « Ajouter un contact » : un tap remplit, rien sans « Enregistrer » ✓');
   await fermer(p);
   await ctx.close();
 }
@@ -285,7 +299,7 @@ const annuler = async p => {
 {
   const { ctx, p, sv } = await ecran({ width: 390, height: 844 }, true);
   await ouvrirFiche(p, 'b');
-  await p.waitForSelector('#faSavoir');
+  await p.waitForSelector('#faSavoir', { state: 'attached' });
   await ouvrirBloc(p);
   let b = await bloc(p, 500);
   if (sv.journal.length) fail('sans SIREN, une requête est partie sans geste : ' + sv.journal);
@@ -316,7 +330,7 @@ const annuler = async p => {
   if (!/Place du Theatre/i.test(c.address || '') || c.lat == null) fail('l’adresse vide ne s’est pas remplie : ' + c.address);
   if (c.domain !== 'cloud') fail('le secteur vide ne s’est pas rempli : ' + c.domain);
   b = await bloc(p);
-  if (b.lignes['SIREN'] !== '856123456' || b.trouver) fail('après le choix, le bloc ne montre pas l’entreprise : ' + JSON.stringify(b));
+  if (b.siren !== 'SIREN 856123456' || b.trouver || !b.lignes['Taille']) fail('après le choix, « À savoir » ne montre pas l’entreprise : ' + JSON.stringify(b));
   await annuler(p);
   c = await piste(p, 'b');
   if (c.siren || c.address || c.lat != null || c.domain !== 'autre') fail('Annuler n’a pas tout défait : ' + JSON.stringify(c));
@@ -330,7 +344,7 @@ const annuler = async p => {
   const { ctx, p, sv } = await ecran({ width: 390, height: 844 }, true);
   await ctx.setOffline(true);
   await ouvrirFiche(p, 'a');
-  await p.waitForSelector('#faSavoir');
+  await p.waitForSelector('#faSavoir', { state: 'attached' });
   await ouvrirBloc(p);
   let b = await bloc(p, 800);
   if (b.etat !== 'Hors ligne. Réessayer') fail('hors ligne : « ' + b.etat + ' »');
@@ -354,14 +368,14 @@ for (const sombre of [false, true]){
   const { ctx, p, sv } = await ecran({ width: 1280, height: 800 }, false, { sombre });
   sv.regler({ statut: 200, retard: 400 });
   await ouvrirFiche(p, 'a');
-  await p.waitForSelector('#faSavoir');
+  await p.waitForSelector('#faSavoir', { state: 'attached' });
   /* on écrit une note PENDANT que la réponse arrive : elle doit rester */
   await p.click('#fiNotes');
   await p.keyboard.type('à relire', { delay: 5 });
   const b = await bloc(p);
   if (!b.ouvert) fail('au poste, « À savoir » n’est pas ouvert');
   if (!sv.journal.length) fail('au poste, rien n’est parti à l’ouverture');
-  if (b.lignes['Effectif'] !== '100-199 salariés') fail('au poste, les données ne sont pas là');
+  if (!/^100-199 salariés/.test(b.lignes['Taille'] || '')) fail('au poste, les données ne sont pas là');
   const note = await p.evaluate(() => ({ v: document.querySelector('#fiNotes').value, f: document.activeElement?.id }));
   if (note.v !== PISTES[0].notes + 'à relire' || note.f !== 'fiNotes') fail('la réponse a redessiné la fiche sous les doigts : ' + JSON.stringify(note));
   const deborde = await p.evaluate(() => {
@@ -381,7 +395,7 @@ for (const sombre of [false, true]){
   const { ctx, p } = await ecran({ width: 320, height: 640 }, true);
   await p.evaluate(() => { document.documentElement.style.fontSize = '200%'; });
   await ouvrirFiche(p, 'a');
-  await p.waitForSelector('#faSavoir');
+  await p.waitForSelector('#faSavoir', { state: 'attached' });
   await ouvrirBloc(p);
   await bloc(p);
   const r = await p.evaluate(() => {

@@ -1,7 +1,8 @@
 # Des sources qui convergent, une recherche qui s'adapte — le concept
 
-*Version de travail, 5 octobre 2026. Suite de [`recherche.md`](recherche.md),
-dont les trois lots sont livrés (6.44.0 à 6.46.0). Ce document dit ce qu'on
+*5 octobre 2026. Suite de [`recherche.md`](recherche.md), dont les trois
+lots sont livrés (6.44.0 à 6.46.0). Le lot 4 est livré (6.48.0) ; les lots 5
+et 6 attendent les essais sur le téléphone. Ce document dit ce qu'on
 ajoute, pourquoi, et comment on saura que c'est juste. Tout ce qu'il affirme
 d'une source a été **mesuré** par `tests/e2e/sonde-sources.mjs` en CI, depuis
 un vrai navigateur — jamais supposé.*
@@ -276,6 +277,10 @@ d'entreprises différentes, combien d'employeurs, à quelle distance.
 
 4. **Une liste qui peut t'accueillir.** Rien de nouveau à appeler :
    l'annuaire, mieux interrogé, et un classement qui dit sa raison.
+   **Livré le 5 octobre 2026 (6.48.0)**, avec la nouvelle présentation
+   de la recherche ([`presentation-recherche.md`](presentation-recherche.md)) ;
+   mesuré avant et après par `sonde-classement.mjs`, gardé par
+   `e2e-classement.mjs`.
    - plus aucune **personne** dans « À découvrir » : les entrepreneurs
      individuels ne sont plus demandés (40 % du numérique dans le Nord) ;
    - **deux questions, une liste** : celle d'aujourd'hui, et sa jumelle

@@ -125,8 +125,10 @@ const versDecouvrir = async p => {
 const lire = p => p.evaluate(() => ({
   noms: [...document.querySelectorAll('#piDec .dc-nom')].map(n => n.textContent.trim()),
   tailles: [...document.querySelectorAll('#piDec .dc-sub')].map(n => n.textContent.trim().split(' · ').pop()),
-  zone: document.querySelector('#piDec .dc-zone .st-chip')?.textContent.trim() || '',
-  proposee: document.querySelector('#piDec .dc-zone .prop-chip')?.textContent.trim() || '',
+  /* la zone vit parmi les étiquettes, sous la barre — posée (pleine, avec sa
+     croix) ou proposée (pointillé) */
+  zone: document.querySelector('#piChips [data-dc-zone="off"]')?.textContent.trim() || '',
+  proposee: document.querySelector('#piChips [data-dc-zone="on"]')?.textContent.trim() || '',
   section: !!document.querySelector('#piDec .dc-vue')
 }));
 
@@ -181,16 +183,16 @@ const lire = p => p.evaluate(() => ({
   await p.evaluate(() => document.activeElement.blur());
   await p.screenshot({ path: `${SHOTS}/97-classement-zone-pouce.png` });
   const nAvant = an.journal.length;
-  await p.click('#piDec .dc-zone .st-chip');
+  await p.click('#piChips [data-dc-zone="off"]');
   await p.waitForTimeout(400);
   const sans = await lire(p);
-  const focus1 = await p.evaluate(() => document.activeElement && (document.activeElement.closest('#piDec') ? 'section' : document.activeElement.id || document.activeElement.tagName));
+  const focus1 = await p.evaluate(() => document.activeElement && (document.activeElement.closest('#piChips') ? 'etiquettes' : document.activeElement.id || document.activeElement.tagName));
   if (sans.zone || !sans.proposee) fail(`zone retirée : posée « ${sans.zone} », proposée « ${sans.proposee} »`);
   if (an.journal.length !== nAvant) fail('zone retirée, « réseau » sans lieu a quand même interrogé l’annuaire');
-  if (focus1 !== 'section') fail(`zone retirée : le focus est tombé sur ${focus1}`);
-  else console.log('pouce · ④ la croix la retire : rien ne part, elle revient PROPOSÉE en pointillé, et le focus reste dans la section ✓');
+  if (focus1 !== 'etiquettes') fail(`zone retirée : le focus est tombé sur ${focus1}`);
+  else console.log('pouce · ④ la croix la retire : rien ne part, elle revient PROPOSÉE en pointillé, et le focus reste parmi les étiquettes ✓');
   await p.screenshot({ path: `${SHOTS}/97-classement-zone-proposee.png` });
-  await p.click('#piDec .dc-zone .prop-chip');
+  await p.click('#piChips [data-dc-zone="on"]');
   await fini(p);
   const re = await lire(p);
   if (re.zone !== 'Nord (59)' || !re.noms.length) fail('un tap sur la zone proposée ne la remet pas');
@@ -215,10 +217,10 @@ for (const [vp, touch, sombre, nom] of [[{ width: 390, height: 844 }, true, true
   await versDecouvrir(p);
   const z = await lire(p);
   if (z.zone !== 'Nord (59)') fail(`${nom} : pas d’étiquette de zone`);
-  /* l'étiquette tient sa cible (§5) et ne déborde pas de la section */
+  /* l'étiquette tient sa cible (§5) et ne déborde pas de sa rangée */
   const g = await p.evaluate(() => {
-    const b = document.querySelector('#piDec .dc-zone .st-chip').getBoundingClientRect();
-    const s = document.querySelector('#piDec .dc-vue').getBoundingClientRect();
+    const b = document.querySelector('#piChips [data-dc-zone]').getBoundingClientRect();
+    const s = document.querySelector('#piChips').getBoundingClientRect();
     return { h: Math.round(b.height), dedans: b.right <= s.right + 1 };
   });
   const min = touch ? 44 : 32;
@@ -227,7 +229,7 @@ for (const [vp, touch, sombre, nom] of [[{ width: 390, height: 844 }, true, true
   await p.screenshot({ path: `${SHOTS}/97-classement-zone-${nom}.png` });
   await ctx.close();
 }
-console.log('pouce sombre, poste clair et sombre : l’étiquette de zone tient sa cible et sa section ✓');
+console.log('pouce sombre, poste clair et sombre : l’étiquette de zone tient sa cible et sa rangée ✓');
 
 if (errors.length) fail('erreurs console : ' + errors.join(' | '));
 else console.log('Zéro erreur console.');

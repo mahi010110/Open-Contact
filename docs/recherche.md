@@ -332,6 +332,10 @@ Et quatre décisions de dessin :
   nouvelles » n'aurait rien protégé : c'est la porte que §6 refuse.
   Chaque ligne a « Ajouter » + Annuler 30 s, et la ligne elle-même ouvre
   l'aperçu — ce que l'annuaire sait, AVANT d'en faire une piste.
+  *(5 octobre 2026 : le bouton par ligne est parti à son tour — dix
+  « Ajouter » identiques font un papier peint. La ligne ouvre l'aperçu,
+  qui porte le seul geste plein ; voir
+  [`presentation-recherche.md`](presentation-recherche.md).)*
 - **Sans métier tapé, l'annuaire cherche dans le numérique** (codes 62,
   63.11, 58.29). C'est le produit (§1) : « alternance Lille » ne veut pas
   dire « toutes les entreprises du Nord », boulangeries comprises.
@@ -344,7 +348,13 @@ Et quatre décisions de dessin :
 
 ## Ce que le lot 3 a appris
 
-La fiche porte un bloc **« Annuaire »**, sous « À savoir » : ce que tu
+> *5 octobre 2026 : la présentation a changé depuis — le bloc
+> « Annuaire » est dissous dans Contacts, « Ajouter un contact » et À
+> savoir, et la question par SIREN part à l'ouverture de la fiche. Voir
+> [`presentation-recherche.md`](presentation-recherche.md). Les règles de
+> ce qui part et de ce qui change, ci-dessous, tiennent toujours.*
+
+La fiche portait un bloc **« Annuaire »**, sous « À savoir » : ce que tu
 sais passe avant ce que le registre dit. Il montre l'activité, l'effectif,
 l'année de création, le nombre d'établissements, le dirigeant, le site
 trouvé sur Wikidata, et trois liens d'un tap — les anciens de ton école
