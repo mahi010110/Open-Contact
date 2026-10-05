@@ -1,54 +1,94 @@
 /* ============================================================
-   OpenContact — interface · la fiche s'enrichit (docs/recherche.md, lot 3)
+   OpenContact — interface · la fiche s'enrichit
+   (docs/recherche.md, lot 3 ; docs/presentation-recherche.md, lot B)
 
-   Un bloc de la fiche, « Annuaire », sous « À savoir ». Il dit ce que
-   l'annuaire public des entreprises sait de la piste — activité,
-   effectif, création, établissements, dirigeant —, le site officiel
-   trouvé sur Wikidata, et il donne trois liens d'un tap : les anciens
-   de ton école chez elle (LinkedIn), ses offres (France Travail), sa
-   fiche officielle.
+   Ce que l'annuaire public des entreprises sait de la piste — activité,
+   effectif, création, établissements, dirigeant —, le site trouvé sur
+   Wikidata, et les liens d'un tap : les anciens de ton école chez elle
+   (LinkedIn), ses offres (France Travail), sa fiche officielle.
+
+   RANGÉ PAR USAGE, PAS PAR SOURCE (CLAUDE.md §6). Le premier dessin en
+   faisait un bloc « Annuaire » replié tout en bas de la fiche : trois
+   gestes de recherche, sept données et un contact possible, rangés
+   ensemble parce qu'ils venaient du même service. Ils vont maintenant
+   là où ils servent :
+   · CONTACTS — « Anciens de mon école » (trouver quelqu'un à qui
+     écrire), et le dirigeant proposé quand on ajoute un contact ;
+   · À SAVOIR — activité, taille, dirigeant, site, puis une ligne grise :
+     la source, le SIREN, la fiche officielle, les offres — et « Compléter
+     ma fiche » à côté de ce qu'il complète ;
+   · SOUS LE NOM — une entreprise fermée, la seule donnée qui réclame
+     quelque chose.
 
    CE QUI PART, ET QUAND :
    · une piste qui porte un SIREN se relit par ce SIREN seul — neuf
-     chiffres publics. Au poste le bloc est ouvert, la question part à
-     l'ouverture de la fiche ; au pouce il est replié, elle part quand
-     on le déplie. Rien ne part pour un bloc qu'on ne regarde pas.
+     chiffres publics —, à l'ouverture de la fiche : ce qu'il rapporte
+     se montre dans des cadres qu'on regarde (les contacts, sous le nom) ;
    · une piste SANS SIREN ne se cherche que sur un geste (« Trouver dans
      l'annuaire »), par son nom et son département : c'est toi qui dis
      laquelle est la tienne, parce qu'un homonyme te montrerait le
-     dirigeant d'une autre entreprise.
+     dirigeant d'une autre entreprise ;
    · rien d'autre : ni note, ni contact, ni profil (le moteur le garde,
      `e2e-enrichir.mjs` lit chaque requête).
 
-   CE QUI CHANGE, ET COMMENT : rien sans geste. « Ajouter à ma fiche »
-   complète les VIDES (invariant ②) et se défait trente secondes ; un
-   dirigeant ne devient un contact que si tu l'ajoutes (décision du
-   mainteneur).
+   CE QUI CHANGE, ET COMMENT : rien sans geste. « Compléter ma fiche »
+   remplit les VIDES (invariant ②) et se défait trente secondes ; le
+   dirigeant ne devient un contact que si tu le choisis dans « Ajouter un
+   contact », où il est proposé.
 
-   Le bloc se redessine SEUL quand une réponse arrive : la fiche entière
-   ne se redessine pas sous les doigts de quelqu'un qui écrit ses notes.
+   LÉGER (demande du mainteneur, 5 octobre : « pas de gros boutons, pas
+   de rajout dégoulinant ») : des liens texte, quelques rangées, une
+   ligne grise pour la source — et un seul bouton, seulement quand il y a
+   un vide à remplir.
+
+   Une réponse redessine ses trois zones, JAMAIS la fiche : elle ne
+   vole pas le curseur à quelqu'un qui écrit ses notes.
    ============================================================ */
-import { esc, uid } from '../engine/utils.js';
+import { esc } from '../engine/utils.js';
 import { pushHist } from '../engine/model.js';
 import { cleDe, deptDePiste } from '../engine/requete.js';
 import { lireAnnuaire, questionSiren, questionNom, questionSite, lireSite, complements, champsDits,
          dirigeantsAjoutables, liensPiste } from '../engine/annuaire.js';
-import { S, bus, saveData, logJ, attachContact } from './state.js';
+import { S, bus, saveData, logJ } from './state.js';
 import { ic, showUndo, annoncer } from './dom.js';
 import { lireUrl } from './decouvrir.js';
 
 /* l'état de la session — on ne redemande pas ce qu'on sait déjà */
 const parSiren = new Map();   /* siren → { phase, r, site, sitePhase } */
 const parPiste = new Map();   /* id de piste → { phase, liste } (recherche par nom) */
-const plis = new Map();       /* id de piste → bloc ouvert ou non, le temps de la session */
 let courant = null;           /* { root, c, render } — la fiche ouverte */
 
-export const annuaireOuvert = (c, wide) => plis.has(c.id) ? plis.get(c.id) : wide;
-
 /* ---------- le dessin ---------- */
+
+const lienHTML = x =>
+  `<a class="linklike" data-lien="${x.cle}" href="${esc(x.url)}" target="_blank" rel="noopener" aria-label="${esc(x.aria)}">${
+    esc(x.label)}${ic('external-link', 'ic-12')}</a>`;
+const lien = (c, cle) => liensPiste(c, S.profile).find(x => x.cle === cle);
+const pret = c => { const e = c.siren && parSiren.get(c.siren); return e && e.phase === 'ok' ? e : null; };
+
+/* ---- SOUS LE NOM : une entreprise fermée, au langage d'urgence ---- */
+function etatHTML(c){
+  const e = pret(c);
+  return e && e.r.fermee
+    ? `<span class="mark mark-late">fermée</span>${e.r.fermeeLe ? ` <span class="fa-le">depuis le ${esc(jjmmaaaa(e.r.fermeeLe))}</span>` : ''}`
+    : '';
+}
+
+/* ---- CONTACTS : trouver quelqu'un à qui écrire ----
+   Un lien, pas un bouton (il emmène ailleurs, §6), et rien d'autre : le
+   dirigeant que l'annuaire connaît est PROPOSÉ dans la feuille
+   « Ajouter un contact », au moment où il sert (dirigeantsSuggeres). */
+function contactsHTML(c){
+  const gens = lien(c, 'gens');
+  return gens ? lienHTML(gens) : '';
+}
+export function dirigeantsSuggeres(c){
+  const e = pret(c);
+  return e ? dirigeantsAjoutables(c, e.r).slice(0, 3) : [];
+}
+
+/* ---- À SAVOIR : ce que l'annuaire sait, à la suite de ce que tu sais ---- */
 const ligne = (l, v, cls) => v ? `<div class="fk"><span class="fk-l">${l}</span><span class="fk-v${cls ? ' ' + cls : ''}">${v}</span></div>` : '';
-const etatHTML = (txt, o) => `<div class="fk"><span class="fk-v fa-etat"${o && o.busy ? ' aria-busy="true"' : ''}>${txt}${
-  o && o.encore ? ` <button class="btn btn-sm" data-fa-encore>${ic('reload', 'ic-14')} Réessayer</button>` : ''}</span></div>`;
 const MSG = {
   charge: 'Je cherche dans l’annuaire…',
   horsligne: 'Hors ligne.',
@@ -58,64 +98,69 @@ const MSG = {
 const annee = iso => (iso || '').slice(0, 4);
 const jjmmaaaa = iso => /^\d{4}-\d{2}-\d{2}$/.test(iso || '') ? iso.slice(8, 10) + '/' + iso.slice(5, 7) + '/' + iso.slice(0, 4) : '';
 
-function liensHTML(c){
-  const l = liensPiste(c, S.profile);
-  if (!l.length) return '';
-  return ligne('Chercher', l.map(x =>
-    `<a class="btn btn-sm" data-lien="${x.cle}" href="${esc(x.url)}" target="_blank" rel="noopener" aria-label="${esc(x.aria)}">${
-      ic('external-link', 'ic-14')} ${esc(x.label)}</a>`).join(''), 'fa-liens');
-}
-
+/* les données : quelques rangées, celles qui disent l'entreprise — et
+   pas une de plus */
 function donneesHTML(c, e){
   const r = e.r;
-  const dirs = (r.dirigeants || []).filter(d => d.personne).slice(0, 3);
-  const ajoutables = new Set(dirigeantsAjoutables(c, r).map(d => d.nom));
-  const dirHTML = dirs.map(d =>
-    `<span class="fa-dir"><span>${esc(d.nom)}${d.qualite ? ` <span class="dc-q">${esc(d.qualite)}</span>` : ''}</span>${
-      ajoutables.has(d.nom) ? `<button class="btn btn-sm" data-fa-dir="${esc(d.nom)}" aria-label="Ajouter ${esc(d.nom)} à mes contacts">${
-        ic('plus', 'ic-14')} Ajouter</button>` : ''}</span>`).join('');
-  /* ce que l'annuaire ajouterait — la donnée est posée À CÔTÉ du geste,
-     c'est elle qui décide (§6, sobriété 2) */
-  const comp = complements(c, r, e.site);
-  delete comp.siren;
-  const dits = champsDits(comp);
+  const meme = (a, b) => String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();
+  const taille = [r.effectif, annee(r.creation) ? 'depuis ' + annee(r.creation) : '',
+    r.etablissements > 1 ? r.etablissements + ' sites' : ''].filter(Boolean).join(' · ');
+  const dirs = (r.dirigeants || []).filter(d => d.personne).slice(0, 2)
+    .map(d => d.nom + (d.qualite ? ', ' + d.qualite.toLowerCase() : '')).join(' · ');
   return (
-    (r.fermee ? ligne('État', `<span class="mark mark-late">fermée</span>${r.fermeeLe ? ' depuis le ' + esc(jjmmaaaa(r.fermeeLe)) : ''}`) : '')
-    + ligne('Activité', esc(r.activite || r.naf))
-    + ligne('Effectif', esc(r.effectif))
-    + ligne('Création', esc(annee(r.creation)))
-    + ligne('Sites', r.etablissements > 1 ? esc(r.etablissements + ' établissements') : '')
-    + ligne('Dirigeant', dirHTML, 'fa-dirs')
-    /* le site et l'adresse ne se redisent pas quand la fiche les a déjà :
-       « À savoir », juste au-dessus, les montre */
+    /* l'activité ne se redit pas quand « En bref » la porte déjà */
+    (!meme(c.desc, r.activite) ? ligne('Activité', esc(r.activite || r.naf)) : '')
+    + ligne('Taille', esc(taille))
+    + ligne('Dirigeant', esc(dirs))
+    /* le site et l'adresse ne se redisent pas quand la fiche les a déjà */
     + (!String(c.website || '').trim() && e.site ? `<div class="fk"><span class="fk-l">Site</span>
         <a class="fk-v" href="${esc(e.site)}" target="_blank" rel="noopener">${esc(e.site.replace(/^https?:\/\//i, '').replace(/\/$/, ''))} ${ic('external-link', 'ic-14')}</a></div>` : '')
-    + (!String(c.address || '').trim() ? ligne(r.siege ? 'Siège' : 'Adresse', esc(r.adresse), 'fk-lignes') : '')
-    + ligne('SIREN', esc(r.siren), 'dc-siren')
-    + (dits.length ? `<div class="fk fa-act"><button class="btn btn-sm" data-fa-completer>${ic('plus', 'ic-14')} Ajouter à ma fiche</button>
-        <span class="fa-quoi">${esc(dits.join(' · '))}</span></div>` : ''));
+    + (!String(c.address || '').trim() ? ligne(r.siege ? 'Siège' : 'Adresse', esc(r.adresse), 'fk-lignes') : ''));
 }
 
-function corpsHTML(c){
+/* LE PIED, une ligne grise : la source (la licence la demande), le
+   SIREN, les liens qui emmènent ailleurs — et, seulement s'il y a des
+   vides à remplir, le seul geste qui change la fiche, avec ce qu'il
+   ajoutera (§6, sobriété 2) */
+function piedHTML(c, e, etat){
+  const liens = ['officielle', 'offres'].map(k => lien(c, k)).filter(Boolean);
+  let geste = '';
+  if (e && e.phase === 'ok'){
+    const comp = complements(c, e.r, e.site);
+    delete comp.siren;
+    const dits = champsDits(comp);
+    if (dits.length) geste = `<div class="fa-act"><button class="btn btn-sm" data-fa-completer>${ic('plus', 'ic-14')}Compléter ma fiche</button>
+      <span class="fa-quoi">${esc(dits.join(' · '))}</span></div>`;
+  }
+  const bits = [
+    'Annuaire des entreprises',
+    c.siren ? `<span class="fa-siren">SIREN ${esc(c.siren)}</span>` : '',
+    ...liens.map(lienHTML)
+  ].filter(Boolean);
+  return `${geste}<div class="fa-pied">${etat ? `<div class="fa-etat">${etat}</div>` : ''}<div class="fa-src">${bits.join('<span aria-hidden="true"> · </span>')}</div></div>`;
+}
+
+function savoirHTML(c){
   if (c.siren){
     const e = parSiren.get(c.siren) || { phase: 'charge' };
-    if (e.phase === 'ok') return donneesHTML(c, e);
-    if (e.phase === 'absent') return etatHTML('Introuvable dans l’annuaire.');
-    return etatHTML(MSG[e.phase] || MSG.charge,
-      { busy: e.phase === 'charge', encore: e.phase === 'erreur' || e.phase === 'limite' || e.phase === 'horsligne' });
+    if (e.phase === 'ok') return donneesHTML(c, e) + piedHTML(c, e);
+    const encore = e.phase === 'erreur' || e.phase === 'limite' || e.phase === 'horsligne';
+    const etat = e.phase === 'absent' ? 'Introuvable dans l’annuaire.'
+      : `<span${e.phase === 'charge' || !e.phase ? ' aria-busy="true"' : ''}>${MSG[e.phase] || MSG.charge}</span>${
+        encore ? ` <button class="btn btn-sm" data-fa-encore>${ic('reload', 'ic-14')} Réessayer</button>` : ''}`;
+    return piedHTML(c, e, etat);
   }
   const e = parPiste.get(c.id) || { phase: 'repos' };
-  if (e.phase === 'charge') return etatHTML(MSG.charge, { busy: true });
-  if (e.phase === 'ok' && !e.liste.length) return etatHTML('Rien sous ce nom dans l’annuaire.');
-  if (e.phase === 'ok') return '';
-  const msg = MSG[e.phase] && e.phase !== 'repos' ? `<span class="fa-etat">${MSG[e.phase]}</span>` : '';
-  return `<div class="fk fa-act"><button class="btn btn-sm" data-fa-trouver>${ic('search', 'ic-14')} Trouver dans l’annuaire</button>${msg}</div>`;
+  const etat = e.phase === 'charge' ? `<span aria-busy="true">${MSG.charge}</span>`
+    : e.phase === 'ok' && !e.liste.length ? 'Rien sous ce nom dans l’annuaire.'
+    : e.phase === 'ok' ? ''
+    : `<button class="linklike" data-fa-trouver>Trouver dans l’annuaire</button>${MSG[e.phase] && e.phase !== 'repos' ? ` ${MSG[e.phase]}` : ''}`;
+  return choixHTML(c) + piedHTML(c, null, etat);
 }
 
-/* les candidats, quand on a cherché par le nom : HORS du cadre — c'est
-   une question (« laquelle ? »), pas une donnée de plus. La sous-ligne
-   dit ce qui départage deux homonymes — la ville, puis la taille ;
-   l'activité, la plus longue, s'élide la première (§6). */
+/* les candidats, quand on a cherché par le nom : une question
+   (« laquelle ? »), pas une donnée de plus. La sous-ligne dit ce qui
+   départage deux homonymes — la ville, puis la taille. */
 function choixHTML(c){
   if (c.siren) return '';
   const e = parPiste.get(c.id);
@@ -128,22 +173,21 @@ function choixHTML(c){
      </div>`);
 }
 
-const boiteHTML = c => `<div class="fi-know">${liensHTML(c)}${corpsHTML(c)}</div>${choixHTML(c)}`;
-
-export function annuaireFicheHTML(c, ouvert){
-  return (
-    `<details class="fi-hist fi-ann" id="fiAnn"${ouvert ? ' open' : ''}><summary>Annuaire</summary>
-       <div class="fa-box">${boiteHTML(c)}</div>
-     </details>`);
-}
+/* les trois zones, posées par la fiche là où elles servent */
+export const annuaireEtatHTML = c => `<span id="faEtat" class="fa-etat-nom">${etatHTML(c)}</span>`;
+export const annuaireContactsHTML = c => `<div id="faCts" class="fa-cts">${contactsHTML(c)}</div>`;
+export const annuaireSavoirHTML = c => `<div id="faSavoir" class="fa-savoir">${savoirHTML(c)}</div>`;
 
 /* ---------- le réseau ---------- */
 function maj(){
   if (!courant) return;
-  const box = courant.root.querySelector('#fiAnn .fa-box');
-  if (!box || !box.isConnected) return;
-  box.innerHTML = boiteHTML(courant.c);
-  lierBoite(box, courant.c);
+  const c = courant.c, root = courant.root;
+  for (const [id, html] of [['faEtat', etatHTML], ['faCts', contactsHTML], ['faSavoir', savoirHTML]]){
+    const box = root.querySelector('#' + id);
+    if (!box || !box.isConnected) continue;
+    const h = html(c);
+    if (box.innerHTML !== h){ box.innerHTML = h; lierBoite(box, c); }
+  }
 }
 const panne = err => navigator.onLine === false ? 'horsligne' : (err && err.limite) ? 'limite' : 'erreur';
 
@@ -190,7 +234,7 @@ function chercherNom(c){
     maj();
     annoncer(e.liste.length ? `${e.liste.length} entreprise${e.liste.length > 1 ? 's' : ''} sous ce nom.` : 'Rien sous ce nom.');
     /* le focus suit : il était sur « Trouver », qui vient de partir */
-    courant?.root.querySelector('#fiAnn [data-fa-pick], #fiAnn .fa-etat')?.focus?.();
+    courant?.root.querySelector('#faSavoir [data-fa-pick], #faSavoir .fa-etat')?.focus?.();
   }).catch(err => { e.phase = panne(err); maj(); });
 }
 addEventListener('online', () => {
@@ -223,22 +267,6 @@ function completer(c, comp, quoi){
     if (courant && courant.c === c) courant.render();
   });
 }
-function ajouterDirigeant(c, d){
-  const id = uid();
-  attachContact(c, { id, name: d.nom, role: d.qualite });
-  bus.refresh();
-  courant?.render();
-  showUndo(`${ic('check', 'ic-14')} « ${esc(d.nom)} » ajouté aux contacts.`, () => {
-    c.contacts = (c.contacts || []).filter(t => t.id !== id);
-    const h = c.history || [];
-    if (h.length && /^Contact ajouté/.test(h[h.length - 1].t)) h.pop();
-    c.updatedAt = Date.now();
-    saveData();
-    bus.refresh();
-    if (courant && courant.c === c) courant.render();
-  });
-}
-
 function lierBoite(box, c){
   box.querySelector('[data-fa-trouver]')?.addEventListener('click', () => chercherNom(c));
   box.querySelector('[data-fa-encore]')?.addEventListener('click', () => {
@@ -252,11 +280,6 @@ function lierBoite(box, c){
     delete comp.siren;
     if (Object.keys(comp).length) completer(c, comp, 'Complétée depuis l’annuaire');
   });
-  box.querySelectorAll('[data-fa-dir]').forEach(b => b.addEventListener('click', () => {
-    const e = parSiren.get(c.siren);
-    const d = e && e.r && dirigeantsAjoutables(c, e.r).find(x => x.nom === b.dataset.faDir);
-    if (d) ajouterDirigeant(c, d);
-  }));
   /* choisir LA bonne : le SIREN s'attache, les vides se remplissent */
   box.querySelectorAll('[data-fa-pick]').forEach(b => b.addEventListener('click', () => {
     const e = parPiste.get(c.id);
@@ -269,18 +292,15 @@ function lierBoite(box, c){
   }));
 }
 
-/* posé après chaque rendu de la fiche */
+/* posé après chaque rendu de la fiche : la question part à l'ouverture
+   pour une piste qui a un SIREN — rien d'autre ne part sans geste */
 export function lierAnnuaireFiche(root, c, o){
   courant = { root, c, render: o.render };
-  const det = root.querySelector('#fiAnn');
-  if (!det) return;
-  lierBoite(det.querySelector('.fa-box'), c);
-  const demarrer = () => { if (c.siren) chargerSiren(c); };
-  det.addEventListener('toggle', () => {
-    plis.set(c.id, det.open);
-    if (det.open) demarrer();
-  });
-  if (det.open) demarrer();
+  for (const id of ['faCts', 'faSavoir']){
+    const box = root.querySelector('#' + id);
+    if (box) lierBoite(box, c);
+  }
+  if (c.siren) chargerSiren(c);
 }
 /* la fiche se ferme : plus rien à redessiner */
 export const oublierFiche = () => { courant = null; };

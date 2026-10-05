@@ -864,24 +864,29 @@ html[data-theme="dark"] .field select{
 .ap-plus dd{margin:0;color:var(--text-body);min-width:0;overflow-wrap:anywhere}
 .ap-plus .dc-siren{font-family:var(--font-mono)}
 .ap-off{display:inline-flex;align-items:center;gap:6px;min-height:var(--ctl);margin-top:6px}
-/* ---- LE BLOC « ANNUAIRE » DE LA FICHE (lot 3) ----
-   Les mêmes rangées que « À savoir » : une étiquette, une valeur. Les
-   trois liens se replient par rangs, taillés à leur mot — un lien qui
-   emmène ailleurs n'est pas une action lourde (§6). Ils viennent EN
-   TÊTE du cadre : ce qui arrive du réseau se pose dessous, et un geste
-   ne glisse jamais sous le doigt pendant qu'une réponse arrive (§5). */
-.fa-liens{display:flex;flex-wrap:wrap;gap:8px}
-.fa-etat{font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted);
-  display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px}
-.fa-act{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px}
+/* ---- CE QUE L'ANNUAIRE APPORTE À LA FICHE (rangé par usage, léger) ----
+   Plus de bloc à part (docs/presentation-recherche.md) : un lien sous les
+   contacts, quelques rangées et une ligne grise dans « À savoir ». */
+/* sous le nom : une entreprise fermée, au langage d'urgence */
+.fa-etat-nom:not(:empty){display:inline-flex;align-items:center;gap:6px;margin-left:8px}
+.fa-le{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
+/* sous les contacts : « Anciens de mon école », un lien */
+.fa-cts{margin:4px 0 0 -8px}
+.fa-cts:empty{display:none}
+/* dans « À savoir » : la ligne grise de la source et ses liens */
+.fa-pied{padding:6px 10px 8px;font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
+.fa-src .linklike{min-height:0;padding:0;font-size:inherit;font-family:var(--font-ui)}
+.fa-etat{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;margin-bottom:4px;font-size:var(--text-12)}
+.fa-etat .linklike{margin-left:-8px;font-family:var(--font-ui)}
+.fa-act{display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;padding:8px 10px 0}
 .fa-quoi{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
-.fa-dirs{display:flex;flex-direction:column;gap:6px}
-.fa-dir{display:flex;align-items:center;flex-wrap:wrap;gap:4px 12px}
-.fa-dir .dc-q{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
-.fi-ann .dc-siren{font-family:var(--font-mono)}
+.fa-siren{font-family:var(--font-mono)}
 .fa-q{margin:12px 0 6px;font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);
   text-transform:uppercase;letter-spacing:.04em}
 .fa-choix .pick svg{flex:none;color:var(--text-muted)}
+/* « Ajouter un contact » : le dirigeant proposé, en pointillé */
+.ce-sugg{display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;margin:0 0 12px}
+.ce-sugg-l{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
 .tr-late .tr-h{color:var(--amber)}
 .tr-late .tr-h .tr-n{border-color:var(--amber);background:var(--amber-wash)}
 /* replier/déplier « Bientôt » est un geste au pouce comme un autre :
