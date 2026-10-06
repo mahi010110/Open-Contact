@@ -217,6 +217,14 @@ export async function annuaireMuet(cible){
   const cors = { 'access-control-allow-origin': '*' };
   await cible.route(ANNUAIRE_RE, r => r.fulfill({ status: 200, contentType: 'application/json',
     headers: cors, body: '{"results":[],"total_results":0}' }));
+  await sourcesCarteMuettes(cible);
+}
+/* les sources de la CARTE seules (ui/carte.js) : pour un scénario qui joue
+   l'annuaire lui-même mais n'a rien à dire de la carte — sans elles, un
+   aperçu ouvert irait chercher le vrai Wikidata, et le bac à sable le
+   refuse en erreur console */
+export async function sourcesCarteMuettes(cible){
+  const cors = { 'access-control-allow-origin': '*' };
   await cible.route(WIKIDATA_RE, r => r.fulfill({ status: 200, contentType: 'application/sparql-results+json',
     headers: cors, body: '{"results":{"bindings":[]}}' }));
   await cible.route(BODACC_RE, r => r.fulfill({ status: 200, contentType: 'application/json',

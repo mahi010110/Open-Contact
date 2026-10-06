@@ -109,8 +109,8 @@ pistes » commençait à 286 px du haut. On voyait **deux** résultats sur un
 
 La réponse est le motif de recherche d'iOS (`UISearchController`) :
 pendant la saisie, la barre de navigation et le grand titre s'effacent,
-et la barre de recherche prend le haut. Au focus du champ, au doigt
-seulement :
+et la barre de recherche prend le haut. Quand le doigt touche le champ,
+c'est-à-dire quand un clavier s'ouvre à l'écran :
 
 - la vue défile jusqu'à la barre, et le titre sort par le haut ;
 - l'en-tête de l'app s'efface au rythme du clavier ;
@@ -118,6 +118,11 @@ seulement :
   titre aurait dépassé ;
 - une liste courte reçoit un plancher de hauteur le temps de la frappe ;
 - clavier rangé, tout revient.
+
+Le déclencheur est le **tap**, pas le focus. Un focus venu d'un clavier
+physique ou du code (« / », le retour d'une feuille) n'a pas de clavier à
+contourner, et un écran qui bouge sous un anneau de focus le rend
+illisible : `e2e-focus.mjs` l'a vu à la première version.
 
 Résultat : **4 résultats entiers** au-dessus du clavier en 390 × 844, et
 **2** en 360 × 640. Les bandes qui restent sont la barre, les étiquettes

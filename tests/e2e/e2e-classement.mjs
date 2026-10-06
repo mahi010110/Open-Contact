@@ -24,7 +24,7 @@
    L'annuaire est remplacé par des réponses fabriquées à sa forme RELEVÉE
    (sonde-sources.mjs), choisies selon la requête : aucun réseau requis.
    ============================================================ */
-import { chromium, chromiumPath, serveRepo, SHOTS } from './outils.mjs';
+import { chromium, chromiumPath, serveRepo, SHOTS, sourcesCarteMuettes } from './outils.mjs';
 
 const { server, base } = await serveRepo();
 const browser = await chromium.launch({ executablePath: chromiumPath() });
@@ -94,6 +94,9 @@ const PISTES = [
 async function ecran(vp, touch, o = {}){
   const ctx = await browser.newContext({ viewport: vp, hasTouch: touch, colorScheme: o.sombre ? 'dark' : 'light' });
   const an = annuaire(ctx);
+  /* le panneau du poste ouvre la carte de la première ligne : ses sources
+     se taisent ici (`e2e-carte.mjs` les joue) */
+  await sourcesCarteMuettes(ctx);
   const p = await ctx.newPage();
   p.on('pageerror', e => errors.push(String(e)));
   p.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });

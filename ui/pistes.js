@@ -823,7 +823,17 @@ export function renderPistes(){
     const y = hautBarre();
     if (y > root.scrollTop + 1) root.scrollTop = y;
   };
-  input.addEventListener('focus', () => { barreActive = true; if (!q) rendreChips(); amenerBarre(); });
+  /* LE DOIGT, pas le focus : c'est le tap qui ouvre un clavier à l'écran.
+     Un focus venu du clavier physique ou du code (« / », un retour de
+     feuille) n'a pas de clavier à contourner — et un écran qui bouge
+     sous un anneau de focus le rend illisible (e2e-focus l'a vu). */
+  let tapBarre = 0;
+  input.addEventListener('pointerdown', e => { if (e.pointerType === 'touch') tapBarre = Date.now(); });
+  input.addEventListener('focus', () => {
+    barreActive = true;
+    if (!q) rendreChips();
+    if (Date.now() - tapBarre < 1500) amenerBarre();
+  });
   input.addEventListener('blur', () => setTimeout(() => {
     if (document.activeElement === input || !input.isConnected) return;
     barreActive = false;

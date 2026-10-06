@@ -895,7 +895,6 @@ html[data-theme="dark"] .field select{
    contacts, quelques rangées et une ligne grise dans « À savoir ». */
 /* sous le nom : une entreprise fermée, au langage d'urgence */
 .fa-etat-nom:not(:empty){display:inline-flex;align-items:center;gap:6px;margin-left:8px}
-.fa-le{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
 /* sous les contacts : « Anciens de mon école », un lien */
 .fa-cts{margin:4px 0 0 -8px}
 .fa-cts:empty{display:none}
