@@ -254,6 +254,41 @@ console.log('\n⑤ LE BODACC — les créations récentes du numérique dans le 
   console.log(`   … dont « informatique » : ${r2.statut || r2.erreur} · total ${r2.json && r2.json.total_count} ${r2.json ? '' : r2.debut}`);
 }
 
+/* ---------- ⑥ HelloWork : le lien de stage, métier par métier ---------- */
+console.log('\n⑥ HELLOWORK — le lien « Offres de stage autour de … », métier par métier\n');
+{
+  const ctx = await browser.newContext({ locale: 'fr-FR', viewport: { width: 390, height: 844 } });
+  const p2 = await ctx.newPage();
+  const H = 'https://www.hellowork.com/fr-fr/emploi/recherche.html';
+  for (const [k, l] of [['stage réseau', 'Lille'], ['stage développeur', 'Lyon'], ['stage cybersécurité', 'Rennes'],
+                        ['stage support informatique', 'Marseille'], ['stage informatique', 'Nantes'], ['stage informatique', 'Lille 59000']]){
+    const u = `${H}?k=${encodeURIComponent(k)}&l=${encodeURIComponent(l)}`;
+    try {
+      const res = await p2.goto(u, { waitUntil: 'domcontentloaded', timeout: 25000 });
+      await p2.waitForTimeout(6000);
+      const t = await p2.evaluate(() => (document.body.innerText || '').replace(/\s+/g, ' '));
+      const n = (t.match(/(\d[\d\s]*)\s*offres?\b/i) || [])[0] || '?';
+      const lieux = (t.match(/\|\s*\d{2}\b/g) || []).slice(0, 8).join(' ');
+      console.log(`— « ${k} » · ${l} : ${res ? res.status() : 0} · ${n} · départements des premières offres ${lieux}`);
+    } catch (e){ console.log(`— « ${k} » · ${l} : ✗ ${String(e.message || e).slice(0, 120)}`); }
+  }
+  await ctx.close();
+}
+
+/* ---------- ⑦ Clearbit : le bon site, ou un homonyme ? ---------- */
+console.log('\n⑦ CLEARBIT — le site trouvé est-il le bon ?\n');
+{
+  const NOMS = ['Advens', 'Sopra Steria Group', 'Inetum', 'Capgemini Technology Services', 'Keyrus', 'Scalian', 'Jiliti', 'Cofidoc',
+                'Groupe Cybertek', 'Computacenter France', 'Visiativ Solutions Entreprise', 'Chapsvision', 'Linkt', 'Prodware', 'Trustteam',
+                'Euro Information', 'Local.fr', 'Incomm', 'Hays Services', 'Orange Business Services'];
+  for (const nom of NOMS){
+    const r = await depuisPage('https://autocomplete.clearbit.com/v1/companies/suggest?query=' + encodeURIComponent(nom), { ms: 8000 });
+    const l = Array.isArray(r.json) ? r.json.slice(0, 3).map(x => `${x.name} → ${x.domain}`).join(' | ') : (r.erreur || r.statut);
+    console.log(`   ${nom} : ${l}`);
+    await pause(200);
+  }
+}
+
 const temoin = await page.evaluate(async () => { try { await fetch('https://example.com/', { mode: 'no-cors' }); return 'réseau'; } catch (e) { return 'coupé'; } });
 console.log(`\nFIN · réseau ${temoin}`);
 await browser.close();

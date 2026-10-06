@@ -43,6 +43,12 @@ jobs:
         continue-on-error: true
         timeout-minutes: 15
         run: node tests/e2e/sonde-profil.mjs
+      # Le marché local d'un métier : l'enquête BMO 2026 de France Travail,
+      # relue pour l'informatique (la table de engine/marche.js). Informative.
+      - name: Sonde BMO — les recrutements prévus en informatique, par département
+        continue-on-error: true
+        timeout-minutes: 5
+        run: python3 tests/e2e/sonde-bmo.py
       # « À découvrir » est-il UTILE ? Ce que l'annuaire rend vraiment pour
       # des recherches d'étudiant, le centre des villes, la recherche
       # autour d'un point, les liens vers les offres. Informative.
