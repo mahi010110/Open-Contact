@@ -23,7 +23,7 @@
    forme exacte d'un résultat.
    ============================================================ */
 import { fold } from './filter.js';
-import { cleDe, deptDuCp } from './requete.js';
+import { cleDe, deptDuCp, lieuDuProfil, metierEtiquetteDuProfil, rayonDe } from './requete.js';
 import { REGIONS } from './lieux.js';
 import { normName, distKm } from './utils.js';
 
@@ -116,7 +116,7 @@ export function questionsAnnuaire(interp, o){
   if (!et.length && !texte.length && ((interp && interp.texte) || []).length) return [];
   const codes = new Set(), sections = new Set();
   const p = new URLSearchParams();
-  let lieu = false, proche = false, motMetier = '', centre = null;
+  let lieu = false, proche = false, motMetier = '', centre = null, rayonVille = o.rayonVille || RAYON_VILLE;
   for (const e of et){
     if (e.famille === 'metier'){
       (NAF_METIER[e.cle] || []).forEach(c => codes.add(c));
@@ -135,7 +135,10 @@ export function questionsAnnuaire(interp, o){
         const code = REGION_INSEE[e.cle.slice(7)];
         if (code) p.set('region', code);
       } else if (e.depts) p.set('departement', e.depts.join(','));
-      else if (e.ville && e.dept){ p.set('departement', e.dept); if (Array.isArray(e.centre)) centre = e.centre; }
+      else if (e.ville && e.dept){
+        p.set('departement', e.dept);
+        if (Array.isArray(e.centre)){ centre = e.centre; if (e.rayon) rayonVille = e.rayon; }
+      }
       else if (e.ville) lieu = false;           /* une ville sans département connu reste locale */
     }
   }
@@ -195,7 +198,7 @@ export function questionsAnnuaire(interp, o){
   else if (centre && !p.has('categorie_entreprise') && !p.has('tranche_effectif_salarie')){
     const x = new URLSearchParams(p);
     x.delete('departement');
-    x.set('lat', centre[0].toFixed(3)); x.set('long', centre[1].toFixed(3)); x.set('radius', String(RAYON_VILLE));
+    x.set('lat', centre[0].toFixed(3)); x.set('long', centre[1].toFixed(3)); x.set('radius', String(Math.min(rayonVille, RAYON_MAX)));
     out.push(`${ANNUAIRE}/near_point?${x.toString()}`);
     out.push(url('/search', { tranche_effectif_salarie: TRANCHES_MOYENNES }));
   }
@@ -312,7 +315,9 @@ export const TRAVAIL = {
 const AVEC_SERVICE = new Set(['21', '22', '31', '32', '41', '42', '51', '52', '53']);
 export function travailDe(r){
   r = r || {};
-  const t = TRAVAIL[String(r.naf || '')];
+  /* le travail du SITE d'abord (son code dit ce qu'on y fait), celui de
+     l'entreprise sinon — un code ancien (« 72.1Z ») ne dit rien */
+  const t = TRAVAIL[String(r.nafIci || '')] || TRAVAIL[String(r.naf || '')];
   if (t) return t;
   if (AVEC_SERVICE.has(String(r.tranche || '')) || r.categorie === 'GE' || r.categorie === 'ETI')
     return T('informatique interne', ['reseau', 'support', 'dev']);
@@ -379,6 +384,20 @@ export function lireAnnuaire(json, o){
     const e = choisi.e;
     const naf = r.activite_principale || e.activite_principale || '';
     const tranche = String(r.tranche_effectif_salarie || '');
+    /* LE SITE QU'ON REJOINDRAIT (docs/recherche-profil.md). RELEVÉ le
+       6/10 autour de Lille : l'établissement a SA taille et SON activité,
+       et elles ne sont pas celles de l'entreprise — Fiducial Informatique
+       compte 500 à 999 salariés, son bureau de Villeneuve-d'Ascq 6 à 9 ;
+       Sopra Steria fait du conseil, son site de Lille édite des
+       logiciels. Un stagiaire rejoint le site, pas le groupe. Seulement
+       pour un établissement trouvé (pas le siège qu'on montre faute de
+       mieux), et seulement quand l'INSEE le sait : « NN » (non diffusé)
+       et « 00 » (rien de déclaré, relevé sur des sites qui emploient)
+       ne disent rien. */
+    const site = !e.est_siege && Array.isArray(r.matching_etablissements) && r.matching_etablissements.includes(e);
+    const trSite = String(e.tranche_effectif_salarie || '');
+    const trancheIci = site && /^(0[1-9]|[1-5]\d)$/.test(trSite) && e.caractere_employeur !== 'N' && trSite !== tranche ? trSite : '';
+    const nafIci = site && e.activite_principale && e.activite_principale !== naf ? String(e.activite_principale) : '';
     /* RELEVÉ le 5/10 (sonde-sources.mjs, partie D) : 81 % du numérique
        dans le Nord ne déclare aucun salarié. Trois indices disent qu'une
        entreprise EMPLOIE — donc qu'elle peut accueillir un stagiaire ou
@@ -404,6 +423,7 @@ export function lireAnnuaire(json, o){
       siege: !!e.est_siege,
       naf, activite: ACTIVITES[naf] || '',
       tranche, effectif: TRANCHES[tranche] || (employeur ? 'a des salariés' : ''),
+      trancheIci, effectifIci: TRANCHES[trancheIci] || '', nafIci,
       employeur,
       /* un entrepreneur individuel est une PERSONNE : sa raison sociale est
          son nom. « À découvrir » ne la montre pas (aucune personne importée
@@ -445,7 +465,8 @@ export function lireAnnuaire(json, o){
      cherches), une liste rendue pour un MÉTIER tapé en texte (« cyber »)
      vient ensuite, puis le reste ;
    · dans chacun de ces rangs, sauf le nom : l'employeur avant l'inconnu
-     avant celle qui ne déclare personne, puis la plus proche — par
+     avant celle qui ne déclare personne, puis ce qui colle à ta
+     formation (docs/recherche-profil.md), puis la plus proche — par
      paliers, jamais au mètre près —, puis la fusion. */
 export const RRF_K = 60;
 const RANG_GENRE = { nom: 0, metier: 1, liste: 2 };
@@ -473,6 +494,8 @@ export function decouvertes(listes, companies, o){
   let ordre = 0;
   (listes || []).forEach((l, k) => (l || []).forEach((r, i) => {
     if (!r || r.personne || sirens.has(r.siren)) return;
+    /* « Pas pour moi » : écartée une fois, elle ne revient plus */
+    if (o.ecartees && o.ecartees.has(r.siren)) return;
     /* autour d'une ville : ce qui tombe trop loin de son centre n'est
        pas « à Lille » (`o.loin`, en km) */
     if (o.loin && r.distance != null && r.distance > o.loin) return;
@@ -482,8 +505,12 @@ export function decouvertes(listes, companies, o){
     x.fusion += 1 / (RRF_K + i + 1);
     x.genre = Math.min(x.genre, RANG_GENRE[genres[k]] ?? RANG_GENRE.liste);
   }));
+  /* TA FORMATION (`o.metier`) : à égalité d'employeur, ce qui colle au
+     métier qu'elle dit passe devant ce qui est plus près — un stage de
+     développement à 12 km vaut mieux qu'un poste de support à 3 */
+  const colle = r => o.metier && (travailDe(r) || { metiers: [] }).metiers.includes(o.metier) ? 0 : 1;
   return [...vus.values()].sort((a, b) => (a.genre - b.genre)
-    || (a.genre > 0 ? (rangEmployeur(a.r) - rangEmployeur(b.r)) || (palier(a.r, o) - palier(b.r, o)) : 0)
+    || (a.genre > 0 ? (rangEmployeur(a.r) - rangEmployeur(b.r)) || (colle(a.r) - colle(b.r)) || (palier(a.r, o) - palier(b.r, o)) : 0)
     || (b.fusion - a.fusion) || (a.premier - b.premier)).map(x => x.r);
 }
 
@@ -665,3 +692,138 @@ export function offresAlternance(interp, o){
   return { url: LBA + '?' + p.toString(), lieu: pos.nom || '' };
 }
 
+
+/* ============================================================
+   UNE RECHERCHE À TA MESURE (docs/recherche-profil.md)
+
+   Ce que le profil AJOUTE à une question, quand la barre ne le dit pas :
+   · ta ville et ton rayon (« Où je cherche ») — quand la question n'a
+     pas de lieu à elle ;
+   · le métier que dit ta formation — quand la question n'a ni métier ni
+     texte (un nom tapé se cherche partout, sans être bridé).
+   Chacun devient une ÉTIQUETTE que l'écran montre, avec sa croix : rien
+   ne part en ton nom sans se voir. Retirée, elle reste PROPOSÉE en
+   pointillé — un tap la remet. `sans` dit ce que tu as retiré.
+   Ce qui part vers l'annuaire est ce qu'une ville tapée ferait partir :
+   le CENTRE de la ville (lu dans la table) et des codes d'activité.
+   Jamais le texte de ton profil.
+   ============================================================ */
+export function ajoutsProfil(interp, profile, sans){
+  sans = sans || {};
+  const et = (interp && interp.etiquettes) || [];
+  const texte = (interp && interp.texte) || [];
+  const out = { interp, lieu: null, metier: null, lieuPropose: null, metierPropose: null };
+  if (et.some(e => e.famille === 'statut' || e.famille === 'groupe')) return out;
+  const lieu = !et.some(e => e.famille === 'lieu') ? lieuDuProfil(profile) : null;
+  const metier = !et.some(e => e.famille === 'metier') && !texte.length ? metierEtiquetteDuProfil(profile) : null;
+  if (lieu){ if (sans.lieu) out.lieuPropose = lieu; else out.lieu = lieu; }
+  if (metier){ if (sans.metier) out.metierPropose = metier; else out.metier = metier; }
+  const ajout = [out.metier, out.lieu].filter(Boolean);
+  if (ajout.length) out.interp = { ...interp, q: (interp && interp.q) || '', texte, etiquettes: [...et, ...ajout] };
+  return out;
+}
+/* le rayon d'une recherche autour d'une ville : celui de ton profil
+   (5, 15 ou 30 km), et ce qui tombe au-delà du DOUBLE est écarté — la
+   jumelle « 10-499 salariés » demande tout le département, c'est la
+   distance qui la borne. Jamais plus de 50 km. */
+export const loinDe = rayon => Math.min((rayon || RAYON_VILLE) * 2, RAYON_MAX);
+
+/* ---------- les offres de STAGE (décision du mainteneur, 6/10) ----------
+   HelloWork garde ses critères dans son adresse (RELEVÉ le 6/10,
+   sonde-profil.mjs ⑥, depuis un vrai navigateur) : « stage réseau » à
+   Lille rend 9 offres, « stage développeur » à Lyon 64, « stage
+   cybersécurité » à Rennes 6, « stage informatique » à Nantes 67 — mais
+   « stage support informatique » à Marseille, UNE. Seuls les mots
+   mesurés porteurs sont gardés ; le reste passe par « stage
+   informatique ». Le site public (1jeune1solution) perd ses critères :
+   il n'a pas de lien. Rien ne part sans ton geste. */
+export const HELLOWORK = 'https://www.hellowork.com/fr-fr/emploi/recherche.html';
+const MOTS_STAGE = { reseau: 'stage réseau', cloud: 'stage réseau', dev: 'stage développeur', cyber: 'stage cybersécurité' };
+export function offresStage(interp, o){
+  o = o || {};
+  const et = (interp && interp.etiquettes) || [];
+  const rech = et.find(e => e.famille === 'recherche');
+  if (rech ? rech.cle !== 'stage' : o.recherche !== 'stage') return null;
+  const lieu = et.find(e => e.famille === 'lieu' && Array.isArray(e.centre));
+  const nom = lieu ? lieu.label : (o.ville || '');
+  if (!nom) return null;
+  const m = et.find(e => e.famille === 'metier' && MOTS_STAGE[e.cle]);
+  const k = (m && MOTS_STAGE[m.cle]) || MOTS_STAGE[o.metier] || 'stage informatique';
+  return { url: HELLOWORK + '?' + new URLSearchParams({ k, l: nom }).toString(), lieu: nom };
+}
+
+/* ---------- le site web, par Clearbit (décision du mainteneur, 6/10) ----------
+   Quand ni ta fiche ni Wikidata ne connaissent le site, l'autocomplétion
+   de Clearbit (sans clé) le propose. RELEVÉ le 6/10 (sonde-profil.mjs ⑦,
+   vingt entreprises réelles) : le PREMIER résultat est souvent un autre
+   — « Advens » rendait d'abord advenser.com, « Linkt » Linktree. Trois
+   gardes, qui donnent 12 bons sites sur 20 et aucun faux :
+   · le nom rendu est EXACTEMENT celui cherché (accents, casse et
+     ponctuation mis à part) ;
+   · le domaine finit par une extension générique ou française — un
+     homonyme belge, australien ou brésilien ne passe pas ;
+   · parmi ceux qui restent, celui dont le domaine EST le nom passe
+     devant (inetum.com plutôt que l'ancien gfi-info.fr).
+   Ce qui part : le nom de l'entreprise que tu regardes, rien d'autre. */
+export const CLEARBIT = 'https://autocomplete.clearbit.com/v1/companies/suggest?query=';
+export const questionClearbit = nom => String(nom || '').trim().length >= 2 ? CLEARBIT + encodeURIComponent(String(nom).trim()) : '';
+const EXT_OK = /\.(fr|com|eu|net|org|io|tech|ai|group|cloud|digital|paris|bzh|alsace|corsica)$/i;
+const NOM_PLIE = s => fold(String(s || '')).replace(/[^a-z0-9]+/g, ' ').trim();
+export function lireClearbit(json, nom){
+  const voulu = NOM_PLIE(nom);
+  if (!voulu || !Array.isArray(json)) return '';
+  const bons = json.filter(x => x && typeof x.domain === 'string' && NOM_PLIE(x.name) === voulu
+    && /^[a-z0-9.-]+\.[a-z]{2,}$/i.test(x.domain) && EXT_OK.test(x.domain));
+  if (!bons.length) return '';
+  const colle = voulu.replace(/ /g, '');
+  const meme = bons.find(x => x.domain.toLowerCase().split('.')[0].replace(/-/g, '') === colle);
+  return 'https://' + (meme || bons[0]).domain.toLowerCase();
+}
+
+/* ---------- « Pas pour moi » et « Nouveau » (décisions du mainteneur, 6/10) ----------
+   PAS POUR MOI : une entreprise écartée ne revient plus dans « À
+   découvrir ». Elle vit dans le profil (`ecartees`) — donc suit tes
+   appareils et ta copie —, avec son nom, pour pouvoir la rendre.
+   NOUVEAU : refaire une recherche montre ce qui n'y était pas la fois
+   d'avant. La première fois, rien n'est « nouveau » — tout l'est, donc
+   rien ne départage. Le souvenir vit sur CET appareil (`oc_vus_v1`) : ce
+   n'est pas une donnée, c'est un repère. */
+export function ecarter(liste, r, now){
+  const l = (liste || []).filter(x => x.siren !== r.siren);
+  l.push({ siren: String(r.siren), nom: String(r.nom || '').slice(0, 120), at: now || Date.now() });
+  return l.slice(-300);
+}
+export const rendre = (liste, siren) => (liste || []).filter(x => x.siren !== siren);
+export const sirensEcartes = liste => new Set((liste || []).map(x => x.siren));
+
+export const VUS_RECHERCHES = 30, VUS_SIRENS = 300;
+/* une recherche = ses questions, sans la page */
+export function cleVus(urls){
+  return (urls || []).map(u => { try { const x = new URL(u); x.searchParams.delete('page'); return x.pathname + '?' + x.searchParams.toString(); } catch (e) { return ''; } })
+    .filter(Boolean).sort().join('|');
+}
+export function lireVus(raw){
+  let j = raw;
+  if (typeof raw === 'string'){ try { j = JSON.parse(raw); } catch (e) { j = null; } }
+  const r = {};
+  if (j && j.r && typeof j.r === 'object')
+    for (const [k, v] of Object.entries(j.r))
+      if (k && v && Array.isArray(v.s)) r[k] = { at: Number(v.at) || 0, s: v.s.filter(x => /^\d{9}$/.test(String(x))).slice(-VUS_SIRENS) };
+  return { v: 1, r };
+}
+/* ce qui est nouveau DANS cette recherche, par rapport à la fois d'avant */
+export function nouveauxDe(vus, cle, sirens){
+  const avant = vus && vus.r && vus.r[cle];
+  if (!cle || !avant) return new Set();
+  const deja = new Set(avant.s);
+  return new Set((sirens || []).filter(s => !deja.has(s)));
+}
+export function noterVus(vus, cle, sirens, now){
+  const r = { ...((vus && vus.r) || {}) };
+  if (!cle) return { v: 1, r };
+  const avant = r[cle] ? r[cle].s : [];
+  r[cle] = { at: now || Date.now(), s: [...new Set([...avant, ...(sirens || [])])].slice(-VUS_SIRENS) };
+  const cles = Object.keys(r).sort((a, b) => r[b].at - r[a].at);
+  for (const k of cles.slice(VUS_RECHERCHES)) delete r[k];
+  return { v: 1, r };
+}

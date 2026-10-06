@@ -9,7 +9,7 @@
 import { esc, distKm, todayISO } from '../engine/utils.js';
 import { STATUSES, CLOSE_REASONS, DOMAINS, pushHist } from '../engine/model.js';
 import { filterOrphans, searchHint } from '../engine/filter.js';
-import { chercherPistes, raisonDe, propositions, elargir, retirer, contexteRecherche } from '../engine/requete.js';
+import { chercherPistes, raisonDe, propositions, elargir, retirer, contexteRecherche, correction } from '../engine/requete.js';
 import { silentPistes } from '../engine/assist.js';
 import { S, bus, isClosed, hasDemo, addDemo, ctLabel, deletePiste, undeletePiste,
          removeOrphan, saveOrphans, saveData, logJ } from './state.js';
@@ -403,7 +403,19 @@ function chipsRowHTML(){
        marqueEtiquette(e)}${esc(e.label)}${ic('close', 'ic-12')}</button>`));
   /* dans « À découvrir », ta zone est une étiquette de la question comme
      les autres — à leur suite, dans la même rangée */
-  if (dec){ const z = zoneEtiquetteHTML(); if (z) bits.push(z); }
+  if (dec){ const z = zoneEtiquetteHTML(marqueEtiquette); if (z) bits.push(z); }
+  /* UNE FAUTE DE FRAPPE SE PROPOSE (docs/recherche-profil.md) : « Lile »
+     ne trouve rien et ressemble à une ville — la puce pointillée dit
+     « Lille ? », un tap réécrit la barre. Jamais appliquée d'office :
+     « Lilly » est peut-être une entreprise, et si une piste la porte,
+     rien n'est proposé. */
+  if (q){
+    const ctx = ctxBarre();
+    const c = correction(q, ctx, t => chercherPistes(S.companies, { q: t, ctx }).liste.length > 0);
+    if (c) bits.push(
+      `<button class="prop-chip" data-prop="${esc(c.q)}" aria-label="Corriger en « ${esc(c.label)} »">${
+         marqueEtiquette(c.etiquette)}${esc(c.label)} ?</button>`);
+  }
   /* une ville s'élargit à son département quand ça trouve plus — « Lille »
      rate Villeneuve-d'Ascq, à deux arrêts de métro. Proposé, pas posé :
      le trait pointillé dit « tu peux », la puce pleine « c'est actif ». */

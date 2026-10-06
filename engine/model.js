@@ -8,7 +8,7 @@
 import { uid, extractCity, todayISO, fmtDate } from './utils.js';
 import { normalizeParcours, parcoursDe, phraseParcours } from './parcours.js';
 
-export const APP_VERSION = '6.50.0';
+export const APP_VERSION = '6.51.0';
 
 export const DOMAINS = {
   esn:     { label:'ESN / Services IT',       color:'#4C9FD8' },
@@ -469,11 +469,15 @@ Règles : n'invente rien — champ inconnu = vide ; une entrée par entreprise ;
 Je collerai ce JSON dans OpenContact : Échanger → Recevoir → Coller.`
   }];
 }
+/* les trois rayons de « Où je cherche » : à côté, la métropole, le
+   département — une puce chacun, jamais une liste déroulante (§6) */
+export const RAYONS = [5, 15, 30];
+export const ECARTEES_MAX = 300;
 export function defaultProfile(){
-  return { name:'', formation:'', ecole:'', recherche:'', debut:'', fin:'', rythme:'',
+  return { name:'', formation:'', ecole:'', recherche:'', debut:'', fin:'', rythme:'', ville:'', rayon:15,
            phone:'', email:'', cvUrl:'', portfolio:'', letter:'',
            templates: defaultTemplates(), prompts: defaultPrompts(),
-           parcours: [], confirmedIds: [], flags: {}, updatedAt: 0 };
+           parcours: [], ecartees: [], confirmedIds: [], flags: {}, updatedAt: 0 };
 }
 /* remet un profil (chargé, importé ou restauré) aux invariants attendus */
 export function normalizeProfile(raw){
@@ -488,12 +492,26 @@ export function normalizeProfile(raw){
   for (const k of ['ecole', 'rythme']) profile[k] = String(profile[k] || '').trim().slice(0, 120);
   if (!RECHERCHES[profile.recherche]) profile.recherche = '';
   for (const k of ['debut', 'fin']) if (!jourDe(profile[k])) profile[k] = '';
+  /* OÙ JE CHERCHE (docs/recherche-profil.md) : une ville, telle qu'on
+     l'écrit, et un rayon parmi trois — le plus proche si une autre
+     valeur arrive d'un fichier ou d'un autre appareil */
+  profile.ville = String(profile.ville || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+  const r = Number(profile.rayon);
+  profile.rayon = RAYONS.includes(r) ? r : Number.isFinite(r) && r > 0 ? RAYONS.reduce((a, b) => Math.abs(b - r) < Math.abs(a - r) ? b : a) : 15;
   if (!Array.isArray(profile.prompts) || !profile.prompts.length) profile.prompts = defaultPrompts();
   profile.prompts = profile.prompts.slice(0, PROMPTS_MAX).map(p => ({
     name: (String((p && p.name) || '').trim() || 'Prompt').slice(0, 60),
     text: String((p && p.text) || '').slice(0, PROMPT_MAX_LEN)
   }));
   profile.parcours = normalizeParcours(profile.parcours);
+  /* « PAS POUR MOI » (docs/recherche-profil.md) : les entreprises de
+     « À découvrir » qu'on a écartées — un SIREN, le nom pour pouvoir les
+     rendre, la date. Les plus anciennes partent au-delà de 300. */
+  profile.ecartees = (Array.isArray(profile.ecartees) ? profile.ecartees : [])
+    .filter(x => x && /^\d{9}$/.test(String(x.siren || '')))
+    .map(x => ({ siren: String(x.siren), nom: String(x.nom || '').trim().slice(0, 120), at: Number(x.at) || 0 }))
+    .filter((x, i, l) => l.findIndex(y => y.siren === x.siren) === i)
+    .slice(-ECARTEES_MAX);
   if (!Array.isArray(profile.confirmedIds)) profile.confirmedIds = [];
   if (!profile.flags || typeof profile.flags !== 'object') profile.flags = {};
   profile.updatedAt = Number(profile.updatedAt) || 0;   /* LWW entre appareils */

@@ -629,7 +629,12 @@ function focusApresRetrait(node){
   };
 }
 
-export function bindDeleteGesture(node, onDelete, quoi){
+/* `o.mot` / `o.icone` : le même geste pour ÉCARTER sans supprimer (« Pas
+   pour moi », « À découvrir ») — le mot dit ce qui arrive, jamais
+   « Supprimer » pour ce qui ne l'est pas */
+export function bindDeleteGesture(node, onDelete, quoi, o){
+  o = o || {};
+  const mot = o.mot || 'Supprimer', icone = o.icone || 'trash';
   const inner = node.querySelector('.sw-in');
   if (!inner || node.__swDel) return;
   node.__swDel = true;
@@ -643,12 +648,12 @@ export function bindDeleteGesture(node, onDelete, quoi){
     setTimeout(() => { onDelete(); setTimeout(reprendre, 0); }, 150);
   };
   const nom = String(quoi || '').trim();
-  const dit = nom ? 'Supprimer ' + nom : 'Supprimer';
-  const del = el(`<button class="hov-del" aria-label="${esc(dit)}" title="${esc(dit)}">${ic('trash', 'ic-14')}</button>`);
+  const dit = nom ? mot + (o.mot ? ' : ' : ' ') + nom : mot;
+  const del = el(`<button class="hov-del" aria-label="${esc(dit)}" title="${esc(dit)}">${ic(icone, 'ic-14')}</button>`);
   del.addEventListener('click', e => { e.stopPropagation(); vanish(); });
   inner.append(del);
   if (!matchMedia('(pointer:coarse)').matches) return;
-  node.prepend(el(`<div class="sw-under" aria-hidden="true">${ic('trash', 'ic-14')} Supprimer</div>`));
+  node.prepend(el(`<div class="sw-under" aria-hidden="true">${ic(icone, 'ic-14')} ${esc(mot)}</div>`));
   let x0 = null, y0 = null, dx = 0, active = false, endedAt = 0;
   const auRepos = () => {
     x0 = null; dx = 0; active = false;

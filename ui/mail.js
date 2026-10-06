@@ -22,6 +22,7 @@ import { listDocs, docKind, docTitle, pickPdf } from './docs.js';
 import { mailAccount, freshToken, openConnexions, aiConnection, aiCompleteViaOrdinateur } from './connexions.js';
 import { IA, ENVOI_DIRECT } from './perimetre.js';
 import { carteConnue } from './fiche-annuaire.js';
+import { euros } from '../engine/marche.js';
 
 /* Les seuls champs qui nourrissent une accroche : ce qu'ils font, avec
    quoi ils travaillent, ce qu'un camarade a soufflé. Le process et
@@ -41,6 +42,9 @@ function savoirHTML(c){
   const lignes = [
     c.desc ? ['En bref', esc(c.desc)] : quoi ? ['Activité', esc(quoi)] : null,
     taille ? ['Taille', esc(taille)] : null,
+    /* l'aide à l'embauche d'un apprenti : un argument pour la lettre,
+       que la PME ne connaît pas toujours (engine/marche.js) */
+    k && k.aide ? ['Aide', `l’État lui verse jusqu’à ${euros(k.aide.montant)} la 1<sup>re</sup> année${k.aide.grande ? ', sous conditions' : ''}`] : null,
     c.techs ? ['Technos', esc(c.techs)] : null,
     c.tips ? ['Conseils', esc(c.tips)] : null,
     (!c.desc && !quoi && !c.techs && !c.tips && c.website)

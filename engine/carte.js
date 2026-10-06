@@ -194,22 +194,34 @@ export function carte(o){
   if (missions) src.add('annuaire');
   const t = TRANCHES[r.tranche] || '';
   const groupe = wd.groupe && !pareil(wd.groupe, r.nom) && !pareil(wd.groupe, c.name) ? dit('wikidata', wd.groupe) : '';
-  const taille = [t && r.tranche !== '00' ? t.replace(/^(\d[\d ]*)-(\d[\d ]*)/, '$1 à $2') : '', groupe ? 'groupe ' + groupe : '']
-    .filter(Boolean).join(' · ');
-  if (t && r.tranche !== '00') src.add('annuaire');
+  const enMots = x => x.replace(/^(\d[\d ]*)-(\d[\d ]*)/, '$1 à $2');
+  /* LE SITE QU'ON REJOINDRAIT d'abord, quand l'INSEE le sait : « 6 à 9
+     salariés ici · 500 à 999 en tout » dit à la fois l'équipe qu'on
+     rejoint et la maison qui la porte (docs/recherche-profil.md) */
+  const ici = TRANCHES[r.trancheIci] || '';
+  const tout = t && r.tranche !== '00' ? enMots(t) : '';
+  const taille = [ici ? enMots(ici) + ' ici' + (tout ? ' · ' + tout.replace(/ salariés?( et plus)?$/, (m, p) => p ? ' et plus' : '') + ' en tout' : '') : tout,
+    groupe ? 'groupe ' + groupe : ''].filter(Boolean).join(' · ');
+  if (ici || (t && r.tranche !== '00')) src.add('annuaire');
   const ecrire = aQui(r, c.name || r.nom);
   if (ecrire && ecrire.cible === 'dirigeant') src.add('annuaire');
 
-  /* le site : celui de la fiche, sinon Wikidata — la carte ne le redit
-     pas quand la fiche le montre déjà */
-  const site = String(c.website || '').trim() ? '' : (wd.site ? dit('wikidata', wd.site) : '');
+  /* le site : celui de la fiche, sinon Wikidata, sinon Clearbit (son nom
+     exact, gardé par `lireClearbit`) — la carte ne le redit pas quand la
+     fiche le montre déjà */
+  const site = String(c.website || '').trim() ? ''
+    : wd.site ? dit('wikidata', wd.site) : o.clearbit ? dit('clearbit', o.clearbit) : '';
+  /* L'AIDE À L'EMBAUCHE (engine/marche.js) : pour une alternance, ce que
+     l'État verse à CETTE entreprise si elle te prend — un argument que
+     l'étudiant peut écrire, et que la PME ne connaît pas toujours */
+  const aide = o.aide && o.aide.montant ? o.aide : null;
   const logo = wd.logo ? dit('wikidata', wd.logo) : '';
   const linkedin = wd.linkedin ? dit('wikidata', wd.linkedin) : '';
 
-  const NOMS = { annuaire: 'Annuaire des entreprises', bodacc: 'BODACC', wikipedia: 'Wikipédia', wikidata: 'Wikidata' };
+  const NOMS = { annuaire: 'Annuaire des entreprises', bodacc: 'BODACC', wikipedia: 'Wikipédia', wikidata: 'Wikidata', clearbit: 'Clearbit' };
   return {
-    alerte, quoi, missions, taille, ecrire, site, logo, linkedin,
-    sources: ['annuaire', 'bodacc', 'wikipedia', 'wikidata'].filter(k => src.has(k)).map(k => NOMS[k])
+    alerte, quoi, missions, taille, ecrire, aide, site, logo, linkedin,
+    sources: ['annuaire', 'bodacc', 'wikipedia', 'wikidata', 'clearbit'].filter(k => src.has(k)).map(k => NOMS[k])
   };
 }
 

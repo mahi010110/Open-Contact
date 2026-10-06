@@ -44,7 +44,7 @@
    l'écran ni le réseau.
    ============================================================ */
 import { fold, foldAligned, filterCompanies, blobOf } from './filter.js';
-import { DOMAINS, STATUSES, CLOSE_REASONS, VECU } from './model.js';
+import { DOMAINS, STATUSES, CLOSE_REASONS, VECU, RAYONS } from './model.js';
 import { silentPistes } from './assist.js';
 import { scoreOf } from './score.js';
 import { extractCity, todayISO } from './utils.js';
@@ -647,6 +647,104 @@ export function metierDuProfil(profile){
   const metier = e => e.famille === 'metier' && (!METIER[e.cle].domaine || e.cle === 'cyber' || e.cle === 'cloud');
   const cles = [...new Set(interpreter(f).etiquettes.filter(metier).map(e => e.cle))];
   return cles.length === 1 ? cles[0] : '';
+}
+
+/* ---------- « Où je cherche » (le profil) ----------
+   La ville du profil n'est utile que si l'app sait OÙ elle est : son
+   centre vit dans la table (engine/lieux.js), sans service. Une ville
+   que la table ne connaît pas ne devient rien — on ne cherche pas
+   autour d'un point qu'on n'a pas (docs/recherche-profil.md). */
+export function villeConnue(texte){
+  const k = cleDe(texte);
+  if (!k) return null;
+  const v = VILLES.find(x => variantes(x.nom).some(n => cleDe(n) === k));
+  return v && CENTRES.has(v.nom) ? { nom: v.nom, cle: cleDe(v.nom), dept: v.dept, centre: CENTRES.get(v.nom) } : null;
+}
+export const rayonDe = profile => RAYONS.includes(Number(profile && profile.rayon)) ? Number(profile.rayon) : 15;
+/* l'étiquette de lieu que le profil AJOUTE à une recherche : la même
+   qu'une ville tapée, plus son rayon, et marquée `profil` — l'écran la
+   montre avec sa croix, jamais en douce */
+export function lieuDuProfil(profile){
+  const v = villeConnue(profile && profile.ville);
+  if (!v) return null;
+  const rayon = rayonDe(profile);
+  return { famille: 'lieu', cle: 'ville:' + v.cle, id: 'lieu:ville:' + v.cle, label: v.nom, ville: v.cle,
+           dept: v.dept, centre: v.centre, rayon, profil: true, spans: [], mots: [] };
+}
+/* l'étiquette de métier que dit ta formation (`metierDuProfil`) */
+export function metierEtiquetteDuProfil(profile){
+  const cle = metierDuProfil(profile);
+  if (!cle) return null;
+  const d = METIER[cle];
+  return { famille: 'metier', cle, id: 'metier:' + cle, label: d.label, domaine: d.domaine || '', racines: d.racines,
+           profil: true, spans: [], mots: [] };
+}
+
+/* ---------- une faute de frappe ----------
+   « Lile », « reseaux », « cybersecu » : un mot qui ne se comprend pas
+   et qui est À UNE FAUTE d'un mot connu. La tolérance est celle des
+   moteurs de recherche du commerce (Algolia, documentation « typo
+   tolerance ») : une faute à partir de quatre lettres, deux à partir
+   de huit. La faute se compte en Damerau-Levenshtein (une lettre en
+   trop, en moins, changée, ou deux lettres inversées).
+   Une correction est PROPOSÉE, jamais appliquée (règle 1 : mieux vaut
+   ne pas comprendre que mal comprendre) — et seulement pour un mot qui
+   ne trouve rien tel quel : « Lilly » est peut-être une entreprise. */
+export function fautes(a, b, max){
+  if (Math.abs(a.length - b.length) > max) return max + 1;
+  const n = a.length, m = b.length;
+  let p2 = null, p1 = Array.from({ length: m + 1 }, (_, j) => j);
+  for (let i = 1; i <= n; i++){
+    const c = [i];
+    let min = i;
+    for (let j = 1; j <= m; j++){
+      const cout = a[i - 1] === b[j - 1] ? 0 : 1;
+      let v = Math.min(p1[j] + 1, c[j - 1] + 1, p1[j - 1] + cout);
+      if (p2 && i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) v = Math.min(v, p2[j - 2] + 1);
+      c.push(v);
+      if (v < min) min = v;
+    }
+    if (min > max) return max + 1;
+    p2 = p1; p1 = c;
+  }
+  return p1[m];
+}
+export const fautesPermises = mot => mot.length >= 8 ? 2 : mot.length >= 4 ? 1 : 0;
+/* Rend au plus UNE correction : la requête corrigée et ce qu'elle dit.
+   Les familles qu'on corrige : un lieu, un métier, ce que tu cherches —
+   le vocabulaire fixe. Un prénom du groupe ou une ville tirée des pistes
+   ne se « corrige » pas : c'est toi qui l'as écrit. */
+const CORRIGEABLES = new Set(['lieu', 'metier', 'recherche', 'taille']);
+export function correction(q, ctx, trouve){
+  const s = String(q || '');
+  const interp = interpreter(s, ctx);
+  const dict = dictionnaire(ctx);
+  const t = interp.jetons;
+  let mieux = null;
+  for (let i = 0; i < t.length; i++){
+    for (let n = Math.min(3, t.length - i); n >= 1; n--){
+      const tranche = t.slice(i, i + n);
+      if (tranche.some((x, k) => x.cite || interp.destins[i + k] !== 'texte')) continue;
+      const tape = tranche.map(x => x.cle).join(' ');
+      const max = fautesPermises(tape.replace(/ /g, ''));
+      if (!max || /\d/.test(tape)) continue;
+      for (const [k, e] of dict){
+        if (!CORRIGEABLES.has(e.famille) || k.split(' ').length !== n || (e.famille === 'lieu' && e.cle.startsWith('ville:') && !VILLE_DEPT.has(e.ville))) continue;
+        if (k[0] !== tape[0] && max < 2) continue;
+        const f = fautes(tape, k, max);
+        if (f > max || f === 0) continue;
+        if (!mieux || f < mieux.f || (f === mieux.f && n > mieux.n))
+          mieux = { f, n, k, debut: tranche[0].debut, fin: tranche[n - 1].fin, e, tape: s.slice(tranche[0].debut, tranche[n - 1].fin) };
+      }
+    }
+  }
+  if (!mieux) return null;
+  /* ce qui trouve quelque chose tel quel n'est pas une faute */
+  if (trouve && trouve(mieux.tape)) return null;
+  /* une ville se réécrit comme elle s'écrit (« Lille », « Saint-Étienne ») ;
+     le reste, par le mot reconnu */
+  const par = mieux.e.famille === 'lieu' ? mieux.e.label : mieux.k;
+  return { q: s.slice(0, mieux.debut) + par + s.slice(mieux.fin), label: mieux.e.label, tape: mieux.tape, etiquette: mieux.e };
 }
 
 /* ---------- élargir ----------

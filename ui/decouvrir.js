@@ -29,11 +29,15 @@
 import { esc, uid, todayISO } from '../engine/utils.js';
 import { normalizeCompany } from '../engine/model.js';
 import { questionsAnnuaire, lireAnnuaire, decouvertes, versPiste, motsInterdits, ficheOfficielle,
-         genreQuestion, liensPiste, offresAlternance, PAR_PAGE, LOIN_KM } from '../engine/annuaire.js';
-import { zoneDe, metierDuProfil, villeFrequente, cleDe, centreDe as centreVille } from '../engine/requete.js';
-import { S, bus, saveData, logJ, deletePiste } from './state.js';
-import { ic, openSheet, btn, showUndo, annoncer } from './dom.js';
+         genreQuestion, liensPiste, offresAlternance, offresStage, ajoutsProfil, loinDe, PAR_PAGE,
+         ecarter, rendre, sirensEcartes, cleVus, lireVus, nouveauxDe, noterVus } from '../engine/annuaire.js';
+import { zoneDe, metierDuProfil, villeFrequente, cleDe, centreDe as centreVille, villeConnue, rayonDe } from '../engine/requete.js';
+import { marche, BMO_ANNEE } from '../engine/marche.js';
+import { kvGet, kvSet, VUS_KEY } from '../engine/storage.js';
+import { S, bus, saveData, saveProfile, logJ, deletePiste } from './state.js';
+import { ic, openSheet, btn, showUndo, annoncer, bindDeleteGesture } from './dom.js';
 import { suivreCarte, carteDe, carteHTML, alerteHTML, sourcesHTML, lierCarte } from './carte.js';
+import { travailDe } from '../engine/carte.js';
 
 const PAUSE = 650;                 /* ms sans frappe avant de demander */
 const cache = new Map();           /* url → réponse : on ne redemande pas ce qu'on a déjà */
@@ -43,6 +47,16 @@ let ctrl = null, minut = null, notifier = () => {};
    du 5/10 : appliquée d'office, mais visible et défaisable). Rien n'est
    écrit : c'est un geste sur une recherche, pas un réglage. */
 let sansZone = false, dernier = { interp: null, o: {} };
+/* ce que le PROFIL ajoute (ta ville, le métier de ta formation) se
+   retire de la même façon, pour la session (docs/recherche-profil.md) */
+const sansProfil = { lieu: false, metier: false };
+/* « Nouveau » : ce que chaque recherche a déjà montré, sur CET appareil */
+let vus = null;
+async function chargerVus(){
+  if (vus) return vus;
+  try { vus = lireVus(await kvGet(VUS_KEY)); } catch (e) { vus = lireVus(null); }
+  return vus;
+}
 /* ce que tu as ajouté depuis CETTE liste : la ligne reste, cochée */
 const ajoutees = new Map();          /* siren → id de la piste */
 let choisi = '';                     /* au poste : la ligne dont l'aperçu est ouvert */
@@ -68,12 +82,19 @@ export function suivreDecouverte(interp, o){
   o = o || {};
   notifier = o.notifier || notifier;
   dernier = { interp, o };
-  /* TA ZONE : seulement quand la question n'a pas de lieu à elle */
-  const aLieu = ((interp && interp.etiquettes) || []).some(e => e.famille === 'lieu');
+  /* CE QUE TON PROFIL AJOUTE : ta ville et ton rayon, le métier de ta
+     formation — des étiquettes visibles, avec leur croix */
+  const aj = ajoutsProfil(interp, S.profile, sansProfil);
+  const brut = interp;
+  interp = aj.interp;
+  /* TA ZONE : seulement quand la question n'a pas de lieu à elle — et
+     jamais quand ton profil en dit un, même retiré : « Autour de Lille »
+     est une intention, la zone n'est qu'une déduction */
+  const aLieu = ((interp && interp.etiquettes) || []).some(e => e.famille === 'lieu') || !!aj.lieuPropose;
   const candidate = aLieu ? null : zoneDe(S.companies);
   const zone = sansZone ? null : candidate;
   const base = { interdits: motsInterdits(S.companies, S.orphans, S.profile), userPos: o.userPos,
-                 parDefaut: !!o.actif };
+                 parDefaut: !!o.actif, rayonVille: rayonDe(S.profile) };
   const urls = questionsAnnuaire(interp, { ...base, zone });
   /* retirée, elle reste PROPOSÉE (en pointillé) tant qu'elle changerait
      quelque chose : un tap la remet — proposé en pointillé, posé en plein */
@@ -82,7 +103,8 @@ export function suivreDecouverte(interp, o){
   /* la clé dit aussi D'OÙ vient le lieu : « alternance Lille » et ta
      zone du Nord posent la même question à l'annuaire, mais pas la même
      à l'écran (l'une montre l'étiquette de zone, l'autre non) */
-  const cle = urls.join('|') + '#' + (zone ? 'z' + zone.dept : '') + '#' + (proposee ? proposee.dept : '');
+  const cle = urls.join('|') + '#' + (zone ? 'z' + zone.dept : '') + '#' + (proposee ? proposee.dept : '')
+    + '#' + [aj.lieu, aj.metier, aj.lieuPropose, aj.metierPropose].map(e => e ? e.id + (e.rayon || '') : '').join(',');
   if (cle === etat.cle) return;
   if (ctrl) ctrl.abort();
   clearTimeout(minut);
@@ -91,14 +113,16 @@ export function suivreDecouverte(interp, o){
   etat = { cle, urls, phase: 'repos', parQ: urls.map(() => []), ordre: [], total: 0, page: 1,
            genres: urls.map(genreQuestion),
            zone: (zone && urls.some(u => new URL(u).searchParams.get('departement') === zone.dept)) ? zone : null,
-           proposee,
+           proposee, profil: aj,
            ville: villeDe(interp), interp,
            ...(() => {
              const c = procheDe(interp) && o.userPos ? null : centreDe(interp);
-             return { userPos: c || o.userPos || null, loin: c ? LOIN_KM : 0 };
+             const l = (interp.etiquettes || []).find(x => x.famille === 'lieu' && Array.isArray(x.centre));
+             return { userPos: c || o.userPos || null, loin: c ? loinDe((l && l.rayon) || rayonDe(S.profile)) : 0 };
            })(),
+           cleVus: cleVus(urls), nouveaux: new Set(),
            /* la barre est vide : seul le tap sur le segment a demandé */
-           parDefaut: !(interp && (interp.etiquettes.length || interp.texte.length)) };
+           parDefaut: !(brut && (brut.etiquettes.length || brut.texte.length)) };
   if (!urls.length) return;
   if (navigator.onLine === false){ etat.phase = 'horsligne'; return; }
   etat.phase = 'attente';
@@ -173,6 +197,16 @@ async function charger(cle, page){
        l'information */
     const n = visibles().length;
     if (n) annoncer(`${n} entreprise${n > 1 ? 's' : ''} à découvrir.`);
+    /* « NOUVEAU » : comparé à la fois d'avant, puis retenu pour la
+       prochaine. Ce qui était déjà là ne se marque pas deux fois dans
+       la même session : le souvenir est lu une fois par recherche. */
+    const montres = visibles().map(r => r.siren);
+    const v = await chargerVus();
+    if (cle !== etat.cle) return;
+    if (page === 1) etat.nouveaux = nouveauxDe(v, etat.cleVus, montres);
+    else for (const x of nouveauxDe(v, etat.cleVus, montres)) etat.nouveaux.add(x);
+    vus = noterVus(v, etat.cleVus, montres);
+    kvSet(VUS_KEY, JSON.stringify(vus)).catch(() => {});
     if (!choisi || !visibles().some(r => r.siren === choisi)) choisi = (visibles()[0] || {}).siren || '';
   } catch (e){
     if (e && e.name === 'AbortError') return;
@@ -188,7 +222,8 @@ async function charger(cle, page){
 const classer = () => {
   const deja = new Set(ajoutees.values());
   return decouvertes(etat.parQ, S.companies.filter(c => !deja.has(c.id)),
-    { genres: etat.genres, userPos: etat.userPos, ville: etat.ville, loin: etat.loin });
+    { genres: etat.genres, userPos: etat.userPos, ville: etat.ville, loin: etat.loin,
+      ecartees: sirensEcartes(S.profile.ecartees), metier: metierDuProfil(S.profile) });
 };
 function visibles(){
   const l = classer();
@@ -212,44 +247,82 @@ const estPrise = siren => ajoutees.has(siren) && S.companies.some(c => c.id === 
 const km = d => d == null ? '' : (d < 1 ? '< 1 km' : Math.round(d) + ' km');
 /* La ligne dit ce qui DÉPARTAGE : où, à quelle distance, quelle taille.
    L'activité — « Conseil en systèmes et logiciels informatiques » neuf
-   fois sur dix — ne départage rien : elle vit dans l'aperçu. */
-const sousLigne = r => [r.ville, km(r.distance), r.effectif].filter(Boolean).join(' · ');
+   fois sur dix — ne départage rien : elle vit dans l'aperçu. La taille
+   est celle du SITE quand l'INSEE la sait (« 6-9 salariés ici ») : un
+   stagiaire rejoint un bureau, pas un groupe. */
+const sousLigne = r => [r.ville, km(r.distance), r.effectifIci ? r.effectifIci + ' ici' : r.effectif].filter(Boolean).join(' · ');
+/* ce qui colle à ta formation — dit sur la ligne seulement quand ça
+   DÉPARTAGE (§6 : la raison se lit sur la ligne, et ce qui est vrai de
+   toutes ne dit rien) */
+let colleAffiche = false;
+const colleDe = r => { const m = metierDuProfil(S.profile); const t = m && travailDe(r); return !!(t && t.metiers.includes(m)); };
 function ligneHTML(r){
   const pris = estPrise(r.siren), sel = mqLarge.matches && r.siren === choisi;
+  const neuf = !pris && etat.nouveaux.has(r.siren);
+  const ton = !pris && colleAffiche && colleDe(r);
+  const marque = pris ? `<span class="dc-ok">${ic('check', 'ic-12')}dans tes pistes</span>`
+    : (neuf ? '<span class="dc-neuf">nouveau</span>' : '') + (ton ? '<span class="dc-ton">ta formation</span>' : '');
+  const dit = [r.nom, pris ? 'dans tes pistes' : '', neuf ? 'nouveau' : '', ton ? 'colle à ta formation' : ''].filter(Boolean).join(', ');
   return (
-    `<div class="dc-row${pris ? ' dc-pris' : ''}${sel ? ' dc-sel' : ''}" data-siren="${esc(r.siren)}">
-       <div class="dc-main" role="button" tabindex="0" aria-label="${esc(r.nom)}${pris ? ', dans tes pistes' : ''}"${sel ? ' aria-current="true"' : ''}>
-         <span class="dc-nom">${esc(r.nom)}</span>
-         <span class="dc-sub">${pris ? `<span class="dc-ok">${ic('check', 'ic-12')}dans tes pistes</span>` : ''}${esc(sousLigne(r))}</span>
+    `<div class="dc-row${pris ? ' dc-pris' : ''}${sel ? ' dc-sel' : ''}" data-siren="${esc(r.siren)}" data-l="${esc(r.siren)}">
+       <div class="sw-in">
+         <div class="dc-main sw-cible" role="button" tabindex="0" aria-label="${esc(dit)}"${sel ? ' aria-current="true"' : ''}>
+           <span class="dc-nom">${esc(r.nom)}</span>
+           <span class="dc-sub">${marque}${esc(sousLigne(r))}</span>
+         </div>
        </div>
      </div>`);
 }
 
 /* LA ZONE vit dans la rangée d'étiquettes de la barre — elle EST une
    étiquette de la question — : posée (pleine, sa croix la retire) ou
-   proposée (pointillée, un tap la remet). Zéro rangée de plus. */
-export function zoneEtiquetteHTML(){
-  if (etat.zone) return (
+   proposée (pointillée, un tap la remet). Zéro rangée de plus.
+   CE QUE TON PROFIL AJOUTE vit au même endroit, de la même façon (docs/
+   recherche-profil.md) : le métier de ta formation, ta ville et son
+   rayon — « Lille · 15 km ». `marque` dessine l'icône comme pour une
+   étiquette tapée : on ne réapprend pas à lire une étiquette. */
+export function zoneEtiquetteHTML(marque){
+  marque = marque || (() => ic('map-pin', 'ic-14'));
+  const pf = etat.profil || {};
+  const nom = e => e.famille === 'lieu' ? `${e.label} · ${e.rayon} km` : e.label;
+  const pose = (e, k) => `<button class="st-chip" data-dc-pf="${k}" data-on="0" aria-label="Retirer « ${esc(nom(e))} », de ton profil">${
+    marque(e)}${esc(nom(e))}${ic('close', 'ic-12')}</button>`;
+  const prop = (e, k) => `<button class="prop-chip" data-dc-pf="${k}" data-on="1" aria-label="Chercher avec « ${esc(nom(e))} », de ton profil">${
+    marque(e)}${esc(nom(e))}</button>`;
+  const bits = [];
+  if (pf.metier) bits.push(pose(pf.metier, 'metier'));
+  if (pf.lieu) bits.push(pose(pf.lieu, 'lieu'));
+  if (etat.zone) bits.push(
     `<button class="st-chip" data-dc-zone="off" aria-label="Retirer la zone ${esc(etat.zone.label)}">${
       ic('map-pin', 'ic-14')}${esc(etat.zone.label)}${ic('close', 'ic-12')}</button>`);
-  if (etat.proposee) return (
+  if (pf.metierPropose) bits.push(prop(pf.metierPropose, 'metier'));
+  if (pf.lieuPropose) bits.push(prop(pf.lieuPropose, 'lieu'));
+  if (etat.proposee) bits.push(
     `<button class="prop-chip" data-dc-zone="on" aria-label="Chercher dans ${esc(etat.proposee.label)}">${
       ic('map-pin', 'ic-14')}${esc(etat.proposee.label)}</button>`);
-  return '';
+  return bits.join('');
 }
 export function lierZone(box){
-  box?.querySelector('[data-dc-zone]')?.addEventListener('click', e => {
-    sansZone = e.currentTarget.dataset.dcZone === 'off';
+  const refaire = sel => {
     suivreDecouverte(dernier.interp, dernier.o);
     notifier();
     /* le focus ne tombe pas par terre (§6) : la puce redessinée reprend
        la main, sinon la barre */
     requestAnimationFrame(() => {
-      const ici = document.querySelector('#piChips [data-dc-zone]');
+      const ici = document.querySelector('#piChips ' + sel);
       if (ici) ici.focus({ preventScroll: true });
       else document.getElementById('piQ')?.focus({ preventScroll: true });
     });
+  };
+  box?.querySelector('[data-dc-zone]')?.addEventListener('click', e => {
+    sansZone = e.currentTarget.dataset.dcZone === 'off';
+    refaire('[data-dc-zone]');
   });
+  box?.querySelectorAll('[data-dc-pf]').forEach(b => b.addEventListener('click', () => {
+    const k = b.dataset.dcPf;
+    sansProfil[k] = b.dataset.on !== '1';
+    refaire(`[data-dc-pf="${k}"]`);
+  }));
 }
 
 /* L'APERÇU — ce qui décide d'abord, et sans un lien à toucher (demande
@@ -264,7 +337,7 @@ export function lierZone(box){
 export function apercuHTML(r, o){
   o = o || {};
   const pris = estPrise(r.siren);
-  const k = carteDe(r, null, metierDuProfil(S.profile));
+  const k = carteDe(r, null, metierDuProfil(S.profile), S.profile);
   const lieu = [r.ville, km(r.distance)].filter(Boolean).join(' · ');
   const liens = liensPiste({ name: r.nom, siren: r.siren }, S.profile).filter(l => l.cle !== 'officielle');
   if (k.linkedin) liens.push({ url: k.linkedin, label: 'Page LinkedIn', aria: 'Page LinkedIn de ' + r.nom });
@@ -278,7 +351,8 @@ export function apercuHTML(r, o){
        ${o.panneau ? `<div class="ap-agir">${pris
          ? `<span class="ap-pris">${ic('check', 'ic-14')}Dans tes pistes</span>
             <button class="linklike" data-ap-fiche="${esc(r.siren)}">Ouvrir la fiche</button>`
-         : `<button class="btn btn-primary" data-ap-add="${esc(r.siren)}">${ic('plus', 'ic-14')}Ajouter à mes pistes</button>`}</div>` : ''}
+         : `<button class="btn btn-primary" data-ap-add="${esc(r.siren)}">${ic('plus', 'ic-14')}Ajouter à mes pistes</button>
+            <button class="btn btn-sm" data-ap-ecarter="${esc(r.siren)}">${ic('close', 'ic-14')}Pas pour moi</button>`}</div>` : ''}
        <div class="ct">${carteHTML(k, { nom: r.nom })}</div>
        ${liens.length ? `<div class="ap-liens">${liens.map(l => lien(l.url, l.label, l.aria)).join('')}</div>` : ''}
        <div class="ap-plus">
@@ -297,12 +371,35 @@ export function apercuHTML(r, o){
    ville tapée, sinon celle de tes pistes. */
 function offresHTML(){
   if (!['ok', 'plus', 'erreur', 'limite'].includes(etat.phase)) return '';
-  const vf = villeFrequente(S.companies);
-  const c = vf && centreVille(cleDe(vf));
-  const o = offresAlternance(etat.interp, { recherche: S.profile && S.profile.recherche, metier: metierDuProfil(S.profile),
-    centre: c ? { lat: c[0], lng: c[1], nom: vf } : null });
-  return o ? `<a class="linklike dc-offres" href="${esc(o.url)}" target="_blank" rel="noopener">${ic('briefcase', 'ic-14')}<span>Offres d’alternance autour de ${
-    esc(o.lieu)}</span>${ic('external-link', 'ic-12')}</a>` : '';
+  /* la ville de repli : celle de ton profil, sinon celle de tes pistes */
+  const vp = villeConnue(S.profile && S.profile.ville);
+  const vf = vp ? vp.nom : villeFrequente(S.companies);
+  const c = vp ? vp.centre : vf && centreVille(cleDe(vf));
+  const o = { recherche: S.profile && S.profile.recherche, metier: metierDuProfil(S.profile),
+    centre: c ? { lat: c[0], lng: c[1], nom: vf } : null, ville: vf };
+  const a = offresAlternance(etat.interp, o);
+  /* le STAGE a son lien aussi (décision du 6/10) : HelloWork garde ses
+     critères dans son adresse, mesuré métier par métier */
+  const st = !a && offresStage(etat.interp, o);
+  const l = a ? { ...a, mot: 'Offres d’alternance' } : st ? { ...st, mot: 'Offres de stage' } : null;
+  return l ? `<a class="linklike dc-offres" href="${esc(l.url)}" target="_blank" rel="noopener">${ic('briefcase', 'ic-14')}<span>${l.mot} autour de ${
+    esc(l.lieu)}</span>${ic('external-link', 'ic-12')}</a>` : '';
+}
+/* LE MARCHÉ AUTOUR DE TOI (décision du 6/10 : « une ligne ») : les
+   embauches que les employeurs prévoient dans le département cherché,
+   et la part qu'ils disent difficile à pourvoir — l'enquête BMO de
+   France Travail, rangée dans l'app (engine/marche.js). Une donnée, en
+   petit, sous les offres ; la source se nomme sur la ligne. */
+function marcheHTML(){
+  if (!['ok', 'plus'].includes(etat.phase)) return '';
+  const et = (etat.interp && etat.interp.etiquettes) || [];
+  const l = et.find(e => e.famille === 'lieu' && (e.dept || (e.depts && e.depts.length === 1)));
+  const dept = l ? (l.dept || l.depts[0]) : etat.zone ? etat.zone.dept : '';
+  const m = et.find(e => e.famille === 'metier');
+  const k = dept && marche(dept, m ? m.cle : '');
+  if (!k) return '';
+  return `<p class="dc-marche">${ic('chart', 'ic-12')}<span>${esc(k.lieu)} : <b>${k.n.toLocaleString('fr-FR')}</b> embauches prévues en ${
+    esc(k.quoi)}, <b>${k.part}\u202f%</b> difficiles à pourvoir. <span class="dc-marche-src">France Travail, ${BMO_ANNEE}</span></span></p>`;
 }
 
 /* la vue, selon l'état */
@@ -322,6 +419,10 @@ export function decouverteHTML(){
   else if (!l.length)
     corps = `<p class="dc-etat">Rien de nouveau dans l’annuaire.</p>`;
   else {
+    /* « ta formation » ne se dit que si elle départage : vraie de toutes
+       ou d'aucune, elle ne dit rien */
+    const nColle = l.filter(colleDe).length;
+    colleAffiche = nColle > 0 && nColle < l.length;
     const reste = etat.total - etat.page * PAR_PAGE;
     const liste =
       `<div class="dc-list">${l.map(ligneHTML).join('')}</div>
@@ -335,10 +436,13 @@ export function decouverteHTML(){
          </div>`
       : liste;
   }
+  const nEc = (S.profile.ecartees || []).length;
   return (
     `<section class="dc-vue" aria-label="À découvrir">
        ${offresHTML()}
+       ${marcheHTML()}
        ${corps}
+       ${nEc && ['ok', 'plus'].includes(etat.phase) ? `<button class="linklike dc-ecl" data-dc-ecartees>Écartées · ${nEc}</button>` : ''}
        ${/* la source se nomme : la licence de l'annuaire le demande, et
             c'est ce qui dit d'où viennent des entreprises qu'on n'a
             jamais saisies — en pied, discrète */''}
@@ -348,6 +452,40 @@ export function decouverteHTML(){
 
 /* ajouter : une piste comme si on l'avait saisie, puis Annuler 30 s ;
    la ligne reste, et le dit */
+/* PAS POUR MOI (décision du 6/10) : l'entreprise sort de la liste et
+   n'y revient plus — retenue dans le profil, donc sur tes appareils et
+   dans ta copie. Annuler 30 s (§6) ; « Écartées », en pied de liste, les
+   rend une à une. */
+function ecarterR(r){
+  S.profile.ecartees = ecarter(S.profile.ecartees, r);
+  saveProfile();
+  if (choisi === r.siren) choisi = '';
+  notifier();
+  showUndo(`« ${esc(r.nom)} » écartée.`, () => {
+    S.profile.ecartees = rendre(S.profile.ecartees, r.siren);
+    saveProfile();
+    notifier();
+  });
+}
+function ouvrirEcartees(){
+  const sh = openSheet({ title: 'Écartées', icon: 'close' });
+  const dessiner = () => {
+    const l = [...(S.profile.ecartees || [])].reverse();
+    if (!l.length){ sh.close(); return; }
+    sh.body.innerHTML =
+      `<div class="pick-list">${l.map(x =>
+        `<button class="pick" data-rendre="${esc(x.siren)}" aria-label="Remettre ${esc(x.nom || x.siren)} dans À découvrir">
+           <div class="pk-m"><b>${esc(x.nom || 'SIREN ' + x.siren)}</b></div>${ic('undo', 'ic-14')}</button>`).join('')}</div>`;
+    sh.body.querySelectorAll('[data-rendre]').forEach(b => b.addEventListener('click', () => {
+      S.profile.ecartees = rendre(S.profile.ecartees, b.dataset.rendre);
+      saveProfile();
+      notifier();
+      dessiner();
+    }));
+  };
+  dessiner();
+}
+
 function ajouter(r){
   const c = normalizeCompany({ ...versPiste(r, etat.interp), id: uid(), createdAt: Date.now() });
   c.history = [{ d: todayISO(), t: 'Ajoutée depuis l’annuaire' }];
@@ -370,10 +508,11 @@ function ouvrirApercu(r){
   const sh = openSheet({ title: 'À découvrir', icon: 'building', onClose: () => lacher() });
   const dessiner = () => { if (!sh.body.isConnected) return; sh.body.innerHTML = apercuHTML(r); lierCarte(sh.body); };
   dessiner();
-  lacher = suivreCarte(r.siren, dessiner);
-  sh.setFoot([estPrise(r.siren)
-    ? btn('Ouvrir la fiche', 'btn-primary', () => { sh.close(); ouvrirFiche(r); }, 'briefcase')
-    : btn('Ajouter à mes pistes', 'btn-primary', () => { sh.close(); ajouter(r); }, 'plus')]);
+  lacher = suivreCarte(r.siren, dessiner, r.nom);
+  sh.setFoot(estPrise(r.siren)
+    ? [btn('Ouvrir la fiche', 'btn-primary', () => { sh.close(); ouvrirFiche(r); }, 'briefcase')]
+    : [btn('Pas pour moi', 'btn-sm', () => { sh.close(); ecarterR(r); }, 'close'),
+       btn('Ajouter à mes pistes', 'btn-primary', () => { sh.close(); ajouter(r); }, 'plus')]);
   return sh;
 }
 async function ouvrirFiche(r){
@@ -415,7 +554,7 @@ function completerPanneau(box, r){
       if (!aside || aside.dataset.siren !== r.siren) return;
       aside.innerHTML = apercuHTML(r, { panneau: true });
       lierApercu(box, aside);
-    });
+    }, r.nom);
   }, 350);
 }
 function lierApercu(box, aside){
@@ -428,6 +567,10 @@ function lierApercu(box, aside){
   aside.querySelector('[data-ap-fiche]')?.addEventListener('click', e => {
     const r = trouve(e.currentTarget.dataset.apFiche);
     if (r) ouvrirFiche(r);
+  });
+  aside.querySelector('[data-ap-ecarter]')?.addEventListener('click', e => {
+    const r = trouve(e.currentTarget.dataset.apEcarter);
+    if (r) ecarterR(r);
   });
 }
 
@@ -447,7 +590,11 @@ export function lierDecouverte(box, o){
     main.addEventListener('keydown', e => {
       if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); ouvrir(); }
     });
+    /* « Pas pour moi » au geste : glisser au doigt, la croix au survol —
+       le motif de la suppression, avec SON mot (rien n'est supprimé) */
+    if (!estPrise(r.siren)) bindDeleteGesture(row, () => ecarterR(r), r.nom, { mot: 'Pas pour moi', icone: 'close' });
   });
+  box.querySelector('[data-dc-ecartees]')?.addEventListener('click', ouvrirEcartees);
   const aside = box.querySelector('.dc-detail');
   if (aside){
     lierApercu(box, aside);

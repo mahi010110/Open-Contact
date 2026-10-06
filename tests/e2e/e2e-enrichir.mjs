@@ -92,6 +92,8 @@ function services(ctx){
     return route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' },
       body: JSON.stringify({ results, total_results: results.length }) });
   });
+  ctx.route('https://autocomplete.clearbit.com/**', route => { journal.push(route.request().url());
+    return route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: '[]' }); });
   ctx.route('https://query.wikidata.org/**', async route => {
     const u = route.request().url();
     journal.push(u);

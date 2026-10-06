@@ -12,7 +12,9 @@
    l'aperçu ouvert, la fiche ouverte —, une fois par session :
    · Wikidata et le BODACC reçoivent le SIREN, neuf chiffres publics ;
    · Wikipédia reçoit le titre de l'article que Wikidata a donné ;
-   · le logo vient de Wikimedia Commons, sans référent.
+   · le logo vient de Wikimedia Commons, sans référent ;
+   · Clearbit reçoit le NOM de l'entreprise, et seulement quand Wikidata
+     n'a pas de site à donner (décision du mainteneur, 6/10).
    Rien d'autre : ni note, ni contact, ni profil.
 
    CE QUI SE TAIT. Ces sources-là complètent, elles ne portent pas la
@@ -23,6 +25,8 @@
 import { esc } from '../engine/utils.js';
 import { todayISO } from '../engine/utils.js';
 import { questionWikidata, lireWikidata, questionResume, lireResume, questionBodacc, lireBodacc, carte } from '../engine/carte.js';
+import { questionClearbit, lireClearbit } from '../engine/annuaire.js';
+import { aideEmbauche, euros } from '../engine/marche.js';
 import { ic } from './dom.js';
 
 /* siren → { wd, resume, bodacc, etats } — on ne redemande pas ce qu'on sait */
@@ -41,13 +45,13 @@ function lire(u, accept){
 /* Demander ce que les autres sources savent de `siren`. `notifier` est
    rappelé à chaque réponse qui change la carte. Une source en erreur se
    redemande à la prochaine ouverture, jamais en boucle. */
-export function suivreCarte(siren, notifier){
+export function suivreCarte(siren, notifier, nom){
   if (!/^\d{9}$/.test(String(siren || ''))) return () => {};
   if (notifier){
     if (!abonnes.has(siren)) abonnes.set(siren, new Set());
     abonnes.get(siren).add(notifier);
   }
-  const e = memo.get(siren) || { wd: null, resume: '', bodacc: null, etats: {} };
+  const e = memo.get(siren) || { wd: null, resume: '', bodacc: null, clearbit: '', etats: {} };
   memo.set(siren, e);
   const prevenir = () => (abonnes.get(siren) || []).forEach(f => { try { f(); } catch (x) { /* un écran fermé */ } });
   if (navigator.onLine !== false){
@@ -59,6 +63,13 @@ export function suivreCarte(siren, notifier){
         if (e.wd.site || e.wd.desc || e.wd.groupe || e.wd.logo || e.wd.linkedin) prevenir();
         const u = questionResume(e.wd.article);
         if (u) lire(u, 'application/json').then(r => { e.resume = lireResume(r); if (e.resume) prevenir(); }).catch(() => {});
+        /* pas de site chez Wikidata : Clearbit, par le nom — une fois */
+        const cb = !e.wd.site && !e.etats.cb && questionClearbit(nom);
+        if (cb){
+          e.etats.cb = 'charge';
+          lire(cb, 'application/json').then(j => { e.clearbit = lireClearbit(j, nom); if (e.clearbit) prevenir(); })
+            .catch(() => { e.etats.cb = ''; });
+        }
       }).catch(() => { e.etats.wd = 'erreur'; });
     }
     if (!e.etats.bodacc || e.etats.bodacc === 'erreur'){
@@ -75,12 +86,14 @@ export function suivreCarte(siren, notifier){
 /* ce que les sources ont rendu jusqu'ici (rien, tant qu'elles se taisent) */
 export const sourcesDe = siren => {
   const e = memo.get(String(siren || ''));
-  return e ? { wd: e.wd, resume: e.resume, bodacc: e.bodacc } : {};
+  return e ? { wd: e.wd, resume: e.resume, bodacc: e.bodacc, clearbit: e.clearbit } : {};
 };
 /* la carte d'une entreprise, prête à dessiner */
 /* `metier` : celui que dit ta formation (metierDuProfil) — la carte dit
-   si les missions y collent */
-export const carteDe = (r, piste, metier) => carte({ r, piste, metier, ...sourcesDe(r && r.siren) });
+   si les missions y collent ; `profile` : ce que tu cherches, pour l'aide
+   à l'embauche d'un apprenti */
+export const carteDe = (r, piste, metier, profile) => carte({ r, piste, metier, ...sourcesDe(r && r.siren),
+  aide: r && profile ? aideEmbauche(r, profile, todayISO()) : null });
 
 const jjmmaaaa = iso => /^\d{4}-\d{2}-\d{2}$/.test(iso || '') ? iso.slice(8, 10) + '/' + iso.slice(5, 7) + '/' + iso.slice(0, 4) : '';
 /* L'ALERTE se pose en ligne, à côté du lieu ou du nom : une marque, pas
@@ -117,6 +130,7 @@ export function carteHTML(k, o){
        ? ` <span class="ct-ton">${ic('check', 'ic-12')}colle à ta formation</span>` : '')) : ''}
      ${k.taille ? ligne('Taille', esc(k.taille)) : ''}
      ${o.ecrire === false ? '' : ecrireHTML(k.ecrire, o.nom)}
+     ${k.aide ? ligne('Aide', `l’État lui verse jusqu’à <b>${euros(k.aide.montant)}</b> la 1<sup>re</sup> année${k.aide.grande ? ', sous conditions' : ''}`) : ''}
      ${site}`);
 }
 /* la source, nommée : la licence de l'annuaire le demande, et c'est ce

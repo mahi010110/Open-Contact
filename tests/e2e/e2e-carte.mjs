@@ -70,7 +70,10 @@ const PISTES = [
     contacts: [] },
   { id: 'df', name: 'Dataflow Nord', siren: DATAFLOW, city: 'Roubaix', status: 'todo', updatedAt: 2, contacts: [] }
 ];
-const PROFIL = { name: 'Inès Martin', formation: 'BTS SIO SISR', ecole: 'Lycée Baggio', recherche: 'alternance', email: 'ines@exemple.test' };
+/* un début de contrat POSÉ (avant 2027) : l'aide à l'embauche se lit
+   sans dépendre du jour où le scénario tourne */
+const PROFIL = { name: 'Inès Martin', formation: 'BTS SIO SISR', ecole: 'Lycée Baggio', recherche: 'alternance', debut: '2026-11-02',
+  email: 'ines@exemple.test' };
 const PRIVES = ['bertrand', 'rappeler', 'julie', 'marchand', 'ines', 'martin', 'baggio', 'alternants', 'soc a lille'];
 const pliees = s => decodeURIComponent(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
@@ -90,6 +93,13 @@ function sources(ctx, o = {}){
         article: { value: 'https://fr.wikipedia.org/wiki/Sopra_Steria' } }]
       : q.includes(ADVENS) ? [{ desc: { value: 'entreprise de cybersécurité' } }] : [];
     return r.fulfill({ status: 200, contentType: 'application/sparql-results+json', headers: cors, body: JSON.stringify({ results: { bindings: b } }) }); });
+  /* CLEARBIT (décision du 6/10) : le site, par le NOM, seulement quand
+     Wikidata n'en a pas — l'homonyme étranger ne passe pas */
+  ctx.route('https://autocomplete.clearbit.com/**', r => { note(r);
+    const q = new URL(r.request().url()).searchParams.get('query') || '';
+    const b = /advens/i.test(q) ? [{ name: 'Leading BIM Service Provider', domain: 'advenser.com' }, { name: 'Advens', domain: 'advens.fr' },
+      { name: 'ADVENS - HOSTING SERVICES', domain: 'advens.ru' }] : [];
+    return r.fulfill({ status: 200, contentType: 'application/json', headers: cors, body: JSON.stringify(b) }); });
   ctx.route('https://fr.wikipedia.org/**', r => { note(r);
     return r.fulfill({ status: 200, contentType: 'application/json', headers: cors, body: JSON.stringify({ type: 'standard', extract: RESUME }) }); });
   ctx.route('https://bodacc-datadila.opendatasoft.com/**', async r => { note(r);
@@ -166,7 +176,9 @@ const lireCarte = (p, sel) => p.evaluate(sel => {
     fail('ce qu’elle fait ne vient pas de Wikipédia, en une phrase sans parenthèses : ' + s.quoi);
   /* les trois lignes qui aident à choisir, dans l'ordre ; une grande : on écrit au recrutement */
   const attendu = ['Missions: Conseil et intégration informatique colle à ta formation', 'Taille: 10 000 salariés et plus',
-                   'Écrire à: Son service recrutement LinkedIn', 'Site: soprasteria.com'];
+                   'Écrire à: Son service recrutement LinkedIn',
+                   /* une grande, un BTS : 1 500 €, et ses conditions (décret 2026-168) */
+                   'Aide: l’État lui verse jusqu’à 1 500 € la 1re année, sous conditions', 'Site: soprasteria.com'];
   if (s.lignes.join(' | ') !== attendu.join(' | ')) fail('les lignes de la carte : ' + s.lignes.join(' | '));
   if (s.ton !== 'colle à ta formation') fail('BTS SIO SISR et des missions de réseau : « colle à ta formation » manque');
   if (/Md€|CA 20|création|sites/.test(JSON.stringify(s))) fail('le chiffre d’affaires, la création ou les sites reviennent : ' + JSON.stringify(s));
@@ -235,7 +247,7 @@ const lireCarte = (p, sel) => p.evaluate(sel => {
   if (!f.ouvert || !f.visible) fail('au pouce, la carte de la fiche ne se voit pas sans toucher : ' + JSON.stringify(f));
   if (f.quoi !== 'SOC à Lille, trois alternants') fail('ta phrase ne passe pas devant Wikidata : ' + f.quoi);
   if (f.enBref) fail('« En bref » se redit à côté de la carte');
-  if (f.lignes.join(',') !== 'Missions,Taille') fail('la carte de la fiche : ' + f.lignes);
+  if (f.lignes.join(',') !== 'Missions,Taille,Aide,Site') fail('la carte de la fiche : ' + f.lignes);
   /* la piste n'a personne : à qui écrire vit avec les contacts, pas dans la carte */
   if (f.qui !== 'Écrire à Thomas Leroy, président LinkedIn') fail('la fiche ne dit pas à qui écrire, avec les contacts : ' + f.qui);
   for (const u of journal){ const w = PRIVES.find(m => pliees(u).includes(m)); if (w) fail(`fiche : « ${w} » est sorti : ${u}`); }
@@ -277,7 +289,7 @@ const lireCarte = (p, sel) => p.evaluate(sel => {
   await p.waitForTimeout(500);
   const h = await lireCarte(p, '.overlay .modal-b');
   if (journal.length !== n0) fail('hors ligne, une source de la carte a été interrogée : ' + journal.slice(n0));
-  if (!h || h.lignes.join(' | ') !== 'Missions: Conseil et intégration informatique colle à ta formation | Taille: 100 à 199 salariés | Écrire à: Thomas Leroy, président LinkedIn')
+  if (!h || h.lignes.join(' | ') !== 'Missions: Conseil et intégration informatique colle à ta formation | Taille: 100 à 199 salariés | Écrire à: Thomas Leroy, président LinkedIn | Aide: l’État lui verse jusqu’à 4 500 € la 1re année')
     fail('hors ligne, la carte ne montre pas ce que l’annuaire a dit : ' + JSON.stringify(h));
   else console.log('pouce · ⑥ hors ligne : rien ne part, la carte montre ce que l’annuaire a dit ✓');
   await ctx.setOffline(false);

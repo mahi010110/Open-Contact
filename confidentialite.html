@@ -98,8 +98,11 @@ qui décrit une entreprise : le métier (sous forme de codes d'activité), le
 lieu, la taille, et les mots qui peuvent être un nom d'entreprise. Pour une
 ville, il reçoit les coordonnées de son centre, lues dans une table de l'app
 (rien n'est demandé pour les trouver), pour chercher autour d'elle. Si tu
-n'as pas tapé de lieu, il reçoit le département où tu as le plus de pistes :
-l'étiquette de ce département s'affiche sous la barre, et sa croix l'enlève.
+n'as pas tapé de lieu, il reçoit le centre de la ville que tu as indiquée
+dans ton profil (« Autour de ») et ton rayon, sinon le département où tu as
+le plus de pistes. Si tu n'as pas tapé de métier, il reçoit les codes
+d'activité du métier que dit ta formation. Chacun s'affiche en étiquette
+sous la barre, et sa croix l'enlève : jamais le texte de ton profil.
 Il ne reçoit <b>jamais</b> le nom d'un de tes contacts, un mot de tes notes
 ou de ton historique, un prénom de ton groupe, ton profil, ni l'état de tes
 pistes : l'app les retire avant de demander, et une recherche qui ne
@@ -116,7 +119,10 @@ l'app en lit le résumé : Wikipédia reçoit le titre de cet article, et rien
 d'autre. Le logo vient de <b>Wikimedia Commons</b>, sans dire de quelle page
 il est demandé. Pour savoir si l'entreprise traverse une procédure
 collective, l'app interroge le <b>BODACC</b>, le bulletin officiel des
-annonces légales : il reçoit le numéro SIREN seul. Ces questions ne partent
+annonces légales : il reçoit le numéro SIREN seul. Si ni ta fiche ni
+Wikidata ne connaissent le site de l'entreprise, l'app le demande à
+<b>Clearbit</b>, un annuaire de sites d'entreprises : il reçoit le nom de
+l'entreprise, et rien d'autre. Ces questions ne partent
 que pour l'entreprise que tu regardes, dans sa fiche ou dans son aperçu,
 une fois, et jamais hors ligne. Les liens de la fiche (« Anciens de mon école » sur LinkedIn,
 les offres d'emploi sur France Travail, la fiche officielle) ouvrent ces
@@ -125,7 +131,9 @@ porte aussi le nom de ton école. Le lien « Écrire à » ouvre une recherche
 LinkedIn avec le nom du dirigeant que l'annuaire publie et celui de
 l'entreprise. Le lien « Offres d'alternance autour de … » ouvre
 <b>La bonne alternance</b>, le service public de l'alternance, avec des
-codes de métier et le centre de la ville. L'app ne lit rien de ces sites :
+codes de métier et le centre de la ville ; le lien « Offres de stage
+autour de … » ouvre <b>HelloWork</b> avec quelques mots (« stage réseau »)
+et le nom de la ville. L'app ne lit rien de ces sites :
 c'est toi qui regardes, et rien ne part tant que tu ne touches pas le lien.</p>
 
 <p>Ces deux pages ne se connectent à aucun service extérieur. Elles ne

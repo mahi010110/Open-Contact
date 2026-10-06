@@ -61,8 +61,10 @@ Un lien **« Offres d'alternance autour de … »** tient la tête de la liste d
 lieu qui a un centre. Il porte les codes ROME du métier et le centre de la
 ville, rien d'autre (`offresAlternance`, `engine/annuaire.js`).
 
-Le stage n'a pas de lien : aucun format de recherche de stage public n'a
-gardé ses paramètres une fois ouvert (1jeune1solution les perd).
+Le stage n'avait pas de lien : 1jeune1solution perd ses paramètres une
+fois ouvert. *Depuis la 6.51, « Offres de stage autour de … » ouvre
+HelloWork, qui garde les siens — mesuré métier par métier
+([`recherche-profil.md`](recherche-profil.md), §4).*
 
 > **Une erreur de mesure, corrigée le jour même.** La première version de
 > la sonde appelait les services DEPUIS LA PAGE DE L'APP, dont la CSP

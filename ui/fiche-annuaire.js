@@ -68,7 +68,7 @@ const lien = (c, cle) => liensPiste(c, S.profile).find(x => x.cle === cle);
 const pret = c => { const e = c.siren && parSiren.get(c.siren); return e && e.phase === 'ok' ? e : null; };
 
 /* la carte de la piste : ce que les sources savent, ta parole devant */
-const carteFiche = c => { const e = pret(c); return carteDe(e ? e.r : null, c, metierDuProfil(S.profile)); };
+const carteFiche = c => { const e = pret(c); return carteDe(e ? e.r : null, c, metierDuProfil(S.profile), S.profile); };
 /* la carte, pour le composeur : seulement si l'annuaire a déjà répondu
    pendant la session — écrire ne lance aucune question */
 export const carteConnue = c => pret(c) ? carteFiche(c) : null;
@@ -224,7 +224,7 @@ let lacher = () => {};
 function suivreLeReste(siren){
   if (!courant || courant.c.siren !== siren) return;
   lacher();
-  lacher = suivreCarte(siren, maj);
+  lacher = suivreCarte(siren, maj, courant.c.name);
 }
 function chercherNom(c){
   if (navigator.onLine === false){ parPiste.set(c.id, { phase: 'horsligne' }); maj(); return; }

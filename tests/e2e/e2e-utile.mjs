@@ -62,7 +62,8 @@ async function ecran(vp, touch, o = {}){
   /* les sources de la carte se taisent ; tout ce qui sort ailleurs est noté */
   await ctx.route(/^https:\/\/(query\.wikidata\.org|fr\.wikipedia\.org|bodacc-datadila\.opendatasoft\.com|(commons|upload)\.wikimedia\.org)\//,
     r => r.fulfill({ status: 200, contentType: 'application/json', headers: cors, body: '{"results":{"bindings":[]},"type":"standard"}' }));
-  await ctx.route(/labonnealternance|linkedin/, r => { ailleurs.push(r.request().url()); return r.abort(); });
+  await ctx.route('https://autocomplete.clearbit.com/**', r => r.fulfill({ status: 200, contentType: 'application/json', headers: cors, body: '[]' }));
+  await ctx.route(/labonnealternance|linkedin|hellowork/, r => { ailleurs.push(r.request().url()); return r.abort(); });
   const p = await ctx.newPage();
   p.setDefaultTimeout(5000);
   p.on('pageerror', e => errors.push(String(e)));
@@ -159,11 +160,18 @@ const lireApercu = (p, sel) => p.evaluate(sel => {
   if (ailleurs.length) fail('LinkedIn a été appelé sans geste : ' + ailleurs[0]);
   if (!process.exitCode) console.log('pouce · ③ ④ le dirigeant d’une PME, le recrutement d’une grande, aucune adresse devinée ; « colle à ta formation » seulement quand c’est vrai ✓');
 
-  /* ② pour un STAGE : pas de lien vers le service de l'alternance */
+  /* ② pour un STAGE : pas le service de l'alternance, mais HelloWork,
+     avec les mots MESURÉS porteurs (docs/recherche-profil.md) */
   await chercher(p, 'stage réseau Roubaix');
   const s = await lireListe(p);
-  if (s.offres) fail('un stage reçoit le lien des offres d’alternance');
-  else console.log('pouce · ② pour un stage : pas de lien vers l’alternance ✓');
+  const su = s.offres && new URL(s.offres.href);
+  if (!s.offres || /labonnealternance/.test(s.offres.href)) fail('un stage n’a pas son lien d’offres de stage : ' + JSON.stringify(s.offres));
+  else if (s.offres.t !== 'Offres de stage autour de Roubaix' || su.origin !== 'https://www.hellowork.com'
+      || su.searchParams.get('k') !== 'stage réseau' || su.searchParams.get('l') !== 'Roubaix'
+      || [...su.searchParams.keys()].sort().join() !== 'k,l' || s.offres.cible !== '_blank' || s.offres.h < 44)
+    fail('le lien d’offres de stage : ' + JSON.stringify(s.offres));
+  else if (ailleurs.length) fail('HelloWork a été appelé sans geste : ' + ailleurs[0]);
+  else console.log('pouce · ② pour un stage : « Offres de stage autour de Roubaix », HelloWork, « stage réseau » — rien ne part sans geste ✓');
   await ctx.close();
 }
 
