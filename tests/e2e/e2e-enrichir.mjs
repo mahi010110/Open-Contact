@@ -362,9 +362,17 @@ const annuler = async p => {
   if (b.etat !== 'Hors ligne. Réessayer') fail('hors ligne : « ' + b.etat + ' »');
   if (sv.journal.length) fail('hors ligne, une requête est partie');
   if (b.liens.length !== 3) fail('hors ligne, les liens ont disparu : ' + b.liens.map(l => l.cle));
-  await ctx.setOffline(false);
+  /* la panne se règle AVANT le retour du réseau : l'app relance d'elle-même
+     la question quand le réseau revient (c'est voulu), et en CI cette
+     relance a atteint l'annuaire avant la panne — il répondait, et le
+     bouton « Réessayer » n'existait jamais. Si le retour n'a rien relancé,
+     c'est le geste qui le fait. */
   sv.regler({ statut: 500 });
-  await p.click('[data-fa-encore]');
+  await ctx.setOffline(false);
+  await p.waitForTimeout(300);
+  if ((await bloc(p, 500)).etat === 'Hors ligne. Réessayer') await p.click('[data-fa-encore]');
+  await p.waitForFunction(() => /ne répond pas/.test(document.querySelector('#faSavoir .fa-etat')?.textContent || ''),
+    null, { timeout: 3000 }).catch(() => {});
   b = await bloc(p);
   if (b.etat !== 'L’annuaire ne répond pas. Réessayer') fail('panne : « ' + b.etat + ' »');
   sv.regler({ statut: 200 });
