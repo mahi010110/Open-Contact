@@ -46,13 +46,13 @@
    ============================================================ */
 import { esc } from '../engine/utils.js';
 import { pushHist } from '../engine/model.js';
-import { cleDe, deptDePiste } from '../engine/requete.js';
+import { cleDe, deptDePiste, metierDuProfil } from '../engine/requete.js';
 import { lireAnnuaire, questionSiren, questionNom, complements, champsDits,
          dirigeantsAjoutables, liensPiste } from '../engine/annuaire.js';
 import { S, bus, saveData, logJ } from './state.js';
 import { ic, showUndo, annoncer } from './dom.js';
 import { lireUrl } from './decouvrir.js';
-import { suivreCarte, sourcesDe, carteDe, carteHTML, alerteHTML, sourcesHTML, lierCarte } from './carte.js';
+import { suivreCarte, sourcesDe, carteDe, carteHTML, ecrireHTML, alerteHTML, sourcesHTML, lierCarte } from './carte.js';
 
 /* l'état de la session — on ne redemande pas ce qu'on sait déjà */
 const parSiren = new Map();   /* siren → { phase, r } */
@@ -68,7 +68,7 @@ const lien = (c, cle) => liensPiste(c, S.profile).find(x => x.cle === cle);
 const pret = c => { const e = c.siren && parSiren.get(c.siren); return e && e.phase === 'ok' ? e : null; };
 
 /* la carte de la piste : ce que les sources savent, ta parole devant */
-const carteFiche = c => { const e = pret(c); return carteDe(e ? e.r : null, c); };
+const carteFiche = c => { const e = pret(c); return carteDe(e ? e.r : null, c, metierDuProfil(S.profile)); };
 /* la carte, pour le composeur : seulement si l'annuaire a déjà répondu
    pendant la session — écrire ne lance aucune question */
 export const carteConnue = c => pret(c) ? carteFiche(c) : null;
@@ -83,14 +83,20 @@ function etatHTML(c){
 }
 
 /* ---- CONTACTS : trouver quelqu'un à qui écrire ----
-   Un lien, pas un bouton (il emmène ailleurs, §6), et rien d'autre : le
-   dirigeant que l'annuaire connaît est PROPOSÉ dans la feuille
-   « Ajouter un contact », au moment où il sert (dirigeantsSuggeres). */
+   Tant que la piste n'a PERSONNE à qui écrire — c'est le cas de toute
+   piste venue de l'annuaire —, la personne vient en tête : le dirigeant
+   d'une PME, le recrutement d'une grande (engine/carte.js, aQui), avec
+   le lien qui la trouve. Elle part dès qu'une adresse existe : un conseil
+   qui ne sert plus est du bruit. Puis les liens (ils emmènent ailleurs,
+   §6). Le dirigeant est aussi PROPOSÉ dans « Ajouter un contact », au
+   moment où il sert (dirigeantsSuggeres). */
 function contactsHTML(c){
   const gens = lien(c, 'gens');
-  const li = pret(c) && carteFiche(c).linkedin;
-  return (gens ? lienHTML(gens) : '')
-    + (li ? lienHTML({ cle: 'linkedin', url: li, label: 'Page LinkedIn', aria: 'Page LinkedIn de ' + c.name }) : '');
+  const k = pret(c) ? carteFiche(c) : null;
+  const sansAdresse = !(c.contacts || []).some(t => t && t.email);
+  return (k && sansAdresse ? `<div class="fa-qui">${ecrireHTML(k.ecrire, c.name)}</div>` : '')
+    + (gens ? lienHTML(gens) : '')
+    + (k && k.linkedin ? lienHTML({ cle: 'linkedin', url: k.linkedin, label: 'Page LinkedIn', aria: 'Page LinkedIn de ' + c.name }) : '');
 }
 export function dirigeantsSuggeres(c){
   const e = pret(c);
@@ -176,9 +182,9 @@ export const annuaireEtatHTML = c => `<span id="faEtat" class="fa-etat-nom">${et
 export const annuaireContactsHTML = c => `<div id="faCts" class="fa-cts">${contactsHTML(c)}</div>`;
 export const annuaireSavoirHTML = c => `<div id="faSavoir" class="fa-savoir">${savoirHTML(c)}</div>`;
 /* LA CARTE, en tête de « À savoir » : ce qu'elle fait (ta phrase
-   d'abord), quatre chiffres, à qui écrire — affichée, jamais repliée
+   d'abord), ses missions, sa taille — affichée, jamais repliée
    derrière un lien */
-const carteZoneHTML = c => carteHTML(carteFiche(c));
+const carteZoneHTML = c => carteHTML(carteFiche(c), { ecrire: false });
 export const annuaireCarteHTML = c => `<div id="faCarte" class="ct">${carteZoneHTML(c)}</div>`;
 
 /* ---------- le réseau ---------- */

@@ -831,6 +831,10 @@ html[data-theme="dark"] .field select{
 .dc-etat{margin:0;padding:12px 2px;font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted)}
 .dc-err{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px}
 .dc-vue .tr-more{margin-top:6px}
+/* qui recrute en alternance, autour d'ici : un lien, en tête de la
+   liste, calé sur son bord — il emmène ailleurs, il ne pèse pas plus */
+.dc-offres{margin:0 0 4px -8px;gap:6px}
+.dc-offres span{min-width:0}
 /* la source se nomme (la licence de l'annuaire le demande) : en pied,
    discrète, mais une cible entière au doigt */
 .dc-src-l{margin:2px 0 0;font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
@@ -850,36 +854,33 @@ html[data-theme="dark"] .field select{
 
 /* ============ L'APERÇU — sans un lien à toucher ============
    QUI (le nom), OÙ (le lieu, et une alerte en ligne), puis la carte
-   (ce qu'elle fait, quatre chiffres, à qui écrire), puis les liens. Le
+   (ce qu'elle fait, ses missions, sa taille, à qui écrire), puis les liens. Le
    reste en petit gris. */
 .ap-nom{margin:0;font-size:var(--text-16);font-weight:var(--weight-bold);color:var(--text-body);line-height:1.25}
 .ap-faits{margin:4px 0 0;font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
 .ap-faits .mark{margin-left:8px}
 /* ============ LA CARTE D'UNE ENTREPRISE (ui/carte.js) ============
    La même dans l'aperçu et dans « À savoir ». Rien n'y est un bouton :
-   une phrase, une rangée de chiffres, deux ou trois lignes. Les chiffres
-   en mono, comme toute donnée (§4), le libellé dessous en petit gris —
-   la valeur se lit d'abord, ce qu'elle mesure ensuite. */
+   une phrase, puis trois lignes qui aident à choisir — les missions, la
+   taille, à qui écrire. Le seul lien mène à la personne. */
 .ct{margin:12px 0 0}
 .ct:empty{display:none}
 .ct-quoi{display:flex;align-items:flex-start;gap:10px}
 .ct-quoi p{margin:0;font-size:var(--text-14);line-height:1.45;color:var(--text-body)}
 .ct-logo{flex:none;width:40px;height:40px;padding:4px;box-sizing:border-box;object-fit:contain;
   background:var(--surface-logo);border:1px solid var(--border-soft)}
-.ct-act{margin:4px 0 0;font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
-/* un espacement, pas de trait : à 320 px ou à texte agrandi les
-   chiffres passent à la ligne, et un séparateur vertical se retrouvait
-   alors seul en tête du second rang (relevé sur capture) */
-.ct-chiffres{list-style:none;margin:12px 0 6px;padding:0;display:flex;flex-wrap:wrap;gap:8px 22px}
-.ct-chiffres li{display:flex;flex-direction:column;gap:1px;min-width:0}
-.ct-chiffres b{font-family:var(--font-mono);font-size:var(--text-15);font-weight:var(--weight-semibold);color:var(--text-body);white-space:nowrap}
-.ct-chiffres span{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);white-space:nowrap}
+.ap .ct-tete{margin-bottom:6px}
+/* « colle à ta formation » : un atout, donc l'accent — jamais un mark-*,
+   rien ne presse (§6, la recommandation de « Par où commencer ») */
+.ct-ton{display:inline-flex;align-items:center;gap:3px;margin-left:4px;white-space:nowrap;
+  font-weight:var(--weight-semibold);color:var(--accent)}
+/* le lien qui trouve la personne suit son nom, à la taille du doigt */
+.ct-li{vertical-align:middle;margin-left:2px}
 .ap .ct .fk{padding-left:0;padding-right:0}
 /* dans « À savoir », la carte prend le cadre de la fiche : sa tête
    s'aligne sur les rangées, et un pointillé la sépare de ce qui suit */
 .fi-know > .ct{margin:0}
 .fi-know .ct-tete{padding:8px 10px 10px;border-bottom:1px dashed var(--border-soft)}
-.fi-know .ct-tete .ct-chiffres{margin-bottom:0}
 .fi-know > .ct .fk:last-child{border-bottom:1px dashed var(--border-soft)}
 .ct-le{margin-left:6px;font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
 .ct-src{margin:10px 0 0;font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
@@ -898,6 +899,11 @@ html[data-theme="dark"] .field select{
 /* sous les contacts : « Anciens de mon école », un lien */
 .fa-cts{margin:4px 0 0 -8px}
 .fa-cts:empty{display:none}
+/* à qui écrire, tant que la piste n'a personne : la ligne de la carte,
+   calée sur le bord des contacts */
+.fa-qui{margin:0 0 2px 8px}
+.fa-qui .fk{display:flex;align-items:center;flex-wrap:wrap;gap:0 8px;padding:0;border-bottom:0}
+.fa-qui .fk-l{display:inline;width:auto;margin:0}
 /* dans « À savoir » : la ligne grise de la source et ses liens */
 .fa-pied{padding:6px 10px 8px;font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
 .fa-liens{display:flex;flex-wrap:wrap;gap:0 4px;margin:0 0 2px -8px;font-family:var(--font-ui);font-size:var(--text-13)}

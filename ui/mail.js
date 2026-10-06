@@ -36,9 +36,8 @@ function savoirHTML(c){
      150 » ne s'écrit pas comme « un groupe de 50 000 »). Seulement ce que
      la fiche ouverte a déjà appris : écrire ne lance aucune question. */
   const k = carteConnue(c);
-  const quoi = !c.desc && k && k.quoi && k.quoi.src !== 'toi' ? k.quoi.texte : '';
-  const taille = k ? k.chiffres.filter(x => x.l === 'salariés' || x.l === 'création')
-    .map(x => x.l === 'salariés' ? x.v + ' salariés' : 'depuis ' + x.v).join(' · ') : '';
+  const quoi = !c.desc && k ? (k.quoi && k.quoi.src !== 'toi' ? k.quoi.texte : k.missions ? k.missions.texte : '') : '';
+  const taille = k ? k.taille : '';
   const lignes = [
     c.desc ? ['En bref', esc(c.desc)] : quoi ? ['Activité', esc(quoi)] : null,
     taille ? ['Taille', esc(taille)] : null,
@@ -325,7 +324,14 @@ export function openMail(c, opts){
       q('#mDirect')?.addEventListener('click', () => openConnexions());
     } else {
       aMail.removeAttribute('href');
-      q('#mHint').textContent = 'Pas d’email — Copier, puis LinkedIn ou le site.';
+      /* SANS ADRESSE, À QUI ? La piste venue de l'annuaire n'a personne :
+         le composeur nomme la personne que la carte connaît et ouvre la
+         recherche qui la trouve — rien n'est deviné. */
+      const qui = (carteConnue(c) || {}).ecrire;
+      q('#mHint').innerHTML = qui && qui.url
+        ? `Pas d’email — Copier, puis <a class="linklike" href="${esc(qui.url)}" target="_blank" rel="noopener">${
+            qui.cible === 'dirigeant' ? esc(qui.nom) + ' sur LinkedIn' : 'le recrutement sur LinkedIn'}${ic('external-link', 'ic-12')}</a>`
+        : 'Pas d’email — Copier, puis LinkedIn ou le site.';
     }
     /* Profil vide = le message part SANS SIGNATURE, chez un recruteur.
        Le lien reste au poids de son voisin — mais il garde le plancher du

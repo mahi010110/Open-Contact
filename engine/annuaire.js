@@ -32,6 +32,8 @@ export const FICHE_OFFICIELLE = 'https://annuaire-entreprises.data.gouv.fr/entre
 export const PAR_PAGE = 10;
 export const RAYON_KM = 10;
 export const RAYON_MAX = 50;     /* l'annuaire refuse au-delà */
+export const RAYON_VILLE = 15;   /* autour d'une ville : sa métropole, pas son département */
+export const LOIN_KM = 30;       /* au-delà, ce n'est plus « à Lille » : écarté */
 
 const motsDe = s => fold(s).replace(/œ/g, 'oe').replace(/æ/g, 'ae').split(/[^a-z0-9]+/).filter(Boolean);
 
@@ -109,7 +111,7 @@ export function questionsAnnuaire(interp, o){
     .filter(t => { const m = motsDe(t); return m.length && m.every(w => !interdits.has(w)); });
   const codes = new Set(), sections = new Set();
   const p = new URLSearchParams();
-  let lieu = false, proche = false, motMetier = '';
+  let lieu = false, proche = false, motMetier = '', centre = null;
   for (const e of et){
     if (e.famille === 'metier'){
       (NAF_METIER[e.cle] || []).forEach(c => codes.add(c));
@@ -128,7 +130,7 @@ export function questionsAnnuaire(interp, o){
         const code = REGION_INSEE[e.cle.slice(7)];
         if (code) p.set('region', code);
       } else if (e.depts) p.set('departement', e.depts.join(','));
-      else if (e.ville && e.dept) p.set('departement', e.dept);
+      else if (e.ville && e.dept){ p.set('departement', e.dept); if (Array.isArray(e.centre)) centre = e.centre; }
       else if (e.ville) lieu = false;           /* une ville sans département connu reste locale */
     }
   }
@@ -177,6 +179,21 @@ export function questionsAnnuaire(interp, o){
   if (motMetier && !q.includes(motMetier)) out.push(url('/search', { q: (q + ' ' + motMetier).trim(),
     ...(p.has('tranche_effectif_salarie') || p.has('categorie_entreprise') ? {} : { tranche_effectif_salarie: TRANCHES_EMPLOYEURS }) }));
   if (q.length >= 3) out.push(url('/search', { q }));
+  /* UNE VILLE : on cherche AUTOUR d'elle (RELEVÉ le 6/10 : « Lille »
+     rendait Maubeuge, Dunkerque, et le siège d'Annecy d'une entreprise
+     sans établissement correspondant dans le Nord). `/near_point` rend
+     les ÉTABLISSEMENTS à moins de RAYON_VILLE km du centre — le bon
+     bureau, à sa vraie distance. Il ignore la taille (relevé) : sa
+     jumelle reste la question du département bornée aux 10-499, et
+     `decouvertes` écarte ce qui tombe trop loin du centre. Une taille
+     tapée décide seule : pas de point, le département et la taille. */
+  else if (centre && !p.has('categorie_entreprise') && !p.has('tranche_effectif_salarie')){
+    const x = new URLSearchParams(p);
+    x.delete('departement');
+    x.set('lat', centre[0].toFixed(3)); x.set('long', centre[1].toFixed(3)); x.set('radius', String(RAYON_VILLE));
+    out.push(`${ANNUAIRE}/near_point?${x.toString()}`);
+    out.push(url('/search', { tranche_effectif_salarie: TRANCHES_MOYENNES }));
+  }
   /* sans texte, la question large ne part que bornée par un lieu —
      « cyber » seul ne demande pas toutes les ESN de France */
   else if (lieu){
@@ -253,6 +270,49 @@ export function domaineDeNaf(naf){
   if (/^4[5-7]\./.test(n)) return 'commerce';
   return 'autre';
 }
+/* ---------- CE QUE TU Y FERAIS ----------
+   Le code d'activité dit ce que fait l'entreprise dans la langue de
+   l'INSEE : « Conseil en systèmes et logiciels informatiques » neuf fois
+   sur dix, qui ne départage rien et ne dit pas le travail. Un étudiant
+   cherche autre chose : quel travail il y ferait, et si c'est le sien.
+   La table traduit chaque code en ce travail, et dit à quels MÉTIERS de
+   la barre (engine/requete.js) il correspond — c'est ce qui permet de
+   dire « c'est ton métier » sans rien inventer. */
+const T = (texte, metiers) => ({ texte, metiers });
+export const TRAVAIL = {
+  '62.01Z': T('développement de logiciels', ['dev']),
+  '62.02A': T('conseil et intégration informatique', ['dev', 'reseau', 'cyber']),
+  '62.02B': T('maintenance de systèmes et d’applications', ['reseau', 'support']),
+  '62.03Z': T('infogérance : les serveurs et réseaux de ses clients', ['reseau', 'cloud']),
+  '62.09Z': T('installation et dépannage informatique', ['support', 'reseau']),
+  '63.11Z': T('hébergement et cloud', ['cloud', 'reseau']),
+  '63.12Z': T('sites et services en ligne', ['dev']),
+  '58.21Z': T('jeu vidéo', ['dev']),
+  '58.29A': T('édition de logiciels', ['dev']),
+  '58.29B': T('édition de logiciels', ['dev']),
+  '58.29C': T('édition de logiciels', ['dev']),
+  '61.10Z': T('télécoms et réseau', ['reseau']),
+  '61.20Z': T('télécoms et réseau', ['reseau']),
+  '61.90Z': T('télécoms et réseau', ['reseau']),
+  '46.51Z': T('installation de matériel informatique chez ses clients', ['reseau', 'support']),
+  '46.52Z': T('matériel réseau et télécoms', ['reseau']),
+  '47.41Z': T('vente et dépannage informatique', ['support']),
+  '95.11Z': T('dépannage informatique', ['support']),
+  '95.12Z': T('maintenance de matériel de communication', ['reseau', 'support'])
+};
+/* Une entreprise qui n'est PAS du numérique peut avoir un service
+   informatique — une collectivité, un hôpital, une banque, une usine.
+   Seulement passé une taille : une boulangerie n'a pas de DSI. Le seuil
+   est celui où une informatique interne existe (50 salariés). */
+const AVEC_SERVICE = new Set(['21', '22', '31', '32', '41', '42', '51', '52', '53']);
+export function travailDe(r){
+  r = r || {};
+  const t = TRAVAIL[String(r.naf || '')];
+  if (t) return t;
+  if (AVEC_SERVICE.has(String(r.tranche || '')) || r.categorie === 'GE' || r.categorie === 'ETI')
+    return T('informatique interne', ['reseau', 'support', 'dev']);
+  return null;
+}
 /* Une adresse en deux lignes, comme le champ libre de l'app (§6).
    RELEVÉ par la sonde : le siège porte ses morceaux (numéro, voie,
    commune), un établissement ne porte qu'une chaîne d'un seul tenant
@@ -284,13 +344,6 @@ function nomConnu(r){
   if (sigle && (mots.length >= 5 || /^([A-Z] )+[A-Z]$/.test(brut)))
     return /\s/.test(sigle) ? casse(sigle) : sigle.toUpperCase();
   return casse(brut);
-}
-/* la dernière année de chiffre d'affaires réellement déclarée */
-function dernierCA(fin){
-  if (!fin || typeof fin !== 'object') return null;
-  const ans = Object.keys(fin).filter(y => /^\d{4}$/.test(y) && Number(fin[y] && fin[y].ca) > 0).sort();
-  const y = ans.pop();
-  return y ? { annee: y, montant: Number(fin[y].ca) } : null;
 }
 /* Lire une réponse de l'annuaire. `o.ville` (clé pliée) et `o.userPos`
    choisissent l'établissement à montrer : celui de la ville cherchée,
@@ -359,12 +412,6 @@ export function lireAnnuaire(json, o){
       fermee: r.etat_administratif === 'C',
       fermeeLe: String(r.date_fermeture || '').slice(0, 10),
       etablissements: nombre(r.nombre_etablissements_ouverts) ?? nombre(r.nombre_etablissements),
-      /* RELEVÉ le 5/10 (sonde-carte.mjs) : 30 entreprises sur 37 portent
-         un chiffre d'affaires, presque toujours UNE seule année — et un
-         « 0 » qui n'est pas un chiffre : c'est la marque de comptes
-         déposés confidentiels (le BODACC le dit). Seule la dernière année
-         non nulle se lit. */
-      ca: dernierCA(r.finances),
       conventions,
       dirigeants: (Array.isArray(r.dirigeants) ? r.dirigeants : []).slice(0, 4).map(d => ({
         nom: d.type_dirigeant === 'personne morale' ? casse(d.denomination || '')
@@ -421,6 +468,9 @@ export function decouvertes(listes, companies, o){
   let ordre = 0;
   (listes || []).forEach((l, k) => (l || []).forEach((r, i) => {
     if (!r || r.personne || sirens.has(r.siren)) return;
+    /* autour d'une ville : ce qui tombe trop loin de son centre n'est
+       pas « à Lille » (`o.loin`, en km) */
+    if (o.loin && r.distance != null && r.distance > o.loin) return;
     if (noms.has(normName(r.nom)) || (r.raison && noms.has(normName(r.raison))) || (r.sigle && noms.has(normName(r.sigle)))) return;
     let x = vus.get(r.siren);
     if (!x){ x = { r, fusion: 0, premier: ordre++, genre: 9 }; vus.set(r.siren, x); }
@@ -447,7 +497,9 @@ export function versPiste(r, interp){
     city: r.ville,
     address: r.adresse,
     domain: metier ? metier.domaine : domaineDeNaf(r.naf),
-    desc: r.activite || '',
+    /* « En bref » est TA phrase : l'annuaire ne la remplit pas. La carte
+       dit déjà ce que fait l'entreprise, dans ses missions. */
+    desc: '',
     siren: r.siren,
     lat: r.lat, lng: r.lng,
     positions: [], contacts: []
@@ -519,7 +571,9 @@ export function complements(c, r, site){
       out.address = r.adresse;
       if (r.lat != null && r.lng != null){ out.lat = r.lat; out.lng = r.lng; }
     }
-    if (vide(c.desc) && r.activite) out.desc = r.activite;
+    /* les missions en mots simples, pas le libellé de l'INSEE */
+    const t = travailDe(r);
+    if (vide(c.desc) && (t || r.activite)) out.desc = t ? t.texte.charAt(0).toUpperCase() + t.texte.slice(1) : r.activite;
     if ((!c.domain || c.domain === 'autre') && domaineDeNaf(r.naf) !== 'autre') out.domain = domaineDeNaf(r.naf);
   }
   if (vide(c.website) && site) out.website = site;
@@ -561,3 +615,40 @@ export function liensPiste(c, profile){
       url: SIREN_OK(c.siren) ? ficheOfficielle(c.siren) : ANNUAIRE_WEB + encodeURIComponent(nom) }
   ];
 }
+
+/* ---------- qui recrute en alternance, autour d'ici ----------
+   (docs/utile.md) « Je ne sais pas si elles recrutent » : l'annuaire ne
+   le dit pas, et l'API de La bonne alternance — qui le sait, entreprise
+   par entreprise — refuse toute page web (RELEVÉ le 6/10 : aucun en-tête
+   CORS, avec ou sans jeton ; et ses conditions interdisent de diffuser un
+   jeton). Son SITE, lui, s'ouvre d'un lien : RELEVÉ, « réseau » autour
+   de Lille y montre dix offres d'alternance d'entreprises locales, où
+   l'on postule directement — le service public de l'alternance.
+   Le lien ne part que pour une ALTERNANCE (tapée, ou celle de ton
+   profil), et seulement avec un lieu qui a un centre. Il porte le
+   métier (codes ROME) et le point, rien d'autre. */
+export const LBA = 'https://labonnealternance.apprentissage.beta.gouv.fr/recherche';
+export const ROMES = {
+  reseau:  { romes: ['M1801', 'M1810'], nom: 'Administration réseau' },
+  cloud:   { romes: ['M1801', 'M1810'], nom: 'Systèmes et cloud' },
+  support: { romes: ['I1401', 'M1810'], nom: 'Support informatique' },
+  dev:     { romes: ['M1805'], nom: 'Développement informatique' },
+  data:    { romes: ['M1805'], nom: 'Développement informatique' },
+  cyber:   { romes: ['M1802', 'M1801'], nom: 'Cybersécurité' }
+};
+const ROMES_NUMERIQUE = { romes: ['M1805', 'M1801', 'M1810', 'M1802'], nom: 'Informatique' };
+export function offresAlternance(interp, o){
+  o = o || {};
+  const et = (interp && interp.etiquettes) || [];
+  const rech = et.find(e => e.famille === 'recherche');
+  if (rech ? rech.cle !== 'alternance' : o.recherche !== 'alternance') return null;
+  const lieu = et.find(e => e.famille === 'lieu' && Array.isArray(e.centre));
+  const pos = lieu ? { lat: lieu.centre[0], lng: lieu.centre[1], nom: lieu.label } : o.centre || null;
+  if (!pos || !Number.isFinite(pos.lat) || !Number.isFinite(pos.lng)) return null;
+  const m = et.find(e => e.famille === 'metier' && ROMES[e.cle]);
+  const r = (m && ROMES[m.cle]) || ROMES[o.metier] || ROMES_NUMERIQUE;
+  const p = new URLSearchParams({ romes: r.romes.join(','), lat: pos.lat.toFixed(3), lon: pos.lng.toFixed(3),
+    radius: '30', job_name: r.nom, address: pos.nom || '' });
+  return { url: LBA + '?' + p.toString(), lieu: pos.nom || '' };
+}
+
