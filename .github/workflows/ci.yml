@@ -36,6 +36,13 @@ jobs:
           npm i -g playwright
           playwright install --with-deps chromium
           echo "OC_PLAYWRIGHT=$(npm root -g)/playwright/index.mjs" >> "$GITHUB_ENV"
+      # Une recherche PRÉCISE et À TA MESURE : ce qu'une page vierge peut
+      # lire de l'établissement local, de data.gouv (BMO, ROME, ONISEP,
+      # RNCP), des offres de stage, du trajet, du BODACC. Informative.
+      - name: Sonde « une recherche à ta mesure » (établissement, data.gouv, stage, trajet)
+        continue-on-error: true
+        timeout-minutes: 15
+        run: node tests/e2e/sonde-profil.mjs
       # « À découvrir » est-il UTILE ? Ce que l'annuaire rend vraiment pour
       # des recherches d'étudiant, le centre des villes, la recherche
       # autour d'un point, les liens vers les offres. Informative.
