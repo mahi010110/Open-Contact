@@ -90,6 +90,14 @@ jobs:
         continue-on-error: true
         timeout-minutes: 10
         run: node tests/e2e/sonde-carte.mjs
+      # « À découvrir » est-il UTILE ? Ce que l'annuaire rend vraiment pour
+      # des recherches d'étudiant, les employeurs hors du numérique, ce que
+      # l'API apprentissage accepte depuis une page, la couverture des
+      # pages carrières publiques. Informative.
+      - name: Sonde « À découvrir » est-il utile ? (pertinence, recrutement, à qui écrire)
+        continue-on-error: true
+        timeout-minutes: 12
+        run: node tests/e2e/sonde-utile.mjs
       # Quand AUCUN chemin direct n'existe, les fiches du rendez-vous
       # passent par les relais eux-mêmes (engine/portage.js). La taille
       # d'une part et le rythme d'envoi se MESURENT ici, relais par relais.
