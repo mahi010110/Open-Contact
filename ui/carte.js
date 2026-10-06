@@ -3,8 +3,8 @@
    (engine/carte.js ; docs/carte.md)
 
    La MÊME carte dans l'aperçu de « À découvrir » et dans « À savoir »
-   de la fiche : ce qu'elle fait, quatre chiffres, à qui écrire, son
-   groupe — sur place, sans un lien à toucher. Un objet, un dessin
+   de la fiche : ce qu'elle fait, ses missions, sa taille, à qui
+   écrire — sur place, sans un lien à toucher. Un objet, un dessin
    (§7 appliqué à l'image).
 
    CE QUI PART, ET QUAND. L'annuaire a déjà répondu (c'est lui qui a
@@ -78,7 +78,9 @@ export const sourcesDe = siren => {
   return e ? { wd: e.wd, resume: e.resume, bodacc: e.bodacc } : {};
 };
 /* la carte d'une entreprise, prête à dessiner */
-export const carteDe = (r, piste) => carte({ r, piste, ...sourcesDe(r && r.siren) });
+/* `metier` : celui que dit ta formation (metierDuProfil) — la carte dit
+   si les missions y collent */
+export const carteDe = (r, piste, metier) => carte({ r, piste, metier, ...sourcesDe(r && r.siren) });
 
 const jjmmaaaa = iso => /^\d{4}-\d{2}-\d{2}$/.test(iso || '') ? iso.slice(8, 10) + '/' + iso.slice(5, 7) + '/' + iso.slice(0, 4) : '';
 /* L'ALERTE se pose en ligne, à côté du lieu ou du nom : une marque, pas
@@ -88,23 +90,33 @@ export const alerteHTML = k => k && k.alerte
   ? `<span class="mark mark-late">${esc(k.alerte.texte)}</span>${k.alerte.date ? `<span class="ct-le">depuis le ${esc(jjmmaaaa(k.alerte.date))}</span>` : ''}`
   : '';
 
-/* LE CORPS DE LA CARTE. Trois niveaux, toujours dans le même ordre pour
-   que deux cartes se comparent d'un coup d'œil : ce qu'elle fait (une
-   phrase, et son logo s'il existe), quatre chiffres, puis à qui écrire
-   et de qui elle dépend. Aucun bouton : on lit. */
-export function carteHTML(k){
+/* LE CORPS DE LA CARTE. Ce qui aide un étudiant à CHOISIR (retour du
+   mainteneur, 6 octobre) : ce qu'elle fait (une phrase, et son logo),
+   puis trois lignes — les missions et si elles collent à ta formation,
+   la taille en mots, à qui écrire. Toujours dans cet ordre, pour que
+   deux cartes se comparent d'un coup d'œil. Aucun bouton : on lit ; le
+   seul lien mène à la personne. `o.ecrire === false` : la fiche range
+   « à qui écrire » avec ses contacts, là où ça sert (§6). */
+const ligne = (l, v) => `<div class="fk"><span class="fk-l">${l}</span><span class="fk-v">${v}</span></div>`;
+export function ecrireHTML(e, entreprise){
+  if (!e) return '';
+  const qui = e.cible === 'dirigeant' ? esc(e.nom) + (e.qualite ? ', ' + esc(e.qualite) : '') : 'Son service recrutement';
+  const aria = e.cible === 'dirigeant' ? `Trouver ${e.nom} sur LinkedIn` : `Le recrutement de ${entreprise || 'l’entreprise'} sur LinkedIn`;
+  return ligne('Écrire à', `${qui}${e.url ? ` <a class="linklike ct-li" href="${esc(e.url)}" target="_blank" rel="noopener" aria-label="${esc(aria)}">LinkedIn${ic('external-link', 'ic-12')}</a>` : ''}`);
+}
+export function carteHTML(k, o){
   if (!k) return '';
+  o = o || {};
   const site = k.site
     ? `<div class="fk"><span class="fk-l">Site</span><a class="fk-v" href="${esc(k.site)}" target="_blank" rel="noopener">${
         esc(k.site.replace(/^https?:\/\/(www\.)?/i, '').replace(/\/$/, ''))} ${ic('external-link', 'ic-14')}</a></div>` : '';
-  const tete = k.quoi || k.activite || k.chiffres.length;
   return (
-    `${tete ? '<div class="ct-tete">' : ''}${k.quoi ? `<div class="ct-quoi">${k.logo
-        ? `<img class="ct-logo" src="${esc(k.logo)}" alt="" width="40" height="40" loading="lazy" decoding="async" referrerpolicy="no-referrer">` : ''}<p>${esc(k.quoi.texte)}</p></div>` : ''}
-     ${k.activite ? `<p class="ct-act">${esc(k.activite)}</p>` : ''}
-     ${k.chiffres.length ? `<ul class="ct-chiffres">${k.chiffres.map(x =>
-       `<li><b>${esc(x.v)}</b><span>${esc(x.l)}</span></li>`).join('')}</ul>` : ''}${tete ? '</div>' : ''}
-     ${k.lignes.map(l => `<div class="fk"><span class="fk-l">${esc(l.l)}</span><span class="fk-v">${esc(l.v)}</span></div>`).join('')}
+    `${k.quoi ? `<div class="ct-tete"><div class="ct-quoi">${k.logo
+        ? `<img class="ct-logo" src="${esc(k.logo)}" alt="" width="40" height="40" loading="lazy" decoding="async" referrerpolicy="no-referrer">` : ''}<p>${esc(k.quoi.texte)}</p></div></div>` : ''}
+     ${k.missions ? ligne('Missions', esc(k.missions.texte) + (k.missions.tonMetier
+       ? ` <span class="ct-ton">${ic('check', 'ic-12')}colle à ta formation</span>` : '')) : ''}
+     ${k.taille ? ligne('Taille', esc(k.taille)) : ''}
+     ${o.ecrire === false ? '' : ecrireHTML(k.ecrire, o.nom)}
      ${site}`);
 }
 /* la source, nommée : la licence de l'annuaire le demande, et c'est ce

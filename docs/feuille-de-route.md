@@ -266,6 +266,12 @@ liste de pistes sans partir de zéro, c'est « À découvrir ».
    résultats au-dessus du clavier. **Livré le 5 octobre 2026 (6.49.0).**
    Restent, après les essais sur le téléphone : les fautes et le zéro
    résultat (lot 5 des sources), le géocodage officiel.
+6. « À découvrir » utile ([`utile.md`](utile.md)) : la bonne liste (ni
+   boutiques ni microentreprises, les intégrateurs, autour de la ville
+   tapée), qui recrute en alternance (un lien vers La bonne alternance), à
+   qui écrire selon la taille, et une carte qui aide à choisir — ses
+   missions, si elles collent à ta formation, sa taille. **Livré le
+   6 octobre 2026 (6.50.0).**
 
 **B. Le réseau** — [`reseau.md`](reseau.md). Trouver quelqu'un chez une
 entreprise parmi ses amis, ses groupes et leurs amis, trois cercles au plus.

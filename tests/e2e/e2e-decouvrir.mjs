@@ -237,16 +237,19 @@ const versDecouvrir = async p => {
     fail('l’aperçu ne montre pas ce que l’annuaire sait : ' + JSON.stringify(fiche));
   if (!fiche.pied.some(t => /Ajouter à mes pistes/.test(t))) fail('l’aperçu n’offre pas d’ajouter');
   await p.screenshot({ path: `${SHOTS}/96-decouvrir-apercu.png` });
-  /* l'ordre : le nom, le lieu, puis la carte (ce qu'elle fait, ses
-     chiffres), puis les liens — des LIENS, qui emmènent ailleurs (§6),
-     pas des boutons — et le reste en gris */
+  /* l'ordre : le nom, le lieu, puis la carte (ses missions, sa taille,
+     à qui écrire), puis les liens — des LIENS, qui emmènent ailleurs
+     (§6), pas des boutons — et le reste en gris */
   const niveaux = await p.evaluate(() => {
     const y = s => document.querySelector('.overlay ' + s)?.getBoundingClientRect().top ?? -1;
-    return { y: [y('.ap-nom'), y('.ap-faits'), y('.ct-quoi'), y('.ct-chiffres'), y('.ap-liens'), y('.ap-plus')],
+    const l = [...document.querySelectorAll('.overlay .ct .fk-l')].map(x => x.textContent.trim());
+    return { y: [y('.ap-nom'), y('.ap-faits'), y('.ct .fk'), y('.ap-liens'), y('.ap-plus')], l,
              boutons: document.querySelectorAll('.overlay .modal-b .btn').length };
   });
   if (niveaux.y.some(v => v < 0) || niveaux.y.some((v, i) => i && v < niveaux.y[i - 1]))
-    fail('l’aperçu ne dit pas d’abord qui et où, puis ce qu’elle fait et ses chiffres, puis comment y entrer : ' + JSON.stringify(niveaux.y));
+    fail('l’aperçu ne dit pas d’abord qui et où, puis ses missions et sa taille, puis comment y entrer : ' + JSON.stringify(niveaux.y));
+  if (niveaux.l.slice(0, 3).join(',') !== 'Missions,Taille,Écrire à')
+    fail('la carte de l’aperçu ne dit pas missions, taille, à qui écrire : ' + niveaux.l);
   /* l'aperçu a demandé le reste — par le SIREN seul, celui d'une
      entreprise que l'annuaire a rendue et qu'on a regardée */
   const SIRENS = REPONSE.results.map(x => x.siren);

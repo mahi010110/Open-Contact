@@ -29,8 +29,8 @@
 import { esc, uid, todayISO } from '../engine/utils.js';
 import { normalizeCompany } from '../engine/model.js';
 import { questionsAnnuaire, lireAnnuaire, decouvertes, versPiste, motsInterdits, ficheOfficielle,
-         genreQuestion, liensPiste, PAR_PAGE } from '../engine/annuaire.js';
-import { zoneDe } from '../engine/requete.js';
+         genreQuestion, liensPiste, offresAlternance, PAR_PAGE, LOIN_KM } from '../engine/annuaire.js';
+import { zoneDe, metierDuProfil, villeFrequente, cleDe, centreDe as centreVille } from '../engine/requete.js';
 import { S, bus, saveData, logJ, deletePiste } from './state.js';
 import { ic, openSheet, btn, showUndo, annoncer } from './dom.js';
 import { suivreCarte, carteDe, carteHTML, alerteHTML, sourcesHTML, lierCarte } from './carte.js';
@@ -53,6 +53,14 @@ const villeDe = interp => {
   const e = ((interp && interp.etiquettes) || []).find(x => x.famille === 'lieu' && x.ville);
   return e ? e.ville : '';
 };
+/* LE POINT DE RÉFÉRENCE : le centre de la ville tapée — « Lille » veut
+   dire autour de Lille, et la distance de chaque ligne se lit depuis
+   elle. « Près de moi » garde ta position. */
+const centreDe = interp => {
+  const e = ((interp && interp.etiquettes) || []).find(x => x.famille === 'lieu' && Array.isArray(x.centre));
+  return e ? { lat: e.centre[0], lng: e.centre[1] } : null;
+};
+const procheDe = interp => ((interp && interp.etiquettes) || []).some(x => x.famille === 'lieu' && x.cle === 'proche');
 
 /* Suivre la barre. Appelé à chaque rendu de « Mes pistes » : ne fait
    rien tant que la question ne change pas. */
@@ -84,7 +92,11 @@ export function suivreDecouverte(interp, o){
            genres: urls.map(genreQuestion),
            zone: (zone && urls.some(u => new URL(u).searchParams.get('departement') === zone.dept)) ? zone : null,
            proposee,
-           ville: villeDe(interp), userPos: o.userPos || null, interp,
+           ville: villeDe(interp), interp,
+           ...(() => {
+             const c = procheDe(interp) && o.userPos ? null : centreDe(interp);
+             return { userPos: c || o.userPos || null, loin: c ? LOIN_KM : 0 };
+           })(),
            /* la barre est vide : seul le tap sur le segment a demandé */
            parDefaut: !(interp && (interp.etiquettes.length || interp.texte.length)) };
   if (!urls.length) return;
@@ -176,7 +188,7 @@ async function charger(cle, page){
 const classer = () => {
   const deja = new Set(ajoutees.values());
   return decouvertes(etat.parQ, S.companies.filter(c => !deja.has(c.id)),
-    { genres: etat.genres, userPos: etat.userPos, ville: etat.ville });
+    { genres: etat.genres, userPos: etat.userPos, ville: etat.ville, loin: etat.loin });
 };
 function visibles(){
   const l = classer();
@@ -244,7 +256,7 @@ export function lierZone(box){
    du mainteneur, 5 octobre : « que les infos soient affichées d'une
    belle façon »). QUI (le nom), OÙ (le lieu, la distance — et une
    alerte en ligne si l'entreprise a fermé ou traverse une procédure),
-   puis LA CARTE (ui/carte.js) : ce qu'elle fait, quatre chiffres, à qui
+   puis LA CARTE (ui/carte.js) : ce qu’elle fait, ses missions, sa taille, à qui
    écrire — les sources mêlées, une valeur par fait. Les liens viennent
    APRÈS la carte : ce qui arrive du réseau se pose au-dessus d'eux
    pendant qu'on lit encore, et le seul geste plein vit au pied de la
@@ -252,7 +264,7 @@ export function lierZone(box){
 export function apercuHTML(r, o){
   o = o || {};
   const pris = estPrise(r.siren);
-  const k = carteDe(r);
+  const k = carteDe(r, null, metierDuProfil(S.profile));
   const lieu = [r.ville, km(r.distance)].filter(Boolean).join(' · ');
   const liens = liensPiste({ name: r.nom, siren: r.siren }, S.profile).filter(l => l.cle !== 'officielle');
   if (k.linkedin) liens.push({ url: k.linkedin, label: 'Page LinkedIn', aria: 'Page LinkedIn de ' + r.nom });
@@ -267,7 +279,7 @@ export function apercuHTML(r, o){
          ? `<span class="ap-pris">${ic('check', 'ic-14')}Dans tes pistes</span>
             <button class="linklike" data-ap-fiche="${esc(r.siren)}">Ouvrir la fiche</button>`
          : `<button class="btn btn-primary" data-ap-add="${esc(r.siren)}">${ic('plus', 'ic-14')}Ajouter à mes pistes</button>`}</div>` : ''}
-       <div class="ct">${carteHTML(k)}</div>
+       <div class="ct">${carteHTML(k, { nom: r.nom })}</div>
        ${liens.length ? `<div class="ap-liens">${liens.map(l => lien(l.url, l.label, l.aria)).join('')}</div>` : ''}
        <div class="ap-plus">
          ${r.adresse ? `<p>${esc(r.adresse.replace(/\n/g, ', '))}</p>` : ''}
@@ -276,6 +288,21 @@ export function apercuHTML(r, o){
        </div>
        ${sourcesHTML(k)}
      </div>`);
+}
+
+/* QUI RECRUTE EN ALTERNANCE, autour d'ici : un lien vers le service
+   public (La bonne alternance), en tête de la liste — c'est la réponse
+   à « est-ce qu'elles recrutent ? » que l'annuaire ne sait pas donner.
+   Seulement pour une alternance, et avec un lieu qui a un centre : la
+   ville tapée, sinon celle de tes pistes. */
+function offresHTML(){
+  if (!['ok', 'plus', 'erreur', 'limite'].includes(etat.phase)) return '';
+  const vf = villeFrequente(S.companies);
+  const c = vf && centreVille(cleDe(vf));
+  const o = offresAlternance(etat.interp, { recherche: S.profile && S.profile.recherche, metier: metierDuProfil(S.profile),
+    centre: c ? { lat: c[0], lng: c[1], nom: vf } : null });
+  return o ? `<a class="linklike dc-offres" href="${esc(o.url)}" target="_blank" rel="noopener">${ic('briefcase', 'ic-14')}<span>Offres d’alternance autour de ${
+    esc(o.lieu)}</span>${ic('external-link', 'ic-12')}</a>` : '';
 }
 
 /* la vue, selon l'état */
@@ -310,6 +337,7 @@ export function decouverteHTML(){
   }
   return (
     `<section class="dc-vue" aria-label="À découvrir">
+       ${offresHTML()}
        ${corps}
        ${/* la source se nomme : la licence de l'annuaire le demande, et
             c'est ce qui dit d'où viennent des entreprises qu'on n'a

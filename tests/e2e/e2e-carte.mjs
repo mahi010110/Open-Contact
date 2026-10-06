@@ -13,21 +13,25 @@
    ② ce qui part : Wikidata et le BODACC reçoivent le SIREN, Wikipédia le
      titre que Wikidata a donné, Wikimedia le nom du logo — jamais un mot
      de note, un contact, un prénom, le profil ;
-   ③ une valeur par fait : la phrase de Wikipédia passe devant le libellé
-     d'activité, ta phrase (« En bref ») passe devant tout ; quatre
-     chiffres, toujours dans le même ordre ; les sources citées sont
-     celles qui ont DIT quelque chose ;
+   ③ une valeur par fait : la phrase de Wikipédia passe devant tout
+     libellé, ta phrase (« En bref ») passe devant tout ; puis les trois
+     lignes qui aident à CHOISIR (retour du mainteneur, 6 octobre) — les
+     missions et si elles collent à ta formation, la taille en mots, à
+     qui écrire ; plus de chiffre d'affaires, de création, de sites ; les
+     sources citées sont celles qui ont DIT quelque chose ;
    ④ ce qui réclame quelque chose (une procédure collective) se pose EN
      LIGNE, et rien ne glisse sous le doigt quand la réponse arrive en
      retard ;
    ⑤ dans la fiche, « À savoir » est ouvert au pouce : la carte se voit
-     sans rien toucher ;
+     sans rien toucher ; « à qui écrire » vit avec les contacts tant que
+     la piste n'a pas d'adresse ;
    ⑥ hors ligne : rien ne part, la carte montre ce que l'annuaire a dit,
      zéro erreur ;
-   ⑦ 320 px à 200 % : rien ne déborde, aucun chiffre rogné ; en sombre, le
+   ⑦ 320 px à 200 % : rien ne déborde, aucune ligne rognée ; en sombre, le
      logo garde un carreau clair ;
    ⑧ au poste, ↓ ↓ ↓ dans la liste ne lance pas trois questions ;
-   ⑨ le composeur reçoit ce que fait l'entreprise, et sa taille.
+   ⑨ le composeur reçoit ce que fait l'entreprise, et sa taille ; sans
+     adresse, il nomme la personne à qui écrire.
 
    Les sources sont REMPLACÉES par des réponses à leur forme relevée
    (`sonde-carte.mjs`, en CI). La CSP de l'app est la vraie : si elle
@@ -66,7 +70,7 @@ const PISTES = [
     contacts: [] },
   { id: 'df', name: 'Dataflow Nord', siren: DATAFLOW, city: 'Roubaix', status: 'todo', updatedAt: 2, contacts: [] }
 ];
-const PROFIL = { name: 'Inès Martin', formation: 'BTS SIO', ecole: 'Lycée Baggio', recherche: 'alternance', email: 'ines@exemple.test' };
+const PROFIL = { name: 'Inès Martin', formation: 'BTS SIO SISR', ecole: 'Lycée Baggio', recherche: 'alternance', email: 'ines@exemple.test' };
 const PRIVES = ['bertrand', 'rappeler', 'julie', 'marchand', 'ines', 'martin', 'baggio', 'alternants', 'soc a lille'];
 const pliees = s => decodeURIComponent(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
@@ -135,8 +139,7 @@ const lireCarte = (p, sel) => p.evaluate(sel => {
     faits: b.querySelector('.ap-faits')?.textContent.replace(/\s+/g, ' ').trim() || '',
     alerte: b.querySelector('.ap-faits .mark, .fa-etat-nom .mark')?.textContent.trim() || '',
     quoi: b.querySelector('.ct-quoi p')?.textContent.trim() || '',
-    act: b.querySelector('.ct-act')?.textContent.trim() || '',
-    chiffres: [...b.querySelectorAll('.ct-chiffres li')].map(li => li.querySelector('b').textContent + ' ' + li.querySelector('span').textContent),
+    ton: b.querySelector('.ct-ton')?.textContent.trim() || '',
     lignes: [...b.querySelectorAll('.ct .fk')].map(f => f.querySelector('.fk-l')?.textContent.trim() + ': ' + f.querySelector('.fk-v')?.textContent.replace(/\s+/g, ' ').trim()),
     sources: b.querySelector('.ct-src')?.textContent.replace(/\s+/g, ' ').trim() || '',
     logo: (() => { const i = b.querySelector('img.ct-logo'); return i ? { src: i.src, ref: i.referrerPolicy } : null; })(),
@@ -161,14 +164,17 @@ const lireCarte = (p, sel) => p.evaluate(sel => {
   const s = await lireCarte(p, '.overlay .modal-b');
   if (s.quoi !== 'Sopra Steria est une entreprise de services du numérique française et une société de conseil en transformation numérique.')
     fail('ce qu’elle fait ne vient pas de Wikipédia, en une phrase sans parenthèses : ' + s.quoi);
-  if (s.act !== 'Conseil en systèmes et logiciels informatiques') fail('l’activité ne reste pas dite sous la phrase : ' + s.act);
-  if (s.chiffres.join(' | ') !== '10 000 + salariés | 5,8 Md€ CA 2024 | 1985 création | 120 sites') fail('chiffres : ' + s.chiffres.join(' | '));
-  if (!s.lignes.includes('Dirigeant: Thomas Leroy, président')) fail('à qui écrire : ' + s.lignes);
+  /* les trois lignes qui aident à choisir, dans l'ordre ; une grande : on écrit au recrutement */
+  const attendu = ['Missions: Conseil et intégration informatique colle à ta formation', 'Taille: 10 000 salariés et plus',
+                   'Écrire à: Son service recrutement LinkedIn', 'Site: soprasteria.com'];
+  if (s.lignes.join(' | ') !== attendu.join(' | ')) fail('les lignes de la carte : ' + s.lignes.join(' | '));
+  if (s.ton !== 'colle à ta formation') fail('BTS SIO SISR et des missions de réseau : « colle à ta formation » manque');
+  if (/Md€|CA 20|création|sites/.test(JSON.stringify(s))) fail('le chiffre d’affaires, la création ou les sites reviennent : ' + JSON.stringify(s));
   if (s.sources !== 'Sources : Annuaire des entreprises · Wikipédia · Wikidata') fail('sources : ' + s.sources);
   if (!s.logo || s.logo.ref !== 'no-referrer' || !/Special:FilePath\/Sopra%20Steria%20logo\.svg\?width=96$/.test(s.logo.src)) fail('le logo : ' + JSON.stringify(s.logo));
   if (!s.liens.includes('Page LinkedIn')) fail('la page LinkedIn de l’entreprise n’est pas proposée : ' + s.liens);
   if (s.boutons) fail(`la carte porte ${s.boutons} bouton(s) — on la lit, on ne la manipule pas`);
-  else console.log('pouce · ③ Wikipédia dit ce qu’elle fait, l’activité reste dessous, quatre chiffres dans l’ordre, la page LinkedIn, trois sources citées ✓');
+  else console.log('pouce · ③ Wikipédia dit ce qu’elle fait ; missions (colle à ta formation), taille, à qui écrire, dans l’ordre ; la page LinkedIn, trois sources citées ✓');
   /* ② ce qui est parti pour cette carte */
   const partis = carteSort(journal);
   const wd = partis.filter(u => u.startsWith('https://query.wikidata.org'));
@@ -205,9 +211,7 @@ const lireCarte = (p, sel) => p.evaluate(sel => {
   if (!/BODACC/.test(d.sources)) fail('le BODACC n’est pas cité : ' + d.sources);
   if (avant.pied !== apres.pied) fail(`le geste plein a glissé sous le doigt quand le BODACC a répondu (${avant.pied} → ${apres.pied})`);
   if (avant.lien != null && Math.abs(avant.lien - apres.lien) > 1) fail(`les liens ont glissé quand le BODACC a répondu (${avant.lien} → ${apres.lien})`);
-  /* une seule année de CA, à zéro : des comptes confidentiels, pas un chiffre */
-  if (d.chiffres.some(x => /CA/.test(x))) fail('un chiffre d’affaires à 0 s’affiche : ' + d.chiffres);
-  else console.log('pouce · ④ « Redressement judiciaire » en ligne, cité au BODACC, et rien n’a glissé sous le doigt ; un CA à 0 ne s’affiche pas ✓');
+  if (!process.exitCode) console.log('pouce · ④ « Redressement judiciaire » en ligne, cité au BODACC, et rien n’a glissé sous le doigt ✓');
   await p.screenshot({ path: `${SHOTS}/99-carte-alerte-pouce.png` });
   await ctx.close();
 }
@@ -217,21 +221,25 @@ const lireCarte = (p, sel) => p.evaluate(sel => {
   const { ctx, p, journal } = await ecran({ width: 390, height: 844 }, true, { pistes: PISTES });
   await p.evaluate(async () => { const { S } = await import('./ui/state.js');
     (await import('./ui/fiche.js')).openFiche(S.companies.find(c => c.id === 'adv')); });
-  await p.waitForSelector('#faCarte .ct-chiffres', { timeout: 4000 }).catch(() => {});
+  await p.waitForSelector('#faCarte .fk', { timeout: 4000 }).catch(() => {});
   await p.waitForTimeout(400);
   const f = await p.evaluate(() => ({
     ouvert: !!document.querySelector('#fiKnow')?.open,
-    visible: (() => { const x = document.querySelector('#faCarte .ct-chiffres'); return !!x && x.getClientRects().length > 0; })(),
+    visible: (() => { const x = document.querySelector('#faCarte .fk'); return !!x && x.getClientRects().length > 0; })(),
     quoi: document.querySelector('#faCarte .ct-quoi p')?.textContent.trim() || '',
     enBref: [...document.querySelectorAll('#fiKnow .fk-l')].some(l => /en bref/i.test(l.textContent)),
-    chiffres: [...document.querySelectorAll('#faCarte .ct-chiffres li')].length
+    lignes: [...document.querySelectorAll('#faCarte .fk-l')].map(l => l.textContent.trim()),
+    qui: (() => { const q = document.querySelector('#faCts .fa-qui'); return q ? q.querySelector('.fk-l').textContent.trim() + ' '
+      + q.querySelector('.fk-v').textContent.replace(/\s+/g, ' ').trim() : ''; })()
   }));
   if (!f.ouvert || !f.visible) fail('au pouce, la carte de la fiche ne se voit pas sans toucher : ' + JSON.stringify(f));
   if (f.quoi !== 'SOC à Lille, trois alternants') fail('ta phrase ne passe pas devant Wikidata : ' + f.quoi);
   if (f.enBref) fail('« En bref » se redit à côté de la carte');
-  if (f.chiffres !== 4) fail('la fiche ne montre pas les quatre chiffres : ' + f.chiffres);
+  if (f.lignes.join(',') !== 'Missions,Taille') fail('la carte de la fiche : ' + f.lignes);
+  /* la piste n'a personne : à qui écrire vit avec les contacts, pas dans la carte */
+  if (f.qui !== 'Écrire à Thomas Leroy, président LinkedIn') fail('la fiche ne dit pas à qui écrire, avec les contacts : ' + f.qui);
   for (const u of journal){ const w = PRIVES.find(m => pliees(u).includes(m)); if (w) fail(`fiche : « ${w} » est sorti : ${u}`); }
-  console.log('pouce · ⑤ la fiche : « À savoir » ouvert, la carte se voit, ta phrase passe devant Wikidata, « En bref » ne se redit pas ✓');
+  if (!process.exitCode) console.log('pouce · ⑤ la fiche : « À savoir » ouvert, la carte se voit, ta phrase passe devant Wikidata ; « Écrire à Thomas Leroy » avec les contacts ✓');
   await p.evaluate(() => document.querySelector('#fiKnow').scrollIntoView({ block: 'start' }));
   await p.screenshot({ path: `${SHOTS}/99-carte-fiche-pouce.png` });
   /* ⑨ le composeur reçoit la matière : ici « En bref » existe, il parle seul */
@@ -247,9 +255,13 @@ const lireCarte = (p, sel) => p.evaluate(sel => {
     (await import('./ui/mail.js')).openMail(S.companies.find(c => c.id === 'df')); });
   await p.waitForSelector('.ml-know', { timeout: 3000 }).catch(() => {});
   const know = await p.evaluate(() => [...document.querySelectorAll('.ml-know .fk')].map(f => f.querySelector('.fk-l').textContent + ': ' + f.querySelector('.fk-v').textContent.trim()));
-  if (!know.includes('Activité: Conseil en systèmes et logiciels informatiques') || !know.includes('Taille: 10-19 salariés · depuis 2021'))
+  if (!know.includes('Activité: Conseil et intégration informatique') || !know.includes('Taille: 10 à 19 salariés'))
     fail('le composeur ne reçoit pas ce que fait l’entreprise et sa taille : ' + JSON.stringify(know));
-  else console.log('pouce · ⑨ la procédure sous le nom de la fiche ; le composeur reçoit l’activité et la taille ✓');
+  /* sans adresse, le composeur nomme la personne et ouvre la recherche qui la trouve */
+  const hint = await p.evaluate(() => { const a = document.querySelector('#mHint a'); return a ? { t: a.textContent.trim(), h: a.href } : null; });
+  if (!hint || hint.t !== 'Thomas Leroy sur LinkedIn' || new URL(hint.h).searchParams.get('keywords') !== 'Thomas Leroy Dataflow Nord')
+    fail('sans email, le composeur ne nomme pas à qui écrire : ' + JSON.stringify(hint));
+  if (!process.exitCode) console.log('pouce · ⑨ la procédure sous le nom de la fiche ; le composeur reçoit l’activité et la taille, et nomme à qui écrire ✓');
   await ctx.close();
 }
 
@@ -261,11 +273,12 @@ const lireCarte = (p, sel) => p.evaluate(sel => {
   await ctx.setOffline(true);
   await p.evaluate(() => dispatchEvent(new Event('offline')));
   await p.click('#piDec .dc-row:has-text("Advens") .dc-main');
-  await p.waitForSelector('.overlay .ct-chiffres', { timeout: 3000 }).catch(() => {});
+  await p.waitForSelector('.overlay .ct .fk', { timeout: 3000 }).catch(() => {});
   await p.waitForTimeout(500);
   const h = await lireCarte(p, '.overlay .modal-b');
   if (journal.length !== n0) fail('hors ligne, une source de la carte a été interrogée : ' + journal.slice(n0));
-  if (!h || h.chiffres.length !== 4 || h.quoi !== 'Conseil en systèmes et logiciels informatiques') fail('hors ligne, la carte ne montre pas ce que l’annuaire a dit : ' + JSON.stringify(h));
+  if (!h || h.lignes.join(' | ') !== 'Missions: Conseil et intégration informatique colle à ta formation | Taille: 100 à 199 salariés | Écrire à: Thomas Leroy, président LinkedIn')
+    fail('hors ligne, la carte ne montre pas ce que l’annuaire a dit : ' + JSON.stringify(h));
   else console.log('pouce · ⑥ hors ligne : rien ne part, la carte montre ce que l’annuaire a dit ✓');
   await ctx.setOffline(false);
   await ctx.close();
@@ -287,16 +300,16 @@ for (const [nom, o] of [['320-200', { zoom: '200%' }], ['sombre', { sombre: true
     const logo = document.querySelector('.overlay img.ct-logo');
     return {
       deborde: [...m.querySelectorAll('.ct *, .ap-liens *')].filter(x => x.getBoundingClientRect().right > mr + 1).map(x => x.className || x.tagName).slice(0, 3),
-      rognes: [...m.querySelectorAll('.ct-chiffres b, .ct-chiffres span, .ct-quoi p')].filter(x => x.scrollWidth > x.clientWidth + 1).map(x => x.textContent),
+      rognes: [...m.querySelectorAll('.ct .fk-v, .ct .fk-l, .ct-quoi p')].filter(x => x.scrollWidth > x.clientWidth + 1).map(x => x.textContent),
       lateral: m.scrollWidth > m.clientWidth + 1,
       carreau: logo ? lum(rgb(getComputedStyle(logo).backgroundColor)) : null
     };
   });
   if (g.deborde.length || g.lateral) fail(`${nom} : la carte déborde de la feuille — ${g.deborde}`);
-  if (g.rognes.length) fail(`${nom} : chiffre ou phrase rognés — ${g.rognes}`);
+  if (g.rognes.length) fail(`${nom} : ligne ou phrase rognées — ${g.rognes}`);
   if (nom === 'sombre' && !(g.carreau > 0.8)) fail(`sombre : le carreau du logo n’est pas clair (${g.carreau}) — un logo sombre y disparaîtrait`);
   await p.screenshot({ path: `${SHOTS}/99-carte-${nom}.png` });
-  console.log(`⑦ ${nom} : rien ne déborde, aucun chiffre rogné${nom === 'sombre' ? ', le logo garde un carreau clair' : ''} ✓`);
+  console.log(`⑦ ${nom} : rien ne déborde, aucune ligne rognée${nom === 'sombre' ? ', le logo garde un carreau clair' : ''} ✓`);
   await ctx.close();
 }
 

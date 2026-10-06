@@ -50,12 +50,12 @@ import { rappelICS, lienAgendaGoogle, formeAgenda, RAPPEL_HEURE } from './engine
 import { normalizeParcours, parcoursDe, periodeParcours, phraseParcours, PARCOURS_MAX } from './engine/parcours.js';
 import { interpreter, retirer, remplacer, chercherPistes, raisonDe, propositions, elargir,
          contexteRecherche, deptDuCp, villeFrequente, deptDePiste, zoneDe, metierDuMoment,
-         fraicheur } from './engine/requete.js';
-import { questionsAnnuaire, lireAnnuaire, decouvertes, versPiste, motsInterdits, casse,
+         fraicheur, METIER, metierDuProfil } from './engine/requete.js';
+import { questionsAnnuaire, lireAnnuaire, decouvertes, versPiste, motsInterdits, casse, offresAlternance, LBA, LOIN_KM,
          domaineDeNaf, ficheOfficielle, ANNUAIRE, questionSiren, questionNom, questionSite, lireSite,
          complements, champsDits, dirigeantsAjoutables, liensPiste, WIKIDATA, genreQuestion } from './engine/annuaire.js';
-import { questionWikidata, lireWikidata, questionResume, lireResume, questionBodacc, lireBodacc, montant,
-         carte, WIKIPEDIA_FR, BODACC, LINKEDIN_PAGE } from './engine/carte.js';
+import { questionWikidata, lireWikidata, questionResume, lireResume, questionBodacc, lireBodacc,
+         carte, WIKIPEDIA_FR, BODACC, LINKEDIN_PAGE, aQui, estGrande, travailDe, TRAVAIL } from './engine/carte.js';
 import { makeMission, missionUsable, revokeMission, foldCampaignReport,
          signMission, openMissionWire } from './engine/mission.js';
 import { normCode, pairKey } from './engine/ordinateur.js';
@@ -1234,19 +1234,32 @@ export async function runSelfTests(){
     'annuaire : la question — le métier en codes, le lieu, la taille, et rien sans texte ni lieu': () => {
       const ctx = { today: '2026-10-01', villes: [], prenoms: [] };
       const Q = (q, o) => questionsAnnuaire(interpreter(q, ctx), o || {}).map(u => new URL(u));
-      const [a] = Q('alternance à Lille');
-      eq(a.origin, ANNUAIRE); eq(a.pathname, '/search');
-      eq(a.searchParams.get('departement'), '59');
+      /* UNE VILLE : autour de son centre (le bon établissement, à sa vraie
+         distance), et la jumelle du département, bornée aux 10-499 */
+      const [a, a2] = Q('alternance à Lille');
+      eq(a.origin, ANNUAIRE); eq(a.pathname, '/near_point');
+      eq(a.searchParams.get('lat'), '50.631'); eq(a.searchParams.get('long'), '3.047'); eq(a.searchParams.get('radius'), '15');
+      ok(!a.searchParams.has('departement'));
       ok(a.searchParams.get('activite_principale').includes('62.01Z'));    /* sans métier : le numérique, c'est le produit */
       eq(a.searchParams.get('etat_administratif'), 'A');
       ok(!a.searchParams.has('q'));                                         /* « alternance » ne regarde pas le registre */
+      eq(a2.pathname, '/search'); eq(a2.searchParams.get('departement'), '59');
+      eq(a2.searchParams.get('tranche_effectif_salarie'), '11,12,21,22,31,32');
+      /* un département : la liste et sa jumelle */
+      const d = Q('alternance 59');
+      eq(d.map(u => u.pathname), ['/search', '/search']); eq(d[0].searchParams.get('departement'), '59');
       const c = Q('cyber Lyon');
       eq(c.length, 3);                                                      /* les noms qui portent « cyber » d'abord */
       eq(c[0].searchParams.get('q'), 'cyber'); ok(!c[1].searchParams.has('q'));
       eq(c[0].searchParams.get('departement'), '69');
-      /* la jumelle : la même liste, bornée aux employeurs de 10 à 499 salariés */
+      /* « cyber » dans le nom ne dit pas qu'on peut y être accueilli : dix salariés et plus */
+      eq(c[0].searchParams.get('tranche_effectif_salarie'), '11,12,21,22,31,32,41,42,51,52,53');
+      eq(c[1].pathname, '/near_point');
       eq(c[2].searchParams.get('tranche_effectif_salarie'), '11,12,21,22,31,32');
       eq(c.map(u => genreQuestion(u.toString())), ['metier', 'liste', 'liste']);
+      /* réseau : ni boutiques (61.20Z, 61.90Z), et les intégrateurs (46.51Z) */
+      const r = Q('réseau Lille')[0].searchParams.get('activite_principale').split(',');
+      ok(r.includes('46.51Z') && r.includes('61.10Z') && !r.includes('61.20Z') && !r.includes('61.90Z'));
       eq(genreQuestion(Q('Capgemini Toulouse')[0].toString()), 'nom');
       eq(Q('alternance à Lille').length, 2);
       eq(Q('pme Lille').length, 1);                                         /* une taille tapée décide seule */
@@ -1384,8 +1397,12 @@ export async function runSelfTests(){
       eq(Q('réseau').length, 0);                                        /* sans zone : rien ne part */
       const [z] = Q('réseau', { zone: { dept: '59' } });
       eq(z.searchParams.get('departement'), '59');
-      eq(Q('réseau Lyon', { zone: { dept: '59' } })[0].searchParams.get('departement'), '69');   /* un lieu tapé gagne */
+      eq(Q('réseau Lyon', { zone: { dept: '59' } })[1].searchParams.get('departement'), '69');   /* un lieu tapé gagne */
+      eq(Q('réseau Lyon', { zone: { dept: '59' } })[0].searchParams.get('lat'), '45.758');
       eq(Q('', { zone: { dept: '59' } }).length, 0);                    /* la barre vide ne demande rien */
+      /* une question vidée par le tri ne part pas, même vers ta zone */
+      eq(questionsAnnuaire(interpreter('bertrand', ctx), { zone: { dept: '59' }, parDefaut: true, interdits: new Set(['bertrand']) }).length, 0);
+      eq(Q('', { zone: { dept: '59' }, parDefaut: true }).length, 2);   /* le tap sur le segment, barre vide : ta zone */
       /* aucune personne demandée, dans aucune question */
       for (const u of [...Q('cyber Lille'), ...Q('alternance 59'), ...Q('Capgemini Toulouse')])
         eq(u.searchParams.get('est_entrepreneur_individuel'), 'false');
@@ -1467,42 +1484,47 @@ export async function runSelfTests(){
       eq(lireBodacc({ results: [] }, t).procedure, null);
       eq(lireBodacc(null, t).procedure, null);
     },
-    'carte : un montant se lit d’un coup d’œil': () => {
-      eq(montant(1769858954), '1,8 Md€'); eq(montant(51128553), '51 M€'); eq(montant(8400000), '8,4 M€');
-      eq(montant(84495737), '84 M€'); eq(montant(850000), '850 k€'); eq(montant(0), ''); eq(montant(-3), ''); eq(montant('x'), '');
-    },
-    'carte : l’annuaire lit le dernier chiffre d’affaires réellement déclaré': () => {
+    'carte : l’annuaire lit les conventions collectives, qui disent un employeur': () => {
       const [r] = lireAnnuaire({ results: [{ siren: '851035329', nom_raison_sociale: 'CHAPSVISION',
-        finances: { 2023: { ca: 4e7 }, 2024: { ca: 6e7 }, 2025: { ca: 0 } }, complements: { liste_idcc: ['1486'] } }] });
-      eq(r.ca, { annee: '2024', montant: 6e7 });
-      eq(r.conventions, ['1486']);
-      eq(lireAnnuaire({ results: [{ siren: '851035329', nom_raison_sociale: 'X', finances: { 2025: { ca: 0 } } }] })[0].ca, null);
+        complements: { liste_idcc: ['1486'] } }] });
+      eq(r.conventions, ['1486']); eq(r.employeur, true);
     },
-    'carte : une valeur par fait — ta parole, puis l’annuaire, puis le reste': () => {
-      const r = { siren: '812345678', nom: 'Advens', tranche: '22', creation: '2009-03-12', etablissements: 4,
-                  activite: 'Conseil en systèmes et logiciels informatiques', ca: { annee: '2024', montant: 51128553 },
+    'carte : une valeur par fait — ta parole, puis les sources, puis les missions': () => {
+      const r = { siren: '812345678', nom: 'Advens', tranche: '22', naf: '62.02A', creation: '2009-03-12', etablissements: 4,
+                  activite: 'Conseil en systèmes et logiciels informatiques',
                   dirigeants: [{ nom: 'Thomas Leroy', qualite: 'Président', personne: true },
                                { nom: 'Cabinet Audit Nord', qualite: 'Commissaire aux comptes', personne: false }] };
       const k = carte({ r, wd: { desc: 'entreprise française', site: 'https://www.advens.fr/' } });
-      /* « entreprise française » ne dit rien : c'est l'activité qui parle */
-      eq(k.quoi, { texte: 'Conseil en systèmes et logiciels informatiques', src: 'annuaire' });
-      eq(k.activite, '');
-      eq(k.chiffres, [{ v: '100-199', l: 'salariés' }, { v: '51 M€', l: 'CA 2024' }, { v: '2009', l: 'création' }, { v: '4', l: 'sites' }]);
-      eq(k.lignes, [{ l: 'Dirigeant', v: 'Thomas Leroy, président' }]);
+      /* « entreprise française » ne dit rien, et le libellé de l'INSEE non
+         plus : ce sont les missions qui parlent */
+      eq(k.quoi, null);
+      eq(k.missions, { texte: 'Conseil et intégration informatique', tonMetier: false });
+      eq(k.taille, '100 à 199 salariés');
+      eq(k.ecrire.cible, 'dirigeant'); eq(k.ecrire.nom, 'Thomas Leroy');
       eq(k.site, 'https://www.advens.fr/');
       eq(k.sources, ['Annuaire des entreprises', 'Wikidata']);
-      /* Wikipédia dit ce qu'elle fait ; l'activité reste en sous-titre */
-      const k2 = carte({ r, resume: 'Advens est une entreprise française de cybersécurité.', wd: { groupe: 'Advens' } });
-      eq(k2.quoi.src, 'wikipedia'); eq(k2.activite, 'Conseil en systèmes et logiciels informatiques');
-      eq(k2.lignes.length, 1);                                    /* le groupe qui porte son propre nom ne se dit pas */
-      eq(k2.sources, ['Annuaire des entreprises', 'Wikipédia']);
+      /* le chiffre d'affaires, la création, les sites : partis (ils ne départagent rien) */
+      ok(!('chiffres' in k)); ok(!JSON.stringify(k).includes('2009'));
+      /* ton métier, celui que dit ta formation */
+      eq(carte({ r, metier: 'reseau' }).missions.tonMetier, true);
+      eq(carte({ r: { ...r, naf: '62.01Z' }, metier: 'reseau' }).missions.tonMetier, false);
+      /* Wikipédia dit ce qu'elle fait ; le groupe se lit avec la taille */
+      const k2 = carte({ r, resume: 'Advens est une entreprise française de cybersécurité.', wd: { groupe: 'Groupe Nord' } });
+      eq(k2.quoi.src, 'wikipedia');
+      eq(k2.taille, '100 à 199 salariés · groupe Groupe Nord');
+      eq(k2.sources, ['Annuaire des entreprises', 'Wikipédia', 'Wikidata']);
+      eq(carte({ r, wd: { groupe: 'Advens' } }).taille, '100 à 199 salariés');   /* le groupe qui porte son propre nom ne se dit pas */
       /* ta phrase passe devant tout ; le site de la fiche ne se redit pas */
       const k3 = carte({ piste: { name: 'Advens', desc: 'SOC à Lille, 3 alternants', website: 'advens.fr' }, r,
                          resume: 'Advens est…', wd: { site: 'https://www.advens.fr/' } });
       eq(k3.quoi, { texte: 'SOC à Lille, 3 alternants', src: 'toi' }); eq(k3.site, '');
-      /* les géants : « 10 000 + » ; une entreprise sans salarié n'a pas de chiffre d'effectif */
-      eq(carte({ r: { tranche: '53' } }).chiffres[0], { v: '10 000 +', l: 'salariés' });
-      eq(carte({ r: { tranche: '00' } }).chiffres, []);
+      /* sans missions connues, le libellé de l'INSEE reste le dernier recours */
+      eq(carte({ r: { naf: '10.71C', tranche: '03', activite: 'Boulangerie' } }).quoi, { texte: 'Boulangerie', src: 'annuaire' });
+      /* les géants ; une entreprise sans salarié n'a pas de taille */
+      eq(carte({ r: { tranche: '53' } }).taille, '10 000 salariés et plus');
+      eq(carte({ r: { tranche: '00' } }).taille, '');
+      /* une grande : on écrit au recrutement */
+      eq(carte({ r: { ...r, tranche: '52' } }).ecrire.cible, 'recrutement');
     },
     'carte : une seule alerte, la plus forte — fermée passe devant une procédure': () => {
       const proc = { procedure: { nature: 'redressement judiciaire', date: '2026-03-10' } };
@@ -1511,6 +1533,87 @@ export async function runSelfTests(){
       eq(carte({ r: {}, bodacc: proc }).sources, ['BODACC']);
       eq(carte({ r: {}, bodacc: { procedure: null } }).alerte, null);
       eq(carte({ r: {}, bodacc: { procedure: null } }).sources, []);      /* rien à dire, rien à citer */
+    },
+    'à qui écrire : le dirigeant d’une PME, par son nom — le recrutement d’une grande': () => {
+      const dirs = [{ nom: 'Cabinet Audit Nord', qualite: 'Commissaire aux comptes', personne: false },
+                    { nom: 'Thomas Leroy', qualite: 'Président', personne: true }];
+      const pme = aQui({ nom: 'Advens', tranche: '22', categorie: 'PME', dirigeants: dirs });
+      eq(pme.cible, 'dirigeant'); eq(pme.nom, 'Thomas Leroy'); eq(pme.qualite, 'président');
+      eq(new URL(pme.url).searchParams.get('keywords'), 'Thomas Leroy Advens');
+      /* 250 salariés et plus, ou une filiale d'un groupe : un service recrute */
+      for (const r of [{ tranche: '32' }, { tranche: '53' }, { tranche: '12', categorie: 'GE' }, { tranche: '21', categorie: 'ETI' }]){
+        ok(estGrande(r));
+        const g = aQui({ nom: 'Sopra Steria', dirigeants: dirs, ...r });
+        eq(g.cible, 'recrutement'); eq(g.nom, '');
+        eq(new URL(g.url).searchParams.get('keywords'), 'Sopra Steria recrutement');
+      }
+      /* sans dirigeant qui soit une PERSONNE : le recrutement, jamais une société-holding */
+      eq(aQui({ nom: 'X', tranche: '11', dirigeants: [dirs[0]] }).cible, 'recrutement');
+      /* aucune adresse devinée, jamais */
+      ok(!JSON.stringify(pme).includes('@'));
+      eq(aQui({}), null);
+    },
+    'ce que tu y ferais : le code d’activité devient un travail, et ses métiers': () => {
+      eq(travailDe({ naf: '62.03Z' }).metiers, ['reseau', 'cloud']);
+      ok(/infogérance/.test(travailDe({ naf: '62.03Z' }).texte));
+      eq(travailDe({ naf: '62.01Z' }).metiers, ['dev']);
+      /* hors du numérique : un service informatique, seulement passé 50 salariés */
+      eq(travailDe({ naf: '86.10Z', tranche: '42' }).texte, 'informatique interne');
+      eq(travailDe({ naf: '84.11Z', tranche: '12' }), null);
+      eq(travailDe({ naf: '10.71C', tranche: '03' }), null);
+      eq(travailDe({}), null);
+      /* chaque métier nommé existe dans la barre */
+      for (const t of Object.values(TRAVAIL)) for (const m of t.metiers) ok(METIER[m], m);
+    },
+    'utile : le nom qu’on reconnaît, la ville et son centre, ce qui tombe trop loin': () => {
+      const L = res => lireAnnuaire({ results: res });
+      const [euro, onisep, tdf, rcbt] = L([
+        { siren: '111111111', nom_raison_sociale: 'EURO-INFORMATION EUROPEENNE DE TRAITEMENT DE L’INFORMATION', sigle: 'EURO INFORMATION' },
+        { siren: '222222222', nom_raison_sociale: 'OFFICE NATIONAL D’INFORMATION SUR LES ENSEIGNEMENTS ET LES PROFESSIONS', sigle: 'ONISEP' },
+        { siren: '333333333', nom_raison_sociale: 'T D F', sigle: 'TDF' },
+        { siren: '444444444', nom_raison_sociale: 'RESEAU CLUBS BOUYGUES TELECOM', sigle: 'RCBT' }]);
+      eq([euro.nom, onisep.nom, tdf.nom, rcbt.nom], ['Euro Information', 'ONISEP', 'TDF', 'Reseau Clubs Bouygues Telecom']);
+      ok(/Traitement de l/.test(euro.raison));                       /* le nom complet reste lisible */
+      /* une piste saisie sous le nom complet ne revient pas */
+      eq(decouvertes([[euro]], [normalizeCompany({ name: 'Euro-Information Européenne de Traitement de l’Information' })]).length, 0);
+      /* « Lille » porte son centre ; au-delà de LOIN_KM, ce n'est plus Lille */
+      const e = interpreter('alternance Lille', { today: '2026-10-06', villes: [], prenoms: [] }).etiquettes.find(x => x.famille === 'lieu');
+      eq(e.centre, [50.631, 3.047]);
+      const pres = { siren: '555555555', nom: 'Près', distance: 4 }, loin = { siren: '666666666', nom: 'Loin', distance: 72 };
+      eq(decouvertes([[loin, pres]], [], { loin: LOIN_KM }).map(r => r.nom), ['Près']);
+      eq(decouvertes([[loin, pres]], []).length, 2);                 /* sans ville, rien n'est écarté */
+      /* l'annuaire ne remplit pas « En bref » : c'est ta phrase */
+      eq(versPiste({ siren: '777777777', nom: 'X', naf: '62.01Z', activite: 'Programmation informatique' }).desc, '');
+    },
+    'utile : ta formation dit ton métier — ou rien': () => {
+      eq(metierDuProfil({ formation: 'BTS SIO option SISR' }), 'reseau');
+      eq(metierDuProfil({ formation: 'BTS SIO SLAM' }), 'dev');
+      eq(metierDuProfil({ formation: 'Master cyber' }), 'cyber');
+      eq(metierDuProfil({ formation: 'BUT informatique' }), '');      /* ne dit aucun métier */
+      eq(metierDuProfil({ formation: 'Licence commerce' }), '');      /* un secteur n'est pas un métier */
+      eq(metierDuProfil({ formation: 'Master cloud et sécurité' }), ''); /* deux métiers : on ne tranche pas */
+      eq(metierDuProfil({}), ''); eq(metierDuProfil(null), '');
+    },
+    'utile : qui recrute en alternance — un lien vers le service public, le métier et le point, rien d’autre': () => {
+      const ctx = { today: '2026-10-06', villes: [], prenoms: [] };
+      const O = (q, o) => offresAlternance(interpreter(q, ctx), o);
+      const a = new URL(O('alternance réseau Lille').url);
+      eq(a.origin + a.pathname, LBA);
+      eq(a.searchParams.get('romes'), 'M1801,M1810'); eq(a.searchParams.get('lat'), '50.631'); eq(a.searchParams.get('lon'), '3.047');
+      eq(a.searchParams.get('radius'), '30'); eq(a.searchParams.get('address'), 'Lille');
+      eq([...a.searchParams.keys()].sort(), ['address', 'job_name', 'lat', 'lon', 'radius', 'romes']);
+      eq(O('alternance réseau Lille').lieu, 'Lille');
+      eq(O('stage Lille'), null);                                    /* un stage : pas ce service */
+      eq(O('Lille'), null);                                          /* rien ne dit « alternance » */
+      ok(O('Lille', { recherche: 'alternance' }));                   /* ton profil le dit */
+      eq(O('stage Lille', { recherche: 'alternance' }), null);       /* ce que tu tapes gagne sur le profil */
+      eq(O('alternance 59'), null);                                  /* un département n'a pas de centre */
+      eq(new URL(O('alternance Lille', { metier: 'dev' }).url).searchParams.get('romes'), 'M1805');   /* le métier de ta formation */
+      /* le libellé décide (relevé) : cloud et cyber passent par un libellé mesuré porteur */
+      for (const q of ['alternance cloud Nantes', 'alternance cybersécurité Lille'])
+        eq(new URL(O(q).url).searchParams.get('job_name'), 'Administration réseau');
+      /* sans lieu tapé, le centre de tes pistes, s'il est donné */
+      eq(new URL(O('alternance', { centre: { lat: 45.758, lng: 4.835, nom: 'Lyon' } }).url).searchParams.get('address'), 'Lyon');
     },
     'fiche enrichie : la question ne porte QUE le SIREN, ou le nom sur un geste': () => {
       const u = new URL(questionSiren('326820065'));
@@ -1549,7 +1652,7 @@ export async function runSelfTests(){
       const vide = normalizeCompany({ name: 'Sopra Steria' });
       eq(complements(vide, r, 'https://www.soprasteria.com'), {
         siren: '326820065', city: 'Lille', address: '12 Rue Nationale\n59000 Lille', lat: 50.63, lng: 3.06,
-        desc: 'Conseil en systèmes et logiciels informatiques', domain: 'esn', website: 'https://www.soprasteria.com' });
+        desc: 'Conseil et intégration informatique', domain: 'esn', website: 'https://www.soprasteria.com' });   /* les missions, pas l'INSEE */
       /* ce que tu as écrit reste, et la position ne vient pas contredire ton adresse */
       const plein = normalizeCompany({ name: 'Sopra Steria', city: 'Villeneuve-d’Ascq', address: '1 avenue X\n59650 Villeneuve-d’Ascq',
         desc: 'ESN', website: 'soprasteria.com', domain: 'cyber', siren: '326820065' });

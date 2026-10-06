@@ -48,7 +48,7 @@ import { DOMAINS, STATUSES, CLOSE_REASONS, VECU } from './model.js';
 import { silentPistes } from './assist.js';
 import { scoreOf } from './score.js';
 import { extractCity, todayISO } from './utils.js';
-import { VILLES, DEPARTEMENTS, DEPT_NOM_AMBIGU, REGIONS } from './lieux.js';
+import { VILLES, DEPARTEMENTS, DEPT_NOM_AMBIGU, REGIONS, CENTRES } from './lieux.js';
 
 /* ---------- les mots ---------- */
 const plier = s => fold(s).replace(/œ/g, 'oe').replace(/æ/g, 'ae');
@@ -183,6 +183,9 @@ const variantes = nom => {
   return out;
 };
 const VILLE_DEPT = new Map(VILLES.map(v => [cleDe(v.nom), v.dept]));
+/* le centre de la ville (engine/lieux.js) : l'annuaire cherche AUTOUR */
+const VILLE_CENTRE = new Map(VILLES.filter(v => CENTRES.has(v.nom)).map(v => [cleDe(v.nom), CENTRES.get(v.nom)]));
+export const centreDe = cle => VILLE_CENTRE.get(cle) || null;
 
 /* Le dictionnaire : une phrase normalisée → ce qu'elle veut dire. Le
    premier arrivé garde la place : le vocabulaire fixe passe avant les
@@ -210,14 +213,16 @@ function dictionnaire(ctx){
     for (const m of r.alias) poser(m, { famille: 'lieu', cle: 'region:' + k, label: r.nom, depts: r.depts });
   for (const v of VILLES)
     for (const n of variantes(v.nom))
-      poser(n, { famille: 'lieu', cle: 'ville:' + cleDe(v.nom), label: v.nom, ville: cleDe(v.nom), dept: v.dept });
+      poser(n, { famille: 'lieu', cle: 'ville:' + cleDe(v.nom), label: v.nom, ville: cleDe(v.nom), dept: v.dept,
+                 centre: CENTRES.get(v.nom) || null });
   for (const [code, nom] of Object.entries(DEPARTEMENTS))
     if (!DEPT_NOM_AMBIGU.has(code))
       poser(nom, { famille: 'lieu', cle: 'dept:' + code, label: `${nom} (${code})`, depts: [code] });
   /* les villes des pistes : celles que la table n'a pas (un village, une
      zone d'activité) se comprennent quand même, telles qu'elles sont écrites */
   for (const v of villes)
-    poser(v, { famille: 'lieu', cle: 'ville:' + cleDe(v), label: v, ville: cleDe(v), dept: VILLE_DEPT.get(cleDe(v)) || '' });
+    poser(v, { famille: 'lieu', cle: 'ville:' + cleDe(v), label: v, ville: cleDe(v), dept: VILLE_DEPT.get(cleDe(v)) || '',
+               centre: centreDe(cleDe(v)) });
   for (const p of prenoms)
     poser(p, { famille: 'groupe', cle: 'prenom:' + cleDe(p), label: p, prenom: cleDe(p) });
   memo = { cle, dict };
@@ -625,6 +630,23 @@ export function metierDuMoment(companies, today = todayISO()){
   const tri = [...poids.entries()].sort((a, b) => b[1] - a[1]);
   if (n < 2 || !tri.length || (tri[1] && tri[1][1] * 1.5 > tri[0][1])) return '';
   return tri[0][0];
+}
+
+/* TON MÉTIER DÉCLARÉ : ce que dit ta formation — « BTS SIO SISR » est
+   du réseau, « SLAM » du développement, « Master cyber » de la
+   cybersécurité. Le même interpréteur que la barre, donc les mêmes mots ;
+   une formation qui n'en dit aucun (« BUT informatique ») ne rend rien —
+   mieux vaut ne pas comprendre que mal comprendre. Deux métiers à égalité
+   ne tranchent rien non plus. */
+export function metierDuProfil(profile){
+  const f = String((profile && profile.formation) || '').trim();
+  if (!f) return '';
+  /* un MÉTIER, pas un secteur : « Licence commerce » ne dit pas ce
+     qu'on fait en informatique. Cyber et cloud sont les deux qui sont
+     l'un et l'autre. */
+  const metier = e => e.famille === 'metier' && (!METIER[e.cle].domaine || e.cle === 'cyber' || e.cle === 'cloud');
+  const cles = [...new Set(interpreter(f).etiquettes.filter(metier).map(e => e.cle))];
+  return cles.length === 1 ? cles[0] : '';
 }
 
 /* ---------- élargir ----------

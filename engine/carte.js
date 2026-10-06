@@ -36,7 +36,8 @@
    Fonctions PURES : aucune requête, aucun écran. L'interface appelle,
    lit, et dessine (ui/carte.js).
    ============================================================ */
-import { TRANCHES } from './annuaire.js';
+import { TRANCHES, LINKEDIN_GENS, travailDe } from './annuaire.js';
+export { TRAVAIL, travailDe } from './annuaire.js';
 
 export const WIKIDATA = 'https://query.wikidata.org/sparql';
 export const WIKIPEDIA_FR = 'https://fr.wikipedia.org/api/rest_v1/page/summary/';
@@ -144,16 +145,6 @@ export function lireBodacc(json, today){
   return { procedure: { nature: n ? n[1] : 'procédure collective', date: /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : a.dateparution.slice(0, 10) } };
 }
 
-/* ---------- un montant, lisible d'un coup d'œil ---------- */
-export function montant(n){
-  const x = Number(n);
-  if (!Number.isFinite(x) || x <= 0) return '';
-  const fr = (v, d) => v.toFixed(d).replace('.', ',').replace(/,0$/, '');
-  if (x >= 1e9) return fr(x / 1e9, x < 1e10 ? 1 : 0) + ' Md€';
-  if (x >= 1e6) return fr(x / 1e6, x < 1e7 ? 1 : 0) + ' M€';
-  if (x >= 1e3) return Math.round(x / 1e3) + ' k€';
-  return Math.round(x) + ' €';
-}
 const majuscule = s => s ? s[0].toUpperCase() + s.slice(1) : '';
 const pareil = (a, b) => String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();
 
@@ -176,40 +167,38 @@ export function carte(o){
   else if (o.bodacc && o.bodacc.procedure)
     alerte = dit('bodacc', { texte: majuscule(o.bodacc.procedure.nature), date: o.bodacc.procedure.date });
 
-  /* CE QU'ELLE FAIT : ta phrase, sinon Wikipédia, sinon Wikidata, sinon
-     le libellé de son code d'activité */
-  const quoi = String(c.desc || '').trim() ? { texte: String(c.desc).trim(), src: 'toi' }
+  /* CE QU'ELLE FAIT : ta phrase, sinon Wikipédia, sinon Wikidata. Le
+     libellé de l'INSEE (« Conseil en systèmes et logiciels
+     informatiques ») ne parle qu'en dernier recours : les MISSIONS le
+     disent mieux, dans les mots d'un étudiant. */
+  const faire = travailDe(r);
+  /* une piste importée avant ce lot porte le libellé de l'INSEE comme
+     « En bref » : ce n'est pas ta phrase, la carte ne le redit pas */
+  const tienne = String(c.desc || '').trim() && !pareil(c.desc, r.activite) ? String(c.desc).trim() : '';
+  const quoi = tienne ? { texte: tienne, src: 'toi' }
     : o.resume ? { texte: o.resume, src: dit('wikipedia', 'wikipedia') }
     : wd.desc && !/^(entreprise|société)( française| de france)?$/i.test(wd.desc) ? { texte: majuscule(wd.desc), src: dit('wikidata', 'wikidata') }
-    : r.activite ? { texte: r.activite, src: dit('annuaire', 'annuaire') }
+    : !faire && r.activite ? { texte: r.activite, src: dit('annuaire', 'annuaire') }
     : null;
-  /* le libellé de l'activité reste dit quand une phrase le remplace :
-     « Conseil en systèmes et logiciels informatiques » départage deux
-     ESN mieux qu'une phrase d'encyclopédie */
-  const activite = quoi && quoi.src !== 'annuaire' && r.activite && !pareil(r.activite, quoi.texte) ? r.activite : '';
-  if (activite) src.add('annuaire');
 
-  /* LES CHIFFRES — quatre au plus, toujours dans le même ordre, pour que
-     deux cartes se comparent d'un coup d'œil */
-  const chiffres = [];
+  /* LES TROIS LIGNES QUI AIDENT À CHOISIR (retour du mainteneur, 6/10 :
+     « la carte ne m'aide pas à choisir » — le chiffre d'affaires, la
+     date de création et le nombre de sites ne départagent rien pour un
+     étudiant ; ils sont partis) :
+     · MISSIONS — ce qu'on y fait, et si c'est ton métier (`o.metier`,
+       celui que dit ta formation) ;
+     · TAILLE — en mots, avec son groupe : une équipe de 30 ne s'aborde
+       pas comme un groupe de 50 000, et elle dit à qui écrire ;
+     · ÉCRIRE À — la personne (aQui). */
+  const missions = faire ? { texte: majuscule(faire.texte), tonMetier: !!(o.metier && faire.metiers.includes(o.metier)) } : null;
+  if (missions) src.add('annuaire');
   const t = TRANCHES[r.tranche] || '';
-  if (t && r.tranche !== '00'){
-    const m = t.match(/^(.+?) salariés?( et plus)?$/);
-    chiffres.push({ v: m ? m[1] + (m[2] ? ' +' : '') : t, l: 'salariés' });
-  }
-  if (r.ca && r.ca.montant > 0) chiffres.push({ v: montant(r.ca.montant), l: 'CA ' + r.ca.annee });
-  const an = String(r.creation || '').slice(0, 4);
-  if (/^\d{4}$/.test(an)) chiffres.push({ v: an, l: 'création' });
-  if (r.etablissements > 1) chiffres.push({ v: String(r.etablissements), l: 'sites' });
-  if (chiffres.length) src.add('annuaire');
-
-  /* À QUI ÉCRIRE, ET DE QUI ELLE DÉPEND */
-  const lignes = [];
-  const dirs = (r.dirigeants || []).filter(d => d && d.personne).slice(0, 2)
-    .map(d => d.nom + (d.qualite ? ', ' + d.qualite.toLowerCase() : '')).join(' · ');
-  if (dirs){ lignes.push({ l: 'Dirigeant', v: dirs }); src.add('annuaire'); }
-  if (wd.groupe && !pareil(wd.groupe, r.nom) && !pareil(wd.groupe, c.name))
-    lignes.push({ l: 'Groupe', v: dit('wikidata', wd.groupe) });
+  const groupe = wd.groupe && !pareil(wd.groupe, r.nom) && !pareil(wd.groupe, c.name) ? dit('wikidata', wd.groupe) : '';
+  const taille = [t && r.tranche !== '00' ? t.replace(/^(\d[\d ]*)-(\d[\d ]*)/, '$1 à $2') : '', groupe ? 'groupe ' + groupe : '']
+    .filter(Boolean).join(' · ');
+  if (t && r.tranche !== '00') src.add('annuaire');
+  const ecrire = aQui(r, c.name || r.nom);
+  if (ecrire && ecrire.cible === 'dirigeant') src.add('annuaire');
 
   /* le site : celui de la fiche, sinon Wikidata — la carte ne le redit
      pas quand la fiche le montre déjà */
@@ -219,7 +208,35 @@ export function carte(o){
 
   const NOMS = { annuaire: 'Annuaire des entreprises', bodacc: 'BODACC', wikipedia: 'Wikipédia', wikidata: 'Wikidata' };
   return {
-    alerte, quoi, activite, chiffres, lignes, site, logo, linkedin,
+    alerte, quoi, missions, taille, ecrire, site, logo, linkedin,
     sources: ['annuaire', 'bodacc', 'wikipedia', 'wikidata'].filter(k => src.has(k)).map(k => NOMS[k])
   };
+}
+
+/* ---------- À QUI ÉCRIRE ----------
+   (docs/utile.md) Une piste ajoutée depuis l'annuaire n'a PERSONNE : le
+   premier geste du produit — écrire — n'avait pas de destinataire, et
+   l'étudiant restait devant une fiche sans savoir à qui s'adresser.
+   Ce qui décide est la TAILLE :
+   · jusqu'à 249 salariés, c'est le dirigeant qui décide d'accueillir un
+     stagiaire ou un alternant : on lui écrit, par son nom ;
+   · au-delà — ou dans une filiale d'un grand groupe —, un service
+     recrute : on écrit au recrutement, ou à un ancien de son école.
+   L'app ne devine AUCUNE adresse (une adresse inventée part dans le
+   vide, et personne ne le saura). Elle nomme la personne, et ouvre la
+   recherche qui la trouve — sur ton geste, vers le site que le lien
+   nomme. */
+const GRANDE = new Set(['32', '41', '42', '51', '52', '53']);
+export const estGrande = r => !!r && (GRANDE.has(String(r.tranche || '')) || r.categorie === 'GE' || r.categorie === 'ETI');
+export function aQui(r, nom){
+  r = r || {};
+  const ent = String(nom || r.nom || '').trim();
+  const dir = (r.dirigeants || []).find(d => d && d.personne && d.nom);
+  if (!estGrande(r) && dir) return {
+    cible: 'dirigeant', nom: dir.nom, qualite: String(dir.qualite || '').toLowerCase(),
+    url: ent ? LINKEDIN_GENS + encodeURIComponent(dir.nom + ' ' + ent) : ''
+  };
+  if (!ent) return null;
+  return { cible: 'recrutement', nom: '', qualite: '',
+           url: LINKEDIN_GENS + encodeURIComponent(ent + ' recrutement') };
 }

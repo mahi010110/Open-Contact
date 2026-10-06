@@ -284,7 +284,7 @@ export function openFiche(c){
          <details class="fi-hist" id="fiKnow"${savoirOuvert(c) ? ' open' : ''}><summary>À savoir</summary>
            <div class="fi-know">
              ${/* LA CARTE d'abord : ce qu'elle fait — « En bref », ta phrase,
-                  passe devant toute source —, quatre chiffres, à qui écrire */''}
+                  passe devant toute source —, ses missions, sa taille */''}
              ${annuaireCarteHTML(c)}
              ${c.website ? `<div class="fk"><span class="fk-l">Site</span>
                 <a class="fk-v" href="${esc(webHref(c.website))}" target="_blank" rel="noopener">${esc(webLabel(c.website))} ${ic('external-link', 'ic-14')}</a></div>` : ''}

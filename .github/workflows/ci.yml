@@ -36,6 +36,13 @@ jobs:
           npm i -g playwright
           playwright install --with-deps chromium
           echo "OC_PLAYWRIGHT=$(npm root -g)/playwright/index.mjs" >> "$GITHUB_ENV"
+      # « À découvrir » est-il UTILE ? Ce que l'annuaire rend vraiment pour
+      # des recherches d'étudiant, le centre des villes, la recherche
+      # autour d'un point, les liens vers les offres. Informative.
+      - name: Sonde « À découvrir » est-il utile ? (pertinence, villes, liens d'offres)
+        continue-on-error: true
+        timeout-minutes: 12
+        run: node tests/e2e/sonde-utile.mjs
       - name: Sonde des relais réellement choisis par l'app (lecture)
         run: OC_SONDE_RELAIS=1 node tests/e2e/sonde-relais-publics.mjs
       # La lecture ne suffit pas : la découverte a besoin d'une ÉCRITURE.

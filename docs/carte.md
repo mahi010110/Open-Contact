@@ -37,10 +37,10 @@ salariés · 1 000 selon Wikidata »). Chaque fait a sa meilleure source :
 
 | Le fait | D'abord | Sinon |
 |---|---|---|
-| ce qu'elle fait | **ta phrase** (« En bref ») | Wikipédia (première phrase, sans parenthèses), puis Wikidata, puis le libellé d'activité |
-| la taille, la création, les sites | l'annuaire (l'entité, pas le groupe) | — |
-| le chiffre d'affaires | l'annuaire, dernière année non nulle | rien (un 0 n'est pas un chiffre) |
-| à qui écrire | les dirigeants qui sont des personnes | — |
+| ce qu'elle fait | **ta phrase** (« En bref ») | Wikipédia (première phrase, sans parenthèses), puis Wikidata ; le libellé d'activité seulement sans missions connues |
+| ses missions | le code d'activité, traduit en mots d'étudiant (`TRAVAIL`) | — |
+| la taille | l'annuaire (l'entité, pas le groupe) | — |
+| à qui écrire | le dirigeant qui est une personne (PME), sinon le recrutement | — |
 | son groupe | Wikidata | — |
 | le site | la fiche | Wikidata |
 | ce qui réclame quelque chose | fermée (l'annuaire) | une procédure collective de moins de trois ans, non close (le BODACC) |
@@ -56,25 +56,25 @@ un étudiant. Choisir à sa place est le service rendu (§6).
 
 ## Le dessin
 
-La même carte dans l'aperçu de « À découvrir » et dans « À savoir » :
+La même carte dans l'aperçu de « À découvrir » et dans « À savoir ».
+*Revue le 6 octobre* ([`utile.md`](utile.md)) : le chiffre d'affaires, la
+création et le nombre de sites ne départageaient rien pour un étudiant ;
+trois lignes qui aident à choisir les remplacent.
 
 ```
 [logo] Sopra Steria est une entreprise de services du numérique
        française et une société de conseil en transformation…
-Conseil en systèmes et logiciels informatiques
-10 000 +    5,8 Md€    1985       120
-salariés    CA 2024    création   sites
-DIRIGEANT   Thomas Leroy, président
+MISSIONS   Conseil et intégration informatique  ✓ colle à ta formation
+TAILLE     10 000 salariés et plus
+ÉCRIRE À   Son service recrutement  LinkedIn ↗
 Sources : Annuaire des entreprises · Wikipédia · Wikidata
 ```
 
-- **Aucun bouton.** On lit la carte, on ne la manipule pas. Les liens
-  (offres, page LinkedIn, fiche officielle) viennent après.
-- **Les chiffres en mono, le libellé dessous en petit gris** : la valeur
-  se lit d'abord. Toujours le même ordre, pour que deux cartes se
-  comparent d'un coup d'œil. Un simple espacement entre eux, sans trait :
-  à 320 px ils passent à la ligne, et un trait vertical se retrouvait seul
-  en tête du second rang.
+- **Aucun bouton.** On lit la carte, on ne la manipule pas. Le seul lien
+  mène à la personne ; les autres (offres, page LinkedIn, fiche officielle)
+  viennent après.
+- **Toujours le même ordre**, pour que deux cartes se comparent d'un coup
+  d'œil : missions, taille, à qui écrire.
 - **Le logo** sur un carreau clair dans les deux thèmes. Un logo sombre
   sur fond transparent disparaît sur l'anthracite.
 - **L'alerte en ligne**, à côté du lieu ou du nom : une marque, pas un
@@ -87,7 +87,8 @@ de la carte.
 
 **Au moment d'écrire**, le composeur reçoit ce que fait l'entreprise et
 sa taille quand la fiche n'a pas d'« En bref ». « Une équipe de 150 » ne
-s'écrit pas comme « un groupe de 50 000 ».
+s'écrit pas comme « un groupe de 50 000 ». Sans email, il nomme à qui
+écrire, avec la recherche qui trouve la personne.
 
 ## Ce qui part, et quand
 
