@@ -481,6 +481,9 @@ function removeRow(id){
 
 export function renderPistes(){
   const root = $('#view-pistes');
+  /* un champ redessiné perd son focus sans « blur » : le mode recherche
+     ne doit pas survivre au champ qui l'avait ouvert */
+  document.documentElement.classList.remove('oc-cherche');
   const wide = mqWide.matches;
   const nAlive = S.companies.filter(c => !isClosed(c)).length;
 
@@ -602,6 +605,7 @@ export function renderPistes(){
     if (dec){
       body.innerHTML = `<div id="piDec">${decouverteHTML()}</div>`;
       lierDecouverte(body.querySelector('#piDec'), { chercher });
+      tenirBarre();
       return;
     }
     html += orphansHTML();
@@ -654,6 +658,7 @@ export function renderPistes(){
       }
     }
     body.innerHTML = html;
+    tenirBarre();
 
     body.querySelectorAll('.row-item, .bcard').forEach(r => {
       const open = () => openById(r.dataset.id);
@@ -773,10 +778,67 @@ export function renderPistes(){
   /* vide et focalisée, la barre propose ; elle cesse de proposer quand
      elle perd le curseur — avec un court délai, le temps qu'un tap sur
      une proposition arrive à destination */
-  input.addEventListener('focus', () => { barreActive = true; if (!q) rendreChips(); });
+  /* AU POUCE, LA BARRE MONTE QUAND ON TAPE DEDANS. Mesuré, clavier
+     ouvert : le premier résultat commençait à 286 px du haut — sous
+     l'en-tête, le titre, la barre, les étiquettes et les onglets —, si
+     bien qu'on voyait DEUX résultats sur un 390 × 844 et AUCUN sur un
+     360 × 640, le petit téléphone qui décide (§5). C'est le motif de
+     recherche d'iOS : pendant la saisie, le grand titre s'efface et la
+     barre prend le haut (UISearchController). Ici la vue DÉFILE jusqu'à
+     la barre — un déplacement entre deux états, doux (§4) —, le titre et
+     « Prospecter » sortent par le haut et reviennent quand le clavier se
+     range. Une liste courte reçoit le temps de la frappe un plancher de
+     hauteur (`pi-cherche`), sans quoi il n'y aurait rien à faire défiler. */
+  /* la barre s'arrête au bord de la zone de contenu de la vue — un
+     pixel de plus et les étiquettes glisseraient sous elle (mesuré). Le
+     mode recherche lui donne le décor de la barre décrochée, qui couvre
+     la bande de marge au-dessus (relevé sur capture : le bas de
+     « Prospecter » y dépassait). */
+  const hautBarre = () => {
+    const guet = root.querySelector('.stick-guet');
+    if (!guet) return 0;
+    const pad = parseFloat(getComputedStyle(root).paddingTop) || 0;
+    return root.scrollTop + guet.getBoundingClientRect().top - root.getBoundingClientRect().top - pad;
+  };
+  const amenerBarre = () => {
+    if (mqWide.matches || !matchMedia('(pointer:coarse)').matches) return;
+    page.classList.add('pi-cherche');
+    /* l'en-tête de l'app s'efface aussi, comme la barre de navigation
+       d'iOS pendant une recherche : 46 px rendus à la liste, là où le
+       clavier en prend la moitié */
+    document.documentElement.classList.add('oc-cherche');
+    requestAnimationFrame(() => {
+      if (document.activeElement !== input) return;
+      const y = hautBarre();
+      if (y > root.scrollTop + 1)
+        root.scrollTo({ top: y, behavior: matchMedia('(prefers-reduced-motion:reduce)').matches ? 'auto' : 'smooth' });
+    });
+  };
+  /* chaque lettre redessine la liste : un défilement doux en cours s'y
+     interrompt (mesuré : la barre restait à 2 px de son départ). Tant
+     qu'on tape, chaque rendu la remet en haut — sans animation, elle n'a
+     plus de chemin à montrer */
+  const tenirBarre = () => {
+    if (!page.classList.contains('pi-cherche') || document.activeElement !== input) return;
+    const y = hautBarre();
+    if (y > root.scrollTop + 1) root.scrollTop = y;
+  };
+  /* LE DOIGT, pas le focus : c'est le tap qui ouvre un clavier à l'écran.
+     Un focus venu du clavier physique ou du code (« / », un retour de
+     feuille) n'a pas de clavier à contourner — et un écran qui bouge
+     sous un anneau de focus le rend illisible (e2e-focus l'a vu). */
+  let tapBarre = 0;
+  input.addEventListener('pointerdown', e => { if (e.pointerType === 'touch') tapBarre = Date.now(); });
+  input.addEventListener('focus', () => {
+    barreActive = true;
+    if (!q) rendreChips();
+    if (Date.now() - tapBarre < 1500) amenerBarre();
+  });
   input.addEventListener('blur', () => setTimeout(() => {
     if (document.activeElement === input || !input.isConnected) return;
     barreActive = false;
+    page.classList.remove('pi-cherche');
+    document.documentElement.classList.remove('oc-cherche');
     if (!q) rendreChips();
   }, 150));
   /* Échap vide la recherche, puis rend le clavier. Deux temps : la

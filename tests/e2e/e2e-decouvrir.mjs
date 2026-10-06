@@ -77,7 +77,15 @@ function annuaire(ctx){
     return route.fulfill({ status: 200, contentType: 'application/json',
       headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(REPONSE) });
   });
-  return { journal, regler: m => { mode = m; } };
+  /* LES AUTRES SOURCES de la carte (ui/carte.js) : on note chaque requête
+     aussi — l'aperçu les interroge, et elles tombent sous la même règle */
+  const autres = [];
+  const vide = (type, body) => route => { autres.push(route.request().url());
+    return route.fulfill({ status: 200, contentType: type, headers: { 'access-control-allow-origin': '*' }, body }); };
+  ctx.route('https://query.wikidata.org/**', vide('application/sparql-results+json', '{"results":{"bindings":[]}}'));
+  ctx.route('https://bodacc-datadila.opendatasoft.com/**', vide('application/json', '{"results":[]}'));
+  ctx.route('https://fr.wikipedia.org/**', vide('application/json', '{}'));
+  return { journal, autres, regler: m => { mode = m; } };
 }
 const pliees = s => decodeURIComponent(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
@@ -139,7 +147,7 @@ const versDecouvrir = async p => {
   });
   if (!depart) fail('la barre de portée n’existe pas : « À découvrir » ne se voit pas avant d’avoir servi');
   else if (depart.y > 300) fail(`le segment « À découvrir » est à ${depart.y} px : sous le clavier`);
-  if (an.journal.length) fail('une requête est partie vers l’annuaire au DÉMARRAGE (invariant ④)');
+  if (an.journal.length || an.autres.length) fail('une requête est partie au DÉMARRAGE (invariant ④)');
   await taper(p, 'alternance Lille');
   await p.waitForTimeout(900);
   const avantVue = await lireDec(p);
@@ -176,7 +184,7 @@ const versDecouvrir = async p => {
     await p.waitForTimeout(1100);
     await lireDec(p);
     const sortis = an.journal.slice(avant).map(pliees);
-    const fuite = sortis.find(x => mots.some(m => x.includes(m)));
+    const fuite = [...sortis, ...an.autres.map(pliees)].find(x => mots.some(m => x.includes(m)));
     if (fuite) fail(`« ${q} » emporte un mot privé vers l’annuaire : ${fuite}`);
     if (['bertrand', 'Léa Bordeaux', 'sans nouvelles Rennes', 'en cours Toulouse'].includes(q) && sortis.length)
       fail(`« ${q} » ne contient rien qui décrive une entreprise et une requête est partie : ${sortis[0]}`);
@@ -229,15 +237,23 @@ const versDecouvrir = async p => {
     fail('l’aperçu ne montre pas ce que l’annuaire sait : ' + JSON.stringify(fiche));
   if (!fiche.pied.some(t => /Ajouter à mes pistes/.test(t))) fail('l’aperçu n’offre pas d’ajouter');
   await p.screenshot({ path: `${SHOTS}/96-decouvrir-apercu.png` });
-  /* trois niveaux : le nom en titre, l'activité et les faits, puis les
-     liens — des LIENS, qui emmènent ailleurs (§6), pas des boutons */
+  /* l'ordre : le nom, le lieu, puis la carte (ce qu'elle fait, ses
+     chiffres), puis les liens — des LIENS, qui emmènent ailleurs (§6),
+     pas des boutons — et le reste en gris */
   const niveaux = await p.evaluate(() => {
     const y = s => document.querySelector('.overlay ' + s)?.getBoundingClientRect().top ?? -1;
-    return { y: [y('.ap-nom'), y('.ap-act'), y('.ap-faits'), y('.ap-liens'), y('.ap-plus')],
+    return { y: [y('.ap-nom'), y('.ap-faits'), y('.ct-quoi'), y('.ct-chiffres'), y('.ap-liens'), y('.ap-plus')],
              boutons: document.querySelectorAll('.overlay .modal-b .btn').length };
   });
   if (niveaux.y.some(v => v < 0) || niveaux.y.some((v, i) => i && v < niveaux.y[i - 1]))
-    fail('l’aperçu ne dit pas d’abord qui, puis quoi et où, puis comment y entrer : ' + JSON.stringify(niveaux.y));
+    fail('l’aperçu ne dit pas d’abord qui et où, puis ce qu’elle fait et ses chiffres, puis comment y entrer : ' + JSON.stringify(niveaux.y));
+  /* l'aperçu a demandé le reste — par le SIREN seul, celui d'une
+     entreprise que l'annuaire a rendue et qu'on a regardée */
+  const SIRENS = REPONSE.results.map(x => x.siren);
+  const horsSiren = an.autres.filter(u => !SIRENS.some(x => decodeURIComponent(u).includes(x)));
+  if (!an.autres.some(u => decodeURIComponent(u).includes('834567890')))
+    fail('l’aperçu n’a rien demandé aux autres sources : la carte ne se complète pas');
+  if (horsSiren.length) fail('une source de la carte a reçu autre chose qu’un SIREN : ' + horsSiren[0]);
   if (niveaux.boutons) fail(`l’aperçu porte ${niveaux.boutons} bouton(s) dans son corps — des liens suffisent, le geste vit au pied`);
   await p.click('.overlay .modal-f button:has-text("Ajouter à mes pistes")');
   await p.waitForTimeout(400);

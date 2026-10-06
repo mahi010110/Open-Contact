@@ -258,8 +258,14 @@ liste de pistes sans partir de zéro, c'est « À découvrir ».
    « À découvrir » devient un onglet sous la barre, la liste perd ses
    boutons, le poste montre la liste et l'aperçu côte à côte, et le bloc
    « Annuaire » de la fiche se range par usage. **Livré le 5 octobre 2026
-   (6.48.0).** Restent, après les essais sur le téléphone : les fautes et
-   le zéro résultat (lot 5), la fiche qui converge (lot 6).
+   (6.48.0).**
+5. La carte de l'entreprise ([`carte.md`](carte.md)) : l'annuaire, le
+   BODACC, Wikidata et Wikipédia mêlés, une valeur par fait, lisibles sans
+   un lien à toucher, dans l'aperçu comme dans la fiche ; et, au
+   téléphone, la barre qui monte pendant la saisie pour laisser voir les
+   résultats au-dessus du clavier. **Livré le 5 octobre 2026 (6.49.0).**
+   Restent, après les essais sur le téléphone : les fautes et le zéro
+   résultat (lot 5 des sources), le géocodage officiel.
 
 **B. Le réseau** — [`reseau.md`](reseau.md). Trouver quelqu'un chez une
 entreprise parmi ses amis, ses groupes et leurs amis, trois cercles au plus.

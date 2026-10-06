@@ -369,11 +369,13 @@ html[data-theme="dark"] .field select{
    apparaît pousse le contenu d'un pixel, et l'ancrage du défilement
    compense — la liste dérivait de 1 px à chaque décrochage (mesuré :
    700 → 701 → 702). Une ombre ne prend pas de place. */
-#view-pistes .search-wrap.est-collee{
+#view-pistes .search-wrap.est-collee,
+#view-pistes .pi-cherche .search-wrap{
   background:var(--surface-chrome);
   box-shadow:0 1px 0 0 var(--border-strong), var(--shadow-raised);
 }
-#view-pistes .search-wrap.est-collee::after{
+#view-pistes .search-wrap.est-collee::after,
+#view-pistes .pi-cherche .search-wrap::after{
   content:'';position:absolute;left:0;right:0;bottom:100%;height:16px;
   background:var(--surface-chrome);
 }
@@ -785,6 +787,18 @@ html[data-theme="dark"] .field select{
    La touche « / » rentre dans le champ par une marge négative que le
    bouton voisin absorbait : sans lui, le champ débordait de 9 px
    (mesuré). Elle se pose donc dans le champ, contre son bord droit. */
+/* pendant la frappe au pouce, la liste a de quoi défiler jusqu'à la
+   barre (ui/pistes.js, `amenerBarre`) — le surplus vit sous le clavier */
+.pi-cherche #piBody{min-height:100vh;min-height:100dvh}
+/* … et l'en-tête s'efface vers le haut, au rythme du clavier. Une
+   exception NOMMÉE à « transform et opacity » (§4), du même ordre que le
+   cadenas : c'est une PLACE qui se rend à la liste, et un `transform`
+   laisserait son trou derrière lui. Bornée à l'en-tête, au pouce. */
+@media (max-width:900px){
+  .hdr{transition:margin-top var(--dur-3) var(--ease-out)}
+  .oc-cherche .hdr{margin-top:-47px}
+}
+@media (prefers-reduced-motion:reduce){ .hdr{transition:none} }
 .pt-dec #piAffiner,.pt-dec .kbd-bas{display:none}
 .pt-dec .search-wrap .kbd-hint{position:absolute;right:8px;top:50%;transform:translateY(-50%);margin:0}
 
@@ -834,12 +848,41 @@ html[data-theme="dark"] .field select{
   .dc-sel{background:var(--surface-chrome);box-shadow:inset 3px 0 0 var(--select-bg)}
 }
 
-/* ============ L'APERÇU — trois niveaux, sans rien de lourd ============
-   QUI (le nom), QUOI ET OÙ (l'activité, puis lieu · taille · âge sur
-   une ligne), COMMENT Y ENTRER (des liens). Le reste en petit gris. */
+/* ============ L'APERÇU — sans un lien à toucher ============
+   QUI (le nom), OÙ (le lieu, et une alerte en ligne), puis la carte
+   (ce qu'elle fait, quatre chiffres, à qui écrire), puis les liens. Le
+   reste en petit gris. */
 .ap-nom{margin:0;font-size:var(--text-16);font-weight:var(--weight-bold);color:var(--text-body);line-height:1.25}
-.ap-act{margin:4px 0 0;font-size:var(--text-13);color:var(--text-body)}
 .ap-faits{margin:4px 0 0;font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
+.ap-faits .mark{margin-left:8px}
+/* ============ LA CARTE D'UNE ENTREPRISE (ui/carte.js) ============
+   La même dans l'aperçu et dans « À savoir ». Rien n'y est un bouton :
+   une phrase, une rangée de chiffres, deux ou trois lignes. Les chiffres
+   en mono, comme toute donnée (§4), le libellé dessous en petit gris —
+   la valeur se lit d'abord, ce qu'elle mesure ensuite. */
+.ct{margin:12px 0 0}
+.ct:empty{display:none}
+.ct-quoi{display:flex;align-items:flex-start;gap:10px}
+.ct-quoi p{margin:0;font-size:var(--text-14);line-height:1.45;color:var(--text-body)}
+.ct-logo{flex:none;width:40px;height:40px;padding:4px;box-sizing:border-box;object-fit:contain;
+  background:var(--surface-logo);border:1px solid var(--border-soft)}
+.ct-act{margin:4px 0 0;font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
+/* un espacement, pas de trait : à 320 px ou à texte agrandi les
+   chiffres passent à la ligne, et un séparateur vertical se retrouvait
+   alors seul en tête du second rang (relevé sur capture) */
+.ct-chiffres{list-style:none;margin:12px 0 6px;padding:0;display:flex;flex-wrap:wrap;gap:8px 22px}
+.ct-chiffres li{display:flex;flex-direction:column;gap:1px;min-width:0}
+.ct-chiffres b{font-family:var(--font-mono);font-size:var(--text-15);font-weight:var(--weight-semibold);color:var(--text-body);white-space:nowrap}
+.ct-chiffres span{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);white-space:nowrap}
+.ap .ct .fk{padding-left:0;padding-right:0}
+/* dans « À savoir », la carte prend le cadre de la fiche : sa tête
+   s'aligne sur les rangées, et un pointillé la sépare de ce qui suit */
+.fi-know > .ct{margin:0}
+.fi-know .ct-tete{padding:8px 10px 10px;border-bottom:1px dashed var(--border-soft)}
+.fi-know .ct-tete .ct-chiffres{margin-bottom:0}
+.fi-know > .ct .fk:last-child{border-bottom:1px dashed var(--border-soft)}
+.ct-le{margin-left:6px;font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
+.ct-src{margin:10px 0 0;font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
 .ap-agir{display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;margin:12px 0 0}
 .ap-pris{display:inline-flex;align-items:center;gap:6px;font-size:var(--text-13);font-weight:var(--weight-semibold);color:var(--accent)}
 .ap-liens{display:flex;flex-wrap:wrap;gap:0 4px;margin:6px 0 0 -8px}
@@ -852,7 +895,6 @@ html[data-theme="dark"] .field select{
    contacts, quelques rangées et une ligne grise dans « À savoir ». */
 /* sous le nom : une entreprise fermée, au langage d'urgence */
 .fa-etat-nom:not(:empty){display:inline-flex;align-items:center;gap:6px;margin-left:8px}
-.fa-le{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
 /* sous les contacts : « Anciens de mon école », un lien */
 .fa-cts{margin:4px 0 0 -8px}
 .fa-cts:empty{display:none}

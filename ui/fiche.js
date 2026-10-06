@@ -18,7 +18,7 @@ import { askNextAction, askClose } from './actions.js';
 import { openMail } from './mail.js';
 import { openEditPiste } from './edit.js';
 import { openContactEditor, telHref, smsHref, waHref } from './contact.js';
-import { annuaireEtatHTML, annuaireContactsHTML, annuaireSavoirHTML, lierAnnuaireFiche, oublierFiche,
+import { annuaireEtatHTML, annuaireContactsHTML, annuaireSavoirHTML, annuaireCarteHTML, lierAnnuaireFiche, oublierFiche,
          dirigeantsSuggeres } from './fiche-annuaire.js';
 
 const webHref = w => /^https?:\/\//i.test(w) ? w : 'https://' + w;
@@ -66,7 +66,11 @@ const mqWide = matchMedia('(min-width:901px)');
 /* le pli de « À savoir », par piste, le temps de la session — ouvert au
    poste, replié au pouce tant qu'on n'y a pas touché */
 const plisSavoir = new Map();
-const savoirOuvert = (c, wide) => plisSavoir.has(c.id) ? plisSavoir.get(c.id) : wide;
+/* « À savoir » est OUVERT d'office, au pouce comme au poste : il porte la
+   carte de l'entreprise, et ce qui se voit ne se cherche pas (demande du
+   mainteneur, 5 octobre : « sans devoir appuyer »). Le replier reste un
+   choix, que la session retient. */
+const savoirOuvert = c => plisSavoir.has(c.id) ? plisSavoir.get(c.id) : true;
 
 export function openFiche(c){
   /* le tampon : seulement les champs touchés — rien ne s'écrit avant Confirmer */
@@ -277,9 +281,11 @@ export function openFiche(c){
        ${/* « À savoir » existe toujours : il porte aussi ce que l'annuaire
             sait de l'entreprise (ou le geste pour l'y retrouver) */''}
        ${`
-         <details class="fi-hist" id="fiKnow"${savoirOuvert(c, wide) ? ' open' : ''}><summary>À savoir</summary>
+         <details class="fi-hist" id="fiKnow"${savoirOuvert(c) ? ' open' : ''}><summary>À savoir</summary>
            <div class="fi-know">
-             ${c.desc ? `<div class="fk"><span class="fk-l">En bref</span><span class="fk-v">${esc(c.desc)}</span></div>` : ''}
+             ${/* LA CARTE d'abord : ce qu'elle fait — « En bref », ta phrase,
+                  passe devant toute source —, quatre chiffres, à qui écrire */''}
+             ${annuaireCarteHTML(c)}
              ${c.website ? `<div class="fk"><span class="fk-l">Site</span>
                 <a class="fk-v" href="${esc(webHref(c.website))}" target="_blank" rel="noopener">${esc(webLabel(c.website))} ${ic('external-link', 'ic-14')}</a></div>` : ''}
              ${c.techs ? `<div class="fk"><span class="fk-l">Technos</span><span class="fk-v">${esc(c.techs)}</span></div>` : ''}

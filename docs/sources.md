@@ -300,7 +300,10 @@ d'entreprises différentes, combien d'employeurs, à quelle distance.
 6. **La fiche converge.** Une procédure collective en cours se dit
    (BODACC), « Qui y travaille » ouvre la page LinkedIn de l'entreprise
    quand Wikidata la connaît, et une adresse se place par le géocodage
-   officiel.
+   officiel. **Livré en partie le 5 octobre 2026 (6.49.0)**, et plus
+   loin que prévu : la carte de l'entreprise ([`carte.md`](carte.md))
+   mêle l'annuaire, le BODACC, Wikidata et Wikipédia, une valeur par
+   fait, sans lien à toucher. Reste le géocodage officiel.
 
 **Après, si tu le veux** : « Pas pour moi » sur une ligne de « À
 découvrir » (voir les décisions), la liste ANSSI pour la cyber.

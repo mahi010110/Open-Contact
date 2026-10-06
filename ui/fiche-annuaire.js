@@ -47,14 +47,15 @@
 import { esc } from '../engine/utils.js';
 import { pushHist } from '../engine/model.js';
 import { cleDe, deptDePiste } from '../engine/requete.js';
-import { lireAnnuaire, questionSiren, questionNom, questionSite, lireSite, complements, champsDits,
+import { lireAnnuaire, questionSiren, questionNom, complements, champsDits,
          dirigeantsAjoutables, liensPiste } from '../engine/annuaire.js';
 import { S, bus, saveData, logJ } from './state.js';
 import { ic, showUndo, annoncer } from './dom.js';
 import { lireUrl } from './decouvrir.js';
+import { suivreCarte, sourcesDe, carteDe, carteHTML, alerteHTML, sourcesHTML, lierCarte } from './carte.js';
 
 /* l'état de la session — on ne redemande pas ce qu'on sait déjà */
-const parSiren = new Map();   /* siren → { phase, r, site, sitePhase } */
+const parSiren = new Map();   /* siren → { phase, r } */
 const parPiste = new Map();   /* id de piste → { phase, liste } (recherche par nom) */
 let courant = null;           /* { root, c, render } — la fiche ouverte */
 
@@ -66,12 +67,19 @@ const lienHTML = x =>
 const lien = (c, cle) => liensPiste(c, S.profile).find(x => x.cle === cle);
 const pret = c => { const e = c.siren && parSiren.get(c.siren); return e && e.phase === 'ok' ? e : null; };
 
-/* ---- SOUS LE NOM : une entreprise fermée, au langage d'urgence ---- */
+/* la carte de la piste : ce que les sources savent, ta parole devant */
+const carteFiche = c => { const e = pret(c); return carteDe(e ? e.r : null, c); };
+/* la carte, pour le composeur : seulement si l'annuaire a déjà répondu
+   pendant la session — écrire ne lance aucune question */
+export const carteConnue = c => pret(c) ? carteFiche(c) : null;
+/* le site que Wikidata connaît, pour « Compléter ma fiche » */
+const siteConnu = c => (c.siren && sourcesDe(c.siren).wd && sourcesDe(c.siren).wd.site) || '';
+
+/* ---- SOUS LE NOM : ce qui RÉCLAME quelque chose — une entreprise
+   fermée (l'annuaire) ou une procédure collective (le BODACC) — au
+   langage d'urgence ---- */
 function etatHTML(c){
-  const e = pret(c);
-  return e && e.r.fermee
-    ? `<span class="mark mark-late">fermée</span>${e.r.fermeeLe ? ` <span class="fa-le">depuis le ${esc(jjmmaaaa(e.r.fermeeLe))}</span>` : ''}`
-    : '';
+  return pret(c) ? alerteHTML(carteFiche(c)) : '';
 }
 
 /* ---- CONTACTS : trouver quelqu'un à qui écrire ----
@@ -80,7 +88,9 @@ function etatHTML(c){
    « Ajouter un contact », au moment où il sert (dirigeantsSuggeres). */
 function contactsHTML(c){
   const gens = lien(c, 'gens');
-  return gens ? lienHTML(gens) : '';
+  const li = pret(c) && carteFiche(c).linkedin;
+  return (gens ? lienHTML(gens) : '')
+    + (li ? lienHTML({ cle: 'linkedin', url: li, label: 'Page LinkedIn', aria: 'Page LinkedIn de ' + c.name }) : '');
 }
 export function dirigeantsSuggeres(c){
   const e = pret(c);
@@ -95,27 +105,13 @@ const MSG = {
   erreur: 'L’annuaire ne répond pas.',
   limite: 'L’annuaire est très demandé.'
 };
-const annee = iso => (iso || '').slice(0, 4);
-const jjmmaaaa = iso => /^\d{4}-\d{2}-\d{2}$/.test(iso || '') ? iso.slice(8, 10) + '/' + iso.slice(5, 7) + '/' + iso.slice(0, 4) : '';
 
-/* les données : quelques rangées, celles qui disent l'entreprise — et
-   pas une de plus */
+/* ce que la carte ne dit pas : l'adresse du siège, quand la fiche n'en
+   a pas — la carte porte le reste (ce qu'elle fait, les chiffres, le
+   dirigeant, le site) */
 function donneesHTML(c, e){
   const r = e.r;
-  const meme = (a, b) => String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();
-  const taille = [r.effectif, annee(r.creation) ? 'depuis ' + annee(r.creation) : '',
-    r.etablissements > 1 ? r.etablissements + ' sites' : ''].filter(Boolean).join(' · ');
-  const dirs = (r.dirigeants || []).filter(d => d.personne).slice(0, 2)
-    .map(d => d.nom + (d.qualite ? ', ' + d.qualite.toLowerCase() : '')).join(' · ');
-  return (
-    /* l'activité ne se redit pas quand « En bref » la porte déjà */
-    (!meme(c.desc, r.activite) ? ligne('Activité', esc(r.activite || r.naf)) : '')
-    + ligne('Taille', esc(taille))
-    + ligne('Dirigeant', esc(dirs))
-    /* le site et l'adresse ne se redisent pas quand la fiche les a déjà */
-    + (!String(c.website || '').trim() && e.site ? `<div class="fk"><span class="fk-l">Site</span>
-        <a class="fk-v" href="${esc(e.site)}" target="_blank" rel="noopener">${esc(e.site.replace(/^https?:\/\//i, '').replace(/\/$/, ''))} ${ic('external-link', 'ic-14')}</a></div>` : '')
-    + (!String(c.address || '').trim() ? ligne(r.siege ? 'Siège' : 'Adresse', esc(r.adresse), 'fk-lignes') : ''));
+  return !String(c.address || '').trim() ? ligne(r.siege ? 'Siège' : 'Adresse', esc(r.adresse), 'fk-lignes') : '';
 }
 
 /* LE PIED : seulement s'il y a des vides à remplir, le seul geste qui
@@ -126,13 +122,17 @@ function piedHTML(c, e, etat){
   const liens = ['offres', 'officielle'].map(k => lien(c, k)).filter(Boolean);
   let geste = '';
   if (e && e.phase === 'ok'){
-    const comp = complements(c, e.r, e.site);
+    const comp = complements(c, e.r, siteConnu(c));
     delete comp.siren;
     const dits = champsDits(comp);
     if (dits.length) geste = `<div class="fa-act"><button class="btn btn-sm" data-fa-completer>${ic('plus', 'ic-14')}Compléter ma fiche</button>
       <span class="fa-quoi">${esc(dits.join(' · '))}</span></div>`;
   }
-  const src = ['Annuaire des entreprises', c.siren ? `<span class="fa-siren">SIREN ${esc(c.siren)}</span>` : '']
+  /* les sources qui ont DIT quelque chose sur la carte — l'annuaire, au
+     moins, tant qu'il n'a pas répondu */
+  const k = e && e.phase === 'ok' ? carteFiche(c) : null;
+  const noms = k && k.sources.length ? k.sources : ['Annuaire des entreprises'];
+  const src = [...noms.map(esc), c.siren ? `<span class="fa-siren">SIREN ${esc(c.siren)}</span>` : '']
     .filter(Boolean).join('<span aria-hidden="true"> · </span>');
   return `${geste}<div class="fa-pied">${etat ? `<div class="fa-etat">${etat}</div>` : ''}${
     liens.length ? `<div class="fa-liens">${liens.map(lienHTML).join('')}</div>` : ''}<div class="fa-src">${src}</div></div>`;
@@ -175,16 +175,21 @@ function choixHTML(c){
 export const annuaireEtatHTML = c => `<span id="faEtat" class="fa-etat-nom">${etatHTML(c)}</span>`;
 export const annuaireContactsHTML = c => `<div id="faCts" class="fa-cts">${contactsHTML(c)}</div>`;
 export const annuaireSavoirHTML = c => `<div id="faSavoir" class="fa-savoir">${savoirHTML(c)}</div>`;
+/* LA CARTE, en tête de « À savoir » : ce qu'elle fait (ta phrase
+   d'abord), quatre chiffres, à qui écrire — affichée, jamais repliée
+   derrière un lien */
+const carteZoneHTML = c => carteHTML(carteFiche(c));
+export const annuaireCarteHTML = c => `<div id="faCarte" class="ct">${carteZoneHTML(c)}</div>`;
 
 /* ---------- le réseau ---------- */
 function maj(){
   if (!courant) return;
   const c = courant.c, root = courant.root;
-  for (const [id, html] of [['faEtat', etatHTML], ['faCts', contactsHTML], ['faSavoir', savoirHTML]]){
+  for (const [id, html] of [['faEtat', etatHTML], ['faCts', contactsHTML], ['faCarte', carteZoneHTML], ['faSavoir', savoirHTML]]){
     const box = root.querySelector('#' + id);
     if (!box || !box.isConnected) continue;
     const h = html(c);
-    if (box.innerHTML !== h){ box.innerHTML = h; lierBoite(box, c); }
+    if (box.innerHTML !== h){ box.innerHTML = h; lierBoite(box, c); lierCarte(box); }
   }
 }
 const panne = err => navigator.onLine === false ? 'horsligne' : (err && err.limite) ? 'limite' : 'erreur';
@@ -202,22 +207,18 @@ function chargerSiren(c){
     e.phase = r ? 'ok' : 'absent';
     e.r = r || null;
     maj();
-    if (r) chargerSite(siren);
+    if (r) suivreLeReste(siren);
   }).catch(err => { e.phase = panne(err); maj(); });
 }
-/* Le site se cherche seulement quand la fiche n'en a pas : sinon la
-   question ne servirait à rien. Un manque n'est pas une erreur — les
-   petites entreprises sont rarement sur Wikidata —, donc il ne se dit
-   pas. */
-function chargerSite(siren){
-  const e = parSiren.get(siren);
-  if (!e || e.sitePhase) return;
-  if (courant && courant.c.siren === siren && String(courant.c.website || '').trim()) return;
-  e.sitePhase = 'charge';
-  fetch(questionSite(siren), { headers: { accept: 'application/sparql-results+json' } })
-    .then(res => res.ok ? res.json() : null)
-    .then(j => { e.site = lireSite(j); e.sitePhase = 'ok'; if (e.site) maj(); })
-    .catch(() => { e.sitePhase = 'erreur'; });
+/* Ce que les AUTRES sources savent (Wikidata, Wikipédia, le BODACC) :
+   demandé par le SIREN, une fois par session, pour la fiche ouverte.
+   Un manque n'est pas une erreur — elles ne connaissent qu'une
+   entreprise sur cinq —, donc il ne se dit pas. */
+let lacher = () => {};
+function suivreLeReste(siren){
+  if (!courant || courant.c.siren !== siren) return;
+  lacher();
+  lacher = suivreCarte(siren, maj);
 }
 function chercherNom(c){
   if (navigator.onLine === false){ parPiste.set(c.id, { phase: 'horsligne' }); maj(); return; }
@@ -274,7 +275,7 @@ function lierBoite(box, c){
   box.querySelector('[data-fa-completer]')?.addEventListener('click', () => {
     const e = parSiren.get(c.siren);
     if (!e || !e.r) return;
-    const comp = complements(c, e.r, e.site);
+    const comp = complements(c, e.r, siteConnu(c));
     delete comp.siren;
     if (Object.keys(comp).length) completer(c, comp, 'Complétée depuis l’annuaire');
   });
@@ -286,7 +287,7 @@ function lierBoite(box, c){
     parSiren.set(r.siren, { phase: 'ok', r });
     parPiste.delete(c.id);
     completer(c, complements(c, r, ''), 'Retrouvée dans l’annuaire');
-    chargerSite(r.siren);
+    suivreLeReste(r.siren);
   }));
 }
 
@@ -294,11 +295,11 @@ function lierBoite(box, c){
    pour une piste qui a un SIREN — rien d'autre ne part sans geste */
 export function lierAnnuaireFiche(root, c, o){
   courant = { root, c, render: o.render };
-  for (const id of ['faCts', 'faSavoir']){
+  for (const id of ['faCts', 'faSavoir', 'faCarte']){
     const box = root.querySelector('#' + id);
-    if (box) lierBoite(box, c);
+    if (box){ lierBoite(box, c); lierCarte(box); }
   }
-  if (c.siren) chargerSiren(c);
+  if (c.siren){ chargerSiren(c); if (pret(c)) suivreLeReste(c.siren); }
 }
 /* la fiche se ferme : plus rien à redessiner */
-export const oublierFiche = () => { courant = null; };
+export const oublierFiche = () => { courant = null; lacher(); lacher = () => {}; };
