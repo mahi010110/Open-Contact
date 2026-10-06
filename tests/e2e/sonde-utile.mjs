@@ -117,6 +117,19 @@ console.log('② LES OFFRES D’ALTERNANCE — le lien que l’app construit, re
             'alternance support Marseille', 'alternance cloud Nantes', 'alternance Rennes']
       .map(q => [q, (A.offresAlternance(R.interpreter(q, R.contexteRecherche([])), {}) || {}).url]);
   });
+  /* CONTRÔLE — ce qui décide du résultat : les codes ROME, le libellé, ou
+     la ville ? (relevé du 6/10 : « cloud Nantes » rendait zéro offre,
+     « cybersécurité Lille » une seule, hors sujet, à 84 km) */
+  const L = 'https://labonnealternance.apprentissage.beta.gouv.fr/recherche?radius=30&';
+  const NANTES = 'lat=47.238&lon=-1.560&address=Nantes', LILLE = 'lat=50.631&lon=3.047&address=Lille';
+  LIENS.push(
+    ['contrôle · réseau Nantes, libellé « Administration réseau »', `${L}romes=M1801,M1810&job_name=Administration%20r%C3%A9seau&${NANTES}`],
+    ['contrôle · réseau Nantes, libellé « Systèmes et cloud »', `${L}romes=M1801,M1810&job_name=Syst%C3%A8mes%20et%20cloud&${NANTES}`],
+    ['contrôle · réseau Nantes, sans libellé', `${L}romes=M1801,M1810&${NANTES}`],
+    ['contrôle · cyber Lille, M1801 M1810 M1802', `${L}romes=M1801,M1810,M1802&job_name=Cybers%C3%A9curit%C3%A9&${LILLE}`],
+    ['contrôle · cyber Lille, M1802 seul', `${L}romes=M1802&job_name=Cybers%C3%A9curit%C3%A9&${LILLE}`],
+    ['contrôle · réseau Lille, libellé « Systèmes et cloud »', `${L}romes=M1801,M1810&job_name=Syst%C3%A8mes%20et%20cloud&${LILLE}`]
+  );
   const ctx = await browser.newContext({ locale: 'fr-FR', viewport: { width: 390, height: 844 } });
   const p2 = await ctx.newPage();
   for (const [q, u] of LIENS){

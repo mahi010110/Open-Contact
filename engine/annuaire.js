@@ -109,6 +109,11 @@ export function questionsAnnuaire(interp, o){
   if (et.some(e => e.famille === 'statut' || e.famille === 'groupe')) return [];
   const texte = ((interp && interp.texte) || [])
     .filter(t => { const m = motsDe(t); return m.length && m.every(w => !interdits.has(w)); });
+  /* UNE QUESTION VIDÉE PAR LE TRI NE PART PAS — pas même celle de ta
+     zone : « bertrand » tapé n'est pas une barre vide. Le cache le
+     masquait tant que la zone posait la même question qu'une recherche
+     précédente ; chercher autour des villes l'a montré. */
+  if (!et.length && !texte.length && ((interp && interp.texte) || []).length) return [];
   const codes = new Set(), sections = new Set();
   const p = new URLSearchParams();
   let lieu = false, proche = false, motMetier = '', centre = null;

@@ -155,7 +155,7 @@ const bloc = async (p, ms = 3000) => {
     return {
       present: !!sav, ouvert: !!document.querySelector('#fiKnow')?.open, lignes,
       fait: carte?.querySelector('.ct-quoi p')?.textContent.trim() || '',
-      chiffres: [...(carte?.querySelectorAll('.ct-chiffres li') || [])].map(li => li.querySelector('b').textContent + ' ' + li.querySelector('span').textContent),
+      qui: !!cts?.querySelector('.fa-qui'),
       ancien: !!document.querySelector('#fiAnn'),
       etat: sav?.querySelector('.fa-etat')?.textContent.replace(/\s+/g, ' ').trim() || '',
       completer: !!sav?.querySelector('[data-fa-completer]'),
@@ -228,13 +228,15 @@ const annuler = async p => {
   if (!b.gensVisible) fail('au pouce, « Anciens de mon école » ne se voit pas sans déplier');
   await ouvrirBloc(p);
   b = await bloc(p);
-  /* la carte : ce qu'elle fait (sans « En bref » ni Wikipédia, son
-     activité), puis ses chiffres, toujours dans le même ordre */
-  if (b.fait !== 'Conseil en systèmes et logiciels informatiques') fail('ce qu’elle fait : ' + b.fait);
-  if (b.chiffres.join(' | ') !== '100-199 salariés | 2009 création | 4 sites') fail('chiffres : ' + b.chiffres.join(' | '));
-  /* les dirigeants qui sont des PERSONNES ; un cabinet n'est personne à qui écrire */
-  if (!/^Thomas Leroy, président/.test(b.lignes['Dirigeant'] || '') || /Cabinet/i.test(b.lignes['Dirigeant'] || ''))
-    fail('dirigeant : ' + b.lignes['Dirigeant']);
+  /* la carte : sans « En bref » ni Wikipédia, pas de phrase — les
+     MISSIONS en mots simples, la taille en mots (6 octobre : le chiffre
+     d'affaires, la création, les sites ne départagent rien) */
+  if (b.fait) fail('le libellé de l’INSEE revient en tête de la carte : ' + b.fait);
+  if (b.lignes['Missions'] !== 'Conseil et intégration informatique') fail('missions : ' + b.lignes['Missions']);
+  if (b.lignes['Taille'] !== '100 à 199 salariés') fail('taille : ' + b.lignes['Taille']);
+  if (b.lignes['Dirigeant'] || /création|sites|CA /.test(JSON.stringify(b.lignes))) fail('l’ancienne carte revient : ' + JSON.stringify(b.lignes));
+  /* la piste a déjà une adresse (Claire Petit) : « à qui écrire » se tait */
+  if (b.qui) fail('« Écrire à » se montre alors que la piste a déjà une adresse');
   if (!/advens\.fr/.test(b.lignes['Site'] || '')) fail('le site Wikidata ne se montre pas : ' + JSON.stringify(b.lignes));
   if (b.lignes['Siège'] || /Rue de la Bassée/.test(Object.values(b.lignes).filter((v, i, a) => a.indexOf(v) !== i).join()))
     fail('l’adresse se redit alors que la fiche l’a déjà');
@@ -242,7 +244,7 @@ const annuler = async p => {
      l'annuaire sait remplir — l'adresse, la ville, le secteur sont déjà là */
   if (!b.completer || b.quoi !== 'activité · site') fail(`« Compléter ma fiche » : ${b.completer} « ${b.quoi} »`);
   if (b.siren !== 'SIREN 812345678') fail('la ligne de source ne dit pas le SIREN : ' + b.siren);
-  console.log('pouce · SIREN : le SIREN seul part ; « À savoir » ouvert montre la carte — ce qu’elle fait, ses chiffres, le dirigeant, le site — et la source en ligne grise ✓');
+  console.log('pouce · SIREN : le SIREN seul part ; « À savoir » ouvert montre la carte — missions, taille, le site — et la source en ligne grise ; « à qui écrire » se tait, la piste a une adresse ✓');
 
   /* ③ les liens */
   const L = Object.fromEntries(b.liens.map(l => [l.cle, l]));
@@ -265,7 +267,7 @@ const annuler = async p => {
   await p.waitForTimeout(200);
   let apres = await piste(p, 'a');
   if (apres.website !== 'https://www.advens.fr/') fail('le site n’est pas entré dans la fiche : ' + apres.website);
-  if (apres.desc !== 'Conseil en systèmes et logiciels informatiques') fail('« En bref » vide ne s’est pas rempli : ' + apres.desc);
+  if (apres.desc !== 'Conseil et intégration informatique') fail('« En bref » vide ne s’est pas rempli des missions : ' + apres.desc);
   if (apres.address !== avant.address || apres.domain !== 'cyber' || apres.city !== 'Lille')
     fail('« Compléter ma fiche » a écrasé quelque chose : ' + JSON.stringify(apres));
   const ouvertApres = await p.evaluate(() => document.querySelector('#fiKnow')?.open);
@@ -342,7 +344,7 @@ const annuler = async p => {
   if (!/Place du Theatre/i.test(c.address || '') || c.lat == null) fail('l’adresse vide ne s’est pas remplie : ' + c.address);
   if (c.domain !== 'cloud') fail('le secteur vide ne s’est pas rempli : ' + c.domain);
   b = await bloc(p);
-  if (b.siren !== 'SIREN 856123456' || b.trouver || !b.chiffres.length) fail('après le choix, « À savoir » ne montre pas l’entreprise : ' + JSON.stringify(b));
+  if (b.siren !== 'SIREN 856123456' || b.trouver || !b.lignes['Taille']) fail('après le choix, « À savoir » ne montre pas l’entreprise : ' + JSON.stringify(b));
   await annuler(p);
   c = await piste(p, 'b');
   if (c.siren || c.address || c.lat != null || c.domain !== 'autre') fail('Annuler n’a pas tout défait : ' + JSON.stringify(c));
@@ -378,7 +380,7 @@ const annuler = async p => {
   sv.regler({ statut: 200 });
   await p.click('[data-fa-encore]');
   b = await bloc(p);
-  if (b.fait !== 'Conseil en systèmes et logiciels informatiques') fail('après Réessayer, rien ne revient');
+  if (b.lignes['Missions'] !== 'Conseil et intégration informatique') fail('après Réessayer, rien ne revient');
   console.log('hors ligne et panne : chaque cas se dit, Réessayer répare ✓');
   await ctx.close();
 }
@@ -395,7 +397,7 @@ for (const sombre of [false, true]){
   const b = await bloc(p);
   if (!b.ouvert) fail('au poste, « À savoir » n’est pas ouvert');
   if (!sv.journal.length) fail('au poste, rien n’est parti à l’ouverture');
-  if (b.chiffres[0] !== '100-199 salariés') fail('au poste, les données ne sont pas là');
+  if (b.lignes['Taille'] !== '100 à 199 salariés') fail('au poste, les données ne sont pas là');
   const note = await p.evaluate(() => ({ v: document.querySelector('#fiNotes').value, f: document.activeElement?.id }));
   if (note.v !== PISTES[0].notes + 'à relire' || note.f !== 'fiNotes') fail('la réponse a redessiné la fiche sous les doigts : ' + JSON.stringify(note));
   const deborde = await p.evaluate(() => {

@@ -1400,6 +1400,9 @@ export async function runSelfTests(){
       eq(Q('réseau Lyon', { zone: { dept: '59' } })[1].searchParams.get('departement'), '69');   /* un lieu tapé gagne */
       eq(Q('réseau Lyon', { zone: { dept: '59' } })[0].searchParams.get('lat'), '45.758');
       eq(Q('', { zone: { dept: '59' } }).length, 0);                    /* la barre vide ne demande rien */
+      /* une question vidée par le tri ne part pas, même vers ta zone */
+      eq(questionsAnnuaire(interpreter('bertrand', ctx), { zone: { dept: '59' }, parDefaut: true, interdits: new Set(['bertrand']) }).length, 0);
+      eq(Q('', { zone: { dept: '59' }, parDefaut: true }).length, 2);   /* le tap sur le segment, barre vide : ta zone */
       /* aucune personne demandée, dans aucune question */
       for (const u of [...Q('cyber Lille'), ...Q('alternance 59'), ...Q('Capgemini Toulouse')])
         eq(u.searchParams.get('est_entrepreneur_individuel'), 'false');
