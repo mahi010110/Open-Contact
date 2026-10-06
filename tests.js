@@ -50,12 +50,12 @@ import { rappelICS, lienAgendaGoogle, formeAgenda, RAPPEL_HEURE } from './engine
 import { normalizeParcours, parcoursDe, periodeParcours, phraseParcours, PARCOURS_MAX } from './engine/parcours.js';
 import { interpreter, retirer, remplacer, chercherPistes, raisonDe, propositions, elargir,
          contexteRecherche, deptDuCp, villeFrequente, deptDePiste, zoneDe, metierDuMoment,
-         fraicheur } from './engine/requete.js';
+         fraicheur, METIER } from './engine/requete.js';
 import { questionsAnnuaire, lireAnnuaire, decouvertes, versPiste, motsInterdits, casse,
          domaineDeNaf, ficheOfficielle, ANNUAIRE, questionSiren, questionNom, questionSite, lireSite,
          complements, champsDits, dirigeantsAjoutables, liensPiste, WIKIDATA, genreQuestion } from './engine/annuaire.js';
 import { questionWikidata, lireWikidata, questionResume, lireResume, questionBodacc, lireBodacc, montant,
-         carte, WIKIPEDIA_FR, BODACC, LINKEDIN_PAGE } from './engine/carte.js';
+         carte, WIKIPEDIA_FR, BODACC, LINKEDIN_PAGE, aQui, estGrande, travailDe, TRAVAIL } from './engine/carte.js';
 import { makeMission, missionUsable, revokeMission, foldCampaignReport,
          signMission, openMissionWire } from './engine/mission.js';
 import { normCode, pairKey } from './engine/ordinateur.js';
@@ -1511,6 +1511,37 @@ export async function runSelfTests(){
       eq(carte({ r: {}, bodacc: proc }).sources, ['BODACC']);
       eq(carte({ r: {}, bodacc: { procedure: null } }).alerte, null);
       eq(carte({ r: {}, bodacc: { procedure: null } }).sources, []);      /* rien à dire, rien à citer */
+    },
+    'à qui écrire : le dirigeant d’une PME, par son nom — le recrutement d’une grande': () => {
+      const dirs = [{ nom: 'Cabinet Audit Nord', qualite: 'Commissaire aux comptes', personne: false },
+                    { nom: 'Thomas Leroy', qualite: 'Président', personne: true }];
+      const pme = aQui({ nom: 'Advens', tranche: '22', categorie: 'PME', dirigeants: dirs });
+      eq(pme.cible, 'dirigeant'); eq(pme.nom, 'Thomas Leroy'); eq(pme.qualite, 'président');
+      eq(new URL(pme.url).searchParams.get('keywords'), 'Thomas Leroy Advens');
+      /* 250 salariés et plus, ou une filiale d'un groupe : un service recrute */
+      for (const r of [{ tranche: '32' }, { tranche: '53' }, { tranche: '12', categorie: 'GE' }, { tranche: '21', categorie: 'ETI' }]){
+        ok(estGrande(r));
+        const g = aQui({ nom: 'Sopra Steria', dirigeants: dirs, ...r });
+        eq(g.cible, 'recrutement'); eq(g.nom, '');
+        eq(new URL(g.url).searchParams.get('keywords'), 'Sopra Steria recrutement');
+      }
+      /* sans dirigeant qui soit une PERSONNE : le recrutement, jamais une société-holding */
+      eq(aQui({ nom: 'X', tranche: '11', dirigeants: [dirs[0]] }).cible, 'recrutement');
+      /* aucune adresse devinée, jamais */
+      ok(!JSON.stringify(pme).includes('@'));
+      eq(aQui({}), null);
+    },
+    'ce que tu y ferais : le code d’activité devient un travail, et ses métiers': () => {
+      eq(travailDe({ naf: '62.03Z' }).metiers, ['reseau', 'cloud']);
+      ok(/infogérance/.test(travailDe({ naf: '62.03Z' }).texte));
+      eq(travailDe({ naf: '62.01Z' }).metiers, ['dev']);
+      /* hors du numérique : un service informatique, seulement passé 50 salariés */
+      eq(travailDe({ naf: '86.10Z', tranche: '42' }).texte, 'dans son service informatique');
+      eq(travailDe({ naf: '84.11Z', tranche: '12' }), null);
+      eq(travailDe({ naf: '10.71C', tranche: '03' }), null);
+      eq(travailDe({}), null);
+      /* chaque métier nommé existe dans la barre */
+      for (const t of Object.values(TRAVAIL)) for (const m of t.metiers) ok(METIER[m], m);
     },
     'fiche enrichie : la question ne porte QUE le SIREN, ou le nom sur un geste': () => {
       const u = new URL(questionSiren('326820065'));

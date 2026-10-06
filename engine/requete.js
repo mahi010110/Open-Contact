@@ -627,6 +627,23 @@ export function metierDuMoment(companies, today = todayISO()){
   return tri[0][0];
 }
 
+/* TON MÉTIER DÉCLARÉ : ce que dit ta formation — « BTS SIO SISR » est
+   du réseau, « SLAM » du développement, « Master cyber » de la
+   cybersécurité. Le même interpréteur que la barre, donc les mêmes mots ;
+   une formation qui n'en dit aucun (« BUT informatique ») ne rend rien —
+   mieux vaut ne pas comprendre que mal comprendre. Deux métiers à égalité
+   ne tranchent rien non plus. */
+export function metierDuProfil(profile){
+  const f = String((profile && profile.formation) || '').trim();
+  if (!f) return '';
+  /* un MÉTIER, pas un secteur : « Licence commerce » ne dit pas ce
+     qu'on fait en informatique. Cyber et cloud sont les deux qui sont
+     l'un et l'autre. */
+  const metier = e => e.famille === 'metier' && (!METIER[e.cle].domaine || e.cle === 'cyber' || e.cle === 'cloud');
+  const cles = [...new Set(interpreter(f).etiquettes.filter(metier).map(e => e.cle))];
+  return cles.length === 1 ? cles[0] : '';
+}
+
 /* ---------- élargir ----------
    Une recherche qui ne trouve rien n'est jamais une impasse : on propose
    de retirer l'étiquette qui coûte le plus, avec ce qu'on retrouverait.

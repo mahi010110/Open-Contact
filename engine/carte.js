@@ -36,7 +36,7 @@
    Fonctions PURES : aucune requête, aucun écran. L'interface appelle,
    lit, et dessine (ui/carte.js).
    ============================================================ */
-import { TRANCHES } from './annuaire.js';
+import { TRANCHES, LINKEDIN_GENS } from './annuaire.js';
 
 export const WIKIDATA = 'https://query.wikidata.org/sparql';
 export const WIKIPEDIA_FR = 'https://fr.wikipedia.org/api/rest_v1/page/summary/';
@@ -222,4 +222,76 @@ export function carte(o){
     alerte, quoi, activite, chiffres, lignes, site, logo, linkedin,
     sources: ['annuaire', 'bodacc', 'wikipedia', 'wikidata'].filter(k => src.has(k)).map(k => NOMS[k])
   };
+}
+
+/* ---------- À QUI ÉCRIRE ----------
+   (docs/utile.md) Une piste ajoutée depuis l'annuaire n'a PERSONNE : le
+   premier geste du produit — écrire — n'avait pas de destinataire, et
+   l'étudiant restait devant une fiche sans savoir à qui s'adresser.
+   Ce qui décide est la TAILLE :
+   · jusqu'à 249 salariés, c'est le dirigeant qui décide d'accueillir un
+     stagiaire ou un alternant : on lui écrit, par son nom ;
+   · au-delà — ou dans une filiale d'un grand groupe —, un service
+     recrute : on écrit au recrutement, ou à un ancien de son école.
+   L'app ne devine AUCUNE adresse (une adresse inventée part dans le
+   vide, et personne ne le saura). Elle nomme la personne, et ouvre la
+   recherche qui la trouve — sur ton geste, vers le site que le lien
+   nomme. */
+const GRANDE = new Set(['32', '41', '42', '51', '52', '53']);
+export const estGrande = r => !!r && (GRANDE.has(String(r.tranche || '')) || r.categorie === 'GE' || r.categorie === 'ETI');
+export function aQui(r, nom){
+  r = r || {};
+  const ent = String(nom || r.nom || '').trim();
+  const dir = (r.dirigeants || []).find(d => d && d.personne && d.nom);
+  if (!estGrande(r) && dir) return {
+    cible: 'dirigeant', nom: dir.nom, qualite: String(dir.qualite || '').toLowerCase(),
+    url: ent ? LINKEDIN_GENS + encodeURIComponent(dir.nom + ' ' + ent) : ''
+  };
+  if (!ent) return null;
+  return { cible: 'recrutement', nom: '', qualite: '',
+           url: LINKEDIN_GENS + encodeURIComponent(ent + ' recrutement') };
+}
+
+/* ---------- CE QUE TU Y FERAIS ----------
+   Le code d'activité dit ce que fait l'entreprise dans la langue de
+   l'INSEE : « Conseil en systèmes et logiciels informatiques » neuf fois
+   sur dix, qui ne départage rien et ne dit pas le travail. Un étudiant
+   cherche autre chose : quel travail il y ferait, et si c'est le sien.
+   La table traduit chaque code en ce travail, et dit à quels MÉTIERS de
+   la barre (engine/requete.js) il correspond — c'est ce qui permet de
+   dire « c'est ton métier » sans rien inventer. */
+const T = (texte, metiers) => ({ texte, metiers });
+export const TRAVAIL = {
+  '62.01Z': T('du développement de logiciels', ['dev']),
+  '62.02A': T('du conseil et de l’intégration informatique', ['dev', 'reseau', 'cyber']),
+  '62.02B': T('de la maintenance de systèmes et d’applications', ['reseau', 'support']),
+  '62.03Z': T('de l’infogérance : les serveurs et réseaux de ses clients', ['reseau', 'cloud']),
+  '62.09Z': T('de l’installation et du dépannage informatique', ['support', 'reseau']),
+  '63.11Z': T('de l’hébergement et du cloud', ['cloud', 'reseau']),
+  '63.12Z': T('du web : sites et services en ligne', ['dev']),
+  '58.21Z': T('du jeu vidéo', ['dev']),
+  '58.29A': T('de l’édition de logiciels', ['dev']),
+  '58.29B': T('de l’édition de logiciels', ['dev']),
+  '58.29C': T('de l’édition de logiciels', ['dev']),
+  '61.10Z': T('des télécoms et du réseau', ['reseau']),
+  '61.20Z': T('des télécoms et du réseau', ['reseau']),
+  '61.90Z': T('des télécoms et du réseau', ['reseau']),
+  '46.51Z': T('de l’intégration de matériel informatique chez ses clients', ['reseau', 'support']),
+  '46.52Z': T('de l’intégration de matériel réseau et télécoms', ['reseau']),
+  '47.41Z': T('de la vente et du dépannage informatique', ['support']),
+  '95.11Z': T('du dépannage informatique', ['support']),
+  '95.12Z': T('de la maintenance de matériel de communication', ['reseau', 'support'])
+};
+/* Une entreprise qui n'est PAS du numérique peut avoir un service
+   informatique — une collectivité, un hôpital, une banque, une usine.
+   Seulement passé une taille : une boulangerie n'a pas de DSI. Le seuil
+   est celui où une informatique interne existe (50 salariés). */
+const AVEC_SERVICE = new Set(['21', '22', '31', '32', '41', '42', '51', '52', '53']);
+export function travailDe(r){
+  r = r || {};
+  const t = TRAVAIL[String(r.naf || '')];
+  if (t) return t;
+  if (AVEC_SERVICE.has(String(r.tranche || '')) || r.categorie === 'GE' || r.categorie === 'ETI')
+    return T('dans son service informatique', ['reseau', 'support', 'dev']);
+  return null;
 }

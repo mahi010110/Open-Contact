@@ -40,13 +40,21 @@ const motsDe = s => fold(s).replace(/œ/g, 'oe').replace(/æ/g, 'ae').split(/[^a
    informatique y est rangée en conseil (62.02A) ou en « autres activités
    informatiques » (62.09Z). Le mot part donc AUSSI en texte, dans une
    première question : les noms qui le portent passent devant. */
+/* RELEVÉ le 6/10 (sonde-utile.mjs) : « alternance réseau Lille » rendait
+   des BOUTIQUES — Orange Store, Espace SFR, les clubs Bouygues Telecom,
+   les magasins Free —, rangées en 61.20Z et 61.90Z. On y vend des
+   forfaits. Seuls les opérateurs de réseau (61.10Z) restent. Et les
+   INTÉGRATEURS manquaient : Computacenter, SCC, Cybertek, Antemeta —
+   rangés en commerce de gros d'ordinateurs (46.51Z), ils installent les
+   serveurs et les réseaux de leurs clients, et prennent des alternants
+   SISR. */
 export const NAF_METIER = {
   dev:     ['62.01Z', '58.29C', '62.02A'],
-  reseau:  ['62.02A', '62.03Z', '62.09Z', '61.10Z', '61.20Z', '61.90Z'],
+  reseau:  ['62.02A', '62.03Z', '62.09Z', '61.10Z', '46.51Z'],
   cyber:   ['62.02A', '62.09Z', '62.01Z'],
   cloud:   ['63.11Z', '62.03Z'],
   data:    ['63.11Z', '62.02A', '62.01Z'],
-  support: ['62.09Z', '95.11Z', '62.03Z'],
+  support: ['62.09Z', '95.11Z', '62.03Z', '46.51Z'],
   esn:     ['62.01Z', '62.02A', '62.03Z', '62.09Z']
 };
 /* les secteurs larges : une section du registre plutôt que des codes */
@@ -161,7 +169,13 @@ export function questionsAnnuaire(interp, o){
   }
   if (q.length && q.length < 3 && !lieu && !codes.size) return [];
   const out = [];
-  if (motMetier && !q.includes(motMetier)) out.push(url('/search', { q: (q + ' ' + motMetier).trim() }));
+  /* RELEVÉ le 6/10 : « cyber » en texte rendait d'abord NAO Cyber, Cyber
+     Shark Conseil, MY Cyber Royaume — une ou deux personnes, ou aucun
+     salarié. Le mot dans le nom ne dit pas qu'on peut y être accueilli :
+     cette question-là ne demande que des employeurs de dix salariés et
+     plus (Orange Cyberdefense, Airbus CyberSecurity…). */
+  if (motMetier && !q.includes(motMetier)) out.push(url('/search', { q: (q + ' ' + motMetier).trim(),
+    ...(p.has('tranche_effectif_salarie') || p.has('categorie_entreprise') ? {} : { tranche_effectif_salarie: TRANCHES_EMPLOYEURS }) }));
   if (q.length >= 3) out.push(url('/search', { q }));
   /* sans texte, la question large ne part que bornée par un lieu —
      « cyber » seul ne demande pas toutes les ESN de France */
@@ -180,6 +194,7 @@ export function questionsAnnuaire(interp, o){
   return out;
 }
 export const TRANCHES_MOYENNES = '11,12,21,22,31,32';
+export const TRANCHES_EMPLOYEURS = '11,12,21,22,31,32,41,42,51,52,53';
 /* ce qu'une question demande — ce qui décide de son rang dans la fusion :
    un NOM tapé, un MÉTIER tapé en texte (« cyber »), ou une liste */
 export function genreQuestion(u){
@@ -220,6 +235,7 @@ export const ACTIVITES = {
   '62.09Z': 'Autres activités informatiques', '63.11Z': 'Traitement de données, hébergement',
   '63.12Z': 'Portails Internet', '58.29A': 'Édition de logiciels système et de réseau',
   '58.29B': 'Édition de logiciels outils de développement', '58.29C': 'Édition de logiciels applicatifs',
+  '46.51Z': 'Commerce de gros d’ordinateurs et de logiciels',
   '61.10Z': 'Télécommunications filaires', '61.20Z': 'Télécommunications sans fil',
   '61.90Z': 'Autres télécommunications', '95.11Z': 'Réparation d’ordinateurs',
   '70.22Z': 'Conseil pour les affaires et la gestion', '71.12B': 'Ingénierie, études techniques',
@@ -230,7 +246,7 @@ export const ACTIVITES = {
 export function domaineDeNaf(naf){
   const n = String(naf || '');
   if (/^63\.11/.test(n)) return 'cloud';
-  if (/^(62|58\.2|95\.1)/.test(n)) return 'esn';
+  if (/^(62|58\.2|95\.1|46\.51)/.test(n)) return 'esn';
   if (/^84/.test(n)) return 'public';
   if (/^(86|87|88)/.test(n)) return 'sante';
   if (/^(1\d|2\d|3[0-3]|4[1-3])\./.test(n)) return 'industrie';
@@ -253,6 +269,21 @@ function adresseDe(x){
   const m = brut.match(/^(.*?)\s*\b(\d{5})\s+(.+)$/);
   if (m) return [casse(m[1], false), m[2] + ' ' + casse(m[3], false)].filter(Boolean).join('\n');
   return casse(brut, false);
+}
+/* LE NOM QU'ON RECONNAÎT. RELEVÉ le 6/10 : « Euro-Information Européenne
+   de Traitement de l'Information », « Office National d'Information sur
+   les Enseignements et les Professions », « T D F ». Personne ne les
+   connaît sous ce nom : c'est Euro Information, l'ONISEP, TDF. Quand la
+   raison sociale est longue (cinq mots et plus) ou épelée lettre à
+   lettre, le sigle déclaré au registre la remplace. Le nom complet reste
+   dans l'aperçu. */
+function nomConnu(r){
+  const brut = String(r.nom_raison_sociale || r.nom_complet || '').trim();
+  const sigle = String(r.sigle || '').trim();
+  const mots = brut.split(/[\s\-’']+/).filter(w => w && !PETITS.has(w.toLowerCase()));
+  if (sigle && (mots.length >= 5 || /^([A-Z] )+[A-Z]$/.test(brut)))
+    return /\s/.test(sigle) ? casse(sigle) : sigle.toUpperCase();
+  return casse(brut);
 }
 /* la dernière année de chiffre d'affaires réellement déclarée */
 function dernierCA(fin){
@@ -304,7 +335,8 @@ export function lireAnnuaire(json, o){
       : (tranche === '00' || carac === 'N') ? false : null;
     return {
       siren: String(r.siren),
-      nom: casse(r.nom_raison_sociale || r.nom_complet || ''),
+      nom: nomConnu(r),
+      raison: casse(r.nom_raison_sociale || r.nom_complet || ''),
       sigle: r.sigle ? String(r.sigle) : '',
       ville: casse(e.libelle_commune || '', false),
       cp: String(e.code_postal || ''),
@@ -389,7 +421,7 @@ export function decouvertes(listes, companies, o){
   let ordre = 0;
   (listes || []).forEach((l, k) => (l || []).forEach((r, i) => {
     if (!r || r.personne || sirens.has(r.siren)) return;
-    if (noms.has(normName(r.nom)) || (r.sigle && noms.has(normName(r.sigle)))) return;
+    if (noms.has(normName(r.nom)) || (r.raison && noms.has(normName(r.raison))) || (r.sigle && noms.has(normName(r.sigle)))) return;
     let x = vus.get(r.siren);
     if (!x){ x = { r, fusion: 0, premier: ordre++, genre: 9 }; vus.set(r.siren, x); }
     x.fusion += 1 / (RRF_K + i + 1);
