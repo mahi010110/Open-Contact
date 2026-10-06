@@ -1799,7 +1799,7 @@ export async function runSelfTests(){
       eq(C('alternanse').label, 'Alternance');
       eq(C('stage reseua').label, 'Réseau');
       /* ce qui se comprend déjà, ou ce qui ne ressemble à rien, ne bouge pas */
-      for (const q of ['alternance Lille', 'Orange', 'Thales', 'Sopra', 'pme', 'abc', '59', ''])
+      for (const q of ['alternance Lille', 'Orange', 'Thales', 'Sopra', 'pme', 'abc', '59', '', 'devis', 'Lidl', 'Alten', 'Vinci'])
         eq(C(q), null, q);
       /* ce qui trouve quelque chose tel quel n'est pas une faute (« Lilly » peut être une piste) */
       eq(correction('Lilly', null, t => t === 'Lilly'), null);

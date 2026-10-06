@@ -306,6 +306,10 @@ for (const sombre of [false, true]){
   await p.waitForTimeout(400);
   const apres = await lire(p);
   if (apres.noms.includes(nom)) fail('poste : « Pas pour moi » laisse la ligne');
+  /* le focus ne tombe pas par terre (§6) : la ligne qui a pris sa place */
+  const foc = await p.evaluate(() => { const a = document.activeElement;
+    return a && a.matches('#piDec .dc-row .dc-main') ? a.querySelector('.dc-nom').textContent.trim() : (a && a.tagName) || ''; });
+  if (foc !== apres.noms[0]) fail('poste : après « Pas pour moi », le focus est sur ' + foc);
   if (!process.exitCode) console.log(`poste ${sombre ? 'sombre' : 'clair'} · ⑨ les étiquettes du profil, « Pas pour moi » dans le panneau, rien ne déborde ✓`);
   await ctx.close();
 }

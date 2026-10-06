@@ -730,6 +730,10 @@ export function correction(q, ctx, trouve){
       if (!max || /\d/.test(tape)) continue;
       for (const [k, e] of dict){
         if (!CORRIGEABLES.has(e.famille) || k.split(' ').length !== n || (e.famille === 'lieu' && e.cle.startsWith('ville:') && !VILLE_DEPT.has(e.ville))) continue;
+        /* une cible de moins de quatre lettres ne se corrige pas : « devis »
+           (plié en « devi ») est à une faute de « dev », et ce n'est pas
+           une faute — la tolérance vaut des DEUX côtés */
+        if (k.replace(/ /g, '').length < 4) continue;
         if (k[0] !== tape[0] && max < 2) continue;
         const f = fautes(tape, k, max);
         if (f > max || f === 0) continue;

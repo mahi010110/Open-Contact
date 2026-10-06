@@ -456,11 +456,19 @@ export function decouverteHTML(){
    n'y revient plus — retenue dans le profil, donc sur tes appareils et
    dans ta copie. Annuler 30 s (§6) ; « Écartées », en pied de liste, les
    rend une à une. */
-function ecarterR(r){
+function ecarterR(r, o){
+  const i = visibles().findIndex(x => x.siren === r.siren);
   S.profile.ecartees = ecarter(S.profile.ecartees, r);
   saveProfile();
   if (choisi === r.siren) choisi = '';
   notifier();
+  /* le focus ne tombe pas par terre (§6) : la ligne qui prend sa place,
+     sinon la précédente, sinon la barre — seulement quand le geste
+     venait du clavier ou d'un bouton (le glissé a son propre repli) */
+  if (o && o.focus) requestAnimationFrame(() => {
+    const l = [...document.querySelectorAll('#piDec .dc-row .dc-main')];
+    (l[i] || l[i - 1] || document.getElementById('piQ'))?.focus({ preventScroll: false });
+  });
   showUndo(`« ${esc(r.nom)} » écartée.`, () => {
     S.profile.ecartees = rendre(S.profile.ecartees, r.siren);
     saveProfile();
@@ -511,7 +519,7 @@ function ouvrirApercu(r){
   lacher = suivreCarte(r.siren, dessiner, r.nom);
   sh.setFoot(estPrise(r.siren)
     ? [btn('Ouvrir la fiche', 'btn-primary', () => { sh.close(); ouvrirFiche(r); }, 'briefcase')]
-    : [btn('Pas pour moi', 'btn-sm', () => { sh.close(); ecarterR(r); }, 'close'),
+    : [btn('Pas pour moi', 'btn-sm', () => { sh.close(); ecarterR(r, { focus: true }); }, 'close'),
        btn('Ajouter à mes pistes', 'btn-primary', () => { sh.close(); ajouter(r); }, 'plus')]);
   return sh;
 }
@@ -570,7 +578,7 @@ function lierApercu(box, aside){
   });
   aside.querySelector('[data-ap-ecarter]')?.addEventListener('click', e => {
     const r = trouve(e.currentTarget.dataset.apEcarter);
-    if (r) ecarterR(r);
+    if (r) ecarterR(r, { focus: true });
   });
 }
 
