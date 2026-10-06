@@ -73,33 +73,30 @@ def main():
         print(f'— {nom} : {len(lignes)} lignes')
         for l in lignes[:4]:
             print('   ', json.dumps([l[k] for k in sorted(l, key=col_index)], ensure_ascii=False)[:400])
-    # la table de données : celle dont l'en-tête nomme un code métier
+    # LA TABLE DE DONNÉES — relevé le 6/10 : la première feuille est le
+    # dictionnaire des variables (« Code métier BMO » y est une LIGNE), les
+    # données sont dans la seconde, en-tête sur la première ligne :
+    # annee · Code métier BMO · Nom métier BMO · … · Dept · NomDept · BE26 ·
+    # NOMBE26 · clpe · met · xmet · smet — une ligne par BASSIN d'emploi.
     for nom, lignes in tables:
-        entete_i = next((i for i, l in enumerate(lignes[:10]) if any('tier' in str(v).lower() for v in l.values())), None)
-        if entete_i is None:
+        if not lignes:
             continue
-        entete = {k: str(v).strip() for k, v in lignes[entete_i].items()}
+        entete = {k: str(v).strip() for k, v in lignes[0].items()}
+        bas = {v.lower(): k for k, v in entete.items()}
+        if not ('met' in bas and 'xmet' in bas and 'dept' in bas):
+            continue
         print('EN-TÊTE', json.dumps(entete, ensure_ascii=False))
-        inv = {v.lower(): k for k, v in entete.items()}
-
-        def colonne(*cles):
-            for cle in cles:
-                for v, k in inv.items():
-                    if v == cle.lower() or v.startswith(cle.lower()):
-                        return k
-            return None
-        c_code = colonne('code métier bmo', 'code metier bmo', 'metier')
-        c_nom = colonne('nom métier bmo', 'nom metier bmo', 'nommetier')
-        c_dep = colonne('dept', 'département', 'departement')
-        c_nomdep = colonne('nomdept', 'nom département', 'nom departement')
-        c_met, c_xmet, c_smet = colonne('met'), colonne('xmet'), colonne('smet')
-        print('COLONNES', c_code, c_nom, c_dep, c_nomdep, c_met, c_xmet, c_smet)
+        c_code = bas.get('code métier bmo')
+        c_nom = bas.get('nom métier bmo')
+        c_dep = bas['dept']
+        c_met, c_xmet = bas['met'], bas['xmet']
+        print('COLONNES', c_code, c_nom, c_dep, c_met, c_xmet)
         it = {}
         par = {}
         secrets = 0
-        for l in lignes[entete_i + 1:]:
+        for l in lignes[1:]:
             nomm = str(l.get(c_nom, ''))
-            if not re.search(r'informati|réseau|reseau|télécom|telecom|système|systeme|données', nomm, re.I):
+            if not re.search(r'informati|réseau|reseau|télécom|telecom|système|systeme|données|logiciel|développ', nomm, re.I):
                 continue
             code = str(l.get(c_code, ''))
             it[code] = nomm
