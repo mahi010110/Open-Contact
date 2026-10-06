@@ -1609,6 +1609,9 @@ export async function runSelfTests(){
       eq(O('stage Lille', { recherche: 'alternance' }), null);       /* ce que tu tapes gagne sur le profil */
       eq(O('alternance 59'), null);                                  /* un département n'a pas de centre */
       eq(new URL(O('alternance Lille', { metier: 'dev' }).url).searchParams.get('romes'), 'M1805');   /* le métier de ta formation */
+      /* le libellé décide (relevé) : cloud et cyber passent par un libellé mesuré porteur */
+      for (const q of ['alternance cloud Nantes', 'alternance cybersécurité Lille'])
+        eq(new URL(O(q).url).searchParams.get('job_name'), 'Administration réseau');
       /* sans lieu tapé, le centre de tes pistes, s'il est donné */
       eq(new URL(O('alternance', { centre: { lat: 45.758, lng: 4.835, nom: 'Lyon' } }).url).searchParams.get('address'), 'Lyon');
     },

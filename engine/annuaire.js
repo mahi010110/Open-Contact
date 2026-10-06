@@ -633,13 +633,21 @@ export function liensPiste(c, profile){
    profil), et seulement avec un lieu qui a un centre. Il porte le
    métier (codes ROME) et le point, rien d'autre. */
 export const LBA = 'https://labonnealternance.apprentissage.beta.gouv.fr/recherche';
+/* LE LIBELLÉ DÉCIDE, PAS SEULEMENT LES CODES. RELEVÉ le 6/10 : le site
+   cherche AUSSI par mot-clé sur le libellé. Mêmes codes, même ville :
+   « Administration réseau » rend dix offres à Nantes, « Systèmes et
+   cloud » aucune — même à Lille ; « Cybersécurité » une seule, hors
+   sujet, à 84 km. Seuls les libellés MESURÉS porteurs sont gardés : le
+   cloud et la cyber passent par l'administration des systèmes et des
+   réseaux, qui est d'ailleurs le métier qu'on y fait en alternance. */
+const RESEAU_LBA = { romes: ['M1801', 'M1810'], nom: 'Administration réseau' };
 export const ROMES = {
-  reseau:  { romes: ['M1801', 'M1810'], nom: 'Administration réseau' },
-  cloud:   { romes: ['M1801', 'M1810'], nom: 'Systèmes et cloud' },
+  reseau:  RESEAU_LBA,
+  cloud:   RESEAU_LBA,
+  cyber:   RESEAU_LBA,
   support: { romes: ['I1401', 'M1810'], nom: 'Support informatique' },
   dev:     { romes: ['M1805'], nom: 'Développement informatique' },
-  data:    { romes: ['M1805'], nom: 'Développement informatique' },
-  cyber:   { romes: ['M1802', 'M1801'], nom: 'Cybersécurité' }
+  data:    { romes: ['M1805'], nom: 'Développement informatique' }
 };
 const ROMES_NUMERIQUE = { romes: ['M1805', 'M1801', 'M1810', 'M1802'], nom: 'Informatique' };
 export function offresAlternance(interp, o){
