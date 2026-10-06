@@ -213,6 +213,7 @@ const WIKIDATA_RE = 'https://query.wikidata.org/**';
 const BODACC_RE = 'https://bodacc-datadila.opendatasoft.com/**';
 const WIKIPEDIA_RE = 'https://fr.wikipedia.org/**';
 const COMMONS_RE = /^https:\/\/(commons|upload)\.wikimedia\.org\//;
+const CLEARBIT_RE = 'https://autocomplete.clearbit.com/**';
 export async function annuaireMuet(cible){
   const cors = { 'access-control-allow-origin': '*' };
   await cible.route(ANNUAIRE_RE, r => r.fulfill({ status: 200, contentType: 'application/json',
@@ -234,6 +235,7 @@ export async function sourcesCarteMuettes(cible){
   await cible.route(WIKIPEDIA_RE, r => r.fulfill({ status: 200, contentType: 'application/json', headers: cors, body: '{}' }));
   await cible.route(COMMONS_RE, r => r.fulfill({ status: 200, contentType: 'image/svg+xml', headers: cors,
     body: '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>' }));
+  await cible.route(CLEARBIT_RE, r => r.fulfill({ status: 200, contentType: 'application/json', headers: cors, body: '[]' }));
 }
 /* tous les contextes d'un navigateur, d'un coup — pour les scénarios qui
    en ouvrent vingt */

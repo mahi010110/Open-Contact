@@ -272,6 +272,14 @@ liste de pistes sans partir de zéro, c'est « À découvrir ».
    qui écrire selon la taille, et une carte qui aide à choisir — ses
    missions, si elles collent à ta formation, sa taille. **Livré le
    6 octobre 2026 (6.50.0).**
+7. Une recherche à ta mesure ([`recherche-profil.md`](recherche-profil.md)) :
+   « Autour de » dans le profil (ta ville et ton rayon), le métier de ta
+   formation posé d'office en étiquette, la taille du site qu'on
+   rejoindrait, l'aide à l'embauche d'un apprenti, les offres de stage
+   (HelloWork), le site par Clearbit, « Pas pour moi » et « Nouveau », le
+   marché local (BMO 2026), les fautes de frappe proposées. **Livré le
+   6 octobre 2026 (6.51.0).** Reste à mesurer : le temps de trajet en
+   transports en commun.
 
 **B. Le réseau** — [`reseau.md`](reseau.md). Trouver quelqu'un chez une
 entreprise parmi ses amis, ses groupes et leurs amis, trois cercles au plus.

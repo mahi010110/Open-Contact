@@ -85,6 +85,7 @@ function annuaire(ctx){
   ctx.route('https://query.wikidata.org/**', vide('application/sparql-results+json', '{"results":{"bindings":[]}}'));
   ctx.route('https://bodacc-datadila.opendatasoft.com/**', vide('application/json', '{"results":[]}'));
   ctx.route('https://fr.wikipedia.org/**', vide('application/json', '{}'));
+  ctx.route('https://autocomplete.clearbit.com/**', vide('application/json', '[]'));
   return { journal, autres, regler: m => { mode = m; } };
 }
 const pliees = s => decodeURIComponent(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -127,7 +128,12 @@ const lireDec = async (p, ms = 3500) => {
       pris: [...document.querySelectorAll('#piDec .dc-row.dc-pris .dc-nom')].map(n => n.textContent.trim()),
       etat: (s && s.querySelector('.dc-etat')?.textContent.replace(/\s+/g, ' ').trim()) || '',
       compte: document.querySelector('#piPortee [data-portee="decouvrir"] .pt-n')?.textContent.trim() || '',
-      boutons: document.querySelectorAll('#piDec .dc-row button').length
+      /* le geste « Pas pour moi » (le motif de la suppression) a sa
+         croix au survol — elle ne compte pas tant qu'elle ne se VOIT pas
+         au repos : au doigt elle n'existe pas, à la souris elle est
+         transparente jusqu'au survol */
+      boutons: [...document.querySelectorAll('#piDec .dc-row button')].filter(b => !b.classList.contains('hov-del')
+        || (getComputedStyle(b).display !== 'none' && getComputedStyle(b).opacity !== '0')).length
     };
   });
 };
@@ -253,7 +259,12 @@ const versDecouvrir = async p => {
   /* l'aperçu a demandé le reste — par le SIREN seul, celui d'une
      entreprise que l'annuaire a rendue et qu'on a regardée */
   const SIRENS = REPONSE.results.map(x => x.siren);
-  const horsSiren = an.autres.filter(u => !SIRENS.some(x => decodeURIComponent(u).includes(x)));
+  /* Clearbit reçoit le NOM public de l'entreprise regardée — celui que
+     l'annuaire a rendu et que la ligne affiche —, et rien d'autre */
+  const NOMS = await p.evaluate(() => [...document.querySelectorAll('#piDec .dc-nom')].map(n => n.textContent.trim()));
+  const parNom = u => u.startsWith('https://autocomplete.clearbit.com/')
+    && NOMS.includes(new URL(u).searchParams.get('query')) && [...new URL(u).searchParams.keys()].join() === 'query';
+  const horsSiren = an.autres.filter(u => !parNom(u) && !SIRENS.some(x => decodeURIComponent(u).includes(x)));
   if (!an.autres.some(u => decodeURIComponent(u).includes('834567890')))
     fail('l’aperçu n’a rien demandé aux autres sources : la carte ne se complète pas');
   if (horsSiren.length) fail('une source de la carte a reçu autre chose qu’un SIREN : ' + horsSiren[0]);

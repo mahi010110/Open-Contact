@@ -21,10 +21,13 @@
    par mot-clé sur le LIBELLÉ du métier (« Systèmes et cloud » : zéro
    offre, « Administration réseau » : dix, mêmes codes) ; l'API
    apprentissage refuse toute page (aucun en-tête CORS, avec ou sans
-   jeton) et ses conditions interdisent de diffuser un jeton ; aucune
-   page carrières publique (Lever, Greenhouse, Recruitee, SmartRecruiters,
-   Workable) chez 45 entreprises réelles ; l'autocomplétion de Clearbit
-   ne répond plus. Ces trois pistes sont fermées.
+   jeton) et ses conditions interdisent de diffuser un jeton.
+   ATTENTION — la première version appelait les services depuis la page
+   de l'APP, dont la CSP refuse tout domaine qu'elle ne nomme pas : les
+   pages carrières et Clearbit y passaient à tort pour illisibles. Toute
+   mesure d'un service tiers se fait depuis une page VIERGE
+   (sonde-profil.mjs, ⓪) ; celle-ci ne garde que l'annuaire, que la CSP
+   autorise, et des navigations.
 
    INFORMATIVE : elle relève, elle ne fait pas rougir la CI.
    ============================================================ */

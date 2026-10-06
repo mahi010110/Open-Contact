@@ -45,7 +45,7 @@ L'annuaire ne le dit pas. Qui le sait ?
 | Piste | Relevé | Verdict |
 |---|---|---|
 | **API de La bonne alternance** (API apprentissage) | elle a exactement ce qu'il faut — les offres et les « entreprises susceptibles de recruter » —, mais demande un jeton, **refuse toute page web** (aucun en-tête CORS, avec ou sans jeton), et ses conditions **interdisent de diffuser un jeton** | fermée |
-| Pages carrières publiques (Lever, Greenhouse, Recruitee, SmartRecruiters, Workable) | 0 tableau d'offres chez 45 entreprises réelles, aucune réponse lisible depuis une page | fermée |
+| Pages carrières publiques (Lever, Greenhouse, Recruitee, SmartRecruiters, Workable) | lisibles depuis une page (Lever, Greenhouse, SmartRecruiters), mais **2 tableaux d'offres sur 45 entreprises réelles**, et une seule offre d'alternance ou de stage *(contre-mesure du 6/10, voir plus bas)* | trop rare |
 | **Le site de La bonne alternance**, par un lien | « réseau » autour de Lille : **10 offres d'alternance** d'entreprises locales (Synergy à Lezennes, Waybox à Villeneuve-d'Ascq…), où l'on postule directement ; développement à Lyon, support à Marseille, informatique à Rennes : 10 chacun | **retenu** |
 
 **Le libellé décide, pas seulement les codes.** Le site cherche aussi par
@@ -61,8 +61,22 @@ Un lien **« Offres d'alternance autour de … »** tient la tête de la liste d
 lieu qui a un centre. Il porte les codes ROME du métier et le centre de la
 ville, rien d'autre (`offresAlternance`, `engine/annuaire.js`).
 
-Le stage n'a pas de lien : aucun format de recherche de stage public n'a
-gardé ses paramètres une fois ouvert (1jeune1solution les perd).
+Le stage n'avait pas de lien : 1jeune1solution perd ses paramètres une
+fois ouvert. *Depuis la 6.51, « Offres de stage autour de … » ouvre
+HelloWork, qui garde les siens — mesuré métier par métier
+([`recherche-profil.md`](recherche-profil.md), §4).*
+
+> **Une erreur de mesure, corrigée le jour même.** La première version de
+> la sonde appelait les services DEPUIS LA PAGE DE L'APP, dont la CSP
+> refuse d'elle-même tout domaine qu'elle ne nomme pas : c'est la CSP
+> qu'on mesurait, pas le service. Les pages carrières et Clearbit y
+> passaient pour « illisibles ». Remesurés depuis une page vierge, témoins
+> à l'appui (`sonde-profil.mjs`) : Lever, Greenhouse et SmartRecruiters
+> répondent à une page, mais ne couvrent que 2 entreprises sur 45 ;
+> Clearbit répond et trouve un site pour 7 entreprises sur 15. La
+> conclusion sur l'API de La bonne alternance tient : elle reposait aussi
+> sur la réponse du serveur à une origine étrangère (aucun en-tête
+> d'autorisation), et la page vierge confirme le refus.
 
 ## 3. Je ne sais pas à qui écrire
 

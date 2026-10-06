@@ -6,7 +6,8 @@
    ============================================================ */
 import { esc, uid } from '../engine/utils.js';
 import { defaultTemplates, RECHERCHES, dureeRecherche, periodeValide, emailPlausible,
-         jetonsRecherche } from '../engine/model.js';
+         jetonsRecherche, RAYONS } from '../engine/model.js';
+import { villeConnue, correction } from '../engine/requete.js';
 import { S, bus, saveProfile } from './state.js';
 import { openSheet, confirmSheet, toast, showUndo, btn, ic, clavier, champGrandit } from './dom.js';
 import { tplField, tplSample, TPL_LABELS } from './tplfield.js';
@@ -26,7 +27,7 @@ import { PARCOURS, parcoursDe, periodeParcours, normalizeParcours } from '../eng
    Rien n'est marqué obligatoire : tout est facultatif, et marquer chaque
    champ « (facultatif) » ne serait que du bruit (GOV.UK). Ce qui manque
    se voit ailleurs — dans « Moi », en creux, et dans l'aperçu du bas. */
-const CHAMPS = ['name', 'formation', 'ecole', 'recherche', 'debut', 'fin', 'rythme',
+const CHAMPS = ['name', 'formation', 'ecole', 'recherche', 'debut', 'fin', 'rythme', 'ville',
                 'phone', 'email', 'cvUrl', 'portfolio'];
 const DATES = {
   stage:      ['Du', 'Au'],
@@ -40,10 +41,11 @@ export function openProfil(onDone, opts = {}){
   /* le parcours saisi fait partie du brouillon : il s'enregistre avec le
      reste, et le garde-fou le compte */
   d.parcours = normalizeParcours(p.parcours);
+  d.rayon = RAYONS.includes(p.rayon) ? p.rayon : 15;
   const lire = () => Object.fromEntries(CHAMPS.map(k => [k, String(d[k] || '').trim()]));
   /* comparé sous la même forme que ce qui s'enregistre : une espace
      traînée d'un ancien profil ne doit pas faire croire à un changement */
-  const etat = () => JSON.stringify([lire(), d.parcours]);
+  const etat = () => JSON.stringify([lire(), d.parcours, d.rayon]);
   const init = etat();
   const sh = openSheet({
     title: 'Mon profil', icon: 'user', focus: opts.focus || '#pfName',
@@ -91,6 +93,20 @@ export function openProfil(onDone, opts = {}){
                     aria-pressed="${d.recherche === k}">${RECHERCHES[k].label}</button>`).join('')}
        </div>
        <div id="pfRech"></div>
+       ${/* OÙ JE CHERCHE (docs/recherche-profil.md) : « À découvrir »
+            cherche autour de cette ville quand la barre n'en dit pas.
+            Le rayon en trois puces — à côté, la métropole, le
+            département —, jamais une liste déroulante (§6). Seules les
+            villes que l'app SAIT placer sont acceptées : une ville
+            inconnue ne servirait à rien sans que rien ne le dise. */''}
+       <div class="field pf-ou"><label for="pfVille">Autour de</label>
+         <input id="pfVille" value="${esc(d.ville)}" placeholder="Ex : Lille" autocomplete="address-level2"
+                enterkeyhint="done" aria-describedby="pfVilleErr" ${clavier('nom')}>
+         <p class="hint warn" id="pfVilleErr" hidden></p>
+         <div class="datechips pf-rayon" role="group" aria-label="Rayon">
+           ${RAYONS.map(r => `<button class="dchip${d.rayon === r ? ' on' : ''}" data-rayon="${r}"
+                    aria-pressed="${d.rayon === r}">${r} km</button>`).join('')}
+         </div></div>
      </fieldset>
      <fieldset class="pf-grp"><legend>Coordonnées</legend>
        <div class="grid2">
@@ -208,6 +224,31 @@ export function openProfil(onDone, opts = {}){
     m.hidden = !oui;
     if (oui) c.setAttribute('aria-invalid', 'true'); else c.removeAttribute('aria-invalid');
   }
+  /* la ville : connue de l'app, ou dite fausse sous son champ — avec la
+     ville la plus proche quand c'est une faute de frappe (« Lile ») */
+  const villeFausse = () => d.ville.trim() && !villeConnue(d.ville);
+  const erreurVille = oui => {
+    const m = q('#pfVilleErr');
+    const c = oui ? correction(d.ville) : null;
+    const prop = c && c.etiquette.famille === 'lieu' && villeConnue(c.q) ? villeConnue(c.q).nom : '';
+    m.innerHTML = oui ? `Ville inconnue.${prop ? ` <button class="linklike" type="button" data-pf-ville="${esc(prop)}">${esc(prop)} ?</button>` : ' Essaie la grande ville la plus proche.'}` : '';
+    m.querySelector('[data-pf-ville]')?.addEventListener('click', e => {
+      d.ville = q('#pfVille').value = e.currentTarget.dataset.pfVille;
+      montrerErreur('#pfVille', '#pfVilleErr', false);
+      q('#pfVille').focus();
+    });
+    montrerErreur('#pfVille', '#pfVilleErr', oui);
+  };
+  q('#pfVille').addEventListener('input', e => { d.ville = e.target.value; if (!villeFausse()) erreurVille(false); });
+  q('#pfVille').addEventListener('blur', () => { if (villeFausse()) erreurVille(true); });
+  sh.body.querySelectorAll('.dchip[data-rayon]').forEach(b => b.addEventListener('click', () => {
+    d.rayon = Number(b.dataset.rayon);
+    sh.body.querySelectorAll('.dchip[data-rayon]').forEach(o => {
+      const on = Number(o.dataset.rayon) === d.rayon;
+      o.classList.toggle('on', on);
+      o.setAttribute('aria-pressed', String(on));
+    });
+  }));
   const emailFaux = () => d.email.trim() && !emailPlausible(d.email);
   q('#pfEmail').addEventListener('blur', () => montrerErreur('#pfEmail', '#pfEmailErr', emailFaux()));
   q('#pfEmail').addEventListener('input', () => { if (!emailFaux()) montrerErreur('#pfEmail', '#pfEmailErr', false); });
@@ -326,6 +367,14 @@ export function openProfil(onDone, opts = {}){
         q('#pfEmail').focus();
         return;
       }
+      if (v.ville && !villeConnue(v.ville)){
+        erreurVille(true);
+        q('#pfVille').focus();
+        return;
+      }
+      /* la ville s'enregistre comme l'app l'écrit (« saint etienne » →
+         « Saint-Étienne ») : c'est ce que l'étiquette montrera */
+      if (v.ville) v.ville = villeConnue(v.ville).nom;
       /* l'emploi n'a pas de fin : une date restée d'un « stage » essayé
          avant ne doit pas retenir un champ qui n'est même plus affiché */
       if (DATES[v.recherche]?.[1] && !periodeValide(v.debut, v.fin)){
@@ -335,6 +384,7 @@ export function openProfil(onDone, opts = {}){
       }
       for (const k of CHAMPS) p[k] = v[k];
       p.parcours = normalizeParcours(d.parcours);
+      p.rayon = d.rayon;
       saveProfile();
       sh.close(null, true);
       bus.refresh();

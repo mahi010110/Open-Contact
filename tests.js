@@ -24,7 +24,7 @@ import { filterCompanies, filterOrphans, searchHint, NATURAL_DIR } from './engin
 import { scoreOf } from './engine/score.js';
 import { DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, SYNC_KEY,
          RELAYS_KEY, TURN_KEY, DEVICE_KEY, DEVICES_KEY, PROMO_KEY, VAULT_KEY,
-         ANALYSIS_KEY, SEALABLE, THEME_KEY, VIEW_KEY, OLD_V2, OLD_V1, CLES_A_EFFACER,
+         ANALYSIS_KEY, VUS_KEY, SEALABLE, THEME_KEY, VIEW_KEY, OLD_V2, OLD_V1, CLES_A_EFFACER,
          kvGet, kvSet, kvDel, vaultActive, vaultDetach, vaultReseal } from './engine/storage.js';
 import { causeLiaison, relayTally, liaisonStage, parseTurn, turnText, TURN_MAX, RELAIS_DEFAUT } from './engine/transport.js';
 import { clePortage, sceller as scellerPortage, ouvrir as ouvrirPortageMsg, decouper, rassembler, recolte,
@@ -50,10 +50,14 @@ import { rappelICS, lienAgendaGoogle, formeAgenda, RAPPEL_HEURE } from './engine
 import { normalizeParcours, parcoursDe, periodeParcours, phraseParcours, PARCOURS_MAX } from './engine/parcours.js';
 import { interpreter, retirer, remplacer, chercherPistes, raisonDe, propositions, elargir,
          contexteRecherche, deptDuCp, villeFrequente, deptDePiste, zoneDe, metierDuMoment,
-         fraicheur, METIER, metierDuProfil } from './engine/requete.js';
+         fraicheur, METIER, metierDuProfil, villeConnue, lieuDuProfil, metierEtiquetteDuProfil, rayonDe,
+         correction, fautes, fautesPermises } from './engine/requete.js';
 import { questionsAnnuaire, lireAnnuaire, decouvertes, versPiste, motsInterdits, casse, offresAlternance, LBA, LOIN_KM,
          domaineDeNaf, ficheOfficielle, ANNUAIRE, questionSiren, questionNom, questionSite, lireSite,
-         complements, champsDits, dirigeantsAjoutables, liensPiste, WIKIDATA, genreQuestion } from './engine/annuaire.js';
+         complements, champsDits, dirigeantsAjoutables, liensPiste, WIKIDATA, genreQuestion,
+         ajoutsProfil, loinDe, offresStage, HELLOWORK, questionClearbit, lireClearbit, CLEARBIT,
+         ecarter, rendre, sirensEcartes, cleVus, lireVus, nouveauxDe, noterVus, VUS_RECHERCHES } from './engine/annuaire.js';
+import { BMO, marche, niveauDiplome, aideEmbauche, euros, AIDE_FIN } from './engine/marche.js';
 import { questionWikidata, lireWikidata, questionResume, lireResume, questionBodacc, lireBodacc,
          carte, WIKIPEDIA_FR, BODACC, LINKEDIN_PAGE, aQui, estGrande, travailDe, TRAVAIL } from './engine/carte.js';
 import { makeMission, missionUsable, revokeMission, foldCampaignReport,
@@ -1615,6 +1619,192 @@ export async function runSelfTests(){
       /* sans lieu tapé, le centre de tes pistes, s'il est donné */
       eq(new URL(O('alternance', { centre: { lat: 45.758, lng: 4.835, nom: 'Lyon' } }).url).searchParams.get('address'), 'Lyon');
     },
+    'à ta mesure : la ville du profil n’est utile que si l’app sait où elle est': () => {
+      eq(villeConnue('lille').nom, 'Lille'); eq(villeConnue('St-Étienne').nom, 'Saint-Étienne');
+      eq(villeConnue('  LYON ').dept, '69');
+      eq(villeConnue('Trifouillis-les-Oies'), null); eq(villeConnue(''), null); eq(villeConnue(null), null);
+      const l = lieuDuProfil({ ville: 'Lille', rayon: 30 });
+      eq([l.famille, l.cle, l.ville, l.dept, l.rayon, l.profil], ['lieu', 'ville:lille', 'lille', '59', 30, true]);
+      eq(l.centre, [50.631, 3.047]);
+      eq(lieuDuProfil({ ville: 'Lille' }).rayon, 15);                 /* le rayon par défaut */
+      eq(lieuDuProfil({ ville: 'Nulle-Part' }), null);
+      eq(rayonDe({ rayon: 5 }), 5); eq(rayonDe({ rayon: 12 }), 15); eq(rayonDe(null), 15);
+      eq(metierEtiquetteDuProfil({ formation: 'BTS SIO SLAM' }).cle, 'dev');
+      eq(metierEtiquetteDuProfil({ formation: 'BUT informatique' }), null);
+      /* le profil se normalise : un rayon inconnu prend le plus proche */
+      eq(normalizeProfile({ rayon: 20 }).rayon, 15); eq(normalizeProfile({ rayon: 100 }).rayon, 30);
+      eq(normalizeProfile({ rayon: 'x' }).rayon, 15); eq(normalizeProfile({ ville: '  Lille  ' }).ville, 'Lille');
+      eq(normalizeProfile({}).ville, ''); eq(normalizeProfile({}).ecartees, []);
+    },
+    'à ta mesure : le profil ajoute ce que la barre ne dit pas, et seulement ça': () => {
+      const ctx = { today: '2026-10-06', villes: [], prenoms: [] };
+      const P = { ville: 'Lille', rayon: 5, formation: 'BTS SIO SISR' };
+      const A = (q, sans) => ajoutsProfil(interpreter(q, ctx), P, sans);
+      /* barre vide : ta ville et ton métier, l'un et l'autre visibles */
+      let a = A('');
+      eq(a.lieu.cle, 'ville:lille'); eq(a.metier.cle, 'reseau');
+      eq(a.interp.etiquettes.map(e => e.id), ['metier:reseau', 'lieu:ville:lille']);
+      /* une ville tapée gagne sur la tienne ; un métier tapé sur ta formation */
+      a = A('alternance dev Lyon');
+      eq(a.lieu, null); eq(a.metier, null); eq(a.lieuPropose, null);
+      /* un NOM tapé se cherche partout : pas de métier qui le bride, la ville oui */
+      a = A('Orange');
+      eq(a.metier, null); eq(a.lieu.cle, 'ville:lille');
+      /* retirés, ils restent PROPOSÉS — et ne partent plus */
+      a = A('alternance', { lieu: true, metier: true });
+      eq(a.lieu, null); eq(a.metier, null); eq(a.lieuPropose.cle, 'ville:lille'); eq(a.metierPropose.cle, 'reseau');
+      eq(a.interp.etiquettes.map(e => e.id), ['recherche:alternance']);
+      /* l'état de tes pistes ne regarde pas l'annuaire */
+      eq(A('sans nouvelles').lieu, null);
+      /* sans profil, rien ne change */
+      const z = interpreter('alternance', ctx);
+      eq(ajoutsProfil(z, {}).interp, z);
+      /* ce qui part : le CENTRE de la ville, ton rayon — jamais le texte du profil */
+      const u = questionsAnnuaire(A('alternance').interp, {});
+      const pt = new URL(u[0]);
+      eq(pt.pathname, '/near_point'); eq(pt.searchParams.get('radius'), '5');
+      eq(pt.searchParams.get('lat'), '50.631');
+      eq(pt.searchParams.get('activite_principale'), '62.02A,62.03Z,62.09Z,61.10Z,46.51Z');
+      ok(!u.join('|').includes('SISR') && !u.join('|').toLowerCase().includes('lille'));
+      /* une ville TAPÉE prend aussi ton rayon */
+      eq(new URL(questionsAnnuaire(interpreter('Lyon', ctx), { rayonVille: 30 })[0]).searchParams.get('radius'), '30');
+      eq(new URL(questionsAnnuaire(interpreter('Lyon', ctx), {})[0]).searchParams.get('radius'), '15');
+      eq(loinDe(5), 10); eq(loinDe(15), 30); eq(loinDe(30), 50); eq(loinDe(0), 30);
+    },
+    'à ta mesure : les offres de stage — un lien HelloWork, des mots MESURÉS porteurs': () => {
+      const ctx = { today: '2026-10-06', villes: [], prenoms: [] };
+      const S = (q, o) => offresStage(interpreter(q, ctx), o);
+      const a = new URL(S('stage réseau Lille').url);
+      eq(a.origin + a.pathname, HELLOWORK);
+      eq(a.searchParams.get('k'), 'stage réseau'); eq(a.searchParams.get('l'), 'Lille');
+      eq([...a.searchParams.keys()].sort(), ['k', 'l']);
+      eq(new URL(S('stage dev Lyon').url).searchParams.get('k'), 'stage développeur');
+      eq(new URL(S('stage cybersécurité Rennes').url).searchParams.get('k'), 'stage cybersécurité');
+      /* « stage support informatique » : une offre à Marseille — pas gardé */
+      eq(new URL(S('stage support Marseille').url).searchParams.get('k'), 'stage informatique');
+      eq(new URL(S('stage Nantes').url).searchParams.get('k'), 'stage informatique');
+      eq(S('alternance Lille'), null);                          /* pas un stage */
+      eq(S('stage'), null);                                     /* aucun lieu */
+      eq(S('Lille'), null);                                     /* rien ne dit stage */
+      ok(S('Lille', { recherche: 'stage' }));                    /* ton profil le dit */
+      eq(new URL(S('stage', { ville: 'Lyon', metier: 'dev' }).url).searchParams.get('l'), 'Lyon');
+    },
+    'à ta mesure : le site de l’établissement — sa taille et son travail, quand l’INSEE les sait': () => {
+      const j = { results: [
+        { siren: '111111111', nom_raison_sociale: 'FIDUCIAL INFORMATIQUE', activite_principale: '62.02A', tranche_effectif_salarie: '41',
+          matching_etablissements: [{ libelle_commune: 'VILLENEUVE-D’ASCQ', code_postal: '59650', tranche_effectif_salarie: '03',
+            activite_principale: '62.01Z', est_siege: false, caractere_employeur: 'O', latitude: 50.62, longitude: 3.14 }] },
+        { siren: '222222222', nom_raison_sociale: 'CAPGEMINI', activite_principale: '62.02A', tranche_effectif_salarie: '53',
+          matching_etablissements: [{ libelle_commune: 'LILLE', code_postal: '59000', tranche_effectif_salarie: 'NN', activite_principale: '62.02A' }] },
+        { siren: '333333333', nom_raison_sociale: 'ORANGE BUSINESS', activite_principale: '62.02A', tranche_effectif_salarie: '52',
+          matching_etablissements: [{ libelle_commune: 'LESQUIN', code_postal: '59810', tranche_effectif_salarie: '00' }] },
+        { siren: '444444444', nom_raison_sociale: 'SIEGE SEUL', activite_principale: '62.02A', tranche_effectif_salarie: '12',
+          siege: { libelle_commune: 'LILLE', code_postal: '59000', tranche_effectif_salarie: '03', est_siege: true } }
+      ] };
+      const [f, c, o, s1] = lireAnnuaire(j, {});
+      eq([f.trancheIci, f.effectifIci, f.nafIci], ['03', '6-9 salariés', '62.01Z']);
+      eq(travailDe(f).texte, 'développement de logiciels');      /* le travail du SITE */
+      eq([c.trancheIci, c.nafIci], ['', '']);                     /* « NN » : non diffusé */
+      eq(o.trancheIci, '');                                       /* « 00 » relevé sur des sites qui emploient */
+      eq(s1.trancheIci, '');                                      /* le siège montré faute de mieux n'est pas « ici » */
+      eq(carte({ r: f }).taille, '6 à 9 salariés ici · 500 à 999 en tout');
+      eq(carte({ r: c }).taille, '10 000 salariés et plus');
+      /* un code ancien du site ne dit rien : celui de l'entreprise reprend */
+      eq(travailDe({ naf: '62.02A', nafIci: '72.1Z' }).texte, 'conseil et intégration informatique');
+    },
+    'à ta mesure : « Pas pour moi » ne revient pas, ta formation passe devant': () => {
+      const r = (siren, naf, d) => ({ siren, nom: 'E' + siren, naf, employeur: true, distance: d, ville: 'Lille' });
+      const l = [r('100000001', '62.03Z', 2), r('100000002', '62.01Z', 12), r('100000003', '62.01Z', 3)];
+      const o = { userPos: { lat: 50.6, lng: 3 } };
+      eq(decouvertes([l], [], o).map(x => x.siren), ['100000001', '100000003', '100000002']);
+      /* SLAM → le développement d'abord, à égalité d'employeur, avant la distance */
+      eq(decouvertes([l], [], { ...o, metier: 'dev' }).map(x => x.siren), ['100000003', '100000002', '100000001']);
+      let e = ecarter([], { siren: '100000003', nom: 'E3' }, 5);
+      eq(e, [{ siren: '100000003', nom: 'E3', at: 5 }]);
+      eq(decouvertes([l], [], { ...o, ecartees: sirensEcartes(e) }).map(x => x.siren), ['100000001', '100000002']);
+      e = ecarter(e, { siren: '100000003', nom: 'E3' }, 9);      /* deux fois : une ligne */
+      eq(e.length, 1); eq(e[0].at, 9);
+      eq(rendre(e, '100000003'), []);
+      /* le profil garde les écartées, sans doublon, bornées */
+      const p = normalizeProfile({ ecartees: [{ siren: '100000003', nom: 'X', at: 1 }, { siren: '100000003' }, { siren: '12' }] });
+      eq(p.ecartees, [{ siren: '100000003', nom: 'X', at: 1 }]);
+      eq(normalizeProfile({ ecartees: Array.from({ length: 320 }, (_, i) => ({ siren: String(100000000 + i) })) }).ecartees.length, 300);
+    },
+    'à ta mesure : « Nouveau » — seulement en refaisant une recherche': () => {
+      const u1 = 'https://x.test/search?q=a&page=1', u1p2 = 'https://x.test/search?q=a&page=2';
+      eq(cleVus([u1]), cleVus([u1p2]));                            /* la page ne change pas la recherche */
+      ok(cleVus([u1]) !== cleVus(['https://x.test/search?q=b&page=1']));
+      let v = lireVus(null);
+      const k = cleVus([u1]);
+      eq([...nouveauxDe(v, k, ['111111111'])], []);                  /* la première fois, rien n'est « nouveau » */
+      v = noterVus(v, k, ['111111111', '222222222'], 1);
+      eq([...nouveauxDe(v, k, ['111111111', '333333333'])], ['333333333']);
+      v = lireVus(JSON.stringify(noterVus(v, k, ['333333333'], 2)));
+      eq([...nouveauxDe(v, k, ['333333333'])], []);
+      /* borné : les plus vieilles recherches partent */
+      for (let i = 0; i < VUS_RECHERCHES + 5; i++) v = noterVus(v, 'k' + i, ['111111111'], 10 + i);
+      eq(Object.keys(v.r).length, VUS_RECHERCHES); ok(!v.r[k]);
+      eq(lireVus('pas du json'), { v: 1, r: {} });
+    },
+    'à ta mesure : le site par Clearbit — le nom exact, jamais un homonyme étranger': () => {
+      const L = (nom, l) => lireClearbit(l.map(([name, domain]) => ({ name, domain })), nom);
+      /* relevé le 6/10 : le premier résultat était souvent un autre */
+      eq(L('Advens', [['Leading BIM Service Provider', 'advenser.com'], ['Advens', 'advens.fr'], ['ADVENS - HOSTING', 'advens.ru']]), 'https://advens.fr');
+      eq(L('Inetum', [['Inetum', 'gfi-info.fr'], ['Inetum', 'inetum.com']]), 'https://inetum.com');   /* le domaine qui EST le nom */
+      eq(L('Keyrus', [['Keyrus', 'keyrus.consulting'], ['Keyrus', 'keyrus.com']]), 'https://keyrus.com');
+      eq(L('Linkt', [['Linktree', 'linktr.ee'], ['Linkt', 'linkt.com.au']]), '');                   /* l'homonyme australien */
+      eq(L('Trustteam', [['Trustteam', 'trustteam.be'], ['Trustteam', 'trustteam.fr']]), 'https://trustteam.fr');
+      eq(L('Euro Information', [['Euro-Information', 'e-i.com']]), 'https://e-i.com');
+      eq(L('Incomm', [['InComm Payments', 'incomm.com']]), '');
+      eq(lireClearbit('pas une liste', 'X'), ''); eq(lireClearbit(null, 'X'), '');
+      eq(L('Evil', [['Evil', 'javascript:alert(1)']]), '');
+      eq(questionClearbit('Euro Information'), CLEARBIT + 'Euro%20Information');
+      eq(questionClearbit(''), '');
+    },
+    'à ta mesure : le marché — les embauches prévues (BMO 2026), la région quand le département se tait': () => {
+      eq(BMO.size, 101);
+      const n = marche('59', 'reseau');
+      eq([n.lieu, n.quoi], ['Nord', 'réseau et support']); ok(n.n >= 30 && n.part > 0 && n.part <= 100);
+      eq(marche('59', 'dev').quoi, 'développement'); eq(marche('59', '').quoi, 'informatique');
+      ok(marche('59', '').n === marche('59', 'dev').n + marche('59', 'reseau').n);
+      eq(marche('23', 'dev').lieu, 'Nouvelle-Aquitaine');          /* trop peu dans la Creuse : la région */
+      eq(marche('99', 'dev'), null); eq(marche('', 'dev'), null);
+    },
+    'à ta mesure : l’aide à l’embauche d’un apprenti — un montant sûr, ou rien': () => {
+      eq([niveauDiplome('BTS SIO SISR'), niveauDiplome('BUT informatique'), niveauDiplome('Master cybersécurité'),
+          niveauDiplome('Titre pro TSSR'), niveauDiplome('Licence pro ASUR'), niveauDiplome('Bac pro SN'),
+          niveauDiplome('CAP'), niveauDiplome('École 42'), niveauDiplome('')], [5, 6, 7, 5, 6, 4, 3, 0, 0]);
+      const P = { recherche: 'alternance', formation: 'BTS SIO' };
+      eq(aideEmbauche({ tranche: '12' }, P, '2026-10-06'), { montant: 4500, grande: false });
+      eq(aideEmbauche({ tranche: '53' }, P, '2026-10-06'), { montant: 1500, grande: true });
+      eq(aideEmbauche({ tranche: '', categorie: 'PME' }, P, '2026-10-06').montant, 4500);
+      eq(aideEmbauche({ tranche: 'NN' }, P, '2026-10-06'), null);           /* taille inconnue : rien */
+      eq(aideEmbauche({ tranche: '12' }, { ...P, formation: 'Master' }, '2026-10-06').montant, 2000);
+      eq(aideEmbauche({ tranche: '53' }, { ...P, formation: 'Master' }, '2026-10-06').montant, 750);
+      eq(aideEmbauche({ tranche: '53' }, { ...P, formation: 'Bac pro' }, '2026-10-06'), null);  /* pas prévu */
+      eq(aideEmbauche({ tranche: '12' }, { ...P, debut: '2027-09-01' }, '2026-10-06'), null);  /* après le dispositif */
+      eq(aideEmbauche({ tranche: '12' }, P, AIDE_FIN), null);
+      eq(aideEmbauche({ tranche: '12' }, { ...P, recherche: 'stage' }, '2026-10-06'), null);
+      eq(aideEmbauche({ tranche: '12' }, { ...P, formation: 'École 42' }, '2026-10-06'), null);
+      eq(euros(4500), '4\u202f500\u00a0€'); eq(euros(750), '750\u00a0€');
+    },
+    'à ta mesure : une faute de frappe se PROPOSE, jamais ne s’applique': () => {
+      eq(fautes('lile', 'lille', 1), 1); eq(fautes('stgae', 'stage', 1), 1);   /* deux lettres inversées : une faute */
+      eq(fautes('abcd', 'wxyz', 1), 2);
+      eq([fautesPermises('abc'), fautesPermises('lile'), fautesPermises('toulouze')], [0, 1, 2]);
+      const C = q => correction(q);
+      eq(C('alternance Lile').q, 'alternance Lille'); eq(C('alternance Lile').label, 'Lille');
+      eq(C('stgae Lille').q, 'stage Lille');
+      eq(C('saint etiene').q, 'Saint-Étienne');
+      eq(C('alternanse').label, 'Alternance');
+      eq(C('stage reseua').label, 'Réseau');
+      /* ce qui se comprend déjà, ou ce qui ne ressemble à rien, ne bouge pas */
+      for (const q of ['alternance Lille', 'Orange', 'Thales', 'Sopra', 'pme', 'abc', '59', '', 'devis', 'Lidl', 'Alten', 'Vinci'])
+        eq(C(q), null, q);
+      /* ce qui trouve quelque chose tel quel n'est pas une faute (« Lilly » peut être une piste) */
+      eq(correction('Lilly', null, t => t === 'Lilly'), null);
+      ok(correction('Lilly'));
+    },
     'fiche enrichie : la question ne porte QUE le SIREN, ou le nom sur un geste': () => {
       const u = new URL(questionSiren('326820065'));
       eq(u.origin, ANNUAIRE); eq(u.searchParams.get('q'), '326820065');
@@ -1837,7 +2027,7 @@ export async function runSelfTests(){
          ressuscitait des pistes d'avant la v3 sur un appareil « effacé » */
       ok(CLES_A_EFFACER.includes(OLD_V2) && CLES_A_EFFACER.includes(OLD_V1));
       for (const k of [DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, SYNC_KEY,
-                       RELAYS_KEY, TURN_KEY, DEVICE_KEY, DEVICES_KEY, PROMO_KEY, VAULT_KEY, ANALYSIS_KEY])
+                       RELAYS_KEY, TURN_KEY, DEVICE_KEY, DEVICES_KEY, PROMO_KEY, VAULT_KEY, ANALYSIS_KEY, VUS_KEY])
         ok(CLES_A_EFFACER.includes(k), k + ' doit partir');
       /* tout ce qui se scelle est une donnée : tout ce qui se scelle s'efface */
       for (const k of SEALABLE) ok(CLES_A_EFFACER.includes(k), k + ' (scellable) doit partir');

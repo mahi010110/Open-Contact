@@ -9,6 +9,9 @@
 # Dépendances installées localement (Playwright & co. pour les tests)
 node_modules/
 
+# Le cache de Python, que les sondes en `.py` laissent derrière elles
+__pycache__/
+
 # Système et éditeurs
 .DS_Store
 Thumbs.db

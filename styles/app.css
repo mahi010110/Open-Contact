@@ -316,6 +316,9 @@ html[data-theme="dark"] .field select{
 }
 .pf-grp>legend+*{clear:both}
 .pf-grp .datechips{margin-bottom:12px}
+/* « Autour de » : la ville, puis ses trois rayons juste dessous — le
+   rayon appartient à la ville, il ne fait pas un groupe à lui */
+.pf-ou .pf-rayon{margin:8px 0 0}
 .pf-duree{font-size:var(--text-12);color:var(--text-muted)}
 /* « Mon parcours » : la liste des expériences, puis « Ajouter » dessous */
 .pf-par{margin-bottom:8px}
@@ -828,6 +831,30 @@ html[data-theme="dark"] .field select{
 }
 /* ajoutée : un mot, devant — l'état, pas un bouton */
 .dc-ok{display:inline-flex;align-items:center;gap:3px;margin-right:8px;color:var(--accent);font-weight:var(--weight-semibold)}
+/* « nouveau » et « ta formation » : un mot devant, en accent — ce qui
+   CHANGE ou ce qui DÉPARTAGE (§6, règle 1), jamais un mark-* : rien ne
+   presse */
+.dc-neuf,.dc-ton{margin-right:8px;color:var(--accent);font-weight:var(--weight-semibold)}
+/* la ligne porte le geste « Pas pour moi » : la rangée défile sous le
+   doigt, et à la souris la croix vit au bout */
+.dc-row .sw-in{display:flex;align-items:stretch}
+.dc-row .dc-main{flex:1;min-width:0}
+.dc-row .hov-del{margin-right:6px}
+.dc-sel .sw-in{background:transparent}
+/* écarter n'est pas supprimer : le dessous ne prend pas le rouge */
+.dc-row .sw-under{background:var(--surface-chrome);color:var(--text-body)}
+@media (hover:hover){
+  .dc-row .hov-del:hover{color:var(--text-body)}
+}
+.dc-row .hov-del:focus-visible{color:var(--text-body)}
+/* LE MARCHÉ : une donnée, en petit, sous les offres — les chiffres en
+   gras, la source nommée au bout */
+.dc-marche{display:flex;align-items:flex-start;gap:6px;margin:2px 0 10px;
+  font-size:var(--text-12);line-height:1.45;color:var(--text-muted)}
+.dc-marche .ic{flex:none;margin-top:2px}
+.dc-marche b{font-family:var(--font-mono);color:var(--text-body);font-weight:var(--weight-semibold)}
+.dc-marche-src{font-family:var(--font-mono);font-size:var(--text-11)}
+.dc-ecl{margin-top:4px}
 .dc-etat{margin:0;padding:12px 2px;font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted)}
 .dc-err{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px}
 .dc-vue .tr-more{margin-top:6px}
@@ -1586,6 +1613,10 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;flex:none;
 }
 .modal-f .btn{flex:1 1 40%}
+/* un secondaire dans le pied se TAILLE À SON MOT (§6, les trois formes) :
+   le primaire prend le reste — à parts égales, « Ajouter à mes pistes »
+   pliait sur deux lignes à côté de « Pas pour moi » */
+.modal-f .btn-sm{flex:0 0 auto}
 .x{
   flex:none;min-width:var(--control-h-touch);min-height:var(--control-h-touch);
   padding:0;display:inline-flex;align-items:center;justify-content:center;

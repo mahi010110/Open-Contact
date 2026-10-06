@@ -41,6 +41,7 @@ export const MISSIONS_KEY = 'oc_missions_v1'; /* bons de mission confiés à l�
 export const ORDINATEUR_KEY = 'oc_companion_v1'; /* association à l’ordinateur (clé de canal — toujours sous coffre) */
 export const ANALYSIS_KEY = 'oc_analysis_v1'; /* dernière analyse d'e-mails à reprendre / trier */
 export const PROPOSALS_KEY = 'oc_proposals_v1'; /* propositions de l'assistant IA (MCP) à trier */
+export const VUS_KEY = 'oc_vus_v1';           /* « À découvrir » : ce que chaque recherche a déjà montré (« Nouveau ») */
 export const THEME_KEY = 'oc_theme';
 export const VIEW_KEY = 'oc_view';   /* héritée, plus écrite — épinglée par le test de contrat */
 export const OLD_V2 = 'oc_data_v2';
@@ -172,7 +173,7 @@ export async function kvDel(k){
 export const SEALABLE = new Set([DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY,
   TOMBS_KEY, GROUP_KEY, SYNC_KEY, RELAYS_KEY, TURN_KEY, DEVICE_KEY, DEVICES_KEY, PROMO_KEY, RING_KEY,
   CAMPAIGNS_KEY, MAIL_KEY, AI_KEY, MISSIONS_KEY, ORDINATEUR_KEY, ANALYSIS_KEY,
-  PROPOSALS_KEY]);
+  PROPOSALS_KEY, VUS_KEY]);
 let vKey = null;
 export function vaultAttach(key){ vKey = key || null; }
 export function vaultDetach(){ vKey = null; }
@@ -266,7 +267,7 @@ export const docClear = () => idbReq('readwrite', s => s.clear());
    Le thème n'y est pas : c'est un réglage d'affichage, pas une donnée. */
 export const CLES_A_EFFACER = [DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, GROUP_KEY,
   SYNC_KEY, RELAYS_KEY, TURN_KEY, PROMO_KEY, DEVICE_KEY, DEVICES_KEY, RING_KEY, VAULT_KEY,
-  CAMPAIGNS_KEY, MAIL_KEY, AI_KEY, MISSIONS_KEY, ORDINATEUR_KEY, ANALYSIS_KEY, PROPOSALS_KEY,
+  CAMPAIGNS_KEY, MAIL_KEY, AI_KEY, MISSIONS_KEY, ORDINATEUR_KEY, ANALYSIS_KEY, PROPOSALS_KEY, VUS_KEY,
   OLD_V2, OLD_V1];
 export async function effacerCetAppareil(){
   for (const k of CLES_A_EFFACER) await kvDel(k);
