@@ -342,6 +342,16 @@ relisent). Quatre formes : l'enveloppe NIP-59, l'ancien message direct,
 les données d'application (NIP-78), un kind ordinaire. Rien de lisible
 n'est publié. La conception de la demande attend ce relevé.
 
+**Premier relevé (CI, 7 octobre 2026)** : sur les sept relais de l'app,
+**six gardent les quatre formes et les rendent** à une autre connexion,
+anonyme, qui ne connaît que l'étiquette — l'enveloppe NIP-59 comprise,
+qu'aucun n'a réservée à un destinataire authentifié. Le septième
+(`relay.froth.zone`) était injoignable, comme dans la sonde du portage
+le même jour. La boîte aux lettres est donc possible avec ce qu'on a :
+pas un relais de plus, pas un compte. Reste la DURÉE : les marqueurs
+datés se relisent aux passages planifiés (lundi et jeudi) et diront,
+sur deux semaines, si une demande de 14 jours tient.
+
 ## Comment on saura que c'est juste
 
 **Le moteur** (`tests.js`, `?test`) :
