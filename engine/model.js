@@ -9,7 +9,7 @@ import { uid, extractCity, todayISO, fmtDate } from './utils.js';
 import { normalizeParcours, parcoursDe, phraseParcours } from './parcours.js';
 import { normalizeAmis, idAmiValide } from './amis.js';
 
-export const APP_VERSION = '6.54.0';
+export const APP_VERSION = '6.54.1';
 
 export const DOMAINS = {
   esn:     { label:'ESN / Services IT',       color:'#4C9FD8' },

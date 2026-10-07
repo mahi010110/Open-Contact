@@ -310,6 +310,38 @@ donné reste le plus petit possible, et il ne se redonne jamais.
 Gardé par `e2e-amis.mjs` — la fuite d'abord, le parcours joué à trois —
 et sept auto-tests (`?test`).
 
+## Lot 3 — ce qu'il faut savoir avant de construire (7 octobre 2026)
+
+**Le constat qui change tout** : tout ce que l'app fait passer par les
+relais est aujourd'hui ÉPHÉMÈRE — la découverte, le portage, la sync de
+mes appareils n'atteignent que qui écoute au même instant. Une demande
+à un ami doit au contraire l'ATTENDRE : il ouvrira l'app dans une heure
+ou demain. Il faut donc que les relais gardent une lettre chiffrée pour
+quelqu'un qui n'est pas là. Personne ne l'a jamais mesuré ici.
+
+Ce que disent les sources :
+
+- **Les messages privés de Nostr** (NIP-17) passent par une enveloppe
+  (NIP-59, kind 1059) chiffrée (NIP-44), postée par une clé jetable. La
+  même norme conseille aux relais de ne la rendre qu'à son destinataire
+  AUTHENTIFIÉ (NIP-42) : une lecture anonyme peut donc être refusée,
+  et lire « comme le destinataire » demande une clé à lui.
+- **La durée de garde n'est écrite nulle part** : chaque relais décide.
+  Les messages privés sont souvent gardés un mois ou moins ; une
+  demande vit 14 jours (règle 7).
+- **La présentation se fait à double accord** (Fred Wilson, 2009 : *the
+  double opt-in introduction*) : celui qui présente demande à chacun,
+  séparément, avant de mettre en relation. C'est la règle 5 (« deux
+  oui »), et c'est ce qui protège le temps de la personne présentée.
+
+Ce qu'on mesure d'abord, en CI (`tests/e2e/sonde-boite-relais.mjs`) :
+quels relais de l'app ACCEPTENT une lettre, la RENDENT à une autre
+connexion qui ne connaît que son étiquette, et la GARDENT combien de
+jours (chaque passage de la CI laisse un marqueur daté que les suivants
+relisent). Quatre formes : l'enveloppe NIP-59, l'ancien message direct,
+les données d'application (NIP-78), un kind ordinaire. Rien de lisible
+n'est publié. La conception de la demande attend ce relevé.
+
 ## Comment on saura que c'est juste
 
 **Le moteur** (`tests.js`, `?test`) :

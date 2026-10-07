@@ -134,6 +134,16 @@ jobs:
         continue-on-error: true
         timeout-minutes: 6
         run: OC_SONDE_RELAIS=1 node tests/e2e/sonde-portage-relais.mjs
+      # LA BOÎTE AUX LETTRES (docs/reseau.md, lot 3). Une demande à un ami
+      # doit l'ATTENDRE — tout le reste du transport est éphémère. Quels
+      # relais gardent un message chiffré et le rendent à une autre
+      # connexion, et combien de jours : chaque passage laisse un marqueur
+      # daté que les suivants relisent (la planification du lundi et du
+      # jeudi en fait une mesure sur deux semaines). Informative.
+      - name: Sonde de la boîte aux lettres — un relais garde-t-il une lettre ?
+        continue-on-error: true
+        timeout-minutes: 8
+        run: OC_SONDE_RELAIS=1 node tests/e2e/sonde-boite-relais.mjs
 
   # DEUX MACHINES, DEUX RÉSEAUX, LA VRAIE CHAÎNE — à la main seulement.
   # Deux jobs = deux VM, deux adresses publiques, deux NAT : l'app telle
