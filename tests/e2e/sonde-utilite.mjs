@@ -93,8 +93,13 @@ console.log('① L’ANNUAIRE — comptes et compléments\n');
 console.log('\n② LE BODACC — les annonces d’une entreprise, toutes familles\n');
 {
   const B = 'https://bodacc-datadila.opendatasoft.com/api/explore/v2.1/catalog/datasets/annonces-commerciales/records';
-  const familles = {}, recents = {};
-  let lues = 0;
+  const familles = {}, recents = {}, evts = {};
+  let lues = 0, formes = 0;
+  const DEPUIS_24 = new Date(Date.now() - 730 * 864e5).toISOString().slice(0, 10);
+  const EVENEMENTS = [['fusion', /fusion|absorb/i], ['rachat de fonds', /fonds acquis|achat|cession/i],
+    ['nouvel établissement', /cr[ée]ation d'un [ée]tablissement|[ée]tablissement secondaire|ouverture/i],
+    ['direction', /administration|dirigeant|g[ée]rant|pr[ée]sident/i], ['capital', /capital/i],
+    ['transfert du siège', /transfert|si[èe]ge social/i], ['nouvelle activité', /nouvelle branche|activit[ée]/i]];
   for (const x of ech.slice(0, 30)){
     const r = await depuisPage(`${B}?where=${encodeURIComponent(`registre like "${x.siren}"`)}&order_by=dateparution%20desc&limit=20`);
     if (!r.ok){ console.log('   BODACC', r.statut, r.erreur || r.debut); continue; }
@@ -108,9 +113,19 @@ console.log('\n② LE BODACC — les annonces d’une entreprise, toutes famille
       const d = a.modificationsgenerales || a.listeetablissements || a.acte || a.depot || '';
       console.log(`   · ${x.nom_complet} · ${a.dateparution} · ${a.familleavis} (${a.familleavis_lib}) · ${String(typeof d === 'string' ? d : JSON.stringify(d)).slice(0, 260)}`);
     }
+    /* TOUS les champs d'une annonce récente qui n'est pas un dépôt de
+       comptes : la forme exacte, pour lire un événement sans le deviner */
+    for (const a of res.filter(a => a.familleavis !== 'dpc' && String(a.dateparution) >= DEPUIS_24)){
+      const champs = Object.entries(a).filter(([k, v]) => v != null && v !== '' && !['id', 'publicationavis', 'publicationavis_facette', 'url_complete', 'numerodepartement', 'region_code', 'region_nom_officiel', 'departement_nom_officiel', 'numeroannonce', 'parution', 'tribunal', 'registre'].includes(k));
+      if (formes < 14){ formes++; console.log(`   ◦ ${a.familleavis} · ${a.dateparution} · ${x.nom_complet}\n       ${champs.map(([k, v]) => k + '=' + String(typeof v === 'string' ? v : JSON.stringify(v)).slice(0, 420)).join('\n       ')}`); }
+      const txt = champs.map(([, v]) => typeof v === 'string' ? v : JSON.stringify(v)).join(' ');
+      for (const [nom, re] of EVENEMENTS) if (re.test(txt) && !(evts[nom] || new Set()).has(x.siren)) (evts[nom] = evts[nom] || new Set()).add(x.siren);
+    }
     await pause(400);
   }
   console.log(`   ${lues} entreprises lues · familles : ${court(familles)} · depuis oct. 2023 : ${court(recents)}`);
+  console.log(`   ÉVÉNEMENTS sur 24 mois (entreprises distinctes, sur ${lues}) : ${Object.entries(evts).map(([k, v]) => k + ' ' + v.size).join(' · ') || 'aucun'}`);
+  console.log(`   au moins un : ${new Set(Object.values(evts).flatMap(v => [...v])).size}/${lues}`);
 }
 
 /* ---------- ③ Wikidata élargi ---------- */

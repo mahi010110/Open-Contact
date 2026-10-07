@@ -259,10 +259,9 @@ Rien ne sort : le parcours vit dans le profil, que seule la sync entre
 TES appareils transporte. `e2e-parcours.mjs` le vérifie depuis l'état
 réel de l'app.
 
-**Avant le lot 2, deux décisions restent au mainteneur** (« Encore à
-trancher ») : le mot pour « ami » (§7), et la façon dont le groupe entre
-dans le premier cercle — le mainteneur a annoncé sa propre idée du groupe,
-qui n'est pas encore écrite. Le lot 2 ne commence pas sans elles.
+**Les deux décisions qui retenaient le lot 2 sont prises** (7 octobre
+2026, plus bas) : le mot est « ami », et un groupe est un code qu'on
+garde. Le lot 2 peut commencer.
 
 ## Comment on saura que c'est juste
 
@@ -296,14 +295,32 @@ qui n'est pas encore écrite. Le lot 2 ne commence pas sans elles.
 4. **On fait la demande, l'app trouve, puis les demandes d'accord
    commencent.**
 
+## Décisions du mainteneur (7 octobre 2026)
+
+5. **Le mot est « ami »** : une personne dont tu as le profil. « Groupe »
+   reste le collectif, « contact » la personne dans une entreprise (§7).
+6. **Un groupe est un code qu'on garde.** On le rejoint une fois, par QR
+   ou par code, et l'app s'en souvient : tes demandes passent par tous
+   ses membres, sans avoir leurs profils un par un. C'est ce qui change
+   la règle de §8 « l'app ne tient aucune liste » : elle garde le CODE du
+   groupe, jamais la liste de ses membres.
+7. **Les maillons du milieu sont remerciés, pas consultés.** La demande
+   passe d'elle-même ; chacun peut couper le passage pour lui dans ses
+   réglages (le droit de ne plus servir de chemin, sans quitter personne).
+
 ## Encore à trancher
 
-- **Le mot** pour « ami » (§7).
-- **D'où part la demande** : proposé ici depuis la piste, la barre y
-  menant. Une demande sans piste n'aurait nulle part où ranger sa réponse.
-- **Les maillons du milieu** : remerciés seulement (proposé), ou consultés.
-- **Arrêter de faire passer les demandes** : le droit d'un ami de ne plus
-  servir de chemin, sans quitter personne.
+- **D'où part la demande** — à réfléchir ensemble (lot 3). La proposition
+  de l'assistant, le 7 octobre : la demande vise toujours **une
+  entreprise**, et part de là où on la regarde — la fiche d'une piste, ou
+  l'aperçu de « À découvrir » (demander y ajoute la piste, d'un geste,
+  avec Annuler). Pas depuis la barre sans entreprise (« quelqu'un dans la
+  cyber à Lille ? ») tant que la bêta ne l'a pas demandé : c'est la plus
+  indiscrète (tout l'entourage apprend ce que tu cherches) et la moins
+  précise (des listes, pas une personne, et nulle part où les ranger).
+  Rappel : la recherche dans le PARCOURS des amis (lot 2) ne demande
+  rien — elle s'affiche d'elle-même ; la demande ne sert qu'à atteindre
+  leurs pistes et les cercles 2 et 3.
 - **Le fil du groupe** (ci-dessous).
 
 ## Gardé de côté : le fil du groupe
