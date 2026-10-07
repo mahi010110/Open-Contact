@@ -541,6 +541,23 @@ export function montrerChange(id){
     setTimeout(() => n.classList.remove('vu-change'), msJeton('--dur-vu') + 120);
   }, msJeton('--dur-out') + 30);
 }
+/* La même encre pour des CHAMPS que l'app vient de remplir sous tes yeux
+   — l'entreprise choisie dans la liste du nom écrit la ville, l'adresse,
+   ce qu'elle fait. Sans elle, le remplissage passe inaperçu : on a tapé
+   un nom, et trois champs plus bas ont changé sans un signe (la
+   question ③ de §4). Le lavis se pose sur le `.field` entier : un
+   `<input>` ne porte pas de `::after`. */
+export function montrerRemplis(champs){
+  if (matchMedia('(prefers-reduced-motion:reduce)').matches) return;
+  for (const c of champs){
+    const n = c && (c.closest('.field') || c);
+    if (!n) continue;
+    n.classList.remove('vu-change');
+    void n.offsetWidth;
+    n.classList.add('vu-change');
+    setTimeout(() => n.classList.remove('vu-change'), msJeton('--dur-vu') + 120);
+  }
+}
 
 document.addEventListener('keydown', e => {
   if (!stack.length) return;

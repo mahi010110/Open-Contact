@@ -7,8 +7,12 @@
 import { esc, debounce, surUnRang } from '../engine/utils.js';
 import { DOMAINS, POSITIONS, VECU, pushHist } from '../engine/model.js';
 import { suggestAddresses } from '../engine/geo.js';
+import { complements } from '../engine/annuaire.js';
+import { deptDePiste } from '../engine/requete.js';
+import { brancherNom } from './nom-annuaire.js';
+import { connaitre } from './fiche-annuaire.js';
 import { bus, saveData, logJ } from './state.js';
-import { openSheet, toast, btn, clavier, champGrandit, champAOuvrir } from './dom.js';
+import { openSheet, toast, btn, clavier, champGrandit, champAOuvrir, montrerRemplis, annoncer } from './dom.js';
 
 const FIELDS = ['name','city','domain','desc','website','address','techs','process','tips'];
 
@@ -186,6 +190,37 @@ export function bindSharedFields(root){
   unRang(q('#edName'), q('#edCity'));
   unRang(q('#edTechs'));
 
+  /* ---- L'ENTREPRISE SE RECONNAÎT PENDANT QU'ON TAPE SON NOM ----
+     (ui/nom-annuaire.js) Le choix rattache la piste à l'annuaire, et ce
+     qui MANQUE se remplit ici, sous les yeux, avant « Enregistrer » —
+     jamais ce qui est déjà écrit (invariant ②). */
+  let entreprise = null;
+  brancherNom(q('#edName'), {
+    dept: () => deptDePiste({ city: q('#edCity').value, address: q('#edAddress').value }),
+    choisi: r => {
+      entreprise = r;
+      if (!r) return;
+      const brouillon = { city: q('#edCity').value, address: q('#edAddress').value,
+                          desc: q('#edDesc').value, domain: q('#edDomain').value, siren: 'x' };
+      const comp = complements(brouillon, r, '');
+      const remplis = [];
+      if (comp.city){ q('#edCity').value = comp.city; remplis.push(q('#edCity')); }
+      if (comp.domain){ q('#edDomain').value = comp.domain; remplis.push(q('#edDomain')); }
+      if (comp.desc){ q('#edDesc').value = comp.desc; q('#edDesc').dispatchEvent(new Event('input')); remplis.push(q('#edDesc')); }
+      if (comp.address){
+        q('#edAddress').value = comp.address;
+        pousseAdresse();
+        picked = comp.lat != null ? { lat: comp.lat, lng: comp.lng } : null;
+        remplis.push(q('#edAddress'));
+      }
+      /* ce qui vient d'être rempli se VOIT (un lavis bref) et se DIT
+         (le libellé des champs, pour qui n'a pas l'écran) */
+      montrerRemplis(remplis);
+      if (remplis.length) annoncer('Rempli : ' + remplis.map(n =>
+        root.querySelector(`label[for="${n.id}"]`)?.textContent.trim().toLowerCase()).filter(Boolean).join(', '));
+    }
+  });
+
   q('#edAddress').addEventListener('input', e => { picked = null; acSearch(surUnRang(e.target.value)); });
   q('#edAddress').addEventListener('blur', () => setTimeout(acHide, 150));
 
@@ -209,6 +244,8 @@ export function bindSharedFields(root){
          réécrite à la main invalide les anciennes */
       if (picked){ c.lat = picked.lat; c.lng = picked.lng; }
       else if (c.address !== addrBefore){ c.lat = null; c.lng = null; }
+      /* l'entreprise choisie dans la liste, si le nom est resté le sien */
+      if (entreprise && c.name === entreprise.nom){ c.siren = entreprise.siren; connaitre(entreprise); }
       c.positions = Array.from(root.querySelectorAll('.dchip.on[data-p]')).map(b => b.dataset.p);
       const v = root.querySelector('.dchip.on[data-v]');
       /* chez soi, `vecuQui` reste vide : c'est moi. Le prénom ne

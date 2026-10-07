@@ -23,8 +23,9 @@
      LIGNE, et rien ne glisse sous le doigt quand la réponse arrive en
      retard ;
    ⑤ dans la fiche, « À savoir » est ouvert au pouce : la carte se voit
-     sans rien toucher ; « à qui écrire » vit avec les contacts tant que
-     la piste n'a pas d'adresse ;
+     sans rien toucher ; AUCUN lien sous les contacts — le dirigeant est
+     proposé dans « Ajouter un contact », LinkedIn à côté du nom
+     (minimalisme, 7 octobre 2026) ;
    ⑥ hors ligne : rien ne part, la carte montre ce que l'annuaire a dit,
      zéro erreur ;
    ⑦ 320 px à 200 % : rien ne déborde, aucune ligne rognée ; en sombre, le
@@ -153,7 +154,9 @@ const lireCarte = (p, sel) => p.evaluate(sel => {
     lignes: [...b.querySelectorAll('.ct .fk')].map(f => f.querySelector('.fk-l')?.textContent.trim() + ': ' + f.querySelector('.fk-v')?.textContent.replace(/\s+/g, ' ').trim()),
     sources: b.querySelector('.ct-src')?.textContent.replace(/\s+/g, ' ').trim() || '',
     logo: (() => { const i = b.querySelector('img.ct-logo'); return i ? { src: i.src, ref: i.referrerPolicy } : null; })(),
-    liens: [...b.querySelectorAll('.ap-liens a')].map(a => a.textContent.trim()),
+    /* les liens HORS de la carte : il n'y en a plus (minimalisme, 7 octobre) —
+       le seul lien de l'aperçu mène à la personne, dans la carte */
+    liens: [...b.querySelectorAll('a')].filter(a => !a.closest('.ct')).map(a => a.textContent.trim()),
     boutons: b.querySelectorAll('.ct .btn, .ct button').length
   };
 }, sel);
@@ -184,9 +187,10 @@ const lireCarte = (p, sel) => p.evaluate(sel => {
   if (/Md€|CA 20|création|sites/.test(JSON.stringify(s))) fail('le chiffre d’affaires, la création ou les sites reviennent : ' + JSON.stringify(s));
   if (s.sources !== 'Sources : Annuaire des entreprises · Wikipédia · Wikidata') fail('sources : ' + s.sources);
   if (!s.logo || s.logo.ref !== 'no-referrer' || !/Special:FilePath\/Sopra%20Steria%20logo\.svg\?width=96$/.test(s.logo.src)) fail('le logo : ' + JSON.stringify(s.logo));
-  if (!s.liens.includes('Page LinkedIn')) fail('la page LinkedIn de l’entreprise n’est pas proposée : ' + s.liens);
+  if (s.liens.length) fail('l’aperçu porte des liens hors de la carte (adresse, SIREN, fiche officielle, offres…) : ' + s.liens);
+  if (/SIREN|fiche officielle|Anciens de|Offres d’emploi/.test(JSON.stringify(s))) fail('l’aperçu redit ce qui n’aide pas à choisir : ' + JSON.stringify(s));
   if (s.boutons) fail(`la carte porte ${s.boutons} bouton(s) — on la lit, on ne la manipule pas`);
-  else console.log('pouce · ③ Wikipédia dit ce qu’elle fait ; missions (colle à ta formation), taille, à qui écrire, dans l’ordre ; la page LinkedIn, trois sources citées ✓');
+  else console.log('pouce · ③ Wikipédia dit ce qu’elle fait ; missions (colle à ta formation), taille, à qui écrire, dans l’ordre ; aucun lien hors de la carte, trois sources citées ✓');
   /* ② ce qui est parti pour cette carte */
   const partis = carteSort(journal);
   const wd = partis.filter(u => u.startsWith('https://query.wikidata.org'));
@@ -212,7 +216,7 @@ const lireCarte = (p, sel) => p.evaluate(sel => {
   await p.waitForTimeout(350);
   const pos = () => p.evaluate(() => {
     const r = document.querySelector('.overlay .modal-f button:last-child').getBoundingClientRect();
-    const l = document.querySelector('.overlay .ap-liens a')?.getBoundingClientRect();
+    const l = document.querySelector('.overlay .ct-src')?.getBoundingClientRect();
     return { pied: Math.round(r.top), lien: l ? Math.round(l.top) : null };
   });
   const avant = await pos();
@@ -222,7 +226,7 @@ const lireCarte = (p, sel) => p.evaluate(sel => {
   if (d.alerte !== 'Redressement judiciaire' || !/depuis le 05\/08\/2026/.test(d.faits)) fail('la procédure collective ne se dit pas en ligne : ' + JSON.stringify(d));
   if (!/BODACC/.test(d.sources)) fail('le BODACC n’est pas cité : ' + d.sources);
   if (avant.pied !== apres.pied) fail(`le geste plein a glissé sous le doigt quand le BODACC a répondu (${avant.pied} → ${apres.pied})`);
-  if (avant.lien != null && Math.abs(avant.lien - apres.lien) > 1) fail(`les liens ont glissé quand le BODACC a répondu (${avant.lien} → ${apres.lien})`);
+  /* la ligne de source, elle, PEUT descendre (le BODACC s'y ajoute) : seul le geste plein ne doit pas bouger */
   if (!process.exitCode) console.log('pouce · ④ « Redressement judiciaire » en ligne, cité au BODACC, et rien n’a glissé sous le doigt ✓');
   await p.screenshot({ path: `${SHOTS}/99-carte-alerte-pouce.png` });
   await ctx.close();
@@ -241,17 +245,30 @@ const lireCarte = (p, sel) => p.evaluate(sel => {
     quoi: document.querySelector('#faCarte .ct-quoi p')?.textContent.trim() || '',
     enBref: [...document.querySelectorAll('#fiKnow .fk-l')].some(l => /en bref/i.test(l.textContent)),
     lignes: [...document.querySelectorAll('#faCarte .fk-l')].map(l => l.textContent.trim()),
-    qui: (() => { const q = document.querySelector('#faCts .fa-qui'); return q ? q.querySelector('.fk-l').textContent.trim() + ' '
-      + q.querySelector('.fk-v').textContent.replace(/\s+/g, ' ').trim() : ''; })()
+    /* ce qui vit sous l'en-tête « Contacts » quand il n'y en a pas : rien */
+    sousContacts: (() => { const h = document.querySelector('#fiCtAdd')?.closest('.field'); return h
+      ? [...h.querySelectorAll('a, p')].map(x => x.textContent.trim()) : ['?']; })()
   }));
   if (!f.ouvert || !f.visible) fail('au pouce, la carte de la fiche ne se voit pas sans toucher : ' + JSON.stringify(f));
   if (f.quoi !== 'SOC à Lille, trois alternants') fail('ta phrase ne passe pas devant Wikidata : ' + f.quoi);
   if (f.enBref) fail('« En bref » se redit à côté de la carte');
   if (f.lignes.join(',') !== 'Missions,Taille,Aide,Site') fail('la carte de la fiche : ' + f.lignes);
-  /* la piste n'a personne : à qui écrire vit avec les contacts, pas dans la carte */
-  if (f.qui !== 'Écrire à Thomas Leroy, président LinkedIn') fail('la fiche ne dit pas à qui écrire, avec les contacts : ' + f.qui);
+  /* la piste n'a personne : RIEN sous l'en-tête des contacts — ni phrase, ni lien */
+  if (f.sousContacts.length) fail('sous « Contacts », la fiche pose encore : ' + f.sousContacts);
   for (const u of journal){ const w = PRIVES.find(m => pliees(u).includes(m)); if (w) fail(`fiche : « ${w} » est sorti : ${u}`); }
-  if (!process.exitCode) console.log('pouce · ⑤ la fiche : « À savoir » ouvert, la carte se voit, ta phrase passe devant Wikidata ; « Écrire à Thomas Leroy » avec les contacts ✓');
+  /* … c'est en AJOUTANT un contact qu'on cherche à qui écrire : le
+     dirigeant y est proposé, LinkedIn à côté du nom */
+  await p.click('#fiCtAdd');
+  await p.waitForSelector('#ceName');
+  const aj = await p.evaluate(() => ({
+    props: [...document.querySelectorAll('.overlay .ce-sugg .prop-chip')].map(b => b.textContent.replace(/\s+/g, ' ').trim()),
+    li: (() => { const a = document.querySelector('.overlay .ce-gens'); return a ? new URL(a.href).searchParams.get('keywords') : ''; })()
+  }));
+  if (aj.props.join() !== 'Thomas Leroy président') fail('« Ajouter un contact » ne propose pas le dirigeant : ' + aj.props);
+  if (aj.li !== 'Advens Lycée Baggio') fail('« Trouver sur LinkedIn » ne cherche pas l’entreprise et ton école : ' + aj.li);
+  await p.evaluate(() => { const o = [...document.querySelectorAll('.overlay')].pop(); o?.querySelector('button.x')?.click(); });
+  await p.waitForTimeout(400);
+  if (!process.exitCode) console.log('pouce · ⑤ la fiche : « À savoir » ouvert, la carte se voit, ta phrase passe devant Wikidata ; rien sous les contacts — le dirigeant et LinkedIn attendent dans « Ajouter un contact » ✓');
   await p.evaluate(() => document.querySelector('#fiKnow').scrollIntoView({ block: 'start' }));
   await p.screenshot({ path: `${SHOTS}/99-carte-fiche-pouce.png` });
   /* ⑨ le composeur reçoit la matière : ici « En bref » existe, il parle seul */
@@ -311,7 +328,7 @@ for (const [nom, o] of [['320-200', { zoom: '200%' }], ['sombre', { sombre: true
     const lum = ([r, g, b]) => (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
     const logo = document.querySelector('.overlay img.ct-logo');
     return {
-      deborde: [...m.querySelectorAll('.ct *, .ap-liens *')].filter(x => x.getBoundingClientRect().right > mr + 1).map(x => x.className || x.tagName).slice(0, 3),
+      deborde: [...m.querySelectorAll('.ct *, .ap *')].filter(x => x.getBoundingClientRect().right > mr + 1).map(x => x.className || x.tagName).slice(0, 3),
       rognes: [...m.querySelectorAll('.ct .fk-v, .ct .fk-l, .ct-quoi p')].filter(x => x.scrollWidth > x.clientWidth + 1).map(x => x.textContent),
       lateral: m.scrollWidth > m.clientWidth + 1,
       carreau: logo ? lum(rgb(getComputedStyle(logo).backgroundColor)) : null

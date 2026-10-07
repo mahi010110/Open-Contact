@@ -28,7 +28,6 @@ import { REGIONS } from './lieux.js';
 import { normName, distKm } from './utils.js';
 
 export const ANNUAIRE = 'https://recherche-entreprises.api.gouv.fr';
-export const FICHE_OFFICIELLE = 'https://annuaire-entreprises.data.gouv.fr/entreprise/';
 export const PAR_PAGE = 10;
 export const RAYON_KM = 10;
 export const RAYON_MAX = 50;     /* l'annuaire refuse au-delà */
@@ -537,7 +536,6 @@ export function versPiste(r, interp){
     positions: [], contacts: []
   };
 }
-export const ficheOfficielle = siren => /^\d{9}$/.test(String(siren || '')) ? FICHE_OFFICIELLE + siren : '';
 
 
 /* ============================================================
@@ -545,10 +543,10 @@ export const ficheOfficielle = siren => /^\d{9}$/.test(String(siren || '')) ? FI
 
    Une piste qui porte un SIREN se relit dans l'annuaire : la question ne
    contient QUE le SIREN — neuf chiffres publics, qui ne disent rien de
-   toi. Une piste sans SIREN se cherche par son NOM, et seulement sur un
-   geste (« Trouver dans l'annuaire ») : c'est toi qui choisis laquelle
-   est la tienne, parce qu'un homonyme rendrait le dirigeant d'une
-   autre entreprise.
+   toi. Une piste sans SIREN se reconnaît par son NOM, pendant qu'on le
+   tape (`questionNom`, `suggestionsNom`) : c'est toi qui choisis
+   laquelle est la tienne, parce qu'un homonyme rendrait le dirigeant
+   d'une autre entreprise.
    ============================================================ */
 const SIREN_OK = s => /^\d{9}$/.test(String(s || ''));
 export function questionSiren(siren){
@@ -560,15 +558,30 @@ export function questionSiren(siren){
 /* Le nom de la piste, borné par son département quand on le connaît —
    « Orange » à Lille rend l'Orange qui a un établissement dans le Nord,
    et l'établissement montré est celui de la ville de la piste. */
-export function questionNom(c, dept){
-  const q = String((c && c.name) || '').trim();
+export function questionNom(nom, dept){
+  const q = String((nom && typeof nom === 'object' ? nom.name : nom) || '').trim();
   if (q.length < 2) return '';
   const p = new URLSearchParams({ q });
   if (dept) p.set('departement', dept);
   p.set('etat_administratif', 'A');
-  p.set('per_page', '5');
+  p.set('per_page', '8');
   return `${ANNUAIRE}/search?${p.toString()}`;
 }
+/* L'ENTREPRISE SE RECONNAÎT PENDANT QU'ON TAPE SON NOM (minimalisme,
+   décision du mainteneur, 7 octobre 2026). Elle remplace « Trouver dans
+   l'annuaire » puis « C'est laquelle ? » : un lien, puis une liste où
+   chaque ligne portait un code d'activité (« 70.10Z », « 94.20Z »). On
+   ne garde que ce qui peut accueillir quelqu'un : ni une personne
+   (entrepreneur individuel), ni une association, un syndicat ou un
+   comité d'entreprise (NAF 94 — « CE Capgemini TS » sortait sous
+   « Capgemini »). La ligne dit la ville et la taille, en mots. */
+export function suggestionsNom(json, o){
+  const vus = new Set();
+  return lireAnnuaire(json, o)
+    .filter(r => !r.personne && !/^94\./.test(r.naf || '') && !vus.has(r.siren) && vus.add(r.siren))
+    .slice(0, 5);
+}
+export const sousLigneNom = r => [r.ville, r.effectif].filter(Boolean).join(' · ');
 
 /* ---------- le site web, par Wikidata ----------
    Propriété P1616 = SIREN, P856 = site officiel. Relevé par la sonde :
@@ -611,10 +624,6 @@ export function complements(c, r, site){
   if (vide(c.website) && site) out.website = site;
   return out;
 }
-/* le nom de chaque champ, tel que la fiche le dit (pour la donnée posée
-   à côté du geste : « site · adresse ») */
-const NOMS_CHAMP = { city: 'ville', address: 'adresse', desc: 'activité', website: 'site', domain: 'secteur' };
-export const champsDits = comp => Object.keys(comp || {}).map(k => NOMS_CHAMP[k]).filter(Boolean);
 
 /* ---------- un dirigeant devient un contact — seulement si on le veut ----------
    (décision du mainteneur : la fiche montre le dirigeant ; il ne devient
@@ -624,28 +633,22 @@ export function dirigeantsAjoutables(c, r){
   return ((r && r.dirigeants) || []).filter(d => d.personne && d.nom && !deja.has(normName(d.nom)));
 }
 
-/* ---------- trois liens d'un tap ----------
-   L'app ne lit rien de ces sites : elle ouvre la bonne page, et c'est
-   toi qui regardes (pas d'aspiration — la CNIL a sanctionné en 2024 la
-   collecte de coordonnées depuis LinkedIn). Le nom de l'entreprise part
-   dans le lien, et ton école pour LinkedIn : sur ton geste, vers le
-   site que le bouton nomme. */
+/* ---------- trouver quelqu'un à qui écrire ----------
+   UN lien, et seulement là où il sert : dans « Ajouter un contact »
+   (minimalisme, 7 octobre 2026). Il y en avait trois sur la fiche — les
+   anciens de ton école, les offres France Travail, la fiche officielle —
+   et l'aperçu en répétait deux : des portes vers ailleurs, posées là où
+   l'on venait LIRE. L'app ne lit rien de LinkedIn (la CNIL a sanctionné
+   en 2024 la collecte de coordonnées depuis ce site) : elle ouvre la
+   bonne recherche, et c'est toi qui regardes. Le nom de l'entreprise
+   part dans le lien, et ton école s'il y en a une. */
 export const LINKEDIN_GENS = 'https://www.linkedin.com/search/results/people/?keywords=';
-export const FRANCE_TRAVAIL = 'https://candidat.francetravail.fr/offres/recherche?motsCles=';
-export const ANNUAIRE_WEB = 'https://annuaire-entreprises.data.gouv.fr/rechercher?terme=';
-export function liensPiste(c, profile){
-  const nom = String((c && c.name) || '').trim();
-  if (!nom) return [];
+export function lienGens(nom, profile){
+  nom = String(nom || '').trim();
+  if (!nom) return null;
   const ecole = String((profile && profile.ecole) || '').trim();
-  return [
-    { cle: 'gens', label: ecole ? 'Anciens de mon école' : 'Qui y travaille',
-      aria: ecole ? `Anciens de ${ecole} chez ${nom}, sur LinkedIn` : `Qui travaille chez ${nom}, sur LinkedIn`,
-      url: LINKEDIN_GENS + encodeURIComponent(ecole ? `${nom} ${ecole}` : nom) },
-    { cle: 'offres', label: 'Offres d’emploi', aria: `Offres chez ${nom}, sur France Travail`,
-      url: FRANCE_TRAVAIL + encodeURIComponent(nom) },
-    { cle: 'officielle', label: 'Fiche officielle', aria: `Fiche officielle de ${nom}, annuaire des entreprises`,
-      url: SIREN_OK(c.siren) ? ficheOfficielle(c.siren) : ANNUAIRE_WEB + encodeURIComponent(nom) }
-  ];
+  return { url: LINKEDIN_GENS + encodeURIComponent(ecole ? `${nom} ${ecole}` : nom),
+           aria: ecole ? `Anciens de ${ecole} chez ${nom}, sur LinkedIn` : `Qui travaille chez ${nom}, sur LinkedIn` };
 }
 
 /* ---------- qui recrute en alternance, autour d'ici ----------

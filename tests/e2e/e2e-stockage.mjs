@@ -9,10 +9,14 @@
         rang existe pour éviter.
    Et quand même le cache est impossible, l'app le DIT : bandeau lisible,
    bouton de secours réellement tapable (ni recouvert, ni hors d'atteinte). */
-import { chromium, chromiumPath, serveRepo, attendre } from './outils.mjs';
+import { chromium, chromiumPath, serveRepo, attendre, annuaireMuetPartout } from './outils.mjs';
 
 const { server, base } = await serveRepo();
 const browser = await chromium.launch({ executablePath: chromiumPath() });
+/* le nom d'une entreprise tapé dans la capture se propose depuis
+   l'annuaire (ui/nom-annuaire.js) : réponse vide ici, sinon la vraie
+   requête part et le bac à sable la refuse en erreur console */
+annuaireMuetPartout(browser);
 const errors = [];
 let rate = 0;
 const fail = m => { console.error('ÉCHEC :', m); process.exitCode = 1; rate++; };

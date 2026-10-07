@@ -2624,6 +2624,9 @@ for (const L of [320, 360, 390]){
     while ((sh = topSheet()) && ns++ < 4){ sh.close(null, true); await new Promise(r => setTimeout(r, 120)); }
     (await import('./ui/contact.js')).openContactEditor(null);
     await new Promise(r => setTimeout(r, 450));
+    /* la case vit sous « Plus » (minimalisme, 7 octobre) : on l'ouvre,
+       c'est la case MONTRÉE qu'on mesure */
+    document.querySelector('.ce-plus')?.setAttribute('open', '');
     const ck = document.querySelector('#ceConf');
     const cke = ck && ck.closest('label');
     const caseSuit = ck ? Math.round(ck.getBoundingClientRect().height)
@@ -2692,6 +2695,7 @@ const clav = await nPage.evaluate(async () => {
   await new Promise(r => setTimeout(r, 300));
   (await import('./ui/contact.js')).openContactEditor(S.companies[0]);
   await new Promise(r => setTimeout(r, 450));
+  document.querySelector('.ce-plus')?.setAttribute('open', '');   /* le lien vit sous « Plus » */
   out.contact = lire();
   document.querySelectorAll('.overlay .x').forEach(x => x.click());
   await new Promise(r => setTimeout(r, 300));

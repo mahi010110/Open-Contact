@@ -12,10 +12,13 @@
 import { esc, uid, todayISO, debounce } from '../engine/utils.js';
 import { normalizeCompany, contactHasData } from '../engine/model.js';
 import { findMatch } from '../engine/merge.js';
+import { complements } from '../engine/annuaire.js';
 import { S, bus, saveData, logJ, addOrphan, attachContact, ctLabel } from './state.js';
 import { openSheet, toast, btn, ic, clavier } from './dom.js';
 import { openFiche } from './fiche.js';
 import { sharedFieldsHTML, bindSharedFields } from './edit.js';
+import { brancherNom } from './nom-annuaire.js';
+import { connaitre } from './fiche-annuaire.js';
 
 /* nadia@ovhcloud.com → « Ovhcloud » : l'entreprise se devine de l'email —
    proposée en un tap, jamais imposée. Les domaines personnels se taisent. */
@@ -141,6 +144,7 @@ export function openCapture(prefill){
     }
   };
 
+  let choisie = null;   /* l'entreprise choisie dans la liste du nom */
   /* créer — rend la piste (ou null si c'était un contact seul → bac) */
   const save = () => {
     const name = v(NOM);
@@ -163,6 +167,11 @@ export function openCapture(prefill){
       createdAt: Date.now()
     });
     if (champs) champs.apply(c);      /* ordinateur : tout le formulaire */
+    /* au pouce : l'entreprise choisie dans la liste apporte ce qu'elle sait
+       (la ville, l'adresse, ce qu'elle fait) — c'est une piste neuve, rien
+       n'est écrasé */
+    else if (choisie && choisie.nom === name){ Object.assign(c, complements(c, choisie, '')); connaitre(choisie); }
+    choisie = null;
     c.history = [{ d: todayISO(), t: prefill.website ? 'Piste reçue du partage' : 'Piste créée' }];
     S.companies.push(c);
     saveData();
@@ -212,6 +221,9 @@ export function openCapture(prefill){
     (await import('./recevoir.js')).openImportMails();
   });
   q(NOM).addEventListener('input', debounce(checkDup, 250));
+  /* au pouce, le champ du nom reconnaît l'entreprise pendant qu'on tape
+     (ui/nom-annuaire.js) ; au poste, le formulaire partagé s'en charge */
+  if (!wide) brancherNom(q('#cpName'), { choisi: r => { choisie = r; } });
   q('#cpCtCoord').addEventListener('input', debounce(checkMail, 250));
   if (wide)
     /* un formulaire long ne se valide pas d'une Entrée distraite —

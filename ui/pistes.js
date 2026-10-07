@@ -184,7 +184,10 @@ function rowHTML(c){
   if (closed) bits.push('<b>' + CLOSE_REASONS[c.closedReason].label + '</b>');
   else {
     if (c.nextAction) bits.push('<b>' + esc(c.nextActionText || 'Faire le point') + '</b>');
-    else if (!enCampagne(c.id)) bits.push(silenceOf(c) ? 'sans nouvelles' : 'à planifier');
+    /* « à planifier » seulement pour une piste ENGAGÉE : sur une piste
+       « À contacter », le statut, juste à côté, le disait déjà — et il se
+       répétait sur presque toutes les lignes (minimalisme, 7 octobre) */
+    else if (!enCampagne(c.id) && c.status !== 'todo') bits.push(silenceOf(c) ? 'sans nouvelles' : 'à planifier');
     bits.push(STATUSES[c.status].label);
     if (enCampagne(c.id)) bits.push('en campagne');
   }
@@ -379,7 +382,10 @@ const ctxBarre = () => contexteRecherche(S.companies, todayISO());
    accroché à la barre, comme toute suggestion de recherche : rien ne
    bouge en dessous. */
 function propsHTML(){
-  if (q || !barreActive || ftOn() || !sortIsDefault(st)) return '';
+  /* ce sont des recherches DANS TES PISTES (« En retard 2 ») : dans
+     « À découvrir », elles répondaient à une autre question que celle
+     qu'on posait (relevé sur le téléphone du mainteneur, 7 octobre) */
+  if (q || !barreActive || ftOn() || !sortIsDefault(st) || porteeVue() === 'decouvrir') return '';
   const props = propositions(S.companies, S.profile, ctxBarre());
   return props.length
     ? `<div class="props-pan" role="group" aria-label="Recherches proposées">${props.map(p =>

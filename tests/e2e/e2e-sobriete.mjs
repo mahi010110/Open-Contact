@@ -297,8 +297,13 @@ const PLAFOND = {
      « La fin est avant le début. ». La seconde prévient d'une perte qu'on
      ne voit pas venir : sans elle, une fin saisie avant le début serait
      retirée en silence par le moteur. Rien d'autre : « en cours » ne
-     s'explique pas, la période s'écrit à côté du champ (« depuis 2025 »). */
-  motsExplication: 349,
+     s'explique pas, la période s'écrit à côté du champ (« depuis 2025 »).
+
+     346 le 7 octobre 2026, −3 (docs/minimalisme.md) : « Personne pour
+     l'instant. » sous des contacts vides — « + Ajouter » le dit. Le
+     plafond descend avec : le gain ne se reperd pas une phrase à la
+     fois. */
+  motsExplication: 346,
   /* ZÉRO, et c'est le seul plafond qui puisse honnêtement valoir zéro :
      un style sans porteur n'a pas de contrepartie à peser — il ne rend
      service à personne, il ne fait qu'attendre d'être lu par erreur.

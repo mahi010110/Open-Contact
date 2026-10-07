@@ -3,10 +3,14 @@
    capture faite à la main, et sa survie au rechargement. Mobile ET bureau.
    (Le hors-ligne réel est couvert par e2e-oauth-sw ; le thème sombre par
    e2e-pistes — ici on ne les redouble pas.) */
-import { chromium, chromiumPath, SHOTS, serveRepo, attendre } from './outils.mjs';
+import { chromium, chromiumPath, SHOTS, serveRepo, attendre, annuaireMuetPartout } from './outils.mjs';
 
 const { server, base } = await serveRepo();
 const browser = await chromium.launch({ executablePath: chromiumPath() });
+/* le nom d'une entreprise tapé dans la capture se propose depuis
+   l'annuaire (ui/nom-annuaire.js) : réponse vide ici, sinon la vraie
+   requête part et le bac à sable la refuse en erreur console */
+annuaireMuetPartout(browser);
 const fail = m => { console.error('ÉCHEC :', m); process.exitCode = 1; };
 const errors = [];
 const watch = p => {

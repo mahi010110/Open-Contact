@@ -11,7 +11,7 @@
      point (et rien de privé), et ce qui tombe à plus de 30 km du centre
      ne s'affiche pas — « Lille » rendait Maubeuge ;
    ② qui recrute : pour une alternance, « Offres d'alternance autour de
-     Lille » tient la tête de la liste — un LIEN vers La bonne alternance,
+     Lille » suit la liste — un LIEN vers La bonne alternance,
      qui ne part que si on le touche ; pour un stage, rien ;
    ③ à qui écrire, selon la taille : le dirigeant d'une PME par son nom,
      le recrutement d'une grande — jamais une adresse devinée ;
@@ -117,7 +117,8 @@ const lireApercu = (p, sel) => p.evaluate(sel => {
   if (!l.subs.every(s => /\d+\skm/.test(s))) fail('la distance au centre ne se lit pas sur chaque ligne : ' + l.subs);
   if (!process.exitCode) console.log(`pouce · ① « Lille » : autour de son centre (15 km), rien de privé ; Dunkerque écartée ; ${l.noms.length} lignes, chacune à sa distance ✓`);
 
-  /* ② qui recrute : un lien, en tête, qui ne part que si on le touche */
+  /* ② qui recrute : un lien, APRÈS la liste (on regarde d'abord les
+     entreprises — minimalisme, 7 octobre), qui ne part que si on le touche */
   if (!l.offres) fail('« Offres d’alternance autour de Lille » manque');
   else {
     const u = new URL(l.offres.href);
@@ -130,7 +131,7 @@ const lireApercu = (p, sel) => p.evaluate(sel => {
     if (l.offres.h < 44) fail(`le lien d’offres fait ${l.offres.h} px au doigt`);
     const y = await p.evaluate(() => [document.querySelector('#piDec .dc-offres').getBoundingClientRect().top,
       document.querySelector('#piDec .dc-list').getBoundingClientRect().top]);
-    if (!(y[0] < y[1])) fail('le lien d’offres ne tient pas la tête de la liste');
+    if (!(y[0] > y[1])) fail('le lien d’offres passe devant la liste au lieu de la suivre');
   }
   if (ailleurs.length) fail('La bonne alternance ou LinkedIn ont été appelés sans geste : ' + ailleurs[0]);
   if (!process.exitCode) console.log('pouce · ② « Offres d’alternance autour de Lille » en tête : un lien, le métier et le point, rien ne part sans geste ✓');

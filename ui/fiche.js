@@ -18,7 +18,7 @@ import { askNextAction, askClose } from './actions.js';
 import { openMail } from './mail.js';
 import { openEditPiste } from './edit.js';
 import { openContactEditor, telHref, smsHref, waHref } from './contact.js';
-import { annuaireEtatHTML, annuaireContactsHTML, annuaireSavoirHTML, annuaireCarteHTML, lierAnnuaireFiche, oublierFiche,
+import { annuaireEtatHTML, annuaireCarteHTML, annuaireParle, lierAnnuaireFiche, oublierFiche,
          dirigeantsSuggeres } from './fiche-annuaire.js';
 
 const webHref = w => /^https?:\/\//i.test(w) ? w : 'https://' + w;
@@ -250,6 +250,8 @@ export function openFiche(c){
          <textarea id="fiNotes" rows="1" placeholder="Échange avec M. X le 12/03, rappeler la semaine prochaine…">${esc(val('notes'))}</textarea></div>`;
 
     /* ---- le dossier : les gens, ce qu'on sait, l'histoire ---- */
+    /* ce que TU sais de l'entreprise : « À savoir » existe pour ça */
+    const aSavoir = !!(c.desc || c.website || c.techs || (c.positions || []).length || c.process || c.tips || c.address);
     const dossier =
       `<div class="field">
          ${/* Essayé : descendre « + Ajouter » en fin de liste pour rendre
@@ -260,28 +262,28 @@ export function openFiche(c){
               être plus lourd à l'écran. */''}
          <div class="lbl-row"><label>Contacts</label>
            <button class="btn btn-sm" id="fiCtAdd">${ic('plus', 'ic-14')} Ajouter</button></div>
-         ${main.length || knownCts.length ? `
-           ${main.length ? `<div class="ctc-list">${main.map(t => ctRowHTML(t, wide)).join('')}</div>` : ''}
-           ${knownCts.length ? `
-             <details class="ctc-known"${main.length ? '' : ' open'}>
-               <summary>+ ${knownCts.length} personne${knownCts.length > 1 ? 's' : ''} connue${knownCts.length > 1 ? 's' : ''}</summary>
-               <div class="ctc-list">${knownCts.map(t => ctRowHTML(t, false)).join('')}</div>
-             </details>` : ''}`
-         /* « ajoute au moins un email » répétait le bouton « + Ajouter »
-            posé sur la même rangée, à quarante pixels. Et sans adresse,
-            le composeur le dit lui-même au moment où ça coûte quelque
-            chose (« Pas d'email — Copier, puis LinkedIn »). Reste le
-            seul mot qui rend le vide présentable. */
-         : '<p class="hint" style="margin:0">Personne pour l’instant.</p>'}
-         ${/* trouver quelqu'un à qui écrire : les anciens de ton école chez
-              elle, et le dirigeant que l'annuaire connaît — rangés avec les
-              contacts parce que c'est leur usage (§6), pas avec leur source */''}
-         ${annuaireContactsHTML(c)}
+         ${/* Sans contact, RIEN sous l'en-tête : « + Ajouter » est posé
+              dessus et dit tout (minimalisme, 7 octobre 2026). « Personne
+              pour l'instant » redisait le vide, et les liens qui
+              suivaient (« Anciens de mon école », « Qui y travaille »)
+              emmenaient ailleurs avant qu'on ait cherché quoi que ce soit :
+              ils vivent maintenant dans « Ajouter un contact », là où l'on
+              cherche quelqu'un. */''}
+         ${main.length ? `<div class="ctc-list">${main.map(t => ctRowHTML(t, wide)).join('')}</div>` : ''}
+         ${knownCts.length ? `
+           <details class="ctc-known"${main.length ? '' : ' open'}>
+             <summary>+ ${knownCts.length} personne${knownCts.length > 1 ? 's' : ''} connue${knownCts.length > 1 ? 's' : ''}</summary>
+             <div class="ctc-list">${knownCts.map(t => ctRowHTML(t, false)).join('')}</div>
+           </details>` : ''}
        </div>
-       ${/* « À savoir » existe toujours : il porte aussi ce que l'annuaire
-            sait de l'entreprise (ou le geste pour l'y retrouver) */''}
-       ${`
-         <details class="fi-hist" id="fiKnow"${savoirOuvert(c) ? ' open' : ''}><summary>À savoir</summary>
+       ${/* « À SAVOIR » N'EXISTE QUE S'IL A QUELQUE CHOSE À DIRE : ce que tu
+            y as écrit, ou ce que l'annuaire sait (la carte). Une piste
+            sans SIREN et sans notes n'en a pas — il portait alors trois
+            liens et une ligne de source, rien à lire. Avec un SIREN, il
+            est posé CACHÉ tant que l'annuaire n'a pas répondu, et se montre
+            sur sa réponse sans redessiner la fiche. */''}
+       ${aSavoir || c.siren ? `
+         <details class="fi-hist" id="fiKnow"${savoirOuvert(c) ? ' open' : ''}${aSavoir || annuaireParle(c) ? '' : ' hidden'}><summary>À savoir</summary>
            <div class="fi-know">
              ${/* LA CARTE d'abord : ce qu'elle fait — « En bref », ta phrase,
                   passe devant toute source —, ses missions, sa taille */''}
@@ -323,11 +325,8 @@ export function openFiche(c){
                  <span class="fk-v fk-go fk-lignes">${esc(c.address)}
                    <a class="btn btn-sm" href="${esc(dirs)}" target="_blank" rel="noopener">${ic('directions', 'ic-14')} Itinéraire</a>
                  </span></div>` : ''}
-             ${/* ce que l'annuaire public sait, À LA SUITE de ce que tu sais,
-                  dans le même cadre : ta parole d'abord, le registre ensuite */''}
-             ${annuaireSavoirHTML(c)}
            </div>
-         </details>`}
+         </details>` : ''}
        ${(c.history || []).length ? `
          <details class="fi-hist"><summary>Historique</summary>
            <ul class="timeline">${c.history.slice().reverse().slice(0, 10).map(h =>
@@ -392,9 +391,9 @@ export function openFiche(c){
     const byCt = id => (c.contacts || []).find(t => t.id === id);
     sh.body.querySelector('#fiEdit').addEventListener('click', () => openEditPiste(c, render));
     sh.body.querySelector('#fiVecu')?.addEventListener('click', () => openDemander(c, c.vecuQui, v));
-    lierAnnuaireFiche(sh.body, c, { render });
+    lierAnnuaireFiche(sh.body, c);
     /* « À savoir » garde son pli le temps de la session : un geste fait
-       dedans (« Compléter ma fiche ») redessine la fiche, et la carte
+       ailleurs sur la fiche (un contact ajouté) la redessine, et la carte
        qu'on venait d'ouvrir ne doit pas se refermer sous les doigts */
     sh.body.querySelector('#fiKnow')?.addEventListener('toggle', e => plisSavoir.set(c.id, e.currentTarget.open));
     /* le dirigeant que l'annuaire connaît est PROPOSÉ ici, au moment où

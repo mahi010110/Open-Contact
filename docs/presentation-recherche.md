@@ -141,6 +141,11 @@ chiffres publics, elle part une fois par fiche et par session, et rien ne
 change dans la fiche sans un geste. Une piste **sans** SIREN ne se cherche
 toujours que sur « Trouver dans l'annuaire ».
 
+> *7 octobre 2026 : ce tableau est dépassé.* Les liens, la ligne grise
+> détaillée, « Compléter ma fiche » et « Trouver dans l'annuaire » sont
+> partis. L'entreprise se reconnaît pendant qu'on tape son nom, et la
+> carte se lit seule. Voir [`minimalisme.md`](minimalisme.md).
+
 ---
 
 ## Les lots

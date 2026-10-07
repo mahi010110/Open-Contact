@@ -1,35 +1,33 @@
 /* ============================================================
-   La fiche s'enrichit — l'annuaire, Wikidata, trois liens d'un tap
-   (docs/recherche.md, lot 3 ; docs/presentation-recherche.md, lot B)
+   La fiche s'enrichit — et rien d'autre que ce qu'on sait
 
-   Ce que l'annuaire apporte à la fiche est RANGÉ PAR USAGE (§6) :
-   « Anciens de mon école » avec les contacts, le dirigeant proposé dans
-   « Ajouter un contact », les données, « Compléter ma fiche », les offres
-   et la fiche officielle dans « À savoir », une entreprise fermée sous
-   le nom. Deux services publics
-   sont interrogés depuis le navigateur. Ce fichier lit chaque requête qui sort, en
-   partant de l'état RÉEL de l'app (§8 : un contrôle de fuite lit les
-   octets qui sortent par le vrai chemin), et vérifie que rien ne change
-   dans la fiche sans un geste qui se défait.
+   LE MINIMUM, AU BON MOMENT (décision du mainteneur, 7 octobre 2026 :
+   « au final c'est juste un bouton en plus ou un lien en plus »). Ce que
+   les sources publiques savent d'une piste se LIT dans la carte de « À
+   savoir » ; plus un lien ni un bouton autour. L'entreprise se reconnaît
+   pendant qu'on tape son nom, et trouver quelqu'un se fait dans
+   « Ajouter un contact ». Ce fichier lit chaque requête qui sort, en
+   partant de l'état RÉEL de l'app (§8), et vérifie :
 
-   ① ce qui part : le SIREN seul pour une piste qui en porte un ; le nom
-     et le département pour une piste qui n'en porte pas, et seulement
-     sur « Trouver dans l'annuaire ». Jamais une note, un contact, le
-     profil. La question par SIREN part à l'ouverture de la fiche : ce
-     qu'elle rapporte sert dès qu'on ajoute un contact ;
-   ② ce qui change : « Compléter ma fiche » remplit les VIDES, n'écrase
-     rien, et se défait ; un dirigeant ne devient un contact que si on le
-     choisit dans « Ajouter un contact », et rien ne s'ajoute sans
-     « Enregistrer » ; choisir « la bonne » attache le SIREN ;
-   ③ les liens : LinkedIn porte l'école, France Travail ne la porte pas,
-     la fiche officielle vise le SIREN ; tous s'ouvrent ailleurs ;
-   ④ hors ligne, une panne : chaque cas se dit, et se répare ;
-   ⑤ au poste : « À savoir » est ouvert, la réponse arrive sans redessiner
-     la fiche sous les doigts (les notes en cours restent), aucune feuille
-     ne défile de travers, dans les deux thèmes ;
-   ⑥ chaque donnée est À SA PLACE : les anciens de l'école dans les
-     contacts, le dirigeant là où l'on ajoute un contact, le reste dans
-     « À savoir », plus aucun bloc « Annuaire » à part.
+   ① ce qui part : le SIREN seul, à l'ouverture d'une fiche qui en porte
+     un ; le NOM TAPÉ et le département de la ville, pendant qu'on écrit
+     le nom dans « Modifier » ou la capture. Jamais une note, un contact,
+     le profil ;
+   ② ce qui se voit : la carte (missions, taille, site), la source en
+     gris — et RIEN d'autre : ni « Trouver dans l'annuaire », ni « C'est
+     laquelle ? », ni « Compléter ma fiche », ni offres, fiche officielle,
+     anciens de l'école, SIREN ; sous les contacts vides, rien ;
+   ③ « À savoir » n'existe que s'il a quelque chose à dire, et se montre
+     sur la réponse de l'annuaire SANS redessiner la fiche (la note en
+     cours reste, au pouce comme au poste) ;
+   ④ le dirigeant est proposé dans « Ajouter un contact », « Trouver sur
+     LinkedIn » à côté du nom (l'école ne part que là) ; rien ne s'ajoute
+     sans « Enregistrer » ;
+   ⑤ le nom se propose : ville et taille, jamais un code ; un nom long
+     plie ; choisir remplit les VIDES sous les yeux, n'écrase rien, et
+     « Enregistrer » attache le SIREN ;
+   ⑥ hors ligne, une panne : rien ne se dit, rien ne casse, la carte
+     revient avec le réseau.
 
    Les services sont REMPLACÉS par des réponses à leur forme réelle
    (relevée par `sonde-annuaire.mjs`). La CSP de l'app, elle, est la
@@ -140,66 +138,26 @@ const ouvrirFiche = (p, id) => p.evaluate(async id => {
 const fermer = p => p.evaluate(() => document.querySelector('.modal-fiche button.x')?.click());
 const piste = (p, id) => p.evaluate(id => import('./ui/state.js').then(({ S }) =>
   JSON.parse(JSON.stringify(S.companies.find(c => c.id === id)))), id);
-/* les trois zones ont-elles FINI de charger ? sinon on lirait l'état d'avant */
-const bloc = async (p, ms = 3000) => {
-  await p.waitForFunction(() => {
-    const b = document.querySelector('#faSavoir');
-    return b && !b.querySelector('[aria-busy="true"]');
-  }, null, { timeout: ms }).catch(() => {});
-  return p.evaluate(() => {
-    const sav = document.querySelector('#faSavoir'), cts = document.querySelector('#faCts');
-    const carte = document.querySelector('#faCarte');
-    const lignes = {};
-    document.querySelectorAll('#faCarte .fk, #faSavoir .fk').forEach(f => {
-      const l = f.querySelector('.fk-l')?.textContent.trim();
-      if (l) lignes[l] = f.querySelector('.fk-v')?.textContent.replace(/\s+/g, ' ').trim();
-    });
-    return {
-      present: !!sav, ouvert: !!document.querySelector('#fiKnow')?.open, lignes,
-      fait: carte?.querySelector('.ct-quoi p')?.textContent.trim() || '',
-      qui: !!cts?.querySelector('.fa-qui'),
-      ancien: !!document.querySelector('#fiAnn'),
-      etat: sav?.querySelector('.fa-etat')?.textContent.replace(/\s+/g, ' ').trim() || '',
-      completer: !!sav?.querySelector('[data-fa-completer]'),
-      quoi: sav?.querySelector('.fa-quoi')?.textContent.trim() || '',
-      siren: sav?.querySelector('.fa-siren')?.textContent.trim() || '',
-      gensVisible: !!cts?.querySelector('[data-lien="gens"]')?.getClientRects().length,
-      trouver: !!sav?.querySelector('[data-fa-trouver]'),
-      choix: [...(sav?.querySelectorAll('[data-fa-pick] b') || [])].map(b => b.textContent.trim()),
-      liens: [...document.querySelectorAll('#faCts [data-lien], #faSavoir [data-lien]')].map(a => ({ cle: a.dataset.lien, href: a.href,
-        label: a.textContent.trim(), cible: a.target, zone: a.closest('#faCts') ? 'contacts' : 'savoir' })),
-      fermee: document.querySelector('#faEtat')?.textContent.replace(/\s+/g, ' ').trim() || ''
-    };
+/* ce que la fiche montre de l'entreprise, et ce qu'elle ne doit plus montrer */
+const lire = p => p.evaluate(() => {
+  const k = document.querySelector('#fiKnow');
+  const lignes = {};
+  document.querySelectorAll('#faCarte .fk').forEach(f => {
+    const l = f.querySelector('.fk-l')?.textContent.trim();
+    if (l) lignes[l] = f.querySelector('.fk-v')?.textContent.replace(/\s+/g, ' ').trim();
   });
-};
-/* « À savoir » se déplie avec une animation (`foldAnim`, ui/dom.js) : la
-   hauteur reste posée en dur jusqu'à la fin — une mesure ou une capture
-   prise avant lirait un cadre rogné */
-const ouvrirBloc = async p => {
-  if (await p.evaluate(() => document.querySelector('#fiKnow')?.open)) return;
-  await p.evaluate(() => document.querySelector('#fiKnow').scrollIntoView({ block: 'center' }));
-  await p.click('#fiKnow > summary');
-  await p.waitForFunction(() => !document.querySelector('#fiKnow').__folding, null, { timeout: 2000 }).catch(() => {});
-};
-/* le défileur de la feuille, quel qu'il soit — on descend au fond */
-const auFond = async p => {
-  await p.waitForFunction(() => !document.querySelector('#fiKnow')?.__folding, null, { timeout: 2000 }).catch(() => {});
-  const r = await p.evaluate(() => {
-    let n = document.querySelector('#faSavoir');
-    while (n && !(n.scrollHeight > n.clientHeight + 2 && /auto|scroll/.test(getComputedStyle(n).overflowY))) n = n.parentElement;
-    if (n) n.scrollTo({ top: n.scrollHeight, behavior: 'instant' });
-    return n ? [n.className, n.scrollTop, n.scrollHeight, n.clientHeight] : null;
-  });
-  await p.waitForTimeout(250);
-  return r;
-};
-const annuler = async p => {
-  await p.waitForSelector('.undo-bar button', { timeout: 2000 });
-  await p.evaluate(() => [...document.querySelectorAll('.undo-bar button')].find(b => /annuler/i.test(b.textContent))?.click());
-  await p.waitForTimeout(200);
-};
+  const fiche = document.querySelector('.modal-fiche .modal-b');
+  const ctsField = document.querySelector('#fiCtAdd')?.closest('.field');
+  return {
+    existe: !!k, visible: !!k && !k.hidden && k.getClientRects().length > 0, ouvert: !!k?.open, lignes,
+    source: document.querySelector('#faCarte .ct-src')?.textContent.replace(/\s+/g, ' ').trim() || '',
+    sousContacts: ctsField ? [...ctsField.querySelectorAll('a, p')].map(x => x.textContent.trim()) : [],
+    /* les mots des gestes retirés : aucun ne doit revenir */
+    anciens: (fiche?.textContent.match(/Trouver dans l.annuaire|C.est laquelle|Compléter ma fiche|Fiche officielle|Offres d.emploi|Anciens de mon école|Qui y travaille|Personne pour l.instant|SIREN \d|Réessayer|Je cherche dans/g) || [])
+  };
+});
 
-/* ---------- au pouce : une piste qui porte un SIREN ---------- */
+/* ---------- ①②③④ au pouce : une piste qui porte un SIREN ---------- */
 {
   const { ctx, p, sv } = await ecran({ width: 390, height: 844 }, true);
   /* une réponse LENTE : la marque se pose avant qu'elle arrive. Si la
@@ -207,16 +165,13 @@ const annuler = async p => {
      de notes serait un AUTRE nœud */
   sv.regler({ statut: 200, retard: 400 });
   await ouvrirFiche(p, 'a');
-  await p.waitForSelector('#faSavoir', { state: 'attached' });
+  await p.waitForSelector('#fiNotes');
   await p.evaluate(() => { document.querySelector('#fiNotes').__marque = 1; });
-  let b = await bloc(p);
-  /* le site arrive APRÈS les données (une seconde question, à Wikidata) */
+  await p.waitForSelector('#faCarte .fk', { timeout: 4000 }).catch(() => {});
   await p.waitForSelector('#faCarte a.fk-v[href*="advens.fr"]', { timeout: 3000, state: 'attached' }).catch(() => {});
-  b = await bloc(p);
   sv.regler({ statut: 200 });
-  if (b.ancien) fail('le bloc « Annuaire » à part existe encore — chaque donnée doit être à sa place');
-  /* la carte se voit sans rien toucher (demande du mainteneur) */
-  if (!b.ouvert) fail('au pouce, « À savoir » est replié : la carte de l’entreprise ne se voit pas sans toucher');
+  const b = await lire(p);
+  if (!b.visible || !b.ouvert) fail('au pouce, « À savoir » ne montre pas la carte sans toucher : ' + JSON.stringify(b));
   if (!(await p.evaluate(() => document.querySelector('#fiNotes')?.__marque)))
     fail('la réponse de l’annuaire a redessiné toute la fiche, pas seulement ses zones');
   const qa = sv.journal.find(u => u.startsWith('https://recherche-entreprises'));
@@ -224,75 +179,30 @@ const annuler = async p => {
   const ua = new URL(qa || 'http://x/');
   if (ua.searchParams.get('q') !== '812345678' || [...ua.searchParams.keys()].sort().join() !== 'per_page,q')
     fail('la question à l’annuaire ne porte pas QUE le SIREN : ' + qa);
-  if (!qw || !/query\.wikidata\.org/.test(qw) || !pliees(qw).includes('812345678')) fail('le site n’a pas été cherché sur Wikidata : ' + qw);
+  if (!qw || !pliees(qw).includes('812345678')) fail('le site n’a pas été cherché sur Wikidata : ' + qw);
   for (const u of sv.journal){ const w = fuite(u); if (w) fail(`« ${w} » est sorti : ${u}`); }
-  /* ⑥ « Anciens de mon école » est avec les CONTACTS, visible sans rien déplier */
-  if (!b.gensVisible) fail('au pouce, « Anciens de mon école » ne se voit pas sans déplier');
-  await ouvrirBloc(p);
-  b = await bloc(p);
-  /* la carte : sans « En bref » ni Wikipédia, pas de phrase — les
-     MISSIONS en mots simples, la taille en mots (6 octobre : le chiffre
-     d'affaires, la création, les sites ne départagent rien) */
-  if (b.fait) fail('le libellé de l’INSEE revient en tête de la carte : ' + b.fait);
   if (b.lignes['Missions'] !== 'Conseil et intégration informatique') fail('missions : ' + b.lignes['Missions']);
   if (b.lignes['Taille'] !== '100 à 199 salariés') fail('taille : ' + b.lignes['Taille']);
-  if (b.lignes['Dirigeant'] || /création|sites|CA /.test(JSON.stringify(b.lignes))) fail('l’ancienne carte revient : ' + JSON.stringify(b.lignes));
-  /* la piste a déjà une adresse (Claire Petit) : « à qui écrire » se tait */
-  if (b.qui) fail('« Écrire à » se montre alors que la piste a déjà une adresse');
   if (!/advens\.fr/.test(b.lignes['Site'] || '')) fail('le site Wikidata ne se montre pas : ' + JSON.stringify(b.lignes));
-  if (b.lignes['Siège'] || /Rue de la Bassée/.test(Object.values(b.lignes).filter((v, i, a) => a.indexOf(v) !== i).join()))
-    fail('l’adresse se redit alors que la fiche l’a déjà');
-  /* la fiche n'a ni site ni « En bref » : ce sont les deux seuls vides que
-     l'annuaire sait remplir — l'adresse, la ville, le secteur sont déjà là */
-  if (!b.completer || b.quoi !== 'activité · site') fail(`« Compléter ma fiche » : ${b.completer} « ${b.quoi} »`);
-  if (b.siren !== 'SIREN 812345678') fail('la ligne de source ne dit pas le SIREN : ' + b.siren);
-  console.log('pouce · SIREN : le SIREN seul part ; « À savoir » ouvert montre la carte — missions, taille, le site — et la source en ligne grise ; « à qui écrire » se tait, la piste a une adresse ✓');
-
-  /* ③ les liens */
-  const L = Object.fromEntries(b.liens.map(l => [l.cle, l]));
-  if (b.liens.map(l => l.cle).join() !== 'gens,offres,officielle') fail('liens : ' + b.liens.map(l => l.cle));
-  /* ⑥ chacun à sa place : trouver quelqu'un avec les contacts, le reste dans « À savoir » */
-  if (b.liens.map(l => l.zone).join() !== 'contacts,savoir,savoir') fail('les liens ne sont pas à leur place : ' + b.liens.map(l => l.cle + ':' + l.zone));
-  if (L.gens.label !== 'Anciens de mon école' || new URL(L.gens.href).searchParams.get('keywords') !== 'Advens Lycée Baggio')
-    fail('LinkedIn : ' + L.gens.href);
-  if (pliees(L.offres.href).includes('baggio') || new URL(L.offres.href).searchParams.get('motsCles') !== 'Advens')
-    fail('France Travail : ' + L.offres.href);
-  if (L.officielle.href !== 'https://annuaire-entreprises.data.gouv.fr/entreprise/812345678') fail('fiche officielle : ' + L.officielle.href);
-  if (b.liens.some(l => l.cible !== '_blank')) fail('un lien ne s’ouvre pas ailleurs');
-  console.log('pouce · trois liens : « Anciens de mon école » avec les contacts, offres et fiche officielle dans « À savoir » ✓');
-  await auFond(p);
+  if (!/Annuaire des entreprises/.test(b.source)) fail('la source n’est pas nommée : ' + b.source);
+  if (b.anciens.length) fail('la fiche porte encore : ' + b.anciens.join(', '));
+  if (b.sousContacts.length) fail('sous les contacts, la fiche pose encore : ' + b.sousContacts);
+  console.log('pouce · SIREN : le SIREN seul part ; la carte se voit (missions, taille, site), la source en gris — plus un lien ni un bouton autour, et la note en cours reste ✓');
   await p.screenshot({ path: `${SHOTS}/98-enrichir-pouce.png` });
 
-  /* ② compléter : le vide se remplit, le reste ne bouge pas, et ça se défait */
-  const avant = await piste(p, 'a');
-  await p.click('[data-fa-completer]');
-  await p.waitForTimeout(200);
-  let apres = await piste(p, 'a');
-  if (apres.website !== 'https://www.advens.fr/') fail('le site n’est pas entré dans la fiche : ' + apres.website);
-  if (apres.desc !== 'Conseil et intégration informatique') fail('« En bref » vide ne s’est pas rempli des missions : ' + apres.desc);
-  if (apres.address !== avant.address || apres.domain !== 'cyber' || apres.city !== 'Lille')
-    fail('« Compléter ma fiche » a écrasé quelque chose : ' + JSON.stringify(apres));
-  const ouvertApres = await p.evaluate(() => document.querySelector('#fiKnow')?.open);
-  if (!ouvertApres) fail('« À savoir » s’est replié après le geste');
-  if (!(await p.$('#fiKnow a[href*="advens.fr"]'))) fail('« À savoir » ne montre pas le site ajouté');
-  b = await bloc(p);
-  if (b.completer) fail('« Compléter ma fiche » reste alors qu’il n’y a plus rien à ajouter');
-  await annuler(p);
-  apres = await piste(p, 'a');
-  if (apres.website || apres.desc) fail('Annuler n’a pas tout retiré : ' + apres.website + ' / ' + apres.desc);
-  if ((apres.history || []).some(h => /annuaire/i.test(h.t))) fail('Annuler laisse une ligne d’historique');
-  console.log('pouce · « Compléter ma fiche » : le vide se remplit, rien d’écrasé, « À savoir » reste ouvert, Annuler défait ✓');
-
-  /* ② le dirigeant est PROPOSÉ là où l'on ajoute un contact — un tap
-     remplit le nom et le rôle, rien ne s'ajoute sans « Enregistrer ».
-     Claire Petit est déjà un contact : on ne la propose pas deux fois ;
-     un cabinet n'est personne à qui écrire */
+  /* ④ le dirigeant est PROPOSÉ là où l'on ajoute un contact, LinkedIn à
+     côté du nom — un tap remplit le nom et le rôle, rien ne s'ajoute sans
+     « Enregistrer ». Claire Petit est déjà un contact : on ne la propose
+     pas deux fois ; un cabinet n'est personne à qui écrire */
   await p.evaluate(() => document.querySelector('#fiCtAdd').scrollIntoView({ block: 'center' }));
   await p.click('#fiCtAdd');
   await p.waitForSelector('.ce-sugg [data-sugg]', { timeout: 3000 }).catch(() => {});
-  await p.waitForTimeout(400);
-  const sugg = await p.evaluate(() => [...document.querySelectorAll('.ce-sugg [data-sugg]')].map(x => x.textContent.replace(/\s+/g, ' ').trim()));
-  if (sugg.length !== 1 || !/^Thomas Leroy président$/.test(sugg[0])) fail('« Ajouter un contact » propose : ' + JSON.stringify(sugg));
+  const aj = await p.evaluate(() => ({
+    sugg: [...document.querySelectorAll('.ce-sugg [data-sugg]')].map(x => x.textContent.replace(/\s+/g, ' ').trim()),
+    li: (() => { const a = document.querySelector('.overlay .ce-gens'); return a ? { k: new URL(a.href).searchParams.get('keywords'), t: a.target } : null; })()
+  }));
+  if (aj.sugg.length !== 1 || !/^Thomas Leroy président$/.test(aj.sugg[0])) fail('« Ajouter un contact » propose : ' + JSON.stringify(aj.sugg));
+  if (!aj.li || aj.li.k !== 'Advens Lycée Baggio' || aj.li.t !== '_blank') fail('« Trouver sur LinkedIn » : ' + JSON.stringify(aj.li));
   const nAvant = (await piste(p, 'a')).contacts.length;
   await p.click('.ce-sugg [data-sugg="0"]');
   const rempli = await p.evaluate(() => ({ nom: document.querySelector('#ceName').value, role: document.querySelector('#ceRole').value,
@@ -303,142 +213,180 @@ const annuler = async p => {
   await p.screenshot({ path: `${SHOTS}/98-enrichir-contact-pouce.png` });
   await p.click('.overlay:last-child .modal-f button:has-text("Enregistrer")');
   await p.waitForTimeout(300);
-  apres = await piste(p, 'a');
+  const apres = await piste(p, 'a');
   const t = (apres.contacts || []).find(x => x.name === 'Thomas Leroy');
   if (!t || t.role !== 'Président') fail('le dirigeant n’est pas devenu contact : ' + JSON.stringify(apres.contacts));
-  console.log('pouce · le dirigeant proposé dans « Ajouter un contact » : un tap remplit, rien sans « Enregistrer » ✓');
+  for (const u of sv.journal){ const w = fuite(u); if (w) fail(`« ${w} » est sorti : ${u}`); }
+  console.log('pouce · le dirigeant proposé dans « Ajouter un contact », LinkedIn à côté du nom (l’école ne part que là) ; rien sans « Enregistrer » ✓');
   await fermer(p);
   await ctx.close();
 }
 
-/* ---------- au pouce : une piste SANS SIREN, sur geste ---------- */
+/* ---------- ③⑤ au pouce : une piste SANS SIREN, reconnue en tapant son nom ---------- */
 {
   const { ctx, p, sv } = await ecran({ width: 390, height: 844 }, true);
   await ouvrirFiche(p, 'b');
-  await p.waitForSelector('#faSavoir', { state: 'attached' });
-  await ouvrirBloc(p);
-  let b = await bloc(p, 500);
-  if (sv.journal.length) fail('sans SIREN, une requête est partie sans geste : ' + sv.journal);
-  if (!b.trouver) fail('pas de « Trouver dans l’annuaire »');
-  if (new URL(b.liens.find(l => l.cle === 'officielle').href).searchParams.get('terme') !== 'Lumen Data')
-    fail('sans SIREN, la fiche officielle ne vise pas la recherche par nom');
-  await p.click('[data-fa-trouver]');
-  b = await bloc(p);
-  const u = new URL(sv.journal[0] || 'http://x/');
-  if (u.searchParams.get('q') !== 'Lumen Data' || u.searchParams.get('departement') !== '59')
-    fail('la recherche par nom ne porte pas le nom et le département : ' + u.search);
+  await p.waitForSelector('#fiNotes');
+  await p.waitForTimeout(500);
+  let b = await lire(p);
+  if (sv.journal.length) fail('sans SIREN, une requête est partie à l’ouverture : ' + sv.journal);
+  /* elle a une phrase à toi : « À savoir » existe pour la dire */
+  if (!b.visible) fail('« À savoir » ne montre pas ce que tu as écrit');
+  if (b.anciens.length) fail('sans SIREN, la fiche pose encore : ' + b.anciens.join(', '));
+  /* Modifier : on retape le nom, l'entreprise se propose */
+  await p.click('#fiEdit');
+  await p.waitForSelector('#edName');
+  await p.fill('#edName', '');
+  await p.click('#edName');
+  /* l'annonce est un état FUGACE : on vide la région avant le geste,
+     sinon on relirait celle d'un geste précédent (§5) */
+  await p.evaluate(() => { document.getElementById('annonce').textContent = ''; });
+  await p.keyboard.type('Lumen', { delay: 30 });
+  await p.waitForSelector('.ac-nom', { timeout: 3000 }).catch(() => {});
+  await p.waitForTimeout(150);
+  const dit = await p.evaluate(() => document.getElementById('annonce').textContent);
+  if (dit !== '3 entreprises proposées') fail('la liste du nom ne se dit pas à un lecteur d’écran : « ' + dit + ' »');
+  if (await p.getAttribute('#edName', 'aria-expanded') != null) fail('aria-expanded posé sur un champ de texte (ARIA 1.2 ne le permet pas)');
+  const sug = await p.evaluate(() => [...document.querySelectorAll('.ac-nom')].map(x => ({
+    nom: x.querySelector('b').textContent.trim(), sous: x.querySelector('span')?.textContent.trim() || '',
+    coupe: x.querySelector('b').scrollWidth > x.querySelector('b').clientWidth + 1, h: Math.round(x.getBoundingClientRect().height) })));
+  const u = new URL(sv.journal.find(x => x.startsWith('https://recherche-entreprises')) || 'http://x/');
+  if (u.searchParams.get('q') !== 'Lumen' || u.searchParams.get('departement') !== '59')
+    fail('la question porte autre chose que le nom tapé et le département : ' + u.search);
   for (const x of sv.journal){ const w = fuite(x); if (w) fail(`« ${w} » est sorti : ${x}`); }
-  if (b.choix.join('|') !== 'Lumen Data|Lumen Data Conseil|Lumen Data Global Solutions Centre de Services Partages')
-    fail('candidats : ' + b.choix);
-  /* le NOM d'un candidat plie, il ne se coupe jamais — c'est lui qui
-     départage deux homonymes (§6, une liste où l'on choisit). Mesuré en
-     LARGEUR : un nom forcé sur un rang garde sa hauteur et déborde de côté */
-  const coupes = await p.evaluate(() => [...document.querySelectorAll('.fa-choix .pk-m > b')]
-    .filter(x => x.scrollWidth > x.clientWidth + 1 || x.scrollHeight > x.clientHeight + 1).map(x => x.textContent));
-  if (coupes.length) fail('un nom de candidat est coupé : ' + coupes);
-  await auFond(p);
-  await p.screenshot({ path: `${SHOTS}/98-enrichir-choix-pouce.png` });
-  await p.click('[data-fa-pick="856123456"]');
-  await p.waitForTimeout(300);
-  let c = await piste(p, 'b');
-  if (c.siren !== '856123456') fail('le SIREN n’est pas attaché : ' + c.siren);
+  if (sug.map(x => x.nom).join('|') !== 'Lumen Data|Lumen Data Conseil|Lumen Data Global Solutions Centre de Services Partages')
+    fail('les noms proposés : ' + JSON.stringify(sug));
+  if (sug.some(x => /\d{2}\.\d{2}[A-Z]/.test(x.sous))) fail('un code d’activité revient sous un nom : ' + JSON.stringify(sug));
+  if (sug[0] && sug[0].sous !== 'Lille · 10-19 salariés') fail('la sous-ligne ne dit pas la ville et la taille : ' + sug[0].sous);
+  if (sug.some(x => x.coupe)) fail('un nom proposé est coupé au lieu de plier');
+  if (sug.some(x => x.h < 44)) fail('une proposition fait moins de 44 px au doigt : ' + sug.map(x => x.h));
+  await p.screenshot({ path: `${SHOTS}/98-enrichir-nom-pouce.png` });
+  await p.evaluate(() => { document.getElementById('annonce').textContent = ''; });
+  await p.dispatchEvent('.ac-nom[data-i="0"]', 'pointerdown');
+  await p.waitForTimeout(200);
+  /* ce qui se remplit se VOIT : un lavis sur chaque champ rempli, et
+     sur lui seul — la description, déjà écrite, ne bouge pas */
+  const form = await p.evaluate(() => ({ nom: document.querySelector('#edName').value, desc: document.querySelector('#edDesc').value,
+    adr: document.querySelector('#edAddress').value, dom: document.querySelector('#edDomain').value, liste: !!document.querySelector('.ac-nom'),
+    laves: [...document.querySelectorAll('.field.vu-change')].map(f => f.querySelector('input,textarea,select')?.id),
+    dit: document.getElementById('annonce').textContent }));
+  if (form.laves.join(',') !== 'edDomain,edAddress') fail('les champs remplis ne se montrent pas (ou un autre bouge) : ' + form.laves.join(','));
+  if (form.dit !== 'Rempli : domaine, adresse') fail('ce qui vient d’être rempli ne se dit pas : « ' + form.dit + ' »');
+  if (form.nom !== 'Lumen Data' || form.liste) fail('choisir n’écrit pas le nom, ou la liste reste : ' + JSON.stringify(form));
+  if (form.desc !== 'Data et IA, équipe de 12') fail('la description saisie a été écrasée : ' + form.desc);
+  if (!/Place du Theatre/i.test(form.adr) || form.dom !== 'cloud') fail('les vides ne se remplissent pas sous les yeux : ' + JSON.stringify(form));
+  if ((await piste(p, 'b')).siren) fail('le SIREN s’attache avant « Enregistrer »');
+  await p.click('.overlay:last-child .modal-f button:has-text("Enregistrer")');
+  await p.waitForTimeout(500);
+  const c = await piste(p, 'b');
+  if (c.siren !== '856123456') fail('« Enregistrer » n’attache pas le SIREN : ' + c.siren);
   if (c.desc !== 'Data et IA, équipe de 12') fail('la description saisie a été écrasée : ' + c.desc);
-  if (!/Place du Theatre/i.test(c.address || '') || c.lat == null) fail('l’adresse vide ne s’est pas remplie : ' + c.address);
-  if (c.domain !== 'cloud') fail('le secteur vide ne s’est pas rempli : ' + c.domain);
-  b = await bloc(p);
-  if (b.siren !== 'SIREN 856123456' || b.trouver || !b.lignes['Taille']) fail('après le choix, « À savoir » ne montre pas l’entreprise : ' + JSON.stringify(b));
-  await annuler(p);
-  c = await piste(p, 'b');
-  if (c.siren || c.address || c.lat != null || c.domain !== 'autre') fail('Annuler n’a pas tout défait : ' + JSON.stringify(c));
-  console.log('pouce · sans SIREN : rien sans geste, nom + département seulement, la bonne s’attache, rien d’écrasé, Annuler ✓');
+  if (!/Place du Theatre/i.test(c.address || '') || c.lat == null || c.domain !== 'cloud') fail('la piste n’a pas pris ce qui manquait : ' + JSON.stringify(c));
+  await p.waitForSelector('#faCarte .fk', { timeout: 3000 }).catch(() => {});
+  b = await lire(p);
+  if (b.lignes['Taille'] !== '10 à 19 salariés') fail('après le choix, la carte ne montre pas l’entreprise : ' + JSON.stringify(b.lignes));
+  console.log('pouce · sans SIREN : rien à l’ouverture ; le nom tapé se propose (ville · taille, aucun code, nom entier, compte annoncé), nom + département seulement ; choisir remplit les vides sous les yeux — ils s’éclairent et se disent —, rien d’écrasé, « Enregistrer » attache ✓');
   await fermer(p);
   await ctx.close();
 }
 
-/* ---------- ④ hors ligne, puis une panne qui se répare ---------- */
+/* ---------- ⑤ la capture au pouce : le nom se reconnaît aussi ---------- */
 {
-  const { ctx, p, sv } = await ecran({ width: 390, height: 844 }, true);
-  await ctx.setOffline(true);
-  await ouvrirFiche(p, 'a');
-  await p.waitForSelector('#faSavoir', { state: 'attached' });
-  await ouvrirBloc(p);
-  let b = await bloc(p, 800);
-  if (b.etat !== 'Hors ligne. Réessayer') fail('hors ligne : « ' + b.etat + ' »');
-  if (sv.journal.length) fail('hors ligne, une requête est partie');
-  if (b.liens.length !== 3) fail('hors ligne, les liens ont disparu : ' + b.liens.map(l => l.cle));
-  /* la panne se règle AVANT le retour du réseau : l'app relance d'elle-même
-     la question quand le réseau revient (c'est voulu), et en CI cette
-     relance a atteint l'annuaire avant la panne — il répondait, et le
-     bouton « Réessayer » n'existait jamais. Si le retour n'a rien relancé,
-     c'est le geste qui le fait. */
-  sv.regler({ statut: 500 });
-  await ctx.setOffline(false);
-  await p.waitForTimeout(300);
-  if ((await bloc(p, 500)).etat === 'Hors ligne. Réessayer') await p.click('[data-fa-encore]');
-  await p.waitForFunction(() => /ne répond pas/.test(document.querySelector('#faSavoir .fa-etat')?.textContent || ''),
-    null, { timeout: 3000 }).catch(() => {});
-  b = await bloc(p);
-  if (b.etat !== 'L’annuaire ne répond pas. Réessayer') fail('panne : « ' + b.etat + ' »');
-  sv.regler({ statut: 200 });
-  await p.click('[data-fa-encore]');
-  b = await bloc(p);
-  if (b.lignes['Missions'] !== 'Conseil et intégration informatique') fail('après Réessayer, rien ne revient');
-  console.log('hors ligne et panne : chaque cas se dit, Réessayer répare ✓');
+  const { ctx, p, sv } = await ecran({ width: 390, height: 844 }, true, { pistes: [] });
+  await p.evaluate(() => import('./ui/capture.js').then(m => m.openCapture()));
+  await p.waitForSelector('#cpName');
+  await p.click('#cpName');
+  await p.keyboard.type('Lumen', { delay: 30 });
+  await p.waitForSelector('.ac-nom', { timeout: 3000 }).catch(() => {});
+  const u = new URL(sv.journal.find(x => x.startsWith('https://recherche-entreprises')) || 'http://x/');
+  if (u.searchParams.get('q') !== 'Lumen' || u.searchParams.has('departement')) fail('capture : la question porte autre chose que le nom : ' + u.search);
+  await p.dispatchEvent('.ac-nom[data-i="1"]', 'pointerdown');
+  await p.waitForTimeout(150);
+  await p.click('.modal-f button:has-text("Ajouter")');
+  await p.waitForTimeout(400);
+  const c = await p.evaluate(async () => JSON.parse(JSON.stringify((await import('./ui/state.js')).S.companies[0] || null)));
+  if (!c || c.name !== 'Lumen Data Conseil' || c.siren !== '857000111' || c.city !== 'Lille')
+    fail('capture : l’entreprise choisie n’est pas rattachée : ' + JSON.stringify(c));
+  else console.log('capture au pouce · le nom tapé se propose ; « Ajouter » rattache la piste à l’entreprise choisie, avec sa ville ✓');
   await ctx.close();
 }
 
-/* ---------- ⑤ au poste, dans les deux thèmes ---------- */
+/* ---------- ⑥ hors ligne, puis le retour du réseau ---------- */
+{
+  const { ctx, p, sv } = await ecran({ width: 390, height: 844 }, true);
+  await ctx.setOffline(true);
+  await p.evaluate(() => dispatchEvent(new Event('offline')));
+  await ouvrirFiche(p, 'a');
+  await p.waitForSelector('#fiNotes');
+  await p.waitForTimeout(500);
+  let b = await lire(p);
+  if (sv.journal.length) fail('hors ligne, une requête est partie');
+  if (b.anciens.length) fail('hors ligne, la fiche se met à parler : ' + b.anciens.join(', '));
+  await ctx.setOffline(false);
+  await p.evaluate(() => dispatchEvent(new Event('online')));
+  await p.waitForSelector('#faCarte .fk', { timeout: 3000 }).catch(() => {});
+  b = await lire(p);
+  if (b.lignes['Missions'] !== 'Conseil et intégration informatique') fail('le réseau revenu, la carte ne revient pas : ' + JSON.stringify(b.lignes));
+  /* une panne : rien ne se dit, rien ne casse */
+  await fermer(p);
+  await ctx.close();
+  const e2 = await ecran({ width: 390, height: 844 }, true);
+  e2.sv.regler({ statut: 500 });
+  await ouvrirFiche(e2.p, 'a');
+  await e2.p.waitForSelector('#fiNotes');
+  await e2.p.waitForTimeout(600);
+  const b2 = await lire(e2.p);
+  if (b2.anciens.length || Object.keys(b2.lignes).length) fail('une panne de l’annuaire se dit ou laisse une carte : ' + JSON.stringify(b2));
+  else console.log('hors ligne et panne : rien ne se dit, rien ne casse ; la carte revient avec le réseau ✓');
+  await e2.ctx.close();
+}
+
+/* ---------- ③ au poste, dans les deux thèmes ---------- */
 for (const sombre of [false, true]){
   const { ctx, p, sv } = await ecran({ width: 1280, height: 800 }, false, { sombre });
   sv.regler({ statut: 200, retard: 400 });
   await ouvrirFiche(p, 'a');
-  await p.waitForSelector('#faSavoir', { state: 'attached' });
+  await p.waitForSelector('#fiNotes');
   /* on écrit une note PENDANT que la réponse arrive : elle doit rester */
   await p.click('#fiNotes');
   await p.keyboard.type('à relire', { delay: 5 });
-  const b = await bloc(p);
-  if (!b.ouvert) fail('au poste, « À savoir » n’est pas ouvert');
+  await p.waitForSelector('#faCarte .fk', { timeout: 4000 }).catch(() => {});
+  const b = await lire(p);
+  if (!b.ouvert || !b.visible) fail('au poste, « À savoir » n’est pas ouvert');
   if (!sv.journal.length) fail('au poste, rien n’est parti à l’ouverture');
   if (b.lignes['Taille'] !== '100 à 199 salariés') fail('au poste, les données ne sont pas là');
   const note = await p.evaluate(() => ({ v: document.querySelector('#fiNotes').value, f: document.activeElement?.id }));
   if (note.v !== PISTES[0].notes + 'à relire' || note.f !== 'fiNotes') fail('la réponse a redessiné la fiche sous les doigts : ' + JSON.stringify(note));
   const deborde = await p.evaluate(() => {
     const m = document.querySelector('.modal-fiche .modal-b');
-    return [...m.querySelectorAll('#faSavoir *, #faCts *')].filter(x => x.getBoundingClientRect().right > m.getBoundingClientRect().right + 1)
+    return [...m.querySelectorAll('#fiKnow *')].filter(x => x.getBoundingClientRect().right > m.getBoundingClientRect().right + 1)
       .map(x => x.className || x.tagName).slice(0, 3);
   });
-  if (deborde.length) fail('l’annuaire déborde de la fenêtre : ' + deborde);
-  await p.evaluate(() => document.querySelector('#faSavoir').scrollIntoView({ block: 'center' }));
+  if (deborde.length) fail('« À savoir » déborde de la fenêtre : ' + deborde);
+  await p.evaluate(() => document.querySelector('#fiKnow').scrollIntoView({ block: 'center' }));
   await p.screenshot({ path: `${SHOTS}/98-enrichir-poste${sombre ? '-sombre' : ''}.png` });
   console.log(`poste ${sombre ? 'sombre' : 'clair'} · ouvert d’office, la note en cours reste, rien ne déborde ✓`);
   await ctx.close();
 }
 
-/* ---------- au plus étroit, texte doublé : les liens se replient ---------- */
+/* ---------- au plus étroit, texte doublé ---------- */
 {
   const { ctx, p } = await ecran({ width: 320, height: 640 }, true);
   await p.evaluate(() => { document.documentElement.style.fontSize = '200%'; });
   await ouvrirFiche(p, 'a');
-  await p.waitForSelector('#faSavoir', { state: 'attached' });
-  await ouvrirBloc(p);
-  await bloc(p);
+  await p.waitForSelector('#faCarte .fk', { timeout: 4000 }).catch(() => {});
   const r = await p.evaluate(() => {
     const m = document.querySelector('.modal-fiche .modal-b');
     const mr = m.getBoundingClientRect().right;
-    return {
-      deborde: [...m.querySelectorAll('#faSavoir *, #faCts *')].filter(x => x.getBoundingClientRect().right > mr + 1).length,
-      coupes: [...document.querySelectorAll('#faSavoir .btn, #faCts .btn')].filter(x => x.scrollWidth > x.clientWidth + 1).map(x => x.textContent.trim())
-    };
+    return [...m.querySelectorAll('#fiKnow *')].filter(x => x.getBoundingClientRect().right > mr + 1).length;
   });
-  if (r.deborde) fail(`320 px à 200 % : ${r.deborde} élément(s) dépassent la feuille`);
-  if (r.coupes.length) fail('320 px à 200 % : libellés coupés ' + r.coupes);
-  await auFond(p);
+  if (r) fail(`320 px à 200 % : ${r} élément(s) dépassent la feuille`);
   await p.screenshot({ path: `${SHOTS}/98-enrichir-320-200.png` });
-  console.log('320 px à 200 % : rien ne dépasse, aucun libellé coupé ✓');
+  console.log('320 px à 200 % : rien ne dépasse ✓');
   await ctx.close();
 }
 
 if (errors.length) fail('erreurs console : ' + errors.slice(0, 5).join(' | '));
 await browser.close();
 server.close();
-if (!process.exitCode) console.log('\nOK — la fiche s’enrichit sans qu’un mot privé ne sorte, et rien ne change sans geste.');
+if (!process.exitCode) console.log('\nOK — la fiche montre ce qu’on sait, rien d’autre ; aucun mot privé ne sort, et rien ne change sans geste.');
