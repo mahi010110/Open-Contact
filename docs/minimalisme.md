@@ -21,7 +21,7 @@ Avant d'ajouter un élément, on se pose trois questions :
 | Où | Avant | Maintenant |
 |---|---|---|
 | Fiche, piste sans SIREN | « À savoir » ne contenait que quatre liens et une ligne de source | « À savoir » n'existe que s'il a quelque chose à dire |
-| Fiche | « Trouver dans l'annuaire », puis « C'est laquelle ? » avec un code par ligne (« 70.10Z ») | **L'entreprise se reconnaît pendant qu'on tape son nom**, dans la capture et dans « Modifier ». La liste dit la ville et la taille, et un tap remplit ce qui manque |
+| Fiche | « Trouver dans l'annuaire », puis « C'est laquelle ? » avec un code par ligne (« 70.10Z ») | **L'entreprise se reconnaît pendant qu'on tape son nom**, dans la capture et dans « Modifier ». La liste dit la ville et la taille. Un tap remplit ce qui manque, et les champs remplis s'éclairent un instant |
 | Fiche | « Compléter ma fiche » | Parti : ce qui manque se remplit au moment où l'on choisit l'entreprise |
 | Fiche, sous les contacts | « Personne pour l'instant. », « Anciens de mon école » / « Qui y travaille », « Écrire à … » | Rien. « + Ajouter » suffit |
 | Ajouter un contact | La liste des dirigeants seulement | Les dirigeants, plus « Trouver sur LinkedIn » à côté du nom |
@@ -43,6 +43,27 @@ Avant d'ajouter un élément, on se pose trois questions :
   demande de citer la source. Elle n'apparaît que si une source a parlé.
 - **« Trouver sur LinkedIn »** et **« Offres d'alternance »** : ce sont
   les deux seuls endroits où l'on va justement quitter l'app.
+
+## Ce que disent les sources
+
+On a vérifié le lot auprès de trois références avant de le livrer.
+
+- **Baymard Institute** (autocomplétion) recommande au plus 8
+  propositions sur un téléphone, des lignes assez hautes et espacées pour
+  le doigt, et une différence visible entre ce qu'on a tapé et ce qui est
+  proposé. La liste du nom en montre 5, à 44 px chacune. Le nom est en
+  gras, la ville et la taille en dessous.
+- **GOV.UK**, avec son composant d'autocomplétion accessible : un lecteur
+  d'écran entend combien de propositions sont arrivées. C'est ajouté
+  (« 3 entreprises proposées »). Pour la même raison, les champs que le
+  choix vient de remplir se disent (« Rempli : domaine, adresse »).
+- **Nielsen Norman Group** (divulgation progressive) : on montre d'abord
+  l'essentiel, le reste sur demande, derrière un repli bien visible.
+  Ce qui est à l'écran dès l'ouverture dit ce qui compte. C'est le cas de
+  « Plus » dans « Ajouter un contact », ouvert d'office quand il est
+  rempli. Ce qui change sans qu'on regarde doit se voir, sinon on ne le
+  remarque pas (CLAUDE.md §4, question ③). D'où le lavis bref sur les
+  champs remplis.
 
 ## Ce qui part vers l'annuaire
 

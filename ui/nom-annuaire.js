@@ -24,6 +24,7 @@
 import { esc, debounce } from '../engine/utils.js';
 import { questionNom, suggestionsNom, sousLigneNom } from '../engine/annuaire.js';
 import { lireUrl } from './decouvrir.js';
+import { annoncer } from './dom.js';
 
 let n = 0;
 /* `o.dept()` : le département où chercher (la ville déjà tapée), ou rien ;
@@ -38,11 +39,15 @@ export function brancherNom(champ, o){
   box.id = 'acNom' + (++n);
   box.hidden = true;
   field.append(box);
+  /* `aria-expanded` n'existe pas sur un champ de texte (ARIA 1.2) : le
+     nom d'entreprise est un `<textarea>` qui se replie, il ne peut pas
+     être un `combobox`. Ce qu'un lecteur d'écran doit savoir passe donc
+     par l'annonce du nombre d'entreprises proposées — ce que fait le
+     composant d'autocomplétion de GOV.UK. */
   champ.setAttribute('aria-autocomplete', 'list');
   champ.setAttribute('aria-controls', box.id);
-  champ.setAttribute('aria-expanded', 'false');
-  let choix = null, ctrl = null, liste = [];
-  const cacher = () => { box.hidden = true; box.innerHTML = ''; champ.setAttribute('aria-expanded', 'false'); };
+  let choix = null, ctrl = null, liste = [], dit = 0;
+  const cacher = () => { box.hidden = true; box.innerHTML = ''; dit = 0; };
   const chercher = debounce(async () => {
     const t = champ.value.trim();
     if (t.length < 3 || navigator.onLine === false || (choix && t === choix.nom)){ cacher(); return; }
@@ -56,8 +61,11 @@ export function brancherNom(champ, o){
       box.innerHTML = liste.map((r, i) =>
         `<button type="button" class="ac-item ac-nom" data-i="${i}"><b>${esc(r.nom)}</b>${
           sousLigneNom(r) ? `<span>${esc(sousLigneNom(r))}</span>` : ''}</button>`).join('');
+      /* dit une fois par liste, et de nouveau quand le compte change */
+      if (box.hidden || dit !== liste.length)
+        annoncer(`${liste.length} entreprise${liste.length > 1 ? 's' : ''} proposée${liste.length > 1 ? 's' : ''}`);
+      dit = liste.length;
       box.hidden = false;
-      champ.setAttribute('aria-expanded', 'true');
     } catch (e){ cacher(); }
   }, 400);
   champ.addEventListener('input', () => {

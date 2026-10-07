@@ -12,7 +12,7 @@ import { deptDePiste } from '../engine/requete.js';
 import { brancherNom } from './nom-annuaire.js';
 import { connaitre } from './fiche-annuaire.js';
 import { bus, saveData, logJ } from './state.js';
-import { openSheet, toast, btn, clavier, champGrandit, champAOuvrir } from './dom.js';
+import { openSheet, toast, btn, clavier, champGrandit, champAOuvrir, montrerRemplis, annoncer } from './dom.js';
 
 const FIELDS = ['name','city','domain','desc','website','address','techs','process','tips'];
 
@@ -203,14 +203,21 @@ export function bindSharedFields(root){
       const brouillon = { city: q('#edCity').value, address: q('#edAddress').value,
                           desc: q('#edDesc').value, domain: q('#edDomain').value, siren: 'x' };
       const comp = complements(brouillon, r, '');
-      if (comp.city) q('#edCity').value = comp.city;
-      if (comp.desc){ q('#edDesc').value = comp.desc; q('#edDesc').dispatchEvent(new Event('input')); }
-      if (comp.domain) q('#edDomain').value = comp.domain;
+      const remplis = [];
+      if (comp.city){ q('#edCity').value = comp.city; remplis.push(q('#edCity')); }
+      if (comp.domain){ q('#edDomain').value = comp.domain; remplis.push(q('#edDomain')); }
+      if (comp.desc){ q('#edDesc').value = comp.desc; q('#edDesc').dispatchEvent(new Event('input')); remplis.push(q('#edDesc')); }
       if (comp.address){
         q('#edAddress').value = comp.address;
         pousseAdresse();
         picked = comp.lat != null ? { lat: comp.lat, lng: comp.lng } : null;
+        remplis.push(q('#edAddress'));
       }
+      /* ce qui vient d'être rempli se VOIT (un lavis bref) et se DIT
+         (le libellé des champs, pour qui n'a pas l'écran) */
+      montrerRemplis(remplis);
+      if (remplis.length) annoncer('Rempli : ' + remplis.map(n =>
+        root.querySelector(`label[for="${n.id}"]`)?.textContent.trim().toLowerCase()).filter(Boolean).join(', '));
     }
   });
 

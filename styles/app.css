@@ -3333,6 +3333,9 @@ body:has(.overlay) .undo-bar{animation-name:oc-down}
   background:var(--accent);opacity:0;
   animation:oc-vu var(--dur-vu) var(--ease-out);
 }
+/* un champ que l'app vient de remplir (`montrerRemplis`) : le lavis
+   couvre le libellé et la valeur, il lui faut son repère */
+.field.vu-change{position:relative}
 
 /* ============ LE VERROUILLAGE (profil protégé) ============
    Plein écran au-dessus de tout ; pavé 44 px au pouce (mobile),

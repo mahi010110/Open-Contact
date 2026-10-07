@@ -238,8 +238,15 @@ const lire = p => p.evaluate(() => {
   await p.waitForSelector('#edName');
   await p.fill('#edName', '');
   await p.click('#edName');
+  /* l'annonce est un état FUGACE : on vide la région avant le geste,
+     sinon on relirait celle d'un geste précédent (§5) */
+  await p.evaluate(() => { document.getElementById('annonce').textContent = ''; });
   await p.keyboard.type('Lumen', { delay: 30 });
   await p.waitForSelector('.ac-nom', { timeout: 3000 }).catch(() => {});
+  await p.waitForTimeout(150);
+  const dit = await p.evaluate(() => document.getElementById('annonce').textContent);
+  if (dit !== '3 entreprises proposées') fail('la liste du nom ne se dit pas à un lecteur d’écran : « ' + dit + ' »');
+  if (await p.getAttribute('#edName', 'aria-expanded') != null) fail('aria-expanded posé sur un champ de texte (ARIA 1.2 ne le permet pas)');
   const sug = await p.evaluate(() => [...document.querySelectorAll('.ac-nom')].map(x => ({
     nom: x.querySelector('b').textContent.trim(), sous: x.querySelector('span')?.textContent.trim() || '',
     coupe: x.querySelector('b').scrollWidth > x.querySelector('b').clientWidth + 1, h: Math.round(x.getBoundingClientRect().height) })));
@@ -254,10 +261,17 @@ const lire = p => p.evaluate(() => {
   if (sug.some(x => x.coupe)) fail('un nom proposé est coupé au lieu de plier');
   if (sug.some(x => x.h < 44)) fail('une proposition fait moins de 44 px au doigt : ' + sug.map(x => x.h));
   await p.screenshot({ path: `${SHOTS}/98-enrichir-nom-pouce.png` });
+  await p.evaluate(() => { document.getElementById('annonce').textContent = ''; });
   await p.dispatchEvent('.ac-nom[data-i="0"]', 'pointerdown');
   await p.waitForTimeout(200);
+  /* ce qui se remplit se VOIT : un lavis sur chaque champ rempli, et
+     sur lui seul — la description, déjà écrite, ne bouge pas */
   const form = await p.evaluate(() => ({ nom: document.querySelector('#edName').value, desc: document.querySelector('#edDesc').value,
-    adr: document.querySelector('#edAddress').value, dom: document.querySelector('#edDomain').value, liste: !!document.querySelector('.ac-nom') }));
+    adr: document.querySelector('#edAddress').value, dom: document.querySelector('#edDomain').value, liste: !!document.querySelector('.ac-nom'),
+    laves: [...document.querySelectorAll('.field.vu-change')].map(f => f.querySelector('input,textarea,select')?.id),
+    dit: document.getElementById('annonce').textContent }));
+  if (form.laves.join(',') !== 'edDomain,edAddress') fail('les champs remplis ne se montrent pas (ou un autre bouge) : ' + form.laves.join(','));
+  if (form.dit !== 'Rempli : domaine, adresse') fail('ce qui vient d’être rempli ne se dit pas : « ' + form.dit + ' »');
   if (form.nom !== 'Lumen Data' || form.liste) fail('choisir n’écrit pas le nom, ou la liste reste : ' + JSON.stringify(form));
   if (form.desc !== 'Data et IA, équipe de 12') fail('la description saisie a été écrasée : ' + form.desc);
   if (!/Place du Theatre/i.test(form.adr) || form.dom !== 'cloud') fail('les vides ne se remplissent pas sous les yeux : ' + JSON.stringify(form));
@@ -271,7 +285,7 @@ const lire = p => p.evaluate(() => {
   await p.waitForSelector('#faCarte .fk', { timeout: 3000 }).catch(() => {});
   b = await lire(p);
   if (b.lignes['Taille'] !== '10 à 19 salariés') fail('après le choix, la carte ne montre pas l’entreprise : ' + JSON.stringify(b.lignes));
-  console.log('pouce · sans SIREN : rien à l’ouverture ; le nom tapé se propose (ville · taille, aucun code, nom entier), nom + département seulement ; choisir remplit les vides sous les yeux, rien d’écrasé, « Enregistrer » attache ✓');
+  console.log('pouce · sans SIREN : rien à l’ouverture ; le nom tapé se propose (ville · taille, aucun code, nom entier, compte annoncé), nom + département seulement ; choisir remplit les vides sous les yeux — ils s’éclairent et se disent —, rien d’écrasé, « Enregistrer » attache ✓');
   await fermer(p);
   await ctx.close();
 }
