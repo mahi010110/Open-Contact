@@ -50,7 +50,10 @@ export function brancherNom(champ, o){
   const cacher = () => { box.hidden = true; box.innerHTML = ''; dit = 0; };
   const chercher = debounce(async () => {
     const t = champ.value.trim();
-    if (t.length < 3 || navigator.onLine === false || (choix && t === choix.nom)){ cacher(); return; }
+    /* rien ne part pour un champ qu'on a quitté : la liste ne s'y
+       montrerait pas, la question n'aurait servi à personne */
+    if (t.length < 3 || navigator.onLine === false || document.activeElement !== champ
+        || (choix && t === choix.nom)){ cacher(); return; }
     ctrl?.abort();
     ctrl = new AbortController();
     try {
