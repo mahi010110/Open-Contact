@@ -143,11 +143,19 @@ function makeDecoder(onText, onClose, onPing){
    IP d'un relais public, qui laisse LIRE et refuse d'écrire).
    `delai` : ms avant de retransmettre — un relais lent perd la course
    de l'offre, et c'est le premier arrivé qui porte la réponse.
-   `hote` : l'adresse d'écoute (le labo NAT écoute hors de la boucle). */
+   `hote` : l'adresse d'écoute (le labo NAT écoute hors de la boucle).
+   `garde` : le relais GARDE les événements ordinaires (kind < 20000 ou
+   ≥ 30000, NIP-01) et les rend à un REQ venu plus tard, avant l'EOSE —
+   ce qu'un relais public fait, et ce dont la demande à un ami a besoin
+   (docs/reseau.md, lot 3). Les éphémères restent éphémères. Sans lui,
+   le relais local ne connaît que le direct : c'était tout ce que l'app
+   lui demandait. */
 export async function startLocalRelay({ silent = true, tls = false, port = 0, hote = '127.0.0.1',
                                         muet = false, refus = false, avale = false,
                                         limite = null, perdCandidats = false, filtre = null,
-                                        delai = 0 } = {}){
+                                        delai = 0, garde = false } = {}){
+  const gardes = [];                /* événements ordinaires gardés (option `garde`) */
+  const ephemere = k => k >= 20000 && k < 30000;
   const conns = new Set();          /* { sock, send, subs: Map<subId, filtres[]> } */
   const log = (...a) => { if (!silent) console.log('[relais]', ...a); };
   const recents = new Map();        /* IP → horodatages des publications acceptées */
@@ -161,10 +169,13 @@ export async function startLocalRelay({ silent = true, tls = false, port = 0, ho
   const matches = (ev, f) => {
     if (f.kinds && !f.kinds.includes(ev.kind)) return false;
     if (typeof f.since === 'number' && ev.created_at < f.since - 60) return false;
-    if (f['#x']){
-      const topics = (ev.tags || []).filter(t => t[0] === 'x').map(t => t[1]);
-      if (!topics.some(t => f['#x'].includes(t))) return false;
+    /* toute étiquette d'une lettre (#x, #p, #d…), comme NIP-01 */
+    for (const k of Object.keys(f)){
+      if (!/^#[a-zA-Z]$/.test(k) || !Array.isArray(f[k])) continue;
+      const vals = (ev.tags || []).filter(t => t[0] === k.slice(1)).map(t => t[1]);
+      if (!vals.some(v => f[k].includes(v))) return false;
     }
+    if (typeof f.until === 'number' && ev.created_at > f.until) return false;
     return true;
   };
 
@@ -219,6 +230,7 @@ export async function startLocalRelay({ silent = true, tls = false, port = 0, ho
           recents.set(ip, t);
         }
         conn.send(['OK', ev.id, true, '']);
+        if (garde && !ephemere(ev.kind) && !gardes.some(g => g.id === ev.id)) gardes.push(ev);
         const diffuser = () => {
           for (const c of conns)
             for (const [subId, filters] of c.subs)
@@ -226,8 +238,18 @@ export async function startLocalRelay({ silent = true, tls = false, port = 0, ho
         };
         if (delai) setTimeout(diffuser, delai); else diffuser();
       } else if (msg[0] === 'REQ' && typeof msg[1] === 'string'){
-        conn.subs.set(msg[1], msg.slice(2).filter(f => f && typeof f === 'object'));
+        const filtres = msg.slice(2).filter(f => f && typeof f === 'object');
+        conn.subs.set(msg[1], filtres);
         log('REQ', msg[1]);
+        /* ce qui est gardé passe AVANT l'EOSE — c'est ce qui sépare
+           « rien n'est arrivé » de « tout est relu » */
+        if (garde) for (const ev of gardes)
+          if (filtres.some(f => {
+            /* un `since` absent veut dire « depuis toujours » pour ce
+               qui est gardé ; présent, il compte à la seconde près */
+            if (typeof f.since === 'number' && ev.created_at < f.since) return false;
+            return matches(ev, { ...f, since: undefined });
+          })) conn.send(['EVENT', msg[1], ev]);
         conn.send(['EOSE', msg[1]]);
       } else if (msg[0] === 'CLOSE' && typeof msg[1] === 'string'){
         conn.subs.delete(msg[1]);
@@ -244,6 +266,7 @@ export async function startLocalRelay({ silent = true, tls = false, port = 0, ho
     url,
     server,
     stats,
+    gardes,
     clients: () => conns.size,
     close: () => { for (const c of conns) try { c.sock.destroy(); } catch (e) {} server.close(); }
   };

@@ -8,7 +8,7 @@ jour volontaire = fichier modifié → à investiguer.
 
 jsQR.js                    Apache-2.0  sha256 bc40c8a15196236b2314db0856f72ca0b49980cd5413b8c852a7349f5fee0859
 qrcode-generator.mjs       MIT   sha256 e4e021710660c0426e4bad9436a96dafa688b50ec7e0c4dbd773ba18108de5b8
-trystero-nostr.min.js      MIT   sha256 402bfef0a206dc87cef497e20c3066b80ef19e54060dc3675f4cd8a1e94d7a8d
+trystero-nostr.min.js      MIT   sha256 5962299c147beacd81ca2ef3c1e95d82471018a2397f0b707d85a67766626dcc
 
 trystero-nostr.min.js : construit depuis trystero 0.25.3 (npm, alias
 @trystero-p2p/nostr) avec esbuild —
@@ -79,6 +79,30 @@ suffisait de le laisser voir, sur les relais qu'elle a déjà ouverts.
   Gardé par tests/e2e/e2e-liaison.mjs (le NAT d'opérateur reproduit :
   aucun canal direct, les fiches passent quand même), et mesuré sur
   les relais publics par tests/e2e/sonde-portage-relais.mjs.
+
+UN SECOND AJOUT, `relayTopic.evenement` (docs/reseau.md, lot 3 — la
+demande à ses amis). Tout ce que l'app publie jusqu'ici est ÉPHÉMÈRE :
+ça n'atteint que qui écoute au même instant. Une demande à un ami doit
+au contraire l'ATTENDRE — il ouvrira l'app dans une heure ou demain.
+Il faut donc pouvoir signer un événement ORDINAIRE (gardé par le
+relais), avec le kind et les étiquettes qu'on choisit. La bibliothèque
+sait déjà le faire pour ses annonces ; on expose la même signature,
+avec la même clé de page, sans rien changer à ce qu'elle publie.
+
+  ⑤ en tête de l'objet ocPortage :
+     avant  ocPortage={clients:()=>Rr.clients(),
+     après  ocPortage={evenement:async(k,g,x)=>{let t={kind:k,tags:g,
+              created_at:Mr(),content:x,pubkey:gs},o=await Ne("SHA-256",
+              Q([0,t.pubkey,t.created_at,t.kind,t.tags,t.content]));
+              return{...t,id:ke(o),sig:ke(await Mn.signAsync(o,ds))}},
+              clients:()=>Rr.clients(),
+     → rend l'événement signé (objet), sans l'envoyer : l'appelant le
+       publie où il veut. Aucune connexion de plus, aucun envoi caché.
+
+  Sert d'abord à MESURER (tests/e2e/sonde-boite-relais.mjs) : quels
+  relais gardent un message chiffré et le rendent à une autre
+  connexion, et combien de jours — avant de concevoir quoi que ce soit
+  dessus.
 
 À la prochaine mise à jour d'une lib : remplacer le fichier, sa licence
 si besoin, et l'empreinte ci-dessus dans le même commit.
