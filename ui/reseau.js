@@ -23,10 +23,10 @@ import { esc, todayISO } from '../engine/utils.js';
 import { normalizeContact } from '../engine/model.js';
 import { RELAIS_DEFAUT } from '../engine/transport.js';
 import { kvGet, kvSet, RELAYS_KEY, RESEAU_KEY } from '../engine/storage.js';
-import { nouvelleCle, etiquetteBoite, sceller, ouvrir, lettreDemande, lettreDon, lettreMerci, normaliserLettre,
+import { nouvelleCle, etiquetteBoite, sceller, ouvrir, lettreDemande, lettreDon, lettreMerci, lettreAmi, normaliserLettre,
          etatVide, normaliserEtat, elaguer, peutDemander, demandeDePiste, traiterLettre, prenomDe,
          LETTRE_KIND } from '../engine/boite.js';
-import { prenomAmi } from '../engine/amis.js';
+import { prenomAmi, profilDonne, statutAmi, ajouterAmi, nouvelIdAmi } from '../engine/amis.js';
 import { S, bus, saveData, saveProfile, logJ } from './state.js';
 import { openSheet, toast, btn, ic, showUndo } from './dom.js';
 import { frDate } from './dates.js';
@@ -88,9 +88,12 @@ async function publier(ev){
   }));
   return oks.filter(Boolean).length;
 }
+/* `lus` : combien de relais ont répondu jusqu'au bout. Zéro, et la relève
+   n'a rien appris : on ne la compte pas comme faite. */
 async function lire(filtre){
   const urls = await relais();
   const vus = new Map();
+  let lus = 0;
   await Promise.all(urls.map(async url => {
     const ws = await connexion(url);
     if (!ws) return;
@@ -99,12 +102,12 @@ async function lire(filtre){
       ws.onmessage = m => {
         let d; try { d = JSON.parse(m.data); } catch (e) { return; }
         if (d[0] === 'EVENT' && d[1] === 'boite' && d[2] && d[2].id) vus.set(d[2].id, d[2]);
-        if (d[0] === 'EOSE' && d[1] === 'boite'){ clearTimeout(t); try { ws.close(); } catch (e) {} res(); }
+        if (d[0] === 'EOSE' && d[1] === 'boite'){ lus++; clearTimeout(t); try { ws.close(); } catch (e) {} res(); }
       };
       ws.send(JSON.stringify(['REQ', 'boite', filtre]));
     });
   }));
-  return [...vus.values()];
+  return { evs: [...vus.values()], lus };
 }
 /* l'échec d'un envoi, le même partout : rien n'est parti, et le seul
    geste qui le répare est de retrouver du réseau */
@@ -119,6 +122,76 @@ async function ecrire(cleDest, lettre, exp){
   return publier(ev);
 }
 
+/* ---------- l'amitié est RÉCIPROQUE (décision du 7 octobre 2026) ----------
+   Ajouter quelqu'un lui donne ton profil, obligatoirement : Inès scanne
+   le QR de Karim, Karim reçoit le sien sans un geste — un seul scan
+   suffit. Ce qui part est exactement ce que porterait son QR (OCA1).
+   La lettre ne part pas tout de suite : elle attend que la barre
+   « Annuler » soit passée (invariant ②), dans l'état — donc aussi si
+   l'app se ferme entre-temps, ou s'il n'y a pas de réseau : elle repart
+   à la relève suivante. « Obligatoirement » ne dépend ni du réseau de
+   l'instant, ni d'une app restée ouverte. */
+const DELAI_ANNULER = 31000;
+export async function donnerMonProfil(ami){
+  if (!ami || !ami.cle || !String(S.profile.name || '').trim()) return false;
+  await chargerReseau();
+  const b = await assurerBoite();
+  if (!S.profile.amiId){ S.profile.amiId = nouvelIdAmi(); saveProfile(); }
+  const l = lettreAmi({ prenom: prenomDe(S.profile.name), cle: b.pub }, profilDonne(S.profile, S.companies));
+  const quand = Date.now() + DELAI_ANNULER;
+  etat = { ...etat, envois: [...(etat.envois || []).filter(x => x.cle !== ami.cle),
+                             { id: l.id, cle: ami.cle, lettre: l, quand, exp: Date.now() + 14 * 864e5 }] };
+  await sauver();
+  planifierEnvois();
+  return true;
+}
+/* une lettre qui attend la fin de « Annuler » part À SON HEURE — même si
+   l'app a été rechargée entre-temps : sans ça, elle attendait la relève
+   suivante, cinq minutes plus tard (mesuré dans e2e-demande.mjs) */
+let minuterie = null;
+function planifierEnvois(){
+  /* seulement ce qui attend ENCORE « Annuler » : une lettre déjà due qui
+     n'est pas partie (pas de réseau) repart à la relève suivante, pas
+     dans une boucle qui tournerait hors ligne */
+  const quand = Math.min(...(etat.envois || []).map(x => Number(x.quand) || 0).filter(q => q > Date.now()));
+  if (!Number.isFinite(quand)) return;
+  clearTimeout(minuterie);
+  minuterie = setTimeout(() => { renvoyer().then(sauver).then(planifierEnvois).catch(() => {}); },
+                         Math.max(0, quand - Date.now()) + 200);
+}
+/* « Annuler » : ce qui n'est pas encore parti ne part pas */
+export async function reprendreMonProfil(ami){
+  await chargerReseau();
+  etat = { ...etat, envois: (etat.envois || []).filter(x => x.cle !== (ami && ami.cle)) };
+  await sauver();
+}
+async function renvoyer(){
+  const reste = [];
+  for (const x of etat.envois || []){
+    if (x.exp <= Date.now()) continue;
+    if ((Number(x.quand) || 0) > Date.now()){ reste.push(x); continue; }   /* « Annuler » est encore là */
+    const n = await ecrire(x.cle, x.lettre, x.exp).catch(() => 0);
+    if (!n) reste.push(x);
+  }
+  /* entre-temps, un « Annuler » a pu retirer une lettre : on ne la remet pas */
+  const encore = new Set((etat.envois || []).map(x => x.id));
+  etat = { ...etat, envois: reste.filter(x => encore.has(x.id)) };
+}
+/* le profil de qui m'a ajouté : il entre dans mes amis, sans aperçu —
+   c'est la règle, pas une proposition. Déjà là et pareil : rien. */
+function recevoirAmi(l){
+  const st = statutAmi(S.profile.amis, l.profil, S.profile.amiId);
+  if (st !== 'nouveau' && st !== 'maj') return false;
+  S.profile.amis = ajouterAmi(S.profile.amis, l.profil);
+  saveProfile();
+  if (st === 'nouveau'){
+    const p = prenomAmi(l.profil);
+    logJ(`${p} t’a ajouté à ses amis`);
+    toast(`${p} est dans tes amis.`);
+  }
+  return true;
+}
+
 /* ---------- relever ma boîte ----------
    À l'ouverture, au retour sur l'app, et toutes les cinq minutes tant
    qu'elle est à l'écran. Une heure de marge sur la dernière relève :
@@ -131,8 +204,9 @@ export function relever(){
     const b = S.profile.boite;
     if (!b) return;
     const debut = Date.now();
-    const evs = await lire({ kinds: [LETTRE_KIND], '#x': [await etiquetteBoite(b.pub)],
-                             since: Math.max(0, Math.floor(etat.depuis / 1000) - 3600) });
+    if ((etat.envois || []).length) await renvoyer();
+    const { evs, lus } = await lire({ kinds: [LETTRE_KIND], '#x': [await etiquetteBoite(b.pub)],
+                                      since: Math.max(0, Math.floor(etat.depuis / 1000) - 3600) });
     let change = false;
     for (const ev of evs){
       const l = normaliserLettre(await ouvrir(b.priv, ev.content));
@@ -140,13 +214,16 @@ export function relever(){
       if (r.etat === etat) continue;
       etat = r.etat;
       change = true;
+      if (r.quoi === 'ami') recevoirAmi(l);
       if (r.quoi === 'merci'){
         const m = etat.mercis.at(-1);
         logJ(`Merci de ${m.de.prenom} : ${m.contact.name} (${m.entreprise.nom})`);
         toast(`${m.de.prenom} te dit merci pour ${m.contact.name}.`);
       }
     }
-    etat.depuis = debut;
+    /* une relève où AUCUN relais n'a répondu n'a rien appris : la compter
+       ferait sauter, au retour du réseau, les lettres arrivées entre-temps */
+    if (lus) etat.depuis = debut;
     await sauver();
     if (change) bus.refresh();
   })().catch(() => {}).finally(() => { enCours = null; });
@@ -157,6 +234,7 @@ export function demarrerReseau(){
   chargerReseau().then(() => {
     if (etat.demandes.length || etat.recues.length || etat.dons.length) bus.refresh();
     relever(); derniere = Date.now();
+    planifierEnvois();
   });
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible' && Date.now() - derniere > 60000){ derniere = Date.now(); relever(); }

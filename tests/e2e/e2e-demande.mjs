@@ -29,6 +29,10 @@
      qui écrire ne propose rien ; l'ami ancien dit « Rescanne son QR » ;
    ⑦ pouce et poste, clair et sombre, 320 px texte doublé : rien ne
      déborde ; zéro erreur console.
+   ⓪ L'AMITIÉ EST RÉCIPROQUE (décision du 7 octobre 2026) : Inès ajoute
+     Karim, Karim reçoit le profil d'Inès sans un geste — et rien d'autre
+     que ce que porterait son QR. L'aperçu le dit avant ; « Annuler »
+     l'empêche de partir.
    ============================================================ */
 import { chromium, chromiumPath, serveRepo, SHOTS, annuaireMuet } from './outils.mjs';
 import { startLocalRelay } from './relais-local.mjs';
@@ -130,8 +134,10 @@ async function ajouterAmi(p, txt){
   await p.fill('#rcTxt', txt);
   await p.evaluate(() => [...document.querySelectorAll('.overlay')].pop().querySelector('.modal-f .btn-primary').click());
   await p.waitForSelector('#amAjouter');
+  const reci = await p.evaluate(() => document.querySelector('#amReci')?.textContent.trim() || '');
   await p.click('#amAjouter');
   await p.waitForTimeout(300);
+  return reci;
 }
 const ouvrirFiche = async (p, id) => {
   await fermerTout(p);
@@ -188,9 +194,62 @@ const qrKarim = await monProfilCopie(K.p);
 const qrSofia = await monProfilCopie(S2.p);
 const bK = await boiteDe(K.p), bS = await boiteDe(S2.p);
 if (!bK || !bS) fail('« Mon QR » n’a pas fait naître la boîte aux lettres');
-await ajouterAmi(I.p, qrKarim);
+/* ce que le relais a gardé, lettre par lettre, ouvert avec la clé de
+   son destinataire : on classe par ce qu'elles DISENT, jamais par leur
+   rang — les profils partent à leur heure, après « Annuler » */
+const etiquettes = {};
+const lues = async () => {
+  const cles = { K: bK, S: bS, I: await boiteDe(I.p) };
+  for (const [k, b] of Object.entries(cles)) if (b) etiquettes[await etiquetteBoite(b.pub)] = k;
+  const out = [];
+  for (const ev of lettres){
+    const pour = etiquettes[(ev.tags.find(t => t[0] === 'x') || [])[1]];
+    out.push({ ev, pour, l: cles[pour] ? await ouvrir(cles[pour].priv, ev.content) : null });
+  }
+  return out;
+};
+const deSorte = async (t, pour) => (await lues()).filter(x => x.l && x.l.t === t && (!pour || x.pour === pour));
+const attendreLettre = async (t, pour, ms = 45000) => {
+  for (const fin = Date.now() + ms; Date.now() < fin; await new Promise(r => setTimeout(r, 500)))
+    if ((await deSorte(t, pour)).length) return true;
+  fail(`aucune lettre « ${t} » pour ${pour} au relais`);
+  return false;
+};
+
+/* ---------- ⓪ l'amitié est réciproque ---------- */
+const reciK = await ajouterAmi(I.p, qrKarim);
+if (reciK !== 'Karim aura aussi ton profil.') fail('l’aperçu ne dit pas que Karim aura ton profil : « ' + reciK + ' »');
+await ajouterAmi(I.p, qrSofia);
+/* Sofia, ajoutée puis « Annuler » : son profil ne doit PAS partir */
+await I.p.evaluate(() => [...document.querySelectorAll('.undo-bar .btn')].find(b => /Annuler/.test(b.textContent)).click());
+await I.p.waitForTimeout(400);
+{
+  const e = await reseauDe(I.p);
+  if ((e.envois || []).some(x => x.cle === bS.pub)) fail('« Annuler » laisse partir le profil d’Inès vers Sofia');
+  if ((e.envois || []).length !== 1) fail('le profil d’Inès n’attend pas son envoi vers Karim : ' + JSON.stringify(e.envois));
+  if (lettres.length) fail('le profil part AVANT la fin de « Annuler » (invariant ②)');
+}
+await attendreLettre('ami', 'K');
+/* la lettre de Sofia, si elle partait, partirait juste après : on lui
+   laisse le temps de se trahir */
+await new Promise(r => setTimeout(r, 4000));
+{
+  if ((await deSorte('ami', 'S')).length) fail('le profil d’Inès est parti vers Sofia malgré « Annuler »');
+  const [x] = await deSorte('ami', 'K');
+  if (x){
+    const cles = Object.keys(x.l.profil).sort().join(',');
+    /* exactement ce que porte son QR (OCA1), rien de plus */
+    if (cles !== 'cle,id,kind,nom,parcours,v') fail('le profil donné par la boîte porte : ' + cles);
+    const brut = JSON.stringify(x.l);
+    for (const m of ['ines@exemple.test', 'BTS SIO', 'Awa', 'AwaAwa', 'note très privée', 'Aztek', 'Advens', 'Roubaix'])
+      if (brut.includes(m)) fail(`le profil donné laisse sortir « ${m} »`);
+    if (x.l.profil.nom !== 'Inès Martin' || x.l.profil.cle !== x.l.de.cle) fail('le profil donné : ' + brut.slice(0, 160));
+    if (JSON.stringify(x.ev).includes('Inès')) fail('le relais lit le profil donné');
+  }
+}
 await ajouterAmi(I.p, qrSofia);
 await sansAnnuler(I.p);
+console.log('⓪ ajouter Karim lui donne le profil d’Inès (le QR, rien de plus) après « Annuler » ; annulé, rien ne part ✓');
 
 /* ---------- ⑥ (d'abord) ce qui ne propose rien ---------- */
 await ouvrirFiche(I.p, 'q');
@@ -208,7 +267,7 @@ await I.p.waitForSelector('#dmGo');
   const qui = await I.p.evaluate(() => document.querySelector('#dmQui').textContent.replace(/\s+/g, ' ').trim());
   if (mot !== 'Inès cherche quelqu’un chez Aztek.') fail('la phrase qui part : « ' + mot + ' »');
   if (qui !== 'Karim · Sofia') fail('à qui elle part : « ' + qui + ' » (Awa, sans boîte, ne doit pas y être)');
-  if (lettres.length) fail('une lettre est partie AVANT « Demander »');
+  if ((await deSorte('demande')).length) fail('une lettre est partie AVANT « Demander »');
 }
 await I.p.waitForTimeout(400);
 await I.p.screenshot({ path: `${SHOTS}/100-demande-feuille-pouce.png` });
@@ -225,13 +284,13 @@ console.log('② la phrase exacte, à qui (sans l’amie ancienne), puis « Dema
 
 /* ---------- ① la fuite d'abord : ce que voit le relais, ce que lit l'ami ---------- */
 {
-  if (lettres.length !== 2) fail(`${lettres.length} lettre(s) au relais, 2 attendues (Karim, Sofia)`);
+  const dem = await deSorte('demande');
+  if (dem.length !== 2) fail(`${dem.length} demande(s) au relais, 2 attendues (Karim, Sofia)`);
   const brut = JSON.stringify(lettres);
   for (const x of ['Aztek', 'AZTEK', 'Inès', 'Ines', 'Roubaix', 'note très privée', 'ines@exemple.test', 'Karim', 'Sofia'])
     if (brut.includes(x)) fail(`le relais lit « ${x} »`);
-  const xK = await etiquetteBoite(bK.pub), xS = await etiquetteBoite(bS.pub);
-  const pourK = lettres.find(e => e.tags.some(t => t[0] === 'x' && t[1] === xK));
-  const pourS = lettres.find(e => e.tags.some(t => t[0] === 'x' && t[1] === xS));
+  const pourK = (dem.find(x => x.pour === 'K') || {}).ev;
+  const pourS = (dem.find(x => x.pour === 'S') || {}).ev;
   if (!pourK || !pourS) fail('chaque ami n’a pas SA lettre, rangée sous SON étiquette');
   if (lettres.some(e => !String(e.content).startsWith('OCB1.'))) fail('une lettre part sans être scellée');
   if (lettres.some(e => !e.tags.some(t => t[0] === 'expiration'))) fail('une lettre part sans expiration');
@@ -257,7 +316,7 @@ await attendreReseau(S2.p, 'e.recues.length === 1');
   if (e.recues[0].statut !== 'rien') fail('chez Sofia la demande est « ' + e.recues[0].statut + ' »');
   if (await S2.p.$('.tr-amis')) fail('« Tes amis » s’affiche chez qui ne trouve rien');
   const t = await S2.p.evaluate(() => document.querySelector('#toast.on')?.textContent || '');
-  if (/Inès|cherche/.test(t)) fail('un toast parle de la demande chez Sofia : ' + t);
+  if (/cherche/.test(t)) fail('un toast parle de la demande chez Sofia : ' + t);
 }
 console.log('③ chez Sofia, qui ne connaît personne chez Aztek : rien ne s’affiche ✓');
 
@@ -272,7 +331,19 @@ await K.p.waitForSelector('.tr-amis .act-ami', { timeout: 15000 });
   if (ligne !== 'AZTEK SAS | Inès cherche quelqu’un | tu as Julie Marchand') fail('« Tes amis » : ' + ligne);
   const premier = await K.p.evaluate(() => document.querySelector('#view-aujourdhui .tranche')?.classList.contains('tr-amis'));
   if (!premier) fail('« Tes amis » ne passe pas en tête');
+  /* ⓪ chez Karim, Inès est arrivée toute seule */
+  const amis = await K.p.evaluate(async () => {
+    const st = await import('./engine/storage.js');
+    return (JSON.parse(await st.kvGet(st.PROFILE_KEY) || '{}').amis || []).map(a => a.nom + (a.cle ? '+clé' : ''));
+  });
+  if (amis.join() !== 'Inès Martin+clé') fail('chez Karim, Inès n’est pas dans les amis (réciprocité) : ' + amis);
+  const j = await K.p.evaluate(async () => {
+    const st = await import('./engine/storage.js');
+    return JSON.stringify(JSON.parse(await st.kvGet(st.JOURNAL_KEY) || '[]'));
+  });
+  if (!/Inès t’a ajouté à ses amis/.test(j)) fail('le journal de Karim ne dit pas qu’Inès l’a ajouté');
 }
+console.log('⓪ chez Karim, Inès est dans ses amis sans un geste ✓');
 await K.p.screenshot({ path: `${SHOTS}/100-demande-aujourdhui-ami-pouce.png` });
 await K.p.click('.tr-amis .act-main');
 await K.p.waitForSelector('#drDonner');
@@ -286,7 +357,7 @@ await K.p.waitForSelector('#drDonner');
   if (vu !== 'Julie Marchand | RH | julie@aztek.test') fail('ce qu’il donnerait : ' + vu);
   const tout = await K.p.evaluate(() => [...document.querySelectorAll('.overlay')].pop().textContent);
   if (/ne pas citer|note privée|Paul/.test(tout)) fail('la feuille montre ce qui ne part pas : ' + tout.slice(0, 160));
-  if (lettres.length !== 2) fail('une lettre est partie AVANT le tap');
+  if ((await deSorte('don')).length) fail('une lettre est partie AVANT le tap');
 }
 await K.p.waitForTimeout(400);
 await K.p.screenshot({ path: `${SHOTS}/100-demande-recue-pouce.png` });
@@ -296,12 +367,12 @@ await K.p.waitForFunction(() => /Julie Marchand donné à Inès\./.test(document
 await K.p.waitForTimeout(300);
 if (await K.p.$('.tr-amis')) fail('la ligne reste après avoir donné');
 {
-  const don = lettres[2];
-  if (!don) fail('aucune lettre de don au relais');
+  const dons = await deSorte('don', 'I');
+  if (dons.length !== 1) fail(`${dons.length} don(s) au relais, 1 attendu`);
   else {
-    const bI = await boiteDe(I.p);
+    const don = dons[0].ev;
     if (JSON.stringify(don).match(/Julie|aztek\.test|ne pas citer|Karim/)) fail('le relais lit le don');
-    const l = await ouvrir(bI.priv, don.content);
+    const l = dons[0].l;
     if (!l || l.t !== 'don') fail('Inès ne peut pas ouvrir le don');
     else {
       if (Object.keys(l.contact).sort().join(',') !== 'email,name,role') fail('le don porte : ' + Object.keys(l.contact));
@@ -410,13 +481,28 @@ await K.p.waitForSelector('#drListe');
   if ((await on()).join() !== 'false,true') fail('choisir un contact n’en choisit pas UN : ' + await on());
   await K.p.waitForTimeout(300);
   await K.p.screenshot({ path: `${SHOTS}/100-demande-recue-deux-pouce.png` });
-  const avant = lettres.length;
   await K.p.click('#drDonner');
   await K.p.waitForFunction(() => /Nora Advens donné à Inès\./.test(document.querySelector('#toast')?.textContent || ''), null, { timeout: 15000 });
-  const l = await ouvrir((await boiteDe(I.p)).priv, lettres[avant].content);
+  const l = ((await deSorte('don', 'I')).find(x => x.l.contact.name === 'Nora Advens') || {}).l;
   if (!l || l.contact.name !== 'Nora Advens' || l.contact.phone !== '0600000001') fail('le don ne porte pas le contact choisi : ' + JSON.stringify(l));
 }
 console.log('④ deux contacts : le premier choisi d’office, un tap en choisit un autre, « Donner » donne celui-là ✓');
+
+/* ---------- ⓪ bis : chez Sofia aussi, Inès est arrivée seule ---------- */
+await attendreLettre('ami', 'S');
+await rouvrir(S2.p);
+{
+  let amis = [];
+  for (const fin = Date.now() + 15000; Date.now() < fin; await S2.p.waitForTimeout(300)){
+    amis = await S2.p.evaluate(async () => {
+      const st = await import('./engine/storage.js');
+      return (JSON.parse(await st.kvGet(st.PROFILE_KEY) || '{}').amis || []).map(a => a.nom);
+    });
+    if (amis.length) break;
+  }
+  if (amis.join() !== 'Inès Martin') fail('chez Sofia, Inès n’est pas dans les amis : ' + amis);
+}
+console.log('⓪ chez Sofia, rajoutée après « Annuler », Inès arrive aussi ✓');
 
 /* ---------- ⑦ pouce et poste, clair et sombre, 320 px texte doublé ---------- */
 for (const [nom, o] of [['poste', { vp: { width: 1280, height: 800 } }], ['poste-sombre', { vp: { width: 1280, height: 800 }, sombre: true }],

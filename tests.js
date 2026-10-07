@@ -51,7 +51,7 @@ import { rappelICS, lienAgendaGoogle, formeAgenda, RAPPEL_HEURE } from './engine
 import { normalizeParcours, parcoursDe, periodeParcours, phraseParcours, PARCOURS_MAX } from './engine/parcours.js';
 import { nouvelIdAmi, idAmiValide, cleEntreprise, memeEntreprise, profilDonne, normalizeAmi, normalizeAmis,
          statutAmi, ajouterAmi, retirerAmi, prenomAmi, enCours, direExperience, portesAmis, AMIS_MAX } from './engine/amis.js';
-import { nouvelleCle, boiteValide, cleValide, etiquetteBoite, sceller, ouvrir, lettreDemande, lettreDon, lettreMerci,
+import { nouvelleCle, boiteValide, cleValide, etiquetteBoite, sceller, ouvrir, lettreDemande, lettreDon, lettreMerci, lettreAmi,
          contactDonne, normaliserLettre, contactsPour, etatVide, normaliserEtat, elaguer, peutDemander,
          demandeDePiste, traiterLettre, DEMANDE_JOURS, DEMANDES_OUVERTES_MAX } from './engine/boite.js';
 import { interpreter, retirer, remplacer, chercherPistes, raisonDe, propositions, elargir,
@@ -2215,6 +2215,32 @@ export async function runSelfTests(){
       /* au-delà de 30 jours, on oublie */
       eq(elaguer(r3.etat, now + 60 * 864e5).demandes, []);
       eq(normaliserEtat('x').demandes, []);
+    },
+    'boîte : ajouter quelqu’un lui donne mon profil — le QR, rien de plus, une fois': async () => {
+      /* décision du 7 octobre 2026 : l'amitié est réciproque, obligatoirement */
+      const ines = await nouvelleCle(), karim = await nouvelleCle(), now = Date.parse('2026-10-07T12:00:00Z');
+      const p = normalizeProfile({ name: 'Inès Martin', amiId: nouvelIdAmi(), boite: ines, email: 'ines@prive.test',
+        formation: 'BTS SIO', parcours: [{ id: 'e1', entreprise: 'Quick', quoi: 'emploi', debut: '2024-06', fin: '2024-08' }],
+        amis: [{ id: 'LeaLeaLeaLeaLeaLea01', nom: 'Léa Durand', parcours: [{ entreprise: 'Wavestone', quoi: 'stage' }] }] });
+      const l = lettreAmi({ prenom: 'Inès', cle: ines.pub }, profilDonne(p, []));
+      const brut = JSON.stringify(l);
+      for (const x of ['ines@prive.test', 'BTS SIO', 'Léa', 'Wavestone', ines.priv]) ok(!brut.includes(x), x + ' ne part pas');
+      const n = normaliserLettre(await ouvrir(karim.priv, await sceller(karim.pub, l)), now);
+      eq(n.t, 'ami'); eq(n.profil.nom, 'Inès Martin'); eq(n.profil.cle, ines.pub);
+      eq(n.profil.parcours.map(e => e.entreprise), ['Quick']);
+      eq(Object.keys(n.profil).sort(), ['cle', 'id', 'nom', 'parcours']);
+      /* on n'ajoute pas quelqu'un au nom d'un autre : la clé du profil est celle qui écrit */
+      eq(normaliserLettre({ ...l, de: { prenom: 'Inès', cle: karim.pub } }, now), null);
+      eq(normaliserLettre({ ...l, profil: { nom: 'sans id' } }, now), null);
+      /* traitée UNE fois : relue, elle ne rajoute pas un ami qu'on a retiré */
+      const r = traiterLettre(etatVide(), n, { moi: karim.pub, now });
+      eq(r.quoi, 'ami');
+      eq(traiterLettre(r.etat, n, { moi: karim.pub, now }).quoi, null);
+      eq(traiterLettre(etatVide(), n, { moi: ines.pub, now }).quoi, null);       /* mon autre appareil */
+      /* ce qui n'a pas pu partir survit à l'état, et s'oublie à son expiration */
+      const e = normaliserEtat({ envois: [{ id: 'envoi12345', cle: karim.pub, lettre: l, exp: now + 864e5 }, { id: 'x', cle: 'court' }] });
+      eq(e.envois.length, 1);
+      eq(elaguer(e, now + 2 * 864e5).envois, []);
     },
     'boîte : la clé suit le profil, part dans le QR, et un ami ancien n’en a pas': async () => {
       const b = await nouvelleCle();

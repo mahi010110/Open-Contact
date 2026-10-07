@@ -36,7 +36,7 @@ doit être repensée, pas forcée.
 | `oc_missions_v1` | Bons de mission de l’ordinateur : idempotents (repliés sur le journal de campagne), bornés (expiration), révocables ; un résultat d'analyse = enveloppe `share` qui repasse par l'aperçu. Sur le fil, une mission voyage **signée** : `{m, sig, dev}` — `m` est la chaîne JSON exacte signée Ed25519 par l'appareil émetteur, vérifiée octet à octet (PWA `openMissionWire` ET cœur Rust de l’ordinateur, à CHAQUE lecture). `dev` peut être l’ordinateur appairé ou un autre membre (téléphone) : l’ordinateur résout sa clé dans l'anneau signé. Côté PWA la clé garde les remises : `[{mid, cpId, wire, state: a_confier·confiee·revoquee, stops[], revOk?}]` | JSON : tableau de missions |
 | `oc_companion_v1` | Association à l’ordinateur : clé de canal née de l'appairage par code court + identité de l’ordinateur (`{k, id, nom, pub, at}`) — **exige le profil protégé** (valeur toujours scellée). Le canal local (127.0.0.1) ne transporte que des enveloppes `OCV1.` : l'appairage sous PBKDF2(code, 120 000 itér.), la suite sous `k` — rien d'utile en clair | JSON |
 | `oc_proposals_v1` | Propositions de l'assistant IA (serveur MCP local de l’ordinateur, coupé par défaut) en attente de tri : `{v, actif, list: [{pid, at, n, share}], done: [{pid, a}]}` — `actif` mémorise l'autorisation donnée dans la feuille de l’ordinateur (sans lui, la PWA ne sonde jamais) ; `share` est une enveloppe `share` ordinaire qui repasse par `parseInput` → aperçu multi-sélection → fusion §4, JAMAIS une écriture directe ; `pid` (hash du contenu) rend le rejeu idempotent, `done` (50 max) garde les propositions déjà fusionnées/écartées pour qu'elles ne réapparaissent jamais ; 5 en attente max ; scellée (SEALABLE), emportée par le `wipe` | JSON |
-| `oc_reseau_v1` | La boîte aux lettres de mes amis, vue de CET appareil (docs/reseau.md lot 3, `engine/boite.js`) — `{v:1, depuis, demandes, recues, dons, mercis}` : `depuis` = l'instant de la dernière relève (ms) ; `demandes` = mes demandes `{id, pisteId, entreprise:{nom, siren?}, at, exp, vers}` (trois ouvertes au plus, 14 jours) ; `recues` = ce qu'on m'a demandé `{id, de:{prenom, cle}, entreprise, exp, at, statut ∈ {a-voir, rien, donnee, ecartee}, trouve:[{pisteId, ctId}]}` — `rien` quand mon téléphone n'a trouvé personne : la demande est gardée pour ne pas la retraiter, et RIEN ne s'affiche ; `dons` = les contacts qu'on m'a donnés `{id, demande, de, entreprise, contact:{name, role?, email?, phone?, link?}, at, statut ∈ {nouveau, ajoute, ecarte}}` ; `mercis` = `{id, demande, de, entreprise, contact:{name}, at}`, un par demande. 200 entrées par liste au plus, oubliées au-delà de 30 jours. Un repère d'appareil : ni sync, ni copie, ni partage ; scellée (SEALABLE), emportée par « Effacer cet appareil » | JSON |
+| `oc_reseau_v1` | La boîte aux lettres de mes amis, vue de CET appareil (docs/reseau.md lot 3, `engine/boite.js`) — `{v:1, depuis, demandes, recues, dons, mercis}` : `depuis` = l'instant de la dernière relève (ms) ; `demandes` = mes demandes `{id, pisteId, entreprise:{nom, siren?}, at, exp, vers}` (trois ouvertes au plus, 14 jours) ; `recues` = ce qu'on m'a demandé `{id, de:{prenom, cle}, entreprise, exp, at, statut ∈ {a-voir, rien, donnee, ecartee}, trouve:[{pisteId, ctId}]}` — `rien` quand mon téléphone n'a trouvé personne : la demande est gardée pour ne pas la retraiter, et RIEN ne s'affiche ; `dons` = les contacts qu'on m'a donnés `{id, demande, de, entreprise, contact:{name, role?, email?, phone?, link?}, at, statut ∈ {nouveau, ajoute, ecarte}}` ; `mercis` = `{id, demande, de, entreprise, contact:{name}, at}`, un par demande ; `lus` = les profils d'amis reçus par la boîte `{id (de la lettre), at}`, pour qu'une lettre relue ne rajoute pas un ami qu'on a retiré ; `envois` = mon profil en partance vers qui je viens d'ajouter `{id, cle, lettre, quand, exp}` — il ne part qu'après `quand` (la fin de « Annuler », ~30 s), et repart à la relève suivante s'il n'a pas pu partir (50 au plus). 200 entrées par liste au plus, oubliées au-delà de 30 jours. Un repère d'appareil : ni sync, ni copie, ni partage ; scellée (SEALABLE), emportée par « Effacer cet appareil » | JSON |
 | `oc_vus_v1` | « À découvrir » : ce que chaque recherche a déjà montré, pour marquer « nouveau » ce qui n'y était pas la fois d'avant (docs/recherche-profil.md) — `{v:1, r: {<recherche>: {at, s: [siren…]}}}`, la recherche = ses questions à l'annuaire sans la page, 30 recherches de 300 SIREN au plus. Un repère de CET appareil : ni sync, ni copie, ni partage ; scellée (SEALABLE), emportée par « Effacer cet appareil » | JSON |
 | `oc_theme` | `light` ou `dark` | chaîne |
 | `oc_view` | `map`, `list` ou `grid` (héritée, plus écrite) | chaîne |
@@ -159,7 +159,8 @@ L'objet compressé, et RIEN d'autre :
 ### Lettre à un ami — OCB1 (boîte aux lettres sur les relais, docs/reseau.md lot 3)
 
 Une demande (« Inès cherche quelqu'un chez Aztek »), un contact donné en
-réponse, un merci. Ce que voit un relais — un événement Nostr ordinaire,
+réponse, un merci — et le profil de qui vient de t'ajouter (l'amitié est
+réciproque). Ce que voit un relais — un événement Nostr ordinaire,
 signé d'une clé jetable :
 
 ```
@@ -185,13 +186,19 @@ kind 8571 · tags [["x", "oc-boite-<32 hex>"], ["expiration", "<s>"]] · content
     "contact": { "name": "Julie Marchand", "role": "RH", "email": "…", "phone": "…", "link": "…" } }
   { "v": 1, "t": "merci", "id": "…", "demande": "<id>", "de": {…}, "entreprise": {…},
     "contact": { "name": "Julie Marchand" } }
+  { "v": 1, "t": "ami", "id": "…", "de": {…}, "profil": { <exactement l'objet d'OCA1> } }
   ```
   Une demande vit 14 jours au plus (`exp` au-delà est refusée), son
   cercle vaut 1. Un don ne porte que de quoi JOINDRE le contact (nom et
   au moins un moyen) — **jamais** sa note, la piste, ses notes, son
   statut, son historique (`contactDonne`, `e2e-demande.mjs` ①). Un don
   ne compte que pour une demande que J'AI faite ; un merci, que pour une
-  demande à laquelle j'ai donné — un par demande.
+  demande à laquelle j'ai donné — un par demande. Un profil (`ami`) se
+  remet aux mêmes invariants qu'un QR scanné (`normalizeAmi`), et sa
+  `cle` doit être celle qui écrit (`de.cle`) : on n'ajoute personne au
+  nom d'un autre. Il entre dans les amis du destinataire sans aperçu —
+  c'est la règle de réciprocité, pas une proposition — une seule fois
+  par lettre.
 - Lecture BORNÉE (16 000 octets), et ce qui ne s'ouvre pas avec MA clé
   ou ne passe pas `normaliserLettre` est ignoré, jamais deviné.
 

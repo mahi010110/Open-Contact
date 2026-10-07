@@ -148,25 +148,45 @@ export function apercuAmi(sh, a, o = {}){
      recopié), ou un ami déjà là sans rien de neuf. Rien à ajouter —
      on le lit, on ferme. */
   const etat = st === 'moi' ? 'C’est ton profil.' : st === 'identique' ? 'Déjà dans tes amis.' : '';
+  /* L'AMITIÉ EST RÉCIPROQUE (décision du 7 octobre 2026) : l'ajouter lui
+     donne ton profil. Ça se dit AVANT le geste — c'est ton nom et ton
+     parcours qui partent, et on ne le devinerait pas. Un QR d'avant les
+     boîtes (sans clé) ne peut rien recevoir : rien à dire. */
   sh.body.innerHTML = parcoursHTML(a, { lecture: true })
-    + (etat ? `<p class="am-etat" id="amEtat">${ic('check', 'ic-14')} ${etat}</p>` : '');
+    + (etat ? `<p class="am-etat" id="amEtat">${ic('check', 'ic-14')} ${etat}</p>`
+      : a.cle ? `<p class="dm-qui" id="amReci">${ic('users', 'ic-14')} ${esc(prenom)} aura aussi ton profil.</p>` : '');
   if (etat){
     sh.setFoot([btn('OK', 'btn-primary', () => sh.close())]);
     return;
   }
-  const ok = btn(st === 'maj' ? 'Mettre à jour' : 'Ajouter ' + prenom, 'btn-primary', () => {
+  const ajouter = () => {
     const avant = (S.profile.amis || []).slice();
     S.profile.amis = ajouterAmi(S.profile.amis, a);
     saveProfile();
     bus.refresh();
     sh.close();
     if (o.apres) o.apres();
+    /* ton profil part vers lui — ou attend le réseau, puis part */
+    if (a.cle) import('./reseau.js').then(m => m.donnerMonProfil(a)).catch(() => {});
     showUndo(`${ic('check', 'ic-14')} ${esc(prenom)} ${st === 'maj' ? 'est à jour' : 'est dans tes amis'}.`, () => {
       S.profile.amis = avant;
       saveProfile();
       bus.refresh();
       if (o.apres) o.apres();
+      /* annuler, c'est aussi ne pas lui donner ton profil */
+      if (a.cle) import('./reseau.js').then(m => m.reprendreMonProfil(a)).catch(() => {});
     });
+  };
+  const ok = btn(st === 'maj' ? 'Mettre à jour' : 'Ajouter ' + prenom, 'btn-primary', async () => {
+    /* SANS NOM, PAS DE PROFIL À DONNER : comme pour « Mon QR », l'app
+       ouvre ce qui manque, le curseur sur le nom, et ajoute dès qu'il est
+       enregistré (§6, « peut-il être implicite ? ») */
+    if (a.cle && !String(S.profile.name || '').trim()){
+      const { openProfil } = await import('./profil.js');
+      openProfil(() => { if (String(S.profile.name || '').trim()) ajouter(); }, { focus: '#pfName' });
+      return;
+    }
+    ajouter();
   }, st === 'maj' ? 'reload' : 'plus');
   ok.id = 'amAjouter';
   sh.setFoot(o.onBack ? [btn('← Retour', 'btn-ghost', o.onBack), ok] : [ok]);

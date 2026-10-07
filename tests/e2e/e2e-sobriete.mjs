@@ -121,7 +121,12 @@ const PLAFOND = {
      (② : il vient d'un autre téléphone, à l'ouverture, sans geste). Le
      reste ne coûte rien : la demande partie se lit sur la fiche
      (« Demandé à 2 amis »), le contact ajouté sous « Annuler ». */
-  toasts: 116,
+  /* 117 le 7 octobre 2026, +1 (l'amitié réciproque, décision du
+     mainteneur) : « Inès est dans tes amis. » chez Karim, quand le
+     profil d'Inès arrive de son téléphone à elle — famille ②, rien sur
+     l'écran de Karim ne l'a causé ni ne le montre. Une fois par ami :
+     un profil mis à jour entre en silence. */
+  toasts: 117,
   toastCar: 79,        /* le plus long : « Connexion interrompue — … » */
   /* portes bloquantes dans les écrans visibles.
      9 le 29 septembre 2026 : « Mon profil » prend le garde-fou de la

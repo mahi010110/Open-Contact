@@ -398,6 +398,16 @@ Les choix, et ce qui les a fait :
   demander quelqu'un. » Une fois.
 - **Un merci par demande** : ajouté, annulé, rajouté, Karim n'est
   remercié qu'une fois.
+- **L'amitié est réciproque** (décision 12). Ajouter Karim lui donne ton
+  profil — exactement ce que porterait ton QR — et l'aperçu le dit avant
+  le geste : « Karim aura aussi ton profil. » Chez Karim, Inès entre dans
+  ses amis sans aperçu, avec un toast, une fois ; une lettre relue ne
+  rajoute pas une amie qu'il aurait retirée. Deux choses ont été payées
+  en le construisant : la lettre attend la fin de « Annuler » (sinon
+  annuler ne reprenait rien — invariant ②), et cette attente vit dans
+  l'état, pas dans une minuterie : rechargée pendant ces trente
+  secondes, l'app attendait la relève suivante, cinq minutes plus tard
+  (`e2e-demande.mjs` l'a vu, trois mutations à l'appui).
 - **La boîte ne se perd pas dans une sync** : le profil le plus récent
   gagne toujours en bloc, sauf ce qui dit où me joindre — un profil qui
   n'a pas encore de boîte prend celle de l'autre appareil. Sans ça, deux
@@ -472,6 +482,10 @@ auto-tests (`?test`).
 11. **Les amis ajoutés en 6.54 redonnent leur QR une fois.** Leur ancien
     QR ne portait pas de boîte ; on ne leur écrit pas tant qu'ils ne
     l'ont pas redonné.
+12. **L'amitié est réciproque, obligatoirement** (« lorsque l'un prend le
+    contact d'un ami, l'autre le récupère lui aussi »). Inès scanne le QR
+    de Karim : Karim reçoit le profil d'Inès par la boîte aux lettres,
+    sans un geste. Un seul scan suffit.
 
 ## Encore à trancher
 

@@ -13,7 +13,7 @@
    ECDH (P-256) avec la clé de la boîte, puis AES-GCM. Rien ne dit qui
    écrit ; seul le destinataire peut l'ouvrir.
 
-   TROIS SORTES DE LETTRES, et rien d'autre ne s'ouvre :
+   QUATRE SORTES DE LETTRES, et rien d'autre ne s'ouvre :
    · demande — « Inès cherche quelqu'un chez Aztek » : le nom de
      l'entreprise (et son SIREN), le prénom de qui demande, le cercle
      (1), l'expiration (14 jours). Règle 3 de docs/reseau.md, mot pour
@@ -21,12 +21,17 @@
    · don     — le contact que l'ami a choisi de donner : nom, rôle,
      adresse, téléphone, lien. Jamais une note, jamais le suivi.
    · merci   — « Inès a ajouté Julie » : la chaîne est remerciée.
+   · ami     — le profil de qui vient de t'ajouter (décision du 7 octobre
+     2026 : l'amitié est RÉCIPROQUE, obligatoirement). Inès scanne le QR
+     de Karim : Karim reçoit le sien, sans un geste. Exactement ce que
+     porterait son propre QR (OCA1) — l'identifiant, le nom, le parcours,
+     la clé —, jamais un de ses amis.
 
    Le téléphone de l'ami cherche dans SES pistes sans rien montrer ; il
    ne lui demande quelque chose que s'il a trouvé (règle 6). Fonctions
    pures : WebCrypto, aucun DOM, aucun réseau.
    ============================================================ */
-import { memeEntreprise } from './amis.js';
+import { memeEntreprise, normalizeAmi } from './amis.js';
 
 export const LETTRE_KIND = 8571;          /* un kind ordinaire qu'aucun client n'affiche (mesuré gardé) */
 export const DEMANDE_JOURS = 14;          /* règle 7 : une demande s'éteint au bout de 14 jours */
@@ -136,6 +141,11 @@ export function lettreDon({ prenom, cle }, demande, ct){
   return { v: 1, t: 'don', id: nouvelId(), demande: demande.id, de: { prenom: txt(prenom, 40), cle },
            entreprise: entrepriseDe(demande.entreprise), contact: contactDonne(ct) };
 }
+/* le profil que je DONNE à qui je viens d'ajouter : `profil` est ce que
+   rend `profilDonne` (amis.js), et rien d'autre ne s'y ajoute */
+export function lettreAmi({ prenom, cle }, profil){
+  return { v: 1, t: 'ami', id: nouvelId(), de: { prenom: txt(prenom, 40), cle }, profil };
+}
 export function lettreMerci({ prenom, cle }, don){
   return { v: 1, t: 'merci', id: nouvelId(), demande: don.demande, de: { prenom: txt(prenom, 40), cle },
            entreprise: entrepriseDe(don.entreprise), contact: { name: txt(don.contact && don.contact.name, 120) } };
@@ -147,6 +157,15 @@ export function normaliserLettre(o, now = Date.now()){
   if (!o || typeof o !== 'object' || o.v !== 1 || !ID.test(String(o.id || ''))) return null;
   const de = o.de && typeof o.de === 'object' ? { prenom: txt(o.de.prenom, 40), cle: o.de.cle } : null;
   if (!de || !de.prenom || !cleValide(de.cle)) return null;
+  if (o.t === 'ami'){
+    /* le profil se remet aux MÊMES invariants qu'un QR scanné, et sa clé
+       doit être celle qui écrit : on n'ajoute pas quelqu'un au nom d'un
+       autre */
+    const a = normalizeAmi(o.profil);
+    if (!a || a.cle !== de.cle) return null;
+    delete a.recu;
+    return { t: 'ami', id: o.id, de, profil: a };
+  }
   const entreprise = entrepriseDe(o.entreprise);
   if (!entreprise.nom) return null;
   if (o.t === 'demande'){
@@ -187,18 +206,23 @@ export function contactsPour(companies, entreprise, max = 3){
    Mes demandes en cours, ce qu'on m'a demandé, ce qu'on m'a donné, les
    mercis. Un repère d'appareil, comme « nouveau » dans « À découvrir » :
    ni sync, ni copie, ni partage. */
-export function etatVide(){ return { v: 1, depuis: 0, demandes: [], recues: [], dons: [], mercis: [] }; }
+export function etatVide(){ return { v: 1, depuis: 0, demandes: [], recues: [], dons: [], mercis: [], lus: [], envois: [] }; }
 export function normaliserEtat(e){
   const x = e && typeof e === 'object' ? e : {};
   const liste = (l, max = 200) => (Array.isArray(l) ? l : []).filter(y => y && typeof y === 'object' && ID.test(String(y.id || ''))).slice(-max);
+  /* `lus` : les profils déjà reçus (une lettre relue ne rajoute pas un ami
+     qu'on a retiré) ; `envois` : ce qui n'a pas pu partir faute de réseau,
+     et repart à la prochaine relève */
   return { v: 1, depuis: Number(x.depuis) || 0, demandes: liste(x.demandes), recues: liste(x.recues),
-           dons: liste(x.dons), mercis: liste(x.mercis) };
+           dons: liste(x.dons), mercis: liste(x.mercis), lus: liste(x.lus),
+           envois: liste(x.envois, 50).filter(y => cleValide(y.cle) && y.lettre && typeof y.lettre === 'object') };
 }
 /* au-delà de 30 jours, on oublie : une demande vit 14 jours */
 export function elaguer(e, now = Date.now()){
   const garde = y => (Number(y.exp || y.at) || 0) > now - 30 * 864e5;
   return { ...e, demandes: e.demandes.filter(garde), recues: e.recues.filter(garde),
-           dons: e.dons.filter(garde), mercis: e.mercis.filter(garde) };
+           dons: e.dons.filter(garde), mercis: e.mercis.filter(garde),
+           lus: (e.lus || []).filter(garde), envois: (e.envois || []).filter(y => (Number(y.exp) || 0) > now) };
 }
 export const demandesOuvertes = (e, now = Date.now()) => e.demandes.filter(d => d.exp > now);
 export const peutDemander = (e, now = Date.now()) => demandesOuvertes(e, now).length < DEMANDES_OUVERTES_MAX;
@@ -224,6 +248,12 @@ export function traiterLettre(e, l, { companies, moi, now = Date.now() } = {}){
     if (!e.demandes.some(d => d.id === l.demande) || e.dons.some(d => d.id === l.id)) return { etat: e, quoi: null };
     const d = { id: l.id, demande: l.demande, de: l.de, entreprise: l.entreprise, contact: l.contact, at: now, statut: 'nouveau' };
     return { etat: { ...e, dons: [...e.dons, d] }, quoi: 'don' };
+  }
+  if (l.t === 'ami'){
+    /* le profil de qui m'a ajouté : traité UNE fois. L'écran l'ajoute aux
+       amis (statutAmi décide : nouveau, à jour, déjà là) */
+    if (l.de.cle === moi || (e.lus || []).some(x => x.id === l.id)) return { etat: e, quoi: null };
+    return { etat: { ...e, lus: [...(e.lus || []), { id: l.id, at: now }] }, quoi: 'ami' };
   }
   if (l.t === 'merci'){
     /* un merci par demande : ajouté, annulé, rajouté, il ne remercie
