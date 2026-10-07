@@ -112,7 +112,16 @@ const PLAFOND = {
      « Mon QR » — famille ①, rien ne s'est produit et le presse-papier
      ne se voit pas. Sa réussite, elle, ne coûte AUCUN toast : le bouton
      devient « Copié » là où l'on vient de toucher. */
-  toasts: 113,
+  /* 116 le 7 octobre 2026, +3 (docs/reseau.md, lot 3, la demande à
+     ses amis), chacun pour un résultat qu'AUCUN écran ne montre ici :
+     « Envoi impossible — vérifie ta connexion. » (famille ① : rien n'est
+     parti ; un seul appel pour les deux envois), « Julie donné à Inès. »
+     (② : le contact arrive sur le téléphone d'un autre, et la ligne qui
+     le demandait vient de partir), « Inès te dit merci pour Julie. »
+     (② : il vient d'un autre téléphone, à l'ouverture, sans geste). Le
+     reste ne coûte rien : la demande partie se lit sur la fiche
+     (« Demandé à 2 amis »), le contact ajouté sous « Annuler ». */
+  toasts: 116,
   toastCar: 79,        /* le plus long : « Connexion interrompue — … » */
   /* portes bloquantes dans les écrans visibles.
      9 le 29 septembre 2026 : « Mon profil » prend le garde-fou de la
@@ -316,8 +325,15 @@ const PLAFOND = {
      navigateur est trop ancien. » quand le QR ne peut pas se faire. Le
      reste du lot ne coûte rien : « Déjà dans tes amis » et « C'est ton
      profil » sont des ÉTATS, et le profil sans nom s'ouvre au lieu de
-     s'expliquer. */
-  motsExplication: 359,
+     s'expliquer.
+
+     367 le 7 octobre 2026, +8 (docs/reseau.md, lot 3) : « Rescanne son
+     QR pour lui demander quelqu’un. » dans la fiche d'un ami ajouté
+     avant les boîtes aux lettres. Elle prévient d'une erreur qu'on ne
+     peut pas voir venir : sans elle, cet ami n'est jamais dans « à qui
+     elle part », et rien ne dit pourquoi. Elle dit le GESTE, pas la
+     raison, et elle part d'elle-même dès qu'il a redonné son QR. */
+  motsExplication: 367,
   /* ZÉRO, et c'est le seul plafond qui puisse honnêtement valoir zéro :
      un style sans porteur n'a pas de contrepartie à peser — il ne rend
      service à personne, il ne fait qu'attendre d'être lu par erreur.

@@ -3180,6 +3180,18 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
    est en rem, sur la colonne du texte — il suit la police tout seul :
    à 100 % le bouton reste sur la ligne, plus grand il descend. */
 .am-par .pick.am-ro>.pk-m{min-width:9rem}
+/* LA DEMANDE À SES AMIS (lot 3). Sur la fiche, à la place du bandeau
+   « Karim y est » quand personne ne peut te porter : un geste secondaire,
+   taillé à son mot (§6) — le primaire de la fiche reste ailleurs. Partie,
+   elle devient un FAIT, en gris : rien ne presse, rien ne se tape. */
+.fi-demander{margin:0 0 14px}
+.fi-demande{display:flex;align-items:center;gap:7px;margin:0 0 14px;color:var(--text-muted);font-size:var(--text-13)}
+/* à qui elle part, sous la phrase : des prénoms, rien d'autre */
+.dm-qui{display:flex;align-items:center;gap:7px;margin:10px 0 0;color:var(--text-muted);font-size:var(--text-13)}
+.dm-qui + .pick-list{margin-top:10px}
+/* « chez AZTEK SAS » continue le titre (« Inès cherche quelqu'un ») : il
+   vient AVANT le contact, qui prend sa place d'objet */
+.dm-chez{margin:0 0 12px}
 /* un état d'un mot (« Déjà dans tes amis. ») : il se lit, il ne se tape pas */
 .am-etat{display:flex;align-items:center;gap:7px;margin:12px 0 0;color:var(--accent);font-size:var(--text-13);font-weight:var(--weight-semibold)}
 .scan-box{

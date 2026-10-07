@@ -84,6 +84,15 @@ export function syncMerge(remote, local){
     profile = normalizeProfile(rp);
     stats.profile = 'remote';
   }
+  /* …sauf ce qui dit OÙ me joindre : ma boîte aux lettres (lot 3) et
+     l'identifiant que mes amis gardent de moi. Le profil qui gagne n'en
+     a pas encore ? Il prend celui de l'autre — mes amis ont scanné ce
+     QR-là, et une boîte perdue est une lettre qui n'arrive jamais. */
+  const perdant = stats.profile === 'remote' ? local.profile : rp;
+  if (profile && perdant){
+    if (!profile.boite && perdant.boite) profile = normalizeProfile({ ...profile, boite: perdant.boite });
+    if (!profile.amiId && perdant.amiId) profile = normalizeProfile({ ...profile, amiId: perdant.amiId });
+  }
 
   return { companies, orphans, profile, tombs, stats };
 }

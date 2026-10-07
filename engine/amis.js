@@ -28,6 +28,10 @@ export const AMIS_MAX = 200;
 export const AMI_PARCOURS_MAX = 20;
 const MOIS = /^\d{4}-(0[1-9]|1[0-2])$/;
 const ID_AMI = /^[A-Za-z0-9_-]{16,43}$/;
+/* la clé publique de sa boîte aux lettres (lot 3, engine/boite.js) :
+   un point P-256 en base64url. Un profil donné avant la 6.55 n'en a
+   pas — on ne peut pas lui écrire, c'est tout. */
+const CLE_BOITE = /^[A-Za-z0-9_-]{86,88}$/;
 
 /* L'identifiant qu'un ami garde de toi : 128 bits tirés au hasard, une
    fois. Il ne dit rien de toi ; il sert à reconnaître ton profil quand
@@ -56,7 +60,8 @@ const sirenOk = s => /^\d{9}$/.test(String(s || ''));
 export function memeEntreprise(a, b){
   if (!a || !b) return false;
   if (sirenOk(a.siren) && sirenOk(b.siren)) return a.siren === b.siren;
-  const ka = cleEntreprise(a.name ?? a.entreprise), kb = cleEntreprise(b.name ?? b.entreprise);
+  /* une piste (`name`), une expérience (`entreprise`), une lettre (`nom`) */
+  const ka = cleEntreprise(a.name ?? a.entreprise ?? a.nom), kb = cleEntreprise(b.name ?? b.entreprise ?? b.nom);
   return !!ka && ka === kb;
 }
 
@@ -74,8 +79,12 @@ export function profilDonne(profile, companies){
     if (s) x.siren = s;
     return x;
   });
-  return { v: 1, kind: 'ami', id: p.amiId, nom: String(p.name || '').replace(/\s+/g, ' ').trim().slice(0, 80),
+  const d = { v: 1, kind: 'ami', id: p.amiId, nom: String(p.name || '').replace(/\s+/g, ' ').trim().slice(0, 80),
            parcours };
+  /* la clé où m'écrire (lot 3) — publique par nature, elle ne sert qu'à
+     sceller une lettre que moi seul pourrai ouvrir */
+  if (p.boite && CLE_BOITE.test(String(p.boite.pub || ''))) d.cle = p.boite.pub;
+  return d;
 }
 
 /* ---------- ce qu'on reçoit (un QR, un texte : n'importe qui a pu
@@ -99,6 +108,7 @@ export function normalizeAmi(x){
     if (parcours.length >= AMI_PARCOURS_MAX) break;
   }
   const out = { id: x.id, nom, parcours };
+  if (CLE_BOITE.test(String(x.cle || ''))) out.cle = x.cle;
   /* `recu` : le jour où il est arrivé chez toi — rien de plus */
   const r = Number(x.recu);
   if (Number.isFinite(r) && r > 0) out.recu = r;
@@ -119,7 +129,8 @@ export function normalizeAmis(list){
 /* ---------- ajouter, mettre à jour, retirer ----------
    Le profil d'un ami est À LUI : sa version la plus récente remplace la
    précédente (même identifiant). On ne s'ajoute pas soi-même. */
-const memeContenu = (a, b) => a.nom === b.nom && JSON.stringify(a.parcours) === JSON.stringify(b.parcours);
+const memeContenu = (a, b) => a.nom === b.nom && (a.cle || '') === (b.cle || '')
+  && JSON.stringify(a.parcours) === JSON.stringify(b.parcours);
 export function statutAmi(amis, ami, monId){
   if (!ami) return 'invalide';
   if (monId && ami.id === monId) return 'moi';

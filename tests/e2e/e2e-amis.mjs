@@ -155,8 +155,16 @@ await K.p.screenshot({ path: `${SHOTS}/99-amis-mon-qr-pouce.png` });
 {
   const d = await decoder(K.p, profilKarim);
   const cles = Object.keys(d).sort().join(',');
-  if (cles !== 'id,kind,nom,parcours,v') fail('le profil donné porte d’autres champs : ' + cles);
+  /* depuis le lot 3, la clé PUBLIQUE de sa boîte aux lettres (où ses amis
+     pourront lui demander quelqu'un) — jamais la privée */
+  if (cles !== 'cle,id,kind,nom,parcours,v') fail('le profil donné porte d’autres champs : ' + cles);
   const brut = JSON.stringify(d);
+  const boite = await K.p.evaluate(async () => {
+    const st = await import('./engine/storage.js');
+    return JSON.parse(await st.kvGet(st.PROFILE_KEY) || '{}').boite || null;
+  });
+  if (!boite || d.cle !== boite.pub) fail('le QR ne porte pas la clé de la boîte née avec lui');
+  if (boite && brut.includes(boite.priv)) fail('la clé PRIVÉE de la boîte sort dans le QR');
   for (const x of ['karim@prive.test', '0611223344', 'BTS SIO', 'Baggio', 'Lille', 'Secret Corp', 'note très privée',
                    'Julie', 'Léa', 'Wavestone', 'LeaLeaLea', 'reply', 'alternance"', 'k1'])
     if (x !== 'alternance"' && brut.includes(x)) fail(`le profil donné laisse sortir « ${x} »`);
@@ -165,7 +173,7 @@ await K.p.screenshot({ path: `${SHOTS}/99-amis-mon-qr-pouce.png` });
   const dit = await K.p.evaluate(() => document.querySelector('#mqDonne').textContent.replace(/\s+/g, ' ').trim());
   if (dit !== 'Karim Benali Alternance chez Aztek · Emploi chez Quick') fail('sous le QR : « ' + dit + ' »');
 }
-console.log('① « Mon QR » ne porte que l’identifiant, le nom et le parcours — ni suivi, ni ami ✓');
+console.log('① « Mon QR » ne porte que l’identifiant, le nom, le parcours et la clé publique — ni suivi, ni ami ✓');
 /* « Donner » (texte), depuis l'état réel : aucun ami ne sort */
 await fermerTout(K.p);
 await K.p.click('#ecGive');

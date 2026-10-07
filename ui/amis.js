@@ -89,6 +89,10 @@ export async function openMonQR(o = {}){
   }
   const sh = openSheet({ title: 'Mon QR', icon: 'grid-3x3' });
   if (!p.amiId){ p.amiId = nouvelIdAmi(); saveProfile(); }
+  /* LA BOÎTE NAÎT ICI aussi (lot 3) : le QR porte la clé où tes amis
+     pourront te demander quelqu'un. Un vieux navigateur sans WebCrypto
+     donne son QR sans elle — on ne pourra pas lui écrire, c'est tout. */
+  try { await (await import('./reseau.js')).assurerBoite(); } catch (e) {}
   const donne = profilDonne(p, S.companies);
   let txt, svg;
   try {
@@ -194,7 +198,12 @@ function openAmi(a, apres){
   const dessiner = () => {
     if (!sh.body.isConnected) return;
     const frais = (S.profile.amis || []).find(x => x.id === a.id) || a;
+    /* UN PROFIL DONNÉ AVANT LES DEMANDES (6.54) n'a pas de boîte : on
+       ne peut rien lui demander tant qu'il n'a pas redonné son QR. Une
+       fois, et c'est le seul endroit où ça se dit — le geste, pas la
+       raison. */
     sh.body.innerHTML = parcoursHTML(frais)
+      + (frais.cle ? '' : `<p class="hint" id="amAncien">${ic('reload', 'ic-14')} Rescanne son QR pour lui demander quelqu’un.</p>`)
       + `<div class="pick-list pick-sortie">
            <button class="pick pick-danger" id="amRetirer"><b>${ic('trash', 'ic-14')} Retirer de mes amis</b></button>
          </div>`;

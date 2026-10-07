@@ -51,6 +51,9 @@ import { rappelICS, lienAgendaGoogle, formeAgenda, RAPPEL_HEURE } from './engine
 import { normalizeParcours, parcoursDe, periodeParcours, phraseParcours, PARCOURS_MAX } from './engine/parcours.js';
 import { nouvelIdAmi, idAmiValide, cleEntreprise, memeEntreprise, profilDonne, normalizeAmi, normalizeAmis,
          statutAmi, ajouterAmi, retirerAmi, prenomAmi, enCours, direExperience, portesAmis, AMIS_MAX } from './engine/amis.js';
+import { nouvelleCle, boiteValide, cleValide, etiquetteBoite, sceller, ouvrir, lettreDemande, lettreDon, lettreMerci,
+         contactDonne, normaliserLettre, contactsPour, etatVide, normaliserEtat, elaguer, peutDemander,
+         demandeDePiste, traiterLettre, DEMANDE_JOURS, DEMANDES_OUVERTES_MAX } from './engine/boite.js';
 import { interpreter, retirer, remplacer, chercherPistes, raisonDe, propositions, elargir,
          contexteRecherche, porteurs, deptDuCp, villeFrequente, deptDePiste, zoneDe, metierDuMoment,
          fraicheur, METIER, metierDuProfil, villeConnue, lieuDuProfil, metierEtiquetteDuProfil, rayonDe,
@@ -2101,6 +2104,139 @@ export async function runSelfTests(){
       code = '';
       try { await parseInput(txt); } catch (e) { code = e.message; }
       eq(code, 'format');
+    },
+    /* ---------- la boîte aux lettres (docs/reseau.md, lot 3) ---------- */
+    'boîte : une lettre scellée pour une clé ne s’ouvre qu’avec elle': async () => {
+      const lea = await nouvelleCle(), karim = await nouvelleCle();
+      ok(boiteValide(lea)); ok(cleValide(lea.pub)); ok(!cleValide('court'));
+      const l = { v: 1, t: 'demande', id: 'abcdefgh12', secret: 'Aztek' };
+      const s = await sceller(lea.pub, l);
+      ok(s.startsWith('OCB1.')); ok(!s.includes('Aztek'));
+      eq(await ouvrir(lea.priv, s), l);
+      eq(await ouvrir(karim.priv, s), null);                      /* pas pour lui */
+      eq(await ouvrir(lea.priv, s.slice(0, -4) + 'AAAA'), null);  /* abîmée */
+      eq(await ouvrir(lea.priv, 'OCQ1.xxx'), null);
+      /* deux lettres pour la même clé ne se ressemblent pas : la clé jetable change */
+      ok((await sceller(lea.pub, l)) !== s);
+      /* l'étiquette : stable pour une clé, différente d'une clé à l'autre, sans rien de la clé */
+      const t = await etiquetteBoite(lea.pub);
+      ok(/^oc-boite-[0-9a-f]{32}$/.test(t)); eq(await etiquetteBoite(lea.pub), t);
+      ok(t !== await etiquetteBoite(karim.pub)); ok(!t.includes(lea.pub.slice(0, 10)));
+      let pris = '';
+      try { await sceller('pas-une-cle', l); } catch (e) { pris = e.message; }
+      eq(pris, 'cle');
+    },
+    'boîte : une demande ne porte que l’entreprise, le prénom, le cercle et l’expiration': async () => {
+      const k = await nouvelleCle(), now = Date.parse('2026-10-07T12:00:00Z');
+      const d = lettreDemande({ prenom: 'Inès', cle: k.pub },
+        normalizeCompany({ id: 'p', name: 'AZTEK SAS', siren: '123456789', notes: 'privé', status: 'reply',
+          contacts: [{ name: 'Julie', email: 'j@a.test' }] }), now);
+      eq(Object.keys(d).sort(), ['cercle', 'de', 'entreprise', 'exp', 'id', 't', 'v']);
+      eq(d.entreprise, { nom: 'AZTEK SAS', siren: '123456789' });
+      eq(Object.keys(d.de).sort(), ['cle', 'prenom']);
+      eq(d.exp, now + DEMANDE_JOURS * 864e5);
+      ok(!/privé|reply|Julie/.test(JSON.stringify(d)));
+      eq(normaliserLettre(d, now).t, 'demande');
+      eq(normaliserLettre(d, d.exp + 1), null);                                  /* expirée : elle ne part plus */
+      eq(normaliserLettre({ ...d, cercle: 2 }, now), null);                       /* le cercle 2 n'existe pas encore */
+      eq(normaliserLettre({ ...d, exp: now + 40 * 864e5 }, now), null);           /* plus de 14 jours : refusée */
+      eq(normaliserLettre({ ...d, de: { prenom: 'X', cle: 'faux' } }, now), null);
+      eq(normaliserLettre({ ...d, v: 2 }, now), null);
+      eq(normaliserLettre(null, now), null);
+    },
+    'boîte : un don ne porte que de quoi joindre le contact, jamais une note': async () => {
+      const k = await nouvelleCle(), now = Date.now();
+      const dem = normaliserLettre(lettreDemande({ prenom: 'Inès', cle: k.pub }, { name: 'Aztek' }, now), now);
+      const ct = normalizeContact({ name: 'Julie Marchand', role: 'RH', email: 'julie@aztek.test', note: 'très privé',
+        conf: 'ok', activatedAt: '2026-10-01' });
+      eq(contactDonne(ct), { name: 'Julie Marchand', role: 'RH', email: 'julie@aztek.test' });
+      const don = lettreDon({ prenom: 'Léa', cle: k.pub }, dem, ct);
+      ok(!/privé|conf|activatedAt/.test(JSON.stringify(don)));
+      const n = normaliserLettre(don, now);
+      eq(n.contact, { name: 'Julie Marchand', role: 'RH', email: 'julie@aztek.test' });
+      eq(n.demande, dem.id);
+      /* sans rien pour le joindre, un contact n'est pas un don */
+      eq(normaliserLettre({ ...don, contact: { name: 'Julie' } }, now), null);
+      const m = normaliserLettre(lettreMerci({ prenom: 'Inès', cle: k.pub }, n), now);
+      eq(m.t, 'merci'); eq(m.contact, { name: 'Julie Marchand' });
+    },
+    'boîte : ce que mon téléphone trouve pour une demande — mes contacts joignables, jamais l’exemple': () => {
+      const pistes = [
+        normalizeCompany({ id: 'a', name: 'Aztek', contacts: [{ id: 'c1', name: 'Julie', email: 'j@a.test' },
+          { id: 'c2', name: 'Sans moyen' }, { id: 'c3', name: 'Paul', phone: '0600' }] }),
+        normalizeCompany({ id: 'd', name: 'AZTEK SAS', demo: true, contacts: [{ id: 'c4', name: 'Fictif', email: 'f@x.test' }] }),
+        normalizeCompany({ id: 'o', name: 'Orange', contacts: [{ id: 'c5', name: 'Zoé', email: 'z@o.test' }] })];
+      eq(contactsPour(pistes, { nom: 'AZTEK SAS' }), [{ pisteId: 'a', ctId: 'c1' }, { pisteId: 'a', ctId: 'c3' }]);
+      eq(contactsPour(pistes, { nom: 'Quick' }), []);
+    },
+    'boîte : l’état — trois demandes ouvertes, rien deux fois, rien chez qui ne trouve rien': async () => {
+      const moi = await nouvelleCle(), lea = await nouvelleCle(), now = Date.now();
+      let e = normaliserEtat(etatVide());
+      ok(peutDemander(e, now));
+      for (let i = 0; i < DEMANDES_OUVERTES_MAX; i++)
+        e = { ...e, demandes: [...e.demandes, { id: 'demande0' + i, pisteId: 'p' + i, entreprise: { nom: 'E' + i }, at: now, exp: now + 864e5 }] };
+      ok(!peutDemander(e, now));
+      ok(peutDemander(e, now + 2 * 864e5));                     /* expirées, elles libèrent la place */
+      eq(demandeDePiste(e, 'p1', now).id, 'demande01');
+      eq(demandeDePiste(e, 'p1', now + 2 * 864e5), null);
+      /* une demande reçue : gardée, montrée seulement si j'ai trouvé */
+      const pistes = [normalizeCompany({ id: 'a', name: 'Aztek', contacts: [{ id: 'c1', name: 'Julie', email: 'j@a.test' }] })];
+      const d1 = normaliserLettre(lettreDemande({ prenom: 'Tom', cle: lea.pub }, { name: 'AZTEK SAS' }, now), now);
+      let r = traiterLettre(e, d1, { companies: pistes, moi: moi.pub, now });
+      eq(r.quoi, 'demande'); eq(r.etat.recues.at(-1).statut, 'a-voir');
+      eq(traiterLettre(r.etat, d1, { companies: pistes, moi: moi.pub, now }).quoi, null);   /* une fois */
+      const d2 = normaliserLettre(lettreDemande({ prenom: 'Tom', cle: lea.pub }, { name: 'Quick' }, now), now);
+      const r2 = traiterLettre(r.etat, d2, { companies: pistes, moi: moi.pub, now });
+      eq(r2.quoi, null); eq(r2.etat.recues.at(-1).statut, 'rien');                        /* règle 6 */
+      /* ma propre demande, revenue par mon autre appareil, ne me sollicite pas */
+      const d3 = normaliserLettre(lettreDemande({ prenom: 'Moi', cle: moi.pub }, { name: 'Aztek' }, now), now);
+      eq(traiterLettre(e, d3, { companies: pistes, moi: moi.pub, now }).quoi, null);
+      /* un don ne vaut que pour MA demande */
+      const mienne = e.demandes[0];
+      const don = normaliserLettre(lettreDon({ prenom: 'Léa', cle: lea.pub }, mienne, { name: 'Julie', email: 'j@a.test' }), now);
+      const r3 = traiterLettre(e, don, { moi: moi.pub, now });
+      eq(r3.quoi, 'don'); eq(r3.etat.dons.at(-1).statut, 'nouveau');
+      eq(traiterLettre(r3.etat, don, { moi: moi.pub, now }).quoi, null);
+      const etranger = normaliserLettre(lettreDon({ prenom: 'X', cle: lea.pub }, { id: 'inconnue01', entreprise: { nom: 'Z' } },
+        { name: 'A', email: 'a@b.test' }), now);
+      eq(traiterLettre(e, etranger, { moi: moi.pub, now }).quoi, null);
+      /* un merci ne vaut que pour un don que j'ai fait */
+      const rDonne = { ...r.etat, recues: r.etat.recues.map(x => x.id === d1.id ? { ...x, statut: 'donnee' } : x) };
+      const merci = normaliserLettre(lettreMerci({ prenom: 'Tom', cle: lea.pub },
+        { demande: d1.id, entreprise: { nom: 'AZTEK SAS' }, contact: { name: 'Julie' } }), now);
+      eq(traiterLettre(rDonne, merci, { moi: moi.pub, now }).quoi, 'merci');
+      /* ajouté, annulé, rajouté : un seul merci par demande */
+      const remerci = normaliserLettre(lettreMerci({ prenom: 'Tom', cle: lea.pub },
+        { demande: d1.id, entreprise: { nom: 'AZTEK SAS' }, contact: { name: 'Julie' } }), now);
+      eq(traiterLettre(traiterLettre(rDonne, merci, { moi: moi.pub, now }).etat, remerci, { moi: moi.pub, now }).quoi, null);
+      eq(traiterLettre(r.etat, merci, { moi: moi.pub, now }).quoi, null);
+      /* au-delà de 30 jours, on oublie */
+      eq(elaguer(r3.etat, now + 60 * 864e5).demandes, []);
+      eq(normaliserEtat('x').demandes, []);
+    },
+    'boîte : la clé suit le profil, part dans le QR, et un ami ancien n’en a pas': async () => {
+      const b = await nouvelleCle();
+      const p = normalizeProfile({ name: 'Inès Martin', amiId: nouvelIdAmi(), boite: b });
+      eq(p.boite, b);
+      eq(normalizeProfile({ boite: { pub: 'x', priv: 'y' } }).boite, undefined);
+      const d = profilDonne(p, []);
+      eq(d.cle, b.pub);
+      ok(!JSON.stringify(d).includes(b.priv));                   /* la clé privée ne part jamais */
+      eq(normalizeAmi({ ...d, recu: 1 }).cle, b.pub);
+      eq(normalizeAmi({ id: nouvelIdAmi(), nom: 'Ancien' }).cle, undefined);
+      eq(statutAmi([normalizeAmi({ ...d, cle: undefined })], normalizeAmi(d), 'x'), 'maj');   /* redonné avec sa clé : mis à jour */
+      /* MES APPAREILS : le profil le plus récent gagne, mais la boîte ne se
+         perd jamais — mes amis ont scanné ce QR-là */
+      const vide = { companies: [], orphans: [], tombs: [] };
+      const recent = normalizeProfile({ name: 'Inès Martin', updatedAt: 2000 });
+      const ancien = { ...vide, profile: { ...p, updatedAt: 1000 } };
+      const r1 = syncMerge({ ...vide, profile: recent }, ancien);          /* le distant gagne, sans boîte */
+      eq(r1.stats.profile, 'remote');
+      eq(r1.profile.boite, b);
+      eq(r1.profile.amiId, p.amiId);
+      const r2 = syncMerge(ancien, { ...vide, profile: recent });          /* le local gagne, sans boîte */
+      eq(r2.stats.profile, 'local');
+      eq(r2.profile.boite, b);
     },
     'premier mail : un manque qui rendrait le mail FAUX devient un crochet, jamais un trou muet': () => {
       /* Le défaut joué le 30 septembre 2026 : profil vide, le premier mail

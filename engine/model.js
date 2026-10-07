@@ -8,8 +8,9 @@
 import { uid, extractCity, todayISO, fmtDate } from './utils.js';
 import { normalizeParcours, parcoursDe, phraseParcours } from './parcours.js';
 import { normalizeAmis, idAmiValide } from './amis.js';
+import { boiteValide } from './boite.js';
 
-export const APP_VERSION = '6.54.1';
+export const APP_VERSION = '6.55.0';
 
 export const DOMAINS = {
   esn:     { label:'ESN / Services IT',       color:'#4C9FD8' },
@@ -513,6 +514,12 @@ export function normalizeProfile(raw){
      été donné n'en a pas. */
   profile.amis = normalizeAmis(profile.amis);
   if (!idAmiValide(profile.amiId)) delete profile.amiId;
+  /* LA BOÎTE AUX LETTRES (lot 3, engine/boite.js) : la clé où mes amis
+     m'écrivent. Née au premier « Mon QR », elle suit le profil (sync de
+     MES appareils, copie) pour que chacun de mes appareils puisse lire
+     ce qui m'attend. Abîmée, elle part — un QR redonné en refera une. */
+  if (!boiteValide(profile.boite)) delete profile.boite;
+  else profile.boite = { pub: profile.boite.pub, priv: profile.boite.priv };
   /* « PAS POUR MOI » (docs/recherche-profil.md) : les entreprises de
      « À découvrir » qu'on a écartées — un SIREN, le nom pour pouvoir les
      rendre, la date. Les plus anciennes partent au-delà de 300. */

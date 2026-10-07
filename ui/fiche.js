@@ -13,6 +13,7 @@ import { STATUSES, CLOSE_REASONS, DOMAINS, POSITIONS, VECU, pushHist, summarizeC
 import { scoreOf } from '../engine/score.js';
 import { porteurs } from '../engine/requete.js';
 import { portesDuJour } from './amis.js';
+import { reseauDePiste, ouvrirDemander, ouvrirDon, demandeEnCoursHTML } from './reseau.js';
 import { S, bus, isClosed, saveData, reopenPiste, logJ, activateContact } from './state.js';
 import { openSheet, confirmSheet, toast, btn, ic, montrerChange, suivreLargeur } from './dom.js';
 import { frDate, relLabel } from './dates.js';
@@ -356,10 +357,22 @@ export function openFiche(c){
        plus forte d'abord : quelqu'un qui y est MAINTENANT. Au-delà, ce
        n'est plus un atout qu'on lit, c'est une liste qu'on parcourt. */
     const qui = porteurs(c, portesDuJour()).slice(0, 2);
+    /* QUAND PERSONNE NE PEUT TE PORTER, TES AMIS PEUVENT CHERCHER
+       (docs/reseau.md, lot 3). À la même place, et seulement quand ça
+       sert : une piste ouverte, personne à qui écrire dessus, au moins
+       un ami à qui demander. Une demande partie se lit comme un fait ;
+       un contact donné prend le bandeau d'un atout — c'en est un. */
+    const res = reseauDePiste(c);
+    const joignable = (c.contacts || []).some(t => t.email || t.phone || t.link);
     const vecuHTML = qui.map((p, i) =>
         `<button class="fi-vecu" id="fiVecu${i ? i + 1 : ''}" data-porteur="${i}">${ic('user', 'ic-14')}
            <b>${esc(p.prenom + ' ' + p.court)}</b>${ic('chevron-right', 'ic-14')}</button>`).join('')
-      + (v && !c.vecuQui ? `<div class="fi-vecu">${ic('user', 'ic-14')}<b>${v.label}</b></div>` : '');
+      + (v && !c.vecuQui ? `<div class="fi-vecu">${ic('user', 'ic-14')}<b>${v.label}</b></div>` : '')
+      + (res.don ? `<button class="fi-vecu" id="fiDon">${ic('user', 'ic-14')}
+           <b>${esc(res.don.de.prenom)} t’a donné ${esc(res.don.contact.name)}</b>${ic('chevron-right', 'ic-14')}</button>`
+        : res.demande ? demandeEnCoursHTML(res.demande)
+        : res.peut && !closed && !c.demo && !qui.length && !joignable
+          ? `<button class="btn btn-sm fi-demander" id="fiDemander">${ic('users', 'ic-14')} Demander à mes amis</button>` : '');
     /* ---- LA FICHE DIT ENFIN DE QUELLE PISTE ELLE PARLE ----
        Elle s'ouvrait sur « Toulouse · ESN » : une sous-ligne SANS son
        sujet. Le nom n'existait que dans le châssis, et mesuré, il y est
@@ -398,6 +411,8 @@ export function openFiche(c){
     sh.body.querySelector('#fiEdit').addEventListener('click', () => openEditPiste(c, render));
     sh.body.querySelectorAll('[data-porteur]').forEach(b =>
       b.addEventListener('click', () => { const p = qui[+b.dataset.porteur]; openDemander(c, p.prenom, p); }));
+    sh.body.querySelector('#fiDemander')?.addEventListener('click', () => ouvrirDemander(c, render));
+    sh.body.querySelector('#fiDon')?.addEventListener('click', () => ouvrirDon(res.don, render));
     lierAnnuaireFiche(sh.body, c);
     /* « À savoir » garde son pli le temps de la session : un geste fait
        ailleurs sur la fiche (un contact ajouté) la redessine, et la carte

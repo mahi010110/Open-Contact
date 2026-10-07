@@ -12,6 +12,7 @@ import path from 'path';
 import { readFile, mkdir } from 'fs/promises';
 import { readdirSync, statSync } from 'fs';
 import { fileURLToPath } from 'url';
+import { RELAIS_DEFAUT } from '../../engine/transport.js';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 export const SHOTS = path.join(path.dirname(fileURLToPath(import.meta.url)), 'captures');
@@ -219,6 +220,27 @@ export async function annuaireMuet(cible){
   await cible.route(ANNUAIRE_RE, r => r.fulfill({ status: 200, contentType: 'application/json',
     headers: cors, body: '{"results":[],"total_results":0}' }));
   await sourcesCarteMuettes(cible);
+  await relaisMuets(cible);
+}
+/* LES RELAIS PUBLICS, muets et VIDES (lot 3 du réseau) : dès qu'un profil
+   a donné son QR, l'app relève sa boîte aux lettres sur RELAIS_DEFAUT à
+   l'ouverture. Le bac à sable refuse ces connexions — en erreur console —
+   et un scénario qui n'est pas celui de la boîte n'a pas à dépendre du
+   réseau. Un relais qui ne garde rien : EOSE à toute lecture, OK à toute
+   publication. `e2e-demande.mjs` joue la vraie boîte, sur un relais local. */
+/* la liste se DÉDUIT de RELAIS_DEFAUT — une liste tenue à la main finit
+   toujours par mentir (§9) */
+const RELAIS_PUBLICS = new Set(RELAIS_DEFAUT.map(u => new URL(u).host));
+const RELAIS_PUBLICS_RE = u => RELAIS_PUBLICS.has(new URL(String(u)).host);
+export async function relaisMuets(cible){
+  if (typeof cible.routeWebSocket !== 'function') return;
+  await cible.routeWebSocket(RELAIS_PUBLICS_RE, ws => {
+    ws.onMessage(m => {
+      let d; try { d = JSON.parse(String(m)); } catch (e) { return; }
+      if (d[0] === 'REQ') ws.send(JSON.stringify(['EOSE', d[1]]));
+      if (d[0] === 'EVENT' && d[1] && d[1].id) ws.send(JSON.stringify(['OK', d[1].id, true, '']));
+    });
+  });
 }
 /* les sources de la CARTE seules (ui/carte.js) : pour un scénario qui joue
    l'annuaire lui-même mais n'a rien à dire de la carte — sans elles, un
