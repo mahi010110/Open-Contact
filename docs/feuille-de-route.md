@@ -284,6 +284,10 @@ liste de pistes sans partir de zéro, c'est « À découvrir ».
    toutes les captures regardées, sous Chromium et sous WebKit (le
    moteur de l'iPhone), quatorze défauts corrigés et gardés.
    **Livré le 6 octobre 2026 (6.52.0).**
+9. Le minimum, au bon moment ([`minimalisme.md`](minimalisme.md)) :
+   plus un lien ni un bouton autour de la carte de l'entreprise ;
+   l'entreprise se reconnaît pendant qu'on tape son nom ; ce qui ne sert
+   pas maintenant n'est pas à l'écran. **7 octobre 2026 (6.53.0).**
 
 **B. Le réseau** — [`reseau.md`](reseau.md). Trouver quelqu'un chez une
 entreprise parmi ses amis, ses groupes et leurs amis, trois cercles au plus.

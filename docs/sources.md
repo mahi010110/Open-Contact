@@ -108,7 +108,8 @@ qui elle est ; le BODACC, si elle traverse une procédure collective ;
 Wikidata, son site et sa page LinkedIn ; la Géoplateforme, où se trouve
 l'adresse que tu as saisie. Aucune ne se rapproche par le nom au moment
 d'afficher — un homonyme deviendrait un témoin faux : sans SIREN, c'est
-toi qui choisis la bonne entreprise (« Trouver dans l'annuaire », lot 3).
+toi qui choisis la bonne entreprise, dans la liste qui se propose pendant
+que tu tapes son nom ([`minimalisme.md`](minimalisme.md)).
 
 ---
 

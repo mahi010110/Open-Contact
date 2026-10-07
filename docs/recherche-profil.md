@@ -160,6 +160,10 @@ départage, c'est-à-dire si elle n'est vraie ni de toutes ni d'aucune. À
 
 ## 7. Le marché autour de toi
 
+*Retiré de l'écran le 7 octobre 2026 (minimalisme, CLAUDE.md §6) : la
+ligne n'aidait à choisir aucune entreprise. La table reste dans
+`engine/marche.js`.*
+
 Une ligne sous les offres, la source au bout :
 
 > Nord : **380** embauches prévues en réseau et support, **66 %**

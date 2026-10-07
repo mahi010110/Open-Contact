@@ -129,7 +129,11 @@ const ECRANS = [
       const c = S.companies.find(x => x.id === 'i'); deletePiste(c); showUndo('« Kiabi » supprimée.', () => {}); }); }],
   ['24-rattacher', p => p.evaluate(async () => { const { S } = await import('./ui/state.js'); (await import('./ui/contact.js')).openAttach(S.orphans[0]); })],
   ['25-mes-appareils', p => p.evaluate(() => import('./ui/direct.js').then(m => m.openAppareils()))],
-  ['26-verrouillage', p => p.evaluate(() => import('./ui/verrou.js').then(m => m.openProtectFlow()))]
+  ['26-verrouillage', p => p.evaluate(() => import('./ui/verrou.js').then(m => m.openProtectFlow()))],
+  ['27-nom-suggere', async p => { await ECRAN('10-capture')(p); await p.waitForTimeout(400);
+    await p.type('#cpName, #edName', 'Reseaux', { delay: 40 }); await p.waitForTimeout(1200); }],
+  ['28-profil-vide', async p => { await p.evaluate(async () => { const { S } = await import('./ui/state.js'); S.profile.ville = ''; });
+    await ECRAN('15-profil')(p); }]
 ];
 const ECRAN = n => ECRANS.find(e => e[0] === n)[1];
 const VIDES = [

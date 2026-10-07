@@ -105,7 +105,11 @@ export function openProfil(onDone, opts = {}){
          <input id="pfVille" value="${esc(d.ville)}" placeholder="Ex : Lille" autocomplete="address-level2"
                 enterkeyhint="done" aria-describedby="pfVilleErr" ${clavier('nom')}>
          <p class="hint warn" id="pfVilleErr" hidden></p>
-         <div class="datechips pf-rayon" role="group" aria-label="Rayon">
+         ${/* le rayon n'a de sens qu'AUTOUR D'UNE VILLE : il n'apparaît
+              qu'une fois la ville reconnue (minimalisme, 7 octobre — trois
+              puces sous un champ vide attendaient une ville qu'on n'avait
+              pas encore écrite) */''}
+         <div class="datechips pf-rayon" role="group" aria-label="Rayon"${villeConnue(d.ville) ? '' : ' hidden'}>
            ${RAYONS.map(r => `<button class="dchip${d.rayon === r ? ' on' : ''}" data-rayon="${r}"
                     aria-pressed="${d.rayon === r}">${r} km</button>`).join('')}
          </div></div>
@@ -237,11 +241,16 @@ export function openProfil(onDone, opts = {}){
     m.querySelector('[data-pf-ville]')?.addEventListener('click', e => {
       d.ville = q('#pfVille').value = e.currentTarget.dataset.pfVille;
       montrerErreur('#pfVille', '#pfVilleErr', false);
+      q('.pf-rayon').hidden = false;
       q('#pfVille').focus();
     });
     montrerErreur('#pfVille', '#pfVilleErr', oui);
   };
-  q('#pfVille').addEventListener('input', e => { d.ville = e.target.value; if (!villeFausse()) erreurVille(false); });
+  q('#pfVille').addEventListener('input', e => {
+    d.ville = e.target.value;
+    if (!villeFausse()) erreurVille(false);
+    q('.pf-rayon').hidden = !villeConnue(d.ville);
+  });
   q('#pfVille').addEventListener('blur', () => { if (villeFausse()) erreurVille(true); });
   sh.body.querySelectorAll('.dchip[data-rayon]').forEach(b => b.addEventListener('click', () => {
     d.rayon = Number(b.dataset.rayon);
@@ -291,7 +300,7 @@ export function openProfil(onDone, opts = {}){
          <div class="field"><label for="exDebut">Début</label>
            <input id="exDebut" type="month" value="${esc(x.debut)}"></div>
          <div class="field"><div class="lbl-row"><label for="exFin">Fin</label>
-             <span class="fld-n" id="exPer">${esc(periode())}</span></div>
+             <span class="fld-n" id="exPer">${esc(x.debut ? periode() : '')}</span></div>
            <input id="exFin" type="month" value="${esc(x.fin)}" aria-describedby="exFinErr"></div>
        </div>
        <p class="hint warn" id="exFinErr" hidden>La fin est avant le début.</p>`;
@@ -307,7 +316,9 @@ export function openProfil(onDone, opts = {}){
         x[k] = eq(id).value;
         /* la période se lit pendant qu'on la choisit : « depuis 2025 »
            dit, sans une phrase, qu'une fin vide veut dire « en cours » */
-        eq('#exPer').textContent = periode();
+        /* sans début, la période ne dit rien (« 2026 » seul, à côté de
+           « Fin », se lisait comme un titre) */
+        eq('#exPer').textContent = x.debut ? periode() : '';
         if (!(x.debut && x.fin && x.fin < x.debut)) eq('#exFinErr').hidden = true;
       };
       eq(id).addEventListener('input', maj);

@@ -8,6 +8,7 @@ import { esc, uid, todayISO, debounce, normName } from '../engine/utils.js';
 import { normalizeCompany, normalizeContact, contactHasData, pushHist, STATUSES } from '../engine/model.js';
 import { contactFromSignature } from '../engine/assist.js';
 import { findMatch } from '../engine/merge.js';
+import { lienGens } from '../engine/annuaire.js';
 import { S, bus, saveData, saveOrphans, logJ, isClosed,
          addOrphan, removeOrphan, attachContact, ctLabel } from './state.js';
 import { openSheet, confirmSheet, toast, btn, ic, clavier, champAOuvrir } from './dom.js';
@@ -44,11 +45,22 @@ export function openContactEditor(o){
      pointillé, au moment exact où l'on ajoute quelqu'un — un tap remplit
      le nom et le rôle, rien ne s'ajoute sans « Enregistrer » */
   const sugg = !editing ? (o.suggestions || []).filter(x => x && x.nom).slice(0, 3) : [];
+  /* … et trouver quelqu'un sur LinkedIn : ICI, au moment où l'on
+     cherche à qui écrire — plus sur la fiche, où il attendait sous les
+     contacts avant qu'on ait rien demandé (minimalisme, 7 octobre) */
+  const gens = !editing && c ? lienGens(c.name, S.profile) : null;
+  /* LE MINIMUM (7 octobre 2026) : un contact, c'est un nom, un rôle, un
+     moyen de le joindre. Le reste (son profil, une note, « J'ai vérifié »)
+     sert rarement et se replie sous « Plus » — ouvert d'office s'il porte
+     déjà quelque chose. */
+  const plusOuvert = !!(src.link || src.note || src.conf === 'ok');
   sh.body.innerHTML =
-    `${sugg.length ? `<div class="ce-sugg"><span class="ce-sugg-l">Selon l’annuaire</span>${sugg.map((x, i) =>
+    `${sugg.length ? `<div class="ce-sugg">${sugg.map((x, i) =>
        `<button class="prop-chip" data-sugg="${i}">${esc(x.nom)}${x.qualite ? ` <span class="fl-n">${esc(x.qualite.toLowerCase())}</span>` : ''}</button>`).join('')}</div>` : ''}
      <div class="grid2">
-       <div class="field"><label for="ceName">Nom</label>
+       <div class="field">${/* « Trouver sur LinkedIn » vit À CÔTÉ DU NOM : c'est le
+            nom qu'on y cherche */''}<div class="lbl-row"><label for="ceName">Nom</label>${
+         gens ? `<a class="linklike ce-gens" href="${esc(gens.url)}" target="_blank" rel="noopener" aria-label="${esc(gens.aria)}">Trouver sur LinkedIn${ic('external-link', 'ic-12')}</a>` : ''}</div>
          <input id="ceName" value="${esc(src.name || '')}" placeholder="Ex : Nadia Rahmani" autocomplete="off" ${clavier('nom')}></div>
        <div class="field"><label for="ceRole">Rôle</label>
          <input id="ceRole" value="${esc(src.role || '')}" placeholder="Ex : RH, team lead" autocomplete="off" ${clavier('nom')}></div>
@@ -59,15 +71,17 @@ export function openContactEditor(o){
        <div class="field"><label for="cePhone">Téléphone</label>
          <input id="cePhone" type="tel" value="${esc(src.phone || '')}" autocomplete="off" inputmode="tel" ${clavier('tel')}></div>
      </div>
-     <div class="field"><label for="ceLink">Profil</label>
-       <input id="ceLink" type="url" value="${esc(src.link || '')}" placeholder="Ex : linkedin.com/in/…" autocomplete="off" ${clavier('lien')}></div>
      ${!c ? `
      <div class="field"><label for="ceCo">Entreprise</label>
        <input id="ceCo" value="${esc((src.extra && src.extra.company) || '')}" placeholder="Ex : OVHcloud" autocomplete="off" ${clavier('nom')}>
        <p class="hint" id="ceCoNote" hidden></p></div>` : ''}
-     <div class="field"><label for="ceNote">Note</label>
-       <input id="ceNote" value="${esc(src.note || '')}" placeholder="Ex : rencontré au forum de l’IUT" autocomplete="off"></div>
-     <label class="ckline"><input type="checkbox" id="ceConf"${src.conf === 'ok' ? ' checked' : ''}> J’ai vérifié ces coordonnées</label>
+     <details class="srt-adv ce-plus"${plusOuvert ? ' open' : ''}><summary>Plus</summary>
+       <div class="field"><label for="ceLink">Profil</label>
+         <input id="ceLink" type="url" value="${esc(src.link || '')}" placeholder="Ex : linkedin.com/in/…" autocomplete="off" ${clavier('lien')}></div>
+       <div class="field"><label for="ceNote">Note</label>
+         <input id="ceNote" value="${esc(src.note || '')}" placeholder="Ex : rencontré au forum de l’IUT" autocomplete="off"></div>
+       <label class="ckline"><input type="checkbox" id="ceConf"${src.conf === 'ok' ? ' checked' : ''}> J’ai vérifié ces coordonnées</label>
+     </details>
      ${!editing ? `<button class="linklike" id="ceSig">Coller une signature</button>
      <div class="field" id="ceSigZone" hidden><label for="ceSigTxt">La signature</label>
        <textarea id="ceSigTxt" rows="4" placeholder="Colle la fin de l’email reçu — nom, rôle, téléphone…"></textarea></div>` : ''}`;

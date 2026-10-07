@@ -891,20 +891,13 @@ html[data-theme="dark"] .field select{
   .dc-row .hov-del:hover{color:var(--text-body)}
 }
 .dc-row .hov-del:focus-visible{color:var(--text-body)}
-/* LE MARCHÉ : une donnée, en petit, sous les offres — les chiffres en
-   gras, la source nommée au bout */
-.dc-marche{display:flex;align-items:flex-start;gap:6px;margin:2px 0 10px;
-  font-size:var(--text-12);line-height:1.45;color:var(--text-muted)}
-.dc-marche .ic{flex:none;margin-top:2px}
-.dc-marche b{font-family:var(--font-mono);color:var(--text-body);font-weight:var(--weight-semibold)}
-.dc-marche-src{font-family:var(--font-mono);font-size:var(--text-11)}
 .dc-ecl{margin-top:4px}
 .dc-etat{margin:0;padding:12px 2px;font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted)}
 .dc-err{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px}
 .dc-vue .tr-more{margin-top:6px}
-/* qui recrute en alternance, autour d'ici : un lien, en tête de la
-   liste, calé sur son bord — il emmène ailleurs, il ne pèse pas plus */
-.dc-offres{margin:0 0 4px -8px;gap:6px}
+/* qui recrute en alternance, autour d'ici : un lien, APRÈS la liste,
+   calé sur son bord — il emmène ailleurs, il ne pèse pas plus */
+.dc-offres{margin:8px 0 0 -8px;gap:6px}
 .dc-offres span{min-width:0}
 /* la source se nomme (la licence de l'annuaire le demande) : en pied,
    discrète, mais une cible entière au doigt */
@@ -967,38 +960,14 @@ html[data-theme="dark"] .field select{
 .ct-src{margin:10px 0 0;font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
 .ap-agir{display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;margin:12px 0 0}
 .ap-pris{display:inline-flex;align-items:center;gap:6px;font-size:var(--text-13);font-weight:var(--weight-semibold);color:var(--accent)}
-.ap-liens{display:flex;flex-wrap:wrap;gap:0 4px;margin:6px 0 0 -8px}
-.ap-plus{margin:10px 0 0;font-size:var(--text-12);color:var(--text-muted)}
-.ap-plus p{margin:2px 0}
-.ap-plus .linklike{min-height:0;padding:0;font-size:inherit}
-.ap-siren{font-family:var(--font-mono)}
-/* ---- CE QUE L'ANNUAIRE APPORTE À LA FICHE (rangé par usage, léger) ----
-   Plus de bloc à part (docs/presentation-recherche.md) : un lien sous les
-   contacts, quelques rangées et une ligne grise dans « À savoir ». */
+/* ---- CE QUE L'ANNUAIRE APPORTE À LA FICHE : la carte, rien d'autre ----
+   (minimalisme, 7 octobre 2026 : plus un lien, plus un bouton autour) */
+/* la source, sous la carte de « À savoir », calée sur ses rangées */
+.fi-know .ct-src{margin:0;padding:6px 10px 8px}
 /* sous le nom : une entreprise fermée, au langage d'urgence */
 .fa-etat-nom:not(:empty){display:inline-flex;align-items:center;gap:6px;margin-left:8px}
-/* sous les contacts : « Anciens de mon école », un lien */
-.fa-cts{margin:4px 0 0 -8px}
-.fa-cts:empty{display:none}
-/* à qui écrire, tant que la piste n'a personne : la ligne de la carte,
-   calée sur le bord des contacts */
-.fa-qui{margin:0 0 2px 8px}
-.fa-qui .fk{display:flex;align-items:center;flex-wrap:wrap;gap:0 8px;padding:0;border-bottom:0}
-.fa-qui .fk-l{display:inline;width:auto;margin:0}
-/* dans « À savoir » : la ligne grise de la source et ses liens */
-.fa-pied{padding:6px 10px 8px;font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
-.fa-liens{display:flex;flex-wrap:wrap;gap:0 4px;margin:0 0 2px -8px;font-family:var(--font-ui);font-size:var(--text-13)}
-.fa-etat{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;margin-bottom:4px;font-size:var(--text-12)}
-.fa-etat .linklike{margin-left:-8px;font-family:var(--font-ui)}
-.fa-act{display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;padding:8px 10px 0}
-.fa-quoi{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
-.fa-siren{font-family:var(--font-mono)}
-.fa-q{margin:12px 0 6px;font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);
-  text-transform:uppercase;letter-spacing:.04em}
-.fa-choix .pick svg{flex:none;color:var(--text-muted)}
 /* « Ajouter un contact » : le dirigeant proposé, en pointillé */
 .ce-sugg{display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;margin:0 0 12px}
-.ce-sugg-l{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
 .tr-late .tr-h{color:var(--amber)}
 .tr-late .tr-h .tr-n{border-color:var(--amber);background:var(--amber-wash)}
 /* replier/déplier « Bientôt » est un geste au pouce comme un autre :
@@ -2460,6 +2429,13 @@ button.ec-row:hover{background:var(--surface-field)}
 .ac-item:hover{background:var(--select-bg);color:var(--select-text)}
 }
 .ac-item+.ac-item{border-top:1px solid var(--border-soft)}
+/* le nom d'une entreprise qui se propose : son nom en texte courant, la
+   ville et la taille en donnée dessous — jamais un code (ui/nom-annuaire.js) */
+.ac-nom{display:flex;flex-direction:column;gap:2px;justify-content:center}
+.ac-nom b{font-family:var(--font-ui);font-size:var(--text-14);font-weight:var(--weight-semibold)}
+.ac-nom span{font-size:var(--text-11);color:var(--text-muted)}
+.ac-nom:focus span{color:inherit}
+@media (hover:hover){ .ac-nom:hover span{color:inherit} }
 
 /* LES INDICATEURS NATIFS PRENNENT LE DESSIN DE L'APP. Le ▼ d'un champ à
    propositions (`<input list>`) et l'agenda d'un champ de date sont
@@ -2480,6 +2456,20 @@ button.ec-row:hover{background:var(--surface-field)}
 }
 .field input[list]::-webkit-calendar-picker-indicator{
   -webkit-mask-image:url(../assets/icons/chevron-down.svg);mask-image:url(../assets/icons/chevron-down.svg);
+}
+/* SUR IPHONE, UN CHAMP DE DATE ou DE MOIS A SA LARGEUR À LUI : Safari
+   lui donne une largeur minimale, centre sa valeur, et `width:100%` ne
+   l'en fait pas descendre. Photographié sur le téléphone du mainteneur
+   (7 octobre 2026) : dans « Ajouter à mon parcours », « Fin » sortait de
+   sa colonne et passait sous le bord de la feuille. Réservé à iOS
+   (`-webkit-touch-callout` n'existe que là) : ailleurs le champ se
+   tient, et l'apparence native garde son sélecteur. */
+@supports (-webkit-touch-callout:none){
+  .field input[type="date"],.field input[type="month"]{
+    -webkit-appearance:none;appearance:none;display:block;min-width:0;max-width:100%;
+  }
+  .field input[type="date"]::-webkit-date-and-time-value,
+  .field input[type="month"]::-webkit-date-and-time-value{text-align:left}
 }
 .date-row{display:flex;gap:8px;align-items:stretch}
 .date-row input{flex:1;min-width:0}

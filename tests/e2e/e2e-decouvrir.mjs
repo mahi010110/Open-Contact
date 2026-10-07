@@ -239,21 +239,24 @@ const versDecouvrir = async p => {
     texte: document.querySelector('.overlay .modal-b')?.textContent.replace(/\s+/g, ' ') || '',
     pied: [...document.querySelectorAll('.overlay .modal-f button')].map(b => b.textContent.trim())
   }));
-  if (!/Dataflow Nord/.test(fiche.titre) || !/834567890/.test(fiche.texte) || !/Thomas Leroy/.test(fiche.texte))
+  if (!/Dataflow Nord/.test(fiche.titre) || !/Thomas Leroy/.test(fiche.texte))
     fail('l’aperçu ne montre pas ce que l’annuaire sait : ' + JSON.stringify(fiche));
+  /* … et rien qui n'aide à CHOISIR : ni SIREN, ni adresse du siège, ni
+     « fiche officielle », ni liens d'offres (minimalisme, 7 octobre) */
+  if (/834567890|SIREN|fiche officielle|Anciens de|Offres d’emploi/.test(fiche.texte))
+    fail('l’aperçu redit ce qui n’aide pas à choisir : ' + fiche.texte);
   if (!fiche.pied.some(t => /Ajouter à mes pistes/.test(t))) fail('l’aperçu n’offre pas d’ajouter');
   await p.screenshot({ path: `${SHOTS}/96-decouvrir-apercu.png` });
   /* l'ordre : le nom, le lieu, puis la carte (ses missions, sa taille,
-     à qui écrire), puis les liens — des LIENS, qui emmènent ailleurs
-     (§6), pas des boutons — et le reste en gris */
+     à qui écrire), puis, en gris, d'où ça vient — et rien d'autre */
   const niveaux = await p.evaluate(() => {
     const y = s => document.querySelector('.overlay ' + s)?.getBoundingClientRect().top ?? -1;
     const l = [...document.querySelectorAll('.overlay .ct .fk-l')].map(x => x.textContent.trim());
-    return { y: [y('.ap-nom'), y('.ap-faits'), y('.ct .fk'), y('.ap-liens'), y('.ap-plus')], l,
+    return { y: [y('.ap-nom'), y('.ap-faits'), y('.ct .fk'), y('.ct-src')], l,
              boutons: document.querySelectorAll('.overlay .modal-b .btn').length };
   });
   if (niveaux.y.some(v => v < 0) || niveaux.y.some((v, i) => i && v < niveaux.y[i - 1]))
-    fail('l’aperçu ne dit pas d’abord qui et où, puis ses missions et sa taille, puis comment y entrer : ' + JSON.stringify(niveaux.y));
+    fail('l’aperçu ne dit pas d’abord qui et où, puis ses missions et sa taille, puis sa source : ' + JSON.stringify(niveaux.y));
   if (niveaux.l.slice(0, 3).join(',') !== 'Missions,Taille,Écrire à')
     fail('la carte de l’aperçu ne dit pas missions, taille, à qui écrire : ' + niveaux.l);
   /* l'aperçu a demandé le reste — par le SIREN seul, celui d'une
@@ -273,7 +276,7 @@ const versDecouvrir = async p => {
   await p.waitForTimeout(400);
   if (!(await p.evaluate(async () => (await import('./ui/state.js')).S.companies.some(c => c.siren === '834567890'))))
     fail('« Ajouter à mes pistes » depuis l’aperçu n’ajoute rien');
-  else console.log('pouce · aperçu : activité, adresse, effectif, dirigeant, SIREN, puis « Ajouter à mes pistes » ✓');
+  else console.log('pouce · aperçu : qui, où, missions, taille, à qui écrire, la source — rien d’autre —, puis « Ajouter à mes pistes » ✓');
 
   /* ④ hors ligne : ça se dit, rien ne part, et ça repart avec le réseau */
   await ctx.setOffline(true);

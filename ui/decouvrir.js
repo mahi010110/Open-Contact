@@ -28,11 +28,10 @@
    ============================================================ */
 import { esc, uid, todayISO } from '../engine/utils.js';
 import { normalizeCompany } from '../engine/model.js';
-import { questionsAnnuaire, lireAnnuaire, decouvertes, versPiste, motsInterdits, ficheOfficielle,
-         genreQuestion, liensPiste, offresAlternance, offresStage, ajoutsProfil, loinDe, PAR_PAGE,
+import { questionsAnnuaire, lireAnnuaire, decouvertes, versPiste, motsInterdits,
+         genreQuestion, offresAlternance, offresStage, ajoutsProfil, loinDe, PAR_PAGE,
          ecarter, rendre, sirensEcartes, cleVus, lireVus, nouveauxDe, noterVus } from '../engine/annuaire.js';
 import { zoneDe, metierDuProfil, villeFrequente, cleDe, centreDe as centreVille, villeConnue, rayonDe } from '../engine/requete.js';
-import { marche, BMO_ANNEE } from '../engine/marche.js';
 import { kvGet, kvSet, VUS_KEY } from '../engine/storage.js';
 import { S, bus, saveData, saveProfile, logJ, deletePiste } from './state.js';
 import { ic, openSheet, btn, showUndo, annoncer, bindDeleteGesture } from './dom.js';
@@ -334,25 +333,22 @@ export function lierZone(box){
   }));
 }
 
-/* L'APERÇU — ce qui décide d'abord, et sans un lien à toucher (demande
-   du mainteneur, 5 octobre : « que les infos soient affichées d'une
-   belle façon »). QUI (le nom), OÙ (le lieu, la distance — et une
-   alerte en ligne si l'entreprise a fermé ou traverse une procédure),
-   puis LA CARTE (ui/carte.js) : ce qu’elle fait, ses missions, sa taille, à qui
-   écrire — les sources mêlées, une valeur par fait. Les liens viennent
-   APRÈS la carte : ce qui arrive du réseau se pose au-dessus d'eux
-   pendant qu'on lit encore, et le seul geste plein vit au pied de la
-   feuille (au poste, juste sous le lieu) — rien ne glisse sous le doigt. */
+/* L'APERÇU — ce qui décide, et rien d'autre. QUI (le nom), OÙ (le
+   lieu, la distance — et une alerte en ligne si l'entreprise a fermé ou
+   traverse une procédure), puis LA CARTE (ui/carte.js) : ce qu'elle
+   fait, ses missions, sa taille, à qui écrire. Le seul geste plein vit
+   au pied de la feuille (au poste, juste sous le lieu).
+   LE MINIMUM (décision du mainteneur, 7 octobre 2026) : l'aperçu
+   finissait par deux liens (« Anciens de mon école », « Offres
+   d'emploi »), l'adresse du siège, le SIREN et « fiche officielle » —
+   quatre lignes qui n'aidaient pas à CHOISIR. Parties : on choisit ici,
+   on cherche quelqu'un dans « Ajouter un contact », une fois la piste
+   prise. */
 export function apercuHTML(r, o){
   o = o || {};
   const pris = estPrise(r.siren);
   const k = carteDe(r, null, metierDuProfil(S.profile), S.profile);
   const lieu = [r.ville, km(r.distance)].filter(Boolean).join(' · ');
-  const liens = liensPiste({ name: r.nom, siren: r.siren }, S.profile).filter(l => l.cle !== 'officielle');
-  if (k.linkedin) liens.push({ url: k.linkedin, label: 'Page LinkedIn', aria: 'Page LinkedIn de ' + r.nom });
-  const officielle = ficheOfficielle(r.siren);
-  const lien = (url, label, aria) => `<a class="linklike" href="${esc(url)}" target="_blank" rel="noopener"${
-    aria ? ` aria-label="${esc(aria)}"` : ''}>${esc(label)}${ic('external-link', 'ic-12')}</a>`;
   return (
     `<div class="ap">
        <h3 class="ap-nom">${esc(r.nom)}</h3>
@@ -363,23 +359,16 @@ export function apercuHTML(r, o){
          : `<button class="btn btn-primary" data-ap-add="${esc(r.siren)}">${ic('plus', 'ic-14')}Ajouter à mes pistes</button>
             <button class="btn btn-sm" data-ap-ecarter="${esc(r.siren)}">${ic('close', 'ic-14')}Pas pour moi</button>`}</div>` : ''}
        <div class="ct">${carteHTML(k, { nom: r.nom })}</div>
-       ${liens.length ? `<div class="ap-liens">${liens.map(l => lien(l.url, l.label, l.aria)).join('')}</div>` : ''}
-       <div class="ap-plus">
-         ${r.adresse ? `<p>${esc(r.adresse.replace(/\n/g, ', '))}</p>` : ''}
-         <p><span class="ap-siren">SIREN ${esc(r.siren)}</span>${
-           officielle ? ` · ${lien(officielle, 'fiche officielle')}` : ''}</p>
-       </div>
        ${sourcesHTML(k)}
      </div>`);
 }
 
 /* QUI RECRUTE EN ALTERNANCE, autour d'ici : un lien vers le service
-   public (La bonne alternance), en tête de la liste — c'est la réponse
-   à « est-ce qu'elles recrutent ? » que l'annuaire ne sait pas donner.
+   public (La bonne alternance), APRÈS la liste — c'est la réponse à
+   « est-ce qu'elles recrutent ? » que l'annuaire ne sait pas donner.
    Seulement pour une alternance, et avec un lieu qui a un centre : la
    ville tapée, sinon celle de tes pistes. */
 function offresHTML(){
-  if (!['ok', 'plus', 'erreur', 'limite'].includes(etat.phase)) return '';
   /* la ville de repli : celle de ton profil, sinon celle de tes pistes */
   const vp = villeConnue(S.profile && S.profile.ville);
   const vf = vp ? vp.nom : villeFrequente(S.companies);
@@ -394,30 +383,15 @@ function offresHTML(){
   return l ? `<a class="linklike dc-offres" href="${esc(l.url)}" target="_blank" rel="noopener">${ic('briefcase', 'ic-14')}<span>${l.mot} autour de ${
     esc(l.lieu)}</span>${ic('external-link', 'ic-12')}</a>` : '';
 }
-/* LE MARCHÉ AUTOUR DE TOI (décision du 6/10 : « une ligne ») : les
-   embauches que les employeurs prévoient dans le département cherché,
-   et la part qu'ils disent difficile à pourvoir — l'enquête BMO de
-   France Travail, rangée dans l'app (engine/marche.js). Une donnée, en
-   petit, sous les offres ; la source se nomme sur la ligne. */
-function marcheHTML(){
-  if (!['ok', 'plus'].includes(etat.phase)) return '';
-  const et = (etat.interp && etat.interp.etiquettes) || [];
-  const l = et.find(e => e.famille === 'lieu' && (e.dept || (e.depts && e.depts.length === 1)));
-  const dept = l ? (l.dept || l.depts[0]) : etat.zone ? etat.zone.dept : '';
-  const m = et.find(e => e.famille === 'metier');
-  const k = dept && marche(dept, m ? m.cle : '');
-  if (!k) return '';
-  return `<p class="dc-marche">${ic('chart', 'ic-12')}<span>${esc(k.lieu)} : <b>${k.n.toLocaleString('fr-FR')}</b> embauches prévues en ${
-    esc(k.quoi)}, <b>${k.part}\u202f%</b> difficiles à pourvoir. <span class="dc-marche-src">France Travail, ${BMO_ANNEE}</span></span></p>`;
-}
-
 /* la vue, selon l'état */
 export function decouverteHTML(){
   const l = (etat.phase === 'ok' || etat.phase === 'plus') ? visibles() : [];
   let corps;
+  /* aucune question (la barre est vide, et pas de zone) : RIEN. Le texte
+     d'invite de la barre dit déjà quoi taper — « Tape un métier et une
+     ville » le redisait sous le clavier (minimalisme, 7 octobre) */
   if (etat.phase === 'repos')
-    /* aucune question : la barre est vide et tu n'as pas encore de zone */
-    corps = `<p class="dc-etat">Tape un métier et une ville.</p>`;
+    corps = '';
   else if (etat.phase === 'attente' || etat.phase === 'charge')
     corps = `<p class="dc-etat" aria-busy="true">Je cherche dans l’annuaire…</p>`;
   else if (etat.phase === 'horsligne')
@@ -446,16 +420,19 @@ export function decouverteHTML(){
       : liste;
   }
   const nEc = (S.profile.ecartees || []).length;
+  const resultats = ['ok', 'plus'].includes(etat.phase) && l.length;
   return (
     `<section class="dc-vue" aria-label="À découvrir">
-       ${offresHTML()}
-       ${marcheHTML()}
        ${corps}
-       ${nEc && ['ok', 'plus'].includes(etat.phase) ? `<button class="linklike dc-ecl" data-dc-ecartees>Écartées · ${nEc}</button>` : ''}
-       ${/* la source se nomme : la licence de l'annuaire le demande, et
-            c'est ce qui dit d'où viennent des entreprises qu'on n'a
-            jamais saisies — en pied, discrète */''}
-       <p class="dc-src-l">Source : <a class="dc-src" href="https://annuaire-entreprises.data.gouv.fr" target="_blank" rel="noopener">annuaire des entreprises</a></p>
+       ${/* LES OFFRES APRÈS LA LISTE, plus devant : on regarde d'abord les
+            entreprises — le lien vers ailleurs vient quand on a fini de
+            lire (minimalisme, 7 octobre). La ligne du marché (BMO) est
+            partie : elle n'aidait à choisir aucune entreprise. */''}
+       ${resultats ? offresHTML() : ''}
+       ${nEc && resultats ? `<button class="linklike dc-ecl" data-dc-ecartees>Écartées · ${nEc}</button>` : ''}
+       ${/* la source se nomme : la licence de l'annuaire le demande —
+            seulement quand il a rendu quelque chose */''}
+       ${resultats ? `<p class="dc-src-l">Source : <a class="dc-src" href="https://annuaire-entreprises.data.gouv.fr" target="_blank" rel="noopener">annuaire des entreprises</a></p>` : ''}
      </section>`);
 }
 

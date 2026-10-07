@@ -22,7 +22,8 @@
      « Écartées » la remet — et ça tient après un rechargement ;
    ⑤ « Nouveau » : rien la première fois, puis seulement ce qui n'y
      était pas ;
-   ⑥ le marché (BMO 2026) en une ligne, sa source nommée ;
+   ⑥ la ligne de marché (BMO 2026) n'est PLUS dans la liste : elle
+     n'aidait à choisir aucune entreprise (minimalisme, 7 octobre) ;
    ⑦ une faute de frappe se PROPOSE (« Lille ? »), un tap la corrige ;
    ⑧ un stage, sans rien taper que « stage » : le lien HelloWork vers la
      ville du profil ;
@@ -116,7 +117,7 @@ const lire = p => p.evaluate(() => ({
   neufs: [...document.querySelectorAll('#piDec .dc-row:has(.dc-neuf) .dc-nom')].map(x => x.textContent.trim()),
   chips: [...document.querySelectorAll('#piChips .st-chip')].map(x => x.textContent.replace(/\s+/g, ' ').trim()),
   props: [...document.querySelectorAll('#piChips .prop-chip')].map(x => x.textContent.replace(/\s+/g, ' ').trim()),
-  marche: document.querySelector('#piDec .dc-marche')?.textContent.replace(/\s+/g, ' ').trim() || '',
+  marche: document.querySelector('#piDec .dc-marche, #piDec [class*="marche"]')?.textContent.replace(/\s+/g, ' ').trim() || '',
   offres: (() => { const a = document.querySelector('#piDec .dc-offres'); return a ? { t: a.textContent.trim(), href: a.href } : null; })(),
   ecl: document.querySelector('#piDec [data-dc-ecartees]')?.textContent.trim() || ''
 }));
@@ -190,10 +191,9 @@ const dernieres = (etat, n0) => etat.journal.slice(n0).map(u => new URL(u));
   if (!l.noms.length) fail('la liste n’a pas été mesurée');
   if (!process.exitCode) console.log('pouce · ② « Réseau » et « Lille · 5 km » en étiquettes ; la question porte le centre, 5 km, les codes du réseau — rien de privé, ni le texte du profil ✓');
 
-  /* ⑥ le marché, une ligne, sa source nommée */
-  if (!/^Nord : \d[\d  ]* embauches prévues en réseau et support, \d+ % difficiles à pourvoir\. France Travail, 2026$/.test(l.marche))
-    fail('la ligne de marché : ' + l.marche);
-  else console.log('pouce · ⑥ « ' + l.marche + ' » ✓');
+  /* ⑥ la ligne de marché est partie : rien entre la barre et la liste */
+  if (l.marche) fail('la ligne de marché revient au-dessus de la liste : ' + l.marche);
+  else console.log('pouce · ⑥ rien entre la barre et la liste — plus de ligne de marché ✓');
 
   /* ③ la taille du SITE sur la ligne, et dans la carte avec celle de l'entreprise ; l'aide */
   const fid = l.subs[l.noms.findIndex(n => /Fiducial/.test(n))] || '';
