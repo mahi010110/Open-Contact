@@ -32,14 +32,16 @@ body{
    fois le même objet apprend deux fois à celui qui s'en sert — §7
    le dit des mots, ça vaut autant des contrôles. */
 .skip{
-  position:fixed;top:-48px;left:10px;z-index:5000;
+  /* `translateY(-100%)` et non `top:-48px` : un px ne suit pas la police,
+     et à texte agrandi une bande d'accent restait en haut (app.css). */
+  position:fixed;top:0;left:10px;z-index:5000;transform:translateY(-100%);
   display:inline-flex;align-items:center;min-height:var(--control-h-touch);
   background:var(--accent);color:var(--on-accent);
   font-weight:var(--weight-bold);font-size:var(--text-13);padding:10px 14px;
   border:1px solid var(--border-strong);border-top:0;text-decoration:none;
-  transition:top 120ms;
+  transition:transform 120ms;
 }
-.skip:focus{top:0}
+.skip:focus{transform:none}
 
 /* ---- LA FENÊTRE ----
    La barre de titre pose le navy du châssis : c'est l'idiome `.modal-h`

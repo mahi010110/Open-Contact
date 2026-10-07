@@ -9,7 +9,7 @@ import { defaultTemplates, RECHERCHES, dureeRecherche, periodeValide, emailPlaus
          jetonsRecherche, RAYONS } from '../engine/model.js';
 import { villeConnue, correction } from '../engine/requete.js';
 import { S, bus, saveProfile } from './state.js';
-import { openSheet, confirmSheet, toast, showUndo, btn, ic, clavier, champGrandit } from './dom.js';
+import { openSheet, confirmSheet, toast, showUndo, btn, ic, clavier, champGrandit, champAOuvrir } from './dom.js';
 import { tplField, tplSample, TPL_LABELS } from './tplfield.js';
 import { PARCOURS, parcoursDe, periodeParcours, normalizeParcours } from '../engine/parcours.js';
 
@@ -48,7 +48,9 @@ export function openProfil(onDone, opts = {}){
   const etat = () => JSON.stringify([lire(), d.parcours, d.rayon]);
   const init = etat();
   const sh = openSheet({
-    title: 'Mon profil', icon: 'user', focus: opts.focus || '#pfName',
+    /* un profil vide s'ouvre pour être ÉCRIT, un profil rempli pour être
+       relu : au doigt, le clavier ne monte que dans le premier cas */
+    title: 'Mon profil', icon: 'user', focus: opts.focus || (d.name ? champAOuvrir('#pfName') : '#pfName'),
     /* Le même garde-fou que la fiche : onze champs se tapent en plusieurs
        minutes, et un glissé vers le bas les jetait sans un mot. La
        question ne se pose que si quelque chose a VRAIMENT changé. */
@@ -428,7 +430,7 @@ export function openTemplates(){
 }
 
 function editTemplate(t, onBack, isNew){
-  const sh = openSheet({ title: isNew ? 'Nouveau modèle' : t.name, icon: 'pencil', className: 'modal-fiche', focus: '#tpName' });
+  const sh = openSheet({ title: isNew ? 'Nouveau modèle' : t.name, icon: 'pencil', className: 'modal-fiche', focus: isNew ? '#tpName' : champAOuvrir('#tpName') });
   const sample = tplSample(null, null);
   sh.body.innerHTML =
     `<div class="field"><label for="tpName">Nom du modèle</label>

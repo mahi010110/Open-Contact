@@ -25,7 +25,7 @@ jobs:
   transport:
     name: Transport public — relais joignables
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -56,6 +56,23 @@ jobs:
         continue-on-error: true
         timeout-minutes: 12
         run: node tests/e2e/sonde-utile.mjs
+      # DES INFORMATIONS UTILES, MÊLÉES : les comptes et compléments de
+      # l'annuaire, le BODACC vivant, Wikidata élargi, la commande publique,
+      # l'index égalité — ce qu'une page vierge peut lire. Informative.
+      - name: Sonde « des informations utiles » (comptes, BODACC, Wikidata, marchés publics, Egapro)
+        continue-on-error: true
+        timeout-minutes: 12
+        run: node tests/e2e/sonde-utilite.mjs
+      # L'AUDIT AU TÉLÉPHONE, SUR LE MOTEUR DE L'IPHONE (CLAUDE.md §9) :
+      # chaque écran capturé sous WebKit, les images versées au journal
+      # (les artefacts ne se téléchargent pas depuis l'environnement de
+      # développement). Informatif.
+      - name: Audit — captures sous WebKit (le moteur de l'iPhone)
+        continue-on-error: true
+        timeout-minutes: 15
+        run: |
+          playwright install --with-deps webkit
+          OC_NAVIGATEUR=webkit OC_AUDIT_JOURNAL=1 node tests/e2e/audit-captures.mjs
       - name: Sonde des relais réellement choisis par l'app (lecture)
         run: OC_SONDE_RELAIS=1 node tests/e2e/sonde-relais-publics.mjs
       # La lecture ne suffit pas : la découverte a besoin d'une ÉCRITURE.

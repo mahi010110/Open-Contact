@@ -53,8 +53,8 @@ export function openCapture(prefill){
          <div class="field"><label for="cpCtCoord">Email ou téléphone</label>
            <input id="cpCtCoord" placeholder="nadia@…  ou  06 12 34 56 78" autocomplete="off" ${clavier('coord')}></div>
        </div>`
-    : `<div class="lbl-row"><label for="cpCtName">Le contact</label></div>
-       <div class="field"><input id="cpCtName" placeholder="Ex : Nadia Rahmani" autocomplete="off" ${clavier('nom')}></div>
+    : `<div class="field"><label for="cpCtName">Le contact</label>
+         <input id="cpCtName" placeholder="Ex : Nadia Rahmani" autocomplete="off" ${clavier('nom')}></div>
        <div class="field"><input id="cpCtCoord" aria-label="Son email ou son téléphone"
          placeholder="Son email ou son téléphone" autocomplete="off" ${clavier('coord')}></div>`;
   /* Cette source a DEUX chemins, et un seul demande la surface ordinateur :
@@ -66,8 +66,12 @@ export function openCapture(prefill){
 
   sh.body.innerHTML = wide
     ? `${sharedFieldsHTML(brouillon)}${contactHTML}${mailsHTML}`
-    : `<div class="lbl-row"><label for="cpName">L’entreprise</label></div>
-       <div class="field">
+    : `${/* le libellé vit DANS le `.field`, comme partout : posé dans une
+            `.lbl-row` sœur, il perdait le dessin des libellés de l'app
+            (petites capitales grises) et prenait celui du texte courant —
+            la seule feuille où « L'entreprise » ressemblait à une phrase
+            (audit d'octobre 2026) */''}
+       <div class="field"><label for="cpName">L’entreprise</label>
          <input id="cpName" value="${esc(prefill.name || '')}" placeholder="Ex : Orange Cyberdefense" autocomplete="off" ${clavier('nom')}>
          <div class="dup-note" id="cpDup" hidden></div>
          <button class="linklike" id="cpFromMail" hidden></button>

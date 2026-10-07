@@ -29,8 +29,12 @@
    ⑨ au poste, clair et sombre : les étiquettes, « Pas pour moi » dans le
      panneau, rien ne déborde.
 
+   ⓪ et rien ne part à l'ouverture de l'onglet, même avec une ville au
+     profil (audit d'octobre 2026).
+
    MUTATIONS jouées à la main avant livraison (chacune fait rougir) :
-   le rayon ignoré (`rayonVille` retiré), le profil appliqué même retiré
+   la question posée dès qu'une ville est au profil (`pose` qui ignore
+   l'absence de geste), le rayon ignoré (`rayonVille` retiré), le profil appliqué même retiré
    (`sansProfil` ignoré), les écartées non filtrées (`ecartees` retiré de
    `classer`), « nouveau » dès la première fois (`nouveauxDe` sans
    souvenir), le texte du profil dans la question (le libellé au lieu du
@@ -161,6 +165,13 @@ const dernieres = (etat, n0) => etat.journal.slice(n0).map(u => new URL(u));
 /* ---------- ② à ⑦ au pouce ---------- */
 {
   const { ctx, p, etat } = await ecran({ width: 390, height: 844 }, true, { profil: { ville: 'Lille', rayon: 5 } });
+  /* ⓪ RIEN NE PART SANS GESTE, même avec une ville au profil. Relevé à
+     l'audit d'octobre 2026 : ouvrir « Mes pistes », barre vide, posait
+     d'office la question de l'annuaire (« À découvrir … » en attente) —
+     la ville du profil se prenait pour une recherche. */
+  await p.waitForTimeout(1500);
+  if (etat.journal.length) fail(`« Mes pistes » ouvert, barre vide : ${etat.journal.length} question(s) à l'annuaire sans geste`);
+  else console.log('pouce · ⓪ une ville au profil, « Mes pistes » ouvert : aucune question ne part sans geste ✓');
   let n0 = etat.journal.length;
   await versDecouvrir(p, 'alternance');
   let l = await lire(p);

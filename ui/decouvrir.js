@@ -83,8 +83,14 @@ export function suivreDecouverte(interp, o){
   notifier = o.notifier || notifier;
   dernier = { interp, o };
   /* CE QUE TON PROFIL AJOUTE : ta ville et ton rayon, le métier de ta
-     formation — des étiquettes visibles, avec leur croix */
-  const aj = ajoutsProfil(interp, S.profile, sansProfil);
+     formation — des étiquettes visibles, avec leur croix. Seulement pour
+     une question qu'on POSE : la barre dit quelque chose, ou « À
+     découvrir » est ouvert. Barre vide sur « Mes pistes », rien ne part
+     (relevé à l'audit du 6/10 : une ville dans le profil suffisait à
+     interroger l'annuaire dès l'ouverture de l'onglet, sans un geste). */
+  const pose = !!(o.actif || (interp && (interp.etiquettes.length || interp.texte.length)));
+  const aj = pose ? ajoutsProfil(interp, S.profile, sansProfil)
+    : { interp, lieu: null, metier: null, lieuPropose: null, metierPropose: null };
   const brut = interp;
   interp = aj.interp;
   /* TA ZONE : seulement quand la question n'a pas de lieu à elle — et
@@ -244,7 +250,10 @@ export function compteDecouverte(){
 }
 const estPrise = siren => ajoutees.has(siren) && S.companies.some(c => c.id === ajoutees.get(siren));
 
-const km = d => d == null ? '' : (d < 1 ? '< 1 km' : Math.round(d) + ' km');
+/* espace insécable : « 3 » et « km » ne se séparent jamais d'un rang à
+   l'autre (relevé sous WebKit, audit d'octobre 2026 : « Lille · 3 » puis
+   « km » au rang suivant) */
+const km = d => d == null ? '' : (d < 1 ? '<\u00a01\u00a0km' : Math.round(d) + '\u00a0km');
 /* La ligne dit ce qui DÉPARTAGE : où, à quelle distance, quelle taille.
    L'activité — « Conseil en systèmes et logiciels informatiques » neuf
    fois sur dix — ne départage rien : elle vit dans l'aperçu. La taille
@@ -284,7 +293,7 @@ function ligneHTML(r){
 export function zoneEtiquetteHTML(marque){
   marque = marque || (() => ic('map-pin', 'ic-14'));
   const pf = etat.profil || {};
-  const nom = e => e.famille === 'lieu' ? `${e.label} · ${e.rayon} km` : e.label;
+  const nom = e => e.famille === 'lieu' ? `${e.label} · ${e.rayon}\u00a0km` : e.label;
   const pose = (e, k) => `<button class="st-chip" data-dc-pf="${k}" data-on="0" aria-label="Retirer « ${esc(nom(e))} », de ton profil">${
     marque(e)}${esc(nom(e))}${ic('close', 'ic-12')}</button>`;
   const prop = (e, k) => `<button class="prop-chip" data-dc-pf="${k}" data-on="1" aria-label="Chercher avec « ${esc(nom(e))} », de ton profil">${

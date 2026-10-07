@@ -52,14 +52,19 @@ input,select,textarea{font-family:inherit;color:var(--text-body)}
   position:absolute;width:1px;height:1px;margin:-1px;padding:0;
   overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;
 }
+/* Caché par `translateY(-100%)` et non par un `top` négatif : un `top`
+   en px ne suit pas la police. À texte agrandi, le lien dépassait ses
+   48 px et une bande d'accent restait collée en haut de CHAQUE écran —
+   relevé à l'audit d'octobre 2026, à 200 % en 320 px. Le pourcentage
+   est celui de sa propre hauteur, quelle qu'elle soit. */
 .skip{
-  position:fixed;top:-48px;left:10px;z-index:5000;
+  position:fixed;top:0;left:10px;z-index:5000;transform:translateY(-100%);
   display:inline-flex;align-items:center;min-height:var(--ctl);
   background:var(--accent);color:var(--on-accent);
   font-weight:var(--weight-bold);font-size:var(--text-13);padding:10px 14px;
-  border:1px solid var(--border-strong);border-top:0;text-decoration:none;transition:top 120ms;
+  border:1px solid var(--border-strong);border-top:0;text-decoration:none;transition:transform 120ms;
 }
-.skip:focus{top:0}
+.skip:focus{transform:none}
 .app{display:flex;flex-direction:column;height:100dvh}
 .main{flex:1;min-height:0;position:relative}
 .view{height:100%;overflow-y:auto;padding:16px 14px 40px;
@@ -264,7 +269,11 @@ a.btn.btn-danger:hover{color:var(--red)}
   box-shadow:var(--bevel-field);border-radius:var(--radius-1);
   padding:0 10px;font-size:var(--input-fs);height:var(--ctl);
 }
-.field textarea{min-height:68px;height:auto;padding:8px 10px;resize:vertical;line-height:var(--leading-body)}
+/* `display:block` : un `<textarea>` est en ligne par défaut, et la ligne
+   qui le porte réserve sous lui la place d'un jambage — 5 px de plus sous
+   chaque champ de texte que sous un `<input>` voisin, mesuré dans le
+   profil (e2e-finitions ⑥). */
+.field textarea{display:block;min-height:68px;height:auto;padding:8px 10px;resize:vertical;line-height:var(--leading-body)}
 .field input::placeholder,.field textarea::placeholder{color:var(--text-muted)}
 .field select{
   width:100%;min-width:0;text-overflow:ellipsis;
@@ -291,12 +300,20 @@ html[data-theme="dark"] .field select{
    et toute la feuille « Écrire » se met à glisser de droite à gauche,
    libellés coupés au bord. `max-width:100%` n'y peut rien : c'est
    `min-width` qui l'emporte. */
-.grid2{display:grid;grid-template-columns:1fr;gap:10px}
+/* `row-gap:0` : chaque enfant est un `.field`, qui porte déjà sa marge
+   de 12 px. L'écart de rang s'y AJOUTAIT — 22 px entre « Formation » et
+   « École », 12 partout ailleurs dans la même feuille (audit d'octobre
+   2026). Un rythme vertical, pas deux. */
+.grid2{display:grid;grid-template-columns:1fr;gap:0 10px}
 .grid2>*{min-width:0}
 @media (min-width:901px){ .grid2{grid-template-columns:1fr 1fr} }
 /* l'exception : deux valeurs COURTES et connues d'avance (deux mots de
-   la phrase de secours) tiennent côte à côte à toutes les tailles */
-.grid2.grid2-tight{grid-template-columns:1fr 1fr}
+   la phrase de secours, deux dates) tiennent côte à côte à toutes les
+   tailles. Calées sur leur BAS : un libellé qui porte une donnée à
+   droite (« Fin · 2 ans ») est plus haut que son voisin, et les deux
+   champs se décalaient de 4 px — c'est le champ qu'on compare, pas le
+   libellé. */
+.grid2.grid2-tight{grid-template-columns:1fr 1fr;align-items:end}
 .hint{font-size:var(--text-12);color:var(--text-muted);margin-top:7px;line-height:1.5}
 .hint.warn{color:var(--amber)}
 
@@ -342,8 +359,14 @@ html[data-theme="dark"] .field select{
    devient une rangée, pour que le contrôle qu'elle contient garde la
    taille du doigt sans que le texte se colle à lui (ui/mail.js) */
 .hint-act{display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px}
-.search-wrap{position:relative;display:flex;gap:8px;margin-bottom:14px}
-.search-wrap .search{flex:1;min-width:0}
+/* LE CHAMP GARDE DE QUOI SE LIRE, ou « Affiner » passe dessous. Un
+   plancher en `rem` sur le champ (§5, « une icône ne grandit pas avec le
+   texte ») : à 100 % et 125 % rien ne bouge, à 200 % sur un 320 px le
+   champ ne gardait que « Métie » à côté d'un « Affiner » qui prenait la
+   moitié de la rangée — relevé sous WebKit, audit d'octobre 2026. Le
+   contenu se réorganise, il ne se perd pas (WCAG 1.4.10). */
+.search-wrap{position:relative;display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.search-wrap .search{flex:1 1 8rem;min-width:0}
 /* ---- la barre qui COMMANDE la liste reste avec la liste ----
    Mesuré, 40 pistes en 360×640 : le titre part à 90 px de défilement,
    le champ de recherche et « Affiner » avec lui. À 1200 px il ne reste
@@ -587,6 +610,27 @@ html[data-theme="dark"] .field select{
 .chips-row{
   display:flex;flex-wrap:nowrap;gap:6px;margin:-6px 0 12px;
   overflow-x:auto;padding:2px 2px 4px;
+}
+/* … et au pouce, elle glisse jusqu'au BORD DE L'ÉCRAN. Coupée au bord
+   du contenu, à 14 px du bord, la dernière étiquette (« Lille · 15 km »)
+   se lisait comme un objet raté, pas comme une rangée qui continue —
+   relevé à l'audit d'octobre 2026. C'est le dessin de toute rangée de
+   puces qui glisse (Material 3, iOS) : la coupe au bord de l'écran dit
+   « il y en a d'autres », la coupe au milieu dit « c'est cassé ». La
+   marge rentre ce que le padding sort, le premier objet reste aligné
+   sur le reste de la page. */
+@media (max-width:900px){
+  /* sans barre de défilement : la coupe au bord de l'écran dit déjà
+     qu'il y a une suite, et WebKit en dessinait une sous les étiquettes */
+  .chips-row{scrollbar-width:none}
+  .chips-row::-webkit-scrollbar{display:none}
+  .chips-row{
+    margin-left:calc(-14px - env(safe-area-inset-left));
+    margin-right:calc(-14px - env(safe-area-inset-right));
+    padding-left:calc(14px + env(safe-area-inset-left));
+    padding-right:calc(14px + env(safe-area-inset-right));
+    scroll-padding-inline:14px;
+  }
 }
 .st-chip{
   flex:none;display:inline-flex;align-items:center;gap:6px;
@@ -885,7 +929,12 @@ html[data-theme="dark"] .field select{
    reste en petit gris. */
 .ap-nom{margin:0;font-size:var(--text-16);font-weight:var(--weight-bold);color:var(--text-body);line-height:1.25}
 .ap-faits{margin:4px 0 0;font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
-.ap-faits .mark{margin-left:8px}
+/* `inline-block` : un badge EN LIGNE garde son cadre hors de la boîte
+   de ligne, et quand la ligne se replie il mord sur le rang du dessus —
+   « Procédure collective » chevauchait « Saint-Andre-Lez-Lille · 3 km »
+   sous WebKit (audit d'octobre 2026). En bloc en ligne, sa hauteur
+   compte, et le rang s'ouvre pour lui. */
+.ap-faits .mark{display:inline-block;margin:2px 0 2px 8px;line-height:1.3}
 /* ============ LA CARTE D'UNE ENTREPRISE (ui/carte.js) ============
    La même dans l'aperçu et dans « À savoir ». Rien n'y est un bouton :
    une phrase, puis trois lignes qui aident à choisir — les missions, la
@@ -901,8 +950,13 @@ html[data-theme="dark"] .field select{
    rien ne presse (§6, la recommandation de « Par où commencer ») */
 .ct-ton{display:inline-flex;align-items:center;gap:3px;margin-left:4px;white-space:nowrap;
   font-weight:var(--weight-semibold);color:var(--accent)}
-/* le lien qui trouve la personne suit son nom, à la taille du doigt */
-.ct-li{vertical-align:middle;margin-left:2px}
+/* le lien qui trouve la personne suit son nom, à la taille du doigt —
+   mais sa cible ne POUSSE pas la ligne : les marges négatives rendent au
+   rang la hauteur d'une ligne de texte, et les 44 px débordent sur le
+   libellé et le pointillé, qui ne se tapent pas. Sans elles, « Écrire
+   à » était la seule rangée de la carte plus haute que ses sœurs, son
+   texte décalé de 12 px (audit d'octobre 2026). */
+.ct-li{vertical-align:middle;margin:calc((1.5em - var(--ctl)) / 2) 0 calc((1.5em - var(--ctl)) / 2) 2px}
 .ap .ct .fk{padding-left:0;padding-right:0}
 /* dans « À savoir », la carte prend le cadre de la fiche : sa tête
    s'aligne sur les rangées, et un pointillé la sépare de ce qui suit */
@@ -1154,6 +1208,14 @@ details.tranche[open]>summary::before{
    rangée neuve qui oublie le nom, ou qui le pose à une autre
    profondeur, rougit sans que personne ait à y penser. */
 .sw-cible:focus-visible{outline:none}
+/* LE TITRE D'UN ÉCRAN REÇOIT LE FOCUS, PAS UN CONTOUR. Il le reçoit pour
+   être ANNONCÉ au changement d'onglet (app.js) ; ce n'est pas un
+   contrôle, rien ne s'y tape. Chromium allume pourtant `:focus-visible`
+   sur un focus posé par le programme quand aucun doigt ni aucune souris
+   n'a encore servi — un retour arrière, un lien ouvert — et l'audit
+   d'octobre 2026 l'a photographié en pointillé autour de « Mes pistes ».
+   WCAG 2.4.7 vise les composants qu'on actionne, pas les titres. */
+.view h1[tabindex="-1"]:focus-visible{outline:none}
 :has(> * > .sw-cible:focus-visible){outline:var(--focus-outline);outline-offset:var(--focus-offset)}
 /* poubelle au survol (souris) : un élément du flux, pas un survol
    flottant — la colonne est réservée, rien ne saute ni ne déborde. Nue
@@ -2399,6 +2461,26 @@ button.ec-row:hover{background:var(--surface-field)}
 }
 .ac-item+.ac-item{border-top:1px solid var(--border-soft)}
 
+/* LES INDICATEURS NATIFS PRENNENT LE DESSIN DE L'APP. Le ▼ d'un champ à
+   propositions (`<input list>`) et l'agenda d'un champ de date sont
+   dessinés par le navigateur — un triangle plein et un agenda noir,
+   étrangers au jeu d'icônes (§4 : pixelarticons, pas d'autre pack).
+   Relevé à l'audit d'octobre 2026 sur « Prochaine action ? ». Le même
+   chevron que les listes déroulantes, le même agenda que les puces ; la
+   teinte passe par le masque, donc suit le thème. Seul Chromium les
+   dessine — Safari n'en montre aucun, il n'y a rien à rattraper. */
+.field input[list]::-webkit-calendar-picker-indicator,
+.field input[type="date"]::-webkit-calendar-picker-indicator,
+.field input[type="month"]::-webkit-calendar-picker-indicator{
+  -webkit-appearance:none;appearance:none;
+  width:16px;height:16px;padding:0;margin:0 0 0 6px;opacity:1;cursor:pointer;
+  background:var(--text-muted);color:transparent;
+  -webkit-mask:url(../assets/icons/calendar.svg) no-repeat center / 16px 16px;
+  mask:url(../assets/icons/calendar.svg) no-repeat center / 16px 16px;
+}
+.field input[list]::-webkit-calendar-picker-indicator{
+  -webkit-mask-image:url(../assets/icons/chevron-down.svg);mask-image:url(../assets/icons/chevron-down.svg);
+}
 .date-row{display:flex;gap:8px;align-items:stretch}
 .date-row input{flex:1;min-width:0}
 .date-row .btn{flex:none}
@@ -2893,9 +2975,15 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
    promesse qu'on ne tient pas. `overflow-y:hidden` parce qu'il n'y a
    PAS de plafond ici — contrairement à l'objet d'un mail, qui vise
    40-60 caractères et garde le sien. */
+/* Le texte d'un rang se CENTRE dans la hauteur d'une cible, comme dans
+   un `<input>` voisin : avec 4 px fixes, il collait au bord haut et
+   laissait 10 px vides dessous — côte à côte avec « Prénom et nom », la
+   feuille du profil avait deux dessins de champ (audit d'octobre 2026).
+   À texte agrandi le rang dépasse la cible, et le plancher de 2 px
+   reprend la main. */
 .fld-1l textarea{
   min-height:var(--ctl);height:auto;resize:none;overflow-y:hidden;
-  padding:4px 10px;
+  padding:max(2px, calc((var(--ctl) - var(--input-fs) * var(--leading-body) - 2px) / 2)) 10px;
 }
 /* UNE ADRESSE POSTALE EST UN CHAMP LIBRE, ET SA HAUTEUR DE DÉPART
    ENSEIGNE SON FORMAT. Deux lignes au repos, c'est ce qui dit « tu peux
@@ -3143,6 +3231,15 @@ body:has(.undo-bar):not(:has(.overlay)) .toast{bottom:calc(var(--nav-h) + 76px +
   .undo-bar{bottom:40px}
   body:has(.undo-bar):not(:has(.overlay)) .toast{bottom:100px}
 }
+/* … et elle suit le toast quand une FEUILLE est ouverte : en haut, dans
+   la bande que la feuille laisse au voile. Ancrée en bas, elle se posait
+   sur le corps de la feuille — relevé à l'audit d'octobre 2026 : sur
+   « Mes appareils », elle cachait « Rejoindre » ; sur une feuille haute,
+   elle tombait sur le pied, à l'endroit exact où le pouce cherche
+   « Enregistrer ». Un seul ancrage à la fois, comme le toast : le bas
+   se libère (`bottom:auto`). Le toast descend alors d'une voie. */
+body:has(.overlay) .undo-bar{bottom:auto;top:calc(env(safe-area-inset-top) + 8px)}
+body:has(.undo-bar):has(.overlay) .toast{top:calc(env(safe-area-inset-top) + 82px)}
 
 /* ============ ALERTE SAUVEGARDE / TOAST ============ */
 /* L'avertissement le plus grave de l'app : ce que l'étudiant saisit
@@ -3165,6 +3262,10 @@ body:has(.undo-bar):not(:has(.overlay)) .toast{bottom:calc(var(--nav-h) + 76px +
    Seulement quand il est ancré en HAUT (feuille ouverte) : ancré en bas,
    il ne le croise pas, et un `top` posé en plus l'étirait jusqu'au pied. */
 body:has(#saveWarn:not([hidden])):has(.overlay) .toast{top:calc(env(safe-area-inset-top) + 148px)}
+/* la barre Annuler, ancrée en haut sous une feuille, fait de même : elle
+   passe sous l'avertissement, et le toast sous elle */
+body:has(#saveWarn:not([hidden])):has(.overlay) .undo-bar{top:calc(env(safe-area-inset-top) + 128px)}
+body:has(#saveWarn:not([hidden])):has(.undo-bar):has(.overlay) .toast{top:calc(env(safe-area-inset-top) + 202px)}
 .save-warn button{
   background:var(--surface-window);border:1px solid var(--red);color:var(--red);
   border-radius:var(--radius-1);padding:5px 11px;font-weight:var(--weight-bold);min-height:var(--ctl);
@@ -3208,6 +3309,9 @@ body:has(.overlay) .toast{bottom:auto;top:calc(env(safe-area-inset-top) + 62px)}
    `transform` en ligne ; une image-clé qui écrit `transform` l'écrasait,
    et la fenêtre revenait au centre le temps de l'animation. */
 @keyframes oc-up{from{opacity:0;translate:0 12px}}
+@keyframes oc-down{from{opacity:0;translate:0 -12px}}
+/* ancrée en haut, la barre Annuler arrive du haut : d'où elle vient (§4 ①) */
+body:has(.overlay) .undo-bar{animation-name:oc-down}
 .overlay{animation:oc-fade var(--dur-2) var(--ease-out)}
 .overlay .modal{animation:oc-up var(--dur-3) var(--ease-out)}
 .view:not([hidden])>.page-inner{animation:oc-fade var(--dur-2) var(--ease-out)}

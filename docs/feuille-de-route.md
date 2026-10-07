@@ -280,6 +280,10 @@ liste de pistes sans partir de zéro, c'est « À découvrir ».
    marché local (BMO 2026), les fautes de frappe proposées. **Livré le
    6 octobre 2026 (6.51.0).** Reste à mesurer : le temps de trajet en
    transports en commun.
+8. L'audit du téléphone ([`audit-telephone.md`](audit-telephone.md)) :
+   toutes les captures regardées, sous Chromium et sous WebKit (le
+   moteur de l'iPhone), quatorze défauts corrigés et gardés.
+   **Livré le 6 octobre 2026 (6.52.0).**
 
 **B. Le réseau** — [`reseau.md`](reseau.md). Trouver quelqu'un chez une
 entreprise parmi ses amis, ses groupes et leurs amis, trois cercles au plus.
@@ -287,8 +291,9 @@ entreprise parmi ses amis, ses groupes et leurs amis, trois cercles au plus.
 1. Mon parcours (stages, alternances, emplois dans le profil).
    **Livré le 1er octobre 2026 (6.47.0)** : un cadre de « Mon profil »,
    rempli de tes « J'y suis passé », et la ligne « Expérience » du mail
-   de candidature. Les lots suivants attendent deux décisions du
-   mainteneur (le mot pour « ami », son idée du groupe).
+   de candidature. Les deux décisions qui retenaient la suite sont
+   prises (7 octobre 2026) : le mot est « ami », un groupe est un code
+   qu'on garde.
 2. Les amis : se donner son profil, chercher tout de suite dans leur
    parcours.
 3. La demande à ses amis et à ses groupes, les deux oui, le contact dans la
