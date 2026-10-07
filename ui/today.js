@@ -9,6 +9,7 @@ import { esc, todayISO } from '../engine/utils.js';
 import { DOMAINS, STATUSES, prendCeQueJeCherche, PREND_MOT } from '../engine/model.js';
 import { porteurs } from '../engine/requete.js';
 import { portesDuJour } from './amis.js';
+import { lignesAmis, ouvrirLigne } from './reseau.js';
 import { scoreOf } from '../engine/score.js';
 import { dueFollowups, silentPistes, aDemarrer } from '../engine/assist.js';
 import { S, bus, isClosed, markDone, hasDemo, addDemo, removeDemo } from './state.js';
@@ -226,6 +227,30 @@ function silenceHTML(items, total){
           </section>`;
 }
 
+/* ---------- « Tes amis » (docs/reseau.md, lot 3) ----------
+   Quelqu'un ATTEND : un ami cherche une personne chez une entreprise où
+   tu en connais une, ou un ami t'a donné le contact que tu cherchais.
+   Elle passe donc en tête, avant le travail du jour — une demande
+   s'éteint en 14 jours, et c'est la seule ligne de l'écran qui fait
+   gagner quelque chose à quelqu'un d'autre. Elle n'existe que si ton
+   téléphone a TROUVÉ quelqu'un (règle 6) : un ami qui demande sans que
+   tu connaisses personne ne t'en dit rien. */
+function amisHTML(items){
+  if (!items.length) return '';
+  return `<section class="tranche tr-amis">
+            <h2 class="tr-h">${ic('users', 'ic-14')} Tes amis <span class="tr-n">${items.length}</span></h2>
+            <div class="tr-rows">${items.map(x =>
+              `<div class="act-row act-ami" data-sorte="${x.sorte}" data-ami="${esc(x.id)}">
+                 <div class="act-in">
+                   <div class="act-main sw-cible" role="button" tabindex="0" aria-label="${esc(x.raison + ' — ' + x.nom)}">
+                     <b class="act-verb">${esc(x.nom)}</b>
+                     <span class="act-sub"><span class="act-vecu">${esc(x.raison)}</span><span class="act-who">${esc(x.qui)}</span></span>
+                   </div>
+                 </div>
+               </div>`).join('')}</div>
+          </section>`;
+}
+
 function debutHTML(items){
   return `<section class="tranche tr-start">
             <h2 class="tr-h">${ic('zap', 'ic-14')} Par où commencer</h2>
@@ -355,6 +380,8 @@ export function renderToday(){
        ${done && S.companies.length
          ? `<div class="done-line">${ic('check', 'ic-14')} ${done} action${done > 1 ? 's' : ''} faite${done > 1 ? 's' : ''} aujourd’hui</div>` : ''}`;
 
+  html += amisHTML(lignesAmis());
+
   if (!alive.length && !S.companies.length){
     /* première visite : la promesse, puis un seul geste.
        PLUS DE MODE D'EMPLOI. « Ajoute une piste, donne-lui une prochaine
@@ -452,6 +479,13 @@ export function renderToday(){
     row.querySelector('[data-a="report"]').addEventListener('click', () => reportAction(c));
     row.querySelector('[data-a="done"]').addEventListener('click', () => finishRow(row, c));
     bindSwipe(row, c);
+  });
+  root.querySelectorAll('.act-ami').forEach(row => {
+    const ouvrir = () => ouvrirLigne(row.dataset.sorte, row.dataset.ami);
+    row.querySelector('.act-main').addEventListener('click', ouvrir);
+    row.querySelector('.act-main').addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); ouvrir(); }
+    });
   });
   root.querySelectorAll('.act-quiet').forEach(row => {
     const c = byId(row.dataset.id);

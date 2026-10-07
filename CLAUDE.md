@@ -79,6 +79,7 @@ autres. Ni grisée, ni « bientôt » : absente.
 | Capture, anti-doublon, bac « à rattacher » | WEB |
 | Partage au groupe (QR, fichier `.oc`, coller, en direct) | WEB |
 | Amis : donner son profil (QR, texte), lire sur ses pistes où ils sont passés | WEB |
+| Demander à ses amis quelqu'un chez une entreprise, donner un contact en réponse | WEB |
 | Sync entre MES appareils | WEB |
 | Écrire un mail (`mailto:`, copier, « Envoyée ✓ ») | WEB |
 | Postuler à plusieurs d'affilée, une par une | WEB |
@@ -154,11 +155,18 @@ planifier.
 Statuts, notes, actions, historique, journal = suivi privé. Seule exception :
 la sync entre les appareils **de la même personne** (`CONTRAT.md` §5). C'est
 le seul invariant qui engage les données **d'autres personnes** que
-l'utilisateur — les contacts qu'un camarade lui a partagés. **Deux choses
+l'utilisateur — les contacts qu'un camarade lui a partagés. **Trois choses
 seulement traversent en nommant quelqu'un** : `vecuQui`, le prénom de qui
-déclare « j'y suis passé » (§8), et seulement sur déclaration explicite ; et
-le **profil donné** à un ami (OCA1 : un identifiant, le nom, le parcours),
-par son propriétaire lui-même, d'un QR ou d'un texte. Un profil reçu **ne
+déclare « j'y suis passé » (§8), et seulement sur déclaration explicite ;
+le **profil donné** à un ami (OCA1 : un identifiant, le nom, le parcours,
+la clé de sa boîte), par son propriétaire lui-même, d'un QR ou d'un texte —
+ou parce qu'il vient d'ajouter cet ami : **l'amitié est réciproque**
+(décision du mainteneur, 7 octobre 2026), et l'aperçu le dit avant le
+geste (« Karim aura aussi ton profil. ») ;
+et la **demande à ses amis** (OCB1 : le prénom de qui demande et
+l'entreprise, scellés pour chaque ami, d'un tap) — le contact qu'un ami
+donne en réponse ne part que de SON tap, et ne porte que de quoi le
+joindre, jamais sa note ni le suivi. Un profil reçu **ne
 se redonne jamais** : le mien ne porte que moi. L'app ne tient toujours
 aucun carnet de camarades — la mesure avait montré qu'un tel carnet ne
 contient que des gens déjà joignables. Les amis sont autre chose : un
@@ -818,7 +826,8 @@ avec un motif existant.
 | Contenu secondaire | `<details class="pcard pcard-details">` replié |
 | Une page = un objet et ses réglages | en-tête `.obj` (icône en haut à gauche + nom) puis des cadres `.fset`. **Le cadre est lourd : deux par écran au maximum, jamais s'il contiendrait tout l'écran.** Ailleurs, `pcard` reste la règle |
 | Recevoir des données | TOUJOURS l'aperçu avant fusion (`mergePreviewInto`) — mêmes règles quel que soit le canal |
-| Les amis | `ui/amis.js` + `engine/amis.js` — **une porte, et ce qu'elle rapporte se lit ailleurs** (docs/reseau.md, lot 2). « Amis » vit sous « Partage en groupe » dans « Échanger », son compte en état (rien à zéro). La feuille : la liste, et au pied « Scanner » + « Mon QR » (le « My code / Scan » de WhatsApp et LinkedIn). **« Mon QR » porte le profil dans l'image** (OCA1, hors ligne) et écrit dessous EXACTEMENT ce qu'il contient — le nom, les entreprises — ; « Copier » donne le même profil en texte et devient « Copié » sur place ; sans nom, il ouvre le profil sur le nom au lieu de s'expliquer. **« Scanner » est le scanner de « Recevoir »** : un seul, qui reconnaît pistes, rendez-vous et profil ; ouvert depuis « Amis », il n'a ni code de rendez-vous ni « Retour », et « Texte » est son chemin sans caméra. **L'aperçu passe avant** (invariant ②) et montre d'abord ce que l'ami rapporte (« dans tes pistes », en accent) ; « Ajouter Karim », puis « Annuler ». Déjà là sans rien de neuf, ou son propre QR : un ÉTAT, pas de bouton. **Ce que ça rapporte se lit là où l'on travaille** : « Karim y est en alternance » dans le bandeau de la fiche (deux personnes au plus, la plus forte d'abord — quelqu'un qui y est MAINTENANT), qui ouvre « Demander à Karim » ; « Karim » dans la barre (`porteurs`, `contexteRecherche`) ; la même ligne dans « Par où commencer ». La fiche d'un ami : ses entreprises, qui mènent à ta piste ou s'y ajoutent d'un tap (« + Piste »), et « Retirer de mes amis » nommé, rouge, en dernier, rattrapable — personne n'est prévenu. Gardé par `e2e-amis.mjs`, la fuite d'abord |
+| Demander à ses amis | `ui/reseau.js` + `engine/boite.js` — **là où l'on est déjà, et seulement quand ça sert** (docs/reseau.md, lot 3). Sur la fiche, à la place du bandeau « Karim y est » : « Demander à mes amis » (`.btn-sm`), seulement pour une piste ouverte où personne ne peut te porter, sans personne à qui écrire, avec au moins un ami qui a une boîte, et moins de trois demandes ouvertes. La feuille montre la phrase EXACTE et à qui (`.gr-mot`, `.dm-qui`) ; partie, la demande devient un FAIT gris (« Demandé à 2 amis · aujourd'hui »). Chez l'ami, « Tes amis » passe en TÊTE d'« Aujourd'hui » (quelqu'un attend, 14 jours) — et n'existe que si son téléphone a trouvé quelqu'un (règle 6 : rien chez qui ne trouve rien). Il voit ce qu'il donnerait avant de le donner : un seul contact se LIT, « Donner » tient le pied ; plusieurs, le premier est choisi d'office. Le contact donné arrive par un aperçu (bandeau de la fiche et « Tes amis »), « Ajouter à la piste », `showUndo` ; le merci part tout seul, un par demande. Un ami sans boîte (QR d'avant 6.55) n'est jamais destinataire ; sa fiche dit « Rescanne son QR ». Le transport : une boîte aux lettres sur les relais, scellée pour un seul destinataire (ECDH P-256 + AES-GCM, clé jetable par lettre), relevée à l'ouverture si l'on a donné son QR. Gardé par `e2e-demande.mjs`, la fuite d'abord, joué à trois |
+| Les amis | `ui/amis.js` + `engine/amis.js` — **une porte, et ce qu'elle rapporte se lit ailleurs** (docs/reseau.md, lot 2). « Amis » vit sous « Partage en groupe » dans « Échanger », son compte en état (rien à zéro). La feuille : la liste, et au pied « Scanner » + « Mon QR » (le « My code / Scan » de WhatsApp et LinkedIn). **« Mon QR » porte le profil dans l'image** (OCA1, hors ligne) et écrit dessous EXACTEMENT ce qu'il contient — le nom, les entreprises — ; « Copier » donne le même profil en texte et devient « Copié » sur place ; sans nom, il ouvre le profil sur le nom au lieu de s'expliquer. **« Scanner » est le scanner de « Recevoir »** : un seul, qui reconnaît pistes, rendez-vous et profil ; ouvert depuis « Amis », il n'a ni code de rendez-vous ni « Retour », et « Texte » est son chemin sans caméra. **L'aperçu passe avant** (invariant ②) et montre d'abord ce que l'ami rapporte (« dans tes pistes », en accent) ; « Ajouter Karim », puis « Annuler ». **L'amitié est réciproque, obligatoirement** (décision du 7 octobre 2026) : ajouter Karim lui donne ton profil par la boîte aux lettres, sans un geste de sa part — un seul scan suffit. L'aperçu le dit (« Karim aura aussi ton profil. »), la lettre attend la fin de « Annuler » (qui la retient), et chez Karim, Inès entre dans ses amis avec un toast, une fois. Déjà là sans rien de neuf, ou son propre QR : un ÉTAT, pas de bouton. **Ce que ça rapporte se lit là où l'on travaille** : « Karim y est en alternance » dans le bandeau de la fiche (deux personnes au plus, la plus forte d'abord — quelqu'un qui y est MAINTENANT), qui ouvre « Demander à Karim » ; « Karim » dans la barre (`porteurs`, `contexteRecherche`) ; la même ligne dans « Par où commencer ». La fiche d'un ami : ses entreprises, qui mènent à ta piste ou s'y ajoutent d'un tap (« + Piste »), et « Retirer de mes amis » nommé, rouge, en dernier, rattrapable — personne n'est prévenu. Gardé par `e2e-amis.mjs`, la fuite d'abord |
 
 **Le minimum, au bon moment** *(règle du mainteneur, 7 octobre 2026 :
 « les mises à jour sont très bien, le problème c'est qu'elles sont très
@@ -1591,7 +1600,7 @@ C'est ce que tu ne savais pas, et c'est ce qui transforme une piste froide
 en piste portée — « Karim y est en alternance ». Trois règles, tenues par
 `e2e-amis.mjs` :
 
-1. **Le profil donné ne porte que l'identifiant, le nom et le parcours**
+1. **Le profil donné ne porte que l'identifiant, le nom, le parcours et la clé de sa boîte**
    (OCA1, `CONTRAT.md` §2), et il se lit sous le QR avant de partir.
 2. **Il ne se redonne jamais** : mon profil ne contient pas mes amis, un
    partage de pistes non plus. Joué à trois — Karim → Inès → Sofia —
@@ -1602,6 +1611,23 @@ en piste portée — « Karim y est en alternance ». Trois règles, tenues par
    « Aujourd'hui », avec le même mot et le même geste que « J'y suis
    passé ». La liste sert de CHEMIN (le lot 3 y fera passer les
    demandes), jamais d'annuaire.
+
+**La demande à ses amis (lot 3, 6.55) passe là où le portage ne pouvait
+pas : elle ATTEND.** Tout le reste du transport n'atteint que qui écoute
+au même instant ; une demande doit trouver le téléphone d'un ami qui
+s'ouvrira demain. D'où une **boîte aux lettres** sur les relais publics,
+et une règle de plus pour la sonde de §8 : la capacité mesurée est la
+GARDE — un relais qui accepte et ne rend rien à une autre connexion ne
+porte pas une lettre (`sonde-boite-relais.mjs`, six relais sur sept au
+premier relevé). Trois règles la tiennent :
+
+1. **Le relais ne voit qu'une étiquette, une expiration et du bruit.**
+   La lettre est scellée pour UN destinataire, d'une clé jetable : rien
+   ne relie deux lettres du même auteur, et seul le destinataire l'ouvre.
+2. **Ce qui ne s'ouvre pas se tait.** Une lettre abîmée, pas pour moi, un
+   don pour une demande que je n'ai pas faite : ignorés, jamais devinés.
+3. **On ne relève sa boîte que si l'on a donné son QR.** Sans clé
+   publiée, personne ne peut écrire : rien ne part au démarrage.
 
 **Un rappel qui jette son argument perd ce que rien ne retrouve.**
 `onJoinError` était câblé `() => watch.fail()` aux quatre appels : la

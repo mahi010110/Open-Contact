@@ -185,6 +185,12 @@ function applyTheme(t, persist){
      salle en arrière-plan et y RESTE — différé pour un démarrage net */
   setTimeout(() => { initSyncLive().catch(() => {}); }, 2000);
 
+  /* la boîte aux lettres de mes amis (lot 3) : relevée seulement si j'ai
+     donné mon QR — sans clé, personne ne peut m'écrire, rien ne part */
+  setTimeout(() => {
+    import('./ui/reseau.js').then(m => m.demarrerReseau()).catch(() => {});
+  }, 2200);
+
   /* propositions de l'assistant IA (Ordinateur associé) : rapportées en
      arrière-plan, sobrement — rien ne s'ajoute sans l'aperçu */
   if (ORDINATEUR) setTimeout(() => {

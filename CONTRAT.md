@@ -17,7 +17,7 @@ doit être repensée, pas forcée.
 | Clé | Contenu | Format |
 |---|---|---|
 | `oc_data_v3` | Les pistes (partagé + suivi privé) | JSON : tableau de pistes |
-| `oc_profile_v1` | Profil, modèles d'emails, prompts IA (8 × 4 000 car. max), fiches confirmées, flags, `updatedAt` (LWW appareils). Le **prénom** (premier mot de `name`) est ce qui accompagne une déclaration « j'y suis passé » quand on partage : sans lui, la déclaration ne part pas du tout (§3). **Depuis la 6.31, champs AJOUTÉS** (aucun renommé, un profil d'avant les reçoit vides à la lecture) : `ecole` et `rythme` (texte, 120 car. max), `recherche` ∈ {`stage`, `alternance`, `emploi`} ou vide, `debut` / `fin` (date `AAAA-MM-JJ` qui existe au calendrier, sinon vide). La durée n'est **jamais stockée** : elle se déduit des deux dates (`dureeRecherche`). Ces champs nourrissent les jetons `{{ecole}}`, `{{type}}`, `{{recherche}}`, `{{rythme}}` des modèles ; rien choisi = « un stage », le texte d'avant. Ils restent privés comme tout le profil : aucun ne voyage dans un partage (§3). **Mise à jour des modèles de départ** : un modèle dont l'objet ET le corps sont identiques au caractère près à ceux de la 6.30 prend la version du jour, même `id`, même nom, même place (`majModelesDefaut`, appliqué par `normalizeProfile`) ; un modèle retouché, même d'une virgule, n'est jamais touché. **Depuis la 6.47, champ AJOUTÉ** `parcours` (docs/reseau.md, lot 1) : une liste d'au plus 20 expériences `{id, entreprise (120 car.), quoi ∈ {stage, alternance, emploi}, debut, fin (mois AAAA-MM ou vide ; une fin avant le début est retirée), pisteId?}` — un profil d'avant la reçoit vide. **Seul ce qui est SAISI est stocké** : une piste où l'on a déclaré soi-même « J'y suis passé » (stage ou alternance, sans `vecuQui`) fait partie du parcours sans y être recopiée (`parcoursDe`), et une ligne saisie qui porte son `pisteId` prend sa place. Le parcours nourrit le jeton `{{parcours}}` (« stage chez X (2025) », les deux plus récents) ; il reste privé comme tout le profil. Le modèle de candidature de départ gagne la ligne « Expérience : {{parcours}} », qui s'efface quand le parcours est vide ; un modèle identique à celui des 6.31 à 6.46 prend cette version, un modèle retouché n'est jamais touché. **Depuis la 6.51, champs AJOUTÉS** (« Où je cherche », docs/recherche-profil.md) : `ville` (texte, 80 car. max, telle qu'on l'écrit) et `rayon` ∈ {5, 15, 30} km (15 par défaut ; une autre valeur prend le rayon le plus proche) — un profil d'avant les reçoit vides. Ils orientent « À découvrir » ; seul le **centre** de la ville, lu dans la table de l'app, part vers l'annuaire, jamais le texte du champ. **Depuis la 6.51 aussi, champ AJOUTÉ** `ecartees` : les entreprises de « À découvrir » qu'on a dites « Pas pour moi », `[{siren (9 chiffres), nom (120 car.), at}]`, sans doublon de SIREN, les 300 plus récentes — elles ne reviennent plus dans la liste, et suivent le profil (sync de MES appareils, copie), jamais un partage. **Depuis la 6.54, champs AJOUTÉS** (les amis, docs/reseau.md lot 2) : `amiId` — l'identifiant sous lequel mes amis me connaissent (128 bits en base64url, tiré au premier « Mon QR », absent avant ; une valeur invalide est retirée) — et `amis` — les profils que d'autres m'ont DONNÉS, `[{id, nom (80 car.), parcours: [{entreprise, quoi, debut, fin, siren?}] (20 au plus), recu}]`, un par `id` (le plus récent gagne), 200 au plus ; un profil d'avant les reçoit vides. Ce sont des données d'autrui, données par lui-même : elles suivent le profil (sync de MES appareils, copie), **ne sortent dans aucun partage** et **ne se redonnent jamais** — mon profil donné (OCA1) ne porte que moi | JSON : objet profil |
+| `oc_profile_v1` | Profil, modèles d'emails, prompts IA (8 × 4 000 car. max), fiches confirmées, flags, `updatedAt` (LWW appareils). Le **prénom** (premier mot de `name`) est ce qui accompagne une déclaration « j'y suis passé » quand on partage : sans lui, la déclaration ne part pas du tout (§3). **Depuis la 6.31, champs AJOUTÉS** (aucun renommé, un profil d'avant les reçoit vides à la lecture) : `ecole` et `rythme` (texte, 120 car. max), `recherche` ∈ {`stage`, `alternance`, `emploi`} ou vide, `debut` / `fin` (date `AAAA-MM-JJ` qui existe au calendrier, sinon vide). La durée n'est **jamais stockée** : elle se déduit des deux dates (`dureeRecherche`). Ces champs nourrissent les jetons `{{ecole}}`, `{{type}}`, `{{recherche}}`, `{{rythme}}` des modèles ; rien choisi = « un stage », le texte d'avant. Ils restent privés comme tout le profil : aucun ne voyage dans un partage (§3). **Mise à jour des modèles de départ** : un modèle dont l'objet ET le corps sont identiques au caractère près à ceux de la 6.30 prend la version du jour, même `id`, même nom, même place (`majModelesDefaut`, appliqué par `normalizeProfile`) ; un modèle retouché, même d'une virgule, n'est jamais touché. **Depuis la 6.47, champ AJOUTÉ** `parcours` (docs/reseau.md, lot 1) : une liste d'au plus 20 expériences `{id, entreprise (120 car.), quoi ∈ {stage, alternance, emploi}, debut, fin (mois AAAA-MM ou vide ; une fin avant le début est retirée), pisteId?}` — un profil d'avant la reçoit vide. **Seul ce qui est SAISI est stocké** : une piste où l'on a déclaré soi-même « J'y suis passé » (stage ou alternance, sans `vecuQui`) fait partie du parcours sans y être recopiée (`parcoursDe`), et une ligne saisie qui porte son `pisteId` prend sa place. Le parcours nourrit le jeton `{{parcours}}` (« stage chez X (2025) », les deux plus récents) ; il reste privé comme tout le profil. Le modèle de candidature de départ gagne la ligne « Expérience : {{parcours}} », qui s'efface quand le parcours est vide ; un modèle identique à celui des 6.31 à 6.46 prend cette version, un modèle retouché n'est jamais touché. **Depuis la 6.51, champs AJOUTÉS** (« Où je cherche », docs/recherche-profil.md) : `ville` (texte, 80 car. max, telle qu'on l'écrit) et `rayon` ∈ {5, 15, 30} km (15 par défaut ; une autre valeur prend le rayon le plus proche) — un profil d'avant les reçoit vides. Ils orientent « À découvrir » ; seul le **centre** de la ville, lu dans la table de l'app, part vers l'annuaire, jamais le texte du champ. **Depuis la 6.51 aussi, champ AJOUTÉ** `ecartees` : les entreprises de « À découvrir » qu'on a dites « Pas pour moi », `[{siren (9 chiffres), nom (120 car.), at}]`, sans doublon de SIREN, les 300 plus récentes — elles ne reviennent plus dans la liste, et suivent le profil (sync de MES appareils, copie), jamais un partage. **Depuis la 6.54, champs AJOUTÉS** (les amis, docs/reseau.md lot 2) : `amiId` — l'identifiant sous lequel mes amis me connaissent (128 bits en base64url, tiré au premier « Mon QR », absent avant ; une valeur invalide est retirée) — et `amis` — les profils que d'autres m'ont DONNÉS, `[{id, nom (80 car.), parcours: [{entreprise, quoi, debut, fin, siren?}] (20 au plus), recu}]`, un par `id` (le plus récent gagne), 200 au plus ; un profil d'avant les reçoit vides. Ce sont des données d'autrui, données par lui-même : elles suivent le profil (sync de MES appareils, copie), **ne sortent dans aucun partage** et **ne se redonnent jamais** — mon profil donné (OCA1) ne porte que moi. Un ami donné **depuis la 6.55** porte aussi `cle`, la clé publique de sa boîte aux lettres (point P-256 non compressé, base64url, 86-88 car.) ; un ami d'avant n'en a pas, et on ne peut rien lui demander tant qu'il n'a pas redonné son QR. **Depuis la 6.55, champ AJOUTÉ** `boite` (docs/reseau.md lot 3) : `{pub, priv}` — la clé ECDH P-256 de MA boîte aux lettres, née au premier « Mon QR » (`pub` en base64url brut, `priv` en PKCS#8 base64url), absente avant ; abîmée, elle est retirée (un QR redonné en refait une). La partie publique part dans le QR (OCA1 `cle`) ; la privée **ne sort jamais** que vers MES appareils (sync, copie) — et une sync ne la perd pas (§5) | JSON : objet profil |
 | `oc_journal_v1` | Journal privé des actions (200 max). **Deux phrases de `txt` sont relues, pas seulement écrites** : `Donné (canal) : N piste(s)` et `Reçu de <qui\|la promo> : +N piste(s)…` alimentent le fil de l'écran « Échanger » (`engine/assist.js` → `exchangeLog`). Les relire plutôt qu'ajouter un champ garde l'historique DÉJÀ écrit visible ; en échange, ces deux formes sont figées et verrouillées par `tests.js`. Toute autre entrée reste du texte libre, et `Reçu (analyse IA triée)` est exclu par construction (ce n'est pas un échange avec la promo). **`ids` est un champ AJOUTÉ, jamais un renommage** : les entrées d'échange écrites depuis la v6.4 portent les identifiants des pistes concernées (données pour un `Donné`, ajoutées ou complétées pour un `Reçu` — c'est `mergeIncoming().ids` qui fait foi), plafonnés à 200 par entrée. C'est ce qui permet d'ouvrir une ligne de « Tes échanges » sur ce qui a circulé. Une entrée sans `ids` (écrite avant, ou revenue d'une sauvegarde) reste lisible : elle s'affiche, elle ne s'ouvre pas | JSON : tableau `{t, txt, cid, ids?}` |
 | `oc_orphans_v1` | Contacts « à rattacher » (sans entreprise) — l'indice d'entreprise saisi par l'utilisateur voyage dans `extra.company` (D3), consommé au rattachement | JSON : tableau de contacts |
 | `oc_tombs_v1` | Suppressions (tombstones, 500 max) — font voyager les suppressions entre MES appareils | JSON : tableau `{id, t}` |
@@ -36,6 +36,7 @@ doit être repensée, pas forcée.
 | `oc_missions_v1` | Bons de mission de l’ordinateur : idempotents (repliés sur le journal de campagne), bornés (expiration), révocables ; un résultat d'analyse = enveloppe `share` qui repasse par l'aperçu. Sur le fil, une mission voyage **signée** : `{m, sig, dev}` — `m` est la chaîne JSON exacte signée Ed25519 par l'appareil émetteur, vérifiée octet à octet (PWA `openMissionWire` ET cœur Rust de l’ordinateur, à CHAQUE lecture). `dev` peut être l’ordinateur appairé ou un autre membre (téléphone) : l’ordinateur résout sa clé dans l'anneau signé. Côté PWA la clé garde les remises : `[{mid, cpId, wire, state: a_confier·confiee·revoquee, stops[], revOk?}]` | JSON : tableau de missions |
 | `oc_companion_v1` | Association à l’ordinateur : clé de canal née de l'appairage par code court + identité de l’ordinateur (`{k, id, nom, pub, at}`) — **exige le profil protégé** (valeur toujours scellée). Le canal local (127.0.0.1) ne transporte que des enveloppes `OCV1.` : l'appairage sous PBKDF2(code, 120 000 itér.), la suite sous `k` — rien d'utile en clair | JSON |
 | `oc_proposals_v1` | Propositions de l'assistant IA (serveur MCP local de l’ordinateur, coupé par défaut) en attente de tri : `{v, actif, list: [{pid, at, n, share}], done: [{pid, a}]}` — `actif` mémorise l'autorisation donnée dans la feuille de l’ordinateur (sans lui, la PWA ne sonde jamais) ; `share` est une enveloppe `share` ordinaire qui repasse par `parseInput` → aperçu multi-sélection → fusion §4, JAMAIS une écriture directe ; `pid` (hash du contenu) rend le rejeu idempotent, `done` (50 max) garde les propositions déjà fusionnées/écartées pour qu'elles ne réapparaissent jamais ; 5 en attente max ; scellée (SEALABLE), emportée par le `wipe` | JSON |
+| `oc_reseau_v1` | La boîte aux lettres de mes amis, vue de CET appareil (docs/reseau.md lot 3, `engine/boite.js`) — `{v:1, depuis, demandes, recues, dons, mercis}` : `depuis` = l'instant de la dernière relève (ms) ; `demandes` = mes demandes `{id, pisteId, entreprise:{nom, siren?}, at, exp, vers}` (trois ouvertes au plus, 14 jours) ; `recues` = ce qu'on m'a demandé `{id, de:{prenom, cle}, entreprise, exp, at, statut ∈ {a-voir, rien, donnee, ecartee}, trouve:[{pisteId, ctId}]}` — `rien` quand mon téléphone n'a trouvé personne : la demande est gardée pour ne pas la retraiter, et RIEN ne s'affiche ; `dons` = les contacts qu'on m'a donnés `{id, demande, de, entreprise, contact:{name, role?, email?, phone?, link?}, at, statut ∈ {nouveau, ajoute, ecarte}}` ; `mercis` = `{id, demande, de, entreprise, contact:{name}, at}`, un par demande ; `lus` = les profils d'amis reçus par la boîte `{id (de la lettre), at}`, pour qu'une lettre relue ne rajoute pas un ami qu'on a retiré ; `envois` = mon profil en partance vers qui je viens d'ajouter `{id, cle, lettre, quand, exp}` — il ne part qu'après `quand` (la fin de « Annuler », ~30 s), et repart à la relève suivante s'il n'a pas pu partir (50 au plus). 200 entrées par liste au plus, oubliées au-delà de 30 jours. Un repère d'appareil : ni sync, ni copie, ni partage ; scellée (SEALABLE), emportée par « Effacer cet appareil » | JSON |
 | `oc_vus_v1` | « À découvrir » : ce que chaque recherche a déjà montré, pour marquer « nouveau » ce qui n'y était pas la fois d'avant (docs/recherche-profil.md) — `{v:1, r: {<recherche>: {at, s: [siren…]}}}`, la recherche = ses questions à l'annuaire sans la page, 30 recherches de 300 SIREN au plus. Un repère de CET appareil : ni sync, ni copie, ni partage ; scellée (SEALABLE), emportée par « Effacer cet appareil » | JSON |
 | `oc_theme` | `light` ou `dark` | chaîne |
 | `oc_view` | `map`, `list` ou `grid` (héritée, plus écrite) | chaîne |
@@ -140,6 +141,10 @@ L'objet compressé, et RIEN d'autre :
   profil ET celles déduites des « J'y suis passé » (`parcoursDe`) ;
   `quoi` ∈ {`stage`, `alternance`, `emploi`}, `debut`/`fin` en `AAAA-MM`
   ou vides, `siren` (9 chiffres) seulement si la piste d'origine en a un.
+- `cle` (depuis la 6.55, facultative) : la clé PUBLIQUE de ma boîte aux
+  lettres (`boite.pub` du profil, §1) — de quoi me sceller une demande
+  que moi seul pourrai ouvrir. Un QR d'avant n'en a pas ; il se lit
+  toujours. La clé privée n'y est jamais (`e2e-amis.mjs` ①).
 - **Jamais** : adresse, téléphone, formation, école, ville, pistes,
   contacts, suivi, l'identifiant d'une piste — ni le profil d'un AMI. Un
   profil ne se repartage pas (`profilDonne`, `e2e-amis.mjs` ①).
@@ -150,6 +155,52 @@ L'objet compressé, et RIEN d'autre :
   aperçu. Dans un texte collé, seul le jeton `OCA1.…` compte
   (`extraireOCA`) : la phrase qui l'accompagne (« colle ce message dans… »)
   et un retour à la ligne glissé par une messagerie ne le cassent pas.
+
+### Lettre à un ami — OCB1 (boîte aux lettres sur les relais, docs/reseau.md lot 3)
+
+Une demande (« Inès cherche quelqu'un chez Aztek »), un contact donné en
+réponse, un merci — et le profil de qui vient de t'ajouter (l'amitié est
+réciproque). Ce que voit un relais — un événement Nostr ordinaire,
+signé d'une clé jetable :
+
+```
+kind 8571 · tags [["x", "oc-boite-<32 hex>"], ["expiration", "<s>"]] · content "OCB1.<…>"
+```
+
+- `x` = `oc-boite-` + les 16 premiers octets (hex) de
+  SHA-256(`opencontact·boite·v1·` + clé publique du destinataire) : une
+  étiquette qui ne dit rien de lui à qui n'a pas sa clé. `expiration`
+  (NIP-40) = celle de la demande. Kind 8571 : un kind ordinaire, gardé
+  et rendu à une autre connexion par 6 relais sur 7 (mesuré,
+  `sonde-boite-relais.mjs`), qu'aucun client n'affiche.
+- `content` = `OCB1.` + base64url(clé publique éphémère P-256 brute, 65
+  octets ‖ IV 12 octets ‖ AES-256-GCM). La clé AES vient d'un ECDH entre
+  la clé éphémère et la clé de la boîte du destinataire, passé dans
+  HKDF-SHA256 (sel `opencontact·boite·v1`, info `lettre`). Une clé
+  jetable PAR LETTRE : rien ne relie deux lettres du même auteur.
+- La lettre ouverte, et RIEN d'autre (`normaliserLettre`) :
+  ```json
+  { "v": 1, "t": "demande", "id": "…", "de": { "prenom": "Inès", "cle": "<où répondre>" },
+    "entreprise": { "nom": "Aztek", "siren": "123456789" }, "cercle": 1, "exp": 1760000000000 }
+  { "v": 1, "t": "don", "id": "…", "demande": "<id>", "de": {…}, "entreprise": {…},
+    "contact": { "name": "Julie Marchand", "role": "RH", "email": "…", "phone": "…", "link": "…" } }
+  { "v": 1, "t": "merci", "id": "…", "demande": "<id>", "de": {…}, "entreprise": {…},
+    "contact": { "name": "Julie Marchand" } }
+  { "v": 1, "t": "ami", "id": "…", "de": {…}, "profil": { <exactement l'objet d'OCA1> } }
+  ```
+  Une demande vit 14 jours au plus (`exp` au-delà est refusée), son
+  cercle vaut 1. Un don ne porte que de quoi JOINDRE le contact (nom et
+  au moins un moyen) — **jamais** sa note, la piste, ses notes, son
+  statut, son historique (`contactDonne`, `e2e-demande.mjs` ①). Un don
+  ne compte que pour une demande que J'AI faite ; un merci, que pour une
+  demande à laquelle j'ai donné — un par demande. Un profil (`ami`) se
+  remet aux mêmes invariants qu'un QR scanné (`normalizeAmi`), et sa
+  `cle` doit être celle qui écrit (`de.cle`) : on n'ajoute personne au
+  nom d'un autre. Il entre dans les amis du destinataire sans aperçu —
+  c'est la règle de réciprocité, pas une proposition — une seule fois
+  par lettre.
+- Lecture BORNÉE (16 000 octets), et ce qui ne s'ouvre pas avec MA clé
+  ou ne passe pas `normaliserLettre` est ignoré, jamais deviné.
 
 ### Rendez-vous — OCR1 (QR appairé, P2P)
 
@@ -413,7 +464,10 @@ appartiennent à la même personne (`engine/sync.js`, transport P2P chiffré).
 
 1. **Tout circule**, privé inclus — ce sont mes appareils.
 2. **Le plus récent gagne**, piste par piste (`updatedAt`) ; le profil
-   voyage en bloc (son `updatedAt` à lui).
+   voyage en bloc (son `updatedAt` à lui). **Sauf ce qui dit où me
+   joindre** (6.55) : si le profil qui gagne n'a pas encore de `boite` ni
+   d'`amiId`, il prend ceux de l'autre — mes amis ont scanné ce QR-là, et
+   une boîte perdue est une lettre qui n'arrive jamais.
 3. **Les suppressions voyagent** par tombstones `{id, t}` : une pierre plus
    récente que la fiche la supprime partout ; une fiche modifiée **après**
    la suppression ressuscite (le geste le plus récent gagne).
@@ -449,8 +503,9 @@ appartiennent à la même personne (`engine/sync.js`, transport P2P chiffré).
    l'utilisateur sur l'appareil visé : données, profil, journal, bac,
    tombstones, phrase de liaison, relais, serveurs TURN, identité d'appareil, appareils
    vus, anneau, coffre, campagnes, jetons de messagerie, clés d'IA,
-   missions, propositions de l'assistant (`oc_proposals_v1`), et les
-   documents (`cv`, `lettre`) de `oc_docs_v1`.
+   missions, propositions de l'assistant (`oc_proposals_v1`), l'état de
+   la boîte aux lettres (`oc_reseau_v1`), et les documents (`cv`,
+   `lettre`) de `oc_docs_v1`.
 8. **Campagnes C8** : les instantanés privés du canal `full` peuvent porter
    `campaigns` (`oc_campaigns_v1`) et `missions` (`oc_missions_v1`). Ce sont
    des champs optionnels : un ancien appareil les ignore sans casser le
