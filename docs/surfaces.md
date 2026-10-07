@@ -34,6 +34,7 @@ installer**.
 | Capture rapide, détection des doublons, bac « à rattacher » | ✅ |
 | Partage au groupe : QR, fichier `.oc`, coller, en direct | ✅ |
 | Amis : donner son profil (QR, texte), lire sur ses pistes où ils sont passés | ✅ |
+| Demander à ses amis quelqu'un chez une entreprise, donner un contact en réponse | ✅ |
 | Synchronisation entre **mes** appareils | ✅ |
 | Écrire un e-mail (`mailto:`, copier, marquer « Envoyée ») | ✅ |
 | Postuler à plusieurs d'affilée, une par une | ✅ |

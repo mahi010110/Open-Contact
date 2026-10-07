@@ -222,7 +222,9 @@ Chacun se livre dans main, se teste sur le téléphone, et **sert tout seul**
    (décision 6) vient avec le lot 3.
 3. **La demande, cercle 1.** La demande part vers tes amis et tes groupes ;
    leurs téléphones cherchent dans leurs pistes ; les deux oui ; le contact
-   arrive dans ta piste (aperçu, Annuler) ; le merci.
+   arrive dans ta piste (aperçu, Annuler) ; le merci. **Livré pour les amis
+   (6.55.0)** — voir « Ce que le lot 3 a appris ». Les groupes (décision
+   6) suivent : ils demandent un code qu'on garde, donc une clé de plus.
 4. **Les cercles 2 et 3.** La transmission automatique, le numéro de
    cercle, les doublons (une demande arrivée par deux amis ne sonne qu'une
    fois), l'expiration, le merci à toute la chaîne.
@@ -352,6 +354,67 @@ pas un relais de plus, pas un compte. Reste la DURÉE : les marqueurs
 datés se relisent aux passages planifiés (lundi et jeudi) et diront,
 sur deux semaines, si une demande de 14 jours tient.
 
+## Ce que le lot 3 a appris (6.55.0)
+
+Inès n'a personne à qui écrire chez Aztek. Sur la fiche, à la place où
+dirait « Karim y est en alternance » si quelqu'un pouvait la porter :
+**« Demander à mes amis »**. La feuille montre la phrase EXACTE qui part
+— « Inès cherche quelqu'un chez Aztek. » — et à qui. Un tap, et la fiche
+dit « Demandé à 2 amis · aujourd'hui ». Chez Karim, qui connaît Julie
+là-bas, « Tes amis » passe en tête d'« Aujourd'hui » ; il voit ce qu'il
+donnerait AVANT de le donner, et « Donner » tient le pied. Chez Inès, le
+contact arrive par un aperçu — « Ajouter à la piste », puis « Annuler »
+—, et Karim est remercié sans un geste de plus. Chez Sofia, qui ne
+connaît personne là-bas : rien.
+
+**Le transport est une boîte aux lettres**, et c'est la seule pièce
+neuve. Chacun a une clé (ECDH P-256) née au premier « Mon QR » ; la
+partie publique part dans le QR. Une lettre est scellée pour UN
+destinataire — une clé jetable par lettre, puis AES-GCM — et rangée sur
+les relais sous une étiquette qui ne dit rien de lui à qui n'a pas sa
+clé. Le relais voit une étiquette, une expiration et du bruit ; rien ne
+relie deux lettres du même auteur. C'est le schéma de NIP-17/NIP-59 sans
+leurs dépendances : WebCrypto suffit, et le relevé a montré que les
+relais de l'app gardent un kind ordinaire aussi bien que l'enveloppe.
+L'app relève sa boîte à l'ouverture, au retour sur l'app et toutes les
+cinq minutes à l'écran — et seulement si elle a donné son QR : sans clé,
+personne ne peut lui écrire, rien ne part.
+
+Les choix, et ce qui les a fait :
+
+- **Le bouton n'existe qu'au moment où il sert** (§6, « le minimum, au
+  bon moment ») : une piste ouverte, personne à qui écrire dessus,
+  personne qui la porte déjà, et au moins un ami à qui demander. Partie,
+  la demande est un FAIT en gris, pas un bouton ; trois ouvertes, il
+  s'efface.
+- **Un seul contact n'est pas un choix** (§6) : chez Karim il se lit, et
+  « Donner » tient le pied. Deux ou trois : le premier est choisi
+  d'office, un tap en choisit un autre, le pied donne toujours.
+- **La ligne « Tes amis » passe en tête**, avant le travail du jour :
+  c'est la seule de l'écran où quelqu'un attend, et elle s'éteint en
+  14 jours. Elle n'existe que si le téléphone a TROUVÉ (règle 6).
+- **Un ami ajouté en 6.54 n'a pas de boîte.** Il n'est pas dans « à qui
+  elle part », et sa fiche dit le geste : « Rescanne son QR pour lui
+  demander quelqu'un. » Une fois.
+- **Un merci par demande** : ajouté, annulé, rajouté, Karim n'est
+  remercié qu'une fois.
+- **La boîte ne se perd pas dans une sync** : le profil le plus récent
+  gagne toujours en bloc, sauf ce qui dit où me joindre — un profil qui
+  n'a pas encore de boîte prend celle de l'autre appareil. Sans ça, deux
+  appareils dont un seul a donné son QR pouvaient en effacer la clé, et
+  les lettres seraient tombées dans une boîte que personne ne relève.
+
+Ce que le relais ne sait pas encore dire : **combien de jours** il garde.
+Les marqueurs datés de la sonde se relisent le lundi et le jeudi ; si un
+relais rend moins de 14 jours, la demande vivra moins longtemps que sa
+promesse, sans rien casser d'autre.
+
+Gardé par `e2e-demande.mjs` — joué à trois sur un relais local qui garde,
+la fuite d'abord : le relais ne lit ni l'entreprise, ni un prénom, ni une
+note ; la lettre ouverte avec la clé de son destinataire ne porte que ce
+que la règle 3 permet ; le don, que de quoi joindre le contact. Et six
+auto-tests (`?test`).
+
 ## Comment on saura que c'est juste
 
 **Le moteur** (`tests.js`, `?test`) :
@@ -397,19 +460,21 @@ sur deux semaines, si une demande de 14 jours tient.
    passe d'elle-même ; chacun peut couper le passage pour lui dans ses
    réglages (le droit de ne plus servir de chemin, sans quitter personne).
 
+8. **La demande part de la fiche d'une piste** (lot 3). Elle vise
+   toujours une entreprise. Pas depuis la barre sans entreprise : la plus
+   indiscrète, la moins précise.
+9. **Elle part vers tous ceux dont tu as le profil** — pas seulement ceux
+   qui ont aussi le tien. Un ami t'a donné son QR, donc le moyen de lui
+   écrire : c'est lui qui a ouvert la porte.
+10. **Chez l'ami, un seul oui : « Donner le contact ».** Il voit ce qu'il
+    donnerait avant de le donner ; la personne présentée, elle, est
+    jointe par Inès comme n'importe quel contact.
+11. **Les amis ajoutés en 6.54 redonnent leur QR une fois.** Leur ancien
+    QR ne portait pas de boîte ; on ne leur écrit pas tant qu'ils ne
+    l'ont pas redonné.
+
 ## Encore à trancher
 
-- **D'où part la demande** — à réfléchir ensemble (lot 3). La proposition
-  de l'assistant, le 7 octobre : la demande vise toujours **une
-  entreprise**, et part de là où on la regarde — la fiche d'une piste, ou
-  l'aperçu de « À découvrir » (demander y ajoute la piste, d'un geste,
-  avec Annuler). Pas depuis la barre sans entreprise (« quelqu'un dans la
-  cyber à Lille ? ») tant que la bêta ne l'a pas demandé : c'est la plus
-  indiscrète (tout l'entourage apprend ce que tu cherches) et la moins
-  précise (des listes, pas une personne, et nulle part où les ranger).
-  Rappel : la recherche dans le PARCOURS des amis (lot 2) ne demande
-  rien — elle s'affiche d'elle-même ; la demande ne sert qu'à atteindre
-  leurs pistes et les cercles 2 et 3.
 - **Le fil du groupe** (ci-dessous).
 
 ## Gardé de côté : le fil du groupe

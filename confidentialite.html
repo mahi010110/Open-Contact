@@ -57,6 +57,9 @@ un fichier sur ton disque. Personne d'autre n'y a accès.</p>
   <li><b>Tes amis</b> : le nom et le parcours que chacun t'a donné lui-même.
       Ils restent chez toi : ils ne sortent dans aucun partage, et ton
       propre profil ne les emporte jamais.</li>
+  <li><b>Tes demandes à tes amis</b> : ce que tu as demandé, ce qu'on t'a
+      demandé et ce qu'on t'a donné, sur cet appareil seulement, oublié au
+      bout de 30 jours.</li>
   <li><b>Tes réglages</b> : thème, appareils reliés, relais choisis.</li>
 </ul>
 
@@ -65,17 +68,25 @@ chiffré <em>sur l'appareil</em>, et la clé ne le quitte jamais.</p>
 
 <h2 id="ce-qui-sort">Ce qui sort, et seulement quand tu le demandes</h2>
 
-<p>Rien ne part tout seul : aucun envoi au démarrage, aucun envoi en
-arrière-plan. Cinq gestes font sortir des données, et tu les déclenches tous
-les cinq.</p>
+<p>Rien ne part sans un geste de ta part. Six gestes font sortir des
+données, et tu les déclenches tous les six.</p>
 
 <ul class="dl">
   <li><b>Un fichier <code>.oc</code></b> : tu l'enregistres, tu le donnes à
       qui tu veux. Il ne transite par personne.</li>
   <li><b>Un QR code</b> : d'un écran à l'autre, sans aucun réseau.</li>
   <li><b>Ton QR d'ami</b> (« Mon QR ») : ton nom et les entreprises de ton
-      parcours, écrits sous le QR avant que tu le montres. Rien d'autre :
-      ni ton adresse, ni tes pistes, ni ton suivi, ni tes amis.</li>
+      parcours, écrits sous le QR avant que tu le montres, et la clé qui
+      permet à tes amis de t'écrire. Rien d'autre : ni ton adresse, ni tes
+      pistes, ni ton suivi, ni tes amis.</li>
+  <li><b>Une demande à tes amis</b> (« Demander à mes amis », sur une
+      piste) : ton prénom et le nom de l'entreprise, la phrase exacte que la
+      feuille te montre avant que tu appuies. Elle est chiffrée pour chacun
+      de tes amis, et seul cet ami peut la lire. Si un ami connaît quelqu'un
+      là-bas, il te le donne d'un geste à lui : le nom de la personne et de
+      quoi la joindre, jamais ses notes ni son suivi. Quand tu l'ajoutes à ta
+      piste, un merci part vers lui tout seul, avec le prénom de la
+      personne.</li>
   <li><b>Un partage avec ton groupe</b> : de pair à pair, chiffré, et sans ton
       suivi privé.</li>
   <li><b>La synchronisation entre tes propres appareils</b> : de pair à pair,
@@ -86,8 +97,8 @@ les cinq.</p>
 <p>Écrire un e-mail ouvre <b>ton</b> logiciel de courrier avec le message
 prêt. OpenContact n'envoie rien et ne voit pas ce que tu envoies.</p>
 
-<p>Il reste deux cas, décrits dans la section suivante : des données qui partent
-sans que tu aies appuyé sur un bouton pour ça.</p>
+<p>Il reste quelques cas, décrits dans la section suivante : des questions
+que l'app pose sans que tu aies appuyé sur un bouton pour ça.</p>
 
 <h2 id="appel-exterieur">Les appels extérieurs que l'app fait pour toi</h2>
 
@@ -143,6 +154,14 @@ autour de … » ouvre <b>HelloWork</b> avec quelques mots (« stage réseau »)
 et le nom de la ville. L'app ne lit rien de ces sites :
 c'est toi qui regardes, et rien ne part tant que tu ne touches pas le lien.</p>
 
+<p>Si tu as donné ton QR d'ami, l'app relève ta <b>boîte aux lettres</b> à
+l'ouverture, puis toutes les cinq minutes tant qu'elle est à l'écran : elle
+demande aux relais les lettres rangées sous ton étiquette. Cette question ne
+dit rien de toi : l'étiquette est une empreinte de ta clé, pas ton nom. Si un
+ami te demande quelqu'un chez une entreprise où tu ne connais personne, rien
+ne s'affiche et rien ne part. Si tu n'as jamais donné ton QR, l'app ne relève
+rien.</p>
+
 <p>Ces deux pages ne se connectent à aucun service extérieur. Elles ne
 chargent que leur propre feuille de style et leurs polices, depuis le même
 serveur qu'elles. Leur politique de sécurité (Content-Security-Policy)
@@ -152,13 +171,16 @@ interdit tout le reste, et elle est visible dans leur code source.</p>
 
 <p>Pour que deux appareils se trouvent, le partage et la synchronisation
 passent par des <b>relais publics</b>, des serveurs du réseau Nostr tenus par
-des tiers. Voici précisément ce qu'ils voient :</p>
+des tiers. Les demandes à tes amis y attendent qu'ils ouvrent l'app, 14 jours
+au plus. Voici précisément ce qu'ils voient :</p>
 
 <ul class="dl">
   <li><b>Ils ne peuvent pas lire ce qui passe.</b> Le contenu est chiffré
       entre les deux appareils.</li>
   <li><b>Ils ne savent pas de quoi il s'agit.</b> Le nom du salon est une
-      empreinte, pas ton mot de passe ni un nom de groupe.</li>
+      empreinte, pas ton mot de passe ni un nom de groupe. Une lettre à un
+      ami porte une étiquette qui ne dit rien de lui, une date d'expiration,
+      et rien qui la relie à toi.</li>
   <li><b>Ils voient qu'une connexion a lieu</b>, et depuis quelle adresse IP,
       comme n'importe quel site que tu visites.</li>
 </ul>

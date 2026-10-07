@@ -303,7 +303,10 @@ entreprise parmi ses amis, ses groupes et leurs amis, trois cercles au plus.
    dans « Échanger » (Mon QR · Scanner), et « Karim y est en alternance »
    sur la fiche, dans la barre et dans « Aujourd'hui ».
 3. La demande à ses amis et à ses groupes, les deux oui, le contact dans la
-   piste.
+   piste. **Livré pour les amis le 7 octobre 2026 (6.55.0)** : « Demander à
+   mes amis » sur la fiche, « Tes amis » en tête d'« Aujourd'hui » chez qui
+   connaît quelqu'un, le contact par un aperçu, le merci. Les groupes
+   (un code qu'on garde) suivent.
 4. Les amis de ses amis, jusqu'au troisième cercle.
 
 **Mis de côté, à reprendre** — [`frictions.md`](frictions.md) : les trois
