@@ -818,7 +818,7 @@ html[data-theme="dark"] .field select{
    boîte, aucun aplat — le mot actif en encre et un trait du châssis sous
    lui (§4 : le navy dit « où tu es »), l'autre en gris. La cible garde
    sa hauteur de doigt (§5) ; seul l'habit part. */
-.portee{display:flex;gap:22px;margin:-2px 0 10px}
+.portee{display:flex;flex-wrap:wrap;gap:0 22px;margin:-2px 0 10px}
 .pt{
   display:inline-flex;align-items:center;gap:6px;min-height:var(--ctl);padding:0 1px;
   background:none;border:0;border-bottom:2px solid transparent;border-radius:0;cursor:pointer;
@@ -878,7 +878,10 @@ html[data-theme="dark"] .field select{
 /* « nouveau » et « ta formation » : un mot devant, en accent — ce qui
    CHANGE ou ce qui DÉPARTAGE (§6, règle 1), jamais un mark-* : rien ne
    presse */
-.dc-neuf,.dc-ton{margin-right:8px;color:var(--accent);font-weight:var(--weight-semibold)}
+.dc-neuf,.dc-ton,.dc-ami{margin-right:8px;color:var(--accent);font-weight:var(--weight-semibold)}
+/* dans l'aperçu, l'ami qui y est passé prend le bandeau de la fiche :
+   le même objet, le même dessin, là où l'on décide d'ajouter */
+.ap-ami{margin:10px 0 0}
 /* la ligne porte le geste « Pas pour moi » : la rangée défile sous le
    doigt, et à la souris la croix vit au bout */
 .dc-row .sw-in{display:flex;align-items:stretch}
@@ -3193,6 +3196,24 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
    vient AVANT le contact, qui prend sa place d'objet */
 .dm-chez{margin:0 0 12px}
 /* un état d'un mot (« Déjà dans tes amis. ») : il se lit, il ne se tape pas */
+/* L'ONGLET « AMIS » (lot 4) : la rangée d'une piste. Ce qu'un ami
+   t'ouvre DANS TES PISTES prend l'accent — un atout, jamais un mark-* ;
+   la ligne choisie, au poste, le liseré du châssis (« où tu es », §4). */
+.am-row .am-tienne{color:var(--accent);font-weight:var(--weight-semibold)}
+.am-detail .ap-nom{margin-bottom:10px}
+@media (min-width:901px){
+  .am-sel .sw-in{background:var(--surface-chrome);box-shadow:inset 3px 0 0 var(--select-bg)}
+}
+/* LES AMIS, dans « Échanger » : leur nom, et les deux gestes d'échange
+   — la liste vit dans « Mes pistes ». Au pouce une ligne pleine largeur,
+   au poste le nom en encre sourde à côté de ses deux gestes. */
+.ec-amis{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;min-height:var(--ctl)}
+.ec-amis-t{flex:1;min-width:0;display:flex;align-items:center;gap:7px;font-size:var(--text-14);font-weight:var(--weight-bold)}
+.ec-amis-g{display:flex;flex-wrap:wrap;gap:8px}
+@media (min-width:901px){
+  .ec-actes .ec-amis{flex:0 0 auto;margin:0;padding:0;background:none;border:0;box-shadow:none}
+  .ec-actes .ec-amis-t{flex:none;font-size:var(--text-13);font-weight:var(--weight-regular);color:var(--text-muted)}
+}
 .am-etat{display:flex;align-items:center;gap:7px;margin:12px 0 0;color:var(--accent);font-size:var(--text-13);font-weight:var(--weight-semibold)}
 .scan-box{
   position:relative;background:#000;border:1px solid var(--border-strong);

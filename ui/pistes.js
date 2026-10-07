@@ -13,7 +13,7 @@ import { chercherPistes, raisonDe, propositions, elargir, retirer, contexteReche
 import { silentPistes } from '../engine/assist.js';
 import { S, bus, isClosed, hasDemo, addDemo, ctLabel, deletePiste, undeletePiste,
          removeOrphan, saveOrphans, saveData, logJ } from './state.js';
-import { portesDuJour } from './amis.js';
+import { portesDuJour, amisClasses, vueAmisHTML, lierVueAmis, openTriAmis, triAmisChipHTML, lierTriAmisChip } from './amis.js';
 import { $, ic, toast, showUndo, bindDeleteGesture, openSheet, softReorder, topSheet,
          collerEnHaut, clavier, annoncer } from './dom.js';
 import { openAffinerSheet, filterState, filterOn, filterClear, filterArgs } from './affiner.js';
@@ -50,8 +50,10 @@ let posDemandee = false;
    tape. La portée tient pour la session, comme un onglet garde sa place. */
 let portee = 'pistes';
 /* sans aucune piste, il n'y a rien à chercher chez toi : une recherche
-   tapée ne peut viser que l'annuaire */
-const porteeVue = () => (portee === 'decouvrir' || (!S.companies.length && q)) ? 'decouvrir' : 'pistes';
+   tapée ne peut viser que l'annuaire. « Amis » (lot 4) est la troisième
+   portée — ceux qui t'ouvrent leurs entreprises. */
+const porteeVue = () => portee === 'amis' ? 'amis'
+  : (portee === 'decouvrir' || (!S.companies.length && q)) ? 'decouvrir' : 'pistes';
 const mqFine = matchMedia('(pointer:fine)');
 const procheActif = () => !!(interp && interp.etiquettes.some(e => e.cle === 'proche'));
 
@@ -391,7 +393,7 @@ function propsHTML(){
   /* ce sont des recherches DANS TES PISTES (« En retard 2 ») : dans
      « À découvrir », elles répondaient à une autre question que celle
      qu'on posait (relevé sur le téléphone du mainteneur, 7 octobre) */
-  if (q || !barreActive || ftOn() || !sortIsDefault(st) || porteeVue() === 'decouvrir') return '';
+  if (q || !barreActive || ftOn() || !sortIsDefault(st) || porteeVue() !== 'pistes') return '';
   const props = propositions(S.companies, S.profile, ctxBarre());
   return props.length
     ? `<div class="props-pan" role="group" aria-label="Recherches proposées">${props.map(p =>
@@ -405,6 +407,13 @@ function propsHTML(){
    la croix enlève, taper la puce de tri inverse son sens */
 function chipsRowHTML(){
   const bits = [];
+  /* chez les amis, la barre cherche des NOMS et des entreprises : les
+     étiquettes de la barre (un lieu, un état) ne les filtrent pas — on
+     ne montre que ce qui agit sur cette liste, son tri */
+  if (porteeVue() === 'amis'){
+    const sc = triAmisChipHTML();
+    return sc ? `<div class="chips-row">${sc}</div>` : '';
+  }
   const dec = porteeVue() === 'decouvrir';
   /* CE QUE LA BARRE A COMPRIS, une étiquette par chose comprise, dans
      l'ordre où on l'a tapée. Taper l'étiquette retire SES mots du champ :
@@ -594,7 +603,14 @@ export function renderPistes(){
       withPos(st, () => { if (S.route === 'pistes') glisser(renderBody); });
     }
     const dec = porteeVue() === 'decouvrir';
+    const am = porteeVue() === 'amis';
     page.classList.toggle('pt-dec', dec);
+    page.classList.toggle('pt-amis', am);
+    /* chez les amis, le bouton de la barre TRIE (il n'y a rien à filtrer) :
+       il dit son geste, l'icône suit */
+    const aff = root.querySelector('#piAffiner');
+    const affHTML = am ? `${ic('sort-vertical', 'ic-14')} Trier` : `${ic('filter', 'ic-14')} Affiner`;
+    if (aff && aff.innerHTML !== affHTML) aff.innerHTML = affHTML;
     premierId = (!dec && wide && mqFine.matches && q) ? ((alive[0] || closed[0] || {}).id || null) : null;
     /* « À découvrir » suit la barre : la question part seule après une
        pause, pour que son compte se remplisse pendant qu'on tape. Barre
@@ -604,6 +620,17 @@ export function renderPistes(){
     rendreChips();
     rendrePortee();
 
+    if (am){
+      const liste = amisClasses(q);
+      const n = (S.profile.amis || []).length;
+      const cnt = root.querySelector('#piCount');
+      if (cnt) cnt.textContent = q && liste.length !== n ? `${liste.length} sur ${n}` : `${n} ami${n > 1 ? 's' : ''}`;
+      if (q) annoncer(`${liste.length} ami${liste.length > 1 ? 's' : ''} sur ${n}.`);
+      body.innerHTML = `<div id="piAmis">${vueAmisHTML(liste, { q, wide })}</div>`;
+      lierVueAmis(body.querySelector('#piAmis'), { wide, rendre: () => glisser(renderBody) });
+      tenirBarre();
+      return;
+    }
     const tout = S.companies.length;
     const cnt = root.querySelector('#piCount');
     if (cnt) cnt.textContent = (q || ftOn()) && all.length !== tout
@@ -753,15 +780,22 @@ export function renderPistes(){
   function rendrePortee(){
     const box = root.querySelector('#piPortee');
     if (!box) return;
-    const dec = porteeVue() === 'decouvrir';
+    const vue = porteeVue();
+    const dec = vue === 'decouvrir', am = vue === 'amis', pi = vue === 'pistes';
     const d = compteDecouverte();
+    /* le compte des AMIS se remplit pendant qu'on tape, comme celui
+       d'« À découvrir » : « Thales » rend « Amis 1 » si Karim y est
+       passé. Barre vide, rien — le titre de la vue dit déjà combien. */
+    const nAm = q && (S.profile.amis || []).length ? amisClasses(q).length : null;
     const html =
       `<div class="portee" role="group" aria-label="Où chercher">
          ${/* le compte de tes pistes est déjà dans le titre (« 4 sur 9 ») :
               il ne se redit pas ici */''}
-         <button class="pt${dec ? '' : ' on'}" data-portee="pistes" aria-pressed="${!dec}">Mes pistes</button>
+         <button class="pt${pi ? ' on' : ''}" data-portee="pistes" aria-pressed="${pi}">Mes pistes</button>
          <button class="pt${dec ? ' on' : ''}" data-portee="decouvrir" aria-pressed="${dec}"${d.occupe ? ' aria-busy="true"' : ''}>À découvrir${
            d.texte ? `<span class="pt-n">${d.texte}</span>` : ''}</button>
+         <button class="pt${am ? ' on' : ''}" data-portee="amis" aria-pressed="${am}">Amis${
+           nAm != null ? `<span class="pt-n">${nAm}</span>` : ''}</button>
        </div>`;
     if (box.innerHTML === html) return;
     const focus = document.activeElement && box.contains(document.activeElement) ? document.activeElement.dataset.portee : null;
@@ -771,7 +805,8 @@ export function renderPistes(){
       portee = b.dataset.portee;
       renderBody();
       root.querySelector(`#piPortee [data-portee="${portee}"]`)?.focus({ preventScroll: true });
-      annoncer(portee === 'decouvrir' ? 'À découvrir : les entreprises de l’annuaire.' : 'Mes pistes.');
+      annoncer(portee === 'decouvrir' ? 'À découvrir : les entreprises de l’annuaire.'
+        : portee === 'amis' ? 'Amis : les entreprises qu’ils t’ouvrent.' : 'Mes pistes.');
     }));
     if (focus) box.querySelector(`[data-portee="${focus}"]`)?.focus({ preventScroll: true });
   }
@@ -1003,10 +1038,12 @@ export function renderPistes(){
         refresh();
       }));
     bindSortChip(box, st, refresh);
+    lierTriAmisChip(box, refresh);
   };
-  root.querySelector('#piAffiner').addEventListener('click', () =>
-    openAffinerSheet(ft, st, { withStatus: !mqWide.matches,
-      pool: () => S.companies.filter(c => !isClosed(c)) }, refresh));
+  root.querySelector('#piAffiner').addEventListener('click', () => porteeVue() === 'amis'
+    ? openTriAmis(refresh)
+    : openAffinerSheet(ft, st, { withStatus: !mqWide.matches,
+        pool: () => S.companies.filter(c => !isClosed(c)) }, refresh));
   root.querySelector('#piProspect')?.addEventListener('click', openProspect);
   root.querySelector('#piCamps')?.addEventListener('click', openCampaignsHome);
   renderBody();

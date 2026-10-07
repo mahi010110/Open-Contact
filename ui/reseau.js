@@ -23,7 +23,7 @@ import { esc, todayISO } from '../engine/utils.js';
 import { normalizeContact } from '../engine/model.js';
 import { RELAIS_DEFAUT } from '../engine/transport.js';
 import { kvGet, kvSet, RELAYS_KEY, RESEAU_KEY } from '../engine/storage.js';
-import { nouvelleCle, etiquetteBoite, sceller, ouvrir, lettreDemande, lettreDon, lettreMerci, lettreAmi, normaliserLettre,
+import { nouvelleCle, etiquetteBoite, sceller, ouvrir, lettreDemande, lettreDon, lettreMerci, lettreAmi, normaliserLettre, empreinteProfil,
          etatVide, normaliserEtat, elaguer, peutDemander, demandeDePiste, traiterLettre, prenomDe,
          LETTRE_KIND } from '../engine/boite.js';
 import { prenomAmi, profilDonne, statutAmi, ajouterAmi, nouvelIdAmi } from '../engine/amis.js';
@@ -159,6 +159,28 @@ function planifierEnvois(){
   minuterie = setTimeout(() => { renvoyer().then(sauver).then(planifierEnvois).catch(() => {}); },
                          Math.max(0, quand - Date.now()) + 200);
 }
+/* LES PROFILS RESTENT À JOUR TOUT SEULS (lot 4) : à chaque relève, si
+   mon profil donné a changé depuis la dernière fois — un parcours
+   complété, une alternance qui commence —, mes amis reçoivent la
+   nouvelle version. Pas de « Annuler » ici : rien n'est ajouté chez eux,
+   c'est ce qu'ils ont déjà, en plus juste. La première fois, on retient
+   l'empreinte sans rien envoyer : ils viennent de recevoir ce profil. */
+async function profilAJour(){
+  if (!String(S.profile.name || '').trim() || !S.profile.amiId || !S.profile.boite) return;
+  const donne = profilDonne(S.profile, S.companies);
+  const emp = await empreinteProfil(donne);
+  if (etat.profilEnvoye === emp) return;
+  const premiere = !etat.profilEnvoye;
+  etat = { ...etat, profilEnvoye: emp };
+  if (premiere) return;
+  const de = { prenom: prenomDe(S.profile.name), cle: S.profile.boite.pub };
+  const exp = Date.now() + 14 * 864e5;
+  const nouveaux = amisJoignables().map(a => {
+    const l = lettreAmi(de, donne, 'maj');
+    return { id: l.id, cle: a.cle, lettre: l, quand: Date.now(), exp };
+  });
+  etat = { ...etat, envois: [...(etat.envois || []).filter(x => !(x.lettre && x.lettre.motif === 'maj')), ...nouveaux] };
+}
 /* « Annuler » : ce qui n'est pas encore parti ne part pas */
 export async function reprendreMonProfil(ami){
   await chargerReseau();
@@ -178,10 +200,13 @@ async function renvoyer(){
   etat = { ...etat, envois: reste.filter(x => encore.has(x.id)) };
 }
 /* le profil de qui m'a ajouté : il entre dans mes amis, sans aperçu —
-   c'est la règle, pas une proposition. Déjà là et pareil : rien. */
+   c'est la règle, pas une proposition. Déjà là et pareil : rien. Une
+   MISE À JOUR ne vaut que pour quelqu'un qui est déjà là : elle ne
+   rajoute jamais un ami qu'on a retiré. */
 function recevoirAmi(l){
   const st = statutAmi(S.profile.amis, l.profil, S.profile.amiId);
   if (st !== 'nouveau' && st !== 'maj') return false;
+  if (l.motif === 'maj' && st === 'nouveau') return false;
   S.profile.amis = ajouterAmi(S.profile.amis, l.profil);
   saveProfile();
   if (st === 'nouveau'){
@@ -204,6 +229,7 @@ export function relever(){
     const b = S.profile.boite;
     if (!b) return;
     const debut = Date.now();
+    await profilAJour();
     if ((etat.envois || []).length) await renvoyer();
     const { evs, lus } = await lire({ kinds: [LETTRE_KIND], '#x': [await etiquetteBoite(b.pub)],
                                       since: Math.max(0, Math.floor(etat.depuis / 1000) - 3600) });

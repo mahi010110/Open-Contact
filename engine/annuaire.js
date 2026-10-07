@@ -91,6 +91,12 @@ export function motsInterdits(companies, orphans, profile){
   }
   for (const o of orphans || []) mettre(contact, o.name, o.email, o.phone, o.note, o.link, o.role);
   if (profile) mettre(contact, profile.name, profile.email, profile.phone, profile.ecole);
+  /* LES AMIS sont des personnes : leur nom ne part jamais vers
+     l'annuaire. Le prénom l'était déjà (une étiquette « groupe » vide la
+     question) ; le NOM de famille, tapé seul dans la portée « Amis »,
+     serait parti (lot 4). Les entreprises de leur parcours, elles, sont
+     des noms d'entreprise : elles peuvent partir. */
+  if (profile) for (const a of profile.amis || []) mettre(contact, a && a.nom);
   const out = new Set(contact);
   for (const w of prive) if (!publics.has(w)) out.add(w);
   return out;

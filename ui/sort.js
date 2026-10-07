@@ -62,19 +62,23 @@ export function withPos(st, apply){
    « Récentes » repose le tri par défaut, sens compris (`dir:''`). Une
    commande de plus pour un geste qui existe, et qui se lisait comme un
    ordre de revenir là où l'on était déjà. */
-export function sortSectionHTML(st){
+/* `labels` : les critères de l'écran — les pistes par défaut, les amis
+   ont les leurs (Pour toi · Récents · A → Z). La grammaire est la même. */
+export function sortSectionHTML(st, labels = SORT_LABELS){
   const main = st.levels[0];
   return (
     `<div class="lbl-row"><label>Trier</label></div>
      <div class="fl-grid">
-       ${Object.keys(SORT_LABELS).map(k =>
+       ${Object.keys(labels).map(k =>
          `<button class="fl-chip${main.sort === k ? ' on' : ''}" data-sort-set="${k}"
                   aria-pressed="${main.sort === k}"
-                  aria-label="${SORT_LABELS[k]}${main.sort === k ? ' — re-taper pour inverser le sens' : ''}">
-            ${SORT_LABELS[k]}${main.sort === k ? ` <span class="srt-dir">${effDir(main) === 'asc' ? '↑' : '↓'}</span>` : ''}
+                  aria-label="${labels[k]}${main.sort === k ? ' — re-taper pour inverser le sens' : ''}">
+            ${labels[k]}${main.sort === k ? ` <span class="srt-dir">${effDir(main) === 'asc' ? '↑' : '↓'}</span>` : ''}
           </button>`).join('')}
      </div>`);
 }
+/* le sens effectif du critère choisi — pour un moteur qui trie seul */
+export const sensDe = st => effDir(st.levels[0]);
 export function bindSortSection(box, st, apply){
   box.querySelectorAll('[data-sort-set]').forEach(b =>
     b.addEventListener('click', () => {
@@ -113,9 +117,9 @@ export function bindSortBar(root, st, onChange){
    Un bouton, un geste : taper la retire, comme les étiquettes de filtre
    à côté d'elle. La flèche dit le sens ; l'inverser se fait là où on l'a
    choisi — en re-tapant le critère dans « Affiner ». */
-export function sortChipHTML(st){
+export function sortChipHTML(st, labels = SORT_LABELS){
   if (sortIsDefault(st)) return '';
-  const names = st.levels.map(l => SORT_LABELS[l.sort]).join(' puis ');
+  const names = st.levels.map(l => labels[l.sort]).join(' puis ');
   return (
     `<button class="st-chip" data-sort-clear
              aria-label="Retirer le tri ${names}">${names} ${effDir(st.levels[0]) === 'asc' ? '↑' : '↓'}</button>`);

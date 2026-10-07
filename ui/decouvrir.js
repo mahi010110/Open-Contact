@@ -37,6 +37,7 @@ import { S, bus, saveData, saveProfile, logJ, deletePiste } from './state.js';
 import { ic, openSheet, btn, showUndo, annoncer, bindDeleteGesture } from './dom.js';
 import { suivreCarte, carteDe, carteHTML, alerteHTML, sourcesHTML, lierCarte } from './carte.js';
 import { travailDe } from '../engine/carte.js';
+import { portesAmis } from '../engine/amis.js';
 
 const PAUSE = 650;                 /* ms sans frappe avant de demander */
 const cache = new Map();           /* url → réponse : on ne redemande pas ce qu'on a déjà */
@@ -230,11 +231,20 @@ const classer = () => {
     { genres: etat.genres, userPos: etat.userPos, ville: etat.ville, loin: etat.loin,
       ecartees: sirensEcartes(S.profile.ecartees), metier: metierDuProfil(S.profile) });
 };
+/* « À DÉCOUVRIR » RÉCHAUFFÉ (docs/reseau.md, lot 4) : une entreprise de
+   l'annuaire où un ami est passé le dit — « Karim y est en alternance »,
+   en accent — et passe EN TÊTE. Le 40 pour 1, appliqué à l'annuaire :
+   c'est la seule de la liste où quelqu'un peut te porter. Lu dans le
+   parcours qu'il t'a donné, hors ligne, rien ne part. */
+const amisDe = l => portesAmis(l.map(r => ({ id: r.siren, name: r.nom, siren: r.siren })), S.profile.amis, todayISO());
 function visibles(){
   const l = classer();
   const rang = new Map(etat.ordre.map((x, i) => [x, i]));
-  return l.sort((a, b) => (rang.get(a.siren) ?? 1e9) - (rang.get(b.siren) ?? 1e9));
+  const portes = amisDe(l);
+  return l.map(r => ({ ...r, amis: portes.get(r.siren) || null }))
+    .sort((a, b) => (!!b.amis - !!a.amis) || ((rang.get(a.siren) ?? 1e9) - (rang.get(b.siren) ?? 1e9)));
 }
+const amiDit = r => r.amis && r.amis[0] ? `${r.amis[0].prenom} ${r.amis[0].court}` : '';
 export const decouverteActive = () => etat.phase !== 'repos';
 export const decouverteVide = () => etat.phase === 'ok' && !visibles().length;
 /* le compte du segment : un chiffre, « … » pendant qu'on cherche, rien
@@ -268,9 +278,13 @@ function ligneHTML(r){
   const pris = estPrise(r.siren), sel = mqLarge.matches && r.siren === choisi;
   const neuf = !pris && etat.nouveaux.has(r.siren);
   const ton = !pris && colleAffiche && colleDe(r);
+  /* un ami qui y est passé est LA raison de la ligne : elle passe
+     devant « nouveau » et « ta formation », qui ne départagent qu'après */
+  const ami = amiDit(r);
   const marque = pris ? `<span class="dc-ok">${ic('check', 'ic-12')}dans tes pistes</span>`
-    : (neuf ? '<span class="dc-neuf">nouveau</span>' : '') + (ton ? '<span class="dc-ton">ta formation</span>' : '');
-  const dit = [r.nom, pris ? 'dans tes pistes' : '', neuf ? 'nouveau' : '', ton ? 'colle à ta formation' : ''].filter(Boolean).join(', ');
+    : (ami ? `<span class="dc-ami">${esc(ami)}</span>` : '')
+      + (neuf ? '<span class="dc-neuf">nouveau</span>' : '') + (ton ? '<span class="dc-ton">ta formation</span>' : '');
+  const dit = [r.nom, pris ? 'dans tes pistes' : '', ami, neuf ? 'nouveau' : '', ton ? 'colle à ta formation' : ''].filter(Boolean).join(', ');
   return (
     `<div class="dc-row${pris ? ' dc-pris' : ''}${sel ? ' dc-sel' : ''}" data-siren="${esc(r.siren)}" data-l="${esc(r.siren)}">
        <div class="sw-in">
@@ -353,6 +367,8 @@ export function apercuHTML(r, o){
     `<div class="ap">
        <h3 class="ap-nom">${esc(r.nom)}</h3>
        ${lieu || k.alerte ? `<p class="ap-faits">${esc(lieu)}${alerteHTML(k)}</p>` : ''}
+       ${/* l'ami d'abord : c'est ce qui change tout dans cette entreprise */''}
+       ${amiDit(r) ? `<p class="fi-vecu ap-ami">${ic('user', 'ic-14')}<b>${esc(amiDit(r))}</b></p>` : ''}
        ${o.panneau ? `<div class="ap-agir">${pris
          ? `<span class="ap-pris">${ic('check', 'ic-14')}Dans tes pistes</span>
             <button class="linklike" data-ap-fiche="${esc(r.siren)}">Ouvrir la fiche</button>`

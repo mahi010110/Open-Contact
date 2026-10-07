@@ -28,10 +28,11 @@ import { esc, todayISO, uid } from '../engine/utils.js';
 import { normalizeCompany } from '../engine/model.js';
 import { PARCOURS, periodeParcours } from '../engine/parcours.js';
 import { nouvelIdAmi, profilDonne, statutAmi, ajouterAmi, retirerAmi, prenomAmi,
-         portesAmis, memeEntreprise } from '../engine/amis.js';
+         portesAmis, memeEntreprise, classerAmis, chercherAmis, TRIS_AMIS, TRI_AMIS_DEFAUT } from '../engine/amis.js';
 import { encodeOCA } from '../engine/exchange.js';
 import { S, bus, saveData, saveProfile, logJ, deletePiste } from './state.js';
-import { openSheet, toast, btn, ic, showUndo } from './dom.js';
+import { openSheet, toast, btn, ic, showUndo, bindDeleteGesture } from './dom.js';
+import { sortState, sortSectionHTML, bindSortSection, sortChipHTML, bindSortChip, sensDe } from './sort.js';
 import { makeQrSvg } from './qr.js';
 
 /* ce que le parcours de tes amis dit de tes pistes — calculé à la
@@ -45,32 +46,10 @@ const ligneExperience = e => [PARCOURS[e.quoi] && PARCOURS[e.quoi].label, period
    récent d'abord — c'est ce qui le distingue d'un autre Karim */
 const resumeAmi = a => (a.parcours || []).map(e => e.entreprise).join(' · ');
 
-/* ---------- la liste ---------- */
-export function openAmis(){
-  const sh = openSheet({ title: 'Amis', icon: 'users' });
-  const dessiner = () => {
-    if (!sh.body.isConnected) return;
-    const amis = (S.profile.amis || []).slice().sort((a, b) => a.nom.localeCompare(b.nom, 'fr'));
-    sh.body.innerHTML = amis.length
-      ? `<div class="pick-list" id="amListe">${amis.map(a =>
-          `<button class="pick" data-ami="${esc(a.id)}"><div class="pk-m"><b>${esc(a.nom)}</b>${
-            resumeAmi(a) ? `<span class="pk-s">${esc(resumeAmi(a))}</span>` : ''}</div>${
-            ic('chevron-right', 'ic-14')}</button>`).join('')}</div>`
-      /* L'état vide enseigne le produit (§6) — en une phrase, et ce
-         qu'elle promet est ce qui se VERRA sur les pistes */
-      : `<p class="doc-vide" id="amVide">Tes pistes diront où tes amis sont passés.</p>`;
-    sh.body.querySelectorAll('[data-ami]').forEach(b => b.addEventListener('click', () => {
-      const a = (S.profile.amis || []).find(x => x.id === b.dataset.ami);
-      if (a) openAmi(a, dessiner);
-    }));
-  };
-  dessiner();
-  const scanner = btn('Scanner', '', async () => (await import('./recevoir.js')).openRecevoir({ scanner: true, apres: dessiner }), 'grid-3x3');
-  const monQR = btn('Mon QR', 'btn-primary', () => openMonQR({ apres: dessiner }), 'user');
-  scanner.id = 'amScan'; monQR.id = 'amMonQR';
-  sh.setFoot([scanner, monQR]);
-  return sh;
-}
+/* LA LISTE VIT DANS « MES PISTES » (docs/reseau.md, lot 4) : une portée à
+   côté d'« À découvrir », triable comme les pistes. « Échanger » ne garde
+   que les gestes d'échange — « Scanner », « Mon QR ». Une liste, une
+   place. */
 
 /* ---------- mon QR ----------
    L'identifiant se tire ICI, au premier don : un profil qui n'a jamais
@@ -212,49 +191,162 @@ function parcoursHTML(a, { lecture = false } = {}){
   }).join('')}</div>`;
 }
 
-/* ---------- la fiche d'un ami ---------- */
-function openAmi(a, apres){
+/* ---------- la fiche d'un ami ----------
+   La même au pouce (une feuille) et au poste (à côté de la liste) : ses
+   entreprises — qui mènent à ta piste ou s'y ajoutent d'un tap —, et
+   « Retirer de mes amis », nommé, rouge, en dernier. */
+function ficheAmiHTML(a){
+  /* UN PROFIL DONNÉ AVANT LES DEMANDES (6.54) n'a pas de boîte : on
+     ne peut rien lui demander tant qu'il n'a pas redonné son QR. Une
+     fois, et c'est le seul endroit où ça se dit — le geste, pas la
+     raison. */
+  return parcoursHTML(a)
+    + (a.cle ? '' : `<p class="hint" id="amAncien">${ic('reload', 'ic-14')} Rescanne son QR pour lui demander quelqu’un.</p>`)
+    + `<div class="pick-list pick-sortie">
+         <button class="pick pick-danger" id="amRetirer"><b>${ic('trash', 'ic-14')} Retirer de mes amis</b></button>
+       </div>`;
+}
+function lierFicheAmi(box, a, { apres, fermer } = {}){
+  const frais = () => (S.profile.amis || []).find(x => x.id === a.id) || a;
+  box.querySelectorAll('[data-piste]').forEach(b => b.addEventListener('click', async () => {
+    const c = S.companies.find(x => x.id === b.dataset.piste);
+    if (c) (await import('./fiche.js')).openFiche(c);
+  }));
+  box.querySelectorAll('[data-ajout]').forEach(b => b.addEventListener('click', () => {
+    const e = frais().parcours[+b.dataset.ajout];
+    if (!e) return;
+    ajouterPiste(e, prenomAmi(frais()), () => apres && apres());
+    if (apres) apres();
+  }));
+  box.querySelector('#amRetirer')?.addEventListener('click', () => {
+    if (fermer) fermer();
+    retirerAvecAnnuler(a, apres);
+  });
+}
+/* retirer, rattrapable — personne n'est prévenu (LinkedIn fait pareil) */
+function retirerAvecAnnuler(a, apres){
+  const avant = (S.profile.amis || []).slice();
+  S.profile.amis = retirerAmi(S.profile.amis, a.id);
+  saveProfile();
+  bus.refresh();
+  if (apres) apres();
+  showUndo(`${esc(prenomAmi(a))} n’est plus dans tes amis.`, () => {
+    S.profile.amis = avant;
+    saveProfile();
+    bus.refresh();
+    if (apres) apres();
+  });
+}
+export function openAmi(a, apres){
   const sh = openSheet({ title: a.nom, icon: 'user' });
   const dessiner = () => {
     if (!sh.body.isConnected) return;
     const frais = (S.profile.amis || []).find(x => x.id === a.id) || a;
-    /* UN PROFIL DONNÉ AVANT LES DEMANDES (6.54) n'a pas de boîte : on
-       ne peut rien lui demander tant qu'il n'a pas redonné son QR. Une
-       fois, et c'est le seul endroit où ça se dit — le geste, pas la
-       raison. */
-    sh.body.innerHTML = parcoursHTML(frais)
-      + (frais.cle ? '' : `<p class="hint" id="amAncien">${ic('reload', 'ic-14')} Rescanne son QR pour lui demander quelqu’un.</p>`)
-      + `<div class="pick-list pick-sortie">
-           <button class="pick pick-danger" id="amRetirer"><b>${ic('trash', 'ic-14')} Retirer de mes amis</b></button>
-         </div>`;
-    sh.body.querySelectorAll('[data-piste]').forEach(b => b.addEventListener('click', async () => {
-      const c = S.companies.find(x => x.id === b.dataset.piste);
-      if (c) (await import('./fiche.js')).openFiche(c);
-    }));
-    sh.body.querySelectorAll('[data-ajout]').forEach(b => b.addEventListener('click', () => {
-      const e = frais.parcours[+b.dataset.ajout];
-      if (!e) return;
-      ajouterPiste(e, prenomAmi(frais), dessiner);
-      dessiner();
-    }));
-    sh.body.querySelector('#amRetirer').addEventListener('click', () => {
-      const avant = (S.profile.amis || []).slice();
-      S.profile.amis = retirerAmi(S.profile.amis, a.id);
-      saveProfile();
-      bus.refresh();
-      sh.close();
-      if (apres) apres();
-      showUndo(`${esc(prenomAmi(a))} n’est plus dans tes amis.`, () => {
-        S.profile.amis = avant;
-        saveProfile();
-        bus.refresh();
-        if (apres) apres();
-      });
-    });
+    sh.body.innerHTML = ficheAmiHTML(frais);
+    lierFicheAmi(sh.body, frais, { apres: () => { dessiner(); if (apres) apres(); }, fermer: () => sh.close() });
   };
   dessiner();
   return sh;
 }
+
+/* ---------- l'onglet « Amis » de « Mes pistes » (lot 4) ----------
+   Un ami se lit comme une piste : la même rangée, le même geste pour le
+   retirer, le même tri. Sa ligne dit ce qu'il T'OUVRE — des onglets
+   voisins montrent des choses de même nature (NN/g) : ses entreprises,
+   celles de tes pistes d'abord, en accent. */
+export const triAmis = sortState(TRI_AMIS_DEFAUT);
+let choisiAmi = null;
+export const amisClasses = q => chercherAmis(
+  classerAmis(S.profile.amis, S.companies, todayISO(), triAmis.levels[0].sort, sensDe(triAmis)), q);
+function sousLigneAmi(o){
+  if (!o.lignes.length) return 'aucune entreprise';
+  const dans = o.lignes.filter(l => l.pisteId).map(l => l.entreprise);
+  const autres = o.lignes.filter(l => !l.pisteId).map(l => l.entreprise);
+  return (dans.length ? `<span class="am-tienne">${esc(dans.join(', '))}, dans tes pistes</span>` : '')
+    + (dans.length && autres.length ? ' · ' : '') + esc(autres.join(' · '));
+}
+function ligneAmiHTML({ a, o }, sel){
+  return (
+    `<div class="row-item am-row${sel ? ' am-sel' : ''}" data-ami="${esc(a.id)}">
+       <div class="sw-in">
+         <div class="ri-main sw-cible" role="button" tabindex="0" aria-label="Ouvrir ${esc(a.nom)}"${sel ? ' aria-current="true"' : ''}>
+           <h3>${esc(a.nom)}</h3>
+           <div class="ri-sub">${sousLigneAmi(o)}</div>
+         </div>
+       </div>
+     </div>`);
+}
+export function vueAmisHTML(classes, { q, wide }){
+  if (!(S.profile.amis || []).length)
+    /* L'ÉTAT VIDE ENSEIGNE (§6) : ce que la liste montrera, et les deux
+       gestes qui la remplissent — les mêmes qu'« Échanger » */
+    return (
+      `<div class="td-empty" id="avVide">
+         <div class="tde-ic">${ic('users', 'ic-24')}</div>
+         <h2>Tes amis t’ouvrent leurs entreprises</h2>
+         <div class="tde-actions">
+           <button class="btn btn-primary" id="avMonQR">${ic('user', 'ic-14')} Mon QR</button>
+           <button class="btn" id="avScan">${ic('grid-3x3', 'ic-14')} Scanner</button>
+         </div>
+       </div>`);
+  if (!classes.length) return `<div class="empty-list" id="avRien">Aucun ami ne correspond.</div>`;
+  const x = wide ? (classes.find(c => c.a.id === choisiAmi) || classes[0]) : null;
+  if (x) choisiAmi = x.a.id;
+  const liste = `<div class="rows am-rows">${classes.map(c => ligneAmiHTML(c, !!x && c.a.id === x.a.id)).join('')}</div>`;
+  /* AU POSTE, la fiche vit à côté de la liste (liste-détail, comme
+     « À découvrir ») ; au pouce, le tap ouvre sa feuille */
+  return x
+    ? `<div class="dc-split">
+         <div class="dc-col">${liste}</div>
+         <aside class="dc-detail am-detail" data-ami="${esc(x.a.id)}" aria-label="${esc(x.a.nom)}">
+           <h2 class="ap-nom">${esc(x.a.nom)}</h2>${ficheAmiHTML(x.a)}
+         </aside>
+       </div>`
+    : liste;
+}
+export function lierVueAmis(box, { wide, rendre }){
+  if (!box) return;
+  box.querySelector('#avMonQR')?.addEventListener('click', () => openMonQR({ apres: rendre }));
+  box.querySelector('#avScan')?.addEventListener('click', async () =>
+    (await import('./recevoir.js')).openRecevoir({ scanner: true, apres: rendre }));
+  const trouve = id => (S.profile.amis || []).find(a => a.id === id);
+  box.querySelectorAll('.am-row').forEach(row => {
+    const a = trouve(row.dataset.ami);
+    if (!a) return;
+    const main = row.querySelector('.ri-main');
+    const ouvrir = () => {
+      if (!wide){ openAmi(a, rendre); return; }
+      if (choisiAmi === a.id) return;
+      choisiAmi = a.id;
+      rendre();
+      box.querySelector(`.am-row[data-ami="${CSS.escape(a.id)}"] .ri-main`)?.focus({ preventScroll: true });
+    };
+    main.addEventListener('click', ouvrir);
+    main.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); ouvrir(); } });
+    /* au poste, la fiche suit le clavier, comme dans « À découvrir » */
+    if (wide) main.addEventListener('focus', () => { if (choisiAmi !== a.id){ choisiAmi = a.id; rendre(); box.querySelector(`.am-row[data-ami="${CSS.escape(a.id)}"] .ri-main`)?.focus({ preventScroll: true }); } });
+    /* RETIRER AU GESTE, comme une piste : glisser au doigt, la croix au
+       survol — avec SON mot, et « Annuler » */
+    bindDeleteGesture(row, () => retirerAvecAnnuler(a, rendre), a.nom, { mot: 'Retirer' });
+  });
+  const aside = box.querySelector('.am-detail');
+  if (aside){
+    const a = trouve(aside.dataset.ami);
+    if (a) lierFicheAmi(aside, a, { apres: rendre });
+  }
+}
+/* le tri des amis : la même feuille que celle des pistes, leurs critères */
+export function openTriAmis(rendre){
+  const sh = openSheet({ title: 'Trier', icon: 'sort-vertical' });
+  const dessiner = () => {
+    sh.body.innerHTML = sortSectionHTML(triAmis, TRIS_AMIS);
+    bindSortSection(sh.body, triAmis, () => { rendre(); dessiner(); });
+  };
+  dessiner();
+  return sh;
+}
+export const triAmisChipHTML = () => sortChipHTML(triAmis, TRIS_AMIS);
+export const lierTriAmisChip = (box, rendre) => bindSortChip(box, triAmis, rendre);
 
 /* Une entreprise du parcours d'un ami devient une piste : son nom, et
    son SIREN s'il l'a donné — rien d'autre n'est inventé. La fiche dira

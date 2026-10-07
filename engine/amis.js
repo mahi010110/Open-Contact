@@ -209,3 +209,68 @@ export function portesAmis(companies, amis, today){
   }
   return out;
 }
+
+/* ---------- l'onglet « Amis » (docs/reseau.md, lot 4) ----------
+   Un ami se lit comme une piste : une ligne, et ce qu'elle t'APPORTE.
+   Des onglets voisins doivent montrer des choses de même nature (NN/g) :
+   « Mes pistes » et « À découvrir » montrent des entreprises, donc la
+   ligne d'un ami dit les entreprises qu'il t'ouvre — la plus utile pour
+   TA recherche d'abord. */
+const plier = s => String(s == null ? '' : s).normalize('NFD').replace(/[̀-ͯ]/g, '')
+  .replace(/[‘’‛`]/g, "'").toLowerCase();
+
+export function ceQuOuvre(ami, companies, today){
+  const ouvertes = (companies || []).filter(c => c && c.name && !c.closedReason);
+  const lignes = [];
+  for (const e of (ami && ami.parcours) || []){
+    const d = direExperience(e, today);
+    const piste = ouvertes.find(c => memeEntreprise(c, e)) || null;
+    lignes.push({ entreprise: e.entreprise, quoi: e.quoi, debut: e.debut || '',
+                  enCours: !!(d && d.enCours), poids: d ? d.poids : 0, pisteId: piste ? piste.id : null });
+  }
+  /* dans tes pistes, puis où il est MAINTENANT, puis le plus fort, puis
+     le plus récent ; une entreprise ne se dit qu'une fois */
+  lignes.sort((a, b) => (!!b.pisteId - !!a.pisteId) || (b.enCours - a.enCours) || (b.poids - a.poids)
+    || String(b.debut).localeCompare(String(a.debut)));
+  const vu = new Set();
+  const uniques = lignes.filter(l => { const k = cleEntreprise(l.entreprise); if (!k || vu.has(k)) return false; vu.add(k); return true; });
+  return { lignes: uniques, pistes: new Set(uniques.filter(l => l.pisteId).map(l => l.pisteId)).size,
+           enCours: uniques.some(l => l.enCours) };
+}
+
+/* les trois tris : « Pour toi » sert la recherche (qui porte le plus de
+   tes pistes ouvertes, puis qui y est maintenant, puis qui t'ouvre le
+   plus d'entreprises) ; « Récents » et « A → Z » sont ceux de LinkedIn */
+export const TRIS_AMIS = { pour: 'Pour toi', recent: 'Récents', az: 'A → Z' };
+export const TRI_AMIS_DEFAUT = 'pour';
+const SENS_NATUREL = { pour: 'desc', recent: 'desc', az: 'asc' };
+export function classerAmis(amis, companies, today, tri = TRI_AMIS_DEFAUT, sens = ''){
+  const l = (amis || []).map(a => ({ a, o: ceQuOuvre(a, companies, today) }));
+  const nom = (x, y) => x.a.nom.localeCompare(y.a.nom, 'fr');
+  const cmp = {
+    pour: (x, y) => (y.o.pistes - x.o.pistes) || (y.o.enCours - x.o.enCours)
+      || (y.o.lignes.length - x.o.lignes.length) || nom(x, y),
+    recent: (x, y) => ((y.a.recu || 0) - (x.a.recu || 0)) || nom(x, y),
+    az: nom
+  }[tri] || null;
+  if (!cmp) return classerAmis(amis, companies, today, TRI_AMIS_DEFAUT);
+  l.sort(cmp);
+  /* re-taper le critère inverse SON sens (ui/sort.js) */
+  if (sens && sens !== SENS_NATUREL[tri]) l.reverse();
+  return l;
+}
+
+/* chercher parmi ses amis : le nom, et les entreprises où ils sont
+   passés — « Thales » trouve Karim. Chaque mot se cherche pour lui-même,
+   accents pliés, comme la barre (engine/filter.js) ; les petits mots de
+   liaison ne cherchent rien. */
+const LIAISON = new Set(['a', 'au', 'aux', 'chez', 'de', 'des', 'du', 'en', 'et', 'la', 'le', 'les', 'l', 'd', 'un', 'une', 'pour', 'qui']);
+export function chercherAmis(classes, q){
+  const mots = plier(q).split(/[^a-z0-9]+/).filter(m => m && !LIAISON.has(m));
+  if (!mots.length) return classes;
+  return classes.filter(({ a }) => {
+    const tout = ' ' + plier([a.nom, ...(a.parcours || []).flatMap(e => [e.entreprise, e.quoi])].join(' '))
+      .replace(/[^a-z0-9]+/g, ' ') + ' ';
+    return mots.every(m => tout.includes(' ' + m));
+  });
+}

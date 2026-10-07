@@ -115,9 +115,8 @@ const sansAnnuler = async p => {
 async function monProfilCopie(p){
   await fermerTout(p);
   await p.evaluate(() => { location.hash = '#/echanger'; });
-  await p.waitForSelector('#ecAmis');
-  await p.click('#ecAmis');
-  await p.click('#amMonQR');
+  await p.waitForSelector('#ecMonQR');
+  await p.click('#ecMonQR');
   await p.waitForSelector('.qr-wrap svg');
   await p.click('#mqCopier');
   await p.waitForTimeout(150);
@@ -127,9 +126,8 @@ async function ajouterAmi(p, txt){
   await fermerTout(p);
   await sansAnnuler(p);
   await p.evaluate(() => { location.hash = '#/echanger'; });
-  await p.waitForSelector('#ecAmis');
-  await p.click('#ecAmis');
-  await p.click('#amScan');
+  await p.waitForSelector('#ecScan');
+  await p.click('#ecScan');
   await p.click('#rcTexte');
   await p.fill('#rcTxt', txt);
   await p.evaluate(() => [...document.querySelectorAll('.overlay')].pop().querySelector('.modal-f .btn-primary').click());
@@ -449,22 +447,25 @@ for (const id of ['adv', 'th']){
 }
 await ouvrirFiche(I.p, 'or');
 if (await I.p.$('#fiDemander')) fail('une quatrième demande se propose (trois ouvertes au plus)');
-await fermerTout(I.p);
-await I.p.evaluate(() => { location.hash = '#/echanger'; });
-await I.p.waitForSelector('#ecAmis');
-await I.p.click('#ecAmis');
-await I.p.waitForSelector('[data-ami="AwaAwaAwaAwaAwaAwa01"]');
-await I.p.click('[data-ami="AwaAwaAwaAwaAwaAwa01"]');
+/* la liste des amis vit dans « Mes pistes » (lot 4) */
+const ongletAmis = async p => {
+  await fermerTout(p);
+  await sansAnnuler(p);
+  await p.evaluate(() => { location.hash = '#/pistes'; });
+  await p.waitForSelector('[data-portee="amis"]');
+  await p.click('[data-portee="amis"]');
+  await p.waitForSelector('#piAmis .am-row');
+};
+await ongletAmis(I.p);
+await I.p.click('.am-row[data-ami="AwaAwaAwaAwaAwaAwa01"] .ri-main');
 await I.p.waitForTimeout(300);
 {
   const t = await I.p.evaluate(() => document.querySelector('#amAncien')?.textContent.trim());
   if (t !== 'Rescanne son QR pour lui demander quelqu’un.') fail('l’amie ancienne : ' + t);
 }
 await I.p.screenshot({ path: `${SHOTS}/100-demande-amie-ancienne-pouce.png` });
-await fermerTout(I.p);
-await I.p.click('#ecAmis');
-await I.p.waitForSelector('[data-ami]');
-await I.p.evaluate(() => [...document.querySelectorAll('[data-ami]')].find(b => /Karim/.test(b.textContent)).click());
+await ongletAmis(I.p);
+await I.p.evaluate(() => [...document.querySelectorAll('.am-row')].find(b => /Karim/.test(b.textContent)).querySelector('.ri-main').click());
 await I.p.waitForTimeout(300);
 if (await I.p.$('#amAncien')) fail('un ami qui a une boîte se dit « à rescanner »');
 console.log('⑥ trois demandes au plus, rien sur une piste qui a déjà quelqu’un, l’amie ancienne à rescanner ✓');
