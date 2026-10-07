@@ -13,6 +13,7 @@ import { chercherPistes, raisonDe, propositions, elargir, retirer, contexteReche
 import { silentPistes } from '../engine/assist.js';
 import { S, bus, isClosed, hasDemo, addDemo, ctLabel, deletePiste, undeletePiste,
          removeOrphan, saveOrphans, saveData, logJ } from './state.js';
+import { portesDuJour } from './amis.js';
 import { $, ic, toast, showUndo, bindDeleteGesture, openSheet, softReorder, topSheet,
          collerEnHaut, clavier, annoncer } from './dom.js';
 import { openAffinerSheet, filterState, filterOn, filterClear, filterArgs } from './affiner.js';
@@ -159,7 +160,7 @@ function dueHTML(c){
    « …Nationale 59000 Lille » : l'adresse, que la ligne disait déjà. */
 function hintHTML(c, skip){
   if (!q || !interp) return '';
-  const r = raisonDe(c, interp);
+  const r = raisonDe(c, interp, ctxDernier);
   const h = r.mots.length ? searchHint(c, r.mots.join(' '), { skip }) : null;
   if (!r.accent && !h) return '';
   let out = '', i = 0;
@@ -364,7 +365,12 @@ function marqueEtiquette(e){
 
 /* le contexte de la barre : les villes écrites dans les fiches et les
    prénoms déclarés — c'est tout ce que l'interpréteur lit des pistes */
-const ctxBarre = () => contexteRecherche(S.companies, todayISO());
+/* Et ce que le parcours des AMIS dit des pistes (docs/reseau.md, lot 2) :
+   « Karim » devient un mot de la barre, et la ligne dit pourquoi. Le
+   dernier contexte calculé sert aussi à la raison de chaque ligne — une
+   seule lecture par recherche, pas une par ligne. */
+let ctxDernier = null;
+const ctxBarre = () => (ctxDernier = contexteRecherche(S.companies, todayISO(), portesDuJour()));
 
 /* l'état actif = des puces sous la recherche, un regard suffit (#8) —
    la croix enlève, taper la puce de tri inverse son sens */

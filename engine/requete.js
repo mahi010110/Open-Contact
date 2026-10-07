@@ -366,14 +366,35 @@ export function remplacer(q, spans, par){
 /* ---------- ce que la barre sait des pistes ----------
    Les villes écrites dans les fiches, et les prénoms déclarés (« Léa y
    a fait son stage ») — c'est tout. Le moteur ne lit rien d'autre. */
-export function contexteRecherche(companies, today = todayISO()){
+/* `portes` (facultatif) : ce que le parcours de tes AMIS dit de tes
+   pistes (`portesAmis`, engine/amis.js). Un ami ne devient un mot de la
+   barre que s'il porte au moins une piste — sinon taper son prénom
+   poserait une étiquette qui ne trouve rien. */
+export function contexteRecherche(companies, today = todayISO(), portes = null){
   const villes = new Set(), prenoms = new Set();
   for (const c of companies || []){
     const v = String((c && c.city) || '').trim();
     if (v) villes.add(v);
     if (c && c.vecu && VECU[c.vecu] && String(c.vecuQui || '').trim()) prenoms.add(String(c.vecuQui).trim());
   }
-  return { today, villes: [...villes].sort(), prenoms: [...prenoms].sort() };
+  if (portes) for (const l of portes.values()) for (const p of l) if (p.prenom) prenoms.add(p.prenom);
+  return { today, villes: [...villes].sort(), prenoms: [...prenoms].sort(), portes: portes || null };
+}
+
+/* ---------- qui peut te porter dans cette piste ----------
+   Deux sources, une seule liste : le parcours de tes amis (ce qu'ils ont
+   dit d'eux-mêmes en te donnant leur profil) et « J'y suis passé » (ce
+   qu'un camarade a déclaré sur une piste qu'il t'a donnée). La même
+   personne ne compte qu'une fois — sa propre parole d'abord. Le plus
+   fort en tête : quelqu'un qui y est MAINTENANT, puis une alternance,
+   un stage… */
+export function porteurs(c, portes){
+  if (!c) return [];
+  const out = ((portes && portes.get(c.id)) || []).map(p => ({ ...p }));
+  const v = VECU[c.vecu], qui = String(c.vecuQui || '').trim();
+  if (v && qui && !out.some(p => cleDe(p.prenom) === cleDe(qui)))
+    out.push({ prenom: qui, court: v.court, tu: v.tu, poids: v.poids, declare: true });
+  return out.sort((a, b) => b.poids - a.poids);
 }
 
 /* ---------- correspondre ----------
@@ -453,9 +474,11 @@ export function force(c, e, ctx, L = lire(c)){
       if (e.cle === 'pme' && c.domain === 'startup') return 2;
       if (c.domain === 'dsi') return lit();
       return 1;
-    case 'groupe':
-      if (e.cle === 'recommandee') return (c.vecu && c.vecuQui) ? 2 : lit();
-      return (c.vecu && c.vecuQui && cleDe(c.vecuQui) === e.prenom) ? 2 : lit();
+    case 'groupe': {
+      const qui = porteurs(c, ctx && ctx.portes);
+      if (e.cle === 'recommandee') return qui.length ? 2 : lit();
+      return qui.some(p => cleDe(p.prenom) === e.prenom) ? 2 : lit();
+    }
   }
   return 0;
 }
@@ -469,7 +492,6 @@ export function force(c, e, ctx, L = lire(c)){
    maison (§6, « choisir à la place de l'utilisateur ») : quelqu'un du
    groupe peut te porter, puis tu peux écrire tout de suite, puis la
    fiche la mieux remplie. */
-const porte = c => !!(c.vecu && c.vecuQui && VECU[c.vecu]);
 const joignable = c => (c.contacts || []).some(t => t && t.email);
 export function chercherPistes(companies, o){
   o = o || {};
@@ -492,6 +514,7 @@ export function chercherPistes(companies, o){
     if (ok) items.push({ c, faibles, i });
   });
   const pert = o.pertinence && !proche;
+  const porte = c => porteurs(c, ctx.portes).length > 0;
   items.sort((a, b) => (a.faibles - b.faibles)
     || (pert ? ((porte(b.c) - porte(a.c)) || (joignable(b.c) - joignable(a.c)) || (scoreOf(b.c) - scoreOf(a.c))) : 0)
     || (a.i - b.i));
@@ -504,11 +527,16 @@ export function chercherPistes(companies, o){
    contre ~3 %), sinon la piste prend ce que tu cherches. Plus les mots
    à montrer dans l'extrait : le texte tapé, et la racine de métier
    trouvée dans un champ que la ligne n'affiche pas (« SOC, SIEM »). */
-export function raisonDe(c, interp){
+export function raisonDe(c, interp, ctx){
   const mots = [...((interp && interp.texte) || [])];
   if (!interp || !interp.etiquettes.length) return { accent: '', mots };
   let accent = '';
-  if (porte(c)) accent = c.vecuQui + ' ' + VECU[c.vecu].court;
+  const qui = porteurs(c, ctx && ctx.portes);
+  /* un prénom tapé : c'est CETTE personne qu'on cherche, c'est elle qui
+     se dit, même si un autre porte plus fort */
+  const vise = interp.etiquettes.find(e => e.famille === 'groupe' && e.prenom);
+  const p = (vise && qui.find(x => cleDe(x.prenom) === vise.prenom)) || qui[0];
+  if (p) accent = p.prenom + ' ' + p.court;
   else {
     const r = interp.etiquettes.find(e => e.famille === 'recherche'
       && (c.positions || []).some(p => e.postes.includes(p)));
@@ -519,7 +547,7 @@ export function raisonDe(c, interp){
     /* trouvée « à moitié », par le simple mot : c'est l'extrait qui dit
        où — « Léa » remonte Lumen Data parce que Léa y est CTO, et la
        ligne doit pouvoir le montrer */
-    if (force(c, e, null, L) === 1 && e.mots.every(w => L.blob.includes(w))){
+    if (force(c, e, ctx || null, L) === 1 && e.mots.every(w => L.blob.includes(w))){
       for (const w of e.mots) if (!mots.includes(w)) mots.push(w);
       continue;
     }

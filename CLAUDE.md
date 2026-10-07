@@ -78,6 +78,7 @@ autres. Ni grisée, ni « bientôt » : absente.
 | « Mon parcours » dans le profil, et la ligne « Expérience » du mail | WEB |
 | Capture, anti-doublon, bac « à rattacher » | WEB |
 | Partage au groupe (QR, fichier `.oc`, coller, en direct) | WEB |
+| Amis : donner son profil (QR, texte), lire sur ses pistes où ils sont passés | WEB |
 | Sync entre MES appareils | WEB |
 | Écrire un mail (`mailto:`, copier, « Envoyée ✓ ») | WEB |
 | Postuler à plusieurs d'affilée, une par une | WEB |
@@ -153,11 +154,16 @@ planifier.
 Statuts, notes, actions, historique, journal = suivi privé. Seule exception :
 la sync entre les appareils **de la même personne** (`CONTRAT.md` §5). C'est
 le seul invariant qui engage les données **d'autres personnes** que
-l'utilisateur — les contacts qu'un camarade lui a partagés. **Une seule
-chose traverse en nommant quelqu'un** : `vecuQui`, le prénom de qui déclare
-« j'y suis passé » (§8), et seulement sur déclaration explicite. L'app ne
-stocke aucun carnet de camarades : la seule fois où elle a essayé, la mesure
-a montré qu'un tel carnet ne contient que des gens déjà joignables.
+l'utilisateur — les contacts qu'un camarade lui a partagés. **Deux choses
+seulement traversent en nommant quelqu'un** : `vecuQui`, le prénom de qui
+déclare « j'y suis passé » (§8), et seulement sur déclaration explicite ; et
+le **profil donné** à un ami (OCA1 : un identifiant, le nom, le parcours),
+par son propriétaire lui-même, d'un QR ou d'un texte. Un profil reçu **ne
+se redonne jamais** : le mien ne porte que moi. L'app ne tient toujours
+aucun carnet de camarades — la mesure avait montré qu'un tel carnet ne
+contient que des gens déjà joignables. Les amis sont autre chose : un
+profil que la personne t'a DONNÉ, et qui sert de chemin vers ses
+entreprises, jamais d'annuaire (§8).
 
 **② On n'écrase jamais silencieusement.**
 Fusionner = compléter les vides. Une divergence est comptée et montrée,
@@ -812,6 +818,7 @@ avec un motif existant.
 | Contenu secondaire | `<details class="pcard pcard-details">` replié |
 | Une page = un objet et ses réglages | en-tête `.obj` (icône en haut à gauche + nom) puis des cadres `.fset`. **Le cadre est lourd : deux par écran au maximum, jamais s'il contiendrait tout l'écran.** Ailleurs, `pcard` reste la règle |
 | Recevoir des données | TOUJOURS l'aperçu avant fusion (`mergePreviewInto`) — mêmes règles quel que soit le canal |
+| Les amis | `ui/amis.js` + `engine/amis.js` — **une porte, et ce qu'elle rapporte se lit ailleurs** (docs/reseau.md, lot 2). « Amis » vit sous « Partage en groupe » dans « Échanger », son compte en état (rien à zéro). La feuille : la liste, et au pied « Scanner » + « Mon QR » (le « My code / Scan » de WhatsApp et LinkedIn). **« Mon QR » porte le profil dans l'image** (OCA1, hors ligne) et écrit dessous EXACTEMENT ce qu'il contient — le nom, les entreprises — ; « Copier » donne le même profil en texte et devient « Copié » sur place ; sans nom, il ouvre le profil sur le nom au lieu de s'expliquer. **« Scanner » est le scanner de « Recevoir »** : un seul, qui reconnaît pistes, rendez-vous et profil ; ouvert depuis « Amis », il n'a ni code de rendez-vous ni « Retour », et « Texte » est son chemin sans caméra. **L'aperçu passe avant** (invariant ②) et montre d'abord ce que l'ami rapporte (« dans tes pistes », en accent) ; « Ajouter Karim », puis « Annuler ». Déjà là sans rien de neuf, ou son propre QR : un ÉTAT, pas de bouton. **Ce que ça rapporte se lit là où l'on travaille** : « Karim y est en alternance » dans le bandeau de la fiche (deux personnes au plus, la plus forte d'abord — quelqu'un qui y est MAINTENANT), qui ouvre « Demander à Karim » ; « Karim » dans la barre (`porteurs`, `contexteRecherche`) ; la même ligne dans « Par où commencer ». La fiche d'un ami : ses entreprises, qui mènent à ta piste ou s'y ajoutent d'un tap (« + Piste »), et « Retirer de mes amis » nommé, rouge, en dernier, rattrapable — personne n'est prévenu. Gardé par `e2e-amis.mjs`, la fuite d'abord |
 
 **Le minimum, au bon moment** *(règle du mainteneur, 7 octobre 2026 :
 « les mises à jour sont très bien, le problème c'est qu'elles sont très
@@ -1294,7 +1301,8 @@ feuilles secondaires, jamais dans le titre.
 | une personne chez elle | **contact** (« destinataire » reste dans le composeur : c'est le mot du courrier) | personne — sauf le pronom (« personne pour l'instant ») |
 | l'écran d'une piste | **fiche** | détail |
 | le fichier de tout mon suivi | **copie** (`opencontact-copie-*.oc`) | sauvegarde, export, archive |
-| les camarades avec qui on partage | **groupe** (le collectif — l'app n'en tient aucune liste) | promo, camarades, amis |
+| les camarades avec qui on partage | **groupe** (le collectif — l'app n'en tient aucune liste) | promo, camarades |
+| une personne dont tu as le profil | **ami** (décision du 7 octobre 2026 : un objet à part, pas un synonyme de groupe) | copain, pote, relation |
 
 Ça se vérifie mécaniquement — extraire les chaînes de `ui/*.js` **et de
 `index.html`** (la coque compte aussi, c'est là que « sauvegarde » avait
@@ -1573,6 +1581,27 @@ qui n'ont jamais vu cet écran), le champ `card`, la case dans
 bandeau sur la fiche, une ligne colorée sur « Aujourd'hui », et UNE
 feuille — « Demander à … », un message et un bouton. Aucun écran à
 visiter, aucune donnée d'autrui stockée.
+
+**Les amis (lot 2 du réseau, 6.54) ne contredisent pas ce qui précède —
+ils en sont la suite, et la différence tient en un mot : DONNÉ.** Le carnet
+mort recopiait les coordonnées de gens qui n'avaient rien demandé ; un ami
+est quelqu'un qui t'a lui-même donné son profil, et ce profil ne contient
+PAS de quoi le joindre (tu le peux déjà) : il contient où il est passé.
+C'est ce que tu ne savais pas, et c'est ce qui transforme une piste froide
+en piste portée — « Karim y est en alternance ». Trois règles, tenues par
+`e2e-amis.mjs` :
+
+1. **Le profil donné ne porte que l'identifiant, le nom et le parcours**
+   (OCA1, `CONTRAT.md` §2), et il se lit sous le QR avant de partir.
+2. **Il ne se redonne jamais** : mon profil ne contient pas mes amis, un
+   partage de pistes non plus. Joué à trois — Karim → Inès → Sofia —
+   Sofia n'apprend rien de Karim.
+3. **Ce qu'un ami rapporte se lit sur les pistes, jamais dans un écran à
+   visiter.** La liste d'amis ne sert qu'à donner, recevoir, retirer ; ce
+   qui compte vient au bandeau de la fiche, dans la barre et dans
+   « Aujourd'hui », avec le même mot et le même geste que « J'y suis
+   passé ». La liste sert de CHEMIN (le lot 3 y fera passer les
+   demandes), jamais d'annuaire.
 
 **Un rappel qui jette son argument perd ce que rien ne retrouve.**
 `onJoinError` était câblé `() => watch.fail()` aux quatre appels : la

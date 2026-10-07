@@ -217,6 +217,9 @@ Chacun se livre dans main, se teste sur le téléphone, et **sert tout seul**
    geste que « Donner »), ou dans un groupe. La liste d'amis. La recherche
    **instantanée** dans leur parcours, hors ligne. *Sert seul* : « Karim y
    est en alternance » s'affiche sur ta piste Aztek et dans la barre.
+   **Livré (6.54.0)** — voir « Ce que le lot 2 a appris ». « Dans un
+   groupe » passe par le texte copié ; le code de groupe qu'on garde
+   (décision 6) vient avec le lot 3.
 3. **La demande, cercle 1.** La demande part vers tes amis et tes groupes ;
    leurs téléphones cherchent dans leurs pistes ; les deux oui ; le contact
    arrive dans ta piste (aperçu, Annuler) ; le merci.
@@ -262,6 +265,50 @@ réel de l'app.
 **Les deux décisions qui retenaient le lot 2 sont prises** (7 octobre
 2026, plus bas) : le mot est « ami », et un groupe est un code qu'on
 garde. Le lot 2 peut commencer.
+
+## Ce que le lot 2 a appris (6.54.0)
+
+**Livré** : donner son profil, garder ceux qu'on reçoit, et lire sur ses
+pistes où ses amis sont passés. Quatre décisions, chacune appuyée sur une
+source :
+
+1. **Le geste existe déjà ailleurs, on ne l'invente pas.** WhatsApp et
+   LinkedIn rangent l'échange en personne sous deux mots, « Mon code » et
+   « Scanner » ; c'est le pied de la feuille « Amis » (« Mon QR » ·
+   « Scanner »). Et le scanner est celui de « Recevoir » : un seul, qui
+   reconnaît seul un QR de pistes, un rendez-vous ou un profil.
+2. **On voit ce qu'on donne avant de le donner.** NameDrop (Apple) laisse
+   choisir ce qui part et demande un geste des deux côtés. Ici, rien à
+   choisir — le profil donné ne porte que le nom et le parcours —, mais
+   ce qu'il contient s'écrit sous le QR, mot pour mot. Le QR PORTE le
+   profil (format OCA1) : il marche sans réseau, comme le QR de pistes.
+   À distance, « Copier » donne le même profil en texte, à coller dans
+   « Recevoir → Texte ».
+3. **Ce qu'un ami rapporte se lit là où l'on travaille.** LinkedIn le
+   montre sur l'offre (« ask for a referral » : les relations dans
+   l'entreprise, un message pré-rempli ; une candidature recommandée y
+   obtient quatre fois plus de réponses). Ici, sur la piste : le bandeau
+   « Karim y est en alternance › » — le même que « Léa y a fait son
+   stage », le même message tout prêt —, la barre (« Karim »), et
+   « Par où commencer ». La liste d'amis, elle, ne sert qu'à donner,
+   recevoir et retirer.
+4. **Retirer ne prévient personne** — c'est la règle de LinkedIn, et la
+   seule qui ne transforme pas un geste d'ordre en geste social. Nommé,
+   rouge, en dernier, rattrapable 30 s.
+
+Ce qui n'a PAS été fait, exprès : aucune clé de chiffrement n'est née dans
+ce lot. L'identifiant donné (128 bits au hasard) suffit à reconnaître un
+profil redonné à jour ; le lot 3 dira, mesure à l'appui, ce que la demande
+doit porter de plus. Et un ami sans parcours ne rapporte rien aujourd'hui :
+il servira de chemin au lot 3.
+
+Côté droit : un carnet tenu par un particulier pour un usage personnel
+relève de l'exemption domestique du RGPD (art. 2, considérant 18 — les
+carnets d'adresses y sont cités). On n'en tire pas une licence : le profil
+donné reste le plus petit possible, et il ne se redonne jamais.
+
+Gardé par `e2e-amis.mjs` — la fuite d'abord, le parcours joué à trois —
+et sept auto-tests (`?test`).
 
 ## Comment on saura que c'est juste
 

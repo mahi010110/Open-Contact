@@ -17,7 +17,7 @@ doit être repensée, pas forcée.
 | Clé | Contenu | Format |
 |---|---|---|
 | `oc_data_v3` | Les pistes (partagé + suivi privé) | JSON : tableau de pistes |
-| `oc_profile_v1` | Profil, modèles d'emails, prompts IA (8 × 4 000 car. max), fiches confirmées, flags, `updatedAt` (LWW appareils). Le **prénom** (premier mot de `name`) est ce qui accompagne une déclaration « j'y suis passé » quand on partage : sans lui, la déclaration ne part pas du tout (§3). **Depuis la 6.31, champs AJOUTÉS** (aucun renommé, un profil d'avant les reçoit vides à la lecture) : `ecole` et `rythme` (texte, 120 car. max), `recherche` ∈ {`stage`, `alternance`, `emploi`} ou vide, `debut` / `fin` (date `AAAA-MM-JJ` qui existe au calendrier, sinon vide). La durée n'est **jamais stockée** : elle se déduit des deux dates (`dureeRecherche`). Ces champs nourrissent les jetons `{{ecole}}`, `{{type}}`, `{{recherche}}`, `{{rythme}}` des modèles ; rien choisi = « un stage », le texte d'avant. Ils restent privés comme tout le profil : aucun ne voyage dans un partage (§3). **Mise à jour des modèles de départ** : un modèle dont l'objet ET le corps sont identiques au caractère près à ceux de la 6.30 prend la version du jour, même `id`, même nom, même place (`majModelesDefaut`, appliqué par `normalizeProfile`) ; un modèle retouché, même d'une virgule, n'est jamais touché. **Depuis la 6.47, champ AJOUTÉ** `parcours` (docs/reseau.md, lot 1) : une liste d'au plus 20 expériences `{id, entreprise (120 car.), quoi ∈ {stage, alternance, emploi}, debut, fin (mois AAAA-MM ou vide ; une fin avant le début est retirée), pisteId?}` — un profil d'avant la reçoit vide. **Seul ce qui est SAISI est stocké** : une piste où l'on a déclaré soi-même « J'y suis passé » (stage ou alternance, sans `vecuQui`) fait partie du parcours sans y être recopiée (`parcoursDe`), et une ligne saisie qui porte son `pisteId` prend sa place. Le parcours nourrit le jeton `{{parcours}}` (« stage chez X (2025) », les deux plus récents) ; il reste privé comme tout le profil. Le modèle de candidature de départ gagne la ligne « Expérience : {{parcours}} », qui s'efface quand le parcours est vide ; un modèle identique à celui des 6.31 à 6.46 prend cette version, un modèle retouché n'est jamais touché. **Depuis la 6.51, champs AJOUTÉS** (« Où je cherche », docs/recherche-profil.md) : `ville` (texte, 80 car. max, telle qu'on l'écrit) et `rayon` ∈ {5, 15, 30} km (15 par défaut ; une autre valeur prend le rayon le plus proche) — un profil d'avant les reçoit vides. Ils orientent « À découvrir » ; seul le **centre** de la ville, lu dans la table de l'app, part vers l'annuaire, jamais le texte du champ. **Depuis la 6.51 aussi, champ AJOUTÉ** `ecartees` : les entreprises de « À découvrir » qu'on a dites « Pas pour moi », `[{siren (9 chiffres), nom (120 car.), at}]`, sans doublon de SIREN, les 300 plus récentes — elles ne reviennent plus dans la liste, et suivent le profil (sync de MES appareils, copie), jamais un partage | JSON : objet profil |
+| `oc_profile_v1` | Profil, modèles d'emails, prompts IA (8 × 4 000 car. max), fiches confirmées, flags, `updatedAt` (LWW appareils). Le **prénom** (premier mot de `name`) est ce qui accompagne une déclaration « j'y suis passé » quand on partage : sans lui, la déclaration ne part pas du tout (§3). **Depuis la 6.31, champs AJOUTÉS** (aucun renommé, un profil d'avant les reçoit vides à la lecture) : `ecole` et `rythme` (texte, 120 car. max), `recherche` ∈ {`stage`, `alternance`, `emploi`} ou vide, `debut` / `fin` (date `AAAA-MM-JJ` qui existe au calendrier, sinon vide). La durée n'est **jamais stockée** : elle se déduit des deux dates (`dureeRecherche`). Ces champs nourrissent les jetons `{{ecole}}`, `{{type}}`, `{{recherche}}`, `{{rythme}}` des modèles ; rien choisi = « un stage », le texte d'avant. Ils restent privés comme tout le profil : aucun ne voyage dans un partage (§3). **Mise à jour des modèles de départ** : un modèle dont l'objet ET le corps sont identiques au caractère près à ceux de la 6.30 prend la version du jour, même `id`, même nom, même place (`majModelesDefaut`, appliqué par `normalizeProfile`) ; un modèle retouché, même d'une virgule, n'est jamais touché. **Depuis la 6.47, champ AJOUTÉ** `parcours` (docs/reseau.md, lot 1) : une liste d'au plus 20 expériences `{id, entreprise (120 car.), quoi ∈ {stage, alternance, emploi}, debut, fin (mois AAAA-MM ou vide ; une fin avant le début est retirée), pisteId?}` — un profil d'avant la reçoit vide. **Seul ce qui est SAISI est stocké** : une piste où l'on a déclaré soi-même « J'y suis passé » (stage ou alternance, sans `vecuQui`) fait partie du parcours sans y être recopiée (`parcoursDe`), et une ligne saisie qui porte son `pisteId` prend sa place. Le parcours nourrit le jeton `{{parcours}}` (« stage chez X (2025) », les deux plus récents) ; il reste privé comme tout le profil. Le modèle de candidature de départ gagne la ligne « Expérience : {{parcours}} », qui s'efface quand le parcours est vide ; un modèle identique à celui des 6.31 à 6.46 prend cette version, un modèle retouché n'est jamais touché. **Depuis la 6.51, champs AJOUTÉS** (« Où je cherche », docs/recherche-profil.md) : `ville` (texte, 80 car. max, telle qu'on l'écrit) et `rayon` ∈ {5, 15, 30} km (15 par défaut ; une autre valeur prend le rayon le plus proche) — un profil d'avant les reçoit vides. Ils orientent « À découvrir » ; seul le **centre** de la ville, lu dans la table de l'app, part vers l'annuaire, jamais le texte du champ. **Depuis la 6.51 aussi, champ AJOUTÉ** `ecartees` : les entreprises de « À découvrir » qu'on a dites « Pas pour moi », `[{siren (9 chiffres), nom (120 car.), at}]`, sans doublon de SIREN, les 300 plus récentes — elles ne reviennent plus dans la liste, et suivent le profil (sync de MES appareils, copie), jamais un partage. **Depuis la 6.54, champs AJOUTÉS** (les amis, docs/reseau.md lot 2) : `amiId` — l'identifiant sous lequel mes amis me connaissent (128 bits en base64url, tiré au premier « Mon QR », absent avant ; une valeur invalide est retirée) — et `amis` — les profils que d'autres m'ont DONNÉS, `[{id, nom (80 car.), parcours: [{entreprise, quoi, debut, fin, siren?}] (20 au plus), recu}]`, un par `id` (le plus récent gagne), 200 au plus ; un profil d'avant les reçoit vides. Ce sont des données d'autrui, données par lui-même : elles suivent le profil (sync de MES appareils, copie), **ne sortent dans aucun partage** et **ne se redonnent jamais** — mon profil donné (OCA1) ne porte que moi | JSON : objet profil |
 | `oc_journal_v1` | Journal privé des actions (200 max). **Deux phrases de `txt` sont relues, pas seulement écrites** : `Donné (canal) : N piste(s)` et `Reçu de <qui\|la promo> : +N piste(s)…` alimentent le fil de l'écran « Échanger » (`engine/assist.js` → `exchangeLog`). Les relire plutôt qu'ajouter un champ garde l'historique DÉJÀ écrit visible ; en échange, ces deux formes sont figées et verrouillées par `tests.js`. Toute autre entrée reste du texte libre, et `Reçu (analyse IA triée)` est exclu par construction (ce n'est pas un échange avec la promo). **`ids` est un champ AJOUTÉ, jamais un renommage** : les entrées d'échange écrites depuis la v6.4 portent les identifiants des pistes concernées (données pour un `Donné`, ajoutées ou complétées pour un `Reçu` — c'est `mergeIncoming().ids` qui fait foi), plafonnés à 200 par entrée. C'est ce qui permet d'ouvrir une ligne de « Tes échanges » sur ce qui a circulé. Une entrée sans `ids` (écrite avant, ou revenue d'une sauvegarde) reste lisible : elle s'affiche, elle ne s'ouvre pas | JSON : tableau `{t, txt, cid, ids?}` |
 | `oc_orphans_v1` | Contacts « à rattacher » (sans entreprise) — l'indice d'entreprise saisi par l'utilisateur voyage dans `extra.company` (D3), consommé au rattachement | JSON : tableau de contacts |
 | `oc_tombs_v1` | Suppressions (tombstones, 500 max) — font voyager les suppressions entre MES appareils | JSON : tableau `{id, t}` |
@@ -101,9 +101,10 @@ irrécupérable — c'est le contrat du local-first.
   plus le profil, plus les champs **optionnels** `orphans` (contacts « à
   rattacher »), `tombs` (suppressions) et `groupe` (mes camarades, §1) s'il y
   en a. Un lecteur qui les ignore charge quand même le reste sans erreur.
-- **Pas d'enveloppe « profil seul »**, et plus de profil accroché aux
-  pistes : les deux ont existé une journée. Ce qui circule reste ce qui
-  circulait — des pistes, et un prénom sur celles qu'on recommande.
+- **Pas de profil accroché aux pistes**, ni dans `share` ni dans un champ
+  `card` : ils ont existé une journée. Un partage de pistes reste des
+  pistes, et un prénom sur celles qu'on recommande. Le profil qu'on DONNE
+  à un ami a son propre format, à part et volontaire : **OCA1** (plus bas).
 - Tolérance à la lecture : un simple tableau JSON de pistes est aussi accepté.
 
 ### Compact — OCQ1 (échange par QR)
@@ -117,6 +118,38 @@ compressée par l'API native
 `CompressionStream` puis encodée base64url. Lu par `parseInput` comme les
 autres formats. Si l'API manque (très vieux navigateur), l'émetteur replie
 vers le fichier `.oc` — le format ne change pas.
+
+### Profil donné à un ami — OCA1 (QR ou texte, docs/reseau.md lot 2)
+
+```
+OCA1.<profil donné compressé deflate-raw, en base64url>
+```
+
+L'objet compressé, et RIEN d'autre :
+
+```json
+{ "v": 1, "kind": "ami", "id": "<22+ car. base64url>", "nom": "Karim Benali",
+  "parcours": [ { "entreprise": "Aztek", "quoi": "alternance", "debut": "2025-09", "fin": "", "siren": "123456789" } ] }
+```
+
+- `id` : 128 bits tirés au hasard UNE fois (`amiId` du profil, §1), au
+  premier « Mon QR ». Il ne dit rien de la personne ; il sert à reconnaître
+  son profil quand elle le redonne à jour (la ligne est remplacée, jamais
+  doublée).
+- `nom` : 80 car. au plus. `parcours` : 20 expériences au plus, celles du
+  profil ET celles déduites des « J'y suis passé » (`parcoursDe`) ;
+  `quoi` ∈ {`stage`, `alternance`, `emploi`}, `debut`/`fin` en `AAAA-MM`
+  ou vides, `siren` (9 chiffres) seulement si la piste d'origine en a un.
+- **Jamais** : adresse, téléphone, formation, école, ville, pistes,
+  contacts, suivi, l'identifiant d'une piste — ni le profil d'un AMI. Un
+  profil ne se repartage pas (`profilDonne`, `e2e-amis.mjs` ①).
+- Lecture BORNÉE (`gonflerBorne`), 20 000 caractères au plus, `kind`
+  obligatoirement `ami`, puis remise aux invariants (`normalizeAmi`) — ce
+  qui ne passe pas est refusé, jamais deviné. `parseInput` ne le lit PAS :
+  un profil ne se fusionne pas dans le suivi, il passe par son propre
+  aperçu. Dans un texte collé, seul le jeton `OCA1.…` compte
+  (`extraireOCA`) : la phrase qui l'accompagne (« colle ce message dans… »)
+  et un retour à la ligne glissé par une messagerie ne le cassent pas.
 
 ### Rendez-vous — OCR1 (QR appairé, P2P)
 

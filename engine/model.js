@@ -7,8 +7,9 @@
    ============================================================ */
 import { uid, extractCity, todayISO, fmtDate } from './utils.js';
 import { normalizeParcours, parcoursDe, phraseParcours } from './parcours.js';
+import { normalizeAmis, idAmiValide } from './amis.js';
 
-export const APP_VERSION = '6.53.0';
+export const APP_VERSION = '6.54.0';
 
 export const DOMAINS = {
   esn:     { label:'ESN / Services IT',       color:'#4C9FD8' },
@@ -477,7 +478,7 @@ export function defaultProfile(){
   return { name:'', formation:'', ecole:'', recherche:'', debut:'', fin:'', rythme:'', ville:'', rayon:15,
            phone:'', email:'', cvUrl:'', portfolio:'', letter:'',
            templates: defaultTemplates(), prompts: defaultPrompts(),
-           parcours: [], ecartees: [], confirmedIds: [], flags: {}, updatedAt: 0 };
+           parcours: [], amis: [], ecartees: [], confirmedIds: [], flags: {}, updatedAt: 0 };
 }
 /* remet un profil (chargé, importé ou restauré) aux invariants attendus */
 export function normalizeProfile(raw){
@@ -504,6 +505,14 @@ export function normalizeProfile(raw){
     text: String((p && p.text) || '').slice(0, PROMPT_MAX_LEN)
   }));
   profile.parcours = normalizeParcours(profile.parcours);
+  /* LES AMIS (docs/reseau.md, lot 2) : les profils que d'autres t'ont
+     donnés, et l'identifiant sous lequel les tiens te connaissent. Ils
+     vivent ici pour voyager comme le reste du profil — sync de TES
+     appareils, ta copie — et jamais ailleurs. L'identifiant n'est tiré
+     qu'au premier « Mon QR » (côté écran) : un profil qui n'a jamais
+     été donné n'en a pas. */
+  profile.amis = normalizeAmis(profile.amis);
+  if (!idAmiValide(profile.amiId)) delete profile.amiId;
   /* « PAS POUR MOI » (docs/recherche-profil.md) : les entreprises de
      « À découvrir » qu'on a écartées — un SIREN, le nom pour pouvoir les
      rendre, la date. Les plus anciennes partent au-delà de 300. */

@@ -8,9 +8,10 @@
    ============================================================ */
 import { esc } from '../engine/utils.js';
 import { ORDINATEUR } from './perimetre.js';
-import { parseInput, makeOCQJoiner, rdvParse, rdvNorm } from '../engine/exchange.js';
+import { parseInput, makeOCQJoiner, rdvParse, rdvNorm, decodeOCA, extraireOCA } from '../engine/exchange.js';
 import { mergeIncoming } from '../engine/merge.js';
 import { normalizeCompany } from '../engine/model.js';
+import { normalizeAmi } from '../engine/amis.js';
 import { S, bus, saveData, logJ } from './state.js';
 import { openSheet, toast, btn, ic, showUndo, annoncer } from './dom.js';
 import { openRoom, leaveRoom, watchLiaison, deviceSelf, ensureKeys, ouvrirPortage } from './synclive.js';
@@ -43,7 +44,11 @@ const ERRS = {
 };
 export const messageLecture = code => ERRS[code] || 'Impossible de lire ce contenu.';
 
-export function openRecevoir(){
+/* `o.scanner` : ouvrir directement sur la caméra — c'est la porte de
+   « Amis » (Scanner). Le scanner est le MÊME : il reconnaît tout seul un
+   QR de pistes, un rendez-vous ou un profil. `o.apres` : ce que l'écran
+   d'en dessous doit redessiner quand un ami arrive. */
+export function openRecevoir(o = {}){
   let stopScan = null;
   let room = null;         /* salle de rendez-vous (QR OCR1 / code tapé) */
   let rdvWatch = null;     /* honnêteté de la liaison du rendez-vous */
@@ -108,23 +113,35 @@ export function openRecevoir(){
       `<div class="scan-box"><video id="rcVideo" playsinline muted></video><div class="scan-mark"></div></div>
        <div class="scan-prog" id="rcProg" hidden></div>
        <p class="hint" style="text-align:center" id="rcScanHint">Vise le QR.</p>
-       <div class="field" style="margin-top:10px"><label for="rcCode">Ou le code affiché</label>
+       ${/* Le code de rendez-vous n'existe que pour des PISTES : un QR de
+            profil n'en affiche aucun. Ouvert depuis « Amis », le champ
+            ne proposerait que de taper quelque chose qui n'est nulle
+            part — le chemin sans caméra y est le texte copié. */
+         o.scanner ? '' : `<div class="field" style="margin-top:10px"><label for="rcCode">Ou le code affiché</label>
          <div class="date-row">
            <input id="rcCode" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="ex : k7m3p-9xq2f">
            <button class="btn btn-primary" id="rcCodeGo" hidden>OK</button>
-         </div></div>`;
-    sh.setFoot([btn('← Retour', 'btn-ghost', menu)]);
+         </div></div>`}`;
+    /* ouvert depuis « Amis », le scanner EST la feuille : sa croix
+       suffit, un « Retour » dirait deux fois la même chose. Reste le
+       chemin à distance — le profil copié par l'ami, collé ici. */
+    if (o.scanner){
+      const t = btn('Texte', '', paste, 'clipboard');
+      t.id = 'rcTexte';
+      sh.setFoot([t]);
+    } else sh.setFoot([btn('← Retour', 'btn-ghost', menu)]);
     const codeInp = q('#rcCode');
     const codeGo = q('#rcCodeGo');
     const goCode = () => { const c = rdvNorm(codeInp.value); if (c) joinRdv(c); };
-    codeInp.addEventListener('input', () => { codeGo.hidden = !rdvNorm(codeInp.value); });
-    codeInp.addEventListener('keydown', e => { if (e.key === 'Enter') goCode(); });
-    codeGo.addEventListener('click', goCode);
+    codeInp?.addEventListener('input', () => { codeGo.hidden = !rdvNorm(codeInp.value); });
+    codeInp?.addEventListener('keydown', e => { if (e.key === 'Enter') goCode(); });
+    codeGo?.addEventListener('click', goCode);
     const joiner = makeOCQJoiner();
     try {
       stopScan = await startScan(q('#rcVideo'), raw => {
         const code = rdvParse(raw);
         if (code){ joinRdv(code); return false; }
+        if (extraireOCA(raw)){ halt(); treat(raw); return false; }
         const part = joiner(raw);
         if (!part){ halt(); treat(raw); return false; }
         if (part.done){ halt(); treat(part.text); return false; }
@@ -141,9 +158,10 @@ export function openRecevoir(){
          n'existe pas — ou ne jamais savoir qu'il existe. Le champ du
          code est juste dessous : c'est lui, le chemin sans caméra. */
       const h = q('#rcScanHint');
+      const sans = o.scanner ? 'colle le profil qu’il t’a copié (Texte).' : 'tape le code affiché sur l’autre téléphone.';
       if (h) h.textContent = e.message === 'camera-refusee'
-        ? 'La caméra est bloquée. Autorise-la dans les réglages du navigateur, ou tape le code affiché sur l’autre téléphone.'
-        : 'Pas de caméra ici. Tape le code affiché sur l’autre téléphone.';
+        ? 'La caméra est bloquée. Autorise-la dans les réglages du navigateur, ou ' + sans
+        : 'Pas de caméra ici. ' + sans.charAt(0).toUpperCase() + sans.slice(1);
     }
   };
 
@@ -301,7 +319,7 @@ export function openRecevoir(){
     sh.body.innerHTML =
       `<div class="field"><label for="rcTxt">Le texte reçu</label>
          <textarea id="rcTxt" style="min-height:140px" placeholder="Colle ici le contenu partagé"></textarea></div>`;
-    sh.setFoot([btn('← Retour', 'btn-ghost', menu), btn('Lire', 'btn-primary', () => treat(q('#rcTxt').value))]);
+    sh.setFoot([btn('← Retour', 'btn-ghost', o.scanner ? scan : menu), btn('Lire', 'btn-primary', () => treat(q('#rcTxt').value))]);
     q('#rcTxt').focus();
   };
 
@@ -332,6 +350,18 @@ export function openRecevoir(){
   /* ---- lecture + aperçu ---- */
   const treat = async (raw, pass, extra) => {
     halt();
+    /* UN PROFIL, PAS DES PISTES : il ne se fusionne pas dans le suivi,
+       il s'ajoute aux amis — après son propre aperçu (ui/amis.js) */
+    const oca = extraireOCA(raw);
+    if (oca){
+      let ami;
+      try {
+        ami = normalizeAmi(await decodeOCA(oca));
+        if (!ami) throw new Error('format');
+      } catch (e) { toast(messageLecture(e.message)); return; }
+      (await import('./amis.js')).apercuAmi(sh, ami, { onBack: o.scanner ? scan : menu, apres: o.apres });
+      return;
+    }
     let obj;
     try {
       obj = await parseInput(raw, pass);
@@ -344,7 +374,8 @@ export function openRecevoir(){
     mergePreviewInto(sh, obj, Object.assign({ onBack: menu }, extra || {}));
   };
 
-  menu();
+  if (o.scanner) scan();
+  else menu();
 }
 
 /* ---- depuis mes e-mails : une source de la capture (#5) ----

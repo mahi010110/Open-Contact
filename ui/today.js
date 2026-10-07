@@ -6,7 +6,9 @@
    jamais culpabilisant. Jamais 40 lignes d'un coup.
    ============================================================ */
 import { esc, todayISO } from '../engine/utils.js';
-import { DOMAINS, STATUSES, VECU, prendCeQueJeCherche, PREND_MOT } from '../engine/model.js';
+import { DOMAINS, STATUSES, prendCeQueJeCherche, PREND_MOT } from '../engine/model.js';
+import { porteurs } from '../engine/requete.js';
+import { portesDuJour } from './amis.js';
 import { scoreOf } from '../engine/score.js';
 import { dueFollowups, silentPistes, aDemarrer } from '../engine/assist.js';
 import { S, bus, isClosed, markDone, hasDemo, addDemo, removeDemo } from './state.js';
@@ -122,7 +124,11 @@ const joignable = c => (c.contacts || []).some(t => t.email);
    contre ~3 % à froid — un facteur treize que rien d'autre sur cette
    ligne n'approche. Le prénom suffit : c'est lui qui rend la chose
    jouable (« quelqu'un y a fait son stage » ne se joue pas). */
-const porteePar = c => (c.vecu && c.vecuQui) ? c.vecuQui : null;
+/* Et depuis le lot 2 du réseau : un AMI dont le parcours nomme la piste
+   (« Karim y est en alternance ») compte au même titre — c'est la même
+   raison, dite par lui-même. Calculé une fois par rendu. */
+let portesRendu = null;
+const porteePar = c => porteurs(c, portesRendu)[0] || null;
 /* Le deuxième critère : la piste PREND-ELLE ce que tu cherches ? Un
    alternant à qui l'on propose d'abord trois entreprises qui ne prennent
    que des stagiaires perd trois candidatures avant la première utile.
@@ -160,7 +166,7 @@ function startRowHTML(c){
      sinon « prend des alternants » — le critère qui l'a fait monter. */
   const prend = !porte && prendCeQueJeCherche(c, S.profile.recherche) === true;
   const pourquoi = porte
-    ? `<span class="act-vecu">${esc(porte + ' ' + VECU[c.vecu].court)}</span>`
+    ? `<span class="act-vecu">${esc(porte.prenom + ' ' + porte.court)}</span>`
     : prend ? `<span class="act-vecu">${esc(PREND_MOT[S.profile.recherche])}</span>` : '';
   return (
     `<div class="act-row act-start" data-id="${c.id}">
@@ -298,6 +304,7 @@ function openTriage(items){
 }
 
 export function renderToday(){
+  portesRendu = portesDuJour();
   const root = $('#view-aujourdhui');
   const today = todayISO();
   const alive = S.companies.filter(c => !isClosed(c));

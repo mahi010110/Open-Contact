@@ -17,7 +17,8 @@ import { APP_VERSION, VECU, normalizeCompany, normalizeContact, normalizeProfile
          PROMPTS_MAX, PROMPT_MAX_LEN } from './engine/model.js';
 import { communityView, parseInput, sharePayload, fullPayload,
          encodeOCQ, splitOCQ, makeOCQJoiner, OCQP_CHUNK,
-         makeRdvCode, rdvNorm, rdvWrap, rdvParse, linkWrap, linkParse } from './engine/exchange.js';
+         makeRdvCode, rdvNorm, rdvWrap, rdvParse, linkWrap, linkParse,
+         encodeOCA, decodeOCA, estOCA } from './engine/exchange.js';
 import { findMatch, mergeIncoming, contactKey } from './engine/merge.js';
 import { syncMerge, mergeTombs, TOMBS_MAX } from './engine/sync.js';
 import { filterCompanies, filterOrphans, searchHint, NATURAL_DIR } from './engine/filter.js';
@@ -48,8 +49,10 @@ import { dueFollowups, contactFromSignature, exchangeLog, exchangeTotals, nextAc
          sansFilet, FILET_MIN_PISTES, FILET_JOURS, aDemarrer } from './engine/assist.js';
 import { rappelICS, lienAgendaGoogle, formeAgenda, RAPPEL_HEURE } from './engine/agenda.js';
 import { normalizeParcours, parcoursDe, periodeParcours, phraseParcours, PARCOURS_MAX } from './engine/parcours.js';
+import { nouvelIdAmi, idAmiValide, cleEntreprise, memeEntreprise, profilDonne, normalizeAmi, normalizeAmis,
+         statutAmi, ajouterAmi, retirerAmi, prenomAmi, enCours, direExperience, portesAmis, AMIS_MAX } from './engine/amis.js';
 import { interpreter, retirer, remplacer, chercherPistes, raisonDe, propositions, elargir,
-         contexteRecherche, deptDuCp, villeFrequente, deptDePiste, zoneDe, metierDuMoment,
+         contexteRecherche, porteurs, deptDuCp, villeFrequente, deptDePiste, zoneDe, metierDuMoment,
          fraicheur, METIER, metierDuProfil, villeConnue, lieuDuProfil, metierEtiquetteDuProfil, rayonDe,
          correction, fautes, fautesPermises } from './engine/requete.js';
 import { questionsAnnuaire, lireAnnuaire, decouvertes, versPiste, motsInterdits, casse, offresAlternance, LBA, LOIN_KM,
@@ -1941,6 +1944,163 @@ export async function runSelfTests(){
       const retouche = { ...ancien, body: ancien.body + ' ' };
       eq(majModelesDefaut([retouche])[0].body, retouche.body);
       eq(normalizeProfile({}).parcours, []);
+    },
+    /* ---------- les amis (docs/reseau.md, lot 2) ---------- */
+    'amis : le nom d’une entreprise se reconnaît sous sa forme juridique, jamais par ressemblance': () => {
+      eq(cleEntreprise('Aztek'), 'aztek');
+      eq(cleEntreprise('AZTEK SAS'), 'aztek');
+      eq(cleEntreprise('Aztek S.A.S.'), 'aztek');
+      eq(cleEntreprise('Groupe SEB'), 'seb');
+      eq(cleEntreprise('Air France'), 'airfrance');          /* « France » peut être le nom : il reste */
+      eq(cleEntreprise('SAS'), 'sas');                       /* un nom fait QUE d'une forme garde ses mots */
+      ok(memeEntreprise({ name: 'Aztek' }, { entreprise: 'AZTEK SAS' }));
+      ok(!memeEntreprise({ name: 'Aztek' }, { entreprise: 'Aztec' }));       /* une lettre : pas la même */
+      ok(!memeEntreprise({ name: 'Orange' }, { entreprise: 'Orange Bank' }));
+      /* deux SIREN connus décident seuls — même sous deux noms, ou contre un nom identique */
+      ok(memeEntreprise({ name: 'Sopra Steria Group', siren: '326820065' }, { entreprise: 'Sopra', siren: '326820065' }));
+      ok(!memeEntreprise({ name: 'Aztek', siren: '111111111' }, { entreprise: 'Aztek', siren: '222222222' }));
+      ok(!memeEntreprise({ name: '' }, { entreprise: '' }));
+    },
+    'amis : le profil donné ne porte que l’identifiant, le nom et le parcours': () => {
+      const pistes = [
+        normalizeCompany({ id: 'p1', name: 'Advens', vecu: 'alternance', siren: '123456789', notes: 'privé',
+          status: 'reply', contacts: [{ name: 'Julie', email: 'julie@advens.test' }] }),
+        normalizeCompany({ id: 'p2', name: 'Wavestone', vecu: 'stage', vecuQui: 'Léa' })
+      ];
+      const p = normalizeProfile({ name: 'Inès  Martin', email: 'ines@x.test', phone: '0600000000', formation: 'BTS SIO',
+        ecole: 'Lycée X', ville: 'Lille', amiId: nouvelIdAmi(),
+        parcours: [{ entreprise: 'Quick', quoi: 'emploi', debut: '2024-06', fin: '2024-08' }],
+        amis: [{ id: nouvelIdAmi(), nom: 'Karim Benali', parcours: [{ entreprise: 'Aztek', quoi: 'alternance' }] }] });
+      const d = profilDonne(p, pistes);
+      eq(Object.keys(d).sort(), ['id', 'kind', 'nom', 'parcours', 'v']);
+      eq(d.nom, 'Inès Martin');
+      eq(d.parcours.map(e => e.entreprise), ['Quick', 'Advens']);   /* pas Léa : son parcours, pas le mien */
+      eq(d.parcours[1], { entreprise: 'Advens', quoi: 'alternance', debut: '', fin: '', siren: '123456789' });
+      const txt = JSON.stringify(d);
+      /* rien du suivi, rien de joignable, et JAMAIS le profil d'un ami (il ne se repartage pas) */
+      for (const x of ['ines@x.test', '0600000000', 'BTS SIO', 'Lycée', 'Lille', 'privé', 'julie', 'reply', 'p1', 'Karim', 'Aztek', 'Wavestone'])
+        ok(!txt.includes(x));
+    },
+    'amis : ce qui arrive se remet aux invariants, ou se refuse': () => {
+      const id = nouvelIdAmi();
+      ok(idAmiValide(id)); ok(id.length >= 22);
+      ok(nouvelIdAmi() !== nouvelIdAmi());
+      eq(normalizeAmi({ id: 'court', nom: 'X' }), null);
+      eq(normalizeAmi({ id, nom: '   ' }), null);
+      eq(normalizeAmi(null), null);
+      const a = normalizeAmi({ id, nom: ' Karim   Benali ', email: 'k@x.test', notes: 'n',
+        parcours: [{ entreprise: 'Aztek', quoi: 'alternance', debut: '2025-09', siren: '12', pisteId: 'p9' },
+                   { entreprise: 'X', quoi: 'cdi' }, { entreprise: '', quoi: 'stage' }, 'texte',
+                   { entreprise: 'Quick', quoi: 'emploi', debut: '2024-06', fin: '2024-01' }] });
+      eq(a, { id, nom: 'Karim Benali', parcours: [
+        { entreprise: 'Aztek', quoi: 'alternance', debut: '2025-09', fin: '' },
+        { entreprise: 'Quick', quoi: 'emploi', debut: '2024-06', fin: '' }] });
+      /* une liste : un ami par identifiant (le plus récent), plafonnée */
+      const l = normalizeAmis([{ id, nom: 'Vieux', recu: 1 }, { id, nom: 'Neuf', recu: 2 }, { id: 'x', nom: 'Y' }]);
+      eq(l.map(x => x.nom), ['Neuf']);
+      eq(normalizeAmis(Array.from({ length: AMIS_MAX + 5 }, () => ({ id: nouvelIdAmi(), nom: 'A' }))).length, AMIS_MAX);
+      eq(normalizeAmis('x'), []);
+      eq(normalizeProfile({}).amis, []);
+      eq(normalizeProfile({ amiId: 'pas bon' }).amiId, undefined);
+    },
+    'amis : ajouter, mettre à jour, retirer — et jamais soi-même': () => {
+      const moi = nouvelIdAmi(), k = nouvelIdAmi();
+      const karim = { id: k, nom: 'Karim', parcours: [{ entreprise: 'Aztek', quoi: 'alternance', debut: '', fin: '' }] };
+      eq(statutAmi([], karim, moi), 'nouveau');
+      eq(statutAmi([], { ...karim, id: moi }, moi), 'moi');
+      eq(statutAmi([], null, moi), 'invalide');
+      let amis = ajouterAmi([], karim, 10);
+      eq(amis.length, 1); eq(amis[0].recu, 10);
+      eq(statutAmi(amis, normalizeAmi(karim), moi), 'identique');
+      const maj = { ...karim, parcours: [...karim.parcours, { entreprise: 'Quick', quoi: 'emploi', debut: '', fin: '' }] };
+      eq(statutAmi(amis, normalizeAmi(maj), moi), 'maj');
+      amis = ajouterAmi(amis, maj, 20);
+      eq(amis.length, 1); eq(amis[0].parcours.length, 2);            /* remplacé, jamais doublé */
+      eq(retirerAmi(amis, k), []);
+      eq(prenomAmi({ nom: 'Karim Benali' }), 'Karim');
+    },
+    'amis : en cours ou passé, et la phrase qui va avec': () => {
+      const t = '2026-10-07';
+      ok(enCours({ debut: '2025-09' }, t));
+      ok(enCours({ debut: '2025-09', fin: '2027-06' }, t));            /* finit plus tard : il y est encore */
+      ok(enCours({ debut: '2025-09', fin: '2026-10' }, t));
+      ok(!enCours({ debut: '2025-09', fin: '2026-09' }, t));
+      ok(!enCours({ debut: '', fin: '' }, t));                          /* sans dates on ne sait pas : passé */
+      eq(direExperience({ quoi: 'alternance', debut: '2025-09' }, t).court, 'y est en alternance');
+      eq(direExperience({ quoi: 'alternance', debut: '2025-09' }, t).tu, 'y es en alternance');
+      eq(direExperience({ quoi: 'alternance' }, t).court, 'y a été en alternance');
+      eq(direExperience({ quoi: 'stage' }, t).court, VECU.stage.court);  /* la même phrase que « J'y suis passé » */
+      eq(direExperience({ quoi: 'stage' }, t).tu, VECU.stage.tu);
+      eq(direExperience({ quoi: 'alternance' }, t).poids, VECU.alternance.poids);
+      eq(direExperience({ quoi: 'emploi', debut: '2026-01' }, t).court, 'y travaille');
+      eq(direExperience({ quoi: 'emploi', debut: '2020-01', fin: '2021-01' }, t).court, 'y a travaillé');
+      eq(direExperience({ quoi: 'cdi' }, t), null);
+      /* quelqu'un qui y est MAINTENANT passe devant toute déclaration passée */
+      ok(direExperience({ quoi: 'stage', debut: '2026-09' }, t).poids > VECU.alternance.poids);
+    },
+    'amis : qui, parmi tes amis, est passé par chaque piste — le plus fort d’abord': () => {
+      const t = '2026-10-07';
+      const pistes = [normalizeCompany({ id: 'az', name: 'AZTEK SAS' }),
+                      normalizeCompany({ id: 'so', name: 'Sopra Steria Group', siren: '326820065' }),
+                      normalizeCompany({ id: 'or', name: 'Orange' })];
+      const amis = normalizeAmis([
+        { id: nouvelIdAmi(), nom: 'Karim Benali', parcours: [
+          { entreprise: 'Aztek', quoi: 'stage', debut: '2024-04', fin: '2024-06' },
+          { entreprise: 'Aztek', quoi: 'alternance', debut: '2025-09' }] },
+        { id: nouvelIdAmi(), nom: 'Awa Diallo', parcours: [{ entreprise: 'Aztek', quoi: 'stage' },
+          { entreprise: 'Sopra', quoi: 'emploi', siren: '326820065' }] }]);
+      const m = portesAmis(pistes, amis, t);
+      eq(m.get('az').map(x => x.prenom + ' ' + x.court), ['Karim y est en alternance', 'Awa y a fait son stage']);
+      eq(m.get('so').map(x => x.prenom + ' ' + x.court), ['Awa y a travaillé']);
+      ok(!m.has('or'));
+      eq(portesAmis(pistes, [], t).size, 0);
+      /* la barre et la fiche les lisent à côté de « J'y suis passé », une personne une fois */
+      const az = normalizeCompany({ id: 'az', name: 'AZTEK SAS', vecu: 'stage', vecuQui: 'Awa' });
+      eq(porteurs(az, m).map(x => x.prenom), ['Karim', 'Awa']);
+      const wa = normalizeCompany({ id: 'wa', name: 'Wavestone', vecu: 'stage', vecuQui: 'Léa' });
+      eq(porteurs(wa, m).map(x => x.prenom + ' ' + x.court), ['Léa y a fait son stage']);
+      eq(porteurs(normalizeCompany({ id: 'or', name: 'Orange' }), m), []);
+    },
+    'amis : la barre comprend leurs prénoms et dit la raison': () => {
+      const t = '2026-10-07';
+      const pistes = [normalizeCompany({ id: 'az', name: 'Aztek', city: 'Roubaix' }),
+                      normalizeCompany({ id: 'qu', name: 'Quick', city: 'Lille' })];
+      const amis = normalizeAmis([{ id: nouvelIdAmi(), nom: 'Karim Benali',
+        parcours: [{ entreprise: 'AZTEK', quoi: 'alternance', debut: '2025-09' }] },
+        { id: nouvelIdAmi(), nom: 'Zoé Muette', parcours: [{ entreprise: 'Ailleurs', quoi: 'stage' }] }]);
+      const ctx = contexteRecherche(pistes, t, portesAmis(pistes, amis, t));
+      ok(ctx.prenoms.includes('Karim'));
+      ok(!ctx.prenoms.includes('Zoé'));                  /* elle ne porte aucune piste : pas d'étiquette vide */
+      const r = chercherPistes(pistes, { q: 'Karim', ctx });
+      eq(r.liste.map(c => c.id), ['az']);
+      eq(raisonDe(r.liste[0], r.interp, ctx).accent, 'Karim y est en alternance');
+      const rec = chercherPistes(pistes, { q: 'recommandées', ctx });
+      eq(rec.liste.map(c => c.id), ['az']);
+      /* sans amis, rien ne change */
+      eq(contexteRecherche(pistes, t).prenoms, []);
+    },
+    'OCA1 : le profil donné fait l’aller-retour, et rien d’autre ne se lit comme lui': async () => {
+      const d = profilDonne(normalizeProfile({ name: 'Inès Martin', amiId: nouvelIdAmi(),
+        parcours: [{ entreprise: 'Quick', quoi: 'emploi', debut: '2024-06', fin: '2024-08' }] }), []);
+      const txt = await encodeOCA(d);
+      ok(txt.startsWith('OCA1.')); ok(estOCA(txt)); ok(estOCA(' ' + txt.slice(0, 20) + '\n' + txt.slice(20)));
+      ok(txt.length < 400);                                       /* un QR net, sans animation */
+      eq(normalizeAmi(await decodeOCA(txt)), normalizeAmi(d));
+      ok(!estOCA('OCQ1.abc')); ok(!estOCA('OCR1.abc'));
+      for (const mauvais of ['OCA1.%%%', 'OCA1.', 'OCA1.' + 'A'.repeat(30000)]){
+        let code = '';
+        try { await decodeOCA(mauvais); } catch (e) { code = e.message; }
+        ok(code === 'format' || code === 'troplourd');
+      }
+      /* un partage de pistes déguisé n'est pas un profil */
+      const piege = await encodeOCA({ kind: 'share', companies: [] });
+      let code = '';
+      try { await decodeOCA(piege); } catch (e) { code = e.message; }
+      eq(code, 'format');
+      /* et un profil n'est pas un partage de pistes : la fusion ne le lit pas */
+      code = '';
+      try { await parseInput(txt); } catch (e) { code = e.message; }
+      eq(code, 'format');
     },
     'premier mail : un manque qui rendrait le mail FAUX devient un crochet, jamais un trou muet': () => {
       /* Le défaut joué le 30 septembre 2026 : profil vide, le premier mail

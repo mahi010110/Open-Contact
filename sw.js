@@ -4,15 +4,15 @@
    arrière-plan — la version suivante s'applique à l'ouverture d'après.
    Jamais mis en cache : le géocodage (données fraîches) et les tuiles de
    carte (volume) — la carte demande donc du réseau, tout le reste non. */
-const CACHE = 'oc-v243';
+const CACHE = 'oc-v244';
 const PRECACHE = ['./', './index.html', './app.js', './theme.js', './tests.js', './tests-c8.js', './tests-mcp.js',
   './engine/crypto.js', './engine/exchange.js', './engine/filter.js',
   './engine/geo.js', './engine/merge.js', './engine/model.js',
   './engine/score.js', './engine/storage.js', './engine/sync.js', './engine/utils.js',
-  './engine/vault.js', './engine/ring.js', './engine/campaign.js', './engine/mailer.js', './engine/assist.js', './engine/ai.js', './engine/mission.js', './engine/ordinateur.js', './engine/mcp.js', './engine/distribution.js', './engine/transport.js', './engine/portage.js', './engine/diagnostic.js', './engine/agenda.js', './engine/requete.js', './engine/lieux.js', './engine/annuaire.js', './engine/carte.js', './engine/marche.js', './engine/parcours.js',
+  './engine/vault.js', './engine/ring.js', './engine/campaign.js', './engine/mailer.js', './engine/assist.js', './engine/ai.js', './engine/mission.js', './engine/ordinateur.js', './engine/mcp.js', './engine/distribution.js', './engine/transport.js', './engine/portage.js', './engine/diagnostic.js', './engine/agenda.js', './engine/requete.js', './engine/lieux.js', './engine/annuaire.js', './engine/carte.js', './engine/marche.js', './engine/parcours.js', './engine/amis.js',
   './ui/dom.js', './ui/dates.js', './ui/state.js', './ui/actions.js', './ui/sort.js', './ui/verrou.js',
   './ui/mail.js', './ui/capture.js', './ui/fiche.js', './ui/today.js',
-  './ui/pistes.js', './ui/decouvrir.js', './ui/carte.js', './ui/fiche-annuaire.js', './ui/nom-annuaire.js', './ui/moi.js', './ui/installer.js', './ui/fichier.js', './ui/perimetre.js', './ui/echanger.js', './ui/direct.js', './ui/synclive.js',
+  './ui/pistes.js', './ui/decouvrir.js', './ui/carte.js', './ui/fiche-annuaire.js', './ui/nom-annuaire.js', './ui/amis.js', './ui/moi.js', './ui/installer.js', './ui/fichier.js', './ui/perimetre.js', './ui/echanger.js', './ui/direct.js', './ui/synclive.js',
   './ui/contact.js', './ui/edit.js', './ui/docs.js', './ui/tplfield.js', './ui/prospect.js', './ui/analyse.js', './ui/propositions.js',
   './ui/diagnostic.js', './ui/qr.js', './ui/qui.js', './ui/affiner.js', './ui/donner.js', './ui/recevoir.js', './ui/profil.js', './ui/connexions.js', './ui/campagnes.js', './ui/ordinateur.js', './oauth.html',
   /* les pages qui se LISENT : elles doivent répondre hors ligne comme
