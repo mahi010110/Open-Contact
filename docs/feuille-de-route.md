@@ -299,7 +299,9 @@ entreprise parmi ses amis, ses groupes et leurs amis, trois cercles au plus.
    prises (7 octobre 2026) : le mot est « ami », un groupe est un code
    qu'on garde.
 2. Les amis : se donner son profil, chercher tout de suite dans leur
-   parcours.
+   parcours. **Livré le 7 octobre 2026 (6.54.0)** : une porte « Amis »
+   dans « Échanger » (Mon QR · Scanner), et « Karim y est en alternance »
+   sur la fiche, dans la barre et dans « Aujourd'hui ».
 3. La demande à ses amis et à ses groupes, les deux oui, le contact dans la
    piste.
 4. Les amis de ses amis, jusqu'au troisième cercle.

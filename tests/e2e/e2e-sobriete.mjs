@@ -107,7 +107,12 @@ const PLAFOND = {
      s'affiche au pied du même écran ; « Prompt copié — colle-le dans ton
      assistant » remplacé par le bouton lui-même, qui devient « Consigne
      copiée » là où l'on vient de toucher. */
-  toasts: 112,
+  /* 113 le 7 octobre 2026, +1 (docs/reseau.md, lot 2) : « Copie
+     impossible ici — montre plutôt le QR. », l'échec de « Copier » dans
+     « Mon QR » — famille ①, rien ne s'est produit et le presse-papier
+     ne se voit pas. Sa réussite, elle, ne coûte AUCUN toast : le bouton
+     devient « Copié » là où l'on vient de toucher. */
+  toasts: 113,
   toastCar: 79,        /* le plus long : « Connexion interrompue — … » */
   /* portes bloquantes dans les écrans visibles.
      9 le 29 septembre 2026 : « Mon profil » prend le garde-fou de la
@@ -302,8 +307,17 @@ const PLAFOND = {
      346 le 7 octobre 2026, −3 (docs/minimalisme.md) : « Personne pour
      l'instant. » sous des contacts vides — « + Ajouter » le dit. Le
      plafond descend avec : le gain ne se reperd pas une phrase à la
-     fois. */
-  motsExplication: 346,
+     fois.
+
+     359 le 7 octobre 2026, +13 (docs/reseau.md, lot 2, les amis) :
+     l'état vide de « Amis » — « Tes pistes diront où tes amis sont
+     passés. » — parce qu'un état vide enseigne le produit (§6) et que
+     ce qu'il promet est ce qui se VERRA sur les pistes ; et « Ce
+     navigateur est trop ancien. » quand le QR ne peut pas se faire. Le
+     reste du lot ne coûte rien : « Déjà dans tes amis » et « C'est ton
+     profil » sont des ÉTATS, et le profil sans nom s'ouvre au lieu de
+     s'expliquer. */
+  motsExplication: 359,
   /* ZÉRO, et c'est le seul plafond qui puisse honnêtement valoir zéro :
      un style sans porteur n'a pas de contrepartie à peser — il ne rend
      service à personne, il ne fait qu'attendre d'être lu par erreur.
@@ -647,7 +661,12 @@ const MOTS = [
   ['une personne chez elle', 'contact', ['personne']],
   ["l'écran d'une piste",   'fiche',   ['détail', 'detail']],
   ['le fichier du suivi',   'copie',   ['sauvegarde', 'export', 'archive']],
-  ['les camarades',         'groupe',  ['promo', 'camarade', 'ami']],
+  ['les camarades',         'groupe',  ['promo', 'camarade']],
+  /* « ami » a changé de case le 7 octobre 2026 (docs/reseau.md, décision
+     5) : ce n'est plus un synonyme interdit de « groupe », c'est l'objet
+     d'à côté — une personne dont tu as le profil. Il a donc SES synonymes
+     interdits, qui obligeraient à apprendre deux mots pour une personne. */
+  ['une personne dont tu as le profil', 'ami', ['copain', 'pote', 'relation']],
   ['le produit',            '—',       ['CRM', 'lead']],
   /* §7, « des mots de tous les jours, jamais des images » : le
      mainteneur les a retirés de l'écran après les avoir lus sur son

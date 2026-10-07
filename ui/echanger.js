@@ -16,6 +16,7 @@ import { frDate, diffDays } from './dates.js';
 import { openDonner } from './donner.js';
 import { openRecevoir } from './recevoir.js';
 import { openPromo } from './direct.js';
+import { openAmis } from './amis.js';
 import { openFiche } from './fiche.js';
 
 /* Deux conceptions, pas une page élastique : au pouce, une colonne —
@@ -400,6 +401,7 @@ export function renderEchanger(){
      marche quand on n'a encore rien, et c'est justement par là qu'on
      commence quand un camarade nous partage sa liste. */
   const aDonner = S.companies.some(c => !isClosed(c) && !c.demo);
+  const nAmis = (S.profile.amis || []).length;
   const gestes =
     `<div class="hero2${aDonner ? '' : ' hero1'}">
        ${aDonner ? `<button class="btn btn-primary hero" id="ecGive">${ic('share', 'ic-14')}<span>Donner</span></button>` : ''}
@@ -415,6 +417,15 @@ export function renderEchanger(){
             porte devient un contrôle taillé à son mot : un chevron
             coincé dans un bouton de 170 px ne promet plus rien, il
             encombre. */''}
+       ${wide ? '' : ic('chevron-right', 'ic-14')}
+     </button>
+     ${/* LES AMIS : la même porte, juste dessous (docs/reseau.md, lot 2).
+          Le compte est un ÉTAT, pas une invitation — rien tant qu'il est
+          à zéro. Ce que les amis rapportent ne se lit pas ici : il se lit
+          sur les pistes, là où l'on travaille. */''}
+     <button class="pcard moi-door" id="ecAmis">
+       <span class="md-m"><b>${ic('users', 'ic-14')} Amis</b></span>
+       ${nAmis ? `<span class="rg-s">${nAmis}</span>` : ''}
        ${wide ? '' : ic('chevron-right', 'ic-14')}
      </button>`;
   /* Pas de rappel de confidentialité ICI. Il répétait, en pied d'écran
@@ -454,6 +465,7 @@ export function renderEchanger(){
   root.querySelector('#ecGive')?.addEventListener('click', openDonner);
   root.querySelector('#ecRecv').addEventListener('click', openRecevoir);
   root.querySelector('#ecPromo').addEventListener('click', openPromo);
+  root.querySelector('#ecAmis').addEventListener('click', openAmis);
   const fil = filVisible();
   /* CHANGER DE LIGNE NE RE-REND PAS L'ÉCRAN. La première version
      appelait `renderEchanger()` : le bouton qu'on venait de taper

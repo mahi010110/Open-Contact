@@ -11,6 +11,8 @@ import { esc, fmtDate, isLate, directionsUrl } from '../engine/utils.js';
 import { STATUSES, CLOSE_REASONS, DOMAINS, POSITIONS, VECU, pushHist, summarizeChanges,
          nextActionContact } from '../engine/model.js';
 import { scoreOf } from '../engine/score.js';
+import { porteurs } from '../engine/requete.js';
+import { portesDuJour } from './amis.js';
 import { S, bus, isClosed, saveData, reopenPiste, logJ, activateContact } from './state.js';
 import { openSheet, confirmSheet, toast, btn, ic, montrerChange, suivreLargeur } from './dom.js';
 import { frDate, relLabel } from './dates.js';
@@ -347,13 +349,17 @@ export function openFiche(c){
        d'aucun carnet — c'est ce qui le fait marcher aussi quand la
        piste arrive de seconde main, cas où un carnet serait de toute
        façon vide (il ne contient que les gens qu'on a déjà joints).
-       Sans prénom, c'est MA déclaration : rien à demander. */
-    const dedans = !v ? '' :
-      `${ic('user', 'ic-14')}
-       <b>${c.vecuQui ? esc(c.vecuQui) + ' ' + v.court : v.label}</b>`;
-    const vecuHTML = !v ? ''
-      : c.vecuQui ? `<button class="fi-vecu" id="fiVecu">${dedans}${ic('chevron-right', 'ic-14')}</button>`
-                  : `<div class="fi-vecu">${dedans}</div>`;
+       Sans prénom, c'est MA déclaration : rien à demander.
+       LES AMIS S'Y AJOUTENT (docs/reseau.md, lot 2) : « Karim y est en
+       alternance », lu dans le parcours qu'il t'a donné. Même bandeau,
+       même geste — on ne réapprend rien. Deux personnes au plus, la
+       plus forte d'abord : quelqu'un qui y est MAINTENANT. Au-delà, ce
+       n'est plus un atout qu'on lit, c'est une liste qu'on parcourt. */
+    const qui = porteurs(c, portesDuJour()).slice(0, 2);
+    const vecuHTML = qui.map((p, i) =>
+        `<button class="fi-vecu" id="fiVecu${i ? i + 1 : ''}" data-porteur="${i}">${ic('user', 'ic-14')}
+           <b>${esc(p.prenom + ' ' + p.court)}</b>${ic('chevron-right', 'ic-14')}</button>`).join('')
+      + (v && !c.vecuQui ? `<div class="fi-vecu">${ic('user', 'ic-14')}<b>${v.label}</b></div>` : '');
     /* ---- LA FICHE DIT ENFIN DE QUELLE PISTE ELLE PARLE ----
        Elle s'ouvrait sur « Toulouse · ESN » : une sous-ligne SANS son
        sujet. Le nom n'existait que dans le châssis, et mesuré, il y est
@@ -390,7 +396,8 @@ export function openFiche(c){
     /* branchements */
     const byCt = id => (c.contacts || []).find(t => t.id === id);
     sh.body.querySelector('#fiEdit').addEventListener('click', () => openEditPiste(c, render));
-    sh.body.querySelector('#fiVecu')?.addEventListener('click', () => openDemander(c, c.vecuQui, v));
+    sh.body.querySelectorAll('[data-porteur]').forEach(b =>
+      b.addEventListener('click', () => { const p = qui[+b.dataset.porteur]; openDemander(c, p.prenom, p); }));
     lierAnnuaireFiche(sh.body, c);
     /* « À savoir » garde son pli le temps de la session : un geste fait
        ailleurs sur la fiche (un contact ajouté) la redessine, et la carte

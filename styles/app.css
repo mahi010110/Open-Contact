@@ -2805,6 +2805,9 @@ button.ec-row:hover{background:var(--surface-field)}
   color:var(--accent);font-size:var(--text-13);
 }
 .fi-vecu b{font-weight:var(--weight-semibold)}
+/* deux personnes qui peuvent te porter (un ami, une déclaration) : deux
+   bandeaux, 8 px entre eux — le même geste, mais deux personnes */
+.fi-vecu + .fi-vecu{margin-top:-6px}
 #fiNotes{min-height:44px;overflow-y:hidden;resize:none;
   transition:height var(--dur-2) var(--ease-out)}
 /* un chiffre qui bouge deux fois par mois n'a pas à porter un cadre :
@@ -3159,6 +3162,26 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 /* un QR se scanne de loin et de travers : sur le poste de commandement,
    la fenêtre a la place, autant la donner au code */
 @media (min-width:901px){ .qr-wrap{max-width:420px} }
+/* « Mon QR » : ce que l'image contient, écrit dessous — le nom, puis
+   les entreprises. Rien de caché derrière un code (ui/amis.js). */
+.mq-donne{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;max-width:340px;margin:0 auto}
+.mq-donne b{font-size:var(--text-16);font-weight:var(--weight-bold);overflow-wrap:anywhere}
+.mq-donne span{font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted);overflow-wrap:anywhere}
+/* le parcours d'un ami : une entreprise qui est déjà dans tes pistes le
+   dit en accent — c'est ce que l'ami te rapporte, un atout et non une
+   urgence (jamais `mark-*`) */
+.am-par .pick .pk-m .am-tienne{color:var(--accent);font-weight:var(--weight-semibold)}
+.am-par .pick.am-ro{cursor:default}
+.am-par .pick.am-ro:active{transform:none;box-shadow:none;background:none}
+.am-par .pick.am-ro>.btn{flex:none;margin-left:auto}
+/* LE NOM NE SE COUPE PAS, LE BOUTON PASSE DESSOUS (WCAG 1.4.10, §5).
+   À 320 px texte doublé, « + Piste » laissait 4 rem au nom : « Société
+   Générale Global… » se faisait couper au troisième rang. Le plancher
+   est en rem, sur la colonne du texte — il suit la police tout seul :
+   à 100 % le bouton reste sur la ligne, plus grand il descend. */
+.am-par .pick.am-ro>.pk-m{min-width:9rem}
+/* un état d'un mot (« Déjà dans tes amis. ») : il se lit, il ne se tape pas */
+.am-etat{display:flex;align-items:center;gap:7px;margin:12px 0 0;color:var(--accent);font-size:var(--text-13);font-weight:var(--weight-semibold)}
 .scan-box{
   position:relative;background:#000;border:1px solid var(--border-strong);
   box-shadow:var(--shadow-raised);overflow:hidden;aspect-ratio:1/1;max-height:46dvh;margin-bottom:10px;

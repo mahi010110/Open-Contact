@@ -104,6 +104,40 @@ export async function gonflerBorne(bytes){
   catch (e) { throw new Error('format'); }
 }
 
+/* ---------- OCA1 : le profil qu'on donne à un ami (docs/reseau.md, lot 2) ----------
+   Le QR PORTE le profil dans l'image, comme OCQ1 porte des fiches : ni
+   relais, ni réseau, de la main à la main. Il ne contient que ce que
+   `profilDonne` (engine/amis.js) y met — un identifiant, le nom, le
+   parcours — et se lit en lecture BORNÉE (gonflerBorne). Préfixe à part :
+   ce n'est pas un partage de pistes, rien ne se fusionne dans le suivi.
+   Le même texte se copie et se colle dans « Recevoir → Texte ». */
+export async function encodeOCA(profil){
+  if (typeof CompressionStream === 'undefined') throw new Error('noqr');
+  const json = new TextEncoder().encode(JSON.stringify(profil));
+  const stream = new Blob([json]).stream().pipeThrough(new CompressionStream('deflate-raw'));
+  return 'OCA1.' + b64url(new Uint8Array(await new Response(stream).arrayBuffer()));
+}
+export const estOCA = raw => /^OCA1\./.test(String(raw || '').replace(/\s+/g, ''));
+/* le profil au milieu d'un message (« Mon profil OpenContact — colle ce
+   message… ») : on ne garde que lui. Une messagerie qui coupe la ligne
+   au milieu du code ne le casse pas. */
+export function extraireOCA(texte){
+  const m = String(texte || '').replace(/\s+/g, '').match(/OCA1\.[A-Za-z0-9_-]+/);
+  return m ? m[0] : '';
+}
+/* rend l'objet brut (à normaliser par normalizeAmi), ou lève un code
+   que l'écran sait dire (`format`, `troplourd`, `noqr`) */
+export async function decodeOCA(raw){
+  const s = String(raw || '').replace(/\s+/g, '');
+  if (!estOCA(s)) throw new Error('format');
+  if (s.length > 20000) throw new Error('troplourd');    /* un profil tient en quelques centaines d'octets */
+  let bytes;
+  try { bytes = b64urlToBytes(s.slice(5)); } catch (e) { throw new Error('format'); }
+  const obj = await gonflerBorne(bytes);
+  if (!obj || obj.kind !== 'ami') throw new Error('format');
+  return obj;
+}
+
 /* ---------- OCR1 : QR de rendez-vous (appairage P2P) ----------
    Le QR ne porte pas les données : un petit code de rendez-vous,
    typable sans caméra. Les deux appareils dérivent la même salle
