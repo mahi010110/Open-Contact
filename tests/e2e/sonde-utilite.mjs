@@ -48,7 +48,7 @@ const depuisPage = (url, o = {}) => page.evaluate(async ([u, o]) => {
     return { ok: res.ok, statut: res.status, ms: Math.round(performance.now() - t0), json, debut: txt.slice(0, 400) };
   } catch (e){ return { ok: false, statut: 0, erreur: String(e && e.message || e), ms: Math.round(performance.now() - t0) }; }
 }, [url, o]);
-const court = (x, n = 300) => JSON.stringify(x).slice(0, n);
+const court = (x, n = 300) => String(JSON.stringify(x) ?? '').slice(0, n);
 
 /* ---------- l'échantillon : de vraies entreprises du numérique ---------- */
 const AN = 'https://recherche-entreprises.api.gouv.fr/search';
@@ -150,9 +150,14 @@ console.log('\n③ WIKIDATA ÉLARGI — effectif, création, maison mère, secte
 /* ---------- ④ la commande publique (DECP) ---------- */
 console.log('\n④ LA COMMANDE PUBLIQUE (DECP, data.gouv) — ses clients publics ?\n');
 {
-  const r = await depuisPage('https://www.data.gouv.fr/api/1/datasets/?q=' + encodeURIComponent('données essentielles commande publique') + '&page_size=6');
-  console.log('   data.gouv (page) :', r.statut, r.erreur || '');
-  const sets = (r.json && r.json.data) || [];
+  /* le jeu enrichi du ministère est DÉPRÉCIÉ (relevé le 6 octobre) :
+     on cherche aussi le jeu consolidé qui l'a remplacé */
+  const sets = [];
+  for (const q of ['decp consolidées', 'données essentielles commande publique consolidées', 'données essentielles commande publique']){
+    const r = await depuisPage('https://www.data.gouv.fr/api/1/datasets/?q=' + encodeURIComponent(q) + '&page_size=5');
+    console.log(`   data.gouv « ${q} » :`, r.statut, r.erreur || '');
+    for (const d of (r.json && r.json.data) || []) if (!sets.some(x => x.id === d.id) && !/DEPRECI/i.test(d.title)) sets.push(d);
+  }
   const candidats = [];
   for (const d of sets){
     console.log(`   · ${d.title} · ${d.organization && d.organization.name} · ${(d.resources || []).length} ressources`);

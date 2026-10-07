@@ -17,6 +17,9 @@
    · OC_AUDIT_JOURNAL=1 : chaque capture part AUSSI dans le journal, en
      JPEG base64 par tranches (« CAPTURE <nom> <i>/<n> <données> ») — les
      artefacts de la CI ne se téléchargent pas d'ici, ses journaux si.
+   · OC_AUDIT_SEUL=<motif> : seulement les captures dont le nom correspond ;
+     OC_AUDIT_MESURE=<expression> : évaluée dans la page, rendue au journal ;
+     OC_AUDIT_POSTE=1 : l'ordinateur aussi, 1280 × 800 clair et sombre.
 
    Usage : node tests/e2e/audit-captures.mjs
    ============================================================ */
@@ -28,6 +31,9 @@ const WEBKIT = process.env.OC_NAVIGATEUR === 'webkit';
 const COMPLET = process.env.OC_AUDIT === 'complet';
 const JOURNAL = process.env.OC_AUDIT_JOURNAL === '1';
 const SEUL = process.env.OC_AUDIT_SEUL ? new RegExp(process.env.OC_AUDIT_SEUL) : null;
+/* OC_AUDIT_MESURE : une expression évaluée dans la page avant chaque capture,
+   pour chiffrer ce que l'image montre (un écart, une largeur) */
+const MESURE = process.env.OC_AUDIT_MESURE || '';
 const DOSSIER = path.join(SHOTS, 'audit', WEBKIT ? 'webkit' : 'chromium');
 await mkdir(DOSSIER, { recursive: true });
 
@@ -112,7 +118,10 @@ const ECRANS = [
   ['17-contact', piste('a', `(await import('./ui/contact.js')).openContactEditor({ company: c });`)],
   ['18-cloturer', piste('g', `(await import('./ui/actions.js')).askClose(c, {});`)],
   ['19-planifier', piste('f', `(await import('./ui/actions.js')).askNextAction(c, {});`)],
-  ['20-affiner', async p => { await route('#/pistes')(p); await p.waitForTimeout(300); await p.click('#piAffiner').catch(() => {}); }],
+  ['20-affiner', async p => { await route('#/pistes')(p); await p.waitForTimeout(300);
+    /* la portée et la barre survivent d'un écran à l'autre : « À découvrir » cache « Affiner » */
+    await p.fill('#piQ', ''); await p.click('#piPortee [data-portee="pistes"]').catch(() => {}); await p.waitForTimeout(200);
+    await p.click('#piAffiner').catch(() => {}); }],
   ['21-prospecter', p => p.evaluate(() => import('./ui/prospect.js').then(m => m.openProspect()))],
   ['22-modeles', p => p.evaluate(() => import('./ui/profil.js').then(m => m.openTemplates()))],
   ['23-annuler', async p => { await route('#/pistes')(p); await p.waitForTimeout(300);
@@ -138,9 +147,13 @@ const JEUX = [];
 for (const [t, w, h] of TELS) for (const sombre of [false, true]) JEUX.push({ nom: `${t}${sombre ? '-sombre' : ''}`, w, h, sombre, texte: 16 });
 JEUX.push({ nom: '320-200', w: 320, h: 568, sombre: false, texte: 32 });
 if (COMPLET) JEUX.push({ nom: '390-125', w: 390, h: 844, sombre: false, texte: 20 }, { nom: '390-200-sombre', w: 390, h: 844, sombre: true, texte: 32 });
+/* OC_AUDIT_POSTE=1 : l'ordinateur aussi, clair et sombre (§9 : les deux ergonomies) */
+if (process.env.OC_AUDIT_POSTE === '1') JEUX.push({ nom: '1280', w: 1280, h: 800, sombre: false, texte: 16, poste: true },
+  { nom: '1280-sombre', w: 1280, h: 800, sombre: true, texte: 16, poste: true });
 
 async function contexte(jeu, vide){
-  const ctx = await browser.newContext({ viewport: { width: jeu.w, height: jeu.h }, hasTouch: true, isMobile: !WEBKIT ? true : undefined,
+  const ctx = await browser.newContext({ viewport: { width: jeu.w, height: jeu.h }, hasTouch: !jeu.poste, isMobile: !WEBKIT && !jeu.poste ? true : undefined,
+    locale: 'fr-FR', timezoneId: 'Europe/Paris',
     deviceScaleFactor: JOURNAL ? 1 : 2, colorScheme: jeu.sombre ? 'dark' : 'light',
     userAgent: WEBKIT ? 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1' : undefined });
   const cors = { 'access-control-allow-origin': '*' };
@@ -192,6 +205,7 @@ for (const jeu of JEUX){
         await p.waitForTimeout(150);
         await ouvre(p);
         await p.waitForTimeout(900);     /* une feuille a fini de monter */
+        if (MESURE) console.log('MESURE', id, JSON.stringify(await p.evaluate(MESURE).catch(e => String(e))));
         await capturer(p, id);
         total++;
       } catch (e){ console.log('ÉCHEC CAPTURE', id, String(e).slice(0, 200)); }

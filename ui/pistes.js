@@ -113,7 +113,7 @@ document.addEventListener('keydown', e => {
 /* en tri « Près de moi » (à n'importe quel niveau), ou quand on l'a
    tapé, la distance s'affiche */
 const kmBit = c => ((sortHasDist(st) || procheActif()) && st.userPos && c.lat != null)
-  ? Math.round(distKm(st.userPos.lat, st.userPos.lng, c.lat, c.lng)) + ' km' : '';
+  ? Math.round(distKm(st.userPos.lat, st.userPos.lng, c.lat, c.lng)) + '\u00a0km' : '';
 
 /* L'encre va à ce qui CHANGE. Le statut d'une piste bouge une fois
    par quinzaine ; l'échéance bouge tous les jours — et c'est elle qui

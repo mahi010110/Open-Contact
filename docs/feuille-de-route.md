@@ -280,6 +280,10 @@ liste de pistes sans partir de zéro, c'est « À découvrir ».
    marché local (BMO 2026), les fautes de frappe proposées. **Livré le
    6 octobre 2026 (6.51.0).** Reste à mesurer : le temps de trajet en
    transports en commun.
+8. L'audit du téléphone ([`audit-telephone.md`](audit-telephone.md)) :
+   toutes les captures regardées, sous Chromium et sous WebKit (le
+   moteur de l'iPhone), quatorze défauts corrigés et gardés.
+   **Livré le 6 octobre 2026 (6.52.0).**
 
 **B. Le réseau** — [`reseau.md`](reseau.md). Trouver quelqu'un chez une
 entreprise parmi ses amis, ses groupes et leurs amis, trois cercles au plus.

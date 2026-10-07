@@ -114,7 +114,7 @@ const lireApercu = (p, sel) => p.evaluate(sel => {
   for (const u of journal){ const w = PRIVES.find(m => pliees(u).includes(m)); if (w) fail(`« ${w} » est sorti : ${u}`); }
   if (l.noms.length !== 3) fail('la liste n’a pas été mesurée : ' + JSON.stringify(l.noms));
   if (l.noms.some(n => /Nord Reseaux/i.test(n))) fail('Dunkerque, à 65 km, s’affiche pour « Lille »');
-  if (!l.subs.every(s => /\d+ km/.test(s))) fail('la distance au centre ne se lit pas sur chaque ligne : ' + l.subs);
+  if (!l.subs.every(s => /\d+\skm/.test(s))) fail('la distance au centre ne se lit pas sur chaque ligne : ' + l.subs);
   if (!process.exitCode) console.log(`pouce · ① « Lille » : autour de son centre (15 km), rien de privé ; Dunkerque écartée ; ${l.noms.length} lignes, chacune à sa distance ✓`);
 
   /* ② qui recrute : un lien, en tête, qui ne part que si on le touche */

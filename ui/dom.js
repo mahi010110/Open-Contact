@@ -490,6 +490,14 @@ export function topSheet(){ return stack[stack.length - 1] || null; }
    précision, quatre endroits la comptaient encore — un rechargement
    différé qui ne partait pas, deux raccourcis clavier muets. */
 export const sheetOpen = () => !!document.querySelector('.overlay:not(.ov-out)');
+/* OUVRIR POUR MODIFIER N'EST PAS OUVRIR POUR ÉCRIRE. Au doigt, un champ
+   focalisé à l'ouverture fait monter le clavier, qui cache la moitié de
+   la feuille : pour un formulaire qu'on vient RELIRE, c'est justement ce
+   qu'on venait voir qui disparaît (audit d'octobre 2026, « Modifier »).
+   Au poste, le curseur dans le premier champ ne cache rien et fait
+   gagner un clic. Une feuille qui ne sert qu'à taper (renommer, un mot
+   de passe, une recherche) garde son champ partout. */
+export const champAOuvrir = sel => matchMedia('(pointer:fine)').matches ? sel : null;
 
 /* ---------- « ça a changé pendant que tu ne regardais pas » ----------
    Un changement instantané n'est pas « moins joli » : il n'est PAS VU.

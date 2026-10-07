@@ -10,7 +10,7 @@ import { contactFromSignature } from '../engine/assist.js';
 import { findMatch } from '../engine/merge.js';
 import { S, bus, saveData, saveOrphans, logJ, isClosed,
          addOrphan, removeOrphan, attachContact, ctLabel } from './state.js';
-import { openSheet, confirmSheet, toast, btn, ic, clavier } from './dom.js';
+import { openSheet, confirmSheet, toast, btn, ic, clavier, champAOuvrir } from './dom.js';
 
 /* liens natifs vers un numéro (0X XX… français → +33 pour WhatsApp) */
 export const telHref = p => 'tel:' + String(p || '').replace(/[^\d+]/g, '');
@@ -38,7 +38,7 @@ export function openContactEditor(o){
 
   const sh = openSheet({
     title: editing ? ctLabel(src) : (c ? 'Contact — ' + c.name : 'Nouveau contact'),
-    icon: 'contact', focus: '#ceName'
+    icon: 'contact', focus: editing ? champAOuvrir('#ceName') : '#ceName'
   });
   /* des contacts PROPOSÉS (le dirigeant que l'annuaire connaît) : en
      pointillé, au moment exact où l'on ajoute quelqu'un — un tap remplit

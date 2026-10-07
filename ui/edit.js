@@ -8,7 +8,7 @@ import { esc, debounce, surUnRang } from '../engine/utils.js';
 import { DOMAINS, POSITIONS, VECU, pushHist } from '../engine/model.js';
 import { suggestAddresses } from '../engine/geo.js';
 import { bus, saveData, logJ } from './state.js';
-import { openSheet, toast, btn, clavier, champGrandit } from './dom.js';
+import { openSheet, toast, btn, clavier, champGrandit, champAOuvrir } from './dom.js';
 
 const FIELDS = ['name','city','domain','desc','website','address','techs','process','tips'];
 
@@ -23,7 +23,13 @@ export function sharedFieldsHTML(c){
   return (
     `<div class="ed-form">
      <div class="grid2">
-       <div class="field"><label for="edName">Entreprise *</label><input id="edName" value="${esc(c.name)}" ${clavier('nom')}></div>
+       ${/* LE NOM SE LIT EN ENTIER : « Société Générale Global Solution
+            Centre » se coupait dans un `<input>` d'un rang, à 390 px comme
+            à 320 — relevé à l'audit d'octobre 2026. C'est l'identité de la
+            piste, la chose qu'on vient vérifier ici (§4 : ce qui porte une
+            IDENTITÉ ne se coupe jamais). Même motif que les technos. */''}
+       <div class="field fld-1l"><label for="edName">Entreprise *</label>
+         <textarea id="edName" rows="1" autocomplete="off" enterkeyhint="next" ${clavier('nom')}>${esc(c.name)}</textarea></div>
        <div class="field"><label for="edCity">Ville</label><input id="edCity" value="${esc(c.city)}" ${clavier('nom')}></div>
      </div>
      <div class="field"><label for="edDomain">Domaine</label>
@@ -163,19 +169,22 @@ export function bindSharedFields(root){
      autant. L'ordre compte — on nettoie AVANT de mesurer la hauteur,
      sinon un collage multiligne fait grandir le champ d'un rang qui
      disparaît aussitôt. */
-  const techs = q('#edTechs');
-  techs.addEventListener('input', () => {
-    if (!/[\r\n]/.test(techs.value)) return;
-    const i = techs.selectionStart;
-    techs.value = techs.value.replace(/[\r\n]+/g, ' ');
-    techs.selectionStart = techs.selectionEnd = i;
-  });
-  champGrandit(techs);
-  techs.addEventListener('keydown', e => {
-    if (e.key !== 'Enter') return;
-    e.preventDefault();
-    techs.blur();
-  });
+  const unRang = (ta, suivant) => {
+    ta.addEventListener('input', () => {
+      if (!/[\r\n]/.test(ta.value)) return;
+      const i = ta.selectionStart;
+      ta.value = ta.value.replace(/[\r\n]+/g, ' ');
+      ta.selectionStart = ta.selectionEnd = i;
+    });
+    champGrandit(ta);
+    ta.addEventListener('keydown', e => {
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      if (suivant) suivant.focus(); else ta.blur();
+    });
+  };
+  unRang(q('#edName'), q('#edCity'));
+  unRang(q('#edTechs'));
 
   q('#edAddress').addEventListener('input', e => { picked = null; acSearch(surUnRang(e.target.value)); });
   q('#edAddress').addEventListener('blur', () => setTimeout(acHide, 150));
@@ -211,7 +220,7 @@ export function bindSharedFields(root){
 }
 
 export function openEditPiste(c, onDone){
-  const sh = openSheet({ title: 'Modifier — ' + c.name, icon: 'pencil', className: 'modal-fiche', focus: '#edName' });
+  const sh = openSheet({ title: 'Modifier — ' + c.name, icon: 'pencil', className: 'modal-fiche', focus: champAOuvrir('#edName') });
   sh.body.innerHTML =
     /* La pastille suffit. « Ces infos circulent dans les partages — ton
        suivi jamais » expliquait la pastille : c'est le motif documenté

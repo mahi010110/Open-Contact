@@ -102,6 +102,12 @@ export function openProspect(){
   });
 
   const listed = () => filterCompanies(alive(), { q: qs, ...filterArgs(ft), ...sortArgs(st) });
+  const sansAdresse = c => !whoCandidates(c, 'ecrire').length;
+  /* redessiner la liste sans faire tomber le focus de la case tapée */
+  const redessine = id => {
+    renderItems();
+    sh.body.querySelector(`.pk[data-id="${CSS.escape(id)}"]`)?.focus({ preventScroll: true });
+  };
 
   /* Les LIGNES seules — la barre se pose une fois (`render`), sinon le
      champ de recherche serait recréé à chaque frappe. */
@@ -124,14 +130,22 @@ export function openProspect(){
                 <div class="pk-m"><b>${esc(c.name)}</b>
                   <span class="pk-s">${STATUSES[c.status].label}${c.city ? ' · ' + esc(c.city) : ''}${
                     whoInline(c, keepOf(c), 'ecrire') && ' · ' + whoInline(c, keepOf(c), 'ecrire')
-                    || ''}</span></div>
+                    || (sansAdresse(c) ? ' · sans adresse' : '')}</span></div>
               </button>
-              ${whoLineHTML(c, keepOf(c), 'ecrire')}
+              ${/* « ＋ ajoute quelqu'un » sous la piste COCHÉE seulement —
+                   c'est là que le manque coûte (qui.js le disait déjà :
+                   « la ligne sous la piste cochée »). Posé sous chaque
+                   piste sans adresse, il doublait la hauteur de la liste
+                   et répétait huit fois la même phrase (audit d'octobre
+                   2026) : un papier peint. Non cochée, la piste le dit
+                   en une donnée de sa sous-ligne. */''}
+              ${sansAdresse(c) && !sel.has(c.id) ? '' : whoLineHTML(c, keepOf(c), 'ecrire')}
             </div>`).join('')}
        </div>`;
     box.querySelectorAll('.pk').forEach(b =>
       b.addEventListener('click', () => {
         const id = b.dataset.id;
+        const piste = alive().find(x => x.id === id);
         if (sel.has(id)){ sel.delete(id); }
         else {
           sel.add(id);
@@ -139,8 +153,10 @@ export function openProspect(){
              par défaut revient — sinon « Continuer » l'ignorerait */
           const c = alive().find(x => x.id === id);
           const d = c && !keepOf(c).size && defaultCt(c);
-          if (d){ keepOf(c).add(d.id); renderItems(); return; }
+          if (d){ keepOf(c).add(d.id); redessine(id); return; }
         }
+        /* sans adresse, la ligne « ＋ ajoute quelqu'un » suit la case */
+        if (piste && sansAdresse(piste)){ redessine(id); return; }
         b.classList.toggle('on', sel.has(id));
         b.setAttribute('aria-pressed', sel.has(id));
         sync();
