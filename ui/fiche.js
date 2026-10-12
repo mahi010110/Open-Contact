@@ -13,7 +13,7 @@ import { STATUSES, CLOSE_REASONS, DOMAINS, POSITIONS, VECU, pushHist, summarizeC
 import { scoreOf } from '../engine/score.js';
 import { porteurs } from '../engine/requete.js';
 import { portesDuJour } from './amis.js';
-import { reseauDePiste, ouvrirDemander, ouvrirDon, demandeEnCoursHTML, bandeauDon } from './reseau.js';
+import { reseauDePiste, ouvrirDemander, ouvrirDon, demandeEnCoursHTML, bandeauDon, libelleDemander } from './reseau.js';
 import { S, bus, isClosed, saveData, reopenPiste, logJ, activateContact } from './state.js';
 import { openSheet, confirmSheet, toast, btn, ic, montrerChange, suivreLargeur } from './dom.js';
 import { frDate, relLabel } from './dates.js';
@@ -372,7 +372,7 @@ export function openFiche(c){
            <b>${esc(bandeauDon(res.don))}</b>${ic('chevron-right', 'ic-14')}</button>`
         : res.demande ? demandeEnCoursHTML(res.demande)
         : res.peut && !closed && !c.demo && !qui.length && !joignable
-          ? `<button class="btn btn-sm fi-demander" id="fiDemander">${ic('users', 'ic-14')} Demander à mes amis</button>` : '');
+          ? `<button class="btn btn-sm fi-demander" id="fiDemander">${ic('users', 'ic-14')} ${esc(libelleDemander())}</button>` : '');
     /* ---- LA FICHE DIT ENFIN DE QUELLE PISTE ELLE PARLE ----
        Elle s'ouvrait sur « Toulouse · ESN » : une sous-ligne SANS son
        sujet. Le nom n'existait que dans le châssis, et mesuré, il y est

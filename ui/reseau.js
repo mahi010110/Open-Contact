@@ -366,7 +366,7 @@ const pisteDeDemande = id => {
 export function reseauDePiste(c){
   const d = demandeDePiste(etat, c.id);
   const don = etat.dons.find(x => x.statut === 'nouveau' && pisteDeDemande(x.demande) === c) || null;
-  return { demande: d, don, peut: !d && peutDemander(etat) && amisJoignables().length > 0 && !!String(S.profile.name || '').trim() };
+  return { demande: d, don, peut: !d && peutDemanderAmis() };
 }
 /* « Tes amis » : ce qu'on te demande (et que tu as), ce qu'on t'a donné.
    Une ligne = la piste (l'attribut distinctif, §6), la raison en accent,
@@ -388,7 +388,8 @@ function contactSoi(){
    puis mes contacts */
 const choixPour = r => [...(r.soi && contactSoi() ? [{ soi: true, ct: contactSoi(), c: null }] : []), ...contactsTrouves(r)];
 const parDe = r => r.par ? nomDeCle(r.par.cle, r.par.prenom) : '';
-const quiCherche = r => r.par ? `${r.de.prenom}, par ${parDe(r)}, cherche quelqu’un` : `${r.de.prenom} cherche quelqu’un`;
+const quiCherche = r => r.par ? `${r.de.prenom}, par ${parDe(r)}, cherche quelqu’un`
+  : r.groupeNom ? `${r.de.prenom}, dans ${r.groupeNom}, cherche quelqu’un` : `${r.de.prenom} cherche quelqu’un`;
 const quiDonne = d => d.par ? `${d.de.prenom}, par ${d.par}, t’a donné` : `${d.de.prenom} t’a donné`;
 export function lignesAmis(){
   const out = [];
@@ -419,7 +420,8 @@ export function ouvrirLigne(sorte, id){
    (décision 19) */
 export function ouvrirDemander(c, apres){
   const amis = amisJoignables();
-  const sh = openSheet({ title: 'Demander à mes amis', icon: 'users' });
+  const groupes = mesGroupes();
+  const sh = openSheet({ title: libelleDemander(), icon: 'users' });
   const prenom = prenomDe(S.profile.name);
   const crit = c && c.critere;
   const quoi = crit ? phraseCritere(crit) : 'chez ' + c.name;
@@ -428,7 +430,9 @@ export function ouvrirDemander(c, apres){
      loin que tes amis s'ils ne connaissent personne : ça se dit AVANT */
   sh.body.innerHTML =
     `<div class="gr-mot" id="dmMot">${esc(prenom)} cherche quelqu’un ${esc(quoi)}.</div>
-     <p class="dm-qui" id="dmQui">${ic('users', 'ic-14')} ${esc(amis.map(prenomAmi).join(' · '))}, puis leurs amis</p>`;
+     <p class="dm-qui" id="dmQui">${ic('users', 'ic-14')} ${esc([
+       ...(amis.length ? [amis.map(prenomAmi).join(' · ') + ', puis leurs amis'] : []),
+       ...groupes.map(g => g.nom || 'Groupe')].join(' · '))}</p>`;
   const go = btn('Demander', 'btn-primary', async () => {
     go.disabled = true;
     await chargerReseau();
@@ -436,16 +440,19 @@ export function ouvrirDemander(c, apres){
     const now = Date.now();
     const l = lettreDemande({ prenom, cle: b.pub }, crit ? { critere: crit } : c, now);
     const partis = (await Promise.all(amis.map(a => ecrire(a.cle, l, l.exp).catch(() => 0)))).filter(n => n > 0).length;
-    if (!partis){
+    /* et dans chaque groupe, que tout le groupe la voie (décision 20) */
+    const dansGroupes = groupes.length ? await (await import('./groupes.js')).demanderAuxGroupes(l).catch(() => []) : [];
+    if (!partis && !dansGroupes.length){
       go.disabled = false;
       echecEnvoi();
       return;
     }
     const dem = { id: l.id, pisteId: crit ? null : c.id, at: now, exp: l.exp, vers: partis };
+    if (dansGroupes.length) dem.groupes = dansGroupes;
     if (crit) dem.critere = l.critere; else dem.entreprise = l.entreprise;
     etat = { ...etat, demandes: [...etat.demandes, dem] };
     await sauver();
-    logJ(`Demandé à ${partis} ami${partis > 1 ? 's' : ''} : quelqu’un ${quoi}`, crit ? undefined : c.id);
+    logJ(`Demandé à ${aQui(dem)} : quelqu’un ${quoi}`, crit ? undefined : c.id);
     sh.close();
     if (apres) apres();
     bus.refresh();
@@ -457,15 +464,30 @@ export function ouvrirDemander(c, apres){
 export function demandeEnCoursHTML(d){
   /* quelqu'un a trouvé : on le sait avant son oui (décision 18) */
   if (d.trouve)
-    return `<p class="fi-demande fi-trouve" id="fiDemande">${ic('check', 'ic-14')} Trouvé chez un ami${d.trouve.par ? ' de ' + esc(d.trouve.par) : ''} · en attente</p>`;
+    return `<p class="fi-demande fi-trouve" id="fiDemande">${ic('check', 'ic-14')} Trouvé ${d.trouve.groupe ? 'dans un groupe'
+      : 'chez un ami' + (d.trouve.par ? ' de ' + esc(d.trouve.par) : '')} · en attente</p>`;
   const j = new Date(d.at).toISOString().slice(0, 10);
   const quand = j === todayISO() ? 'aujourd’hui' : frDate(j);
-  return `<p class="fi-demande" id="fiDemande">${ic('clock', 'ic-14')} Demandé à ${d.vers} ami${d.vers > 1 ? 's' : ''} · ${quand}</p>`;
+  return `<p class="fi-demande" id="fiDemande">${ic('clock', 'ic-14')} Demandé à ${esc(aQui(d))} · ${quand}</p>`;
+}
+/* « 2 amis », « BTS SIO Lille », « 2 amis et BTS SIO Lille » */
+function aQui(d){
+  const amis = d.vers ? `${d.vers} ami${d.vers > 1 ? 's' : ''}` : '';
+  const gr = (d.groupes || []).join(', ');
+  return [amis, gr].filter(Boolean).join(' et ');
 }
 /* les demandes par métier et ville : elles n'ont pas de fiche, elles se
    lisent dans « Amis », là où on les a faites */
 export const demandesCritere = () => etat.demandes.filter(d => d.critere && d.exp > Date.now());
-export const peutDemanderAmis = () => peutDemander(etat) && amisJoignables().length > 0 && !!String(S.profile.name || '').trim();
+/* À QUI L'ON PEUT DEMANDER : ses amis qui ont une boîte, et ses groupes
+   (lot 5b, décision 20 — tout le groupe voit la demande) */
+const mesGroupes = () => S.profile.groupes || [];
+export const peutDemanderAmis = () => peutDemander(etat) && (amisJoignables().length > 0 || mesGroupes().length > 0)
+  && !!String(S.profile.name || '').trim();
+/* le geste dit à qui il demande — « mes amis » quand il y en a, sinon
+   le groupe : un mot juste, pas une catégorie de plus */
+export const libelleDemander = () => amisJoignables().length ? 'Demander à mes amis'
+  : mesGroupes().length > 1 ? 'Demander à mes groupes' : 'Demander à mon groupe';
 export const phraseDemande = d => phraseCritere(d.critere);
 
 /* ---------- ON TE DEMANDE ---------- */
@@ -527,6 +549,65 @@ function ouvrirRecue(r){
   };
   dessiner();
   sh.setFoot([ignorer, donner]);
+}
+
+/* ---------- LES DEMANDES D'UN GROUPE (lot 5b, décisions 20, 28, 29) ----------
+   Une demande vue dans un groupe est la MÊME lettre qu'un ami aurait
+   reçue : le téléphone la passe au même moteur — il cherche dans mes
+   pistes et mon parcours, sans rien montrer s'il ne trouve rien. Une
+   différence : il ne la fait PAS suivre tout seul. Dans un groupe,
+   chacun relaie à son tour (« Faire suivre »). La réponse, elle, va à
+   la boîte de qui demande, jamais au groupe. */
+export async function recevoirDemandeGroupe(l, code, nomGroupe){
+  await chargerReseau();
+  const b = await assurerBoite();
+  const ctx = { companies: S.companies, moi: b.pub, amis: S.profile.amis, parcours: parcoursDe(S.profile, S.companies),
+                pistesPour, sansRelais: true, today: todayISO() };
+  const r = traiterLettre(etat, l, ctx);
+  if (r.etat === etat) return null;
+  etat = { ...r.etat, recues: r.etat.recues.map(x => x.id === l.id ? { ...x, groupe: code, groupeNom: nomGroupe } : x) };
+  await sauver();
+  /* prévenu tout de suite, sans dire qui (décision 18) */
+  if (r.quoi === 'demande'){
+    await ecrire(l.de.cle, lettreTrouve(l, { groupe: true }), l.exp).catch(() => 0);
+    bus.refresh();
+  }
+  return r.quoi;
+}
+export const recueDe = id => etat.recues.find(x => x.id === id) || null;
+export const demandeFaite = id => etat.demandes.find(x => x.id === id) || null;
+/* ce que mon téléphone a trouvé pour elle : le premier choix, ou rien */
+export const trouvePour = r => (r && r.statut === 'a-voir' ? choixPour(r)[0] : null) || null;
+export const ditTrouve = x => x.soi ? 'tu y es' : 'tu as ' + x.ct.name;
+export function repondreDemande(id){ const r = recueDe(id); if (r) ouvrirRecue(r); }
+/* « JE CONNAIS QUELQU'UN » : ce qu'aucune app ne sait — un nom et de
+   quoi le joindre, donnés par moi, à qui demande seulement */
+export async function donnerConnu(id, ct){
+  const r = recueDe(id);
+  if (!r) return false;
+  await chargerReseau();
+  const b = await assurerBoite();
+  const l = lettreDon({ prenom: prenomDe(S.profile.name), cle: b.pub }, r, ct, {});
+  if (!await ecrire(r.de.cle, l, r.exp).catch(() => 0)){ echecEnvoi(); return false; }
+  etat = { ...etat, recues: etat.recues.map(y => y.id === r.id ? { ...y, statut: 'donnee', donne: ct.name } : y) };
+  await sauver();
+  const chez = r.entreprise ? r.entreprise.nom : phraseCritere(r.critere);
+  logJ(`Donné à ${r.de.prenom} : ${ct.name} (${chez})`);
+  bus.refresh();
+  return true;
+}
+/* FAIRE SUIVRE À MES AMIS : le même saut que le lot 4b — mon jeton,
+   scellé pour qui demande ; le merci remontera par moi */
+export async function suivreAmis(id){
+  const r = recueDe(id);
+  if (!r || !S.profile.boite) return 0;
+  const l = { v: 1, t: 'demande', id: r.id, de: r.de, exp: r.exp, cercle: 1,
+              ...(r.entreprise ? { entreprise: r.entreprise } : { critere: r.critere }) };
+  await faireSuivre(l);
+  await sauver();
+  bus.refresh();
+  const apres = recueDe(id);
+  return apres && apres.statut === 'transmise' ? apres.vers : 0;
 }
 
 /* ---------- ON TE DONNE ---------- */
