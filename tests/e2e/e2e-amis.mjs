@@ -98,10 +98,8 @@ async function monProfilCopie(p){
   await fermerTout(p);
   await sansAnnuler(p);
   await p.evaluate(() => { location.hash = '#/echanger'; });
-  await p.waitForSelector('#ecAmis');
-  await p.click('#ecAmis');
-  await p.waitForSelector('#amMonQR');
-  await p.click('#amMonQR');
+  await p.waitForSelector('#ecMonQR');
+  await p.click('#ecMonQR');
   await p.waitForSelector('#mqCopier');
   await p.waitForSelector('.qr-wrap svg');
   await p.evaluate(() => { window.__copie = []; });
@@ -111,15 +109,13 @@ async function monProfilCopie(p){
   const bouton = await p.evaluate(() => document.querySelector('#mqCopier').textContent.trim());
   return { txt, bouton };
 }
-/* recevoir un profil par le vrai chemin : Amis → Scanner → Texte → Lire */
+/* recevoir un profil par le vrai chemin : Échanger › Amis › Scanner → Texte → Lire */
 async function recevoirProfil(p, txt){
   await fermerTout(p);
   await sansAnnuler(p);
   await p.evaluate(() => { location.hash = '#/echanger'; });
-  await p.waitForSelector('#ecAmis');
-  await p.click('#ecAmis');
-  await p.waitForSelector('#amScan');
-  await p.click('#amScan');
+  await p.waitForSelector('#ecScan');
+  await p.click('#ecScan');
   await p.waitForSelector('#rcTexte');
   if (await p.evaluate(() => !!document.querySelector('#rcCode')))
     fail('le scanner ouvert depuis « Amis » propose un code de rendez-vous — un QR de profil n’en affiche aucun');
@@ -128,6 +124,16 @@ async function recevoirProfil(p, txt){
   await p.fill('#rcTxt', txt);
   await p.evaluate(() => [...document.querySelectorAll('.overlay')].pop().querySelector('.modal-f .btn-primary').click());
   await p.waitForTimeout(400);
+}
+/* la liste des amis vit dans « Mes pistes » (lot 4) : la portée « Amis » */
+async function ongletAmis(p){
+  await fermerTout(p);
+  await sansAnnuler(p);
+  await p.evaluate(() => { location.hash = '#/pistes'; });
+  await p.waitForSelector('[data-portee="amis"]');
+  await p.click('[data-portee="amis"]');
+  await p.waitForSelector('#piAmis');
+  await p.waitForTimeout(250);
 }
 const decoder = (p, txt) => p.evaluate(async t => {
   const { decodeOCA, extraireOCA } = await import('./engine/exchange.js');
@@ -206,7 +212,8 @@ await I.p.click('#amAjouter');
 await I.p.waitForTimeout(400);
 if ((await amisStockes(I.p)).join() !== 'Karim Benali') fail('Karim n’est pas dans les amis : ' + await amisStockes(I.p));
 if (!await I.p.evaluate(() => !!document.querySelector('.undo-bar'))) fail('pas d’« Annuler » après l’ajout');
-await I.p.waitForSelector('#amListe [data-ami]');
+await ongletAmis(I.p);
+await I.p.waitForSelector('#piAmis .am-row[data-ami]');
 console.log('② l’aperçu passe avant, montre « dans tes pistes », puis « Ajouter Karim » ✓');
 
 /* la fiche AZTEK SAS dit Karim, et le message est prêt */
@@ -229,9 +236,15 @@ console.log('② la fiche dit « Karim y est en alternance » et le message est 
 await fermerTout(I.p);
 await I.p.evaluate(() => { location.hash = '#/pistes'; });
 await I.p.waitForSelector('#piQ');
+/* la portée tient pour la session (on sort de « Amis ») : la barre
+   cherche ici dans les PISTES */
+await I.p.click('[data-portee="pistes"]');
 await I.p.fill('#piQ', 'Karim');
 await I.p.waitForTimeout(500);
 {
+  /* et la portée « Amis » le trouve aussi, pendant la frappe */
+  const nAmis = await I.p.evaluate(() => document.querySelector('[data-portee="amis"] .pt-n')?.textContent);
+  if (nAmis !== '1') fail('la portée « Amis » ne compte pas Karim pendant la frappe : ' + nAmis);
   const r = await I.p.evaluate(() => [...document.querySelectorAll('#view-pistes .row-item')]
     .filter(x => x.offsetParent).map(x => x.textContent.replace(/\s+/g, ' ').trim()));
   if (r.length !== 1 || !/AZTEK SAS/.test(r[0]) || !/Karim y est en alternance/.test(r[0])) fail('barre « Karim » : ' + JSON.stringify(r));
@@ -286,13 +299,9 @@ if (!await K.p.evaluate(() => /C’est ton profil/.test(document.querySelector('
 console.log('③ à jour remplace, pareil ne propose rien, soi-même ne s’ajoute pas ✓');
 
 /* ---------- ④ une entreprise du parcours d'un ami devient une piste ---------- */
-await fermerTout(I.p);
-await sansAnnuler(I.p);
-await I.p.evaluate(() => { location.hash = '#/echanger'; });
-await I.p.click('#ecAmis');
-await I.p.waitForSelector('#amListe [data-ami]');
-await I.p.click('#amListe [data-ami]');
-await I.p.waitForSelector('#amRetirer');
+await ongletAmis(I.p);
+await I.p.click('#piAmis .am-row[data-ami] .ri-main');
+await I.p.waitForSelector('.overlay #amRetirer');
 await I.p.screenshot({ path: `${SHOTS}/99-amis-ami-pouce.png` });
 {
   const avant = await I.p.evaluate(async () => (await import('./ui/state.js')).S.companies.length);
@@ -308,17 +317,13 @@ await I.p.screenshot({ path: `${SHOTS}/99-amis-ami-pouce.png` });
 console.log('④ « + Piste » : Quick entre dans les pistes, et dit « Karim y a travaillé » ✓');
 
 /* ---------- ⑤ retirer, annuler, recharger ---------- */
-await fermerTout(I.p);
-await sansAnnuler(I.p);
-await I.p.waitForTimeout(300);
-await I.p.click('#ecAmis');
-await I.p.waitForSelector('#amListe [data-ami]');
-await I.p.click('#amListe [data-ami]');
-await I.p.waitForSelector('#amRetirer');
-await I.p.click('#amRetirer');
+await ongletAmis(I.p);
+await I.p.click('#piAmis .am-row[data-ami] .ri-main');
+await I.p.waitForSelector('.overlay #amRetirer');
+await I.p.click('.overlay #amRetirer');
 await I.p.waitForTimeout(300);
 if ((await amisStockes(I.p)).length) fail('retirer n’a pas retiré');
-if (!await I.p.evaluate(() => !!document.querySelector('#amVide'))) fail('la liste vide ne s’affiche pas après le retrait');
+if (!await I.p.evaluate(() => !!document.querySelector('#piAmis #avVide'))) fail('la liste vide ne s’affiche pas après le retrait');
 await ouvrirFiche(I.p, 'c');
 if ((await bandeaux(I.p)).length) fail('Karim retiré parle encore sur AZTEK SAS');
 await I.p.evaluate(() => [...document.querySelectorAll('.undo-bar button')].find(b => /Annuler/.test(b.textContent)).click());
@@ -335,9 +340,8 @@ await fermerTout(So.p);
 await sansAnnuler(So.p);
 await So.p.evaluate(async () => { const { S, saveProfile } = await import('./ui/state.js'); S.profile.name = ''; saveProfile(); });
 await So.p.evaluate(() => { location.hash = '#/echanger'; });
-await So.p.click('#ecAmis');
-await So.p.waitForSelector('#amMonQR');
-await So.p.click('#amMonQR');
+await So.p.waitForSelector('#ecMonQR');
+await So.p.click('#ecMonQR');
 await So.p.waitForTimeout(500);
 if (await dessus(So.p) !== 'Mon profil') fail('sans nom, « Mon QR » ouvre : ' + await dessus(So.p));
 if (await So.p.evaluate(() => document.activeElement?.id) !== 'pfName') fail('le curseur n’est pas sur le nom');
@@ -357,31 +361,33 @@ for (const [vp, touch, sombre, nom] of [[{ width: 1280, height: 800 }, false, fa
                                         [{ width: 320, height: 640 }, true, false, '320-200']]){
   const { ctx, p } = await ecran(vp, touch, INES_AMIS, PISTES_INES, { sombre });
   if (nom === '320-200') await p.evaluate(() => { document.documentElement.style.fontSize = '200%'; });
-  await p.waitForSelector('#ecAmis');
-  await p.click('#ecAmis');
-  await p.waitForSelector('#amListe');
-  await p.waitForTimeout(450);
-  const mesure = sel => p.evaluate(s => {
-    const m = [...document.querySelectorAll('.overlay')].pop().querySelector('.modal-b');
+  await ongletAmis(p);
+  await p.waitForSelector('#piAmis .am-row');
+  /* `dans` : la boîte qui doit tenir — la feuille au pouce, la page au poste */
+  const mesure = (sel, dans) => p.evaluate(([s, d]) => {
+    const m = d ? document.querySelector(d) : [...document.querySelectorAll('.overlay')].pop().querySelector('.modal-b');
     const mr = m.getBoundingClientRect().right;
     return {
       deborde: [...m.querySelectorAll(s + ' *')].filter(x => x.getBoundingClientRect().right > mr + 1).length,
-      coupes: [...m.querySelectorAll(s + ' .pk-m > b, .mq-donne b')]
+      coupes: [...m.querySelectorAll(s + ' .pk-m > b, ' + s + ' h3, .mq-donne b')]
         .filter(b => b.scrollHeight > b.clientHeight + 1 || b.scrollWidth > b.clientWidth + 1).length,
       lateral: m.scrollWidth > m.clientWidth + 1
     };
-  }, sel);
-  let r = await mesure('#amListe');
+  }, [sel, dans || null]);
+  /* la boîte de la LISTE : la barre de recherche, elle, déborde exprès
+     de la page pour coller pleine largeur (§5) */
+  let r = await mesure('#piAmis', '#piBody');
   if (r.deborde || r.lateral) fail(`${nom} : la liste des amis déborde (${r.deborde})`);
   if (r.coupes) fail(`${nom} : un nom d’ami est coupé`);
   await p.screenshot({ path: `${SHOTS}/99-amis-liste-${nom}.png` });
   /* Karim, pas le premier de la liste : c'est LUI qui a un parcours, et
      le nom le plus long. Un contrôle ne serre que ce qu'il remplit —
-     ouvert sur Awa, sans parcours, il ne mesurait rien. */
-  await p.click('#amListe [data-ami="KarimKarimKarim00001"]');
-  await p.waitForSelector('.am-par [data-ajout]');
+     ouvert sur Awa, sans parcours, il ne mesurait rien. Au pouce sa
+     fiche est une feuille ; au poste, elle vit à côté de la liste. */
+  await p.click('#piAmis .am-row[data-ami="KarimKarimKarim00001"] .ri-main');
+  await p.waitForSelector(touch ? '.overlay .am-par [data-ajout]' : '.am-detail .am-par [data-ajout]');
   await p.waitForTimeout(450);
-  r = await mesure('.am-par');
+  r = touch ? await mesure('.am-par') : await mesure('.am-detail .am-par', '.am-detail');
   if (touch){
     /* au doigt, ce qu'on voit est ce qu'on touche : 44 px (§5) */
     const petits = await p.evaluate(() => [...[...document.querySelectorAll('.overlay')].pop().querySelectorAll('button')]
@@ -392,9 +398,9 @@ for (const [vp, touch, sombre, nom] of [[{ width: 1280, height: 800 }, false, fa
   if (r.coupes) fail(`${nom} : une entreprise du parcours d’un ami est coupée`);
   await p.screenshot({ path: `${SHOTS}/99-amis-ami-${nom}.png` });
   await fermerTout(p);
-  await p.click('#ecAmis');
-  await p.waitForSelector('#amMonQR');
-  await p.click('#amMonQR');
+  await p.evaluate(() => { location.hash = '#/echanger'; });
+  await p.waitForSelector('#ecMonQR');
+  await p.click('#ecMonQR');
   await p.waitForSelector('#mqDonne');
   await p.waitForTimeout(450);
   r = await mesure('#mqDonne');

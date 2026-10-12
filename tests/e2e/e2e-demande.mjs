@@ -115,9 +115,8 @@ const sansAnnuler = async p => {
 async function monProfilCopie(p){
   await fermerTout(p);
   await p.evaluate(() => { location.hash = '#/echanger'; });
-  await p.waitForSelector('#ecAmis');
-  await p.click('#ecAmis');
-  await p.click('#amMonQR');
+  await p.waitForSelector('#ecMonQR');
+  await p.click('#ecMonQR');
   await p.waitForSelector('.qr-wrap svg');
   await p.click('#mqCopier');
   await p.waitForTimeout(150);
@@ -127,9 +126,8 @@ async function ajouterAmi(p, txt){
   await fermerTout(p);
   await sansAnnuler(p);
   await p.evaluate(() => { location.hash = '#/echanger'; });
-  await p.waitForSelector('#ecAmis');
-  await p.click('#ecAmis');
-  await p.click('#amScan');
+  await p.waitForSelector('#ecScan');
+  await p.click('#ecScan');
   await p.click('#rcTexte');
   await p.fill('#rcTxt', txt);
   await p.evaluate(() => [...document.querySelectorAll('.overlay')].pop().querySelector('.modal-f .btn-primary').click());
@@ -449,22 +447,25 @@ for (const id of ['adv', 'th']){
 }
 await ouvrirFiche(I.p, 'or');
 if (await I.p.$('#fiDemander')) fail('une quatrième demande se propose (trois ouvertes au plus)');
-await fermerTout(I.p);
-await I.p.evaluate(() => { location.hash = '#/echanger'; });
-await I.p.waitForSelector('#ecAmis');
-await I.p.click('#ecAmis');
-await I.p.waitForSelector('[data-ami="AwaAwaAwaAwaAwaAwa01"]');
-await I.p.click('[data-ami="AwaAwaAwaAwaAwaAwa01"]');
+/* la liste des amis vit dans « Mes pistes » (lot 4) */
+const ongletAmis = async p => {
+  await fermerTout(p);
+  await sansAnnuler(p);
+  await p.evaluate(() => { location.hash = '#/pistes'; });
+  await p.waitForSelector('[data-portee="amis"]');
+  await p.click('[data-portee="amis"]');
+  await p.waitForSelector('#piAmis .am-row');
+};
+await ongletAmis(I.p);
+await I.p.click('.am-row[data-ami="AwaAwaAwaAwaAwaAwa01"] .ri-main');
 await I.p.waitForTimeout(300);
 {
   const t = await I.p.evaluate(() => document.querySelector('#amAncien')?.textContent.trim());
   if (t !== 'Rescanne son QR pour lui demander quelqu’un.') fail('l’amie ancienne : ' + t);
 }
 await I.p.screenshot({ path: `${SHOTS}/100-demande-amie-ancienne-pouce.png` });
-await fermerTout(I.p);
-await I.p.click('#ecAmis');
-await I.p.waitForSelector('[data-ami]');
-await I.p.evaluate(() => [...document.querySelectorAll('[data-ami]')].find(b => /Karim/.test(b.textContent)).click());
+await ongletAmis(I.p);
+await I.p.evaluate(() => [...document.querySelectorAll('.am-row')].find(b => /Karim/.test(b.textContent)).querySelector('.ri-main').click());
 await I.p.waitForTimeout(300);
 if (await I.p.$('#amAncien')) fail('un ami qui a une boîte se dit « à rescanner »');
 console.log('⑥ trois demandes au plus, rien sur une piste qui a déjà quelqu’un, l’amie ancienne à rescanner ✓');
@@ -503,6 +504,74 @@ await rouvrir(S2.p);
   if (amis.join() !== 'Inès Martin') fail('chez Sofia, Inès n’est pas dans les amis : ' + amis);
 }
 console.log('⓪ chez Sofia, rajoutée après « Annuler », Inès arrive aussi ✓');
+
+/* ---------- ⓪ ter : le profil se met à jour tout seul (lot 4a) ----------
+   Karim commence un stage chez Thales : chez Inès, sa ligne le dit à la
+   prochaine ouverture, sans que personne rescanne rien. Et une mise à
+   jour ne RAJOUTE jamais un ami qu'on a retiré. */
+const amiChez = (p, nom) => p.evaluate(async n => {
+  const st = await import('./engine/storage.js');
+  return (JSON.parse(await st.kvGet(st.PROFILE_KEY) || '{}').amis || []).find(a => a.nom === n) || null;
+}, nom);
+const majs = async pour => (await deSorte('ami', pour)).filter(x => x.l.motif === 'maj');
+await K.p.evaluate(async () => {
+  const { S, saveProfile } = await import('./ui/state.js');
+  S.profile.parcours = [...(S.profile.parcours || []), { id: 'k9', entreprise: 'Thales', quoi: 'stage', debut: '2026-09', fin: '' }];
+  saveProfile();
+});
+await rouvrir(K.p);
+for (const fin = Date.now() + 30000; Date.now() < fin && !(await majs('I')).length; await new Promise(r => setTimeout(r, 500)));
+{
+  const [x] = await majs('I');
+  if (!x) fail('le parcours de Karim a changé, et aucune mise à jour ne part vers Inès');
+  else {
+    /* la mise à jour porte EXACTEMENT ce que porterait son QR */
+    if (Object.keys(x.l.profil).sort().join(',') !== 'cle,id,kind,nom,parcours,v') fail('la mise à jour porte : ' + Object.keys(x.l.profil));
+    for (const m of ['karim@prive.test', 'note privée de Karim', 'Julie', 'BTS SIO'])
+      if (JSON.stringify(x.l).includes(m)) fail(`la mise à jour laisse sortir « ${m} »`);
+  }
+  if ((await majs('S')).length) fail('la mise à jour de Karim part vers Sofia, qui n’est pas son amie');
+}
+await rouvrir(I.p);
+{
+  let k = null;
+  for (const fin = Date.now() + 15000; Date.now() < fin; await I.p.waitForTimeout(300)){
+    k = await amiChez(I.p, 'Karim Benali');
+    if (k && (k.parcours || []).some(e => e.entreprise === 'Thales')) break;
+  }
+  if (!k || !(k.parcours || []).some(e => e.entreprise === 'Thales')) fail('chez Inès, le parcours de Karim n’a pas suivi : ' + JSON.stringify(k && k.parcours));
+  if ((await I.p.evaluate(async () => { const st = await import('./engine/storage.js');
+        return (JSON.parse(await st.kvGet(st.PROFILE_KEY) || '{}').amis || []).length; })) !== 3)
+    fail('la mise à jour a doublé un ami chez Inès');
+}
+console.log('⓪ Karim change son parcours : chez Inès, sa copie suit à l’ouverture — le QR, rien de plus ✓');
+
+/* Sofia retire Inès ; Inès change ensuite son parcours : la mise à jour
+   part vers Sofia (Inès l'a toujours), et Sofia ne la rajoute PAS */
+await ongletAmis(S2.p);
+await S2.p.click('.am-row .ri-main');
+await S2.p.waitForSelector('.overlay #amRetirer');
+await S2.p.click('.overlay #amRetirer');
+await S2.p.waitForTimeout(300);
+await sansAnnuler(S2.p);
+if (await amiChez(S2.p, 'Inès Martin')) fail('Sofia n’a pas pu retirer Inès');
+const avantS = (await majs('S')).length;
+await I.p.evaluate(async () => {
+  const { S, saveProfile } = await import('./ui/state.js');
+  S.profile.parcours = [...(S.profile.parcours || []), { id: 'i9', entreprise: 'Orange', quoi: 'stage', debut: '2026-05', fin: '2026-06' }];
+  saveProfile();
+});
+await rouvrir(I.p);
+for (const fin = Date.now() + 30000; Date.now() < fin && (await majs('S')).length === avantS; await new Promise(r => setTimeout(r, 500)));
+const majS = (await majs('S')).at(-1);
+if (!majS || (await majs('S')).length === avantS) fail('la mise à jour d’Inès ne part pas vers Sofia : la mesure ne mesure rien');
+await rouvrir(S2.p);
+{
+  /* la relève a bien LU la lettre — sinon « rien ajouté » ne prouverait rien */
+  const lu = majS && await attendreReseau(S2.p, `(e.lus || []).some(x => x.id === ${JSON.stringify(majS.l.id)})`);
+  if (lu && await amiChez(S2.p, 'Inès Martin')) fail('une mise à jour a RAJOUTÉ Inès, que Sofia avait retirée');
+}
+console.log('⓪ une mise à jour ne rajoute jamais un ami retiré ✓');
 
 /* ---------- ⑦ pouce et poste, clair et sombre, 320 px texte doublé ---------- */
 for (const [nom, o] of [['poste', { vp: { width: 1280, height: 800 } }], ['poste-sombre', { vp: { width: 1280, height: 800 }, sombre: true }],

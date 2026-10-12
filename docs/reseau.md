@@ -225,9 +225,12 @@ Chacun se livre dans main, se teste sur le téléphone, et **sert tout seul**
    arrive dans ta piste (aperçu, Annuler) ; le merci. **Livré pour les amis
    (6.55.0)** — voir « Ce que le lot 3 a appris ». Les groupes (décision
    6) suivent : ils demandent un code qu'on garde, donc une clé de plus.
-4. **Les cercles 2 et 3.** La transmission automatique, le numéro de
-   cercle, les doublons (une demande arrivée par deux amis ne sonne qu'une
-   fois), l'expiration, le merci à toute la chaîne.
+4. **L'onglet « Amis », puis les cercles 2 et 3.** 4a : la liste des
+   amis dans « Mes pistes », triée comme les pistes, les profils à jour
+   tout seuls, « À découvrir » réchauffé — **livré (6.56.0)**, voir « Ce
+   que le lot 4a a appris ». 4b : la transmission automatique, le numéro
+   de cercle, les doublons (une demande arrivée par deux amis ne sonne
+   qu'une fois), l'expiration, le merci à toute la chaîne.
 5. **Plus tard, à décider : le fil du groupe.** Voir plus bas.
 
 Place dans la feuille de route : après la barre de recherche, qui mène aux
@@ -425,6 +428,158 @@ note ; la lettre ouverte avec la clé de son destinataire ne porte que ce
 que la règle 3 permet ; le don, que de quoi joindre le contact. Et six
 auto-tests (`?test`).
 
+## Lot 4 — l'onglet « Amis » et les sauts (concept, 7 octobre 2026)
+
+**La demande du mainteneur, mot pour mot** : « Traiter les amis de la même
+façon que les pistes, dans le même onglet, à côté de À découvrir. Une liste,
+avec la possibilité de trier, tout comme les pistes. » Puis, en tranchant :
+« Il ne faut pas oublier que le principe est basé sur les sauts. Moi j'ai un
+ami avec des entreprises, mais peut-être que lui ne connaît pas ce que je
+cherche, mais possède un ami qui, lui, possède. C'est ça le but : trouver
+des contacts quand on n'a pas forcément beaucoup de connaissances. »
+
+### Ce que disent les sources
+
+- **Des onglets voisins montrent des choses de même nature** (NN/g,
+  *Tabs, Used Right*) — sinon on les lit comme de la navigation. « Mes
+  pistes » et « À découvrir » montrent des entreprises : un onglet de
+  prénoms casserait la rangée. L'onglet « Amis » doit donc répondre à la
+  MÊME question que ses voisins — **où trouver une entreprise ?** — et
+  chaque ligne dit ce que l'ami t'ouvre, pas seulement qui il est.
+- **C'est une barre de portée, pas une navigation** : la rangée s'appelle
+  déjà « Où chercher ». Apple accepte jusqu'à cinq segments sur iPhone.
+  Mesuré : « Mes pistes · À découvrir 12 · Amis 3 » tient en 320 px à
+  100 % et à 125 % ; à texte doublé la rangée se replie (WCAG 1.4.10).
+- **LinkedIn** trie ses relations par « Récemment ajouté », « Prénom »,
+  « Nom » ; son outil Alumni les filtre par « Où ils travaillent »,
+  « Ce qu'ils font », « Où ils vivent ». Notre tri ajoute celui qui sert la
+  recherche : **« Pour toi »**.
+- **Les outils de chemins d'introduction** (Village, The Swarm) montrent
+  le chemin le plus chaud vers une entreprise, au 1er, 2e et 3e degré, et
+  le 2e degré y est le meilleur compromis entre portée et chaleur — 5 à
+  10 fois plus de réponses qu'à froid.
+- **Une chaîne qu'on fait suivre à la main meurt** : 1,6 % des chaînes de
+  l'expérience de Watts sont arrivées (Dodds, Muhamad et Watts, 2003).
+  D'où la transmission AUTOMATIQUE.
+- **On remercie toute la chaîne** (MIT, 2009 : la récompense se partageait
+  en remontant les liens, et dix ballons ont été trouvés en neuf heures).
+- **On ne donne jamais le moyen de joindre quelqu'un sans son accord**
+  (Fred Wilson, *the double opt-in introduction*, 2009).
+
+### 4a — L'onglet « Amis »
+
+- **Une portée de plus sous la barre** : « Mes pistes · À découvrir ·
+  Amis ». Le compte d'« Amis » se remplit pendant la frappe, comme celui
+  d'« À découvrir » : taper « Thales » rend « Amis 1 » si Karim y est passé.
+- **Une ligne = un ami, et ce qu'il t'ouvre.** Le prénom en tête (§6 :
+  la tête porte l'attribut distinctif), puis la sous-ligne, du plus utile
+  au moins utile — elle s'élide par la fin : « y est en alternance · Aztek
+  (dans tes pistes) · Quick ». Un ami qui ne t'ouvre rien encore se lit
+  « parcours vide » et descend.
+- **Le tri, comme les pistes** (`ui/sort.js`, dans « Affiner ») :
+  **Pour toi** par défaut — d'abord celui qui porte le plus de tes pistes
+  ouvertes, puis celui qui y est MAINTENANT, puis celui qui t'ouvre le plus
+  d'entreprises ; **Récents** ; **A → Z**. Re-taper revient au défaut.
+- **Les mêmes gestes qu'une piste** : un tap ouvre sa fiche (qui existe :
+  ses entreprises mènent à ta piste ou s'y ajoutent d'un tap) ; glisser
+  retire, avec « Annuler » ; au poste, la fiche vit à côté de la liste
+  (liste-détail, comme « À découvrir »).
+- **Une liste, une place** : « Échanger » garde les gestes d'échange
+  (« Mon QR », « Scanner ») ; la LISTE vit dans « Mes pistes ».
+- **Les profils restent à jour tout seuls** : quand ton parcours change,
+  tes amis reçoivent la nouvelle version par la boîte aux lettres. Une
+  mise à jour ne fait que remplacer — elle ne rajoute jamais quelqu'un
+  qu'on a retiré.
+- **« À découvrir » réchauffé** : une entreprise de l'annuaire où un ami
+  est passé dit « Karim y est en alternance » en accent et passe en tête —
+  le 40 pour 1, appliqué à l'annuaire.
+
+### 4b — Les sauts
+
+*Tom cherche quelqu'un chez Aztek. Tom et Léa sont amis, Léa et Karim
+aussi, Karim et Sofia aussi. Sofia y est en alternance.*
+
+1. **Tom demande depuis sa fiche** (lot 3). La lettre part au cercle 1 —
+   Léa.
+2. **Le téléphone de Léa, sans rien lui montrer**, regarde ce que LÉA
+   peut donner : son propre parcours (« j'y suis ») et ses contacts (lot 3).
+   Elle ne trouve rien : rien ne s'affiche chez elle (règle 6). **La
+   demande passe d'elle-même** au cercle 2 — Karim —, marquée « par Léa ».
+3. **Karim non plus.** La demande passe au cercle 3 — Sofia —, marquée
+   « par Karim ». Au-delà, rien.
+4. **Le téléphone de Sofia trouve : elle y est.** « Tes amis » lui dit :
+   « Tom, par Karim, cherche quelqu'un chez Aztek — tu y es en alternance ».
+   Un seul oui, le sien — « Il peut m'écrire » —, et ce qui part est ce
+   qu'elle voit : son nom et le moyen qu'elle choisit. Personne d'autre
+   n'a été dérangé.
+5. **La réponse va droit à Tom.** Elle porte le chemin en jetons
+   opaques : Tom lit « Sofia Haddad, y est en alternance · par Léa » — Léa
+   est son amie ; Karim, qu'il ne connaît pas, n'est pas nommé (règle 4).
+6. **Toute la chaîne est remerciée** : le merci de Tom remonte jeton par
+   jeton — Léa puis Karim apprennent qu'ils ont aidé, Sofia est remerciée.
+
+Ce qui ne se fait **jamais**, et pourquoi :
+
+- **Un téléphone ne répond qu'avec ce que SON propriétaire peut donner.**
+  Le parcours de Sofia, que Karim a reçu, ne sert pas à répondre à Tom :
+  ce serait donner où travaille Sofia à un inconnu sans son accord (double
+  accord). C'est le téléphone de Sofia qui répond, quand la demande lui
+  arrive. **Ceci corrige le tableau « Où l'app cherche » plus haut**, qui
+  faisait lire le parcours du cercle 2 par les téléphones du cercle 1 :
+  plus lent d'un saut, mais personne n'est montré sans l'avoir dit.
+- **Aucun carnet ne voyage** : les profils ne se redonnent jamais (règle
+  1) ; c'est la QUESTION qui voyage, de boîte en boîte.
+- **Personne n'apprend qui est au bout** sauf par son oui : les maillons
+  du milieu ne voient rien (règle 6) et ne sont pas consultés (décision 7) ;
+  chacun peut couper le passage pour lui, dans ses réglages.
+
+Les limites, toutes vérifiées par chaque téléphone qui fait suivre, pas
+seulement par celui qui demande : **trois cercles** ; **14 jours** ;
+**trois demandes ouvertes** par personne ; **20 amis au plus** par saut ;
+une demande arrivée par deux chemins ne sonne **qu'une fois**.
+
+## Ce que le lot 4a a appris (6.56.0)
+
+Livré à peu près tel que le concept le disait ; ce qui a bougé l'a fait
+pour une raison qui vaut d'être écrite.
+
+- **Une fuite, trouvée par le garde avant l'utilisateur.** La barre est
+  l'endroit où l'on TAPE le nom d'un ami pour le retrouver — et la même
+  barre questionne l'annuaire public après une pause. « Benali » partait
+  vers data.gouv.fr. `motsInterdits` connaissait les contacts, les notes,
+  le groupe, le profil : pas les amis, qui n'existaient pas quand il a
+  été écrit. **Toute donnée neuve qu'on peut taper dans la barre se
+  demande : part-elle vers l'annuaire ?** Le garde (`e2e-amis-onglet.mjs`
+  ①) lit chaque requête, depuis les deux portées, et une question qui ne
+  contenait QUE le nom ne part pas du tout.
+- **Le titre ne change pas avec l'onglet.** Une première version écrivait
+  « Mes pistes · 4 amis » : ce qui vit au-dessus des onglets les
+  surplombe tous (NN/g, *Tabs Used Right*), et le titre se lisait de
+  travers. Il compte les pistes, comme dans « À découvrir » ; ce que la
+  barre garde chez les amis se voit dans l'onglet et s'entend.
+- **Le bouton de la barre dit son geste.** Chez les amis il n'y a rien à
+  filtrer, seulement à trier : « Affiner » devient « Trier » et ouvre les
+  trois critères. Pas un « Affiner » qui ouvrirait un écran à moitié vide.
+- **La sous-ligne parle en entreprises, pas en verbes.** Le concept
+  voulait « y est en alternance · Aztek (dans tes pistes) · Quick ». Mais
+  c'est la fiche de l'ami qui dit ce qu'il y a fait ; la LIGNE sert à
+  choisir, et ce qui fait choisir est l'entreprise qui est dans tes pistes
+  — « Aztek, dans tes pistes · Quick », l'accent sur ce qui sert. « Parcours
+  vide » est devenu « aucune entreprise » : un mot de tous les jours.
+- **Une piste close ne compte pas.** Tom a fait son stage chez Thales ;
+  Inès a clos Thales. Lui dire « dans tes pistes » la pousserait vers une
+  porte qu'elle a fermée.
+- **Le clavier perdait le focus, au poste.** La fiche suit la ligne visée
+  (liste-détail) ; viser redessine la vue, et le focus était rendu à la
+  ligne de l'ANCIENNE vue, sortie du document. Le garde jouait ↓ ↑ Échap :
+  il l'a vu. Il faut chercher la ligne neuve dans le document, jamais
+  dans la boîte qu'on vient de remplacer.
+- **Une mise à jour ne rajoute personne.** Le profil change → il repart
+  en `maj` vers les amis qui ont une boîte. Chez qui m'a retiré, la lettre
+  arrive quand même (je ne le sais pas, et personne n'est prévenu d'un
+  retrait) : elle ne fait que remplacer un ami DÉJÀ là, sinon elle se
+  tait. Joué à trois, mutation à l'appui.
+
 ## Comment on saura que c'est juste
 
 **Le moteur** (`tests.js`, `?test`) :
@@ -486,6 +641,17 @@ auto-tests (`?test`).
     contact d'un ami, l'autre le récupère lui aussi »). Inès scanne le QR
     de Karim : Karim reçoit le profil d'Inès par la boîte aux lettres,
     sans un geste. Un seul scan suffit.
+
+13. **Les amis vivent dans « Mes pistes »**, une portée à côté de
+    « À découvrir ». Une ligne = l'ami et ce qu'il t'ouvre ; la barre
+    cherche aussi dans leurs entreprises.
+14. **Tri par défaut : « Pour toi »** — puis « Récents », « A → Z ».
+15. **« Échanger » garde « Mon QR » et « Scanner »** ; la liste vit dans
+    « Mes pistes ». Une liste, une place.
+16. **Dans le même lot** : les profils à jour tout seuls, « À découvrir »
+    réchauffé, retirer au glissé, la liste-détail au poste.
+17. **Les sauts sont le but** : trouver des contacts quand on n'a pas
+    beaucoup de connaissances. Cercles 2 et 3, transmis tout seuls.
 
 ## Encore à trancher
 

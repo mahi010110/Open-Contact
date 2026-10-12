@@ -50,10 +50,11 @@ import { dueFollowups, contactFromSignature, exchangeLog, exchangeTotals, nextAc
 import { rappelICS, lienAgendaGoogle, formeAgenda, RAPPEL_HEURE } from './engine/agenda.js';
 import { normalizeParcours, parcoursDe, periodeParcours, phraseParcours, PARCOURS_MAX } from './engine/parcours.js';
 import { nouvelIdAmi, idAmiValide, cleEntreprise, memeEntreprise, profilDonne, normalizeAmi, normalizeAmis,
-         statutAmi, ajouterAmi, retirerAmi, prenomAmi, enCours, direExperience, portesAmis, AMIS_MAX } from './engine/amis.js';
+         statutAmi, ajouterAmi, retirerAmi, prenomAmi, enCours, direExperience, portesAmis, AMIS_MAX,
+         ceQuOuvre, classerAmis, chercherAmis, TRIS_AMIS } from './engine/amis.js';
 import { nouvelleCle, boiteValide, cleValide, etiquetteBoite, sceller, ouvrir, lettreDemande, lettreDon, lettreMerci, lettreAmi,
          contactDonne, normaliserLettre, contactsPour, etatVide, normaliserEtat, elaguer, peutDemander,
-         demandeDePiste, traiterLettre, DEMANDE_JOURS, DEMANDES_OUVERTES_MAX } from './engine/boite.js';
+         demandeDePiste, traiterLettre, empreinteProfil, DEMANDE_JOURS, DEMANDES_OUVERTES_MAX } from './engine/boite.js';
 import { interpreter, retirer, remplacer, chercherPistes, raisonDe, propositions, elargir,
          contexteRecherche, porteurs, deptDuCp, villeFrequente, deptDePiste, zoneDe, metierDuMoment,
          fraicheur, METIER, metierDuProfil, villeConnue, lieuDuProfil, metierEtiquetteDuProfil, rayonDe,
@@ -1242,6 +1243,14 @@ export async function runSelfTests(){
       ok(/q=cyber/.test(parts('cyber')));
       /* le mot privé part seul, le reste de la question reste */
       ok(/departement=59/.test(parts('Marchand lille')) && !/marchand/i.test(parts('Marchand lille')));
+      /* UN AMI est une personne : son nom ne part jamais (lot 4 — le nom
+         de famille, tapé seul dans la portée « Amis », partait) ; les
+         entreprises de son parcours, elles, sont des entreprises */
+      const avecAmis = motsInterdits(L, [], { name: 'Inès Martin', amis: [{ nom: 'Karim Benali', parcours: [{ entreprise: 'Aztek' }] }] });
+      const partsA = q => questionsAnnuaire(interpreter(q, ctx), { interdits: avecAmis }).join(' ');
+      eq(partsA('Benali'), '');
+      ok(!/benali/i.test(partsA('Benali lille')));
+      ok(/q=aztek/i.test(partsA('Aztek')));
     },
     'annuaire : la question — le métier en codes, le lieu, la taille, et rien sans texte ni lieu': () => {
       const ctx = { today: '2026-10-01', villes: [], prenoms: [] };
@@ -2241,6 +2250,63 @@ export async function runSelfTests(){
       const e = normaliserEtat({ envois: [{ id: 'envoi12345', cle: karim.pub, lettre: l, exp: now + 864e5 }, { id: 'x', cle: 'court' }] });
       eq(e.envois.length, 1);
       eq(elaguer(e, now + 2 * 864e5).envois, []);
+    },
+    'amis : l’onglet — ce qu’un ami t’ouvre, le tri « Pour toi », la recherche par entreprise': () => {
+      const today = '2026-10-07';
+      const pistes = [normalizeCompany({ id: 'az', name: 'AZTEK SAS' }), normalizeCompany({ id: 'th', name: 'Thales' }),
+                      normalizeCompany({ id: 'old', name: 'Quick', closedReason: 'rejected' })];
+      const karim = normalizeAmi({ id: nouvelIdAmi(), nom: 'Karim Benali', recu: 1, parcours: [
+        { entreprise: 'Quick', quoi: 'emploi', debut: '2024-06', fin: '2024-08' },
+        { entreprise: 'Aztek', quoi: 'alternance', debut: '2025-09', fin: '' }] });
+      const sofia = normalizeAmi({ id: nouvelIdAmi(), nom: 'Sofia Haddad', recu: 3, parcours: [
+        { entreprise: 'Sopra Steria', quoi: 'stage', debut: '2025-04', fin: '2025-06' },
+        { entreprise: 'Société Générale', quoi: 'stage', debut: '2024-05', fin: '2024-07' },
+        { entreprise: 'Orange', quoi: 'emploi', debut: '2023-01', fin: '2023-06' }] });
+      const awa = normalizeAmi({ id: nouvelIdAmi(), nom: 'Awa Diallo', recu: 2, parcours: [] });
+      /* ce qu'il t'ouvre : tes pistes OUVERTES d'abord (Quick est clôturée) */
+      const o = ceQuOuvre(karim, pistes, today);
+      eq(o.lignes.map(l => l.entreprise), ['Aztek', 'Quick']);
+      eq(o.lignes[0].pisteId, 'az'); eq(o.lignes[1].pisteId, null);
+      eq(o.pistes, 1); ok(o.enCours);
+      eq(ceQuOuvre(awa, pistes, today).lignes, []);
+      /* « Pour toi » : qui porte tes pistes, puis qui t'ouvre le plus ; un
+         re-tap inverse ; « Récents » et « A → Z » sont ceux de LinkedIn */
+      const noms = l => l.map(x => x.a.nom.split(' ')[0]);
+      eq(noms(classerAmis([sofia, awa, karim], pistes, today)), ['Karim', 'Sofia', 'Awa']);
+      eq(noms(classerAmis([sofia, awa, karim], pistes, today, 'pour', 'asc')), ['Awa', 'Sofia', 'Karim']);
+      eq(noms(classerAmis([sofia, awa, karim], pistes, today, 'recent')), ['Sofia', 'Awa', 'Karim']);
+      eq(noms(classerAmis([sofia, awa, karim], pistes, today, 'az')), ['Awa', 'Karim', 'Sofia']);
+      eq(noms(classerAmis([sofia, karim], pistes, today, 'inconnu')), ['Karim', 'Sofia']);
+      eq(Object.keys(TRIS_AMIS), ['pour', 'recent', 'az']);
+      /* chercher : le nom, et les entreprises où ils sont passés, accents
+         pliés, chaque mot pour lui-même, les mots de liaison ne cherchent rien */
+      const tous = classerAmis([sofia, awa, karim], pistes, today);
+      eq(noms(chercherAmis(tous, 'aztek')), ['Karim']);
+      eq(noms(chercherAmis(tous, 'societe generale')), ['Sofia']);
+      eq(noms(chercherAmis(tous, 'chez Sopra')), ['Sofia']);
+      eq(noms(chercherAmis(tous, 'ben')), ['Karim']);
+      eq(noms(chercherAmis(tous, 'alternance')), ['Karim']);
+      eq(chercherAmis(tous, 'lille'), []);
+      eq(noms(chercherAmis(tous, '')), ['Karim', 'Sofia', 'Awa']);
+    },
+    'boîte : une mise à jour de profil ne rajoute jamais un ami retiré': async () => {
+      const k = await nouvelleCle(), now = Date.parse('2026-10-07T12:00:00Z');
+      const p = normalizeProfile({ name: 'Inès Martin', amiId: nouvelIdAmi(), boite: k });
+      const maj = normaliserLettre(lettreAmi({ prenom: 'Inès', cle: k.pub }, profilDonne(p, []), 'maj'), now);
+      eq(maj.motif, 'maj');
+      eq(normaliserLettre(lettreAmi({ prenom: 'Inès', cle: k.pub }, profilDonne(p, [])), now).motif, 'ajout');
+      eq(normaliserLettre({ ...lettreAmi({ prenom: 'Inès', cle: k.pub }, profilDonne(p, [])), motif: 'autre' }, now).motif, 'ajout');
+      /* chez Karim : Inès n'est pas (plus) là → la mise à jour est « nouveau »,
+         donc l'écran l'ignore ; Inès est là → « maj », elle remplace */
+      eq(statutAmi([], maj.profil, 'x'), 'nouveau');
+      const ancienne = normalizeAmi({ ...maj.profil, parcours: [] });
+      eq(statutAmi([ancienne], normalizeAmi({ ...maj.profil, parcours: [{ entreprise: 'Thales', quoi: 'stage' }] }), 'x'), 'maj');
+      /* l'empreinte d'un profil : la même pour le même, autre sinon */
+      const e1 = await empreinteProfil(profilDonne(p, [])), e2 = await empreinteProfil(profilDonne(p, []));
+      eq(e1, e2); ok(/^[0-9a-f]{32}$/.test(e1));
+      ok(e1 !== await empreinteProfil({ ...profilDonne(p, []), nom: 'Autre' }));
+      eq(normaliserEtat({ profilEnvoye: e1 }).profilEnvoye, e1);
+      eq(normaliserEtat({ profilEnvoye: 'pas une empreinte' }).profilEnvoye, undefined);
     },
     'boîte : la clé suit le profil, part dans le QR, et un ami ancien n’en a pas': async () => {
       const b = await nouvelleCle();

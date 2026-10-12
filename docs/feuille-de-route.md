@@ -307,7 +307,14 @@ entreprise parmi ses amis, ses groupes et leurs amis, trois cercles au plus.
    mes amis » sur la fiche, « Tes amis » en tête d'« Aujourd'hui » chez qui
    connaît quelqu'un, le contact par un aperçu, le merci. Les groupes
    (un code qu'on garde) suivent.
-4. Les amis de ses amis, jusqu'au troisième cercle.
+   **Et la liste (6.56.0)** : les amis se lisent comme les pistes, en
+   troisième portée de « Mes pistes » à côté de « À découvrir » — ce que
+   chacun t'ouvre, trié « Pour toi », retiré au glissé ; leurs profils
+   restent à jour tout seuls, et « À découvrir » fait passer devant les
+   entreprises où l'un d'eux est passé.
+4. Les amis de ses amis, jusqu'au troisième cercle — **le prochain lot**
+   (docs/reseau.md, 4b) : la question passe d'elle-même de boîte en boîte,
+   et seul le téléphone de qui peut répondre se montre.
 
 **Mis de côté, à reprendre** — [`frictions.md`](frictions.md) : les trois
 plus grosses frictions selon le mainteneur (entrer les pistes, écrire les

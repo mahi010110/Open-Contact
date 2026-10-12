@@ -143,8 +143,13 @@ export function lettreDon({ prenom, cle }, demande, ct){
 }
 /* le profil que je DONNE à qui je viens d'ajouter : `profil` est ce que
    rend `profilDonne` (amis.js), et rien d'autre ne s'y ajoute */
-export function lettreAmi({ prenom, cle }, profil){
-  return { v: 1, t: 'ami', id: nouvelId(), de: { prenom: txt(prenom, 40), cle }, profil };
+/* `motif` : « ajout » quand je viens de t'ajouter (tu m'ajoutes en
+   retour), « maj » quand mon parcours a changé (tu me mets à jour SI je
+   suis déjà dans tes amis — une mise à jour ne rajoute jamais quelqu'un
+   qu'on a retiré) */
+export function lettreAmi({ prenom, cle }, profil, motif = 'ajout'){
+  return { v: 1, t: 'ami', id: nouvelId(), motif: motif === 'maj' ? 'maj' : 'ajout',
+           de: { prenom: txt(prenom, 40), cle }, profil };
 }
 export function lettreMerci({ prenom, cle }, don){
   return { v: 1, t: 'merci', id: nouvelId(), demande: don.demande, de: { prenom: txt(prenom, 40), cle },
@@ -164,7 +169,7 @@ export function normaliserLettre(o, now = Date.now()){
     const a = normalizeAmi(o.profil);
     if (!a || a.cle !== de.cle) return null;
     delete a.recu;
-    return { t: 'ami', id: o.id, de, profil: a };
+    return { t: 'ami', id: o.id, motif: o.motif === 'maj' ? 'maj' : 'ajout', de, profil: a };
   }
   const entreprise = entrepriseDe(o.entreprise);
   if (!entreprise.nom) return null;
@@ -207,15 +212,24 @@ export function contactsPour(companies, entreprise, max = 3){
    mercis. Un repère d'appareil, comme « nouveau » dans « À découvrir » :
    ni sync, ni copie, ni partage. */
 export function etatVide(){ return { v: 1, depuis: 0, demandes: [], recues: [], dons: [], mercis: [], lus: [], envois: [] }; }
+/* l'empreinte d'un profil donné : savoir s'il a changé sans le garder */
+export async function empreinteProfil(profil){
+  const h = new Uint8Array(await crypto.subtle.digest('SHA-256', enc(JSON.stringify(profil))));
+  return [...h.subarray(0, 16)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
 export function normaliserEtat(e){
   const x = e && typeof e === 'object' ? e : {};
   const liste = (l, max = 200) => (Array.isArray(l) ? l : []).filter(y => y && typeof y === 'object' && ID.test(String(y.id || ''))).slice(-max);
   /* `lus` : les profils déjà reçus (une lettre relue ne rajoute pas un ami
      qu'on a retiré) ; `envois` : ce qui n'a pas pu partir faute de réseau,
      et repart à la prochaine relève */
-  return { v: 1, depuis: Number(x.depuis) || 0, demandes: liste(x.demandes), recues: liste(x.recues),
+  /* `profilEnvoye` : l'empreinte du dernier profil donné à tous mes amis —
+     quand elle change, ils reçoivent la nouvelle version (lot 4) */
+  const out = { v: 1, depuis: Number(x.depuis) || 0, demandes: liste(x.demandes), recues: liste(x.recues),
            dons: liste(x.dons), mercis: liste(x.mercis), lus: liste(x.lus),
            envois: liste(x.envois, 50).filter(y => cleValide(y.cle) && y.lettre && typeof y.lettre === 'object') };
+  if (/^[0-9a-f]{16,64}$/.test(String(x.profilEnvoye || ''))) out.profilEnvoye = x.profilEnvoye;
+  return out;
 }
 /* au-delà de 30 jours, on oublie : une demande vit 14 jours */
 export function elaguer(e, now = Date.now()){
