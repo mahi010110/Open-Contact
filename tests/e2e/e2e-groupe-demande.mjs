@@ -118,6 +118,15 @@ const ouvrirFiche = async (p, id) => {
 const pied = p => p.evaluate(() => [...[...document.querySelectorAll('.overlay:not(.ov-out)')].pop().querySelectorAll('.modal-f .btn')]);
 const cliquerPied = (p, mot) => p.evaluate(m => [...[...document.querySelectorAll('.overlay:not(.ov-out)')].pop()
   .querySelectorAll('.modal-f .btn')].find(b => b.textContent.trim() === m).click(), mot);
+/* « Répondre » sur la demande qui parle de `motif` — et si elle n'en a
+   plus, dire POURQUOI au lieu de planter : dans un groupe, chacun relaie
+   à son tour, un téléphone ne fait jamais suivre tout seul */
+const repondreA = async (p, motif) => {
+  const etat = await p.evaluate(m => { const li = [...document.querySelectorAll('.gr-dem')].find(x => x.textContent.includes(m));
+    if (!li) return 'absente'; const b = li.querySelector('[data-repondre]'); if (!b) return li.innerText.replace(/\s+/g, ' ').trim(); b.click(); return ''; }, motif);
+  if (etat) fail(`pas de « Répondre » sur ${motif} : « ${etat} » — le téléphone a-t-il fait suivre tout seul ?`);
+  return !etat;
+};
 const lignes = (p, sel) => p.evaluate(s => [...document.querySelectorAll(s + ' .gr-dem')].map(li => li.innerText.replace(/\s+/g, ' ').trim()), sel);
 
 /* chacun ouvre l'app une fois : sa présence est dans le groupe */
@@ -210,7 +219,7 @@ await I.p.waitForSelector('#fiDemande', { timeout: 15000 });
 await rouvrir(Ka.p);
 await ouvrirGroupe(Ka.p, 'BTS SIO Lille');
 await attendreQue(Ka.p, () => /Thales/.test(document.querySelector('#grFil')?.textContent || ''), null, 20000, 'la demande Thales chez Karim');
-await Ka.p.evaluate(() => [...document.querySelectorAll('#grFil .gr-dem')].find(li => /Thales/.test(li.textContent)).querySelector('[data-repondre]').click());
+await repondreA(Ka.p, 'Thales');
 await Ka.p.waitForSelector('#rpSuivre');
 if (await Ka.p.$('#rpDonner')) fail('« Donner » proposé chez Karim pour Thales, où il n’a personne');
 await Ka.p.click('#rpSuivre');
@@ -240,7 +249,7 @@ await rouvrir(So.p);
 await ouvrirGroupe(So.p, 'BTS SIO Lille');
 await attendreQue(So.p, () => document.querySelectorAll('#grFil .gr-dem').length === 2, null, 20000, 'les deux demandes chez Sofia');
 if (await So.p.$('#grEnTete')) fail('chez Sofia, qui ne connaît personne, une demande est passée en tête');
-await So.p.evaluate(() => [...document.querySelectorAll('#grFil .gr-dem')].find(li => /Aztek/.test(li.textContent)).querySelector('[data-repondre]').click());
+await repondreA(So.p, 'Aztek');
 await So.p.waitForSelector('#rpConnais');
 if (await So.p.$('#rpDonner')) fail('« Donner » chez Sofia, qui n’a personne chez Aztek');
 await So.p.click('#rpConnais');
@@ -259,7 +268,7 @@ await attendreQue(So.p, () => [...document.querySelectorAll('#grFil .gr-dem')].s
 console.log('④ chez Sofia : la demande dans le fil, pas en tête ; « Je connais quelqu’un » — un nom, un téléphone — puis « Donné » ✓');
 
 /* ⑤ bis : Sofia fait suivre « Thales » à ses amis (Léa) */
-await So.p.evaluate(() => [...document.querySelectorAll('#grFil .gr-dem')].find(li => /Thales/.test(li.textContent)).querySelector('[data-repondre]').click());
+await repondreA(So.p, 'Thales');
 await So.p.waitForSelector('#rpSuivre');
 await So.p.click('#rpSuivre');
 await So.p.waitForSelector('#rpAmis');
@@ -289,7 +298,7 @@ await I.p.waitForSelector('#fiDemande', { timeout: 15000 });
 await rouvrir(So.p);
 await ouvrirGroupe(So.p, 'BTS SIO Lille');
 await attendreQue(So.p, () => /Capgemini/.test(document.querySelector('#grFil')?.textContent || ''), null, 20000, 'Capgemini chez Sofia');
-await So.p.evaluate(() => [...document.querySelectorAll('#grFil .gr-dem')].find(li => /Capgemini/.test(li.textContent)).querySelector('[data-repondre]').click());
+await repondreA(So.p, 'Capgemini');
 await So.p.waitForSelector('#rpMasquer');
 await So.p.click('#rpMasquer');
 await attendreQue(So.p, () => !/Capgemini/.test(document.querySelector('#grFil')?.textContent || ''), null, 8000, 'Capgemini masquée');

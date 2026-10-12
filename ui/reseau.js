@@ -221,6 +221,22 @@ export async function reprendreMonProfil(ami){
   etat = { ...etat, envois: (etat.envois || []).filter(x => x.cle !== (ami && ami.cle)) };
   await sauver();
 }
+/* UNE LETTRE QUI NE DOIT PAS SE PERDRE (« trouvé ») : elle entre dans la
+   file AVANT de partir et n'en sort qu'une fois partie. Une app fermée
+   au mauvais instant — juste après avoir noté la demande, avant d'avoir
+   écrit — la renvoie à la relève suivante ; sans ça, la demande étant
+   déjà notée, personne ne la réécrivait jamais (e2e-groupe-demande). */
+async function envoyerSur(cle, lettre, exp){
+  const x = { id: nouvelIdAmi().slice(0, 16), cle, lettre, quand: Date.now(), exp };
+  etat = { ...etat, envois: [...(etat.envois || []), x] };
+  await sauver();
+  const n = await ecrire(cle, lettre, exp).catch(() => 0);
+  if (n){
+    etat = { ...etat, envois: (etat.envois || []).filter(y => y.id !== x.id) };
+    await sauver();
+  }
+  return n;
+}
 async function renvoyer(){
   const reste = [];
   for (const x of etat.envois || []){
@@ -331,7 +347,7 @@ export function relever(){
       }
       /* PRÉVENU TOUT DE SUITE (décision 18) : qui demande sait qu'on a
          trouvé, sans savoir qui — le contact suivra le oui */
-      if (r.quoi === 'demande') await ecrire(l.de.cle, lettreTrouve(l), l.exp).catch(() => 0);
+      if (r.quoi === 'demande') await envoyerSur(l.de.cle, lettreTrouve(l), l.exp);
       if (r.quoi === 'suivre') await faireSuivre(l);
       if (r.quoi === 'trouve') await nommerTrouve(l);
       if (r.quoi === 'don') await nommerDon(l);
@@ -569,7 +585,7 @@ export async function recevoirDemandeGroupe(l, code, nomGroupe){
   await sauver();
   /* prévenu tout de suite, sans dire qui (décision 18) */
   if (r.quoi === 'demande'){
-    await ecrire(l.de.cle, lettreTrouve(l, { groupe: true }), l.exp).catch(() => 0);
+    await envoyerSur(l.de.cle, lettreTrouve(l, { groupe: true }), l.exp);
     bus.refresh();
   }
   return r.quoi;
