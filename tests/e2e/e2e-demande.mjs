@@ -264,7 +264,8 @@ await I.p.waitForSelector('#dmGo');
   const mot = await I.p.evaluate(() => document.querySelector('#dmMot').textContent.trim());
   const qui = await I.p.evaluate(() => document.querySelector('#dmQui').textContent.replace(/\s+/g, ' ').trim());
   if (mot !== 'Inès cherche quelqu’un chez Aztek.') fail('la phrase qui part : « ' + mot + ' »');
-  if (qui !== 'Karim · Sofia') fail('à qui elle part : « ' + qui + ' » (Awa, sans boîte, ne doit pas y être)');
+  /* elle va aussi plus loin que tes amis (lot 4b) : ça se dit AVANT */
+  if (qui !== 'Karim · Sofia, puis leurs amis') fail('à qui elle part : « ' + qui + ' » (Awa, sans boîte, ne doit pas y être)');
   if ((await deSorte('demande')).length) fail('une lettre est partie AVANT « Demander »');
 }
 await I.p.waitForTimeout(400);
