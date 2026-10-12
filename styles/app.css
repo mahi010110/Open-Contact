@@ -168,6 +168,18 @@ input,select,textarea{font-family:inherit;color:var(--text-body)}
 }
 .bn-add:active{box-shadow:var(--bevel-down);transform:translate(1px,1px)}
 .app{padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom))}
+/* FENÊTRE MOYENNE (600-900 px : une tablette en portrait, un téléphone
+   pliant ouvert, une fenêtre de poste rétrécie). Material 3 la nomme
+   « medium » et n'y étire plus la barre du téléphone ; l'iPad resserre
+   la sienne au centre. Étirée sur 768 px, chaque onglet faisait 150 px,
+   l'onglet allumé devenait un bloc navy de 170 px, et le « + » flottait
+   seul au milieu d'une bande vide. Les onglets gardent ici une largeur
+   de TÉLÉPHONE, en `rem` pour suivre la police, et la barre se centre :
+   la même rangée sous le même pouce, quelle que soit la largeur. */
+@media (min-width:600px) and (max-width:900px){
+  .bottomnav{justify-content:center}
+  .bottomnav a{flex:0 1 7.5rem}
+}
 @media (min-width:901px){
   .bottomnav{display:none}
   .app{padding-bottom:0}
@@ -769,18 +781,29 @@ html[data-theme="dark"] .field select{
   }
   .td-under .td-triage{width:auto}
   .td-under .td-foot{margin-top:0}
-  /* Le pied se dockait déjà en bas au pouce (voir plus haut) ; au poste
-     il restait collé sous la colonne la plus longue, avec 364 px de vide
-     dessous — l'écran s'arrêtait à 53 % de sa hauteur. Même recette que
-     « Échanger » : la page prend la vue, le tableau prend la région, le
-     pied se pose en bas. Journée chargée, `margin-top:auto` ne prend que
-     la place qui reste. */
-  #view-aujourdhui>.page-inner{display:flex;flex-direction:column;min-height:100%}
-  /* `flex:1` (donc `1 1 0%`) laisserait le tableau RÉTRÉCIR sous son
-     contenu une journée chargée. `1 0 auto` ne fait que prendre la place
-     libre : il grandit, il ne comprime jamais. */
-  #view-aujourdhui>.page-inner>.td-board{flex:1 0 auto}
-  #view-aujourdhui>.page-inner>.td-under{margin-top:auto}
+  /* AU POSTE, LE TABLEAU PREND LA HAUTEUR DE SA JOURNÉE (audit
+     adaptatif, octobre 2026). Il s'étirait jusqu'au bas de la vue pour
+     que le pied s'y pose : relevé en 1280 × 800, trois cadres de 600 px
+     pour UNE carte chacun — 85 % de chaque cadre vide, et c'est le vide
+     qui portait l'encre (bordure, relief, fond). Au pouce, le pied
+     descend parce que la main est en bas (§5) ; une souris n'a pas de
+     zone facile, et un cadre vide n'est pas une place qui a un
+     propriétaire, c'est un manque qu'on encadre. Les tableaux de
+     référence font pareil : une colonne de Trello ou de Notion s'arrête
+     sous sa dernière carte. Le pied SUIT donc le travail du jour, sous
+     son filet, comme la fin d'une page. */
+}
+/* Au poste, une tranche qui suit le tableau (« Sans nouvelles », « Tes
+   amis ») se range sur SES colonnes : en pleine largeur, ses lignes
+   faisaient 1 060 px et le geste tombait à 900 px du nom qu'il
+   concerne — la faute de proximité que « Échanger » avait déjà payée
+   (NN/g, loi de proximité ; Fitts : la cible loin de l'œil). Trois
+   colonnes, la même gouttière que le tableau, et chaque ligne garde
+   ses gestes à portée de son nom. */
+@media (min-width:901px){
+  #view-aujourdhui>.page-wide .tranche .tr-rows{
+    display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:start
+  }
 }
 /* « À trier (N) » — la ligne calme qui regroupe les entrants (#10) */
 .td-triage{
@@ -1630,10 +1653,18 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   background:var(--titlebar-accent-bg);color:var(--on-navy);
   border-bottom:1px solid var(--border-strong);user-select:none;
 }
+/* LE TITRE D'UNE FEUILLE SE LIT (audit, octobre 2026). Il était en
+   police pixel de 8 px, capitales espacées : relevé sur les captures,
+   « DONNER », « MON PROFIL », « NOUVELLE PISTE » faisaient 6 px de haut
+   — et c'est le SEUL titre de la plupart des feuilles. Apple et
+   Material placent le plancher d'un libellé à 11 pt/sp. Silkscreen
+   n'existe qu'à 8, 16 et 24 px (§4) : on passe à sa taille native
+   suivante, celle du logo — l'identité reste, la lecture revient. Un
+   titre trop long s'élide par la fin, jamais aux deux bouts. */
 .modal-h h2{
   flex:1;min-width:0;overflow:hidden;
-  font-family:var(--font-pixel);font-size:var(--pixel-8);font-weight:400;
-  text-transform:uppercase;letter-spacing:.1em;
+  font-family:var(--font-pixel);font-size:var(--pixel-16);font-weight:400;
+  text-transform:uppercase;letter-spacing:.02em;
   display:flex;align-items:center;gap:8px;
 }
 .modal-h h2 span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -1958,7 +1989,9 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   .ec-actes{
     flex:none;margin-bottom:18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
   }
-  .ec-actes .hero2{display:contents}
+  /* les deux verbes tiennent LEUR rangée : les cadres « Groupes » et
+     « Amis » se rangent dessous, côte à côte, à parts égales */
+  .ec-actes .hero2{display:flex;flex:1 1 100%;gap:10px;margin:0}
   .ec-actes .hero{
     min-height:var(--ctl);width:auto;flex:none;flex-direction:row;gap:8px;
     padding:0 18px;font-size:var(--text-13);
@@ -3222,8 +3255,15 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 .ec-amis{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;min-height:var(--ctl)}
 .ec-amis-t{flex:1;min-width:0;display:flex;align-items:center;gap:7px;font-size:var(--text-14);font-weight:var(--weight-bold)}
 .ec-amis-g{display:flex;flex-wrap:wrap;gap:8px}
+/* Au poste, « Amis » et « Groupes » sont DEUX CADRES DE MÊME DESSIN,
+   côte à côte, sous les deux verbes (audit adaptatif, octobre 2026).
+   « Groupes » était un cadre de 1 060 px pour une seule rangée, « Amis »
+   un mot nu à côté de ses gestes : deux objets de même nature — le mot,
+   deux gestes, ce qu'on y retrouve — dessinés de deux façons. Une
+   similitude de forme dit une similitude de nature (Gestalt) ; c'est
+   la règle que la porte « Partage en groupe » avait déjà payée ici. */
 @media (min-width:901px){
-  .ec-actes .ec-amis{flex:0 0 auto;margin:0;padding:0;background:none;border:0;box-shadow:none}
+  .ec-actes .ec-amis{margin:0;align-self:stretch;align-content:flex-start;flex:1 1 calc(50% - 5px)}
   .ec-actes .ec-amis-t{flex:none;font-size:var(--text-13);font-weight:var(--weight-regular);color:var(--text-muted)}
 }
 .am-etat{display:flex;align-items:center;gap:7px;margin:12px 0 0;color:var(--accent);font-size:var(--text-13);font-weight:var(--weight-semibold)}
@@ -3250,7 +3290,7 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 .gr-n{flex:none;font-family:var(--font-mono);font-size:var(--text-12);font-weight:var(--weight-bold);color:var(--accent)}
 .gr-ligne .ic{flex:none;color:var(--text-muted)}
 @media (min-width:901px){
-  .ec-actes .ec-groupes{flex:1 1 100%}
+  .ec-actes .ec-groupes{flex:1 1 calc(50% - 5px);align-self:stretch;margin:0}
   .ec-actes .ec-gr-t{flex:none;font-size:var(--text-13);font-weight:var(--weight-regular);color:var(--text-muted)}
 }
 /* la feuille d'un groupe : elle se donne sa hauteur (§6, « Écrire ») —

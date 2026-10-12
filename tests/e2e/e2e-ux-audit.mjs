@@ -412,7 +412,8 @@ if (!/reçu/i.test(feuille.titre) || feuille.pistes.join() !== 'Atelier local')
 if (!/plus dans ton suivi/.test(feuille.note))
   fail('une piste supprimée depuis doit être dite, pas escamotée : ' + feuille.note);
 await page.click('.modal-b .pick');
-await attendre(page, async () => /Atelier local/.test(document.querySelector('.mh-t')?.textContent || ''),
+/* la barre de la fiche dit « Fiche » ; laquelle, c'est son en-tête qui le dit */
+await attendre(page, async () => /Atelier local/.test(document.querySelector('.modal-fiche .obj-n')?.textContent || ''),
   { message: 'taper une piste de l’échange ouvre sa fiche' });
 await closeSheet();
 await page.evaluate(async () => (await import('./engine/storage.js')).kvSet('oc_journal_v1', '[]'));
@@ -493,15 +494,33 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
   await attendre(dPage, () => !!document.querySelector('.td-board'), {
     message: 'le tableau du jour — il lui faut du travail planifié pour exister, '
            + 'sinon l’écran montre « Par où commencer » (garde : e2e-commencer.mjs)' });
+  /* AU POSTE, LE TABLEAU PREND LA HAUTEUR DE SA JOURNÉE (audit
+     adaptatif, octobre 2026). Ce contrôle exigeait l'inverse — un pied
+     posé à 85 % de la hauteur, donc trois cadres étirés jusqu'en bas :
+     relevé en 1280 × 800, 600 px de cadre pour UNE carte chacun. Il
+     vérifie maintenant que la plus haute colonne s'arrête sous son
+     dernier contenu (12 px de rembourrage près) et que le pied SUIT le
+     tableau au lieu d'attendre en bas. Une mutation qui remet
+     `flex:1 0 auto` sur le tableau le fait rougir. */
   const jour = await dPage.evaluate(() => {
-    const v = document.querySelector('#view-aujourdhui');
-    const p = document.querySelector('.td-under');
-    return { rempli: p ? Math.round(100 * p.getBoundingClientRect().bottom / v.getBoundingClientRect().bottom) : null,
+    const cols = [...document.querySelectorAll('.td-board .bcol')];
+    const vide = c => {
+      const corps = c.querySelector('.bcol-rows, .bcol-empty');
+      const dernier = corps && corps.lastElementChild ? corps.lastElementChild : corps;
+      return dernier ? Math.round(c.getBoundingClientRect().bottom - dernier.getBoundingClientRect().bottom) : null;
+    };
+    const p = document.querySelector('.td-under'), avant = p && p.previousElementSibling;
+    return { vides: cols.map(vide), cols: cols.length,
+             ecart: p && avant ? Math.round(p.getBoundingClientRect().top - avant.getBoundingClientRect().bottom) : null,
              comprime: [...document.querySelectorAll('.bcol-rows')].some(c => c.scrollHeight > c.clientHeight + 1) };
   });
-  if (jour.rempli !== null && jour.rempli < 85)
-    fail(`le pied d'« Aujourd'hui » flotte à ${jour.rempli} % de la hauteur — la région n'est pas prise`);
+  if (jour.cols !== 3) fail(`le tableau du jour n'a pas ses trois colonnes (${jour.cols})`);
+  if (Math.min(...jour.vides) > 24)
+    fail(`le tableau du jour s'étire sous son contenu : ${jour.vides.join(' / ')} px vides en bas des colonnes`);
+  if (jour.ecart !== null && jour.ecart > 48)
+    fail(`le pied d'« Aujourd'hui » attend en bas, à ${jour.ecart} px de ce qui le précède, au lieu de le suivre`);
   if (jour.comprime) fail('une colonne du jour est comprimée sous son contenu');
+  console.log(`   tableau du jour : colonnes à ${jour.vides.join(' / ')} px de leur contenu, pied à ${jour.ecart} px ✓`);
   await dPage.screenshot({ path: SHOTS + '/83-ux-poste-region.png' });
 
   /* Une liste se BALAIE : ses lignes ont toutes la même hauteur et le

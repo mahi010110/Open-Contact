@@ -283,7 +283,7 @@ for (const [nom, vp, touch] of [['pouce', { width: 390, height: 844 }, true],
   /* Entrée ouvre la carte ↵ */
   await p.keyboard.press('Enter');
   await p.waitForSelector('.overlay .modal', { timeout: 4000 }).catch(() => {});
-  const titre = await p.evaluate(() => document.querySelector('.overlay .mh-t')?.textContent || '');
+  const titre = await p.evaluate(() => document.querySelector('.overlay .modal-fiche .obj-n')?.textContent || '');
   if (!/Advalys Cyber/.test(titre)) fail(`poste : Entrée n'ouvre pas la première piste (« ${titre} »)`);
   else console.log('poste · « / » + frappe + Entrée = la fiche, sans quitter le clavier ✓');
   await p.keyboard.press('Escape');

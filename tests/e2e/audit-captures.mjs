@@ -34,7 +34,7 @@ const SEUL = process.env.OC_AUDIT_SEUL ? new RegExp(process.env.OC_AUDIT_SEUL) :
 /* OC_AUDIT_MESURE : une expression évaluée dans la page avant chaque capture,
    pour chiffrer ce que l'image montre (un écart, une largeur) */
 const MESURE = process.env.OC_AUDIT_MESURE || '';
-const DOSSIER = path.join(SHOTS, 'audit', WEBKIT ? 'webkit' : 'chromium');
+const DOSSIER = path.join(SHOTS, 'audit', process.env.OC_AUDIT_DOSSIER || (WEBKIT ? 'webkit' : 'chromium'));
 await mkdir(DOSSIER, { recursive: true });
 
 const { server, base } = await serveRepo();
@@ -70,9 +70,27 @@ const DATA = [
   P('k', { name: 'Capgemini', city: 'Lille', domain: 'esn', status: 'todo', closedReason: 'rejected', closedAt: J(-5) }),
   P('l', { name: 'Ankama', city: 'Roubaix', domain: 'startup', status: 'todo', closedReason: 'won', closedAt: J(-2) })
 ];
+/* un groupe, des amis : ce que porte un profil après le lot 5 */
+const CODE_GR = 'bts2sxe3kmw4ka7';
 const PROFIL = { name: 'Inès Martin', formation: 'BTS SIO SISR 2e année', ecole: 'Lycée Gustave Eiffel', recherche: 'alternance',
   debut: J(30), fin: J(760), rythme: '3 jours en entreprise, 2 à l’école', ville: 'Lille', rayon: 15,
-  email: 'ines.martin@exemple.fr', phone: '06 98 76 54 32' };
+  email: 'ines.martin@exemple.fr', phone: '06 98 76 54 32', amiId: 'InesInesInesInes0001',
+  amis: [
+    { id: 'KarimKarimKarim00001', nom: 'Karim Benali', recu: Date.now() - 3e8,
+      parcours: [{ entreprise: 'OVHcloud', quoi: 'alternance', debut: '2025-09', fin: '' }, { entreprise: 'Quick', quoi: 'emploi', debut: '2024-06', fin: '2024-08' }] },
+    { id: 'LeaLeaLeaLeaLeaLea01', nom: 'Léa Durand', recu: Date.now() - 1e8,
+      parcours: [{ entreprise: 'Orange Cyberdefense', quoi: 'stage', debut: '2024-04', fin: '2024-06' }] },
+    { id: 'AwaAwaAwaAwaAwaAwa01', nom: 'Awa Diallo', recu: Date.now() - 9e8, parcours: [] }
+  ],
+  groupes: [{ code: CODE_GR, nom: 'BTS SIO Lille', at: Date.now() - 6e8, type: 'ouvert' }] };
+const GROUPES = { [CODE_GR]: { nom: 'BTS SIO Lille', depuis: 0, vu: Date.now() - 4e8, presence: Date.now(),
+  membres: { KarimKarimKarim00001: { prenom: 'Karim', at: Date.now() - 5e8 }, SofiaSofiaSofia00001: { prenom: 'Sofia', at: Date.now() - 4e8 },
+    InesInesInesInes0001: { prenom: 'Inès', at: Date.now() - 6e8 } },
+  fil: [
+    { t: 'mot', id: 'mot0000000001', de: 'KarimKarimKarim00001', prenom: 'Karim', texte: 'Quelqu’un a un contact chez Worldline ? Ils prennent des alternants en réseau.', at: Date.now() - 3e8 },
+    { t: 'mot', id: 'mot0000000002', de: 'InesInesInesInes0001', prenom: 'Inès', texte: 'J’ai le standard, je te le donne demain.', at: Date.now() - 2.9e8 },
+    { t: 'mot', id: 'mot0000000003', de: 'SofiaSofiaSofia00001', prenom: 'Sofia', texte: 'Forum alternance jeudi à la CCI, on y va ensemble ?', at: Date.now() - 2e7 }
+  ] } };
 const ORPHELINS = [{ id: 'o1', name: '', email: 'recrutement@exemple.fr', extra: {} }];
 const JOURNAL_ECH = [
   { t: Date.now() - 2 * 864e5, txt: 'Donné (QR) : 4 piste(s)' },
@@ -124,14 +142,21 @@ const ECRANS = [
     await p.click('#piAffiner').catch(() => {}); }],
   ['21-prospecter', p => p.evaluate(() => import('./ui/prospect.js').then(m => m.openProspect()))],
   ['22-modeles', p => p.evaluate(() => import('./ui/profil.js').then(m => m.openTemplates()))],
-  ['23-annuler', async p => { await route('#/pistes')(p); await p.waitForTimeout(300);
-    await p.evaluate(async () => { const { S, deletePiste } = await import('./ui/state.js'); const { showUndo } = await import('./ui/dom.js');
-      const c = S.companies.find(x => x.id === 'i'); deletePiste(c); showUndo('« Kiabi » supprimée.', () => {}); }); }],
   ['24-rattacher', p => p.evaluate(async () => { const { S } = await import('./ui/state.js'); (await import('./ui/contact.js')).openAttach(S.orphans[0]); })],
   ['25-mes-appareils', p => p.evaluate(() => import('./ui/direct.js').then(m => m.openAppareils()))],
   ['26-verrouillage', p => p.evaluate(() => import('./ui/verrou.js').then(m => m.openProtectFlow()))],
   ['27-nom-suggere', async p => { await ECRAN('10-capture')(p); await p.waitForTimeout(400);
     await p.type('#cpName, #edName', 'Reseaux', { delay: 40 }); await p.waitForTimeout(1200); }],
+  ['29-amis', async p => { await route('#/pistes')(p); await p.waitForTimeout(300);
+    await p.click('#piPortee [data-portee="amis"]').catch(() => {}); }],
+  ['34-ami', p => p.evaluate(async () => { const { S } = await import('./ui/state.js');
+    (await import('./ui/amis.js')).openAmi(S.profile.amis[0]); })],
+  ['35-mon-qr', p => p.evaluate(() => import('./ui/amis.js').then(m => m.openMonQR()))],
+  ['36-groupe', p => p.evaluate(async () => { const m = await import('./ui/groupes.js'); await m.chargerGroupes();
+    m.ouvrirGroupe('bts2sxe3kmw4ka7'); })],
+  ['39-annuler', async p => { await route('#/pistes')(p); await p.waitForTimeout(300);
+    await p.evaluate(async () => { const { S, deletePiste } = await import('./ui/state.js'); const { showUndo } = await import('./ui/dom.js');
+      const c = S.companies.find(x => x.id === 'i'); deletePiste(c); showUndo('« Kiabi » supprimée.', () => {}); }); }],
   ['28-profil-vide', async p => { await p.evaluate(async () => { const { S } = await import('./ui/state.js'); S.profile.ville = ''; });
     await ECRAN('15-profil')(p); }]
 ];
@@ -154,9 +179,15 @@ if (COMPLET) JEUX.push({ nom: '390-125', w: 390, h: 844, sombre: false, texte: 2
 /* OC_AUDIT_POSTE=1 : l'ordinateur aussi, clair et sombre (§9 : les deux ergonomies) */
 if (process.env.OC_AUDIT_POSTE === '1') JEUX.push({ nom: '1280', w: 1280, h: 800, sombre: false, texte: 16, poste: true },
   { nom: '1280-sombre', w: 1280, h: 800, sombre: true, texte: 16, poste: true });
+/* OC_AUDIT_TABLETTE=1 : la tablette tactile en paysage — le dessin du
+   poste sous un doigt (§5 : deux questions, la largeur et la main) */
+if (process.env.OC_AUDIT_TABLETTE === '1') JEUX.push({ nom: '1024-tactile', w: 1024, h: 768, sombre: false, texte: 16, tablette: true },
+  { nom: '768-tactile', w: 768, h: 1024, sombre: false, texte: 16, tablette: true });
+/* OC_AUDIT_JEUX=<motif> : seulement les jeux dont le nom correspond */
+if (process.env.OC_AUDIT_JEUX){ const m = new RegExp(process.env.OC_AUDIT_JEUX); for (let i = JEUX.length; i--;) if (!m.test(JEUX[i].nom)) JEUX.splice(i, 1); }
 
 async function contexte(jeu, vide){
-  const ctx = await browser.newContext({ viewport: { width: jeu.w, height: jeu.h }, hasTouch: !jeu.poste, isMobile: !WEBKIT && !jeu.poste ? true : undefined,
+  const ctx = await browser.newContext({ viewport: { width: jeu.w, height: jeu.h }, hasTouch: !jeu.poste, isMobile: !WEBKIT && !jeu.poste && !jeu.tablette ? true : undefined,
     locale: 'fr-FR', timezoneId: 'Europe/Paris',
     deviceScaleFactor: JOURNAL ? 1 : 2, colorScheme: jeu.sombre ? 'dark' : 'light',
     userAgent: WEBKIT ? 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1' : undefined });
@@ -167,17 +198,21 @@ async function contexte(jeu, vide){
   const p = await ctx.newPage();
   p.on('pageerror', e => console.log('ERREUR PAGE', jeu.nom, String(e)));
   await p.goto(base + '/#/aujourdhui', { waitUntil: 'load' });
-  await p.evaluate(async ([d, pr, o, j]) => {
+  await p.evaluate(async ([d, pr, o, j, g]) => {
     const st = await import('./engine/storage.js');
     await st.kvInit();
     await st.kvSet(st.DATA_KEY, JSON.stringify(d));
     await st.kvSet(st.PROFILE_KEY, JSON.stringify(pr));
     await st.kvSet(st.ORPHANS_KEY, JSON.stringify(o));
     await st.kvSet(st.JOURNAL_KEY, JSON.stringify(j));
-  }, vide ? [[], {}, [], []] : [DATA, PROFIL, ORPHELINS, JOURNAL_ECH]);
+    await st.kvSet(st.GROUPES_KEY, JSON.stringify(g));
+  }, vide ? [[], {}, [], [], {}] : [DATA, PROFIL, ORPHELINS, JOURNAL_ECH, GROUPES]);
   await p.reload({ waitUntil: 'load' });
   await p.waitForTimeout(500);
   if (jeu.texte !== 16) await p.addStyleTag({ content: `html{font-size:${jeu.texte}px !important}` });
+  /* OC_AUDIT_CSS=<fichier> : une MAQUETTE — une feuille posée par-dessus
+     l'app, pour montrer au mainteneur un dessin avant de le livrer */
+  if (process.env.OC_AUDIT_CSS) await p.addStyleTag({ content: await (await import('fs/promises')).readFile(process.env.OC_AUDIT_CSS, 'utf8') });
   return { ctx, p };
 }
 const fermer = p => p.evaluate(async () => {

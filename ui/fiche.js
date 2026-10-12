@@ -91,8 +91,15 @@ export function openFiche(c){
      Consulter une fiche n'écrit rien — et ne doit donc rien signaler à
      la fermeture. */
   let commis = false;
+  /* LA BARRE DE TITRE DIT CE QU'EST LA FENÊTRE, L'EN-TÊTE DIT LAQUELLE.
+     Lisible depuis l'audit d'octobre 2026 (16 px au lieu de 8), la barre
+     répétait en capitales le nom écrit en grand juste dessous — deux
+     fois la même chose à 60 px d'écart. Et des deux, c'est l'en-tête
+     qui doit rester : un nom d'entreprise ne se coupe jamais (§4), et
+     la barre l'élidait. Elle dit donc « Fiche », le mot de §7 ; le
+     lecteur d'écran, lui, entend toujours de quelle fiche il s'agit. */
   const sh = openSheet({
-    title: c.name, icon: 'briefcase', className: 'modal-fiche',
+    title: 'Fiche', icon: 'briefcase', className: 'modal-fiche',
     guard: () => !dirty() || confirmSheet({
       title: 'Quitter sans enregistrer ?', icon: 'square-alert', danger: true,
       okLabel: 'Quitter',
@@ -198,7 +205,8 @@ export function openFiche(c){
     const naPerson = !closed && val('nextAction') && naCtId
       ? (c.contacts || []).find(t => t.id === naCtId) : null;
     const wide = mqWide.matches;
-    sh.setTitle(c.name);
+    /* un renommage se suit — à l'oreille : la barre, elle, dit « Fiche » */
+    sh.ov.querySelector('.modal').setAttribute('aria-label', 'Fiche — ' + c.name);
     /* la complétude et « Modifier » parlent de la FICHE entière, pas du
        dossier : au poste ils montent sur la ligne d'identité, sinon ils
        se retrouvaient sous « À savoir » déplié, hors de l'écran */
