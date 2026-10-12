@@ -533,6 +533,19 @@ Ce qui ne se fait **jamais**, et pourquoi :
   du milieu ne voient rien (règle 6) et ne sont pas consultés (décision 7) ;
   chacun peut couper le passage pour lui, dans ses réglages.
 
+**À qui faire suivre : d'abord à qui ressemble à la cible.** Dans
+l'expérience de Dodds, Muhamad et Watts (*Science*, 2003), 384 chaînes
+sur 24 163 arrivent au bout, et c'est **l'abandon des maillons**, pas
+l'absence de chemin, qui les arrête : la réussite « dépend de
+l'incitation de chacun ». Ici le maillon du milieu ne fait rien — son
+téléphone fait suivre tout seul —, donc cet abandon disparaît. Reste à
+choisir vers qui : Watts, Dodds et Newman (2002) puis Adamic et Adar
+(2005) montrent qu'on trouve en passant au voisin qui ressemble le plus
+à la cible. Le téléphone qui fait suivre connaît le parcours de ses amis
+(ils le lui ont donné) : il fait suivre **d'abord, et seulement, à ceux
+dont le parcours touche l'entreprise** ; s'il n'y en a aucun, à tous.
+Le parcours sert à router, jamais à répondre.
+
 Les limites, toutes vérifiées par chaque téléphone qui fait suivre, pas
 seulement par celui qui demande : **trois cercles** ; **14 jours** ;
 **trois demandes ouvertes** par personne ; **20 amis au plus** par saut ;
@@ -653,9 +666,101 @@ pour une raison qui vaut d'être écrite.
 17. **Les sauts sont le but** : trouver des contacts quand on n'a pas
     beaucoup de connaissances. Cercles 2 et 3, transmis tout seuls.
 
+## Décisions du mainteneur (12 octobre 2026) — la vision, confrontée
+
+*« Ce que je veux c'est trois nouvelles choses : les groupes, les amis et
+les demandes aux amis et aux groupes. Une demande aux amis se fait par
+l'app : si je cherche quelqu'un dans une entreprise ou dans telle ville,
+l'app va chercher elle-même dans les contacts des amis ; si elle ne trouve
+pas, elle étend la recherche ; si elle ne trouve pas, tant pis ; si elle
+trouve, je suis prévenu. »*
+
+18. **Prévenu tout de suite, le contact après son oui.** Dès qu'un
+    téléphone trouve, une lettre courte revient à qui demande — « Un ami
+    de Léa a trouvé · en attente de son oui » — sans dire QUI a trouvé.
+    Le contact suit, d'un tap de celui qui l'a (la présentation à double
+    accord : LinkedIn, Village…).
+19. **On demande une entreprise, OU un métier et une ville** (« quelqu'un
+    dans la cybersécurité à Lille »). La demande ne porte QUE des mots de
+    la table de l'app (métier, ville) — jamais un mot libre — et le
+    téléphone de l'ami cherche avec le même moteur que la barre.
+20. **Dans un groupe, tout le groupe voit la demande, et chacun peut la
+    relayer** (lot 5, plus bas).
+21. **Les sauts d'abord, puis les groupes.**
+
+## Lot 5 — les groupes (concept, 12 octobre 2026)
+
+*« Pour les groupes, c'est une demande faite comme dans un groupe :
+chacun est libre de partager à son tour. »* — le mainteneur.
+
+Un ami, c'est un chemin vers SES entreprises. Un groupe, c'est autre
+chose : une classe, une promo, un club — des gens qu'on ne connaît pas
+tous un par un, mais qui ont une raison commune de s'entraider. C'est là
+que vivent les liens faibles, et ce sont eux qui apportent le travail.
+
+### Ce que disent les sources
+
+- **Les liens faibles apportent le travail.** Granovetter (1973) : parmi
+  ceux qui ont trouvé par quelqu'un, 56 % voyaient ce quelqu'un « de
+  temps en temps », 28 % « rarement », 17 % « souvent ». Rajkumar et al.
+  (*Science*, 2022, 20 millions de profils LinkedIn) : les liens
+  modérément faibles aident le plus. Une promo en est pleine.
+- **Dans un groupe, chacun croit qu'un autre répondra** (l'effet témoin :
+  85 % aident seuls, 31 % à six — Darley et Latané). En ligne, une chose
+  marche à coup sûr : **s'adresser à quelqu'un par son nom** (Fatkin et
+  Lansdown, 2017). Une demande vue par tout le groupe désigne donc aussi
+  ceux qui peuvent aider.
+- **Les fils de groupe épuisent.** 75 % ont déjà mis un fil en sourdine ;
+  la plupart des gens n'en suivent activement qu'un à quatre (enquête
+  Secure Data Recovery). WhatsApp : dix groupes de douze en moyenne
+  (Vodafone, avec R. Dunbar, 2024).
+- **L'éphémère allège.** Snapchat (Bayer et al., 2016) : des échanges plus
+  agréables, moins de souci de l'image qu'on laisse. WhatsApp a lancé ses
+  messages éphémères avec UNE seule durée, sept jours — « assez pour ne
+  pas oublier de quoi on parlait, sans que ce soit permanent ».
+- **Faire suivre sans limite propage n'importe quoi** : WhatsApp plafonne
+  le transfert et marque « transféré plusieurs fois ».
+- **Un groupe sans serveur, c'est un secret partagé.** Signal : le lien
+  porte la clé, le service ne sait ni qui est membre ni comment s'appelle
+  le groupe ; l'entrée peut être soumise à un admin. Clash Royale : un
+  clan « ouvert » ou « sur invitation », un chef et ses adjoints, un seul
+  clan à la fois.
+
+### Les décisions (12 octobre 2026)
+
+22. **Un groupe sert aux demandes ET aux pistes partagées en différé.**
+    Il remplace « Partage en groupe » : on donne des pistes au groupe,
+    chacun les reçoit à sa prochaine ouverture (aperçu avant, invariant
+    ②) — plus besoin d'être connectés en même temps.
+23. **Il vit dans « Échanger »** : « Mes groupes » à la place de
+    « Partage en groupe ». Les demandes qui te concernent remontent dans
+    « Aujourd'hui ».
+24. **Deux sortes de groupe, choisies à la création — c'est le seul
+    réglage** : *ouvert* (le QR suffit, tout le monde est égal) ou *sur
+    demande* (un chef et ses adjoints acceptent les entrées, retirent un
+    message ou un membre ; si le chef ne revient plus, ses adjoints
+    suffisent).
+25. **Cinq groupes au plus.** Assez pour une classe, une école, un club,
+    un groupe de révision ; la plupart des gens n'en suivent pas plus. Un
+    seul, comme un clan, empêcherait d'être à la fois dans sa classe et
+    dans son école.
+26. **On voit les prénoms des membres, et rien d'autre** — ni e-mail ni
+    téléphone. Ceci assouplit la décision 6 pour les seuls prénoms.
+27. **Des messages temporaires, sept jours, sans réglage.** Une phrase,
+    pas d'image ; les relais les effacent d'eux-mêmes à l'échéance, l'app
+    aussi. Les demandes, elles, vivent 14 jours.
+28. **Quatre réponses à une demande** : Donner un contact de ses pistes ;
+    « Je connais quelqu'un » (un nom et un moyen de le joindre, ce
+    qu'aucune app ne sait) ; Faire suivre (à ses amis, ou à un autre de
+    ses groupes — deux groupes au plus, « relayée par Karim ») ; Masquer.
+29. **La réponse va à qui demande, jamais au groupe.** Celui dont le
+    téléphone a trouvé quelqu'un voit la demande EN TÊTE, à son nom.
+
 ## Encore à trancher
 
-- **Le fil du groupe** (ci-dessous).
+- **Le fil du groupe** : tranché le 12 octobre (décision 27) — des
+  messages temporaires de sept jours, dans le groupe. Ce qui suit est
+  gardé comme trace du raisonnement d'avant.
 
 ## Gardé de côté : le fil du groupe
 
