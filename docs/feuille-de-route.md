@@ -324,8 +324,10 @@ entreprise parmi ses amis, ses groupes et leurs amis, trois cercles au plus.
    groupe voit, en tête chez qui a trouvé, et ses quatre réponses —
    donner, « Je connais quelqu'un », faire suivre (amis ou un autre
    groupe), masquer ; la réponse ne passe jamais par le groupe.
-   **Ensuite** : 5c, le groupe « sur demande » avec un chef et ses
-   adjoints.
+   **5c, première moitié, livrée (6.60.0)** : le groupe « sur demande »
+   — une porte sans code, demander à entrer, accepter ou refuser, un
+   chef et ses adjoints qui ouvrent. **Ensuite** : l'autre moitié —
+   retirer un message, retirer un membre (le groupe change de code).
 
 **Mis de côté, à reprendre** — [`frictions.md`](frictions.md) : les trois
 plus grosses frictions selon le mainteneur (entrer les pistes, écrire les

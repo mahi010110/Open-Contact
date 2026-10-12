@@ -661,7 +661,8 @@ retenu :
 
 Livrées : les décisions 20, 28 et 29 — la demande au groupe, que tout
 le groupe voit ; ses quatre réponses ; la réponse à qui demande
-seulement. Reste 24 (le groupe « sur demande », lot 5c).
+seulement. Reste 24 (le groupe « sur demande », lot 5c — livré en
+6.60.0 pour sa première moitié, voir plus bas).
 
 - **La demande au groupe est la lettre d'un ami.** Pas un format de
   plus : la même lettre, passée au même moteur. Ce qui change tient en
@@ -686,6 +687,54 @@ seulement. Reste 24 (le groupe « sur demande », lot 5c).
 - **Être l'auteur, c'est avoir écrit la lettre.** Une demande relayée
   par Karim est postée par Karim, mais c'est celle d'Inès : « Tu
   cherches » se décide sur la clé de la lettre, pas sur qui l'a postée.
+
+## Ce que le lot 5c a appris (6.60.0)
+
+Livrée : la décision 24, première moitié — le groupe « sur demande » :
+la porte, demander à entrer, accepter ou refuser, nommer un adjoint.
+Reste l'autre moitié (5c2) : retirer un message, retirer un membre.
+
+- **Sans serveur, « sur demande » veut dire : la porte ne porte pas la
+  clé.** Un groupe ouvert est un code, et le code suffit pour entrer.
+  Un groupe sur demande montre une PORTE — son nom, son identifiant, les
+  clés de boîte de ceux qui ouvrent — et c'est un responsable qui envoie
+  le code, scellé pour le seul nouveau. Rien de neuf à transporter : la
+  demande et la réponse sont deux lettres de plus dans la boîte aux
+  lettres du lot 3.
+- **Un responsable qui se déclare n'est pas un responsable.** La clé
+  de signature du chef est publique — chaque nouveau la reçoit avec le
+  code. La première version la croyait sur parole dans une présence :
+  n'importe quel membre aurait pu l'annoncer et recevoir les demandes
+  d'entrée à la place du chef. Une présence qui annonce une clé de
+  signature la PROUVE maintenant (elle signe son identifiant et sa clé
+  de boîte avec) ; sinon elle perd les deux. Vu à la relecture, avant
+  l'écran, et tenu par le test unitaire.
+- **Ce qui doit durer ne se signe pas avec une date.** Une nomination
+  signée avec son heure mourait avec son message — trente jours, et
+  sept dans la première version, qui n'avait pas donné de durée à cette
+  sorte. Celui qui arrive dans un mois n'aurait jamais su qui ouvre la
+  porte. La signature porte ce qui ne change pas (qui, sa clé, sa
+  boîte) ; l'adjoint la redit lui-même avec sa présence.
+- **Un état qui se charge après le premier dessin doit redessiner.**
+  « BTS SIO Lille · en attente » disparaissait au rechargement : la
+  boîte se charge après le premier rendu de « Échanger », et rien ne
+  redessinait quand elle ne contenait ni demande ni don. Seul le
+  scénario l'a vu, sur Tom, refusé, qui n'avait donc rien d'autre.
+- **Qui attend à la porte se voit sans attendre la relève.** Ouvrir un
+  groupe relève aussi la boîte : « Karim veut entrer » arrive en tête
+  au moment où le responsable regarde, pas cinq minutes plus tard. Le
+  wiki du CEPT sur Signal relève le défaut inverse : l'admin n'y est pas
+  prévenu des demandes, qui restent sans réponse.
+- **Un refus n'écrit rien.** Ni lettre, ni motif : la demande reste « en
+  attente » chez qui l'a faite, puis s'efface au bout de quatorze jours.
+  Le refus est un repère d'appareil — un autre téléphone du même
+  responsable reverrait la demande.
+- **Un contrôle de fuite lit ce qui sort DÉCODÉ.** La porte est du
+  base64 : « la porte ne contient pas le code » se vérifiait sur la
+  chaîne, où le code ne peut jamais apparaître en clair. La mutation qui
+  y glissait le code était bien « prise » — mais par un autre contrôle,
+  parce que le nom du groupe changeait aussi. Relue, elle a montré que
+  le contrôle lui-même ne voyait rien ; il décode maintenant la porte.
 
 ## Comment on saura que c'est juste
 
