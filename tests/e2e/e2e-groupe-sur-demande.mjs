@@ -112,6 +112,10 @@ const ouvrirLeGroupe = async p => {
   await p.click('.gr-ligne[data-groupe]');
   await p.waitForSelector('#grMot');
 };
+/* ce que porte VRAIMENT une porte : son contenu décodé — la chaîne est
+   en base64url, un `includes` sur elle ne verrait jamais le code */
+const dansLaPorte = t => { const m = String(t).match(/OCP1\.([A-Za-z0-9_-]+)/);
+  return m ? Buffer.from(m[1], 'base64url').toString('utf8') : ''; };
 const copierPorte = async p => {
   await p.waitForSelector('#grInviter .qr-wrap svg');
   await p.click('#grCopier');
@@ -139,10 +143,12 @@ const G = pI.groupes[0];
   if (G.type !== 'demande' || G.chef !== G.sign.pub) fail('le groupe d’Inès : sur demande, et elle en est le chef — ' + JSON.stringify({ type: G.type }));
   if (await I.p.$('#grCodeAff')) fail('la porte affiche un code');
   /* ① la porte ne porte pas le code */
-  if (porteI.includes(G.code)) fail('la porte copiée contient le code du groupe');
+  const brut = dansLaPorte(porteI);
+  if (!brut.includes('BTS SIO Lille')) fail('la porte ne se décode pas : ' + brut.slice(0, 80));
+  if (brut.includes(G.code) || porteI.includes(G.code)) fail('la porte copiée contient le code du groupe');
+  if (/Inès|Martin/.test(brut + porteI)) fail('la porte porte un nom de personne');
   const lu = lirePorte(porteI);
   if (!lu || lu.nom !== 'BTS SIO Lille' || lu.responsables.join() !== pI.boite.pub) fail('la porte lue : ' + JSON.stringify(lu));
-  if (/Inès|Martin/.test(porteI)) fail('la porte porte un nom de personne');
 }
 await I.p.waitForTimeout(400);
 await I.p.screenshot({ path: `${SHOTS}/126-groupe-porte-pouce.png` });
@@ -258,7 +264,7 @@ const porteK = await copierPorte(K.p);
 {
   const lu = lirePorte(porteK);
   if (!lu || !lu.responsables.includes(pI.boite.pub) || !lu.responsables.includes(pK.boite.pub)) fail('la porte de Karim : Inès ET Karim y ouvrent');
-  if (porteK.includes(G.code)) fail('la porte de Karim contient le code');
+  if (dansLaPorte(porteK).includes(G.code) || porteK.includes(G.code)) fail('la porte de Karim contient le code');
 }
 const So = await ecran('sofia');
 await So.p.click('#ecScan');
