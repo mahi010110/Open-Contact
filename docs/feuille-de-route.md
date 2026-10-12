@@ -320,9 +320,12 @@ entreprise parmi ses amis, ses groupes et leurs amis, trois cercles au plus.
    code qu'on garde, créer et rejoindre (QR ou code), les prénoms des
    membres, des messages de sept jours, les pistes données au groupe et
    reçues en différé, cinq groupes au plus — à la place de « Partage en
-   groupe », masqué. **Ensuite** : 5b, la demande que tout le groupe voit
-   et que chacun relaie (quatre réponses) ; 5c, le groupe « sur demande »
-   avec un chef et ses adjoints.
+   groupe », masqué. **5b livré (6.59.0)** : la demande que tout le
+   groupe voit, en tête chez qui a trouvé, et ses quatre réponses —
+   donner, « Je connais quelqu'un », faire suivre (amis ou un autre
+   groupe), masquer ; la réponse ne passe jamais par le groupe.
+   **Ensuite** : 5c, le groupe « sur demande » avec un chef et ses
+   adjoints.
 
 **Mis de côté, à reprendre** — [`frictions.md`](frictions.md) : les trois
 plus grosses frictions selon le mainteneur (entrer les pistes, écrire les

@@ -358,8 +358,15 @@ const PLAFOND = {
      amis est passée dans « Mes pistes », et son état vide ne promet
      plus — il ENSEIGNE par son titre (« Tes amis t’ouvrent leurs
      entreprises ») et ses deux gestes, Mon QR et Scanner. Un titre
-     n'est pas une explication ; la phrase d'avant en était une. */
-  motsExplication: 363,
+     n'est pas une explication ; la phrase d'avant en était une.
+
+     368 le 12 octobre 2026, +5 (docs/reseau.md, lot 5b) : « Un e-mail
+     ou un téléphone. », sous le champ de « Je connais quelqu'un ».
+     C'est une ERREUR dite sous son champ (§6) — elle n'apparaît que si
+     ce qu'on a tapé ne permet de joindre personne, et dit quoi mettre.
+     La classe `hint warn` la fait compter ; ce n'est pas une phrase qui
+     explique l'écran. */
+  motsExplication: 368,
   /* ZÉRO, et c'est le seul plafond qui puisse honnêtement valoir zéro :
      un style sans porteur n'a pas de contrepartie à peser — il ne rend
      service à personne, il ne fait qu'attendre d'être lu par erreur.

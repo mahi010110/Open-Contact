@@ -475,7 +475,7 @@ function ouvrirReponse(code, x, apres){
          <input id="rpNom" maxlength="80" ${clavier('nom')}></div>
        <div class="field"><label for="rpJoindre">Son e-mail ou son téléphone</label>
          <input id="rpJoindre" maxlength="120" ${clavier('coord')} aria-describedby="rpErr">
-         <p class="hint warn" id="rpErr" hidden>Une adresse e-mail ou un numéro de téléphone.</p></div>`;
+         <p class="hint warn" id="rpErr" hidden>Un e-mail ou un téléphone.</p></div>`;
     const nom = sh.body.querySelector('#rpNom'), joindre = sh.body.querySelector('#rpJoindre');
     /* l'erreur se dit sous le champ, et part dès qu'on le corrige */
     joindre.addEventListener('input', () => { sh.body.querySelector('#rpErr').hidden = true; joindre.removeAttribute('aria-invalid'); });

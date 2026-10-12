@@ -15,7 +15,7 @@
    une date d'expiration et du bruit — ni le nom du groupe, ni qui en
    est, ni ce qui s'y dit.
 
-   CE QUI S'Y ÉCRIT, quatre sortes de messages et rien d'autre :
+   CE QUI S'Y ÉCRIT, cinq sortes de messages et rien d'autre :
    · membre — « je suis là » : mon identifiant d'ami, mon PRÉNOM
      (décision 26 : les prénoms, et rien d'autre), le nom du groupe tel
      que je le connais. Il vit 30 jours et se redit à l'ouverture.
