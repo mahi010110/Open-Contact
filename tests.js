@@ -1989,7 +1989,10 @@ export async function runSelfTests(){
     },
     'amis : le profil donné ne porte que l’identifiant, le nom et le parcours': () => {
       const pistes = [
-        normalizeCompany({ id: 'p1', name: 'Advens', vecu: 'alternance', siren: '123456789', notes: 'privé',
+        /* un identifiant de piste LONG : le profil porte un `id` tiré au
+           hasard, et « p1 » s'y trouvait une fois sur 200 environ — la
+           garde de fuite rougissait sans qu'une fuite existe */
+        normalizeCompany({ id: 'pistePriveeAdvens', name: 'Advens', vecu: 'alternance', siren: '123456789', notes: 'privé',
           status: 'reply', contacts: [{ name: 'Julie', email: 'julie@advens.test' }] }),
         normalizeCompany({ id: 'p2', name: 'Wavestone', vecu: 'stage', vecuQui: 'Léa' })
       ];
@@ -2004,7 +2007,7 @@ export async function runSelfTests(){
       eq(d.parcours[1], { entreprise: 'Advens', quoi: 'alternance', debut: '', fin: '', siren: '123456789' });
       const txt = JSON.stringify(d);
       /* rien du suivi, rien de joignable, et JAMAIS le profil d'un ami (il ne se repartage pas) */
-      for (const x of ['ines@x.test', '0600000000', 'BTS SIO', 'Lycée', 'Lille', 'privé', 'julie', 'reply', 'p1', 'Karim', 'Aztek', 'Wavestone'])
+      for (const x of ['ines@x.test', '0600000000', 'BTS SIO', 'Lycée', 'Lille', 'privé', 'julie', 'reply', 'pistePriveeAdvens', 'Karim', 'Aztek', 'Wavestone'])
         ok(!txt.includes(x));
     },
     'amis : ce qui arrive se remet aux invariants, ou se refuse': () => {
