@@ -122,9 +122,9 @@ export function groupesHTML(){
   const liste = mesGroupes();
   const plein = liste.length >= GROUPES_MAX;
   return `<div class="pcard ec-groupes" role="group" aria-label="Groupes">
-      <div class="ec-amis">
-        <b class="ec-amis-t">${ic('message-text', 'ic-14')} Groupes</b>
-        ${plein ? '' : `<span class="ec-amis-g">
+      <div class="ec-gr-h">
+        <b class="ec-gr-t">${ic('message-text', 'ic-14')} Groupes</b>
+        ${plein ? '' : `<span class="ec-gr-g">
           <button class="btn btn-sm" id="ecGrCreer">${ic('plus', 'ic-14')} Créer</button>
           <button class="btn btn-sm" id="ecGrRejoindre">${ic('grid-3x3', 'ic-14')} Rejoindre</button>
         </span>`}

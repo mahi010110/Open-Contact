@@ -3232,7 +3232,12 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
    un pointillé entre elles (la rangée de §6). Ce qui est arrivé depuis
    la dernière fois se compte en mono, en accent : c'est ce qui change. */
 .ec-groupes{display:flex;flex-direction:column}
-.ec-groupes .ec-amis{margin:0;padding:0;background:none;border:0;box-shadow:none}
+/* sa tête a le dessin de « Amis », sous SES noms : une classe ne sert
+   qu'un objet, sinon ce qui cherche les gestes des amis trouve aussi
+   ceux des groupes (e2e-amis-onglet l'a vu) */
+.ec-gr-h{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;min-height:var(--ctl)}
+.ec-gr-t{flex:1;min-width:0;display:flex;align-items:center;gap:7px;font-size:var(--text-14);font-weight:var(--weight-bold)}
+.ec-gr-g{display:flex;flex-wrap:wrap;gap:8px}
 .gr-liste{display:flex;flex-direction:column;margin-top:8px}
 .gr-ligne{
   display:flex;align-items:center;gap:10px;width:100%;min-height:var(--ctl);padding:6px 2px;
@@ -3246,6 +3251,7 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 .gr-ligne .ic{flex:none;color:var(--text-muted)}
 @media (min-width:901px){
   .ec-actes .ec-groupes{flex:1 1 100%}
+  .ec-actes .ec-gr-t{flex:none;font-size:var(--text-13);font-weight:var(--weight-regular);color:var(--text-muted)}
 }
 /* la feuille d'un groupe : elle se donne sa hauteur (§6, « Écrire ») —
    le fil défile, le pied reste sous le pouce */
