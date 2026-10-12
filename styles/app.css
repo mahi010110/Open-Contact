@@ -3301,6 +3301,23 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 .gr-dem .btn-sm{align-self:flex-start;margin-top:4px}
 .gr-moi.gr-dem .btn-sm{align-self:flex-end}
 .gr-rep{margin-top:12px}
+/* LOT 5c — le groupe « sur demande ».
+   Qui attend à la porte : la même bulle qu'une demande trouvée (le bord
+   d'accent : quelqu'un attend, c'est à moi), ses deux gestes dessous. */
+.gr-entree p{display:flex;align-items:center;gap:6px;border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.gr-entree p b{font-weight:var(--weight-semibold)}
+.gr-entree-g{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+/* là où j'ai demandé à entrer : une rangée qui ne s'ouvre pas encore —
+   un état, pas une porte */
+.gr-attente{cursor:default}
+.gr-attente:active{background:none}
+@media (hover:hover){ .gr-attente:hover{background:none} }
+.gr-att{flex:none;display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted)}
+/* qui ouvre la porte se lit à côté du prénom ; le geste au bout */
+.gr-noms li{justify-content:space-between;gap:8px;flex-wrap:wrap}
+.gr-noms li>span{min-width:0;overflow-wrap:anywhere}
+.gr-role{font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted)}
+.gr-noms .btn-sm{flex:none}
 .rc-de{display:flex;align-items:center;gap:7px;margin:0 0 8px;font-size:var(--text-13);color:var(--text-muted)}
 .scan-box{
   position:relative;background:#000;border:1px solid var(--border-strong);

@@ -33,7 +33,7 @@ installer**.
 | Pistes, fiches, suivi, prochaine action, clôture | ✅ |
 | Capture rapide, détection des doublons, bac « à rattacher » | ✅ |
 | Donner et recevoir des pistes : QR, fichier `.oc`, coller | ✅ |
-| Groupes : créer, rejoindre (QR ou code), s'écrire sept jours, se donner des pistes en différé, cinq au plus ; y demander quelqu'un, que tout le groupe voit et à qui chacun répond à son tour | ✅ |
+| Groupes : créer, rejoindre (QR ou code), s'écrire sept jours, se donner des pistes en différé, cinq au plus ; y demander quelqu'un, que tout le groupe voit et à qui chacun répond à son tour ; ouverts, ou sur demande (un chef et ses adjoints acceptent les entrées) | ✅ |
 | Amis : donner son profil (QR, texte), lire sur ses pistes où ils sont passés, les retrouver triés dans « Mes pistes » | ✅ |
 | Demander à ses amis quelqu'un chez une entreprise ou dans un métier et une ville, jusqu'au troisième cercle, donner un contact — ou soi-même — en réponse | ✅ |
 | Synchronisation entre **mes** appareils | ✅ |

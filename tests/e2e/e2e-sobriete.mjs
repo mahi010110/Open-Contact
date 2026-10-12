@@ -141,7 +141,13 @@ const PLAFOND = {
      QR. » (l'échec de « Copier » sous l'invitation, mot pour mot celui de
      « Mon QR »). Le reste ne coûte rien : un mot envoyé se lit dans le
      fil, un don parti aussi, un groupe quitté passe par « Annuler ». */
-  toasts: 122,
+  /* 123 le 12 octobre 2026, +1 (docs/reseau.md, lot 5c, le groupe « sur
+     demande ») — famille ② : « Tu es dans BTS SIO Lille. », quand la
+     réponse d'un responsable arrive à la relève, d'un AUTRE téléphone,
+     peut-être des jours après la demande et sur n'importe quel écran.
+     Le reste se dit à l'écran : « en attente » dans « Échanger », qui
+     attend à la porte en tête du groupe, l'adjoint par « Annuler ». */
+  toasts: 123,
   toastCar: 79,        /* le plus long : « Connexion interrompue — … » */
   /* portes bloquantes dans les écrans visibles.
      9 le 29 septembre 2026 : « Mon profil » prend le garde-fou de la

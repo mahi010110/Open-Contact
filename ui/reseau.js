@@ -26,7 +26,7 @@ import { RELAIS_DEFAUT } from '../engine/transport.js';
 import { kvGet, kvSet, RELAYS_KEY, RESEAU_KEY } from '../engine/storage.js';
 import { nouvelleCle, etiquetteBoite, sceller, ouvrir, lettreDemande, lettreDon, lettreMerci, lettreAmi, normaliserLettre, empreinteProfil,
          etatVide, normaliserEtat, elaguer, peutDemander, demandeDePiste, traiterLettre, prenomDe,
-         jetonRelais, ouvrirJeton, lettreRelais, lettreTrouve, choisirRelais,
+         jetonRelais, ouvrirJeton, lettreRelais, lettreTrouve, choisirRelais, lettreEntree, lettreAdmis,
          LETTRE_KIND } from '../engine/boite.js';
 import { prenomAmi, profilDonne, statutAmi, ajouterAmi, nouvelIdAmi, memeEntreprise, direQuoi, direQuoiTu } from '../engine/amis.js';
 import { parcoursDe } from '../engine/parcours.js';
@@ -332,7 +332,8 @@ export function relever(){
                                       since: Math.max(0, Math.floor(etat.depuis / 1000) - 3600) });
     let change = false;
     const ctx = { companies: S.companies, moi: b.pub, amis: S.profile.amis, parcours: parcoursDe(S.profile, S.companies),
-                  pistesPour, sansRelais: !!(S.profile.flags && S.profile.flags.sansRelais), today: todayISO() };
+                  pistesPour, sansRelais: !!(S.profile.flags && S.profile.flags.sansRelais), today: todayISO(),
+                  portes: (S.profile.groupes || []).filter(g => g.type === 'demande').map(g => g.porte) };
     for (const ev of evs){
       const l = normaliserLettre(await ouvrir(b.priv, ev.content));
       const r = traiterLettre(etat, l, ctx);
@@ -352,6 +353,8 @@ export function relever(){
       if (r.quoi === 'trouve') await nommerTrouve(l);
       if (r.quoi === 'don') await nommerDon(l);
       if (r.quoi === 'merci-relais') await remercierChaine(etat.mercis.at(-1));
+      /* on m'a ouvert la porte d'un groupe « sur demande » (lot 5c) */
+      if (r.quoi === 'admis') await (await import('./groupes.js')).entrerAdmis(l).catch(() => {});
     }
     /* une relève où AUCUN relais n'a répondu n'a rien appris : la compter
        ferait sauter, au retour du réseau, les lettres arrivées entre-temps */
@@ -364,7 +367,7 @@ export function relever(){
 let derniere = 0;
 export function demarrerReseau(){
   chargerReseau().then(() => {
-    if (etat.demandes.length || etat.recues.length || etat.dons.length) bus.refresh();
+    if (etat.demandes.length || etat.recues.length || etat.dons.length || etat.entrees.length || etat.attentes.length) bus.refresh();
     relever(); derniere = Date.now();
     planifierEnvois();
   });
@@ -624,6 +627,40 @@ export async function suivreAmis(id){
   bus.refresh();
   const apres = recueDe(id);
   return apres && apres.statut === 'transmise' ? apres.vers : 0;
+}
+
+/* ---------- ENTRER DANS UN GROUPE « SUR DEMANDE » (lot 5c) ----------
+   Qui scanne la porte demande à entrer : une lettre à chaque
+   responsable, scellée pour lui. On attend sa réponse — la porte ne
+   donne jamais le code. */
+export const attentes = () => etat.attentes || [];
+export const entreesPour = porte => (etat.entrees || []).filter(x => x.porte === porte && x.statut === 'attente');
+export async function demanderEntree(p){
+  await chargerReseau();
+  const b = await assurerBoite();
+  if (!S.profile.amiId){ S.profile.amiId = nouvelIdAmi(); saveProfile(); }
+  const l = lettreEntree({ prenom: prenomDe(S.profile.name), cle: b.pub }, p.porte, S.profile.amiId);
+  const exp = Date.now() + 14 * 864e5;
+  const partis = (await Promise.all(p.responsables.map(c => ecrire(c, l, exp).catch(() => 0)))).filter(n => n > 0).length;
+  if (!partis){ echecEnvoi(); return false; }
+  etat = { ...etat, attentes: [...attentes().filter(a => a.porte !== p.porte), { porte: p.porte, nom: p.nom, at: Date.now() }] };
+  await sauver();
+  bus.refresh();
+  return true;
+}
+/* accepter : le code, scellé pour lui seul ; refuser : rien ne part */
+export async function repondreEntree(id, ouvrir, groupe){
+  const x = (etat.entrees || []).find(y => y.id === id);
+  if (!x) return false;
+  if (ouvrir){
+    const b = await assurerBoite();
+    const l = lettreAdmis({ prenom: prenomDe(S.profile.name), cle: b.pub }, groupe);
+    if (!await envoyerSur(x.de.cle, l, Date.now() + 14 * 864e5)){ echecEnvoi(); return false; }
+  }
+  etat = { ...etat, entrees: etat.entrees.map(y => y.id === id ? { ...y, statut: ouvrir ? 'admis' : 'refuse' } : y) };
+  await sauver();
+  bus.refresh();
+  return true;
 }
 
 /* ---------- ON TE DONNE ---------- */

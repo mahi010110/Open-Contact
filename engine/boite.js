@@ -233,6 +233,18 @@ const QUOI = new Set(['stage', 'alternance', 'emploi']);
    retour), « maj » quand mon parcours a changé (tu me mets à jour SI je
    suis déjà dans tes amis — une mise à jour ne rajoute jamais quelqu'un
    qu'on a retiré) */
+/* ---------- entrer dans un groupe « sur demande » (lot 5c) ----------
+   La porte d'un tel groupe ne porte pas son code : qui la scanne
+   DEMANDE à entrer, par une lettre à chacun de ses responsables ; l'un
+   d'eux répond en lui donnant le code, scellé pour lui seul. */
+const CODE_GROUPE = /^[abcdefghjkmnpqrstuvwxyz23456789]{15}$/;
+const SIGNE = /^[A-Za-z0-9_-]{86,88}$/;
+export function lettreEntree({ prenom, cle }, porte, ami){
+  return { v: 1, t: 'entree', id: nouvelId(), porte, de: { prenom: txt(prenom, 40), cle }, ami };
+}
+export function lettreAdmis({ prenom, cle }, { porte, code, nom, chef }){
+  return { v: 1, t: 'admis', id: nouvelId(), porte, de: { prenom: txt(prenom, 40), cle }, code, nom: txt(nom, 40), chef };
+}
 export function lettreAmi({ prenom, cle }, profil, motif = 'ajout'){
   return { v: 1, t: 'ami', id: nouvelId(), motif: motif === 'maj' ? 'maj' : 'ajout',
            de: { prenom: txt(prenom, 40), cle }, profil };
@@ -262,6 +274,14 @@ export function normaliserLettre(o, now = Date.now()){
   }
   const de = o.de && typeof o.de === 'object' ? { prenom: txt(o.de.prenom, 40), cle: o.de.cle } : null;
   if (!de || !de.prenom || !cleValide(de.cle)) return null;
+  if (o.t === 'entree'){
+    if (!ID.test(String(o.porte || '')) || !/^[A-Za-z0-9_-]{16,43}$/.test(String(o.ami || ''))) return null;
+    return { t: 'entree', id: o.id, porte: o.porte, de, ami: o.ami };
+  }
+  if (o.t === 'admis'){
+    if (!ID.test(String(o.porte || '')) || !CODE_GROUPE.test(String(o.code || '')) || !SIGNE.test(String(o.chef || ''))) return null;
+    return { t: 'admis', id: o.id, porte: o.porte, de, code: o.code, nom: txt(o.nom, 40), chef: o.chef };
+  }
   if (o.t === 'ami'){
     /* le profil se remet aux MÊMES invariants qu'un QR scanné, et sa clé
        doit être celle qui écrit : on n'ajoute pas quelqu'un au nom d'un
@@ -340,7 +360,7 @@ export function contactsDe(pistes, max = 3){
    Mes demandes en cours, ce qu'on m'a demandé, ce qu'on m'a donné, les
    mercis. Un repère d'appareil, comme « nouveau » dans « À découvrir » :
    ni sync, ni copie, ni partage. */
-export function etatVide(){ return { v: 1, depuis: 0, demandes: [], recues: [], dons: [], mercis: [], lus: [], envois: [] }; }
+export function etatVide(){ return { v: 1, depuis: 0, demandes: [], recues: [], dons: [], mercis: [], lus: [], envois: [], entrees: [], attentes: [] }; }
 /* l'empreinte d'un profil donné : savoir s'il a changé sans le garder */
 export async function empreinteProfil(profil){
   const h = new Uint8Array(await crypto.subtle.digest('SHA-256', enc(JSON.stringify(profil))));
@@ -356,7 +376,11 @@ export function normaliserEtat(e){
      quand elle change, ils reçoivent la nouvelle version (lot 4) */
   const out = { v: 1, depuis: Number(x.depuis) || 0, demandes: liste(x.demandes), recues: liste(x.recues),
            dons: liste(x.dons), mercis: liste(x.mercis), lus: liste(x.lus),
-           envois: liste(x.envois, 50).filter(y => cleValide(y.cle) && y.lettre && typeof y.lettre === 'object') };
+           envois: liste(x.envois, 50).filter(y => cleValide(y.cle) && y.lettre && typeof y.lettre === 'object'),
+           /* lot 5c : qui demande à entrer dans un de mes groupes (je suis
+              responsable), et les groupes où j'ai demandé à entrer */
+           entrees: liste(x.entrees, 100), attentes: (Array.isArray(x.attentes) ? x.attentes : [])
+             .filter(y => y && ID.test(String(y.porte || ''))).map(y => ({ porte: y.porte, nom: txt(y.nom, 40), at: Number(y.at) || 0 })).slice(-5) };
   if (/^[0-9a-f]{16,64}$/.test(String(x.profilEnvoye || ''))) out.profilEnvoye = x.profilEnvoye;
   return out;
 }
@@ -365,7 +389,9 @@ export function elaguer(e, now = Date.now()){
   const garde = y => (Number(y.exp || y.at) || 0) > now - 30 * 864e5;
   return { ...e, demandes: e.demandes.filter(garde), recues: e.recues.filter(garde),
            dons: e.dons.filter(garde), mercis: e.mercis.filter(garde),
-           lus: (e.lus || []).filter(garde), envois: (e.envois || []).filter(y => (Number(y.exp) || 0) > now) };
+           lus: (e.lus || []).filter(garde), envois: (e.envois || []).filter(y => (Number(y.exp) || 0) > now),
+           entrees: (e.entrees || []).filter(y => (Number(y.at) || 0) > now - DEMANDE_JOURS * 864e5),
+           attentes: (e.attentes || []).filter(y => (Number(y.at) || 0) > now - DEMANDE_JOURS * 864e5) };
 }
 export const demandesOuvertes = (e, now = Date.now()) => e.demandes.filter(d => d.exp > now);
 export const peutDemander = (e, now = Date.now()) => demandesOuvertes(e, now).length < DEMANDES_OUVERTES_MAX;
@@ -379,8 +405,22 @@ export const demandeDePiste = (e, pisteId, now = Date.now()) =>
    l'un d'eux) ; `parcours` : le mien (« j'y suis ») ; `pistesPour` : la
    recherche par métier et ville (engine/requete.js) ; `sansRelais` :
    j'ai coupé le passage (décision 7) */
-export function traiterLettre(e, l, { companies, moi, amis, parcours, pistesPour, sansRelais, today, now = Date.now() } = {}){
+export function traiterLettre(e, l, { companies, moi, amis, parcours, pistesPour, sansRelais, today, portes, now = Date.now() } = {}){
   if (!l) return { etat: e, quoi: null };
+  if (l.t === 'entree'){
+    /* seulement pour une porte dont je suis responsable, une fois par
+       personne et par porte */
+    if (!(portes || []).includes(l.porte) || l.de.cle === moi
+        || (e.entrees || []).some(x => x.porte === l.porte && x.de.cle === l.de.cle)) return { etat: e, quoi: null };
+    const x = { id: l.id, porte: l.porte, de: l.de, ami: l.ami, at: now, statut: 'attente' };
+    return { etat: { ...e, entrees: [...(e.entrees || []), x] }, quoi: 'entree' };
+  }
+  if (l.t === 'admis'){
+    /* on n'entre que là où l'on a DEMANDÉ à entrer : un code qu'on
+       n'attendait pas ne fait entrer nulle part */
+    if (!(e.attentes || []).some(a => a.porte === l.porte)) return { etat: e, quoi: null };
+    return { etat: { ...e, attentes: e.attentes.filter(a => a.porte !== l.porte) }, quoi: 'admis' };
+  }
   if (l.t === 'demande'){
     if (l.de.cle === moi || e.recues.some(r => r.id === l.id)) return { etat: e, quoi: null };
     /* plus loin que le premier cercle, la demande n'entre que par un de

@@ -102,6 +102,53 @@ export function lireInvitation(raw){
   return code ? { code, nom: '' } : null;
 }
 
+/* ---------- la PORTE d'un groupe « sur demande » (OCP1, lot 5c) ----------
+   Elle ne porte pas le code : le nom, l'identifiant de la porte, et les
+   clés de boîte de ceux qui acceptent les entrées. Qui la scanne demande
+   à entrer ; c'est un responsable qui lui donnera le code. */
+const CLE_BOITE = /^[A-Za-z0-9_-]{86,88}$/;
+export function porteInvitation({ nom, porte, responsables }){
+  const o = { v: 1, n: nomGroupe(nom), p: porte, r: (responsables || []).filter(c => CLE_BOITE.test(String(c))).slice(0, 10) };
+  return 'OCP1.' + enB64u(JSON.stringify(o));
+}
+export const estPorte = raw => /OCP1\.[A-Za-z0-9_-]+/.test(String(raw || '').replace(/\s+/g, ''));
+export function lirePorte(raw){
+  const m = String(raw || '').replace(/\s+/g, '').match(/OCP1\.([A-Za-z0-9_-]{8,4000})/);
+  if (!m) return null;
+  let o;
+  try { o = JSON.parse(deB64u(m[1])); } catch (e) { return null; }
+  if (!o || o.v !== 1 || !ID.test(String(o.p || ''))) return null;
+  const responsables = (Array.isArray(o.r) ? o.r : []).filter(c => CLE_BOITE.test(String(c))).slice(0, 10);
+  if (!responsables.length) return null;
+  return { nom: nomGroupe(o.n), porte: o.p, responsables };
+}
+
+/* ---------- les SIGNATURES des responsables (lot 5c) ----------
+   ECDSA P-256 : une clé de signature, à part de celle de la boîte. Le
+   chef la crée avec le groupe ; elle part, publique, dans le code que
+   reçoit chaque nouveau membre — c'est l'ancre. Un adjoint est nommé par
+   un responsable, qui signe sa clé : la chaîne remonte toujours au chef. */
+const ECDSA = { name: 'ECDSA', namedCurve: 'P-256' };
+const b64u = u8 => bytesToB64(u8).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const deB64uOctets = s => { s = String(s).replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; return b64ToBytes(s); };
+export async function nouvelleCleSignature(){
+  const k = await crypto.subtle.generateKey(ECDSA, true, ['sign', 'verify']);
+  return { pub: b64u(new Uint8Array(await crypto.subtle.exportKey('raw', k.publicKey))),
+           priv: b64u(new Uint8Array(await crypto.subtle.exportKey('pkcs8', k.privateKey))) };
+}
+export const signeValide = v => typeof v === 'string' && CLE_BOITE.test(v);
+const aSigner = o => new TextEncoder().encode(JSON.stringify(Object.keys(o).filter(k => k !== 'sig').sort().map(k => [k, o[k]])));
+export async function signer(priv, o){
+  const k = await crypto.subtle.importKey('pkcs8', deB64uOctets(priv), ECDSA, false, ['sign']);
+  return b64u(new Uint8Array(await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, k, aSigner(o))));
+}
+export async function verifier(pub, o, sig){
+  try {
+    const k = await crypto.subtle.importKey('raw', deB64uOctets(pub), ECDSA, false, ['verify']);
+    return await crypto.subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, k, deB64uOctets(sig), aSigner(o));
+  } catch (e) { return false; }
+}
+
 /* ---------- la clé et l'étiquette ----------
    Un seul PBKDF2 donne les deux : 16 octets pour l'étiquette que voit
    un relais, 32 pour la clé. Son sel est à lui : jamais l'étiquette
@@ -136,17 +183,25 @@ export async function ouvrirMessage(k, txt){
 /* ---------- les messages ----------
    Ce qui arrive d'un relais peut être n'importe quoi : seul ce qui a la
    bonne forme passe, et sous la forme qu'on a dite — rien de plus. */
-export const dureeDe = t => (t === 'membre' || t === 'depart' ? MEMBRE_JOURS : t === 'part' ? PISTES_JOURS
+export const dureeDe = t => (t === 'membre' || t === 'depart' || t === 'adjoint' ? MEMBRE_JOURS : t === 'part' ? PISTES_JOURS
   : t === 'demande' ? DEMANDE_JOURS : MOT_JOURS) * JOUR;
 const prenomOk = v => typeof v === 'string' && v.trim().length > 0;
 const prenomDe = v => String(v).replace(/\s+/g, ' ').trim().split(' ')[0].slice(0, 40);
 const entier = (x, max) => Number.isInteger(x) && x >= 0 && x < max;
+const sigOk = v => typeof v === 'string' && /^[A-Za-z0-9_-]{40,200}$/.test(v);
 export function normaliserMessage(m, now = Date.now()){
   if (!m || typeof m !== 'object' || !idAmiValide(m.de)) return null;
   const at = Number(m.at);
   if (!Number.isFinite(at) || at > now + AVANCE || at + dureeDe(m.t) < now) return null;
-  if (m.t === 'membre' && prenomOk(m.prenom))
-    return { t: 'membre', de: m.de, prenom: prenomDe(m.prenom), nom: nomGroupe(m.nom), at };
+  if (m.t === 'membre' && prenomOk(m.prenom)){
+    const out = { t: 'membre', de: m.de, prenom: prenomDe(m.prenom), nom: nomGroupe(m.nom), at };
+    /* dans un groupe « sur demande » : de quoi devenir responsable */
+    if (CLE_BOITE.test(String(m.cle || ''))) out.cle = m.cle;
+    if (signeValide(m.sign) && sigOk(m.sig)){ out.sign = m.sign; out.sig = m.sig; }
+    return out;
+  }
+  if (m.t === 'adjoint' && idAmiValide(m.membre) && signeValide(m.sign) && CLE_BOITE.test(String(m.cle || '')) && sigOk(m.sig))
+    return { t: 'adjoint', de: m.de, membre: m.membre, sign: m.sign, cle: m.cle, at, sig: m.sig };
   if (m.t === 'depart') return { t: 'depart', de: m.de, at };
   if (m.t === 'mot' && ID.test(String(m.id)) && prenomOk(m.prenom) && typeof m.texte === 'string'){
     const texte = m.texte.replace(/\s+/g, ' ').trim().slice(0, MOT_MAX);
@@ -172,7 +227,7 @@ export function normaliserMessage(m, now = Date.now()){
 }
 
 /* ---------- ce qu'un appareil garde d'un groupe ---------- */
-export const groupeVide = () => ({ nom: '', fil: [], membres: {}, depuis: 0, vu: 0, presence: 0, pris: [], masques: [] });
+export const groupeVide = () => ({ nom: '', fil: [], membres: {}, depuis: 0, vu: 0, presence: 0, pris: [], masques: [], adjoints: {} });
 export function normaliserGroupe(g){
   const v = groupeVide();
   if (!g || typeof g !== 'object') return v;
@@ -184,6 +239,7 @@ export function normaliserGroupe(g){
   v.pris = Array.isArray(g.pris) ? g.pris.filter(id => ID.test(String(id))).slice(-200) : [];
   /* les demandes qu'on a masquées (décision 28) : elles ne reviennent pas */
   v.masques = Array.isArray(g.masques) ? g.masques.filter(id => ID.test(String(id))).slice(-200) : [];
+  v.adjoints = g.adjoints && typeof g.adjoints === 'object' ? g.adjoints : {};
   return v;
 }
 
@@ -194,8 +250,15 @@ export function traiterMessage(g, m){
   if (m.t === 'membre'){
     const avant = g.membres[m.de];
     if (avant && avant.at >= m.at) return g;
-    const membres = { ...g.membres, [m.de]: { prenom: m.prenom, at: m.at, ...(avant && avant.parti > m.at ? { parti: avant.parti } : {}) } };
+    const membres = { ...g.membres, [m.de]: { prenom: m.prenom, at: m.at, ...(m.cle ? { cle: m.cle } : {}), ...(m.sign ? { sign: m.sign } : {}),
+      ...(avant && avant.parti > m.at ? { parti: avant.parti } : {}) } };
     return { ...g, membres, nom: g.nom || m.nom };
+  }
+  if (m.t === 'adjoint'){
+    /* une nomination ne compte que VÉRIFIÉE (la signature d'un
+       responsable, voir `adjointVerifie`) : l'appelant le dit */
+    if (!m.verifie || (g.adjoints || {})[m.membre]) return g;
+    return { ...g, adjoints: { ...(g.adjoints || {}), [m.membre]: { sign: m.sign, cle: m.cle, sig: m.sig, at: m.at } } };
   }
   if (m.t === 'depart'){
     const avant = g.membres[m.de];
@@ -266,13 +329,66 @@ export function relaisVersGroupe(x, de, prenom, now = Date.now()){
 }
 export const peutRelayerGroupe = x => (x.relais ? x.relais.n : 0) < RELAIS_GROUPES_MAX;
 
+/* LES RESPONSABLES d'un groupe « sur demande » : le chef (sa clé de
+   signature, reçue avec le code) et les adjoints dont la nomination
+   remonte jusqu'à lui. Ce qu'il faut pour la porte : leurs clés de boîte,
+   lues dans leurs présences. */
+export function responsables(g, chef){
+  const out = [];
+  for (const [de, v] of Object.entries(g.membres || {}))
+    if (v.sign && v.sign === chef && !(v.parti >= v.at)) out.push({ de, prenom: v.prenom, sign: v.sign, cle: v.cle, chef: true });
+  for (const [de, a] of Object.entries(g.adjoints || {})){
+    const v = (g.membres || {})[de];
+    if (v && !(v.parti >= v.at) && !out.some(x => x.de === de)) out.push({ de, prenom: v.prenom, sign: a.sign, cle: a.cle || v.cle, chef: false });
+  }
+  return out;
+}
+export const estResponsable = (g, chef, monSign) => !!monSign && (monSign === chef
+  || Object.values(g.adjoints || {}).some(a => a.sign === monSign));
+/* une nomination est valide si un responsable DÉJÀ connu l'a signée.
+   Ce qui est signé ne porte pas de date : l'adjoint redit sa nomination
+   avec sa présence, et celui qui arrive dans un mois la lit encore. */
+const corpsAdjoint = m => ({ t: 'adjoint', membre: m.membre, sign: m.sign, cle: m.cle });
+export async function adjointVerifie(g, chef, m){
+  const signeurs = [chef, ...Object.values(g.adjoints || {}).map(a => a.sign)];
+  for (const pub of signeurs) if (pub && await verifier(pub, corpsAdjoint(m), m.sig)) return true;
+  return false;
+}
+export async function nomination(priv, { de, membre, sign, cle }, now = Date.now()){
+  return { ...corpsAdjoint({ membre, sign, cle }), de, at: now, sig: await signer(priv, corpsAdjoint({ membre, sign, cle })) };
+}
+/* ce que l'adjoint redit lui-même : sa nomination, telle qu'on l'a signée */
+export const redireNomination = (a, de, now = Date.now()) => ({ t: 'adjoint', de, membre: de, sign: a.sign, cle: a.cle, sig: a.sig, at: now });
+/* UNE PRÉSENCE QUI DIT « MA CLÉ DE SIGNATURE » LE PROUVE : elle signe
+   son identifiant et sa clé de boîte avec. Sans ça, n'importe quel
+   membre pourrait annoncer la clé du chef — elle est publique — et
+   recevoir les demandes d'entrée à sa place. */
+const corpsPresence = m => ({ t: 'membre', de: m.de, cle: m.cle || '', sign: m.sign });
+export async function presenceSignee(priv, m){ return { ...m, sig: await signer(priv, corpsPresence(m)) }; }
+export async function presenceVerifiee(m){
+  if (!m || m.t !== 'membre' || !m.sign) return m;
+  if (await verifier(m.sign, corpsPresence(m), m.sig)) return m;
+  const { sign, sig, cle, ...reste } = m;
+  return reste;
+}
+
 /* ---------- les groupes du profil ----------
    Ils vivent dans le profil pour voyager avec lui (sync de MES
    appareils, ma copie) ; ce qui s'y dit vit sur l'appareil. */
 export function normaliserGroupes(list){
   const vus = new Set();
   return (Array.isArray(list) ? list : [])
-    .map(x => x && { code: codeNorm(x.code), nom: nomGroupe(x.nom), at: Number(x.at) || 0 })
+    .map(x => {
+      if (!x) return null;
+      const g = { code: codeNorm(x.code), nom: nomGroupe(x.nom), at: Number(x.at) || 0 };
+      /* « sur demande » (lot 5c) : la porte, la clé du chef, et ma clé de
+         signature — sans elles, le groupe redevient ouvert */
+      if (x.type === 'demande' && ID.test(String(x.porte || '')) && signeValide(x.chef)){
+        g.type = 'demande'; g.porte = x.porte; g.chef = x.chef;
+        if (x.sign && signeValide(x.sign.pub) && typeof x.sign.priv === 'string' && x.sign.priv.length < 400) g.sign = { pub: x.sign.pub, priv: x.sign.priv };
+      }
+      return g;
+    })
     .filter(x => x && x.code && !vus.has(x.code) && vus.add(x.code))
     .slice(0, GROUPES_MAX);
 }
