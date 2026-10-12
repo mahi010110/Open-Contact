@@ -310,6 +310,9 @@ export function lierVueAmis(box, { wide, rendre }){
   box.querySelector('#avScan')?.addEventListener('click', async () =>
     (await import('./recevoir.js')).openRecevoir({ scanner: true, apres: rendre }));
   const trouve = id => (S.profile.amis || []).find(a => a.id === id);
+  /* `rendre` REMPLACE la vue : le focus se rend à la ligne NEUVE, cherchée
+     dans le document — l'ancienne `box` n'y est plus */
+  const reprendre = id => document.querySelector(`#piAmis .am-row[data-ami="${CSS.escape(id)}"] .ri-main`)?.focus({ preventScroll: true });
   box.querySelectorAll('.am-row').forEach(row => {
     const a = trouve(row.dataset.ami);
     if (!a) return;
@@ -319,12 +322,12 @@ export function lierVueAmis(box, { wide, rendre }){
       if (choisiAmi === a.id) return;
       choisiAmi = a.id;
       rendre();
-      box.querySelector(`.am-row[data-ami="${CSS.escape(a.id)}"] .ri-main`)?.focus({ preventScroll: true });
+      reprendre(a.id);
     };
     main.addEventListener('click', ouvrir);
     main.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); ouvrir(); } });
     /* au poste, la fiche suit le clavier, comme dans « À découvrir » */
-    if (wide) main.addEventListener('focus', () => { if (choisiAmi !== a.id){ choisiAmi = a.id; rendre(); box.querySelector(`.am-row[data-ami="${CSS.escape(a.id)}"] .ri-main`)?.focus({ preventScroll: true }); } });
+    if (wide) main.addEventListener('focus', () => { if (choisiAmi !== a.id){ choisiAmi = a.id; rendre(); reprendre(a.id); } });
     /* RETIRER AU GESTE, comme une piste : glisser au doigt, la croix au
        survol — avec SON mot, et « Annuler » */
     bindDeleteGesture(row, () => retirerAvecAnnuler(a, rendre), a.nom, { mot: 'Retirer' });

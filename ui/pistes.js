@@ -620,22 +620,24 @@ export function renderPistes(){
     rendreChips();
     rendrePortee();
 
+    /* le titre compte TES PISTES, quelle que soit la portée : ce qui vit
+       au-dessus des onglets ne change pas avec eux (NN/g, Tabs Used
+       Right) — « Mes pistes · 4 amis » se lisait de travers */
+    const tout = S.companies.length;
+    const cnt = root.querySelector('#piCount');
+    if (cnt) cnt.textContent = (q || ftOn()) && all.length !== tout
+      ? `${all.length} sur ${tout}`
+      : `${tout} piste${tout > 1 ? 's' : ''}`;
     if (am){
       const liste = amisClasses(q);
       const n = (S.profile.amis || []).length;
-      const cnt = root.querySelector('#piCount');
-      if (cnt) cnt.textContent = q && liste.length !== n ? `${liste.length} sur ${n}` : `${n} ami${n > 1 ? 's' : ''}`;
+      /* ce que la barre a gardé s'ENTEND ; il se voit dans l'onglet */
       if (q) annoncer(`${liste.length} ami${liste.length > 1 ? 's' : ''} sur ${n}.`);
       body.innerHTML = `<div id="piAmis">${vueAmisHTML(liste, { q, wide })}</div>`;
       lierVueAmis(body.querySelector('#piAmis'), { wide, rendre: () => glisser(renderBody) });
       tenirBarre();
       return;
     }
-    const tout = S.companies.length;
-    const cnt = root.querySelector('#piCount');
-    if (cnt) cnt.textContent = (q || ftOn()) && all.length !== tout
-      ? `${all.length} sur ${tout}`
-      : `${tout} piste${tout > 1 ? 's' : ''}`;
     /* Filtrer réorganise tout l'écran sans rien annoncer : quelqu'un qui
        ne voit pas l'écran tape trois lettres et n'apprend jamais qu'il
        ne reste qu'une piste. C'est le DÉCOR qui suit un geste, jamais sa
