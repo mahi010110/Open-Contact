@@ -32,7 +32,8 @@ installer**.
 |---|---|
 | Pistes, fiches, suivi, prochaine action, clôture | ✅ |
 | Capture rapide, détection des doublons, bac « à rattacher » | ✅ |
-| Partage au groupe : QR, fichier `.oc`, coller, en direct | ✅ |
+| Donner et recevoir des pistes : QR, fichier `.oc`, coller | ✅ |
+| Groupes : créer, rejoindre (QR ou code), s'écrire sept jours, se donner des pistes en différé, cinq au plus | ✅ |
 | Amis : donner son profil (QR, texte), lire sur ses pistes où ils sont passés, les retrouver triés dans « Mes pistes » | ✅ |
 | Demander à ses amis quelqu'un chez une entreprise ou dans un métier et une ville, jusqu'au troisième cercle, donner un contact — ou soi-même — en réponse | ✅ |
 | Synchronisation entre **mes** appareils | ✅ |
@@ -135,7 +136,7 @@ plateforme permet, sans le promettre au-delà.
 
 ## ⏸ Reporté par choix
 
-Deux capacités passent toutes les règles techniques et sont pourtant mises de
+Trois capacités passent toutes les règles techniques et sont pourtant mises de
 côté, pour des raisons différentes :
 
 **Le brouillon par IA avec ta propre clé** (Claude, Gemini, OpenRouter).
@@ -148,6 +149,13 @@ soit, et ce n'est pas le public visé. Le jour où ça revient, ça revient sur
 dans une déclaration permanente chez Google et Microsoft — examen, validation,
 renouvellement. Un projet d'étudiant n'a pas à porter ça. `mailto:` reste le
 chemin de tout le monde, et il marche partout.
+
+**Le partage au groupe en direct** (un mot de passe commun, tout le monde
+connecté au même instant). Les groupes (6.58) font la même chose sans être
+là en même temps : on donne des pistes, chacun les reçoit à sa prochaine
+ouverture. Le direct reste dans le code, masqué (`ui/perimetre.js`,
+`PARTAGE_DIRECT`), et ses scénarios gardent le transport en direct que le
+rendez-vous QR emploie aussi.
 
 ---
 

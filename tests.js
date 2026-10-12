@@ -25,7 +25,7 @@ import { filterCompanies, filterOrphans, searchHint, NATURAL_DIR } from './engin
 import { scoreOf } from './engine/score.js';
 import { DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, SYNC_KEY,
          RELAYS_KEY, TURN_KEY, DEVICE_KEY, DEVICES_KEY, PROMO_KEY, VAULT_KEY,
-         ANALYSIS_KEY, VUS_KEY, RESEAU_KEY, SEALABLE, THEME_KEY, VIEW_KEY, OLD_V2, OLD_V1, CLES_A_EFFACER,
+         ANALYSIS_KEY, VUS_KEY, RESEAU_KEY, GROUPES_KEY, SEALABLE, THEME_KEY, VIEW_KEY, OLD_V2, OLD_V1, CLES_A_EFFACER,
          kvGet, kvSet, kvDel, vaultActive, vaultDetach, vaultReseal } from './engine/storage.js';
 import { causeLiaison, relayTally, liaisonStage, parseTurn, turnText, TURN_MAX, RELAIS_DEFAUT } from './engine/transport.js';
 import { clePortage, sceller as scellerPortage, ouvrir as ouvrirPortageMsg, decouper, rassembler, recolte,
@@ -58,6 +58,9 @@ import { nouvelleCle, boiteValide, cleValide, etiquetteBoite, sceller, ouvrir, l
          jetonRelais, ouvrirJeton, lettreRelais, lettreTrouve, choisirRelais, soiPour, contactsDe,
          CERCLE_MAX, RELAIS_MAX } from './engine/boite.js';
 import { critereValide, phraseCritere, CRITERE_METIER } from './engine/critere.js';
+import { GROUPES_MAX, MOT_MAX, nouveauCode, codeNorm, codeAffiche, invitation, estInvitation, lireInvitation,
+         cleGroupe, sceller as scellerGroupe, ouvrirMessage, normaliserMessage, groupeVide, traiterMessage,
+         elaguerGroupe, filDe, membresDe, nouveaux, presenceAredire, pistesCompletes, normaliserGroupes } from './engine/groupe.js';
 import { interpreter, retirer, remplacer, chercherPistes, raisonDe, propositions, elargir,
          contexteRecherche, porteurs, deptDuCp, villeFrequente, deptDePiste, zoneDe, metierDuMoment,
          fraicheur, METIER, metierDuProfil, villeConnue, lieuDuProfil, metierEtiquetteDuProfil, rayonDe,
@@ -660,6 +663,8 @@ export async function runSelfTests(){
       eq(VAULT_KEY, 'oc_vault_v1');
       eq(RESEAU_KEY, 'oc_reseau_v1');
       ok(SEALABLE.has(RESEAU_KEY));   /* qui me demande quoi, et ce qu'on m'a donné : une donnée */
+      eq(GROUPES_KEY, 'oc_groupes_v1');
+      ok(SEALABLE.has(GROUPES_KEY));  /* ce qui s'est dit dans mes groupes, et qui en est : une donnée */
       eq(THEME_KEY, 'oc_theme');
       eq(VIEW_KEY, 'oc_view');
       eq(OLD_V2, 'oc_data_v2');
@@ -2416,6 +2421,104 @@ export async function runSelfTests(){
         { quoi: 'stage', maintenant: false });
       eq(soiPour([], { nom: 'Aztek' }, '2026-10-12'), null);
     },
+    'groupes : un code, une invitation, une étiquette qui ne dit rien': async () => {
+      const code = nouveauCode();
+      eq(code.length, 15);
+      eq(codeNorm(codeAffiche(code).toUpperCase()), code);      /* tirets et majuscules ne comptent pas */
+      eq(codeNorm('trop-court'), '');
+      eq(codeNorm('il0o1-il0o1-il0o1'), '');                     /* des lettres qu'on confond : pas dans l'alphabet */
+      const inv = invitation({ code, nom: '  BTS SIO   Lille ' });
+      ok(estInvitation(inv));
+      eq(lireInvitation(inv), { code, nom: 'BTS SIO Lille' });
+      eq(lireInvitation('Rejoins le groupe : ' + inv + ' (OpenContact)'), { code, nom: 'BTS SIO Lille' });
+      eq(lireInvitation(codeAffiche(code)), { code, nom: '' });  /* tapé à la main : le code seul */
+      eq(lireInvitation('OCG1.abc'), null);
+      eq(lireInvitation('bonjour'), null);
+      const k = await cleGroupe(code), k2 = await cleGroupe(code);
+      eq(k.etiquette, k2.etiquette);
+      ok(/^oc-groupe-[0-9a-f]{32}$/.test(k.etiquette));
+      ok(!k.etiquette.includes(code));
+      /* jamais le sujet d'un rendez-vous, même à code égal */
+      ok((await clePortage(code)).sujet.slice(11) !== k.etiquette.slice(10));
+      ok((await cleGroupe(nouveauCode())).etiquette !== k.etiquette);
+    },
+    'groupes : ce qui s’écrit est scellé, et seul le code l’ouvre': async () => {
+      const now = Date.parse('2026-10-12T12:00:00Z');
+      const k = await cleGroupe(nouveauCode()), autre = await cleGroupe(nouveauCode());
+      const m = { t: 'mot', id: 'motmotmot1', de: 'InesInesInesInes0001', prenom: 'Inès', texte: 'Qui va au forum jeudi ?', at: now };
+      const txt = await scellerGroupe(k, m);
+      ok(!txt.includes('Inès') && !txt.includes('forum'));
+      eq(normaliserMessage(await ouvrirMessage(k, txt), now), m);
+      eq(await ouvrirMessage(autre, txt), null);
+      eq(await ouvrirMessage(k, 'bruit.bruit'), null);
+    },
+    'groupes : seule la bonne forme passe, et sept jours au plus': () => {
+      const now = Date.parse('2026-10-12T12:00:00Z'), J = 86400000;
+      const de = 'KarimKarimKarim00001';
+      eq(normaliserMessage({ t: 'membre', de, prenom: 'Karim Benali', nom: 'BTS', at: now, email: 'k@x.test' }, now),
+         { t: 'membre', de, prenom: 'Karim', nom: 'BTS', at: now });     /* le prénom, rien d'autre */
+      eq(normaliserMessage({ t: 'mot', id: 'motmotmot2', de, prenom: 'Karim', texte: '  a\n\nb  ', at: now }, now).texte, 'a b');
+      eq(normaliserMessage({ t: 'mot', id: 'motmotmot2', de, prenom: 'Karim', texte: 'x'.repeat(400), at: now }, now).texte.length, MOT_MAX);
+      eq(normaliserMessage({ t: 'mot', id: 'motmotmot2', de, prenom: 'Karim', texte: '   ', at: now }, now), null);
+      eq(normaliserMessage({ t: 'mot', id: 'motmotmot2', de, prenom: 'Karim', texte: 'vieux', at: now - 8 * J }, now), null);
+      eq(normaliserMessage({ t: 'mot', id: 'motmotmot2', de, prenom: 'Karim', texte: 'futur', at: now + J }, now), null);
+      eq(normaliserMessage({ t: 'mot', id: 'motmotmot2', de: 'x', prenom: 'Karim', texte: 'a', at: now }, now), null);
+      eq(normaliserMessage({ t: 'image', id: 'motmotmot2', de, prenom: 'Karim', at: now }, now), null);
+      eq(normaliserMessage({ t: 'membre', de, prenom: 'Karim', at: now - 29 * J }, now).t, 'membre');
+      eq(normaliserMessage({ t: 'membre', de, prenom: 'Karim', at: now - 31 * J }, now), null);
+      eq(normaliserMessage(null, now), null);
+    },
+    'groupes : les membres, le fil, les pistes en morceaux, ce qui s’efface': async () => {
+      const now = Date.parse('2026-10-12T12:00:00Z'), J = 86400000;
+      const I = 'InesInesInesInes0001', K = 'KarimKarimKarim00001', S = 'SofiaSofiaSofia00001';
+      let g = groupeVide();
+      g = traiterMessage(g, { t: 'membre', de: I, prenom: 'Inès', nom: 'BTS SIO', at: now - 3 * J });
+      g = traiterMessage(g, { t: 'membre', de: K, prenom: 'Karim', nom: '', at: now - 2 * J });
+      eq(g.nom, 'BTS SIO');
+      eq(membresDe(g).map(x => x.prenom), ['Inès', 'Karim']);
+      eq(traiterMessage(g, { t: 'membre', de: K, prenom: 'Karim', nom: '', at: now - 2 * J }), g);   /* rien de neuf : le même objet */
+      g = traiterMessage(g, { t: 'depart', de: K, at: now - J });
+      eq(membresDe(g).map(x => x.prenom), ['Inès']);
+      g = traiterMessage(g, { t: 'membre', de: K, prenom: 'Karim', nom: '', at: now });              /* revenu */
+      eq(membresDe(g).map(x => x.prenom), ['Inès', 'Karim']);
+      /* le fil : un mot une fois, même arrivé par deux relais */
+      const mot = { t: 'mot', id: 'motmotmot3', de: K, prenom: 'Karim', texte: 'Salut', at: now - J };
+      g = traiterMessage(traiterMessage(g, mot), mot);
+      eq(filDe(g).length, 1);
+      eq(nouveaux(g, I), 1); eq(nouveaux(g, K), 0);
+      eq(nouveaux({ ...g, vu: now }, I), 0);
+      /* des pistes en deux parts : rien ne se montre avant la dernière */
+      const payload = sharePayload([{ id: 'a', name: 'Aztek', city: 'Roubaix', status: 'todo', notes: 'privé' }], null, 'Inès');
+      const d = await decouper(payload, 40);
+      ok(d.n >= 2);
+      const part = i => ({ t: 'part', id: 'donpistes1', de: I, prenom: 'Inès', nb: 1, n: d.n, i, d: d.parts[i], at: now });
+      g = traiterMessage(g, normaliserMessage(part(0), now));
+      eq(filDe(g).length, 1);
+      for (let i = 1; i < d.n; i++) g = traiterMessage(g, normaliserMessage(part(i), now));
+      const don = filDe(g).find(x => x.t === 'pistes');
+      ok(don && pistesCompletes(don));
+      const recu = await rassembler(don.d);
+      eq(recu.companies[0].name, 'Aztek');
+      ok(!JSON.stringify(recu).includes('privé'));                 /* la vue communautaire, jamais le suivi */
+      /* un id hors de l'alphabet des lettres ne passe pas */
+      eq(normaliserMessage({ ...part(0), id: 'ab+cd/efgh12' }, now), null);
+      /* une part d'un autre auteur sous le même id ne s'y mêle pas */
+      eq(traiterMessage(g, { ...part(0), de: K, d: 'AAAA' }), g);
+      /* ce qui a passé son âge s'en va */
+      const tard = elaguerGroupe(g, now + 8 * J);
+      eq(filDe(tard).length, 0);
+      eq(membresDe(elaguerGroupe(g, now + 31 * J)).length, 0);
+      ok(presenceAredire({ presence: now - 8 * J }, now));
+      ok(!presenceAredire({ presence: now - 6 * J }, now));
+    },
+    'groupes : cinq au plus, dans le profil, sans doublon': () => {
+      const codes = Array.from({ length: 7 }, nouveauCode);
+      const l = normaliserGroupes([...codes.map((code, i) => ({ code, nom: 'G' + i, at: i })), { code: codes[0], nom: 'doublon' }, { code: 'abc' }, null]);
+      eq(l.length, GROUPES_MAX);
+      eq(l[0], { code: codes[0], nom: 'G0', at: 0 });
+      eq(normalizeProfile({ groupes: [{ code: codes[1], nom: 'x'.repeat(80) }] }).groupes[0].nom.length, 40);
+      eq(normalizeProfile({}).groupes, []);
+    },
     'demande par métier et ville : seuls des mots de la table partent': async () => {
       const k = await nouvelleCle(), now = Date.parse('2026-10-12T12:00:00Z');
       eq(critereDe(interpreter('cyber Lille')), { metier: 'cyber', ville: 'Lille' });
@@ -2569,7 +2672,7 @@ export async function runSelfTests(){
          ressuscitait des pistes d'avant la v3 sur un appareil « effacé » */
       ok(CLES_A_EFFACER.includes(OLD_V2) && CLES_A_EFFACER.includes(OLD_V1));
       for (const k of [DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, SYNC_KEY,
-                       RELAYS_KEY, TURN_KEY, DEVICE_KEY, DEVICES_KEY, PROMO_KEY, VAULT_KEY, ANALYSIS_KEY, VUS_KEY, RESEAU_KEY])
+                       RELAYS_KEY, TURN_KEY, DEVICE_KEY, DEVICES_KEY, PROMO_KEY, VAULT_KEY, ANALYSIS_KEY, VUS_KEY, RESEAU_KEY, GROUPES_KEY])
         ok(CLES_A_EFFACER.includes(k), k + ' doit partir');
       /* tout ce qui se scelle est une donnée : tout ce qui se scelle s'efface */
       for (const k of SEALABLE) ok(CLES_A_EFFACER.includes(k), k + ' (scellable) doit partir');

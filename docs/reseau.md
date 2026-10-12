@@ -623,6 +623,40 @@ Livré comme le concept le disait, avec les décisions du 12 octobre
   passe de mutation écrasent celles de la passe propre : on les regarde
   après une passe propre, jamais après.
 
+## Ce que le lot 5a a appris (6.58.0)
+
+Livrées : les décisions 22, 23, 25, 26 et 27 — un groupe est un code, il
+vit dans « Échanger » à la place de « Partage en groupe », cinq au plus,
+les prénoms seuls, des messages de sept jours, des pistes données en
+différé. Restent 24 (le groupe « sur demande », lot 5c), 28 et 29 (la
+demande au groupe et ses quatre réponses, lot 5b). Ce qui vaut d'être
+retenu :
+
+- **Un identifiant qui voyage suit l'alphabet de ceux qui le lisent.** Le
+  don de pistes prenait l'identifiant tiré par le découpage, en base64
+  classique ; un « + » ou un « / » le faisait refuser par le téléphone
+  d'en face — une fois sur trois, donc jamais au premier essai. Il prend
+  maintenant celui des lettres (base64url).
+- **Un nom par défaut est de l'affichage, jamais une donnée.** Karim,
+  entré par le code seul, annonçait au groupe « Groupe » comme nom avant
+  d'avoir appris le vrai — et l'apprenait de lui-même. Ce qu'on ne sait
+  pas se tait.
+- **Un garde de fuite se nourrit des VRAIS champs privés.** Le premier
+  jeu de test inventait `nextDate` : le modèle range tout champ inconnu
+  dans `extra`, qui voyage exprès (une version plus récente ne perd
+  rien), et le garde criait à la fuite. Le second croyait la note d'un
+  contact privée : elle fait partie de la vue communautaire depuis
+  toujours. Le garde lit maintenant `notes`, `history`, `status`,
+  `appliedAt` et `nextAction*` — ce que `communityView` retire vraiment.
+- **Masquer plutôt que supprimer garde les gardes.** Le partage en
+  direct reste dans le code (`PARTAGE_DIRECT`) ; ses scénarios l'ouvrent
+  par son module au lieu de sa porte, et continuent de garder le
+  transport en direct que le rendez-vous QR emploie aussi.
+- **Un instrument qui ne lit qu'une sortie ment.** Les cinq mutations
+  sont d'abord sorties « ratées » : `fail()` écrit sur la sortie
+  d'erreur, et le lanceur ne lisait que l'autre. Rejouée à la main, la
+  première était prise ; les cinq le sont.
+
 ## Comment on saura que c'est juste
 
 **Le moteur** (`tests.js`, `?test`) :

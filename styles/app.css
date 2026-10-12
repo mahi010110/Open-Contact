@@ -3227,6 +3227,70 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
   .ec-actes .ec-amis-t{flex:none;font-size:var(--text-13);font-weight:var(--weight-regular);color:var(--text-muted)}
 }
 .am-etat{display:flex;align-items:center;gap:7px;margin:12px 0 0;color:var(--accent);font-size:var(--text-13);font-weight:var(--weight-semibold)}
+/* LES GROUPES (lot 5), dans « Échanger » : le même dessin que « Amis »
+   — le mot et deux gestes — puis une rangée par groupe, sans relief,
+   un pointillé entre elles (la rangée de §6). Ce qui est arrivé depuis
+   la dernière fois se compte en mono, en accent : c'est ce qui change. */
+.ec-groupes{display:flex;flex-direction:column}
+/* sa tête a le dessin de « Amis », sous SES noms : une classe ne sert
+   qu'un objet, sinon ce qui cherche les gestes des amis trouve aussi
+   ceux des groupes (e2e-amis-onglet l'a vu) */
+.ec-gr-h{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;min-height:var(--ctl)}
+.ec-gr-t{flex:1;min-width:0;display:flex;align-items:center;gap:7px;font-size:var(--text-14);font-weight:var(--weight-bold)}
+.ec-gr-g{display:flex;flex-wrap:wrap;gap:8px}
+.gr-liste{display:flex;flex-direction:column;margin-top:8px}
+.gr-ligne{
+  display:flex;align-items:center;gap:10px;width:100%;min-height:var(--ctl);padding:6px 2px;
+  border:0;border-top:1px dashed var(--border-soft);background:none;
+  font:inherit;font-size:var(--text-14);color:var(--text-body);text-align:left;cursor:pointer;
+}
+.gr-ligne b{flex:1;min-width:0;font-weight:var(--weight-semibold);overflow-wrap:anywhere}
+.gr-ligne:active{background:var(--surface-raised)}
+@media (hover:hover){ .gr-ligne:hover{background:var(--surface-raised)} }
+.gr-n{flex:none;font-family:var(--font-mono);font-size:var(--text-12);font-weight:var(--weight-bold);color:var(--accent)}
+.gr-ligne .ic{flex:none;color:var(--text-muted)}
+@media (min-width:901px){
+  .ec-actes .ec-groupes{flex:1 1 100%}
+  .ec-actes .ec-gr-t{flex:none;font-size:var(--text-13);font-weight:var(--weight-regular);color:var(--text-muted)}
+}
+/* la feuille d'un groupe : elle se donne sa hauteur (§6, « Écrire ») —
+   le fil défile, le pied reste sous le pouce */
+.modal-groupe{height:92dvh}
+.modal-groupe .modal-b{flex:1;min-height:0}
+.gr-membres{
+  display:flex;align-items:center;gap:8px;width:100%;min-height:var(--ctl);padding:4px 0;margin:0 0 4px;
+  border:0;border-bottom:1px dashed var(--border-soft);background:none;
+  font:inherit;font-size:var(--text-13);color:var(--text-muted);text-align:left;cursor:pointer;
+}
+.gr-membres-t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}
+.gr-ephem{display:flex;align-items:center;justify-content:center;gap:6px;margin:10px 0;
+  font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);text-align:center}
+.gr-fil{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
+.gr-m{display:flex;flex-direction:column;gap:2px;max-width:85%;align-self:flex-start}
+.gr-m.gr-moi{align-self:flex-end;text-align:right}
+.gr-qui{font-size:var(--text-12);color:var(--text-muted)}
+.gr-qui b{color:var(--text-body);font-weight:var(--weight-semibold)}
+.gr-qui time{font-family:var(--font-mono);font-size:var(--text-11)}
+.gr-m p{margin:0;padding:8px 12px;border:1px solid var(--border-strong);background:var(--surface-chrome);
+  font-size:var(--text-14);line-height:1.45;overflow-wrap:anywhere;text-align:left}
+.gr-moi p{background:var(--teal-wash);border-color:var(--accent)}
+.gr-don p{display:flex;align-items:center;gap:6px;font-weight:var(--weight-semibold)}
+.gr-don .btn-sm{align-self:flex-start;margin-top:4px}
+.gr-pris{display:flex;align-items:center;gap:6px;margin-top:4px;color:var(--accent);font-size:var(--text-13);font-weight:var(--weight-semibold)}
+/* le pied d'un groupe : Donner, le champ, Envoyer. À texte agrandi le
+   champ passe sur sa propre ligne plutôt que de se serrer entre deux
+   boutons — sa base est en `rem`, elle suit la police toute seule */
+.gr-pied{display:flex;align-items:flex-end;flex-wrap:wrap;gap:8px;width:100%}
+.gr-pied .gr-champ{flex:1 1 7rem;min-width:0;min-height:var(--ctl);padding:10px 12px;line-height:1.4;resize:none;overflow:hidden}
+.gr-pied .btn{flex:none}
+.gr-inviter{display:flex;flex-direction:column;align-items:center;gap:8px;margin:4px 0 8px}
+.gr-inviter .qr-wrap{margin:0 auto;width:100%;max-width:240px;padding:12px}
+.gr-code{display:flex;align-items:baseline;gap:8px;margin:0;font-size:var(--text-13);color:var(--text-muted)}
+.gr-code b{font-family:var(--font-mono);font-size:var(--text-16);color:var(--text-body);letter-spacing:.04em}
+.gr-noms{list-style:none;margin:0 0 12px;padding:0}
+.gr-noms li{display:flex;align-items:center;min-height:var(--ctl);border-bottom:1px dashed var(--border-soft);font-size:var(--text-14)}
+.gr-etat{margin:8px 0 0;font-size:var(--text-14);color:var(--text-body)}
+.rc-de{display:flex;align-items:center;gap:7px;margin:0 0 8px;font-size:var(--text-13);color:var(--text-muted)}
 .scan-box{
   position:relative;background:#000;border:1px solid var(--border-strong);
   box-shadow:var(--shadow-raised);overflow:hidden;aspect-ratio:1/1;max-height:46dvh;margin-bottom:10px;

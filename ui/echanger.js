@@ -1,7 +1,8 @@
 /* ============================================================
    OpenContact — interface · « Échanger »
-   Deux verbes : Donner · Recevoir. En dessous, le Partage en groupe
-   (un lieu vivant — la promo en direct, bêta discrète). Puis le fil
+   Deux verbes : Donner · Recevoir. En dessous, les Groupes (lot 5 :
+   on s'y écrit et on s'y donne des pistes, en différé) et les Amis
+   (Scanner, Mon QR). Puis le fil
    de ce qui a réellement circulé, relu dans le journal privé : un
    écran qui ne montre que des portes ne se comprend pas d'un regard,
    parce qu'il n'y a rien à comprendre. Tout en bas, le rappel qui
@@ -16,6 +17,8 @@ import { frDate, diffDays } from './dates.js';
 import { openDonner } from './donner.js';
 import { openRecevoir } from './recevoir.js';
 import { openPromo } from './direct.js';
+import { groupesHTML, bindGroupes } from './groupes.js';
+import { PARTAGE_DIRECT } from './perimetre.js';
 import { openMonQR } from './amis.js';
 import { openFiche } from './fiche.js';
 
@@ -406,7 +409,12 @@ export function renderEchanger(){
        ${aDonner ? `<button class="btn btn-primary hero" id="ecGive">${ic('share', 'ic-14')}<span>Donner</span></button>` : ''}
        <button class="btn${aDonner ? '' : ' btn-primary'} hero" id="ecRecv">${ic('inbox', 'ic-14')}<span>Recevoir</span></button>
      </div>
-     <!-- une porte, pas une carte à bouton : « Entrer » ne disait rien de
+     ${/* LES GROUPES (lot 5, décision 23) prennent la place de « Partage
+          en groupe » : on s'y donne des pistes et on s'y écrit, sans être
+          là en même temps. Le partage EN DIRECT reste dans le code,
+          masqué (ui/perimetre.js) — rien n'est supprimé avant la bêta. */''}
+     ${groupesHTML()}
+     ${PARTAGE_DIRECT ? `<!-- une porte, pas une carte à bouton : « Entrer » ne disait rien de
           plus que la ligne elle-même. Exactement la porte « Réglages »
           de « Moi » — on tape la carte entière. -->
      <button class="pcard moi-door" id="ecPromo">
@@ -417,7 +425,7 @@ export function renderEchanger(){
             coincé dans un bouton de 170 px ne promet plus rien, il
             encombre. */''}
        ${wide ? '' : ic('chevron-right', 'ic-14')}
-     </button>
+     </button>` : ''}
      ${/* LES AMIS : ici, les GESTES d'échange seulement — scanner le QR
           d'un ami, montrer le sien (docs/reseau.md, décision 15). Leur
           liste vit dans « Mes pistes », à côté d'« À découvrir » : une
@@ -466,7 +474,8 @@ export function renderEchanger(){
      </div>`;
   root.querySelector('#ecGive')?.addEventListener('click', openDonner);
   root.querySelector('#ecRecv').addEventListener('click', openRecevoir);
-  root.querySelector('#ecPromo').addEventListener('click', openPromo);
+  root.querySelector('#ecPromo')?.addEventListener('click', openPromo);
+  bindGroupes(root, renderEchanger);
   root.querySelector('#ecMonQR').addEventListener('click', () => openMonQR());
   root.querySelector('#ecScan').addEventListener('click', () => openRecevoir({ scanner: true }));
   const fil = filVisible();

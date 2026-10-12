@@ -191,6 +191,12 @@ function applyTheme(t, persist){
     import('./ui/reseau.js').then(m => m.demarrerReseau()).catch(() => {});
   }, 2200);
 
+  /* mes groupes (lot 5) : relevés seulement si j'en ai un — sans groupe,
+     rien ne part */
+  setTimeout(() => {
+    import('./ui/groupes.js').then(m => m.demarrerGroupes()).catch(() => {});
+  }, 2300);
+
   /* propositions de l'assistant IA (Ordinateur associé) : rapportées en
      arrière-plan, sobrement — rien ne s'ajoute sans l'aperçu */
   if (ORDINATEUR) setTimeout(() => {

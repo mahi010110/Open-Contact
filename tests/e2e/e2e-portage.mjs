@@ -145,7 +145,7 @@ try {
     const C = await page(40), D = await page(0);
     const entrer = async p => {
       await p.click('.bottomnav a[data-r="echanger"]');
-      await p.waitForSelector('#ecPromo'); await p.click('#ecPromo');
+      await p.evaluate(async () => (await import('./ui/direct.js')).openPromo());
       await p.waitForSelector('#prPass'); await p.fill('#prPass', 'groupe-sans-direct');
       await p.click('.modal-f .btn-primary');
       await p.waitForSelector('#prStatus');

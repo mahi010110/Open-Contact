@@ -69,8 +69,9 @@ try {
   const motDePasse = 'sonde-' + Math.random().toString(36).slice(2, 10);
   for (const p of [G1, G2]){
     await p.click('.bottomnav a[data-r="echanger"]');
-    await p.waitForSelector('#ecPromo');
-    await p.click('#ecPromo');
+    /* le partage EN DIRECT est masqué à l'écran depuis les groupes (lot 5,
+       ui/perimetre.js) : il reste dans le code, et on l'ouvre par lui */
+    await p.evaluate(async () => (await import('./ui/direct.js')).openPromo());
     await p.waitForSelector('#prPass');
     await p.fill('#prPass', motDePasse);
     await p.click('.modal-f .btn-primary');

@@ -134,7 +134,14 @@ const PLAFOND = {
      qui remonte la chaîne, chez Léa et Karim, qui n'ont rien vu
      passer) ; « Tom a ton contact. » (le oui de qui Y EST, et sa ligne
      vient de partir). */
-  toasts: 120,
+  /* 122 le 12 octobre 2026, +2 (docs/reseau.md, lot 5a, les groupes),
+     tous deux de la famille ① — rien ne s'est produit, et rien d'autre
+     ne le dit : « Ces pistes ne se lisent pas. » (un don de pistes abîmé,
+     l'aperçu ne s'ouvre pas) et « Copie impossible ici — montre plutôt le
+     QR. » (l'échec de « Copier » sous l'invitation, mot pour mot celui de
+     « Mon QR »). Le reste ne coûte rien : un mot envoyé se lit dans le
+     fil, un don parti aussi, un groupe quitté passe par « Annuler ». */
+  toasts: 122,
   toastCar: 79,        /* le plus long : « Connexion interrompue — … » */
   /* portes bloquantes dans les écrans visibles.
      9 le 29 septembre 2026 : « Mon profil » prend le garde-fou de la

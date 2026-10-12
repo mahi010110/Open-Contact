@@ -151,8 +151,9 @@ await attendre(C, async () => (await import('./ui/state.js')).S.companies.length
 
 for (const [p, nav] of [[C, '.topnav'], [D, '.bottomnav']]){
   await p.click(nav + ' a[data-r="echanger"]');
-  await p.waitForSelector('#ecPromo');
-  await p.click('#ecPromo');
+  /* le partage EN DIRECT est masqué à l'écran depuis les groupes (lot 5,
+     ui/perimetre.js) : il reste dans le code, et on l'ouvre par lui */
+  await p.evaluate(async () => (await import('./ui/direct.js')).openPromo());
   await p.waitForSelector('#prPass');
   await p.fill('#prPass', 'promo-e2e-liaison');
   await p.click('.modal-f .btn-primary');
@@ -650,8 +651,9 @@ await E.evaluate(async () => {
   while ((s = topSheet()) && n++ < 4){ s.close(null, true); await new Promise(r => setTimeout(r, 150)); }
 });
 await E.click('.bottomnav a[data-r="echanger"]');
-await E.waitForSelector('#ecPromo');
-await E.click('#ecPromo');
+/* le partage EN DIRECT est masqué à l'écran depuis les groupes (lot 5,
+   ui/perimetre.js) : il reste dans le code, et on l'ouvre par lui */
+await E.evaluate(async () => (await import('./ui/direct.js')).openPromo());
 await E.waitForSelector('#prPass');
 await E.fill('#prPass', 'promo-morte');
 await E.click('.modal-f .btn-primary');
