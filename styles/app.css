@@ -3290,6 +3290,17 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 .gr-noms{list-style:none;margin:0 0 12px;padding:0}
 .gr-noms li{display:flex;align-items:center;min-height:var(--ctl);border-bottom:1px dashed var(--border-soft);font-size:var(--text-14)}
 .gr-etat{margin:8px 0 0;font-size:var(--text-14);color:var(--text-body)}
+.gr-entete{margin:0 0 6px}
+/* une demande : la phrase, puis ce qui la concerne — relayée par qui,
+   ce que MON téléphone a trouvé (en accent : c'est ce qui change), et
+   le geste. Trouvée par moi, elle prend le bord d'accent. */
+.gr-dem p{display:flex;align-items:flex-start;gap:6px;font-weight:var(--weight-semibold)}
+.gr-trouvee p{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.gr-sous{font-size:var(--text-12);color:var(--text-muted)}
+.gr-tu{display:flex;align-items:center;gap:6px;color:var(--accent);font-size:var(--text-13);font-weight:var(--weight-semibold)}
+.gr-dem .btn-sm{align-self:flex-start;margin-top:4px}
+.gr-moi.gr-dem .btn-sm{align-self:flex-end}
+.gr-rep{margin-top:12px}
 .rc-de{display:flex;align-items:center;gap:7px;margin:0 0 8px;font-size:var(--text-13);color:var(--text-muted)}
 .scan-box{
   position:relative;background:#000;border:1px solid var(--border-strong);

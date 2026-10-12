@@ -60,7 +60,8 @@ import { nouvelleCle, boiteValide, cleValide, etiquetteBoite, sceller, ouvrir, l
 import { critereValide, phraseCritere, CRITERE_METIER } from './engine/critere.js';
 import { GROUPES_MAX, MOT_MAX, nouveauCode, codeNorm, codeAffiche, invitation, estInvitation, lireInvitation,
          cleGroupe, sceller as scellerGroupe, ouvrirMessage, normaliserMessage, groupeVide, traiterMessage,
-         elaguerGroupe, filDe, membresDe, nouveaux, presenceAredire, pistesCompletes, normaliserGroupes } from './engine/groupe.js';
+         elaguerGroupe, filDe, membresDe, nouveaux, presenceAredire, pistesCompletes, normaliserGroupes,
+         relaisVersGroupe, peutRelayerGroupe, RELAIS_GROUPES_MAX } from './engine/groupe.js';
 import { interpreter, retirer, remplacer, chercherPistes, raisonDe, propositions, elargir,
          contexteRecherche, porteurs, deptDuCp, villeFrequente, deptDePiste, zoneDe, metierDuMoment,
          fraicheur, METIER, metierDuProfil, villeConnue, lieuDuProfil, metierEtiquetteDuProfil, rayonDe,
@@ -2510,6 +2511,40 @@ export async function runSelfTests(){
       eq(membresDe(elaguerGroupe(g, now + 31 * J)).length, 0);
       ok(presenceAredire({ presence: now - 8 * J }, now));
       ok(!presenceAredire({ presence: now - 6 * J }, now));
+    },
+    'groupes : la demande que tout le groupe voit, relayée deux fois au plus': async () => {
+      const now = Date.parse('2026-10-12T12:00:00Z'), J = 86400000;
+      const ines = await nouvelleCle(), I = 'InesInesInesInes0001', K = 'KarimKarimKarim00001';
+      const l = lettreDemande({ prenom: 'Inès', cle: ines.pub }, { name: 'Aztek' }, now);
+      const m = normaliserMessage({ t: 'demande', de: I, lettre: l, at: now, email: 'x@y.test' }, now);
+      eq(Object.keys(m).sort(), ['at', 'de', 'lettre', 't']);
+      eq(m.lettre.entreprise.nom, 'Aztek'); eq(m.lettre.de.prenom, 'Inès');
+      /* seule une demande de premier cercle entre dans un groupe */
+      eq(normaliserMessage({ t: 'demande', de: I, lettre: { ...l, cercle: 2 }, at: now }, now), null);
+      eq(normaliserMessage({ t: 'demande', de: I, lettre: { ...l, t: 'don' }, at: now }, now), null);
+      eq(normaliserMessage({ t: 'demande', de: I, lettre: { ...l, exp: now - 1 }, at: now }, now), null);
+      eq(normaliserMessage({ t: 'demande', de: I, lettre: l, relais: { prenom: 'Karim', n: 3 }, at: now }, now), null);
+      let g = traiterMessage(groupeVide(), m);
+      eq(filDe(g).map(x => x.t + ':' + x.prenom), ['demande:Inès']);
+      /* relayée par Karim : une fois, avec son prénom ; la même ne rentre pas deux fois */
+      const r1 = relaisVersGroupe(filDe(g)[0], K, 'Karim', now);
+      eq(r1.relais, { prenom: 'Karim', n: 1 });
+      eq(traiterMessage(g, normaliserMessage(r1, now)), g);
+      const g2 = traiterMessage(groupeVide(), normaliserMessage(r1, now));
+      eq(filDe(g2)[0].relais.prenom, 'Karim');
+      ok(peutRelayerGroupe(filDe(g2)[0]));
+      const r2 = relaisVersGroupe(filDe(g2)[0], K, 'Sofia', now);
+      eq(r2.relais.n, RELAIS_GROUPES_MAX);
+      ok(!peutRelayerGroupe(normaliserMessage(r2, now)));
+      eq(relaisVersGroupe(normaliserMessage(r2, now), K, 'Tom', now), null);
+      /* trouvée dans un groupe : qui demande le sait, sans savoir qui */
+      eq(normaliserLettre(lettreTrouve(l, { groupe: true }), now).groupe, true);
+      eq(normaliserLettre(lettreTrouve(l), now).groupe, undefined);
+      eq(normaliserLettre({ ...lettreTrouve(l), groupe: 'oui' }, now).groupe, undefined);
+      /* masquer : elle ne revient pas ; 14 jours, puis elle s'en va */
+      eq(filDe({ ...g, masques: [l.id] }).length, 0);
+      eq(filDe(elaguerGroupe(g, now + 13 * J)).length, 1);
+      eq(filDe(elaguerGroupe(g, now + 15 * J)).length, 0);
     },
     'groupes : cinq au plus, dans le profil, sans doublon': () => {
       const codes = Array.from({ length: 7 }, nouveauCode);

@@ -241,6 +241,11 @@ const lire = p => p.evaluate(() => {
   /* l'annonce est un état FUGACE : on vide la région avant le geste,
      sinon on relirait celle d'un geste précédent (§5) */
   await p.evaluate(() => { document.getElementById('annonce').textContent = ''; });
+  /* ce que le champ contient AU MOMENT de taper : une fois en CI la
+     question est partie avec « Lumen DataLumen » — le champ vidé avait
+     retrouvé son nom. Jamais revu ici ; si ça revient, le message dira
+     de qui vient la valeur */
+  const avantFrappe = await p.inputValue('#edName');
   await p.keyboard.type('Lumen', { delay: 30 });
   await p.waitForSelector('.ac-nom', { timeout: 3000 }).catch(() => {});
   await p.waitForTimeout(150);
@@ -252,7 +257,8 @@ const lire = p => p.evaluate(() => {
     coupe: x.querySelector('b').scrollWidth > x.querySelector('b').clientWidth + 1, h: Math.round(x.getBoundingClientRect().height) })));
   const u = new URL(sv.journal.find(x => x.startsWith('https://recherche-entreprises')) || 'http://x/');
   if (u.searchParams.get('q') !== 'Lumen' || u.searchParams.get('departement') !== '59')
-    fail('la question porte autre chose que le nom tapé et le département : ' + u.search);
+    fail('la question porte autre chose que le nom tapé et le département : ' + u.search
+      + ' — le champ, juste avant la frappe : « ' + avantFrappe + ' » (' + sv.journal.filter(x => x.startsWith('https://recherche-entreprises')).length + ' question(s))');
   for (const x of sv.journal){ const w = fuite(x); if (w) fail(`« ${w} » est sorti : ${x}`); }
   if (sug.map(x => x.nom).join('|') !== 'Lumen Data|Lumen Data Conseil|Lumen Data Global Solutions Centre de Services Partages')
     fail('les noms proposés : ' + JSON.stringify(sug));

@@ -34,7 +34,7 @@ import { S, bus, saveData, saveProfile, logJ, deletePiste } from './state.js';
 import { openSheet, toast, btn, ic, showUndo, bindDeleteGesture } from './dom.js';
 import { sortState, sortSectionHTML, bindSortSection, sortChipHTML, bindSortChip, sensDe } from './sort.js';
 import { makeQrSvg } from './qr.js';
-import { demandesCritere, peutDemanderAmis, phraseDemande, ouvrirDemander } from './reseau.js';
+import { demandesCritere, peutDemanderAmis, phraseDemande, ouvrirDemander, libelleDemander } from './reseau.js';
 
 /* ce que le parcours de tes amis dit de tes pistes — calculé à la
    demande : l'index du moteur le rend linéaire, rien à mémoriser */
@@ -287,7 +287,7 @@ function demandesHTML(critere){
     d.trouve ? `trouvé chez un ami${d.trouve.par ? ' de ' + esc(d.trouve.par) : ''}` : `demandé à ${d.vers} ami${d.vers > 1 ? 's' : ''}`}</p>`).join('');
   const peut = critere && peutDemanderAmis() && !ouvertes.some(d => memeCritere(d.critere, critere));
   return { faits, geste: peut
-    ? `<div class="am-demander"><button class="btn btn-sm" id="avDemander" data-metier="${esc(critere.metier || '')}" data-ville="${esc(critere.ville || '')}">${ic('users', 'ic-14')} Demander à mes amis</button></div>` : '' };
+    ? `<div class="am-demander"><button class="btn btn-sm" id="avDemander" data-metier="${esc(critere.metier || '')}" data-ville="${esc(critere.ville || '')}">${ic('users', 'ic-14')} ${esc(libelleDemander())}</button></div>` : '' };
 }
 export function vueAmisHTML(classes, { q, wide, critere }){
   if (!(S.profile.amis || []).length)

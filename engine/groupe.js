@@ -15,7 +15,7 @@
    une date d'expiration et du bruit — ni le nom du groupe, ni qui en
    est, ni ce qui s'y dit.
 
-   CE QUI S'Y ÉCRIT, quatre sortes de messages et rien d'autre :
+   CE QUI S'Y ÉCRIT, cinq sortes de messages et rien d'autre :
    · membre — « je suis là » : mon identifiant d'ami, mon PRÉNOM
      (décision 26 : les prénoms, et rien d'autre), le nom du groupe tel
      que je le connais. Il vit 30 jours et se redit à l'ouverture.
@@ -23,14 +23,22 @@
    · mot    — une phrase, sept jours (décision 27).
    · part   — un morceau d'un don de pistes (la vue communautaire,
      `sharePayload` : jamais le suivi privé, invariant ①), sept jours.
+   · demande — « Inès cherche quelqu'un chez Aztek » (lot 5b, décisions
+     20, 28, 29) : EXACTEMENT la lettre qu'Inès enverrait à un ami (OCB1,
+     cercle 1, `engine/boite.js`), que tout le groupe voit ; et, quand un
+     membre l'a relayée d'un autre groupe, son prénom. Elle vit 14 jours.
+     La réponse, elle, ne passe jamais par le groupe : elle va à la boîte
+     de qui demande.
 
    Fonctions pures : WebCrypto, aucun DOM, aucun réseau.
    ============================================================ */
 import { bytesToB64, b64ToBytes } from './crypto.js';
 import { idAmiValide } from './amis.js';
+import { normaliserLettre, DEMANDE_JOURS } from './boite.js';
 
 export const GROUPES_MAX = 5;            /* décision 25 */
 export const MOT_JOURS = 7;              /* décision 27 : sept jours, sans réglage */
+export const RELAIS_GROUPES_MAX = 2;     /* décision 28 : une demande se relaie dans deux autres groupes au plus */
 export const PISTES_JOURS = 7;
 export const MEMBRE_JOURS = 30;          /* une présence se redit à l'ouverture */
 export const MEMBRE_REDIRE_JOURS = 7;
@@ -128,7 +136,8 @@ export async function ouvrirMessage(k, txt){
 /* ---------- les messages ----------
    Ce qui arrive d'un relais peut être n'importe quoi : seul ce qui a la
    bonne forme passe, et sous la forme qu'on a dite — rien de plus. */
-export const dureeDe = t => (t === 'membre' || t === 'depart' ? MEMBRE_JOURS : t === 'part' ? PISTES_JOURS : MOT_JOURS) * JOUR;
+export const dureeDe = t => (t === 'membre' || t === 'depart' ? MEMBRE_JOURS : t === 'part' ? PISTES_JOURS
+  : t === 'demande' ? DEMANDE_JOURS : MOT_JOURS) * JOUR;
 const prenomOk = v => typeof v === 'string' && v.trim().length > 0;
 const prenomDe = v => String(v).replace(/\s+/g, ' ').trim().split(' ')[0].slice(0, 40);
 const entier = (x, max) => Number.isInteger(x) && x >= 0 && x < max;
@@ -143,6 +152,17 @@ export function normaliserMessage(m, now = Date.now()){
     const texte = m.texte.replace(/\s+/g, ' ').trim().slice(0, MOT_MAX);
     return texte ? { t: 'mot', id: m.id, de: m.de, prenom: prenomDe(m.prenom), texte, at } : null;
   }
+  if (m.t === 'demande'){
+    const lettre = normaliserLettre(m.lettre, now);
+    if (!lettre || lettre.t !== 'demande' || lettre.cercle !== 1) return null;
+    const out = { t: 'demande', de: m.de, lettre, at };
+    if (m.relais && typeof m.relais === 'object'){
+      const n = Number(m.relais.n);
+      if (!prenomOk(m.relais.prenom) || !Number.isInteger(n) || n < 1 || n > RELAIS_GROUPES_MAX) return null;
+      out.relais = { prenom: prenomDe(m.relais.prenom), n };
+    }
+    return out;
+  }
   if (m.t === 'part' && ID.test(String(m.id)) && prenomOk(m.prenom)
       && Number.isInteger(m.n) && m.n >= 1 && m.n <= PARTS_MAX && entier(m.i, m.n)
       && Number.isInteger(m.nb) && m.nb >= 1 && m.nb <= 2000
@@ -152,7 +172,7 @@ export function normaliserMessage(m, now = Date.now()){
 }
 
 /* ---------- ce qu'un appareil garde d'un groupe ---------- */
-export const groupeVide = () => ({ nom: '', fil: [], membres: {}, depuis: 0, vu: 0, presence: 0, pris: [] });
+export const groupeVide = () => ({ nom: '', fil: [], membres: {}, depuis: 0, vu: 0, presence: 0, pris: [], masques: [] });
 export function normaliserGroupe(g){
   const v = groupeVide();
   if (!g || typeof g !== 'object') return v;
@@ -162,6 +182,8 @@ export function normaliserGroupe(g){
   for (const k of ['depuis', 'vu', 'presence']) v[k] = Number(g[k]) || 0;
   /* les dons de pistes déjà fusionnés : « dans tes pistes » au lieu de « Voir » */
   v.pris = Array.isArray(g.pris) ? g.pris.filter(id => ID.test(String(id))).slice(-200) : [];
+  /* les demandes qu'on a masquées (décision 28) : elles ne reviennent pas */
+  v.masques = Array.isArray(g.masques) ? g.masques.filter(id => ID.test(String(id))).slice(-200) : [];
   return v;
 }
 
@@ -179,6 +201,13 @@ export function traiterMessage(g, m){
     const avant = g.membres[m.de];
     if (!avant || avant.at > m.at || avant.parti >= m.at) return g;
     return { ...g, membres: { ...g.membres, [m.de]: { ...avant, parti: m.at } } };
+  }
+  if (m.t === 'demande'){
+    /* la même demande relayée deux fois dans un groupe n'y entre qu'une */
+    if (g.fil.some(x => x.id === m.lettre.id)) return g;
+    const x = { t: 'demande', id: m.lettre.id, de: m.de, prenom: m.lettre.de.prenom, lettre: m.lettre, at: m.at };
+    if (m.relais) x.relais = m.relais;
+    return { ...g, fil: [...g.fil, x] };
   }
   if (m.t === 'mot'){
     if (g.fil.some(x => x.id === m.id)) return g;
@@ -201,17 +230,20 @@ export function traiterMessage(g, m){
 /* ce qui a passé son âge s'en va — les relais l'effacent d'eux-mêmes
    à l'échéance (NIP-40), l'app aussi */
 export function elaguerGroupe(g, now = Date.now()){
-  const fil = g.fil.filter(x => x.at + dureeDe(x.t === 'pistes' ? 'part' : x.t) > now);
+  const fil = g.fil.filter(x => x.t === 'demande' ? x.lettre && x.lettre.exp > now
+    : x.at + dureeDe(x.t === 'pistes' ? 'part' : x.t) > now);
   const membres = {};
   for (const [k, v] of Object.entries(g.membres)) if (v.at + MEMBRE_JOURS * JOUR > now) membres[k] = v;
   if (fil.length === g.fil.length && Object.keys(membres).length === Object.keys(g.membres).length) return g;
-  return { ...g, fil, membres, pris: (g.pris || []).filter(id => fil.some(x => x.id === id)) };
+  const garde = ids => (ids || []).filter(id => fil.some(x => x.id === id));
+  return { ...g, fil, membres, pris: garde(g.pris), masques: garde(g.masques) };
 }
 
 export const pistesCompletes = x => x.t === 'pistes' && x.d.every(Boolean);
 /* le fil tel qu'on le lit : du plus ancien au plus récent, un don de
    pistes seulement quand toutes ses parts sont là */
-export const filDe = g => g.fil.filter(x => x.t === 'mot' || pistesCompletes(x)).sort((a, b) => a.at - b.at);
+export const filDe = g => g.fil.filter(x => (x.t === 'mot' || x.t === 'demande' || pistesCompletes(x))
+  && !(g.masques || []).includes(x.id)).sort((a, b) => a.at - b.at);
 /* les membres : ceux qui se sont dits là et ne sont pas partis */
 export const membresDe = g => Object.entries(g.membres)
   .filter(([, v]) => !(v.parti >= v.at))
@@ -221,6 +253,18 @@ export const membresDe = g => Object.entries(g.membres)
 export const nouveaux = (g, moi) => filDe(g).filter(x => x.de !== moi && x.at > g.vu).length;
 /* faut-il redire « je suis là » ? */
 export const presenceAredire = (g, now = Date.now()) => g.presence + MEMBRE_REDIRE_JOURS * JOUR < now;
+
+/* relayer une demande dans un autre groupe : la même lettre, le prénom
+   de qui relaie, et le compte qui s'arrête à deux (décision 28 — faire
+   suivre sans limite propage n'importe quoi) */
+export function relaisVersGroupe(x, de, prenom, now = Date.now()){
+  const n = (x.relais ? x.relais.n : 0) + 1;
+  if (n > RELAIS_GROUPES_MAX) return null;
+  /* la lettre gardée est la lettre NORMALISÉE, sans sa version : la
+     remettre, sinon le groupe d'en face la refuse */
+  return { t: 'demande', de, lettre: { v: 1, ...x.lettre }, relais: { prenom, n }, at: now };
+}
+export const peutRelayerGroupe = x => (x.relais ? x.relais.n : 0) < RELAIS_GROUPES_MAX;
 
 /* ---------- les groupes du profil ----------
    Ils vivent dans le profil pour voyager avec lui (sync de MES

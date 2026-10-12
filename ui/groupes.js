@@ -22,12 +22,16 @@ import { sharePayload } from '../engine/exchange.js';
 import { decouper, rassembler } from '../engine/portage.js';
 import { GROUPES_MAX, MOT_MAX, NOM_MAX, nouveauCode, codeNorm, codeAffiche, nomGroupe, invitation, lireInvitation,
          cleGroupe, sceller, ouvrirMessage, normaliserMessage, dureeDe, groupeVide, normaliserGroupe,
-         traiterMessage, elaguerGroupe, filDe, membresDe, nouveaux, presenceAredire } from '../engine/groupe.js';
+         traiterMessage, elaguerGroupe, filDe, membresDe, nouveaux, presenceAredire,
+         relaisVersGroupe, peutRelayerGroupe } from '../engine/groupe.js';
+import { phraseCritere } from '../engine/critere.js';
+import { emailPlausible } from '../engine/model.js';
 import { S, bus, saveProfile } from './state.js';
 import { openSheet, toast, btn, ic, showUndo, clavier, champGrandit } from './dom.js';
 import { frDate, diffDays } from './dates.js';
 import { makeQrSvg } from './qr.js';
-import { publier, lire, ecouter, evenement, echecEnvoi } from './reseau.js';
+import { publier, lire, ecouter, evenement, echecEnvoi, amisJoignables, recevoirDemandeGroupe, recueDe, chargerReseau,
+         trouvePour, ditTrouve, repondreDemande, donnerConnu, suivreAmis } from './reseau.js';
 
 /* ---------- ce que cet appareil garde ---------- */
 let etat = {};                 /* code → groupe (fil, membres, depuis, vu, presence) */
@@ -102,7 +106,12 @@ async function absorber(evs, parEtiquette){
     const m = normaliserMessage(await ouvrirMessage(await cle(code), ev.content));
     const avant = groupe(code);
     const apres = traiterMessage(avant, m);
-    if (apres !== avant){ etat[code] = apres; change = true; }
+    if (apres !== avant){
+      etat[code] = apres; change = true;
+      /* une demande d'un AUTRE : mon téléphone cherche, sans rien montrer
+         s'il ne trouve rien (règle 6) */
+      if (m.t === 'demande') await recevoirDemandeGroupe(m.lettre, code, nomDe(code)).catch(() => null);
+    }
   }
   /* un groupe rejoint par son code seul apprend son nom des autres : il
      rejoint le profil, pour que mes autres appareils le sachent aussi */
@@ -251,13 +260,35 @@ function quand(t){
   if (d === 0) return new Date(t).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
   return d === -1 ? 'hier' : frDate(iso);
 }
-const prisKey = (code, id) => code + ':' + id;
+const quoiDe = l => l.entreprise ? 'chez ' + l.entreprise.nom : phraseCritere(l.critere);
+/* DEMANDE TROUVÉE PAR MON TÉLÉPHONE : elle passe EN TÊTE, à mon nom
+   (décision 29 — dans un groupe chacun croit qu'un autre répondra ;
+   s'adresser à quelqu'un par son nom, c'est ce qui marche) */
+/* MA demande : celle dont je suis l'auteur (sa clé est la mienne) — pas
+   celle que j'ai seulement relayée d'un autre groupe */
+const maDemande = x => !!S.profile.boite && x.lettre.de.cle === S.profile.boite.pub;
+const trouveeParMoi = x => x.t === 'demande' && !maDemande(x) && !!trouvePour(recueDe(x.id));
+function demandeHTML(x){
+  const mien = maDemande(x);
+  const r = mien ? null : recueDe(x.id);
+  const t = trouvePour(r);
+  const etatRep = r && r.statut === 'donnee' ? 'Donné' : r && r.statut === 'transmise' ? 'Tu l’as fait suivre' : '';
+  return `<li class="gr-m gr-dem${mien ? ' gr-moi' : ''}${t ? ' gr-trouvee' : ''}">
+      <span class="gr-qui"><b>${mien ? 'Toi' : esc(x.prenom)}</b> <time>${esc(quand(x.at))}</time></span>
+      <p>${ic('users', 'ic-14')} ${mien ? 'Tu cherches' : esc(x.prenom) + ' cherche'} quelqu’un ${esc(quoiDe(x.lettre))}</p>
+      ${x.relais ? `<span class="gr-sous">relayée par ${esc(x.relais.prenom)}</span>` : ''}
+      ${t ? `<span class="gr-tu">${ic('check', 'ic-14')} ${esc(ditTrouve(t))}</span>` : ''}
+      ${mien ? '' : etatRep ? `<span class="gr-pris">${ic('check', 'ic-14')} ${etatRep}</span>`
+        : `<button class="btn btn-sm${t ? ' btn-primary' : ''}" data-repondre="${esc(x.id)}">Répondre</button>`}
+    </li>`;
+}
 function filHTML(code){
   const g = groupe(code);
-  const fil = filDe(g);
+  const fil = filDe(g).filter(x => !trouveeParMoi(x));
   return fil.map(x => {
     const mien = x.de === moi();
     const tete = `<span class="gr-qui"><b>${mien ? 'Toi' : esc(x.prenom)}</b> <time>${esc(quand(x.at))}</time></span>`;
+    if (x.t === 'demande') return demandeHTML(x);
     if (x.t === 'mot') return `<li class="gr-m${mien ? ' gr-moi' : ''}">${tete}<p>${esc(x.texte)}</p></li>`;
     const pris = (g.pris || []).includes(x.id);
     return `<li class="gr-m gr-don${mien ? ' gr-moi' : ''}">${tete}
@@ -268,7 +299,9 @@ function filHTML(code){
   }).join('');
 }
 export async function ouvrirGroupe(code, apres){
-  await chargerGroupes();
+  /* ce que MON téléphone a trouvé vit dans la boîte (oc_reseau_v1) : sans
+     elle, une demande trouvée ne passerait pas en tête */
+  await Promise.all([chargerGroupes(), chargerReseau()]);
   let arret = null;
   const sh = openSheet({ title: nomDe(code), icon: 'message-text', className: 'modal-groupe',
     onClose: () => { if (arret) arret(); vu(code); if (apres) apres(); } });
@@ -278,17 +311,23 @@ export async function ouvrirGroupe(code, apres){
     const g = groupe(code);
     const autres = membresDe(g).filter(m => m.de !== moi());
     const fil = filDe(g);
+    const enTete = fil.filter(trouveeParMoi);
     const bas = sh.body.scrollHeight - sh.body.scrollTop - sh.body.clientHeight < 40;
     sh.setTitle(nomDe(code));
     sh.body.innerHTML =
       `${autres.length ? `<button class="gr-membres" id="grMembres">${ic('users', 'ic-14')}
            <span class="gr-membres-t">${esc([...autres.map(m => m.prenom), 'toi'].join(' · '))}</span>${ic('chevron-right', 'ic-14')}</button>` : ''}
        ${!autres.length && !fil.length ? `<div class="gr-inviter" id="grInviter"></div>` : ''}
+       ${enTete.length ? `<ol class="gr-fil gr-entete" id="grEnTete">${enTete.map(demandeHTML).join('')}</ol>` : ''}
        <p class="gr-ephem">${ic('clock', 'ic-14')} Les messages s’effacent au bout de 7 jours.</p>
        <ol class="gr-fil" id="grFil">${filHTML(code)}</ol>`;
     q('#grMembres')?.addEventListener('click', () => ouvrirMembres(code, sh));
     if (q('#grInviter')) inviterDans(q('#grInviter'), code);
     sh.body.querySelectorAll('[data-voir]').forEach(b => b.addEventListener('click', () => voirPistes(code, b.dataset.voir, rendre)));
+    sh.body.querySelectorAll('[data-repondre]').forEach(b => b.addEventListener('click', () => {
+      const x = groupe(code).fil.find(y => y.id === b.dataset.repondre);
+      if (x) ouvrirReponse(code, x, rendre);
+    }));
     if (bas || !rendu) sh.body.scrollTop = sh.body.scrollHeight;
     rendu = true;
   };
@@ -379,6 +418,109 @@ async function voirPistes(code, id, apres){
     sauver();
     apres();
   } });
+}
+
+/* ---------- LA DEMANDE AU GROUPE (lot 5b) ----------
+   Tout le groupe la voit (décision 20) ; la réponse ne passe jamais par
+   lui — elle va à la boîte de qui demande (décision 29). */
+export async function demanderAuxGroupes(l){
+  await chargerGroupes();
+  const at = Date.now();
+  const partis = [];
+  for (const g of mesGroupes()){
+    const m = { t: 'demande', de: moi(), lettre: l, at };
+    if (!await poster(g.code, m).catch(() => 0)) continue;
+    etat[g.code] = traiterMessage(groupe(g.code), normaliserMessage(m, at));
+    partis.push(nomDe(g.code));
+  }
+  await sauver();
+  return partis;
+}
+/* QUATRE RÉPONSES (décision 28), en rangées : celles qui ne peuvent pas
+   servir ne sont pas là (rien à donner, personne à qui faire suivre) */
+function ouvrirReponse(code, x, apres){
+  const r = recueDe(x.id);
+  const t = trouvePour(r);
+  const sh = openSheet({ title: `${x.prenom} cherche quelqu’un`, icon: 'users' });
+  const autres = mesGroupes().filter(g => g.code !== code && !(groupe(g.code).fil || []).some(y => y.id === x.id));
+  const versGroupes = peutRelayerGroupe(x) ? autres : [];
+  const fin = () => { sh.close(); apres(); };
+  const accueil = () => {
+    sh.setTitle(`${x.prenom} cherche quelqu’un`);
+    sh.body.innerHTML =
+      `<div class="gr-mot" id="rpMot">${esc(x.prenom)} cherche quelqu’un ${esc(quoiDe(x.lettre))}.</div>
+       <div class="pick-list gr-rep">
+         ${t ? `<button class="pick" id="rpDonner"><b>${ic('share', 'ic-14')} Donner ${t.soi ? 'ton contact' : esc(t.ct.name)}</b></button>` : ''}
+         <button class="pick" id="rpConnais"><b>${ic('user', 'ic-14')} Je connais quelqu’un</b></button>
+         ${amisJoignables().length || versGroupes.length ? `<button class="pick" id="rpSuivre"><b>${ic('redo', 'ic-14')} Faire suivre</b></button>` : ''}
+         <button class="pick" id="rpMasquer"><b>${ic('eye-off', 'ic-14')} Masquer</b></button>
+       </div>`;
+    sh.setFoot(null);
+    sh.body.querySelector('#rpDonner')?.addEventListener('click', () => { sh.close(); repondreDemande(x.id); });
+    sh.body.querySelector('#rpConnais').addEventListener('click', connais);
+    sh.body.querySelector('#rpSuivre')?.addEventListener('click', suivre);
+    sh.body.querySelector('#rpMasquer').addEventListener('click', async () => {
+      const g = groupe(code);
+      etat[code] = { ...g, masques: [...(g.masques || []), x.id] };
+      await sauver();
+      fin();
+    });
+  };
+  /* « JE CONNAIS QUELQU'UN » : ce qu'aucune app ne sait — un nom, et de
+     quoi le joindre. Rien d'autre ne part. */
+  const connais = () => {
+    sh.setTitle('Je connais quelqu’un');
+    sh.body.innerHTML =
+      `<div class="field"><label for="rpNom">Son nom</label>
+         <input id="rpNom" maxlength="80" ${clavier('nom')}></div>
+       <div class="field"><label for="rpJoindre">Son e-mail ou son téléphone</label>
+         <input id="rpJoindre" maxlength="120" ${clavier('coord')} aria-describedby="rpErr">
+         <p class="hint warn" id="rpErr" hidden>Un e-mail ou un téléphone.</p></div>`;
+    const nom = sh.body.querySelector('#rpNom'), joindre = sh.body.querySelector('#rpJoindre');
+    /* l'erreur se dit sous le champ, et part dès qu'on le corrige */
+    joindre.addEventListener('input', () => { sh.body.querySelector('#rpErr').hidden = true; joindre.removeAttribute('aria-invalid'); });
+    const go = btn('Donner', 'btn-primary', async () => {
+      const n = nom.value.replace(/\s+/g, ' ').trim();
+      const j = joindre.value.trim();
+      const email = emailPlausible(j) ? j : '';
+      const tel = !email && (j.match(/\d/g) || []).length >= 8 ? j : '';
+      if (!n){ nom.focus(); return; }
+      if (!email && !tel){ sh.body.querySelector('#rpErr').hidden = false; joindre.setAttribute('aria-invalid', 'true'); joindre.focus(); return; }
+      go.disabled = true;
+      const ok = await donnerConnu(x.id, { name: n, email, phone: tel });
+      go.disabled = false;
+      if (ok) fin();
+    }, 'share');
+    go.id = 'rpGo';
+    sh.setFoot([btn('Retour', 'btn-ghost', accueil, 'arrow-left'), go]);
+    nom.focus();
+  };
+  /* FAIRE SUIVRE : à mes amis (le saut du lot 4b), ou à un autre de mes
+     groupes — deux au plus, « relayée par » (décision 28) */
+  const suivre = () => {
+    sh.setTitle('Faire suivre');
+    sh.body.innerHTML =
+      `<div class="pick-list gr-rep">
+         ${amisJoignables().length ? `<button class="pick" id="rpAmis"><b>${ic('users', 'ic-14')} À mes amis</b></button>` : ''}
+         ${versGroupes.map(g => `<button class="pick" data-vers="${esc(g.code)}"><b>${ic('message-text', 'ic-14')} À ${esc(nomDe(g.code))}</b></button>`).join('')}
+       </div>`;
+    sh.setFoot([btn('Retour', 'btn-ghost', accueil, 'arrow-left')]);
+    sh.body.querySelector('#rpAmis')?.addEventListener('click', async () => {
+      const n = await suivreAmis(x.id);
+      if (!n){ echecEnvoi(); return; }
+      fin();
+    });
+    sh.body.querySelectorAll('[data-vers]').forEach(b => b.addEventListener('click', async () => {
+      const m = relaisVersGroupe(x, moi(), prenomMoi());
+      if (!m) return;
+      if (!await poster(b.dataset.vers, m).catch(() => 0)){ echecEnvoi(); return; }
+      etat[b.dataset.vers] = traiterMessage(groupe(b.dataset.vers), normaliserMessage(m, m.at));
+      await sauver();
+      bus.refresh();
+      fin();
+    }));
+  };
+  accueil();
 }
 
 /* ---------- membres, inviter, quitter ---------- */

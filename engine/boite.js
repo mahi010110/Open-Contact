@@ -172,9 +172,13 @@ export function lettreRelais(demande, { prenom, cle }, jeton){
   return l;
 }
 /* « quelqu'un a trouvé » : à qui demande, sans dire qui */
-export function lettreTrouve(demande){
-  return { v: 1, t: 'trouve', id: nouvelId(), demande: demande.id, cercle: demande.cercle || 1,
-           chaine: [...(demande.chaine || [])] };
+/* `groupe` : trouvée dans un groupe (lot 5b) — qui demande lit « dans
+   un groupe » au lieu de « chez un ami », sans savoir qui ni lequel */
+export function lettreTrouve(demande, o = {}){
+  const l = { v: 1, t: 'trouve', id: nouvelId(), demande: demande.id, cercle: demande.cercle || 1,
+              chaine: [...(demande.chaine || [])] };
+  if (o.groupe) l.groupe = true;
+  return l;
 }
 /* à qui faire suivre (Watts, Dodds et Newman 2002 ; Adamic et Adar 2005) :
    d'abord, et seulement, à ceux dont le parcours touche l'entreprise ;
@@ -252,7 +256,9 @@ export function normaliserLettre(o, now = Date.now()){
     /* la seule lettre SANS auteur : qui a trouvé ne se dit qu'en donnant */
     const cercle = Number(o.cercle);
     if (!ID.test(String(o.demande || '')) || !(cercle >= 1 && cercle <= CERCLE_MAX) || !chaineValide(o.chaine || [], cercle - 1)) return null;
-    return { t: 'trouve', id: o.id, demande: o.demande, cercle, chaine: [...(o.chaine || [])] };
+    const t = { t: 'trouve', id: o.id, demande: o.demande, cercle, chaine: [...(o.chaine || [])] };
+    if (o.groupe === true) t.groupe = true;
+    return t;
   }
   const de = o.de && typeof o.de === 'object' ? { prenom: txt(o.de.prenom, 40), cle: o.de.cle } : null;
   if (!de || !de.prenom || !cleValide(de.cle)) return null;
@@ -402,6 +408,7 @@ export function traiterLettre(e, l, { companies, moi, amis, parcours, pistesPour
     const d = e.demandes.find(x => x.id === l.demande);
     if (!d || d.trouve) return { etat: e, quoi: null };
     const trouve = { at: now, cercle: l.cercle, chaine: l.chaine };
+    if (l.groupe) trouve.groupe = true;
     return { etat: { ...e, demandes: e.demandes.map(x => x === d ? { ...x, trouve } : x) }, quoi: 'trouve' };
   }
   if (l.t === 'don'){

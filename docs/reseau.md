@@ -657,6 +657,36 @@ retenu :
   d'erreur, et le lanceur ne lisait que l'autre. Rejouée à la main, la
   première était prise ; les cinq le sont.
 
+## Ce que le lot 5b a appris (6.59.0)
+
+Livrées : les décisions 20, 28 et 29 — la demande au groupe, que tout
+le groupe voit ; ses quatre réponses ; la réponse à qui demande
+seulement. Reste 24 (le groupe « sur demande », lot 5c).
+
+- **La demande au groupe est la lettre d'un ami.** Pas un format de
+  plus : la même lettre, passée au même moteur. Ce qui change tient en
+  un drapeau — un groupe ne fait jamais suivre tout seul — et une
+  étiquette sur la demande reçue (le groupe d'où elle vient). C'est ce
+  qui a permis de livrer « Donner », « tu y es », le merci et le saut
+  vers ses amis sans rien réécrire.
+- **Une lettre qu'on garde en mémoire a perdu sa version.** Relayer une
+  demande dans un autre groupe renvoyait la lettre telle que le moteur
+  l'avait rangée — sans `v: 1` — et le groupe d'en face la refusait.
+  Le test unitaire l'a vu avant l'écran.
+- **Ce qui doit partir s'écrit AVANT de partir.** La lettre « trouvé »
+  partait juste après que la demande était notée : une app fermée entre
+  les deux la perdait pour toujours. Elle passe par la file d'envoi. Le
+  défaut ne se voyait pas au scénario propre ; il s'est vu parce que
+  deux mutations étaient « prises » pour une raison qui n'était pas la
+  leur — **une mutation prise se lit, elle ne se compte pas**.
+- **Une réponse qui manque se dit, elle ne fait pas planter.** Un
+  scénario qui cherche « Répondre » et ne le trouve pas doit dire ce
+  qu'il voit à la place (« Tu l'as fait suivre ») : un plantage aurait
+  été compté comme une mutation prise sans dire laquelle.
+- **Être l'auteur, c'est avoir écrit la lettre.** Une demande relayée
+  par Karim est postée par Karim, mais c'est celle d'Inès : « Tu
+  cherches » se décide sur la clé de la lettre, pas sur qui l'a postée.
+
 ## Comment on saura que c'est juste
 
 **Le moteur** (`tests.js`, `?test`) :
