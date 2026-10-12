@@ -337,8 +337,14 @@ const PLAFOND = {
      avant les boîtes aux lettres. Elle prévient d'une erreur qu'on ne
      peut pas voir venir : sans elle, cet ami n'est jamais dans « à qui
      elle part », et rien ne dit pourquoi. Elle dit le GESTE, pas la
-     raison, et elle part d'elle-même dès qu'il a redonné son QR. */
-  motsExplication: 367,
+     raison, et elle part d'elle-même dès qu'il a redonné son QR.
+
+     363 le 12 octobre 2026, −4 (docs/reseau.md, lot 4a) : la liste des
+     amis est passée dans « Mes pistes », et son état vide ne promet
+     plus — il ENSEIGNE par son titre (« Tes amis t’ouvrent leurs
+     entreprises ») et ses deux gestes, Mon QR et Scanner. Un titre
+     n'est pas une explication ; la phrase d'avant en était une. */
+  motsExplication: 363,
   /* ZÉRO, et c'est le seul plafond qui puisse honnêtement valoir zéro :
      un style sans porteur n'a pas de contrepartie à peser — il ne rend
      service à personne, il ne fait qu'attendre d'être lu par erreur.

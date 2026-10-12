@@ -225,9 +225,12 @@ Chacun se livre dans main, se teste sur le téléphone, et **sert tout seul**
    arrive dans ta piste (aperçu, Annuler) ; le merci. **Livré pour les amis
    (6.55.0)** — voir « Ce que le lot 3 a appris ». Les groupes (décision
    6) suivent : ils demandent un code qu'on garde, donc une clé de plus.
-4. **Les cercles 2 et 3.** La transmission automatique, le numéro de
-   cercle, les doublons (une demande arrivée par deux amis ne sonne qu'une
-   fois), l'expiration, le merci à toute la chaîne.
+4. **L'onglet « Amis », puis les cercles 2 et 3.** 4a : la liste des
+   amis dans « Mes pistes », triée comme les pistes, les profils à jour
+   tout seuls, « À découvrir » réchauffé — **livré (6.56.0)**, voir « Ce
+   que le lot 4a a appris ». 4b : la transmission automatique, le numéro
+   de cercle, les doublons (une demande arrivée par deux amis ne sonne
+   qu'une fois), l'expiration, le merci à toute la chaîne.
 5. **Plus tard, à décider : le fil du groupe.** Voir plus bas.
 
 Place dans la feuille de route : après la barre de recherche, qui mène aux
@@ -534,6 +537,48 @@ Les limites, toutes vérifiées par chaque téléphone qui fait suivre, pas
 seulement par celui qui demande : **trois cercles** ; **14 jours** ;
 **trois demandes ouvertes** par personne ; **20 amis au plus** par saut ;
 une demande arrivée par deux chemins ne sonne **qu'une fois**.
+
+## Ce que le lot 4a a appris (6.56.0)
+
+Livré à peu près tel que le concept le disait ; ce qui a bougé l'a fait
+pour une raison qui vaut d'être écrite.
+
+- **Une fuite, trouvée par le garde avant l'utilisateur.** La barre est
+  l'endroit où l'on TAPE le nom d'un ami pour le retrouver — et la même
+  barre questionne l'annuaire public après une pause. « Benali » partait
+  vers data.gouv.fr. `motsInterdits` connaissait les contacts, les notes,
+  le groupe, le profil : pas les amis, qui n'existaient pas quand il a
+  été écrit. **Toute donnée neuve qu'on peut taper dans la barre se
+  demande : part-elle vers l'annuaire ?** Le garde (`e2e-amis-onglet.mjs`
+  ①) lit chaque requête, depuis les deux portées, et une question qui ne
+  contenait QUE le nom ne part pas du tout.
+- **Le titre ne change pas avec l'onglet.** Une première version écrivait
+  « Mes pistes · 4 amis » : ce qui vit au-dessus des onglets les
+  surplombe tous (NN/g, *Tabs Used Right*), et le titre se lisait de
+  travers. Il compte les pistes, comme dans « À découvrir » ; ce que la
+  barre garde chez les amis se voit dans l'onglet et s'entend.
+- **Le bouton de la barre dit son geste.** Chez les amis il n'y a rien à
+  filtrer, seulement à trier : « Affiner » devient « Trier » et ouvre les
+  trois critères. Pas un « Affiner » qui ouvrirait un écran à moitié vide.
+- **La sous-ligne parle en entreprises, pas en verbes.** Le concept
+  voulait « y est en alternance · Aztek (dans tes pistes) · Quick ». Mais
+  c'est la fiche de l'ami qui dit ce qu'il y a fait ; la LIGNE sert à
+  choisir, et ce qui fait choisir est l'entreprise qui est dans tes pistes
+  — « Aztek, dans tes pistes · Quick », l'accent sur ce qui sert. « Parcours
+  vide » est devenu « aucune entreprise » : un mot de tous les jours.
+- **Une piste close ne compte pas.** Tom a fait son stage chez Thales ;
+  Inès a clos Thales. Lui dire « dans tes pistes » la pousserait vers une
+  porte qu'elle a fermée.
+- **Le clavier perdait le focus, au poste.** La fiche suit la ligne visée
+  (liste-détail) ; viser redessine la vue, et le focus était rendu à la
+  ligne de l'ANCIENNE vue, sortie du document. Le garde jouait ↓ ↑ Échap :
+  il l'a vu. Il faut chercher la ligne neuve dans le document, jamais
+  dans la boîte qu'on vient de remplacer.
+- **Une mise à jour ne rajoute personne.** Le profil change → il repart
+  en `maj` vers les amis qui ont une boîte. Chez qui m'a retiré, la lettre
+  arrive quand même (je ne le sais pas, et personne n'est prévenu d'un
+  retrait) : elle ne fait que remplacer un ami DÉJÀ là, sinon elle se
+  tait. Joué à trois, mutation à l'appui.
 
 ## Comment on saura que c'est juste
 
