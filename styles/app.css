@@ -817,10 +817,14 @@ html[data-theme="dark"] .field select{
    chacun avec son compte. LÉGER, à la demande du mainteneur : aucune
    boîte, aucun aplat — le mot actif en encre et un trait du châssis sous
    lui (§4 : le navy dit « où tu es »), l'autre en gris. La cible garde
-   sa hauteur de doigt (§5) ; seul l'habit part. */
+   sa hauteur de doigt (§5) ; seul l'habit part. Et sa LARGEUR : « Amis »
+   ne faisait que 35 px de mot, sous le doigt c'est 44 au moins — le mot
+   se centre sur son trait, qui dit la cible (ce qu'on voit est ce qu'on
+   touche, §5). */
 .portee{display:flex;flex-wrap:wrap;gap:0 22px;margin:-2px 0 10px}
 .pt{
-  display:inline-flex;align-items:center;gap:6px;min-height:var(--ctl);padding:0 1px;
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  min-height:var(--ctl);min-width:var(--ctl);padding:0 1px;
   background:none;border:0;border-bottom:2px solid transparent;border-radius:0;cursor:pointer;
   font-size:var(--text-14);font-weight:var(--weight-semibold);color:var(--text-muted);
 }
