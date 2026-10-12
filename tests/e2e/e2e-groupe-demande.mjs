@@ -226,7 +226,11 @@ await Ka.p.click('#rpSuivre');
 await Ka.p.waitForSelector('[data-vers]');
 if (await Ka.p.$('#rpAmis')) fail('« À mes amis » chez Karim, qui n’a aucun ami');
 await Ka.p.click('[data-vers]');
-await attendreQue(Ka.p, () => !document.querySelector('#rpMot'), null, 10000, 'la feuille de réponse refermée');
+/* la feuille ne se referme qu'une fois la demande partie. Attendre
+   `#rpMot` ne prouvait rien : il n'existe plus dès la page « Faire
+   suivre », et sur une machine lente la lecture du relais passait
+   AVANT l'envoi (vu en CI, reproduit en retardant les envois) */
+await attendreQue(Ka.p, () => !document.querySelector('[data-vers]'), null, 10000, 'la feuille « Faire suivre » refermée');
 {
   const k = await cleGroupe(CLUB);
   let relayees = [];
