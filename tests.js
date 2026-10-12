@@ -54,11 +54,14 @@ import { nouvelIdAmi, idAmiValide, cleEntreprise, memeEntreprise, profilDonne, n
          ceQuOuvre, classerAmis, chercherAmis, TRIS_AMIS } from './engine/amis.js';
 import { nouvelleCle, boiteValide, cleValide, etiquetteBoite, sceller, ouvrir, lettreDemande, lettreDon, lettreMerci, lettreAmi,
          contactDonne, normaliserLettre, contactsPour, etatVide, normaliserEtat, elaguer, peutDemander,
-         demandeDePiste, traiterLettre, empreinteProfil, DEMANDE_JOURS, DEMANDES_OUVERTES_MAX } from './engine/boite.js';
+         demandeDePiste, traiterLettre, empreinteProfil, DEMANDE_JOURS, DEMANDES_OUVERTES_MAX,
+         jetonRelais, ouvrirJeton, lettreRelais, lettreTrouve, choisirRelais, soiPour, contactsDe,
+         CERCLE_MAX, RELAIS_MAX } from './engine/boite.js';
+import { critereValide, phraseCritere, CRITERE_METIER } from './engine/critere.js';
 import { interpreter, retirer, remplacer, chercherPistes, raisonDe, propositions, elargir,
          contexteRecherche, porteurs, deptDuCp, villeFrequente, deptDePiste, zoneDe, metierDuMoment,
          fraicheur, METIER, metierDuProfil, villeConnue, lieuDuProfil, metierEtiquetteDuProfil, rayonDe,
-         correction, fautes, fautesPermises } from './engine/requete.js';
+         correction, fautes, fautesPermises, critereDe, pistesPour } from './engine/requete.js';
 import { questionsAnnuaire, lireAnnuaire, decouvertes, versPiste, motsInterdits, casse, offresAlternance, LBA, LOIN_KM,
          domaineDeNaf, ANNUAIRE, questionSiren, questionNom, questionSite, lireSite,
          complements, dirigeantsAjoutables, lienGens, suggestionsNom, sousLigneNom, WIKIDATA, genreQuestion,
@@ -2149,7 +2152,7 @@ export async function runSelfTests(){
       ok(!/privé|reply|Julie/.test(JSON.stringify(d)));
       eq(normaliserLettre(d, now).t, 'demande');
       eq(normaliserLettre(d, d.exp + 1), null);                                  /* expirée : elle ne part plus */
-      eq(normaliserLettre({ ...d, cercle: 2 }, now), null);                       /* le cercle 2 n'existe pas encore */
+      eq(normaliserLettre({ ...d, cercle: 2 }, now), null);                       /* le cercle 2 sans maillon n'entre pas */
       eq(normaliserLettre({ ...d, exp: now + 40 * 864e5 }, now), null);           /* plus de 14 jours : refusée */
       eq(normaliserLettre({ ...d, de: { prenom: 'X', cle: 'faux' } }, now), null);
       eq(normaliserLettre({ ...d, v: 2 }, now), null);
@@ -2198,7 +2201,8 @@ export async function runSelfTests(){
       eq(traiterLettre(r.etat, d1, { companies: pistes, moi: moi.pub, now }).quoi, null);   /* une fois */
       const d2 = normaliserLettre(lettreDemande({ prenom: 'Tom', cle: lea.pub }, { name: 'Quick' }, now), now);
       const r2 = traiterLettre(r.etat, d2, { companies: pistes, moi: moi.pub, now });
-      eq(r2.quoi, null); eq(r2.etat.recues.at(-1).statut, 'rien');                        /* règle 6 */
+      /* règle 6 : rien ne s'affiche — et depuis le lot 4b, la demande PASSE plus loin */
+      eq(r2.quoi, 'suivre'); eq(r2.etat.recues.at(-1).statut, 'rien');
       /* ma propre demande, revenue par mon autre appareil, ne me sollicite pas */
       const d3 = normaliserLettre(lettreDemande({ prenom: 'Moi', cle: moi.pub }, { name: 'Aztek' }, now), now);
       eq(traiterLettre(e, d3, { companies: pistes, moi: moi.pub, now }).quoi, null);
@@ -2307,6 +2311,145 @@ export async function runSelfTests(){
       ok(e1 !== await empreinteProfil({ ...profilDonne(p, []), nom: 'Autre' }));
       eq(normaliserEtat({ profilEnvoye: e1 }).profilEnvoye, e1);
       eq(normaliserEtat({ profilEnvoye: 'pas une empreinte' }).profilEnvoye, undefined);
+    },
+    'sauts : la demande passe d’elle-même, deux fois au plus, par des amis seulement': async () => {
+      const tom = await nouvelleCle(), lea = await nouvelleCle(), karim = await nouvelleCle(), sofia = await nouvelleCle();
+      const now = Date.parse('2026-10-12T12:00:00Z'), today = '2026-10-12';
+      const ami = (nom, k, parcours = [], recu = 1) => ({ id: nom + 'AAAAAAAAAAAAAAAA', nom, cle: k.pub, parcours, recu });
+      const d1 = normaliserLettre(lettreDemande({ prenom: 'Tom', cle: tom.pub }, { name: 'AZTEK SAS' }, now), now);
+      eq(d1.cercle, 1);
+      /* chez Léa, qui ne trouve rien : rien ne s'affiche, la demande PASSE */
+      let r = traiterLettre(normaliserEtat(etatVide()), d1, { companies: [], moi: lea.pub, amis: [ami('Tom', tom), ami('Karim', karim)], parcours: [], today, now });
+      eq(r.quoi, 'suivre'); eq(r.etat.recues.at(-1).statut, 'rien');
+      /* … sauf si elle a coupé le passage (décision 7) */
+      eq(traiterLettre(normaliserEtat(etatVide()), d1, { companies: [], moi: lea.pub, amis: [], sansRelais: true, today, now }).quoi, null);
+      /* le maillon : son jeton n'est lisible que du maillon d'avant */
+      const j1 = await jetonRelais(tom.pub, { prenom: 'Léa', cle: lea.pub });
+      const d2 = normaliserLettre(lettreRelais(d1, { prenom: 'Léa', cle: lea.pub }, j1), now);
+      eq(d2.id, d1.id); eq(d2.cercle, 2); eq(d2.de, d1.de); eq(d2.exp, d1.exp); eq(d2.par.prenom, 'Léa');
+      eq(await ouvrirJeton(tom.priv, j1), { prenom: 'Léa', cle: lea.pub });
+      eq(await ouvrirJeton(karim.priv, j1), null);
+      eq(await ouvrirJeton(sofia.priv, j1), null);
+      ok(!JSON.stringify(d2).includes('Karim'));
+      /* chez Karim : elle n'entre que par un de SES amis */
+      eq(traiterLettre(normaliserEtat(etatVide()), d2, { companies: [], moi: karim.pub, amis: [ami('Sofia', sofia)], today, now }).quoi, null);
+      const rk = traiterLettre(normaliserEtat(etatVide()), d2, { companies: [], moi: karim.pub, amis: [ami('Léa', lea), ami('Sofia', sofia)], today, now });
+      eq(rk.quoi, 'suivre');
+      eq(traiterLettre(rk.etat, d2, { companies: [], moi: karim.pub, amis: [ami('Léa', lea)], today, now }).quoi, null);   /* deux chemins, une fois */
+      const j2 = await jetonRelais(lea.pub, { prenom: 'Karim', cle: karim.pub });
+      const d3 = normaliserLettre(lettreRelais(d2, { prenom: 'Karim', cle: karim.pub }, j2), now);
+      eq(d3.cercle, 3); eq(d3.chaine.length, 2); eq(d3.par.prenom, 'Karim');
+      eq(await ouvrirJeton(lea.priv, j2), { prenom: 'Karim', cle: karim.pub });
+      eq(await ouvrirJeton(tom.priv, j2), null);                      /* Tom ne lit pas plus loin que son ami */
+      /* chez Sofia : elle Y EST — la demande s'affiche, à elle */
+      const parcoursSofia = [{ entreprise: 'Aztek', quoi: 'alternance', debut: '2025-09', fin: '' }];
+      const rs = traiterLettre(normaliserEtat(etatVide()), d3, { companies: [], moi: sofia.pub, amis: [ami('Karim', karim)], parcours: parcoursSofia, today, now });
+      eq(rs.quoi, 'demande');
+      eq(rs.etat.recues.at(-1).soi, { quoi: 'alternance', maintenant: true });
+      eq(rs.etat.recues.at(-1).par.prenom, 'Karim');
+      /* au troisième cercle, qui ne trouve rien ne fait plus suivre */
+      eq(traiterLettre(normaliserEtat(etatVide()), d3, { companies: [], moi: sofia.pub, amis: [ami('Karim', karim)], parcours: [], today, now }).quoi, null);
+      eq(normaliserLettre(lettreRelais(d3, { prenom: 'Sofia', cle: sofia.pub }, j2), now), null);   /* pas de quatrième */
+      ok(CERCLE_MAX === 3);
+      /* une chaîne qui ne compte pas ses maillons, un maillon sans clé, un jeton abîmé : refusés */
+      eq(normaliserLettre({ ...lettreRelais(d1, { prenom: 'Léa', cle: lea.pub }, j1), chaine: [] }, now), null);
+      eq(normaliserLettre({ ...lettreRelais(d1, { prenom: 'Léa', cle: 'faux' }, j1) }, now), null);
+      eq(normaliserLettre(lettreRelais(d1, { prenom: 'Léa', cle: lea.pub }, 'OCB1.court'), now), null);
+      /* trois demandes ouvertes par personne : la quatrième de Tom ne passe plus */
+      let e4 = normaliserEtat(etatVide());
+      for (let i = 0; i < DEMANDES_OUVERTES_MAX; i++)
+        e4 = traiterLettre(e4, normaliserLettre(lettreDemande({ prenom: 'Tom', cle: tom.pub }, { name: 'E' + i }, now), now),
+          { companies: [], moi: lea.pub, amis: [ami('Karim', karim)], today, now }).etat;
+      eq(traiterLettre(e4, normaliserLettre(lettreDemande({ prenom: 'Tom', cle: tom.pub }, { name: 'E9' }, now), now),
+        { companies: [], moi: lea.pub, amis: [ami('Karim', karim)], today, now }).quoi, null);
+    },
+    'sauts : prévenu sans savoir qui, « par Léa » au don, le merci remonte la chaîne': async () => {
+      const tom = await nouvelleCle(), lea = await nouvelleCle(), karim = await nouvelleCle(), sofia = await nouvelleCle();
+      const now = Date.parse('2026-10-12T12:00:00Z');
+      const d1 = normaliserLettre(lettreDemande({ prenom: 'Tom', cle: tom.pub }, { name: 'AZTEK SAS' }, now), now);
+      const j1 = await jetonRelais(tom.pub, { prenom: 'Léa', cle: lea.pub });
+      const d2 = normaliserLettre(lettreRelais(d1, { prenom: 'Léa', cle: lea.pub }, j1), now);
+      const j2 = await jetonRelais(lea.pub, { prenom: 'Karim', cle: karim.pub });
+      const d3 = normaliserLettre(lettreRelais(d2, { prenom: 'Karim', cle: karim.pub }, j2), now);
+      let et = { ...normaliserEtat(etatVide()), demandes: [{ id: d1.id, pisteId: 'p', entreprise: d1.entreprise, at: now, exp: d1.exp, vers: 1 }] };
+      /* « trouvé » : sans auteur — qui a trouvé ne se dit qu'en donnant */
+      const t = normaliserLettre(lettreTrouve(d3), now);
+      eq(Object.keys(t).sort(), ['cercle', 'chaine', 'demande', 'id', 't']);
+      ok(!/Sofia|Karim/.test(JSON.stringify(t)));
+      let r = traiterLettre(et, t, { moi: tom.pub, now });
+      eq(r.quoi, 'trouve'); eq(r.etat.demandes[0].trouve.cercle, 3);
+      eq(traiterLettre(r.etat, normaliserLettre(lettreTrouve(d3), now), { moi: tom.pub, now }).quoi, null);   /* une fois */
+      eq(traiterLettre(et, normaliserLettre(lettreTrouve({ ...d3, id: 'inconnue01' }), now), { moi: tom.pub, now }).quoi, null);
+      et = r.etat;
+      /* le don de Sofia : elle-même, « y est en alternance », la chaîne avec */
+      const don = normaliserLettre(lettreDon({ prenom: 'Sofia', cle: sofia.pub }, d3, { name: 'Sofia Haddad', email: 's@h.test', note: 'privé' },
+        { soi: { quoi: 'alternance', maintenant: true } }), now);
+      eq(don.soi, { quoi: 'alternance', maintenant: true }); eq(don.chaine, [j1, j2]);
+      ok(!/privé/.test(JSON.stringify(don)));
+      r = traiterLettre(et, don, { moi: tom.pub, now });
+      eq(r.quoi, 'don'); eq(r.etat.dons.at(-1).chaine, [j1, j2]);
+      /* Tom lit SON ami, pas plus */
+      eq((await ouvrirJeton(tom.priv, don.chaine[0])).prenom, 'Léa');
+      /* le merci remonte : à Léa avec ce qui reste, puis à Karim */
+      const mLea = normaliserLettre(lettreMerci({ prenom: 'Tom', cle: tom.pub }, r.etat.dons.at(-1), don.chaine.slice(1)), now);
+      eq(mLea.relais, true); eq(mLea.suite, [j2]); eq(mLea.contact, { name: '' });   /* pas le nom de qui est au bout */
+      const chezLea = { ...normaliserEtat(etatVide()), recues: [{ id: d1.id, de: d1.de, exp: d1.exp, at: now, statut: 'transmise', trouve: [] }] };
+      eq(traiterLettre(chezLea, mLea, { moi: lea.pub, now }).quoi, 'merci-relais');
+      eq(traiterLettre({ ...chezLea, recues: [{ ...chezLea.recues[0], statut: 'rien' }] }, mLea, { moi: lea.pub, now }).quoi, null);
+      const suivant = await ouvrirJeton(lea.priv, mLea.suite[0]);
+      eq(suivant.prenom, 'Karim');
+      const mKarim = normaliserLettre(lettreMerci({ prenom: 'Léa', cle: lea.pub }, r.etat.dons.at(-1), mLea.suite.slice(1)), now);
+      eq(mKarim.suite, []);
+      eq(normaliserLettre({ ...mLea, suite: [j1, j2, j1] }, now), null);       /* une suite plus longue que la chaîne */
+    },
+    'sauts : faire suivre d’abord à qui ressemble à la cible, vingt au plus': async () => {
+      const ks = await Promise.all(Array.from({ length: 25 }, () => nouvelleCle()));
+      const amis = ks.map((k, i) => ({ id: 'ami' + i + 'AAAAAAAAAAAAAAAA', nom: 'Ami ' + i, cle: k.pub, recu: i,
+        parcours: i === 7 ? [{ entreprise: 'Aztek', quoi: 'stage' }] : [] }));
+      const dem = { entreprise: { nom: 'AZTEK SAS' } };
+      eq(choisirRelais(amis, dem).map(a => a.nom), ['Ami 7']);
+      eq(choisirRelais(amis, { entreprise: { nom: 'Quick' } }).length, RELAIS_MAX);
+      eq(choisirRelais(amis, { entreprise: { nom: 'Quick' } })[0].nom, 'Ami 24');                 /* les plus récents d'abord */
+      eq(choisirRelais(amis, dem, [ks[7].pub]).length, RELAIS_MAX);                                /* pas à qui me l'a passée */
+      eq(choisirRelais([{ id: 'x', nom: 'Ancien', parcours: [] }], { entreprise: { nom: 'Quick' } }), []);   /* sans boîte */
+      eq(soiPour([{ entreprise: 'AZTEK', quoi: 'stage', debut: '2024-01', fin: '2024-03' }], { nom: 'Aztek SAS' }, '2026-10-12'),
+        { quoi: 'stage', maintenant: false });
+      eq(soiPour([], { nom: 'Aztek' }, '2026-10-12'), null);
+    },
+    'demande par métier et ville : seuls des mots de la table partent': async () => {
+      const k = await nouvelleCle(), now = Date.parse('2026-10-12T12:00:00Z');
+      eq(critereDe(interpreter('cyber Lille')), { metier: 'cyber', ville: 'Lille' });
+      eq(phraseCritere({ metier: 'cyber', ville: 'Lille' }), 'dans la cybersécurité à Lille');
+      eq(phraseCritere({ ville: 'Le Havre' }), 'au Havre');
+      eq(phraseCritere({ ville: 'Les Ulis', metier: 'esn' }), 'dans une ESN aux Ulis');
+      /* une ville lue dans MES pistes (un lieu-dit) ne part pas ; le texte non plus */
+      const ctx = contexteRecherche([normalizeCompany({ id: 'x', name: 'X', city: 'Hameau-des-Saules' })]);
+      eq(critereDe(interpreter('cyber Hameau-des-Saules', ctx)), { metier: 'cyber' });
+      eq(critereDe(interpreter('Julie Marchand')), null);
+      eq(critereValide({ metier: 'cyber', ville: 'Lille', notes: 'x' }), { metier: 'cyber', ville: 'Lille' });
+      eq(critereValide({ metier: 'pirate' }), null);
+      eq(critereValide({ ville: 'Atlantis' }), null);
+      eq(critereValide({ metier: 'constructor' }), null);
+      /* la lettre ne porte que le critère */
+      const d = lettreDemande({ prenom: 'Inès', cle: k.pub }, { critere: { metier: 'cyber', ville: 'Lille', q: 'secret' } }, now);
+      eq(Object.keys(d).sort(), ['cercle', 'critere', 'de', 'exp', 'id', 't', 'v']);
+      eq(d.critere, { metier: 'cyber', ville: 'Lille' });
+      eq(normaliserLettre(d, now).critere, { metier: 'cyber', ville: 'Lille' });
+      eq(normaliserLettre({ ...d, critere: { metier: 'pirate' } }, now), null);
+      /* chez l'ami : ses pistes cyber à Lille, ouvertes, et leurs contacts */
+      const pistes = [
+        normalizeCompany({ id: 'a', name: 'Advens', city: 'Lille', domain: 'cyber', contacts: [{ id: 'c1', name: 'Julie', email: 'j@a.test' }] }),
+        normalizeCompany({ id: 'b', name: 'Bidule', city: 'Roubaix', domain: 'cyber', contacts: [{ id: 'c2', name: 'Paul', email: 'p@b.test' }] }),
+        normalizeCompany({ id: 'c', name: 'Close', city: 'Lille', domain: 'cyber', closedReason: 'rejected', contacts: [{ id: 'c3', name: 'Zoé', email: 'z@c.test' }] }),
+        normalizeCompany({ id: 'd', name: 'Data Nord', city: 'Lille', domain: 'esn', contacts: [{ id: 'c4', name: 'Léo', email: 'l@d.test' }] })];
+      eq(pistesPour(pistes, { metier: 'cyber', ville: 'Lille' }).map(c => c.id), ['a']);
+      eq(pistesPour(pistes, { ville: 'Lille' }).map(c => c.id), ['a', 'd']);
+      eq(contactsDe(pistesPour(pistes, { metier: 'cyber', ville: 'Lille' })), [{ pisteId: 'a', ctId: 'c1' }]);
+      const r = traiterLettre(normaliserEtat(etatVide()), normaliserLettre(d, now), { companies: pistes, moi: 'x', pistesPour, now });
+      eq(r.quoi, 'demande'); eq(r.etat.recues.at(-1).trouve, [{ pisteId: 'a', ctId: 'c1' }]);
+      /* le don dit OÙ — l'entreprise et sa ville, puisque la demande n'en nommait aucune */
+      const don = normaliserLettre(lettreDon({ prenom: 'Léa', cle: k.pub }, normaliserLettre(d, now), { name: 'Julie', email: 'j@a.test' }, { piste: pistes[0] }), now);
+      eq(don.entreprise, { nom: 'Advens', ville: 'Lille' });
     },
     'boîte : la clé suit le profil, part dans le QR, et un ami ancien n’en a pas': async () => {
       const b = await nouvelleCle();

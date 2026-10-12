@@ -158,6 +158,10 @@ const DIT = {
   stage:      { present: 'y est en stage',      passe: 'y a fait son stage',
                 tuPresent: 'y es en stage',     tuPasse: 'y as fait ton stage',    force: 3 }
 };
+/* ce que dit une expérience quand on SAIT seulement si elle dure encore
+   (un don « j'y suis » : la lettre porte le mot et le fait, pas de dates) */
+export const direQuoi = (quoi, maintenant) => DIT[quoi] ? (maintenant ? DIT[quoi].present : DIT[quoi].passe) : '';
+export const direQuoiTu = (quoi, maintenant) => DIT[quoi] ? (maintenant ? DIT[quoi].tuPresent : DIT[quoi].tuPasse) : '';
 const moisDe = today => String(today || '').slice(0, 7);
 export function enCours(e, today){
   if (!e || !e.debut) return false;

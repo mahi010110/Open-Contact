@@ -126,7 +126,15 @@ const PLAFOND = {
      profil d'Inès arrive de son téléphone à elle — famille ②, rien sur
      l'écran de Karim ne l'a causé ni ne le montre. Une fois par ami :
      un profil mis à jour entre en silence. */
-  toasts: 117,
+  /* 120 le 12 octobre 2026, +3 (docs/reseau.md, lot 4b, les sauts),
+     tous de la famille ② — ils arrivent d'un AUTRE téléphone, à la
+     relève, sans un geste ici : « Un ami de Léa a trouvé quelqu'un chez
+     Aztek. » (la fiche le dit aussi, mais on n'y est pas) ; « Tom te dit
+     merci : quelqu'un a été trouvé chez Aztek, grâce à toi. » (le merci
+     qui remonte la chaîne, chez Léa et Karim, qui n'ont rien vu
+     passer) ; « Tom a ton contact. » (le oui de qui Y EST, et sa ligne
+     vient de partir). */
+  toasts: 120,
   toastCar: 79,        /* le plus long : « Connexion interrompue — … » */
   /* portes bloquantes dans les écrans visibles.
      9 le 29 septembre 2026 : « Mon profil » prend le garde-fou de la

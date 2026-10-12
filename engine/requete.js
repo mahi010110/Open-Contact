@@ -49,6 +49,7 @@ import { silentPistes } from './assist.js';
 import { scoreOf } from './score.js';
 import { extractCity, todayISO } from './utils.js';
 import { VILLES, DEPARTEMENTS, DEPT_NOM_AMBIGU, REGIONS, CENTRES } from './lieux.js';
+import { CRITERE_METIER, critereValide, villeDeTable } from './critere.js';
 
 /* ---------- les mots ---------- */
 const plier = s => fold(s).replace(/œ/g, 'oe').replace(/æ/g, 'ae');
@@ -813,4 +814,31 @@ export function elargir(companies, q, o){
     }
   }
   return out.sort((a, b) => (a.genre === 'autour' ? -1 : 0) - (b.genre === 'autour' ? -1 : 0) || b.n - a.n).slice(0, 2);
+}
+
+/* ---------- demander à ses amis « dans la cyber à Lille » (lot 4b) ----------
+   Ce que la barre a compris devient une demande — mais seulement ce que
+   la TABLE connaît : le métier, et une ville de la table (jamais une
+   ville lue dans mes pistes). Le reste de la phrase ne part pas. */
+export function critereDe(interp){
+  const c = {};
+  for (const e of (interp && interp.etiquettes) || []){
+    if (e.famille === 'metier' && !c.metier && CRITERE_METIER[e.cle]) c.metier = e.cle;
+    if (e.famille === 'lieu' && !c.ville && e.ville && villeDeTable(e.label)) c.ville = e.label;
+  }
+  return critereValide(c);
+}
+/* chez l'ami : ses pistes OUVERTES qui correspondent PLEINEMENT au
+   métier et à la ville — le même moteur que la barre, sans le texte */
+export function pistesPour(companies, critere){
+  const c = critereValide(critere);
+  if (!c) return [];
+  const ets = [];
+  if (c.metier){
+    const d = METIER[c.metier];
+    ets.push({ famille: 'metier', cle: c.metier, domaine: d.domaine || '', racines: d.racines, mots: [] });
+  }
+  if (c.ville) ets.push({ famille: 'lieu', cle: 'ville:' + cleDe(c.ville), ville: cleDe(c.ville), mots: [] });
+  return (companies || []).filter(x => x && x.name && !x.demo && !x.closedReason)
+    .filter(x => { const L = lire(x); return ets.every(e => force(x, e, null, L) === 2); });
 }

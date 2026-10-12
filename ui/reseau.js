@@ -20,13 +20,18 @@
    OpenContact (§10).
    ============================================================ */
 import { esc, todayISO } from '../engine/utils.js';
-import { normalizeContact } from '../engine/model.js';
+import { normalizeContact, normalizeCompany } from '../engine/model.js';
+import { uid } from '../engine/utils.js';
 import { RELAIS_DEFAUT } from '../engine/transport.js';
 import { kvGet, kvSet, RELAYS_KEY, RESEAU_KEY } from '../engine/storage.js';
 import { nouvelleCle, etiquetteBoite, sceller, ouvrir, lettreDemande, lettreDon, lettreMerci, lettreAmi, normaliserLettre, empreinteProfil,
          etatVide, normaliserEtat, elaguer, peutDemander, demandeDePiste, traiterLettre, prenomDe,
+         jetonRelais, ouvrirJeton, lettreRelais, lettreTrouve, choisirRelais,
          LETTRE_KIND } from '../engine/boite.js';
-import { prenomAmi, profilDonne, statutAmi, ajouterAmi, nouvelIdAmi } from '../engine/amis.js';
+import { prenomAmi, profilDonne, statutAmi, ajouterAmi, nouvelIdAmi, memeEntreprise, direQuoi, direQuoiTu } from '../engine/amis.js';
+import { parcoursDe } from '../engine/parcours.js';
+import { pistesPour } from '../engine/requete.js';
+import { phraseCritere } from '../engine/critere.js';
 import { S, bus, saveData, saveProfile, logJ } from './state.js';
 import { openSheet, toast, btn, ic, showUndo } from './dom.js';
 import { frDate } from './dates.js';
@@ -217,6 +222,53 @@ function recevoirAmi(l){
   return true;
 }
 
+/* ---------- les sauts (lot 4b) ----------
+   Rien ne s'affiche chez qui ne trouve rien (règle 6) : son téléphone
+   fait SUIVRE la demande à ses amis — d'abord ceux dont le parcours
+   touche l'entreprise —, avec son jeton scellé pour le maillon d'avant.
+   Ce qui n'a pas pu partir repart à la relève suivante. */
+async function faireSuivre(l){
+  const b = S.profile.boite;
+  const cibles = choisirRelais(amisJoignables(), l, [l.de.cle, l.par && l.par.cle, b.pub]);
+  if (!cibles.length) return;
+  const jeton = await jetonRelais(l.cercle > 1 ? l.par.cle : l.de.cle, moi());
+  const lettre = lettreRelais(l, moi(), jeton);
+  const reste = [];
+  for (const a of cibles) if (!await ecrire(a.cle, lettre, l.exp).catch(() => 0))
+    reste.push({ id: nouvelIdAmi().slice(0, 16), cle: a.cle, lettre, quand: Date.now(), exp: l.exp });
+  etat = { ...etat, recues: etat.recues.map(x => x.id === l.id ? { ...x, statut: 'transmise', vers: cibles.length } : x),
+           envois: [...(etat.envois || []), ...reste] };
+}
+/* le premier maillon, lu par moi seul : c'est MON ami, je le nomme
+   comme je le connais */
+const nomDeCle = (cle, sinon) => { const a = (S.profile.amis || []).find(x => x.cle === cle); return a ? prenomAmi(a) : sinon; };
+async function premierMaillon(chaine){
+  if (!chaine || !chaine.length) return '';
+  const j = await ouvrirJeton(S.profile.boite.priv, chaine[0]);
+  return j ? nomDeCle(j.cle, j.prenom) : '';
+}
+async function nommerTrouve(l){
+  const par = await premierMaillon(l.chaine);
+  const d = etat.demandes.find(x => x.id === l.demande);
+  if (d && par) etat = { ...etat, demandes: etat.demandes.map(x => x === d ? { ...x, trouve: { ...x.trouve, par } } : x) };
+  const quoi = d ? (d.entreprise && d.entreprise.nom ? 'chez ' + d.entreprise.nom : phraseCritere(d.critere)) : '';
+  /* le résultat vient d'un autre téléphone : il se dit (§6, ②) */
+  toast(`${par ? 'Un ami de ' + par : 'Un ami'} a trouvé quelqu’un ${quoi}.`);
+}
+async function nommerDon(l){
+  const par = await premierMaillon(l.chaine);
+  if (par) etat = { ...etat, dons: etat.dons.map(x => x.id === l.id ? { ...x, par } : x) };
+}
+/* le merci REMONTE : je le dis, puis je le passe au maillon suivant —
+   lui seul ouvre son jeton */
+async function remercierChaine(m){
+  toast(`${m.de.prenom} te dit merci : quelqu’un a été trouvé chez ${m.entreprise.nom}, grâce à toi.`);
+  logJ(`Merci de ${m.de.prenom} : la demande que tu as fait suivre a trouvé quelqu’un chez ${m.entreprise.nom}`);
+  if (!(m.suite || []).length) return;
+  const suivant = await ouvrirJeton(S.profile.boite.priv, m.suite[0]);
+  if (suivant) await ecrire(suivant.cle, lettreMerci(moi(), m, m.suite.slice(1)), Date.now() + 14 * 864e5).catch(() => 0);
+}
+
 /* ---------- relever ma boîte ----------
    À l'ouverture, au retour sur l'app, et toutes les cinq minutes tant
    qu'elle est à l'écran. Une heure de marge sur la dernière relève :
@@ -234,9 +286,11 @@ export function relever(){
     const { evs, lus } = await lire({ kinds: [LETTRE_KIND], '#x': [await etiquetteBoite(b.pub)],
                                       since: Math.max(0, Math.floor(etat.depuis / 1000) - 3600) });
     let change = false;
+    const ctx = { companies: S.companies, moi: b.pub, amis: S.profile.amis, parcours: parcoursDe(S.profile, S.companies),
+                  pistesPour, sansRelais: !!(S.profile.flags && S.profile.flags.sansRelais), today: todayISO() };
     for (const ev of evs){
       const l = normaliserLettre(await ouvrir(b.priv, ev.content));
-      const r = traiterLettre(etat, l, { companies: S.companies, moi: b.pub });
+      const r = traiterLettre(etat, l, ctx);
       if (r.etat === etat) continue;
       etat = r.etat;
       change = true;
@@ -246,6 +300,13 @@ export function relever(){
         logJ(`Merci de ${m.de.prenom} : ${m.contact.name} (${m.entreprise.nom})`);
         toast(`${m.de.prenom} te dit merci pour ${m.contact.name}.`);
       }
+      /* PRÉVENU TOUT DE SUITE (décision 18) : qui demande sait qu'on a
+         trouvé, sans savoir qui — le contact suivra le oui */
+      if (r.quoi === 'demande') await ecrire(l.de.cle, lettreTrouve(l), l.exp).catch(() => 0);
+      if (r.quoi === 'suivre') await faireSuivre(l);
+      if (r.quoi === 'trouve') await nommerTrouve(l);
+      if (r.quoi === 'don') await nommerDon(l);
+      if (r.quoi === 'merci-relais') await remercierChaine(etat.mercis.at(-1));
     }
     /* une relève où AUCUN relais n'a répondu n'a rien appris : la compter
        ferait sauter, au retour du réseau, les lettres arrivées entre-temps */
@@ -286,19 +347,36 @@ const contactsTrouves = r => r.trouve.map(t => {
   const ct = c && (c.contacts || []).find(y => y.id === t.ctId);
   return ct ? { c, ct } : null;
 }).filter(Boolean);
+/* « j'y suis » : c'est MOI le contact — mon nom, et de quoi me joindre
+   (l'e-mail du profil, sinon son téléphone) ; sans rien, je ne peux pas
+   être donné */
+function contactSoi(){
+  const p = S.profile, nom = String(p.name || '').trim();
+  const moyen = p.email ? { email: p.email } : p.phone ? { phone: p.phone } : null;
+  return nom && moyen ? { name: nom, ...moyen } : null;
+}
+/* ce que je pourrais donner : moi d'abord (c'est moi qu'on cherche),
+   puis mes contacts */
+const choixPour = r => [...(r.soi && contactSoi() ? [{ soi: true, ct: contactSoi(), c: null }] : []), ...contactsTrouves(r)];
+const parDe = r => r.par ? nomDeCle(r.par.cle, r.par.prenom) : '';
+const quiCherche = r => r.par ? `${r.de.prenom}, par ${parDe(r)}, cherche quelqu’un` : `${r.de.prenom} cherche quelqu’un`;
+const quiDonne = d => d.par ? `${d.de.prenom}, par ${d.par}, t’a donné` : `${d.de.prenom} t’a donné`;
 export function lignesAmis(){
   const out = [];
   for (const r of etat.recues){
     if (r.statut !== 'a-voir' || r.exp <= Date.now()) continue;
-    const cts = contactsTrouves(r);
-    if (cts.length) out.push({ sorte: 'demande', id: r.id, nom: cts[0].c.name,
-                               raison: `${r.de.prenom} cherche quelqu’un`, qui: 'tu as ' + cts[0].ct.name });
+    const [x] = choixPour(r);
+    if (!x) continue;
+    out.push({ sorte: 'demande', id: r.id, nom: x.soi ? r.entreprise.nom : x.c.name, raison: quiCherche(r),
+               qui: x.soi ? 'tu ' + direQuoiTu(r.soi.quoi, r.soi.maintenant) : 'tu as ' + x.ct.name });
   }
   for (const d of etat.dons){
     if (d.statut !== 'nouveau') continue;
     const c = pisteDeDemande(d.demande);
+    /* « j'y suis » se dit comme sur la fiche : qui Y EST, par qui */
     out.push({ sorte: 'don', id: d.id, nom: c ? c.name : d.entreprise.nom,
-               raison: `${d.de.prenom} t’a donné`, qui: d.contact.name });
+               raison: d.soi ? `${d.contact.name} ${direQuoi(d.soi.quoi, d.soi.maintenant)}` : quiDonne(d),
+               qui: d.soi ? (d.par ? 'par ' + d.par : '') : d.contact.name });
   }
   return out;
 }
@@ -308,30 +386,37 @@ export function ouvrirLigne(sorte, id){
 }
 
 /* ---------- DEMANDER ---------- */
+/* `c` : une piste, ou `{ critere }` — un métier et une ville de la table
+   (décision 19) */
 export function ouvrirDemander(c, apres){
   const amis = amisJoignables();
   const sh = openSheet({ title: 'Demander à mes amis', icon: 'users' });
   const prenom = prenomDe(S.profile.name);
+  const crit = c && c.critere;
+  const quoi = crit ? phraseCritere(crit) : 'chez ' + c.name;
   /* LA PHRASE QUI PART, mot pour mot, et à qui. Rien d'autre ne voyage :
-     ni ta piste, ni tes notes, ni où tu en es (règle 3). */
+     ni ta piste, ni tes notes, ni où tu en es (règle 3). Et elle va plus
+     loin que tes amis s'ils ne connaissent personne : ça se dit AVANT */
   sh.body.innerHTML =
-    `<div class="gr-mot" id="dmMot">${esc(prenom)} cherche quelqu’un chez ${esc(c.name)}.</div>
-     <p class="dm-qui" id="dmQui">${ic('users', 'ic-14')} ${esc(amis.map(prenomAmi).join(' · '))}</p>`;
+    `<div class="gr-mot" id="dmMot">${esc(prenom)} cherche quelqu’un ${esc(quoi)}.</div>
+     <p class="dm-qui" id="dmQui">${ic('users', 'ic-14')} ${esc(amis.map(prenomAmi).join(' · '))}, puis leurs amis</p>`;
   const go = btn('Demander', 'btn-primary', async () => {
     go.disabled = true;
     await chargerReseau();
     const b = await assurerBoite();
     const now = Date.now();
-    const l = lettreDemande({ prenom, cle: b.pub }, c, now);
+    const l = lettreDemande({ prenom, cle: b.pub }, crit ? { critere: crit } : c, now);
     const partis = (await Promise.all(amis.map(a => ecrire(a.cle, l, l.exp).catch(() => 0)))).filter(n => n > 0).length;
     if (!partis){
       go.disabled = false;
       echecEnvoi();
       return;
     }
-    etat = { ...etat, demandes: [...etat.demandes, { id: l.id, pisteId: c.id, entreprise: l.entreprise, at: now, exp: l.exp, vers: partis }] };
+    const dem = { id: l.id, pisteId: crit ? null : c.id, at: now, exp: l.exp, vers: partis };
+    if (crit) dem.critere = l.critere; else dem.entreprise = l.entreprise;
+    etat = { ...etat, demandes: [...etat.demandes, dem] };
     await sauver();
-    logJ(`Demandé à ${partis} ami${partis > 1 ? 's' : ''} : quelqu’un chez ${c.name}`, c.id);
+    logJ(`Demandé à ${partis} ami${partis > 1 ? 's' : ''} : quelqu’un ${quoi}`, crit ? undefined : c.id);
     sh.close();
     if (apres) apres();
     bus.refresh();
@@ -341,10 +426,18 @@ export function ouvrirDemander(c, apres){
 }
 /* l'état d'une demande en cours, sur la fiche : un fait, pas un bouton */
 export function demandeEnCoursHTML(d){
+  /* quelqu'un a trouvé : on le sait avant son oui (décision 18) */
+  if (d.trouve)
+    return `<p class="fi-demande fi-trouve" id="fiDemande">${ic('check', 'ic-14')} Trouvé chez un ami${d.trouve.par ? ' de ' + esc(d.trouve.par) : ''} · en attente</p>`;
   const j = new Date(d.at).toISOString().slice(0, 10);
   const quand = j === todayISO() ? 'aujourd’hui' : frDate(j);
   return `<p class="fi-demande" id="fiDemande">${ic('clock', 'ic-14')} Demandé à ${d.vers} ami${d.vers > 1 ? 's' : ''} · ${quand}</p>`;
 }
+/* les demandes par métier et ville : elles n'ont pas de fiche, elles se
+   lisent dans « Amis », là où on les a faites */
+export const demandesCritere = () => etat.demandes.filter(d => d.critere && d.exp > Date.now());
+export const peutDemanderAmis = () => peutDemander(etat) && amisJoignables().length > 0 && !!String(S.profile.name || '').trim();
+export const phraseDemande = d => phraseCritere(d.critere);
 
 /* ---------- ON TE DEMANDE ---------- */
 /* un contact tel qu'il partirait — ou tel qu'il arrive : le nom, puis
@@ -354,41 +447,33 @@ const contactHTML = (k, id) =>
      <div class="obj-s">${[k.role, k.email, k.phone, k.link].filter(Boolean)
        .map(v => `<span class="obj-l">${esc(v)}</span>`).join('')}</div></div></div>`;
 function ouvrirRecue(r){
-  const cts = contactsTrouves(r);
-  if (!cts.length) return;
+  const choix = choixPour(r);
+  if (!choix.length) return;
   const sh = openSheet({ title: `${r.de.prenom} cherche quelqu’un`, icon: 'users' });
   /* CE QUE TU DONNERAIS, en entier — le contact, rien de ton suivi.
-     Un seul contact (le cas courant) n'est pas un choix : il se lit, et
-     « Donner » tient le pied. Plusieurs : on en choisit un, le pied
-     donne toujours. */
+     Un seul choix (le cas courant) n'est pas un choix : il se lit, et le
+     geste tient le pied. Plusieurs : on en choisit un. « J'y suis »
+     passe en premier : c'est toi qu'on cherche, et le geste le dit —
+     « Tom peut m'écrire » (décision 10 : un seul oui, le tien). */
   let choisi = 0;
-  const ligne = ({ ct }) => [ct.role, ct.email || ct.phone || ct.link].filter(Boolean).join(' · ');
-  const dessiner = () => {
-    sh.body.innerHTML = `<p class="dm-qui dm-chez">chez ${esc(cts[0].c.name)}</p>` + (cts.length === 1
-      ? contactHTML(cts[0].ct, 'drNom')
-      : `<div class="pick-list" id="drListe">${cts.map((x, i) =>
-          `<button class="pick pk${i === choisi ? ' on' : ''}" data-i="${i}" aria-pressed="${i === choisi}">
-             ${ic('checkbox', 'ic-20 ic-off')}${ic('checkbox-on', 'ic-20 ic-on')}
-             <div class="pk-m"><b>${esc(x.ct.name)}</b>${ligne(x) ? `<span class="pk-s">${esc(ligne(x))}</span>` : ''}</div>
-           </button>`).join('')}</div>`);
-    sh.body.querySelectorAll('[data-i]').forEach(b => b.addEventListener('click', () => { choisi = +b.dataset.i; dessiner(); }));
-  };
-  dessiner();
+  const dit = x => x.soi ? 'tu ' + direQuoiTu(r.soi.quoi, r.soi.maintenant) : x.ct.role;
+  const ligne = x => [dit(x), x.ct.email || x.ct.phone || x.ct.link].filter(Boolean).join(' · ');
+  const chez = x => x.soi ? r.entreprise.nom : x.c.name;
   const donner = btn('Donner', 'btn-primary', async () => {
-    const x = cts[choisi];
+    const x = choix[choisi];
     donner.disabled = true;
     await chargerReseau();
     const b = await assurerBoite();
-    const l = lettreDon({ prenom: prenomDe(S.profile.name), cle: b.pub }, r, x.ct);
+    const l = lettreDon({ prenom: prenomDe(S.profile.name), cle: b.pub }, r, x.ct, x.soi ? { soi: r.soi } : { piste: x.c });
     const n = await ecrire(r.de.cle, l, r.exp).catch(() => 0);
     if (!n){ donner.disabled = false; echecEnvoi(); return; }
     etat = { ...etat, recues: etat.recues.map(y => y.id === r.id ? { ...y, statut: 'donnee', donne: x.ct.name } : y) };
     await sauver();
-    logJ(`Donné à ${r.de.prenom} : ${x.ct.name} (${x.c.name})`, x.c.id);
+    logJ(`Donné à ${r.de.prenom} : ${x.ct.name} (${chez(x)})`, x.c ? x.c.id : undefined);
     sh.close();
     bus.refresh();
     /* le résultat est sur le téléphone d'un autre : il se dit (§6, ②) */
-    toast(`${x.ct.name} donné à ${r.de.prenom}.`);
+    toast(x.soi ? `${r.de.prenom} a ton contact.` : `${x.ct.name} donné à ${r.de.prenom}.`);
   }, 'share');
   donner.id = 'drDonner';
   const ignorer = btn('Ignorer', '', async () => {
@@ -398,18 +483,45 @@ function ouvrirRecue(r){
     bus.refresh();
   });
   ignorer.id = 'drIgnorer';
+  const dessiner = () => {
+    const x = choix[choisi];
+    sh.body.innerHTML = `<p class="dm-qui dm-chez" id="drChez">chez ${esc(chez(x))}${r.par ? ' · par ' + esc(parDe(r)) : ''}</p>` + (choix.length === 1
+      ? contactHTML({ ...x.ct, role: dit(x) }, 'drNom')
+      : `<div class="pick-list" id="drListe">${choix.map((y, i) =>
+          `<button class="pick pk${i === choisi ? ' on' : ''}" data-i="${i}" aria-pressed="${i === choisi}">
+             ${ic('checkbox', 'ic-20 ic-off')}${ic('checkbox-on', 'ic-20 ic-on')}
+             <div class="pk-m"><b>${esc(y.ct.name)}</b>${ligne(y) ? `<span class="pk-s">${esc(ligne(y))}</span>` : ''}</div>
+           </button>`).join('')}</div>`);
+    sh.body.querySelectorAll('[data-i]').forEach(b => b.addEventListener('click', () => { choisi = +b.dataset.i; dessiner(); }));
+    /* le geste dit ce qui part : toi, ou un contact */
+    donner.innerHTML = `${ic('share', 'ic-14')} ${esc(x.soi ? `${r.de.prenom} peut m’écrire` : 'Donner')}`;
+  };
+  dessiner();
   sh.setFoot([ignorer, donner]);
 }
 
 /* ---------- ON TE DONNE ---------- */
+/* le bandeau de la fiche : qui t'a donné quoi — ou qui Y EST */
+export const bandeauDon = d => d.soi
+  ? `${d.contact.name} ${direQuoi(d.soi.quoi, d.soi.maintenant)}${d.par ? ' · par ' + d.par : ''}`
+  : `${quiDonne(d)} ${d.contact.name}`;
 export function ouvrirDon(d, apres){
-  const sh = openSheet({ title: `${d.de.prenom} t’a donné`, icon: 'user' });
-  const c = pisteDeDemande(d.demande);
+  const sh = openSheet({ title: quiDonne(d), icon: 'user' });
+  /* une demande par métier et ville n'avait pas de piste : celle du
+     contact est la mienne si je l'ai déjà, sinon elle naîtra */
+  const c = pisteDeDemande(d.demande) || S.companies.find(x => !x.closedReason && memeEntreprise(x, d.entreprise)) || null;
   const k = d.contact;
-  sh.body.innerHTML = contactHTML(k, 'ddNom') + `<p class="dm-qui">pour ${esc(c ? c.name : d.entreprise.nom)}</p>`;
-  const ajouter = btn('Ajouter à la piste', 'btn-primary', async () => {
-    let piste = c;
-    if (!piste) return;
+  const lieu = [c ? c.name : d.entreprise.nom, !c && d.entreprise.ville].filter(Boolean).join(' · ');
+  sh.body.innerHTML = contactHTML({ ...k, role: k.role || (d.soi ? direQuoi(d.soi.quoi, d.soi.maintenant) : '') }, 'ddNom')
+    + `<p class="dm-qui">pour ${esc(lieu)}</p>`;
+  const ajouter = btn(c ? 'Ajouter à la piste' : 'Ajouter à mes pistes', 'btn-primary', async () => {
+    let piste = c, neuve = false;
+    if (!piste){
+      piste = normalizeCompany({ id: uid(), name: d.entreprise.nom, city: d.entreprise.ville || '', createdAt: Date.now(),
+                                 ...(d.entreprise.siren ? { siren: d.entreprise.siren } : {}) });
+      S.companies.push(piste);
+      neuve = true;
+    }
     const ct = normalizeContact({ ...k });
     piste.contacts = [...(piste.contacts || []), ct];
     (piste.history = piste.history || []).push({ d: todayISO(), t: `Contact donné par ${d.de.prenom} : ${k.name}` });
@@ -421,10 +533,17 @@ export function ouvrirDon(d, apres){
     sh.close();
     if (apres) apres();
     bus.refresh();
-    /* LA CHAÎNE EST REMERCIÉE, sans un geste de plus (règle du MIT) */
+    /* LA CHAÎNE EST REMERCIÉE, sans un geste de plus (règle du MIT) :
+       qui a donné, et le premier maillon — qui passera à son tour */
     const b = S.profile.boite;
-    if (b) ecrire(d.de.cle, lettreMerci({ prenom: prenomDe(S.profile.name), cle: b.pub }, d), Date.now() + 14 * 864e5).catch(() => {});
+    if (b){
+      const exp = Date.now() + 14 * 864e5;
+      ecrire(d.de.cle, lettreMerci(moi(), d), exp).catch(() => {});
+      if ((d.chaine || []).length) ouvrirJeton(b.priv, d.chaine[0]).then(j => j
+        && ecrire(j.cle, lettreMerci(moi(), d, d.chaine.slice(1)), exp)).catch(() => {});
+    }
     showUndo(`${ic('check', 'ic-14')} ${esc(k.name)} ajouté à ${esc(piste.name)}.`, async () => {
+      if (neuve) S.companies = S.companies.filter(x => x.id !== piste.id);
       piste.contacts = (piste.contacts || []).filter(x => x.id !== ct.id);
       saveData();
       etat = { ...etat, dons: etat.dons.map(x => x.id === d.id ? { ...x, statut: 'nouveau' } : x) };
@@ -441,7 +560,7 @@ export function ouvrirDon(d, apres){
     if (apres) apres();
     bus.refresh();
   });
-  sh.setFoot(c ? [ignorer, ajouter] : [ignorer]);
+  sh.setFoot([ignorer, ajouter]);
 }
 
 /* pour les gardes : l'état tel que l'écran le lit */

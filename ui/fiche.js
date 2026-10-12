@@ -13,7 +13,7 @@ import { STATUSES, CLOSE_REASONS, DOMAINS, POSITIONS, VECU, pushHist, summarizeC
 import { scoreOf } from '../engine/score.js';
 import { porteurs } from '../engine/requete.js';
 import { portesDuJour } from './amis.js';
-import { reseauDePiste, ouvrirDemander, ouvrirDon, demandeEnCoursHTML } from './reseau.js';
+import { reseauDePiste, ouvrirDemander, ouvrirDon, demandeEnCoursHTML, bandeauDon } from './reseau.js';
 import { S, bus, isClosed, saveData, reopenPiste, logJ, activateContact } from './state.js';
 import { openSheet, confirmSheet, toast, btn, ic, montrerChange, suivreLargeur } from './dom.js';
 import { frDate, relLabel } from './dates.js';
@@ -369,7 +369,7 @@ export function openFiche(c){
            <b>${esc(p.prenom + ' ' + p.court)}</b>${ic('chevron-right', 'ic-14')}</button>`).join('')
       + (v && !c.vecuQui ? `<div class="fi-vecu">${ic('user', 'ic-14')}<b>${v.label}</b></div>` : '')
       + (res.don ? `<button class="fi-vecu" id="fiDon">${ic('user', 'ic-14')}
-           <b>${esc(res.don.de.prenom)} t’a donné ${esc(res.don.contact.name)}</b>${ic('chevron-right', 'ic-14')}</button>`
+           <b>${esc(bandeauDon(res.don))}</b>${ic('chevron-right', 'ic-14')}</button>`
         : res.demande ? demandeEnCoursHTML(res.demande)
         : res.peut && !closed && !c.demo && !qui.length && !joignable
           ? `<button class="btn btn-sm fi-demander" id="fiDemander">${ic('users', 'ic-14')} Demander à mes amis</button>` : '');

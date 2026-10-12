@@ -10,7 +10,7 @@ import { normalizeParcours, parcoursDe, phraseParcours } from './parcours.js';
 import { normalizeAmis, idAmiValide } from './amis.js';
 import { boiteValide } from './boite.js';
 
-export const APP_VERSION = '6.56.0';
+export const APP_VERSION = '6.57.0';
 
 export const DOMAINS = {
   esn:     { label:'ESN / Services IT',       color:'#4C9FD8' },

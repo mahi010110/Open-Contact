@@ -3193,6 +3193,14 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
    elle devient un FAIT, en gris : rien ne presse, rien ne se tape. */
 .fi-demander{margin:0 0 14px}
 .fi-demande{display:flex;align-items:center;gap:7px;margin:0 0 14px;color:var(--text-muted);font-size:var(--text-13)}
+/* QUELQU'UN A TROUVÉ (lot 4b) : toujours un fait — on attend son oui —
+   mais une bonne nouvelle, donc l'accent du contenu, jamais un mark-* */
+.fi-demande.fi-trouve{color:var(--accent)}
+/* dans « Amis » : les demandes par métier et ville, en faits, au-dessus
+   de la liste ; le geste qui en fait une, sous la liste */
+.am-dem{margin:0 0 8px}
+.am-dem + :not(.am-dem){margin-top:12px}
+.am-demander{margin:12px 0 0}
 /* à qui elle part, sous la phrase : des prénoms, rien d'autre */
 .dm-qui{display:flex;align-items:center;gap:7px;margin:10px 0 0;color:var(--text-muted);font-size:var(--text-13)}
 .dm-qui + .pick-list{margin-top:10px}
