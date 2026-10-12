@@ -1,7 +1,8 @@
 /* ============================================================
    OpenContact — interface · « Échanger »
-   Deux verbes : Donner · Recevoir. En dessous, le Partage en groupe
-   (un lieu vivant — la promo en direct, bêta discrète). Puis le fil
+   Deux verbes : Donner · Recevoir. En dessous, les Groupes (lot 5 :
+   on s'y écrit et on s'y donne des pistes, en différé) et les Amis
+   (Scanner, Mon QR). Puis le fil
    de ce qui a réellement circulé, relu dans le journal privé : un
    écran qui ne montre que des portes ne se comprend pas d'un regard,
    parce qu'il n'y a rien à comprendre. Tout en bas, le rappel qui

@@ -60,6 +60,9 @@ un fichier sur ton disque. Personne d'autre n'y a accès.</p>
   <li><b>Tes demandes à tes amis</b> : ce que tu as demandé, ce qu'on t'a
       demandé et ce qu'on t'a donné, sur cet appareil seulement, oublié au
       bout de 30 jours.</li>
+  <li><b>Tes groupes</b> : le code de chacun, qui sert de clé, et sur cet
+      appareil ce qui s'y est dit depuis sept jours avec les prénoms de ses
+      membres.</li>
   <li><b>Tes réglages</b> : thème, appareils reliés, relais choisis.</li>
 </ul>
 
@@ -96,8 +99,11 @@ données, et tu les déclenches tous les six.</p>
       ami. Si quelqu'un trouve, tu en es prévenu sans savoir qui ; son nom
       ne t'arrive que s'il le décide. Dans « Moi › Réglages », « Demandes
       de mes amis » te permet de ne plus faire suivre celles des autres.</li>
-  <li><b>Un partage avec ton groupe</b> : de pair à pair, chiffré, et sans ton
-      suivi privé.</li>
+  <li><b>Dans un groupe</b> : ton prénom, tes messages et les pistes que tu
+      y donnes, jamais ton suivi privé. Tout est chiffré avec le code du
+      groupe : seuls ceux qui ont ce code peuvent le lire. Les messages et
+      les pistes s'effacent au bout de sept jours. Le groupe ne voit ni ton
+      nom de famille, ni ton adresse, ni ton numéro.</li>
   <li><b>La synchronisation entre tes propres appareils</b> : de pair à pair,
       chiffré. Là, tout circule, y compris le privé, parce que ce sont tes
       appareils.</li>
@@ -172,6 +178,11 @@ ami te demande quelqu'un chez une entreprise où tu ne connais personne, rien
 ne s'affiche et rien ne part. Si tu n'as jamais donné ton QR, l'app ne relève
 rien.</p>
 
+<p>Si tu es dans un <b>groupe</b>, l'app regarde de la même façon si de
+nouveaux messages t'y attendent. La question porte l'étiquette du groupe, une
+empreinte de son code, jamais son nom. Si tu n'es dans aucun groupe, elle ne
+demande rien.</p>
+
 <p>Ces deux pages ne se connectent à aucun service extérieur. Elles ne
 chargent que leur propre feuille de style et leurs polices, depuis le même
 serveur qu'elles. Leur politique de sécurité (Content-Security-Policy)
@@ -182,7 +193,8 @@ interdit tout le reste, et elle est visible dans leur code source.</p>
 <p>Pour que deux appareils se trouvent, le partage et la synchronisation
 passent par des <b>relais publics</b>, des serveurs du réseau Nostr tenus par
 des tiers. Les demandes à tes amis y attendent qu'ils ouvrent l'app, 14 jours
-au plus. Voici précisément ce qu'ils voient :</p>
+au plus, et les messages de tes groupes, sept jours. Voici précisément ce
+qu'ils voient :</p>
 
 <ul class="dl">
   <li><b>Ils ne peuvent pas lire ce qui passe.</b> Le contenu est chiffré
@@ -190,7 +202,8 @@ au plus. Voici précisément ce qu'ils voient :</p>
   <li><b>Ils ne savent pas de quoi il s'agit.</b> Le nom du salon est une
       empreinte, pas ton mot de passe ni un nom de groupe. Une lettre à un
       ami porte une étiquette qui ne dit rien de lui, une date d'expiration,
-      et rien qui la relie à toi.</li>
+      et rien qui la relie à toi. Un message de groupe porte l'étiquette du
+      groupe, qui ne dit ni son nom ni qui en fait partie.</li>
   <li><b>Ils voient qu'une connexion a lieu</b>, et depuis quelle adresse IP,
       comme n'importe quel site que tu visites.</li>
 </ul>

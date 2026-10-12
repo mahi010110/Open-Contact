@@ -316,9 +316,13 @@ entreprise parmi ses amis, ses groupes et leurs amis, trois cercles au plus.
    la question passe d'elle-même de boîte en boîte, seul le téléphone de
    qui peut répondre se montre, qui demande est prévenu dès qu'on trouve,
    et l'on peut demander un métier et une ville.
-5. **Les groupes** — le prochain lot (docs/reseau.md, lot 5) : un code
-   qu'on garde, les demandes que tout le groupe voit et que chacun relaie,
-   les pistes partagées en différé, des messages de sept jours.
+5. **Les groupes** (docs/reseau.md, lot 5). **5a livré (6.58.0)** : un
+   code qu'on garde, créer et rejoindre (QR ou code), les prénoms des
+   membres, des messages de sept jours, les pistes données au groupe et
+   reçues en différé, cinq groupes au plus — à la place de « Partage en
+   groupe », masqué. **Ensuite** : 5b, la demande que tout le groupe voit
+   et que chacun relaie (quatre réponses) ; 5c, le groupe « sur demande »
+   avec un chef et ses adjoints.
 
 **Mis de côté, à reprendre** — [`frictions.md`](frictions.md) : les trois
 plus grosses frictions selon le mainteneur (entrer les pistes, écrire les
