@@ -23,7 +23,8 @@ import { decouper, rassembler } from '../engine/portage.js';
 import { GROUPES_MAX, MOT_MAX, NOM_MAX, nouveauCode, codeNorm, codeAffiche, nomGroupe, invitation, lireInvitation,
          cleGroupe, sceller, ouvrirMessage, normaliserMessage, dureeDe, groupeVide, normaliserGroupe,
          traiterMessage, elaguerGroupe, filDe, membresDe, nouveaux, presenceAredire,
-         relaisVersGroupe, peutRelayerGroupe } from '../engine/groupe.js';
+         relaisVersGroupe, peutRelayerGroupe, porteInvitation, lirePorte, nouvelleCleSignature, presenceSignee, presenceVerifiee,
+         responsables, estResponsable, adjointVerifie, nomination, redireNomination } from '../engine/groupe.js';
 import { phraseCritere } from '../engine/critere.js';
 import { emailPlausible } from '../engine/model.js';
 import { S, bus, saveProfile } from './state.js';
@@ -31,7 +32,8 @@ import { openSheet, toast, btn, ic, showUndo, clavier, champGrandit } from './do
 import { frDate, diffDays } from './dates.js';
 import { makeQrSvg } from './qr.js';
 import { publier, lire, ecouter, evenement, echecEnvoi, amisJoignables, recevoirDemandeGroupe, recueDe, chargerReseau,
-         trouvePour, ditTrouve, repondreDemande, donnerConnu, suivreAmis } from './reseau.js';
+         trouvePour, ditTrouve, repondreDemande, donnerConnu, suivreAmis, assurerBoite, attentes, entreesPour,
+         demanderEntree, repondreEntree, relever } from './reseau.js';
 
 /* ---------- ce que cet appareil garde ---------- */
 let etat = {};                 /* code → groupe (fil, membres, depuis, vu, presence) */
@@ -54,6 +56,18 @@ const prenomMoi = () => String(S.profile.name || '').trim().split(/\s+/)[0] || '
    répéterait au groupe comme s'il était le vrai */
 const nomConnu = code => { const g = mesGroupes().find(x => x.code === code); return (g && g.nom) || (etat[code] && etat[code].nom) || ''; };
 const nomDe = code => nomConnu(code) || 'Groupe';
+/* « SUR DEMANDE » (lot 5c) : ce que le profil sait du groupe — sa porte,
+   la clé du chef, ma clé de signature */
+const entreeDe = code => mesGroupes().find(g => g.code === code);
+const surDemande = code => { const e = entreeDe(code); return e && e.type === 'demande' ? e : null; };
+const jeSuisResponsable = code => { const e = surDemande(code); return !!e && !!e.sign && estResponsable(groupe(code), e.chef, e.sign.pub); };
+/* qui attend à la porte : ceux dont la présence n'est pas encore là */
+const quiAttend = code => {
+  const e = surDemande(code);
+  if (!e || !jeSuisResponsable(code)) return [];
+  const g = groupe(code);
+  return entreesPour(e.porte).filter(x => !(g.membres || {})[x.ami]);
+};
 
 const cles = new Map();
 const cle = code => { if (!cles.has(code)) cles.set(code, cleGroupe(code)); return cles.get(code); };
@@ -68,10 +82,17 @@ async function poster(code, msg){
 async function direPresence(code){
   const g = groupe(code);
   const at = Date.now();
-  const m = { t: 'membre', de: moi(), prenom: prenomMoi(), nom: nomConnu(code), at };
+  let m = { t: 'membre', de: moi(), prenom: prenomMoi(), nom: nomConnu(code), at };
+  /* sur demande : ma clé de boîte (pour recevoir les demandes d'entrée
+     si je deviens responsable) et ma clé de signature, PROUVÉE */
+  const e = surDemande(code);
+  if (e && e.sign) m = await presenceSignee(e.sign.priv, { ...m, cle: (await assurerBoite()).pub, sign: e.sign.pub });
   const n = await poster(code, m).catch(() => 0);
   if (!n) return;
   etat[code] = traiterMessage({ ...g, presence: at }, m);
+  /* l'adjoint redit sa nomination : celui qui arrive dans un mois la lit */
+  const a = e && (g.adjoints || {})[moi()];
+  if (a && a.sig) await poster(code, redireNomination(a, moi(), at)).catch(() => 0);
   await sauver();
 }
 
@@ -92,6 +113,7 @@ export function releverGroupes(){
     const change = await absorber(evs, parEtiquette);
     if (lus) for (const g of liste) groupe(g.code).depuis = debut;
     for (const g of liste) if (presenceAredire(groupe(g.code))) await direPresence(g.code);
+    for (const g of liste) if (Object.values(groupe(g.code).adjoints || {}).some(a => a.aDire)) await direNominations(g.code);
     await sauver();
     if (change) bus.refresh();
   })().catch(() => {}).finally(() => { enCours = null; });
@@ -99,11 +121,21 @@ export function releverGroupes(){
 }
 async function absorber(evs, parEtiquette){
   let change = false;
+  const nominations = [];
   for (const ev of evs){
     const x = (ev.tags || []).find(t => t[0] === 'x');
     const code = x && parEtiquette.get(x[1]);
     if (!code) continue;
-    const m = normaliserMessage(await ouvrirMessage(await cle(code), ev.content));
+    let m = normaliserMessage(await ouvrirMessage(await cle(code), ev.content));
+    /* une clé de signature ne compte que PROUVÉE, et seulement dans un
+       groupe « sur demande » ; une nomination, que signée d'un
+       responsable — elle attend la fin du lot, son signataire peut
+       arriver après elle */
+    if (m && m.t === 'membre' && m.sign){
+      if (surDemande(code)) m = await presenceVerifiee(m);
+      else { const { sign, sig, cle: c, ...r } = m; m = r; }
+    }
+    if (m && m.t === 'adjoint'){ if (surDemande(code)) nominations.push([code, m]); continue; }
     const avant = groupe(code);
     const apres = traiterMessage(avant, m);
     if (apres !== avant){
@@ -112,6 +144,17 @@ async function absorber(evs, parEtiquette){
          s'il ne trouve rien (règle 6) */
       if (m.t === 'demande') await recevoirDemandeGroupe(m.lettre, code, nomDe(code)).catch(() => null);
     }
+  }
+  for (let tour = 0, reste = nominations; tour < 3 && reste.length; tour++){
+    const encore = [];
+    for (const [code, m] of reste){
+      const g = groupe(code);
+      if ((g.adjoints || {})[m.membre]) continue;
+      if (await adjointVerifie(g, surDemande(code).chef, m)){ etat[code] = traiterMessage(g, { ...m, verifie: true }); change = true; }
+      else encore.push([code, m]);
+    }
+    if (encore.length === reste.length) break;
+    reste = encore;
   }
   /* un groupe rejoint par son code seul apprend son nom des autres : il
      rejoint le profil, pour que mes autres appareils le sachent aussi */
@@ -129,7 +172,10 @@ async function absorber(evs, parEtiquette){
    ne sont plus là : l'indisponible est absent, jamais grisé. */
 export function groupesHTML(){
   const liste = mesGroupes();
-  const plein = liste.length >= GROUPES_MAX;
+  /* les groupes où j'ai demandé à entrer, et pas encore entré (lot 5c) */
+  const portes = new Set(liste.map(g => g.porte).filter(Boolean));
+  const enAttente = attentes().filter(a => !portes.has(a.porte));
+  const plein = liste.length + enAttente.length >= GROUPES_MAX;
   return `<div class="pcard ec-groupes" role="group" aria-label="Groupes">
       <div class="ec-gr-h">
         <b class="ec-gr-t">${ic('message-text', 'ic-14')} Groupes</b>
@@ -138,14 +184,17 @@ export function groupesHTML(){
           <button class="btn btn-sm" id="ecGrRejoindre">${ic('grid-3x3', 'ic-14')} Rejoindre</button>
         </span>`}
       </div>
-      ${liste.length ? `<div class="gr-liste">${liste.map(g => {
-        const n = etat[g.code] ? nouveaux(etat[g.code], moi()) : 0;
+      ${liste.length || enAttente.length ? `<div class="gr-liste">${liste.map(g => {
+        /* ce qui est arrivé, et qui attend à la porte (je suis responsable) */
+        const n = (etat[g.code] ? nouveaux(etat[g.code], moi()) : 0) + quiAttend(g.code).length;
         return `<button class="gr-ligne" data-groupe="${esc(g.code)}">
             <b>${esc(nomDe(g.code))}</b>
             ${n ? `<span class="gr-n" aria-label="${n} nouveau${n > 1 ? 'x' : ''}">${n}</span>` : ''}
             ${ic('chevron-right', 'ic-14')}
           </button>`;
-      }).join('')}</div>` : ''}
+      }).join('')}${enAttente.map(a => `<div class="gr-ligne gr-attente">
+            <b>${esc(a.nom || 'Groupe')}</b><span class="gr-att">${ic('clock', 'ic-14')} en attente</span>
+          </div>`).join('')}</div>` : ''}
     </div>`;
 }
 export function bindGroupes(root, apres){
@@ -176,15 +225,40 @@ async function entrer(g){
 export function ouvrirCreer(apres){
   avecPrenom(() => {
     const sh = openSheet({ title: 'Créer un groupe', icon: 'message-text', focus: '#grNom' });
+    /* LA SEULE QUESTION (décision 24), posée une fois : qui peut entrer.
+       Ce qu'elle change se lit sous les segments, et change avec eux. */
     sh.body.innerHTML =
       `<div class="field"><label for="grNom">Nom du groupe</label>
-         <input id="grNom" maxlength="${NOM_MAX}" ${clavier('nom')} placeholder="ex : BTS SIO Lille"></div>`;
+         <input id="grNom" maxlength="${NOM_MAX}" ${clavier('nom')} placeholder="ex : BTS SIO Lille"></div>
+       <div class="field"><label id="grSorteL">Entrée</label>
+         <div class="seg3" role="radiogroup" aria-labelledby="grSorteL">
+           <button class="seg on" data-sorte="ouvert" aria-pressed="true">Ouvert</button>
+           <button class="seg" data-sorte="demande" aria-pressed="false">Sur demande</button>
+         </div>
+         <p class="gr-etat" id="grSorteDit" aria-live="polite"></p></div>`;
     const champ = sh.body.querySelector('#grNom');
+    let sorte = 'ouvert';
+    const DIT = { ouvert: 'Qui a le QR entre.', demande: 'Tu acceptes chaque entrée.' };
+    const dire = () => {
+      sh.body.querySelectorAll('[data-sorte]').forEach(b => {
+        const on = b.dataset.sorte === sorte;
+        b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on));
+      });
+      sh.body.querySelector('#grSorteDit').textContent = DIT[sorte];
+    };
+    sh.body.querySelectorAll('[data-sorte]').forEach(b => b.addEventListener('click', () => { sorte = b.dataset.sorte; dire(); }));
+    dire();
     const go = async () => {
       const nom = nomGroupe(champ.value);
       if (!nom) return;
       const g = { code: nouveauCode(), nom, at: Date.now() };
       bGo.disabled = true;
+      /* sur demande : le chef, c'est la clé de signature qu'il crée ici */
+      if (sorte === 'demande'){
+        const sign = await nouvelleCleSignature();
+        await assurerBoite();
+        Object.assign(g, { type: 'demande', porte: nouvelId(), chef: sign.pub, sign });
+      }
       await entrer(g);
       sh.close();
       ouvrirGroupe(g.code, apres);
@@ -209,7 +283,12 @@ export function ouvrirRejoindre(apres){
      <p class="gr-etat" id="grQui" hidden></p>`;
   const champ = sh.body.querySelector('#grCode');
   const qui = sh.body.querySelector('#grQui');
-  const go = () => { const inv = lireInvitation(champ.value); if (inv) rejoindre(sh, inv, apres); };
+  const go = () => {
+    const inv = lireInvitation(champ.value);
+    if (inv) return rejoindre(sh, inv, apres);
+    const p = lirePorte(champ.value);
+    if (p) frapper(sh, p, apres);
+  };
   const bGo = btn('Rejoindre', 'btn-primary', go);
   const bScan = btn('Scanner', '', async () => {
     sh.close();
@@ -218,9 +297,13 @@ export function ouvrirRejoindre(apres){
   bGo.id = 'grRejoindreGo'; bScan.id = 'grScan';
   const maj = () => {
     const inv = lireInvitation(champ.value);
-    bGo.hidden = !inv;
-    qui.hidden = !inv;
+    const p = !inv && lirePorte(champ.value);
+    bGo.hidden = !inv && !(p && !etatPorte(p).fini);
+    qui.hidden = !inv && !p;
     if (inv) qui.innerHTML = etatInvitation(inv);
+    if (p) qui.innerHTML = etatPorte(p).dit;
+    /* une porte se demande, elle ne se rejoint pas */
+    bGo.textContent = p ? 'Demander à entrer' : 'Rejoindre';
   };
   champ.addEventListener('input', maj);
   champ.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
@@ -251,6 +334,45 @@ export function apercuGroupe(sh, inv, o = {}){
   const b = btn(deja ? 'Ouvrir' : 'Rejoindre', 'btn-primary', () => rejoindre(sh, inv, o.apres));
   b.id = 'grRejoindreGo';
   sh.setFoot(plein ? (o.onBack ? [btn('Retour', 'btn-ghost', o.onBack, 'arrow-left')] : null) : [b]);
+}
+
+/* ---------- LA PORTE d'un groupe « sur demande » (lot 5c) ----------
+   Elle ne porte pas le code : on DEMANDE à entrer, et un responsable
+   répond en nous l'envoyant. Ce qu'on saura avant : un état. */
+function etatPorte(p){
+  const dedans = mesGroupes().find(g => g.porte === p.porte);
+  if (dedans) return { dit: 'Tu es déjà dans ce groupe.', fini: true, dedans };
+  if (attentes().some(a => a.porte === p.porte)) return { dit: 'Ta demande est partie.', fini: true };
+  if (mesGroupes().length + attentes().length >= GROUPES_MAX) return { dit: `Tu es déjà dans ${GROUPES_MAX} groupes.`, fini: true };
+  return { dit: prenomMoi() ? `Le groupe verra ton prénom : <b>${esc(prenomMoi())}</b>.` : 'Le groupe verra ton prénom.' };
+}
+function frapper(sh, p, apres){
+  const e = etatPorte(p);
+  if (e.dedans){ sh.close(); ouvrirGroupe(e.dedans.code, apres); return; }
+  if (e.fini) return;
+  avecPrenom(async () => {
+    if (!await demanderEntree(p)) return;
+    sh.close();
+    if (apres) apres();
+  });
+}
+export function apercuPorte(sh, p, o = {}){
+  const e = etatPorte(p);
+  sh.setTitle(p.nom || 'Groupe');
+  sh.body.innerHTML = `<p class="gr-etat" id="grQui">${e.dit}</p>`;
+  const b = btn(e.dedans ? 'Ouvrir' : 'Demander à entrer', 'btn-primary', () => frapper(sh, p, o.apres));
+  b.id = 'grRejoindreGo';
+  const retour = o.onBack ? [btn('Retour', 'btn-ghost', o.onBack, 'arrow-left')] : null;
+  sh.setFoot(e.fini && !e.dedans ? retour : [b]);
+}
+/* un responsable m'a ouvert : j'entre, avec ma clé de signature à moi
+   (elle servira si l'on me nomme adjoint) */
+export async function entrerAdmis(l){
+  await chargerGroupes();
+  if (mesGroupes().some(g => g.code === l.code) || mesGroupes().length >= GROUPES_MAX) return;
+  const sign = await nouvelleCleSignature();
+  await entrer({ code: l.code, nom: l.nom, at: Date.now(), type: 'demande', porte: l.porte, chef: l.chef, sign });
+  toast(`Tu es dans ${l.nom || 'le groupe'}.`);
 }
 
 /* ---------- un groupe : les prénoms, le fil, le pied pour écrire ---------- */
@@ -312,16 +434,34 @@ export async function ouvrirGroupe(code, apres){
     const autres = membresDe(g).filter(m => m.de !== moi());
     const fil = filDe(g);
     const enTete = fil.filter(trouveeParMoi);
+    /* qui attend à la porte passe EN TÊTE, comme une demande trouvée :
+       quelqu'un attend, et c'est à moi de répondre (lot 5c) */
+    const porte = quiAttend(code);
     const bas = sh.body.scrollHeight - sh.body.scrollTop - sh.body.clientHeight < 40;
     sh.setTitle(nomDe(code));
     sh.body.innerHTML =
       `${autres.length ? `<button class="gr-membres" id="grMembres">${ic('users', 'ic-14')}
            <span class="gr-membres-t">${esc([...autres.map(m => m.prenom), 'toi'].join(' · '))}</span>${ic('chevron-right', 'ic-14')}</button>` : ''}
+       ${porte.length ? `<ol class="gr-fil gr-entete" id="grPorte">${porte.map(x => `<li class="gr-m gr-entree">
+           <p>${ic('user', 'ic-14')} <span><b>${esc(x.de.prenom)}</b> veut entrer</span></p>
+           <span class="gr-entree-g">
+             <button class="btn btn-sm" data-refuser="${esc(x.id)}">Refuser</button>
+             <button class="btn btn-sm btn-primary" data-accepter="${esc(x.id)}">Accepter</button>
+           </span></li>`).join('')}</ol>` : ''}
        ${!autres.length && !fil.length ? `<div class="gr-inviter" id="grInviter"></div>` : ''}
        ${enTete.length ? `<ol class="gr-fil gr-entete" id="grEnTete">${enTete.map(demandeHTML).join('')}</ol>` : ''}
        <p class="gr-ephem">${ic('clock', 'ic-14')} Les messages s’effacent au bout de 7 jours.</p>
        <ol class="gr-fil" id="grFil">${filHTML(code)}</ol>`;
     q('#grMembres')?.addEventListener('click', () => ouvrirMembres(code, sh));
+    const repondre = async (b, ouvrir) => {
+      const e = surDemande(code);
+      b.disabled = true;
+      await repondreEntree(ouvrir ? b.dataset.accepter : b.dataset.refuser, ouvrir,
+        { porte: e.porte, code, nom: nomConnu(code), chef: e.chef });
+      rendre();
+    };
+    sh.body.querySelectorAll('[data-accepter]').forEach(b => b.addEventListener('click', () => repondre(b, true)));
+    sh.body.querySelectorAll('[data-refuser]').forEach(b => b.addEventListener('click', () => repondre(b, false)));
     if (q('#grInviter')) inviterDans(q('#grInviter'), code);
     sh.body.querySelectorAll('[data-voir]').forEach(b => b.addEventListener('click', () => voirPistes(code, b.dataset.voir, rendre)));
     sh.body.querySelectorAll('[data-repondre]').forEach(b => b.addEventListener('click', () => {
@@ -375,7 +515,9 @@ export async function ouvrirGroupe(code, apres){
   arret = ecouter({ kinds: [LETTRE_KIND], '#x': [k.etiquette], since: Math.floor(Date.now() / 1000) - 60 }, async ev => {
     if (await absorber([ev], new Map([[k.etiquette, code]]))){ await sauver(); rendre(); }
   });
-  releverGroupes().then(rendre);
+  /* la boîte aussi : qui attend à la porte y arrive (lot 5c) — une
+     relève déjà en cours est la même, rien ne part deux fois */
+  Promise.all([releverGroupes(), relever()]).then(rendre);
   return sh;
 }
 function vu(code){
@@ -524,17 +666,32 @@ function ouvrirReponse(code, x, apres){
 }
 
 /* ---------- membres, inviter, quitter ---------- */
+/* l'invitation : le code pour un groupe ouvert ; pour un groupe « sur
+   demande », la PORTE — les clés de boîte de ceux qui ouvrent, jamais le
+   code. Tout membre peut la montrer : elle ne mène qu'à une demande. */
+async function porteDe(code){
+  const e = surDemande(code);
+  const cles = responsables(groupe(code), e.chef).map(r => r.cle).filter(Boolean);
+  /* ma propre présence n'est peut-être pas encore revenue des relais */
+  if (jeSuisResponsable(code)) cles.unshift((await assurerBoite()).pub);
+  const r = [...new Set(cles)];
+  return r.length ? porteInvitation({ nom: nomConnu(code), porte: e.porte, responsables: r }) : '';
+}
 async function inviterDans(box, code){
-  const txt = invitation({ code, nom: nomConnu(code) });
+  const porte = !!surDemande(code);
+  const txt = porte ? await porteDe(code) : invitation({ code, nom: nomConnu(code) });
+  if (!txt) return;
   let svg = '';
   try { svg = await makeQrSvg(txt); } catch (e) {}
   if (!box.isConnected) return;
   box.innerHTML =
     `${svg ? `<div class="qr-wrap" role="img" aria-label="Le QR du groupe, à faire scanner">${svg}</div>` : ''}
-     <p class="gr-code"><span>Code</span> <b id="grCodeAff">${esc(codeAffiche(code))}</b></p>`;
+     ${porte ? '' : `<p class="gr-code"><span>Code</span> <b id="grCodeAff">${esc(codeAffiche(code))}</b></p>`}`;
   const copier = btn('Copier', 'btn-sm', async () => {
     try {
-      await navigator.clipboard.writeText(`Rejoins « ${nomDe(code)} » sur OpenContact — Échanger › Groupes › Rejoindre : ${codeAffiche(code)}\n${txt}`);
+      await navigator.clipboard.writeText(porte
+        ? `Demande à entrer dans « ${nomDe(code)} » sur OpenContact — Échanger › Groupes › Rejoindre :\n${txt}`
+        : `Rejoins « ${nomDe(code)} » sur OpenContact — Échanger › Groupes › Rejoindre : ${codeAffiche(code)}\n${txt}`);
       copier.innerHTML = ic('check', 'ic-14') + ' Copié';
     } catch (e) { toast('Copie impossible ici — montre plutôt le QR.'); }
   }, 'copy');
@@ -542,15 +699,66 @@ async function inviterDans(box, code){
   box.append(copier);
 }
 function ouvrirMembres(code, shGroupe){
-  const g = groupe(code);
   const sh = openSheet({ title: 'Membres', icon: 'users' });
-  const noms = [...membresDe(g).filter(m => m.de !== moi()).map(m => m.prenom), 'Toi'];
-  sh.body.innerHTML =
-    `<ul class="gr-noms">${noms.map(n => `<li>${esc(n)}</li>`).join('')}</ul>
-     <div class="gr-inviter" id="grInviter"></div>
-     <div class="pick-sortie"><button class="btn btn-sm btn-danger" id="grQuitter">${ic('logout', 'ic-14')} Quitter le groupe</button></div>`;
-  inviterDans(sh.body.querySelector('#grInviter'), code);
-  sh.body.querySelector('#grQuitter').addEventListener('click', () => { sh.close(); shGroupe.close(); quitter(code); });
+  const e = surDemande(code);
+  const rendre = () => {
+    const g = groupe(code);
+    /* sur demande : qui ouvre la porte se lit à côté du prénom ; un
+       responsable peut en nommer un autre (décision 24) */
+    const resp = e ? responsables(g, e.chef) : [];
+    const role = de => { const r = resp.find(x => x.de === de); return r ? (r.chef ? 'chef' : 'adjoint') : ''; };
+    const jeNomme = e && jeSuisResponsable(code);
+    const moiRole = e && e.sign ? (e.sign.pub === e.chef ? 'chef' : (g.adjoints || {})[moi()] ? 'adjoint' : '') : '';
+    const lignes = [...membresDe(g).filter(m => m.de !== moi()).map(m => ({ ...m, role: role(m.de) })), { de: moi(), prenom: 'Toi', role: moiRole }];
+    sh.body.innerHTML =
+      `<ul class="gr-noms">${lignes.map(m => {
+        const nommable = jeNomme && !m.role && m.de !== moi() && g.membres[m.de] && g.membres[m.de].sign && g.membres[m.de].cle;
+        return `<li><span>${esc(m.prenom)}${m.role ? ` <span class="gr-role">${m.role}</span>` : ''}</span>
+          ${nommable ? `<button class="btn btn-sm" data-nommer="${esc(m.de)}">Nommer adjoint</button>` : ''}</li>`;
+      }).join('')}</ul>
+       <div class="gr-inviter" id="grInviter"></div>
+       <div class="pick-sortie"><button class="btn btn-sm btn-danger" id="grQuitter">${ic('logout', 'ic-14')} Quitter le groupe</button></div>`;
+    inviterDans(sh.body.querySelector('#grInviter'), code);
+    sh.body.querySelector('#grQuitter').addEventListener('click', () => { sh.close(); shGroupe.close(); quitter(code); });
+    sh.body.querySelectorAll('[data-nommer]').forEach(b => b.addEventListener('click', () => nommer(code, b.dataset.nommer, rendre)));
+  };
+  rendre();
+}
+async function direNominations(code){
+  const g = groupe(code);
+  for (const [de, a] of Object.entries(g.adjoints || {})){
+    if (!a.aDire || a.aDire > Date.now()) continue;
+    if (!await poster(code, { t: 'adjoint', de: moi(), membre: de, sign: a.sign, cle: a.cle, sig: a.sig, at: Date.now() }).catch(() => 0)) continue;
+    const h = groupe(code);
+    if (h.adjoints && h.adjoints[de]){ const { aDire, ...reste } = h.adjoints[de]; etat[code] = { ...h, adjoints: { ...h.adjoints, [de]: reste } }; }
+  }
+  await sauver();
+}
+/* NOMMER UN ADJOINT : il ouvre la porte à son tour. Le geste se
+   rattrape (invariant ②) : la nomination ne part qu'une fois la barre
+   passée, comme un départ. */
+async function nommer(code, de, apres){
+  const e = surDemande(code);
+  const v = groupe(code).membres[de];
+  if (!e || !e.sign || !v || !v.sign || !v.cle) return;
+  const m = await nomination(e.sign.priv, { de: moi(), membre: de, sign: v.sign, cle: v.cle });
+  const g0 = traiterMessage(groupe(code), { ...m, verifie: true });
+  /* « à dire » tant qu'elle n'est pas partie : une app fermée avant la
+     fin de la barre la redira à la relève suivante */
+  etat[code] = { ...g0, adjoints: { ...g0.adjoints, [de]: { ...g0.adjoints[de], aDire: m.at + DELAI_ANNULER } } };
+  await sauver();
+  apres();
+  let annule = false;
+  const t = setTimeout(() => { if (!annule) direNominations(code); }, DELAI_ANNULER);
+  showUndo(`${ic('check', 'ic-14')} ${esc(v.prenom)} est adjoint.`, () => {
+    annule = true;
+    clearTimeout(t);
+    const g = groupe(code);
+    const { [de]: _, ...reste } = g.adjoints || {};
+    etat[code] = { ...g, adjoints: reste };
+    sauver();
+    apres();
+  });
 }
 const DELAI_ANNULER = 31000;
 function quitter(code){

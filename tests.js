@@ -55,13 +55,15 @@ import { nouvelIdAmi, idAmiValide, cleEntreprise, memeEntreprise, profilDonne, n
 import { nouvelleCle, boiteValide, cleValide, etiquetteBoite, sceller, ouvrir, lettreDemande, lettreDon, lettreMerci, lettreAmi,
          contactDonne, normaliserLettre, contactsPour, etatVide, normaliserEtat, elaguer, peutDemander,
          demandeDePiste, traiterLettre, empreinteProfil, DEMANDE_JOURS, DEMANDES_OUVERTES_MAX,
-         jetonRelais, ouvrirJeton, lettreRelais, lettreTrouve, choisirRelais, soiPour, contactsDe,
+         jetonRelais, ouvrirJeton, lettreRelais, lettreTrouve, choisirRelais, soiPour, contactsDe, lettreEntree, lettreAdmis,
          CERCLE_MAX, RELAIS_MAX } from './engine/boite.js';
 import { critereValide, phraseCritere, CRITERE_METIER } from './engine/critere.js';
 import { GROUPES_MAX, MOT_MAX, nouveauCode, codeNorm, codeAffiche, invitation, estInvitation, lireInvitation,
          cleGroupe, sceller as scellerGroupe, ouvrirMessage, normaliserMessage, groupeVide, traiterMessage,
          elaguerGroupe, filDe, membresDe, nouveaux, presenceAredire, pistesCompletes, normaliserGroupes,
-         relaisVersGroupe, peutRelayerGroupe, RELAIS_GROUPES_MAX } from './engine/groupe.js';
+         relaisVersGroupe, peutRelayerGroupe, RELAIS_GROUPES_MAX,
+         porteInvitation, estPorte, lirePorte, nouvelleCleSignature, signer, verifier, signeValide,
+         responsables, estResponsable, adjointVerifie, nomination, redireNomination, presenceSignee, presenceVerifiee } from './engine/groupe.js';
 import { interpreter, retirer, remplacer, chercherPistes, raisonDe, propositions, elargir,
          contexteRecherche, porteurs, deptDuCp, villeFrequente, deptDePiste, zoneDe, metierDuMoment,
          fraicheur, METIER, metierDuProfil, villeConnue, lieuDuProfil, metierEtiquetteDuProfil, rayonDe,
@@ -2545,6 +2547,80 @@ export async function runSelfTests(){
       eq(filDe({ ...g, masques: [l.id] }).length, 0);
       eq(filDe(elaguerGroupe(g, now + 13 * J)).length, 1);
       eq(filDe(elaguerGroupe(g, now + 15 * J)).length, 0);
+    },
+    'groupes sur demande : la porte ne porte pas le code, on entre par un responsable': async () => {
+      const now = Date.parse('2026-10-12T12:00:00Z');
+      const ines = await nouvelleCle(), karim = await nouvelleCle(), sofia = await nouvelleCle();
+      const code = nouveauCode(), porte = 'porteporte01';
+      const p = porteInvitation({ nom: 'BTS SIO Lille', porte, responsables: [ines.pub, 'pas une clé'] });
+      ok(estPorte(p)); ok(!estInvitation(p));
+      ok(!p.includes(code));
+      eq(lirePorte('Viens : ' + p), { nom: 'BTS SIO Lille', porte, responsables: [ines.pub] });
+      eq(lirePorte(porteInvitation({ nom: 'X', porte, responsables: [] })), null);   /* personne pour ouvrir : pas de porte */
+      eq(lirePorte('OCP1.bruit'), null);
+      /* demander à entrer : une lettre au responsable, rien d'autre que le prénom et la clé */
+      const KA = 'KarimKarimKarim00001';
+      const ent = normaliserLettre(lettreEntree({ prenom: 'Karim Benali', cle: karim.pub }, porte, KA), now);
+      eq(ent, { t: 'entree', id: ent.id, porte, de: { prenom: 'Karim Benali', cle: karim.pub }, ami: KA });
+      let e = normaliserEtat(etatVide());
+      /* seulement pour MES portes, une fois */
+      eq(traiterLettre(e, ent, { moi: ines.pub, portes: [], now }).quoi, null);
+      const r = traiterLettre(e, ent, { moi: ines.pub, portes: [porte], now });
+      eq(r.quoi, 'entree'); eq(r.etat.entrees[0].statut, 'attente');
+      eq(traiterLettre(r.etat, normaliserLettre(lettreEntree({ prenom: 'Karim', cle: karim.pub }, porte, KA), now), { moi: ines.pub, portes: [porte], now }).quoi, null);
+      /* admis : seulement là où l'on a demandé */
+      const chef = await nouvelleCleSignature();
+      const adm = normaliserLettre(lettreAdmis({ prenom: 'Inès', cle: ines.pub }, { porte, code, nom: 'BTS SIO Lille', chef: chef.pub }), now);
+      eq(adm.code, code); eq(adm.chef, chef.pub);
+      eq(traiterLettre(normaliserEtat(etatVide()), adm, { now }).quoi, null);
+      const attend = normaliserEtat({ ...etatVide(), attentes: [{ porte, nom: 'BTS SIO Lille', at: now }] });
+      const ra = traiterLettre(attend, adm, { now });
+      eq(ra.quoi, 'admis'); eq(ra.etat.attentes.length, 0);
+      eq(normaliserLettre({ ...lettreAdmis({ prenom: 'Inès', cle: ines.pub }, { porte, code: 'abc', nom: 'X', chef: chef.pub }) }, now), null);
+      /* les responsables : le chef, puis l'adjoint qu'il signe */
+      const kSign = await nouvelleCleSignature(), sSign = await nouvelleCleSignature();
+      const I = 'InesInesInesInes0001', S = 'SofiaSofiaSofia00001';
+      let g = groupeVide();
+      const pres = async (k, m) => presenceVerifiee(normaliserMessage(await presenceSignee(k.priv, { t: 'membre', at: now, ...m }), now));
+      g = traiterMessage(g, await pres(chef, { de: I, prenom: 'Inès', cle: ines.pub, sign: chef.pub }));
+      g = traiterMessage(g, await pres(kSign, { de: KA, prenom: 'Karim', cle: karim.pub, sign: kSign.pub }));
+      g = traiterMessage(g, await pres(sSign, { de: S, prenom: 'Sofia', cle: sofia.pub, sign: sSign.pub }));
+      eq(responsables(g, chef.pub).map(x => x.prenom), ['Inès']);
+      eq(responsables(g, chef.pub)[0].cle, ines.pub);
+      /* la clé du chef est publique : la dire sans la prouver ne fait pas
+         un chef (sa présence perd la clé de signature ET la clé de boîte) */
+      const usurpe = await presenceVerifiee(normaliserMessage(await presenceSignee(sSign.priv, { t: 'membre', de: S, prenom: 'Sofia', cle: sofia.pub, sign: chef.pub, at: now + 1 }), now + 1));
+      eq([usurpe.sign, usurpe.cle], [undefined, undefined]);
+      eq(responsables(traiterMessage(g, usurpe), chef.pub).map(x => x.prenom), ['Inès']);
+      const recolle = await presenceVerifiee({ ...g.membres[I], t: 'membre', de: S, prenom: 'Sofia', cle: sofia.pub, sign: chef.pub,
+        sig: (await presenceSignee(chef.priv, { t: 'membre', de: I, cle: ines.pub, sign: chef.pub })).sig, at: now + 2 });
+      eq(recolle.sign, undefined);
+      ok(estResponsable(g, chef.pub, chef.pub)); ok(!estResponsable(g, chef.pub, kSign.pub));
+      const nom1 = normaliserMessage(await nomination(chef.priv, { de: I, membre: KA, sign: kSign.pub, cle: karim.pub }, now), now);
+      ok(await adjointVerifie(g, chef.pub, nom1));
+      eq(traiterMessage(g, nom1), g);                                    /* sans vérification, rien */
+      g = traiterMessage(g, { ...nom1, verifie: true });
+      eq(responsables(g, chef.pub).map(x => x.prenom), ['Inès', 'Karim']);
+      ok(estResponsable(g, chef.pub, kSign.pub));
+      /* Sofia se nomme elle-même : refusé ; Karim, adjoint, peut la nommer */
+      const fausse = normaliserMessage(await nomination(sSign.priv, { de: S, membre: S, sign: sSign.pub, cle: sofia.pub }, now), now);
+      ok(!await adjointVerifie(g, chef.pub, fausse));
+      const vraie = normaliserMessage(await nomination(kSign.priv, { de: KA, membre: S, sign: sSign.pub, cle: sofia.pub }, now), now);
+      ok(await adjointVerifie(g, chef.pub, vraie));
+      /* une signature d'une autre nomination ne se recolle pas */
+      ok(!await adjointVerifie(g, chef.pub, { ...vraie, membre: I }));
+      /* l'adjoint redit sa nomination un mois plus tard : elle tient encore */
+      const plusTard = now + 25 * 864e5;
+      const redite = normaliserMessage(redireNomination(g.adjoints[KA], KA, plusTard), plusTard);
+      ok(await adjointVerifie({ ...groupeVide() }, chef.pub, redite));
+      eq(normaliserMessage(nom1, now + 31 * 864e5), null);
+      ok(await verifier(chef.pub, { a: 1 }, await signer(chef.priv, { a: 1 })));
+      ok(!await verifier(chef.pub, { a: 2 }, await signer(chef.priv, { a: 1 })));
+      ok(signeValide(chef.pub));
+      /* dans le profil : la sorte, la porte, la clé du chef ; sans elles, ouvert */
+      const [gp] = normaliserGroupes([{ code, nom: 'BTS', type: 'demande', porte, chef: chef.pub, sign: chef }]);
+      eq([gp.type, gp.porte, gp.chef, gp.sign.pub], ['demande', porte, chef.pub, chef.pub]);
+      eq(normaliserGroupes([{ code, nom: 'BTS', type: 'demande', porte }])[0].type, undefined);
     },
     'groupes : cinq au plus, dans le profil, sans doublon': () => {
       const codes = Array.from({ length: 7 }, nouveauCode);

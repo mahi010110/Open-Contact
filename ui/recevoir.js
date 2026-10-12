@@ -9,7 +9,7 @@
 import { esc } from '../engine/utils.js';
 import { ORDINATEUR } from './perimetre.js';
 import { parseInput, makeOCQJoiner, rdvParse, rdvNorm, decodeOCA, extraireOCA } from '../engine/exchange.js';
-import { estInvitation, lireInvitation } from '../engine/groupe.js';
+import { estInvitation, lireInvitation, estPorte, lirePorte } from '../engine/groupe.js';
 import { mergeIncoming } from '../engine/merge.js';
 import { normalizeCompany } from '../engine/model.js';
 import { normalizeAmi } from '../engine/amis.js';
@@ -142,7 +142,7 @@ export function openRecevoir(o = {}){
       stopScan = await startScan(q('#rcVideo'), raw => {
         const code = rdvParse(raw);
         if (code){ joinRdv(code); return false; }
-        if (extraireOCA(raw) || estInvitation(raw)){ halt(); treat(raw); return false; }
+        if (extraireOCA(raw) || estInvitation(raw) || estPorte(raw)){ halt(); treat(raw); return false; }
         const part = joiner(raw);
         if (!part){ halt(); treat(raw); return false; }
         if (part.done){ halt(); treat(part.text); return false; }
@@ -358,6 +358,13 @@ export function openRecevoir(o = {}){
     const inv = estInvitation(raw) && lireInvitation(raw);
     if (inv){
       (await import('./groupes.js')).apercuGroupe(sh, inv, { onBack: o.scanner ? scan : menu, apres: o.apres });
+      return;
+    }
+    /* la porte d'un groupe « sur demande » (lot 5c) : pas de code dedans,
+       on demande à entrer */
+    const porte = estPorte(raw) && lirePorte(raw);
+    if (porte){
+      (await import('./groupes.js')).apercuPorte(sh, porte, { onBack: o.scanner ? scan : menu, apres: o.apres });
       return;
     }
     const oca = extraireOCA(raw);
