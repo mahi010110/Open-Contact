@@ -9,7 +9,7 @@
 import { esc, distKm, todayISO } from '../engine/utils.js';
 import { STATUSES, CLOSE_REASONS, DOMAINS, pushHist } from '../engine/model.js';
 import { filterOrphans, searchHint } from '../engine/filter.js';
-import { chercherPistes, raisonDe, propositions, elargir, retirer, contexteRecherche, correction } from '../engine/requete.js';
+import { chercherPistes, raisonDe, propositions, elargir, retirer, contexteRecherche, correction, critereDe } from '../engine/requete.js';
 import { silentPistes } from '../engine/assist.js';
 import { S, bus, isClosed, hasDemo, addDemo, ctLabel, deletePiste, undeletePiste,
          removeOrphan, saveOrphans, saveData, logJ } from './state.js';
@@ -633,7 +633,7 @@ export function renderPistes(){
       const n = (S.profile.amis || []).length;
       /* ce que la barre a gardé s'ENTEND ; il se voit dans l'onglet */
       if (q) annoncer(`${liste.length} ami${liste.length > 1 ? 's' : ''} sur ${n}.`);
-      body.innerHTML = `<div id="piAmis">${vueAmisHTML(liste, { q, wide })}</div>`;
+      body.innerHTML = `<div id="piAmis">${vueAmisHTML(liste, { q, wide, critere: q ? critereDe(interp) : null })}</div>`;
       lierVueAmis(body.querySelector('#piAmis'), { wide, rendre: () => glisser(renderBody) });
       tenirBarre();
       return;

@@ -337,6 +337,11 @@ function reglagesRowsHTML(){
      qui vérifie ne passe pas par les réglages — mais les deux pages se
      renvoient l'une à l'autre, donc rien n'est enterré. Elles sont
      précachées : elles répondent hors ligne comme le reste. */
+  /* LE DROIT DE NE PLUS SERVIR DE CHEMIN (docs/reseau.md, décision 7),
+     sans quitter personne. Seulement quand on a des amis : sans eux,
+     rien ne passe par toi. */
+  if ((S.profile.amis || []).length)
+    rows.push(['moiRelais', 'Demandes de mes amis', S.profile.flags.sansRelais ? 'arrêtées' : 'transmises', false]);
   rows.push(['moiAide', 'Aide et confidentialité', '', false]);
   rows.push(['moiDiag', 'Signaler un problème', '', false]);
   return (
@@ -426,6 +431,7 @@ function bindReglages(box){
   q('#moiAide').addEventListener('click', () =>
     window.open('aide.html', '_blank', 'noopener'));
   q('#moiDiag').addEventListener('click', openDiagnostic);
+  q('#moiRelais')?.addEventListener('click', openRelais);
   const rf = q('#moiRestoreFile');
   /* restaurer = rare et sensible (#4) : rangé ici, le code d'abord */
   q('#moiRestore').addEventListener('click', async () => {
@@ -434,6 +440,29 @@ function bindReglages(box){
   rf.addEventListener('change', () => { if (rf.files[0]) restoreFile(rf.files[0]); });
   q('#moiInstall')?.addEventListener('click', installer);
   q('#moiEfface')?.addEventListener('click', effacerIci);
+}
+/* Quand un ami cherche quelqu'un et que tu ne connais personne, ton
+   téléphone fait suivre sa question à tes amis (lot 4b). Deux rangées,
+   l'état dans la case ; le choix suit tes appareils (le profil). */
+function openRelais(){
+  const sh = openSheet({ title: 'Demandes de mes amis', icon: 'users' });
+  const dessiner = () => {
+    const non = !!S.profile.flags.sansRelais;
+    const rangee = (id, mot, on) =>
+      `<button class="pick pk${on ? ' on' : ''}" id="${id}" aria-pressed="${on}">
+         ${ic('checkbox', 'ic-20 ic-off')}${ic('checkbox-on', 'ic-20 ic-on')}<div class="pk-m"><b>${mot}</b></div></button>`;
+    sh.body.innerHTML = `<div class="pick-list">${rangee('rlOui', 'Les faire suivre à mes amis', !non)}${rangee('rlNon', 'Ne pas les faire suivre', non)}</div>`;
+    const choisir = v => () => {
+      S.profile.flags.sansRelais = v;
+      saveProfile();
+      dessiner();
+      const st = document.querySelector('#moiRelais .rg-s');
+      if (st) st.textContent = v ? 'arrêtées' : 'transmises';
+    };
+    sh.body.querySelector('#rlOui').addEventListener('click', choisir(false));
+    sh.body.querySelector('#rlNon').addEventListener('click', choisir(true));
+  };
+  dessiner();
 }
 /* installée pendant qu'on regarde : la ligne part d'elle-même */
 document.addEventListener('oc:installee', () => { if (S.route === 'moi') renderMoi(); });

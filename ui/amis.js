@@ -34,6 +34,7 @@ import { S, bus, saveData, saveProfile, logJ, deletePiste } from './state.js';
 import { openSheet, toast, btn, ic, showUndo, bindDeleteGesture } from './dom.js';
 import { sortState, sortSectionHTML, bindSortSection, sortChipHTML, bindSortChip, sensDe } from './sort.js';
 import { makeQrSvg } from './qr.js';
+import { demandesCritere, peutDemanderAmis, phraseDemande, ouvrirDemander } from './reseau.js';
 
 /* ce que le parcours de tes amis dit de tes pistes — calculé à la
    demande : l'index du moteur le rend linéaire, rien à mémoriser */
@@ -276,7 +277,19 @@ function ligneAmiHTML({ a, o }, sel){
        </div>
      </div>`);
 }
-export function vueAmisHTML(classes, { q, wide }){
+/* DEMANDER « dans la cyber à Lille » (lot 4b, décision 19) : là où l'on
+   cherche parmi ses amis, quand la barre a compris un métier ou une
+   ville de la table — et les demandes de ce genre déjà parties, en faits */
+const memeCritere = (a, b) => !!a && !!b && a.metier === b.metier && a.ville === b.ville;
+function demandesHTML(critere){
+  const ouvertes = demandesCritere();
+  const faits = ouvertes.map(d => `<p class="fi-demande am-dem">${ic(d.trouve ? 'check' : 'clock', 'ic-14')} Quelqu’un ${esc(phraseDemande(d))} · ${
+    d.trouve ? `trouvé chez un ami${d.trouve.par ? ' de ' + esc(d.trouve.par) : ''}` : `demandé à ${d.vers} ami${d.vers > 1 ? 's' : ''}`}</p>`).join('');
+  const peut = critere && peutDemanderAmis() && !ouvertes.some(d => memeCritere(d.critere, critere));
+  return { faits, geste: peut
+    ? `<div class="am-demander"><button class="btn btn-sm" id="avDemander" data-metier="${esc(critere.metier || '')}" data-ville="${esc(critere.ville || '')}">${ic('users', 'ic-14')} Demander à mes amis</button></div>` : '' };
+}
+export function vueAmisHTML(classes, { q, wide, critere }){
   if (!(S.profile.amis || []).length)
     /* L'ÉTAT VIDE ENSEIGNE (§6) : ce que la liste montrera, et les deux
        gestes qui la remplissent — les mêmes qu'« Échanger » */
@@ -289,26 +302,30 @@ export function vueAmisHTML(classes, { q, wide }){
            <button class="btn" id="avScan">${ic('grid-3x3', 'ic-14')} Scanner</button>
          </div>
        </div>`);
-  if (!classes.length) return `<div class="empty-list" id="avRien">Aucun ami ne correspond.</div>`;
+  const dem = demandesHTML(critere);
+  if (!classes.length) return dem.faits + `<div class="empty-list" id="avRien">Aucun ami ne correspond.</div>` + dem.geste;
   const x = wide ? (classes.find(c => c.a.id === choisiAmi) || classes[0]) : null;
   if (x) choisiAmi = x.a.id;
   const liste = `<div class="rows am-rows">${classes.map(c => ligneAmiHTML(c, !!x && c.a.id === x.a.id)).join('')}</div>`;
   /* AU POSTE, la fiche vit à côté de la liste (liste-détail, comme
      « À découvrir ») ; au pouce, le tap ouvre sa feuille */
-  return x
+  return dem.faits + (x
     ? `<div class="dc-split">
-         <div class="dc-col">${liste}</div>
+         <div class="dc-col">${liste}${dem.geste}</div>
          <aside class="dc-detail am-detail" data-ami="${esc(x.a.id)}" aria-label="${esc(x.a.nom)}">
            <h2 class="ap-nom">${esc(x.a.nom)}</h2>${ficheAmiHTML(x.a)}
          </aside>
        </div>`
-    : liste;
+    : liste + dem.geste);
 }
 export function lierVueAmis(box, { wide, rendre }){
   if (!box) return;
   box.querySelector('#avMonQR')?.addEventListener('click', () => openMonQR({ apres: rendre }));
   box.querySelector('#avScan')?.addEventListener('click', async () =>
     (await import('./recevoir.js')).openRecevoir({ scanner: true, apres: rendre }));
+  const dem = box.querySelector('#avDemander');
+  dem?.addEventListener('click', () => ouvrirDemander({ critere: { ...(dem.dataset.metier ? { metier: dem.dataset.metier } : {}),
+    ...(dem.dataset.ville ? { ville: dem.dataset.ville } : {}) } }, rendre));
   const trouve = id => (S.profile.amis || []).find(a => a.id === id);
   /* `rendre` REMPLACE la vue : le focus se rend à la ligne NEUVE, cherchée
      dans le document — l'ancienne `box` n'y est plus */
