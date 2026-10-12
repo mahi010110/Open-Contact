@@ -230,7 +230,9 @@ Chacun se livre dans main, se teste sur le téléphone, et **sert tout seul**
    tout seuls, « À découvrir » réchauffé — **livré (6.56.0)**, voir « Ce
    que le lot 4a a appris ». 4b : la transmission automatique, le numéro
    de cercle, les doublons (une demande arrivée par deux amis ne sonne
-   qu'une fois), l'expiration, le merci à toute la chaîne.
+   qu'une fois), l'expiration, le merci à toute la chaîne, et la demande
+   par métier et ville — **livré (6.57.0)**, voir « Ce que le lot 4b a
+   appris ».
 5. **Plus tard, à décider : le fil du groupe.** Voir plus bas.
 
 Place dans la feuille de route : après la barre de recherche, qui mène aux
@@ -592,6 +594,34 @@ pour une raison qui vaut d'être écrite.
   arrive quand même (je ne le sais pas, et personne n'est prévenu d'un
   retrait) : elle ne fait que remplacer un ami DÉJÀ là, sinon elle se
   tait. Joué à trois, mutation à l'appui.
+
+## Ce que le lot 4b a appris (6.57.0)
+
+Livré comme le concept le disait, avec les décisions du 12 octobre
+(prévenu tout de suite, métier et ville). Ce qui vaut d'être retenu :
+
+- **Une lettre peut ne pas avoir d'auteur.** « Trouvé » ne dit pas qui a
+  trouvé : le dire avant son oui, ce serait déjà donner son nom. C'est la
+  seule lettre sans `de`, et le garde vérifie qu'elle n'en a pas.
+- **Le merci qui remonte ne nomme pas qui était au bout.** Léa et Karim
+  apprennent qu'ils ont aidé, pas que c'était Sofia : elle a dit oui à
+  Tom, pas à eux.
+- **Celui qui demande ne lit que le premier maillon.** Les jetons sont
+  scellés chacun pour le maillon d'avant ; Tom ouvre celui de Léa, et
+  celui de Karim reste du bruit pour lui. Le garde cherche « Karim » sur
+  tout l'écran de Tom, à chaque étape — une mutation qui nomme le
+  mauvais maillon le fait rougir.
+- **Un contrôle de fuite sur du chiffré se trompe de deux façons.** Un
+  nom de trois lettres finit par apparaître dans du base64 par pur
+  hasard (« Tom » : une fois sur quinze environ, sur une trentaine de
+  lettres) — le garde rougissait sans raison. On vérifie donc que le
+  contenu n'est QUE du base64 scellé (aucun texte en clair n'y tient),
+  et les noms courts dans les seules étiquettes. Dans l'autre sens, un
+  contrôle « jamais renvoyé en arrière » trouvait la lettre d'ORIGINE,
+  qui porte le même id : un renvoi se reconnaît à son cercle.
+- **Une capture prise pendant une mutation ment.** Les captures d'une
+  passe de mutation écrasent celles de la passe propre : on les regarde
+  après une passe propre, jamais après.
 
 ## Comment on saura que c'est juste
 

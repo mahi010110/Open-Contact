@@ -312,9 +312,13 @@ entreprise parmi ses amis, ses groupes et leurs amis, trois cercles au plus.
    chacun t'ouvre, trié « Pour toi », retiré au glissé ; leurs profils
    restent à jour tout seuls, et « À découvrir » fait passer devant les
    entreprises où l'un d'eux est passé.
-4. Les amis de ses amis, jusqu'au troisième cercle — **le prochain lot**
-   (docs/reseau.md, 4b) : la question passe d'elle-même de boîte en boîte,
-   et seul le téléphone de qui peut répondre se montre.
+4. Les amis de ses amis, jusqu'au troisième cercle. **Livré (6.57.0)** :
+   la question passe d'elle-même de boîte en boîte, seul le téléphone de
+   qui peut répondre se montre, qui demande est prévenu dès qu'on trouve,
+   et l'on peut demander un métier et une ville.
+5. **Les groupes** — le prochain lot (docs/reseau.md, lot 5) : un code
+   qu'on garde, les demandes que tout le groupe voit et que chacun relaie,
+   les pistes partagées en différé, des messages de sept jours.
 
 **Mis de côté, à reprendre** — [`frictions.md`](frictions.md) : les trois
 plus grosses frictions selon le mainteneur (entrer les pistes, écrire les
