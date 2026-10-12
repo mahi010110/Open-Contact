@@ -326,8 +326,9 @@ entreprise parmi ses amis, ses groupes et leurs amis, trois cercles au plus.
    groupe), masquer ; la réponse ne passe jamais par le groupe.
    **5c, première moitié, livrée (6.60.0)** : le groupe « sur demande »
    — une porte sans code, demander à entrer, accepter ou refuser, un
-   chef et ses adjoints qui ouvrent. **Ensuite** : l'autre moitié —
-   retirer un message, retirer un membre (le groupe change de code).
+   chef et ses adjoints qui ouvrent. **5c2 livré (6.61.0)** : retirer un
+   message (« Retiré par Inès ») et retirer un membre — le groupe change
+   de code, le nouveau part par la boîte à chacun des autres.
 
 **Mis de côté, à reprendre** — [`frictions.md`](frictions.md) : les trois
 plus grosses frictions selon le mainteneur (entrer les pistes, écrire les

@@ -203,8 +203,12 @@ function ficheAmiHTML(a){
      raison. */
   return parcoursHTML(a)
     + (a.cle ? '' : `<p class="hint" id="amAncien">${ic('reload', 'ic-14')} Rescanne son QR pour lui demander quelqu’un.</p>`)
-    + `<div class="pick-list pick-sortie">
-         <button class="pick pick-danger" id="amRetirer"><b>${ic('trash', 'ic-14')} Retirer de mes amis</b></button>
+    /* un geste SEUL est un bouton taillé à son mot (§6, les trois
+       formes) : en rangée de liste, il s'étirait sur 940 px au poste —
+       la brique d'avant sous un autre nom. Le même dessin que « Quitter
+       le groupe ». */
+    + `<div class="pick-sortie">
+         <button class="btn btn-sm btn-danger" id="amRetirer">${ic('trash', 'ic-14')} Retirer de mes amis</button>
        </div>`;
 }
 function lierFicheAmi(box, a, { apres, fermer } = {}){

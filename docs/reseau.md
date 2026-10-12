@@ -662,7 +662,7 @@ retenu :
 Livrées : les décisions 20, 28 et 29 — la demande au groupe, que tout
 le groupe voit ; ses quatre réponses ; la réponse à qui demande
 seulement. Reste 24 (le groupe « sur demande », lot 5c — livré en
-6.60.0 pour sa première moitié, voir plus bas).
+6.60.0 et 6.61.0, voir plus bas).
 
 - **La demande au groupe est la lettre d'un ami.** Pas un format de
   plus : la même lettre, passée au même moteur. Ce qui change tient en
@@ -735,6 +735,38 @@ Reste l'autre moitié (5c2) : retirer un message, retirer un membre.
   y glissait le code était bien « prise » — mais par un autre contrôle,
   parce que le nom du groupe changeait aussi. Relue, elle a montré que
   le contrôle lui-même ne voyait rien ; il décode maintenant la porte.
+
+## Ce que le lot 5c2 a appris (6.61.0)
+
+Livrée : la décision 24, seconde moitié — un responsable retire un
+message ou un membre. La décision 24 est entière.
+
+- **Sans serveur, retirer quelqu'un, c'est changer la clé.** Il garde
+  l'ancien code, et rien ne peut le lui reprendre : c'est le principe
+  des Sender Keys, toutes renouvelées quand quelqu'un part ou est
+  retiré (Session, 2020). Le nouveau code ne passe JAMAIS par le
+  groupe — celui qu'on retire le lit encore — mais par la boîte de
+  chacun des autres, signé. Celui qui est retiré l'apprend par un
+  message signé (« Tu n'es plus dans BTS SIO Lille. »), et le groupe
+  quitte son téléphone.
+- **Un message retiré garde sa place.** WhatsApp montre « supprimé par
+  un admin » et dit lequel : on sait qu'il s'est passé quelque chose,
+  on ne lit plus rien de ce qui était écrit. Ici « Retiré par Inès »,
+  en gris, et le geste est celui de la suppression, avec son mot.
+- **Une lettre qui ne change rien à la boîte doit quand même agir.** La
+  relève sautait toute lettre qui laissait la boîte telle quelle — c'est
+  le cas du nouveau code, qui change le GROUPE. Karim ne changeait donc
+  jamais de code. Seul le scénario joué à trois l'a vu.
+- **Remplacer un bloc peut emporter son voisin.** En réécrivant la
+  feuille « Membres », la fonction qui fait partir une nomination après
+  la barre est partie avec. Rien ne l'a dit tout de suite : elle n'est
+  appelée qu'après 31 secondes, par un minuteur. C'est le scénario du
+  lot d'AVANT, rejoué, qui l'a trouvée — **un lot rejoue les scénarios
+  de ses voisins, pas seulement le sien**.
+- **Ce qui reste ouvert.** Deux responsables qui retirent deux personnes
+  au même instant fabriquent deux codes, et le groupe se coupe en deux.
+  Un membre absent plus de quatorze jours ne reçoit plus le nouveau
+  code, et perd le groupe : il faudra qu'on lui rouvre la porte.
 
 ## Comment on saura que c'est juste
 

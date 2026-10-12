@@ -26,7 +26,7 @@ import { RELAIS_DEFAUT } from '../engine/transport.js';
 import { kvGet, kvSet, RELAYS_KEY, RESEAU_KEY } from '../engine/storage.js';
 import { nouvelleCle, etiquetteBoite, sceller, ouvrir, lettreDemande, lettreDon, lettreMerci, lettreAmi, normaliserLettre, empreinteProfil,
          etatVide, normaliserEtat, elaguer, peutDemander, demandeDePiste, traiterLettre, prenomDe,
-         jetonRelais, ouvrirJeton, lettreRelais, lettreTrouve, choisirRelais, lettreEntree, lettreAdmis,
+         jetonRelais, ouvrirJeton, lettreRelais, lettreTrouve, choisirRelais, lettreEntree, lettreAdmis, lettreRecode,
          LETTRE_KIND } from '../engine/boite.js';
 import { prenomAmi, profilDonne, statutAmi, ajouterAmi, nouvelIdAmi, memeEntreprise, direQuoi, direQuoiTu } from '../engine/amis.js';
 import { parcoursDe } from '../engine/parcours.js';
@@ -333,10 +333,15 @@ export function relever(){
     let change = false;
     const ctx = { companies: S.companies, moi: b.pub, amis: S.profile.amis, parcours: parcoursDe(S.profile, S.companies),
                   pistesPour, sansRelais: !!(S.profile.flags && S.profile.flags.sansRelais), today: todayISO(),
-                  portes: (S.profile.groupes || []).filter(g => g.type === 'demande').map(g => g.porte) };
+                  portes: (S.profile.groupes || []).filter(g => g.type === 'demande').map(g => g.porte),
+                  codes: (S.profile.groupes || []).map(g => g.code) };
     for (const ev of evs){
       const l = normaliserLettre(await ouvrir(b.priv, ev.content));
       const r = traiterLettre(etat, l, ctx);
+      /* le groupe a changé de code (lot 5c2) : rien ne change dans la
+         boîte, tout se passe dans le groupe — la lettre ne doit donc pas
+         être sautée comme « rien de neuf » */
+      if (r.quoi === 'recode'){ await (await import('./groupes.js')).changerCode(l).catch(() => {}); continue; }
       if (r.etat === etat) continue;
       etat = r.etat;
       change = true;
@@ -647,6 +652,17 @@ export async function demanderEntree(p){
   await sauver();
   bus.refresh();
   return true;
+}
+/* le NOUVEAU code d'un groupe, à chacun des autres membres, scellé pour
+   lui seul (lot 5c2) — par la file d'envoi : une app fermée au mauvais
+   instant ne laisse personne derrière */
+export async function envoyerRecode(cles, rc){
+  await chargerReseau();
+  const b = await assurerBoite();
+  const l = lettreRecode({ prenom: prenomDe(S.profile.name), cle: b.pub }, rc);
+  let partis = 0;
+  for (const c of cles) if (await envoyerSur(c, l, Date.now() + 14 * 864e5)) partis++;
+  return partis;
 }
 /* accepter : le code, scellé pour lui seul ; refuser : rien ne part */
 export async function repondreEntree(id, ouvrir, groupe){

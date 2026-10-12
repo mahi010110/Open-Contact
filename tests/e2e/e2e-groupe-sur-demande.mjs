@@ -229,18 +229,24 @@ await ouvrirLeGroupe(I.p);
 await attendreQue(I.p, () => /Karim/.test(document.querySelector('#grMembres')?.textContent || ''), null, 20000, 'Karim dans les membres d’Inès');
 if (await I.p.$('#grPorte')) fail('« Karim veut entrer » reste alors qu’il est dans le groupe');
 await I.p.click('#grMembres');
-await I.p.waitForSelector('[data-nommer]');
+/* la ligne d'un autre membre s'ouvre sur ses gestes (§6 : un geste
+   lourd sur une ligne vit dans sa feuille) */
+await I.p.waitForSelector(`[data-membre="${ID.karim}"]`);
 {
   const noms = await I.p.evaluate(() => [...document.querySelectorAll('.gr-noms li')].map(li => li.innerText.replace(/\s+/g, ' ').trim()));
-  if (noms.join(' | ') !== 'Karim Nommer adjoint | Toi chef') fail('les membres chez Inès : ' + noms.join(' | '));
+  if (noms.join(' | ') !== 'Karim | Toi chef') fail('les membres chez Inès : ' + noms.join(' | '));
 }
-await I.p.click('[data-nommer]');
-await I.p.waitForSelector('.undo-bar');
+const nommerKarim = async () => {
+  await I.p.click(`[data-membre="${ID.karim}"]`);
+  await I.p.waitForSelector('[data-nommer]');
+  await I.p.click('[data-nommer]');
+  await I.p.waitForSelector('.undo-bar');
+};
+await nommerKarim();
 if (!/Karim adjoint/.test(await texte(I.p, '.gr-noms'))) fail('Karim n’est pas dit adjoint après le geste : ' + await texte(I.p, '.gr-noms'));
 await I.p.click('.undo-bar .btn-sm');
-await attendreQue(I.p, () => !!document.querySelector('[data-nommer]'), null, 5000, '« Nommer adjoint » revenu après « Annuler »');
-await I.p.click('[data-nommer]');
-await I.p.waitForSelector('.undo-bar');
+await attendreQue(I.p, () => !/adjoint/.test(document.querySelector('.gr-noms')?.innerText || 'adjoint'), null, 5000, 'Karim de nouveau simple membre après « Annuler »');
+await nommerKarim();
 await I.p.waitForTimeout(300);
 await I.p.screenshot({ path: `${SHOTS}/129-groupe-membres-chef-pouce.png` });
 await I.p.waitForTimeout(33000);
