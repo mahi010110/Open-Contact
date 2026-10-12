@@ -3317,7 +3317,25 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 .gr-noms li{justify-content:space-between;gap:8px;flex-wrap:wrap}
 .gr-noms li>span{min-width:0;overflow-wrap:anywhere}
 .gr-role{font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted)}
-.gr-noms .btn-sm{flex:none}
+/* LOT 5c2 — chez un responsable, la ligne d'un autre membre s'ouvre sur
+   ses gestes (« Nommer adjoint », « Retirer du groupe ») : la ligne
+   entière est la cible, le chevron dit qu'elle s'ouvre */
+.gr-membre{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;min-height:var(--ctl);padding:0;
+  border:0;background:none;font:inherit;color:inherit;text-align:left;cursor:pointer;
+}
+.gr-membre>span{min-width:0;overflow-wrap:anywhere}
+.gr-membre .ic{flex:none;color:var(--text-muted)}
+.gr-membre:active{background:var(--surface-raised)}
+@media (hover:hover){ .gr-membre:hover{background:var(--surface-raised)} }
+/* un message retiré garde sa place, en gris : qui l'a retiré, rien de
+   ce qu'il disait */
+.gr-retire p{display:flex;align-items:center;gap:6px;background:none;border-style:dashed;color:var(--text-muted);font-size:var(--text-13)}
+/* le geste « Retirer » sur une bulle (le motif de la suppression) : la
+   bulle reste une colonne, la croix au survol se pose dans son coin */
+.gr-m.sw>.sw-in{display:flex;flex-direction:column;gap:2px;background:transparent}
+.gr-m .hov-del{position:absolute;top:0;right:0}
+.gr-m.gr-moi .hov-del{right:auto;left:0}
 .rc-de{display:flex;align-items:center;gap:7px;margin:0 0 8px;font-size:var(--text-13);color:var(--text-muted)}
 .scan-box{
   position:relative;background:#000;border:1px solid var(--border-strong);

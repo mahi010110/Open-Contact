@@ -55,7 +55,7 @@ import { nouvelIdAmi, idAmiValide, cleEntreprise, memeEntreprise, profilDonne, n
 import { nouvelleCle, boiteValide, cleValide, etiquetteBoite, sceller, ouvrir, lettreDemande, lettreDon, lettreMerci, lettreAmi,
          contactDonne, normaliserLettre, contactsPour, etatVide, normaliserEtat, elaguer, peutDemander,
          demandeDePiste, traiterLettre, empreinteProfil, DEMANDE_JOURS, DEMANDES_OUVERTES_MAX,
-         jetonRelais, ouvrirJeton, lettreRelais, lettreTrouve, choisirRelais, soiPour, contactsDe, lettreEntree, lettreAdmis,
+         jetonRelais, ouvrirJeton, lettreRelais, lettreTrouve, choisirRelais, soiPour, contactsDe, lettreEntree, lettreAdmis, lettreRecode,
          CERCLE_MAX, RELAIS_MAX } from './engine/boite.js';
 import { critereValide, phraseCritere, CRITERE_METIER } from './engine/critere.js';
 import { GROUPES_MAX, MOT_MAX, nouveauCode, codeNorm, codeAffiche, invitation, estInvitation, lireInvitation,
@@ -63,7 +63,8 @@ import { GROUPES_MAX, MOT_MAX, nouveauCode, codeNorm, codeAffiche, invitation, e
          elaguerGroupe, filDe, membresDe, nouveaux, presenceAredire, pistesCompletes, normaliserGroupes,
          relaisVersGroupe, peutRelayerGroupe, RELAIS_GROUPES_MAX,
          porteInvitation, estPorte, lirePorte, nouvelleCleSignature, signer, verifier, signeValide,
-         responsables, estResponsable, adjointVerifie, nomination, redireNomination, presenceSignee, presenceVerifiee } from './engine/groupe.js';
+         responsables, estResponsable, adjointVerifie, nomination, redireNomination, presenceSignee, presenceVerifiee,
+         retrait, exclusion, recode, retraitVerifie, excluVerifie, recodeVerifie, migrerGroupe } from './engine/groupe.js';
 import { interpreter, retirer, remplacer, chercherPistes, raisonDe, propositions, elargir,
          contexteRecherche, porteurs, deptDuCp, villeFrequente, deptDePiste, zoneDe, metierDuMoment,
          fraicheur, METIER, metierDuProfil, villeConnue, lieuDuProfil, metierEtiquetteDuProfil, rayonDe,
@@ -2621,6 +2622,61 @@ export async function runSelfTests(){
       const [gp] = normaliserGroupes([{ code, nom: 'BTS', type: 'demande', porte, chef: chef.pub, sign: chef }]);
       eq([gp.type, gp.porte, gp.chef, gp.sign.pub], ['demande', porte, chef.pub, chef.pub]);
       eq(normaliserGroupes([{ code, nom: 'BTS', type: 'demande', porte }])[0].type, undefined);
+    },
+    'groupes sur demande : retirer un message, retirer un membre — le groupe change de code': async () => {
+      const now = Date.parse('2026-10-12T12:00:00Z');
+      const I = 'InesInesInesInes0001', KA = 'KarimKarimKarim00001', S = 'SofiaSofiaSofia00001';
+      const chef = await nouvelleCleSignature(), kSign = await nouvelleCleSignature(), sSign = await nouvelleCleSignature();
+      const ines = await nouvelleCle(), karim = await nouvelleCle(), sofia = await nouvelleCle();
+      let g = groupeVide();
+      g = traiterMessage(g, normaliserMessage({ t: 'membre', de: I, prenom: 'Inès', cle: ines.pub, sign: chef.pub, sig: 'x'.repeat(64), at: now }, now));
+      g = traiterMessage(g, normaliserMessage({ t: 'membre', de: KA, prenom: 'Karim', cle: karim.pub, sign: kSign.pub, sig: 'x'.repeat(64), at: now }, now));
+      g = traiterMessage(g, normaliserMessage({ t: 'membre', de: S, prenom: 'Sofia', cle: sofia.pub, sign: sSign.pub, sig: 'x'.repeat(64), at: now }, now));
+      g = traiterMessage(g, normaliserMessage({ t: 'mot', id: 'motmotmot001', de: S, prenom: 'Sofia', texte: 'un mot de trop', at: now }, now));
+      /* RETIRER UN MESSAGE : signé par un responsable, il garde sa place,
+         sans rien de ce qu'il disait */
+      const r = normaliserMessage(await retrait(chef, { de: I, id: 'motmotmot001' }, now), now);
+      ok(await retraitVerifie(g, chef.pub, r));
+      eq(traiterMessage(g, r), g);                                         /* sans vérification, rien */
+      const g2 = traiterMessage(g, { ...r, verifie: true });
+      eq(filDe(g2).map(x => [x.t, x.par, x.texte]), [['retire', 'Inès', undefined]]);
+      eq(JSON.stringify(filDe(g2)).includes('un mot de trop'), false);
+      eq([nouveaux(g, I), nouveaux(g2, I)], [1, 0]);                       /* un message retiré n'est pas « nouveau » */
+      /* Sofia, simple membre, ne retire rien — même en se disant le chef */
+      ok(!await retraitVerifie(g, chef.pub, normaliserMessage(await retrait(sSign, { de: S, id: 'motmotmot001' }, now), now)));
+      ok(!await retraitVerifie(g, chef.pub, { ...normaliserMessage(await retrait(sSign, { de: S, id: 'motmotmot001' }, now), now), signe: chef.pub }));
+      /* une signature ne se recolle pas sur un autre message */
+      ok(!await retraitVerifie(g, chef.pub, { ...r, id: 'autreautre01' }));
+      eq(elaguerGroupe(g2, now + 15 * 864e5).retires.length, 0);
+      /* RETIRER UN MEMBRE : vérifié, il sort ; sa présence ne le fait pas revenir */
+      const ex = normaliserMessage(await exclusion(chef, { de: I, membre: S }, now + 1000), now + 1000);
+      ok(await excluVerifie(g, chef.pub, ex));
+      ok(!await excluVerifie(g, chef.pub, normaliserMessage(await exclusion(kSign, { de: KA, membre: S }, now), now)));   /* Karim n'est pas adjoint */
+      let g3 = traiterMessage(g, { ...ex, verifie: true });
+      eq(membresDe(g3).map(m => m.prenom), ['Inès', 'Karim']);
+      g3 = traiterMessage(g3, normaliserMessage({ t: 'membre', de: S, prenom: 'Sofia', at: now + 5000 }, now + 5000));
+      eq(membresDe(g3).map(m => m.prenom), ['Inès', 'Karim']);
+      /* un adjoint retiré ne signe plus rien */
+      const nomS = normaliserMessage(await nomination(chef.priv, { de: I, membre: S, sign: sSign.pub, cle: sofia.pub }, now), now);
+      const gA = traiterMessage(g, { ...nomS, verifie: true });
+      ok(estResponsable(gA, chef.pub, sSign.pub));
+      ok(!estResponsable(traiterMessage(gA, { ...ex, verifie: true }), chef.pub, sSign.pub));
+      /* LE NOUVEAU CODE part par la boîte, signé — et ne vaut que signé d'un responsable */
+      const ancien = nouveauCode(), code = nouveauCode();
+      const rc = await recode(chef, { ancien, code, exclu: S });
+      const l = normaliserLettre(lettreRecode({ prenom: 'Inès', cle: ines.pub }, rc), now);
+      eq([l.t, l.ancien, l.code, l.exclu], ['recode', ancien, code, S]);
+      ok(await recodeVerifie(g, chef.pub, l));
+      ok(!await recodeVerifie(g, chef.pub, { ...l, code: nouveauCode() }));
+      const faux = normaliserLettre(lettreRecode({ prenom: 'Sofia', cle: sofia.pub }, await recode(sSign, { ancien, code, exclu: KA })), now);
+      ok(!await recodeVerifie(g, chef.pub, faux));
+      /* seulement pour un groupe où je suis */
+      eq(traiterLettre(normaliserEtat(etatVide()), l, { codes: [ancien], now }).quoi, 'recode');
+      eq(traiterLettre(normaliserEtat(etatVide()), l, { codes: [nouveauCode()], now }).quoi, null);
+      eq(normaliserLettre({ ...lettreRecode({ prenom: 'Inès', cle: ines.pub }, rc), code: ancien }, now), null);
+      /* le groupe sous son nouveau code : la conversation reste, Sofia n'y est plus, la présence se redit */
+      const m = migrerGroupe({ ...gA, presence: now, depuis: now }, S);
+      eq([Object.keys(m.membres).sort(), Object.keys(m.adjoints), m.presence, m.depuis, m.fil.length], [[I, KA].sort(), [], 0, 0, 1]);
     },
     'groupes : cinq au plus, dans le profil, sans doublon': () => {
       const codes = Array.from({ length: 7 }, nouveauCode);

@@ -183,8 +183,8 @@ export async function ouvrirMessage(k, txt){
 /* ---------- les messages ----------
    Ce qui arrive d'un relais peut être n'importe quoi : seul ce qui a la
    bonne forme passe, et sous la forme qu'on a dite — rien de plus. */
-export const dureeDe = t => (t === 'membre' || t === 'depart' || t === 'adjoint' ? MEMBRE_JOURS : t === 'part' ? PISTES_JOURS
-  : t === 'demande' ? DEMANDE_JOURS : MOT_JOURS) * JOUR;
+export const dureeDe = t => (t === 'membre' || t === 'depart' || t === 'adjoint' || t === 'exclu' ? MEMBRE_JOURS : t === 'part' ? PISTES_JOURS
+  : t === 'demande' || t === 'retrait' ? DEMANDE_JOURS : MOT_JOURS) * JOUR;
 const prenomOk = v => typeof v === 'string' && v.trim().length > 0;
 const prenomDe = v => String(v).replace(/\s+/g, ' ').trim().split(' ')[0].slice(0, 40);
 const entier = (x, max) => Number.isInteger(x) && x >= 0 && x < max;
@@ -203,6 +203,12 @@ export function normaliserMessage(m, now = Date.now()){
   if (m.t === 'adjoint' && idAmiValide(m.membre) && signeValide(m.sign) && CLE_BOITE.test(String(m.cle || '')) && sigOk(m.sig))
     return { t: 'adjoint', de: m.de, membre: m.membre, sign: m.sign, cle: m.cle, at, sig: m.sig };
   if (m.t === 'depart') return { t: 'depart', de: m.de, at };
+  /* lot 5c2 : un message retiré, un membre retiré — signés d'un
+     responsable, et ne comptent que VÉRIFIÉS (l'appelant le dit) */
+  if (m.t === 'retrait' && ID.test(String(m.id)) && sigOk(m.sig) && signeValide(m.signe))
+    return { t: 'retrait', de: m.de, id: m.id, signe: m.signe, sig: m.sig, at };
+  if (m.t === 'exclu' && idAmiValide(m.membre) && sigOk(m.sig) && signeValide(m.signe))
+    return { t: 'exclu', de: m.de, membre: m.membre, signe: m.signe, sig: m.sig, at };
   if (m.t === 'mot' && ID.test(String(m.id)) && prenomOk(m.prenom) && typeof m.texte === 'string'){
     const texte = m.texte.replace(/\s+/g, ' ').trim().slice(0, MOT_MAX);
     return texte ? { t: 'mot', id: m.id, de: m.de, prenom: prenomDe(m.prenom), texte, at } : null;
@@ -227,7 +233,7 @@ export function normaliserMessage(m, now = Date.now()){
 }
 
 /* ---------- ce qu'un appareil garde d'un groupe ---------- */
-export const groupeVide = () => ({ nom: '', fil: [], membres: {}, depuis: 0, vu: 0, presence: 0, pris: [], masques: [], adjoints: {} });
+export const groupeVide = () => ({ nom: '', fil: [], membres: {}, depuis: 0, vu: 0, presence: 0, pris: [], masques: [], adjoints: {}, retires: [] });
 export function normaliserGroupe(g){
   const v = groupeVide();
   if (!g || typeof g !== 'object') return v;
@@ -240,6 +246,12 @@ export function normaliserGroupe(g){
   /* les demandes qu'on a masquées (décision 28) : elles ne reviennent pas */
   v.masques = Array.isArray(g.masques) ? g.masques.filter(id => ID.test(String(id))).slice(-200) : [];
   v.adjoints = g.adjoints && typeof g.adjoints === 'object' ? g.adjoints : {};
+  /* les messages retirés par un responsable (lot 5c2) : à leur place,
+     « Retiré par Inès » */
+  v.retires = Array.isArray(g.retires) ? g.retires.filter(r => r && ID.test(String(r.id)))
+    .map(r => ({ id: r.id, par: String(r.par || '').slice(0, 40), ...(idAmiValide(r.de) ? { de: r.de } : {}), at: Number(r.at) || 0,
+      ...(r.aDire ? { aDire: Number(r.aDire) || 0 } : {}) })).slice(-200) : [];
+  if (g.aRetirer && idAmiValide(g.aRetirer.membre)) v.aRetirer = { membre: g.aRetirer.membre, quand: Number(g.aRetirer.quand) || 0 };
   return v;
 }
 
@@ -249,7 +261,8 @@ export function traiterMessage(g, m){
   if (!m) return g;
   if (m.t === 'membre'){
     const avant = g.membres[m.de];
-    if (avant && avant.at >= m.at) return g;
+    /* retiré par un responsable : sa présence ne le fait pas revenir */
+    if (avant && (avant.at >= m.at || avant.exclu)) return g;
     const membres = { ...g.membres, [m.de]: { prenom: m.prenom, at: m.at, ...(m.cle ? { cle: m.cle } : {}), ...(m.sign ? { sign: m.sign } : {}),
       ...(avant && avant.parti > m.at ? { parti: avant.parti } : {}) } };
     return { ...g, membres, nom: g.nom || m.nom };
@@ -259,6 +272,17 @@ export function traiterMessage(g, m){
        responsable, voir `adjointVerifie`) : l'appelant le dit */
     if (!m.verifie || (g.adjoints || {})[m.membre]) return g;
     return { ...g, adjoints: { ...(g.adjoints || {}), [m.membre]: { sign: m.sign, cle: m.cle, sig: m.sig, at: m.at } } };
+  }
+  if (m.t === 'retrait'){
+    if (!m.verifie || (g.retires || []).some(r => r.id === m.id)) return g;
+    const par = (g.membres[m.de] || {}).prenom || '';
+    return { ...g, retires: [...(g.retires || []), { id: m.id, par, de: m.de, at: m.at }] };
+  }
+  if (m.t === 'exclu'){
+    const avant = g.membres[m.membre] || { prenom: '', at: m.at };
+    if (!m.verifie || avant.exclu) return g;
+    const { [m.membre]: _, ...adjoints } = g.adjoints || {};
+    return { ...g, adjoints, membres: { ...g.membres, [m.membre]: { ...avant, parti: Math.max(m.at, avant.at), exclu: true } } };
   }
   if (m.t === 'depart'){
     const avant = g.membres[m.de];
@@ -297,23 +321,28 @@ export function elaguerGroupe(g, now = Date.now()){
     : x.at + dureeDe(x.t === 'pistes' ? 'part' : x.t) > now);
   const membres = {};
   for (const [k, v] of Object.entries(g.membres)) if (v.at + MEMBRE_JOURS * JOUR > now) membres[k] = v;
-  if (fil.length === g.fil.length && Object.keys(membres).length === Object.keys(g.membres).length) return g;
+  const retires = (g.retires || []).filter(r => r.at + DEMANDE_JOURS * JOUR > now);
+  if (fil.length === g.fil.length && Object.keys(membres).length === Object.keys(g.membres).length
+      && retires.length === (g.retires || []).length) return g;
   const garde = ids => (ids || []).filter(id => fil.some(x => x.id === id));
-  return { ...g, fil, membres, pris: garde(g.pris), masques: garde(g.masques) };
+  return { ...g, fil, membres, retires, pris: garde(g.pris), masques: garde(g.masques) };
 }
 
 export const pistesCompletes = x => x.t === 'pistes' && x.d.every(Boolean);
 /* le fil tel qu'on le lit : du plus ancien au plus récent, un don de
    pistes seulement quand toutes ses parts sont là */
 export const filDe = g => g.fil.filter(x => (x.t === 'mot' || x.t === 'demande' || pistesCompletes(x))
-  && !(g.masques || []).includes(x.id)).sort((a, b) => a.at - b.at);
+  && !(g.masques || []).includes(x.id)).sort((a, b) => a.at - b.at)
+  /* un message retiré garde sa place, sans rien de ce qu'il disait */
+  .map(x => { const r = (g.retires || []).find(y => y.id === x.id);
+    return r ? { t: 'retire', id: x.id, de: x.de, prenom: x.prenom, at: x.at, par: r.par, parDe: r.de } : x; });
 /* les membres : ceux qui se sont dits là et ne sont pas partis */
 export const membresDe = g => Object.entries(g.membres)
   .filter(([, v]) => !(v.parti >= v.at))
   .map(([de, v]) => ({ de, prenom: v.prenom }))
   .sort((a, b) => a.prenom.localeCompare(b.prenom, 'fr'));
 /* ce qui est arrivé des autres depuis que j'ai regardé */
-export const nouveaux = (g, moi) => filDe(g).filter(x => x.de !== moi && x.at > g.vu).length;
+export const nouveaux = (g, moi) => filDe(g).filter(x => x.t !== 'retire' && x.de !== moi && x.at > g.vu).length;
 /* faut-il redire « je suis là » ? */
 export const presenceAredire = (g, now = Date.now()) => g.presence + MEMBRE_REDIRE_JOURS * JOUR < now;
 
@@ -349,10 +378,40 @@ export const estResponsable = (g, chef, monSign) => !!monSign && (monSign === ch
    Ce qui est signé ne porte pas de date : l'adjoint redit sa nomination
    avec sa présence, et celui qui arrive dans un mois la lit encore. */
 const corpsAdjoint = m => ({ t: 'adjoint', membre: m.membre, sign: m.sign, cle: m.cle });
+/* la clé de signature d'un responsable connu : le chef, ou un adjoint */
+const signeurs = (g, chef) => [chef, ...Object.values(g.adjoints || {}).map(a => a.sign)].filter(Boolean);
 export async function adjointVerifie(g, chef, m){
-  const signeurs = [chef, ...Object.values(g.adjoints || {}).map(a => a.sign)];
-  for (const pub of signeurs) if (pub && await verifier(pub, corpsAdjoint(m), m.sig)) return true;
+  for (const pub of signeurs(g, chef)) if (await verifier(pub, corpsAdjoint(m), m.sig)) return true;
   return false;
+}
+/* LOT 5c2 — ce qu'un responsable signe : retirer un message, retirer un
+   membre, et le nouveau code qui part par la boîte aux autres. La clé
+   qui signe est DITE (`signe`) ; elle ne vaut que si c'est celle du
+   chef ou d'un adjoint déjà reconnu. */
+const corpsRetrait = m => ({ t: 'retrait', id: m.id });
+const corpsExclu = m => ({ t: 'exclu', membre: m.membre });
+const corpsRecode = m => ({ t: 'recode', ancien: m.ancien, code: m.code, exclu: m.exclu });
+const parResponsable = async (g, chef, corps, m) =>
+  signeurs(g, chef).includes(m.signe) && await verifier(m.signe, corps, m.sig);
+export const retraitVerifie = (g, chef, m) => parResponsable(g, chef, corpsRetrait(m), m);
+export const excluVerifie = (g, chef, m) => parResponsable(g, chef, corpsExclu(m), m);
+export const recodeVerifie = (g, chef, l) => parResponsable(g, chef, corpsRecode(l), l);
+export async function retrait(sign, { de, id }, now = Date.now()){
+  return { t: 'retrait', de, id, signe: sign.pub, sig: await signer(sign.priv, corpsRetrait({ id })), at: now };
+}
+export async function exclusion(sign, { de, membre }, now = Date.now()){
+  return { t: 'exclu', de, membre, signe: sign.pub, sig: await signer(sign.priv, corpsExclu({ membre })), at: now };
+}
+export async function recode(sign, { ancien, code, exclu }){
+  return { ancien, code, exclu, signe: sign.pub, sig: await signer(sign.priv, corpsRecode({ ancien, code, exclu })) };
+}
+/* le groupe sous son NOUVEAU code : la conversation reste sous les yeux,
+   celui qu'on a retiré n'y est plus — ni comme membre, ni comme adjoint —
+   et chacun redira sa présence sur le nouveau code */
+export function migrerGroupe(g, exclu){
+  const { [exclu]: _m, ...membres } = g.membres || {};
+  const { [exclu]: _a, ...adjoints } = g.adjoints || {};
+  return { ...g, membres, adjoints, depuis: 0, presence: 0, aRetirer: undefined };
 }
 export async function nomination(priv, { de, membre, sign, cle }, now = Date.now()){
   return { ...corpsAdjoint({ membre, sign, cle }), de, at: now, sig: await signer(priv, corpsAdjoint({ membre, sign, cle })) };

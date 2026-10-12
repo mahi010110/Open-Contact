@@ -245,6 +245,13 @@ export function lettreEntree({ prenom, cle }, porte, ami){
 export function lettreAdmis({ prenom, cle }, { porte, code, nom, chef }){
   return { v: 1, t: 'admis', id: nouvelId(), porte, de: { prenom: txt(prenom, 40), cle }, code, nom: txt(nom, 40), chef };
 }
+/* le groupe change de code (lot 5c2) : un responsable a retiré
+   quelqu'un, et le nouveau code part à chacun des autres, scellé pour
+   lui, signé du responsable — l'ancien code ne mène plus qu'à un groupe
+   vide */
+export function lettreRecode({ prenom, cle }, { ancien, code, exclu, signe, sig }){
+  return { v: 1, t: 'recode', id: nouvelId(), de: { prenom: txt(prenom, 40), cle }, ancien, code, exclu, signe, sig };
+}
 export function lettreAmi({ prenom, cle }, profil, motif = 'ajout'){
   return { v: 1, t: 'ami', id: nouvelId(), motif: motif === 'maj' ? 'maj' : 'ajout',
            de: { prenom: txt(prenom, 40), cle }, profil };
@@ -277,6 +284,12 @@ export function normaliserLettre(o, now = Date.now()){
   if (o.t === 'entree'){
     if (!ID.test(String(o.porte || '')) || !/^[A-Za-z0-9_-]{16,43}$/.test(String(o.ami || ''))) return null;
     return { t: 'entree', id: o.id, porte: o.porte, de, ami: o.ami };
+  }
+  if (o.t === 'recode'){
+    if (!CODE_GROUPE.test(String(o.ancien || '')) || !CODE_GROUPE.test(String(o.code || '')) || o.ancien === o.code
+        || !/^[A-Za-z0-9_-]{16,43}$/.test(String(o.exclu || '')) || !SIGNE.test(String(o.signe || ''))
+        || !/^[A-Za-z0-9_-]{40,200}$/.test(String(o.sig || ''))) return null;
+    return { t: 'recode', id: o.id, de, ancien: o.ancien, code: o.code, exclu: o.exclu, signe: o.signe, sig: o.sig };
   }
   if (o.t === 'admis'){
     if (!ID.test(String(o.porte || '')) || !CODE_GROUPE.test(String(o.code || '')) || !SIGNE.test(String(o.chef || ''))) return null;
@@ -405,8 +418,11 @@ export const demandeDePiste = (e, pisteId, now = Date.now()) =>
    l'un d'eux) ; `parcours` : le mien (« j'y suis ») ; `pistesPour` : la
    recherche par métier et ville (engine/requete.js) ; `sansRelais` :
    j'ai coupé le passage (décision 7) */
-export function traiterLettre(e, l, { companies, moi, amis, parcours, pistesPour, sansRelais, today, portes, now = Date.now() } = {}){
+export function traiterLettre(e, l, { companies, moi, amis, parcours, pistesPour, sansRelais, today, portes, codes, now = Date.now() } = {}){
   if (!l) return { etat: e, quoi: null };
+  /* seulement pour un groupe où je suis : la signature se vérifie
+     ensuite, contre les responsables que CE groupe connaît */
+  if (l.t === 'recode') return { etat: e, quoi: (codes || []).includes(l.ancien) ? 'recode' : null };
   if (l.t === 'entree'){
     /* seulement pour une porte dont je suis responsable, une fois par
        personne et par porte */

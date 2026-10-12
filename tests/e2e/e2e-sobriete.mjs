@@ -147,7 +147,13 @@ const PLAFOND = {
      peut-être des jours après la demande et sur n'importe quel écran.
      Le reste se dit à l'écran : « en attente » dans « Échanger », qui
      attend à la porte en tête du groupe, l'adjoint par « Annuler ». */
-  toasts: 123,
+  /* 124 le 12 octobre 2026, +1 (docs/reseau.md, lot 5c2) — famille ② :
+     « Tu n'es plus dans BTS SIO Lille. », quand un responsable t'a
+     retiré du groupe depuis SON téléphone : le groupe quitte le tien,
+     et rien d'autre à l'écran ne dirait pourquoi. Un message retiré,
+     lui, se lit à sa place (« Retiré par Inès ») ; un membre retiré
+     passe par « Annuler » chez qui le retire. */
+  toasts: 124,
   toastCar: 79,        /* le plus long : « Connexion interrompue — … » */
   /* portes bloquantes dans les écrans visibles.
      9 le 29 septembre 2026 : « Mon profil » prend le garde-fou de la
