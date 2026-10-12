@@ -77,7 +77,7 @@ function connexion(url, ms = 8000){
 }
 /* une lettre part sur chaque relais ; elle est partie si UN l'a prise
    (`OK true` — la seule preuve qu'un relais garde, §8) */
-async function publier(ev){
+export async function publier(ev){
   const urls = await relais();
   const oks = await Promise.all(urls.map(async url => {
     const ws = await connexion(url);
@@ -95,7 +95,7 @@ async function publier(ev){
 }
 /* `lus` : combien de relais ont répondu jusqu'au bout. Zéro, et la relève
    n'a rien appris : on ne la compte pas comme faite. */
-async function lire(filtre){
+export async function lire(filtre){
   const urls = await relais();
   const vus = new Map();
   let lus = 0;
@@ -116,7 +116,36 @@ async function lire(filtre){
 }
 /* l'échec d'un envoi, le même partout : rien n'est parti, et le seul
    geste qui le répare est de retrouver du réseau */
-const echecEnvoi = () => toast('Envoi impossible — vérifie ta connexion.');
+export const echecEnvoi = () => toast('Envoi impossible — vérifie ta connexion.');
+/* ÉCOUTER tant qu'une feuille est ouverte (les groupes, lot 5) : un
+   abonnement qui reste ouvert sur chaque relais, et qui rend chaque
+   événement nouveau dès qu'il passe. Rend de quoi l'arrêter. Un relais
+   qui tombe se tait — la relève suivante rattrape ce qu'il a manqué. */
+export function ecouter(filtre, surEvenement){
+  const ouverts = [];
+  let fini = false;
+  const vus = new Set();
+  relais().then(urls => urls.forEach(async url => {
+    const ws = await connexion(url);
+    if (!ws) return;
+    if (fini){ try { ws.close(); } catch (e) {} return; }
+    ouverts.push(ws);
+    ws.onmessage = m => {
+      let d; try { d = JSON.parse(m.data); } catch (e) { return; }
+      if (d[0] === 'EVENT' && d[1] === 'ecoute' && d[2] && d[2].id && !vus.has(d[2].id)){
+        vus.add(d[2].id);
+        surEvenement(d[2]);
+      }
+    };
+    ws.send(JSON.stringify(['REQ', 'ecoute', filtre]));
+  }));
+  return () => { fini = true; ouverts.forEach(ws => { try { ws.close(); } catch (e) {} }); };
+}
+/* un événement signé, prêt à publier : l'étiquette, l'expiration, le scellé */
+export async function evenement(tags, contenu){
+  const { relayTopic } = await lib();
+  return relayTopic.evenement(LETTRE_KIND, tags, contenu);
+}
 /* écrire à UNE clé : scellée pour elle, rangée sous son étiquette,
    et le relais peut l'oublier passé l'expiration (NIP-40) */
 async function ecrire(cleDest, lettre, exp){

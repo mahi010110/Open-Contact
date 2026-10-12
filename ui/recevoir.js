@@ -9,6 +9,7 @@
 import { esc } from '../engine/utils.js';
 import { ORDINATEUR } from './perimetre.js';
 import { parseInput, makeOCQJoiner, rdvParse, rdvNorm, decodeOCA, extraireOCA } from '../engine/exchange.js';
+import { estInvitation, lireInvitation } from '../engine/groupe.js';
 import { mergeIncoming } from '../engine/merge.js';
 import { normalizeCompany } from '../engine/model.js';
 import { normalizeAmi } from '../engine/amis.js';
@@ -141,7 +142,7 @@ export function openRecevoir(o = {}){
       stopScan = await startScan(q('#rcVideo'), raw => {
         const code = rdvParse(raw);
         if (code){ joinRdv(code); return false; }
-        if (extraireOCA(raw)){ halt(); treat(raw); return false; }
+        if (extraireOCA(raw) || estInvitation(raw)){ halt(); treat(raw); return false; }
         const part = joiner(raw);
         if (!part){ halt(); treat(raw); return false; }
         if (part.done){ halt(); treat(part.text); return false; }
@@ -352,6 +353,13 @@ export function openRecevoir(o = {}){
     halt();
     /* UN PROFIL, PAS DES PISTES : il ne se fusionne pas dans le suivi,
        il s'ajoute aux amis — après son propre aperçu (ui/amis.js) */
+    /* UN GROUPE (lot 5) : l'invitation n'apporte rien à fusionner, elle
+       ouvre une porte — après son propre aperçu (ui/groupes.js) */
+    const inv = estInvitation(raw) && lireInvitation(raw);
+    if (inv){
+      (await import('./groupes.js')).apercuGroupe(sh, inv, { onBack: o.scanner ? scan : menu, apres: o.apres });
+      return;
+    }
     const oca = extraireOCA(raw);
     if (oca){
       let ami;
@@ -630,6 +638,7 @@ export function mergePreviewInto(sh, obj, opts){
   sh.body.innerHTML =
     `<div class="rc-recap">
        ${opts.from ? `<p class="hint" style="margin:0 0 8px">${ic('radio', 'ic-14')} Reçu en direct de <b>${esc(opts.from)}</b></p>` : ''}
+       ${opts.dans ? `<p class="rc-de">${ic('message-text', 'ic-14')}<span>De <b>${esc(opts.dans.de)}</b>, dans ${esc(opts.dans.groupe)}</span></p>` : ''}
        <div class="rc-big">${n} piste${n > 1 ? 's' : ''} ${opts.select ? 'proposée' : 'reçue'}${n > 1 ? 's' : ''}</div>
        <ul class="rc-lines">
          <li>${ic('plus', 'ic-14')} <b>${dry.addedC}</b> nouvelle${dry.addedC > 1 ? 's' : ''}</li>
@@ -665,7 +674,7 @@ export function mergePreviewInto(sh, obj, opts){
     const snapshot = JSON.stringify(S.companies);
     const stats = mergeIncoming(chosen, S.companies);
     saveData();
-    logJ('Reçu' + (opts.from ? ' de ' + opts.from : (opts.select ? ' (analyse IA triée)' : ' du groupe')) + ' : +' + stats.addedC + ' piste(s), ' + stats.enriched + ' complétée(s)',
+    logJ('Reçu' + (opts.from ? ' de ' + opts.from : opts.dans ? ' de ' + opts.dans.de : (opts.select ? ' (analyse IA triée)' : ' du groupe')) + ' : +' + stats.addedC + ' piste(s), ' + stats.enriched + ' complétée(s)',
       null, stats.ids);
     sh.close();
     bus.refresh();

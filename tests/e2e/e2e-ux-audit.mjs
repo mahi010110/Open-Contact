@@ -761,18 +761,14 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
           boite: parseFloat(st.borderTopWidth) > 0 || st.boxShadow !== 'none'
                  || st.backgroundColor !== 'rgba(0, 0, 0, 0)' };
       };
-      const out = { donner: lu('#ecGive'), recevoir: lu('#ecRecv'), porte: lu('#ecPromo') };
-      out.largeurPage = Math.round(
-        document.querySelector('#view-echanger .page-inner').getBoundingClientRect().width);
-      const d = document.querySelector('#ecGive'), p = document.querySelector('#ecPromo');
-      if (d && p){
-        /* même RANGÉE : c'est l'emphase qui doit les distinguer, pas la
-           place — trois contrôles alignés se comparent d'un coup d'œil */
-        out.porte.memeRangee = Math.abs(p.getBoundingClientRect().top
-                                      - d.getBoundingClientRect().top) < 4;
-        out.porte.memeFond = getComputedStyle(p).backgroundColor
-                          === getComputedStyle(d).backgroundColor;
-      }
+      /* « Partage en groupe » a laissé sa place au cadre « Groupes »
+         (lot 5) : un cadre qui porte des rangées, plus une porte. Ses
+         deux gestes se mesurent comme tout geste secondaire. */
+      const out = { donner: lu('#ecGive'), recevoir: lu('#ecRecv'), groupes: lu('.ec-groupes'),
+        creer: lu('#ecGrCreer'), rejoindre: lu('#ecGrRejoindre') };
+      const d = document.querySelector('#ecGive'), g = document.querySelector('.ec-groupes');
+      if (d && g) out.groupes.memeFond = getComputedStyle(g).backgroundColor === getComputedStyle(d).backgroundColor;
+      out.porteDirect = !!document.querySelector('#ecPromo');
       return out;
     });
     /* ---- ET LE POUCE GARDE SON DESSIN ----
@@ -780,9 +776,9 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
        l'écran : c'est exactement ce qui vient d'arriver — une tranche
        ajoutée au poste s'est invitée sur mobile sans que personne ne
        l'ait demandé. Le contrôle fige donc les deux ergonomies, parce
-       que ce sont DEUX dessins : au pouce la porte est une ligne pleine
-       largeur avec son chevron (une grande cible, une seule colonne),
-       au poste un contrôle taillé à son mot dans une rangée. */
+       que ce sont DEUX dessins : au pouce le cadre « Groupes » (hier la
+       porte « Partage en groupe ») tient toute la largeur, chaque rangée
+       avec son chevron (de grandes cibles, une seule colonne). */
     await eP.setViewportSize({ width: 390, height: 844 });
     /* de quoi FAIRE APPARAÎTRE la tranche du poste si elle descendait :
        sans piste dormante elle ne rend rien, et le contrôle resterait
@@ -794,30 +790,35 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
         { t: Date.now() - 19 * 864e5, txt: 'Reçu de Léa : +1 piste(s)',
           ids: S.companies.map(c => c.id) }
       ]));
+      /* un groupe, pour que le cadre ait une rangée à mesurer */
+      const g = await import('./engine/groupe.js');
+      await st.kvSet(st.PROFILE_KEY, JSON.stringify({ ...S.profile,
+        groupes: [{ code: g.nouveauCode(), nom: 'BTS SIO Lille', at: 1 }] }));
     });
     await eP.reload({ waitUntil: 'load' });
     await eP.evaluate(() => { location.hash = '#/aujourdhui'; });
     await eP.waitForTimeout(200);
     await eP.evaluate(() => { location.hash = '#/echanger'; });
-    await attendre(eP, () => !!document.querySelector('#ecPromo'),
-      { message: 'la porte au pouce' });
+    await attendre(eP, () => !!document.querySelector('.ec-groupes .gr-ligne'),
+      { message: 'le cadre « Groupes » au pouce, avec sa rangée' });
     const pouce = await eP.evaluate(() => {
-      const p = document.querySelector('#ecPromo');
+      const p = document.querySelector('.ec-groupes');
       const inner = document.querySelector('#view-echanger .page-inner');
       const g = document.querySelector('#ecGive');
       return {
         pleine: p.getBoundingClientRect().width >= inner.getBoundingClientRect().width - 4,
-        chevron: p.querySelectorAll('.ic').length >= 2,
+        /* chaque rangée mène à son groupe : elle porte son chevron */
+        chevron: [...p.querySelectorAll('.gr-ligne')].every(r => !!r.querySelector('.ic:last-child')),
         hauteurVerbe: g ? Math.round(g.getBoundingClientRect().height) : 0,
         /* ce que le poste a gagné ne descend PAS ici tout seul */
         trancheDuPoste: !!document.querySelector('#view-echanger .ec-repr')
       };
     });
     if (!pouce.pleine)
-      fail('commandes @pouce : la porte n’occupe plus toute la largeur — au doigt, une seule '
+      fail('commandes @pouce : le cadre « Groupes » n’occupe plus toute la largeur — au doigt, une seule '
         + 'colonne et de grandes cibles ; le dessin du poste n’a rien à faire ici');
     if (!pouce.chevron)
-      fail('commandes @pouce : la porte a perdu son chevron — sur une ligne pleine largeur, '
+      fail('commandes @pouce : une rangée de groupe a perdu son chevron — sur une ligne pleine largeur, '
         + 'c’est lui qui dit qu’elle mène ailleurs');
     /* LE FORMAT DU POUCE A CHANGÉ, EXPRÈS (30 septembre 2026). Les
        verbes faisaient 95 px de haut, icône au-dessus du mot — le
@@ -840,70 +841,46 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
         + 'téléphone — elle a été conçue pour le poste. Si elle doit descendre ici, ça se '
         + 'décide et ça se change dans ce contrôle, pas au détour d’une retouche d’écran');
     if (pouce.pleine && pouce.chevron && pouce.hauteurVerbe >= 44 && pouce.hauteurVerbe <= 56 && !pouce.trancheDuPoste)
-      console.log(`commandes @pouce : porte pleine largeur avec chevron, verbes à `
+      console.log(`commandes @pouce : cadre « Groupes » pleine largeur, rangées à chevron, verbes à `
         + `${pouce.hauteurVerbe}px — le dessin du doigt est intact ✓`);
     await eCtx.close();
     if (!etalon.h || !cmd.donner) fail('commandes : étalon ou boutons introuvables — le contrôle ne mesure rien');
     else {
       /* la marge est généreuse — on garde l'ÉCHELLE, pas le pixel */
       const plafond = Math.round(etalon.h * 1.5);
-      for (const [nom, c] of [['Donner', cmd.donner], ['Recevoir', cmd.recevoir], ['Partage en groupe', cmd.porte]])
+      for (const [nom, c] of [['Donner', cmd.donner], ['Recevoir', cmd.recevoir], ['Créer', cmd.creer], ['Rejoindre', cmd.rejoindre]])
         if (c && c.h > plafond)
           fail(`commandes : « ${nom} » fait ${c.h}px de haut quand l'étalon de l'app en fait `
             + `${etalon.h} (plafond ${plafond}) — c'est le format du pouce posé sur un écran de bureau`);
       if (cmd.donner.w > etalon.w * 2.5)
         fail(`commandes : « Donner » fait ${cmd.donner.w}px de large pour un mot, contre `
           + `${etalon.w} à l'étalon — un bouton se taille à son contenu`);
-      /* UN VERBE ET UN LIEU NE SE DESSINENT PAS PAREIL — MAIS SE
-         DISTINGUER N'EST PAS S'EFFACER. Deux erreurs opposées ont été
-         faites sur cette seule porte, et le contrôle tient les deux
-         bords :
-         · d'abord trois cellules identiques, qui effaçaient la
-           différence de nature entre deux VERBES qu'on exécute et un
-           LIEU où l'on entre ;
-         · puis, pour l'en distinguer, une porte dépouillée de son fond,
-           de son cadre et de son relief et poussée au bout de la
-           rangée — « quasiment inexistante », et c'est le mainteneur
-           qui l'a vu.
-         Ce qui la sépare n'est donc pas MOINS d'encre, c'est une autre
-         PLACE et une autre FORME : sa propre ligne, toute la largeur,
-         sa carte et son chevron. On exige les trois. */
+      /* LE CADRE « GROUPES » (lot 5) a pris la place de la porte
+         « Partage en groupe ». Ce que les trois essais ratés sur cette
+         porte avaient appris tient toujours, appliqué à un cadre :
+         il se VOIT (fond, cadre ou relief — se distinguer n'est pas
+         s'effacer), et il ne porte jamais le fond de l'action
+         principale (une seule action remplie par écran, Material 3).
+         Et le partage en direct, masqué, ne revient pas par la porte. */
       let porteOk = true;
       const grief = m => { porteOk = false; fail(m); };
-      /* TROIS ESSAIS RATÉS SUR CE SEUL OBJET, et le contrôle tient
-         maintenant les trois bords, parce que les trois ont été
-         franchis :
-         · trois cellules identiques — la nature de la porte effacée ;
-         · une porte dépouillée et rejetée au bord — invisible ;
-         · une bande pleine largeur — elle écrasait la rangée.
-         La sortie est celle de Material 3 : l'importance se lit à
-         l'EMPHASE (rempli > contourné > discret), pas à la taille ni à
-         la place. Donc : une boîte, à l'échelle des verbes, sur la même
-         rangée, taillée à son mot — et jamais le fond de l'action
-         principale. */
-      if (!cmd.porte) grief('commandes : la porte du groupe a disparu — le contrôle ne mesure rien');
+      if (!cmd.groupes) grief('commandes : le cadre « Groupes » a disparu — le contrôle ne mesure rien');
       else {
-        if (!cmd.porte.boite)
-          grief('commandes : « Partage en groupe » n’a plus ni fond, ni cadre, ni relief — '
-            + 'se distinguer des deux verbes ne veut pas dire disparaître');
-        if (cmd.porte.h < cmd.donner.h)
-          grief(`commandes : la porte (${cmd.porte.h}px) est plus courte qu’un verbe `
-            + `(${cmd.donner.h}px) — elle n’est pas une note de bas de page`);
-        if (cmd.porte.w > cmd.largeurPage * 0.5)
-          grief(`commandes : la porte fait ${cmd.porte.w}px sur ${cmd.largeurPage} — une bande `
-            + 'pleine largeur écrase la rangée qu’elle devait rejoindre ; un contrôle se taille '
-            + 'à son mot');
-        if (!cmd.porte.memeRangee)
-          grief('commandes : la porte a quitté la rangée des verbes — au poste, trois contrôles '
-            + 'alignés se comparent d’un coup d’œil ; c’est l’emphase qui les distingue');
-        if (cmd.porte.memeFond)
-          grief('commandes : la porte porte le fond de l’action principale — une seule action '
+        if (!cmd.groupes.boite)
+          grief('commandes : « Groupes » n’a plus ni fond, ni cadre, ni relief — '
+            + 'ses rangées ne se lisent plus comme un ensemble');
+        if (cmd.groupes.memeFond)
+          grief('commandes : le cadre « Groupes » porte le fond de l’action principale — une seule action '
             + 'remplie par écran (Material 3), sinon la hiérarchie ne se lit plus');
+        if (!cmd.creer || !cmd.rejoindre)
+          grief('commandes : sans groupe, « Créer » et « Rejoindre » doivent être là');
       }
+      if (cmd.porteDirect)
+        grief('commandes : la porte « Partage en groupe » est revenue — le direct est masqué (ui/perimetre.js)');
       if (porteOk)
         console.log(`commandes @poste : Donner ${cmd.donner.w}×${cmd.donner.h} rempli, `
           + `Recevoir ${cmd.recevoir.w}×${cmd.recevoir.h} contourné, `
-          + `porte ${cmd.porte.w}×${cmd.porte.h} sourde — même rangée, emphase décroissante `
+          + `cadre « Groupes » sourd, Créer ${cmd.creer.h} px et Rejoindre ${cmd.rejoindre.h} px `
           + `(étalon de l'app ${etalon.w}×${etalon.h}) ✓`);
     }
   }

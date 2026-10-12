@@ -9,8 +9,9 @@ import { uid, extractCity, todayISO, fmtDate } from './utils.js';
 import { normalizeParcours, parcoursDe, phraseParcours } from './parcours.js';
 import { normalizeAmis, idAmiValide } from './amis.js';
 import { boiteValide } from './boite.js';
+import { normaliserGroupes } from './groupe.js';
 
-export const APP_VERSION = '6.57.0';
+export const APP_VERSION = '6.58.0';
 
 export const DOMAINS = {
   esn:     { label:'ESN / Services IT',       color:'#4C9FD8' },
@@ -520,6 +521,11 @@ export function normalizeProfile(raw){
      ce qui m'attend. Abîmée, elle part — un QR redonné en refera une. */
   if (!boiteValide(profile.boite)) delete profile.boite;
   else profile.boite = { pub: profile.boite.pub, priv: profile.boite.priv };
+  /* MES GROUPES (lot 5, engine/groupe.js) : le code et le nom de chacun,
+     cinq au plus. Ils voyagent avec le profil — sync de MES appareils,
+     ma copie — pour que chacun de mes appareils y soit ; ce qui s'y dit
+     vit sur l'appareil (oc_groupes_v1). Jamais dans un profil donné. */
+  profile.groupes = normaliserGroupes(profile.groupes);
   /* « PAS POUR MOI » (docs/recherche-profil.md) : les entreprises de
      « À découvrir » qu'on a écartées — un SIREN, le nom pour pouvoir les
      rendre, la date. Les plus anciennes partent au-delà de 300. */

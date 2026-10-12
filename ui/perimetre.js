@@ -45,3 +45,12 @@ export const IA = false;
    question ② : il engage le mainteneur dans une démarche permanente
    chez un fournisseur. `mailto:` reste le chemin de tout le monde. */
 export const ENVOI_DIRECT = false;
+
+/* ---- Remplacé par mieux ---- */
+
+/* « Partage en groupe » EN DIRECT : un mot de passe commun, tout le monde
+   connecté au même instant. Les groupes (lot 5, décision 22) font la même
+   chose sans être là en même temps — on y donne des pistes, chacun les
+   reçoit à sa prochaine ouverture. Le direct et ses scénarios restent :
+   ils gardent le transport en direct que le rendez-vous QR emploie aussi. */
+export const PARTAGE_DIRECT = false;

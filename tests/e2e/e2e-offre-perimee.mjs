@@ -87,7 +87,7 @@ async function page(bundle){
 }
 async function groupe(p, mdp){
   await p.click('.bottomnav a[data-r="echanger"]');
-  await p.waitForSelector('#ecPromo'); await p.click('#ecPromo');
+  await p.evaluate(async () => (await import('./ui/direct.js')).openPromo());
   await p.waitForSelector('#prPass'); await p.fill('#prPass', mdp);
   await p.click('.modal-f .btn-primary');
   await p.waitForSelector('#prStatus');

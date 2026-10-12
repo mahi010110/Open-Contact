@@ -29,7 +29,12 @@ const moiQui = () => String((S.profile && S.profile.name) || '').trim().split(/\
 
 const QR_HARD_MAX = 1800;     /* caractères par QR : au-delà, rendez-vous P2P ou QR animé */
 
-export function openDonner(){
+/* `o.groupe` ({ code, nom }) : ouvert depuis un groupe (lot 5). La même
+   liste, le même « qui part » ; le pied n'a plus qu'un geste — donner au
+   groupe, qui le recevra à sa prochaine ouverture. */
+export function openDonner(o){
+  /* appelée aussi en écouteur de clic (l'événement) ou avec null */
+  o = o && o.groupe ? o : {};
   /* jamais les pistes d'exemple : leurs contacts sont fictifs */
   const alive = () => S.companies.filter(c => !isClosed(c) && !c.demo);
   if (!alive().length){ toast('Rien à donner pour l’instant — ajoute d’abord une piste.'); return; }
@@ -69,13 +74,14 @@ export function openDonner(){
     return leaving;
   };
   const enter = () => { gen++; leaveRdv(); return gen; };
-  const sh = openSheet({ title: 'Donner', icon: 'share', className: 'modal-donner', onClose: () => { gen++; leaveRdv(); } });
+  const titre = o.groupe ? 'Donner à ' + o.groupe.nom : 'Donner';
+  const sh = openSheet({ title: titre, icon: 'share', className: 'modal-donner', onClose: () => { gen++; leaveRdv(); } });
   const q = s => sh.body.querySelector(s);
 
   /* ---- l'écran : QR ou fichier — tout part par défaut, élagable ---- */
   const stepHow = () => {
     enter();
-    sh.setTitle('Donner');
+    sh.setTitle(titre);
     /* mobile = le terrain : QR d'abord ; desktop = le poste : fichier
        d'abord, le QR devient le pont vers le téléphone (#18) */
     const wide = matchMedia('(min-width:901px)').matches;
@@ -108,7 +114,24 @@ export function openDonner(){
     const sCut = document.createElement('span');
     sCut.className = 'dn-cut';
     sCut.hidden = true;
-    sh.setFoot(wide ? [sCut, bFile, bText, bQR] : [sCut, bQR, bFile, bText]);
+    /* AU GROUPE : un seul geste, qui ne s'appelle pas autrement que le
+       titre de « Échanger » — Donner. Il part par les relais, scellé par
+       le code du groupe ; la ligne du fil dit qu'il est parti. */
+    const bGroupe = btn('Donner', 'btn-primary', async () => {
+      const list = chosen();
+      if (!list.length) return;
+      bGroupe.disabled = true;
+      const { donnerAuGroupe } = await import('./groupes.js');
+      const ok = await donnerAuGroupe(o.groupe.code, list, keepFn).catch(() => false);
+      bGroupe.disabled = false;
+      if (!ok){ (await import('./reseau.js')).echecEnvoi(); return; }
+      logJ('Donné (groupe) : ' + list.length + ' piste(s)', null, list.map(c => c.id));
+      sh.close();
+      if (o.apres) o.apres();
+    }, 'share');
+    bGroupe.id = 'dnGroupe';
+    if (o.groupe) sh.setFoot([sCut, bGroupe]);
+    else sh.setFoot(wide ? [sCut, bFile, bText, bQR] : [sCut, bQR, bFile, bText]);
     sh.body.innerHTML = barreListeHTML({ q: qs, ft, st, tout: !unsel.size,
       n: chosen().length, total: alive().length }) + '<div id="dnItems"></div>';
 
@@ -131,7 +154,7 @@ export function openDonner(){
       /* rien de coché = rien à envoyer : l'action est IMPOSSIBLE, elle se
          désactive. Avant, elle dépliait la liste pour dire ce qui
          manquait — un détour qui n'existe plus, la liste étant là. */
-      for (const b of [bQR, bFile, bText]) b.disabled = !k;
+      for (const b of [bQR, bFile, bText, bGroupe]) b.disabled = !k;
     };
     const listed = () => filterCompanies(alive(), { q: qs, ...filterArgs(ft), ...sortArgs(st) });
     /* Les LIGNES seules. Séparées de la barre parce que le champ de
