@@ -24,7 +24,7 @@
    ============================================================ */
 import { esc } from '../engine/utils.js';
 import { todayISO } from '../engine/utils.js';
-import { questionWikidata, lireWikidata, questionResume, lireResume, questionBodacc, lireBodacc, carte } from '../engine/carte.js';
+import { questionWikidata, lireWikidata, questionResume, lireResume, questionBodacc, lireBodacc, questionEgapro, lireEgapro, carte } from '../engine/carte.js';
 import { questionClearbit, lireClearbit } from '../engine/annuaire.js';
 import { aideEmbauche, euros } from '../engine/marche.js';
 import { ic } from './dom.js';
@@ -45,13 +45,15 @@ function lire(u, accept){
 /* Demander ce que les autres sources savent de `siren`. `notifier` est
    rappelé à chaque réponse qui change la carte. Une source en erreur se
    redemande à la prochaine ouverture, jamais en boucle. */
-export function suivreCarte(siren, notifier, nom){
+/* `o.egapro` : l'annuaire dit qu'elle a déclaré son index égalité —
+   seulement alors on le demande */
+export function suivreCarte(siren, notifier, nom, o = {}){
   if (!/^\d{9}$/.test(String(siren || ''))) return () => {};
   if (notifier){
     if (!abonnes.has(siren)) abonnes.set(siren, new Set());
     abonnes.get(siren).add(notifier);
   }
-  const e = memo.get(siren) || { wd: null, resume: '', bodacc: null, clearbit: '', etats: {} };
+  const e = memo.get(siren) || { wd: null, resume: '', bodacc: null, clearbit: '', egapro: null, etats: {} };
   memo.set(siren, e);
   const prevenir = () => (abonnes.get(siren) || []).forEach(f => { try { f(); } catch (x) { /* un écran fermé */ } });
   if (navigator.onLine !== false){
@@ -72,12 +74,20 @@ export function suivreCarte(siren, notifier, nom){
         }
       }).catch(() => { e.etats.wd = 'erreur'; });
     }
+    if (o.egapro && (!e.etats.egapro || e.etats.egapro === 'erreur')){
+      e.etats.egapro = 'charge';
+      lire(questionEgapro(siren), 'application/json').then(j => {
+        e.egapro = lireEgapro(j, siren);
+        e.etats.egapro = 'ok';
+        if (e.egapro) prevenir();
+      }).catch(() => { e.etats.egapro = 'erreur'; });
+    }
     if (!e.etats.bodacc || e.etats.bodacc === 'erreur'){
       e.etats.bodacc = 'charge';
       lire(questionBodacc(siren), 'application/json').then(j => {
-        e.bodacc = lireBodacc(j, todayISO());
+        e.bodacc = lireBodacc(j, todayISO(), siren);
         e.etats.bodacc = 'ok';
-        if (e.bodacc.procedure) prevenir();
+        if (e.bodacc.procedure || e.bodacc.evenements.length) prevenir();
       }).catch(() => { e.etats.bodacc = 'erreur'; });
     }
   }
@@ -86,7 +96,7 @@ export function suivreCarte(siren, notifier, nom){
 /* ce que les sources ont rendu jusqu'ici (rien, tant qu'elles se taisent) */
 export const sourcesDe = siren => {
   const e = memo.get(String(siren || ''));
-  return e ? { wd: e.wd, resume: e.resume, bodacc: e.bodacc, clearbit: e.clearbit } : {};
+  return e ? { wd: e.wd, resume: e.resume, bodacc: e.bodacc, clearbit: e.clearbit, egapro: e.egapro } : {};
 };
 /* la carte d'une entreprise, prête à dessiner */
 /* `metier` : celui que dit ta formation (metierDuProfil) — la carte dit
@@ -129,6 +139,9 @@ export function carteHTML(k, o){
      ${k.missions ? ligne('Missions', esc(k.missions.texte) + (k.missions.tonMetier
        ? ` <span class="ct-ton">${ic('check', 'ic-12')}colle à ta formation</span>` : '')) : ''}
      ${k.taille ? ligne('Taille', esc(k.taille)) : ''}
+     ${k.comptes ? ligne('Comptes', esc(k.comptes.texte)) : ''}
+     ${k.recemment ? ligne('Récemment', esc(k.recemment)) : ''}
+     ${k.egalite ? ligne('Égalité', esc(k.egalite)) : ''}
      ${o.ecrire === false ? '' : ecrireHTML(k.ecrire, o.nom)}
      ${k.aide ? ligne('Aide', `l’État lui verse jusqu’à <b>${euros(k.aide.montant)}</b> la 1<sup>re</sup> année${k.aide.grande ? ', sous conditions' : ''}`) : ''}
      ${site}`);

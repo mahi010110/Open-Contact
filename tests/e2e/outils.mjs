@@ -204,7 +204,7 @@ export async function copierDeploiement(dest){
    autre chose (une annonce, un mouvement, une cible) ne doit dépendre ni
    du réseau ni de sa limite de débit : l'annuaire y répond « rien ».
    Seul `e2e-decouvrir.mjs` le joue vraiment, avec sa propre réponse.
-   Wikidata, Wikipédia, le BODACC et Wikimedia de même : la carte d'une
+   Wikidata, Wikipédia, le BODACC, Egapro et Wikimedia de même : la carte d'une
    entreprise (ui/carte.js) les interroge dès qu'une fiche ou un aperçu
    s'ouvre — seuls `e2e-enrichir.mjs` et `e2e-carte.mjs` les jouent
    vraiment.
@@ -215,6 +215,7 @@ const BODACC_RE = 'https://bodacc-datadila.opendatasoft.com/**';
 const WIKIPEDIA_RE = 'https://fr.wikipedia.org/**';
 const COMMONS_RE = /^https:\/\/(commons|upload)\.wikimedia\.org\//;
 const CLEARBIT_RE = 'https://autocomplete.clearbit.com/**';
+const EGAPRO_RE = 'https://egapro.travail.gouv.fr/**';
 export async function annuaireMuet(cible){
   const cors = { 'access-control-allow-origin': '*' };
   await cible.route(ANNUAIRE_RE, r => r.fulfill({ status: 200, contentType: 'application/json',
@@ -258,6 +259,7 @@ export async function sourcesCarteMuettes(cible){
   await cible.route(COMMONS_RE, r => r.fulfill({ status: 200, contentType: 'image/svg+xml', headers: cors,
     body: '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>' }));
   await cible.route(CLEARBIT_RE, r => r.fulfill({ status: 200, contentType: 'application/json', headers: cors, body: '[]' }));
+  await cible.route(EGAPRO_RE, r => r.fulfill({ status: 200, contentType: 'application/json', headers: cors, body: '{"data":[]}' }));
 }
 /* tous les contextes d'un navigateur, d'un coup — pour les scénarios qui
    en ouvrent vingt */

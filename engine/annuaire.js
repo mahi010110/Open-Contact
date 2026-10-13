@@ -363,6 +363,20 @@ function nomConnu(r){
 /* Lire une réponse de l'annuaire. `o.ville` (clé pliée) et `o.userPos`
    choisissent l'établissement à montrer : celui de la ville cherchée,
    sinon le plus proche, sinon le premier qui correspond, sinon le siège. */
+/* `finances` : { "2024": { "ca": 84495737, "resultat_net": 3817639 } } —
+   l'année la plus récente seulement (relevé : aucune entreprise de
+   l'échantillon n'en publie deux). Un chiffre d'affaires nul (une
+   holding, une jeune pousse) ne se dit pas ; le résultat, si. */
+export function lireComptes(f){
+  if (!f || typeof f !== 'object') return null;
+  const ans = Object.keys(f).filter(a => /^\d{4}$/.test(a)).sort();
+  if (!ans.length) return null;
+  const annee = ans[ans.length - 1], d = f[annee] || {};
+  const ca = Number(d.ca), res = Number(d.resultat_net);
+  const out = { annee: +annee, ca: Number.isFinite(ca) && ca > 0 ? ca : null,
+                resultat: d.resultat_net != null && Number.isFinite(res) ? res : null };
+  return out.ca == null && out.resultat == null ? null : out;
+}
 export function lireAnnuaire(json, o){
   o = o || {};
   const res = (json && Array.isArray(json.results)) ? json.results : [];
@@ -443,6 +457,11 @@ export function lireAnnuaire(json, o){
       fermeeLe: String(r.date_fermeture || '').slice(0, 10),
       etablissements: nombre(r.nombre_etablissements_ouverts) ?? nombre(r.nombre_etablissements),
       conventions,
+      /* SES COMPTES, l'année la plus récente (retour du 13 octobre :
+         « sa santé et sa taille ») — relevé : 46 entreprises sur 50 */
+      comptes: lireComptes(r.finances),
+      /* l'index égalité DÉCLARÉ (Egapro) : seulement alors on le demande */
+      egapro: comp.egapro_renseignee === true,
       dirigeants: (Array.isArray(r.dirigeants) ? r.dirigeants : []).slice(0, 4).map(d => ({
         nom: d.type_dirigeant === 'personne morale' ? casse(d.denomination || '')
           : [d.prenoms, d.nom].filter(Boolean).map(casse).join(' '),

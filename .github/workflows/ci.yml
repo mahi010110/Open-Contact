@@ -63,6 +63,14 @@ jobs:
         continue-on-error: true
         timeout-minutes: 12
         run: node tests/e2e/sonde-utilite.mjs
+      # L'ESSENTIEL D'UNE ENTREPRISE (retour du 13 octobre) : la réponse
+      # entière d'Egapro, le BODACC classé comme le moteur le fera, les
+      # comptes, et une recherche d'offres au nom de l'entreprise.
+      # Informative.
+      - name: Sonde « l'essentiel d'une entreprise » (Egapro, BODACC classé, comptes, offres)
+        continue-on-error: true
+        timeout-minutes: 12
+        run: node tests/e2e/sonde-essentiel.mjs
       # L'AUDIT AU TÉLÉPHONE, SUR LE MOTEUR DE L'IPHONE (CLAUDE.md §9) :
       # chaque écran capturé sous WebKit, les images versées au journal
       # (les artefacts ne se téléchargent pas depuis l'environnement de
