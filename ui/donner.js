@@ -250,9 +250,11 @@ export function openDonner(o){
       return;
     }
     if (my !== gen) return;
-    sh.setTitle(`QR — ${n} piste${n > 1 ? 's' : ''}`);
+    /* la barre dit l'ÉTAPE ; ce qui part — le nombre — se lit sous le QR */
+    sh.setTitle('QR');
     sh.body.innerHTML =
       `<div class="qr-wrap" role="img" aria-label="QR à faire scanner">${svgs[0]}</div>
+       <p class="qr-prog dn-n" id="dnN">${n} piste${n > 1 ? 's' : ''}</p>
        ${svgs.length > 1 ? `<div class="qr-prog" id="dnQrProg">partie 1/${svgs.length} — laisse défiler</div>` : ''}
 `;
     if (svgs.length > 1){
@@ -300,7 +302,7 @@ export function openDonner(o){
         : 'Liaison impossible — passe par le fichier.');
       if (compact) stepQRData(compact, n, ids); else stepFile();
     };
-    sh.setTitle(`QR — ${n} piste${n > 1 ? 's' : ''}`);
+    sh.setTitle('QR');
     sh.body.innerHTML = `<div class="qr-prog">${ic('clock', 'ic-14')} Connexion…</div>`;
     sh.setFoot([btn('← Retour', 'btn-ghost', stepHow)]);
     const code = makeRdvCode();
@@ -505,13 +507,14 @@ export function openDonner(o){
     const n = chosen().length;
     const ids = chosen().map(c => c.id);
     const fname = 'opencontact-pistes-' + todayISO() + '.oc';
-    sh.setTitle(`Fichier — ${n} piste${n > 1 ? 's' : ''}`);
+    sh.setTitle('Fichier');
     /* « Copier » est parti avec le texte (bouton « Texte » du pied). Sans
        feuille de partage (un poste sous Linux, Firefox), il ne reste donc
        qu'un geste : il redevient un bouton à sa taille, parce qu'une liste
        d'un seul geste n'est que la brique d'avant sous un autre nom (§6). */
     const dl = `<b>${ic('download', 'ic-14')} Télécharger</b>`;
     sh.body.innerHTML =
+      `<p class="qr-prog dn-n" id="dnN">${n} piste${n > 1 ? 's' : ''}</p>` +
       (navigator.share
         ? `<div class="pick-list">
              <button class="pick" id="dnShare"><b>${ic('share', 'ic-14')} Partager</b></button>

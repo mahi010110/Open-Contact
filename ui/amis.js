@@ -24,6 +24,7 @@
    dont tu as le profil. « Groupe » reste le collectif, « contact » la
    personne dans une entreprise.
    ============================================================ */
+import { boutonEnvoyer } from './fichier.js';
 import { esc, todayISO, uid } from '../engine/utils.js';
 import { normalizeCompany } from '../engine/model.js';
 import { PARCOURS, periodeParcours } from '../engine/parcours.js';
@@ -102,12 +103,8 @@ export async function openMonQR(o = {}){
      Texte ». La phrase dit où le coller — c'est l'ami qui la lira. */
   /* le bouton DIT qu'il a copié, là où l'on vient de toucher — pas un
      toast de plus pour un résultat qu'on regarde déjà */
-  const copier = btn('Copier', '', async () => {
-    try {
-      await navigator.clipboard.writeText(`Mon profil OpenContact — colle ce message dans Échanger › Recevoir › Texte :\n${txt}`);
-      copier.innerHTML = ic('check', 'ic-14') + ' Copié';
-    } catch (e) { toast('Copie impossible ici — montre plutôt le QR.'); }
-  }, 'copy');
+  /* au doigt, « Envoyer » ouvre la feuille de partage ; au poste, « Copier » */
+  const copier = boutonEnvoyer(`Mon profil OpenContact — colle ce message dans Échanger › Recevoir › Texte :\n${txt}`);
   const scanner = btn('Scanner', '', async () => {
     sh.close();
     (await import('./recevoir.js')).openRecevoir({ scanner: true, apres: o.apres });
@@ -244,11 +241,13 @@ function retirerAvecAnnuler(a, apres){
   });
 }
 export function openAmi(a, apres){
-  const sh = openSheet({ title: a.nom, icon: 'user' });
+  /* « Ami » dans la barre, son nom en tête du contenu — le dessin de la
+     fiche d'une piste, et celui de la fiche d'un ami au poste (§4) */
+  const sh = openSheet({ title: 'Ami', icon: 'user' });
   const dessiner = () => {
     if (!sh.body.isConnected) return;
     const frais = (S.profile.amis || []).find(x => x.id === a.id) || a;
-    sh.body.innerHTML = ficheAmiHTML(frais);
+    sh.body.innerHTML = `<h2 class="ap-nom am-nom">${esc(frais.nom)}</h2>` + ficheAmiHTML(frais);
     lierFicheAmi(sh.body, frais, { apres: () => { dessiner(); if (apres) apres(); }, fermer: () => sh.close() });
   };
   dessiner();

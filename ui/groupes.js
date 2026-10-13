@@ -14,6 +14,7 @@
      écrire ou donner ;
    · « Membres » — les prénoms, l'invitation, Quitter.
    ============================================================ */
+import { boutonEnvoyer } from './fichier.js';
 import { esc, localISO } from '../engine/utils.js';
 import { kvGet, kvSet, GROUPES_KEY } from '../engine/storage.js';
 import { nouvelId, LETTRE_KIND } from '../engine/boite.js';
@@ -664,12 +665,12 @@ export async function demanderAuxGroupes(l){
 function ouvrirReponse(code, x, apres){
   const r = recueDe(x.id);
   const t = trouvePour(r);
-  const sh = openSheet({ title: `${x.prenom} cherche quelqu’un`, icon: 'users' });
+  const sh = openSheet({ title: 'Demande', icon: 'users' });
   const autres = mesGroupes().filter(g => g.code !== code && !(groupe(g.code).fil || []).some(y => y.id === x.id));
   const versGroupes = peutRelayerGroupe(x) ? autres : [];
   const fin = () => { sh.close(); apres(); };
   const accueil = () => {
-    sh.setTitle(`${x.prenom} cherche quelqu’un`);
+    sh.setTitle('Demande');
     sh.body.innerHTML =
       `<div class="gr-mot" id="rpMot">${esc(x.prenom)} cherche quelqu’un ${esc(quoiDe(x.lettre))}.</div>
        <div class="pick-list gr-rep">
@@ -765,19 +766,18 @@ async function inviterDans(box, code){
   let svg = '';
   try { svg = await makeQrSvg(txt); } catch (e) {}
   if (!box.isConnected) return;
+  /* L'INVITATION SE NOMME : un QR sans un mot, posé dans un fil vide,
+     ne dit pas à quoi il sert. Un libellé — celui d'une section, pas une
+     phrase — et le geste qui l'envoie : au doigt la feuille de partage
+     (la conversation de la classe, en un geste), au poste « Copier ». */
   box.innerHTML =
-    `${svg ? `<div class="qr-wrap" role="img" aria-label="Le QR du groupe, à faire scanner">${svg}</div>` : ''}
+    `<span class="gr-inv-t">Inviter</span>
+     ${svg ? `<div class="qr-wrap" role="img" aria-label="Le QR du groupe, à faire scanner">${svg}</div>` : ''}
      ${porte ? '' : `<p class="gr-code"><span>Code</span> <b id="grCodeAff">${esc(codeAffiche(code))}</b></p>`}`;
-  const copier = btn('Copier', 'btn-sm', async () => {
-    try {
-      await navigator.clipboard.writeText(porte
-        ? `Demande à entrer dans « ${nomDe(code)} » sur OpenContact. Copie ce message, puis Échanger › Recevoir › Texte :\n${txt}`
-        : `Rejoins « ${nomDe(code)} » sur OpenContact. Copie ce message, puis Échanger › Recevoir › Texte :\n${txt}`);
-      copier.innerHTML = ic('check', 'ic-14') + ' Copié';
-    } catch (e) { toast('Copie impossible ici — montre plutôt le QR.'); }
-  }, 'copy');
-  copier.id = 'grCopier';
-  box.append(copier);
+  box.append(boutonEnvoyer(porte
+    ? `Demande à entrer dans « ${nomDe(code)} » sur OpenContact. Copie ce message, puis Échanger › Recevoir › Texte :\n${txt}`
+    : `Rejoins « ${nomDe(code)} » sur OpenContact. Copie ce message, puis Échanger › Recevoir › Texte :\n${txt}`,
+    { classe: 'btn-sm', id: 'grCopier' }));
 }
 function ouvrirMembres(code, shGroupe){
   const sh = openSheet({ title: 'Membres', icon: 'users' });
@@ -824,9 +824,10 @@ function ouvrirMembre(code, de, apres){
   const v = groupe(code).membres[de];
   const gestes = gestesSur(code, de);
   if (!v || !gestes.length) return;
-  const sh = openSheet({ title: v.prenom, icon: 'user' });
+  const sh = openSheet({ title: 'Membre', icon: 'user' });
   sh.body.innerHTML =
-    `${gestes.includes('nommer') ? `<button class="btn btn-sm" id="grNommer" data-nommer="${esc(de)}">${ic('check', 'ic-14')} Nommer adjoint</button>` : ''}
+    `<h2 class="ap-nom am-nom">${esc(v.prenom)}</h2>
+     ${gestes.includes('nommer') ? `<button class="btn btn-sm" id="grNommer" data-nommer="${esc(de)}">${ic('check', 'ic-14')} Nommer adjoint</button>` : ''}
      ${gestes.includes('retirer') ? `<div class="pick-sortie">
        <button class="btn btn-sm btn-danger" id="grRetirerMembre">${ic('trash', 'ic-14')} Retirer du groupe</button></div>` : ''}`;
   sh.body.querySelector('#grNommer')?.addEventListener('click', () => { sh.close(); nommer(code, de, apres); });

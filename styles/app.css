@@ -3230,12 +3230,23 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
    est en rem, sur la colonne du texte — il suit la police tout seul :
    à 100 % le bouton reste sur la ligne, plus grand il descend. */
 .am-par .pick.am-ro>.pk-m{min-width:9rem}
-/* LA DEMANDE À SES AMIS (lot 3). Sur la fiche, à la place du bandeau
-   « Karim y est » quand personne ne peut te porter : un geste secondaire,
-   taillé à son mot (§6) — le primaire de la fiche reste ailleurs. Partie,
-   elle devient un FAIT, en gris : rien ne presse, rien ne se tape. */
-.fi-demander{margin:0 0 14px}
-.fi-demande{display:flex;align-items:center;gap:7px;margin:0 0 14px;color:var(--text-muted);font-size:var(--text-13)}
+/* LA DEMANDE À SES AMIS (lot 3), DANS « CONTACTS » (12 octobre 2026) :
+   sous la liste, là où la personne trouvée prendra sa place. Le geste
+   est une ligne en pointillé — celle d'« Ajouter un ami » et d'« À
+   trier » : un geste, pas un contact de plus. Partie, la demande devient
+   un FAIT, en gris : rien ne presse, rien ne se tape. Le contact qu'un
+   ami donne y est PROPOSÉ : le pointillé dit « pas encore à toi »,
+   l'accent dit l'atout ; un tap ouvre son aperçu. */
+.fi-demander,.fi-don{
+  display:flex;align-items:center;gap:8px;width:100%;min-height:var(--ctl);margin-top:6px;padding:5px 10px;
+  background:none;border:1px dashed var(--border-strong);border-radius:var(--radius-1);
+  font:inherit;font-size:var(--text-13);color:var(--text-muted);text-align:left;cursor:pointer;
+}
+.fi-don{border-color:var(--accent);color:var(--accent)}
+.fi-don b{flex:1;min-width:0;font-weight:var(--weight-semibold);overflow-wrap:anywhere}
+.fi-demander:active,.fi-don:active{background:var(--surface-raised)}
+@media (hover:hover){ .fi-demander:hover,.fi-don:hover{background:var(--surface-raised)} }
+.fi-demande{display:flex;align-items:center;gap:7px;margin:6px 0 0;color:var(--text-muted);font-size:var(--text-13)}
 /* QUELQU'UN A TROUVÉ (lot 4b) : toujours un fait — on attend son oui —
    mais une bonne nouvelle, donc l'accent du contenu, jamais un mark-* */
 .fi-demande.fi-trouve{color:var(--accent)}
@@ -3246,6 +3257,18 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 .am-demander{margin:12px 0 0}
 /* à qui elle part, sous la phrase : des prénoms, rien d'autre */
 .dm-qui{display:flex;align-items:center;gap:7px;margin:10px 0 0;color:var(--text-muted);font-size:var(--text-13)}
+/* QUI demande, ou qui donne : la phrase que la barre portait, en tête du
+   contenu — à la taille d'un nom, lisible, et elle plie */
+/* à qui l'on écrit : la piste, en tête du composeur — elle PLIE, et le
+   rang dans une série (« 2/5 ») se lit à droite, en donnée */
+.ml-pour{display:flex;align-items:baseline;gap:10px;margin:0 0 10px;font-size:var(--text-14);line-height:1.3}
+.ml-pour b{flex:1;min-width:0;font-weight:var(--weight-bold);overflow-wrap:anywhere}
+.ml-n{flex:none;font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted)}
+.dn-n{margin:0 0 10px}
+.qr-wrap + .dn-n{margin:8px 0 0}
+.dm-de{margin:0 0 4px;font-size:var(--text-16);line-height:1.3;color:var(--text-body)}
+.dm-de b{font-weight:var(--weight-bold)}
+.dm-de + .dm-chez{margin-top:0}
 .dm-qui + .pick-list{margin-top:10px}
 /* « chez AZTEK SAS » continue le titre (« Inès cherche quelqu'un ») : il
    vient AVANT le contact, qui prend sa place d'objet */
@@ -3255,7 +3278,7 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
    t'ouvre DANS TES PISTES prend l'accent — un atout, jamais un mark-* ;
    la ligne choisie, au poste, le liseré du châssis (« où tu es », §4). */
 .am-row .am-tienne{color:var(--accent);font-weight:var(--weight-semibold)}
-.am-detail .ap-nom{margin-bottom:10px}
+.am-detail .ap-nom,.am-nom{margin-bottom:10px}
 @media (min-width:901px){
   .am-sel .sw-in{background:var(--surface-chrome);box-shadow:inset 3px 0 0 var(--select-bg)}
 }
@@ -3344,6 +3367,10 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 .gr-pied .gr-champ{flex:1 1 7rem;min-width:0;min-height:var(--ctl);padding:10px 12px;line-height:1.4;resize:none;overflow:hidden}
 .gr-pied .btn{flex:none}
 .gr-inviter{display:flex;flex-direction:column;align-items:center;gap:8px;margin:4px 0 8px}
+/* « Inviter » : le libellé d'une section (celui de « Contacts », « Où
+   j'en suis »), calé à gauche au-dessus du QR qu'il nomme */
+.gr-inv-t{align-self:stretch;font-size:var(--text-11);font-weight:var(--weight-bold);
+  letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--text-muted)}
 .gr-inviter .qr-wrap{margin:0 auto;width:100%;max-width:240px;padding:12px}
 .gr-code{display:flex;align-items:baseline;gap:8px;margin:0;font-size:var(--text-13);color:var(--text-muted)}
 .gr-code b{font-family:var(--font-mono);font-size:var(--text-16);color:var(--text-body);letter-spacing:.04em}

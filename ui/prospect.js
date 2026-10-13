@@ -35,7 +35,7 @@ export function openProspect(){
   const sel = new Set();
   const st = sortState('status');            /* « À contacter » en tête par défaut */
   const ft = filterState();                  /* propre à cet écran (#8) */
-  const sh = openSheet({ title: 'Prospecter — qui ?', icon: 'mail' });
+  const sh = openSheet({ title: 'Prospecter', icon: 'mail' });
 
   /* qui recevra, piste par piste (#1). Écrire n'est pas donner : le
      défaut reste UNE personne — celle de la prochaine action — sinon un

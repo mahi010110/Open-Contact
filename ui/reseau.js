@@ -524,7 +524,10 @@ const contactHTML = (k, id) =>
 function ouvrirRecue(r){
   const choix = choixPour(r);
   if (!choix.length) return;
-  const sh = openSheet({ title: `${r.de.prenom} cherche quelqu’un`, icon: 'users' });
+  /* LA BARRE DIT CE QU'EST LA FENÊTRE — « Demande » —, le contenu dit
+     laquelle : « Inès cherche quelqu'un chez Aztek » (§4). Une phrase en
+     capitales pixel dans la barre ne se lit pas, elle se déchiffre. */
+  const sh = openSheet({ title: 'Demande', icon: 'users' });
   /* CE QUE TU DONNERAIS, en entier — le contact, rien de ton suivi.
      Un seul choix (le cas courant) n'est pas un choix : il se lit, et le
      geste tient le pied. Plusieurs : on en choisit un. « J'y suis »
@@ -560,7 +563,8 @@ function ouvrirRecue(r){
   ignorer.id = 'drIgnorer';
   const dessiner = () => {
     const x = choix[choisi];
-    sh.body.innerHTML = `<p class="dm-qui dm-chez" id="drChez">chez ${esc(chez(x))}${r.par ? ' · par ' + esc(parDe(r)) : ''}</p>` + (choix.length === 1
+    sh.body.innerHTML = `<p class="dm-de" id="drDe"><b>${esc(r.de.prenom)}</b> cherche quelqu’un</p>
+      <p class="dm-qui dm-chez" id="drChez">chez ${esc(chez(x))}${r.par ? ' · par ' + esc(parDe(r)) : ''}</p>` + (choix.length === 1
       ? contactHTML({ ...x.ct, role: dit(x) }, 'drNom')
       : `<div class="pick-list" id="drListe">${choix.map((y, i) =>
           `<button class="pick pk${i === choisi ? ' on' : ''}" data-i="${i}" aria-pressed="${i === choisi}">
@@ -685,13 +689,15 @@ export const bandeauDon = d => d.soi
   ? `${d.contact.name} ${direQuoi(d.soi.quoi, d.soi.maintenant)}${d.par ? ' · par ' + d.par : ''}`
   : `${quiDonne(d)} ${d.contact.name}`;
 export function ouvrirDon(d, apres){
-  const sh = openSheet({ title: quiDonne(d), icon: 'user' });
+  /* « Contact » dans la barre ; qui te l'a donné, en tête du contenu */
+  const sh = openSheet({ title: 'Contact', icon: 'user' });
   /* une demande par métier et ville n'avait pas de piste : celle du
      contact est la mienne si je l'ai déjà, sinon elle naîtra */
   const c = pisteDeDemande(d.demande) || S.companies.find(x => !x.closedReason && memeEntreprise(x, d.entreprise)) || null;
   const k = d.contact;
   const lieu = [c ? c.name : d.entreprise.nom, !c && d.entreprise.ville].filter(Boolean).join(' · ');
-  sh.body.innerHTML = contactHTML({ ...k, role: k.role || (d.soi ? direQuoi(d.soi.quoi, d.soi.maintenant) : '') }, 'ddNom')
+  sh.body.innerHTML = `<p class="dm-de" id="ddDe">${esc(quiDonne(d))}</p>`
+    + contactHTML({ ...k, role: k.role || (d.soi ? direQuoi(d.soi.quoi, d.soi.maintenant) : '') }, 'ddNom')
     + `<p class="dm-qui">pour ${esc(lieu)}</p>`;
   const ajouter = btn(c ? 'Ajouter à la piste' : 'Ajouter à mes pistes', 'btn-primary', async () => {
     let piste = c, neuve = false;

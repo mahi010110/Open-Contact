@@ -289,8 +289,9 @@ source :
    choisir — le profil donné ne porte que le nom et le parcours —, mais
    ce qu'il contient s'écrit sous le QR, mot pour mot. Le QR PORTE le
    profil (format OCA1) : il marche sans réseau, comme le QR de pistes.
-   À distance, « Copier » donne le même profil en texte, à coller dans
-   « Recevoir → Texte ».
+   À distance, le même profil part en texte, à coller dans « Recevoir →
+   Texte » : « Envoyer » au doigt (la feuille de partage du téléphone),
+   « Copier » au poste — l'invitation d'un groupe part de même.
 3. **Ce qu'un ami rapporte se lit là où l'on travaille.** LinkedIn le
    montre sur l'offre (« ask for a referral » : les relations dans
    l'entreprise, un message pré-rempli ; une candidature recommandée y
@@ -363,7 +364,9 @@ sur deux semaines, si une demande de 14 jours tient.
 
 Inès n'a personne à qui écrire chez Aztek. Sur la fiche, à la place où
 dirait « Karim y est en alternance » si quelqu'un pouvait la porter :
-**« Demander à mes amis »**. La feuille montre la phrase EXACTE qui part
+**« Demander à mes amis »**. *(Déplacé le 12 octobre 2026 dans
+« Contacts », sous la liste — là où se voit le manque, et où le contact
+trouvé arrivera, proposé en pointillé.)* La feuille montre la phrase EXACTE qui part
 — « Inès cherche quelqu'un chez Aztek. » — et à qui. Un tap, et la fiche
 dit « Demandé à 2 amis · aujourd'hui ». Chez Karim, qui connaît Julie
 là-bas, « Tes amis » passe en tête d'« Aujourd'hui » ; il voit ce qu'il

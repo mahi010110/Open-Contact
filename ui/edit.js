@@ -257,7 +257,9 @@ export function bindSharedFields(root){
 }
 
 export function openEditPiste(c, onDone){
-  const sh = openSheet({ title: 'Modifier — ' + c.name, icon: 'pencil', className: 'modal-fiche', focus: champAOuvrir('#edName') });
+  /* « Modifier » : le nom est dans le premier champ, juste dessous —
+     le redire dans la barre le coupait à 320 px (§4) */
+  const sh = openSheet({ title: 'Modifier', icon: 'pencil', className: 'modal-fiche', focus: champAOuvrir('#edName') });
   sh.body.innerHTML =
     /* La pastille suffit. « Ces infos circulent dans les partages — ton
        suivi jamais » expliquait la pastille : c'est le motif documenté

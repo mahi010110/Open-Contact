@@ -261,6 +261,11 @@ if (await I.p.$('#fiDemander')) fail('une piste qui a déjà quelqu’un à qui 
 await ouvrirFiche(I.p, 'az');
 const geste = await I.p.evaluate(() => document.querySelector('#fiDemander')?.textContent.replace(/\s+/g, ' ').trim());
 if (geste !== 'Demander à mes amis') fail('la fiche ne propose pas de demander : ' + geste);
+/* LE GESTE VIT DANS « CONTACTS » (12 octobre 2026) : demander sert à
+   trouver quelqu'un à qui écrire — il se pose là où cette personne
+   prendra sa place, pas sous le nom de la piste */
+const dansContacts = (p, sel) => p.evaluate(s => !!document.querySelector(s)?.closest('.fi-contacts'), sel);
+if (!await dansContacts(I.p, '#fiDemander')) fail('« Demander à mes amis » n’est pas dans « Contacts »');
 await I.p.screenshot({ path: `${SHOTS}/100-demande-fiche-pouce.png` });
 await I.p.click('#fiDemander');
 await I.p.waitForSelector('#dmGo');
@@ -279,6 +284,7 @@ await I.p.waitForSelector('#fiDemande', { timeout: 15000 });
 {
   const etat = await I.p.evaluate(() => document.querySelector('#fiDemande').textContent.replace(/\s+/g, ' ').trim());
   if (etat !== 'Demandé à 2 amis · aujourd’hui') fail('la fiche ne dit pas que c’est parti : ' + etat);
+  if (!await dansContacts(I.p, '#fiDemande')) fail('« Demandé à 2 amis » n’est pas dans « Contacts »');
   if (await I.p.$('#fiDemander')) fail('le bouton reste après la demande');
 }
 await I.p.waitForTimeout(400);
@@ -351,7 +357,10 @@ await K.p.screenshot({ path: `${SHOTS}/100-demande-aujourdhui-ami-pouce.png` });
 await K.p.click('.tr-amis .act-main');
 await K.p.waitForSelector('#drDonner');
 {
-  if (await dessus(K.p) !== 'Inès cherche quelqu’un') fail('la feuille : ' + await dessus(K.p));
+  /* la barre dit ce qu'est la fenêtre, le contenu dit qui (§4) */
+  if (await dessus(K.p) !== 'Demande') fail('la barre de la feuille : ' + await dessus(K.p));
+  const de = await K.p.evaluate(() => document.querySelector('#drDe')?.textContent.replace(/\s+/g, ' ').trim());
+  if (de !== 'Inès cherche quelqu’un') fail('qui demande, en tête de la feuille : ' + de);
   /* un seul contact joignable (Paul n'a aucun moyen) : ce n'est pas un
      choix, il se LIT, et « Donner » tient le pied */
   if (await K.p.$('#drListe')) fail('un seul contact se présente comme un choix');
@@ -401,11 +410,17 @@ await I.p.screenshot({ path: `${SHOTS}/100-demande-aujourdhui-don-pouce.png` });
 await ouvrirFiche(I.p, 'az');
 {
   const b = await I.p.evaluate(() => document.querySelector('#fiDon')?.textContent.replace(/\s+/g, ' ').trim());
-  if (b !== 'Karim t’a donné Julie Marchand') fail('le bandeau de la fiche : ' + b);
+  if (b !== 'Karim t’a donné Julie Marchand') fail('le contact proposé sur la fiche : ' + b);
+  /* proposé là où il finira : dans « Contacts », en pointillé */
+  if (!await dansContacts(I.p, '#fiDon')) fail('le contact donné n’est pas proposé dans « Contacts »');
 }
 await I.p.click('#fiDon');
 await I.p.waitForSelector('#ddAjouter');
 if ((await pisteDe(I.p, 'az')).contacts.length) fail('le contact est ajouté AVANT « Ajouter à la piste » (invariant ②)');
+{
+  const t = await dessus(I.p), de = await I.p.evaluate(() => document.querySelector('#ddDe')?.textContent.trim());
+  if (t !== 'Contact' || de !== 'Karim t’a donné') fail(`l’aperçu du contact : barre « ${t} », en tête « ${de} »`);
+}
 await I.p.waitForTimeout(400);
 await I.p.screenshot({ path: `${SHOTS}/100-demande-don-pouce.png` });
 await I.p.click('#ddAjouter');

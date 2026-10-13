@@ -375,11 +375,12 @@ function detailHTML(){
      circuler s'affichent ici » répétait, à 580 px de distance, la phrase
      du fil juste à sa gauche — deux phrases pour un seul vide. Un détail
      n'a rien à dire tant qu'il n'y a rien à sélectionner. */
-  if (!fil.length) return '<aside class="ec-detail"></aside>';
-  if (!x || !x.ids.length)
-    return `<aside class="ec-detail">
-              <p class="ec-rien">Cet échange est plus ancien que le suivi de ses pistes : il ne les retrouve pas.</p>
-            </aside>`;
+  /* … et un échange plus ancien que le suivi de ses pistes ne s'y
+     EXPLIQUE pas : sa ligne ne s'ouvre pas (pas de chevron, pas de
+     focus), le panneau n'a donc rien à en dire. La phrase qui le disait
+     (« il ne les retrouve pas ») était la première chose lue au poste,
+     une explication technique à la place des affaires de l'étudiant. */
+  if (!fil.length || !x || !x.ids.length) return '<aside class="ec-detail"></aside>';
   const k = contenuEchange(x, false);
   return `<aside class="ec-detail">
             <h2 class="tr-h">${ic(k.icone, 'ic-14')} ${esc(k.titre)}</h2>
@@ -392,8 +393,15 @@ export function renderEchanger(){
   const wide = mqWide.matches;
   /* la ligne lue doit exister : supprimer la dernière du fil, ou replier
      la liste, laisserait l'index dans le vide et le panneau muet */
-  const nFil = filVisible().length;
+  const visibles = filVisible();
+  const nFil = visibles.length;
   if (filSel >= nFil) filSel = Math.max(0, nFil - 1);
+  /* la ligne retenue d'office est la plus récente qu'on PEUT lire : une
+     ligne trop ancienne pour retrouver ses pistes ne se sélectionne pas */
+  if (visibles[filSel] && !visibles[filSel].ids.length){
+    const lisible = visibles.findIndex(x => x.ids.length);
+    if (lisible >= 0) filSel = lisible;
+  }
   /* « Donner » sans rien à donner était une action MORTE : on tapait le
      bouton principal de l'écran, un toast passait trois secondes, et
      rien ne se produisait. C'est la loi #6, déjà appliquée au composeur

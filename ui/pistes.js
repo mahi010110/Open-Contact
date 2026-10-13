@@ -664,7 +664,6 @@ export function renderPistes(){
         `<div class="td-empty">
            <div class="tde-ic">${ic('briefcase', 'ic-24')}</div>
            <h2>Aucune piste pour l’instant</h2>
-           <p>Chaque entreprise croisée est une piste — même avec juste un nom.</p>
            <div class="tde-actions">
              <button class="btn btn-primary" id="piAdd">${ic('plus', 'ic-14')} Ajouter une piste</button>
              ${!hasDemo() ? '<button class="btn" id="piDemo">Voir un exemple</button>' : ''}

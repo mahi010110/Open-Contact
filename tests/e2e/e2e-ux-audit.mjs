@@ -595,6 +595,11 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
       const ids = S.companies.map(c => c.id);
       const J = n => Date.now() - n * 864e5;
       await st.kvSet(st.JOURNAL_KEY, JSON.stringify([
+        /* la plus RÉCENTE est un échange d'avant le suivi des pistes :
+           sans identifiants, elle ne s'ouvre pas. C'est elle qui était
+           retenue d'office, et le panneau s'ouvrait sur une explication
+           technique au lieu des affaires de l'étudiant. */
+        { t: J(0), txt: 'Reçu de Léa : +3 piste(s)' },
         { t: J(1), txt: 'Donné (fichier) : ' + ids.length + ' piste(s)', ids },
         { t: J(4), txt: 'Reçu de Léa : +2 piste(s)', ids: ids.slice(0, 2) },
         { t: J(9), txt: 'Donné (QR) : 1 piste(s)', ids: ids.slice(0, 1) }
@@ -605,11 +610,19 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
       { message: 'les trois lignes du fil de la liste-détail' });
     const avant = await dPage.evaluate(() => ({
       feuille: !!document.querySelector('.overlay:not(.ov-out)'),
-      pane: document.querySelectorAll('.ec-detail .pick').length
+      pane: document.querySelectorAll('.ec-detail .pick').length,
+      phrase: (document.querySelector('.ec-detail p')?.textContent || '').trim(),
+      lue: !!document.querySelector('button.ec-row[aria-current="true"]')
     }));
     if (poste && !avant.pane)
       fail('liste-détail : au poste, le panneau est vide à l’arrivée — la ligne la plus '
-        + 'récente doit être lue d’emblée, sinon on a remplacé une porte par un vide');
+        + 'récente QU’ON PEUT LIRE doit l’être d’emblée, sinon on a remplacé une porte par un vide');
+    if (poste && avant.phrase)
+      fail(`liste-détail : le panneau s'ouvre sur une phrase (« ${avant.phrase} ») — `
+        + 'un échange trop ancien pour retrouver ses pistes ne s’explique pas, il ne se choisit pas');
+    if (poste && !avant.lue)
+      fail('liste-détail : à l’arrivée, aucune ligne ne porte la sélection — '
+        + 'le panneau montre des pistes sans dire à quel échange elles appartiennent');
     await dPage.click('button.ec-row');
     await dPage.waitForTimeout(450);
     const apres = await dPage.evaluate(() => ({

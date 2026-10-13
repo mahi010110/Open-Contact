@@ -15,6 +15,8 @@
    sur le téléphone qu'elle devait remplacer.
    ============================================================ */
 
+import { btn, ic, toast } from './dom.js';
+
 export function partagePossible(){
   return matchMedia('(pointer:coarse)').matches && typeof navigator.canShare === 'function'
     && typeof navigator.share === 'function';
@@ -56,4 +58,32 @@ export async function enregistrerFichier(txt, nom, titre){
     telecharger(txt, nom);
     return 'telechargement';
   }
+}
+
+/* ENVOYER, OU COPIER — le motif de « Signaler un problème », pour tout
+   message qu'on tend à quelqu'un (l'invitation d'un groupe, son profil
+   d'ami). Au doigt, la feuille de partage du téléphone : on y choisit la
+   conversation (la classe sur WhatsApp, un SMS), et le message part en
+   un geste au lieu de quatre — copier, changer d'app, trouver la
+   conversation, coller. Sa propre « Copier » y est déjà. Ailleurs, le
+   presse-papier, et le bouton dit « Copié » sur place. Renoncer au
+   partage ne fait rien ; un partage qui échoue retombe sur la copie,
+   pour que le geste aboutisse toujours à quelque chose.
+   `texte` peut être une fonction : le message se lit au moment du geste. */
+export function boutonEnvoyer(texte, { classe = '', id = '' } = {}){
+  const lire = async () => typeof texte === 'function' ? texte() : texte;
+  const copier = async () => {
+    try {
+      await navigator.clipboard.writeText(await lire());
+      b.innerHTML = ic('check', 'ic-14') + ' Copié';
+    } catch (e) { toast('Copie impossible ici — montre plutôt le QR.'); }
+  };
+  const b = partagePossible()
+    ? btn('Envoyer', classe, async () => {
+        try { await navigator.share({ text: await lire() }); }
+        catch (e) { if (!e || e.name !== 'AbortError') await copier(); }
+      }, 'share')
+    : btn('Copier', classe, copier, 'copy');
+  if (id) b.id = id;
+  return b;
 }

@@ -43,6 +43,9 @@ const HORS_ECRAN = new Set(['campagnes.js', 'ordinateur.js', 'connexions.js',
 
 /* ---- les plafonds, tenus à la main et à la baisse ---- */
 const PLAFOND = {
+  /* ⑥ — la barre d'une feuille dit ce qu'est la fenêtre (§4) : zéro
+     titre composé (« X — son nom », une phrase autour d'un prénom) */
+  titresComposes: 0,
   /* COMBIEN de toasts, et pas seulement leur longueur. Le compte
      manquait, et c'est exactement le trou par lequel ils sont arrivés :
      130 appels, 84 sur les écrans visibles, sans qu'aucun garde ne
@@ -377,8 +380,18 @@ const PLAFOND = {
      C'est une ERREUR dite sous son champ (§6) — elle n'apparaît que si
      ce qu'on a tapé ne permet de joindre personne, et dit quoi mettre.
      La classe `hint warn` la fait compter ; ce n'est pas une phrase qui
-     explique l'écran. */
-  motsExplication: 368,
+     explique l'écran.
+
+     339 le 12 octobre 2026, −29 : deux phrases qui EXPLIQUAIENT au lieu
+     de montrer. « Cet échange est plus ancien que le suivi de ses
+     pistes : il ne les retrouve pas. » était la première chose lue dans
+     « Échanger » au poste ; le panneau se tait maintenant, et la ligne
+     retenue d'office est la plus récente qu'on peut lire. « Chaque
+     entreprise croisée est une piste — même avec juste un nom. » sous
+     « Mes pistes » vide : l'accueil d'« Aujourd'hui » n'a qu'un titre et
+     ses gestes, celui-ci fait pareil — la capture ne demande qu'un nom,
+     elle le montre elle-même. */
+  motsExplication: 339,
   /* ZÉRO, et c'est le seul plafond qui puisse honnêtement valoir zéro :
      un style sans porteur n'a pas de contrepartie à peser — il ne rend
      service à personne, il ne fait qu'attendre d'être lu par erreur.
@@ -931,13 +944,78 @@ const EXEMPT = {
   globalThis.__motsHorsCharte = derives.length;
 }
 
+/* ---------- ⑥ LA BARRE D'UNE FEUILLE DIT CE QU'EST LA FENÊTRE ----------
+   §4 (audit d'octobre 2026) : « la barre dit ce qu'EST la fenêtre
+   (« Fiche », « Donner »), l'en-tête dit laquelle — jamais deux fois le
+   même nom ». Apple dit pareil d'une barre de navigation : un mot ou une
+   courte expression, une quinzaine de caractères. La règle n'avait été
+   appliquée qu'à la fiche ; le relevé du 12 octobre en a trouvé neuf
+   autres — « Modifier — Société Générale Global Solution Cen… »,
+   « Inès cherche quelqu'un », « Karim t'a donné » : une phrase ou un nom
+   recopié, en capitales pixel, coupés à 320 px.
+   Deux formes ne passent plus, parce que ce sont celles qui fabriquent
+   ces titres : un tiret cadratin (« X — son nom ») et un gabarit `${…}`
+   (une phrase montée autour d'un prénom). Un nom SEUL reste permis —
+   celui d'une conversation de groupe, comme dans toute messagerie. */
+function titresComposes(src, fichier){
+  const out = [];
+  const lireExpr = (i, fin) => {          /* jusqu'à la virgule (ou la parenthèse) de niveau 0 */
+    let prof = 0, q = null, j = i;
+    for (; j < src.length; j++){
+      const ch = src[j];
+      if (q){ if (ch === '\\'){ j++; continue; } if (ch === q) q = null; continue; }
+      if (ch === "'" || ch === '"' || ch === '`'){ q = ch; continue; }
+      if (ch === '(' || ch === '{' || ch === '[') prof++;
+      else if (ch === ')' || ch === '}' || ch === ']'){ if (!prof) break; prof--; }
+      else if (ch === ',' && !prof && fin === ',') break;
+    }
+    return src.slice(i, j).trim();
+  };
+  const voir = (expr, i) => {
+    if (/—/.test(expr) || /`[^`]*\$\{/.test(expr))
+      out.push(`${fichier}:${src.slice(0, i).split('\n').length} ${expr.slice(0, 70)}`);
+  };
+  /* chaque appel lu pour lui-même : son `title:` est dans ses premières
+     lignes, jamais dans l'appel suivant */
+  for (let k = src.indexOf('openSheet({'); k >= 0; k = src.indexOf('openSheet({', k + 1)){
+    const m = /\btitle:\s*/.exec(src.slice(k, k + 300));
+    if (!m) continue;
+    const i = k + m.index + m[0].length;
+    voir(lireExpr(i, ','), i);
+  }
+  for (const m of src.matchAll(/\.setTitle\(/g)){
+    const i = m.index + m[0].length;
+    voir(lireExpr(i, ')'), i);
+  }
+  return out;
+}
+{
+  const composes = [];
+  for (const f of readdirSync(UI).filter(f => f.endsWith('.js') && !HORS_ECRAN.has(f)))
+    composes.push(...titresComposes(readFileSync(path.join(UI, f), 'utf8'), f));
+  /* LE RELEVÉ SE PROUVE dans les deux sens : il prend les deux fautes
+     d'origine, et il laisse passer un titre juste et un nom seul */
+  const sonde = titresComposes(
+    "openSheet({ title: 'Modifier — ' + c.name, icon: 'pencil' });\n" +
+    "const sh = openSheet({ title: `${r.de.prenom} cherche quelqu’un`, icon: 'users' });\n" +
+    "openSheet({ title: 'Demande', icon: 'users' }); sh.setTitle(nomDe(code));", 'sonde');
+  if (sonde.length !== 2 || !/Modifier/.test(sonde[0]) || !/cherche/.test(sonde[1]))
+    fail('⑥ titres : la sonde ne rend pas ses deux fautes, et seulement elles — ' + JSON.stringify(sonde));
+  else if (composes.length > PLAFOND.titresComposes)
+    fail(`⑥ titres : ${composes.length} barre(s) de feuille composée(s) (plafond ${PLAFOND.titresComposes}) — `
+      + 'la barre dit ce qu’est la fenêtre, le contenu dit laquelle (§4) :\n      ' + composes.join('\n      '));
+  else console.log(`⑥ titres : ${composes.length} barre(s) composée(s) (plafond ${PLAFOND.titresComposes}), la sonde rend ses deux fautes ✓`);
+  globalThis.__titresComposes = composes.length;
+}
+
 /* Le rappel qui fait descendre les plafonds : ce qui est gagné se garde. */
 const marge = [
   ['toastCar', PLAFOND.toastCar - plusLong],
   ['confirmations', PLAFOND.confirmations - confirmations],
   ['motsExplication', PLAFOND.motsExplication - mots],
   ['surfaceMorte', PLAFOND.surfaceMorte - globalThis.__surfaceMorte],
-  ['motsHorsCharte', PLAFOND.motsHorsCharte - globalThis.__motsHorsCharte]
+  ['motsHorsCharte', PLAFOND.motsHorsCharte - globalThis.__motsHorsCharte],
+  ['titresComposes', PLAFOND.titresComposes - globalThis.__titresComposes]
 ].filter(([, d]) => d > 0);
 if (marge.length)
   console.log('↓ terrain gagné, à verrouiller dans PLAFOND : ' +
