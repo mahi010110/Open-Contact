@@ -120,6 +120,17 @@ input,select,textarea{font-family:inherit;color:var(--text-body)}
   .topnav{display:flex}
   .hdr .btn-cta{display:inline-flex}
 }
+/* AU POUCE, PAS D'EN-TÊTE (décision du mainteneur, 12 octobre 2026). Il
+   ne portait que le logo et la bascule du thème : 46 px pris en haut de
+   CHAQUE écran pour rien qu'on y fasse, pendant que la barre du bas
+   porte déjà la navigation. Le titre de l'écran (« Échanger », « Moi »)
+   dit où l'on est ; le thème passe dans Réglages. Au poste l'en-tête
+   reste : il y porte la navigation et « Ajouter une piste ». La marge
+   du haut suit l'encoche quand l'app est installée. */
+@media (max-width:900px){
+  .hdr{display:none}
+  .app{padding-top:env(safe-area-inset-top)}
+}
 
 /* ============ BARRE D'ÉTAT (desktop) ============ */
 .statusbar{
@@ -864,15 +875,6 @@ html[data-theme="dark"] .field select{
 /* pendant la frappe au pouce, la liste a de quoi défiler jusqu'à la
    barre (ui/pistes.js, `amenerBarre`) — le surplus vit sous le clavier */
 .pi-cherche #piBody{min-height:100vh;min-height:100dvh}
-/* … et l'en-tête s'efface vers le haut, au rythme du clavier. Une
-   exception NOMMÉE à « transform et opacity » (§4), du même ordre que le
-   cadenas : c'est une PLACE qui se rend à la liste, et un `transform`
-   laisserait son trou derrière lui. Bornée à l'en-tête, au pouce. */
-@media (max-width:900px){
-  .hdr{transition:margin-top var(--dur-3) var(--ease-out)}
-  .oc-cherche .hdr{margin-top:-47px}
-}
-@media (prefers-reduced-motion:reduce){ .hdr{transition:none} }
 .pt-dec #piAffiner,.pt-dec .kbd-bas{display:none}
 .pt-dec .search-wrap .kbd-hint{position:absolute;right:8px;top:50%;transform:translateY(-50%);margin:0}
 
@@ -1608,7 +1610,12 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 .rg-row>.ic{flex:none;color:var(--text-muted)}
 @media (hover:hover){
 .rg-row:hover .rg-n{color:var(--text-link)}
+.rg-theme:hover .rg-n{color:inherit}
 }
+/* « Thème » : la seule rangée qui ne mène nulle part — le choix y tient,
+   en deux segments, et c'est eux qu'on tape */
+.rg-theme{cursor:default}
+.rg-theme .seg3{flex:none}
 /* les deux gestes de Réglages CONTINUENT la liste : mêmes rangées, pas
    de second cadre dans le premier. Seul l'effacement se détache, par
    l'air (`.pick-sortie`), en rouge et en dernier. */
@@ -1879,10 +1886,13 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* ---- Échanger : deux verbes héros + pied discret ---- */
-.hero2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
-/* rien à donner : « Recevoir » reste seul et prend toute la largeur —
-   l'indisponible est absent, pas un demi-rang vide à côté (loi #6) */
-.hero2.hero1{grid-template-columns:1fr}
+/* deux verbes côte à côte, qui passent l'un sous l'autre quand le texte
+   grandit : en grille à deux colonnes, « Recevoir » dépassait le bord à
+   200 % en 320 px (un nom de bouton ne se coupe pas, §4). La base est en
+   `rem` — elle suit la police toute seule. Rien à donner : « Recevoir »
+   reste seul et prend toute la largeur (loi #6). */
+.hero2{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px}
+.hero2>.hero{flex:1 1 8rem;min-width:0}
 .hero2 .hero{font-size:var(--text-14)}
 
 /* Le fil des échanges : ce que l'écran a enfin à montrer. C'est un
@@ -1989,9 +1999,9 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   .ec-actes{
     flex:none;margin-bottom:18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
   }
-  /* les deux verbes tiennent LEUR rangée : les cadres « Groupes » et
-     « Amis » se rangent dessous, côte à côte, à parts égales */
-  .ec-actes .hero2{display:flex;flex:1 1 100%;gap:10px;margin:0}
+  /* les verbes et les portes des groupes partagent UNE rangée — celle
+     d'avant : Donner, Recevoir, puis là où l'on entre */
+  .ec-actes .hero2{display:contents}
   .ec-actes .hero{
     min-height:var(--ctl);width:auto;flex:none;flex-direction:row;gap:8px;
     padding:0 18px;font-size:var(--text-13);
@@ -3249,49 +3259,59 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 @media (min-width:901px){
   .am-sel .sw-in{background:var(--surface-chrome);box-shadow:inset 3px 0 0 var(--select-bg)}
 }
-/* LES AMIS, dans « Échanger » : leur nom, et les deux gestes d'échange
-   — la liste vit dans « Mes pistes ». Au pouce une ligne pleine largeur,
-   au poste le nom en encre sourde à côté de ses deux gestes. */
-.ec-amis{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;min-height:var(--ctl)}
-.ec-amis-t{flex:1;min-width:0;display:flex;align-items:center;gap:7px;font-size:var(--text-14);font-weight:var(--weight-bold)}
-.ec-amis-g{display:flex;flex-wrap:wrap;gap:8px}
-/* Au poste, « Amis » et « Groupes » sont DEUX CADRES DE MÊME DESSIN,
-   côte à côte, sous les deux verbes (audit adaptatif, octobre 2026).
-   « Groupes » était un cadre de 1 060 px pour une seule rangée, « Amis »
-   un mot nu à côté de ses gestes : deux objets de même nature — le mot,
-   deux gestes, ce qu'on y retrouve — dessinés de deux façons. Une
-   similitude de forme dit une similitude de nature (Gestalt) ; c'est
-   la règle que la porte « Partage en groupe » avait déjà payée ici. */
-@media (min-width:901px){
-  .ec-actes .ec-amis{margin:0;align-self:stretch;align-content:flex-start;flex:1 1 calc(50% - 5px)}
-  .ec-actes .ec-amis-t{flex:none;font-size:var(--text-13);font-weight:var(--weight-regular);color:var(--text-muted)}
+/* « Ajouter un ami », en bout de liste : la ligne calme de « À trier »,
+   en pointillé — un geste, pas un ami de plus */
+.am-ajout{
+  display:flex;align-items:center;gap:8px;width:100%;margin-top:8px;
+  padding:0 14px;min-height:var(--ctl);cursor:pointer;
+  background:none;border:1px dashed var(--border-strong);border-radius:var(--radius-0);
+  font:inherit;font-size:var(--text-13);color:var(--text-muted);text-align:left;
 }
+.am-ajout:active{background:var(--surface-raised)}
+@media (hover:hover){ .am-ajout:hover{background:var(--surface-raised);color:var(--text-body)} }
 .am-etat{display:flex;align-items:center;gap:7px;margin:12px 0 0;color:var(--accent);font-size:var(--text-13);font-weight:var(--weight-semibold)}
-/* LES GROUPES (lot 5), dans « Échanger » : le même dessin que « Amis »
-   — le mot et deux gestes — puis une rangée par groupe, sans relief,
-   un pointillé entre elles (la rangée de §6). Ce qui est arrivé depuis
-   la dernière fois se compte en mono, en accent : c'est ce qui change. */
-.ec-groupes{display:flex;flex-direction:column}
-/* sa tête a le dessin de « Amis », sous SES noms : une classe ne sert
-   qu'un objet, sinon ce qui cherche les gestes des amis trouve aussi
-   ceux des groupes (e2e-amis-onglet l'a vu) */
-.ec-gr-h{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;min-height:var(--ctl)}
-.ec-gr-t{flex:1;min-width:0;display:flex;align-items:center;gap:7px;font-size:var(--text-14);font-weight:var(--weight-bold)}
-.ec-gr-g{display:flex;flex-wrap:wrap;gap:8px}
-.gr-liste{display:flex;flex-direction:column;margin-top:8px}
-.gr-ligne{
-  display:flex;align-items:center;gap:10px;width:100%;min-height:var(--ctl);padding:6px 2px;
-  border:0;border-top:1px dashed var(--border-soft);background:none;
+/* LES GROUPES, dans « Échanger » : à la place de la porte « Partage en
+   groupe », et dans son dessin (ui/groupes.js). Au pouce, LE cadre de la
+   porte d'avant, une rangée par groupe, un pointillé entre elles (la
+   rangée de §6) ; au poste, chaque porte redevient un contrôle taillé à
+   son mot dans la rangée des verbes. Ce qui est arrivé depuis la
+   dernière fois se compte en mono, en accent : c'est ce qui change. */
+.ec-groupes{
+  flex:none;display:flex;flex-direction:column;margin:0 0 12px;
+  background:var(--surface-window);border:1px solid var(--border-strong);border-radius:var(--radius-0);
+  box-shadow:var(--shadow-raised);
+}
+.gr-ligne,.gr-neuf{
+  position:relative;display:flex;align-items:center;gap:10px;width:100%;min-height:calc(var(--ctl) + 4px);
+  padding:2px 16px;border:0;background:none;
   font:inherit;font-size:var(--text-14);color:var(--text-body);text-align:left;cursor:pointer;
 }
-.gr-ligne b{flex:1;min-width:0;font-weight:var(--weight-semibold);overflow-wrap:anywhere}
-.gr-ligne:active{background:var(--surface-raised)}
-@media (hover:hover){ .gr-ligne:hover{background:var(--surface-raised)} }
+/* le pointillé s'arrête aux marges du cadre, comme dans « Ce que
+   j'envoie » : un trait d'un bord à l'autre découperait la porte */
+.ec-groupes>*+*::before{content:'';position:absolute;left:16px;right:16px;top:0;border-top:1px dashed var(--border-soft)}
+.gr-ligne b,.gr-neuf b{flex:1;min-width:0;display:flex;align-items:center;gap:7px;
+  font-weight:var(--weight-bold);overflow-wrap:anywhere}
+.gr-ligne b .ic,.gr-neuf b .ic{flex:none}
+.gr-chev{flex:none;color:var(--text-muted)}
+/* « Nouveau groupe » : le geste rare, en dernier, en encre sourde */
+.gr-plus b{font-weight:var(--weight-regular);color:var(--text-muted)}
+.gr-ligne:active,.gr-neuf:active{background:var(--surface-raised)}
+@media (hover:hover){ .gr-ligne:hover,.gr-neuf:hover{background:var(--surface-raised)} }
 .gr-n{flex:none;font-family:var(--font-mono);font-size:var(--text-12);font-weight:var(--weight-bold);color:var(--accent)}
-.gr-ligne .ic{flex:none;color:var(--text-muted)}
 @media (min-width:901px){
-  .ec-actes .ec-groupes{flex:1 1 calc(50% - 5px);align-self:stretch;margin:0}
-  .ec-actes .ec-gr-t{flex:none;font-size:var(--text-13);font-weight:var(--weight-regular);color:var(--text-muted)}
+  .ec-actes .ec-groupes{display:contents}
+  .ec-actes .gr-ligne,.ec-actes .gr-neuf{
+    flex:0 0 auto;width:auto;min-height:var(--ctl);padding:0 14px;gap:8px;
+    background:var(--surface-window);border:1px solid var(--border-strong);box-shadow:var(--shadow-raised);
+    font-size:var(--text-13);color:var(--text-muted);
+  }
+  .ec-actes .ec-groupes>*::before{content:none}
+  .ec-actes .gr-ligne b,.ec-actes .gr-neuf b{flex:none;font-weight:var(--weight-regular)}
+  .ec-actes .gr-chev{display:none}
+  .ec-actes .gr-ligne:active,.ec-actes .gr-neuf:active{box-shadow:var(--shadow-pressed)}
+  /* au bout de la rangée, sans cadre : un geste qui sert une fois */
+  .ec-actes .gr-plus{background:none;border-color:transparent;box-shadow:none}
+  .ec-actes .gr-attente{background:none;border-style:dashed;box-shadow:none}
 }
 /* la feuille d'un groupe : elle se donne sa hauteur (§6, « Écrire ») —
    le fil défile, le pied reste sous le pouce */
@@ -3352,7 +3372,8 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 .gr-attente{cursor:default}
 .gr-attente:active{background:none}
 @media (hover:hover){ .gr-attente:hover{background:none} }
-.gr-att{flex:none;display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted)}
+.gr-attente b{font-weight:var(--weight-regular);color:var(--text-muted)}
+.gr-att{flex:none;font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted)}
 /* qui ouvre la porte se lit à côté du prénom ; le geste au bout */
 .gr-noms li{justify-content:space-between;gap:8px;flex-wrap:wrap}
 .gr-noms li>span{min-width:0;overflow-wrap:anywhere}

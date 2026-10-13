@@ -486,8 +486,11 @@ des contacts quand on n'a pas forcément beaucoup de connaissances. »
   ses entreprises mènent à ta piste ou s'y ajoutent d'un tap) ; glisser
   retire, avec « Annuler » ; au poste, la fiche vit à côté de la liste
   (liste-détail, comme « À découvrir »).
-- **Une liste, une place** : « Échanger » garde les gestes d'échange
-  (« Mon QR », « Scanner ») ; la LISTE vit dans « Mes pistes ».
+- **Une liste, une place** : la LISTE vit dans « Mes pistes », et c'est
+  là qu'on ajoute un ami (« Ajouter un ami », en bout de liste, ouvre
+  « Mon QR »). Le QR d'un ami se scanne par « Recevoir ». *(Revu le
+  12 octobre 2026 : « Échanger » ne garde plus « Mon QR » ni « Scanner »
+  — voir la décision 15.)*
 - **Les profils restent à jour tout seuls** : quand ton parcours change,
   tes amis reçoivent la nouvelle version par la boîte aux lettres. Une
   mise à jour ne fait que remplacer — elle ne rajoute jamais quelqu'un
@@ -834,8 +837,12 @@ message ou un membre. La décision 24 est entière.
     « À découvrir ». Une ligne = l'ami et ce qu'il t'ouvre ; la barre
     cherche aussi dans leurs entreprises.
 14. **Tri par défaut : « Pour toi »** — puis « Récents », « A → Z ».
-15. **« Échanger » garde « Mon QR » et « Scanner »** ; la liste vit dans
-    « Mes pistes ». Une liste, une place.
+15. ~~**« Échanger » garde « Mon QR » et « Scanner »**~~ ; la liste vit dans
+    « Mes pistes ». Une liste, une place. *(Revue par le mainteneur le
+    12 octobre 2026 : posés sur « Échanger » à côté des groupes, ces deux
+    gestes rendaient l'écran illisible. On ajoute un ami là où vit la
+    liste, et son QR se scanne par « Recevoir », qui reconnaît tout ce
+    qu'on te tend.)*
 16. **Dans le même lot** : les profils à jour tout seuls, « À découvrir »
     réchauffé, retirer au glissé, la liste-détail au poste.
 17. **Les sauts sont le but** : trouver des contacts quand on n'a pas
@@ -909,7 +916,10 @@ que vivent les liens faibles, et ce sont eux qui apportent le travail.
     ②) — plus besoin d'être connectés en même temps.
 23. **Il vit dans « Échanger »** : « Mes groupes » à la place de
     « Partage en groupe ». Les demandes qui te concernent remontent dans
-    « Aujourd'hui ».
+    « Aujourd'hui ». *(Précisée le 12 octobre 2026 : à la place de la
+    porte ET dans son dessin — une porte « Groupes » sans groupe, une
+    porte par groupe ensuite et « Nouveau groupe » en dernier ; « Créer »
+    et « Rejoindre » vivent derrière, plus à côté des verbes.)*
 24. **Deux sortes de groupe, choisies à la création — c'est le seul
     réglage** : *ouvert* (le QR suffit, tout le monde est égal) ou *sur
     demande* (un chef et ses adjoints acceptent les entrées, retirent un

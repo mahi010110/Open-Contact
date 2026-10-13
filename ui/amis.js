@@ -48,9 +48,10 @@ const ligneExperience = e => [PARCOURS[e.quoi] && PARCOURS[e.quoi].label, period
 const resumeAmi = a => (a.parcours || []).map(e => e.entreprise).join(' · ');
 
 /* LA LISTE VIT DANS « MES PISTES » (docs/reseau.md, lot 4) : une portée à
-   côté d'« À découvrir », triable comme les pistes. « Échanger » ne garde
-   que les gestes d'échange — « Scanner », « Mon QR ». Une liste, une
-   place. */
+   côté d'« À découvrir », triable comme les pistes — et c'est là aussi
+   qu'on ajoute un ami (« Ajouter un ami », en bout de liste). Le QR d'un
+   ami se scanne par « Recevoir », comme tout ce qu'on te tend. Une
+   liste, une place. */
 
 /* ---------- mon QR ----------
    L'identifiant se tire ICI, au premier don : un profil qui n'a jamais
@@ -296,7 +297,7 @@ function demandesHTML(critere){
 export function vueAmisHTML(classes, { q, wide, critere }){
   if (!(S.profile.amis || []).length)
     /* L'ÉTAT VIDE ENSEIGNE (§6) : ce que la liste montrera, et les deux
-       gestes qui la remplissent — les mêmes qu'« Échanger » */
+       gestes qui la remplissent — montrer son QR, scanner celui de l'autre */
     return (
       `<div class="td-empty" id="avVide">
          <div class="tde-ic">${ic('users', 'ic-24')}</div>
@@ -310,7 +311,13 @@ export function vueAmisHTML(classes, { q, wide, critere }){
   if (!classes.length) return dem.faits + `<div class="empty-list" id="avRien">Aucun ami ne correspond.</div>` + dem.geste;
   const x = wide ? (classes.find(c => c.a.id === choisiAmi) || classes[0]) : null;
   if (x) choisiAmi = x.a.id;
-  const liste = `<div class="rows am-rows">${classes.map(c => ligneAmiHTML(c, !!x && c.a.id === x.a.id)).join('')}</div>`;
+  /* AJOUTER UN AMI, en bout de liste : c'est là qu'on cherche à ajouter
+     quelqu'un (la ligne « Ajouter » d'un carnet), et nulle part ailleurs —
+     « Échanger » ne porte plus les gestes des amis. Une ligne en
+     pointillé, sans relief : elle n'est pas un ami de plus. Pendant une
+     recherche elle se tait, la liste répond à autre chose. */
+  const ajout = q ? '' : `<button class="am-ajout" id="avAjout">${ic('plus', 'ic-14')} Ajouter un ami</button>`;
+  const liste = `<div class="rows am-rows">${classes.map(c => ligneAmiHTML(c, !!x && c.a.id === x.a.id)).join('')}</div>${ajout}`;
   /* AU POSTE, la fiche vit à côté de la liste (liste-détail, comme
      « À découvrir ») ; au pouce, le tap ouvre sa feuille */
   return dem.faits + (x
@@ -325,6 +332,7 @@ export function vueAmisHTML(classes, { q, wide, critere }){
 export function lierVueAmis(box, { wide, rendre }){
   if (!box) return;
   box.querySelector('#avMonQR')?.addEventListener('click', () => openMonQR({ apres: rendre }));
+  box.querySelector('#avAjout')?.addEventListener('click', () => openMonQR({ apres: rendre }));
   box.querySelector('#avScan')?.addEventListener('click', async () =>
     (await import('./recevoir.js')).openRecevoir({ scanner: true, apres: rendre }));
   const dem = box.querySelector('#avDemander');

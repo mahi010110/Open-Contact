@@ -154,6 +154,7 @@ const ECRANS = [
   ['35-mon-qr', p => p.evaluate(() => import('./ui/amis.js').then(m => m.openMonQR()))],
   ['36-groupe', p => p.evaluate(async () => { const m = await import('./ui/groupes.js'); await m.chargerGroupes();
     m.ouvrirGroupe('bts2sxe3kmw4ka7'); })],
+  ['37-groupe-neuf', async p => { await route('#/echanger')(p); await p.waitForTimeout(300); await p.click('#ecGrNeuf'); }],
   ['39-annuler', async p => { await route('#/pistes')(p); await p.waitForTimeout(300);
     await p.evaluate(async () => { const { S, deletePiste } = await import('./ui/state.js'); const { showUndo } = await import('./ui/dom.js');
       const c = S.companies.find(x => x.id === 'i'); deletePiste(c); showUndo('« Kiabi » supprimée.', () => {}); }); }],

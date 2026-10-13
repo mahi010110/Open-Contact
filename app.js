@@ -8,7 +8,7 @@
 import { APP_VERSION } from './engine/model.js';
 import { THEME_KEY, kvInit, kvGet, kvSet } from './engine/storage.js';
 import { initVerrou } from './ui/verrou.js';
-import { S, bus, loadAll, reloadFromStorage } from './ui/state.js';
+import { S, bus, loadAll, reloadFromStorage, applyTheme } from './ui/state.js';
 import { $, $$, toast, installFoldMotion, sheetOpen } from './ui/dom.js';
 import { renderToday } from './ui/today.js';
 import { renderPistes } from './ui/pistes.js';
@@ -109,19 +109,6 @@ export function auSommet(route){
   v.scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion:reduce)').matches ? 'auto' : 'smooth' });
 }
 bus.refresh = render;
-
-function applyTheme(t, persist){
-  S.theme = t;
-  document.documentElement.dataset.theme = t;
-  $('#metaTheme').content = (t === 'dark') ? '#1E232B' : '#F7F6F1';
-  if (persist) kvSet(THEME_KEY, t);
-  /* miroir synchrone pour `theme.js`, qui doit décider AVANT le premier
-     pixel et ne peut donc pas attendre IndexedDB. On l'écrit à chaque
-     application, pas seulement en persistance : le repli système fait
-     lui aussi foi pour le lancement suivant. Valeur sans rien de privé,
-     même clé — un échec (navigation privée) est sans conséquence. */
-  try { localStorage.setItem(THEME_KEY, t); } catch (e) {}
-}
 
 (async function init(){
   console.info('OpenContact', APP_VERSION);

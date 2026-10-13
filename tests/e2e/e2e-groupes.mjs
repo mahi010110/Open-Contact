@@ -16,11 +16,14 @@
      que la vue communautaire (jamais une note) ; un membre ne porte que
      son prénom (décision 26) ; le profil donné à un ami ne porte aucun
      groupe ;
-   ② créer : le nom, puis le groupe s'ouvre sur son invitation (QR +
-     code) ; « Échanger » le montre en rangée ;
+   ② créer : sans groupe, « Échanger » n'a qu'UNE porte, « Groupes »
+     (12 octobre 2026), qui ouvre « Créer » ou « Rejoindre » ; le nom,
+     puis le groupe s'ouvre sur son invitation (QR + code) ; « Échanger »
+     le montre en porte, « Nouveau groupe » en dernier ;
    ③ rejoindre en tapant le code : « Le groupe verra ton prénom :
      Karim. » AVANT le geste ; en collant l'invitation (Recevoir ›
-     Texte) : l'aperçu porte le nom du groupe ;
+     Texte) : l'aperçu porte le nom du groupe ; le code SEUL, collé
+     au même endroit, est reconnu aussi ;
    ④ un mot : en direct chez qui a le groupe ouvert, compté dans
      « Échanger » chez qui ne l'a pas ; sept jours sur le relais
      (NIP-40), et l'app l'oublie passé ce délai ;
@@ -28,7 +31,7 @@
      l'app — aperçu, fusion, « Annuler », « dans tes pistes » ;
    ⑥ quitter : « Annuler » le rattrape ; sinon le départ se dit après
      la barre, et Karim sort de la liste des autres ;
-   ⑦ cinq groupes au plus : « Créer » et « Rejoindre » disparaissent,
+   ⑦ cinq groupes au plus : « Nouveau groupe » disparaît,
      une invitation dit pourquoi on n'entre pas ;
    ⑧ sans prénom, « Créer » ouvre le profil sur le nom ;
    ⑨ pouce et poste, sombre, 320 px texte doublé : rien ne déborde ;
@@ -107,17 +110,40 @@ const attendreQue = async (p, fn, arg, ms = 20000, quoi = '') => {
   fail('attendu, jamais vu : ' + quoi);
   return false;
 };
+/* « Groupes » (ou « Nouveau groupe ») → « Créer un groupe » / « Rejoindre un groupe » */
+const nouveau = async (p, quoi) => {
+  await p.click('#ecGrNeuf');
+  await p.waitForSelector('#' + quoi);
+  await p.click('#' + quoi);
+};
+/* Échanger › Recevoir › Texte : là où se colle tout ce qu'on te tend */
+const recevoirTexte = async (p, txt) => {
+  await p.click('#ecRecv');
+  await p.waitForSelector('#rcPaste');
+  await p.click('#rcPaste');
+  await p.waitForSelector('#rcTxt');
+  await p.fill('#rcTxt', txt);
+};
 const fil = p => p.evaluate(() => [...document.querySelectorAll('#grFil .gr-m')].map(li =>
   [li.querySelector('.gr-qui b')?.textContent.trim(), li.querySelector('p')?.textContent.trim()].join(' : ')));
 
 /* ---------- ② Inès crée « BTS SIO Lille » ---------- */
 const I = await ecran('ines');
 {
+  /* une porte, et rien d'autre : ni bouton « Créer », ni « Rejoindre »,
+     ni les gestes des amis — l'écran d'avant les groupes */
   const t = await I.p.evaluate(() => document.querySelector('.ec-groupes')?.innerText.replace(/\s+/g, ' ').trim());
-  if (t !== 'Groupes Créer Rejoindre') fail('le cadre Groupes, vide : « ' + t + ' »');
+  if (t !== 'Groupes') fail('la porte des groupes, sans groupe : « ' + t + ' »');
   if (await I.p.$('#ecPromo')) fail('la porte « Partage en groupe » est encore là');
+  const gestes = await I.p.evaluate(() => [...document.querySelectorAll('#view-echanger .hero2 button, #view-echanger .ec-groupes button')]
+    .map(b => b.textContent.trim()));
+  const restes = await I.p.evaluate(() => ['#ecScan', '#ecMonQR', '#ecGrCreer', '#ecGrRejoindre', '.ec-amis']
+    .filter(s => document.querySelector('#view-echanger ' + s)));
+  if (gestes.at(-1) !== 'Groupes' || !gestes.includes('Recevoir') || gestes.length > 3)
+    fail('« Échanger » sans groupe : ' + JSON.stringify(gestes));
+  if (restes.length) fail('« Échanger » garde des gestes jetés en vrac : ' + restes.join(', '));
 }
-await I.p.click('#ecGrCreer');
+await nouveau(I.p, 'grCreer');
 await I.p.waitForSelector('#grNom');
 if (await I.p.evaluate(() => !document.querySelector('#grCreerGo').hidden)) fail('« Créer » sans nom');
 await I.p.fill('#grNom', '  BTS SIO   Lille ');
@@ -132,7 +158,7 @@ console.log('② Inès crée « BTS SIO Lille » : le groupe s’ouvre sur son i
 
 /* ---------- ③ Karim tape le code ---------- */
 const K = await ecran('karim');
-await K.p.click('#ecGrRejoindre');
+await nouveau(K.p, 'grRejoindre');
 await K.p.waitForSelector('#grCode');
 await K.p.fill('#grCode', code.toUpperCase().replace(/-/g, ' '));
 {
@@ -193,11 +219,7 @@ const invitationTexte = await I.p.evaluate(async c => {
   return 'Rejoins « BTS SIO Lille » sur OpenContact : ' + g.invitation({ code: g.codeNorm(c), nom: 'BTS SIO Lille' });
 }, code);
 const So = await ecran('sofia');
-await So.p.click('#ecScan');
-await So.p.waitForSelector('#rcTexte');
-await So.p.click('#rcTexte');
-await So.p.waitForSelector('#rcTxt');
-await So.p.fill('#rcTxt', invitationTexte);
+await recevoirTexte(So.p, invitationTexte);
 await So.p.evaluate(() => [...document.querySelectorAll('.overlay:not(.ov-out) .modal-f .btn')].find(b => b.textContent.trim() === 'Lire').click());
 await So.p.waitForSelector('#grRejoindreGo');
 if (await titreFeuille(So.p) !== 'BTS SIO Lille') fail('l’aperçu de l’invitation : ' + await titreFeuille(So.p));
@@ -344,25 +366,22 @@ await fermerTout(I.p);
   const P = await ecran('sofia', { profil: { groupes: cinq } });
   await P.p.waitForSelector('.gr-ligne');
   if (await P.p.evaluate(() => document.querySelectorAll('.gr-ligne').length) !== 5) fail('cinq rangées attendues');
-  if (await P.p.$('#ecGrCreer') || await P.p.$('#ecGrRejoindre')) fail('à cinq groupes, « Créer » et « Rejoindre » sont encore là');
-  await P.p.click('#ecScan');
-  await P.p.waitForSelector('#rcTexte');
-  await P.p.click('#rcTexte');
-  await P.p.waitForSelector('#rcTxt');
-  await P.p.fill('#rcTxt', invitationTexte);
+  if (await P.p.$('#ecGrNeuf')) fail('à cinq groupes, « Nouveau groupe » est encore là');
+  /* le code SEUL, recopié d'un message, s'ouvre là où on le colle */
+  await recevoirTexte(P.p, code);
   await P.p.evaluate(() => [...document.querySelectorAll('.overlay:not(.ov-out) .modal-f .btn')].find(b => b.textContent.trim() === 'Lire').click());
   await P.p.waitForSelector('#grQui');
   const qui = await P.p.evaluate(() => document.querySelector('#grQui').textContent.trim());
   if (qui !== 'Tu es déjà dans 5 groupes.') fail('à cinq groupes, l’invitation dit : « ' + qui + ' »');
   if (await P.p.$('#grRejoindreGo')) fail('à cinq groupes, « Rejoindre » est encore là');
   await P.ctx.close();
-  console.log('⑦ cinq groupes au plus : « Créer » et « Rejoindre » absents, l’invitation dit « Tu es déjà dans 5 groupes. » ✓');
+  console.log('⑦ cinq groupes au plus : « Nouveau groupe » absent ; le code seul, collé dans Recevoir, dit « Tu es déjà dans 5 groupes. » ✓');
 }
 
 /* ---------- ⑧ sans prénom, « Créer » ouvre le profil sur le nom ---------- */
 {
   const P = await ecran('karim', { profil: { name: '' } });
-  await P.p.click('#ecGrCreer');
+  await nouveau(P.p, 'grCreer');
   await P.p.waitForSelector('#pfName');
   if (await P.p.$('#grNom')) fail('sans prénom, la feuille « Créer un groupe » s’ouvre quand même');
   await P.ctx.close();

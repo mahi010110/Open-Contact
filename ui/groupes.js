@@ -199,43 +199,69 @@ function sortirExclu(code){
   toast(`Tu n’es plus dans ${g.nom || 'ce groupe'}.`);
 }
 
-/* ---------- « Échanger » : le cadre « Groupes » ----------
-   Le même dessin que « Amis » juste à côté : le mot, deux gestes taillés
-   à leur mot. Dessous, une rangée par groupe — ses affaires, pas une
-   porte (§6, règle 2) : ce qui est arrivé depuis la dernière fois, en
-   chiffre, et rien quand il n'y a rien. À cinq groupes, les deux gestes
-   ne sont plus là : l'indisponible est absent, jamais grisé. */
+/* ---------- « Échanger » : les groupes, À LA PLACE DE LA PORTE ----------
+   Avant les groupes, l'écran tenait en trois gestes — Donner, Recevoir,
+   et une porte « Partage en groupe » — et le mainteneur le trouvait
+   juste. Les groupes ont été posés À CÔTÉ (un cadre « Groupes » avec
+   deux boutons, un cadre « Amis » avec deux autres) : quatre boutons de
+   plus pour des gestes qu'on fait une fois, et l'écran ne se lisait
+   plus. Ils reprennent donc la place de la porte, et rien d'autre :
+     · sans groupe, UNE porte, « Groupes » — celle d'avant, sous un mot
+       neuf ; elle ouvre « Créer » ou « Rejoindre » (NN/g, divulgation
+       progressive : ce qui sert une fois se range derrière une entrée) ;
+     · avec des groupes, une porte par groupe — on y entre tous les
+       jours —, ce qui est arrivé en chiffre, et « Nouveau groupe » en
+       dernier, en encre sourde : la ligne « Ajouter un compte » de la
+       liste des comptes d'iOS.
+   Au pouce, les portes sont des rangées d'un même cadre (§6, rangée) ;
+   au poste, des contrôles taillés à leur mot dans la rangée des verbes —
+   les deux dessins qu'avait la porte d'avant, au même endroit. Les AMIS
+   n'y sont plus : leur liste vit dans « Mes pistes », et le scanner de
+   « Recevoir » reconnaît leur QR. À cinq groupes, « Nouveau groupe »
+   n'est plus là : l'indisponible est absent, jamais grisé. */
 export function groupesHTML(){
   const liste = mesGroupes();
   /* les groupes où j'ai demandé à entrer, et pas encore entré (lot 5c) */
   const portes = new Set(liste.map(g => g.porte).filter(Boolean));
   const enAttente = attentes().filter(a => !portes.has(a.porte));
   const plein = liste.length + enAttente.length >= GROUPES_MAX;
-  return `<div class="pcard ec-groupes" role="group" aria-label="Groupes">
-      <div class="ec-gr-h">
-        <b class="ec-gr-t">${ic('message-text', 'ic-14')} Groupes</b>
-        ${plein ? '' : `<span class="ec-gr-g">
-          <button class="btn btn-sm" id="ecGrCreer">${ic('plus', 'ic-14')} Créer</button>
-          <button class="btn btn-sm" id="ecGrRejoindre">${ic('grid-3x3', 'ic-14')} Rejoindre</button>
-        </span>`}
-      </div>
-      ${liste.length || enAttente.length ? `<div class="gr-liste">${liste.map(g => {
-        /* ce qui est arrivé, et qui attend à la porte (je suis responsable) */
-        const n = (etat[g.code] ? nouveaux(etat[g.code], moi()) : 0) + quiAttend(g.code).length;
-        return `<button class="gr-ligne" data-groupe="${esc(g.code)}">
-            <b>${esc(nomDe(g.code))}</b>
-            ${n ? `<span class="gr-n" aria-label="${n} nouveau${n > 1 ? 'x' : ''}">${n}</span>` : ''}
-            ${ic('chevron-right', 'ic-14')}
-          </button>`;
-      }).join('')}${enAttente.map(a => `<div class="gr-ligne gr-attente">
-            <b>${esc(a.nom || 'Groupe')}</b><span class="gr-att">${ic('clock', 'ic-14')} en attente</span>
-          </div>`).join('')}</div>` : ''}
-    </div>`;
+  const chevron = ic('chevron-right', 'ic-14 gr-chev');
+  if (!liste.length && !enAttente.length)
+    return `<div class="ec-groupes">
+        <button class="gr-neuf" id="ecGrNeuf"><b>${ic('message-text', 'ic-14')} Groupes</b>${chevron}</button>
+      </div>`;
+  return `<div class="ec-groupes" role="group" aria-label="Groupes">${liste.map(g => {
+      /* ce qui est arrivé, et qui attend à la porte (je suis responsable) */
+      const n = (etat[g.code] ? nouveaux(etat[g.code], moi()) : 0) + quiAttend(g.code).length;
+      return `<button class="gr-ligne" data-groupe="${esc(g.code)}">
+          <b>${ic('message-text', 'ic-14')} ${esc(nomDe(g.code))}</b>
+          ${n ? `<span class="gr-n" aria-label="${n} nouveau${n > 1 ? 'x' : ''}">${n}</span>` : ''}
+          ${chevron}
+        </button>`;
+    }).join('')}${enAttente.map(a => `<div class="gr-ligne gr-attente">
+        <b>${ic('message-text', 'ic-14')} ${esc(a.nom || 'Groupe')}</b>
+        <span class="gr-att">en attente</span>
+      </div>`).join('')}${plein ? '' : `<button class="gr-neuf gr-plus" id="ecGrNeuf">
+        <b>${ic('plus', 'ic-14')} Nouveau groupe</b>
+      </button>`}</div>`;
 }
 export function bindGroupes(root, apres){
-  root.querySelector('#ecGrCreer')?.addEventListener('click', () => ouvrirCreer(apres));
-  root.querySelector('#ecGrRejoindre')?.addEventListener('click', () => ouvrirRejoindre(apres));
+  const neuf = root.querySelector('#ecGrNeuf');
+  neuf?.addEventListener('click', () => ouvrirNouveau(apres, neuf.textContent.trim()));
   root.querySelectorAll('[data-groupe]').forEach(b => b.addEventListener('click', () => ouvrirGroupe(b.dataset.groupe, apres)));
+}
+/* Créer ou rejoindre : deux rangées, rien d'autre. La feuille porte le
+   mot de la porte qui l'ouvre — « Groupes » ou « Nouveau groupe » — pour
+   que le geste et ce qu'il ouvre se reconnaissent. */
+function ouvrirNouveau(apres, titre){
+  const sh = openSheet({ title: titre || 'Groupes', icon: 'message-text' });
+  sh.body.innerHTML =
+    `<div class="pick-list">
+       <button class="pick" id="grCreer"><b>${ic('plus', 'ic-14')} Créer un groupe</b></button>
+       <button class="pick" id="grRejoindre"><b>${ic('grid-3x3', 'ic-14')} Rejoindre un groupe</b></button>
+     </div>`;
+  sh.body.querySelector('#grCreer').addEventListener('click', () => { sh.close(); ouvrirCreer(apres); });
+  sh.body.querySelector('#grRejoindre').addEventListener('click', () => { sh.close(); ouvrirRejoindre(apres); });
 }
 
 /* ---------- entrer : créer, ou rejoindre ----------
@@ -745,8 +771,8 @@ async function inviterDans(box, code){
   const copier = btn('Copier', 'btn-sm', async () => {
     try {
       await navigator.clipboard.writeText(porte
-        ? `Demande à entrer dans « ${nomDe(code)} » sur OpenContact — Échanger › Groupes › Rejoindre :\n${txt}`
-        : `Rejoins « ${nomDe(code)} » sur OpenContact — Échanger › Groupes › Rejoindre : ${codeAffiche(code)}\n${txt}`);
+        ? `Demande à entrer dans « ${nomDe(code)} » sur OpenContact. Copie ce message, puis Échanger › Recevoir › Texte :\n${txt}`
+        : `Rejoins « ${nomDe(code)} » sur OpenContact. Copie ce message, puis Échanger › Recevoir › Texte :\n${txt}`);
       copier.innerHTML = ic('check', 'ic-14') + ' Copié';
     } catch (e) { toast('Copie impossible ici — montre plutôt le QR.'); }
   }, 'copy');

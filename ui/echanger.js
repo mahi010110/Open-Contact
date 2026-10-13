@@ -1,8 +1,8 @@
 /* ============================================================
    OpenContact — interface · « Échanger »
-   Deux verbes : Donner · Recevoir. En dessous, les Groupes (lot 5 :
-   on s'y écrit et on s'y donne des pistes, en différé) et les Amis
-   (Scanner, Mon QR). Puis le fil
+   Deux verbes : Donner · Recevoir. Puis les Groupes, à la place qu'avait
+   la porte « Partage en groupe » (lot 5 : on s'y écrit et on s'y donne
+   des pistes, en différé). Puis le fil
    de ce qui a réellement circulé, relu dans le journal privé : un
    écran qui ne montre que des portes ne se comprend pas d'un regard,
    parce qu'il n'y a rien à comprendre. Tout en bas, le rappel qui
@@ -19,7 +19,6 @@ import { openRecevoir } from './recevoir.js';
 import { openPromo } from './direct.js';
 import { groupesHTML, bindGroupes } from './groupes.js';
 import { PARTAGE_DIRECT } from './perimetre.js';
-import { openMonQR } from './amis.js';
 import { openFiche } from './fiche.js';
 
 /* Deux conceptions, pas une page élastique : au pouce, une colonne —
@@ -405,7 +404,7 @@ export function renderEchanger(){
      commence quand un camarade nous partage sa liste. */
   const aDonner = S.companies.some(c => !isClosed(c) && !c.demo);
   const gestes =
-    `<div class="hero2${aDonner ? '' : ' hero1'}">
+    `<div class="hero2">
        ${aDonner ? `<button class="btn btn-primary hero" id="ecGive">${ic('share', 'ic-14')}<span>Donner</span></button>` : ''}
        <button class="btn${aDonner ? '' : ' btn-primary'} hero" id="ecRecv">${ic('inbox', 'ic-14')}<span>Recevoir</span></button>
      </div>
@@ -425,19 +424,7 @@ export function renderEchanger(){
             coincé dans un bouton de 170 px ne promet plus rien, il
             encombre. */''}
        ${wide ? '' : ic('chevron-right', 'ic-14')}
-     </button>` : ''}
-     ${/* LES AMIS : ici, les GESTES d'échange seulement — scanner le QR
-          d'un ami, montrer le sien (docs/reseau.md, décision 15). Leur
-          liste vit dans « Mes pistes », à côté d'« À découvrir » : une
-          liste, une place. Deux gestes de même poids, taillés à leur mot,
-          sous le nom de ce qu'ils échangent. */''}
-     <div class="pcard ec-amis" role="group" aria-label="Amis">
-       <b class="ec-amis-t">${ic('users', 'ic-14')} Amis</b>
-       <span class="ec-amis-g">
-         <button class="btn btn-sm" id="ecScan">${ic('grid-3x3', 'ic-14')} Scanner</button>
-         <button class="btn btn-sm" id="ecMonQR">${ic('user', 'ic-14')} Mon QR</button>
-       </span>
-     </div>`;
+     </button>` : ''}`;
   /* Pas de rappel de confidentialité ICI. Il répétait, en pied d'écran
      et en permanence, ce que « Donner » dit déjà au moment du geste —
      « Seules les fiches partent — jamais ton suivi privé » — c'est-à-dire
@@ -476,8 +463,6 @@ export function renderEchanger(){
   root.querySelector('#ecRecv').addEventListener('click', openRecevoir);
   root.querySelector('#ecPromo')?.addEventListener('click', openPromo);
   bindGroupes(root, renderEchanger);
-  root.querySelector('#ecMonQR').addEventListener('click', () => openMonQR());
-  root.querySelector('#ecScan').addEventListener('click', () => openRecevoir({ scanner: true }));
   const fil = filVisible();
   /* CHANGER DE LIGNE NE RE-REND PAS L'ÉCRAN. La première version
      appelait `renderEchanger()` : le bouton qu'on venait de taper

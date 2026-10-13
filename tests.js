@@ -58,7 +58,7 @@ import { nouvelleCle, boiteValide, cleValide, etiquetteBoite, sceller, ouvrir, l
          jetonRelais, ouvrirJeton, lettreRelais, lettreTrouve, choisirRelais, soiPour, contactsDe, lettreEntree, lettreAdmis, lettreRecode,
          CERCLE_MAX, RELAIS_MAX } from './engine/boite.js';
 import { critereValide, phraseCritere, CRITERE_METIER } from './engine/critere.js';
-import { GROUPES_MAX, MOT_MAX, nouveauCode, codeNorm, codeAffiche, invitation, estInvitation, lireInvitation,
+import { GROUPES_MAX, MOT_MAX, nouveauCode, codeNorm, codeAffiche, estCodeTape, invitation, estInvitation, lireInvitation,
          cleGroupe, sceller as scellerGroupe, ouvrirMessage, normaliserMessage, groupeVide, traiterMessage,
          elaguerGroupe, filDe, membresDe, nouveaux, presenceAredire, pistesCompletes, normaliserGroupes,
          relaisVersGroupe, peutRelayerGroupe, RELAIS_GROUPES_MAX,
@@ -2441,6 +2441,14 @@ export async function runSelfTests(){
       eq(lireInvitation(codeAffiche(code)), { code, nom: '' });  /* tapé à la main : le code seul */
       eq(lireInvitation('OCG1.abc'), null);
       eq(lireInvitation('bonjour'), null);
+      /* collé SEUL dans « Recevoir › Texte » : reconnu, et rien d'autre */
+      ok(estCodeTape(codeAffiche(code)));
+      ok(estCodeTape(' ' + code.toUpperCase() + ' '));
+      ok(estCodeTape(codeAffiche(code).replace(/-/g, ' ')));
+      ok(!estCodeTape('Salut, voici les pistes du groupe de mardi'));   /* une phrase n'est pas un code */
+      ok(!estCodeTape('k7m3p-9xq2f'));                                  /* le code d'un rendez-vous */
+      ok(!estCodeTape('il0o1-il0o1-il0o1'));
+      ok(!estCodeTape(codeAffiche(code) + ' merci'));
       const k = await cleGroupe(code), k2 = await cleGroupe(code);
       eq(k.etiquette, k2.etiquette);
       ok(/^oc-groupe-[0-9a-f]{32}$/.test(k.etiquette));

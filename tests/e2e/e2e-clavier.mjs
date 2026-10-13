@@ -10,13 +10,13 @@
    et le grand titre s'effacent, la barre de recherche prend le haut.
 
    Ce fichier garde la promesse, à deux tailles de téléphone :
-   ① au focus, la barre monte en haut de la vue et l'en-tête s'efface ;
+   ① au focus, la barre monte en haut de la vue — et au pouce l'app n'a
+     plus d'en-tête au-dessus d'elle (12 octobre 2026) ;
    ② au moins N résultats ENTIERS tiennent au-dessus du clavier
      (4 en 390 × 844, 2 en 360 × 640) — le chiffre qui a tout décidé ;
    ③ rien ne glisse SOUS la barre collée : les étiquettes restent
      entières, et la bande au-dessus de la barre ne laisse rien voir
      du titre ;
-   ④ le clavier rangé, l'en-tête revient ;
    ⑤ au poste, rien de tout cela : une souris n'a pas de clavier à
      l'écran, et l'en-tête y porte la navigation.
 
@@ -76,19 +76,17 @@ for (const [w, h, kb, min] of [[390, 844, 336, 4], [360, 640, 300, 2]]){
   await p.keyboard.type('alternance', { delay: 12 });
   await p.waitForTimeout(900);
   const f = await lire(p, kb);
+  /* au pouce il n'y a plus d'en-tête du tout (décision du 12 octobre
+     2026) : ni au repos, ni pendant la saisie */
+  if (!(repos.enTete <= 0)) fail(`${w}×${h} : l’en-tête de l’app est revenu au pouce (bas à ${repos.enTete} px)`);
   if (!(f.enTete <= 0)) fail(`${w}×${h} : l’en-tête reste à l’écran pendant la saisie (bas à ${f.enTete} px)`);
   if (f.barre > 20) fail(`${w}×${h} : la barre n’a pas monté (${repos.barre} → ${f.barre} px)`);
   if (f.entiers < min) fail(`${w}×${h} : ${f.entiers} résultat(s) entier(s) au-dessus du clavier, il en faut ${min} (au repos : ${repos.entiers})`);
   if (f.chipsHaut != null && f.chipsHaut < f.barreBas - 1) fail(`${w}×${h} : les étiquettes glissent sous la barre (${f.chipsHaut} < ${f.barreBas})`);
   if (f.titreDessus) fail(`${w}×${h} : le titre dépasse au-dessus de la barre collée`);
   await p.screenshot({ path: `${SHOTS}/99-clavier-${w}.png` });
-  /* le clavier se range : l'en-tête revient */
-  await p.keyboard.press('Enter');
-  await p.waitForTimeout(500);
-  const apres = await lire(p, kb);
-  if (!(apres.enTete > 40)) fail(`${w}×${h} : clavier rangé, l’en-tête ne revient pas (${apres.enTete})`);
   if (!process.exitCode)
-    console.log(`${w}×${h} · la barre monte (${repos.barre} → ${f.barre} px), l’en-tête s’efface, ${f.entiers} résultats entiers au-dessus du clavier (${repos.entiers} au repos, sans étiquette), rien sous la barre ; clavier rangé, l’en-tête revient ✓`);
+    console.log(`${w}×${h} · la barre monte (${repos.barre} → ${f.barre} px), sans en-tête au-dessus, ${f.entiers} résultats entiers au-dessus du clavier (${repos.entiers} au repos, sans étiquette), rien sous la barre ✓`);
   await ctx.close();
 }
 
@@ -100,8 +98,7 @@ for (const [w, h, kb, min] of [[390, 844, 336, 4], [360, 640, 300, 2]]){
   await p.keyboard.type('alternance', { delay: 12 });
   await p.waitForTimeout(700);
   const f = await lire(p, 0);
-  const cls = await p.evaluate(() => document.documentElement.classList.contains('oc-cherche'));
-  if (cls || f.enTete !== avant.enTete) fail('au poste, l’en-tête bouge pendant la saisie');
+  if (!(avant.enTete > 40) || f.enTete !== avant.enTete) fail('au poste, l’en-tête manque ou bouge pendant la saisie');
   else console.log('poste · rien ne bouge : l’en-tête porte la navigation, et il n’y a pas de clavier à l’écran ✓');
   await ctx.close();
 }

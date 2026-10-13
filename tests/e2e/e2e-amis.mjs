@@ -87,7 +87,15 @@ const fermerTout = async p => {
     await p.waitForTimeout(250);
   }
 };
-/* « Mon QR » par le vrai chemin : Échanger → Amis → Mon QR → Copier */
+/* « Mon QR » par le vrai chemin : Mes pistes › Amis — « Mon QR » quand
+   la liste est vide, « Ajouter un ami » en bout de liste sinon */
+async function ouvrirMonQR(p){
+  await p.evaluate(() => { location.hash = '#/pistes'; });
+  await p.waitForSelector('#piPortee [data-portee="amis"]');
+  await p.click('#piPortee [data-portee="amis"]');
+  await p.waitForSelector('#avMonQR, #avAjout');
+  await p.click('#avMonQR, #avAjout');
+}
 /* la barre « Annuler » d'un geste précédent couvre le bas de l'écran
    trente secondes : on la referme comme on le ferait, par sa croix */
 const sansAnnuler = async p => {
@@ -97,9 +105,7 @@ const sansAnnuler = async p => {
 async function monProfilCopie(p){
   await fermerTout(p);
   await sansAnnuler(p);
-  await p.evaluate(() => { location.hash = '#/echanger'; });
-  await p.waitForSelector('#ecMonQR');
-  await p.click('#ecMonQR');
+  await ouvrirMonQR(p);
   await p.waitForSelector('#mqCopier');
   await p.waitForSelector('.qr-wrap svg');
   await p.evaluate(() => { window.__copie = []; });
@@ -109,17 +115,16 @@ async function monProfilCopie(p){
   const bouton = await p.evaluate(() => document.querySelector('#mqCopier').textContent.trim());
   return { txt, bouton };
 }
-/* recevoir un profil par le vrai chemin : Échanger › Amis › Scanner → Texte → Lire */
+/* recevoir un profil par le vrai chemin : Échanger › Recevoir › Texte →
+   Lire — la phrase que « Copier » met devant le profil dit ce chemin-là */
 async function recevoirProfil(p, txt){
   await fermerTout(p);
   await sansAnnuler(p);
   await p.evaluate(() => { location.hash = '#/echanger'; });
-  await p.waitForSelector('#ecScan');
-  await p.click('#ecScan');
-  await p.waitForSelector('#rcTexte');
-  if (await p.evaluate(() => !!document.querySelector('#rcCode')))
-    fail('le scanner ouvert depuis « Amis » propose un code de rendez-vous — un QR de profil n’en affiche aucun');
-  await p.click('#rcTexte');
+  await p.waitForSelector('#ecRecv');
+  await p.click('#ecRecv');
+  await p.waitForSelector('#rcPaste');
+  await p.click('#rcPaste');
   await p.waitForSelector('#rcTxt');
   await p.fill('#rcTxt', txt);
   await p.evaluate(() => [...document.querySelectorAll('.overlay')].pop().querySelector('.modal-f .btn-primary').click());
@@ -182,6 +187,8 @@ await K.p.screenshot({ path: `${SHOTS}/99-amis-mon-qr-pouce.png` });
 console.log('① « Mon QR » ne porte que l’identifiant, le nom, le parcours et la clé publique — ni suivi, ni ami ✓');
 /* « Donner » (texte), depuis l'état réel : aucun ami ne sort */
 await fermerTout(K.p);
+await K.p.evaluate(() => { location.hash = '#/echanger'; });
+await K.p.waitForSelector('#ecGive');
 await K.p.click('#ecGive');
 await K.p.waitForSelector('#dnText');
 await K.p.evaluate(() => { window.__copie = []; });
@@ -339,9 +346,7 @@ console.log('⑤ retirer, « Annuler », recharger : tout tient ✓');
 await fermerTout(So.p);
 await sansAnnuler(So.p);
 await So.p.evaluate(async () => { const { S, saveProfile } = await import('./ui/state.js'); S.profile.name = ''; saveProfile(); });
-await So.p.evaluate(() => { location.hash = '#/echanger'; });
-await So.p.waitForSelector('#ecMonQR');
-await So.p.click('#ecMonQR');
+await ouvrirMonQR(So.p);
 await So.p.waitForTimeout(500);
 if (await dessus(So.p) !== 'Mon profil') fail('sans nom, « Mon QR » ouvre : ' + await dessus(So.p));
 if (await So.p.evaluate(() => document.activeElement?.id) !== 'pfName') fail('le curseur n’est pas sur le nom');
@@ -398,9 +403,7 @@ for (const [vp, touch, sombre, nom] of [[{ width: 1280, height: 800 }, false, fa
   if (r.coupes) fail(`${nom} : une entreprise du parcours d’un ami est coupée`);
   await p.screenshot({ path: `${SHOTS}/99-amis-ami-${nom}.png` });
   await fermerTout(p);
-  await p.evaluate(() => { location.hash = '#/echanger'; });
-  await p.waitForSelector('#ecMonQR');
-  await p.click('#ecMonQR');
+  await ouvrirMonQR(p);
   await p.waitForSelector('#mqDonne');
   await p.waitForTimeout(450);
   r = await mesure('#mqDonne');

@@ -780,13 +780,18 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
           boite: parseFloat(st.borderTopWidth) > 0 || st.boxShadow !== 'none'
                  || st.backgroundColor !== 'rgba(0, 0, 0, 0)' };
       };
-      /* « Partage en groupe » a laissé sa place au cadre « Groupes »
-         (lot 5) : un cadre qui porte des rangées, plus une porte. Ses
-         deux gestes se mesurent comme tout geste secondaire. */
-      const out = { donner: lu('#ecGive'), recevoir: lu('#ecRecv'), groupes: lu('.ec-groupes'),
-        creer: lu('#ecGrCreer'), rejoindre: lu('#ecGrRejoindre') };
-      const d = document.querySelector('#ecGive'), g = document.querySelector('.ec-groupes');
-      if (d && g) out.groupes.memeFond = getComputedStyle(g).backgroundColor === getComputedStyle(d).backgroundColor;
+      /* Les groupes ont repris la place de la porte « Partage en
+         groupe » (12 octobre 2026) : sans groupe, UNE porte, « Groupes »,
+         dans la rangée des verbes. Plus de « Créer », de « Rejoindre », de
+         « Scanner » ni de « Mon QR » posés là en vrac. */
+      const out = { donner: lu('#ecGive'), recevoir: lu('#ecRecv'), groupes: lu('#ecGrNeuf') };
+      const d = document.querySelector('#ecGive'), g = document.querySelector('#ecGrNeuf');
+      if (d && g){
+        out.groupes.memeFond = getComputedStyle(g).backgroundColor === getComputedStyle(d).backgroundColor;
+        out.groupes.memeRang = Math.abs(g.getBoundingClientRect().top - d.getBoundingClientRect().top) < 4;
+        out.groupes.mot = g.textContent.trim();
+      }
+      out.enVrac = ['#ecGrCreer', '#ecGrRejoindre', '#ecScan', '#ecMonQR', '.ec-amis'].filter(x => document.querySelector(x));
       out.porteDirect = !!document.querySelector('#ecPromo');
       return out;
     });
@@ -827,7 +832,7 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
       return {
         pleine: p.getBoundingClientRect().width >= inner.getBoundingClientRect().width - 4,
         /* chaque rangée mène à son groupe : elle porte son chevron */
-        chevron: [...p.querySelectorAll('.gr-ligne')].every(r => !!r.querySelector('.ic:last-child')),
+        chevron: [...p.querySelectorAll('.gr-ligne')].every(r => !!r.querySelector(':scope > .gr-chev')),
         hauteurVerbe: g ? Math.round(g.getBoundingClientRect().height) : 0,
         /* ce que le poste a gagné ne descend PAS ici tout seul */
         trancheDuPoste: !!document.querySelector('#view-echanger .ec-repr')
@@ -867,7 +872,7 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
     else {
       /* la marge est généreuse — on garde l'ÉCHELLE, pas le pixel */
       const plafond = Math.round(etalon.h * 1.5);
-      for (const [nom, c] of [['Donner', cmd.donner], ['Recevoir', cmd.recevoir], ['Créer', cmd.creer], ['Rejoindre', cmd.rejoindre]])
+      for (const [nom, c] of [['Donner', cmd.donner], ['Recevoir', cmd.recevoir], ['Groupes', cmd.groupes]])
         if (c && c.h > plafond)
           fail(`commandes : « ${nom} » fait ${c.h}px de haut quand l'étalon de l'app en fait `
             + `${etalon.h} (plafond ${plafond}) — c'est le format du pouce posé sur un écran de bureau`);
@@ -883,23 +888,26 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
          Et le partage en direct, masqué, ne revient pas par la porte. */
       let porteOk = true;
       const grief = m => { porteOk = false; fail(m); };
-      if (!cmd.groupes) grief('commandes : le cadre « Groupes » a disparu — le contrôle ne mesure rien');
+      if (!cmd.groupes) grief('commandes : la porte « Groupes » a disparu — le contrôle ne mesure rien');
       else {
+        if (cmd.groupes.mot !== 'Groupes') grief(`commandes : sans groupe, la porte dit « ${cmd.groupes.mot} »`);
         if (!cmd.groupes.boite)
           grief('commandes : « Groupes » n’a plus ni fond, ni cadre, ni relief — '
-            + 'ses rangées ne se lisent plus comme un ensemble');
+            + 'se distinguer n’est pas s’effacer');
         if (cmd.groupes.memeFond)
-          grief('commandes : le cadre « Groupes » porte le fond de l’action principale — une seule action '
+          grief('commandes : la porte « Groupes » porte le fond de l’action principale — une seule action '
             + 'remplie par écran (Material 3), sinon la hiérarchie ne se lit plus');
-        if (!cmd.creer || !cmd.rejoindre)
-          grief('commandes : sans groupe, « Créer » et « Rejoindre » doivent être là');
+        if (!cmd.groupes.memeRang)
+          grief('commandes : au poste, « Groupes » a quitté la rangée des verbes — c’était la place de la porte d’avant');
       }
+      if (cmd.enVrac.length)
+        grief('commandes : « Échanger » porte de nouveau des gestes jetés en vrac — ' + cmd.enVrac.join(', '));
       if (cmd.porteDirect)
         grief('commandes : la porte « Partage en groupe » est revenue — le direct est masqué (ui/perimetre.js)');
       if (porteOk)
         console.log(`commandes @poste : Donner ${cmd.donner.w}×${cmd.donner.h} rempli, `
           + `Recevoir ${cmd.recevoir.w}×${cmd.recevoir.h} contourné, `
-          + `cadre « Groupes » sourd, Créer ${cmd.creer.h} px et Rejoindre ${cmd.rejoindre.h} px `
+          + `porte « Groupes » ${cmd.groupes.w}×${cmd.groupes.h} sourde, dans la même rangée `
           + `(étalon de l'app ${etalon.w}×${etalon.h}) ✓`);
     }
   }

@@ -69,6 +69,12 @@ export function codeNorm(txt){
   return s.length === LONGUEUR ? s : '';
 }
 export const codeAffiche = code => code.match(/.{1,5}/g).join('-');
+/* un code tapé ou collé SEUL — trois blocs de cinq, tirets ou espaces
+   facultatifs. Plus strict que `codeNorm`, qui FILTRE : n'importe quelle
+   phrase contient quinze lettres de l'alphabet, et « Recevoir › Texte »
+   ne doit jamais prendre un message pour un code de groupe. */
+export const estCodeTape = raw =>
+  /^\s*[a-z0-9]{5}[-\s]?[a-z0-9]{5}[-\s]?[a-z0-9]{5}\s*$/i.test(String(raw || '')) && !!codeNorm(raw);
 
 export const nomGroupe = v => String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, NOM_MAX);
 

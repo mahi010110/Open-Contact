@@ -22,8 +22,9 @@
    ⑥ au poste, liste-détail : la fiche de l'ami à côté, et elle suit le
      clavier (↓ depuis la barre, ↓ ↑, Échap remonte) ;
    ⑦ sans ami, l'état vide enseigne : les deux gestes qui remplissent
-     la liste, « Mon QR » en premier ; « Échanger » garde Scanner et
-     Mon QR, et n'a plus de porte « Amis » ;
+     la liste, « Mon QR » en premier ; avec des amis, « Ajouter un ami »
+     ferme la liste et ouvre « Mon QR » ; « Échanger » ne porte plus
+     aucun geste d'ami ;
    ⑧ « À découvrir » réchauffé : l'entreprise où un ami est passé
      remonte en tête, et dit qui — dans la ligne et dans l'aperçu ;
    ⑨ 320 px texte doublé, sombre : rien ne déborde, aucun nom coupé.
@@ -199,8 +200,26 @@ const taper = async (p, txt) => {
       .filter(b => getComputedStyle(b).display !== 'none').length);
     if (boutons) fail(`${boutons} bouton(s) visibles dans les lignes au doigt`);
   }
+  /* « Ajouter un ami » ferme la liste — après la dernière ligne, jamais
+     entre deux — et ouvre « Mon QR » ; pendant une recherche il se tait */
+  {
+    const a = await p.evaluate(() => {
+      const b = document.querySelector('#piAmis #avAjout'), rows = [...document.querySelectorAll('#piAmis .am-row')];
+      return b ? { mot: b.textContent.trim(), apres: !!rows.length && b.getBoundingClientRect().top >= rows.at(-1).getBoundingClientRect().bottom } : null;
+    });
+    if (!a || a.mot !== 'Ajouter un ami' || !a.apres) fail('« Ajouter un ami » absent ou mal placé : ' + JSON.stringify(a));
+    await p.click('#avAjout');
+    await p.waitForSelector('.overlay #mqDonne');
+    await p.evaluate(() => [...document.querySelectorAll('.overlay')].pop().querySelector('.modal-h button.x').click());
+    await p.waitForTimeout(300);
+    await taper(p, 'Karim');
+    await p.waitForTimeout(300);
+    if (await p.$('#piAmis #avAjout')) fail('pendant une recherche, « Ajouter un ami » reste en bout de liste');
+    await p.fill('#piQ', '');
+    await p.waitForTimeout(300);
+  }
   await p.screenshot({ path: `${SHOTS}/99-onglet-amis-pouce.png` });
-  console.log('③ la ligne dit ce que l’ami t’ouvre, tes pistes en accent, une piste close ne compte pas ✓');
+  console.log('③ la ligne dit ce que l’ami t’ouvre, tes pistes en accent, une piste close ne compte pas ; « Ajouter un ami » ferme la liste et ouvre Mon QR ✓');
 
   /* ---------- ④ Pour toi, puis Trier ---------- */
   if ((await noms(p)).join() !== POUR_TOI.join()) fail('« Pour toi » : ' + JSON.stringify(await noms(p)));
@@ -381,17 +400,20 @@ for (const [vp, touch, nom] of [[{ width: 390, height: 844 }, true, 'pouce'], [{
   await p.waitForSelector('.overlay #rcTexte');
   await p.evaluate(() => [...document.querySelectorAll('.overlay')].pop().querySelector('.modal-h button.x').click());
   await p.waitForTimeout(300);
-  /* « Échanger » : Scanner et Mon QR, plus de porte vers une liste */
+  /* « Échanger » ne porte plus aucun geste des amis (12 octobre 2026) :
+     leur liste et « Ajouter un ami » vivent ici, leur QR se scanne par
+     « Recevoir » comme tout ce qu'on te tend */
   await p.evaluate(() => { location.hash = '#/echanger'; });
-  await p.waitForSelector('#ecMonQR');
+  await p.waitForSelector('#ecRecv');
   {
     const e = await p.evaluate(() => ({ porte: !!document.querySelector('#ecAmis'),
-      gestes: [...document.querySelectorAll('.ec-amis button')].map(b => b.textContent.trim()) }));
+      gestes: [...document.querySelectorAll('#view-echanger button')].map(b => b.textContent.trim())
+        .filter(t => /Scanner|Mon QR|ami/i.test(t)) }));
     if (e.porte) fail(`${nom} : « Échanger » garde une porte « Amis » — la liste vit dans « Mes pistes »`);
-    if (e.gestes.join() !== 'Scanner,Mon QR') fail(`${nom} : les gestes « Amis » d’« Échanger » : ` + JSON.stringify(e.gestes));
+    if (e.gestes.length) fail(`${nom} : « Échanger » porte encore des gestes d’amis : ` + JSON.stringify(e.gestes));
   }
   await p.screenshot({ path: `${SHOTS}/99-onglet-echanger-${nom}.png` });
-  console.log(`⑦ ${nom} : l’état vide enseigne, ses gestes ouvrent Mon QR et le scanner ; « Échanger » garde Scanner et Mon QR ✓`);
+  console.log(`⑦ ${nom} : l’état vide enseigne, ses gestes ouvrent Mon QR et le scanner ; « Échanger » ne porte plus de geste d’ami ✓`);
   await ctx.close();
 }
 

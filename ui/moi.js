@@ -15,7 +15,7 @@ import { mergeTombs } from '../engine/sync.js';
 import { docGet, docPut, effacerCetAppareil } from '../engine/storage.js';
 import { sansFilet, FILET_MIN_PISTES } from '../engine/assist.js';
 import { listDocs, docKind, docTitle, pickPdf, removeDoc } from './docs.js';
-import { S, bus, saveData, saveProfile, saveOrphans, saveTombs, logJ } from './state.js';
+import { S, bus, saveData, saveProfile, saveOrphans, saveTombs, logJ, applyTheme } from './state.js';
 import { $, ic, toast, btn, openSheet, confirmSheet, showUndo, bindDeleteGesture,
          lockRowHTML, bindLockRow } from './dom.js';
 import { openProfil, openTemplates } from './profil.js';
@@ -292,6 +292,19 @@ const rgRow = (id, nom, etat, last, dep) =>
      ${ic('chevron-right', 'ic-14')}
    </button>`;
 
+/* Deux segments, pas une porte : le choix tient dans la rangée, et le
+   segment retenu se remplit d'accent (§4, trois langages de sélection) */
+const rgTheme = () => {
+  const sombre = S.theme === 'dark';
+  return `<div class="rg-row rg-theme" role="group" aria-labelledby="moiThemeL">
+     <span class="rg-n" id="moiThemeL">Thème</span>
+     <span class="seg3">
+       <button class="seg${sombre ? '' : ' on'}" data-theme-choix="light" aria-pressed="${!sombre}">Clair</button>
+       <button class="seg${sombre ? ' on' : ''}" data-theme-choix="dark" aria-pressed="${sombre}">Sombre</button>
+     </span>
+   </div>`;
+};
+
 function reglagesRowsHTML(){
   const prot = isProtected();
   /* les lignes se composent avant de s'écrire : le recentrage en retire
@@ -342,11 +355,16 @@ function reglagesRowsHTML(){
      rien ne passe par toi. */
   if ((S.profile.amis || []).length)
     rows.push(['moiRelais', 'Demandes de mes amis', S.profile.flags.sansRelais ? 'arrêtées' : 'transmises', false]);
+  /* LE THÈME, au pouce seulement : sa bascule vivait dans l'en-tête de
+     l'app, et l'en-tête n'existe plus sous 901 px (il ne portait que le
+     logo et elle). Au poste, l'en-tête la porte toujours : la redire ici
+     serait la même commande à deux endroits du même écran. */
+  if (!mqWideMoi.matches) rows.push(['moiTheme']);
   rows.push(['moiAide', 'Aide et confidentialité', '', false]);
   rows.push(['moiDiag', 'Signaler un problème', '', false]);
   return (
-    rows.map(([id, nom, etat, dep], i) =>
-      rgRow(id, nom, etat, i === rows.length - 1, dep)).join('') +
+    rows.map(([id, nom, etat, dep], i) => id === 'moiTheme' ? rgTheme()
+      : rgRow(id, nom, etat, i === rows.length - 1, dep)).join('') +
     /* DEUX GESTES QUI CHANGENT TOUT NE SONT PAS DES LIENS. Ils vivaient en
        mots soulignés sous la liste : la forme d'un lien, qui promet
        d'emmener ailleurs, pour les deux gestes les plus lourds de l'écran
@@ -439,6 +457,13 @@ function bindReglages(box){
   });
   rf.addEventListener('change', () => { if (rf.files[0]) restoreFile(rf.files[0]); });
   q('#moiInstall')?.addEventListener('click', installer);
+  box.querySelectorAll('[data-theme-choix]').forEach(b => b.addEventListener('click', () => {
+    applyTheme(b.dataset.themeChoix, true);
+    box.querySelectorAll('[data-theme-choix]').forEach(x => {
+      const on = x === b;
+      x.classList.toggle('on', on); x.setAttribute('aria-pressed', String(on));
+    });
+  }));
   q('#moiEfface')?.addEventListener('click', effacerIci);
 }
 /* Quand un ami cherche quelqu'un et que tu ne connais personne, ton

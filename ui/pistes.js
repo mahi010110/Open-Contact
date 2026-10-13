@@ -514,9 +514,6 @@ function removeRow(id){
 
 export function renderPistes(){
   const root = $('#view-pistes');
-  /* un champ redessiné perd son focus sans « blur » : le mode recherche
-     ne doit pas survivre au champ qui l'avait ouvert */
-  document.documentElement.classList.remove('oc-cherche');
   const wide = mqWide.matches;
   const nAlive = S.companies.filter(c => !isClosed(c)).length;
 
@@ -864,10 +861,6 @@ export function renderPistes(){
   const amenerBarre = () => {
     if (mqWide.matches || !matchMedia('(pointer:coarse)').matches) return;
     page.classList.add('pi-cherche');
-    /* l'en-tête de l'app s'efface aussi, comme la barre de navigation
-       d'iOS pendant une recherche : 46 px rendus à la liste, là où le
-       clavier en prend la moitié */
-    document.documentElement.classList.add('oc-cherche');
     requestAnimationFrame(() => {
       if (document.activeElement !== input) return;
       const y = hautBarre();
@@ -899,7 +892,6 @@ export function renderPistes(){
     if (document.activeElement === input || !input.isConnected) return;
     barreActive = false;
     page.classList.remove('pi-cherche');
-    document.documentElement.classList.remove('oc-cherche');
     if (!q) rendreChips();
   }, 150));
   /* Échap vide la recherche, puis rend le clavier. Deux temps : la

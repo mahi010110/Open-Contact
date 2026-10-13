@@ -96,6 +96,22 @@ export function logJ(txt, cid, ids){
   kvSet(JOURNAL_KEY, JSON.stringify(S.journal));
 }
 
+/* Le thème : appliqué ici, demandé de deux endroits — la bascule de
+   l'en-tête au poste, la rangée « Thème » des réglages au pouce, où
+   l'en-tête n'existe pas. */
+export function applyTheme(t, persist){
+  S.theme = t;
+  document.documentElement.dataset.theme = t;
+  document.getElementById('metaTheme').content = (t === 'dark') ? '#1E232B' : '#F7F6F1';
+  if (persist) kvSet(THEME_KEY, t);
+  /* miroir synchrone pour `theme.js`, qui doit décider AVANT le premier
+     pixel et ne peut donc pas attendre IndexedDB. On l'écrit à chaque
+     application, pas seulement en persistance : le repli système fait
+     lui aussi foi pour le lancement suivant. Valeur sans rien de privé,
+     même clé — un échec (navigation privée) est sans conséquence. */
+  try { localStorage.setItem(THEME_KEY, t); } catch (e) {}
+}
+
 export async function loadAll(){
   await kvInit();
   /* les clés se lisent en parallèle : autant d'allers-retours IndexedDB
