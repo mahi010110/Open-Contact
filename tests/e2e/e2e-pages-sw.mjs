@@ -109,6 +109,9 @@ console.log('serveur coupé → rechargement : l’app revit du cache (v' + vers
   await p2.evaluate(() => { location.hash = '#/moi'; });
   await p2.waitForSelector('#moiReglages');
   await p2.click('#moiReglages');
+  /* « Thème » est une rangée comme ses voisines : elle ouvre les trois
+     choix (Automatique, Clair, Sombre) — 13 octobre 2026 */
+  await p2.click('#moiTheme');
   await p2.waitForSelector('[data-theme-choix="dark"]');
   await p2.click('[data-theme-choix="dark"]');
   if (await p2.evaluate(() => document.documentElement.dataset.theme !== 'dark'))

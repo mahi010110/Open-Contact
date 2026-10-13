@@ -237,6 +237,9 @@ await page.goto(base + '/#/moi');
    901 px depuis le 12 octobre 2026) */
 await page.waitForSelector('#moiReglages');
 await page.click('#moiReglages');
+/* « Thème » est une rangée comme ses voisines : elle ouvre les trois
+   choix (Automatique, Clair, Sombre) — 13 octobre 2026 */
+await page.click('#moiTheme');
 await page.waitForSelector('[data-theme-choix="dark"]');
 await page.click('[data-theme-choix="dark"]');
 await page.waitForFunction(() => document.documentElement.dataset.theme === 'dark');

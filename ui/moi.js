@@ -15,9 +15,9 @@ import { mergeTombs } from '../engine/sync.js';
 import { docGet, docPut, effacerCetAppareil } from '../engine/storage.js';
 import { sansFilet, FILET_MIN_PISTES } from '../engine/assist.js';
 import { listDocs, docKind, docTitle, pickPdf, removeDoc } from './docs.js';
-import { S, bus, saveData, saveProfile, saveOrphans, saveTombs, logJ, applyTheme } from './state.js';
+import { S, bus, saveData, saveProfile, saveOrphans, saveTombs, logJ, choisirTheme } from './state.js';
 import { $, ic, toast, btn, openSheet, confirmSheet, showUndo, bindDeleteGesture,
-         lockRowHTML, bindLockRow } from './dom.js';
+         lockRowHTML, bindLockRow, choixHTML } from './dom.js';
 import { openProfil, openTemplates } from './profil.js';
 import { openAppareils } from './direct.js';
 import { getSync, loadDevices } from './synclive.js';
@@ -292,18 +292,16 @@ const rgRow = (id, nom, etat, last, dep) =>
      ${ic('chevron-right', 'ic-14')}
    </button>`;
 
-/* Deux segments, pas une porte : le choix tient dans la rangée, et le
-   segment retenu se remplit d'accent (§4, trois langages de sélection) */
-const rgTheme = () => {
-  const sombre = S.theme === 'dark';
-  return `<div class="rg-row rg-theme" role="group" aria-labelledby="moiThemeL">
-     <span class="rg-n" id="moiThemeL">Thème</span>
-     <span class="seg3">
-       <button class="seg${sombre ? '' : ' on'}" data-theme-choix="light" aria-pressed="${!sombre}">Clair</button>
-       <button class="seg${sombre ? ' on' : ''}" data-theme-choix="dark" aria-pressed="${sombre}">Sombre</button>
-     </span>
-   </div>`;
-};
+/* LE THÈME, une rangée comme les autres (13 octobre 2026 : « améliorer
+   le bouton clair et sombre »). Il avait deux segments plantés dans la
+   liste — la seule rangée qui ne menait nulle part, avec un aplat
+   d'accent au milieu des traits — et seulement deux choix : une fois
+   « Clair » tapé, plus moyen de revenir à ce que fait le téléphone. Il
+   dit maintenant son état comme ses voisines et ouvre les TROIS choix de
+   tout réglage système (iOS, Android, WhatsApp) : Automatique, Clair,
+   Sombre. Au poste, il remplace l'icône de l'en-tête, qu'on ne devinait
+   pas : une seule place, la même sur les deux appareils. */
+const MOT_THEME = { auto: 'automatique', light: 'clair', dark: 'sombre' };
 
 function reglagesRowsHTML(){
   const prot = isProtected();
@@ -355,16 +353,11 @@ function reglagesRowsHTML(){
      rien ne passe par toi. */
   if ((S.profile.amis || []).length)
     rows.push(['moiRelais', 'Demandes de mes amis', S.profile.flags.sansRelais ? 'arrêtées' : 'transmises', false]);
-  /* LE THÈME, au pouce seulement : sa bascule vivait dans l'en-tête de
-     l'app, et l'en-tête n'existe plus sous 901 px (il ne portait que le
-     logo et elle). Au poste, l'en-tête la porte toujours : la redire ici
-     serait la même commande à deux endroits du même écran. */
-  if (!mqWideMoi.matches) rows.push(['moiTheme']);
+  rows.push(['moiTheme', 'Thème', MOT_THEME[S.themeChoix] || 'automatique', false]);
   rows.push(['moiAide', 'Aide et confidentialité', '', false]);
   rows.push(['moiDiag', 'Signaler un problème', '', false]);
   return (
-    rows.map(([id, nom, etat, dep], i) => id === 'moiTheme' ? rgTheme()
-      : rgRow(id, nom, etat, i === rows.length - 1, dep)).join('') +
+    rows.map(([id, nom, etat, dep], i) => rgRow(id, nom, etat, i === rows.length - 1, dep)).join('') +
     /* DEUX GESTES QUI CHANGENT TOUT NE SONT PAS DES LIENS. Ils vivaient en
        mots soulignés sous la liste : la forme d'un lien, qui promet
        d'emmener ailleurs, pour les deux gestes les plus lourds de l'écran
@@ -457,26 +450,36 @@ function bindReglages(box){
   });
   rf.addEventListener('change', () => { if (rf.files[0]) restoreFile(rf.files[0]); });
   q('#moiInstall')?.addEventListener('click', installer);
-  box.querySelectorAll('[data-theme-choix]').forEach(b => b.addEventListener('click', () => {
-    applyTheme(b.dataset.themeChoix, true);
-    box.querySelectorAll('[data-theme-choix]').forEach(x => {
-      const on = x === b;
-      x.classList.toggle('on', on); x.setAttribute('aria-pressed', String(on));
-    });
-  }));
+  q('#moiTheme')?.addEventListener('click', openTheme);
   q('#moiEfface')?.addEventListener('click', effacerIci);
 }
 /* Quand un ami cherche quelqu'un et que tu ne connais personne, ton
    téléphone fait suivre sa question à tes amis (lot 4b). Deux rangées,
    l'état dans la case ; le choix suit tes appareils (le profil). */
+/* trois rangées, la retenue cochée — la forme de « Demandes de mes
+   amis ». Le choix s'applique au tap, sous les yeux : la feuille elle-même
+   change de couleur, c'est l'aperçu. */
+export function openTheme(){
+  const sh = openSheet({ title: 'Thème', icon: 'moon' });
+  const dessiner = () => {
+    sh.body.innerHTML = choixHTML([['auto', 'Automatique'], ['light', 'Clair'], ['dark', 'Sombre']], S.themeChoix, { attr: 'data-theme-choix' });
+    sh.body.querySelectorAll('[data-theme-choix]').forEach(b => b.addEventListener('click', () => {
+      choisirTheme(b.dataset.themeChoix);
+      dessiner();
+      sh.body.querySelector(`[data-theme-choix="${S.themeChoix}"]`)?.focus({ preventScroll: true });
+      const st = document.querySelector('#moiTheme .rg-s');
+      if (st) st.textContent = MOT_THEME[S.themeChoix];
+    }));
+  };
+  dessiner();
+}
+
 function openRelais(){
   const sh = openSheet({ title: 'Demandes de mes amis', icon: 'users' });
   const dessiner = () => {
     const non = !!S.profile.flags.sansRelais;
-    const rangee = (id, mot, on) =>
-      `<button class="pick pk${on ? ' on' : ''}" id="${id}" aria-pressed="${on}">
-         ${ic('checkbox', 'ic-20 ic-off')}${ic('checkbox-on', 'ic-20 ic-on')}<div class="pk-m"><b>${mot}</b></div></button>`;
-    sh.body.innerHTML = `<div class="pick-list">${rangee('rlOui', 'Les faire suivre à mes amis', !non)}${rangee('rlNon', 'Ne pas les faire suivre', non)}</div>`;
+    sh.body.innerHTML = choixHTML([['oui', 'Les faire suivre à mes amis'], ['non', 'Ne pas les faire suivre']], non ? 'non' : 'oui',
+      { ids: { oui: 'rlOui', non: 'rlNon' } });
     const choisir = v => () => {
       S.profile.flags.sansRelais = v;
       saveProfile();

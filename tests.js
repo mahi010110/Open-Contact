@@ -53,6 +53,7 @@ import { nouvelIdAmi, idAmiValide, cleEntreprise, memeEntreprise, profilDonne, n
          statutAmi, ajouterAmi, retirerAmi, prenomAmi, enCours, direExperience, portesAmis, AMIS_MAX,
          ceQuOuvre, classerAmis, chercherAmis, TRIS_AMIS } from './engine/amis.js';
 import { nouvelleCle, boiteValide, cleValide, etiquetteBoite, sceller, ouvrir, lettreDemande, lettreDon, lettreMerci, lettreAmi,
+         lettreAdieu, adieuAuthentique, prouver, preuveValide,
          contactDonne, normaliserLettre, contactsPour, etatVide, normaliserEtat, elaguer, peutDemander,
          demandeDePiste, traiterLettre, empreinteProfil, DEMANDE_JOURS, DEMANDES_OUVERTES_MAX,
          jetonRelais, ouvrirJeton, lettreRelais, lettreTrouve, choisirRelais, soiPour, contactsDe, lettreEntree, lettreAdmis, lettreRecode,
@@ -2266,6 +2267,36 @@ export async function runSelfTests(){
       const e = normaliserEtat({ envois: [{ id: 'envoi12345', cle: karim.pub, lettre: l, exp: now + 864e5 }, { id: 'x', cle: 'court' }] });
       eq(e.envois.length, 1);
       eq(elaguer(e, now + 2 * 864e5).envois, []);
+    },
+    'boîte : retirer un ami le retire des deux côtés — et seulement de sa propre main': async () => {
+      /* 13 octobre 2026 : l'ajout est réciproque, le retrait aussi */
+      const ines = await nouvelleCle(), karim = await nouvelleCle(), sofia = await nouvelleCle();
+      const now = Date.parse('2026-10-13T12:00:00Z');
+      const idInes = nouvelIdAmi();
+      const l = await lettreAdieu({ prenom: 'Inès', cle: ines.pub, priv: ines.priv }, idInes, karim.pub);
+      eq(Object.keys(l).sort(), ['ami', 'de', 'id', 'preuve', 't', 'v']);
+      ok(!JSON.stringify(l).includes(ines.priv), 'la clé privée ne part pas');
+      const n = normaliserLettre(await ouvrir(karim.priv, await sceller(karim.pub, l)), now);
+      eq(n.t, 'adieu'); eq(n.ami, idInes);
+      /* la preuve : Karim la vérifie avec SA clé privée et la clé d'Inès */
+      ok(await adieuAuthentique(n, karim.priv));
+      ok(!await adieuAuthentique(n, sofia.priv), 'elle ne vaut que pour son destinataire');
+      /* Sofia a la clé publique d'Inès (son QR) : elle ne peut pas retirer
+         Inès de chez Karim à sa place */
+      const faux = { ...l, preuve: await prouver(sofia.priv, karim.pub, 'adieu·' + l.id + '·' + idInes) };
+      ok(!await adieuAuthentique(normaliserLettre(faux, now), karim.priv), 'une preuve d’une autre clé est refusée');
+      ok(!await adieuAuthentique({ ...n, ami: nouvelIdAmi() }, karim.priv), 'la preuve couvre l’identifiant retiré');
+      ok(!await preuveValide(karim.priv, ines.pub, 'x', 'pas-une-preuve'));
+      eq(normaliserLettre({ ...l, preuve: 'court' }, now), null);
+      eq(normaliserLettre({ ...l, ami: '' }, now), null);
+      /* traitée une fois, et seulement pour un ami que j'ai sous ce nom ET cette clé */
+      const amis = [{ id: idInes, nom: 'Inès Martin', cle: ines.pub }];
+      const r = traiterLettre(etatVide(), n, { moi: karim.pub, amis, now });
+      eq(r.quoi, 'adieu');
+      eq(traiterLettre(r.etat, n, { moi: karim.pub, amis, now }).quoi, null);
+      eq(traiterLettre(etatVide(), n, { moi: karim.pub, amis: [{ ...amis[0], cle: sofia.pub }], now }).quoi, null);
+      eq(traiterLettre(etatVide(), n, { moi: karim.pub, amis: [], now }).quoi, null);
+      eq(traiterLettre(etatVide(), n, { moi: ines.pub, amis, now }).quoi, null);    /* mon autre appareil */
     },
     'amis : l’onglet — ce qu’un ami t’ouvre, le tri « Pour toi », la recherche par entreprise': () => {
       const today = '2026-10-07';

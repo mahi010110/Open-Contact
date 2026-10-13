@@ -372,7 +372,7 @@ await page.waitForSelector('#tdTriage', { timeout: 15000 });
 
 /* ---------- mobile 390×844, thème sombre, cibles 44 px ---------- */
 await page.setViewportSize({ width: 390, height: 844 });
-await page.click('#btnTheme');
+await page.evaluate(async () => (await import('./ui/state.js')).choisirTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'));
 await page.waitForFunction(() => document.documentElement.dataset.theme === 'dark');
 await page.waitForSelector('#tdTriage');
 await page.waitForTimeout(300);

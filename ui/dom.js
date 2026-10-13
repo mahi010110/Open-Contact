@@ -21,6 +21,20 @@ export function el(html){
   t.innerHTML = html.trim();
   return t.content.firstElementChild;
 }
+/* UN CHOIX PARMI DEUX OU TROIS — le thème, « Demandes de mes amis », un
+   réglage de groupe. La forme des réglages d'iOS et d'Android : des
+   rangées dans UN cadre (celui des listes d'actions d'une feuille), une
+   coche d'accent au bout de la retenue. Pas la liste à cocher (`.pk`) :
+   une seule valeur à la fois, et ses fiches encadrées faisaient trois
+   briques pour trois mots — les gros boutons que le mainteneur ne veut
+   plus (13 octobre 2026). `radio` : un seul retenu, et il se dit. */
+export function choixHTML(options, actuel, { attr = 'data-choix', ids = {} } = {}){
+  return `<div class="pick-list" role="radiogroup">${options.map(([v, mot]) => {
+    const on = String(v) === String(actuel);
+    return `<button class="pick pick-choix" role="radio" aria-checked="${on}" ${attr}="${esc(String(v))}"${ids[v] ? ` id="${ids[v]}"` : ''}>
+      <b>${esc(mot)}</b>${on ? ic('check', 'ic-14') : ''}</button>`;
+  }).join('')}</div>`;
+}
 export function btn(label, cls, fn, icon){
   const b = el(`<button class="btn ${cls || ''}">${icon ? ic(icon, 'ic-14') + ' ' : ''}${esc(label)}</button>`);
   if (fn) b.addEventListener('click', fn);

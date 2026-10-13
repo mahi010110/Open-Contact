@@ -566,8 +566,32 @@ await rouvrir(I.p);
 }
 console.log('⓪ Karim change son parcours : chez Inès, sa copie suit à l’ouverture — le QR, rien de plus ✓');
 
+/* ---------- ⓪ ter LE RETRAIT EST RÉCIPROQUE (13 octobre 2026) ----------
+   D'abord la FAUSSE lettre : Karim a la clé publique de Sofia (n'importe
+   qui peut l'avoir, elle est dans son QR) et écrit à Inès « Sofia et toi
+   n'êtes plus amis ». Sans la clé PRIVÉE de Sofia, sa preuve ne tient
+   pas : Inès la lit, et garde Sofia. */
+const bI = await boiteDe(I.p);
+const amiIdSofia = await S2.p.evaluate(async () => (await import('./ui/state.js')).S.profile.amiId);
+const idFausse = await K.p.evaluate(async ([pubI, pubS, amiS]) => {
+  const bo = await import('./engine/boite.js'), r = await import('./ui/reseau.js'), { S } = await import('./ui/state.js');
+  const id = bo.nouvelId();
+  const l = { v: 1, t: 'adieu', id, de: { prenom: 'Sofia', cle: pubS }, ami: amiS,
+              preuve: await bo.prouver(S.profile.boite.priv, pubI, 'adieu·' + id + '·' + amiS) };
+  await r.publier(await r.evenement([['x', await bo.etiquetteBoite(pubI)], ['expiration', String(Math.floor(Date.now() / 1000) + 86400)]],
+    await bo.sceller(pubI, l)));
+  return id;
+}, [bI.pub, bS.pub, amiIdSofia]);
+await rouvrir(I.p);
+{
+  const lu = await attendreReseau(I.p, `(e.lus || []).some(x => x.id === ${JSON.stringify(idFausse)})`);
+  if (lu && !await amiChez(I.p, 'Sofia Haddad')) fail('une lettre de retrait FORGÉE (preuve d’une autre clé) a retiré Sofia de chez Inès');
+  else if (lu) console.log('⓪ un retrait écrit au nom d’un autre ne retire personne ✓');
+}
+
 /* Sofia retire Inès ; Inès change ensuite son parcours : la mise à jour
-   part vers Sofia (Inès l'a toujours), et Sofia ne la rajoute PAS */
+   part vers Sofia (Inès l'a toujours — le retrait n'arrive chez elle
+   qu'après « Annuler »), et Sofia ne la rajoute PAS */
 await ongletAmis(S2.p);
 await S2.p.click('.am-row .ri-main');
 await S2.p.waitForSelector('.overlay #amRetirer');
@@ -592,6 +616,27 @@ await rouvrir(S2.p);
   if (lu && await amiChez(S2.p, 'Inès Martin')) fail('une mise à jour a RAJOUTÉ Inès, que Sofia avait retirée');
 }
 console.log('⓪ une mise à jour ne rajoute jamais un ami retiré ✓');
+
+/* … et le retrait de Sofia arrive chez Inès, après « Annuler » : Inès
+   n'a plus Sofia. La lettre ne porte que l'identifiant de Sofia et sa
+   preuve — ni nom d'entreprise, ni parcours. */
+{
+  /* la fausse lettre est déjà au relais : on attend la VRAIE, celle que
+     le téléphone de Sofia a écrite après « Annuler » */
+  const vraieDe = async () => (await deSorte('adieu', 'I')).find(x => x.l.de.cle === bS.pub && x.l.id !== idFausse);
+  for (const fin = Date.now() + 45000; Date.now() < fin && !await vraieDe(); await new Promise(r => setTimeout(r, 500)));
+  const vraie = await vraieDe();
+  if (!vraie) fail('le retrait de Sofia n’est pas parti vers Inès');
+  else {
+    const cles = Object.keys(vraie.l).sort().join(',');
+    if (cles !== 'ami,de,id,preuve,t,v') fail('la lettre de retrait porte : ' + cles);
+    if (/Sopra|BUT info|Inès|Ines/.test(JSON.stringify(vraie.ev))) fail('le relais lit la lettre de retrait');
+    await rouvrir(I.p);
+    const lu = await attendreReseau(I.p, `(e.lus || []).some(x => x.id === ${JSON.stringify(vraie.l.id)})`);
+    if (lu && await amiChez(I.p, 'Sofia Haddad')) fail('Sofia a retiré Inès, mais Inès a toujours Sofia');
+    else if (lu) console.log('⓪ Sofia retire Inès : Inès n’a plus Sofia non plus ✓');
+  }
+}
 
 /* ---------- ⑦ pouce et poste, clair et sombre, 320 px texte doublé ---------- */
 for (const [nom, o] of [['poste', { vp: { width: 1280, height: 800 } }], ['poste-sombre', { vp: { width: 1280, height: 800 }, sombre: true }],

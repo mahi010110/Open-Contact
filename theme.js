@@ -9,10 +9,11 @@
 
    Ce fichier est chargé de façon bloquante dans le <head> : il
    s'exécute avant le premier rendu. Il ne peut pas lire IndexedDB
-   (asynchrone), il lit donc le miroir synchrone que `applyTheme`
+   (asynchrone), il lit donc le miroir synchrone que `choisirTheme`
    entretient dans localStorage — la même clé, une valeur qui n'a rien
-   de privé. À défaut, la préférence du système, qui vaut toujours
-   mieux que « clair » écrit en dur.
+   de privé : le CHOIX (« light », « dark » ou « auto »). Pour « auto »,
+   ou à défaut, la préférence du système, qui vaut toujours mieux que
+   « clair » écrit en dur.
 
    Pourquoi un FICHIER et pas un script en ligne : la CSP de la page
    est `script-src 'self'`, elle refuse l'inline — et on ne l'affaiblit

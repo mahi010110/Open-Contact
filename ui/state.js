@@ -23,6 +23,7 @@ export const S = {
   profile: null,
   journal: [],          /* privé, jamais partagé */
   theme: 'light',
+  themeChoix: 'auto',
   route: 'aujourdhui'
 };
 /* app.js branche ici le re-rendu de la vue courante */
@@ -96,21 +97,35 @@ export function logJ(txt, cid, ids){
   kvSet(JOURNAL_KEY, JSON.stringify(S.journal));
 }
 
-/* Le thème : appliqué ici, demandé de deux endroits — la bascule de
-   l'en-tête au poste, la rangée « Thème » des réglages au pouce, où
-   l'en-tête n'existe pas. */
-export function applyTheme(t, persist){
+/* Le thème. Deux choses à ne pas confondre : le CHOIX (`S.themeChoix` :
+   « auto », « light » ou « dark ») et ce qui est APPLIQUÉ (`S.theme`,
+   clair ou sombre). « Auto » suit l'appareil, en direct — c'est le
+   défaut, et la réponse de tout réglage système (iOS, Android, WhatsApp :
+   « Automatique », « Clair », « Sombre »). Avant le 13 octobre 2026 il
+   n'y avait que « Clair · Sombre » : une fois choisi, plus moyen de
+   revenir à ce que fait le téléphone. */
+export const choixTheme = v => (v === 'light' || v === 'dark') ? v : 'auto';
+const mqSombre = matchMedia('(prefers-color-scheme: dark)');
+export const themeVoulu = choix => choix === 'auto' ? (mqSombre.matches ? 'dark' : 'light') : choix;
+export function applyTheme(t){
   S.theme = t;
   document.documentElement.dataset.theme = t;
   document.getElementById('metaTheme').content = (t === 'dark') ? '#1E232B' : '#F7F6F1';
-  if (persist) kvSet(THEME_KEY, t);
-  /* miroir synchrone pour `theme.js`, qui doit décider AVANT le premier
-     pixel et ne peut donc pas attendre IndexedDB. On l'écrit à chaque
-     application, pas seulement en persistance : le repli système fait
-     lui aussi foi pour le lancement suivant. Valeur sans rien de privé,
-     même clé — un échec (navigation privée) est sans conséquence. */
-  try { localStorage.setItem(THEME_KEY, t); } catch (e) {}
 }
+/* choisir : appliquer, retenir, et tenir le miroir synchrone de
+   `theme.js` — qui décide AVANT le premier pixel et ne peut pas attendre
+   IndexedDB. Le miroir porte le CHOIX : « auto » y redemande l'appareil
+   au lancement suivant. Valeur sans rien de privé, même clé ; un échec
+   (navigation privée) est sans conséquence. */
+export function choisirTheme(choix, persist = true){
+  S.themeChoix = choixTheme(choix);
+  applyTheme(themeVoulu(S.themeChoix));
+  if (persist) kvSet(THEME_KEY, S.themeChoix);
+  try { localStorage.setItem(THEME_KEY, S.themeChoix); } catch (e) {}
+}
+/* « Auto » suit l'appareil EN DIRECT : le téléphone qui passe en sombre
+   le soir emmène l'app avec lui, sans rechargement */
+mqSombre.addEventListener('change', () => { if (S.themeChoix === 'auto') applyTheme(themeVoulu('auto')); });
 
 export async function loadAll(){
   await kvInit();
@@ -118,8 +133,8 @@ export async function loadAll(){
      séquentiels, ça se paie cher sur un vrai téléphone */
   const [t, pRaw, jRaw, oRaw, tbRaw, raw] = await Promise.all(
     [THEME_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, DATA_KEY].map(kvGet));
-  S.theme = (t === 'light' || t === 'dark') ? t
-    : (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  S.themeChoix = choixTheme(t);
+  S.theme = themeVoulu(S.themeChoix);
   let p = null;
   try { p = JSON.parse(pRaw); } catch (e) {}
   S.profile = normalizeProfile(p);
