@@ -271,7 +271,11 @@ net. Sources uniques : `styles/tokens/` et le kit `design/`.
 - **Reliefs** : bevels francs, ombres dures, coins droits (`--bevel-*`,
   `--shadow-*`). L'identité est **nette, sans flou** — un dégradé, une ombre
   floue, un arrondi marqué la cassent. Ça se discute avec le mainteneur, ça ne
-  se glisse pas dans un écran.
+  se glisse pas dans un écran. **Le relief se mérite** *(13 octobre 2026)* :
+  il appartient au châssis (fenêtres, barres de titre), au primaire, et à
+  l'APPUI — un bouton texte s'enfonce quand on le tape. Posé sur chaque
+  bouton, il faisait douze gros boutons d'une fiche (voir §6, « La taille
+  dit le rang »).
 - **Trame dither** : `--dither` porte la position ET la taille, il n'est donc
   valable que derrière la propriété raccourcie `background`. Posé sur
   `background-image`, il est **rejeté en silence** — la trame ne s'affiche pas
@@ -564,7 +568,13 @@ les confondre coûte cher : une tablette tactile en paysage fait 1024 à
   cible (40 et 32 px dessinés, marge invisible autour) a vécu une
   journée — voir l'annexe. `e2e-boutons.mjs` (⑥) refuse tout contrôle
   dessiné sous 44 px au doigt ; redescendre demande de venir le
-  changer là, exprès.
+  changer là, exprès. **Le bouton texte ne contredit pas la règle**
+  *(13 octobre 2026)* : il ne dessine aucune boîte plus petite que sa
+  cible, il n'en dessine aucune. Sa boîte invisible fait `--ctl`, comme
+  celle de tout bouton — « les bords d'un bouton définissent sa zone
+  cliquable même quand ils ne se voient pas » (Apple HIG). Ce que le
+  mainteneur avait refusé, c'était un cadre de 32 px dans une cible de
+  44 : deux bords pour un seul geste.
 - **Une hauteur par main, jamais par largeur ni par bouton**
   *(« la taille doit être adaptée sur téléphone et PC », le mainteneur,
   30 septembre 2026)*. Relevé sur trois ergonomies le même jour : au
@@ -753,10 +763,10 @@ le calculé.** Une transition CSS rend encore l'ancienne valeur à
 l'instant où on la lit ; la première version du contrôle a conclu
 « rien n'a bougé » d'un geste qui suivait pourtant le doigt.
 
-**Naviguer, c'est tenir quatre promesses.** Une barre d'onglets et un
-bouton retour promettent des choses très précises ; les tenir à moitié
-coûte plus cher que ne pas les faire. Les quatre sont mesurées et
-gardées (`e2e-fenetre.mjs`, `e2e-ux-audit.mjs`) :
+**Naviguer, c'est tenir cinq promesses.** Une barre d'onglets, un
+bouton retour et un lien promettent des choses très précises ; les tenir à moitié
+coûte plus cher que ne pas les faire. Les cinq sont mesurées et
+gardées (`e2e-fenetre.mjs`, `e2e-ux-audit.mjs`, `e2e-commencer.mjs`) :
 
 1. **Le bouton retour ferme la feuille, pas l'écran.** Chaque feuille
    pousse une entrée d'historique à la MÊME adresse et la consomme en se
@@ -818,6 +828,16 @@ gardées (`e2e-fenetre.mjs`, `e2e-ux-audit.mjs`) :
    dans les feuilles** : « Donner » et « Prospecter » ouvrent ~3,5 écrans
    de liste, et « Tout / Affiner » — les deux gestes qu'on cherche une
    fois descendu — partaient avec la première ligne.
+5. **Un lien qui COMPTE mène à ce qu'il compte, et n'existe que s'il
+   ajoute à l'écran** *(13 octobre 2026)*. Joué sur la toute première
+   piste : « Advens » sous « Par où commencer », et au pied « 1 piste
+   sans prochaine action → » — la même piste, redite ; tapé, le lien
+   ouvrait « Mes pistes » ENTIÈRE, où ce qu'il comptait se perdait parmi
+   le reste. Un nombre est une promesse : l'arrivée montre ce nombre-là
+   (`ouvrirSur`, §6), avec le mot de l'écran d'arrivée (« à planifier »,
+   l'étiquette de la barre), et le lien se tait quand tout ce qu'il
+   compte est déjà sous les yeux. Gardé par `e2e-commencer.mjs`, un
+   filtre d'« Affiner » posé exprès pour qu'il ait de quoi mentir.
 
 ---
 
@@ -844,7 +864,7 @@ avec un motif existant.
 | Supprimer au geste | `bindDeleteGesture(node, onDelete)` — glisser (mobile) / poubelle au survol (desktop), doublé d'un `showUndo` |
 | Un journal, un historique | il RACONTE ce qui est fait : poids de texte courant, jamais le gras d'un titre — deux ou trois niveaux au maximum sur un écran (NN/g, poids visuel), et le journal vient toujours après les gestes qu'il surplombe |
 | Choisir parmi 2-5 options | `pick-list` / `.pick` — **UN cadre, des rangées sans relief**, séparées d'un pointillé : la forme de « Réglages » et de « Modèles d'emails ». Plus de pile de briques pleine largeur (voir « La taille dit le rang », sous la table). Une option ne porte pas de sous-titre qui l'explique ; à droite, au plus un état d'un mot ou un chiffre |
-| Choisir un attribut court | `.datechips` + `.dchip` — la puce fait la taille de son MOT (`flex:0 1 auto`) et le groupe se replie par rangs. Jamais une liste déroulante : on ne cache pas un petit jeu d'options |
+| Choisir un attribut court | `.datechips` + `.dchip` — **à plat** : un trait, pas de relief (Material dessine la puce de filtre à plat ; l'élévation est pour une puce posée sur une image), et le relief revient à l'appui. La puce fait la taille de son MOT (`flex:0 1 auto`) et le groupe se replie par rangs. Jamais une liste déroulante : on ne cache pas un petit jeu d'options |
 | Choisir une date | chips « Demain / +3 j / +7 j / Lundi » + date précise validée par OK (jamais de fermeture sur `change` seul — roue iOS). **Quand une réponse est conseillée, elle tient le pied** : après un envoi, « Dans 7 jours » (`SILENCE_RELANCE`) sous le pouce, les puces pour un autre jour, la croix pour ne rien prévoir |
 | Rappeler une prochaine action | la case « Me le rappeler dans mon agenda » des feuilles de date (`ouvrirAgenda`, `ui/actions.js`). Une app web ne sonne pas sans serveur (§10) ; l'agenda du téléphone, si. **La forme suit l'appareil, elle ne se demande pas** (`formeAgenda`, `engine/agenda.js`) : un `.ics` pour l'agenda d'Apple, un lien Google Agenda ailleurs — Android n'ouvre pas un `.ics` sans app tierce. Appelé DANS le geste qui choisit la date, sinon le navigateur bloque. La case se souvient (`flags.rappelAgenda`) |
 | Confirmer un geste risqué | `confirmSheet` (danger = `btn-danger`). **Une porte se décide** : elle ne se justifie que si elle montre ce qu'on ne peut PAS deviner (« ce fichier contient 12 pistes, tu en as 3 »). Une question dont le message dit qu'il n'y a rien à perdre ne protège personne |
@@ -856,6 +876,7 @@ avec un motif existant.
 | Marquer partagé vs privé | `tag-share` / `tag-priv` |
 | Montrer qu'une ligne **vient de changer** | `montrerChange(id)` — un lavis d'accent, une fois, ~900 ms, sur la seule ligne concernée et seulement si elle est à l'écran. Pour des CHAMPS que l'app vient de remplir, `montrerRemplis(champs)` : le même lavis sur chaque `.field` rempli, et sur lui seul. Ce n'est **pas** le langage d'urgence : `mark-*` reste à ce qui réclame une action |
 | Dire qu'un état **réclame quelque chose** | `.mark` + un cran : `mark-late` · `mark-now` · `mark-soon` · `mark-far`. **Un seul langage d'urgence dans toute l'app**, échelle monotone, et **ce qui ne réclame rien n'affiche rien** — c'est le vide en face qui fait ressortir le reste. Un cadre entier peut prendre le bord ambre (`.fset.fs-alert`) quand son état peut tout coûter |
+| Mener à un ensemble de pistes | `ouvrirSur(texte)` (`ui/pistes.js`) — « Mes pistes » s'ouvre sur une recherche toute faite, comme si on l'avait tapée : ses étiquettes disent ce qu'on regarde, et leur croix revient à tout. Le filtre d'« Affiner » tombe (il retirerait des pistes que le lien a comptées) et la liste part du haut. Jamais `location.hash = '#/pistes'` derrière un lien qui nomme un ensemble |
 | Chercher | `filterCompanies({q})` / `filterOrphans` — les accents se plient dans les deux sens et **chaque mot se cherche pour lui-même** (tous présents, ordre libre). « / » ouvre le champ, Échap le vide |
 | Comprendre ce qu'on tape | `chercherPistes` (`engine/requete.js`) — la requête devient des **étiquettes** : poste, métier, lieu, état, groupe ; le reste reste du texte. **Une table, pas une IA** (`engine/lieux.js` pour les villes, départements, régions). Quatre règles, tenues par cent phrases dans `tests.js` : ① mieux vaut ne pas comprendre que mal comprendre — « Orange » reste du texte, et le PRÉCIS aussi (« pentest », « SOC » sont des technos, pas tout le secteur) ; ② aucun mot perdu — ce qui ne cherche rien est un mot de liaison (« à », « chez », et ce qui décrit l'étudiant : « BTS SIO ») ; ③ une étiquette ne perd jamais ce que le texte trouvait, sauf un **numéro** (« 59 » n'est plus un bout de téléphone) et un **état** (« réponse » n'est pas un mot de note) ; ④ ce qui correspond pleinement passe devant, et **la raison se lit sur la ligne** (« Léa y a été en alternance », « prend des alternants »). **Tout mot que l'écran affiche se cherche** (« sans nouvelles », « à planifier », « Relancer »). Une étiquette se tape pour se retirer, avec son mot de liaison : la barre et les étiquettes ne se contredisent jamais. **Une faute de frappe se PROPOSE** (« Lile » → « Lille ? » en pointillé, Damerau-Levenshtein : une faute dès quatre lettres, deux dès huit), jamais appliquée, et pas pour un mot qui trouve déjà une piste (`correction`). **Proposé en pointillé, posé en plein** : la barre vide propose des recherches qui ont une réponse (jamais zéro), une ville propose son département, le vide propose ce qu'on retrouverait (« Sans « Lille » · 4 »). Au poste, le clavier suffit — ↓ ← → suivent le tableau, Échap remonte, Entrée ouvre la carte qui porte ↵. Gardé par `e2e-recherche.mjs` |
 | Découvrir dans l'annuaire | `ui/decouvrir.js` + `engine/annuaire.js` — **un onglet de texte sous la barre** (« Mes pistes · À découvrir N »), ce que l'annuaire public des entreprises (data.gouv.fr, sans clé ni compte) connaît et que tu n'as pas. L'onglet est là avant d'avoir servi, son compte se remplit pendant la frappe, et rien ne part au démarrage : sans recherche, c'est le tap qui pose la question par défaut. **La question part seule après une pause, mais n'emporte que ce qui décrit une entreprise** : métier en codes d'activité, lieu, taille, mots qui peuvent nommer une entreprise. **Jamais** un mot d'un contact, de tes notes ou de ton historique, un prénom du groupe, ton profil, l'état de tes pistes — et une question vidée par ce tri ne part pas (`e2e-decouvrir.mjs` lit chaque requête). **Les employeurs d'abord, jamais une personne** : les entrepreneurs individuels ne se demandent pas, une question jumelle va chercher les 10-499 salariés, un métier tapé en texte (« cyber ») ne demande que des employeurs de dix salariés et plus, et ta zone (le département où tu as au moins deux pistes) se pose d'office, **en étiquette avec sa croix** — retirée, elle revient en pointillé (`e2e-classement.mjs`). **Une ville, c'est autour d'elle** : son centre vit dans `engine/lieux.js` (hors ligne), la question part autour du point (15 km) et ce qui tombe à plus de 30 km est écarté — « Lille » rendait Maubeuge (`docs/utile.md`). **Qui recrute** : pour une alternance, un lien « Offres d'alternance autour de … » vers La bonne alternance SUIT la liste — on regarde d'abord les entreprises ; son API refuse toute page, son site s'ouvre d'un lien. Une entreprise = une ligne : ce qui est déjà dans tes pistes ne se redit pas (SIREN, nom, sigle). **Aucun bouton dans la liste** : la ligne ouvre l'aperçu, dont le pied porte « Ajouter à mes pistes » + Annuler ; la ligne ajoutée reste à sa place et le dit (`✓ dans tes pistes`) — aucune personne importée d'office. L'aperçu dit qui, quoi et où, puis comment y entrer, en **liens** ; le reste en gris. Au pouce l'aperçu est une feuille, au poste il vit à côté de la liste (liste-détail, ↓ ↑ depuis la barre). Chaque état se dit et se répare : hors ligne, panne (« Réessayer »), limite de débit (429, relevée en vrai : une seconde tentative, puis « très demandé »). Ce que l'API rend a été **relevé** (`sonde-annuaire.mjs`, `sonde-classement.mjs`, en CI), jamais supposé. **Le profil ajoute ce que la barre ne dit pas** (`ajoutsProfil`, `docs/recherche-profil.md`) : ta ville et ton rayon (« Autour de »), le métier de ta formation — chacun en ÉTIQUETTE avec sa croix, retirée elle revient en pointillé ; ta ville passe devant ta zone, un nom tapé n'est jamais bridé par un métier, et seul le CENTRE part. **« Pas pour moi »** (dans l'aperçu, ou au glissé — le motif de la suppression avec SON mot) écarte pour de bon, dans le profil ; **« nouveau »** ne marque rien la première fois (`oc_vus_v1`, cet appareil) ; **« ta formation »** ne s'écrit que si elle départage. La ligne de marché (BMO 2026) est partie le 7 octobre : elle n'aidait à choisir aucune entreprise ; la table reste dans `engine/marche.js`. **Sous une barre vide, rien** : ni « Tape un métier et une ville », ni source, ni propositions de tes pistes (`e2e-mesure.mjs`) |
@@ -1337,8 +1358,36 @@ actions lourdes, et donc aucune. L'app n'a plus que **trois formes** :
 1. **Le primaire** — rempli, un seul par vue. Dans une feuille il tient
    le pied, à la place du pouce. C'est le **seul** qui a le droit de
    s'étirer.
-2. **Le bouton secondaire** — contouré, `.btn-sm`, **taillé à son mot**.
-   Jamais plus de 60 % de sa boîte. Un geste SEUL est toujours celui-là,
+2. **Le bouton texte** — `.btn` (et `.btn-sm`), **sans boîte** : ni fond,
+   ni trait, ni ombre au repos ; l'encre d'accent et son icône disent
+   qu'il se tape, et il s'enfonce à l'appui (le relief 98, là où il dit
+   quelque chose). Pas de soulignement : un lien emmène, un bouton agit.
+   *(13 octobre 2026 — « j'en ai marre des gros boutons disgracieux, il y
+   en a plein partout » : relevé sur 37 écrans, la fiche portait douze
+   boîtes biseautées sur dix-sept contrôles, et « Modifier », « + Ajouter »,
+   « Planifier » pesaient autant que « Écrire ».)* Trois sources disent la
+   même chose : Apple HIG — le style marqué pour l'action la plus
+   probable, « une ou deux par vue », et « le style, pas la taille, pour
+   distinguer le choix préféré » ; dans une barre, des symboles sans
+   bordure, « le conteneur se voit déjà » ; Material — le bouton texte
+   pour les actions secondaires des cartes et des dialogues, « il garde
+   l'emphase sur le contenu ». **Ce qui départage, c'est ACCOMPAGNER ou
+   ÊTRE l'action** — le mainteneur, le même jour : « certains boutons
+   sont utiles et beaux à leur place ». Un bouton qui accompagne perd sa
+   boîte : « Modifier » ou « + Ajouter » à côté de ce qu'ils touchent,
+   l'outil d'une barre (« Prospecter », « Affiner », les gestes d'un
+   contact), le second geste d'un pied qui a déjà son primaire
+   (« Compléter », « Fichier », « Copier »). Un bouton qui EST l'action
+   de son bloc, sans primaire pour la porter, garde la sienne
+   (`.btn-contour`, contourné) : la flèche d'envoi d'un message, la ligne
+   de « Ma copie », les gestes de « Mon QR », l'envoi d'une invitation ;
+   et « Recevoir » à côté de « Donner » (`.hero` — rempli > contourné >
+   discret). Une `.btn-contour` à côté d'un primaire est une faute : là,
+   elle accompagne. Le discret reste un cran plus bas (`.btn-ghost`,
+   encre sourde : « Clôturer »), le destructif en rouge (`.btn-danger`).
+   Gardé par `e2e-boutons.mjs` (⑦), sondes et mutation à l'appui, et son
+   exception échoue si elle n'exempte plus rien.
+   **Taillé à son mot** : jamais plus de 60 % de sa boîte. Un geste SEUL est toujours celui-là,
    même destructif (`.btn-danger`, dans son groupe) : une liste d'un seul
    geste n'est que la brique d'avant sous un autre nom. **Une exception,
    nommée** : l'action de la ligne du mot de passe (`lockRowHTML`) tient
@@ -1945,6 +1994,7 @@ retiré.
 | « Le visuel n'est pas la cible » : au doigt, boutons dessinés à 40 px, compacts, puces et croix à 32, segments à 36, la cible de 44 px gardée par une marge invisible (6.37.0) | **retirée** (30 septembre 2026, le jour même), par le mainteneur sur son téléphone : « remets l'ancienne taille, c'était beaucoup mieux avant » | Elle s'appuyait sur deux sources justes — Material 3 dessine un bouton de 40 dp pour une cible de 48, Apple un bouton d'environ 34 pt pour 44. Mais sur un vrai iPhone la police est plus grande que les 16 px du bac à sable (§5), et le texte remplissait des boîtes de 32 px : à l'étroit, pas plus léger. Et la marge invisible était une mécanique de plus, qui se fait rogner par un conteneur ou recouvrir par un voisin sans que rien ne se voie — l'audit avait dû apprendre à la prouver en touchant ses bords. Ce que le mainteneur trouvait « trop gros » avant elle était l'ÉCRITURE et les briques, déjà réglées en 6.36.0 ; la hauteur, elle, était bonne |
 | « Au poste, le tableau du jour prend la région, le pied se pose en bas » (garde de `e2e-ux-audit.mjs` : pied à 85 % de la hauteur) | **remplacée** (12 octobre 2026, audit adaptatif) | Elle étendait au poste la règle du pouce (§5 : l'action se pose en bas, là où la main arrive). Sous une souris il n'y a pas de zone facile, et la place prise l'était par du vide encadré : trois cadres de 600 px pour une carte chacun. Le tableau prend la hauteur de son contenu, le pied le suit ; le garde vérifie maintenant l'inverse, mutation à l'appui |
 | « Échanger » porte les gestes des groupes et des amis : un cadre « Groupes » (le mot, « Créer », « Rejoindre », les rangées) et un cadre « Amis » (« Scanner », « Mon QR ») — lots 4a et 5 | **retirée** (12 octobre 2026), par le mainteneur : « ce qui était avant était parfait, en rajoutant tu as juste rendu moche et mal fait » | Chaque cadre se défendait seul (le « My code / Scan » de WhatsApp, un cadre par objet). Ensemble ils posaient quatre gestes rares à côté des deux quotidiens et l'écran ne se lisait plus. Les groupes reprennent la place de la porte d'avant, « Créer » et « Rejoindre » passent derrière elle, les amis s'ajoutent dans leur liste et se scannent par « Recevoir » — §6, « Une fonctionnalité neuve prend une place qui existe » |
+| « Le bouton secondaire — contouré, `.btn-sm`, taillé à son mot » (6.36.0) | **remplacée** (13 octobre 2026), par le mainteneur : « j'en ai marre des gros boutons disgracieux, il y en a plein partout » | Elle avait réglé la TAILLE (des briques pleine largeur devenues des boutons à leur mot) et laissé le POIDS : chaque secondaire gardait fond, trait et ombre dure, si bien qu'une fiche alignait douze boîtes biseautées et que rien ne départageait « Modifier » d'« Écrire » sinon la couleur. Apple et Material réservent la boîte à l'action la plus probable ; le secondaire qui ACCOMPAGNE est devenu un bouton texte (§6). Celui qui EST l'action de son bloc garde sa boîte (`.btn-contour`) : la ligne de « Ma copie », les gestes de « Mon QR », l'envoi d'un message ou d'une invitation — « certains boutons sont utiles et beaux à leur place », le mainteneur, le même jour |
 | « Télécharger » taillé à son mot, dans « Ma copie » (6.36.0) | **retirée** (30 septembre 2026, le jour même), par le mainteneur : « j'aimais bien comment c'était » | La règle générale était juste — un bouton de 235 px pour un mot annonce une action lourde. Mais cette ligne n'est pas un bouton étiré : c'est un échange de place, où l'action tient la largeur que le champ du mot de passe prendra en s'ouvrant. Taillée à son mot, la ligne gardait un trou à droite et l'ouverture ne se lisait plus comme un échange. L'exception se nomme dans `e2e-boutons.mjs` par sa construction (`.lockrow:not(.on) > .lr-do`), pas par un bouton |
 
 *Tranché par l'assistant, à valider :* la reformulation de l'interdit serveur,

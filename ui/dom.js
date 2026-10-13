@@ -940,9 +940,9 @@ export function installFoldMotion(){
 export function lockRowHTML({ id, action = '', mot = 'Chiffrer', invite = 'Mot de passe' }){
   return (
     `<div class="lockrow" id="${id}">
-       ${action ? `<button class="btn btn-sm lr-do" id="${id}Do">${action}</button>` : ''}
+       ${action ? `<button class="btn btn-sm btn-contour lr-do" id="${id}Do">${action}</button>` : ''}
        <div class="lr-pw">
-         <button type="button" class="btn btn-sm lr-lock" id="${id}Lock" aria-pressed="false"
+         <button type="button" class="btn btn-sm btn-contour lr-lock" id="${id}Lock" aria-pressed="false"
                  aria-controls="${id}Pass" aria-label="Protéger par un mot de passe"
                  >${ic('lock', 'ic-14')}<span class="lr-w">${mot}</span></button>
          <input id="${id}Pass" class="lr-pass" type="password" autocomplete="new-password"
