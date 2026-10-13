@@ -139,6 +139,9 @@ bus.refresh = render;
      efface sinon les données d'un site non visité depuis 7 jours) */
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 
+  /* le clavier d'un téléphone ne couvre pas les feuilles (lot D) */
+  import('./ui/zone-visible.js').then(m => m.suivreZoneVisible()).catch(() => {});
+
   /* navigation */
   window.addEventListener('hashchange', applyRoute);
   /* retaper l'onglet où l'on est déjà remonte à sa racine — le hash ne

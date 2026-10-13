@@ -125,14 +125,15 @@ const lettresPour = async (b, t = 'message') => {
   }
   return out;
 };
+/* au doigt, Entrée va à la ligne et la FLÈCHE envoie (lot D) */
 async function ecrire(p, texte){
   await p.click('#msChamp');
   const lignes = texte.split('\n');
   for (let i = 0; i < lignes.length; i++){
-    if (i) await p.keyboard.press('Shift+Enter');
+    if (i) await p.keyboard.press('Enter');
     await p.keyboard.type(lignes[i]);
   }
-  await p.keyboard.press('Enter');
+  await p.click('#msEnvoyer');
 }
 
 const I = await ecran(INES, PISTES_I);

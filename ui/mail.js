@@ -15,7 +15,7 @@ import { docGet } from '../engine/storage.js';
 import { aiComplete, draftPrompt, splitDraft } from '../engine/ai.js';
 import { SILENCE_RELANCE } from '../engine/assist.js';
 import { S, bus, saveData, logJ, activateContact } from './state.js';
-import { openSheet, toast, btn, el, ic, showUndo } from './dom.js';
+import { openSheet, toast, btn, el, ic, showUndo, champGrandit } from './dom.js';
 import { askNextAction } from './actions.js';
 import { openProfil } from './profil.js';
 import { listDocs, docKind, docTitle, pickPdf } from './docs.js';
@@ -178,6 +178,18 @@ export function openMail(c, opts){
      une mesure de mise en page. `force` sert au redimensionnement, où
      la valeur n'a pas changé mais le repli, si. */
   let objetVu = null;
+  /* LE MESSAGE GRANDIT AVEC SON TEXTE (lot D, 13 octobre 2026 : « quand
+     on écrit, c'est horrible »). Il défilait DANS son cadre, au milieu
+     d'une feuille qui défile aussi : deux défilements l'un dans l'autre
+     sous le même pouce, et le début du brouillon caché au-dessus du
+     curseur — mesuré en 390 × 844, les deux premières lignes. §6 le
+     disait pour tout champ qu'on relit : c'est la FEUILLE qui défile,
+     jamais l'endroit où l'on travaille. Le plancher reste (CSS) : la
+     place de rédaction ne dépend toujours pas de ce qu'on sait de
+     l'entreprise. Mesuré à chaque `sync()`, donc par tous les chemins
+     qui posent un texte — le gabarit, la frappe, le brouillon, son
+     annulation. */
+  const pousserCorps = champGrandit(q('#mBody'));
   function syncObjet(force){
     const t = q('#mSubj');
     if (!t || (!force && t.value === objetVu)) return;
@@ -311,6 +323,7 @@ export function openMail(c, opts){
   };
   function sync(){
     syncObjet();
+    pousserCorps();
     /* l'erreur part dès que le dernier crochet est remplacé — jamais avant */
     if (!q('#mTrou').hidden && !crochets(q('#mBody').value).length){
       q('#mTrou').hidden = true;

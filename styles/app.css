@@ -1754,6 +1754,19 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   .modal-f{padding-bottom:12px}
   .modal-f .btn{flex:0 0 auto}
 }
+/* LE CLAVIER NE COUVRE PAS LA FEUILLE (ui/zone-visible.js). Sur iPhone,
+   le clavier ne rétrécit pas la page : tant qu'il est ouvert, la feuille
+   se loge dans la zone qu'il laisse visible — sa barre de titre en haut,
+   son pied juste au-dessus des touches — et c'est elle qui défile. Une
+   feuille qui se donnait sa hauteur (« Écrire », un groupe, une
+   conversation) prend celle de la zone. Le message GARDE son plancher :
+   sans lui, le cadre descend sous son champ et la ligne d'aide se pose
+   par-dessus le texte (relevé ici même, comme en 360 × 640) — c'est le
+   corps de la feuille qui défile. */
+.clavier-ouvert .overlay{top:var(--zone-top,0);bottom:auto;height:var(--zone-h,100%)}
+.clavier-ouvert .modal{max-height:calc(var(--zone-h,100dvh) - 8px)}
+.clavier-ouvert .modal-compose,.clavier-ouvert .modal-groupe{height:calc(var(--zone-h,100dvh) - 8px)}
+.clavier-ouvert .modal-f{padding-bottom:12px}
 /* À la souris, la croix appartient au CHÂSSIS : elle prend la hauteur de
    sa barre de titre, comme les boutons de légende d'une fenêtre de
    bureau. Elle se décidait sur la LARGEUR — une tablette tactile en
@@ -2983,8 +2996,14 @@ button.ec-row:hover{background:var(--surface-field)}
 /* PAS de `min-height:0` sur le corps non plus : le cadre garde le
    plancher de son champ. Il tombait sinon à 134 px pendant que le champ
    en gardait 170 — le champ débordait sur la ligne d'aide. */
-.modal-compose .fld-body{flex:1;min-height:min(30dvh,300px);display:flex;flex-direction:column}
-.modal-compose .fld-body textarea{flex:1}
+/* le cadre grandit avec son champ et ne RÉTRÉCIT jamais sous lui
+   (`flex:1 0 auto`) : dans cette colonne bornée, `flex:1` le laissait
+   descendre sous son contenu, et la ligne d'aide se posait sur la fin
+   du message (§4, la même faute verticalement) — le corps défile */
+.modal-compose .fld-body{flex:1 0 auto;min-height:min(30dvh,300px);display:flex;flex-direction:column}
+/* il grandit avec son texte (`champGrandit`) : `flex:1 0 auto`, jamais
+   `flex:1` — une base nulle ignorerait la hauteur qu'il se donne (§6) */
+.modal-compose .fld-body textarea{flex:1 0 auto;resize:none;overflow:hidden}
 .fld-body textarea{min-height:170px}
 /* L'OBJET S'AFFICHE EN ENTIER — il grandit avec son texte (JS), le
    plafond de quatre lignes vit dans `ui/mail.js`. `resize:none` : il se
