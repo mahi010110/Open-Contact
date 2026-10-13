@@ -575,7 +575,9 @@ export async function ouvrirGroupe(code, apres){
     sh.body.scrollTop = sh.body.scrollHeight;
   };
   champ.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); envoyer(); } });
-  const bEnv = btn('', 'icon-btn', envoyer, 'arrow-up');
+  /* l'envoi est L'action du champ : il garde sa boîte, comme partout
+     où l'on écrit un message */
+  const bEnv = btn('', 'icon-btn btn-contour', envoyer, 'arrow-up');
   bEnv.id = 'grEnvoyer'; bEnv.setAttribute('aria-label', 'Envoyer'); bEnv.title = 'Envoyer';
   const bDon = btn('Donner', '', async () => {
     (await import('./donner.js')).openDonner({ groupe: { code, nom: nomDe(code) }, apres: rendre });
@@ -777,7 +779,7 @@ async function inviterDans(box, code){
   box.append(boutonEnvoyer(porte
     ? `Demande à entrer dans « ${nomDe(code)} » sur OpenContact. Copie ce message, puis Échanger › Recevoir › Texte :\n${txt}`
     : `Rejoins « ${nomDe(code)} » sur OpenContact. Copie ce message, puis Échanger › Recevoir › Texte :\n${txt}`,
-    { classe: 'btn-sm', id: 'grCopier' }));
+    { classe: 'btn-sm btn-contour', id: 'grCopier' }));
 }
 function ouvrirMembres(code, shGroupe){
   const sh = openSheet({ title: 'Membres', icon: 'users' });

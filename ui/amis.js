@@ -104,8 +104,11 @@ export async function openMonQR(o = {}){
   /* le bouton DIT qu'il a copié, là où l'on vient de toucher — pas un
      toast de plus pour un résultat qu'on regarde déjà */
   /* au doigt, « Envoyer » ouvre la feuille de partage ; au poste, « Copier » */
-  const copier = boutonEnvoyer(`Mon profil OpenContact — colle ce message dans Échanger › Recevoir › Texte :\n${txt}`);
-  const scanner = btn('Scanner', '', async () => {
+  /* les deux gestes de la feuille, sans primaire pour les porter : ils
+     gardent leur boîte (§6, « La taille dit le rang ») */
+  const copier = boutonEnvoyer(`Mon profil OpenContact — colle ce message dans Échanger › Recevoir › Texte :\n${txt}`,
+    { classe: 'btn-contour' });
+  const scanner = btn('Scanner', 'btn-contour', async () => {
     sh.close();
     (await import('./recevoir.js')).openRecevoir({ scanner: true, apres: o.apres });
   }, 'grid-3x3');

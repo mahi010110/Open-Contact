@@ -197,13 +197,37 @@ input,select,textarea{font-family:inherit;color:var(--text-body)}
 }
 
 /* ============ BOUTONS ============ */
+/* LE BOUTON TEXTE EST LA FORME PAR DÉFAUT (13 octobre 2026). Le
+   mainteneur : « j'en ai marre des gros boutons disgracieux, il y en a
+   plein partout ». Relevé sur 37 écrans : la fiche portait 12 boîtes
+   biseautées sur 17 contrôles, « Modifier », « + Ajouter », « Planifier »
+   pesaient autant que « Écrire ». Les sources disent toutes la même
+   chose — Apple : le style marqué pour l'action LA PLUS PROBABLE, « une
+   ou deux par vue », et « le style, pas la taille » ; une barre ou une
+   rangée porte ses symboles sans bordure, « le conteneur se voit déjà » ;
+   Material : le bouton texte pour les actions secondaires des cartes et
+   des dialogues, « il garde l'emphase sur le contenu ».
+   Un bouton qui ACCOMPAGNE n'a donc plus de boîte : son ENCRE d'accent
+   (et son icône) dit qu'il se tape, sans trait souligné — un lien
+   emmène, un bouton agit (§6). « Modifier » à côté de ce qu'il modifie,
+   l'outil d'une barre, le second geste d'un pied qui a son primaire.
+   La boîte reste au primaire, rempli, et au bouton qui EST l'action de
+   son bloc quand aucun primaire n'est là (`.btn-contour`, contourné) :
+   « certains boutons sont utiles et beaux à leur place », le
+   mainteneur, le même jour — la flèche d'envoi d'un message, la ligne
+   de « Ma copie », les gestes de « Mon QR », l'envoi d'une invitation,
+   et « Recevoir » à côté de « Donner ». Le relief 98 ne disparaît pas :
+   il apparaît aussi À L'APPUI, enfoncé, là où il dit quelque chose.
+   La cible ne bouge pas : la boîte invisible fait toujours `--ctl`
+   (44 px au doigt) — « les bords d'un bouton définissent sa zone
+   cliquable même quand ils ne se voient pas » (Apple). */
 .btn{
   display:inline-flex;align-items:center;justify-content:center;gap:6px;
   font-family:var(--font-ui);font-weight:var(--weight-semibold);font-size:var(--text-13);
-  min-height:var(--ctl);padding:5px 14px;border-radius:var(--radius-1);
-  background:var(--surface-chrome);color:var(--text-body);
-  border:1px solid var(--border-strong);
-  box-shadow:var(--bevel-up), var(--shadow-raised);
+  min-height:var(--ctl);padding:5px 8px;border-radius:var(--radius-1);
+  background:transparent;color:var(--text-link);
+  border:1px solid transparent;
+  box-shadow:none;
   /* `white-space:normal` : un libellé de bouton PLIE, il ne déborde pas.
      Mesuré à police doublée (WCAG 1.4.4) — « Ajouter ma première piste »
      sortait de son cadre de 30 px, texte par-dessus la bordure. À taille
@@ -214,13 +238,25 @@ input,select,textarea{font-family:inherit;color:var(--text-body)}
   user-select:none;white-space:normal;text-wrap:balance;text-decoration:none;
 }
 @media (hover:hover){
-.btn:hover{background:var(--surface-window)}
+.btn:hover{background:var(--surface-chrome)}
 }
-.btn:active{box-shadow:var(--bevel-down);transform:translate(2px,2px);background:var(--surface-chrome)}
-.btn:disabled,.btn-off{pointer-events:none;color:var(--text-disabled);box-shadow:var(--bevel-up);opacity:.6}
-.btn-primary{background:var(--accent);border-color:var(--border-strong);color:var(--on-accent)}
+.btn:active{box-shadow:var(--bevel-down);transform:translate(1px,1px);background:var(--surface-chrome)}
+.btn:disabled,.btn-off{pointer-events:none;color:var(--text-disabled);opacity:.6}
+/* ce qui garde sa boîte : le primaire, et le contourné — l'action de
+   son bloc (`.btn-contour`) ou « Recevoir » à côté de « Donner » */
+.btn-primary,.btn.hero,.btn.btn-contour{
+  padding-left:14px;padding-right:14px;
+  border-color:var(--border-strong);box-shadow:var(--bevel-up), var(--shadow-raised);
+}
+.btn.hero,.btn.btn-contour{background:var(--surface-chrome);color:var(--text-body)}
+.btn-primary{background:var(--accent);color:var(--on-accent)}
+.btn-primary:active,.btn.hero:active,.btn.btn-contour:active{box-shadow:var(--bevel-down);transform:translate(2px,2px)}
 .btn-primary:active{background:var(--accent-hover)}
+.btn-primary:disabled,.btn-primary.btn-off{box-shadow:var(--bevel-up)}
 @media (hover:hover){
+.btn.hero:hover,.btn.btn-contour:hover{background:var(--surface-window)}
+/* ouverte, la ligne du mot de passe fait du cadenas une icône du champ */
+.lockrow.on .lr-lock.btn-contour:hover{background:none}
 .btn-primary:hover{background:var(--accent-hover)}
 }
 /* Un bouton peut être un LIEN : « Ouvrir dans Mail », « Appeler »,
@@ -232,7 +268,7 @@ input,select,textarea{font-family:inherit;color:var(--text-body)}
    souris — iOS garde le survol collé après le tap, donc le bouton se
    vide AU MOMENT où on s'en sert, et le reste. */
 @media (hover:hover){
-a.btn:hover{color:var(--text-body)}
+a.btn:hover{color:var(--text-link)}
 }
 @media (hover:hover){
 a.btn.btn-primary:hover{color:var(--on-accent)}
@@ -253,7 +289,8 @@ a.btn.btn-danger:hover{color:var(--red)}
    hauteur : il suit la main comme tout le reste (`--ctl`, 44 px au
    doigt, 32 à la souris). Il était écrit à 36 px — donc, au poste, plus
    haut que le bouton normal, le champ et la rangée voisins (32). */
-.btn-sm{min-height:var(--ctl);padding:2px 11px;font-size:var(--text-12)}
+.btn-sm{min-height:var(--ctl);padding:2px 8px;font-size:var(--text-12)}
+.btn-sm.btn-primary,.btn-sm.btn-contour{padding:2px 11px}
 .icon-btn{width:var(--ctl);height:var(--ctl);padding:0}
 .linklike{
   background:none;border:0;color:var(--text-link);font-weight:var(--weight-semibold);font-size:var(--text-12);
@@ -2538,11 +2575,15 @@ button.ec-row:hover{background:var(--surface-field)}
 .dchip{
   flex:0 1 auto;min-height:var(--ctl);padding:0 12px;
   border:1px solid var(--border-strong);border-radius:var(--radius-1);
-  background:var(--surface-chrome);box-shadow:var(--bevel-up), var(--shadow-raised);
+  /* un trait, pas de relief : Material dessine la puce de filtre à
+     plat, l'élévation est pour une puce posée sur une image. Rangées
+     par trois ou quatre, des puces biseautées se lisaient comme autant
+     de gros boutons. Le relief revient à l'appui, enfoncé. */
+  background:var(--surface-chrome);box-shadow:none;
   font-weight:var(--weight-semibold);font-size:var(--text-13);
   color:var(--text-body);   /* jamais la couleur de bouton du navigateur */
 }
-.dchip:active{box-shadow:var(--bevel-down);transform:translate(1px,1px)}
+.dchip:active{box-shadow:var(--bevel-down)}
 /* le raccourci de date porte le JOUR qu'il vise : « +3 jours » se
    calcule, « mer. 05/08 » se lit. Le nom reste la ligne qu'on vise. */
 .dchip-d{
@@ -3054,7 +3095,7 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
    n'a jamais été la case : c'est l'étiquette entière (352 × 44 au
    pouce), et taper son bord droit bascule bien la case. */
 .ckline input{font-size:inherit;width:1.4em;height:1.4em;accent-color:var(--accent)}
-.dchip.on{background:var(--accent);color:var(--on-accent);box-shadow:var(--bevel-down)}
+.dchip.on{background:var(--accent);color:var(--on-accent);box-shadow:none}
 .cp-carry{
   display:flex;align-items:center;gap:8px;overflow:hidden;
   border:1px solid var(--border-strong);background:var(--teal-wash);color:var(--text-body);

@@ -271,7 +271,11 @@ net. Sources uniques : `styles/tokens/` et le kit `design/`.
 - **Reliefs** : bevels francs, ombres dures, coins droits (`--bevel-*`,
   `--shadow-*`). L'identité est **nette, sans flou** — un dégradé, une ombre
   floue, un arrondi marqué la cassent. Ça se discute avec le mainteneur, ça ne
-  se glisse pas dans un écran.
+  se glisse pas dans un écran. **Le relief se mérite** *(13 octobre 2026)* :
+  il appartient au châssis (fenêtres, barres de titre), au primaire, et à
+  l'APPUI — un bouton texte s'enfonce quand on le tape. Posé sur chaque
+  bouton, il faisait douze gros boutons d'une fiche (voir §6, « La taille
+  dit le rang »).
 - **Trame dither** : `--dither` porte la position ET la taille, il n'est donc
   valable que derrière la propriété raccourcie `background`. Posé sur
   `background-image`, il est **rejeté en silence** — la trame ne s'affiche pas
@@ -564,7 +568,13 @@ les confondre coûte cher : une tablette tactile en paysage fait 1024 à
   cible (40 et 32 px dessinés, marge invisible autour) a vécu une
   journée — voir l'annexe. `e2e-boutons.mjs` (⑥) refuse tout contrôle
   dessiné sous 44 px au doigt ; redescendre demande de venir le
-  changer là, exprès.
+  changer là, exprès. **Le bouton texte ne contredit pas la règle**
+  *(13 octobre 2026)* : il ne dessine aucune boîte plus petite que sa
+  cible, il n'en dessine aucune. Sa boîte invisible fait `--ctl`, comme
+  celle de tout bouton — « les bords d'un bouton définissent sa zone
+  cliquable même quand ils ne se voient pas » (Apple HIG). Ce que le
+  mainteneur avait refusé, c'était un cadre de 32 px dans une cible de
+  44 : deux bords pour un seul geste.
 - **Une hauteur par main, jamais par largeur ni par bouton**
   *(« la taille doit être adaptée sur téléphone et PC », le mainteneur,
   30 septembre 2026)*. Relevé sur trois ergonomies le même jour : au
@@ -854,7 +864,7 @@ avec un motif existant.
 | Supprimer au geste | `bindDeleteGesture(node, onDelete)` — glisser (mobile) / poubelle au survol (desktop), doublé d'un `showUndo` |
 | Un journal, un historique | il RACONTE ce qui est fait : poids de texte courant, jamais le gras d'un titre — deux ou trois niveaux au maximum sur un écran (NN/g, poids visuel), et le journal vient toujours après les gestes qu'il surplombe |
 | Choisir parmi 2-5 options | `pick-list` / `.pick` — **UN cadre, des rangées sans relief**, séparées d'un pointillé : la forme de « Réglages » et de « Modèles d'emails ». Plus de pile de briques pleine largeur (voir « La taille dit le rang », sous la table). Une option ne porte pas de sous-titre qui l'explique ; à droite, au plus un état d'un mot ou un chiffre |
-| Choisir un attribut court | `.datechips` + `.dchip` — la puce fait la taille de son MOT (`flex:0 1 auto`) et le groupe se replie par rangs. Jamais une liste déroulante : on ne cache pas un petit jeu d'options |
+| Choisir un attribut court | `.datechips` + `.dchip` — **à plat** : un trait, pas de relief (Material dessine la puce de filtre à plat ; l'élévation est pour une puce posée sur une image), et le relief revient à l'appui. La puce fait la taille de son MOT (`flex:0 1 auto`) et le groupe se replie par rangs. Jamais une liste déroulante : on ne cache pas un petit jeu d'options |
 | Choisir une date | chips « Demain / +3 j / +7 j / Lundi » + date précise validée par OK (jamais de fermeture sur `change` seul — roue iOS). **Quand une réponse est conseillée, elle tient le pied** : après un envoi, « Dans 7 jours » (`SILENCE_RELANCE`) sous le pouce, les puces pour un autre jour, la croix pour ne rien prévoir |
 | Rappeler une prochaine action | la case « Me le rappeler dans mon agenda » des feuilles de date (`ouvrirAgenda`, `ui/actions.js`). Une app web ne sonne pas sans serveur (§10) ; l'agenda du téléphone, si. **La forme suit l'appareil, elle ne se demande pas** (`formeAgenda`, `engine/agenda.js`) : un `.ics` pour l'agenda d'Apple, un lien Google Agenda ailleurs — Android n'ouvre pas un `.ics` sans app tierce. Appelé DANS le geste qui choisit la date, sinon le navigateur bloque. La case se souvient (`flags.rappelAgenda`) |
 | Confirmer un geste risqué | `confirmSheet` (danger = `btn-danger`). **Une porte se décide** : elle ne se justifie que si elle montre ce qu'on ne peut PAS deviner (« ce fichier contient 12 pistes, tu en as 3 »). Une question dont le message dit qu'il n'y a rien à perdre ne protège personne |
@@ -1348,8 +1358,36 @@ actions lourdes, et donc aucune. L'app n'a plus que **trois formes** :
 1. **Le primaire** — rempli, un seul par vue. Dans une feuille il tient
    le pied, à la place du pouce. C'est le **seul** qui a le droit de
    s'étirer.
-2. **Le bouton secondaire** — contouré, `.btn-sm`, **taillé à son mot**.
-   Jamais plus de 60 % de sa boîte. Un geste SEUL est toujours celui-là,
+2. **Le bouton texte** — `.btn` (et `.btn-sm`), **sans boîte** : ni fond,
+   ni trait, ni ombre au repos ; l'encre d'accent et son icône disent
+   qu'il se tape, et il s'enfonce à l'appui (le relief 98, là où il dit
+   quelque chose). Pas de soulignement : un lien emmène, un bouton agit.
+   *(13 octobre 2026 — « j'en ai marre des gros boutons disgracieux, il y
+   en a plein partout » : relevé sur 37 écrans, la fiche portait douze
+   boîtes biseautées sur dix-sept contrôles, et « Modifier », « + Ajouter »,
+   « Planifier » pesaient autant que « Écrire ».)* Trois sources disent la
+   même chose : Apple HIG — le style marqué pour l'action la plus
+   probable, « une ou deux par vue », et « le style, pas la taille, pour
+   distinguer le choix préféré » ; dans une barre, des symboles sans
+   bordure, « le conteneur se voit déjà » ; Material — le bouton texte
+   pour les actions secondaires des cartes et des dialogues, « il garde
+   l'emphase sur le contenu ». **Ce qui départage, c'est ACCOMPAGNER ou
+   ÊTRE l'action** — le mainteneur, le même jour : « certains boutons
+   sont utiles et beaux à leur place ». Un bouton qui accompagne perd sa
+   boîte : « Modifier » ou « + Ajouter » à côté de ce qu'ils touchent,
+   l'outil d'une barre (« Prospecter », « Affiner », les gestes d'un
+   contact), le second geste d'un pied qui a déjà son primaire
+   (« Compléter », « Fichier », « Copier »). Un bouton qui EST l'action
+   de son bloc, sans primaire pour la porter, garde la sienne
+   (`.btn-contour`, contourné) : la flèche d'envoi d'un message, la ligne
+   de « Ma copie », les gestes de « Mon QR », l'envoi d'une invitation ;
+   et « Recevoir » à côté de « Donner » (`.hero` — rempli > contourné >
+   discret). Une `.btn-contour` à côté d'un primaire est une faute : là,
+   elle accompagne. Le discret reste un cran plus bas (`.btn-ghost`,
+   encre sourde : « Clôturer »), le destructif en rouge (`.btn-danger`).
+   Gardé par `e2e-boutons.mjs` (⑦), sondes et mutation à l'appui, et son
+   exception échoue si elle n'exempte plus rien.
+   **Taillé à son mot** : jamais plus de 60 % de sa boîte. Un geste SEUL est toujours celui-là,
    même destructif (`.btn-danger`, dans son groupe) : une liste d'un seul
    geste n'est que la brique d'avant sous un autre nom. **Une exception,
    nommée** : l'action de la ligne du mot de passe (`lockRowHTML`) tient
@@ -1956,6 +1994,7 @@ retiré.
 | « Le visuel n'est pas la cible » : au doigt, boutons dessinés à 40 px, compacts, puces et croix à 32, segments à 36, la cible de 44 px gardée par une marge invisible (6.37.0) | **retirée** (30 septembre 2026, le jour même), par le mainteneur sur son téléphone : « remets l'ancienne taille, c'était beaucoup mieux avant » | Elle s'appuyait sur deux sources justes — Material 3 dessine un bouton de 40 dp pour une cible de 48, Apple un bouton d'environ 34 pt pour 44. Mais sur un vrai iPhone la police est plus grande que les 16 px du bac à sable (§5), et le texte remplissait des boîtes de 32 px : à l'étroit, pas plus léger. Et la marge invisible était une mécanique de plus, qui se fait rogner par un conteneur ou recouvrir par un voisin sans que rien ne se voie — l'audit avait dû apprendre à la prouver en touchant ses bords. Ce que le mainteneur trouvait « trop gros » avant elle était l'ÉCRITURE et les briques, déjà réglées en 6.36.0 ; la hauteur, elle, était bonne |
 | « Au poste, le tableau du jour prend la région, le pied se pose en bas » (garde de `e2e-ux-audit.mjs` : pied à 85 % de la hauteur) | **remplacée** (12 octobre 2026, audit adaptatif) | Elle étendait au poste la règle du pouce (§5 : l'action se pose en bas, là où la main arrive). Sous une souris il n'y a pas de zone facile, et la place prise l'était par du vide encadré : trois cadres de 600 px pour une carte chacun. Le tableau prend la hauteur de son contenu, le pied le suit ; le garde vérifie maintenant l'inverse, mutation à l'appui |
 | « Échanger » porte les gestes des groupes et des amis : un cadre « Groupes » (le mot, « Créer », « Rejoindre », les rangées) et un cadre « Amis » (« Scanner », « Mon QR ») — lots 4a et 5 | **retirée** (12 octobre 2026), par le mainteneur : « ce qui était avant était parfait, en rajoutant tu as juste rendu moche et mal fait » | Chaque cadre se défendait seul (le « My code / Scan » de WhatsApp, un cadre par objet). Ensemble ils posaient quatre gestes rares à côté des deux quotidiens et l'écran ne se lisait plus. Les groupes reprennent la place de la porte d'avant, « Créer » et « Rejoindre » passent derrière elle, les amis s'ajoutent dans leur liste et se scannent par « Recevoir » — §6, « Une fonctionnalité neuve prend une place qui existe » |
+| « Le bouton secondaire — contouré, `.btn-sm`, taillé à son mot » (6.36.0) | **remplacée** (13 octobre 2026), par le mainteneur : « j'en ai marre des gros boutons disgracieux, il y en a plein partout » | Elle avait réglé la TAILLE (des briques pleine largeur devenues des boutons à leur mot) et laissé le POIDS : chaque secondaire gardait fond, trait et ombre dure, si bien qu'une fiche alignait douze boîtes biseautées et que rien ne départageait « Modifier » d'« Écrire » sinon la couleur. Apple et Material réservent la boîte à l'action la plus probable ; le secondaire qui ACCOMPAGNE est devenu un bouton texte (§6). Celui qui EST l'action de son bloc garde sa boîte (`.btn-contour`) : la ligne de « Ma copie », les gestes de « Mon QR », l'envoi d'un message ou d'une invitation — « certains boutons sont utiles et beaux à leur place », le mainteneur, le même jour |
 | « Télécharger » taillé à son mot, dans « Ma copie » (6.36.0) | **retirée** (30 septembre 2026, le jour même), par le mainteneur : « j'aimais bien comment c'était » | La règle générale était juste — un bouton de 235 px pour un mot annonce une action lourde. Mais cette ligne n'est pas un bouton étiré : c'est un échange de place, où l'action tient la largeur que le champ du mot de passe prendra en s'ouvrant. Taillée à son mot, la ligne gardait un trou à droite et l'ouverture ne se lisait plus comme un échange. L'exception se nomme dans `e2e-boutons.mjs` par sa construction (`.lockrow:not(.on) > .lr-do`), pas par un bouton |
 
 *Tranché par l'assistant, à valider :* la reformulation de l'interdit serveur,
