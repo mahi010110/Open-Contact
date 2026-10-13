@@ -282,7 +282,7 @@ await page.waitForFunction(() => !document.querySelector('.modal-w'), null, { ti
 /* ---------- ChatGPT (Codex) — mobile 390×844, sombre : la liste vient
    de l'app-server officiel, le modèle choisi part en --model ---------- */
 await page.setViewportSize({ width: 390, height: 844 });
-await page.click('#btnTheme');
+await page.evaluate(async () => (await import('./ui/state.js')).choisirTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'));
 await page.waitForFunction(() => document.documentElement.dataset.theme === 'dark');
 await page.evaluate(() => { import('./ui/connexions.js').then(m => m.openAssistantIA()); });
 await page.waitForSelector('#rqPad .pad-k');

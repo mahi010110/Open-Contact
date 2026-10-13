@@ -704,11 +704,26 @@ html[data-theme="dark"] .field select{
 /* La croix vit DANS la puce : un seul bouton, qui dit ce qu'il fait
    (Baymard, filtres appliqués). Discrète — c'est le mot qu'on lit. */
 .st-chip .ic-12{margin-left:1px;opacity:.55}
-/* LÉGER (demande du mainteneur, 5 octobre) : sous la barre, une
-   étiquette est une donnée qu'on retire d'un tap, pas un bouton en
-   relief — à plat, sans biseau. Sa cible reste celle du doigt (§5). */
-.chips-row .st-chip{background:var(--surface-window);box-shadow:none}
-.chips-row .st-chip:active{box-shadow:none;background:var(--surface-chrome)}
+/* SANS BOÎTE (retour du mainteneur, 13 octobre : « les paramètres qui
+   se rajoutent quand on entre un mot prennent trop de place »). Sous la
+   barre, une étiquette ACCOMPAGNE ce qu'on a tapé : c'est la règle du
+   bouton texte (§6), appliquée à la rangée. Trois boîtes de 44 px en
+   police mono débordaient l'écran dès la troisième (« Lille · 15 km »
+   coupée au bord) ; en texte, avec leur icône et leur croix, les trois
+   tiennent sur une ligne de 390 px. La cible reste celle du doigt (§5) :
+   la boîte invisible fait `--ctl`, on n'a retiré que l'habit. Le
+   proposé garde son pointillé, sous le MOT : « proposé en pointillé,
+   posé en plein » se lit toujours. */
+.chips-row{gap:0}
+.chips-row .st-chip,.chips-row .prop-chip{
+  background:none;border:0;box-shadow:none;gap:5px;padding:4px 10px 4px 6px;
+  font-family:var(--font-ui);font-size:var(--text-14);color:var(--text-body);
+}
+.chips-row .st-chip .ic-14,.chips-row .prop-chip .ic-14{color:var(--accent)}
+.chips-row .st-chip .ic-12{opacity:.45}
+.chips-row .prop-chip{color:var(--text-muted);text-decoration:underline dotted;text-underline-offset:4px}
+.chips-row .st-chip:active,.chips-row .prop-chip:active{
+  box-shadow:none;background:var(--surface-chrome);transform:translate(1px,1px)}
 /* Le panneau des propositions de la barre vide : accroché SOUS la barre,
    par-dessus la liste — jamais dedans, sinon il la pousse au focus et la
    remonte au départ du curseur (voir `propsHTML`, ui/pistes.js). Les
@@ -1647,12 +1662,7 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 .rg-row>.ic{flex:none;color:var(--text-muted)}
 @media (hover:hover){
 .rg-row:hover .rg-n{color:var(--text-link)}
-.rg-theme:hover .rg-n{color:inherit}
 }
-/* « Thème » : la seule rangée qui ne mène nulle part — le choix y tient,
-   en deux segments, et c'est eux qu'on tape */
-.rg-theme{cursor:default}
-.rg-theme .seg3{flex:none}
 /* les deux gestes de Réglages CONTINUENT la liste : mêmes rangées, pas
    de second cadre dans le premier. Seul l'effacement se détache, par
    l'air (`.pick-sortie`), en rouge et en dernier. */
@@ -2689,6 +2699,12 @@ button.ec-row:hover{background:var(--surface-field)}
   border-radius:var(--radius-0);box-shadow:var(--shadow-raised);
 }
 .rg-foot .pick-list{gap:0}
+/* UN CHOIX PARMI DEUX OU TROIS (`choixHTML`) : la rangée retenue porte
+   sa coche d'accent au bout ; les autres, rien — l'encre va à ce qui est
+   choisi (§6, règle 1). Le libellé garde son poids de liste. */
+.pick-choix b{font-weight:var(--weight-regular)}
+.pick-choix .ic{flex:none;color:var(--accent)}
+.pick-choix[aria-checked="true"] b{font-weight:var(--weight-semibold)}
 .modal-b .pick:not(.pk),.rg-foot .pick{
   border:0;border-bottom:1px dashed var(--border-soft);border-radius:0;
   background:none;box-shadow:none;padding:6px 0;

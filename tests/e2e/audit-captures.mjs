@@ -133,6 +133,8 @@ const ECRANS = [
   ['14-moi', route('#/moi')],
   ['15-profil', p => p.evaluate(() => import('./ui/profil.js').then(m => m.openProfil()))],
   ['16-reglages', async p => { await route('#/moi')(p); await p.waitForTimeout(300); await p.click('#moiReglages').catch(() => {}); }],
+  ['16b-theme', async p => { await route('#/moi')(p); await p.waitForTimeout(300); await p.click('#moiReglages').catch(() => {});
+    await p.waitForTimeout(300); await p.click('#moiTheme'); }],
   ['17-contact', piste('a', `(await import('./ui/contact.js')).openContactEditor({ company: c });`)],
   ['18-cloturer', piste('g', `(await import('./ui/actions.js')).askClose(c, {});`)],
   ['19-planifier', piste('f', `(await import('./ui/actions.js')).askNextAction(c, {});`)],

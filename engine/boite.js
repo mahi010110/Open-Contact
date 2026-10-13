@@ -26,6 +26,11 @@
      de Karim : Karim reçoit le sien, sans un geste. Exactement ce que
      porterait son propre QR (OCA1) — l'identifiant, le nom, le parcours,
      la clé —, jamais un de ses amis.
+   · adieu   — « Karim et toi n'êtes plus amis » (13 octobre 2026 : le
+     retrait est réciproque, comme l'ajout). Elle ne porte que
+     l'identifiant d'ami de qui retire, et une PREUVE qu'il tient bien la
+     clé de la boîte qu'il nomme — la seule lettre qui retire quelque
+     chose chez l'autre ne doit pas pouvoir s'écrire au nom d'un autre.
 
    Le téléphone de l'ami cherche dans SES pistes sans rien montrer ; il
    ne lui demande quelque chose que s'il a trouvé (règle 6). Fonctions
@@ -128,6 +133,33 @@ export async function ouvrir(privB64, texte){
     return JSON.parse(new TextDecoder().decode(clair));
   } catch (e) { return null; }
 }
+
+/* ---------- la PREUVE d'auteur entre deux boîtes ----------
+   Une lettre scellée ne dit pas qui écrit : la clé qui la scelle est
+   jetable, et n'importe qui ayant ma clé publique peut m'écrire en
+   SIGNANT d'un autre prénom. Pour ajouter quelqu'un, c'est sans danger
+   (le profil doit porter la clé qui écrit, et se retire d'un geste) ;
+   pour RETIRER un ami chez moi, non. L'auteur prouve donc qu'il tient la
+   clé PRIVÉE de la boîte qu'il nomme : un HMAC dont la clé naît d'un
+   échange ECDH statique — sa clé privée avec ma clé publique. Je le
+   recalcule avec MA clé privée et SA clé publique ; personne d'autre ne
+   peut le fabriquer, ni même le vérifier. */
+async function cleHMAC(privB64, pubB64){
+  const priv = await crypto.subtle.importKey('pkcs8', deB64u(privB64), EC, false, ['deriveBits']);
+  const pub = await crypto.subtle.importKey('raw', deB64u(pubB64), EC, false, []);
+  const bits = await crypto.subtle.deriveBits({ name: 'ECDH', public: pub }, priv, 256);
+  const base = await crypto.subtle.importKey('raw', bits, 'HKDF', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({ name: 'HKDF', hash: 'SHA-256', salt: enc(SEL), info: enc('preuve') },
+    base, { name: 'HMAC', hash: 'SHA-256', length: 256 }, false, ['sign', 'verify']);
+}
+export async function prouver(maPriv, saPub, texte){
+  return b64u(new Uint8Array(await crypto.subtle.sign('HMAC', await cleHMAC(maPriv, saPub), enc(texte))));
+}
+export async function preuveValide(maPriv, saPub, texte, preuve){
+  try { return await crypto.subtle.verify('HMAC', await cleHMAC(maPriv, saPub), deB64u(preuve), enc(texte)); }
+  catch (e) { return false; }
+}
+const texteAdieu = (id, ami) => 'adieu·' + id + '·' + ami;
 
 /* ---------- les lettres : ce qui s'écrit, ce qui s'accepte ---------- */
 const txt = (v, n) => String(v || '').replace(/\s+/g, ' ').trim().slice(0, n);
@@ -256,6 +288,17 @@ export function lettreAmi({ prenom, cle }, profil, motif = 'ajout'){
   return { v: 1, t: 'ami', id: nouvelId(), motif: motif === 'maj' ? 'maj' : 'ajout',
            de: { prenom: txt(prenom, 40), cle }, profil };
 }
+/* RETIRER, des deux côtés. `ami` : MON identifiant d'ami, celui sous
+   lequel l'autre me range ; `pubDest` : sa clé, pour la preuve. */
+export async function lettreAdieu({ prenom, cle, priv }, ami, pubDest){
+  const id = nouvelId();
+  return { v: 1, t: 'adieu', id, de: { prenom: txt(prenom, 40), cle }, ami,
+           preuve: await prouver(priv, pubDest, texteAdieu(id, ami)) };
+}
+/* la preuve se vérifie à l'arrivée, avec MA clé privée — avant que
+   `traiterLettre` ne retire qui que ce soit */
+export const adieuAuthentique = (l, maPriv) =>
+  !!(l && l.t === 'adieu') && preuveValide(maPriv, l.de.cle, texteAdieu(l.id, l.ami), l.preuve);
 export function lettreMerci({ prenom, cle }, don, suite){
   const l = { v: 1, t: 'merci', id: nouvelId(), demande: don.demande, de: { prenom: txt(prenom, 40), cle },
               entreprise: entrepriseDe(don.entreprise), contact: { name: txt(don.contact && don.contact.name, 120) } };
@@ -294,6 +337,10 @@ export function normaliserLettre(o, now = Date.now()){
   if (o.t === 'admis'){
     if (!ID.test(String(o.porte || '')) || !CODE_GROUPE.test(String(o.code || '')) || !SIGNE.test(String(o.chef || ''))) return null;
     return { t: 'admis', id: o.id, porte: o.porte, de, code: o.code, nom: txt(o.nom, 40), chef: o.chef };
+  }
+  if (o.t === 'adieu'){
+    if (!/^[A-Za-z0-9_-]{16,43}$/.test(String(o.ami || '')) || !/^[A-Za-z0-9_-]{43}$/.test(String(o.preuve || ''))) return null;
+    return { t: 'adieu', id: o.id, de, ami: o.ami, preuve: o.preuve };
   }
   if (o.t === 'ami'){
     /* le profil se remet aux MÊMES invariants qu'un QR scanné, et sa clé
@@ -480,6 +527,13 @@ export function traiterLettre(e, l, { companies, moi, amis, parcours, pistesPour
        amis (statutAmi décide : nouveau, à jour, déjà là) */
     if (l.de.cle === moi || (e.lus || []).some(x => x.id === l.id)) return { etat: e, quoi: null };
     return { etat: { ...e, lus: [...(e.lus || []), { id: l.id, at: now }] }, quoi: 'ami' };
+  }
+  if (l.t === 'adieu'){
+    /* seulement un ami que j'ai, sous le nom ET la clé qu'il annonce —
+       une fois. La preuve a été vérifiée avant (adieuAuthentique). */
+    if (l.de.cle === moi || (e.lus || []).some(x => x.id === l.id)
+        || !(amis || []).some(a => a && a.id === l.ami && a.cle === l.de.cle)) return { etat: e, quoi: null };
+    return { etat: { ...e, lus: [...(e.lus || []), { id: l.id, at: now }] }, quoi: 'adieu' };
   }
   if (l.t === 'merci'){
     /* un merci par demande : ajouté, annulé, rajouté, il ne remercie

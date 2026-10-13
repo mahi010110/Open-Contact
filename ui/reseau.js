@@ -27,8 +27,8 @@ import { kvGet, kvSet, RELAYS_KEY, RESEAU_KEY } from '../engine/storage.js';
 import { nouvelleCle, etiquetteBoite, sceller, ouvrir, lettreDemande, lettreDon, lettreMerci, lettreAmi, normaliserLettre, empreinteProfil,
          etatVide, normaliserEtat, elaguer, peutDemander, demandeDePiste, traiterLettre, prenomDe,
          jetonRelais, ouvrirJeton, lettreRelais, lettreTrouve, choisirRelais, lettreEntree, lettreAdmis, lettreRecode,
-         LETTRE_KIND } from '../engine/boite.js';
-import { prenomAmi, profilDonne, statutAmi, ajouterAmi, nouvelIdAmi, memeEntreprise, direQuoi, direQuoiTu } from '../engine/amis.js';
+         lettreAdieu, adieuAuthentique, LETTRE_KIND } from '../engine/boite.js';
+import { prenomAmi, profilDonne, statutAmi, ajouterAmi, retirerAmi, nouvelIdAmi, memeEntreprise, direQuoi, direQuoiTu } from '../engine/amis.js';
 import { parcoursDe } from '../engine/parcours.js';
 import { pistesPour } from '../engine/requete.js';
 import { phraseCritere } from '../engine/critere.js';
@@ -215,6 +215,24 @@ async function profilAJour(){
   });
   etat = { ...etat, envois: [...(etat.envois || []).filter(x => !(x.lettre && x.lettre.motif === 'maj')), ...nouveaux] };
 }
+/* RETIRER, DES DEUX CÔTÉS (13 octobre 2026 : « l'ajout est mutuel, on
+   peut supprimer »). Comme l'ajout : la lettre attend la fin de
+   « Annuler » dans l'état, donc elle part même si l'app se ferme ou s'il
+   n'y a pas de réseau à cet instant. Elle porte la preuve que c'est bien
+   moi (engine/boite.js) : la seule lettre qui retire quelque chose chez
+   l'autre ne doit pas pouvoir s'écrire à ma place. Un ami sans boîte
+   (QR d'avant la 6.55) ne peut pas être prévenu : il reste chez lui. */
+export async function direAdieu(ami){
+  if (!ami || !ami.cle || !S.profile.amiId) return false;
+  await chargerReseau();
+  const b = await assurerBoite();
+  const l = await lettreAdieu({ ...moi(), priv: b.priv }, S.profile.amiId, ami.cle);
+  etat = { ...etat, envois: [...(etat.envois || []).filter(x => x.cle !== ami.cle),
+                             { id: l.id, cle: ami.cle, lettre: l, quand: Date.now() + DELAI_ANNULER, exp: Date.now() + 14 * 864e5 }] };
+  await sauver();
+  planifierEnvois();
+  return true;
+}
 /* « Annuler » : ce qui n'est pas encore parti ne part pas */
 export async function reprendreMonProfil(ami){
   await chargerReseau();
@@ -264,6 +282,19 @@ function recevoirAmi(l){
     logJ(`${p} t’a ajouté à ses amis`);
     toast(`${p} est dans tes amis.`);
   }
+  return true;
+}
+
+/* un ami m'a retiré : il quitte ma liste aussi, sans bruit — personne
+   n'annonce qu'on l'a retiré (LinkedIn, Instagram), le journal le garde.
+   Seulement si la preuve tient : sinon, rien ne bouge. */
+async function recevoirAdieu(l){
+  if (!await adieuAuthentique(l, S.profile.boite.priv)) return false;
+  const a = (S.profile.amis || []).find(x => x.id === l.ami && x.cle === l.de.cle);
+  if (!a) return false;
+  S.profile.amis = retirerAmi(S.profile.amis, a.id);
+  saveProfile();
+  logJ(`${prenomAmi(a)} et toi n’êtes plus amis`);
   return true;
 }
 
@@ -346,6 +377,7 @@ export function relever(){
       etat = r.etat;
       change = true;
       if (r.quoi === 'ami') recevoirAmi(l);
+      if (r.quoi === 'adieu') await recevoirAdieu(l);
       if (r.quoi === 'merci'){
         const m = etat.mercis.at(-1);
         logJ(`Merci de ${m.de.prenom} : ${m.contact.name} (${m.entreprise.nom})`);

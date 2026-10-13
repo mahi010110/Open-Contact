@@ -35,7 +35,7 @@ import { S, bus, saveData, saveProfile, logJ, deletePiste } from './state.js';
 import { openSheet, toast, btn, ic, showUndo, bindDeleteGesture } from './dom.js';
 import { sortState, sortSectionHTML, bindSortSection, sortChipHTML, bindSortChip, sensDe } from './sort.js';
 import { makeQrSvg } from './qr.js';
-import { demandesCritere, peutDemanderAmis, phraseDemande, ouvrirDemander, libelleDemander } from './reseau.js';
+import { demandesCritere, peutDemanderAmis, phraseDemande, ouvrirDemander, libelleDemander, direAdieu, reprendreMonProfil } from './reseau.js';
 
 /* ce que le parcours de tes amis dit de tes pistes — calculé à la
    demande : l'index du moteur le rend linéaire, rien à mémoriser */
@@ -229,16 +229,21 @@ function lierFicheAmi(box, a, { apres, fermer } = {}){
     retirerAvecAnnuler(a, apres);
   });
 }
-/* retirer, rattrapable — personne n'est prévenu (LinkedIn fait pareil) */
+/* retirer, rattrapable — et DES DEUX CÔTÉS (13 octobre 2026) : l'ajout
+   est réciproque, le retrait aussi. La lettre qui le dit à l'autre
+   attend la fin de « Annuler » ; personne n'est averti par un message,
+   il disparaît simplement de sa liste aussi. */
 function retirerAvecAnnuler(a, apres){
   const avant = (S.profile.amis || []).slice();
   S.profile.amis = retirerAmi(S.profile.amis, a.id);
   saveProfile();
   bus.refresh();
   if (apres) apres();
-  showUndo(`${esc(prenomAmi(a))} n’est plus dans tes amis.`, () => {
+  direAdieu(a).catch(() => {});
+  showUndo(`${esc(prenomAmi(a))} et toi n’êtes plus amis.`, () => {
     S.profile.amis = avant;
     saveProfile();
+    reprendreMonProfil(a).catch(() => {});
     bus.refresh();
     if (apres) apres();
   });

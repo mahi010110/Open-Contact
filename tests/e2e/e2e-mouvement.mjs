@@ -242,10 +242,17 @@ const GESTES = [
     return r;
   }],
   ['Basculer clair / sombre', 'net', async p => {
+    /* le choix vit dans « Thème » (Réglages) : on filme le tap sur
+       « Sombre » dans sa feuille, puis on revient à ce qu'on avait */
+    await p.evaluate(async () => (await import('./ui/moi.js')).openTheme());
+    await p.waitForSelector('[data-theme-choix="dark"]');
     const r = await p.evaluate(() => window.__film('body',
       n => getComputedStyle(n).backgroundColor,
-      () => document.querySelector('#btnTheme').click(), 320));
-    await p.evaluate(() => document.querySelector('#btnTheme').click());
+      () => document.querySelector('[data-theme-choix="dark"]').click(), 320));
+    await p.evaluate(async () => {
+      document.querySelector('[data-theme-choix="auto"]').click();
+      const { topSheet } = await import('./ui/dom.js'); topSheet()?.close(null, true);
+    });
     await p.waitForTimeout(200);
     return r;
   }],

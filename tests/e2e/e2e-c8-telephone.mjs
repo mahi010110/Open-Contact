@@ -190,7 +190,7 @@ const autoBox = await phone.locator('#czAutoOpt').boundingBox();
 if (!autoBox || autoBox.height < 44) fail('cible tactile auto trop petite');
 await phone.click('#czAutoOpt');
 await phone.screenshot({ path: SHOTS + '/c8-telephone-clair.png' });
-await phone.evaluate(() => document.querySelector('#btnTheme')?.click());
+await phone.evaluate(() => import('./ui/state.js').then(m => m.choisirTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark')));
 await phone.screenshot({ path: SHOTS + '/c8-telephone-sombre.png' });
 await phone.click('.modal-f .btn-primary');
 await phone.waitForSelector('#rqPad .pad-k');
@@ -250,7 +250,7 @@ await desktop.waitForFunction(() => {
 }, null, { timeout: 10000 });
 await desktop.waitForTimeout(350);                    /* fin de l'animation d'entrée */
 await desktop.screenshot({ path: SHOTS + '/c8-ordinateur-clair.png' });
-await desktop.evaluate(() => document.querySelector('#btnTheme')?.click());
+await desktop.evaluate(() => import('./ui/state.js').then(m => m.choisirTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark')));
 await desktop.screenshot({ path: SHOTS + '/c8-ordinateur-sombre.png' });
 console.log('ordinateur : mission confiée une fois, 1 envoi après trois rejeux ✓');
 

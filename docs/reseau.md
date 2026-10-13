@@ -943,6 +943,13 @@ que vivent les liens faibles, et ce sont eux qui apportent le travail.
     ses groupes — deux groupes au plus, « relayée par Karim ») ; Masquer.
 29. **La réponse va à qui demande, jamais au groupe.** Celui dont le
     téléphone a trouvé quelqu'un voit la demande EN TÊTE, à son nom.
+30. **Le retrait est réciproque, comme l'ajout** (le mainteneur, 13
+    octobre 2026 : « lorsque j'ajoute un ami l'ajout est mutuel, et on
+    peut supprimer »). Retirer Karim l'enlève de mes amis ET m'enlève
+    des siens, par une lettre `adieu` qui part après « Annuler ». Sans
+    message : personne n'annonce qu'on l'a retiré. La lettre prouve son
+    auteur (une lettre scellée ne le dit pas) : la seule qui retire
+    quelque chose chez l'autre ne s'écrit pas au nom d'un autre.
 
 ## Encore à trancher
 

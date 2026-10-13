@@ -8,7 +8,7 @@
 import { APP_VERSION } from './engine/model.js';
 import { THEME_KEY, kvInit, kvGet, kvSet } from './engine/storage.js';
 import { initVerrou } from './ui/verrou.js';
-import { S, bus, loadAll, reloadFromStorage, applyTheme } from './ui/state.js';
+import { S, bus, loadAll, reloadFromStorage, choisirTheme } from './ui/state.js';
 import { $, $$, toast, installFoldMotion, sheetOpen } from './ui/dom.js';
 import { renderToday } from './ui/today.js';
 import { renderPistes } from './ui/pistes.js';
@@ -115,9 +115,7 @@ bus.refresh = render;
   /* le thème d'abord (l'écran verrouillé doit être du bon côté),
      puis le verrou s'il existe — RIEN ne se charge avant lui */
   await kvInit();
-  const t0 = await kvGet(THEME_KEY);
-  applyTheme((t0 === 'light' || t0 === 'dark') ? t0
-    : (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'), false);
+  choisirTheme(await kvGet(THEME_KEY), false);
   /* un seul écouteur pour TOUTES les sections repliables, posé avant que
      le premier écran se dessine (ui/dom.js) */
   installFoldMotion();
@@ -131,7 +129,7 @@ bus.refresh = render;
     ORDINATEUR ? import('./ui/analyse.js').then(m => m.loadMailAnalysis()).catch(() => {}) : null,
     ORDINATEUR ? import('./ui/propositions.js').then(m => m.loadProposals()).catch(() => {}) : null
   ]);
-  applyTheme(S.theme, false);
+  choisirTheme(S.themeChoix, false);
   $('#sbVer').textContent = APP_VERSION;
 
   /* demander au navigateur de ne jamais purger le stockage (Safari
@@ -150,7 +148,6 @@ bus.refresh = render;
        qui a pu changer ce qui est à l'écran. */
     if (a.dataset.r === S.route) auSommet(S.route);
   }));
-  $('#btnTheme').addEventListener('click', () => applyTheme(S.theme === 'dark' ? 'light' : 'dark', true));
   $('#bnAdd').addEventListener('click', () => openCapture());
   $('#btnAddTop').addEventListener('click', () => openCapture());
   $('#swCopy').addEventListener('click', () => downloadBackup());   /* secours : brut, sans question */
