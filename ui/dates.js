@@ -32,6 +32,19 @@ export function quandMessage(t){
   if (d === 0) return new Date(t).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
   return d === -1 ? 'hier' : frDate(iso);
 }
+/* l'heure d'une LIGNE de la boîte, au plus court, comme toutes les
+   messageries : « 14:05 » aujourd'hui, « hier », « lun. » dans la
+   semaine, « 03/07 » au-delà — la colonne reste étroite et alignée */
+export function quandListe(t){
+  if (!t) return '';
+  const iso = localISO(new Date(t));
+  const d = diffDays(iso);
+  if (d === 0) return new Date(t).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  if (d === -1) return 'hier';
+  const j = new Date(iso + 'T12:00:00');
+  if (d > -7) return j.toLocaleDateString('fr-FR', { weekday: 'short' });
+  return j.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+}
 /* « mardi 8 juillet » */
 export function frToday(){
   return new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });

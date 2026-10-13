@@ -198,11 +198,15 @@ else {
 {
   const p = await ouvrir(DESK);
   await p.evaluate(() => { location.hash = '#/echanger'; });
-  await p.waitForSelector('.ec-detail', { state: 'attached' });
-  const detail = await p.evaluate(() => document.querySelector('.ec-detail').textContent.trim());
-  const fil = await p.evaluate(() => document.querySelector('.ec-rien')?.textContent.trim() || '');
-  okSi(detail === '' && fil.length > 0,
-    '⑦ « Échanger » vide au poste : une phrase pour le vide, pas deux' + (detail ? ` — détail lu : « ${detail} »` : ''));
+  await p.waitForSelector('.bx-seule .bx-liste');
+  /* sans conversation, une seule colonne : un volet vide ne serait
+     qu'un trou, et le cadre dit ce qu'il recevra, une fois */
+  const r = await p.evaluate(() => ({
+    volet: !!document.querySelector('#bxVolet'),
+    phrases: [...document.querySelectorAll('#view-echanger p')].map(x => x.textContent.trim()).filter(Boolean)
+  }));
+  okSi(!r.volet && r.phrases.length === 1,
+    '⑦ « Échanger » vide au poste : une colonne, une phrase pour le vide' + (r.volet || r.phrases.length !== 1 ? ` — lu : ${JSON.stringify(r)}` : ''));
   await p.context().close();
 }
 

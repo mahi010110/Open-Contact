@@ -109,7 +109,7 @@ const messagesDu = async code => {
 };
 const ouvrirLeGroupe = async p => {
   await fermerTout(p);
-  await p.click('.gr-ligne[data-groupe]');
+  await p.click('.bx-l[data-groupe]');
   await p.waitForSelector('#grMot');
 };
 /* ce que porte VRAIMENT une porte : son contenu décodé — la chaîne est
@@ -169,11 +169,12 @@ await K.p.fill('#grCode', porteI);
 if (await texte(K.p, '#grQui') !== 'Le groupe verra ton prénom : Karim.') fail('avant le geste : ' + await texte(K.p, '#grQui'));
 if (await texte(K.p, '#grRejoindreGo') !== 'Demander à entrer') fail('le geste d’une porte : ' + await texte(K.p, '#grRejoindreGo'));
 await K.p.click('#grRejoindreGo');
-await K.p.waitForSelector('.gr-attente');
+await K.p.waitForSelector('.bx-attente');
 {
-  const t = await texte(K.p, '.gr-attente');
+  /* le nom et l'état — le blason n'est qu'un dessin */
+  const t = await texte(K.p, '.bx-attente .bx-m');
   if (t !== 'BTS SIO Lille en attente') fail('la rangée en attente : ' + t);
-  if (await K.p.$('.gr-ligne[data-groupe]')) fail('Karim est dans le groupe avant d’être accepté');
+  if (await K.p.$('.bx-l[data-groupe]')) fail('Karim est dans le groupe avant d’être accepté');
   if ((await profilDe(K.p)).groupes?.length) fail('le profil de Karim porte un groupe avant d’être accepté');
 }
 await K.p.waitForTimeout(300);
@@ -195,7 +196,7 @@ console.log('③ Karim colle la porte : « Le groupe verra ton prénom : Karim. 
 
 /* ---------- ④ Inès accepte ; Karim entre seul ---------- */
 await rouvrir(I.p);
-await attendreQue(I.p, () => document.querySelector('.gr-ligne[data-groupe] .gr-n')?.textContent.trim() === '1', null, 20000,
+await attendreQue(I.p, () => document.querySelector('.bx-l[data-groupe] .bx-c')?.textContent.trim() === '1', null, 20000,
   'le chiffre de « Karim veut entrer » dans Échanger');
 await ouvrirLeGroupe(I.p);
 await I.p.waitForSelector('#grPorte');
@@ -219,7 +220,7 @@ await attendreQue(I.p, () => !document.querySelector('#grPorte'), null, 8000, '�
   if (fuite.length) fail('l’admis porte : ' + fuite.join(', '));
 }
 await rouvrir(K.p);
-await attendreQue(K.p, () => !!document.querySelector('.gr-ligne[data-groupe]') && !document.querySelector('.gr-attente'), null, 20000,
+await attendreQue(K.p, () => !!document.querySelector('.bx-l[data-groupe]') && !document.querySelector('.bx-attente'), null, 20000,
   'Karim dans le groupe, plus « en attente »');
 {
   const g = (await profilDe(K.p)).groupes[0];
@@ -290,16 +291,16 @@ await So.p.waitForSelector('#grQui');
 if (await texte(So.p, '#grQui') !== 'Le groupe verra ton prénom : Sofia.') fail('l’aperçu de la porte : ' + await texte(So.p, '#grQui'));
 if (await texte(So.p, '#grRejoindreGo') !== 'Demander à entrer') fail('le geste de l’aperçu : ' + await texte(So.p, '#grRejoindreGo'));
 await So.p.click('#grRejoindreGo');
-await So.p.waitForSelector('.gr-attente');
+await So.p.waitForSelector('.bx-attente');
 await rouvrir(K.p);
-await attendreQue(K.p, () => document.querySelector('.gr-ligne[data-groupe] .gr-n')?.textContent.trim() === '1', null, 20000,
+await attendreQue(K.p, () => document.querySelector('.bx-l[data-groupe] .bx-c')?.textContent.trim() === '1', null, 20000,
   'le chiffre de « Sofia veut entrer » chez Karim');
 await ouvrirLeGroupe(K.p);
 await K.p.waitForSelector('#grPorte');
 if (await texte(K.p, '#grPorte') !== 'Sofia veut entrer Refuser Accepter') fail('chez Karim, en tête : ' + await texte(K.p, '#grPorte'));
 await K.p.click('[data-accepter]');
 await rouvrir(So.p);
-await attendreQue(So.p, () => !!document.querySelector('.gr-ligne[data-groupe]') && !document.querySelector('.gr-attente'), null, 20000,
+await attendreQue(So.p, () => !!document.querySelector('.bx-l[data-groupe]') && !document.querySelector('.bx-attente'), null, 20000,
   'Sofia dans le groupe');
 {
   const g = (await profilDe(So.p)).groupes[0];
@@ -318,7 +319,7 @@ const T = await ecran('tom');
 await nouveau(T.p, 'grRejoindre');
 await T.p.fill('#grCode', porteI);
 await T.p.click('#grRejoindreGo');
-await T.p.waitForSelector('.gr-attente');
+await T.p.waitForSelector('.bx-attente');
 const pT = await profilDe(T.p);
 await rouvrir(I.p);
 await ouvrirLeGroupe(I.p);
@@ -329,7 +330,7 @@ await I.p.waitForTimeout(1500);
 if ((await lettresPour(pT.boite)).length) fail('un refus a écrit à Tom');
 await rouvrir(T.p);
 await T.p.waitForTimeout(3000);
-if (await T.p.$('.gr-ligne[data-groupe]') || !await T.p.$('.gr-attente')) fail('Tom, refusé : toujours en attente, jamais dedans');
+if (await T.p.$('.bx-l[data-groupe]') || !await T.p.$('.bx-attente')) fail('Tom, refusé : toujours en attente, jamais dedans');
 console.log('① un refus n’envoie rien : Tom reste « en attente », rien dans sa boîte ✓');
 
 /* ---------- ⑥ pouce, poste, sombre, 320 px texte doublé ---------- */

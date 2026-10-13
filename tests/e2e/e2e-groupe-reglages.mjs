@@ -99,7 +99,7 @@ const texte = (p, sel) => p.evaluate(s => document.querySelector(s)?.innerText.r
 const profilDe = p => p.evaluate(async () => JSON.parse(JSON.stringify((await import('./ui/state.js')).S.profile)));
 const ouvrirLeGroupe = async p => {
   await fermerTout(p);
-  await p.click('.gr-ligne[data-groupe]');
+  await p.click('.bx-l[data-groupe]');
   await p.waitForSelector('#grMembres');
 };
 const ouvrirReglages = async p => {
@@ -173,7 +173,7 @@ await attendreQue(I.p, () => /BTS SIO Lille 2/.test(document.querySelector('#grr
   for (const x of ['BTS SIO', 'Lille', 'Inès', CODE]) if (brut.includes(x)) fail(`le relais lit « ${x} »`);
 }
 await rouvrir(Ka.p);
-await attendreQue(Ka.p, () => /BTS SIO Lille 2/.test(document.querySelector('.gr-ligne[data-groupe]')?.textContent || ''), null, 20000, 'le nouveau nom dans « Échanger » chez Karim');
+await attendreQue(Ka.p, () => /BTS SIO Lille 2/.test(document.querySelector('.bx-l[data-groupe]')?.textContent || ''), null, 20000, 'le nouveau nom dans « Échanger » chez Karim');
 await ouvrirLeGroupe(Ka.p);
 if (!/BTS SIO LILLE 2/i.test(await texte(Ka.p, '.overlay:last-of-type .modal-h'))) fail('la barre du groupe chez Karim : ' + await texte(Ka.p, '.overlay:last-of-type .modal-h'));
 console.log('③ renommer : un réglage signé, illisible pour le relais ; chez Karim, la porte et la barre suivent ✓');
@@ -286,7 +286,7 @@ await ouvrirReglages(I.p);
 await I.p.click('#grSupprimer');
 await I.p.waitForSelector('.undo-bar');
 await I.p.click('.undo-bar .btn-sm');
-await attendreQue(I.p, () => !!document.querySelector('.gr-ligne[data-groupe]'), null, 5000, '« Annuler » rend le groupe');
+await attendreQue(I.p, () => !!document.querySelector('.bx-l[data-groupe]'), null, 5000, '« Annuler » rend le groupe');
 await ouvrirReglages(I.p);
 await I.p.click('#grSupprimer');
 await I.p.waitForSelector('.undo-bar');
@@ -303,7 +303,7 @@ for (const [x, qui] of [[Ka, 'Karim'], [So, 'Sofia']]){
   if (!await attendreQue(x.p, () => window.__toasts.some(t => /BTS SIO Lille 2 a été supprimé par Inès\./.test(t)), null, 20000,
     `« BTS SIO Lille 2 a été supprimé par Inès. » chez ${qui}`))
     console.error('   toasts chez ' + qui + ' : ' + JSON.stringify(await x.p.evaluate(() => window.__toasts)));
-  await attendreQue(x.p, () => !document.querySelector('.gr-ligne[data-groupe]'), null, 8000, `le groupe parti de chez ${qui}`);
+  await attendreQue(x.p, () => !document.querySelector('.bx-l[data-groupe]'), null, 8000, `le groupe parti de chez ${qui}`);
 }
 console.log('⑦ supprimer pour tous : « Annuler » le rend ; sinon, après la barre, le groupe quitte les téléphones de Karim et Sofia ✓');
 

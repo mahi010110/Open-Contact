@@ -1010,6 +1010,29 @@ privée ».
     de toute façon pas le faire sans réveiller ton téléphone. Pas
     d'image : une conversation d'entraide, pas une messagerie de plus.
 
+### La boîte (13 octobre 2026)
+
+Le mainteneur : « une boîte de réception, le suivi des nouveaux messages
+dans les groupes, afficher les conversations et les groupes comme Discord
+— exactement comme les messageries traditionnelles, mais attention à la
+sécurité ».
+
+37. **Toutes les conversations dans UNE liste, en tête d'« Échanger ».**
+    Groupes et amis mêlés, la plus récente en haut, les épinglées avant
+    tout ; ce qui n'est pas lu en gras avec son chiffre ; l'onglet compte
+    les conversations qui attendent, pas les messages, et laisse de côté
+    celles dont on a coupé le son. Une conversation s'ouvre sur la ligne
+    « N nouveaux » ; au poste, elle se pose à droite de la liste. Ce que
+    l'on règle (épingler, couper le son) reste sur l'appareil, scellé
+    (`oc_fils_v1`). **Trois choses que les messageries font et que la
+    boîte ne fait pas** : l'accusé de lecture et « en train d'écrire »
+    (ils diraient à l'autre quand tu regardes, et ne se font pas sans
+    réveiller ton téléphone), et l'aperçu des liens — le téléphone de
+    qui reçoit irait chercher une page qu'un autre a choisie, ce qui
+    trahit son adresse et a déjà servi à faire fuiter des messages
+    (Mysk, 2020). Un visage en pixels distingue deux personnes d'un coup
+    d'œil ; il se tire de l'identifiant, il ne prouve rien.
+
 ## Encore à trancher
 
 - **Le fil du groupe** : tranché le 12 octobre (décision 27) — des

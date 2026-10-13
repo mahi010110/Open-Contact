@@ -25,7 +25,7 @@ import { filterCompanies, filterOrphans, searchHint, NATURAL_DIR } from './engin
 import { scoreOf } from './engine/score.js';
 import { DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, SYNC_KEY,
          RELAYS_KEY, TURN_KEY, DEVICE_KEY, DEVICES_KEY, PROMO_KEY, VAULT_KEY,
-         ANALYSIS_KEY, VUS_KEY, RESEAU_KEY, GROUPES_KEY, MESSAGES_KEY, SEALABLE, THEME_KEY, VIEW_KEY, OLD_V2, OLD_V1, CLES_A_EFFACER,
+         ANALYSIS_KEY, VUS_KEY, RESEAU_KEY, GROUPES_KEY, MESSAGES_KEY, FILS_KEY, SEALABLE, THEME_KEY, VIEW_KEY, OLD_V2, OLD_V1, CLES_A_EFFACER,
          kvGet, kvSet, kvDel, vaultActive, vaultDetach, vaultReseal } from './engine/storage.js';
 import { causeLiaison, relayTally, liaisonStage, parseTurn, turnText, TURN_MAX, RELAIS_DEFAUT } from './engine/transport.js';
 import { clePortage, sceller as scellerPortage, ouvrir as ouvrirPortageMsg, decouper, rassembler, recolte,
@@ -59,6 +59,9 @@ import { nouvelleCle, boiteValide, cleValide, etiquetteBoite, sceller, ouvrir, l
          jetonRelais, ouvrirJeton, lettreRelais, lettreTrouve, choisirRelais, soiPour, contactsDe, lettreEntree, lettreAdmis, lettreRecode,
          CERCLE_MAX, RELAIS_MAX } from './engine/boite.js';
 import { critereValide, phraseCritere, CRITERE_METIER } from './engine/critere.js';
+import { cleFil, prefsVides, normaliserPrefs, basculerEpingle, basculerMuet, renommerFil, oublierFil, boite,
+         filtrer, filtresUtiles, filtreVide, aLire, chiffreOnglet, premierNonLu, EPINGLES_MAX } from './engine/conversations.js';
+import { visage, initiales, TEINTES } from './engine/visage.js';
 import { MESSAGE_MAX, FIL_MAX, texteMessage, conversationsVides, normaliserConversations, filAvec, ajouterMessage,
          nonLus, dernier as dernierMessage, marquerLu, oublier as oublierConversation } from './engine/messages.js';
 import { GROUPES_MAX, MOT_MAX, nouveauCode, codeNorm, codeAffiche, estCodeTape, invitation, estInvitation, lireInvitation,
@@ -676,6 +679,8 @@ export async function runSelfTests(){
       ok(SEALABLE.has(GROUPES_KEY));  /* ce qui s'est dit dans mes groupes, et qui en est : une donnée */
       eq(MESSAGES_KEY, 'oc_messages_v1');
       ok(SEALABLE.has(MESSAGES_KEY)); /* mes conversations privées : une donnée */
+      eq(FILS_KEY, 'oc_fils_v1');
+      ok(SEALABLE.has(FILS_KEY));     /* elle nomme un groupe par son CODE : un secret */
       eq(THEME_KEY, 'oc_theme');
       eq(VIEW_KEY, 'oc_view');
       eq(OLD_V2, 'oc_data_v2');
@@ -2424,6 +2429,84 @@ export async function runSelfTests(){
       eq(normaliserConversations({ fils: { court: { m: [] }, [A]: { m: [{ id: 'x', texte: 1 }], vu: 'a' } } }), { v: 1, fils: { [A]: { m: [], vu: 0 } } });
       eq(texteMessage(null), '');
     },
+    'boîte « Échanger » : une liste, les épinglées d’abord, le plus récent ensuite, le son coupé hors du chiffre': () => {
+      const G = cleFil('groupe', 'ABCDEFGHIJKLMNO'), K = cleFil('ami', 'KarimKarimKarim00001'), I = cleFil('ami', 'InesInesInesInes0001'),
+            L = cleFil('ami', 'LeaLeaLeaLeaLea00001');
+      eq([G, K], ['g:ABCDEFGHIJKLMNO', 'a:KarimKarimKarim00001']);
+      const fils = [
+        { cle: G, sorte: 'groupe', nom: 'BTS SIO Lille', at: 300, n: 3 },
+        { cle: K, sorte: 'ami', nom: 'Karim Benali', at: 200, n: 1 },
+        { cle: I, sorte: 'ami', nom: 'Inès Martin', at: 400, n: 0 },
+        { cle: L, sorte: 'ami', nom: 'Léa Dupont', at: 100, n: 2 },
+        { cle: 'pas une clé', sorte: 'ami', nom: 'X', at: 999 }];
+      let p = prefsVides();
+      /* sans réglage : le plus récent en haut, une clé invalide n'entre pas */
+      eq(boite(fils, p).map(r => r.nom), ['Inès Martin', 'BTS SIO Lille', 'Karim Benali', 'Léa Dupont']);
+      eq(aLire(boite(fils, p)), 3);                          /* trois CONVERSATIONS, pas six messages */
+      /* épingler : en haut, dans l'ordre où l'on a épinglé (la dernière devant) */
+      p = basculerEpingle(p, L);
+      p = basculerEpingle(p, K);
+      eq(boite(fils, p).map(r => r.nom), ['Karim Benali', 'Léa Dupont', 'Inès Martin', 'BTS SIO Lille']);
+      ok(boite(fils, p)[0].epingle && !boite(fils, p)[2].epingle);
+      eq(basculerEpingle(p, K).epingles, [L]);               /* re-tap : désépingler */
+      let q = prefsVides();
+      for (let i = 0; i < EPINGLES_MAX + 2; i++) q = basculerEpingle(q, cleFil('ami', 'AmiAmiAmiAmiAmi' + String(i).padStart(5, '0')));
+      eq(q.epingles.length, EPINGLES_MAX);                   /* au-delà, tout serait en haut */
+      /* couper le son : la conversation reste, son chiffre aussi, mais l'onglet ne la compte plus */
+      p = basculerMuet(p, G);
+      const r = boite(fils, p);
+      ok(r.find(x => x.cle === G).muet && r.find(x => x.cle === G).n === 3);
+      eq(aLire(r), 2);
+      eq(basculerMuet(p, G).muets, []);
+      eq(basculerMuet(p, 'g:<script>'), p);                  /* rien d'autre qu'une clé */
+      /* un groupe qui change de code garde son épingle et son silence */
+      const N = cleFil('groupe', 'ZZZZZZZZZZZZZZZ');
+      const pr = renommerFil(basculerEpingle(p, G), G, N);
+      ok(pr.muets.includes(N) && pr.epingles.includes(N) && !pr.muets.includes(G));
+      eq(oublierFil(pr, N).muets, []);
+      /* relire : ce qui est abîmé tombe, les doublons aussi */
+      eq(normaliserPrefs({ epingles: [K, K, 'x', 3], muets: 'a' }), { v: 1, epingles: [K], muets: [] });
+      eq(normaliserPrefs(JSON.parse(JSON.stringify(p))), p);
+      /* les filtres de WhatsApp : à partir de quatre lignes, et une liste
+         FERMÉE — un filtre vide reste, éteint */
+      const tous = boite(fils, prefsVides());
+      eq(filtresUtiles(tous), ['tout', 'nonlus', 'groupes', 'amis']);
+      eq(filtresUtiles(tous.slice(0, 3)), []);                /* trois lignes se lisent sans filtre */
+      const amisSeuls = [...tous.filter(x => x.sorte === 'ami'), { ...tous[1], cle: 'a:AutreAutreAutre00001', sorte: 'ami', n: 0 }];
+      eq(filtresUtiles(amisSeuls).length, 4);
+      ok(filtreVide(amisSeuls, 'groupes') && !filtreVide(amisSeuls, 'amis') && !filtreVide(amisSeuls, 'tout'));
+      ok(filtreVide(tous.map(x => ({ ...x, n: 0 })), 'nonlus'));
+      eq(filtrer(tous, 'nonlus').map(x => x.nom), ['BTS SIO Lille', 'Karim Benali', 'Léa Dupont']);
+      eq(filtrer(tous, 'groupes').map(x => x.nom), ['BTS SIO Lille']);
+      eq(filtrer(tous, 'amis').length, 3);
+      eq(filtrer(tous, 'tout'), tous);
+      /* le chiffre de l'onglet */
+      eq([chiffreOnglet(0), chiffreOnglet(7), chiffreOnglet(140)], ['', '7', '99+']);
+      /* ouvrir là où l'on s'était arrêté : le premier qui n'est pas de moi, après ma visite */
+      const items = [{ at: 10, de: 'moi' }, { at: 20, de: 'k' }, { at: 30, de: 'moi' }, { at: 40, de: 'k' }];
+      eq(premierNonLu(items, 25, x => x.de === 'moi'), 3);
+      eq(premierNonLu(items, 5, x => x.de === 'moi'), 1);
+      eq(premierNonLu(items, 50, x => x.de === 'moi'), -1);
+    },
+    'visages en pixels : le même pour la même graine, symétrique, ni vide ni plein': () => {
+      const a = visage('KarimKarimKarim00001'), b = visage('KarimKarimKarim00001'), c = visage('InesInesInesInes0001');
+      eq(a, b);                                              /* le même sur tous les téléphones */
+      ok(JSON.stringify(a) !== JSON.stringify(c));
+      ok(a.teinte >= 0 && a.teinte < TEINTES);
+      /* symétrique comme un visage, lisible : ni une croix maigre ni un bloc plein */
+      const graines = Array.from({ length: 200 }, (_, i) => 'graine-' + i);
+      for (const g of graines){
+        const v = visage(g);
+        const ici = new Set(v.cases.map(([x, y]) => x + ',' + y));
+        ok(v.cases.every(([x, y]) => ici.has((4 - x) + ',' + y)), g + ' symétrique');
+        ok(v.cases.length >= 6 && v.cases.length <= 19, g + ' : ' + v.cases.length + ' cases');
+        ok(v.cases.every(([x, y]) => x >= 0 && x < 5 && y >= 0 && y < 5));
+      }
+      /* six teintes réellement employées sur deux cents graines */
+      eq(new Set(graines.map(g => visage(g).teinte)).size, TEINTES);
+      /* les initiales d'un groupe */
+      eq([initiales('BTS SIO Lille'), initiales('Club'), initiales('  école  2026 '), initiales('')], ['BS', 'CL', 'E2', '?']);
+    },
     'amis : l’onglet — ce qu’un ami t’ouvre, le tri « Pour toi », la recherche par entreprise': () => {
       const today = '2026-10-07';
       const pistes = [normalizeCompany({ id: 'az', name: 'AZTEK SAS' }), normalizeCompany({ id: 'th', name: 'Thales' }),
@@ -3080,7 +3163,7 @@ export async function runSelfTests(){
          ressuscitait des pistes d'avant la v3 sur un appareil « effacé » */
       ok(CLES_A_EFFACER.includes(OLD_V2) && CLES_A_EFFACER.includes(OLD_V1));
       for (const k of [DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, SYNC_KEY,
-                       RELAYS_KEY, TURN_KEY, DEVICE_KEY, DEVICES_KEY, PROMO_KEY, VAULT_KEY, ANALYSIS_KEY, VUS_KEY, RESEAU_KEY, GROUPES_KEY, MESSAGES_KEY])
+                       RELAYS_KEY, TURN_KEY, DEVICE_KEY, DEVICES_KEY, PROMO_KEY, VAULT_KEY, ANALYSIS_KEY, VUS_KEY, RESEAU_KEY, GROUPES_KEY, MESSAGES_KEY, FILS_KEY])
         ok(CLES_A_EFFACER.includes(k), k + ' doit partir');
       /* tout ce qui se scelle est une donnée : tout ce qui se scelle s'efface */
       for (const k of SEALABLE) ok(CLES_A_EFFACER.includes(k), k + ' (scellable) doit partir');
