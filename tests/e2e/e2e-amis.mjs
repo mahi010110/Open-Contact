@@ -176,9 +176,14 @@ await K.p.screenshot({ path: `${SHOTS}/99-amis-mon-qr-pouce.png` });
   });
   if (!boite || d.cle !== boite.pub) fail('le QR ne porte pas la clé de la boîte née avec lui');
   if (boite && brut.includes(boite.priv)) fail('la clé PRIVÉE de la boîte sort dans le QR');
+  /* les mots privés se cherchent HORS des deux champs tirés au hasard :
+     la clé publique (87 caractères base64url) et l'identifiant. « k1 »
+     y tombait par pur hasard environ une fois sur cinquante — une fuite
+     annoncée là où il n'y en avait aucune (CI de la 6.65) */
+  const brutSansHasard = JSON.stringify({ ...d, id: undefined, cle: undefined });
   for (const x of ['karim@prive.test', '0611223344', 'BTS SIO', 'Baggio', 'Lille', 'Secret Corp', 'note très privée',
                    'Julie', 'Léa', 'Wavestone', 'LeaLeaLea', 'reply', 'alternance"', 'k1'])
-    if (x !== 'alternance"' && brut.includes(x)) fail(`le profil donné laisse sortir « ${x} »`);
+    if (x !== 'alternance"' && brutSansHasard.includes(x)) fail(`le profil donné laisse sortir « ${x} »`);
   if (d.parcours.map(e => e.entreprise).join() !== 'Aztek,Quick') fail('parcours donné : ' + JSON.stringify(d.parcours));
   /* ce qui s'affiche sous le QR est exactement ce qui part */
   const dit = await K.p.evaluate(() => document.querySelector('#mqDonne').textContent.replace(/\s+/g, ' ').trim());
