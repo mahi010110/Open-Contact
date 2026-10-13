@@ -231,10 +231,14 @@ await page.waitForFunction(() => !/Réessaie/.test((document.querySelector('.loc
 await tapLock('280941');
 await page.waitForFunction(() => !document.querySelector('.lock'), null, { timeout: 10000 });
 await page.goto(base + '/#/moi');
-await page.waitForSelector('#btnTheme');
 
-/* --- 6. thème sombre + ordinateur --- */
-await page.click('#btnTheme');
+/* --- 6. thème sombre + ordinateur ---
+   au pouce, le thème vit dans Réglages (l'en-tête n'existe plus sous
+   901 px depuis le 12 octobre 2026) */
+await page.waitForSelector('#moiReglages');
+await page.click('#moiReglages');
+await page.waitForSelector('[data-theme-choix="dark"]');
+await page.click('[data-theme-choix="dark"]');
 await page.waitForFunction(() => document.documentElement.dataset.theme === 'dark');
 await page.waitForTimeout(600);        /* laisser l'écriture IndexedDB aboutir */
 await page.reload({ waitUntil: 'load' });

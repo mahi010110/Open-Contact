@@ -103,8 +103,16 @@ console.log('serveur coupé → rechargement : l’app revit du cache (v' + vers
   const p2 = await ctx.newPage();
   p2.on('pageerror', e => errors.push(String(e)));
   await p2.goto(b2, { waitUntil: 'load' });
-  await p2.waitForSelector('#btnTheme');
-  if (await p2.evaluate(() => document.documentElement.dataset.theme !== 'dark')) await p2.click('#btnTheme');
+  /* au pouce, le thème se choisit dans Réglages — l'en-tête qui portait
+     sa bascule n'existe plus sous 901 px (12 octobre 2026) : le test
+     passe par le chemin qu'un étudiant prendrait */
+  await p2.evaluate(() => { location.hash = '#/moi'; });
+  await p2.waitForSelector('#moiReglages');
+  await p2.click('#moiReglages');
+  await p2.waitForSelector('[data-theme-choix="dark"]');
+  await p2.click('[data-theme-choix="dark"]');
+  if (await p2.evaluate(() => document.documentElement.dataset.theme !== 'dark'))
+    fail('« Sombre » dans Réglages ne pose pas le thème sombre');
   await p2.waitForTimeout(300);
   const cdp = await ctx.newCDPSession(p2);
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: 8 });   /* téléphone d'entrée de gamme */
