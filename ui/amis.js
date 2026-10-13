@@ -36,6 +36,7 @@ import { openSheet, toast, btn, ic, showUndo, bindDeleteGesture } from './dom.js
 import { sortState, sortSectionHTML, bindSortSection, sortChipHTML, bindSortChip, sensDe } from './sort.js';
 import { makeQrSvg } from './qr.js';
 import { demandesCritere, peutDemanderAmis, phraseDemande, ouvrirDemander, libelleDemander, direAdieu, reprendreMonProfil } from './reseau.js';
+import { nonLusDe, ouvrirConversation } from './messages.js';
 
 /* ce que le parcours de tes amis dit de tes pistes — calculé à la
    demande : l'index du moteur le rend linéaire, rien à mémoriser */
@@ -203,7 +204,7 @@ function ficheAmiHTML(a){
      fois, et c'est le seul endroit où ça se dit — le geste, pas la
      raison. */
   return parcoursHTML(a)
-    + (a.cle ? '' : `<p class="hint" id="amAncien">${ic('reload', 'ic-14')} Rescanne son QR pour lui demander quelqu’un.</p>`)
+    + (a.cle ? '' : `<p class="hint" id="amAncien">${ic('reload', 'ic-14')} Rescanne son QR pour lui écrire.</p>`)
     /* un geste SEUL est un bouton taillé à son mot (§6, les trois
        formes) : en rangée de liste, il s'étirait sur 940 px au poste —
        la brique d'avant sous un autre nom. Le même dessin que « Quitter
@@ -211,6 +212,23 @@ function ficheAmiHTML(a){
     + `<div class="pick-sortie">
          <button class="btn btn-sm btn-danger" id="amRetirer">${ic('trash', 'ic-14')} Retirer de mes amis</button>
        </div>`;
+}
+/* « ÉCRIRE À KARIM » (13 octobre 2026) : sur une fiche de personne,
+   écrire est LE geste. Au pouce il tient le pied de la feuille ; au
+   poste il ouvre le détail, sous le nom. Ce qui n'est pas lu se compte
+   dedans. Un ami sans boîte n'a pas ce geste : la ligne « Rescanne son
+   QR » le dit. */
+const motEcrire = a => {
+  const n = nonLusDe(a.id);
+  return `${ic('message-text', 'ic-14')} Écrire à ${esc(prenomAmi(a))}${n ? ` <span class="gr-n am-n">${n}</span>` : ''}`;
+};
+function boutonEcrire(a, apres, classe){
+  const b = document.createElement('button');
+  b.className = 'btn ' + classe;
+  b.id = 'amEcrire';
+  b.innerHTML = motEcrire(a);
+  b.addEventListener('click', () => ouvrirConversation(a, apres));
+  return b;
 }
 function lierFicheAmi(box, a, { apres, fermer } = {}){
   const frais = () => (S.profile.amis || []).find(x => x.id === a.id) || a;
@@ -256,7 +274,9 @@ export function openAmi(a, apres){
     if (!sh.body.isConnected) return;
     const frais = (S.profile.amis || []).find(x => x.id === a.id) || a;
     sh.body.innerHTML = `<h2 class="ap-nom am-nom">${esc(frais.nom)}</h2>` + ficheAmiHTML(frais);
-    lierFicheAmi(sh.body, frais, { apres: () => { dessiner(); if (apres) apres(); }, fermer: () => sh.close() });
+    const ensuite = () => { dessiner(); if (apres) apres(); };
+    lierFicheAmi(sh.body, frais, { apres: ensuite, fermer: () => sh.close() });
+    sh.setFoot(frais.cle ? [boutonEcrire(frais, ensuite, 'btn-primary')] : null);
   };
   dessiner();
   return sh;
@@ -278,13 +298,21 @@ function sousLigneAmi(o){
   return (dans.length ? `<span class="am-tienne">${esc(dans.join(', '))}, dans tes pistes</span>` : '')
     + (dans.length && autres.length ? ' · ' : '') + esc(autres.join(' · '));
 }
+/* ce qu'il t'a écrit et que tu n'as pas lu se compte au bout de sa
+   ligne, en accent — le chiffre d'un groupe dans « Échanger » ; rien
+   quand il n'y a rien */
 function ligneAmiHTML({ a, o }, sel){
+  const n = nonLusDe(a.id);
   return (
     `<div class="row-item am-row${sel ? ' am-sel' : ''}" data-ami="${esc(a.id)}">
        <div class="sw-in">
-         <div class="ri-main sw-cible" role="button" tabindex="0" aria-label="Ouvrir ${esc(a.nom)}"${sel ? ' aria-current="true"' : ''}>
-           <h3>${esc(a.nom)}</h3>
-           <div class="ri-sub">${sousLigneAmi(o)}</div>
+         <div class="ri-main sw-cible am-main" role="button" tabindex="0" aria-label="Ouvrir ${esc(a.nom)}${
+           n ? `, ${n} message${n > 1 ? 's' : ''} non lu${n > 1 ? 's' : ''}` : ''}"${sel ? ' aria-current="true"' : ''}>
+           <div class="am-txt">
+             <h3>${esc(a.nom)}</h3>
+             <div class="ri-sub">${sousLigneAmi(o)}</div>
+           </div>
+           ${n ? `<span class="gr-n am-n" aria-hidden="true">${n}</span>` : ''}
          </div>
        </div>
      </div>`);
@@ -331,7 +359,7 @@ export function vueAmisHTML(classes, { q, wide, critere }){
     ? `<div class="dc-split">
          <div class="dc-col">${liste}${dem.geste}</div>
          <aside class="dc-detail am-detail" data-ami="${esc(x.a.id)}" aria-label="${esc(x.a.nom)}">
-           <h2 class="ap-nom">${esc(x.a.nom)}</h2>${ficheAmiHTML(x.a)}
+           <h2 class="ap-nom">${esc(x.a.nom)}</h2>${x.a.cle ? '<div class="am-ecrire"></div>' : ''}${ficheAmiHTML(x.a)}
          </aside>
        </div>`
     : liste + dem.geste);
@@ -372,6 +400,9 @@ export function lierVueAmis(box, { wide, rendre }){
   if (aside){
     const a = trouve(aside.dataset.ami);
     if (a) lierFicheAmi(aside, a, { apres: rendre });
+    /* au poste, le geste EST l'action du détail, sans primaire pour la
+       porter : il garde sa boîte (§6, les trois formes) */
+    if (a) aside.querySelector('.am-ecrire')?.append(boutonEcrire(a, rendre, 'btn-sm btn-contour'));
   }
 }
 /* le tri des amis : la même feuille que celle des pistes, leurs critères */

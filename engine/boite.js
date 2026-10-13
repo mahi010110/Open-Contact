@@ -31,6 +31,9 @@
      l'identifiant d'ami de qui retire, et une PREUVE qu'il tient bien la
      clé de la boîte qu'il nomme — la seule lettre qui retire quelque
      chose chez l'autre ne doit pas pouvoir s'écrire au nom d'un autre.
+   · message — une conversation privée avec un ami (13 octobre 2026) :
+     le texte, l'heure, et la même preuve d'auteur — un message ne
+     s'écrit pas au nom d'un ami. Il ne s'ouvre que d'un ami que j'ai.
 
    Le téléphone de l'ami cherche dans SES pistes sans rien montrer ; il
    ne lui demande quelque chose que s'il a trouvé (règle 6). Fonctions
@@ -49,6 +52,7 @@
    ============================================================ */
 import { memeEntreprise, normalizeAmi, direExperience } from './amis.js';
 import { critereValide } from './critere.js';
+import { texteMessage } from './messages.js';
 
 export const LETTRE_KIND = 8571;          /* un kind ordinaire qu'aucun client n'affiche (mesuré gardé) */
 export const DEMANDE_JOURS = 14;          /* règle 7 : une demande s'éteint au bout de 14 jours */
@@ -160,6 +164,8 @@ export async function preuveValide(maPriv, saPub, texte, preuve){
   catch (e) { return false; }
 }
 const texteAdieu = (id, ami) => 'adieu·' + id + '·' + ami;
+const texteMsg = (id, at, texte) => 'message·' + id + '·' + at + '·' + texte;
+export const MESSAGE_JOURS = 30;    /* un message plus vieux qu'un mois ne s'ouvre plus */
 
 /* ---------- les lettres : ce qui s'écrit, ce qui s'accepte ---------- */
 const txt = (v, n) => String(v || '').replace(/\s+/g, ' ').trim().slice(0, n);
@@ -299,6 +305,14 @@ export async function lettreAdieu({ prenom, cle, priv }, ami, pubDest){
    `traiterLettre` ne retire qui que ce soit */
 export const adieuAuthentique = (l, maPriv) =>
   !!(l && l.t === 'adieu') && preuveValide(maPriv, l.de.cle, texteAdieu(l.id, l.ami), l.preuve);
+/* UN MESSAGE à un ami : `pubDest`, sa clé, pour la preuve */
+export async function lettreMessage({ prenom, cle, priv }, texte, pubDest, now = Date.now()){
+  const id = nouvelId(), t = texteMessage(texte);
+  return { v: 1, t: 'message', id, de: { prenom: txt(prenom, 40), cle }, texte: t, at: now,
+           preuve: await prouver(priv, pubDest, texteMsg(id, now, t)) };
+}
+export const messageAuthentique = (l, maPriv) =>
+  !!(l && l.t === 'message') && preuveValide(maPriv, l.de.cle, texteMsg(l.id, l.at, l.texte), l.preuve);
 export function lettreMerci({ prenom, cle }, don, suite){
   const l = { v: 1, t: 'merci', id: nouvelId(), demande: don.demande, de: { prenom: txt(prenom, 40), cle },
               entreprise: entrepriseDe(don.entreprise), contact: { name: txt(don.contact && don.contact.name, 120) } };
@@ -338,6 +352,12 @@ export function normaliserLettre(o, now = Date.now()){
   if (o.t === 'admis'){
     if (!ID.test(String(o.porte || '')) || !CODE_GROUPE.test(String(o.code || '')) || !SIGNE.test(String(o.chef || ''))) return null;
     return { t: 'admis', id: o.id, porte: o.porte, de, code: o.code, nom: txt(o.nom, 40), chef: o.chef };
+  }
+  if (o.t === 'message'){
+    const at = Number(o.at), texte = texteMessage(o.texte);
+    if (!texte || texte !== o.texte || !Number.isFinite(at) || at > now + 10 * 60000 || at < now - MESSAGE_JOURS * 864e5
+        || !/^[A-Za-z0-9_-]{43}$/.test(String(o.preuve || ''))) return null;
+    return { t: 'message', id: o.id, de, texte, at, preuve: o.preuve };
   }
   if (o.t === 'adieu'){
     if (!/^[A-Za-z0-9_-]{16,43}$/.test(String(o.ami || '')) || !/^[A-Za-z0-9_-]{43}$/.test(String(o.preuve || ''))) return null;
@@ -528,6 +548,14 @@ export function traiterLettre(e, l, { companies, moi, amis, parcours, pistesPour
        amis (statutAmi décide : nouveau, à jour, déjà là) */
     if (l.de.cle === moi || (e.lus || []).some(x => x.id === l.id)) return { etat: e, quoi: null };
     return { etat: { ...e, lus: [...(e.lus || []), { id: l.id, at: now }] }, quoi: 'ami' };
+  }
+  if (l.t === 'message'){
+    /* d'un ami que j'ai, une fois. La preuve se vérifie ensuite
+       (messageAuthentique) avant que le message n'entre dans la
+       conversation. */
+    if (l.de.cle === moi || (e.lus || []).some(x => x.id === l.id)
+        || !(amis || []).some(a => a && a.cle === l.de.cle)) return { etat: e, quoi: null };
+    return { etat: { ...e, lus: [...(e.lus || []), { id: l.id, at: now }] }, quoi: 'message' };
   }
   if (l.t === 'adieu'){
     /* seulement un ami que j'ai, sous le nom ET la clé qu'il annonce —

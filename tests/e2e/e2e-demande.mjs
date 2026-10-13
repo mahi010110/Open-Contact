@@ -481,7 +481,7 @@ await I.p.click('.am-row[data-ami="AwaAwaAwaAwaAwaAwa01"] .ri-main');
 await I.p.waitForTimeout(300);
 {
   const t = await I.p.evaluate(() => document.querySelector('#amAncien')?.textContent.trim());
-  if (t !== 'Rescanne son QR pour lui demander quelqu’un.') fail('l’amie ancienne : ' + t);
+  if (t !== 'Rescanne son QR pour lui écrire.') fail('l’amie ancienne : ' + t);
 }
 await I.p.screenshot({ path: `${SHOTS}/100-demande-amie-ancienne-pouce.png` });
 await ongletAmis(I.p);

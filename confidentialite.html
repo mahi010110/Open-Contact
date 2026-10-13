@@ -60,6 +60,9 @@ un fichier sur ton disque. Personne d'autre n'y a accès.</p>
   <li><b>Tes demandes à tes amis</b> : ce que tu as demandé, ce qu'on t'a
       demandé et ce qu'on t'a donné, sur cet appareil seulement, oublié au
       bout de 30 jours.</li>
+  <li><b>Tes conversations avec tes amis</b> : sur cet appareil seulement,
+      les 300 derniers messages avec chacun. Retirer un ami efface votre
+      conversation.</li>
   <li><b>Tes groupes</b> : le code de chacun, qui sert de clé, et sur cet
       appareil ce qui s'y est dit depuis sept jours avec les prénoms de ses
       membres. Pour un groupe « sur demande », une clé de signature en plus,
@@ -72,8 +75,8 @@ chiffré <em>sur l'appareil</em>, et la clé ne le quitte jamais.</p>
 
 <h2 id="ce-qui-sort">Ce qui sort, et seulement quand tu le demandes</h2>
 
-<p>Rien ne part sans un geste de ta part. Six gestes font sortir des
-données, et tu les déclenches tous les six.</p>
+<p>Rien ne part sans un geste de ta part. Sept gestes font sortir des
+données, et tu les déclenches tous les sept.</p>
 
 <ul class="dl">
   <li><b>Un fichier <code>.oc</code></b> : tu l'enregistres, tu le donnes à
@@ -103,6 +106,10 @@ données, et tu les déclenches tous les six.</p>
       Si tu es dans un groupe, la même demande y est posée : tout le groupe
       la voit, chiffrée avec le code du groupe. Les réponses, elles, ne
       passent jamais par le groupe : elles arrivent chez toi seul.</li>
+  <li><b>Un message à un ami</b> (« Écrire à … », sur sa fiche) : ton
+      prénom et ce que tu as écrit, chiffrés pour lui seul — personne
+      d'autre ne peut le lire, et personne ne peut lui écrire à ta place.
+      Il ne sait pas quand tu ouvres l'app ni quand tu as lu.</li>
   <li><b>Dans un groupe</b> : ton prénom, tes messages et les pistes que tu
       y donnes, jamais ton suivi privé. Tout est chiffré avec le code du
       groupe : seuls ceux qui ont ce code peuvent le lire. Les messages et
@@ -203,7 +210,8 @@ interdit tout le reste, et elle est visible dans leur code source.</p>
 <p>Pour que deux appareils se trouvent, le partage et la synchronisation
 passent par des <b>relais publics</b>, des serveurs du réseau Nostr tenus par
 des tiers. Les demandes à tes amis y attendent qu'ils ouvrent l'app, 14 jours
-au plus, et les messages de tes groupes, sept jours. Voici précisément ce
+au plus, tes messages à un ami, 30 jours, et les messages de tes groupes,
+sept jours. Voici précisément ce
 qu'ils voient :</p>
 
 <ul class="dl">

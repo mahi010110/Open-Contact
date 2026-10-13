@@ -994,6 +994,22 @@ Ce qui n'y est pas, exprès : une photo de groupe, une description, des
 réglages de notification — l'app ne sonne pas (§10), et une image de
 plus n'aide personne à trouver une alternance.
 
+### Parler à un ami (13 octobre 2026)
+
+Le mainteneur : « pouvoir parler par message à un ami en conversation
+privée ».
+
+36. **On s'écrit entre amis, en privé.** Par la boîte aux lettres,
+    comme une demande : scellé pour lui seul, gardé 30 jours par les
+    relais le temps qu'il ouvre l'app, prouvé de ma clé comme `adieu`. La conversation ne vit que sur les
+    deux téléphones (`oc_messages_v1`) — aucun serveur ne la garde, rien
+    ne la synchronise. « Écrire à Karim » tient le pied de sa fiche ; ce
+    qui n'est pas lu se compte sur sa ligne et passe en tête
+    d'« Aujourd'hui ». Ni accusé de lecture ni « en train d'écrire » :
+    ils diraient à l'autre quand tu ouvres l'app, et la boîte ne sait
+    de toute façon pas le faire sans réveiller ton téléphone. Pas
+    d'image : une conversation d'entraide, pas une messagerie de plus.
+
 ## Encore à trancher
 
 - **Le fil du groupe** : tranché le 12 octobre (décision 27) — des

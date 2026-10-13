@@ -43,6 +43,7 @@ export const ANALYSIS_KEY = 'oc_analysis_v1'; /* dernière analyse d'e-mails à 
 export const PROPOSALS_KEY = 'oc_proposals_v1'; /* propositions de l'assistant IA (MCP) à trier */
 export const VUS_KEY = 'oc_vus_v1';           /* « À découvrir » : ce que chaque recherche a déjà montré (« Nouveau ») */
 export const RESEAU_KEY = 'oc_reseau_v1';     /* la boîte aux lettres : mes demandes, ce qu'on me demande, ce qu'on me donne (cet appareil) */
+export const MESSAGES_KEY = 'oc_messages_v1'; /* mes conversations privées avec mes amis (cet appareil) */
 export const GROUPES_KEY = 'oc_groupes_v1';   /* mes groupes : ce qui s'y est dit, qui en est (cet appareil — rien à voir avec l'ancien oc_group_v1) */
 export const THEME_KEY = 'oc_theme';
 export const VIEW_KEY = 'oc_view';   /* héritée, plus écrite — épinglée par le test de contrat */
@@ -175,7 +176,7 @@ export async function kvDel(k){
 export const SEALABLE = new Set([DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY,
   TOMBS_KEY, GROUP_KEY, SYNC_KEY, RELAYS_KEY, TURN_KEY, DEVICE_KEY, DEVICES_KEY, PROMO_KEY, RING_KEY,
   CAMPAIGNS_KEY, MAIL_KEY, AI_KEY, MISSIONS_KEY, ORDINATEUR_KEY, ANALYSIS_KEY,
-  PROPOSALS_KEY, VUS_KEY, RESEAU_KEY, GROUPES_KEY]);
+  PROPOSALS_KEY, VUS_KEY, RESEAU_KEY, GROUPES_KEY, MESSAGES_KEY]);
 let vKey = null;
 export function vaultAttach(key){ vKey = key || null; }
 export function vaultDetach(){ vKey = null; }
@@ -270,7 +271,7 @@ export const docClear = () => idbReq('readwrite', s => s.clear());
 export const CLES_A_EFFACER = [DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, GROUP_KEY,
   SYNC_KEY, RELAYS_KEY, TURN_KEY, PROMO_KEY, DEVICE_KEY, DEVICES_KEY, RING_KEY, VAULT_KEY,
   CAMPAIGNS_KEY, MAIL_KEY, AI_KEY, MISSIONS_KEY, ORDINATEUR_KEY, ANALYSIS_KEY, PROPOSALS_KEY, VUS_KEY,
-  RESEAU_KEY, GROUPES_KEY, OLD_V2, OLD_V1];
+  RESEAU_KEY, GROUPES_KEY, MESSAGES_KEY, OLD_V2, OLD_V1];
 export async function effacerCetAppareil(){
   for (const k of CLES_A_EFFACER) await kvDel(k);
   await docClear().catch(() => {});   /* toutes les variantes CV & lettres */

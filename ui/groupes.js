@@ -17,7 +17,7 @@
      et pour le chef, Supprimer.
    ============================================================ */
 import { boutonEnvoyer } from './fichier.js';
-import { esc, localISO } from '../engine/utils.js';
+import { esc } from '../engine/utils.js';
 import { kvGet, kvSet, GROUPES_KEY } from '../engine/storage.js';
 import { nouvelId, LETTRE_KIND } from '../engine/boite.js';
 import { nouvelIdAmi } from '../engine/amis.js';
@@ -34,7 +34,7 @@ import { phraseCritere } from '../engine/critere.js';
 import { emailPlausible } from '../engine/model.js';
 import { S, bus, saveProfile } from './state.js';
 import { openSheet, toast, btn, ic, showUndo, clavier, champGrandit, bindDeleteGesture, confirmSheet, choixHTML } from './dom.js';
-import { frDate, diffDays } from './dates.js';
+import { quandMessage } from './dates.js';
 import { makeQrSvg } from './qr.js';
 import { publier, lire, ecouter, evenement, echecEnvoi, amisJoignables, recevoirDemandeGroupe, recueDe, chargerReseau,
          trouvePour, ditTrouve, repondreDemande, donnerConnu, suivreAmis, assurerBoite, attentes, entreesPour,
@@ -491,12 +491,7 @@ export async function entrerAdmis(l){
 }
 
 /* ---------- un groupe : les prénoms, le fil, le pied pour écrire ---------- */
-function quand(t){
-  const iso = localISO(new Date(t));
-  const d = diffDays(iso);
-  if (d === 0) return new Date(t).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-  return d === -1 ? 'hier' : frDate(iso);
-}
+const quand = quandMessage;
 const quoiDe = l => l.entreprise ? 'chez ' + l.entreprise.nom : phraseCritere(l.critere);
 /* DEMANDE TROUVÉE PAR MON TÉLÉPHONE : elle passe EN TÊTE, à mon nom
    (décision 29 — dans un groupe chacun croit qu'un autre répondra ;
