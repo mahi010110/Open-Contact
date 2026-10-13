@@ -302,8 +302,16 @@ console.log('⑤ Sofia, arrivée après : « Voir », l’aperçu « De Inès, d
     for (const prive of ['@prive.test', '06 12', 'Martin', 'Benali', 'Haddad', 'note privée', 'relancée en privé', 'Relancer Julie'])
       if (json.includes(prive)) fail(`« ${prive} » est parti au groupe (${m.t})`);
     const cles = Object.keys(m).sort().join(',');
-    const attendu = { membre: 'at,de,nom,prenom,t', mot: 'at,de,id,prenom,t,texte', part: 'at,d,de,i,id,n,nb,prenom,t', depart: 'at,de,t' }[m.t];
+    /* depuis la 6.67, une présence porte la clé de BOÎTE du membre — une
+       clé publique, qui ne dit rien de lui : c'est par elle qu'un nouveau
+       code lui arrive (décision 35). Celle du chef porte en plus sa clé
+       de signature, prouvée (`sign`, `sig`) : c'est elle qui rend ses
+       réglages vérifiables chez chacun. Rien d'autre. */
+    const chef = m.t === 'membre' && m.sign;
+    const attendu = { membre: chef ? 'at,cle,de,nom,prenom,sig,sign,t' : 'at,cle,de,nom,prenom,t', mot: 'at,de,id,prenom,t,texte',
+                      part: 'at,d,de,i,id,n,nb,prenom,t', depart: 'at,de,t' }[m.t];
     if (cles !== attendu) fail(`${m.t} porte ${cles} (attendu ${attendu})`);
+    if (m.t === 'membre' && !/^[A-Za-z0-9_-]{86,88}$/.test(String(m.cle))) fail('une présence porte autre chose qu’une clé de boîte : ' + m.cle);
     const exp = +ev.tags.find(t => t[0] === 'expiration')[1];
     const jours = Math.round((exp - m.at / 1000) / 86400);
     if (jours !== (m.t === 'membre' || m.t === 'depart' ? 30 : 7)) fail(`${m.t} expire au bout de ${jours} jours`);

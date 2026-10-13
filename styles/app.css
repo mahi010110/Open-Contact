@@ -3471,6 +3471,16 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 }
 .gr-membre>span{min-width:0;overflow-wrap:anywhere}
 .gr-membre .ic{flex:none;color:var(--text-muted)}
+/* LES RÉGLAGES D'UN GROUPE (décisions 31 à 35) : les rangées de « Moi ›
+   Réglages », dans un cadre — un nom, son état, un chevron */
+.gr-regl{margin:0 0 12px;padding:0 12px}
+/* « qui écrit : les responsables » : l'état prend la place du champ,
+   en encre sourde, à côté de « Donner » qui reste */
+.gr-seuls{flex:1 1 10rem;margin:0;align-self:center;font-size:var(--text-13);color:var(--text-muted)}
+#grNouvelleInv{display:flex;margin:0 auto 8px}
+/* la sortie : Quitter, et pour le chef Supprimer — rouges, en dernier,
+   chacun taillé à son mot */
+.gr-sortie{display:flex;flex-wrap:wrap;gap:8px}
 .gr-membre:active{background:var(--surface-raised)}
 @media (hover:hover){ .gr-membre:hover{background:var(--surface-raised)} }
 /* un message retiré garde sa place, en gris : qui l'a retiré, rien de
