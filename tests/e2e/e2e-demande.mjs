@@ -114,9 +114,12 @@ const sansAnnuler = async p => {
 };
 async function monProfilCopie(p){
   await fermerTout(p);
-  await p.evaluate(() => { location.hash = '#/echanger'; });
-  await p.waitForSelector('#ecMonQR');
-  await p.click('#ecMonQR');
+  /* Mes pistes › Amis : « Mon QR » liste vide, « Ajouter un ami » sinon */
+  await p.evaluate(() => { location.hash = '#/pistes'; });
+  await p.waitForSelector('#piPortee [data-portee="amis"]');
+  await p.click('#piPortee [data-portee="amis"]');
+  await p.waitForSelector('#avMonQR, #avAjout');
+  await p.click('#avMonQR, #avAjout');
   await p.waitForSelector('.qr-wrap svg');
   await p.click('#mqCopier');
   await p.waitForTimeout(150);
@@ -125,10 +128,11 @@ async function monProfilCopie(p){
 async function ajouterAmi(p, txt){
   await fermerTout(p);
   await sansAnnuler(p);
+  /* Échanger › Recevoir › Texte : un seul « Recevoir » pour tout */
   await p.evaluate(() => { location.hash = '#/echanger'; });
-  await p.waitForSelector('#ecScan');
-  await p.click('#ecScan');
-  await p.click('#rcTexte');
+  await p.waitForSelector('#ecRecv');
+  await p.click('#ecRecv');
+  await p.click('#rcPaste');
   await p.fill('#rcTxt', txt);
   await p.evaluate(() => [...document.querySelectorAll('.overlay')].pop().querySelector('.modal-f .btn-primary').click());
   await p.waitForSelector('#amAjouter');

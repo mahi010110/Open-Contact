@@ -123,9 +123,16 @@ const copierPorte = async p => {
   return p.evaluate(() => window.__copie);
 };
 
+/* « Groupes » (ou « Nouveau groupe ») → « Créer un groupe » / « Rejoindre un groupe » */
+const nouveau = async (p, quoi) => {
+  await p.click('#ecGrNeuf');
+  await p.waitForSelector('#' + quoi);
+  await p.click('#' + quoi);
+};
+
 /* ---------- ② Inès crée « BTS SIO Lille », sur demande ---------- */
 const I = await ecran('ines');
-await I.p.click('#ecGrCreer');
+await nouveau(I.p, 'grCreer');
 await I.p.waitForSelector('#grNom');
 if (await texte(I.p, '#grSorteDit') !== 'Qui a le QR entre.') fail('« Ouvert » par défaut, dit : ' + await texte(I.p, '#grSorteDit'));
 await I.p.fill('#grNom', 'BTS SIO Lille');
@@ -156,7 +163,7 @@ console.log('② créer « Sur demande » : le choix se lit sous les segments ; 
 
 /* ---------- ③ Karim demande à entrer, en collant la porte ---------- */
 const K = await ecran('karim');
-await K.p.click('#ecGrRejoindre');
+await nouveau(K.p, 'grRejoindre');
 await K.p.waitForSelector('#grCode');
 await K.p.fill('#grCode', porteI);
 if (await texte(K.p, '#grQui') !== 'Le groupe verra ton prénom : Karim.') fail('avant le geste : ' + await texte(K.p, '#grQui'));
@@ -273,9 +280,9 @@ const porteK = await copierPorte(K.p);
   if (dansLaPorte(porteK).includes(G.code) || porteK.includes(G.code)) fail('la porte de Karim contient le code');
 }
 const So = await ecran('sofia');
-await So.p.click('#ecScan');
-await So.p.waitForSelector('#rcTexte');
-await So.p.click('#rcTexte');
+await So.p.click('#ecRecv');
+await So.p.waitForSelector('#rcPaste');
+await So.p.click('#rcPaste');
 await So.p.waitForSelector('#rcTxt');
 await So.p.fill('#rcTxt', porteK);
 await So.p.evaluate(() => [...document.querySelectorAll('.overlay:not(.ov-out) .modal-f .btn')].find(b => b.textContent.trim() === 'Lire').click());
@@ -308,7 +315,7 @@ console.log('⑤ bis : adjoint, Karim montre une porte où Inès ET lui ouvrent 
 
 /* ---------- ① un refus n'envoie rien ---------- */
 const T = await ecran('tom');
-await T.p.click('#ecGrRejoindre');
+await nouveau(T.p, 'grRejoindre');
 await T.p.fill('#grCode', porteI);
 await T.p.click('#grRejoindreGo');
 await T.p.waitForSelector('.gr-attente');
@@ -331,7 +338,7 @@ for (const [nom, o] of [['poste', { vp: { width: 1280, height: 800 } }], ['pouce
                         ['320-200', { vp: { width: 320, height: 640 }, gros: true }]]){
   const P = await ecran('ines', { ...o, profil: surDemande });
   if (o.gros) await P.p.evaluate(() => { document.documentElement.style.fontSize = '200%'; });
-  await P.p.click('#ecGrCreer');
+  await nouveau(P.p, 'grCreer');
   await P.p.waitForSelector('#grNom');
   await P.p.click('[data-sorte="demande"]');
   await P.p.waitForTimeout(350);

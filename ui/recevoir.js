@@ -9,7 +9,7 @@
 import { esc } from '../engine/utils.js';
 import { ORDINATEUR } from './perimetre.js';
 import { parseInput, makeOCQJoiner, rdvParse, rdvNorm, decodeOCA, extraireOCA } from '../engine/exchange.js';
-import { estInvitation, lireInvitation, estPorte, lirePorte } from '../engine/groupe.js';
+import { estInvitation, estCodeTape, lireInvitation, estPorte, lirePorte } from '../engine/groupe.js';
 import { mergeIncoming } from '../engine/merge.js';
 import { normalizeCompany } from '../engine/model.js';
 import { normalizeAmi } from '../engine/amis.js';
@@ -45,9 +45,9 @@ const ERRS = {
 };
 export const messageLecture = code => ERRS[code] || 'Impossible de lire ce contenu.';
 
-/* `o.scanner` : ouvrir directement sur la caméra — c'est la porte de
-   « Amis » (Scanner). Le scanner est le MÊME : il reconnaît tout seul un
-   QR de pistes, un rendez-vous ou un profil. `o.apres` : ce que l'écran
+/* `o.scanner` : ouvrir directement sur la caméra — depuis « Mon QR » ou
+   « Rejoindre un groupe ». Le scanner est le MÊME : il reconnaît tout
+   seul un QR de pistes, un rendez-vous, un profil ou une invitation. `o.apres` : ce que l'écran
    d'en dessous doit redessiner quand un ami arrive. */
 export function openRecevoir(o = {}){
   let stopScan = null;
@@ -115,7 +115,7 @@ export function openRecevoir(o = {}){
        <div class="scan-prog" id="rcProg" hidden></div>
        <p class="hint" style="text-align:center" id="rcScanHint">Vise le QR.</p>
        ${/* Le code de rendez-vous n'existe que pour des PISTES : un QR de
-            profil n'en affiche aucun. Ouvert depuis « Amis », le champ
+            profil n'en affiche aucun. Ouvert pour un ami ou un groupe, le champ
             ne proposerait que de taper quelque chose qui n'est nulle
             part — le chemin sans caméra y est le texte copié. */
          o.scanner ? '' : `<div class="field" style="margin-top:10px"><label for="rcCode">Ou le code affiché</label>
@@ -123,9 +123,9 @@ export function openRecevoir(o = {}){
            <input id="rcCode" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="ex : k7m3p-9xq2f">
            <button class="btn btn-primary" id="rcCodeGo" hidden>OK</button>
          </div></div>`}`;
-    /* ouvert depuis « Amis », le scanner EST la feuille : sa croix
+    /* ouvert pour un ami ou un groupe, le scanner EST la feuille : sa croix
        suffit, un « Retour » dirait deux fois la même chose. Reste le
-       chemin à distance — le profil copié par l'ami, collé ici. */
+       chemin à distance — le message copié par l'autre, collé ici. */
     if (o.scanner){
       const t = btn('Texte', '', paste, 'clipboard');
       t.id = 'rcTexte';
@@ -159,7 +159,7 @@ export function openRecevoir(o = {}){
          n'existe pas — ou ne jamais savoir qu'il existe. Le champ du
          code est juste dessous : c'est lui, le chemin sans caméra. */
       const h = q('#rcScanHint');
-      const sans = o.scanner ? 'colle le profil qu’il t’a copié (Texte).' : 'tape le code affiché sur l’autre téléphone.';
+      const sans = o.scanner ? 'colle le message qu’on t’a envoyé (Texte).' : 'tape le code affiché sur l’autre téléphone.';
       if (h) h.textContent = e.message === 'camera-refusee'
         ? 'La caméra est bloquée. Autorise-la dans les réglages du navigateur, ou ' + sans
         : 'Pas de caméra ici. ' + sans.charAt(0).toUpperCase() + sans.slice(1);
@@ -354,8 +354,10 @@ export function openRecevoir(o = {}){
     /* UN PROFIL, PAS DES PISTES : il ne se fusionne pas dans le suivi,
        il s'ajoute aux amis — après son propre aperçu (ui/amis.js) */
     /* UN GROUPE (lot 5) : l'invitation n'apporte rien à fusionner, elle
-       ouvre une porte — après son propre aperçu (ui/groupes.js) */
-    const inv = estInvitation(raw) && lireInvitation(raw);
+       ouvre une porte — après son propre aperçu (ui/groupes.js). Le
+       code seul, recopié d'un message, est une invitation aussi : le bon
+       contenu au mauvais endroit s'ouvre là où il est (§6). */
+    const inv = (estInvitation(raw) || estCodeTape(raw)) && lireInvitation(raw);
     if (inv){
       (await import('./groupes.js')).apercuGroupe(sh, inv, { onBack: o.scanner ? scan : menu, apres: o.apres });
       return;
