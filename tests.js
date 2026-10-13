@@ -81,7 +81,7 @@ import { questionsAnnuaire, lireAnnuaire, decouvertes, versPiste, motsInterdits,
          ecarter, rendre, sirensEcartes, cleVus, lireVus, nouveauxDe, noterVus, VUS_RECHERCHES } from './engine/annuaire.js';
 import { BMO, marche, niveauDiplome, aideEmbauche, euros, AIDE_FIN } from './engine/marche.js';
 import { questionWikidata, lireWikidata, questionResume, lireResume, questionBodacc, lireBodacc,
-         carte, WIKIPEDIA_FR, BODACC, LINKEDIN_PAGE, aQui, estGrande, travailDe, TRAVAIL } from './engine/carte.js';
+         carte, WIKIPEDIA_FR, BODACC, LINKEDIN_PAGE, aQui, estGrande, travailDe, TRAVAIL, montantEnMots, compteEnMots, questionEgapro, lireEgapro, EGAPRO } from './engine/carte.js';
 import { makeMission, missionUsable, revokeMission, foldCampaignReport,
          signMission, openMissionWire } from './engine/mission.js';
 import { normCode, pairKey } from './engine/ordinateur.js';
@@ -1563,6 +1563,72 @@ export async function runSelfTests(){
       eq(carte({ r: { tranche: '00' } }).taille, '');
       /* une grande : on écrit au recrutement */
       eq(carte({ r: { ...r, tranche: '52' } }).ecrire.cible, 'recrutement');
+    },
+    'carte : ses comptes en mots — le chiffre d’affaires et bénéficiaire ou en perte (13/10)': () => {
+      /* l'annuaire : l'année la plus récente, un chiffre d'affaires nul ne se dit pas */
+      const [r] = lireAnnuaire({ results: [{ siren: '387495799', nom_raison_sociale: 'VISIATIV',
+        finances: { '2023': { ca: 80000000, resultat_net: 1 }, '2024': { ca: 84495737, resultat_net: 3817639 } } }] });
+      eq(r.comptes, { annee: 2024, ca: 84495737, resultat: 3817639 });
+      eq(lireAnnuaire({ results: [{ siren: '419616255', finances: { '2025': { ca: 0, resultat_net: -165854 } } }] })[0].comptes,
+         { annee: 2025, ca: null, resultat: -165854 });
+      eq(lireAnnuaire({ results: [{ siren: '419616255', finances: {} }] })[0].comptes, null);
+      eq(lireAnnuaire({ results: [{ siren: '419616255' }] })[0].comptes, null);
+      /* ce qu'on dirait à voix haute */
+      eq(montantEnMots(84495737), '84 M€'); eq(montantEnMots(4200000), '4,2 M€'); eq(montantEnMots(1769858954), '1,8 Md€');
+      eq(montantEnMots(430400).replace(/\s/g, ' '), '430 000 €');
+      eq(compteEnMots({ annee: 2024, ca: 84495737, resultat: 3817639 }), '84 M€ de chiffre d’affaires en 2024, bénéficiaire');
+      eq(compteEnMots({ annee: 2024, ca: 84495737, resultat: -1 }), '84 M€ de chiffre d’affaires en 2024, en perte');
+      eq(compteEnMots({ annee: 2025, ca: null, resultat: -165854 }), 'En perte en 2025');
+      /* dans la carte, cité ; plus de trois ans, il ne dit plus rien */
+      const k = carte({ r: { comptes: { annee: 2024, ca: 84495737, resultat: 3817639 } }, today: '2026-10-13' });
+      eq(k.comptes.texte, '84 M€ de chiffre d’affaires en 2024, bénéficiaire'); eq(k.sources, ['Annuaire des entreprises']);
+      eq(carte({ r: { comptes: { annee: 2021, ca: 1e6, resultat: 1 } }, today: '2026-10-13' }).comptes, null);
+    },
+    'carte : ce qui a bougé en deux ans (BODACC) — prudent, deux au plus, en mots (13/10)': () => {
+      const t = '2026-10-13';
+      const mod = (d, descriptif) => ({ dateparution: d, familleavis: 'modification', modificationsgenerales: JSON.stringify({ descriptif }) });
+      const vente = (d, acte, precedent) => ({ dateparution: d, familleavis: 'vente', acte: JSON.stringify(acte),
+        listeprecedentproprietaire: JSON.stringify({ personne: { numeroImmatriculation: { numeroIdentification: precedent } } }) });
+      /* une direction qui change, une fusion — les plus récentes d'abord, un de chaque sorte */
+      const r1 = lireBodacc({ results: [
+        mod('2026-08-21', 'Modification survenue sur l\'administration.'),
+        mod('2026-02-01', 'Modification survenue sur l\'administration.'),
+        { dateparution: '2025-04-20', familleavis: 'vente', acte: JSON.stringify({ descriptif: 'Avis au Bodacc relatif au projet commun de fusion nationale.' }) },
+        { dateparution: '2025-09-01', familleavis: 'dpc' }] }, t, '419616255');
+      eq(r1.evenements, [{ quoi: 'changement de direction', date: '2026-08-21' }, { quoi: 'fusion', date: '2025-04-20' }]);
+      eq(r1.procedure, null);
+      /* un rachat : SEULEMENT si elle n'est pas l'ancien propriétaire */
+      const acquis = { descriptif: 'Fonds acquis par achat au prix stipulé de 119397 EUR' };
+      eq(lireBodacc({ results: [vente('2026-07-08', acquis, '387 495 799')] }, t, '501273866').evenements,
+         [{ quoi: 'rachat d’une activité', date: '2026-07-08' }]);
+      eq(lireBodacc({ results: [vente('2026-07-08', acquis, '387 495 799')] }, t, '387495799').evenements, []);
+      /* le capital, l'activité : rien qu'un étudiant puisse lire — et plus de deux ans, rien */
+      eq(lireBodacc({ results: [mod('2026-09-10', 'Modification survenue sur le capital.'),
+                                mod('2026-04-05', 'Modification survenue sur l\'activité.'),
+                                mod('2024-01-01', 'Modification survenue sur l\'administration.')] }, t, '851035329').evenements, []);
+      /* une procédure en cours n'empêche pas de dire le reste */
+      eq(lireBodacc({ results: [{ dateparution: '2026-01-27', familleavis: 'collective', jugement: { nature: 'Jugement d\'ouverture d\'une procédure de redressement judiciaire', date: '2026-01-14' } },
+                                mod('2025-12-01', 'Modification survenue sur l\'administration.')] }, t, '479144438').evenements,
+         [{ quoi: 'changement de direction', date: '2025-12-01' }]);
+      /* dans la carte : une ligne, en mois, citée */
+      const k = carte({ r: {}, bodacc: r1 });
+      eq(k.recemment, 'changement de direction (août 2026) · fusion (avril 2025)');
+      eq(k.sources, ['BODACC']);
+    },
+    'carte : l’index égalité (Egapro) — par le SIREN seul, la note de CETTE entreprise, rien de deviné': () => {
+      eq(questionEgapro('326820065'), EGAPRO + '326820065'); eq(questionEgapro('abc'), '');
+      const j = { data: [{ entreprise: { siren: '999999999' }, notes: { 2025: 70 } },
+                         { entreprise: { siren: '326820065', raison_sociale: 'SOPRA STERIA GROUP' }, notes: { 2023: 88, 2024: 91, 2025: null } }] };
+      /* la ligne de CETTE entreprise, l'année la plus récente qui a une note */
+      eq(lireEgapro(j, '326820065'), { note: 91, annee: 2024 });
+      /* une forme qu'on ne reconnaît pas ne dit rien */
+      eq(lireEgapro({ data: [{ entreprise: { siren: '326820065' } }] }, '326820065'), null);
+      eq(lireEgapro({ data: [{ entreprise: { siren: '326820065' }, notes: { 2024: 140 } }] }, '326820065'), null);
+      eq(lireEgapro(null, '326820065'), null); eq(lireEgapro({ data: [] }, '326820065'), null);
+      /* dans la carte, cité ; plus de trois ans, il ne dit plus rien */
+      const k = carte({ r: {}, egapro: { note: 91, annee: 2024 }, today: '2026-10-13' });
+      eq(k.egalite, '91/100 à l’index femmes-hommes en 2024'); eq(k.sources, ['Egapro']);
+      eq(carte({ r: {}, egapro: { note: 91, annee: 2021 }, today: '2026-10-13' }).egalite, '');
     },
     'carte : une seule alerte, la plus forte — fermée passe devant une procédure': () => {
       const proc = { procedure: { nature: 'redressement judiciaire', date: '2026-03-10' } };

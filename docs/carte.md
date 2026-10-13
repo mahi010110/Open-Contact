@@ -64,11 +64,37 @@ trois lignes qui aident à choisir les remplacent.
 ```
 [logo] Sopra Steria est une entreprise de services du numérique
        française et une société de conseil en transformation…
-MISSIONS   Conseil et intégration informatique  ✓ colle à ta formation
-TAILLE     10 000 salariés et plus
-ÉCRIRE À   Son service recrutement  LinkedIn ↗
-Sources : Annuaire des entreprises · Wikipédia · Wikidata
+MISSIONS     Conseil et intégration informatique  ✓ colle à ta formation
+TAILLE       10 000 salariés et plus
+COMPTES      5,8 Md€ de chiffre d'affaires en 2024, bénéficiaire
+RÉCEMMENT    changement de direction (août 2026) · fusion (avril 2025)
+ÉGALITÉ F-H  91/100 en 2024
+ÉCRIRE À     Son service recrutement  LinkedIn ↗
+Sources : Annuaire des entreprises · BODACC · Egapro · Wikipédia · Wikidata
 ```
+
+*Revue le 13 octobre* (retour du mainteneur : « "À découvrir" est encore
+trop gadget — plus d'infos sur elle » ; choisis : sa santé et sa taille,
+ce qu'elle fait vraiment, qui contacter, ses offres). Trois lignes
+s'ajoutent, chacune mesurée avant d'être écrite (`sonde-utilite.mjs`,
+`sonde-essentiel.mjs`) et chacune muette quand elle n'a rien de sûr :
+
+- **Comptes** — le chiffre d'affaires de l'année la plus récente, en mots
+  (« 84 M€ »), et ce qu'il dit : *bénéficiaire* ou *en perte* (46
+  entreprises sur 50 ont des comptes publiés, une seule année chacune).
+  Le chiffre d'affaires seul était parti le 6 octobre parce qu'il ne
+  départageait rien ; à côté de son résultat, il dit la santé. Un
+  chiffre nul ne se dit pas, des comptes de plus de trois ans non plus.
+- **Récemment** — ce qui a bougé en deux ans au BODACC (22 entreprises
+  sur 30) : un établissement ouvert, une activité rachetée, une fusion,
+  une direction qui change (peut-être une autre personne à qui écrire),
+  un siège déménagé. Les règles sont prudentes : une vente n'est un
+  rachat que si l'entreprise n'est pas l'ancien propriétaire ; « le
+  capital » et « l'activité » ne se disent pas. Deux au plus, en mois.
+- **Égalité** (« 91/100 à l'index femmes-hommes en 2024 ») — la note de l'index égalité (Egapro), demandée
+  seulement quand l'annuaire dit l'entreprise déclarée (50 salariés et
+  plus), par le SIREN seul ; une forme de réponse qu'on ne reconnaît pas
+  ne dit rien.
 
 - **Aucun bouton.** On lit la carte, on ne la manipule pas. Le seul lien
   mène à la personne ; les autres (offres, page LinkedIn, fiche officielle)
@@ -92,7 +118,8 @@ s'écrit pas comme « un groupe de 50 000 ». Sans email, il nomme à qui
 
 ## Ce qui part, et quand
 
-- Wikidata et le BODACC reçoivent **le SIREN**, neuf chiffres publics.
+- Wikidata, le BODACC et Egapro reçoivent **le SIREN**, neuf chiffres
+  publics — Egapro seulement quand l'annuaire dit l'index déclaré.
 - Wikipédia reçoit **le titre de l'article** que Wikidata a donné.
 - Wikimedia Commons reçoit le nom du logo, **sans référent**.
 - Seulement pour l'entreprise qu'on **regarde** (l'aperçu ouvert, la

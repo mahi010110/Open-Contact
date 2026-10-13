@@ -518,7 +518,7 @@ function ouvrirApercu(r){
   const sh = openSheet({ title: 'À découvrir', icon: 'building', onClose: () => lacher() });
   const dessiner = () => { if (!sh.body.isConnected) return; sh.body.innerHTML = apercuHTML(r); lierCarte(sh.body); };
   dessiner();
-  lacher = suivreCarte(r.siren, dessiner, r.nom);
+  lacher = suivreCarte(r.siren, dessiner, r.nom, { egapro: r.egapro });
   sh.setFoot(estPrise(r.siren)
     ? [btn('Ouvrir la fiche', 'btn-primary', () => { sh.close(); ouvrirFiche(r); }, 'briefcase')]
     : [btn('Pas pour moi', 'btn-sm', () => { sh.close(); ecarterR(r, { focus: true }); }, 'close'),
@@ -564,7 +564,7 @@ function completerPanneau(box, r){
       if (!aside || aside.dataset.siren !== r.siren) return;
       aside.innerHTML = apercuHTML(r, { panneau: true });
       lierApercu(box, aside);
-    }, r.nom);
+    }, r.nom, { egapro: r.egapro });
   }, 350);
 }
 function lierApercu(box, aside){

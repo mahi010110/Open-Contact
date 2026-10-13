@@ -121,7 +121,8 @@ let lacher = () => {};
 function suivreLeReste(siren){
   if (!courant || courant.c.siren !== siren) return;
   lacher();
-  lacher = suivreCarte(siren, maj, courant.c.name);
+  const lu = parSiren.get(siren);
+  lacher = suivreCarte(siren, maj, courant.c.name, { egapro: !!(lu && lu.r && lu.r.egapro) });
 }
 addEventListener('online', () => { if (courant && courant.c.siren) chargerSiren(courant.c); });
 

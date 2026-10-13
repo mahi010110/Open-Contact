@@ -43,6 +43,7 @@ export const WIKIDATA = 'https://query.wikidata.org/sparql';
 export const WIKIPEDIA_FR = 'https://fr.wikipedia.org/api/rest_v1/page/summary/';
 export const BODACC = 'https://bodacc-datadila.opendatasoft.com/api/explore/v2.1/catalog/datasets/annonces-commerciales/records';
 export const LINKEDIN_PAGE = 'https://www.linkedin.com/company/';
+export const EGAPRO = 'https://egapro.travail.gouv.fr/api/search?q=';
 
 const SIREN_OK = s => /^\d{9}$/.test(String(s || ''));
 
@@ -107,12 +108,33 @@ export function lireResume(json){
   return t;
 }
 
+/* ---------- l'index de l'égalité femmes-hommes (Egapro) ----------
+   Une entreprise de 50 salariés et plus le déclare chaque année, et
+   l'annuaire dit si elle l'a fait (`egapro_renseignee`, 38 sur 50 dans
+   l'échantillon) : on ne demande QUE celles-là, par le SIREN seul.
+   Relevé (sonde-utilite.mjs) : `api/search` répond à une page. La
+   lecture est TOLÉRANTE — la ligne de CETTE entreprise, sa note la plus
+   récente entre 0 et 100 ; une forme qu'on ne reconnaît pas ne dit
+   rien, plutôt qu'une note fausse. */
+export const questionEgapro = siren => SIREN_OK(siren) ? EGAPRO + siren : '';
+export function lireEgapro(json, siren){
+  const d = (json && Array.isArray(json.data)) ? json.data : [];
+  const moi = d.find(x => x && x.entreprise && String(x.entreprise.siren) === String(siren));
+  const notes = moi && moi.notes && typeof moi.notes === 'object' ? moi.notes : null;
+  if (!notes) return null;
+  const ans = Object.keys(notes).filter(a => /^\d{4}$/.test(a) && Number.isFinite(Number(notes[a]))
+    && notes[a] !== null && Number(notes[a]) >= 0 && Number(notes[a]) <= 100).sort();
+  if (!ans.length) return null;
+  const annee = ans[ans.length - 1];
+  return { note: Math.round(Number(notes[annee])), annee: +annee };
+}
+
 /* ---------- le BODACC : ce qui RÉCLAME quelque chose ---------- */
 export function questionBodacc(siren){
   if (!SIREN_OK(siren)) return '';
   const p = new URLSearchParams({
     where: `registre like "${siren}"`,
-    select: 'dateparution,familleavis,familleavis_lib,jugement',
+    select: 'dateparution,familleavis,familleavis_lib,jugement,modificationsgenerales,acte,listeetablissements,listeprecedentproprietaire',
     order_by: 'dateparution desc',
     limit: '20'
   });
@@ -129,21 +151,65 @@ const NATURES = [
    texte libre, parfois en chaîne JSON : on lit sa nature, on reconnaît
    trois mots, et un texte qu'on ne reconnaît pas reste « procédure
    collective » — mieux vaut ne pas comprendre que mal comprendre. */
-export function lireBodacc(json, today){
+export function lireBodacc(json, today, siren){
   const res = (json && Array.isArray(json.results)) ? json.results : [];
   const t0 = Date.parse((today || new Date().toISOString().slice(0, 10)) + 'T00:00:00Z');
+  const evenements = evenementsBodacc(res, t0, siren);
   const coll = res.filter(a => a && a.familleavis === 'collective' && /^\d{4}-\d{2}-\d{2}/.test(a.dateparution || ''))
     .sort((a, b) => String(b.dateparution).localeCompare(String(a.dateparution)));
   const a = coll[0];
-  if (!a || t0 - Date.parse(a.dateparution.slice(0, 10) + 'T00:00:00Z') > 36 * MOIS) return { procedure: null };
+  if (!a || t0 - Date.parse(a.dateparution.slice(0, 10) + 'T00:00:00Z') > 36 * MOIS) return { procedure: null, evenements };
   let j = a.jugement;
   if (typeof j === 'string'){ try { j = JSON.parse(j); } catch (e) { j = { nature: j }; } }
   const texte = [j && j.famille, j && j.nature, j && j.complementJugement].filter(Boolean).join(' ');
-  if (/cl[ôo]ture/i.test(texte) && !/liquidation/i.test(texte)) return { procedure: null };
+  if (/cl[ôo]ture/i.test(texte) && !/liquidation/i.test(texte)) return { procedure: null, evenements };
   const n = NATURES.find(([re]) => re.test(texte));
   const date = String((j && j.date) || a.dateparution).slice(0, 10);
-  return { procedure: { nature: n ? n[1] : 'procédure collective', date: /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : a.dateparution.slice(0, 10) } };
+  return { procedure: { nature: n ? n[1] : 'procédure collective', date: /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : a.dateparution.slice(0, 10) },
+           evenements };
 }
+
+/* CE QUI A BOUGÉ (retour du 13 octobre : « plus d'infos sur elle ») —
+   relevé : 22 entreprises sur 30 ont une annonce de ce genre en deux
+   ans. Une entreprise qui ouvre un établissement ou rachète une
+   activité grandit ; une direction qui change, c'est peut-être une
+   autre personne à qui écrire. Les règles sont PRUDENTES — mieux vaut
+   ne pas comprendre que mal comprendre : une vente n'est un rachat que
+   si l'entreprise n'est pas l'ancien propriétaire ; une modification
+   « sur le capital » ou « sur l'activité » ne se dit pas, elle ne dit
+   rien qu'un étudiant puisse lire. Deux au plus, les plus récentes, un
+   seul de chaque sorte, sur 24 mois (sonde-essentiel.mjs les relit). */
+const EVENEMENTS = [
+  ['nouvel établissement', a => /[ée]tablissement secondaire|cr[ée]ation d'un [ée]tablissement|ouverture d'un [ée]tablissement/i.test(texteAnnonce(a))
+                                && a.familleavis !== 'radiation'],
+  ['rachat d’une activité', (a, siren) => a.familleavis === 'vente' && /fonds acquis|acquis par achat/i.test(texteAnnonce(a))
+                                && !!a.listeprecedentproprietaire && !chiffres(JSON.stringify(a.listeprecedentproprietaire)).includes(siren)],
+  ['fusion', a => /fusion|absorb/i.test(texteAnnonce(a))],
+  ['changement de direction', a => a.familleavis === 'modification' && /administration|dirigeant|g[ée]rant|pr[ée]sident/i.test(texteAnnonce(a))],
+  ['siège déménagé', a => a.familleavis === 'modification' && /transfert du si[èe]ge/i.test(texteAnnonce(a))]
+];
+const chiffres = s => String(s || '').replace(/\D/g, '');
+function texteAnnonce(a){
+  return ['modificationsgenerales', 'acte', 'listeetablissements', 'listeprecedentproprietaire']
+    .map(k => a[k]).filter(Boolean).map(v => typeof v === 'string' ? v : JSON.stringify(v)).join(' ');
+}
+function evenementsBodacc(res, t0, siren){
+  const vus = new Set(), out = [];
+  const tries = res.filter(a => a && /^\d{4}-\d{2}-\d{2}/.test(a.dateparution || '') && a.familleavis !== 'dpc' && a.familleavis !== 'collective')
+    .sort((a, b) => String(b.dateparution).localeCompare(String(a.dateparution)));
+  for (const a of tries){
+    const date = a.dateparution.slice(0, 10);
+    if (t0 - Date.parse(date + 'T00:00:00Z') > 24 * MOIS) break;
+    const e = EVENEMENTS.find(([, f]) => f(a, String(siren || '')));
+    if (!e || vus.has(e[0])) continue;
+    vus.add(e[0]);
+    out.push({ quoi: e[0], date });
+    if (out.length === 2) break;
+  }
+  return out;
+}
+const MOIS_COURTS = ['janv.', 'févr.', 'mars', 'avril', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+export const moisEnMots = iso => /^\d{4}-\d{2}/.test(iso || '') ? `${MOIS_COURTS[+iso.slice(5, 7) - 1]} ${iso.slice(0, 4)}` : '';
 
 const majuscule = s => s ? s[0].toUpperCase() + s.slice(1) : '';
 const pareil = (a, b) => String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();
@@ -218,11 +284,42 @@ export function carte(o){
   const logo = wd.logo ? dit('wikidata', wd.logo) : '';
   const linkedin = wd.linkedin ? dit('wikidata', wd.linkedin) : '';
 
-  const NOMS = { annuaire: 'Annuaire des entreprises', bodacc: 'BODACC', wikipedia: 'Wikipédia', wikidata: 'Wikidata', clearbit: 'Clearbit' };
+  /* SES COMPTES (retour du 13 octobre : « sa santé et sa taille » — le
+     chiffre d'affaires, parti le 6 octobre parce qu'il « ne départageait
+     rien », revient À CÔTÉ de ce qu'il dit : bénéficiaire ou en perte).
+     Plus de trois ans, il ne dit plus rien de l'entreprise d'aujourd'hui. */
+  const an = Number(String(o.today || new Date().toISOString()).slice(0, 4));
+  const k = r.comptes;
+  const comptes = k && an - k.annee <= 3 ? dit('annuaire', { texte: compteEnMots(k), annee: k.annee }) : null;
+  /* ce qui a bougé ces deux dernières années (BODACC), en mots et en mois */
+  const ev = (o.bodacc && o.bodacc.evenements) || [];
+  const recemment = ev.length ? dit('bodacc', ev.map(x => `${x.quoi} (${moisEnMots(x.date)})`).join(' · ')) : '';
+  /* l'index égalité, s'il a moins de trois ans */
+  const egalite = o.egapro && an - o.egapro.annee <= 3 ? dit('egapro', `${o.egapro.note}/100 à l’index femmes-hommes en ${o.egapro.annee}`) : '';
+
+  const NOMS = { annuaire: 'Annuaire des entreprises', bodacc: 'BODACC', egapro: 'Egapro', wikipedia: 'Wikipédia', wikidata: 'Wikidata', clearbit: 'Clearbit' };
   return {
-    alerte, quoi, missions, taille, ecrire, aide, site, logo, linkedin,
-    sources: ['annuaire', 'bodacc', 'wikipedia', 'wikidata', 'clearbit'].filter(k => src.has(k)).map(k => NOMS[k])
+    alerte, quoi, missions, taille, comptes, recemment, egalite, ecrire, aide, site, logo, linkedin,
+    sources: ['annuaire', 'bodacc', 'egapro', 'wikipedia', 'wikidata', 'clearbit'].filter(k => src.has(k)).map(k => NOMS[k])
   };
+}
+
+/* ---------- UN MONTANT EN MOTS ----------
+   « 84 M€ », « 4,2 M€ », « 1,8 Md€ », « 430 000 € » : ce qu'on dirait à
+   voix haute, jamais un nombre à neuf chiffres */
+export function montantEnMots(n){
+  n = Number(n);
+  if (!Number.isFinite(n)) return '';
+  const a = Math.abs(n), v = x => x.toLocaleString('fr-FR', { maximumFractionDigits: x < 10 ? 1 : 0 });
+  if (a >= 1e9) return v(a / 1e9) + ' Md€';
+  if (a >= 1e6) return v(a / 1e6) + ' M€';
+  return (Math.round(a / 1000) * 1000).toLocaleString('fr-FR') + ' €';
+}
+export function compteEnMots(k){
+  if (!k) return '';
+  const etat = k.resultat == null ? '' : k.resultat >= 0 ? 'bénéficiaire' : 'en perte';
+  if (k.ca == null) return etat ? `${etat[0].toUpperCase() + etat.slice(1)} en ${k.annee}` : '';
+  return `${montantEnMots(k.ca)} de chiffre d’affaires en ${k.annee}${etat ? ', ' + etat : ''}`;
 }
 
 /* ---------- À QUI ÉCRIRE ----------

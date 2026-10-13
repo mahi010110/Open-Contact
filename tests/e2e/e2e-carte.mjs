@@ -17,7 +17,8 @@
      libellé, ta phrase (« En bref ») passe devant tout ; puis les trois
      lignes qui aident à CHOISIR (retour du mainteneur, 6 octobre) — les
      missions et si elles collent à ta formation, la taille en mots, à
-     qui écrire ; plus de chiffre d'affaires, de création, de sites ; les
+     qui écrire ; puis (13 octobre) ses comptes en mots, ce qui a bougé
+     au BODACC, l'index égalité ; plus de création ni de sites ; les
      sources citées sont celles qui ont DIT quelque chose ;
    ④ ce qui réclame quelque chose (une procédure collective) se pose EN
      LIGNE, et rien ne glisse sous le doigt quand la réponse arrive en
@@ -48,7 +49,7 @@ const fail = m => { console.error('ÉCHEC :', m); process.exitCode = 1; };
 const ENT = (siren, nom, ville, cp, tranche, o = {}) => ({
   siren, nom_complet: nom, nom_raison_sociale: nom, activite_principale: '62.02A', tranche_effectif_salarie: tranche,
   date_creation: o.creation || '2009-03-12', nombre_etablissements_ouverts: o.sites ?? 4, etat_administratif: 'A',
-  nature_juridique: '5710', complements: { liste_idcc: ['1486'], est_entrepreneur_individuel: false },
+  nature_juridique: '5710', complements: { liste_idcc: ['1486'], est_entrepreneur_individuel: false, egapro_renseignee: !!o.egapro },
   finances: o.finances || { 2024: { ca: 51128553, resultat_net: 1200000 } },
   siege: { est_siege: true, numero_voie: '38', type_voie: 'RUE', libelle_voie: 'DE LA BASSEE', code_postal: cp,
            libelle_commune: ville, latitude: '50.637', longitude: '3.06', etat_administratif: 'A', caractere_employeur: 'O' },
@@ -57,7 +58,7 @@ const ENT = (siren, nom, ville, cp, tranche, o = {}) => ({
 });
 const SOPRA = '326820065', DATAFLOW = '834567890', ADVENS = '812345678';
 const RES = [
-  ENT(SOPRA, 'SOPRA STERIA GROUP', 'LILLE', '59000', '53', { finances: { 2024: { ca: 5800000000 } }, sites: 120, creation: '1985-01-01' }),
+  ENT(SOPRA, 'SOPRA STERIA GROUP', 'LILLE', '59000', '53', { finances: { 2024: { ca: 5800000000 } }, sites: 120, creation: '1985-01-01', egapro: true }),
   ENT(DATAFLOW, 'DATAFLOW NORD', 'ROUBAIX', '59100', '11', { finances: { 2025: { ca: 0 } }, sites: 1, creation: '2021-06-01' }),
   ENT(ADVENS, 'ADVENS', 'LILLE', '59000', '22')
 ];
@@ -107,8 +108,19 @@ function sources(ctx, o = {}){
     if (o.retardBodacc) await new Promise(ok => setTimeout(ok, o.retardBodacc));
     const u = decodeURIComponent(r.request().url());
     const res = u.includes(DATAFLOW) ? [{ familleavis: 'collective', familleavis_lib: 'Procédures collectives', dateparution: '2026-08-12',
-      jugement: JSON.stringify({ nature: 'Jugement d\'ouverture d\'une procédure de redressement judiciaire', date: '2026-08-05' }) }] : [];
+      jugement: JSON.stringify({ nature: 'Jugement d\'ouverture d\'une procédure de redressement judiciaire', date: '2026-08-05' }) }]
+      /* ce qui a bougé chez Sopra : une direction qui change (la forme relevée) */
+      : u.includes(SOPRA) ? [{ familleavis: 'dpc', dateparution: '2026-09-01' },
+          { familleavis: 'modification', familleavis_lib: 'Modifications diverses', dateparution: '2026-08-21',
+            modificationsgenerales: JSON.stringify({ descriptif: 'Modification survenue sur l\'administration.' }) },
+          { familleavis: 'modification', dateparution: '2026-03-01', modificationsgenerales: JSON.stringify({ descriptif: 'Modification survenue sur le capital.' }) }]
+      : [];
     return r.fulfill({ status: 200, contentType: 'application/json', headers: cors, body: JSON.stringify({ results: res }) }); });
+  /* EGAPRO : seulement pour une entreprise que l'annuaire dit déclarée */
+  ctx.route('https://egapro.travail.gouv.fr/**', r => { note(r);
+    const q = new URL(r.request().url()).searchParams.get('q') || '';
+    const d = q === SOPRA ? [{ entreprise: { siren: SOPRA, raison_sociale: 'SOPRA STERIA GROUP' }, notes: { 2023: 88, 2024: 91 } }] : [];
+    return r.fulfill({ status: 200, contentType: 'application/json', headers: cors, body: JSON.stringify({ data: d }) }); });
   ctx.route(/^https:\/\/(commons|upload)\.wikimedia\.org\//, r => { note(r);
     return r.fulfill({ status: 200, contentType: 'image/svg+xml', headers: cors,
       body: '<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96"><rect width="96" height="96" fill="#1d1d1b"/></svg>' }); });
@@ -173,24 +185,29 @@ const lireCarte = (p, sel) => p.evaluate(sel => {
   /* ③ Sopra : Wikipédia, Wikidata, le logo, la page LinkedIn */
   await p.click('#piDec .dc-row:has-text("Sopra") .dc-main');
   await p.waitForSelector('.overlay .ct-quoi', { timeout: 3000 });
-  await p.waitForFunction(() => /Wikipédia/.test(document.querySelector('.overlay .ct-src')?.textContent || ''), null, { timeout: 3000 }).catch(() => {});
+  await p.waitForFunction(() => /Wikipédia/.test(document.querySelector('.overlay .ct-src')?.textContent || '')
+    && /Egapro/.test(document.querySelector('.overlay .ct-src')?.textContent || '') && /BODACC/.test(document.querySelector('.overlay .ct-src')?.textContent || ''),
+    null, { timeout: 3000 }).catch(() => {});
   const s = await lireCarte(p, '.overlay .modal-b');
   if (s.quoi !== 'Sopra Steria est une entreprise de services du numérique française et une société de conseil en transformation numérique.')
     fail('ce qu’elle fait ne vient pas de Wikipédia, en une phrase sans parenthèses : ' + s.quoi);
   /* les trois lignes qui aident à choisir, dans l'ordre ; une grande : on écrit au recrutement */
   const attendu = ['Missions: Conseil et intégration informatique colle à ta formation', 'Taille: 10 000 salariés et plus',
+                   /* sa santé et ce qui bouge (13 octobre) — le capital ne se dit pas */
+                   'Comptes: 5,8 Md€ de chiffre d’affaires en 2024', 'Récemment: changement de direction (août 2026)',
+                   'Égalité: 91/100 à l’index femmes-hommes en 2024',
                    'Écrire à: Son service recrutement LinkedIn',
                    /* une grande, un BTS : 1 500 €, et ses conditions (décret 2026-168) */
                    'Aide: l’État lui verse jusqu’à 1 500 € la 1re année, sous conditions', 'Site: soprasteria.com'];
   if (s.lignes.join(' | ') !== attendu.join(' | ')) fail('les lignes de la carte : ' + s.lignes.join(' | '));
   if (s.ton !== 'colle à ta formation') fail('BTS SIO SISR et des missions de réseau : « colle à ta formation » manque');
-  if (/Md€|CA 20|création|sites/.test(JSON.stringify(s))) fail('le chiffre d’affaires, la création ou les sites reviennent : ' + JSON.stringify(s));
-  if (s.sources !== 'Sources : Annuaire des entreprises · Wikipédia · Wikidata') fail('sources : ' + s.sources);
+  if (/création|sites|capital/.test(JSON.stringify(s))) fail('la création, les sites ou le capital reviennent : ' + JSON.stringify(s));
+  if (s.sources !== 'Sources : Annuaire des entreprises · BODACC · Egapro · Wikipédia · Wikidata') fail('sources : ' + s.sources);
   if (!s.logo || s.logo.ref !== 'no-referrer' || !/Special:FilePath\/Sopra%20Steria%20logo\.svg\?width=96$/.test(s.logo.src)) fail('le logo : ' + JSON.stringify(s.logo));
   if (s.liens.length) fail('l’aperçu porte des liens hors de la carte (adresse, SIREN, fiche officielle, offres…) : ' + s.liens);
   if (/SIREN|fiche officielle|Anciens de|Offres d’emploi/.test(JSON.stringify(s))) fail('l’aperçu redit ce qui n’aide pas à choisir : ' + JSON.stringify(s));
   if (s.boutons) fail(`la carte porte ${s.boutons} bouton(s) — on la lit, on ne la manipule pas`);
-  else console.log('pouce · ③ Wikipédia dit ce qu’elle fait ; missions (colle à ta formation), taille, à qui écrire, dans l’ordre ; aucun lien hors de la carte, trois sources citées ✓');
+  else console.log('pouce · ③ Wikipédia dit ce qu’elle fait ; missions (colle à ta formation), taille, comptes, récemment, égalité, à qui écrire, dans l’ordre ; aucun lien hors de la carte, cinq sources citées ✓');
   /* ② ce qui est parti pour cette carte */
   const partis = carteSort(journal);
   const wd = partis.filter(u => u.startsWith('https://query.wikidata.org'));
@@ -199,8 +216,10 @@ const lireCarte = (p, sel) => p.evaluate(sel => {
   if (!wd.length || wd.some(u => !pliees(u).includes(SOPRA))) fail('Wikidata n’a pas reçu le SIREN : ' + wd);
   if (wp.length !== 1 || !/\/page\/summary\/Sopra_Steria$/.test(wp[0])) fail('Wikipédia a reçu autre chose que le titre de l’article : ' + wp);
   if (!bo.length || new URL(bo[0]).searchParams.get('where') !== `registre like "${SOPRA}"`) fail('le BODACC n’a pas reçu le SIREN seul : ' + bo);
+  const eg = partis.filter(u => u.startsWith('https://egapro'));
+  if (eg.length !== 1 || eg[0] !== 'https://egapro.travail.gouv.fr/api/search?q=' + SOPRA) fail('Egapro n’a pas reçu le SIREN seul : ' + eg);
   for (const u of journal){ const w = PRIVES.find(m => pliees(u).includes(m)); if (w) fail(`« ${w} » est sorti : ${u}`); }
-  console.log('pouce · ② Wikidata et le BODACC reçoivent le SIREN, Wikipédia le titre, rien de privé ✓');
+  console.log('pouce · ② Wikidata, le BODACC et Egapro reçoivent le SIREN, Wikipédia le titre, rien de privé ✓');
   await p.screenshot({ path: `${SHOTS}/99-carte-pouce.png` });
   await p.keyboard.press('Escape');
   await p.waitForTimeout(400);
@@ -252,7 +271,9 @@ const lireCarte = (p, sel) => p.evaluate(sel => {
   if (!f.ouvert || !f.visible) fail('au pouce, la carte de la fiche ne se voit pas sans toucher : ' + JSON.stringify(f));
   if (f.quoi !== 'SOC à Lille, trois alternants') fail('ta phrase ne passe pas devant Wikidata : ' + f.quoi);
   if (f.enBref) fail('« En bref » se redit à côté de la carte');
-  if (f.lignes.join(',') !== 'Missions,Taille,Aide,Site') fail('la carte de la fiche : ' + f.lignes);
+  if (f.lignes.join(',') !== 'Missions,Taille,Comptes,Aide,Site') fail('la carte de la fiche : ' + f.lignes);
+  /* Advens n'a pas déclaré d'index : Egapro n'est jamais interrogé pour elle */
+  if (journal.some(u => u.startsWith('https://egapro'))) fail('Egapro interrogé pour une entreprise que l’annuaire ne dit pas déclarée : ' + journal.filter(u => u.startsWith('https://egapro')));
   /* la piste n'a personne : RIEN sous l'en-tête des contacts — ni phrase, ni lien */
   if (f.sousContacts.length) fail('sous « Contacts », la fiche pose encore : ' + f.sousContacts);
   for (const u of journal){ const w = PRIVES.find(m => pliees(u).includes(m)); if (w) fail(`fiche : « ${w} » est sorti : ${u}`); }
@@ -306,7 +327,7 @@ const lireCarte = (p, sel) => p.evaluate(sel => {
   await p.waitForTimeout(500);
   const h = await lireCarte(p, '.overlay .modal-b');
   if (journal.length !== n0) fail('hors ligne, une source de la carte a été interrogée : ' + journal.slice(n0));
-  if (!h || h.lignes.join(' | ') !== 'Missions: Conseil et intégration informatique colle à ta formation | Taille: 100 à 199 salariés | Écrire à: Thomas Leroy, président LinkedIn | Aide: l’État lui verse jusqu’à 4 500 € la 1re année')
+  if (!h || h.lignes.join(' | ') !== 'Missions: Conseil et intégration informatique colle à ta formation | Taille: 100 à 199 salariés | Comptes: 51 M€ de chiffre d’affaires en 2024, bénéficiaire | Écrire à: Thomas Leroy, président LinkedIn | Aide: l’État lui verse jusqu’à 4 500 € la 1re année')
     fail('hors ligne, la carte ne montre pas ce que l’annuaire a dit : ' + JSON.stringify(h));
   else console.log('pouce · ⑥ hors ligne : rien ne part, la carte montre ce que l’annuaire a dit ✓');
   await ctx.setOffline(false);
