@@ -109,10 +109,11 @@ const lire = p => p.evaluate(() => {
   if (faux.length)
     fail(`une piste non planifiée propose ${faux.join('/')} — il n’y a rien à finir ni à repousser`);
   /* et il reste un chemin vers TOUTES les autres */
-  if (!b.cibles.some(t => /sans prochaine action/.test(t)))
-    fail('pas de chemin vers les pistes non montrées');
+  if (!b.cibles.some(t => /^8 pistes à planifier/.test(t)))
+    fail('pas de chemin vers les pistes non montrées : ' + JSON.stringify(b.cibles.filter(t => /piste/.test(t))));
   console.log(`rien de planifié : ${b.demarrage} pistes montrées, gestes ${[...new Set(b.gestes)].join('+')}, `
     + 'et la route vers les autres ✓');
+
 
   /* au pouce, toute cible reste tapable */
   const petites = await p.evaluate(() => [...document.querySelectorAll('.act-start [data-a], .act-start .act-main')]
@@ -162,7 +163,7 @@ const lire = p => p.evaluate(() => {
    comme si on ne lui avait jamais écrit. Les deux pistes les mieux
    classées de la graine passent donc « En cours » sans prochaine action :
    elles doivent sortir de la tranche, et le lien du pied continuer de les
-   compter (il dit « sans prochaine action », c'est le cas). */
+   compter (« à planifier » : rien n’est prévu pour elles). */
 {
   /* écrites AUJOURD'HUI : une trace du jour, sinon elles passeraient pour
      silencieuses depuis des années et « Sans nouvelles » prendrait la
@@ -177,9 +178,68 @@ const lire = p => p.evaluate(() => {
   if (!montrees.length) fail('plus aucune piste à démarrer alors que six n’ont jamais été contactées');
   else if (montrees.some(n => n === ecrites[0].name || n === ecrites[1].name))
     fail('une piste déjà écrite revient dans « Par où commencer » : ' + JSON.stringify(montrees));
-  else if (!/^8 pistes sans prochaine action/.test(pied.trim()))
+  else if (!/^8 pistes à planifier/.test(pied.trim()))
     fail('le lien du pied doit compter toutes les pistes sans suite, écrites comprises : ' + JSON.stringify(pied));
   else console.log(`déjà écrites : hors de « Par où commencer » (${montrees.join(', ')}), toujours comptées dans le pied ✓`);
+
+  /* ET CE CHEMIN MÈNE À CE QU'IL NOMME. Il ouvrait « Mes pistes » entière :
+     « 8 pistes à planifier » et, au bout, la liste de tout, filtre
+     d'« Affiner » compris. On pose donc un filtre qui en écarte deux (le
+     statut « À contacter » : les deux pistes écrites sont « En cours »),
+     on descend la liste, puis on suit le lien — il doit arriver sur
+     l'étiquette « À planifier », en haut, avec les huit et rien d'autre. */
+  await p.evaluate(() => { location.hash = '#/pistes'; });
+  await p.waitForSelector('#view-pistes:not([hidden]) #piAffiner');
+  await p.click('#piAffiner');
+  await p.waitForSelector('.overlay:not(.ov-out) [data-st="todo"]');
+  await p.click('.overlay:not(.ov-out) [data-st="todo"]');
+  await p.evaluate(() => [...document.querySelectorAll('.overlay:not(.ov-out)')].pop().querySelector('.modal-h button.x').click());
+  await p.waitForTimeout(400);
+  const filtrees = await p.evaluate(() => [...document.querySelectorAll('#view-pistes .row-item')].filter(n => n.getClientRects().length).length);
+  if (filtrees !== 6) fail(`le filtre « À contacter » devait laisser 6 pistes, il en laisse ${filtrees} — le contrôle ne mesurerait rien`);
+  /* une liste qui défile VRAIMENT, sinon « en haut » ne prouve rien : la
+     première version gardait 844 px de haut, six lignes y tenaient, et
+     la mutation qui garde la place restait verte */
+  await p.setViewportSize({ width: 390, height: 480 });
+  await p.waitForTimeout(200);
+  const descendu = await p.evaluate(() => {
+    const v = document.querySelector('#view-pistes'); v.scrollTop = 9999; return v.scrollTop; });
+  if (descendu < 60) fail(`la liste ne défile que de ${descendu} px — l'arrivée « en haut » ne mesurerait rien`);
+  await p.evaluate(() => { location.hash = '#/aujourdhui'; });
+  await p.waitForSelector('#tdNoAct');
+  await p.click('#tdNoAct');
+  await p.waitForSelector('#view-pistes:not([hidden])');
+  await p.waitForTimeout(400);
+  const arrivee = await p.evaluate(() => ({
+    route: location.hash,
+    etiquettes: [...document.querySelectorAll('#view-pistes .et-chip')]
+      .map(n => n.textContent.replace(/\s+/g, ' ').trim()),
+    barre: document.querySelector('#piQ')?.value || '',
+    lignes: [...document.querySelectorAll('#view-pistes .row-item')].filter(n => n.getClientRects().length).length,
+    haut: document.querySelector('#view-pistes').scrollTop
+  }));
+  if (!/pistes/.test(arrivee.route)) fail('le lien du pied ne mène pas à « Mes pistes » : ' + arrivee.route);
+  else if (arrivee.etiquettes.join('|') !== 'À planifier')
+    fail('le lien du pied ouvre « Mes pistes » sans dire ce qu’on y regarde : ' + JSON.stringify(arrivee));
+  else if (arrivee.lignes !== 8)
+    fail(`« 8 pistes à planifier » mène à ${arrivee.lignes} lignes — le lien doit montrer ce qu'il compte`);
+  else if (arrivee.haut > 2)
+    fail(`l'arrivée garde la place d'une autre liste (${arrivee.haut} px) — elle part du haut`);
+  else console.log('« 8 pistes à planifier → » : « Mes pistes » sur « À planifier », les huit, en haut ✓');
+  await ctx.close();
+}
+
+/* ---------- B quater · tout ce qu'il compterait est déjà à l'écran ----------
+   Joué le 13 octobre 2026, première piste ajoutée : « Advens » sous
+   « Par où commencer », et au pied « 1 piste sans prochaine action → »
+   — la même piste, redite. Un lien qui n'ajoute rien n'est pas un chemin. */
+{
+  const { ctx, p } = await ecran(390, RECUES.slice(0, 2));
+  const c = await lire(p);
+  if (c.demarrage !== 2) fail('deux pistes neuves : « Par où commencer » doit les montrer toutes les deux');
+  else if (c.cibles.some(t => /planifier →|prochaine action/.test(t)))
+    fail('les deux pistes sont à l’écran et le pied les redit : ' + JSON.stringify(c.cibles.filter(t => /→/.test(t))));
+  else console.log('deux pistes, toutes deux montrées : aucun lien au pied pour les redire ✓');
   await ctx.close();
 }
 
@@ -310,6 +370,35 @@ const MUETTES = [
   if (r.demarrage) fail('les deux tranches de suggestion s’affichent ensemble');
   else console.log(`rien de prévu : ${r.quiet} muettes montrées à la place du vide, `
     + 'et plus de « Tout est à jour » mensonger ✓');
+  await ctx.close();
+}
+
+/* ---------- D ter · plus de trois pistes se taisent ----------
+   Trois d'abord — un choix, pas la liste. Mais les suivantes n'avaient
+   plus d'autre chemin que le lien du pied, qui ouvrait « Mes pistes »
+   entière : elles se tapent maintenant comme dans toute tranche. */
+{
+  const cinq = [21, 30, 45, 60, 90].map((d, i) => ({
+    id: 'q' + i, name: ['Vireo', 'Lombard Négoce', 'Atos', 'Halcyon Data', 'Ostral'][i],
+    status: 'active', city: 'Toulouse', domain: 'esn',
+    contacts: [{ id: 'kq' + i, name: 'P', role: 'RH', email: 'q' + i + '@x.test' }],
+    history: [{ d: jourISO(-d), t: 'Statut → En cours' }], updatedAt: Date.now() - d * 86400000 }));
+  const { ctx, p } = await ecran(390, cinq);
+  const avant = await p.evaluate(() => ({
+    lignes: document.querySelectorAll('#view-aujourdhui .act-quiet').length,
+    plus: (document.querySelector('#view-aujourdhui .tr-quiet .tr-more') || {}).textContent || '',
+    pied: (document.querySelector('#tdNoAct') || {}).textContent || ''
+  }));
+  if (avant.lignes !== 3) fail(`cinq pistes muettes : ${avant.lignes} lignes au lieu de trois`);
+  if (avant.plus.trim() !== 'Voir les 2 autres')
+    fail('les deux autres pistes muettes n’ont aucun chemin : « ' + avant.plus + ' »');
+  if (avant.pied) fail('le pied compte des pistes muettes, qui ont leur tranche : « ' + avant.pied + ' »');
+  if (avant.plus) await p.click('#view-aujourdhui .tr-quiet .tr-more');
+  await p.waitForTimeout(300);
+  const apres = await p.evaluate(() => document.querySelectorAll('#view-aujourdhui .act-quiet').length);
+  if (apres !== 5) fail(`« Voir les 2 autres » ne montre pas les cinq : ${apres}`);
+  else if (avant.lignes === 3 && !avant.pied)
+    console.log('cinq pistes muettes : trois, puis « Voir les 2 autres » les montre toutes ; le pied ne les compte pas ✓');
   await ctx.close();
 }
 

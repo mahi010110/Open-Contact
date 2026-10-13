@@ -512,6 +512,26 @@ function removeRow(id){
   });
 }
 
+/* OUVRIR « MES PISTES » SUR UNE RECHERCHE TOUTE FAITE. Un lien qui
+   nomme un ensemble de pistes (« 5 pistes à planifier → ») doit mener à
+   CET ensemble, pas à la liste entière où il se perd : la barre reçoit
+   la requête comme si on l'avait tapée, et ses étiquettes disent ce
+   qu'on regarde — la croix pour revenir à tout. Le filtre d'« Affiner »
+   tombe (il retirerait des pistes que le lien a comptées), et la liste
+   part du haut : la place gardée par l'onglet valait pour une autre
+   liste. */
+export function ouvrirSur(texte){
+  q = texte;
+  portee = 'pistes';
+  ftClear();
+  const enHaut = () => { const v = $('#view-pistes'); if (v) v.scrollTop = 0; };
+  if (location.hash.replace('#/', '#') === '#pistes'){ renderPistes(); enHaut(); return; }
+  /* `applyRoute` (app.js) écoute avant nous : il rend la vue et remet la
+     place gardée, puis on la ramène en haut */
+  window.addEventListener('hashchange', enHaut, { once: true });
+  location.hash = '#/pistes';
+}
+
 export function renderPistes(){
   const root = $('#view-pistes');
   const wide = mqWide.matches;

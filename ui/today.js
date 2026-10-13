@@ -22,6 +22,7 @@ import { openCapture } from './capture.js';
 import { campaignLines, openCampaignById } from './campagnes.js';
 import { mailAnalysis } from './analyse.js';
 import { openPendingMailAnalysis } from './recevoir.js';
+import { ouvrirSur } from './pistes.js';
 import { pendingProposals, openPendingProposals } from './propositions.js';
 import { ORDINATEUR, CAMPAGNES } from './perimetre.js';
 
@@ -221,9 +222,15 @@ function silenceRowHTML(sil){
      </div>`);
 }
 function silenceHTML(items, total){
+  /* trois d'abord — c'est un choix proposé, pas la liste —, mais celles
+     d'après restent à un tap, comme dans toute tranche (« Voir les N
+     autres ») : elles n'avaient plus d'autre chemin que le lien du pied,
+     qui ouvrait « Mes pistes » entière */
+  const more = total > items.length
+    ? `<button class="linklike tr-more" data-tr="quiet">Voir les ${total - items.length} autres</button>` : '';
   return `<section class="tranche tr-quiet">
             <h2 class="tr-h">${ic('clock', 'ic-14')} Sans nouvelles <span class="tr-n">${total}</span></h2>
-            <div class="tr-rows">${items.map(silenceRowHTML).join('')}</div>
+            <div class="tr-rows">${items.map(silenceRowHTML).join('')}${more}</div>
           </section>`;
 }
 
@@ -360,10 +367,10 @@ export function renderToday(){
      1660 px envoie ses boutons à l'autre bout (mesuré). */
   const muettes = silentPistes(alive, today);
   const rienDePrevu = rienAFaire && !soon.length;
+  const debut = !muettes.length && rienDePrevu && aLancer.length ? parOuCommencer(aLancer) : [];
   const suggestion = muettes.length
-    ? { html: () => silenceHTML(muettes.slice(0, DEBUT), muettes.length) }
-    : (rienDePrevu && aLancer.length)
-      ? { html: () => debutHTML(parOuCommencer(aLancer)) } : null;
+    ? { html: () => silenceHTML(expanded.has('quiet') ? muettes : muettes.slice(0, DEBUT), muettes.length) }
+    : debut.length ? { html: () => debutHTML(debut) } : null;
   /* elle remplace le vide quand rien n'est prévu ; sinon elle SUIT le
      travail du jour — ce qui est engagé passe avant ce qui est suggéré */
   const alaPlace = rienDePrevu && suggestion;
@@ -418,7 +425,7 @@ export function renderToday(){
          ${colHTML('due', 'Aujourd’hui', 'zap', due, rienAFaire ? 'Tout est à jour ✓' : 'Rien de prévu aujourd’hui')}
          ${colHTML('soon', 'Bientôt', 'calendar', soon,
            /* « — donne une prochaine action à une piste » redisait le
-              lien du pied, « N pistes sans prochaine action → », posé
+              lien du pied, « N pistes à planifier → », posé
               juste dessous */
            noAction.length ? 'Rien de planifié' : 'Rien en vue')}
        </div>`;
@@ -450,10 +457,19 @@ export function renderToday(){
   if (triage.total){
     pied += `<button class="td-triage" id="tdTriage">${ic('inbox', 'ic-14')} À trier <span class="tr-n">${triage.total}</span></button>`;
   }
-  /* le lien du pied reste, et il compte VRAI : « Par où commencer » n'en
-     montre que trois, il faut un chemin vers les autres */
-  if (noAction.length && alive.length){
-    pied += `<button class="td-foot linklike" id="tdNoAct">${noAction.length} piste${noAction.length > 1 ? 's' : ''} sans prochaine action →</button>`;
+  /* LE LIEN DU PIED MÈNE À CE QU'IL NOMME, et seulement s'il ajoute
+     quelque chose. Il disait « 1 piste sans prochaine action » sous la
+     seule piste de l'écran, déjà montrée juste au-dessus — et, tapé, il
+     ouvrait « Mes pistes » ENTIÈRE, où ce qu'il comptait se perdait
+     parmi le reste. Il compte donc les pistes « à planifier » (le mot de
+     « Mes pistes » et de la barre ; les silencieuses ont leur tranche),
+     n'existe que si l'une d'elles n'est pas déjà à l'écran, et ouvre
+     « Mes pistes » sur l'étiquette « À planifier » : le même nombre. */
+  const silencieuses = new Set(muettes.map(c => c.id));
+  const aPlanifier = noAction.filter(c => !silencieuses.has(c.id));
+  const aLEcran = new Set(debut.map(c => c.id));
+  if (aPlanifier.some(c => !aLEcran.has(c.id))){
+    pied += `<button class="td-foot linklike" id="tdNoAct">${aPlanifier.length} piste${aPlanifier.length > 1 ? 's' : ''} à planifier →</button>`;
   }
   if (hasDemo()){
     pied += `<button class="td-foot linklike" id="tdRmDemo">Retirer les pistes d’exemple</button>`;
@@ -514,11 +530,10 @@ export function renderToday(){
   });
   root.querySelectorAll('.tr-more').forEach(b =>
     b.addEventListener('click', () => { expanded.add(b.dataset.tr); renderToday(); }));
-  const goPistes = () => { location.hash = '#/pistes'; };
   root.querySelectorAll('[data-camp]').forEach(b =>
     b.addEventListener('click', () => openCampaignById(b.dataset.camp)));
   root.querySelector('#tdTriage')?.addEventListener('click', () => openTriage(triage.items));
-  root.querySelector('#tdNoAct')?.addEventListener('click', goPistes);
+  root.querySelector('#tdNoAct')?.addEventListener('click', () => ouvrirSur('à planifier'));
   root.querySelector('#tdeAdd')?.addEventListener('click', () => openCapture());
   /* pas de toast : les pistes d'exemple arrivent sous les yeux, et
      « Retirer les pistes d'exemple » s'affiche au pied du même écran */
