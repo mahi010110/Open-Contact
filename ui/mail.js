@@ -75,7 +75,11 @@ export function openMail(c, opts){
      lignes visibles pour dix écrites, la phrase coupée en deux —
      c'était l'écran du téléphone resservi tel quel. */
   const sh = openSheet({
-    title: 'Écrire — ' + c.name + (opts.progress ? '  ·  ' + opts.progress : ''),
+    /* « Écrire » dans la barre ; la piste, en tête du contenu, en entier.
+       Dans la barre elle se coupait à 320 px (« Écrire — Orange Cyb… »),
+       et c'est justement quand on écrit à cinq pistes d'affilée
+       (Prospecter, « 2/5 ») qu'il faut lire à qui l'on écrit. */
+    title: 'Écrire',
     icon: 'mail', className: 'modal-compose', focus: cts.length ? '#mSubj' : '#mBody',
     onClose: () => { oublier(); if (done) return; done = true; if (opts.onQuit) opts.onQuit(); }
   });
@@ -88,7 +92,8 @@ export function openMail(c, opts){
   /* le modèle aussi arrive pré-choisi, d'après le statut de la piste */
   const tplInit = modeleConseille(tpls, c);
   sh.body.innerHTML =
-    `${/* LE PRÉAMBULE EST LE CONTENU VARIABLE, PAS LE MESSAGE.
+    `<p class="ml-pour" id="mPour"><b>${esc(c.name)}</b>${opts.progress ? `<span class="ml-n">${esc(opts.progress)}</span>` : ''}</p>
+     ${/* LE PRÉAMBULE EST LE CONTENU VARIABLE, PAS LE MESSAGE.
           À qui, quel modèle, l'objet, ce qu'on sait d'elle : selon la
           piste, ça pèse de 230 à 400 px — et c'est la zone d'écriture
           qui payait la différence, jusqu'à ne plus montrer que 43 % du

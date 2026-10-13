@@ -271,8 +271,10 @@ await ouvrirFiche(T.p, 'az');
 await T.p.click('#fiDon');
 await T.p.waitForSelector('#ddAjouter');
 {
+  /* la barre dit « Contact » ; qui l'a donné, et par qui, ouvre le contenu */
   const t = await T.p.evaluate(() => [...document.querySelectorAll('.overlay')].pop().querySelector('.mh-t')?.textContent);
-  if (t !== 'Sofia, par Léa, t’a donné') fail('le titre du don chez Tom : ' + t);
+  const de = await T.p.evaluate(() => document.querySelector('#ddDe')?.textContent.trim());
+  if (t !== 'Contact' || de !== 'Sofia, par Léa, t’a donné') fail(`le don chez Tom : barre « ${t} », en tête « ${de} »`);
 }
 await T.p.waitForTimeout(450);
 await T.p.screenshot({ path: `${SHOTS}/101-sauts-don-pouce.png` });

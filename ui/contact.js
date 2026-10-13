@@ -38,7 +38,8 @@ export function openContactEditor(o){
   const done = () => { bus.refresh(); if (o.onDone) o.onDone(); };
 
   const sh = openSheet({
-    title: editing ? ctLabel(src) : (c ? 'Contact — ' + c.name : 'Nouveau contact'),
+    /* la barre dit ce qu'est la fenêtre ; le nom se lit dans son champ */
+    title: editing ? 'Contact' : 'Nouveau contact',
     icon: 'contact', focus: editing ? champAOuvrir('#ceName') : '#ceName'
   });
   /* des contacts PROPOSÉS (le dirigeant que l'annuaire connaît) : en
@@ -196,9 +197,9 @@ export function openContactEditor(o){
 
 /* ---------- rattacher un orphelin à une piste ---------- */
 export function openAttach(ct){
-  const sh = openSheet({ title: 'Rattacher — ' + ctLabel(ct), icon: 'building', focus: '#atQ' });
+  const sh = openSheet({ title: 'Rattacher', icon: 'building', focus: '#atQ' });
   sh.body.innerHTML =
-    `<div class="field"><label for="atQ">Quelle entreprise ?</label>
+    `<div class="field"><label for="atQ">L’entreprise de ${esc(ctLabel(ct))}</label>
        <input id="atQ" value="${esc((ct.extra && ct.extra.company) || '')}" placeholder="Cherche ou tape un nom…" autocomplete="off"></div>
      <div class="pick-list" id="atList"></div>`;
   const q = s => sh.body.querySelector(s);

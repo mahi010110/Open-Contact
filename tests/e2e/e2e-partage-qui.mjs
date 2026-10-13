@@ -118,8 +118,11 @@ await page.waitForSelector('#dnDl');
 const titreEtape = (await page.textContent('.overlay:last-of-type .modal-h h2') || '').trim();
 /* Exactement le titre de l'étape : un simple « contient Fichier » laissait
    passer « Fichier — 3 pistesDonner », c'est-à-dire le bug lui-même. */
-if (!/^Fichier — \d+ pistes?$/.test(titreEtape))
+if (titreEtape !== 'Fichier')
   fail('le titre doit être CELUI de l’étape, et rien d’autre : ' + JSON.stringify(titreEtape));
+/* … et ce qui part se lit dans le contenu, plus dans la barre (§4) */
+if (!/^\d+ pistes?$/.test(((await page.textContent('#dnN')) || '').trim()))
+  fail('le nombre de pistes données ne se lit plus dans l’étape « Fichier »');
 const ariaEtape = await page.getAttribute('.overlay:last-of-type .modal', 'aria-label');
 if (!/Fichier/.test(ariaEtape || ''))
   fail('le nom annoncé du dialogue doit suivre aussi : ' + JSON.stringify(ariaEtape));

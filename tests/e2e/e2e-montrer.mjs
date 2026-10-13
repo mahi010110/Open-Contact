@@ -188,7 +188,8 @@ else {
   await p.click('.modal-f .btn-primary');
   await p.waitForTimeout(500);
   const titre = await p.evaluate(() => [...document.querySelectorAll('.overlay:not(.ov-out) .modal-h')].pop()?.textContent || '');
-  okSi(/Écrire — Sopra Steria/.test(titre) && !(await p.$('#pmOne')),
+  const pour = await p.evaluate(() => document.querySelector('#mPour')?.textContent.replace(/\s+/g, ' ').trim() || '');
+  okSi(/Écrire/.test(titre) && /^Sopra Steria/.test(pour) && !(await p.$('#pmOne')),
     '⑥ « Écrire (1) » ouvre le composeur, sans feuille « Une par une » entre les deux');
   await p.context().close();
 }

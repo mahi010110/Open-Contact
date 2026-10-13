@@ -260,11 +260,36 @@ export function openFiche(c){
               pouvait donc pas se replier à sa vraie taille. */''}
          <textarea id="fiNotes" rows="1" placeholder="Échange avec M. X le 12/03, rappeler la semaine prochaine…">${esc(val('notes'))}</textarea></div>`;
 
+    /* Qui peut te porter (« Karim y est en alternance ») : l'ATOUT, sous
+       le nom. Deux personnes au plus, la plus forte d'abord. */
+    const qui = porteurs(c, portesDuJour()).slice(0, 2);
+    /* ---- LE RÉSEAU VIT DANS « CONTACTS » (12 octobre 2026) ----
+       Demander à ses amis sert à UNE chose : trouver quelqu'un à qui
+       écrire. Le geste flottait sous le nom de la piste, loin de la
+       section où ce manque se voit ; le fait (« Demandé à 2 amis »), la
+       bonne nouvelle (« Trouvé chez un ami ») et le contact qu'un ami
+       donne flottaient au même endroit. Ils descendent tous dans
+       « Contacts », là où la personne trouvée finira — un état vide
+       montre son action DANS l'élément qui recevra le contenu (Carbon,
+       Ripple). Le contact donné y est PROPOSÉ, en pointillé, comme le
+       dirigeant de « Ajouter un contact » : proposé en pointillé, posé
+       en plein (§6). Les conditions ne changent pas : une piste ouverte,
+       personne pour te porter, personne à qui écrire, un ami ou un
+       groupe à qui demander. */
+    const res = reseauDePiste(c);
+    const joignable = (c.contacts || []).some(t => t.email || t.phone || t.link);
+    const reseau = res.don
+      ? `<button class="fi-don" id="fiDon">${ic('user', 'ic-14')}
+           <b>${esc(bandeauDon(res.don))}</b>${ic('chevron-right', 'ic-14')}</button>`
+      : res.demande ? demandeEnCoursHTML(res.demande)
+      : res.peut && !closed && !c.demo && !qui.length && !joignable
+        ? `<button class="fi-demander" id="fiDemander">${ic('users', 'ic-14')} ${esc(libelleDemander())}</button>` : '';
+
     /* ---- le dossier : les gens, ce qu'on sait, l'histoire ---- */
     /* ce que TU sais de l'entreprise : « À savoir » existe pour ça */
     const aSavoir = !!(c.desc || c.website || c.techs || (c.positions || []).length || c.process || c.tips || c.address);
     const dossier =
-      `<div class="field">
+      `<div class="field fi-contacts">
          ${/* Essayé : descendre « + Ajouter » en fin de liste pour rendre
               au libellé sa hauteur de libellé. MESURÉ : le bloc passe de
               94 à 109 px. Une ligne d'ajout coûte 44 px pleins, l'en-tête
@@ -286,6 +311,7 @@ export function openFiche(c){
              <summary>+ ${knownCts.length} personne${knownCts.length > 1 ? 's' : ''} connue${knownCts.length > 1 ? 's' : ''}</summary>
              <div class="ctc-list">${knownCts.map(t => ctRowHTML(t, false)).join('')}</div>
            </details>` : ''}
+         ${reseau}
        </div>
        ${/* « À SAVOIR » N'EXISTE QUE S'IL A QUELQUE CHOSE À DIRE : ce que tu
             y as écrit, ou ce que l'annuaire sait (la carte). Une piste
@@ -364,23 +390,10 @@ export function openFiche(c){
        même geste — on ne réapprend rien. Deux personnes au plus, la
        plus forte d'abord : quelqu'un qui y est MAINTENANT. Au-delà, ce
        n'est plus un atout qu'on lit, c'est une liste qu'on parcourt. */
-    const qui = porteurs(c, portesDuJour()).slice(0, 2);
-    /* QUAND PERSONNE NE PEUT TE PORTER, TES AMIS PEUVENT CHERCHER
-       (docs/reseau.md, lot 3). À la même place, et seulement quand ça
-       sert : une piste ouverte, personne à qui écrire dessus, au moins
-       un ami à qui demander. Une demande partie se lit comme un fait ;
-       un contact donné prend le bandeau d'un atout — c'en est un. */
-    const res = reseauDePiste(c);
-    const joignable = (c.contacts || []).some(t => t.email || t.phone || t.link);
     const vecuHTML = qui.map((p, i) =>
         `<button class="fi-vecu" id="fiVecu${i ? i + 1 : ''}" data-porteur="${i}">${ic('user', 'ic-14')}
            <b>${esc(p.prenom + ' ' + p.court)}</b>${ic('chevron-right', 'ic-14')}</button>`).join('')
-      + (v && !c.vecuQui ? `<div class="fi-vecu">${ic('user', 'ic-14')}<b>${v.label}</b></div>` : '')
-      + (res.don ? `<button class="fi-vecu" id="fiDon">${ic('user', 'ic-14')}
-           <b>${esc(bandeauDon(res.don))}</b>${ic('chevron-right', 'ic-14')}</button>`
-        : res.demande ? demandeEnCoursHTML(res.demande)
-        : res.peut && !closed && !c.demo && !qui.length && !joignable
-          ? `<button class="btn btn-sm fi-demander" id="fiDemander">${ic('users', 'ic-14')} ${esc(libelleDemander())}</button>` : '');
+      + (v && !c.vecuQui ? `<div class="fi-vecu">${ic('user', 'ic-14')}<b>${v.label}</b></div>` : '');
     /* ---- LA FICHE DIT ENFIN DE QUELLE PISTE ELLE PARLE ----
        Elle s'ouvrait sur « Toulouse · ESN » : une sous-ligne SANS son
        sujet. Le nom n'existait que dans le châssis, et mesuré, il y est

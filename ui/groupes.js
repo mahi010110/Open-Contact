@@ -664,12 +664,12 @@ export async function demanderAuxGroupes(l){
 function ouvrirReponse(code, x, apres){
   const r = recueDe(x.id);
   const t = trouvePour(r);
-  const sh = openSheet({ title: `${x.prenom} cherche quelqu’un`, icon: 'users' });
+  const sh = openSheet({ title: 'Demande', icon: 'users' });
   const autres = mesGroupes().filter(g => g.code !== code && !(groupe(g.code).fil || []).some(y => y.id === x.id));
   const versGroupes = peutRelayerGroupe(x) ? autres : [];
   const fin = () => { sh.close(); apres(); };
   const accueil = () => {
-    sh.setTitle(`${x.prenom} cherche quelqu’un`);
+    sh.setTitle('Demande');
     sh.body.innerHTML =
       `<div class="gr-mot" id="rpMot">${esc(x.prenom)} cherche quelqu’un ${esc(quoiDe(x.lettre))}.</div>
        <div class="pick-list gr-rep">
@@ -824,9 +824,10 @@ function ouvrirMembre(code, de, apres){
   const v = groupe(code).membres[de];
   const gestes = gestesSur(code, de);
   if (!v || !gestes.length) return;
-  const sh = openSheet({ title: v.prenom, icon: 'user' });
+  const sh = openSheet({ title: 'Membre', icon: 'user' });
   sh.body.innerHTML =
-    `${gestes.includes('nommer') ? `<button class="btn btn-sm" id="grNommer" data-nommer="${esc(de)}">${ic('check', 'ic-14')} Nommer adjoint</button>` : ''}
+    `<h2 class="ap-nom am-nom">${esc(v.prenom)}</h2>
+     ${gestes.includes('nommer') ? `<button class="btn btn-sm" id="grNommer" data-nommer="${esc(de)}">${ic('check', 'ic-14')} Nommer adjoint</button>` : ''}
      ${gestes.includes('retirer') ? `<div class="pick-sortie">
        <button class="btn btn-sm btn-danger" id="grRetirerMembre">${ic('trash', 'ic-14')} Retirer du groupe</button></div>` : ''}`;
   sh.body.querySelector('#grNommer')?.addEventListener('click', () => { sh.close(); nommer(code, de, apres); });

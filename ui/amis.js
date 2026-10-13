@@ -244,11 +244,13 @@ function retirerAvecAnnuler(a, apres){
   });
 }
 export function openAmi(a, apres){
-  const sh = openSheet({ title: a.nom, icon: 'user' });
+  /* « Ami » dans la barre, son nom en tête du contenu — le dessin de la
+     fiche d'une piste, et celui de la fiche d'un ami au poste (§4) */
+  const sh = openSheet({ title: 'Ami', icon: 'user' });
   const dessiner = () => {
     if (!sh.body.isConnected) return;
     const frais = (S.profile.amis || []).find(x => x.id === a.id) || a;
-    sh.body.innerHTML = ficheAmiHTML(frais);
+    sh.body.innerHTML = `<h2 class="ap-nom am-nom">${esc(frais.nom)}</h2>` + ficheAmiHTML(frais);
     lierFicheAmi(sh.body, frais, { apres: () => { dessiner(); if (apres) apres(); }, fermer: () => sh.close() });
   };
   dessiner();

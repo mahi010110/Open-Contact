@@ -284,7 +284,7 @@ export function openProfil(onDone, opts = {}){
   function ouvrirExperience(e){
     const neuve = !e;
     const x = { entreprise: '', quoi: 'stage', debut: '', fin: '', ...(e || {}) };
-    const ex = openSheet({ title: neuve ? 'Ajouter à mon parcours' : x.entreprise, icon: 'briefcase',
+    const ex = openSheet({ title: neuve ? 'Ajouter à mon parcours' : 'Mon parcours', icon: 'briefcase',
       focus: neuve ? '#exNom' : null });
     const eq = s => ex.body.querySelector(s);
     const periode = () => periodeParcours({ debut: x.debut, fin: x.fin });

@@ -363,7 +363,9 @@ sur deux semaines, si une demande de 14 jours tient.
 
 Inès n'a personne à qui écrire chez Aztek. Sur la fiche, à la place où
 dirait « Karim y est en alternance » si quelqu'un pouvait la porter :
-**« Demander à mes amis »**. La feuille montre la phrase EXACTE qui part
+**« Demander à mes amis »**. *(Déplacé le 12 octobre 2026 dans
+« Contacts », sous la liste — là où se voit le manque, et où le contact
+trouvé arrivera, proposé en pointillé.)* La feuille montre la phrase EXACTE qui part
 — « Inès cherche quelqu'un chez Aztek. » — et à qui. Un tap, et la fiche
 dit « Demandé à 2 amis · aujourd'hui ». Chez Karim, qui connaît Julie
 là-bas, « Tes amis » passe en tête d'« Aujourd'hui » ; il voit ce qu'il
