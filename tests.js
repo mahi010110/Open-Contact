@@ -25,7 +25,7 @@ import { filterCompanies, filterOrphans, searchHint, NATURAL_DIR } from './engin
 import { scoreOf } from './engine/score.js';
 import { DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, SYNC_KEY,
          RELAYS_KEY, TURN_KEY, DEVICE_KEY, DEVICES_KEY, PROMO_KEY, VAULT_KEY,
-         ANALYSIS_KEY, VUS_KEY, RESEAU_KEY, GROUPES_KEY, SEALABLE, THEME_KEY, VIEW_KEY, OLD_V2, OLD_V1, CLES_A_EFFACER,
+         ANALYSIS_KEY, VUS_KEY, RESEAU_KEY, GROUPES_KEY, MESSAGES_KEY, SEALABLE, THEME_KEY, VIEW_KEY, OLD_V2, OLD_V1, CLES_A_EFFACER,
          kvGet, kvSet, kvDel, vaultActive, vaultDetach, vaultReseal } from './engine/storage.js';
 import { causeLiaison, relayTally, liaisonStage, parseTurn, turnText, TURN_MAX, RELAIS_DEFAUT } from './engine/transport.js';
 import { clePortage, sceller as scellerPortage, ouvrir as ouvrirPortageMsg, decouper, rassembler, recolte,
@@ -53,12 +53,14 @@ import { nouvelIdAmi, idAmiValide, cleEntreprise, memeEntreprise, profilDonne, n
          statutAmi, ajouterAmi, retirerAmi, prenomAmi, enCours, direExperience, portesAmis, AMIS_MAX,
          ceQuOuvre, classerAmis, chercherAmis, TRIS_AMIS } from './engine/amis.js';
 import { nouvelleCle, boiteValide, cleValide, etiquetteBoite, sceller, ouvrir, lettreDemande, lettreDon, lettreMerci, lettreAmi,
-         lettreAdieu, adieuAuthentique, prouver, preuveValide,
+         lettreAdieu, adieuAuthentique, prouver, preuveValide, lettreMessage, messageAuthentique,
          contactDonne, normaliserLettre, contactsPour, etatVide, normaliserEtat, elaguer, peutDemander,
          demandeDePiste, traiterLettre, empreinteProfil, DEMANDE_JOURS, DEMANDES_OUVERTES_MAX,
          jetonRelais, ouvrirJeton, lettreRelais, lettreTrouve, choisirRelais, soiPour, contactsDe, lettreEntree, lettreAdmis, lettreRecode,
          CERCLE_MAX, RELAIS_MAX } from './engine/boite.js';
 import { critereValide, phraseCritere, CRITERE_METIER } from './engine/critere.js';
+import { MESSAGE_MAX, FIL_MAX, texteMessage, conversationsVides, normaliserConversations, filAvec, ajouterMessage,
+         nonLus, dernier as dernierMessage, marquerLu, oublier as oublierConversation } from './engine/messages.js';
 import { GROUPES_MAX, MOT_MAX, nouveauCode, codeNorm, codeAffiche, estCodeTape, invitation, estInvitation, lireInvitation,
          cleGroupe, sceller as scellerGroupe, ouvrirMessage, normaliserMessage, groupeVide, traiterMessage,
          elaguerGroupe, filDe, membresDe, nouveaux, presenceAredire, pistesCompletes, normaliserGroupes,
@@ -672,6 +674,8 @@ export async function runSelfTests(){
       ok(SEALABLE.has(RESEAU_KEY));   /* qui me demande quoi, et ce qu'on m'a donné : une donnée */
       eq(GROUPES_KEY, 'oc_groupes_v1');
       ok(SEALABLE.has(GROUPES_KEY));  /* ce qui s'est dit dans mes groupes, et qui en est : une donnée */
+      eq(MESSAGES_KEY, 'oc_messages_v1');
+      ok(SEALABLE.has(MESSAGES_KEY)); /* mes conversations privées : une donnée */
       eq(THEME_KEY, 'oc_theme');
       eq(VIEW_KEY, 'oc_view');
       eq(OLD_V2, 'oc_data_v2');
@@ -2300,6 +2304,60 @@ export async function runSelfTests(){
       eq(traiterLettre(etatVide(), n, { moi: karim.pub, amis: [], now }).quoi, null);
       eq(traiterLettre(etatVide(), n, { moi: ines.pub, amis, now }).quoi, null);    /* mon autre appareil */
     },
+    'messages : une conversation privée, scellée pour l’ami seul, qu’on ne peut pas écrire à sa place': async () => {
+      /* retour du 13 octobre 2026 : « parler par message à un ami en conversation privée » */
+      const ines = await nouvelleCle(), karim = await nouvelleCle(), sofia = await nouvelleCle();
+      const now = Date.parse('2026-10-13T12:00:00Z'), J = 864e5;
+      const l = await lettreMessage({ prenom: 'Inès', cle: ines.pub, priv: ines.priv }, '  Salut Karim,\n\n\n\ntu as le contact   chez Aztek ?  ', karim.pub, now);
+      eq(Object.keys(l).sort(), ['at', 'de', 'id', 'preuve', 't', 'texte', 'v']);
+      eq(l.texte, 'Salut Karim,\n\ntu as le contact chez Aztek ?');          /* les lignes gardées, deux au plus */
+      const scelle = await sceller(karim.pub, l);
+      ok(!scelle.includes('Aztek') && !scelle.includes('Inès'), 'le relais ne lit rien');
+      eq(await ouvrir(sofia.priv, scelle), null);                             /* pour Karim seul */
+      const n = normaliserLettre(await ouvrir(karim.priv, scelle), now);
+      eq([n.t, n.texte, n.at], ['message', l.texte, now]);
+      ok(await messageAuthentique(n, karim.priv));
+      /* Sofia a la clé publique d'Inès : elle ne peut pas écrire à sa place */
+      const faux = await lettreMessage({ prenom: 'Inès', cle: ines.pub, priv: sofia.priv }, 'donne-moi ton code', karim.pub, now);
+      ok(!await messageAuthentique(normaliserLettre(faux, now), karim.priv), 'un message signé d’une autre clé est refusé');
+      ok(!await messageAuthentique({ ...n, texte: 'autre chose' }, karim.priv), 'la preuve couvre le texte');
+      ok(!await messageAuthentique({ ...n, at: now + 1 }, karim.priv), 'et l’heure');
+      /* la forme : ni vide, ni trop long, ni du futur, ni vieux d'un mois */
+      eq(normaliserLettre({ ...l, texte: '   ' }, now), null);
+      eq(normaliserLettre({ ...l, texte: 'x'.repeat(MESSAGE_MAX + 1) }, now), null);
+      eq(normaliserLettre({ ...l, at: now + J }, now), null);
+      eq(normaliserLettre({ ...l, at: now - 31 * J }, now), null);
+      eq(normaliserLettre({ ...l, preuve: 'court' }, now), null);
+      /* traité une fois, et seulement d'un ami que j'ai, sous cette clé */
+      const amis = [{ id: nouvelIdAmi(), nom: 'Inès Martin', cle: ines.pub }];
+      const r = traiterLettre(etatVide(), n, { moi: karim.pub, amis, now });
+      eq(r.quoi, 'message');
+      eq(traiterLettre(r.etat, n, { moi: karim.pub, amis, now }).quoi, null);
+      eq(traiterLettre(etatVide(), n, { moi: karim.pub, amis: [], now }).quoi, null);        /* un inconnu ne m'écrit pas */
+      eq(traiterLettre(etatVide(), n, { moi: ines.pub, amis, now }).quoi, null);             /* mon autre appareil */
+      /* LA CONVERSATION que garde cet appareil */
+      const A = 'InesInesInesInes0001';
+      let c = conversationsVides();
+      c = ajouterMessage(c, A, { id: n.id, moi: false, texte: n.texte, at: now });
+      c = ajouterMessage(c, A, { id: 'moimoimoi01', moi: true, texte: 'Oui, Julie !', at: now + 1000 });
+      c = ajouterMessage(c, A, { id: 'plustotplus1', moi: false, texte: 'avant', at: now - 1000 });
+      eq(filAvec(c, A).map(m => m.texte), ['avant', l.texte, 'Oui, Julie !']);      /* à sa place dans le temps */
+      eq(ajouterMessage(c, A, { id: n.id, moi: false, texte: n.texte, at: now }), c); /* une fois */
+      eq(nonLus(c, A), 0);                                   /* répondre, c'est avoir lu ce qui précède */
+      c = ajouterMessage(c, A, { id: 'nouveau0001', moi: false, texte: 'Merci', at: now + 5000 });
+      eq([nonLus(c, A), dernierMessage(c, A).texte], [1, 'Merci']);
+      c = marquerLu(c, A, now + 6000);
+      eq(nonLus(c, A), 0);
+      eq(ajouterMessage(c, 'x', { id: 'abcdefgh01', texte: 'a', at: now }), c);   /* un identifiant d'ami valide */
+      let gros = conversationsVides();
+      for (let i = 0; i < FIL_MAX + 5; i++) gros = ajouterMessage(gros, A, { id: 'msg' + String(i).padStart(6, '0'), moi: false, texte: 'm' + i, at: now + i });
+      eq([filAvec(gros, A).length, filAvec(gros, A)[0].texte], [FIL_MAX, 'm5']);
+      eq(filAvec(oublierConversation(c, A), A), []);                                /* un ami retiré l'emporte */
+      const relu = normaliserConversations(JSON.parse(JSON.stringify(c)));
+      eq(relu, c);
+      eq(normaliserConversations({ fils: { court: { m: [] }, [A]: { m: [{ id: 'x', texte: 1 }], vu: 'a' } } }), { v: 1, fils: { [A]: { m: [], vu: 0 } } });
+      eq(texteMessage(null), '');
+    },
     'amis : l’onglet — ce qu’un ami t’ouvre, le tri « Pour toi », la recherche par entreprise': () => {
       const today = '2026-10-07';
       const pistes = [normalizeCompany({ id: 'az', name: 'AZTEK SAS' }), normalizeCompany({ id: 'th', name: 'Thales' }),
@@ -2956,7 +3014,7 @@ export async function runSelfTests(){
          ressuscitait des pistes d'avant la v3 sur un appareil « effacé » */
       ok(CLES_A_EFFACER.includes(OLD_V2) && CLES_A_EFFACER.includes(OLD_V1));
       for (const k of [DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, SYNC_KEY,
-                       RELAYS_KEY, TURN_KEY, DEVICE_KEY, DEVICES_KEY, PROMO_KEY, VAULT_KEY, ANALYSIS_KEY, VUS_KEY, RESEAU_KEY, GROUPES_KEY])
+                       RELAYS_KEY, TURN_KEY, DEVICE_KEY, DEVICES_KEY, PROMO_KEY, VAULT_KEY, ANALYSIS_KEY, VUS_KEY, RESEAU_KEY, GROUPES_KEY, MESSAGES_KEY])
         ok(CLES_A_EFFACER.includes(k), k + ' doit partir');
       /* tout ce qui se scelle est une donnée : tout ce qui se scelle s'efface */
       for (const k of SEALABLE) ok(CLES_A_EFFACER.includes(k), k + ' (scellable) doit partir');

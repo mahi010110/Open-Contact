@@ -25,6 +25,13 @@ export function frDate(iso){
   if (isNaN(d)) return iso;
   return d.toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: '2-digit' });
 }
+/* l'heure d'un message : « 14:05 » aujourd'hui, « hier », sinon « jeu. 03/07 » */
+export function quandMessage(t){
+  const iso = localISO(new Date(t));
+  const d = diffDays(iso);
+  if (d === 0) return new Date(t).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  return d === -1 ? 'hier' : frDate(iso);
+}
 /* « mardi 8 juillet » */
 export function frToday(){
   return new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });

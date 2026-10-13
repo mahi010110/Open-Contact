@@ -121,10 +121,13 @@ bus.refresh = render;
   installFoldMotion();
   await initVerrou();
   await loadAll();
-  /* quatre chargements indépendants : en parallèle, pas en file — chaque
-     aller-retour IndexedDB sérialisé se paierait au démarrage */
+  /* cinq chargements indépendants : en parallèle, pas en file — chaque
+     aller-retour IndexedDB sérialisé se paierait au démarrage. Les
+     conversations avec mes amis en sont : « Aujourd'hui » et « Amis »
+     comptent ce qui n'est pas lu dès le premier écran. */
   await Promise.all([
     import('./ui/connexions.js').then(m => m.loadMail()).catch(() => {}),
+    import('./ui/messages.js').then(m => m.chargerMessages()).catch(() => {}),
     CAMPAGNES ? import('./ui/campagnes.js').then(m => m.loadCampaigns()).catch(() => {}) : null,
     ORDINATEUR ? import('./ui/analyse.js').then(m => m.loadMailAnalysis()).catch(() => {}) : null,
     ORDINATEUR ? import('./ui/propositions.js').then(m => m.loadProposals()).catch(() => {}) : null

@@ -27,7 +27,7 @@ import { kvGet, kvSet, RELAYS_KEY, RESEAU_KEY } from '../engine/storage.js';
 import { nouvelleCle, etiquetteBoite, sceller, ouvrir, lettreDemande, lettreDon, lettreMerci, lettreAmi, normaliserLettre, empreinteProfil,
          etatVide, normaliserEtat, elaguer, peutDemander, demandeDePiste, traiterLettre, prenomDe,
          jetonRelais, ouvrirJeton, lettreRelais, lettreTrouve, choisirRelais, lettreEntree, lettreAdmis, lettreRecode,
-         lettreAdieu, adieuAuthentique, LETTRE_KIND } from '../engine/boite.js';
+         lettreAdieu, adieuAuthentique, lettreMessage, messageAuthentique, MESSAGE_JOURS, LETTRE_KIND } from '../engine/boite.js';
 import { prenomAmi, profilDonne, statutAmi, ajouterAmi, retirerAmi, nouvelIdAmi, memeEntreprise, direQuoi, direQuoiTu } from '../engine/amis.js';
 import { parcoursDe } from '../engine/parcours.js';
 import { pistesPour } from '../engine/requete.js';
@@ -345,6 +345,76 @@ async function remercierChaine(m){
   if (suivant) await ecrire(suivant.cle, lettreMerci(moi(), m, m.suite.slice(1)), Date.now() + 14 * 864e5).catch(() => 0);
 }
 
+/* UNE lettre de ma boîte, ouverte et traitée : la même à la relève et en
+   direct (une conversation ouverte écoute la boîte). Rend vrai si
+   quelque chose a changé. */
+async function absorberLettre(ev){
+  const b = S.profile.boite;
+  if (!b) return false;
+  const ctx = { companies: S.companies, moi: b.pub, amis: S.profile.amis, parcours: parcoursDe(S.profile, S.companies),
+                pistesPour, sansRelais: !!(S.profile.flags && S.profile.flags.sansRelais), today: todayISO(),
+                portes: (S.profile.groupes || []).filter(g => g.type === 'demande').map(g => g.porte),
+                codes: (S.profile.groupes || []).map(g => g.code) };
+  const l = normaliserLettre(await ouvrir(b.priv, ev.content));
+  const r = traiterLettre(etat, l, ctx);
+  /* le groupe a changé de code (lot 5c2) : rien ne change dans la
+     boîte, tout se passe dans le groupe — la lettre ne doit donc pas
+     être sautée comme « rien de neuf » */
+  if (r.quoi === 'recode'){ await (await import('./groupes.js')).changerCode(l).catch(() => {}); return false; }
+  if (r.etat === etat) return false;
+  etat = r.etat;
+  if (r.quoi === 'ami') recevoirAmi(l);
+  if (r.quoi === 'adieu') await recevoirAdieu(l);
+  if (r.quoi === 'message') await recevoirMessage(l);
+  if (r.quoi === 'merci'){
+    const m = etat.mercis.at(-1);
+    logJ(`Merci de ${m.de.prenom} : ${m.contact.name} (${m.entreprise.nom})`);
+    toast(`${m.de.prenom} te dit merci pour ${m.contact.name}.`);
+  }
+  /* PRÉVENU TOUT DE SUITE (décision 18) : qui demande sait qu'on a
+     trouvé, sans savoir qui — le contact suivra le oui */
+  if (r.quoi === 'demande') await envoyerSur(l.de.cle, lettreTrouve(l), l.exp);
+  if (r.quoi === 'suivre') await faireSuivre(l);
+  if (r.quoi === 'trouve') await nommerTrouve(l);
+  if (r.quoi === 'don') await nommerDon(l);
+  if (r.quoi === 'merci-relais') await remercierChaine(etat.mercis.at(-1));
+  /* on m'a ouvert la porte d'un groupe « sur demande » (lot 5c) */
+  if (r.quoi === 'admis') await (await import('./groupes.js')).entrerAdmis(l).catch(() => {});
+  return true;
+}
+/* EN DIRECT tant qu'une conversation est ouverte : la boîte écoutée,
+   chaque lettre traitée comme à la relève. Rend de quoi arrêter. */
+export async function ecouterBoite(surChange){
+  await chargerReseau();
+  const b = S.profile.boite;
+  if (!b) return () => {};
+  return ecouter({ kinds: [LETTRE_KIND], '#x': [await etiquetteBoite(b.pub)], since: Math.floor(Date.now() / 1000) - 60 },
+    async ev => { if (await absorberLettre(ev)){ await sauver(); surChange(); } });
+}
+
+/* ---------- parler à un ami (13 octobre 2026) ----------
+   Un message part comme « trouvé » : il entre dans la file AVANT de
+   partir et n'en sort qu'une fois parti — sans réseau, ou l'app fermée
+   au mauvais instant, il repart à la relève suivante. Trente jours sur
+   les relais : un ami n'ouvre pas l'app tous les jours. Il porte la
+   preuve que c'est moi : personne n'écrit au nom d'un ami. */
+export async function preparerMessage(ami, texte){
+  await chargerReseau();
+  const b = await assurerBoite();
+  return lettreMessage({ ...moi(), priv: b.priv }, texte, ami.cle);
+}
+export const posterMessage = (ami, l) => envoyerSur(ami.cle, l, l.at + MESSAGE_JOURS * 864e5);
+/* « pas encore parti » : il attend encore dans la file */
+export const enAttente = id => (etat.envois || []).some(x => x.lettre && x.lettre.id === id);
+/* un message reçu : seulement si la preuve tient — sinon rien n'entre */
+async function recevoirMessage(l){
+  if (!await messageAuthentique(l, S.profile.boite.priv)) return false;
+  const a = (S.profile.amis || []).find(x => x.cle === l.de.cle);
+  if (!a) return false;
+  await (await import('./messages.js')).ajouterRecu(a.id, l);
+  return true;
+}
+
 /* ---------- relever ma boîte ----------
    À l'ouverture, au retour sur l'app, et toutes les cinq minutes tant
    qu'elle est à l'écran. Une heure de marge sur la dernière relève :
@@ -362,37 +432,7 @@ export function relever(){
     const { evs, lus } = await lire({ kinds: [LETTRE_KIND], '#x': [await etiquetteBoite(b.pub)],
                                       since: Math.max(0, Math.floor(etat.depuis / 1000) - 3600) });
     let change = false;
-    const ctx = { companies: S.companies, moi: b.pub, amis: S.profile.amis, parcours: parcoursDe(S.profile, S.companies),
-                  pistesPour, sansRelais: !!(S.profile.flags && S.profile.flags.sansRelais), today: todayISO(),
-                  portes: (S.profile.groupes || []).filter(g => g.type === 'demande').map(g => g.porte),
-                  codes: (S.profile.groupes || []).map(g => g.code) };
-    for (const ev of evs){
-      const l = normaliserLettre(await ouvrir(b.priv, ev.content));
-      const r = traiterLettre(etat, l, ctx);
-      /* le groupe a changé de code (lot 5c2) : rien ne change dans la
-         boîte, tout se passe dans le groupe — la lettre ne doit donc pas
-         être sautée comme « rien de neuf » */
-      if (r.quoi === 'recode'){ await (await import('./groupes.js')).changerCode(l).catch(() => {}); continue; }
-      if (r.etat === etat) continue;
-      etat = r.etat;
-      change = true;
-      if (r.quoi === 'ami') recevoirAmi(l);
-      if (r.quoi === 'adieu') await recevoirAdieu(l);
-      if (r.quoi === 'merci'){
-        const m = etat.mercis.at(-1);
-        logJ(`Merci de ${m.de.prenom} : ${m.contact.name} (${m.entreprise.nom})`);
-        toast(`${m.de.prenom} te dit merci pour ${m.contact.name}.`);
-      }
-      /* PRÉVENU TOUT DE SUITE (décision 18) : qui demande sait qu'on a
-         trouvé, sans savoir qui — le contact suivra le oui */
-      if (r.quoi === 'demande') await envoyerSur(l.de.cle, lettreTrouve(l), l.exp);
-      if (r.quoi === 'suivre') await faireSuivre(l);
-      if (r.quoi === 'trouve') await nommerTrouve(l);
-      if (r.quoi === 'don') await nommerDon(l);
-      if (r.quoi === 'merci-relais') await remercierChaine(etat.mercis.at(-1));
-      /* on m'a ouvert la porte d'un groupe « sur demande » (lot 5c) */
-      if (r.quoi === 'admis') await (await import('./groupes.js')).entrerAdmis(l).catch(() => {});
-    }
+    for (const ev of evs) if (await absorberLettre(ev)) change = true;
     /* une relève où AUCUN relais n'a répondu n'a rien appris : la compter
        ferait sauter, au retour du réseau, les lettres arrivées entre-temps */
     if (lus) etat.depuis = debut;

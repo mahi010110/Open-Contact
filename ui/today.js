@@ -10,6 +10,7 @@ import { DOMAINS, STATUSES, prendCeQueJeCherche, PREND_MOT } from '../engine/mod
 import { porteurs } from '../engine/requete.js';
 import { portesDuJour } from './amis.js';
 import { lignesAmis, ouvrirLigne } from './reseau.js';
+import { lignesMessages, ouvrirConversation } from './messages.js';
 import { scoreOf } from '../engine/score.js';
 import { dueFollowups, silentPistes, aDemarrer } from '../engine/assist.js';
 import { S, bus, isClosed, markDone, hasDemo, addDemo, removeDemo } from './state.js';
@@ -249,7 +250,7 @@ function amisHTML(items){
             <div class="tr-rows">${items.map(x =>
               `<div class="act-row act-ami" data-sorte="${x.sorte}" data-ami="${esc(x.id)}">
                  <div class="act-in">
-                   <div class="act-main sw-cible" role="button" tabindex="0" aria-label="${esc(x.raison + ' — ' + x.nom)}">
+                   <div class="act-main sw-cible" role="button" tabindex="0" aria-label="${esc(x.aria || x.raison + ' — ' + x.nom)}">
                      <b class="act-verb">${esc(x.nom)}</b>
                      <span class="act-sub"><span class="act-vecu">${esc(x.raison)}</span><span class="act-who">${esc(x.qui)}</span></span>
                    </div>
@@ -387,7 +388,7 @@ export function renderToday(){
        ${done && S.companies.length
          ? `<div class="done-line">${ic('check', 'ic-14')} ${done} action${done > 1 ? 's' : ''} faite${done > 1 ? 's' : ''} aujourd’hui</div>` : ''}`;
 
-  html += amisHTML(lignesAmis());
+  html += amisHTML([...lignesMessages(), ...lignesAmis()]);
 
   if (!alive.length && !S.companies.length){
     /* première visite : la promesse, puis un seul geste.
@@ -497,7 +498,11 @@ export function renderToday(){
     bindSwipe(row, c);
   });
   root.querySelectorAll('.act-ami').forEach(row => {
-    const ouvrir = () => ouvrirLigne(row.dataset.sorte, row.dataset.ami);
+    const ouvrir = () => {
+      /* un ami t'a écrit : la conversation, directement */
+      const a = row.dataset.sorte === 'message' && (S.profile.amis || []).find(x => x.id === row.dataset.ami);
+      if (a) ouvrirConversation(a, () => bus.refresh()); else ouvrirLigne(row.dataset.sorte, row.dataset.ami);
+    };
     row.querySelector('.act-main').addEventListener('click', ouvrir);
     row.querySelector('.act-main').addEventListener('keydown', e => {
       if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); ouvrir(); }

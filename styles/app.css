@@ -3335,6 +3335,21 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
    t'ouvre DANS TES PISTES prend l'accent — un atout, jamais un mark-* ;
    la ligne choisie, au poste, le liseré du châssis (« où tu es », §4). */
 .am-row .am-tienne{color:var(--accent);font-weight:var(--weight-semibold)}
+/* ce qui n'est pas lu se compte au bout de la ligne : la zone qui
+   ouvre garde toute la ligne, le texte prend la place qui reste */
+.am-row .ri-main.am-main{flex-direction:row;align-items:center;justify-content:flex-start;gap:10px}
+.am-txt{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center}
+.btn .am-n{margin-left:2px}
+.btn-primary .am-n{color:inherit}
+.am-ecrire{margin:4px 0 12px}
+/* une conversation avec un ami : le fil d'un groupe, sans prénom sur
+   chaque bulle — on n'y est que deux — et ses retours à la ligne gardés */
+.ms-m p{white-space:pre-line}
+.ms-m .gr-qui{display:inline-flex;align-items:center;gap:4px}
+.gr-moi.ms-m .gr-qui{align-self:flex-end}
+/* une salve se serre : la bulle qui suit sans heure colle à sa voisine */
+.ms-fil .ms-suite{margin-top:-8px}
+.ms-vide{margin:24px 0;text-align:center;font-size:var(--text-13);color:var(--text-muted)}
 .am-detail .ap-nom,.am-nom{margin-bottom:10px}
 @media (min-width:901px){
   .am-sel .sw-in{background:var(--surface-chrome);box-shadow:inset 3px 0 0 var(--select-bg)}
