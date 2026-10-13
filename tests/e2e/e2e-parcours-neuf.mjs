@@ -185,6 +185,11 @@ const toastEtire = async (p, etat) => p.evaluate(async etat => {
   const { toast, showUndo, openSheet, topSheet } = await import('./ui/dom.js');
   const attente = ms => new Promise(r => setTimeout(r, ms));
   const warn = document.getElementById('saveWarn');
+  const vue = document.querySelector('#view-aujourdhui:not([hidden]) > .page-inner');
+  const pied = etat.pied && vue && !vue.querySelector('.td-under')
+    ? vue.appendChild(Object.assign(document.createElement('div'), { className: 'td-under', textContent: 'Sonde' }))
+    : null;
+  if (etat.pied && !vue?.querySelector('.td-under')) return { pasDePied: true };
   if (etat.undo) showUndo('Sonde retirée', () => {});
   if (etat.warn && warn) warn.hidden = false;
   const sh = etat.feuille && !topSheet() ? openSheet({ title: 'Sonde' }) : null;
@@ -197,6 +202,7 @@ const toastEtire = async (p, etat) => p.evaluate(async etat => {
                    texte: Math.round(r.getBoundingClientRect().height) };
   if (sh) sh.close(null, true);
   if (etat.warn && warn) warn.hidden = true;
+  pied?.remove();
   document.querySelector('.undo-bar')?.remove();
   await attente(120);
   return mesure;
@@ -204,33 +210,33 @@ const toastEtire = async (p, etat) => p.evaluate(async etat => {
 const etire = m => m.boite > m.texte + 30;   /* 2 × 8 px de marge, 2 px de bord, du jeu */
 {
   /* ① l'état d'origine, tel qu'il arrive : la feuille de capture encore
-     ouverte, le vrai toast du vrai geste, la ligne du pied posée (elle
-     arrive au rendu qui suit l'ajout — on l'attend, sans quoi on
-     mesurerait l'écran d'avant) */
-  await attendre(M, () => !!document.querySelector('#view-aujourdhui .td-under'),
-    { timeout: 3000, message: 'la ligne du pied d’Aujourd’hui' }).catch(() => {});
+     ouverte, le vrai toast du vrai geste. La ligne du pied n'y est plus
+     forcément — depuis la 6.65, « 1 piste à planifier » ne redit plus
+     la seule piste déjà à l'écran — donc on ne l'exige pas ici : c'est
+     ② qui la pose, seule et avec une feuille, pour que la combinaison
+     qui cassait reste mesurée quel que soit le contenu d'Aujourd'hui. */
   const reel = await M.evaluate(() => {
     const t = document.getElementById('toast');
     const r = document.createRange(); r.selectNodeContents(t);
     return { boite: Math.round(t.getBoundingClientRect().height),
              texte: Math.round(r.getBoundingClientRect().height),
-             pied: !!document.querySelector('#view-aujourdhui .td-under'),
              on: t.classList.contains('on') };
   });
   const durs = [];
-  if (!reel.on || !reel.pied)
-    fail(`toast : l'état d'origine n'est plus en place (toast ${reel.on ? 'visible' : 'absent'}, `
-      + `pied ${reel.pied ? 'posé' : 'absent'}) — la mesure ne verrait rien`);
+  if (!reel.on) fail('toast : le vrai toast de la première piste n’est pas là — la mesure ne verrait rien');
   else if (etire(reel)) durs.push(`après la première piste : ${reel.boite}px pour ${reel.texte}px de texte`);
-  /* ② chaque état qui déplace le toast, seul puis combiné */
+  /* ② chaque état qui déplace le toast, seul puis combiné — le pied
+     d'« Aujourd'hui » compris, posé par le contrôle lui-même */
   const ETATS = [
     { nom: 'seul' }, { nom: 'feuille', feuille: true },
     { nom: 'annuler', undo: true }, { nom: 'annuler+feuille', undo: true, feuille: true },
-    { nom: 'sauvegarde', warn: true }, { nom: 'sauvegarde+feuille', warn: true, feuille: true }];
+    { nom: 'sauvegarde', warn: true }, { nom: 'sauvegarde+feuille', warn: true, feuille: true },
+    { nom: 'pied', pied: true }, { nom: 'pied+feuille', pied: true, feuille: true }];
   await closeSheets(M);
   for (const e of ETATS){
     const m = await toastEtire(M, e);
-    if (etire(m)) durs.push(`pouce · ${e.nom} : ${m.boite}px pour ${m.texte}px de texte`);
+    if (m.pasDePied) fail(`toast · ${e.nom} : « Aujourd'hui » n'est pas à l'écran, le pied ne se pose pas — la mesure ne verrait rien`);
+    else if (etire(m)) durs.push(`pouce · ${e.nom} : ${m.boite}px pour ${m.texte}px de texte`);
   }
   /* ③ la sonde : un toast qu'on étire exprès DOIT être vu, sinon le
      critère ne mesure plus rien et resterait vert pour toujours */
