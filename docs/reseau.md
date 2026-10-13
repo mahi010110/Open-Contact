@@ -951,6 +951,49 @@ que vivent les liens faibles, et ce sont eux qui apportent le travail.
     auteur (une lettre scellée ne le dit pas) : la seule qui retire
     quelque chose chez l'autre ne s'écrit pas au nom d'un autre.
 
+### Les réglages d'un groupe (13 octobre 2026)
+
+Le mainteneur, après l'avoir testé : « supprimer le groupe ; gérer les
+groupes de la meilleure façon, avec plus de paramètres — tous les
+réglages intéressants et utiles ». Ce que font Signal et WhatsApp, et
+ce qu'on en garde :
+
+- **Signal** : des admins qui règlent « qui modifie les infos du
+  groupe » et « qui envoie des messages » (un groupe d'annonces), un
+  lien qu'on peut réinitialiser, une entrée soumise à un admin, et un
+  admin qui peut terminer le groupe pour tous.
+- **WhatsApp** : « qui modifie les réglages », « qui envoie des
+  messages », « approuver les nouveaux membres », et des messages
+  éphémères à 24 heures, 7 jours ou 90 jours.
+
+31. **Tout groupe a un chef : qui l'a créé.** Ouvert ou sur demande, sa
+    clé de signature part dans l'invitation. Il règle le groupe ; un
+    adjoint aussi. Un groupe d'avant n'en a pas : tout le monde y reste
+    égal, chacun peut le régler, personne ne le supprime pour tous.
+32. **Le chef supprime le groupe pour tous** — rattrapable par la barre
+    « Annuler », puis le groupe quitte chaque téléphone, et chacun lit
+    qui l'a supprimé. Les autres le quittent, comme avant.
+33. **La durée des messages se règle : 24 heures, 7 jours, 30 jours.**
+    Les trois de WhatsApp, la plus longue ramenée à 30 jours — ce qu'on
+    peut raisonnablement attendre d'un relais public. Elle vaut pour les
+    messages écrits ENSUITE. *(La décision 27 disait « sept jours, sans
+    réglage » : sept jours reste le défaut.)*
+34. **Qui écrit : tout le monde, ou les responsables.** Le groupe
+    d'annonces de Signal et WhatsApp — pour une promo où l'on veut que
+    les offres ne se noient pas. « Donner » reste à tous : des pistes ne
+    sont pas des mots.
+35. **Renommer, changer l'entrée, faire une nouvelle invitation.** Le
+    nom se change ; l'entrée passe d'ouvert à sur demande et retour
+    *(la décision 24 disait « choisie à la création — c'est le seul
+    réglage »)* ; une nouvelle invitation rend l'ancienne inutile. Les
+    deux derniers changent le CODE du groupe — l'ancienne invitation le
+    portait, et le code est la clé : le nouveau part par la boîte de
+    chaque membre, jamais par le groupe.
+
+Ce qui n'y est pas, exprès : une photo de groupe, une description, des
+réglages de notification — l'app ne sonne pas (§10), et une image de
+plus n'aide personne à trouver une alternance.
+
 ## Encore à trancher
 
 - **Le fil du groupe** : tranché le 12 octobre (décision 27) — des

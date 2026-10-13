@@ -330,9 +330,10 @@ export function normaliserLettre(o, now = Date.now()){
   }
   if (o.t === 'recode'){
     if (!CODE_GROUPE.test(String(o.ancien || '')) || !CODE_GROUPE.test(String(o.code || '')) || o.ancien === o.code
-        || !/^[A-Za-z0-9_-]{16,43}$/.test(String(o.exclu || '')) || !SIGNE.test(String(o.signe || ''))
+        || !/^(?:[A-Za-z0-9_-]{16,43})?$/.test(String(o.exclu || '')) || !SIGNE.test(String(o.signe || ''))
         || !/^[A-Za-z0-9_-]{40,200}$/.test(String(o.sig || ''))) return null;
-    return { t: 'recode', id: o.id, de, ancien: o.ancien, code: o.code, exclu: o.exclu, signe: o.signe, sig: o.sig };
+    /* `exclu` vide : une nouvelle invitation, personne n'est retiré (6.66) */
+    return { t: 'recode', id: o.id, de, ancien: o.ancien, code: o.code, exclu: o.exclu || '', signe: o.signe, sig: o.sig };
   }
   if (o.t === 'admis'){
     if (!ID.test(String(o.porte || '')) || !CODE_GROUPE.test(String(o.code || '')) || !SIGNE.test(String(o.chef || ''))) return null;

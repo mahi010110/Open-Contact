@@ -65,7 +65,9 @@ import { GROUPES_MAX, MOT_MAX, nouveauCode, codeNorm, codeAffiche, estCodeTape, 
          relaisVersGroupe, peutRelayerGroupe, RELAIS_GROUPES_MAX,
          porteInvitation, estPorte, lirePorte, nouvelleCleSignature, signer, verifier, signeValide,
          responsables, estResponsable, adjointVerifie, nomination, redireNomination, presenceSignee, presenceVerifiee,
-         retrait, exclusion, recode, retraitVerifie, excluVerifie, recodeVerifie, migrerGroupe } from './engine/groupe.js';
+         retrait, exclusion, recode, retraitVerifie, excluVerifie, recodeVerifie, migrerGroupe,
+         DUREES, reglages as reglagesGroupe, fin as finGroupe, reglagesVerifies, finVerifiee, motPermis, reglagesDe,
+         normaliserGroupe } from './engine/groupe.js';
 import { interpreter, retirer, remplacer, chercherPistes, raisonDe, propositions, elargir,
          contexteRecherche, porteurs, deptDuCp, villeFrequente, deptDePiste, zoneDe, metierDuMoment,
          fraicheur, METIER, metierDuProfil, villeConnue, lieuDuProfil, metierEtiquetteDuProfil, rayonDe,
@@ -2719,6 +2721,79 @@ export async function runSelfTests(){
       /* le groupe sous son nouveau code : la conversation reste, Sofia n'y est plus, la présence se redit */
       const m = migrerGroupe({ ...gA, presence: now, depuis: now }, S);
       eq([Object.keys(m.membres).sort(), Object.keys(m.adjoints), m.presence, m.depuis, m.fil.length], [[I, KA].sort(), [], 0, 0, 1]);
+    },
+    'groupes : les réglages — le chef dans l’invitation, signés avec le code, la fin par le chef seul': async () => {
+      /* décisions 31 à 35 (13 octobre 2026) */
+      const now = Date.parse('2026-10-13T12:00:00Z'), J = 86400000;
+      const I = 'InesInesInesInes0001', KA = 'KarimKarimKarim00001', S = 'SofiaSofiaSofia00001';
+      const chef = await nouvelleCleSignature(), kSign = await nouvelleCleSignature();
+      const code = nouveauCode(), autreCode = nouveauCode();
+      /* L'INVITATION porte la clé du chef — une invitation d'avant se lit encore */
+      const inv = invitation({ code, nom: 'BTS SIO Lille', chef: chef.pub });
+      eq(lireInvitation(inv), { code, nom: 'BTS SIO Lille', chef: chef.pub });
+      eq(lireInvitation('Rejoins : ' + inv + ' (OpenContact)').chef, chef.pub);
+      eq(lireInvitation(invitation({ code, nom: 'BTS' })), { code, nom: 'BTS' });
+      /* dans le profil, un groupe OUVERT garde son chef ; sur demande sans porte, il redevient ouvert */
+      const [o] = normaliserGroupes([{ code, nom: 'BTS', chef: chef.pub, sign: chef }]);
+      eq([o.chef, o.sign.pub, o.type], [chef.pub, chef.pub, undefined]);
+      eq(normaliserGroupes([{ code, nom: 'BTS', type: 'demande', chef: chef.pub }])[0].type, undefined);
+      /* LES RÉGLAGES : le chef ou un adjoint, signés AVEC le code */
+      let g = groupeVide();
+      g = traiterMessage(g, normaliserMessage({ t: 'membre', de: I, prenom: 'Inès', sign: chef.pub, sig: 'x'.repeat(64), at: now - J }, now));
+      g = traiterMessage(g, normaliserMessage({ t: 'membre', de: KA, prenom: 'Karim', sign: kSign.pub, sig: 'x'.repeat(64), at: now - J }, now));
+      g = traiterMessage(g, normaliserMessage({ t: 'membre', de: S, prenom: 'Sofia', at: now - J }, now));
+      eq(reglagesDe(g), { nom: '', j: 7, ecrire: 'tous', entree: 'ouvert' });
+      const r = normaliserMessage(await reglagesGroupe(chef, { de: I, code, nom: 'BTS SIO 2', j: 1, ecrire: 'resp', entree: 'ouvert' }, now), now);
+      ok(await reglagesVerifies(g, chef.pub, code, r));
+      ok(!await reglagesVerifies(g, chef.pub, autreCode, r), 'rejoués dans un autre groupe : refusés');
+      ok(!await reglagesVerifies(g, chef.pub, code, { ...r, j: 30 }), 'une valeur changée casse la signature');
+      const rK = normaliserMessage(await reglagesGroupe(kSign, { de: KA, code, nom: 'Pris', j: 7, ecrire: 'tous', entree: 'ouvert' }, now), now);
+      ok(!await reglagesVerifies(g, chef.pub, code, rK), 'Karim, simple membre, ne règle rien');
+      ok(!await reglagesVerifies(g, chef.pub, code, { ...rK, signe: chef.pub }), 'même en se disant le chef');
+      eq(traiterMessage(g, r), g);                                         /* sans vérification, rien */
+      const g2 = traiterMessage(g, { ...r, verifie: true });
+      eq([g2.nom, g2.reglages.j, g2.reglages.ecrire, g2.reglages.par], ['BTS SIO 2', 1, 'resp', 'Inès']);
+      eq(traiterMessage(g2, { ...r, at: now - 1000, nom: 'Vieux', verifie: true }), g2);   /* plus ancien : ignoré */
+      /* un groupe SANS chef (d'avant la 6.66) : tout le monde est égal, sans signature */
+      const libre = normaliserMessage(await reglagesGroupe(null, { de: S, code, nom: 'Libre', j: 30, ecrire: 'tous', entree: 'ouvert' }, now), now);
+      ok(await reglagesVerifies(g, '', code, libre));
+      ok(!await reglagesVerifies(g, chef.pub, code, libre), 'avec un chef, un réglage non signé ne vaut rien');
+      /* l'entrée « sur demande » porte sa porte */
+      eq(normaliserMessage({ ...libre, entree: 'demande' }, now), null);
+      eq(normaliserMessage({ ...libre, entree: 'demande', porte: 'porteporte01' }, now).porte, 'porteporte01');
+      eq(normaliserMessage({ ...libre, j: 3 }, now), null);
+      /* LA DURÉE : chaque message porte la sienne, rien n'est raccourci après coup */
+      ok(DUREES.includes(1) && DUREES.includes(30));
+      const court = normaliserMessage({ t: 'mot', id: 'motmotmot091', de: S, prenom: 'Sofia', texte: 'vite', j: 1, at: now }, now);
+      eq(court.j, 1);
+      eq(normaliserMessage({ ...court, at: now - 2 * J }, now), null);
+      const long = normaliserMessage({ t: 'mot', id: 'motmotmot092', de: S, prenom: 'Sofia', texte: 'longtemps', j: 30, at: now - 20 * J }, now);
+      eq(long.j, 30);
+      let g3 = traiterMessage(traiterMessage(g, court), long);
+      eq(elaguerGroupe(g3, now + 2 * J).fil.map(x => x.texte), ['longtemps']);
+      eq(normaliserMessage({ t: 'mot', id: 'motmotmot093', de: S, prenom: 'Sofia', texte: 'x', j: 7, at: now }, now).j, undefined);
+      /* « QUI ÉCRIT : les responsables » — un mot d'un autre, écrit après, ne compte pas */
+      const motS = { t: 'mot', id: 'motmotmot094', de: S, prenom: 'Sofia', texte: 'x', at: now + 1000 };
+      ok(!motPermis(g2, chef.pub, motS));
+      ok(motPermis(g2, chef.pub, { ...motS, de: I }));
+      ok(motPermis(g2, chef.pub, { ...motS, at: now - 5000 }), 'écrit avant le réglage : il reste');
+      ok(motPermis(g, chef.pub, motS));
+      /* LA FIN : le chef seul, avec le code */
+      const f = normaliserMessage(await finGroupe(chef, { de: I, code }, now), now);
+      ok(await finVerifiee(chef.pub, code, f));
+      ok(!await finVerifiee(chef.pub, autreCode, f), 'la fin d’un groupe ne se rejoue pas dans un autre');
+      ok(!await finVerifiee(chef.pub, code, normaliserMessage(await finGroupe(kSign, { de: KA, code }, now), now)));
+      ok(!await finVerifiee('', code, f), 'sans chef, personne ne supprime pour tous');
+      eq(traiterMessage(g, { ...f, verifie: true }).fin, { at: now, par: 'Inès' });
+      /* une NOUVELLE INVITATION : un nouveau code, personne de retiré */
+      const ancien = nouveauCode(), neuf = nouveauCode();
+      const ines = await nouvelleCle();
+      const l = normaliserLettre(lettreRecode({ prenom: 'Inès', cle: ines.pub }, await recode(chef, { ancien, code: neuf })), now);
+      eq([l.t, l.exclu], ['recode', '']);
+      ok(await recodeVerifie(g, chef.pub, l));
+      /* ce qui se garde de l'état du groupe */
+      const n = normaliserGroupe({ ...g2, fin: { at: now, par: 'Inès' }, aFinir: now });
+      eq([n.reglages.j, n.fin.par, n.aFinir], [1, 'Inès', now]);
     },
     'groupes : cinq au plus, dans le profil, sans doublon': () => {
       const codes = Array.from({ length: 7 }, nouveauCode);

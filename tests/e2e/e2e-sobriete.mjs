@@ -168,8 +168,15 @@ const PLAFOND = {
      la porte existe — un geste qui ne se rattrape PAS, aucun « Annuler »
      possible une fois la base vidée — et elle montre ce qu'on ne peut
      pas deviner : combien de pistes et de documents partent, et s'il
-     existe encore une copie récente ou un autre appareil (§6). */
-  confirmations: 10,
+     existe encore une copie récente ou un autre appareil (§6).
+     11 le 13 octobre 2026 : « Nouvelle invitation » d'un groupe. Le
+     groupe change de code, et rien ne le ramène à l'ancien ; ce qu'on ne
+     devine pas d'un mot comme « nouvelle », c'est que l'ancienne cesse
+     de marcher — un QR imprimé, un message déjà envoyé à la classe. La
+     question le dit, et dit aussi que personne ne sort du groupe.
+     « Supprimer pour tous », plus lourd encore, n'en pose PAS : il se
+     rattrape (« Annuler », la fin ne part qu'après la barre). */
+  confirmations: 11,
   /* phrases d'explication dans les feuilles visibles.
      Monté à 219 le 4 août 2026 pour une phrase de « Signaler un
      problème », REDESCENDU à 211 le jour même : le mainteneur l'a
