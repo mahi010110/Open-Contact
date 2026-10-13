@@ -628,7 +628,11 @@ export async function ouvrirGroupe(code, apres){
     rendre();
     sh.body.scrollTop = sh.body.scrollHeight;
   };
-  champ.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); envoyer(); } });
+  /* un mot de groupe tient sur une ligne : Entrée envoie, partout — la
+     touche du clavier le dit (« Envoyer »). Jamais pendant qu'un clavier
+     à composition choisit encore son caractère (IME). */
+  champ.setAttribute('enterkeyhint', 'send');
+  champ.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); envoyer(); } });
   /* l'envoi est L'action du champ : il garde sa boîte, comme partout
      où l'on écrit un message */
   const bEnv = btn('', 'icon-btn btn-contour', envoyer, 'arrow-up');

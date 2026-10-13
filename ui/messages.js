@@ -107,14 +107,18 @@ export async function ouvrirConversation(a, apres){
   let rendu = false;
   ouverte = { id: a.id, sh, rendre };
 
-  /* LE PIED : le champ et la flèche, comme dans un groupe. Entrée envoie,
-     Maj+Entrée va à la ligne — un message n'est pas une ligne de groupe. */
+  /* LE PIED : le champ et la flèche, comme dans un groupe. Un message
+     n'est pas une ligne de groupe : il peut aller à la ligne. AU DOIGT,
+     Entrée va donc à la ligne et c'est la flèche qui envoie — la
+     convention de Messages et de WhatsApp sur un téléphone, où l'on
+     n'a pas de Maj+Entrée sous le pouce. AU POSTE, Entrée envoie et
+     Maj+Entrée va à la ligne. Jamais pendant qu'un clavier à
+     composition choisit encore son caractère (IME). */
   const champ = document.createElement('textarea');
   champ.id = 'msChamp'; champ.rows = 1; champ.maxLength = MESSAGE_MAX;
   champ.className = 'gr-champ';
   champ.placeholder = 'Écrire à ' + prenomAmi(a);
   champ.setAttribute('aria-label', 'Écrire à ' + prenomAmi(a));
-  champ.setAttribute('enterkeyhint', 'send');
   champGrandit(champ);
   const envoyer = async () => {
     const texte = champ.value.trim();
@@ -135,7 +139,11 @@ export async function ouvrirConversation(a, apres){
     await parti.catch(() => 0);
     rendre();
   };
-  champ.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); envoyer(); } });
+  champ.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' || e.shiftKey || e.isComposing || matchMedia('(pointer:coarse)').matches) return;
+    e.preventDefault();
+    envoyer();
+  });
   const bEnv = btn('', 'icon-btn btn-contour', envoyer, 'arrow-up');
   bEnv.id = 'msEnvoyer'; bEnv.setAttribute('aria-label', 'Envoyer'); bEnv.title = 'Envoyer';
   const pied = document.createElement('div');
