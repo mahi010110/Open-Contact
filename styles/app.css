@@ -3367,6 +3367,10 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 .gr-pied .gr-champ{flex:1 1 7rem;min-width:0;min-height:var(--ctl);padding:10px 12px;line-height:1.4;resize:none;overflow:hidden}
 .gr-pied .btn{flex:none}
 .gr-inviter{display:flex;flex-direction:column;align-items:center;gap:8px;margin:4px 0 8px}
+/* « Inviter » : le libellé d'une section (celui de « Contacts », « Où
+   j'en suis »), calé à gauche au-dessus du QR qu'il nomme */
+.gr-inv-t{align-self:stretch;font-size:var(--text-11);font-weight:var(--weight-bold);
+  letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--text-muted)}
 .gr-inviter .qr-wrap{margin:0 auto;width:100%;max-width:240px;padding:12px}
 .gr-code{display:flex;align-items:baseline;gap:8px;margin:0;font-size:var(--text-13);color:var(--text-muted)}
 .gr-code b{font-family:var(--font-mono);font-size:var(--text-16);color:var(--text-body);letter-spacing:.04em}

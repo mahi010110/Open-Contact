@@ -289,8 +289,9 @@ source :
    choisir — le profil donné ne porte que le nom et le parcours —, mais
    ce qu'il contient s'écrit sous le QR, mot pour mot. Le QR PORTE le
    profil (format OCA1) : il marche sans réseau, comme le QR de pistes.
-   À distance, « Copier » donne le même profil en texte, à coller dans
-   « Recevoir → Texte ».
+   À distance, le même profil part en texte, à coller dans « Recevoir →
+   Texte » : « Envoyer » au doigt (la feuille de partage du téléphone),
+   « Copier » au poste — l'invitation d'un groupe part de même.
 3. **Ce qu'un ami rapporte se lit là où l'on travaille.** LinkedIn le
    montre sur l'offre (« ask for a referral » : les relations dans
    l'entreprise, un message pré-rempli ; une candidature recommandée y

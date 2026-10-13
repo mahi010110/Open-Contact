@@ -14,6 +14,7 @@
      écrire ou donner ;
    · « Membres » — les prénoms, l'invitation, Quitter.
    ============================================================ */
+import { boutonEnvoyer } from './fichier.js';
 import { esc, localISO } from '../engine/utils.js';
 import { kvGet, kvSet, GROUPES_KEY } from '../engine/storage.js';
 import { nouvelId, LETTRE_KIND } from '../engine/boite.js';
@@ -765,19 +766,18 @@ async function inviterDans(box, code){
   let svg = '';
   try { svg = await makeQrSvg(txt); } catch (e) {}
   if (!box.isConnected) return;
+  /* L'INVITATION SE NOMME : un QR sans un mot, posé dans un fil vide,
+     ne dit pas à quoi il sert. Un libellé — celui d'une section, pas une
+     phrase — et le geste qui l'envoie : au doigt la feuille de partage
+     (la conversation de la classe, en un geste), au poste « Copier ». */
   box.innerHTML =
-    `${svg ? `<div class="qr-wrap" role="img" aria-label="Le QR du groupe, à faire scanner">${svg}</div>` : ''}
+    `<span class="gr-inv-t">Inviter</span>
+     ${svg ? `<div class="qr-wrap" role="img" aria-label="Le QR du groupe, à faire scanner">${svg}</div>` : ''}
      ${porte ? '' : `<p class="gr-code"><span>Code</span> <b id="grCodeAff">${esc(codeAffiche(code))}</b></p>`}`;
-  const copier = btn('Copier', 'btn-sm', async () => {
-    try {
-      await navigator.clipboard.writeText(porte
-        ? `Demande à entrer dans « ${nomDe(code)} » sur OpenContact. Copie ce message, puis Échanger › Recevoir › Texte :\n${txt}`
-        : `Rejoins « ${nomDe(code)} » sur OpenContact. Copie ce message, puis Échanger › Recevoir › Texte :\n${txt}`);
-      copier.innerHTML = ic('check', 'ic-14') + ' Copié';
-    } catch (e) { toast('Copie impossible ici — montre plutôt le QR.'); }
-  }, 'copy');
-  copier.id = 'grCopier';
-  box.append(copier);
+  box.append(boutonEnvoyer(porte
+    ? `Demande à entrer dans « ${nomDe(code)} » sur OpenContact. Copie ce message, puis Échanger › Recevoir › Texte :\n${txt}`
+    : `Rejoins « ${nomDe(code)} » sur OpenContact. Copie ce message, puis Échanger › Recevoir › Texte :\n${txt}`,
+    { classe: 'btn-sm', id: 'grCopier' }));
 }
 function ouvrirMembres(code, shGroupe){
   const sh = openSheet({ title: 'Membres', icon: 'users' });

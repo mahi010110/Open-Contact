@@ -380,8 +380,18 @@ const PLAFOND = {
      C'est une ERREUR dite sous son champ (§6) — elle n'apparaît que si
      ce qu'on a tapé ne permet de joindre personne, et dit quoi mettre.
      La classe `hint warn` la fait compter ; ce n'est pas une phrase qui
-     explique l'écran. */
-  motsExplication: 368,
+     explique l'écran.
+
+     339 le 12 octobre 2026, −29 : deux phrases qui EXPLIQUAIENT au lieu
+     de montrer. « Cet échange est plus ancien que le suivi de ses
+     pistes : il ne les retrouve pas. » était la première chose lue dans
+     « Échanger » au poste ; le panneau se tait maintenant, et la ligne
+     retenue d'office est la plus récente qu'on peut lire. « Chaque
+     entreprise croisée est une piste — même avec juste un nom. » sous
+     « Mes pistes » vide : l'accueil d'« Aujourd'hui » n'a qu'un titre et
+     ses gestes, celui-ci fait pareil — la capture ne demande qu'un nom,
+     elle le montre elle-même. */
+  motsExplication: 339,
   /* ZÉRO, et c'est le seul plafond qui puisse honnêtement valoir zéro :
      un style sans porteur n'a pas de contrepartie à peser — il ne rend
      service à personne, il ne fait qu'attendre d'être lu par erreur.

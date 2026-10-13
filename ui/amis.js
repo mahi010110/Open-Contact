@@ -24,6 +24,7 @@
    dont tu as le profil. « Groupe » reste le collectif, « contact » la
    personne dans une entreprise.
    ============================================================ */
+import { boutonEnvoyer } from './fichier.js';
 import { esc, todayISO, uid } from '../engine/utils.js';
 import { normalizeCompany } from '../engine/model.js';
 import { PARCOURS, periodeParcours } from '../engine/parcours.js';
@@ -102,12 +103,8 @@ export async function openMonQR(o = {}){
      Texte ». La phrase dit où le coller — c'est l'ami qui la lira. */
   /* le bouton DIT qu'il a copié, là où l'on vient de toucher — pas un
      toast de plus pour un résultat qu'on regarde déjà */
-  const copier = btn('Copier', '', async () => {
-    try {
-      await navigator.clipboard.writeText(`Mon profil OpenContact — colle ce message dans Échanger › Recevoir › Texte :\n${txt}`);
-      copier.innerHTML = ic('check', 'ic-14') + ' Copié';
-    } catch (e) { toast('Copie impossible ici — montre plutôt le QR.'); }
-  }, 'copy');
+  /* au doigt, « Envoyer » ouvre la feuille de partage ; au poste, « Copier » */
+  const copier = boutonEnvoyer(`Mon profil OpenContact — colle ce message dans Échanger › Recevoir › Texte :\n${txt}`);
   const scanner = btn('Scanner', '', async () => {
     sh.close();
     (await import('./recevoir.js')).openRecevoir({ scanner: true, apres: o.apres });

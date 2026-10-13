@@ -143,6 +143,15 @@ const I = await ecran('ines');
     fail('« Échanger » sans groupe : ' + JSON.stringify(gestes));
   if (restes.length) fail('« Échanger » garde des gestes jetés en vrac : ' + restes.join(', '));
 }
+/* le téléphone d'Inès SAIT partager : une feuille de partage posée
+   qui enregistre ce qu'on lui donne (Chromium sous Linux n'en a pas).
+   C'est ce texte-là que Sofia collera — jamais une invitation fabriquée
+   par le test, qui prouverait le moteur et pas le geste. */
+await I.p.evaluate(() => {
+  window.__envoye = [];
+  navigator.canShare = () => true;
+  navigator.share = async d => { window.__envoye.push(d); };
+});
 await nouveau(I.p, 'grCreer');
 await I.p.waitForSelector('#grNom');
 if (await I.p.evaluate(() => !document.querySelector('#grCreerGo').hidden)) fail('« Créer » sans nom');
@@ -152,9 +161,26 @@ await I.p.waitForSelector('#grInviter .qr-wrap svg');
 const code = await I.p.evaluate(() => document.querySelector('#grCodeAff').textContent.trim());
 if (!/^[a-z0-9]{5}-[a-z0-9]{5}-[a-z0-9]{5}$/.test(code)) fail('le code affiché : ' + code);
 if (await titreFeuille(I.p) !== 'BTS SIO Lille') fail('le titre du groupe : ' + await titreFeuille(I.p));
+/* L'INVITATION SE NOMME ET S'ENVOIE D'UN GESTE. Un QR et un code posés
+   sans un mot dans un fil vide ne disaient pas à quoi ils servaient ;
+   et « Copier » laissait trois gestes à faire (ouvrir la conversation de
+   la classe, coller, envoyer) là où le téléphone sait le faire en un. */
+{
+  const inv = await I.p.evaluate(() => ({
+    t: document.querySelector('#grInviter .gr-inv-t')?.textContent.trim() || '',
+    b: document.querySelector('#grInviter #grCopier')?.textContent.trim() || ''
+  }));
+  if (inv.t !== 'Inviter') fail('l’invitation ne se nomme pas : « ' + inv.t + ' »');
+  if (inv.b !== 'Envoyer') fail('au doigt, sur un téléphone qui sait partager, l’invitation dit « ' + inv.b + ' » et non « Envoyer »');
+  await I.p.click('#grCopier');
+  await attendreQue(I.p, () => window.__envoye.length === 1, null, 3000, 'la feuille de partage reçoit l’invitation');
+}
+const invitationTexte = await I.p.evaluate(() => window.__envoye[0]?.text || '');
+if (!invitationTexte.includes('« BTS SIO Lille »') || !/Échanger › Recevoir › Texte/.test(invitationTexte))
+  fail('le message envoyé ne dit ni le groupe ni où le coller : « ' + invitationTexte + ' »');
 await I.p.waitForTimeout(450);
 await I.p.screenshot({ path: `${SHOTS}/110-groupe-cree-pouce.png` });
-console.log('② Inès crée « BTS SIO Lille » : le groupe s’ouvre sur son invitation (QR + ' + code + ') ✓');
+console.log('② Inès crée « BTS SIO Lille » : le groupe s’ouvre sur « Inviter » (QR + ' + code + '), « Envoyer » part par la feuille de partage ✓');
 
 /* ---------- ③ Karim tape le code ---------- */
 const K = await ecran('karim');
@@ -214,10 +240,8 @@ await K.p.screenshot({ path: `${SHOTS}/114-groupe-echanger-pouce.png` });
 console.log('④ chez Karim, le groupe fermé : « Échanger » compte 1 nouveauté ✓');
 
 /* ---------- ③ bis Sofia colle l'invitation ---------- */
-const invitationTexte = await I.p.evaluate(async c => {
-  const g = await import('./engine/groupe.js');
-  return 'Rejoins « BTS SIO Lille » sur OpenContact : ' + g.invitation({ code: g.codeNorm(c), nom: 'BTS SIO Lille' });
-}, code);
+/* le message qu'Inès a ENVOYÉ, tel quel — ce que Sofia trouve dans
+   la conversation de la classe */
 const So = await ecran('sofia');
 await recevoirTexte(So.p, invitationTexte);
 await So.p.evaluate(() => [...document.querySelectorAll('.overlay:not(.ov-out) .modal-f .btn')].find(b => b.textContent.trim() === 'Lire').click());
