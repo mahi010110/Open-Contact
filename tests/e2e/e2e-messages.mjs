@@ -63,6 +63,9 @@ async function ecran(profil, pistes, o = {}){
   p.on('pageerror', e => errors.push(String(e)));
   p.on('console', m => { if (m.type() === 'error' && !/WebSocket connection to 'wss:\/\/127\.0\.0\.1:9/.test(m.text())) errors.push(m.text()); });
   await p.goto(base + '/#/aujourdhui', { waitUntil: 'load' });
+  /* semer APRÈS le démarrage : l'app qui démarre range ses conversations
+     (un ami absent emporte la sienne) et réécrirait par-dessus la graine */
+  await p.waitForFunction(() => !!document.querySelector('#sbVer')?.textContent);
   await p.evaluate(async ([d, pr, url, conv]) => {
     const st = await import('./engine/storage.js');
     await st.kvInit();

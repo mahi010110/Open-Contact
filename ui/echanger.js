@@ -350,7 +350,7 @@ function reprendreHTML(){
    ne prend plus le haut de l'écran, que la boîte occupe. Une ligne
    « Historique » en bas de la boîte, et sa feuille. */
 function ouvrirHistorique(){
-  const sh = openSheet({ title: 'Historique', icon: 'switch' });
+  const sh = openSheet({ title: 'Historique', icon: 'switch', className: 'modal-histo' });
   const rendre = () => {
     sh.body.innerHTML = filHTML();
     const fil = filVisible();

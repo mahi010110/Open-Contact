@@ -1730,6 +1730,13 @@ details.pcard-details[open]>summary{margin-bottom:10px}
    on croit avoir cassé l'application. La cause, elle, se corrige à sa
    source (voir `.grid2>*`). */
 .modal-b{padding:16px 18px;overflow-y:auto;overflow-x:hidden}
+/* L'HISTORIQUE garde la largeur que le fil avait dans la page. Ses
+   colonnes (compte, date, chevron) sont réglées au pixel pour 292 à
+   332 px (voir `.ec-n`) ; passé dans une feuille, il en perdait 10, et
+   à 360 px une rangée sur six repartait sur deux étages selon la police
+   — la date ne tenait plus sa colonne. Les rangées portent déjà leur
+   propre marge intérieure (`.ec-row`), le texte reste à 18 px du bord. */
+.modal-histo .modal-b{padding-left:13px;padding-right:13px}
 .modal-f{
   padding:12px 18px calc(12px + env(safe-area-inset-bottom));
   border-top:1px solid var(--border-strong);background:var(--surface-chrome);
