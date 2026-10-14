@@ -28,10 +28,10 @@ import { MESSAGE_MAX, conversationsVides, normaliserConversations, filAvec, ajou
          dernier, marquerLu } from '../engine/messages.js';
 import { S, bus } from './state.js';
 import { openSheet, btn, ic, champGrandit } from './dom.js';
-import { quandMessage } from './dates.js';
+import { heureDe, memeJour } from './dates.js';
 import { preparerMessage, posterMessage, enAttente, ecouterBoite, relever, echecEnvoi } from './reseau.js';
 import { cleFil } from '../engine/conversations.js';
-import { ligneNouveaux, suivreNouveaux } from './fil.js';
+import { ligneNouveaux, suivreNouveaux, ligneJour, texteHTML } from './fil.js';
 
 let conv = conversationsVides();
 let charge = null;
@@ -57,6 +57,7 @@ export function resumeConversations(){
              apercu: (d.moi ? 'Toi : ' : '') + d.texte.replace(/\s+/g, ' '), n: nonLus(conv, a.id) };
   });
 }
+export const aUneConversation = id => filAvec(conv, id).length > 0;
 export function marquerAmiLu(id){
   conv = marquerLu(conv, id);
   sauver();
@@ -81,10 +82,12 @@ export async function ajouterRecu(amiId, l){
 const SALVE = 5 * 60000;
 function bulleHTML(m, avant, neuf){
   const attente = m.moi && enAttente(m.id);
-  const suite = !!avant && avant.moi === m.moi && m.at - avant.at < SALVE;
-  const tete = attente ? `<span class="gr-qui">${suite ? '' : `<time>${esc(quandMessage(m.at))}</time> · `}${ic('clock', 'ic-14')} pas encore parti</span>`
-    : suite ? '' : `<span class="gr-qui"><time>${esc(quandMessage(m.at))}</time></span>`;
-  return `<li class="${neuf ? 'fil-neuf ' : ''}gr-m ms-m${m.moi ? ' gr-moi' : ''}${suite ? ' ms-suite' : ''}">${tete}<p>${esc(m.texte)}</p></li>`;
+  /* le jour est dit au-dessus (ligne de jour) : la salve s'arrête à minuit */
+  const suite = !!avant && avant.moi === m.moi && m.at - avant.at < SALVE && memeJour(avant.at, m.at);
+  const tete = attente ? `<span class="gr-qui">${suite ? '' : `<time>${esc(heureDe(m.at))}</time> · `}${ic('clock', 'ic-14')} pas encore parti</span>`
+    : suite ? '' : `<span class="gr-qui"><time>${esc(heureDe(m.at))}</time></span>`;
+  /* les liens se tapent, sans aperçu (ui/fil.js) */
+  return `<li class="${neuf ? 'fil-neuf ' : ''}gr-m ms-m${m.moi ? ' gr-moi' : ''}${suite ? ' ms-suite' : ''}">${tete}<p>${texteHTML(m.texte)}</p></li>`;
 }
 
 /* LA CONVERSATION. La barre porte le nom de l'ami, et lui seul : c'est
@@ -114,6 +117,7 @@ export async function ouvrirConversation(a, apres, o = {}){
     /* vide, la feuille le dit d'un mot — un ÉTAT, pas une explication */
     sh.body.innerHTML = fil.length
       ? `<ol class="gr-fil ms-fil" id="msFil">${fil.map((m, i) =>
+          (!i || !memeJour(fil[i - 1].at, m.at) ? ligneJour(m.at) : '') +
           (i === premier ? ligneNouveaux(n) : '') + bulleHTML(m, fil[i - 1], neuf(m))).join('')}</ol>`
       : `<p class="ms-vide" id="msVide">Aucun message pour l’instant.</p>`;
     if (!rendu) suivre.ouvrir(); else if (bas) sh.body.scrollTop = sh.body.scrollHeight;

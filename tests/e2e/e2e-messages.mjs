@@ -354,19 +354,23 @@ for (const [nom, o] of [['pouce', {}], ['pouce-sombre', { sombre: true }], ['pos
       return x ? { mot: x.innerText.replace(/\s+/g, ' ').trim(), contour: x.classList.contains('btn-contour') } : null; });
     if (!b || b.mot !== 'Écrire à Karim' || !b.contour) fail(nom + ' : le détail ne porte pas « Écrire à Karim » : ' + JSON.stringify(b));
     await E.p.click('.am-detail #amEcrire');
+    /* au poste, la conversation qui existe se lit dans la boîte, à sa
+       place (lot F2) — pas dans une seconde fenêtre */
+    await E.p.waitForFunction(() => location.hash.startsWith('#/echanger') && !!document.querySelector('#bxVolet #msFil'));
   } else {
     await E.p.click('#piAmis .am-row .ri-main');
     await E.p.waitForSelector('.overlay #amEcrire');
     await E.p.click('.overlay #amEcrire');
+    await E.p.waitForSelector('.overlay #msFil');
   }
-  await E.p.waitForSelector('#msFil');
   await E.p.waitForTimeout(500);
   const fautes = await E.p.evaluate(() => {
-    const b = [...document.querySelectorAll('.overlay .modal-b')].pop();
+    const ici = document.querySelector('#bxVolet .dock') ? '#bxVolet' : '.overlay';
+    const b = [...document.querySelectorAll(ici + ' .modal-b')].pop();
     const f = [];
     if (b.scrollWidth > b.clientWidth + 1) f.push('la feuille défile latéralement');
     for (const p of b.querySelectorAll('.ms-m p')) if (p.scrollWidth > p.clientWidth + 1) f.push('une bulle déborde');
-    const pied = [...document.querySelectorAll('.overlay .modal-f')].pop();
+    const pied = [...document.querySelectorAll(ici + ' .modal-f')].pop();
     for (const x of pied.querySelectorAll('#msChamp, #msEnvoyer')){
       const r = x.getBoundingClientRect(), m = pied.getBoundingClientRect();
       if (r.right > m.right + 1 || r.left < m.left - 1) f.push(x.id + ' sort du pied');

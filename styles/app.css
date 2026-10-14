@@ -3403,6 +3403,29 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 .fil-nouv{display:flex;align-items:center;gap:8px;margin:2px 0;list-style:none;
   font-family:var(--font-mono);font-size:var(--text-11);color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
 .fil-nouv::before,.fil-nouv::after{content:'';flex:1;border-top:1px dashed var(--accent)}
+/* le jour, une fois, au milieu du fil (lot F2) : une étiquette sourde
+   qui se lit, pas une ligne qu'on tape — le gris, puisque rien n'y a
+   changé */
+.fil-jour{display:flex;justify-content:center;margin:4px 0;list-style:none}
+.fil-jour span{padding:2px 8px;border:1px solid var(--border-soft);background:var(--surface-window);
+  font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
+/* un petit visage devant le prénom de qui écrit dans un groupe */
+.vz.vz-s{width:16px;height:16px;border:0;background:none;vertical-align:-3px;margin-right:4px}
+/* moyen : devant un nom de membre, en tête de la fiche d'un ami */
+.vz.vz-m{width:24px;height:24px}
+.gr-nom{display:inline-flex;align-items:center;gap:8px;min-width:0}
+.am-nom{display:flex;align-items:center;gap:10px}
+/* un lien dans un message : il emmène ailleurs, il se souligne — et une
+   adresse longue plie au lieu d'élargir la bulle */
+.lien-msg{color:var(--accent);text-decoration:underline;overflow-wrap:anywhere}
+/* « @Karim » se lit comme un nom ; ce qui ME nomme prend un liseré
+   d'accent sur la bulle (Slack, Discord) */
+.gr-cite{font-weight:var(--weight-semibold);color:var(--accent)}
+.gr-m.gr-pour-moi p{border-left:3px solid var(--accent)}
+/* les prénoms qui s'ouvrent à « @ », au-dessus du champ */
+.gr-propose{width:100%;margin:0}
+/* une mention dans la boîte : l'arobase devant le chiffre, en accent */
+.bx-at{font-family:var(--font-mono);font-size:var(--text-12);font-weight:var(--weight-bold);color:var(--accent)}
 .fil-bas{
   position:sticky;bottom:8px;display:flex;align-items:center;gap:6px;margin:10px 0 0 auto;
   min-height:var(--ctl);padding:0 12px;width:max-content;max-width:100%;

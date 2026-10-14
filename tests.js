@@ -72,7 +72,8 @@ import { GROUPES_MAX, MOT_MAX, nouveauCode, codeNorm, codeAffiche, estCodeTape, 
          responsables, estResponsable, adjointVerifie, nomination, redireNomination, presenceSignee, presenceVerifiee,
          retrait, exclusion, recode, retraitVerifie, excluVerifie, recodeVerifie, migrerGroupe,
          DUREES, reglages as reglagesGroupe, fin as finGroupe, reglagesVerifies, finVerifiee, motPermis, reglagesDe,
-         normaliserGroupe } from './engine/groupe.js';
+         normaliserGroupe, citesDe, citeMoi, mentionsNonLues, prenomsPour, CITES_MAX } from './engine/groupe.js';
+import { decouperLiens, lienSur } from './engine/liens.js';
 import { interpreter, retirer, remplacer, chercherPistes, raisonDe, propositions, elargir,
          contexteRecherche, porteurs, deptDuCp, villeFrequente, deptDePiste, zoneDe, metierDuMoment,
          fraicheur, METIER, metierDuProfil, villeConnue, lieuDuProfil, metierEtiquetteDuProfil, rayonDe,
@@ -2487,6 +2488,56 @@ export async function runSelfTests(){
       eq(premierNonLu(items, 25, x => x.de === 'moi'), 3);
       eq(premierNonLu(items, 5, x => x.de === 'moi'), 1);
       eq(premierNonLu(items, 50, x => x.de === 'moi'), -1);
+    },
+    'liens d’un message : http et https seulement, la ponctuation à la phrase, rien de caché': () => {
+      const L = t => decouperLiens(t).map(x => x.t === 'lien' ? '[' + x.v + '→' + x.href + ']' : x.v).join('');
+      eq(L('Voir https://advens.fr/carrieres.'), 'Voir [https://advens.fr/carrieres→https://advens.fr/carrieres].');
+      eq(L('www.advens.fr, merci'), '[www.advens.fr→https://www.advens.fr/], merci');
+      /* une parenthèse reste au lien seulement si elle y a son ouvrante */
+      eq(L('(https://fr.wikipedia.org/wiki/Lille_(France))'),
+        '([https://fr.wikipedia.org/wiki/Lille_(France)→https://fr.wikipedia.org/wiki/Lille_(France)])');
+      eq(L('deux : https://a.fr et http://b.fr/x?y=1#z !'), 'deux : [https://a.fr→https://a.fr/] et [http://b.fr/x?y=1#z→http://b.fr/x?y=1#z] !');
+      /* jamais un autre protocole, jamais un nom caché avant @, jamais au milieu d'un mot */
+      for (const t of ['javascript:alert(1)', 'data:text/html,x', 'file:///etc/passwd', 'https://banque.fr@pirate.com',
+                       'xhttps://a.fr', 'http://localhost:3000', 'ftp://a.fr'])
+        ok(decouperLiens(t).every(x => x.t === 'texte'), t + ' reste du texte');
+      /* un domaine en lettres non latines se lit comme le navigateur l'ouvrira */
+      eq(lienSur('https://аpple.com/login').affiche, 'https://xn--pple-43d.com/login');
+      eq(lienSur('https://advens.fr').affiche, 'https://advens.fr');
+      eq(decouperLiens(''), []);
+      eq(decouperLiens('rien ici'), [{ t: 'texte', v: 'rien ici' }]);
+    },
+    'mentions : « @Karim » se déduit du texte, perce le silence, ne nomme jamais soi-même': () => {
+      const K = 'KarimKarimKarim00001', I = 'InesInesInesInes0001', M = 'MoiMoiMoiMoiMoi00001', C = 'MarieCharlotte000001';
+      const membres = [{ de: K, prenom: 'Karim' }, { de: I, prenom: 'Inès' }, { de: M, prenom: 'Maheydine' }, { de: C, prenom: 'Marie-Charlotte' }];
+      eq(citesDe('@karim tu viens ? @ines aussi', membres, M), [K, I]);      /* accents et casse pliés */
+      eq(citesDe('Salut @Karim, et @Marie-Charlotte.', membres, M), [K, C]);
+      eq(citesDe('@Karimette, mail@karim.fr, @@', membres, M), []);           /* un mot entier, qui commence par @ */
+      eq(citesDe('@Maheydine', membres, M), []);                             /* jamais soi-même */
+      eq(citesDe('pas d’arobase', membres, M), []);
+      /* un nom en double : les deux sont prévenus */
+      eq(citesDe('@Karim', [...membres, { de: 'KarimBisKarimBis0001', prenom: 'Karim' }], M), [K, 'KarimBisKarimBis0001']);
+      /* la liste qui s'ouvre à « @ » : sans soi, sans doublon */
+      eq(prenomsPour('i', membres, M), ['Inès']);
+      eq(prenomsPour('', membres, M), ['Karim', 'Inès', 'Marie-Charlotte']);
+      /* le message garde ses mentions, et seulement des identifiants valides */
+      const mot = normaliserMessage({ t: 'mot', id: 'm0000001', de: K, prenom: 'Karim', texte: '@Maheydine ?', at: 1000,
+        cite: [M, M, 'pas-un-id', 42] }, 2000);
+      eq(mot.cite, [M]);
+      ok(!('cite' in normaliserMessage({ t: 'mot', id: 'm0000002', de: K, prenom: 'Karim', texte: 'x', at: 1000, cite: [] }, 2000)));
+      eq(normaliserMessage({ t: 'mot', id: 'm0000003', de: K, prenom: 'Karim', texte: 'x', at: 1000,
+        cite: Array.from({ length: 30 }, (_, i) => 'Membre' + String(i).padStart(14, '0')) }, 2000).cite.length, CITES_MAX);
+      /* compté à part, parmi ce qui n'est pas lu */
+      let g = { ...groupeVide(), vu: 1500 };
+      g = traiterMessage(g, mot);
+      g = traiterMessage(g, normaliserMessage({ t: 'mot', id: 'm0000004', de: I, prenom: 'Inès', texte: '@Maheydine', at: 1800, cite: [M] }, 2000));
+      ok(citeMoi(mot, M) && !citeMoi(mot, K));
+      eq(mentionsNonLues(g, M), 1);                          /* celui d'avant ma visite est lu */
+      /* dans la boîte : un groupe dont on a coupé le son compte s'il me nomme */
+      const G = cleFil('groupe', 'ABCDEFGHIJKLMNO');
+      let p = basculerMuet(prefsVides(), G);
+      eq(aLire(boite([{ cle: G, sorte: 'groupe', nom: 'BTS', at: 1, n: 4 }], p)), 0);
+      eq(aLire(boite([{ cle: G, sorte: 'groupe', nom: 'BTS', at: 1, n: 4, cite: 1 }], p)), 1);
     },
     'visages en pixels : le même pour la même graine, symétrique, ni vide ni plein': () => {
       const a = visage('KarimKarimKarim00001'), b = visage('KarimKarimKarim00001'), c = visage('InesInesInesInes0001');

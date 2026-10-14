@@ -237,6 +237,10 @@ export function normaliserMessage(m, now = Date.now()){
     if (!texte) return null;
     const out = { t: 'mot', id: m.id, de: m.de, prenom: prenomDe(m.prenom), texte, at };
     if (DUREES.includes(m.j) && m.j !== MOT_JOURS) out.j = m.j;
+    /* lot F2 : les membres que le mot nomme (« @Karim ») — des
+       identifiants, CITES_MAX au plus ; un téléphone d'avant les ignore */
+    const cite = Array.isArray(m.cite) ? [...new Set(m.cite.filter(idAmiValide))].slice(0, CITES_MAX) : [];
+    if (cite.length) out.cite = cite;
     return out;
   }
   /* LES RÉGLAGES (décisions 31 à 35) : tout ce qu'un responsable règle,
@@ -354,7 +358,8 @@ export function traiterMessage(g, m){
   }
   if (m.t === 'mot'){
     if (g.fil.some(x => x.id === m.id)) return g;
-    return { ...g, fil: [...g.fil, { t: 'mot', id: m.id, de: m.de, prenom: m.prenom, texte: m.texte, at: m.at, ...(m.j ? { j: m.j } : {}) }] };
+    return { ...g, fil: [...g.fil, { t: 'mot', id: m.id, de: m.de, prenom: m.prenom, texte: m.texte, at: m.at,
+      ...(m.j ? { j: m.j } : {}), ...(m.cite ? { cite: m.cite } : {}) }] };
   }
   if (m.t === 'part'){
     const i = g.fil.findIndex(x => x.id === m.id);
@@ -399,6 +404,42 @@ export const membresDe = g => Object.entries(g.membres)
   .sort((a, b) => a.prenom.localeCompare(b.prenom, 'fr'));
 /* ce qui est arrivé des autres depuis que j'ai regardé */
 export const nouveaux = (g, moi) => filDe(g).filter(x => x.t !== 'retire' && x.de !== moi && x.at > g.vu).length;
+
+/* ---------- LES MENTIONS (lot F2) ----------
+   « @Karim » dans un mot nomme Karim : son téléphone le compte à part,
+   même quand il a coupé le son du groupe — c'est à ça que sert de
+   nommer quelqu'un (Slack, Discord, WhatsApp font de même). La mention
+   se DÉDUIT du texte au moment d'envoyer : on ne choisit rien, on
+   l'écrit, et la liste des prénoms qui s'ouvre à « @ » n'est qu'une aide
+   à l'écrire. Deux membres du même prénom sont nommés tous les deux :
+   mieux vaut prévenir deux personnes qu'oublier la bonne. */
+export const CITES_MAX = 10;
+const plie = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const echappe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+export function citesDe(texte, membres, moi){
+  const t = plie(texte);
+  if (!t.includes('@')) return [];
+  return [...new Set((Array.isArray(membres) ? membres : [])
+    .filter(m => m && m.de !== moi && idAmiValide(m.de) && m.prenom)
+    /* l'arobase commence un mot (« mail@karim.fr » ne nomme personne),
+       le prénom finit le sien — sans lookbehind, que les Safari d'avant
+       16.4 ne lisent pas (§9, le socle commun) */
+    .filter(m => new RegExp('(?:^|[^\\p{L}\\p{N}])@' + echappe(plie(m.prenom)) + '(?![\\p{L}\\p{N}])', 'u').test(t))
+    .map(m => m.de))].slice(0, CITES_MAX);
+}
+/* ce qui me nomme, parmi ce que je n'ai pas encore lu */
+export const citeMoi = (x, moi) => !!(x && Array.isArray(x.cite) && x.cite.includes(moi));
+export const mentionsNonLues = (g, moi) => filDe(g).filter(x => x.t === 'mot' && x.de !== moi && x.at > g.vu && citeMoi(x, moi)).length;
+/* la liste qui s'ouvre à « @ » : les membres dont le prénom commence par
+   ce qui suit l'arobase, accents pliés, soi-même exclu */
+export function prenomsPour(fragment, membres, moi){
+  const f = plie(fragment);
+  const vus = new Set();
+  return (Array.isArray(membres) ? membres : [])
+    .filter(m => m && m.de !== moi && m.prenom && plie(m.prenom).startsWith(f))
+    .filter(m => { const k = plie(m.prenom); if (vus.has(k)) return false; vus.add(k); return true; })
+    .map(m => m.prenom).slice(0, 6);
+}
 /* faut-il redire « je suis là » ? */
 export const presenceAredire = (g, now = Date.now()) => g.presence + MEMBRE_REDIRE_JOURS * JOUR < now;
 
