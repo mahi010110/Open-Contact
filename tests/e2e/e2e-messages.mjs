@@ -14,9 +14,10 @@
      la preuve — ni nom de famille, ni e-mail, ni piste, ni note ;
    ② chez Inès : « Écrire à Karim » au pied de sa fiche, le message à
      droite, ses retours à la ligne gardés, le champ vidé ;
-   ③ chez Karim : « Tes amis » en tête d'« Aujourd'hui » (« t'a écrit »),
-     le chiffre au bout de la ligne d'Inès dans « Amis », la conversation
-     d'un tap — et, lue, plus rien ne se compte ;
+   ③ chez Karim : la ligne d'Inès en tête de la boîte d'« Échanger »,
+     en gras avec son chiffre, et l'onglet qui compte une conversation
+     (13 octobre 2026 — plus dans « Amis » ni dans « Aujourd'hui ») ; la
+     conversation d'un tap — et, lue, plus rien ne se compte ;
    ④ EN DIRECT : conversation ouverte des deux côtés, ce qui s'écrit en
      face arrive sans rien toucher ;
    ⑤ SANS RÉSEAU : le message reste dans la conversation, « pas encore
@@ -62,6 +63,9 @@ async function ecran(profil, pistes, o = {}){
   p.on('pageerror', e => errors.push(String(e)));
   p.on('console', m => { if (m.type() === 'error' && !/WebSocket connection to 'wss:\/\/127\.0\.0\.1:9/.test(m.text())) errors.push(m.text()); });
   await p.goto(base + '/#/aujourdhui', { waitUntil: 'load' });
+  /* semer APRÈS le démarrage : l'app qui démarre range ses conversations
+     (un ami absent emporte la sienne) et réécrirait par-dessus la graine */
+  await p.waitForFunction(() => !!document.querySelector('#sbVer')?.textContent);
   await p.evaluate(async ([d, pr, url, conv]) => {
     const st = await import('./engine/storage.js');
     await st.kvInit();
@@ -194,30 +198,35 @@ console.log('② « Écrire à Karim » au pied de sa fiche, le message à droit
   console.log('① la fuite d’abord : une étiquette, 30 jours, du chiffré ; le prénom, la clé, le texte, l’heure et la preuve — rien d’autre ✓');
 }
 
-/* ---------- ③ chez Karim : « Aujourd'hui », « Amis », la conversation ---------- */
+/* ---------- ③ chez Karim : la boîte, l'onglet, la conversation ---------- */
+const boiteK = () => K.p.evaluate(id => {
+  const r = document.querySelector(`.bx-l[data-ami="${id}"]`);
+  const a = document.querySelector('.bottomnav [data-r="echanger"]');
+  const n = a && a.querySelector('.nav-n');
+  return { ligne: r ? { gras: r.classList.contains('bx-nonlu'), nom: r.querySelector('.bx-n').textContent.trim(),
+                        apercu: r.querySelector('.bx-p').textContent.trim(), n: r.querySelector('.bx-c')?.textContent.trim() || '',
+                        aria: r.getAttribute('aria-label') } : null,
+           onglet: n && !n.hidden ? n.textContent : '', aria: a ? a.getAttribute('aria-label') : '' };
+}, ID_I);
 await rouvrir(K.p);
-const ligne = await attendre(() => K.p.evaluate(() => {
-  const r = document.querySelector('.tr-amis .act-ami[data-sorte="message"]');
-  return r ? { nom: r.querySelector('.act-verb').textContent.trim(), raison: r.querySelector('.act-vecu').textContent.trim(),
-               qui: r.querySelector('.act-who').textContent.trim(), tete: !r.closest('.tranche').previousElementSibling?.classList.contains('tranche') } : null;
-}), 'chez Karim, « Aujourd’hui » ne dit pas qu’Inès a écrit');
-if (ligne){
-  if (ligne.nom !== 'Inès Martin' || ligne.raison !== 't’a écrit' || !/^Salut Karim ! Tu as un contact chez Thales/.test(ligne.qui))
-    fail('la ligne d’« Aujourd’hui » : ' + JSON.stringify(ligne));
-  console.log('③ « Tes amis » chez Karim : « Inès Martin · t’a écrit · Salut Karim !… » ✓');
-}
+/* l'onglet le dit d'où que l'on soit — ici, depuis « Aujourd'hui » */
+const vu3 = await attendre(async () => { const b = await boiteK(); return b.onglet === '1' ? b : null; },
+  'chez Karim, l’onglet « Échanger » ne compte pas la conversation d’Inès');
+if (vu3 && vu3.aria !== 'Échanger, 1 conversation non lue') fail('le nom de l’onglet : ' + vu3.aria);
+if (await K.p.evaluate(() => /t’a écrit/.test(document.querySelector('#view-aujourdhui').textContent)))
+  fail('« Aujourd’hui » redit encore les messages — ils vivent dans la boîte');
 await K.p.screenshot({ path: `${SHOTS}/130-conv-aujourdhui.png` });
-await ongletAmis(K.p);
+await K.p.evaluate(() => { location.hash = '#/echanger'; });
+await K.p.waitForSelector(`.bx-l[data-ami="${ID_I}"]`);
 {
-  const n = await K.p.evaluate(() => document.querySelector('#piAmis .am-row .am-n')?.textContent.trim() || '');
-  if (n !== '1') fail('la ligne d’Inès dans « Amis » ne compte pas le message non lu : « ' + n + ' »');
-  const al = await K.p.evaluate(() => document.querySelector('#piAmis .am-row .ri-main').getAttribute('aria-label'));
-  if (al !== 'Ouvrir Inès Martin, 1 message non lu') fail('le nom de la ligne : ' + al);
+  const { ligne } = await boiteK();
+  if (!ligne.gras || ligne.nom !== 'Inès Martin' || ligne.n !== '1' || !/^Salut Karim ! Tu as un contact chez Thales/.test(ligne.apercu))
+    fail('la ligne d’Inès dans la boîte : ' + JSON.stringify(ligne));
+  if (!/^Inès Martin, 1 nouveau, Salut Karim !/.test(ligne.aria)) fail('le nom de la ligne : ' + ligne.aria);
+  console.log('③ chez Karim : « Échanger 1 » sur l’onglet, la ligne d’Inès en gras dans la boîte, « 1 », le début du message ✓');
 }
-await K.p.screenshot({ path: `${SHOTS}/130-conv-amis.png` });
-await K.p.evaluate(() => { location.hash = '#/aujourdhui'; });
-await K.p.waitForSelector('.tr-amis .act-ami[data-sorte="message"] .act-main');
-await K.p.click('.tr-amis .act-ami[data-sorte="message"] .act-main');
+await K.p.screenshot({ path: `${SHOTS}/130-conv-boite.png` });
+await K.p.click(`.bx-l[data-ami="${ID_I}"]`);
 await K.p.waitForSelector('#msFil');
 {
   const b = await bulles(K.p);
@@ -225,12 +234,16 @@ await K.p.waitForSelector('#msFil');
 }
 await fermerTout(K.p);
 await K.p.waitForTimeout(300);
-if (await K.p.$('.tr-amis .act-ami[data-sorte="message"]')) fail('lu, le message reste dans « Aujourd’hui »');
+{
+  const b = await boiteK();
+  if (b.ligne.gras || b.ligne.n || b.onglet || b.aria !== 'Échanger') fail('lue, la conversation se compte encore : ' + JSON.stringify(b));
+}
 await ongletAmis(K.p);
-if (await K.p.$('#piAmis .am-row .am-n')) fail('lu, le message se compte encore dans « Amis »');
+if (await K.p.$('#piAmis .am-row .am-n')) fail('« Amis » compte encore les messages');
 console.log('③ un tap ouvre la conversation (Inès à gauche) ; lue, rien ne se compte plus ✓');
 
 /* ---------- ④ en direct, des deux côtés ---------- */
+/* depuis sa fiche d'ami : « Écrire à Inès » */
 await K.p.click('#piAmis .am-row .ri-main');
 await K.p.waitForSelector('.overlay #amEcrire');
 await K.p.click('.overlay #amEcrire');
@@ -317,16 +330,29 @@ for (const [nom, o] of [['pouce', {}], ['pouce-sombre', { sombre: true }], ['pos
      vient pas se mêler à la conversation semée */
   const E = await ecran({ ...INES, boite: await nouvelleCle() }, PISTES_I, { ...o, conv: CONV });
   if (o.gros) await E.p.addStyleTag({ content: 'html{font-size:200% !important}' });
-  await ongletAmis(E.p);
-  const n = await E.p.evaluate(() => document.querySelector('#piAmis .am-row .am-n')?.textContent.trim() || '');
-  if (n !== '2') fail(nom + ' : la ligne de Karim compte « ' + n + ' »');
-  await E.p.screenshot({ path: `${SHOTS}/130-conv-amis-${nom}.png` });
+  /* la boîte compte ses deux messages */
+  await E.p.evaluate(() => { location.hash = '#/echanger'; });
+  await E.p.waitForSelector(`.bx-l[data-ami="${ID_K}"]`);
   const poste = (o.vp || {}).width > 900;
+  /* au poste, la conversation la plus récente s'ouvre d'elle-même à
+     droite de la boîte : elle est lue, son chiffre part */
   if (poste){
-    /* au poste, le geste vit dans le détail, contourné */
+    await E.p.waitForFunction(() => document.querySelector('#bxVolet .mh-t')?.textContent === 'Karim Benali');
+    await E.p.waitForTimeout(400);
+  }
+  const n = await E.p.evaluate(id => document.querySelector(`.bx-l[data-ami="${id}"] .bx-c`)?.textContent.trim() || '', ID_K);
+  if (poste){
+    if (n) fail(nom + ' : ouverte à droite, la conversation de Karim se compte encore « ' + n + ' »');
+  } else if (n !== '2') fail(nom + ' : la ligne de Karim compte « ' + n + ' »');
+  await E.p.screenshot({ path: `${SHOTS}/130-conv-boite-${nom}.png` });
+  await ongletAmis(E.p);
+  await E.p.screenshot({ path: `${SHOTS}/130-conv-amis-${nom}.png` });
+  if (poste){
+    /* au poste, le geste vit dans le détail, contourné — et ne compte
+       plus rien : ce qui n'est pas lu se compte dans la boîte */
     const b = await E.p.evaluate(() => { const x = document.querySelector('.am-detail #amEcrire');
       return x ? { mot: x.innerText.replace(/\s+/g, ' ').trim(), contour: x.classList.contains('btn-contour') } : null; });
-    if (!b || !/^Écrire à Karim 2$/.test(b.mot) || !b.contour) fail(nom + ' : le détail ne porte pas « Écrire à Karim » : ' + JSON.stringify(b));
+    if (!b || b.mot !== 'Écrire à Karim' || !b.contour) fail(nom + ' : le détail ne porte pas « Écrire à Karim » : ' + JSON.stringify(b));
     await E.p.click('.am-detail #amEcrire');
   } else {
     await E.p.click('#piAmis .am-row .ri-main');
@@ -350,9 +376,16 @@ for (const [nom, o] of [['pouce', {}], ['pouce-sombre', { sombre: true }], ['pos
        heure d'écart, la disent chacun ; aucune bulle ne la répète */
     const heures = [...b.querySelectorAll('.ms-m')].map(li => !!li.querySelector('time'));
     if (heures.join() !== 'true,true,true') f.push('l’heure : ' + heures.join());
-    /* le dernier message est à l'écran : la conversation s'ouvre en bas */
+    /* la conversation s'ouvre en bas — ou, s'il y a du neuf, sur la ligne
+       « N nouveaux » (13 octobre 2026) : elle est alors à l'écran, et si
+       la suite déborde, « ↓ N nouveaux » le dit */
     const der = b.querySelector('.ms-m:last-child').getBoundingClientRect(), bb = b.getBoundingClientRect();
-    if (der.bottom > bb.bottom + 1) f.push('le dernier message est sous le pied');
+    const nouv = b.querySelector('.fil-nouv')?.getBoundingClientRect();
+    if (der.bottom > bb.bottom + 1){
+      if (!nouv) f.push('le dernier message est sous le pied');
+      else if (nouv.top < bb.top || nouv.bottom > bb.bottom) f.push('la ligne « nouveaux » n’est pas à l’écran');
+      else if (!b.querySelector('.fil-bas')) f.push('du neuf sous le pied, et aucun « ↓ nouveaux » pour le dire');
+    }
     return f;
   });
   /* à la souris, un contrôle fait 32 px (§5) : la hauteur ne se compte qu'au doigt */

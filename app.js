@@ -13,6 +13,8 @@ import { $, $$, toast, installFoldMotion, sheetOpen } from './ui/dom.js';
 import { renderToday } from './ui/today.js';
 import { renderPistes } from './ui/pistes.js';
 import { renderEchanger } from './ui/echanger.js';
+import { majOnglets, chargerFils } from './ui/conversations.js';
+import { chargerGroupes } from './ui/groupes.js';
 import { renderMoi } from './ui/moi.js';
 import { openCapture } from './ui/capture.js';
 import { downloadBackup, closeReglages } from './ui/moi.js';
@@ -41,6 +43,9 @@ function render(){
   if (S.stale && !sheetOpen()){ reloadFromStorage(); return; }
   for (const k in VIEWS) $('#view-' + k).hidden = (k !== S.route);
   VIEWS[S.route]();
+  /* le chiffre des onglets suit chaque rendu : un message reçu, une
+     conversation lue, une action faite (ui/conversations.js) */
+  majOnglets();
   $$('[data-r]').forEach(a => {
     const on = a.dataset.r === S.route;
     a.classList.toggle('on', on);
@@ -121,13 +126,17 @@ bus.refresh = render;
   installFoldMotion();
   await initVerrou();
   await loadAll();
-  /* cinq chargements indépendants : en parallèle, pas en file — chaque
+  /* sept chargements indépendants : en parallèle, pas en file — chaque
      aller-retour IndexedDB sérialisé se paierait au démarrage. Les
-     conversations avec mes amis en sont : « Aujourd'hui » et « Amis »
-     comptent ce qui n'est pas lu dès le premier écran. */
+     conversations avec mes amis en sont : l'onglet « Échanger » compte
+     ce qui n'est pas lu dès le premier écran. */
   await Promise.all([
     import('./ui/connexions.js').then(m => m.loadMail()).catch(() => {}),
     import('./ui/messages.js').then(m => m.chargerMessages()).catch(() => {}),
+    /* et mes groupes, et ce que j'ai réglé sur chaque conversation : le
+       chiffre de l'onglet « Échanger » se lit dès le premier écran */
+    chargerGroupes(),
+    chargerFils(),
     CAMPAGNES ? import('./ui/campagnes.js').then(m => m.loadCampaigns()).catch(() => {}) : null,
     ORDINATEUR ? import('./ui/analyse.js').then(m => m.loadMailAnalysis()).catch(() => {}) : null,
     ORDINATEUR ? import('./ui/propositions.js').then(m => m.loadProposals()).catch(() => {}) : null

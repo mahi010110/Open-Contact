@@ -12,10 +12,10 @@
    prend une place qui existe ») :
    · la fiche d'un ami porte « Écrire à Karim » : sur une fiche de
      personne, écrire est LE geste (Contacts d'iOS, WhatsApp) ;
-   · sa ligne dans « Amis » compte ce qui n'est pas lu, en accent, à la
-     place du chiffre d'un groupe dans « Échanger » ;
-   · « Aujourd'hui » le dit en tête, dans « Tes amis » : quelqu'un
-     attend une réponse.
+   · la boîte « Échanger » la range avec les groupes, la plus récente
+     en haut, et l'onglet compte ce qui n'est pas lu (13 octobre 2026 :
+     « comme les messageries traditionnelles ») ; au poste, elle se pose
+     à droite de la liste.
    La feuille a le dessin du fil d'un groupe — les miens à droite en
    lavis d'accent, l'heure, et au pied le champ et la flèche. En direct
    tant qu'elle est ouverte ; fermée, la relève de la boîte prend le
@@ -30,6 +30,8 @@ import { S, bus } from './state.js';
 import { openSheet, btn, ic, champGrandit } from './dom.js';
 import { quandMessage } from './dates.js';
 import { preparerMessage, posterMessage, enAttente, ecouterBoite, relever, echecEnvoi } from './reseau.js';
+import { cleFil } from '../engine/conversations.js';
+import { ligneNouveaux, suivreNouveaux } from './fil.js';
 
 let conv = conversationsVides();
 let charge = null;
@@ -44,15 +46,21 @@ export function chargerMessages(){
 }
 const sauver = () => kvSet(MESSAGES_KEY, JSON.stringify(conv)).catch(() => {});
 
-/* ce que la liste des amis et « Aujourd'hui » lisent */
-export const nonLusDe = id => nonLus(conv, id);
-export function lignesMessages(){
-  return (S.profile.amis || []).map(a => ({ a, n: nonLus(conv, a.id) })).filter(x => x.n)
-    .sort((x, y) => dernier(conv, y.a.id).at - dernier(conv, x.a.id).at)
-    .map(({ a, n }) => {
-      const raison = n > 1 ? `t’a écrit ${n} fois` : 't’a écrit', qui = dernier(conv, a.id).texte.replace(/\s+/g, ' ');
-      return { sorte: 'message', id: a.id, nom: a.nom, raison, qui, aria: `${prenomAmi(a)} ${raison} : ${qui}` };
-    });
+/* LA BOÎTE « Échanger » (ui/conversations.js) : chaque conversation
+   résumée comme une ligne de messagerie. Un ami à qui l'on n'a jamais
+   écrit n'y est pas — il est dans « Amis », et « Écrire à un ami »
+   l'ouvre. */
+export function resumeConversations(){
+  return (S.profile.amis || []).filter(a => filAvec(conv, a.id).length).map(a => {
+    const d = dernier(conv, a.id);
+    return { cle: cleFil('ami', a.id), sorte: 'ami', id: a.id, nom: a.nom, at: d.at,
+             apercu: (d.moi ? 'Toi : ' : '') + d.texte.replace(/\s+/g, ' '), n: nonLus(conv, a.id) };
+  });
+}
+export function marquerAmiLu(id){
+  conv = marquerLu(conv, id);
+  sauver();
+  bus.refresh();
 }
 
 /* reçu par la boîte (ui/reseau.js) — la preuve est déjà vérifiée */
@@ -71,20 +79,23 @@ export async function ajouterRecu(amiId, l){
    elle revient quand l'autre répond, ou après cinq minutes de silence.
    « pas encore parti » se dit toujours : c'est un état, pas une heure. */
 const SALVE = 5 * 60000;
-function bulleHTML(m, avant){
+function bulleHTML(m, avant, neuf){
   const attente = m.moi && enAttente(m.id);
   const suite = !!avant && avant.moi === m.moi && m.at - avant.at < SALVE;
   const tete = attente ? `<span class="gr-qui">${suite ? '' : `<time>${esc(quandMessage(m.at))}</time> · `}${ic('clock', 'ic-14')} pas encore parti</span>`
     : suite ? '' : `<span class="gr-qui"><time>${esc(quandMessage(m.at))}</time></span>`;
-  return `<li class="gr-m ms-m${m.moi ? ' gr-moi' : ''}${suite ? ' ms-suite' : ''}">${tete}<p>${esc(m.texte)}</p></li>`;
+  return `<li class="${neuf ? 'fil-neuf ' : ''}gr-m ms-m${m.moi ? ' gr-moi' : ''}${suite ? ' ms-suite' : ''}">${tete}<p>${esc(m.texte)}</p></li>`;
 }
 
 /* LA CONVERSATION. La barre porte le nom de l'ami, et lui seul : c'est
    celle d'une messagerie (§4). */
-export async function ouvrirConversation(a, apres){
+export async function ouvrirConversation(a, apres, o = {}){
   await chargerMessages();
   let arret = null;
-  const sh = openSheet({ title: a.nom, icon: 'message-text', className: 'modal-groupe modal-conv',
+  /* ce qui était lu AVANT d'ouvrir : la ligne « N nouveaux » se pose là */
+  const vuAvant = (conv.fils[a.id] && conv.fils[a.id].vu) || 0;
+  /* au poste, posée dans le volet de la boîte ; au pouce, une feuille */
+  const sh = openSheet({ title: a.nom, icon: 'message-text', className: 'modal-groupe modal-conv', dans: o.dans,
     onClose: () => {
       if (arret) arret();
       if (ouverte && ouverte.sh === sh) ouverte = null;
@@ -97,14 +108,20 @@ export async function ouvrirConversation(a, apres){
     if (!sh.body.isConnected) return;
     const fil = filAvec(conv, a.id);
     const bas = sh.body.scrollHeight - sh.body.scrollTop - sh.body.clientHeight < 40;
+    const neuf = m => !m.moi && m.at > vuAvant;
+    const n = fil.filter(neuf).length;
+    const premier = fil.findIndex(neuf);
     /* vide, la feuille le dit d'un mot — un ÉTAT, pas une explication */
     sh.body.innerHTML = fil.length
-      ? `<ol class="gr-fil ms-fil" id="msFil">${fil.map((m, i) => bulleHTML(m, fil[i - 1])).join('')}</ol>`
+      ? `<ol class="gr-fil ms-fil" id="msFil">${fil.map((m, i) =>
+          (i === premier ? ligneNouveaux(n) : '') + bulleHTML(m, fil[i - 1], neuf(m))).join('')}</ol>`
       : `<p class="ms-vide" id="msVide">Aucun message pour l’instant.</p>`;
-    if (bas || !rendu) sh.body.scrollTop = sh.body.scrollHeight;
+    if (!rendu) suivre.ouvrir(); else if (bas) sh.body.scrollTop = sh.body.scrollHeight;
+    else suivre.maj();
     rendu = true;
   };
   let rendu = false;
+  const suivre = suivreNouveaux(sh.body);
   ouverte = { id: a.id, sh, rendre };
 
   /* LE PIED : le champ et la flèche, comme dans un groupe. Un message

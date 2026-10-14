@@ -67,6 +67,37 @@ const SEMER = async () => {
     { t: j - 60 * 36e5, txt: 'Reçu du groupe : +7 piste(s)', ids: ['c3'] }
   ];
   saveJournal(); saveData();
+  /* une conversation d'ami : la boîte d'« Échanger » a de quoi montrer
+     ses rangées (13 octobre 2026) */
+  const { saveProfile } = await import('./ui/state.js');
+  S.profile.amiId = S.profile.amiId || 'MoiMoiMoiMoiMoi01';
+  S.profile.amis = [{ id: 'InesInesInesInes01', nom: 'Inès Martin', parcours: [] }];
+  saveProfile();
+  await (await import('./ui/messages.js')).ajouterRecu('InesInesInesInes01',
+    { id: 'm0000001', texte: 'Tu as un contact chez Thales ?', at: j - 6e5 });
+};
+
+/* le fil des échanges vit dans sa feuille « Historique », derrière une
+   ligne de la boîte : on l'ouvre comme un écran de plus */
+const ALLER = async (p, route) => {
+  await p.evaluate(async () => {
+    const { topSheet } = await import('./ui/dom.js');
+    let s, n = 0; while ((s = topSheet()) && n++ < 5) s.close(null, true);
+    /* la feuille fermée s'en va (§4) : on attend qu'elle soit partie */
+    for (let i = 0; i < 20 && document.querySelector('.overlay'); i++) await new Promise(r => setTimeout(r, 50));
+  });
+  /* et son retour d'historique atterrit avant qu'on change d'écran */
+  await p.waitForTimeout(150);
+  await p.evaluate(r => { location.hash = '#/' + r; }, route === 'historique' ? 'echanger' : route);
+  await p.waitForTimeout(500);
+  if (route === 'historique'){
+    /* PAS de clic de souris : après un pointeur, Chromium ne montre plus
+       `:focus-visible` à un focus posé par script, et tout ce qui suit
+       mesurerait 0 % — l'anneau absent, non par faute de l'app */
+    await p.evaluate(() => document.querySelector('#ecHisto').click());
+    await p.waitForSelector('.overlay:not(.ov-out) .ec-l');
+    await p.waitForTimeout(400);
+  }
 };
 
 /* Un représentant par FAMILLE (balise + deux premières classes) : mesurer
@@ -78,7 +109,10 @@ const RAMASSE = () => {
   document.querySelectorAll('[data-oc-focus]').forEach(n => delete n.dataset.ocFocus);
   const SEL = 'a[href],button,input,select,textarea,summary,[tabindex]:not([tabindex="-1"]),[role="button"]';
   const vus = new Map();
-  for (const n of document.querySelectorAll(SEL)){
+  /* une feuille ouverte : seulement ce qu'elle porte — l'écran dessous
+     est sous son voile, rien ne s'y focalise au clavier */
+  const haut = [...document.querySelectorAll('.overlay:not(.ov-out)')].pop();
+  for (const n of (haut || document).querySelectorAll(SEL)){
     if (n.disabled || n.offsetParent === null) continue;
     const r = n.getBoundingClientRect();
     if (r.width < 6 || r.height < 6) continue;
@@ -198,12 +232,12 @@ async function balayer(){
       await p.waitForSelector('#view-aujourdhui:not([hidden])');
       await p.evaluate(SEMER);
       await p.evaluate(t => { document.documentElement.dataset.theme = t; }, theme);
-      for (const route of ['aujourdhui', 'pistes', 'echanger', 'moi']){
-        await p.evaluate(r => { location.hash = '#/' + r; }, route);
-        await p.waitForTimeout(500);
+      for (const route of ['aujourdhui', 'pistes', 'echanger', 'historique', 'moi']){
+        await ALLER(p, route);
         for (const f of await p.evaluate(RAMASSE)){
           const r = await mesurer(p, f.id, dpr);
           const ou = `${theme}/${tag}/${route} ${f.sig}`;
+          if (/\.bx-l\b/.test(f.sig) && !r.perdu) bilan.boite = (bilan.boite || 0) + 1;
           if (r.perdu){ bilan.perdus++; continue; }
           bilan.n++;
           bilan.minAire = Math.min(bilan.minAire, r.pct);
@@ -232,8 +266,11 @@ if (bilan.ko.length)
   fail(`focus : ${bilan.ko.length} contrôle(s) sous le plancher WCAG 2.2 SC 2.4.11 —\n      `
     + bilan.ko.join('\n      '));
 else
-  console.log(`focus : ${bilan.n} contrôles balayés (4 écrans × 2 ergonomies × 2 thèmes), `
+  console.log(`focus : ${bilan.n} contrôles balayés (5 écrans × 2 ergonomies × 2 thèmes), `
     + `aire ≥ ${bilan.minAire} %, contraste ≥ ${bilan.minContraste}:1, anneau entier partout ✓`);
+/* ce que la boîte a apporté se mesure aussi : sans sa rangée, le balayage
+   d'« Échanger » ne voyait que les deux verbes */
+if (!bilan.boite) fail('aucune rangée de la boîte mesurée — la graine ne sème plus de conversation');
 
 /* ---- LES SONDES ----
    Un contrôle qui rend zéro pour toujours se lit comme une réussite. On
@@ -258,8 +295,7 @@ for (const [quoi, css] of SONDES){
   await p.waitForSelector('#view-aujourdhui:not([hidden])');
   await p.evaluate(SEMER);
   await p.addStyleTag({ content: css });
-  await p.evaluate(() => { location.hash = '#/echanger'; });
-  await p.waitForTimeout(500);
+  await ALLER(p, 'historique');
   let vu = false;
   for (const f of await p.evaluate(RAMASSE)){
     const r = await mesurer(p, f.id, 2);

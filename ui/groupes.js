@@ -8,8 +8,9 @@
    ouverture, et l'aperçu passe avant toute fusion (invariant ②).
 
    Trois places, pas une de plus :
-   · « Échanger » — le cadre « Groupes » : Créer, Rejoindre, une rangée
-     par groupe avec ce qui est arrivé depuis la dernière fois ;
+   · la boîte « Échanger » (ui/conversations.js) — une ligne par groupe,
+     avec ses amis, la plus récente en haut : le dernier mot, ce qui n'est
+     pas lu ; « Nouveau groupe » ouvre Créer ou Rejoindre ;
    · la feuille d'un groupe — les prénoms, le fil, et le pied pour
      écrire ou donner ;
    · « Groupe » — les prénoms, les réglages (décisions 31 à 35 : le nom,
@@ -34,6 +35,8 @@ import { phraseCritere } from '../engine/critere.js';
 import { emailPlausible } from '../engine/model.js';
 import { S, bus, saveProfile } from './state.js';
 import { openSheet, toast, btn, ic, showUndo, clavier, champGrandit, bindDeleteGesture, confirmSheet, choixHTML } from './dom.js';
+import { cleFil } from '../engine/conversations.js';
+import { ligneNouveaux, suivreNouveaux } from './fil.js';
 import { quandMessage } from './dates.js';
 import { makeQrSvg } from './qr.js';
 import { publier, lire, ecouter, evenement, echecEnvoi, amisJoignables, recevoirDemandeGroupe, recueDe, chargerReseau,
@@ -249,57 +252,39 @@ function sortirExclu(code){
   toast(`Tu n’es plus dans ${g.nom || 'ce groupe'}.`);
 }
 
-/* ---------- « Échanger » : les groupes, À LA PLACE DE LA PORTE ----------
-   Avant les groupes, l'écran tenait en trois gestes — Donner, Recevoir,
-   et une porte « Partage en groupe » — et le mainteneur le trouvait
-   juste. Les groupes ont été posés À CÔTÉ (un cadre « Groupes » avec
-   deux boutons, un cadre « Amis » avec deux autres) : quatre boutons de
-   plus pour des gestes qu'on fait une fois, et l'écran ne se lisait
-   plus. Ils reprennent donc la place de la porte, et rien d'autre :
-     · sans groupe, UNE porte, « Groupes » — celle d'avant, sous un mot
-       neuf ; elle ouvre « Créer » ou « Rejoindre » (NN/g, divulgation
-       progressive : ce qui sert une fois se range derrière une entrée) ;
-     · avec des groupes, une porte par groupe — on y entre tous les
-       jours —, ce qui est arrivé en chiffre, et « Nouveau groupe » en
-       dernier, en encre sourde : la ligne « Ajouter un compte » de la
-       liste des comptes d'iOS.
-   Au pouce, les portes sont des rangées d'un même cadre (§6, rangée) ;
-   au poste, des contrôles taillés à leur mot dans la rangée des verbes —
-   les deux dessins qu'avait la porte d'avant, au même endroit. Les AMIS
-   n'y sont plus : leur liste vit dans « Mes pistes », et le scanner de
-   « Recevoir » reconnaît leur QR. À cinq groupes, « Nouveau groupe »
-   n'est plus là : l'indisponible est absent, jamais grisé. */
-export function groupesHTML(){
+/* ---------- LA BOÎTE « Échanger » (ui/conversations.js) ----------
+   Chaque groupe résumé comme une ligne de messagerie : son nom, ce qui
+   s'y est dit en dernier, ce qui n'est pas lu — et qui attend à la porte,
+   compté avec (quelqu'un attend, c'est à moi de répondre). */
+const apercuDe = x => {
+  const qui = x.de === moi() ? 'Toi' : x.prenom;
+  if (x.t === 'retire') return 'Message retiré';
+  if (x.t === 'demande') return `${x.de === moi() ? 'Tu cherches' : x.prenom + ' cherche'} quelqu’un ${quoiDe(x.lettre)}`;
+  if (x.t === 'mot') return `${qui} : ${x.texte}`;
+  return `${qui} : ${x.nb} piste${x.nb > 1 ? 's' : ''}`;
+};
+export function resumeGroupes(){
   const liste = mesGroupes();
-  /* les groupes où j'ai demandé à entrer, et pas encore entré (lot 5c) */
   const portes = new Set(liste.map(g => g.porte).filter(Boolean));
-  const enAttente = attentes().filter(a => !portes.has(a.porte));
-  const plein = liste.length + enAttente.length >= GROUPES_MAX;
-  const chevron = ic('chevron-right', 'ic-14 gr-chev');
-  if (!liste.length && !enAttente.length)
-    return `<div class="ec-groupes">
-        <button class="gr-neuf" id="ecGrNeuf"><b>${ic('message-text', 'ic-14')} Groupes</b>${chevron}</button>
-      </div>`;
-  return `<div class="ec-groupes" role="group" aria-label="Groupes">${liste.map(g => {
-      /* ce qui est arrivé, et qui attend à la porte (je suis responsable) */
-      const n = (etat[g.code] ? nouveaux(etat[g.code], moi()) : 0) + quiAttend(g.code).length;
-      return `<button class="gr-ligne" data-groupe="${esc(g.code)}">
-          <b>${ic('message-text', 'ic-14')} ${esc(nomDe(g.code))}</b>
-          ${n ? `<span class="gr-n" aria-label="${n} nouveau${n > 1 ? 'x' : ''}">${n}</span>` : ''}
-          ${chevron}
-        </button>`;
-    }).join('')}${enAttente.map(a => `<div class="gr-ligne gr-attente">
-        <b>${ic('message-text', 'ic-14')} ${esc(a.nom || 'Groupe')}</b>
-        <span class="gr-att">en attente</span>
-      </div>`).join('')}${plein ? '' : `<button class="gr-neuf gr-plus" id="ecGrNeuf">
-        <b>${ic('plus', 'ic-14')} Nouveau groupe</b>
-      </button>`}</div>`;
+  return [
+    ...liste.map(e => {
+      const g = etat[e.code] || groupeVide();
+      const d = filDe(g).at(-1);
+      return { cle: cleFil('groupe', e.code), sorte: 'groupe', id: e.code, nom: nomDe(e.code),
+               at: d ? d.at : e.at, apercu: d ? apercuDe(d) : '', n: nouveaux(g, moi()) + quiAttend(e.code).length };
+    }),
+    /* les groupes où j'ai demandé à entrer (lot 5c) : une ligne qui ne
+       s'ouvre pas encore */
+    ...attentes().filter(a => !portes.has(a.porte)).map(a => ({
+      cle: cleFil('groupe', a.porte), sorte: 'groupe', id: a.porte, nom: a.nom || 'Groupe', at: a.at || 0,
+      apercu: 'en attente', n: 0, attente: true }))
+  ];
 }
-export function bindGroupes(root, apres){
-  const neuf = root.querySelector('#ecGrNeuf');
-  neuf?.addEventListener('click', () => ouvrirNouveau(apres, neuf.textContent.trim()));
-  root.querySelectorAll('[data-groupe]').forEach(b => b.addEventListener('click', () => ouvrirGroupe(b.dataset.groupe, apres)));
-}
+export const groupesPlein = () => mesGroupes().length + attentes().filter(a => !mesGroupes().some(g => g.porte === a.porte)).length >= GROUPES_MAX;
+/* « Marquer comme lu », depuis le menu de la ligne */
+export function marquerGroupeLu(code){ vu(code); }
+export { ouvrirNouveau as ouvrirNouveauGroupe };
+
 /* Créer ou rejoindre : deux rangées, rien d'autre. La feuille porte le
    mot de la porte qui l'ouvre — « Groupes » ou « Nouveau groupe » — pour
    que le geste et ce qu'il ouvre se reconnaissent. */
@@ -514,16 +499,25 @@ function demandeHTML(x){
         : `<button class="btn btn-sm${t ? ' btn-primary' : ''}" data-repondre="${esc(x.id)}">Répondre</button>`}
     </li>`;
 }
-function filHTML(code){
+function filHTML(code, vuAvant = Infinity){
   const g = groupe(code);
   const fil = filDe(g).filter(x => !trouveeParMoi(x));
   /* chez un responsable, chaque message se retire au geste — le motif
      de la suppression, avec SON mot (lot 5c2) */
   const retirable = jeSuisResponsable(code);
+  /* LÀ OÙ L'ON S'ÉTAIT ARRÊTÉ : une ligne avant le premier message
+     arrivé depuis la dernière visite, et ce qui est neuf marqué pour le
+     bouton « ↓ N nouveaux » (ui/fil.js) */
+  const neuf = x => x.t !== 'retire' && x.de !== moi() && x.at > vuAvant;
+  const n = fil.filter(neuf).length;
+  let pose = false;
   return fil.map(x => {
-    const html = bulleHTML(g, x);
-    if (!retirable || x.t === 'retire') return html;
-    return html.replace(/^<li([^>]*)>([\s\S]*)<\/li>$/, (_, a, corps) => `<li${a} data-retirable="${esc(x.id)}"><div class="sw-in">${corps}</div></li>`);
+    let html = bulleHTML(g, x);
+    if (neuf(x)) html = html.replace(/^<li class="/, '<li class="fil-neuf ');
+    if (retirable && x.t !== 'retire')
+      html = html.replace(/^<li([^>]*)>([\s\S]*)<\/li>$/, (_, a, corps) => `<li${a} data-retirable="${esc(x.id)}"><div class="sw-in">${corps}</div></li>`);
+    if (neuf(x) && !pose){ pose = true; html = ligneNouveaux(n) + html; }
+    return html;
   }).join('');
 }
 function bulleHTML(g, x){
@@ -541,14 +535,21 @@ function bulleHTML(g, x){
         : `<button class="btn btn-sm" data-voir="${esc(x.id)}">Voir</button>`}
     </li>`;
 }
-export async function ouvrirGroupe(code, apres){
+export async function ouvrirGroupe(code, apres, o = {}){
   /* ce que MON téléphone a trouvé vit dans la boîte (oc_reseau_v1) : sans
      elle, une demande trouvée ne passerait pas en tête */
   await Promise.all([chargerGroupes(), chargerReseau()]);
   let arret = null;
-  const sh = openSheet({ title: nomDe(code), icon: 'message-text', className: 'modal-groupe',
+  /* au poste, la conversation se POSE dans le volet de la boîte (`dans`) ;
+     au pouce, elle s'ouvre en feuille */
+  const sh = openSheet({ title: nomDe(code), icon: 'message-text', className: 'modal-groupe', dans: o.dans,
     onClose: () => { if (arret) arret(); if (ouvert && ouvert.sh === sh) ouvert = null; vu(code); if (apres) apres(); } });
-  ouvert = { code, sh, apres };
+  ouvert = { code, sh, apres, dans: o.dans };
+  /* ce qui était lu AVANT d'ouvrir : la ligne « N nouveaux » se pose
+     là, et y reste tant que la conversation est ouverte ; le groupe, lui,
+     est lu dès qu'on l'ouvre (le chiffre de la boîte retombe) */
+  const vuAvant = groupe(code).vu;
+  vu(code);
   const q = s => sh.body.querySelector(s);
   const rendre = async () => {
     if (!sh.body.isConnected) return;
@@ -577,7 +578,7 @@ export async function ouvrirGroupe(code, apres){
        ${!autres.length && !fil.length ? `<div class="gr-inviter" id="grInviter"></div>` : ''}
        ${enTete.length ? `<ol class="gr-fil gr-entete" id="grEnTete">${enTete.map(demandeHTML).join('')}</ol>` : ''}
        <p class="gr-ephem">${ic('clock', 'ic-14')} Les messages s’effacent au bout de ${DUREE_DITE[reglagesDe(g).j]}.</p>
-       <ol class="gr-fil" id="grFil">${filHTML(code)}</ol>`;
+       <ol class="gr-fil" id="grFil">${filHTML(code, vuAvant)}</ol>`;
     q('#grMembres')?.addEventListener('click', () => ouvrirMembres(code, sh));
     redirePied();
     const repondre = async (b, ouvrir) => {
@@ -599,10 +600,16 @@ export async function ouvrirGroupe(code, apres){
       const x = groupe(code).fil.find(y => y.id === b.dataset.repondre);
       if (x) ouvrirReponse(code, x, rendre);
     }));
-    if (bas || !rendu) sh.body.scrollTop = sh.body.scrollHeight;
+    /* à l'ouverture, on arrive sur la ligne « N nouveaux » s'il y en a
+       une, au bas sinon ; ensuite, on ne suit le bas que si on y était */
+    if (!rendu) suivre.ouvrir(); else if (bas) sh.body.scrollTop = sh.body.scrollHeight;
+    else suivre.maj();
     rendu = true;
+    /* la conversation est sous les yeux : ce qui arrive est lu */
+    if (sh.body.isConnected && groupe(code).vu < Date.now() - 1000) vu(code);
   };
   let rendu = false;
+  const suivre = suivreNouveaux(sh.body);
 
   /* LE PIED : écrire, ou donner des pistes. Une phrase, pas d'image
      (décision 27) ; Entrée envoie. */
@@ -1026,6 +1033,8 @@ function supprimerPourTous(code){
   saveProfile();
   delete etat[code];
   sauver();
+  /* le volet du poste ne garde pas un groupe qu'on vient de quitter */
+  if (ouvert && ouvert.code === code && ouvert.dans) ouvert.sh.close();
   bus.refresh();
   let annule = false;
   const t = setTimeout(async () => {
@@ -1182,7 +1191,9 @@ function basculer(ancien, nouveau, exclu){
   saveProfile();
   sauver();
   bus.refresh();
-  if (ouvert && ouvert.code === ancien){ const o = ouvert; o.sh.close(); ouvrirGroupe(nouveau, o.apres); }
+  if (ouvert && ouvert.code === ancien){ const o = ouvert; o.sh.close(); ouvrirGroupe(nouveau, o.apres, { dans: o.dans }); }
+  /* l'épingle et le son coupé suivent le groupe sous son nouveau code */
+  import('./conversations.js').then(m => m.renommerGroupe(ancien, nouveau)).catch(() => {});
   direPresence(nouveau);
 }
 /* la lettre d'un responsable : le groupe a changé de code. Elle ne vaut

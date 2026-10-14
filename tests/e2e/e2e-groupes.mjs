@@ -16,10 +16,11 @@
      que la vue communautaire (jamais une note) ; un membre ne porte que
      son prénom (décision 26) ; le profil donné à un ami ne porte aucun
      groupe ;
-   ② créer : sans groupe, « Échanger » n'a qu'UNE porte, « Groupes »
-     (12 octobre 2026), qui ouvre « Créer » ou « Rejoindre » ; le nom,
-     puis le groupe s'ouvre sur son invitation (QR + code) ; « Échanger »
-     le montre en porte, « Nouveau groupe » en dernier ;
+   ② créer : sans groupe, la boîte d'« Échanger » (13 octobre 2026) n'a
+     qu'UN geste, « Nouveau groupe », qui ouvre « Créer » ou
+     « Rejoindre » ; le nom, puis le groupe s'ouvre sur son invitation
+     (QR + code) ; la boîte le montre en conversation, « Nouveau groupe »
+     en dernier ;
    ③ rejoindre en tapant le code : « Le groupe verra ton prénom :
      Karim. » AVANT le geste ; en collant l'invitation (Recevoir ›
      Texte) : l'aperçu porte le nom du groupe ; le code SEUL, collé
@@ -130,16 +131,16 @@ const fil = p => p.evaluate(() => [...document.querySelectorAll('#grFil .gr-m')]
 /* ---------- ② Inès crée « BTS SIO Lille » ---------- */
 const I = await ecran('ines');
 {
-  /* une porte, et rien d'autre : ni bouton « Créer », ni « Rejoindre »,
-     ni les gestes des amis — l'écran d'avant les groupes */
-  const t = await I.p.evaluate(() => document.querySelector('.ec-groupes')?.innerText.replace(/\s+/g, ' ').trim());
-  if (t !== 'Groupes') fail('la porte des groupes, sans groupe : « ' + t + ' »');
+  /* la boîte vide : une phrase, un geste — ni bouton « Créer », ni
+     « Rejoindre », ni les gestes des amis jetés en vrac */
+  const t = await I.p.evaluate(() => [...document.querySelectorAll('.bx-liste button')].map(b => b.innerText.replace(/\s+/g, ' ').trim()));
+  if (t.join('|') !== 'Nouveau groupe') fail('la boîte, sans groupe : ' + JSON.stringify(t));
   if (await I.p.$('#ecPromo')) fail('la porte « Partage en groupe » est encore là');
-  const gestes = await I.p.evaluate(() => [...document.querySelectorAll('#view-echanger .hero2 button, #view-echanger .ec-groupes button')]
+  const gestes = await I.p.evaluate(() => [...document.querySelectorAll('#view-echanger .hero2 button')]
     .map(b => b.textContent.trim()));
-  const restes = await I.p.evaluate(() => ['#ecScan', '#ecMonQR', '#ecGrCreer', '#ecGrRejoindre', '.ec-amis']
+  const restes = await I.p.evaluate(() => ['#ecScan', '#ecMonQR', '#ecGrCreer', '#ecGrRejoindre', '.ec-amis', '.ec-groupes']
     .filter(s => document.querySelector('#view-echanger ' + s)));
-  if (gestes.at(-1) !== 'Groupes' || !gestes.includes('Recevoir') || gestes.length > 3)
+  if (!gestes.includes('Recevoir') || gestes.length > 2)
     fail('« Échanger » sans groupe : ' + JSON.stringify(gestes));
   if (restes.length) fail('« Échanger » garde des gestes jetés en vrac : ' + restes.join(', '));
 }
@@ -234,7 +235,7 @@ console.log('⑤ Inès donne 2 pistes au groupe, depuis la liste de « Donner »
 
 /* chez Karim, la feuille fermée : « Échanger » le compte */
 await rouvrir(K.p);
-await attendreQue(K.p, () => document.querySelector('.gr-ligne .gr-n')?.textContent.trim() === '1', null, 20000, 'le compte 1 chez Karim');
+await attendreQue(K.p, () => document.querySelector('.bx-l[data-groupe] .bx-c')?.textContent.trim() === '1', null, 20000, 'le compte 1 chez Karim');
 await K.p.waitForTimeout(300);
 await K.p.screenshot({ path: `${SHOTS}/114-groupe-echanger-pouce.png` });
 console.log('④ chez Karim, le groupe fermé : « Échanger » compte 1 nouveauté ✓');
@@ -336,7 +337,7 @@ console.log('⑤ Sofia, arrivée après : « Voir », l’aperçu « De Inès, d
 /* ---------- ④ bis sept jours plus tard, le fil est vide ---------- */
 await So.ctx.clock.setSystemTime(new Date(Date.now() + 8 * 86400000));
 await rouvrir(So.p);
-await So.p.click('.gr-ligne');
+await So.p.click('.bx-l[data-groupe]');
 await So.p.waitForSelector('#grMot');
 await So.p.waitForTimeout(1500);
 {
@@ -349,7 +350,7 @@ console.log('④ huit jours plus tard : le fil est vide chez Sofia, les membres 
 await fermerTout(So.p);
 
 /* ---------- ⑥ quitter : « Annuler » le rattrape, sinon le départ se dit ---------- */
-await K.p.click('.gr-ligne');
+await K.p.click('.bx-l[data-groupe]');
 await K.p.waitForSelector('#grMembres');
 await K.p.click('#grMembres');
 await K.p.waitForSelector('#grQuitter');
@@ -361,9 +362,9 @@ await K.p.waitForTimeout(350);
 await K.p.screenshot({ path: `${SHOTS}/116-groupe-membres-pouce.png` });
 await K.p.click('#grQuitter');
 await K.p.waitForSelector('.undo-bar');
-if (await K.p.$('.gr-ligne')) fail('le groupe reste dans « Échanger » après « Quitter »');
+if (await K.p.$('.bx-l[data-groupe]')) fail('le groupe reste dans « Échanger » après « Quitter »');
 await K.p.click('.undo-bar .btn-sm');
-await attendreQue(K.p, () => !!document.querySelector('.gr-ligne'), null, 5000, 'le groupe revenu après « Annuler »');
+await attendreQue(K.p, () => !!document.querySelector('.bx-l[data-groupe]'), null, 5000, 'le groupe revenu après « Annuler »');
 await K.p.waitForTimeout(32000);
 {
   const k = await cleGroupe(lireInvitation(code).code);
@@ -371,7 +372,7 @@ await K.p.waitForTimeout(32000);
   for (const ev of evs){ const m = await ouvrirMessage(k, ev.content); if (m && m.t === 'depart') departs++; }
   if (departs) fail('« Annuler » n’a pas retenu le départ');
 }
-await K.p.click('.gr-ligne');
+await K.p.click('.bx-l[data-groupe]');
 await K.p.waitForSelector('#grMembres');
 await K.p.click('#grMembres');
 await K.p.waitForSelector('#grQuitter');
@@ -385,7 +386,7 @@ await K.p.waitForTimeout(33000);
   if (departs !== 1) fail('le départ de Karim au relais : ' + departs);
 }
 await rouvrir(I.p);
-await I.p.click('.gr-ligne');
+await I.p.click('.bx-l[data-groupe]');
 await attendreQue(I.p, () => { const t = document.querySelector('#grMembres')?.textContent || ''; return /Sofia/.test(t) && !/Karim/.test(t); },
   null, 20000, 'Karim parti de la liste chez Inès');
 console.log('⑥ quitter : « Annuler » rattrape tout, rien ne part ; sinon le départ se dit après la barre, et Karim sort de la liste d’Inès ✓');
@@ -396,8 +397,8 @@ await fermerTout(I.p);
   const cinq = await I.p.evaluate(async () => { const g = await import('./engine/groupe.js');
     return Array.from({ length: 5 }, (x, i) => ({ code: g.nouveauCode(), nom: 'Groupe ' + (i + 1), at: i })); });
   const P = await ecran('sofia', { profil: { groupes: cinq } });
-  await P.p.waitForSelector('.gr-ligne');
-  if (await P.p.evaluate(() => document.querySelectorAll('.gr-ligne').length) !== 5) fail('cinq rangées attendues');
+  await P.p.waitForSelector('.bx-l[data-groupe]');
+  if (await P.p.evaluate(() => document.querySelectorAll('.bx-l[data-groupe]').length) !== 5) fail('cinq rangées attendues');
   if (await P.p.$('#ecGrNeuf')) fail('à cinq groupes, « Nouveau groupe » est encore là');
   /* le code SEUL, recopié d'un message, s'ouvre là où on le colle */
   await recevoirTexte(P.p, code);
@@ -425,26 +426,29 @@ for (const [nom, o] of [['poste', { vp: { width: 1280, height: 800 } }], ['pouce
                         ['320-200', { vp: { width: 320, height: 640 }, gros: true }]]){
   const P = await ecran('ines', { ...o, profil: { groupes: [{ code: lireInvitation(code).code, nom: 'BTS SIO Lille', at: 1 }] } });
   if (o.gros) await P.p.evaluate(() => { document.documentElement.style.fontSize = '200%'; });
-  await P.p.waitForSelector('.gr-ligne');
+  await P.p.waitForSelector('.bx-l[data-groupe]');
   await P.p.waitForTimeout(400);
   await P.p.screenshot({ path: `${SHOTS}/117-groupes-echanger-${nom}.png` });
-  await P.p.click('.gr-ligne');
+  await P.p.click('.bx-l[data-groupe]');
   await P.p.waitForSelector('#grMot');
   await attendreQue(P.p, () => !!document.querySelector('#grMembres'), null, 20000, nom + ' : les membres');
   await P.p.waitForTimeout(500);
+  /* au poste, le groupe se pose à droite de la boîte (le volet) ; au
+     pouce, c'est une feuille */
   const r = await P.p.evaluate(() => {
-    const b = [...document.querySelectorAll('.overlay:not(.ov-out) .modal-b')].pop();
+    const ici = document.querySelector('#bxVolet .dock') ? '#bxVolet' : '.overlay:not(.ov-out)';
+    const b = [...document.querySelectorAll(ici + ' .modal-b')].pop();
     const box = b.getBoundingClientRect();
     const larges = [...b.querySelectorAll('*')].filter(x => x.getBoundingClientRect().right > box.right + 1).map(x => x.className || x.tagName);
     const pied = document.querySelector('.gr-pied').getBoundingClientRect();
-    const modal = [...document.querySelectorAll('.overlay:not(.ov-out) .modal')].pop().getBoundingClientRect();
+    const modal = [...document.querySelectorAll(ici + ' .modal')].pop().getBoundingClientRect();
     return { lateral: b.scrollWidth > b.clientWidth + 1, larges, piedEnBas: modal.bottom - pied.bottom < 40 };
   });
   if (r.lateral || r.larges.length) fail(`${nom} : la feuille du groupe déborde (${r.larges.slice(0, 3).join(', ')})`);
   if (!r.piedEnBas) fail(`${nom} : le pied ne tient pas le bas de la feuille`);
   await P.p.screenshot({ path: `${SHOTS}/118-groupe-feuille-${nom}.png` });
   await P.ctx.close();
-  console.log(`⑨ ${nom} : « Échanger » et la feuille du groupe tiennent, le pied en bas ✓`);
+  console.log(`⑨ ${nom} : « Échanger » et le groupe (feuille au pouce, volet au poste) tiennent, le pied en bas ✓`);
 }
 
 for (const x of [I, K, So]) await x.ctx.close();
