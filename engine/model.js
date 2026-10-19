@@ -11,7 +11,7 @@ import { normalizeAmis, idAmiValide } from './amis.js';
 import { boiteValide } from './boite.js';
 import { normaliserGroupes } from './groupe.js';
 
-export const APP_VERSION = '6.72.0';
+export const APP_VERSION = '6.73.0';
 
 export const DOMAINS = {
   esn:     { label:'ESN / Services IT',       color:'#4C9FD8' },
@@ -199,7 +199,8 @@ export const VECU = {
    D3 : les champs inconnus (versions futures) sont conservés dans `extra`
    au lieu d'être perdus silencieusement. */
 const KNOWN_CT = ['id','name','role','email','phone','link','note','conf','extra',
-  'activatedAt','src'];         /* champs d'action privés (#14) — jamais dans un partage */
+  'activatedAt','src',          /* champs d'action privés (#14) — jamais dans un partage */
+  'via'];                       /* qui me l'a donné (lot F3) — privé aussi */
 const KNOWN_C  = ['id','name','city','domain','desc','address','website','techs','positions','siren',
   'process','tips','contacts','lat','lng','vecu','vecuQui','status','notes','appliedAt','nextAction',
   'nextActionText','closedAt','closedReason','nextActionCt',
@@ -252,10 +253,16 @@ export function normalizeContact(x){
   const act = isoDay(x.activatedAt || xe.activatedAt);
   if (act) out.activatedAt = act;
   if (x.src === 'promo' || xe.src === 'promo') out.src = 'promo';
+  /* QUI ME L'A DONNÉ (lot F3) : le prénom de l'ami dont vient ce
+     contact. Il sert le premier mail (« Karim m'a conseillé de vous
+     écrire ») et ne sort jamais dans un partage (invariant ①) */
+  const via = String(x.via || xe.via || '').replace(/\s+/g, ' ').trim().slice(0, 40);
+  if (via) out.via = via;
   const extra = keepExtra(x, KNOWN_CT);
   if (extra){
     delete extra.activatedAt;
     delete extra.src;
+    delete extra.via;
     if (Object.keys(extra).length) out.extra = extra;
   }
   return out;
@@ -342,6 +349,7 @@ const SIGNATURE = `Bien à vous,
 {{tel}} — {{email}}`;
 const MODELE_CANDIDATURE = `Bonjour {{contact}},
 
+{{via}}
 [Une phrase précise sur ce qu'ils font. Pas « votre entreprise m'intéresse » — ils le lisent dix fois par jour.]
 
 Je suis en {{formation}} et je cherche {{recherche}}.
@@ -353,7 +361,10 @@ Je peux passer en parler quand vous voulez.
 ${SIGNATURE}`;
 /* le même, tel que les versions 6.31 à 6.46 l'écrivaient — avant la
    ligne « Expérience » (docs/reseau.md, lot 1) */
-const CANDIDATURE_6_31 = MODELE_CANDIDATURE.replace('Expérience : {{parcours}}\n', '');
+/* puis tel que les versions 6.47 à 6.72 l'écrivaient — avant la ligne
+   « {{via}} » (lot F3 : qui m'a donné ce contact) */
+const CANDIDATURE_6_47 = MODELE_CANDIDATURE.replace('{{via}}\n', '');
+const CANDIDATURE_6_31 = CANDIDATURE_6_47.replace('Expérience : {{parcours}}\n', '');
 const MODELE_RELANCE = `Bonjour {{contact}},
 
 Je reviens vers vous au sujet de ma candidature.
@@ -372,7 +383,8 @@ ${SIGNATURE}`;
    d'une virgule, n'est jamais touché (invariant ②). */
 const MODELES_ANCIENS = {
   'Candidature spontanée': {
-    avant: [{ subject: 'Candidature {{type}} {{formation}} — {{moi}}', body: CANDIDATURE_6_31 }, { subject: 'Candidature stage {{formation}} — {{moi}}', body: `Bonjour {{contact}},
+    avant: [{ subject: 'Candidature {{type}} {{formation}} — {{moi}}', body: CANDIDATURE_6_47 },
+            { subject: 'Candidature {{type}} {{formation}} — {{moi}}', body: CANDIDATURE_6_31 }, { subject: 'Candidature stage {{formation}} — {{moi}}', body: `Bonjour {{contact}},
 
 [Une phrase précise sur ce qu'ils font. Pas « votre entreprise m'intéresse » — ils le lisent dix fois par jour.]
 
@@ -641,6 +653,9 @@ export function fillTpl(str, c, ct, profile, { trous = false, companies } = {}){
     moi: profile.name || '', formation: profile.formation || '',
     tel: profile.phone || '', email: profile.email || '',
     cv: profile.cvUrl || '', portfolio: profile.portfolio || '',
+    /* lot F3 : le contact vient d'un ami — la première phrase le dit,
+       c'est ce qu'un recruteur lit d'abord (une recommandation) */
+    via: ct && ct.via ? `${ct.via} m’a conseillé de vous écrire.` : '',
     ...jetonsRecherche(profile, companies)
   };
   const trou = k => trous && !m[k] && Object.hasOwn(TROUS, k);

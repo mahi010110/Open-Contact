@@ -20,7 +20,7 @@
      personne (règle 6) — leur téléphone a fait suivre, c'est tout ;
    ③ chez Sofia : « Tom, par Karim, cherche quelqu'un », « tu y es en
      alternance », un seul oui : « Tom peut m'écrire » ;
-   ④ chez Tom : prévenu AVANT ce oui — « Trouvé chez un ami de Léa » —,
+   ④ chez Tom : prévenu AVANT ce oui — « Trouvée · chez un ami de Léa » —,
      puis « Sofia Haddad y est en alternance · par Léa », « Ajouter à
      la piste » ;
    ⑤ le merci remonte toute la chaîne : Sofia, Léa, puis Karim ;
@@ -32,7 +32,7 @@
    ⑧ pouce et poste, 320 px texte doublé : rien ne déborde ; zéro
      erreur console.
    ============================================================ */
-import { chromium, chromiumPath, serveRepo, SHOTS, annuaireMuet, ouvrirReglages } from './outils.mjs';
+import { chromium, chromiumPath, serveRepo, SHOTS, annuaireMuet, ouvrirReglages, suiviDe } from './outils.mjs';
 import { startLocalRelay } from './relais-local.mjs';
 import { ouvrir, etiquetteBoite, nouvelleCle } from '../../engine/boite.js';
 
@@ -230,12 +230,12 @@ await rouvrir(T.p);
 await attendreReseau(T.p, `e.demandes.some(d => d.trouve && d.trouve.par)`);
 await ouvrirFiche(T.p, 'az');
 {
-  const f = await T.p.evaluate(() => document.querySelector('#fiDemande')?.textContent.replace(/\s+/g, ' ').trim());
-  if (f !== 'Trouvé chez un ami de Léa · en attente') fail('la fiche de Tom avant le oui : ' + f);
+  const f = await suiviDe(T.p);
+  if (!f || !/Trouvée:fait:chez un ami de Léa \| Reçu:cours:en attente$/.test(f.etapes)) fail('la fiche de Tom avant le oui : ' + JSON.stringify(f));
 }
 await T.p.waitForTimeout(450);
 await T.p.screenshot({ path: `${SHOTS}/101-sauts-trouve-pouce.png` });
-console.log('④ chez Tom, avant le oui : « Trouvé chez un ami de Léa · en attente » ✓');
+console.log('④ chez Tom, avant le oui : « Trouvée · chez un ami de Léa », « Reçu · en attente » ✓');
 
 await So.p.evaluate(() => document.querySelector('.tr-amis .act-ami .act-main').click());
 await So.p.waitForSelector('#drDonner');
@@ -351,8 +351,10 @@ const dem3 = await attendreLettre('demande', 'lea', l => !!l.critere);
 if (dem3 && JSON.stringify(dem3.l.critere) !== '{"metier":"cyber","ville":"Lille"}') fail('le critère qui part : ' + JSON.stringify(dem3.l.critere));
 if (dem3 && dem3.l.entreprise) fail('une demande par critère porte une entreprise');
 {
-  const f = await T.p.evaluate(() => [...document.querySelectorAll('#piAmis .am-dem')].map(x => x.textContent.replace(/\s+/g, ' ').trim()));
-  if (!f.some(x => /^Quelqu’un dans la cybersécurité à Lille · demandé à 1 ami$/.test(x))) fail('la demande partie ne se lit pas dans Amis : ' + JSON.stringify(f));
+  /* la MÊME carte que sur la fiche (lot F3, idée I) */
+  const f = await suiviDe(T.p, '#piAmis .am-dem');
+  if (!f || f.phrase !== 'Tu cherches quelqu’un dans la cybersécurité à Lille' || f.a !== 'demandé à 1 ami'
+      || !/^Envoyée:fait/.test(f.etapes)) fail('la demande partie ne se lit pas dans Amis : ' + JSON.stringify(f));
   if (await T.p.$('#avDemander')) fail('la même demande se propose encore');
 }
 await rouvrir(L.p);

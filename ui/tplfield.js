@@ -18,7 +18,7 @@ export const TPL_LABELS = {
   contact: 'la personne', entreprise: 'l’entreprise', ville: 'la ville',
   moi: 'ton nom', formation: 'ta formation', ecole: 'ton école',
   recherche: 'ce que tu cherches', type: 'stage ou alternance', rythme: 'ton rythme',
-  parcours: 'ton parcours',
+  parcours: 'ton parcours', via: 'qui t’a donné ce contact',
   tel: 'ton téléphone', email: 'ton email', cv: 'ton CV', portfolio: 'ton portfolio'
 };
 const FALLBACK = TPL_LABELS;
@@ -33,6 +33,7 @@ export function tplSample(company, ct){
     moi: p.name || '', formation: p.formation || '',
     tel: p.phone || '', email: p.email || '',
     cv: p.cvUrl || '', portfolio: p.portfolio || '',
+    via: ct && ct.via ? `${ct.via} m’a conseillé de vous écrire.` : '',
     /* les mêmes valeurs que le mail : « un stage » tant que rien n'est
        choisi, parce que c'est ce qui partira */
     ...jetonsRecherche(p, S.companies)

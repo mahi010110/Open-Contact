@@ -82,6 +82,19 @@ export async function attendre(page, fn, opts = {}){
   }
 }
 
+/* ---------- la carte d'une demande (lot F3) ----------
+   Lue comme on la lit : la phrase, à qui, puis chaque étape — son mot,
+   son état (fait, en cours, rien) et sa ligne. Partagée par les
+   scénarios des demandes, pour qu'ils lisent la MÊME carte. */
+export const suiviDe = (page, sel = '#fiDemande') => page.evaluate(s => {
+  const c = document.querySelector(s);
+  if (!c) return null;
+  const t = n => n ? n.textContent.replace(/\s+/g, ' ').trim() : '';
+  return { phrase: t(c.querySelector('.dmc-t')?.firstChild), a: t(c.querySelector('.dmc-s')),
+    etapes: [...c.querySelectorAll('.dmc-et')].map(e => [t(e.querySelector('b')),
+      e.classList.contains('dmc-fait') ? 'fait' : e.classList.contains('dmc-cours') ? 'cours' : '-', t(e.querySelector('.dmc-q'))].join(':')).join(' | ') };
+}, sel);
+
 /* ---------- le canal local de l’ordinateur (binaire natif) ----------
    Il écoute sur l'un de ces trois ports et n'expose `appairage` que
    pendant qu'un appairage attend un code. Attendre en silence puis

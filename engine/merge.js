@@ -58,6 +58,9 @@ export function mergeIncoming(list, companies){
       if (ct.conf === 'ok') ct.conf = 'doubt';                                       /* S5 */
       delete ct.activatedAt;    /* #14 : le suivi privé ne s'importe jamais — */
       ct.src = 'promo';         /* un contact reçu = nom connu, zéro to-do   */
+      /* lot F3a : qui l'a donné à l'AUTRE n'est pas mon ami — et un
+         appareil resté en 6.72 l'aurait laissé dans `extra` */
+      delete ct.via;
     });
     const ex = findMatch(x, companies);
     if (!ex){

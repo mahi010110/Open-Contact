@@ -1046,6 +1046,39 @@ sécurité ».
     ne plus suivre la conversation, pas ne plus entendre qu'on vous
     appelle.
 
+### La demande, suivie comme un colis (lot F3a, 14 octobre 2026)
+
+Les idées G, I, 4 et 5 de la page de concept, choisies par le mainteneur
+le 13 octobre.
+
+39. **La demande dit ce que je cherche.** « Inès cherche quelqu'un chez
+    Aztek pour une alternance » : l'ami sait qui présenter — un tuteur
+    d'alternance n'est pas un recruteur de CDI. Le mot est celui du
+    profil (`recherche`), UN mot d'une liste fermée (`stage`,
+    `alternance`, `emploi`), jamais une phrase libre. Il se lit dans la
+    phrase exacte avant le geste, comme tout ce qui part, et passe les
+    sauts tel quel. Sans mot au profil, la phrase reste celle d'avant.
+40. **Elle se suit comme un colis.** Sur la fiche et dans « Amis », la
+    demande devient UNE carte — sa phrase, à qui elle est partie, puis
+    trois étapes en barres de progression 98 : Envoyée, Trouvée, Reçu.
+    L'étape faite porte sa date, celle en cours se remplit à moitié, la
+    suivante attend. C'est la première règle de Nielsen (montrer l'état
+    du système) appliquée à la seule chose de l'app qui avance sans
+    nous. Elle ne nomme personne d'autre que MON ami (« chez un ami de
+    Léa », décision 18). La carte reste tant que la demande est ouverte,
+    et le contact arrivé se propose JUSTE dessous : avant, il la
+    remplaçait, et une fois ajouté, la fiche redisait « Trouvé · en
+    attente » d'une demande déjà servie.
+41. **Le contact se souvient de qui l'a donné, et le premier mail le
+    dit.** « Karim m'a conseillé de vous écrire. » ouvre le modèle de
+    candidature, au-dessus de l'accroche : le nom de qui recommande est
+    ce qui fait d'une candidature à froid une candidature portée (§8 de
+    CLAUDE.md, ~3 % contre ~40 %), et c'est la première ligne qu'un
+    recruteur lit. Le prénom est privé (`via`, CONTRAT.md) : il ne part
+    dans aucun partage, et il ne s'écrit pas quand c'est le contact
+    lui-même qui s'est présenté (« j'y suis ») — on ne lui écrit pas
+    qu'il nous a conseillé de lui écrire.
+
 ## Encore à trancher
 
 - **Le fil du groupe** : tranché le 12 octobre (décision 27) — des

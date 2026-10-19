@@ -17,8 +17,8 @@
      ni un e-mail dans aucun événement du groupe : elles vont à la
      boîte d'Inès, et à elle seule ;
    ② chez Inès : « Demander à mon groupe », la phrase et « BTS SIO
-     Lille » AVANT ; « Demandé à BTS SIO Lille » ; prévenue dès que le
-     téléphone de Karim trouve — « Trouvé dans un groupe » ;
+     Lille » AVANT ; « demandé à BTS SIO Lille » sur la carte ; prévenue
+     dès que le téléphone de Karim trouve — « Trouvée · dans un groupe » ;
    ③ chez Karim : la demande EN TÊTE du groupe, à son nom (« tu as
      Julie Marchand ») ; « Tes amis » la redit dans « Aujourd'hui » ;
      « Répondre » → « Donner Julie Marchand » ;
@@ -32,7 +32,7 @@
    ⑦ chez Inès, les deux contacts arrivent par sa boîte ; poste, 320 px
      texte doublé ; zéro erreur console.
    ============================================================ */
-import { chromium, chromiumPath, serveRepo, SHOTS, annuaireMuet } from './outils.mjs';
+import { chromium, chromiumPath, serveRepo, SHOTS, annuaireMuet, suiviDe } from './outils.mjs';
 import { startLocalRelay } from './relais-local.mjs';
 import { cleGroupe, ouvrirMessage, nouveauCode } from '../../engine/groupe.js';
 import { ouvrir, etiquetteBoite, nouvelleCle } from '../../engine/boite.js';
@@ -153,10 +153,11 @@ await I.p.screenshot({ path: `${SHOTS}/120-groupe-demander-pouce.png` });
 await I.p.click('#dmGo');
 await I.p.waitForSelector('#fiDemande', { timeout: 15000 });
 {
-  const e = await I.p.evaluate(() => document.querySelector('#fiDemande').textContent.replace(/\s+/g, ' ').trim());
-  if (e !== 'Demandé à BTS SIO Lille · aujourd’hui') fail('la fiche après la demande : ' + e);
+  const e = await suiviDe(I.p);
+  if (e.a !== 'demandé à BTS SIO Lille' || !/^Envoyée:fait:aujourd’hui \| Trouvée:cours:en cours/.test(e.etapes))
+    fail('la fiche après la demande : ' + JSON.stringify(e));
 }
-console.log('② Inès, sans ami : « Demander à mon groupe », « BTS SIO Lille » avant, puis « Demandé à BTS SIO Lille » ✓');
+console.log('② Inès, sans ami : « Demander à mon groupe », « BTS SIO Lille » avant, puis la carte « demandé à BTS SIO Lille » ✓');
 
 /* ---------- ③ chez Karim : en tête, à son nom ---------- */
 await rouvrir(Ka.p);
@@ -183,10 +184,10 @@ await attendreQue(I.p, async () => { const { etatReseau } = await import('./ui/r
   return etatReseau().demandes.some(d => d.trouve && d.trouve.groupe); }, null, 20000, 'Inès prévenue');
 await ouvrirFiche(I.p, 'az');
 {
-  const e = await I.p.evaluate(() => document.querySelector('#fiDemande')?.textContent.replace(/\s+/g, ' ').trim());
-  if (e !== 'Trouvé dans un groupe · en attente') fail('Inès prévenue : ' + e);
+  const e = await suiviDe(I.p);
+  if (!e || !/Trouvée:fait:dans un groupe \| Reçu:cours:en attente$/.test(e.etapes)) fail('Inès prévenue : ' + JSON.stringify(e));
 }
-console.log('② chez Inès, avant le oui : « Trouvé dans un groupe · en attente » ✓');
+console.log('② chez Inès, avant le oui : « Trouvée · dans un groupe », « Reçu · en attente » ✓');
 
 /* Karim répond : Donner */
 await rouvrir(Ka.p);

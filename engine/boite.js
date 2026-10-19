@@ -178,11 +178,21 @@ export const prenomDe = nom => txt(nom, 80).split(' ')[0] || '';
 
 /* `quoi` : une piste (son entreprise), ou `{ critere }` — un métier et
    une ville de la table, jamais un mot tapé (engine/critere.js) */
-export function lettreDemande({ prenom, cle }, quoi, now = Date.now()){
+/* CE QUE JE CHERCHE (lot F3) : un stage, une alternance, un emploi —
+   le mot que mon profil a déjà. Une demande sans lui laissait l'ami
+   deviner à quoi servirait le contact ; avec lui, il sait qui présenter
+   (un tuteur d'alternance n'est pas un recruteur de CDI). Un mot d'une
+   liste fermée, jamais une phrase libre : rien d'autre ne voyage. */
+export const CHERCHE = ['stage', 'alternance', 'emploi'];
+const POUR = { stage: 'un stage', alternance: 'une alternance', emploi: 'un emploi' };
+/* « … chez Aztek pour une alternance » — rien quand le mot manque */
+export const pourCherche = c => Object.hasOwn(POUR, c) ? ' pour ' + POUR[c] : '';
+export function lettreDemande({ prenom, cle }, quoi, now = Date.now(), cherche = ''){
   const l = { v: 1, t: 'demande', id: nouvelId(), de: { prenom: txt(prenom, 40), cle },
               cercle: 1, exp: now + DEMANDE_JOURS * 864e5 };
   const cr = quoi && quoi.critere ? critereValide(quoi.critere) : null;
   if (cr) l.critere = cr; else l.entreprise = entrepriseDe(quoi);
+  if (CHERCHE.includes(cherche)) l.cherche = cherche;
   return l;
 }
 
@@ -207,6 +217,7 @@ export function lettreRelais(demande, { prenom, cle }, jeton){
   const l = { v: 1, t: 'demande', id: demande.id, de: demande.de, cercle: (demande.cercle || 1) + 1,
               exp: demande.exp, par: { prenom: txt(prenom, 40), cle }, chaine: [...(demande.chaine || []), jeton] };
   if (demande.critere) l.critere = demande.critere; else l.entreprise = demande.entreprise;
+  if (demande.cherche) l.cherche = demande.cherche;
   return l;
 }
 /* « quelqu'un a trouvé » : à qui demande, sans dire qui */
@@ -378,6 +389,7 @@ export function normaliserLettre(o, now = Date.now()){
     if (!(cercle >= 1 && cercle <= CERCLE_MAX) || Math.floor(cercle) !== cercle
         || !Number.isFinite(exp) || exp <= now || exp > now + (DEMANDE_JOURS + 1) * 864e5) return null;
     const out = { t: 'demande', id: o.id, de, exp, cercle };
+    if (CHERCHE.includes(o.cherche)) out.cherche = o.cherche;
     if (entreprise.nom) out.entreprise = entreprise;
     else { const cr = critereValide(o.critere); if (!cr) return null; out.critere = cr; }
     if (cercle > 1){
@@ -478,6 +490,21 @@ export const demandesOuvertes = (e, now = Date.now()) => e.demandes.filter(d => 
 export const peutDemander = (e, now = Date.now()) => demandesOuvertes(e, now).length < DEMANDES_OUVERTES_MAX;
 export const demandeDePiste = (e, pisteId, now = Date.now()) =>
   demandesOuvertes(e, now).find(d => d.pisteId === pisteId) || null;
+/* LE SUIVI D'UNE DEMANDE (lot F3, idée G) : trois étapes, comme un
+   colis — envoyée, trouvée, reçu. Une étape faite porte sa date ; la
+   première qui ne l'est pas est EN COURS (`courante`, -1 quand tout est
+   fait). Un contact arrivé sans « trouvé » (« Je connais quelqu'un »,
+   dans un groupe) fait les deux d'un coup. Rien ne nomme qui la porte,
+   sauf le premier maillon — MON ami (décision 18). */
+export function suiviDemande(e, d){
+  const recus = (e.dons || []).filter(x => x.demande === d.id).map(x => Number(x.at) || 0).filter(Boolean);
+  const recu = recus.length ? Math.min(...recus) : 0;
+  const t = d.trouve || null;
+  const trouvee = { cle: 'trouvee', at: (t && Number(t.at)) || recu };
+  if (t){ trouvee.ou = t.groupe ? 'groupe' : 'ami'; if (t.par) trouvee.par = t.par; }
+  const etapes = [{ cle: 'envoyee', at: Number(d.at) || 0 }, trouvee, { cle: 'recu', at: recu }];
+  return { etapes, courante: etapes.findIndex(x => !x.at) };
+}
 
 /* une lettre arrive : ce qu'elle change, et rien deux fois.
    `moi` = ma clé publique (mes propres demandes me reviennent quand
@@ -521,6 +548,7 @@ export function traiterLettre(e, l, { companies, moi, amis, parcours, pistesPour
        est gardée pour ne pas la retraiter — et passe plus loin */
     const r = { id: l.id, de: l.de, exp: l.exp, at: now, cercle: l.cercle, statut: voit ? 'a-voir' : 'rien', trouve };
     if (l.entreprise) r.entreprise = l.entreprise; else r.critere = l.critere;
+    if (l.cherche) r.cherche = l.cherche;
     if (l.par){ r.par = l.par; r.chaine = l.chaine; }
     if (soi) r.soi = soi;
     const suivre = !voit && l.cercle < CERCLE_MAX && !sansRelais;
