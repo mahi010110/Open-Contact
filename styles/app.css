@@ -3365,7 +3365,10 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
    un objet), dans le trait des cadres de groupe, et l'appui s'enfonce. */
 .pick.pk,.pk-duo{background-color:var(--surface-window);border-color:var(--border-frame);box-shadow:none}
 .pick.pk:active{background-color:var(--surface-chrome);box-shadow:var(--bevel-down)}
-.pk-duo .pick.pk:active{background-color:transparent;box-shadow:none}
+/* dans un duo, c'est le DUO qui porte le fond : la ligne qu'on coche
+   reste transparente, cochée ou non (plus haut, « l'état vit dans la
+   case » — e2e-ux-audit le mesure) */
+.pk-duo .pick.pk,.pk-duo .pick.pk:active{background-color:transparent;box-shadow:none}
 
 /* ============ ÉCHANGER : QR, SCAN, APERÇU, ANNULER ============ */
 .qr-wrap{
