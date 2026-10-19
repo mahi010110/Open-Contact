@@ -9,7 +9,7 @@
    aux modèles d'emails.
    ============================================================ */
 import { esc } from '../engine/utils.js';
-import { jetonsRecherche } from '../engine/model.js';
+import { jetonsRecherche, phraseVia } from '../engine/model.js';
 import { S } from './state.js';
 
 /* quand une valeur d'exemple manque, le jeton se lit en français —
@@ -33,7 +33,7 @@ export function tplSample(company, ct){
     moi: p.name || '', formation: p.formation || '',
     tel: p.phone || '', email: p.email || '',
     cv: p.cvUrl || '', portfolio: p.portfolio || '',
-    via: ct && ct.via ? `${ct.via} m’a conseillé de vous écrire.` : '',
+    via: phraseVia(ct),
     /* les mêmes valeurs que le mail : « un stage » tant que rien n'est
        choisi, parce que c'est ce qui partira */
     ...jetonsRecherche(p, S.companies)

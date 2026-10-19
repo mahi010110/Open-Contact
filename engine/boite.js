@@ -273,6 +273,10 @@ export function lettreDon({ prenom, cle }, demande, ct, o = {}){
               entreprise, contact: contactDonne(ct) };
   if ((demande.chaine || []).length) l.chaine = [...demande.chaine];
   if (o.soi && QUOI.has(o.soi.quoi)) l.soi = { quoi: o.soi.quoi, maintenant: !!o.soi.maintenant };
+  /* PRÉSENTER AU LIEU DE DONNER (lot F3b) : celui qui donne a demandé
+     au contact s'il est d'accord, et le dit — un booléen, rien de plus.
+     Pas quand c'est lui qu'on présente : il l'est forcément. */
+  else if (o.accord === true) l.accord = true;
   return l;
 }
 const QUOI = new Set(['stage', 'alternance', 'emploi']);
@@ -413,6 +417,7 @@ export function normaliserLettre(o, now = Date.now()){
       if (o.chaine.length) d.chaine = [...o.chaine];
     }
     if (o.soi && QUOI.has(o.soi.quoi)) d.soi = { quoi: o.soi.quoi, maintenant: !!o.soi.maintenant };
+    else if (o.accord === true) d.accord = true;
     return d;
   }
   if (o.t === 'merci'){
@@ -569,6 +574,7 @@ export function traiterLettre(e, l, { companies, moi, amis, parcours, pistesPour
     const d = { id: l.id, demande: l.demande, de: l.de, entreprise: l.entreprise, contact: l.contact, at: now, statut: 'nouveau' };
     if (l.chaine) d.chaine = l.chaine;
     if (l.soi) d.soi = l.soi;
+    if (l.accord) d.accord = true;
     return { etat: { ...e, dons: [...e.dons, d] }, quoi: 'don' };
   }
   if (l.t === 'ami'){

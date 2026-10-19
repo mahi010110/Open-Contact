@@ -11,7 +11,7 @@ import { normalizeAmis, idAmiValide } from './amis.js';
 import { boiteValide } from './boite.js';
 import { normaliserGroupes } from './groupe.js';
 
-export const APP_VERSION = '6.73.0';
+export const APP_VERSION = '6.74.0';
 
 export const DOMAINS = {
   esn:     { label:'ESN / Services IT',       color:'#4C9FD8' },
@@ -200,7 +200,7 @@ export const VECU = {
    au lieu d'être perdus silencieusement. */
 const KNOWN_CT = ['id','name','role','email','phone','link','note','conf','extra',
   'activatedAt','src',          /* champs d'action privés (#14) — jamais dans un partage */
-  'via'];                       /* qui me l'a donné (lot F3) — privé aussi */
+  'via', 'accord'];             /* qui me l'a donné, et s'il a prévenu le contact (lot F3) — privés aussi */
 const KNOWN_C  = ['id','name','city','domain','desc','address','website','techs','positions','siren',
   'process','tips','contacts','lat','lng','vecu','vecuQui','status','notes','appliedAt','nextAction',
   'nextActionText','closedAt','closedReason','nextActionCt',
@@ -258,11 +258,14 @@ export function normalizeContact(x){
      écrire ») et ne sort jamais dans un partage (invariant ①) */
   const via = String(x.via || xe.via || '').replace(/\s+/g, ' ').trim().slice(0, 40);
   if (via) out.via = via;
+  /* … ET S'IL L'A PRÉVENU (lot F3b) : le contact attend mon mail */
+  if (via && (x.accord === true || xe.accord === true)) out.accord = true;
   const extra = keepExtra(x, KNOWN_CT);
   if (extra){
     delete extra.activatedAt;
     delete extra.src;
     delete extra.via;
+    delete extra.accord;
     if (Object.keys(extra).length) out.extra = extra;
   }
   return out;
@@ -641,6 +644,11 @@ export function jetonsRecherche(profile, companies){
    effacés : leur absence retire une ligne, elle ne rend rien faux. Les
    mots sont ceux de l'aperçu du profil (ui/profil.js). */
 export const TROUS = { formation: 'ta formation', moi: 'ton nom' };
+/* LA PREMIÈRE PHRASE d'un mail à un contact qu'un ami a donné (lot F3) :
+   la recommandation — et quand l'ami l'a prévenu (lot F3b), le contact
+   se souvient de lui, donc on le lui rappelle */
+export const phraseVia = ct => !ct || !ct.via ? ''
+  : ct.accord ? `${ct.via} vous a parlé de moi.` : `${ct.via} m’a conseillé de vous écrire.`;
 /* remplit un gabarit {{variable}} avec la piste, le contact visé et le profil.
    `trous` : les manques de `TROUS` deviennent des crochets au lieu de
    s'effacer — pour un brouillon qu'on relit, jamais pour un envoi en
@@ -655,7 +663,7 @@ export function fillTpl(str, c, ct, profile, { trous = false, companies } = {}){
     cv: profile.cvUrl || '', portfolio: profile.portfolio || '',
     /* lot F3 : le contact vient d'un ami — la première phrase le dit,
        c'est ce qu'un recruteur lit d'abord (une recommandation) */
-    via: ct && ct.via ? `${ct.via} m’a conseillé de vous écrire.` : '',
+    via: phraseVia(ct),
     ...jetonsRecherche(profile, companies)
   };
   const trou = k => trous && !m[k] && Object.hasOwn(TROUS, k);

@@ -1079,6 +1079,26 @@ le 13 octobre.
     lui-même qui s'est présenté (« j'y suis ») — on ne lui écrit pas
     qu'il nous a conseillé de lui écrire.
 
+### Présenter au lieu de donner (lot F3b, 14 octobre 2026)
+
+L'idée 8 de la page de concept, choisie par le mainteneur — avec un
+prénom plutôt que « Elle est déjà d'accord ».
+
+42. **Karim peut prévenir Julie avant de la donner, et le dire.** Sous
+    le contact qu'il donnerait : « Julie est d'accord », une case, et
+    « Lui demander », un lien vers son mail (ou ses SMS) avec le message
+    prêt — « Bonjour Julie, Inès cherche quelqu'un chez Aztek pour une
+    alternance. Je peux lui donner ton contact ? ». Il ne dit que ce que
+    la demande disait déjà, et pas un pronom de trop. Cochée, le geste
+    devient « Présenter Julie » et la lettre porte `accord` ; rien ne
+    l'impose — « Donner » reste le geste —, mais c'est le double accord
+    que la décision 10 décrivait déjà (Fred Wilson, *The double opt-in
+    introduction*, 2009) : Julie attend le mail au lieu de le
+    découvrir. Chez Inès, « Julie est d'accord » se lit dans l'aperçu,
+    en accent, et le premier mail s'ouvre sur « Karim vous a parlé de
+    moi. » au lieu de « Karim m'a conseillé de vous écrire. ». Le
+    prénom affiché est celui du contact, jamais un pronom deviné.
+
 ## Encore à trancher
 
 - **Le fil du groupe** : tranché le 12 octobre (décision 27) — des
