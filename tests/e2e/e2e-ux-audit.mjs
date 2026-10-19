@@ -3703,9 +3703,21 @@ const SONDE_CONTRASTE = () => {
     const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
     return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]);
   };
+  /* LE NAVIGATEUR CONVERTIT, PAS UNE EXPRESSION RÉGULIÈRE. Une couleur
+     calculée n'est pas toujours `rgb(…)` : un `color-mix()` se rend
+     `color(srgb 0.89 0.93 0.92)`, en fractions — lues comme du 0-255,
+     elles faisaient de chaque aplat teinté un fond presque NOIR, et le
+     contrôle accusait 2,58:1 des boutons qui rendent 6,2:1 (19 octobre
+     2026). Une toile d'un pixel lit toutes les syntaxes que le moteur
+     sait peindre. */
+  const toile = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
   const rgb = s => {
-    const m = String(s).match(/[\d.]+/g);
-    return m ? m.slice(0, 3).map(Number).concat(m[3] !== undefined ? +m[3] : 1) : null;
+    if (!s) return null;
+    toile.clearRect(0, 0, 1, 1);
+    toile.fillStyle = '#000'; toile.fillStyle = s;
+    toile.fillRect(0, 0, 1, 1);
+    const d = toile.getImageData(0, 0, 1, 1).data;
+    return [d[0], d[1], d[2], d[3] / 255];
   };
   /* une couleur translucide se juge une fois POSÉE sur son fond */
   const melange = (fg, bg) => fg[3] >= 1 ? fg : fg.slice(0, 3).map((v, i) => v * fg[3] + bg[i] * (1 - fg[3]));

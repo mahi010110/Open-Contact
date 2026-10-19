@@ -1164,8 +1164,10 @@ details.tranche[open]>summary::before{
    tailles où le nom se coupait — 150 % en 320 px, 175 % en 360.
    C'est WCAG 1.4.10 (le contenu se réorganise, il ne se perd pas).
    `column-gap` remplace la marge : la zone morte de 8 px entre ouvrir
-   la fiche et les gestes reste, et `margin-left:auto` garde les gestes
-   à droite une fois repliés. */
+   la fiche et les gestes reste. Sur une rangée partagée, c'est la
+   colonne du nom (`flex:1`) qui pousse les gestes à droite ; repliés
+   sur leur propre rang, ils reviennent au bord gauche, sous le nom
+   qu'ils concernent (e2e-decroche). */
 .act-in{position:relative;display:flex;align-items:center;flex-wrap:wrap;
   column-gap:8px;row-gap:8px;
   background:var(--surface-window);transition:transform 60ms linear}
@@ -1226,7 +1228,7 @@ details.tranche[open]>summary::before{
    mesuré) : un pouce posé à la frontière ouvrait la fiche au lieu de
    marquer « Fait ». 8 px partout, et chaque geste ne touche plus que
    lui-même quand la visée dérape de 6 px. */
-.act-btns{display:flex;flex:none;margin-left:auto;padding-right:8px;gap:8px}
+.act-btns{display:flex;flex:none;padding-right:8px;gap:8px}
 /* LA CASE « FAIT », EN TÊTE (19 octobre 2026) : le dessin de toute liste
    de tâches. Vide au repos, verte et cochée à l'appui — et elle le reste
    pendant que la ligne s'en va (`act-gone`). La cible est celle du doigt,
@@ -1247,7 +1249,16 @@ details.tranche[open]>summary::before{
 @media (hover:hover){
 .act-fait:hover .act-case{border-color:var(--green)}
 }
-.act-fait+.act-main{padding-left:0}
+.act-fait+.act-main{padding-left:4px}
+/* L'ANNEAU VA AU NOM. Depuis que la case « Fait » ouvre la ligne et que
+   le geste la ferme, le contrôle qui ouvre la fiche n'en couvre plus que
+   le milieu : l'anneau posé sur la RANGÉE l'entourait de loin, et le
+   relevé de `e2e-focus` n'y trouvait plus que deux bords — un trait en
+   haut, un trait en bas, pas un cadre. Il se pose donc DANS le nom
+   (`outline-offset` négatif, que le rognage de la rangée ne touche pas),
+   et la rangée rend le sien. */
+.act-in>.act-main.sw-cible:focus-visible{outline:var(--focus-outline);outline-offset:-2px}
+.act-row:has(> .act-in > .sw-cible:focus-visible){outline:none}
 /* le second geste d'une ligne ne se montre qu'à la SOURIS : au doigt,
    il vit au glissé et dans la fiche, et la ligne garde un seul mot */
 .act-sec{display:none}
@@ -3346,6 +3357,15 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
    elle, sinon l'objet disait deux choses à la fois */
 .pk-duo.pk-out .pk-who{background-image:var(--dither-img);background-size:var(--dither-size);color:var(--text-muted)}
 .pk-duo.pk-out .pk-who .ic{color:var(--text-muted)}
+/* LES FICHES À COCHER SONT À PLAT (19 octobre 2026). Elles gardaient le
+   biseau et l'ombre portée d'un bouton de 98 : vingt-quatre briques en
+   relief dans « Prospecter » et « Donner », alors que la seule chose qui
+   s'y décide vit dans la CASE. Un relief dit « je suis un geste » ; une
+   fiche de liste dit « je suis une piste ». Le cadre reste (deux étages,
+   un objet), dans le trait des cadres de groupe, et l'appui s'enfonce. */
+.pick.pk,.pk-duo{background-color:var(--surface-window);border-color:var(--border-frame);box-shadow:none}
+.pick.pk:active{background-color:var(--surface-chrome);box-shadow:var(--bevel-down)}
+.pk-duo .pick.pk:active{background-color:transparent;box-shadow:none}
 
 /* ============ ÉCHANGER : QR, SCAN, APERÇU, ANNULER ============ */
 .qr-wrap{

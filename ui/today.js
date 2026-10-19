@@ -186,11 +186,13 @@ function startRowHTML(c){
          </div>
          <div class="act-btns">
            ${/* pas d'adresse, pas de bouton : une capacité absente est
-                ABSENTE, jamais grisée (§0). UN geste visible au pouce :
-                écrire si l'on peut, sinon décider quand ; le second ne
-                se montre qu'au poste, où la place ne manque pas. */''}
+                ABSENTE, jamais grisée (§0). Le geste qui avance garde son
+                mot (écrire si l'on peut, sinon décider quand) ; l'autre
+                reste en icône à côté — ces lignes n'ont pas de glissé,
+                et « décider quand » est justement le geste qui manque
+                quand rien n'est planifié. */''}
            ${joignable(c)
-             ? `<button class="btn btn-sm btn-ghost icon-btn act-sec" data-a="plan" aria-label="Planifier ${esc(c.name)}" title="Planifier">${ic('calendar', 'ic-14')}</button>`
+             ? `<button class="btn btn-sm btn-ghost icon-btn" data-a="plan" aria-label="Planifier ${esc(c.name)}" title="Planifier">${ic('calendar', 'ic-14')}</button>`
              : `<button class="btn btn-sm" data-a="plan" aria-label="Planifier ${esc(c.name)}">${ic('calendar', 'ic-14')} Planifier</button>`}
            ${joignable(c)
              ? `<button class="btn btn-sm" data-a="mail" aria-label="Écrire à ${esc(c.name)}">${ic('mail', 'ic-14')} Écrire</button>` : ''}
@@ -226,12 +228,13 @@ function silenceRowHTML(sil){
            ${/* le geste que la tranche propose, avec son MOT : « Relancer »
                 (on écrit, ou l'on choisit quand si l'on n'a pas d'adresse),
                 puis « Clôturer » passé le dernier seuil — la sortie de la
-                pile. Au poste, l'autre geste se montre à côté. */''}
+                pile. L'autre geste reste à côté, en icône : cette ligne n'a
+                pas de glissé pour le retrouver. */''}
            ${clore
-             ? (joignable(c) ? `<button class="btn btn-sm btn-ghost icon-btn act-sec" data-a="mail" aria-label="Écrire à ${esc(c.name)}" title="Écrire">${ic('mail', 'ic-14')}</button>` : '')
+             ? (joignable(c) ? `<button class="btn btn-sm btn-ghost icon-btn" data-a="mail" aria-label="Écrire à ${esc(c.name)}" title="Écrire">${ic('mail', 'ic-14')}</button>` : '')
                + `<button class="btn btn-sm btn-ghost" data-a="clore" aria-label="Clôturer ${esc(c.name)}">${ic('archive', 'ic-14')} Clôturer</button>`
              : joignable(c)
-               ? `<button class="btn btn-sm btn-ghost icon-btn act-sec" data-a="plan" aria-label="Planifier ${esc(c.name)}" title="Planifier">${ic('calendar', 'ic-14')}</button>
+               ? `<button class="btn btn-sm btn-ghost icon-btn" data-a="plan" aria-label="Planifier ${esc(c.name)}" title="Planifier">${ic('calendar', 'ic-14')}</button>
                   <button class="btn btn-sm" data-a="mail" aria-label="Relancer ${esc(c.name)}">${ic('mail', 'ic-14')} Relancer</button>`
                : `<button class="btn btn-sm" data-a="plan" aria-label="Relancer ${esc(c.name)}">${ic('calendar', 'ic-14')} Relancer</button>`}
          </div>
