@@ -11,7 +11,7 @@ import { porteurs } from '../engine/requete.js';
 import { portesDuJour } from './amis.js';
 import { lignesAmis, ouvrirLigne } from './reseau.js';
 import { scoreOf } from '../engine/score.js';
-import { dueFollowups, silentPistes, aDemarrer } from '../engine/assist.js';
+import { dueFollowups, silentPistes, aDemarrer, premiersPas } from '../engine/assist.js';
 import { S, bus, isClosed, markDone, hasDemo, addDemo, removeDemo } from './state.js';
 import { $, ic, openSheet } from './dom.js';
 import { frToday, frDate, dueMarkHTML, silenceMarkHTML } from './dates.js';
@@ -19,6 +19,7 @@ import { askNextAction, reportAction, askClose } from './actions.js';
 import { openMail } from './mail.js';
 import { openFiche } from './fiche.js';
 import { openCapture } from './capture.js';
+import { openProfil } from './profil.js';
 import { campaignLines, openCampaignById } from './campagnes.js';
 import { mailAnalysis } from './analyse.js';
 import { openPendingMailAnalysis } from './recevoir.js';
@@ -258,6 +259,30 @@ function amisHTML(items){
           </section>`;
 }
 
+/* ---------- « Premiers pas » (lot F4) ----------
+   Trois cases qui se cochent SEULES, dans l'ordre où elles se font —
+   une liste ordonnée dans un cadre. Ce qui reste à faire se tape (le
+   chevron), ce qui est fait se coche et se tait ; le mail attend qu'il
+   y ait une piste à qui écrire. Sans piste, la liste prend la place des
+   gestes de l'accueil (§6 : une nouveauté prend une place qui existe) ;
+   ensuite, elle est la première tranche, jusqu'au premier mail. */
+const PAS = { profil: 'Remplir mon profil', piste: 'Ajouter une piste', mail: 'Écrire mon premier mail' };
+function pasHTML(etapes, titre){
+  const lignes = etapes.map(x => {
+    const pret = x.cle !== 'mail' || etapes[1].fait;
+    return `<li>${x.fait || !pret
+      ? `<span class="pp-et${x.fait ? ' pp-fait' : ''}">${ic(x.fait ? 'checkbox-on' : 'checkbox', 'ic-20')}<span class="pp-l">${PAS[x.cle]}</span>${
+          x.fait ? '<span class="visuellement-cache"> : fait</span>' : ''}</span>`
+      : `<button class="pp-et pp-a" data-pp="${x.cle}">${ic('checkbox', 'ic-20')}<span class="pp-l">${PAS[x.cle]}</span>${ic('chevron-right', 'ic-14')}</button>`}</li>`;
+  }).join('');
+  const liste = `<ol class="pp-liste" id="tdPas">${lignes}</ol>`;
+  if (!titre) return liste;
+  const faits = etapes.filter(x => x.fait).length;
+  return `<section class="tranche tr-pas">
+            <h2 class="tr-h">${ic('flag', 'ic-14')} Premiers pas <span class="tr-n">${faits}/3</span></h2>${liste}
+          </section>`;
+}
+
 function debutHTML(items){
   return `<section class="tranche tr-start">
             <h2 class="tr-h">${ic('zap', 'ic-14')} Par où commencer</h2>
@@ -391,6 +416,8 @@ export function renderToday(){
      leur chiffre, comme toute messagerie (13 octobre 2026). Restent les
      amis qui attendent un GESTE — une demande, un contact donné. */
   html += amisHTML(lignesAmis());
+  const pas = premiersPas(S.profile, S.companies);
+  if (pas && S.companies.length) html += pasHTML(pas, true);
 
   if (!alive.length && !S.companies.length){
     /* première visite : la promesse, puis un seul geste.
@@ -405,8 +432,9 @@ export function renderToday(){
       `<div class="td-empty">
          <div class="tde-ic">${ic('zap', 'ic-24')}</div>
          <h2>Ta recherche, un jour à la fois</h2>
+         ${pas ? pasHTML(pas, false) : ''}
          <div class="tde-actions">
-           <button class="btn btn-primary" id="tdeAdd">${ic('plus', 'ic-14')} Ajouter une piste</button>
+           ${pas ? '' : `<button class="btn btn-primary" id="tdeAdd">${ic('plus', 'ic-14')} Ajouter une piste</button>`}
            <button class="btn" id="tdeDemo">Voir un exemple</button>
          </div>
        </div>`;
@@ -538,6 +566,13 @@ export function renderToday(){
   root.querySelector('#tdTriage')?.addEventListener('click', () => openTriage(triage.items));
   root.querySelector('#tdNoAct')?.addEventListener('click', () => ouvrirSur('à planifier'));
   root.querySelector('#tdeAdd')?.addEventListener('click', () => openCapture());
+  /* chaque pas mène là où il se fait ; le mail, à la piste que « Par où
+     commencer » proposerait en premier */
+  root.querySelectorAll('[data-pp]').forEach(b => b.addEventListener('click', () => {
+    if (b.dataset.pp === 'profil') openProfil();
+    else if (b.dataset.pp === 'piste') openCapture();
+    else { const c = parOuCommencer(aLancer)[0] || alive[0] || S.companies[0]; if (c) openMail(c); }
+  }));
   /* pas de toast : les pistes d'exemple arrivent sous les yeux, et
      « Retirer les pistes d'exemple » s'affiche au pied du même écran */
   root.querySelector('#tdeDemo')?.addEventListener('click', () => { addDemo(); bus.refresh(); });

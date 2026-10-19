@@ -2985,10 +2985,13 @@ if (IA){
     const pActif = await cActif.newPage();
     await pActif.goto(base, { waitUntil: 'load' });
     await pActif.waitForSelector('#view-aujourdhui:not([hidden])');
-    /* `#tdeAdd` et pas `.btn-primary` : au pouce, le premier
-       `.btn-primary` du document est celui du bandeau de bureau, caché */
-    await pActif.waitForSelector('#tdeAdd');
-    const bp = await pActif.$('#tdeAdd');
+    /* le bouton plein du pied de « Nouvelle piste », ouverte par le « + »
+       de la barre — l'accueil n'en porte plus depuis les premiers pas
+       (lot F4), et au pouce le premier `.btn-primary` du document est
+       celui du bandeau de bureau, caché */
+    await pActif.click('#bnAdd');
+    await pActif.waitForSelector('.overlay:not(.ov-out) .modal-f .btn-primary');
+    const bp = await pActif.$('.overlay:not(.ov-out) .modal-f .btn-primary');
     const repos = await bp.evaluate(n => getComputedStyle(n).backgroundColor);
     const boite = await bp.boundingBox();
     await pActif.mouse.move(boite.x + boite.width / 2, boite.y + boite.height / 2);
