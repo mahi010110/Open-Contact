@@ -349,6 +349,18 @@ net. Sources uniques : `styles/tokens/` et le kit `design/`.
   inmesurable.** Le contrôle doit viser la CAUSE (un enfant plus large
   que la boîte) et se vérifier lui-même en plantant une sonde — sinon
   il reste vert quand on le retire.
+  **Et la cause se mesure au BORD, pas à la largeur** *(octobre 2026)*.
+  Trois segments étroits dont le troisième commence dans la feuille et
+  finit dehors : aucun n'était plus large que la boîte, « Réponse »
+  perdait pourtant 10 px à 200 % en 320 px, et la garde restait verte —
+  le défaut a été vu sur une capture, pas par elle. Elle mesure donc ce
+  qui dépasse un bord, hors de ce qui défile ou coupe exprès (une
+  rangée de puces, la ligne d'un geste), et ses deux sondes plantent
+  l'un et l'autre cas. Le remède du statut de la fiche est la bascule
+  de la carte de suivi : rangée, ou pile d'un coup quand le plus long
+  mot ne tient plus (`--bascule`, MESURÉ par contrôle — 13 rem pour
+  trois segments ; « Ouvert · Sur demande » tient toujours et n'en
+  déclare pas).
 
   **Et la même faute existe VERTICALEMENT, en pire.** Dans une colonne
   flex de hauteur bornée, un enfant garde `flex-shrink:1` : il rétrécit

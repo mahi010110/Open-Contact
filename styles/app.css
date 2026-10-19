@@ -2685,14 +2685,28 @@ button.ec-row:hover{background:var(--surface-field)}
 }
 .fi-closed .fic-t{flex:1;min-width:0}
 .fi-closed .btn{flex:none}
-.seg3{display:flex}
+.seg3{display:flex;flex-wrap:wrap;--bascule:0rem}
+/* RANGÉE OU PILE, JAMAIS ROGNÉ (octobre 2026). Un segment ne descend pas
+   sous son plus long mot (`min-width:auto`) : quand la rangée ne tient
+   plus, il sortait de la feuille — « Réponse » perdait 10 px à 200 % en
+   320 px, rogné par la ceinture `overflow-x:hidden`. La bascule de la
+   carte de suivi passe toute la rangée en pile d'un coup, au seuil
+   `--bascule` : n segments × le plus long mot, MESURÉ, en rem pour
+   suivre la police. Un contrôle qui tient toujours (« Ouvert · Sur
+   demande ») n'en déclare pas et reste une rangée. */
 .seg3 .seg{
-  flex:1;min-height:var(--ctl);padding:4px 6px;
+  flex:1 1 calc((var(--bascule) - 100%) * 999);min-height:var(--ctl);padding:4px 6px;
   border:1px solid var(--border-strong);border-radius:var(--radius-1);
   background:var(--surface-chrome);box-shadow:var(--bevel-up);
   font-weight:var(--weight-semibold);font-size:var(--text-12);color:var(--text-muted);
 }
-.seg3 .seg+.seg{margin-left:-1px}
+/* les bords se joignent dans le sens de la pile : à gauche en rangée,
+   en haut en pile — le même calcul que la bascule */
+.seg3 .seg+.seg{margin-left:clamp(-1px, (var(--bascule) - 100%) * 999, 0px);
+  margin-top:clamp(-1px, (100% - var(--bascule)) * 999, 0px)}
+/* le statut de la fiche : trois segments, le plus long mot « contacter »
+   rend 68 px à 16 px de police — 3 × 68 = 12,8 rem */
+.seg3.seg3-statut{--bascule:13rem}
 .seg3 .seg.on{background:var(--accent);color:var(--on-accent);box-shadow:var(--bevel-down)}
 .na-box{
   display:flex;align-items:center;gap:10px;flex-wrap:wrap;
