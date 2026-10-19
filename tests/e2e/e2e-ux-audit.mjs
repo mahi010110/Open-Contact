@@ -3321,14 +3321,29 @@ const SONDE_COUPE = () => {
      bug d'origine ne se reproduit PAS sous Chromium (WebKit calcule la
      largeur minimale d'un `<select>` sur son option la plus longue,
      pas Chromium), donc la seule mesure honnête est la propriété. */
+  /* ET PAR SON BORD, PAS SA LARGEUR (octobre 2026). Mesurer la seule
+     largeur laissait passer le cas le plus banal : trois segments
+     étroits dont le TROISIÈME commence dans la feuille et finit
+     dehors. Aucun n'était plus large que la boîte — « Réponse » sortait
+     pourtant de 30 px à 200 % en 320 px, rogné par la ceinture, et la
+     garde restait verte (vu sur une capture, pas par elle). On mesure
+     donc ce qui dépasse un BORD de la boîte de remplissage. Ce qui vit
+     sous un ancêtre qui défile ou coupe lui-même (une rangée de puces
+     qui glisse, la ligne d'un geste) est hors sujet : là, sortir est
+     voulu, et c'est l'ancêtre qui est mesuré. */
   const mb = document.querySelector('.overlay:not(.ov-out) .modal-b');
   let large = 0; let coupable = '';
   if (mb){
-    const boite = mb.clientWidth;
+    const b = mb.getBoundingClientRect();
+    const g = b.left + mb.clientLeft, d = g + mb.clientWidth;
+    const voulu = e => { for (let a = e.parentElement; a && a !== mb; a = a.parentElement)
+      if (getComputedStyle(a).overflowX !== 'visible') return true; return false; };
     for (const e of mb.querySelectorAll('*')){
-      const w = e.getBoundingClientRect().width;
-      if (w > boite + 1 && w - boite > large){
-        large = Math.round(w - boite);
+      const r = e.getBoundingClientRect();
+      if (!r.width || !r.height) continue;
+      const hors = Math.max(r.right - d, g - r.left);
+      if (hors > 1 && hors > large && !voulu(e)){
+        large = Math.round(hors);
         coupable = e.id ? '#' + e.id
           : (typeof e.className === 'string' && e.className.trim()
              ? '.' + e.className.trim().split(/\s+/)[0] : e.tagName);
@@ -3430,7 +3445,8 @@ const GRAINE_ZOOM = async () => {
   await zPage.waitForSelector('#view-aujourdhui:not([hidden])');
   await zPage.evaluate(GRAINE_ZOOM);
   await zPage.evaluate(() => { document.documentElement.style.fontSize = '32px'; });
-  const dur = []; let vus = 0; let doublee = false; let sondeLarge = null; let mesurees = 0;
+  const dur = []; let vus = 0; let doublee = false; let sondeLarge = null; let sondeBord = null; let mesurees = 0;
+  let statutRangee = null; let statutForme = null;
   let sondeEcrase = null; let filVu = false;
   /* LES FEUILLES AUSSI. La garde ne regardait que les quatre écrans, et
      c'est ce qui l'a laissée passer à côté d'un défaut signalé sur
@@ -3491,11 +3507,53 @@ const GRAINE_ZOOM = async () => {
       });
       sondeLarge = (await zPage.evaluate(SONDE_COUPE)).glisse > 100;
       await zPage.evaluate(() => { document.getElementById('sondeLarge')?.remove(); });
+      /* LE BORD, DANS LES DEUX SENS. Un bloc ÉTROIT qui commence dans la
+         feuille et finit dehors (120 px, moins que la feuille même à
+         200 %) — le cas que la mesure par la largeur laissait passer —
+         doit être vu ; le même, dans une rangée qui
+         défile exprès, ne doit pas l'être. Une exemption trop large ne
+         casse rien : elle rend zéro, et zéro se lit comme une réussite. */
+      await zPage.evaluate(() => {
+        const mb = document.querySelector('.overlay:not(.ov-out) .modal-b');
+        const d = document.createElement('div');
+        d.id = 'sondeBord'; d.style.cssText = 'width:120px;height:2px;margin-left:calc(100% - 20px)';
+        const r = document.createElement('div');
+        r.id = 'sondeDefile'; r.style.cssText = 'overflow-x:auto';
+        r.innerHTML = '<div style="width:120px;height:2px;margin-left:calc(100% - 20px)"></div>';
+        mb.append(d, r);
+      });
+      const vu = (await zPage.evaluate(SONDE_COUPE));
+      await zPage.evaluate(() => { document.getElementById('sondeBord')?.remove(); });
+      const sansBord = (await zPage.evaluate(SONDE_COUPE));
+      await zPage.evaluate(() => { document.getElementById('sondeDefile')?.remove(); });
+      sondeBord = vu.coupable === '#sondeBord' && vu.glisse >= 30 && sansBord.glisse <= 1;
     }
     doublee = doublee || await zPage.evaluate(() =>
       parseFloat(getComputedStyle(document.documentElement).fontSize) >= 32);
     const r = await zPage.evaluate(SONDE_COUPE);
     vus += r.coupes.length; mesurees++;
+    /* la bascule du statut ne doit pas coûter la rangée à taille normale :
+       c'est le dessin choisi, la pile n'est que le repli */
+    if (nom === 'fiche'){
+      /* à 200 % : une rangée ou une pile, JAMAIS deux puis un. Avec
+         `flex-wrap`, un segment qui ne tient plus passe à la ligne au
+         lieu de sortir — rien ne déborde, et c'est la forme que la
+         bascule existe pour éviter (une mutation l'a montré) */
+      statutForme = await zPage.evaluate(() => {
+        const s = [...document.querySelectorAll('.overlay:not(.ov-out) .seg3 .seg')].map(x => x.getBoundingClientRect());
+        if (s.length !== 3) return 'absent';
+        return s.every(r => Math.abs(r.top - s[0].top) < 1) ? 'rangée'
+          : s.every((r, i) => !i || r.top >= s[i - 1].bottom - 2) ? 'pile' : 'autre';
+      });
+      await zPage.evaluate(() => { document.documentElement.style.fontSize = '16px'; });
+      await zPage.waitForTimeout(80);
+      statutRangee = await zPage.evaluate(() => {
+        const s = [...document.querySelectorAll('.overlay:not(.ov-out) .seg3 .seg')].map(x => x.getBoundingClientRect().top);
+        return s.length === 3 && s.every(t => Math.abs(t - s[0]) < 1);
+      });
+      await zPage.evaluate(() => { document.documentElement.style.fontSize = '32px'; });
+      await zPage.waitForTimeout(80);
+    }
     if (r.deborde > 1) dur.push(`${nom} : la page déborde de ${r.deborde}px en largeur`);
     if (r.glisse > 1)
       dur.push(`${nom} : ${r.coupable} dépasse la feuille de ${r.glisse}px — elle glissera latéralement`);
@@ -3600,6 +3658,14 @@ const GRAINE_ZOOM = async () => {
   else if (!sondeLarge)
     fail('texte doublé : la sonde plantée (un bloc de 9999px dans une feuille) n’a pas été vue — '
       + 'la mesure du dépassement ne mesure plus rien');
+  else if (!sondeBord)
+    fail('texte doublé : la sonde de BORD (un bloc étroit qui finit hors de la feuille) n’a pas été vue, '
+      + 'ou la même dans une rangée qui défile a été prise — la mesure ne regarde plus les bords');
+  else if (statutRangee !== true)
+    fail('fiche à 100 % : le statut « Où j’en suis » n’est plus une rangée — la bascule passe en pile trop tôt');
+  else if (statutForme !== 'rangée' && statutForme !== 'pile')
+    fail(`fiche à 200 % : le statut « Où j’en suis » n’est ni une rangée ni une pile (${statutForme}) — `
+      + 'deux puis un, la forme que la bascule existe pour éviter');
   else if (!sondeEcrase)
     fail('texte doublé : la sonde d’écrasement (un enfant de 60px dans une boîte de 20px qui coupe) '
       + 'n’a pas été vue — la mesure de l’écrasement ne mesure plus rien');

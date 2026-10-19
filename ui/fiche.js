@@ -236,7 +236,7 @@ export function openFiche(c){
            <button class="btn btn-sm" id="fiReopen">Rouvrir</button>
          </div>` : `
          <div class="field"><label>Où j’en suis</label>
-           <div class="seg3" role="radiogroup" aria-label="Statut">
+           <div class="seg3 seg3-statut" role="radiogroup" aria-label="Statut">
              ${Object.keys(STATUSES).map(k =>
                `<button class="seg${val('status') === k ? ' on' : ''}" data-st="${k}" aria-pressed="${val('status') === k}">${STATUSES[k].label}</button>`).join('')}
            </div>
