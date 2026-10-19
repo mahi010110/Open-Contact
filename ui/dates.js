@@ -45,6 +45,25 @@ export function quandListe(t){
   if (d > -7) return j.toLocaleDateString('fr-FR', { weekday: 'short' });
   return j.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
 }
+/* DANS UN FIL (lot F2) : le jour se dit UNE fois, sur une ligne à lui,
+   et chaque message ne porte plus que son heure — comme WhatsApp ou
+   Messages. « Aujourd'hui », « Hier », le jour de la semaine tant qu'il
+   est dans les sept derniers, la date au-delà (l'année seulement si ce
+   n'est pas celle-ci). */
+export const heureDe = t => new Date(t).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+const majuscule = s => s.charAt(0).toUpperCase() + s.slice(1);
+export function jourFil(t){
+  const iso = localISO(new Date(t));
+  const d = diffDays(iso);
+  if (d === 0) return 'Aujourd’hui';
+  if (d === -1) return 'Hier';
+  const j = new Date(iso + 'T12:00:00');
+  if (d < 0 && d > -7) return majuscule(j.toLocaleDateString('fr-FR', { weekday: 'long' }));
+  const o = { weekday: 'long', day: 'numeric', month: 'long' };
+  if (j.getFullYear() !== new Date().getFullYear()) o.year = 'numeric';
+  return majuscule(j.toLocaleDateString('fr-FR', o));
+}
+export const memeJour = (a, b) => localISO(new Date(a)) === localISO(new Date(b));
 /* « mardi 8 juillet » */
 export function frToday(){
   return new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });

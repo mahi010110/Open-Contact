@@ -36,7 +36,8 @@ import { openSheet, toast, btn, ic, showUndo, bindDeleteGesture } from './dom.js
 import { sortState, sortSectionHTML, bindSortSection, sortChipHTML, bindSortChip, sensDe } from './sort.js';
 import { makeQrSvg } from './qr.js';
 import { demandesCritere, peutDemanderAmis, phraseDemande, ouvrirDemander, libelleDemander, direAdieu, reprendreMonProfil } from './reseau.js';
-import { ouvrirConversation } from './messages.js';
+import { ouvrirConversation, aUneConversation } from './messages.js';
+import { visageHTML } from './visage.js';
 
 /* ce que le parcours de tes amis dit de tes pistes — calculé à la
    demande : l'index du moteur le rend linéaire, rien à mémoriser */
@@ -224,7 +225,17 @@ function boutonEcrire(a, apres, classe){
   b.className = 'btn ' + classe;
   b.id = 'amEcrire';
   b.innerHTML = motEcrire(a);
-  b.addEventListener('click', () => ouvrirConversation(a, apres));
+  /* au poste, une conversation qui existe se lit dans la boîte, à sa
+     place (lot F2 : un seul endroit pour une conversation, comme
+     « Message » sur Discord) ; une conversation neuve, ou au pouce, s'ouvre
+     en feuille ici même */
+  b.addEventListener('click', async () => {
+    if (matchMedia('(min-width:901px)').matches && aUneConversation(a.id)){
+      (await import('./conversations.js')).ouvrirDansBoite('ami', a.id);
+      return;
+    }
+    ouvrirConversation(a, apres);
+  });
   return b;
 }
 function lierFicheAmi(box, a, { apres, fermer } = {}){
@@ -270,7 +281,7 @@ export function openAmi(a, apres){
   const dessiner = () => {
     if (!sh.body.isConnected) return;
     const frais = (S.profile.amis || []).find(x => x.id === a.id) || a;
-    sh.body.innerHTML = `<h2 class="ap-nom am-nom">${esc(frais.nom)}</h2>` + ficheAmiHTML(frais);
+    sh.body.innerHTML = `<h2 class="ap-nom am-nom">${visageHTML(frais.id, 'vz-m')}${esc(frais.nom)}</h2>` + ficheAmiHTML(frais);
     const ensuite = () => { dessiner(); if (apres) apres(); };
     lierFicheAmi(sh.body, frais, { apres: ensuite, fermer: () => sh.close() });
     sh.setFoot(frais.cle ? [boutonEcrire(frais, ensuite, 'btn-primary')] : null);
@@ -303,6 +314,7 @@ function ligneAmiHTML({ a, o }, sel){
     `<div class="row-item am-row${sel ? ' am-sel' : ''}" data-ami="${esc(a.id)}">
        <div class="sw-in">
          <div class="ri-main sw-cible am-main" role="button" tabindex="0" aria-label="Ouvrir ${esc(a.nom)}"${sel ? ' aria-current="true"' : ''}>
+           ${visageHTML(a.id)}
            <div class="am-txt">
              <h3>${esc(a.nom)}</h3>
              <div class="ri-sub">${sousLigneAmi(o)}</div>
@@ -353,7 +365,7 @@ export function vueAmisHTML(classes, { q, wide, critere }){
     ? `<div class="dc-split">
          <div class="dc-col">${liste}${dem.geste}</div>
          <aside class="dc-detail am-detail" data-ami="${esc(x.a.id)}" aria-label="${esc(x.a.nom)}">
-           <h2 class="ap-nom">${esc(x.a.nom)}</h2>${x.a.cle ? '<div class="am-ecrire"></div>' : ''}${ficheAmiHTML(x.a)}
+           <h2 class="ap-nom am-nom">${visageHTML(x.a.id, 'vz-m')}${esc(x.a.nom)}</h2>${x.a.cle ? '<div class="am-ecrire"></div>' : ''}${ficheAmiHTML(x.a)}
          </aside>
        </div>`
     : liste + dem.geste);

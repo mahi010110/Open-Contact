@@ -16,10 +16,45 @@
    posent la ligne avec `ligneNouveaux` ; ce fichier fait le reste.
    ============================================================ */
 import { ic } from './dom.js';
+import { esc } from '../engine/utils.js';
+import { decouperLiens } from '../engine/liens.js';
+import { jourFil } from './dates.js';
 
 const dit = n => `${n} nouveau${n > 1 ? 'x' : ''}`;
 /* la ligne : un séparateur, pas un message — elle se lit, elle ne se tape pas */
 export const ligneNouveaux = n => `<li class="fil-nouv" role="separator" aria-label="${dit(n)}"><span>${dit(n)}</span></li>`;
+
+/* LE JOUR, UNE FOIS (lot F2) : une ligne avant le premier message de
+   chaque jour — elle se lit, elle ne se tape pas */
+export const ligneJour = t => `<li class="fil-jour" role="separator" aria-label="${esc(jourFil(t))}"><span>${esc(jourFil(t))}</span></li>`;
+
+/* LE TEXTE D'UN MESSAGE. Les liens se tapent (engine/liens.js dit
+   lesquels, et ce qu'ils affichent) et ne s'ouvrent que sur un tap :
+   aucun aperçu, aucune requête au moment de lire. `noreferrer` : la page
+   ouverte ne sait pas d'où l'on vient. « @Karim » se marque quand Karim
+   est du groupe — la même règle que `citesDe` (un mot entier, qui
+   commence par l'arobase). Tout le reste est échappé. */
+const plie = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const MENTION = /@[\p{L}\p{N}'’-]+/gu;
+function marquer(v, prenoms){
+  if (!prenoms.length || !v.includes('@')) return esc(v);
+  const connus = new Set(prenoms.map(plie));
+  let out = '', i = 0;
+  for (const m of v.matchAll(MENTION)){
+    if (m.index > 0 && /[\p{L}\p{N}]/u.test(v[m.index - 1])) continue;
+    let nom = m[0].slice(1);
+    while (nom && !connus.has(plie(nom)) && /['’-]$/.test(nom)) nom = nom.slice(0, -1);
+    if (!connus.has(plie(nom))) continue;
+    out += esc(v.slice(i, m.index)) + `<b class="gr-cite">@${esc(nom)}</b>`;
+    i = m.index + 1 + nom.length;
+  }
+  return out + esc(v.slice(i));
+}
+export function texteHTML(texte, prenoms = []){
+  return decouperLiens(texte).map(x => x.t === 'lien'
+    ? `<a class="lien-msg" href="${esc(x.href)}" target="_blank" rel="noopener noreferrer nofollow" referrerpolicy="no-referrer">${esc(x.v)}</a>`
+    : marquer(x.v, prenoms)).join('');
+}
 
 export function suivreNouveaux(body){
   const reduit = () => matchMedia('(prefers-reduced-motion:reduce)').matches;

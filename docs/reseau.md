@@ -1033,6 +1033,19 @@ sécurité ».
     (Mysk, 2020). Un visage en pixels distingue deux personnes d'un coup
     d'œil ; il se tire de l'identifiant, il ne prouve rien.
 
+### Les conversations, comme une messagerie (13 octobre 2026)
+
+38. **Le jour une fois, les liens sûrs, « @Karim » qui perce le
+    silence.** Un fil dit le jour sur sa ligne et l'heure sur chaque
+    message. Un lien se tape — http et https seulement, sans aperçu,
+    `noreferrer`, un domaine en lettres non latines lu en punycode, une
+    adresse qui cache un nom avant « @ » laissée en texte. Une mention
+    se déduit du texte à l'envoi et part avec le mot, en identifiants de
+    membres : elle ne nomme personne qui ne soit déjà du groupe. Elle
+    compte même quand on a coupé le son du groupe — couper le son, c'est
+    ne plus suivre la conversation, pas ne plus entendre qu'on vous
+    appelle.
+
 ## Encore à trancher
 
 - **Le fil du groupe** : tranché le 12 octobre (décision 27) — des

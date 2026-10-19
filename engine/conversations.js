@@ -62,12 +62,12 @@ export function oublierFil(p, cle){
      { cle, sorte: 'groupe'|'ami', nom, at, apercu, n, attente }
    `at` = le moment de la dernière activité (le dernier message, ou
    l'entrée dans le groupe s'il n'y en a pas) ; `n` = ce qui n'est pas
-   lu ; `attente` = un groupe où l'on a demandé à entrer, pas encore
+   lu ; `cite` = parmi ce qui n'est pas lu, ce qui me nomme (lot F2) ; `attente` = un groupe où l'on a demandé à entrer, pas encore
    ouvert. Ordre : les épinglées, dans l'ordre où on les a épinglées,
    puis toutes les autres de la plus récente à la plus ancienne. */
 export function boite(fils, prefs = prefsVides()){
   const rangs = (Array.isArray(fils) ? fils : []).filter(f => f && CLE.test(String(f.cle || '')))
-    .map(f => ({ ...f, n: Math.max(0, Number(f.n) || 0), at: Number(f.at) || 0,
+    .map(f => ({ ...f, n: Math.max(0, Number(f.n) || 0), cite: Math.max(0, Number(f.cite) || 0), at: Number(f.at) || 0,
                  epingle: estEpingle(prefs, f.cle), muet: estMuet(prefs, f.cle) }));
   const ep = prefs.epingles.map(c => rangs.find(r => r.cle === c)).filter(Boolean);
   const autres = rangs.filter(r => !r.epingle).sort((a, b) => b.at - a.at || String(a.nom).localeCompare(String(b.nom), 'fr'));
@@ -93,8 +93,11 @@ export const filtreVide = (rangs, f) => f !== 'tout' && !filtrer(rangs, f).lengt
    messages — trois messages de Karim sont une seule chose à faire. Une
    conversation dont on a coupé le son n'y entre pas : c'est à ça que sert
    de le couper (PatternFly : un compte qui ne descend jamais à zéro
-   devient un papier peint). */
-export const aLire = rangs => rangs.filter(r => r.n > 0 && !r.muet).length;
+   devient un papier peint). SAUF quand on m'y nomme (lot F2) :
+   « @Karim » perce le silence, comme sur Slack, Discord ou WhatsApp —
+   couper le son d'un groupe, c'est ne plus suivre sa conversation, pas
+   ne plus entendre qu'on m'appelle. */
+export const aLire = rangs => rangs.filter(r => r.n > 0 && (!r.muet || r.cite > 0)).length;
 export const chiffreOnglet = n => !n ? '' : n > 99 ? '99+' : String(n);
 
 /* OUVRIR LÀ OÙ L'ON S'ÉTAIT ARRÊTÉ (Slack, Discord) : le premier

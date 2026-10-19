@@ -30,14 +30,16 @@ import { GROUPES_MAX, MOT_MAX, NOM_MAX, nouveauCode, codeNorm, codeAffiche, nomG
          relaisVersGroupe, peutRelayerGroupe, porteInvitation, lirePorte, nouvelleCleSignature, presenceSignee, presenceVerifiee,
          responsables, estResponsable, adjointVerifie, nomination, redireNomination,
          retrait, exclusion, recode, retraitVerifie, excluVerifie, recodeVerifie, migrerGroupe,
-         DUREES, MOT_JOURS, reglages as reglagesMsg, fin as finMsg, reglagesVerifies, finVerifiee, motPermis, reglagesDe } from '../engine/groupe.js';
+         DUREES, MOT_JOURS, reglages as reglagesMsg, fin as finMsg, reglagesVerifies, finVerifiee, motPermis, reglagesDe,
+         citesDe, citeMoi, mentionsNonLues, prenomsPour } from '../engine/groupe.js';
 import { phraseCritere } from '../engine/critere.js';
 import { emailPlausible } from '../engine/model.js';
 import { S, bus, saveProfile } from './state.js';
 import { openSheet, toast, btn, ic, showUndo, clavier, champGrandit, bindDeleteGesture, confirmSheet, choixHTML } from './dom.js';
 import { cleFil } from '../engine/conversations.js';
-import { ligneNouveaux, suivreNouveaux } from './fil.js';
-import { quandMessage } from './dates.js';
+import { ligneNouveaux, suivreNouveaux, ligneJour, texteHTML } from './fil.js';
+import { heureDe, memeJour, quandMessage } from './dates.js';
+import { visageHTML } from './visage.js';
 import { makeQrSvg } from './qr.js';
 import { publier, lire, ecouter, evenement, echecEnvoi, amisJoignables, recevoirDemandeGroupe, recueDe, chargerReseau,
          trouvePour, ditTrouve, repondreDemande, donnerConnu, suivreAmis, assurerBoite, attentes, entreesPour,
@@ -271,7 +273,8 @@ export function resumeGroupes(){
       const g = etat[e.code] || groupeVide();
       const d = filDe(g).at(-1);
       return { cle: cleFil('groupe', e.code), sorte: 'groupe', id: e.code, nom: nomDe(e.code),
-               at: d ? d.at : e.at, apercu: d ? apercuDe(d) : '', n: nouveaux(g, moi()) + quiAttend(e.code).length };
+               at: d ? d.at : e.at, apercu: d ? apercuDe(d) : '', n: nouveaux(g, moi()) + quiAttend(e.code).length,
+               cite: mentionsNonLues(g, moi()) };
     }),
     /* les groupes où j'ai demandé à entrer (lot 5c) : une ligne qui ne
        s'ouvre pas encore */
@@ -476,7 +479,7 @@ export async function entrerAdmis(l){
 }
 
 /* ---------- un groupe : les prénoms, le fil, le pied pour écrire ---------- */
-const quand = quandMessage;
+const quand = heureDe;
 const quoiDe = l => l.entreprise ? 'chez ' + l.entreprise.nom : phraseCritere(l.critere);
 /* DEMANDE TROUVÉE PAR MON TÉLÉPHONE : elle passe EN TÊTE, à mon nom
    (décision 29 — dans un groupe chacun croit qu'un autre répondra ;
@@ -485,13 +488,15 @@ const quoiDe = l => l.entreprise ? 'chez ' + l.entreprise.nom : phraseCritere(l.
    celle que j'ai seulement relayée d'un autre groupe */
 const maDemande = x => !!S.profile.boite && x.lettre.de.cle === S.profile.boite.pub;
 const trouveeParMoi = x => x.t === 'demande' && !maDemande(x) && !!trouvePour(recueDe(x.id));
-function demandeHTML(x){
+/* dans le fil, l'heure (le jour est dit au-dessus) ; en tête du groupe,
+   hors du fil, le jour aussi */
+function demandeHTML(x, enTete = false){
   const mien = maDemande(x);
   const r = mien ? null : recueDe(x.id);
   const t = trouvePour(r);
   const etatRep = r && r.statut === 'donnee' ? 'Donné' : r && r.statut === 'transmise' ? 'Tu l’as fait suivre' : '';
   return `<li class="gr-m gr-dem${mien ? ' gr-moi' : ''}${t ? ' gr-trouvee' : ''}">
-      <span class="gr-qui"><b>${mien ? 'Toi' : esc(x.prenom)}</b> <time>${esc(quand(x.at))}</time></span>
+      <span class="gr-qui"><b>${mien ? 'Toi' : esc(x.prenom)}</b> <time>${esc(enTete ? quandMessage(x.at) : quand(x.at))}</time></span>
       <p>${ic('users', 'ic-14')} ${mien ? 'Tu cherches' : esc(x.prenom) + ' cherche'} quelqu’un ${esc(quoiDe(x.lettre))}</p>
       ${x.relais ? `<span class="gr-sous">relayée par ${esc(x.relais.prenom)}</span>` : ''}
       ${t ? `<span class="gr-tu">${ic('check', 'ic-14')} ${esc(ditTrouve(t))}</span>` : ''}
@@ -511,23 +516,30 @@ function filHTML(code, vuAvant = Infinity){
   const neuf = x => x.t !== 'retire' && x.de !== moi() && x.at > vuAvant;
   const n = fil.filter(neuf).length;
   let pose = false;
-  return fil.map(x => {
-    let html = bulleHTML(g, x);
+  /* les prénoms du groupe : « @Karim » se marque quand Karim en est */
+  const prenoms = membresVus(g).map(m => m.prenom).concat(prenomMoi() ? [prenomMoi()] : []);
+  return fil.map((x, i) => {
+    let html = bulleHTML(g, x, prenoms);
     if (neuf(x)) html = html.replace(/^<li class="/, '<li class="fil-neuf ');
     if (retirable && x.t !== 'retire')
       html = html.replace(/^<li([^>]*)>([\s\S]*)<\/li>$/, (_, a, corps) => `<li${a} data-retirable="${esc(x.id)}"><div class="sw-in">${corps}</div></li>`);
     if (neuf(x) && !pose){ pose = true; html = ligneNouveaux(n) + html; }
+    /* le jour se dit une fois, avant son premier message (lot F2) */
+    if (!i || !memeJour(fil[i - 1].at, x.at)) html = ligneJour(x.at) + html;
     return html;
   }).join('');
 }
-function bulleHTML(g, x){
+function bulleHTML(g, x, prenoms = []){
   const mien = x.de === moi();
-  const tete = `<span class="gr-qui"><b>${mien ? 'Toi' : esc(x.prenom)}</b> <time>${esc(quand(x.at))}</time></span>`;
+  /* qui écrit : son visage, son prénom, l'heure — le jour est dit au-dessus */
+  const tete = `<span class="gr-qui">${mien ? '' : visageHTML(x.de, 'vz-s')}<b>${mien ? 'Toi' : esc(x.prenom)}</b> <time>${esc(quand(x.at))}</time></span>`;
   /* un message retiré garde sa place : qui l'a retiré, rien de ce qu'il disait */
   if (x.t === 'retire') return `<li class="gr-m gr-retire${mien ? ' gr-moi' : ''}">${tete}
       <p>${ic('eye-off', 'ic-14')} Retiré par ${x.parDe === moi() ? 'toi' : esc(x.par || 'un responsable')}</p></li>`;
   if (x.t === 'demande') return demandeHTML(x);
-  if (x.t === 'mot') return `<li class="gr-m${mien ? ' gr-moi' : ''}">${tete}<p>${esc(x.texte)}</p></li>`;
+  /* ce qui me nomme se voit (lot F2) : un liseré d'accent, comme le
+     surlignage d'une mention sur Slack ou Discord */
+  if (x.t === 'mot') return `<li class="gr-m${mien ? ' gr-moi' : ''}${!mien && citeMoi(x, moi()) ? ' gr-pour-moi' : ''}">${tete}<p>${texteHTML(x.texte, prenoms)}</p></li>`;
   const pris = (g.pris || []).includes(x.id);
   return `<li class="gr-m gr-don${mien ? ' gr-moi' : ''}">${tete}
       <p>${ic('share', 'ic-14')} ${x.nb} piste${x.nb > 1 ? 's' : ''}</p>
@@ -576,7 +588,7 @@ export async function ouvrirGroupe(code, apres, o = {}){
              <button class="btn btn-sm btn-primary" data-accepter="${esc(x.id)}">Accepter</button>
            </span></li>`).join('')}</ol>` : ''}
        ${!autres.length && !fil.length ? `<div class="gr-inviter" id="grInviter"></div>` : ''}
-       ${enTete.length ? `<ol class="gr-fil gr-entete" id="grEnTete">${enTete.map(demandeHTML).join('')}</ol>` : ''}
+       ${enTete.length ? `<ol class="gr-fil gr-entete" id="grEnTete">${enTete.map(x => demandeHTML(x, true)).join('')}</ol>` : ''}
        <p class="gr-ephem">${ic('clock', 'ic-14')} Les messages s’effacent au bout de ${DUREE_DITE[reglagesDe(g).j]}.</p>
        <ol class="gr-fil" id="grFil">${filHTML(code, vuAvant)}</ol>`;
     q('#grMembres')?.addEventListener('click', () => ouvrirMembres(code, sh));
@@ -623,7 +635,10 @@ export async function ouvrirGroupe(code, apres, o = {}){
     const texte = champ.value.replace(/\s+/g, ' ').trim().slice(0, MOT_MAX);
     if (!texte) return;
     const j = reglagesDe(groupe(code)).j;
-    const m = { t: 'mot', id: nouvelId(), de: moi(), prenom: prenomMoi(), texte, at: Date.now(), ...(j !== MOT_JOURS ? { j } : {}) };
+    /* « @Karim » : les membres que le mot nomme partent avec lui (lot F2) */
+    const cite = citesDe(texte, membresVus(groupe(code)), moi());
+    const m = { t: 'mot', id: nouvelId(), de: moi(), prenom: prenomMoi(), texte, at: Date.now(),
+                ...(j !== MOT_JOURS ? { j } : {}), ...(cite.length ? { cite } : {}) };
     bEnv.disabled = true;
     const n = await poster(code, m).catch(() => 0);
     bEnv.disabled = false;
@@ -635,6 +650,40 @@ export async function ouvrirGroupe(code, apres, o = {}){
     rendre();
     sh.body.scrollTop = sh.body.scrollHeight;
   };
+  /* « @ » OUVRE LES PRÉNOMS (lot F2) : au-dessus du champ, les membres
+     dont le prénom commence par ce qui suit l'arobase. Un tap l'écrit ;
+     rien ne se choisit à part — la mention se lit dans le texte. */
+  const propose = document.createElement('div');
+  propose.className = 'datechips gr-propose';
+  propose.id = 'grPropose';
+  propose.setAttribute('role', 'group');
+  propose.setAttribute('aria-label', 'Nommer quelqu’un');
+  propose.hidden = true;
+  const fragment = () => {
+    const av = champ.value.slice(0, champ.selectionStart ?? champ.value.length);
+    const m = av.match(/(?:^|[^\p{L}\p{N}])@([\p{L}\p{N}'’-]*)$/u);
+    return m ? { debut: av.length - m[1].length - 1, f: m[1] } : null;
+  };
+  const proposer = () => {
+    const fr = fragment();
+    const noms = fr ? prenomsPour(fr.f, membresVus(groupe(code)), moi()) : [];
+    propose.hidden = !noms.length;
+    propose.innerHTML = noms.map(n => `<button type="button" class="dchip" data-nommer="${esc(n)}">@${esc(n)}</button>`).join('');
+  };
+  propose.addEventListener('click', e => {
+    const b = e.target.closest('[data-nommer]');
+    const fr = fragment();
+    if (!b || !fr) return;
+    const fin = champ.selectionStart ?? champ.value.length;
+    const mot = '@' + b.dataset.nommer + ' ';
+    champ.value = champ.value.slice(0, fr.debut) + mot + champ.value.slice(fin);
+    const ici = fr.debut + mot.length;
+    champ.focus();
+    champ.setSelectionRange(ici, ici);
+    champ.dispatchEvent(new Event('input'));
+  });
+  champ.addEventListener('input', proposer);
+  champ.addEventListener('click', proposer);
   /* un mot de groupe tient sur une ligne : Entrée envoie, partout — la
      touche du clavier le dit (« Envoyer »). Jamais pendant qu'un clavier
      à composition choisit encore son caractère (IME). */
@@ -661,7 +710,7 @@ export async function ouvrirGroupe(code, apres, o = {}){
     pied.replaceChildren(...(ferme ? [bDon, seulsResp] : [bDon, champ, bEnv]));
   };
   redirePied();
-  sh.setFoot([pied]);
+  sh.setFoot([propose, pied]);
 
   await rendre();
   /* EN DIRECT tant que la feuille est ouverte : un mot écrit en face
@@ -888,7 +937,7 @@ function ouvrirMembres(code, shGroupe){
     sh.body.innerHTML =
       `<h2 class="ap-nom">${esc(nomDe(code))}</h2>
        <ul class="gr-noms">${lignes.map(m => {
-        const nom = `<span>${esc(m.prenom)}${m.role ? ` <span class="gr-role">${m.role}</span>` : ''}</span>`;
+        const nom = `<span class="gr-nom">${visageHTML(m.de, 'vz-m')}<span>${esc(m.prenom)}${m.role ? ` <span class="gr-role">${m.role}</span>` : ''}</span></span>`;
         return m.de !== moi() && gestesSur(code, m.de).length
           ? `<li><button class="gr-membre" data-membre="${esc(m.de)}">${nom}${ic('chevron-right', 'ic-14')}</button></li>`
           : `<li>${nom}</li>`;

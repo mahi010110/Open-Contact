@@ -89,16 +89,26 @@ export function majOnglets(){
 let filtre = 'tout';
 let selCle = '';          /* au poste : la conversation posée à droite */
 export const conversationChoisie = () => selCle;
+/* aller lire une conversation là où elle vit : « Échanger », posée à
+   droite de la boîte (au poste) — depuis la fiche d'un ami, par exemple */
+export function ouvrirDansBoite(sorte, id){
+  selCle = cleFil(sorte, id);
+  filtre = 'tout';
+  if (/^#\/echanger\b/.test(location.hash)) bus.refresh();
+  else location.hash = '#/echanger';
+}
 const MOTS_FILTRE = { tout: 'Tout', nonlus: 'Non lus', groupes: 'Groupes', amis: 'Amis' };
 
 function ligneHTML(r, sel){
   const tete = r.sorte === 'groupe' ? blasonHTML(r.nom, 'bx-vz') : visageHTML(r.id, 'bx-vz');
-  const etat = [r.n ? `${r.n} nouveau${r.n > 1 ? 'x' : ''}` : '', r.epingle ? 'épinglée' : '', r.muet ? 'son coupé' : ''].filter(Boolean);
+  const etat = [r.n ? `${r.n} nouveau${r.n > 1 ? 'x' : ''}` : '', r.cite ? `on t’y nomme` : '',
+    r.epingle ? 'épinglée' : '', r.muet ? 'son coupé' : ''].filter(Boolean);
   const dedans =
     `${tete}
      <span class="bx-m"><b class="bx-n">${esc(r.nom)}</b><span class="bx-p">${r.apercu ? esc(r.apercu) : 'Aucun message pour l’instant'}</span></span>
      <span class="bx-d"><time>${esc(r.attente ? '' : quandListe(r.at))}</time>
        <span class="bx-i">${r.muet ? ic('bell-off', 'ic-14') : ''}${r.epingle ? ic('bookmark', 'ic-14') : ''}${
+         r.cite ? '<span class="bx-at" aria-hidden="true">@</span>' : ''}${
          r.n ? `<span class="bx-c">${r.n > 99 ? '99+' : r.n}</span>` : ''}</span></span>`;
   /* un groupe où l'on a demandé à entrer : une ligne qui ne s'ouvre pas
      encore — « en attente » à la place du dernier message, et une seule fois */
