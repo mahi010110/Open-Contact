@@ -333,6 +333,7 @@ function solderSorties(){ for (const oter of [...sortants]) oter(); }
 
 export function openSheet(o){
   o = o || {};
+  if (o.dans) return poserDans(o);
   solderSorties();
   /* Les feuilles qui succèdent directement à une action transitoire peuvent
      écarter son ancien toast. Ce choix reste explicite : une confirmation
@@ -471,8 +472,53 @@ export function openSheet(o){
     const f = (o.focus && ov.querySelector(o.focus)) || ov.querySelector('.x');
     try { f.focus({ preventScroll: true }); } catch (e) {}
   });
-  const api = {
-    ov, body, close,
+  const api = { ov, body, close, ...titreEtPied(ov, foot) };
+  return api;
+}
+/* ---------- UNE FEUILLE POSÉE DANS UN VOLET ----------
+   (la boîte « Échanger », au poste — retour du mainteneur, 13 octobre
+   2026 : « afficher les conversations comme Discord »)
+   Au poste, la liste des conversations et la conversation ouverte vivent
+   CÔTE À CÔTE : on parcourt à gauche, on lit et on répond à droite, sans
+   fenêtre qui recouvre la liste (Discord, Slack ; Material 3
+   « list-detail »). La conversation garde pourtant UN seul code, celui de
+   sa feuille : `openSheet({ dans })` la pose dans le volet au lieu de
+   l'ouvrir par-dessus l'écran. Elle n'est pas une fenêtre : ni voile, ni
+   croix, ni entrée d'historique, ni piège du focus, ni glisser — le volet
+   fait partie de la page. Une autre conversation la remplace ; une
+   feuille ouverte DEPUIS elle (les membres, répondre) reste une vraie
+   feuille. */
+function poserDans(o){
+  const zone = o.dans;
+  const avant = zone.querySelector(':scope > .dock');
+  if (avant && avant.fermer) avant.fermer();
+  const d = el(
+    `<div class="dock">
+      <div class="modal ${o.className || ''}" role="region" aria-label="${esc(o.title || '')}">
+        <div class="modal-h"><h2>${o.icon ? ic(o.icon, 'ic-14') : ''}<span class="mh-t">${esc(o.title || '')}</span></h2></div>
+        <div class="modal-b"></div>
+        <div class="modal-f" hidden></div>
+      </div>
+    </div>`);
+  const body = d.querySelector('.modal-b');
+  const foot = d.querySelector('.modal-f');
+  if (typeof o.body === 'string') body.innerHTML = o.body;
+  else if (o.body) body.append(o.body);
+  let closed = false;
+  const close = result => {
+    if (closed) return;
+    closed = true;
+    d.remove();
+    if (o.onClose) o.onClose(result);
+  };
+  d.fermer = close;
+  zone.replaceChildren(d);
+  if (o.focus){ const f = d.querySelector(o.focus); if (f) requestAnimationFrame(() => { try { f.focus({ preventScroll: true }); } catch (e) {} }); }
+  return { ov: d, body, close, dock: true, ...titreEtPied(d, foot) };
+}
+/* le titre et le pied d'une feuille, posée ou ouverte : UNE écriture */
+function titreEtPied(root, foot){
+  return {
     /* `.mh-t` et pas `span` : le premier span d'un `h2` est celui de
        l'ICÔNE. `setTitle` écrivait donc dedans — masqué par le `mask`
        de l'icône — et le titre visible ne changeait jamais. Toutes les
@@ -481,12 +527,12 @@ export function openSheet(o){
        sans jamais savoir où l'on était. Le `aria-label` du dialogue
        suit, sinon un lecteur d'écran restait sur le titre de départ. */
     setTitle(t){
-      ov.querySelector('.modal-h h2 .mh-t').textContent = t;
-      ov.querySelector('.modal').setAttribute('aria-label', t);
+      root.querySelector('.modal-h h2 .mh-t').textContent = t;
+      root.querySelector('.modal').setAttribute('aria-label', t);
     },
+    /* remplace — les feuilles à étapes rappellent setFoot à chaque
+       écran ; null = pas de pied (fermer = la croix ou le glisser) */
     setFoot(content){
-      /* remplace — les feuilles à étapes rappellent setFoot à chaque
-         écran ; null = pas de pied (fermer = la croix ou le glisser) */
       foot.innerHTML = '';
       foot.hidden = content == null;
       if (content == null) return;
@@ -494,7 +540,44 @@ export function openSheet(o){
       else foot.append(...[].concat(content));
     }
   };
-  return api;
+}
+/* ---------- L'APPUI LONG — et le clic droit ----------
+   Le menu d'une ligne de messagerie (épingler, couper le son) s'ouvre
+   comme partout : appui long au doigt (WhatsApp, Telegram), clic droit à
+   la souris, touche « menu » au clavier (le navigateur en fait un
+   `contextmenu` sur l'élément qui a le focus).
+   Trois pièges, tous payés ailleurs dans l'app :
+   · un doigt qui GLISSE n'appuie pas : au-delà de 8 px, c'est un
+     défilement, on abandonne ;
+   · le système reprend le toucher quand il veut : `touchcancel` remet
+     au repos comme `touchend` (§5) ;
+   · Android déclenche AUSSI un `contextmenu` au même instant : un seul
+     menu pour un seul appui, et le tap qui suit l'appui long n'ouvre pas
+     la ligne. */
+export function appuiLong(node, fn){
+  let t = null, x0 = 0, y0 = 0, tire = 0;
+  const lancer = () => { if (Date.now() - tire < 800) return; tire = Date.now(); fn(); };
+  const auRepos = () => { clearTimeout(t); t = null; };
+  node.addEventListener('touchstart', e => {
+    auRepos();
+    const p = e.touches[0];
+    x0 = p.clientX; y0 = p.clientY;
+    t = setTimeout(() => { t = null; lancer(); }, 500);
+  }, { passive: true });
+  node.addEventListener('touchmove', e => {
+    if (!t) return;
+    const p = e.touches[0];
+    if (Math.abs(p.clientX - x0) > 8 || Math.abs(p.clientY - y0) > 8) auRepos();
+  }, { passive: true });
+  node.addEventListener('touchend', e => {
+    auRepos();
+    if (Date.now() - tire < 800 && e.cancelable) e.preventDefault();
+  });
+  node.addEventListener('touchcancel', auRepos);
+  node.addEventListener('contextmenu', e => { e.preventDefault(); lancer(); });
+  node.addEventListener('click', e => {
+    if (Date.now() - tire < 800){ e.preventDefault(); e.stopImmediatePropagation(); }
+  }, true);
 }
 export function topSheet(){ return stack[stack.length - 1] || null; }
 

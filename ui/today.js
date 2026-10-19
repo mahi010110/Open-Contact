@@ -10,7 +10,6 @@ import { DOMAINS, STATUSES, prendCeQueJeCherche, PREND_MOT } from '../engine/mod
 import { porteurs } from '../engine/requete.js';
 import { portesDuJour } from './amis.js';
 import { lignesAmis, ouvrirLigne } from './reseau.js';
-import { lignesMessages, ouvrirConversation } from './messages.js';
 import { scoreOf } from '../engine/score.js';
 import { dueFollowups, silentPistes, aDemarrer } from '../engine/assist.js';
 import { S, bus, isClosed, markDone, hasDemo, addDemo, removeDemo } from './state.js';
@@ -388,7 +387,10 @@ export function renderToday(){
        ${done && S.companies.length
          ? `<div class="done-line">${ic('check', 'ic-14')} ${done} action${done > 1 ? 's' : ''} faite${done > 1 ? 's' : ''} aujourd’hui</div>` : ''}`;
 
-  html += amisHTML([...lignesMessages(), ...lignesAmis()]);
+  /* les MESSAGES ne passent plus par ici : l'onglet « Échanger » porte
+     leur chiffre, comme toute messagerie (13 octobre 2026). Restent les
+     amis qui attendent un GESTE — une demande, un contact donné. */
+  html += amisHTML(lignesAmis());
 
   if (!alive.length && !S.companies.length){
     /* première visite : la promesse, puis un seul geste.
@@ -498,11 +500,7 @@ export function renderToday(){
     bindSwipe(row, c);
   });
   root.querySelectorAll('.act-ami').forEach(row => {
-    const ouvrir = () => {
-      /* un ami t'a écrit : la conversation, directement */
-      const a = row.dataset.sorte === 'message' && (S.profile.amis || []).find(x => x.id === row.dataset.ami);
-      if (a) ouvrirConversation(a, () => bus.refresh()); else ouvrirLigne(row.dataset.sorte, row.dataset.ami);
-    };
+    const ouvrir = () => ouvrirLigne(row.dataset.sorte, row.dataset.ami);
     row.querySelector('.act-main').addEventListener('click', ouvrir);
     row.querySelector('.act-main').addEventListener('keydown', e => {
       if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); ouvrir(); }

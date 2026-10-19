@@ -36,7 +36,7 @@ import { openSheet, toast, btn, ic, showUndo, bindDeleteGesture } from './dom.js
 import { sortState, sortSectionHTML, bindSortSection, sortChipHTML, bindSortChip, sensDe } from './sort.js';
 import { makeQrSvg } from './qr.js';
 import { demandesCritere, peutDemanderAmis, phraseDemande, ouvrirDemander, libelleDemander, direAdieu, reprendreMonProfil } from './reseau.js';
-import { nonLusDe, ouvrirConversation } from './messages.js';
+import { ouvrirConversation } from './messages.js';
 
 /* ce que le parcours de tes amis dit de tes pistes — calculé à la
    demande : l'index du moteur le rend linéaire, rien à mémoriser */
@@ -218,10 +218,7 @@ function ficheAmiHTML(a){
    poste il ouvre le détail, sous le nom. Ce qui n'est pas lu se compte
    dedans. Un ami sans boîte n'a pas ce geste : la ligne « Rescanne son
    QR » le dit. */
-const motEcrire = a => {
-  const n = nonLusDe(a.id);
-  return `${ic('message-text', 'ic-14')} Écrire à ${esc(prenomAmi(a))}${n ? ` <span class="gr-n am-n">${n}</span>` : ''}`;
-};
+const motEcrire = a => `${ic('message-text', 'ic-14')} Écrire à ${esc(prenomAmi(a))}`;
 function boutonEcrire(a, apres, classe){
   const b = document.createElement('button');
   b.className = 'btn ' + classe;
@@ -298,21 +295,18 @@ function sousLigneAmi(o){
   return (dans.length ? `<span class="am-tienne">${esc(dans.join(', '))}, dans tes pistes</span>` : '')
     + (dans.length && autres.length ? ' · ' : '') + esc(autres.join(' · '));
 }
-/* ce qu'il t'a écrit et que tu n'as pas lu se compte au bout de sa
-   ligne, en accent — le chiffre d'un groupe dans « Échanger » ; rien
-   quand il n'y a rien */
+/* Ce qu'un ami t'a écrit ne se compte plus ici : la conversation vit
+   dans la boîte « Échanger », dont l'onglet porte le chiffre (13 octobre
+   2026). Cette liste dit ce que l'ami T'OUVRE. */
 function ligneAmiHTML({ a, o }, sel){
-  const n = nonLusDe(a.id);
   return (
     `<div class="row-item am-row${sel ? ' am-sel' : ''}" data-ami="${esc(a.id)}">
        <div class="sw-in">
-         <div class="ri-main sw-cible am-main" role="button" tabindex="0" aria-label="Ouvrir ${esc(a.nom)}${
-           n ? `, ${n} message${n > 1 ? 's' : ''} non lu${n > 1 ? 's' : ''}` : ''}"${sel ? ' aria-current="true"' : ''}>
+         <div class="ri-main sw-cible am-main" role="button" tabindex="0" aria-label="Ouvrir ${esc(a.nom)}"${sel ? ' aria-current="true"' : ''}>
            <div class="am-txt">
              <h3>${esc(a.nom)}</h3>
              <div class="ri-sub">${sousLigneAmi(o)}</div>
            </div>
-           ${n ? `<span class="gr-n am-n" aria-hidden="true">${n}</span>` : ''}
          </div>
        </div>
      </div>`);

@@ -95,7 +95,7 @@ const texte = (p, sel) => p.evaluate(s => document.querySelector(s)?.innerText.r
 const profilDe = p => p.evaluate(async () => JSON.parse(JSON.stringify((await import('./ui/state.js')).S.profile)));
 const ouvrirLeGroupe = async p => {
   await fermerTout(p);
-  await p.click('.gr-ligne[data-groupe]');
+  await p.click('.bx-l[data-groupe]');
   await p.waitForSelector('#grMot');
 };
 const messagesDu = async code => {
@@ -221,7 +221,7 @@ await attendreQue(I.p, () => /on continue/.test(document.querySelector('#grFil')
 await attendreQue(So.p, () => window.__toasts.some(t => /Tu n’es plus dans BTS SIO Lille\./.test(t)), null, 20000,
   '« Tu n’es plus dans BTS SIO Lille. » chez Sofia');
 await rouvrir(So.p);
-await attendreQue(So.p, () => !document.querySelector('.gr-ligne[data-groupe]'), null, 20000, 'le groupe parti de chez Sofia');
+await attendreQue(So.p, () => !document.querySelector('.bx-l[data-groupe]'), null, 20000, 'le groupe parti de chez Sofia');
 {
   const pS = await profilDe(So.p);
   if ((pS.groupes || []).length) fail('Sofia garde un groupe dans son profil');

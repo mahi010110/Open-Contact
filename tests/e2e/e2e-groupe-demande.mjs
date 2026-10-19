@@ -106,7 +106,7 @@ const attendreQue = async (p, fn, arg, ms = 20000, quoi = '') => {
 };
 const ouvrirGroupe = async (p, nom) => {
   await fermerTout(p);
-  await p.evaluate(n => [...document.querySelectorAll('.gr-ligne')].find(b => b.querySelector('b').textContent.trim() === n).click(), nom);
+  await p.evaluate(n => [...document.querySelectorAll('.bx-l[data-groupe]')].find(b => b.querySelector('b').textContent.trim() === n).click(), nom);
   await p.waitForSelector('#grMot');
 };
 const ouvrirFiche = async (p, id) => {
@@ -366,8 +366,10 @@ for (const [nom, o] of [['poste', { vp: { width: 1280, height: 800 } }], ['320-2
   await ouvrirGroupe(P.p, 'BTS SIO Lille');
   await attendreQue(P.p, () => document.querySelectorAll('.gr-dem').length >= 2, null, 20000, nom + ' : les demandes');
   await P.p.waitForTimeout(500);
+  /* au poste, le groupe se pose à droite de la boîte (le volet) */
   const r = await P.p.evaluate(() => {
-    const b = [...document.querySelectorAll('.overlay:not(.ov-out) .modal-b')].pop();
+    const ici = document.querySelector('#bxVolet .dock') ? '#bxVolet' : '.overlay:not(.ov-out)';
+    const b = [...document.querySelectorAll(ici + ' .modal-b')].pop();
     const box = b.getBoundingClientRect();
     return { lateral: b.scrollWidth > b.clientWidth + 1,
              larges: [...b.querySelectorAll('*')].filter(x => x.getBoundingClientRect().right > box.right + 1).length };

@@ -62,6 +62,9 @@ async function prepare(ctx){
   p.on('pageerror', e => errors.push(String(e)));
   p.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
   await p.goto(base, { waitUntil: 'load' });
+  /* semer APRÈS le démarrage : l'app qui démarre range ses conversations
+     et réécrirait par-dessus la graine */
+  await p.waitForFunction(() => !!document.querySelector('#sbVer')?.textContent);
   await p.evaluate(async d => {
     const st = await import('./engine/storage.js');
     await st.kvInit(); await st.kvSet(st.DATA_KEY, JSON.stringify(d));
@@ -79,6 +82,13 @@ async function prepare(ctx){
                    : 'Reçu de Léa : +' + (i + 1) + ' piste(s)',
         ids: ['p0', 'p1']
       }))));
+    /* et trois conversations d'amis : de quoi poser l'une puis l'autre
+       dans le volet du poste */
+    const amis = [['InesInesInesInes01', 'Inès Martin'], ['KarimKarimKarim01', 'Karim Benali'], ['LeaLeaLeaLeaLea01', 'Léa Dupont']];
+    await st.kvSet(st.PROFILE_KEY, JSON.stringify({ name: 'Moi Test', amiId: 'MoiMoiMoiMoiMoi01',
+      amis: amis.map(([id, nom]) => ({ id, nom, parcours: [] })) }));
+    await st.kvSet(st.MESSAGES_KEY, JSON.stringify({ v: 1, fils: Object.fromEntries(amis.map(([id], i) =>
+      [id, { vu: j, m: [{ id: 'm000000' + i, moi: false, texte: 'Salut !', at: j - (i + 1) * 6e4 }] }])) }));
   }, PISTES);
   await p.reload({ waitUntil: 'load' });
   await attendre(p, async () => (await import('./ui/state.js')).S.companies.length === 7);
@@ -200,28 +210,34 @@ const GESTES = [
      Rien d'autre ne bouge sur cet écran, et le troisième cas ci-dessous
      est là pour le prouver — c'est le sens « net » qui empêche
      l'animation de proliférer un « juste un petit fondu » à la fois. */
+  /* le fil vit dans la feuille « Historique » (13 octobre 2026) */
   ['Déplier le fil des échanges', 'glisse', async p => {
     await p.evaluate(() => { location.hash = '#/echanger'; });
+    await p.waitForSelector('#ecHisto', { timeout: 8000 });
+    await p.click('#ecHisto');
     await p.waitForSelector('#ecMore', { timeout: 8000 });
-    await p.waitForTimeout(300);
-    return p.evaluate(() => window.__film(
+    await p.waitForTimeout(400);
+    const r = await p.evaluate(() => window.__film(
       /* la 51ᵉ ligne : elle n'existait pas avant le tap */
       () => document.querySelectorAll('.ec-l')[50] || null,
       n => Math.round(getComputedStyle(n).opacity * 100) + '|' + getComputedStyle(n).transform,
       () => document.querySelector('#ecMore').click()));
+    await fermerTout(p);
+    return r;
   }],
   /* Au poste seulement : tout le côté droit change d'un coup, à 500 px
      du doigt qui l'a causé. Sans mouvement, le changement n'est pas VU —
      et le lecteur d'écran était mieux servi que l'œil, puisque
-     `annoncer()` le disait déjà. */
-  ['Le panneau lu arrive (poste)', 'glisse', async p => {
+     `annoncer()` le disait déjà. La conversation qu'on choisit dans la
+     boîte arrive dans le volet de droite. */
+  ['La conversation arrive (poste)', 'glisse', async p => {
     await p.setViewportSize({ width: 1280, height: 850 });
     await p.evaluate(() => { location.hash = '#/echanger'; });
-    await p.waitForSelector('.ec-detail', { timeout: 8000 });
-    await p.waitForTimeout(300);
-    const r = await p.evaluate(() => window.__film('.ec-detail',
+    await p.waitForSelector('#bxVolet .dock', { timeout: 8000 });
+    await p.waitForTimeout(400);
+    const r = await p.evaluate(() => window.__film('#bxVolet .dock',
       n => Math.round(getComputedStyle(n).opacity * 100) + '|' + getComputedStyle(n).transform,
-      () => document.querySelectorAll('.ec-row[data-fil]')[3].click()));
+      () => document.querySelectorAll('.bx-l[data-fil]')[2].click()));
     await p.setViewportSize({ width: 390, height: 850 });
     return r;
   }],
@@ -232,12 +248,12 @@ const GESTES = [
   ['La ligne retenue se peint (poste)', 'net', async p => {
     await p.setViewportSize({ width: 1280, height: 850 });
     await p.evaluate(() => { location.hash = '#/echanger'; });
-    await p.waitForSelector('.ec-detail', { timeout: 8000 });
-    await p.waitForTimeout(300);
+    await p.waitForSelector('#bxVolet .dock', { timeout: 8000 });
+    await p.waitForTimeout(400);
     const r = await p.evaluate(() => window.__film(
-      () => document.querySelectorAll('.ec-row[data-fil]')[2],
+      () => document.querySelectorAll('.bx-l[data-fil]')[1],
       n => getComputedStyle(n).backgroundColor,
-      () => document.querySelectorAll('.ec-row[data-fil]')[2].click(), 400));
+      () => document.querySelectorAll('.bx-l[data-fil]')[1].click(), 400));
     await p.setViewportSize({ width: 390, height: 850 });
     return r;
   }],
