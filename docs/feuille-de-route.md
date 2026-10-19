@@ -4,7 +4,16 @@
 concevoir — ça, c'est `CLAUDE.md`. Et il ne redit pas l'état des surfaces —
 ça, c'est [`surfaces.md`](surfaces.md).
 
-*Dernière mise à jour : 30 septembre 2026.*
+*Dernière mise à jour : 19 octobre 2026.*
+
+> **Le recadrage a commencé** *(19 octobre 2026)*. L'ordre des prochains
+> mois est celui de [`recadrage.md`](recadrage.md) : R0 (les fondations,
+> livré en 6.78.0), puis R1 (la navigation), R2 (le suivi qui se remplit
+> seul), R3 (« Prêts à partir ») — chacun en préversion, testé avec cinq
+> étudiants avant d'être ouvert à tous. Les décisions sont dans
+> [`decisions/`](decisions/README.md). Ce qui suit reste vrai, mais passe
+> derrière le recadrage : la première mesure avec de vraies personnes
+> ([`mesure/protocole.md`](mesure/protocole.md)) vaut aussi pour la bêta.
 
 ---
 

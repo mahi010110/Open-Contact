@@ -26,7 +26,11 @@ import { scoreOf } from './engine/score.js';
 import { DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, SYNC_KEY,
          RELAYS_KEY, TURN_KEY, DEVICE_KEY, DEVICES_KEY, PROMO_KEY, VAULT_KEY,
          ANALYSIS_KEY, VUS_KEY, RESEAU_KEY, GROUPES_KEY, MESSAGES_KEY, FILS_KEY, SEALABLE, THEME_KEY, VIEW_KEY, OLD_V2, OLD_V1, CLES_A_EFFACER,
+         PREVERSION_KEY,
          kvGet, kvSet, kvDel, vaultActive, vaultDetach, vaultReseal } from './engine/storage.js';
+import { DRAPEAUX, DUREE_MAX_JOURS, defauts as defautsDrapeau, perimes, actif, enTest,
+         lirePreversion, ecrirePreversion } from './engine/drapeaux.js';
+import { DESTINATIONS, ACCUEIL, routeDe, destination, titreDe } from './engine/destinations.js';
 import { causeLiaison, relayTally, liaisonStage, parseTurn, turnText, TURN_MAX, RELAIS_DEFAUT } from './engine/transport.js';
 import { clePortage, sceller as scellerPortage, ouvrir as ouvrirPortageMsg, decouper, rassembler, recolte,
          PORTAGE_PART, PORTAGE_PARTS_MAX, makeCleEchange, cleEntre, decouperScelle, rassemblerScelle } from './engine/portage.js';
@@ -683,6 +687,8 @@ export async function runSelfTests(){
       eq(FILS_KEY, 'oc_fils_v1');
       ok(SEALABLE.has(FILS_KEY));     /* elle nomme un groupe par son CODE : un secret */
       eq(THEME_KEY, 'oc_theme');
+      eq(PREVERSION_KEY, 'oc_preversion_v1');
+      ok(!SEALABLE.has(PREVERSION_KEY));   /* « allumée » ne dit rien de toi */
       eq(VIEW_KEY, 'oc_view');
       eq(OLD_V2, 'oc_data_v2');
       eq(OLD_V1, 'ais_stage_targets_v1');
@@ -3323,6 +3329,73 @@ export async function runSelfTests(){
       /* tout ce qui se scelle est une donnée : tout ce qui se scelle s'efface */
       for (const k of SEALABLE) ok(CLES_A_EFFACER.includes(k), k + ' (scellable) doit partir');
       ok(!CLES_A_EFFACER.includes(THEME_KEY));                       /* un réglage d'affichage reste */
+      ok(CLES_A_EFFACER.includes(PREVERSION_KEY));                   /* un appareil effacé sort du test */
+    },
+    'drapeaux de livraison : chacun a sa raison, son lot et sa date de retrait': () => {
+      ok(DRAPEAUX.length > 0);
+      const ids = new Set();
+      for (const d of DRAPEAUX){
+        eq(defautsDrapeau(d), [], d.id);
+        ok(!ids.has(d.id), d.id + ' en double');
+        ids.add(d.id);
+      }
+      /* le défaut se dit, et dans le bon sens : trop tard, à l'envers, mal formé */
+      const bon = { id: 'essai', lot: 'R1', nom: 'un essai', raison: 'parce que', cree: '2026-10-19', retrait: '2027-01-31', ouvert: false };
+      eq(defautsDrapeau(bon), []);
+      eq(defautsDrapeau({ ...bon, retrait: '2026-10-01' }), ['retrait avant la naissance']);
+      eq(defautsDrapeau({ ...bon, retrait: '2027-10-19' }), ['retrait trop loin']);
+      eq(defautsDrapeau({ ...bon, lot: 'lot1', raison: ' ' }), ['lot', 'raison']);
+      eq(defautsDrapeau({ ...bon, ouvert: 'non' }), ['ouvert']);
+      eq(defautsDrapeau(null), ['pas un drapeau']);
+      ok(DUREE_MAX_JOURS <= 183);
+    },
+    'drapeaux de livraison : un drapeau qui a dépassé sa date fait échouer ?test': () => {
+      /* C'est voulu (Hodgson, « Feature Toggles ») : un drapeau de
+         livraison qui reste devient deux chemins à tenir pour toujours.
+         Rouge ici = ouvrir le lot et retirer l'ancien chemin, ou
+         repousser la date exprès, dans un commit qui dit pourquoi. */
+      eq(perimes(DRAPEAUX, todayISO()).map(d => d.id), []);
+      const d = { id: 'vieux', retrait: '2026-01-31' };
+      eq(perimes([d], '2026-01-31'), []);            /* le jour même, il vit encore */
+      eq(perimes([d], '2026-02-01'), [d]);
+    },
+    'préversion : ce qui s’allume, et seulement sur cet appareil': () => {
+      const L = [
+        { id: 'a', ouvert: false },
+        { id: 'b', ouvert: true }
+      ];
+      eq(actif(L, 'a', false), false);   /* en test : éteint pour tout le monde… */
+      eq(actif(L, 'a', true), true);     /* …allumé en préversion */
+      eq(actif(L, 'b', false), true);    /* ouvert : pour tous */
+      eq(actif(L, 'inconnu', true), false);   /* un drapeau retiré retombe sur l'ancien chemin */
+      eq(enTest(L).map(d => d.id), ['a']);
+      eq(enTest([{ id: 'b', ouvert: true }]), []);   /* rien en test → pas de ligne Préversion */
+      eq(lirePreversion('1'), true);
+      eq(lirePreversion(null), false);
+      eq(lirePreversion('true'), false);   /* une valeur inconnue n'allume rien */
+      eq(ecrirePreversion(true), '1');
+      eq(ecrirePreversion(false), null);
+    },
+    'destinations : une ancienne adresse mène toujours quelque part': () => {
+      eq(DESTINATIONS.map(d => d.id), ['aujourdhui', 'pistes', 'echanger', 'moi']);
+      eq(routeDe('#/pistes'), 'pistes');
+      eq(routeDe('#pistes'), 'pistes');
+      eq(routeDe('#/Pistes/'), 'pistes');
+      eq(routeDe(''), '');
+      eq(destination('#/pistes'), { id: 'pistes', ancienne: false });
+      eq(destination('#/nimporte'), { id: ACCUEIL, ancienne: false });
+      eq(destination(''), { id: 'aujourdhui', ancienne: false });
+      /* un déménagement, puis un second : la chaîne se suit */
+      const ids = ['aujourdhui', 'reseau'];
+      eq(destination('#/echanger', { ids, alias: { echanger: 'reseau' } }), { id: 'reseau', ancienne: true });
+      eq(destination('#/vieux', { ids, alias: { vieux: 'echanger', echanger: 'reseau' } }), { id: 'reseau', ancienne: true });
+      /* une boucle ne tourne pas : elle retombe sur l'accueil */
+      eq(destination('#/a', { ids, alias: { a: 'b', b: 'a' } }), { id: 'aujourdhui', ancienne: false });
+      /* une adresse présente ne suit jamais d'alias */
+      eq(destination('#/reseau', { ids, alias: { reseau: 'aujourdhui' } }), { id: 'reseau', ancienne: false });
+      eq(destination('#/constructor', { ids }), { id: 'aujourdhui', ancienne: false });
+      eq(titreDe('echanger'), 'Échanger');
+      eq(titreDe('inconnu'), '');
     },
     'composeur : le modèle arrive pré-choisi d’après le statut de la piste': () => {
       const tpls = defaultTemplates();                    /* Candidature, Relance, Remerciement */

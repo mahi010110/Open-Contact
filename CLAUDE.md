@@ -8,7 +8,8 @@ silencieuse.
 
 À lire avec : `CONTRAT.md` (le contrat de données, vérifié par `?test`),
 `docs/surfaces.md` (ce qui est livré, ce qui dort, ce qui n'existe pas),
-`docs/feuille-de-route.md` (quoi faire et dans quel ordre), `design/` (le kit
+`docs/feuille-de-route.md` (quoi faire et dans quel ordre), `docs/recadrage.md`
+et `docs/decisions/` (le recadrage en cours, et pourquoi), `design/` (le kit
 « Utilitaire 98 »).
 
 **Le « pourquoi » de l'interface vit ICI, dans les §4 à §8.** Les journaux de
@@ -131,6 +132,24 @@ Le web se présente d'abord et récolte ses retours ; l’ordinateur s'ouvre
 ensuite, sur la coquille native déjà écrite ; le téléphone suit, sur cette
 même coquille. Ce n'est plus un seuil à deviner, c'est une file à suivre —
 et les retours du web passent toujours devant.
+
+### Le recadrage : des lots en préversion (19 octobre 2026)
+
+L'app se remet en ordre par lots (`docs/recadrage.md`, décisions 0001 à
+0004). **Un lot arrive dans main derrière un drapeau de LIVRAISON**
+(`engine/drapeaux.js`), pas un drapeau du périmètre : il porte son lot, sa
+raison et sa **date de retrait**, six mois au plus après sa naissance, et
+`?test` refuse un drapeau qui l'a dépassée. On ouvre alors le lot et on
+retire l'ancien chemin, ou on repousse la date exprès, dans un commit qui
+dit pourquoi. Un drapeau de livraison qu'on oublie devient deux chemins à
+tenir pour toujours.
+
+La ligne **« Préversion »** de Réglages allume les lots en test sur CET
+appareil, chez le mainteneur et ses testeurs ; elle n'existe que s'il y a
+un lot en test. **Un écran demande le lot (`lot('reseau')`, `ui/state.js`),
+jamais la préversion elle-même** : le jour où le lot s'ouvre, rien d'autre
+ne change. Et pendant la préversion, les gardes jouent les DEUX chemins.
+`ui/perimetre.js` n'importe rien : `tests/e2e/tous.mjs` le lit sous Node.
 
 ## 1. Le produit en une phrase
 
@@ -921,6 +940,8 @@ avec un motif existant.
 | Commander une liste à cocher | `barreListeHTML` + `bindBarreListe` (`ui/affiner.js`) — **UNE rangée, et le CHAMP y domine** : `[tout cocher] [recherche] [Affiner]`, sans un seul chiffre — la case pleine ou vide dit « tout ou pas tout », l'entonnoir en accent dit « ça filtre », et **ce qui se compte se compte là où l'on décide** : dans le pied, à côté de l'action. Un compteur dans la barre change de largeur à chaque tap, donc la rangée bouge sous le doigt. Le champ prend ~70 % de la barre, jamais moins : sous ~24 caractères il ne se lit plus comme une recherche mais comme un champ coincé entre des boutons (NN/g en demande ~27). **C'est de l'arithmétique, pas du goût** — à 360 px on a 324 px utiles et toute cible fait 44 px, donc la barre tient le champ plus DEUX commandes, jamais trois. La case se passe du mot « Tout » parce qu'elle tient l'axe des cases de la liste, et son compte n'apparaît que lorsqu'on a écarté quelque chose — l'encre va à ce qui change. À texte doublé la barre se replie (WCAG 1.4.10). Employée par les trois feuilles qui choisissent des pistes : Donner, Prospecter, partage en groupe |
 | Une liste qui remplit une feuille | **l'action va dans le PIED, jamais au-dessus de la liste** (`setFoot`). C'est §5 appliqué à la lettre, et ça se paie deux fois si on l'oublie : « Donner » posait ses deux canaux dans le corps, à ~17 % de la hauteur, et avait dû inventer un **pli** pour les dégager — un pli qui coûtait ensuite 50 px au champ de recherche. Descendue dans le pied, l'action n'est plus jamais enterrée, le pli n'a plus d'objet, et l'état qui l'accompagnait disparaît. **Un contrôle qui existe pour réparer un mauvais placement se supprime en corrigeant le placement** |
 | Un geste qui CHANGE des données (restaurer, effacer, rompre, retirer, réinitialiser) | **un bouton, jamais un lien** — une rangée `.pick` s'il vit dans une liste, un `.btn-sm` taillé à son mot s'il est seul. Un lien EMMÈNE, un bouton AGIT (NN/g) : « Restaurer une copie », « Effacer cet appareil », « Rompre le lien » vivaient en mots soulignés, c'est-à-dire sous la forme qui promet d'aller ailleurs, pour les gestes les plus lourds de leur écran — le mainteneur l'a vu sur son téléphone. **Le destructif** est un `.pick-danger` en liste, un `.btn-danger` seul : pictogramme ET mot (une icône destructive ne se devine pas, elle se lit), rouge, dans **son propre groupe** (`.pick-sortie`, 16 px au-dessus), en dernier, jamais comme action principale (Apple ; GOV.UK réserve son bouton d'alerte à l'irréversible). Le `.linklike` reste à ce qui emmène ailleurs ou déplie : « Code oublié ? », « Compléter mon profil », « Voir les N autres ». Et un geste lourd sur une LIGNE (un appareil) ne s'y pose pas en icône nue : la ligne s'ouvre (chevron), et ses gestes vivent nommés dans sa feuille. Gardé par `e2e-appareils.mjs` |
+| Livrer un écran en test | `lot('id')` (`ui/state.js`) sur un drapeau du registre `engine/drapeaux.js`, avec sa date de retrait — jamais `S.preversion` lu dans un écran (§0, « Le recadrage ») |
+| Déplacer un écran | le registre `engine/destinations.js` : la nouvelle destination, et l'ANCIENNE adresse en alias — une adresse donnée (favori, lien collé, écran d'accueil) mène toujours quelque part, et la barre d'adresse est réécrite sur place |
 | Supprimer au geste | `bindDeleteGesture(node, onDelete)` — glisser (mobile) / poubelle au survol (desktop), doublé d'un `showUndo` |
 | Un journal, un historique | il RACONTE ce qui est fait : poids de texte courant, jamais le gras d'un titre — deux ou trois niveaux au maximum sur un écran (NN/g, poids visuel), et le journal vient toujours après les gestes qu'il surplombe |
 | Choisir parmi 2-5 options | `pick-list` / `.pick` — **UN cadre, des rangées sans relief**, séparées d'un pointillé : la forme de « Réglages » et de « Modèles d'emails ». Plus de pile de briques pleine largeur (voir « La taille dit le rang », sous la table). Une option ne porte pas de sous-titre qui l'explique ; à droite, au plus un état d'un mot ou un chiffre |
