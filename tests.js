@@ -2303,7 +2303,15 @@ export async function runSelfTests(){
       const don = normaliserLettre(lettreDon({ prenom: 'Léa', cle: lea.pub }, mienne, { name: 'Julie', email: 'j@a.test' }), now);
       const r3 = traiterLettre(e, don, { moi: moi.pub, now });
       eq(r3.quoi, 'don'); eq(r3.etat.dons.at(-1).statut, 'nouveau');
+      ok(!('accord' in r3.etat.dons.at(-1)));
       eq(traiterLettre(r3.etat, don, { moi: moi.pub, now }).quoi, null);
+      /* PRÉSENTER (lot F3b) : le contact est d'accord — un booléen, et rien
+         pour qui se présente lui-même, ni pour une valeur qui n'est pas `true` */
+      const presente = normaliserLettre(lettreDon({ prenom: 'Léa', cle: lea.pub }, mienne, { name: 'Julie', email: 'j@a.test' }, { accord: true }), now);
+      eq(presente.accord, true);
+      eq(traiterLettre(e, presente, { moi: moi.pub, now }).etat.dons.at(-1).accord, true);
+      ok(!('accord' in lettreDon({ prenom: 'Léa', cle: lea.pub }, mienne, { name: 'Léa', email: 'l@a.test' }, { soi: { quoi: 'stage' }, accord: true })));
+      ok(!('accord' in normaliserLettre({ ...presente, v: 1, accord: 'oui' }, now)));
       const etranger = normaliserLettre(lettreDon({ prenom: 'X', cle: lea.pub }, { id: 'inconnue01', entreprise: { nom: 'Z' } },
         { name: 'A', email: 'a@b.test' }), now);
       eq(traiterLettre(e, etranger, { moi: moi.pub, now }).quoi, null);
@@ -2563,6 +2571,17 @@ export async function runSelfTests(){
       const sans = fillTpl(tpl.body, c, { name: 'Paul' }, { name: 'Tom Durand', formation: 'BTS SIO' });
       ok(/^Bonjour Paul,\n\n\[Une phrase/.test(sans), sans.slice(0, 80));
       /* un modèle de départ jamais retouché (6.47 à 6.72) prend la ligne ; un modèle retouché, jamais */
+      /* le contact a été prévenu (lot F3b) : il se souvient de Karim */
+      const prevenu = normalizeContact({ id: 'k4', name: 'Julie Marchand', email: 'julie@advens.test', via: 'Karim', accord: true });
+      eq(prevenu.accord, true);
+      ok(fillTpl(tpl.body, c, prevenu, { name: 'Tom Durand', formation: 'BTS SIO' }).startsWith('Bonjour Julie Marchand,\n\nKarim vous a parlé de moi.\n'));
+      /* un accord sans qui l'a donné ne veut rien dire ; rangé dans `extra`, il en sort */
+      ok(!('accord' in normalizeContact({ id: 'k5', name: 'X', accord: true })));
+      eq(normalizeContact({ id: 'k6', name: 'X', via: 'Léa', extra: { accord: true } }).accord, true);
+      ok(!/accord/.test(JSON.stringify(communityView({ name: 'Advens', contacts: [{ name: 'Y', via: 'Léa', accord: true, extra: { accord: true } }] }))));
+      const recu = [];
+      mergeIncoming([{ name: 'Advens', contacts: [{ name: 'Y', email: 'y@x.fr', via: 'Léa', accord: true }] }], recu);
+      ok(!('accord' in recu[0].contacts[0]) && !('via' in recu[0].contacts[0]));
       const d672 = { ...tpl, body: tpl.body.replace('{{via}}\n', '') };
       eq(majModelesDefaut([d672])[0].body, tpl.body);
       eq(majModelesDefaut([{ ...d672, body: d672.body + '!' }])[0].body, d672.body + '!');

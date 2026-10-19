@@ -196,6 +196,10 @@ kind 8571 · tags [["x", "oc-boite-<32 hex>"], ["expiration", "<s>"]] · content
   { "v": 1, "t": "entree", "id": "…", "porte": "<id>", "de": {…}, "ami": "<amiId>" }
   { "v": 1, "t": "admis", "id": "…", "porte": "<id>", "de": {…}, "code": "<15 lettres>", "nom": "BTS SIO Lille", "chef": "<clé de signature>" }
   ```
+  **Depuis la 6.74** (lot F3b) : un don peut porter `accord: true` —
+  celui qui donne a demandé au contact s'il était d'accord. Seule la
+  valeur `true` compte, et jamais quand le contact est l'auteur lui-même
+  (`soi`) ; le don reçu le garde (`dons[].accord`).
   **Depuis la 6.73** (lot F3a) : une demande peut porter `cherche` — UN
   mot de la liste fermée `stage` · `alternance` · `emploi`, celui du
   profil (`recherche`). Toute autre valeur est ignorée à la lecture (la
@@ -569,9 +573,11 @@ piste » — jamais quand le contact est l'ami lui-même (« j'y suis »). Il
 nourrit le jeton `{{via}}` (« Karim m'a conseillé de vous écrire. »),
 première ligne du modèle de candidature, qui s'efface sans lui ; un
 modèle de départ identique à celui des 6.47 à 6.72 prend cette ligne, un
-modèle retouché n'est jamais touché. Privé comme les champs d'action :
-`communityView` ne l'émet pas et le purge d'`extra`, et la fusion
-communautaire vide un `via` entrant — qui a donné un contact à un autre
+modèle retouché n'est jamais touché. **Depuis la 6.74** (lot F3b), `accord: true` à côté de `via` (jamais
+sans lui) : l'ami avait prévenu le contact, et `{{via}}` devient « Karim
+vous a parlé de moi. ». Privés comme les champs d'action :
+`communityView` ne les émet pas et les purge d'`extra`, et la fusion
+communautaire vide un `via` et un `accord` entrants — qui a donné un contact à un autre
 n'est pas mon ami, et un appareil resté en 6.72 l'aurait laissé dans
 `extra`.
 `link` est toujours en `http(s)` après normalisation : tout autre schéma

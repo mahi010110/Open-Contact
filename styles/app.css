@@ -3312,6 +3312,13 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 /* « chez AZTEK SAS » continue le titre (« Inès cherche quelqu'un ») : il
    vient AVANT le contact, qui prend sa place d'objet */
 .dm-chez{margin:0 0 12px}
+/* PRÉSENTER AU LIEU DE DONNER (lot F3b) : la case et, au bout, le lien
+   qui va demander — deux gestes aux conséquences différentes, donc un
+   écart (§5, règle 3) ; à texte agrandi, le lien passe dessous */
+.dr-accord{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;column-gap:16px;margin:12px 0 0}
+/* chez qui reçoit : le contact attend son mail — un atout, l'accent */
+.dm-accord{display:flex;align-items:center;gap:7px;margin:10px 0 0;color:var(--accent);
+  font-size:var(--text-13);font-weight:var(--weight-semibold)}
 /* un état d'un mot (« Déjà dans tes amis. ») : il se lit, il ne se tape pas */
 /* L'ONGLET « AMIS » (lot 4) : la rangée d'une piste. Ce qu'un ami
    t'ouvre DANS TES PISTES prend l'accent — un atout, jamais un mark-* ;

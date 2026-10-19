@@ -26,7 +26,7 @@ export function communityView(c, keep, moi){
     website: c.website, techs: c.techs, positions: c.positions, process: c.process, tips: c.tips,
     contacts: (c.contacts || []).filter(t => !garder || garder.has(t.id)).map(t => {
       const ct = { name: t.name, role: t.role, email: t.email, phone: t.phone, link: t.link, note: t.note, conf: t.conf };
-      const ex = extraSans(t.extra, ['activatedAt', 'src', 'via']);
+      const ex = extraSans(t.extra, ['activatedAt', 'src', 'via', 'accord']);
       if (ex) ct.extra = ex;
       return ct;
     }),

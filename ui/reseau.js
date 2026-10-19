@@ -630,6 +630,10 @@ function ouvrirRecue(r){
      passe en premier : c'est toi qu'on cherche, et le geste le dit —
      « Tom peut m'écrire » (décision 10 : un seul oui, le tien). */
   let choisi = 0;
+  /* PRÉSENTER AU LIEU DE DONNER (lot F3b, double accord) : Karim demande
+     à Julie si elle veut bien, puis le dit d'une case. Rien ne l'y
+     oblige — « Donner » reste le geste —, mais Julie attendra le mail */
+  let accord = false;
   const dit = x => x.soi ? 'tu ' + direQuoiTu(r.soi.quoi, r.soi.maintenant) : x.ct.role;
   const ligne = x => [dit(x), x.ct.email || x.ct.phone || x.ct.link].filter(Boolean).join(' · ');
   const chez = x => x.soi ? r.entreprise.nom : x.c.name;
@@ -638,7 +642,7 @@ function ouvrirRecue(r){
     donner.disabled = true;
     await chargerReseau();
     const b = await assurerBoite();
-    const l = lettreDon({ prenom: prenomDe(S.profile.name), cle: b.pub }, r, x.ct, x.soi ? { soi: r.soi } : { piste: x.c });
+    const l = lettreDon({ prenom: prenomDe(S.profile.name), cle: b.pub }, r, x.ct, x.soi ? { soi: r.soi } : { piste: x.c, accord });
     const n = await ecrire(r.de.cle, l, r.exp).catch(() => 0);
     if (!n){ donner.disabled = false; echecEnvoi(); return; }
     etat = { ...etat, recues: etat.recues.map(y => y.id === r.id ? { ...y, statut: 'donnee', donne: x.ct.name } : y) };
@@ -647,7 +651,7 @@ function ouvrirRecue(r){
     sh.close();
     bus.refresh();
     /* le résultat est sur le téléphone d'un autre : il se dit (§6, ②) */
-    toast(x.soi ? `${r.de.prenom} a ton contact.` : `${x.ct.name} donné à ${r.de.prenom}.`);
+    toast(x.soi ? `${r.de.prenom} a ton contact.` : `${r.de.prenom} a le contact de ${x.ct.name}.`);
   }, 'share');
   donner.id = 'drDonner';
   const ignorer = btn('Ignorer', '', async () => {
@@ -667,12 +671,34 @@ function ouvrirRecue(r){
              ${ic('checkbox', 'ic-20 ic-off')}${ic('checkbox-on', 'ic-20 ic-on')}
              <div class="pk-m"><b>${esc(y.ct.name)}</b>${ligne(y) ? `<span class="pk-s">${esc(ligne(y))}</span>` : ''}</div>
            </button>`).join('')}</div>`);
-    sh.body.querySelectorAll('[data-i]').forEach(b => b.addEventListener('click', () => { choisi = +b.dataset.i; dessiner(); }));
-    /* le geste dit ce qui part : toi, ou un contact */
-    donner.innerHTML = `${ic('share', 'ic-14')} ${esc(x.soi ? `${r.de.prenom} peut m’écrire` : 'Donner')}`;
+    if (!x.soi) sh.body.insertAdjacentHTML('beforeend', accordHTML(r, x, accord));
+    sh.body.querySelectorAll('[data-i]').forEach(b => b.addEventListener('click', () => { choisi = +b.dataset.i; accord = false; dessiner(); }));
+    sh.body.querySelector('#drAccord')?.addEventListener('change', e => { accord = e.target.checked; libelle(); });
+    libelle();
+  };
+  /* le geste dit ce qui part : toi, un contact — ou quelqu'un qui attend */
+  const libelle = () => {
+    const x = choix[choisi];
+    donner.innerHTML = `${ic('share', 'ic-14')} ${esc(x.soi ? `${r.de.prenom} peut m’écrire` : accord ? 'Présenter ' + prenomDe(x.ct.name) : 'Donner')}`;
   };
   dessiner();
   sh.setFoot([ignorer, donner]);
+}
+
+/* « Julie est d'accord » — et, s'il y a de quoi la joindre, « Lui
+   demander » : son mail ou ses SMS, le message prêt. Un LIEN, parce
+   qu'on quitte l'app pour ça (§6) ; rien ne part sans Karim. Le message
+   ne dit que ce que la demande disait déjà, et pas un pronom de trop. */
+function accordHTML(r, x, coche){
+  const p = prenomDe(x.ct.name);
+  const quoi = (r.entreprise ? 'chez ' + (x.c ? x.c.name : r.entreprise.nom) : phraseCritere(r.critere)) + pourCherche(r.cherche);
+  const texte = `Bonjour ${p}, ${r.de.prenom} cherche quelqu’un ${quoi}. Je peux lui donner ton contact ?`;
+  const lien = x.ct.email ? `mailto:${x.ct.email}?subject=${encodeURIComponent('Je peux te présenter quelqu’un ?')}&body=${encodeURIComponent(texte)}`
+    : x.ct.phone ? `sms:${String(x.ct.phone).replace(/[^\d+]/g, '')}?&body=${encodeURIComponent(texte)}` : '';
+  return `<div class="dr-accord">
+      <label class="ckline"><input type="checkbox" id="drAccord"${coche ? ' checked' : ''}> ${esc(p)} est d’accord</label>
+      ${lien ? `<a class="linklike" id="drDemander" href="${esc(lien)}">Lui demander</a>` : ''}
+    </div>`;
 }
 
 /* ---------- LES DEMANDES D'UN GROUPE (lot 5b, décisions 20, 28, 29) ----------
@@ -794,6 +820,9 @@ export function ouvrirDon(d, apres){
   const lieu = [c ? c.name : d.entreprise.nom, !c && d.entreprise.ville].filter(Boolean).join(' · ');
   sh.body.innerHTML = `<p class="dm-de" id="ddDe">${esc(quiDonne(d))}</p>`
     + contactHTML({ ...k, role: k.role || (d.soi ? direQuoi(d.soi.quoi, d.soi.maintenant) : '') }, 'ddNom')
+    /* le double accord (lot F3b) : Julie attend ton mail — c'est l'atout,
+       donc l'accent, jamais un mark-* */
+    + (d.accord ? `<p class="dm-accord" id="ddAccord">${ic('check', 'ic-14')} ${esc(prenomDe(k.name))} est d’accord</p>` : '')
     + `<p class="dm-qui">pour ${esc(lieu)}</p>`;
   const ajouter = btn(c ? 'Ajouter à la piste' : 'Ajouter à mes pistes', 'btn-primary', async () => {
     let piste = c, neuve = false;
@@ -806,7 +835,7 @@ export function ouvrirDon(d, apres){
     /* QUI ME L'A DONNÉ (lot F3) : le premier mail le dira — « Karim m'a
        conseillé de vous écrire ». Pas quand c'est lui qu'on présente :
        on ne lui écrit pas qu'il nous a conseillé de lui écrire. */
-    const ct = normalizeContact({ ...k, ...(d.soi ? {} : { via: d.de.prenom }) });
+    const ct = normalizeContact({ ...k, ...(d.soi ? {} : { via: d.de.prenom, ...(d.accord ? { accord: true } : {}) }) });
     piste.contacts = [...(piste.contacts || []), ct];
     (piste.history = piste.history || []).push({ d: todayISO(), t: `Contact donné par ${d.de.prenom} : ${k.name}` });
     piste.updatedAt = Date.now();
