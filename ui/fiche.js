@@ -135,10 +135,10 @@ export function openFiche(c){
     foot.innerHTML = '';
     foot.hidden = false;
     const d = dirty();
-    if (!isClosed(c)) foot.append(btn('Clôturer', 'btn-ghost', () => askClose(c, { onDone: () => {
-      ['status', 'nextAction', 'nextActionText', 'nextActionCt'].forEach(f => delete draft[f]);
-      render();
-    } }), 'archive'));
+    /* « Clôturer » ne vit plus dans le pied (19 octobre 2026) : il y
+       partageait la place de « Écrire », la seule action du pouce, alors
+       qu'il décide du STATUT de la piste — il monte à côté de « Où j'en
+       suis », là où l'on pense à l'état de la piste. Un pied, un geste. */
     /* « Écrire » part vers la personne visée par l'action, sinon la
        première personne joignable (#14) — jamais un email deviné en silence */
     const writeTo = () => {
@@ -187,7 +187,9 @@ export function openFiche(c){
            ${meta ? `<div class="ct-meta">${esc(meta)}</div>` : ''}
            ${acts ? `<div class="ct-acts">${acts}</div>` : ''}
            ${t.note ? `<div class="ct-note">${esc(t.note)}</div>` : ''}
-           <button class="linklike" data-ct="${t.id}" aria-label="Modifier ${pour}">${ic('pencil', 'ic-14')} Modifier</button>
+           ${/* un bouton, pas un lien souligné : il CHANGE la personne, il
+                ne mène nulle part (§6, « un lien emmène, un bouton agit ») */''}
+           <button class="btn btn-sm btn-ghost ct-mod" data-ct="${t.id}" aria-label="Modifier ${pour}">${ic('pencil', 'ic-14')} Modifier</button>
          </div>
        </details>`);
   };
@@ -235,23 +237,31 @@ export function openFiche(c){
            <span class="fic-t">${ic('archive', 'ic-14')} Clôturée — <b>${CLOSE_REASONS[c.closedReason].label}</b>${c.closedAt ? ' · ' + esc(fmtDate(c.closedAt)) : ''}</span>
            <button class="btn btn-sm" id="fiReopen">Rouvrir</button>
          </div>` : `
-         <div class="field"><label>Où j’en suis</label>
+         <div class="field"><div class="lbl-row"><label>Où j’en suis</label>
+           <button class="btn btn-sm btn-ghost" id="fiClore" aria-label="Clôturer ${esc(c.name)}">${ic('archive', 'ic-14')} Clôturer</button></div>
            <div class="seg3 seg3-statut" role="radiogroup" aria-label="Statut">
              ${Object.keys(STATUSES).map(k =>
                `<button class="seg${val('status') === k ? ' on' : ''}" data-st="${k}" aria-pressed="${val('status') === k}">${STATUSES[k].label}</button>`).join('')}
            </div>
          </div>
          <div class="field"><label>Prochaine action</label>
-           <div class="na-box${val('nextAction') && isLate(val('nextAction')) ? ' late' : ''}">
-             ${val('nextAction')
-               ? `<div class="na-cur"><b>${esc(val('nextActionText') || 'Faire le point')}</b>
-                    <span>${frDate(val('nextAction'))} · ${relLabel(val('nextAction'))}${naPerson ? ' · ' + esc(naPerson.name || naPerson.email) : ''}</span></div>
-                  <button class="btn btn-sm" id="fiNa" aria-label="Modifier la prochaine action">Modifier</button>`
-               /* « Aucune », pas « Aucune — planifie la suite » : le
-                  bouton d'à côté dit déjà le geste (§6, sobriété 1) */
-               : `<div class="na-cur na-none">Aucune</div>
-                  <button class="btn btn-sm" id="fiNa">Planifier</button>`}
-           </div>
+           ${/* LA CARTE SE TOUCHE (19 octobre 2026). Elle portait à droite
+                un deuxième « Modifier » — trois sur la fiche au poste, que
+                rien ne départageait à l'œil. Une carte qui montre une
+                chose qu'on change est une RANGÉE : on la touche, son
+                chevron le dit (la cellule d'iOS). Vide, elle garde son
+                bouton : « Planifier » dit un geste que « Aucune » ne dit
+                pas. */''}
+           ${val('nextAction')
+             ? `<button class="na-box na-btn${isLate(val('nextAction')) ? ' late' : ''}" id="fiNa"
+                  aria-label="Modifier la prochaine action : ${esc(val('nextActionText') || 'Faire le point')}, ${esc(frDate(val('nextAction')))}">
+                  <span class="na-cur"><b>${esc(val('nextActionText') || 'Faire le point')}</b>
+                    <span>${frDate(val('nextAction'))} · ${relLabel(val('nextAction'))}${naPerson ? ' · ' + esc(naPerson.name || naPerson.email) : ''}</span></span>
+                  ${ic('chevron-right', 'ic-14')}</button>`
+             /* « Aucune », pas « Aucune — planifie la suite » : le
+                bouton d'à côté dit déjà le geste (§6, sobriété 1) */
+             : `<div class="na-box"><div class="na-cur na-none">Aucune</div>
+                  <button class="btn btn-sm" id="fiNa">Planifier</button></div>`}
          </div>`}
        <div class="field"><label for="fiNotes">Mes notes ${ic('lock', 'ic-14')} <span class="lbl-soft">privées</span></label>
          ${/* `rows="1"` est nécessaire : sans lui, `height:auto` retombe sur
@@ -467,6 +477,10 @@ export function openFiche(c){
       onPick: (txt, iso) => { touch('nextActionText', txt); touch('nextAction', iso); touch('nextActionCt', ''); },
       onDone: render
     }));
+    sh.body.querySelector('#fiClore')?.addEventListener('click', () => askClose(c, { onDone: () => {
+      ['status', 'nextAction', 'nextActionText', 'nextActionCt'].forEach(f => delete draft[f]);
+      render();
+    } }));
     const ro = sh.body.querySelector('#fiReopen');
     if (ro) ro.addEventListener('click', () => { reopenPiste(c); render(); bus.refresh(); });
     /* La zone de notes suit son contenu : deux lignes à vide, elle grandit

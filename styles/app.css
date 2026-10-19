@@ -174,10 +174,12 @@ input,select,textarea{font-family:inherit;color:var(--text-body)}
   flex:none;width:64px;margin:0 2px;align-self:stretch;
   display:inline-flex;align-items:center;justify-content:center;
   background:var(--accent);color:var(--on-accent);
-  border:1px solid var(--border-strong);border-radius:var(--radius-1);
-  box-shadow:var(--bevel-up), var(--shadow-raised);
+  /* le rebord du primaire (§6) : la même touche que « Écrire », plus le
+     trait noir et l'ombre en biais qui en faisaient une brique */
+  border:1px solid var(--rebord);border-radius:var(--radius-1);
+  box-shadow:0 2px 0 0 var(--rebord);
 }
-.bn-add:active{box-shadow:var(--bevel-down);transform:translate(1px,1px)}
+.bn-add:active{background:var(--accent-hover);box-shadow:var(--bevel-down);transform:translateY(2px)}
 .app{padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom))}
 /* FENÊTRE MOYENNE (600-900 px : une tablette en portrait, un téléphone
    pliant ouvert, une fenêtre de poste rétrécie). Material 3 la nomme
@@ -197,35 +199,69 @@ input,select,textarea{font-family:inherit;color:var(--text-body)}
 }
 
 /* ============ BOUTONS ============ */
-/* LE BOUTON TEXTE EST LA FORME PAR DÉFAUT (13 octobre 2026). Le
-   mainteneur : « j'en ai marre des gros boutons disgracieux, il y en a
-   plein partout ». Relevé sur 37 écrans : la fiche portait 12 boîtes
-   biseautées sur 17 contrôles, « Modifier », « + Ajouter », « Planifier »
-   pesaient autant que « Écrire ». Les sources disent toutes la même
-   chose — Apple : le style marqué pour l'action LA PLUS PROBABLE, « une
-   ou deux par vue », et « le style, pas la taille » ; une barre ou une
-   rangée porte ses symboles sans bordure, « le conteneur se voit déjà » ;
-   Material : le bouton texte pour les actions secondaires des cartes et
-   des dialogues, « il garde l'emphase sur le contenu ».
-   Un bouton qui ACCOMPAGNE n'a donc plus de boîte : son ENCRE d'accent
-   (et son icône) dit qu'il se tape, sans trait souligné — un lien
-   emmène, un bouton agit (§6). « Modifier » à côté de ce qu'il modifie,
-   l'outil d'une barre, le second geste d'un pied qui a son primaire.
-   La boîte reste au primaire, rempli, et au bouton qui EST l'action de
-   son bloc quand aucun primaire n'est là (`.btn-contour`, contourné) :
-   « certains boutons sont utiles et beaux à leur place », le
-   mainteneur, le même jour — la flèche d'envoi d'un message, la ligne
-   de « Ma copie », les gestes de « Mon QR », l'envoi d'une invitation,
-   et « Recevoir » à côté de « Donner ». Le relief 98 ne disparaît pas :
-   il apparaît aussi À L'APPUI, enfoncé, là où il dit quelque chose.
-   La cible ne bouge pas : la boîte invisible fait toujours `--ctl`
-   (44 px au doigt) — « les bords d'un bouton définissent sa zone
-   cliquable même quand ils ne se voient pas » (Apple). */
+/* UNE ACTION A TOUJOURS UN CONTENANT (19 octobre 2026). Le mainteneur :
+   « je trouve qu'ils sont horribles esthétiquement, d'un point de vue UX
+   horribles, et en plus mal placés ». Relevé mesuré sur dix écrans,
+   pouce et poste (inventaire de chaque contrôle visible) :
+   · 26 actions au téléphone n'étaient qu'un MOT EN COULEUR, sans
+     contenant — « Modifier », « + Ajouter », « Prospecter », « Affiner »,
+     les quatre gestes d'un contact. Rien ne les séparait d'un lien, et
+     un lien emmène quand un bouton agit (§6) ;
+   · la fiche alignait SEPT formes de contrôle sur un seul écran (texte,
+     contourné biseauté, rempli, segment, icône seule, lien souligné,
+     croix), avec trois « Modifier » au poste ;
+   · « Aujourd'hui » portait douze icônes nues, trois par ligne.
+   Les sources tranchent. NN/g (2017, oculométrie) : des éléments plats
+   aux signes faibles coûtent ~22 % de temps et ~25 % de fixations en
+   plus — on cherche ce qui se tape. Apple : « une ou deux » actions
+   marquées par vue, « le style, pas la taille » pour départager, et un
+   état appuyé TOUJOURS. Material : entre le rempli et le texte existe le
+   TEINTÉ (« filled tonal »), l'emphase moyenne.
+   C'est le cran qui manquait. Le 13 octobre on avait retiré la boîte aux
+   secondaires parce qu'elle était LOURDE (fond, trait noir, biseau,
+   ombre portée : « gros boutons disgracieux ») — et on avait jeté le
+   signe avec le poids. Le teinté rend le signe sans le poids : un aplat
+   léger de la couleur du geste, ni trait, ni ombre. Quatre formes, et
+   pas une de plus :
+   ① le PRIMAIRE — rempli, un par vue, posé sur un REBORD net de 2 px
+     (une touche, pas une brique) ; appuyé, il descend dans son rebord ;
+   ② le TEINTÉ — l'aplat d'accent ; tout geste qui n'est pas le
+     primaire ;
+   ③ le NEUTRE — le même aplat en encre (`.btn-ghost`) : le geste qu'on
+     fait peu, ou qui ne fait pas avancer (« Clôturer », « Ignorer ») ;
+     en rouge pour ce qui détruit (`.btn-danger`) ;
+   ④ la RANGÉE d'une liste (`.pick`), plus bas.
+   Le relief 98 reste là où il dit quelque chose : à l'appui, enfoncé.
+   Les aplats se MÉLANGENT à la face des fenêtres, ils ne sont pas
+   translucides : posé sur le beige du bureau, un vert transparent
+   tournait au kaki (vu sur « Moi »). Opaques, ils restent la même
+   couleur sur la fenêtre, le chrome d'une carte ou le fond de page,
+   dans les deux thèmes, sans une couleur de plus.
+   La cible ne bouge pas : `--ctl`, 44 px au doigt, 32 à la souris. */
+:root{
+  --tonal:color-mix(in srgb, var(--accent) 13%, var(--surface-window));
+  --tonal-fort:color-mix(in srgb, var(--accent) 24%, var(--surface-window));
+  --tonal-neutre:color-mix(in srgb, var(--ink) 9%, var(--surface-window));
+  --tonal-neutre-fort:color-mix(in srgb, var(--ink) 16%, var(--surface-window));
+  --tonal-danger:color-mix(in srgb, var(--red) 11%, var(--surface-window));
+  --tonal-danger-fort:color-mix(in srgb, var(--red) 20%, var(--surface-window));
+  /* le rebord du primaire : l'accent assombri, net, jamais flou */
+  --rebord:color-mix(in srgb, var(--accent) 55%, #000);
+  /* un libellé de bouton se lit à la taille du doigt : 14 px au pouce
+     (Material : 14 sp ; il était à 13, perdu dans 44 px de boîte),
+     13 à la souris */
+  --btn-fs:var(--text-14);
+}
+@media (min-width:901px) and (pointer:fine){ :root{ --btn-fs:var(--text-13) } }
 .btn{
-  display:inline-flex;align-items:center;justify-content:center;gap:6px;
-  font-family:var(--font-ui);font-weight:var(--weight-semibold);font-size:var(--text-13);
-  min-height:var(--ctl);padding:5px 8px;border-radius:var(--radius-1);
-  background:transparent;color:var(--text-link);
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  font-family:var(--font-ui);font-weight:var(--weight-semibold);font-size:var(--btn-fs);
+  min-height:var(--ctl);padding:5px 14px;border-radius:var(--radius-1);
+  /* l'encre est l'accent APPUYÉ, un cran plus sombre (plus clair en
+     sombre) : l'accent seul sur son aplat rendait 4,47:1 en clair, sous
+     le seuil de WCAG 1.4.3 ; la nuance d'appui rend 6,2:1 au repos, 5,3
+     à l'appui, 7,3 et 5,7 en sombre */
+  background:var(--tonal);color:var(--accent-hover);
   border:1px solid transparent;
   box-shadow:none;
   /* `white-space:normal` : un libellé de bouton PLIE, il ne déborde pas.
@@ -237,27 +273,30 @@ input,select,textarea{font-family:inherit;color:var(--text-body)}
      de laisser un mot seul en bas. */
   user-select:none;white-space:normal;text-wrap:balance;text-decoration:none;
 }
+.btn .ic{flex:none}
 @media (hover:hover){
-.btn:hover{background:var(--surface-chrome)}
+.btn:hover{background:var(--tonal-fort)}
 }
-.btn:active{box-shadow:var(--bevel-down);transform:translate(1px,1px);background:var(--surface-chrome)}
-.btn:disabled,.btn-off{pointer-events:none;color:var(--text-disabled);opacity:.6}
-/* ce qui garde sa boîte : le primaire, et le contourné — l'action de
-   son bloc (`.btn-contour`) ou « Recevoir » à côté de « Donner » */
-.btn-primary,.btn.hero,.btn.btn-contour{
-  padding-left:14px;padding-right:14px;
-  border-color:var(--border-strong);box-shadow:var(--bevel-up), var(--shadow-raised);
+/* l'appui se VOIT, toujours (Apple : « always include a press state ») :
+   l'aplat fonce, le biseau 98 s'enfonce, le bouton descend d'un pixel */
+.btn:active{background:var(--tonal-fort);box-shadow:var(--bevel-down);transform:translateY(1px)}
+.btn:disabled,.btn-off{pointer-events:none;color:var(--text-disabled);background:var(--tonal-neutre);opacity:.6}
+/* ① le primaire : une touche posée sur son rebord */
+.btn-primary{
+  background:var(--accent);color:var(--on-accent);
+  border-color:var(--rebord);box-shadow:0 2px 0 0 var(--rebord);
+  padding-left:16px;padding-right:16px;
 }
-.btn.hero,.btn.btn-contour{background:var(--surface-chrome);color:var(--text-body)}
-.btn-primary{background:var(--accent);color:var(--on-accent)}
-.btn-primary:active,.btn.hero:active,.btn.btn-contour:active{box-shadow:var(--bevel-down);transform:translate(2px,2px)}
-.btn-primary:active{background:var(--accent-hover)}
-.btn-primary:disabled,.btn-primary.btn-off{box-shadow:var(--bevel-up)}
+.btn-primary:active{background:var(--accent-hover);box-shadow:var(--bevel-down);transform:translateY(2px)}
+.btn-primary:disabled,.btn-primary.btn-off{background:var(--accent);color:var(--on-accent);box-shadow:none}
 @media (hover:hover){
-.btn.hero:hover,.btn.btn-contour:hover{background:var(--surface-window)}
+.btn-primary:hover{background:var(--accent-hover)}
+}
+/* l'ancien « contourné » (l'action de son bloc, « Recevoir » à côté de
+   « Donner ») n'est plus une forme à part : c'est un teinté */
+@media (hover:hover){
 /* ouverte, la ligne du mot de passe fait du cadenas une icône du champ */
 .lockrow.on .lr-lock.btn-contour:hover{background:none}
-.btn-primary:hover{background:var(--accent-hover)}
 }
 /* Un bouton peut être un LIEN : « Ouvrir dans Mail », « Appeler »,
    « Itinéraire ». Le fond était protégé du survol (`.btn-primary:hover`),
@@ -268,7 +307,7 @@ input,select,textarea{font-family:inherit;color:var(--text-body)}
    souris — iOS garde le survol collé après le tap, donc le bouton se
    vide AU MOMENT où on s'en sert, et le reste. */
 @media (hover:hover){
-a.btn:hover{color:var(--text-link)}
+a.btn:hover{color:var(--accent-hover)}
 }
 @media (hover:hover){
 a.btn.btn-primary:hover{color:var(--on-accent)}
@@ -276,22 +315,28 @@ a.btn.btn-primary:hover{color:var(--on-accent)}
 @media (hover:hover){
 a.btn.btn-danger:hover{color:var(--red)}
 }
-.btn-danger{color:var(--red)}
+/* ③ le neutre, et le rouge de ce qui détruit */
+.btn-ghost{background:var(--tonal-neutre);color:var(--text-body)}
 @media (hover:hover){
-.btn-danger:hover{background:var(--red-wash)}
+.btn-ghost:hover{background:var(--tonal-neutre-fort)}
 }
-.btn-ghost{background:transparent;border-color:transparent;box-shadow:none;color:var(--text-muted)}
+.btn-ghost:active{background:var(--tonal-neutre-fort)}
+.btn-danger,.btn-ghost.btn-danger{background:var(--tonal-danger);color:var(--red)}
 @media (hover:hover){
-.btn-ghost:hover{background:var(--surface-chrome);color:var(--text-body)}
+.btn-danger:hover,.btn-ghost.btn-danger:hover{background:var(--tonal-danger-fort)}
 }
-.btn-ghost:active{transform:none;box-shadow:var(--bevel-down)}
+.btn-danger:active{background:var(--tonal-danger-fort)}
 /* Le compact se distingue par son TEXTE et son padding, jamais par sa
    hauteur : il suit la main comme tout le reste (`--ctl`, 44 px au
    doigt, 32 à la souris). Il était écrit à 36 px — donc, au poste, plus
    haut que le bouton normal, le champ et la rangée voisins (32). */
-.btn-sm{min-height:var(--ctl);padding:2px 8px;font-size:var(--text-12)}
-.btn-sm.btn-primary,.btn-sm.btn-contour{padding:2px 11px}
+.btn-sm{min-height:var(--ctl);padding:2px 11px;font-size:var(--text-13)}
+@media (min-width:901px) and (pointer:fine){ .btn-sm{font-size:var(--text-12)} }
+.btn-sm.btn-primary{padding:2px 13px}
 .icon-btn{width:var(--ctl);height:var(--ctl);padding:0}
+/* une recherche que l'app PROPOSE n'est pas un geste posé : « proposé en
+   pointillé, posé en plein » (§6) — pas d'aplat, un trait pointillé */
+.btn[data-prop]{background:transparent;border:1px dashed var(--border-strong);color:var(--text-body)}
 .linklike{
   background:none;border:0;color:var(--text-link);font-weight:var(--weight-semibold);font-size:var(--text-12);
   text-decoration:underline;text-underline-offset:2px;
@@ -517,7 +562,7 @@ html[data-theme="dark"] .field select{
 .search::placeholder{color:var(--text-muted)}
 .search::-webkit-search-cancel-button,.search::-webkit-search-decoration{-webkit-appearance:none;appearance:none}
 /* tri actif (critère changé ou ordre inversé) : marqué, sans voler le teal du héros */
-.sort-on{background:var(--teal-wash);border-color:var(--accent);color:var(--accent)}
+.sort-on{background:var(--tonal-fort);border-color:var(--accent);color:var(--accent-hover)}
 /* barre au-dessus d'une liste de choix (tri dans les feuilles) */
 .listbar{display:flex;align-items:center;gap:8px;margin-bottom:10px}
 /* Le même défaut que sur « Mes pistes », dans une feuille : « Donner »
@@ -809,7 +854,12 @@ html[data-theme="dark"] .field select{
 /* le retour d'un 2ᵉ écran : nu, comme la poubelle au survol — un chevron
    qui n'est pas un bouton encadré. La ligne se centre sur le titre. */
 .td-back{align-items:center;gap:4px}
-.td-back .abtn{width:auto;min-width:32px;color:var(--text-muted)}
+.td-back .abtn{color:var(--text-muted)}
+/* la cible pleine du doigt (§5) : le chevron faisait 32 px de large,
+   sous le plancher de 44 que tout le reste respecte. Il garde sa place
+   à l'œil — collé au bord comme le titre — en reprenant à gauche la
+   moitié de ce qu'il gagne. */
+.td-back .abtn{margin-left:calc((14px - var(--ctl)) / 2)}
 .done-line{
   display:inline-flex;align-items:center;gap:6px;margin:0 0 10px;
   font-family:var(--font-mono);font-size:var(--text-12);font-weight:var(--weight-semibold);color:var(--green);
@@ -1176,7 +1226,33 @@ details.tranche[open]>summary::before{
    mesuré) : un pouce posé à la frontière ouvrait la fiche au lieu de
    marquer « Fait ». 8 px partout, et chaque geste ne touche plus que
    lui-même quand la visée dérape de 6 px. */
-.act-btns{display:flex;flex:none;margin-left:auto;padding-right:4px;gap:8px}
+.act-btns{display:flex;flex:none;margin-left:auto;padding-right:8px;gap:8px}
+/* LA CASE « FAIT », EN TÊTE (19 octobre 2026) : le dessin de toute liste
+   de tâches. Vide au repos, verte et cochée à l'appui — et elle le reste
+   pendant que la ligne s'en va (`act-gone`). La cible est celle du doigt,
+   la case dessinée est petite : c'est une case, pas un bouton de plus. */
+.act-fait{
+  flex:none;align-self:center;width:var(--ctl);height:var(--ctl);margin-left:4px;
+  display:inline-flex;align-items:center;justify-content:center;
+  background:none;border:0;padding:0;cursor:pointer;
+}
+.act-case{
+  width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;
+  border:1.5px solid var(--border-strong);border-radius:var(--radius-1);
+  background:var(--surface-field);box-shadow:var(--bevel-field);color:var(--surface-field);
+}
+.act-case .ic{opacity:0}
+.act-fait:active .act-case,.act-gone .act-case{background:var(--green);border-color:var(--green);box-shadow:none}
+.act-fait:active .act-case .ic,.act-gone .act-case .ic{opacity:1}
+@media (hover:hover){
+.act-fait:hover .act-case{border-color:var(--green)}
+}
+.act-fait+.act-main{padding-left:0}
+/* le second geste d'une ligne ne se montre qu'à la SOURIS : au doigt,
+   il vit au glissé et dans la fiche, et la ligne garde un seul mot */
+.act-sec{display:none}
+@media (pointer:fine){ .act-sec{display:inline-flex} }
+.btn.icon-btn{padding:0}
 /* actions d'une ligne : des icônes nues, jamais des boutons — au survol,
    au focus ou au tap, SEULE LA COULEUR change. Aucun aplat de fond,
    aucun biseau : le carré derrière l'icône était le bruit à retirer. */
@@ -1192,10 +1268,6 @@ details.tranche[open]>summary::before{
 .abtn:focus-visible, .abtn:active{color:var(--text-body)}
 @media (hover:hover){
 .abtn:hover{color:var(--text-body)}
-}
-.abtn-ok:focus-visible, .abtn-ok:active{color:var(--green)}
-@media (hover:hover){
-.abtn-ok:hover{color:var(--green)}
 }
 .act-gone{transition:opacity 150ms var(--ease-out),transform 150ms var(--ease-out);opacity:0;transform:translateX(20px)}
 
@@ -2714,8 +2786,12 @@ button.ec-row:hover{background:var(--surface-field)}
 .seg3 .seg{
   flex:1 1 calc((var(--bascule) - 100%) * 999);min-height:var(--ctl);padding:4px 6px;
   border:1px solid var(--border-strong);border-radius:var(--radius-1);
-  background:var(--surface-chrome);box-shadow:var(--bevel-up);
-  font-weight:var(--weight-semibold);font-size:var(--text-12);color:var(--text-muted);
+  /* À PLAT (19 octobre 2026) : chaque segment portait son propre biseau,
+     si bien que trois mots d'un même choix se lisaient comme trois gros
+     boutons côte à côte. Le choix est UN contrôle : un cadre, des cases
+     plates sur le blanc du champ, et seule la retenue s'enfonce. */
+  background:var(--surface-field);box-shadow:none;
+  font-weight:var(--weight-semibold);font-size:var(--text-13);color:var(--text-muted);
 }
 /* les bords se joignent dans le sens de la pile : à gauche en rangée,
    en haut en pile — le même calcul que la bascule */
@@ -2735,6 +2811,13 @@ button.ec-row:hover{background:var(--surface-field)}
 .na-cur b{font-size:var(--text-14)}
 .na-cur span{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
 .na-none{font-size:var(--text-12);color:var(--text-muted);line-height:1.5}
+.na-btn{width:100%;min-height:var(--ctl);text-align:left;font:inherit;color:var(--text-body);cursor:pointer}
+.na-btn>.ic{flex:none;color:var(--text-muted)}
+.na-btn:active{box-shadow:var(--bevel-down);transform:translateY(1px)}
+@media (hover:hover){
+.na-btn:hover{border-color:var(--accent)}
+.na-btn.late:hover{border-color:var(--amber)}
+}
 .fi-hist{margin-top:4px}
 /* « À savoir » et « Historique » s'ouvrent d'un tap — même règle, et
    surtout MÊME SIGNE que « Bientôt » : sans le triangle, ces deux mots
@@ -2743,7 +2826,12 @@ button.ec-row:hover{background:var(--surface-field)}
 .fi-hist summary{
   display:flex;align-items:center;gap:7px;min-height:var(--ctl);
   cursor:pointer;list-style:none;user-select:none;
-  font-size:var(--text-12);color:var(--text-link);font-weight:var(--weight-bold);padding:8px 0;
+  /* le dessin des AUTRES titres de la fiche (« Contacts », « Mes
+     notes ») : en teal, ces deux mots se lisaient comme deux liens au
+     bas de la fiche — et un mot en couleur qui ne mène nulle part est
+     exactement ce que le relevé des boutons a compté de trop */
+  font-size:var(--text-11);font-weight:var(--weight-bold);letter-spacing:var(--tracking-wide);
+  text-transform:uppercase;color:var(--text-muted);padding:8px 0;
 }
 .fi-hist>summary::-webkit-details-marker{display:none}
 .fi-hist>summary::before{
@@ -2791,7 +2879,21 @@ button.ec-row:hover{background:var(--surface-field)}
   min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
 .ctc-body{padding:2px 10px 10px;border-top:1px dashed var(--border-soft)}
-.ctc-body .ct-acts{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
+.ctc-body .ct-acts{
+  /* LA FICHE CONTACT D'iOS : les gestes d'une personne sont des TUILES
+     égales, l'icône au-dessus du mot, sur une rangée (19 octobre 2026).
+     `auto-fill` et pas `auto-fit` : une personne qui n'a qu'une adresse
+     donne UNE tuile, qui doit garder sa largeur de tuile — étirée sur
+     toute la carte, elle redevenait la brique qu'on a retirée.
+     Quatre mots teal posés en ligne (« Écrire Appeler SMS WhatsApp »)
+     se lisaient comme une phrase de liens ; des tuiles se lisent comme
+     quatre façons de joindre la même personne. Elles se partagent la
+     largeur à parts égales et passent à la ligne quand elles n'y
+     tiennent plus — jamais rognées. Au poste, la rangée s'arrête à
+     28 rem : quatre tuiles étirées sur 600 px redevenaient des barres. */
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(4.5rem,1fr));gap:6px;
+  margin-top:9px;max-width:28rem;
+}
 /* CHAQUE CONTRÔLE FAIT LA TAILLE DE SON MOT — c'est le cas déjà tranché
    pour les puces (§6), qui se rejouait ici sans qu'on le voie.
    `flex:1 1 auto` répartit la place restante entre les contrôles : seul
@@ -2802,10 +2904,11 @@ button.ec-row:hover{background:var(--surface-field)}
    alors que rien ne le justifie (M3 : l'emphase dit l'importance).
    Le poste portait déjà `flex:0 0 auto` — c'est le pouce, l'ergonomie
    la plus contrainte, qui avait gardé la mauvaise valeur. */
-.ctc-body .ct-acts .btn{flex:0 1 auto;padding:5px 10px;font-size:var(--text-12)}
+.ctc-body .ct-acts .btn{flex-direction:column;gap:3px;min-width:0;padding:7px 4px 6px;font-size:var(--text-12)}
+.ctc-body .ct-acts .btn .ic{width:16px;height:16px}
 .ctc-body .ct-meta{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);margin-top:6px;word-break:break-all}
 .ctc-body .ct-note{font-size:var(--text-12);color:var(--text-muted);margin-top:6px;font-style:italic}
-.ctc-body .linklike{margin-top:8px}
+.ctc-body .ct-mod{margin-top:8px}
 /* « + N personnes connues » : les reçues dormantes, repliées (#14) */
 .ctc-known{margin-top:8px}
 .ctc-known>summary{
@@ -3449,7 +3552,7 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
   border:0;border-top:1px dashed var(--border-soft);background:none;
   font:inherit;font-size:var(--text-13);color:var(--text-muted);text-align:left;cursor:pointer;
 }
-.bx-histo>span:first-of-type{flex:1;min-width:0}
+.bx-histo-l{flex:1;min-width:0;text-align:left}
 .bx-histo-n{font-family:var(--font-mono);font-size:var(--text-11)}
 @media (hover:hover){ .bx-histo:hover{color:var(--text-body)} }
 /* les visages : la hauteur d'une rangée, des pixels nets (ui/visage.js) */

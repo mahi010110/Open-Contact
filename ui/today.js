@@ -83,19 +83,25 @@ function rowHTML(c){
        <div class="act-under act-under-done">${ic('check', 'ic-14')} Fait</div>
        <div class="act-under act-under-report">${ic('calendar', 'ic-14')} Reporter</div>
        <div class="act-in">
+         ${/* UNE CASE EN TÊTE, UN MOT AU BOUT (19 octobre 2026). La ligne
+              portait trois icônes nues — enveloppe, calendrier, coche —
+              soit douze sur l'écran, et le relevé des boutons les a
+              comptées parmi ce qui faisait l'écran « horrible ». Une
+              action prévue se coche comme dans toute liste de tâches
+              (Rappels, Things, Todoist : la case est EN TÊTE, et personne
+              n'a à apprendre ce qu'elle fait) ; le geste le plus probable
+              garde son MOT (« Écrire ») ; « Reporter » reste au glissé
+              vers la gauche et dans la fiche, et le poste, qui n'a pas de
+              glissé, le montre à côté en icône (la colonne du tableau ne fait
+              que 321 px : deux mots n'y tiennent pas à côté du nom). */''}
+         <button class="act-fait" data-a="done" aria-label="Fait : ${esc(c.name)}" title="Fait"><span class="act-case" aria-hidden="true">${ic('check', 'ic-12')}</span></button>
          <div class="act-main sw-cible" role="button" tabindex="0" aria-label="Ouvrir ${esc(c.name)}">
            <b class="act-verb">${esc(c.name)}</b>
            <span class="act-sub">${when}<span class="act-do">${esc(verb)}</span></span>
          </div>
          <div class="act-btns">
-           <button class="abtn" data-a="mail" aria-label="Écrire à ${esc(c.name)}" title="Écrire">${ic('mail')}</button>
-           ${/* le CALENDRIER, comme « Planifier » une tranche plus haut :
-                c'est la même question — quelle date — et elle avait deux
-                dessins. L'horloge, elle, ne se devinait pas (1er octobre
-                2026) ; elle reste à « Sans nouvelles », où elle dit le
-                temps qui passe. */''}
-           <button class="abtn" data-a="report" aria-label="Reporter ${esc(c.name)}" title="Reporter">${ic('calendar')}</button>
-           <button class="abtn abtn-ok" data-a="done" aria-label="Fait" title="Fait">${ic('check')}</button>
+           <button class="btn btn-sm btn-ghost icon-btn act-sec" data-a="report" aria-label="Reporter ${esc(c.name)}" title="Reporter">${ic('calendar', 'ic-14')}</button>
+           <button class="btn btn-sm" data-a="mail" aria-label="Écrire à ${esc(c.name)}">${ic('mail', 'ic-14')} Écrire</button>
          </div>
        </div>
      </div>`);
@@ -180,10 +186,14 @@ function startRowHTML(c){
          </div>
          <div class="act-btns">
            ${/* pas d'adresse, pas de bouton : une capacité absente est
-                ABSENTE, jamais grisée (§0) */''}
+                ABSENTE, jamais grisée (§0). UN geste visible au pouce :
+                écrire si l'on peut, sinon décider quand ; le second ne
+                se montre qu'au poste, où la place ne manque pas. */''}
            ${joignable(c)
-             ? `<button class="abtn" data-a="mail" aria-label="Écrire à ${esc(c.name)}" title="Écrire">${ic('mail')}</button>` : ''}
-           <button class="abtn abtn-ok" data-a="plan" aria-label="Planifier ${esc(c.name)}" title="Planifier">${ic('calendar')}</button>
+             ? `<button class="btn btn-sm btn-ghost icon-btn act-sec" data-a="plan" aria-label="Planifier ${esc(c.name)}" title="Planifier">${ic('calendar', 'ic-14')}</button>`
+             : `<button class="btn btn-sm" data-a="plan" aria-label="Planifier ${esc(c.name)}">${ic('calendar', 'ic-14')} Planifier</button>`}
+           ${joignable(c)
+             ? `<button class="btn btn-sm" data-a="mail" aria-label="Écrire à ${esc(c.name)}">${ic('mail', 'ic-14')} Écrire</button>` : ''}
          </div>
        </div>
      </div>`);
@@ -213,11 +223,17 @@ function silenceRowHTML(sil){
            <span class="act-sub">${silenceMarkHTML(sil)}<span class="act-who">${esc(bits.join(' · '))}</span></span>
          </div>
          <div class="act-btns">
-           ${joignable(c)
-             ? `<button class="abtn" data-a="mail" aria-label="Écrire à ${esc(c.name)}" title="Écrire">${ic('mail')}</button>` : ''}
+           ${/* le geste que la tranche propose, avec son MOT : « Relancer »
+                (on écrit, ou l'on choisit quand si l'on n'a pas d'adresse),
+                puis « Clôturer » passé le dernier seuil — la sortie de la
+                pile. Au poste, l'autre geste se montre à côté. */''}
            ${clore
-             ? `<button class="abtn" data-a="clore" aria-label="Clôturer ${esc(c.name)}" title="Clôturer">${ic('archive')}</button>`
-             : `<button class="abtn abtn-ok" data-a="plan" aria-label="Relancer ${esc(c.name)}" title="Relancer">${ic('calendar')}</button>`}
+             ? (joignable(c) ? `<button class="btn btn-sm btn-ghost icon-btn act-sec" data-a="mail" aria-label="Écrire à ${esc(c.name)}" title="Écrire">${ic('mail', 'ic-14')}</button>` : '')
+               + `<button class="btn btn-sm btn-ghost" data-a="clore" aria-label="Clôturer ${esc(c.name)}">${ic('archive', 'ic-14')} Clôturer</button>`
+             : joignable(c)
+               ? `<button class="btn btn-sm btn-ghost icon-btn act-sec" data-a="plan" aria-label="Planifier ${esc(c.name)}" title="Planifier">${ic('calendar', 'ic-14')}</button>
+                  <button class="btn btn-sm" data-a="mail" aria-label="Relancer ${esc(c.name)}">${ic('mail', 'ic-14')} Relancer</button>`
+               : `<button class="btn btn-sm" data-a="plan" aria-label="Relancer ${esc(c.name)}">${ic('calendar', 'ic-14')} Relancer</button>`}
          </div>
        </div>
      </div>`);
@@ -556,7 +572,7 @@ export function renderToday(){
       if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); ouvrir(); }
     });
     row.querySelector('[data-a="mail"]')?.addEventListener('click', () => openMail(c));
-    row.querySelector('[data-a="plan"]').addEventListener('click', () =>
+    row.querySelector('[data-a="plan"]')?.addEventListener('click', () =>
       askNextAction(c, { title: 'Et ensuite ?' }));
   });
   root.querySelectorAll('.tr-more').forEach(b =>
