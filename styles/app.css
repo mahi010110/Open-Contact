@@ -1217,6 +1217,23 @@ details.tranche[open]>summary::before{
 /* les deux gestes d'un vide, TAILLÉS À LEUR MOT et côte à côte — au
    pouce ils s'empilaient sur 280 px chacun, deux barres pour trois mots */
 .tde-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:0 auto}
+/* PREMIERS PAS (lot F4) : une liste ordonnée dans UN cadre, des rangées
+   sans relief séparées d'un pointillé (§6, « Choisir parmi 2-5 options »).
+   Ce qui reste à faire se tape, avec son chevron ; ce qui est fait se
+   coche en accent et passe en encre sourde — l'encre va à ce qui reste. */
+.pp-liste{margin:0;padding:0;list-style:none;border:1px solid var(--border-frame);background:var(--surface-field)}
+.pp-liste li + li{border-top:1px dashed var(--border-soft)}
+.pp-et{display:flex;align-items:center;gap:10px;width:100%;min-height:var(--ctl);padding:4px 12px;
+  background:none;border:0;border-radius:0;font:inherit;font-size:var(--text-14);color:var(--text-body);text-align:left}
+.pp-l{flex:1;min-width:0;overflow-wrap:anywhere}
+button.pp-et{cursor:pointer}
+button.pp-et:active{background:var(--surface-raised)}
+@media (hover:hover){ button.pp-et:hover{background:var(--surface-raised)} }
+.pp-et:not(button){color:var(--text-muted)}
+.pp-fait .ic{color:var(--accent)}
+.td-empty .pp-liste{max-width:340px;margin:16px auto 0;text-align:left}
+.td-empty .pp-liste + .tde-actions{margin-top:12px}
+.tr-pas .pp-liste{margin-top:6px}
 .empty-list{padding:26px 14px;text-align:center;color:var(--text-muted);font-size:var(--text-13);line-height:1.6}
 
 /* ============ SUPPRESSION AU GESTE (motif unique) ============

@@ -396,3 +396,35 @@ export function sansFilet({ pistes = 0, derniereCopie = 0, appareils = [], maint
   if ((appareils || []).some(d => d && Number(d.seen) > seuil)) return false;
   return true;
 }
+
+/* ---------- PREMIERS PAS (lot F4, idée 6 de la page de concept) ----------
+   Trois cases qui se cochent SEULES : le profil qui dit qui tu es (ton
+   nom, ta formation, ce que tu cherches — ce dont le premier mail a
+   besoin), une piste, un premier mail parti — `appliedAt`, posé par
+   « Envoyée ✓ », ou une piste qui a quitté « À contacter » (« En
+   cours », « Réponse », close décrochée ou refusée) : qui écrit depuis
+   sa propre messagerie a écrit, et la tranche ne doit pas le suivre
+   pour toujours. Une piste abandonnée sans un mot ne compte pas. On
+   apprend en faisant, pas en lisant : rien ne se coche à la main, et
+   rien n'est stocké — tout se déduit.
+   La tranche vit jusqu'au premier mail. Le composeur refuse d'envoyer
+   un mail à trous (« [ta formation] »), donc ce mail-là suppose le
+   profil rempli : le dernier pas ferme la tranche pour de bon. Les
+   pistes d'exemple n'y comptent pas — tant qu'elles sont là, la tranche
+   se tait : l'exemple montre l'écran tel qu'il SERA. `null` = rien à
+   montrer. */
+const CHERCHE_PP = new Set(['stage', 'alternance', 'emploi']);
+const aEcrit = c => !!c.appliedAt || c.status === 'active' || c.status === 'reply'
+  || c.closedReason === 'won' || c.closedReason === 'rejected';
+export function premiersPas(profile, companies){
+  const p = profile || {};
+  const cs = (companies || []).filter(Boolean);
+  if (cs.some(c => c.demo)) return null;
+  const etapes = [
+    { cle: 'profil', fait: !!String(p.name || '').trim() && !!String(p.formation || '').trim() && CHERCHE_PP.has(p.recherche) },
+    { cle: 'piste', fait: cs.length > 0 },
+    { cle: 'mail', fait: cs.some(aEcrit) }
+  ];
+  return etapes[2].fait ? null : etapes;
+}
+

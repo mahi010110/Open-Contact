@@ -79,14 +79,16 @@ const lire = p => p.evaluate(() => {
   const { ctx, p } = await ecran(390, []);
   const a = await lire(p);
   if (a.lignes) fail('app neuve : des lignes de piste alors qu’il n’y en a aucune');
-  if (a.cibles.length !== 2)
-    fail(`app neuve : ${a.cibles.length} cibles au lieu de 2 — ${a.cibles.join(' · ')}`);
-  /* la promesse, puis le geste qui la MONTRE — « Voir un exemple » ;
-     « Ajouter ma première piste » est devenu « Ajouter une piste », le
-     même mot que partout ailleurs (30 septembre 2026) */
+  /* les premiers pas qui restent à faire, puis « Voir un exemple » —
+     le mail attend une piste, il ne se tape pas encore (6.76.0 : les
+     premiers pas ont pris la place du seul « Ajouter une piste ») */
+  const attendu = ['Remplir mon profil', 'Ajouter une piste', 'Voir un exemple'];
+  if (a.cibles.join(' · ') !== attendu.join(' · '))
+    fail(`app neuve : ${a.cibles.join(' · ')} au lieu de ${attendu.join(' · ')}`);
+  /* la promesse, puis le geste qui la MONTRE — « Voir un exemple » */
   if (!/un jour à la fois/i.test(a.texte) || !/Voir un exemple/.test(a.texte))
     fail('app neuve : l’état vide n’enseigne plus le produit');
-  else console.log(`app neuve : la promesse + 2 gestes (${a.cibles.join(' · ')}) ✓`);
+  else console.log(`app neuve : la promesse + ${a.cibles.length} gestes (${a.cibles.join(' · ')}) ✓`);
   await ctx.close();
 }
 

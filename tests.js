@@ -46,7 +46,7 @@ import { buildMime, encodeHeader, toB64Url, authUrl, parseCallback, pkcePair } f
 import { dueFollowups, contactFromSignature, exchangeLog, exchangeTotals, nextActionSuggestions,
          silentPistes, derniereTrace, recuesDormantes, jamaisDonnees, canalCourt,
          SILENCE_RELANCE, SILENCE_DERNIERE, SILENCE_TROP_TARD,
-         sansFilet, FILET_MIN_PISTES, FILET_JOURS, aDemarrer } from './engine/assist.js';
+         sansFilet, FILET_MIN_PISTES, FILET_JOURS, aDemarrer, premiersPas } from './engine/assist.js';
 import { rappelICS, lienAgendaGoogle, formeAgenda, RAPPEL_HEURE } from './engine/agenda.js';
 import { normalizeParcours, parcoursDe, periodeParcours, phraseParcours, PARCOURS_MAX } from './engine/parcours.js';
 import { nouvelIdAmi, idAmiValide, cleEntreprise, memeEntreprise, profilDonne, normalizeAmi, normalizeAmis,
@@ -2601,6 +2601,28 @@ export async function runSelfTests(){
       eq(pourCherche('alternance'), ' pour une alternance');
       eq(pourCherche(''), '');
       eq(pourCherche('toString'), '');
+    },
+    'premiers pas : trois cases qui se cochent seules, jusqu’au premier mail': () => {
+      const etat = (p, cs) => { const e = premiersPas(p, cs); return e ? e.map(x => x.cle + (x.fait ? '✓' : '·')).join(' ') : null; };
+      /* tout neuf */
+      eq(etat({}, []), 'profil· piste· mail·');
+      /* le profil : le nom, la formation ET ce que tu cherches — le mot d'une liste fermée */
+      eq(etat({ name: 'Tom', formation: 'BTS SIO' }, []), 'profil· piste· mail·');
+      eq(etat({ name: 'Tom', formation: 'BTS SIO', recherche: 'toString' }, []), 'profil· piste· mail·');
+      eq(etat({ name: 'Tom', formation: 'BTS SIO', recherche: 'alternance' }, []), 'profil✓ piste· mail·');
+      /* une piste, puis un mail parti : la tranche se ferme pour de bon */
+      eq(etat({}, [{ id: 'a' }]), 'profil· piste✓ mail·');
+      eq(etat({}, [{ id: 'a' }, { id: 'b', appliedAt: '2026-10-14' }]), null);
+      /* écrit depuis sa propre messagerie : la piste a quitté « À contacter » */
+      eq(etat({}, [{ id: 'a', status: 'active' }]), null);
+      eq(etat({}, [{ id: 'a', status: 'reply' }]), null);
+      eq(etat({}, [{ id: 'a', status: 'todo', closedReason: 'won' }]), null);
+      eq(etat({}, [{ id: 'a', status: 'todo', closedReason: 'rejected' }]), null);
+      /* abandonnée sans un mot, ou encore à contacter : rien n'est parti */
+      eq(etat({}, [{ id: 'a', status: 'todo', closedReason: 'dropped' }]), 'profil· piste✓ mail·');
+      eq(etat({}, [{ id: 'a', status: 'todo' }]), 'profil· piste✓ mail·');
+      /* l'exemple montre l'écran tel qu'il sera : la tranche se tait */
+      eq(etat({}, [{ id: 'd', demo: true }]), null);
     },
     'le suivi d’une demande : envoyée, trouvée, reçu — comme un colis': () => {
       const d = { id: 'd1', at: 100, exp: 9e15 };

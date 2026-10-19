@@ -73,7 +73,9 @@ const prose = (p, sel) => p.evaluate(sel => {
   const b = document.querySelector(sel);
   if (!b) return null;
   const c = b.cloneNode(true);
-  c.querySelectorAll('h1,h2,h3,button,a,label,svg,.ic').forEach(n => n.remove());
+  /* les premiers pas (lot F4) sont des GESTES — l'un attend seulement
+     qu'il y ait une piste —, pas une phrase d'explication */
+  c.querySelectorAll('h1,h2,h3,button,a,label,svg,.ic,.pp-liste').forEach(n => n.remove());
   return c.textContent.replace(/\s+/g, ' ').trim();
 }, sel);
 
@@ -86,9 +88,9 @@ const PISTES = [
 /* ---------- ① le premier lancement, aux deux ergonomies ---------- */
 for (const [ergo, opts] of [['pouce', PHONE], ['poste', DESK]]){
   const p = await ouvrir(opts);
-  await p.waitForSelector('#tdeAdd');
+  await p.waitForSelector('#tdPas');
   const reste = await prose(p, '.td-empty');
-  okSi(reste === '', `① premier lancement (${ergo}) : les deux gestes sous le titre, sans mode d’emploi`
+  okSi(reste === '', `① premier lancement (${ergo}) : les premiers pas sous le titre, sans mode d’emploi`
     + (reste ? ` — lu : « ${reste} »` : ''));
   await viderToast(p);
   await p.click('#tdeDemo');
