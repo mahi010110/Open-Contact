@@ -35,18 +35,17 @@
      36 SOUS UN DOIGT — des tailles qui suivaient la largeur au lieu de
      la main. La hiérarchie se dit par l'emphase, jamais par la hauteur
      (§6) : ce critère exige donc l'égalité, dans les deux sens.
-   ⑦ UN SECONDAIRE N'A PAS DE BOÎTE (13 octobre 2026). « J'en ai marre
-     des gros boutons disgracieux, il y en a plein partout » : la fiche
-     en portait douze. Apple réserve le style marqué à l'action la plus
-     probable, « une ou deux par vue » ; Material garde le bouton texte
-     pour les actions secondaires des cartes et des dialogues. Au repos,
-     un bouton qui n'est pas le primaire n'a ni fond, ni trait, ni ombre :
-     son encre d'accent suffit. Le mainteneur a aussitôt précisé :
-     « certains boutons sont utiles et beaux à leur place ». La boîte
-     reste donc au primaire et au bouton qui EST l'action de son bloc
-     quand aucun primaire n'est là (`.btn-contour`) — et ce critère le
-     vérifie : une `.btn-contour` posée à côté d'un primaire accompagne,
-     elle redevient un bouton texte.
+   ⑦ UNE ACTION A UN CONTENANT, LÉGER (19 octobre 2026). Le 13 octobre,
+     les secondaires avaient perdu leur boîte — fond, trait noir, biseau,
+     ombre en biais : « gros boutons disgracieux ». Six jours plus tard,
+     le mainteneur : « horribles esthétiquement, horribles d'un point de
+     vue UX, et mal placés ». Le relevé a dit pourquoi : 26 actions au
+     doigt n'étaient plus qu'un mot en couleur, que rien ne séparait d'un
+     lien (NN/g, 2017 : des signes faibles coûtent ~22 % de temps et ~25 %
+     de fixations en plus). Le cran qui manquait est le TEINTÉ de
+     Material (« filled tonal ») : un aplat léger de la couleur du geste,
+     ni trait ni ombre. Au repos, un bouton qui n'est pas le primaire
+     porte donc UN APLAT et rien d'autre — ni mot nu, ni boîte.
 
    La sonde se vérifie elle-même : une brique, une rangée habillée, une
    liste d'un geste et un sous-titre bavard sont plantés, et chaque
@@ -80,13 +79,13 @@ const ETIRES = {
    boutons de légende d'une fenêtre de bureau. Au doigt, elle reprend 44. */
 const CHASSIS = '.modal-h .x';
 
-/* ⑦ — ce qui garde une boîte sans être le primaire : la paire « Donner ·
-   Recevoir » d'« Échanger » (« Recevoir » est contourné : rempli >
-   contourné > discret, §6), et le bouton qui est l'action de son bloc
-   (`.btn-contour` : l'envoi d'un message, « Ma copie », « Mon QR »,
-   l'invitation d'un groupe). Un état allumé (`.sort-on`) n'est pas un
-   repos. */
-const BOITES = '.btn.hero, .btn.btn-contour, .btn.sort-on';
+/* ⑦ — ce qui a le droit de ne pas porter d'aplat, ou d'avoir un trait :
+   un état ALLUMÉ (`.sort-on`, l'entonnoir d'un filtre actif) n'est pas
+   un repos, et une recherche que l'app PROPOSE se dessine en pointillé
+   (« proposé en pointillé, posé en plein », §6). Aucun des deux n'est
+   rencontré par ce balayage : ils ne servent qu'à ne pas accuser un état
+   qu'on n'a pas voulu mesurer ici. */
+const ALLUMES = '.btn.sort-on, .btn[data-prop]';
 
 const { server, base } = await serveRepo();
 const browser = await chromium.launch({ executablePath: chromiumPath() });
@@ -112,7 +111,7 @@ const RELEVE = () => {
     c.querySelectorAll('svg,.ic,span').forEach(x => x.remove());
     return c.textContent.replace(/\s+/g, ' ').trim();
   };
-  const out = { etires: [], habilles: [], seuls: [], bavards: [], longs: [], tailles: [], boites: [], vus: 0, exemptes: 0, enBoite: 0 };
+  const out = { etires: [], habilles: [], seuls: [], bavards: [], longs: [], tailles: [], boites: [], nus: [], vus: 0, exemptes: 0 };
   /* ⑥ la hauteur DESSINÉE est celle de la main : `--ctl` lu tel que le
      navigateur l'a résolu (44 ou 32), jamais une constante recopiée ici.
      Un libellé qui plie sur deux rangs a le droit de grandir — pas de
@@ -129,24 +128,17 @@ const RELEVE = () => {
     if (h < attendu - 0.5 || (rangs <= 1 && h > attendu + 0.5))
       out.tailles.push(`« ${nom(b) || b.textContent.replace(/\s+/g, ' ').trim() || b.getAttribute('aria-label') || b.className} » ${Math.round(h)} px (attendu ${attendu})`);
   }
-  /* ⑦ au repos : ni fond, ni trait, ni ombre — l'encre seule */
+  /* ⑦ au repos : UN APLAT — ni mot nu (fond transparent), ni boîte
+     (trait ou ombre) */
   const transparent = c => /rgba\(0, 0, 0, 0\)|transparent/.test(c);
   for (const b of racine.querySelectorAll('.btn')){
-    if (!vu(b) || b.classList.contains('btn-primary')) continue;
-    if (b.matches(window.__BOITES)){
-      out.enBoite++;
-      /* une boîte n'ACCOMPAGNE jamais un primaire : à côté de lui, le
-         geste est second, et le second est un bouton texte */
-      if (b.classList.contains('btn-contour')
-          && [...b.parentElement.children].some(x => x !== b && x.classList.contains('btn-primary') && vu(x)))
-        out.boites.push(`« ${nom(b) || b.getAttribute('aria-label')} » garde sa boîte à côté d'un primaire`);
-      continue;
-    }
+    if (!vu(b) || b.classList.contains('btn-primary') || b.matches(window.__ALLUMES)) continue;
     const cs = getComputedStyle(b);
     const trait = ['Top', 'Right', 'Bottom', 'Left'].some(k => parseFloat(cs['border' + k + 'Width']) > 0
       && cs['border' + k + 'Style'] !== 'none' && !transparent(cs['border' + k + 'Color']));
-    if (!transparent(cs.backgroundColor) || trait || cs.boxShadow !== 'none')
-      out.boites.push(`« ${nom(b) || b.getAttribute('aria-label') || b.className} »`);
+    const qui = nom(b) || b.getAttribute('aria-label') || b.className;
+    if (transparent(cs.backgroundColor)) out.nus.push(`« ${qui} »`);
+    else if (trait || cs.boxShadow !== 'none') out.boites.push(`« ${qui} »`);
   }
   for (const b of racine.querySelectorAll('.btn')){
     if (!vu(b) || b.closest('.modal-f,.modal-h') || b.classList.contains('btn-primary')) continue;
@@ -230,10 +222,10 @@ for (const [ergo, opts] of [['au doigt', { viewport: { width: 390, height: 844 }
                              ['à la souris', { viewport: { width: 1280, height: 800 } }],
                              ['tablette au doigt', { viewport: { width: 1180, height: 820 }, hasTouch: true, isMobile: true }]]){
   const p = await ouvrir(opts);
-  const tout = { etires: [], habilles: [], seuls: [], bavards: [], longs: [], tailles: [], boites: [] };
-  await p.evaluate(([c, e, b]) => { window.__CHASSIS = c; window.__ETIRES = e; window.__BOITES = b; },
-    [CHASSIS, Object.keys(ETIRES), BOITES]);
-  let vus = 0, exemptes = 0, enBoite = 0;
+  const tout = { etires: [], habilles: [], seuls: [], bavards: [], longs: [], tailles: [], boites: [], nus: [] };
+  await p.evaluate(([c, e, a]) => { window.__CHASSIS = c; window.__ETIRES = e; window.__ALLUMES = a; },
+    [CHASSIS, Object.keys(ETIRES), ALLUMES]);
+  let vus = 0, exemptes = 0;
   const relever = async nom => {
     /* au REPOS : la souris posée sur le dernier bouton cliqué lui
        donnerait le fond du survol, et ⑦ accuserait un geste */
@@ -242,7 +234,6 @@ for (const [ergo, opts] of [['au doigt', { viewport: { width: 390, height: 844 }
     const r = await p.evaluate(RELEVE);
     vus += r.vus;
     exemptes += r.exemptes;
-    enBoite += r.enBoite;
     for (const k of Object.keys(tout)) for (const x of r[k]) tout[k].push(`${nom} · ${x}`);
   };
   for (const [nom, ouvre] of SURFACES){ await fermer(p); await ouvre(p); await relever(nom); }
@@ -267,7 +258,8 @@ for (const [ergo, opts] of [['au doigt', { viewport: { width: 390, height: 844 }
        <button class="btn btn-sm" style="min-height:0;height:30px">Timbre</button>
        <button class="btn btn-sm" style="min-height:60px">Tuile</button>
        <button class="btn" style="background:var(--surface-chrome);border-color:var(--border-strong);box-shadow:var(--bevel-up)">Boîte</button>
-       <div class="modal-f"><button class="btn btn-contour">Escorte</button><button class="btn btn-primary">Primaire</button></div>`;
+       <button class="btn" style="background:none">Mot nu</button>
+       <div class="modal-f"><button class="btn btn-ghost">Escorte</button><button class="btn btn-primary">Primaire</button></div>`;
   });
   const sonde = await p.evaluate(RELEVE);
   await fermer(p);
@@ -280,15 +272,17 @@ for (const [ergo, opts] of [['au doigt', { viewport: { width: 390, height: 844 }
     /* à la souris, ce critère ne s'applique pas : sa sonde non plus */
     /* dans les DEUX sens : trop petit ET trop haut */
     tailles: sonde.tailles.some(x => /Timbre/.test(x)) && sonde.tailles.some(x => /Tuile/.test(x)),
-    boites: sonde.boites.some(x => /Boîte/.test(x)) && sonde.boites.some(x => /Escorte/.test(x))
+    boites: sonde.boites.some(x => /Boîte/.test(x)),
+    nus: sonde.nus.some(x => /Mot nu/.test(x)),
+    /* et dans l'autre sens : le teinté neutre à côté d'un primaire est
+       la forme JUSTE (Apple : « un style moins marqué pour les autres ») */
+    escorte: !sonde.boites.some(x => /Escorte/.test(x)) && !sonde.nus.some(x => /Escorte/.test(x))
   };
   for (const [k, ok] of Object.entries(vue))
     if (!ok) fail(`${ergo} : la sonde « ${k} » n'a pas été vue — ce critère ne mesure plus rien`);
   if (vus < 20) fail(`${ergo} : ${vus} boutons seulement relevés — le balayage ne lit plus l'app`);
   /* une exception qu'on ne rencontre plus ne sert qu'à laisser passer la
      suivante : elle se retire, ou le balayage a perdu la ligne */
-  if (!enBoite) fail(`${ergo} : l’exception de boîte (${BOITES}) n’a rien exempté — `
-    + '« Échanger » n’est plus relevé, ou l’exception est morte');
   if (!exemptes) fail(`${ergo} : l’exception d’étirement (${Object.keys(ETIRES).join(', ')}) n’a rien exempté — `
     + 'la ligne du mot de passe n’est plus relevée, ou l’exception est morte');
 
@@ -301,14 +295,15 @@ for (const [ergo, opts] of [['au doigt', { viewport: { width: 390, height: 844 }
   dire(tout.bavards, 'un sous-titre explique le bouton — à droite, seulement un état d’un mot ou un chiffre');
   dire(tout.tailles, 'un contrôle ne se dessine pas à la hauteur de la main (44 au doigt, 32 à la souris) — '
     + 'la hiérarchie se dit par l’emphase, jamais par la hauteur');
-  dire(tout.boites, 'un bouton qui ACCOMPAGNE a une boîte (fond, trait ou ombre) — seuls le primaire et le bouton qui '
-    + 'EST l’action de son bloc (`.btn-contour`, jamais à côté d’un primaire) en portent une ; le reste est un bouton texte');
+  dire(tout.boites, 'un secondaire a repris trait ou ombre — il redevient une brique ; le contenant est un aplat, rien d’autre');
+  dire(tout.nus, 'une action n’est qu’un mot en couleur, sans contenant — rien ne la sépare d’un lien (un lien emmène, '
+    + 'un bouton agit) : elle porte l’aplat teinté');
   if (tout.longs.length > PLAFOND_LONGS)
     fail(`${ergo} : ${tout.longs.length} libellé(s) de plus de quatre mots (plafond ${PLAFOND_LONGS}) —\n      `
       + tout.longs.join('\n      '));
   if (!ko) console.log(`${ergo} : ${vus} boutons sur ${SURFACES.length + (ergo === 'au doigt' ? 1 : 0)} vues — `
     + `aucun étiré, aucune brique, aucun sous-titre bavard, ${tout.longs.length} libellé long, tout à la hauteur de la main, `
-    + `aucun secondaire en boîte ✓`);
+    + `chaque secondaire sur son aplat, aucun mot nu, aucune brique ✓`);
   await p.context().close();
 }
 

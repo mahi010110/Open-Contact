@@ -426,7 +426,7 @@ export function renderEchanger(){
   const b = boiteHTML(wide);
   const nHisto = exchangeLog(S.journal, 0).length;
   /* l'historique : une ligne, seulement s'il y a une trace à relire */
-  const histo = nHisto ? `<button class="bx-histo" id="ecHisto">${ic('switch', 'ic-14')}<span>Historique</span>
+  const histo = nHisto ? `<button class="bx-histo" id="ecHisto">${ic('switch', 'ic-14')}<span class="bx-histo-l">Historique</span>
       <span class="bx-histo-n">${nHisto}</span>${ic('chevron-right', 'ic-14')}</button>` : '';
   /* « Reçues, jamais reprises » est né pour le poste, et il y reste :
      c'est une décision, gardée par e2e-ux-audit.mjs */

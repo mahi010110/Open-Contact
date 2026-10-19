@@ -397,8 +397,10 @@ const PLAFOND = {
      entreprise croisée est une piste — même avec juste un nom. » sous
      « Mes pistes » vide : l'accueil d'« Aujourd'hui » n'a qu'un titre et
      ses gestes, celui-ci fait pareil — la capture ne demande qu'un nom,
-     elle le montre elle-même. */
-  motsExplication: 339,
+     elle le montre elle-même.
+     338 avec le lot des boutons (6.77.0, 19 octobre 2026) : un mot de
+     moins relevé par cette garde, verrouillé pour qu'il ne revienne pas. */
+  motsExplication: 338,
   /* ZÉRO, et c'est le seul plafond qui puisse honnêtement valoir zéro :
      un style sans porteur n'a pas de contrepartie à peser — il ne rend
      service à personne, il ne fait qu'attendre d'être lu par erreur.
