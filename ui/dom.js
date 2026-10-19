@@ -468,7 +468,14 @@ export function openSheet(o){
     const m = installDeplacement(ov, ov.querySelector('.modal'), vie.signal);
     if (posee.x || posee.y){ m.serre(m.repos()); m.pose(); }
   }
+  /* LE FOCUS D'OUVERTURE NE VOLE RIEN. Il part à la frame suivante ;
+     sur un téléphone lent, cette frame arrive quand on écrit DÉJÀ dans
+     la feuille — un doigt rapide, un remplissage automatique — et il
+     ramenait le curseur sur le premier champ : la formation tapée finissait
+     collée au nom (« Sam MartinBTS SIO 2e année », vu sur la forge). Déjà
+     dans la feuille, il se tait. */
   requestAnimationFrame(() => {
+    if (ov.contains(document.activeElement) && document.activeElement !== ov) return;
     const f = (o.focus && ov.querySelector(o.focus)) || ov.querySelector('.x');
     try { f.focus({ preventScroll: true }); } catch (e) {}
   });
@@ -513,7 +520,9 @@ function poserDans(o){
   };
   d.fermer = close;
   zone.replaceChildren(d);
-  if (o.focus){ const f = d.querySelector(o.focus); if (f) requestAnimationFrame(() => { try { f.focus({ preventScroll: true }); } catch (e) {} }); }
+  if (o.focus){ const f = d.querySelector(o.focus); if (f) requestAnimationFrame(() => {
+    if (d.contains(document.activeElement)) return;      /* le même : rien ne se vole */
+    try { f.focus({ preventScroll: true }); } catch (e) {} }); }
   return { ov: d, body, close, dock: true, ...titreEtPied(d, foot) };
 }
 /* le titre et le pied d'une feuille, posée ou ouverte : UNE écriture */

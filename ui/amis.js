@@ -35,7 +35,7 @@ import { S, bus, saveData, saveProfile, logJ, deletePiste } from './state.js';
 import { openSheet, toast, btn, ic, showUndo, bindDeleteGesture } from './dom.js';
 import { sortState, sortSectionHTML, bindSortSection, sortChipHTML, bindSortChip, sensDe } from './sort.js';
 import { makeQrSvg } from './qr.js';
-import { demandesCritere, peutDemanderAmis, phraseDemande, ouvrirDemander, libelleDemander, direAdieu, reprendreMonProfil } from './reseau.js';
+import { demandesCritere, peutDemanderAmis, carteDemandeHTML, ouvrirDemander, libelleDemander, direAdieu, reprendreMonProfil } from './reseau.js';
 import { ouvrirConversation, aUneConversation } from './messages.js';
 import { visageHTML } from './visage.js';
 
@@ -329,8 +329,9 @@ function ligneAmiHTML({ a, o }, sel){
 const memeCritere = (a, b) => !!a && !!b && a.metier === b.metier && a.ville === b.ville;
 function demandesHTML(critere){
   const ouvertes = demandesCritere();
-  const faits = ouvertes.map(d => `<p class="fi-demande am-dem">${ic(d.trouve ? 'check' : 'clock', 'ic-14')} Quelqu’un ${esc(phraseDemande(d))} · ${
-    d.trouve ? `trouvé chez un ami${d.trouve.par ? ' de ' + esc(d.trouve.par) : ''}` : `demandé à ${d.vers} ami${d.vers > 1 ? 's' : ''}`}</p>`).join('');
+  /* la même carte que sur la fiche (lot F3, idée I) : une demande se
+     reconnaît partout où je la relis */
+  const faits = ouvertes.map(d => carteDemandeHTML(d, { cls: 'am-dem' })).join('');
   const peut = critere && peutDemanderAmis() && !ouvertes.some(d => memeCritere(d.critere, critere));
   return { faits, geste: peut
     ? `<div class="am-demander"><button class="btn btn-sm" id="avDemander" data-metier="${esc(critere.metier || '')}" data-ville="${esc(critere.ville || '')}">${ic('users', 'ic-14')} ${esc(libelleDemander())}</button></div>` : '' };

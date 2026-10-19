@@ -20,7 +20,7 @@
 import { boutonEnvoyer } from './fichier.js';
 import { esc } from '../engine/utils.js';
 import { kvGet, kvSet, GROUPES_KEY } from '../engine/storage.js';
-import { nouvelId, LETTRE_KIND } from '../engine/boite.js';
+import { nouvelId, LETTRE_KIND, pourCherche } from '../engine/boite.js';
 import { nouvelIdAmi } from '../engine/amis.js';
 import { sharePayload } from '../engine/exchange.js';
 import { decouper, rassembler } from '../engine/portage.js';
@@ -480,7 +480,8 @@ export async function entrerAdmis(l){
 
 /* ---------- un groupe : les prénoms, le fil, le pied pour écrire ---------- */
 const quand = heureDe;
-const quoiDe = l => l.entreprise ? 'chez ' + l.entreprise.nom : phraseCritere(l.critere);
+/* « chez Aztek pour une alternance » : ce que qui demande cherche (lot F3) */
+const quoiDe = l => (l.entreprise ? 'chez ' + l.entreprise.nom : phraseCritere(l.critere)) + pourCherche(l.cherche);
 /* DEMANDE TROUVÉE PAR MON TÉLÉPHONE : elle passe EN TÊTE, à mon nom
    (décision 29 — dans un groupe chacun croit qu'un autre répondra ;
    s'adresser à quelqu'un par son nom, c'est ce qui marche) */

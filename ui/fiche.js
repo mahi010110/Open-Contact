@@ -13,7 +13,7 @@ import { STATUSES, CLOSE_REASONS, DOMAINS, POSITIONS, VECU, pushHist, summarizeC
 import { scoreOf } from '../engine/score.js';
 import { porteurs } from '../engine/requete.js';
 import { portesDuJour } from './amis.js';
-import { reseauDePiste, ouvrirDemander, ouvrirDon, demandeEnCoursHTML, bandeauDon, libelleDemander } from './reseau.js';
+import { reseauDePiste, ouvrirDemander, ouvrirDon, carteDemandeHTML, bandeauDon, libelleDemander } from './reseau.js';
 import { S, bus, isClosed, saveData, reopenPiste, logJ, activateContact } from './state.js';
 import { openSheet, confirmSheet, toast, btn, ic, montrerChange, suivreLargeur } from './dom.js';
 import { frDate, relLabel } from './dates.js';
@@ -278,12 +278,14 @@ export function openFiche(c){
        groupe à qui demander. */
     const res = reseauDePiste(c);
     const joignable = (c.contacts || []).some(t => t.email || t.phone || t.link);
-    const reseau = res.don
+    /* LA DEMANDE SE SUIT COMME UN COLIS (lot F3) : sa carte reste tant
+       qu'elle est ouverte, et le contact arrivé se propose juste dessous —
+       l'étape « Reçu » et ce qui a été reçu, l'un sous l'autre */
+    const reseau = (res.demande ? carteDemandeHTML(res.demande, { id: 'fiDemande' }) : '') + (res.don
       ? `<button class="fi-don" id="fiDon">${ic('user', 'ic-14')}
            <b>${esc(bandeauDon(res.don))}</b>${ic('chevron-right', 'ic-14')}</button>`
-      : res.demande ? demandeEnCoursHTML(res.demande)
-      : res.peut && !closed && !c.demo && !qui.length && !joignable
-        ? `<button class="fi-demander" id="fiDemander">${ic('users', 'ic-14')} ${esc(libelleDemander())}</button>` : '';
+      : !res.demande && res.peut && !closed && !c.demo && !qui.length && !joignable
+        ? `<button class="fi-demander" id="fiDemander">${ic('users', 'ic-14')} ${esc(libelleDemander())}</button>` : '');
 
     /* ---- le dossier : les gens, ce qu'on sait, l'histoire ---- */
     /* ce que TU sais de l'entreprise : « À savoir » existe pour ça */

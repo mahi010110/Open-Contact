@@ -57,7 +57,7 @@ import { nouvelleCle, boiteValide, cleValide, etiquetteBoite, sceller, ouvrir, l
          contactDonne, normaliserLettre, contactsPour, etatVide, normaliserEtat, elaguer, peutDemander,
          demandeDePiste, traiterLettre, empreinteProfil, DEMANDE_JOURS, DEMANDES_OUVERTES_MAX,
          jetonRelais, ouvrirJeton, lettreRelais, lettreTrouve, choisirRelais, soiPour, contactsDe, lettreEntree, lettreAdmis, lettreRecode,
-         CERCLE_MAX, RELAIS_MAX } from './engine/boite.js';
+         CERCLE_MAX, RELAIS_MAX, suiviDemande, pourCherche } from './engine/boite.js';
 import { critereValide, phraseCritere, CRITERE_METIER } from './engine/critere.js';
 import { cleFil, prefsVides, normaliserPrefs, basculerEpingle, basculerMuet, renommerFil, oublierFil, boite,
          filtrer, filtresUtiles, filtreVide, aLire, chiffreOnglet, premierNonLu, EPINGLES_MAX } from './engine/conversations.js';
@@ -2044,7 +2044,8 @@ export async function runSelfTests(){
       ok(fillTpl(cand.body, c, null, p).includes('Expérience : stage chez Sopra Steria (2025)'));
       /* le modèle de départ des 6.31 à 6.46, jamais retouché, prend la ligne ;
          un modèle retouché ne bouge pas */
-      const ancien = { ...cand, body: cand.body.replace('Expérience : {{parcours}}\n', '') };
+      /* le modèle des versions 6.31 à 6.46 : ni « Expérience », ni la ligne {{via}} (lot F3) */
+      const ancien = { ...cand, body: cand.body.replace('{{via}}\n', '').replace('Expérience : {{parcours}}\n', '') };
       eq(majModelesDefaut([ancien])[0].body, cand.body);
       const retouche = { ...ancien, body: ancien.body + ' ' };
       eq(majModelesDefaut([retouche])[0].body, retouche.body);
@@ -2538,6 +2539,68 @@ export async function runSelfTests(){
       let p = basculerMuet(prefsVides(), G);
       eq(aLire(boite([{ cle: G, sorte: 'groupe', nom: 'BTS', at: 1, n: 4 }], p)), 0);
       eq(aLire(boite([{ cle: G, sorte: 'groupe', nom: 'BTS', at: 1, n: 4, cite: 1 }], p)), 1);
+    },
+    'qui m’a donné ce contact : le mail le dit, le partage jamais': () => {
+      const ct = normalizeContact({ id: 'k1', name: 'Julie Marchand', email: 'julie@advens.test', via: '  Karim  ' });
+      eq(ct.via, 'Karim');
+      ok(!('via' in normalizeContact({ id: 'k2', name: 'X' })));
+      /* une donnée privée : ni dans le partage, ni par la porte des champs inconnus */
+      const c = normalizeCompany({ id: 'a1', name: 'Advens', contacts: [ct, { id: 'k3', name: 'Y', extra: { via: 'Léa' } }] });
+      const part = JSON.stringify(sharePayload([c]));
+      ok(!/Karim|Léa|"via"/.test(part), 'le prénom de l’ami ne voyage pas : ' + part);
+      /* la sortie ne se fie pas à son entrée : un contact brut, `via` en
+         clair ou rangé dans `extra` (un appareil resté en 6.72 l'y met) */
+      const brut = JSON.stringify(communityView({ name: 'Advens', contacts: [{ name: 'Y', via: 'Léa', extra: { via: 'Léa', garde: 1 } }] }));
+      ok(!/Léa|"via"/.test(brut) && /"garde":1/.test(brut), 'un contact brut laisse sortir qui l’a donné : ' + brut);
+      /* et à l'arrivée, la fusion le vide : ce n'est pas MON ami */
+      const chez = [];
+      mergeIncoming([{ name: 'Advens', contacts: [{ name: 'Y', email: 'y@x.fr', extra: { via: 'Léa' } }] }], chez);
+      ok(!chez[0].contacts[0].via && !(chez[0].contacts[0].extra || {}).via, 'la fusion garde un « via » reçu : ' + JSON.stringify(chez[0].contacts[0]));
+      /* le premier mail : la recommandation en tête, et rien quand il n'y en a pas */
+      const tpl = defaultTemplates()[0];
+      const avec = fillTpl(tpl.body, c, ct, { name: 'Tom Durand', formation: 'BTS SIO' });
+      ok(/^Bonjour Julie Marchand,\n\nKarim m’a conseillé de vous écrire\.\n\[Une phrase/.test(avec), avec.slice(0, 120));
+      const sans = fillTpl(tpl.body, c, { name: 'Paul' }, { name: 'Tom Durand', formation: 'BTS SIO' });
+      ok(/^Bonjour Paul,\n\n\[Une phrase/.test(sans), sans.slice(0, 80));
+      /* un modèle de départ jamais retouché (6.47 à 6.72) prend la ligne ; un modèle retouché, jamais */
+      const d672 = { ...tpl, body: tpl.body.replace('{{via}}\n', '') };
+      eq(majModelesDefaut([d672])[0].body, tpl.body);
+      eq(majModelesDefaut([{ ...d672, body: d672.body + '!' }])[0].body, d672.body + '!');
+    },
+    'demande : ce que je cherche voyage d’un mot, d’une liste fermée': () => {
+      const l = lettreDemande({ prenom: 'Tom', cle: 'x' }, { name: 'Aztek' }, 1000, 'alternance');
+      eq(l.cherche, 'alternance');
+      ok(!('cherche' in lettreDemande({ prenom: 'Tom', cle: 'x' }, { name: 'Aztek' }, 1000, 'un CDI à Paris')));
+      ok(!('cherche' in lettreDemande({ prenom: 'Tom', cle: 'x' }, { name: 'Aztek' }, 1000)));
+      /* il passe les sauts, et une lettre qui en porte un autre le perd */
+      eq(lettreRelais(l, { prenom: 'Léa', cle: 'y' }, 'j').cherche, 'alternance');
+      const now = Date.now(), cle = 'a'.repeat(87);
+      const brut = { v: 1, t: 'demande', id: 'demande01', de: { prenom: 'Tom', cle }, cercle: 1, exp: now + 864e5, entreprise: { nom: 'Aztek' } };
+      eq(normaliserLettre({ ...brut, cherche: 'stage' }, now)?.cherche, 'stage');
+      ok(!('cherche' in (normaliserLettre({ ...brut, cherche: 'un CDI bien payé' }, now) || {})));
+      /* la phrase : « … pour une alternance », rien sans le mot */
+      eq(pourCherche('alternance'), ' pour une alternance');
+      eq(pourCherche(''), '');
+      eq(pourCherche('toString'), '');
+    },
+    'le suivi d’une demande : envoyée, trouvée, reçu — comme un colis': () => {
+      const d = { id: 'd1', at: 100, exp: 9e15 };
+      const e = { dons: [] };
+      /* partie : la recherche est EN COURS */
+      let s = suiviDemande(e, d);
+      eq(s.etapes.map(x => x.cle).join(','), 'envoyee,trouvee,recu');
+      eq(s.etapes[0].at, 100); eq(s.courante, 1);
+      /* trouvée chez un ami d'un ami : on attend son oui, et on sait par qui */
+      s = suiviDemande(e, { ...d, trouve: { at: 200, cercle: 2, par: 'Léa' } });
+      eq(s.courante, 2); eq(s.etapes[1].at, 200); eq(s.etapes[1].ou, 'ami'); eq(s.etapes[1].par, 'Léa');
+      eq(suiviDemande(e, { ...d, trouve: { at: 200, groupe: true } }).etapes[1].ou, 'groupe');
+      /* le contact arrive : tout est fait — le premier don date l'arrivée */
+      const dons = [{ demande: 'd1', at: 400 }, { demande: 'd1', at: 300 }, { demande: 'autre', at: 150 }];
+      s = suiviDemande({ dons }, { ...d, trouve: { at: 200 } });
+      eq(s.courante, -1); eq(s.etapes[2].at, 300);
+      /* « Je connais quelqu'un » n'a pas prévenu : trouvée ET reçu d'un coup */
+      s = suiviDemande({ dons }, d);
+      eq(s.courante, -1); eq(s.etapes[1].at, 300); ok(!('ou' in s.etapes[1]));
     },
     'visages en pixels : le même pour la même graine, symétrique, ni vide ni plein': () => {
       const a = visage('KarimKarimKarim00001'), b = visage('KarimKarimKarim00001'), c = visage('InesInesInesInes0001');

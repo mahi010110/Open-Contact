@@ -21,6 +21,11 @@
    ⑥ un seul rythme vertical dans une feuille : deux champs empilés
      dans une grille sont espacés comme deux champs ordinaires, et deux
      dates côte à côte ont le même bas.
+   ⑦ le focus d'ouverture d'une feuille ne vole rien : sur un téléphone
+     lent, on écrit déjà dans le deuxième champ quand la frame arrive —
+     le curseur reste où l'on est (la formation finissait collée au nom,
+     « Sam MartinBTS SIO 2e année », sur la forge). La mutation : le
+     garde `ov.contains(document.activeElement)` retiré.
 
    MUTATIONS jouées à la main avant livraison (chacune fait rougir) :
    la règle `body:has(.overlay) .undo-bar` retirée ; le lien caché par
@@ -172,6 +177,26 @@ for (const [vp, sombre] of [[{ width: 390, height: 844 }, false], [{ width: 360,
   if (b.champ < 8 * b.rem && !b.dessous) fail(`⑤ à 200 %, le champ de recherche tombe à ${b.champ} px à côté d'« Affiner »`);
   if (!b.dessous) fail('⑤ à 200 % sur un 320 px, « Affiner » reste à côté du champ au lieu de passer dessous');
   if (!process.exitCode) console.log(`320 · 200 % · ⑤ le champ garde ${b.champ} px, « Affiner » passe dessous ✓`);
+  await ctx.close();
+}
+
+/* ⑦ une frame lente : on est déjà dans « Formation » quand elle arrive */
+{
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true });
+  await ctx.addInitScript(() => { const raf = window.requestAnimationFrame.bind(window);
+    window.requestAnimationFrame = cb => raf(t => setTimeout(() => cb(t), 400)); });
+  await annuaireMuet(ctx);
+  const p = await ctx.newPage();
+  p.on('pageerror', e => errors.push(String(e)));
+  await p.goto(base + '/#/moi');
+  await p.waitForFunction(() => !!document.querySelector('#sbVer')?.textContent);
+  await p.evaluate(async () => (await import('./ui/profil.js')).openProfil());
+  await p.waitForSelector('#pfFormation');
+  await p.focus('#pfFormation');
+  await p.waitForTimeout(800);
+  const actif = await p.evaluate(() => document.activeElement?.id || document.activeElement?.tagName);
+  if (actif !== 'pfFormation') fail(`⑦ la frame d'ouverture a ramené le curseur sur « ${actif} » — on écrivait dans « Formation »`);
+  else console.log('⑦ frame lente : le focus d’ouverture ne vole pas le champ où l’on écrit déjà ✓');
   await ctx.close();
 }
 
