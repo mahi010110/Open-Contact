@@ -60,18 +60,21 @@ perdre en route.** Le pourquoi est dans les fiches de décision
 | Mes amis | Mes pistes › Amis | Réseau › Mes amis | R1 |
 | Conversations et groupes | Échanger | Réseau | R1 |
 | Mes demandes en cours | Fiche › Contacts ; Amis | Fiche, et Réseau en tête | R1 |
-| Donner des pistes | Échanger › Donner | Pistes › choisir › Partager, et la fiche | R1 |
+| Donner des pistes | Échanger › Donner | Pistes › Choisir › Donner, et la fiche | R1 |
 | Recevoir (QR, fichier, texte) | Échanger › Recevoir | + › Recevoir | R1 |
 | Ajouter une piste | + | + › Une piste | R1 |
-| Ajouter quelqu'un rencontré | Fiche › Ajouter un contact | + › Quelqu'un rencontré, ou la fiche | R1 |
+| Ajouter quelqu'un rencontré | Fiche › Ajouter un contact | + › Un contact, ou la fiche | R1 |
 | Historique des échanges | Échanger › Historique | Réseau › Historique, en bas | R1 |
 | Écrire à plusieurs | Mes pistes › Prospecter | Aujourd'hui › Prêts à partir ; Pistes › choisir › Écrire | R3 |
 | Ma semaine | — | Aujourd'hui, en tête ; la revue le vendredi | R4 |
 | Profil, copie, appareils, réglages | Moi | Moi, plus « Préversion » (R0) et « Je peux aider » (R7) | R0, R7 |
 | Navigation au poste | onglets en haut | barre latérale, recherche Ctrl K | R1, R8 |
 
-Cette table deviendra un scénario automatique avec R1 : chaque ligne doit
-être atteinte depuis son onglet en peu de gestes.
+Cette table est un scénario automatique depuis R1
+(`tests/e2e/e2e-ce-qui-bouge.mjs`) : il la lit ici même, joue chaque
+ligne d'un lot livré depuis son onglet, en trois gestes au plus, au
+téléphone et au poste, et rougit si une ligne n'a pas son parcours.
+Les mots de la colonne « Après » sont ceux de l'écran.
 
 ## Les lots
 
