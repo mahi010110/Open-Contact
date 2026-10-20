@@ -22,8 +22,17 @@
      « cyber Lille » propose de demander ;
    ⑦ éteinte depuis Réglages pendant qu'on regarde « Réseau » : on
      revient à « Échanger », sur place ;
-   ⑧ au poste aussi — et zéro erreur console. Deux mutations à l'appui :
-     la barre qui ne suit pas le lot, l'écran qui ne se recadre pas.
+   ⑧ au poste aussi ;
+   ⑨ (R1-b) la fiche commence par les gens — les contacts avant « Où
+     j'en suis », au pouce, et en colonne de gauche au poste — et
+     « Donner » part de la fiche avec cette seule piste ; éteinte, la
+     fiche d'avant ;
+   ⑩ (R1-b) « Un contact », depuis le + : la personne d'abord,
+     l'entreprise ensuite ; sans entreprise, elle part dans le bac
+     « à rattacher ».
+   Zéro erreur console. Trois mutations à l'appui : la barre qui ne suit
+   pas le lot, l'écran qui ne se recadre pas, la fiche qui garde son
+   ordre.
    ============================================================ */
 import { chromium, chromiumPath, serveRepo, relaisMuets, annuaireMuet, ouvrirReglages, ROOT, SHOTS } from './outils.mjs';
 import { readFile } from 'fs/promises';
@@ -165,8 +174,8 @@ for (const sombre of [false, true]){
              sous: o.querySelector('.aj-recv .tr-h')?.textContent.trim(),
              pied: [...o.querySelectorAll('.modal-f button')].map(b => b.textContent.trim() + (b.classList.contains('btn-primary') ? '*' : '')).join(' · ') };
   });
-  ok(await dessus(p) === 'Ajouter' && aj.sous === 'Recevoir' && aj.rangs === 'QR · Fichier · Texte' && aj.pied === 'Une piste*',
-    `④ « Ajouter » : Recevoir (QR · Fichier · Texte), « Une piste » au pied — ${JSON.stringify(aj)}`);
+  ok(await dessus(p) === 'Ajouter' && aj.sous === 'Recevoir' && aj.rangs === 'QR · Fichier · Texte' && aj.pied === 'Un contact · Une piste*',
+    `④ « Ajouter » : Recevoir (QR · Fichier · Texte), « Un contact » et « Une piste » au pied — ${JSON.stringify(aj)}`);
   await p.screenshot({ path: `${SHOTS}/161-reseau-ajouter.png` });
   await p.click('[data-mode="texte"]');
   await p.waitForTimeout(350);
@@ -247,6 +256,77 @@ for (const sombre of [false, true]){
   await ctx.close();
 }
 
+/* ---------- ⑨ la fiche commence par les gens ---------- */
+const ouvrirFiche = async (p, id) => {
+  await p.evaluate(async i => { const { S } = await import('./ui/state.js');
+    (await import('./ui/fiche.js')).openFiche(S.companies.find(c => c.id === i)); }, id);
+  await p.waitForSelector('.modal-fiche .fi-contacts');
+  await p.waitForTimeout(300);
+};
+/* l'ordre des blocs de la fiche, tels qu'on les lit de haut en bas (au
+   pouce) ou colonne par colonne (au poste) */
+const ordreFiche = p => p.evaluate(() => {
+  const b = document.querySelector('.modal-fiche .modal-b');
+  const blocs = [...b.querySelectorAll('.fi-contacts, .seg3-statut, #fiNotes, #fiKnow')];
+  const r = e => e.getBoundingClientRect();
+  return {
+    ordre: blocs.map(e => e.matches('.fi-contacts') ? 'gens' : e.matches('.seg3-statut') ? 'statut' : e.id === 'fiNotes' ? 'notes' : 'savoir'),
+    gauche: blocs.map(e => Math.round(r(e).left)),
+    haut: blocs.map(e => Math.round(r(e).top)),
+    donner: !!b.querySelector('#fiDonner')
+  };
+});
+const lisible = o => o.ordre.map((x, i) => `${x}@${o.gauche[i]},${o.haut[i]}`).join(' ');
+for (const [nom, vp, pv] of [['pouce', { width: 390, height: 844 }, true], ['poste', { width: 1280, height: 800 }, true], ['éteinte', { width: 390, height: 844 }, false]]){
+  const { ctx, p } = await ecran('fiche-' + nom, { vp, preversion: pv });
+  await ouvrirFiche(p, 'adv');
+  const o = await ordreFiche(p);
+  const i = k => o.ordre.indexOf(k);
+  if (!pv)
+    ok(o.haut[i('statut')] < o.haut[i('gens')] && !o.donner, `⑨ éteinte : la fiche d'avant, le suivi d'abord, pas de « Donner » — ${lisible(o)}`);
+  else if (vp.width < 901)
+    ok(o.haut[i('gens')] < o.haut[i('statut')] && o.haut[i('statut')] < o.haut[i('notes')] && o.donner,
+      `⑨ ${nom} : les contacts avant « Où j'en suis », et « Donner » sur la fiche — ${lisible(o)}`);
+  else
+    ok(o.gauche[i('gens')] < o.gauche[i('statut')] && o.donner,
+      `⑨ ${nom} : les gens en colonne de gauche, le suivi à droite — ${lisible(o)}`);
+  if (pv){
+    await p.screenshot({ path: `${SHOTS}/161-reseau-fiche-${nom}.png` });
+    await p.click('#fiDonner');
+    await p.waitForTimeout(450);
+    const dn = await p.evaluate(() => [...document.querySelectorAll('.modal-donner .pk')].map(b => b.dataset.id + (b.classList.contains('on') ? '*' : '')).join(','));
+    ok(await dessus(p) === 'Donner' && dn === 'adv*', `⑨ ${nom} : « Donner » depuis la fiche ne montre que cette piste — ${dn}`);
+  }
+  await ctx.close();
+}
+
+/* ---------- ⑩ « Un contact », depuis le + ---------- */
+{
+  const { ctx, p } = await ecran('contact');
+  await p.click('#bnAdd');
+  await p.waitForTimeout(300);
+  await p.click('#ajContact');
+  await p.waitForTimeout(400);
+  const f = await p.evaluate(() => {
+    const o = [...document.querySelectorAll('.overlay:not(.ov-out)')].pop();
+    return { champs: [...o.querySelectorAll('input')].map(i => i.id).join(','),
+             libelles: [...o.querySelectorAll('.field > label')].map(l => l.textContent.trim()).join(' · '),
+             focus: document.activeElement?.id };
+  });
+  ok(await dessus(p) === 'Nouveau contact' && f.champs === 'cpCtName,cpCtCoord,cpName' && f.libelles === 'Son nom · Son entreprise' && f.focus === 'cpCtName',
+    `⑩ « Un contact » : la personne d'abord, l'entreprise ensuite — ${JSON.stringify(f)}`);
+  await p.screenshot({ path: `${SHOTS}/161-reseau-contact.png` });
+  const avant = await p.evaluate(async () => (await import('./ui/state.js')).S.orphans.length);
+  await p.fill('#cpCtName', 'Sarah Lemoine');
+  await p.fill('#cpCtCoord', 'sarah@forum.test');
+  await p.click('.overlay:not(.ov-out) .modal-f .btn-primary');
+  await p.waitForTimeout(350);
+  const apres = await p.evaluate(async () => (await import('./ui/state.js')).S.orphans.map(o => o.name));
+  ok(apres.length === avant + 1 && apres.includes('Sarah Lemoine') && await p.evaluate(() => document.activeElement?.id) === 'cpCtName',
+    `⑩ sans entreprise, la personne part dans le bac, et la suivante se tape aussitôt — ${apres.join(', ')}`);
+  await ctx.close();
+}
+
 /* ---------- les mutations : le scénario sait encore échouer ---------- */
 {
   const app = await readFile(path.join(ROOT, 'app.js'), 'utf8');
@@ -264,6 +344,17 @@ for (const sombre of [false, true]){
   const { ctx, p } = await ecran('mutation-ecran', { mutations: { 'ui/echanger.js': fige }, hash: '#/reseau' });
   const r = await reseauLu(p);
   ok(!(r.ordre.join(',') === 'rzDemandes,boite' && r.verbes === 0), `mutation ② : la garde de l'écran rougit — ${JSON.stringify(r)}`);
+  await ctx.close();
+}
+
+{
+  const fiche = await readFile(path.join(ROOT, 'ui', 'fiche.js'), 'utf8');
+  const fige = fiche.replace("const R = lot('reseau');", 'const R = false;');
+  ok(fige !== fiche, 'mutation ③ la fiche qui garde son ordre : le fichier servi est bien modifié');
+  const { ctx, p } = await ecran('mutation-fiche', { mutations: { 'ui/fiche.js': fige } });
+  await ouvrirFiche(p, 'adv');
+  const o = await ordreFiche(p);
+  ok(!(o.haut[o.ordre.indexOf('gens')] < o.haut[o.ordre.indexOf('statut')] && o.donner), `mutation ③ : la garde de la fiche rougit — ${lisible(o)}`);
   await ctx.close();
 }
 

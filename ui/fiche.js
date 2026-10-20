@@ -14,7 +14,7 @@ import { scoreOf } from '../engine/score.js';
 import { porteurs } from '../engine/requete.js';
 import { portesDuJour } from './amis.js';
 import { reseauDePiste, ouvrirDemander, ouvrirDon, carteDemandeHTML, bandeauDon, libelleDemander } from './reseau.js';
-import { S, bus, isClosed, saveData, reopenPiste, logJ, activateContact } from './state.js';
+import { S, bus, isClosed, saveData, reopenPiste, logJ, activateContact, lot } from './state.js';
 import { openSheet, confirmSheet, toast, btn, ic, montrerChange, suivreLargeur } from './dom.js';
 import { frDate, relLabel } from './dates.js';
 import { askNextAction, askClose } from './actions.js';
@@ -219,9 +219,14 @@ export function openFiche(c){
        qu'au poste : un pourcentage sur lequel on n'agit pas est le même
        papier peint qu'on a retiré des cartes du tableau, et il coûte une
        ligne entière là où la place manque. */
+    /* R1 (décision 0002) : DONNER part aussi de la fiche — le geste vit
+       avec l'objet qu'il donne, à côté de « Modifier ». Une piste close
+       ou d'exemple ne se donne pas (`openDonner` les écarte). */
+    const R = lot('reseau');
     const outils =
       `<div class="fi-tools">
          ${wide ? `<span class="fi-score">fiche complète à ${score} %</span>` : ''}
+         ${R && !closed && !c.demo ? `<button class="btn btn-sm" id="fiDonner" aria-label="Donner la piste ${esc(c.name)}">${ic('share', 'ic-14')} Donner</button>` : ''}
          <button class="btn btn-sm" id="fiEdit" aria-label="${score < 60 ? 'Compléter' : 'Modifier'} la piste ${esc(c.name)}">${ic('pencil', 'ic-14')} ${score < 60 ? 'Compléter' : 'Modifier'}</button>
        </div>`;
     /* ---- le travail : où j'en suis, ce que je fais ensuite, ce que je note ---- */
@@ -300,7 +305,7 @@ export function openFiche(c){
     /* ---- le dossier : les gens, ce qu'on sait, l'histoire ---- */
     /* ce que TU sais de l'entreprise : « À savoir » existe pour ça */
     const aSavoir = !!(c.desc || c.website || c.techs || (c.positions || []).length || c.process || c.tips || c.address);
-    const dossier =
+    const gens =
       `<div class="field fi-contacts">
          ${/* Essayé : descendre « + Ajouter » en fin de liste pour rendre
               au libellé sa hauteur de libellé. MESURÉ : le bloc passe de
@@ -324,8 +329,9 @@ export function openFiche(c){
              <div class="ctc-list">${knownCts.map(t => ctRowHTML(t, false)).join('')}</div>
            </details>` : ''}
          ${reseau}
-       </div>
-       ${/* « À SAVOIR » N'EXISTE QUE S'IL A QUELQUE CHOSE À DIRE : ce que tu
+       </div>`;
+    const savoir =
+      `${/* « À SAVOIR » N'EXISTE QUE S'IL A QUELQUE CHOSE À DIRE : ce que tu
             y as écrit, ou ce que l'annuaire sait (la carte). Une piste
             sans SIREN et sans notes n'en a pas — il portait alors trois
             liens et une ligne de source, rien à lire. Avec un SIREN, il
@@ -434,14 +440,21 @@ export function openFiche(c){
            <div class="obj-s">${subBits.length ? `<span class="obj-l">${subBits.map(esc).join(' · ')}</span>` : ''}${annuaireEtatHTML(c)}</div>
          </div>
        </div>`;
+    /* LA FICHE COMMENCE PAR LES GENS (R1, décision 0002) : qui peut
+       t'ouvrir la porte (le bandeau, déjà en tête), puis les contacts,
+       puis le suivi. Au poste, les gens prennent la colonne de gauche,
+       celle qu'on lit d'abord. Lot éteint, l'ordre d'avant. */
+    const colTravail = `<div class="fi-travail">${travail}</div>`;
     sh.body.innerHTML = wide
       ? `<div class="fi-top">${sub}${outils}</div>${vecuHTML}
-         <div class="fi-cols"><div>${travail}</div><div>${dossier}</div></div>`
-      : `<div class="fi-top">${sub}${outils}</div>${vecuHTML}` + travail + dossier;
+         <div class="fi-cols">${R ? `<div>${gens}${savoir}</div>${colTravail}` : `${colTravail}<div>${gens}${savoir}</div>`}</div>`
+      : `<div class="fi-top">${sub}${outils}</div>${vecuHTML}` + (R ? gens + travail + savoir : travail + gens + savoir);
 
     /* branchements */
     const byCt = id => (c.contacts || []).find(t => t.id === id);
     sh.body.querySelector('#fiEdit').addEventListener('click', () => openEditPiste(c, render));
+    sh.body.querySelector('#fiDonner')?.addEventListener('click', async () =>
+      (await import('./donner.js')).openDonner({ ids: [c.id] }));
     sh.body.querySelectorAll('[data-porteur]').forEach(b =>
       b.addEventListener('click', () => { const p = qui[+b.dataset.porteur]; openDemander(c, p.prenom, p); }));
     sh.body.querySelector('#fiDemander')?.addEventListener('click', () => ouvrirDemander(c, render));

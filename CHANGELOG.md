@@ -9,6 +9,22 @@ le premier pour une rupture. La bascule du recadrage sera la 7.0.0
 
 Les versions d'avant la 6.76 se lisent dans l'historique du dépôt.
 
+## [6.80.0] — 20 octobre 2026
+
+Le recadrage, lot R1-b : la fiche. Toujours en **préversion**.
+
+### Ajouté, en préversion
+
+- **La fiche commence par les gens** : qui peut t'ouvrir la porte, puis
+  tes contacts, puis où tu en es. Au poste, les gens prennent la colonne
+  de gauche.
+- **« Donner » depuis la fiche**, à côté de « Modifier » : la feuille
+  ne montre que cette piste.
+- **« Un contact » depuis le +** : quelqu'un que tu viens de
+  rencontrer, son nom d'abord, son entreprise ensuite. Sans entreprise,
+  il t'attend dans « Contacts à rattacher » ; une entreprise que tu
+  suis déjà le reçoit dans sa fiche.
+
 ## [6.79.0] — 20 octobre 2026
 
 Le recadrage, lot R1-a : l'onglet « Réseau ». Tout est en
