@@ -32,7 +32,8 @@ import { nouvelIdAmi, profilDonne, statutAmi, ajouterAmi, retirerAmi, prenomAmi,
          portesAmis, memeEntreprise, classerAmis, chercherAmis, TRIS_AMIS, TRI_AMIS_DEFAUT } from '../engine/amis.js';
 import { encodeOCA } from '../engine/exchange.js';
 import { S, bus, saveData, saveProfile, logJ, deletePiste } from './state.js';
-import { openSheet, toast, btn, ic, showUndo, bindDeleteGesture } from './dom.js';
+import { openSheet, toast, btn, ic, showUndo, bindDeleteGesture, clavier } from './dom.js';
+import { interpreter, contexteRecherche, critereDe } from '../engine/requete.js';
 import { sortState, sortSectionHTML, bindSortSection, sortChipHTML, bindSortChip, sensDe } from './sort.js';
 import { makeQrSvg } from './qr.js';
 import { demandesCritere, peutDemanderAmis, carteDemandeHTML, ouvrirDemander, libelleDemander, direAdieu, reprendreMonProfil } from './reseau.js';
@@ -336,7 +337,7 @@ function demandesHTML(critere){
   return { faits, geste: peut
     ? `<div class="am-demander"><button class="btn btn-sm" id="avDemander" data-metier="${esc(critere.metier || '')}" data-ville="${esc(critere.ville || '')}">${ic('users', 'ic-14')} ${esc(libelleDemander())}</button></div>` : '' };
 }
-export function vueAmisHTML(classes, { q, wide, critere }){
+export function vueAmisHTML(classes, { q, wide, critere, sansDemandes = false }){
   if (!(S.profile.amis || []).length)
     /* L'ÉTAT VIDE ENSEIGNE (§6) : ce que la liste montrera, et les deux
        gestes qui la remplissent — montrer son QR, scanner celui de l'autre */
@@ -349,7 +350,10 @@ export function vueAmisHTML(classes, { q, wide, critere }){
            <button class="btn" id="avScan">${ic('grid-3x3', 'ic-14')} Scanner</button>
          </div>
        </div>`);
+  /* `sansDemandes` : les cartes vivent ailleurs (Réseau, en tête) — le
+     GESTE qui en fait une reste ici, là où l'on a tapé « cyber Lille » */
   const dem = demandesHTML(critere);
+  if (sansDemandes) dem.faits = '';
   if (!classes.length) return dem.faits + `<div class="empty-list" id="avRien">Aucun ami ne correspond.</div>` + dem.geste;
   const x = wide ? (classes.find(c => c.a.id === choisiAmi) || classes[0]) : null;
   if (x) choisiAmi = x.a.id;
@@ -411,6 +415,36 @@ export function lierVueAmis(box, { wide, rendre }){
        porter : il garde sa boîte (§6, les trois formes) */
     if (a) aside.querySelector('.am-ecrire')?.append(boutonEcrire(a, rendre, 'btn-sm btn-contour'));
   }
+}
+/* « MES AMIS », depuis Réseau (R1, décision 0002) : la même liste que
+   la portée « Amis » de Pistes, dans sa feuille, avec SA recherche —
+   « Thales » trouve Karim, et « cyber Lille » propose « Demander à mes
+   amis », comme la barre de Pistes le faisait. Les cartes des demandes
+   n'y sont pas : Réseau les montre déjà en tête, une seule place par
+   chose. */
+export function openMesAmis(apres){
+  const sh = openSheet({ title: 'Amis', icon: 'users' });
+  let q = '';
+  const avec = () => (S.profile.amis || []).length > 0;
+  const rendreListe = () => {
+    const zone = sh.body.querySelector('#amListe');
+    const critere = q ? critereDe(interpreter(q, contexteRecherche(S.companies))) : null;
+    zone.innerHTML = `<div id="piAmis">${vueAmisHTML(amisClasses(q), { q, wide: false, critere, sansDemandes: true })}</div>`;
+    lierVueAmis(zone.querySelector('#piAmis'), { wide: false, rendre: () => { rendre(); if (apres) apres(); } });
+  };
+  const rendre = () => {
+    /* sans ami, l'état vide enseigne seul : un champ de recherche au-
+       dessus d'une liste vide ne chercherait rien */
+    sh.body.innerHTML = (avec()
+      ? `<div class="listbar lb-cmd am-cherche"><div class="lb-box"><div class="lb-find">
+           <span class="ic ic-14 srch-i" aria-hidden="true"></span>
+           <input class="lb-q" id="amQ" type="search" value="${esc(q)}" placeholder="Nom, entreprise…"
+                  aria-label="Chercher un ami" ${clavier('cherche')}>
+         </div></div></div>` : '') + '<div id="amListe"></div>';
+    sh.body.querySelector('#amQ')?.addEventListener('input', e => { q = e.target.value.trim(); rendreListe(); });
+    rendreListe();
+  };
+  rendre();
 }
 /* le tri des amis : la même feuille que celle des pistes, leurs critères */
 export function openTriAmis(rendre){

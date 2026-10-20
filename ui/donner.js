@@ -31,12 +31,17 @@ const QR_HARD_MAX = 1800;     /* caractères par QR : au-delà, rendez-vous P2P 
 
 /* `o.groupe` ({ code, nom }) : ouvert depuis un groupe (lot 5). La même
    liste, le même « qui part » ; le pied n'a plus qu'un geste — donner au
-   groupe, qui le recevra à sa prochaine ouverture. */
+   groupe, qui le recevra à sa prochaine ouverture.
+   `o.ids` : les pistes déjà choisies dans « Mes pistes » (R1, décision
+   0002 — choisir, puis Donner). La liste ne montre qu'elles : le choix
+   est fait, il ne se refait pas parmi vingt lignes tramées (§6, la
+   trame sur une liste qui part de presque rien). */
 export function openDonner(o){
   /* appelée aussi en écouteur de clic (l'événement) ou avec null */
-  o = o && o.groupe ? o : {};
+  o = o && (o.groupe || Array.isArray(o.ids)) ? o : {};
+  const choix = o.ids ? new Set(o.ids) : null;
   /* jamais les pistes d'exemple : leurs contacts sont fictifs */
-  const alive = () => S.companies.filter(c => !isClosed(c) && !c.demo);
+  const alive = () => S.companies.filter(c => !isClosed(c) && !c.demo && (!choix || choix.has(c.id)));
   if (!alive().length){ toast('Rien à donner pour l’instant — ajoute d’abord une piste.'); return; }
   const unsel = new Set();
   const st = sortState('recent');

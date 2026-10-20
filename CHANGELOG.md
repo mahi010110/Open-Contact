@@ -9,6 +9,28 @@ le premier pour une rupture. La bascule du recadrage sera la 7.0.0
 
 Les versions d'avant la 6.76 se lisent dans l'historique du dépôt.
 
+## [6.79.0] — 20 octobre 2026
+
+Le recadrage, lot R1-a : l'onglet « Réseau ». Tout est en
+**préversion** : rien ne change tant que tu ne l'allumes pas dans
+Réglages.
+
+### Ajouté, en préversion
+
+- **« Réseau »** prend la place d'« Échanger » et répond à une seule
+  question, *qui peut m'aider ?* Tes demandes en cours en tête, avec le
+  contact qu'un ami t'a donné juste dessous, puis tes conversations, puis
+  « Mes amis ».
+- **« Mes amis »** quitte « Mes pistes » pour vivre avec ses
+  conversations. Sa recherche trouve un ami par une entreprise (« Thales »),
+  et « cyber Lille » propose de demander à tes amis.
+- **Le + fait tout entrer** : « Une piste » sous le pouce, et ce qu'on
+  te tend (QR, fichier, texte) sous « Recevoir ».
+- **Donner part de tes pistes** : « Choisir », coche, puis « Donner » ;
+  la feuille ne montre que ce que tu as coché.
+- L'ancienne adresse `#/echanger` mène à « Réseau », et l'inverse quand
+  la préversion est éteinte.
+
 ## [6.78.0] — 19 octobre 2026
 
 Le premier lot du recadrage, R0 : les fondations. Rien ne change à

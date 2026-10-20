@@ -9,8 +9,10 @@
      et sur quel appareil ;
    ③ « Allumée » s'applique au tap, survit au rechargement, et le lot
      en test s'allume pour l'écran qui le demande (`lot`) ;
-   ④ allumée ou éteinte, aucun écran ne bouge : la barre et les quatre
-     écrans disent exactement la même chose ;
+   ④ allumée, seul ce que le lot en test recadre bouge : la barre dit
+     « Réseau » à la place d'« Échanger », et ce que R1 ne touche pas
+     (« Aujourd'hui », « Moi ») dit exactement la même chose — R1 se
+     garde lui-même dans e2e-reseau.mjs ;
    ⑤ éteinte, la clé disparaît : rien ne reste sur l'appareil ;
    ⑥ un lot ouvert à tous n'a plus besoin de préversion : la ligne
      disparaît d'elle-même, et le lot s'allume pour tout le monde
@@ -77,9 +79,9 @@ const lire = (p, id) => p.evaluate(id => JSON.stringify({
   barre: [...document.querySelectorAll('nav [data-r]')].map(a => a.innerText.replace(/\s+/g, ' ').trim()).join(' | '),
   titre: document.title
 }), id);
-const photo = async p => {
+const photo = async (p, routes = ['aujourdhui', 'pistes', 'echanger', 'moi']) => {
   const out = {};
-  for (const r of ['aujourdhui', 'pistes', 'echanger', 'moi']){
+  for (const r of routes){
     await allerA(p, '#/' + r);
     let prec = await lire(p, r), n = 0;
     for (;;){
@@ -127,13 +129,16 @@ for (const sombre of [false, true]){
   await p.waitForFunction(() => !!document.querySelector('#sbVer')?.textContent);
   await p.waitForTimeout(250);
   ok(await lotReseau(p) === true, `③ ${nom} : allumée, elle survit au rechargement`);
-  const pendant = await photo(p);
-  const ecarts = Object.keys(avant).filter(k => JSON.stringify(avant[k]) !== JSON.stringify(pendant[k]));
+  /* ce que le lot « reseau » ne touche pas ; la barre, elle, change
+     d'UN mot — l'onglet qu'il recadre */
+  const pendant = await photo(p, ['aujourdhui', 'moi']);
+  for (const k of Object.keys(pendant)) pendant[k].barre = pendant[k].barre.replace(/Réseau/g, 'Échanger');
+  const ecarts = Object.keys(pendant).filter(k => JSON.stringify(avant[k]) !== JSON.stringify(pendant[k]));
   for (const k of ecarts) for (const f of ['vue', 'barre', 'titre']) if (avant[k][f] !== pendant[k][f]){
     const x = avant[k][f], y = pendant[k][f]; let i = 0; while (i < x.length && x[i] === y[i]) i++;
     console.log(`  écart ${k}.${f} à ${i} : « ${x.slice(Math.max(0, i - 40), i + 60)} » ≠ « ${y.slice(Math.max(0, i - 40), i + 60)} »`);
   }
-  ok(!ecarts.length, `④ ${nom} : allumée, aucun écran ne bouge — barre, titres et quatre écrans identiques${ecarts.length ? ' (écarts : ' + ecarts.join(', ') + ')' : ''}`);
+  ok(!ecarts.length, `④ ${nom} : allumée, seul le lot bouge — la barre dit « Réseau », « Aujourd’hui » et « Moi » identiques${ecarts.length ? ' (écarts : ' + ecarts.join(', ') + ')' : ''}`);
   await reglages(p);
   ok((await rangees(p)).includes('Préversion · allumée'), `③ ${nom} : la ligne relue dit « allumée »`);
   await p.click('#moiPreversion');

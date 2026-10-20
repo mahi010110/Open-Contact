@@ -23,7 +23,7 @@ import { esc, todayISO } from '../engine/utils.js';
 import { FILS_KEY, kvGet, kvSet } from '../engine/storage.js';
 import { prefsVides, normaliserPrefs, boite, filtrer, filtresUtiles, filtreVide, aLire, chiffreOnglet,
          basculerEpingle, basculerMuet, renommerFil, oublierFil, cleFil } from '../engine/conversations.js';
-import { S, bus, isClosed } from './state.js';
+import { S, bus, isClosed, lot } from './state.js';
 import { openSheet, ic, appuiLong, annoncer } from './dom.js';
 import { quandListe } from './dates.js';
 import { visageHTML, blasonHTML } from './visage.js';
@@ -63,7 +63,7 @@ const aFaire = () => {
   const t = todayISO();
   return S.companies.filter(c => !isClosed(c) && !c.demo && c.nextAction && c.nextAction <= t).length;
 };
-const NOMS = { aujourdhui: 'Aujourd’hui', echanger: 'Échanger' };
+const NOMS = { aujourdhui: 'Aujourd’hui', echanger: 'Échanger', reseau: 'Réseau' };
 function poser(route, n, dit){
   document.querySelectorAll(`nav [data-r="${route}"]`).forEach(lien => {
     let b = lien.querySelector('.nav-n');
@@ -80,7 +80,7 @@ function poser(route, n, dit){
 }
 export function majOnglets(){
   const n = aLire(rangsBoite());
-  poser('echanger', n, `${n} conversation${n > 1 ? 's' : ''} non lue${n > 1 ? 's' : ''}`);
+  poser(lot('reseau') ? 'reseau' : 'echanger', n, `${n} conversation${n > 1 ? 's' : ''} non lue${n > 1 ? 's' : ''}`);
   const a = aFaire();
   poser('aujourdhui', a, `${a} action${a > 1 ? 's' : ''} à faire`);
 }
@@ -94,8 +94,9 @@ export const conversationChoisie = () => selCle;
 export function ouvrirDansBoite(sorte, id){
   selCle = cleFil(sorte, id);
   filtre = 'tout';
-  if (/^#\/echanger\b/.test(location.hash)) bus.refresh();
-  else location.hash = '#/echanger';
+  const ici = lot('reseau') ? 'reseau' : 'echanger';
+  if (new RegExp('^#\\/' + ici + '\\b').test(location.hash)) bus.refresh();
+  else location.hash = '#/' + ici;
 }
 const MOTS_FILTRE = { tout: 'Tout', nonlus: 'Non lus', groupes: 'Groupes', amis: 'Amis' };
 
@@ -126,6 +127,7 @@ export function boiteHTML(wide){
   const rangs = filtrer(tous, filtre);
   if (wide && !rangs.some(r => r.cle === selCle && !r.attente)) selCle = (rangs.find(r => !r.attente) || {}).cle || '';
   const ecrire = amisJoignables().length;
+  const nAmis = (S.profile.amis || []).length;
   const plein = groupesPlein();
   /* sans conversation, le cadre n'est pas une liste : une phrase et un geste */
   const item = h => tous.length ? `<div role="listitem">${h}</div>` : `<div>${h}</div>`;
@@ -140,6 +142,12 @@ export function boiteHTML(wide){
          /* vide, le cadre dit ce qu'il recevra — pas qu'il n'y a rien */
          tous.length ? '' : '<p class="bx-rien">Tes groupes et tes amis apparaissent ici.</p>'}${
          rangs.map(r => ligneHTML(r, wide && r.cle === selCle)).join('')}
+         ${/* « MES AMIS », une ligne de la liste (R1, décision 0002) : les
+              amis quittent « Pistes » pour vivre avec leurs conversations.
+              Elle se lit comme une rangée qui mène (son chevron, son
+              compte), pas comme un geste en encre sourde. */
+           lot('reseau') ? item(`<button class="bx-amis" id="bxAmis">${ic('users', 'ic-14')}<span class="bx-amis-l">Mes amis</span>${
+             nAmis ? `<span class="bx-amis-n">${nAmis}</span>` : ''}${ic('chevron-right', 'ic-14')}</button>`) : ''}
          ${/* les deux façons d'en commencer une — en encre sourde, en dernier :
               la ligne « Ajouter un compte » d'iOS */''}
          ${ecrire ? item(`<button class="bx-plus" id="bxEcrire">${ic('message-text', 'ic-14')} Écrire à un ami</button>`) : ''}
@@ -251,6 +259,8 @@ export function bindBoite(root, { volet, rendre }){
     choisir(cle, liste.querySelector(`[data-fil="${CSS.escape(cle)}"]`));
   };
   root.querySelector('#bxEcrire')?.addEventListener('click', () => ouvrirEcrire(ouvrirAmi));
+  root.querySelector('#bxAmis')?.addEventListener('click', async () =>
+    (await import('./amis.js')).openMesAmis(rendre));
   const neuf = root.querySelector('#ecGrNeuf');
   neuf?.addEventListener('click', () => ouvrirNouveauGroupe(rendre, 'Nouveau groupe'));
   /* au poste, la conversation choisie se pose — une seule fois : un

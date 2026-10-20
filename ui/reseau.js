@@ -28,7 +28,7 @@ import { nouvelleCle, etiquetteBoite, sceller, ouvrir, lettreDemande, lettreDon,
          etatVide, normaliserEtat, elaguer, peutDemander, demandeDePiste, traiterLettre, prenomDe,
          jetonRelais, ouvrirJeton, lettreRelais, lettreTrouve, choisirRelais, lettreEntree, lettreAdmis, lettreRecode,
          lettreAdieu, adieuAuthentique, lettreMessage, messageAuthentique, MESSAGE_JOURS, LETTRE_KIND,
-         suiviDemande, pourCherche } from '../engine/boite.js';
+         suiviDemande, pourCherche, demandesOuvertes } from '../engine/boite.js';
 import { prenomAmi, profilDonne, statutAmi, ajouterAmi, retirerAmi, nouvelIdAmi, memeEntreprise, direQuoi, direQuoiTu } from '../engine/amis.js';
 import { parcoursDe } from '../engine/parcours.js';
 import { pistesPour } from '../engine/requete.js';
@@ -597,6 +597,12 @@ function aQui(d){
   const gr = (d.groupes || []).join(', ');
   return [amis, gr].filter(Boolean).join(' et ');
 }
+/* TOUTES mes demandes ouvertes, la plus récente d'abord, chacune avec le
+   contact qu'on m'a donné s'il attend (R1, décision 0002 : « Réseau »
+   les porte en tête — une demande par piste ET par métier et ville) */
+export const mesDemandes = () => demandesOuvertes(etat)
+  .slice().sort((a, b) => b.at - a.at)
+  .map(d => ({ d, don: etat.dons.find(x => x.statut === 'nouveau' && x.demande === d.id) || null }));
 /* les demandes par métier et ville : elles n'ont pas de fiche, elles se
    lisent dans « Amis », là où on les a faites */
 export const demandesCritere = () => etat.demandes.filter(d => d.critere && d.exp > Date.now());

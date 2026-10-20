@@ -12,7 +12,7 @@ import { filterOrphans, searchHint } from '../engine/filter.js';
 import { chercherPistes, raisonDe, propositions, elargir, retirer, contexteRecherche, correction, critereDe } from '../engine/requete.js';
 import { silentPistes } from '../engine/assist.js';
 import { S, bus, isClosed, hasDemo, addDemo, ctLabel, deletePiste, undeletePiste,
-         removeOrphan, saveOrphans, saveData, logJ } from './state.js';
+         removeOrphan, saveOrphans, saveData, logJ, lot } from './state.js';
 import { portesDuJour, amisClasses, vueAmisHTML, lierVueAmis, openTriAmis, triAmisChipHTML, lierTriAmisChip } from './amis.js';
 import { $, ic, toast, showUndo, bindDeleteGesture, openSheet, softReorder, topSheet,
          collerEnHaut, clavier, annoncer } from './dom.js';
@@ -52,7 +52,11 @@ let portee = 'pistes';
 /* sans aucune piste, il n'y a rien à chercher chez toi : une recherche
    tapée ne peut viser que l'annuaire. « Amis » (lot 4) est la troisième
    portée — ceux qui t'ouvrent leurs entreprises. */
-const porteeVue = () => portee === 'amis' ? 'amis'
+/* R1 (décision 0002) : les amis quittent « Pistes » pour « Réseau ›
+   Mes amis » — Pistes ne porte plus que des entreprises. La portée
+   « Amis » n'existe plus en préversion ; restée allumée d'avant, elle
+   retombe sur tes pistes. */
+const porteeVue = () => portee === 'amis' && !lot('reseau') ? 'amis'
   : (portee === 'decouvrir' || (!S.companies.length && q)) ? 'decouvrir' : 'pistes';
 const mqFine = matchMedia('(pointer:fine)');
 const procheActif = () => !!(interp && interp.etiquettes.some(e => e.cle === 'proche'));
@@ -546,7 +550,10 @@ export function renderPistes(){
               on ne sait pas si l'on regarde 3 pistes sur 3 ou 3 sur 40 */''}
          <div class="td-date" id="piCount"></div>
          ${(CAMPAGNES && nCamps) ? `<button class="btn btn-sm" id="piCamps">${ic('flag', 'ic-14')} Campagnes (${nCamps})</button>` : ''}
-         ${nAlive ? `<button class="btn btn-sm" id="piProspect">${ic('mail', 'ic-14')} Prospecter</button>` : ''}
+         ${/* R1 : choisir des pistes, puis les écrire ou les donner */''}
+         ${nAlive ? (lot('reseau')
+           ? `<button class="btn btn-sm" id="piProspect">${ic('checkbox-on', 'ic-14')} Choisir</button>`
+           : `<button class="btn btn-sm" id="piProspect">${ic('mail', 'ic-14')} Prospecter</button>`) : ''}
        </div>
        ${/* le repère qui dit à la barre de commande qu'elle a décroché
              du haut de page — 1 px, repris par une marge négative, donc
@@ -804,7 +811,7 @@ export function renderPistes(){
     /* le compte des AMIS se remplit pendant qu'on tape, comme celui
        d'« À découvrir » : « Thales » rend « Amis 1 » si Karim y est
        passé. Barre vide, rien — le titre de la vue dit déjà combien. */
-    const nAm = q && (S.profile.amis || []).length ? amisClasses(q).length : null;
+    const nAm = !lot('reseau') && q && (S.profile.amis || []).length ? amisClasses(q).length : null;
     const html =
       `<div class="portee" role="group" aria-label="Où chercher">
          ${/* le compte de tes pistes est déjà dans le titre (« 4 sur 9 ») :
@@ -812,8 +819,8 @@ export function renderPistes(){
          <button class="pt${pi ? ' on' : ''}" data-portee="pistes" aria-pressed="${pi}">Mes pistes</button>
          <button class="pt${dec ? ' on' : ''}" data-portee="decouvrir" aria-pressed="${dec}"${d.occupe ? ' aria-busy="true"' : ''}>À découvrir${
            d.texte ? `<span class="pt-n">${d.texte}</span>` : ''}</button>
-         <button class="pt${am ? ' on' : ''}" data-portee="amis" aria-pressed="${am}">Amis${
-           nAm != null ? `<span class="pt-n">${nAm}</span>` : ''}</button>
+         ${lot('reseau') ? '' : `<button class="pt${am ? ' on' : ''}" data-portee="amis" aria-pressed="${am}">Amis${
+           nAm != null ? `<span class="pt-n">${nAm}</span>` : ''}</button>`}
        </div>`;
     if (box.innerHTML === html) return;
     const focus = document.activeElement && box.contains(document.activeElement) ? document.activeElement.dataset.portee : null;

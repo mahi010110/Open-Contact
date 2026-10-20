@@ -13,7 +13,7 @@
 import { esc, localISO, todayISO } from '../engine/utils.js';
 import { STATUSES } from '../engine/model.js';
 import { canalCourt, exchangeLog, recuesDormantes, jamaisDonnees } from '../engine/assist.js';
-import { S, isClosed, saveJournal } from './state.js';
+import { S, isClosed, saveJournal, lot } from './state.js';
 import { $, ic, openSheet, bindDeleteGesture, showUndo } from './dom.js';
 import { frDate, diffDays } from './dates.js';
 import { openDonner } from './donner.js';
@@ -22,12 +22,21 @@ import { openPromo } from './direct.js';
 import { boiteHTML, bindBoite } from './conversations.js';
 import { PARTAGE_DIRECT } from './perimetre.js';
 import { openFiche } from './fiche.js';
+import { mesDemandes, carteDemandeHTML, bandeauDon, ouvrirLigne } from './reseau.js';
+
+/* R1 (décision 0002) : « Réseau » remplace « Échanger » en préversion.
+   La même vue, recadrée sur UNE question — qui peut m'aider ? : mes
+   demandes en tête, puis les conversations, « Mes amis » et
+   « Historique ». « Donner » est parti dans « Pistes », « Recevoir »
+   dans le +. Le lot dit où l'on dessine et sous quel nom. */
+const ICI = () => lot('reseau') ? 'reseau' : 'echanger';
+const surIci = () => /^#\/(echanger|reseau)\b/.test(location.hash);
 
 /* Deux conceptions, pas une page élastique : au pouce, une colonne —
    les gestes d'abord, le fil dessous ; au poste, les gestes tiennent
    dans une colonne étroite et le fil occupe la place restante. */
 const mqWide = matchMedia('(min-width:901px)');
-mqWide.addEventListener('change', () => { if (S.route === 'echanger') renderEchanger(); });
+mqWide.addEventListener('change', () => { if (S.route === 'echanger' || S.route === 'reseau') renderEchanger(); });
 
 /* un journal porte des horodatages, pas des dates d'agenda : « hier »
    et « aujourd'hui » se disent, le reste se date */
@@ -344,6 +353,23 @@ function reprendreHTML(){
     </section>`;
 }
 
+/* ---- MES DEMANDES, en tête de « Réseau » (R1) ----
+   Ce que j'attends des autres, là où je viens voir qui peut m'aider :
+   la même carte que sur la fiche (un fait, suivi comme un colis), et
+   juste dessous le contact qu'un ami m'a donné, proposé en pointillé
+   d'accent — proposé en pointillé, posé en plein (§6). Rien quand je
+   n'attends rien : une tranche vide ne dirait que mon impuissance. */
+function demandesHTML(){
+  const l = mesDemandes();
+  if (!l.length) return '';
+  return `<section class="tranche rz-dem" id="rzDemandes">
+      <h2 class="tr-h">${ic('users', 'ic-14')} Mes demandes</h2>
+      ${l.map(({ d, don }) => carteDemandeHTML(d, { cls: 'rz-carte' }) + (don
+        ? `<button class="fi-don rz-don" data-don="${esc(don.id)}">${ic('user', 'ic-14')}
+             <b>${esc(bandeauDon(don))}</b>${ic('chevron-right', 'ic-14')}</button>` : '')).join('')}
+    </section>`;
+}
+
 /* ---- L'HISTORIQUE, derrière une ligne ----
    Ce qui a circulé — pistes données, pistes reçues — reste lisible, et
    chaque échange mène encore à ses pistes. Mais c'est une TRACE : elle
@@ -402,19 +428,26 @@ let volet = null;
    ailleurs (une feuille) existerait deux fois. Au retour, la boîte la
    repose, là où on l'avait laissée. */
 window.addEventListener('hashchange', () => {
-  if (!volet || /^#\/echanger\b/.test(location.hash)) return;
+  if (!volet || surIci()) return;
   const d = volet.querySelector(':scope > .dock');
   if (d && d.fermer) d.fermer();
 });
 
 export function renderEchanger(){
-  const root = $('#view-echanger');
+  const R = lot('reseau');
+  const root = $('#view-' + ICI());
+  /* l'autre nom de la même vue se vide : un seul exemplaire de chaque
+     identifiant dans le document, et rien de caché qui s'annonce */
+  const autre = $('#view-' + (R ? 'echanger' : 'reseau'));
+  if (autre && autre.firstChild) autre.innerHTML = '';
   const wide = mqWide.matches;
   /* « Donner » sans rien à donner était une action MORTE : l'indisponible
      est ABSENT, jamais grisé (loi #6). « Recevoir » prend la place — c'est
      par là qu'on commence quand un camarade nous partage sa liste. */
   const aDonner = S.companies.some(c => !isClosed(c) && !c.demo);
-  const gestes =
+  /* en préversion, ni Donner ni Recevoir ici : l'un vit avec les pistes,
+     l'autre derrière le + (décision 0002) */
+  const gestes = R ? '' :
     `<div class="hero2">
        ${aDonner ? `<button class="btn btn-primary hero" id="ecGive">${ic('share', 'ic-14')}<span>Donner</span></button>` : ''}
        <button class="btn${aDonner ? '' : ' btn-primary'} hero" id="ecRecv">${ic('inbox', 'ic-14')}<span>Recevoir</span></button>
@@ -430,14 +463,14 @@ export function renderEchanger(){
       <span class="bx-histo-n">${nHisto}</span>${ic('chevron-right', 'ic-14')}</button>` : '';
   /* « Reçues, jamais reprises » est né pour le poste, et il y reste :
      c'est une décision, gardée par e2e-ux-audit.mjs */
-  const colonne = `${b.html}${wide ? reprendreHTML() : ''}${histo}`;
+  const colonne = `${R ? demandesHTML() : ''}${b.html}${wide ? reprendreHTML() : ''}${histo}`;
   /* au poste, deux volets dès qu'il y a une conversation : la liste à
      gauche, la conversation à droite. Sans conversation, une seule
      colonne — un volet vide ne serait qu'un trou. */
   /* et seulement sous les yeux : fermer la conversation en quittant
      l'onglet relance un rendu AVANT que la route ait changé — il ne doit
      pas la reposer (l'adresse, elle, a déjà changé) */
-  const deux = wide && !b.vide && /^#\/echanger\b/.test(location.hash);
+  const deux = wide && !b.vide && surIci();
   if (volet && !deux){ const d = volet.querySelector(':scope > .dock'); if (d && d.fermer) d.fermer(); }
   /* UN NOUVEAU RENDU NE DOIT RIEN COÛTER à qui lit ou écrit. La boîte
      se redessine à chaque message reçu : la place dans la liste et le
@@ -449,14 +482,15 @@ export function renderEchanger(){
   const defile = root.querySelector('.bx-zone, .bx-gauche')?.scrollTop || 0;
   const gauche = deux && volet && root.contains(volet) ? root.querySelector('.bx-gauche') : null;
   if (gauche){
-    root.querySelector('.ec-actes').innerHTML = gestes;
+    const actes = root.querySelector('.ec-actes');
+    if (actes) actes.innerHTML = gestes;
     gauche.innerHTML = colonne;
   } else {
     root.innerHTML =
       `<div class="page-inner${wide ? ' page-wide' : ''} ec-boite">
-         <div class="td-head"><h1>Échanger</h1></div>
+         <div class="td-head"><h1>${R ? 'Réseau' : 'Échanger'}</h1></div>
          ${wide
-           ? `<div class="ec-actes">${gestes}</div>
+           ? `${gestes ? `<div class="ec-actes">${gestes}</div>` : ''}
               ${deux ? `<div class="bx-cols"><div class="bx-gauche">${colonne}</div><div class="bx-volet-ici"></div></div>`
                      : `<div class="bx-seule">${colonne}</div>`}`
            : `<div class="bx-zone">${colonne}</div>${gestes}`}
@@ -473,7 +507,9 @@ export function renderEchanger(){
     if (n && n !== document.activeElement) n.focus({ preventScroll: true });
   }
   root.querySelector('#ecGive')?.addEventListener('click', openDonner);
-  root.querySelector('#ecRecv').addEventListener('click', openRecevoir);
+  root.querySelector('#ecRecv')?.addEventListener('click', openRecevoir);
+  root.querySelectorAll('[data-don]').forEach(b =>
+    b.addEventListener('click', () => ouvrirLigne('don', b.dataset.don)));
   root.querySelector('#ecPromo')?.addEventListener('click', openPromo);
   root.querySelector('#ecHisto')?.addEventListener('click', ouvrirHistorique);
   bindBoite(root, { volet: deux ? volet : null, rendre: renderEchanger });
