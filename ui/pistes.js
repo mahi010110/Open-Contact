@@ -11,6 +11,7 @@ import { STATUSES, CLOSE_REASONS, DOMAINS, pushHist } from '../engine/model.js';
 import { filterOrphans, searchHint } from '../engine/filter.js';
 import { chercherPistes, raisonDe, propositions, elargir, retirer, contexteRecherche, correction, critereDe } from '../engine/requete.js';
 import { silentPistes } from '../engine/assist.js';
+import { mesChiffres, chiffresTexte } from '../engine/suivi.js';
 import { S, bus, isClosed, hasDemo, addDemo, ctLabel, deletePiste, undeletePiste,
          removeOrphan, saveOrphans, saveData, logJ, lot } from './state.js';
 import { portesDuJour, amisClasses, vueAmisHTML, lierVueAmis, openTriAmis, triAmisChipHTML, lierTriAmisChip } from './amis.js';
@@ -752,9 +753,14 @@ export function renderPistes(){
        Right) — « Mes pistes · 4 amis » se lisait de travers */
     const tout = S.companies.length;
     const cnt = root.querySelector('#piCount');
+    /* R2 : tes chiffres À LA PLACE du compte, dès qu'une piste est
+       écrite — « 4 écrites · 1 réponse · 0 décrochée » dit où l'on en
+       est, « 9 pistes » ne le disait pas. Une recherche garde son
+       « 3 sur 40 » : là, c'est le compte qui répond à ce qu'on fait. */
+    const chiffres = lot('suivi') ? chiffresTexte(mesChiffres(S.companies)) : '';
     if (cnt) cnt.textContent = (q || ftOn()) && all.length !== tout
       ? `${all.length} sur ${tout}`
-      : `${tout} piste${tout > 1 ? 's' : ''}`;
+      : chiffres || `${tout} piste${tout > 1 ? 's' : ''}`;
     if (am){
       const liste = amisClasses(q);
       const n = (S.profile.amis || []).length;

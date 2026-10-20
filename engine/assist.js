@@ -414,8 +414,8 @@ export function sansFilet({ pistes = 0, derniereCopie = 0, appareils = [], maint
    se tait : l'exemple montre l'écran tel qu'il SERA. `null` = rien à
    montrer. */
 const CHERCHE_PP = new Set(['stage', 'alternance', 'emploi']);
-const aEcrit = c => !!c.appliedAt || c.status === 'active' || c.status === 'reply'
-  || c.closedReason === 'won' || c.closedReason === 'rejected';
+export const aEcrit = c => !!c && (!!c.appliedAt || c.status === 'active' || c.status === 'reply'
+  || c.closedReason === 'won' || c.closedReason === 'rejected');
 export function premiersPas(profile, companies){
   const p = profile || {};
   const cs = (companies || []).filter(Boolean);

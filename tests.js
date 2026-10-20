@@ -51,6 +51,7 @@ import { dueFollowups, contactFromSignature, exchangeLog, exchangeTotals, nextAc
          silentPistes, derniereTrace, recuesDormantes, jamaisDonnees, canalCourt,
          SILENCE_RELANCE, SILENCE_DERNIERE, SILENCE_TROP_TARD,
          sansFilet, FILET_MIN_PISTES, FILET_JOURS, aDemarrer, premiersPas } from './engine/assist.js';
+import { mesChiffres, chiffresTexte, derniereActivite, enPause, PAUSE_JOURS, reprendre, REPRENDRE } from './engine/suivi.js';
 import { rappelICS, lienAgendaGoogle, formeAgenda, RAPPEL_HEURE } from './engine/agenda.js';
 import { normalizeParcours, parcoursDe, periodeParcours, phraseParcours, PARCOURS_MAX } from './engine/parcours.js';
 import { nouvelIdAmi, idAmiValide, cleEntreprise, memeEntreprise, profilDonne, normalizeAmi, normalizeAmis,
@@ -2629,6 +2630,80 @@ export async function runSelfTests(){
       eq(etat({}, [{ id: 'a', status: 'todo' }]), 'profil· piste✓ mail·');
       /* l'exemple montre l'écran tel qu'il sera : la tranche se tait */
       eq(etat({}, [{ id: 'd', demo: true }]), null);
+    },
+    'tes chiffres : écrites, réponses, décrochées — un entonnoir qui se déduit': () => {
+      const ch = cs => { const x = mesChiffres(cs); return [x.ecrites, x.reponses, x.decrochees].join('/'); };
+      eq(ch([]), '0/0/0');
+      /* rien d'écrit : la ligne se tait, l'appelant garde le compte de pistes */
+      eq(chiffresTexte(mesChiffres([{ id: 'a', status: 'todo' }])), '');
+      eq(chiffresTexte(null), '');
+      /* écrite : la date de candidature, ou une piste qui a quitté « À contacter » */
+      eq(ch([{ id: 'a', appliedAt: '2026-10-14', status: 'todo' }]), '1/0/0');
+      eq(ch([{ id: 'a', status: 'active' }]), '1/0/0');
+      /* une réponse : le statut, un passage par lui, ou une clôture qui la suppose */
+      eq(ch([{ id: 'a', status: 'reply' }]), '1/1/0');
+      eq(ch([{ id: 'a', status: 'active', history: [{ d: '2026-10-01', t: 'Statut → Réponse' }] }]), '1/1/0');
+      eq(ch([{ id: 'a', status: 'active', history: [{ d: '2026-10-01', t: 'Fiche complétée : Statut → Réponse, À faire : Répondre' }] }]), '1/1/0');
+      eq(ch([{ id: 'a', status: 'active', closedReason: 'rejected' }]), '1/1/0');
+      eq(ch([{ id: 'a', status: 'reply', closedReason: 'won' }]), '1/1/1');
+      /* abandonnée sans un mot : nulle part ; abandonnée APRÈS un mail : écrite */
+      eq(ch([{ id: 'a', status: 'todo', closedReason: 'dropped' }]), '0/0/0');
+      eq(ch([{ id: 'a', status: 'active', closedReason: 'dropped' }]), '1/0/0');
+      /* un « Statut → En cours » n'est pas une réponse */
+      eq(ch([{ id: 'a', status: 'active', history: [{ t: 'Statut → En cours' }] }]), '1/0/0');
+      /* l'exemple ne compte pas */
+      eq(ch([{ id: 'd', status: 'reply', demo: true }]), '0/0/0');
+      /* l'entonnoir ne remonte jamais : chaque marche contient la suivante */
+      const tous = [{ status: 'todo' }, { status: 'active' }, { status: 'reply' }, { appliedAt: 'x' },
+        { status: 'todo', closedReason: 'won' }, { status: 'todo', closedReason: 'rejected' },
+        { status: 'active', closedReason: 'dropped' }, { history: [{ t: 'Statut → Réponse' }] }].map((c, i) => ({ id: 'p' + i, ...c }));
+      const x = mesChiffres(tous);
+      ok(x.ecrites >= x.reponses && x.reponses >= x.decrochees, JSON.stringify(x));
+      /* les mots : le zéro au singulier, les trois toujours, à la même place */
+      eq(chiffresTexte({ ecrites: 1, reponses: 0, decrochees: 0 }), '1 écrite · 0 réponse · 0 décrochée');
+      eq(chiffresTexte({ ecrites: 12, reponses: 3, decrochees: 2 }), '12 écrites · 3 réponses · 2 décrochées');
+    },
+    'le retour après une pause : 7 jours sans un geste, mesurés aux gestes': () => {
+      const J = 864e5, now = Date.parse('2026-10-20T10:00:00Z');
+      eq(PAUSE_JOURS, SILENCE_RELANCE);
+      /* le dernier geste : la piste la plus récemment touchée… */
+      eq(derniereActivite([{ id: 'a', updatedAt: now - 9 * J }, { id: 'b', updatedAt: now - 3 * J }], []), now - 3 * J);
+      /* … ou une ligne du journal qui nomme une piste (donner, recevoir) */
+      eq(derniereActivite([{ id: 'a', updatedAt: now - 9 * J }], [{ t: now - 2 * J, txt: 'Donné (QR) : 2 piste(s)', ids: ['a'] }]), now - 2 * J);
+      eq(derniereActivite([{ id: 'a', updatedAt: now - 9 * J }], [{ t: now - 2 * J, txt: 'Demandé à Karim', cid: 'a' }]), now - 2 * J);
+      /* ce qui arrive SANS geste ne compte pas : un merci, un ami qui t'ajoute, la sync */
+      eq(derniereActivite([{ id: 'a', updatedAt: now - 9 * J }], [
+        { t: now - J, txt: 'Merci de Léa : Julie (Thales)', cid: null },
+        { t: now - J, txt: 'Karim t’a ajouté à ses amis' },
+        { t: now - J, txt: 'Sync appareils : +0, 0 maj', ids: [] }]), now - 9 * J);
+      /* l'exemple ne compte pas ; rien du tout = 0 */
+      eq(derniereActivite([{ id: 'd', demo: true, updatedAt: now }], []), 0);
+      eq(derniereActivite([], null), 0);
+      /* la pause : 7 jours pile, oui ; 6 jours et demi, non */
+      ok(enPause([{ id: 'a', updatedAt: now - 7 * J }], [], now));
+      ok(!enPause([{ id: 'a', updatedAt: now - 6.5 * J }], [], now));
+      /* un geste d'hier dans le journal referme la pause */
+      ok(!enPause([{ id: 'a', updatedAt: now - 20 * J }], [{ t: now - J, txt: 'Reçu de Léa', ids: ['a'] }], now));
+      /* qui n'a jamais rien fait n'est pas en pause ; l'exemple la fait taire */
+      ok(!enPause([], [], now));
+      ok(!enPause([{ id: 'a', updatedAt: 0 }], [], now));
+      ok(!enPause([{ id: 'a', updatedAt: now - 30 * J }, { id: 'd', demo: true, updatedAt: now - 30 * J }], [], now));
+    },
+    'le retour après une pause : trois choses, dans l’ordre — la date, le silence, le début': () => {
+      const r = o => reprendre(o).map(x => x.sorte[0] + ':' + x.id).join(' ');
+      eq(REPRENDRE, 3);
+      eq(r({}), '');
+      /* une date dépassée passe devant tout */
+      eq(r({ dues: [{ id: 'a' }], muettes: [{ id: 'b' }], debuts: [{ id: 'c' }, { id: 'd' }] }), 'a:a s:b d:c');
+      /* trois places, jamais plus — même si tout est en retard */
+      eq(r({ dues: [{ id: 'a' }, { id: 'b' }, { id: 'c' }, { id: 'e' }], muettes: [{ id: 'f' }] }), 'a:a a:b a:c');
+      /* rien en retard : le silence, puis le début */
+      eq(r({ muettes: [{ id: 'b' }], debuts: [{ id: 'c' }, { id: 'd' }, { id: 'e' }] }), 's:b d:c d:d');
+      /* une piste ne prend qu'une place ; une entrée sans id n'en prend aucune */
+      eq(r({ dues: [{ id: 'a' }], muettes: [{ id: 'a' }, null, {}], debuts: [{ id: 'a' }, { id: 'c' }] }), 'a:a d:c');
+      /* l'élément passé revient tel quel : l'écran en a besoin pour dessiner la ligne */
+      const sil = { id: 'b', jours: 30, geste: 'relancer' };
+      eq(reprendre({ muettes: [sil] })[0].item, sil);
     },
     'le suivi d’une demande : envoyée, trouvée, reçu — comme un colis': () => {
       const d = { id: 'd1', at: 100, exp: 9e15 };

@@ -60,18 +60,21 @@ perdre en route.** Le pourquoi est dans les fiches de décision
 | Mes amis | Mes pistes › Amis | Réseau › Mes amis | R1 |
 | Conversations et groupes | Échanger | Réseau | R1 |
 | Mes demandes en cours | Fiche › Contacts ; Amis | Fiche, et Réseau en tête | R1 |
-| Donner des pistes | Échanger › Donner | Pistes › choisir › Partager, et la fiche | R1 |
+| Donner des pistes | Échanger › Donner | Pistes › Choisir › Donner, et la fiche | R1 |
 | Recevoir (QR, fichier, texte) | Échanger › Recevoir | + › Recevoir | R1 |
 | Ajouter une piste | + | + › Une piste | R1 |
-| Ajouter quelqu'un rencontré | Fiche › Ajouter un contact | + › Quelqu'un rencontré, ou la fiche | R1 |
+| Ajouter quelqu'un rencontré | Fiche › Ajouter un contact | + › Un contact, ou la fiche | R1 |
 | Historique des échanges | Échanger › Historique | Réseau › Historique, en bas | R1 |
 | Écrire à plusieurs | Mes pistes › Prospecter | Aujourd'hui › Prêts à partir ; Pistes › choisir › Écrire | R3 |
 | Ma semaine | — | Aujourd'hui, en tête ; la revue le vendredi | R4 |
 | Profil, copie, appareils, réglages | Moi | Moi, plus « Préversion » (R0) et « Je peux aider » (R7) | R0, R7 |
 | Navigation au poste | onglets en haut | barre latérale, recherche Ctrl K | R1, R8 |
 
-Cette table deviendra un scénario automatique avec R1 : chaque ligne doit
-être atteinte depuis son onglet en peu de gestes.
+Cette table est un scénario automatique depuis R1
+(`tests/e2e/e2e-ce-qui-bouge.mjs`) : il la lit ici même, joue chaque
+ligne d'un lot livré depuis son onglet, en trois gestes au plus, au
+téléphone et au poste, et rougit si une ligne n'a pas son parcours.
+Les mots de la colonne « Après » sont ceux de l'écran.
 
 ## Les lots
 
@@ -126,11 +129,22 @@ Les temps sont des maximums accordés, pas des promesses de date.
 
 ### R2 · Un suivi qui se remplit seul · 2 semaines
 
+*Proposition validée par le mainteneur le 20 octobre 2026 :*
+[`propositions/R2-suivi.md`](propositions/R2-suivi.md).
+
 Un mail envoyé passe la piste « En cours » et propose la relance à
-7 jours. Tes chiffres en une ligne en tête de Pistes : écrites,
-réponses, entretiens. Le retour après une pause : trois choses à faire,
-sans compter les jours manqués. Aucune clé nouvelle : tout se déduit de
-l'historique.
+7 jours (déjà tenu). Tes chiffres en une ligne en tête de Pistes :
+écrites, réponses, décrochées. Le retour après 7 jours sans un geste :
+trois choses à faire, sans compter les jours manqués. Aucune clé
+nouvelle : tout se déduit des pistes et du journal.
+
+- **Où on en est** : **livré en préversion (6.83.0)**, derrière le
+  drapeau `suivi` (`engine/suivi.js`). Gardé par `e2e-reprendre.mjs`,
+  les deux chemins joués, quatre mutations à l'appui.
+- *Accepté quand* : sur le parcours « je reviens après une semaine »,
+  au moins 4 personnes sur 5 font un premier geste depuis « Reprendre »
+  sans aide (`docs/mesure/protocole.md`). *Retour arrière* : éteindre
+  le drapeau.
 
 ### R3 · Prêts à partir · 2 semaines
 
