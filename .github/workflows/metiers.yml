@@ -9,7 +9,7 @@ on:
   push:
     paths:
       - 'tests/e2e/sonde-metiers.mjs'
-      - 'outils/metiers.mjs'
+      - 'tests/e2e/table-metiers.mjs'
       - '.github/workflows/metiers.yml'
   workflow_dispatch:
 
@@ -25,3 +25,5 @@ jobs:
           node-version: '22'
       - name: Relever le ROME et le RNCP
         run: node tests/e2e/sonde-metiers.mjs
+      - name: Fabriquer la table des métiers
+        run: node tests/e2e/table-metiers.mjs --journal
