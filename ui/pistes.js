@@ -19,7 +19,7 @@ import { $, ic, toast, showUndo, bindDeleteGesture, openSheet, softReorder, topS
 import { openAffinerSheet, filterState, filterOn, filterClear, filterArgs } from './affiner.js';
 import { sortState, sortArgs, sortHasDist, sortChipHTML, bindSortChip, sortIsDefault, withPos } from './sort.js';
 import { relLabel, diffDays, dueMarkHTML, silenceMarkHTML } from './dates.js';
-import { openFiche } from './fiche.js';
+import { openFiche, ecrirePiste } from './fiche.js';
 import { openCapture } from './capture.js';
 import { openContactEditor, openAttach } from './contact.js';
 import { openProspect } from './prospect.js';
@@ -58,6 +58,83 @@ let portee = 'pistes';
    retombe sur tes pistes. */
 const porteeVue = () => portee === 'amis' && !lot('reseau') ? 'amis'
   : (portee === 'decouvrir' || (!S.companies.length && q)) ? 'decouvrir' : 'pistes';
+
+/* ---- AU POSTE, LA FICHE À CÔTÉ DE LA LISTE (R1, décision 0003) ----
+   « Liste » pose la fiche de la piste choisie à droite (le volet des
+   conversations, `openFiche({ dans })`) ; « Tableau » garde les trois
+   colonnes d'avant, la fiche en fenêtre. Le choix tient pour la
+   session, comme la portée.
+   Trois choses que la liste-détail des conversations a déjà payées :
+   ① LE VOLET SURVIT AUX RENDUS. « Mes pistes » se redessine à chaque
+     donnée qui change ; le volet est le MÊME élément, remis en place,
+     et ce qu'on y faisait — le curseur, le texte sélectionné, le
+     défilement — se rend après (`capturerVolet` / `reposerVolet`) ;
+   ② ON NE PERD PAS UNE FICHE EN COURS : choisir une autre piste demande
+     d'abord à la fiche ouverte (`aQuitter`, le garde-fou de la fenêtre).
+     Une recherche qui écarte la piste ouverte ne la ferme pas ;
+   ③ LA FICHE SUIT LE CLAVIER : ↑ ↓ dans la liste la changent, E écrit. */
+let vuePoste = 'liste';
+let choisie = null;
+let volet = null;
+let dockFiche = null;
+let enChoix = false;
+let etatVolet = null;
+const listeDetail = () => lot('reseau') && mqWide.matches && vuePoste === 'liste';
+function capturerVolet(){
+  if (etatVolet || !volet || !volet.isConnected) return;
+  const a = document.activeElement;
+  const dedans = !!a && volet.contains(a);
+  const b = volet.querySelector('.modal-b');
+  let sel = null;
+  try { if (dedans && typeof a.selectionStart === 'number') sel = [a.selectionStart, a.selectionEnd]; } catch (e) {}
+  etatVolet = { foc: dedans ? a : null, sel, haut: b ? b.scrollTop : 0 };
+}
+function reposerVolet(){
+  const e = etatVolet;
+  etatVolet = null;
+  if (!e || !volet) return;
+  const b = volet.querySelector('.modal-b');
+  if (b) b.scrollTop = e.haut;
+  if (e.foc && volet.contains(e.foc)){
+    e.foc.focus({ preventScroll: true });
+    if (e.sel) try { e.foc.setSelectionRange(e.sel[0], e.sel[1]); } catch (x) {}
+  }
+}
+/* la ligne choisie porte la couleur du châssis — « tu es ici » (§4) */
+function marquerChoisie(zone){
+  zone.querySelectorAll('.pi-split .row-item').forEach(r => {
+    const on = r.dataset.id === choisie;
+    r.classList.toggle('pi-sel', on);
+    const m = r.querySelector('.ri-main');
+    if (m){ if (on) m.setAttribute('aria-current', 'true'); else m.removeAttribute('aria-current'); }
+  });
+}
+function poserFiche(c){
+  choisie = c.id;
+  dockFiche = openFiche(c, { dans: volet });
+}
+/* le volet reprend sa place après un rendu, et la fiche ouverte la sienne */
+function poserVolet(body, all){
+  if (!volet){ volet = document.createElement('div'); volet.className = 'pi-volet'; volet.id = 'piVolet'; }
+  body.querySelector('.pi-volet-ici').replaceWith(volet);
+  /* la piste ouverte a été supprimée, ou ses données rechargées (une
+     synchronisation remplace les objets) : la fiche se rouvre sur ce
+     qui existe — jamais sur un objet que plus rien ne sauvegarde */
+  const fraiche = dockFiche && S.companies.find(x => x.id === dockFiche.c.id);
+  if (dockFiche && fraiche !== dockFiche.c){
+    const id = dockFiche.c.id;
+    dockFiche.close();
+    dockFiche = null;
+    if (fraiche) poserFiche(fraiche);
+    else if (choisie === id) choisie = null;
+  }
+  if (!dockFiche || !volet.contains(dockFiche.ov)){
+    const c = S.companies.find(x => x.id === choisie) || all[0] || S.companies[0];
+    if (c) poserFiche(c);
+  }
+  marquerChoisie(body);
+  reposerVolet();
+}
 const mqFine = matchMedia('(pointer:fine)');
 const procheActif = () => !!(interp && interp.etiquettes.some(e => e.cle === 'proche'));
 
@@ -539,6 +616,7 @@ export function ouvrirSur(texte){
 export function renderPistes(){
   const root = $('#view-pistes');
   const wide = mqWide.matches;
+  capturerVolet();
   const nAlive = S.companies.filter(c => !isClosed(c)).length;
 
   const nCamps = liveCampaignsCount();
@@ -550,6 +628,10 @@ export function renderPistes(){
               on ne sait pas si l'on regarde 3 pistes sur 3 ou 3 sur 40 */''}
          <div class="td-date" id="piCount"></div>
          ${(CAMPAGNES && nCamps) ? `<button class="btn btn-sm" id="piCamps">${ic('flag', 'ic-14')} Campagnes (${nCamps})</button>` : ''}
+         ${/* R1, au poste : la fiche à côté de la liste, ou le tableau */''}
+         ${lot('reseau') && wide && nAlive ? `<div class="seg3 pi-vue" role="group" aria-label="Affichage">${
+           [['liste', 'Liste'], ['tableau', 'Tableau']].map(([k, mot]) =>
+             `<button class="seg${vuePoste === k ? ' on' : ''}" data-vue="${k}" aria-pressed="${vuePoste === k}">${mot}</button>`).join('')}</div>` : ''}
          ${/* R1 : choisir des pistes, puis les écrire ou les donner */''}
          ${nAlive ? (lot('reseau')
            ? `<button class="btn btn-sm" id="piProspect">${ic('checkbox-on', 'ic-14')} Choisir</button>`
@@ -585,7 +667,27 @@ export function renderPistes(){
        <div id="piBody"></div>
      </div>`;
 
+  /* dans la liste-détail, ouvrir une piste, c'est la CHOISIR : sa fiche
+     se pose à droite, après avoir demandé à celle qui y était */
+  const choisir = async id => {
+    if (enChoix || !volet) return;
+    if (dockFiche && dockFiche.c.id === id && volet.contains(dockFiche.ov)) return;
+    const c = S.companies.find(x => x.id === id);
+    if (!c) return;
+    if (dockFiche){
+      enChoix = true;
+      const ok = await dockFiche.aQuitter();
+      enChoix = false;
+      if (!ok){
+        root.querySelector(`.pi-split .row-item[data-id="${CSS.escape(choisie || '')}"] .ri-main`)?.focus({ preventScroll: true });
+        return;
+      }
+    }
+    poserFiche(c);
+    marquerChoisie(root);
+  };
   const openById = id => {
+    if (root.querySelector('.pi-split')){ choisir(id); return; }
     const c = S.companies.find(x => x.id === id);
     if (c) openFiche(c);
   };
@@ -617,6 +719,7 @@ export function renderPistes(){
      reste le même nœud, le curseur ne saute plus */
   const renderBody = () => {
     const body = root.querySelector('#piBody');
+    capturerVolet();
     const all = calculer();
     const alive = all.filter(c => !isClosed(c));
     const closed = all.filter(isClosed);
@@ -685,6 +788,10 @@ export function renderPistes(){
       tenirBarre();
       return;
     }
+    /* la liste-détail dès qu'il y a une piste : une recherche sans
+       résultat garde la fiche ouverte à droite, rien ne se ferme seul */
+    const split = listeDetail() && S.companies.length > 0;
+    page.classList.toggle('pi-ld', split);
     html += orphansHTML();
     if (!S.companies.length){
       html +=
@@ -717,7 +824,7 @@ export function renderPistes(){
          au-dessus de la seule piste trouvée, clôturée, plus bas. Hors
          recherche il reste — ses colonnes vides disent alors quelque
          chose (« aucune réponse »). */
-      if (wide){ if (alive.length || !q) html += boardHTML(alive); }
+      if (wide && !split){ if (alive.length || !q) html += boardHTML(alive); }
       else {
         const { shown, more } = capped(alive, 'list', CAP_LIST);
         html += `<div class="rows">${shown.map(rowHTML).join('')}${more ? moreBtn('list', more) : ''}</div>`;
@@ -733,12 +840,17 @@ export function renderPistes(){
            </details>`;
       }
     }
+    if (split) html = `<div class="pi-split"><div class="pi-gauche">${html}</div><div class="pi-volet-ici"></div></div>`;
     body.innerHTML = html;
+    if (split) poserVolet(body, all);
+    else etatVolet = null;
     tenirBarre();
 
     body.querySelectorAll('.row-item, .bcard').forEach(r => {
       const open = () => openById(r.dataset.id);
       r.addEventListener('click', open);
+      /* la fiche suit le clavier (↑ ↓), comme dans « À découvrir » */
+      if (split) r.querySelector('.ri-main')?.addEventListener('focus', open);
       r.querySelector('[role="button"]').addEventListener('keydown', e => {
         if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); open(); }
       });
@@ -982,6 +1094,12 @@ export function renderPistes(){
       return;
     }
     const cible = t.closest('.bc-main, .ri-main, .o-main, .dc-main');
+    /* E écrit à la piste choisie (décision 0003) */
+    if (cible && (e.key === 'e' || e.key === 'E') && cible.closest('.pi-split .row-item')){
+      const c = S.companies.find(x => x.id === cible.closest('.row-item').dataset.id);
+      if (c){ e.preventDefault(); ecrirePiste(c); }
+      return;
+    }
     if (!cible || !/^(Arrow(Up|Down|Left|Right)|Escape)$/.test(e.key)) return;
     if (e.key === 'Escape'){ e.preventDefault(); input.focus(); return; }
     const col = cible.closest('.bcol');
@@ -1066,5 +1184,17 @@ export function renderPistes(){
         pool: () => S.companies.filter(c => !isClosed(c)) }, refresh));
   root.querySelector('#piProspect')?.addEventListener('click', openProspect);
   root.querySelector('#piCamps')?.addEventListener('click', openCampaignsHome);
+  root.querySelectorAll('[data-vue]').forEach(b => b.addEventListener('click', async () => {
+    if (b.dataset.vue === vuePoste) return;
+    /* quitter la liste-détail referme la fiche posée : on demande d'abord */
+    if (b.dataset.vue === 'tableau' && dockFiche){
+      if (!(await dockFiche.aQuitter())) return;
+      dockFiche.close();
+      dockFiche = null;
+    }
+    vuePoste = b.dataset.vue;
+    renderPistes();
+    root.querySelector(`[data-vue="${vuePoste}"]`)?.focus({ preventScroll: true });
+  }));
   renderBody();
 }

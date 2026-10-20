@@ -9,6 +9,20 @@ le premier pour une rupture. La bascule du recadrage sera la 7.0.0
 
 Les versions d'avant la 6.76 se lisent dans l'historique du dépôt.
 
+## [6.82.0] — 20 octobre 2026
+
+Le recadrage, lot R1-d : au poste, la fiche à côté de la liste. Toujours
+en **préversion** — R1 est complet.
+
+### Ajouté, en préversion
+
+- **« Liste · Tableau »** en tête de « Mes pistes », au poste. En
+  « Liste », la fiche de la piste choisie se pose à droite : un clic ou
+  ↑ ↓ en change, et E écrit à la piste choisie. « Tableau » garde les
+  trois colonnes d'avant.
+- Une fiche qui a un changement en cours demande avant de laisser la
+  place, et ce que tu écris reste où il est quand la liste se met à jour.
+
 ## [6.81.0] — 20 octobre 2026
 
 Le recadrage, lot R1-c : au poste. Toujours en **préversion**.

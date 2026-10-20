@@ -21,6 +21,10 @@ problèmes d'un écran (Nielsen). On corrige, puis on refait un tour.
   exemple » : ses pistes ne se donnent pas, et le parcours 6 échouerait
   pour une raison qui n'est pas la personne. Pour le tour de
   l'ordinateur, un poste préparé de la même façon.
+- **Pour un tour en préversion** (un lot qui n'est pas encore ouvert à
+  tous, comme R1) : après la restauration, « Moi › Réglages ›
+  Préversion › Allumée », sur chaque appareil de la séance. La
+  préversion ne voyage ni dans la copie ni d'un appareil à l'autre.
 - **Un second appareil**, celui de l'animateur, pour recevoir au
   parcours 6.
 - **Le consentement, à voix haute** : « On teste l'app, pas toi. Rien

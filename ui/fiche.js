@@ -75,7 +75,25 @@ const plisSavoir = new Map();
    choix, que la session retient. */
 const savoirOuvert = c => plisSavoir.has(c.id) ? plisSavoir.get(c.id) : true;
 
-export function openFiche(c){
+/* « Écrire » part vers la personne visée par l'action, sinon la
+   première personne joignable (#14) — jamais un email deviné en silence.
+   Exporté : au poste, E écrit à la piste choisie dans la liste (R1). */
+function ecrireA(c){
+  const p = nextActionContact(c);
+  if (p && p.email) return p.id;
+  const withMail = (c.contacts || []).filter(t => t.email);
+  const pref = withMail.find(t => t.activatedAt || t.src !== 'promo') || withMail[0];
+  return pref && pref.id;
+}
+export const ecrirePiste = c => openMail(c, { ctId: ecrireA(c) });
+
+/* `o.dans` : au poste, la fiche se POSE à droite de la liste de Pistes
+   (R1, décision 0003 — le motif du volet, `openSheet({ dans })`, celui
+   des conversations). Elle y prend le dessin d'une colonne : le volet
+   n'a pas la largeur de la fenêtre. Pas de croix ni de garde-fou de
+   fermeture : on la quitte en choisissant une autre piste, et c'est la
+   liste qui demande d'abord (`aQuitter`, rendu avec la feuille). */
+export function openFiche(c, o = {}){
   /* le tampon : seulement les champs touchés — rien ne s'écrit avant Confirmer */
   const draft = {};
   const val = f => (f in draft) ? draft[f] : c[f];
@@ -98,13 +116,15 @@ export function openFiche(c){
      qui doit rester : un nom d'entreprise ne se coupe jamais (§4), et
      la barre l'élidait. Elle dit donc « Fiche », le mot de §7 ; le
      lecteur d'écran, lui, entend toujours de quelle fiche il s'agit. */
+  const aQuitter = () => !dirty() || confirmSheet({
+    title: 'Quitter sans enregistrer ?', icon: 'square-alert', danger: true,
+    okLabel: 'Quitter',
+    msg: 'Tes changements ne sont pas enregistrés.'
+  });
   const sh = openSheet({
     title: 'Fiche', icon: 'briefcase', className: 'modal-fiche',
-    guard: () => !dirty() || confirmSheet({
-      title: 'Quitter sans enregistrer ?', icon: 'square-alert', danger: true,
-      okLabel: 'Quitter',
-      msg: 'Tes changements ne sont pas enregistrés.'
-    }),
+    dans: o.dans,
+    guard: aQuitter,
     /* La ligne derrière a changé pendant que la fiche la couvrait. Sans
        ça, on revient à une liste silencieusement différente : le geste
        ne se voit jamais atterrir (cécité au changement). */
@@ -139,16 +159,7 @@ export function openFiche(c){
        partageait la place de « Écrire », la seule action du pouce, alors
        qu'il décide du STATUT de la piste — il monte à côté de « Où j'en
        suis », là où l'on pense à l'état de la piste. Un pied, un geste. */
-    /* « Écrire » part vers la personne visée par l'action, sinon la
-       première personne joignable (#14) — jamais un email deviné en silence */
-    const writeTo = () => {
-      const p = nextActionContact(c);
-      if (p && p.email) return p.id;
-      const withMail = (c.contacts || []).filter(t => t.email);
-      const pref = withMail.find(t => t.activatedAt || t.src !== 'promo') || withMail[0];
-      return pref && pref.id;
-    };
-    foot.append(btn('Écrire', d ? '' : 'btn-primary', () => openMail(c, { ctId: writeTo() }), 'mail'));
+    foot.append(btn('Écrire', d ? '' : 'btn-primary', () => ecrirePiste(c), 'mail'));
     if (d) foot.append(btn('Confirmer', 'btn-primary', confirm, 'check'));
   };
 
@@ -206,7 +217,7 @@ export function openFiche(c){
     const naCtId = val('nextActionCt');
     const naPerson = !closed && val('nextAction') && naCtId
       ? (c.contacts || []).find(t => t.id === naCtId) : null;
-    const wide = mqWide.matches;
+    const wide = mqWide.matches && !o.dans;
     /* un renommage se suit — à l'oreille : la barre, elle, dit « Fiche » */
     sh.ov.querySelector('.modal').setAttribute('aria-label', 'Fiche — ' + c.name);
     /* la complétude et « Modifier » parlent de la FICHE entière, pas du
@@ -537,5 +548,7 @@ export function openFiche(c){
     renderFoot();
   };
   render();
+  sh.c = c;
+  sh.aQuitter = aQuitter;
   return sh;
 }
