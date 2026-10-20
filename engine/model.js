@@ -11,7 +11,7 @@ import { normalizeAmis, idAmiValide } from './amis.js';
 import { boiteValide } from './boite.js';
 import { normaliserGroupes } from './groupe.js';
 
-export const APP_VERSION = '6.80.0';
+export const APP_VERSION = '6.81.0';
 
 export const DOMAINS = {
   esn:     { label:'ESN / Services IT',       color:'#4C9FD8' },

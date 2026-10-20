@@ -114,8 +114,10 @@ Les temps sont des maximums accordés, pas des promesses de date.
   - **R1-b, livré (6.80.0)** : la fiche commence par les gens (au poste,
     en colonne de gauche) ; « Donner » depuis la fiche ; « Un contact »
     depuis le +, entreprise facultative. Gardé par `e2e-reseau.mjs` ⑨ ⑩.
-  - **R1-c** : au poste, la barre latérale et la fiche à droite de la
-    liste (décision 0003).
+  - **R1-c, livré (6.81.0)** : au poste, la barre latérale à la place
+    des onglets du haut (décision 0003). Gardé par `e2e-reseau.mjs` ⑪.
+  - **R1-d** : au poste, la fiche à droite de la liste de Pistes, ↑ ↓
+    d'une piste à l'autre (décision 0003).
 
 ### R2 · Un suivi qui se remplit seul · 2 semaines
 

@@ -114,6 +114,8 @@ input,select,textarea{font-family:inherit;color:var(--text-body)}
 .topnav a:hover{color:var(--text-body);background:var(--surface-chrome)}
 }
 .topnav a.on{color:var(--select-text);background:var(--select-bg);border-color:var(--border-strong)}
+/* en rangée, le mot suffit ; l'icône n'est qu'à la barre latérale */
+.topnav a>.ic{display:none}
 .hdr-actions{display:flex;gap:8px;margin-left:auto;align-items:center}
 .hdr .btn-cta{display:none}
 @media (min-width:901px){
@@ -130,6 +132,33 @@ input,select,textarea{font-family:inherit;color:var(--text-body)}
 @media (max-width:900px){
   .hdr{display:none}
   .app{padding-top:env(safe-area-inset-top)}
+}
+/* LA BARRE LATÉRALE DU POSTE (R1, décision 0003 — en préversion, la
+   classe `nav-laterale` suit le lot « reseau », app.js). L'en-tête
+   devient une colonne à gauche : le logo, « Ajouter » (la seule action
+   remplie, en tête comme le « Nouveau » de Gmail ou de Notion), puis
+   les quatre destinations, l'icône devant le mot. Une rangée de quatre
+   onglets en haut d'un écran large laissait 900 px vides à côté d'eux ;
+   une colonne garde chaque destination au même endroit, le mot entier,
+   et rend la hauteur à ce qu'on lit. La barre d'état reste en bas, sur
+   toute la largeur : elle n'appartient à aucun écran. */
+@media (min-width:901px){
+  .app.nav-laterale{display:grid;grid-template-columns:14rem minmax(0,1fr);
+    grid-template-rows:auto minmax(0,1fr) auto}
+  .nav-laterale>.hdr{grid-column:1;grid-row:1 / 3;flex-direction:column;align-items:stretch;gap:12px;
+    height:auto;min-height:0;overflow-y:auto;
+    padding:12px 10px 12px calc(10px + env(safe-area-inset-left));
+    border-bottom:0;border-right:1px solid var(--border-strong)}
+  .nav-laterale>.save-warn{grid-column:2;grid-row:1}
+  .nav-laterale>.main{grid-column:2;grid-row:2}
+  .nav-laterale>.statusbar{grid-column:1 / -1;grid-row:3}
+  .nav-laterale .brand{padding:0 4px}
+  .nav-laterale .hdr-actions{order:1;margin-left:0}
+  .nav-laterale .hdr-actions .btn-cta{flex:1;justify-content:center}
+  .nav-laterale .topnav{order:2;flex-direction:column;align-items:stretch;gap:2px}
+  .nav-laterale .topnav a{gap:10px;font-size:var(--text-14);padding:5px 10px}
+  .nav-laterale .topnav a>.ic{display:inline-block}
+  .nav-laterale .topnav .nav-n{margin-left:auto}
 }
 
 /* ============ BARRE D'ÉTAT (desktop) ============ */

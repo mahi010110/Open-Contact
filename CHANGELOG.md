@@ -9,6 +9,16 @@ le premier pour une rupture. La bascule du recadrage sera la 7.0.0
 
 Les versions d'avant la 6.76 se lisent dans l'historique du dépôt.
 
+## [6.81.0] — 20 octobre 2026
+
+Le recadrage, lot R1-c : au poste. Toujours en **préversion**.
+
+### Ajouté, en préversion
+
+- **Au poste, une barre latérale** à la place des onglets du haut : le
+  logo, « Ajouter », puis Aujourd'hui, Mes pistes, Réseau et Moi, chacun
+  avec son icône. L'écran prend toute la hauteur à côté.
+
 ## [6.80.0] — 20 octobre 2026
 
 Le recadrage, lot R1-b : la fiche. Toujours en **préversion**.
