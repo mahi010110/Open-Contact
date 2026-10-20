@@ -24,11 +24,14 @@ import { frDate } from './dates.js';
 /* la série : un composeur après l'autre, vers la personne choisie.
    « Passer » avance, la croix arrête tout — tout de suite. La même
    série part d'« Aujourd'hui » (R3, « Écrire les N mails »). */
+/* la série finie : LA MÊME phrase au pouce et au poste, dite d'un seul
+   endroit — un résultat qui n'est plus à l'écran, la feuille partie */
+const finDeSerie = n => toast('Série terminée — ' + n + ' piste' + (n > 1 ? 's' : '') + ' traitée' + (n > 1 ? 's' : '') + ' ✓');
 export function ecrireEnSerie(pairs){
   let i = 0;
   const next = () => {
     if (i >= pairs.length){
-      toast('Série terminée — ' + pairs.length + ' piste' + (pairs.length > 1 ? 's' : '') + ' traitée' + (pairs.length > 1 ? 's' : '') + ' ✓');
+      finDeSerie(pairs.length);
       bus.refresh();
       return;
     }
@@ -98,10 +101,9 @@ export function ouvrirSerie(pairs){
     const j = etats.findIndex((e, i) => e === 'a' && i > k);
     const r = j >= 0 ? j : etats.indexOf('a');
     if (r >= 0) { aller(r); return; }
-    const n = etats.filter(e => e === 'p').length;
     fini = true;
     win.close();
-    toast(n ? `${n} mail${n > 1 ? 's' : ''} parti${n > 1 ? 's' : ''} ✓` : 'Série terminée');
+    finDeSerie(pairs.length);
   };
   function aller(i){
     if (fini || i === k && enCours) return;
