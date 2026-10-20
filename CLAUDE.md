@@ -77,6 +77,7 @@ autres. Ni grisée, ni « bientôt » : absente.
 | « À qui écrire », « Offres d'alternance autour de … » (La bonne alternance, par un lien), « Offres de stage autour de … » (HelloWork, par un lien) | WEB |
 | « Autour de » dans le profil (ta ville, ton rayon), « Pas pour moi », « Nouveau », l'aide à l'embauche d'un apprenti | WEB |
 | « Mon parcours » dans le profil, et la ligne « Expérience » du mail | WEB |
+| Exporter son parcours en un fichier (JSON Resume), montré avant de partir | WEB |
 | Capture, anti-doublon, bac « à rattacher » | WEB |
 | Donner et recevoir des pistes (QR, fichier `.oc`, coller) | WEB |
 | Les groupes : créer, rejoindre (QR ou code), s'écrire (sept jours), se donner des pistes sans être là en même temps ; ouverts, ou sur demande (un chef et ses adjoints acceptent les entrées, retirent un message ou un membre) | WEB |

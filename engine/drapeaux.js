@@ -54,6 +54,11 @@ export const DRAPEAUX = Object.freeze([
     id: 'clavier', lot: 'R8', nom: 'le clavier au poste',
     raison: 'Le clavier au poste : Ctrl K cherche et fait, une lettre par geste du jour écrite dans son bouton, et une rangée de Réglages pour couper les touches d’une lettre (WCAG 2.1.4, proposition R8).',
     cree: '2026-10-20', retrait: '2027-03-31', ouvert: false
+  }),
+  Object.freeze({
+    id: 'export', lot: 'R9', nom: 'ton parcours exportable',
+    raison: 'Ton parcours en un fichier JSON Resume, depuis « Mon parcours » : ce que tu as écrit dans ton profil, montré ligne par ligne avant de partir (proposition R9).',
+    cree: '2026-10-20', retrait: '2027-03-31', ouvert: false
   })
 ]);
 

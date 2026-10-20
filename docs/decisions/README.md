@@ -12,7 +12,9 @@ Trois règles :
   lisible : c'est lui qu'on relit quand le même débat revient.
 - **Le statut dit qui a tranché.** *Proposée* : l'assistant la recommande,
   le mainteneur n'a pas encore répondu, et rien ne change en attendant.
-  *Acceptée* : le mainteneur l'a validée, avec la date.
+  *Acceptée* : le mainteneur l'a validée, avec la date. *Acceptée par
+  délégation* : le mainteneur a laissé le choix à l'assistant, qui a
+  tranché ; la fiche dit pourquoi, et le mainteneur peut la rouvrir.
 - **Une fiche ne remplace pas `CLAUDE.md`.** La règle d'interface qui
   sort d'une décision vit dans `CLAUDE.md`. La fiche garde le pourquoi
   et les options écartées.
@@ -23,8 +25,8 @@ Trois règles :
 | [0002](0002-navigation.md) | Un onglet, une question : Aujourd'hui · Pistes · + · Réseau · Moi | acceptée, 19 octobre 2026 |
 | [0003](0003-poste.md) | Au poste : barre latérale, fiche à côté de la liste | acceptée, 19 octobre 2026 |
 | [0004](0004-drapeaux-et-preversion.md) | Les lots derrière des drapeaux datés, et la préversion | acceptée, 19 octobre 2026 |
-| [0005](0005-public.md) | L'informatique d'abord, tous les métiers ensuite | proposée |
-| [0006](0006-notifications.md) | Sans serveur au début, mesuré pendant la bêta | proposée |
+| [0005](0005-public.md) | L'informatique d'abord, tous les métiers ensuite | acceptée par délégation, 20 octobre 2026 |
+| [0006](0006-notifications.md) | Sans serveur au début, mesuré pendant la bêta | acceptée par délégation, 20 octobre 2026 |
 | [0007](0007-envoi-direct.md) | L'envoi direct sur le web passe par la vérification Google | reportée, 20 octobre 2026 |
 
 Le plan qui découle de ces fiches est dans [`../recadrage.md`](../recadrage.md).

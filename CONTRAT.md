@@ -521,6 +521,29 @@ perdu = contenu irrécupérable.
 `OC1.<somme fnv en hexa>.<contenu>` : **lecture seule**, pour compatibilité
 avec les anciens fichiers. Un contenu altéré est refusé (`altéré`).
 
+### Parcours exporté — JSON Resume (lot R9-a, en préversion)
+
+Un fichier qui SORT et ne revient jamais : l'app ne le relit pas. Il
+s'appelle `opencontact-parcours-AAAA-MM-JJ.json` et suit le schéma
+JSON Resume v1.0.0 (`engine/cv.js`, `cvDe`) :
+
+- `$schema` (l'adresse du schéma), `meta` `{version: "v1.0.0", lastModified}` ;
+- `basics` : `name`, `email` (seulement s'il est plausible), `phone`,
+  `location.city` (la ville du profil), `profiles` `[{network:
+  "LinkedIn", url}]` quand le lien du profil est un LinkedIn, sinon
+  `url` ;
+- `education` : une ligne, `institution` (l'école), `studyType` (le
+  type de diplôme lu en tête de la formation — BTS, BUT, Licence pro…)
+  et `area` (le reste) ;
+- `work` : le parcours (`parcoursDe`), `name` (l'entreprise),
+  `position` (« Stage », « Alternance » ou « Emploi »), `startDate` et
+  `endDate` au mois (`AAAA-MM`), jamais une fin sans début.
+
+Un champ vide n'existe pas dans le fichier. Rien d'autre n'y entre : ni
+piste hors du parcours, ni note, ni contact, ni ami, ni lien du CV, ni
+l'état d'une candidature. La feuille d'export montre chaque ligne avant
+le geste (`lignesCv`).
+
 ### Garde-fous à la lecture
 
 Entrée de plus de 4 Mo refusée (`troplourd`) ; un OCQ1 dont le contenu

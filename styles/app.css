@@ -4286,3 +4286,15 @@ html.oc-locked .undo-bar{display:none}
 .pk-o.pk-sel{background:var(--select-bg);color:var(--select-text)}
 .pk-o.pk-sel>.ic,.pk-o.pk-sel .pk-s{color:var(--select-text)}
 .pk-vide{padding:10px 2px;color:var(--text-muted);font-size:var(--text-13)}
+
+/* ---------- ton parcours, en un fichier (lot R9-a) ----------
+   « Ajouter » et « Exporter » sous la liste, taillés à leur mot ; la
+   feuille d'export montre le fichier ligne par ligne, comme « Mon QR »
+   montre ce qu'il donne : le nom en tête, puis les données en mono. */
+.pf-par-gestes{display:flex;flex-wrap:wrap;gap:8px}
+.cv-donne{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.cv-donne li{display:flex;flex-direction:column;gap:1px;min-width:0}
+.cv-donne b{font-weight:var(--weight-semibold);overflow-wrap:anywhere}
+.cv-donne .cv-nom b{font-size:var(--text-16);font-weight:var(--weight-bold)}
+.cv-donne span{font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted);overflow-wrap:anywhere}
+.cv-donne .cv-experience:first-of-type,.cv-donne .cv-formation + .cv-experience{margin-top:6px}

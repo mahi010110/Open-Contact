@@ -9,6 +9,22 @@ le premier pour une rupture. La bascule du recadrage sera la 7.0.0
 
 Les versions d'avant la 6.76 se lisent dans l'historique du dépôt.
 
+## [6.88.0] — 20 octobre 2026
+
+Le recadrage, lot R9, première moitié : ton parcours, en un fichier. En
+**préversion**, derrière son propre drapeau (`export`). Et deux
+décisions prises par délégation du mainteneur : tous les métiers se
+codent maintenant mais ne s'ouvrent qu'après un testeur d'une autre
+formation (0005), et l'app reste sans serveur pendant la bêta (0006).
+
+### Ajouté, en préversion
+
+- **« Exporter », dans « Mon parcours ».** Ton profil et ton parcours
+  partent en un fichier JSON Resume, le format ouvert de CV que des
+  éditeurs de CV libres importent tels quels. La feuille montre chaque
+  ligne du fichier avant qu'il parte. Au téléphone, il part par la
+  feuille de partage ; à l'ordinateur, il se télécharge.
+
 ## [6.87.0] — 20 octobre 2026
 
 Le recadrage, lot R8 : le clavier au poste. En **préversion**, derrière
