@@ -1,8 +1,8 @@
 # Proposition R3 — Prêts à partir
 
-**Statut** : proposée le 20 octobre 2026, en attente du mainteneur.
-C'est l'étape 1 du cycle d'un lot (`docs/recadrage.md`) : rien ne se
-code avant ta validation.
+**Statut** : proposée et validée par le mainteneur le 20 octobre 2026.
+C'est l'étape 1 du cycle d'un lot (`docs/recadrage.md`). Les trois
+réponses sont en fin de page.
 
 ## Le problème
 
@@ -89,7 +89,7 @@ l'emporte.
 - Les objectifs de la semaine (R4).
 - Les campagnes, qui restent à la surface ordinateur.
 
-## Les questions au mainteneur
+## Les questions au mainteneur, et ses réponses
 
 1. **Où vit « Écrire les 3 » au téléphone ?** Je recommande le pied
    d'« Aujourd'hui », juste au-dessus de la barre, là où le pouce
@@ -103,3 +103,7 @@ l'emporte.
    plan. L'autre choix : qu'ils voyagent avec la synchronisation de tes
    appareils, ce qui permettrait de commencer au téléphone et de finir
    au poste.
+
+**Les réponses (20 octobre 2026)** : ① au pied d'« Aujourd'hui » ;
+② les relances dues, puis les premiers mails, cinq au plus ; ③ cet
+appareil seulement. Les trois recommandations, sans changement.

@@ -148,7 +148,7 @@ nouvelle : tout se déduit des pistes et du journal.
 
 ### R3 · Prêts à partir · 2 semaines
 
-*Proposition écrite, en attente du mainteneur :*
+*Proposition validée par le mainteneur le 20 octobre 2026 :*
 [`propositions/R3-prets-a-partir.md`](propositions/R3-prets-a-partir.md).
 
 Les relances et les premiers mails préparés, relus et envoyés en série.
