@@ -21,6 +21,7 @@ import { downloadBackup, closeReglages } from './ui/moi.js';
 import { ecouterInstallation } from './ui/installer.js';
 import { initSyncLive } from './ui/synclive.js';
 import { ORDINATEUR, CAMPAGNES } from './ui/perimetre.js';
+import { destination, titreDe } from './engine/destinations.js';
 
 /* tôt, avant tout `await` : Chrome peut signaler l'installation dès le
    chargement, et un écouteur posé après aurait manqué l'événement */
@@ -33,9 +34,15 @@ const VIEWS = {
   moi: renderMoi
 };
 
+/* Le registre des destinations (engine/destinations.js) dit où mène une
+   adresse — y compris une ANCIENNE, le jour où un écran déménage. Une
+   adresse redirigée est réécrite sur place (`replaceState`) : la barre
+   d'adresse dit où l'on est, et le retour ne repasse pas par l'ancienne. */
+const ALIAS = {};
 function routeFromHash(){
-  const r = (location.hash || '').replace(/^#\/?/, '');
-  return VIEWS[r] ? r : 'aujourdhui';
+  const { id, ancienne } = destination(location.hash, { ids: Object.keys(VIEWS), alias: ALIAS });
+  if (ancienne) history.replaceState(history.state, '', location.pathname + location.search + '#/' + id);
+  return id;
 }
 function render(){
   /* un autre onglet a écrit pendant qu'une feuille était ouverte :
@@ -70,7 +77,6 @@ let routePrec = null;
    par l'onglet est déjà remise, elle ne doit pas sauter). Le contour ne
    s'allume pas — l'app ne dessine que `:focus-visible`, et un focus posé
    par le programme n'en est pas un. */
-const TITRES = { aujourdhui: 'Aujourd’hui', pistes: 'Mes pistes', echanger: 'Échanger', moi: 'Moi' };
 let premierRendu = true;
 function applyRoute(){
   const suivante = routeFromHash();
@@ -91,7 +97,7 @@ function applyRoute(){
   /* après le rendu : `render()` réécrit le contenu, donc toute position
      posée avant serait effacée */
   if (v) v.scrollTop = memeOnglet ? 0 : (places[suivante] || 0);
-  document.title = TITRES[suivante] + ' — OpenContact';
+  document.title = titreDe(suivante) + ' — OpenContact';
   /* pas au démarrage : personne n'a rien demandé, et voler le focus
      avant que l'utilisateur ait touché quoi que ce soit ne s'annonce
      à personne */

@@ -14,6 +14,13 @@
    `true`, rien d'autre. La suppression franche se décidera
    après la première bêta — jamais dans le même geste que le
    masquage.
+
+   À côté du périmètre, les drapeaux de LIVRAISON du recadrage
+   (engine/drapeaux.js) : un lot arrivé dans main mais pas encore
+   vérifié avec de vraies personnes. Ceux-là ont une date de retrait,
+   et s'allument sur un appareil en préversion (`lot`, ui/state.js).
+   Ce fichier-ci n'importe RIEN : tests/e2e/tous.mjs le lit sous Node
+   pour savoir quels scénarios sauter.
    ============================================================ */
 
 /* ---- Colonne PC : surface ordinateur (installation requise) ---- */

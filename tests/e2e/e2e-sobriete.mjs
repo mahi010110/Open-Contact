@@ -399,8 +399,13 @@ const PLAFOND = {
      ses gestes, celui-ci fait pareil — la capture ne demande qu'un nom,
      elle le montre elle-même.
      338 avec le lot des boutons (6.77.0, 19 octobre 2026) : un mot de
-     moins relevé par cette garde, verrouillé pour qu'il ne revienne pas. */
-  motsExplication: 338,
+     moins relevé par cette garde, verrouillé pour qu'il ne revienne pas.
+     344 avec R0 (6.78.0, 20 octobre 2026) : la feuille « Préversion »
+     dit « Sur cet appareil seulement : l’onglet Réseau. » — sur quel
+     appareil vaut le test, et ce qu'il change. Sans elle, on allume la
+     préversion sur son téléphone et on la cherche sur son poste : une
+     erreur qu'on ne voit pas venir (§7, question 3). */
+  motsExplication: 344,
   /* ZÉRO, et c'est le seul plafond qui puisse honnêtement valoir zéro :
      un style sans porteur n'a pas de contrepartie à peser — il ne rend
      service à personne, il ne fait qu'attendre d'être lu par erreur.

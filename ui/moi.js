@@ -14,8 +14,9 @@ import { fmtSize, todayISO, esc } from '../engine/utils.js';
 import { mergeTombs } from '../engine/sync.js';
 import { docGet, docPut, effacerCetAppareil } from '../engine/storage.js';
 import { sansFilet, FILET_MIN_PISTES } from '../engine/assist.js';
+import { DRAPEAUX, enTest } from '../engine/drapeaux.js';
 import { listDocs, docKind, docTitle, pickPdf, removeDoc } from './docs.js';
-import { S, bus, saveData, saveProfile, saveOrphans, saveTombs, logJ, choisirTheme } from './state.js';
+import { S, bus, saveData, saveProfile, saveOrphans, saveTombs, logJ, choisirTheme, choisirPreversion } from './state.js';
 import { $, ic, toast, btn, openSheet, confirmSheet, showUndo, bindDeleteGesture,
          lockRowHTML, bindLockRow, choixHTML } from './dom.js';
 import { openProfil, openTemplates } from './profil.js';
@@ -354,6 +355,12 @@ function reglagesRowsHTML(){
   if ((S.profile.amis || []).length)
     rows.push(['moiRelais', 'Demandes de mes amis', S.profile.flags.sansRelais ? 'arrêtées' : 'transmises', false]);
   rows.push(['moiTheme', 'Thème', MOT_THEME[S.themeChoix] || 'automatique', false]);
+  /* LA PRÉVERSION (R0, docs/decisions/0004) : les lots du recadrage en
+     test s'allument sur CET appareil, chez le mainteneur et ses
+     testeurs. Seulement quand un lot est en test : une bascule qui ne
+     bascule rien n'a pas sa place (§6, « Le minimum, au bon moment »). */
+  if (enTest(DRAPEAUX).length)
+    rows.push(['moiPreversion', 'Préversion', S.preversion ? 'allumée' : 'éteinte', false]);
   rows.push(['moiAide', 'Aide et confidentialité', '', false]);
   rows.push(['moiDiag', 'Signaler un problème', '', false]);
   return (
@@ -451,6 +458,7 @@ function bindReglages(box){
   rf.addEventListener('change', () => { if (rf.files[0]) restoreFile(rf.files[0]); });
   q('#moiInstall')?.addEventListener('click', installer);
   q('#moiTheme')?.addEventListener('click', openTheme);
+  q('#moiPreversion')?.addEventListener('click', openPreversion);
   q('#moiEfface')?.addEventListener('click', effacerIci);
 }
 /* Quand un ami cherche quelqu'un et que tu ne connais personne, ton
@@ -469,6 +477,27 @@ export function openTheme(){
       sh.body.querySelector(`[data-theme-choix="${S.themeChoix}"]`)?.focus({ preventScroll: true });
       const st = document.querySelector('#moiTheme .rg-s');
       if (st) st.textContent = MOT_THEME[S.themeChoix];
+    }));
+  };
+  dessiner();
+}
+
+/* deux rangées, la forme du Thème. La phrase reste parce qu'elle prévient
+   de ce qu'on ne peut pas voir venir (§7) : ce qui est en test n'est pas
+   fini, et ça ne vaut que pour CET appareil — pas tes autres appareils,
+   pas ton groupe. */
+function openPreversion(){
+  const sh = openSheet({ title: 'Préversion', icon: 'flag' });
+  const dessiner = () => {
+    const lots = enTest(DRAPEAUX).map(d => d.nom).join(', ');
+    sh.body.innerHTML = choixHTML([['non', 'Éteinte'], ['oui', 'Allumée']], S.preversion ? 'oui' : 'non', { attr: 'data-preversion' }) +
+      `<p class="hint">Sur cet appareil seulement : ${esc(lots)}.</p>`;
+    sh.body.querySelectorAll('[data-preversion]').forEach(b => b.addEventListener('click', async () => {
+      await choisirPreversion(b.dataset.preversion === 'oui');
+      dessiner();
+      sh.body.querySelector(`[data-preversion="${S.preversion ? 'oui' : 'non'}"]`)?.focus({ preventScroll: true });
+      const st = document.querySelector('#moiPreversion .rg-s');
+      if (st) st.textContent = S.preversion ? 'allumée' : 'éteinte';
     }));
   };
   dessiner();

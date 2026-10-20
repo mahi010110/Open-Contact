@@ -10,8 +10,9 @@ import { CLOSE_REASONS, normalizeCompany, normalizeContact,
          normalizeProfile, pushHist } from '../engine/model.js';
 import { contactKey } from '../engine/merge.js';
 import { mergeTombs } from '../engine/sync.js';
+import { DRAPEAUX, actif, lirePreversion, ecrirePreversion } from '../engine/drapeaux.js';
 import { DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, THEME_KEY,
-         GROUP_KEY, OLD_V2, OLD_V1, kvInit, kvGet, kvSet, kvDel, getBackend } from '../engine/storage.js';
+         PREVERSION_KEY, GROUP_KEY, OLD_V2, OLD_V1, kvInit, kvGet, kvSet, kvDel, getBackend } from '../engine/storage.js';
 /* `dom.js` n'importe que `engine/utils.js` : pas de cycle. Le sens
    unique de l'architecture est respecté — l'écran appelle le moteur. */
 import { sheetOpen } from './dom.js';
@@ -24,6 +25,7 @@ export const S = {
   journal: [],          /* privé, jamais partagé */
   theme: 'light',
   themeChoix: 'auto',
+  preversion: false,    /* les lots en test s'allument sur CET appareil (engine/drapeaux.js) */
   route: 'aujourdhui'
 };
 /* app.js branche ici le re-rendu de la vue courante */
@@ -123,6 +125,17 @@ export function choisirTheme(choix, persist = true){
   if (persist) kvSet(THEME_KEY, S.themeChoix);
   try { localStorage.setItem(THEME_KEY, S.themeChoix); } catch (e) {}
 }
+/* La préversion : un réglage de CET appareil, qui ne voyage ni par la
+   sync ni par la copie. Éteinte, la clé n'existe pas.
+   `lot('reseau')` : vrai si le lot est ouvert à tous, ou si CET appareil
+   est en préversion. Un écran demande le LOT, jamais la préversion
+   elle-même : le jour où le lot s'ouvre, rien d'autre ne change. */
+export const lot = id => actif(DRAPEAUX, id, S.preversion);
+export function choisirPreversion(on){
+  S.preversion = !!on;
+  const v = ecrirePreversion(S.preversion);
+  return v == null ? kvDel(PREVERSION_KEY) : kvSet(PREVERSION_KEY, v);
+}
 /* « Auto » suit l'appareil EN DIRECT : le téléphone qui passe en sombre
    le soir emmène l'app avec lui, sans rechargement */
 mqSombre.addEventListener('change', () => { if (S.themeChoix === 'auto') applyTheme(themeVoulu('auto')); });
@@ -131,9 +144,10 @@ export async function loadAll(){
   await kvInit();
   /* les clés se lisent en parallèle : autant d'allers-retours IndexedDB
      séquentiels, ça se paie cher sur un vrai téléphone */
-  const [t, pRaw, jRaw, oRaw, tbRaw, raw] = await Promise.all(
-    [THEME_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, DATA_KEY].map(kvGet));
+  const [t, pRaw, jRaw, oRaw, tbRaw, raw, pv] = await Promise.all(
+    [THEME_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, DATA_KEY, PREVERSION_KEY].map(kvGet));
   S.themeChoix = choixTheme(t);
+  S.preversion = lirePreversion(pv);
   S.theme = themeVoulu(S.themeChoix);
   let p = null;
   try { p = JSON.parse(pRaw); } catch (e) {}

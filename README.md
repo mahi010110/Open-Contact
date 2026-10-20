@@ -11,6 +11,7 @@ Tes données restent sur tes appareils. Pas de compte, pas de serveur, pas de tr
 [Confidentialité](https://mahi010110.github.io/Open-Contact/confidentialite.html) ·
 [Les trois applications](docs/surfaces.md) ·
 [La suite](docs/feuille-de-route.md) ·
+[Le recadrage](docs/recadrage.md) ·
 [Déployer](docs/deployer.md) ·
 [Développer](docs/developpement.md)
 
