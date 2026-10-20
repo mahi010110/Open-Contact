@@ -33,10 +33,16 @@
    ⑪ (R1-c, décision 0003) au poste, la barre latérale : l'en-tête
      devient une colonne à gauche — le logo, « Ajouter », puis les quatre
      destinations empilées, icône et mot — à côté de l'écran, de haut en
-     bas ; éteinte, la rangée d'avant.
-   Zéro erreur console. Quatre mutations à l'appui : la barre qui ne
-   suit pas le lot, l'écran qui ne se recadre pas, la fiche qui garde
-   son ordre, l'en-tête qui reste une rangée.
+     bas ; éteinte, la rangée d'avant ;
+   ⑫ (R1-d, décision 0003) au poste, « Liste » pose la fiche à droite de
+     la liste : la première piste d'office, un clic ou ↓ la change, la
+     ligne choisie le dit ; une fiche avec un changement en cours demande
+     avant de céder la place, et « Annuler » la garde ; un rendu pendant
+     qu'on écrit ne fait perdre ni le curseur ni le texte ; « Tableau »
+     revient aux colonnes, la fiche en fenêtre.
+   Zéro erreur console. Cinq mutations à l'appui : la barre qui ne suit
+   pas le lot, l'écran qui ne se recadre pas, la fiche qui garde son
+   ordre, l'en-tête qui reste une rangée, la fiche qui ne se pose pas.
    ============================================================ */
 import { chromium, chromiumPath, serveRepo, relaisMuets, annuaireMuet, ouvrirReglages, ROOT, SHOTS } from './outils.mjs';
 import { readFile } from 'fs/promises';
@@ -357,6 +363,59 @@ for (const [nom, vp, pv, sombre] of [['poste', { width: 1280, height: 800 }, tru
   await ctx.close();
 }
 
+/* ---------- ⑫ au poste, la fiche à droite de la liste ---------- */
+const volet = p => p.evaluate(() => ({
+  split: !!document.querySelector('#view-pistes .pi-split'),
+  sel: [...document.querySelectorAll('.pi-split .row-item.pi-sel')].map(r => r.dataset.id).join(','),
+  fiche: document.querySelector('#piVolet .obj-n')?.textContent.trim() || '',
+  foc: document.activeElement?.closest('.row-item')?.dataset.id || document.activeElement?.id || '',
+  /* le pied du volet touche le bas du volet : « Écrire » toujours visible */
+  pied: (() => { const v = document.querySelector('#piVolet'), f = v?.querySelector('.modal-f');
+    return v && f ? Math.round(v.getBoundingClientRect().bottom - f.getBoundingClientRect().bottom) : -1; })()
+}));
+{
+  const { ctx, p } = await ecran('liste-detail', { vp: { width: 1280, height: 800 }, hash: '#/pistes' });
+  const a = await volet(p);
+  ok(a.split && a.sel && a.fiche && a.pied >= 0 && a.pied <= 2,
+    `⑫ « Liste » : la fiche posée à droite, la première piste d'office, le pied en bas du volet — ${JSON.stringify(a)}`);
+  await p.screenshot({ path: `${SHOTS}/161-reseau-liste-detail.png` });
+  await p.click('.pi-split .row-item[data-id="adv"] .ri-main');
+  await p.waitForTimeout(300);
+  const b = await volet(p);
+  await p.keyboard.press('ArrowDown');
+  await p.waitForTimeout(300);
+  const c = await volet(p);
+  ok(b.sel === 'adv' && b.fiche === 'Advens' && c.sel !== 'adv' && c.sel === c.foc && c.fiche !== 'Advens',
+    `⑫ un clic choisit, ↓ suit le clavier — ${b.fiche} puis ${c.fiche}`);
+  await p.fill('#piVolet #fiNotes', 'note en cours');
+  await p.waitForTimeout(150);
+  await p.click('.pi-split .row-item[data-id="adv"] .ri-main');
+  await p.waitForTimeout(400);
+  const garde = await dessus(p);
+  await p.keyboard.press('Escape');
+  await p.waitForTimeout(400);
+  const d = await volet(p);
+  ok(garde === 'Quitter sans enregistrer ?' && d.fiche === c.fiche && await p.evaluate(() => document.querySelector('#piVolet #fiNotes')?.value) === 'note en cours',
+    `⑫ un changement en cours : la liste demande, « Annuler » garde la fiche et le texte — ${garde}`);
+  await p.focus('#piVolet #fiNotes');
+  await p.evaluate(() => { const t = document.querySelector('#piVolet #fiNotes'); t.setSelectionRange(2, 6); });
+  await p.evaluate(async () => (await import('./ui/state.js')).bus.refresh());
+  await p.waitForTimeout(300);
+  const e = await p.evaluate(() => { const t = document.activeElement; return [t?.id, t?.value, t?.selectionStart, t?.selectionEnd]; });
+  ok(e.join('|') === 'fiNotes|note en cours|2|6', `⑫ un rendu pendant qu'on écrit : le curseur, le texte et la sélection restent — ${e.join('|')}`);
+  await p.click('[data-vue="tableau"]');
+  await p.waitForTimeout(400);
+  const quitter = await dessus(p);
+  await p.click('.overlay:not(.ov-out) .modal-f .btn-danger');
+  await p.waitForTimeout(450);
+  const f = await p.evaluate(() => ({ board: !!document.querySelector('#view-pistes .board'), split: !!document.querySelector('.pi-split') }));
+  await p.click('#view-pistes .bcard .bc-main');
+  await p.waitForTimeout(400);
+  ok(quitter === 'Quitter sans enregistrer ?' && f.board && !f.split && await dessus(p) === 'Fiche',
+    `⑫ « Tableau » : on demande d'abord, puis les colonnes, la fiche en fenêtre — ${JSON.stringify(f)}`);
+  await ctx.close();
+}
+
 /* ---------- les mutations : le scénario sait encore échouer ---------- */
 {
   const app = await readFile(path.join(ROOT, 'app.js'), 'utf8');
@@ -395,6 +454,16 @@ for (const [nom, vp, pv, sombre] of [['poste', { width: 1280, height: 800 }, tru
   const { ctx, p } = await ecran('mutation-laterale', { mutations: { 'app.js': rang }, vp: { width: 1280, height: 800 } });
   const c = await coque(p);
   ok(!lateraleOk(c), `mutation ④ : la garde de la barre latérale rougit — ${enRang(c)}`);
+  await ctx.close();
+}
+
+{
+  const pi = await readFile(path.join(ROOT, 'ui', 'pistes.js'), 'utf8');
+  const sans = pi.replace("const listeDetail = () => lot('reseau') && mqWide.matches && vuePoste === 'liste';", 'const listeDetail = () => false;');
+  ok(sans !== pi, 'mutation ⑤ la fiche qui ne se pose pas : le fichier servi est bien modifié');
+  const { ctx, p } = await ecran('mutation-liste', { mutations: { 'ui/pistes.js': sans }, vp: { width: 1280, height: 800 }, hash: '#/pistes' });
+  const a = await volet(p);
+  ok(!(a.split && a.fiche), `mutation ⑤ : la garde de la liste-détail rougit — ${JSON.stringify(a)}`);
   await ctx.close();
 }
 

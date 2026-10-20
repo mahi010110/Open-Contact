@@ -3698,6 +3698,27 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
   .bx-sel{background:var(--select-bg)!important}
   .bx-sel,.bx-sel .bx-p,.bx-sel .bx-d time,.bx-sel .bx-i{color:var(--select-text)}
 }
+/* LA FICHE À CÔTÉ DE LA LISTE (R1, décision 0003 — en préversion) : le
+   motif des conversations, appliqué aux pistes. La page tient la hauteur
+   de l'écran ; la liste défile à gauche, la fiche posée défile chez
+   elle à droite, son pied « Écrire » toujours visible. La ligne choisie
+   prend la couleur du châssis : « tu es ici » (§4). */
+@media (min-width:901px){
+  #view-pistes>.page-inner.pi-ld{display:flex;flex-direction:column;height:100%}
+  .pi-ld>#piBody{flex:1;min-height:0}
+  .pi-split{height:100%;display:grid;grid-template-columns:minmax(17rem,24rem) minmax(0,1fr);gap:18px}
+  .pi-gauche{min-height:0;overflow:auto;padding:4px;margin:-4px}
+  .pi-volet{min-height:0;display:flex}
+  .pi-volet>.dock{flex:1;display:flex;min-height:0}
+  /* le corps prend la place, le pied « Écrire » se pose en bas du volet */
+  .pi-volet .modal-b{flex:1;min-height:0}
+  .pi-vue .seg{flex:0 0 auto;padding:4px 12px}
+  .row-item.pi-sel,.row-item.pi-sel .sw-in{background:var(--select-bg)}
+  .row-item.pi-sel h3,.row-item.pi-sel .ri-sub,.row-item.pi-sel .ri-sub b{color:var(--select-text)}
+}
+@media (min-width:901px) and (hover:hover){
+  .row-item.pi-sel:hover .sw-in{background:var(--select-bg)}
+}
 /* la feuille d'un groupe : elle se donne sa hauteur (§6, « Écrire ») —
    le fil défile, le pied reste sous le pouce */
 .modal-groupe{height:92dvh}

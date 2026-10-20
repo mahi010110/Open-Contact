@@ -116,8 +116,13 @@ Les temps sont des maximums accordés, pas des promesses de date.
     depuis le +, entreprise facultative. Gardé par `e2e-reseau.mjs` ⑨ ⑩.
   - **R1-c, livré (6.81.0)** : au poste, la barre latérale à la place
     des onglets du haut (décision 0003). Gardé par `e2e-reseau.mjs` ⑪.
-  - **R1-d** : au poste, la fiche à droite de la liste de Pistes, ↑ ↓
-    d'une piste à l'autre (décision 0003).
+  - **R1-d, livré (6.82.0)** : au poste, « Liste · Tableau » ; en
+    liste, la fiche posée à droite, ↑ ↓ d'une piste à l'autre, E écrit,
+    le garde-fou d'une fiche en cours (décision 0003). Gardé par
+    `e2e-reseau.mjs` ⑫.
+  - **R1 est complet en préversion.** Reste sa porte : les six parcours
+    joués avec cinq personnes (`docs/mesure/protocole.md`), puis la
+    décision d'ouvrir le lot à tous.
 
 ### R2 · Un suivi qui se remplit seul · 2 semaines
 
