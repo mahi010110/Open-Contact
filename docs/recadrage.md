@@ -148,6 +148,9 @@ nouvelle : tout se déduit des pistes et du journal.
 
 ### R3 · Prêts à partir · 2 semaines
 
+*Proposition écrite, en attente du mainteneur :*
+[`propositions/R3-prets-a-partir.md`](propositions/R3-prets-a-partir.md).
+
 Les relances et les premiers mails préparés, relus et envoyés en série.
 Au téléphone, un mail par écran ; au poste, la file, le mail et la fiche.
 Une clé nouvelle pour les brouillons en cours, propre à l'appareil.
