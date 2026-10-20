@@ -129,6 +129,9 @@ Les temps sont des maximums accordés, pas des promesses de date.
 
 ### R2 · Un suivi qui se remplit seul · 2 semaines
 
+*Proposition écrite, en attente du mainteneur :*
+[`propositions/R2-suivi.md`](propositions/R2-suivi.md).
+
 Un mail envoyé passe la piste « En cours » et propose la relance à
 7 jours. Tes chiffres en une ligne en tête de Pistes : écrites,
 réponses, entretiens. Le retour après une pause : trois choses à faire,
