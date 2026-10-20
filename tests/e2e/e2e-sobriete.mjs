@@ -156,7 +156,12 @@ const PLAFOND = {
      et rien d'autre à l'écran ne dirait pourquoi. Un message retiré,
      lui, se lit à sa place (« Retiré par Inès ») ; un membre retiré
      passe par « Annuler » chez qui le retire. */
-  toasts: 124,
+  /* 126 le 20 octobre 2026, +2 (lot R4, « Ma semaine », en préversion) —
+     « Partager au groupe » : la feuille se ferme et la revue vit dans le
+     groupe, hors de l'écran (famille ②) ; et son refus, sans réseau
+     (famille ①). La fin d'une série (R3), elle, n'a rien ajouté : une
+     phrase, dite d'un seul endroit au pouce et au poste. */
+  toasts: 126,
   toastCar: 79,        /* le plus long : « Connexion interrompue — … » */
   /* portes bloquantes dans les écrans visibles.
      9 le 29 septembre 2026 : « Mon profil » prend le garde-fou de la

@@ -9,6 +9,23 @@ le premier pour une rupture. La bascule du recadrage sera la 7.0.0
 
 Les versions d'avant la 6.76 se lisent dans l'historique du dépôt.
 
+## [6.85.0] — 20 octobre 2026
+
+Le recadrage, lot R4 : ma semaine. En **préversion**, derrière son
+propre drapeau (`semaine`).
+
+### Ajouté, en préversion
+
+- **« Cette semaine : 2 sur 5 mails »**, en tête d'« Aujourd'hui ». Le
+  compte se remplit seul, des mails partis depuis lundi. L'objectif, l'app
+  le propose (la semaine d'avant plus un, trois au moins) ; la ligne
+  ouvre « Ma semaine », où « − » et « + » le font varier. Rien ne rougit
+  si tu restes en dessous, et la semaine d'après repart de zéro.
+- **Le vendredi, la revue** : tes mails partis, tes réponses, tes pistes
+  ajoutées, et « Partager au groupe ». Ce qui part ne porte que ces
+  trois nombres — « Ma semaine : 5 mails, 1 réponse, 3 pistes. » —,
+  jamais le nom d'une entreprise ni d'une personne.
+
 ## [6.84.0] — 20 octobre 2026
 
 Le recadrage, lot R3 : prêts à partir. En **préversion**, derrière son

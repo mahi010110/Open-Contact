@@ -172,6 +172,16 @@ Une clé nouvelle pour les brouillons en cours, propre à l'appareil.
 *Proposition validée par le mainteneur le 20 octobre 2026 :*
 [`propositions/R4-ma-semaine.md`](propositions/R4-ma-semaine.md).
 
+- **Où on en est** : **livré en préversion (6.85.0)**, derrière le
+  drapeau `semaine` (`engine/semaine.js`, `ui/semaine.js`) : la ligne en
+  tête d'« Aujourd'hui », « Ma semaine » (− et +), la revue du vendredi
+  et « Partager au groupe ». Gardé par `e2e-semaine.mjs`, la fuite
+  d'abord. Aucune clé nouvelle : l'objectif vit dans le profil.
+- *Accepté quand* : au bout de deux semaines de préversion, la majorité
+  des testeurs a gardé l'objectif proposé ou l'a réglé, sans l'avoir
+  vécu comme un reproche (question posée à la fin d'une séance).
+  *Retour arrière* : éteindre le drapeau.
+
 Des objectifs de gestes le lundi, la revue le vendredi, partagée au
 groupe si tu veux. Le résumé ne porte que des nombres, jamais un nom
 d'entreprise : un test de fuite le vérifie avant la fonctionnalité.

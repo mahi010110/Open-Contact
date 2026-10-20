@@ -10,8 +10,9 @@ import { normalizeParcours, parcoursDe, phraseParcours } from './parcours.js';
 import { normalizeAmis, idAmiValide } from './amis.js';
 import { boiteValide } from './boite.js';
 import { normaliserGroupes } from './groupe.js';
+import { normaliserSemaine } from './semaine.js';
 
-export const APP_VERSION = '6.84.0';
+export const APP_VERSION = '6.85.0';
 
 export const DOMAINS = {
   esn:     { label:'ESN / Services IT',       color:'#4C9FD8' },
@@ -541,6 +542,11 @@ export function normalizeProfile(raw){
      ma copie — pour que chacun de mes appareils y soit ; ce qui s'y dit
      vit sur l'appareil (oc_groupes_v1). Jamais dans un profil donné. */
   profile.groupes = normaliserGroupes(profile.groupes);
+  /* MA SEMAINE (lot R4, engine/semaine.js) : le lundi et le nombre de
+     mails qu'on s'est promis. Il suit le profil — sync de MES appareils,
+     ma copie — et jamais un profil donné ni un partage de pistes. */
+  const sem = normaliserSemaine(profile.semaine);
+  if (sem) profile.semaine = sem; else delete profile.semaine;
   /* « PAS POUR MOI » (docs/recherche-profil.md) : les entreprises de
      « À découvrir » qu'on a écartées — un SIREN, le nom pour pouvoir les
      rendre, la date. Les plus anciennes partent au-delà de 300. */

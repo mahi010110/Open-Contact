@@ -39,6 +39,11 @@ export const DRAPEAUX = Object.freeze([
     id: 'prets', lot: 'R3', nom: 'les mails prêts à partir',
     raison: 'Prêts à partir : les relances dues et les premiers mails écrits d’affilée depuis Aujourd’hui, et les brouillons gardés sur cet appareil (proposition R3).',
     cree: '2026-10-20', retrait: '2027-03-31', ouvert: false
+  }),
+  Object.freeze({
+    id: 'semaine', lot: 'R4', nom: 'ma semaine',
+    raison: 'Ma semaine : un objectif de mails le lundi, qui se remplit seul, et la revue du vendredi, partagée au groupe d’un geste (proposition R4).',
+    cree: '2026-10-20', retrait: '2027-03-31', ouvert: false
   })
 ]);
 

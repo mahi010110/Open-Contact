@@ -4196,3 +4196,27 @@ html.oc-locked .undo-bar{display:none}
 .se-notes{margin:0;white-space:pre-line;font-size:var(--text-13)}
 .se-hist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;font-size:var(--text-13)}
 .se-d{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
+
+/* ============ R4 : MA SEMAINE (ui/semaine.js) ============
+   Une ligne en tête d'« Aujourd'hui », qui se touche (le chevron le dit)
+   : le mot, le compte, une barre 98 qui se remplit. Un nombre, jamais
+   un retard : la barre n'a qu'une couleur, l'accent, et rien ne rougit
+   quand elle reste courte. */
+/* elle se replie plutôt que de sortir : à 320 px ou texte doublé, les
+   nombres passent dessous, le chevron garde le bord droit */
+.td-semaine{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;width:100%;min-height:var(--ctl);margin:0 0 6px;
+  padding:6px 10px;background:var(--surface-window);border:1px solid var(--border-soft);text-align:left;color:var(--text-body)}
+.td-semaine .ts-l{font-size:var(--text-12);font-weight:var(--weight-semibold);color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;flex:none}
+.td-semaine .ts-n{font-family:var(--font-mono);font-size:var(--text-13);flex:0 1 auto;min-width:0}
+.td-semaine .ts-barre{flex:1;min-width:3rem;height:8px;border:1px solid var(--border-strong);background:var(--surface-field)}
+.td-semaine .ts-barre>i{display:block;height:100%;background:var(--accent)}
+.td-semaine>.ic:last-child{margin-left:auto;flex:none;color:var(--text-muted)}
+.td-semaine:focus-visible{outline:var(--focus-outline);outline-offset:2px}
+.sm-bloc{margin-bottom:16px}
+.sm-h{font-size:var(--text-11);text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin:0 0 8px;font-weight:var(--weight-semibold)}
+.sm-pas{display:flex;align-items:center;gap:12px}
+.sm-pas .btn{min-width:var(--ctl);justify-content:center;font-size:var(--text-16)}
+.sm-obj{font-family:var(--font-mono);font-size:var(--text-16);min-width:6ch;text-align:center}
+.sm-fait{margin:8px 0 0;color:var(--text-muted);font-size:var(--text-13)}
+.sm-fait b{color:var(--text-body)}
+.sm-phrase{margin:0;font-size:var(--text-14)}
