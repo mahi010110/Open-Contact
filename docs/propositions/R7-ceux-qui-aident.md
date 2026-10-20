@@ -1,8 +1,8 @@
 # Proposition R7 — Ceux qui aident
 
-**Statut** : proposée le 20 octobre 2026, en attente du mainteneur.
-C'est l'étape 1 du cycle d'un lot (`docs/recadrage.md`). Les questions
-sont en fin de page.
+**Statut** : proposée et validée par le mainteneur le 20 octobre 2026.
+C'est l'étape 1 du cycle d'un lot (`docs/recadrage.md`). Les trois
+réponses sont en fin de page.
 
 ## Le problème
 
@@ -105,7 +105,7 @@ conversation, envoyé d'un tap. C'est ce qui fait revenir celui qui aide.
 - Aider quelqu'un qui n'est pas son ami : l'offre ne voyage que dans le
   profil donné.
 
-## Les questions au mainteneur
+## Les questions au mainteneur, et ses réponses
 
 1. **Ce qu'on peut offrir.** Je recommande trois cases aux mots fixes —
    parler de mon entreprise, relire un CV, présenter quelqu'un. L'autre
@@ -116,6 +116,10 @@ conversation, envoyé d'un tap. C'est ce qui fait revenir celui qui aide.
    quand une piste qu'il a portée répond ou se décroche, un message
    prêt, envoyé d'un tap. L'autre choix : pas de merci de plus que celui
    des demandes d'aujourd'hui.
+
+**Les réponses (20 octobre 2026)** : ① trois cases aux mots fixes ;
+② à « Décroché », une fois, et dans Moi ; ③ « Le dire à Karim » sur la
+fiche. Les trois recommandations, sans changement.
 
 ---
 

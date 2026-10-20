@@ -197,12 +197,16 @@ clés intactes, lues au moins une version entière.
 
 ### R6 · Envoi direct · 2 semaines de code · selon la décision 0007
 
+*Reporté par le mainteneur le 20 octobre 2026* (décision 0007) : la
+vérification Google n'est pas lancée, le lien mail reste le chemin de
+tout le monde. Le lot passe après les autres.
+
 Le mail part de l'app, avec « Annuler » pendant 10 secondes. Le lien
 mail reste le chemin de secours.
 
 ### R7 · Ceux qui aident · 3 semaines
 
-*Proposition écrite le 20 octobre 2026, en attente du mainteneur :*
+*Proposition validée par le mainteneur le 20 octobre 2026 :*
 [`propositions/R7-ceux-qui-aident.md`](propositions/R7-ceux-qui-aident.md).
 
 « Je peux aider » dans Moi ; une piste close « Décroché » propose d'aider
