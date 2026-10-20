@@ -7,7 +7,7 @@
    léger garde-fou. Contacts joignables en un tap, clôture,
    itinéraire — l'édition des champs partagés reste sa feuille.
    ============================================================ */
-import { esc, fmtDate, isLate, directionsUrl } from '../engine/utils.js';
+import { esc, fmtDate, isLate, directionsUrl, todayISO } from '../engine/utils.js';
 import { STATUSES, CLOSE_REASONS, DOMAINS, POSITIONS, VECU, pushHist, summarizeChanges,
          nextActionContact } from '../engine/model.js';
 import { scoreOf } from '../engine/score.js';
@@ -15,7 +15,10 @@ import { porteurs } from '../engine/requete.js';
 import { portesDuJour } from './amis.js';
 import { reseauDePiste, ouvrirDemander, ouvrirDon, carteDemandeHTML, bandeauDon, libelleDemander } from './reseau.js';
 import { S, bus, isClosed, saveData, reopenPiste, logJ, activateContact, lot } from './state.js';
-import { openSheet, confirmSheet, toast, btn, ic, montrerChange, suivreLargeur } from './dom.js';
+import { openSheet, confirmSheet, toast, btn, ic, montrerChange, suivreLargeur, choixHTML } from './dom.js';
+import { demandesPossibles, libelleDemande, messageDemande, merciAProposer, messageMerci } from '../engine/aide.js';
+import { dernierEnvoiA } from './messages.js';
+import { prenomAmi } from '../engine/amis.js';
 import { frDate, relLabel } from './dates.js';
 import { askNextAction, askClose } from './actions.js';
 import { openMail } from './mail.js';
@@ -42,21 +45,76 @@ const FORM_FIELDS = ['status', 'nextAction', 'nextActionText', 'nextActionCt', '
    C'est ce qui le fait marcher aussi de seconde main — un carnet de
    camarades, lui, ne contient que les gens qu'on a déjà joints, donc
    jamais celui qui recommande deux échanges plus loin. */
+/* La seule chose qui ne se devine pas, et elle change tout : vous êtes
+   dans le même cours, et la demande faite là aboutit 34 fois plus
+   souvent que par écrit. Huit mots, parce qu'un neuvième ne dirait rien
+   de plus. Une phrase, dite une fois : les deux feuilles la partagent. */
+const enVraiHTML = () => `<p class="hint">${ic('users', 'ic-14')} Demande-lui en vrai : bien plus efficace qu\u2019un message.</p>`;
+const boutonCopier = (sh, mot) => btn('Copier le message', 'btn-primary', async () => {
+  try { await navigator.clipboard.writeText(mot()); toast('Copié ✓'); sh.close(); }
+  catch (e) { toast('Copie impossible ici — sélectionne le texte.'); }
+}, 'copy');
 function openDemander(c, prenom, v){
+  /* CEUX QUI AIDENT (lot R7) : un AMI dit ce qu'il peut offrir, et la
+     demande se pose dans votre conversation */
+  const ami = lot('aide') && v.amiId && (S.profile.amis || []).find(a => a.id === v.amiId);
+  if (ami) return demanderAAmi(c, ami, v);
   const sh = openSheet({ title: 'Demander à ' + prenom, icon: 'message-text' });
   const mot = `Salut ${prenom}, tu ${v.tu} chez ${c.name} ? `
             + `Je postule là-bas — tu peux me dire à qui écrire ?`;
-  sh.body.innerHTML =
-    /* La seule chose qui ne se devine pas, et elle change tout : vous
-       êtes dans le même cours, et la demande faite là aboutit 34 fois
-       plus souvent que par écrit. Huit mots, parce qu'un neuvième ne
-       dirait rien de plus. */
-    `<p class="hint">${ic('users', 'ic-14')} Demande-lui en vrai : bien plus efficace qu\u2019un message.</p>
-     <div class="gr-mot">${esc(mot)}</div>`;
-  sh.setFoot([btn('Copier le message', 'btn-primary', async () => {
-    try { await navigator.clipboard.writeText(mot); toast('Copié ✓'); sh.close(); }
-    catch (e) { toast('Copie impossible ici — sélectionne le texte.'); }
-  }, 'copy')]);
+  sh.body.innerHTML = enVraiHTML() + `<div class="gr-mot">${esc(mot)}</div>`;
+  sh.setFoot([boutonCopier(sh, () => mot)]);
+}
+
+/* De qui dire merci (lot R7) : les amis qui ont porté la piste et qu'on
+   peut joindre (une boîte) — ceux qui y sont passés d'abord, puis celui
+   dont le prénom est sur un contact donné (`via`), s'il est le seul de
+   mes amis à le porter. Un prénom partagé par deux amis ne désigne
+   personne : on ne devine pas. */
+function merciDePiste(c, qui){
+  const amis = (S.profile.amis || []).filter(a => a.cle);
+  const cands = [];
+  for (const p of qui) if (p.amiId && amis.some(a => a.id === p.amiId)) cands.push({ id: p.amiId, prenom: p.prenom });
+  for (const t of c.contacts || []){
+    if (!t.via) continue;
+    const memes = amis.filter(a => prenomAmi(a).toLowerCase() === String(t.via).trim().toLowerCase());
+    if (memes.length === 1 && !cands.some(x => x.id === memes[0].id)) cands.push({ id: memes[0].id, prenom: prenomAmi(memes[0]) });
+  }
+  return merciAProposer(c, cands, dernierEnvoiA, todayISO());
+}
+
+/* « Demander à Karim », quand Karim est un ami (lot R7). Ce qu'il a dit
+   pouvoir faire devient un CHOIX d'une valeur — à qui écrire, 20 minutes
+   pour parler de son entreprise, relire mon CV, me présenter —, et la
+   phrase change sous les yeux. Le geste du pied pose la phrase dans la
+   conversation avec lui ; elle part de la flèche, pas d'ici. Sans boîte
+   (un QR d'avant la 6.55), on ne peut pas lui écrire : la phrase se
+   copie, comme avant. */
+function demanderAAmi(c, ami, v){
+  const prenom = prenomAmi(ami);
+  const sh = openSheet({ title: 'Demander à ' + prenom, icon: 'message-text' });
+  const sortes = demandesPossibles(ami.aide);
+  let sorte = sortes[0];
+  const mot = () => messageDemande(sorte, { prenom, tu: v.tu, entreprise: c.name, cherche: S.profile.recherche });
+  const rendre = () => {
+    sh.body.innerHTML =
+      `${enVraiHTML()}
+       ${sortes.length > 1 ? choixHTML(sortes.map(k => [k, libelleDemande(k, c.name)]), sorte, { attr: 'data-sorte' }) : ''}
+       <div class="gr-mot" id="dmMot">${esc(mot())}</div>`;
+    sh.body.querySelectorAll('[data-sorte]').forEach(b => b.addEventListener('click', () => {
+      sorte = b.dataset.sorte;
+      rendre();
+      sh.body.querySelector(`[data-sorte="${sorte}"]`)?.focus();   /* le focus reste sur le choix */
+    }));
+  };
+  rendre();
+  sh.setFoot([ami.cle
+    ? btn('Écrire à ' + prenom, 'btn-primary', async () => {
+        const texte = mot();
+        sh.close();
+        (await import('./messages.js')).ouvrirConversation(ami, null, { texte });
+      }, 'message-text')
+    : boutonCopier(sh, mot)]);
 }
 
 /* Deux conceptions, pas une fenêtre élastique. Au pouce : une colonne,
@@ -302,6 +360,12 @@ export function openFiche(c, o = {}){
        en plein (§6). Les conditions ne changent pas : une piste ouverte,
        personne pour te porter, personne à qui écrire, un ami ou un
        groupe à qui demander. */
+    /* LE MERCI QUI REVIENT (lot R7) : la piste qu'un ami a portée — il y
+       est passé, ou il m'a donné un contact — vient de répondre. Une
+       ligne, proposée en pointillé d'accent comme un don : elle ouvre la
+       conversation, le merci prêt dans le champ. Elle se tait dès qu'on
+       lui a écrit, et au bout de quatorze jours. */
+    const merci = lot('aide') ? merciDePiste(c, qui) : null;
     const res = reseauDePiste(c);
     const joignable = (c.contacts || []).some(t => t.email || t.phone || t.link);
     /* LA DEMANDE SE SUIT COMME UN COLIS (lot F3) : sa carte reste tant
@@ -340,6 +404,8 @@ export function openFiche(c, o = {}){
              <div class="ctc-list">${knownCts.map(t => ctRowHTML(t, false)).join('')}</div>
            </details>` : ''}
          ${reseau}
+         ${merci ? `<button class="fi-don fi-merci" id="fiMerci">${ic('message-text', 'ic-14')}
+             <b>Le dire à ${esc(merci.prenom)}</b>${ic('chevron-right', 'ic-14')}</button>` : ''}
        </div>`;
     const savoir =
       `${/* « À SAVOIR » N'EXISTE QUE S'IL A QUELQUE CHOSE À DIRE : ce que tu
@@ -470,6 +536,11 @@ export function openFiche(c, o = {}){
       b.addEventListener('click', () => { const p = qui[+b.dataset.porteur]; openDemander(c, p.prenom, p); }));
     sh.body.querySelector('#fiDemander')?.addEventListener('click', () => ouvrirDemander(c, render));
     sh.body.querySelector('#fiDon')?.addEventListener('click', () => ouvrirDon(res.don, render));
+    sh.body.querySelector('#fiMerci')?.addEventListener('click', async () => {
+      const ami = (S.profile.amis || []).find(a => a.id === merci.amiId);
+      if (ami) (await import('./messages.js')).ouvrirConversation(ami, render,
+        { texte: messageMerci({ entreprise: c.name, decroche: merci.decroche }) });
+    });
     lierAnnuaireFiche(sh.body, c);
     /* « À savoir » garde son pli le temps de la session : un geste fait
        ailleurs sur la fiche (un contact ajouté) la redessine, et la carte

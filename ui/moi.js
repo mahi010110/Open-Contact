@@ -31,6 +31,7 @@ import { proposerInstallation, installer } from './installer.js';
 import { enregistrerFichier, partagePossible } from './fichier.js';
 import { mergePreviewInto, messageLecture } from './recevoir.js';
 import { DIST_PAGE } from '../engine/distribution.js';
+import { aideRowHTML, ouvrirAide } from './aide.js';
 
 /* ---------- garder une copie (.oc complet) ----------
    Au doigt par la feuille de partage, au poste en téléchargement :
@@ -684,6 +685,10 @@ export function renderMoi(){
        ${reglagesRowsHTML()}
      </fieldset>`;
 
+  /* JE PEUX AIDER (lot R7) : une porte sous le profil, comme celle des
+     Réglages — ce que je donne à mes amis vit à côté de qui je suis */
+  const aide = aideRowHTML();
+
   root.innerHTML =
     `<div class="page-inner${wide ? ' page-wide' : ''}">
        ${/* PLUS DE CADENAS À CÔTÉ DU TITRE. Il disait « privé », pendant
@@ -694,8 +699,8 @@ export function renderMoi(){
             cadenas ne sert plus qu'à ce qui verrouille. */''}
        <div class="td-head"><h1>Moi</h1></div>
        ${wide
-         ? `<div class="moi-cols"><div>${objet}${envoi}${copie}</div><div>${reglages}</div></div>`
-         : objet + envoi + copie +
+         ? `<div class="moi-cols"><div>${objet}${aide}${envoi}${copie}</div><div>${reglages}</div></div>`
+         : objet + aide + envoi + copie +
            `<button class="rg-row rg-last moi-rg" id="moiReglages">
               <span class="rg-n">Réglages</span>
               <span class="rg-s">${verrouLabel()}</span>
@@ -710,6 +715,7 @@ export function renderMoi(){
 
   root.querySelector('#moiProfil').addEventListener('click', () => openProfil());
   root.querySelector('#moiTpl').addEventListener('click', openTemplates);
+  root.querySelector('#moiAide')?.addEventListener('click', ouvrirAide);
   /* le mot de passe est facultatif : au repos il ne pèse qu'un bouton
      compact au bout de la ligne (#8 — l'avancé se replie derrière un
      signe, jamais une phrase). Tapé, il s'étire en champ ; re-tapé, il

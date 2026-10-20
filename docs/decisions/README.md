@@ -25,6 +25,6 @@ Trois règles :
 | [0004](0004-drapeaux-et-preversion.md) | Les lots derrière des drapeaux datés, et la préversion | acceptée, 19 octobre 2026 |
 | [0005](0005-public.md) | L'informatique d'abord, tous les métiers ensuite | proposée |
 | [0006](0006-notifications.md) | Sans serveur au début, mesuré pendant la bêta | proposée |
-| [0007](0007-envoi-direct.md) | L'envoi direct sur le web passe par la vérification Google | proposée |
+| [0007](0007-envoi-direct.md) | L'envoi direct sur le web passe par la vérification Google | reportée, 20 octobre 2026 |
 
 Le plan qui découle de ces fiches est dans [`../recadrage.md`](../recadrage.md).

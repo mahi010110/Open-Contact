@@ -9,6 +9,34 @@ le premier pour une rupture. La bascule du recadrage sera la 7.0.0
 
 Les versions d'avant la 6.76 se lisent dans l'historique du dépôt.
 
+## [6.86.0] — 20 octobre 2026
+
+Le recadrage, lot R7 : ceux qui aident. En **préversion**, derrière son
+propre drapeau (`aide`). Et deux décisions du mainteneur : l'envoi
+direct depuis le web (R6) est reporté, le lien mail reste le chemin de
+tout le monde.
+
+### Ajouté, en préversion
+
+- **« Je peux aider »**, dans Moi : trois cases — parler de mon
+  entreprise, relire un CV, présenter quelqu'un. Ce qui est coché part
+  dans ton profil chez tes amis, et seulement ces mots-là.
+- **« Décroché » propose d'aider à ton tour** : l'entreprise entre dans
+  ton parcours (tes amis liront « Karim y est en alternance »), et tu
+  coches ce que tu peux offrir. Rien ne s'enregistre sans toi.
+- **« Demander à Karim »** dit ce que Karim peut faire : à qui écrire,
+  20 minutes pour parler de son entreprise, relire ton CV, te présenter.
+  La phrase se pose dans votre conversation ; elle part quand tu
+  l'envoies.
+- **Le merci** : quand une piste qu'un ami a portée te répond, la fiche
+  propose « Le dire à Karim », le message prêt. Il se tait dès que tu
+  lui as écrit.
+
+### Changé
+
+- La ligne d'un ami dans « Amis » dit aussi ce qu'il peut offrir.
+- Le toast de « Décroché » n'a plus d'emoji.
+
 ## [6.85.0] — 20 octobre 2026
 
 Le recadrage, lot R4 : ma semaine. En **préversion**, derrière son

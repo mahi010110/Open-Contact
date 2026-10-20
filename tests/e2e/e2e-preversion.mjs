@@ -25,6 +25,7 @@
    ============================================================ */
 import { chromium, chromiumPath, serveRepo, relaisMuets, annuaireMuet, ouvrirReglages, ROOT, SHOTS } from './outils.mjs';
 import { readFile } from 'fs/promises';
+import { DRAPEAUX, enTest } from '../../engine/drapeaux.js';
 import path from 'path';
 
 const { server, base } = await serveRepo();
@@ -122,7 +123,10 @@ for (const sombre of [false, true]){
     phrase: [...document.querySelectorAll('.overlay:not(.ov-out) .hint')].pop()?.textContent.trim()
   }));
   ok(await dessus(p) === 'Préversion' && feuille.choix === 'Éteinte* | Allumée'
-    && feuille.phrase === 'Sur cet appareil seulement : l’onglet Réseau, tes chiffres et le retour après une pause, les mails prêts à partir, ma semaine.',
+    /* la phrase nomme chaque lot en test, dans l'ordre du registre : elle
+       se DÉDUIT du registre — une liste tenue à la main ici mentait dès
+       le lot suivant (R7) */
+    && feuille.phrase === `Sur cet appareil seulement : ${enTest(DRAPEAUX).map(d => d.nom).join(', ')}.`,
     `② ${nom} : deux rangées, « Éteinte » retenue, et ce qui est en test — ${feuille.choix} — ${feuille.phrase}`);
   if (!sombre) await p.screenshot({ path: `${SHOTS}/160-preversion-feuille-pouce.png` });
   ok(await lotReseau(p) === false, `③ ${nom} : éteinte, le lot en test reste éteint`);

@@ -11,8 +11,9 @@ import { normalizeAmis, idAmiValide } from './amis.js';
 import { boiteValide } from './boite.js';
 import { normaliserGroupes } from './groupe.js';
 import { normaliserSemaine } from './semaine.js';
+import { normaliserAide } from './aide.js';
 
-export const APP_VERSION = '6.85.0';
+export const APP_VERSION = '6.86.0';
 
 export const DOMAINS = {
   esn:     { label:'ESN / Services IT',       color:'#4C9FD8' },
@@ -547,6 +548,11 @@ export function normalizeProfile(raw){
      ma copie — et jamais un profil donné ni un partage de pistes. */
   const sem = normaliserSemaine(profile.semaine);
   if (sem) profile.semaine = sem; else delete profile.semaine;
+  /* JE PEUX AIDER (lot R7, engine/aide.js) : des mots de la table, rien
+     d'autre. C'est le seul ajout de R7 au profil donné à un ami (OCA1
+     `aide`) ; vide, la clé n'existe pas. */
+  const aide = normaliserAide(profile.aide);
+  if (aide.length) profile.aide = aide; else delete profile.aide;
   /* « PAS POUR MOI » (docs/recherche-profil.md) : les entreprises de
      « À découvrir » qu'on a écartées — un SIREN, le nom pour pouvoir les
      rendre, la date. Les plus anciennes partent au-delà de 300. */

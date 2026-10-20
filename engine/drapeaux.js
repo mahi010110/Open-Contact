@@ -44,6 +44,11 @@ export const DRAPEAUX = Object.freeze([
     id: 'semaine', lot: 'R4', nom: 'ma semaine',
     raison: 'Ma semaine : un objectif de mails le lundi, qui se remplit seul, et la revue du vendredi, partagée au groupe d’un geste (proposition R4).',
     cree: '2026-10-20', retrait: '2027-03-31', ouvert: false
+  }),
+  Object.freeze({
+    id: 'aide', lot: 'R7', nom: 'ceux qui aident',
+    raison: 'Ceux qui aident : « Je peux aider » dans Moi, la piste décrochée qui propose d’aider à son tour, la demande de 20 minutes chez l’ami et le merci qui revient (proposition R7).',
+    cree: '2026-10-20', retrait: '2027-03-31', ouvert: false
   })
 ]);
 

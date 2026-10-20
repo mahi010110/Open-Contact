@@ -22,7 +22,8 @@
       se rapprochent jamais (pas de ressemblance approximative).
    4. Fonctions pures : rien ici ne lit l'écran ni le réseau.
    ============================================================ */
-import { parcoursDe, PARCOURS } from './parcours.js';
+import { parcoursDe, normalizeParcours, PARCOURS } from './parcours.js';
+import { normaliserAide } from './aide.js';
 
 export const AMIS_MAX = 200;
 export const AMI_PARCOURS_MAX = 20;
@@ -84,6 +85,9 @@ export function profilDonne(profile, companies){
   /* la clé où m'écrire (lot 3) — publique par nature, elle ne sert qu'à
      sceller une lettre que moi seul pourrai ouvrir */
   if (p.boite && CLE_BOITE.test(String(p.boite.pub || ''))) d.cle = p.boite.pub;
+  /* ce que je peux offrir (lot R7) — des mots de la table seulement */
+  const aide = normaliserAide(p.aide);
+  if (aide.length) d.aide = aide;
   return d;
 }
 
@@ -109,6 +113,8 @@ export function normalizeAmi(x){
   }
   const out = { id: x.id, nom, parcours };
   if (CLE_BOITE.test(String(x.cle || ''))) out.cle = x.cle;
+  const aide = normaliserAide(x.aide);
+  if (aide.length) out.aide = aide;
   /* `recu` : le jour où il est arrivé chez toi — rien de plus */
   const r = Number(x.recu);
   if (Number.isFinite(r) && r > 0) out.recu = r;
@@ -130,7 +136,8 @@ export function normalizeAmis(list){
    Le profil d'un ami est À LUI : sa version la plus récente remplace la
    précédente (même identifiant). On ne s'ajoute pas soi-même. */
 const memeContenu = (a, b) => a.nom === b.nom && (a.cle || '') === (b.cle || '')
-  && JSON.stringify(a.parcours) === JSON.stringify(b.parcours);
+  && JSON.stringify(a.parcours) === JSON.stringify(b.parcours)
+  && (a.aide || []).join() === (b.aide || []).join();
 export function statutAmi(amis, ami, monId){
   if (!ami) return 'invalide';
   if (monId && ami.id === monId) return 'moi';
@@ -277,4 +284,20 @@ export function chercherAmis(classes, q){
       .replace(/[^a-z0-9]+/g, ' ') + ' ';
     return mots.every(m => tout.includes(' ' + m));
   });
+}
+
+/* ---------- à « Décroché » : l'entreprise entre dans mon parcours ----------
+   La ligne qu'on proposerait : l'entreprise, le mot du profil (stage,
+   alternance, emploi — vide s'il n'est pas dit : l'écran le demande),
+   depuis ce mois-ci, liée à la piste. Rien si j'y suis DÉJÀ, d'après une
+   ligne saisie en cours ; une ligne déduite d'un « J'y suis passé » n'a
+   pas de date, elle dirait « y a été » — la ligne saisie prend sa place.
+   (Lot R7, docs/propositions/R7-ceux-qui-aident.md.) */
+export function parcoursADecrocher(profile, c, mois){
+  if (!c || !c.name || c.demo || !MOIS.test(String(mois || ''))) return null;
+  const ici = normalizeParcours(profile && profile.parcours)
+    .some(e => (e.pisteId === c.id || memeEntreprise(c, e)) && e.debut && !e.fin);
+  if (ici) return null;
+  const r = profile && profile.recherche;
+  return { entreprise: String(c.name).replace(/\s+/g, ' ').trim().slice(0, 120), quoi: PARCOURS[r] ? r : '', debut: mois, fin: '', pisteId: c.id };
 }

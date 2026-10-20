@@ -58,6 +58,9 @@ export function resumeConversations(){
   });
 }
 export const aUneConversation = id => filAvec(conv, id).length > 0;
+/* l'instant de MON dernier message à cet ami (0 sinon) — le merci du lot
+   R7 se tait dès qu'on lui a écrit depuis que la piste a répondu */
+export const dernierEnvoiA = id => filAvec(conv, id).filter(m => m.moi).reduce((t, m) => Math.max(t, m.at || 0), 0);
 export function marquerAmiLu(id){
   conv = marquerLu(conv, id);
   sauver();
@@ -141,6 +144,9 @@ export async function ouvrirConversation(a, apres, o = {}){
   champ.placeholder = 'Écrire à ' + prenomAmi(a);
   champ.setAttribute('aria-label', 'Écrire à ' + prenomAmi(a));
   champGrandit(champ);
+  /* un message PRÊT (lot R7 : une demande d'aide, un merci) : posé dans
+     le champ, jamais envoyé — il part de la flèche, comme tout le reste */
+  if (o.texte){ champ.value = String(o.texte).slice(0, MESSAGE_MAX); queueMicrotask(() => champ.dispatchEvent(new Event('input'))); }
   const envoyer = async () => {
     const texte = champ.value.trim();
     if (!texte) return;

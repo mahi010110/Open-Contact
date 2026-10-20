@@ -1,8 +1,11 @@
 # 0007 — L'envoi direct sur le web passe par la vérification Google
 
-**Statut** : proposée, en attente du mainteneur. En attendant, l'envoi
-direct reste masqué (`ENVOI_DIRECT`, `ui/perimetre.js`) et `mailto:`
-reste le chemin de tout le monde.
+**Statut** : **reportée** par le mainteneur le 20 octobre 2026. La
+vérification Google n'est pas lancée ; l'envoi direct reste masqué
+(`ENVOI_DIRECT`, `ui/perimetre.js`), `mailto:` reste le chemin de tout le
+monde, et le lot R6 passe après les autres. L'application ordinateur
+enverra par la messagerie de l'utilisateur, sans démarche. La décision
+proposée plus bas reste écrite telle quelle : c'est elle qu'on rouvrira.
 
 ## Contexte
 
@@ -34,3 +37,9 @@ ceux qui veulent que les séries partent sans eux.
   « Annuler » pendant 10 secondes.
 - Si la vérification tarde ou échoue, rien n'est perdu : le lien mail
   et l'application ordinateur restent les deux chemins.
+
+## La réponse du mainteneur (20 octobre 2026)
+
+Reporter. La règle ② de `CLAUDE.md` §0 tient : rien n'engage le
+mainteneur dans une démarche chez Google ou Microsoft pour l'instant. On
+passe au lot R7.

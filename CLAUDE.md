@@ -180,7 +180,8 @@ l'utilisateur — les contacts qu'un camarade lui a partagés. **Quatre choses
 seulement traversent en nommant quelqu'un** : `vecuQui`, le prénom de qui
 déclare « j'y suis passé » (§8), et seulement sur déclaration explicite ;
 le **profil donné** à un ami (OCA1 : un identifiant, le nom, le parcours,
-la clé de sa boîte), par son propriétaire lui-même, d'un QR ou d'un texte —
+la clé de sa boîte — et, depuis R7, ce qu'il peut offrir, des mots d'une
+table), par son propriétaire lui-même, d'un QR ou d'un texte —
 ou parce qu'il vient d'ajouter cet ami : **l'amitié est réciproque**
 (décision du mainteneur, 7 octobre 2026), et l'aperçu le dit avant le
 geste (« Karim aura aussi ton profil. ») — et ce même profil, quand il
