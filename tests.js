@@ -30,7 +30,7 @@ import { DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, SYNC_KEY,
          kvGet, kvSet, kvDel, vaultActive, vaultDetach, vaultReseal } from './engine/storage.js';
 import { DRAPEAUX, DUREE_MAX_JOURS, defauts as defautsDrapeau, perimes, actif, enTest,
          lirePreversion, ecrirePreversion } from './engine/drapeaux.js';
-import { DESTINATIONS, ACCUEIL, routeDe, destination, titreDe } from './engine/destinations.js';
+import { DESTINATIONS, ACCUEIL, routeDe, destination, titreDe, navigation } from './engine/destinations.js';
 import { causeLiaison, relayTally, liaisonStage, parseTurn, turnText, TURN_MAX, RELAIS_DEFAUT } from './engine/transport.js';
 import { clePortage, sceller as scellerPortage, ouvrir as ouvrirPortageMsg, decouper, rassembler, recolte,
          PORTAGE_PART, PORTAGE_PARTS_MAX, makeCleEchange, cleEntre, decouperScelle, rassemblerScelle } from './engine/portage.js';
@@ -3377,7 +3377,15 @@ export async function runSelfTests(){
       eq(ecrirePreversion(false), null);
     },
     'destinations : une ancienne adresse mène toujours quelque part': () => {
-      eq(DESTINATIONS.map(d => d.id), ['aujourdhui', 'pistes', 'echanger', 'moi']);
+      eq(DESTINATIONS.map(d => d.id), ['aujourdhui', 'pistes', 'echanger', 'reseau', 'moi']);
+      /* la barre selon le lot « reseau » : Réseau OU Échanger, jamais les
+         deux, et l'ancienne adresse redirige dans les deux sens */
+      eq(navigation(false).ids, ['aujourdhui', 'pistes', 'echanger', 'moi']);
+      eq(navigation(true).ids, ['aujourdhui', 'pistes', 'reseau', 'moi']);
+      eq(destination('#/echanger', navigation(true)), { id: 'reseau', ancienne: true });
+      eq(destination('#/reseau', navigation(false)), { id: 'echanger', ancienne: true });
+      eq(destination('#/reseau', navigation(true)), { id: 'reseau', ancienne: false });
+      eq(titreDe('reseau'), 'Réseau');
       eq(routeDe('#/pistes'), 'pistes');
       eq(routeDe('#pistes'), 'pistes');
       eq(routeDe('#/Pistes/'), 'pistes');

@@ -37,7 +37,9 @@ place :
   qu'on te tend (scanner, coller, fichier), sous le mot que l'app
   emploie déjà, « Recevoir ».
 - **Un seul Partager**, depuis « Pistes » (choisir, puis Partager) et
-  depuis la fiche. Il ne demande que « à qui ? ».
+  depuis la fiche. Il ne demande que « à qui ? ». À l'écran, le geste
+  garde le mot de l'app, **Donner** (§7 : un objet, un mot) — c'est
+  celui que l'autre lit de son côté, en face de « Recevoir ».
 - **Un seul Trouver quelqu'un**, sur la fiche. L'app choisit le chemin :
   amis, groupes, et plus tard ceux qui aident.
 - **La fiche commence par les gens** : qui peut t'ouvrir la porte, puis

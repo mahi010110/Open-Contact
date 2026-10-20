@@ -105,6 +105,16 @@ Les temps sont des maximums accordés, pas des promesses de date.
 - *Accepté quand* : sur les six parcours, au moins 4 personnes sur 5
   réussissent seules, et le SEQ moyen dépasse celui de la mesure de
   départ. *Retour arrière* : éteindre le drapeau.
+- **Où on en est**, en trois livraisons, toutes derrière le drapeau :
+  - **R1-a, livré (6.79.0)** : l'onglet Réseau (mes demandes, la boîte,
+    « Mes amis » avec sa recherche, l'historique) ; le + et sa feuille
+    Ajouter (une piste, puis Recevoir : QR · Fichier · Texte) ; Pistes
+    sans portée « Amis », « Choisir » puis « Donner ». Gardé par
+    `e2e-reseau.mjs`, les deux chemins joués.
+  - **R1-b** : la fiche commence par les gens ; « Donner » depuis la
+    fiche ; quelqu'un rencontré depuis le +.
+  - **R1-c** : au poste, la barre latérale et la fiche à droite de la
+    liste (décision 0003).
 
 ### R2 · Un suivi qui se remplit seul · 2 semaines
 

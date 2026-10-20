@@ -48,7 +48,11 @@ export const messageLecture = code => ERRS[code] || 'Impossible de lire ce conte
 /* `o.scanner` : ouvrir directement sur la caméra — depuis « Mon QR » ou
    « Rejoindre un groupe ». Le scanner est le MÊME : il reconnaît tout
    seul un QR de pistes, un rendez-vous, un profil ou une invitation. `o.apres` : ce que l'écran
-   d'en dessous doit redessiner quand un ami arrive. */
+   d'en dessous doit redessiner quand un ami arrive.
+   `o.mode` ('qr' · 'fichier' · 'texte') : le choix est déjà fait dans la
+   feuille « Ajouter » (R1, décision 0002) — on va droit au geste, et
+   « Retour » ramène aux trois. Le fichier s'ouvre dans le MÊME tap
+   (un sélecteur de fichier ne s'ouvre que pendant un geste). */
 export function openRecevoir(o = {}){
   let stopScan = null;
   let room = null;         /* salle de rendez-vous (QR OCR1 / code tapé) */
@@ -391,8 +395,12 @@ export function openRecevoir(o = {}){
     mergePreviewInto(sh, obj, Object.assign({ onBack: menu }, extra || {}));
   };
 
-  if (o.scanner) scan();
-  else menu();
+  if (o.scanner || o.mode === 'qr') scan();
+  else if (o.mode === 'texte'){ menu(); paste(); }
+  else {
+    menu();
+    if (o.mode === 'fichier') q('#rcInput').click();
+  }
 }
 
 /* ---- depuis mes e-mails : une source de la capture (#5) ----

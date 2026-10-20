@@ -131,10 +131,12 @@ export function choisirTheme(choix, persist = true){
    est en préversion. Un écran demande le LOT, jamais la préversion
    elle-même : le jour où le lot s'ouvre, rien d'autre ne change. */
 export const lot = id => actif(DRAPEAUX, id, S.preversion);
-export function choisirPreversion(on){
+export async function choisirPreversion(on){
   S.preversion = !!on;
   const v = ecrirePreversion(S.preversion);
-  return v == null ? kvDel(PREVERSION_KEY) : kvSet(PREVERSION_KEY, v);
+  await (v == null ? kvDel(PREVERSION_KEY) : kvSet(PREVERSION_KEY, v));
+  /* la barre et l'écran courant suivent (app.js) */
+  document.dispatchEvent(new CustomEvent('oc:preversion'));
 }
 /* « Auto » suit l'appareil EN DIRECT : le téléphone qui passe en sombre
    le soir emmène l'app avec lui, sans rechargement */

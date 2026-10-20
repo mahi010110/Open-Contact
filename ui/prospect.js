@@ -9,7 +9,7 @@
 import { esc } from '../engine/utils.js';
 import { STATUSES, nextActionContact } from '../engine/model.js';
 import { filterCompanies } from '../engine/filter.js';
-import { S, bus, isClosed } from './state.js';
+import { S, bus, isClosed, lot } from './state.js';
 import { openSheet, toast, btn, ic, softReorder, collerEnHaut } from './dom.js';
 import { sortState, sortArgs } from './sort.js';
 import { filterState, filterArgs, barreListeHTML, bindBarreListe, majTout,
@@ -19,6 +19,7 @@ import { openContactEditor } from './contact.js';
 import { openCampaignWizard } from './campagnes.js';
 import { CAMPAGNES } from './perimetre.js';
 import { whoCandidates, whoLineHTML, whoInline, openWhoPicker } from './qui.js';
+import { openDonner } from './donner.js';
 
 /* la personne proposée d'office : celle de la prochaine action, sinon
    la première activée avec email, sinon la première joignable (#14) */
@@ -35,7 +36,11 @@ export function openProspect(){
   const sel = new Set();
   const st = sortState('status');            /* « À contacter » en tête par défaut */
   const ft = filterState();                  /* propre à cet écran (#8) */
-  const sh = openSheet({ title: 'Prospecter', icon: 'mail' });
+  /* R1 (décision 0002) : la feuille CHOISIT des pistes, et le pied dit
+     ce qu'on en fait — les écrire, ou les donner. « Donner » quitte
+     « Échanger » pour venir là où sont les pistes. */
+  const choisir = lot('reseau');
+  const sh = openSheet({ title: choisir ? 'Choisir' : 'Prospecter', icon: choisir ? 'checkbox-on' : 'mail' });
 
   /* qui recevra, piste par piste (#1). Écrire n'est pas donner : le
      défaut reste UNE personne — celle de la prochaine action — sinon un
@@ -85,10 +90,21 @@ export function openProspect(){
      individuel, sinon elle affiche un état périmé dès la seconde ligne */
   let qs = '';                 /* ce qu'on cherche dans la liste */
   let syncAll = () => {};
+  /* Donner ce qu'on a coché, sauf les pistes d'exemple (leurs contacts
+     sont fictifs) : le compte est celui de l'écriture, à côté */
+  const aDonner = () => alive().filter(c => sel.has(c.id) && !c.demo).map(c => c.id);
+  const bDonner = choisir ? btn('Donner', '', () => {
+    const ids = aDonner();
+    if (!ids.length) return;
+    sh.close();
+    openDonner({ ids });
+  }, 'share') : null;
+  if (bDonner) bDonner.id = 'pkDonner';
   const sync = () => {
     const n = nWho();
     bGo.textContent = n ? `${VERBE} (${n})` : VERBE;
     bGo.disabled = !n;
+    if (bDonner) bDonner.disabled = !aDonner().length;
     syncAll();
   };
 
@@ -201,7 +217,7 @@ export function openProspect(){
     collerEnHaut(sh.body.querySelector('.stick-guet'), sh.body.querySelector('.listbar'));
     renderItems();
   };
-  sh.setFoot([bGo]);
+  sh.setFoot(bDonner ? [bDonner, bGo] : [bGo]);
   render();
 }
 

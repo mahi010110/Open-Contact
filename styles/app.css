@@ -2109,7 +2109,7 @@ details.pcard-details[open]>summary{margin-bottom:10px}
    corriger. Conséquence : « Donner » se pose au même endroit quel que
    soit le remplissage (63 / 72 / 74 % selon le téléphone), et la mémoire
    du geste tient. */
-#view-echanger>.page-inner{display:flex;flex-direction:column;height:100%}
+#view-echanger>.page-inner,#view-reseau>.page-inner{display:flex;flex-direction:column;height:100%}
 /* Au pouce, l'écran s'inverse : on LIT en haut, on AGIT en bas — la
    boîte tient la région et défile (`.bx-zone`), les deux gestes se posent
    juste au-dessus de la barre, la zone qu'une main atteint sans changer
@@ -2145,7 +2145,7 @@ details.pcard-details[open]>summary{margin-bottom:10px}
      La barre d'actions passe au-dessus, sur toute la largeur : les trois
      canaux d'un échange tiennent sur une ligne au lieu de deux, et
      « Donner » cesse d'être un timbre de 165 px. */
-  #view-echanger>.page-inner{max-width:1060px}
+  #view-echanger>.page-inner,#view-reseau>.page-inner{max-width:1060px}
   /* UNE BARRE D'OUTILS, À L'ÉCHELLE DE L'APP — et deux natures, pas
      trois cellules identiques.
 
@@ -3569,6 +3569,24 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 }
 .bx-plus:active{background:var(--surface-raised)}
 @media (hover:hover){ .bx-plus:hover{background:var(--surface-raised);color:var(--text-body)} }
+/* « Mes amis », une ligne de la liste (R1) : elle MÈNE — son compte et
+   son chevron, à l'encre du texte, comme une rangée de Réglages — et ne
+   se lit pas comme les gestes sourds qui la suivent */
+.bx-amis{
+  display:flex;align-items:center;gap:8px;width:100%;min-height:var(--ctl);padding:0 12px;
+  border:0;background:none;font:inherit;font-size:var(--text-14);color:var(--text-body);text-align:left;cursor:pointer;
+}
+.bx-amis-l{flex:1;min-width:0;text-align:left}
+.bx-amis-n{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
+.bx-amis:active{background:var(--surface-raised)}
+@media (hover:hover){ .bx-amis:hover{background:var(--surface-raised)} }
+/* « Mes demandes » en tête de Réseau : les cartes de la fiche, et le
+   contact donné juste dessous */
+.rz-dem{margin:0 0 16px}
+.rz-dem .tr-h{margin-bottom:2px}
+.rz-carte + .rz-carte,.rz-don + .rz-carte{margin-top:10px}
+/* la feuille « Ajouter » : ce qu'on reçoit, sous son mot */
+.aj-recv{margin-top:0}
 /* l'historique : une ligne qui mène à sa feuille */
 .bx-histo{
   display:flex;align-items:center;gap:8px;width:100%;min-height:var(--ctl);padding:0 2px;margin:0 0 6px;
@@ -3639,7 +3657,7 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
   /* LES DEUX VOLETS (Discord, Slack ; Material 3 « list-detail ») : la
      liste à gauche, la conversation choisie posée à droite, la même
      hauteur — chacun défile chez lui */
-  #view-echanger>.page-inner.ec-boite{max-width:1180px}
+  #view-echanger>.page-inner.ec-boite,#view-reseau>.page-inner.ec-boite{max-width:1180px}
   .bx-cols{flex:1;min-height:0;display:grid;grid-template-columns:minmax(17rem,22rem) minmax(0,1fr);gap:18px}
   .bx-gauche{min-height:0;overflow:auto;padding:4px;margin:-4px}
   .bx-seule{max-width:36rem}

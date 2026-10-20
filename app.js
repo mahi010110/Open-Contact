@@ -8,7 +8,7 @@
 import { APP_VERSION } from './engine/model.js';
 import { THEME_KEY, kvInit, kvGet, kvSet } from './engine/storage.js';
 import { initVerrou } from './ui/verrou.js';
-import { S, bus, loadAll, reloadFromStorage, choisirTheme } from './ui/state.js';
+import { S, bus, loadAll, reloadFromStorage, choisirTheme, lot } from './ui/state.js';
 import { $, $$, toast, installFoldMotion, sheetOpen } from './ui/dom.js';
 import { renderToday } from './ui/today.js';
 import { renderPistes } from './ui/pistes.js';
@@ -21,7 +21,7 @@ import { downloadBackup, closeReglages } from './ui/moi.js';
 import { ecouterInstallation } from './ui/installer.js';
 import { initSyncLive } from './ui/synclive.js';
 import { ORDINATEUR, CAMPAGNES } from './ui/perimetre.js';
-import { destination, titreDe } from './engine/destinations.js';
+import { destination, titreDe, navigation } from './engine/destinations.js';
 
 /* tôt, avant tout `await` : Chrome peut signaler l'installation dès le
    chargement, et un écouteur posé après aurait manqué l'événement */
@@ -31,16 +31,20 @@ const VIEWS = {
   aujourdhui: renderToday,
   pistes: renderPistes,
   echanger: renderEchanger,
+  /* R1 (décision 0002) : la même vue, recadrée — renderEchanger dessine
+     « Réseau » dans sa propre section quand le lot est allumé */
+  reseau: renderEchanger,
   moi: renderMoi
 };
 
 /* Le registre des destinations (engine/destinations.js) dit où mène une
    adresse — y compris une ANCIENNE, le jour où un écran déménage. Une
    adresse redirigée est réécrite sur place (`replaceState`) : la barre
-   d'adresse dit où l'on est, et le retour ne repasse pas par l'ancienne. */
-const ALIAS = {};
+   d'adresse dit où l'on est, et le retour ne repasse pas par l'ancienne.
+   La barre suit le lot « reseau » : Réseau ou Échanger, jamais les deux,
+   et l'adresse de l'un mène à l'autre. */
 function routeFromHash(){
-  const { id, ancienne } = destination(location.hash, { ids: Object.keys(VIEWS), alias: ALIAS });
+  const { id, ancienne } = destination(location.hash, navigation(lot('reseau')));
   if (ancienne) history.replaceState(history.state, '', location.pathname + location.search + '#/' + id);
   return id;
 }
@@ -121,6 +125,36 @@ export function auSommet(route){
 }
 bus.refresh = render;
 
+/* LA BARRE SUIT LE LOT « reseau » (R1, décision 0002). Le lien d'
+   « Échanger » devient « Réseau » — son mot, son icône, son adresse —,
+   et le + fait tout entrer (la feuille Ajouter) au lieu d'ouvrir une
+   piste. Rien d'autre ne bouge dans la barre. */
+const ONGLET = {
+  echanger: { mot: 'Échanger', icone: 'share' },
+  reseau: { mot: 'Réseau', icone: 'users' }
+};
+function appliquerNav(){
+  const r = lot('reseau') ? 'reseau' : 'echanger';
+  $$('nav [data-r="echanger"], nav [data-r="reseau"]').forEach(a => {
+    a.dataset.r = r;
+    a.href = '#/' + r;
+    a.setAttribute('aria-label', ONGLET[r].mot);
+    /* le MOT seulement : le chiffre de l'onglet (`.nav-n`) reste à sa place */
+    const l = a.querySelector('.bn-l') || [...a.childNodes].find(n => n.nodeType === 3 && n.textContent.trim());
+    if (l) l.textContent = ONGLET[r].mot;
+    const ico = a.querySelector('.ic');
+    if (ico){ const u = `url(assets/icons/${ONGLET[r].icone}.svg)`; ico.style.webkitMaskImage = u; ico.style.maskImage = u; }
+  });
+  const ajout = lot('reseau') ? 'Ajouter' : 'Ajouter une piste';
+  $('#bnAdd').setAttribute('aria-label', ajout);
+  const top = $('#btnAddTop');
+  if (top && top.lastChild) top.lastChild.textContent = ' ' + ajout;
+}
+async function ajouter(){
+  if (!lot('reseau')){ openCapture(); return; }
+  (await import('./ui/ajouter.js')).openAjouter();
+}
+
 (async function init(){
   console.info('OpenContact', APP_VERSION);
   /* le thème d'abord (l'écran verrouillé doit être du bon côté),
@@ -169,8 +203,17 @@ bus.refresh = render;
        qui a pu changer ce qui est à l'écran. */
     if (a.dataset.r === S.route) auSommet(S.route);
   }));
-  $('#bnAdd').addEventListener('click', () => openCapture());
-  $('#btnAddTop').addEventListener('click', () => openCapture());
+  $('#bnAdd').addEventListener('click', ajouter);
+  $('#btnAddTop').addEventListener('click', ajouter);
+  /* la préversion allumée ou éteinte : la barre suit, et l'adresse
+     courante se relit — « Échanger » ouvert devient « Réseau » */
+  document.addEventListener('oc:preversion', () => {
+    appliquerNav();
+    /* l'écran ne change que si l'adresse mène ailleurs ; sinon il se
+       redessine sur place, sans voler le focus de la feuille ouverte */
+    if (routeFromHash() !== S.route) applyRoute(); else render();
+  });
+  appliquerNav();
   $('#swCopy').addEventListener('click', () => downloadBackup());   /* secours : brut, sans question */
 
   /* clavier : « / » saute à la recherche des pistes */
