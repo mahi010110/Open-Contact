@@ -138,6 +138,14 @@ Un mail envoyé passe la piste « En cours » et propose la relance à
 trois choses à faire, sans compter les jours manqués. Aucune clé
 nouvelle : tout se déduit des pistes et du journal.
 
+- **Où on en est** : **livré en préversion (6.83.0)**, derrière le
+  drapeau `suivi` (`engine/suivi.js`). Gardé par `e2e-reprendre.mjs`,
+  les deux chemins joués, quatre mutations à l'appui.
+- *Accepté quand* : sur le parcours « je reviens après une semaine »,
+  au moins 4 personnes sur 5 font un premier geste depuis « Reprendre »
+  sans aide (`docs/mesure/protocole.md`). *Retour arrière* : éteindre
+  le drapeau.
+
 ### R3 · Prêts à partir · 2 semaines
 
 Les relances et les premiers mails préparés, relus et envoyés en série.

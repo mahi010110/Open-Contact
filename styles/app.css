@@ -1279,6 +1279,13 @@ details.tranche[open]>summary::before{
 .act-fait:hover .act-case{border-color:var(--green)}
 }
 .act-fait+.act-main{padding-left:4px}
+/* « Reprendre » (R2) : le repère d'une ligne sans case tient la place de
+   la case, pour que le nom garde un seul bord dans la liste */
+.act-sorte{
+  flex:none;align-self:center;width:var(--ctl);height:var(--ctl);margin-left:4px;
+  display:inline-flex;align-items:center;justify-content:center;color:var(--text-muted);
+}
+.act-sorte+.act-main{padding-left:4px}
 /* L'ANNEAU VA AU NOM. Depuis que la case « Fait » ouvre la ligne et que
    le geste la ferme, le contrôle qui ouvre la fiche n'en couvre plus que
    le milieu : l'anneau posé sur la RANGÉE l'entourait de loin, et le

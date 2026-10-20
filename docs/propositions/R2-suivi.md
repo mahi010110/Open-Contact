@@ -96,3 +96,27 @@ d'une seule tranche de suggestion à la fois (§6) est tenue.
 
 **Les réponses (20 octobre 2026)** : ① « décrochées » ; ② 7 jours ;
 ③ Pistes seulement. Les trois recommandations, sans changement.
+
+## Livrée en préversion (6.83.0)
+
+Derrière le drapeau `suivi`, le moteur dans `engine/suivi.js`, gardé par
+`e2e-reprendre.mjs`. Trois choix faits en construisant, à relire avec
+toi :
+
+- **Ce qui compte comme un geste** : une piste qui change (`updatedAt`,
+  qui voyage avec la synchronisation : un soir sur l'ordinateur compte
+  aussi sur le téléphone), ou une ligne du journal qui nomme une piste
+  (donner, recevoir, demander). Un merci, un ami qui t'ajoute, la
+  synchronisation qui se raconte ne referment pas une pause.
+- **« Réponses » compte aussi les refus** : « ils m'ont dit non » est
+  une réponse. L'entonnoir ne remonte jamais : écrites ≥ réponses ≥
+  décrochées.
+- **Un repère en tête des lignes sans case** : dans « Reprendre », une
+  action prévue garde sa case « Fait » ; ce qui se tait prend l'horloge
+  de « Sans nouvelles », par où commencer l'éclair. Le nom garde ainsi
+  un seul bord, et la ligne dit pourquoi elle est là.
+
+Pas de reprise tant que les premiers pas sont là (on ne reprend que ce
+qu'on a commencé), ni avec les pistes d'exemple. Le reste de l'écran se
+replie sous « Tout le reste ».
+

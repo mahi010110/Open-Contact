@@ -35,7 +35,7 @@ problèmes d'un écran (Nielsen). On corrige, puis on refait un tour.
   répond « fais comme tu ferais seul ». Une tâche abandonnée est une
   mesure, pas un échec de la personne.
 
-## Les six parcours
+## Les six parcours, et un septième pour R2
 
 Chacun se lit tel quel, sans les mots de l'interface quand ils
 trahiraient la réponse.
@@ -48,6 +48,7 @@ trahiraient la réponse.
 | 4 | « Où en est ta candidature chez Advens, et que dois-tu faire ensuite ? » | la personne dit « en cours » et « relancer Claire, en retard », sans hésiter plus de 30 s |
 | 5 | « Tu sors d'un entretien chez Aztek. Note-le et prévois la suite. » | le statut passe à « Réponse » et une prochaine action est planifiée |
 | 6 | « Donne tes trois meilleures pistes à Karim, assis à côté de toi. » | trois pistes arrivent chez Karim (QR, fichier ou texte), aperçu compris |
+| 7 | *Tour R2 seulement, joué en premier, sur la copie `--pause`.* « Tu n'as pas ouvert l'app depuis une semaine. Remets-toi en route. » | la personne fait un premier geste depuis « Reprendre » (écrire, cocher, planifier) sans hésiter plus de 30 s |
 
 ## Ce qu'on note, par parcours
 

@@ -8,7 +8,11 @@
    une relance « en retard de deux jours » l'est le jour de la séance,
    pas trois semaines plus tard. Lancer donc le jour même :
 
-     node tests/mesure/jeu-de-test.mjs [fichier]
+     node tests/mesure/jeu-de-test.mjs [fichier] [--pause]
+
+   `--pause` (le tour qui mesure R2) : chaque piste a été touchée pour
+   la dernière fois il y a dix jours. Préversion allumée, « Aujourd'hui »
+   s'ouvre alors sur « Reprendre » — le parcours 7, joué en premier.
 
    Le fichier par défaut est `tests/mesure/jeu-de-test.oc`, hors du
    dépôt (.gitignore à côté). Les personnes et les adresses sont
@@ -27,7 +31,9 @@ import { nouvelIdAmi } from '../../engine/amis.js';
 import { nouvelleCle } from '../../engine/boite.js';
 
 const ICI = path.dirname(fileURLToPath(import.meta.url));
-const sortie = process.argv[2] || path.join(ICI, 'jeu-de-test.oc');
+const args = process.argv.slice(2);
+const pause = args.includes('--pause');
+const sortie = args.find(a => !a.startsWith('--')) || path.join(ICI, 'jeu-de-test.oc');
 
 /* un jour relatif, en heure locale (jamais toISOString : la nuit, il
    décalerait d'un jour) */
@@ -37,7 +43,10 @@ const jour = n => {
 };
 const mois = n => jour(n).slice(0, 7);
 let k = 0;
-const piste = x => normalizeCompany({ id: 'test-' + (++k), ...x });
+/* `updatedAt` : la date du dernier geste sur la piste. Le jour même
+   d'habitude ; dix jours plus tôt pour mesurer le retour d'une pause */
+const derniere = pause ? Date.now() - 10 * 864e5 : Date.now();
+const piste = x => normalizeCompany({ id: 'test-' + (++k), updatedAt: derniere, ...x });
 
 const boite = await nouvelleCle();
 const karim = await nouvelleCle();
@@ -85,4 +94,4 @@ const pistes = [
 ];
 
 await writeFile(sortie, JSON.stringify(fullPayload(pistes, profil)), 'utf8');
-console.log(`${pistes.length} pistes et le profil d’Inès écrits dans ${sortie}`);
+console.log(`${pistes.length} pistes et le profil d’Inès écrits dans ${sortie}${pause ? ' (dernier geste il y a dix jours)' : ''}`);

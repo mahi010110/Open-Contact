@@ -12,7 +12,8 @@ import { portesDuJour } from './amis.js';
 import { lignesAmis, ouvrirLigne } from './reseau.js';
 import { scoreOf } from '../engine/score.js';
 import { dueFollowups, silentPistes, aDemarrer, premiersPas } from '../engine/assist.js';
-import { S, bus, isClosed, markDone, hasDemo, addDemo, removeDemo } from './state.js';
+import { enPause, reprendre } from '../engine/suivi.js';
+import { S, bus, isClosed, markDone, hasDemo, addDemo, removeDemo, lot } from './state.js';
 import { $, ic, openSheet } from './dom.js';
 import { frToday, frDate, dueMarkHTML, silenceMarkHTML } from './dates.js';
 import { askNextAction, reportAction, askClose } from './actions.js';
@@ -65,7 +66,7 @@ function receivedTodayCount(){
    Ce qui reste : le verbe descend en sous-ligne, où il est de toute
    façon doublé par les trois gestes de droite ; l'échéance garde sa
    place forte devant lui. */
-function rowHTML(c){
+function rowHTML(c, o = {}){
   const verb = c.nextActionText || 'Faire le point';
   const today = todayISO();
   /* la tranche donne le contexte : en retard → seul l'écart compte,
@@ -76,7 +77,10 @@ function rowHTML(c){
      c'est le seul cran qui la porte ici — sur un écran où toutes les
      lignes réclament quelque chose, une marque sur chacune ne serait
      plus un signal. */
-  const when = c.nextAction < today ? dueMarkHTML(c.nextAction)
+  /* au retour d'une pause (R2), le retard ne se compte pas : la ligne
+     dit quoi faire, pas depuis combien de temps on ne l'a pas fait */
+  const when = o.sansRetard ? ''
+             : c.nextAction < today ? dueMarkHTML(c.nextAction)
              : c.nextAction > today ? `<span class="act-when">${frDate(c.nextAction)}</span>` : '';
   return (
     `<div class="act-row" data-id="${c.id}">
@@ -153,7 +157,15 @@ function parOuCommencer(sansAction){
     (scoreOf(b) - scoreOf(a)) ||
     a.name.localeCompare(b.name, 'fr')).slice(0, DEBUT);
 }
-function startRowHTML(c){
+/* Dans « Reprendre », trois sortes de lignes se suivent dans UNE liste :
+   le nom doit y garder un seul bord (§6). La case « Fait » ouvre la ligne
+   d'une action prévue ; les deux autres prennent à sa place l'icône de
+   leur tranche de tous les jours — l'horloge de « Sans nouvelles »,
+   l'éclair de « Par où commencer » —, en encre sourde : elle dit
+   pourquoi la ligne est là, maintenant que le compte des jours n'y est
+   plus. Un repère, pas un geste. */
+const repereHTML = nom => `<span class="act-sorte" aria-hidden="true">${ic(nom, 'ic-14')}</span>`;
+function startRowHTML(c, o = {}){
   const n = (c.contacts || []).length;
   /* Le compte de contacts passe DEVANT le secteur : au pouce la
      sous-ligne s'élide, et c'est le dernier morceau qui saute. « ESN /
@@ -180,6 +192,7 @@ function startRowHTML(c){
   return (
     `<div class="act-row act-start" data-id="${c.id}">
        <div class="act-in">
+         ${o.repere ? repereHTML('zap') : ''}
          <div class="act-main sw-cible" role="button" tabindex="0" aria-label="Ouvrir ${esc(c.name)}">
            <b class="act-verb">${esc(c.name)}</b>
            <span class="act-sub">${pourquoi}<span class="act-who">${esc(bits.join(' · '))}</span></span>
@@ -212,7 +225,7 @@ function startRowHTML(c){
    Passé le dernier seuil, le moteur ne dit plus « relance », il dit
    « clore » ; le geste proposé change avec lui. Une pile dont chaque
    ligne peut sortir ne grandit pas sans fin. */
-function silenceRowHTML(sil){
+function silenceRowHTML(sil, o = {}){
   const c = S.companies.find(x => x.id === sil.id);
   if (!c) return '';
   const bits = [(STATUSES[c.status] || {}).label, c.city].filter(Boolean);
@@ -220,9 +233,10 @@ function silenceRowHTML(sil){
   return (
     `<div class="act-row act-quiet" data-id="${c.id}">
        <div class="act-in">
+         ${o.repere ? repereHTML('clock') : ''}
          <div class="act-main sw-cible" role="button" tabindex="0" aria-label="Ouvrir ${esc(c.name)}">
            <b class="act-verb">${esc(c.name)}</b>
-           <span class="act-sub">${silenceMarkHTML(sil)}<span class="act-who">${esc(bits.join(' · '))}</span></span>
+           <span class="act-sub">${o.sansJours ? '' : silenceMarkHTML(sil)}<span class="act-who">${esc(bits.join(' · '))}</span></span>
          </div>
          <div class="act-btns">
            ${/* le geste que la tranche propose, avec son MOT : « Relancer »
@@ -306,6 +320,31 @@ function debutHTML(items){
   return `<section class="tranche tr-start">
             <h2 class="tr-h">${ic('zap', 'ic-14')} Par où commencer</h2>
             <div class="tr-rows">${items.map(startRowHTML).join('')}</div>
+          </section>`;
+}
+
+/* ---------- « Reprendre » (R2, docs/propositions/R2-suivi.md) ----------
+   Sept jours sans un geste : on rouvre l'app pour se remettre en route,
+   et l'écran empilait les retards, chaque ligne avec ses jours manqués.
+   C'est une dette, et c'est là qu'on referme l'app. L'écran s'ouvre donc
+   sur TROIS choses, choisies par l'app (`reprendre`) : ce qui a une date
+   dépassée, puis ce qui se tait, puis par où commencer — chacune avec le
+   dessin et les gestes qu'elle a partout ailleurs, moins le compte des
+   jours. Le reste de l'écran est replié dessous, sans un chiffre au
+   repos ; il s'ouvre si on le veut. Le premier geste fait (cocher,
+   écrire, planifier, clore) date une piste : la pause est finie, et
+   l'écran redevient celui de tous les jours. */
+function repriseHTML(items){
+  const ligne = x => {
+    const c = S.companies.find(y => y.id === x.id);
+    if (!c) return '';
+    return x.sorte === 'action' ? rowHTML(c, { sansRetard: true })
+         : x.sorte === 'silence' ? silenceRowHTML(x.item, { sansJours: true, repere: true })
+         : startRowHTML(c, { repere: true });
+  };
+  return `<section class="tranche tr-reprendre" id="tdReprendre">
+            <h2 class="tr-h">${ic('redo', 'ic-14')} Reprendre</h2>
+            <div class="tr-rows">${items.map(ligne).join('')}</div>
           </section>`;
 }
 
@@ -410,6 +449,12 @@ export function renderToday(){
      trois colonnes — une seule colonne de trois lignes étirée sur
      1660 px envoie ses boutons à l'autre bout (mesuré). */
   const muettes = silentPistes(alive, today);
+  const pas = premiersPas(S.profile, S.companies);
+  /* R2 : après sept jours sans un geste, trois choses à reprendre. Pas
+     tant que les premiers pas sont là : on ne reprend que ce qu'on a
+     commencé, et ils disent déjà quoi faire. */
+  const reprise = lot('suivi') && !pas && enPause(S.companies, S.journal)
+    ? reprendre({ dues: [...late, ...due], muettes, debuts: parOuCommencer(aLancer) }) : [];
   const rienDePrevu = rienAFaire && !soon.length;
   const debut = !muettes.length && rienDePrevu && aLancer.length ? parOuCommencer(aLancer) : [];
   const suggestion = muettes.length
@@ -418,7 +463,9 @@ export function renderToday(){
   /* elle remplace le vide quand rien n'est prévu ; sinon elle SUIT le
      travail du jour — ce qui est engagé passe avant ce qui est suggéré */
   const alaPlace = rienDePrevu && suggestion;
-  const tableau = wide && alive.length && !alaPlace;
+  /* la reprise est un ÉTAT, le temps d'un geste : au poste aussi, une
+     colonne — l'exception nommée de « Par où commencer » (§6, règle 4) */
+  const tableau = wide && alive.length && !alaPlace && !reprise.length;
   let html =
     `<div class="page-inner${tableau ? ' page-wide' : ''}">
        <div class="td-head">
@@ -435,10 +482,22 @@ export function renderToday(){
      leur chiffre, comme toute messagerie (13 octobre 2026). Restent les
      amis qui attendent un GESTE — une demande, un contact donné. */
   html += amisHTML(lignesAmis());
-  const pas = premiersPas(S.profile, S.companies);
   if (pas && S.companies.length) html += pasHTML(pas, true);
 
-  if (!alive.length && !S.companies.length){
+  if (reprise.length){
+    html += repriseHTML(reprise);
+    /* le reste, replié : sans les trois lignes déjà montrées, et sans un
+       chiffre tant qu'il est fermé */
+    const montre = new Set(reprise.map(x => x.id));
+    const hors = l => l.filter(c => !montre.has(c.id));
+    const mu = muettes.filter(x => !montre.has(x.id));
+    const reste = trancheHTML('late', 'En retard', 'square-alert', hors(late))
+      + trancheHTML('due', 'Aujourd’hui', 'zap', hors(due))
+      + trancheHTML('soon', 'Bientôt', 'calendar', hors(soon), false)
+      + (mu.length ? silenceHTML(expanded.has('quiet') ? mu : mu.slice(0, DEBUT), mu.length) : '');
+    if (reste) html += `<details class="tranche tr-reste" id="tdReste"${expanded.has('reste') ? ' open' : ''}>
+        <summary class="tr-h"><h2>Tout le reste</h2></summary>${reste}</details>`;
+  } else if (!alive.length && !S.companies.length){
     /* première visite : la promesse, puis un seul geste.
        PLUS DE MODE D'EMPLOI. « Ajoute une piste, donne-lui une prochaine
        action — cet écran te dira toujours quoi faire maintenant » racontait
@@ -496,10 +555,10 @@ export function renderToday(){
   /* les campagnes du jour — SOUS le travail, jamais tronquées (#10) */
   if (CAMPAGNES) html += campaignLines().map(l =>
     `<button class="camp-line" data-camp="${esc(l.id)}">${ic('flag', 'ic-14')} <span>${esc(l.txt)}</span> <em>Voir</em></button>`).join('');
-  if (!wide) html += trancheHTML('soon', 'Bientôt', 'calendar', soon, false);   /* au poste, elle est déjà en colonne */
+  if (!wide && !reprise.length) html += trancheHTML('soon', 'Bientôt', 'calendar', soon, false);   /* au poste, elle est déjà en colonne */
   /* du travail est prévu ET des pistes se taisent : la suggestion vient
      APRÈS l'engagé, jamais devant */
-  if (suggestion && !alaPlace) html += suggestion.html();
+  if (suggestion && !alaPlace && !reprise.length) html += suggestion.html();
   /* ce qui suit le travail du jour — un pied, pas des liens en vrac.
      Sous un tableau à trois colonnes de hauteurs inégales, « 5 pistes
      sans prochaine action » flottait tout seul à gauche, sous un trou. */
@@ -517,7 +576,7 @@ export function renderToday(){
      « Mes pistes » sur l'étiquette « À planifier » : le même nombre. */
   const silencieuses = new Set(muettes.map(c => c.id));
   const aPlanifier = noAction.filter(c => !silencieuses.has(c.id));
-  const aLEcran = new Set(debut.map(c => c.id));
+  const aLEcran = new Set([...debut.map(c => c.id), ...reprise.map(x => x.id)]);
   if (aPlanifier.some(c => !aLEcran.has(c.id))){
     pied += `<button class="td-foot linklike" id="tdNoAct">${aPlanifier.length} piste${aPlanifier.length > 1 ? 's' : ''} à planifier →</button>`;
   }
@@ -577,6 +636,11 @@ export function renderToday(){
     row.querySelector('[data-a="mail"]')?.addEventListener('click', () => openMail(c));
     row.querySelector('[data-a="plan"]')?.addEventListener('click', () =>
       askNextAction(c, { title: 'Et ensuite ?' }));
+  });
+  /* le reste replié garde son état d'un rendu à l'autre (« Voir les N
+     autres » redessine l'écran) */
+  root.querySelector('#tdReste')?.addEventListener('toggle', e => {
+    if (e.target.open) expanded.add('reste'); else expanded.delete('reste');
   });
   root.querySelectorAll('.tr-more').forEach(b =>
     b.addEventListener('click', () => { expanded.add(b.dataset.tr); renderToday(); }));

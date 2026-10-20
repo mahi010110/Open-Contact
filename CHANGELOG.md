@@ -9,6 +9,25 @@ le premier pour une rupture. La bascule du recadrage sera la 7.0.0
 
 Les versions d'avant la 6.76 se lisent dans l'historique du dépôt.
 
+## [6.83.0] — 20 octobre 2026
+
+Le recadrage, lot R2 : un suivi qui se remplit seul. En **préversion**,
+derrière son propre drapeau (`suivi`) : la ligne « Préversion » de
+Réglages allume R1 et R2 ensemble.
+
+### Ajouté, en préversion
+
+- **Tes chiffres en tête de « Mes pistes »**, à la place du compte :
+  « 5 écrites · 2 réponses · 1 décrochée ». Ils se déduisent de tes
+  pistes, sans rien à remplir. Tant qu'aucune piste n'est écrite, le
+  compte de pistes reste ; pendant une recherche, « 3 sur 40 » aussi.
+- **Le retour après une pause.** Sept jours sans un geste sur tes
+  pistes, et « Aujourd'hui » s'ouvre sur « Reprendre » : trois choses,
+  choisies pour toi — d'abord ce qui a une date dépassée, puis ce qui
+  se tait, puis par où commencer. Ni le compte des jours manqués ni
+  celui de ce qui a glissé ; le reste est replié dessous, « Tout le
+  reste ». Le premier geste fait referme la tranche.
+
 ## [6.82.0] — 20 octobre 2026
 
 Le recadrage, lot R1-d : au poste, la fiche à côté de la liste. Toujours
