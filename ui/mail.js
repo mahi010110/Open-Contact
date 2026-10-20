@@ -31,7 +31,7 @@ import { euros } from '../engine/marche.js';
    la fiche. Sans rien de tout ça, le site est la matière : un tap pour
    aller la chercher. */
 const webH = w => /^https?:\/\//i.test(w) ? w : 'https://' + w;
-function savoirHTML(c){
+export function savoirHTML(c){
   /* Sans « En bref », la carte de l'entreprise (ui/carte.js) a souvent
      la phrase qui manque — ce qu'elle fait, selon Wikipédia ou
      l'annuaire — et sa taille, qui dit à qui l'on écrit (« une équipe de
@@ -82,6 +82,8 @@ export function openMail(c, opts){
        (Prospecter, « 2/5 ») qu'il faut lire à qui l'on écrit. */
     title: 'Écrire',
     icon: 'mail', className: 'modal-compose', focus: cts.length ? '#mSubj' : '#mBody',
+    /* R3-b : au poste, la série le pose dans sa colonne (ui/serie.js) */
+    dans: opts.dans,
     onClose: () => { oublier(); ecrireBrouillonsMaintenant(); if (done) return; done = true; if (opts.onQuit) opts.onQuit(); }
   });
   /* messagerie connectée ? Hors périmètre, la réponse est « non » et tout
@@ -147,7 +149,7 @@ export function openMail(c, opts){
           Absent quand il n'y a rien à savoir : un cadre vide dirait
           seulement qu'on n'a rien préparé, et le site, lui, mène
           quelque part. */''}
-     ${savoirHTML(c)}
+     ${opts.sansSavoir ? '' : savoirHTML(c)}
      <div class="field fld-body"><label for="mBody">Message</label><textarea id="mBody" aria-describedby="mTrou"></textarea>
        <button class="linklike" id="mBrouillon" hidden>${ic('undo', 'ic-14')} Reprendre mon brouillon</button>
        <p class="hint warn" id="mTrou" hidden>Remplace le texte entre crochets.</p>
@@ -447,6 +449,7 @@ export function openMail(c, opts){
     c.updatedAt = Date.now();
     saveData();
     oublierBrouillon(c.id);                             /* parti : le brouillon n'a plus d'objet */
+    if (opts.onEnvoye) opts.onEnvoye();                 /* la file de la série le dit */
     done = true;
     sh.close();
     bus.refresh();
@@ -619,4 +622,5 @@ export function openMail(c, opts){
     }
   }
   renderAttach();
+  return sh;
 }

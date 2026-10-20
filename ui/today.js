@@ -14,7 +14,7 @@ import { scoreOf } from '../engine/score.js';
 import { dueFollowups, silentPistes, aDemarrer, premiersPas } from '../engine/assist.js';
 import { enPause, reprendre } from '../engine/suivi.js';
 import { pretsAPartir, SERIE_MIN } from '../engine/prets.js';
-import { ecrireEnSerie } from './prospect.js';
+import { ouvrirSerie } from './serie.js';
 import { S, bus, isClosed, markDone, hasDemo, addDemo, removeDemo, lot } from './state.js';
 import { $, ic, openSheet } from './dom.js';
 import { frToday, frDate, dueMarkHTML, silenceMarkHTML } from './dates.js';
@@ -666,7 +666,7 @@ export function renderToday(){
     b.addEventListener('click', () => openCampaignById(b.dataset.camp)));
   root.querySelector('#tdTriage')?.addEventListener('click', () => openTriage(triage.items));
   root.querySelector('#tdPartir')?.addEventListener('click', () =>
-    ecrireEnSerie(prets.map(x => {
+    ouvrirSerie(prets.map(x => {
       const c = byId(x.id);
       return { c, ct: ((c && c.contacts) || []).find(t => t.id === x.ctId) || null };
     }).filter(x => x.c)));

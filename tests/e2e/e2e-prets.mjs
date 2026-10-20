@@ -18,10 +18,14 @@
      une piste qui a changé de statut le propose sans l'imposer ;
    ⑤ moins de deux mails prêts, les premiers pas, la préversion
      éteinte : pas de bouton — et éteinte, rien ne se garde ;
+   ⑥ au poste (R3-b), une fenêtre en trois colonnes : la file (où l'on
+     est, ce qui est parti ou passé ; un clic, ↓ y mènent), le mail
+     posé dans sa colonne, et ce qui aide à l'écrire — absent quand il
+     n'y a rien ;
    pouce clair et sombre, petit téléphone, poste ; zéro erreur console.
-   Quatre mutations : le brouillon qui fuit dans les notes, le
-   brouillon qui ne revient pas, l'entretien pris pour un mail, le
-   bouton monté en tête au pouce.
+   Cinq mutations : le brouillon qui fuit dans les notes, le brouillon
+   qui ne revient pas, l'entretien pris pour un mail, le bouton monté en
+   tête au pouce, le mail qui ne se pose pas dans sa colonne.
    ============================================================ */
 import { chromium, chromiumPath, serveRepo, relaisMuets, annuaireMuet, ROOT, SHOTS } from './outils.mjs';
 import { readFile } from 'fs/promises';
@@ -37,6 +41,7 @@ const J = 864e5, now = Date.now();
 const iso = d => new Date(now + d * J).toISOString().slice(0, 10);
 const PISTES = [
   { id: 'adv', name: 'Advens', city: 'Lille', status: 'active', appliedAt: iso(-9), nextAction: iso(-2), nextActionText: 'Relancer Claire', nextActionCt: 'c1',
+    desc: 'Cybersécurité, SOC à Lille.', notes: 'Claire a dit de relancer après le salon.',
     contacts: [{ id: 'c1', name: 'Claire Dubois', email: 'claire@advens.test' }], history: [{ d: iso(-9), t: 'Email envoyé' }] },
   { id: 'ora', name: 'Orange Cyberdefense', city: 'Lille', status: 'active', appliedAt: iso(-8), nextAction: iso(0), nextActionText: 'Relancer',
     contacts: [{ id: 'c2', name: 'Nadia Rahmani', email: 'nadia@orange.test' }] },
@@ -209,6 +214,47 @@ for (const [nom, vp, sombre] of [['pouce', { width: 390, height: 844 }, false], 
   await ctx.close();
 }
 
+/* ---------- ⑥ au poste, la file, le mail et ce qui aide ---------- */
+const fenetre = p => p.evaluate(() => {
+  const w = document.querySelector('.modal-serie');
+  if (!w) return null;
+  return {
+    file: [...w.querySelectorAll('.se-l')].map(b => b.querySelector('.se-n').textContent + ':' + b.querySelector('.se-e').textContent.trim()
+      + (b.getAttribute('aria-current') ? '*' : '')).join(' | '),
+    pose: !!w.querySelector('.se-mail #mPour'),
+    mail: w.querySelector('.se-mail #mPour b')?.textContent || '',
+    aide: [...w.querySelectorAll('.se-aide .ml-know-h, .se-aide .se-h')].map(h => h.textContent.trim()).join(','),
+    aideVue: !!w.querySelector('.se-aide') && getComputedStyle(w.querySelector('.se-aide')).display !== 'none'
+  };
+});
+async function poste(nom, mutations = {}){
+  const { ctx, p } = await ecran(nom, { vp: { width: 1280, height: 800 }, mutations });
+  await p.click('#tdPartir');
+  await p.waitForTimeout(500);
+  const r = { debut: await fenetre(p) };
+  await p.screenshot({ path: `${SHOTS}/164-prets-poste-fenetre.png` });
+  await p.click('.modal-serie .se-mail .modal-f button:has-text("Passer")').catch(() => {});
+  await p.waitForTimeout(450);
+  r.passe = await fenetre(p);
+  await p.click('.modal-serie .se-l[data-k="2"]').catch(() => {});
+  await p.waitForTimeout(400);
+  r.clic = await fenetre(p);
+  await p.focus('.modal-serie .se-l[data-k="2"]').catch(() => {});
+  await p.keyboard.press('ArrowUp');
+  await p.waitForTimeout(400);
+  r.fleche = await fenetre(p);
+  await ctx.close();
+  return r;
+}
+const posteOk = r => !!r.debut && r.debut.file === 'Advens:à écrire* | Orange Cyberdefense:à écrire | Worldline:à écrire'
+  && r.debut.pose && r.debut.mail === 'Advens' && r.debut.aide === 'À savoir,Mes notes,Historique'
+  && r.passe.file === 'Advens:passé | Orange Cyberdefense:à écrire* | Worldline:à écrire' && r.passe.mail === 'Orange Cyberdefense' && !r.passe.aideVue
+  && r.clic.mail === 'Worldline' && r.fleche.mail === 'Orange Cyberdefense';
+{
+  const r = await poste('poste-fenetre');
+  ok(posteOk(r), `⑥ au poste : la file, le mail posé dans sa colonne, ce qui aide (absent quand rien) ; « Passer », un clic, ↑ — ${JSON.stringify(r)}`);
+}
+
 /* ---------- ⑤ quand il n'y a pas de bouton ---------- */
 {
   const { ctx, p } = await ecran('un-seul', { pistes: PISTES.filter(c => c.id === 'adv' || c.id === 'kia') });
@@ -273,6 +319,14 @@ const lire = f => readFile(path.join(ROOT, f), 'utf8');
   const b = await bouton(p);
   ok(!!b && !(b.pied && b.haut > 0.6), `mutation ④ : la garde de la zone du pouce rougit — ${JSON.stringify(b)}`);
   await ctx.close();
+}
+
+{
+  const serie = await lire('ui/serie.js');
+  const m = serie.replace('dans: zone, sansSavoir: true,', 'dans: null, sansSavoir: true,');
+  ok(m !== serie, 'mutation ⑤ le mail qui ne se pose pas dans sa colonne : le fichier servi est bien modifié');
+  const r = await poste('mutation-colonne', { 'ui/serie.js': m });
+  ok(!posteOk(r), `mutation ⑤ : la garde de la fenêtre rougit — ${JSON.stringify(r.debut)}`);
 }
 
 /* les mutations jettent des erreurs qui ne sont pas les nôtres */

@@ -151,14 +151,17 @@ nouvelle : tout se déduit des pistes et du journal.
 *Proposition validée par le mainteneur le 20 octobre 2026 :*
 [`propositions/R3-prets-a-partir.md`](propositions/R3-prets-a-partir.md).
 
-- **Où on en est**, en deux livraisons derrière le drapeau `prets` :
-  - **R3-a, livré en préversion (6.84.0)** : « Écrire les N mails » au
-    pied d'« Aujourd'hui » (au poste, à côté du titre), la série au
-    téléphone, les brouillons gardés sur cet appareil
-    (`oc_brouillons_v1`, `engine/prets.js`). Gardé par
-    `e2e-prets.mjs`, la fuite d'abord.
-  - **R3-b, à venir** : au poste, la file, le mail et la fiche
-    (décision 0003).
+- **Où on en est** : **R3 est complet en préversion (6.84.0)**, derrière
+  le drapeau `prets`, en deux parties :
+  - **R3-a** : « Écrire les N mails » au pied d'« Aujourd'hui » (au
+    poste, à côté du titre), la série au téléphone, les brouillons
+    gardés sur cet appareil (`oc_brouillons_v1`, `engine/prets.js`) ;
+  - **R3-b** : au poste, une fenêtre en trois colonnes — la file, le
+    mail, ce qui aide à l'écrire (décision 0003, `ui/serie.js`).
+  Gardé par `e2e-prets.mjs`, la fuite d'abord.
+- *Accepté quand* : sur le parcours « écris tes relances du jour », au
+  moins 4 personnes sur 5 font partir la série sans aide. *Retour
+  arrière* : éteindre le drapeau.
 
 Les relances et les premiers mails préparés, relus et envoyés en série.
 Au téléphone, un mail par écran ; au poste, la file, le mail et la fiche.
