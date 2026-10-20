@@ -84,7 +84,7 @@ export function openProspect(){
     const pairs = allPairs();
     if (!pairs.some(p => p.ct)) return;
     sh.close();
-    if (CAMPAGNES) chooseMode(pairs); else run(pairs);
+    if (CAMPAGNES) chooseMode(pairs); else ecrireEnSerie(pairs);
   });
   /* la case « Tout » PORTE l'état : elle doit donc suivre chaque tap
      individuel, sinon elle affiche un état périmé dès la seconde ligne */
@@ -237,13 +237,14 @@ function chooseMode(pairs){
        ${CAMPAGNES ? `<button class="pick" id="pmCamp"><b>${ic('flag', 'ic-14')} En campagne</b>
          <span>sur 2 semaines</span></button>` : ''}
      </div>`;
-  sh.body.querySelector('#pmOne').addEventListener('click', () => { sh.close(); run(pairs); });
+  sh.body.querySelector('#pmOne').addEventListener('click', () => { sh.close(); ecrireEnSerie(pairs); });
   sh.body.querySelector('#pmCamp')?.addEventListener('click', () => { sh.close(); openCampaignWizard(pairs); });
 }
 
 /* la série : un composeur après l'autre, vers la personne choisie.
-   « Passer » avance, la croix arrête tout — tout de suite. */
-function run(pairs){
+   « Passer » avance, la croix arrête tout — tout de suite. La même
+   série part d'« Aujourd'hui » (R3, « Écrire les N mails »). */
+export function ecrireEnSerie(pairs){
   let i = 0;
   const next = () => {
     if (i >= pairs.length){

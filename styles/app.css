@@ -915,6 +915,17 @@ html[data-theme="dark"] .field select{
      position — tout en bas — et par son style de lien. Un séparateur
      qu'il faut expliquer ne sépare rien. */
   #view-aujourdhui>.page-inner>.td-under{margin-top:auto}
+  /* R3 : « Écrire les N mails » tient le pied, au-dessus de la barre, et
+     y RESTE quand la journée défile (`sticky`). Le pied de liens passe
+     au-dessus de lui : deux marges automatiques se partageraient la place
+     et laisseraient les liens flotter au milieu. */
+  #view-aujourdhui>.page-inner>.td-pret{margin-top:auto}
+  #view-aujourdhui>.page-inner>.td-under+.td-pret{margin-top:12px}
+  .td-pret{position:sticky;bottom:0;z-index:3;padding:10px 0 2px;background:var(--surface-desktop)}
+  .td-pret>.btn{width:100%}
+}
+@media (min-width:901px){
+  .td-head>#tdPartir{margin-left:auto;align-self:center}
 }
 @media (min-width:901px){
   .td-under{

@@ -111,7 +111,7 @@ for (const sombre of [false, true]){
     phrase: [...document.querySelectorAll('.overlay:not(.ov-out) .hint')].pop()?.textContent.trim()
   }));
   ok(await dessus(p) === 'Préversion' && feuille.choix === 'Éteinte* | Allumée'
-    && feuille.phrase === 'Sur cet appareil seulement : l’onglet Réseau, tes chiffres et le retour après une pause.',
+    && feuille.phrase === 'Sur cet appareil seulement : l’onglet Réseau, tes chiffres et le retour après une pause, les mails prêts à partir.',
     `② ${nom} : deux rangées, « Éteinte » retenue, et ce qui est en test — ${feuille.choix} — ${feuille.phrase}`);
   if (!sombre) await p.screenshot({ path: `${SHOTS}/160-preversion-feuille-pouce.png` });
   ok(await lotReseau(p) === false, `③ ${nom} : éteinte, le lot en test reste éteint`);

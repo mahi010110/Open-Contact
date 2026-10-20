@@ -25,7 +25,7 @@ import { filterCompanies, filterOrphans, searchHint, NATURAL_DIR } from './engin
 import { scoreOf } from './engine/score.js';
 import { DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, SYNC_KEY,
          RELAYS_KEY, TURN_KEY, DEVICE_KEY, DEVICES_KEY, PROMO_KEY, VAULT_KEY,
-         ANALYSIS_KEY, VUS_KEY, RESEAU_KEY, GROUPES_KEY, MESSAGES_KEY, FILS_KEY, SEALABLE, THEME_KEY, VIEW_KEY, OLD_V2, OLD_V1, CLES_A_EFFACER,
+         ANALYSIS_KEY, VUS_KEY, RESEAU_KEY, GROUPES_KEY, MESSAGES_KEY, FILS_KEY, BROUILLONS_KEY, SEALABLE, THEME_KEY, VIEW_KEY, OLD_V2, OLD_V1, CLES_A_EFFACER,
          PREVERSION_KEY,
          kvGet, kvSet, kvDel, vaultActive, vaultDetach, vaultReseal } from './engine/storage.js';
 import { DRAPEAUX, DUREE_MAX_JOURS, defauts as defautsDrapeau, perimes, actif, enTest,
@@ -52,6 +52,8 @@ import { dueFollowups, contactFromSignature, exchangeLog, exchangeTotals, nextAc
          SILENCE_RELANCE, SILENCE_DERNIERE, SILENCE_TROP_TARD,
          sansFilet, FILET_MIN_PISTES, FILET_JOURS, aDemarrer, premiersPas } from './engine/assist.js';
 import { mesChiffres, chiffresTexte, derniereActivite, enPause, PAUSE_JOURS, reprendre, REPRENDRE } from './engine/suivi.js';
+import { contactVise, estUnMail, pretsAPartir, SERIE_MAX, SERIE_MIN, lireBrouillons, poserBrouillon, retirerBrouillon,
+         brouillonDe, BROUILLON_JOURS } from './engine/prets.js';
 import { rappelICS, lienAgendaGoogle, formeAgenda, RAPPEL_HEURE } from './engine/agenda.js';
 import { normalizeParcours, parcoursDe, periodeParcours, phraseParcours, PARCOURS_MAX } from './engine/parcours.js';
 import { nouvelIdAmi, idAmiValide, cleEntreprise, memeEntreprise, profilDonne, normalizeAmi, normalizeAmis,
@@ -687,6 +689,8 @@ export async function runSelfTests(){
       ok(SEALABLE.has(MESSAGES_KEY)); /* mes conversations privées : une donnée */
       eq(FILS_KEY, 'oc_fils_v1');
       ok(SEALABLE.has(FILS_KEY));     /* elle nomme un groupe par son CODE : un secret */
+      eq(BROUILLONS_KEY, 'oc_brouillons_v1');
+      ok(SEALABLE.has(BROUILLONS_KEY)); /* un mail commencé : du privé */
       eq(THEME_KEY, 'oc_theme');
       eq(PREVERSION_KEY, 'oc_preversion_v1');
       ok(!SEALABLE.has(PREVERSION_KEY));   /* « allumée » ne dit rien de toi */
@@ -2705,6 +2709,73 @@ export async function runSelfTests(){
       const sil = { id: 'b', jours: 30, geste: 'relancer' };
       eq(reprendre({ muettes: [sil] })[0].item, sil);
     },
+    'prêts à partir : les relances dues, puis les premiers mails, cinq au plus': () => {
+      const T = '2026-10-20';
+      const ct = (id, email) => ({ id, name: id, email });
+      const r = o => pretsAPartir({ today: T, ...o }).map(x => x.sorte[0] + ':' + x.id + '>' + x.ctId).join(' ');
+      eq(SERIE_MAX, 5); eq(SERIE_MIN, 2);
+      /* une relance due avec une adresse ; la personne de l'action d'abord */
+      const adv = { id: 'adv', status: 'active', nextAction: '2026-10-18', nextActionText: 'Relancer Claire', nextActionCt: 'c2',
+        contacts: [ct('c1', 'a@x.test'), ct('c2', 'claire@x.test')] };
+      eq(r({ dues: [adv] }), 'r:adv>c2');
+      /* puis un premier mail, dans l'ordre de « Par où commencer » */
+      const wor = { id: 'wor', status: 'todo', contacts: [ct('w1', 'rh@w.test')] };
+      eq(r({ dues: [adv], debuts: [wor] }), 'r:adv>c2 p:wor>w1');
+      /* sans adresse, pas de mail ; à venir, pas encore ; un appel n'est pas un mail */
+      eq(r({ dues: [{ ...adv, contacts: [{ id: 'c9', name: 'Sans adresse', phone: '06' }] }] }), '');
+      eq(r({ dues: [{ ...adv, nextAction: '2026-10-21' }] }), '');
+      eq(r({ dues: [{ ...adv, nextActionText: 'Appeler Claire' }] }), '');
+      eq(r({ dues: [{ ...adv, nextActionText: 'Préparer l’entretien' }] }), '');
+      /* une piste ne prend qu'une place ; close, d'exemple ou déjà écrite, aucune comme premier mail */
+      eq(r({ dues: [adv], debuts: [adv, { ...wor, closedReason: 'dropped' }, { ...wor, id: 'd', demo: true }, { ...wor, id: 'e', status: 'active' }] }), 'r:adv>c2');
+      /* une action due sur une piste jamais écrite est un premier mail */
+      eq(r({ dues: [{ ...wor, nextAction: T, nextActionText: 'Envoyer la candidature' }] }), 'p:wor>w1');
+      /* cinq au plus */
+      const many = Array.from({ length: 8 }, (_, i) => ({ id: 'p' + i, status: 'todo', contacts: [ct('k' + i, i + '@x.test')] }));
+      eq(pretsAPartir({ today: T, debuts: many }).length, 5);
+      /* la personne visée : celle de l'action, sinon une déjà sollicitée, sinon la première joignable */
+      eq(contactVise({ contacts: [ct('a', 'a@x'), { ...ct('b', 'b@x'), activatedAt: 1 }] }).id, 'b');
+      eq(contactVise({ nextActionCt: 'n', contacts: [ct('a', 'a@x'), { id: 'n', name: 'n' }] }).id, 'a');
+      eq(contactVise({ contacts: [] }), null);
+      /* ce qui est un mail : la table des verbes, et rien d'écrit */
+      for (const v of ['', 'Relancer', 'Envoyer la candidature', 'Répondre', 'Envoyer le CV', 'Écrire à Nadia']) ok(estUnMail(v), v);
+      for (const v of ['Appeler', 'Repasser sur place', 'Préparer l’entretien', 'Trouver un contact', 'Faire le point', 'Relancer par téléphone']) ok(!estUnMail(v), v);
+    },
+    'les brouillons : par piste, sur cet appareil, jamais abîmés, jamais éternels': () => {
+      const t0 = Date.parse('2026-10-20T10:00:00Z'), J = 864e5;
+      let e = lireBrouillons(null, t0);
+      eq(JSON.stringify(e), '{"v":1,"b":{}}');
+      e = poserBrouillon(e, 'adv', { objet: 'Relance — alternance', corps: 'Bonjour Claire,', ctId: 'c2', statut: 'active' }, t0);
+      eq(e.b.adv.corps, 'Bonjour Claire,'); eq(e.b.adv.ctId, 'c2'); eq(e.b.adv.at, t0);
+      /* relu tel quel, à jour ; périmé si la piste a changé de statut */
+      eq(brouillonDe(e, { id: 'adv', status: 'active' }, t0 + J).perime, false);
+      eq(brouillonDe(e, { id: 'adv', status: 'reply' }, t0 + J).perime, true);
+      eq(brouillonDe(e, { id: 'autre' }, t0), null);
+      /* vidé, il s'efface ; retiré, il part */
+      eq(poserBrouillon(e, 'adv', { objet: ' ', corps: '' }, t0).b.adv, undefined);
+      eq(retirerBrouillon(e, 'adv').b.adv, undefined);
+      /* trente jours sans y toucher : il part */
+      ok(!!lireBrouillons(e, t0 + (BROUILLON_JOURS - 1) * J).b.adv);
+      eq(lireBrouillons(e, t0 + BROUILLON_JOURS * J).b.adv, undefined);
+      /* ce qui se lit dans le stockage : jamais une exception, jamais un brouillon abîmé */
+      eq(JSON.stringify(lireBrouillons('{pas du json', t0)), '{"v":1,"b":{}}');
+      eq(JSON.stringify(lireBrouillons({ v: 2, b: {} }, t0)), '{"v":1,"b":{}}');
+      const brut = JSON.stringify({ v: 1, b: { 'ok': { objet: 'a', corps: 'b', at: t0 }, '__proto__': { objet: 'x', corps: 'y', at: t0 },
+        'a b': { objet: 'x', at: t0 }, 'sansDate': { objet: 'x' }, 'ctMal': { corps: 'z', at: t0, ctId: '<script>', statut: 'Réponse!' } } });
+      const lu = lireBrouillons(brut, t0);
+      eq(Object.keys(lu.b).sort().join(','), 'ctMal,ok');
+      ok(!('ctId' in lu.b.ctMal) && !('statut' in lu.b.ctMal));
+      eq(({}).objet, undefined);                   /* rien n'a touché au prototype */
+      eq(poserBrouillon(e, '__proto__', { objet: 'x', corps: 'y' }, t0).b.__proto__, Object.prototype);
+      /* les bornes d'un mail écrit à la main */
+      eq(poserBrouillon(null, 'p', { objet: 'o'.repeat(400), corps: 'c'.repeat(25000) }, t0).b.p.objet.length, 300);
+      eq(poserBrouillon(null, 'p', { objet: 'o', corps: 'c'.repeat(25000) }, t0).b.p.corps.length, 20000);
+      /* deux cents au plus : les plus vieux partent */
+      let big = null;
+      for (let i = 0; i < 205; i++) big = poserBrouillon(big, 'p' + i, { objet: 'o', corps: 'c' }, t0 + i);
+      eq(Object.keys(big.b).length, 200);
+      ok(!big.b.p0 && !!big.b.p204);
+    },
     'le suivi d’une demande : envoyée, trouvée, reçu — comme un colis': () => {
       const d = { id: 'd1', at: 100, exp: 9e15 };
       const e = { dons: [] };
@@ -3399,7 +3470,7 @@ export async function runSelfTests(){
          ressuscitait des pistes d'avant la v3 sur un appareil « effacé » */
       ok(CLES_A_EFFACER.includes(OLD_V2) && CLES_A_EFFACER.includes(OLD_V1));
       for (const k of [DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, SYNC_KEY,
-                       RELAYS_KEY, TURN_KEY, DEVICE_KEY, DEVICES_KEY, PROMO_KEY, VAULT_KEY, ANALYSIS_KEY, VUS_KEY, RESEAU_KEY, GROUPES_KEY, MESSAGES_KEY, FILS_KEY])
+                       RELAYS_KEY, TURN_KEY, DEVICE_KEY, DEVICES_KEY, PROMO_KEY, VAULT_KEY, ANALYSIS_KEY, VUS_KEY, RESEAU_KEY, GROUPES_KEY, MESSAGES_KEY, FILS_KEY, BROUILLONS_KEY])
         ok(CLES_A_EFFACER.includes(k), k + ' doit partir');
       /* tout ce qui se scelle est une donnée : tout ce qui se scelle s'efface */
       for (const k of SEALABLE) ok(CLES_A_EFFACER.includes(k), k + ' (scellable) doit partir');

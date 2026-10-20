@@ -180,6 +180,8 @@ async function ajouter(){
        chiffre de l'onglet « Échanger » se lit dès le premier écran */
     chargerGroupes(),
     chargerFils(),
+    /* les mails commencés (R3) : le composeur les reprend à l'ouverture */
+    import('./ui/brouillons.js').then(m => m.chargerBrouillons()).catch(() => {}),
     CAMPAGNES ? import('./ui/campagnes.js').then(m => m.loadCampaigns()).catch(() => {}) : null,
     ORDINATEUR ? import('./ui/analyse.js').then(m => m.loadMailAnalysis()).catch(() => {}) : null,
     ORDINATEUR ? import('./ui/propositions.js').then(m => m.loadProposals()).catch(() => {}) : null

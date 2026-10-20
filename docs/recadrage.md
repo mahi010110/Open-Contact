@@ -65,7 +65,7 @@ perdre en route.** Le pourquoi est dans les fiches de décision
 | Ajouter une piste | + | + › Une piste | R1 |
 | Ajouter quelqu'un rencontré | Fiche › Ajouter un contact | + › Un contact, ou la fiche | R1 |
 | Historique des échanges | Échanger › Historique | Réseau › Historique, en bas | R1 |
-| Écrire à plusieurs | Mes pistes › Prospecter | Aujourd'hui › Prêts à partir ; Pistes › choisir › Écrire | R3 |
+| Écrire à plusieurs | Mes pistes › Prospecter | Aujourd'hui › Écrire les N mails ; Pistes › Choisir › Écrire | R3 |
 | Ma semaine | — | Aujourd'hui, en tête ; la revue le vendredi | R4 |
 | Profil, copie, appareils, réglages | Moi | Moi, plus « Préversion » (R0) et « Je peux aider » (R7) | R0, R7 |
 | Navigation au poste | onglets en haut | barre latérale, recherche Ctrl K | R1, R8 |
@@ -150,6 +150,15 @@ nouvelle : tout se déduit des pistes et du journal.
 
 *Proposition validée par le mainteneur le 20 octobre 2026 :*
 [`propositions/R3-prets-a-partir.md`](propositions/R3-prets-a-partir.md).
+
+- **Où on en est**, en deux livraisons derrière le drapeau `prets` :
+  - **R3-a, livré en préversion (6.84.0)** : « Écrire les N mails » au
+    pied d'« Aujourd'hui » (au poste, à côté du titre), la série au
+    téléphone, les brouillons gardés sur cet appareil
+    (`oc_brouillons_v1`, `engine/prets.js`). Gardé par
+    `e2e-prets.mjs`, la fuite d'abord.
+  - **R3-b, à venir** : au poste, la file, le mail et la fiche
+    (décision 0003).
 
 Les relances et les premiers mails préparés, relus et envoyés en série.
 Au téléphone, un mail par écran ; au poste, la file, le mail et la fiche.

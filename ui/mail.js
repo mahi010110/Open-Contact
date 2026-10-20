@@ -8,13 +8,14 @@
    propose la suite — la boucle qui entretient « Aujourd'hui ».
    ============================================================ */
 import { esc, todayISO } from '../engine/utils.js';
+import { brouillon, garderBrouillon, oublierBrouillon, ecrireBrouillonsMaintenant } from './brouillons.js';
 import { fillTpl, crochets, remplirTrous, pushHist, modeleConseille } from '../engine/model.js';
 import { sendMail } from '../engine/mailer.js';
 import { bytesToB64 } from '../engine/crypto.js';
 import { docGet } from '../engine/storage.js';
 import { aiComplete, draftPrompt, splitDraft } from '../engine/ai.js';
 import { SILENCE_RELANCE } from '../engine/assist.js';
-import { S, bus, saveData, logJ, activateContact } from './state.js';
+import { S, bus, saveData, logJ, activateContact, lot } from './state.js';
 import { openSheet, toast, btn, el, ic, showUndo, champGrandit } from './dom.js';
 import { askNextAction } from './actions.js';
 import { openProfil } from './profil.js';
@@ -81,7 +82,7 @@ export function openMail(c, opts){
        (Prospecter, « 2/5 ») qu'il faut lire à qui l'on écrit. */
     title: 'Écrire',
     icon: 'mail', className: 'modal-compose', focus: cts.length ? '#mSubj' : '#mBody',
-    onClose: () => { oublier(); if (done) return; done = true; if (opts.onQuit) opts.onQuit(); }
+    onClose: () => { oublier(); ecrireBrouillonsMaintenant(); if (done) return; done = true; if (opts.onQuit) opts.onQuit(); }
   });
   /* messagerie connectée ? Hors périmètre, la réponse est « non » et tout
      le composeur retombe de lui-même sur `mailto:` — pied, pièce jointe,
@@ -148,6 +149,7 @@ export function openMail(c, opts){
           quelque part. */''}
      ${savoirHTML(c)}
      <div class="field fld-body"><label for="mBody">Message</label><textarea id="mBody" aria-describedby="mTrou"></textarea>
+       <button class="linklike" id="mBrouillon" hidden>${ic('undo', 'ic-14')} Reprendre mon brouillon</button>
        <p class="hint warn" id="mTrou" hidden>Remplace le texte entre crochets.</p>
        ${(IA && aiConnection()) ? `<button class="linklike" id="mAi" style="margin-top:2px">${ic('sparkles', 'ic-14')} Proposer un brouillon</button>` : ''}</div>
      <div class="attach-line" id="mAttach"></div>
@@ -444,6 +446,7 @@ export function openMail(c, opts){
     if (!c.appliedAt) c.appliedAt = todayISO();
     c.updatedAt = Date.now();
     saveData();
+    oublierBrouillon(c.id);                             /* parti : le brouillon n'a plus d'objet */
     done = true;
     sh.close();
     bus.refresh();
@@ -464,6 +467,19 @@ export function openMail(c, opts){
     q('#mBody').focus();
   });
   q('#mBody').addEventListener('input', sync);
+  /* R3 : CE QU'ON ÉCRIT SE GARDE, sur cet appareil. Seulement ce que la
+     main a tapé — jamais le modèle tel quel : rouvrir sur un texte
+     qu'on n'a pas touché, c'est le modèle, et il se recalcule de
+     lui-même. Pas depuis `sync()` : `fill()` l'appelle à l'ouverture et
+     effacerait le brouillon avant qu'il revienne. */
+  const garder = () => {
+    if (!lot('prets')) return;
+    const objet = q('#mSubj').value, corps = q('#mBody').value;
+    if (objet === genere.objet && corps === genere.corps) oublierBrouillon(c.id);
+    else garderBrouillon(c, { objet, corps, ctId: (currentCt() || {}).id, statut: c.status });
+  };
+  q('#mSubj').addEventListener('input', garder);
+  q('#mBody').addEventListener('input', garder);
   aMail.addEventListener('click', logPrep);
   /* brouillon IA : le texte tombe dans le champ ÉDITABLE — relecture
      par construction, le gabarit reste le repli */
@@ -582,5 +598,25 @@ export function openMail(c, opts){
     });
   }
   fill();
+  /* LE BROUILLON REVIENT où on l'avait laissé — la personne, l'objet, le
+     message. Si la piste a changé de statut depuis (une réponse est
+     arrivée), le modèle d'aujourd'hui est sans doute plus juste : le
+     brouillon se propose, il ne s'impose pas. */
+  const br = lot('prets') ? brouillon(c) : null;
+  if (br){
+    const poser = () => {
+      const i = br.ctId ? cts.findIndex(t => t.id === br.ctId) : -1;
+      if (i >= 0 && q('#mTo')) q('#mTo').value = String(i);
+      q('#mSubj').value = br.objet;
+      q('#mBody').value = br.corps;
+      q('#mBrouillon').hidden = true;
+      sync();
+    };
+    if (!br.perime) poser();
+    else {
+      q('#mBrouillon').hidden = false;
+      q('#mBrouillon').addEventListener('click', () => { poser(); garder(); q('#mBody').focus(); });
+    }
+  }
   renderAttach();
 }

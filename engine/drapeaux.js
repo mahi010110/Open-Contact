@@ -34,6 +34,11 @@ export const DRAPEAUX = Object.freeze([
     id: 'suivi', lot: 'R2', nom: 'tes chiffres et le retour après une pause',
     raison: 'Un suivi qui se remplit seul : tes chiffres en tête de Pistes, et après 7 jours sans un geste, trois choses à reprendre (proposition R2).',
     cree: '2026-10-20', retrait: '2027-03-31', ouvert: false
+  }),
+  Object.freeze({
+    id: 'prets', lot: 'R3', nom: 'les mails prêts à partir',
+    raison: 'Prêts à partir : les relances dues et les premiers mails écrits d’affilée depuis Aujourd’hui, et les brouillons gardés sur cet appareil (proposition R3).',
+    cree: '2026-10-20', retrait: '2027-03-31', ouvert: false
   })
 ]);
 
