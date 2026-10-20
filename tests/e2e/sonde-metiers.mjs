@@ -49,13 +49,19 @@ for (const [cle, id] of Object.entries(JEUX)){
   const j = await lireJson(API + id + '/');
   if (!j){ console.log('  jeu de données illisible'); continue; }
   console.log(`  titre : ${j.title}\n  licence : ${j.license}\n  mis à jour : ${j.last_update || j.last_modified}`);
-  const res = j.resources || [];
-  for (const r of res)
+  /* le plus récent d'abord, et dix lignes au plus : le RNCP publie un
+     export par jour depuis 2020, sa liste entière noyait tout le reste
+     du journal (premier passage, 20 octobre) */
+  const res = (j.resources || []).slice()
+    .sort((a, b) => String(b.last_modified || '').localeCompare(String(a.last_modified || '')));
+  console.log(`  ${res.length} ressources ; les plus récentes :`);
+  for (const r of res.slice(0, 10))
     console.log(`  · ${r.title} | ${r.format} | ${r.filesize || '?'} o | ${String(r.last_modified || '').slice(0, 10)} | ${r.url}`);
-  /* on ouvre ce qui est lisible : csv, json, zip — le plus récent d'abord */
-  const choisies = res.filter(r => /csv|json|zip|xlsx?/i.test(String(r.format || '') + ' ' + r.url))
-    .sort((a, b) => String(b.last_modified || '').localeCompare(String(a.last_modified || '')))
-    .slice(0, cle === 'rome' ? 6 : 3);
+  /* le ROME : ce qui est lisible (csv, json, zip, xlsx) ; le RNCP : son
+     export CSV le plus récent seulement — l'XML pèse 476 Mo */
+  const choisies = cle === 'rome'
+    ? res.filter(r => /csv|json|zip|xlsx?/i.test(String(r.format || '') + ' ' + r.url)).slice(0, 6)
+    : res.filter(r => /export-fiches-csv/i.test(String(r.title || '') + ' ' + r.url)).slice(0, 1);
   for (const r of choisies){
     const nom = cle + '-' + path.basename(new URL(r.url).pathname).replace(/[^\w.-]/g, '_');
     const t = await telecharger(r.url, nom);
@@ -70,7 +76,11 @@ for (const [cle, id] of Object.entries(JEUX)){
     for (const f of liste.slice(0, 40)){
       const s = await stat(f);
       console.log(`    ▸ ${path.relative(dossier, f)} (${s.size} o)`);
-      if (/\.(csv|txt|json)$/i.test(f) && s.size) for (const l of await tete(f, cle === 'rome' ? 3 : 2)) console.log('      | ' + l);
+      if (/\.(csv|txt|json)$/i.test(f) && s.size){
+        const n = (await readFile(f, 'latin1')).split(/\r?\n/).filter(Boolean).length;
+        console.log(`      ${n} lignes`);
+        for (const l of await tete(f, cle === 'rome' ? 3 : 2)) console.log('      | ' + l);
+      }
     }
   }
 }
