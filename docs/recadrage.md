@@ -169,7 +169,7 @@ Une clé nouvelle pour les brouillons en cours, propre à l'appareil.
 
 ### R4 · Ma semaine · 2 semaines
 
-*Proposition écrite, en attente du mainteneur :*
+*Proposition validée par le mainteneur le 20 octobre 2026 :*
 [`propositions/R4-ma-semaine.md`](propositions/R4-ma-semaine.md).
 
 Des objectifs de gestes le lundi, la revue le vendredi, partagée au
