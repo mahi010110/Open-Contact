@@ -8,7 +8,8 @@
    j'ajoute ? ».
 
    Une feuille, un but (§2 ③) : ajouter. L'action la plus probable — une
-   piste — tient le pied, sous le pouce (§5) ; ce qu'on reçoit se range
+   piste — tient le pied, sous le pouce (§5), et quelqu'un qu'on vient de
+   rencontrer juste à côté, d'une emphase plus basse ; ce qu'on reçoit se range
    dessous du mot que l'app emploie déjà, « Recevoir », avec les trois
    mots de « Donner » de l'autre côté (§7). Le titre porte le verbe :
    les gestes disent le nom seul (§6, « La taille dit le rang »).
@@ -34,5 +35,7 @@ export function openAjouter(){
     b.addEventListener('click', () => { sh.close(); openRecevoir({ mode: b.dataset.mode }); }));
   const piste = btn('Une piste', 'btn-primary', () => { sh.close(); openCapture(); }, 'briefcase');
   piste.id = 'ajPiste';
-  sh.setFoot([piste]);
+  const contact = btn('Un contact', '', () => { sh.close(); openCapture({ contact: true }); }, 'user');
+  contact.id = 'ajContact';
+  sh.setFoot([contact, piste]);
 }

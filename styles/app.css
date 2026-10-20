@@ -3024,7 +3024,7 @@ button.ec-row:hover{background:var(--surface-field)}
   /* le travail est plus court que le dossier : plutôt que laisser un
      trou à gauche, les notes prennent la hauteur qui reste — c'est la
      seule zone de cette fenêtre où l'on écrit vraiment */
-  .fi-cols>div:first-child>.field:last-child{flex:1;display:flex;flex-direction:column;min-height:0}
+  .fi-cols>.fi-travail>.field:last-child{flex:1;display:flex;flex-direction:column;min-height:0}
   /* `1 0 auto`, pas `flex:1` : ce dernier pose une base de ZÉRO, et la
      hauteur que le champ se donne en grandissant était ignorée — au
      poste comme sur tablette, une note de trois lignes restait coincée
@@ -3032,7 +3032,7 @@ button.ec-row:hover{background:var(--surface-field)}
      sa hauteur de contenu ; le reste de la colonne s'ajoute par-dessus.
      (Le plancher de 150 px qui vivait ici ne s'est jamais appliqué :
      `#fiNotes` l'écrasait. Il part.) */
-  .fi-cols>div:first-child>.field:last-child textarea{flex:1 0 auto}
+  .fi-cols>.fi-travail>.field:last-child textarea{flex:1 0 auto}
   /* Écrire au poste : la fenêtre prend une hauteur franche et la donne
      au message. Les deux menus (destinataire, modèle) cessent aussi de
      tronquer leur libellé — c'est la largeur qui manquait. */
@@ -3100,7 +3100,7 @@ button.ec-row:hover{background:var(--surface-field)}
    déjà l'ambre trois blocs plus haut. Deux ambres sur un écran diluent
    celui qui compte. Le signal est le verbe du bouton d'à côté, qui passe
    de « Modifier » à « Compléter » : un mot, pas une couleur d'alerte. */
-.fi-tools .btn{margin-left:auto}
+.fi-tools .btn:first-of-type{margin-left:auto}
 .fi-know{border:1px solid var(--border-soft);border-radius:var(--radius-1);background:var(--surface-chrome)}
 /* « À savoir » rapatrié dans le composeur : mêmes lignes que sur la
    fiche, dans un cadre au trait discontinu pour dire que c'est de la

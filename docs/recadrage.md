@@ -111,8 +111,9 @@ Les temps sont des maximums accordés, pas des promesses de date.
     Ajouter (une piste, puis Recevoir : QR · Fichier · Texte) ; Pistes
     sans portée « Amis », « Choisir » puis « Donner ». Gardé par
     `e2e-reseau.mjs`, les deux chemins joués.
-  - **R1-b** : la fiche commence par les gens ; « Donner » depuis la
-    fiche ; quelqu'un rencontré depuis le +.
+  - **R1-b, livré (6.80.0)** : la fiche commence par les gens (au poste,
+    en colonne de gauche) ; « Donner » depuis la fiche ; « Un contact »
+    depuis le +, entreprise facultative. Gardé par `e2e-reseau.mjs` ⑨ ⑩.
   - **R1-c** : au poste, la barre latérale et la fiche à droite de la
     liste (décision 0003).
 
