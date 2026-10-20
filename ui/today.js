@@ -15,6 +15,7 @@ import { dueFollowups, silentPistes, aDemarrer, premiersPas } from '../engine/as
 import { enPause, reprendre } from '../engine/suivi.js';
 import { pretsAPartir, SERIE_MIN } from '../engine/prets.js';
 import { ouvrirSerie } from './serie.js';
+import { semaineHTML, ouvrirSemaine } from './semaine.js';
 import { S, bus, isClosed, markDone, hasDemo, addDemo, removeDemo, lot } from './state.js';
 import { $, ic, openSheet } from './dom.js';
 import { frToday, frDate, dueMarkHTML, silenceMarkHTML } from './dates.js';
@@ -491,7 +492,11 @@ export function renderToday(){
             félicite pas quelqu'un pour un travail dont l'écran affirme, deux
             lignes plus bas, qu'il n'existe pas */''}
        ${done && S.companies.length
-         ? `<div class="done-line">${ic('check', 'ic-14')} ${done} action${done > 1 ? 's' : ''} faite${done > 1 ? 's' : ''} aujourd’hui</div>` : ''}`;
+         ? `<div class="done-line">${ic('check', 'ic-14')} ${done} action${done > 1 ? 's' : ''} faite${done > 1 ? 's' : ''} aujourd’hui</div>` : ''}
+       ${/* R4 : MA SEMAINE, en tête — l'objectif et ce qui est parti, une
+            ligne qui se touche. Pas pendant les premiers pas ni avec
+            l'exemple : on ne se fixe pas d'objectif avant d'avoir écrit. */''}
+       ${lot('semaine') && !pas && !hasDemo() && S.companies.length ? semaineHTML() : ''}`;
 
   /* les MESSAGES ne passent plus par ici : l'onglet « Échanger » porte
      leur chiffre, comme toute messagerie (13 octobre 2026). Restent les
@@ -665,6 +670,7 @@ export function renderToday(){
   root.querySelectorAll('[data-camp]').forEach(b =>
     b.addEventListener('click', () => openCampaignById(b.dataset.camp)));
   root.querySelector('#tdTriage')?.addEventListener('click', () => openTriage(triage.items));
+  root.querySelector('#tdSemaine')?.addEventListener('click', ouvrirSemaine);
   root.querySelector('#tdPartir')?.addEventListener('click', () =>
     ouvrirSerie(prets.map(x => {
       const c = byId(x.id);

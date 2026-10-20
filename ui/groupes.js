@@ -118,6 +118,26 @@ async function direPresence(code){
   await sauver();
 }
 
+/* ---------- R4 : un mot au groupe, d'ailleurs que du fil ----------
+   La revue de « Ma semaine » part comme un mot du groupe, du geste de
+   qui l'écrit. Le texte vient du moteur (`phraseRevue`, des nombres
+   seulement) : cette fonction ne l'enrichit de rien. On n'écrit que là
+   où l'on a le droit d'écrire (« Qui écrit », décision 33). */
+export const groupesOuJEcris = () => mesGroupes().filter(g =>
+  !(reglagesDe(groupe(g.code)).ecrire === 'resp' && !peutRegler(g.code)));
+export async function direAuGroupe(code, texte){
+  const t = String(texte || '').replace(/\s+/g, ' ').trim().slice(0, MOT_MAX);
+  if (!t || !groupesOuJEcris().some(g => g.code === code)) return false;
+  const j = reglagesDe(groupe(code)).j;
+  const m = { t: 'mot', id: nouvelId(), de: moi(), prenom: prenomMoi(), texte: t, at: Date.now(),
+              ...(j !== MOT_JOURS ? { j } : {}) };
+  if (!await poster(code, m).catch(() => 0)) return false;
+  etat[code] = { ...traiterMessage(groupe(code), m), vu: m.at };
+  await sauver();
+  bus.refresh();
+  return true;
+}
+
 /* ---------- relever : à l'ouverture, au retour, toutes les 5 minutes ---------- */
 let enCours = null;
 export function releverGroupes(){

@@ -152,6 +152,18 @@ jobs:
         continue-on-error: true
         timeout-minutes: 8
         run: OC_SONDE_RELAIS=1 node tests/e2e/sonde-boite-relais.mjs
+      # LA COPIE SCELLÉE (lot R5, docs/propositions/R5-un-seul-moi.md).
+      # « Un seul moi » rangerait sur les relais une copie scellée par la
+      # phrase de secours. Avant une ligne de code : quelle TAILLE un relais
+      # accepte et rend (8 à 128 Ko), s'il REMPLACE un dépôt adressable
+      # (NIP-33) au lieu de l'empiler, et combien de jours il GARDE — les
+      # passages du lundi et du jeudi relisent les marqueurs d'avant (3, 4,
+      # 7 jours et plus). Le dépôt ne s'écrit que si trois relais gardent
+      # sept jours. Informative.
+      - name: Sonde de la copie scellée — taille, remplacement, garde
+        continue-on-error: true
+        timeout-minutes: 8
+        run: OC_SONDE_RELAIS=1 node tests/e2e/sonde-coffre-relais.mjs
 
   # DEUX MACHINES, DEUX RÉSEAUX, LA VRAIE CHAÎNE — à la main seulement.
   # Deux jobs = deux VM, deux adresses publiques, deux NAT : l'app telle

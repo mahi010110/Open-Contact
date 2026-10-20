@@ -1,8 +1,8 @@
 # Proposition R4 — Ma semaine
 
-**Statut** : proposée le 20 octobre 2026, en attente du mainteneur.
-C'est l'étape 1 du cycle d'un lot (`docs/recadrage.md`) : rien ne se
-code avant ta validation.
+**Statut** : proposée et validée par le mainteneur le 20 octobre 2026.
+C'est l'étape 1 du cycle d'un lot (`docs/recadrage.md`). Les trois
+réponses sont en fin de page.
 
 ## Le problème
 
@@ -66,7 +66,7 @@ jamais dans un partage de pistes ni dans le profil donné à un ami.
 - Un classement entre membres du groupe : chacun partage le sien, s'il
   veut, et personne n'est comparé.
 
-## Les questions au mainteneur
+## Les questions au mainteneur, et ses réponses
 
 1. **Ce que compte l'objectif.** Je recommande un seul nombre, les mails
    partis : c'est le geste qui fait avancer, et un seul chiffre se tient.
@@ -77,3 +77,8 @@ jamais dans un partage de pistes ni dans le profil donné à un ami.
 3. **Le partage de la revue.** Je recommande un geste « Partager au
    groupe » sur la revue du vendredi, des nombres seulement. L'autre
    choix : pas de partage dans R4.
+
+**Les réponses (20 octobre 2026)** : ① un seul nombre, les mails
+partis ; ② l'app propose, deux boutons le font varier ; ③ « Partager
+au groupe » d'un geste, des nombres seulement. Les trois
+recommandations, sans changement.

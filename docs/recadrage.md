@@ -169,14 +169,27 @@ Une clé nouvelle pour les brouillons en cours, propre à l'appareil.
 
 ### R4 · Ma semaine · 2 semaines
 
-*Proposition écrite, en attente du mainteneur :*
+*Proposition validée par le mainteneur le 20 octobre 2026 :*
 [`propositions/R4-ma-semaine.md`](propositions/R4-ma-semaine.md).
+
+- **Où on en est** : **livré en préversion (6.85.0)**, derrière le
+  drapeau `semaine` (`engine/semaine.js`, `ui/semaine.js`) : la ligne en
+  tête d'« Aujourd'hui », « Ma semaine » (− et +), la revue du vendredi
+  et « Partager au groupe ». Gardé par `e2e-semaine.mjs`, la fuite
+  d'abord. Aucune clé nouvelle : l'objectif vit dans le profil.
+- *Accepté quand* : au bout de deux semaines de préversion, la majorité
+  des testeurs a gardé l'objectif proposé ou l'a réglé, sans l'avoir
+  vécu comme un reproche (question posée à la fin d'une séance).
+  *Retour arrière* : éteindre le drapeau.
 
 Des objectifs de gestes le lundi, la revue le vendredi, partagée au
 groupe si tu veux. Le résumé ne porte que des nombres, jamais un nom
 d'entreprise : un test de fuite le vérifie avant la fonctionnalité.
 
 ### R5 · Un seul « moi » · 3 semaines · le lot le plus délicat
+
+*Proposition validée par le mainteneur le 20 octobre 2026, avec son
+analyse des menaces :* [`propositions/R5-un-seul-moi.md`](propositions/R5-un-seul-moi.md).
 
 Une identité et une phrase de secours qui ramènent appareils, amis et
 groupes. Une analyse des menaces écrite avant le code ; les anciennes
@@ -188,6 +201,9 @@ Le mail part de l'app, avec « Annuler » pendant 10 secondes. Le lien
 mail reste le chemin de secours.
 
 ### R7 · Ceux qui aident · 3 semaines
+
+*Proposition écrite le 20 octobre 2026, en attente du mainteneur :*
+[`propositions/R7-ceux-qui-aident.md`](propositions/R7-ceux-qui-aident.md).
 
 « Je peux aider » dans Moi ; une piste close « Décroché » propose d'aider
 à son tour ; les messages du café-conseil, de la présentation, du merci.

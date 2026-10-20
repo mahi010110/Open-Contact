@@ -74,11 +74,22 @@ const lotReseau = p => p.evaluate(async () => (await import('./ui/state.js')).lo
    lecture trop tôt rendait un écart qui ne venait pas de la préversion
    (vu une fois sur trois sous charge). On relit jusqu'à deux lectures
    identiques. */
-const lire = (p, id) => p.evaluate(id => JSON.stringify({
-  vue: document.querySelector('#view-' + id)?.innerText.replace(/\s+/g, ' ').trim(),
+/* CE QUE LES LOTS EN TEST AJOUTENT À UN ÉCRAN se retire avant de
+   comparer : la ligne de la semaine (R4), le bouton de la série (R3), la
+   reprise (R2). Chaque lot se garde dans SON scénario ; ici, on vérifie
+   que rien d'autre ne bouge. */
+const AJOUTS_DES_LOTS = '#tdSemaine, .td-pret, #tdPartir, #tdReprendre, #tdReste';
+const lire = (p, id) => p.evaluate(([id, aj]) => JSON.stringify({
+  vue: (() => {
+    const v = document.querySelector('#view-' + id);
+    if (!v) return undefined;
+    let t = v.innerText;
+    for (const x of v.querySelectorAll(aj)) t = t.replace(x.innerText, '');
+    return t.replace(/\s+/g, ' ').trim();
+  })(),
   barre: [...document.querySelectorAll('nav [data-r]')].map(a => a.innerText.replace(/\s+/g, ' ').trim()).join(' | '),
   titre: document.title
-}), id);
+}), [id, AJOUTS_DES_LOTS]);
 const photo = async (p, routes = ['aujourdhui', 'pistes', 'echanger', 'moi']) => {
   const out = {};
   for (const r of routes){
@@ -111,7 +122,7 @@ for (const sombre of [false, true]){
     phrase: [...document.querySelectorAll('.overlay:not(.ov-out) .hint')].pop()?.textContent.trim()
   }));
   ok(await dessus(p) === 'Préversion' && feuille.choix === 'Éteinte* | Allumée'
-    && feuille.phrase === 'Sur cet appareil seulement : l’onglet Réseau, tes chiffres et le retour après une pause, les mails prêts à partir.',
+    && feuille.phrase === 'Sur cet appareil seulement : l’onglet Réseau, tes chiffres et le retour après une pause, les mails prêts à partir, ma semaine.',
     `② ${nom} : deux rangées, « Éteinte » retenue, et ce qui est en test — ${feuille.choix} — ${feuille.phrase}`);
   if (!sombre) await p.screenshot({ path: `${SHOTS}/160-preversion-feuille-pouce.png` });
   ok(await lotReseau(p) === false, `③ ${nom} : éteinte, le lot en test reste éteint`);

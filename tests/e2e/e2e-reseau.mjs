@@ -61,11 +61,17 @@ const profil = { name: 'Tom Durand', email: 'tom@prive.test', formation: 'BTS SI
            parcours: [{ entreprise: 'Thales', quoi: 'alternance', debut: '2025-09' }] },
          { id: 'LeaLeaLeaLeaLea000001', nom: 'Léa Martin', recu: now - 4 * J, parcours: [], cle: CLE }],
   groupes: [{ code: 'abcdefghjkmnpqr', nom: 'BTS SIO Lille', at: now - 9 * J }] };
-const pistes = [{ id: 'az', name: 'Aztek', city: 'Roubaix', status: 'todo' },
-                { id: 'adv', name: 'Advens', city: 'Lille', status: 'active',
+/* `updatedAt` DATÉ, jamais laissé au moteur : sans lui, la normalisation
+   pose `Date.now()` à la milliseconde où chaque piste est lue, l'ordre de
+   la liste devient un tirage, et ⑫ (↓ depuis Advens) tombait sur une
+   liste où Advens était la dernière ligne — rouge une fois sur trois en
+   CI (PR #78), vert en local. L'ordre est maintenant écrit ici :
+   Aztek, Advens, Thales, Kiabi. */
+const pistes = [{ id: 'az', name: 'Aztek', city: 'Roubaix', status: 'todo', updatedAt: now - 1 * J },
+                { id: 'adv', name: 'Advens', city: 'Lille', status: 'active', updatedAt: now - 2 * J,
                   contacts: [{ id: 'c1', name: 'Nadia Rahmani', email: 'nadia@advens.test' }] },
-                { id: 'th', name: 'Thales', city: 'Lille', status: 'todo' },
-                { id: 'ki', name: 'Kiabi', city: 'Hem', status: 'todo' }];
+                { id: 'th', name: 'Thales', city: 'Lille', status: 'todo', updatedAt: now - 3 * J },
+                { id: 'ki', name: 'Kiabi', city: 'Hem', status: 'todo', updatedAt: now - 4 * J }];
 const reseau = { v: 1, depuis: 0, recues: [], mercis: [], lus: [], envois: [], entrees: [], attentes: [],
   demandes: [
     { id: 'demandeAz0001', pisteId: 'az', at: now - 2 * J, exp: now + 12 * J, vers: 2, groupes: ['BTS SIO Lille'],

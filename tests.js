@@ -54,6 +54,8 @@ import { dueFollowups, contactFromSignature, exchangeLog, exchangeTotals, nextAc
 import { mesChiffres, chiffresTexte, derniereActivite, enPause, PAUSE_JOURS, reprendre, REPRENDRE } from './engine/suivi.js';
 import { contactVise, estUnMail, pretsAPartir, SERIE_MAX, SERIE_MIN, lireBrouillons, poserBrouillon, retirerBrouillon,
          brouillonDe, BROUILLON_JOURS } from './engine/prets.js';
+import { lundiDe, jourSemaine, plusJours, mailsEntre, reponsesEntre, pistesEntre, objectifPropose, normaliserSemaine,
+         reglerObjectif, maSemaine, phraseRevue, RE_PHRASE_REVUE, OBJECTIF_MIN, OBJECTIF_MAX } from './engine/semaine.js';
 import { rappelICS, lienAgendaGoogle, formeAgenda, RAPPEL_HEURE } from './engine/agenda.js';
 import { normalizeParcours, parcoursDe, periodeParcours, phraseParcours, PARCOURS_MAX } from './engine/parcours.js';
 import { nouvelIdAmi, idAmiValide, cleEntreprise, memeEntreprise, profilDonne, normalizeAmi, normalizeAmis,
@@ -2775,6 +2777,68 @@ export async function runSelfTests(){
       for (let i = 0; i < 205; i++) big = poserBrouillon(big, 'p' + i, { objet: 'o', corps: 'c' }, t0 + i);
       eq(Object.keys(big.b).length, 200);
       ok(!big.b.p0 && !!big.b.p204);
+    },
+    'ma semaine : les jours, du lundi au dimanche': () => {
+      eq(lundiDe('2026-10-19'), '2026-10-19');      /* un lundi */
+      eq(lundiDe('2026-10-25'), '2026-10-19');      /* le dimanche d'après */
+      eq(lundiDe('2026-10-26'), '2026-10-26');
+      eq(lundiDe('2026-03-29'), '2026-03-23');      /* le jour du changement d'heure */
+      eq(lundiDe('2027-01-01'), '2026-12-28');      /* à cheval sur deux années */
+      eq(jourSemaine('2026-10-23'), 5); eq(jourSemaine('2026-10-25'), 7);
+      eq(plusJours('2026-10-19', -7), '2026-10-12');
+    },
+    'ma semaine : les mails partis, les réponses, les pistes — compté des gestes déjà datés': () => {
+      const L = '2026-10-19', D = '2026-10-25';
+      const cs = [
+        { id: 'a', history: [{ d: '2026-10-20', t: 'Email envoyé — Claire' }, { d: '2026-10-20', t: 'Email envoyé — Paul' },
+                             { d: '2026-10-20', t: 'Statut → En cours' }] },               /* deux mails ; le statut du même jour ne compte pas */
+        { id: 'b', history: [{ d: '2026-10-21', t: 'Statut → En cours' }] },                 /* écrit d'ailleurs : un mail */
+        { id: 'c', history: [{ d: '2026-10-18', t: 'Email envoyé' }, { d: '2026-10-26', t: 'Email envoyé' }] }, /* hors de la semaine */
+        { id: 'd', history: [{ d: '2026-10-22', t: 'Fiche complétée : Statut → Réponse, À faire : Répondre' }] },
+        { id: 'e', status: 'reply', closedReason: 'won', closedAt: '2026-10-23' },
+        { id: 'f', closedReason: 'dropped', closedAt: '2026-10-23' },                        /* abandonnée : pas une réponse */
+        { id: 'g', demo: true, history: [{ d: '2026-10-20', t: 'Email envoyé' }] }           /* l'exemple ne compte pas */
+      ];
+      eq(mailsEntre(cs, L, D), 3);
+      eq(reponsesEntre(cs, L, D), 2);
+      const t = (y, m, d, h) => new Date(y, m - 1, d, h).getTime();
+      eq(pistesEntre([{ id: 'x', createdAt: t(2026, 10, 19, 0) }, { id: 'y', createdAt: t(2026, 10, 25, 23) },
+                      { id: 'z', createdAt: t(2026, 10, 26, 0) }, { id: 'w' }], L, D), 2);
+    },
+    'ma semaine : l’objectif proposé, réglé, gardé — un nombre, pas une dette': () => {
+      const L = '2026-10-19';
+      const avant = n => Array.from({ length: n }, (_, i) => ({ id: 'p' + i, history: [{ d: '2026-10-14', t: 'Email envoyé' }] }));
+      eq(OBJECTIF_MIN, 3); eq(OBJECTIF_MAX, 30);
+      eq(objectifPropose([], L), 3);                 /* trois au moins */
+      eq(objectifPropose(avant(4), L), 5);           /* la semaine d'avant plus un */
+      eq(objectifPropose(avant(40), L), 30);         /* jamais hors de portée */
+      eq(reglerObjectif(null, L, 0), { lundi: L, objectif: 3 });
+      eq(reglerObjectif(null, L, 99), { lundi: L, objectif: 30 });
+      /* ce que le profil garde : un lundi, un nombre — sinon rien */
+      eq(normaliserSemaine({ lundi: L, objectif: 7 }), { lundi: L, objectif: 7 });
+      eq(normaliserSemaine({ lundi: '2026-10-20', objectif: 7 }), undefined);   /* pas un lundi */
+      eq(normaliserSemaine({ lundi: L, objectif: 'beaucoup' }), undefined);
+      eq(normaliserSemaine(null), undefined);
+      eq(normalizeProfile({ semaine: { lundi: L, objectif: 6, note: 'x' } }).semaine, { lundi: L, objectif: 6 });
+      ok(!('semaine' in normalizeProfile({ semaine: 'cinq' })));
+      /* la semaine d'après repart de la proposition : rien ne se cumule */
+      const s = maSemaine({ lundi: L, objectif: 12 }, avant(2), '2026-10-28');
+      eq(s.lundi, '2026-10-26'); eq(s.objectif, 3); eq(s.mails, 0);
+      const s2 = maSemaine({ lundi: L, objectif: 12 }, [], '2026-10-21');
+      eq(s2.objectif, 12); eq(s2.revue, false);
+      eq(maSemaine(null, [], '2026-10-23').revue, true);
+      eq(maSemaine(null, [], '2026-10-25').revue, true);
+      /* jamais dans le profil donné à un ami */
+      ok(!('semaine' in profilDonne(normalizeProfile({ name: 'Inès', semaine: { lundi: L, objectif: 6 } }), [])));
+    },
+    'ma semaine : la phrase de la revue — des nombres et des mots fixes, rien d’autre': () => {
+      eq(phraseRevue({ mails: 5, reponses: 1, pistes: 3 }), 'Ma semaine : 5 mails, 1 réponse, 3 pistes.');
+      eq(phraseRevue({ mails: 0, reponses: 0, pistes: 1 }), 'Ma semaine : 0 mail, 0 réponse, 1 piste.');
+      /* ce qui n'est pas un nombre ne passe pas : ni un nom glissé dans un champ, ni une valeur négative */
+      eq(phraseRevue({ mails: 'Thales', reponses: -2, pistes: 2.7 }), 'Ma semaine : 0 mail, 0 réponse, 2 pistes.');
+      eq(phraseRevue(), 'Ma semaine : 0 mail, 0 réponse, 0 piste.');
+      ok(RE_PHRASE_REVUE.test(phraseRevue({ mails: 12, reponses: 2, pistes: 0 })));
+      ok(!RE_PHRASE_REVUE.test('Ma semaine : 5 mails, 1 réponse, 3 pistes. Thales'));
     },
     'le suivi d’une demande : envoyée, trouvée, reçu — comme un colis': () => {
       const d = { id: 'd1', at: 100, exp: 9e15 };
