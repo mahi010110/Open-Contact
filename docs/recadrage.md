@@ -188,8 +188,8 @@ d'entreprise : un test de fuite le vérifie avant la fonctionnalité.
 
 ### R5 · Un seul « moi » · 3 semaines · le lot le plus délicat
 
-*Proposition écrite, avec son analyse des menaces, en attente du
-mainteneur :* [`propositions/R5-un-seul-moi.md`](propositions/R5-un-seul-moi.md).
+*Proposition validée par le mainteneur le 20 octobre 2026, avec son
+analyse des menaces :* [`propositions/R5-un-seul-moi.md`](propositions/R5-un-seul-moi.md).
 
 Une identité et une phrase de secours qui ramènent appareils, amis et
 groupes. Une analyse des menaces écrite avant le code ; les anciennes

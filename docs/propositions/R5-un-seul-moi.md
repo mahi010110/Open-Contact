@@ -1,8 +1,8 @@
 # Proposition R5 — Un seul « moi »
 
-**Statut** : proposée le 20 octobre 2026, en attente du mainteneur.
-C'est l'étape 1 du cycle d'un lot (`docs/recadrage.md`) : rien ne se
-code avant ta validation. C'est le lot le plus délicat : l'analyse des
+**Statut** : proposée et validée par le mainteneur le 20 octobre 2026.
+C'est l'étape 1 du cycle d'un lot (`docs/recadrage.md`). Les trois
+réponses sont en fin de page. C'est le lot le plus délicat : l'analyse des
 menaces est écrite ici, avant le code (OWASP ASVS 5.0, niveau 1).
 
 ## Le problème
@@ -80,7 +80,7 @@ le seul garanti.
   même titre que la boîte aux lettres et les groupes (§10).
 - Récupérer une phrase perdue : impossible par construction.
 
-## Les questions au mainteneur
+## Les questions au mainteneur, et ses réponses
 
 1. **Où la phrase ramène-t-elle les choses ?** Je recommande les relais,
    comme la boîte aux lettres, **après** une mesure de leur rétention :
@@ -95,3 +95,25 @@ le seul garanti.
    remplace la phrase de liaison et la phrase de secours du verrou (les
    anciennes restent lues une version entière). L'autre choix : elle
    s'ajoute, et les trois coexistent.
+
+**Les réponses (20 octobre 2026)** : ① sur les relais, après une mesure
+de leur rétention ; ② douze mots tirés par l'app ; ③ une seule phrase,
+qui remplace la phrase de liaison et la phrase de secours du verrou.
+Les trois recommandations, sans changement.
+
+## La première étape : mesurer
+
+Rien ne se code avant de savoir ce que les relais gardent. Une sonde,
+comme celle de la boîte aux lettres (`sonde-boite-relais.mjs`), mesure
+sur chaque relais de `RELAIS_DEFAUT` :
+
+- la **taille** acceptée d'un événement (8, 32, 64, 128 Ko) — elle dit
+  en combien de morceaux une copie se coupe ;
+- la **garde** : un événement déposé se relit-il d'une autre connexion,
+  une heure, un jour, sept jours plus tard ? Un relevé quotidien en CI
+  (un dépôt du jour, la relecture des dépôts des jours d'avant) ;
+- la **règle** des événements remplaçables (NIP-33) : un dépôt du jour
+  remplace-t-il celui d'hier sous la même étiquette ?
+
+Le dépôt sur les relais ne s'écrit que si au moins trois relais
+gardent sept jours ; sinon, la question 1 revient au mainteneur.
