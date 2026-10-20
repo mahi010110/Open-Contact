@@ -13,6 +13,8 @@ import { lignesAmis, ouvrirLigne } from './reseau.js';
 import { scoreOf } from '../engine/score.js';
 import { dueFollowups, silentPistes, aDemarrer, premiersPas } from '../engine/assist.js';
 import { enPause, reprendre } from '../engine/suivi.js';
+import { pretsAPartir, SERIE_MIN } from '../engine/prets.js';
+import { ouvrirSerie } from './serie.js';
 import { S, bus, isClosed, markDone, hasDemo, addDemo, removeDemo, lot } from './state.js';
 import { $, ic, openSheet } from './dom.js';
 import { frToday, frDate, dueMarkHTML, silenceMarkHTML } from './dates.js';
@@ -149,13 +151,13 @@ const porteePar = c => porteurs(c, portesRendu)[0] || null;
    muette n'a rien refusé), puis « non ». Sans recherche choisie dans le
    profil, le critère ne départage rien — l'ordre d'avant est intact. */
 const rangPrend = c => { const v = prendCeQueJeCherche(c, S.profile.recherche); return v === true ? 2 : v === null ? 1 : 0; };
-function parOuCommencer(sansAction){
+function parOuCommencer(sansAction, n = DEBUT){
   return sansAction.slice().sort((a, b) =>
     (!!porteePar(b) - !!porteePar(a)) ||
     (rangPrend(b) - rangPrend(a)) ||
     (joignable(b) - joignable(a)) ||
     (scoreOf(b) - scoreOf(a)) ||
-    a.name.localeCompare(b.name, 'fr')).slice(0, DEBUT);
+    a.name.localeCompare(b.name, 'fr')).slice(0, n);
 }
 /* Dans « Reprendre », trois sortes de lignes se suivent dans UNE liste :
    le nom doit y garder un seul bord (§6). La case « Fait » ouvre la ligne
@@ -348,6 +350,10 @@ function repriseHTML(items){
           </section>`;
 }
 
+/* « Écrire les 3 mails » : un verbe et son objet, le compte dans le mot */
+const partirHTML = n =>
+  `<button class="btn btn-primary" id="tdPartir">${ic('mail', 'ic-14')} Écrire les ${n} mails</button>`;
+
 function trancheHTML(key, label, icon, items, open){
   if (!items.length) return '';
   const cap = expanded.has(key) ? items.length : CAP;
@@ -455,6 +461,13 @@ export function renderToday(){
      commencé, et ils disent déjà quoi faire. */
   const reprise = lot('suivi') && !pas && enPause(S.companies, S.journal)
     ? reprendre({ dues: [...late, ...due], muettes, debuts: parOuCommencer(aLancer) }) : [];
+  /* R3 : LES MAILS PRÊTS À PARTIR — les relances dues, puis les premiers
+     mails, cinq au plus, chacun vers sa personne. Pas pendant les
+     premiers pas : ils disent déjà quoi écrire, et le premier mail
+     demande un profil rempli que la série ne vérifie pas. */
+  const prets = lot('prets') && !pas
+    ? pretsAPartir({ dues: [...late, ...due], debuts: parOuCommencer(aLancer, Infinity), today }) : [];
+  const partir = prets.length >= SERIE_MIN;
   const rienDePrevu = rienAFaire && !soon.length;
   const debut = !muettes.length && rienDePrevu && aLancer.length ? parOuCommencer(aLancer) : [];
   const suggestion = muettes.length
@@ -471,6 +484,8 @@ export function renderToday(){
        <div class="td-head">
          <h1>Aujourd’hui</h1>
          <div class="td-date">${frToday()}</div>
+         ${/* au poste, pas de zone du pouce : le geste suit le titre */''}
+         ${partir && wide ? partirHTML(prets.length) : ''}
        </div>
        ${/* pas de compte au-dessus d'un « ajoute ta première piste » : on ne
             félicite pas quelqu'un pour un travail dont l'écran affirme, deux
@@ -584,6 +599,9 @@ export function renderToday(){
     pied += `<button class="td-foot linklike" id="tdRmDemo">Retirer les pistes d’exemple</button>`;
   }
   if (pied) html += `<div class="td-under">${pied}</div>`;
+  /* au pouce, la série tient le PIED, juste au-dessus de la barre : la
+     zone qu'une main atteint sans changer de prise (§5) */
+  if (partir && !wide) html += `<div class="td-pret">${partirHTML(prets.length)}</div>`;
   html += '</div>';
   root.innerHTML = html;
 
@@ -647,6 +665,11 @@ export function renderToday(){
   root.querySelectorAll('[data-camp]').forEach(b =>
     b.addEventListener('click', () => openCampaignById(b.dataset.camp)));
   root.querySelector('#tdTriage')?.addEventListener('click', () => openTriage(triage.items));
+  root.querySelector('#tdPartir')?.addEventListener('click', () =>
+    ouvrirSerie(prets.map(x => {
+      const c = byId(x.id);
+      return { c, ct: ((c && c.contacts) || []).find(t => t.id === x.ctId) || null };
+    }).filter(x => x.c)));
   root.querySelector('#tdNoAct')?.addEventListener('click', () => ouvrirSur('à planifier'));
   root.querySelector('#tdeAdd')?.addEventListener('click', () => openCapture());
   /* chaque pas mène là où il se fait ; le mail, à la piste que « Par où

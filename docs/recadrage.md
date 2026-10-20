@@ -65,7 +65,7 @@ perdre en route.** Le pourquoi est dans les fiches de décision
 | Ajouter une piste | + | + › Une piste | R1 |
 | Ajouter quelqu'un rencontré | Fiche › Ajouter un contact | + › Un contact, ou la fiche | R1 |
 | Historique des échanges | Échanger › Historique | Réseau › Historique, en bas | R1 |
-| Écrire à plusieurs | Mes pistes › Prospecter | Aujourd'hui › Prêts à partir ; Pistes › choisir › Écrire | R3 |
+| Écrire à plusieurs | Mes pistes › Prospecter | Aujourd'hui › Écrire les N mails ; Pistes › Choisir › Écrire | R3 |
 | Ma semaine | — | Aujourd'hui, en tête ; la revue le vendredi | R4 |
 | Profil, copie, appareils, réglages | Moi | Moi, plus « Préversion » (R0) et « Je peux aider » (R7) | R0, R7 |
 | Navigation au poste | onglets en haut | barre latérale, recherche Ctrl K | R1, R8 |
@@ -148,11 +148,29 @@ nouvelle : tout se déduit des pistes et du journal.
 
 ### R3 · Prêts à partir · 2 semaines
 
+*Proposition validée par le mainteneur le 20 octobre 2026 :*
+[`propositions/R3-prets-a-partir.md`](propositions/R3-prets-a-partir.md).
+
+- **Où on en est** : **R3 est complet en préversion (6.84.0)**, derrière
+  le drapeau `prets`, en deux parties :
+  - **R3-a** : « Écrire les N mails » au pied d'« Aujourd'hui » (au
+    poste, à côté du titre), la série au téléphone, les brouillons
+    gardés sur cet appareil (`oc_brouillons_v1`, `engine/prets.js`) ;
+  - **R3-b** : au poste, une fenêtre en trois colonnes — la file, le
+    mail, ce qui aide à l'écrire (décision 0003, `ui/serie.js`).
+  Gardé par `e2e-prets.mjs`, la fuite d'abord.
+- *Accepté quand* : sur le parcours « écris tes relances du jour », au
+  moins 4 personnes sur 5 font partir la série sans aide. *Retour
+  arrière* : éteindre le drapeau.
+
 Les relances et les premiers mails préparés, relus et envoyés en série.
 Au téléphone, un mail par écran ; au poste, la file, le mail et la fiche.
 Une clé nouvelle pour les brouillons en cours, propre à l'appareil.
 
 ### R4 · Ma semaine · 2 semaines
+
+*Proposition écrite, en attente du mainteneur :*
+[`propositions/R4-ma-semaine.md`](propositions/R4-ma-semaine.md).
 
 Des objectifs de gestes le lundi, la revue le vendredi, partagée au
 groupe si tu veux. Le résumé ne porte que des nombres, jamais un nom

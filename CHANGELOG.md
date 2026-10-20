@@ -9,6 +9,31 @@ le premier pour une rupture. La bascule du recadrage sera la 7.0.0
 
 Les versions d'avant la 6.76 se lisent dans l'historique du dépôt.
 
+## [6.84.0] — 20 octobre 2026
+
+Le recadrage, lot R3 : prêts à partir. En **préversion**, derrière son
+propre drapeau (`prets`) — R3 est complet.
+
+### Ajouté, en préversion
+
+- **« Écrire les 3 mails »** sur « Aujourd'hui », quand au moins deux
+  mails peuvent partir : les relances dues, puis les premiers mails,
+  cinq au plus, chacun vers sa personne. Au téléphone, le bouton tient
+  le pied, au-dessus de la barre ; au poste, il suit le titre. Un
+  entretien ou un appel prévus n'en font pas partie : ce ne sont pas
+  des mails.
+- **Le composeur garde ce que tu écris**, piste par piste, sur cet
+  appareil : fermé puis rouvert, il reprend où tu t'étais arrêté.
+  « Envoyée ✓ » l'efface, et il part tout seul au bout de 30 jours. Si
+  la piste a changé de statut entre-temps, le modèle du jour revient,
+  et « Reprendre mon brouillon » te rend ton texte. Un brouillon ne
+  sort jamais de l'appareil : ni partage, ni copie, ni synchronisation.
+- **Au poste, la série s'écrit dans une seule fenêtre** : à gauche la
+  file (où tu en es, ce qui est parti ou passé ; un clic ou ↑ ↓ y
+  mènent), au milieu le mail, à droite ce qui aide à l'écrire —
+  « À savoir », tes notes, l'historique de la piste. « Pistes ›
+  Choisir › Écrire » ouvre la même.
+
 ## [6.83.0] — 20 octobre 2026
 
 Le recadrage, lot R2 : un suivi qui se remplit seul. En **préversion**,

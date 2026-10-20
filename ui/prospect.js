@@ -14,7 +14,7 @@ import { openSheet, toast, btn, ic, softReorder, collerEnHaut } from './dom.js';
 import { sortState, sortArgs } from './sort.js';
 import { filterState, filterArgs, barreListeHTML, bindBarreListe, majTout,
          direCombien, rienTrouveHTML } from './affiner.js';
-import { openMail } from './mail.js';
+import { ouvrirSerie } from './serie.js';
 import { openContactEditor } from './contact.js';
 import { openCampaignWizard } from './campagnes.js';
 import { CAMPAGNES } from './perimetre.js';
@@ -84,7 +84,7 @@ export function openProspect(){
     const pairs = allPairs();
     if (!pairs.some(p => p.ct)) return;
     sh.close();
-    if (CAMPAGNES) chooseMode(pairs); else run(pairs);
+    if (CAMPAGNES) chooseMode(pairs); else ouvrirSerie(pairs);
   });
   /* la case « Tout » PORTE l'état : elle doit donc suivre chaque tap
      individuel, sinon elle affiche un état périmé dès la seconde ligne */
@@ -237,27 +237,6 @@ function chooseMode(pairs){
        ${CAMPAGNES ? `<button class="pick" id="pmCamp"><b>${ic('flag', 'ic-14')} En campagne</b>
          <span>sur 2 semaines</span></button>` : ''}
      </div>`;
-  sh.body.querySelector('#pmOne').addEventListener('click', () => { sh.close(); run(pairs); });
+  sh.body.querySelector('#pmOne').addEventListener('click', () => { sh.close(); ouvrirSerie(pairs); });
   sh.body.querySelector('#pmCamp')?.addEventListener('click', () => { sh.close(); openCampaignWizard(pairs); });
-}
-
-/* la série : un composeur après l'autre, vers la personne choisie.
-   « Passer » avance, la croix arrête tout — tout de suite. */
-function run(pairs){
-  let i = 0;
-  const next = () => {
-    if (i >= pairs.length){
-      toast('Série terminée — ' + pairs.length + ' piste' + (pairs.length > 1 ? 's' : '') + ' traitée' + (pairs.length > 1 ? 's' : '') + ' ✓');
-      bus.refresh();
-      return;
-    }
-    const { c, ct } = pairs[i++];
-    openMail(c, {
-      ctId: ct && ct.id,
-      progress: i + '/' + pairs.length,
-      onDone: next,
-      onQuit: () => { bus.refresh(); }
-    });
-  };
-  next();
 }
