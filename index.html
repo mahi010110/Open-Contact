@@ -59,11 +59,13 @@
       </svg>
       <b>OPEN-CONTACT</b>
     </a>
+    <!-- L'icône de chaque onglet ne se montre que dans la barre latérale
+         (R1, décision 0003) : en rangée, le mot suffit. -->
     <nav class="topnav" aria-label="Navigation principale">
-      <a href="#/aujourdhui" data-r="aujourdhui">Aujourd’hui</a>
-      <a href="#/pistes" data-r="pistes">Mes pistes</a>
-      <a href="#/echanger" data-r="echanger">Échanger</a>
-      <a href="#/moi" data-r="moi">Moi</a>
+      <a href="#/aujourdhui" data-r="aujourdhui"><span class="ic" style="-webkit-mask-image:url(assets/icons/zap.svg);mask-image:url(assets/icons/zap.svg)" aria-hidden="true"></span>Aujourd’hui</a>
+      <a href="#/pistes" data-r="pistes"><span class="ic" style="-webkit-mask-image:url(assets/icons/briefcase.svg);mask-image:url(assets/icons/briefcase.svg)" aria-hidden="true"></span>Mes pistes</a>
+      <a href="#/echanger" data-r="echanger"><span class="ic" style="-webkit-mask-image:url(assets/icons/share.svg);mask-image:url(assets/icons/share.svg)" aria-hidden="true"></span>Échanger</a>
+      <a href="#/moi" data-r="moi"><span class="ic" style="-webkit-mask-image:url(assets/icons/user.svg);mask-image:url(assets/icons/user.svg)" aria-hidden="true"></span>Moi</a>
     </nav>
     <div class="hdr-actions">
       <button class="btn btn-primary btn-cta" id="btnAddTop"><span class="ic ic-14" style="-webkit-mask-image:url(assets/icons/plus.svg);mask-image:url(assets/icons/plus.svg)" aria-hidden="true"></span> Ajouter une piste</button>

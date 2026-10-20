@@ -135,6 +135,9 @@ const ONGLET = {
 };
 function appliquerNav(){
   const r = lot('reseau') ? 'reseau' : 'echanger';
+  /* au poste, la barre latérale (décision 0003) suit le même lot : un
+     seul geste de préversion recadre tout */
+  $('.app').classList.toggle('nav-laterale', lot('reseau'));
   $$('nav [data-r="echanger"], nav [data-r="reseau"]').forEach(a => {
     a.dataset.r = r;
     a.href = '#/' + r;

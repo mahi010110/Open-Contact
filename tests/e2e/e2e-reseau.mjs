@@ -29,10 +29,14 @@
      fiche d'avant ;
    ⑩ (R1-b) « Un contact », depuis le + : la personne d'abord,
      l'entreprise ensuite ; sans entreprise, elle part dans le bac
-     « à rattacher ».
-   Zéro erreur console. Trois mutations à l'appui : la barre qui ne suit
-   pas le lot, l'écran qui ne se recadre pas, la fiche qui garde son
-   ordre.
+     « à rattacher » ;
+   ⑪ (R1-c, décision 0003) au poste, la barre latérale : l'en-tête
+     devient une colonne à gauche — le logo, « Ajouter », puis les quatre
+     destinations empilées, icône et mot — à côté de l'écran, de haut en
+     bas ; éteinte, la rangée d'avant.
+   Zéro erreur console. Quatre mutations à l'appui : la barre qui ne
+   suit pas le lot, l'écran qui ne se recadre pas, la fiche qui garde
+   son ordre, l'en-tête qui reste une rangée.
    ============================================================ */
 import { chromium, chromiumPath, serveRepo, relaisMuets, annuaireMuet, ouvrirReglages, ROOT, SHOTS } from './outils.mjs';
 import { readFile } from 'fs/promises';
@@ -327,6 +331,32 @@ for (const [nom, vp, pv] of [['pouce', { width: 390, height: 844 }, true], ['pos
   await ctx.close();
 }
 
+/* ---------- ⑪ au poste, la barre latérale ---------- */
+const coque = p => p.evaluate(() => {
+  const r = s => { const b = document.querySelector(s).getBoundingClientRect(); return { x: Math.round(b.left), y: Math.round(b.top), l: Math.round(b.width), h: Math.round(b.height) }; };
+  const liens = [...document.querySelectorAll('.topnav a[data-r]')].map(a => {
+    const b = a.getBoundingClientRect(), i = a.querySelector('.ic');
+    return { x: Math.round(b.left), y: Math.round(b.top), h: Math.round(b.height), icone: !!i && getComputedStyle(i).display !== 'none' };
+  });
+  return { laterale: document.querySelector('.app').classList.contains('nav-laterale'),
+           hdr: r('.hdr'), main: r('.main'), ajouter: r('#btnAddTop'), liens };
+});
+const lateraleOk = c => c.laterale && c.hdr.x === 0 && c.hdr.l >= 180 && c.hdr.l <= 280
+  && c.main.x >= c.hdr.l && c.hdr.h >= c.main.h - 1
+  && c.liens.every((a, i) => a.x === c.liens[0].x && a.icone && a.h >= 32 && (!i || a.y > c.liens[i - 1].y))
+  && c.ajouter.y < c.liens[0].y;
+const enRang = c => c.liens.map(a => a.x + ',' + a.y).join(' ');
+for (const [nom, vp, pv, sombre] of [['poste', { width: 1280, height: 800 }, true, false], ['poste-sombre', { width: 1280, height: 800 }, true, true],
+                                      ['poste-1024', { width: 1024, height: 700 }, true, false], ['poste-éteinte', { width: 1280, height: 800 }, false, false]]){
+  const { ctx, p } = await ecran('lat-' + nom, { vp, preversion: pv, sombre, hash: '#/pistes' });
+  const c = await coque(p);
+  if (pv) ok(lateraleOk(c), `⑪ ${nom} : la barre latérale — en-tête ${c.hdr.l}×${c.hdr.h} à gauche, écran à ${c.main.x}, « Ajouter » au-dessus, liens ${enRang(c)}`);
+  else ok(!c.laterale && c.hdr.h <= 60 && c.liens.every(a => a.y === c.liens[0].y && !a.icone),
+    `⑪ ${nom} : la rangée d'avant, en haut, sans icônes — ${enRang(c)}`);
+  if (pv) await p.screenshot({ path: `${SHOTS}/161-reseau-laterale-${nom}.png` });
+  await ctx.close();
+}
+
 /* ---------- les mutations : le scénario sait encore échouer ---------- */
 {
   const app = await readFile(path.join(ROOT, 'app.js'), 'utf8');
@@ -355,6 +385,16 @@ for (const [nom, vp, pv] of [['pouce', { width: 390, height: 844 }, true], ['pos
   await ouvrirFiche(p, 'adv');
   const o = await ordreFiche(p);
   ok(!(o.haut[o.ordre.indexOf('gens')] < o.haut[o.ordre.indexOf('statut')] && o.donner), `mutation ③ : la garde de la fiche rougit — ${lisible(o)}`);
+  await ctx.close();
+}
+
+{
+  const app = await readFile(path.join(ROOT, 'app.js'), 'utf8');
+  const rang = app.replace("$('.app').classList.toggle('nav-laterale', lot('reseau'));", '');
+  ok(rang !== app, 'mutation ④ l’en-tête qui reste une rangée : le fichier servi est bien modifié');
+  const { ctx, p } = await ecran('mutation-laterale', { mutations: { 'app.js': rang }, vp: { width: 1280, height: 800 } });
+  const c = await coque(p);
+  ok(!lateraleOk(c), `mutation ④ : la garde de la barre latérale rougit — ${enRang(c)}`);
   await ctx.close();
 }
 
