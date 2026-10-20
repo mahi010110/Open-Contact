@@ -230,7 +230,19 @@ export async function startLocalRelay({ silent = true, tls = false, port = 0, ho
           recents.set(ip, t);
         }
         conn.send(['OK', ev.id, true, '']);
-        if (garde && !ephemere(ev.kind) && !gardes.some(g => g.id === ev.id)) gardes.push(ev);
+        if (garde && !ephemere(ev.kind) && !gardes.some(g => g.id === ev.id)){
+          /* un événement ADRESSABLE (NIP-33, kinds 30000-39999) remplace le
+             précédent du même auteur, du même kind et de la même étiquette
+             `d` — comme les relais publics (sonde-coffre-relais.mjs) */
+          if (ev.kind >= 30000 && ev.kind < 40000){
+            const dDe = e => ((e.tags || []).find(t => t[0] === 'd') || [])[1] || '';
+            for (let i = gardes.length - 1; i >= 0; i--){
+              const g = gardes[i];
+              if (g.kind === ev.kind && g.pubkey === ev.pubkey && dDe(g) === dDe(ev)) gardes.splice(i, 1);
+            }
+          }
+          gardes.push(ev);
+        }
         const diffuser = () => {
           for (const c of conns)
             for (const [subId, filters] of c.subs)

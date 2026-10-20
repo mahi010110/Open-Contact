@@ -110,10 +110,18 @@ sur chaque relais de `RELAIS_DEFAUT` :
 - la **taille** acceptée d'un événement (8, 32, 64, 128 Ko) — elle dit
   en combien de morceaux une copie se coupe ;
 - la **garde** : un événement déposé se relit-il d'une autre connexion,
-  une heure, un jour, sept jours plus tard ? Un relevé quotidien en CI
-  (un dépôt du jour, la relecture des dépôts des jours d'avant) ;
+  quelques jours, sept jours plus tard ? Un relevé en CI, à chaque
+  poussée et le lundi et le jeudi même sans commit (un dépôt du jour, la
+  relecture des dépôts d'avant : des âges de 3, 4, 7 jours et plus) ;
 - la **règle** des événements remplaçables (NIP-33) : un dépôt du jour
   remplace-t-il celui d'hier sous la même étiquette ?
 
 Le dépôt sur les relais ne s'écrit que si au moins trois relais
 gardent sept jours ; sinon, la question 1 revient au mainteneur.
+
+La sonde est écrite : `tests/e2e/sonde-coffre-relais.mjs`, dans le job
+`transport` de la CI, informative. Son contrôle passe (le relais local
+qui garde rend les quatre tailles, le remplacement, et un relais qui ne
+garde rien rend « accepté, pas relu »). Le relevé des relais publics se
+lit dans les journaux de la CI ; il faut deux semaines de passages pour
+voir un marqueur de sept jours.
