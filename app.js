@@ -22,6 +22,7 @@ import { ecouterInstallation } from './ui/installer.js';
 import { initSyncLive } from './ui/synclive.js';
 import { ORDINATEUR, CAMPAGNES } from './ui/perimetre.js';
 import { destination, titreDe, navigation } from './engine/destinations.js';
+import { installerClavier, poserEnTete, lettresCoupees } from './ui/clavier.js';
 
 /* tôt, avant tout `await` : Chrome peut signaler l'installation dès le
    chargement, et un écouteur posé après aurait manqué l'événement */
@@ -151,7 +152,12 @@ function appliquerNav(){
   const ajout = lot('reseau') ? 'Ajouter' : 'Ajouter une piste';
   $('#bnAdd').setAttribute('aria-label', ajout);
   const top = $('#btnAddTop');
-  if (top && top.lastChild) top.lastChild.textContent = ' ' + ajout;
+  /* le MOT seulement : la touche N (lot R8) vit à côté, dans son <kbd> */
+  const mot = top && [...top.childNodes].reverse().find(n => n.nodeType === 3);
+  if (mot) mot.textContent = ' ' + ajout;
+  /* LE CLAVIER AU POSTE (lot R8) : « Chercher » et sa touche dans
+     l'en-tête, et N écrite dans « Ajouter » */
+  poserEnTete();
 }
 async function ajouter(){
   if (!lot('reseau')){ openCapture(); return; }
@@ -224,6 +230,7 @@ async function ajouter(){
   /* clavier : « / » saute à la recherche des pistes */
   document.addEventListener('keydown', e => {
     if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (lot('clavier') && lettresCoupees()) return;     /* WCAG 2.1.4 : coupées dans Réglages */
     const t = e.target;
     if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
     if (sheetOpen()) return;
@@ -232,6 +239,7 @@ async function ajouter(){
     setTimeout(() => { try { $('#piQ').focus(); } catch (x) {} }, 60);
   });
 
+  installerClavier();
   applyRoute();
 
   /* sync appareils : si une phrase de liaison existe, l'app rejoint la

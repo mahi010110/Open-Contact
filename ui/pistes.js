@@ -27,6 +27,7 @@ import { openProspect } from './prospect.js';
 import { campaignOfPiste, liveCampaignsCount, openCampaignsHome } from './campagnes.js';
 import { CAMPAGNES } from './perimetre.js';
 import { suivreDecouverte, decouverteHTML, lierDecouverte, compteDecouverte, zoneEtiquetteHTML, lierZone } from './decouvrir.js';
+import { lettresCoupees, toucheHTML } from './clavier.js';
 
 /* hors périmètre, aucune piste n'est « en campagne » — la question ne se
    pose plus à l'écran, et « à planifier » reprend sa place (CLAUDE.md §0) */
@@ -176,6 +177,8 @@ mqWide.addEventListener('change', () => { if (S.route === 'pistes') renderPistes
    de raccourcis serait un écran qui n'affiche aucune donnée (§6). */
 const libre = e => {
   if (e.metaKey || e.ctrlKey || e.altKey) return false;
+  /* « Touches d'une lettre » éteintes dans Réglages (lot R8, WCAG 2.1.4) */
+  if (lot('clavier') && lettresCoupees()) return false;
   if (topSheet() || document.querySelector('.lock')) return false;
   const t = e.target;
   return !(t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName || '')));
@@ -1101,7 +1104,7 @@ export function renderPistes(){
     }
     const cible = t.closest('.bc-main, .ri-main, .o-main, .dc-main');
     /* E écrit à la piste choisie (décision 0003) */
-    if (cible && (e.key === 'e' || e.key === 'E') && cible.closest('.pi-split .row-item')){
+    if (cible && (e.key === 'e' || e.key === 'E') && cible.closest('.pi-split .row-item') && !(lot('clavier') && lettresCoupees())){
       const c = S.companies.find(x => x.id === cible.closest('.row-item').dataset.id);
       if (c){ e.preventDefault(); ecrirePiste(c); }
       return;

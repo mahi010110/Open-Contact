@@ -261,7 +261,10 @@ for (const sombre of [false, true]){
   const { ctx, p } = await ecran('poste', { vp: { width: 1280, height: 800 }, hash: '#/reseau' });
   const a = await ici(p);
   const r = await reseauLu(p);
-  const top = await p.evaluate(() => document.querySelector('#btnAddTop')?.textContent.trim());
+  /* le MOT du bouton : la touche N (lot R8) vit à côté, dans son <kbd>,
+     muette pour le lecteur d'écran */
+  const top = await p.evaluate(() => [...(document.querySelector('#btnAddTop')?.childNodes || [])]
+    .filter(n => !n.classList?.contains('kbd-btn')).map(n => n.textContent).join('').trim());
   ok(a.vue === 'reseau' && a.h1 === 'Réseau' && r.ordre.join(',') === 'rzDemandes,boite' && r.verbes === 0 && top === 'Ajouter'
     && await barre(p) === 'Aujourd’hui→#/aujourdhui | Mes pistes→#/pistes | Réseau→#/reseau | Moi→#/moi',
     `⑧ poste : Réseau, mes demandes en tête, « Ajouter » en haut — ${await barre(p)}`);

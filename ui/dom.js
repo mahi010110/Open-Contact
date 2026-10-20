@@ -206,6 +206,19 @@ function prendreEntree(){
   if (internes){ aPoser++; return; }        /* un retour est en vol : on posera à l'atterrissage */
   history.pushState({ oc: poussees }, '', location.href);
 }
+/* CHANGER D'ADRESSE APRÈS UNE FERMETURE attend que nos retours aient
+   atterri. Le retour qui rend l'entrée d'une feuille part après le bloc
+   en cours : une adresse posée juste derrière se fait défaire par lui,
+   et l'écran choisi retombe sur celui d'avant — « Mes pistes » choisi
+   dans « Chercher » ramenait à « Aujourd'hui » (mesuré, lot R8). Une
+   seconde au plus : un retour qui n'atterrit pas ne bloque rien. */
+export function apresRetours(){
+  const t0 = Date.now();
+  return new Promise(fin => {
+    const voir = () => (aRendre || internes) && Date.now() - t0 < 1000 ? setTimeout(voir, 16) : fin();
+    queueMicrotask(voir);
+  });
+}
 addEventListener('popstate', () => {
   if (internes){
     internes--;
