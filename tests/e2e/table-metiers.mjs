@@ -133,14 +133,31 @@ for (const r of Object.values(REGIONS)) (r.alias || []).forEach(m => marquer(m, 
 for (const v of VILLES) marquer(v.nom, 'ville');
 for (const n of Object.values(DEPARTEMENTS)) marquer(n, 'département');
 
-const formes = s => String(s || '').replace(/\([^)]*\)/g, ' ').split(/\s+\/\s+/).map(x => x.replace(/\s+/g, ' ').trim()).filter(Boolean);
+/* LES DEUX FORMES D'UNE APPELLATION. « Technicien / Technicienne
+   agricole » : la barre oblique ne sépare que les premiers mots — le
+   masculin reprend la fin du féminin (« Technicien agricole »). Lue
+   comme deux appellations, elle donnait « Technicien » seul, qui heurtait
+   le support informatique (premier passage, 20 octobre). Une appellation
+   à deux barres obliques ou plus ne se lit pas sûrement : écartée. */
+export function formes(nom){
+  const s = String(nom || '').replace(/\([^)]*\)/g, ' ').replace(/\s+/g, ' ').trim();
+  const parts = s.split(' / ');
+  if (parts.length === 1) return s ? [s] : [];
+  if (parts.length > 2) return [];
+  const [gauche, droite] = parts.map(x => x.trim());
+  const reste = droite.split(' ').slice(gauche.split(' ').length).join(' ');
+  return [gauche + (reste ? ' ' + reste : ''), droite];
+}
 const APPELLATIONS = [];
 const vues = new Map();
-const ecartees = { peu: 0, long: 0, heurte: [], doublon: 0, sansFiche: 0 };
+const ecartees = { peu: 0, long: 0, heurte: [], doublon: 0, sansFiche: 0, informatique: 0 };
 for (const a of appel){
   if (a.peu_usite === 'O'){ ecartees.peu++; continue; }
   if (!FICHES[a.code_rome]){ ecartees.sansFiche++; continue; }
-  const nom = a.libelle_appellation_court || a.libelle_appellation_long;
+  /* l'informatique reste à la table de la barre (METIER), plus fine */
+  if (/^M18/.test(a.code_rome)){ ecartees.informatique++; continue; }
+  /* le libellé LONG : le court est parfois tronqué (« pénitentiai ») */
+  const nom = a.libelle_appellation_long || a.libelle_appellation_court;
   const fs = formes(nom);
   if (!fs.length || fs.some(f => f.split(' ').length > MOTS_MAX)){ ecartees.long++; continue; }
   const cles = fs.map(cleDe).filter(Boolean);
@@ -151,6 +168,8 @@ for (const a of appel){
   APPELLATIONS.push([nom, a.code_rome]);
 }
 APPELLATIONS.sort((x, y) => x[0].localeCompare(y[0], 'fr'));
+const parFiche = new Map();
+for (const [nom, code] of APPELLATIONS){ const l = parFiche.get(code) || []; l.push(nom); parFiche.set(code, l); }
 
 /* ---------- le RNCP ---------- */
 const jeu = await (await fetch(RNCP_JEU, { headers: { accept: 'application/json' } })).json();
@@ -202,14 +221,11 @@ const module = `/* ============================================================
 export const ROME_VERSION = ${J(version)};
 /* grand domaine → son nom */
 export const DOMAINES = ${J(DOMAINES)};
-/* code ROME → [nom de la fiche, grand domaine, sections NAF de l'annuaire, la plus fréquente d'abord] */
+/* code ROME → [grand domaine, sections NAF de l'annuaire (la plus
+   fréquente d'abord), ses appellations (« masculin / féminin »)] */
 export const FICHES = {
-${Object.entries(FICHES).map(([k, v]) => `${J(k)}:${J(v)}`).join(',\n')}
+${Object.entries(FICHES).map(([k, v]) => `${J(k)}:${J([v[1], v[2], parFiche.get(k) || []])}`).join(',\n')}
 };
-/* [nom court de l'appellation (« masculin / féminin »), code ROME] */
-export const APPELLATIONS = [
-${APPELLATIONS.map(J).join(',\n')}
-];
 /* [diplôme, intitulé, sigle, codes ROME séparés par une espace] */
 export const FORMATIONS = [
 ${FORMATIONS.map(J).join(',\n')}
@@ -219,7 +235,7 @@ const octets = Buffer.byteLength(module);
 const gz = gzipSync(Buffer.from(module), { level: 9 });
 
 console.log(`ROME version ${version} · ${Object.keys(FICHES).length} fiches · ${APPELLATIONS.length} appellations gardées`);
-console.log(`  écartées : ${ecartees.peu} peu usitées · ${ecartees.long} trop longues · ${ecartees.heurte.length} qui heurtent la barre · ${ecartees.doublon} doublons · ${ecartees.sansFiche} sans fiche`);
+console.log(`  écartées : ${ecartees.peu} peu usitées · ${ecartees.long} trop longues · ${ecartees.heurte.length} qui heurtent la barre · ${ecartees.doublon} doublons · ${ecartees.sansFiche} sans fiche · ${ecartees.informatique} de l'informatique`);
 console.log('  qui heurtent la barre :\n    ' + ecartees.heurte.slice(0, 80).join('\n    '));
 console.log(`  fiches sans section NAF : ${Object.values(FICHES).filter(f => !f[2]).length}`);
 const uns = APPELLATIONS.filter(a => formes(a[0]).some(f => !f.includes(' ')));
