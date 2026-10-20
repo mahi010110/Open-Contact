@@ -209,6 +209,16 @@ mail reste le chemin de secours.
 *Proposition validée par le mainteneur le 20 octobre 2026 :*
 [`propositions/R7-ceux-qui-aident.md`](propositions/R7-ceux-qui-aident.md).
 
+- **Où on en est** : **livré en préversion (6.86.0)**, derrière le
+  drapeau `aide` (`engine/aide.js`, `ui/aide.js`) : « Je peux aider »
+  dans Moi, la feuille « Décroché », « Demander à Karim » et ce qu'il
+  offre, « Le dire à Karim ». Le profil donné gagne un champ facultatif,
+  `aide`, des mots d'une table. Gardé par `e2e-aide.mjs`, la fuite
+  d'abord.
+- *Accepté quand* : au bout de deux semaines de préversion, un testeur
+  sur deux qui a décroché a coché au moins une case, et les demandes
+  « 20 minutes » partent sans qu'on ait à expliquer à quoi elles servent.
+
 « Je peux aider » dans Moi ; une piste close « Décroché » propose d'aider
 à son tour ; les messages du café-conseil, de la présentation, du merci.
 Un champ facultatif de plus dans le profil donné, testé contre la fuite

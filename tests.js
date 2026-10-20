@@ -54,11 +54,13 @@ import { dueFollowups, contactFromSignature, exchangeLog, exchangeTotals, nextAc
 import { mesChiffres, chiffresTexte, derniereActivite, enPause, PAUSE_JOURS, reprendre, REPRENDRE } from './engine/suivi.js';
 import { contactVise, estUnMail, pretsAPartir, SERIE_MAX, SERIE_MIN, lireBrouillons, poserBrouillon, retirerBrouillon,
          brouillonDe, BROUILLON_JOURS } from './engine/prets.js';
+import { AIDES, ORDRE_AIDES, normaliserAide, basculerAide, direAide, demandesPossibles, libelleDemande, messageDemande,
+         jourReponse, merciAProposer, messageMerci, MERCI_JOURS } from './engine/aide.js';
 import { lundiDe, jourSemaine, plusJours, mailsEntre, reponsesEntre, pistesEntre, objectifPropose, normaliserSemaine,
          reglerObjectif, maSemaine, phraseRevue, RE_PHRASE_REVUE, OBJECTIF_MIN, OBJECTIF_MAX } from './engine/semaine.js';
 import { rappelICS, lienAgendaGoogle, formeAgenda, RAPPEL_HEURE } from './engine/agenda.js';
 import { normalizeParcours, parcoursDe, periodeParcours, phraseParcours, PARCOURS_MAX } from './engine/parcours.js';
-import { nouvelIdAmi, idAmiValide, cleEntreprise, memeEntreprise, profilDonne, normalizeAmi, normalizeAmis,
+import { nouvelIdAmi, idAmiValide, cleEntreprise, memeEntreprise, profilDonne, normalizeAmi, normalizeAmis, parcoursADecrocher,
          statutAmi, ajouterAmi, retirerAmi, prenomAmi, enCours, direExperience, portesAmis, AMIS_MAX,
          ceQuOuvre, classerAmis, chercherAmis, TRIS_AMIS } from './engine/amis.js';
 import { nouvelleCle, boiteValide, cleValide, etiquetteBoite, sceller, ouvrir, lettreDemande, lettreDon, lettreMerci, lettreAmi,
@@ -2830,6 +2832,110 @@ export async function runSelfTests(){
       eq(maSemaine(null, [], '2026-10-25').revue, true);
       /* jamais dans le profil donné à un ami */
       ok(!('semaine' in profilDonne(normalizeProfile({ name: 'Inès', semaine: { lundi: L, objectif: 6 } }), [])));
+    },
+    'ceux qui aident : trois mots fixes, jamais un texte libre': () => {
+      eq(ORDRE_AIDES.join(), 'parler,relire,presenter');
+      eq(Object.keys(AIDES).sort().join(), 'parler,presenter,relire');
+      /* ce qui n'est pas de la table tombe, l'ordre est celui de la table, sans doublon */
+      eq(normaliserAide(['relire', 'pirater', 'parler', 'relire', 42, null]), ['parler', 'relire']);
+      eq(normaliserAide('parler'), []);
+      eq(normaliserAide(undefined), []);
+      eq(basculerAide([], 'presenter'), ['presenter']);
+      eq(basculerAide(['presenter'], 'parler'), ['parler', 'presenter']);
+      eq(basculerAide(['parler', 'presenter'], 'parler'), ['presenter']);
+      eq(basculerAide(['parler'], 'autre chose'), ['parler']);
+      eq(direAide(['relire', 'presenter']), 'peut relire un CV');
+      eq(direAide([]), '');
+      /* dans le profil : la table, ou rien */
+      eq(normalizeProfile({ aide: ['relire', 'n’importe quoi'] }).aide, ['relire']);
+      ok(!('aide' in normalizeProfile({ aide: ['x'] })));
+      ok(!('aide' in normalizeProfile({})));
+    },
+    'ceux qui aident : le profil donné ne porte que les mots de la table — et l’ami les relit, à jour': () => {
+      const p = normalizeProfile({ name: 'Karim Benali', amiId: nouvelIdAmi(), formation: 'BTS SIO', email: 'k@prive.test',
+                                   aide: ['presenter', 'parler'] });
+      const d = profilDonne(p, []);
+      eq(d.aide, ['parler', 'presenter']);
+      eq(Object.keys(d).sort().join(), 'aide,id,kind,nom,parcours,v');
+      /* sans case cochée, la clé n'existe pas : un profil d'avant R7 est inchangé */
+      ok(!('aide' in profilDonne(normalizeProfile({ name: 'Inès', amiId: nouvelIdAmi() }), [])));
+      /* chez l'ami : remis aux invariants — un mot glissé dans un QR fabriqué tombe */
+      const a = normalizeAmi({ ...d, aide: ['parler', '<script>', 'Je suis chez Thales'] });
+      eq(a.aide, ['parler']);
+      ok(!('aide' in normalizeAmi({ ...d, aide: 'relire' })));
+      /* une offre qui change est une mise à jour du profil, pas un doublon */
+      const amis = ajouterAmi([], d, 1);
+      eq(statutAmi(amis, normalizeAmi({ ...d, aide: ['relire'] })), 'maj');
+      eq(statutAmi(amis, normalizeAmi(d)), 'identique');
+      eq(statutAmi(amis, normalizeAmi({ ...d, aide: [] })), 'maj');
+    },
+    'ceux qui aident : la demande prête — qui je suis, ce que je cherche, combien de temps, jamais un emploi': () => {
+      const o = { prenom: 'Karim', tu: 'y es en alternance', entreprise: 'Aztek', cherche: 'alternance' };
+      eq(demandesPossibles(['relire']), ['qui', 'relire']);
+      eq(demandesPossibles([]), ['qui']);
+      /* « à qui écrire » : la phrase d'avant R7, sans le « y » qui disait deux fois le lieu */
+      eq(messageDemande('qui', { prenom: 'Karim', tu: 'y as fait ton stage', entreprise: 'Aztek' }),
+         'Salut Karim, tu as fait ton stage chez Aztek ? Je postule là-bas — tu peux me dire à qui écrire ?');
+      eq(messageDemande('parler', o),
+         'Salut Karim, tu es en alternance chez Aztek ? Je cherche une alternance et j’aimerais comprendre comment ça se passe là-bas. '
+         + 'Tu aurais 20 minutes cette semaine ou la suivante pour m’en parler ?');
+      ok(/^Salut Karim, tu es en alternance chez Aztek \? J’aimerais comprendre/.test(messageDemande('parler', { ...o, cherche: '' })));
+      eq(messageDemande('relire', o), 'Salut Karim, tu pourrais relire mon CV ? Je postule chez Aztek, et ton avis m’aiderait.');
+      eq(messageDemande('presenter', o),
+         'Salut Karim, tu es en alternance chez Aztek ? Je postule là-bas : tu pourrais me présenter à quelqu’un de ton équipe ?');
+      /* aucune des demandes ne demande un emploi (APEC : l'entretien de réseau n'est pas un entretien d'embauche) */
+      for (const k of ORDRE_AIDES) ok(!/embauch|recrut|poste chez|m’engager/i.test(messageDemande(k, o)), k);
+      eq(libelleDemande('parler', 'Aztek'), '20 minutes pour parler d’Aztek');
+      eq(libelleDemande('parler', 'Thales'), '20 minutes pour parler de Thales');
+      eq(libelleDemande('parler', 'Huawei'), '20 minutes pour parler de Huawei');
+      eq(libelleDemande('qui', 'Aztek'), 'À qui écrire chez Aztek');
+      eq(libelleDemande('relire', 'Aztek'), 'Relire mon CV');
+    },
+    'ceux qui aident : le merci se propose quand une piste portée répond, et tant qu’il n’est pas dit': () => {
+      const rep = { id: 'p', name: 'Aztek', status: 'reply', history: [{ d: '2026-10-12', t: 'Statut → En cours' },
+                                                                     { d: '2026-10-15', t: 'Fiche complétée : Statut → Réponse' }] };
+      eq(jourReponse(rep), '2026-10-15');
+      eq(jourReponse({ status: 'closed', closedReason: 'won', closedAt: '2026-10-18' }), '2026-10-18');
+      eq(jourReponse({ status: 'active', history: [{ d: '2026-10-15', t: 'Statut → Réponse' }] }), '');   /* revenue en cours */
+      eq(jourReponse({ status: 'closed', closedReason: 'rejected', closedAt: '2026-10-18' }), '');        /* un refus ne se fête pas */
+      const karim = [{ id: 'K', prenom: 'Karim' }];
+      const jamais = () => 0;
+      eq(merciAProposer(rep, karim, jamais, '2026-10-20'), { amiId: 'K', prenom: 'Karim', jour: '2026-10-15', decroche: false });
+      /* déjà écrit à Karim depuis : c'est dit */
+      eq(merciAProposer(rep, karim, () => new Date(2026, 9, 16, 9).getTime(), '2026-10-20'), null);
+      /* écrit AVANT la réponse : le merci reste à dire */
+      ok(!!merciAProposer(rep, karim, () => new Date(2026, 9, 14, 9).getTime(), '2026-10-20'));
+      /* au-delà de quatorze jours, il ne revient plus */
+      eq(MERCI_JOURS, 14);
+      ok(!!merciAProposer(rep, karim, jamais, '2026-10-29'));
+      eq(merciAProposer(rep, karim, jamais, '2026-10-30'), null);
+      eq(merciAProposer(rep, [], jamais, '2026-10-20'), null);
+      eq(merciAProposer({ ...rep, demo: true }, karim, jamais, '2026-10-20'), null);
+      const won = { name: 'Aztek', status: 'closed', closedReason: 'won', closedAt: '2026-10-18' };
+      eq(merciAProposer(won, karim, jamais, '2026-10-20').decroche, true);
+      eq(messageMerci({ entreprise: 'Aztek' }), 'Aztek m’a répondu, merci pour ton aide !');
+      eq(messageMerci({ entreprise: 'Aztek', decroche: true }), 'J’ai décroché chez Aztek, merci pour ton aide !');
+    },
+    'ceux qui aident : à « Décroché », l’entreprise entre dans mon parcours, depuis ce mois-ci': () => {
+      const c = { id: 'p1', name: 'Aztek SAS' };
+      eq(parcoursADecrocher({ recherche: 'alternance' }, c, '2026-10'),
+         { entreprise: 'Aztek SAS', quoi: 'alternance', debut: '2026-10', fin: '', pisteId: 'p1' });
+      /* le mot n'est pas dit : l'écran le demandera */
+      eq(parcoursADecrocher({}, c, '2026-10').quoi, '');
+      /* déjà dedans, en cours : rien à proposer — par la piste ou par le nom */
+      eq(parcoursADecrocher({ parcours: [{ id: 'e', entreprise: 'Aztek', quoi: 'stage', debut: '2026-09', fin: '' }] }, c, '2026-10'), null);
+      eq(parcoursADecrocher({ parcours: [{ id: 'e', entreprise: 'Autre', quoi: 'stage', debut: '2026-09', fin: '', pisteId: 'p1' }] }, c, '2026-10'), null);
+      /* un stage FINI là-bas, puis une alternance : la nouvelle ligne se propose */
+      ok(!!parcoursADecrocher({ parcours: [{ id: 'e', entreprise: 'Aztek', quoi: 'stage', debut: '2025-01', fin: '2025-03' }] }, c, '2026-10'));
+      /* une déclaration « J'y suis passé » n'a pas de date : la ligne saisie la remplacera */
+      ok(!!parcoursADecrocher({ parcours: [] }, { ...c, vecu: 'alternance' }, '2026-10'));
+      eq(parcoursADecrocher({}, { ...c, demo: true }, '2026-10'), null);
+      eq(parcoursADecrocher({}, c, '2026-13'), null);
+      /* une fois enregistrée, la ligne se lit « y est en alternance » chez l'ami */
+      const p = normalizeProfile({ name: 'Karim', amiId: nouvelIdAmi(),
+        parcours: [parcoursADecrocher({ recherche: 'alternance' }, c, '2026-10')] });
+      const portes = portesAmis([{ id: 'x', name: 'AZTEK' }], [normalizeAmi(profilDonne(p, [c]))], '2026-10-20');
+      eq(portes.get('x')[0].court, 'y est en alternance');
     },
     'ma semaine : la phrase de la revue — des nombres et des mots fixes, rien d’autre': () => {
       eq(phraseRevue({ mails: 5, reponses: 1, pistes: 3 }), 'Ma semaine : 5 mails, 1 réponse, 3 pistes.');

@@ -28,10 +28,11 @@ import { boutonEnvoyer } from './fichier.js';
 import { esc, todayISO, uid } from '../engine/utils.js';
 import { normalizeCompany } from '../engine/model.js';
 import { PARCOURS, periodeParcours } from '../engine/parcours.js';
+import { AIDES, direAide } from '../engine/aide.js';
 import { nouvelIdAmi, profilDonne, statutAmi, ajouterAmi, retirerAmi, prenomAmi,
          portesAmis, memeEntreprise, classerAmis, chercherAmis, TRIS_AMIS, TRI_AMIS_DEFAUT } from '../engine/amis.js';
 import { encodeOCA } from '../engine/exchange.js';
-import { S, bus, saveData, saveProfile, logJ, deletePiste } from './state.js';
+import { S, bus, saveData, saveProfile, logJ, deletePiste, lot } from './state.js';
 import { openSheet, toast, btn, ic, showUndo, bindDeleteGesture, clavier } from './dom.js';
 import { interpreter, contexteRecherche, critereDe } from '../engine/requete.js';
 import { sortState, sortSectionHTML, bindSortSection, sortChipHTML, bindSortChip, sensDe } from './sort.js';
@@ -97,6 +98,10 @@ export async function openMonQR(o = {}){
        ${donne.parcours.length
          ? `<span>${esc(donne.parcours.map(e => (PARCOURS[e.quoi] ? PARCOURS[e.quoi].label + ' chez ' : '') + e.entreprise).join(' · '))}</span>`
          : `<button class="linklike" id="mqParcours">${ic('plus', 'ic-14')} Ajouter mon parcours</button>`}
+       ${/* ce que je peux offrir (lot R7) : écrit tel qu'il part — un mot
+            hors de la table s'y lirait aussi, jamais caché */''}
+       ${(donne.aide || []).length
+         ? `<span id="mqAide">Je peux aider : ${esc(donne.aide.map(k => AIDES[k] ? AIDES[k].mot[0].toLowerCase() + AIDES[k].mot.slice(1) : k).join(' · '))}</span>` : ''}
      </div>`;
   sh.body.querySelector('#mqParcours')?.addEventListener('click', async () => {
     sh.close();
@@ -318,7 +323,9 @@ function ligneAmiHTML({ a, o }, sel){
            ${visageHTML(a.id)}
            <div class="am-txt">
              <h3>${esc(a.nom)}</h3>
-             <div class="ri-sub">${sousLigneAmi(o)}</div>
+             <div class="ri-sub">${sousLigneAmi(o)}${lot('aide') && direAide(a.aide)
+               ? /* ce qu'il offre (lot R7), après ce qu'il ouvre : une donnée,
+                    qui s'élide la première */ ` · <span class="am-aide">${esc(direAide(a.aide))}</span>` : ''}</div>
            </div>
          </div>
        </div>

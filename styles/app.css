@@ -4220,3 +4220,13 @@ html.oc-locked .undo-bar{display:none}
 .sm-fait{margin:8px 0 0;color:var(--text-muted);font-size:var(--text-13)}
 .sm-fait b{color:var(--text-body)}
 .sm-phrase{margin:0;font-size:var(--text-14)}
+
+/* ============================================================
+   CEUX QUI AIDENT (lot R7, docs/propositions/R7-ceux-qui-aident.md)
+   La feuille « Décroché » : l'entreprise, la ligne du parcours (une case),
+   le mot qui manque au profil (des puces), puis « Je peux aider » — le
+   même titre de section que « Ma semaine », la même liste à cocher que
+   Moi. Aucun dessin neuf : des motifs qui existent.
+   ============================================================ */
+.dc-quoi{margin:8px 0 0}
+.dc-h{margin-top:16px}
