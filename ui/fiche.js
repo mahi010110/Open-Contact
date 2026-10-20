@@ -18,6 +18,7 @@ import { S, bus, isClosed, saveData, reopenPiste, logJ, activateContact, lot } f
 import { openSheet, confirmSheet, toast, btn, ic, montrerChange, suivreLargeur, choixHTML } from './dom.js';
 import { demandesPossibles, libelleDemande, messageDemande, merciAProposer, messageMerci } from '../engine/aide.js';
 import { dernierEnvoiA } from './messages.js';
+import { toucheHTML, toucheAttr, poserTouche, lettreActive } from './clavier.js';
 import { prenomAmi } from '../engine/amis.js';
 import { frDate, relLabel } from './dates.js';
 import { askNextAction, askClose } from './actions.js';
@@ -188,6 +189,14 @@ export function openFiche(c, o = {}){
        ne se voit jamais atterrir (cécité au changement). */
     onClose: () => { oublierFiche(); if (commis) montrerChange(c.id); }
   });
+  /* LE CLAVIER AU POSTE (lot R8) : dans la fiche, E écrit et P planifie
+     — les deux lettres écrites dans leurs boutons. Jamais pendant qu'un
+     champ a le curseur (on y TAPE ses notes). */
+  sh.ov.addEventListener('keydown', e => {
+    const k = lot('clavier') ? lettreActive(e) : '';
+    if (k === 'e'){ e.preventDefault(); ecrirePiste(c); }
+    else if (k === 'p' && sh.body.querySelector('#fiNa')){ e.preventDefault(); sh.body.querySelector('#fiNa').click(); }
+  });
 
   const confirm = () => {
     const before = { status: c.status, notes: c.notes, nextAction: c.nextAction, nextActionText: c.nextActionText };
@@ -217,7 +226,7 @@ export function openFiche(c, o = {}){
        partageait la place de « Écrire », la seule action du pouce, alors
        qu'il décide du STATUT de la piste — il monte à côté de « Où j'en
        suis », là où l'on pense à l'état de la piste. Un pied, un geste. */
-    foot.append(btn('Écrire', d ? '' : 'btn-primary', () => ecrirePiste(c), 'mail'));
+    foot.append(poserTouche(btn('Écrire', d ? '' : 'btn-primary', () => ecrirePiste(c), 'mail'), 'e'));
     if (d) foot.append(btn('Confirmer', 'btn-primary', confirm, 'check'));
   };
 
@@ -327,15 +336,15 @@ export function openFiche(c, o = {}){
                 bouton : « Planifier » dit un geste que « Aucune » ne dit
                 pas. */''}
            ${val('nextAction')
-             ? `<button class="na-box na-btn${isLate(val('nextAction')) ? ' late' : ''}" id="fiNa"
+             ? `<button class="na-box na-btn${isLate(val('nextAction')) ? ' late' : ''}" id="fiNa"${toucheAttr('p')}
                   aria-label="Modifier la prochaine action : ${esc(val('nextActionText') || 'Faire le point')}, ${esc(frDate(val('nextAction')))}">
                   <span class="na-cur"><b>${esc(val('nextActionText') || 'Faire le point')}</b>
                     <span>${frDate(val('nextAction'))} · ${relLabel(val('nextAction'))}${naPerson ? ' · ' + esc(naPerson.name || naPerson.email) : ''}</span></span>
-                  ${ic('chevron-right', 'ic-14')}</button>`
+                  ${toucheHTML('p')}${ic('chevron-right', 'ic-14')}</button>`
              /* « Aucune », pas « Aucune — planifie la suite » : le
                 bouton d'à côté dit déjà le geste (§6, sobriété 1) */
              : `<div class="na-box"><div class="na-cur na-none">Aucune</div>
-                  <button class="btn btn-sm" id="fiNa">Planifier</button></div>`}
+                  <button class="btn btn-sm" id="fiNa"${toucheAttr('p')}>Planifier${toucheHTML('p')}</button></div>`}
          </div>`}
        <div class="field"><label for="fiNotes">Mes notes ${ic('lock', 'ic-14')} <span class="lbl-soft">privées</span></label>
          ${/* `rows="1"` est nécessaire : sans lui, `height:auto` retombe sur

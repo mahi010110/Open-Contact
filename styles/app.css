@@ -4230,3 +4230,59 @@ html.oc-locked .undo-bar{display:none}
    ============================================================ */
 .dc-quoi{margin:8px 0 0}
 .dc-h{margin-top:16px}
+
+/* ============================================================
+   LE CLAVIER AU POSTE (lot R8, docs/propositions/R8-le-clavier.md)
+   Une touche s'écrit DANS ce qu'elle commande (§5) : une petite case de
+   clavier, en mono, en retrait — une indication, pas une cible. Au poste
+   seulement : `toucheHTML` ne l'écrit qu'au-dessus de 901 px.
+   Sur une LIGNE de liste, la touche n'agit que sur la ligne qui a le
+   curseur : elle ne se montre que là (`:focus-within`), sinon chaque
+   ligne porterait sa lettre — un papier peint (§6, règle 1). Posée dans
+   l'angle du bouton, hors du flux : rien ne bouge quand elle paraît.
+   ============================================================ */
+.kbd-btn{
+  display:inline-block;margin-left:6px;padding:1px 4px;
+  font-family:var(--font-mono);font-size:var(--text-11);line-height:1.2;font-weight:var(--weight-regular);
+  color:var(--text-muted);background:var(--surface-chrome);border:1px solid var(--border-soft);
+  vertical-align:1px;pointer-events:none;
+}
+.btn-primary .kbd-btn{color:inherit;background:transparent;border-color:currentColor;opacity:.8}
+.act-row .act-fait,.act-row [data-a="mail"]{position:relative}
+.act-row .kbd-btn{display:none;position:absolute;top:-7px;right:-7px;margin:0;z-index:1}
+.act-row:focus-within .kbd-btn{display:inline-block}
+.na-btn .kbd-btn{flex:none;align-self:center}
+/* au doigt, même à la largeur du poste (une tablette), la lettre écrite
+   n'est que du bruit : §5, le pointeur dit la main. Elle reste annoncée
+   (`aria-keyshortcuts`) et agit si un clavier est branché. */
+@media not all and (pointer:fine){
+  .kbd-btn,.act-row:focus-within .kbd-btn{display:none}
+}
+/* « Chercher » dans l'en-tête, à côté de « Ajouter » : discret, il ne
+   pèse jamais plus que le geste principal. Dans la barre latérale (lot
+   « reseau »), la rangée n'a pas la place de deux boutons : « Ajouter »
+   garde la sienne, « Chercher » passe dessous, sa touche au bout — la
+   forme d'un champ de recherche, comme dans toute barre latérale. */
+.hdr-palette{gap:6px}
+.kbd-btn{white-space:nowrap}
+.nav-laterale .hdr-actions:has(.hdr-palette){flex-direction:column;align-items:stretch}
+.nav-laterale .hdr-palette{order:2;justify-content:flex-start}
+.nav-laterale .hdr-palette .kbd-btn{margin-left:auto}
+/* la fenêtre « Chercher » : un champ, une liste dans un cadre — la rangée
+   choisie au clavier prend le surlignage du châssis, comme un résultat
+   qu'on a demandé (§4 : le navy dit ce que tu as demandé). Son dessin est
+   le sien : les rangées des feuilles (`.pick`) poussent le libellé à
+   droite et effacent tout fond. */
+.modal-palette .pk-q{width:100%;margin:0 0 10px}
+.pk-liste{margin:0;padding:0;list-style:none;
+  background:var(--surface-window);border:1px solid var(--border-strong);box-shadow:var(--shadow-raised)}
+.pk-o{display:flex;align-items:center;gap:8px;min-height:var(--ctl);padding:4px 12px;cursor:pointer;
+  font-size:var(--text-14);color:var(--text-body);border-bottom:1px dashed var(--border-soft)}
+.pk-o:last-child{border-bottom-color:transparent}
+.pk-o b{flex:0 1 auto;min-width:0;overflow-wrap:anywhere;font-weight:var(--weight-semibold)}
+.pk-o .pk-s{flex:1;min-width:0;text-align:right;font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pk-o>.ic{flex:none;color:var(--text-muted)}
+.pk-o.pk-sel{background:var(--select-bg);color:var(--select-text)}
+.pk-o.pk-sel>.ic,.pk-o.pk-sel .pk-s{color:var(--select-text)}
+.pk-vide{padding:10px 2px;color:var(--text-muted);font-size:var(--text-13)}

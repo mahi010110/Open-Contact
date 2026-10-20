@@ -54,6 +54,7 @@ import { dueFollowups, contactFromSignature, exchangeLog, exchangeTotals, nextAc
 import { mesChiffres, chiffresTexte, derniereActivite, enPause, PAUSE_JOURS, reprendre, REPRENDRE } from './engine/suivi.js';
 import { contactVise, estUnMail, pretsAPartir, SERIE_MAX, SERIE_MIN, lireBrouillons, poserBrouillon, retirerBrouillon,
          brouillonDe, BROUILLON_JOURS } from './engine/prets.js';
+import { LETTRES, lettreDe, estPalette, nomAria, nomPalette, ariaPalette, paletteDe, PALETTE_PISTES, PALETTE_MAX } from './engine/clavier.js';
 import { AIDES, ORDRE_AIDES, normaliserAide, basculerAide, direAide, demandesPossibles, libelleDemande, messageDemande,
          jourReponse, merciAProposer, messageMerci, MERCI_JOURS } from './engine/aide.js';
 import { lundiDe, jourSemaine, plusJours, mailsEntre, reponsesEntre, pistesEntre, objectifPropose, normaliserSemaine,
@@ -2832,6 +2833,61 @@ export async function runSelfTests(){
       eq(maSemaine(null, [], '2026-10-25').revue, true);
       /* jamais dans le profil donné à un ami */
       ok(!('semaine' in profilDonne(normalizeProfile({ name: 'Inès', semaine: { lundi: L, objectif: 6 } }), [])));
+    },
+    'le clavier : cinq lettres, jamais dans un champ, jamais avec un modificateur, et elles se coupent': () => {
+      eq(Object.keys(LETTRES).join(''), 'n/epf');
+      const k = (key, o = {}) => ({ key, ...o });
+      eq(lettreDe(k('n')), 'n');
+      eq(lettreDe(k('N', { shiftKey: true })), 'n');            /* Maj enfoncée : la même lettre */
+      eq(lettreDe(k('/', { shiftKey: true })), '/');            /* AZERTY : « / » se fait en Maj+: */
+      eq(lettreDe(k('E')), 'e'); eq(lettreDe(k('p')), 'p'); eq(lettreDe(k('f')), 'f');
+      eq(lettreDe(k('x')), '');                                 /* une lettre qui ne commande rien */
+      eq(lettreDe(k('Enter')), '');
+      eq(lettreDe(k('n', { ctrlKey: true })), '');              /* Ctrl N appartient au navigateur */
+      eq(lettreDe(k('n', { metaKey: true })), '');
+      eq(lettreDe(k('n', { altKey: true })), '');
+      eq(lettreDe(k('n', { isComposing: true })), '');          /* un clavier à composition choisit encore */
+      eq(lettreDe(k('n', { repeat: true })), '');               /* une touche tenue ne répète pas le geste */
+      eq(lettreDe(k('n'), { champ: true }), '');                /* on TAPE : la lettre s'écrit */
+      eq(lettreDe(k('n'), { coupees: true }), '');              /* WCAG 2.1.4 : coupées dans Réglages */
+      eq(lettreDe(null), '');
+      ok(estPalette(k('k', { ctrlKey: true })));
+      ok(estPalette(k('K', { metaKey: true })));
+      ok(!estPalette(k('k')));
+      ok(!estPalette(k('k', { ctrlKey: true, shiftKey: true })));   /* Ctrl Maj K : la console du navigateur */
+      ok(!estPalette(k('k', { ctrlKey: true, altKey: true })));
+      eq(nomAria('/'), 'Slash'); eq(nomAria('e'), 'E');
+      eq(nomPalette(true), '⌘K'); eq(nomPalette(false), 'Ctrl K');
+      eq(ariaPalette(true), 'Meta+K'); eq(ariaPalette(false), 'Control+K');
+    },
+    'le clavier : Ctrl K cherche et fait — la piste par son nom d’abord, ses gestes, les amis, les gestes de l’écran': () => {
+      const pistes = [
+        { id: 'a', name: 'Aztek', city: 'Roubaix', notes: '' },
+        { id: 'b', name: 'Thales', city: 'Lille', desc: 'Partenaire d’Aztek sur la défense' },   /* trouvée par sa fiche */
+        { id: 'c', name: 'Groupe Aztekia', city: 'Lyon' },
+        { id: 'd', name: 'Aztek démo', demo: true }
+      ];
+      const amis = [{ id: 'K', nom: 'Karim Benali', cle: 'x' }, { id: 'L', nom: 'Léa Martin' }];
+      const gestes = [{ id: 'nouvelle', libelle: 'Nouvelle piste', mots: 'ajouter' }, { id: 'semaine', libelle: 'Ma semaine' }];
+      const r = paletteDe('aztek', { pistes, amis, gestes });
+      eq(r.map(x => x.libelle), ['Aztek', 'Écrire à Aztek', 'Planifier Aztek', 'Groupe Aztekia', 'Thales']);
+      eq(r[0], { sorte: 'piste', geste: 'ouvrir', id: 'a', libelle: 'Aztek', sous: 'Roubaix' });
+      eq(r[1].geste, 'ecrire'); eq(r[2].geste, 'planifier');
+      /* l'exemple ne s'y glisse pas */
+      ok(!r.some(x => x.id === 'd'));
+      /* sans accent, en minuscules, deux mots dans le désordre */
+      eq(paletteDe('LEA', { pistes, amis, gestes }).map(x => x.libelle), ['Léa Martin']);   /* sans boîte : pas d'« Écrire » */
+      eq(paletteDe('benali karim', { pistes, amis, gestes }).map(x => x.libelle), ['Écrire à Karim', 'Karim Benali']);
+      eq(paletteDe('semaine', { pistes, amis, gestes }).map(x => x.id), ['semaine']);
+      eq(paletteDe('ajouter', { pistes, amis, gestes }).map(x => x.id), ['nouvelle']);
+      /* rien de tapé : les gestes seulement */
+      eq(paletteDe('  ', { pistes, amis, gestes }).map(x => x.id), ['nouvelle', 'semaine']);
+      eq(paletteDe('zzz', { pistes, amis, gestes }), []);
+      /* bornée : cinq pistes au plus, douze propositions au plus */
+      const beaucoup = Array.from({ length: 30 }, (_, i) => ({ id: 'p' + i, name: 'Cyber ' + i }));
+      const rb = paletteDe('cyber', { pistes: beaucoup });
+      eq(rb.filter(x => x.geste === 'ouvrir').length, PALETTE_PISTES);
+      ok(rb.length <= PALETTE_MAX);
     },
     'ceux qui aident : trois mots fixes, jamais un texte libre': () => {
       eq(ORDRE_AIDES.join(), 'parler,relire,presenter');

@@ -32,6 +32,7 @@ import { enregistrerFichier, partagePossible } from './fichier.js';
 import { mergePreviewInto, messageLecture } from './recevoir.js';
 import { DIST_PAGE } from '../engine/distribution.js';
 import { aideRowHTML, ouvrirAide } from './aide.js';
+import { clavierActif, lettresCoupees, ouvrirTouches } from './clavier.js';
 
 /* ---------- garder une copie (.oc complet) ----------
    Au doigt par la feuille de partage, au poste en téléchargement :
@@ -356,6 +357,10 @@ function reglagesRowsHTML(){
   if ((S.profile.amis || []).length)
     rows.push(['moiRelais', 'Demandes de mes amis', S.profile.flags.sansRelais ? 'arrêtées' : 'transmises', false]);
   rows.push(['moiTheme', 'Thème', MOT_THEME[S.themeChoix] || 'automatique', false]);
+  /* LES TOUCHES D'UNE LETTRE (lot R8, WCAG 2.1.4) : au poste seulement —
+     au pouce il n'y a pas de clavier, la rangée ne réglerait rien */
+  if (clavierActif())
+    rows.push(['moiTouches', 'Touches d’une lettre', lettresCoupees() ? 'éteintes' : 'allumées', false]);
   /* LA PRÉVERSION (R0, docs/decisions/0004) : les lots du recadrage en
      test s'allument sur CET appareil, chez le mainteneur et ses
      testeurs. Seulement quand un lot est en test : une bascule qui ne
@@ -460,6 +465,7 @@ function bindReglages(box){
   q('#moiInstall')?.addEventListener('click', installer);
   q('#moiTheme')?.addEventListener('click', openTheme);
   q('#moiPreversion')?.addEventListener('click', openPreversion);
+  q('#moiTouches')?.addEventListener('click', ouvrirTouches);
   q('#moiEfface')?.addEventListener('click', effacerIci);
 }
 /* Quand un ami cherche quelqu'un et que tu ne connais personne, ton

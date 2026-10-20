@@ -9,6 +9,24 @@ le premier pour une rupture. La bascule du recadrage sera la 7.0.0
 
 Les versions d'avant la 6.76 se lisent dans l'historique du dépôt.
 
+## [6.87.0] — 20 octobre 2026
+
+Le recadrage, lot R8 : le clavier au poste. En **préversion**, derrière
+son propre drapeau (`clavier`). Rien ne change au téléphone.
+
+### Ajouté, en préversion
+
+- **Ctrl K (⌘K sur Mac) : chercher et faire.** On tape « aztek » : la
+  piste, « Écrire à Aztek », « Planifier Aztek ». On tape « karim » :
+  « Écrire à Karim ». ↑ ↓ choisissent, Entrée fait. Le bouton
+  « Chercher » de l'en-tête l'ouvre aussi.
+- **Les lettres se voient**, écrites dans le bouton qu'elles commandent :
+  N dans « Ajouter », E dans « Écrire », P dans « Planifier ». Sur une
+  action du jour, F (fait) et E (écrire) apparaissent quand la ligne a
+  le curseur.
+- **« Touches d'une lettre »**, dans Réglages : allumées par défaut,
+  éteintes d'un tap, pour qui dicte à la voix. Ctrl K reste.
+
 ## [6.86.0] — 20 octobre 2026
 
 Le recadrage, lot R7 : ceux qui aident. En **préversion**, derrière son

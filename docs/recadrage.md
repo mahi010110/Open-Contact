@@ -226,6 +226,18 @@ d'abord.
 
 ### R8 · Le clavier au poste · 1 semaine
 
+*Proposition validée par le mainteneur le 20 octobre 2026 :*
+[`propositions/R8-le-clavier.md`](propositions/R8-le-clavier.md).
+
+- **Où on en est** : **livré en préversion (6.87.0)**, derrière le
+  drapeau `clavier` (`engine/clavier.js`, `ui/clavier.js`) : « Chercher »
+  et Ctrl K, les lettres N, /, E, P, F écrites dans leurs boutons, la
+  rangée « Touches d'une lettre » dans Réglages. Gardé par
+  `e2e-touches.mjs`.
+- *Accepté quand* : au bout d'une semaine de préversion, les testeurs au
+  poste ouvrent une piste ou écrivent par Ctrl K sans qu'on le leur ait
+  montré, et personne ne déclenche une lettre en tapant ailleurs.
+
 Ctrl K cherche et fait tout. Une lettre par geste fréquent, écrite dans
 le bouton qu'elle commande.
 

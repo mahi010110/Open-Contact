@@ -30,6 +30,7 @@ import { openPendingMailAnalysis } from './recevoir.js';
 import { ouvrirSur } from './pistes.js';
 import { pendingProposals, openPendingProposals } from './propositions.js';
 import { ORDINATEUR, CAMPAGNES } from './perimetre.js';
+import { toucheHTML, toucheAttr, lettreActive } from './clavier.js';
 
 const CAP = 8;                      /* lignes visibles par tranche avant « voir plus » */
 const expanded = new Set();         /* tranches dépliées à la main (le temps de la session) */
@@ -101,14 +102,14 @@ function rowHTML(c, o = {}){
               vers la gauche et dans la fiche, et le poste, qui n'a pas de
               glissé, le montre à côté en icône (la colonne du tableau ne fait
               que 321 px : deux mots n'y tiennent pas à côté du nom). */''}
-         <button class="act-fait" data-a="done" aria-label="Fait : ${esc(c.name)}" title="Fait"><span class="act-case" aria-hidden="true">${ic('check', 'ic-12')}</span></button>
+         <button class="act-fait" data-a="done" aria-label="Fait : ${esc(c.name)}" title="Fait"${toucheAttr('f')}><span class="act-case" aria-hidden="true">${ic('check', 'ic-12')}</span>${toucheHTML('f')}</button>
          <div class="act-main sw-cible" role="button" tabindex="0" aria-label="Ouvrir ${esc(c.name)}">
            <b class="act-verb">${esc(c.name)}</b>
            <span class="act-sub">${when}<span class="act-do">${esc(verb)}</span></span>
          </div>
          <div class="act-btns">
            <button class="btn btn-sm btn-ghost icon-btn act-sec" data-a="report" aria-label="Reporter ${esc(c.name)}" title="Reporter">${ic('calendar', 'ic-14')}</button>
-           <button class="btn btn-sm" data-a="mail" aria-label="Écrire à ${esc(c.name)}">${ic('mail', 'ic-14')} Écrire</button>
+           <button class="btn btn-sm" data-a="mail" aria-label="Écrire à ${esc(c.name)}"${toucheAttr('e')}>${ic('mail', 'ic-14')} Écrire${toucheHTML('e')}</button>
          </div>
        </div>
      </div>`);
@@ -211,7 +212,7 @@ function startRowHTML(c, o = {}){
              ? `<button class="btn btn-sm btn-ghost icon-btn" data-a="plan" aria-label="Planifier ${esc(c.name)}" title="Planifier">${ic('calendar', 'ic-14')}</button>`
              : `<button class="btn btn-sm" data-a="plan" aria-label="Planifier ${esc(c.name)}">${ic('calendar', 'ic-14')} Planifier</button>`}
            ${joignable(c)
-             ? `<button class="btn btn-sm" data-a="mail" aria-label="Écrire à ${esc(c.name)}">${ic('mail', 'ic-14')} Écrire</button>` : ''}
+             ? `<button class="btn btn-sm" data-a="mail" aria-label="Écrire à ${esc(c.name)}"${toucheAttr('e')}>${ic('mail', 'ic-14')} Écrire${toucheHTML('e')}</button>` : ''}
          </div>
        </div>
      </div>`);
@@ -248,11 +249,11 @@ function silenceRowHTML(sil, o = {}){
                 pile. L'autre geste reste à côté, en icône : cette ligne n'a
                 pas de glissé pour le retrouver. */''}
            ${clore
-             ? (joignable(c) ? `<button class="btn btn-sm btn-ghost icon-btn" data-a="mail" aria-label="Écrire à ${esc(c.name)}" title="Écrire">${ic('mail', 'ic-14')}</button>` : '')
+             ? (joignable(c) ? `<button class="btn btn-sm btn-ghost icon-btn" data-a="mail" aria-label="Écrire à ${esc(c.name)}" title="Écrire"${toucheAttr('e')}>${ic('mail', 'ic-14')}${toucheHTML('e')}</button>` : '')
                + `<button class="btn btn-sm btn-ghost" data-a="clore" aria-label="Clôturer ${esc(c.name)}">${ic('archive', 'ic-14')} Clôturer</button>`
              : joignable(c)
                ? `<button class="btn btn-sm btn-ghost icon-btn" data-a="plan" aria-label="Planifier ${esc(c.name)}" title="Planifier">${ic('calendar', 'ic-14')}</button>
-                  <button class="btn btn-sm" data-a="mail" aria-label="Relancer ${esc(c.name)}">${ic('mail', 'ic-14')} Relancer</button>`
+                  <button class="btn btn-sm" data-a="mail" aria-label="Relancer ${esc(c.name)}"${toucheAttr('e')}>${ic('mail', 'ic-14')} Relancer${toucheHTML('e')}</button>`
                : `<button class="btn btn-sm" data-a="plan" aria-label="Relancer ${esc(c.name)}">${ic('calendar', 'ic-14')} Relancer</button>`}
          </div>
        </div>
@@ -615,6 +616,20 @@ export function renderToday(){
   /* `:not(.act-start)` : une ligne « Par où commencer » n'a ni « Fait »
      ni « Reporter » — les brancher dessus planterait sur un nœud absent,
      et le swipe y proposerait de finir une action qui n'existe pas. */
+  /* LE CLAVIER AU POSTE (lot R8) : sur la ligne qui a le curseur, F coche
+     l'action, E écrit — les deux lettres écrites dans leurs boutons. Une
+     seule écoute pour tout l'écran ; aucune quand un champ a le curseur. */
+  if (!root.dataset.lettres){
+    root.dataset.lettres = '1';
+    root.addEventListener('keydown', e => {
+      const k = lot('clavier') ? lettreActive(e) : '';
+      const row = (k === 'f' || k === 'e') && e.target.closest && e.target.closest('.act-row');
+      const b = row && row.querySelector(k === 'f' ? '[data-a="done"]' : '[data-a="mail"]');
+      if (!b) return;
+      e.preventDefault();
+      b.click();
+    });
+  }
   root.querySelectorAll('.act-row:not(.act-start):not(.act-quiet)').forEach(row => {
     const c = byId(row.dataset.id);
     if (!c) return;

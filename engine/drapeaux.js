@@ -49,6 +49,11 @@ export const DRAPEAUX = Object.freeze([
     id: 'aide', lot: 'R7', nom: 'ceux qui aident',
     raison: 'Ceux qui aident : « Je peux aider » dans Moi, la piste décrochée qui propose d’aider à son tour, la demande de 20 minutes chez l’ami et le merci qui revient (proposition R7).',
     cree: '2026-10-20', retrait: '2027-03-31', ouvert: false
+  }),
+  Object.freeze({
+    id: 'clavier', lot: 'R8', nom: 'le clavier au poste',
+    raison: 'Le clavier au poste : Ctrl K cherche et fait, une lettre par geste du jour écrite dans son bouton, et une rangée de Réglages pour couper les touches d’une lettre (WCAG 2.1.4, proposition R8).',
+    cree: '2026-10-20', retrait: '2027-03-31', ouvert: false
   })
 ]);
 
