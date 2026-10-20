@@ -1,8 +1,8 @@
 # Proposition R2 — Un suivi qui se remplit seul
 
-**Statut** : proposée le 20 octobre 2026, en attente du mainteneur.
-C'est l'étape 1 du cycle d'un lot (`docs/recadrage.md`) : rien ne se
-code avant ta validation.
+**Statut** : proposée et validée par le mainteneur le 20 octobre 2026.
+C'est l'étape 1 du cycle d'un lot (`docs/recadrage.md`). Les trois
+réponses sont en fin de page.
 
 ## Le problème
 
@@ -39,7 +39,7 @@ déjà, sans clé nouvelle :
 |---|---|
 | **écrites** | les pistes qui ont une date de candidature (`appliedAt`) |
 | **réponses** | les pistes passées par « Réponse » (le statut, ou « Statut → Réponse » dans leur historique) |
-| **troisième chiffre** | voir la question 1 plus bas |
+| **décrochées** | les pistes closes en « Décroché » (`closedReason`) |
 
 Au téléphone, une ligne de données sous le titre (police mono, comme le
 compte d'aujourd'hui). Au poste, la même ligne. Rien ne se tape : c'est
@@ -79,7 +79,7 @@ d'une seule tranche de suggestion à la fois (§6) est tenue.
 - Les objectifs de la semaine : c'est R4.
 - Toute notification : la décision 0006 n'est pas tranchée.
 
-## Les questions au mainteneur
+## Les questions au mainteneur, et ses réponses
 
 1. **Le troisième chiffre.** Je recommande « décrochées » (les pistes
    closes en « Décroché »), qui se déduit exactement. Alternatives :
@@ -93,3 +93,6 @@ d'une seule tranche de suggestion à la fois (§6) est tenue.
 3. **Où vivent les chiffres.** En tête de Pistes, comme le plan, ou
    aussi sur « Aujourd'hui » ? Je recommande Pistes seulement : une
    seule place par chose.
+
+**Les réponses (20 octobre 2026)** : ① « décrochées » ; ② 7 jours ;
+③ Pistes seulement. Les trois recommandations, sans changement.
