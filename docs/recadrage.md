@@ -202,6 +202,9 @@ mail reste le chemin de secours.
 
 ### R7 · Ceux qui aident · 3 semaines
 
+*Proposition écrite le 20 octobre 2026, en attente du mainteneur :*
+[`propositions/R7-ceux-qui-aident.md`](propositions/R7-ceux-qui-aident.md).
+
 « Je peux aider » dans Moi ; une piste close « Décroché » propose d'aider
 à son tour ; les messages du café-conseil, de la présentation, du merci.
 Un champ facultatif de plus dans le profil donné, testé contre la fuite
