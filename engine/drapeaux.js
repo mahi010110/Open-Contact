@@ -59,6 +59,11 @@ export const DRAPEAUX = Object.freeze([
     id: 'export', lot: 'R9', nom: 'ton parcours exportable',
     raison: 'Ton parcours en un fichier JSON Resume, depuis « Mon parcours » : ce que tu as écrit dans ton profil, montré ligne par ligne avant de partir (proposition R9).',
     cree: '2026-10-20', retrait: '2027-03-31', ouvert: false
+  }),
+  Object.freeze({
+    id: 'metiers', lot: 'R9', nom: 'tous les métiers',
+    raison: 'Tous les métiers : la barre comprend les appellations du ROME 4.0, « À découvrir » cherche dans leurs secteurs, et une formation hors de l’informatique dit ses métiers par le RNCP (proposition R9, décision 0005).',
+    cree: '2026-10-20', retrait: '2027-03-31', ouvert: false
   })
 ]);
 

@@ -56,6 +56,8 @@ import { contactVise, estUnMail, pretsAPartir, SERIE_MAX, SERIE_MIN, lireBrouill
          brouillonDe, BROUILLON_JOURS } from './engine/prets.js';
 import { LETTRES, lettreDe, estPalette, nomAria, nomPalette, ariaPalette, paletteDe, PALETTE_PISTES, PALETTE_MAX } from './engine/clavier.js';
 import { cvDe, lignesCv, diplomeDe, nomFichierCv, texteCv, SCHEMA_CV } from './engine/cv.js';
+import { formesAppellation, indexMetiers, formationDe, etiquetteFormation, ROME_INFORMATIQUE } from './engine/metiers.js';
+import * as DONNEES_METIERS from './engine/metiers-donnees.js';
 import { AIDES, ORDRE_AIDES, normaliserAide, basculerAide, direAide, demandesPossibles, libelleDemande, messageDemande,
          jourReponse, merciAProposer, messageMerci, MERCI_JOURS } from './engine/aide.js';
 import { lundiDe, jourSemaine, plusJours, mailsEntre, reponsesEntre, pistesEntre, objectifPropose, normaliserSemaine,
@@ -1121,6 +1123,54 @@ export async function runSelfTests(){
       ok(Object.keys(TABLE).length >= 100);
       const faux = Object.entries(TABLE).filter(([q, v]) => sig(q) !== v).map(([q, v]) => `${q} → ${sig(q)} (attendu ${v})`);
       if (faux.length) throw new Error(faux.join(' ; '));
+      /* TOUS LES MÉTIERS (lot R9-b) : la table du ROME chargée, les cent
+         phrases ne changent pas d'une lettre — ses appellations viennent
+         APRÈS tout le vocabulaire de la barre */
+      const idx = indexMetiers(DONNEES_METIERS);
+      const sigM = q => { const r = interpreter(q, { ...ctx, metiers: idx });
+        return [r.etiquettes.map(e => e.famille + ':' + e.label).join(' '), r.texte.length ? '| ' + r.texte.join(' ') : ''].filter(Boolean).join(' '); };
+      const fauxM = Object.keys(TABLE).filter(q => sigM(q) !== sig(q)).map(q => `${q} → ${sigM(q)} (sans la table : ${sig(q)})`);
+      if (fauxM.length) throw new Error('avec la table des métiers : ' + fauxM.join(' ; '));
+    },
+    'tous les métiers : le ROME dans la barre, après tout le reste ; la formation lue par le RNCP': () => {
+      /* les deux formes d'une appellation : le masculin reprend la fin du féminin */
+      eq(formesAppellation('Technicien / Technicienne agricole').join(' | '), 'Technicien agricole | Technicienne agricole');
+      eq(formesAppellation('Agent / Agente (H/F) de quai').join(' | '), 'Agent de quai | Agente de quai');
+      eq(formesAppellation('Actuaire').join(' | '), 'Actuaire');
+      eq(formesAppellation('A / B / C').length, 0);                 /* illisible sûrement : rien */
+      const idx = indexMetiers(DONNEES_METIERS);
+      ok(idx.formes.length > 15000 && idx.formations.length > 500);
+      /* l'informatique reste à la table de la barre */
+      ok(!idx.formes.some(([, e]) => ROME_INFORMATIQUE(e.rome)));
+      const ctx = { today: '2026-10-01', villes: ['Lille'], prenoms: ['Léa'], metiers: idx };
+      const met = q => interpreter(q, ctx).etiquettes.filter(e => e.famille === 'metier').map(e => e.label + ':' + (e.rome || e.cle)).join(' ');
+      eq(met('aide-soignante alternance Lyon'), 'Aide-soignante:J1501');
+      eq(met('coiffeuse 59'), 'Coiffeuse:D1202');
+      eq(met('agent immobilier Paris'), 'Agent immobilier:C1504');
+      eq(met('développeur web'), 'Développement:dev');             /* l'informatique : sa table */
+      eq(met('technicien support'), 'Support:support');
+      const e = interpreter('boulanger', ctx).etiquettes[0];
+      ok(e.cle === 'rome:D1102' && e.romes.join() === 'D1102' && /^[A-U]{1,2}$/.test(e.sections) && e.racines.includes('boulan'));
+      /* ce qui n'est pas un métier reste ce qu'il était */
+      eq(interpreter('Orange', ctx).texte.join(), 'orange');
+      eq(interpreter('maçon', ctx).etiquettes.map(e => e.famille + ':' + e.label).join(), 'lieu:Mâcon');   /* la ville d'abord */
+      /* la formation : par son sigle, ses mots, plusieurs parcours d'un même diplôme réunis */
+      const f = t => { const r = formationDe(t, idx); return r ? r.intitule + ' ' + r.romes.length : null; };
+      ok(/^Management commercial opérationnel \d+$/.test(f('BTS MCO')));
+      eq(f('BTS MCO'), f('bts management commercial opérationnel'));
+      ok(/^Comptabilité et Gestion/.test(f('BTS CG')) && f('BTS CG') === f('BTS comptabilité et gestion'));
+      ok(/^Accompagnant éducatif petite enfance/.test(f('CAP AEPE')));
+      ok(/^Gestion des entreprises et des administrations \d+$/.test(f('BUT GEA 2e année')));
+      eq(f('Licence commerce'), null);                               /* pas un diplôme de la table */
+      eq(f('BTS'), null);                                            /* rien après le type : rien */
+      eq(f(''), null); eq(formationDe('BTS MCO', null), null);
+      /* l'étiquette de la formation garde ce que tu as écrit, et part du profil */
+      const ef = etiquetteFormation('BTS MCO', idx);
+      ok(ef.label === 'BTS MCO' && ef.profil && ef.romes.length > 1 && /^[A-U]{1,2}$/.test(ef.sections));
+      /* le profil : l'informatique d'abord, la formation ensuite, rien sans l'index */
+      eq(metierEtiquetteDuProfil({ formation: 'BTS SIO SISR' }, idx).cle, 'reseau');
+      eq(metierEtiquetteDuProfil({ formation: 'BTS MCO' }, idx).cle, 'formation:bts mco');
+      eq(metierEtiquetteDuProfil({ formation: 'BTS MCO' }), null);
     },
     'barre : aucun mot perdu — chaque mot finit dans une étiquette, le texte ou la liaison': () => {
       const ctx = { today: '2026-10-01', villes: ['Lille'], prenoms: ['Léa'] };

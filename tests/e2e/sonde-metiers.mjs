@@ -115,4 +115,19 @@ if (std){
     console.log(`    ${motif.source} : ${n} fiches actives`);
   }
 }
+/* ③ L'ANNUAIRE ACCEPTE-T-IL PLUSIEURS SECTIONS ? Un métier du ROME
+   s'exerce souvent dans deux (la coiffure : commerce G et services S) ;
+   `questionsAnnuaire` les envoie séparées d'une virgule. Relevé, pas
+   supposé : une section seule, puis deux, autour de Lille. */
+console.log('\n━━━ Annuaire : plusieurs sections d\'une question ━━━');
+const AN = 'https://recherche-entreprises.api.gouv.fr/search?departement=59&etat_administratif=A&est_entrepreneur_individuel=false&per_page=25&section_activite_principale=';
+for (const sec of ['G', 'S', 'G,S', 'Q']){
+  try {
+    const r = await fetch(AN + sec, { headers: { accept: 'application/json' } });
+    const j = r.ok ? await r.json() : null;
+    const vues = new Set(((j && j.results) || []).map(x => x.section_activite_principale).filter(Boolean));
+    console.log(`  ${sec.padEnd(4)} : HTTP ${r.status}, ${j ? j.total_results : '?'} résultats, sections rendues : ${[...vues].sort().join(',')}`);
+  } catch (e){ console.log(`  ${sec} : ${e.message}`); }
+  await new Promise(ok => setTimeout(ok, 400));
+}
 console.log('\nSonde métiers : relevé terminé');
