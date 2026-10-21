@@ -100,6 +100,31 @@ export const filtreVide = (rangs, f) => f !== 'tout' && !filtrer(rangs, f).lengt
 export const aLire = rangs => rangs.filter(r => r.n > 0 && (!r.muet || r.cite > 0)).length;
 export const chiffreOnglet = n => !n ? '' : n > 99 ? '99+' : String(n);
 
+/* LE CALME (lot R10, docs/propositions/R10-grand-nombre-et-calme.md).
+   Sans chiffre sur l'onglet, ce qui attend VRAIMENT quelqu'un se dit
+   dans « Aujourd'hui », d'une phrase qu'on lit à son heure : les amis
+   qui t'ont écrit, les groupes où l'on te nomme — jamais le bavardage
+   d'un groupe, jamais une conversation dont on a coupé le son. Des
+   prénoms, pas un compte : « Karim et Léa t'ont écrit ». */
+const prenomDe = nom => String(nom || '').trim().split(/\s+/)[0] || '';
+export function nomsListe(l){
+  if (l.length <= 1) return l[0] || '';
+  if (l.length === 2) return l[0] + ' et ' + l[1];
+  if (l.length === 3) return l[0] + ', ' + l[1] + ' et ' + l[2];
+  return l[0] + ', ' + l[1] + ' et ' + (l.length - 2) + ' autres';
+}
+export function phraseEcrits(rangs){
+  const amis = (rangs || []).filter(r => r.sorte === 'ami' && r.n > 0 && !r.muet).map(r => prenomDe(r.nom)).filter(Boolean);
+  const cites = (rangs || []).filter(r => r.sorte === 'groupe' && r.cite > 0).map(r => r.nom).filter(Boolean);
+  if (!amis.length && !cites.length) return null;
+  const ecrit = amis.length ? nomsListe(amis) + (amis.length > 1 ? ' t’ont écrit' : ' t’a écrit') : '';
+  /* au-delà de deux groupes, leur nombre : une liste de noms de groupes
+     se couperait au bout de la ligne */
+  const cite = !cites.length ? '' : 'on te nomme dans ' + (cites.length > 2 ? cites.length + ' groupes' : nomsListe(cites));
+  return ecrit ? { texte: ecrit, sous: cite, amis: amis.length, cites: cites.length }
+    : { texte: cite.charAt(0).toUpperCase() + cite.slice(1), sous: '', amis: 0, cites: cites.length };
+}
+
 /* OUVRIR LÀ OÙ L'ON S'ÉTAIT ARRÊTÉ (Slack, Discord) : le premier
    message qui n'est pas de moi et qui est arrivé après ma dernière
    visite. -1 : rien de neuf. */

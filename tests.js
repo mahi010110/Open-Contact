@@ -72,10 +72,11 @@ import { nouvelleCle, boiteValide, cleValide, etiquetteBoite, sceller, ouvrir, l
          contactDonne, normaliserLettre, contactsPour, etatVide, normaliserEtat, elaguer, peutDemander,
          demandeDePiste, traiterLettre, empreinteProfil, DEMANDE_JOURS, DEMANDES_OUVERTES_MAX,
          jetonRelais, ouvrirJeton, lettreRelais, lettreTrouve, choisirRelais, soiPour, contactsDe, lettreEntree, lettreAdmis, lettreRecode,
-         CERCLE_MAX, RELAIS_MAX, suiviDemande, pourCherche } from './engine/boite.js';
+         CERCLE_MAX, RELAIS_MAX, suiviDemande, pourCherche, rangerLignesAmis, mercisRecents, MERCI_AFFICHE_JOURS } from './engine/boite.js';
 import { critereValide, phraseCritere, CRITERE_METIER } from './engine/critere.js';
 import { cleFil, prefsVides, normaliserPrefs, basculerEpingle, basculerMuet, renommerFil, oublierFil, boite,
-         filtrer, filtresUtiles, filtreVide, aLire, chiffreOnglet, premierNonLu, EPINGLES_MAX } from './engine/conversations.js';
+         filtrer, filtresUtiles, filtreVide, aLire, chiffreOnglet, premierNonLu, EPINGLES_MAX,
+         phraseEcrits, nomsListe } from './engine/conversations.js';
 import { visage, initiales, TEINTES } from './engine/visage.js';
 import { MESSAGE_MAX, FIL_MAX, texteMessage, conversationsVides, normaliserConversations, filAvec, ajouterMessage,
          nonLus, dernier as dernierMessage, marquerLu, oublier as oublierConversation } from './engine/messages.js';
@@ -2505,6 +2506,33 @@ export async function runSelfTests(){
       eq(relu, c);
       eq(normaliserConversations({ fils: { court: { m: [] }, [A]: { m: [{ id: 'x', texte: 1 }], vu: 'a' } } }), { v: 1, fils: { [A]: { m: [], vu: 0 } } });
       eq(texteMessage(null), '');
+    },
+    'le calme (R10) : « Karim et Léa t’ont écrit », des prénoms et jamais le bavardage d’un groupe': () => {
+      eq(nomsListe([]), ''); eq(nomsListe(['Karim']), 'Karim'); eq(nomsListe(['Karim', 'Léa']), 'Karim et Léa');
+      eq(nomsListe(['Karim', 'Léa', 'Paul']), 'Karim, Léa et Paul');
+      eq(nomsListe(['Karim', 'Léa', 'Paul', 'Inès', 'Tom']), 'Karim, Léa et 3 autres');
+      const ami = (nom, n, o = {}) => ({ sorte: 'ami', nom, n, cite: 0, ...o });
+      const grp = (nom, n, cite = 0, o = {}) => ({ sorte: 'groupe', nom, n, cite, ...o });
+      eq(phraseEcrits([]), null);
+      /* un groupe qui bavarde, une conversation lue, une coupée : rien à dire */
+      eq(phraseEcrits([grp('BTS SIO Lille', 457), ami('Karim Benali', 0), ami('Léa Martin', 3, { muet: true })]), null);
+      eq(phraseEcrits([ami('Karim Benali', 2)]).texte, 'Karim t’a écrit');
+      const p = phraseEcrits([ami('Karim Benali', 2), grp('BTS SIO Lille', 99, 1), ami('Léa Martin', 1)]);
+      eq([p.texte, p.sous, p.amis, p.cites], ['Karim et Léa t’ont écrit', 'on te nomme dans BTS SIO Lille', 2, 1]);
+      /* nommé dans un groupe dont on a coupé le son : ça perce, comme l'onglet */
+      eq(phraseEcrits([grp('Club réseau', 12, 2, { muet: true })]).texte, 'On te nomme dans Club réseau');
+      eq(phraseEcrits([ami('Karim B', 1), grp('A', 1, 1), grp('B', 1, 1), grp('C', 1, 1), grp('D', 1, 1)]).sous, 'on te nomme dans 4 groupes');
+    },
+    '« Tes amis » à grande échelle (R10) : le contact donné d’abord, puis toi, puis ce qui s’éteint le plus tôt': () => {
+      const L = [{ sorte: 'demande', id: 'a', exp: 9 }, { sorte: 'merci', id: 'm', at: 5 }, { sorte: 'demande', id: 'b', exp: 3 },
+                 { sorte: 'don', id: 'd1', at: 1 }, { sorte: 'demande', id: 's', exp: 20, soi: true }, { sorte: 'don', id: 'd2', at: 4 }];
+      eq(rangerLignesAmis(L).map(x => x.id), ['d2', 'd1', 's', 'b', 'a', 'm']);
+      eq(L[0].id, 'a');                                            /* sans toucher la liste reçue */
+      const now = 10 * 864e5;
+      const e = { mercis: [{ id: 'x', at: now - 3 * 864e5 }, { id: 'y', at: now - 864e5 }, { id: 'z', at: now - 3600e3 }] };
+      eq(mercisRecents(e, now).map(m => m.id), ['z', 'y']);
+      eq(MERCI_AFFICHE_JOURS, 2);
+      eq(mercisRecents({}, now), []);
     },
     'boîte « Échanger » : une liste, les épinglées d’abord, le plus récent ensuite, le son coupé hors du chiffre': () => {
       const G = cleFil('groupe', 'ABCDEFGHIJKLMNO'), K = cleFil('ami', 'KarimKarimKarim00001'), I = cleFil('ami', 'InesInesInesInes0001'),

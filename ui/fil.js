@@ -24,6 +24,36 @@ const dit = n => `${n} nouveau${n > 1 ? 'x' : ''}`;
 /* la ligne : un séparateur, pas un message — elle se lit, elle ne se tape pas */
 export const ligneNouveaux = n => `<li class="fil-nouv" role="separator" aria-label="${dit(n)}"><span>${dit(n)}</span></li>`;
 
+/* LA FENÊTRE (relevé à grande échelle, octobre 2026). Un groupe de
+   classe garde sept jours de messages : 640 bulles rendues d'un coup
+   figeaient un téléphone moyen quatorze secondes. Toutes les
+   messageries chargent par morceaux ; ici, on rend les 60 derniers
+   messages — ou, si ce qu'on n'a pas lu remonte plus haut, depuis un peu
+   avant le premier non-lu, 120 au plus — et « Voir les N messages
+   d'avant » ouvre le morceau suivant, là où l'on lit (Baymard : un
+   bouton plutôt qu'un défilement sans fin). `ancre` garde le premier
+   message rendu d'un rendu à l'autre : ce qui arrive ne fait pas
+   glisser la fenêtre sous les yeux. */
+export const FENETRE = 60, FENETRE_MAX = 120, PAS_AVANT = 60;
+export function debutFenetre(fil, neuf, ancre = ''){
+  if (ancre){ const i = fil.findIndex(x => x.id === ancre); if (i >= 0) return i; }
+  const n = fil.length;
+  let d = Math.max(0, n - FENETRE);
+  const p = fil.findIndex(neuf);
+  if (p >= 0 && p - 10 < d) d = Math.max(0, p - 10, n - FENETRE_MAX);
+  return d;
+}
+export const ligneAvant = n => n > 0
+  ? `<li class="fil-avant"><button type="button" class="linklike" data-avant>Voir les ${n} message${n > 1 ? 's' : ''} d’avant</button></li>` : '';
+/* le morceau d'avant, sans rien déplacer sous les yeux : la distance au
+   bas de la zone reste la même */
+export function ouvrirAvant(body, fen, fil, rendre){
+  fen.ancre = (fil[Math.max(0, fen.debut - PAS_AVANT)] || {}).id || '';
+  const bas = body.scrollHeight - body.scrollTop;
+  rendre();
+  body.scrollTop = body.scrollHeight - bas;
+}
+
 /* LE JOUR, UNE FOIS (lot F2) : une ligne avant le premier message de
    chaque jour — elle se lit, elle ne se tape pas */
 export const ligneJour = t => `<li class="fil-jour" role="separator" aria-label="${esc(jourFil(t))}"><span>${esc(jourFil(t))}</span></li>`;

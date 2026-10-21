@@ -776,6 +776,7 @@ function focusApresRetrait(node){
 /* `o.mot` / `o.icone` : le même geste pour ÉCARTER sans supprimer (« Pas
    pour moi », « À découvrir ») — le mot dit ce qui arrive, jamais
    « Supprimer » pour ce qui ne l'est pas */
+const MQ_DOIGT = matchMedia('(pointer:coarse)');
 export function bindDeleteGesture(node, onDelete, quoi, o){
   o = o || {};
   const mot = o.mot || 'Supprimer', icone = o.icone || 'trash';
@@ -793,11 +794,19 @@ export function bindDeleteGesture(node, onDelete, quoi, o){
   };
   const nom = String(quoi || '').trim();
   const dit = nom ? mot + (o.mot ? ' : ' : ' ') + nom : mot;
-  const del = el(`<button class="hov-del" aria-label="${esc(dit)}" title="${esc(dit)}">${ic(icone, 'ic-14')}</button>`);
+  /* posé sur chaque message d'un groupe : ni gabarit à analyser ni
+     requête média à recréer par ligne (relevé à grande échelle) */
+  const del = document.createElement('button');
+  del.className = 'hov-del';
+  del.setAttribute('aria-label', dit); del.title = dit;
+  del.innerHTML = ic(icone, 'ic-14');
   del.addEventListener('click', e => { e.stopPropagation(); vanish(); });
   inner.append(del);
-  if (!matchMedia('(pointer:coarse)').matches) return;
-  node.prepend(el(`<div class="sw-under" aria-hidden="true">${ic(icone, 'ic-14')} ${esc(mot)}</div>`));
+  if (!MQ_DOIGT.matches) return;
+  const sous = document.createElement('div');
+  sous.className = 'sw-under'; sous.setAttribute('aria-hidden', 'true');
+  sous.innerHTML = `${ic(icone, 'ic-14')} ${esc(mot)}`;
+  node.prepend(sous);
   let x0 = null, y0 = null, dx = 0, active = false, endedAt = 0;
   const auRepos = () => {
     x0 = null; dx = 0; active = false;

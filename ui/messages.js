@@ -31,7 +31,7 @@ import { openSheet, btn, ic, champGrandit } from './dom.js';
 import { heureDe, memeJour } from './dates.js';
 import { preparerMessage, posterMessage, enAttente, ecouterBoite, relever, echecEnvoi } from './reseau.js';
 import { cleFil } from '../engine/conversations.js';
-import { ligneNouveaux, suivreNouveaux, ligneJour, texteHTML } from './fil.js';
+import { ligneNouveaux, suivreNouveaux, ligneJour, texteHTML, debutFenetre, ligneAvant, ouvrirAvant } from './fil.js';
 
 let conv = conversationsVides();
 let charge = null;
@@ -117,17 +117,24 @@ export async function ouvrirConversation(a, apres, o = {}){
     const neuf = m => !m.moi && m.at > vuAvant;
     const n = fil.filter(neuf).length;
     const premier = fil.findIndex(neuf);
+    /* la fenêtre : les derniers messages, jamais les 300 d'un coup (ui/fil.js) */
+    const debut = debutFenetre(fil, neuf, fen.ancre);
+    fen.debut = debut; fen.ancre = (fil[debut] || {}).id || ''; fen.fil = fil;
     /* vide, la feuille le dit d'un mot — un ÉTAT, pas une explication */
     sh.body.innerHTML = fil.length
-      ? `<ol class="gr-fil ms-fil" id="msFil">${fil.map((m, i) =>
-          (!i || !memeJour(fil[i - 1].at, m.at) ? ligneJour(m.at) : '') +
-          (i === premier ? ligneNouveaux(n) : '') + bulleHTML(m, fil[i - 1], neuf(m))).join('')}</ol>`
+      ? `<ol class="gr-fil ms-fil" id="msFil">${ligneAvant(debut)}${fil.slice(debut).map((m, k) => {
+          const i = debut + k;
+          return (!k || !memeJour(fil[i - 1].at, m.at) ? ligneJour(m.at) : '') +
+            (i === premier ? ligneNouveaux(n) : '') + bulleHTML(m, k ? fil[i - 1] : null, neuf(m));
+        }).join('')}</ol>`
       : `<p class="ms-vide" id="msVide">Aucun message pour l’instant.</p>`;
+    sh.body.querySelector('[data-avant]')?.addEventListener('click', () => ouvrirAvant(sh.body, fen, fen.fil, rendre));
     if (!rendu) suivre.ouvrir(); else if (bas) sh.body.scrollTop = sh.body.scrollHeight;
     else suivre.maj();
     rendu = true;
   };
   let rendu = false;
+  const fen = {};
   const suivre = suivreNouveaux(sh.body);
   ouverte = { id: a.id, sh, rendre };
 

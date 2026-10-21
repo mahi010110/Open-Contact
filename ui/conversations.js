@@ -22,7 +22,7 @@
 import { esc, todayISO } from '../engine/utils.js';
 import { FILS_KEY, kvGet, kvSet } from '../engine/storage.js';
 import { prefsVides, normaliserPrefs, boite, filtrer, filtresUtiles, filtreVide, aLire, chiffreOnglet,
-         basculerEpingle, basculerMuet, renommerFil, oublierFil, cleFil } from '../engine/conversations.js';
+         basculerEpingle, basculerMuet, renommerFil, oublierFil, cleFil, phraseEcrits } from '../engine/conversations.js';
 import { S, bus, isClosed, lot } from './state.js';
 import { openSheet, ic, appuiLong, annoncer } from './dom.js';
 import { quandListe } from './dates.js';
@@ -79,6 +79,13 @@ function poser(route, n, dit){
   });
 }
 export function majOnglets(){
+  /* LE CALME (R10) : aucun chiffre sur un onglet — « Aujourd'hui » dit
+     qui t'a écrit, à l'heure où tu l'ouvres */
+  if (lot('calme')){
+    poser(lot('reseau') ? 'reseau' : 'echanger', 0, '');
+    poser('aujourdhui', 0, '');
+    return;
+  }
   const n = aLire(rangsBoite());
   poser(lot('reseau') ? 'reseau' : 'echanger', n, `${n} conversation${n > 1 ? 's' : ''} non lue${n > 1 ? 's' : ''}`);
   const a = aFaire();
@@ -99,10 +106,21 @@ export function ouvrirDansBoite(sorte, id){
   else location.hash = '#/' + ici;
 }
 const MOTS_FILTRE = { tout: 'Tout', nonlus: 'Non lus', groupes: 'Groupes', amis: 'Amis' };
+/* ce qui attend QUELQU'UN, dit d'une phrase dans « Aujourd'hui » (R10) */
+export const ecritsDuJour = () => phraseEcrits(rangsBoite());
+/* la boîte, ouverte sur ce qui n'est pas lu */
+export function ouvrirNonLus(){
+  filtre = 'nonlus';
+  selCle = '';
+  const ici = lot('reseau') ? 'reseau' : 'echanger';
+  if (new RegExp('^#\\/' + ici + '\\b').test(location.hash)) bus.refresh();
+  else location.hash = '#/' + ici;
+}
 
 function ligneHTML(r, sel){
   const tete = r.sorte === 'groupe' ? blasonHTML(r.nom, 'bx-vz') : visageHTML(r.id, 'bx-vz');
-  const etat = [r.n ? `${r.n} nouveau${r.n > 1 ? 'x' : ''}` : '', r.cite ? `on t’y nomme` : '',
+  const calme = lot('calme');
+  const etat = [r.n ? (calme ? 'non lue' : `${r.n} nouveau${r.n > 1 ? 'x' : ''}`) : '', r.cite ? `on t’y nomme` : '',
     r.epingle ? 'épinglée' : '', r.muet ? 'son coupé' : ''].filter(Boolean);
   const dedans =
     `${tete}
@@ -110,7 +128,9 @@ function ligneHTML(r, sel){
      <span class="bx-d"><time>${esc(r.attente ? '' : quandListe(r.at))}</time>
        <span class="bx-i">${r.muet ? ic('bell-off', 'ic-14') : ''}${r.epingle ? ic('bookmark', 'ic-14') : ''}${
          r.cite ? '<span class="bx-at" aria-hidden="true">@</span>' : ''}${
-         r.n ? `<span class="bx-c">${r.n > 99 ? '99+' : r.n}</span>` : ''}</span></span>`;
+         /* au calme (R10), un point, jamais un compte : le gras dit déjà
+            « pas lu », le nombre ne ferait que presser */
+         !r.n ? '' : calme ? '<span class="bx-pt" aria-hidden="true"></span>' : `<span class="bx-c">${r.n > 99 ? '99+' : r.n}</span>`}</span></span>`;
   /* un groupe où l'on a demandé à entrer : une ligne qui ne s'ouvre pas
      encore — « en attente » à la place du dernier message, et une seule fois */
   if (r.attente) return `<div class="bx-l bx-attente" role="listitem">${dedans}</div>`;

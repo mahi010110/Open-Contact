@@ -3604,6 +3604,9 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 .bx-i{display:flex;align-items:center;gap:5px;min-height:16px;color:var(--text-muted)}
 .bx-c{font-family:var(--font-mono);font-size:var(--text-11);font-weight:var(--weight-bold);line-height:16px;
   min-width:18px;padding:0 4px;text-align:center;background:var(--accent);color:var(--on-accent)}
+/* au calme (R10) : un point d'accent, carré comme un pixel — « pas lu »,
+   sans dire combien */
+.bx-pt{display:block;width:8px;height:8px;background:var(--accent)}
 /* un groupe où l'on a demandé à entrer : un état, pas une porte */
 .bx-attente{cursor:default}
 .bx-attente .bx-n{color:var(--text-muted)}
@@ -3630,6 +3633,28 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 /* « Mes demandes » en tête de Réseau : les cartes de la fiche, et le
    contact donné juste dessous */
 .rz-dem{margin:0 0 16px}
+/* PLUSIEURS DEMANDES (R10) : une ligne chacune dans un cadre — le dessin
+   de la boîte, juste dessous —, l'entreprise en tête, et le suivi réduit
+   à trois cases : pleine (faite), à moitié (en cours), vide (à venir).
+   La même lecture que les barres de la carte, à la taille d'une ligne. */
+.rz-liste{display:flex;flex-direction:column;margin-top:6px;
+  background:var(--surface-window);border:1px solid var(--border-strong);box-shadow:var(--shadow-raised)}
+.rz-liste>*{position:relative}
+.rz-liste>*+*::before{content:'';position:absolute;left:12px;right:12px;top:0;border-top:1px dashed var(--border-soft);pointer-events:none}
+.rz-l{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:4px 10px;
+  width:100%;min-height:calc(var(--ctl) + 12px);padding:8px 12px;
+  border:0;background:none;font:inherit;color:var(--text-body);text-align:left;cursor:pointer}
+.rz-l:active{background:var(--surface-raised)}
+@media (hover:hover){ .rz-l:hover{background:var(--surface-raised)} }
+.rz-m{min-width:0;display:flex;flex-direction:column;gap:2px}
+.rz-m b{font-size:var(--text-14);line-height:1.3;overflow-wrap:anywhere}
+.rz-s{font-family:var(--font-mono);font-size:var(--text-11);line-height:1.4;color:var(--text-muted);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rz-s-don{color:var(--accent);font-weight:var(--weight-bold)}
+.rz-pas{display:flex;gap:3px}
+.rz-pas i{display:block;width:10px;height:10px;border:1px solid var(--border-strong);background:var(--surface-field)}
+.rz-pas i.rz-f{background:var(--accent);border-color:var(--accent)}
+.rz-pas i.rz-c::after{content:'';display:block;width:50%;height:100%;background:var(--accent)}
 .rz-dem .tr-h{margin-bottom:2px}
 .rz-carte + .rz-carte,.rz-don + .rz-carte{margin-top:10px}
 /* la feuille « Ajouter » : ce qu'on reçoit, sous son mot */
@@ -3661,6 +3686,9 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 .fil-nouv{display:flex;align-items:center;gap:8px;margin:2px 0;list-style:none;
   font-family:var(--font-mono);font-size:var(--text-11);color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
 .fil-nouv::before,.fil-nouv::after{content:'';flex:1;border-top:1px dashed var(--accent)}
+/* le morceau d'avant (ui/fil.js, relevé à grande échelle) : en tête de
+   la fenêtre, un lien qui déplie — rien d'autre ne bouge */
+.fil-avant{display:flex;justify-content:center;list-style:none;margin:2px 0}
 /* le jour, une fois, au milieu du fil (lot F2) : une étiquette sourde
    qui se lit, pas une ligne qu'on tape — le gris, puisque rien n'y a
    changé */
