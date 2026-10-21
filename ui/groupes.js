@@ -34,10 +34,10 @@ import { GROUPES_MAX, MOT_MAX, NOM_MAX, nouveauCode, codeNorm, codeAffiche, nomG
          citesDe, citeMoi, mentionsNonLues, prenomsPour } from '../engine/groupe.js';
 import { phraseCritere } from '../engine/critere.js';
 import { emailPlausible } from '../engine/model.js';
-import { S, bus, saveProfile } from './state.js';
+import { S, bus, saveProfile, lot } from './state.js';
 import { openSheet, toast, btn, ic, showUndo, clavier, champGrandit, bindDeleteGesture, confirmSheet, choixHTML } from './dom.js';
 import { cleFil } from '../engine/conversations.js';
-import { ligneNouveaux, suivreNouveaux, ligneJour, texteHTML } from './fil.js';
+import { ligneNouveaux, suivreNouveaux, ligneJour, texteHTML, debutFenetre, ligneAvant, ouvrirAvant } from './fil.js';
 import { heureDe, memeJour, quandMessage } from './dates.js';
 import { visageHTML } from './visage.js';
 import { makeQrSvg } from './qr.js';
@@ -495,7 +495,8 @@ export async function entrerAdmis(l){
   if (mesGroupes().some(g => g.code === l.code) || mesGroupes().length >= GROUPES_MAX) return;
   const sign = await nouvelleCleSignature();
   await entrer({ code: l.code, nom: l.nom, at: Date.now(), type: 'demande', porte: l.porte, chef: l.chef, sign });
-  toast(`Tu es dans ${l.nom || 'le groupe'}.`);
+  /* au calme (R10), la boîte le montre : la ligne « en attente » s'ouvre */
+  if (!lot('calme')) toast(`Tu es dans ${l.nom || 'le groupe'}.`);
 }
 
 /* ---------- un groupe : les prénoms, le fil, le pied pour écrire ---------- */
@@ -525,7 +526,9 @@ function demandeHTML(x, enTete = false){
         : `<button class="btn btn-sm${t ? ' btn-primary' : ''}" data-repondre="${esc(x.id)}">Répondre</button>`}
     </li>`;
 }
-function filHTML(code, vuAvant = Infinity){
+/* `fen` : la fenêtre rendue ({ancre, debut}), gardée d'un rendu à
+   l'autre (ui/fil.js) */
+function filHTML(code, vuAvant = Infinity, fen = {}){
   const g = groupe(code);
   const fil = filDe(g).filter(x => !trouveeParMoi(x));
   /* chez un responsable, chaque message se retire au geste — le motif
@@ -539,14 +542,18 @@ function filHTML(code, vuAvant = Infinity){
   let pose = false;
   /* les prénoms du groupe : « @Karim » se marque quand Karim en est */
   const prenoms = membresVus(g).map(m => m.prenom).concat(prenomMoi() ? [prenomMoi()] : []);
-  return fil.map((x, i) => {
+  const debut = debutFenetre(fil, neuf, fen.ancre);
+  fen.debut = debut; fen.ancre = (fil[debut] || {}).id || ''; fen.fil = fil;
+  return ligneAvant(debut) + fil.slice(debut).map((x, k) => {
+    const i = debut + k;
     let html = bulleHTML(g, x, prenoms);
     if (neuf(x)) html = html.replace(/^<li class="/, '<li class="fil-neuf ');
     if (retirable && x.t !== 'retire')
       html = html.replace(/^<li([^>]*)>([\s\S]*)<\/li>$/, (_, a, corps) => `<li${a} data-retirable="${esc(x.id)}"><div class="sw-in">${corps}</div></li>`);
     if (neuf(x) && !pose){ pose = true; html = ligneNouveaux(n) + html; }
-    /* le jour se dit une fois, avant son premier message (lot F2) */
-    if (!i || !memeJour(fil[i - 1].at, x.at)) html = ligneJour(x.at) + html;
+    /* le jour se dit une fois, avant son premier message (lot F2) — et
+       sur le premier de la fenêtre, toujours */
+    if (!k || !memeJour(fil[i - 1].at, x.at)) html = ligneJour(x.at) + html;
     return html;
   }).join('');
 }
@@ -611,8 +618,9 @@ export async function ouvrirGroupe(code, apres, o = {}){
        ${!autres.length && !fil.length ? `<div class="gr-inviter" id="grInviter"></div>` : ''}
        ${enTete.length ? `<ol class="gr-fil gr-entete" id="grEnTete">${enTete.map(x => demandeHTML(x, true)).join('')}</ol>` : ''}
        <p class="gr-ephem">${ic('clock', 'ic-14')} Les messages s’effacent au bout de ${DUREE_DITE[reglagesDe(g).j]}.</p>
-       <ol class="gr-fil" id="grFil">${filHTML(code, vuAvant)}</ol>`;
+       <ol class="gr-fil" id="grFil">${filHTML(code, vuAvant, fen)}</ol>`;
     q('#grMembres')?.addEventListener('click', () => ouvrirMembres(code, sh));
+    q('[data-avant]')?.addEventListener('click', () => ouvrirAvant(sh.body, fen, fen.fil, rendre));
     redirePied();
     const repondre = async (b, ouvrir) => {
       const e = surDemande(code);
@@ -642,6 +650,7 @@ export async function ouvrirGroupe(code, apres, o = {}){
     if (sh.body.isConnected && groupe(code).vu < Date.now() - 1000) vu(code);
   };
   let rendu = false;
+  const fen = {};
   const suivre = suivreNouveaux(sh.body);
 
   /* LE PIED : écrire, ou donner des pistes. Une phrase, pas d'image

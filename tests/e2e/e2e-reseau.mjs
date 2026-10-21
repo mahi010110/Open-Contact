@@ -11,7 +11,8 @@
    ② allumée, la barre dit Aujourd'hui · Pistes · Réseau · Moi, et
      `#/echanger` mène à « Réseau » (l'adresse se réécrit) ;
    ③ « Réseau » répond à « qui peut m'aider ? » : mes demandes en tête
-     (la carte, et le contact donné juste dessous), puis les
+     (une ligne chacune dès qu'il y en a deux, le contact donné en accent
+     sur sa ligne, la carte au tap — R10), puis les
      conversations, puis « Mes amis » — ni Donner ni Recevoir ;
    ④ le + fait tout entrer : « Ajouter », QR · Fichier · Texte sous
      « Recevoir », et « Une piste » au pied, qui ouvre la capture ;
@@ -130,8 +131,9 @@ const ici = p => p.evaluate(() => ({
 const reseauLu = p => p.evaluate(() => {
   const v = document.querySelector('#view-reseau');
   return {
-    demandes: v ? [...v.querySelectorAll('#rzDemandes .dmc-t')].map(t => t.firstChild.textContent.trim()) : [],
-    don: v?.querySelector('#rzDemandes [data-don] b')?.textContent.trim() || '',
+    /* deux demandes : une ligne chacune, l'entreprise en tête (R10) */
+    demandes: v ? [...v.querySelectorAll('#rzDemandes .rz-l .rz-m b')].map(t => t.textContent.trim()) : [],
+    don: v?.querySelector('#rzDemandes .rz-s-don')?.textContent.trim() || '',
     /* l'ordre de la colonne : la tranche des demandes, puis la boîte */
     ordre: v ? [...v.querySelectorAll('#rzDemandes, .bx-liste')].map(e => e.id || 'boite') : [],
     amis: v?.querySelector('#bxAmis')?.innerText.replace(/\s+/g, ' ').trim() || '',
@@ -173,9 +175,14 @@ for (const sombre of [false, true]){
     && await p.evaluate(() => document.querySelector('#bnAdd').getAttribute('aria-label')) === 'Ajouter',
     `② ${nom} : la barre dit Réseau, le + dit « Ajouter » — ${await barre(p)}`);
   const r = await reseauLu(p);
-  ok(r.demandes.join(' / ') === 'Tu cherches quelqu’un chez Aztek pour une alternance / Tu cherches quelqu’un chez Thales pour une alternance'
+  ok(r.demandes.join(' / ') === 'Aztek / Thales'
     && r.don === 'Karim t’a donné Julie Marchand' && r.ordre.join(',') === 'rzDemandes,boite',
-    `③ ${nom} : mes demandes en tête, la plus récente d'abord, le contact donné dessous — ${JSON.stringify(r)}`);
+    `③ ${nom} : mes demandes en tête, une ligne chacune, la plus récente d'abord, le contact donné sur sa ligne — ${JSON.stringify(r)}`);
+  /* la carte entière, au tap */
+  await p.click('#rzDemandes .rz-l');
+  const carte = await p.waitForSelector('.modal #rzCarte .dmc-t').then(e => e.evaluate(t => t.firstChild.textContent.trim()), () => '');
+  ok(carte === 'Tu cherches quelqu’un chez Aztek pour une alternance', `③ ${nom} : la ligne ouvre sa carte (« ${carte} »)`);
+  await p.keyboard.press('Escape'); await p.waitForTimeout(350);
   ok(r.amis === 'Mes amis 2' && r.verbes === 0 && r.echangerVide,
     `③ ${nom} : « Mes amis » dans la liste, ni Donner ni Recevoir, et « Échanger » vidé — ${JSON.stringify(r)}`);
   await p.screenshot({ path: `${SHOTS}/161-reseau-${nom}.png` });

@@ -268,6 +268,26 @@ le bouton qu'elle commande.
 Le ROME 4.0 réduit à ce qui sert, embarqué hors ligne (décision 0005).
 L'export de ton parcours dans un format standard.
 
+### R10 · À grande échelle, et sans notifications · 1 semaine · drapeau `calme`
+
+*Demandé par le mainteneur le 21 octobre 2026 (« vérifie avec des
+données en grand nombre… j'aime pas les notifs, trouve un autre
+moyen »), tranché par délégation :*
+[`propositions/R10-grand-nombre-et-calme.md`](propositions/R10-grand-nombre-et-calme.md).
+
+- **Où on en est** : livré. Sans drapeau, ce qui ne change rien à
+  l'œil : le fil d'un groupe ou d'une conversation se rend par fenêtre
+  (« Voir les N messages d'avant »), un visage est un seul tracé, les
+  formateurs de date se créent une fois, « Tes amis » montre trois
+  lignes. En préversion (`calme`) : aucun chiffre sur les onglets ni sur
+  les conversations, « Aujourd'hui » dit qui t'a écrit, ce qui arrive
+  des autres ne surgit plus en toast, et plusieurs demandes tiennent une
+  ligne chacune dans « Réseau ». Gardé par `e2e-echelle.mjs`, sur un jeu
+  semé au plafond de l'app (`jeu-massif.mjs`).
+- *Accepté quand* : un testeur avec un vrai groupe de classe dit que
+  l'app ne lui « crie » plus rien, sans avoir l'impression de rater
+  quelque chose.
+
 ## La porte qualité de chaque lot
 
 La liste de `CLAUDE.md` §9 reste. S'y ajoutent :
@@ -281,6 +301,7 @@ La liste de `CLAUDE.md` §9 reste. S'y ajoutent :
 | Vie privée | tout champ qui voyage est testé contre la fuite avant la fonctionnalité | CNIL ; invariant ① |
 | Compatibilité | captures WebKit (le moteur de l'iPhone) regardées pour chaque écran touché | `CLAUDE.md` §9 |
 | Données | migrations jouées sur des données de versions anciennes ; aucune clé renommée | `CONTRAT.md` |
+| Échelle | chaque écran qui liste quelque chose, joué au plafond de l'app (200 amis, 5 groupes, des centaines de messages) | `jeu-massif.mjs`, `e2e-echelle.mjs` |
 | Documentation | fiche de décision si besoin, `CLAUDE.md`, `CONTRAT.md`, `CHANGELOG.md`, version et service worker | Nygard ; Keep a Changelog |
 
 ## Les risques

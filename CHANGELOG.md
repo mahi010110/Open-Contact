@@ -9,6 +9,39 @@ le premier pour une rupture. La bascule du recadrage sera la 7.0.0
 
 Les versions d'avant la 6.76 se lisent dans l'historique du dépôt.
 
+## [6.90.0] — 21 octobre 2026
+
+Le recadrage, lot R10 : à grande échelle, et sans notifications. L'app a
+été remplie jusqu'à ses plafonds — 400 pistes, 200 amis, 5 groupes et
+1 480 messages, 120 conversations, 60 demandes reçues — et mesurée écran
+par écran. Ce qui cassait est réparé pour tout le monde ; le calme est
+en **préversion**, derrière son propre drapeau (`calme`).
+
+### Corrigé
+
+- **Un gros groupe ne fige plus le téléphone.** 640 messages le
+  bloquaient quatorze secondes : un groupe ou une conversation s'ouvre
+  maintenant sur ses derniers messages (ou là où tu t'étais arrêté), et
+  « Voir les N messages d'avant » ouvre la suite sans rien déplacer sous
+  tes yeux.
+- **« Tes amis » ne prend plus tout l'écran.** Trois lignes, et « Voir
+  les N autres » : d'abord les contacts qu'on t'a donnés, puis ce qu'on
+  te demande.
+- « Échanger » s'affiche plus vite, même avec des centaines de
+  conversations.
+
+### Ajouté, en préversion
+
+- **Plus aucun chiffre sur les onglets ni sur les conversations.** Une
+  conversation pas lue est en gras, avec un petit point.
+- **« Aujourd'hui » te dit qui t'a écrit** : « Karim et Léa t'ont
+  écrit ». Un tap ouvre ce qui n'est pas lu.
+- **Rien ne surgit quand quelque chose arrive** : un ami qui t'ajoute,
+  un contact trouvé, un groupe qui t'accepte se voient là où ils vivent.
+  Le merci d'un ami reste deux jours dans « Tes amis ».
+- **Plusieurs demandes tiennent une ligne chacune** dans « Réseau », avec
+  leur suivi en trois cases ; la carte s'ouvre d'un tap.
+
 ## [6.89.0] — 21 octobre 2026
 
 Le recadrage, lot R9, seconde moitié : tous les métiers. En

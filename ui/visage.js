@@ -21,8 +21,11 @@ const TEINTES = ['vz-0', 'vz-1', 'vz-2', 'vz-3', 'vz-4', 'vz-5'];
 /* une personne : son identifiant d'ami (le même partout), à défaut son nom */
 export function visageHTML(graine, cls = ''){
   const v = visage(graine);
-  return `<span class="vz ${TEINTES[v.teinte]}${cls ? ' ' + cls : ''}" aria-hidden="true"><svg viewBox="0 0 7 7" focusable="false">${
-    v.cases.map(([x, y]) => `<rect x="${x + 1}" y="${y + 1}" width="1" height="1"/>`).join('')}</svg></span>`;
+  /* UN tracé pour toutes les cases, pas un `<rect>` par case : le même
+     dessin, mais un nœud au lieu d'une vingtaine — un groupe de 640
+     messages en portait 13 000 de trop (relevé à grande échelle) */
+  return `<span class="vz ${TEINTES[v.teinte]}${cls ? ' ' + cls : ''}" aria-hidden="true"><svg viewBox="0 0 7 7" focusable="false"><path d="${
+    v.cases.map(([x, y]) => `M${x + 1} ${y + 1}h1v1h-1z`).join('')}"/></svg></span>`;
 }
 /* un groupe : ses initiales en lettres pixel, sur le gris du chrome —
    un groupe ne se confond jamais avec une personne. Pas le bleu de la

@@ -491,6 +491,21 @@ export function elaguer(e, now = Date.now()){
            entrees: (e.entrees || []).filter(y => (Number(y.at) || 0) > now - DEMANDE_JOURS * 864e5),
            attentes: (e.attentes || []).filter(y => (Number(y.at) || 0) > now - DEMANDE_JOURS * 864e5) };
 }
+/* « TES AMIS », À GRANDE ÉCHELLE (lot R10) : trois lignes d'abord, comme
+   toute tranche — dans l'ordre de ce qui fait gagner le plus : un
+   contact qu'on t'a DONNÉ (il attend que tu le prennes), puis ce qu'on
+   te demande et dont tu es toi-même la réponse, puis ce qui s'éteint le
+   plus tôt ; un merci ferme la marche, il ne réclame rien. */
+const RANG = l => l.sorte === 'don' ? 0 : l.sorte === 'demande' ? (l.soi ? 1 : 2) : 3;
+export function rangerLignesAmis(lignes){
+  return [...(lignes || [])].sort((a, b) => RANG(a) - RANG(b)
+    || (a.sorte === 'demande' ? (Number(a.exp) || Infinity) - (Number(b.exp) || Infinity) : (Number(b.at) || 0) - (Number(a.at) || 0)));
+}
+/* le merci d'un ami se lit deux jours dans « Tes amis », au lieu d'un
+   toast qu'on rate quand dix lettres arrivent d'un coup */
+export const MERCI_AFFICHE_JOURS = 2;
+export const mercisRecents = (e, now = Date.now()) =>
+  (e.mercis || []).filter(m => (Number(m.at) || 0) > now - MERCI_AFFICHE_JOURS * 864e5).sort((a, b) => b.at - a.at);
 export const demandesOuvertes = (e, now = Date.now()) => e.demandes.filter(d => d.exp > now);
 export const peutDemander = (e, now = Date.now()) => demandesOuvertes(e, now).length < DEMANDES_OUVERTES_MAX;
 export const demandeDePiste = (e, pisteId, now = Date.now()) =>

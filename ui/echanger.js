@@ -22,7 +22,7 @@ import { openPromo } from './direct.js';
 import { boiteHTML, bindBoite } from './conversations.js';
 import { PARTAGE_DIRECT } from './perimetre.js';
 import { openFiche } from './fiche.js';
-import { mesDemandes, carteDemandeHTML, bandeauDon, ouvrirLigne } from './reseau.js';
+import { mesDemandes, carteDemandeHTML, bandeauDon, ouvrirLigne, ligneDemandeHTML, ouvrirDemande } from './reseau.js';
 
 /* R1 (décision 0002) : « Réseau » remplace « Échanger » en préversion.
    La même vue, recadrée sur UNE question — qui peut m'aider ? : mes
@@ -362,6 +362,11 @@ function reprendreHTML(){
 function demandesHTML(){
   const l = mesDemandes();
   if (!l.length) return '';
+  /* deux ou plus : une ligne chacune, la carte au tap (R10) */
+  if (l.length > 1) return `<section class="tranche rz-dem" id="rzDemandes">
+      <h2 class="tr-h">${ic('users', 'ic-14')} Mes demandes</h2>
+      <div class="rz-liste">${l.map(({ d, don }) => ligneDemandeHTML(d, don)).join('')}</div>
+    </section>`;
   return `<section class="tranche rz-dem" id="rzDemandes">
       <h2 class="tr-h">${ic('users', 'ic-14')} Mes demandes</h2>
       ${l.map(({ d, don }) => carteDemandeHTML(d, { cls: 'rz-carte' }) + (don
@@ -510,6 +515,8 @@ export function renderEchanger(){
   root.querySelector('#ecRecv')?.addEventListener('click', openRecevoir);
   root.querySelectorAll('[data-don]').forEach(b =>
     b.addEventListener('click', () => ouvrirLigne('don', b.dataset.don)));
+  root.querySelectorAll('[data-dem]').forEach(b =>
+    b.addEventListener('click', () => ouvrirDemande(b.dataset.dem)));
   root.querySelector('#ecPromo')?.addEventListener('click', openPromo);
   root.querySelector('#ecHisto')?.addEventListener('click', ouvrirHistorique);
   bindBoite(root, { volet: deux ? volet : null, rendre: renderEchanger });

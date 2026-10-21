@@ -28,12 +28,12 @@ import { nouvelleCle, etiquetteBoite, sceller, ouvrir, lettreDemande, lettreDon,
          etatVide, normaliserEtat, elaguer, peutDemander, demandeDePiste, traiterLettre, prenomDe,
          jetonRelais, ouvrirJeton, lettreRelais, lettreTrouve, choisirRelais, lettreEntree, lettreAdmis, lettreRecode,
          lettreAdieu, adieuAuthentique, lettreMessage, messageAuthentique, MESSAGE_JOURS, LETTRE_KIND,
-         suiviDemande, pourCherche, demandesOuvertes } from '../engine/boite.js';
+         suiviDemande, pourCherche, demandesOuvertes, rangerLignesAmis, mercisRecents } from '../engine/boite.js';
 import { prenomAmi, profilDonne, statutAmi, ajouterAmi, retirerAmi, nouvelIdAmi, memeEntreprise, direQuoi, direQuoiTu } from '../engine/amis.js';
 import { parcoursDe } from '../engine/parcours.js';
 import { pistesPour } from '../engine/requete.js';
 import { phraseCritere } from '../engine/critere.js';
-import { S, bus, saveData, saveProfile, logJ } from './state.js';
+import { S, bus, saveData, saveProfile, logJ, lot } from './state.js';
 import { openSheet, toast, btn, ic, showUndo } from './dom.js';
 import { frDate } from './dates.js';
 
@@ -281,7 +281,8 @@ function recevoirAmi(l){
   if (st === 'nouveau'){
     const p = prenomAmi(l.profil);
     logJ(`${p} t’a ajouté à ses amis`);
-    toast(`${p} est dans tes amis.`);
+    /* le calme (R10) : la liste des amis le montre, rien ne surgit */
+    if (!lot('calme')) toast(`${p} est dans tes amis.`);
   }
   return true;
 }
@@ -329,8 +330,9 @@ async function nommerTrouve(l){
   const d = etat.demandes.find(x => x.id === l.demande);
   if (d && par) etat = { ...etat, demandes: etat.demandes.map(x => x === d ? { ...x, trouve: { ...x.trouve, par } } : x) };
   const quoi = d ? (d.entreprise && d.entreprise.nom ? 'chez ' + d.entreprise.nom : phraseCritere(d.critere)) : '';
-  /* le résultat vient d'un autre téléphone : il se dit (§6, ②) */
-  toast(`${par ? 'Un ami de ' + par : 'Un ami'} a trouvé quelqu’un ${quoi}.`);
+  /* le résultat vient d'un autre téléphone : il se dit (§6, ②) — sauf
+     au calme (R10), où l'étape « Trouvée » de la carte le montre */
+  if (!lot('calme')) toast(`${par ? 'Un ami de ' + par : 'Un ami'} a trouvé quelqu’un ${quoi}.`);
 }
 async function nommerDon(l){
   const par = await premierMaillon(l.chaine);
@@ -339,7 +341,8 @@ async function nommerDon(l){
 /* le merci REMONTE : je le dis, puis je le passe au maillon suivant —
    lui seul ouvre son jeton */
 async function remercierChaine(m){
-  toast(`${m.de.prenom} te dit merci : quelqu’un a été trouvé chez ${m.entreprise.nom}, grâce à toi.`);
+  /* au calme (R10), le merci se lit deux jours dans « Tes amis » */
+  if (!lot('calme')) toast(`${m.de.prenom} te dit merci : quelqu’un a été trouvé chez ${m.entreprise.nom}, grâce à toi.`);
   logJ(`Merci de ${m.de.prenom} : la demande que tu as fait suivre a trouvé quelqu’un chez ${m.entreprise.nom}`);
   if (!(m.suite || []).length) return;
   const suivant = await ouvrirJeton(S.profile.boite.priv, m.suite[0]);
@@ -370,7 +373,7 @@ async function absorberLettre(ev){
   if (r.quoi === 'merci'){
     const m = etat.mercis.at(-1);
     logJ(`Merci de ${m.de.prenom} : ${m.contact.name} (${m.entreprise.nom})`);
-    toast(`${m.de.prenom} te dit merci pour ${m.contact.name}.`);
+    if (!lot('calme')) toast(`${m.de.prenom} te dit merci pour ${m.contact.name}.`);
   }
   /* PRÉVENU TOUT DE SUITE (décision 18) : qui demande sait qu'on a
      trouvé, sans savoir qui — le contact suivra le oui */
@@ -495,7 +498,8 @@ export function lignesAmis(){
     const [x] = choixPour(r);
     if (!x) continue;
     out.push({ sorte: 'demande', id: r.id, nom: x.soi ? r.entreprise.nom : x.c.name, raison: quiCherche(r),
-               qui: x.soi ? 'tu ' + direQuoiTu(r.soi.quoi, r.soi.maintenant) : 'tu as ' + x.ct.name });
+               qui: x.soi ? 'tu ' + direQuoiTu(r.soi.quoi, r.soi.maintenant) : 'tu as ' + x.ct.name,
+               exp: r.exp, soi: !!x.soi });
   }
   for (const d of etat.dons){
     if (d.statut !== 'nouveau') continue;
@@ -503,12 +507,26 @@ export function lignesAmis(){
     /* « j'y suis » se dit comme sur la fiche : qui Y EST, par qui */
     out.push({ sorte: 'don', id: d.id, nom: c ? c.name : d.entreprise.nom,
                raison: d.soi ? `${d.contact.name} ${direQuoi(d.soi.quoi, d.soi.maintenant)}` : quiDonne(d),
-               qui: d.soi ? (d.par ? 'par ' + d.par : '') : d.contact.name });
+               qui: d.soi ? (d.par ? 'par ' + d.par : '') : d.contact.name, at: d.at });
   }
-  return out;
+  /* LE CALME (R10) : le merci d'un ami se lit ici deux jours, au lieu
+     d'un toast qu'on rate quand dix lettres arrivent d'un coup — le nom
+     de la piste en tête, comme les autres lignes */
+  if (lot('calme')) for (const m of mercisRecents(etat))
+    out.push({ sorte: 'merci', id: m.id, nom: m.entreprise.nom, raison: `${m.de.prenom} te dit merci`,
+               qui: m.relais ? 'quelqu’un a été trouvé grâce à toi' : m.contact ? 'pour ' + m.contact.name : '', at: m.at,
+               aria: `${m.de.prenom} te dit merci, ${m.entreprise.nom}` });
+  /* trois d'abord, dans l'ordre de ce qui fait gagner le plus (R10) */
+  return rangerLignesAmis(out);
 }
 export function ouvrirLigne(sorte, id){
   if (sorte === 'demande'){ const r = etat.recues.find(x => x.id === id); if (r) ouvrirRecue(r); }
+  else if (sorte === 'merci'){
+    /* répondre au merci : sa conversation, s'il est de mes amis */
+    const m = etat.mercis.find(x => x.id === id);
+    const a = m && (S.profile.amis || []).find(x => x.cle && x.cle === m.de.cle);
+    if (a) import('./conversations.js').then(c => c.ouvrirDansBoite('ami', a.id));
+  }
   else { const d = etat.dons.find(x => x.id === id); if (d) ouvrirDon(d); }
 }
 
@@ -590,6 +608,39 @@ export function carteDemandeHTML(d, { id = '', cls = '' } = {}){
       <p class="dmc-p">${ic('users', 'ic-14')}<span class="dmc-t">Tu cherches quelqu’un ${esc(quoi)}${esc(pourCherche(d.cherche))}<span class="dmc-s">demandé à ${esc(aQui(d))}</span></span></p>
       <ol class="dmc-suivi">${etapes.map(etape).join('')}</ol>
     </div>`;
+}
+/* PLUSIEURS DEMANDES À LA FOIS (R10, à grande échelle) : trois cartes
+   prenaient tout le premier écran de « Réseau », la boîte dessous. Dès
+   qu'il y en a deux, chacune tient une LIGNE : ce qu'on cherche (le nom
+   de l'entreprise, l'attribut distinctif), où elle en est en trois
+   cases — le suivi du colis, réduit à son signe —, et en accent le
+   contact qui attend qu'on le prenne. La carte entière s'ouvre au tap. */
+const nomDemande = d => d.critere ? phraseCritere(d.critere) : ((d.entreprise && d.entreprise.nom) || '');
+export function ligneDemandeHTML(d, don){
+  const { etapes, courante } = suiviDemande(etat, d);
+  const fini = courante === -1;
+  /* les classes en toutes lettres : le relevé de la surface morte ne lit
+     pas une classe composée à la volée (e2e-sobriete.mjs) */
+  const etat3 = etapes.map((x, i) => fini || i < courante ? 'rz-f' : i === courante ? 'rz-c' : '');
+  const ou = etapes[1].at ? (etapes[1].ou === 'groupe' ? 'trouvée dans un groupe' : 'trouvée' + (etapes[1].par ? ' chez un ami de ' + etapes[1].par : ''))
+    : 'demandé à ' + aQui(d);
+  const sous = don ? bandeauDon(don) : fini ? 'reçu ' + jourDe(etapes[2].at) : ou;
+  const dit = [nomDemande(d), ETAPES[etapes[fini ? 2 : courante].cle] + (fini ? '' : ' en cours'), sous].join(', ');
+  return `<button class="rz-l" data-dem="${esc(d.id)}" aria-label="${esc(dit)}">
+      <span class="rz-m"><b>${esc(nomDemande(d))}</b><span class="rz-s${don ? ' rz-s-don' : ''}">${esc(sous)}</span></span>
+      <span class="rz-pas" aria-hidden="true">${etat3.map(c => `<i${c ? ` class="${c}"` : ''}></i>`).join('')}</span>
+      ${ic('chevron-right', 'ic-14')}</button>`;
+}
+/* la carte d'une demande, et le contact qui attend dessous */
+export function ouvrirDemande(id){
+  const d = etat.demandes.find(x => x.id === id);
+  if (!d) return;
+  const don = etat.dons.find(x => x.statut === 'nouveau' && x.demande === d.id) || null;
+  const sh = openSheet({ title: 'Demande', icon: 'users' });
+  sh.body.innerHTML = carteDemandeHTML(d, { id: 'rzCarte' })
+    + (don ? `<button class="fi-don rz-don" id="rzDon">${ic('user', 'ic-14')}<b>${esc(bandeauDon(don))}</b>${ic('chevron-right', 'ic-14')}</button>` : '');
+  sh.body.querySelector('#rzDon')?.addEventListener('click', () => { sh.close(null, true); ouvrirDon(don); });
+  return sh;
 }
 /* « 2 amis », « BTS SIO Lille », « 2 amis et BTS SIO Lille » */
 function aQui(d){
