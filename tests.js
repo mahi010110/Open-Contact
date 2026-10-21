@@ -55,6 +55,9 @@ import { mesChiffres, chiffresTexte, derniereActivite, enPause, PAUSE_JOURS, rep
 import { contactVise, estUnMail, pretsAPartir, SERIE_MAX, SERIE_MIN, lireBrouillons, poserBrouillon, retirerBrouillon,
          brouillonDe, BROUILLON_JOURS } from './engine/prets.js';
 import { LETTRES, lettreDe, estPalette, nomAria, nomPalette, ariaPalette, paletteDe, PALETTE_PISTES, PALETTE_MAX } from './engine/clavier.js';
+import { cvDe, lignesCv, diplomeDe, nomFichierCv, texteCv, SCHEMA_CV } from './engine/cv.js';
+import { formesAppellation, indexMetiers, formationDe, etiquetteFormation, ROME_INFORMATIQUE } from './engine/metiers.js';
+import * as DONNEES_METIERS from './engine/metiers-donnees.js';
 import { AIDES, ORDRE_AIDES, normaliserAide, basculerAide, direAide, demandesPossibles, libelleDemande, messageDemande,
          jourReponse, merciAProposer, messageMerci, MERCI_JOURS } from './engine/aide.js';
 import { lundiDe, jourSemaine, plusJours, mailsEntre, reponsesEntre, pistesEntre, objectifPropose, normaliserSemaine,
@@ -1120,6 +1123,54 @@ export async function runSelfTests(){
       ok(Object.keys(TABLE).length >= 100);
       const faux = Object.entries(TABLE).filter(([q, v]) => sig(q) !== v).map(([q, v]) => `${q} → ${sig(q)} (attendu ${v})`);
       if (faux.length) throw new Error(faux.join(' ; '));
+      /* TOUS LES MÉTIERS (lot R9-b) : la table du ROME chargée, les cent
+         phrases ne changent pas d'une lettre — ses appellations viennent
+         APRÈS tout le vocabulaire de la barre */
+      const idx = indexMetiers(DONNEES_METIERS);
+      const sigM = q => { const r = interpreter(q, { ...ctx, metiers: idx });
+        return [r.etiquettes.map(e => e.famille + ':' + e.label).join(' '), r.texte.length ? '| ' + r.texte.join(' ') : ''].filter(Boolean).join(' '); };
+      const fauxM = Object.keys(TABLE).filter(q => sigM(q) !== sig(q)).map(q => `${q} → ${sigM(q)} (sans la table : ${sig(q)})`);
+      if (fauxM.length) throw new Error('avec la table des métiers : ' + fauxM.join(' ; '));
+    },
+    'tous les métiers : le ROME dans la barre, après tout le reste ; la formation lue par le RNCP': () => {
+      /* les deux formes d'une appellation : le masculin reprend la fin du féminin */
+      eq(formesAppellation('Technicien / Technicienne agricole').join(' | '), 'Technicien agricole | Technicienne agricole');
+      eq(formesAppellation('Agent / Agente (H/F) de quai').join(' | '), 'Agent de quai | Agente de quai');
+      eq(formesAppellation('Actuaire').join(' | '), 'Actuaire');
+      eq(formesAppellation('A / B / C').length, 0);                 /* illisible sûrement : rien */
+      const idx = indexMetiers(DONNEES_METIERS);
+      ok(idx.formes.length > 15000 && idx.formations.length > 500);
+      /* l'informatique reste à la table de la barre */
+      ok(!idx.formes.some(([, e]) => ROME_INFORMATIQUE(e.rome)));
+      const ctx = { today: '2026-10-01', villes: ['Lille'], prenoms: ['Léa'], metiers: idx };
+      const met = q => interpreter(q, ctx).etiquettes.filter(e => e.famille === 'metier').map(e => e.label + ':' + (e.rome || e.cle)).join(' ');
+      eq(met('aide-soignante alternance Lyon'), 'Aide-soignante:J1501');
+      eq(met('coiffeuse 59'), 'Coiffeuse:D1202');
+      eq(met('agent immobilier Paris'), 'Agent immobilier:C1504');
+      eq(met('développeur web'), 'Développement:dev');             /* l'informatique : sa table */
+      eq(met('technicien support'), 'Support:support');
+      const e = interpreter('boulanger', ctx).etiquettes[0];
+      ok(e.cle === 'rome:D1102' && e.romes.join() === 'D1102' && /^[A-U]{1,2}$/.test(e.sections) && e.racines.includes('boulan'));
+      /* ce qui n'est pas un métier reste ce qu'il était */
+      eq(interpreter('Orange', ctx).texte.join(), 'orange');
+      eq(interpreter('maçon', ctx).etiquettes.map(e => e.famille + ':' + e.label).join(), 'lieu:Mâcon');   /* la ville d'abord */
+      /* la formation : par son sigle, ses mots, plusieurs parcours d'un même diplôme réunis */
+      const f = t => { const r = formationDe(t, idx); return r ? r.intitule + ' ' + r.romes.length : null; };
+      ok(/^Management commercial opérationnel \d+$/.test(f('BTS MCO')));
+      eq(f('BTS MCO'), f('bts management commercial opérationnel'));
+      ok(/^Comptabilité et Gestion/.test(f('BTS CG')) && f('BTS CG') === f('BTS comptabilité et gestion'));
+      ok(/^Accompagnant éducatif petite enfance/.test(f('CAP AEPE')));
+      ok(/^Gestion des entreprises et des administrations \d+$/.test(f('BUT GEA 2e année')));
+      eq(f('Licence commerce'), null);                               /* pas un diplôme de la table */
+      eq(f('BTS'), null);                                            /* rien après le type : rien */
+      eq(f(''), null); eq(formationDe('BTS MCO', null), null);
+      /* l'étiquette de la formation garde ce que tu as écrit, et part du profil */
+      const ef = etiquetteFormation('BTS MCO', idx);
+      ok(ef.label === 'BTS MCO' && ef.profil && ef.romes.length > 1 && /^[A-U]{1,2}$/.test(ef.sections));
+      /* le profil : l'informatique d'abord, la formation ensuite, rien sans l'index */
+      eq(metierEtiquetteDuProfil({ formation: 'BTS SIO SISR' }, idx).cle, 'reseau');
+      eq(metierEtiquetteDuProfil({ formation: 'BTS MCO' }, idx).cle, 'formation:bts mco');
+      eq(metierEtiquetteDuProfil({ formation: 'BTS MCO' }), null);
     },
     'barre : aucun mot perdu — chaque mot finit dans une étiquette, le texte ou la liaison': () => {
       const ctx = { today: '2026-10-01', villes: ['Lille'], prenoms: ['Léa'] };
@@ -2833,6 +2884,55 @@ export async function runSelfTests(){
       eq(maSemaine(null, [], '2026-10-25').revue, true);
       /* jamais dans le profil donné à un ami */
       ok(!('semaine' in profilDonne(normalizeProfile({ name: 'Inès', semaine: { lundi: L, objectif: 6 } }), [])));
+    },
+    'ton parcours en un fichier : JSON Resume, ce que tu as écrit et rien d’autre': () => {
+      const profil = normalizeProfile({ name: 'Inès Martin', email: 'ines@exemple.test', phone: '06 12 34 56 78',
+        ville: 'Lille', formation: 'BTS SIO SISR', ecole: 'Lycée Gustave Eiffel', portfolio: 'https://www.linkedin.com/in/ines',
+        cvUrl: 'https://exemple.test/cv.pdf', recherche: 'alternance',
+        parcours: [{ id: 'p1', entreprise: 'Aztek', quoi: 'alternance', debut: '2025-09', fin: '' },
+                   { id: 'p2', entreprise: 'Kiabi', quoi: 'stage', debut: '2025-01', fin: '2025-03' }],
+        amis: [{ id: 'KarimKarimKarimKarim01', nom: 'Karim Benali', parcours: [{ entreprise: 'Thales', quoi: 'stage' }], recu: 1 }] });
+      const pistes = [
+        { id: 't', name: 'Thales', vecu: 'stage', notes: 'note secrète', status: 'active',
+          contacts: [{ id: 'c', name: 'Claire Dubois', email: 'claire@thales.test' }] },     /* « J'y suis passé », à moi */
+        { id: 'o', name: 'Orange', vecu: 'stage', vecuQui: 'Léa', notes: 'privé' },          /* le passage de Léa, pas le mien */
+        { id: 'z', name: 'Zephyr', status: 'todo', notes: 'à relancer' }
+      ];
+      const cv = cvDe(profil, pistes, Date.UTC(2026, 9, 20, 12));
+      eq(cv.$schema, SCHEMA_CV);
+      eq(JSON.stringify(cv.basics), JSON.stringify({ name: 'Inès Martin', email: 'ines@exemple.test', phone: '06 12 34 56 78',
+        location: { city: 'Lille' }, profiles: [{ network: 'LinkedIn', url: 'https://www.linkedin.com/in/ines' }] }));
+      eq(JSON.stringify(cv.education), JSON.stringify([{ institution: 'Lycée Gustave Eiffel', studyType: 'BTS', area: 'SIO SISR' }]));
+      /* en cours d'abord, puis le plus récent ; la piste déclarée par moi s'y ajoute, sans dates */
+      eq(cv.work.map(w => [w.name, w.position, w.startDate || '', w.endDate || ''].join('/')).join(' | '),
+         'Aztek/Alternance/2025-09/ | Kiabi/Stage/2025-01/2025-03 | Thales/Stage//');
+      eq(cv.meta.version, 'v1.0.0'); eq(cv.meta.lastModified, '2026-10-20T12:00:00');
+      /* LA FUITE D'ABORD : rien des pistes que le parcours ne porte pas, rien des amis, rien du suivi */
+      const tout = texteCv(cv);
+      for (const interdit of ['note secrète', 'Claire', 'claire@thales.test', 'Orange', 'Léa', 'Zephyr', 'Karim', 'à relancer',
+                              'active', 'todo', 'alternance"', 'cv.pdf'])
+        ok(!tout.includes(interdit), 'ne part pas : ' + interdit);
+      ok(tout.endsWith('}\n') && JSON.parse(tout).basics.name === 'Inès Martin');
+      /* les dates suivent le schéma (AAAA-MM), une fin sans début ne part pas */
+      ok(cv.work.every(w => (!w.startDate || /^\d{4}-\d{2}$/.test(w.startDate)) && (!w.endDate || !!w.startDate)));
+      eq(cvDe({ name: 'A', parcours: [{ entreprise: 'X', quoi: 'stage', debut: '', fin: '2025-03' }] }, []).work[0].endDate, undefined);
+      /* ce que la feuille montre, ligne par ligne, vient de l'objet qui part */
+      eq(lignesCv(cv).map(l => l.texte + (l.sous ? ' — ' + l.sous : '')).join(' | '),
+         'Inès Martin | ines@exemple.test · 06 12 34 56 78 · Lille | https://www.linkedin.com/in/ines | BTS SIO SISR · Lycée Gustave Eiffel'
+         + ' | Aztek — Alternance · depuis 2025 | Kiabi — Stage · 2025 | Thales — Stage');
+      /* un champ vide n'existe pas ; une adresse fausse non plus ; un site qui n'est pas LinkedIn va dans `url` */
+      const maigre = cvDe({ name: 'Sam', email: 'sam@', portfolio: 'https://sam.dev' }, []);
+      eq(JSON.stringify(maigre.basics), JSON.stringify({ name: 'Sam', url: 'https://sam.dev' }));
+      ok(!('work' in maigre) && !('education' in maigre));
+      eq(JSON.stringify(cvDe({}, []).basics || null), 'null');
+      /* le type de diplôme, en tête ; le plus long d'abord ; sinon la formation entière */
+      eq(JSON.stringify(diplomeDe('BUT informatique')), JSON.stringify({ studyType: 'BUT', area: 'informatique' }));
+      eq(JSON.stringify(diplomeDe('licence pro réseaux')), JSON.stringify({ studyType: 'Licence pro', area: 'réseaux' }));
+      eq(JSON.stringify(diplomeDe('Bac pro CIEL')), JSON.stringify({ studyType: 'Bac pro', area: 'CIEL' }));
+      eq(JSON.stringify(diplomeDe('BTS')), JSON.stringify({ studyType: 'BTS', area: '' }));
+      eq(JSON.stringify(diplomeDe('BTSA agricole')), JSON.stringify({ studyType: '', area: 'BTSA agricole' }));   /* un mot entier, pas un bout */
+      eq(JSON.stringify(diplomeDe('École 42')), JSON.stringify({ studyType: '', area: 'École 42' }));
+      eq(nomFichierCv('2026-10-20'), 'opencontact-parcours-2026-10-20.json');
     },
     'le clavier : cinq lettres, jamais dans un champ, jamais avec un modificateur, et elles se coupent': () => {
       eq(Object.keys(LETTRES).join(''), 'n/epf');

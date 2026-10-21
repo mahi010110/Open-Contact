@@ -36,7 +36,7 @@ const surIci = () => /^#\/(echanger|reseau)\b/.test(location.hash);
    les gestes d'abord, le fil dessous ; au poste, les gestes tiennent
    dans une colonne étroite et le fil occupe la place restante. */
 const mqWide = matchMedia('(min-width:901px)');
-mqWide.addEventListener('change', () => { if (S.route === 'echanger' || S.route === 'reseau') renderEchanger(); });
+mqWide.addEventListener('change', () => { if (S.profile && (S.route === 'echanger' || S.route === 'reseau')) renderEchanger(); });
 
 /* un journal porte des horodatages, pas des dates d'agenda : « hier »
    et « aujourd'hui » se disent, le reste se date */

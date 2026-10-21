@@ -243,6 +243,28 @@ le bouton qu'elle commande.
 
 ### R9 · Tous les métiers, et ton parcours exportable · 3 semaines
 
+*Proposition validée le 20 octobre 2026, par délégation du mainteneur :*
+[`propositions/R9-tous-les-metiers.md`](propositions/R9-tous-les-metiers.md).
+
+- **Où on en est** : **R9-a livré en préversion (6.88.0)**, derrière le
+  drapeau `export` (`engine/cv.js`, `ui/cv.js`) : « Exporter » dans
+  « Mon parcours », un fichier JSON Resume montré ligne par ligne avant
+  de partir. Gardé par `e2e-export.mjs`, la fuite d'abord. **R9-b livré
+  en préversion (6.89.0)**, derrière le drapeau `metiers` : la sonde
+  `sonde-metiers.mjs` a relevé le ROME 4.0 (v62) et le RNCP (workflow
+  « Métiers »), `table-metiers.mjs` en fabrique `engine/metiers-donnees.js`
+  (1 923 fiches, 10 531 appellations, 794 formations), et
+  `engine/metiers.js` la rend utile : la barre, « À découvrir » (le
+  secteur seul part), La bonne alternance (le code ROME) et la formation
+  du profil. La table se lit au calme, lot ouvert, après tout le
+  vocabulaire de la barre : l'informatique ne change pas. Gardé par
+  `e2e-metiers.mjs`, la fuite d'abord, et par les cent phrases des
+  auto-tests, rejouées avec la table.
+- *Accepté quand* : R9-a, un testeur sur deux qui a un parcours l'a
+  exporté sans aide ; R9-b, un testeur d'une autre formation que
+  l'informatique trouve son métier par la barre et des entreprises
+  justes dans « À découvrir ».
+
 Le ROME 4.0 réduit à ce qui sert, embarqué hors ligne (décision 0005).
 L'export de ton parcours dans un format standard.
 

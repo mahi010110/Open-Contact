@@ -535,7 +535,7 @@ document.addEventListener('oc:installee', () => { if (S.route === 'moi') renderM
    écran re-rendu par bus.refresh, jamais une feuille qui gèlerait ses états */
 let reglagesOpen = false;
 const mqWideMoi = matchMedia('(min-width:901px)');
-mqWideMoi.addEventListener('change', () => { if (S.route === 'moi') renderMoi(); });
+mqWideMoi.addEventListener('change', () => { if (S.profile && S.route === 'moi') renderMoi(); });
 
 /* Revenir de Réglages : le chevron le fait, mais il vit dans le coin le
    plus dur à atteindre au pouce. Deux chemins s'y ajoutent — jamais ne le

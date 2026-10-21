@@ -40,7 +40,8 @@ const expanded = new Set();         /* tranches dépliées à la main (le temps 
    tranches côte à côte, tout visible d'un coup, comme le tableau de
    « Mes pistes ». Ce n'est pas la même page à deux largeurs. */
 const mqWide = matchMedia('(min-width:901px)');
-mqWide.addEventListener('change', () => { if (S.route === 'aujourdhui') renderToday(); });
+/* derrière l'écran verrouillé, rien n'est chargé : rien à redessiner */
+mqWide.addEventListener('change', () => { if (S.profile && S.route === 'aujourdhui') renderToday(); });
 
 function doneTodayCount(){
   const start = new Date(); start.setHours(0, 0, 0, 0);

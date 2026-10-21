@@ -126,6 +126,9 @@ export function questionsAnnuaire(interp, o){
     if (e.famille === 'metier'){
       (NAF_METIER[e.cle] || []).forEach(c => codes.add(c));
       if (SECTION_METIER[e.cle]) sections.add(SECTION_METIER[e.cle]);
+      /* un métier du ROME (lot R9-b) : les sections où il s'exerce, tirées
+         de son arborescence « secteur NAF » — jamais un code deviné */
+      else if (!NAF_METIER[e.cle] && e.sections) for (const x of String(e.sections)) sections.add(x);
       if (e.cle === 'dsi') p.set('categorie_entreprise', 'GE');
       if (MOT_METIER[e.cle]) motMetier = MOT_METIER[e.cle];
     } else if (e.famille === 'taille'){
@@ -713,8 +716,10 @@ export function offresAlternance(interp, o){
   const lieu = et.find(e => e.famille === 'lieu' && Array.isArray(e.centre));
   const pos = lieu ? { lat: lieu.centre[0], lng: lieu.centre[1], nom: lieu.label } : o.centre || null;
   if (!pos || !Number.isFinite(pos.lat) || !Number.isFinite(pos.lng)) return null;
-  const m = et.find(e => e.famille === 'metier' && ROMES[e.cle]);
-  const r = (m && ROMES[m.cle]) || ROMES[o.metier] || ROMES_NUMERIQUE;
+  /* un métier du ROME (lot R9-b) porte ses propres codes : La bonne
+     alternance les prend tels quels, avec le nom qu'on a tapé */
+  const m = et.find(e => e.famille === 'metier' && (ROMES[e.cle] || (e.romes && e.romes.length)));
+  const r = (m && (ROMES[m.cle] || { romes: m.romes.slice(0, 5), nom: m.intitule || m.label })) || ROMES[o.metier] || ROMES_NUMERIQUE;
   const p = new URLSearchParams({ romes: r.romes.join(','), lat: pos.lat.toFixed(3), lon: pos.lng.toFixed(3),
     radius: '30', job_name: r.nom, address: pos.nom || '' });
   return { url: LBA + '?' + p.toString(), lieu: pos.nom || '' };
@@ -736,14 +741,14 @@ export function offresAlternance(interp, o){
    le CENTRE de la ville (lu dans la table) et des codes d'activité.
    Jamais le texte de ton profil.
    ============================================================ */
-export function ajoutsProfil(interp, profile, sans){
+export function ajoutsProfil(interp, profile, sans, metiers){
   sans = sans || {};
   const et = (interp && interp.etiquettes) || [];
   const texte = (interp && interp.texte) || [];
   const out = { interp, lieu: null, metier: null, lieuPropose: null, metierPropose: null };
   if (et.some(e => e.famille === 'statut' || e.famille === 'groupe')) return out;
   const lieu = !et.some(e => e.famille === 'lieu') ? lieuDuProfil(profile) : null;
-  const metier = !et.some(e => e.famille === 'metier') && !texte.length ? metierEtiquetteDuProfil(profile) : null;
+  const metier = !et.some(e => e.famille === 'metier') && !texte.length ? metierEtiquetteDuProfil(profile, metiers) : null;
   if (lieu){ if (sans.lieu) out.lieuPropose = lieu; else out.lieu = lieu; }
   if (metier){ if (sans.metier) out.metierPropose = metier; else out.metier = metier; }
   const ajout = [out.metier, out.lieu].filter(Boolean);
@@ -775,8 +780,9 @@ export function offresStage(interp, o){
   const lieu = et.find(e => e.famille === 'lieu' && Array.isArray(e.centre));
   const nom = lieu ? lieu.label : (o.ville || '');
   if (!nom) return null;
-  const m = et.find(e => e.famille === 'metier' && MOTS_STAGE[e.cle]);
-  const k = (m && MOTS_STAGE[m.cle]) || MOTS_STAGE[o.metier] || 'stage informatique';
+  const m = et.find(e => e.famille === 'metier' && (MOTS_STAGE[e.cle] || e.rome));
+  /* un métier du ROME : « stage » et son nom, comme on le taperait */
+  const k = (m && (MOTS_STAGE[m.cle] || 'stage ' + String(m.intitule || m.label).toLowerCase())) || MOTS_STAGE[o.metier] || 'stage informatique';
   return { url: HELLOWORK + '?' + new URLSearchParams({ k, l: nom }).toString(), lieu: nom };
 }
 

@@ -201,6 +201,12 @@ async function ajouter(){
 
   /* le clavier d'un téléphone ne couvre pas les feuilles (lot D) */
   import('./ui/zone-visible.js').then(m => m.suivreZoneVisible()).catch(() => {});
+  /* TOUS LES MÉTIERS (lot R9-b) : la table du ROME se lit au calme, trois
+     secondes après le démarrage, lot ouvert seulement — jamais avant le
+     premier écran */
+  const lireMetiers = () => setTimeout(() => import('./ui/metiers.js').then(m => m.chargerMetiers()).catch(() => {}), 3000);
+  if (lot('metiers')) lireMetiers();
+  document.addEventListener('oc:preversion', () => { if (lot('metiers')) lireMetiers(); });
 
   /* navigation */
   window.addEventListener('hashchange', applyRoute);

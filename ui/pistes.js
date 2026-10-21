@@ -28,6 +28,7 @@ import { campaignOfPiste, liveCampaignsCount, openCampaignsHome } from './campag
 import { CAMPAGNES } from './perimetre.js';
 import { suivreDecouverte, decouverteHTML, lierDecouverte, compteDecouverte, zoneEtiquetteHTML, lierZone } from './decouvrir.js';
 import { lettresCoupees, toucheHTML } from './clavier.js';
+import { metiersPrets, chargerMetiers } from './metiers.js';
 
 /* hors périmètre, aucune piste n'est « en campagne » — la question ne se
    pose plus à l'écran, et « à planifier » reprend sa place (CLAUDE.md §0) */
@@ -161,7 +162,7 @@ const moreBtn = (key, n) =>
 
 /* liste ⇄ tableau : on re-rend au franchissement du breakpoint */
 const mqWide = matchMedia('(min-width:901px)');
-mqWide.addEventListener('change', () => { if (S.route === 'pistes') renderPistes(); });
+mqWide.addEventListener('change', () => { if (S.profile && S.route === 'pistes') renderPistes(); });
 
 /* « / » ouvre la recherche — le raccourci que CLAUDE.md §5 promet
    depuis toujours et que le code n'avait jamais eu. Il ne se pose pas
@@ -442,7 +443,7 @@ function marqueEtiquette(e){
   if (e.famille === 'metier' && e.domaine && DOMAINS[e.domaine]) return pastille(DOMAINS[e.domaine].color);
   if (e.famille === 'statut' && STATUSES[e.cle]) return pastille(STATUSES[e.cle].color);
   const nom = e.famille === 'recherche' ? 'briefcase'
-    : e.famille === 'metier' ? 'monitor'
+    : e.famille === 'metier' ? (e.rome ? 'clipboard' : 'monitor')
     : e.famille === 'lieu' ? (e.cle === 'proche' ? 'gps' : 'map-pin')
     : e.famille === 'groupe' ? (e.cle === 'recommandee' ? 'users' : 'user')
     : e.famille === 'taille' ? 'building'
@@ -457,7 +458,14 @@ function marqueEtiquette(e){
    dernier contexte calculé sert aussi à la raison de chaque ligne — une
    seule lecture par recherche, pas une par ligne. */
 let ctxDernier = null;
-const ctxBarre = () => (ctxDernier = contexteRecherche(S.companies, todayISO(), portesDuJour()));
+const ctxBarre = () => {
+  const c = contexteRecherche(S.companies, todayISO(), portesDuJour());
+  /* TOUS LES MÉTIERS (lot R9-b) : la table, quand elle est lue ; sinon
+     elle se lit maintenant, et sert dès le mot suivant */
+  const m = metiersPrets();
+  if (m) c.metiers = m; else if (lot('metiers')) chargerMetiers();
+  return (ctxDernier = c);
+};
 
 /* l'état actif = des puces sous la recherche, un regard suffit (#8) —
    la croix enlève, taper la puce de tri inverse son sens */

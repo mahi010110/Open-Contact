@@ -1,7 +1,10 @@
 # 0006 — Sans serveur au début, mesuré pendant la bêta
 
-**Statut** : proposée, en attente du mainteneur. En attendant, la règle
-§10 de `CLAUDE.md` s'applique telle quelle : aucun serveur OpenContact.
+**Statut** : **acceptée** le 20 octobre 2026, par délégation — le
+mainteneur a laissé les choix à l'assistant (« tu as l'entière main sur
+tout »). Rien ne change : la règle §10 de `CLAUDE.md` s'applique telle
+quelle, aucun serveur OpenContact ; la mesure se fait pendant la bêta,
+en demandant aux testeurs.
 
 ## Contexte
 

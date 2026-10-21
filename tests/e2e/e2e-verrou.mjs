@@ -255,6 +255,17 @@ await page.setViewportSize({ width: 1280, height: 800 });
 await page.reload({ waitUntil: 'load' });
 await page.waitForSelector('.lock');
 await snap(page, 'verrouille-desktop-sombre');
+/* franchir la largeur de 901 px DERRIÈRE le verrou : rien n'est chargé,
+   rien ne doit se redessiner. Un écran le faisait — « Aujourd'hui »
+   lisait les amis d'un profil encore nul —, et ça ne sortait que sous
+   charge, au hasard de la suite complète (21 octobre 2026) */
+const avantLargeur = errors.length;
+await page.setViewportSize({ width: 390, height: 844 });
+await page.waitForTimeout(200);
+await page.setViewportSize({ width: 1280, height: 800 });
+await page.waitForTimeout(200);
+if (errors.length > avantLargeur) fail('franchir 901 px derrière le verrou redessine un écran sans données : ' + errors.slice(avantLargeur).join(' | '));
+else console.log('derrière le verrou, changer de largeur ne redessine rien ✓');
 await page.keyboard.type('280941');
 await page.waitForFunction(() => !document.querySelector('.lock'), null, { timeout: 10000 });
 console.log('desktop clavier : déverrouillé ✓');

@@ -50,6 +50,7 @@ import { scoreOf } from './score.js';
 import { extractCity, todayISO } from './utils.js';
 import { VILLES, DEPARTEMENTS, DEPT_NOM_AMBIGU, REGIONS, CENTRES } from './lieux.js';
 import { CRITERE_METIER, critereValide, villeDeTable } from './critere.js';
+import { etiquetteFormation } from './metiers.js';
 
 /* ---------- les mots ---------- */
 const plier = s => fold(s).replace(/œ/g, 'oe').replace(/æ/g, 'ae');
@@ -195,7 +196,10 @@ let memo = { cle: null, dict: null };
 function dictionnaire(ctx){
   const villes = (ctx && ctx.villes) || [];
   const prenoms = (ctx && ctx.prenoms) || [];
-  const cle = villes.join('|') + '#' + prenoms.join('|');
+  /* TOUS LES MÉTIERS (lot R9-b) : l'index du ROME, quand l'écran l'a
+     chargé (`engine/metiers.js`) */
+  const metiers = (ctx && ctx.metiers) || null;
+  const cle = villes.join('|') + '#' + prenoms.join('|') + '#' + (metiers ? 'rome' + metiers.version : '');
   if (memo.cle === cle) return memo.dict;
   const dict = new Map();
   const poser = (phrase, e) => { const k = cleDe(phrase); if (k && !dict.has(k)) dict.set(k, e); };
@@ -226,6 +230,10 @@ function dictionnaire(ctx){
                centre: centreDe(cleDe(v)) });
   for (const p of prenoms)
     poser(p, { famille: 'groupe', cle: 'prenom:' + cleDe(p), label: p, prenom: cleDe(p) });
+  /* les appellations du ROME EN DERNIER : le premier arrivé garde la
+     place, donc rien de ce que la barre comprenait ne change — ni un
+     métier de l'informatique, ni une ville, ni un prénom */
+  if (metiers) for (const [forme, e] of metiers.formes) poser(forme, e);
   memo = { cle, dict };
   return dict;
 }
@@ -700,10 +708,12 @@ export function lieuDuProfil(profile){
   return { famille: 'lieu', cle: 'ville:' + v.cle, id: 'lieu:ville:' + v.cle, label: v.nom, ville: v.cle,
            dept: v.dept, centre: v.centre, rayon, profil: true, spans: [], mots: [] };
 }
-/* l'étiquette de métier que dit ta formation (`metierDuProfil`) */
-export function metierEtiquetteDuProfil(profile){
+/* l'étiquette de métier que dit ta formation (`metierDuProfil`) ; avec
+   l'index des métiers (lot R9-b), une formation hors de l'informatique
+   dit aussi les siens (« BTS MCO », par le RNCP) */
+export function metierEtiquetteDuProfil(profile, metiers){
   const cle = metierDuProfil(profile);
-  if (!cle) return null;
+  if (!cle) return metiers ? etiquetteFormation((profile && profile.formation) || '', metiers) : null;
   const d = METIER[cle];
   return { famille: 'metier', cle, id: 'metier:' + cle, label: d.label, domaine: d.domaine || '', racines: d.racines,
            profil: true, spans: [], mots: [] };

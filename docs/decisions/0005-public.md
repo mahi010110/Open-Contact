@@ -1,8 +1,11 @@
 # 0005 — L'informatique d'abord, tous les métiers ensuite
 
-**Statut** : proposée, en attente du mainteneur. En attendant, rien ne
-change : l'app reste pensée pour les étudiants IT et cyber (`CLAUDE.md`
-§1).
+**Statut** : **acceptée** le 20 octobre 2026, par délégation — le
+mainteneur a laissé les choix à l'assistant (« tu as l'entière main sur
+tout »). Avec un amendement : R9 se code maintenant, derrière son
+drapeau, mais **l'ouverture à tous** attend qu'un testeur d'une autre
+formation l'ait jouée (`propositions/R9-tous-les-metiers.md`). Jusque-là,
+l'app reste pensée pour les étudiants IT et cyber (`CLAUDE.md` §1).
 
 ## Contexte
 
