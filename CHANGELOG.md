@@ -9,6 +9,36 @@ le premier pour une rupture. La bascule du recadrage sera la 7.0.0
 
 Les versions d'avant la 6.76 se lisent dans l'historique du dépôt.
 
+## [6.89.0] — 21 octobre 2026
+
+Le recadrage, lot R9, seconde moitié : tous les métiers. En
+**préversion**, derrière son propre drapeau (`metiers`). Rien ne change
+pour l'informatique : la barre la comprend comme avant.
+
+### Ajouté, en préversion
+
+- **La barre comprend tous les métiers.** « Aide-soignante alternance
+  Lyon », « coiffeur », « agent immobilier » : le métier devient une
+  étiquette, comme « cyber » l'était déjà. Dix mille appellations du
+  ROME de France Travail, au masculin et au féminin, embarquées dans
+  l'app : rien ne part sur le réseau pour les reconnaître.
+- **« À découvrir » cherche dans le bon secteur.** Une aide-soignante
+  voit des cliniques et des maisons de retraite, pas des entreprises de
+  logiciel. Seul le secteur part vers l'annuaire, jamais un mot de ton
+  profil.
+- **« Offres d'alternance autour de … » part avec ton métier**, pour que
+  La bonne alternance montre les offres qui te concernent.
+- **Ta formation compte, quelle qu'elle soit.** « BTS MCO », « CAP
+  AEPE », « BUT GEA » : la formation de ton profil devient une
+  étiquette dans « À découvrir », avec les secteurs de ses métiers, lus
+  dans le répertoire des certifications (RNCP).
+
+### Corrigé
+
+- Agrandir ou rétrécir la fenêtre pendant que l'app est verrouillée ne
+  provoque plus d'erreur : rien ne se redessine tant que tes données ne
+  sont pas ouvertes.
+
 ## [6.88.0] — 20 octobre 2026
 
 Le recadrage, lot R9, première moitié : ton parcours, en un fichier. En

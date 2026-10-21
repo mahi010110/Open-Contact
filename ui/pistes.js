@@ -162,7 +162,7 @@ const moreBtn = (key, n) =>
 
 /* liste ⇄ tableau : on re-rend au franchissement du breakpoint */
 const mqWide = matchMedia('(min-width:901px)');
-mqWide.addEventListener('change', () => { if (S.route === 'pistes') renderPistes(); });
+mqWide.addEventListener('change', () => { if (S.profile && S.route === 'pistes') renderPistes(); });
 
 /* « / » ouvre la recherche — le raccourci que CLAUDE.md §5 promet
    depuis toujours et que le code n'avait jamais eu. Il ne se pose pas

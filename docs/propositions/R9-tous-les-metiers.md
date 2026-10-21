@@ -6,6 +6,10 @@ fais confiance pour faire les bons choix ») : les trois réponses, en fin
 de page, sont celles de l'assistant, et elles tranchent aussi la
 décision 0005.
 
+**Livré en préversion** : R9-a en 6.88.0 (drapeau `export`), R9-b en
+6.89.0 (drapeau `metiers`). L'ouverture à tous attend le critère
+d'acceptation de `docs/recadrage.md`.
+
 ## Le problème
 
 R9 réunit deux choses qui n'ont pas le même poids.
