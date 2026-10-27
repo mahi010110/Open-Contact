@@ -14,7 +14,7 @@ import { AI_FAMILIES } from '../engine/ai.js';
 import { ORDINATEUR } from './perimetre.js';
 import { MAIL_KEY, AI_KEY, kvGet, kvSet } from '../engine/storage.js';
 import { esc } from '../engine/utils.js';
-import { S, bus, logJ } from './state.js';
+import { bus, logJ } from './state.js';
 import { ic, btn, toast, openSheet, confirmSheet } from './dom.js';
 import { isProtected, openProtectFlow, requireCode } from './verrou.js';
 

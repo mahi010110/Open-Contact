@@ -8,7 +8,7 @@ import { esc } from '../engine/utils.js';
 import { CLOSE_REASONS } from '../engine/model.js';
 import { S, bus, setNextAction, closePiste, saveProfile } from './state.js';
 import { ouvrirDecroche } from './aide.js';
-import { openSheet, toast, ic, btn } from './dom.js';
+import { openSheet, toast, btn } from './dom.js';
 import { plusDaysISO, nextMondayISO, frDate } from './dates.js';
 import { nextActionSuggestions } from '../engine/assist.js';
 import { rappelICS, lienAgendaGoogle, formeAgenda } from '../engine/agenda.js';

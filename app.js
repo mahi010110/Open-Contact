@@ -6,7 +6,7 @@
    engine/ — il ne lit jamais l'écran. Auto-tests : ?test.
    ============================================================ */
 import { APP_VERSION } from './engine/model.js';
-import { THEME_KEY, kvInit, kvGet, kvSet } from './engine/storage.js';
+import { THEME_KEY, kvInit, kvGet } from './engine/storage.js';
 import { initVerrou } from './ui/verrou.js';
 import { S, bus, loadAll, reloadFromStorage, choisirTheme } from './ui/state.js';
 import { $, $$, toast, installFoldMotion, sheetOpen } from './ui/dom.js';

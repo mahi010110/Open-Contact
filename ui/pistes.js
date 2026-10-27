@@ -15,11 +15,11 @@ import { mesChiffres, chiffresTexte } from '../engine/suivi.js';
 import { S, bus, isClosed, hasDemo, addDemo, ctLabel, deletePiste, undeletePiste,
          removeOrphan, saveOrphans, saveData, logJ } from './state.js';
 import { portesDuJour } from './amis.js';
-import { $, ic, toast, showUndo, bindDeleteGesture, openSheet, softReorder, topSheet,
-         collerEnHaut, clavier, annoncer } from './dom.js';
+import { $, ic, toast, showUndo, bindDeleteGesture, softReorder, topSheet,
+         collerEnHaut, clavier, annoncer, voirAutres } from './dom.js';
 import { openAffinerSheet, filterState, filterOn, filterClear, filterArgs } from './affiner.js';
 import { sortState, sortArgs, sortHasDist, sortChipHTML, bindSortChip, sortIsDefault, withPos } from './sort.js';
-import { relLabel, diffDays, dueMarkHTML, silenceMarkHTML } from './dates.js';
+import { dueMarkHTML, silenceMarkHTML } from './dates.js';
 import { openFiche, ecrirePiste, fichesVersVolet } from './fiche.js';
 import { openCapture } from './capture.js';
 import { openContactEditor, openAttach } from './contact.js';
@@ -27,7 +27,7 @@ import { openProspect } from './prospect.js';
 import { campaignOfPiste, liveCampaignsCount, openCampaignsHome } from './campagnes.js';
 import { CAMPAGNES } from './perimetre.js';
 import { suivreDecouverte, decouverteHTML, lierDecouverte, compteDecouverte, zoneEtiquetteHTML, lierZone } from './decouvrir.js';
-import { lettresCoupees, toucheHTML } from './clavier.js';
+import { lettresCoupees } from './clavier.js';
 import { metiersPrets, chargerMetiers } from './metiers.js';
 
 /* hors périmètre, aucune piste n'est « en campagne » — la question ne se
@@ -172,7 +172,7 @@ function capped(items, key, cap){
   return { shown: items.slice(0, cap), more: items.length - cap };
 }
 const moreBtn = (key, n) =>
-  `<button class="linklike tr-more" data-more="${key}">Voir les ${n} autres</button>`;
+  `<button class="linklike tr-more" data-more="${key}">${voirAutres(n)}</button>`;
 
 /* liste ⇄ tableau : on re-rend au franchissement du breakpoint */
 const mqWide = matchMedia('(min-width:901px)');

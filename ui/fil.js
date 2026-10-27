@@ -44,7 +44,7 @@ export function debutFenetre(fil, neuf, ancre = ''){
   return d;
 }
 export const ligneAvant = n => n > 0
-  ? `<li class="fil-avant"><button type="button" class="linklike" data-avant>Voir les ${n} message${n > 1 ? 's' : ''} d’avant</button></li>` : '';
+  ? `<li class="fil-avant"><button type="button" class="linklike" data-avant>${n > 1 ? 'Voir les ' + n + ' messages' : 'Voir le message'} d’avant</button></li>` : '';
 /* le morceau d'avant, sans rien déplacer sous les yeux : la distance au
    bas de la zone reste la même */
 export function ouvrirAvant(body, fen, fil, rendre){

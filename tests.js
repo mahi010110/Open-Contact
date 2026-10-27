@@ -4808,6 +4808,9 @@ export async function runSelfTests(){
       eq(derniereTrace({ updatedAt: Date.UTC(2026, 6, 1) }, '2026-07-15'), 14);
       /* une date future (horloge de travers) ne crée pas de silence négatif */
       eq(derniereTrace({ history: [{ d: '2027-01-01', t: 'x' }] }, '2026-07-15'), 0);
+      /* un horodatage d'avant 2001 n'est pas une trace : pas « 20 753 j » de silence */
+      eq(derniereTrace({ updatedAt: 9 }, '2026-07-15'), 0);
+      eq(silentPistes([{ id: 'v', name: 'Vieille', status: 'applied', updatedAt: 9 }], '2026-07-15'), []);
     },
     /* Les verbes proposés après « Fait ✓ » : ils suivent l'état de la
        piste, et ne reproposent jamais celui qui est déjà posé — un tap

@@ -18,7 +18,7 @@ import { pretsAPartir, SERIE_MIN } from '../engine/prets.js';
 import { ouvrirSerie } from './serie.js';
 import { semaineHTML, ouvrirSemaine } from './semaine.js';
 import { S, bus, isClosed, markDone, hasDemo, addDemo, removeDemo } from './state.js';
-import { $, ic, openSheet } from './dom.js';
+import { $, ic, openSheet, voirAutres } from './dom.js';
 import { frToday, frDate, dueMarkHTML, silenceMarkHTML } from './dates.js';
 import { askNextAction, reportAction, askClose } from './actions.js';
 import { openMail } from './mail.js';
@@ -267,7 +267,7 @@ function silenceHTML(items, total){
      autres ») : elles n'avaient plus d'autre chemin que le lien du pied,
      qui ouvrait « Mes pistes » entière */
   const more = total > items.length
-    ? `<button class="linklike tr-more" data-tr="quiet">Voir les ${total - items.length} autres</button>` : '';
+    ? `<button class="linklike tr-more" data-tr="quiet">${voirAutres(total - items.length)}</button>` : '';
   return `<section class="tranche tr-quiet">
             <h2 class="tr-h">${ic('clock', 'ic-14')} Sans nouvelles <span class="tr-n">${total}</span></h2>
             <div class="tr-rows">${items.map(silenceRowHTML).join('')}${more}</div>
@@ -294,7 +294,7 @@ function amisHTML(lignes){
   if (!tous.length) return '';
   const items = expanded.has('amis') ? tous : tous.slice(0, CAP_AMIS);
   const more = tous.length > items.length
-    ? `<button class="linklike tr-more" data-tr="amis">Voir les ${tous.length - items.length} autres</button>` : '';
+    ? `<button class="linklike tr-more" data-tr="amis">${voirAutres(tous.length - items.length)}</button>` : '';
   return `<section class="tranche tr-amis">
             <h2 class="tr-h">${ic('users', 'ic-14')} Tes amis${lignes.length ? ` <span class="tr-n">${lignes.length}</span>` : ''}</h2>
             <div class="tr-rows">${items.map(x =>
@@ -374,7 +374,7 @@ function trancheHTML(key, label, icon, items, open){
   const cap = expanded.has(key) ? items.length : CAP;
   const rows = items.slice(0, cap).map(rowHTML).join('');
   const more = items.length > cap
-    ? `<button class="linklike tr-more" data-tr="${key}">Voir les ${items.length - cap} autres</button>` : '';
+    ? `<button class="linklike tr-more" data-tr="${key}">${voirAutres(items.length - cap)}</button>` : '';
   const head = `${ic(icon, 'ic-14')} ${label} <span class="tr-n">${items.length}</span>`;
   if (key === 'soon'){
     return `<details class="tranche tr-${key}"${open ? ' open' : ''}>
@@ -397,7 +397,7 @@ function trancheHTML(key, label, icon, items, open){
 function colHTML(key, label, icon, items, vide){
   const cap = expanded.has(key) ? items.length : CAP;
   const more = items.length > cap
-    ? `<button class="linklike tr-more" data-tr="${key}">Voir les ${items.length - cap} autres</button>` : '';
+    ? `<button class="linklike tr-more" data-tr="${key}">${voirAutres(items.length - cap)}</button>` : '';
   return `<section class="bcol tr-${key}" aria-label="${label}">
             <h2 class="bcol-h">${ic(icon, 'ic-14')} ${label} <span class="tr-n">${items.length}</span></h2>
             ${items.length

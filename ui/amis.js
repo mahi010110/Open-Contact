@@ -33,7 +33,7 @@ import { nouvelIdAmi, profilDonne, statutAmi, ajouterAmi, retirerAmi, prenomAmi,
          portesAmis, memeEntreprise, classerAmis, chercherAmis, TRI_AMIS_DEFAUT } from '../engine/amis.js';
 import { encodeOCA } from '../engine/exchange.js';
 import { S, bus, saveData, saveProfile, logJ, deletePiste } from './state.js';
-import { openSheet, toast, btn, ic, showUndo, bindDeleteGesture, clavier } from './dom.js';
+import { openSheet, btn, ic, showUndo, bindDeleteGesture, clavier } from './dom.js';
 import { interpreter, contexteRecherche, critereDe } from '../engine/requete.js';
 import { sortState, sensDe } from './sort.js';
 import { makeQrSvg } from './qr.js';

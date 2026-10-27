@@ -14,7 +14,7 @@ import { esc, localISO, todayISO } from '../engine/utils.js';
 import { STATUSES } from '../engine/model.js';
 import { canalCourt, exchangeLog, recuesDormantes, jamaisDonnees } from '../engine/assist.js';
 import { S, saveJournal } from './state.js';
-import { $, ic, openSheet, bindDeleteGesture, showUndo } from './dom.js';
+import { $, ic, openSheet, bindDeleteGesture, showUndo, voirAutres } from './dom.js';
 import { frDate, diffDays } from './dates.js';
 import { boiteHTML, bindBoite } from './conversations.js';
 import { openFiche } from './fiche.js';
@@ -280,7 +280,7 @@ function filHTML(){
           : `<div class="ec-row">${dedans}</div>`;
         return `<div class="ec-l" data-l="${i}"><div class="sw-in">${dedansLigne}</div></div>`;
       }).join('') +
-      (reste ? `<button class="linklike tr-more" id="ecMore">Voir les ${reste} autres</button>` : '');
+      (reste ? `<button class="linklike tr-more" id="ecMore">${voirAutres(reste)}</button>` : '');
   /* dans SA feuille, le titre « Historique » dit déjà de quoi il s'agit :
      l'en-tête de tranche n'y redit rien */
   return `<section class="tranche ec-fil${fil.length ? '' : ' ec-vide'}">

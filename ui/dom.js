@@ -35,6 +35,9 @@ export function choixHTML(options, actuel, { attr = 'data-choix', ids = {} } = {
       <b>${esc(mot)}</b>${on ? ic('check', 'ic-14') : ''}</button>`;
   }).join('')}</div>`;
 }
+/* « Voir les 3 autres », et « Voir l’autre » quand il n'en reste qu'une :
+   « Voir les 1 autres » se lisait sur toutes les listes qui s'ouvrent */
+export const voirAutres = n => n === 1 ? 'Voir l’autre' : 'Voir les ' + n + ' autres';
 export function btn(label, cls, fn, icon){
   const b = el(`<button class="btn ${cls || ''}">${icon ? ic(icon, 'ic-14') + ' ' : ''}${esc(label)}</button>`);
   if (fn) b.addEventListener('click', fn);

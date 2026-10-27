@@ -23,8 +23,7 @@
    forme exacte d'un résultat.
    ============================================================ */
 import { fold } from './filter.js';
-import { cleDe, deptDuCp, lieuDuProfil, metierEtiquetteDuProfil, rayonDe } from './requete.js';
-import { REGIONS } from './lieux.js';
+import { cleDe, deptDuCp, lieuDuProfil, metierEtiquetteDuProfil } from './requete.js';
 import { normName, distKm } from './utils.js';
 
 export const ANNUAIRE = 'https://recherche-entreprises.api.gouv.fr';

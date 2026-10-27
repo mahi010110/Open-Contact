@@ -24,7 +24,7 @@ import { nouvelId, LETTRE_KIND, pourCherche } from '../engine/boite.js';
 import { nouvelIdAmi } from '../engine/amis.js';
 import { sharePayload } from '../engine/exchange.js';
 import { decouper, rassembler } from '../engine/portage.js';
-import { GROUPES_MAX, MOT_MAX, NOM_MAX, nouveauCode, codeNorm, codeAffiche, nomGroupe, invitation, lireInvitation,
+import { GROUPES_MAX, MOT_MAX, NOM_MAX, nouveauCode, codeAffiche, nomGroupe, invitation, lireInvitation,
          cleGroupe, sceller, ouvrirMessage, normaliserMessage, dureeDe, groupeVide, normaliserGroupe,
          traiterMessage, elaguerGroupe, filDe, membresDe, nouveaux, presenceAredire,
          relaisVersGroupe, peutRelayerGroupe, porteInvitation, lirePorte, nouvelleCleSignature, presenceSignee, presenceVerifiee,

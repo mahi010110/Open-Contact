@@ -9,8 +9,8 @@
 import { esc } from '../engine/utils.js';
 import { STATUSES, nextActionContact } from '../engine/model.js';
 import { filterCompanies } from '../engine/filter.js';
-import { S, bus, isClosed } from './state.js';
-import { openSheet, toast, btn, ic, softReorder, collerEnHaut } from './dom.js';
+import { S, isClosed } from './state.js';
+import { openSheet, btn, ic, softReorder, collerEnHaut } from './dom.js';
 import { sortState, sortArgs } from './sort.js';
 import { filterState, filterArgs, barreListeHTML, bindBarreListe, majTout,
          direCombien, rienTrouveHTML, fenetreCocher, voirAutresHTML, lierVoirAutres } from './affiner.js';
