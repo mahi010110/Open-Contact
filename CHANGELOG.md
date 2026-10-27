@@ -34,6 +34,13 @@ fait plus tout perdre.
   pour ramener tes données. Si tu avais déjà protégé tes données, ta
   phrase d'avant marche : « Phrase de secours › Entrer ma phrase ».
 
+### Corrigé
+
+- « Voir les 1 autres » sous une liste : c'est « Voir l'autre ».
+- Une piste venue d'un très vieux fichier ne dit plus « 20 753 j sans
+  nouvelles ».
+- « 0 / 1 pistes » dans « Donner » : « 0 / 1 piste ».
+
 ## [7.0.0] — 27 octobre 2026
 
 La bascule du recadrage : tout ce qui était en préversion est ouvert à

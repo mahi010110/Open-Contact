@@ -15,8 +15,8 @@ concevoir — ça, c'est `CLAUDE.md`. Et il ne redit pas l'état des surfaces �
 >
 > **La 7.0.0 a ouvert les lots à tous** *(27 octobre 2026)* : R1 à R4 et
 > R7 à R10, sur la demande du mainteneur (« une app prête et finie »).
-> R6 est clos sans être fait — le lien mail reste. Restent R5 (un seul
-> « moi »), puis un audit complet de l'app ouverte. Ce qui suit reste vrai, mais passe
+> R6 est clos sans être fait — le lien mail reste. R5 (un seul « moi ») a
+> suivi en 7.1.0 ; reste l'audit complet de l'app ouverte. Ce qui suit reste vrai, mais passe
 > derrière le recadrage : la première mesure avec de vraies personnes
 > ([`mesure/protocole.md`](mesure/protocole.md)) vaut aussi pour la bêta.
 

@@ -34,7 +34,9 @@ export const isLocked = () => !!lockEl;
 const saveMeta = () => kvSet(VAULT_KEY, JSON.stringify(meta));
 /* UNE SEULE PHRASE (lot R5) : toute phrase de secours que le coffre se
    donne devient aussi celle qui ramène tout sur un autre téléphone
-   (ui/moi-phrase.js). Import différé : moi-phrase importe ce fichier. */
+   (ui/moi-phrase.js). Import différé : moi-phrase importe ce fichier.
+   Jamais attendue : la dérivation coûte une seconde sur un téléphone, et
+   le parcours qui vient de se finir n'a pas à la payer. */
 const adopter = phrase => import('./moi-phrase.js').then(m => m.adopterPhrase(phrase)).catch(() => {});
 const isDesktop = () => matchMedia('(min-width:901px)').matches;
 const IDLE_MS = () => (isDesktop() ? 15 : 5) * 60000;
@@ -292,7 +294,7 @@ function openRecovery(onUnlocked){
     await saveMeta();
     un = { key: rot.key, gen: meta.gen };
     await recoverRing(oldPhrase, newPhrase).catch(() => {});
-    await adopter(newPhrase);
+    adopter(newPhrase);
     logJ('Récupération d’urgence : protection et phrase renouvelées');
     backupCeremony(sh, newPhrase, finish,
       'Une nouvelle copie chiffrée, à garder ailleurs. '
@@ -647,7 +649,7 @@ export function openProtectFlow(){
     vaultAttach(made.key);
     await vaultSealAll();
     await ensureRing(phrase).catch(() => {});   /* cet appareil devient le principal */
-    await adopter(phrase);
+    adopter(phrase);
     startIdleWatch();
     saved = true;
     logJ('Données protégées (verrouillage activé)');
@@ -734,7 +736,7 @@ export const changerPhrase = () => askCurrentPin('Ton code, pour refaire la phra
     meta = clearPrev(meta);
     await saveMeta();
     await rekeyRing(neuve).catch(() => {});
-    await adopter(neuve);
+    adopter(neuve);
     logJ('Phrase de secours renouvelée');
     backupCeremony(s2, neuve, () => {
       s2.close(null, true);

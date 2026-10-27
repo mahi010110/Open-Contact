@@ -35,9 +35,14 @@ const errors = [];
 let ko = 0;
 const ok = (c, msg) => { if (c) console.log(msg + ' ✓'); else { ko++; console.log('ÉCHEC — ' + msg); } };
 
+/* des pistes HORODATÉES : sans `updatedAt`, `normalizeCompany` leur
+   donne l'instant du chargement, et l'ordre « récentes d'abord » se
+   jouait à la milliseconde près d'un rechargement à l'autre — ④ a vu
+   Kiabi passer devant Advens en CI sans que rien n'ait bougé */
 const GRAINE = [
-  { id: 'p1', name: 'Advens', city: 'Lille', status: 'active', contacts: [{ id: 'c1', name: 'Nadia Rahmani', email: 'nadia@advens.test' }] },
-  { id: 'p2', name: 'Kiabi', city: 'Hem', status: 'todo', contacts: [] }
+  { id: 'p1', name: 'Advens', city: 'Lille', status: 'active', updatedAt: Date.UTC(2026, 9, 20),
+    contacts: [{ id: 'c1', name: 'Nadia Rahmani', email: 'nadia@advens.test' }] },
+  { id: 'p2', name: 'Kiabi', city: 'Hem', status: 'todo', updatedAt: Date.UTC(2026, 9, 19), contacts: [] }
 ];
 
 async function ecran(nom, { vp = { width: 390, height: 844 }, sombre = false, registre = null } = {}){

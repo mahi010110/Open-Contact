@@ -81,8 +81,10 @@ const lire = p => p.evaluate(() => {
   if (a.lignes) fail('app neuve : des lignes de piste alors qu’il n’y en a aucune');
   /* les premiers pas qui restent à faire, puis « Voir un exemple » —
      le mail attend une piste, il ne se tape pas encore (6.76.0 : les
-     premiers pas ont pris la place du seul « Ajouter une piste ») */
-  const attendu = ['Remplir mon profil', 'Ajouter une piste', 'Voir un exemple'];
+     premiers pas ont pris la place du seul « Ajouter une piste ») — et,
+     depuis la 7.1.0 (R5), « J'ai déjà OpenContact » : sur un téléphone
+     neuf, c'est ici qu'on ramène tout avec sa phrase de secours */
+  const attendu = ['Remplir mon profil', 'Ajouter une piste', 'Voir un exemple', 'J’ai déjà OpenContact'];
   if (a.cibles.join(' · ') !== attendu.join(' · '))
     fail(`app neuve : ${a.cibles.join(' · ')} au lieu de ${attendu.join(' · ')}`);
   /* la promesse, puis le geste qui la MONTRE — « Voir un exemple » */

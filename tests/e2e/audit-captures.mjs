@@ -149,14 +149,18 @@ const ECRANS = [
   ['26-verrouillage', p => p.evaluate(() => import('./ui/verrou.js').then(m => m.openProtectFlow()))],
   ['27-nom-suggere', async p => { await ECRAN('10-capture')(p); await p.waitForTimeout(400);
     await p.type('#cpName, #edName', 'Reseaux', { delay: 40 }); await p.waitForTimeout(1200); }],
-  ['29-amis', async p => { await route('#/pistes')(p); await p.waitForTimeout(300);
-    await p.click('#piPortee [data-portee="amis"]').catch(() => {}); }],
+  /* 7.0.0 : « Mes amis » vit dans « Réseau » (R1) */
+  ['29-amis', async p => { await route('#/reseau')(p); await p.waitForTimeout(300);
+    await p.click('#bxAmis').catch(() => {}); }],
   ['34-ami', p => p.evaluate(async () => { const { S } = await import('./ui/state.js');
     (await import('./ui/amis.js')).openAmi(S.profile.amis[0]); })],
   ['35-mon-qr', p => p.evaluate(() => import('./ui/amis.js').then(m => m.openMonQR()))],
   ['36-groupe', p => p.evaluate(async () => { const m = await import('./ui/groupes.js'); await m.chargerGroupes();
     m.ouvrirGroupe('bts2sxe3kmw4ka7'); })],
   ['37-groupe-neuf', async p => { await route('#/reseau')(p); await p.waitForTimeout(300); await p.click('#ecGrNeuf'); }],
+  ['40-ajouter', p => p.evaluate(() => import('./ui/ajouter.js').then(m => m.openAjouter()))],
+  ['41-phrase', p => p.evaluate(() => import('./ui/moi-phrase.js').then(m => m.ouvrirPhrase()))],
+  ['42-retrouver', p => p.evaluate(() => import('./ui/moi-phrase.js').then(m => m.ouvrirRetrouver()))],
   ['39-annuler', async p => { await route('#/pistes')(p); await p.waitForTimeout(300);
     await p.evaluate(async () => { const { S, deletePiste } = await import('./ui/state.js'); const { showUndo } = await import('./ui/dom.js');
       const c = S.companies.find(x => x.id === 'i'); deletePiste(c); showUndo('« Kiabi » supprimée.', () => {}); }); }],

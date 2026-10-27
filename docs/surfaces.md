@@ -38,6 +38,7 @@ installer**.
 | Amis : donner son profil (QR, texte), lire sur ses pistes où ils sont passés, les retrouver dans « Réseau › Mes amis », s'écrire en privé ; « Je peux aider » | ✅ |
 | Demander à ses amis quelqu'un chez une entreprise ou dans un métier et une ville, jusqu'au troisième cercle, donner un contact — ou soi-même — en réponse | ✅ |
 | Synchronisation entre **mes** appareils | ✅ |
+| Une phrase de secours qui ramène tout sur un téléphone neuf (7.1.0, lot R5) | ✅ |
 | Écrire un e-mail (`mailto:`, copier, marquer « Envoyée ») | ✅ |
 | Postuler à plusieurs d'affilée, une par une ; « Écrire les N mails » du jour, en série | ✅ |
 | Tous les métiers dans la barre et « À découvrir » ; exporter son parcours (JSON Resume) | ✅ |
