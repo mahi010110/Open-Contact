@@ -412,8 +412,15 @@ const PLAFOND = {
      dit « Sur cet appareil seulement : l’onglet Réseau. » — sur quel
      appareil vaut le test, et ce qu'il change. Sans elle, on allume la
      préversion sur son téléphone et on la cherche sur son poste : une
-     erreur qu'on ne voit pas venir (§7, question 3). */
-  motsExplication: 344,
+     erreur qu'on ne voit pas venir (§7, question 3).
+     350 avec R5 (7.1.0, 27 octobre 2026) : sous les douze mots,
+     « Personne n’a besoin de ces mots, pas même OpenContact. » — la
+     parade à l'hameçonnage que l'analyse des menaces nomme
+     (docs/propositions/R5-un-seul-moi.md) ; une perte qu'on ne voit pas
+     venir, dite au moment où les mots sont à l'écran. L'avertissement
+     au-dessus perd trois mots dans le même geste (« sans elle, rien ne
+     se récupère » dit le code oublié ET le téléphone perdu). */
+  motsExplication: 350,
   /* ZÉRO, et c'est le seul plafond qui puisse honnêtement valoir zéro :
      un style sans porteur n'a pas de contrepartie à peser — il ne rend
      service à personne, il ne fait qu'attendre d'être lu par erreur.

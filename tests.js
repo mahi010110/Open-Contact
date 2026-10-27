@@ -25,7 +25,7 @@ import { filterCompanies, filterOrphans, searchHint, NATURAL_DIR } from './engin
 import { scoreOf } from './engine/score.js';
 import { DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, SYNC_KEY,
          RELAYS_KEY, TURN_KEY, DEVICE_KEY, DEVICES_KEY, PROMO_KEY, VAULT_KEY,
-         ANALYSIS_KEY, VUS_KEY, RESEAU_KEY, GROUPES_KEY, MESSAGES_KEY, FILS_KEY, BROUILLONS_KEY, SEALABLE, THEME_KEY, VIEW_KEY, OLD_V2, OLD_V1, CLES_A_EFFACER,
+         ANALYSIS_KEY, VUS_KEY, RESEAU_KEY, GROUPES_KEY, MESSAGES_KEY, FILS_KEY, BROUILLONS_KEY, MOI_KEY, SEALABLE, THEME_KEY, VIEW_KEY, OLD_V2, OLD_V1, CLES_A_EFFACER,
          PREVERSION_KEY,
          kvGet, kvSet, kvDel, vaultActive, vaultDetach, vaultReseal } from './engine/storage.js';
 import { DRAPEAUX, DUREE_MAX_JOURS, defauts as defautsDrapeau, perimes, actif, enTest,
@@ -34,6 +34,10 @@ import { DESTINATIONS, ACCUEIL, routeDe, destination, titreDe, navigation } from
 import { causeLiaison, relayTally, liaisonStage, parseTurn, turnText, TURN_MAX, RELAIS_DEFAUT } from './engine/transport.js';
 import { clePortage, sceller as scellerPortage, ouvrir as ouvrirPortageMsg, decouper, rassembler, recolte,
          PORTAGE_PART, PORTAGE_PARTS_MAX, makeCleEchange, cleEntre, decouperScelle, rassemblerScelle } from './engine/portage.js';
+import { nouvellePhrase, defautPhrase, motsAVerifier, semaineDe, clesDe, clesValides, etiquetteSemaine, cleSemaine,
+         sceller as scellerMoi, ouvrirScelle, decouper as decouperMoi, evenementsDepot, rassembler as rassemblerMoi,
+         fautDeposer, empreinte as empreinteMoi, MORCEAU_MAX, MORCEAUX_MAX, EXPIRE_JOURS, MOI_KIND,
+         nouvelAppareil, posteSemaine, fusionnerCopies } from './engine/moi.js';
 import { VAULT_WORDS, PHRASE_LEN, makeVaultPhrase, normVaultPhrase, phraseUnknownWords,
          createVault, unlockWithPin, unlockWithPhrase, unlockWithPrf,
          setPin, addPrfWrap, rotateVault,
@@ -3826,12 +3830,134 @@ export async function runSelfTests(){
          ressuscitait des pistes d'avant la v3 sur un appareil « effacé » */
       ok(CLES_A_EFFACER.includes(OLD_V2) && CLES_A_EFFACER.includes(OLD_V1));
       for (const k of [DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, SYNC_KEY,
-                       RELAYS_KEY, TURN_KEY, DEVICE_KEY, DEVICES_KEY, PROMO_KEY, VAULT_KEY, ANALYSIS_KEY, VUS_KEY, RESEAU_KEY, GROUPES_KEY, MESSAGES_KEY, FILS_KEY, BROUILLONS_KEY])
+                       RELAYS_KEY, TURN_KEY, DEVICE_KEY, DEVICES_KEY, PROMO_KEY, VAULT_KEY, ANALYSIS_KEY, VUS_KEY, RESEAU_KEY, GROUPES_KEY, MESSAGES_KEY, FILS_KEY, BROUILLONS_KEY, MOI_KEY])
         ok(CLES_A_EFFACER.includes(k), k + ' doit partir');
       /* tout ce qui se scelle est une donnée : tout ce qui se scelle s'efface */
       for (const k of SEALABLE) ok(CLES_A_EFFACER.includes(k), k + ' (scellable) doit partir');
       ok(!CLES_A_EFFACER.includes(THEME_KEY));                       /* un réglage d'affichage reste */
       ok(CLES_A_EFFACER.includes(PREVERSION_KEY));                   /* un appareil effacé sort du test */
+    },
+    /* ---------- un seul « moi » (lot R5) ---------- */
+    'moi : la phrase est celle du coffre — douze mots de sa liste, tirés par l’appareil': () => {
+      const ph = nouvellePhrase(n => new Uint8Array(n).map((_, i) => i * 7));
+      eq(ph.split(' ').length, PHRASE_LEN);
+      ok(ph.split(' ').every(w => VAULT_WORDS.includes(w)));
+      eq(defautPhrase(ph), '');
+      eq(defautPhrase(ph.toUpperCase().replace(/ /g, '   ')), '');      /* casse, espaces : rien ne compte */
+      eq(defautPhrase(''), 'vide');
+      eq(defautPhrase(ph.replace(/^\S+/, 'zzz')), 'mot');                /* un mot hors liste se dit tel */
+      eq(defautPhrase(ph.split(' ').slice(0, 11).join(' ')), 'nombre');
+      const [a, b] = motsAVerifier(() => new Uint8Array([200, 13]));
+      ok(a >= 0 && a < 6 && b >= 6 && b < 12);                          /* un mot dans chaque moitié */
+    },
+    'moi : les clés se tirent de la phrase seule, et ne dépendent pas de la façon de la taper': async () => {
+      const ph = nouvellePhrase();
+      const c = await clesDe(ph, 1000);
+      ok(clesValides(c));
+      eq(await clesDe('  ' + ph.toUpperCase() + ' ', 1000), c);
+      const d = await clesDe(nouvellePhrase(), 1000);
+      ok(d.scelle !== c.scelle && d.etiquette !== c.etiquette && d.signe !== c.signe);
+      /* trois clés séparées : aucune ne se déduit d'une autre */
+      ok(new Set([c.scelle, c.etiquette, c.signe]).size === 3);
+      ok(!JSON.stringify(c).includes(ph.split(' ')[0]));                  /* rien de la phrase n'est gardé */
+      ok(!clesValides({ ...c, signe: 'x' }) && !clesValides(null));
+    },
+    'moi : l’étiquette et la clé de signature changent chaque semaine (le relais ne relie pas mes dépôts)': async () => {
+      const c = await clesDe(nouvellePhrase(), 1000);
+      const w = semaineDe(Date.UTC(2026, 9, 27));
+      const e1 = await etiquetteSemaine(c, w), e2 = await etiquetteSemaine(c, w + 1);
+      ok(/^[A-Za-z0-9_-]{22}$/.test(e1) && e1 !== e2);
+      eq(await etiquetteSemaine(c, w), e1);
+      const k1 = await cleSemaine(c, w), k2 = await cleSemaine(c, w + 1);
+      ok(k1.length === 32 && k1.join() !== k2.join());
+      /* les semaines commencent le lundi */
+      eq(semaineDe(Date.UTC(2026, 9, 26, 0, 0, 1)), semaineDe(Date.UTC(2026, 10, 1, 23, 59)));   /* lundi 26 → dimanche 1er */
+      eq(semaineDe(Date.UTC(2026, 10, 2)), semaineDe(Date.UTC(2026, 9, 26)) + 1);
+    },
+    'moi : le scellé s’ouvre avec la phrase, jamais avec une autre, et ne dit rien en clair': async () => {
+      const c = await clesDe(nouvellePhrase(), 1000);
+      const obj = { v: 4, kind: 'full', profile: { name: 'Inès Martin', boite: { pub: 'PUBX', priv: 'PRIVX' } },
+        companies: [{ id: 'a', name: 'Aztek Sécurité', notes: 'NOTE-PRIVEE', contacts: [{ name: 'Julie', email: 'julie@aztek.test' }] }] };
+      const s = await scellerMoi(c, obj);
+      ok(/^OCM1\.[zn]\./.test(s));
+      for (const x of ['Inès', 'Aztek', 'NOTE-PRIVEE', 'julie@', 'PRIVX']) ok(!s.includes(x));
+      eq(await ouvrirScelle(c, s), obj);
+      const autre = await clesDe(nouvellePhrase(), 1000);
+      let err = ''; try { await ouvrirScelle(autre, s); } catch (e) { err = e.message; }
+      eq(err, 'cle');
+      err = ''; try { await ouvrirScelle(c, 'OCM1.z.AAAA'); } catch (e) { err = e.message; }
+      eq(err, 'format');
+    },
+    'moi : un dépôt se coupe en morceaux et se rassemble dans n’importe quel ordre, sans mêler deux dépôts': () => {
+      const scelle = 'OCM1.z.' + 'x'.repeat(MORCEAU_MAX * 2 + 5);
+      const m = decouperMoi(scelle, 'depot000001');
+      eq(m.length, 3);
+      ok(m.every(x => x.length <= MORCEAU_MAX + 40));
+      const evs = m.map((content, i) => ({ content, created_at: 200 + i }));
+      /* un ancien dépôt dont un morceau traîne encore sous un `d` que le
+         nouveau n'a pas réécrit : il ne se mélange pas */
+      const vieux = decouperMoi('OCM1.z.' + 'y'.repeat(MORCEAU_MAX * 3), 'depot000000').map(content => ({ content, created_at: 100 }));
+      const r = rassemblerMoi([evs[2], vieux[3], evs[0], evs[1], evs[0]]);
+      eq(r, [{ texte: scelle, at: 202000 }]);
+      eq(rassemblerMoi([evs[0], evs[2]]), []);                         /* incomplet : rien n'est deviné */
+      eq(rassemblerMoi([{ content: 'n’importe quoi' }, null]), []);
+      eq(decouperMoi('', 'depot000001'), null);
+      eq(decouperMoi('x'.repeat(MORCEAU_MAX * (MORCEAUX_MAX + 1)), 'depot000001'), null);
+    },
+    'moi : un événement de dépôt ne porte que son étiquette, son poste, son morceau et son expiration': () => {
+      const now = Date.UTC(2026, 9, 27);
+      const evs = evenementsDepot('ETIQUETTE0000000000000', 'POSTE000000', ['OCMP1.d.0.2.aa', 'OCMP1.d.1.2.bb'], now);
+      eq(evs.length, 2);
+      eq(evs[1].kind, MOI_KIND);
+      eq(evs[1].tags.map(t => t[0]), ['d', 'x', 'expiration']);
+      eq(evs[1].tags[0][1], 'ETIQUETTE0000000000000.POSTE000000.1');
+      eq(Number(evs[0].tags[2][1]), now / 1000 + EXPIRE_JOURS * 86400);
+    },
+    'moi : chaque appareil dépose sous son poste, qui change aussi chaque semaine': async () => {
+      const c = await clesDe(nouvellePhrase(), 1000);
+      const tel = nouvelAppareil(), pc = nouvelAppareil();
+      ok(/^[A-Za-z0-9_-]{12}$/.test(tel) && tel !== pc);
+      const w = semaineDe(Date.UTC(2026, 9, 27));
+      const p1 = await posteSemaine(c, tel, w);
+      ok(/^[A-Za-z0-9_-]{11}$/.test(p1));
+      eq(await posteSemaine(c, tel, w), p1);
+      ok(p1 !== await posteSemaine(c, pc, w));                      /* le portable ne remplace pas le téléphone */
+      ok(p1 !== await posteSemaine(c, tel, w + 1));                 /* d'une semaine à l'autre, rien ne le reconnaît */
+      ok(!p1.includes(tel.slice(0, 6)));
+    },
+    'moi : ramener garde le plus récent de chaque appareil et les fusionne sans rien écraser': () => {
+      const piste = (id, t, nom) => ({ id, name: nom || id, updatedAt: t, contacts: [] });
+      const copie = (appareil, companies, extra) => ({ v: 4, kind: 'full', appareil, companies,
+        profile: { name: 'Inès', updatedAt: extra && extra.pt || 1 }, tombs: (extra && extra.tombs) || [], ...(extra && extra.liaison ? { liaison: extra.liaison } : {}) });
+      const r = fusionnerCopies([
+        /* le téléphone perdu : son dernier dépôt, et un plus ancien qui
+           portait encore une piste retirée depuis (sans pierre tombale) */
+        { at: 3000, obj: copie('TEL', [piste('a', 30, 'Aztek'), piste('b', 30)], { pt: 5, liaison: 'k7m3p-9xq2f' }) },
+        { at: 1000, obj: copie('TEL', [piste('a', 10), piste('b', 10), piste('vieille', 10)]) },
+        /* le portable, qui a continué sans lui : une piste neuve, une
+           plus récente, une suppression */
+        { at: 5000, obj: copie('PC', [piste('a', 50, 'Aztek Sécurité'), piste('c', 40)], { pt: 3, tombs: [{ id: 'b', t: 45 }] }) },
+        { at: 9000, obj: { kind: 'share', companies: [] } }                   /* pas une copie : ignoré */
+      ]);
+      eq(r.appareils, 2);
+      eq(r.at, 5000);
+      eq(r.companies.map(c => c.id).sort(), ['a', 'c']);                      /* « b » retiré, « vieille » ne revient pas */
+      eq(r.companies.find(c => c.id === 'a').name, 'Aztek Sécurité');        /* la plus récente gagne */
+      eq(r.profile.name, 'Inès');
+      eq(r.liaison, 'k7m3p-9xq2f');
+      eq(fusionnerCopies([]), null);
+      eq(fusionnerCopies([{ at: 1, obj: null }]), null);
+      /* un profil jamais horodaté revient quand même */
+      eq(fusionnerCopies([{ at: 1, obj: { kind: 'full', companies: [], profile: { name: 'Léa' } } }]).profile.name, 'Léa');
+    },
+    'moi : on redépose ce qui a changé (pas plus d’une fois en dix minutes), et chaque semaine': async () => {
+      const t = Date.UTC(2026, 9, 28, 12);
+      ok(fautDeposer(null, 'a', t));
+      ok(!fautDeposer({ at: t - 60000, empreinte: 'a' }, 'a', t));
+      ok(!fautDeposer({ at: t - 60000, empreinte: 'a' }, 'b', t));           /* changée il y a une minute : on attend */
+      ok(fautDeposer({ at: t - 11 * 60000, empreinte: 'a' }, 'b', t));
+      ok(fautDeposer({ at: Date.UTC(2026, 9, 25, 12), empreinte: 'a' }, 'a', t));   /* la semaine a changé */
+      ok((await empreinteMoi({ a: 1 })) !== (await empreinteMoi({ a: 2 })));
     },
     'drapeaux de livraison : chacun a sa raison, son lot et sa date de retrait': () => {
       const ids = new Set();

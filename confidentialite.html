@@ -41,7 +41,7 @@
 <p class="lede">Tes données restent sur ton appareil. OpenContact n'a aucun
 serveur, donc il n'existe nulle part où elles pourraient partir.</p>
 
-<p class="drev">Page revue le 12 octobre 2026.</p>
+<p class="drev">Page revue le 27 octobre 2026.</p>
 
 <h2 id="enregistre">Ce qui est enregistré, et où</h2>
 
@@ -211,6 +211,16 @@ nouveaux messages t'y attendent. La question porte l'étiquette du groupe, une
 empreinte de son code, jamais son nom. Si tu n'es dans aucun groupe, elle ne
 demande rien.</p>
 
+<p>Si tu as créé ta <b>phrase de secours</b> (ou protégé tes données, qui
+en donne une), l'app dépose une <b>copie de tout</b> sur les relais, pour
+que tes douze mots ramènent tout sur un autre téléphone : à la création de
+la phrase, puis quand ta copie a changé, une fois par semaine au moins.
+Elle est chiffrée par une clé tirée de ta phrase, que l'app ne garde pas :
+personne d'autre ne peut la lire, pas même OpenContact. Elle s'efface des
+relais au bout de 63 jours ; tant que l'app s'ouvre, elle se redépose.
+Si tu changes de phrase, ce que cet appareil avait déposé sous l'ancienne
+est effacé. Sans phrase, rien ne part.</p>
+
 <p>Ces deux pages ne se connectent à aucun service extérieur. Elles ne
 chargent que leur propre feuille de style et leurs polices, depuis le même
 serveur qu'elles. Leur politique de sécurité (Content-Security-Policy)
@@ -221,8 +231,8 @@ interdit tout le reste, et elle est visible dans leur code source.</p>
 <p>Pour que deux appareils se trouvent, le partage et la synchronisation
 passent par des <b>relais publics</b>, des serveurs du réseau Nostr tenus par
 des tiers. Les demandes à tes amis y attendent qu'ils ouvrent l'app, 14 jours
-au plus, tes messages à un ami, 30 jours, et les messages de tes groupes,
-sept jours. Voici précisément ce
+au plus, tes messages à un ami, 30 jours, les messages de tes groupes,
+sept jours, et ta copie déposée, 63 jours. Voici précisément ce
 qu'ils voient :</p>
 
 <ul class="dl">
@@ -232,7 +242,9 @@ qu'ils voient :</p>
       empreinte, pas ton mot de passe ni un nom de groupe. Une lettre à un
       ami porte une étiquette qui ne dit rien de lui, une date d'expiration,
       et rien qui la relie à toi. Un message de groupe porte l'étiquette du
-      groupe, qui ne dit ni son nom ni qui en fait partie.</li>
+      groupe, qui ne dit ni son nom ni qui en fait partie. Ta copie déposée
+      porte une étiquette et une signature qui changent chaque semaine :
+      rien ne relie deux dépôts entre eux, ni à toi.</li>
   <li><b>Ils voient qu'une connexion a lieu</b>, et depuis quelle adresse IP,
       comme n'importe quel site que tu visites.</li>
 </ul>

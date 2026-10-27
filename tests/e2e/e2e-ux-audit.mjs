@@ -2,11 +2,12 @@
    parcours « l’ordinateur depuis un téléphone » honnête, relais avancés accessibles, cibles au
    pouce, contact sans doublon et fournisseurs IA non livrés non activables. */
 import { readFileSync, readdirSync } from 'fs';
-import { chromium, chromiumPath, SHOTS, serveRepo, attendre, annuaireMuetPartout, ouvrirDonner, vueTableau } from './outils.mjs';
+import { chromium, chromiumPath, SHOTS, serveRepo, attendre, annuaireMuetPartout, ouvrirDonner, vueTableau, relaisMuetsPartout } from './outils.mjs';
 import { ORDINATEUR, IA } from '../../ui/perimetre.js';
 
 const { server, base } = await serveRepo();
 const browser = await chromium.launch({ executablePath: chromiumPath() });
+relaisMuetsPartout(browser);   /* R5 : protéger dépose la copie scellée */
 annuaireMuetPartout(browser);   /* la barre ne parle pas au vrai annuaire (outils.mjs) */
 const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true });
 const page = await ctx.newPage();
@@ -2786,6 +2787,7 @@ await browser.close();
    vérification reste isolée : elle ne dépend pas des relais factices testés
    juste avant et ne tente donc jamais de les joindre. */
 const receiveBrowser = await chromium.launch({ executablePath: chromiumPath() });
+relaisMuetsPartout(receiveBrowser);
 const receiveCtx = await receiveBrowser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true });
 const receivePage = await receiveCtx.newPage();
 watchErrors(receivePage);

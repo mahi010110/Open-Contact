@@ -548,6 +548,10 @@ export function renderToday(){
          <div class="tde-actions">
            ${pas ? '' : `<button class="btn btn-primary" id="tdeAdd">${ic('plus', 'ic-14')} Ajouter une piste</button>`}
            <button class="btn" id="tdeDemo">Voir un exemple</button>
+           ${/* UN SEUL MOI (lot R5) : sur un téléphone neuf, c'est ICI que
+                l'on arrive — la phrase de secours ramène tout, au lieu
+                de tout refaire */''}
+           <button class="btn" id="tdeMoi">J’ai déjà OpenContact</button>
          </div>
        </div>`;
   } else if (alaPlace){
@@ -716,6 +720,8 @@ export function renderToday(){
   /* pas de toast : les pistes d'exemple arrivent sous les yeux, et
      « Retirer les pistes d'exemple » s'affiche au pied du même écran */
   root.querySelector('#tdeDemo')?.addEventListener('click', () => { addDemo(); bus.refresh(); });
+  root.querySelector('#tdeMoi')?.addEventListener('click', () =>
+    import('./moi-phrase.js').then(m => m.ouvrirRetrouver()));
   root.querySelector('#tdRmDemo')?.addEventListener('click', () => { removeDemo(); bus.refresh(); });
 }
 

@@ -9,6 +9,31 @@ le premier pour une rupture. La bascule du recadrage est la 7.0.0
 
 Les versions d'avant la 6.76 se lisent dans l'historique du dépôt.
 
+## [7.1.0] — 27 octobre 2026
+
+Un seul « moi » : une phrase de douze mots, et un téléphone perdu ne
+fait plus tout perdre.
+
+### Ajouté
+
+- **Ta phrase de secours ramène tout sur un autre téléphone.** Crée-la
+  dans « Moi › Ma copie › Phrase de secours » : douze mots à écrire
+  sur papier. Ensuite, ta copie se dépose toute seule sur les relais,
+  chiffrée, à chaque fois qu'elle change — personne d'autre ne peut la
+  lire.
+- **Sur un téléphone neuf**, « J'ai déjà OpenContact » : tes douze
+  mots, ce qui revient (tes pistes, ton profil, tes amis, tes groupes,
+  le lien avec tes appareils), « Ramener », puis « Annuler » si ce
+  n'était pas le bon moment. Rien ne s'écrase : ce qui est plus récent
+  sur le téléphone reste.
+
+### Modifié
+
+- **Une seule phrase.** Celle qui protège tes données est la même :
+  protéger, ou changer sa phrase dans « Verrouillage », la donne aussi
+  pour ramener tes données. Si tu avais déjà protégé tes données, ta
+  phrase d'avant marche : « Phrase de secours › Entrer ma phrase ».
+
 ## [7.0.0] — 27 octobre 2026
 
 La bascule du recadrage : tout ce qui était en préversion est ouvert à

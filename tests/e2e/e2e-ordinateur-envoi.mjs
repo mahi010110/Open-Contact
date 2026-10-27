@@ -8,7 +8,7 @@
    rapport et reprend la main.
    Prérequis : `cargo build -p oc-natif` fait (tous.mjs le saute
    proprement si le binaire manque). */
-import { chromium, chromiumPath, SHOTS, serveRepo, ROOT, attendre as attendrePage, attendreCanal } from './outils.mjs';
+import { chromium, chromiumPath, SHOTS, serveRepo, ROOT, attendre as attendrePage, attendreCanal, relaisMuetsPartout } from './outils.mjs';
 import { spawn } from 'child_process';
 import { existsSync, mkdtempSync } from 'fs';
 import net from 'net';
@@ -93,6 +93,7 @@ console.log('vrai Ordinateur lancé, appairage ouvert ✓');
 /* ---------- la PWA ---------- */
 const { server, base } = await serveRepo();
 const browser = await chromium.launch({ executablePath: chromiumPath() });
+relaisMuetsPartout(browser);   /* R5 : protéger dépose la copie scellée */
 const page = await (await browser.newContext({ viewport: { width: 1280, height: 800 } })).newPage();
 const errors = [];
 page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });

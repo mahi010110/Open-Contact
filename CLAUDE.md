@@ -87,6 +87,7 @@ autres. Ni grisée, ni « bientôt » : absente.
 | Demander à ses amis — et à ses groupes — quelqu'un chez une entreprise ou dans un métier et une ville, la demande qui passe d'elle-même à leurs amis (trois cercles), donner un contact — ou soi-même — en réponse | WEB |
 | L'onglet « Réseau » : mes demandes, toutes les conversations (groupes, amis) dans une liste, « Mes amis », épingler, couper le son | WEB |
 | Sync entre MES appareils | WEB |
+| Une phrase de secours qui ramène tout sur un téléphone neuf (la copie scellée, déposée sur les relais) | WEB |
 | Écrire un mail (`mailto:`, copier, « Envoyée ✓ ») | WEB |
 | Postuler à plusieurs d'affilée, une par une ; « Écrire les N mails » du jour, en série | WEB |
 | Au poste : la barre latérale, la fiche à côté de la liste, Ctrl K, une lettre par geste fréquent | WEB |
@@ -1843,6 +1844,11 @@ coller. Le partage en groupe EN DIRECT (P2P) reste dans le code, masqué
 
 **Mes appareils (la même personne)** : `engine/sync.js`, tout circule (privé
 inclus), le plus récent gagne (`updatedAt`), suppressions par tombstones.
+**Et ma copie déposée** (lot R5, 7.1.0, `engine/moi.js`) : la même
+personne, plus tard, sur un téléphone neuf — scellée par une clé tirée
+de la phrase de secours, sous une étiquette et une signature qui
+changent chaque semaine ; ramenée par la même fusion, aperçu avant,
+« Annuler » après. Rien ne part sans phrase.
 Canal : P2P avec phrase de liaison personnelle, hashée pour nommer la salle,
 données chiffrées de pair à pair. Le lien est **persistant** (`ui/synclive.js`).
 

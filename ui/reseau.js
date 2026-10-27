@@ -94,6 +94,30 @@ export async function publier(ev){
   }));
   return oks.filter(Boolean).length;
 }
+/* plusieurs événements d'un coup (les morceaux d'une copie, lot R5) :
+   UNE connexion par relais, et un relais ne compte que s'il les a TOUS
+   pris — un dépôt dont il manque un morceau ne se rassemble pas */
+export async function publierLot(evs){
+  const urls = await relais();
+  const oks = await Promise.all(urls.map(async url => {
+    const ws = await connexion(url);
+    if (!ws) return false;
+    return new Promise(res => {
+      const attendus = new Set(evs.map(e => e.id));
+      const t = setTimeout(() => { try { ws.close(); } catch (e) {} res(false); }, 6000 + 2000 * evs.length);
+      const fin = v => { clearTimeout(t); try { ws.close(); } catch (e) {} res(v); };
+      ws.onmessage = m => {
+        let d; try { d = JSON.parse(m.data); } catch (e) { return; }
+        if (d[0] !== 'OK' || !attendus.has(d[1])) return;
+        if (d[2] !== true){ fin(false); return; }
+        attendus.delete(d[1]);
+        if (!attendus.size) fin(true);
+      };
+      evs.forEach(ev => ws.send(JSON.stringify(['EVENT', ev])));
+    });
+  }));
+  return oks.filter(Boolean).length;
+}
 /* `lus` : combien de relais ont répondu jusqu'au bout. Zéro, et la relève
    n'a rien appris : on ne la compte pas comme faite. */
 export async function lire(filtre){

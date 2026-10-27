@@ -9,7 +9,7 @@
    écarter), aucune écriture avant validation, révocation immédiate.
    Vérifié à 1280×800 (clair) et 390×844 (sombre, cibles ≥ 44 px).
    Sauté proprement si le binaire n'est pas construit. */
-import { chromium, chromiumPath, SHOTS, serveRepo, ROOT, attendreCanal } from './outils.mjs';
+import { chromium, chromiumPath, SHOTS, serveRepo, ROOT, attendreCanal, relaisMuetsPartout } from './outils.mjs';
 import { spawn } from 'child_process';
 import { existsSync, mkdtempSync } from 'fs';
 import os from 'os';
@@ -96,6 +96,7 @@ class ClientMcp {
 /* ---------- la PWA ---------- */
 const { server, base } = await serveRepo();
 const browser = await chromium.launch({ executablePath: chromiumPath() });
+relaisMuetsPartout(browser);   /* R5 : protéger dépose la copie scellée */
 const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
 const page = await context.newPage();
 const errors = [];

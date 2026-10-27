@@ -32,6 +32,10 @@ export const isProtected = () => !!meta;
 export const isLocked = () => !!lockEl;
 
 const saveMeta = () => kvSet(VAULT_KEY, JSON.stringify(meta));
+/* UNE SEULE PHRASE (lot R5) : toute phrase de secours que le coffre se
+   donne devient aussi celle qui ramène tout sur un autre téléphone
+   (ui/moi-phrase.js). Import différé : moi-phrase importe ce fichier. */
+const adopter = phrase => import('./moi-phrase.js').then(m => m.adopterPhrase(phrase)).catch(() => {});
 const isDesktop = () => matchMedia('(min-width:901px)').matches;
 const IDLE_MS = () => (isDesktop() ? 15 : 5) * 60000;
 
@@ -288,6 +292,7 @@ function openRecovery(onUnlocked){
     await saveMeta();
     un = { key: rot.key, gen: meta.gen };
     await recoverRing(oldPhrase, newPhrase).catch(() => {});
+    await adopter(newPhrase);
     logJ('Récupération d’urgence : protection et phrase renouvelées');
     backupCeremony(sh, newPhrase, finish,
       'Une nouvelle copie chiffrée, à garder ailleurs. '
@@ -340,8 +345,10 @@ function newCodePad(root, onDone){
   });
   return pad;
 }
-/* la phrase : affichée, écrite sur papier, 2 mots re-vérifiés */
-function phraseCeremony(sh, phrase, onOk, etape){
+/* la phrase : affichée, écrite sur papier, 2 mots re-vérifiés.
+   Exportée pour « Phrase de secours » (ui/moi-phrase.js) : c'est la
+   même phrase, elle se montre et se vérifie de la même façon. */
+export function phraseCeremony(sh, phrase, onOk, etape){
   const q = s => sh.body.querySelector(s);
   const pas = etape ? stepsHTML(etape[0], etape[1]) : '';
   const show = () => {
@@ -354,7 +361,14 @@ function phraseCeremony(sh, phrase, onOk, etape){
             d'appareils » est partie — elle expliquait un NON-rapport
             avec une fonction que l'utilisateur n'a peut-être jamais
             ouverte, et créait la confusion qu'elle prétendait lever. */''}
-       <p class="hint warn">Écris-la sur papier : sans elle, un code oublié ne se récupère pas.</p>`;
+       ${/* Lot R5 : la phrase ne rouvre plus seulement le code, elle
+            ramène tout sur un autre téléphone — « rien ne se récupère »
+            dit les deux pertes à la fois. La seconde ligne est la parade
+            à l'hameçonnage (« donne-moi tes 12 mots pour t'aider ») :
+            elle prévient d'une perte qu'on ne voit pas venir, au moment
+            où les mots sont à l'écran (§7). */''}
+       <p class="hint warn">Écris-la sur papier : sans elle, rien ne se récupère.</p>
+       <p class="hint">Personne n’a besoin de ces mots, pas même OpenContact.</p>`;
     sh.setFoot([btn('Je l’ai écrite', 'btn-primary', verify)]);
   };
   const verify = () => {
@@ -633,6 +647,7 @@ export function openProtectFlow(){
     vaultAttach(made.key);
     await vaultSealAll();
     await ensureRing(phrase).catch(() => {});   /* cet appareil devient le principal */
+    await adopter(phrase);
     startIdleWatch();
     saved = true;
     logJ('Données protégées (verrouillage activé)');
@@ -650,6 +665,83 @@ export function openProtectFlow(){
 
   stepPin();
 }
+
+/* ---------- le code, redemandé (gestion, phrase unique) ----------
+   `then(code)` reçoit le code prouvé ; refermer la feuille ne fait que
+   prévenir `renonce`. */
+function askCurrentPin(title, then, renonce){
+  let prouve = false;
+  const s2 = openSheet({ title, icon: 'lock', className: 'modal-confirm',
+    onClose: () => { if (!prouve && renonce) renonce(); } });
+  s2.body.innerHTML = '<div id="cpPad" class="rq-pad"></div>';
+  proofPad(s2, code => { prouve = true; s2.close(null, true); then(code); });
+}
+/* le code prouvé, ou null si l'on renonce — sans coffre, '' tout de suite */
+export function demanderCode(title){
+  if (!meta) return Promise.resolve('');
+  return new Promise(res => askCurrentPin(title, res, () => res(null)));
+}
+/* cette phrase rouvre-t-elle le coffre ? Une phrase d'avant R5, que le
+   coffre connaît déjà, devient la phrase unique telle quelle. */
+export async function estPhraseDuCoffre(phrase){
+  if (!meta) return false;
+  try { await unlockWithPhrase(meta, phrase); return true; } catch (e) { return false; }
+}
+/* UNE SEULE PHRASE : ramener ses données avec une phrase que le coffre
+   de cet appareil ne connaît pas en fait aussi la phrase du coffre — le
+   code, déjà prouvé par l'appelant, ne change pas. La chaîne de
+   « Changer ma phrase », sans la cérémonie : la phrase est déjà sur
+   papier, c'est elle qu'on vient de taper. */
+export async function alignerCoffre(phrase, pin){
+  if (!meta || await estPhraseDuCoffre(phrase)) return true;
+  try {
+    const rot = await rotateVaultResumable(meta, { pin }, pin, phrase);
+    meta = rot.meta;
+    await saveMeta();
+    await vaultReseal(rot.oldKey, rot.key);
+    meta = clearPrev(meta);
+    await saveMeta();
+    await rekeyRing(phrase).catch(() => {});
+    logJ('Phrase de secours : celle qui ramène tes données');
+    return true;
+  } catch (e) { return false; }
+}
+/* ---- refaire la phrase de secours (papier perdu, code encore su) ----
+   Même chaîne que la récupération d'urgence, à une différence près :
+   l'accès est prouvé par le CODE, pas par l'ancienne phrase — c'est
+   tout l'objet. Le code, lui, ne change pas.
+   Trois conséquences, dans l'ordre où elles arrivent :
+   ① le coffre se re-scelle sous une clé neuve (rotateVaultResumable
+      pose d'abord la métadonnée, qui embarque l'ancienne clé : une
+      coupure ici se rattrape au prochain déverrouillage) ;
+   ② l'anneau d'appareils doit porter la clé de la nouvelle phrase,
+      sinon le secours d'urgence désignerait encore l'ancienne — et on
+      ne s'en apercevrait que le jour où il faut s'en servir ;
+   ③ les copies déjà exportées restent chiffrées par l'ANCIENNE
+      phrase. Ça ne se devine pas, donc ça se dit — au moment où l'on
+      propose d'en faire une neuve. */
+export const changerPhrase = () => askCurrentPin('Ton code, pour refaire la phrase', async pin => {
+  const s2 = openSheet({ title: 'Nouvelle phrase de secours', icon: 'lock' });
+  const neuve = makeVaultPhrase();
+  phraseCeremony(s2, neuve, async () => {
+    s2.setTitle('Renouvellement…');
+    s2.body.innerHTML = '';
+    s2.setFoot(null);
+    const rot = await rotateVaultResumable(meta, { pin }, pin, neuve);
+    meta = rot.meta;
+    await saveMeta();
+    await vaultReseal(rot.oldKey, rot.key);
+    meta = clearPrev(meta);
+    await saveMeta();
+    await rekeyRing(neuve).catch(() => {});
+    await adopter(neuve);
+    logJ('Phrase de secours renouvelée');
+    backupCeremony(s2, neuve, () => {
+      s2.close(null, true);
+      toast('Nouvelle phrase enregistrée ✓');
+    }, 'Une copie neuve, chiffrée par cette phrase. Tes anciennes copies s’ouvrent encore avec l’ancienne.', [3, 3]);
+  }, [2, 3]);
+});
 
 /* ---------- gestion (depuis « Moi ») ---------- */
 export function openManageSheet(){
@@ -686,7 +778,7 @@ export function openManageSheet(){
     const q = s => sh.body.querySelector(s);
     q('#vgLock').addEventListener('click', () => { sh.close(); lockNow(); });
     q('#vgPin').addEventListener('click', changePin);
-    q('#vgPhrase').addEventListener('click', redoPhrase);
+    q('#vgPhrase').addEventListener('click', changerPhrase);
     q('#vgBio')?.addEventListener('click', async () => {
       if (bioEnrolled()){ await dropBio(); render(); return; }
       askCurrentPin('Ton code actuel', async pin => {
@@ -710,47 +802,6 @@ export function openManageSheet(){
       });
     });
   };
-  const askCurrentPin = (title, then) => {
-    const s2 = openSheet({ title, icon: 'lock', className: 'modal-confirm' });
-    s2.body.innerHTML = '<div id="cpPad" class="rq-pad"></div>';
-    proofPad(s2, code => { s2.close(null, true); then(code); });
-  };
-  /* ---- refaire la phrase de secours (papier perdu, code encore su) ----
-     Même chaîne que la récupération d'urgence, à une différence près :
-     l'accès est prouvé par le CODE, pas par l'ancienne phrase — c'est
-     tout l'objet. Le code, lui, ne change pas.
-     Trois conséquences, dans l'ordre où elles arrivent :
-     ① le coffre se re-scelle sous une clé neuve (rotateVaultResumable
-        pose d'abord la métadonnée, qui embarque l'ancienne clé : une
-        coupure ici se rattrape au prochain déverrouillage) ;
-     ② l'anneau d'appareils doit porter la clé de la nouvelle phrase,
-        sinon le secours d'urgence désignerait encore l'ancienne — et on
-        ne s'en apercevrait que le jour où il faut s'en servir ;
-     ③ les copies déjà exportées restent chiffrées par l'ANCIENNE
-        phrase. Ça ne se devine pas, donc ça se dit — au moment où l'on
-        propose d'en faire une neuve. */
-  const redoPhrase = () => askCurrentPin('Ton code, pour refaire la phrase', async pin => {
-    const s2 = openSheet({ title: 'Nouvelle phrase de secours', icon: 'lock' });
-    const neuve = makeVaultPhrase();
-    phraseCeremony(s2, neuve, async () => {
-      s2.setTitle('Renouvellement…');
-      s2.body.innerHTML = '';
-      s2.setFoot(null);
-      const rot = await rotateVaultResumable(meta, { pin }, pin, neuve);
-      meta = rot.meta;
-      await saveMeta();
-      await vaultReseal(rot.oldKey, rot.key);
-      meta = clearPrev(meta);
-      await saveMeta();
-      await rekeyRing(neuve).catch(() => {});
-      logJ('Phrase de secours renouvelée');
-      backupCeremony(s2, neuve, () => {
-        s2.close(null, true);
-        toast('Nouvelle phrase enregistrée ✓');
-      }, 'Une copie neuve, chiffrée par cette phrase. Tes anciennes copies s’ouvrent encore avec l’ancienne.', [3, 3]);
-    }, [2, 3]);
-  });
-
   const changePin = () => askCurrentPin('Ton code actuel', cur => {
     const s2 = openSheet({ title: 'Nouveau code', icon: 'lock', className: 'modal-confirm' });
     s2.body.innerHTML = '<div id="npPad"></div>';

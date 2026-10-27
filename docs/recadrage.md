@@ -22,8 +22,9 @@ perdre en route.** Le pourquoi est dans les fiches de décision
   (décision 0004).
 - **Ouvert à tous le 27 octobre 2026 (7.0.0).** Le mainteneur a ouvert
   d'un coup les lots livrés (R1 à R4, R7 à R10) et retiré leurs anciens
-  chemins ; R6 est clos sans être fait (« garder le lien mail »), R5
-  reste à faire. Voir « La bascule », plus bas.
+  chemins ; R6 est clos sans être fait (« garder le lien mail »). R5
+  a suivi le même jour, ouvert à tous sans préversion (7.1.0). Voir
+  « La bascule », plus bas.
 - **Mesuré avant, mesuré après.** Six parcours, cinq étudiants, sur l'app
   actuelle d'abord ([`mesure/protocole.md`](mesure/protocole.md)). Chaque
   lot doit faire mieux sur les mêmes parcours.
@@ -199,6 +200,13 @@ Une identité et une phrase de secours qui ramènent appareils, amis et
 groupes. Une analyse des menaces écrite avant le code ; les anciennes
 clés intactes, lues au moins une version entière.
 
+**Livré le 27 octobre 2026 (7.1.0), ouvert à tous** — sans passer par
+la préversion : « je veux une app prête et finie », et rien de ce que
+R5 ajoute ne change un écran existant tant qu'on ne crée pas sa phrase.
+Ce qui a été tranché en codant, par délégation, est écrit à la fin de
+la proposition. Gardé par `tests/e2e/e2e-un-seul-moi.mjs`, la fuite
+d'abord.
+
 ### R6 · Envoi direct · 2 semaines de code · selon la décision 0007
 
 **Clos sans être fait, par choix du mainteneur, le 27 octobre 2026** :
@@ -351,9 +359,10 @@ ouverte. Leurs anciens chemins partent avec leurs drapeaux :
 - au poste, la barre latérale, la fiche à côté de la liste, Ctrl K et
   les lettres sont là pour tout le monde.
 
-Aucune clé de stockage ne bouge. Ce qui reste du plan : **R5** (un seul
-« moi »), puis l'audit complet de l'app ouverte, au pouce et au poste,
-au plafond et à texte agrandi.
+Aucune clé de stockage ne bouge. **R5** (un seul « moi ») a suivi en
+7.1.0 — une clé de plus, `oc_moi_v1`, aucune renommée. Ce qui reste du
+plan : l'audit complet de l'app ouverte, au pouce et au poste, au
+plafond et à texte agrandi.
 
 ## La porte qualité de chaque lot
 

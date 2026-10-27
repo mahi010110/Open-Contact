@@ -311,6 +311,15 @@ export async function relaisMuets(cible){
     });
   });
 }
+/* tous les contextes d'un navigateur, d'un coup. Depuis R5, protéger ses
+   données donne la phrase de secours, et la copie scellée part vers les
+   relais publics : un scénario du coffre n'a pas à dépendre du réseau —
+   ni, en CI, à déposer des copies d'essai chez des relais réels. */
+export function relaisMuetsPartout(browser){
+  const nc = browser.newContext.bind(browser);
+  browser.newContext = async (...a) => { const c = await nc(...a); await relaisMuets(c); return c; };
+  return browser;
+}
 /* les sources de la CARTE seules (ui/carte.js) : pour un scénario qui joue
    l'annuaire lui-même mais n'a rien à dire de la carte — sans elles, un
    aperçu ouvert irait chercher le vrai Wikidata, et le bac à sable le

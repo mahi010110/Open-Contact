@@ -14,7 +14,7 @@
    Ordinateur éteint = message court honnête. Mobile 390×844 sombre
    + 1280×800 clair, zéro erreur console.
    Sauté proprement si le binaire n'est pas construit. */
-import { chromium, chromiumPath, SHOTS, serveRepo, ROOT, attendreCanal } from './outils.mjs';
+import { chromium, chromiumPath, SHOTS, serveRepo, ROOT, attendreCanal, relaisMuetsPartout } from './outils.mjs';
 import { spawn } from 'child_process';
 import { existsSync, mkdtempSync, writeFileSync, chmodSync, readFileSync } from 'fs';
 import http from 'http';
@@ -146,6 +146,7 @@ const arreter = () => { try { process.kill(-ordinateur.pid, 'SIGKILL'); } catch 
 /* ---------- la PWA : coffre, piste, appairage ---------- */
 const { server, base } = await serveRepo();
 const browser = await chromium.launch({ executablePath: chromiumPath() });
+relaisMuetsPartout(browser);   /* R5 : protéger dépose la copie scellée */
 const page = await (await browser.newContext({
   viewport: { width: 1280, height: 800 }, hasTouch: true })).newPage();
 const errors = [];

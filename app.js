@@ -210,6 +210,13 @@ async function ajouter(){
     import('./ui/reseau.js').then(m => m.demarrerReseau()).catch(() => {});
   }, 2200);
 
+  /* UN SEUL MOI (lot R5) : la copie scellée se redépose sur les relais
+     si elle a changé — seulement s'il y a une phrase de secours ; sans
+     elle, rien ne part */
+  setTimeout(() => {
+    import('./ui/moi-phrase.js').then(m => m.demarrerMoi()).catch(() => {});
+  }, 4000);
+
   /* mes groupes (lot 5) : relevés seulement si j'en ai un — sans groupe,
      rien ne part */
   setTimeout(() => {
