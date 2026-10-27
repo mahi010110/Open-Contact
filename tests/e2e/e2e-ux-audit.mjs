@@ -2963,10 +2963,10 @@ if (IA){
     const pActif = await cActif.newPage();
     await pActif.goto(base, { waitUntil: 'load' });
     await pActif.waitForSelector('#view-aujourdhui:not([hidden])');
-    /* le bouton plein du pied de « Nouvelle piste », ouverte par le « + »
-       de la barre — l'accueil n'en porte plus depuis les premiers pas
-       (lot F4), et au pouce le premier `.btn-primary` du document est
-       celui du bandeau de bureau, caché */
+    /* le bouton plein du pied d'« Ajouter » (« Une piste »), ouverte par
+       le « + » de la barre — l'accueil n'en porte plus depuis les
+       premiers pas (lot F4), et au pouce le premier `.btn-primary` du
+       document est celui du bandeau de bureau, caché */
     await pActif.click('#bnAdd');
     await pActif.waitForSelector('.overlay:not(.ov-out) .modal-f .btn-primary');
     const bp = await pActif.$('.overlay:not(.ov-out) .modal-f .btn-primary');
@@ -3259,6 +3259,11 @@ const ZOOM_EXCEPTIONS = [
      mesurait que le pouce, et c'est ce qui a fait ajouter le passage
      au poste plutôt que l'exception seule. */
   '.pk-s', '.bc-sub',
+  /* `.bc-na-t` — le texte de la prochaine action sur la carte du
+     tableau, une donnée écrite par l'étudiant : il s'élide à deux
+     lignes ; sa marque d'urgence, elle, vit hors de la bride et n'est
+     jamais dans cette liste (7.0.0) */
+  '.bc-na-t',
   /* L'en-tête d'objet et l'état d'un réglage : des DONNÉES. `.obj-l`
      porte la formation et l'adresse — et une adresse rendue
      « …@example » sur une ligne et « .fr » sur la suivante n'est plus

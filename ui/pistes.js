@@ -321,10 +321,12 @@ function cardHTML(c){
   /* la carte du poste dit la même chose que la ligne au pouce : muette
      depuis longtemps est un fait, pas une absence de fait */
   const sil = c.nextAction ? null : silenceOf(c);
+  /* le texte et la marque d'urgence : le premier peut s'élider, la
+     seconde jamais — c'est elle qui réclame quelque chose */
   const na = c.nextAction
-    ? `<span class="bc-na">${esc(c.nextActionText || 'Faire le point')} ${dueHTML(c)}</span>`
+    ? `<span class="bc-na"><span class="bc-na-t">${esc(c.nextActionText || 'Faire le point')}</span> ${dueHTML(c)}</span>`
     : sil
-      ? `<span class="bc-na">sans nouvelles ${silenceMarkHTML(sil)}</span>`
+      ? `<span class="bc-na"><span class="bc-na-t">sans nouvelles</span> ${silenceMarkHTML(sil)}</span>`
       : `<span class="bc-na bc-none">${inCamp ? 'en campagne' : 'à planifier'}</span>`;
   /* « complète à N % » vivait ici sur CHAQUE carte, et valait le même
      chiffre d'une carte à l'autre — quatre pistes à contacter, quatre

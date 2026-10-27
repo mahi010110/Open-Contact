@@ -153,7 +153,8 @@ else console.log('Mes pistes vide : état enseignant ✓');
    qu'on met en place. */
 await M.click('.bottomnav a[data-r="aujourdhui"]');
 await M.waitForSelector('#view-aujourdhui:not([hidden])');
-await M.click('#bnAdd');
+await M.click('#bnAdd');            /* le + ouvre « Ajouter » (R1) : « Une piste » */
+await M.click('#ajPiste');
 await M.waitForSelector('#cpName');
 /* le bouton dit le GESTE : il enregistre et laisse la feuille ouverte.
    « Suivant » faisait attendre une étape 2 (1er octobre 2026). */
@@ -257,6 +258,7 @@ const etire = m => m.boite > m.texte + 30;   /* 2 × 8 px de marge, 2 px de bord
   else console.log(`toast : jamais plus haut que son texte, dans ${ETATS.length + 1} états au pouce, sonde vue ✓`);
   /* on rouvre la capture pour la suite du parcours, comme on l'avait laissée */
   await M.click('#bnAdd');
+  await M.click('#ajPiste');
   await M.waitForSelector('#cpName');
 }
 const withCt = await M.evaluate(async () =>
@@ -466,6 +468,7 @@ await D.screenshot({ path: SHOTS + '/parcours-neuf-bureau-demo.png' });
 
 /* ---------- capture au bureau : le formulaire complet (#3) ---------- */
 await D.click('#btnAddTop');
+await D.click('#ajPiste');
 await D.waitForSelector('#edName');
 if (await D.$('#cpName')) fail('le bureau ne sert plus le mini-formulaire du pouce');
 const pied = await D.evaluate(() =>

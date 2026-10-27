@@ -55,7 +55,7 @@ const CAT = ['devtools.timeline', 'disabled-by-default-devtools.timeline', 'disa
 /* les gestes : où on les fait, comment on tape, ce qui dit que la feuille est là */
 const GESTES = [
   { nom: 'fiche', ou: 'pistes', tap: '#main .row-item .ri-main', la: '.modal .modal-b' },
-  { nom: 'nouvelle piste', ou: 'pistes', tap: '#bnAdd', la: '.modal .modal-b' },
+  { nom: 'ajouter', ou: 'pistes', tap: '#bnAdd', la: '.modal .modal-b' },
   { nom: 'groupe', ou: 'reseau', tap: `.bx-l[data-groupe="${GROUPE}"]`, la: '#grFil' },
   { nom: 'conversation', ou: 'reseau', tap: `.bx-l[data-ami="${AMI}"]`, la: '#msFil' },
   /* la liste à cocher de « Mes pistes » : d'où partent Écrire et Donner */
