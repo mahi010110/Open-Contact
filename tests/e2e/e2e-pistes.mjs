@@ -3,7 +3,7 @@
    l'état actif en puces retirables sous la recherche (le sens du tri vit
    dans la puce), et le tableau desktop où déposer une carte dans une
    autre colonne change le statut avec une trace propre. */
-import { chromium, chromiumPath, SHOTS, serveRepo, attendre } from './outils.mjs';
+import { chromium, chromiumPath, SHOTS, serveRepo, attendre, vueTableau } from './outils.mjs';
 
 const { server, base } = await serveRepo();
 const browser = await chromium.launch({ executablePath: chromiumPath() });
@@ -160,7 +160,7 @@ const dCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } }
 const dPage = await dCtx.newPage();
 watchErrors(dPage);
 await seed(dPage);
-await dPage.waitForSelector('#view-pistes .board');   /* « Aujourd'hui » a aussi un tableau */
+await vueTableau(dPage);   /* au poste, « Mes pistes » s'ouvre en liste (R1-d) */
 
 /* la feuille desktop ne repropose pas le statut : les colonnes le font déjà */
 await dPage.click('#piAffiner');

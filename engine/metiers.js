@@ -113,6 +113,11 @@ export function formationDe(texte, idx){
 export function etiquetteFormation(texte, idx){
   const f = formationDe(texte, idx);
   if (!f) return null;
+  /* une formation dont les métiers sont surtout de l'informatique (« BTS
+     SIO » : 3 sur 3, « BUT R&T » : 7 sur 8) reste à la table de
+     l'informatique, plus fine : sans ça elle envoyait tout le secteur J
+     à l'annuaire au lieu des six codes du numérique (7.0.0) */
+  if (f.romes.filter(ROME_INFORMATIQUE).length * 2 > f.romes.length) return null;
   const label = String(texte).replace(/\s+/g, ' ').trim().slice(0, 40);
   return { famille: 'metier', cle: 'formation:' + cleDe(label), id: 'metier:formation:' + cleDe(label), label,
            intitule: f.intitule, rome: f.romes[0], romes: f.romes, sections: f.sections, domaine: '', racines: racinesDe(f.intitule),

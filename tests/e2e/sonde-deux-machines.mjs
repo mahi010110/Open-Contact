@@ -194,8 +194,7 @@ async function rendezVous(p){
       if (el) new MutationObserver(() => el.textContent.trim() && window.__toast(el.textContent.trim()))
         .observe(el, { childList: true, characterData: true, subtree: true }); });
     await jusqua(p, T0);
-    await p.click('.bottomnav a[data-r="echanger"]');
-    await p.waitForSelector('#ecGive'); await p.click('#ecGive');
+    await ouvrirDonner(p);
     await p.waitForSelector('#dnQR'); await p.click('#dnQR');
     await p.waitForSelector('.sy-phrase span', { timeout: 40000 });
     const vu = (await p.textContent('.sy-phrase span')).trim();
@@ -212,9 +211,7 @@ async function rendezVous(p){
     return { parcours: 'rdv', ecrans, relie: /P2P/.test(issue), ecran: issue };
   }
   await jusqua(p, T0 + Number(process.env.OC_DELAI_RECEVEUR_MS || 20000));
-  await p.click('.bottomnav a[data-r="echanger"]');
-  await p.waitForSelector('#ecRecv'); await p.click('#ecRecv');
-  await p.waitForSelector('#rcScan'); await p.click('#rcScan');
+  await ouvrirRecevoir(p, 'qr');
   await p.waitForSelector('#rcCode');
   await p.waitForTimeout(1500);                       /* on vise, puis on tape le code */
   noter('scanner : ' + ((await p.textContent('#rcScanHint').catch(() => '')) || '').trim());
@@ -233,7 +230,7 @@ async function rendezVous(p){
 }
 
 /* Playwright n'est chargé que pour une machine : le bilan n'en a pas besoin */
-const { chromium, chromiumPath, serveRepo } = await import('./outils.mjs');
+const { chromium, chromiumPath, serveRepo, ouvrirDonner, ouvrirRecevoir } = await import('./outils.mjs');
 const { server, base } = await serveRepo();
 /* OC_NAVIGATEUR=webkit : le moteur de Safari, celui de l'iPhone — la
    même sonde, l'autre moteur (Playwright l'installe sur un runner) */
@@ -335,7 +332,7 @@ try {
     throw null;
   }
   /* la vraie app : « Partage en groupe », même mot de passe des deux côtés */
-  await p.click('.bottomnav a[data-r="echanger"]');
+  await p.click('.bottomnav a[data-r="reseau"]');
   await p.evaluate(async () => (await import('./ui/direct.js')).openPromo());
   await p.waitForSelector('#prPass'); await p.fill('#prPass', 'sonde-deux-machines-' + SALLE);
   await p.click('.modal-f .btn-primary');

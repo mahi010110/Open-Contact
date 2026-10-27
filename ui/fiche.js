@@ -14,7 +14,7 @@ import { scoreOf } from '../engine/score.js';
 import { porteurs } from '../engine/requete.js';
 import { portesDuJour } from './amis.js';
 import { reseauDePiste, ouvrirDemander, ouvrirDon, carteDemandeHTML, bandeauDon, libelleDemander } from './reseau.js';
-import { S, bus, isClosed, saveData, reopenPiste, logJ, activateContact, lot } from './state.js';
+import { S, bus, isClosed, saveData, reopenPiste, logJ, activateContact } from './state.js';
 import { openSheet, confirmSheet, toast, btn, ic, montrerChange, suivreLargeur, choixHTML } from './dom.js';
 import { demandesPossibles, libelleDemande, messageDemande, merciAProposer, messageMerci } from '../engine/aide.js';
 import { dernierEnvoiA } from './messages.js';
@@ -58,7 +58,7 @@ const boutonCopier = (sh, mot) => btn('Copier le message', 'btn-primary', async 
 function openDemander(c, prenom, v){
   /* CEUX QUI AIDENT (lot R7) : un AMI dit ce qu'il peut offrir, et la
      demande se pose dans votre conversation */
-  const ami = lot('aide') && v.amiId && (S.profile.amis || []).find(a => a.id === v.amiId);
+  const ami = v.amiId && (S.profile.amis || []).find(a => a.id === v.amiId);
   if (ami) return demanderAAmi(c, ami, v);
   const sh = openSheet({ title: 'Demander à ' + prenom, icon: 'message-text' });
   const mot = `Salut ${prenom}, tu ${v.tu} chez ${c.name} ? `
@@ -152,7 +152,16 @@ export const ecrirePiste = c => openMail(c, { ctId: ecrireA(c) });
    n'a pas la largeur de la fenêtre. Pas de croix ni de garde-fou de
    fermeture : on la quitte en choisissant une autre piste, et c'est la
    liste qui demande d'abord (`aQuitter`, rendu avec la feuille). */
+/* AU POSTE, « MES PISTES » EN LISTE POSE LA FICHE À CÔTÉ (R1-d). Une
+   fiche demandée d'ailleurs pendant qu'on y est (Ctrl K, une ligne qui
+   la nomme) se pose dans ce volet au lieu d'ouvrir une fenêtre de plus :
+   deux fiches dans la page, c'étaient deux `#fiNotes`, et le libellé de
+   la fenêtre visait la fiche qu'on ne voyait pas (7.0.0). `ui/pistes.js`
+   dit s'il la prend (`fichesVersVolet`) ; sinon, la fenêtre. */
+let versVolet = null;
+export const fichesVersVolet = fn => { versVolet = fn; };
 export function openFiche(c, o = {}){
+  if (!o.dans && versVolet){ const d = versVolet(c); if (d) return d; }
   /* le tampon : seulement les champs touchés — rien ne s'écrit avant Confirmer */
   const draft = {};
   const val = f => (f in draft) ? draft[f] : c[f];
@@ -193,7 +202,7 @@ export function openFiche(c, o = {}){
      — les deux lettres écrites dans leurs boutons. Jamais pendant qu'un
      champ a le curseur (on y TAPE ses notes). */
   sh.ov.addEventListener('keydown', e => {
-    const k = lot('clavier') ? lettreActive(e) : '';
+    const k = lettreActive(e);
     if (k === 'e'){ e.preventDefault(); ecrirePiste(c); }
     else if (k === 'p' && sh.body.querySelector('#fiNa')){ e.preventDefault(); sh.body.querySelector('#fiNa').click(); }
   });
@@ -300,11 +309,10 @@ export function openFiche(c, o = {}){
     /* R1 (décision 0002) : DONNER part aussi de la fiche — le geste vit
        avec l'objet qu'il donne, à côté de « Modifier ». Une piste close
        ou d'exemple ne se donne pas (`openDonner` les écarte). */
-    const R = lot('reseau');
     const outils =
       `<div class="fi-tools">
          ${wide ? `<span class="fi-score">fiche complète à ${score} %</span>` : ''}
-         ${R && !closed && !c.demo ? `<button class="btn btn-sm" id="fiDonner" aria-label="Donner la piste ${esc(c.name)}">${ic('share', 'ic-14')} Donner</button>` : ''}
+         ${!closed && !c.demo ? `<button class="btn btn-sm" id="fiDonner" aria-label="Donner la piste ${esc(c.name)}">${ic('share', 'ic-14')} Donner</button>` : ''}
          <button class="btn btn-sm" id="fiEdit" aria-label="${score < 60 ? 'Compléter' : 'Modifier'} la piste ${esc(c.name)}">${ic('pencil', 'ic-14')} ${score < 60 ? 'Compléter' : 'Modifier'}</button>
        </div>`;
     /* ---- le travail : où j'en suis, ce que je fais ensuite, ce que je note ---- */
@@ -374,7 +382,7 @@ export function openFiche(c, o = {}){
        ligne, proposée en pointillé d'accent comme un don : elle ouvre la
        conversation, le merci prêt dans le champ. Elle se tait dès qu'on
        lui a écrit, et au bout de quatorze jours. */
-    const merci = lot('aide') ? merciDePiste(c, qui) : null;
+    const merci = merciDePiste(c, qui);
     const res = reseauDePiste(c);
     const joignable = (c.contacts || []).some(t => t.email || t.phone || t.link);
     /* LA DEMANDE SE SUIT COMME UN COLIS (lot F3) : sa carte reste tant
@@ -529,12 +537,12 @@ export function openFiche(c, o = {}){
     /* LA FICHE COMMENCE PAR LES GENS (R1, décision 0002) : qui peut
        t'ouvrir la porte (le bandeau, déjà en tête), puis les contacts,
        puis le suivi. Au poste, les gens prennent la colonne de gauche,
-       celle qu'on lit d'abord. Lot éteint, l'ordre d'avant. */
+       celle qu'on lit d'abord. */
     const colTravail = `<div class="fi-travail">${travail}</div>`;
     sh.body.innerHTML = wide
       ? `<div class="fi-top">${sub}${outils}</div>${vecuHTML}
-         <div class="fi-cols">${R ? `<div>${gens}${savoir}</div>${colTravail}` : `${colTravail}<div>${gens}${savoir}</div>`}</div>`
-      : `<div class="fi-top">${sub}${outils}</div>${vecuHTML}` + (R ? gens + travail + savoir : travail + gens + savoir);
+         <div class="fi-cols"><div>${gens}${savoir}</div>${colTravail}</div>`
+      : `<div class="fi-top">${sub}${outils}</div>${vecuHTML}${gens}${travail}${savoir}`;
 
     /* branchements */
     const byCt = id => (c.contacts || []).find(t => t.id === id);
@@ -636,5 +644,6 @@ export function openFiche(c, o = {}){
   render();
   sh.c = c;
   sh.aQuitter = aQuitter;
+  sh.sale = dirty;
   return sh;
 }

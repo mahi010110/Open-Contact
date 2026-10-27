@@ -2,7 +2,7 @@
    parcours « l’ordinateur depuis un téléphone » honnête, relais avancés accessibles, cibles au
    pouce, contact sans doublon et fournisseurs IA non livrés non activables. */
 import { readFileSync, readdirSync } from 'fs';
-import { chromium, chromiumPath, SHOTS, serveRepo, attendre, annuaireMuetPartout } from './outils.mjs';
+import { chromium, chromiumPath, SHOTS, serveRepo, attendre, annuaireMuetPartout, ouvrirDonner, vueTableau } from './outils.mjs';
 import { ORDINATEUR, IA } from '../../ui/perimetre.js';
 
 const { server, base } = await serveRepo();
@@ -152,15 +152,13 @@ await page.evaluate(async () => {
   await st.kvSet(st.DATA_KEY, '[]');
 });
 await page.reload({ waitUntil: 'load' });
-await page.goto(base + '/#/echanger');
-await page.waitForSelector('.hero2');
-const ech0 = await page.evaluate(() => ({
-  donner: !!document.querySelector('#ecGive'),
-  recevoirPrim: !!document.querySelector('#ecRecv')?.classList.contains('btn-primary')
-}));
-if (ech0.donner) fail('« Donner » présent alors qu’il n’y a rien à donner (action morte)');
-if (!ech0.recevoirPrim) fail('« Recevoir » ne prend pas l’accent quand « Donner » disparaît');
-console.log('Échanger à zéro piste : « Donner » absent, « Recevoir » devient le bouton ✓');
+await page.goto(base + '/#/pistes');
+await page.waitForSelector('#piQ');
+/* à zéro piste, « Choisir » (d'où partent Écrire et Donner) n'a rien à
+   choisir : il n'existe pas — une action morte ne se montre pas */
+const ech0 = await page.evaluate(() => ({ choisir: !!document.querySelector('#piProspect') }));
+if (ech0.choisir) fail('« Choisir » présent alors qu’il n’y a rien à choisir (action morte)');
+console.log('Mes pistes à zéro piste : « Choisir » absent ✓');
 /* les deux pistes reviennent : la suite du scénario compte dessus */
 await page.evaluate(async d => {
   const st = await import('./engine/storage.js');
@@ -273,7 +271,7 @@ await page.evaluate(async () => {
     ids: ['sans-mail', 'disparue-depuis'] });
   await st.kvSet(st.JOURNAL_KEY, JSON.stringify(j));
 });
-await page.goto(base + '/#/echanger');
+await page.goto(base + '/#/reseau');
 await page.reload({ waitUntil: 'load' });
 await page.waitForSelector('#ecHisto');
 await ouvrirHisto();
@@ -363,16 +361,12 @@ const poids = await page.evaluate(() => {
      dessin. */
   const dans = [...document.querySelectorAll('.ec-row *')]
     .filter(n => n.textContent.trim() && !n.querySelector('*'));
-  const g = document.querySelector('.hero2 .btn.hero span, .hero2 .btn.hero');
   return { fil: dans.length ? Math.max(...dans.map(n => +getComputedStyle(n).fontWeight)) : 0,
-           geste: g ? +getComputedStyle(g).fontWeight : 0,
            poubelle: !!document.querySelector('.ec-l .hov-del') };
 });
 if (!poids.fil) fail('le relevé du poids du fil ne trouve plus aucun texte — le contrôle ne contrôle rien');
 if (poids.fil >= 600)
   fail(`le fil pèse ${poids.fil} — un journal ne porte pas le gras d'un titre, il raconte ce qui est fait`);
-else if (poids.fil >= poids.geste)
-  fail(`le fil (${poids.fil}) pèse autant que les gestes (${poids.geste}) qu'il surplombe`);
 else if (!poids.poubelle)
   fail('aucune façon de retirer une ligne du fil');
 else {
@@ -458,6 +452,7 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
       .map(([name, city, status], i) =>
         ({ id: 'bc' + i, name, city, domain: 'esn', status, contacts: [], updatedAt: Date.now() - i })));
   await dPage.reload({ waitUntil: 'load' });
+  await vueTableau(dPage);
   await attendre(dPage, () => document.querySelectorAll('.bcol').length === 3, { message: 'le tableau' });
 
   const board = await dPage.evaluate(() => ({
@@ -547,7 +542,7 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
      nom. On le vérifie au pouce ET au poste : c'est la même liste. */
   for (const [lw, lh] of [[360, 640], [1280, 800]]){
     await dPage.setViewportSize({ width: lw, height: lh });
-    await dPage.goto(base + '/#/echanger', { waitUntil: 'load' });
+    await dPage.goto(base + '/#/reseau', { waitUntil: 'load' });
     await dPage.evaluate(async () => {
       const st = await import('./engine/storage.js');
       const { S } = await import('./ui/state.js');
@@ -595,7 +590,7 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
      le téléphone sans s'en apercevoir. */
   for (const [lw, lh, poste] of [[1280, 800, true], [390, 844, false]]){
     await dPage.setViewportSize({ width: lw, height: lh });
-    await dPage.goto(base + '/#/echanger', { waitUntil: 'load' });
+    await dPage.goto(base + '/#/reseau', { waitUntil: 'load' });
     await dPage.waitForFunction(() => !!document.querySelector('#sbVer')?.textContent);
     /* TROIS conversations, pas une : le clavier ne se mesure qu'entre
        des lignes. Avec une seule, ↓ n'a nulle part où aller et le
@@ -741,9 +736,9 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
       const r = document.querySelector('#piProspect').getBoundingClientRect();
       return { h: Math.round(r.height), w: Math.round(r.width) };
     });
-    await eP.evaluate(() => { location.hash = '#/echanger'; });
-    await attendre(eP, () => !!document.querySelector('#ecGive'),
-      { message: 'les commandes d’Échanger' });
+    await eP.evaluate(() => { location.hash = '#/reseau'; });
+    await attendre(eP, () => !!document.querySelector('#ecGrNeuf'),
+      { message: 'la boîte de Réseau' });
     const cmd = await eP.evaluate(() => {
       const lu = s => {
         const n = document.querySelector(s);
@@ -758,12 +753,14 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
          groupe » la ferme, en encre sourde. Plus de « Créer », de
          « Rejoindre », de « Scanner » ni de « Mon QR » posés en vrac,
          ni de porte « Groupes » dans la rangée des verbes. */
-      const out = { donner: lu('#ecGive'), recevoir: lu('#ecRecv'), groupes: lu('#ecGrNeuf') };
-      const d = document.querySelector('#ecGive'), g = document.querySelector('#ecGrNeuf');
-      if (d && g){
+      /* Donner et Recevoir ont quitté « Réseau » (R1, 7.0.0) : le + et
+         « Mes pistes » les portent ; reste à garder la place du geste rare */
+      const out = { groupes: lu('#ecGrNeuf') };
+      const a = document.querySelector('#bxAmis'), g = document.querySelector('#ecGrNeuf');
+      if (g){
         out.groupes.dansBoite = !!g.closest('.bx-liste');
         out.groupes.dernier = [...document.querySelectorAll('.bx-liste button')].pop() === g;
-        out.groupes.sous = g.getBoundingClientRect().top > d.getBoundingClientRect().bottom;
+        out.groupes.sous = !a || g.getBoundingClientRect().top >= a.getBoundingClientRect().bottom - 1;   /* rangées jointives */
         out.groupes.mot = g.textContent.trim();
       }
       out.enVrac = ['#ecGrCreer', '#ecGrRejoindre', '#ecScan', '#ecMonQR', '.ec-amis', '.ec-groupes'].filter(x => document.querySelector(x));
@@ -797,13 +794,12 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
     await eP.reload({ waitUntil: 'load' });
     await eP.evaluate(() => { location.hash = '#/aujourdhui'; });
     await eP.waitForTimeout(200);
-    await eP.evaluate(() => { location.hash = '#/echanger'; });
+    await eP.evaluate(() => { location.hash = '#/reseau'; });
     await attendre(eP, () => !!document.querySelector('.bx-liste .bx-l[data-groupe]'),
       { message: 'la boîte au pouce, avec la conversation du groupe' });
     const pouce = await eP.evaluate(() => {
       const p = document.querySelector('.bx-liste');
-      const inner = document.querySelector('#view-echanger .page-inner');
-      const g = document.querySelector('#ecGive');
+      const inner = document.querySelector('#view-reseau .page-inner');
       return {
         pleine: p.getBoundingClientRect().width >= inner.getBoundingClientRect().width - 4,
         /* chaque conversation est une grande cible, bord à bord */
@@ -811,9 +807,8 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
           const b = r.getBoundingClientRect();
           return b.height >= 44 && b.width >= p.getBoundingClientRect().width - 4;
         }),
-        hauteurVerbe: g ? Math.round(g.getBoundingClientRect().height) : 0,
         /* ce que le poste a gagné ne descend PAS ici tout seul */
-        trancheDuPoste: !!document.querySelector('#view-echanger .ec-repr')
+        trancheDuPoste: !!document.querySelector('#view-reseau .ec-repr')
       };
     });
     if (!pouce.pleine)
@@ -821,16 +816,6 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
         + 'colonne et de grandes cibles ; le dessin du poste n’a rien à faire ici');
     if (!pouce.rangees)
       fail('commandes @pouce : une conversation n’est plus une rangée pleine largeur de 44 px au moins');
-    /* LE FORMAT DU POUCE A CHANGÉ, EXPRÈS (30 septembre 2026). Les
-       verbes faisaient 95 px de haut, icône au-dessus du mot — le
-       mainteneur : « les boutons beaucoup trop gros ». Ils gardent la
-       largeur (une moitié de rangée chacun, au-dessus de la barre) et
-       prennent la hauteur de TOUT bouton au doigt : la cible de 44 px,
-       l'icône à côté du mot. Le contrôle fige le nouveau dessin dans les
-       deux sens — ni sous la cible, ni revenu en tuile. */
-    if (pouce.hauteurVerbe < 44 || pouce.hauteurVerbe > 56)
-      fail(`commandes @pouce : « Donner » fait ${pouce.hauteurVerbe}px — au doigt, un verbe a la `
-        + 'hauteur de tout bouton (44 px), ni moins (la cible), ni une tuile (décision du 30 septembre)');
     /* « Reçues, jamais reprises » est né POUR LE POSTE, et il y reste
        tant que le mainteneur n'en décide pas autrement. Ce n'est pas
        une loi d'ergonomie, c'est une DÉCISION — donc la descendre au
@@ -841,21 +826,14 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
       fail('commandes @pouce : la tranche « reçues, jamais reprises » s’est invitée sur le '
         + 'téléphone — elle a été conçue pour le poste. Si elle doit descendre ici, ça se '
         + 'décide et ça se change dans ce contrôle, pas au détour d’une retouche d’écran');
-    if (pouce.pleine && pouce.rangees && pouce.hauteurVerbe >= 44 && pouce.hauteurVerbe <= 56 && !pouce.trancheDuPoste)
-      console.log(`commandes @pouce : la boîte pleine largeur, des rangées de 44 px et plus, verbes à `
-        + `${pouce.hauteurVerbe}px — le dessin du doigt est intact ✓`);
+    if (pouce.pleine && pouce.rangees && !pouce.trancheDuPoste)
+      console.log('commandes @pouce : la boîte pleine largeur, des rangées de 44 px et plus — le dessin du doigt est intact ✓');
     await eCtx.close();
-    if (!etalon.h || !cmd.donner) fail('commandes : étalon ou boutons introuvables — le contrôle ne mesure rien');
+    if (!etalon.h || !cmd.groupes) fail('commandes : étalon ou « Nouveau groupe » introuvables — le contrôle ne mesure rien');
     else {
       /* la marge est généreuse — on garde l'ÉCHELLE, pas le pixel */
-      const plafond = Math.round(etalon.h * 1.5);
-      for (const [nom, c] of [['Donner', cmd.donner], ['Recevoir', cmd.recevoir]])
-        if (c && c.h > plafond)
-          fail(`commandes : « ${nom} » fait ${c.h}px de haut quand l'étalon de l'app en fait `
-            + `${etalon.h} (plafond ${plafond}) — c'est le format du pouce posé sur un écran de bureau`);
-      if (cmd.donner.w > etalon.w * 2.5)
-        fail(`commandes : « Donner » fait ${cmd.donner.w}px de large pour un mot, contre `
-          + `${etalon.w} à l'étalon — un bouton se taille à son contenu`);
+      if (cmd.groupes.h > Math.round(etalon.h * 1.5))
+        fail(`commandes : « Nouveau groupe » fait ${cmd.groupes.h}px de haut quand l'étalon de l'app en fait ${etalon.h}`);
       /* « NOUVEAU GROUPE » ferme la boîte, en encre sourde — la ligne
          « Ajouter un compte » d'iOS. Ce que les trois essais ratés sur
          l'ancienne porte avaient appris tient toujours : un geste qu'on
@@ -872,17 +850,15 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
           grief('commandes : « Nouveau groupe » porte un fond, un cadre ou un relief — '
             + 'un geste rare se dit en encre sourde, il ne pèse pas comme « Recevoir »');
         if (!cmd.groupes.sous)
-          grief('commandes : au poste, « Nouveau groupe » est remonté dans la rangée des verbes');
+          grief('commandes : au poste, « Nouveau groupe » est remonté au-dessus de « Mes amis »');
       }
       if (cmd.enVrac.length)
-        grief('commandes : « Échanger » porte de nouveau des gestes jetés en vrac — ' + cmd.enVrac.join(', '));
+        grief('commandes : « Réseau » porte de nouveau des gestes jetés en vrac — ' + cmd.enVrac.join(', '));
       if (cmd.porteDirect)
         grief('commandes : la porte « Partage en groupe » est revenue — le direct est masqué (ui/perimetre.js)');
       if (porteOk)
-        console.log(`commandes @poste : Donner ${cmd.donner.w}×${cmd.donner.h} rempli, `
-          + `Recevoir ${cmd.recevoir.w}×${cmd.recevoir.h} contourné, `
-          + `« Nouveau groupe » en dernier dans la boîte, en encre sourde `
-          + `(étalon de l'app ${etalon.w}×${etalon.h}) ✓`);
+        console.log(`commandes @poste : « Nouveau groupe » ${cmd.groupes.w}×${cmd.groupes.h} en dernier dans la boîte, `
+          + `en encre sourde (étalon de l'app ${etalon.w}×${etalon.h}) ✓`);
     }
   }
   /* ---- CE QUI NE CIRCULE PAS ENCORE ----
@@ -897,7 +873,7 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
     const rCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
     const rP = await rCtx.newPage();
     watchErrors(rP);
-    await rP.goto(base + '/#/echanger', { waitUntil: 'load' });
+    await rP.goto(base + '/#/reseau', { waitUntil: 'load' });
     const semer = async (jours) => {
       await rP.evaluate(async j => {
         const st = await import('./engine/storage.js');
@@ -1075,9 +1051,7 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
     fail('serrure refermée, la copie sort quand même chiffrée');
 
   /* le même objet dans « Donner → Fichier » */
-  await lPage.goto(base + '/#/echanger', { waitUntil: 'load' });
-  await lPage.waitForSelector('#ecGive');
-  await lPage.click('#ecGive');
+  await ouvrirDonner(lPage);
   await attendre(lPage, () => [...document.querySelectorAll('.modal button, .modal .pick')]
     .some(b => /fichier/i.test(b.textContent)), { message: 'le choix du canal' });
   await lPage.evaluate(() => [...document.querySelectorAll('.modal button, .modal .pick')]
@@ -1173,6 +1147,7 @@ for (const [nom, ptr] of [['doigt', true], ['souris', false]]){
      rendait « 0 colonne » sur un écran parfaitement sain — troisième
      course de cette famille dans la suite, toujours la même cause :
      on attend la donnée et on mesure le DOM. */
+  await vueTableau(tPage);
   await attendre(tPage, () => document.querySelectorAll('#piBody .bcol').length === 3,
     { message: 'le tableau à trois colonnes doit être rendu' });
   const erg = await tPage.evaluate(() => {
@@ -1307,7 +1282,7 @@ for (const [nom, ptr] of [['doigt', true], ['souris', false]]){
     });
     await wPage.reload({ waitUntil: 'load' });
     await attendre(wPage, async () => (await import('./ui/state.js')).S.companies.length === 2);
-    for (const r of ['aujourdhui', 'pistes', 'echanger', 'moi']){
+    for (const r of ['aujourdhui', 'pistes', 'reseau', 'moi']){
       await wPage.goto(base + '/#/' + r, { waitUntil: 'load' });
       if (css) await wPage.addStyleTag({ content: css });
       await wPage.waitForTimeout(300);
@@ -1487,6 +1462,7 @@ for (const [nom, motion] of [['normal', 'no-preference'], ['mouvement réduit', 
         nextAction: dans5j, nextActionText: 'Relancer le service RH' }]));
   });
   await mPage.reload({ waitUntil: 'load' });
+  await vueTableau(mPage);
   await attendre(mPage, () => document.querySelectorAll('.bcard').length >= 3, { message: 'le tableau' });
 
   /* ① la carte : combien d'images portent une transformée ? */
@@ -1801,7 +1777,7 @@ else console.log(`onglets : la place tient (${garde.pose}px), re-taper remonte, 
    nature du geste (`:focus-visible`), et un clic synthétique est traité
    comme du clavier. Mesurer avec le mauvais geste ferait croire à un
    cadre autour du titre à chaque changement d'onglet. */
-await nPage.tap('.bottomnav [data-r="echanger"]');
+await nPage.tap('.bottomnav [data-r="reseau"]');
 await nPage.waitForTimeout(450);
 const dit = await nPage.evaluate(() => {
   const a = document.activeElement;
@@ -1810,9 +1786,9 @@ const dit = await nPage.evaluate(() => {
            vu: a?.matches?.(':focus-visible') ?? false,
            evite: document.querySelector('#main')?.getAttribute('tabindex') };
 });
-if (!/Échanger/.test(dit.titre))
+if (!/Réseau/.test(dit.titre))
   fail(`le titre du document ne suit pas la route : « ${dit.titre} »`);
-else if (dit.dansNav || dit.focus !== 'Échanger')
+else if (dit.dansNav || dit.focus !== 'Réseau')
   fail(`le focus ne suit pas la route : resté sur « ${dit.focus} »`);
 else if (dit.vu)
   fail('un contour de focus s’allume sur le titre après un TAP — le focus doit s’entendre, pas se voir');
@@ -1990,7 +1966,7 @@ for (const L of [320, 360, 390]){
     ]));
     await st.kvSet(st.DATA_KEY, JSON.stringify([{ id: 'a', name: 'Adrastia', status: 'todo', updatedAt: 1 }]));
   });
-  await dPage.goto(base + '/#/echanger');
+  await dPage.goto(base + '/#/reseau');
   await dPage.reload({ waitUntil: 'load' });
   await ouvrirHisto(dPage);
   await dPage.waitForSelector('.ec-when', { timeout: 8000 });
@@ -2126,7 +2102,7 @@ for (const L of [320, 360, 390]){
       ]));
       await st.kvSet(st.DATA_KEY, JSON.stringify([{ id: 'a', name: 'Adrastia', status: 'todo', updatedAt: 1 }]));
     });
-    await pg.goto(base + '/#/echanger');
+    await pg.goto(base + '/#/reseau');
     await pg.reload({ waitUntil: 'load' });
     /* ON ATTEND LA LIGNE, PAS SA COLONNE. Attendre `.ec-avec` faisait
        MOURIR le scénario quand l'anatomie disparaissait — c'est-à-dire
@@ -2368,6 +2344,7 @@ for (const L of [320, 360, 390]){
     saveData();
     location.hash = '#/pistes';
   });
+  await vueTableau(kPg);
   await kPg.waitForSelector('.bcard .bc-sub', { timeout: 8000 });
   await kPg.waitForTimeout(400);
   const k = await kPg.evaluate(() => {
@@ -2417,7 +2394,7 @@ for (const L of [320, 360, 390]){
    raccourcir le mot, pas de le cacher. Ça touche §7 (un objet, un mot),
    donc l'écran et son titre changeraient avec. */
 {
-  const NOMS = ['Aujourd’hui', 'Pistes', 'Échanger', 'Moi'];
+  const NOMS = ['Aujourd’hui', 'Pistes', 'Réseau', 'Moi'];
   const nCtx = await browser.newContext({ viewport: { width: 320, height: 700 }, hasTouch: true });
   const nPg = await nCtx.newPage();
   nPg.on('pageerror', e => errors.push(String(e)));
@@ -2769,6 +2746,7 @@ await wPage.evaluate(async () => {
   document.querySelector('.topnav [data-r="pistes"]').click();
   await new Promise(r => setTimeout(r, 450));
 });
+await vueTableau(wPage);
 const collePoste = await colleTop(wPage, '.bcol-h');
 if (!collePoste) fail('pas de tableau en colonnes sur « Mes pistes » au poste');
 else if (collePoste.y !== collePoste.hautVue)
@@ -3165,11 +3143,11 @@ if (IA){
 
   const empiles = [];
   let vues = 0;
-  for (const route of ['pistes', 'echanger', 'moi']){
+  for (const route of ['pistes', 'reseau', 'moi']){
     await lp.evaluate(r => { location.hash = '#/' + r; }, route);
     await lp.waitForTimeout(500);
     /* le fil d'« Échanger » vit dans sa feuille « Historique » */
-    if (route === 'echanger') await ouvrirHisto(lp);
+    if (route === 'reseau') await ouvrirHisto(lp);
     const r = await lp.evaluate(() => {
       const out = [];
       for (const n of document.querySelectorAll('.sw')){
@@ -3224,7 +3202,7 @@ if (IA){
      passe ; rendre un jour le fil pleine largeur (1660 px) le fait
      échouer, et c'est exactement le cas que l'ancienne règle voulait
      empêcher. */
-  await lp.evaluate(() => { location.hash = '#/echanger'; });
+  await lp.evaluate(() => { location.hash = '#/reseau'; });
   await lp.waitForTimeout(500);
   await ouvrirHisto(lp);
   const LIGNE_MAX = 640;
@@ -3270,7 +3248,7 @@ const ZOOM_EXCEPTIONS = [
      dessin : il attend le mainteneur, il ne se glisse pas ici. */
   '.bn-l',
   /* Sous-lignes : données, pas identité. Elles s'élident par dessin. */
-  '.act-do', '.o-sub', '.ri-sub', '.fi-sub', '.ctc-sub', '.ec-when', '.pk-m',
+  '.act-do', '.o-sub', '.ri-sub', '.ctc-sub', '.ec-when', '.pk-m',
   /* `.pk-s` — la sous-ligne d'une ligne à cocher : « statut · ville ·
      qui est visé ». Elle vivait en `<span>` NU dans les six listes, ce
      qui la rendait innommable : une exception qui ne peut pas se
@@ -3458,11 +3436,11 @@ const GRAINE_ZOOM = async () => {
      n'est jamais voulu — et c'est le symptôme le plus déroutant qui
      soit, on croit avoir cassé l'application. */
   const surfaces = [
-    ['aujourdhui', null], ['pistes', null], ['echanger', null], ['moi', null],
+    ['aujourdhui', null], ['pistes', null], ['reseau', null], ['moi', null],
     /* le fil des échanges, la surface la plus dense de l'app, vit dans sa
        feuille « Historique » (13 octobre 2026) */
     ['historique', async p => {
-      await p.evaluate(() => { location.hash = '#/echanger'; });
+      await p.evaluate(() => { location.hash = '#/reseau'; });
       await p.waitForSelector('#ecHisto');
       await p.click('#ecHisto');
       await p.waitForSelector('.overlay:not(.ov-out) .ec-l');
@@ -3616,7 +3594,10 @@ const GRAINE_ZOOM = async () => {
      de la carte du tableau, n'existe qu'ici). */
   const vusAvantPoste = vus;
   for (const [nom, ouvrir] of [
-    ['aujourdhui', null], ['pistes', null], ['echanger', null], ['moi', null],
+    ['aujourdhui', null], ['pistes', null],
+    /* « Mes pistes » s'ouvre en liste, la fiche à droite ; le tableau se mesure aussi */
+    ['pistes-tableau', async p => { await p.evaluate(() => { location.hash = '#/pistes'; }); await vueTableau(p); }],
+    ['reseau', null], ['moi', null],
     ['fiche', async p => p.evaluate(async () => { const { S } = await import('./ui/state.js');
       (await import('./ui/fiche.js')).openFiche(S.companies[0]); })],
     ['donner', async p => p.evaluate(async () => (await import('./ui/donner.js')).openDonner(null))]
@@ -3633,7 +3614,7 @@ const GRAINE_ZOOM = async () => {
     vus += r.coupes.length; mesurees++;
     /* la carte du tableau n'existe qu'ici : si elle manque, ce passage
        ne mesure pas l'ergonomie qu'il prétend mesurer */
-    if (nom === 'pistes')
+    if (nom === 'pistes-tableau')
       carteVue = await wPage.evaluate(() => !!document.querySelector('.bcard'));
     if (r.deborde > 1) dur.push(`poste · ${nom} : la page déborde de ${r.deborde}px en largeur`);
     for (const c of r.coupes){
@@ -3648,8 +3629,8 @@ const GRAINE_ZOOM = async () => {
   /* le contrôle dit sous quelle police il mesure — sans ça, retirer
      l'agrandissement le laisserait passer au vert sans rien vérifier */
   if (!doublee) fail('texte doublé : la garde ne mesure pas à 200 % — elle ne vérifie plus rien');
-  else if (mesurees < 17)
-    fail(`texte doublé : ${mesurees} surfaces mesurées au lieu de 17 — écrans ET feuilles, `
+  else if (mesurees < 18)
+    fail(`texte doublé : ${mesurees} surfaces mesurées au lieu de 18 — écrans ET feuilles, `
       + `au pouce ET au poste ; c'est en n'ouvrant aucune feuille que la garde a laissé passer `
       + `le glissement latéral, et en ignorant le poste qu'elle a laissé passer le nom amputé`);
   else if (!carteVue)
@@ -3784,7 +3765,7 @@ const SONDE_TITRES = route => {
     });
     let noeuds = 0; let titres = 0;
     const bas = []; const plans = [];
-    for (const route of ['aujourdhui', 'pistes', 'echanger', 'moi']){
+    for (const route of ['aujourdhui', 'pistes', 'reseau', 'moi']){
       await stPage.evaluate(r => { location.hash = '#/' + r; }, route);
       await stPage.waitForTimeout(450);
       const txt = await stPage.evaluate(SONDE_CONTRASTE);
@@ -3858,7 +3839,7 @@ const SONDE_CIBLES = () => {
 async function balayer(P, seuil){
   const surfaces = [
     ['Aujourd’hui', 'route', 'aujourdhui'], ['Mes pistes', 'route', 'pistes'],
-    ['Échanger', 'route', 'echanger'], ['Moi', 'route', 'moi'],
+    ['Réseau', 'route', 'reseau'], ['Moi', 'route', 'moi'],
     ['fiche', './ui/fiche.js', 'openFiche', true], ['écrire', './ui/mail.js', 'openMail', true],
     ['modifier', './ui/edit.js', 'openEditPiste', true],
     ['contact', './ui/contact.js', 'openContactEditor', false],

@@ -161,7 +161,10 @@ const PLAFOND = {
      groupe, hors de l'écran (famille ②) ; et son refus, sans réseau
      (famille ①). La fin d'une série (R3), elle, n'a rien ajouté : une
      phrase, dite d'un seul endroit au pouce et au poste. */
-  toasts: 126,
+  /* 121 le 27 octobre 2026, −5 (7.0.0, les lots s'ouvrent) : les toasts
+     de l'ancien chemin sont partis avec lui — ce qui ARRIVE des autres
+     ne surgit plus (R10, « le calme »), la liste ou la boîte le montrent. */
+  toasts: 121,
   toastCar: 79,        /* le plus long : « Connexion interrompue — … » */
   /* portes bloquantes dans les écrans visibles.
      9 le 29 septembre 2026 : « Mon profil » prend le garde-fou de la
@@ -642,7 +645,13 @@ const KIT_GARDE = [
      mais `CLAUDE.md` §6 le NOMME dans le catalogue des motifs. Le
      supprimer ferait pointer la référence sur du vide — exactement la
      faute qu'on corrige ailleurs. Il reste au kit, déclaré. */
-  'fs-alert'
+  'fs-alert',
+  /* `.tag-priv` : le jeton « privé », la moitié de `tag-share / tag-priv`
+     que le catalogue de `CLAUDE.md` §6 nomme pour « Marquer partagé vs
+     privé ». Aucun écran ne le pose aujourd'hui — le privé s'y dit par
+     son absence de jeton —, mais le retirer laisserait le motif borgne :
+     le jour où un écran doit dire « privé », il le trouve au kit. */
+  'tag-priv'
 ];
 
 {
@@ -670,7 +679,14 @@ const KIT_GARDE = [
       ids.set(m[1], (ids.get(m[1]) || 0) + 1);
   }
 
-  /* tout ce que l'app, la coque et les scénarios peuvent poser */
+  /* tout ce que l'app et la coque peuvent poser — PAS les scénarios.
+     Un scénario LIT une classe (`querySelector('.nav-n')`), il ne la
+     pose pas : les compter gardait en vie le style d'un contrôle retiré
+     tant qu'un vieux contrôle le cherchait encore. C'est ce qui a laissé
+     dormir le chiffre des onglets et la porte d'« Échanger » à
+     l'ouverture des lots (7.0.0) : partis de l'écran, toujours « posés »
+     par les gardes qui vérifiaient leur absence. Pour la même raison, un
+     `querySelector` de l'app ne pose rien non plus. */
   let code = '';
   for (const d of ['ui', 'engine']) {
     for (const f of readdirSync(path.join(RACINE, d)))
@@ -679,24 +695,35 @@ const KIT_GARDE = [
   /* toutes les pages du dépôt, relevées à la racine, plus l'amorçage */
   for (const f of readdirSync(RACINE))
     if (f.endsWith('.html')) code += '\n' + readFileSync(path.join(RACINE, f), 'utf8');
-  for (const f of ['app.js', 'sw.js', 'tests.js'])
+  for (const f of ['app.js', 'sw.js'])
     { try { code += '\n' + readFileSync(path.join(RACINE, f), 'utf8'); } catch {} }
-  for (const f of readdirSync(path.join(RACINE, 'tests', 'e2e')))
-    if (f.endsWith('.mjs')) code += '\n' + readFileSync(path.join(RACINE, 'tests', 'e2e', f), 'utf8');
+  /* les commentaires citent des classes pour dire pourquoi elles sont
+     parties — même piège que les commentaires CSS, ① plus haut. Le
+     `//` d'une adresse (`https://`) n'en est pas un. */
+  code = code.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:'"`\\])\/\/[^\n]*/g, '$1');
 
   const posees = new Set();
-  for (const m of code.matchAll(/class\s*=\s*["'`]([^"'`]*)["'`]/g))
-    for (const c of m[1].split(/[\s${}()?:+'"`]+/)) if (c) posees.add(c);
+  /* l'attribut ENTIER, `${…}` compris : `class="${neuf ? 'fil-neuf ' : ''}gr-m ms-m"`
+     s'arrêtait à la première apostrophe et perdait `ms-m` */
+  const ATTR = /class\s*=\s*"((?:[^"$]|\$(?!\{)|\$\{(?:[^{}]|\{[^{}]*\})*\})*)"/g;
+  for (const m of code.matchAll(ATTR))
+    for (const c of m[1].split(/[^\w-]+/)) if (c) posees.add(c);
+  for (const m of code.matchAll(/class\s*=\s*'([^']*)'/g))
+    for (const c of m[1].split(/[^\w-]+/)) if (c) posees.add(c);
   for (const m of code.matchAll(/classList\.\w+\(([^)]*)\)/g))
     for (const c of m[1].matchAll(/['"`]([\w- ]+)['"`]/g))
       for (const x of c[1].split(/\s+/)) if (x) posees.add(x);
   for (const m of code.matchAll(/className\s*\+?=\s*["'`]([^"'`]*)["'`]/g))
     for (const c of m[1].split(/\s+/)) if (c) posees.add(c);
-  for (const m of code.matchAll(/\.(?:querySelector|querySelectorAll|closest|matches)\(\s*["'`]([^"'`]+)["'`]/g))
-    for (const c of m[1].matchAll(/\.(-?[_a-zA-Z][\w-]*)/g)) posees.add(c[1]);
   /* l'espace en tête compte — voir ② plus haut */
+  const mots = new Set();
   for (const m of code.matchAll(/['"`]\s*([a-z][\w-]*(?:\s+[a-z][\w-]*)*)\s*['"`]/g))
-    for (const c of m[1].split(/\s+/)) if (/^[a-z][\w-]*$/.test(c)) posees.add(c);
+    for (const c of m[1].split(/\s+/)) if (/^[a-z][\w-]*$/.test(c)) { posees.add(c); mots.add(c); }
+  /* une famille COMPOSÉE (`tr-${key}`, la clé passée en chaîne) : vivante
+     pour chaque mot que le code écrit entre guillemets — `trancheHTML('late', …)`
+     pose `tr-late` sans que le nom entier apparaisse nulle part */
+  for (const m of code.matchAll(/([a-z][\w]*-)\$\{/g))
+    for (const w of mots) posees.add(m[1] + w);
 
   /* LA SONDE PASSE PAR LE MÊME CHEMIN QUE LA MESURE, sinon elle ne
      prouve rien : une première version se contentait de vérifier

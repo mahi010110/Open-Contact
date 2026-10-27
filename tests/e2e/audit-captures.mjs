@@ -127,7 +127,7 @@ const ECRANS = [
   ['08-ecrire', piste('a', `(await import('./ui/mail.js')).openMail(c, {});`)],
   ['09-modifier', piste('b', `(await import('./ui/edit.js')).openEditPiste(c);`)],
   ['10-capture', p => p.evaluate(() => import('./ui/capture.js').then(m => m.openCapture()))],
-  ['11-echanger', route('#/echanger')],
+  ['11-echanger', route('#/reseau')],
   ['12-donner', p => p.evaluate(() => import('./ui/donner.js').then(m => m.openDonner()))],
   ['13-recevoir', p => p.evaluate(() => import('./ui/recevoir.js').then(m => m.openRecevoir()))],
   ['14-moi', route('#/moi')],
@@ -156,7 +156,7 @@ const ECRANS = [
   ['35-mon-qr', p => p.evaluate(() => import('./ui/amis.js').then(m => m.openMonQR()))],
   ['36-groupe', p => p.evaluate(async () => { const m = await import('./ui/groupes.js'); await m.chargerGroupes();
     m.ouvrirGroupe('bts2sxe3kmw4ka7'); })],
-  ['37-groupe-neuf', async p => { await route('#/echanger')(p); await p.waitForTimeout(300); await p.click('#ecGrNeuf'); }],
+  ['37-groupe-neuf', async p => { await route('#/reseau')(p); await p.waitForTimeout(300); await p.click('#ecGrNeuf'); }],
   ['39-annuler', async p => { await route('#/pistes')(p); await p.waitForTimeout(300);
     await p.evaluate(async () => { const { S, deletePiste } = await import('./ui/state.js'); const { showUndo } = await import('./ui/dom.js');
       const c = S.companies.find(x => x.id === 'i'); deletePiste(c); showUndo('« Kiabi » supprimée.', () => {}); }); }],
@@ -167,7 +167,7 @@ const ECRAN = n => ECRANS.find(e => e[0] === n)[1];
 const VIDES = [
   ['30-vide-aujourdhui', route('#/aujourdhui')],
   ['31-vide-pistes', route('#/pistes')],
-  ['32-vide-echanger', route('#/echanger')],
+  ['32-vide-echanger', route('#/reseau')],
   ['33-vide-moi', route('#/moi')]
 ];
 

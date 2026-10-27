@@ -385,6 +385,10 @@ const MUETTES = [
     status: 'active', city: 'Toulouse', domain: 'esn',
     contacts: [{ id: 'kq' + i, name: 'P', role: 'RH', email: 'q' + i + '@x.test' }],
     history: [{ d: jourISO(-d), t: 'Statut → En cours' }], updatedAt: Date.now() - d * 86400000 }));
+  /* un geste d'aujourd'hui (une piste close ce matin) : sans lui, trois
+     semaines sans rien toucher ouvrent « Reprendre » (R2), et c'est une
+     autre tranche qu'on mesurerait */
+  cinq.push({ id: 'close', name: 'Close SA', status: 'closed', closedReason: 'rejected', updatedAt: Date.now() });
   const { ctx, p } = await ecran(390, cinq);
   const avant = await p.evaluate(() => ({
     lignes: document.querySelectorAll('#view-aujourdhui .act-quiet').length,

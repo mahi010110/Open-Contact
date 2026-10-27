@@ -31,14 +31,17 @@ installer**.
 | Capacité | |
 |---|---|
 | Pistes, fiches, suivi, prochaine action, clôture | ✅ |
+| Tes chiffres en tête de Pistes, « Reprendre » au retour, « Ma semaine » et sa revue du vendredi | ✅ |
 | Capture rapide, détection des doublons, bac « à rattacher » | ✅ |
 | Donner et recevoir des pistes : QR, fichier `.oc`, coller | ✅ |
 | Groupes : créer, rejoindre (QR ou code), s'écrire sept jours, se donner des pistes en différé, cinq au plus ; y demander quelqu'un, que tout le groupe voit et à qui chacun répond à son tour ; ouverts, ou sur demande (un chef et ses adjoints acceptent les entrées, retirent un message ou un membre) | ✅ |
-| Amis : donner son profil (QR, texte), lire sur ses pistes où ils sont passés, les retrouver triés dans « Mes pistes » | ✅ |
+| Amis : donner son profil (QR, texte), lire sur ses pistes où ils sont passés, les retrouver dans « Réseau › Mes amis », s'écrire en privé ; « Je peux aider » | ✅ |
 | Demander à ses amis quelqu'un chez une entreprise ou dans un métier et une ville, jusqu'au troisième cercle, donner un contact — ou soi-même — en réponse | ✅ |
 | Synchronisation entre **mes** appareils | ✅ |
 | Écrire un e-mail (`mailto:`, copier, marquer « Envoyée ») | ✅ |
-| Postuler à plusieurs d'affilée, une par une | ✅ |
+| Postuler à plusieurs d'affilée, une par une ; « Écrire les N mails » du jour, en série | ✅ |
+| Tous les métiers dans la barre et « À découvrir » ; exporter son parcours (JSON Resume) | ✅ |
+| Au poste : barre latérale, fiche à côté de la liste, Ctrl K et une lettre par geste fréquent | ✅ |
 | CV et lettres rangés, modèles d'e-mails à variables | ✅ |
 | Copie de sauvegarde, restauration, verrouillage facultatif | ✅ |
 | « Depuis mes e-mails » : copier la consigne, coller la réponse | ✅ |
@@ -148,7 +151,9 @@ soit, et ce n'est pas le public visé. Le jour où ça revient, ça revient sur
 **L'envoi direct par Gmail ou Outlook** (OAuth). Ça engagerait le mainteneur
 dans une déclaration permanente chez Google et Microsoft — examen, validation,
 renouvellement. Un projet d'étudiant n'a pas à porter ça. `mailto:` reste le
-chemin de tout le monde, et il marche partout.
+chemin de tout le monde, et il marche partout. Le lot R6, qui l'aurait
+ouvert, est clos sans être fait (27 octobre 2026, décision 0007 :
+« garder le lien mail »).
 
 **Le partage au groupe en direct** (un mot de passe commun, tout le monde
 connecté au même instant). Les groupes (6.58) font la même chose sans être

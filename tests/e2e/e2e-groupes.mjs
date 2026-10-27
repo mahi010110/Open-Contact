@@ -16,8 +16,8 @@
      que la vue communautaire (jamais une note) ; un membre ne porte que
      son prénom (décision 26) ; le profil donné à un ami ne porte aucun
      groupe ;
-   ② créer : sans groupe, la boîte d'« Échanger » (13 octobre 2026) n'a
-     qu'UN geste, « Nouveau groupe », qui ouvre « Créer » ou
+   ② créer : sans groupe, la boîte de « Réseau » n'a que « Mes amis »
+     et UN geste, « Nouveau groupe », qui ouvre « Créer » ou
      « Rejoindre » ; le nom, puis le groupe s'ouvre sur son invitation
      (QR + code) ; la boîte le montre en conversation, « Nouveau groupe »
      en dernier ;
@@ -25,8 +25,8 @@
      Karim. » AVANT le geste ; en collant l'invitation (Recevoir ›
      Texte) : l'aperçu porte le nom du groupe ; le code SEUL, collé
      au même endroit, est reconnu aussi ;
-   ④ un mot : en direct chez qui a le groupe ouvert, compté dans
-     « Échanger » chez qui ne l'a pas ; sept jours sur le relais
+   ④ un mot : en direct chez qui a le groupe ouvert, marqué d'un point
+     dans la boîte chez qui ne l'a pas ; sept jours sur le relais
      (NIP-40), et l'app l'oublie passé ce délai ;
    ⑤ des pistes en différé : Inès donne, Sofia les reçoit en rouvrant
      l'app — aperçu, fusion, « Annuler », « dans tes pistes » ;
@@ -38,7 +38,7 @@
    ⑨ pouce et poste, sombre, 320 px texte doublé : rien ne déborde ;
      zéro erreur console.
    ============================================================ */
-import { chromium, chromiumPath, serveRepo, SHOTS, annuaireMuet } from './outils.mjs';
+import { chromium, chromiumPath, serveRepo, SHOTS, annuaireMuet, ouvrirRecevoir } from './outils.mjs';
 import { startLocalRelay } from './relais-local.mjs';
 import { cleGroupe, ouvrirMessage, lireInvitation } from '../../engine/groupe.js';
 import { rassembler } from '../../engine/portage.js';
@@ -77,7 +77,7 @@ async function ecran(qui, o = {}){
   p.setDefaultTimeout(8000);
   p.on('pageerror', e => errors.push(qui + ' : ' + String(e)));
   p.on('console', m => { if (m.type() === 'error') errors.push(qui + ' : ' + m.text()); });
-  await p.goto(base + '/#/echanger', { waitUntil: 'load' });
+  await p.goto(base + '/#/reseau', { waitUntil: 'load' });
   await p.evaluate(async ([d, pr, url]) => {
     const st = await import('./engine/storage.js');
     await st.kvInit();
@@ -86,7 +86,7 @@ async function ecran(qui, o = {}){
     await st.kvSet(st.RELAYS_KEY, JSON.stringify([url]));
   }, [PISTES[qui] || [], profil(qui, o.profil), relay.url]);
   await p.reload({ waitUntil: 'load' });
-  await p.waitForSelector('#view-echanger:not([hidden])');
+  await p.waitForSelector('#view-reseau:not([hidden])');
   return { ctx, p };
 }
 const fermerTout = async p => {
@@ -98,9 +98,9 @@ const fermerTout = async p => {
   }
 };
 const rouvrir = async p => {
-  await p.evaluate(() => { location.hash = '#/echanger'; });
+  await p.evaluate(() => { location.hash = '#/reseau'; });
   await p.reload({ waitUntil: 'load' });
-  await p.waitForSelector('#view-echanger:not([hidden])');
+  await p.waitForSelector('#view-reseau:not([hidden])');
 };
 const titreFeuille = p => p.evaluate(() => [...document.querySelectorAll('.overlay:not(.ov-out) .mh-t')].pop()?.textContent.trim() || '');
 const texteEcran = p => p.evaluate(() => document.body.innerText + ' ' +
@@ -117,12 +117,9 @@ const nouveau = async (p, quoi) => {
   await p.waitForSelector('#' + quoi);
   await p.click('#' + quoi);
 };
-/* Échanger › Recevoir › Texte : là où se colle tout ce qu'on te tend */
+/* Ajouter › Recevoir › Texte : là où se colle tout ce qu'on te tend */
 const recevoirTexte = async (p, txt) => {
-  await p.click('#ecRecv');
-  await p.waitForSelector('#rcPaste');
-  await p.click('#rcPaste');
-  await p.waitForSelector('#rcTxt');
+  await ouvrirRecevoir(p, 'texte');
   await p.fill('#rcTxt', txt);
 };
 const fil = p => p.evaluate(() => [...document.querySelectorAll('#grFil .gr-m')].map(li =>
@@ -134,15 +131,15 @@ const I = await ecran('ines');
   /* la boîte vide : une phrase, un geste — ni bouton « Créer », ni
      « Rejoindre », ni les gestes des amis jetés en vrac */
   const t = await I.p.evaluate(() => [...document.querySelectorAll('.bx-liste button')].map(b => b.innerText.replace(/\s+/g, ' ').trim()));
-  if (t.join('|') !== 'Nouveau groupe') fail('la boîte, sans groupe : ' + JSON.stringify(t));
+  if (t.join('|') !== 'Mes amis|Nouveau groupe') fail('la boîte, sans groupe : ' + JSON.stringify(t));
   if (await I.p.$('#ecPromo')) fail('la porte « Partage en groupe » est encore là');
-  const gestes = await I.p.evaluate(() => [...document.querySelectorAll('#view-echanger .hero2 button')]
-    .map(b => b.textContent.trim()));
+  /* Donner et Recevoir ont quitté « Réseau » (R1) : le + et « Mes pistes » */
+  const gestes = await I.p.evaluate(() => [...document.querySelectorAll('#view-reseau button')]
+    .map(b => b.textContent.trim()).filter(t => /^(Donner|Recevoir)$/.test(t)));
   const restes = await I.p.evaluate(() => ['#ecScan', '#ecMonQR', '#ecGrCreer', '#ecGrRejoindre', '.ec-amis', '.ec-groupes']
-    .filter(s => document.querySelector('#view-echanger ' + s)));
-  if (!gestes.includes('Recevoir') || gestes.length > 2)
-    fail('« Échanger » sans groupe : ' + JSON.stringify(gestes));
-  if (restes.length) fail('« Échanger » garde des gestes jetés en vrac : ' + restes.join(', '));
+    .filter(s => document.querySelector('#view-reseau ' + s)));
+  if (gestes.length) fail('« Réseau » porte encore Donner ou Recevoir : ' + JSON.stringify(gestes));
+  if (restes.length) fail('« Réseau » garde des gestes jetés en vrac : ' + restes.join(', '));
 }
 /* le téléphone d'Inès SAIT partager : une feuille de partage posée
    qui enregistre ce qu'on lui donne (Chromium sous Linux n'en a pas).
@@ -177,7 +174,7 @@ if (await titreFeuille(I.p) !== 'BTS SIO Lille') fail('le titre du groupe : ' + 
   await attendreQue(I.p, () => window.__envoye.length === 1, null, 3000, 'la feuille de partage reçoit l’invitation');
 }
 const invitationTexte = await I.p.evaluate(() => window.__envoye[0]?.text || '');
-if (!invitationTexte.includes('« BTS SIO Lille »') || !/Échanger › Recevoir › Texte/.test(invitationTexte))
+if (!invitationTexte.includes('« BTS SIO Lille »') || !/Ajouter › Recevoir › Texte/.test(invitationTexte))
   fail('le message envoyé ne dit ni le groupe ni où le coller : « ' + invitationTexte + ' »');
 await I.p.waitForTimeout(450);
 await I.p.screenshot({ path: `${SHOTS}/110-groupe-cree-pouce.png` });
@@ -233,12 +230,12 @@ await I.p.click('#dnGroupe');
 await attendreQue(I.p, () => /2 pistes/.test(document.querySelector('#grFil')?.textContent || ''), null, 15000, 'le don dans le fil d’Inès');
 console.log('⑤ Inès donne 2 pistes au groupe, depuis la liste de « Donner » ✓');
 
-/* chez Karim, la feuille fermée : « Échanger » le compte */
+/* chez Karim, la feuille fermée : la boîte le marque d'un point (R10) */
 await rouvrir(K.p);
-await attendreQue(K.p, () => document.querySelector('.bx-l[data-groupe] .bx-c')?.textContent.trim() === '1', null, 20000, 'le compte 1 chez Karim');
+await attendreQue(K.p, () => !!document.querySelector('.bx-l.bx-nonlu[data-groupe] .bx-pt'), null, 20000, 'le point chez Karim');
 await K.p.waitForTimeout(300);
-await K.p.screenshot({ path: `${SHOTS}/114-groupe-echanger-pouce.png` });
-console.log('④ chez Karim, le groupe fermé : « Échanger » compte 1 nouveauté ✓');
+await K.p.screenshot({ path: `${SHOTS}/114-groupe-reseau-pouce.png` });
+console.log('④ chez Karim, le groupe fermé : sa ligne en gras, avec un point ✓');
 
 /* ---------- ③ bis Sofia colle l'invitation ---------- */
 /* le message qu'Inès a ENVOYÉ, tel quel — ce que Sofia trouve dans

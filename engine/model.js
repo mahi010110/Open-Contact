@@ -13,7 +13,7 @@ import { normaliserGroupes } from './groupe.js';
 import { normaliserSemaine } from './semaine.js';
 import { normaliserAide } from './aide.js';
 
-export const APP_VERSION = '6.90.1';
+export const APP_VERSION = '7.0.0';
 
 export const DOMAINS = {
   esn:     { label:'ESN / Services IT',       color:'#4C9FD8' },
@@ -486,7 +486,7 @@ Extrais-en les entreprises et contacts utiles, et rends UNIQUEMENT un JSON valid
 
 Règles : n'invente rien — champ inconnu = vide ; une entrée par entreprise ; regroupe les contacts d'une même entreprise ; "note" = le contexte de l'échange (ex : « a répondu le 12/06, propose un entretien ») ; ignore newsletters et refus automatiques.
 
-Je collerai ce JSON dans OpenContact : Échanger → Recevoir → Coller.`
+Je collerai ce JSON dans OpenContact : Ajouter → Recevoir → Texte.`
   }];
 }
 /* les trois rayons de « Où je cherche » : à côté, la métropole, le

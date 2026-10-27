@@ -199,13 +199,13 @@ else {
 /* ---------- ⑦ « Échanger » vide, au poste ---------- */
 {
   const p = await ouvrir(DESK);
-  await p.evaluate(() => { location.hash = '#/echanger'; });
+  await p.evaluate(() => { location.hash = '#/reseau'; });
   await p.waitForSelector('.bx-seule .bx-liste');
   /* sans conversation, une seule colonne : un volet vide ne serait
      qu'un trou, et le cadre dit ce qu'il recevra, une fois */
   const r = await p.evaluate(() => ({
     volet: !!document.querySelector('#bxVolet'),
-    phrases: [...document.querySelectorAll('#view-echanger p')].map(x => x.textContent.trim()).filter(Boolean)
+    phrases: [...document.querySelectorAll('#view-reseau p')].map(x => x.textContent.trim()).filter(Boolean)
   }));
   okSi(!r.volet && r.phrases.length === 1,
     '⑦ « Échanger » vide au poste : une colonne, une phrase pour le vide' + (r.volet || r.phrases.length !== 1 ? ` — lu : ${JSON.stringify(r)}` : ''));

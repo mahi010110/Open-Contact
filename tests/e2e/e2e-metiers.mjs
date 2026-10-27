@@ -1,11 +1,11 @@
 /* ============================================================
-   E2E — tous les métiers (lot R9-b, drapeau `metiers`)
+   E2E — tous les métiers (lot R9-b, ouvert en 7.0.0)
    (docs/propositions/R9-tous-les-metiers.md)
 
    LA FUITE D'ABORD : ce qui part vers l'annuaire pour un métier du ROME
    est une SECTION d'activité (une lettre), jamais un mot de ton profil —
    « BTS MCO » ne quitte pas le téléphone. Puis :
-   ① la table se lit au calme, lot ouvert ; « aide-soignante alternance
+   ① la table se lit au calme ; « aide-soignante alternance
      Lyon » devient trois étiquettes, le métier avec sa fiche ;
      « À découvrir » demande la santé (Q) autour de Lyon, et « Offres
      d'alternance » part avec le code ROME du métier ;
@@ -13,8 +13,8 @@
      les mêmes codes qu'avant, « Orange » reste du texte ;
    ③ ton profil « BTS MCO » ajoute son étiquette (« BTS MCO ») et ses
      secteurs, sans un mot de plus ;
-   ④ préversion éteinte : la table ne se lit jamais, « aide-soignante »
-     reste du texte ;
+   ④ elle ne se lit pas au démarrage : rien dans la première seconde,
+     puis au calme, trois secondes après l'ouverture ;
    pouce et poste ; zéro erreur console.
    Trois mutations : un mot du profil qui part vers l'annuaire, les
    sections oubliées, une appellation posée AVANT les villes.
@@ -46,7 +46,7 @@ const CLINIQUE = { siren: '851234567', nom_complet: 'CLINIQUE DU PARC', nom_rais
 const PROFIL = { name: 'Inès Martin', formation: 'BTS MCO', recherche: 'alternance', ville: 'Lille', rayon: 15,
                  email: 'ines@exemple.test' };
 
-async function ecran(nom, { vp = { width: 390, height: 844 }, preversion = true, mutations = {}, profil = PROFIL } = {}){
+async function ecran(nom, { vp = { width: 390, height: 844 }, mutations = {}, profil = PROFIL } = {}){
   const ctx = await browser.newContext({ viewport: vp, hasTouch: vp.width < 901, serviceWorkers: 'block' });
   const journal = [], fichiers = [];
   await ctx.route('https://recherche-entreprises.api.gouv.fr/**', r => { journal.push(r.request().url());
@@ -62,12 +62,11 @@ async function ecran(nom, { vp = { width: 390, height: 844 }, preversion = true,
   p.on('console', m => { if (m.type() === 'error') errors.push(nom + ' : ' + m.text()); });
   await p.goto(base + '/#/pistes');
   await p.waitForFunction(() => !!document.querySelector('#sbVer')?.textContent);
-  await p.evaluate(async ([ps, pr, pv]) => {
+  await p.evaluate(async ([ps, pr]) => {
     const st = await import('./engine/storage.js'); await st.kvInit();
     await st.kvSet(st.DATA_KEY, JSON.stringify(ps));
     await st.kvSet(st.PROFILE_KEY, JSON.stringify(pr));
-    if (pv) await st.kvSet(st.PREVERSION_KEY, '1'); else await st.kvDel(st.PREVERSION_KEY);
-  }, [PISTES, profil, preversion]);
+  }, [PISTES, profil]);
   fichiers.length = 0;
   await p.reload();
   await p.waitForSelector('#piQ');
@@ -139,14 +138,15 @@ ok(r.berger === 'Berger:user', '② « Berger », qui y est passé, reste une pe
      '① au poste : les mêmes étiquettes, la même offre, rien du profil');
 }
 
-/* ---------- ④ préversion éteinte ---------- */
+/* ---------- ④ pas au démarrage ---------- */
 {
-  const { ctx, p, fichiers } = await ecran('eteinte', { preversion: false });
-  await p.waitForTimeout(3600);
-  await taper(p, 'aide-soignante alternance Lyon');
-  const et = await etiquettes(p);
+  const { ctx, p, fichiers } = await ecran('demarrage');
+  await p.waitForTimeout(1000);
+  const tot = fichiers.length;
+  await p.waitForTimeout(3000);
+  const tard = fichiers.length;
   await ctx.close();
-  ok(!fichiers.length && et.join(' | ') === 'Alternance | Lyon', '④ préversion éteinte : la table ne se lit jamais, « aide-soignante » reste du texte — ' + et.join(' | '));
+  ok(!tot && tard === 1, `④ la table ne se lit pas au démarrage : ${tot} lecture la première seconde, ${tard} au calme`);
 }
 
 /* ---------- les mutations : chaque garde doit rougir ---------- */

@@ -75,7 +75,7 @@ import { nouvelleCle, boiteValide, cleValide, etiquetteBoite, sceller, ouvrir, l
          CERCLE_MAX, RELAIS_MAX, suiviDemande, pourCherche, rangerLignesAmis, mercisRecents, MERCI_AFFICHE_JOURS } from './engine/boite.js';
 import { critereValide, phraseCritere, CRITERE_METIER } from './engine/critere.js';
 import { cleFil, prefsVides, normaliserPrefs, basculerEpingle, basculerMuet, renommerFil, oublierFil, boite,
-         filtrer, filtresUtiles, filtreVide, aLire, chiffreOnglet, premierNonLu, EPINGLES_MAX,
+         filtrer, filtresUtiles, filtreVide, premierNonLu, EPINGLES_MAX,
          phraseEcrits, nomsListe } from './engine/conversations.js';
 import { visage, initiales, TEINTES } from './engine/visage.js';
 import { MESSAGE_MAX, FIL_MAX, texteMessage, conversationsVides, normaliserConversations, filAvec, ajouterMessage,
@@ -1172,6 +1172,13 @@ export async function runSelfTests(){
       eq(metierEtiquetteDuProfil({ formation: 'BTS SIO SISR' }, idx).cle, 'reseau');
       eq(metierEtiquetteDuProfil({ formation: 'BTS MCO' }, idx).cle, 'formation:bts mco');
       eq(metierEtiquetteDuProfil({ formation: 'BTS MCO' }), null);
+      /* une formation d'informatique reste à la table de l'informatique :
+         le RNCP la connaît, mais il ne dit rien de plus fin */
+      ok(!!formationDe('BTS SIO', idx));
+      eq(etiquetteFormation('BTS SIO', idx), null);
+      eq(metierEtiquetteDuProfil({ formation: 'BTS SIO' }, idx), null);
+      eq(etiquetteFormation('BUT réseaux et télécommunications', idx), null);
+      ok(etiquetteFormation('BUT GEA', idx).profil);
     },
     'barre : aucun mot perdu — chaque mot finit dans une étiquette, le texte ou la liaison': () => {
       const ctx = { today: '2026-10-01', villes: ['Lille'], prenoms: ['Léa'] };
@@ -2547,7 +2554,6 @@ export async function runSelfTests(){
       let p = prefsVides();
       /* sans réglage : le plus récent en haut, une clé invalide n'entre pas */
       eq(boite(fils, p).map(r => r.nom), ['Inès Martin', 'BTS SIO Lille', 'Karim Benali', 'Léa Dupont']);
-      eq(aLire(boite(fils, p)), 3);                          /* trois CONVERSATIONS, pas six messages */
       /* épingler : en haut, dans l'ordre où l'on a épinglé (la dernière devant) */
       p = basculerEpingle(p, L);
       p = basculerEpingle(p, K);
@@ -2557,11 +2563,10 @@ export async function runSelfTests(){
       let q = prefsVides();
       for (let i = 0; i < EPINGLES_MAX + 2; i++) q = basculerEpingle(q, cleFil('ami', 'AmiAmiAmiAmiAmi' + String(i).padStart(5, '0')));
       eq(q.epingles.length, EPINGLES_MAX);                   /* au-delà, tout serait en haut */
-      /* couper le son : la conversation reste, son chiffre aussi, mais l'onglet ne la compte plus */
+      /* couper le son : la conversation reste, ce qui n'est pas lu aussi */
       p = basculerMuet(p, G);
       const r = boite(fils, p);
       ok(r.find(x => x.cle === G).muet && r.find(x => x.cle === G).n === 3);
-      eq(aLire(r), 2);
       eq(basculerMuet(p, G).muets, []);
       eq(basculerMuet(p, 'g:<script>'), p);                  /* rien d'autre qu'une clé */
       /* un groupe qui change de code garde son épingle et son silence */
@@ -2585,8 +2590,6 @@ export async function runSelfTests(){
       eq(filtrer(tous, 'groupes').map(x => x.nom), ['BTS SIO Lille']);
       eq(filtrer(tous, 'amis').length, 3);
       eq(filtrer(tous, 'tout'), tous);
-      /* le chiffre de l'onglet */
-      eq([chiffreOnglet(0), chiffreOnglet(7), chiffreOnglet(140)], ['', '7', '99+']);
       /* ouvrir là où l'on s'était arrêté : le premier qui n'est pas de moi, après ma visite */
       const items = [{ at: 10, de: 'moi' }, { at: 20, de: 'k' }, { at: 30, de: 'moi' }, { at: 40, de: 'k' }];
       eq(premierNonLu(items, 25, x => x.de === 'moi'), 3);
@@ -2637,11 +2640,10 @@ export async function runSelfTests(){
       g = traiterMessage(g, normaliserMessage({ t: 'mot', id: 'm0000004', de: I, prenom: 'Inès', texte: '@Maheydine', at: 1800, cite: [M] }, 2000));
       ok(citeMoi(mot, M) && !citeMoi(mot, K));
       eq(mentionsNonLues(g, M), 1);                          /* celui d'avant ma visite est lu */
-      /* dans la boîte : un groupe dont on a coupé le son compte s'il me nomme */
+      /* dans la boîte : un groupe dont on a coupé le son garde ce qui me nomme */
       const G = cleFil('groupe', 'ABCDEFGHIJKLMNO');
-      let p = basculerMuet(prefsVides(), G);
-      eq(aLire(boite([{ cle: G, sorte: 'groupe', nom: 'BTS', at: 1, n: 4 }], p)), 0);
-      eq(aLire(boite([{ cle: G, sorte: 'groupe', nom: 'BTS', at: 1, n: 4, cite: 1 }], p)), 1);
+      const p = basculerMuet(prefsVides(), G);
+      eq(boite([{ cle: G, sorte: 'groupe', nom: 'BTS', at: 1, n: 4, cite: 1 }], p)[0].cite, 1);
     },
     'qui m’a donné ce contact : le mail le dit, le partage jamais': () => {
       const ct = normalizeContact({ id: 'k1', name: 'Julie Marchand', email: 'julie@advens.test', via: '  Karim  ' });
@@ -3832,7 +3834,6 @@ export async function runSelfTests(){
       ok(CLES_A_EFFACER.includes(PREVERSION_KEY));                   /* un appareil effacé sort du test */
     },
     'drapeaux de livraison : chacun a sa raison, son lot et sa date de retrait': () => {
-      ok(DRAPEAUX.length > 0);
       const ids = new Set();
       for (const d of DRAPEAUX){
         eq(defautsDrapeau(d), [], d.id);
@@ -3877,14 +3878,12 @@ export async function runSelfTests(){
       eq(ecrirePreversion(false), null);
     },
     'destinations : une ancienne adresse mène toujours quelque part': () => {
-      eq(DESTINATIONS.map(d => d.id), ['aujourdhui', 'pistes', 'echanger', 'reseau', 'moi']);
-      /* la barre selon le lot « reseau » : Réseau OU Échanger, jamais les
-         deux, et l'ancienne adresse redirige dans les deux sens */
-      eq(navigation(false).ids, ['aujourdhui', 'pistes', 'echanger', 'moi']);
-      eq(navigation(true).ids, ['aujourdhui', 'pistes', 'reseau', 'moi']);
-      eq(destination('#/echanger', navigation(true)), { id: 'reseau', ancienne: true });
-      eq(destination('#/reseau', navigation(false)), { id: 'echanger', ancienne: true });
-      eq(destination('#/reseau', navigation(true)), { id: 'reseau', ancienne: false });
+      eq(DESTINATIONS.map(d => d.id), ['aujourdhui', 'pistes', 'reseau', 'moi']);
+      /* « Réseau » a pris la place d'« Échanger » (7.0.0) : l'ancienne
+         adresse, donnée avant, mène à la nouvelle */
+      eq(navigation().ids, ['aujourdhui', 'pistes', 'reseau', 'moi']);
+      eq(destination('#/echanger', navigation()), { id: 'reseau', ancienne: true });
+      eq(destination('#/reseau', navigation()), { id: 'reseau', ancienne: false });
       eq(titreDe('reseau'), 'Réseau');
       eq(routeDe('#/pistes'), 'pistes');
       eq(routeDe('#pistes'), 'pistes');
@@ -3902,7 +3901,7 @@ export async function runSelfTests(){
       /* une adresse présente ne suit jamais d'alias */
       eq(destination('#/reseau', { ids, alias: { reseau: 'aujourdhui' } }), { id: 'reseau', ancienne: false });
       eq(destination('#/constructor', { ids }), { id: 'aujourdhui', ancienne: false });
-      eq(titreDe('echanger'), 'Échanger');
+      eq(titreDe('echanger'), '');
       eq(titreDe('inconnu'), '');
     },
     'composeur : le modèle arrive pré-choisi d’après le statut de la piste': () => {

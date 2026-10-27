@@ -21,7 +21,8 @@
      ligne qui nomme mon ami, qui PLIE (« chez un ami de L… » rendait
      même au poste) —, nulle part la carte ne déborde. À 100 %, même en 320 px, c'est la
      rangée — le dessin choisi.
-   ④ la même carte dans « Amis », pour une demande par métier et ville ;
+   ④ la même carte dans « Réseau › Mes demandes », pour une demande par
+     métier et ville ;
    ⑤ pouce et poste, clair et sombre : captures à regarder ;
    ⑥ zéro erreur console.
    ============================================================ */
@@ -156,17 +157,15 @@ const disposition = (p, sel = '#fiDemande') => p.evaluate(s => {
   await ctx.close();
 }
 
-/* ---------- ④ la même carte dans « Amis » ---------- */
+/* ---------- ④ la même carte dans « Réseau › Mes demandes » ---------- */
 {
   const crit = { ...reseau, dons: [], demandes: [{ id: 'demandeCyb001', pisteId: null, at: now - J, exp: now + 13 * J, vers: 1,
     critere: { metier: 'cyber', ville: 'Lille' } }] };
-  const { ctx, p } = await ecran('amis', { vp: { width: 390, height: 844 }, hash: '#/pistes', graine: crit });
-  await p.waitForSelector('#piPortee [data-portee="amis"]');
-  await p.click('#piPortee [data-portee="amis"]');
-  await p.waitForSelector('#piAmis .am-dem');
-  const s = await suiviDe(p, '#piAmis .am-dem');
+  const { ctx, p } = await ecran('amis', { vp: { width: 390, height: 844 }, hash: '#/reseau', graine: crit });
+  await p.waitForSelector('#rzDemandes .rz-carte');
+  const s = await suiviDe(p, '#rzDemandes .rz-carte');
   ok(s.phrase === 'Tu cherches quelqu’un dans la cybersécurité à Lille' && /^Envoyée:fait.*Trouvée:cours/.test(s.etapes),
-    '④ dans « Amis », la même carte : ' + JSON.stringify(s));
+    '④ dans « Réseau », la même carte : ' + JSON.stringify(s));
   await p.screenshot({ path: `${SHOTS}/140-suivi-amis-pouce.png` });
   await ctx.close();
 }

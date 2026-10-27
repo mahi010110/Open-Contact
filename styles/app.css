@@ -133,8 +133,8 @@ input,select,textarea{font-family:inherit;color:var(--text-body)}
   .hdr{display:none}
   .app{padding-top:env(safe-area-inset-top)}
 }
-/* LA BARRE LATÉRALE DU POSTE (R1, décision 0003 — en préversion, la
-   classe `nav-laterale` suit le lot « reseau », app.js). L'en-tête
+/* LA BARRE LATÉRALE DU POSTE (R1, décision 0003 ; la
+   classe `nav-laterale`, posée par index.html depuis la 7.0.0). L'en-tête
    devient une colonne à gauche : le logo, « Ajouter » (la seule action
    remplie, en tête comme le « Nouveau » de Gmail ou de Notion), puis
    les quatre destinations, l'icône devant le mot. Une rangée de quatre
@@ -158,7 +158,6 @@ input,select,textarea{font-family:inherit;color:var(--text-body)}
   .nav-laterale .topnav{order:2;flex-direction:column;align-items:stretch;gap:2px}
   .nav-laterale .topnav a{gap:10px;font-size:var(--text-14);padding:5px 10px}
   .nav-laterale .topnav a>.ic{display:inline-block}
-  .nav-laterale .topnav .nav-n{margin-left:auto}
 }
 
 /* ============ BARRE D'ÉTAT (desktop) ============ */
@@ -894,6 +893,9 @@ html[data-theme="dark"] .field select{
   font-family:var(--font-mono);font-size:var(--text-12);font-weight:var(--weight-semibold);color:var(--green);
 }
 .td-foot{margin-top:16px;display:flex}
+/* l'anneau se pose DEDANS : le pied vit au bord du panneau qui défile,
+   et un anneau dehors y perdait un tiers de son aire (e2e-focus) */
+.td-foot:focus-visible{outline-offset:-2px}
 /* le pied d'« Aujourd'hui » : au pouce les lignes s'empilent comme
    avant ; au poste elles se rangent sur un rang sous un filet, pour
    qu'on les lise comme un pied de page et non comme un lien égaré
@@ -1784,13 +1786,6 @@ details.pcard-details[open]>summary{margin-bottom:10px}
    l'étape 3 un champ — le geste se fait là où il est numéroté */
 .mail-pas .field{margin:6px 0 0}
 .mail-pas textarea{min-height:120px}
-.moi-door{
-  display:flex;align-items:center;gap:10px;width:100%;
-  font:inherit;color:inherit;text-align:left;cursor:pointer;min-height:var(--ctl);
-}
-.moi-door .md-m{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
-.moi-door .md-m b{font-size:var(--text-14);font-weight:var(--weight-bold);display:flex;align-items:center;gap:7px}
-.moi-door:active{box-shadow:var(--shadow-pressed)}
 /* Réglages : une ligne = une porte (#7) — pictogramme, nom, état,
    chevron. Aucun bouton : c'est la ligne entière qui se tape, et le
    bord droit cesse d'être en dents de scie. */
@@ -2110,15 +2105,6 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 .rep-m>span{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-/* ---- Échanger : deux verbes héros + pied discret ---- */
-/* deux verbes côte à côte, qui passent l'un sous l'autre quand le texte
-   grandit : en grille à deux colonnes, « Recevoir » dépassait le bord à
-   200 % en 320 px (un nom de bouton ne se coupe pas, §4). La base est en
-   `rem` — elle suit la police toute seule. Rien à donner : « Recevoir »
-   reste seul et prend toute la largeur (loi #6). */
-.hero2{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px}
-.hero2>.hero{flex:1 1 8rem;min-width:0}
-.hero2 .hero{font-size:var(--text-14)}
 
 /* Le fil des échanges : ce que l'écran a enfin à montrer. C'est un
    PANNEAU — un cadre qui tient sa région, où les lignes se remplissent
@@ -2162,15 +2148,7 @@ details.pcard-details[open]>summary{margin-bottom:10px}
    corriger. Conséquence : « Donner » se pose au même endroit quel que
    soit le remplissage (63 / 72 / 74 % selon le téléphone), et la mémoire
    du geste tient. */
-#view-echanger>.page-inner,#view-reseau>.page-inner{display:flex;flex-direction:column;height:100%}
-/* Au pouce, l'écran s'inverse : on LIT en haut, on AGIT en bas — la
-   boîte tient la région et défile (`.bx-zone`), les deux gestes se posent
-   juste au-dessus de la barre, la zone qu'une main atteint sans changer
-   de prise. Au poste la souris ignore cette contrainte : les gestes
-   tiennent la rangée sous le titre. */
-@media (max-width:900px){
-  .bx-zone + .hero2{margin-top:12px}
-}
+#view-reseau>.page-inner{display:flex;flex-direction:column;height:100%}
 /* l'historique vit dans sa feuille : il n'a plus de place à tenir */
 .modal .ec-fil{margin-top:0}
 /* la date tient sa COLONNE (voir ui/echanger.js) : typo de donnée —
@@ -2198,60 +2176,7 @@ details.pcard-details[open]>summary{margin-bottom:10px}
      La barre d'actions passe au-dessus, sur toute la largeur : les trois
      canaux d'un échange tiennent sur une ligne au lieu de deux, et
      « Donner » cesse d'être un timbre de 165 px. */
-  #view-echanger>.page-inner,#view-reseau>.page-inner{max-width:1060px}
-  /* UNE BARRE D'OUTILS, À L'ÉCHELLE DE L'APP — et deux natures, pas
-     trois cellules identiques.
-
-     ① L'ÉCHELLE. Les trois contrôles faisaient 345 × 76 px sur un écran
-     où toute autre commande fait 33 px. Relevé sur l'app elle-même au
-     poste : « Prospecter » 106 × 36, « Remplir mon profil » 129 × 36,
-     « Ajouter une piste » 155 × 32 — icône À CÔTÉ du mot, largeur au
-     contenu. Le format haut, large et centré est celui du POUCE, où il
-     est juste ; transplanté tel quel au poste il double la norme de la
-     maison. On revient donc à la grammaire de l'app : ligne, largeur au
-     contenu, hauteur de contrôle.
-
-     ② LES DEUX NATURES. « Donner » et « Recevoir » sont des VERBES qu'on
-     exécute ; « Partage en groupe » est un LIEU où l'on entre — le
-     mainteneur l'avait tranché en le dessinant comme la porte
-     « Réglages » de « Moi », et trois cellules de taille égale
-     effaçaient cette décision. Une similitude de forme dit une
-     similitude de nature (Gestalt) ; le chevron disait le contraire à
-     l'intérieur d'une boîte qui disait bouton. La porte quitte donc la
-     famille des boutons : pas de fond, pas de cadre, pas de relief,
-     poussée au bout de la rangée par la distance — ce qui est d'une
-     autre nature se sépare, au lieu de s'aligner. */
-  .ec-actes{
-    flex:none;margin-bottom:18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
-  }
-  /* les verbes et les portes des groupes partagent UNE rangée — celle
-     d'avant : Donner, Recevoir, puis là où l'on entre */
-  .ec-actes .hero2{display:contents}
-  .ec-actes .hero{
-    min-height:var(--ctl);width:auto;flex:none;flex-direction:row;gap:8px;
-    padding:0 18px;font-size:var(--text-13);
-  }
-  /* LA HIÉRARCHIE SE DIT PAR L'EMPHASE, PAS PAR LA TAILLE.
-     Trois essais ratés avant celui-ci, et chacun disait la même chose
-     par un autre moyen : trois cellules identiques (la nature de la
-     porte effacée), puis une porte dépouillée et rejetée au bord (elle
-     disparaissait), puis une bande pleine largeur (elle écrasait tout).
-     La sortie est documentée et je ne l'avais pas essayée — Material 3 :
-     l'importance d'une action se lit à son EMPHASE, rempli > contourné >
-     discret, une seule action principale par écran. Trois contrôles de
-     même hauteur, taillés à leur mot, d'emphase décroissante :
-     « Donner » rempli, « Recevoir » contourné, « Partage en groupe »
-     contourné et en encre sourde. Rien ne s'étire, rien ne disparaît,
-     et l'ordre d'importance se lit d'un coup d'œil.
-     Au pouce, rien de tout ça : la porte y reste une ligne pleine
-     largeur avec son chevron, parce qu'un doigt veut une grande cible
-     et qu'une colonne unique n'a pas de rangée à composer. */
-  .ec-actes .moi-door{
-    flex:0 0 auto;width:auto;margin:0;min-height:var(--ctl);padding:0 14px;gap:8px;
-    font-size:var(--text-13);color:var(--text-muted);
-  }
-  .ec-actes .moi-door .md-m{flex:none}
-  .ec-actes .moi-door b{font-weight:var(--weight-regular)}
+  #view-reseau>.page-inner{max-width:1060px}
 }
 /* Le message tout prêt de « Demander à … » : il se LIT et se
    sélectionne, il ne se tape pas. `user-select:all` pour que le doigt
@@ -2829,7 +2754,6 @@ button.ec-row:hover{background:var(--surface-field)}
 .dup-note .btn{color:var(--text-body)}
 
 /* ============ FICHE PISTE ============ */
-.fi-sub{font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted);margin-bottom:8px}
 .fi-closed{
   display:flex;align-items:center;gap:8px;
   border:1px solid var(--border-strong);border-left:3px solid var(--c);
@@ -3034,14 +2958,6 @@ button.ec-row:hover{background:var(--surface-field)}
    « Inter-professionnel » se lit, « Interprofessionne / l » un peu
    moins, « Grou / pem / ent » pas du tout. */
 .fi-obj .obj-n{overflow-wrap:break-word;hyphens:auto}
-/* Le sous-titre se coupe à sa fin plutôt que de faire plier la rangée :
-   mesuré à 360 px, « Villeneuve-d'Ascq · Cybersécurité » + « Modifier »
-   passaient sur deux lignes, soit 72 px au lieu de 44. Une donnée s'élide,
-   elle ne pousse pas le geste à la ligne. */
-.fi-top .fi-sub{
-  margin-bottom:0;flex:1;min-width:0;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-}
 .fi-tools{display:flex;align-items:center;gap:10px;margin:0;flex-wrap:wrap}
 /* la zone de notes suit son contenu (ui/fiche.js) : pas de plancher à
    68 px ici, c'est le script qui donne la hauteur */
@@ -3152,8 +3068,11 @@ button.ec-row:hover{background:var(--surface-field)}
    opportunité, contrairement à une relance en retard — qui, elle, porte
    déjà l'ambre trois blocs plus haut. Deux ambres sur un écran diluent
    celui qui compte. Le signal est le verbe du bouton d'à côté, qui passe
-   de « Modifier » à « Compléter » : un mot, pas une couleur d'alerte. */
-.fi-tools .btn:first-of-type{margin-left:auto}
+   de « Modifier » à « Compléter » : un mot, pas une couleur d'alerte.
+   Les gestes ne se poussent pas au bord droit (`margin-left:auto`) :
+   le nom absorbe la place libre (`.fi-obj`), et depuis que « Donner »
+   les rejoint (R1, 7.0.0), un rang replié jetait « Donner » seul au
+   bord droit, 148 px de vide à sa gauche (e2e-decroche). */
 .fi-know{border:1px solid var(--border-soft);border-radius:var(--radius-1);background:var(--surface-chrome)}
 /* « À savoir » rapatrié dans le composeur : mêmes lignes que sur la
    fiche, dans un cadre au trait discontinu pour dire que c'est de la
@@ -3608,8 +3527,6 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 .bx-d{align-self:start;display:flex;flex-direction:column;align-items:flex-end;gap:5px;padding-top:2px}
 .bx-d time{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);white-space:nowrap}
 .bx-i{display:flex;align-items:center;gap:5px;min-height:16px;color:var(--text-muted)}
-.bx-c{font-family:var(--font-mono);font-size:var(--text-11);font-weight:var(--weight-bold);line-height:16px;
-  min-width:18px;padding:0 4px;text-align:center;background:var(--accent);color:var(--on-accent)}
 /* au calme (R10) : un point d'accent, carré comme un pixel — « pas lu »,
    sans dire combien */
 .bx-pt{display:block;width:8px;height:8px;background:var(--accent)}
@@ -3724,21 +3641,11 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
   background:var(--accent);color:var(--on-accent);border:1px solid var(--border-strong);
   box-shadow:var(--shadow-raised);font:inherit;font-size:var(--text-13);font-weight:var(--weight-semibold);cursor:pointer;
 }
-/* le chiffre d'un onglet : ce qui attend, en accent, au coin de l'icône */
-.nav-n{
-  font-family:var(--font-mono);font-size:var(--text-11);font-weight:var(--weight-bold);line-height:15px;
-  min-width:17px;padding:0 4px;text-align:center;background:var(--accent);color:var(--on-accent);
-  border:1px solid var(--border-strong);
-}
-.topnav .nav-n{margin-left:7px}
-.bottomnav a{position:relative}
-.bottomnav .nav-n{position:absolute;top:3px;left:calc(50% + 6px)}
-.bottomnav a.on .nav-n,.topnav a.on .nav-n{border-color:var(--select-text)}
 @media (min-width:901px){
   /* LES DEUX VOLETS (Discord, Slack ; Material 3 « list-detail ») : la
      liste à gauche, la conversation choisie posée à droite, la même
      hauteur — chacun défile chez lui */
-  #view-echanger>.page-inner.ec-boite,#view-reseau>.page-inner.ec-boite{max-width:1180px}
+  #view-reseau>.page-inner.ec-boite{max-width:1180px}
   .bx-cols{flex:1;min-height:0;display:grid;grid-template-columns:minmax(17rem,22rem) minmax(0,1fr);gap:18px}
   .bx-gauche{min-height:0;overflow:auto;padding:4px;margin:-4px}
   .bx-seule{max-width:36rem}
@@ -3767,6 +3674,11 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
   .pi-vue .seg{flex:0 0 auto;padding:4px 12px}
   .row-item.pi-sel,.row-item.pi-sel .sw-in{background:var(--select-bg)}
   .row-item.pi-sel h3,.row-item.pi-sel .ri-sub,.row-item.pi-sel .ri-sub b{color:var(--select-text)}
+  /* la croix de la ligne choisie vit sur le navy du châssis : elle en
+     prend l'encre, et son anneau aussi — en rouge et en pointillé
+     d'encre, elle rendait 1,7:1 sous le focus (e2e-focus, 7.0.0), la
+     faute de la croix des feuilles une surface plus loin (§4) */
+  .row-item.pi-sel .hov-del,.row-item.pi-sel .hov-del:focus-visible{color:var(--select-text);outline-color:var(--select-text)}
 }
 @media (min-width:901px) and (hover:hover){
   .row-item.pi-sel:hover .sw-in{background:var(--select-bg)}
@@ -4246,14 +4158,17 @@ html.oc-locked .undo-bar{display:none}
    un retard : la barre n'a qu'une couleur, l'accent, et rien ne rougit
    quand elle reste courte. */
 /* elle se replie plutôt que de sortir : à 320 px ou texte doublé, les
-   nombres passent dessous, le chevron garde le bord droit */
-.td-semaine{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;width:100%;min-height:var(--ctl);margin:0 0 6px;
+   nombres passent dessous — DANS `.ts-dit` ; le chevron reste à côté,
+   au bord droit de la LIGNE. Replié avec les mots, il tombait seul sur
+   un rang à lui, 327 px de vide à sa gauche (e2e-decroche, 125 %). */
+.td-semaine{display:flex;align-items:center;gap:10px;width:100%;min-height:var(--ctl);margin:0 0 6px;
   padding:6px 10px;background:var(--surface-window);border:1px solid var(--border-soft);text-align:left;color:var(--text-body)}
+.td-semaine .ts-dit{flex:1;min-width:0;display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px}
 .td-semaine .ts-l{font-size:var(--text-12);font-weight:var(--weight-semibold);color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;flex:none}
 .td-semaine .ts-n{font-family:var(--font-mono);font-size:var(--text-13);flex:0 1 auto;min-width:0}
 .td-semaine .ts-barre{flex:1;min-width:3rem;height:8px;border:1px solid var(--border-strong);background:var(--surface-field)}
 .td-semaine .ts-barre>i{display:block;height:100%;background:var(--accent)}
-.td-semaine>.ic:last-child{margin-left:auto;flex:none;color:var(--text-muted)}
+.td-semaine>.ic:last-child{flex:none;color:var(--text-muted)}
 .td-semaine:focus-visible{outline:var(--focus-outline);outline-offset:2px}
 .sm-bloc{margin-bottom:16px}
 .sm-h{font-size:var(--text-11);text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin:0 0 8px;font-weight:var(--weight-semibold)}

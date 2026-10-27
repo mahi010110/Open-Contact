@@ -23,16 +23,17 @@
    ④ chez Tom : prévenu AVANT ce oui — « Trouvée · chez un ami de Léa » —,
      puis « Sofia Haddad y est en alternance · par Léa », « Ajouter à
      la piste » ;
-   ⑤ le merci remonte toute la chaîne : Sofia, Léa, puis Karim ;
+   ⑤ le merci remonte toute la chaîne : Sofia, Léa, puis Karim — il se
+     lit dans « Tes amis », jamais en toast (R10, le calme) ;
    ⑥ Karim coupe le passage dans ses réglages : la demande suivante
      s'arrête chez lui, Sofia ne reçoit rien ;
-   ⑦ « dans la cybersécurité à Lille » : depuis l'onglet Amis, une
+   ⑦ « dans la cybersécurité à Lille » : depuis « Réseau › Mes amis », une
      demande sans entreprise ; Léa a quelqu'un dans une piste cyber à
      Lille, Tom l'ajoute — la piste naît chez lui ;
    ⑧ pouce et poste, 320 px texte doublé : rien ne déborde ; zéro
      erreur console.
    ============================================================ */
-import { chromium, chromiumPath, serveRepo, SHOTS, annuaireMuet, ouvrirReglages, suiviDe } from './outils.mjs';
+import { chromium, chromiumPath, serveRepo, SHOTS, annuaireMuet, ouvrirReglages, suiviDe, ouvrirMesAmis } from './outils.mjs';
 import { startLocalRelay } from './relais-local.mjs';
 import { ouvrir, etiquetteBoite, nouvelleCle } from '../../engine/boite.js';
 
@@ -293,13 +294,27 @@ await attendreLettre('merci', 'sofia', l => l.demande === dem.l.id && !l.relais)
 const mLea = await attendreLettre('merci', 'lea', l => l.demande === dem.l.id && l.relais);
 if (mLea && (mLea.l.contact.name || /Sofia/.test(JSON.stringify(mLea.l)))) fail('le merci à Léa dit qui était au bout');
 await rouvrir(L.p);
-await L.p.waitForFunction(() => /Tom te dit merci : quelqu’un a été trouvé chez Aztek, grâce à toi\./.test(document.querySelector('#toast')?.textContent || ''), null, { timeout: 20000 })
-  .catch(() => fail('Léa n’est pas remerciée'));
+/* au calme (R10), le merci se lit deux jours dans « Tes amis » */
+/* le merci ferme la marche des lignes (R10) : on ouvre « Voir les N
+   autres » s'il le faut, comme on le ferait */
+const merciLu = async (p, de) => {
+  for (let t = Date.now(); Date.now() - t < 20000;){
+    const r = await p.evaluate(d => {
+      if ([...document.querySelectorAll('#view-aujourdhui .tr-amis .act-row[data-sorte="merci"]')]
+        .some(x => (x.querySelector('.act-main')?.getAttribute('aria-label') || '') === d + ' te dit merci, Aztek')) return true;
+      document.querySelector('#view-aujourdhui .tr-amis .tr-more')?.click();
+      return false;
+    }, de);
+    if (r) return true;
+    await p.waitForTimeout(400);
+  }
+  return false;
+};
+if (!await merciLu(L.p, 'Tom')) fail('Léa n’est pas remerciée');
 const mKarim = await attendreLettre('merci', 'karim', l => l.demande === dem.l.id && l.relais);
 if (mKarim && (mKarim.l.contact.name || /Sofia/.test(JSON.stringify(mKarim.l)))) fail('le merci à Karim dit qui était au bout');
 await rouvrir(Ka.p);
-await Ka.p.waitForFunction(() => /Léa te dit merci : quelqu’un a été trouvé chez Aztek, grâce à toi\./.test(document.querySelector('#toast')?.textContent || ''), null, { timeout: 20000 })
-  .catch(() => fail('Karim n’est pas remercié'));
+if (!await merciLu(Ka.p, 'Léa')) fail('Karim n’est pas remercié');
 console.log('⑤ le merci remonte : Sofia, puis Léa, puis Karim — sans le nom de qui était au bout ✓');
 
 /* ---------- ⑥ Karim coupe le passage ---------- */
@@ -332,11 +347,9 @@ console.log('⑥ Karim coupe le passage : la demande s’arrête chez lui, Sofia
 
 /* ---------- ⑦ « dans la cybersécurité à Lille » ---------- */
 await fermerTout(T.p);
-await T.p.evaluate(() => { location.hash = '#/pistes'; });
-await T.p.waitForSelector('[data-portee="amis"]');
-await T.p.click('[data-portee="amis"]');
-await T.p.fill('#piQ', 'cyber Lille');
-await T.p.waitForSelector('#avDemander', { timeout: 5000 }).catch(() => fail('l’onglet Amis ne propose pas de demander « cyber Lille »'));
+await ouvrirMesAmis(T.p);
+await T.p.fill('#amQ', 'cyber Lille');
+await T.p.waitForSelector('#avDemander', { timeout: 5000 }).catch(() => fail('« Mes amis » ne propose pas de demander « cyber Lille »'));
 await T.p.waitForTimeout(450);
 await T.p.screenshot({ path: `${SHOTS}/101-sauts-amis-critere-pouce.png` });
 await T.p.click('#avDemander');
@@ -351,11 +364,22 @@ const dem3 = await attendreLettre('demande', 'lea', l => !!l.critere);
 if (dem3 && JSON.stringify(dem3.l.critere) !== '{"metier":"cyber","ville":"Lille"}') fail('le critère qui part : ' + JSON.stringify(dem3.l.critere));
 if (dem3 && dem3.l.entreprise) fail('une demande par critère porte une entreprise');
 {
-  /* la MÊME carte que sur la fiche (lot F3, idée I) */
-  const f = await suiviDe(T.p, '#piAmis .am-dem');
+  /* la MÊME carte que sur la fiche (lot F3, idée I), dans « Réseau ›
+     Mes demandes » : la carte seule, ou une ligne par demande et la
+     carte au tap (R10) */
+  if (await T.p.$('.overlay #avDemander')) fail('la même demande se propose encore');
+  await fermerTout(T.p);
+  await T.p.evaluate(() => { location.hash = '#/reseau'; });
+  await T.p.waitForSelector('#rzDemandes');
+  let ou = '#rzDemandes .rz-carte';
+  if (!(await T.p.$(ou))){
+    await T.p.evaluate(() => [...document.querySelectorAll('#rzDemandes .rz-l')].find(b => /cybers/i.test(b.textContent))?.click());
+    await T.p.waitForSelector('.modal #rzCarte', { timeout: 4000 }).catch(() => {});
+    ou = '.modal #rzCarte';
+  }
+  const f = await suiviDe(T.p, ou);
   if (!f || f.phrase !== 'Tu cherches quelqu’un dans la cybersécurité à Lille' || f.a !== 'demandé à 1 ami'
-      || !/^Envoyée:fait/.test(f.etapes)) fail('la demande partie ne se lit pas dans Amis : ' + JSON.stringify(f));
-  if (await T.p.$('#avDemander')) fail('la même demande se propose encore');
+      || !/^Envoyée:fait/.test(f.etapes)) fail('la demande partie ne se lit pas dans « Mes demandes » : ' + JSON.stringify(f));
 }
 await rouvrir(L.p);
 await L.p.waitForSelector('.tr-amis .act-ami', { timeout: 20000 }).catch(() => fail('chez Léa, la demande par critère ne s’affiche pas'));

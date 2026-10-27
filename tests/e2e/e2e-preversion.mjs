@@ -2,30 +2,31 @@
    OpenContact — e2e : LA PRÉVERSION et LES ANCIENNES ADRESSES
    (lot R0 du recadrage, docs/recadrage.md, décision 0004)
 
-   R0 ne change RIEN à l'écran, sauf une ligne de Réglages. C'est ce
-   que ce scénario prouve, sur l'app réelle :
+   Depuis la 7.0.0, aucun lot n'est en test : le registre réel est vide,
+   et le mécanisme reste pour le prochain. Ce scénario prouve les deux,
+   sur l'app réelle :
+   ⓪ registre réel : pas de ligne « Préversion » dans Réglages, au pouce
+     comme au poste — il n'y a rien à allumer ;
+   avec un LOT D'ESSAI servi dans le registre (`essai`, en test) :
    ① la ligne « Préversion » dit son état et vit après « Thème » ;
-   ② elle ouvre deux rangées et une phrase qui dit ce qui est en test,
+   ② elle ouvre deux rangées et une phrase qui nomme ce qui est en test,
      et sur quel appareil ;
    ③ « Allumée » s'applique au tap, survit au rechargement, et le lot
      en test s'allume pour l'écran qui le demande (`lot`) ;
-   ④ allumée, seul ce que le lot en test recadre bouge : la barre dit
-     « Réseau » à la place d'« Échanger », et ce que R1 ne touche pas
-     (« Aujourd'hui », « Moi ») dit exactement la même chose — R1 se
-     garde lui-même dans e2e-reseau.mjs ;
+   ④ allumée, rien d'autre ne bouge : les quatre écrans disent
+     exactement la même chose — la préversion n'est qu'un interrupteur ;
    ⑤ éteinte, la clé disparaît : rien ne reste sur l'appareil ;
-   ⑥ un lot ouvert à tous n'a plus besoin de préversion : la ligne
-     disparaît d'elle-même, et le lot s'allume pour tout le monde
-     (registre servi modifié — la règle, pas le cas du jour) ;
-   ⑦ les adresses : `#pistes` et `#/pistes` mènent au même écran, une
-     adresse inconnue mène à « Aujourd'hui », et le titre du document
-     suit le registre des destinations ;
+   ⑥ le lot ouvert à tous n'a plus besoin de préversion : la ligne
+     disparaît d'elle-même, et le lot s'allume pour tout le monde ;
+   ⑦ les adresses : `#pistes` et `#/pistes` mènent au même écran,
+     `#/echanger` mène à « Réseau », une adresse inconnue mène à
+     « Aujourd'hui », et le titre du document suit le registre des
+     destinations ;
    ⑧ au poste aussi ; pouce clair et sombre, captures à regarder ;
      zéro erreur console.
    ============================================================ */
 import { chromium, chromiumPath, serveRepo, relaisMuets, annuaireMuet, ouvrirReglages, ROOT, SHOTS } from './outils.mjs';
 import { readFile } from 'fs/promises';
-import { DRAPEAUX, enTest } from '../../engine/drapeaux.js';
 import path from 'path';
 
 const { server, base } = await serveRepo();
@@ -68,30 +69,30 @@ const fermer = async p => {
   await p.waitForTimeout(250);
 };
 const cle = p => p.evaluate(async () => { const st = await import('./engine/storage.js'); return st.kvGet(st.PREVERSION_KEY); });
-const lotReseau = p => p.evaluate(async () => (await import('./ui/state.js')).lot('reseau'));
+const lotEssai = p => p.evaluate(async () => (await import('./ui/state.js')).lot('essai'));
+/* le registre servi : le vrai, plus UN lot d'essai en test (ou ouvert) */
+const SRC = await readFile(path.join(ROOT, 'engine', 'drapeaux.js'), 'utf8');
+const VIDE = 'export const DRAPEAUX = Object.freeze([]);';
+if (!SRC.includes(VIDE)) throw new Error('le registre réel n’est plus vide : ce scénario doit le lire tel quel');
+const avecEssai = ouvert => SRC.replace(VIDE, `export const DRAPEAUX = Object.freeze([Object.freeze({
+  id: 'essai', lot: 'R5', nom: 'un lot d’essai', raison: 'Prouver le mécanisme de préversion.',
+  cree: '2026-10-27', retrait: '2027-04-01', ouvert: ${ouvert} })]);`);
+const ESSAI = avecEssai(false);
 /* ce que montrent la barre et les quatre écrans, Réglages refermé.
    Un écran se lit quand il a FINI de se dessiner : « Mes pistes »
    complète une partie de son contenu après le premier rendu, et une
    lecture trop tôt rendait un écart qui ne venait pas de la préversion
    (vu une fois sur trois sous charge). On relit jusqu'à deux lectures
    identiques. */
-/* CE QUE LES LOTS EN TEST AJOUTENT À UN ÉCRAN se retire avant de
-   comparer : la ligne de la semaine (R4), le bouton de la série (R3), la
-   reprise (R2). Chaque lot se garde dans SON scénario ; ici, on vérifie
-   que rien d'autre ne bouge. */
-const AJOUTS_DES_LOTS = '#tdSemaine, .td-pret, #tdPartir, #tdReprendre, #tdReste';
-const lire = (p, id) => p.evaluate(([id, aj]) => JSON.stringify({
+const lire = (p, id) => p.evaluate(id => JSON.stringify({
   vue: (() => {
     const v = document.querySelector('#view-' + id);
-    if (!v) return undefined;
-    let t = v.innerText;
-    for (const x of v.querySelectorAll(aj)) t = t.replace(x.innerText, '');
-    return t.replace(/\s+/g, ' ').trim();
+    return v ? v.innerText.replace(/\s+/g, ' ').trim() : undefined;
   })(),
   barre: [...document.querySelectorAll('nav [data-r]')].map(a => a.innerText.replace(/\s+/g, ' ').trim()).join(' | '),
   titre: document.title
-}), [id, AJOUTS_DES_LOTS]);
-const photo = async (p, routes = ['aujourdhui', 'pistes', 'echanger', 'moi']) => {
+}), id);
+const photo = async (p, routes = ['aujourdhui', 'pistes', 'reseau', 'moi']) => {
   const out = {};
   for (const r of routes){
     await allerA(p, '#/' + r);
@@ -107,10 +108,20 @@ const photo = async (p, routes = ['aujourdhui', 'pistes', 'echanger', 'moi']) =>
   return out;
 };
 
-/* ---------- ①-⑤ au pouce ---------- */
+/* ---------- ⓪ le registre réel : rien en test, pas de ligne ---------- */
+for (const [nom, vp] of [['pouce', { width: 390, height: 844 }], ['poste', { width: 1280, height: 800 }]]){
+  const { ctx, p } = await ecran('reel-' + nom, { vp });
+  await reglages(p);
+  const r = await rangees(p);
+  ok(!r.some(x => x.startsWith('Préversion')) && !(await p.$('#moiPreversion')),
+    `⓪ ${nom} : registre réel vide, pas de ligne « Préversion » — ${r.join(' / ')}`);
+  await ctx.close();
+}
+
+/* ---------- ①-⑤ au pouce, avec le lot d'essai ---------- */
 for (const sombre of [false, true]){
   const nom = sombre ? 'pouce-sombre' : 'pouce';
-  const { ctx, p } = await ecran(nom, { sombre });
+  const { ctx, p } = await ecran(nom, { sombre, registre: ESSAI });
   const avant = await photo(p);
   await reglages(p);
   const r0 = await rangees(p);
@@ -126,41 +137,40 @@ for (const sombre of [false, true]){
     /* la phrase nomme chaque lot en test, dans l'ordre du registre : elle
        se DÉDUIT du registre — une liste tenue à la main ici mentait dès
        le lot suivant (R7) */
-    && feuille.phrase === `Sur cet appareil seulement : ${enTest(DRAPEAUX).map(d => d.nom).join(', ')}.`,
+    && feuille.phrase === 'Sur cet appareil seulement : un lot d’essai.',
     `② ${nom} : deux rangées, « Éteinte » retenue, et ce qui est en test — ${feuille.choix} — ${feuille.phrase}`);
   if (!sombre) await p.screenshot({ path: `${SHOTS}/160-preversion-feuille-pouce.png` });
-  ok(await lotReseau(p) === false, `③ ${nom} : éteinte, le lot en test reste éteint`);
+  ok(await lotEssai(p) === false, `③ ${nom} : éteinte, le lot en test reste éteint`);
   await p.click('[data-preversion="oui"]');
   await p.waitForTimeout(250);
   const apres = await p.evaluate(() => ({
     choix: [...document.querySelectorAll('[data-preversion]')].map(b => b.textContent.trim() + (b.getAttribute('aria-checked') === 'true' ? '*' : '')).join(' | '),
     etat: document.querySelector('#moiPreversion .rg-s')?.textContent.trim()
   }));
-  ok(apres.choix === 'Éteinte | Allumée*' && apres.etat === 'allumée' && await cle(p) === '1' && await lotReseau(p) === true,
+  ok(apres.choix === 'Éteinte | Allumée*' && apres.etat === 'allumée' && await cle(p) === '1' && await lotEssai(p) === true,
     `③ ${nom} : « Allumée » s'applique au tap, la ligne le dit, la clé est posée, le lot s'allume`);
   await fermer(p);
   await p.screenshot({ path: `${SHOTS}/160-preversion-reglages-${nom}.png` });
   await p.reload();
   await p.waitForFunction(() => !!document.querySelector('#sbVer')?.textContent);
   await p.waitForTimeout(250);
-  ok(await lotReseau(p) === true, `③ ${nom} : allumée, elle survit au rechargement`);
-  /* ce que le lot « reseau » ne touche pas ; la barre, elle, change
-     d'UN mot — l'onglet qu'il recadre */
-  const pendant = await photo(p, ['aujourdhui', 'moi']);
-  for (const k of Object.keys(pendant)) pendant[k].barre = pendant[k].barre.replace(/Réseau/g, 'Échanger');
+  ok(await lotEssai(p) === true, `③ ${nom} : allumée, elle survit au rechargement`);
+  /* le lot d'essai, aucun écran ne le demande : allumée, RIEN ne bouge
+     — hors « Moi », dont Réglages dit maintenant « allumée » */
+  const pendant = await photo(p, ['aujourdhui', 'pistes', 'reseau']);
   const ecarts = Object.keys(pendant).filter(k => JSON.stringify(avant[k]) !== JSON.stringify(pendant[k]));
   for (const k of ecarts) for (const f of ['vue', 'barre', 'titre']) if (avant[k][f] !== pendant[k][f]){
     const x = avant[k][f], y = pendant[k][f]; let i = 0; while (i < x.length && x[i] === y[i]) i++;
     console.log(`  écart ${k}.${f} à ${i} : « ${x.slice(Math.max(0, i - 40), i + 60)} » ≠ « ${y.slice(Math.max(0, i - 40), i + 60)} »`);
   }
-  ok(!ecarts.length, `④ ${nom} : allumée, seul le lot bouge — la barre dit « Réseau », « Aujourd’hui » et « Moi » identiques${ecarts.length ? ' (écarts : ' + ecarts.join(', ') + ')' : ''}`);
+  ok(!ecarts.length, `④ ${nom} : allumée, rien d'autre ne bouge — trois écrans identiques${ecarts.length ? ' (écarts : ' + ecarts.join(', ') + ')' : ''}`);
   await reglages(p);
   ok((await rangees(p)).includes('Préversion · allumée'), `③ ${nom} : la ligne relue dit « allumée »`);
   await p.click('#moiPreversion');
   await p.waitForTimeout(300);
   await p.click('[data-preversion="non"]');
   await p.waitForTimeout(250);
-  ok(await cle(p) == null && await lotReseau(p) === false && (await rangees(p)).includes('Préversion · éteinte'),
+  ok(await cle(p) == null && await lotEssai(p) === false && (await rangees(p)).includes('Préversion · éteinte'),
     `⑤ ${nom} : éteinte, la clé disparaît et le lot s'éteint`);
   await fermer(p);
   await ctx.close();
@@ -168,13 +178,11 @@ for (const sombre of [false, true]){
 
 /* ---------- ⑥ un lot ouvert à tous : la ligne part d'elle-même ---------- */
 {
-  const src = await readFile(path.join(ROOT, 'engine', 'drapeaux.js'), 'utf8');
-  const ouvert = src.replace(/ouvert: false/g, 'ouvert: true');
-  ok(ouvert !== src, '⑥ le registre servi est bien modifié (sinon la preuve ne prouve rien)');
+  const ouvert = avecEssai(true);
   const { ctx, p } = await ecran('ouvert', { registre: ouvert });
   await reglages(p);
   const r = await rangees(p);
-  ok(!r.some(x => x.startsWith('Préversion')) && await lotReseau(p) === true,
+  ok(!r.some(x => x.startsWith('Préversion')) && await lotEssai(p) === true,
     `⑥ rien en test : pas de ligne « Préversion », et le lot ouvert s'allume pour tous — ${r.join(' / ')}`);
   await ctx.close();
 }
@@ -195,7 +203,7 @@ for (const sombre of [false, true]){
   await allerA(p, '#/Moi');
   const d = await ici();
   ok(a.vue === 'pistes' && a.titre === 'Mes pistes — OpenContact', `⑦ « #pistes » mène à « Mes pistes » — ${JSON.stringify(a)}`);
-  ok(b.vue === 'echanger' && b.titre === 'Échanger — OpenContact', `⑦ le titre suit le registre — ${JSON.stringify(b)}`);
+  ok(b.vue === 'reseau' && b.titre === 'Réseau — OpenContact', `⑦ « #/echanger » mène à « Réseau », le titre suit le registre — ${JSON.stringify(b)}`);
   ok(c.vue === 'aujourdhui' && c.titre === 'Aujourd’hui — OpenContact', `⑦ une adresse inconnue mène à « Aujourd’hui » — ${JSON.stringify(c)}`);
   ok(d.vue === 'moi', `⑦ « #/Moi » (majuscule) mène à « Moi » — ${JSON.stringify(d)}`);
   await ctx.close();
@@ -203,7 +211,7 @@ for (const sombre of [false, true]){
 
 /* ---------- ⑧ au poste ---------- */
 {
-  const { ctx, p } = await ecran('poste', { vp: { width: 1280, height: 800 } });
+  const { ctx, p } = await ecran('poste', { vp: { width: 1280, height: 800 }, registre: ESSAI });
   await reglages(p);
   const r = await rangees(p);
   ok(r.includes('Préversion · éteinte'), `⑧ poste : la ligne est là — ${r.join(' / ')}`);

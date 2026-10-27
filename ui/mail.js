@@ -15,7 +15,7 @@ import { bytesToB64 } from '../engine/crypto.js';
 import { docGet } from '../engine/storage.js';
 import { aiComplete, draftPrompt, splitDraft } from '../engine/ai.js';
 import { SILENCE_RELANCE } from '../engine/assist.js';
-import { S, bus, saveData, logJ, activateContact, lot } from './state.js';
+import { S, bus, saveData, logJ, activateContact } from './state.js';
 import { openSheet, toast, btn, el, ic, showUndo, champGrandit, avantImage } from './dom.js';
 import { askNextAction } from './actions.js';
 import { openProfil } from './profil.js';
@@ -478,7 +478,6 @@ export function openMail(c, opts){
      lui-même. Pas depuis `sync()` : `fill()` l'appelle à l'ouverture et
      effacerait le brouillon avant qu'il revienne. */
   const garder = () => {
-    if (!lot('prets')) return;
     const objet = q('#mSubj').value, corps = q('#mBody').value;
     if (objet === genere.objet && corps === genere.corps) oublierBrouillon(c.id);
     else garderBrouillon(c, { objet, corps, ctId: (currentCt() || {}).id, statut: c.status });
@@ -607,7 +606,7 @@ export function openMail(c, opts){
      message. Si la piste a changé de statut depuis (une réponse est
      arrivée), le modèle d'aujourd'hui est sans doute plus juste : le
      brouillon se propose, il ne s'impose pas. */
-  const br = lot('prets') ? brouillon(c) : null;
+  const br = brouillon(c);
   if (br){
     const poser = () => {
       const i = br.ctId ? cts.findIndex(t => t.id === br.ctId) : -1;

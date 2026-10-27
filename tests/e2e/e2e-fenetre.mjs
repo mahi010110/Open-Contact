@@ -251,7 +251,7 @@ const dos = await t.evaluate(async () => {
   const attendre = () => new Promise(r => setTimeout(r, 320));
   const out = {};
 
-  location.hash = '#echanger'; await attendre();
+  location.hash = '#reseau'; await attendre();
 
   /* ① une feuille, un retour : elle se ferme, la route ne bouge pas */
   openSheet({ title: 'Une' }); await attendre();
@@ -266,7 +266,7 @@ const dos = await t.evaluate(async () => {
   out.apresCroix = etat();
 
   /* ③ deux feuilles empilées : deux retours, dans l'ordre */
-  location.hash = '#echanger'; await attendre();
+  location.hash = '#reseau'; await attendre();
   openSheet({ title: 'Fond' }); await attendre();
   openSheet({ title: 'Dessus' }); await attendre();
   out.empilees = etat().n;
@@ -283,7 +283,7 @@ const dos = await t.evaluate(async () => {
      se décalait d'un cran par tour. Au troisième, le retour suivant
      sortait de l'application — sur `about:blank`. On vérifie donc que
      l'historique ne GONFLE pas, et surtout qu'on est encore chez nous. */
-  location.hash = '#echanger'; await attendre();
+  location.hash = '#reseau'; await attendre();
   out.histAvant = history.length;
   /* et le geste ne doit RIEN faire bouger dans l'historique : la feuille
      qui s'ouvre reprend l'entrée de celle qui part. Sans cette reprise
@@ -337,7 +337,7 @@ const dos = await t.evaluate(async () => {
      second retour quitte alors l'écran au lieu de fermer la dernière
      feuille. Mesuré le 30 septembre 2026 dans `e2e-vecu.mjs`, 5 fois sur
      8 sous charge ; ici, la micro-tâche le rend certain. */
-  location.hash = '#echanger'; await attendre();
+  location.hash = '#reseau'; await attendre();
   openSheet({ title: 'Base' }); await attendre();
   openSheet({ title: 'Haut' }); await attendre();
   [...document.querySelectorAll('.overlay:not(.ov-out) .x')].pop().click();   /* « Haut », celle du dessus */
@@ -352,7 +352,7 @@ const dos = await t.evaluate(async () => {
 
   /* ④ un garde-fou qui refuse : la feuille reste, et le retour SUIVANT
      doit encore marcher — l'entrée rendue ne doit pas être perdue */
-  location.hash = '#echanger'; await attendre();
+  location.hash = '#reseau'; await attendre();
   let demande = 0;
   openSheet({ title: 'Gardée', guard: () => { demande++; return demande === 1 ? false : true; } });
   await attendre();
@@ -363,15 +363,15 @@ const dos = await t.evaluate(async () => {
   return out;
 });
 if (dos.simple.n !== 0) fail('le retour ne ferme pas la feuille');
-else if (dos.simple.hash !== '#echanger')
+else if (dos.simple.hash !== '#reseau')
   fail('le retour a changé d’écran au lieu de fermer la feuille : ' + dos.simple.hash);
-else if (dos.apresCroix.hash === '#echanger')
+else if (dos.apresCroix.hash === '#reseau')
   fail('fermer par la croix laisse une entrée fantôme — le retour suivant ne fait rien');
 else if (dos.empilees !== 2) fail('les deux feuilles ne sont pas empilées : ' + dos.empilees);
 else if (dos.apresUn.n !== 1) fail('le retour ferme les DEUX feuilles d’un coup : ' + dos.apresUn.n);
 else if (!/Fond/.test(dos.apresUn.dessus))
   fail('le retour dépile par le mauvais bout : il reste « ' + dos.apresUn.dessus + ' », attendu « Fond »');
-else if (dos.apresDeux.n !== 0 || dos.apresDeux.hash !== '#echanger')
+else if (dos.apresDeux.n !== 0 || dos.apresDeux.hash !== '#reseau')
   fail('le second retour ne dépile pas proprement : ' + JSON.stringify(dos.apresDeux));
 else if (dos.histApres > dos.histAvant + 1)
   fail(`fermer-rouvrir gonfle l’historique : ${dos.histAvant} → ${dos.histApres} en quatre tours`);
@@ -388,12 +388,12 @@ else if (dos.courseAvant.n !== 2 || !/Neuve/.test(dos.courseAvant.dessus))
   fail('fermer, attendre, rouvrir : la pile n’est pas « Base+Neuve » : ' + JSON.stringify(dos.courseAvant))
 else if (dos.courseUn.n !== 1 || !/Base/.test(dos.courseUn.dessus))
   fail('fermer, attendre, rouvrir : le premier retour ne ferme pas « Neuve » : ' + JSON.stringify(dos.courseUn))
-else if (dos.courseDeux.n !== 0 || dos.courseDeux.hash !== '#echanger')
+else if (dos.courseDeux.n !== 0 || dos.courseDeux.hash !== '#reseau')
   fail('fermer, attendre, rouvrir : le compte a une feuille de trop — le second retour quitte l’écran : '
        + JSON.stringify(dos.courseDeux))
 else if (dos.gardeRefuse.n !== 1)
   fail('le garde-fou a refusé mais la feuille s’est fermée quand même');
-else if (dos.gardeAccepte.n !== 0 || dos.gardeAccepte.hash !== '#echanger')
+else if (dos.gardeAccepte.n !== 0 || dos.gardeAccepte.hash !== '#reseau')
   fail('après un refus, le retour suivant ne ferme plus : ' + JSON.stringify(dos.gardeAccepte));
 else console.log('retour : ferme la feuille · dépile · respecte le garde-fou · pas d’entrée fantôme · fermer-attendre-rouvrir juste ✓');
 

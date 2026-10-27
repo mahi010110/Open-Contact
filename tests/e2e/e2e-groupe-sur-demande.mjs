@@ -17,9 +17,9 @@
      n'envoie RIEN ;
    ② créer : « Ouvert » ou « Sur demande », et ce que ça change se lit
      sous les segments ; l'invitation est un QR sans code ;
-   ③ demander à entrer (Rejoindre, ou Recevoir › Texte) : « Le groupe
+   ③ demander à entrer (Rejoindre, ou Ajouter › Recevoir › Texte) : « Le groupe
      verra ton prénom » AVANT ; « BTS SIO Lille · en attente » après ;
-   ④ chez qui ouvre : un chiffre dans « Échanger », « Karim veut
+   ④ chez qui ouvre : un point sur la ligne du groupe, « Karim veut
      entrer » EN TÊTE du groupe, Accepter / Refuser ; accepté, Karim
      entre seul à sa prochaine ouverture (« Tu es dans BTS SIO Lille. ») ;
    ⑤ « Nommer adjoint » : « Annuler » le retient (rien ne part) ; sinon
@@ -28,7 +28,7 @@
    ⑥ pouce, poste, sombre, 320 px texte doublé : rien ne déborde ; zéro
      erreur console.
    ============================================================ */
-import { chromium, chromiumPath, serveRepo, SHOTS, annuaireMuet } from './outils.mjs';
+import { chromium, chromiumPath, serveRepo, SHOTS, annuaireMuet, ouvrirRecevoir } from './outils.mjs';
 import { startLocalRelay } from './relais-local.mjs';
 import { cleGroupe, ouvrirMessage, lirePorte } from '../../engine/groupe.js';
 import { ouvrir, etiquetteBoite } from '../../engine/boite.js';
@@ -61,7 +61,7 @@ async function ecran(qui, o = {}){
     window.__copie = '';
     Object.defineProperty(navigator, 'clipboard', { value: { writeText: async t => { window.__copie = t; } }, configurable: true });
   });
-  await p.goto(base + '/#/echanger', { waitUntil: 'load' });
+  await p.goto(base + '/#/reseau', { waitUntil: 'load' });
   await p.evaluate(async ([pr, url]) => {
     const st = await import('./engine/storage.js');
     await st.kvInit();
@@ -70,7 +70,7 @@ async function ecran(qui, o = {}){
     await st.kvSet(st.RELAYS_KEY, JSON.stringify([url]));
   }, [o.profilBrut || profil(qui, o.profil), relay.url]);
   await p.reload({ waitUntil: 'load' });
-  await p.waitForSelector('#view-echanger:not([hidden])');
+  await p.waitForSelector('#view-reseau:not([hidden])');
   return { ctx, p };
 }
 const fermerTout = async p => {
@@ -82,9 +82,9 @@ const fermerTout = async p => {
   }
 };
 const rouvrir = async p => {
-  await p.evaluate(() => { location.hash = '#/echanger'; });
+  await p.evaluate(() => { location.hash = '#/reseau'; });
   await p.reload({ waitUntil: 'load' });
-  await p.waitForSelector('#view-echanger:not([hidden])');
+  await p.waitForSelector('#view-reseau:not([hidden])');
 };
 const attendreQue = async (p, fn, arg, ms = 20000, quoi = '') => {
   for (const fin = Date.now() + ms; Date.now() < fin; await p.waitForTimeout(300))
@@ -196,8 +196,8 @@ console.log('③ Karim colle la porte : « Le groupe verra ton prénom : Karim. 
 
 /* ---------- ④ Inès accepte ; Karim entre seul ---------- */
 await rouvrir(I.p);
-await attendreQue(I.p, () => document.querySelector('.bx-l[data-groupe] .bx-c')?.textContent.trim() === '1', null, 20000,
-  'le chiffre de « Karim veut entrer » dans Échanger');
+await attendreQue(I.p, () => !!document.querySelector('.bx-l[data-groupe] .bx-pt'), null, 20000,
+  'le point de « Karim veut entrer » dans la boîte');
 await ouvrirLeGroupe(I.p);
 await I.p.waitForSelector('#grPorte');
 {
@@ -281,10 +281,7 @@ const porteK = await copierPorte(K.p);
   if (dansLaPorte(porteK).includes(G.code) || porteK.includes(G.code)) fail('la porte de Karim contient le code');
 }
 const So = await ecran('sofia');
-await So.p.click('#ecRecv');
-await So.p.waitForSelector('#rcPaste');
-await So.p.click('#rcPaste');
-await So.p.waitForSelector('#rcTxt');
+await ouvrirRecevoir(So.p, 'texte');
 await So.p.fill('#rcTxt', porteK);
 await So.p.evaluate(() => [...document.querySelectorAll('.overlay:not(.ov-out) .modal-f .btn')].find(b => b.textContent.trim() === 'Lire').click());
 await So.p.waitForSelector('#grQui');
@@ -293,8 +290,8 @@ if (await texte(So.p, '#grRejoindreGo') !== 'Demander à entrer') fail('le geste
 await So.p.click('#grRejoindreGo');
 await So.p.waitForSelector('.bx-attente');
 await rouvrir(K.p);
-await attendreQue(K.p, () => document.querySelector('.bx-l[data-groupe] .bx-c')?.textContent.trim() === '1', null, 20000,
-  'le chiffre de « Sofia veut entrer » chez Karim');
+await attendreQue(K.p, () => !!document.querySelector('.bx-l[data-groupe] .bx-pt'), null, 20000,
+  'le point de « Sofia veut entrer » chez Karim');
 await ouvrirLeGroupe(K.p);
 await K.p.waitForSelector('#grPorte');
 if (await texte(K.p, '#grPorte') !== 'Sofia veut entrer Refuser Accepter') fail('chez Karim, en tête : ' + await texte(K.p, '#grPorte'));

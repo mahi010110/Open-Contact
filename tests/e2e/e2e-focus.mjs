@@ -88,7 +88,7 @@ const ALLER = async (p, route) => {
   });
   /* et son retour d'historique atterrit avant qu'on change d'écran */
   await p.waitForTimeout(150);
-  await p.evaluate(r => { location.hash = '#/' + r; }, route === 'historique' ? 'echanger' : route);
+  await p.evaluate(r => { location.hash = '#/' + r; }, route === 'historique' ? 'reseau' : route);
   await p.waitForTimeout(500);
   if (route === 'historique'){
     /* PAS de clic de souris : après un pointeur, Chromium ne montre plus
@@ -232,7 +232,7 @@ async function balayer(){
       await p.waitForSelector('#view-aujourdhui:not([hidden])');
       await p.evaluate(SEMER);
       await p.evaluate(t => { document.documentElement.dataset.theme = t; }, theme);
-      for (const route of ['aujourdhui', 'pistes', 'echanger', 'historique', 'moi']){
+      for (const route of ['aujourdhui', 'pistes', 'reseau', 'historique', 'moi']){
         await ALLER(p, route);
         for (const f of await p.evaluate(RAMASSE)){
           const r = await mesurer(p, f.id, dpr);

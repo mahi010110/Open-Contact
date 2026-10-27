@@ -8,7 +8,7 @@ import { esc, uid } from '../engine/utils.js';
 import { defaultTemplates, RECHERCHES, dureeRecherche, periodeValide, emailPlausible,
          jetonsRecherche, RAYONS } from '../engine/model.js';
 import { villeConnue, correction } from '../engine/requete.js';
-import { S, bus, saveProfile, lot } from './state.js';
+import { S, bus, saveProfile } from './state.js';
 import { openSheet, confirmSheet, toast, showUndo, btn, ic, clavier, champGrandit, champAOuvrir } from './dom.js';
 import { tplField, tplSample, TPL_LABELS } from './tplfield.js';
 import { PARCOURS, parcoursDe, periodeParcours, normalizeParcours } from '../engine/parcours.js';
@@ -277,7 +277,7 @@ export function openProfil(onDone, opts = {}){
          ${/* TON PARCOURS EN UN FICHIER (lot R9-a) : seulement quand il y a
               un parcours à faire partir — ce qu'on a sous les yeux,
               enregistré ou non */''}
-         ${lot('export') && l.length ? `<button class="btn btn-sm" id="pfParExp">${ic('download', 'ic-14')} Exporter</button>` : ''}
+         ${l.length ? `<button class="btn btn-sm" id="pfParExp">${ic('download', 'ic-14')} Exporter</button>` : ''}
        </div>`;
     q('#pfParAdd').addEventListener('click', () => ouvrirExperience(null));
     q('#pfParExp')?.addEventListener('click', async () =>

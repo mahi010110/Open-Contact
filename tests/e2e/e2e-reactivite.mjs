@@ -56,9 +56,10 @@ const CAT = ['devtools.timeline', 'disabled-by-default-devtools.timeline', 'disa
 const GESTES = [
   { nom: 'fiche', ou: 'pistes', tap: '#main .row-item .ri-main', la: '.modal .modal-b' },
   { nom: 'nouvelle piste', ou: 'pistes', tap: '#bnAdd', la: '.modal .modal-b' },
-  { nom: 'groupe', ou: 'echanger', tap: `.bx-l[data-groupe="${GROUPE}"]`, la: '#grFil' },
-  { nom: 'conversation', ou: 'echanger', tap: `.bx-l[data-ami="${AMI}"]`, la: '#msFil' },
-  { nom: 'donner', ou: 'echanger', tap: '#ecGive', la: '.modal .pk' },
+  { nom: 'groupe', ou: 'reseau', tap: `.bx-l[data-groupe="${GROUPE}"]`, la: '#grFil' },
+  { nom: 'conversation', ou: 'reseau', tap: `.bx-l[data-ami="${AMI}"]`, la: '#msFil' },
+  /* la liste à cocher de « Mes pistes » : d'où partent Écrire et Donner */
+  { nom: 'choisir', ou: 'pistes', tap: '#piProspect', la: '.modal .pk' },
   /* deux feuilles qui s'ouvrent SUR la fiche : celle qui pose cinq champs
      qui grandissent, et le composeur */
   { nom: 'modifier', ou: 'pistes', avant: '#main .row-item .ri-main', tap: '#fiEdit', la: '#edName', fermer: 2 },

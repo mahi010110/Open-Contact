@@ -68,10 +68,10 @@ else console.log('Mes pistes vide : état enseignant ✓');
   /* la barre d'onglets est une limite ASSUMÉE (CLAUDE.md §4, tranchée
      par le mainteneur le 21 août 2026) : son libellé s'élide, et son
      nom entier vit dans l'`aria-label`. Elle ne compte donc pas ici. */
-  const EXC = ['bn-l', 'rg-s', 'obj-l', 'pk-s', 'act-do', 'o-sub', 'ri-sub', 'fi-sub',
+  const EXC = ['bn-l', 'rg-s', 'obj-l', 'pk-s', 'act-do', 'o-sub', 'ri-sub',
                'ctc-sub', 'ec-when', 'pk-m', 'mh-t'];
   const durs = []; let sondeVue = null; let ecrans = 0;
-  for (const r of ['aujourdhui', 'pistes', 'echanger', 'moi']){
+  for (const r of ['aujourdhui', 'pistes', 'reseau', 'moi']){
     await N.evaluate(x => { location.hash = '#/' + x; }, r);
     await N.waitForTimeout(500);
     /* LA SONDE SE VÉRIFIE : on plante une boîte trop étroite pour son

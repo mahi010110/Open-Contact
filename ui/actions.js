@@ -6,7 +6,7 @@
    ============================================================ */
 import { esc } from '../engine/utils.js';
 import { CLOSE_REASONS } from '../engine/model.js';
-import { S, bus, setNextAction, closePiste, saveProfile, lot } from './state.js';
+import { S, bus, setNextAction, closePiste, saveProfile } from './state.js';
 import { ouvrirDecroche } from './aide.js';
 import { openSheet, toast, ic, btn } from './dom.js';
 import { plusDaysISO, nextMondayISO, frDate } from './dates.js';
@@ -229,7 +229,7 @@ export function askClose(c, opts){
          tour — la feuille remplace le toast. Le toast, lui, perd son
          emoji partout : §4 n'en veut aucun dans l'interface. */
       const won = b.dataset.r === 'won';
-      if (!(won && lot('aide') && ouvrirDecroche(c))) toast(won
+      if (!(won && ouvrirDecroche(c))) toast(won
         ? 'Décroché, félicitations !'
         : 'Piste clôturée (' + CLOSE_REASONS[b.dataset.r].label + ').');
       if (opts.onDone) opts.onDone();

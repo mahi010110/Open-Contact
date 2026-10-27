@@ -1,5 +1,5 @@
 /* ============================================================
-   OpenContact — interface · la boîte « Échanger »
+   OpenContact — interface · la boîte de « Réseau »
    (retour du mainteneur, 13 octobre 2026 : « une boîte de réception,
    le suivi des nouveaux messages dans les groupes, afficher les
    conversations comme Discord — exactement comme les messageries
@@ -19,12 +19,12 @@
    d'écrire » — trois choses que les messageries font et qui disent à
    d'autres quand on regarde (docs/reseau.md, décision 37).
    ============================================================ */
-import { esc, todayISO } from '../engine/utils.js';
+import { esc } from '../engine/utils.js';
 import { FILS_KEY, kvGet, kvSet } from '../engine/storage.js';
-import { prefsVides, normaliserPrefs, boite, filtrer, filtresUtiles, filtreVide, aLire, chiffreOnglet,
+import { prefsVides, normaliserPrefs, boite, filtrer, filtresUtiles, filtreVide,
          basculerEpingle, basculerMuet, renommerFil, oublierFil, cleFil, phraseEcrits } from '../engine/conversations.js';
-import { S, bus, isClosed, lot } from './state.js';
-import { openSheet, ic, appuiLong, annoncer } from './dom.js';
+import { S, bus } from './state.js';
+import { openSheet, ic, appuiLong, annoncer, topSheet, apresRetours } from './dom.js';
 import { quandListe } from './dates.js';
 import { visageHTML, blasonHTML } from './visage.js';
 import { resumeGroupes, ouvrirGroupe, marquerGroupeLu, groupesPlein, ouvrirNouveauGroupe } from './groupes.js';
@@ -53,57 +53,31 @@ export async function oublierConversation(sorte, id){
 
 export const rangsBoite = () => boite([...resumeGroupes(), ...resumeConversations()], prefs);
 
-/* ---------- LE CHIFFRE DES ONGLETS ----------
-   « Échanger 3 » : trois CONVERSATIONS attendent, quel que soit le
-   nombre de messages ; celles dont on a coupé le son n'y entrent pas.
-   « Aujourd'hui 2 » : deux actions prévues aujourd'hui ou déjà passées.
-   Le chiffre se lit aussi à voix haute : il entre dans le nom de
-   l'onglet. */
-const aFaire = () => {
-  const t = todayISO();
-  return S.companies.filter(c => !isClosed(c) && !c.demo && c.nextAction && c.nextAction <= t).length;
-};
-const NOMS = { aujourdhui: 'Aujourd’hui', echanger: 'Échanger', reseau: 'Réseau' };
-function poser(route, n, dit){
-  document.querySelectorAll(`nav [data-r="${route}"]`).forEach(lien => {
-    let b = lien.querySelector('.nav-n');
-    if (!b){
-      b = document.createElement('span');
-      b.className = 'nav-n';
-      b.setAttribute('aria-hidden', 'true');
-      lien.append(b);
-    }
-    b.textContent = chiffreOnglet(n);
-    b.hidden = !n;
-    lien.setAttribute('aria-label', NOMS[route] + (n ? ', ' + dit : ''));
-  });
-}
-export function majOnglets(){
-  /* LE CALME (R10) : aucun chiffre sur un onglet — « Aujourd'hui » dit
-     qui t'a écrit, à l'heure où tu l'ouvres */
-  if (lot('calme')){
-    poser(lot('reseau') ? 'reseau' : 'echanger', 0, '');
-    poser('aujourdhui', 0, '');
-    return;
-  }
-  const n = aLire(rangsBoite());
-  poser(lot('reseau') ? 'reseau' : 'echanger', n, `${n} conversation${n > 1 ? 's' : ''} non lue${n > 1 ? 's' : ''}`);
-  const a = aFaire();
-  poser('aujourdhui', a, `${a} action${a > 1 ? 's' : ''} à faire`);
-}
+/* LE CALME (R10) : aucun chiffre sur un onglet — « Aujourd'hui » dit
+   qui t'a écrit, à l'heure où tu l'ouvres (`ecritsDuJour`), et une
+   conversation qui attend s'écrit en gras avec son point, dans la boîte */
 
 /* ---------- la liste ---------- */
 let filtre = 'tout';
 let selCle = '';          /* au poste : la conversation posée à droite */
 export const conversationChoisie = () => selCle;
-/* aller lire une conversation là où elle vit : « Échanger », posée à
+/* aller lire une conversation là où elle vit : « Réseau », posée à
    droite de la boîte (au poste) — depuis la fiche d'un ami, par exemple */
-export function ouvrirDansBoite(sorte, id){
+export async function ouvrirDansBoite(sorte, id){
   selCle = cleFil(sorte, id);
   filtre = 'tout';
-  const ici = lot('reseau') ? 'reseau' : 'echanger';
-  if (new RegExp('^#\\/' + ici + '\\b').test(location.hash)) bus.refresh();
-  else location.hash = '#/' + ici;
+  /* depuis une feuille (« Mes amis », la fiche d'un ami), la boîte est
+     DESSOUS : les feuilles se referment, sinon la conversation posée à
+     droite resterait cachée derrière elles (7.0.0, « Mes amis » vit
+     dans « Réseau »). L'adresse attend que leurs retours aient atterri. */
+  let ferme = false;
+  for (let s = topSheet(), n = 0; s && n < 8; s = topSheet(), n++){
+    s.close(); ferme = true;
+    if (topSheet() === s) break;            /* un garde-fou a dit non : on s'arrête là */
+  }
+  if (ferme) await apresRetours();
+  if (/^#\/(reseau|echanger)\b/.test(location.hash)) bus.refresh();
+  else location.hash = '#/reseau';
 }
 const MOTS_FILTRE = { tout: 'Tout', nonlus: 'Non lus', groupes: 'Groupes', amis: 'Amis' };
 /* ce qui attend QUELQU'UN, dit d'une phrase dans « Aujourd'hui » (R10) */
@@ -112,15 +86,13 @@ export const ecritsDuJour = () => phraseEcrits(rangsBoite());
 export function ouvrirNonLus(){
   filtre = 'nonlus';
   selCle = '';
-  const ici = lot('reseau') ? 'reseau' : 'echanger';
-  if (new RegExp('^#\\/' + ici + '\\b').test(location.hash)) bus.refresh();
-  else location.hash = '#/' + ici;
+  if (/^#\/(reseau|echanger)\b/.test(location.hash)) bus.refresh();
+  else location.hash = '#/reseau';
 }
 
 function ligneHTML(r, sel){
   const tete = r.sorte === 'groupe' ? blasonHTML(r.nom, 'bx-vz') : visageHTML(r.id, 'bx-vz');
-  const calme = lot('calme');
-  const etat = [r.n ? (calme ? 'non lue' : `${r.n} nouveau${r.n > 1 ? 'x' : ''}`) : '', r.cite ? `on t’y nomme` : '',
+  const etat = [r.n ? 'non lue' : '', r.cite ? `on t’y nomme` : '',
     r.epingle ? 'épinglée' : '', r.muet ? 'son coupé' : ''].filter(Boolean);
   const dedans =
     `${tete}
@@ -130,7 +102,7 @@ function ligneHTML(r, sel){
          r.cite ? '<span class="bx-at" aria-hidden="true">@</span>' : ''}${
          /* au calme (R10), un point, jamais un compte : le gras dit déjà
             « pas lu », le nombre ne ferait que presser */
-         !r.n ? '' : calme ? '<span class="bx-pt" aria-hidden="true"></span>' : `<span class="bx-c">${r.n > 99 ? '99+' : r.n}</span>`}</span></span>`;
+         r.n ? '<span class="bx-pt" aria-hidden="true"></span>' : ''}</span></span>`;
   /* un groupe où l'on a demandé à entrer : une ligne qui ne s'ouvre pas
      encore — « en attente » à la place du dernier message, et une seule fois */
   if (r.attente) return `<div class="bx-l bx-attente" role="listitem">${dedans}</div>`;
@@ -166,8 +138,8 @@ export function boiteHTML(wide){
               amis quittent « Pistes » pour vivre avec leurs conversations.
               Elle se lit comme une rangée qui mène (son chevron, son
               compte), pas comme un geste en encre sourde. */
-           lot('reseau') ? item(`<button class="bx-amis" id="bxAmis">${ic('users', 'ic-14')}<span class="bx-amis-l">Mes amis</span>${
-             nAmis ? `<span class="bx-amis-n">${nAmis}</span>` : ''}${ic('chevron-right', 'ic-14')}</button>`) : ''}
+           item(`<button class="bx-amis" id="bxAmis">${ic('users', 'ic-14')}<span class="bx-amis-l">Mes amis</span>${
+             nAmis ? `<span class="bx-amis-n">${nAmis}</span>` : ''}${ic('chevron-right', 'ic-14')}</button>`)}
          ${/* les deux façons d'en commencer une — en encre sourde, en dernier :
               la ligne « Ajouter un compte » d'iOS */''}
          ${ecrire ? item(`<button class="bx-plus" id="bxEcrire">${ic('message-text', 'ic-14')} Écrire à un ami</button>`) : ''}

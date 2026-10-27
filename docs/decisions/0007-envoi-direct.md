@@ -1,6 +1,10 @@
 # 0007 — L'envoi direct sur le web passe par la vérification Google
 
-**Statut** : **reportée** par le mainteneur le 20 octobre 2026. La
+**Statut** : **close sans être faite**, par choix du mainteneur, le
+27 octobre 2026 : « garder le lien mail ». Le lot R6 sort du recadrage ;
+l'envoi direct reste masqué dans le code, et la 7.0.0 se livre sans lui.
+
+*Avant : **reportée** par le mainteneur le 20 octobre 2026.* La
 vérification Google n'est pas lancée ; l'envoi direct reste masqué
 (`ENVOI_DIRECT`, `ui/perimetre.js`), `mailto:` reste le chemin de tout le
 monde, et le lot R6 passe après les autres. L'application ordinateur
@@ -43,3 +47,11 @@ ceux qui veulent que les séries partent sans eux.
 Reporter. La règle ② de `CLAUDE.md` §0 tient : rien n'engage le
 mainteneur dans une démarche chez Google ou Microsoft pour l'instant. On
 passe au lot R7.
+
+## La réponse du mainteneur (27 octobre 2026)
+
+Garder le lien mail. Le recadrage se termine sans R6 : la 7.0.0 ouvre
+tous les autres lots, et `mailto:` reste le seul chemin du web. Rien ne
+se perd — le code de l'envoi direct dort derrière `ENVOI_DIRECT`, et
+cette fiche garde la démarche à suivre le jour où la question revient.
+La règle ② de `CLAUDE.md` §0 n'est pas levée.

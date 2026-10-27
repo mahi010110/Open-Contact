@@ -12,13 +12,12 @@ import { esc, todayISO } from '../engine/utils.js';
 import { AIDES, ORDRE_AIDES, normaliserAide, basculerAide } from '../engine/aide.js';
 import { parcoursADecrocher } from '../engine/amis.js';
 import { PARCOURS, normalizeParcours } from '../engine/parcours.js';
-import { S, bus, saveProfile, lot } from './state.js';
+import { S, bus, saveProfile } from './state.js';
 import { openSheet, ic, btn } from './dom.js';
 
 /* la rangée n'existe que si quelqu'un peut la lire : un ami, ou un QR
    déjà donné — sans personne en face, une offre ne va nulle part */
-export const aideVisible = () => lot('aide')
-  && !!(S.profile.amiId || (S.profile.amis || []).length);
+export const aideVisible = () => !!(S.profile.amiId || (S.profile.amis || []).length);
 
 export function aideRowHTML(){
   if (!aideVisible()) return '';

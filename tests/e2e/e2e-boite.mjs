@@ -1,5 +1,5 @@
 /* ============================================================
-   OpenContact — e2e : LA BOÎTE « Échanger »
+   OpenContact — e2e : LA BOÎTE de « Réseau »
    (retour du mainteneur, 13 octobre 2026 : « une boîte de réception, le
    suivi des nouveaux messages dans les groupes, les conversations comme
    Discord — exactement comme les messageries traditionnelles »)
@@ -7,15 +7,14 @@
    Ce que ça prouve, sur un appareil semé de deux groupes et de deux
    conversations d'amis, sans réseau :
    ① UNE liste : groupes et amis mêlés, la plus récente en haut ; ce qui
-     n'est pas lu en gras avec son chiffre ; l'onglet « Échanger » compte
-     les CONVERSATIONS qui attendent (et le dit à voix haute), l'onglet
-     « Aujourd'hui » les actions du jour ;
+     n'est pas lu en gras avec un point, jamais un chiffre ; aucun
+     onglet ne compte (R10, « le calme ») ;
    ② un groupe s'ouvre sur la ligne « 3 nouveaux », posée avant le premier
      message arrivé depuis la dernière visite ; refermé, il est lu ;
    ③ avec beaucoup de neuf, le bouton « ↓ N nouveaux » y descend, et
      disparaît une fois en bas ;
-   ④ appui long : couper le son (la conversation sort du chiffre de
-     l'onglet), épingler (elle passe en tête) ;
+   ④ appui long : couper le son (la cloche barrée sur la ligne, le
+     point reste), épingler (elle passe en tête) ;
    ⑤ les filtres : une liste fermée — « Non lus » reste, éteint, quand
      tout est lu ; « Groupes » ne montre que les groupes ;
    ⑥ au poste, DEUX VOLETS : la conversation choisie se pose à droite,
@@ -23,7 +22,7 @@
      de la liste ne la rouvre pas (le même élément reste) ; une
      conversation neuve (« Écrire à un ami ») s'ouvre en feuille ;
    ⑦ l'historique vit derrière une ligne, dans sa feuille ;
-   ⑧ les conversations ont quitté « Pistes › Amis » et « Aujourd'hui » ;
+   ⑧ « Mes amis » ne compte pas les messages ;
    ⑨ zéro erreur console.
    ============================================================ */
 import { chromium, chromiumPath, serveRepo, relaisMuets, annuaireMuet, SHOTS } from './outils.mjs';
@@ -77,7 +76,7 @@ async function ecran(nom, { vp, sombre = false, beaucoup = false } = {}){
   p.setDefaultTimeout(8000);
   p.on('pageerror', e => errors.push(nom + ' : ' + e));
   p.on('console', m => { if (m.type() === 'error') errors.push(nom + ' : ' + m.text()); });
-  await p.goto(base + '/#/echanger');
+  await p.goto(base + '/#/reseau');
   /* semer APRÈS le démarrage : l'app qui démarre range ses conversations
      (un ami absent emporte la sienne) et réécrirait par-dessus la graine */
   await p.waitForFunction(() => !!document.querySelector('#sbVer')?.textContent);
@@ -97,12 +96,13 @@ async function ecran(nom, { vp, sombre = false, beaucoup = false } = {}){
 const noms = p => p.evaluate(() => [...document.querySelectorAll('.bx-l[data-fil] .bx-n')].map(n => n.textContent.trim()));
 const onglet = (p, r) => p.evaluate(r => {
   const a = document.querySelector(`.bottomnav [data-r="${r}"]`) || document.querySelector(`.topnav [data-r="${r}"]`);
-  const n = a && a.querySelector('.nav-n');
-  return { n: n && !n.hidden ? n.textContent : '', aria: a ? a.getAttribute('aria-label') : '' };
+  /* un chiffre où qu'il se pose dans l'onglet, quelle que soit sa classe */
+  return { n: (a?.textContent || '').replace(/\D/g, ''), aria: a ? a.getAttribute('aria-label') : '' };
 }, r);
 const ligne = (p, debut) => p.evaluate(d => {
   const b = document.querySelector(`.bx-l[data-fil^="${d}"]`);
-  return b ? { gras: b.classList.contains('bx-nonlu'), chiffre: b.querySelector('.bx-c')?.textContent || '',
+  return b ? { gras: b.classList.contains('bx-nonlu'), point: !!b.querySelector('.bx-pt'),
+    chiffre: (b.querySelector('.bx-i')?.textContent || '').replace(/\D/g, ''),
     muet: !!b.querySelector('.bx-i .ic'), apercu: b.querySelector('.bx-p')?.textContent || '' } : null;
 }, debut);
 const appuiLong = async (p, sel) => {
@@ -134,12 +134,11 @@ const fermer = async p => {
   ok(JSON.stringify(n) === JSON.stringify(['BTS SIO Lille', 'Inès Martin', 'Léa Dupont', 'Club Cyber']),
     '① une liste — groupes et amis mêlés, la plus récente en haut : ' + n.join(' · '));
   const g = await ligne(p, 'g:' + G1), i = await ligne(p, 'a:' + ID.ines), l = await ligne(p, 'a:' + ID.lea);
-  ok(g.gras && g.chiffre === '3' && i.gras && i.chiffre === '2' && !l.gras && !l.chiffre,
-    '① ce qui n’est pas lu en gras, avec son chiffre ; le reste se tait');
+  ok(g.gras && g.point && !g.chiffre && i.gras && i.point && !i.chiffre && !l.gras && !l.point,
+    '① ce qui n’est pas lu en gras, avec un point et sans chiffre ; le reste se tait');
   ok(g.apercu === 'Karim : Qui va au forum jeudi ?' && l.apercu === 'Toi : Merci pour Advens !', '① le dernier message se lit sans ouvrir');
-  const e = await onglet(p, 'echanger'), a = await onglet(p, 'aujourdhui');
-  ok(e.n === '2' && /2 conversations non lues/.test(e.aria), `① l’onglet compte les CONVERSATIONS qui attendent, et le dit (« ${e.aria} »)`);
-  ok(a.n === '1' && /1 action à faire/.test(a.aria), '① « Aujourd’hui » compte les actions du jour');
+  const e = await onglet(p, 'reseau'), a = await onglet(p, 'aujourdhui');
+  ok(!e.n && e.aria === 'Réseau' && !a.n && !/\d/.test(a.aria), `① aucun onglet ne compte (« ${e.aria} », « ${a.aria} »)`);
   await p.screenshot({ path: `${SHOTS}/140-boite-pouce.png` });
 
   /* ② un groupe s'ouvre sur la ligne « 3 nouveaux » */
@@ -156,17 +155,16 @@ const fermer = async p => {
   ok(nv.texte === '3 nouveaux' && nv.avant && nv.visible, '② le groupe s’ouvre sur « 3 nouveaux », posée avant le premier message neuf, à l’écran');
   await p.screenshot({ path: `${SHOTS}/140-boite-groupe-pouce.png` });
   await fermer(p);
-  const g2 = await ligne(p, 'g:' + G1), e2 = await onglet(p, 'echanger');
-  ok(!g2.gras && !g2.chiffre && e2.n === '1', '② refermé, le groupe est lu — l’onglet passe à 1');
+  const g2 = await ligne(p, 'g:' + G1);
+  ok(!g2.gras && !g2.point, '② refermé, le groupe est lu');
 
   /* ④ appui long : couper le son d'Inès, épingler Club Cyber */
   await appuiLong(p, `[data-fil="a:${ID.ines}"]`);
   ok(await p.evaluate(() => !!document.querySelector('#bxSon')), '④ l’appui long ouvre le menu de la conversation');
   await p.click('#bxSon');
   await p.waitForTimeout(400);
-  const i2 = await ligne(p, 'a:' + ID.ines), e3 = await onglet(p, 'echanger');
-  ok(i2.muet && i2.chiffre === '2' && e3.n === '' && /Échanger$/.test(e3.aria),
-    '④ son coupé : la conversation garde son chiffre, l’onglet ne la compte plus');
+  const i2 = await ligne(p, 'a:' + ID.ines);
+  ok(i2.muet && i2.point && i2.gras, '④ son coupé : la cloche barrée sur la ligne, la conversation garde son point');
   await appuiLong(p, `[data-fil="g:${G2}"]`);
   await p.click('#bxEpingler');
   await p.waitForTimeout(400);
@@ -187,10 +185,6 @@ const fermer = async p => {
   const f2 = await p.evaluate(() => [...document.querySelectorAll('.bx-filtres .dchip')].map(b => ({ mot: b.textContent.trim(), eteint: b.disabled })));
   ok(f2.length === 4 && f2.find(x => x.mot === 'Non lus').eteint, '⑤ tout lu : « Non lus » reste, éteint — la rangée ne change pas de forme');
 
-  /* ⑧ les conversations ont quitté « Pistes › Amis » et « Aujourd'hui » */
-  await p.evaluate(() => { location.hash = '#/aujourdhui'; });
-  await p.waitForTimeout(400);
-  ok(await p.evaluate(() => !/t’a écrit/.test(document.querySelector('#view-aujourdhui').textContent)), '⑧ « Aujourd’hui » ne redit plus les messages');
   await ctx.close();
 }
 
@@ -237,8 +231,11 @@ for (const sombre of [false, true]){
      marquerait lu ce qui arrive ; au retour, elle revient à sa place */
   await p.evaluate(() => { location.hash = '#/pistes'; });
   await p.waitForTimeout(300);
-  ok(await p.evaluate(() => !document.querySelector('.dock')), '⑥ hors d’« Échanger », la conversation de droite est fermée');
-  await p.evaluate(() => { location.hash = '#/echanger'; });
+  /* « Mes pistes » pose aussi SA fiche à droite (R1-d) : on cherche la
+     conversation, pas n'importe quel volet */
+  ok(await p.evaluate(() => ![...document.querySelectorAll('.dock .mh-t')].some(t => t.textContent === 'BTS SIO Lille')),
+    '⑥ hors de « Réseau », la conversation de droite est fermée');
+  await p.evaluate(() => { location.hash = '#/reseau'; });
   await p.waitForFunction(() => document.querySelector('#bxVolet .mh-t')?.textContent === 'BTS SIO Lille');
   ok(true, '⑥ au retour, elle revient à sa place');
   await p.click(`[data-fil="a:${ID.ines}"]`);
@@ -272,15 +269,13 @@ for (const sombre of [false, true]){
   await ctx.close();
 }
 
-/* ---------- ⑧ « Pistes › Amis » ne compte plus les messages ---------- */
+/* ---------- ⑧ « Mes amis » ne compte pas les messages ---------- */
 {
   const { ctx, p } = await ecran('amis', { vp: { width: 390, height: 844 } });
-  await p.evaluate(() => { location.hash = '#/pistes'; });
-  await p.waitForSelector('#view-pistes:not([hidden])');
-  await p.evaluate(() => [...document.querySelectorAll('#view-pistes [role="tab"], #view-pistes button')].find(b => /^Amis/.test(b.textContent.trim()))?.click());
-  await p.waitForTimeout(400);
+  await p.click('#bxAmis');
+  await p.waitForSelector('#piAmis .am-row');
   ok(await p.evaluate(() => document.querySelectorAll('.am-row').length >= 3 && !document.querySelector('.am-row .am-n')),
-    '⑧ les conversations ont quitté « Pistes › Amis » : plus de chiffre sur les lignes');
+    '⑧ « Mes amis » : plus de chiffre sur les lignes');
   await ctx.close();
 }
 

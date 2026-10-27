@@ -42,8 +42,8 @@ const mesure = p => p.evaluate(() => {
                      actions: compte('#main .act-row, #main .tr-row') } };
 });
 
-for (const ergo of ERGOS) for (const pv of [false, true]){
-  const nomConf = `${ergo.nom}-${pv ? 'preversion' : 'normal'}`;
+for (const ergo of ERGOS){
+  const nomConf = ergo.nom;
   if (filtre.length && !filtre.some(f => nomConf.includes(f))) continue;
   const conf = { nom: nomConf, ecrans: {}, gestes: {} };
   const ctx = await browser.newContext({ viewport: ergo.vp, hasTouch: ergo.touch, isMobile: ergo.touch, serviceWorkers: 'block' });
@@ -59,7 +59,7 @@ for (const ergo of ERGOS) for (const pv of [false, true]){
   p.on('console', m => { if (m.type() === 'error' && !/WebSocket|ERR_/.test(m.text())) erreurs.push(m.text()); });
   await p.goto(base + '/#/aujourdhui');
   await p.waitForFunction(() => !!document.querySelector('#sbVer')?.textContent);
-  await semerMassif(p, jeu, { preversion: pv });
+  await semerMassif(p, jeu);
   if (ergo.cpu > 1){ const cdp = await ctx.newCDPSession(p); await cdp.send('Emulation.setCPUThrottlingRate', { rate: ergo.cpu }); }
   /* l'ouverture, mesurée sur un second rechargement ralenti */
   const t0 = Date.now();
@@ -71,7 +71,7 @@ for (const ergo of ERGOS) for (const pv of [false, true]){
   conf.apresOuverture = await longues(p);
   console.log(`\n━━━ ${nomConf} : ouverture ${conf.ouverture.ms} ms, tâches longues ${JSON.stringify(conf.ouverture.longues)}, ensuite ${JSON.stringify(conf.apresOuverture)}`);
 
-  const onglets = ['aujourdhui', 'pistes', 'echanger', 'moi', ...(pv ? ['reseau'] : [])];
+  const onglets = ['aujourdhui', 'pistes', 'reseau', 'moi'];
   for (const r of onglets){
     const nav = ergo.touch ? `.bottomnav [data-r="${r}"]` : `[data-r="${r}"]:visible`;
     const lien = p.locator(nav).first();
@@ -126,7 +126,7 @@ for (const ergo of ERGOS) for (const pv of [false, true]){
   });
   await fermer();
 
-  const boite = pv ? 'reseau' : 'echanger';
+  const boite = 'reseau';
   const versBoite = async () => { await p.locator(ergo.touch ? `.bottomnav [data-r="${boite}"]` : `[data-r="${boite}"]:visible`).first().click(); await p.waitForSelector('.bx-liste'); };
   await versBoite();
   const gros = Object.entries(jeu.groupes).sort((a, b) => b[1].fil.length - a[1].fil.length)[0][0];
@@ -155,14 +155,16 @@ for (const ergo of ERGOS) for (const pv of [false, true]){
     return await p.evaluate(() => ({ bulles: document.querySelectorAll('#msFil > *').length }));
   });
   if (ergo.touch) await fermer();
-  await geste('ouvrir « Donner »', async () => {
-    await p.click('#ecGive', { timeout: 3000 });
+  await geste('ouvrir « Choisir »', async () => {
+    await p.evaluate(() => { location.hash = '#/pistes'; });
+    await p.click('#piProspect', { timeout: 3000 });
     await p.waitForSelector('.modal .pk', { timeout: 10000 });
-    await p.screenshot({ path: `${OUT}/${nomConf}-donner.png` });
+    await p.screenshot({ path: `${OUT}/${nomConf}-choisir.png` });
     return await p.evaluate(() => ({ lignes: document.querySelectorAll('.modal .pk').length }));
   });
   await fermer();
   await geste('ouvrir « Historique »', async () => {
+    await p.evaluate(() => { location.hash = '#/reseau'; });
     await p.click('#ecHisto', { timeout: 3000 });
     await p.waitForTimeout(500);
     await p.screenshot({ path: `${OUT}/${nomConf}-historique.png` });

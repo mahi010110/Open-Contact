@@ -1,15 +1,11 @@
 /* ============================================================
-   OpenContact — e2e : L'ONGLET RÉSEAU, en préversion (lot R1-a,
-   docs/recadrage.md, décision 0002)
+   OpenContact — e2e : L'ONGLET RÉSEAU (lot R1, docs/recadrage.md,
+   décision 0002 ; ouvert à tous en 7.0.0)
 
-   Un onglet, une question — et pendant la préversion, les DEUX chemins
-   se jouent (décision 0004) :
-   ① éteinte, rien ne bouge : « Échanger » et ses deux verbes, le + qui
-     ouvre une piste, « Amis » dans Pistes, « Prospecter » ;
-     `#/reseau` (une adresse donnée depuis un appareil en préversion)
-     mène à « Échanger » ;
-   ② allumée, la barre dit Aujourd'hui · Pistes · Réseau · Moi, et
-     `#/echanger` mène à « Réseau » (l'adresse se réécrit) ;
+   Un onglet, une question :
+   ② la barre dit Aujourd'hui · Pistes · Réseau · Moi, et `#/echanger`
+     — une adresse donnée avant la 7.0.0 — mène à « Réseau » (l'adresse
+     se réécrit) ;
    ③ « Réseau » répond à « qui peut m'aider ? » : mes demandes en tête
      (une ligne chacune dès qu'il y en a deux, le contact donné en accent
      sur sa ligne, la carte au tap — R10), puis les
@@ -21,29 +17,28 @@
      elles seules ;
    ⑥ « Mes amis » cherche comme la barre : « Thales » trouve Karim,
      « cyber Lille » propose de demander ;
-   ⑦ éteinte depuis Réglages pendant qu'on regarde « Réseau » : on
-     revient à « Échanger », sur place ;
    ⑧ au poste aussi ;
    ⑨ (R1-b) la fiche commence par les gens — les contacts avant « Où
      j'en suis », au pouce, et en colonne de gauche au poste — et
-     « Donner » part de la fiche avec cette seule piste ; éteinte, la
-     fiche d'avant ;
+     « Donner » part de la fiche avec cette seule piste ;
    ⑩ (R1-b) « Un contact », depuis le + : la personne d'abord,
      l'entreprise ensuite ; sans entreprise, elle part dans le bac
      « à rattacher » ;
    ⑪ (R1-c, décision 0003) au poste, la barre latérale : l'en-tête
      devient une colonne à gauche — le logo, « Ajouter », puis les quatre
      destinations empilées, icône et mot — à côté de l'écran, de haut en
-     bas ; éteinte, la rangée d'avant ;
+     bas ;
    ⑫ (R1-d, décision 0003) au poste, « Liste » pose la fiche à droite de
      la liste : la première piste d'office, un clic ou ↓ la change, la
      ligne choisie le dit ; une fiche avec un changement en cours demande
      avant de céder la place, et « Annuler » la garde ; un rendu pendant
-     qu'on écrit ne fait perdre ni le curseur ni le texte ; « Tableau »
+     qu'on écrit ne fait perdre ni le curseur ni le texte ; une fiche
+     demandée d'ailleurs (Ctrl K) se pose dans le volet, jamais en
+     double ; hors de « Mes pistes », le volet se vide ; « Tableau »
      revient aux colonnes, la fiche en fenêtre.
-   Zéro erreur console. Cinq mutations à l'appui : la barre qui ne suit
-   pas le lot, l'écran qui ne se recadre pas, la fiche qui garde son
-   ordre, l'en-tête qui reste une rangée, la fiche qui ne se pose pas.
+   Zéro erreur console. Cinq mutations à l'appui : l'ancienne adresse
+   oubliée, l'écran sans ses demandes, la fiche qui garde son ordre,
+   l'en-tête qui reste une rangée, la fiche qui ne se pose pas.
    ============================================================ */
 import { chromium, chromiumPath, serveRepo, relaisMuets, annuaireMuet, ouvrirReglages, ROOT, SHOTS } from './outils.mjs';
 import { readFile } from 'fs/promises';
@@ -84,11 +79,11 @@ const reseau = { v: 1, depuis: 0, recues: [], mercis: [], lus: [], envois: [], e
 
 /* `mutations` : des fichiers servis modifiés — la preuve que le scénario
    sait encore échouer */
-async function ecran(nom, { vp = { width: 390, height: 844 }, sombre = false, hash = '#/aujourdhui', preversion = true, mutations = {} } = {}){
+async function ecran(nom, { vp = { width: 390, height: 844 }, sombre = false, hash = '#/aujourdhui', mutations = {} } = {}){
   const ctx = await browser.newContext({ viewport: vp, hasTouch: vp.width < 901, colorScheme: sombre ? 'dark' : 'light' });
   await relaisMuets(ctx); await annuaireMuet(ctx);
   for (const [f, body] of Object.entries(mutations))
-    await ctx.route('**/' + f, r => r.fulfill({ contentType: 'text/javascript', body }));
+    await ctx.route('**/' + f, r => r.fulfill({ contentType: f.endsWith('.css') ? 'text/css' : 'text/javascript', body }));
   const p = await ctx.newPage();
   p.setDefaultTimeout(8000);
   p.on('pageerror', e => errors.push(nom + ' : ' + e));
@@ -97,13 +92,12 @@ async function ecran(nom, { vp = { width: 390, height: 844 }, sombre = false, ha
   await p.waitForFunction(() => !!document.querySelector('#sbVer')?.textContent);
   /* semer APRÈS le démarrage, puis recharger : l'app lit son état à
      l'ouverture (§5) */
-  await p.evaluate(async ([pr, ps, rs, pv]) => {
+  await p.evaluate(async ([pr, ps, rs]) => {
     const st = await import('./engine/storage.js'); await st.kvInit();
     await st.kvSet(st.DATA_KEY, JSON.stringify(ps));
     await st.kvSet(st.PROFILE_KEY, JSON.stringify(pr));
     await st.kvSet(st.RESEAU_KEY, JSON.stringify(rs));
-    if (pv) await st.kvSet(st.PREVERSION_KEY, '1'); else await st.kvDel(st.PREVERSION_KEY);
-  }, [profil, pistes, reseau, preversion]);
+  }, [profil, pistes, reseau]);
   await p.evaluate(h => { location.hash = h; }, hash);
   await p.reload();
   await p.waitForFunction(() => !!document.querySelector('#sbVer')?.textContent);
@@ -138,33 +132,11 @@ const reseauLu = p => p.evaluate(() => {
     ordre: v ? [...v.querySelectorAll('#rzDemandes, .bx-liste')].map(e => e.id || 'boite') : [],
     amis: v?.querySelector('#bxAmis')?.innerText.replace(/\s+/g, ' ').trim() || '',
     verbes: v ? [...v.querySelectorAll('#ecGive, #ecRecv')].length : -1,
-    echangerVide: !document.querySelector('#view-echanger')?.children.length
+    echangerParti: !document.querySelector('#view-echanger')
   };
 });
 
-/* ---------- ① éteinte : rien ne bouge ---------- */
-{
-  const { ctx, p } = await ecran('eteinte', { preversion: false, hash: '#/reseau' });
-  const a = await ici(p);
-  ok(a.vue === 'echanger' && a.hash === '#/echanger' && a.h1 === 'Échanger',
-    `① éteinte : « #/reseau » mène à « Échanger », l'adresse se réécrit — ${JSON.stringify(a)}`);
-  ok(await barre(p) === 'Aujourd’hui→#/aujourdhui | Pistes→#/pistes | Échanger→#/echanger | Moi→#/moi',
-    `① éteinte : la barre d'avant — ${await barre(p)}`);
-  ok(await p.evaluate(() => !!document.querySelector('#view-echanger #ecGive') && !!document.querySelector('#view-echanger #ecRecv')
-    && !document.querySelector('#bxAmis') && !document.querySelector('#rzDemandes')),
-    '① éteinte : Donner et Recevoir sous le pouce, ni « Mes amis » ni « Mes demandes »');
-  await p.click('#bnAdd');
-  await p.waitForTimeout(350);
-  ok(await dessus(p) === 'Nouvelle piste', `① éteinte : le + ouvre la piste, directement — ${await dessus(p)}`);
-  await fermer(p);
-  await allerA(p, '#/pistes');
-  ok(await p.evaluate(() => [...document.querySelectorAll('#piPortee [data-portee]')].map(b => b.dataset.portee).join(',')) === 'pistes,decouvrir,amis'
-    && await p.evaluate(() => document.querySelector('#piProspect')?.textContent.trim()) === 'Prospecter',
-    '① éteinte : « Amis » reste une portée de Pistes, et « Prospecter » garde son nom');
-  await ctx.close();
-}
-
-/* ---------- ②-⑦ allumée, au pouce (clair, puis sombre) ---------- */
+/* ---------- ②-⑥ au pouce (clair, puis sombre) ---------- */
 for (const sombre of [false, true]){
   const nom = sombre ? 'pouce-sombre' : 'pouce';
   const { ctx, p } = await ecran(nom, { sombre, hash: '#/echanger' });
@@ -183,8 +155,8 @@ for (const sombre of [false, true]){
   const carte = await p.waitForSelector('.modal #rzCarte .dmc-t').then(e => e.evaluate(t => t.firstChild.textContent.trim()), () => '');
   ok(carte === 'Tu cherches quelqu’un chez Aztek pour une alternance', `③ ${nom} : la ligne ouvre sa carte (« ${carte} »)`);
   await p.keyboard.press('Escape'); await p.waitForTimeout(350);
-  ok(r.amis === 'Mes amis 2' && r.verbes === 0 && r.echangerVide,
-    `③ ${nom} : « Mes amis » dans la liste, ni Donner ni Recevoir, et « Échanger » vidé — ${JSON.stringify(r)}`);
+  ok(r.amis === 'Mes amis 2' && r.verbes === 0 && r.echangerParti,
+    `③ ${nom} : « Mes amis » dans la liste, ni Donner ni Recevoir, et plus d'écran « Échanger » — ${JSON.stringify(r)}`);
   await p.screenshot({ path: `${SHOTS}/161-reseau-${nom}.png` });
   if (sombre){ await ctx.close(); continue; }
 
@@ -253,13 +225,6 @@ for (const sombre of [false, true]){
   await p.screenshot({ path: `${SHOTS}/161-reseau-amis.png` });
   await fermer(p);
 
-  /* ⑦ éteinte d'un geste, pendant qu'on regarde Réseau */
-  await p.evaluate(async () => (await import('./ui/state.js')).choisirPreversion(false));
-  await p.waitForTimeout(450);
-  const b = await ici(p);
-  ok(b.vue === 'echanger' && b.hash === '#/echanger' && b.h1 === 'Échanger'
-    && await p.evaluate(() => !document.querySelector('#view-reseau')?.children.length && !!document.querySelector('#ecGive')),
-    `⑦ éteinte sur place : on revient à « Échanger », Réseau vidé — ${JSON.stringify(b)}`);
   await ctx.close();
 }
 
@@ -303,26 +268,22 @@ const ordreFiche = p => p.evaluate(() => {
   };
 });
 const lisible = o => o.ordre.map((x, i) => `${x}@${o.gauche[i]},${o.haut[i]}`).join(' ');
-for (const [nom, vp, pv] of [['pouce', { width: 390, height: 844 }, true], ['poste', { width: 1280, height: 800 }, true], ['éteinte', { width: 390, height: 844 }, false]]){
-  const { ctx, p } = await ecran('fiche-' + nom, { vp, preversion: pv });
+for (const [nom, vp] of [['pouce', { width: 390, height: 844 }], ['poste', { width: 1280, height: 800 }]]){
+  const { ctx, p } = await ecran('fiche-' + nom, { vp });
   await ouvrirFiche(p, 'adv');
   const o = await ordreFiche(p);
   const i = k => o.ordre.indexOf(k);
-  if (!pv)
-    ok(o.haut[i('statut')] < o.haut[i('gens')] && !o.donner, `⑨ éteinte : la fiche d'avant, le suivi d'abord, pas de « Donner » — ${lisible(o)}`);
-  else if (vp.width < 901)
+  if (vp.width < 901)
     ok(o.haut[i('gens')] < o.haut[i('statut')] && o.haut[i('statut')] < o.haut[i('notes')] && o.donner,
       `⑨ ${nom} : les contacts avant « Où j'en suis », et « Donner » sur la fiche — ${lisible(o)}`);
   else
     ok(o.gauche[i('gens')] < o.gauche[i('statut')] && o.donner,
       `⑨ ${nom} : les gens en colonne de gauche, le suivi à droite — ${lisible(o)}`);
-  if (pv){
-    await p.screenshot({ path: `${SHOTS}/161-reseau-fiche-${nom}.png` });
-    await p.click('#fiDonner');
-    await p.waitForTimeout(450);
-    const dn = await p.evaluate(() => [...document.querySelectorAll('.modal-donner .pk')].map(b => b.dataset.id + (b.classList.contains('on') ? '*' : '')).join(','));
-    ok(await dessus(p) === 'Donner' && dn === 'adv*', `⑨ ${nom} : « Donner » depuis la fiche ne montre que cette piste — ${dn}`);
-  }
+  await p.screenshot({ path: `${SHOTS}/161-reseau-fiche-${nom}.png` });
+  await p.click('#fiDonner');
+  await p.waitForTimeout(450);
+  const dn = await p.evaluate(() => [...document.querySelectorAll('.modal-donner .pk')].map(b => b.dataset.id + (b.classList.contains('on') ? '*' : '')).join(','));
+  ok(await dessus(p) === 'Donner' && dn === 'adv*', `⑨ ${nom} : « Donner » depuis la fiche ne montre que cette piste — ${dn}`);
   await ctx.close();
 }
 
@@ -368,14 +329,12 @@ const lateraleOk = c => c.laterale && c.hdr.x === 0 && c.hdr.l >= 180 && c.hdr.l
   && c.liens.every((a, i) => a.x === c.liens[0].x && a.icone && a.h >= 32 && (!i || a.y > c.liens[i - 1].y))
   && c.ajouter.y < c.liens[0].y;
 const enRang = c => c.liens.map(a => a.x + ',' + a.y).join(' ');
-for (const [nom, vp, pv, sombre] of [['poste', { width: 1280, height: 800 }, true, false], ['poste-sombre', { width: 1280, height: 800 }, true, true],
-                                      ['poste-1024', { width: 1024, height: 700 }, true, false], ['poste-éteinte', { width: 1280, height: 800 }, false, false]]){
-  const { ctx, p } = await ecran('lat-' + nom, { vp, preversion: pv, sombre, hash: '#/pistes' });
+for (const [nom, vp, sombre] of [['poste', { width: 1280, height: 800 }, false], ['poste-sombre', { width: 1280, height: 800 }, true],
+                                  ['poste-1024', { width: 1024, height: 700 }, false]]){
+  const { ctx, p } = await ecran('lat-' + nom, { vp, sombre, hash: '#/pistes' });
   const c = await coque(p);
-  if (pv) ok(lateraleOk(c), `⑪ ${nom} : la barre latérale — en-tête ${c.hdr.l}×${c.hdr.h} à gauche, écran à ${c.main.x}, « Ajouter » au-dessus, liens ${enRang(c)}`);
-  else ok(!c.laterale && c.hdr.h <= 60 && c.liens.every(a => a.y === c.liens[0].y && !a.icone),
-    `⑪ ${nom} : la rangée d'avant, en haut, sans icônes — ${enRang(c)}`);
-  if (pv) await p.screenshot({ path: `${SHOTS}/161-reseau-laterale-${nom}.png` });
+  ok(lateraleOk(c), `⑪ ${nom} : la barre latérale — en-tête ${c.hdr.l}×${c.hdr.h} à gauche, écran à ${c.main.x}, « Ajouter » au-dessus, liens ${enRang(c)}`);
+  await p.screenshot({ path: `${SHOTS}/161-reseau-laterale-${nom}.png` });
   await ctx.close();
 }
 
@@ -419,6 +378,26 @@ const volet = p => p.evaluate(() => ({
   await p.waitForTimeout(300);
   const e = await p.evaluate(() => { const t = document.activeElement; return [t?.id, t?.value, t?.selectionStart, t?.selectionEnd]; });
   ok(e.join('|') === 'fiNotes|note en cours|2|6', `⑫ un rendu pendant qu'on écrit : le curseur, le texte et la sélection restent — ${e.join('|')}`);
+  /* une fiche demandée d'ailleurs pendant qu'on est ici : dans le volet,
+     jamais une seconde fiche par-dessus (deux `#fiNotes`) — et le
+     garde-fou de celle qui attend un « Enregistrer » joue d'abord */
+  await p.evaluate(async () => { const { S } = await import('./ui/state.js');
+    (await import('./ui/fiche.js')).openFiche(S.companies.find(c => c.id === 'ki')); });
+  await p.waitForTimeout(400);
+  const gardeK = await dessus(p);
+  await p.click('.overlay:not(.ov-out) .modal-f .btn-danger');
+  await p.waitForTimeout(450);
+  const k = await volet(p);
+  const nNotes = await p.evaluate(() => document.querySelectorAll('#fiNotes').length);
+  ok(gardeK === 'Quitter sans enregistrer ?' && k.fiche === 'Kiabi' && k.sel === 'ki' && nNotes === 1 && !(await dessus(p)),
+    `⑫ une fiche demandée d'ailleurs se pose dans le volet, après le garde-fou — ${JSON.stringify(k)}, ${nNotes} #fiNotes`);
+  /* ailleurs, le volet se vide ; au retour, la même piste revient */
+  await allerA(p, '#/aujourdhui');
+  const ailleurs = await p.evaluate(() => document.querySelectorAll('#fiNotes').length);
+  await allerA(p, '#/pistes');
+  const retour = await volet(p);
+  ok(ailleurs === 0 && retour.fiche === 'Kiabi', `⑫ hors de « Mes pistes », plus de fiche cachée ; au retour, Kiabi revient — ${ailleurs} / ${retour.fiche}`);
+  await p.fill('#piVolet #fiNotes', 'encore une note');
   await p.click('[data-vue="tableau"]');
   await p.waitForTimeout(400);
   const quitter = await dessus(p);
@@ -434,18 +413,18 @@ const volet = p => p.evaluate(() => ({
 
 /* ---------- les mutations : le scénario sait encore échouer ---------- */
 {
-  const app = await readFile(path.join(ROOT, 'app.js'), 'utf8');
-  const muet = app.replace('function appliquerNav(){', 'function appliquerNav(){ return;');
-  ok(muet !== app, 'mutation ① la barre qui ne suit pas le lot : le fichier servi est bien modifié');
-  const { ctx, p } = await ecran('mutation-barre', { mutations: { 'app.js': muet }, hash: '#/reseau' });
-  ok(await barre(p) !== 'Aujourd’hui→#/aujourdhui | Pistes→#/pistes | Réseau→#/reseau | Moi→#/moi',
-    `mutation ① : la garde de la barre rougit — ${await barre(p)}`);
+  const dst = await readFile(path.join(ROOT, 'engine', 'destinations.js'), 'utf8');
+  const oubli = dst.replace("alias: { echanger: 'reseau' }", 'alias: {}');
+  ok(oubli !== dst, 'mutation ① l’ancienne adresse oubliée : le fichier servi est bien modifié');
+  const { ctx, p } = await ecran('mutation-adresse', { mutations: { 'engine/destinations.js': oubli }, hash: '#/echanger' });
+  const a = await ici(p);
+  ok(!(a.vue === 'reseau' && a.hash === '#/reseau'), `mutation ① : la garde de l'adresse rougit — ${JSON.stringify(a)}`);
   await ctx.close();
 }
 {
   const ech = await readFile(path.join(ROOT, 'ui', 'echanger.js'), 'utf8');
-  const fige = ech.replace("const R = lot('reseau');", 'const R = false;');
-  ok(fige !== ech, 'mutation ② l’écran qui ne se recadre pas : le fichier servi est bien modifié');
+  const fige = ech.replace('const colonne = `${demandesHTML()}${b.html}', 'const colonne = `${b.html}');
+  ok(fige !== ech, 'mutation ② l’écran sans ses demandes : le fichier servi est bien modifié');
   const { ctx, p } = await ecran('mutation-ecran', { mutations: { 'ui/echanger.js': fige }, hash: '#/reseau' });
   const r = await reseauLu(p);
   ok(!(r.ordre.join(',') === 'rzDemandes,boite' && r.verbes === 0), `mutation ② : la garde de l'écran rougit — ${JSON.stringify(r)}`);
@@ -454,7 +433,7 @@ const volet = p => p.evaluate(() => ({
 
 {
   const fiche = await readFile(path.join(ROOT, 'ui', 'fiche.js'), 'utf8');
-  const fige = fiche.replace("const R = lot('reseau');", 'const R = false;');
+  const fige = fiche.replace('${vecuHTML}${gens}${travail}${savoir}`', '${vecuHTML}${travail}${gens}${savoir}`');
   ok(fige !== fiche, 'mutation ③ la fiche qui garde son ordre : le fichier servi est bien modifié');
   const { ctx, p } = await ecran('mutation-fiche', { mutations: { 'ui/fiche.js': fige } });
   await ouvrirFiche(p, 'adv');
@@ -464,10 +443,10 @@ const volet = p => p.evaluate(() => ({
 }
 
 {
-  const app = await readFile(path.join(ROOT, 'app.js'), 'utf8');
-  const rang = app.replace("$('.app').classList.toggle('nav-laterale', lot('reseau'));", '');
-  ok(rang !== app, 'mutation ④ l’en-tête qui reste une rangée : le fichier servi est bien modifié');
-  const { ctx, p } = await ecran('mutation-laterale', { mutations: { 'app.js': rang }, vp: { width: 1280, height: 800 } });
+  const css = await readFile(path.join(ROOT, 'styles', 'app.css'), 'utf8');
+  const rang = css.split('.nav-laterale').join('.nav-oubliee');
+  ok(rang !== css, 'mutation ④ l’en-tête qui reste une rangée : le fichier servi est bien modifié');
+  const { ctx, p } = await ecran('mutation-laterale', { mutations: { 'styles/app.css': rang }, vp: { width: 1280, height: 800 } });
   const c = await coque(p);
   ok(!lateraleOk(c), `mutation ④ : la garde de la barre latérale rougit — ${enRang(c)}`);
   await ctx.close();
@@ -475,7 +454,7 @@ const volet = p => p.evaluate(() => ({
 
 {
   const pi = await readFile(path.join(ROOT, 'ui', 'pistes.js'), 'utf8');
-  const sans = pi.replace("const listeDetail = () => lot('reseau') && mqWide.matches && vuePoste === 'liste';", 'const listeDetail = () => false;');
+  const sans = pi.replace("const listeDetail = () => mqWide.matches && vuePoste === 'liste';", 'const listeDetail = () => false;');
   ok(sans !== pi, 'mutation ⑤ la fiche qui ne se pose pas : le fichier servi est bien modifié');
   const { ctx, p } = await ecran('mutation-liste', { mutations: { 'ui/pistes.js': sans }, vp: { width: 1280, height: 800 }, hash: '#/pistes' });
   const a = await volet(p);

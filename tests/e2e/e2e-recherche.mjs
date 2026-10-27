@@ -23,7 +23,7 @@
      mot écrit dans une note ;
    ⑦ ce qui change s'entend (la région vivante dit ce qui est compris).
    ============================================================ */
-import { chromium, chromiumPath, serveRepo, SHOTS, annuaireMuetPartout } from './outils.mjs';
+import { chromium, chromiumPath, serveRepo, SHOTS, annuaireMuetPartout, vueTableau } from './outils.mjs';
 
 const { server, base } = await serveRepo();
 const browser = await chromium.launch({ executablePath: chromiumPath() });
@@ -245,6 +245,9 @@ for (const [nom, vp, touch] of [['pouce', { width: 390, height: 844 }, true],
 /* ---------- au poste : le clavier suffit ---------- */
 {
   const { ctx, p } = await ecran({ width: 1280, height: 800 }, false);
+  /* le tableau : ses flèches suivent les colonnes (la liste, elle, se
+     garde dans e2e-reseau.mjs ⑫) */
+  await vueTableau(p);
   await p.click('#view-pistes h1');
   await p.keyboard.press('/');
   await p.keyboard.type('alternance lille', { delay: 8 });

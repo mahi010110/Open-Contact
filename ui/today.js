@@ -17,7 +17,7 @@ import { enPause, reprendre } from '../engine/suivi.js';
 import { pretsAPartir, SERIE_MIN } from '../engine/prets.js';
 import { ouvrirSerie } from './serie.js';
 import { semaineHTML, ouvrirSemaine } from './semaine.js';
-import { S, bus, isClosed, markDone, hasDemo, addDemo, removeDemo, lot } from './state.js';
+import { S, bus, isClosed, markDone, hasDemo, addDemo, removeDemo } from './state.js';
 import { $, ic, openSheet } from './dom.js';
 import { frToday, frDate, dueMarkHTML, silenceMarkHTML } from './dates.js';
 import { askNextAction, reportAction, askClose } from './actions.js';
@@ -288,7 +288,7 @@ function silenceHTML(items, total){
    ne porte plus de chiffre, c'est ici qu'on le lit, à son heure. */
 const CAP_AMIS = 3;
 function amisHTML(lignes){
-  const ecrits = lot('calme') ? ecritsDuJour() : null;
+  const ecrits = ecritsDuJour();
   const tous = [...(ecrits ? [{ sorte: 'ecrits', id: 'ecrits', nom: ecrits.texte, raison: ecrits.sous, qui: '',
                                 aria: [ecrits.texte, ecrits.sous].filter(Boolean).join(', ') }] : []), ...lignes];
   if (!tous.length) return '';
@@ -474,13 +474,13 @@ export function renderToday(){
   /* R2 : après sept jours sans un geste, trois choses à reprendre. Pas
      tant que les premiers pas sont là : on ne reprend que ce qu'on a
      commencé, et ils disent déjà quoi faire. */
-  const reprise = lot('suivi') && !pas && enPause(S.companies, S.journal)
+  const reprise = !pas && enPause(S.companies, S.journal)
     ? reprendre({ dues: [...late, ...due], muettes, debuts: parOuCommencer(aLancer) }) : [];
   /* R3 : LES MAILS PRÊTS À PARTIR — les relances dues, puis les premiers
      mails, cinq au plus, chacun vers sa personne. Pas pendant les
      premiers pas : ils disent déjà quoi écrire, et le premier mail
      demande un profil rempli que la série ne vérifie pas. */
-  const prets = lot('prets') && !pas
+  const prets = !pas
     ? pretsAPartir({ dues: [...late, ...due], debuts: parOuCommencer(aLancer, Infinity), today }) : [];
   const partir = prets.length >= SERIE_MIN;
   const rienDePrevu = rienAFaire && !soon.length;
@@ -510,7 +510,7 @@ export function renderToday(){
        ${/* R4 : MA SEMAINE, en tête — l'objectif et ce qui est parti, une
             ligne qui se touche. Pas pendant les premiers pas ni avec
             l'exemple : on ne se fixe pas d'objectif avant d'avoir écrit. */''}
-       ${lot('semaine') && !pas && !hasDemo() && S.companies.length ? semaineHTML() : ''}`;
+       ${!pas && !hasDemo() && S.companies.length ? semaineHTML() : ''}`;
 
   /* les MESSAGES ne passent plus par ici : l'onglet « Échanger » porte
      leur chiffre, comme toute messagerie (13 octobre 2026). Restent les
@@ -635,7 +635,7 @@ export function renderToday(){
   if (!root.dataset.lettres){
     root.dataset.lettres = '1';
     root.addEventListener('keydown', e => {
-      const k = lot('clavier') ? lettreActive(e) : '';
+      const k = lettreActive(e);
       const row = (k === 'f' || k === 'e') && e.target.closest && e.target.closest('.act-row');
       const b = row && row.querySelector(k === 'f' ? '[data-a="done"]' : '[data-a="mail"]');
       if (!b) return;

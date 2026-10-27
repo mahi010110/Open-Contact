@@ -4,10 +4,81 @@ Ce qui change pour toi, version par version, en mots simples. Le format
 suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), et les
 numéros la [gestion sémantique de version](https://semver.org/lang/fr/) :
 le dernier chiffre pour un correctif, celui du milieu pour une nouveauté,
-le premier pour une rupture. La bascule du recadrage sera la 7.0.0
+le premier pour une rupture. La bascule du recadrage est la 7.0.0
 (`docs/recadrage.md`).
 
 Les versions d'avant la 6.76 se lisent dans l'historique du dépôt.
+
+## [7.0.0] — 27 octobre 2026
+
+La bascule du recadrage : tout ce qui était en préversion est ouvert à
+tout le monde. L'app que tu ouvres est celle que les testeurs voyaient.
+Aucune donnée ne bouge, et tes anciens liens mènent toujours au bon
+endroit.
+
+### Modifié
+
+- **« Échanger » s'appelle « Réseau ».** Tes demandes en tête, puis
+  toutes tes conversations (groupes et amis), « Mes amis » et
+  l'historique. Un lien vers `#/echanger` ouvre « Réseau ».
+- **Le + ajoute tout** : une piste, quelqu'un rencontré, ou ce qu'on te
+  tend (Recevoir : QR, fichier, texte).
+- **Tes amis ont quitté « Mes pistes »** : ils sont dans « Réseau › Mes
+  amis ». « Mes pistes » garde « À découvrir ».
+- **Donner des pistes** se fait depuis « Mes pistes › Choisir », ou
+  depuis la fiche d'une piste.
+- **La fiche commence par les gens** : qui contacter, puis le suivi.
+- **Plus aucun chiffre sur les onglets ni sur les conversations.** Une
+  conversation pas lue s'écrit en gras avec un point ; « Aujourd'hui »
+  dit qui t'a écrit.
+- **Au poste**, la navigation passe dans une barre à gauche, la fiche
+  s'ouvre à côté de la liste, et Ctrl K cherche et fait tout.
+
+### Ajouté
+
+- **Tes chiffres en tête de « Mes pistes »** : écrites, réponses,
+  décrochées. Après une semaine sans venir, « Reprendre » te propose
+  trois choses à faire.
+- **« Écrire les N mails »** au pied d'« Aujourd'hui » : les relances
+  et les premiers mails du jour, préparés et envoyés l'un après l'autre.
+- **« Ma semaine »** : un objectif de gestes, et la revue du vendredi,
+  que tu peux partager à ton groupe.
+- **« Je peux aider »** dans Moi : ce que tu offres à tes amis. Une piste
+  close « Décroché » te propose d'aider à ton tour.
+- **Au poste, une lettre par geste fréquent** (N, /, E, P, F), écrite
+  dans le bouton qu'elle commande. Elles se coupent dans Réglages.
+- **Tous les métiers** dans la barre et dans « À découvrir », pas
+  seulement l'informatique.
+- **Exporter ton parcours** en un fichier, montré avant de partir.
+
+### Corrigé
+
+- Au poste, « Écrire à Karim » depuis « Mes amis » referme les feuilles
+  et pose la conversation à droite de la boîte, au lieu de la cacher
+  derrière elles.
+- Au poste, une fiche ouverte depuis la recherche (Ctrl K) pendant
+  qu'on est dans « Mes pistes » se pose à droite de la liste au lieu
+  d'ouvrir une seconde fiche par-dessus. Hors de « Mes pistes », la
+  fiche de droite se referme ; ce que tu y tapais sans l'enregistrer
+  reste.
+- Un profil « BTS SIO » cherche de nouveau les entreprises du numérique
+  dans « À découvrir », et non tout le secteur de l'information.
+- La table des métiers ne se lit plus à l'ouverture de « Mes pistes » :
+  seulement quand tu tapes, ou au calme quelques secondes après.
+- Les messages d'invitation (groupe, profil d'ami) disent où les
+  coller : Ajouter → Recevoir → Texte.
+- À texte agrandi, « Donner » ne se retrouve plus seul au bord droit
+  de la fiche, et la flèche de « Ma semaine » reste au bout de sa ligne.
+- L'anneau de focus se voit sur la croix d'une piste choisie et sur le
+  lien « à planifier » d'« Aujourd'hui ».
+
+### Retiré
+
+- La ligne « Préversion » de Réglages : il n'y a plus rien en test.
+- Le tri « Pour toi · Récents · A → Z » de l'ancienne liste d'amis.
+
+L'envoi direct par Gmail ou Outlook n'arrivera pas : le lien mail reste
+le chemin de tout le monde.
 
 ## [6.90.1] — 27 octobre 2026
 

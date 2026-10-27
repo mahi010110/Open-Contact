@@ -25,7 +25,7 @@ export function semaineHTML(){
     : `<span class="ts-l">Cette semaine</span>
        <span class="ts-n"><b>${s.mails}</b> sur ${pluriel(s.objectif, 'mail')}</span>
        <span class="ts-barre" aria-hidden="true"><i style="width:${part}%"></i></span>`;
-  return `<button class="td-semaine" id="tdSemaine">${dit}${ic('chevron-right', 'ic-14')}</button>`;
+  return `<button class="td-semaine" id="tdSemaine"><span class="ts-dit">${dit}</span>${ic('chevron-right', 'ic-14')}</button>`;
 }
 
 export function ouvrirSemaine(){

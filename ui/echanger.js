@@ -1,5 +1,5 @@
 /* ============================================================
-   OpenContact — interface · « Échanger »
+   OpenContact — interface · « Réseau » (ex-« Échanger », d’où le nom du fichier)
    (13 octobre 2026 : « une boîte de réception, les conversations comme
    Discord, exactement comme les messageries traditionnelles »)
    La BOÎTE d'abord : toutes les conversations, groupes et amis, la plus
@@ -13,30 +13,27 @@
 import { esc, localISO, todayISO } from '../engine/utils.js';
 import { STATUSES } from '../engine/model.js';
 import { canalCourt, exchangeLog, recuesDormantes, jamaisDonnees } from '../engine/assist.js';
-import { S, isClosed, saveJournal, lot } from './state.js';
+import { S, saveJournal } from './state.js';
 import { $, ic, openSheet, bindDeleteGesture, showUndo } from './dom.js';
 import { frDate, diffDays } from './dates.js';
-import { openDonner } from './donner.js';
-import { openRecevoir } from './recevoir.js';
-import { openPromo } from './direct.js';
 import { boiteHTML, bindBoite } from './conversations.js';
-import { PARTAGE_DIRECT } from './perimetre.js';
 import { openFiche } from './fiche.js';
+import { openPromo } from './direct.js';
+import { PARTAGE_DIRECT } from './perimetre.js';
 import { mesDemandes, carteDemandeHTML, bandeauDon, ouvrirLigne, ligneDemandeHTML, ouvrirDemande } from './reseau.js';
 
-/* R1 (décision 0002) : « Réseau » remplace « Échanger » en préversion.
-   La même vue, recadrée sur UNE question — qui peut m'aider ? : mes
-   demandes en tête, puis les conversations, « Mes amis » et
-   « Historique ». « Donner » est parti dans « Pistes », « Recevoir »
-   dans le +. Le lot dit où l'on dessine et sous quel nom. */
-const ICI = () => lot('reseau') ? 'reseau' : 'echanger';
+/* R1 (décision 0002) : « Réseau » a remplacé « Échanger » (7.0.0).
+   Une vue recadrée sur UNE question — qui peut m'aider ? : mes demandes
+   en tête, puis les conversations, « Mes amis » et « Historique ».
+   « Donner » est parti dans « Pistes » et la fiche, « Recevoir » dans
+   le +. */
 const surIci = () => /^#\/(echanger|reseau)\b/.test(location.hash);
 
 /* Deux conceptions, pas une page élastique : au pouce, une colonne —
    les gestes d'abord, le fil dessous ; au poste, les gestes tiennent
    dans une colonne étroite et le fil occupe la place restante. */
 const mqWide = matchMedia('(min-width:901px)');
-mqWide.addEventListener('change', () => { if (S.profile && (S.route === 'echanger' || S.route === 'reseau')) renderEchanger(); });
+mqWide.addEventListener('change', () => { if (S.profile && S.route === 'reseau') renderEchanger(); });
 
 /* un journal porte des horodatages, pas des dates d'agenda : « hier »
    et « aujourd'hui » se disent, le reste se date */
@@ -427,7 +424,7 @@ function ouvrirHistorique(){
    reçu ; la conversation ouverte, elle, garde son fil, son champ et ce
    qu'on y tapait. */
 let volet = null;
-/* hors d'« Échanger », la conversation de droite se ferme. Cachée, elle
+/* hors de « Réseau », la conversation de droite se ferme. Cachée, elle
    resterait « sous les yeux » pour l'app : ce qui arrive pendant qu'on
    regarde ailleurs se marquerait lu, et la même conversation ouverte
    ailleurs (une feuille) existerait deux fois. Au retour, la boîte la
@@ -439,28 +436,8 @@ window.addEventListener('hashchange', () => {
 });
 
 export function renderEchanger(){
-  const R = lot('reseau');
-  const root = $('#view-' + ICI());
-  /* l'autre nom de la même vue se vide : un seul exemplaire de chaque
-     identifiant dans le document, et rien de caché qui s'annonce */
-  const autre = $('#view-' + (R ? 'echanger' : 'reseau'));
-  if (autre && autre.firstChild) autre.innerHTML = '';
+  const root = $('#view-reseau');
   const wide = mqWide.matches;
-  /* « Donner » sans rien à donner était une action MORTE : l'indisponible
-     est ABSENT, jamais grisé (loi #6). « Recevoir » prend la place — c'est
-     par là qu'on commence quand un camarade nous partage sa liste. */
-  const aDonner = S.companies.some(c => !isClosed(c) && !c.demo);
-  /* en préversion, ni Donner ni Recevoir ici : l'un vit avec les pistes,
-     l'autre derrière le + (décision 0002) */
-  const gestes = R ? '' :
-    `<div class="hero2">
-       ${aDonner ? `<button class="btn btn-primary hero" id="ecGive">${ic('share', 'ic-14')}<span>Donner</span></button>` : ''}
-       <button class="btn${aDonner ? '' : ' btn-primary'} hero" id="ecRecv">${ic('inbox', 'ic-14')}<span>Recevoir</span></button>
-     </div>
-     ${PARTAGE_DIRECT ? `<button class="pcard moi-door" id="ecPromo">
-       <span class="md-m"><b>${ic('radio', 'ic-14')} Partage en groupe</b></span>
-       ${wide ? '' : ic('chevron-right', 'ic-14')}
-     </button>` : ''}`;
   const b = boiteHTML(wide);
   const nHisto = exchangeLog(S.journal, 0).length;
   /* l'historique : une ligne, seulement s'il y a une trace à relire */
@@ -468,7 +445,9 @@ export function renderEchanger(){
       <span class="bx-histo-n">${nHisto}</span>${ic('chevron-right', 'ic-14')}</button>` : '';
   /* « Reçues, jamais reprises » est né pour le poste, et il y reste :
      c'est une décision, gardée par e2e-ux-audit.mjs */
-  const colonne = `${R ? demandesHTML() : ''}${b.html}${wide ? reprendreHTML() : ''}${histo}`;
+  /* le partage en direct, masqué (ui/perimetre.js) : sa porte reste ici */
+  const promo = PARTAGE_DIRECT ? `<button class="bx-histo" id="ecPromo">${ic('radio', 'ic-14')}<span class="bx-histo-l">Partage en groupe</span>${ic('chevron-right', 'ic-14')}</button>` : '';
+  const colonne = `${demandesHTML()}${b.html}${wide ? reprendreHTML() : ''}${histo}${promo}`;
   /* au poste, deux volets dès qu'il y a une conversation : la liste à
      gauche, la conversation à droite. Sans conversation, une seule
      colonne — un volet vide ne serait qu'un trou. */
@@ -486,19 +465,15 @@ export function renderEchanger(){
   const ligneFoc = foc && foc.dataset.fil ? foc.dataset.fil : (foc && foc.id && !volet?.contains(foc) ? '#' + foc.id : '');
   const defile = root.querySelector('.bx-zone, .bx-gauche')?.scrollTop || 0;
   const gauche = deux && volet && root.contains(volet) ? root.querySelector('.bx-gauche') : null;
-  if (gauche){
-    const actes = root.querySelector('.ec-actes');
-    if (actes) actes.innerHTML = gestes;
-    gauche.innerHTML = colonne;
-  } else {
+  if (gauche) gauche.innerHTML = colonne;
+  else {
     root.innerHTML =
       `<div class="page-inner${wide ? ' page-wide' : ''} ec-boite">
-         <div class="td-head"><h1>${R ? 'Réseau' : 'Échanger'}</h1></div>
+         <div class="td-head"><h1>Réseau</h1></div>
          ${wide
-           ? `${gestes ? `<div class="ec-actes">${gestes}</div>` : ''}
-              ${deux ? `<div class="bx-cols"><div class="bx-gauche">${colonne}</div><div class="bx-volet-ici"></div></div>`
-                     : `<div class="bx-seule">${colonne}</div>`}`
-           : `<div class="bx-zone">${colonne}</div>${gestes}`}
+           ? deux ? `<div class="bx-cols"><div class="bx-gauche">${colonne}</div><div class="bx-volet-ici"></div></div>`
+                  : `<div class="bx-seule">${colonne}</div>`
+           : `<div class="bx-zone">${colonne}</div>`}
        </div>`;
     if (deux){
       if (!volet){ volet = document.createElement('div'); volet.className = 'bx-volet'; volet.id = 'bxVolet'; }
@@ -511,14 +486,12 @@ export function renderEchanger(){
     const n = ligneFoc.startsWith('#') ? root.querySelector(ligneFoc) : root.querySelector(`[data-fil="${CSS.escape(ligneFoc)}"]`);
     if (n && n !== document.activeElement) n.focus({ preventScroll: true });
   }
-  root.querySelector('#ecGive')?.addEventListener('click', openDonner);
-  root.querySelector('#ecRecv')?.addEventListener('click', openRecevoir);
   root.querySelectorAll('[data-don]').forEach(b =>
     b.addEventListener('click', () => ouvrirLigne('don', b.dataset.don)));
   root.querySelectorAll('[data-dem]').forEach(b =>
     b.addEventListener('click', () => ouvrirDemande(b.dataset.dem)));
-  root.querySelector('#ecPromo')?.addEventListener('click', openPromo);
   root.querySelector('#ecHisto')?.addEventListener('click', ouvrirHistorique);
+  root.querySelector('#ecPromo')?.addEventListener('click', openPromo);
   bindBoite(root, { volet: deux ? volet : null, rendre: renderEchanger });
   /* une ligne qui réclame mène LÀ OÙ L'ON AGIT : sa fiche, en un tap */
   root.querySelectorAll('[data-rep]').forEach(btn =>
