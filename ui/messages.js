@@ -26,7 +26,7 @@ import { MESSAGES_KEY, kvGet, kvSet } from '../engine/storage.js';
 import { prenomAmi } from '../engine/amis.js';
 import { MESSAGE_MAX, conversationsVides, normaliserConversations, filAvec, ajouterMessage, nonLus,
          dernier, marquerLu } from '../engine/messages.js';
-import { S, bus } from './state.js';
+import { S, bus, apresImage } from './state.js';
 import { openSheet, btn, ic, champGrandit } from './dom.js';
 import { heureDe, memeJour } from './dates.js';
 import { preparerMessage, posterMessage, enAttente, ecouterBoite, relever, echecEnvoi } from './reseau.js';
@@ -106,14 +106,14 @@ export async function ouvrirConversation(a, apres, o = {}){
       if (arret) arret();
       if (ouverte && ouverte.sh === sh) ouverte = null;
       conv = marquerLu(conv, a.id);
-      sauver();
-      bus.refresh();
+      apresImage(sauver);
+      bus.apresImage();
       if (apres) apres();
     } });
   const rendre = () => {
     if (!sh.body.isConnected) return;
     const fil = filAvec(conv, a.id);
-    const bas = sh.body.scrollHeight - sh.body.scrollTop - sh.body.clientHeight < 40;
+    const bas = rendu && sh.body.scrollHeight - sh.body.scrollTop - sh.body.clientHeight < 40;
     const neuf = m => !m.moi && m.at > vuAvant;
     const n = fil.filter(neuf).length;
     const premier = fil.findIndex(neuf);
@@ -186,9 +186,11 @@ export async function ouvrirConversation(a, apres, o = {}){
   sh.setFoot([pied]);
 
   conv = marquerLu(conv, a.id);
-  sauver();
   rendre();
-  bus.refresh();
+  /* la boîte est derrière la feuille, et la lecture n'a pas à
+     s'enregistrer pendant le tap : après l'image (ui/state.js) */
+  apresImage(sauver);
+  bus.apresImage();
   /* EN DIRECT tant que la feuille est ouverte ; une relève rattrape ce
      qui est arrivé pendant que l'app était fermée, et renvoie ce qui
      attendait encore */

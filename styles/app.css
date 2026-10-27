@@ -1416,7 +1416,13 @@ button.pp-et:active{background:var(--surface-raised)}
    d'octobre 2026 l'a photographié en pointillé autour de « Mes pistes ».
    WCAG 2.4.7 vise les composants qu'on actionne, pas les titres. */
 .view h1[tabindex="-1"]:focus-visible{outline:none}
-:has(> * > .sw-cible:focus-visible){outline:var(--focus-outline);outline-offset:var(--focus-offset)}
+/* `:focus-within` d'abord : il ne change RIEN à ce que la règle
+   désigne (un petit-enfant qui a le focus, c'est un focus dedans), mais
+   c'est un drapeau, et il écarte d'un coup chaque élément qui ne contient
+   pas le focus. Sans lui, la règle était essayée sur les 870 éléments de
+   la page à chaque feuille ouverte — la plus chère de l'app après le
+   toast (lot R11, statistiques de sélecteurs de Chromium). */
+:focus-within:has(> * > .sw-cible:focus-visible){outline:var(--focus-outline);outline-offset:var(--focus-offset)}
 /* poubelle au survol (souris) : un élément du flux, pas un survol
    flottant — la colonne est réservée, rien ne saute ni ne déborde. Nue
    comme toute action de ligne : ni cadre, ni biseau, ni ombre, ni aplat
@@ -3893,7 +3899,7 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 .undo-bar span{flex:1;min-width:0}
 .undo-bar .btn{flex:none}
 /* LE TOAST A UN SEUL ANCRAGE À LA FOIS : le bas, ou le haut quand une
-   feuille est ouverte (`body:has(.overlay) .toast`, plus bas). Chaque
+   feuille est ouverte (`body:has(> .overlay) .toast`, plus bas). Chaque
    règle qui le déplace dit donc de quel côté elle joue. Posés ensemble,
    haut ET bas étirent la boîte entre les deux : photographié le
    30 septembre 2026, une colonne de 641 px sur les champs de la
@@ -3901,15 +3907,24 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
    d'« Aujourd'hui », qui porte un id, l'emportait sur `bottom:auto`.
    Gardé par e2e-parcours-neuf (le toast n'est jamais plus haut que son
    texte, dans chaque état et chaque combinaison). */
+/* CHAQUE `:has()` DE CE BLOC DIT LE CHEMIN (`>`), jamais « quelque part
+   dessous » (lot R11). La feuille, la barre Annuler et le toast sont des
+   enfants directs de `<body>`, l'avertissement vit dans `.app` : sans le
+   chemin, chaque calcul du toast parcourait TOUTE la page pour savoir
+   s'il y avait une feuille — douze fois pendant le seul tap qui ouvre
+   un groupe, le sélecteur le plus cher de l'app (statistiques de
+   sélecteurs de Chromium). Avec, il regarde une vingtaine d'enfants.
+   Une feuille posée ailleurs que sous `<body>` ne déplacerait plus le
+   toast : `openSheet` est le seul à en poser une. */
 /* le toast laisse la place à la barre Annuler quand elle est là */
-body:has(.undo-bar):not(:has(.overlay)) .toast{bottom:calc(var(--nav-h) + 76px + env(safe-area-inset-bottom))}
+body:not(:has(> .overlay)):has(> .undo-bar) .toast{bottom:calc(var(--nav-h) + 76px + env(safe-area-inset-bottom))}
 /* … et à un PIED posé au pouce, qui occupe la même bande. Mesuré sur
    « Aujourd'hui » : 34 px de recouvrement, et un doigt visant « 1 piste
    sans prochaine action → » touchait LE TOAST — juste après avoir ajouté
    une piste, donc au moment précis où ce lien est le prochain geste.
    Tout écran qui descend une action au pouce doit repasser ici. */
 @media (max-width:900px){
-  body:has(#view-aujourdhui:not([hidden]) .td-under):not(:has(.overlay)) .toast{
+  body:not(:has(> .overlay)):has(> .app > .main > #view-aujourdhui:not([hidden]) > .page-inner > .td-under) .toast{
     /* 88 et non 76 : à 76 il restait 8 px de recouvrement sur le bord
        HAUT du lien — le centre était libre, le bord non */
     bottom:calc(var(--nav-h) + 88px + env(safe-area-inset-bottom));
@@ -3917,7 +3932,7 @@ body:has(.undo-bar):not(:has(.overlay)) .toast{bottom:calc(var(--nav-h) + 76px +
 }
 @media (min-width:901px){
   .undo-bar{bottom:40px}
-  body:has(.undo-bar):not(:has(.overlay)) .toast{bottom:100px}
+  body:not(:has(> .overlay)):has(> .undo-bar) .toast{bottom:100px}
 }
 /* … et elle suit le toast quand une FEUILLE est ouverte : en haut, dans
    la bande que la feuille laisse au voile. Ancrée en bas, elle se posait
@@ -3926,8 +3941,8 @@ body:has(.undo-bar):not(:has(.overlay)) .toast{bottom:calc(var(--nav-h) + 76px +
    elle tombait sur le pied, à l'endroit exact où le pouce cherche
    « Enregistrer ». Un seul ancrage à la fois, comme le toast : le bas
    se libère (`bottom:auto`). Le toast descend alors d'une voie. */
-body:has(.overlay) .undo-bar{bottom:auto;top:calc(env(safe-area-inset-top) + 8px)}
-body:has(.undo-bar):has(.overlay) .toast{top:calc(env(safe-area-inset-top) + 82px)}
+body:has(> .overlay) .undo-bar{bottom:auto;top:calc(env(safe-area-inset-top) + 8px)}
+body:has(> .undo-bar):has(> .overlay) .toast{top:calc(env(safe-area-inset-top) + 82px)}
 
 /* ============ ALERTE SAUVEGARDE / TOAST ============ */
 /* L'avertissement le plus grave de l'app : ce que l'étudiant saisit
@@ -3949,11 +3964,11 @@ body:has(.undo-bar):has(.overlay) .toast{top:calc(env(safe-area-inset-top) + 82p
 /* le toast s'efface devant lui : il descend d'une voie tant qu'il est là.
    Seulement quand il est ancré en HAUT (feuille ouverte) : ancré en bas,
    il ne le croise pas, et un `top` posé en plus l'étirait jusqu'au pied. */
-body:has(#saveWarn:not([hidden])):has(.overlay) .toast{top:calc(env(safe-area-inset-top) + 148px)}
+body:has(> .app > #saveWarn:not([hidden])):has(> .overlay) .toast{top:calc(env(safe-area-inset-top) + 148px)}
 /* la barre Annuler, ancrée en haut sous une feuille, fait de même : elle
    passe sous l'avertissement, et le toast sous elle */
-body:has(#saveWarn:not([hidden])):has(.overlay) .undo-bar{top:calc(env(safe-area-inset-top) + 128px)}
-body:has(#saveWarn:not([hidden])):has(.undo-bar):has(.overlay) .toast{top:calc(env(safe-area-inset-top) + 202px)}
+body:has(> .app > #saveWarn:not([hidden])):has(> .overlay) .undo-bar{top:calc(env(safe-area-inset-top) + 128px)}
+body:has(> .app > #saveWarn:not([hidden])):has(> .undo-bar):has(> .overlay) .toast{top:calc(env(safe-area-inset-top) + 202px)}
 .save-warn button{
   background:var(--surface-window);border:1px solid var(--red);color:var(--red);
   border-radius:var(--radius-1);padding:5px 11px;font-weight:var(--weight-bold);min-height:var(--ctl);
@@ -3982,7 +3997,7 @@ body:has(#saveWarn:not([hidden])):has(.undo-bar):has(.overlay) .toast{top:calc(e
 .bar-x:hover{background:var(--surface-chrome);color:var(--text-body)}
 }
 @media (hover:hover){ .bar-x{display:inline-flex} }
-body:has(.overlay) .toast{bottom:auto;top:calc(env(safe-area-inset-top) + 62px)}
+body:has(> .overlay) .toast{bottom:auto;top:calc(env(safe-area-inset-top) + 62px)}
 @media (min-width:901px){ .toast{bottom:44px} }
 
 /* ============ MOTION (#23 : objets nets, déplacements doux) ============
@@ -3999,7 +4014,7 @@ body:has(.overlay) .toast{bottom:auto;top:calc(env(safe-area-inset-top) + 62px)}
 @keyframes oc-up{from{opacity:0;translate:0 12px}}
 @keyframes oc-down{from{opacity:0;translate:0 -12px}}
 /* ancrée en haut, la barre Annuler arrive du haut : d'où elle vient (§4 ①) */
-body:has(.overlay) .undo-bar{animation-name:oc-down}
+body:has(> .overlay) .undo-bar{animation-name:oc-down}
 .overlay{animation:oc-fade var(--dur-2) var(--ease-out)}
 .overlay .modal{animation:oc-up var(--dur-3) var(--ease-out)}
 .view:not([hidden])>.page-inner{animation:oc-fade var(--dur-2) var(--ease-out)}

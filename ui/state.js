@@ -28,8 +28,35 @@ export const S = {
   preversion: false,    /* les lots en test s'allument sur CET appareil (engine/drapeaux.js) */
   route: 'aujourdhui'
 };
+/* APRÈS LA PROCHAINE IMAGE (lot R11) : ce qu'un tap doit faire mais
+   que personne ne verra pendant ce tap. Ouvrir une conversation la
+   marque lue : la boîte, sous la feuille qui monte, doit perdre son
+   point, et la lecture doit s'enregistrer. Faits dans le tap, les deux
+   coûtaient jusqu'à 90 ms d'un geste sur un téléphone moyen (relevé à
+   grande échelle) pour un écran que la feuille couvre. Ils partent
+   juste après que la feuille s'est posée : `requestAnimationFrame` va
+   jusqu'à l'image, le minuteur passe derrière elle. Une même tâche
+   demandée deux fois ne se fait qu'une fois. */
+const tard = new Set();
+let prevu = false;
+export function apresImage(fn){
+  tard.add(fn);
+  if (prevu) return;
+  prevu = true;
+  requestAnimationFrame(() => setTimeout(() => {
+    prevu = false;
+    const l = [...tard];
+    tard.clear();
+    l.forEach(f => f());
+  }, 0));
+}
 /* app.js branche ici le re-rendu de la vue courante */
-export const bus = { refresh(){} };
+const rafraichir = () => bus.refresh();
+export const bus = {
+  refresh(){},
+  /* le rendu de ce qui est DERRIÈRE la feuille qui s'ouvre */
+  apresImage(){ apresImage(rafraichir); }
+};
 
 export function setSaveWarn(bad){
   const w = document.getElementById('saveWarn');

@@ -16,7 +16,7 @@ import { docGet } from '../engine/storage.js';
 import { aiComplete, draftPrompt, splitDraft } from '../engine/ai.js';
 import { SILENCE_RELANCE } from '../engine/assist.js';
 import { S, bus, saveData, logJ, activateContact, lot } from './state.js';
-import { openSheet, toast, btn, el, ic, showUndo, champGrandit } from './dom.js';
+import { openSheet, toast, btn, el, ic, showUndo, champGrandit, avantImage } from './dom.js';
 import { askNextAction } from './actions.js';
 import { openProfil } from './profil.js';
 import { listDocs, docKind, docTitle, pickPdf } from './docs.js';
@@ -166,14 +166,6 @@ export function openMail(c, opts){
      Un objet n'a pas de ligne : Entrée passe au message, et un
      copier-coller multiligne se remet à plat en entrant. */
   const OBJET_CIBLE = 60, OBJET_LIGNES = 4;
-  /* poser la hauteur d'un champ sur son texte. `scrollHeight` ne compte
-     jamais la bordure : sans elle, chaque mesure rogne deux pixels et
-     une dernière ligne finit par se couper. */
-  function auTexte(t, plafond){
-    t.style.height = 'auto';
-    const bord = t.offsetHeight - t.clientHeight;
-    t.style.height = Math.ceil(Math.min(t.scrollHeight, plafond) + bord) + 'px';
-  }
   /* appelé par `sync()`, donc par TOUS les chemins qui posent un objet —
      le gabarit, la frappe, le brouillon IA, l'annulation du brouillon.
      Un chemin qui l'oubliait laissait un champ d'une ligne sur un objet
@@ -199,9 +191,19 @@ export function openMail(c, opts){
     if (!t || (!force && t.value === objetVu)) return;
     if (t.value.includes('\n')) t.value = t.value.replace(/\s*\n+\s*/g, ' ');
     objetVu = t.value;
-    const st = getComputedStyle(t);
-    auTexte(t, (parseFloat(st.lineHeight) || 20) * OBJET_LIGNES
-      + parseFloat(st.paddingTop) + parseFloat(st.paddingBottom));
+    /* la hauteur se pose à l'image, avec celle du message (ui/dom.js,
+       `avantImage`). `scrollHeight` ne compte jamais la bordure : sans
+       elle, chaque mesure rogne deux pixels et une dernière ligne finit
+       par se couper. */
+    avantImage({
+      preparer: () => { t.style.height = 'auto'; },
+      lire: () => {
+        const st = getComputedStyle(t);
+        const plafond = (parseFloat(st.lineHeight) || 20) * OBJET_LIGNES + parseFloat(st.paddingTop) + parseFloat(st.paddingBottom);
+        return Math.ceil(Math.min(t.scrollHeight, plafond) + t.offsetHeight - t.clientHeight);
+      },
+      ecrire: h => { t.style.height = h + 'px'; }
+    });
     q('#mSubjN').textContent = t.value.length + '/' + OBJET_CIBLE;
   }
   const aMail = document.createElement('a');
@@ -327,7 +329,7 @@ export function openMail(c, opts){
   };
   function sync(){
     syncObjet();
-    pousserCorps();
+    pousserCorps.aLImage();
     /* l'erreur part dès que le dernier crochet est remplacé — jamais avant */
     if (!q('#mTrou').hidden && !crochets(q('#mBody').value).length){
       q('#mTrou').hidden = true;

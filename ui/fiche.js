@@ -598,6 +598,7 @@ export function openFiche(c, o = {}){
        que personne n'a demandé. Ensuite, chaque ligne gagnée ou rendue
        glisse — c'est ce qui empêche le reste du formulaire de sauter
        d'un cran sous les doigts pendant qu'on écrit. */
+    let largeur = 0;
     const pousse = net => {
       /* Piège mesuré : lire `scrollHeight` juste après `height:auto`
          FORCE un calcul de style, et la transition part alors de la
@@ -611,10 +612,15 @@ export function openFiche(c, o = {}){
          dernière ligne perd ses deux derniers pixels (même piège que
          `champGrandit`) */
       const bord = notes.offsetHeight - notes.clientHeight;
+      largeur = notes.clientWidth;
       const cible = Math.max(44, notes.scrollHeight + bord) + 'px';
+      /* `net` : UNE mesure suffit. De `auto` à une longueur, rien ne
+         s'anime (ce n'est pas une valeur qu'on interpole) ; les deux
+         mises en page forcées de plus ne servaient à rien, et elles
+         tombaient dans le tap qui ouvre la fiche (lot R11) */
+      if (net){ notes.style.height = cible; notes.style.transition = ''; return; }
       notes.style.height = depart || cible;
       void notes.offsetHeight;
-      if (net){ notes.style.height = cible; void notes.offsetHeight; }
       notes.style.transition = '';
       notes.style.height = cible;
     };
@@ -624,7 +630,7 @@ export function openFiche(c, o = {}){
       renderFoot();
     });
     pousse(true);
-    suivreLargeur(notes, () => pousse(true));
+    suivreLargeur(notes, () => pousse(true), () => largeur);
     renderFoot();
   };
   render();

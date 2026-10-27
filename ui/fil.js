@@ -15,7 +15,7 @@
    Les deux fils (groupe, ami) marquent ce qui est neuf `fil-neuf` et
    posent la ligne avec `ligneNouveaux` ; ce fichier fait le reste.
    ============================================================ */
-import { ic } from './dom.js';
+import { ic, avantImage } from './dom.js';
 import { esc } from '../engine/utils.js';
 import { decouperLiens } from '../engine/liens.js';
 import { jourFil } from './dates.js';
@@ -95,8 +95,8 @@ export function suivreNouveaux(body){
     const bord = body.getBoundingClientRect().bottom;
     return [...body.querySelectorAll('.fil-neuf')].filter(n => n.getBoundingClientRect().top > bord - 8).length;
   };
-  const maj = () => {
-    const n = enBas() ? 0 : sousLeBord();
+  const compter = () => enBas() ? 0 : sousLeBord();
+  const montrer = n => {
     if (!n){ if (bouton){ bouton.remove(); bouton = null; } return; }
     if (!bouton || !bouton.isConnected){
       bouton = document.createElement('button');
@@ -109,7 +109,17 @@ export function suivreNouveaux(body){
     }
     bouton.innerHTML = `${ic('arrow-down', 'ic-14')} ${dit(n)}`;
   };
-  body.addEventListener('scroll', () => requestAnimationFrame(maj), { passive: true });
+  const maj = () => montrer(compter());
+  /* au défilement, la relecture se range avec les autres, à l'image
+     (ui/dom.js, `avantImage`) : poser la conversation sur ses nouveaux
+     messages défile, et ce défilement relisait la page une fois de plus
+     dans la toute première image (lot R11) */
+  let prevu = false;
+  body.addEventListener('scroll', () => {
+    if (prevu) return;
+    prevu = true;
+    avantImage({ lire: () => { prevu = false; return compter(); }, ecrire: montrer });
+  }, { passive: true });
   return {
     maj,
     /* l'ouverture : sur la ligne « N nouveaux » s'il y en a une — un peu

@@ -34,7 +34,7 @@ import { GROUPES_MAX, MOT_MAX, NOM_MAX, nouveauCode, codeNorm, codeAffiche, nomG
          citesDe, citeMoi, mentionsNonLues, prenomsPour } from '../engine/groupe.js';
 import { phraseCritere } from '../engine/critere.js';
 import { emailPlausible } from '../engine/model.js';
-import { S, bus, saveProfile, lot } from './state.js';
+import { S, bus, saveProfile, lot, apresImage } from './state.js';
 import { openSheet, toast, btn, ic, showUndo, clavier, champGrandit, bindDeleteGesture, confirmSheet, choixHTML } from './dom.js';
 import { cleFil } from '../engine/conversations.js';
 import { ligneNouveaux, suivreNouveaux, ligneJour, texteHTML, debutFenetre, ligneAvant, ouvrirAvant } from './fil.js';
@@ -600,7 +600,9 @@ export async function ouvrirGroupe(code, apres, o = {}){
     /* qui attend à la porte passe EN TÊTE, comme une demande trouvée :
        quelqu'un attend, et c'est à moi de répondre (lot 5c) */
     const porte = quiAttend(code);
-    const bas = sh.body.scrollHeight - sh.body.scrollTop - sh.body.clientHeight < 40;
+    /* au premier rendu, rien à relire : lire la hauteur forcerait une
+       mise en page de la feuille encore vide, pendant le tap */
+    const bas = rendu && sh.body.scrollHeight - sh.body.scrollTop - sh.body.clientHeight < 40;
     sh.setTitle(nomDe(code));
     sh.body.innerHTML =
       /* LA LIGNE D'EN-TÊTE, toujours là — seul aussi : c'est la porte des
@@ -633,8 +635,11 @@ export async function ouvrirGroupe(code, apres, o = {}){
     sh.body.querySelectorAll('[data-refuser]').forEach(b => b.addEventListener('click', () => repondre(b, false)));
     if (q('#grInviter')) inviterDans(q('#grInviter'), code);
     sh.body.querySelectorAll('[data-voir]').forEach(b => b.addEventListener('click', () => voirPistes(code, b.dataset.voir, rendre)));
+    /* une table, pas une recherche par bulle : 120 bulles dans un fil de
+       640 messages faisaient 77 000 comparaisons pendant le tap (lot R11) */
+    const parId = new Map(groupe(code).fil.map(y => [y.id, y]));
     sh.body.querySelectorAll('[data-retirable]').forEach(li => {
-      const x = groupe(code).fil.find(y => y.id === li.dataset.retirable);
+      const x = parId.get(li.dataset.retirable);
       bindDeleteGesture(li, () => retirerMessage(code, li.dataset.retirable, rendre), x ? 'le message de ' + x.prenom : '', { mot: 'Retirer' });
     });
     sh.body.querySelectorAll('[data-repondre]').forEach(b => b.addEventListener('click', () => {
@@ -761,8 +766,10 @@ function vu(code){
   if (!mesGroupes().some(g => g.code === code)) return;
   if (!etat[code]) return;
   etat[code] = { ...etat[code], vu: Date.now() };
-  sauver();
-  bus.refresh();
+  /* la boîte est derrière la feuille, et la lecture n'a pas à
+     s'enregistrer pendant le tap : après l'image (ui/state.js) */
+  apresImage(sauver);
+  bus.apresImage();
 }
 
 /* donner des pistes AU GROUPE : la liste de « Donner », envoyée en
