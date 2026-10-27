@@ -1421,7 +1421,7 @@ button.pp-et:active{background:var(--surface-raised)}
    c'est un drapeau, et il écarte d'un coup chaque élément qui ne contient
    pas le focus. Sans lui, la règle était essayée sur les 870 éléments de
    la page à chaque feuille ouverte — la plus chère de l'app après le
-   toast (lot R11, statistiques de sélecteurs de Chromium). */
+   toast (porte « Performance », statistiques de sélecteurs de Chromium). */
 :focus-within:has(> * > .sw-cible:focus-visible){outline:var(--focus-outline);outline-offset:var(--focus-offset)}
 /* poubelle au survol (souris) : un élément du flux, pas un survol
    flottant — la colonne est réservée, rien ne saute ni ne déborde. Nue
@@ -3908,7 +3908,7 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
    Gardé par e2e-parcours-neuf (le toast n'est jamais plus haut que son
    texte, dans chaque état et chaque combinaison). */
 /* CHAQUE `:has()` DE CE BLOC DIT LE CHEMIN (`>`), jamais « quelque part
-   dessous » (lot R11). La feuille, la barre Annuler et le toast sont des
+   dessous » (porte « Performance »). La feuille, la barre Annuler et le toast sont des
    enfants directs de `<body>`, l'avertissement vit dans `.app` : sans le
    chemin, chaque calcul du toast parcourait TOUTE la page pour savoir
    s'il y avait une feuille — douze fois pendant le seul tap qui ouvre

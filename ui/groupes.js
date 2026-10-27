@@ -636,7 +636,7 @@ export async function ouvrirGroupe(code, apres, o = {}){
     if (q('#grInviter')) inviterDans(q('#grInviter'), code);
     sh.body.querySelectorAll('[data-voir]').forEach(b => b.addEventListener('click', () => voirPistes(code, b.dataset.voir, rendre)));
     /* une table, pas une recherche par bulle : 120 bulles dans un fil de
-       640 messages faisaient 77 000 comparaisons pendant le tap (lot R11) */
+       640 messages faisaient jusqu'à 77 000 comparaisons pendant le tap (porte « Performance ») */
     const parId = new Map(groupe(code).fil.map(y => [y.id, y]));
     sh.body.querySelectorAll('[data-retirable]').forEach(li => {
       const x = parId.get(li.dataset.retirable);
@@ -755,8 +755,13 @@ export async function ouvrirGroupe(code, apres, o = {}){
     if (await absorber([ev], new Map([[k.etiquette, code]]))){ await sauver(); rendre(); }
   });
   /* la boîte aussi : qui attend à la porte y arrive (lot 5c) — une
-     relève déjà en cours est la même, rien ne part deux fois */
-  Promise.all([releverGroupes(), relever()]).then(rendre);
+     relève déjà en cours est la même, rien ne part deux fois. On ne
+     redessine que si elle a APPORTÉ quelque chose : un groupe qui change
+     est remplacé (`etat[code] = …`), jamais retouché sur place ; sinon,
+     les 120 bulles se refaisaient pour rien juste après l'ouverture, et
+     le tap suivant attendait derrière (porte « Performance ») */
+  const lu = groupe(code);
+  Promise.all([releverGroupes(), relever()]).then(([, boite]) => { if (boite || groupe(code) !== lu) rendre(); });
   return sh;
 }
 /* la feuille d'un groupe ouverte : si le groupe change de code pendant

@@ -238,3 +238,23 @@ export function direCombien(k, q){
    champ à regarder. */
 export const rienTrouveHTML = () =>
   `<p class="hint" style="text-align:center;margin:14px 0">${ic('search', 'ic-14')} Aucune piste ne correspond.</p>`;
+
+/* UNE LISTE À COCHER S'OUVRE SUR SES SOIXANTE PREMIÈRES LIGNES (porte
+   « Performance ») — le cap de « Mes pistes » (`CAP_LIST`), et son mot :
+   « Voir les N autres ». Relevé au plafond de l'app, « Donner » posait
+   ses 400 pistes d'un coup, près de 5 000 éléments : plus d'une
+   demi-seconde entre le tap et l'image sur un téléphone moyen, dont
+   300 ms de styles et de mise en page pour des lignes sous le bord. Ce qui est caché reste ce qu'il
+   était — coché dans « Donner », compté dans le pied, pris par la case
+   « tout » ; la recherche porte sur toutes. Le tap qui ouvre la suite
+   pose le focus sur la première ligne révélée : le bouton disparaît, le
+   focus ne doit pas tomber avec lui (§6). */
+export const CAP_COCHER = 60;
+export const fenetreCocher = (list, toutVoir) => toutVoir || list.length <= CAP_COCHER ? list : list.slice(0, CAP_COCHER);
+export const voirAutresHTML = n => n > 0 ? `<button class="linklike tr-more" data-plus>Voir les ${n} autres</button>` : '';
+export function lierVoirAutres(box, ouvrir){
+  box.querySelector('[data-plus]')?.addEventListener('click', () => {
+    ouvrir();
+    box.querySelectorAll('.pk')[CAP_COCHER]?.focus();
+  });
+}

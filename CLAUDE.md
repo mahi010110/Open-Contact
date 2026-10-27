@@ -949,10 +949,12 @@ avec un motif existant.
 | Montrer une valeur qu'on ne peut pas changer | `.fld-ro` — le libellé du champ, la valeur en texte. **Ni bordure ni relief** : ce qui se tape a un cadre (§6, sobriété 3). Et **un choix à une seule option n'est pas un choix** — le menu devient cette ligne, on lit à qui on écrit, le contrôle part |
 | Trier une liste | `ui/sort.js` — critère + bascule ↑↓ ; re-tap du critère actif = retour au défaut de l'écran |
 | Filtrer + trier ensemble | `ui/affiner.js` — une feuille, un compte dans le bouton (`Affiner ③`) **sur une page** ; dans la barre d'une liste à cocher, l'entonnoir prend l'accent et se passe du chiffre — deux compteurs dans une rangée de trois segments, c'est du bruit qui change de largeur à chaque tap. **Un tap ajoute, un re-tap retire** : plusieurs valeurs d'une même famille cohabitent. Dans UNE famille elles s'additionnent (« cyber ou cloud »), d'une famille à l'autre elles se croisent (« … et en cours ») — c'est ce que dit la phrase à voix haute, donc rien à expliquer à l'écran. Chaque valeur retenue porte SON étiquette sous la recherche : n'en montrer qu'une ferait croire que l'app a perdu des pistes |
-| Commander une liste à cocher | `barreListeHTML` + `bindBarreListe` (`ui/affiner.js`) — **UNE rangée, et le CHAMP y domine** : `[tout cocher] [recherche] [Affiner]`, sans un seul chiffre — la case pleine ou vide dit « tout ou pas tout », l'entonnoir en accent dit « ça filtre », et **ce qui se compte se compte là où l'on décide** : dans le pied, à côté de l'action. Un compteur dans la barre change de largeur à chaque tap, donc la rangée bouge sous le doigt. Le champ prend ~70 % de la barre, jamais moins : sous ~24 caractères il ne se lit plus comme une recherche mais comme un champ coincé entre des boutons (NN/g en demande ~27). **C'est de l'arithmétique, pas du goût** — à 360 px on a 324 px utiles et toute cible fait 44 px, donc la barre tient le champ plus DEUX commandes, jamais trois. La case se passe du mot « Tout » parce qu'elle tient l'axe des cases de la liste, et son compte n'apparaît que lorsqu'on a écarté quelque chose — l'encre va à ce qui change. À texte doublé la barre se replie (WCAG 1.4.10). Employée par les trois feuilles qui choisissent des pistes : Donner, Prospecter, partage en groupe |
+| Commander une liste à cocher | `barreListeHTML` + `bindBarreListe` (`ui/affiner.js`) — **UNE rangée, et le CHAMP y domine** : `[tout cocher] [recherche] [Affiner]`, sans un seul chiffre — la case pleine ou vide dit « tout ou pas tout », l'entonnoir en accent dit « ça filtre », et **ce qui se compte se compte là où l'on décide** : dans le pied, à côté de l'action. Un compteur dans la barre change de largeur à chaque tap, donc la rangée bouge sous le doigt. Le champ prend ~70 % de la barre, jamais moins : sous ~24 caractères il ne se lit plus comme une recherche mais comme un champ coincé entre des boutons (NN/g en demande ~27). **C'est de l'arithmétique, pas du goût** — à 360 px on a 324 px utiles et toute cible fait 44 px, donc la barre tient le champ plus DEUX commandes, jamais trois. La case se passe du mot « Tout » parce qu'elle tient l'axe des cases de la liste, et son compte n'apparaît que lorsqu'on a écarté quelque chose — l'encre va à ce qui change. À texte doublé la barre se replie (WCAG 1.4.10). Employée par les trois feuilles qui choisissent des pistes : Donner, Prospecter, partage en groupe. La liste s'ouvre sur soixante lignes et « Voir les N autres » (`fenetreCocher`, `voirAutresHTML`, `lierVoirAutres`) |
 | Une liste qui remplit une feuille | **l'action va dans le PIED, jamais au-dessus de la liste** (`setFoot`). C'est §5 appliqué à la lettre, et ça se paie deux fois si on l'oublie : « Donner » posait ses deux canaux dans le corps, à ~17 % de la hauteur, et avait dû inventer un **pli** pour les dégager — un pli qui coûtait ensuite 50 px au champ de recherche. Descendue dans le pied, l'action n'est plus jamais enterrée, le pli n'a plus d'objet, et l'état qui l'accompagnait disparaît. **Un contrôle qui existe pour réparer un mauvais placement se supprime en corrigeant le placement** |
 | Un geste qui CHANGE des données (restaurer, effacer, rompre, retirer, réinitialiser) | **un bouton, jamais un lien** — une rangée `.pick` s'il vit dans une liste, un `.btn-sm` taillé à son mot s'il est seul. Un lien EMMÈNE, un bouton AGIT (NN/g) : « Restaurer une copie », « Effacer cet appareil », « Rompre le lien » vivaient en mots soulignés, c'est-à-dire sous la forme qui promet d'aller ailleurs, pour les gestes les plus lourds de leur écran — le mainteneur l'a vu sur son téléphone. **Le destructif** est un `.pick-danger` en liste, un `.btn-danger` seul : pictogramme ET mot (une icône destructive ne se devine pas, elle se lit), rouge, dans **son propre groupe** (`.pick-sortie`, 16 px au-dessus), en dernier, jamais comme action principale (Apple ; GOV.UK réserve son bouton d'alerte à l'irréversible). Le `.linklike` reste à ce qui emmène ailleurs ou déplie : « Code oublié ? », « Compléter mon profil », « Voir les N autres ». Et un geste lourd sur une LIGNE (un appareil) ne s'y pose pas en icône nue : la ligne s'ouvre (chevron), et ses gestes vivent nommés dans sa feuille. Gardé par `e2e-appareils.mjs` |
 | Un fil qui grandit sans fin (un groupe, une conversation) | `debutFenetre`, `ligneAvant`, `ouvrirAvant` (`ui/fil.js`) — **une fenêtre** : les 60 derniers messages, ou depuis un peu avant le premier non-lu, 120 au plus — la taille d'un morceau de messagerie —, et « Voir les N messages d'avant » en tête, qui en ouvre soixante sans déplacer d'un pixel ce qu'on lit (Baymard : un bouton plutôt qu'un défilement sans fin). L'ancre est le premier message rendu : ce qui arrive ne fait pas glisser la fenêtre. Mesuré : 640 bulles figeaient un téléphone moyen 14 s ; dans la fenêtre, le plus gros groupe ne coûte plus qu'une demi-seconde de plus qu'un groupe de vingt messages. Et ce qui se répète sur chaque bulle se paie autant de fois : un visage est UN tracé SVG, jamais un `<rect>` par case ; un formateur de date se crée une fois (`ui/dates.js`). Gardé par `e2e-echelle.mjs` |
+| Ce qu'un tap fait mais que personne ne voit pendant ce tap | `apresImage(fn)` (`ui/state.js`) — juste après la prochaine image : le rendu de l'écran sous une feuille qui s'ouvre (`bus.apresImage()`), l'enregistrement d'une lecture. Une même tâche demandée deux fois ne se fait qu'une fois. Jamais pour ce que le geste MONTRE : la feuille, elle, se construit dans le tap. Gardé par `e2e-reactivite.mjs` ① |
+| Poser une hauteur à l'ouverture d'une feuille | `avantImage({ preparer, lire, ecrire })` (`ui/dom.js`) — à l'image, en lot : préparer tout, lire tout, écrire tout. Les lectures tombent sur la mise en page que le focus d'ouverture vient de faire (`focusOuverture`, `openSheet`) : elles ne coûtent rien. `champGrandit` y range sa première mesure, l'objet du composeur et la relecture du fil au défilement aussi. Une ouverture ne force qu'UNE mise en page, le focus à part (`e2e-reactivite.mjs` ②) |
 | Dire ce qui attend, sans notifier | **Le calme** (lot R10, drapeau `calme`, `docs/propositions/R10-grand-nombre-et-calme.md`). Un chiffre qui compte à ta place pendant que tu fais autre chose est une notification, même sans sonnerie : il part. Aucun chiffre sur un onglet ; une conversation non lue s'écrit en gras avec un point carré d'accent (`.bx-pt`), jamais un compte — « @ » reste, c'est le seul cas où quelqu'un t'attend toi. « Aujourd'hui », l'écran qu'on ouvre à son heure, porte la phrase : « Karim et Léa t'ont écrit » (`phraseEcrits`, `engine/conversations.js` : des prénoms, seulement les amis et les mentions, jamais le bavardage d'un groupe ni une conversation coupée), qui ouvre la boîte sur « Non lus ». Ce qui ARRIVE des autres ne surgit plus en toast : la liste, la carte ou la boîte le montrent déjà ; le merci d'un ami se lit deux jours dans « Tes amis » (`mercisRecents`). Restent en toast les pertes (groupe supprimé, retiré d'un groupe). Pourquoi pas « rien du tout » : couper toute notification rend anxieux, les regrouper à l'heure qu'on choisit rend attentif (Fitz et al., 2019) |
 | Une tranche qui peut se remplir (« Tes amis ») | **trois lignes, et « Voir les N autres »**, comme toute tranche d'« Aujourd'hui » — trente-sept cartes avaient pris l'écran avant le travail du jour. L'ordre dit la valeur (`rangerLignesAmis`, `engine/boite.js`) : un contact qu'on t'a DONNÉ, puis ce qu'on te demande et dont tu es toi-même la réponse, puis ce qui s'éteint le plus tôt ; un merci ferme la marche |
 | Suivre plusieurs demandes | dès deux, **une ligne chacune** (`ligneDemandeHTML`, `ui/reseau.js`) : l'entreprise en tête, le suivi du colis réduit à trois cases (pleine, à moitié, vide), en accent le contact qui attend ; la carte entière s'ouvre au tap (`ouvrirDemande`). Trois cartes prenaient tout le premier écran de « Réseau ». Trois demandes ouvertes au plus (`DEMANDES_OUVERTES_MAX`) : la liste reste courte par construction |
@@ -1287,6 +1289,69 @@ Et la copie que la protection EXIGE suit la même route que celle de
 « Moi » (`ui/fichier.js`) : deux copies qui ne sortaient pas du
 téléphone de la même façon, c'est la plus importante qui y restait.
 `e2e-replis.mjs` joue ces chemins, trois mutations à l'appui.
+
+**Un geste répond avant d'avoir tout fait** *(porte « Performance »,
+27 octobre 2026 — « un geste répond en moins de 200 ms sur un téléphone
+moyen simulé », `docs/recadrage.md`)*. Relevé à la trace de Chromium,
+processeur ralenti 4×, sur les feuilles qu'on ouvre tous les jours : au
+plafond de l'app, ouvrir un groupe prenait 920 ms, une conversation
+650. Rien de tout ça ne venait du nombre de BULLES — la fenêtre de R10
+le tenait déjà —, tout venait de travail que personne ne voyait. Six
+règles en sont sorties, chacune payée :
+
+- **Ce qui est sous la feuille attend l'image** (`apresImage`,
+  `bus.apresImage()`, `ui/state.js`). Ouvrir une conversation la marque
+  lue, et la boîte se redessinait DANS le tap, sous la feuille qui la
+  couvrait — 45 ms d'un tap de 180 avec trois conversations, bien plus
+  avec cent vingt. Elle se redessine juste après l'image, et la lecture
+  s'enregistre au même moment.
+- **Lire tout, puis écrire tout** (`avantImage`, `ui/dom.js`). Lire une
+  hauteur juste après en avoir écrit une force le navigateur à refaire
+  la mise en page sur-le-champ. « Modifier » la refaisait une fois par
+  champ, le composeur trois fois. Les premières mesures se rangent à
+  l'image, après le focus d'ouverture qui fait la mise en page de toute
+  façon : elles ne coûtent plus rien.
+- **Un `:has()` dit son chemin.** `body:has(.overlay)` parcourait toute
+  la page pour savoir s'il y avait une feuille, et la règle du toast
+  était évaluée douze fois pendant le tap qui ouvre un groupe : le
+  sélecteur le plus cher de l'app. `body:has(> .overlay)` regarde une
+  vingtaine d'enfants. Un `:has()` sans ancre est essayé sur chaque
+  élément de la page : préfixé par un drapeau qui dit la même chose
+  (`:focus-within`), il écarte tout le reste d'un coup.
+- **Ce qui se répète par ligne se construit une fois** et se clone : le
+  bouton et la sous-couche du geste de suppression, réanalysés pour
+  chacune des 120 bulles d'un groupe ouvert par son chef, coûtaient
+  200 ms du tap.
+- **Une recherche par ligne devient une table** : retrouver chaque bulle
+  dans un fil de 640 messages, c'était jusqu'à 77 000 comparaisons ;
+  chaque ligne de « Mes pistes » parmi 400 pistes, jusqu'à 160 000.
+- **Une liste à cocher s'ouvre sur soixante lignes** (`fenetreCocher`,
+  `ui/affiner.js`) — le cap de « Mes pistes », et son mot, « Voir les N
+  autres ». « Donner » posait ses 400 pistes d'un coup, près de 5 000
+  éléments : plus d'une demi-seconde, dont 300 ms de styles et de mise
+  en page pour des lignes sous le bord ; 240 ms maintenant. Ce qui est caché reste ce qu'il était (coché,
+  compté, pris par la case « tout »), la recherche porte sur toutes, et
+  le tap qui ouvre la suite pose le focus sur la première ligne
+  révélée.
+
+Trois corollaires de mesure, tous payés dans ce même relevé, et le
+premier est le plus cher. **① Un chiffre qu'on avance se relève.** Le
+relevé de R10 annonçait 1,9 s par feuille : il chronométrait les
+attentes de l'outil, pas le geste. Le bon instrument est celui des
+navigateurs (Event Timing : du tap à l'image suivante). Et un
+commentaire du code a annoncé « 60 ms » pour trois mesures de la
+fiche : la trace a dit six objets recalculés, presque rien — le vrai
+gain était ailleurs. **② Le bruit se départage en A/B, en alternance.**
+Le même tap varie de 50 ms d'une passe à l'autre : on compare l'ancien
+et le nouveau code dans la même session, tour à tour, et on lit la
+médiane. **③ La garde compte la cause, jamais le temps.** Un seuil en
+millisecondes rougirait au hasard en CI, et une garde qui rougit au
+hasard finit ignorée ; ce qui se compte à la trace — un rendu derrière
+la feuille, une mise en page forcée de trop — est déterministe
+(`e2e-reactivite.mjs`). Sa première version ne regardait que la tâche
+du tap : une ouverture qui attend ses données se construit une tâche
+plus tard, et sa propre mutation est passée au vert. La fenêtre va
+donc du tap à l'image où la feuille est posée.
 
 **Règles d'écran :** un bouton primaire max par vue ; une suppression unitaire
 réversible se fait au geste + `showUndo`, sans confirmation ; seules les

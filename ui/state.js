@@ -28,7 +28,7 @@ export const S = {
   preversion: false,    /* les lots en test s'allument sur CET appareil (engine/drapeaux.js) */
   route: 'aujourdhui'
 };
-/* APRÈS LA PROCHAINE IMAGE (lot R11) : ce qu'un tap doit faire mais
+/* APRÈS LA PROCHAINE IMAGE (porte « Performance ») : ce qu'un tap doit faire mais
    que personne ne verra pendant ce tap. Ouvrir une conversation la
    marque lue : la boîte, sous la feuille qui monte, doit perdre son
    point, et la lecture doit s'enregistrer. Faits dans le tap, les deux

@@ -617,7 +617,7 @@ export function openFiche(c, o = {}){
       /* `net` : UNE mesure suffit. De `auto` à une longueur, rien ne
          s'anime (ce n'est pas une valeur qu'on interpole) ; les deux
          mises en page forcées de plus ne servaient à rien, et elles
-         tombaient dans le tap qui ouvre la fiche (lot R11) */
+         tombaient dans le tap qui ouvre la fiche (porte « Performance ») */
       if (net){ notes.style.height = cible; notes.style.transition = ''; return; }
       notes.style.height = depart || cible;
       void notes.offsetHeight;

@@ -391,7 +391,9 @@ export function lierVueAmis(box, { wide, rendre }){
   const dem = box.querySelector('#avDemander');
   dem?.addEventListener('click', () => ouvrirDemander({ critere: { ...(dem.dataset.metier ? { metier: dem.dataset.metier } : {}),
     ...(dem.dataset.ville ? { ville: dem.dataset.ville } : {}) } }, rendre));
-  const trouve = id => (S.profile.amis || []).find(a => a.id === id);
+  /* une table, pas une recherche par ligne (porte « Performance ») */
+  const parId = new Map((S.profile.amis || []).map(a => [a.id, a]));
+  const trouve = id => parId.get(id);
   /* `rendre` REMPLACE la vue : le focus se rend à la ligne NEUVE, cherchée
      dans le document — l'ancienne `box` n'y est plus */
   const reprendre = id => document.querySelector(`#piAmis .am-row[data-ami="${CSS.escape(id)}"] .ri-main`)?.focus({ preventScroll: true });

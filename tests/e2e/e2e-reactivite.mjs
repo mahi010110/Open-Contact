@@ -1,7 +1,7 @@
 /* ============================================================
-   E2E — UNE FEUILLE S'OUVRE SOUS LE DOIGT (lot R11)
-   (docs/recadrage.md, porte « Performance » : un geste répond en moins
-   de 200 ms sur un téléphone moyen simulé)
+   E2E — UNE FEUILLE S'OUVRE SOUS LE DOIGT (porte « Performance »)
+   (docs/recadrage.md : un geste répond en moins de 200 ms sur un
+   téléphone moyen simulé)
 
    Un seuil en millisecondes ne se garde pas en CI : sur une machine
    partagée, le même tap varie de 50 ms d'une passe à l'autre, et une

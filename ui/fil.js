@@ -113,7 +113,7 @@ export function suivreNouveaux(body){
   /* au défilement, la relecture se range avec les autres, à l'image
      (ui/dom.js, `avantImage`) : poser la conversation sur ses nouveaux
      messages défile, et ce défilement relisait la page une fois de plus
-     dans la toute première image (lot R11) */
+     dans la toute première image (porte « Performance ») */
   let prevu = false;
   body.addEventListener('scroll', () => {
     if (prevu) return;

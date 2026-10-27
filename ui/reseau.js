@@ -442,6 +442,8 @@ export function relever(){
     if (lus) etat.depuis = debut;
     await sauver();
     if (change) bus.refresh();
+    /* qui l'attend sait s'il y a quelque chose à redessiner */
+    return change;
   })().catch(() => {}).finally(() => { enCours = null; });
   return enCours;
 }

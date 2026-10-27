@@ -804,7 +804,7 @@ export function bindDeleteGesture(node, onDelete, quoi, o){
   /* posé sur chaque message d'un groupe et chaque ligne de « Mes
      pistes » : ni gabarit à analyser ni requête média à recréer par
      ligne (relevé à grande échelle). Le bouton et la sous-couche se
-     construisent UNE fois, puis se CLONENT (lot R11) : relevé sur un
+     construisent UNE fois, puis se CLONENT (porte « Performance ») : relevé sur un
      groupe de 640 messages ouvert par son chef, analyser le même petit
      bout de HTML pour chacune des 120 bulles coûtait 250 ms du tap. */
   const del = meuble('del ' + icone, () => {
@@ -1166,7 +1166,7 @@ export function confirmSheet(o){
    le premier porte ce plafond, le second une transition mesurée pour ne
    pas faire sauter le formulaire sous les doigts. L'objet se mesure
    quand même à l'image, avec les autres, par `avantImage`.) */
-/* AVANT L'IMAGE, EN LOT (lot R11) : préparer tout, lire tout, écrire
+/* AVANT L'IMAGE, EN LOT (porte « Performance ») : préparer tout, lire tout, écrire
    tout. Lire une hauteur juste après en avoir écrit une force le
    navigateur à refaire la mise en page sur-le-champ ; une feuille qui
    pose cinq champs qui grandissent (« Modifier ») la refaisait cinq fois
@@ -1224,7 +1224,7 @@ export function champGrandit(ta){
    largeur observée re-mesure aussi — elle peut ne pas être celle de la
    mesure d'ouverture —, SAUF si c'est celle que la mesure a vue
    (`mesuree`) : re-mesurer n'est pas gratuit, c'est une mise en page
-   forcée de plus dans la toute première image d'une feuille (lot R11).
+   forcée de plus dans la toute première image d'une feuille (porte « Performance »).
    La largeur se lit dans le rappel, où la mise en page est déjà faite. */
 export function suivreLargeur(el, fn, mesuree){
   if (!el || typeof ResizeObserver !== 'function') return;
