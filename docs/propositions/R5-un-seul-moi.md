@@ -125,3 +125,25 @@ qui garde rend les quatre tailles, le remplacement, et un relais qui ne
 garde rien rend « accepté, pas relu »). Le relevé des relais publics se
 lit dans les journaux de la CI ; il faut deux semaines de passages pour
 voir un marqueur de sept jours.
+
+**Le relevé du 26 octobre 2026**, sur les sept relais de `RELAIS_DEFAUT`
+(un injoignable, `relay.froth.zone`) :
+
+| ce qu'il fallait savoir | relevé | ce que ça décide |
+|---|---|---|
+| taille | 8 et 32 Ko gardés et relus sur **5/7** ; 64 Ko sur **1/7** (quatre refusent « event too large ») | une copie se coupe en morceaux de **32 Ko au plus** |
+| garde | la sonde de la boîte relit le **même kind** (30078, adressable) à **4, 7 et 14 jours** sur **5/7** relais | le seuil « trois relais gardent sept jours » est **atteint** pour ce kind |
+| remplacement | lisible sur **1/7** seulement — voir dessous | **à relire** au prochain passage |
+
+Le relevé a aussi trouvé un défaut de la sonde elle-même : elle publiait
+64 et 128 Ko AVANT le marqueur du jour et le remplacement, sur la même
+connexion. Quatre relais refusent puis **coupent** : tout ce qui suivait
+se perdait sans réponse. Le remplacement se lisait « refusé » chez eux,
+et le marqueur de sept jours n'y aurait jamais été déposé — le passage
+du 29 octobre aurait rendu un faux « 0/7 ». Corrigé le 27 octobre :
+marqueur et remplacement d'abord, chaque taille sur sa connexion, et un
+contrôle de plus (un relais local qui refuse 64 Ko puis coupe) qui
+échoue si l'ancien ordre revient. La garde des marqueurs propres à la
+sonde se lira donc à partir du 3 novembre ; celle du kind, elle, est
+déjà mesurée par la boîte.
+

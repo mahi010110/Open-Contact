@@ -87,22 +87,29 @@ async function sonder(url){
   if (!a) return out;
   out.ouvert = true;
   const sujet = 'oc-sonde-' + hex(8);
-  const publies = {};
-  for (const ko of TAILLES_KO){
-    const ev = await relayTopic.evenement(KIND, [['d', `${sujet}-${ko}`], ['x', sujet]], bruit(ko));
-    out.tailles[ko] = { ...(await publier(a, ev)), relu: false };
-    publies[ev.id] = ko;
-  }
-  /* le remplacement : deux dépôts sous la même étiquette, le second gagne */
+  /* le marqueur du jour et le remplacement passent EN PREMIER, sur une
+     connexion qui n'a encore rien publié de gros. Relevé le 26 octobre :
+     quatre relais refusent 64 Ko (« event too large ») puis COUPENT la
+     connexion — tout ce qui suivait se perdait sans réponse, et la garde
+     de sept jours n'aurait jamais pu se lire chez eux. */
+  await publier(a, await relayTopic.evenement(KIND, [['d', marqueur(jour())], ['x', marqueur(jour())]], bruit(1)));
   const d = `${sujet}-r`;
   const v1 = await relayTopic.evenement(KIND, [['d', d], ['x', sujet + '-r']], bruit(1));
   await publier(a, v1);
   await new Promise(r => setTimeout(r, 1100));        /* un created_at plus récent */
   const v2 = await relayTopic.evenement(KIND, [['d', d], ['x', sujet + '-r']], bruit(1));
   const ok2 = await publier(a, v2);
-  /* le marqueur du jour, pour les passages suivants */
-  await publier(a, await relayTopic.evenement(KIND, [['d', marqueur(jour())], ['x', marqueur(jour())]], bruit(1)));
   a.fermer();
+  /* chaque taille sur SA connexion : un refus qui coupe ne compte que
+     pour sa taille */
+  const publies = {};
+  for (const ko of TAILLES_KO){
+    const c = await connecter(url);
+    const ev = await relayTopic.evenement(KIND, [['d', `${sujet}-${ko}`], ['x', sujet]], bruit(ko));
+    out.tailles[ko] = c ? { ...(await publier(c, ev)), relu: false } : { accepte: false, raison: 'injoignable', relu: false };
+    publies[ev.id] = ko;
+    if (c) c.fermer();
+  }
   await new Promise(r => setTimeout(r, 1500));
   /* LA SECONDE CONNEXION : le téléphone neuf, qui ne connaît que l'étiquette */
   const b = await connecter(url);
@@ -138,6 +145,18 @@ local.close();
 console.log('contrôle (relais local qui garde) :\n' + ligne(t));
 if (!TAILLES_KO.every(ko => t.tailles[ko] && t.tailles[ko].accepte && t.tailles[ko].relu)){
   console.error('ÉCHEC : le relais local ne rend pas toutes les tailles — la sonde ne sait pas mesurer, elle ne conclut rien');
+  echec = true;
+}
+/* le relais qui refuse 64 Ko PUIS COUPE (la forme relevée sur quatre
+   relais publics) : le marqueur et le remplacement doivent quand même
+   se lire — sinon la garde de sept jours n'est jamais mesurée chez eux */
+const coupe = await startLocalRelay({ garde: true, tailleMax: 60000 });
+const tc = await sonder(coupe.url);
+const marqueDeposee = coupe.gardes.some(e => (e.tags || []).some(x => x[0] === 'x' && x[1] === marqueur(jour())));
+coupe.close();
+console.log('contrôle (relais qui refuse 64 Ko et coupe) :\n' + ligne(tc));
+if (!marqueDeposee || tc.remplace !== 'remplacé' || !tc.tailles[32].relu || tc.tailles[64].accepte){
+  console.error('ÉCHEC : un relais qui coupe après un refus fait perdre le marqueur ou le remplacement — la garde ne se mesurerait pas');
   echec = true;
 }
 const sansGarde = await startLocalRelay({});

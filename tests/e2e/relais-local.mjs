@@ -149,11 +149,15 @@ function makeDecoder(onText, onClose, onPing){
    ce qu'un relais public fait, et ce dont la demande à un ami a besoin
    (docs/reseau.md, lot 3). Les éphémères restent éphémères. Sans lui,
    le relais local ne connaît que le direct : c'était tout ce que l'app
-   lui demandait. */
+   lui demandait.
+   `tailleMax` : au-delà de ce nombre d'octets, le relais REFUSE la
+   publication (« event too large ») puis COUPE la connexion — la forme
+   relevée sur quatre relais publics (sonde-coffre-relais.mjs) : tout ce
+   qu'on publie ensuite sur la même connexion se perd sans réponse. */
 export async function startLocalRelay({ silent = true, tls = false, port = 0, hote = '127.0.0.1',
                                         muet = false, refus = false, avale = false,
                                         limite = null, perdCandidats = false, filtre = null,
-                                        delai = 0, garde = false } = {}){
+                                        delai = 0, garde = false, tailleMax = 0 } = {}){
   const gardes = [];                /* événements ordinaires gardés (option `garde`) */
   const ephemere = k => k >= 20000 && k < 30000;
   const conns = new Set();          /* { sock, send, subs: Map<subId, filtres[]> } */
@@ -202,6 +206,11 @@ export async function startLocalRelay({ silent = true, tls = false, port = 0, ho
       if (muet) return;                    /* il écoute et ne dit rien */
       if (msg[0] === 'EVENT' && msg[1] && msg[1].id){
         const ev = msg[1];
+        if (tailleMax && text.length > tailleMax){
+          conn.send(['OK', ev.id, false, `invalid: event too large: ${text.length}`]);
+          setTimeout(bye, 20);
+          return;
+        }
         log('EVENT kind', ev.kind);
         if (refus){
           /* la forme exacte d'un relais restreint : il répond, poliment,
