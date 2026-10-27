@@ -83,6 +83,14 @@ reste est le prix d'ouvrir une feuille, petit groupe compris (1,9 s
 mesuré à 4× dans le bac à sable), un chantier à part qui ne dépend pas
 du nombre.
 
+*Corrigé le 27 octobre 2026.* Ce « 1,9 s » chronométrait les attentes
+de l'outil de relevé, pas le geste. Mesuré avec l'instrument des
+navigateurs (Event Timing : du tap à l'image suivante), ouvrir un petit
+groupe coûtait environ 230 ms au pouce ralenti, et le gros groupe
+920 ms — ce n'était donc pas « à part du nombre ». La porte
+« Performance » l'a repris (`CLAUDE.md` §6, « Un geste répond avant
+d'avoir tout fait » ; `e2e-reactivite.mjs`).
+
 ### ② Le calme, derrière le drapeau `calme` (préversion)
 
 L'app ne sonne déjà pas (aucun serveur, décision 0006). Ce qui se

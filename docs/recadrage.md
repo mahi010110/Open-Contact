@@ -288,6 +288,43 @@ moyen »), tranché par délégation :*
   l'app ne lui « crie » plus rien, sans avoir l'impression de rater
   quelque chose.
 
+### La porte « Performance », tenue sur les feuilles · 6.90.1
+
+*27 octobre 2026.* Mesurée pour la première fois geste par geste, au
+pouce, processeur ralenti 4×, avec l'instrument des navigateurs (Event
+Timing : du tap à l'image), en A/B contre main, tour à tour, médianes
+du premier tap :
+
+| ouvrir | petit jeu, avant → après | au plafond, avant → après |
+|---|---|---|
+| un groupe | 272 → 208 ms | 792 → 376 ms |
+| une conversation | 152 → 104 ms | 400 → 144 ms |
+| une fiche | 216 → 208 ms | 240 → 160 ms |
+| « Modifier » | 160 → 144 ms | 160 → 104 ms |
+| « Donner » | 104 → 112 ms | 528 → 240 ms |
+
+Ce qui coûtait n'était pas le nombre de bulles mais du travail que
+personne ne voyait : la boîte redessinée sous la feuille, des mises en
+page forcées en série, des `:has()` qui parcouraient toute la page, le
+geste de suppression reconstruit pour chaque bulle, des recherches
+linéaires par ligne, et « Donner » qui posait 400 lignes d'un coup
+(`CLAUDE.md` §6, « Un geste répond avant d'avoir tout fait »). Pas de
+drapeau : ce sont des réparations, comme celles de R10 ; seule « Donner
+» et « Prospecter » au-delà de 60 pistes changent à l'écran, avec le
+motif de « Mes pistes ». Gardé par `e2e-reactivite.mjs`, qui compte
+les causes à la trace — jamais un temps, qui rougirait au hasard — et
+par `e2e-echelle.mjs` ⑥.
+
+Ce qui reste au-dessus de 200 ms : le tout premier tap d'un groupe et
+d'une fiche frôle le seuil (le premier calcul d'une feuille neuve) ;
+au plafond, le premier tap du gros groupe (120 bulles à mettre en page,
+~380 ms), ses reprises (~260 ms) et « Donner » (~240 ms). Et une limite
+d'une autre nature : au plafond, « Échanger » dessine ses 120
+conversations dans une longue tâche juste après le tap (~0,5 s, relevé
+de R10) ; le tap lui-même répond en 40 ms, mais un geste qui tombe
+pendant ce dessin attend. Une fenêtre sur la boîte, comme celle du fil,
+serait la suite.
+
 ## La porte qualité de chaque lot
 
 La liste de `CLAUDE.md` §9 reste. S'y ajoutent :

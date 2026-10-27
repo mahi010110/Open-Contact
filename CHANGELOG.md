@@ -9,6 +9,31 @@ le premier pour une rupture. La bascule du recadrage sera la 7.0.0
 
 Les versions d'avant la 6.76 se lisent dans l'historique du dépôt.
 
+## [6.90.1] — 27 octobre 2026
+
+Un correctif : les feuilles qu'on ouvre tous les jours répondent plus
+vite, surtout quand l'app est bien remplie. Mesuré du tap à l'image sur
+un téléphone moyen simulé, l'ancienne version et la nouvelle jouées tour
+à tour.
+
+### Corrigé
+
+- **Un groupe s'ouvre deux fois plus vite** quand il est gros : 380 ms
+  au lieu de 790 avec 640 messages. Une conversation de 300 messages :
+  145 ms au lieu de 400. Une fiche : 160 ms au lieu de 240.
+- La liste derrière une conversation qu'on ouvre se met à jour juste
+  après, au lieu de retarder ton tap.
+- « Modifier » et « Écrire » posent la hauteur de leurs champs d'un
+  seul coup.
+
+### Modifié
+
+- **« Donner » et « Prospecter » s'ouvrent sur tes 60 premières
+  pistes**, et « Voir les N autres » montre la suite, comme dans « Mes
+  pistes ». Rien ne change sous 60 pistes. Ce qui n'est pas affiché
+  reste coché dans « Donner », et la recherche porte sur toutes. Avec
+  400 pistes, « Donner » s'ouvre en 240 ms au lieu de 530.
+
 ## [6.90.0] — 21 octobre 2026
 
 Le recadrage, lot R10 : à grande échelle, et sans notifications. L'app a

@@ -20,9 +20,13 @@
      tiennent une ligne chacune, la carte s'ouvre au tap ;
    ⑤ préversion éteinte : les chiffres restent (l'ancien chemin vit
      jusqu'à l'ouverture du lot) ;
+   ⑥ « Donner » s'ouvre sur soixante pistes et « Voir les N autres »
+     (porte « Performance ») : le tap montre la suite et pose le focus
+     sur la première ligne révélée ;
    pouce ; zéro erreur console.
-   Trois mutations : la fenêtre ouverte en grand, « Tes amis » sans
-   plafond, les chiffres rendus aux onglets au calme.
+   Quatre mutations : la fenêtre ouverte en grand, « Tes amis » sans
+   plafond, les chiffres rendus aux onglets au calme, « Donner » sans
+   plafond.
    ============================================================ */
 import { chromium, chromiumPath, serveRepo, annuaireMuet, ROOT, SHOTS } from './outils.mjs';
 import { jeuMassif, semerMassif } from './jeu-massif.mjs';
@@ -133,6 +137,23 @@ async function jouer({ nom, preversion = false, mutations = {}, captures = false
   await p.waitForSelector('#msFil');
   Object.assign(x, await p.evaluate(() => ({ msgs: document.querySelectorAll('#msFil .ms-m').length,
     avantConv: (document.querySelector('#msFil [data-avant]') || {}).textContent || '' })));
+  await p.keyboard.press('Escape'); await p.waitForTimeout(400);
+
+  /* ---------- ⑥ « Donner » : soixante lignes, puis la suite d'un tap ---------- */
+  if (await p.locator('#ecGive').count()){
+    await p.click('#ecGive');
+    await p.waitForSelector('.modal .pk');
+    Object.assign(x, await p.evaluate(() => ({ dnLignes: document.querySelectorAll('.modal .pk').length,
+      dnPlus: (document.querySelector('.modal [data-plus]') || {}).textContent || '' })));
+    if (x.dnPlus){
+      await p.evaluate(() => document.querySelector('.modal [data-plus]').click());
+      await p.waitForTimeout(300);
+      Object.assign(x, await p.evaluate(() => {
+        const pk = [...document.querySelectorAll('.modal .pk')];
+        return { dnTous: pk.length, dnFocus: pk.indexOf(document.activeElement), dnPlusApres: !!document.querySelector('.modal [data-plus]') };
+      }));
+    }
+  }
   await ctx.close();
   return x;
 }
@@ -153,6 +174,10 @@ async function jouer({ nom, preversion = false, mutations = {}, captures = false
     `③ « Tes amis » : 3 lignes, le contact donné en tête, « ${x.plus} » → ${x.amisTous}`);
   ok(x.ongletBoite && x.ongletJour && x.bxc > 0 && !x.bxpt,
     `⑤ préversion éteinte : les chiffres restent (onglets ${x.ongletJour} et ${x.ongletBoite}, ${x.bxc} compteurs)`);
+  const reste = +((/^Voir les (\d+) autres$/.exec(x.dnPlus || '') || [])[1] || 0);
+  ok(x.dnLignes === 60 && reste > 0, `⑥ « Donner » s’ouvre sur ${x.dnLignes} lignes, « ${x.dnPlus} »`);
+  ok(x.dnTous === 60 + reste && x.dnFocus === 60 && !x.dnPlusApres,
+    `⑥ le tap montre les ${x.dnTous}, et le focus se pose sur la première révélée (ligne ${x.dnFocus + 1})`);
 }
 
 /* ---------- ④ au calme ---------- */
@@ -182,6 +207,8 @@ await muter('① la fenêtre ouverte en grand', 'ui/fil.js',
   m => jouer({ nom: 'mut-fenetre', mutations: m }), x => x.bulles > 120 && !x.avant);
 await muter('③ « Tes amis » sans plafond', 'ui/today.js', 'const CAP_AMIS = 3;', 'const CAP_AMIS = 999;',
   m => jouer({ nom: 'mut-amis', mutations: m }), x => x.amis !== 3);
+await muter('⑥ « Donner » sans plafond', 'ui/affiner.js', 'export const CAP_COCHER = 60;', 'export const CAP_COCHER = 100000;',
+  m => jouer({ nom: 'mut-donner', mutations: m }), x => x.dnLignes !== 60 || !x.dnPlus);
 await muter('④ les chiffres rendus aux onglets au calme', 'ui/conversations.js',
   "  if (lot('calme')){\n    poser(lot('reseau') ? 'reseau' : 'echanger', 0, '');", "  if (false){\n    poser(lot('reseau') ? 'reseau' : 'echanger', 0, '');",
   m => jouer({ nom: 'mut-onglets', preversion: true, mutations: m }), x => !!x.ongletBoite);

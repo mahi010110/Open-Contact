@@ -863,6 +863,9 @@ export function renderPistes(){
     else etatVolet = null;
     tenirBarre();
 
+    /* une table, pas une recherche par ligne : 400 pistes en faisaient
+       jusqu'à 160 000 comparaisons à chaque rendu (porte « Performance ») */
+    const nomPar = new Map(S.companies.map(x => [x.id, x.name]));
     body.querySelectorAll('.row-item, .bcard').forEach(r => {
       const open = () => openById(r.dataset.id);
       r.addEventListener('click', open);
@@ -871,8 +874,7 @@ export function renderPistes(){
       r.querySelector('[role="button"]').addEventListener('keydown', e => {
         if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); open(); }
       });
-      bindDeleteGesture(r, () => removeRow(r.dataset.id),
-        (S.companies.find(x => x.id === r.dataset.id) || {}).name);
+      bindDeleteGesture(r, () => removeRow(r.dataset.id), nomPar.get(r.dataset.id));
     });
     if (wide && body.querySelector('.board')) bindBoardDrag(body);
     body.querySelector('#piFtClear')?.addEventListener('click', () => { ftClear(); renderPistes(); });

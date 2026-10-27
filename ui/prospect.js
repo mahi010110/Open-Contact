@@ -13,7 +13,7 @@ import { S, bus, isClosed, lot } from './state.js';
 import { openSheet, toast, btn, ic, softReorder, collerEnHaut } from './dom.js';
 import { sortState, sortArgs } from './sort.js';
 import { filterState, filterArgs, barreListeHTML, bindBarreListe, majTout,
-         direCombien, rienTrouveHTML } from './affiner.js';
+         direCombien, rienTrouveHTML, fenetreCocher, voirAutresHTML, lierVoirAutres } from './affiner.js';
 import { ouvrirSerie } from './serie.js';
 import { openContactEditor } from './contact.js';
 import { openCampaignWizard } from './campagnes.js';
@@ -89,6 +89,7 @@ export function openProspect(){
   /* la case « Tout » PORTE l'état : elle doit donc suivre chaque tap
      individuel, sinon elle affiche un état périmé dès la seconde ligne */
   let qs = '';                 /* ce qu'on cherche dans la liste */
+  let toutVoir = false;        /* « Voir les N autres » tapé (ui/affiner.js) */
   let syncAll = () => {};
   /* Donner ce qu'on a coché, sauf les pistes d'exemple (leurs contacts
      sont fictifs) : le compte est celui de l'écriture, à côté */
@@ -131,9 +132,10 @@ export function openProspect(){
     const box = sh.body.querySelector('#pkItems');
     if (!box) return;
     const list = listed();
+    const vus = fenetreCocher(list, toutVoir);
     box.innerHTML = !list.length ? rienTrouveHTML() :
       `<div class="pick-list">
-         ${list.map(c =>
+         ${vus.map(c =>
            `<div class="pk-duo">
               <button class="pick pk${sel.has(c.id) ? ' on' : ''}" data-id="${c.id}" aria-pressed="${sel.has(c.id)}">
                 ${ic('checkbox', 'ic-20 ic-off')}${ic('checkbox-on', 'ic-20 ic-on')}
@@ -157,7 +159,10 @@ export function openProspect(){
                    en une donnée de sa sous-ligne. */''}
               ${sansAdresse(c) && !sel.has(c.id) ? '' : whoLineHTML(c, keepOf(c), 'ecrire')}
             </div>`).join('')}
-       </div>`;
+       </div>${voirAutresHTML(list.length - vus.length)}`;
+    lierVoirAutres(box, () => { toutVoir = true; renderItems(); });
+    /* une table, pas une recherche par ligne */
+    const parId = new Map(alive().map(c => [c.id, c]));
     box.querySelectorAll('.pk').forEach(b =>
       b.addEventListener('click', () => {
         const id = b.dataset.id;
@@ -178,11 +183,11 @@ export function openProspect(){
         sync();
       }));
     box.querySelectorAll('[data-who]').forEach(b => {
-      const c = alive().find(x => x.id === b.dataset.who);
+      const c = parId.get(b.dataset.who);
       if (c) b.addEventListener('click', () => pickWho(c));
     });
     box.querySelectorAll('[data-addct]').forEach(b => {
-      const c = alive().find(x => x.id === b.dataset.addct);
+      const c = parId.get(b.dataset.addct);
       if (c) b.addEventListener('click', () =>
         openContactEditor({ company: c, onDone: () => { sel.add(c.id); renderItems(); sync(); } }));
     });

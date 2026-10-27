@@ -487,7 +487,9 @@ export function openSheet(o){
      ramenait le curseur sur le premier champ : la formation tapée finissait
      collée au nom (« Sam MartinBTS SIO 2e année », vu sur la forge). Déjà
      dans la feuille, il se tait. */
-  requestAnimationFrame(() => {
+  /* nommé : la garde de réactivité (e2e-reactivite.mjs) le reconnaît
+     dans la trace — la mise en page qu'il demande est celle de l'image */
+  requestAnimationFrame(function focusOuverture(){
     if (ov.contains(document.activeElement) && document.activeElement !== ov) return;
     const f = (o.focus && ov.querySelector(o.focus)) || ov.querySelector('.x');
     try { f.focus({ preventScroll: true }); } catch (e) {}
@@ -777,6 +779,11 @@ function focusApresRetrait(node){
    pour moi », « À découvrir ») — le mot dit ce qui arrive, jamais
    « Supprimer » pour ce qui ne l'est pas */
 const MQ_DOIGT = matchMedia('(pointer:coarse)');
+const MEUBLES = new Map();
+const meuble = (cle, faire) => {
+  if (!MEUBLES.has(cle)) MEUBLES.set(cle, faire());
+  return MEUBLES.get(cle).cloneNode(true);
+};
 export function bindDeleteGesture(node, onDelete, quoi, o){
   o = o || {};
   const mot = o.mot || 'Supprimer', icone = o.icone || 'trash';
@@ -794,18 +801,28 @@ export function bindDeleteGesture(node, onDelete, quoi, o){
   };
   const nom = String(quoi || '').trim();
   const dit = nom ? mot + (o.mot ? ' : ' : ' ') + nom : mot;
-  /* posé sur chaque message d'un groupe : ni gabarit à analyser ni
-     requête média à recréer par ligne (relevé à grande échelle) */
-  const del = document.createElement('button');
-  del.className = 'hov-del';
+  /* posé sur chaque message d'un groupe et chaque ligne de « Mes
+     pistes » : ni gabarit à analyser ni requête média à recréer par
+     ligne (relevé à grande échelle). Le bouton et la sous-couche se
+     construisent UNE fois, puis se CLONENT (porte « Performance ») : relevé sur un
+     groupe de 640 messages ouvert par son chef, analyser le même petit
+     bout de HTML pour chacune des 120 bulles coûtait 250 ms du tap. */
+  const del = meuble('del ' + icone, () => {
+    const b = document.createElement('button');
+    b.className = 'hov-del';
+    b.innerHTML = ic(icone, 'ic-14');
+    return b;
+  });
   del.setAttribute('aria-label', dit); del.title = dit;
-  del.innerHTML = ic(icone, 'ic-14');
   del.addEventListener('click', e => { e.stopPropagation(); vanish(); });
   inner.append(del);
   if (!MQ_DOIGT.matches) return;
-  const sous = document.createElement('div');
-  sous.className = 'sw-under'; sous.setAttribute('aria-hidden', 'true');
-  sous.innerHTML = `${ic(icone, 'ic-14')} ${esc(mot)}`;
+  const sous = meuble('sous ' + icone + ' ' + mot, () => {
+    const d = document.createElement('div');
+    d.className = 'sw-under'; d.setAttribute('aria-hidden', 'true');
+    d.innerHTML = `${ic(icone, 'ic-14')} ${esc(mot)}`;
+    return d;
+  });
   node.prepend(sous);
   let x0 = null, y0 = null, dx = 0, active = false, endedAt = 0;
   const auRepos = () => {
@@ -1145,22 +1162,57 @@ export function confirmSheet(o){
    d'« Écrire » (§6) — quand tout ne tient pas, c'est la FEUILLE qui
    défile, pas le champ où l'on travaille. Le plafond du composeur, lui,
    reste : là il borne un OBJET d'email, qui vise 40-60 caractères.
-   (`auTexte` et `pousse` ne sont pas migrés ici : le premier porte ce
-   plafond, le second une transition mesurée pour ne pas faire sauter le
-   formulaire sous les doigts. Les fondre demanderait de toucher deux
-   surfaces fortement gardées pour un défaut qui n'est pas le leur.) */
+   (L'objet du composeur et `pousse` de la fiche ne passent pas par ici :
+   le premier porte ce plafond, le second une transition mesurée pour ne
+   pas faire sauter le formulaire sous les doigts. L'objet se mesure
+   quand même à l'image, avec les autres, par `avantImage`.) */
+/* AVANT L'IMAGE, EN LOT (porte « Performance ») : préparer tout, lire tout, écrire
+   tout. Lire une hauteur juste après en avoir écrit une force le
+   navigateur à refaire la mise en page sur-le-champ ; une feuille qui
+   pose cinq champs qui grandissent (« Modifier ») la refaisait cinq fois
+   pendant le tap, et le composeur trois. Ici toutes les lectures
+   tombent sur UNE mise en page — celle de l'image, que le focus
+   d'ouverture vient de demander (`openSheet`, enregistré avant) : elles
+   ne coûtent plus rien. L'image passe après : rien ne se voit à sa
+   place d'avant. `lire` peut rendre `null` : `ecrire` ne fait rien. */
+let avantLImage = null;
+export function avantImage(t){
+  if (!avantLImage){ avantLImage = []; requestAnimationFrame(viderAvantImage); }
+  avantLImage.push(t);
+}
+function viderAvantImage(){
+  const l = avantLImage;
+  avantLImage = null;
+  l.forEach(t => t.preparer && t.preparer());
+  const v = l.map(t => t.lire());
+  l.forEach((t, i) => { if (v[i] != null) t.ecrire(v[i]); });
+}
 export function champGrandit(ta){
   if (!ta) return;
+  let largeur = 0;
+  /* la bordure ne compte pas dans `scrollHeight` : sans elle, chaque
+     mesure rogne deux pixels et la dernière ligne finit par se couper */
+  const lire = () => {
+    largeur = ta.clientWidth;
+    return Math.ceil(ta.scrollHeight + ta.offsetHeight - ta.clientHeight);
+  };
+  const poser = h => { ta.style.height = h + 'px'; };
   const pousse = () => {
     ta.style.height = 'auto';
-    /* la bordure ne compte pas dans `scrollHeight` : sans elle, chaque
-       mesure rogne deux pixels et la dernière ligne finit par se couper */
-    const bord = ta.offsetHeight - ta.clientHeight;
-    ta.style.height = Math.ceil(ta.scrollHeight + bord) + 'px';
+    poser(lire());
   };
+  /* la même mesure, à l'image, avec les autres. Un champ jamais
+     dimensionné est déjà à sa hauteur naturelle : inutile de la lui
+     remettre (`auto`) avant de lire. Pas encore dans la page, il attend
+     son observateur. */
+  pousse.aLImage = () => avantImage({
+    preparer: () => { if (ta.isConnected && ta.style.height) ta.style.height = 'auto'; },
+    lire: () => ta.isConnected ? lire() : null,
+    ecrire: poser
+  });
   ta.addEventListener('input', pousse);
-  pousse();
-  suivreLargeur(ta, pousse);
+  pousse.aLImage();
+  suivreLargeur(ta, pousse, () => largeur);
   return pousse;
 }
 /* Un champ mesuré une fois se trompe dès que sa LARGEUR change : un
@@ -1170,14 +1222,18 @@ export function champGrandit(ta){
    la cache sans rien dire. On re-mesure donc au changement de largeur,
    et à lui seul : la hauteur, c'est nous qui la changeons. La première
    largeur observée re-mesure aussi — elle peut ne pas être celle de la
-   mesure d'ouverture, et re-mesurer ne coûte rien. */
-export function suivreLargeur(el, fn){
+   mesure d'ouverture —, SAUF si c'est celle que la mesure a vue
+   (`mesuree`) : re-mesurer n'est pas gratuit, c'est une mise en page
+   forcée de plus dans la toute première image d'une feuille (porte « Performance »).
+   La largeur se lit dans le rappel, où la mise en page est déjà faite. */
+export function suivreLargeur(el, fn, mesuree){
   if (!el || typeof ResizeObserver !== 'function') return;
   let largeur = 0;
-  new ResizeObserver(([e]) => {
-    const w = Math.round(e.contentRect.width);
+  new ResizeObserver(() => {
+    const w = el.clientWidth;
     if (!w || w === largeur) return;
+    const deja = !largeur && mesuree && mesuree() === w;
     largeur = w;
-    fn();
+    if (!deja) fn();
   }).observe(el);
 }

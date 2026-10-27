@@ -15,7 +15,7 @@ import { S, isClosed, logJ } from './state.js';
 import { openSheet, toast, btn, ic, softReorder, lockRowHTML, bindLockRow, collerEnHaut } from './dom.js';
 import { sortState, sortArgs } from './sort.js';
 import { filterState, filterArgs, barreListeHTML, bindBarreListe, majTout,
-         direCombien, rienTrouveHTML } from './affiner.js';
+         direCombien, rienTrouveHTML, fenetreCocher, voirAutresHTML, lierVoirAutres } from './affiner.js';
 import { openRoom, leaveRoom, watchLiaison, ouvrirPortage } from './synclive.js';
 import { SANS_PAIR_DONNEUR_MS, PORTAGE_SILENCE_MS, PORTAGE_RELANCE_MS, PORTAGE_PAS_MS } from '../engine/transport.js';
 import { decouper } from '../engine/portage.js';
@@ -47,6 +47,7 @@ export function openDonner(o){
   const st = sortState('recent');
   const ft = filterState();                  /* propre à cet écran (#8) */
   let qs = '';                               /* ce qu'on cherche dans la liste */
+  let toutVoir = false;                      /* « Voir les N autres » tapé (ui/affiner.js) */
   const chosen = () => alive().filter(c => !unsel.has(c.id));
   /* qui part, piste par piste (#2) : tout le monde par défaut — une
      entrée n'apparaît ici que si on y a touché, et `keepFn` rend alors
@@ -169,9 +170,10 @@ export function openDonner(o){
       const box = q('#dnItems');
       if (!box) return;
       const list = listed();
+      const vus = fenetreCocher(list, toutVoir);
       box.innerHTML = !list.length ? rienTrouveHTML() :
         `<div class="pick-list pk-inverse">
-           ${list.map(c =>
+           ${vus.map(c =>
              `<div class="pk-duo${unsel.has(c.id) ? ' pk-out' : ''}">
                 <button class="pick pk${unsel.has(c.id) ? '' : ' on'}" data-id="${c.id}" aria-pressed="${!unsel.has(c.id)}">
                   ${ic('checkbox', 'ic-20 ic-off')}${ic('checkbox-on', 'ic-20 ic-on')}
@@ -183,7 +185,8 @@ export function openDonner(o){
                 </button>
                 ${whoLineHTML(c, keepOf(c), 'donner')}
               </div>`).join('')}
-         </div>`;
+         </div>${voirAutresHTML(list.length - vus.length)}`;
+      lierVoirAutres(box, () => { toutVoir = true; renderItems(); });
       box.querySelectorAll('.pk').forEach(b =>
         b.addEventListener('click', () => {
           const id = b.dataset.id;
