@@ -9,6 +9,18 @@ le premier pour une rupture. La bascule du recadrage est la 7.0.0
 
 Les versions d'avant la 6.76 se lisent dans l'historique du dépôt.
 
+## [7.1.2] — 28 octobre 2026
+
+La suite de l'audit : écrire, et rattacher un contact.
+
+### Corrigé
+
+- « Écrire » s'ouvre sur ce qu'il te reste à écrire : la phrase entre
+  crochets est déjà sélectionnée, tu tapes et elle est remplacée. Avant,
+  le curseur se posait dans l'objet, déjà rempli.
+- « Rattacher » écrit le contact en tête, tel qu'il est (une adresse
+  restait en capitales dans le libellé du champ).
+
 ## [7.1.1] — 28 octobre 2026
 
 L'audit de l'interface, joué comme un nouveau venu sur un téléphone.
@@ -50,11 +62,6 @@ L'audit de l'interface, joué comme un nouveau venu sur un téléphone.
 - « Mes pistes » vide ne dit plus « 0 piste » au-dessus de « Aucune
   piste pour l'instant », et « Affiner » n'apparaît qu'avec ta première
   piste.
-- « Écrire » s'ouvre sur ce qu'il te reste à écrire : la phrase entre
-  crochets est déjà sélectionnée, tu tapes et elle est remplacée. Avant,
-  le curseur se posait dans l'objet, déjà rempli.
-- « Rattacher » écrit le contact en tête, tel qu'il est (une adresse
-  restait en capitales dans le libellé du champ).
 
 ## [7.1.0] — 27 octobre 2026
 
