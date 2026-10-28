@@ -13,7 +13,8 @@ import { $, $$, toast, installFoldMotion, sheetOpen } from './ui/dom.js';
 import { renderToday } from './ui/today.js';
 import { renderPistes } from './ui/pistes.js';
 import { renderEchanger } from './ui/echanger.js';
-import { chargerFils } from './ui/conversations.js';
+import { chargerFils, rangsBoite } from './ui/conversations.js';
+import { attendOnglet } from './engine/conversations.js';
 import { chargerGroupes } from './ui/groupes.js';
 import { renderMoi } from './ui/moi.js';
 import { openCapture } from './ui/capture.js';
@@ -53,10 +54,23 @@ function render(){
   if (S.stale && !sheetOpen()){ reloadFromStorage(); return; }
   for (const k in VIEWS) $('#view-' + k).hidden = (k !== S.route);
   VIEWS[S.route]();
+  /* « Réseau » change de couleur quand quelque chose y attend — pas de
+     chiffre, pas de notification (engine/conversations.js). Là où l'on
+     est déjà, la liste le montre : l'onglet se tait. */
+  const attend = attendOnglet(rangsBoite());
   $$('[data-r]').forEach(a => {
     const on = a.dataset.r === S.route;
     a.classList.toggle('on', on);
     if (a.closest('nav')) a.setAttribute('aria-current', on ? 'page' : 'false');
+    if (a.dataset.r === 'reseau' && a.closest('nav')){
+      const signe = attend && !on;
+      a.classList.toggle('attend', signe);
+      /* la couleur ne suffit pas à tout le monde (WCAG 1.4.1) : le nom
+         de l'onglet le dit aussi */
+      if (signe) a.setAttribute('aria-label', 'Réseau, du nouveau');
+      else if (a.closest('.bottomnav')) a.setAttribute('aria-label', 'Réseau');
+      else a.removeAttribute('aria-label');
+    }
   });
 }
 /* Chaque onglet garde sa place. Mesuré : trente pistes, on descend à

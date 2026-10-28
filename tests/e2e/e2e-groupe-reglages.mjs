@@ -228,8 +228,14 @@ await So.p.waitForTimeout(3000);
 }
 console.log('⑤ « les responsables » : chez Karim, l’état remplace le champ ; un mot ou un réglage qu’il forge ne change rien chez Sofia ✓');
 
-/* ---------- ⑥ une nouvelle invitation ---------- */
+/* ---------- ⑥ une nouvelle invitation ----------
+   L'invitation vit dans sa feuille, derrière la ligne « Inviter » de
+   « Groupe » ; changer de code la rouvre, à jour, sur le nouveau */
 await ouvrirReglages(I.p);
+await I.p.click('#grInviterOuvrir');
+await I.p.waitForSelector('#grCodeAff');
+if (!/^\+?\s*inviter\b/i.test(await texte(I.p, '.overlay:last-of-type .modal-h') || '')) fail('la barre ne dit pas « Inviter » : ' + await texte(I.p, '.overlay:last-of-type .modal-h'));
+if (await I.p.$('.overlay:last-of-type .gr-inv-t')) fail('« Inviter » se redit sous la barre qui le dit déjà');
 const invAvant = await I.p.evaluate(() => document.querySelector('#grCodeAff')?.textContent);
 await I.p.click('#grNouvelleInv');
 await I.p.waitForSelector('.overlay:last-of-type .modal-f .btn-primary, .overlay:last-of-type .modal-f .btn-danger');
@@ -272,8 +278,12 @@ for (const [x, qui] of [[Ka, 'Karim'], [So, 'Sofia']]){
   if (!await ok()) fail(`${qui} ne suit pas le groupe passé sur demande : ` + JSON.stringify((await profilDe(x.p)).groupes));
 }
 await ouvrirReglages(I.p);
-await I.p.waitForTimeout(800);
+await I.p.click('#grInviterOuvrir');
+await I.p.waitForSelector('.overlay:last-of-type #grInviter .qr-wrap svg');
+await I.p.waitForTimeout(300);
 if (await I.p.$('#grCodeAff')) fail('sur demande, l’invitation montre encore le code');
+await fermerTout(I.p);
+await ouvrirReglages(I.p);
 if (!/sur demande/.test(await texte(I.p, '#grrEntree .rg-s') || '')) fail('l’entrée ne dit pas « sur demande »');
 console.log('⑥ bis « sur demande » : un nouveau code, Karim et Sofia suivent, et l’invitation n’est plus qu’une porte ✓');
 

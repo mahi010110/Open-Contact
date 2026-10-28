@@ -90,6 +90,40 @@ export function suivreNouveaux(body){
   const reduit = () => matchMedia('(prefers-reduced-motion:reduce)').matches;
   let bouton = null;
   const enBas = () => body.scrollHeight - body.scrollTop - body.clientHeight < 40;
+  /* LE BAS RESTE EN BAS (audit au téléphone, 28 octobre 2026). Le
+     clavier qui s'ouvre, le champ qui prend une ligne, les prénoms qui
+     s'ouvrent à « @ » : la zone du fil rétrécit PAR LE BAS, et le
+     navigateur garde son haut. Les derniers messages passaient donc
+     sous le champ — celui auquel on répond compris : relevé en 390 ×
+     844, clavier ouvert, les trois derniers messages cachés. Toutes les
+     messageries font l'inverse (Messages, Telegram) : ce qui touchait le
+     bas de la zone y reste. On retient la distance au bas à chaque
+     défilement et à chaque rendu, et on la rend quand la zone change de
+     taille. La première observation n'est pas un changement : c'est
+     l'ouverture, qui a déjà posé la conversation où il faut. */
+  /* « Collé en bas » se RETIENT, il ne se remesure pas à chaud : un
+     rendu qui tombe pendant qu'on tape (l'envoi précédent qui revient
+     de la boîte aux lettres) lisait la distance entre le champ qui vient
+     de prendre une ligne et l'observateur qui ne l'a pas encore
+     rattrapée — il se croyait décroché, et le dernier message restait à
+     moitié sous le champ (relevé en CI, sur une machine lente). */
+  /* Et la distance se lit contre la DERNIÈRE TAILLE QUE L'OBSERVATEUR A
+     VUE, jamais contre la taille du moment : si le champ prend trois
+     lignes entre deux images, la relecture qui suit un défilement tombe
+     avant que l'observateur l'ait rattrapé — mesurée à chaud, elle
+     comptait ces trois lignes comme un écart voulu, et le dernier
+     message restait sous le champ pour de bon. */
+  let distBas = 0, vu = -1, colle = true;
+  const noter = () => {
+    distBas = Math.max(0, body.scrollHeight - body.scrollTop - (vu >= 0 ? vu : body.clientHeight));
+    colle = distBas < 40;
+  };
+  if (typeof ResizeObserver === 'function') new ResizeObserver(() => {
+    const c = body.clientHeight;
+    if (vu < 0 || c === vu){ vu = c; return; }
+    body.scrollTop = colle ? body.scrollHeight : body.scrollHeight - c - distBas;
+    vu = c;
+  }).observe(body);
   /* ce qui est neuf ET encore sous le bord bas de la zone visible */
   const sousLeBord = () => {
     const bord = body.getBoundingClientRect().bottom;
@@ -107,9 +141,16 @@ export function suivreNouveaux(body){
       });
       body.append(bouton);
     }
-    bouton.innerHTML = `${ic('arrow-down', 'ic-14')} ${dit(n)}`;
+    /* la flèche et le compte, le mot pour qui ne voit pas l'écran : avec
+       « nouveaux » écrit, le bouton faisait 110 px et couvrait la moitié
+       d'une bulle sur un petit téléphone (relevé en 360 × 640, 28
+       octobre 2026) — la flèche de Telegram et de WhatsApp n'a que son
+       compte */
+    bouton.innerHTML = `${ic('arrow-down', 'ic-14')} ${n}`;
+    bouton.setAttribute('aria-label', dit(n));
+    bouton.title = dit(n);
   };
-  const maj = () => montrer(compter());
+  const maj = () => { noter(); montrer(compter()); };
   /* au défilement, la relecture se range avec les autres, à l'image
      (ui/dom.js, `avantImage`) : poser la conversation sur ses nouveaux
      messages défile, et ce défilement relisait la page une fois de plus
@@ -118,10 +159,12 @@ export function suivreNouveaux(body){
   body.addEventListener('scroll', () => {
     if (prevu) return;
     prevu = true;
-    avantImage({ lire: () => { prevu = false; return compter(); }, ecrire: montrer });
+    avantImage({ lire: () => { prevu = false; noter(); return compter(); }, ecrire: montrer });
   }, { passive: true });
   return {
     maj,
+    /* la conversation suivait-elle son bas ? (un rendu s'y fie) */
+    colle: () => colle,
     /* l'ouverture : sur la ligne « N nouveaux » s'il y en a une — un peu
        au-dessus, pour qu'on lise d'où l'on vient —, au bas sinon */
     ouvrir(){
@@ -132,4 +175,45 @@ export function suivreNouveaux(body){
       maj();
     }
   };
+}
+
+/* LE BOUTON D'ENVOI (audit au téléphone, 28 octobre 2026). Trois choses
+   que font toutes les messageries, et que nos deux conversations ne
+   faisaient pas :
+   · il S'ALLUME quand il y a quelque chose à envoyer — l'accent, la
+     seule action remplie de l'écran (§6) — et s'éteint sinon : sur un
+     champ vide, un tap n'envoie rien, le bouton ne doit pas le
+     promettre (Messages, Google Messages) ;
+   · il ne PREND PAS le focus. Sous Android, taper un bouton le
+     focalise : le champ perdait la main et le clavier se refermait
+     après chaque message, à rouvrir pour la réponse suivante (relevé
+     par Discourse sur son propre chat ; Messages et WhatsApp le gardent
+     ouvert). Ni le doigt ni la souris ne déplacent donc le focus ;
+   · un message ne part qu'une fois, même tapé deux fois pendant que la
+     boîte aux lettres répond. `lancer` est le même chemin pour Entrée. */
+export function boutonEnvoi(champ, envoyer, id){
+  let enCours = false;
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'btn icon-btn';
+  b.id = id;
+  b.innerHTML = ic('arrow-up', 'ic-14');
+  b.setAttribute('aria-label', 'Envoyer');
+  b.title = 'Envoyer';
+  const etat = () => {
+    const plein = !!champ.value.trim();
+    b.disabled = enCours || !plein;
+    b.classList.toggle('btn-primary', plein);
+  };
+  for (const t of ['pointerdown', 'mousedown']) b.addEventListener(t, e => e.preventDefault());
+  const lancer = async () => {
+    if (enCours || !champ.value.trim()) return;
+    enCours = true;
+    etat();
+    try { await envoyer(); } finally { enCours = false; etat(); }
+  };
+  b.addEventListener('click', lancer);
+  champ.addEventListener('input', etat);
+  etat();
+  return { bouton: b, lancer, etat };
 }

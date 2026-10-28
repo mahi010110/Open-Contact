@@ -317,19 +317,38 @@ function amisHTML(lignes){
    gestes de l'accueil (§6 : une nouveauté prend une place qui existe) ;
    ensuite, elle est la première tranche, jusqu'au premier mail. */
 const PAS = { profil: 'Remplir mon profil', piste: 'Ajouter une piste', mail: 'Écrire mon premier mail' };
+/* ce qui manque au profil, dans les mots du formulaire, et le champ où
+   il s'ouvre pour qu'on le remplisse (`premiersPas`, engine/assist.js) */
+const MANQUE = { nom: 'ton nom', formation: 'ta formation', recherche: 'ce que tu cherches' };
+const CHAMP_MANQUE = { nom: '#pfName', formation: '#pfFormation', recherche: '[data-r]' };
+const manqueDit = m => m.length > 1 ? m.slice(0, -1).map(k => MANQUE[k]).join(', ') + ' et ' + MANQUE[m.at(-1)] : MANQUE[m[0]];
+function pasLigneHTML(x, pret){
+  /* un profil commencé dit ce qui lui manque : la case ne reste plus vide
+     sans dire pourquoi (rien commencé, la ligne suffit) */
+  const m = x.cle === 'profil' && x.manque && x.manque.length < 3 ? x.manque : [];
+  return `<li>${x.fait || !pret
+    ? `<span class="pp-et${x.fait ? ' pp-fait' : ''}">${ic(x.fait ? 'checkbox-on' : 'checkbox', 'ic-20')}<span class="pp-l">${PAS[x.cle]}</span>${
+        x.fait ? '<span class="visuellement-cache"> : fait</span>' : ''}</span>`
+    : `<button class="pp-et pp-a" data-pp="${x.cle}">${ic('checkbox', 'ic-20')}<span class="pp-l">${PAS[x.cle]}${
+        /* l'espace avant : le nom du bouton se lit « Remplir mon profil il
+           manque … », pas « profilil manque » */
+        m.length ? ` <span class="pp-s">il manque ${manqueDit(m)}</span>` : ''}</span>${ic('chevron-right', 'ic-14')}</button>`}</li>`;
+}
 function pasHTML(etapes, titre){
-  const lignes = etapes.map(x => {
-    const pret = x.cle !== 'mail' || etapes[1].fait;
-    return `<li>${x.fait || !pret
-      ? `<span class="pp-et${x.fait ? ' pp-fait' : ''}">${ic(x.fait ? 'checkbox-on' : 'checkbox', 'ic-20')}<span class="pp-l">${PAS[x.cle]}</span>${
-          x.fait ? '<span class="visuellement-cache"> : fait</span>' : ''}</span>`
-      : `<button class="pp-et pp-a" data-pp="${x.cle}">${ic('checkbox', 'ic-20')}<span class="pp-l">${PAS[x.cle]}</span>${ic('chevron-right', 'ic-14')}</button>`}</li>`;
-  }).join('');
-  const liste = `<ol class="pp-liste" id="tdPas">${lignes}</ol>`;
-  if (!titre) return liste;
-  const faits = etapes.filter(x => x.fait).length;
+  /* L'ACCUEIL montre les trois pas : c'est tout l'écran, et l'on voit
+     d'un coup où l'on va. */
+  if (!titre) return `<ol class="pp-liste" id="tdPas">${etapes.map(x => pasLigneHTML(x, x.cle !== 'mail' || etapes[1].fait)).join('')}</ol>`;
+  /* LA TRANCHE NE MONTRE QUE LE PROCHAIN PAS (le mainteneur, 28 octobre
+     2026 : « Premiers pas prend beaucoup de place et est très
+     frustrant »). Trois rangées en tête d'« Aujourd'hui », dont une ou
+     deux déjà cochées, pour une seule chose à faire : le compte dit le
+     chemin fait, la rangée dit la suite — la liste de vérification
+     qu'Asana et Notion réduisent à la prochaine étape une fois lancée. */
+  const x = etapes.find(e => !e.fait);
+  const faits = etapes.filter(e => e.fait).length;
   return `<section class="tranche tr-pas">
-            <h2 class="tr-h">${ic('flag', 'ic-14')} Premiers pas <span class="tr-n">${faits}/3</span></h2>${liste}
+            <h2 class="tr-h">${ic('flag', 'ic-14')} Premiers pas <span class="tr-n">${faits}/3</span></h2>
+            <ol class="pp-liste" id="tdPas">${pasLigneHTML(x, true)}</ol>
           </section>`;
 }
 
@@ -727,7 +746,11 @@ export function renderToday(){
   /* chaque pas mène là où il se fait ; le mail, à la piste que « Par où
      commencer » proposerait en premier */
   root.querySelectorAll('[data-pp]').forEach(b => b.addEventListener('click', () => {
-    if (b.dataset.pp === 'profil') openProfil();
+    /* le profil s'ouvre sur ce qui lui manque */
+    if (b.dataset.pp === 'profil'){
+      const m = (pas && pas[0].manque) || [];
+      openProfil(undefined, m.length && m.length < 3 ? { focus: CHAMP_MANQUE[m[0]] } : {});
+    }
     else if (b.dataset.pp === 'piste') openCapture();
     else { const c = parOuCommencer(aLancer)[0] || alive[0] || S.companies[0]; if (c) openMail(c); }
   }));
