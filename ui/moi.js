@@ -32,6 +32,7 @@ import { enregistrerFichier, partagePossible } from './fichier.js';
 import { mergePreviewInto, messageLecture } from './recevoir.js';
 import { DIST_PAGE } from '../engine/distribution.js';
 import { aideRowHTML, ouvrirAide } from './aide.js';
+import { visageHTML } from './visage.js';
 import { chargerMoi, etatPhrase, ouvrirPhrase, depotAt } from './moi-phrase.js';
 import { clavierActif, lettresCoupees, ouvrirTouches } from './clavier.js';
 
@@ -381,7 +382,11 @@ function reglagesRowsHTML(){
      bascule rien n'a pas sa place (§6, « Le minimum, au bon moment »). */
   if (enTest(DRAPEAUX).length)
     prefs.push(['moiPreversion', 'Préversion', S.preversion ? 'allumée' : 'éteinte', false]);
-  const aide = [['moiAide', 'Aide et confidentialité', '', false], ['moiDiag', 'Signaler un problème', '', false]];
+  /* `moiAidePage`, pas `moiAide` : c'est l'identifiant de « Je peux aider »
+     (ui/aide.js). Au poste les deux vivent dans le même écran — le tap sur
+     « Je peux aider » ouvrait aussi la page d'aide, et « Aide et
+     confidentialité » ne faisait rien (audit du 28 octobre 2026) */
+  const aide = [['moiAidePage', 'Aide et confidentialité', '', false], ['moiDiag', 'Signaler un problème', '', false]];
   const groupe = (titre, l) => !l.length ? '' : `<h3 class="rg-sec">${titre}</h3>` +
     l.map(([id, nom, etat, dep], i) => rgRow(id, nom, etat, i === l.length - 1, dep)).join('');
   return (
@@ -468,7 +473,7 @@ function bindReglages(box){
     const st = q('#moiCompSt');
     if (a && st) st.textContent = 'associé — ' + (a.nom || 'ton ordinateur');
   }).catch(() => {});
-  q('#moiAide').addEventListener('click', () =>
+  q('#moiAidePage').addEventListener('click', () =>
     window.open('aide.html', '_blank', 'noopener'));
   q('#moiDiag').addEventListener('click', openDiagnostic);
   q('#moiRelais')?.addEventListener('click', openRelais);
@@ -546,6 +551,21 @@ function openRelais(){
 }
 /* installée pendant qu'on regarde : la ligne part d'elle-même */
 document.addEventListener('oc:installee', () => { if (S.route === 'moi') renderMoi(); });
+
+/* MON VISAGE (28 octobre 2026 : « pouvoir dessiner son propre dessin »)
+   — une porte sous le profil, comme « Je peux aider » : ce que je donne
+   à mes amis vit à côté de qui je suis. Son état, c'est le visage même.
+   Elle n'existe que si quelqu'un peut le voir — un ami, un groupe, un QR
+   déjà donné (§6, « le minimum, au bon moment »). */
+function visageRowHTML(){
+  const p = S.profile;
+  if (!(p.amiId || (p.amis || []).length || (p.groupes || []).length)) return '';
+  return `<button class="rg-row rg-last moi-rg moi-visage" id="moiVisage">
+     <span class="rg-n">Mon visage</span>
+     <span class="rg-s">${visageHTML(p.amiId, 'vz-m')}</span>
+     ${ic('chevron-right', 'ic-14')}
+   </button>`;
+}
 
 /* mobile : Réglages est le 2ᵉ écran de « Moi » (la porte #20) — un vrai
    écran re-rendu par bus.refresh, jamais une feuille qui gèlerait ses états */
@@ -717,7 +737,7 @@ export function renderMoi(){
 
   /* JE PEUX AIDER (lot R7) : une porte sous le profil, comme celle des
      Réglages — ce que je donne à mes amis vit à côté de qui je suis */
-  const aide = aideRowHTML();
+  const aide = aideRowHTML() + visageRowHTML();
 
   root.innerHTML =
     `<div class="page-inner${wide ? ' page-wide' : ''}">
@@ -746,6 +766,7 @@ export function renderMoi(){
   root.querySelector('#moiProfil').addEventListener('click', () => openProfil());
   root.querySelector('#moiTpl').addEventListener('click', openTemplates);
   root.querySelector('#moiAide')?.addEventListener('click', ouvrirAide);
+  root.querySelector('#moiVisage')?.addEventListener('click', () => import('./mon-visage.js').then(m => m.ouvrirMonVisage()));
   /* le mot de passe est facultatif : au repos il ne pèse qu'un bouton
      compact au bout de la ligne (#8 — l'avancé se replie derrière un
      signe, jamais une phrase). Tapé, il s'étire en champ ; re-tapé, il

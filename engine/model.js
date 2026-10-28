@@ -12,8 +12,9 @@ import { boiteValide } from './boite.js';
 import { normaliserGroupes } from './groupe.js';
 import { normaliserSemaine } from './semaine.js';
 import { normaliserAide } from './aide.js';
+import { normaliserVisage } from './visage.js';
 
-export const APP_VERSION = '7.2.0';
+export const APP_VERSION = '7.3.0';
 
 export const DOMAINS = {
   esn:     { label:'ESN / Services IT',       color:'#4C9FD8' },
@@ -553,6 +554,10 @@ export function normalizeProfile(raw){
      `aide`) ; vide, la clé n'existe pas. */
   const aide = normaliserAide(profile.aide);
   if (aide.length) profile.aide = aide; else delete profile.aide;
+  /* MON VISAGE (28 octobre 2026, engine/visage.js) : un motif de 15 bits
+     et une teinte ; abîmé ou vide, la clé part et le visage tiré revient */
+  const vz = normaliserVisage(profile.visage);
+  if (vz) profile.visage = vz; else delete profile.visage;
   /* « PAS POUR MOI » (docs/recherche-profil.md) : les entreprises de
      « À découvrir » qu'on a écartées — un SIREN, le nom pour pouvoir les
      rendre, la date. Les plus anciennes partent au-delà de 300. */

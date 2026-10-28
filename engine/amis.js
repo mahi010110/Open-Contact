@@ -24,6 +24,7 @@
    ============================================================ */
 import { parcoursDe, normalizeParcours, PARCOURS } from './parcours.js';
 import { normaliserAide } from './aide.js';
+import { normaliserVisage } from './visage.js';
 
 export const AMIS_MAX = 200;
 export const AMI_PARCOURS_MAX = 20;
@@ -88,6 +89,10 @@ export function profilDonne(profile, companies){
   /* ce que je peux offrir (lot R7) — des mots de la table seulement */
   const aide = normaliserAide(p.aide);
   if (aide.length) d.aide = aide;
+  /* le visage que j'ai dessiné (28 octobre 2026) — quinze cases et une
+     teinte ; sans dessin, rien : le visage tiré se recalcule de `id` */
+  const vz = normaliserVisage(p.visage);
+  if (vz) d.visage = vz;
   return d;
 }
 
@@ -115,6 +120,8 @@ export function normalizeAmi(x){
   if (CLE_BOITE.test(String(x.cle || ''))) out.cle = x.cle;
   const aide = normaliserAide(x.aide);
   if (aide.length) out.aide = aide;
+  const vz = normaliserVisage(x.visage);
+  if (vz) out.visage = vz;
   /* `recu` : le jour où il est arrivé chez toi — rien de plus */
   const r = Number(x.recu);
   if (Number.isFinite(r) && r > 0) out.recu = r;

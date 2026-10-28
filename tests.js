@@ -81,7 +81,7 @@ import { critereValide, phraseCritere, CRITERE_METIER } from './engine/critere.j
 import { attendOnglet, cleFil, prefsVides, normaliserPrefs, basculerEpingle, basculerMuet, renommerFil, oublierFil, boite,
          filtrer, filtresUtiles, filtreVide, premierNonLu, EPINGLES_MAX,
          phraseEcrits, nomsListe } from './engine/conversations.js';
-import { visage, initiales, TEINTES } from './engine/visage.js';
+import { visage, initiales, TEINTES, motifDe, normaliserVisage, visageDessine, basculerCase, caseAllumee, MOTIF_MAX } from './engine/visage.js';
 import { MESSAGE_MAX, FIL_MAX, texteMessage, conversationsVides, normaliserConversations, filAvec, ajouterMessage,
          nonLus, dernier as dernierMessage, marquerLu, oublier as oublierConversation } from './engine/messages.js';
 import { GROUPES_MAX, MOT_MAX, nouveauCode, codeNorm, codeAffiche, estCodeTape, invitation, estInvitation, lireInvitation,
@@ -3193,6 +3193,40 @@ export async function runSelfTests(){
       eq(new Set(graines.map(g => visage(g).teinte)).size, TEINTES);
       /* les initiales d'un groupe */
       eq([initiales('BTS SIO Lille'), initiales('Club'), initiales('  école  2026 '), initiales('')], ['BS', 'CL', 'E2', '?']);
+    },
+    'mon visage, dessiné : quinze cases en miroir et une teinte, rien d’autre': async () => {
+      /* le motif tiré redonne exactement le visage tiré */
+      const g = 'KarimKarimKarim00001', m = motifDe(g);
+      eq(visageDessine(m), visage(g));
+      /* une case touchée bascule avec sa jumelle, la colonne du milieu seule */
+      let x = 0;
+      x = basculerCase(x, 0, 0); ok(caseAllumee(x, 0, 0) && caseAllumee(x, 4, 0));
+      x = basculerCase(x, 3, 2); ok(caseAllumee(x, 1, 2) && caseAllumee(x, 3, 2));
+      x = basculerCase(x, 2, 4); ok(caseAllumee(x, 2, 4));
+      eq(visageDessine({ m: x, t: 1 }).cases.length, 5);
+      x = basculerCase(x, 4, 0); ok(!caseAllumee(x, 0, 0) && !caseAllumee(x, 4, 0));
+      eq(basculerCase(x, 2, 9), x);                          /* hors de la grille : rien */
+      /* ce qui arrive d'ailleurs est remis aux bornes, ou refusé */
+      eq(normaliserVisage({ m: 5, t: 2 }), { m: 5, t: 2 });
+      eq(normaliserVisage({ m: '5', t: '2' }), { m: 5, t: 2 });
+      eq(normaliserVisage({ m: 5, t: 2, nom: 'Karim', img: 'data:…' }), { m: 5, t: 2 });
+      for (const v of [null, 'x', {}, { m: 0, t: 1 }, { m: MOTIF_MAX + 1, t: 1 }, { m: 1.5, t: 1 }, { m: 3, t: TEINTES }, { m: 3, t: -1 }])
+        eq(normaliserVisage(v), null);
+      /* le profil le garde, abîmé il part */
+      eq(normalizeProfile({ name: 'Inès', visage: { m: 9, t: 3 } }).visage, { m: 9, t: 3 });
+      ok(!('visage' in normalizeProfile({ name: 'Inès', visage: { m: 0, t: 3 } })));
+      /* il part avec le profil donné, et SEULEMENT le motif et la teinte */
+      const p = normalizeProfile({ name: 'Inès Martin', amiId: nouvelIdAmi(), visage: { m: 1234, t: 4 } });
+      const d = profilDonne(p, []);
+      eq(d.visage, { m: 1234, t: 4 });
+      ok(!('visage' in profilDonne(normalizeProfile({ name: 'Inès', amiId: nouvelIdAmi() }), [])));
+      /* l'ami qui le reçoit le garde, remis aux bornes */
+      const a = normalizeAmi({ id: nouvelIdAmi(), nom: 'Inès Martin', parcours: [], visage: { m: 1234, t: 4, x: 1 } });
+      eq(a.visage, { m: 1234, t: 4 });
+      ok(!('visage' in normalizeAmi({ id: nouvelIdAmi(), nom: 'Inès', parcours: [], visage: { m: 99999, t: 1 } })));
+      /* changer de visage change l'empreinte : la mise à jour part toute seule chez mes amis */
+      ok(await empreinteProfil(profilDonne({ ...p, visage: { m: 1, t: 4 } }, [])) !== await empreinteProfil(d));
+      eq(await empreinteProfil(profilDonne(p, [])), await empreinteProfil(d));
     },
     'amis : l’onglet — ce qu’un ami t’ouvre, le tri « Pour toi », la recherche par entreprise': () => {
       const today = '2026-10-07';

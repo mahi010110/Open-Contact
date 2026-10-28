@@ -3385,7 +3385,8 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
    les entreprises. Rien de caché derrière un code (ui/amis.js). */
 .mq-donne{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;max-width:340px;margin:0 auto}
 .mq-donne b{font-size:var(--text-16);font-weight:var(--weight-bold);overflow-wrap:anywhere}
-.mq-donne span{font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted);overflow-wrap:anywhere}
+/* `>` : le visage, devant le nom, est aussi un `span` — il garde sa teinte */
+.mq-donne>span{font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted);overflow-wrap:anywhere}
 /* le parcours d'un ami : une entreprise qui est déjà dans tes pistes le
    dit en accent — c'est ce que l'ami te rapporte, un atout et non une
    urgence (jamais `mark-*`) */
@@ -3652,6 +3653,34 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 .vz.vz-s{width:16px;height:16px;border:0;background:none;vertical-align:-3px;margin-right:4px}
 /* moyen : devant un nom de membre, en tête de la fiche d'un ami */
 .vz.vz-m{width:24px;height:24px}
+/* dans la barre d'une conversation : le visage de l'ami, sur sa case
+   grise — le navy du châssis autour, comme l'icône d'une fenêtre 98 */
+.modal-h .vz.vz-barre{width:22px;height:22px}
+/* MON VISAGE (ui/mon-visage.js, 28 octobre 2026) : la grille des visages,
+   en grand — une case est une cible (`--ctl`), allumée elle prend la
+   teinte du dessin (la classe `vz-N` de la grille donne `currentColor`).
+   Pas d'arrondi, pas de flou : des pixels, comme le visage lui-même. */
+.mv-grille{display:grid;grid-template-columns:repeat(5,var(--ctl));gap:3px;justify-content:center;
+  width:max-content;max-width:100%;margin:4px auto 0;padding:6px;border:1px solid var(--border-strong);background:var(--surface-chrome)}
+/* `color:inherit` : un bouton ne prend pas la couleur de son parent (le
+   navigateur lui donne la sienne) — sans lui, les cases s'allumaient en
+   noir quelle que soit la teinte */
+.mv-c{width:var(--ctl);height:var(--ctl);padding:0;color:inherit;border:1px solid var(--border-soft);background:var(--surface-field);cursor:pointer}
+.mv-c.on{background:currentColor;border-color:currentColor}
+.mv-c:active{transform:translate(1px,1px)}
+/* six teintes : un carré plein chacune, la retenue cochée et bordée */
+.mv-teintes{display:flex;justify-content:center;flex-wrap:wrap;gap:8px;margin:14px 0 0}
+.mv-t{display:inline-flex;align-items:center;justify-content:center;width:var(--ctl);height:var(--ctl);padding:0;
+  border:1px solid var(--border-strong);background:currentColor;cursor:pointer}
+.mv-t .ic{color:var(--surface-window)}
+/* la retenue : un double filet net (pas l'anneau de focus, qui garde le sien) */
+.mv-t[aria-checked="true"]{box-shadow:0 0 0 2px var(--surface-window),0 0 0 4px var(--text-body)}
+/* l'aperçu : la ligne où les amis le verront, à ses trois tailles */
+.mv-apercu{display:flex;align-items:center;justify-content:center;gap:10px;margin:16px 0 0;font-size:var(--text-14)}
+.mv-apercu b{font-weight:var(--weight-semibold)}
+.mv-origine{display:flex;margin:14px auto 0}
+.moi-visage .rg-s{display:inline-flex}
+.mq-nom{display:inline-flex;align-items:center;gap:8px}
 .gr-nom{display:inline-flex;align-items:center;gap:8px;min-width:0}
 .am-nom{display:flex;align-items:center;gap:10px}
 /* un lien dans un message : il emmène ailleurs, il se souligne — et une
