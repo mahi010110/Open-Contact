@@ -301,6 +301,23 @@ for (const [nom, vp] of [['pouce', { width: 390, height: 844 }], ['petit', { wid
   if (e.focus !== 'msChamp') fail(`${nom} : envoyer a pris le curseur au champ — le clavier se fermerait (${JSON.stringify(e)})`);
   if (!e.vide || !d2 || !d2.vu || !/je regarde ce soir/.test(d2.texte)) fail(`${nom} : le message envoyé n'est pas à l'écran (${JSON.stringify({ e, d2 })})`);
   if (!f2.off || f2.plein) fail(`${nom} : le champ vidé, la flèche reste allumée (${JSON.stringify(f2)})`);
+  /* plusieurs lignes D'UN COUP pendant qu'une relecture de défilement
+     attend son image (un téléphone lent tape plus vite qu'il ne dessine) :
+     la relecture tombe avant que l'observateur ait rattrapé le champ — le
+     dernier message doit rester à l'écran quand même (CI de la 7.2.0) */
+  await p.evaluate(async () => {
+    const t = document.getElementById('msChamp');
+    const b = [...document.querySelectorAll('.overlay:not(.ov-out) .modal-b')].pop();
+    const image = () => new Promise(r => requestAnimationFrame(() => r()));
+    t.value = 'Trois lignes d’un coup, pour voir si le fil garde son bas. '.repeat(4);
+    b.dispatchEvent(new Event('scroll'));
+    t.dispatchEvent(new Event('input'));
+    for (let i = 0; i < 4; i++) await image();
+  });
+  const d4 = await dernierVu(p);
+  if (!d4 || !d4.vu) fail(`${nom} : trois lignes d’un coup, et le dernier message passe sous le champ (${JSON.stringify(d4)})`);
+  await p.evaluate(() => { const t = document.getElementById('msChamp'); t.value = ''; t.dispatchEvent(new Event('input')); });
+  await p.waitForTimeout(150);
   /* un long message : six lignes au plus, le fil reste là */
   for (let i = 0; i < 12; i++) await p.keyboard.type('Une ligne assez longue pour se replier sur un petit téléphone. ');
   await p.waitForTimeout(250);

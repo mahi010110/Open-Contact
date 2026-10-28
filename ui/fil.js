@@ -101,13 +101,28 @@ export function suivreNouveaux(body){
      défilement et à chaque rendu, et on la rend quand la zone change de
      taille. La première observation n'est pas un changement : c'est
      l'ouverture, qui a déjà posé la conversation où il faut. */
-  let distBas = 0, h0 = -1;
-  const noter = () => { distBas = Math.max(0, body.scrollHeight - body.scrollTop - body.clientHeight); };
-  if (typeof ResizeObserver === 'function') new ResizeObserver(([e]) => {
-    const h = Math.round(e.contentRect.height);
-    if (h0 < 0 || h === h0){ h0 = h; return; }
-    h0 = h;
-    body.scrollTop = body.scrollHeight - body.clientHeight - distBas;
+  /* « Collé en bas » se RETIENT, il ne se remesure pas à chaud : un
+     rendu qui tombe pendant qu'on tape (l'envoi précédent qui revient
+     de la boîte aux lettres) lisait la distance entre le champ qui vient
+     de prendre une ligne et l'observateur qui ne l'a pas encore
+     rattrapée — il se croyait décroché, et le dernier message restait à
+     moitié sous le champ (relevé en CI, sur une machine lente). */
+  /* Et la distance se lit contre la DERNIÈRE TAILLE QUE L'OBSERVATEUR A
+     VUE, jamais contre la taille du moment : si le champ prend trois
+     lignes entre deux images, la relecture qui suit un défilement tombe
+     avant que l'observateur l'ait rattrapé — mesurée à chaud, elle
+     comptait ces trois lignes comme un écart voulu, et le dernier
+     message restait sous le champ pour de bon. */
+  let distBas = 0, vu = -1, colle = true;
+  const noter = () => {
+    distBas = Math.max(0, body.scrollHeight - body.scrollTop - (vu >= 0 ? vu : body.clientHeight));
+    colle = distBas < 40;
+  };
+  if (typeof ResizeObserver === 'function') new ResizeObserver(() => {
+    const c = body.clientHeight;
+    if (vu < 0 || c === vu){ vu = c; return; }
+    body.scrollTop = colle ? body.scrollHeight : body.scrollHeight - c - distBas;
+    vu = c;
   }).observe(body);
   /* ce qui est neuf ET encore sous le bord bas de la zone visible */
   const sousLeBord = () => {
@@ -148,6 +163,8 @@ export function suivreNouveaux(body){
   }, { passive: true });
   return {
     maj,
+    /* la conversation suivait-elle son bas ? (un rendu s'y fie) */
+    colle: () => colle,
     /* l'ouverture : sur la ligne « N nouveaux » s'il y en a une — un peu
        au-dessus, pour qu'on lise d'où l'on vient —, au bas sinon */
     ouvrir(){

@@ -78,11 +78,18 @@ async function ecran(profil, pistes, o = {}){
   await p.waitForSelector('#view-aujourdhui:not([hidden])');
   return { ctx, p };
 }
+/* une feuille qui SORT (`ov-out`) n'est plus à fermer : la compter, puis
+   la viser au tour d'après, c'était viser ce qui venait de disparaître
+   (relevé sur une machine chargée, 28 octobre 2026) */
 const fermerTout = async p => {
   for (let i = 0; i < 6; i++){
-    const n = await p.evaluate(() => document.querySelectorAll('.overlay').length);
-    if (!n) break;
-    await p.evaluate(() => [...document.querySelectorAll('.overlay')].pop().querySelector('.modal-h button.x').click());
+    const ferme = await p.evaluate(() => {
+      const ov = [...document.querySelectorAll('.overlay:not(.ov-out)')].pop();
+      if (!ov) return false;
+      ov.querySelector('.modal-h button.x').click();
+      return true;
+    });
+    if (!ferme) break;
     await p.waitForTimeout(250);
   }
 };

@@ -113,7 +113,7 @@ export async function ouvrirConversation(a, apres, o = {}){
   const rendre = () => {
     if (!sh.body.isConnected) return;
     const fil = filAvec(conv, a.id);
-    const bas = rendu && sh.body.scrollHeight - sh.body.scrollTop - sh.body.clientHeight < 40;
+    const bas = rendu && suivre.colle();
     const neuf = m => !m.moi && m.at > vuAvant;
     const n = fil.filter(neuf).length;
     const premier = fil.findIndex(neuf);

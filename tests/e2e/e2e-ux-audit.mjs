@@ -1495,9 +1495,22 @@ for (const [nom, motion] of [['normal', 'no-preference'], ['mouvement réduit', 
   /* ② la section repliée, au pouce */
   await mPage.setViewportSize({ width: 390, height: 844 });
   await mPage.goto(base + '/#/aujourdhui', { waitUntil: 'load' });
-  await attendre(mPage, () => !!document.querySelector('details.tr-soon summary'),
+  /* l'écran AFFICHÉ, pas seulement rendu : « Aujourd'hui » est la route,
+     sa vue est visible, aucune feuille par-dessus. Relevé en CI (28
+     octobre 2026) : la section mesurait 0 px de bout en bout, dans les
+     deux contextes — un élément qu'on mesure hors de l'écran, ou qu'un
+     rendu a remplacé, rend zéro, et zéro se lit « s'ouvre d'un coup ». */
+  await attendre(mPage, () => location.hash === '#/aujourdhui' && !document.querySelector('#view-aujourdhui').hidden
+      && !document.querySelector('.overlay:not(.ov-out)') && !!document.querySelector('details.tr-soon summary'),
     { message: 'la section « Bientôt »' });
   const pli = await mPage.evaluate(async () => {
+    /* deux images d'abord, comme sous un vrai doigt : le changement de
+       largeur (1280 → 390) ne se signale qu'à une image, et « Aujourd'hui »
+       se redessine alors s'il est déjà la route (ui/today.js) — cliqué
+       avant, on mesurerait l'élément qui s'en va. Attendre une image ne
+       lit aucune géométrie : la règle du bloc tient, la hauteur de départ
+       ne s'engage toujours que dans `foldAnim` (ui/dom.js). */
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
     const d = document.querySelector('details.tr-soon');
     const hs = []; const t0 = performance.now();
     d.querySelector('summary').click();
@@ -1509,11 +1522,15 @@ for (const [nom, motion] of [['normal', 'no-preference'], ['mouvement réduit', 
       requestAnimationFrame(tick);
     });
     const deb = hs[0], fin = hs[hs.length - 1];
-    return { ouvert: d.open, deb, fin, inter: hs.filter(h => h > deb + 2 && h < fin - 2).length };
+    /* de quoi dire POURQUOI, si la mesure tombe à zéro */
+    const vue = document.querySelector('#view-aujourdhui');
+    const etat = { connecte: d.isConnected, route: location.hash, vueCachee: vue.hidden,
+      feuilles: document.querySelectorAll('.overlay:not(.ov-out)').length };
+    return { ouvert: d.open, deb, fin, inter: hs.filter(h => h > deb + 2 && h < fin - 2).length, etat };
   });
   if (!pli.ouvert) fail('la section « Bientôt » ne s’ouvre plus');
   if (doux && pli.inter < 3)
-    fail(`la section s'ouvre encore d'un coup (${pli.deb}→${pli.fin} px, ${pli.inter} images)`);
+    fail(`la section s'ouvre encore d'un coup (${pli.deb}→${pli.fin} px, ${pli.inter} images, ${JSON.stringify(pli.etat)})`);
   if (!doux && pli.inter > 1)
     fail(`mouvement réduit demandé, la section s'anime quand même (${pli.inter} images)`);
   await mCtx.close();

@@ -617,7 +617,7 @@ export async function ouvrirGroupe(code, apres, o = {}){
     const porte = quiAttend(code);
     /* au premier rendu, rien à relire : lire la hauteur forcerait une
        mise en page de la feuille encore vide, pendant le tap */
-    const bas = rendu && sh.body.scrollHeight - sh.body.scrollTop - sh.body.clientHeight < 40;
+    const bas = rendu && suivre.colle();
     sh.setTitle(nomDe(code));
     const x = porte[0];
     tete.innerHTML =
