@@ -264,7 +264,7 @@ const UA_ANDROID = 'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 
   await ctx.close();
 }
 
-/* ---------- Mes appareils : deux verbes, sans note ----------
+/* ---------- Mes appareils : deux gestes, sans note ----------
    « sur le premier appareil », « sur l'appareil à ajouter » sont partis
    le 30 septembre 2026 : les verbes le disent (on CRÉE ce qu'on n'a pas,
    on ENTRE ce qu'un autre écran affiche), et l'écran suivant le montre. */
@@ -274,8 +274,10 @@ const UA_ANDROID = 'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 
   await p.click('#moiSync');
   await p.waitForSelector('#syNew');
   const deux = await p.evaluate(() => ['#syNew', '#syJoin'].map(s => document.querySelector(s).textContent.replace(/\s+/g, ' ').trim()));
-  okSi(deux[0] === 'Créer une phrase' && deux[1] === 'Entrer une phrase',
-    'deux verbes, rien d’autre sur le bouton (lu : ' + deux.join(' | ') + ')');
+  /* le BUT, pas le mécanisme : « Créer une phrase » côtoyait « Créer
+     ma phrase » de la phrase de secours, un autre secret (§7) */
+  okSi(deux[0] === 'Relier un autre appareil' && deux[1] === 'Relier cet appareil',
+    'deux gestes, rien d’autre sur le bouton (lu : ' + deux.join(' | ') + ')');
   await ctx.close();
 }
 

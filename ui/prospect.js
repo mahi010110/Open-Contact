@@ -231,11 +231,13 @@ function chooseMode(pairs){
   const nP = pairs.length;
   const nC = new Set(pairs.map(x => x.c.id)).size;
   const sh = openSheet({
-    title: nC + ' piste' + (nC > 1 ? 's' : '') + (nP === nC ? '' : ' · ' + nP + ' personnes'),
+    title: 'Prospecter',
     icon: 'mail'
   });
+  /* la barre dit la fenêtre, le contenu dit laquelle (§4) */
   sh.body.innerHTML =
-    `<div class="pick-list">
+    `<div class="na-company">${nC} piste${nC > 1 ? 's' : ''}${nP === nC ? '' : ' · ' + nP + ' personnes'}</div>
+     <div class="pick-list">
        <button class="pick" id="pmOne"><b>${ic('mail', 'ic-14')} Une par une</b>
          <span>maintenant</span></button>
        ${CAMPAGNES ? `<button class="pick" id="pmCamp"><b>${ic('flag', 'ic-14')} En campagne</b>

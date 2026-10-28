@@ -118,10 +118,58 @@ const repriseOk = r => !!r && r.ids.join(',') === 'adv,ora,cap' && r.sortes.join
   const { ctx, p } = await ecran('chiffres', { hash: '#/pistes' });
   ok(await compte(p) === '5 écrites · 2 réponses · 1 décrochée',
     `① les chiffres à la place du compte, déduits des pistes — « ${await compte(p)} »`);
+  /* L'EN-TÊTE TIENT au pouce : « Choisir » sur la ligne du titre, les
+     chiffres sur UNE ligne sous lui. Vu sous WebKit puis à la police
+     d'un iPhone (17 px) : « Choisir » tombait seul à gauche, puis les
+     trois chiffres s'empilaient sur trois rangs (28 octobre 2026). */
+  for (const [larg, police] of [[390, '17px'], [360, '16px'], [320, '16px']]){
+    await p.setViewportSize({ width: larg, height: 844 });
+    const t = await p.evaluate(async f => {
+      document.documentElement.style.fontSize = f;
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      const r = s => document.querySelector(s).getBoundingClientRect();
+      const h1 = r('#view-pistes .pi-head h1'), ch = r('#piProspect'), n = document.querySelector('#piCount');
+      return { choisir: Math.round(ch.top - h1.top), droite: Math.round(innerWidth - ch.right),
+               rangs: Math.round(n.getBoundingClientRect().height / parseFloat(getComputedStyle(n).lineHeight)) };
+    }, police);
+    ok(Math.abs(t.choisir) <= 12 && t.droite < 40 && t.rangs === 1,
+      `① ${larg} px, police ${police} : « Choisir » en haut à droite, les chiffres sur une ligne — ${JSON.stringify(t)}`);
+  }
+  await p.evaluate(() => { document.documentElement.style.fontSize = ''; });
+  await p.setViewportSize({ width: 390, height: 844 });
   await p.fill('#piQ', 'Advens');
   await p.waitForTimeout(500);
   ok(/^1 sur 7$/.test(await compte(p)), `① une recherche garde son compte — « ${await compte(p)} »`);
   await p.screenshot({ path: `${SHOTS}/163-chiffres-recherche.png` });
+  await ctx.close();
+}
+/* LA SOUS-LIGNE D'UNE PISTE PLIE ENTRE SES DONNÉES, JAMAIS DEDANS.
+   Vu sur les pistes d'exemple à la police d'un iPhone : « Envoyer la
+   candidature · À / contacter · Roubaix » — le statut coupé en deux
+   (28 octobre 2026). Des sous-lignes qui PLIENT, sinon la mesure ne
+   prouve rien. */
+{
+  const longues = [['dam', 'Damart', 'Roubaix', 'Envoyer la candidature'], ['aub', 'Auchan Retail', 'Villeneuve-d’Ascq', 'Préparer l’entretien'],
+                   ['lec', 'Leroy Merlin', 'Lezennes', 'Envoyer la candidature spontanée']]
+    .map(([id, name, city, txt]) => ({ id, name, city, status: 'todo', nextAction: iso(0), nextActionText: txt, updatedAt: now }));
+  const { ctx, p } = await ecran('sous-ligne', { hash: '#/pistes', pistes: longues });
+  for (const [larg, police] of [[390, '17px'], [360, '16px'], [320, '16px']]){
+    await p.setViewportSize({ width: larg, height: 844 });
+    const t = await p.evaluate(async f => {
+      document.documentElement.style.fontSize = f;
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      const subs = [...document.querySelectorAll('#piBody .ri-sub')];
+      const lh = subs.length ? parseFloat(getComputedStyle(subs[0]).lineHeight) : 1;
+      return { plient: subs.filter(s => s.getBoundingClientRect().height > lh * 1.5).length,
+               /* des LIGNES, pas des rectangles : le « · » vient d'une
+                  autre police que la mono, et fait un second rectangle
+                  sur la même ligne */
+               coupees: [...document.querySelectorAll('#piBody .ri-sub .nw')]
+                 .filter(x => new Set([...x.getClientRects()].map(r => Math.round(r.top))).size > 1).map(x => x.textContent) };
+    }, police);
+    ok(t.plient > 0 && !t.coupees.length,
+      `① ${larg} px, police ${police} : ${t.plient} sous-ligne(s) plient, aucune donnée coupée en deux — ${JSON.stringify(t.coupees)}`);
+  }
   await ctx.close();
 }
 {

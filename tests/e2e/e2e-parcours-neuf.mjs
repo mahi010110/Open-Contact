@@ -253,6 +253,21 @@ const etire = m => m.boite > m.texte + 30;   /* 2 × 8 px de marge, 2 px de bord
     t.style.top = ''; t.style.bottom = '';
     return m;
   });
+  /* ④ LA LARGEUR DE SON TEXTE, PAS LA MOITIÉ DE L'ÉCRAN : posé à
+     `left:50%`, un élément fixe ne se dimensionnait que dans la moitié
+     droite, et un toast d'une soixantaine de signes pliait sur trois
+     rangs de 150 px au milieu d'un écran de 390 (28 octobre 2026) */
+  const large = await M.evaluate(async () => {
+    const { toast } = await import('./ui/dom.js');
+    toast('Les pistes d’exemple ne se donnent pas — ajoute la tienne.');
+    await new Promise(r => setTimeout(r, 60));
+    const t = document.getElementById('toast');
+    const r = t.getBoundingClientRect(), lh = parseFloat(getComputedStyle(t).lineHeight);
+    const rg = document.createRange(); rg.selectNodeContents(t);
+    return { largeur: Math.round(r.width), ecran: innerWidth, rangs: Math.round(rg.getBoundingClientRect().height / lh) };
+  });
+  if (large.rangs > 2 || large.largeur < large.ecran * 0.6)
+    durs.push(`un toast de soixante signes plie dans la moitié de l'écran : ${JSON.stringify(large)}`);
   if (!etire(sonde)) fail('toast : la sonde étirée exprès n’est pas vue — le critère ne mesure plus rien');
   else if (durs.length) fail(`le toast s'étire : ${durs.length} état(s) —\n      ` + durs.join('\n      '));
   else console.log(`toast : jamais plus haut que son texte, dans ${ETATS.length + 1} états au pouce, sonde vue ✓`);
@@ -275,6 +290,21 @@ const listed = await M.evaluate(() =>
   [...document.querySelectorAll('#piBody h3, #piBody b')].some(n => /Boulangerie Cyber/.test(n.textContent)));
 if (!listed) fail('la piste capturée n’apparaît pas dans Mes pistes');
 else console.log('La piste capturée s’affiche dans Mes pistes ✓');
+
+/* sa fiche montre son seul contact OUVERT : « Écrire » et « Appeler »
+   ne se cachent pas derrière un triangle quand il n'y a qu'une personne
+   (28 octobre 2026 — NN/g : pas d'accordéon sur le contenu qu'on vient
+   chercher). Dès deux, ils se replient. */
+await M.locator('#piBody .row-item').filter({ hasText: 'Boulangerie Cyber' }).first().click();
+await M.waitForSelector('.modal-fiche details.ctc');
+const seul = await M.evaluate(() => {
+  const d = document.querySelector('.modal-fiche details.ctc'), w = d && d.querySelector('[data-write]');
+  return { ouvert: !!d?.open, ecrire: !!w && w.checkVisibility() };
+});
+if (!seul.ouvert || !seul.ecrire) fail('le seul contact de la fiche est replié, « Écrire » caché : ' + JSON.stringify(seul));
+else console.log('Fiche : le seul contact s’ouvre, « Écrire » à portée ✓');
+await closeSheets(M);
+await M.waitForSelector('.overlay', { state: 'detached', timeout: 5000 }).catch(() => {});
 
 /* persistance : elle survit à un rechargement (IndexedDB, pas la mémoire) */
 await M.reload({ waitUntil: 'load' });
@@ -365,7 +395,7 @@ console.log('La piste survit au rechargement ✓');
     + 'le profil complété remplit les trous sans toucher à l’accroche ✓');
 
   /* ---------- APRÈS L'ENVOI : la relance conseillée, et l'agenda ----------
-     Joué le 30 septembre 2026 : on fermait « Envoyé ✓ — et ensuite ? »,
+     Joué le 30 septembre 2026 : on fermait « Et ensuite ? »,
      rien n'était prévu, et la piste revenait dans « Par où commencer »
      avec l'icône mail. La relance à 7 jours tient maintenant le pied, et
      la case « Me le rappeler dans mon agenda » fait sonner le téléphone
@@ -377,12 +407,21 @@ console.log('La piste survit au rechargement ✓');
   const pied = await M.evaluate(() =>
     [...document.querySelectorAll('.overlay:last-of-type .modal-f .btn')].map(b => b.textContent.trim()));
   if (String(pied) !== 'Dans 7 jours') suite.push('le pied ne propose pas la relance conseillée : ' + JSON.stringify(pied));
+  /* la puce du même jour ne double pas le pied : deux boutons pour un
+     seul geste, c'est un choix pour rien (28 octobre 2026) */
+  const puces = await M.evaluate(() => [...document.querySelectorAll('.overlay:last-of-type .dchip-d b')].map(b => b.textContent.trim()));
+  if (String(pied) === 'Dans 7 jours' && puces.includes('+7 jours'))
+    suite.push('la puce « +7 jours » redit le pied « Dans 7 jours » : ' + JSON.stringify(puces));
   await M.check('#naAgenda');
-  /* sans la relance conseillée, on prend la puce « +7 jours » : le reste
-     se mesure quand même, et la faute du pied reste NOMMÉE au lieu de
-     finir en délai dépassé (une mutation l'a montré) */
+  /* sans la relance conseillée, on prend la date précise : le reste se
+     mesure quand même, et la faute du pied reste NOMMÉE au lieu de finir
+     en délai dépassé (une mutation l'a montré) */
   if (String(pied) === 'Dans 7 jours') await M.locator('.overlay:last-of-type .modal-f .btn-primary').click();
-  else await M.locator('.overlay:last-of-type .dchip-d').filter({ hasText: '+7 jours' }).click();
+  else {
+    const j = new Date(); j.setDate(j.getDate() + 7);
+    await M.fill('#naDate', j.getFullYear() + '-' + String(j.getMonth() + 1).padStart(2, '0') + '-' + String(j.getDate()).padStart(2, '0'));
+    await M.click('#naOk');
+  }
   await M.waitForTimeout(400);
   const r = await M.evaluate(async () => {
     const { S } = await import('./ui/state.js');

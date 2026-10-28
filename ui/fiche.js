@@ -60,7 +60,7 @@ function openDemander(c, prenom, v){
      demande se pose dans votre conversation */
   const ami = v.amiId && (S.profile.amis || []).find(a => a.id === v.amiId);
   if (ami) return demanderAAmi(c, ami, v);
-  const sh = openSheet({ title: 'Demander à ' + prenom, icon: 'message-text' });
+  const sh = openSheet({ title: 'Demande', icon: 'message-text' });
   const mot = `Salut ${prenom}, tu ${v.tu} chez ${c.name} ? `
             + `Je postule là-bas — tu peux me dire à qui écrire ?`;
   sh.body.innerHTML = enVraiHTML() + `<div class="gr-mot">${esc(mot)}</div>`;
@@ -93,7 +93,7 @@ function merciDePiste(c, qui){
    copie, comme avant. */
 function demanderAAmi(c, ami, v){
   const prenom = prenomAmi(ami);
-  const sh = openSheet({ title: 'Demander à ' + prenom, icon: 'message-text' });
+  const sh = openSheet({ title: 'Demande', icon: 'message-text' });
   const sortes = demandesPossibles(ami.aide);
   let sorte = sortes[0];
   const mot = () => messageDemande(sorte, { prenom, tu: v.tu, entreprise: c.name, cherche: S.profile.recherche });
@@ -414,7 +414,13 @@ export function openFiche(c, o = {}){
               emmenaient ailleurs avant qu'on ait cherché quoi que ce soit :
               ils vivent maintenant dans « Ajouter un contact », là où l'on
               cherche quelqu'un. */''}
-         ${main.length ? `<div class="ctc-list">${main.map(t => ctRowHTML(t, wide)).join('')}</div>` : ''}
+         ${/* UN SEUL CONTACT S'OUVRE. Replié, il cachait derrière un
+              triangle les seuls gestes de la fiche qui mènent à quelqu'un
+              (Écrire, Appeler) : un pli sur un seul élément ne range
+              rien, il ajoute un tap (NN/g, cinq cas où éviter
+              l'accordéon : quand on a besoin de presque tout le contenu).
+              Dès deux, ils se replient : c'est là qu'un mur menace. */''}
+         ${main.length ? `<div class="ctc-list">${main.map(t => ctRowHTML(t, wide || main.length === 1)).join('')}</div>` : ''}
          ${knownCts.length ? `
            <details class="ctc-known"${main.length ? '' : ' open'}>
              <summary>+ ${knownCts.length} personne${knownCts.length > 1 ? 's' : ''} connue${knownCts.length > 1 ? 's' : ''}</summary>

@@ -76,7 +76,7 @@ await page.waitForTimeout(350); await page.screenshot({ path: SHOTS + '/20-ecrir
 /* envoi → interception → boucle « Envoyé ✓ — et ensuite ? » */
 await page.fill('#mSubj', 'Candidature — stage cyber été');
 await sendBtn.click();
-await page.waitForSelector('.modal:has-text("Envoyé ✓ — et ensuite ?")', { timeout: 10000 });
+await page.waitForSelector('.modal:has-text("Et ensuite ?")', { timeout: 10000 });
 if (!sent || !sent.raw) fail('requête Gmail non capturée');
 const mime = Buffer.from(sent.raw.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8');
 if (!/To: nadia@exemple.fr/.test(mime)) fail('destinataire absent du MIME');

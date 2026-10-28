@@ -9,6 +9,48 @@ le premier pour une rupture. La bascule du recadrage est la 7.0.0
 
 Les versions d'avant la 6.76 se lisent dans l'historique du dépôt.
 
+## [7.1.1] — 28 octobre 2026
+
+L'audit de l'interface, joué comme un nouveau venu sur un téléphone.
+
+### Corrigé
+
+- Sur un iPhone, l'en-tête de « Mes pistes » tenait sur trois lignes :
+  tes chiffres passent sous le titre, sur une ligne, et « Choisir »
+  reste en haut à droite.
+- Juste après ton premier mail, « Aujourd'hui » disait « Tout est à
+  jour » au-dessus de « 1 piste à planifier » : il dit maintenant « Rien
+  de prévu aujourd'hui » tant qu'une piste attend sa suite.
+- Après un mail, la feuille de la suite ne propose plus deux fois le
+  même jour (« Dans 7 jours » en bas, « +7 jours » au-dessus).
+- Les barres de feuilles disent ce qu'est la fenêtre, en un mot : « Et
+  ensuite ? », « Demande », « Contacts », « Destinataires » ; le nom de
+  la piste ouvre le contenu, en entier.
+- Une fiche qui n'a qu'un contact le montre ouvert : « Écrire » et
+  « Appeler » ne se cachent plus derrière un triangle.
+- Dans « Mes pistes », la ligne sous le nom ne coupe plus un statut en
+  deux (« À » en fin de ligne, « contacter » sur la suivante).
+- « Modifier » dit qui verra ce que tu y écris : « Visible par qui
+  reçoit la piste. », à la place d'une petite pastille « partagé »
+  qu'on ne lisait pas.
+- Les petits messages en bas de l'écran prennent la largeur de leur
+  texte : ils ne plient plus sur trois lignes au milieu de l'écran.
+- « Donner » avec les seules pistes d'exemple ne te dit plus d'ajouter
+  une piste alors qu'il y en a trois sous tes yeux.
+- « Mes appareils » : « Relier un autre appareil » et « Relier cet
+  appareil », au lieu de « Créer une phrase » et « Entrer une phrase »,
+  qu'on confondait avec la phrase de secours.
+- Recevoir › Texte ouvre la feuille « Texte » (elle s'appelait
+  « Coller »).
+- Au poste, un groupe nombreux ouvert à côté de la liste sortait de
+  l'écran, son champ et « Envoyer » avec : il tient dans son volet.
+- Au poste, les colonnes d'« Aujourd'hui » s'arrêtent sous leur
+  dernière carte, au lieu d'encadrer du vide à la hauteur de la plus
+  longue.
+- « Mes pistes » vide ne dit plus « 0 piste » au-dessus de « Aucune
+  piste pour l'instant », et « Affiner » n'apparaît qu'avec ta première
+  piste.
+
 ## [7.1.0] — 27 octobre 2026
 
 Un seul « moi » : une phrase de douze mots, et un téléphone perdu ne

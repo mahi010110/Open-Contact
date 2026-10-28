@@ -377,6 +377,34 @@ const MUETTES = [
   await ctx.close();
 }
 
+/* ---------- D quater · « Tout est à jour » ne se dit que si c'est vrai ----------
+   Joué le 28 octobre 2026 sur le parcours d'un nouveau venu : le premier
+   mail parti, la relance pas encore prévue, l'écran disait « Tout est à
+   jour » juste au-dessus de « 1 piste à planifier → ». Tant qu'une piste
+   attend sa suite, aujourd'hui n'a « rien de prévu » ; quand tout est
+   planifié, c'est à jour. Les deux sens, aux deux ergonomies. */
+{
+  const ecrite = { id: 'ecrite', name: 'Thales', status: 'active', city: 'Toulouse', domain: 'defense',
+    appliedAt: jourISO(0), contacts: [{ id: 'ke', name: 'Julie', role: 'RH', email: 'j@t.test' }],
+    history: [{ d: jourISO(0), t: 'Statut → En cours' }], updatedAt: Date.now() };
+  const prevue = { ...ecrite, id: 'prevue', nextAction: jourISO(7), nextActionText: 'Relancer Julie' };
+  const fautes = [];
+  for (const larg of [390, 1280]) for (const [cas, seed, attendu] of [['à planifier', [ecrite], false], ['planifiée', [prevue], true]]){
+    const { ctx, p } = await ecran(larg, seed);
+    const r = await p.evaluate(() => {
+      const v = document.querySelector('#view-aujourdhui');
+      return { ajour: /Tout est à jour/.test(v.innerText), rien: /Rien de prévu aujourd’hui/.test(v.innerText),
+               lien: (v.querySelector('#tdNoAct')?.textContent || '').trim() };
+    });
+    if (r.ajour !== attendu) fail(`${larg} px, piste ${cas} : « Tout est à jour » ${r.ajour ? 'dit' : 'tu'} à tort — ${JSON.stringify(r)}`);
+    if (!attendu && (!r.rien || !/1 piste à planifier/.test(r.lien)))
+      fautes.push(`${larg} px : ni « Rien de prévu aujourd’hui » ni le lien — ${JSON.stringify(r)}`);
+    await ctx.close();
+  }
+  if (fautes.length) fail(fautes.join(' · '));
+  else console.log('« Tout est à jour » seulement quand tout est planifié, sinon « Rien de prévu aujourd’hui » et son lien ✓');
+}
+
 /* ---------- D ter · plus de trois pistes se taisent ----------
    Trois d'abord — un choix, pas la liste. Mais les suivantes n'avaient
    plus d'autre chemin que le lien du pied, qui ouvrait « Mes pistes »

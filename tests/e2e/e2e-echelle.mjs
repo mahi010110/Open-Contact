@@ -188,6 +188,52 @@ async function jouer({ nom, mutations = {}, captures = false }){
   ok(x.rz === 3 && x.carte, `④ trois demandes, trois lignes, la carte s’ouvre au tap`);
 }
 
+/* ---------- ⑦ au poste, le plus gros groupe tient dans son volet ----------
+   La ligne des prénoms (« Adam · Arthur · … · toi », 30 à 45 membres)
+   est insécable et s'élide ; mais un enfant flex garde la largeur
+   MINIMALE de son contenu, et le volet de la boîte, sans `min-width:0`,
+   faisait 2 003 px dans un écran de 1 280 : le champ et « Envoyer »
+   dehors, le jour du fil centré hors de vue (28 octobre 2026). */
+async function poste({ nom, css = null }){
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, serviceWorkers: 'block' });
+  await annuaireMuet(ctx);
+  if (css) await ctx.route('**/styles/app.css', r => r.fulfill({ contentType: 'text/css', body: css }));
+  const p = await ctx.newPage();
+  p.setDefaultTimeout(15000);
+  p.on('pageerror', e => errors.push(nom + ' : ' + e));
+  p.on('console', m => { if (m.type() === 'error' && !/WebSocket|ERR_/.test(m.text())) errors.push(nom + ' : ' + m.text()); });
+  await p.goto(base + '/#/reseau');
+  await p.waitForFunction(() => !!document.querySelector('#sbVer')?.textContent);
+  await semerMassif(p, jeu);
+  await p.waitForFunction(() => !!document.querySelector('#sbVer')?.textContent);
+  await p.locator('#view-reseau button.bx-l', { hasText: jeu.groupes[GROS].nom }).first().click();
+  await p.waitForSelector('.bx-volet .modal #grFil');
+  await pose(p);
+  const r = await p.evaluate(() => {
+    const m = document.querySelector('.bx-volet .modal'), b = m.getBoundingClientRect();
+    const jours = [...m.querySelectorAll('.fil-jour span')].map(s => s.getBoundingClientRect());
+    const go = m.querySelector('.modal-f button:last-child, .gr-pied button:last-child');
+    return { droite: Math.round(b.right), ecran: innerWidth, jours: jours.length,
+             joursDehors: jours.filter(j => j.left < b.left || j.right > b.right).length,
+             envoyer: go ? Math.round(go.getBoundingClientRect().right) : null };
+  });
+  await ctx.close();
+  return r;
+}
+{
+  const r = await poste({ nom: 'poste' });
+  ok(r.droite <= r.ecran && r.jours > 0 && !r.joursDehors && r.envoyer !== null && r.envoyer <= r.ecran,
+    `⑦ au poste, le plus gros groupe tient dans son volet (bord à ${r.droite}/${r.ecran} px, ${r.jours} jour(s) lisibles, envoyer à ${r.envoyer})`);
+  const css = await readFile(path.join(ROOT, 'styles/app.css'), 'utf8');
+  const avant = '.bx-volet>.dock{flex:1;min-width:0;';
+  if (!css.includes(avant)){ ko++; console.log('ÉCHEC — mutation ⑦ : le texte visé n’existe plus dans styles/app.css'); }
+  else {
+    console.log('mutation ⑦ le volet sans min-width:0 : le fichier servi est bien modifié ✓');
+    const m = await poste({ nom: 'mut-volet', css: css.split(avant).join('.bx-volet>.dock{flex:1;') });
+    ok(m.droite > m.ecran || m.joursDehors > 0, `mutation ⑦ : la garde rougit (bord à ${m.droite}/${m.ecran} px)`);
+  }
+}
+
 /* ---------- les mutations : chaque garde doit rougir ---------- */
 async function muter(nom, f, avant, apres, rejouer, rougit){
   const src = await readFile(path.join(ROOT, f), 'utf8');

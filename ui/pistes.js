@@ -277,6 +277,18 @@ function hintHTML(c, skip){
     r.accent && h ? ' · ' : ''}${out}</div>`;
 }
 
+/* La sous-ligne plie, mais jamais DANS une donnée : « À contacter » se
+   coupait en « À » et « contacter » sur deux rangs (audit du 28 octobre
+   2026, police d'iPhone). Chaque donnée courte est insécable, le point
+   reste collé à celle qui le précède ; le verbe d'action, lui, peut
+   plier — il est le seul à pouvoir dépasser une ligne. */
+function sousLigne(bits){
+  return bits.map((x, i) => {
+    const point = i < bits.length - 1 ? '\u00a0·' : '';
+    return x.startsWith('<b>') ? x + point : `<span class="nw">${x}${point}</span>`;
+  }).join(' ');
+}
+
 function rowHTML(c){
   const closed = isClosed(c);
   /* la ligne qu'Entrée ouvrirait depuis la barre (au poste, une piste
@@ -302,7 +314,7 @@ function rowHTML(c){
          ${premier ? '<kbd class="kbd-enter" aria-hidden="true">↵</kbd>' : ''}
          <div class="ri-main sw-cible" role="button" tabindex="0" aria-label="Ouvrir ${esc(c.name)}">
            <h3>${esc(c.name)}</h3>
-           <div class="ri-sub">${bits.join(' · ')}</div>
+           <div class="ri-sub">${sousLigne(bits)}</div>
            ${hintHTML(c, ['name', 'city'])}
          </div>
          ${dueHTML(c)}
@@ -657,7 +669,7 @@ export function renderPistes(){
   const nCamps = liveCampaignsCount();
   root.innerHTML =
     `<div class="page-inner${wide ? ' page-wide' : ''}">
-       <div class="td-head">
+       <div class="td-head pi-head">
          <h1>Mes pistes</h1>
          ${/* le compte se réécrit à chaque frappe (renderBody) : sans lui,
               on ne sait pas si l'on regarde 3 pistes sur 3 ou 3 sur 40 */''}
@@ -766,6 +778,11 @@ export function renderPistes(){
     }
     const dec = porteeVue() === 'decouvrir';
     page.classList.toggle('pt-dec', dec);
+    /* SANS UNE PISTE, RIEN À AFFINER : « Affiner » ouvrait une feuille de
+       filtres vides à côté de « Aucune piste pour l'instant » — un geste
+       sans objet (§6 : jamais une valeur absente des données). Il revient
+       avec la première piste. */
+    page.classList.toggle('pi-vide', !S.companies.length);
     premierId = (!dec && wide && mqFine.matches && q) ? ((alive[0] || closed[0] || {}).id || null) : null;
     /* « À découvrir » suit la barre : la question part seule après une
        pause, pour que son compte se remplisse pendant qu'on tape. Barre
@@ -785,9 +802,17 @@ export function renderPistes(){
        est, « 9 pistes » ne le disait pas. Une recherche garde son
        « 3 sur 40 » : là, c'est le compte qui répond à ce qu'on fait. */
     const chiffres = chiffresTexte(mesChiffres(S.companies));
-    if (cnt) cnt.textContent = (q || ftOn()) && all.length !== tout
-      ? `${all.length} sur ${tout}`
-      : chiffres || `${tout} piste${tout > 1 ? 's' : ''}`;
+    const filtre = (q || ftOn()) && all.length !== tout;
+    /* un groupe par <span> insécable, le point collé à celui qui le
+       précède : replié au pouce, « 3 réponses » ne se coupe jamais en
+       « 3 » et « réponses » (audit 7.1.0). Le texte lu ne change pas. */
+    if (cnt && !filtre && chiffres){
+      const parts = chiffres.split(' · ');
+      cnt.innerHTML = parts.map((x, i) => `<span class="nw">${esc(x)}${i < parts.length - 1 ? ' ·' : ''}</span>`).join(' ');
+    } else if (cnt) cnt.textContent = filtre ? `${all.length} sur ${tout}`
+      /* « 0 piste » redisait, sous le titre, « Aucune piste pour
+         l'instant » juste dessous : le compte se tait sur le vide */
+      : tout ? `${tout} piste${tout > 1 ? 's' : ''}` : '';
     /* Filtrer réorganise tout l'écran sans rien annoncer : quelqu'un qui
        ne voit pas l'écran tape trois lettres et n'apprend jamais qu'il
        ne reste qu'une piste. C'est le DÉCOR qui suit un geste, jamais sa

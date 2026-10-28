@@ -42,7 +42,14 @@ export function openDonner(o){
   const choix = o.ids ? new Set(o.ids) : null;
   /* jamais les pistes d'exemple : leurs contacts sont fictifs */
   const alive = () => S.companies.filter(c => !isClosed(c) && !c.demo && (!choix || choix.has(c.id)));
-  if (!alive().length){ toast('Rien à donner pour l’instant — ajoute d’abord une piste.'); return; }
+  /* les pistes d'exemple sont à l'écran : « ajoute d'abord une piste »
+     se contredisait sous les yeux (audit du 28 octobre 2026) */
+  if (!alive().length){
+    toast(S.companies.some(c => c.demo && !isClosed(c))
+      ? 'Les pistes d’exemple ne se donnent pas — ajoute la tienne.'
+      : 'Rien à donner pour l’instant — ajoute d’abord une piste.');
+    return;
+  }
   const unsel = new Set();
   const st = sortState('recent');
   const ft = filterState();                  /* propre à cet écran (#8) */

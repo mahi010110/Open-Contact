@@ -268,7 +268,7 @@ const ATTENDU = 'Salut Karim, tu es en alternance chez AZTEK SAS ? Je cherche un
 {
   const r = await jouerDemande();
   ok(r.bandeau === 'Karim y est en alternance', '④ le bandeau : « ' + r.bandeau + ' »');
-  ok(r.f && r.f.titre === 'Demander à Karim' && r.f.pied === 'Écrire à Karim', '④ « Demander à Karim », « Écrire à Karim » au pied — ' + JSON.stringify(r.f));
+  ok(r.f && r.f.titre === 'Demande' && r.f.pied === 'Écrire à Karim', '④ « Demande », « Écrire à Karim » au pied — ' + JSON.stringify(r.f));
   ok(r.choix.join('|') === 'À qui écrire chez AZTEK SAS|20 minutes pour parler d’AZTEK SAS|Relire mon CV',
      '④ ce que Karim offre devient un choix — ' + r.choix.join('|'));
   ok(r.mot === ATTENDU, '④ la phrase change sous les yeux — « ' + r.mot + ' »');
@@ -320,7 +320,7 @@ for (const [nom, vp, sombre] of [['pouce-sombre', { width: 390, height: 844 }, t
   await d.p.screenshot({ path: `${SHOTS}/r7-decroche-${nom}.png` });
   await d.ctx.close();
   const m = await demander({ vp, sombre });
-  ok((await dessus(m.p))?.titre === 'Demander à Karim', `${nom} : « Demander à Karim »`);
+  ok((await dessus(m.p))?.titre === 'Demande', `${nom} : la feuille « Demande »`);
   await m.p.screenshot({ path: `${SHOTS}/r7-demander-${nom}.png` });
   await m.ctx.close();
 }

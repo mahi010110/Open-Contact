@@ -886,6 +886,22 @@ html[data-theme="dark"] .field select{
    l'écran : c'est la même règle de style, sur la balise juste. */
 .td-head h1{font-size:var(--text-20);letter-spacing:var(--tracking-tight)}
 .td-date{font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted)}
+/* AU POUCE, le compteur de « Mes pistes » (« 7 écrites · 3 réponses ·
+   1 décrochée ») passe SOUS le titre, sur toute la largeur, comme le
+   sous-titre d'un grand titre d'iOS ; « Choisir » reste en haut à
+   droite. Deux essais avant : en ligne, dès la police d'un iPhone
+   (17 px), « Choisir » tombait seul à gauche (vu sous WebKit) ; replié
+   dans une colonne étroite entre le titre et le bouton, il empilait ses
+   trois chiffres sur trois rangs de 12 px (audit du 28 octobre 2026). */
+@media (max-width:900px){
+  .pi-head{row-gap:2px}
+  .pi-head #piCount{order:3;flex:1 0 100%}
+  /* le TITRE prend la place, pas une marge : à 200 % sur un 320 px,
+     « Choisir » passe sur son rang et y revient au bord GAUCHE
+     (e2e-decroche) — `margin-left:auto` l'envoyait seul à droite */
+  .pi-head h1{flex:1 0 auto}
+}
+.td-date .nw{white-space:nowrap}
 /* le retour d'un 2ᵉ écran : nu, comme la poubelle au survol — un chevron
    qui n'est pas un bouton encadré. La ligne se centre sur le titre. */
 .td-back{align-items:center;gap:4px}
@@ -1026,7 +1042,7 @@ html[data-theme="dark"] .field select{
 /* pendant la frappe au pouce, la liste a de quoi défiler jusqu'à la
    barre (ui/pistes.js, `amenerBarre`) — le surplus vit sous le clavier */
 .pi-cherche #piBody{min-height:100vh;min-height:100dvh}
-.pt-dec #piAffiner,.pt-dec .kbd-bas{display:none}
+.pt-dec #piAffiner,.pt-dec .kbd-bas,.pi-vide #piAffiner{display:none}
 .pt-dec .search-wrap .kbd-hint{position:absolute;right:8px;top:50%;transform:translateY(-50%);margin:0}
 
 /* ============ « À DÉCOUVRIR », LA VUE ============
@@ -1501,6 +1517,7 @@ button.pp-et:active{background:var(--surface-raised)}
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
 }
 .row-item .ri-sub b{color:var(--text-body);font-weight:var(--weight-semibold)}
+.row-item .ri-sub .nw{white-space:nowrap}
 /* ---- CE QUI A FAIT REMONTER LA LIGNE ----
    N'existe que pendant une recherche, et seulement quand la ligne ne
    montre pas déjà la réponse : de l'encre sur ce qui CHANGE, qui s'en
@@ -3268,7 +3285,14 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
    porte déjà son icône — le carré de couleur du tableau des statuts
    n'a rien à dire ici. Seule « En retard » prend l'ambre : l'encre va
    à la colonne qui réclame quelque chose. */
-.td-board{margin-top:14px}
+/* CHAQUE COLONNE S'ARRÊTE SOUS SA DERNIÈRE CARTE (§6, règle 3 : « une
+   colonne de Trello ou de Notion s'arrête sous sa dernière carte »).
+   Étirées à la plus haute, les colonnes courtes encadraient du vide :
+   « Aujourd'hui » à une carte sous 250 px de cadre, à côté de
+   « Bientôt » à quatre (audit du 28 octobre 2026). Le tableau de « Mes
+   pistes », lui, garde ses colonnes égales : on y DÉPOSE une carte, et
+   le bas d'une colonne courte doit rester une cible (F9). */
+.td-board{margin-top:14px;align-items:start}
 .td-board .bcol-h::before{display:none}
 .td-board .tr-late .bcol-h{color:var(--amber)}
 .td-board .tr-late .bcol-h .tr-n{border-color:var(--amber);background:var(--amber-wash)}
@@ -3673,8 +3697,14 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
   .bx-gauche{min-height:0;overflow:auto;padding:4px;margin:-4px}
   .bx-seule{max-width:36rem}
   .bx-volet{min-height:0;display:flex}
-  .bx-volet>.dock{flex:1;display:flex;min-height:0;animation:ec-arrive var(--dur-2) var(--ease-out) both}
-  .dock>.modal{max-width:none;height:100%;max-height:none;box-shadow:var(--shadow-raised)}
+  /* `min-width:0` à chaque étage : un enfant flex garde sinon la largeur
+     MINIMALE de son contenu. La ligne des prénoms d'un groupe de 45
+     (« Adam · Arthur · … · toi », insécable, élidée) en faisait 1 921 px :
+     le volet sortait de l'écran, son champ et « Envoyer » avec, et le
+     jour du fil, centré dans 2 003 px, tombait hors de vue (audit du
+     28 octobre 2026). §4 : la cause type est toujours celle-là. */
+  .bx-volet>.dock{flex:1;min-width:0;display:flex;min-height:0;animation:ec-arrive var(--dur-2) var(--ease-out) both}
+  .dock>.modal{min-width:0;max-width:none;height:100%;max-height:none;box-shadow:var(--shadow-raised)}
   .dock>.modal-groupe{height:100%}
   /* « tu es ici » : la couleur du châssis, celle de l'onglet allumé (§4) */
   .bx-sel{background:var(--select-bg)!important}
@@ -3691,7 +3721,7 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
   .pi-split{height:100%;display:grid;grid-template-columns:minmax(17rem,24rem) minmax(0,1fr);gap:18px}
   .pi-gauche{min-height:0;overflow:auto;padding:4px;margin:-4px}
   .pi-volet{min-height:0;display:flex}
-  .pi-volet>.dock{flex:1;display:flex;min-height:0}
+  .pi-volet>.dock{flex:1;min-width:0;display:flex;min-height:0}
   /* le corps prend la place, le pied « Écrire » se pose en bas du volet */
   .pi-volet .modal-b{flex:1;min-height:0}
   .pi-vue .seg{flex:0 0 auto;padding:4px 12px}
@@ -3924,7 +3954,13 @@ body:has(> .app > #saveWarn:not([hidden])):has(> .undo-bar):has(> .overlay) .toa
   border:1px solid var(--border-strong);box-shadow:var(--shadow-raised);
   font-family:var(--font-mono);font-size:var(--text-12);padding:8px 12px;
   opacity:0;pointer-events:none;transition:opacity var(--dur-2) var(--ease-out),transform var(--dur-2) var(--ease-out);
-  max-width:calc(100% - 40px);text-align:left;line-height:1.5;
+  /* LA LARGEUR DE SON TEXTE, PAS LA MOITIÉ DE L'ÉCRAN. Posé à `left:50%`,
+     un élément fixe ne dispose que de la moitié droite pour se
+     dimensionner : « Rien à donner pour l'instant — ajoute d'abord une
+     piste. » pliait sur trois rangs dans une boîte de 150 px, au milieu
+     d'un écran de 390 (audit du 28 octobre 2026). `max-content` le
+     mesure sur son texte, le plafond le garde dans l'écran. */
+  width:max-content;max-width:calc(100% - 40px);text-align:left;line-height:1.5;
 }
 .toast::before{content:'';width:8px;height:8px;flex:none;border:1px solid var(--border-strong);background:var(--teal)}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
