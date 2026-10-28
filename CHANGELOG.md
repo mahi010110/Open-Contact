@@ -33,6 +33,15 @@ L'audit de l'interface, joué comme un nouveau venu sur un téléphone.
 - « Modifier » dit qui verra ce que tu y écris : « Visible par qui
   reçoit la piste. », à la place d'une petite pastille « partagé »
   qu'on ne lisait pas.
+- Les petits messages en bas de l'écran prennent la largeur de leur
+  texte : ils ne plient plus sur trois lignes au milieu de l'écran.
+- « Donner » avec les seules pistes d'exemple ne te dit plus d'ajouter
+  une piste alors qu'il y en a trois sous tes yeux.
+- « Mes appareils » : « Relier un autre appareil » et « Relier cet
+  appareil », au lieu de « Créer une phrase » et « Entrer une phrase »,
+  qu'on confondait avec la phrase de secours.
+- Recevoir › Texte ouvre la feuille « Texte » (elle s'appelait
+  « Coller »).
 
 ## [7.1.0] — 27 octobre 2026
 

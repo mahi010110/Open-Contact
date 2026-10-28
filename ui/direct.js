@@ -491,15 +491,18 @@ export function openAppareils(){
       `${changing
          ? '<p class="hint" style="margin:0 0 12px">Nouvelle phrase = nouveau lien — à retaper sur les autres appareils.</p>'
          : ''}
-       ${/* DEUX VERBES, SANS NOTE. « sur le premier appareil », « sur
-            l'appareil à ajouter » répétaient ce que les verbes disent :
-            on CRÉE une phrase qu'on n'a pas, on ENTRE celle qu'un autre
-            écran affiche. L'écran suivant le montre de toute façon — la
-            phrase et son QR d'un côté, « En attente de ton autre
-            appareil » ; le scanner de l'autre (30 septembre 2026). */''}
+       ${/* DEUX GESTES, SANS NOTE. « sur le premier appareil », « sur
+            l'appareil à ajouter » répétaient ce que les verbes disent
+            (30 septembre 2026). Et les verbes disent le BUT, pas le
+            mécanisme (28 octobre 2026) : « Créer une phrase » / « Entrer
+            une phrase » côtoyaient « Créer ma phrase » / « Entrer ma
+            phrase » de la phrase de secours, un autre secret — deux
+            objets sous un même mot (§7). Signal et WhatsApp disent
+            « relier un appareil » ; l'écran suivant montre la phrase de
+            liaison et son QR d'un côté, le scanner de l'autre. */''}
        <div class="pick-list">
-         <button class="pick" id="syNew"><b>${ic('sparkles', 'ic-14')} Créer une phrase</b></button>
-         <button class="pick" id="syJoin"><b>${ic('switch', 'ic-14')} Entrer une phrase</b></button>
+         <button class="pick" id="syNew"><b>${ic('plus', 'ic-14')} Relier un autre appareil</b></button>
+         <button class="pick" id="syJoin"><b>${ic('switch', 'ic-14')} Relier cet appareil</b></button>
        </div>
        ${comp ? `<div class="sy-devs" style="margin-top:14px">
            <div class="lbl-row" style="margin-bottom:6px"><label>Appareils reliés</label></div>

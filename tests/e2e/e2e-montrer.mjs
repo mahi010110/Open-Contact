@@ -100,6 +100,14 @@ for (const [ergo, opts] of [['pouce', PHONE], ['poste', DESK]]){
   okSi(!t && await p.isVisible('#tdRmDemo'),
     `① « Voir un exemple » (${ergo}) : les pistes arrivent et « Retirer » s’affiche, sans toast`
     + (t ? ` — toast lu : « ${t} »` : ''));
+  /* les pistes d'exemple ne se donnent pas — mais « ajoute d'abord une
+     piste » sous trois pistes visibles se contredisait (28 octobre 2026) */
+  await viderToast(p);
+  await p.evaluate(async () => (await import('./ui/donner.js')).openDonner());
+  await p.waitForTimeout(200);
+  const refus = await toastLu(p);
+  okSi(/exemple/.test(refus) && !/ajoute d’abord une piste/.test(refus),
+    `① « Donner » sur les seules pistes d’exemple (${ergo}) dit pourquoi — « ${refus} »`);
   await p.context().close();
 }
 

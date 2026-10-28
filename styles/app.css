@@ -896,7 +896,10 @@ html[data-theme="dark"] .field select{
 @media (max-width:900px){
   .pi-head{row-gap:2px}
   .pi-head #piCount{order:3;flex:1 0 100%}
-  .pi-head #piProspect{margin-left:auto}
+  /* le TITRE prend la place, pas une marge : à 200 % sur un 320 px,
+     « Choisir » passe sur son rang et y revient au bord GAUCHE
+     (e2e-decroche) — `margin-left:auto` l'envoyait seul à droite */
+  .pi-head h1{flex:1 0 auto}
 }
 .td-date .nw{white-space:nowrap}
 /* le retour d'un 2ᵉ écran : nu, comme la poubelle au survol — un chevron
@@ -3938,7 +3941,13 @@ body:has(> .app > #saveWarn:not([hidden])):has(> .undo-bar):has(> .overlay) .toa
   border:1px solid var(--border-strong);box-shadow:var(--shadow-raised);
   font-family:var(--font-mono);font-size:var(--text-12);padding:8px 12px;
   opacity:0;pointer-events:none;transition:opacity var(--dur-2) var(--ease-out),transform var(--dur-2) var(--ease-out);
-  max-width:calc(100% - 40px);text-align:left;line-height:1.5;
+  /* LA LARGEUR DE SON TEXTE, PAS LA MOITIÉ DE L'ÉCRAN. Posé à `left:50%`,
+     un élément fixe ne dispose que de la moitié droite pour se
+     dimensionner : « Rien à donner pour l'instant — ajoute d'abord une
+     piste. » pliait sur trois rangs dans une boîte de 150 px, au milieu
+     d'un écran de 390 (audit du 28 octobre 2026). `max-content` le
+     mesure sur son texte, le plafond le garde dans l'écran. */
+  width:max-content;max-width:calc(100% - 40px);text-align:left;line-height:1.5;
 }
 .toast::before{content:'';width:8px;height:8px;flex:none;border:1px solid var(--border-strong);background:var(--teal)}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}

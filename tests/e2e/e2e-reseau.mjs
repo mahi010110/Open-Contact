@@ -174,7 +174,7 @@ for (const sombre of [false, true]){
   await p.screenshot({ path: `${SHOTS}/161-reseau-ajouter.png` });
   await p.click('[data-mode="texte"]');
   await p.waitForTimeout(350);
-  ok(await dessus(p) === 'Coller' && await p.evaluate(() => document.activeElement?.id) === 'rcTxt',
+  ok(await dessus(p) === 'Texte' && await p.evaluate(() => document.activeElement?.id) === 'rcTxt',
     `④ « Texte » mène droit au champ où l'on colle — ${await dessus(p)}`);
   await fermer(p);
   await p.click('#bnAdd');

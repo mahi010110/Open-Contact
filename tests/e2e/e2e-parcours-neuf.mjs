@@ -253,6 +253,21 @@ const etire = m => m.boite > m.texte + 30;   /* 2 × 8 px de marge, 2 px de bord
     t.style.top = ''; t.style.bottom = '';
     return m;
   });
+  /* ④ LA LARGEUR DE SON TEXTE, PAS LA MOITIÉ DE L'ÉCRAN : posé à
+     `left:50%`, un élément fixe ne se dimensionnait que dans la moitié
+     droite, et un toast d'une soixantaine de signes pliait sur trois
+     rangs de 150 px au milieu d'un écran de 390 (28 octobre 2026) */
+  const large = await M.evaluate(async () => {
+    const { toast } = await import('./ui/dom.js');
+    toast('Les pistes d’exemple ne se donnent pas — ajoute la tienne.');
+    await new Promise(r => setTimeout(r, 60));
+    const t = document.getElementById('toast');
+    const r = t.getBoundingClientRect(), lh = parseFloat(getComputedStyle(t).lineHeight);
+    const rg = document.createRange(); rg.selectNodeContents(t);
+    return { largeur: Math.round(r.width), ecran: innerWidth, rangs: Math.round(rg.getBoundingClientRect().height / lh) };
+  });
+  if (large.rangs > 2 || large.largeur < large.ecran * 0.6)
+    durs.push(`un toast de soixante signes plie dans la moitié de l'écran : ${JSON.stringify(large)}`);
   if (!etire(sonde)) fail('toast : la sonde étirée exprès n’est pas vue — le critère ne mesure plus rien');
   else if (durs.length) fail(`le toast s'étire : ${durs.length} état(s) —\n      ` + durs.join('\n      '));
   else console.log(`toast : jamais plus haut que son texte, dans ${ETATS.length + 1} états au pouce, sonde vue ✓`);

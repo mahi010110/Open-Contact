@@ -320,7 +320,7 @@ export function openRecevoir(o = {}){
 
   /* ---- coller ---- */
   const paste = () => {
-    sh.setTitle('Coller');
+    sh.setTitle('Texte');
     sh.body.innerHTML =
       `<div class="field"><label for="rcTxt">Le texte reçu</label>
          <textarea id="rcTxt" style="min-height:140px" placeholder="Colle ici le contenu partagé"></textarea></div>`;

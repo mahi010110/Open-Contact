@@ -164,7 +164,12 @@ const PLAFOND = {
   /* 121 le 27 octobre 2026, −5 (7.0.0, les lots s'ouvrent) : les toasts
      de l'ancien chemin sont partis avec lui — ce qui ARRIVE des autres
      ne surgit plus (R10, « le calme »), la liste ou la boîte le montrent. */
-  toasts: 121,
+  /* 122 le 28 octobre 2026, +1 (audit de la 7.1.1) : « Donner » sur les
+     seules pistes d'exemple disait « ajoute d'abord une piste » sous
+     trois pistes visibles. Un refus dit POURQUOI (famille ①), et ce
+     pourquoi-là n'est pas celui d'un suivi vide : « Les pistes
+     d'exemple ne se donnent pas — ajoute la tienne. » */
+  toasts: 122,
   toastCar: 79,        /* le plus long : « Connexion interrompue — … » */
   /* portes bloquantes dans les écrans visibles.
      9 le 29 septembre 2026 : « Mon profil » prend le garde-fou de la
