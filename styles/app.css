@@ -3285,7 +3285,14 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
    porte déjà son icône — le carré de couleur du tableau des statuts
    n'a rien à dire ici. Seule « En retard » prend l'ambre : l'encre va
    à la colonne qui réclame quelque chose. */
-.td-board{margin-top:14px}
+/* CHAQUE COLONNE S'ARRÊTE SOUS SA DERNIÈRE CARTE (§6, règle 3 : « une
+   colonne de Trello ou de Notion s'arrête sous sa dernière carte »).
+   Étirées à la plus haute, les colonnes courtes encadraient du vide :
+   « Aujourd'hui » à une carte sous 250 px de cadre, à côté de
+   « Bientôt » à quatre (audit du 28 octobre 2026). Le tableau de « Mes
+   pistes », lui, garde ses colonnes égales : on y DÉPOSE une carte, et
+   le bas d'une colonne courte doit rester une cible (F9). */
+.td-board{margin-top:14px;align-items:start}
 .td-board .bcol-h::before{display:none}
 .td-board .tr-late .bcol-h{color:var(--amber)}
 .td-board .tr-late .bcol-h .tr-n{border-color:var(--amber);background:var(--amber-wash)}
@@ -3690,8 +3697,14 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
   .bx-gauche{min-height:0;overflow:auto;padding:4px;margin:-4px}
   .bx-seule{max-width:36rem}
   .bx-volet{min-height:0;display:flex}
-  .bx-volet>.dock{flex:1;display:flex;min-height:0;animation:ec-arrive var(--dur-2) var(--ease-out) both}
-  .dock>.modal{max-width:none;height:100%;max-height:none;box-shadow:var(--shadow-raised)}
+  /* `min-width:0` à chaque étage : un enfant flex garde sinon la largeur
+     MINIMALE de son contenu. La ligne des prénoms d'un groupe de 45
+     (« Adam · Arthur · … · toi », insécable, élidée) en faisait 1 921 px :
+     le volet sortait de l'écran, son champ et « Envoyer » avec, et le
+     jour du fil, centré dans 2 003 px, tombait hors de vue (audit du
+     28 octobre 2026). §4 : la cause type est toujours celle-là. */
+  .bx-volet>.dock{flex:1;min-width:0;display:flex;min-height:0;animation:ec-arrive var(--dur-2) var(--ease-out) both}
+  .dock>.modal{min-width:0;max-width:none;height:100%;max-height:none;box-shadow:var(--shadow-raised)}
   .dock>.modal-groupe{height:100%}
   /* « tu es ici » : la couleur du châssis, celle de l'onglet allumé (§4) */
   .bx-sel{background:var(--select-bg)!important}
@@ -3708,7 +3721,7 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
   .pi-split{height:100%;display:grid;grid-template-columns:minmax(17rem,24rem) minmax(0,1fr);gap:18px}
   .pi-gauche{min-height:0;overflow:auto;padding:4px;margin:-4px}
   .pi-volet{min-height:0;display:flex}
-  .pi-volet>.dock{flex:1;display:flex;min-height:0}
+  .pi-volet>.dock{flex:1;min-width:0;display:flex;min-height:0}
   /* le corps prend la place, le pied « Écrire » se pose en bas du volet */
   .pi-volet .modal-b{flex:1;min-height:0}
   .pi-vue .seg{flex:0 0 auto;padding:4px 12px}

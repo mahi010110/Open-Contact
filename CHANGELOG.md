@@ -42,6 +42,11 @@ L'audit de l'interface, joué comme un nouveau venu sur un téléphone.
   qu'on confondait avec la phrase de secours.
 - Recevoir › Texte ouvre la feuille « Texte » (elle s'appelait
   « Coller »).
+- Au poste, un groupe nombreux ouvert à côté de la liste sortait de
+  l'écran, son champ et « Envoyer » avec : il tient dans son volet.
+- Au poste, les colonnes d'« Aujourd'hui » s'arrêtent sous leur
+  dernière carte, au lieu d'encadrer du vide à la hauteur de la plus
+  longue.
 
 ## [7.1.0] — 27 octobre 2026
 

@@ -509,7 +509,7 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
      adaptatif, octobre 2026). Ce contrôle exigeait l'inverse — un pied
      posé à 85 % de la hauteur, donc trois cadres étirés jusqu'en bas :
      relevé en 1280 × 800, 600 px de cadre pour UNE carte chacun. Il
-     vérifie maintenant que la plus haute colonne s'arrête sous son
+     vérifie maintenant que chaque colonne s'arrête sous son
      dernier contenu (12 px de rembourrage près) et que le pied SUIT le
      tableau au lieu d'attendre en bas. Une mutation qui remet
      `flex:1 0 auto` sur le tableau le fait rougir. */
@@ -526,7 +526,9 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
              comprime: [...document.querySelectorAll('.bcol-rows')].some(c => c.scrollHeight > c.clientHeight + 1) };
   });
   if (jour.cols !== 3) fail(`le tableau du jour n'a pas ses trois colonnes (${jour.cols})`);
-  if (Math.min(...jour.vides) > 24)
+  /* CHAQUE colonne, pas seulement la plus haute : étirées à la plus
+     haute, les courtes encadraient du vide (28 octobre 2026) */
+  if (Math.max(...jour.vides) > 24)
     fail(`le tableau du jour s'étire sous son contenu : ${jour.vides.join(' / ')} px vides en bas des colonnes`);
   if (jour.ecart !== null && jour.ecart > 48)
     fail(`le pied d'« Aujourd'hui » attend en bas, à ${jour.ecart} px de ce qui le précède, au lieu de le suivre`);
