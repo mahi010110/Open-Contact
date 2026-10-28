@@ -81,7 +81,8 @@ export function openMail(c, opts){
        et c'est justement quand on écrit à cinq pistes d'affilée
        (Prospecter, « 2/5 ») qu'il faut lire à qui l'on écrit. */
     title: 'Écrire',
-    icon: 'mail', className: 'modal-compose', focus: cts.length ? '#mSubj' : '#mBody',
+    /* le champ est choisi une fois le brouillon posé (plus bas) */
+    icon: 'mail', className: 'modal-compose', focus: '[data-ouvrir]',
     /* R3-b : au poste, la série le pose dans sa colonne (ui/serie.js) */
     dans: opts.dans,
     onClose: () => { oublier(); ecrireBrouillonsMaintenant(); if (done) return; done = true; if (opts.onQuit) opts.onQuit(); }
@@ -622,6 +623,26 @@ export function openMail(c, opts){
       q('#mBrouillon').addEventListener('click', () => { poser(); garder(); q('#mBody').focus(); });
     }
   }
+  /* LE CURSEUR LÀ OÙ IL RESTE QUELQUE CHOSE À ÉCRIRE. Il s'ouvrait dans
+     l'objet, déjà rempli (49/60), pendant que la seule chose à écrire —
+     l'accroche entre crochets — attendait deux champs plus bas, et qu'au
+     doigt le clavier montait pour rien (audit du 28 octobre 2026). Le
+     motif de dialogue d'ARIA (APG) pose le focus initial là où la
+     feuille attend une saisie, pas forcément sur son premier champ : ici
+     c'est le crochet, et il est SÉLECTIONNÉ — il suffit de taper pour le
+     remplacer, comme après le refus de « Ouvrir dans Mail ». Sans
+     crochet (un brouillon repris, déjà écrit), l'objet comme avant. */
+  const trou = crochets(q('#mBody').value)[0];
+  (trou || !cts.length ? q('#mBody') : q('#mSubj')).dataset.ouvrir = '';
+  /* le focus d'ouverture part à l'image (openSheet), inscrit avant
+     celle-ci : à la même image, le crochet est encore à sa place, et le
+     curseur n'a pas bougé si personne n'a encore touché la feuille */
+  if (trou) requestAnimationFrame(() => {
+    const t = q('#mBody');
+    if (document.activeElement !== t || t.selectionStart !== t.selectionEnd) return;
+    const [x] = crochets(t.value);
+    if (x) t.setSelectionRange(x.debut, x.fin);
+  });
   renderAttach();
   return sh;
 }

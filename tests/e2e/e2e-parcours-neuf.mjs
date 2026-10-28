@@ -574,6 +574,10 @@ const ecrire = await D.evaluate(async () => {
     return {
       objet: document.getElementById('mSubj').value,
       corps: corps.value,
+      /* le curseur s'ouvre sur ce qu'il reste à écrire : le crochet,
+         sélectionné (28 octobre 2026) */
+      focus: document.activeElement?.id || '',
+      choisi: corps.value.slice(corps.selectionStart, corps.selectionEnd),
       savoir: sav ? sav.innerText.replace(/\s+/g, ' ').trim() : '',
       /* la matière doit être AU-DESSUS du champ où l'on écrit, et les
          deux visibles ensemble : lire ailleurs et retenir, c'est le
@@ -609,6 +613,11 @@ else {
     fail(`objet de ${ecrire.riche.objet.length} car. — hors de la fenêtre 40-60 qui s’affiche en entier au mobile`);
   else console.log(`écrire : accroche en 1ᵉʳ bloc, ${mots} mots, objet ${ecrire.riche.objet.length} car. ✓`);
 }
+/* ③ bis le curseur s'ouvre sur le crochet, sélectionné : il suffit de
+   taper. Il s'ouvrait dans l'objet, déjà rempli. */
+if (ecrire.riche.focus !== 'mBody' || !/^\[[^\]]+\]$/.test(ecrire.riche.choisi))
+  fail(`écrire : le curseur ne s'ouvre pas sur l'accroche à écrire — focus « ${ecrire.riche.focus} », sélection « ${ecrire.riche.choisi.slice(0, 40)} »`);
+else console.log('écrire : le curseur s’ouvre sur le crochet de l’accroche, sélectionné ✓');
 /* ④ la matière est là, au-dessus du champ, et seulement quand elle existe */
 if (!/SOC managé/.test(ecrire.riche.savoir) || !/Fortinet/.test(ecrire.riche.savoir)
     || !/forum/.test(ecrire.riche.savoir))
