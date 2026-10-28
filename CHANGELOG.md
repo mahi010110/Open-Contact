@@ -40,6 +40,15 @@ fait plus tout perdre.
 - Une piste venue d'un très vieux fichier ne dit plus « 20 753 j sans
   nouvelles ».
 - « 0 / 1 pistes » dans « Donner » : « 0 / 1 piste ».
+- Au poste, en parcourant « Mes pistes » au clavier, le curseur ne
+  saute plus hors de la liste quand l'app finit de lire sa table des
+  métiers.
+- Texte agrandi sur un petit téléphone : dans Réglages, le nom d'une
+  ligne ne passe plus sous son état ; « Affiner » n'a plus de puces
+  coupées au bord ; « Rattacher » ne sort plus de l'écran ; le champ
+  d'un groupe ou d'une conversation grandit avec le texte (et ne fait
+  plus zoomer l'iPhone) ; ton nom dans « Moi » plie au lieu de passer
+  sous « Modifier ».
 
 ## [7.0.0] — 27 octobre 2026
 

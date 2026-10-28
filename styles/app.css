@@ -393,7 +393,9 @@ a.btn.btn-danger:hover{color:var(--red)}
 /* ============ CHAMPS ============ */
 .field{margin-bottom:12px}
 .field label{
-  display:block;font-size:var(--text-11);font-weight:var(--weight-bold);
+  /* `anywhere` : « L’entreprise de recrutement@exemple.fr » (Rattacher)
+     n'a pas un espace où se plier, et sortait de la feuille à 200 % */
+  display:block;overflow-wrap:anywhere;font-size:var(--text-11);font-weight:var(--weight-bold);
   letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--text-muted);margin-bottom:4px;
 }
 .lbl-soft{font-weight:var(--weight-medium);text-transform:none;letter-spacing:0}
@@ -851,7 +853,12 @@ html[data-theme="dark"] .field select{
 /* feuille « Filtrer » : chips statut/domaine en deux colonnes — un tap
    ajoute la valeur, un re-tap la retire, et plusieurs valeurs d'une
    même famille cohabitent (« cyber ou cloud ») */
-.fl-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:14px}
+.fl-grid{display:grid;gap:7px;margin-bottom:14px;
+  /* deux colonnes tant qu'une moitié garde 8 rem, une seule sinon : le
+     seuil est en `rem`, il suit la police. En `1fr 1fr`, « Cybersécurité »
+     imposait sa largeur à la colonne et la feuille coupait la seconde au
+     bord droit, à 200 % en 320 px (audit 7.1.0) */
+  grid-template-columns:repeat(auto-fill,minmax(min(100%,max(8rem,calc((100% - 7px) / 2))),1fr))}
 .fl-chip{
   display:flex;align-items:center;gap:8px;min-height:var(--ctl);
   padding:5px 10px;text-align:left;cursor:pointer;
@@ -1629,7 +1636,7 @@ button.pp-et:active{background:var(--surface-raised)}
    garde la sienne, l'alignement des textes ne bouge pas. */
 .obj-moi{display:grid;grid-template-columns:auto minmax(0,1fr) auto;column-gap:12px;row-gap:2px;align-items:center}
 .obj-moi>.obj-s{grid-column:2 / -1}
-.obj-moi .obj-n{margin-bottom:0}
+.obj-moi .obj-n{margin-bottom:0;overflow-wrap:break-word;hyphens:auto}   /* comme la fiche : un nom plie, il ne passe pas sous « Modifier » (« Maheydine » à 200 % en 320 px) */
 /* les actions d'une carte se partagent la largeur : deux boutons de
    libellés inégaux ne peuvent plus finir de tailles différentes. Une
    commande à icône garde la sienne. Le plafond évite l'inverse — un
@@ -1704,6 +1711,12 @@ details.pcard-details[open]>summary{margin-bottom:10px}
    changent en même temps, ce qui suffit à faire lire le geste comme un
    échange de place et non comme deux animations. */
 .lockrow{display:flex;align-items:center;gap:8px;min-width:0}
+/* FERMÉE, à texte doublé sur un petit téléphone, « Télécharger » et
+   « Chiffrer » ne tiennent plus côte à côte : le second passe dessous
+   plutôt que de raboter le premier (WCAG 1.4.10). À taille normale rien
+   ne se replie, et OUVERTE la saisie reste dans la ligne (la ligne ne
+   change pas de hauteur — e2e-ux-audit, F10) */
+.lockrow:not(.on){flex-wrap:wrap}
 .lr-do{flex:1 1 auto;min-width:0;transition:flex-grow var(--dur-3) var(--ease-out)}
 .lockrow.on .lr-do{flex-grow:0}
 /* fermé, le groupe est un bouton ; ouvert, il devient LE champ — c'est
@@ -1798,13 +1811,17 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 /* une ligne qui attend qu'une AUTRE soit faite : elle s'efface au lieu
    de répéter l'ordre. Elle reste tapable — le tap mène au pré-requis. */
 .rg-row.rg-dep .rg-n{font-weight:var(--weight-regular);color:var(--text-muted)}
+/* le NOM ne descend jamais sous son mot le plus long (min-width:auto) :
+   c'est l'ÉTAT qui s'élide pour lui faire place. À 200 % en 320 px,
+   « Protection » passait sous « non protégé » (audit 7.1.0, §4 : ce qui
+   porte une identité ne se coupe jamais, une donnée peut s'élider) */
 .rg-n{
-  flex:1;min-width:0;display:flex;align-items:center;gap:8px;
+  flex:1;display:flex;align-items:center;gap:8px;
   font-size:var(--text-14);font-weight:var(--weight-semibold);
 }
 .rg-n .ic{flex:none;color:var(--text-muted)}
 .rg-s{
-  flex:none;max-width:52%;font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);
+  flex:0 1 auto;min-width:0;max-width:52%;font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
 .rg-row>.ic{flex:none;color:var(--text-muted)}
@@ -3113,7 +3130,9 @@ button.ec-row:hover{background:var(--surface-field)}
 }
 @media (min-width:901px){
   .fk{display:flex;gap:10px;align-items:baseline}
-  .fk-l{display:inline;flex:none;width:72px;margin-bottom:0}
+  /* 6,5 em = 72 px à taille normale ; en `em`, la colonne suit la police —
+     en px, « TECHNOS » débordait sur sa valeur à 200 % (audit 7.1.0) */
+  .fk-l{display:inline;flex:none;width:6.5em;margin-bottom:0}
 }
 .fk-v{min-width:0;line-height:1.5;word-break:break-word}
 /* le site est un LIEN à part entière dans sa ligne de données, pas un mot
@@ -3715,7 +3734,13 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
    champ passe sur sa propre ligne plutôt que de se serrer entre deux
    boutons — sa base est en `rem`, elle suit la police toute seule */
 .gr-pied{display:flex;align-items:flex-end;flex-wrap:wrap;gap:8px;width:100%}
-.gr-pied .gr-champ{flex:1 1 7rem;min-width:0;min-height:var(--ctl);padding:10px 12px;line-height:1.4;resize:none;overflow:hidden}
+.gr-pied .gr-champ{flex:1 1 7rem;min-width:0;min-height:var(--ctl);padding:10px 12px;line-height:1.4;resize:none;overflow:hidden;
+  /* le dessin d'un champ, et SA taille : sans elle, le navigateur donnait
+     13 px fixes — sourd au texte agrandi, et sous les 16 px qui évitent le
+     zoom d'iOS à la mise au point (§5) — audit 7.1.0 */
+  font-family:var(--font-ui);font-size:var(--input-fs);color:var(--text-body);
+  background:var(--surface-field);border:1px solid var(--border-field);
+  box-shadow:var(--bevel-field);border-radius:var(--radius-1)}
 .gr-pied .btn{flex:none}
 .gr-inviter{display:flex;flex-direction:column;align-items:center;gap:8px;margin:4px 0 8px}
 /* « Inviter » : le libellé d'une section (celui de « Contacts », « Où

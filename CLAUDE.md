@@ -420,6 +420,14 @@ net. Sources uniques : `styles/tokens/` et le kit `design/`.
   n'avait besoin de rétrécir et la mutation passait au vert. Il en faut
   six. Le même piège que le profil vide du composeur, une surface plus
   loin.
+  ③ **Un texte peut sortir de sa boîte sans être coupé** *(audit
+  7.1.0)*. La boîte ne rogne rien (`overflow:visible`), donc ni
+  l'élision ni l'écrasement ne le voient : le mot le plus long passe
+  simplement SOUS son voisin. « Protection » glissait sous « non
+  protégé » dans Réglages, « TECHNOS » sur sa valeur dans la fiche au
+  poste. C'est une troisième mesure (le texte qui dépasse sa propre
+  boîte), et le remède est toujours le même : le nom garde son mot le
+  plus long (`min-width:auto`), c'est la donnée voisine qui cède.
 
   **La barre d'onglets : une limite qui reste, et un remède qui a échoué**
   *(19 août 2026)*. Mesuré : à 320 px « Aujourd'hui » est élidé à taille

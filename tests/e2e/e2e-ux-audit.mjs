@@ -3371,8 +3371,29 @@ const SONDE_COUPE = () => {
                    perdu, h: Math.round(r.height),
                    t: (e.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 30) });
   }
+  /* UN TEXTE QUI SORT DE SA BOÎTE SANS ÊTRE COUPÉ (audit 7.1.0).
+     Troisième défaut, invisible aux deux mesures du dessus : la boîte ne
+     coupe pas (`overflow:visible`), donc rien ne s'élide et rien ne se
+     rabote — le mot le plus long déborde simplement et passe SOUS son
+     voisin. « Protection » glissait sous « non protégé » dans Réglages,
+     à 200 % en 320 px, et la garde restait verte. */
+  const debordes = [];
+  for (const e of document.querySelectorAll('body *')){
+    const r = e.getBoundingClientRect();
+    if (!r.width || !r.height) continue;
+    if (/^(TEXTAREA|SELECT|INPUT|OPTION)$/.test(e.tagName)) continue;
+    if (![...e.childNodes].some(n => n.nodeType === 3 && n.nodeValue.trim())) continue;
+    const cs = getComputedStyle(e);
+    if (cs.display === 'inline' || cs.overflowX !== 'visible') continue;
+    const perdu = e.scrollWidth - e.clientWidth;
+    if (perdu <= 1) continue;
+    debordes.push({ q: e.id ? '#' + e.id
+                      : (typeof e.className === 'string' && e.className.trim()
+                         ? '.' + e.className.trim().split(/\s+/)[0] : e.tagName),
+                    perdu, t: (e.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 26) });
+  }
   return { coupes: out, deborde: Math.round(document.documentElement.scrollWidth - innerWidth),
-           glisse: large, coupable, grilles, ecrases };
+           glisse: large, coupable, grilles, ecrases, debordes };
 };
 /* LA MÊME GRAINE POUR LES DEUX ERGONOMIES. Extraite parce que le
    poste doit voir exactement ce que voit le pouce — deux jeux de
@@ -3435,7 +3456,7 @@ const GRAINE_ZOOM = async () => {
   await zPage.evaluate(() => { document.documentElement.style.fontSize = '32px'; });
   const dur = []; let vus = 0; let doublee = false; let sondeLarge = null; let sondeBord = null; let mesurees = 0;
   let statutRangee = null; let statutForme = null;
-  let sondeEcrase = null; let filVu = false;
+  let sondeEcrase = null; let filVu = false; let sondeDeborde = null;
   /* LES FEUILLES AUSSI. La garde ne regardait que les quatre écrans, et
      c'est ce qui l'a laissée passer à côté d'un défaut signalé sur
      photo : la feuille « Écrire » qui se met à GLISSER latéralement,
@@ -3468,8 +3489,29 @@ const GRAINE_ZOOM = async () => {
        pas d'esthétique. Le défaut ne s'est vu qu'en balayant le poste
        à la main, ce que la garde ne faisait pas non plus. */
     ['donner', async p => p.evaluate(async () => (await import('./ui/donner.js')).openDonner(null))],
-    ['prospecter', async p => p.evaluate(async () => (await import('./ui/prospect.js')).openProspect(null))]
+    ['prospecter', async p => p.evaluate(async () => (await import('./ui/prospect.js')).openProspect(null))],
+    /* TROIS SURFACES DE PLUS (audit 7.1.0) : chacune a montré à 200 % un
+       défaut que le balayage ne voyait pas, faute de l'ouvrir — Réglages
+       (le nom sous l'état), Affiner (les puces coupées au bord droit),
+       Rattacher (un e-mail dans un libellé, sorti de la feuille) */
+    ['reglages', async p => {
+      await p.evaluate(() => { location.hash = '#/moi'; });
+      await p.waitForSelector('#moiReglages');
+      await p.click('#moiReglages');
+      await p.waitForSelector('#moiVerrou');
+    }],
+    ['affiner', async p => {
+      await p.evaluate(() => { location.hash = '#/pistes'; });
+      await p.waitForSelector('#piAffiner');
+      await p.click('#piAffiner');
+    }],
+    ['rattacher', async p => p.evaluate(async () => {
+      const { S } = await import('./ui/state.js');
+      (await import('./ui/contact.js')).openAttach({ id: 'oz', name: '', email: 'recrutement@exemple-de-societe.fr' });
+    })]
   ];
+  /* une surface qui n'est pas une feuille : rien à exiger d'un overlay */
+  const SANS_FEUILLE = new Set(['reglages']);
   for (const [nom, ouvrir] of surfaces){
     await zPage.evaluate(async () => {
       const { topSheet } = await import('./ui/dom.js');
@@ -3479,7 +3521,7 @@ const GRAINE_ZOOM = async () => {
     if (ouvrir) await ouvrir(zPage);
     else await zPage.evaluate(r => { location.hash = '#/' + r; }, nom);
     await zPage.waitForTimeout(450);
-    if (ouvrir && !await zPage.evaluate(() => !!document.querySelector('.overlay:not(.ov-out) .modal-b'))){
+    if (ouvrir && !SANS_FEUILLE.has(nom) && !await zPage.evaluate(() => !!document.querySelector('.overlay:not(.ov-out) .modal-b'))){
       dur.push(`${nom} : la feuille ne s'ouvre pas — le contrôle ne mesure rien`);
       continue;
     }
@@ -3554,6 +3596,8 @@ const GRAINE_ZOOM = async () => {
     }
     for (const c of r.ecrases)
       dur.push(`${nom} · ${c.q} écrase son contenu de ${c.perdu}px (boîte ${c.h}px) « ${c.t} »`);
+    for (const c of r.debordes)
+      dur.push(`${nom} · ${c.q} sort de sa boîte de ${c.perdu}px, sous son voisin « ${c.t} »`);
     if (nom === 'historique')
       filVu = await zPage.evaluate(() => document.querySelectorAll('.overlay:not(.ov-out) .ec-l').length >= 6);
     /* LA SONDE DE L'ÉCRASEMENT SE VÉRIFIE ELLE-MÊME : on plante une
@@ -3572,6 +3616,17 @@ const GRAINE_ZOOM = async () => {
       });
       sondeEcrase = (await zPage.evaluate(SONDE_COUPE)).ecrases.some(c => c.q === '#sondeEcrase');
       await zPage.evaluate(() => { document.getElementById('sondeEcrase')?.remove(); });
+      /* et celle du texte qui sort de sa boîte : un mot sans espace dans
+         une boîte de 30 px qui ne coupe pas */
+      await zPage.evaluate(() => {
+        const b = document.createElement('div');
+        b.id = 'sondeDeborde';
+        b.style.cssText = 'position:fixed;left:0;bottom:0;width:30px;z-index:9999';
+        b.textContent = 'Anticonstitutionnellement';
+        document.body.append(b);
+      });
+      sondeDeborde = (await zPage.evaluate(SONDE_COUPE)).debordes.some(c => c.q === '#sondeDeborde');
+      await zPage.evaluate(() => { document.getElementById('sondeDeborde')?.remove(); });
     }
   }
   await zCtx.close();
@@ -3630,14 +3685,16 @@ const GRAINE_ZOOM = async () => {
     }
     for (const c of r.ecrases)
       dur.push(`poste · ${nom} · ${c.q} écrase son contenu de ${c.perdu}px (boîte ${c.h}px) « ${c.t} »`);
+    for (const c of r.debordes)
+      dur.push(`poste · ${nom} · ${c.q} sort de sa boîte de ${c.perdu}px, sous son voisin « ${c.t} »`);
   }
   const vusPoste = vus - vusAvantPoste;
   await wCtx.close(); await zBrowser.close();
   /* le contrôle dit sous quelle police il mesure — sans ça, retirer
      l'agrandissement le laisserait passer au vert sans rien vérifier */
   if (!doublee) fail('texte doublé : la garde ne mesure pas à 200 % — elle ne vérifie plus rien');
-  else if (mesurees < 18)
-    fail(`texte doublé : ${mesurees} surfaces mesurées au lieu de 18 — écrans ET feuilles, `
+  else if (mesurees < 21)
+    fail(`texte doublé : ${mesurees} surfaces mesurées au lieu de 21 — écrans ET feuilles, `
       + `au pouce ET au poste ; c'est en n'ouvrant aucune feuille que la garde a laissé passer `
       + `le glissement latéral, et en ignorant le poste qu'elle a laissé passer le nom amputé`);
   else if (!carteVue)
@@ -3657,6 +3714,9 @@ const GRAINE_ZOOM = async () => {
   else if (statutForme !== 'rangée' && statutForme !== 'pile')
     fail(`fiche à 200 % : le statut « Où j’en suis » n’est ni une rangée ni une pile (${statutForme}) — `
       + 'deux puis un, la forme que la bascule existe pour éviter');
+  else if (!sondeDeborde)
+    fail('texte doublé : la sonde du débordement (un mot sans espace dans une boîte de 30px qui ne coupe pas) '
+      + 'n’a pas été vue — la mesure du texte qui sort de sa boîte ne mesure plus rien');
   else if (!sondeEcrase)
     fail('texte doublé : la sonde d’écrasement (un enfant de 60px dans une boîte de 20px qui coupe) '
       + 'n’a pas été vue — la mesure de l’écrasement ne mesure plus rien');

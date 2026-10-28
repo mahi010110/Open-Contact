@@ -9,7 +9,7 @@
 import { esc, distKm, todayISO } from '../engine/utils.js';
 import { STATUSES, CLOSE_REASONS, DOMAINS, pushHist } from '../engine/model.js';
 import { filterOrphans, searchHint } from '../engine/filter.js';
-import { chercherPistes, raisonDe, propositions, elargir, retirer, contexteRecherche, correction } from '../engine/requete.js';
+import { chercherPistes, raisonDe, propositions, elargir, retirer, contexteRecherche, correction, interpreter } from '../engine/requete.js';
 import { silentPistes } from '../engine/assist.js';
 import { mesChiffres, chiffresTexte } from '../engine/suivi.js';
 import { S, bus, isClosed, hasDemo, addDemo, ctLabel, deletePiste, undeletePiste,
@@ -485,7 +485,15 @@ const ctxBarre = () => {
      tout de suite, un demi-mégaoctet pour ne rien comprendre (7.0.0) */
   const m = metiersPrets();
   if (m) c.metiers = m;
-  else if (q) chargerMetiers().then(ix => { if (ix && q && S.route === 'pistes' && relireBarre) relireBarre(); });
+  else if (q) chargerMetiers().then(ix => {
+    if (!ix || !q || S.route !== 'pistes' || !relireBarre || !ctxDernier || ctxDernier.metiers) return;
+    /* seulement si la table CHANGE ce que la barre comprend. « alternance
+       lille » ne lui doit rien, et redessiner pour rien faisait tomber le
+       focus de qui parcourait le tableau au clavier — « Advalys Cyber ›
+       BODY », e2e-recherche sous charge (7.1.0) */
+    const sans = JSON.stringify(interpreter(q, ctxDernier).etiquettes);
+    if (JSON.stringify(interpreter(q, { ...ctxDernier, metiers: ix }).etiquettes) !== sans) relireBarre();
+  });
   return (ctxDernier = c);
 };
 
