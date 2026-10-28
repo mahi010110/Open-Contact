@@ -218,7 +218,8 @@ if ((await bandeaux(I.p))[0] !== 'Karim y est en alternance') fail('fiche AZTEK 
 await I.p.screenshot({ path: `${SHOTS}/99-amis-fiche-pouce.png` });
 await I.p.click('#fiVecu');
 await I.p.waitForTimeout(350);
-if (await dessus(I.p) !== 'Demander à Karim') fail('le bandeau n’ouvre pas « Demander à Karim » : ' + await dessus(I.p));
+/* la barre dit la fenêtre (« Demande ») ; à qui, c'est le message qui le dit (§4) */
+if (await dessus(I.p) !== 'Demande') fail('le bandeau n’ouvre pas la feuille « Demande » : ' + await dessus(I.p));
 {
   const mot = await I.p.evaluate(() => document.querySelector('.overlay:last-child .gr-mot')?.textContent || '');
   if (!mot.startsWith('Salut Karim, tu es en alternance chez AZTEK SAS ?')) fail('message : ' + mot);
