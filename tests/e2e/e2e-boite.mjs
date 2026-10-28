@@ -8,7 +8,10 @@
    conversations d'amis, sans réseau :
    ① UNE liste : groupes et amis mêlés, la plus récente en haut ; ce qui
      n'est pas lu en gras avec un point, jamais un chiffre ; aucun
-     onglet ne compte (R10, « le calme ») ;
+     onglet ne compte (R10, « le calme ») — mais, ailleurs, « Réseau »
+     CHANGE DE COULEUR tant que quelque chose y attend : l'accent et un
+     point carré, et son nom le dit (28 octobre 2026) ; tout lu ou
+     coupé, il revient à son encre ;
    ② un groupe s'ouvre sur la ligne « 3 nouveaux », posée avant le premier
      message arrivé depuis la dernière visite ; refermé, il est lu ;
    ③ avec beaucoup de neuf, le bouton « ↓ N nouveaux » y descend, et
@@ -94,6 +97,30 @@ async function ecran(nom, { vp, sombre = false, beaucoup = false } = {}){
   return { ctx, p };
 }
 const noms = p => p.evaluate(() => [...document.querySelectorAll('.bx-l[data-fil] .bx-n')].map(n => n.textContent.trim()));
+/* L'ONGLET QUI ATTEND (28 octobre 2026) : ce qu'il montre, mesuré — sa
+   classe, son nom, le point carré après le mot, sa couleur comparée à
+   l'accent, et le contraste du mot sur la barre (WCAG 1.4.3 : 4,5:1
+   pour un mot de 11 px) */
+const signe = (p, r = 'reseau') => p.evaluate(r => {
+  const a = document.querySelector(`.bottomnav [data-r="${r}"]`) || document.querySelector(`.topnav [data-r="${r}"]`);
+  const l = a.querySelector('.bn-l') || a;
+  const pt = getComputedStyle(l, '::after');
+  const sonde = document.createElement('span');
+  sonde.style.color = 'var(--accent)'; document.body.append(sonde);
+  const accent = getComputedStyle(sonde).color; sonde.remove();
+  const lum = c => { const [x, y, z] = c.match(/[\d.]+/g).slice(0, 3).map(Number).map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; });
+    return 0.2126 * x + 0.7152 * y + 0.0722 * z; };
+  const fond = getComputedStyle(a.closest('nav')).backgroundColor;
+  const [h, b] = [lum(getComputedStyle(l).color), lum(fond)].sort((m, n) => n - m);
+  return { attend: a.classList.contains('attend'), aria: a.getAttribute('aria-label') || '', n: a.textContent.replace(/\D/g, ''),
+           point: pt.content !== 'none' && parseFloat(pt.width) > 0, couleur: getComputedStyle(l).color, accent,
+           contraste: Math.round((h + 0.05) / (b + 0.05) * 100) / 100 };
+}, r);
+const aller = async (p, route) => {
+  await p.evaluate(r => { location.hash = '#/' + r; }, route);
+  await p.waitForSelector(`#view-${route}:not([hidden])`);
+  await p.waitForTimeout(200);
+};
 const onglet = (p, r) => p.evaluate(r => {
   const a = document.querySelector(`.bottomnav [data-r="${r}"]`) || document.querySelector(`.topnav [data-r="${r}"]`);
   /* un chiffre où qu'il se pose dans l'onglet, quelle que soit sa classe */
@@ -140,6 +167,17 @@ const fermer = async p => {
   const e = await onglet(p, 'reseau'), a = await onglet(p, 'aujourdhui');
   ok(!e.n && e.aria === 'Réseau' && !a.n && !/\d/.test(a.aria), `① aucun onglet ne compte (« ${e.aria} », « ${a.aria} »)`);
   await p.screenshot({ path: `${SHOTS}/140-boite-pouce.png` });
+  /* ① bis ailleurs, « Réseau » CHANGE DE COULEUR quand quelque chose y
+     attend — l'accent et le point carré, jamais un chiffre — et son nom
+     le dit ; là où l'on est, il se tait (la liste le montre) */
+  ok(!(await signe(p)).attend, '① bis dans « Réseau », l’onglet allumé ne se double pas d’un signe');
+  await aller(p, 'aujourdhui');
+  const s1 = await signe(p);
+  ok(s1.attend && s1.aria === 'Réseau, du nouveau' && s1.point && !s1.n && s1.couleur === s1.accent && s1.contraste >= 4.5,
+    '① bis ailleurs, « Réseau » prend l’accent et le point carré, sans chiffre, et se dit « du nouveau » — ' + JSON.stringify(s1));
+  await p.screenshot({ path: `${SHOTS}/140-onglet-attend-pouce.png` });
+  await aller(p, 'reseau');
+  await p.waitForSelector('.bx-liste');
 
   /* ② un groupe s'ouvre sur la ligne « 3 nouveaux » */
   await p.click(`[data-fil="g:${G1}"]`);
@@ -170,6 +208,13 @@ const fermer = async p => {
   await p.waitForTimeout(400);
   ok((await noms(p))[0] === 'Club Cyber', '④ épinglée, Club Cyber passe en tête');
   await p.screenshot({ path: `${SHOTS}/140-boite-reglee-pouce.png` });
+  /* ④ bis le groupe lu, Inès au son coupé : plus rien n'attend — l'onglet
+     revient à son encre, et son nom aussi */
+  await aller(p, 'aujourdhui');
+  const s2 = await signe(p);
+  ok(!s2.attend && s2.aria === 'Réseau' && !s2.point, '④ bis tout lu ou coupé : « Réseau » revient à son encre — ' + JSON.stringify(s2));
+  await aller(p, 'reseau');
+  await p.waitForSelector('.bx-liste');
 
   /* ⑤ les filtres : une liste fermée */
   const f = await p.evaluate(() => [...document.querySelectorAll('.bx-filtres .dchip')].map(b => ({ mot: b.textContent.trim(), eteint: b.disabled })));
