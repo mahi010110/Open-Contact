@@ -270,7 +270,7 @@ export function openEditPiste(c, onDone){
        qu'on ne voit pas venir (§7, question 3) : une note perso écrite
        ici part avec la piste. Le pendant privé, « Mes notes 🔒 privées »,
        vit sur la fiche. */
-    `<p class="hint">${ic('users', 'ic-14')} Visible par qui reçoit la piste.</p>
+    `<p class="hint" style="margin:0 0 14px">${ic('users', 'ic-14')} Visible par qui reçoit la piste.</p>
      ${sharedFieldsHTML(c)}`;
   const champs = bindSharedFields(sh.body);
 
