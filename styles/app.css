@@ -186,6 +186,15 @@ input,select,textarea{font-family:inherit;color:var(--text-body)}
   white-space:nowrap;overflow:hidden;
 }
 .bottomnav a.on{background:var(--select-bg);color:var(--select-text);border-color:var(--border-strong)}
+/* L'ONGLET QUI ATTEND (le mainteneur, 28 octobre 2026 : « pas de
+   notification, une couleur qui change dans l'onglet »). Pas de chiffre
+   (le calme, R10) : le mot et l'icône passent à l'accent, et le point
+   carré des conversations non lues de la boîte (`.bx-pt`) suit le mot.
+   La couleur seule ne parle pas à tout le monde (WCAG 1.4.1) : la forme
+   du point dit la même chose, et le nom de l'onglet aussi. */
+.bottomnav a.attend,.topnav a.attend{color:var(--accent)}
+.bottomnav a.attend .bn-l::after,.topnav a.attend::after{
+  content:'';display:inline-block;width:6px;height:6px;margin-left:4px;vertical-align:.1em;background:var(--accent)}
 /* Un libellé d'onglet trop long était coupé AUX DEUX BOUTS : centré dans
    un `overflow:hidden`, « Aujourd'hui » rendait « ujourd'hu ». On perd
    alors le début, qui est justement ce qu'on lit. Le libellé prend sa
@@ -1345,6 +1354,8 @@ details.tranche[open]>summary::before{
 .pp-et{display:flex;align-items:center;gap:10px;width:100%;min-height:var(--ctl);padding:4px 12px;
   background:none;border:0;border-radius:0;font:inherit;font-size:var(--text-14);color:var(--text-body);text-align:left}
 .pp-l{flex:1;min-width:0;overflow-wrap:anywhere}
+/* ce qui manque au profil : une donnée sous le pas, en encre sourde */
+.pp-s{display:block;margin-top:1px;font-size:var(--text-12);color:var(--text-muted)}
 button.pp-et{cursor:pointer}
 button.pp-et:active{background:var(--surface-raised)}
 @media (hover:hover){ button.pp-et:hover{background:var(--surface-raised)} }
@@ -1813,6 +1824,11 @@ details.pcard-details[open]>summary{margin-bottom:10px}
    de second cadre dans le premier. Seul l'effacement se détache, par
    l'air (`.pick-sortie`), en rouge et en dernier. */
 .rg-foot{border-top:1px dashed var(--border-soft)}
+/* les groupes des Réglages (28 octobre 2026) : le titre d'une section,
+   la grammaire des légendes de cadre — un mot, pas une ligne qu'on tape */
+.rg-sec{margin:14px 0 2px;font-size:var(--text-11);font-weight:var(--weight-bold);
+  text-transform:uppercase;letter-spacing:var(--tracking-wide);color:var(--text-muted)}
+.rg-sec:first-child,legend+.rg-sec{margin-top:4px}
 /* « Signaler un problème » : le texte à coller se lit EN ENTIER avant
    de partir — c'est ce qui remplace la promesse « rien de personnel »
    par une preuve. Bloc mono, sélectionnable, jamais un champ : rien

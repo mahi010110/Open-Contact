@@ -209,10 +209,11 @@ const boiteK = () => K.p.evaluate(id => {
            jour: document.querySelector('#view-aujourdhui .act-row[data-sorte="ecrits"]')?.textContent.replace(/\s+/g, ' ').trim() || '' };
 }, ID_I);
 await rouvrir(K.p);
-/* au calme (R10) : « Aujourd'hui » dit qui t'a écrit, l'onglet ne compte rien */
+/* au calme (R10) : « Aujourd'hui » dit qui t'a écrit, l'onglet ne compte
+   rien — il change de couleur, et son nom dit « du nouveau » (28 octobre 2026) */
 const vu3 = await attendre(async () => { const b = await boiteK(); return /Inès t’a écrit/.test(b.jour) ? b : null; },
   'chez Karim, « Aujourd’hui » ne dit pas qu’Inès a écrit');
-if (vu3 && (vu3.onglet || vu3.aria !== 'Réseau')) fail('l’onglet compte encore : ' + JSON.stringify(vu3));
+if (vu3 && (vu3.onglet || vu3.aria !== 'Réseau, du nouveau')) fail('l’onglet compte, ou ne dit pas « du nouveau » : ' + JSON.stringify(vu3));
 await K.p.screenshot({ path: `${SHOTS}/130-conv-aujourdhui.png` });
 await K.p.evaluate(() => { location.hash = '#/reseau'; });
 await K.p.waitForSelector(`.bx-l[data-ami="${ID_I}"]`);

@@ -115,6 +115,16 @@ export function phraseEcrits(rangs){
     : { texte: cite.charAt(0).toUpperCase() + cite.slice(1), sous: '', amis: 0, cites: cites.length };
 }
 
+/* L'ONGLET QUI CHANGE DE COULEUR (le mainteneur, 28 octobre 2026 : « je
+   ne veux pas de notification, mais une couleur qui change dans
+   l'onglet pour montrer que quelque chose m'attend »). Pas un chiffre —
+   le calme (R10) tient : un état, oui ou non. L'allume ce qu'une
+   messagerie compte sur son icône : une conversation non lue dont on
+   n'a pas coupé le son, une mention (elle perce le silence), quelqu'un
+   à la porte d'un groupe que j'ouvre (il est compté dans `n`). Un groupe
+   où j'attends moi-même d'entrer n'allume rien : personne ne m'y attend. */
+export const attendOnglet = rangs => (rangs || []).some(r => !!r && !r.attente && ((r.n > 0 && !r.muet) || r.cite > 0));
+
 /* OUVRIR LÀ OÙ L'ON S'ÉTAIT ARRÊTÉ (Slack, Discord) : le premier
    message qui n'est pas de moi et qui est arrivé après ma dernière
    visite. -1 : rien de neuf. */

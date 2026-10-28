@@ -101,8 +101,10 @@ const fermer = async p => {
     return s ? { titre: s.querySelector('.tr-h').textContent.replace(/\s+/g, ' ').trim(),
                  premiere: document.querySelector('#view-aujourdhui .tranche') === s } : null; });
   ok(t && t.titre === 'Premiers pas 2/3' && t.premiere, '③ une piste : « Premiers pas 2/3 », en première tranche — ' + JSON.stringify(t));
-  ok(await pas(p) === 'Remplir mon profil:fait | Ajouter une piste:fait | Écrire mon premier mail:à faire',
-    '③ le mail se tape maintenant — ' + await pas(p));
+  /* la tranche ne montre que le PROCHAIN pas : le compte dit le chemin
+     fait (le mainteneur, 28 octobre 2026 : « prend beaucoup de place ») */
+  ok(await pas(p) === 'Écrire mon premier mail:à faire',
+    '③ une seule rangée, le prochain pas — le mail se tape maintenant : ' + await pas(p));
   await p.screenshot({ path: `${SHOTS}/150-premiers-pas-2sur3-pouce.png` });
   await p.click('[data-pp="mail"]');
   await p.waitForSelector('#mBody');
@@ -119,6 +121,29 @@ const fermer = async p => {
   await p.waitForFunction(() => !!document.querySelector('#sbVer')?.textContent);
   await p.waitForTimeout(300);
   ok(await p.evaluate(() => !document.querySelector('#tdPas, .tr-pas')), '④ et ne revient pas au rechargement');
+  await ctx.close();
+}
+
+/* ---------- ③ bis un profil commencé dit ce qui lui manque ---------- */
+{
+  const { ctx, p } = await ecran('manque', { graine: [{ id: 'az', name: 'Aztek', status: 'todo' }] });
+  await p.evaluate(async () => { const { S, saveProfile, bus } = await import('./ui/state.js');
+    Object.assign(S.profile, { name: 'Tom Durand', formation: 'BTS SIO' }); saveProfile(); bus.refresh(); });
+  await p.waitForTimeout(300);
+  const l = await p.evaluate(() => { const b = document.querySelector('#tdPas [data-pp="profil"]');
+    return b ? { n: document.querySelectorAll('#tdPas > li').length, t: b.textContent.replace(/\s+/g, ' ').trim() } : null; });
+  ok(l && l.n === 1 && l.t === 'Remplir mon profil il manque ce que tu cherches',
+    '③ bis le profil commencé dit ce qui lui manque, sur sa seule rangée — ' + JSON.stringify(l));
+  await p.screenshot({ path: `${SHOTS}/150-premiers-pas-manque-pouce.png` });
+  /* le tap ouvre « Mon profil » SUR ce qui manque, et le montre */
+  await p.click('[data-pp="profil"]');
+  await p.waitForTimeout(500);
+  const f = await p.evaluate(() => { const a = document.activeElement, b = a && a.closest('.modal-b');
+    if (!b) return null; const r = a.getBoundingClientRect(), z = b.getBoundingClientRect();
+    return { r: a.dataset.r || '', vu: r.top >= z.top && r.bottom <= z.bottom }; });
+  ok(await dessus(p) === 'Mon profil' && f && f.r === 'stage' && f.vu,
+    '③ bis « Mon profil » s’ouvre sur « Ce que tu cherches », à l’écran — ' + JSON.stringify(f));
+  await fermer(p);
   await ctx.close();
 }
 

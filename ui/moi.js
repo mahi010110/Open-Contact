@@ -307,11 +307,23 @@ const rgRow = (id, nom, etat, last, dep) =>
    pas : une seule place, la même sur les deux appareils. */
 const MOT_THEME = { auto: 'automatique', light: 'clair', dark: 'sombre' };
 
+/* LES RÉGLAGES SE RANGENT (le mainteneur, 28 octobre 2026 : « range les
+   paramètres, ça permettra une meilleure évolutivité »). Neuf lignes à
+   la file, rangées par l'ordre de leur arrivée : la protection à côté du
+   thème, l'aide entre deux réglages. Quatre groupes nommés, comme les
+   catégories des réglages d'Android et les groupes d'iOS — chaque ligne
+   neuve a une place évidente, et un groupe vide ne se montre pas :
+   · Mes données — ce qui garde tes pistes : la protection, tes
+     appareils, l'app installée ;
+   · Réseau — ce qui passe par toi (le nom de l'onglet) ;
+   · Préférences — comment l'app se présente et se commande ;
+   · Aide — l'aide, et le chemin du retour. */
 function reglagesRowsHTML(){
   const prot = isProtected();
   /* les lignes se composent avant de s'écrire : le recentrage en retire
-     (CLAUDE.md §0), et c'est la DERNIÈRE présente qui porte `rg-last` —
-     sinon masquer l’ordinateur laisserait un trait en bas de liste */
+     (CLAUDE.md §0), et c'est la DERNIÈRE présente de chaque groupe qui
+     porte `rg-last` — sinon masquer l’ordinateur laisserait un trait en
+     bas de liste */
   const rows = [
     ['moiVerrou', 'Protection', verrouLabel(), false],
     ['moiSync', 'Mes appareils', syncLabel(), false]
@@ -355,23 +367,25 @@ function reglagesRowsHTML(){
   /* LE DROIT DE NE PLUS SERVIR DE CHEMIN (docs/reseau.md, décision 7),
      sans quitter personne. Seulement quand on a des amis : sans eux,
      rien ne passe par toi. */
+  const reseau = [];
   if ((S.profile.amis || []).length)
-    rows.push(['moiRelais', 'Demandes de mes amis', S.profile.flags.sansRelais ? 'arrêtées' : 'transmises', false]);
-  rows.push(['moiTheme', 'Thème', MOT_THEME[S.themeChoix] || 'automatique', false]);
+    reseau.push(['moiRelais', 'Demandes de mes amis', S.profile.flags.sansRelais ? 'arrêtées' : 'transmises', false]);
+  const prefs = [['moiTheme', 'Thème', MOT_THEME[S.themeChoix] || 'automatique', false]];
   /* LES TOUCHES D'UNE LETTRE (lot R8, WCAG 2.1.4) : au poste seulement —
      au pouce il n'y a pas de clavier, la rangée ne réglerait rien */
   if (clavierActif())
-    rows.push(['moiTouches', 'Touches d’une lettre', lettresCoupees() ? 'éteintes' : 'allumées', false]);
+    prefs.push(['moiTouches', 'Touches d’une lettre', lettresCoupees() ? 'éteintes' : 'allumées', false]);
   /* LA PRÉVERSION (R0, docs/decisions/0004) : les lots du recadrage en
      test s'allument sur CET appareil, chez le mainteneur et ses
      testeurs. Seulement quand un lot est en test : une bascule qui ne
      bascule rien n'a pas sa place (§6, « Le minimum, au bon moment »). */
   if (enTest(DRAPEAUX).length)
-    rows.push(['moiPreversion', 'Préversion', S.preversion ? 'allumée' : 'éteinte', false]);
-  rows.push(['moiAide', 'Aide et confidentialité', '', false]);
-  rows.push(['moiDiag', 'Signaler un problème', '', false]);
+    prefs.push(['moiPreversion', 'Préversion', S.preversion ? 'allumée' : 'éteinte', false]);
+  const aide = [['moiAide', 'Aide et confidentialité', '', false], ['moiDiag', 'Signaler un problème', '', false]];
+  const groupe = (titre, l) => !l.length ? '' : `<h3 class="rg-sec">${titre}</h3>` +
+    l.map(([id, nom, etat, dep], i) => rgRow(id, nom, etat, i === l.length - 1, dep)).join('');
   return (
-    rows.map(([id, nom, etat, dep], i) => rgRow(id, nom, etat, i === rows.length - 1, dep)).join('') +
+    groupe('Mes données', rows) + groupe('Réseau', reseau) + groupe('Préférences', prefs) + groupe('Aide', aide) +
     /* DEUX GESTES QUI CHANGENT TOUT NE SONT PAS DES LIENS. Ils vivaient en
        mots soulignés sous la liste : la forme d'un lien, qui promet
        d'emmener ailleurs, pour les deux gestes les plus lourds de l'écran

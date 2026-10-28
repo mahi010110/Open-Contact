@@ -78,7 +78,7 @@ import { nouvelleCle, boiteValide, cleValide, etiquetteBoite, sceller, ouvrir, l
          jetonRelais, ouvrirJeton, lettreRelais, lettreTrouve, choisirRelais, soiPour, contactsDe, lettreEntree, lettreAdmis, lettreRecode,
          CERCLE_MAX, RELAIS_MAX, suiviDemande, pourCherche, rangerLignesAmis, mercisRecents, MERCI_AFFICHE_JOURS } from './engine/boite.js';
 import { critereValide, phraseCritere, CRITERE_METIER } from './engine/critere.js';
-import { cleFil, prefsVides, normaliserPrefs, basculerEpingle, basculerMuet, renommerFil, oublierFil, boite,
+import { attendOnglet, cleFil, prefsVides, normaliserPrefs, basculerEpingle, basculerMuet, renommerFil, oublierFil, boite,
          filtrer, filtresUtiles, filtreVide, premierNonLu, EPINGLES_MAX,
          phraseEcrits, nomsListe } from './engine/conversations.js';
 import { visage, initiales, TEINTES } from './engine/visage.js';
@@ -2703,6 +2703,20 @@ export async function runSelfTests(){
       eq(pourCherche(''), '');
       eq(pourCherche('toString'), '');
     },
+    'l’onglet qui attend : un non-lu au son ouvert, une mention, jamais un chiffre': () => {
+      eq(attendOnglet([]), false);
+      eq(attendOnglet(null), false);
+      eq(attendOnglet([{ n: 0 }, { n: 0, cite: 0 }]), false);
+      eq(attendOnglet([{ n: 2 }]), true);
+      /* le son coupé éteint, la mention perce */
+      eq(attendOnglet([{ n: 2, muet: true }]), false);
+      eq(attendOnglet([{ n: 2, muet: true, cite: 1 }]), true);
+      /* un groupe où J'attends d'entrer : personne ne m'y attend */
+      eq(attendOnglet([{ n: 1, attente: true }]), false);
+      /* il lit ce que rend la boîte, telle qu'elle est rangée */
+      eq(attendOnglet(boite([{ cle: 'a:karim01', sorte: 'ami', nom: 'Karim', n: 1, at: 1 }], { v: 1, epingles: [], muets: ['a:karim01'] })), false);
+      eq(attendOnglet(boite([{ cle: 'a:karim01', sorte: 'ami', nom: 'Karim', n: 1, at: 1 }])), true);
+    },
     'premiers pas : trois cases qui se cochent seules, jusqu’au premier mail': () => {
       const etat = (p, cs) => { const e = premiersPas(p, cs); return e ? e.map(x => x.cle + (x.fait ? '✓' : '·')).join(' ') : null; };
       /* tout neuf */
@@ -2711,6 +2725,12 @@ export async function runSelfTests(){
       eq(etat({ name: 'Tom', formation: 'BTS SIO' }, []), 'profil· piste· mail·');
       eq(etat({ name: 'Tom', formation: 'BTS SIO', recherche: 'toString' }, []), 'profil· piste· mail·');
       eq(etat({ name: 'Tom', formation: 'BTS SIO', recherche: 'alternance' }, []), 'profil✓ piste· mail·');
+      /* ce qui manque au profil se dit, dans l'ordre du formulaire */
+      const manque = p => premiersPas(p, [])[0].manque.join(',');
+      eq(manque({}), 'nom,formation,recherche');
+      eq(manque({ name: 'Tom', formation: 'BTS SIO' }), 'recherche');
+      eq(manque({ name: '  ', recherche: 'stage' }), 'nom,formation');
+      eq(manque({ name: 'Tom', formation: 'BTS SIO', recherche: 'emploi' }), '');
       /* une piste, puis un mail parti : la tranche se ferme pour de bon */
       eq(etat({}, [{ id: 'a' }]), 'profil· piste✓ mail·');
       eq(etat({}, [{ id: 'a' }, { id: 'b', appliedAt: '2026-10-14' }]), null);

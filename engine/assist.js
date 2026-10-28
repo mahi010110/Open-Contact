@@ -415,7 +415,12 @@ export function sansFilet({ pistes = 0, derniereCopie = 0, appareils = [], maint
    profil rempli : le dernier pas ferme la tranche pour de bon. Les
    pistes d'exemple n'y comptent pas — tant qu'elles sont là, la tranche
    se tait : l'exemple montre l'écran tel qu'il SERA. `null` = rien à
-   montrer. */
+   montrer.
+   Le pas du profil dit aussi ce qui lui MANQUE (`manque` : 'nom',
+   'formation', 'recherche', dans l'ordre du formulaire) : une case qui
+   reste vide quand on a rempli son nom et sa formation, sans dire
+   pourquoi, c'est ce qui rendait la liste frustrante (le mainteneur,
+   28 octobre 2026). */
 const CHERCHE_PP = new Set(['stage', 'alternance', 'emploi']);
 export const aEcrit = c => !!c && (!!c.appliedAt || c.status === 'active' || c.status === 'reply'
   || c.closedReason === 'won' || c.closedReason === 'rejected');
@@ -423,8 +428,10 @@ export function premiersPas(profile, companies){
   const p = profile || {};
   const cs = (companies || []).filter(Boolean);
   if (cs.some(c => c.demo)) return null;
+  const manque = [!String(p.name || '').trim() && 'nom', !String(p.formation || '').trim() && 'formation',
+    !CHERCHE_PP.has(p.recherche) && 'recherche'].filter(Boolean);
   const etapes = [
-    { cle: 'profil', fait: !!String(p.name || '').trim() && !!String(p.formation || '').trim() && CHERCHE_PP.has(p.recherche) },
+    { cle: 'profil', fait: !manque.length, manque },
     { cle: 'piste', fait: cs.length > 0 },
     { cle: 'mail', fait: cs.some(aEcrit) }
   ];
