@@ -310,13 +310,14 @@ net. Sources uniques : `styles/tokens/` et le kit `design/`.
 - **Reliefs** : bevels francs, ombres dures, coins droits (`--bevel-*`,
   `--shadow-*`). L'identité est **nette, sans flou** — un dégradé, une ombre
   floue, un arrondi marqué la cassent. Ça se discute avec le mainteneur, ça ne
-  se glisse pas dans un écran. **Le relief se mérite** *(13 octobre 2026)* :
-  il appartient au châssis (fenêtres, barres de titre), au primaire, et à
-  l'APPUI — un bouton teinté fonce et s'enfonce quand on le tape. Posé sur
-  chaque bouton, il faisait douze gros boutons d'une fiche (voir §6, « La
-  taille dit le rang »). Le primaire, lui, est posé sur un **rebord** net
-  de 2 px, l'accent assombri *(19 octobre 2026)* : une touche, pas une
-  brique — le trait noir, le biseau et l'ombre en biais sont partis.
+  se glisse pas dans un écran. **Les boutons portent le relief 98**
+  *(décision du mainteneur, 28 octobre 2026 : « remets les anciens
+  styles »)* : la boîte claire, le trait, le biseau et l'ombre dure, le
+  primaire rempli d'accent dans le même relief. Deux autres dessins ont
+  vécu entre-temps — le mot sans boîte (13-19 octobre), puis l'aplat
+  teinté (19-28 octobre) — et ont été retirés : mis côte à côte sur la
+  même fiche, c'est la boîte 98 qui dit le mieux « ceci se touche »
+  (voir §6, « La taille dit le rang », et l'annexe).
 - **Trame dither** : `--dither` porte la position ET la taille, il n'est donc
   valable que derrière la propriété raccourcie `background`. Posé sur
   `background-image`, il est **rejeté en silence** — la trame ne s'affiche pas
@@ -649,8 +650,8 @@ les confondre coûte cher : une tablette tactile en paysage fait 1024 à
   cible (40 et 32 px dessinés, marge invisible autour) a vécu une
   journée — voir l'annexe. `e2e-boutons.mjs` (⑥) refuse tout contrôle
   dessiné sous 44 px au doigt ; redescendre demande de venir le
-  changer là, exprès. **Le teinté la tient** *(19 octobre 2026)* : son
-  aplat fait la hauteur de sa cible, `--ctl`, 44 px au doigt. Ce que le
+  changer là, exprès. **La boîte la tient** : elle fait la hauteur de sa
+  cible, `--ctl`, 44 px au doigt. Ce que le
   mainteneur avait refusé le 30 septembre — un cadre de 32 px dans une
   cible de 44, deux bords pour un seul geste — ne revient pas.
 - **Une hauteur par main, jamais par largeur ni par bouton**
@@ -1543,38 +1544,25 @@ taille d'un contrôle annonce son poids (Material 3 : l'emphase se dose,
 une seule action remplie par vue) — cinq briques égales disent cinq
 actions lourdes, et donc aucune. L'app n'a plus que **trois formes** :
 
-1. **Le primaire** — rempli, un seul par vue, posé sur son rebord (§4).
-   Dans une feuille il tient le pied, à la place du pouce. C'est le
+1. **Le primaire** — rempli d'accent, en relief 98 (§4), un seul par
+   vue. Dans une feuille il tient le pied, à la place du pouce. C'est le
    **seul** qui a le droit de s'étirer.
-2. **Le teinté** — `.btn` (et `.btn-sm`) : **un aplat léger de la
-   couleur du geste**, ni trait ni ombre au repos ; il fonce et s'enfonce
-   à l'appui (le relief 98, là où il dit quelque chose). Tout geste qui
-   n'est pas le primaire le porte. Le **neutre** (`.btn-ghost`, le même
-   aplat en encre) pour ce qu'on fait peu ou qui ne fait pas avancer
-   (« Clôturer », « Ignorer », « Reporter ») ; le rouge (`.btn-danger`)
-   pour ce qui détruit. *(19 octobre 2026 — « je trouve qu'ils sont
-   horribles esthétiquement, d'un point de vue UX horribles, et en plus
-   mal placés ». Relevé mesuré sur dix écrans, au pouce et au poste :
-   26 actions au doigt n'étaient qu'un mot en couleur, sans contenant ;
-   la fiche alignait SEPT formes de contrôle, et trois « Modifier » au
-   poste ; « Aujourd'hui » portait douze icônes nues.)* Le 13 octobre,
-   la boîte des secondaires était partie parce qu'elle était LOURDE —
-   fond, trait noir, biseau, ombre en biais : « gros boutons
-   disgracieux ». On avait jeté le signe avec le poids : un mot teal sans
-   contenant ne se distingue plus d'un lien, et un lien emmène quand un
-   bouton agit. NN/g l'a mesuré (2017, oculométrie) : des signes faibles
-   coûtent ~22 % de temps et ~25 % de fixations en plus — on cherche ce
-   qui se tape. Le teinté est le cran que Material nomme *filled tonal*,
-   l'emphase moyenne entre le rempli et le texte ; Apple dit la même
-   chose (« un style moins marqué pour les autres choix », et un état
-   appuyé, toujours). Deux mesures l'ont réglé : l'aplat est **opaque**,
-   mélangé à la face des fenêtres — translucide, il tournait au kaki sur
-   le beige du bureau, vu sur « Moi » ; et son encre est l'accent APPUYÉ
-   (`--accent-hover`) — l'accent seul y rendait 4,47:1, sous le seuil de
-   WCAG 1.4.3, la nuance d'appui rend 6,2:1 (5,3 appuyé, 7,3 en sombre).
-   La forme contournée (`.btn-contour`, `.hero`) n'existe plus à part :
-   c'est un teinté. Gardé par `e2e-boutons.mjs` (⑦) dans les deux sens
-   — ni mot nu, ni boîte —, sondes et mutation à l'appui.
+2. **Le secondaire** — `.btn` (et `.btn-sm`) : **la boîte claire 98**,
+   un trait, un biseau, une ombre dure ; il s'enfonce à l'appui. Tout
+   geste qui n'est pas le primaire la porte ; le rouge (`.btn-danger`)
+   pour ce qui détruit. Le **neutre** (`.btn-ghost`) est un mot sourd
+   sans boîte, pour ce qu'on fait peu ou qui ne fait pas avancer
+   (« Retour », « Passer », « Clôturer »). *(Décision du mainteneur,
+   28 octobre 2026.)* Deux autres dessins ont été essayés et retirés :
+   le mot teal sans boîte (13 octobre), qu'on ne distinguait plus d'un
+   lien — NN/g (2017) mesure ~22 % de temps en plus quand les signes
+   sont faibles —, puis l'aplat teinté de Material (19 octobre). Mis côte
+   à côte sur la même fiche, le mainteneur a redemandé la boîte. Ce qui
+   avait été appris entre-temps reste : la place des gestes (un par
+   ligne, la case « Fait », « Clôturer » à « Où j'en suis »), la hauteur
+   de la main et le libellé à 14 px au pouce. Gardé par
+   `e2e-boutons.mjs` (⑦) dans les deux sens — ni mot nu, ni simple
+   aplat —, sondes et mutation à l'appui.
    **Taillé à son mot** : jamais plus de 60 % de sa boîte. Un geste SEUL est toujours celui-là,
    même destructif (`.btn-danger`, dans son groupe) : une liste d'un seul
    geste n'est que la brique d'avant sous un autre nom. **Une exception,
@@ -2234,6 +2222,7 @@ retiré.
 | « Au poste, le tableau du jour prend la région, le pied se pose en bas » (garde de `e2e-ux-audit.mjs` : pied à 85 % de la hauteur) | **remplacée** (12 octobre 2026, audit adaptatif) | Elle étendait au poste la règle du pouce (§5 : l'action se pose en bas, là où la main arrive). Sous une souris il n'y a pas de zone facile, et la place prise l'était par du vide encadré : trois cadres de 600 px pour une carte chacun. Le tableau prend la hauteur de son contenu, le pied le suit ; le garde vérifie maintenant l'inverse, mutation à l'appui |
 | « Échanger » : Donner · Recevoir · une porte par groupe (12 octobre 2026) | **remplacée** (13 octobre 2026), par le mainteneur : « une boîte de réception… afficher les conversations et les groupes comme Discord » | La porte par groupe tenait l'écran en trois objets, mais un ami s'écrivait ailleurs — dans « Amis », redit dans « Aujourd'hui » : trois endroits pour une même chose, une conversation. La boîte reprend la place des portes et y range aussi les amis ; Donner et Recevoir restent sous le pouce, « Nouveau groupe » ferme la liste. Le fil des échanges de pistes, qui tenait le panneau, passe derrière une ligne « Historique » : c'est une trace, pas du travail à faire |
 | « Échanger » porte les gestes des groupes et des amis : un cadre « Groupes » (le mot, « Créer », « Rejoindre », les rangées) et un cadre « Amis » (« Scanner », « Mon QR ») — lots 4a et 5 | **retirée** (12 octobre 2026), par le mainteneur : « ce qui était avant était parfait, en rajoutant tu as juste rendu moche et mal fait » | Chaque cadre se défendait seul (le « My code / Scan » de WhatsApp, un cadre par objet). Ensemble ils posaient quatre gestes rares à côté des deux quotidiens et l'écran ne se lisait plus. Les groupes reprennent la place de la porte d'avant, « Créer » et « Rejoindre » passent derrière elle, les amis s'ajoutent dans leur liste et se scannent par « Recevoir » — §6, « Une fonctionnalité neuve prend une place qui existe » |
+| « Le secondaire est un aplat teinté » (Material *filled tonal*, 19 octobre 2026) | **remplacée** (28 octobre 2026), par le mainteneur : « remets les anciens styles », après avoir vu les trois dessins côte à côte sur la même fiche | L'aplat réglait le signe sans le poids, mais il se lisait comme un fond plus que comme une touche, et il effaçait l'identité « 98 » (§4). La boîte 98 revient pour tous les boutons, le primaire reprend son relief ; la disposition décidée le 19 octobre (un geste par ligne, la case « Fait », « Clôturer » à « Où j'en suis ») reste |
 | « Le bouton secondaire est un bouton texte, sans boîte » (13 octobre 2026) | **remplacée** (19 octobre 2026), par le mainteneur : « je trouve qu'ils sont horribles esthétiquement, d'un point de vue UX horribles, et en plus mal placés » | Elle avait réglé le POIDS (douze boîtes biseautées sur une fiche) en retirant le SIGNE : 26 actions au doigt n'étaient plus qu'un mot teal, qu'on ne distinguait plus d'un lien (NN/g 2017 : ~22 % de temps en plus quand les signes sont faibles). Le cran manquant était le teinté (Material *filled tonal*, Apple « un style moins marqué ») : un aplat léger, ni trait ni ombre. La forme contournée (`.btn-contour`, `.hero`) disparaît dans le même geste — tout secondaire est teinté. Et la PLACE a suivi : un geste par ligne avec son mot, la case « Fait » en tête des lignes d'« Aujourd'hui », « Clôturer » à « Où j'en suis » (§6) |
 | « Le bouton secondaire — contouré, `.btn-sm`, taillé à son mot » (6.36.0) | **remplacée** (13 octobre 2026), par le mainteneur : « j'en ai marre des gros boutons disgracieux, il y en a plein partout » | Elle avait réglé la TAILLE (des briques pleine largeur devenues des boutons à leur mot) et laissé le POIDS : chaque secondaire gardait fond, trait et ombre dure, si bien qu'une fiche alignait douze boîtes biseautées et que rien ne départageait « Modifier » d'« Écrire » sinon la couleur. Apple et Material réservent la boîte à l'action la plus probable ; le secondaire qui ACCOMPAGNE est devenu un bouton texte (§6). Celui qui EST l'action de son bloc garde sa boîte (`.btn-contour`) : la ligne de « Ma copie », les gestes de « Mon QR », l'envoi d'un message ou d'une invitation — « certains boutons sont utiles et beaux à leur place », le mainteneur, le même jour |
 | « Télécharger » taillé à son mot, dans « Ma copie » (6.36.0) | **retirée** (30 septembre 2026, le jour même), par le mainteneur : « j'aimais bien comment c'était » | La règle générale était juste — un bouton de 235 px pour un mot annonce une action lourde. Mais cette ligne n'est pas un bouton étiré : c'est un échange de place, où l'action tient la largeur que le champ du mot de passe prendra en s'ouvrant. Taillée à son mot, la ligne gardait un trou à droite et l'ouverture ne se lisait plus comme un échange. L'exception se nomme dans `e2e-boutons.mjs` par sa construction (`.lockrow:not(.on) > .lr-do`), pas par un bouton |

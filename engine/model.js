@@ -13,7 +13,7 @@ import { normaliserGroupes } from './groupe.js';
 import { normaliserSemaine } from './semaine.js';
 import { normaliserAide } from './aide.js';
 
-export const APP_VERSION = '7.1.2';
+export const APP_VERSION = '7.1.3';
 
 export const DOMAINS = {
   esn:     { label:'ESN / Services IT',       color:'#4C9FD8' },

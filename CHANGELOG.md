@@ -9,6 +9,17 @@ le premier pour une rupture. La bascule du recadrage est la 7.0.0
 
 Les versions d'avant la 6.76 se lisent dans l'historique du dépôt.
 
+## [7.1.3] — 28 octobre 2026
+
+Les boutons retrouvent leur dessin d'origine.
+
+### Changé
+
+- Les boutons reprennent le relief « 98 » d'origine : une boîte grise
+  bordée, qui s'enfonce quand tu appuies. Le bouton principal garde sa
+  couleur, et les gestes discrets (« Ignorer », « Reporter ») restent un
+  mot sans boîte.
+
 ## [7.1.2] — 28 octobre 2026
 
 La suite de l'audit : écrire, et rattacher un contact.

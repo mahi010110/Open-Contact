@@ -44,8 +44,13 @@
      lien (NN/g, 2017 : des signes faibles coûtent ~22 % de temps et ~25 %
      de fixations en plus). Le cran qui manquait est le TEINTÉ de
      Material (« filled tonal ») : un aplat léger de la couleur du geste,
-     ni trait ni ombre. Au repos, un bouton qui n'est pas le primaire
-     porte donc UN APLAT et rien d'autre — ni mot nu, ni boîte.
+     ni trait ni ombre.
+     PUIS LE « 98 » D'ORIGINE (28 octobre 2026). Les trois styles mis côte
+     à côte sur la même fiche, le mainteneur a choisi la boîte 98 :
+     « remets les anciens styles ». Au repos, un secondaire porte donc SA
+     BOÎTE — un fond, un trait, un relief —, jamais un mot nu ni un simple
+     aplat. Seul le neutre (`.btn-ghost` : « Retour », « Passer »,
+     « Clôturer ») est un mot sourd sans boîte, par construction.
 
    La sonde se vérifie elle-même : une brique, une rangée habillée, une
    liste d'un geste et un sous-titre bavard sont plantés, et chaque
@@ -79,7 +84,7 @@ const ETIRES = {
    boutons de légende d'une fenêtre de bureau. Au doigt, elle reprend 44. */
 const CHASSIS = '.modal-h .x';
 
-/* ⑦ — ce qui a le droit de ne pas porter d'aplat, ou d'avoir un trait :
+/* ⑦ — ce qui a le droit de ne pas porter la boîte 98 :
    un état ALLUMÉ (`.sort-on`, l'entonnoir d'un filtre actif) n'est pas
    un repos, et une recherche que l'app PROPOSE se dessine en pointillé
    (« proposé en pointillé, posé en plein », §6). Aucun des deux n'est
@@ -128,17 +133,18 @@ const RELEVE = () => {
     if (h < attendu - 0.5 || (rangs <= 1 && h > attendu + 0.5))
       out.tailles.push(`« ${nom(b) || b.textContent.replace(/\s+/g, ' ').trim() || b.getAttribute('aria-label') || b.className} » ${Math.round(h)} px (attendu ${attendu})`);
   }
-  /* ⑦ au repos : UN APLAT — ni mot nu (fond transparent), ni boîte
-     (trait ou ombre) */
+  /* ⑦ au repos : LA BOÎTE 98 — un fond, un trait ET un relief ; ni mot
+     nu (fond transparent), ni simple aplat (fond sans trait ni ombre).
+     Le neutre (`.btn-ghost`) est un mot sans boîte, par construction. */
   const transparent = c => /rgba\(0, 0, 0, 0\)|transparent/.test(c);
   for (const b of racine.querySelectorAll('.btn')){
-    if (!vu(b) || b.classList.contains('btn-primary') || b.matches(window.__ALLUMES)) continue;
+    if (!vu(b) || b.classList.contains('btn-primary') || b.classList.contains('btn-ghost') || b.matches(window.__ALLUMES)) continue;
     const cs = getComputedStyle(b);
-    const trait = ['Top', 'Right', 'Bottom', 'Left'].some(k => parseFloat(cs['border' + k + 'Width']) > 0
+    const trait = ['Top', 'Right', 'Bottom', 'Left'].every(k => parseFloat(cs['border' + k + 'Width']) > 0
       && cs['border' + k + 'Style'] !== 'none' && !transparent(cs['border' + k + 'Color']));
     const qui = nom(b) || b.getAttribute('aria-label') || b.className;
     if (transparent(cs.backgroundColor)) out.nus.push(`« ${qui} »`);
-    else if (trait || cs.boxShadow !== 'none') out.boites.push(`« ${qui} »`);
+    else if (!trait || cs.boxShadow === 'none') out.boites.push(`« ${qui} »`);
   }
   for (const b of racine.querySelectorAll('.btn')){
     if (!vu(b) || b.closest('.modal-f,.modal-h') || b.classList.contains('btn-primary')) continue;
@@ -257,7 +263,8 @@ for (const [ergo, opts] of [['au doigt', { viewport: { width: 390, height: 844 }
        <button class="btn">Un libellé beaucoup trop long pour un bouton</button>
        <button class="btn btn-sm" style="min-height:0;height:30px">Timbre</button>
        <button class="btn btn-sm" style="min-height:60px">Tuile</button>
-       <button class="btn" style="background:var(--surface-chrome);border-color:var(--border-strong);box-shadow:var(--bevel-up)">Boîte</button>
+       <button class="btn" style="background:var(--tonal);border-color:transparent;box-shadow:none">Aplat</button>
+       <button class="btn">Boîte</button>
        <button class="btn" style="background:none">Mot nu</button>
        <div class="modal-f"><button class="btn btn-ghost">Escorte</button><button class="btn btn-primary">Primaire</button></div>`;
   });
@@ -272,10 +279,12 @@ for (const [ergo, opts] of [['au doigt', { viewport: { width: 390, height: 844 }
     /* à la souris, ce critère ne s'applique pas : sa sonde non plus */
     /* dans les DEUX sens : trop petit ET trop haut */
     tailles: sonde.tailles.some(x => /Timbre/.test(x)) && sonde.tailles.some(x => /Tuile/.test(x)),
-    boites: sonde.boites.some(x => /Boîte/.test(x)),
+    boites: sonde.boites.some(x => /Aplat/.test(x)),
     nus: sonde.nus.some(x => /Mot nu/.test(x)),
-    /* et dans l'autre sens : le teinté neutre à côté d'un primaire est
-       la forme JUSTE (Apple : « un style moins marqué pour les autres ») */
+    /* et dans l'autre sens : la boîte 98 est la forme JUSTE, et le neutre
+       sans boîte à côté d'un primaire aussi (Apple : « un style moins
+       marqué pour les autres choix ») */
+    juste: !sonde.boites.some(x => /Boîte/.test(x)) && !sonde.nus.some(x => /Boîte/.test(x)),
     escorte: !sonde.boites.some(x => /Escorte/.test(x)) && !sonde.nus.some(x => /Escorte/.test(x))
   };
   for (const [k, ok] of Object.entries(vue))
@@ -295,15 +304,15 @@ for (const [ergo, opts] of [['au doigt', { viewport: { width: 390, height: 844 }
   dire(tout.bavards, 'un sous-titre explique le bouton — à droite, seulement un état d’un mot ou un chiffre');
   dire(tout.tailles, 'un contrôle ne se dessine pas à la hauteur de la main (44 au doigt, 32 à la souris) — '
     + 'la hiérarchie se dit par l’emphase, jamais par la hauteur');
-  dire(tout.boites, 'un secondaire a repris trait ou ombre — il redevient une brique ; le contenant est un aplat, rien d’autre');
+  dire(tout.boites, 'un secondaire n’a plus sa boîte 98 (fond, trait et relief) — un simple aplat se lit comme un fond');
   dire(tout.nus, 'une action n’est qu’un mot en couleur, sans contenant — rien ne la sépare d’un lien (un lien emmène, '
-    + 'un bouton agit) : elle porte l’aplat teinté');
+    + 'un bouton agit) : elle porte la boîte 98, ou elle est le neutre (`.btn-ghost`)');
   if (tout.longs.length > PLAFOND_LONGS)
     fail(`${ergo} : ${tout.longs.length} libellé(s) de plus de quatre mots (plafond ${PLAFOND_LONGS}) —\n      `
       + tout.longs.join('\n      '));
   if (!ko) console.log(`${ergo} : ${vus} boutons sur ${SURFACES.length + (ergo === 'au doigt' ? 1 : 0)} vues — `
     + `aucun étiré, aucune brique, aucun sous-titre bavard, ${tout.longs.length} libellé long, tout à la hauteur de la main, `
-    + `chaque secondaire sur son aplat, aucun mot nu, aucune brique ✓`);
+    + `chaque secondaire dans sa boîte 98, aucun mot nu, aucun simple aplat ✓`);
   await p.context().close();
 }
 
