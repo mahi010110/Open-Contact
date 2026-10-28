@@ -1,7 +1,7 @@
 /* E2E P1 : création du verrou, scellement, rechargement → écran
    verrouillé, mauvais code, bon code, re-authentification.
    390×844 (tactile) puis 1280×800, thème clair puis sombre. */
-import { chromium, chromiumPath, ROOT, SHOTS, ouvrirReglages, attendre } from './outils.mjs';
+import { chromium, chromiumPath, ROOT, SHOTS, ouvrirReglages, attendre, relaisMuetsPartout } from './outils.mjs';
 import http from 'http';
 import { readFile, stat } from 'fs/promises';
 import path from 'path';
@@ -22,6 +22,7 @@ await new Promise(r => server.listen(0, '127.0.0.1', r));
 const base = `http://127.0.0.1:${server.address().port}`;
 
 const browser = await chromium.launch({ executablePath: chromiumPath() });
+relaisMuetsPartout(browser);   /* R5 : protéger dépose la copie scellée */
 const errors = [];
 let shot = 0;
 const snap = (page, name) => page.screenshot({ path: `${SHOTS}/${String(++shot).padStart(2, '0')}-${name}.png` });

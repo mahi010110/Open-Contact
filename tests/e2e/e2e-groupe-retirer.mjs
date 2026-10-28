@@ -60,7 +60,7 @@ async function ecran(qui, o = {}){
       if (t && window.__toasts.at(-1) !== t) window.__toasts.push(t); })
       .observe(document, { subtree: true, childList: true, characterData: true });
   });
-  await p.goto(base + '/#/echanger', { waitUntil: 'load' });
+  await p.goto(base + '/#/reseau', { waitUntil: 'load' });
   await p.evaluate(async ([pr, url]) => {
     const st = await import('./engine/storage.js');
     await st.kvInit();
@@ -69,7 +69,7 @@ async function ecran(qui, o = {}){
     await st.kvSet(st.RELAYS_KEY, JSON.stringify([url]));
   }, [profil(qui, o.profil), relay.url]);
   await p.reload({ waitUntil: 'load' });
-  await p.waitForSelector('#view-echanger:not([hidden])');
+  await p.waitForSelector('#view-reseau:not([hidden])');
   return { ctx, p };
 }
 const fermerTout = async p => {
@@ -81,9 +81,9 @@ const fermerTout = async p => {
   }
 };
 const rouvrir = async p => {
-  await p.evaluate(() => { location.hash = '#/echanger'; });
+  await p.evaluate(() => { location.hash = '#/reseau'; });
   await p.reload({ waitUntil: 'load' });
-  await p.waitForSelector('#view-echanger:not([hidden])');
+  await p.waitForSelector('#view-reseau:not([hidden])');
 };
 const attendreQue = async (p, fn, arg, ms = 20000, quoi = '') => {
   for (const fin = Date.now() + ms; Date.now() < fin; await p.waitForTimeout(300))

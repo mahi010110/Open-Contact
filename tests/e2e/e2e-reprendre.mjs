@@ -2,7 +2,7 @@
    OpenContact — e2e : UN SUIVI QUI SE REMPLIT SEUL (lot R2)
    (docs/propositions/R2-suivi.md, validée le 20 octobre 2026)
 
-   Derrière le drapeau `suivi`, préversion allumée, sur l'app réelle :
+   Ouvert à tous depuis la 7.0.0, sur l'app réelle :
    ① « Mes pistes » dit tes chiffres à la place du compte — écrites,
      réponses, décrochées —, déduits des pistes semées ; une recherche
      garde son « N sur M » ; rien d'écrit, le compte de pistes revient ;
@@ -19,7 +19,6 @@
      tous les jours ;
    ⑥ au poste, la même tranche, en colonne (l'état d'un geste, pas le
      tableau) ;
-   ⑦ préversion éteinte : ni chiffres, ni reprise — l'ancien chemin ;
    pouce clair et sombre, petit téléphone, poste ; zéro erreur console.
    Quatre mutations à l'appui : le retard qui revient sur la ligne, la
    pause qui compte un merci comme un geste, les chiffres qui ne
@@ -56,7 +55,7 @@ const JOURNAL = [{ t: now - 10 * J, txt: 'Email envoyé : Advens', cid: 'adv' },
                  { t: now - J, txt: 'Merci de Léa : Julie Marchand (Thales)', cid: null },
                  { t: now - J, txt: 'Karim t’a ajouté à ses amis', cid: null }];
 
-async function ecran(nom, { vp = { width: 390, height: 844 }, sombre = false, hash = '#/aujourdhui', preversion = true,
+async function ecran(nom, { vp = { width: 390, height: 844 }, sombre = false, hash = '#/aujourdhui', 
                             pistes = PISTES, profil = PROFIL, journal = JOURNAL, mutations = {} } = {}){
   const ctx = await browser.newContext({ viewport: vp, hasTouch: vp.width < 901, colorScheme: sombre ? 'dark' : 'light' });
   await relaisMuets(ctx); await annuaireMuet(ctx);
@@ -70,13 +69,12 @@ async function ecran(nom, { vp = { width: 390, height: 844 }, sombre = false, ha
   await p.waitForFunction(() => !!document.querySelector('#sbVer')?.textContent);
   /* semer APRÈS le démarrage, puis recharger : l'app lit son état à
      l'ouverture (§5) */
-  await p.evaluate(async ([ps, pr, jn, pv]) => {
+  await p.evaluate(async ([ps, pr, jn]) => {
     const st = await import('./engine/storage.js'); await st.kvInit();
     await st.kvSet(st.DATA_KEY, JSON.stringify(ps));
     await st.kvSet(st.PROFILE_KEY, JSON.stringify(pr));
     await st.kvSet(st.JOURNAL_KEY, JSON.stringify(jn));
-    if (pv) await st.kvSet(st.PREVERSION_KEY, '1'); else await st.kvDel(st.PREVERSION_KEY);
-  }, [pistes, profil, journal, preversion]);
+  }, [pistes, profil, journal]);
   await p.evaluate(h => { location.hash = h; }, hash);
   await p.reload();
   await p.waitForFunction(() => !!document.querySelector('#sbVer')?.textContent);
@@ -186,17 +184,6 @@ for (const [nom, vp, sombre] of [['pouce', { width: 390, height: 844 }, false], 
   await ctx.close();
 }
 
-/* ---------- ⑦ préversion éteinte : l'ancien chemin ---------- */
-{
-  const { ctx, p } = await ecran('eteinte', { preversion: false });
-  ok(await reprise(p) === null && await p.evaluate(() => !!document.querySelector('#view-aujourdhui .tr-late .mark')),
-    '⑦ éteinte : pas de reprise, « En retard » et ses jours comme avant');
-  await p.evaluate(() => { location.hash = '#/pistes'; });
-  await p.waitForTimeout(400);
-  ok(await compte(p) === '7 pistes', `⑦ éteinte : le compte de pistes comme avant — « ${await compte(p)} »`);
-  await ctx.close();
-}
-
 /* ---------- les mutations : le scénario sait encore échouer ---------- */
 const lire = f => readFile(path.join(ROOT, f), 'utf8');
 {
@@ -218,7 +205,7 @@ const lire = f => readFile(path.join(ROOT, f), 'utf8');
 }
 {
   const pi = await lire('ui/pistes.js');
-  const m = pi.replace("const chiffres = lot('suivi') ?", "const chiffres = false ?");
+  const m = pi.replace("const chiffres = chiffresTexte(mesChiffres(S.companies));", "const chiffres = '';");
   ok(m !== pi, 'mutation ③ les chiffres absents : le fichier servi est bien modifié');
   const { ctx, p } = await ecran('mutation-chiffres', { hash: '#/pistes', mutations: { 'ui/pistes.js': m } });
   ok(await compte(p) !== '5 écrites · 2 réponses · 1 décrochée', `mutation ③ : la garde des chiffres rougit — « ${await compte(p)} »`);

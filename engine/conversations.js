@@ -1,5 +1,5 @@
 /* ============================================================
-   OpenContact — moteur · la boîte « Échanger »
+   OpenContact — moteur · la boîte de « Réseau »
    (retour du mainteneur, 13 octobre 2026 : « une boîte de réception, le
    suivi des nouveaux messages dans les groupes, les conversations comme
    Discord — faire exactement comme les messageries traditionnelles »)
@@ -89,16 +89,6 @@ export function filtrer(rangs, f){
 export const filtresUtiles = rangs => rangs.length < 4 ? [] : FILTRES;
 export const filtreVide = (rangs, f) => f !== 'tout' && !filtrer(rangs, f).length;
 
-/* LE CHIFFRE DE L'ONGLET : les CONVERSATIONS qui attendent, pas les
-   messages — trois messages de Karim sont une seule chose à faire. Une
-   conversation dont on a coupé le son n'y entre pas : c'est à ça que sert
-   de le couper (PatternFly : un compte qui ne descend jamais à zéro
-   devient un papier peint). SAUF quand on m'y nomme (lot F2) :
-   « @Karim » perce le silence, comme sur Slack, Discord ou WhatsApp —
-   couper le son d'un groupe, c'est ne plus suivre sa conversation, pas
-   ne plus entendre qu'on m'appelle. */
-export const aLire = rangs => rangs.filter(r => r.n > 0 && (!r.muet || r.cite > 0)).length;
-export const chiffreOnglet = n => !n ? '' : n > 99 ? '99+' : String(n);
 
 /* LE CALME (lot R10, docs/propositions/R10-grand-nombre-et-calme.md).
    Sans chiffre sur l'onglet, ce qui attend VRAIMENT quelqu'un se dit

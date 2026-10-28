@@ -14,21 +14,21 @@
    ============================================================ */
 import { esc } from '../engine/utils.js';
 import { lettreDe, estPalette, nomAria, nomPalette, ariaPalette, paletteDe } from '../engine/clavier.js';
-import { S, bus, lot, saveProfile } from './state.js';
+import { S, bus, saveProfile } from './state.js';
 import { openSheet, ic, choixHTML, clavier, apresRetours } from './dom.js';
 
 const mqPoste = matchMedia('(min-width:901px)');
 export const auPoste = () => mqPoste.matches;
 const surMac = () => /Mac|iPhone|iPad/i.test(navigator.platform || navigator.userAgent || '');
 export const lettresCoupees = () => !!(S.profile && S.profile.flags && S.profile.flags.sansLettres);
-/* la rangée de Réglages et les touches n'existent qu'au poste, lot ouvert */
-export const clavierActif = () => lot('clavier') && auPoste();
+/* la rangée de Réglages et les touches n'existent qu'au poste */
+export const clavierActif = () => auPoste();
 export const dansChamp = t => !!(t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName || '')));
 
 /* la lettre d'un appui, prête à agir — '' sinon. Pendant la préversion,
    l'ancien chemin reste entier : sans le lot, rien ne se coupe ici. */
 export function lettreActive(e){
-  return lettreDe(e, { coupees: lot('clavier') && lettresCoupees(), champ: dansChamp(e.target) });
+  return lettreDe(e, { coupees: lettresCoupees(), champ: dansChamp(e.target) });
 }
 /* la touche écrite dans son bouton : au poste, lot ouvert, touches
    allumées — et muette pour le lecteur d'écran, qui l'entend par
@@ -56,11 +56,11 @@ async function gestes(){
     { id: 'nouvelle', libelle: 'Nouvelle piste', mots: 'ajouter' },
     { id: 'aujourdhui', libelle: 'Aujourd’hui' },
     { id: 'pistes', libelle: 'Mes pistes' },
-    { id: lot('reseau') ? 'reseau' : 'echanger', libelle: lot('reseau') ? 'Réseau' : 'Échanger' },
+    { id: 'reseau', libelle: 'Réseau' },
     { id: 'moi', libelle: 'Moi' },
     { id: 'profil', libelle: 'Mon profil' }
   ];
-  if (lot('semaine')) g.push({ id: 'semaine', libelle: 'Ma semaine' });
+  g.push({ id: 'semaine', libelle: 'Ma semaine' });
   if ((S.profile.amis || []).length) g.push({ id: 'amis', libelle: 'Mes amis' });
   g.push({ id: 'touches', libelle: 'Touches d’une lettre', mots: 'clavier raccourcis' });
   return g;
@@ -171,7 +171,6 @@ export function ouvrirTouches(){
 function poserBoutonPalette(){
   const ou = document.querySelector('.hdr-actions');
   let b = document.querySelector('#btnPalette');
-  if (!lot('clavier')){ b?.remove(); return; }
   if (!ou || b) return;
   b = document.createElement('button');
   b.className = 'btn btn-ghost hdr-palette';

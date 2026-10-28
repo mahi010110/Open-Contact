@@ -1,7 +1,7 @@
 /* E2E P2-3 : récupération d'urgence complète (D7) — phrase → annonce →
    nouveau code → nouvelle phrase → rotation/rescellement → sauvegarde
    bloquante → déverrouillé, anneau repris, génération +1. */
-import { chromium, chromiumPath, ROOT, SHOTS } from './outils.mjs';
+import { chromium, chromiumPath, ROOT, SHOTS, relaisMuetsPartout } from './outils.mjs';
 import http from 'http';
 import { readFile } from 'fs/promises';
 import path from 'path';
@@ -20,6 +20,7 @@ await new Promise(r => server.listen(0, '127.0.0.1', r));
 const base = `http://127.0.0.1:${server.address().port}`;
 
 const browser = await chromium.launch({ executablePath: chromiumPath() });
+relaisMuetsPartout(browser);   /* R5 : protéger dépose la copie scellée */
 const page = await (await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, acceptDownloads: true })).newPage();
 const errors = [];
 page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });

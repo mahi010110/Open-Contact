@@ -81,8 +81,10 @@ const lire = p => p.evaluate(() => {
   if (a.lignes) fail('app neuve : des lignes de piste alors qu’il n’y en a aucune');
   /* les premiers pas qui restent à faire, puis « Voir un exemple » —
      le mail attend une piste, il ne se tape pas encore (6.76.0 : les
-     premiers pas ont pris la place du seul « Ajouter une piste ») */
-  const attendu = ['Remplir mon profil', 'Ajouter une piste', 'Voir un exemple'];
+     premiers pas ont pris la place du seul « Ajouter une piste ») — et,
+     depuis la 7.1.0 (R5), « J'ai déjà OpenContact » : sur un téléphone
+     neuf, c'est ici qu'on ramène tout avec sa phrase de secours */
+  const attendu = ['Remplir mon profil', 'Ajouter une piste', 'Voir un exemple', 'J’ai déjà OpenContact'];
   if (a.cibles.join(' · ') !== attendu.join(' · '))
     fail(`app neuve : ${a.cibles.join(' · ')} au lieu de ${attendu.join(' · ')}`);
   /* la promesse, puis le geste qui la MONTRE — « Voir un exemple » */
@@ -385,6 +387,10 @@ const MUETTES = [
     status: 'active', city: 'Toulouse', domain: 'esn',
     contacts: [{ id: 'kq' + i, name: 'P', role: 'RH', email: 'q' + i + '@x.test' }],
     history: [{ d: jourISO(-d), t: 'Statut → En cours' }], updatedAt: Date.now() - d * 86400000 }));
+  /* un geste d'aujourd'hui (une piste close ce matin) : sans lui, trois
+     semaines sans rien toucher ouvrent « Reprendre » (R2), et c'est une
+     autre tranche qu'on mesurerait */
+  cinq.push({ id: 'close', name: 'Close SA', status: 'closed', closedReason: 'rejected', updatedAt: Date.now() });
   const { ctx, p } = await ecran(390, cinq);
   const avant = await p.evaluate(() => ({
     lignes: document.querySelectorAll('#view-aujourdhui .act-quiet').length,

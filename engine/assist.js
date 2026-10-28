@@ -87,11 +87,14 @@ export const SILENCE_TROP_TARD = 45;
 /* la dernière trace d'activité : l'entrée d'historique la plus récente,
    sinon `updatedAt`. On ne prend pas `updatedAt` seul — corriger une
    faute dans le nom d'une piste le remet à jour et effacerait trois
-   semaines de silence. */
+   semaines de silence.
+   Un horodatage d'avant 2001 (1e12 ms) n'est pas une trace : c'est une
+   piste venue d'un format qui n'en posait pas, ou d'un fichier fabriqué
+   à la main — elle affichait « 20 753 j » de silence. */
 export function derniereTrace(c, today){
   const hist = (c.history || []).map(h => h && h.d).filter(Boolean).sort();
   const jour = hist.length ? hist[hist.length - 1]
-    : (c.updatedAt ? new Date(c.updatedAt).toISOString().slice(0, 10) : null);
+    : (Number(c.updatedAt) > 1e12 ? new Date(c.updatedAt).toISOString().slice(0, 10) : null);
   if (!jour || jour > today) return 0;
   return daysBetween(jour, today);
 }

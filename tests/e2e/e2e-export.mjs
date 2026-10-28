@@ -1,5 +1,5 @@
 /* ============================================================
-   E2E — ton parcours, en un fichier (lot R9-a, drapeau `export`)
+   E2E — ton parcours, en un fichier (lot R9-a, ouvert en 7.0.0)
    (docs/propositions/R9-tous-les-metiers.md)
 
    LA FUITE D'ABORD : le fichier qui sort par le vrai bouton ne porte que
@@ -12,10 +12,9 @@
      dates AAAA-MM) ; on exporte ce qu'on a sous les yeux, enregistré ou
      non ;
    ② sans parcours, pas d'« Exporter » ;
-   ③ préversion éteinte : pas d'« Exporter » ;
    pouce clair et sombre, poste ; zéro erreur console.
-   Trois mutations : une note qui glisse dans le fichier, une ligne qui
-   part sans être montrée, le bouton sans son drapeau.
+   Deux mutations : une note qui glisse dans le fichier, une ligne qui
+   part sans être montrée.
    ============================================================ */
 import { chromium, chromiumPath, serveRepo, annuaireMuet, relaisMuets, ROOT, SHOTS } from './outils.mjs';
 import { readFile } from 'fs/promises';
@@ -43,7 +42,7 @@ const PROFIL = { name: 'Inès Martin', email: 'ines@exemple.test', phone: '06 12
 const INTERDITS = ['note secrète', 'Claire', 'claire@thales.test', 'Orange', 'Léa', 'Zephyr', 'relancer', 'Karim',
   'Sopra', 'cv-secret', '2 semaines', '"active"', '"todo"', '"reply"', 'InesInes'];
 
-async function ecran(nom, { vp = { width: 390, height: 844 }, sombre = false, preversion = true,
+async function ecran(nom, { vp = { width: 390, height: 844 }, sombre = false,
                             profil = PROFIL, mutations = {} } = {}){
   const ctx = await browser.newContext({ viewport: vp, hasTouch: vp.width < 901, colorScheme: sombre ? 'dark' : 'light',
                                          acceptDownloads: true,
@@ -60,12 +59,11 @@ async function ecran(nom, { vp = { width: 390, height: 844 }, sombre = false, pr
   p.on('console', m => { if (m.type() === 'error') errors.push(nom + ' : ' + m.text()); });
   await p.goto(base + '/#/moi');
   await p.waitForFunction(() => !!document.querySelector('#sbVer')?.textContent);
-  await p.evaluate(async ([ps, pr, pv]) => {
+  await p.evaluate(async ([ps, pr]) => {
     const st = await import('./engine/storage.js'); await st.kvInit();
     await st.kvSet(st.DATA_KEY, JSON.stringify(ps));
     await st.kvSet(st.PROFILE_KEY, JSON.stringify(pr));
-    if (pv) await st.kvSet(st.PREVERSION_KEY, '1'); else await st.kvDel(st.PREVERSION_KEY);
-  }, [PISTES, profil, preversion]);
+  }, [PISTES, profil]);
   await p.reload();
   await p.waitForFunction(() => !!document.querySelector('#sbVer')?.textContent);
   await p.waitForTimeout(400);
@@ -171,15 +169,6 @@ const montre = r => {
   ok(avec && !sans && ajouter, '② sans parcours, pas d’« Exporter » — « Ajouter » reste ; une piste « J’y suis passé » suffit à en faire un');
 }
 
-/* ---------- ③ préversion éteinte ---------- */
-{
-  const { ctx, p } = await ecran('eteinte', { preversion: false });
-  const b = !!(await p.$('#pfParExp'));
-  const add = !!(await p.$('#pfParAdd'));
-  await ctx.close();
-  ok(!b && add, '③ préversion éteinte : pas d’« Exporter », « Ajouter » reste');
-}
-
 /* ---------- les mutations : chaque garde doit rougir ---------- */
 async function muter(nom, f, avant, apres, rejouer, rougit){
   const src = await readFile(path.join(ROOT, f), 'utf8');
@@ -194,10 +183,6 @@ await muter('① une note qui glisse dans le fichier', 'engine/cv.js',
 await muter('② une ligne qui part sans être montrée', 'engine/cv.js',
   'for (const w of (cv && cv.work) || []){', 'for (const w of ((cv && cv.work) || []).slice(1)){',
   m => exporter({ nom: 'mut-montre', mutations: m }), r => montre(r).length > 0);
-await muter('③ le bouton sans son drapeau', 'ui/profil.js',
-  "lot('export') && l.length ?", 'l.length ?',
-  async m => { const { ctx, p } = await ecran('mut-drapeau', { preversion: false, mutations: m });
-    const b = !!(await p.$('#pfParExp')); await ctx.close(); return b; }, b => b);
 
 ok(!errors.length, 'Zéro erreur console' + (errors.length ? ' — ' + errors.slice(0, 4).join(' | ') : ''));
 await browser.close();

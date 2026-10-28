@@ -2,7 +2,7 @@
    OpenContact — e2e : CEUX QUI AIDENT (lot R7)
    (docs/propositions/R7-ceux-qui-aident.md, validée le 20 octobre 2026)
 
-   Derrière le drapeau `aide`, préversion allumée, sur l'app réelle, joué
+   Ouvert à tous depuis la 7.0.0, sur l'app réelle, joué
    à deux : Karim décroche chez Aztek, Inès y postule.
    ① LA FUITE D'ABORD, par le vrai bouton : le profil que « Mon QR »
      donne ne porte, en plus de l'identifiant, du nom, du parcours et de
@@ -19,7 +19,6 @@
      « Amis » dit ce qu'il offre ;
    ⑤ le merci : une piste qu'il a portée répond, « Le dire à Karim » pose
      le merci ; écrit, la ligne se tait ;
-   ⑥ préversion éteinte : rien de tout ça ;
    pouce clair et sombre, poste ; zéro erreur console.
    Trois mutations : un champ du profil glissé dans `aide`, le message
    prêt qui part tout seul, le merci qui ne se tait plus.
@@ -66,7 +65,7 @@ const PISTES_INES = [
 ];
 
 const fichier = async f => readFile(path.join(ROOT, f), 'utf8');
-async function ecran(nom, { vp = { width: 390, height: 844 }, sombre = false, preversion = true,
+async function ecran(nom, { vp = { width: 390, height: 844 }, sombre = false,
                             pistes, profil, messages = null, mutations = {} } = {}){
   const ctx = await browser.newContext({ viewport: vp, hasTouch: vp.width < 901, ignoreHTTPSErrors: true, colorScheme: sombre ? 'dark' : 'light' });
   await annuaireMuet(ctx);
@@ -83,14 +82,13 @@ async function ecran(nom, { vp = { width: 390, height: 844 }, sombre = false, pr
   p.on('console', m => { if (m.type() === 'error') errors.push(nom + ' : ' + m.text()); });
   await p.goto(base + '/#/aujourdhui');
   await p.waitForFunction(() => !!document.querySelector('#sbVer')?.textContent);
-  await p.evaluate(async ([ps, pr, pv, url, ms]) => {
+  await p.evaluate(async ([ps, pr, url, ms]) => {
     const st = await import('./engine/storage.js'); await st.kvInit();
     await st.kvSet(st.DATA_KEY, JSON.stringify(ps));
     await st.kvSet(st.PROFILE_KEY, JSON.stringify(pr));
     await st.kvSet(st.RELAYS_KEY, JSON.stringify([url]));
     if (ms) await st.kvSet(st.MESSAGES_KEY, JSON.stringify(ms)); else await st.kvDel(st.MESSAGES_KEY);
-    if (pv) await st.kvSet(st.PREVERSION_KEY, '1'); else await st.kvDel(st.PREVERSION_KEY);
-  }, [pistes, profil, preversion, relay.url, messages]);
+  }, [pistes, profil, relay.url, messages]);
   await p.reload();
   await p.waitForFunction(() => !!document.querySelector('#sbVer')?.textContent);
   await p.waitForTimeout(400);
@@ -152,7 +150,7 @@ async function fuite(mutations = {}){
 
 /* ---------- ② « Décroché » ---------- */
 async function decrocher(o = {}){
-  const { ctx, p } = await ecran('decroche', { profil: o.profil || KARIM, pistes: PISTES_KARIM, vp: o.vp, sombre: o.sombre, preversion: o.preversion !== false });
+  const { ctx, p } = await ecran('decroche', { profil: o.profil || KARIM, pistes: PISTES_KARIM, vp: o.vp, sombre: o.sombre });
   await ouvrirFiche(p, 'kaz');
   await p.click('#fiClore');
   await p.waitForSelector('.pick-close[data-r="won"]');
@@ -207,11 +205,6 @@ async function decrocher(o = {}){
   ok(((await profilStocke(b.p)).parcours || [])[0]?.quoi === 'stage', '② « Stage » choisi : la ligne entre en stage');
   await b.ctx.close();
 }
-{
-  const { ctx, p } = await decrocher({ preversion: false });
-  ok((await dessus(p))?.titre !== 'Décroché' && /Décroché/.test(await toastDe(p)), '⑥ préversion éteinte : pas de feuille, le toast d’avant');
-  await ctx.close();
-}
 
 /* ---------- ③ Moi ---------- */
 {
@@ -231,11 +224,6 @@ async function decrocher(o = {}){
   const r2 = await p.evaluate(() => document.querySelector('#moiAide')?.textContent.replace(/\s+/g, ' ').trim());
   ok(r2 === 'Je peux aider 1', '③ la rangée suit — « ' + r2 + ' »');
   await ctx.close();
-  const off = await ecran('moi-off', { profil: KARIM, pistes: PISTES_KARIM, preversion: false });
-  await off.p.evaluate(() => { location.hash = '#/moi'; });
-  await off.p.waitForTimeout(400);
-  ok(!await off.p.$('#moiAide'), '⑥ préversion éteinte : pas de rangée dans Moi');
-  await off.ctx.close();
   /* sans personne en face, une offre ne va nulle part */
   const seul = await ecran('moi-seul', { profil: { name: 'Léa', recherche: 'stage' }, pistes: [] });
   await seul.p.evaluate(() => { location.hash = '#/moi'; });
@@ -247,7 +235,7 @@ async function decrocher(o = {}){
 /* ---------- ④ chez Inès : la demande ---------- */
 async function demander(o = {}){
   const { ctx, p } = await ecran('ines', { profil: INES, pistes: PISTES_INES, vp: o.vp, sombre: o.sombre,
-                                          preversion: o.preversion !== false, mutations: o.mutations || {} });
+                                          mutations: o.mutations || {} });
   await ouvrirFiche(p, 'iaz');
   const bandeau = await p.evaluate(() => document.querySelector('#fiVecu')?.textContent.replace(/\s+/g, ' ').trim() || '');
   await p.click('#fiVecu');
@@ -288,12 +276,6 @@ const ATTENDU = 'Salut Karim, tu es en alternance chez AZTEK SAS ? Je cherche un
   ok(r.n === 0, '④ rien n’est parti : la phrase attend la flèche');
 }
 {
-  const { ctx, p } = await demander({ preversion: false });
-  const f = await dessus(p);
-  ok(f && f.pied === 'Copier le message' && !await p.$('[data-sorte]'), '⑥ préversion éteinte : la feuille d’avant');
-  await ctx.close();
-}
-{
   /* sa ligne dans « Amis » dit ce qu'il offre */
   const { ctx, p } = await ecran('ines-amis', { profil: INES, pistes: PISTES_INES });
   await p.evaluate(async () => (await import('./ui/amis.js')).openMesAmis());
@@ -306,7 +288,7 @@ const ATTENDU = 'Salut Karim, tu es en alternance chez AZTEK SAS ? Je cherche un
 /* ---------- ⑤ le merci ---------- */
 async function merci(o = {}){
   const { ctx, p } = await ecran('merci', { profil: INES, pistes: PISTES_INES, messages: o.messages || null,
-                                           preversion: o.preversion !== false, mutations: o.mutations || {}, vp: o.vp, sombre: o.sombre });
+                                           mutations: o.mutations || {}, vp: o.vp, sombre: o.sombre });
   await ouvrirFiche(p, 'ith');
   const ligne = await p.evaluate(() => document.querySelector('#fiMerci')?.textContent.replace(/\s+/g, ' ').trim() || '');
   return { ctx, p, ligne };
@@ -329,11 +311,6 @@ async function merciDit(mutations){
   return ligne;
 }
 ok(!await merciDit(), '⑤ déjà écrit à Karim depuis la réponse : la ligne se tait');
-{
-  const { ctx, ligne } = await merci({ preversion: false });
-  ok(!ligne, '⑥ préversion éteinte : pas de merci');
-  await ctx.close();
-}
 
 /* ---------- les deux ergonomies, les deux thèmes ---------- */
 for (const [nom, vp, sombre] of [['pouce-sombre', { width: 390, height: 844 }, true], ['poste', { width: 1280, height: 800 }, false],

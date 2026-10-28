@@ -44,3 +44,20 @@ toujours (Pete Hodgson, *Feature Toggles*, martinfowler.com).
 - Le périmètre et la livraison restent séparés. `ui/perimetre.js`
   n'importe rien, parce que `tests/e2e/tous.mjs` le lit sous Node pour
   choisir les scénarios à sauter.
+
+## Le premier tour complet (27 octobre 2026, 7.0.0)
+
+Neuf lots sont passés par ce mécanisme, de R1 à R10 sauf R5 et R6, et
+tous se sont ouverts le même jour, à la demande du mainteneur : « je
+veux une app prête et finie ». Leurs anciens chemins sont partis avec
+leurs drapeaux ; le registre est vide et la ligne « Préversion » ne
+s'affiche plus. Ce qu'on en retient :
+
+- **Les deux chemins se paient.** Chaque garde jouait l'ancien et le
+  nouveau ; à l'ouverture, une vingtaine de scénarios ont dû quitter
+  l'ancien d'un coup. Un lot qui reste longtemps en préversion fait
+  grossir cette dette.
+- **Le registre reste**, vide, avec son test de date : le prochain lot
+  repart du même endroit. La clé `oc_preversion_v1` n'est ni renommée
+  ni effacée (`CLAUDE.md` §10) ; elle ne sert à rien tant qu'aucun lot
+  n'est en test.

@@ -13,8 +13,8 @@
    ② le jour se dit UNE fois, sur sa ligne (« Hier », « Aujourd'hui »),
      chaque message ne porte que son heure ;
    ③ « @Maheydine » : la bulle qui me nomme porte son liseré, le nom se
-     marque ; dans la boîte, un groupe dont j'ai coupé le son compte
-     quand même dans l'onglet, l'arobase le dit sur la ligne ;
+     marque ; dans la boîte, un groupe dont j'ai coupé le son le dit
+     quand même par l'arobase sur sa ligne — aucun onglet ne compte ;
    ④ « @ka » ouvre « @Karim » au-dessus du champ, un tap l'écrit, et le
      mot part scellé avec l'identifiant de Karim — et rien d'autre de
      neuf : la mention ne nomme que des membres ;
@@ -23,7 +23,7 @@
    ⑥ au poste, « Écrire à Inès » mène à SA conversation dans la boîte ;
    ⑦ zéro erreur console.
    ============================================================ */
-import { chromium, chromiumPath, serveRepo, SHOTS, annuaireMuet } from './outils.mjs';
+import { chromium, chromiumPath, serveRepo, SHOTS, annuaireMuet, ouvrirMesAmis } from './outils.mjs';
 import { startLocalRelay } from './relais-local.mjs';
 import { cleGroupe, ouvrirMessage, nouveauCode } from '../../engine/groupe.js';
 import { nouvelleCle } from '../../engine/boite.js';
@@ -75,7 +75,7 @@ async function ecran(nom, vp){
   /* les hôtes des liens : rien ne doit partir vers eux sans un tap */
   const fuites = [];
   p.on('request', r => { if (/advens\.fr|xn--pple|apple\.com|pirate\.test|wallix\.com/.test(r.url())) fuites.push(r.url()); });
-  await p.goto(base + '/#/echanger');
+  await p.goto(base + '/#/reseau');
   await p.waitForFunction(() => !!document.querySelector('#sbVer')?.textContent);
   await p.evaluate(async ([pr, g, c, url, code]) => {
     const st = await import('./engine/storage.js'); await st.kvInit();
@@ -97,12 +97,12 @@ async function ecran(nom, vp){
   const { ctx, p, fuites } = await ecran('pouce', { width: 390, height: 844 });
   const l = await p.evaluate(code => {
     const r = document.querySelector(`.bx-l[data-groupe="${code}"]`);
-    const a = document.querySelector('.bottomnav [data-r="echanger"]'), n = a.querySelector('.nav-n');
+    const a = document.querySelector('.bottomnav [data-r="reseau"]');
     return { at: !!r.querySelector('.bx-at'), muet: !!r.querySelector('.bx-i .ic'), aria: r.getAttribute('aria-label'),
-             onglet: n && !n.hidden ? n.textContent : '' };
+             onglet: a.textContent.replace(/\D/g, '') };
   }, CODE);
-  ok(l.at && l.muet && l.onglet === '1' && /on t’y nomme/.test(l.aria),
-    `③ son coupé, mais on m'y nomme : l’arobase sur la ligne, l’onglet compte 1 (« ${l.aria} »)`);
+  ok(l.at && l.muet && !l.onglet && /on t’y nomme/.test(l.aria),
+    `③ son coupé, mais on m'y nomme : l’arobase sur la ligne, aucun chiffre sur l’onglet (« ${l.aria} »)`);
   await p.screenshot({ path: `${SHOTS}/150-conv-boite-mention.png` });
 
   /* ---------- ② ① le fil ---------- */
@@ -183,15 +183,15 @@ async function ecran(nom, vp){
 /* ---------- ⑤ ⑥ au poste : les amis, et « Écrire à Inès » mène à la boîte ---------- */
 {
   const { ctx, p } = await ecran('poste', { width: 1280, height: 800 });
-  await p.evaluate(() => { location.hash = '#/pistes'; });
-  await p.waitForSelector('[data-portee="amis"]');
-  await p.click('[data-portee="amis"]');
+  await ouvrirMesAmis(p);
   await p.waitForSelector('#piAmis .am-row');
-  ok(await p.evaluate(() => !!document.querySelector('#piAmis .am-row .vz') && !!document.querySelector('.am-detail .am-nom .vz')),
+  await p.click(`#piAmis .am-row[data-ami="${ID.ines}"] .ri-main`);
+  await p.waitForSelector('.overlay #amEcrire');
+  ok(await p.evaluate(() => !!document.querySelector('#piAmis .am-row .vz') && !!document.querySelector('.overlay .am-nom .vz')),
     '⑤ un visage sur la ligne de l’ami, et en tête de sa fiche');
   await p.screenshot({ path: `${SHOTS}/150-conv-amis-poste.png` });
-  await p.click('.am-detail #amEcrire');
-  await p.waitForFunction(id => location.hash.startsWith('#/echanger')
+  await p.click('.overlay #amEcrire');
+  await p.waitForFunction(id => location.hash.startsWith('#/reseau')
     && document.querySelector('#bxVolet .mh-t')?.textContent === 'Inès Martin'
     && document.querySelector(`.bx-l[data-ami="${id}"]`)?.getAttribute('aria-current') === 'true', ID.ines);
   ok(!(await p.evaluate(() => !!document.querySelector('.overlay:not(.ov-out)'))),

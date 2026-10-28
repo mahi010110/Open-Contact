@@ -3,7 +3,7 @@
    signé emprunte le rail privé de « Mes appareils » ; l’ordinateur le
    remet au VRAI Ordinateur, qui accepte la clé du téléphone dans l'anneau
    et envoie une seule fois, même après plusieurs rejeux de sync. */
-import { chromium, chromiumPath, SHOTS, serveRepo, ROOT, attendreCanal } from './outils.mjs';
+import { chromium, chromiumPath, SHOTS, serveRepo, ROOT, attendreCanal, relaisMuetsPartout } from './outils.mjs';
 import { spawn } from 'child_process';
 import { existsSync, mkdtempSync } from 'fs';
 import net from 'net';
@@ -79,6 +79,7 @@ await attendreCanal({ journal: () => journalBin });
 const { server: desktopServer, base: desktopBase } = await serveRepo();
 const { server: phoneServer, base: phoneBase } = await serveRepo();
 const browser = await chromium.launch({ executablePath: chromiumPath() });
+relaisMuetsPartout(browser);   /* R5 : protéger dépose la copie scellée */
 const desktopCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
 const phoneCtx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true });
 const desktop = await desktopCtx.newPage();

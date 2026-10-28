@@ -30,12 +30,12 @@ import { normalizeCompany } from '../engine/model.js';
 import { PARCOURS, periodeParcours } from '../engine/parcours.js';
 import { AIDES, direAide } from '../engine/aide.js';
 import { nouvelIdAmi, profilDonne, statutAmi, ajouterAmi, retirerAmi, prenomAmi,
-         portesAmis, memeEntreprise, classerAmis, chercherAmis, TRIS_AMIS, TRI_AMIS_DEFAUT } from '../engine/amis.js';
+         portesAmis, memeEntreprise, classerAmis, chercherAmis, TRI_AMIS_DEFAUT } from '../engine/amis.js';
 import { encodeOCA } from '../engine/exchange.js';
-import { S, bus, saveData, saveProfile, logJ, deletePiste, lot } from './state.js';
-import { openSheet, toast, btn, ic, showUndo, bindDeleteGesture, clavier } from './dom.js';
+import { S, bus, saveData, saveProfile, logJ, deletePiste } from './state.js';
+import { openSheet, btn, ic, showUndo, bindDeleteGesture, clavier } from './dom.js';
 import { interpreter, contexteRecherche, critereDe } from '../engine/requete.js';
-import { sortState, sortSectionHTML, bindSortSection, sortChipHTML, bindSortChip, sensDe } from './sort.js';
+import { sortState, sensDe } from './sort.js';
 import { makeQrSvg } from './qr.js';
 import { demandesCritere, peutDemanderAmis, carteDemandeHTML, ouvrirDemander, libelleDemander, direAdieu, reprendreMonProfil } from './reseau.js';
 import { ouvrirConversation, aUneConversation } from './messages.js';
@@ -114,7 +114,7 @@ export async function openMonQR(o = {}){
   /* au doigt, « Envoyer » ouvre la feuille de partage ; au poste, « Copier » */
   /* les deux gestes de la feuille, sans primaire pour les porter : ils
      gardent leur boîte (§6, « La taille dit le rang ») */
-  const copier = boutonEnvoyer(`Mon profil OpenContact — colle ce message dans Échanger › Recevoir › Texte :\n${txt}`,
+  const copier = boutonEnvoyer(`Mon profil OpenContact — colle ce message dans OpenContact, Ajouter › Recevoir › Texte :\n${txt}`,
     { classe: 'btn-contour' });
   const scanner = btn('Scanner', 'btn-contour', async () => {
     sh.close();
@@ -296,9 +296,9 @@ export function openAmi(a, apres){
   return sh;
 }
 
-/* ---------- l'onglet « Amis » de « Mes pistes » (lot 4) ----------
+/* ---------- « Mes amis » (lot 4, dans « Réseau » depuis R1) ----------
    Un ami se lit comme une piste : la même rangée, le même geste pour le
-   retirer, le même tri. Sa ligne dit ce qu'il T'OUVRE — des onglets
+   retirer. Sa ligne dit ce qu'il T'OUVRE — des onglets
    voisins montrent des choses de même nature (NN/g) : ses entreprises,
    celles de tes pistes d'abord, en accent. */
 export const triAmis = sortState(TRI_AMIS_DEFAUT);
@@ -323,7 +323,7 @@ function ligneAmiHTML({ a, o }, sel){
            ${visageHTML(a.id)}
            <div class="am-txt">
              <h3>${esc(a.nom)}</h3>
-             <div class="ri-sub">${sousLigneAmi(o)}${lot('aide') && direAide(a.aide)
+             <div class="ri-sub">${sousLigneAmi(o)}${direAide(a.aide)
                ? /* ce qu'il offre (lot R7), après ce qu'il ouvre : une donnée,
                     qui s'élide la première */ ` · <span class="am-aide">${esc(direAide(a.aide))}</span>` : ''}</div>
            </div>
@@ -455,18 +455,6 @@ export function openMesAmis(apres){
   };
   rendre();
 }
-/* le tri des amis : la même feuille que celle des pistes, leurs critères */
-export function openTriAmis(rendre){
-  const sh = openSheet({ title: 'Trier', icon: 'sort-vertical' });
-  const dessiner = () => {
-    sh.body.innerHTML = sortSectionHTML(triAmis, TRIS_AMIS);
-    bindSortSection(sh.body, triAmis, () => { rendre(); dessiner(); });
-  };
-  dessiner();
-  return sh;
-}
-export const triAmisChipHTML = () => sortChipHTML(triAmis, TRIS_AMIS);
-export const lierTriAmisChip = (box, rendre) => bindSortChip(box, triAmis, rendre);
 
 /* Une entreprise du parcours d'un ami devient une piste : son nom, et
    son SIREN s'il l'a donné — rien d'autre n'est inventé. La fiche dira

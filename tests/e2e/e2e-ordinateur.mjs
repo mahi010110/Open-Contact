@@ -5,7 +5,7 @@
    Le faux Ordinateur parle EXACTEMENT le protocole du vrai (mêmes
    enveloppes OCV1, même dérivation du code — vecteurs verrouillés
    par cargo test côté Rust). Mauvais code → refus propre. */
-import { chromium, chromiumPath, SHOTS, serveRepo } from './outils.mjs';
+import { chromium, chromiumPath, SHOTS, serveRepo, relaisMuetsPartout } from './outils.mjs';
 import http from 'http';
 import { webcrypto as wc } from 'crypto';
 
@@ -76,6 +76,7 @@ await new Promise(r => fauxSrv.listen(17095, '127.0.0.1', r));
 /* ---------- la PWA ---------- */
 const { server, base } = await serveRepo();
 const browser = await chromium.launch({ executablePath: chromiumPath() });
+relaisMuetsPartout(browser);   /* R5 : protéger dépose la copie scellée */
 const page = await (await browser.newContext({ viewport: { width: 1280, height: 800 } })).newPage();
 const errors = [];
 /* attendus, pas des erreurs : le 403 du mauvais code (refus propre),

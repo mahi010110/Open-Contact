@@ -73,7 +73,7 @@ async function ecran(qui, o = {}){
   p.setDefaultTimeout(8000);
   p.on('pageerror', e => errors.push(qui + ' : ' + String(e)));
   p.on('console', m => { if (m.type() === 'error') errors.push(qui + ' : ' + m.text()); });
-  await p.goto(base + '/#/echanger', { waitUntil: 'load' });
+  await p.goto(base + '/#/reseau', { waitUntil: 'load' });
   await p.evaluate(async ([d, pr, url]) => {
     const st = await import('./engine/storage.js');
     await st.kvInit();
@@ -82,7 +82,7 @@ async function ecran(qui, o = {}){
     await st.kvSet(st.RELAYS_KEY, JSON.stringify([url]));
   }, [PISTES[qui], profil(qui), relay.url]);
   await p.reload({ waitUntil: 'load' });
-  await p.waitForSelector('#view-echanger:not([hidden])');
+  await p.waitForSelector('#view-reseau:not([hidden])');
   return { ctx, p };
 }
 const fermerTout = async p => {
@@ -93,7 +93,7 @@ const fermerTout = async p => {
     await p.waitForTimeout(250);
   }
 };
-const rouvrir = async (p, route = 'echanger') => {
+const rouvrir = async (p, route = 'reseau') => {
   await p.evaluate(r => { location.hash = '#/' + r; }, route);
   await p.reload({ waitUntil: 'load' });
   await p.waitForSelector(`#view-${route}:not([hidden])`);

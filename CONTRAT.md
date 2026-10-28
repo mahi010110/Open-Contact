@@ -41,6 +41,7 @@ doit être repensée, pas forcée.
 | `oc_messages_v1` | **Depuis la 6.68** — mes conversations privées avec mes amis, vues de CET appareil (`engine/messages.js`) — `{v:1, fils: { <amiId>: {m:[{id, moi, texte, at}], vu} }}` : `m` = ses messages et les miens, dans l'ordre du temps, 300 au plus par ami (les plus anciens partent) ; `moi` dit qui l'a écrit ; `texte` ≤ 1 000 car., retours à la ligne gardés (deux au plus d'affilée) ; `vu` = la dernière fois que j'ai ouvert la conversation — ce qui est arrivé après se compte dans la boîte d'« Échanger » et sur son onglet. Un ami retiré emporte sa conversation au chargement suivant. Un repère d'appareil : ni sync, ni copie, ni partage ; scellée (SEALABLE), emportée par « Effacer cet appareil » | JSON |
 | `oc_fils_v1` | **Depuis la 6.71** — ce que j'ai réglé sur mes conversations, vu de CET appareil (`engine/conversations.js`, docs/reseau.md décision 37) — `{v:1, epingles:[cle], muets:[cle]}` ; une `cle` désigne une conversation : `g:<code du groupe>` ou `a:<identifiant de l'ami>`. `epingles` = dans l'ordre où on les a épinglées, la plus récente d'abord, cinq au plus ; `muets` = les conversations dont on a coupé le son (cinquante au plus) — elles gardent leur chiffre mais n'entrent plus dans celui de l'onglet. Un groupe qui change de code garde son épingle et son silence ; un groupe quitté, un ami retiré emportent les leurs. Porte des codes de groupe, donc scellée (SEALABLE) ; ni sync, ni copie, ni partage ; emportée par « Effacer cet appareil » | JSON |
 | `oc_brouillons_v1` | **Depuis la 6.84** (lot R3, en préversion) — les mails commencés, une entrée par piste (`engine/prets.js`) — `{v:1, b: {<id de piste>: {objet, corps, ctId?, statut?, at}}}` ; `objet` 300 caractères au plus, `corps` 20 000, `at` = la dernière frappe (ms) ; `statut` = celui de la piste quand on écrivait : s'il a changé depuis, le brouillon se propose sans s'imposer. Un brouillon part à « Envoyée ✓ » ou au bout de 30 jours sans y toucher ; deux cents au plus, les plus vieux partent. Un identifiant qui n'a pas la forme d'un `id` de piste, ou un nom de prototype, ne se lit pas. Du privé de CET appareil : ni sync, ni copie, ni partage ; scellée (SEALABLE), emportée par « Effacer cet appareil » | JSON |
+| `oc_moi_v1` | **Depuis la 7.1** (lot R5, « un seul moi », `engine/moi.js`) — les clés tirées de la phrase de secours, **jamais la phrase** : `{v:1, cles: {scelle, etiquette, signe}, appareil, depot?: {at, empreinte, relais, n}, trop?}` ; `cles` = trois clés HKDF (base64) d'une seule graine PBKDF2-SHA256 à 600 000 tours sur la phrase (sel fixe `oc-moi-v1` : un téléphone neuf n'a qu'elle) ; `appareil` = 12 caractères tirés une fois, qui nomment cet appareil DANS le dépôt scellé ; `depot` = le dernier dépôt réussi (ms, empreinte de la copie, combien de relais l'ont pris, combien de morceaux) ; `trop` = la copie dépasse 64 morceaux et ne se dépose pas. Absente tant qu'aucune phrase n'existe : rien ne part. Scellée (SEALABLE) ; ni sync, ni copie, ni partage, ni diagnostic ; emportée par « Effacer cet appareil » — le dépôt, lui, reste sur les relais : c'est lui qui ramène | JSON |
 | `oc_vus_v1` | « À découvrir » : ce que chaque recherche a déjà montré, pour marquer « nouveau » ce qui n'y était pas la fois d'avant (docs/recherche-profil.md) — `{v:1, r: {<recherche>: {at, s: [siren…]}}}`, la recherche = ses questions à l'annuaire sans la page, 30 recherches de 300 SIREN au plus. Un repère de CET appareil : ni sync, ni copie, ni partage ; scellée (SEALABLE), emportée par « Effacer cet appareil » | JSON |
 | `oc_theme` | le CHOIX de thème : `auto` (suit l'appareil), `light` ou `dark` — **depuis la 6.66**, `auto` ; une valeur absente ou inconnue vaut `auto`. Le miroir synchrone de `localStorage` (même clé) porte la même valeur | chaîne |
 | `oc_preversion_v1` | **Depuis la 6.78** (R0 du recadrage, `docs/decisions/0004-drapeaux-et-preversion.md`) — la préversion de CET appareil : `'1'` quand elle est allumée, ABSENTE sinon (éteindre efface la clé) ; toute autre valeur vaut éteinte. Allumée, les lots en test du registre `engine/drapeaux.js` s'allument sur cet appareil. Ni scellée (elle ne dit rien de toi), ni sync, ni copie, ni partage ; emportée par « Effacer cet appareil » — un téléphone prêté ne doit pas montrer des écrans pas encore vérifiés | chaîne |
@@ -491,6 +492,48 @@ verrouille les deux sens.
 
 Ce QR porte donc un secret : l'interface ne l'affiche **que** lorsque la
 phrase elle-même est à l'écran, et il disparaît avec elle.
+
+### Ma copie déposée — OCM1 et OCMP1 (lot R5, « un seul moi »)
+
+```
+kind 30078 · tags [["d", "<étiquette>.<poste>.<i>"], ["x", "<étiquette>"], ["expiration", "<s>"]]
+content "OCMP1.<dépôt>.<i>.<n>.<morceau>"
+rassemblé : "OCM1.<z|n>.<iv base64>.<chiffré base64>"
+```
+
+La copie de tout (le contenu d'une copie `.oc` complète, `kind: 'full'`,
+plus `appareil` et, s'il y en a une, `liaison` — la phrase de liaison de
+mes appareils), compressée (`z`, gzip) quand le navigateur sait le
+faire, scellée en AES-GCM 256 sous la clé `scelle` (données associées
+`oc-moi-v1`), coupée en morceaux de 24 000 caractères (64 au plus), et
+déposée sur les relais (`engine/moi.js`, `ui/moi-phrase.js`).
+
+- **Ce que voit un relais** : une étiquette de 22 caractères et une clé
+  de signature (secp256k1) qui changent CHAQUE SEMAINE — HMAC de la
+  semaine (lundi-dimanche) sous `etiquette` et `signe` —, un `poste` de
+  11 caractères tiré de l'appareil ET de la semaine, une expiration à
+  63 jours (NIP-40), et du chiffré. Rien ne relie deux semaines ni deux
+  appareils ; ni nom, ni pseudo, ni la clé de la page.
+- **Ce qui se remplace** : un événement adressable (NIP-33) remplace le
+  précédent du même auteur, du même kind et du même `d` — le même
+  appareil, la même semaine. Deux appareils ne se remplacent jamais.
+  Le `<dépôt>` (6 à 32 caractères) distingue deux dépôts : un morceau
+  resté d'un dépôt plus long ne se mélange pas au suivant.
+- **Quand** : à la création de la phrase, puis à l'ouverture, au retour
+  sur l'app et tous les quarts d'heure, seulement si la copie a changé
+  depuis dix minutes au moins, ou si la semaine a tourné.
+- **Ramener** : on relit neuf semaines (les auteurs et les étiquettes se
+  recalculent de la phrase), on garde les dépôts COMPLETS, le plus
+  récent de chaque `appareil`, et on les fusionne comme la sync de mes
+  appareils (§5 : la piste la plus récente gagne, les suppressions
+  tiennent, le profil enregistré en dernier gagne). Aperçu avant,
+  « Annuler » après (invariant ②).
+- **Changer de phrase** : ce que CET appareil avait déposé sous
+  l'ancienne, sur neuf semaines, est remplacé par du vide (NIP-33) et
+  demandé à l'effacement (NIP-09, kind 5, étiquettes `a`).
+
+Un morceau qui ne se lit pas, un dépôt incomplet, un scellé qui ne
+s'ouvre pas avec la clé : ignorés, jamais devinés.
 
 ### Compact multi-parties — OCQP (QR animé)
 

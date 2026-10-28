@@ -28,7 +28,7 @@ page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
 page.on('pageerror', e => errors.push(String(e)));
 const fail = m => { console.error('ÉCHEC :', m); process.exitCode = 1; };
 
-await page.goto(base + '/#/echanger', { waitUntil: 'load' });
+await page.goto(base + '/#/reseau', { waitUntil: 'load' });
 await page.waitForTimeout(800);
 /* l'import d'e-mails vit désormais dans la capture (#5) — feuille autonome */
 await page.evaluate(async () => {

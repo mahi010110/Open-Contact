@@ -1,19 +1,19 @@
 /* ============================================================
    OpenContact v6 — amorçage & routeur
-   Quatre zones : Aujourd'hui · Mes pistes · Échanger · Moi.
+   Quatre zones : Aujourd'hui · Mes pistes · Réseau · Moi.
    Ce fichier ne fait que démarrer (chargement, thème, service
    worker) et router ; chaque écran vit dans ui/, le moteur dans
    engine/ — il ne lit jamais l'écran. Auto-tests : ?test.
    ============================================================ */
 import { APP_VERSION } from './engine/model.js';
-import { THEME_KEY, kvInit, kvGet, kvSet } from './engine/storage.js';
+import { THEME_KEY, kvInit, kvGet } from './engine/storage.js';
 import { initVerrou } from './ui/verrou.js';
-import { S, bus, loadAll, reloadFromStorage, choisirTheme, lot } from './ui/state.js';
+import { S, bus, loadAll, reloadFromStorage, choisirTheme } from './ui/state.js';
 import { $, $$, toast, installFoldMotion, sheetOpen } from './ui/dom.js';
 import { renderToday } from './ui/today.js';
 import { renderPistes } from './ui/pistes.js';
 import { renderEchanger } from './ui/echanger.js';
-import { majOnglets, chargerFils } from './ui/conversations.js';
+import { chargerFils } from './ui/conversations.js';
 import { chargerGroupes } from './ui/groupes.js';
 import { renderMoi } from './ui/moi.js';
 import { openCapture } from './ui/capture.js';
@@ -31,9 +31,8 @@ ecouterInstallation();
 const VIEWS = {
   aujourdhui: renderToday,
   pistes: renderPistes,
-  echanger: renderEchanger,
-  /* R1 (décision 0002) : la même vue, recadrée — renderEchanger dessine
-     « Réseau » dans sa propre section quand le lot est allumé */
+  /* « Réseau » (R1, décision 0002) a pris la place d'« Échanger » : son
+     ancienne adresse y mène (engine/destinations.js) */
   reseau: renderEchanger,
   moi: renderMoi
 };
@@ -42,10 +41,9 @@ const VIEWS = {
    adresse — y compris une ANCIENNE, le jour où un écran déménage. Une
    adresse redirigée est réécrite sur place (`replaceState`) : la barre
    d'adresse dit où l'on est, et le retour ne repasse pas par l'ancienne.
-   La barre suit le lot « reseau » : Réseau ou Échanger, jamais les deux,
-   et l'adresse de l'un mène à l'autre. */
+   `#/echanger` mène à « Réseau ». */
 function routeFromHash(){
-  const { id, ancienne } = destination(location.hash, navigation(lot('reseau')));
+  const { id, ancienne } = destination(location.hash, navigation());
   if (ancienne) history.replaceState(history.state, '', location.pathname + location.search + '#/' + id);
   return id;
 }
@@ -55,9 +53,6 @@ function render(){
   if (S.stale && !sheetOpen()){ reloadFromStorage(); return; }
   for (const k in VIEWS) $('#view-' + k).hidden = (k !== S.route);
   VIEWS[S.route]();
-  /* le chiffre des onglets suit chaque rendu : un message reçu, une
-     conversation lue, une action faite (ui/conversations.js) */
-  majOnglets();
   $$('[data-r]').forEach(a => {
     const on = a.dataset.r === S.route;
     a.classList.toggle('on', on);
@@ -126,41 +121,7 @@ export function auSommet(route){
 }
 bus.refresh = render;
 
-/* LA BARRE SUIT LE LOT « reseau » (R1, décision 0002). Le lien d'
-   « Échanger » devient « Réseau » — son mot, son icône, son adresse —,
-   et le + fait tout entrer (la feuille Ajouter) au lieu d'ouvrir une
-   piste. Rien d'autre ne bouge dans la barre. */
-const ONGLET = {
-  echanger: { mot: 'Échanger', icone: 'share' },
-  reseau: { mot: 'Réseau', icone: 'users' }
-};
-function appliquerNav(){
-  const r = lot('reseau') ? 'reseau' : 'echanger';
-  /* au poste, la barre latérale (décision 0003) suit le même lot : un
-     seul geste de préversion recadre tout */
-  $('.app').classList.toggle('nav-laterale', lot('reseau'));
-  $$('nav [data-r="echanger"], nav [data-r="reseau"]').forEach(a => {
-    a.dataset.r = r;
-    a.href = '#/' + r;
-    a.setAttribute('aria-label', ONGLET[r].mot);
-    /* le MOT seulement : le chiffre de l'onglet (`.nav-n`) reste à sa place */
-    const l = a.querySelector('.bn-l') || [...a.childNodes].find(n => n.nodeType === 3 && n.textContent.trim());
-    if (l) l.textContent = ONGLET[r].mot;
-    const ico = a.querySelector('.ic');
-    if (ico){ const u = `url(assets/icons/${ONGLET[r].icone}.svg)`; ico.style.webkitMaskImage = u; ico.style.maskImage = u; }
-  });
-  const ajout = lot('reseau') ? 'Ajouter' : 'Ajouter une piste';
-  $('#bnAdd').setAttribute('aria-label', ajout);
-  const top = $('#btnAddTop');
-  /* le MOT seulement : la touche N (lot R8) vit à côté, dans son <kbd> */
-  const mot = top && [...top.childNodes].reverse().find(n => n.nodeType === 3);
-  if (mot) mot.textContent = ' ' + ajout;
-  /* LE CLAVIER AU POSTE (lot R8) : « Chercher » et sa touche dans
-     l'en-tête, et N écrite dans « Ajouter » */
-  poserEnTete();
-}
 async function ajouter(){
-  if (!lot('reseau')){ openCapture(); return; }
   (await import('./ui/ajouter.js')).openAjouter();
 }
 
@@ -202,11 +163,8 @@ async function ajouter(){
   /* le clavier d'un téléphone ne couvre pas les feuilles (lot D) */
   import('./ui/zone-visible.js').then(m => m.suivreZoneVisible()).catch(() => {});
   /* TOUS LES MÉTIERS (lot R9-b) : la table du ROME se lit au calme, trois
-     secondes après le démarrage, lot ouvert seulement — jamais avant le
-     premier écran */
-  const lireMetiers = () => setTimeout(() => import('./ui/metiers.js').then(m => m.chargerMetiers()).catch(() => {}), 3000);
-  if (lot('metiers')) lireMetiers();
-  document.addEventListener('oc:preversion', () => { if (lot('metiers')) lireMetiers(); });
+     secondes après le démarrage — jamais avant le premier écran */
+  setTimeout(() => import('./ui/metiers.js').then(m => m.chargerMetiers()).catch(() => {}), 3000);
 
   /* navigation */
   window.addEventListener('hashchange', applyRoute);
@@ -222,21 +180,15 @@ async function ajouter(){
   }));
   $('#bnAdd').addEventListener('click', ajouter);
   $('#btnAddTop').addEventListener('click', ajouter);
-  /* la préversion allumée ou éteinte : la barre suit, et l'adresse
-     courante se relit — « Échanger » ouvert devient « Réseau » */
-  document.addEventListener('oc:preversion', () => {
-    appliquerNav();
-    /* l'écran ne change que si l'adresse mène ailleurs ; sinon il se
-       redessine sur place, sans voler le focus de la feuille ouverte */
-    if (routeFromHash() !== S.route) applyRoute(); else render();
-  });
-  appliquerNav();
+  /* LE CLAVIER AU POSTE (lot R8) : « Chercher » et sa touche dans
+     l'en-tête, et N écrite dans « Ajouter » */
+  poserEnTete();
   $('#swCopy').addEventListener('click', () => downloadBackup());   /* secours : brut, sans question */
 
   /* clavier : « / » saute à la recherche des pistes */
   document.addEventListener('keydown', e => {
     if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
-    if (lot('clavier') && lettresCoupees()) return;     /* WCAG 2.1.4 : coupées dans Réglages */
+    if (lettresCoupees()) return;     /* WCAG 2.1.4 : coupées dans Réglages */
     const t = e.target;
     if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
     if (sheetOpen()) return;
@@ -257,6 +209,13 @@ async function ajouter(){
   setTimeout(() => {
     import('./ui/reseau.js').then(m => m.demarrerReseau()).catch(() => {});
   }, 2200);
+
+  /* UN SEUL MOI (lot R5) : la copie scellée se redépose sur les relais
+     si elle a changé — seulement s'il y a une phrase de secours ; sans
+     elle, rien ne part */
+  setTimeout(() => {
+    import('./ui/moi-phrase.js').then(m => m.demarrerMoi()).catch(() => {});
+  }, 4000);
 
   /* mes groupes (lot 5) : relevés seulement si j'en ai un — sans groupe,
      rien ne part */

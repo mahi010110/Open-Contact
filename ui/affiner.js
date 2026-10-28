@@ -17,7 +17,7 @@
    ============================================================ */
 import { esc } from '../engine/utils.js';
 import { STATUSES, DOMAINS } from '../engine/model.js';
-import { openSheet, ic, clavier, annoncer } from './dom.js';
+import { openSheet, ic, clavier, annoncer, voirAutres } from './dom.js';
 import { sortSectionHTML, bindSortSection, sortIsDefault } from './sort.js';
 
 /* PLUSIEURS VALEURS PAR FAMILLE. Un seul domaine à la fois obligeait à
@@ -251,7 +251,7 @@ export const rienTrouveHTML = () =>
    focus ne doit pas tomber avec lui (§6). */
 export const CAP_COCHER = 60;
 export const fenetreCocher = (list, toutVoir) => toutVoir || list.length <= CAP_COCHER ? list : list.slice(0, CAP_COCHER);
-export const voirAutresHTML = n => n > 0 ? `<button class="linklike tr-more" data-plus>Voir les ${n} autres</button>` : '';
+export const voirAutresHTML = n => n > 0 ? `<button class="linklike tr-more" data-plus>${voirAutres(n)}</button>` : '';
 export function lierVoirAutres(box, ouvrir){
   box.querySelector('[data-plus]')?.addEventListener('click', () => {
     ouvrir();

@@ -151,6 +151,61 @@ export async function ouvrirReglages(page){
   }
 }
 
+/* ---- les chemins de l'app ouverte (7.0.0) ----
+   « Échanger » est devenu « Réseau » : Donner part de « Mes pistes ›
+   Choisir » ou de la fiche, Recevoir du +, Mon QR de « Réseau › Mes
+   amis ». Un seul endroit pour ces chemins : un scénario qui les
+   recopie à la main finit par jouer un chemin que l'app n'a plus. */
+
+/* le + : `#bnAdd` au pouce, `#btnAddTop` au poste — celui qui se voit */
+export async function ouvrirAjouter(page){
+  await page.waitForFunction(() => [...document.querySelectorAll('#bnAdd, #btnAddTop')].some(b => b.offsetParent));
+  await page.evaluate(() => [...document.querySelectorAll('#bnAdd, #btnAddTop')].find(b => b.offsetParent).click());
+  await page.waitForSelector('.modal-ajouter [data-mode]');
+}
+/* + › Recevoir › QR · Fichier · Texte (`qr`, `fichier`, `texte`) */
+export async function ouvrirRecevoir(page, mode = 'texte'){
+  await ouvrirAjouter(page);
+  await page.click(`.modal-ajouter [data-mode="${mode}"]`);
+  if (mode === 'texte') await page.waitForSelector('#rcTxt');
+}
+/* Réseau › Mes amis : la feuille de la liste */
+export async function ouvrirMesAmis(page){
+  await page.evaluate(() => { location.hash = '#/reseau'; });
+  await page.waitForSelector('#bxAmis');
+  await page.click('#bxAmis');
+  await page.waitForSelector('#avMonQR, #avAjout');
+}
+/* Réseau › Mes amis › Mon QR (« Mon QR » liste vide, « Ajouter un ami »
+   en bout de liste sinon) */
+export async function ouvrirMonQR(page){
+  await ouvrirMesAmis(page);
+  await page.waitForSelector('#avMonQR, #avAjout');
+  await page.click('#avMonQR, #avAjout');
+}
+/* Mes pistes › Choisir › (tout cocher) › Donner : la liste de « Donner »,
+   ce que l'ancien « Échanger › Donner » ouvrait d'un tap */
+export async function ouvrirDonner(page){
+  await page.evaluate(() => { location.hash = '#/pistes'; });
+  await page.waitForSelector('#piProspect');
+  await page.click('#piProspect');
+  await page.waitForSelector('#pkDonner');
+  await page.click('.overlay [data-tout]');
+  await page.waitForFunction(() => !document.querySelector('#pkDonner')?.disabled);
+  await page.click('#pkDonner');
+  await page.waitForFunction(() => [...document.querySelectorAll('.overlay')].pop()?.querySelector('.mh-t')?.textContent.trim() === 'Donner');
+}
+
+/* au poste, « Mes pistes » s'ouvre en « Liste », la fiche à droite
+   (R1-d, décision 0003) ; « Tableau » garde les trois colonnes. Un
+   scénario qui mesure le tableau le choisit, comme on le ferait. */
+export async function vueTableau(page){
+  await page.waitForSelector('#view-pistes:not([hidden]) [data-vue="tableau"]');
+  if (await page.evaluate(() => document.querySelector('#view-pistes [data-vue="tableau"]').getAttribute('aria-pressed') !== 'true'))
+    await page.click('#view-pistes [data-vue="tableau"]');
+  await page.waitForSelector('#view-pistes .board');
+}
+
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css',
   '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png',
   '.webmanifest': 'application/manifest+json', '.woff2': 'font/woff2', '.txt': 'text/plain' };
@@ -255,6 +310,15 @@ export async function relaisMuets(cible){
       if (d[0] === 'EVENT' && d[1] && d[1].id) ws.send(JSON.stringify(['OK', d[1].id, true, '']));
     });
   });
+}
+/* tous les contextes d'un navigateur, d'un coup. Depuis R5, protéger ses
+   données donne la phrase de secours, et la copie scellée part vers les
+   relais publics : un scénario du coffre n'a pas à dépendre du réseau —
+   ni, en CI, à déposer des copies d'essai chez des relais réels. */
+export function relaisMuetsPartout(browser){
+  const nc = browser.newContext.bind(browser);
+  browser.newContext = async (...a) => { const c = await nc(...a); await relaisMuets(c); return c; };
+  return browser;
 }
 /* les sources de la CARTE seules (ui/carte.js) : pour un scénario qui joue
    l'annuaire lui-même mais n'a rien à dire de la carte — sans elles, un

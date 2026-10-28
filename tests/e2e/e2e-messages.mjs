@@ -14,10 +14,10 @@
      la preuve — ni nom de famille, ni e-mail, ni piste, ni note ;
    ② chez Inès : « Écrire à Karim » au pied de sa fiche, le message à
      droite, ses retours à la ligne gardés, le champ vidé ;
-   ③ chez Karim : la ligne d'Inès en tête de la boîte d'« Échanger »,
-     en gras avec son chiffre, et l'onglet qui compte une conversation
-     (13 octobre 2026 — plus dans « Amis » ni dans « Aujourd'hui ») ; la
-     conversation d'un tap — et, lue, plus rien ne se compte ;
+   ③ chez Karim : « Inès t'a écrit » dans « Aujourd'hui », et sa ligne
+     en tête de la boîte de « Réseau », en gras avec un point — aucun
+     onglet ne compte (R10, le calme) ; la conversation d'un tap — et,
+     lue, plus rien ne la marque ;
    ④ EN DIRECT : conversation ouverte des deux côtés, ce qui s'écrit en
      face arrive sans rien toucher ;
    ⑤ SANS RÉSEAU : le message reste dans la conversation, « pas encore
@@ -28,7 +28,7 @@
    ⑧ pouce et poste, clair et sombre, 320 px texte doublé : rien ne
      déborde ; zéro erreur console.
    ============================================================ */
-import { chromium, chromiumPath, serveRepo, SHOTS, annuaireMuet } from './outils.mjs';
+import { chromium, chromiumPath, serveRepo, SHOTS, annuaireMuet, ouvrirMesAmis } from './outils.mjs';
 import { startLocalRelay } from './relais-local.mjs';
 import { nouvelleCle, ouvrir, etiquetteBoite, sceller, prouver, nouvelId } from '../../engine/boite.js';
 
@@ -92,11 +92,10 @@ const rouvrir = async p => {
   await p.reload({ waitUntil: 'load' });
   await p.waitForSelector('#view-aujourdhui:not([hidden])');
 };
+/* « Réseau › Mes amis » (R1, 7.0.0) */
 const ongletAmis = async p => {
   await fermerTout(p);
-  await p.evaluate(() => { location.hash = '#/pistes'; });
-  await p.waitForSelector('[data-portee="amis"]');
-  await p.click('[data-portee="amis"]');
+  await ouvrirMesAmis(p);
   await p.waitForSelector('#piAmis .am-row');
 };
 const convDe = (p, id) => p.evaluate(async i => {
@@ -201,29 +200,28 @@ console.log('② « Écrire à Karim » au pied de sa fiche, le message à droit
 /* ---------- ③ chez Karim : la boîte, l'onglet, la conversation ---------- */
 const boiteK = () => K.p.evaluate(id => {
   const r = document.querySelector(`.bx-l[data-ami="${id}"]`);
-  const a = document.querySelector('.bottomnav [data-r="echanger"]');
-  const n = a && a.querySelector('.nav-n');
+  const a = document.querySelector('.bottomnav [data-r="reseau"]');
   return { ligne: r ? { gras: r.classList.contains('bx-nonlu'), nom: r.querySelector('.bx-n').textContent.trim(),
-                        apercu: r.querySelector('.bx-p').textContent.trim(), n: r.querySelector('.bx-c')?.textContent.trim() || '',
+                        apercu: r.querySelector('.bx-p').textContent.trim(), point: !!r.querySelector('.bx-pt'),
+                        n: (r.querySelector('.bx-i')?.textContent || '').replace(/\D/g, ''),
                         aria: r.getAttribute('aria-label') } : null,
-           onglet: n && !n.hidden ? n.textContent : '', aria: a ? a.getAttribute('aria-label') : '' };
+           onglet: a ? a.textContent.replace(/\D/g, '') : '', aria: a ? a.getAttribute('aria-label') : '',
+           jour: document.querySelector('#view-aujourdhui .act-row[data-sorte="ecrits"]')?.textContent.replace(/\s+/g, ' ').trim() || '' };
 }, ID_I);
 await rouvrir(K.p);
-/* l'onglet le dit d'où que l'on soit — ici, depuis « Aujourd'hui » */
-const vu3 = await attendre(async () => { const b = await boiteK(); return b.onglet === '1' ? b : null; },
-  'chez Karim, l’onglet « Échanger » ne compte pas la conversation d’Inès');
-if (vu3 && vu3.aria !== 'Échanger, 1 conversation non lue') fail('le nom de l’onglet : ' + vu3.aria);
-if (await K.p.evaluate(() => /t’a écrit/.test(document.querySelector('#view-aujourdhui').textContent)))
-  fail('« Aujourd’hui » redit encore les messages — ils vivent dans la boîte');
+/* au calme (R10) : « Aujourd'hui » dit qui t'a écrit, l'onglet ne compte rien */
+const vu3 = await attendre(async () => { const b = await boiteK(); return /Inès t’a écrit/.test(b.jour) ? b : null; },
+  'chez Karim, « Aujourd’hui » ne dit pas qu’Inès a écrit');
+if (vu3 && (vu3.onglet || vu3.aria !== 'Réseau')) fail('l’onglet compte encore : ' + JSON.stringify(vu3));
 await K.p.screenshot({ path: `${SHOTS}/130-conv-aujourdhui.png` });
-await K.p.evaluate(() => { location.hash = '#/echanger'; });
+await K.p.evaluate(() => { location.hash = '#/reseau'; });
 await K.p.waitForSelector(`.bx-l[data-ami="${ID_I}"]`);
 {
   const { ligne } = await boiteK();
-  if (!ligne.gras || ligne.nom !== 'Inès Martin' || ligne.n !== '1' || !/^Salut Karim ! Tu as un contact chez Thales/.test(ligne.apercu))
+  if (!ligne.gras || !ligne.point || ligne.n || ligne.nom !== 'Inès Martin' || !/^Salut Karim ! Tu as un contact chez Thales/.test(ligne.apercu))
     fail('la ligne d’Inès dans la boîte : ' + JSON.stringify(ligne));
-  if (!/^Inès Martin, 1 nouveau, Salut Karim !/.test(ligne.aria)) fail('le nom de la ligne : ' + ligne.aria);
-  console.log('③ chez Karim : « Échanger 1 » sur l’onglet, la ligne d’Inès en gras dans la boîte, « 1 », le début du message ✓');
+  if (!/^Inès Martin, non lue, Salut Karim !/.test(ligne.aria)) fail('le nom de la ligne : ' + ligne.aria);
+  console.log('③ chez Karim : « Inès t’a écrit » dans « Aujourd’hui », sa ligne en gras avec un point dans la boîte, le début du message ✓');
 }
 await K.p.screenshot({ path: `${SHOTS}/130-conv-boite.png` });
 await K.p.click(`.bx-l[data-ami="${ID_I}"]`);
@@ -236,7 +234,7 @@ await fermerTout(K.p);
 await K.p.waitForTimeout(300);
 {
   const b = await boiteK();
-  if (b.ligne.gras || b.ligne.n || b.onglet || b.aria !== 'Échanger') fail('lue, la conversation se compte encore : ' + JSON.stringify(b));
+  if (b.ligne.gras || b.ligne.point || b.onglet || b.aria !== 'Réseau') fail('lue, la conversation se marque encore : ' + JSON.stringify(b));
 }
 await ongletAmis(K.p);
 if (await K.p.$('#piAmis .am-row .am-n')) fail('« Amis » compte encore les messages');
@@ -331,38 +329,37 @@ for (const [nom, o] of [['pouce', {}], ['pouce-sombre', { sombre: true }], ['pos
   const E = await ecran({ ...INES, boite: await nouvelleCle() }, PISTES_I, { ...o, conv: CONV });
   if (o.gros) await E.p.addStyleTag({ content: 'html{font-size:200% !important}' });
   /* la boîte compte ses deux messages */
-  await E.p.evaluate(() => { location.hash = '#/echanger'; });
+  await E.p.evaluate(() => { location.hash = '#/reseau'; });
   await E.p.waitForSelector(`.bx-l[data-ami="${ID_K}"]`);
   const poste = (o.vp || {}).width > 900;
   /* au poste, la conversation la plus récente s'ouvre d'elle-même à
-     droite de la boîte : elle est lue, son chiffre part */
+     droite de la boîte : elle est lue, son point part */
   if (poste){
     await E.p.waitForFunction(() => document.querySelector('#bxVolet .mh-t')?.textContent === 'Karim Benali');
     await E.p.waitForTimeout(400);
   }
-  const n = await E.p.evaluate(id => document.querySelector(`.bx-l[data-ami="${id}"] .bx-c`)?.textContent.trim() || '', ID_K);
+  const pt = await E.p.evaluate(id => !!document.querySelector(`.bx-l[data-ami="${id}"] .bx-pt`), ID_K);
   if (poste){
-    if (n) fail(nom + ' : ouverte à droite, la conversation de Karim se compte encore « ' + n + ' »');
-  } else if (n !== '2') fail(nom + ' : la ligne de Karim compte « ' + n + ' »');
+    if (pt) fail(nom + ' : ouverte à droite, la conversation de Karim garde son point');
+  } else if (!pt) fail(nom + ' : la ligne de Karim n’a pas son point');
   await E.p.screenshot({ path: `${SHOTS}/130-conv-boite-${nom}.png` });
   await ongletAmis(E.p);
   await E.p.screenshot({ path: `${SHOTS}/130-conv-amis-${nom}.png` });
-  if (poste){
-    /* au poste, le geste vit dans le détail, contourné — et ne compte
-       plus rien : ce qui n'est pas lu se compte dans la boîte */
-    const b = await E.p.evaluate(() => { const x = document.querySelector('.am-detail #amEcrire');
-      return x ? { mot: x.innerText.replace(/\s+/g, ' ').trim(), contour: x.classList.contains('btn-contour') } : null; });
-    if (!b || b.mot !== 'Écrire à Karim' || !b.contour) fail(nom + ' : le détail ne porte pas « Écrire à Karim » : ' + JSON.stringify(b));
-    await E.p.click('.am-detail #amEcrire');
-    /* au poste, la conversation qui existe se lit dans la boîte, à sa
-       place (lot F2) — pas dans une seconde fenêtre */
-    await E.p.waitForFunction(() => location.hash.startsWith('#/echanger') && !!document.querySelector('#bxVolet #msFil'));
-  } else {
-    await E.p.click('#piAmis .am-row .ri-main');
-    await E.p.waitForSelector('.overlay #amEcrire');
-    await E.p.click('.overlay #amEcrire');
-    await E.p.waitForSelector('.overlay #msFil');
+  await E.p.click('#piAmis .am-row .ri-main');
+  await E.p.waitForSelector('.overlay #amEcrire');
+  {
+    const b = await E.p.evaluate(() => { const x = document.querySelector('.overlay .modal-f #amEcrire');
+      return x ? x.innerText.replace(/\s+/g, ' ').trim() : ''; });
+    if (b !== 'Écrire à Karim') fail(nom + ' : la fiche de l’ami ne porte pas « Écrire à Karim » au pied : ' + b);
   }
+  await E.p.click('.overlay #amEcrire');
+  if (poste){
+    /* au poste, la conversation qui existe se lit dans la boîte, à sa
+       place (lot F2) — les feuilles d'amis se referment, pas de seconde
+       fenêtre */
+    await E.p.waitForFunction(() => location.hash.startsWith('#/reseau') && !!document.querySelector('#bxVolet #msFil')
+      && !document.querySelector('.overlay:not(.ov-out)'));
+  } else await E.p.waitForSelector('.overlay #msFil');
   await E.p.waitForTimeout(500);
   const fautes = await E.p.evaluate(() => {
     const ici = document.querySelector('#bxVolet .dock') ? '#bxVolet' : '.overlay';

@@ -17,8 +17,8 @@ import { enPause, reprendre } from '../engine/suivi.js';
 import { pretsAPartir, SERIE_MIN } from '../engine/prets.js';
 import { ouvrirSerie } from './serie.js';
 import { semaineHTML, ouvrirSemaine } from './semaine.js';
-import { S, bus, isClosed, markDone, hasDemo, addDemo, removeDemo, lot } from './state.js';
-import { $, ic, openSheet } from './dom.js';
+import { S, bus, isClosed, markDone, hasDemo, addDemo, removeDemo } from './state.js';
+import { $, ic, openSheet, voirAutres } from './dom.js';
 import { frToday, frDate, dueMarkHTML, silenceMarkHTML } from './dates.js';
 import { askNextAction, reportAction, askClose } from './actions.js';
 import { openMail } from './mail.js';
@@ -267,7 +267,7 @@ function silenceHTML(items, total){
      autres ») : elles n'avaient plus d'autre chemin que le lien du pied,
      qui ouvrait « Mes pistes » entière */
   const more = total > items.length
-    ? `<button class="linklike tr-more" data-tr="quiet">Voir les ${total - items.length} autres</button>` : '';
+    ? `<button class="linklike tr-more" data-tr="quiet">${voirAutres(total - items.length)}</button>` : '';
   return `<section class="tranche tr-quiet">
             <h2 class="tr-h">${ic('clock', 'ic-14')} Sans nouvelles <span class="tr-n">${total}</span></h2>
             <div class="tr-rows">${items.map(silenceRowHTML).join('')}${more}</div>
@@ -288,13 +288,13 @@ function silenceHTML(items, total){
    ne porte plus de chiffre, c'est ici qu'on le lit, à son heure. */
 const CAP_AMIS = 3;
 function amisHTML(lignes){
-  const ecrits = lot('calme') ? ecritsDuJour() : null;
+  const ecrits = ecritsDuJour();
   const tous = [...(ecrits ? [{ sorte: 'ecrits', id: 'ecrits', nom: ecrits.texte, raison: ecrits.sous, qui: '',
                                 aria: [ecrits.texte, ecrits.sous].filter(Boolean).join(', ') }] : []), ...lignes];
   if (!tous.length) return '';
   const items = expanded.has('amis') ? tous : tous.slice(0, CAP_AMIS);
   const more = tous.length > items.length
-    ? `<button class="linklike tr-more" data-tr="amis">Voir les ${tous.length - items.length} autres</button>` : '';
+    ? `<button class="linklike tr-more" data-tr="amis">${voirAutres(tous.length - items.length)}</button>` : '';
   return `<section class="tranche tr-amis">
             <h2 class="tr-h">${ic('users', 'ic-14')} Tes amis${lignes.length ? ` <span class="tr-n">${lignes.length}</span>` : ''}</h2>
             <div class="tr-rows">${items.map(x =>
@@ -374,7 +374,7 @@ function trancheHTML(key, label, icon, items, open){
   const cap = expanded.has(key) ? items.length : CAP;
   const rows = items.slice(0, cap).map(rowHTML).join('');
   const more = items.length > cap
-    ? `<button class="linklike tr-more" data-tr="${key}">Voir les ${items.length - cap} autres</button>` : '';
+    ? `<button class="linklike tr-more" data-tr="${key}">${voirAutres(items.length - cap)}</button>` : '';
   const head = `${ic(icon, 'ic-14')} ${label} <span class="tr-n">${items.length}</span>`;
   if (key === 'soon'){
     return `<details class="tranche tr-${key}"${open ? ' open' : ''}>
@@ -397,7 +397,7 @@ function trancheHTML(key, label, icon, items, open){
 function colHTML(key, label, icon, items, vide){
   const cap = expanded.has(key) ? items.length : CAP;
   const more = items.length > cap
-    ? `<button class="linklike tr-more" data-tr="${key}">Voir les ${items.length - cap} autres</button>` : '';
+    ? `<button class="linklike tr-more" data-tr="${key}">${voirAutres(items.length - cap)}</button>` : '';
   return `<section class="bcol tr-${key}" aria-label="${label}">
             <h2 class="bcol-h">${ic(icon, 'ic-14')} ${label} <span class="tr-n">${items.length}</span></h2>
             ${items.length
@@ -474,13 +474,13 @@ export function renderToday(){
   /* R2 : après sept jours sans un geste, trois choses à reprendre. Pas
      tant que les premiers pas sont là : on ne reprend que ce qu'on a
      commencé, et ils disent déjà quoi faire. */
-  const reprise = lot('suivi') && !pas && enPause(S.companies, S.journal)
+  const reprise = !pas && enPause(S.companies, S.journal)
     ? reprendre({ dues: [...late, ...due], muettes, debuts: parOuCommencer(aLancer) }) : [];
   /* R3 : LES MAILS PRÊTS À PARTIR — les relances dues, puis les premiers
      mails, cinq au plus, chacun vers sa personne. Pas pendant les
      premiers pas : ils disent déjà quoi écrire, et le premier mail
      demande un profil rempli que la série ne vérifie pas. */
-  const prets = lot('prets') && !pas
+  const prets = !pas
     ? pretsAPartir({ dues: [...late, ...due], debuts: parOuCommencer(aLancer, Infinity), today }) : [];
   const partir = prets.length >= SERIE_MIN;
   const rienDePrevu = rienAFaire && !soon.length;
@@ -510,7 +510,7 @@ export function renderToday(){
        ${/* R4 : MA SEMAINE, en tête — l'objectif et ce qui est parti, une
             ligne qui se touche. Pas pendant les premiers pas ni avec
             l'exemple : on ne se fixe pas d'objectif avant d'avoir écrit. */''}
-       ${lot('semaine') && !pas && !hasDemo() && S.companies.length ? semaineHTML() : ''}`;
+       ${!pas && !hasDemo() && S.companies.length ? semaineHTML() : ''}`;
 
   /* les MESSAGES ne passent plus par ici : l'onglet « Échanger » porte
      leur chiffre, comme toute messagerie (13 octobre 2026). Restent les
@@ -548,6 +548,10 @@ export function renderToday(){
          <div class="tde-actions">
            ${pas ? '' : `<button class="btn btn-primary" id="tdeAdd">${ic('plus', 'ic-14')} Ajouter une piste</button>`}
            <button class="btn" id="tdeDemo">Voir un exemple</button>
+           ${/* UN SEUL MOI (lot R5) : sur un téléphone neuf, c'est ICI que
+                l'on arrive — la phrase de secours ramène tout, au lieu
+                de tout refaire */''}
+           <button class="btn" id="tdeMoi">J’ai déjà OpenContact</button>
          </div>
        </div>`;
   } else if (alaPlace){
@@ -635,7 +639,7 @@ export function renderToday(){
   if (!root.dataset.lettres){
     root.dataset.lettres = '1';
     root.addEventListener('keydown', e => {
-      const k = lot('clavier') ? lettreActive(e) : '';
+      const k = lettreActive(e);
       const row = (k === 'f' || k === 'e') && e.target.closest && e.target.closest('.act-row');
       const b = row && row.querySelector(k === 'f' ? '[data-a="done"]' : '[data-a="mail"]');
       if (!b) return;
@@ -716,6 +720,8 @@ export function renderToday(){
   /* pas de toast : les pistes d'exemple arrivent sous les yeux, et
      « Retirer les pistes d'exemple » s'affiche au pied du même écran */
   root.querySelector('#tdeDemo')?.addEventListener('click', () => { addDemo(); bus.refresh(); });
+  root.querySelector('#tdeMoi')?.addEventListener('click', () =>
+    import('./moi-phrase.js').then(m => m.ouvrirRetrouver()));
   root.querySelector('#tdRmDemo')?.addEventListener('click', () => { removeDemo(); bus.refresh(); });
 }
 

@@ -99,7 +99,7 @@ const SONDE_NOMS = () => {
 
 const SURFACES = [
   ['Aujourd’hui', 'route', 'aujourdhui'], ['Mes pistes', 'route', 'pistes'],
-  ['Échanger', 'route', 'echanger'], ['Moi', 'route', 'moi'],
+  ['Réseau', 'route', 'reseau'], ['Moi', 'route', 'moi'],
   ['fiche', './ui/fiche.js', 'openFiche', true], ['écrire', './ui/mail.js', 'openMail', true],
   ['modifier', './ui/edit.js', 'openEditPiste', true],
   ['contact', './ui/contact.js', 'openContactEditor', false],

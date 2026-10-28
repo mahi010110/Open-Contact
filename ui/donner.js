@@ -153,7 +153,7 @@ export function openDonner(o){
          côté d'eux — l'instant où l'on décide — et seulement quand il
          dit quelque chose : tout coché et personne d'écarté, il se tait. */
       const bouts = [];
-      if (k !== t) bouts.push(`${k} / ${t} pistes`);
+      if (k !== t) bouts.push(`${k} / ${t} piste${t > 1 ? 's' : ''}`);
       if (cut) bouts.push(cut + ' personne' + (cut > 1 ? 's' : '') + ' écartée' + (cut > 1 ? 's' : ''));
       sCut.hidden = !bouts.length;
       sCut.textContent = bouts.join(' · ');

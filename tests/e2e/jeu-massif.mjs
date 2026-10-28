@@ -235,8 +235,8 @@ export async function jeuMassif({ now = Date.now(), graine = 21, pistes: NP = 40
 
 /* écrit le jeu dans le stockage de la page, puis recharge : semer sans
    recharger mesure l'état d'avant (CLAUDE.md §5) */
-export async function semerMassif(page, jeu, { preversion = false } = {}){
-  await page.evaluate(async ([j, pv]) => {
+export async function semerMassif(page, jeu){
+  await page.evaluate(async j => {
     const st = await import('./engine/storage.js'); await st.kvInit();
     await st.kvSet(st.DATA_KEY, JSON.stringify(j.companies));
     await st.kvSet(st.PROFILE_KEY, JSON.stringify(j.profil));
@@ -247,7 +247,6 @@ export async function semerMassif(page, jeu, { preversion = false } = {}){
     await st.kvSet(st.JOURNAL_KEY, JSON.stringify(j.journal));
     await st.kvSet(st.ORPHANS_KEY, JSON.stringify(j.orphans));
     await st.kvSet(st.BROUILLONS_KEY, JSON.stringify(j.brouillons));
-    if (pv) await st.kvSet(st.PREVERSION_KEY, '1'); else await st.kvDel(st.PREVERSION_KEY);
-  }, [jeu, preversion]);
+  }, jeu);
   await page.reload();
 }

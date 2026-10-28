@@ -47,6 +47,7 @@ export const MESSAGES_KEY = 'oc_messages_v1'; /* mes conversations privées avec
 export const FILS_KEY = 'oc_fils_v1';         /* la boîte « Échanger » : les conversations épinglées, celles dont le son est coupé (cet appareil) */
 export const GROUPES_KEY = 'oc_groupes_v1';   /* mes groupes : ce qui s'y est dit, qui en est (cet appareil — rien à voir avec l'ancien oc_group_v1) */
 export const BROUILLONS_KEY = 'oc_brouillons_v1'; /* les mails commencés, par piste (cet appareil — ni sync, ni copie, ni partage) */
+export const MOI_KEY = 'oc_moi_v1';           /* « un seul moi » (R5) : les clés tirées de la phrase de secours (jamais la phrase), le dernier dépôt (cet appareil — ni sync, ni copie, ni partage, ni diagnostic) */
 export const THEME_KEY = 'oc_theme';
 export const PREVERSION_KEY = 'oc_preversion_v1'; /* la préversion de CET appareil : les lots en test s'y allument (engine/drapeaux.js) */
 export const VIEW_KEY = 'oc_view';   /* héritée, plus écrite — épinglée par le test de contrat */
@@ -179,7 +180,7 @@ export async function kvDel(k){
 export const SEALABLE = new Set([DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY,
   TOMBS_KEY, GROUP_KEY, SYNC_KEY, RELAYS_KEY, TURN_KEY, DEVICE_KEY, DEVICES_KEY, PROMO_KEY, RING_KEY,
   CAMPAIGNS_KEY, MAIL_KEY, AI_KEY, MISSIONS_KEY, ORDINATEUR_KEY, ANALYSIS_KEY,
-  PROPOSALS_KEY, VUS_KEY, RESEAU_KEY, GROUPES_KEY, MESSAGES_KEY, FILS_KEY, BROUILLONS_KEY]);
+  PROPOSALS_KEY, VUS_KEY, RESEAU_KEY, GROUPES_KEY, MESSAGES_KEY, FILS_KEY, BROUILLONS_KEY, MOI_KEY]);
 let vKey = null;
 export function vaultAttach(key){ vKey = key || null; }
 export function vaultDetach(){ vKey = null; }
@@ -277,7 +278,7 @@ export const docClear = () => idbReq('readwrite', s => s.clear());
 export const CLES_A_EFFACER = [DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, GROUP_KEY,
   SYNC_KEY, RELAYS_KEY, TURN_KEY, PROMO_KEY, DEVICE_KEY, DEVICES_KEY, RING_KEY, VAULT_KEY,
   CAMPAIGNS_KEY, MAIL_KEY, AI_KEY, MISSIONS_KEY, ORDINATEUR_KEY, ANALYSIS_KEY, PROPOSALS_KEY, VUS_KEY,
-  RESEAU_KEY, GROUPES_KEY, MESSAGES_KEY, FILS_KEY, BROUILLONS_KEY, PREVERSION_KEY, OLD_V2, OLD_V1];
+  RESEAU_KEY, GROUPES_KEY, MESSAGES_KEY, FILS_KEY, BROUILLONS_KEY, MOI_KEY, PREVERSION_KEY, OLD_V2, OLD_V1];
 export async function effacerCetAppareil(){
   for (const k of CLES_A_EFFACER) await kvDel(k);
   await docClear().catch(() => {});   /* toutes les variantes CV & lettres */

@@ -1,6 +1,8 @@
 # Proposition R5 — Un seul « moi »
 
-**Statut** : proposée et validée par le mainteneur le 20 octobre 2026.
+**Statut** : proposée et validée par le mainteneur le 20 octobre 2026 ;
+**livrée le 27 octobre 2026 (7.1.0)**, ouverte à tous — voir « Ce qui a
+été tranché en codant », en fin de page.
 C'est l'étape 1 du cycle d'un lot (`docs/recadrage.md`). Les trois
 réponses sont en fin de page. C'est le lot le plus délicat : l'analyse des
 menaces est écrite ici, avant le code (OWASP ASVS 5.0, niveau 1).
@@ -148,4 +150,49 @@ sonde se lira donc à partir du 3 novembre ; celle du kind, elle, est
 déjà mesurée par la boîte. Le passage du 27 octobre, sonde corrigée, l'a
 confirmé : le remplacement se lit maintenant chez les cinq relais qui
 gardent (contre un seul avant), et leurs marqueurs sont déposés.
+
+## Ce qui a été tranché en codant (27 octobre 2026, par délégation)
+
+Le mainteneur a délégué ces choix (« je veux une app prête et finie »).
+Chacun s'écarte de l'esquisse, et dit pourquoi.
+
+1. **Douze mots, 96 bits, pas 128.** La phrase est celle du coffre :
+   même liste de 256 mots, même cérémonie. Douze mots de 256 font
+   96 bits ; la dérivation PBKDF2-SHA256 à 600 000 tours y ajoute
+   ≈ 19 bits de travail : ≈ 115 bits à forcer pour qui garde un dépôt
+   hors ligne, au-dessus des 112 que NIST SP 800-57 demande jusqu'en
+   2030. Passer à seize mots aurait changé la phrase du coffre de tous
+   ceux qui en ont déjà une.
+2. **La liaison voyage DANS le dépôt, la salle ne se tire pas de la
+   phrase.** Une salle tirée de la phrase aurait fait rejoindre une
+   salle P2P à chaque ouverture, même à qui n'a qu'un téléphone. Le
+   cas qui compte — un téléphone perdu, un neuf — est servi autrement :
+   la phrase de liaison de mes appareils est scellée dans la copie, et
+   « Ramener » relie le téléphone neuf aux autres. « Mes appareils »
+   garde ses deux verbes pour relier deux appareils qu'on a en main.
+3. **L'appareil garde les clés, jamais la phrase** — comme le coffre,
+   qui n'écrit jamais la sienne. Donc pas de « Revoir ma phrase » :
+   « Changer de phrase », comme dans « Verrouillage ».
+4. **Chaque appareil dépose sous son « poste ».** Le remplacement NIP-33
+   se fait par auteur, kind et `d` ; l'auteur étant la phrase, le dépôt
+   du portable aurait remplacé celui du téléphone. Le poste se tire de
+   l'appareil ET de la semaine : rien ne relie deux semaines. Ramener
+   garde le plus récent de chaque appareil et les fusionne comme la
+   sync (rien ne s'écrase).
+5. **Une seule phrase, partout.** Protéger ses données, refaire sa
+   phrase, la récupération d'urgence : toute phrase que le coffre se
+   donne devient celle qui ramène. Une phrase d'avant R5, que le coffre
+   connaît, s'adopte telle quelle par « Entrer ma phrase ». Ramener avec
+   une phrase que le coffre ne connaît pas en fait la phrase du coffre
+   (le code d'abord). Les anciennes clés (`oc_sync_v1`, les enveloppes
+   du coffre) ne bougent pas.
+6. **« Changer de phrase » efface ce que CET appareil avait déposé**
+   sous l'ancienne (remplacé par du vide, demandé à l'effacement). Un
+   autre appareil qui a la même phrase continue de déposer sous elle
+   tant qu'on ne la change pas aussi là-bas : les clés ne voyagent pas
+   par la sync (un appareil relié n'est pas un appareil qui peut signer
+   en mon nom). Limite assumée.
+7. **Pas de préversion.** Rien ne part tant qu'on n'a pas de phrase, et
+   rien d'un écran existant ne change avant : une rangée dans « Ma
+   copie », un geste sur l'accueil vide.
 

@@ -4,14 +4,19 @@
 concevoir — ça, c'est `CLAUDE.md`. Et il ne redit pas l'état des surfaces —
 ça, c'est [`surfaces.md`](surfaces.md).
 
-*Dernière mise à jour : 19 octobre 2026.*
+*Dernière mise à jour : 27 octobre 2026.*
 
 > **Le recadrage a commencé** *(19 octobre 2026)*. L'ordre des prochains
 > mois est celui de [`recadrage.md`](recadrage.md) : R0 (les fondations,
 > livré en 6.78.0), puis R1 (la navigation), R2 (le suivi qui se remplit
 > seul), R3 (« Prêts à partir ») — chacun en préversion, testé avec cinq
 > étudiants avant d'être ouvert à tous. Les décisions sont dans
-> [`decisions/`](decisions/README.md). Ce qui suit reste vrai, mais passe
+> [`decisions/`](decisions/README.md).
+>
+> **La 7.0.0 a ouvert les lots à tous** *(27 octobre 2026)* : R1 à R4 et
+> R7 à R10, sur la demande du mainteneur (« une app prête et finie »).
+> R6 est clos sans être fait — le lien mail reste. R5 (un seul « moi ») a
+> suivi en 7.1.0 ; reste l'audit complet de l'app ouverte. Ce qui suit reste vrai, mais passe
 > derrière le recadrage : la première mesure avec de vraies personnes
 > ([`mesure/protocole.md`](mesure/protocole.md)) vaut aussi pour la bêta.
 

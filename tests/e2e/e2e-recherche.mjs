@@ -23,7 +23,7 @@
      mot écrit dans une note ;
    ⑦ ce qui change s'entend (la région vivante dit ce qui est compris).
    ============================================================ */
-import { chromium, chromiumPath, serveRepo, SHOTS, annuaireMuetPartout } from './outils.mjs';
+import { chromium, chromiumPath, serveRepo, SHOTS, annuaireMuetPartout, vueTableau } from './outils.mjs';
 
 const { server, base } = await serveRepo();
 const browser = await chromium.launch({ executablePath: chromiumPath() });
@@ -63,8 +63,9 @@ const JEU = [
 ].map(P);
 const PROFIL = { name: 'Inès Martin', formation: 'BTS SIO SISR', recherche: 'alternance', email: 'ines@exemple.test' };
 
-async function ecran(vp, touch){
+async function ecran(vp, touch, avant){
   const ctx = await browser.newContext({ viewport: vp, hasTouch: touch });
+  if (avant) await avant(ctx);
   const p = await ctx.newPage();
   p.on('pageerror', e => errors.push(String(e)));
   p.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
@@ -245,6 +246,9 @@ for (const [nom, vp, touch] of [['pouce', { width: 390, height: 844 }, true],
 /* ---------- au poste : le clavier suffit ---------- */
 {
   const { ctx, p } = await ecran({ width: 1280, height: 800 }, false);
+  /* le tableau : ses flèches suivent les colonnes (la liste, elle, se
+     garde dans e2e-reseau.mjs ⑫) */
+  await vueTableau(p);
   await p.click('#view-pistes h1');
   await p.keyboard.press('/');
   await p.keyboard.type('alternance lille', { delay: 8 });
@@ -299,6 +303,44 @@ for (const [nom, vp, touch] of [['pouce', { width: 390, height: 844 }, true],
   if (apres[1] !== 'lille' || !/et-chip|search/.test(apres[0]))
     fail(`poste : retirer une étiquette au clavier → focus « ${apres[0]} », champ « ${apres[1]} »`);
   await p.screenshot({ path: `${SHOTS}/95-recherche-poste.png` });
+  await ctx.close();
+}
+
+/* ---------- au poste : la table des métiers qui arrive ne vole pas le focus ----------
+   (7.1.0) La table se lit au premier mot tapé. Arrivée pendant qu'on
+   parcourt le tableau au clavier, elle redessinait toute la liste et le
+   focus tombait sur <body> — vu en CI, une fois sur trois sous charge.
+   Joué SANS hasard : la table est retenue, le focus posé sur une carte,
+   puis la table relâchée. */
+{
+  let lacher; const tenue = new Promise(r => { lacher = r; });
+  const { ctx, p } = await ecran({ width: 1280, height: 800 }, false, c =>
+    c.route('**/engine/metiers-donnees.js', async r => { await tenue; try { await r.continue(); } catch (e) {} }));
+  await vueTableau(p);
+  await p.click('#view-pistes h1');
+  await p.keyboard.press('/');
+  await p.keyboard.type('alternance lille', { delay: 8 });
+  await p.waitForTimeout(320);
+  await p.keyboard.press('ArrowDown');
+  const ou = () => p.evaluate(() => {
+    const a = document.activeElement;
+    const c = a && a.closest('[data-id]');
+    return c ? c.dataset.id : (a ? a.tagName : '');
+  });
+  const avantT = await ou();
+  const pretAvant = await p.evaluate(async () => !!(await import('./ui/metiers.js')).metiersPrets());
+  lacher();
+  let pret = false;
+  for (let i = 0; i < 60 && !pret; i++){
+    await p.waitForTimeout(250);
+    pret = await p.evaluate(async () => !!(await import('./ui/metiers.js')).metiersPrets());
+  }
+  await p.waitForTimeout(500);
+  const apresT = await ou();
+  if (pretAvant || !pret) fail(`poste : la table devait arriver PENDANT la navigation (avant ${pretAvant}, après ${pret}) — le contrôle ne mesure rien`);
+  else if (!avantT || avantT === 'BODY' || avantT === 'INPUT') fail(`poste : ↓ n'a posé le focus sur aucune carte (${avantT}) — le contrôle ne mesure rien`);
+  else if (apresT !== avantT) fail(`poste : la table des métiers arrivée, le focus passe de « ${avantT} » à « ${apresT} »`);
+  else console.log(`poste · la table des métiers arrive pendant qu’on parcourt le tableau : le focus reste sur sa carte (${avantT}) ✓`);
   await ctx.close();
 }
 

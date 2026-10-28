@@ -20,6 +20,11 @@ perdre en route.** Le pourquoi est dans les fiches de décision
   drapeau. Le mainteneur et cinq testeurs l'allument par la ligne
   « Préversion » ; il ne devient visible pour tous qu'après le test
   (décision 0004).
+- **Ouvert à tous le 27 octobre 2026 (7.0.0).** Le mainteneur a ouvert
+  d'un coup les lots livrés (R1 à R4, R7 à R10) et retiré leurs anciens
+  chemins ; R6 est clos sans être fait (« garder le lien mail »). R5
+  a suivi le même jour, ouvert à tous sans préversion (7.1.0). Voir
+  « La bascule », plus bas.
 - **Mesuré avant, mesuré après.** Six parcours, cinq étudiants, sur l'app
   actuelle d'abord ([`mesure/protocole.md`](mesure/protocole.md)). Chaque
   lot doit faire mieux sur les mêmes parcours.
@@ -67,7 +72,7 @@ perdre en route.** Le pourquoi est dans les fiches de décision
 | Historique des échanges | Échanger › Historique | Réseau › Historique, en bas | R1 |
 | Écrire à plusieurs | Mes pistes › Prospecter | Aujourd'hui › Écrire les N mails ; Pistes › Choisir › Écrire | R3 |
 | Ma semaine | — | Aujourd'hui, en tête ; la revue le vendredi | R4 |
-| Profil, copie, appareils, réglages | Moi | Moi, plus « Préversion » (R0) et « Je peux aider » (R7) | R0, R7 |
+| Profil, copie, appareils, réglages | Moi | Moi, plus « Je peux aider » | R7 |
 | Navigation au poste | onglets en haut | barre latérale, recherche Ctrl K | R1, R8 |
 
 Cette table est un scénario automatique depuis R1
@@ -123,9 +128,9 @@ Les temps sont des maximums accordés, pas des promesses de date.
     liste, la fiche posée à droite, ↑ ↓ d'une piste à l'autre, E écrit,
     le garde-fou d'une fiche en cours (décision 0003). Gardé par
     `e2e-reseau.mjs` ⑫.
-  - **R1 est complet en préversion.** Reste sa porte : les six parcours
-    joués avec cinq personnes (`docs/mesure/protocole.md`), puis la
-    décision d'ouvrir le lot à tous.
+  - **R1 est complet, et ouvert à tous depuis la 7.0.0.** Sa porte —
+    les six parcours joués avec cinq personnes
+    (`docs/mesure/protocole.md`) — se jouera sur l'app ouverte.
 
 ### R2 · Un suivi qui se remplit seul · 2 semaines
 
@@ -138,8 +143,8 @@ Un mail envoyé passe la piste « En cours » et propose la relance à
 trois choses à faire, sans compter les jours manqués. Aucune clé
 nouvelle : tout se déduit des pistes et du journal.
 
-- **Où on en est** : **livré en préversion (6.83.0)**, derrière le
-  drapeau `suivi` (`engine/suivi.js`). Gardé par `e2e-reprendre.mjs`,
+- **Où on en est** : **ouvert à tous (7.0.0)** ; livré en préversion
+  (6.83.0), derrière le drapeau `suivi` (`engine/suivi.js`). Gardé par `e2e-reprendre.mjs`,
   les deux chemins joués, quatre mutations à l'appui.
 - *Accepté quand* : sur le parcours « je reviens après une semaine »,
   au moins 4 personnes sur 5 font un premier geste depuis « Reprendre »
@@ -151,8 +156,8 @@ nouvelle : tout se déduit des pistes et du journal.
 *Proposition validée par le mainteneur le 20 octobre 2026 :*
 [`propositions/R3-prets-a-partir.md`](propositions/R3-prets-a-partir.md).
 
-- **Où on en est** : **R3 est complet en préversion (6.84.0)**, derrière
-  le drapeau `prets`, en deux parties :
+- **Où on en est** : **ouvert à tous (7.0.0)** ; complet en préversion
+  (6.84.0), derrière le drapeau `prets`, en deux parties :
   - **R3-a** : « Écrire les N mails » au pied d'« Aujourd'hui » (au
     poste, à côté du titre), la série au téléphone, les brouillons
     gardés sur cet appareil (`oc_brouillons_v1`, `engine/prets.js`) ;
@@ -172,8 +177,8 @@ Une clé nouvelle pour les brouillons en cours, propre à l'appareil.
 *Proposition validée par le mainteneur le 20 octobre 2026 :*
 [`propositions/R4-ma-semaine.md`](propositions/R4-ma-semaine.md).
 
-- **Où on en est** : **livré en préversion (6.85.0)**, derrière le
-  drapeau `semaine` (`engine/semaine.js`, `ui/semaine.js`) : la ligne en
+- **Où on en est** : **ouvert à tous (7.0.0)** ; livré en préversion
+  (6.85.0), derrière le drapeau `semaine` (`engine/semaine.js`, `ui/semaine.js`) : la ligne en
   tête d'« Aujourd'hui », « Ma semaine » (− et +), la revue du vendredi
   et « Partager au groupe ». Gardé par `e2e-semaine.mjs`, la fuite
   d'abord. Aucune clé nouvelle : l'objectif vit dans le profil.
@@ -195,11 +200,19 @@ Une identité et une phrase de secours qui ramènent appareils, amis et
 groupes. Une analyse des menaces écrite avant le code ; les anciennes
 clés intactes, lues au moins une version entière.
 
+**Livré le 27 octobre 2026 (7.1.0), ouvert à tous** — sans passer par
+la préversion : « je veux une app prête et finie », et rien de ce que
+R5 ajoute ne change un écran existant tant qu'on ne crée pas sa phrase.
+Ce qui a été tranché en codant, par délégation, est écrit à la fin de
+la proposition. Gardé par `tests/e2e/e2e-un-seul-moi.mjs`, la fuite
+d'abord.
+
 ### R6 · Envoi direct · 2 semaines de code · selon la décision 0007
 
-*Reporté par le mainteneur le 20 octobre 2026* (décision 0007) : la
-vérification Google n'est pas lancée, le lien mail reste le chemin de
-tout le monde. Le lot passe après les autres.
+**Clos sans être fait, par choix du mainteneur, le 27 octobre 2026** :
+« garder le lien mail » (décision 0007). Il avait été reporté le
+20 octobre — la vérification Google n'est pas lancée. Le code dort
+derrière `ENVOI_DIRECT` ; `mailto:` reste le chemin de tout le monde.
 
 Le mail part de l'app, avec « Annuler » pendant 10 secondes. Le lien
 mail reste le chemin de secours.
@@ -209,8 +222,8 @@ mail reste le chemin de secours.
 *Proposition validée par le mainteneur le 20 octobre 2026 :*
 [`propositions/R7-ceux-qui-aident.md`](propositions/R7-ceux-qui-aident.md).
 
-- **Où on en est** : **livré en préversion (6.86.0)**, derrière le
-  drapeau `aide` (`engine/aide.js`, `ui/aide.js`) : « Je peux aider »
+- **Où on en est** : **ouvert à tous (7.0.0)** ; livré en préversion
+  (6.86.0), derrière le drapeau `aide` (`engine/aide.js`, `ui/aide.js`) : « Je peux aider »
   dans Moi, la feuille « Décroché », « Demander à Karim » et ce qu'il
   offre, « Le dire à Karim ». Le profil donné gagne un champ facultatif,
   `aide`, des mots d'une table. Gardé par `e2e-aide.mjs`, la fuite
@@ -229,8 +242,8 @@ d'abord.
 *Proposition validée par le mainteneur le 20 octobre 2026 :*
 [`propositions/R8-le-clavier.md`](propositions/R8-le-clavier.md).
 
-- **Où on en est** : **livré en préversion (6.87.0)**, derrière le
-  drapeau `clavier` (`engine/clavier.js`, `ui/clavier.js`) : « Chercher »
+- **Où on en est** : **ouvert à tous (7.0.0)** ; livré en préversion
+  (6.87.0), derrière le drapeau `clavier` (`engine/clavier.js`, `ui/clavier.js`) : « Chercher »
   et Ctrl K, les lettres N, /, E, P, F écrites dans leurs boutons, la
   rangée « Touches d'une lettre » dans Réglages. Gardé par
   `e2e-touches.mjs`.
@@ -246,7 +259,8 @@ le bouton qu'elle commande.
 *Proposition validée le 20 octobre 2026, par délégation du mainteneur :*
 [`propositions/R9-tous-les-metiers.md`](propositions/R9-tous-les-metiers.md).
 
-- **Où on en est** : **R9-a livré en préversion (6.88.0)**, derrière le
+- **Où on en est** : **ouvert à tous (7.0.0)**. **R9-a livré en
+  préversion (6.88.0)**, derrière le
   drapeau `export` (`engine/cv.js`, `ui/cv.js`) : « Exporter » dans
   « Mon parcours », un fichier JSON Resume montré ligne par ligne avant
   de partir. Gardé par `e2e-export.mjs`, la fuite d'abord. **R9-b livré
@@ -256,7 +270,7 @@ le bouton qu'elle commande.
   (1 923 fiches, 10 531 appellations, 794 formations), et
   `engine/metiers.js` la rend utile : la barre, « À découvrir » (le
   secteur seul part), La bonne alternance (le code ROME) et la formation
-  du profil. La table se lit au calme, lot ouvert, après tout le
+  du profil. La table se lit au calme, après tout le
   vocabulaire de la barre : l'informatique ne change pas. Gardé par
   `e2e-metiers.mjs`, la fuite d'abord, et par les cent phrases des
   auto-tests, rejouées avec la table.
@@ -279,7 +293,8 @@ moyen »), tranché par délégation :*
   l'œil : le fil d'un groupe ou d'une conversation se rend par fenêtre
   (« Voir les N messages d'avant »), un visage est un seul tracé, les
   formateurs de date se créent une fois, « Tes amis » montre trois
-  lignes. En préversion (`calme`) : aucun chiffre sur les onglets ni sur
+  lignes. **Ouvert à tous en 7.0.0**, après sa préversion (`calme`) :
+  aucun chiffre sur les onglets ni sur
   les conversations, « Aujourd'hui » dit qui t'a écrit, ce qui arrive
   des autres ne surgit plus en toast, et plusieurs demandes tiennent une
   ligne chacune dans « Réseau ». Gardé par `e2e-echelle.mjs`, sur un jeu
@@ -319,11 +334,35 @@ Ce qui reste au-dessus de 200 ms : le tout premier tap d'un groupe et
 d'une fiche frôle le seuil (le premier calcul d'une feuille neuve) ;
 au plafond, le premier tap du gros groupe (120 bulles à mettre en page,
 ~380 ms), ses reprises (~260 ms) et « Donner » (~240 ms). Et une limite
-d'une autre nature : au plafond, « Échanger » dessine ses 120
+d'une autre nature : au plafond, « Réseau » dessine ses 120
 conversations dans une longue tâche juste après le tap (~0,5 s, relevé
 de R10) ; le tap lui-même répond en 40 ms, mais un geste qui tombe
 pendant ce dessin attend. Une fenêtre sur la boîte, comme celle du fil,
 serait la suite.
+
+### La bascule · 7.0.0 · 27 octobre 2026
+
+*Demandée par le mainteneur : « je veux une app prête et finie ».*
+
+Les lots livrés s'ouvrent à tous d'un coup — R1 à R4, R7 à R10 — sans
+attendre les tours de test de cinq personnes, qui se joueront sur l'app
+ouverte. Leurs anciens chemins partent avec leurs drapeaux :
+
+- l'onglet « Échanger » devient « Réseau » partout ; `#/echanger` mène
+  à `#/reseau` (`engine/destinations.js`) ;
+- « Mes pistes » n'a plus de portée « Amis » : ils vivent dans
+  « Réseau › Mes amis » ; « Prospecter » devient « Choisir », d'où
+  partent « Écrire » et « Donner » ;
+- plus aucun chiffre sur un onglet ni sur une conversation (R10) ;
+- le registre des drapeaux est vide, et la ligne « Préversion » ne
+  s'affiche plus (décision 0004) ;
+- au poste, la barre latérale, la fiche à côté de la liste, Ctrl K et
+  les lettres sont là pour tout le monde.
+
+Aucune clé de stockage ne bouge. **R5** (un seul « moi ») a suivi en
+7.1.0 — une clé de plus, `oc_moi_v1`, aucune renommée. Ce qui reste du
+plan : l'audit complet de l'app ouverte, au pouce et au poste, au
+plafond et à texte agrandi.
 
 ## La porte qualité de chaque lot
 

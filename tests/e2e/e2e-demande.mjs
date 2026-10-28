@@ -44,7 +44,8 @@
      que ce que porterait son QR. L'aperçu le dit avant ; « Annuler »
      l'empêche de partir.
    ============================================================ */
-import { chromium, chromiumPath, serveRepo, SHOTS, annuaireMuet, suiviDe } from './outils.mjs';
+import { chromium, chromiumPath, serveRepo, SHOTS, annuaireMuet, suiviDe,
+         ouvrirMonQR, ouvrirRecevoir, ouvrirMesAmis, ouvrirDonner } from './outils.mjs';
 import { startLocalRelay } from './relais-local.mjs';
 import { ouvrir, etiquetteBoite } from '../../engine/boite.js';
 
@@ -124,12 +125,8 @@ const sansAnnuler = async p => {
 };
 async function monProfilCopie(p){
   await fermerTout(p);
-  /* Mes pistes › Amis : « Mon QR » liste vide, « Ajouter un ami » sinon */
-  await p.evaluate(() => { location.hash = '#/pistes'; });
-  await p.waitForSelector('#piPortee [data-portee="amis"]');
-  await p.click('#piPortee [data-portee="amis"]');
-  await p.waitForSelector('#avMonQR, #avAjout');
-  await p.click('#avMonQR, #avAjout');
+  /* Réseau › Mes amis : « Mon QR » liste vide, « Ajouter un ami » sinon */
+  await ouvrirMonQR(p);
   await p.waitForSelector('.qr-wrap svg');
   await p.click('#mqCopier');
   await p.waitForTimeout(150);
@@ -138,11 +135,8 @@ async function monProfilCopie(p){
 async function ajouterAmi(p, txt){
   await fermerTout(p);
   await sansAnnuler(p);
-  /* Échanger › Recevoir › Texte : un seul « Recevoir » pour tout */
-  await p.evaluate(() => { location.hash = '#/echanger'; });
-  await p.waitForSelector('#ecRecv');
-  await p.click('#ecRecv');
-  await p.click('#rcPaste');
+  /* + › Recevoir › Texte : un seul « Recevoir » pour tout */
+  await ouvrirRecevoir(p, 'texte');
   await p.fill('#rcTxt', txt);
   await p.evaluate(() => [...document.querySelectorAll('.overlay')].pop().querySelector('.modal-f .btn-primary').click());
   await p.waitForSelector('#amAjouter');
@@ -499,9 +493,7 @@ console.log('⑤ chez Inès, l’aperçu avant, « Ajouter à la piste », « An
   await sansAnnuler(I.p);
   /* LA FUITE : « Donner › Fichier », le vrai bouton, les vrais octets —
      Julie part, le prénom de qui l'a donnée jamais */
-  await I.p.evaluate(() => { location.hash = '#/echanger'; });
-  await I.p.waitForSelector('#ecGive');
-  await I.p.click('#ecGive');
+  await ouvrirDonner(I.p);
   await I.p.waitForSelector('#dnFile');
   await I.p.click('#dnFile');
   await I.p.waitForSelector('#dnDl');
@@ -536,13 +528,11 @@ for (const id of ['adv', 'th']){
 }
 await ouvrirFiche(I.p, 'or');
 if (await I.p.$('#fiDemander')) fail('une quatrième demande se propose (trois ouvertes au plus)');
-/* la liste des amis vit dans « Mes pistes » (lot 4) */
+/* la liste des amis vit dans « Réseau › Mes amis » (R1, 7.0.0) */
 const ongletAmis = async p => {
   await fermerTout(p);
   await sansAnnuler(p);
-  await p.evaluate(() => { location.hash = '#/pistes'; });
-  await p.waitForSelector('[data-portee="amis"]');
-  await p.click('[data-portee="amis"]');
+  await ouvrirMesAmis(p);
   await p.waitForSelector('#piAmis .am-row');
 };
 await ongletAmis(I.p);

@@ -44,7 +44,7 @@
    l'écran ni le réseau.
    ============================================================ */
 import { fold, foldAligned, filterCompanies, blobOf } from './filter.js';
-import { DOMAINS, STATUSES, CLOSE_REASONS, VECU, RAYONS } from './model.js';
+import { STATUSES, CLOSE_REASONS, VECU, RAYONS } from './model.js';
 import { silentPistes } from './assist.js';
 import { scoreOf } from './score.js';
 import { extractCity, todayISO } from './utils.js';

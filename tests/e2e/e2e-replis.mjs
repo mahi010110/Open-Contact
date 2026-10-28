@@ -21,10 +21,11 @@
    ⑥ code ET phrase perdus : l'écran verrouillé a une sortie ;
    ⑦ la localisation refusée dit où la rendre.
    ============================================================ */
-import { chromium, chromiumPath, serveRepo, attendre, ouvrirReglages } from './outils.mjs';
+import { chromium, chromiumPath, serveRepo, attendre, ouvrirReglages, relaisMuetsPartout } from './outils.mjs';
 
 const { server, base } = await serveRepo();
 const browser = await chromium.launch({ executablePath: chromiumPath() });
+relaisMuetsPartout(browser);   /* R5 : protéger dépose la copie scellée */
 const errors = [];
 const fail = m => { console.error('ÉCHEC :', m); process.exitCode = 1; };
 const okSi = (cond, msg) => { if (cond) console.log(msg + ' ✓'); else fail(msg); };

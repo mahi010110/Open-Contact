@@ -9,8 +9,8 @@
 import { esc } from '../engine/utils.js';
 import { STATUSES, nextActionContact } from '../engine/model.js';
 import { filterCompanies } from '../engine/filter.js';
-import { S, bus, isClosed, lot } from './state.js';
-import { openSheet, toast, btn, ic, softReorder, collerEnHaut } from './dom.js';
+import { S, isClosed } from './state.js';
+import { openSheet, btn, ic, softReorder, collerEnHaut } from './dom.js';
 import { sortState, sortArgs } from './sort.js';
 import { filterState, filterArgs, barreListeHTML, bindBarreListe, majTout,
          direCombien, rienTrouveHTML, fenetreCocher, voirAutresHTML, lierVoirAutres } from './affiner.js';
@@ -37,10 +37,9 @@ export function openProspect(){
   const st = sortState('status');            /* « À contacter » en tête par défaut */
   const ft = filterState();                  /* propre à cet écran (#8) */
   /* R1 (décision 0002) : la feuille CHOISIT des pistes, et le pied dit
-     ce qu'on en fait — les écrire, ou les donner. « Donner » quitte
+     ce qu'on en fait — les écrire, ou les donner. « Donner » a quitté
      « Échanger » pour venir là où sont les pistes. */
-  const choisir = lot('reseau');
-  const sh = openSheet({ title: choisir ? 'Choisir' : 'Prospecter', icon: choisir ? 'checkbox-on' : 'mail' });
+  const sh = openSheet({ title: 'Choisir', icon: 'checkbox-on' });
 
   /* qui recevra, piste par piste (#1). Écrire n'est pas donner : le
      défaut reste UNE personne — celle de la prochaine action — sinon un
@@ -94,18 +93,18 @@ export function openProspect(){
   /* Donner ce qu'on a coché, sauf les pistes d'exemple (leurs contacts
      sont fictifs) : le compte est celui de l'écriture, à côté */
   const aDonner = () => alive().filter(c => sel.has(c.id) && !c.demo).map(c => c.id);
-  const bDonner = choisir ? btn('Donner', '', () => {
+  const bDonner = btn('Donner', '', () => {
     const ids = aDonner();
     if (!ids.length) return;
     sh.close();
     openDonner({ ids });
-  }, 'share') : null;
-  if (bDonner) bDonner.id = 'pkDonner';
+  }, 'share');
+  bDonner.id = 'pkDonner';
   const sync = () => {
     const n = nWho();
     bGo.textContent = n ? `${VERBE} (${n})` : VERBE;
     bGo.disabled = !n;
-    if (bDonner) bDonner.disabled = !aDonner().length;
+    bDonner.disabled = !aDonner().length;
     syncAll();
   };
 
@@ -222,7 +221,7 @@ export function openProspect(){
     collerEnHaut(sh.body.querySelector('.stick-guet'), sh.body.querySelector('.listbar'));
     renderItems();
   };
-  sh.setFoot(bDonner ? [bDonner, bGo] : [bGo]);
+  sh.setFoot([bDonner, bGo]);
   render();
 }
 

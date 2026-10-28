@@ -200,7 +200,7 @@ const piste = i => `const { S } = await import('./ui/state.js'); const c = S.com
 const SURFACES = [
   ['Aujourd’hui', p => p.evaluate(() => { location.hash = '#/aujourdhui'; })],
   ['Mes pistes', p => p.evaluate(() => { location.hash = '#/pistes'; })],
-  ['Échanger', p => p.evaluate(() => { location.hash = '#/echanger'; })],
+  ['Échanger', p => p.evaluate(() => { location.hash = '#/reseau'; })],
   ['Moi', p => p.evaluate(() => { location.hash = '#/moi'; })],
   ['fiche', p => p.evaluate(new Function(`return (async () => { ${piste(0)} (await import('./ui/fiche.js')).openFiche(c); })()`))],
   ['écrire', p => p.evaluate(new Function(`return (async () => { ${piste(0)} (await import('./ui/mail.js')).openMail(c, {}); })()`))],

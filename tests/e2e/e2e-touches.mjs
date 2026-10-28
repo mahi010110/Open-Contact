@@ -2,7 +2,7 @@
    OpenContact — e2e : LE CLAVIER AU POSTE (lot R8)
    (docs/propositions/R8-le-clavier.md, validée le 20 octobre 2026)
 
-   Derrière le drapeau `clavier`, préversion allumée, sur l'app réelle.
+   Ouvert à tous depuis la 7.0.0, sur l'app réelle.
    ① Ctrl K ouvre « Chercher » au poste : « aztek » donne la piste, puis
      « Écrire à Aztek » et « Planifier Aztek » ; ↓ et Entrée font le
      geste ; « karim » écrit à Karim ; rien de tapé, les gestes. Au pouce,
@@ -15,8 +15,6 @@
    ③ Réglages, au poste : « Touches d'une lettre · allumées » ; éteintes,
      plus aucune touche n'est écrite ni n'agit (N, /, E, F), et Ctrl K
      reste. Au pouce, pas de rangée ;
-   ④ préversion éteinte : ni « Chercher », ni touches écrites, ni Ctrl K,
-     et N fait ce qu'il faisait ;
    poste clair et sombre ; zéro erreur console.
    Quatre mutations : les touches qui ne se coupent plus, une lettre qui
    agit dans un champ, la piste trouvée par son nom qui ne passe plus
@@ -48,7 +46,7 @@ const PROFIL = { name: 'Inès Martin', email: 'ines@exemple.test', formation: 'B
   amiId: 'InesInesInesInesInes01',
   amis: [{ id: 'KarimKarimKarimKarim01', nom: 'Karim Benali', parcours: [], cle: CLE.slice(0, 87), recu: 1 }] };
 
-async function ecran(nom, { vp = { width: 1280, height: 800 }, sombre = false, preversion = true,
+async function ecran(nom, { vp = { width: 1280, height: 800 }, sombre = false, 
                             profil = PROFIL, hash = '#/aujourdhui', mutations = {} } = {}){
   const ctx = await browser.newContext({ viewport: vp, hasTouch: vp.width < 901, colorScheme: sombre ? 'dark' : 'light' });
   await annuaireMuet(ctx); await relaisMuets(ctx);
@@ -60,12 +58,11 @@ async function ecran(nom, { vp = { width: 1280, height: 800 }, sombre = false, p
   p.on('console', m => { if (m.type() === 'error') errors.push(nom + ' : ' + m.text()); });
   await p.goto(base + '/#/aujourdhui');
   await p.waitForFunction(() => !!document.querySelector('#sbVer')?.textContent);
-  await p.evaluate(async ([ps, pr, pv]) => {
+  await p.evaluate(async ([ps, pr]) => {
     const st = await import('./engine/storage.js'); await st.kvInit();
     await st.kvSet(st.DATA_KEY, JSON.stringify(ps));
     await st.kvSet(st.PROFILE_KEY, JSON.stringify(pr));
-    if (pv) await st.kvSet(st.PREVERSION_KEY, '1'); else await st.kvDel(st.PREVERSION_KEY);
-  }, [PISTES, profil, preversion]);
+  }, [PISTES, profil]);
   await p.evaluate(h => { location.hash = h; }, hash);
   await p.reload();
   await p.waitForFunction(() => !!document.querySelector('#sbVer')?.textContent);
@@ -276,21 +273,6 @@ async function couper(mutations = {}){
   const { ctx, p } = await ecran('couper-pouce', { vp: { width: 390, height: 844 }, hash: '#/moi' });
   await ouvrirReglages(p);
   ok(!await p.$('#moiTouches'), '③ au pouce : pas de rangée, il n’y a pas de clavier');
-  await ctx.close();
-}
-
-/* ---------- ④ préversion éteinte ---------- */
-{
-  const { ctx, p } = await ecran('eteinte', { preversion: false });
-  const rien = await p.evaluate(() => ({ chercher: !!document.querySelector('#btnPalette'), kbd: document.querySelectorAll('.kbd-btn').length }));
-  await surLeFond(p);
-  await p.keyboard.press('Control+k');
-  await p.waitForTimeout(300);
-  const apresK = await dessus(p);
-  await p.keyboard.press('n');
-  await p.waitForTimeout(400);
-  ok(!rien.chercher && !rien.kbd && !apresK && await dessus(p) === 'Nouvelle piste',
-     '④ préversion éteinte : ni « Chercher », ni touches écrites, ni Ctrl K — et N fait ce qu’il faisait');
   await ctx.close();
 }
 

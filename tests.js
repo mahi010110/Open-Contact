@@ -25,7 +25,7 @@ import { filterCompanies, filterOrphans, searchHint, NATURAL_DIR } from './engin
 import { scoreOf } from './engine/score.js';
 import { DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, SYNC_KEY,
          RELAYS_KEY, TURN_KEY, DEVICE_KEY, DEVICES_KEY, PROMO_KEY, VAULT_KEY,
-         ANALYSIS_KEY, VUS_KEY, RESEAU_KEY, GROUPES_KEY, MESSAGES_KEY, FILS_KEY, BROUILLONS_KEY, SEALABLE, THEME_KEY, VIEW_KEY, OLD_V2, OLD_V1, CLES_A_EFFACER,
+         ANALYSIS_KEY, VUS_KEY, RESEAU_KEY, GROUPES_KEY, MESSAGES_KEY, FILS_KEY, BROUILLONS_KEY, MOI_KEY, SEALABLE, THEME_KEY, VIEW_KEY, OLD_V2, OLD_V1, CLES_A_EFFACER,
          PREVERSION_KEY,
          kvGet, kvSet, kvDel, vaultActive, vaultDetach, vaultReseal } from './engine/storage.js';
 import { DRAPEAUX, DUREE_MAX_JOURS, defauts as defautsDrapeau, perimes, actif, enTest,
@@ -34,6 +34,10 @@ import { DESTINATIONS, ACCUEIL, routeDe, destination, titreDe, navigation } from
 import { causeLiaison, relayTally, liaisonStage, parseTurn, turnText, TURN_MAX, RELAIS_DEFAUT } from './engine/transport.js';
 import { clePortage, sceller as scellerPortage, ouvrir as ouvrirPortageMsg, decouper, rassembler, recolte,
          PORTAGE_PART, PORTAGE_PARTS_MAX, makeCleEchange, cleEntre, decouperScelle, rassemblerScelle } from './engine/portage.js';
+import { nouvellePhrase, defautPhrase, motsAVerifier, semaineDe, clesDe, clesValides, etiquetteSemaine, cleSemaine,
+         sceller as scellerMoi, ouvrirScelle, decouper as decouperMoi, evenementsDepot, rassembler as rassemblerMoi,
+         fautDeposer, empreinte as empreinteMoi, MORCEAU_MAX, MORCEAUX_MAX, EXPIRE_JOURS, MOI_KIND,
+         nouvelAppareil, posteSemaine, fusionnerCopies } from './engine/moi.js';
 import { VAULT_WORDS, PHRASE_LEN, makeVaultPhrase, normVaultPhrase, phraseUnknownWords,
          createVault, unlockWithPin, unlockWithPhrase, unlockWithPrf,
          setPin, addPrfWrap, rotateVault,
@@ -75,7 +79,7 @@ import { nouvelleCle, boiteValide, cleValide, etiquetteBoite, sceller, ouvrir, l
          CERCLE_MAX, RELAIS_MAX, suiviDemande, pourCherche, rangerLignesAmis, mercisRecents, MERCI_AFFICHE_JOURS } from './engine/boite.js';
 import { critereValide, phraseCritere, CRITERE_METIER } from './engine/critere.js';
 import { cleFil, prefsVides, normaliserPrefs, basculerEpingle, basculerMuet, renommerFil, oublierFil, boite,
-         filtrer, filtresUtiles, filtreVide, aLire, chiffreOnglet, premierNonLu, EPINGLES_MAX,
+         filtrer, filtresUtiles, filtreVide, premierNonLu, EPINGLES_MAX,
          phraseEcrits, nomsListe } from './engine/conversations.js';
 import { visage, initiales, TEINTES } from './engine/visage.js';
 import { MESSAGE_MAX, FIL_MAX, texteMessage, conversationsVides, normaliserConversations, filAvec, ajouterMessage,
@@ -1172,6 +1176,13 @@ export async function runSelfTests(){
       eq(metierEtiquetteDuProfil({ formation: 'BTS SIO SISR' }, idx).cle, 'reseau');
       eq(metierEtiquetteDuProfil({ formation: 'BTS MCO' }, idx).cle, 'formation:bts mco');
       eq(metierEtiquetteDuProfil({ formation: 'BTS MCO' }), null);
+      /* une formation d'informatique reste à la table de l'informatique :
+         le RNCP la connaît, mais il ne dit rien de plus fin */
+      ok(!!formationDe('BTS SIO', idx));
+      eq(etiquetteFormation('BTS SIO', idx), null);
+      eq(metierEtiquetteDuProfil({ formation: 'BTS SIO' }, idx), null);
+      eq(etiquetteFormation('BUT réseaux et télécommunications', idx), null);
+      ok(etiquetteFormation('BUT GEA', idx).profil);
     },
     'barre : aucun mot perdu — chaque mot finit dans une étiquette, le texte ou la liaison': () => {
       const ctx = { today: '2026-10-01', villes: ['Lille'], prenoms: ['Léa'] };
@@ -2547,7 +2558,6 @@ export async function runSelfTests(){
       let p = prefsVides();
       /* sans réglage : le plus récent en haut, une clé invalide n'entre pas */
       eq(boite(fils, p).map(r => r.nom), ['Inès Martin', 'BTS SIO Lille', 'Karim Benali', 'Léa Dupont']);
-      eq(aLire(boite(fils, p)), 3);                          /* trois CONVERSATIONS, pas six messages */
       /* épingler : en haut, dans l'ordre où l'on a épinglé (la dernière devant) */
       p = basculerEpingle(p, L);
       p = basculerEpingle(p, K);
@@ -2557,11 +2567,10 @@ export async function runSelfTests(){
       let q = prefsVides();
       for (let i = 0; i < EPINGLES_MAX + 2; i++) q = basculerEpingle(q, cleFil('ami', 'AmiAmiAmiAmiAmi' + String(i).padStart(5, '0')));
       eq(q.epingles.length, EPINGLES_MAX);                   /* au-delà, tout serait en haut */
-      /* couper le son : la conversation reste, son chiffre aussi, mais l'onglet ne la compte plus */
+      /* couper le son : la conversation reste, ce qui n'est pas lu aussi */
       p = basculerMuet(p, G);
       const r = boite(fils, p);
       ok(r.find(x => x.cle === G).muet && r.find(x => x.cle === G).n === 3);
-      eq(aLire(r), 2);
       eq(basculerMuet(p, G).muets, []);
       eq(basculerMuet(p, 'g:<script>'), p);                  /* rien d'autre qu'une clé */
       /* un groupe qui change de code garde son épingle et son silence */
@@ -2585,8 +2594,6 @@ export async function runSelfTests(){
       eq(filtrer(tous, 'groupes').map(x => x.nom), ['BTS SIO Lille']);
       eq(filtrer(tous, 'amis').length, 3);
       eq(filtrer(tous, 'tout'), tous);
-      /* le chiffre de l'onglet */
-      eq([chiffreOnglet(0), chiffreOnglet(7), chiffreOnglet(140)], ['', '7', '99+']);
       /* ouvrir là où l'on s'était arrêté : le premier qui n'est pas de moi, après ma visite */
       const items = [{ at: 10, de: 'moi' }, { at: 20, de: 'k' }, { at: 30, de: 'moi' }, { at: 40, de: 'k' }];
       eq(premierNonLu(items, 25, x => x.de === 'moi'), 3);
@@ -2637,11 +2644,10 @@ export async function runSelfTests(){
       g = traiterMessage(g, normaliserMessage({ t: 'mot', id: 'm0000004', de: I, prenom: 'Inès', texte: '@Maheydine', at: 1800, cite: [M] }, 2000));
       ok(citeMoi(mot, M) && !citeMoi(mot, K));
       eq(mentionsNonLues(g, M), 1);                          /* celui d'avant ma visite est lu */
-      /* dans la boîte : un groupe dont on a coupé le son compte s'il me nomme */
+      /* dans la boîte : un groupe dont on a coupé le son garde ce qui me nomme */
       const G = cleFil('groupe', 'ABCDEFGHIJKLMNO');
-      let p = basculerMuet(prefsVides(), G);
-      eq(aLire(boite([{ cle: G, sorte: 'groupe', nom: 'BTS', at: 1, n: 4 }], p)), 0);
-      eq(aLire(boite([{ cle: G, sorte: 'groupe', nom: 'BTS', at: 1, n: 4, cite: 1 }], p)), 1);
+      const p = basculerMuet(prefsVides(), G);
+      eq(boite([{ cle: G, sorte: 'groupe', nom: 'BTS', at: 1, n: 4, cite: 1 }], p)[0].cite, 1);
     },
     'qui m’a donné ce contact : le mail le dit, le partage jamais': () => {
       const ct = normalizeContact({ id: 'k1', name: 'Julie Marchand', email: 'julie@advens.test', via: '  Karim  ' });
@@ -3824,15 +3830,136 @@ export async function runSelfTests(){
          ressuscitait des pistes d'avant la v3 sur un appareil « effacé » */
       ok(CLES_A_EFFACER.includes(OLD_V2) && CLES_A_EFFACER.includes(OLD_V1));
       for (const k of [DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, SYNC_KEY,
-                       RELAYS_KEY, TURN_KEY, DEVICE_KEY, DEVICES_KEY, PROMO_KEY, VAULT_KEY, ANALYSIS_KEY, VUS_KEY, RESEAU_KEY, GROUPES_KEY, MESSAGES_KEY, FILS_KEY, BROUILLONS_KEY])
+                       RELAYS_KEY, TURN_KEY, DEVICE_KEY, DEVICES_KEY, PROMO_KEY, VAULT_KEY, ANALYSIS_KEY, VUS_KEY, RESEAU_KEY, GROUPES_KEY, MESSAGES_KEY, FILS_KEY, BROUILLONS_KEY, MOI_KEY])
         ok(CLES_A_EFFACER.includes(k), k + ' doit partir');
       /* tout ce qui se scelle est une donnée : tout ce qui se scelle s'efface */
       for (const k of SEALABLE) ok(CLES_A_EFFACER.includes(k), k + ' (scellable) doit partir');
       ok(!CLES_A_EFFACER.includes(THEME_KEY));                       /* un réglage d'affichage reste */
       ok(CLES_A_EFFACER.includes(PREVERSION_KEY));                   /* un appareil effacé sort du test */
     },
+    /* ---------- un seul « moi » (lot R5) ---------- */
+    'moi : la phrase est celle du coffre — douze mots de sa liste, tirés par l’appareil': () => {
+      const ph = nouvellePhrase(n => new Uint8Array(n).map((_, i) => i * 7));
+      eq(ph.split(' ').length, PHRASE_LEN);
+      ok(ph.split(' ').every(w => VAULT_WORDS.includes(w)));
+      eq(defautPhrase(ph), '');
+      eq(defautPhrase(ph.toUpperCase().replace(/ /g, '   ')), '');      /* casse, espaces : rien ne compte */
+      eq(defautPhrase(''), 'vide');
+      eq(defautPhrase(ph.replace(/^\S+/, 'zzz')), 'mot');                /* un mot hors liste se dit tel */
+      eq(defautPhrase(ph.split(' ').slice(0, 11).join(' ')), 'nombre');
+      const [a, b] = motsAVerifier(() => new Uint8Array([200, 13]));
+      ok(a >= 0 && a < 6 && b >= 6 && b < 12);                          /* un mot dans chaque moitié */
+    },
+    'moi : les clés se tirent de la phrase seule, et ne dépendent pas de la façon de la taper': async () => {
+      const ph = nouvellePhrase();
+      const c = await clesDe(ph, 1000);
+      ok(clesValides(c));
+      eq(await clesDe('  ' + ph.toUpperCase() + ' ', 1000), c);
+      const d = await clesDe(nouvellePhrase(), 1000);
+      ok(d.scelle !== c.scelle && d.etiquette !== c.etiquette && d.signe !== c.signe);
+      /* trois clés séparées : aucune ne se déduit d'une autre */
+      ok(new Set([c.scelle, c.etiquette, c.signe]).size === 3);
+      ok(!JSON.stringify(c).includes(ph.split(' ')[0]));                  /* rien de la phrase n'est gardé */
+      ok(!clesValides({ ...c, signe: 'x' }) && !clesValides(null));
+    },
+    'moi : l’étiquette et la clé de signature changent chaque semaine (le relais ne relie pas mes dépôts)': async () => {
+      const c = await clesDe(nouvellePhrase(), 1000);
+      const w = semaineDe(Date.UTC(2026, 9, 27));
+      const e1 = await etiquetteSemaine(c, w), e2 = await etiquetteSemaine(c, w + 1);
+      ok(/^[A-Za-z0-9_-]{22}$/.test(e1) && e1 !== e2);
+      eq(await etiquetteSemaine(c, w), e1);
+      const k1 = await cleSemaine(c, w), k2 = await cleSemaine(c, w + 1);
+      ok(k1.length === 32 && k1.join() !== k2.join());
+      /* les semaines commencent le lundi */
+      eq(semaineDe(Date.UTC(2026, 9, 26, 0, 0, 1)), semaineDe(Date.UTC(2026, 10, 1, 23, 59)));   /* lundi 26 → dimanche 1er */
+      eq(semaineDe(Date.UTC(2026, 10, 2)), semaineDe(Date.UTC(2026, 9, 26)) + 1);
+    },
+    'moi : le scellé s’ouvre avec la phrase, jamais avec une autre, et ne dit rien en clair': async () => {
+      const c = await clesDe(nouvellePhrase(), 1000);
+      const obj = { v: 4, kind: 'full', profile: { name: 'Inès Martin', boite: { pub: 'PUBX', priv: 'PRIVX' } },
+        companies: [{ id: 'a', name: 'Aztek Sécurité', notes: 'NOTE-PRIVEE', contacts: [{ name: 'Julie', email: 'julie@aztek.test' }] }] };
+      const s = await scellerMoi(c, obj);
+      ok(/^OCM1\.[zn]\./.test(s));
+      for (const x of ['Inès', 'Aztek', 'NOTE-PRIVEE', 'julie@', 'PRIVX']) ok(!s.includes(x));
+      eq(await ouvrirScelle(c, s), obj);
+      const autre = await clesDe(nouvellePhrase(), 1000);
+      let err = ''; try { await ouvrirScelle(autre, s); } catch (e) { err = e.message; }
+      eq(err, 'cle');
+      err = ''; try { await ouvrirScelle(c, 'OCM1.z.AAAA'); } catch (e) { err = e.message; }
+      eq(err, 'format');
+    },
+    'moi : un dépôt se coupe en morceaux et se rassemble dans n’importe quel ordre, sans mêler deux dépôts': () => {
+      const scelle = 'OCM1.z.' + 'x'.repeat(MORCEAU_MAX * 2 + 5);
+      const m = decouperMoi(scelle, 'depot000001');
+      eq(m.length, 3);
+      ok(m.every(x => x.length <= MORCEAU_MAX + 40));
+      const evs = m.map((content, i) => ({ content, created_at: 200 + i }));
+      /* un ancien dépôt dont un morceau traîne encore sous un `d` que le
+         nouveau n'a pas réécrit : il ne se mélange pas */
+      const vieux = decouperMoi('OCM1.z.' + 'y'.repeat(MORCEAU_MAX * 3), 'depot000000').map(content => ({ content, created_at: 100 }));
+      const r = rassemblerMoi([evs[2], vieux[3], evs[0], evs[1], evs[0]]);
+      eq(r, [{ texte: scelle, at: 202000 }]);
+      eq(rassemblerMoi([evs[0], evs[2]]), []);                         /* incomplet : rien n'est deviné */
+      eq(rassemblerMoi([{ content: 'n’importe quoi' }, null]), []);
+      eq(decouperMoi('', 'depot000001'), null);
+      eq(decouperMoi('x'.repeat(MORCEAU_MAX * (MORCEAUX_MAX + 1)), 'depot000001'), null);
+    },
+    'moi : un événement de dépôt ne porte que son étiquette, son poste, son morceau et son expiration': () => {
+      const now = Date.UTC(2026, 9, 27);
+      const evs = evenementsDepot('ETIQUETTE0000000000000', 'POSTE000000', ['OCMP1.d.0.2.aa', 'OCMP1.d.1.2.bb'], now);
+      eq(evs.length, 2);
+      eq(evs[1].kind, MOI_KIND);
+      eq(evs[1].tags.map(t => t[0]), ['d', 'x', 'expiration']);
+      eq(evs[1].tags[0][1], 'ETIQUETTE0000000000000.POSTE000000.1');
+      eq(Number(evs[0].tags[2][1]), now / 1000 + EXPIRE_JOURS * 86400);
+    },
+    'moi : chaque appareil dépose sous son poste, qui change aussi chaque semaine': async () => {
+      const c = await clesDe(nouvellePhrase(), 1000);
+      const tel = nouvelAppareil(), pc = nouvelAppareil();
+      ok(/^[A-Za-z0-9_-]{12}$/.test(tel) && tel !== pc);
+      const w = semaineDe(Date.UTC(2026, 9, 27));
+      const p1 = await posteSemaine(c, tel, w);
+      ok(/^[A-Za-z0-9_-]{11}$/.test(p1));
+      eq(await posteSemaine(c, tel, w), p1);
+      ok(p1 !== await posteSemaine(c, pc, w));                      /* le portable ne remplace pas le téléphone */
+      ok(p1 !== await posteSemaine(c, tel, w + 1));                 /* d'une semaine à l'autre, rien ne le reconnaît */
+      ok(!p1.includes(tel.slice(0, 6)));
+    },
+    'moi : ramener garde le plus récent de chaque appareil et les fusionne sans rien écraser': () => {
+      const piste = (id, t, nom) => ({ id, name: nom || id, updatedAt: t, contacts: [] });
+      const copie = (appareil, companies, extra) => ({ v: 4, kind: 'full', appareil, companies,
+        profile: { name: 'Inès', updatedAt: extra && extra.pt || 1 }, tombs: (extra && extra.tombs) || [], ...(extra && extra.liaison ? { liaison: extra.liaison } : {}) });
+      const r = fusionnerCopies([
+        /* le téléphone perdu : son dernier dépôt, et un plus ancien qui
+           portait encore une piste retirée depuis (sans pierre tombale) */
+        { at: 3000, obj: copie('TEL', [piste('a', 30, 'Aztek'), piste('b', 30)], { pt: 5, liaison: 'k7m3p-9xq2f' }) },
+        { at: 1000, obj: copie('TEL', [piste('a', 10), piste('b', 10), piste('vieille', 10)]) },
+        /* le portable, qui a continué sans lui : une piste neuve, une
+           plus récente, une suppression */
+        { at: 5000, obj: copie('PC', [piste('a', 50, 'Aztek Sécurité'), piste('c', 40)], { pt: 3, tombs: [{ id: 'b', t: 45 }] }) },
+        { at: 9000, obj: { kind: 'share', companies: [] } }                   /* pas une copie : ignoré */
+      ]);
+      eq(r.appareils, 2);
+      eq(r.at, 5000);
+      eq(r.companies.map(c => c.id).sort(), ['a', 'c']);                      /* « b » retiré, « vieille » ne revient pas */
+      eq(r.companies.find(c => c.id === 'a').name, 'Aztek Sécurité');        /* la plus récente gagne */
+      eq(r.profile.name, 'Inès');
+      eq(r.liaison, 'k7m3p-9xq2f');
+      eq(fusionnerCopies([]), null);
+      eq(fusionnerCopies([{ at: 1, obj: null }]), null);
+      /* un profil jamais horodaté revient quand même */
+      eq(fusionnerCopies([{ at: 1, obj: { kind: 'full', companies: [], profile: { name: 'Léa' } } }]).profile.name, 'Léa');
+    },
+    'moi : on redépose ce qui a changé (pas plus d’une fois en dix minutes), et chaque semaine': async () => {
+      const t = Date.UTC(2026, 9, 28, 12);
+      ok(fautDeposer(null, 'a', t));
+      ok(!fautDeposer({ at: t - 60000, empreinte: 'a' }, 'a', t));
+      ok(!fautDeposer({ at: t - 60000, empreinte: 'a' }, 'b', t));           /* changée il y a une minute : on attend */
+      ok(fautDeposer({ at: t - 11 * 60000, empreinte: 'a' }, 'b', t));
+      ok(fautDeposer({ at: Date.UTC(2026, 9, 25, 12), empreinte: 'a' }, 'a', t));   /* la semaine a changé */
+      ok((await empreinteMoi({ a: 1 })) !== (await empreinteMoi({ a: 2 })));
+    },
     'drapeaux de livraison : chacun a sa raison, son lot et sa date de retrait': () => {
-      ok(DRAPEAUX.length > 0);
       const ids = new Set();
       for (const d of DRAPEAUX){
         eq(defautsDrapeau(d), [], d.id);
@@ -3877,14 +4004,12 @@ export async function runSelfTests(){
       eq(ecrirePreversion(false), null);
     },
     'destinations : une ancienne adresse mène toujours quelque part': () => {
-      eq(DESTINATIONS.map(d => d.id), ['aujourdhui', 'pistes', 'echanger', 'reseau', 'moi']);
-      /* la barre selon le lot « reseau » : Réseau OU Échanger, jamais les
-         deux, et l'ancienne adresse redirige dans les deux sens */
-      eq(navigation(false).ids, ['aujourdhui', 'pistes', 'echanger', 'moi']);
-      eq(navigation(true).ids, ['aujourdhui', 'pistes', 'reseau', 'moi']);
-      eq(destination('#/echanger', navigation(true)), { id: 'reseau', ancienne: true });
-      eq(destination('#/reseau', navigation(false)), { id: 'echanger', ancienne: true });
-      eq(destination('#/reseau', navigation(true)), { id: 'reseau', ancienne: false });
+      eq(DESTINATIONS.map(d => d.id), ['aujourdhui', 'pistes', 'reseau', 'moi']);
+      /* « Réseau » a pris la place d'« Échanger » (7.0.0) : l'ancienne
+         adresse, donnée avant, mène à la nouvelle */
+      eq(navigation().ids, ['aujourdhui', 'pistes', 'reseau', 'moi']);
+      eq(destination('#/echanger', navigation()), { id: 'reseau', ancienne: true });
+      eq(destination('#/reseau', navigation()), { id: 'reseau', ancienne: false });
       eq(titreDe('reseau'), 'Réseau');
       eq(routeDe('#/pistes'), 'pistes');
       eq(routeDe('#pistes'), 'pistes');
@@ -3902,7 +4027,7 @@ export async function runSelfTests(){
       /* une adresse présente ne suit jamais d'alias */
       eq(destination('#/reseau', { ids, alias: { reseau: 'aujourdhui' } }), { id: 'reseau', ancienne: false });
       eq(destination('#/constructor', { ids }), { id: 'aujourdhui', ancienne: false });
-      eq(titreDe('echanger'), 'Échanger');
+      eq(titreDe('echanger'), '');
       eq(titreDe('inconnu'), '');
     },
     'composeur : le modèle arrive pré-choisi d’après le statut de la piste': () => {
@@ -4683,6 +4808,9 @@ export async function runSelfTests(){
       eq(derniereTrace({ updatedAt: Date.UTC(2026, 6, 1) }, '2026-07-15'), 14);
       /* une date future (horloge de travers) ne crée pas de silence négatif */
       eq(derniereTrace({ history: [{ d: '2027-01-01', t: 'x' }] }, '2026-07-15'), 0);
+      /* un horodatage d'avant 2001 n'est pas une trace : pas « 20 753 j » de silence */
+      eq(derniereTrace({ updatedAt: 9 }, '2026-07-15'), 0);
+      eq(silentPistes([{ id: 'v', name: 'Vieille', status: 'applied', updatedAt: 9 }], '2026-07-15'), []);
     },
     /* Les verbes proposés après « Fait ✓ » : ils suivent l'état de la
        piste, et ne reproposent jamais celui qui est déjà posé — un tap

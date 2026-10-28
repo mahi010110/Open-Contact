@@ -2,7 +2,7 @@
    OpenContact — e2e : MA SEMAINE (lot R4)
    (docs/propositions/R4-ma-semaine.md, validée le 20 octobre 2026)
 
-   Derrière le drapeau `semaine`, préversion allumée, sur l'app réelle,
+   Ouvert à tous depuis la 7.0.0, sur l'app réelle,
    l'horloge posée sur un jour connu (un mercredi, puis un vendredi).
    ① LA FUITE D'ABORD : la revue part dans le groupe par le vrai bouton,
      sur un relais local qui garde ; ouverte avec le code, elle ne porte
@@ -15,8 +15,7 @@
    ③ le vendredi : « Ma semaine · 2 mails · 1 réponse · 2 pistes », la
      phrase dans la feuille, « Partager au groupe » au pied — et sans
      groupe, pas de pied ;
-   ④ pas de ligne pendant les premiers pas, avec l'exemple, ni la
-     préversion éteinte ;
+   ④ pas de ligne pendant les premiers pas, ni avec l'exemple ;
    pouce clair et sombre, poste ; zéro erreur console.
    Trois mutations : un nom de piste glissé dans la revue, le compte qui
    ne lit plus les mails, l'objectif qui ne se garde pas.
@@ -69,7 +68,7 @@ const NOMS = ['Advens', 'Orange', 'Worldline', 'Kiabi', 'Capgemini', 'Claire', '
 const PROFIL = { name: 'Inès Martin', email: 'ines@prive.test', formation: 'BTS SIO', recherche: 'alternance', amiId: 'InesInesInesInes0001',
   groupes: [{ code: CODE, nom: 'BTS SIO Lille', at: t(-20) }] };
 
-async function ecran(nom, { quand = mercredi, vp = { width: 390, height: 844 }, sombre = false, preversion = true,
+async function ecran(nom, { quand = mercredi, vp = { width: 390, height: 844 }, sombre = false, 
                             pistes = PISTES, profil = PROFIL, mutations = {} } = {}){
   const ctx = await browser.newContext({ viewport: vp, hasTouch: vp.width < 901, ignoreHTTPSErrors: true, colorScheme: sombre ? 'dark' : 'light' });
   await ctx.clock.setFixedTime(quand);
@@ -82,13 +81,12 @@ async function ecran(nom, { quand = mercredi, vp = { width: 390, height: 844 }, 
   p.on('console', m => { if (m.type() === 'error') errors.push(nom + ' : ' + m.text()); });
   await p.goto(base + '/#/aujourdhui');
   await p.waitForFunction(() => !!document.querySelector('#sbVer')?.textContent);
-  await p.evaluate(async ([ps, pr, pv, url]) => {
+  await p.evaluate(async ([ps, pr, url]) => {
     const st = await import('./engine/storage.js'); await st.kvInit();
     await st.kvSet(st.DATA_KEY, JSON.stringify(ps));
     await st.kvSet(st.PROFILE_KEY, JSON.stringify(pr));
     await st.kvSet(st.RELAYS_KEY, JSON.stringify([url]));
-    if (pv) await st.kvSet(st.PREVERSION_KEY, '1'); else await st.kvDel(st.PREVERSION_KEY);
-  }, [pistes, profil, preversion, relay.url]);
+  }, [pistes, profil, relay.url]);
   await p.reload();
   await p.waitForFunction(() => !!document.querySelector('#sbVer')?.textContent);
   await p.waitForTimeout(400);
@@ -192,11 +190,6 @@ for (const [nom, vp, sombre] of [['pouce', { width: 390, height: 844 }, false], 
 {
   const { ctx, p } = await ecran('exemple', { pistes: [...PISTES, { id: 'd1', name: 'Exemple SA', status: 'active', demo: true }] });
   ok(await ligne(p) === null, '④ avec les pistes d’exemple : pas de ligne');
-  await ctx.close();
-}
-{
-  const { ctx, p } = await ecran('eteinte', { preversion: false });
-  ok(await ligne(p) === null, '④ préversion éteinte : pas de ligne');
   await ctx.close();
 }
 

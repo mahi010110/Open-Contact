@@ -23,54 +23,14 @@
 
 /* Un drapeau : `id` (ce que le code demande), `lot` (le lot du
    recadrage), `nom` (ce que lit le testeur dans Réglages), `raison`,
-   `cree` et `retrait` (dates ISO), `ouvert` (visible pour tous). */
-export const DRAPEAUX = Object.freeze([
-  Object.freeze({
-    id: 'reseau', lot: 'R1', nom: 'l’onglet Réseau',
-    raison: 'Les gens au même endroit : l’onglet Réseau remplace Échanger, le + fait tout entrer, Partager part des pistes (décision 0002).',
-    cree: '2026-10-19', retrait: '2027-03-31', ouvert: false
-  }),
-  Object.freeze({
-    id: 'suivi', lot: 'R2', nom: 'tes chiffres et le retour après une pause',
-    raison: 'Un suivi qui se remplit seul : tes chiffres en tête de Pistes, et après 7 jours sans un geste, trois choses à reprendre (proposition R2).',
-    cree: '2026-10-20', retrait: '2027-03-31', ouvert: false
-  }),
-  Object.freeze({
-    id: 'prets', lot: 'R3', nom: 'les mails prêts à partir',
-    raison: 'Prêts à partir : les relances dues et les premiers mails écrits d’affilée depuis Aujourd’hui, et les brouillons gardés sur cet appareil (proposition R3).',
-    cree: '2026-10-20', retrait: '2027-03-31', ouvert: false
-  }),
-  Object.freeze({
-    id: 'semaine', lot: 'R4', nom: 'ma semaine',
-    raison: 'Ma semaine : un objectif de mails le lundi, qui se remplit seul, et la revue du vendredi, partagée au groupe d’un geste (proposition R4).',
-    cree: '2026-10-20', retrait: '2027-03-31', ouvert: false
-  }),
-  Object.freeze({
-    id: 'aide', lot: 'R7', nom: 'ceux qui aident',
-    raison: 'Ceux qui aident : « Je peux aider » dans Moi, la piste décrochée qui propose d’aider à son tour, la demande de 20 minutes chez l’ami et le merci qui revient (proposition R7).',
-    cree: '2026-10-20', retrait: '2027-03-31', ouvert: false
-  }),
-  Object.freeze({
-    id: 'clavier', lot: 'R8', nom: 'le clavier au poste',
-    raison: 'Le clavier au poste : Ctrl K cherche et fait, une lettre par geste du jour écrite dans son bouton, et une rangée de Réglages pour couper les touches d’une lettre (WCAG 2.1.4, proposition R8).',
-    cree: '2026-10-20', retrait: '2027-03-31', ouvert: false
-  }),
-  Object.freeze({
-    id: 'export', lot: 'R9', nom: 'ton parcours exportable',
-    raison: 'Ton parcours en un fichier JSON Resume, depuis « Mon parcours » : ce que tu as écrit dans ton profil, montré ligne par ligne avant de partir (proposition R9).',
-    cree: '2026-10-20', retrait: '2027-03-31', ouvert: false
-  }),
-  Object.freeze({
-    id: 'metiers', lot: 'R9', nom: 'tous les métiers',
-    raison: 'Tous les métiers : la barre comprend les appellations du ROME 4.0, « À découvrir » cherche dans leurs secteurs, et une formation hors de l’informatique dit ses métiers par le RNCP (proposition R9, décision 0005).',
-    cree: '2026-10-20', retrait: '2027-03-31', ouvert: false
-  }),
-  Object.freeze({
-    id: 'calme', lot: 'R10', nom: 'sans notifications',
-    raison: 'Le calme : plus de chiffre sur les onglets ni sur les conversations, « Aujourd’hui » dit qui t’a écrit, et ce qui arrive des autres ne surgit plus — la liste ou la carte le montrent (proposition R10).',
-    cree: '2026-10-21', retrait: '2027-04-20', ouvert: false
-  })
-]);
+   `cree` et `retrait` (dates ISO), `ouvert` (visible pour tous).
+
+   VIDE depuis la 7.0.0 (27 octobre 2026) : les lots R1 à R4 et R7 à R10
+   se sont ouverts à tous, et leurs anciens chemins sont partis avec
+   leurs drapeaux — décision du mainteneur, « je veux une app prête et
+   finie ». Le registre reste, pour le prochain lot ; sans lot en test,
+   la ligne « Préversion » ne s'affiche pas. */
+export const DRAPEAUX = Object.freeze([]);
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 /* six mois au plus entre la naissance et le retrait : le temps d'un lot,

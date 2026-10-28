@@ -33,7 +33,7 @@ import { prenomAmi, profilDonne, statutAmi, ajouterAmi, retirerAmi, nouvelIdAmi,
 import { parcoursDe } from '../engine/parcours.js';
 import { pistesPour } from '../engine/requete.js';
 import { phraseCritere } from '../engine/critere.js';
-import { S, bus, saveData, saveProfile, logJ, lot } from './state.js';
+import { S, bus, saveData, saveProfile, logJ } from './state.js';
 import { openSheet, toast, btn, ic, showUndo } from './dom.js';
 import { frDate } from './dates.js';
 
@@ -90,6 +90,30 @@ export async function publier(ev){
         if (d[0] === 'OK' && d[1] === ev.id){ clearTimeout(t); try { ws.close(); } catch (e) {} res(d[2] === true); }
       };
       ws.send(JSON.stringify(['EVENT', ev]));
+    });
+  }));
+  return oks.filter(Boolean).length;
+}
+/* plusieurs événements d'un coup (les morceaux d'une copie, lot R5) :
+   UNE connexion par relais, et un relais ne compte que s'il les a TOUS
+   pris — un dépôt dont il manque un morceau ne se rassemble pas */
+export async function publierLot(evs){
+  const urls = await relais();
+  const oks = await Promise.all(urls.map(async url => {
+    const ws = await connexion(url);
+    if (!ws) return false;
+    return new Promise(res => {
+      const attendus = new Set(evs.map(e => e.id));
+      const t = setTimeout(() => { try { ws.close(); } catch (e) {} res(false); }, 6000 + 2000 * evs.length);
+      const fin = v => { clearTimeout(t); try { ws.close(); } catch (e) {} res(v); };
+      ws.onmessage = m => {
+        let d; try { d = JSON.parse(m.data); } catch (e) { return; }
+        if (d[0] !== 'OK' || !attendus.has(d[1])) return;
+        if (d[2] !== true){ fin(false); return; }
+        attendus.delete(d[1]);
+        if (!attendus.size) fin(true);
+      };
+      evs.forEach(ev => ws.send(JSON.stringify(['EVENT', ev])));
     });
   }));
   return oks.filter(Boolean).length;
@@ -282,7 +306,6 @@ function recevoirAmi(l){
     const p = prenomAmi(l.profil);
     logJ(`${p} t’a ajouté à ses amis`);
     /* le calme (R10) : la liste des amis le montre, rien ne surgit */
-    if (!lot('calme')) toast(`${p} est dans tes amis.`);
   }
   return true;
 }
@@ -332,7 +355,6 @@ async function nommerTrouve(l){
   const quoi = d ? (d.entreprise && d.entreprise.nom ? 'chez ' + d.entreprise.nom : phraseCritere(d.critere)) : '';
   /* le résultat vient d'un autre téléphone : il se dit (§6, ②) — sauf
      au calme (R10), où l'étape « Trouvée » de la carte le montre */
-  if (!lot('calme')) toast(`${par ? 'Un ami de ' + par : 'Un ami'} a trouvé quelqu’un ${quoi}.`);
 }
 async function nommerDon(l){
   const par = await premierMaillon(l.chaine);
@@ -342,7 +364,6 @@ async function nommerDon(l){
    lui seul ouvre son jeton */
 async function remercierChaine(m){
   /* au calme (R10), le merci se lit deux jours dans « Tes amis » */
-  if (!lot('calme')) toast(`${m.de.prenom} te dit merci : quelqu’un a été trouvé chez ${m.entreprise.nom}, grâce à toi.`);
   logJ(`Merci de ${m.de.prenom} : la demande que tu as fait suivre a trouvé quelqu’un chez ${m.entreprise.nom}`);
   if (!(m.suite || []).length) return;
   const suivant = await ouvrirJeton(S.profile.boite.priv, m.suite[0]);
@@ -373,7 +394,6 @@ async function absorberLettre(ev){
   if (r.quoi === 'merci'){
     const m = etat.mercis.at(-1);
     logJ(`Merci de ${m.de.prenom} : ${m.contact.name} (${m.entreprise.nom})`);
-    if (!lot('calme')) toast(`${m.de.prenom} te dit merci pour ${m.contact.name}.`);
   }
   /* PRÉVENU TOUT DE SUITE (décision 18) : qui demande sait qu'on a
      trouvé, sans savoir qui — le contact suivra le oui */
@@ -514,7 +534,7 @@ export function lignesAmis(){
   /* LE CALME (R10) : le merci d'un ami se lit ici deux jours, au lieu
      d'un toast qu'on rate quand dix lettres arrivent d'un coup — le nom
      de la piste en tête, comme les autres lignes */
-  if (lot('calme')) for (const m of mercisRecents(etat))
+  for (const m of mercisRecents(etat))
     out.push({ sorte: 'merci', id: m.id, nom: m.entreprise.nom, raison: `${m.de.prenom} te dit merci`,
                qui: m.relais ? 'quelqu’un a été trouvé grâce à toi' : m.contact ? 'pour ' + m.contact.name : '', at: m.at,
                aria: `${m.de.prenom} te dit merci, ${m.entreprise.nom}` });

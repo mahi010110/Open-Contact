@@ -24,7 +24,7 @@ import { nouvelId, LETTRE_KIND, pourCherche } from '../engine/boite.js';
 import { nouvelIdAmi } from '../engine/amis.js';
 import { sharePayload } from '../engine/exchange.js';
 import { decouper, rassembler } from '../engine/portage.js';
-import { GROUPES_MAX, MOT_MAX, NOM_MAX, nouveauCode, codeNorm, codeAffiche, nomGroupe, invitation, lireInvitation,
+import { GROUPES_MAX, MOT_MAX, NOM_MAX, nouveauCode, codeAffiche, nomGroupe, invitation, lireInvitation,
          cleGroupe, sceller, ouvrirMessage, normaliserMessage, dureeDe, groupeVide, normaliserGroupe,
          traiterMessage, elaguerGroupe, filDe, membresDe, nouveaux, presenceAredire,
          relaisVersGroupe, peutRelayerGroupe, porteInvitation, lirePorte, nouvelleCleSignature, presenceSignee, presenceVerifiee,
@@ -34,7 +34,7 @@ import { GROUPES_MAX, MOT_MAX, NOM_MAX, nouveauCode, codeNorm, codeAffiche, nomG
          citesDe, citeMoi, mentionsNonLues, prenomsPour } from '../engine/groupe.js';
 import { phraseCritere } from '../engine/critere.js';
 import { emailPlausible } from '../engine/model.js';
-import { S, bus, saveProfile, lot, apresImage } from './state.js';
+import { S, bus, saveProfile, apresImage } from './state.js';
 import { openSheet, toast, btn, ic, showUndo, clavier, champGrandit, bindDeleteGesture, confirmSheet, choixHTML } from './dom.js';
 import { cleFil } from '../engine/conversations.js';
 import { ligneNouveaux, suivreNouveaux, ligneJour, texteHTML, debutFenetre, ligneAvant, ouvrirAvant } from './fil.js';
@@ -496,7 +496,6 @@ export async function entrerAdmis(l){
   const sign = await nouvelleCleSignature();
   await entrer({ code: l.code, nom: l.nom, at: Date.now(), type: 'demande', porte: l.porte, chef: l.chef, sign });
   /* au calme (R10), la boîte le montre : la ligne « en attente » s'ouvre */
-  if (!lot('calme')) toast(`Tu es dans ${l.nom || 'le groupe'}.`);
 }
 
 /* ---------- un groupe : les prénoms, le fil, le pied pour écrire ---------- */
@@ -943,8 +942,8 @@ async function inviterDans(box, code){
      ${svg ? `<div class="qr-wrap" role="img" aria-label="Le QR du groupe, à faire scanner">${svg}</div>` : ''}
      ${porte ? '' : `<p class="gr-code"><span>Code</span> <b id="grCodeAff">${esc(codeAffiche(code))}</b></p>`}`;
   box.append(boutonEnvoyer(porte
-    ? `Demande à entrer dans « ${nomDe(code)} » sur OpenContact. Copie ce message, puis Échanger › Recevoir › Texte :\n${txt}`
-    : `Rejoins « ${nomDe(code)} » sur OpenContact. Copie ce message, puis Échanger › Recevoir › Texte :\n${txt}`,
+    ? `Demande à entrer dans « ${nomDe(code)} » sur OpenContact. Copie ce message, puis Ajouter › Recevoir › Texte :\n${txt}`
+    : `Rejoins « ${nomDe(code)} » sur OpenContact. Copie ce message, puis Ajouter › Recevoir › Texte :\n${txt}`,
     { classe: 'btn-sm btn-contour', id: 'grCopier' }));
 }
 function ouvrirMembres(code, shGroupe){

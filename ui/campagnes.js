@@ -12,7 +12,7 @@ import { esc, todayISO } from '../engine/utils.js';
 import { fillTpl, pushHist } from '../engine/model.js';
 import { buildCampaign, dueSends, dueSendsAll, markSent, markReplied, markError,
          stopCompanyTargets, pauseCampaign, resumeCampaign, stopCampaign, campaignStats,
-         DAILY_CAP, OPPOSITION, inSendWindow, SEND_WINDOW_TXT } from '../engine/campaign.js';
+         DAILY_CAP, inSendWindow, SEND_WINDOW_TXT } from '../engine/campaign.js';
 import { sendMail } from '../engine/mailer.js';
 import { CAMPAIGNS_KEY, MISSIONS_KEY, kvGet, kvSet } from '../engine/storage.js';
 import { makeMission, signMission } from '../engine/mission.js';

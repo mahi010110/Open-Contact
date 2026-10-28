@@ -212,7 +212,7 @@ const GESTES = [
      l'animation de proliférer un « juste un petit fondu » à la fois. */
   /* le fil vit dans la feuille « Historique » (13 octobre 2026) */
   ['Déplier le fil des échanges', 'glisse', async p => {
-    await p.evaluate(() => { location.hash = '#/echanger'; });
+    await p.evaluate(() => { location.hash = '#/reseau'; });
     await p.waitForSelector('#ecHisto', { timeout: 8000 });
     await p.click('#ecHisto');
     await p.waitForSelector('#ecMore', { timeout: 8000 });
@@ -232,7 +232,7 @@ const GESTES = [
      boîte arrive dans le volet de droite. */
   ['La conversation arrive (poste)', 'glisse', async p => {
     await p.setViewportSize({ width: 1280, height: 850 });
-    await p.evaluate(() => { location.hash = '#/echanger'; });
+    await p.evaluate(() => { location.hash = '#/reseau'; });
     await p.waitForSelector('#bxVolet .dock', { timeout: 8000 });
     await p.waitForTimeout(400);
     const r = await p.evaluate(() => window.__film('#bxVolet .dock',
@@ -247,7 +247,7 @@ const GESTES = [
      rougit. */
   ['La ligne retenue se peint (poste)', 'net', async p => {
     await p.setViewportSize({ width: 1280, height: 850 });
-    await p.evaluate(() => { location.hash = '#/echanger'; });
+    await p.evaluate(() => { location.hash = '#/reseau'; });
     await p.waitForSelector('#bxVolet .dock', { timeout: 8000 });
     await p.waitForTimeout(400);
     const r = await p.evaluate(() => window.__film(

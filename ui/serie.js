@@ -16,7 +16,7 @@
      la piste. Absent quand il n'y a rien : jamais un cadre vide.
    ============================================================ */
 import { esc } from '../engine/utils.js';
-import { S, bus, lot } from './state.js';
+import { S, bus } from './state.js';
 import { openSheet, ic, toast } from './dom.js';
 import { openMail, savoirHTML } from './mail.js';
 import { frDate } from './dates.js';
@@ -51,7 +51,7 @@ const ETAT = { a: 'à écrire', p: 'parti', s: 'passé' };
 
 export function ouvrirSerie(pairs){
   if (!pairs.length) return;
-  if (!(mqWide.matches && lot('prets'))) { ecrireEnSerie(pairs); return; }
+  if (!mqWide.matches) { ecrireEnSerie(pairs); return; }
   const etats = pairs.map(() => 'a');
   let k = -1, fini = false, enCours = null;
   const win = openSheet({

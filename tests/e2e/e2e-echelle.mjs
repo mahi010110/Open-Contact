@@ -1,5 +1,5 @@
 /* ============================================================
-   E2E — À GRANDE ÉCHELLE, ET SANS NOTIFICATIONS (lot R10, drapeau `calme`)
+   E2E — À GRANDE ÉCHELLE, ET SANS NOTIFICATIONS (lot R10, ouvert en 7.0.0)
    (docs/propositions/R10-grand-nombre-et-calme.md)
 
    Les autres scénarios sèment trois pistes et un groupe de quatre
@@ -14,18 +14,17 @@
    ② un visage est UN tracé, jamais un `<rect>` par case ;
    ③ « Tes amis » montre trois lignes, le contact donné en tête, et
      « Voir les N autres » ouvre le reste ;
-   ④ au calme (préversion) : aucun chiffre sur un onglet ni sur une
-     conversation, un point à la place ; « Aujourd'hui » dit qui t'a
-     écrit, et ce tap ouvre la boîte sur « Non lus » ; plusieurs demandes
-     tiennent une ligne chacune, la carte s'ouvre au tap ;
-   ⑤ préversion éteinte : les chiffres restent (l'ancien chemin vit
-     jusqu'à l'ouverture du lot) ;
-   ⑥ « Donner » s'ouvre sur soixante pistes et « Voir les N autres »
-     (porte « Performance ») : le tap montre la suite et pose le focus
-     sur la première ligne révélée ;
+   ④ au calme : aucun chiffre sur un onglet ni sur une conversation, un
+     point à la place ; « Aujourd'hui » dit qui t'a écrit, et ce tap
+     ouvre la boîte sur « Non lus » ; plusieurs demandes tiennent une
+     ligne chacune, la carte s'ouvre au tap ;
+   ⑥ « Choisir » (la liste à cocher d'où partent Écrire et Donner)
+     s'ouvre sur soixante pistes et « Voir les N autres » (porte
+     « Performance ») : le tap montre la suite et pose le focus sur la
+     première ligne révélée ;
    pouce ; zéro erreur console.
    Quatre mutations : la fenêtre ouverte en grand, « Tes amis » sans
-   plafond, les chiffres rendus aux onglets au calme, « Donner » sans
+   plafond, un compte rendu aux conversations, la liste à cocher sans
    plafond.
    ============================================================ */
 import { chromium, chromiumPath, serveRepo, annuaireMuet, ROOT, SHOTS } from './outils.mjs';
@@ -43,7 +42,7 @@ const GROS = Object.entries(jeu.groupes).sort((a, b) => b[1].fil.length - a[1].f
 const LONG = jeu.profil.amis[0].id;           /* 300 messages */
 const pose = p => p.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
 
-async function jouer({ nom, preversion = false, mutations = {}, captures = false }){
+async function jouer({ nom, mutations = {}, captures = false }){
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true,
     /* les modules mutés sont importés tard : le service worker les
        servirait de son cache */
@@ -57,21 +56,22 @@ async function jouer({ nom, preversion = false, mutations = {}, captures = false
   p.on('console', m => { if (m.type() === 'error' && !/WebSocket|ERR_/.test(m.text())) errors.push(nom + ' : ' + m.text()); });
   await p.goto(base + '/#/aujourdhui');
   await p.waitForFunction(() => !!document.querySelector('#sbVer')?.textContent);
-  await semerMassif(p, jeu, { preversion });
+  await semerMassif(p, jeu);
   /* la boîte aux lettres se lit après l'écran : on attend ses lignes, pas
      seulement la première venue */
   await p.waitForSelector('.tr-amis .act-row[data-sorte="don"]');
   await p.waitForTimeout(600);
   const x = { nom };
-  const boite = preversion ? 'reseau' : 'echanger';
+  const boite = 'reseau';
 
   /* ---------- les onglets, « Tes amis » ---------- */
   const lire = () => p.evaluate(b => {
-    const n = r => { const e = document.querySelector(`.bottomnav [data-r="${r}"] .nav-n`); return e && !e.hidden ? e.textContent : ''; };
+    /* un chiffre au coin d'un onglet, quelle que soit sa classe */
+    const n = r => (document.querySelector(`.bottomnav [data-r="${r}"]`)?.textContent || '').replace(/\D/g, '');
     const rows = [...document.querySelectorAll('.tr-amis .act-row')];
     return { ongletJour: n('aujourdhui'), ongletBoite: n(b),
              aria: document.querySelector(`.bottomnav [data-r="${b}"]`).getAttribute('aria-label'),
-             amis: rows.length, premiere: rows[0] ? rows[0].dataset.sorte : '', premiereTxt: rows[0] ? rows[0].querySelector('.act-verb').textContent : '',
+             amis: rows.length, premiere: rows[0] ? rows[0].dataset.sorte : '', deuxieme: rows[1] ? rows[1].dataset.sorte : '', premiereTxt: rows[0] ? rows[0].querySelector('.act-verb').textContent : '',
              plus: (document.querySelector('.tr-amis .tr-more') || {}).textContent || '' };
   }, boite);
   Object.assign(x, await lire());
@@ -106,6 +106,10 @@ async function jouer({ nom, preversion = false, mutations = {}, captures = false
 
   /* ---------- ① le plus gros groupe ---------- */
   await p.click('[data-filtre="tout"]').catch(() => {});
+  /* les visages se comptent sur TOUTE la boîte, pas sur « Non lus » */
+  await p.waitForTimeout(200);
+  Object.assign(x, await p.evaluate(() => ({ rect: document.querySelectorAll('.vz svg rect').length,
+    path: document.querySelectorAll('.vz svg path').length, vz: document.querySelectorAll('.vz svg').length })));
   await p.waitForSelector(`.bx-l[data-groupe="${GROS}"]`);
   const t = Date.now();
   await p.click(`.bx-l[data-groupe="${GROS}"]`);
@@ -139,9 +143,10 @@ async function jouer({ nom, preversion = false, mutations = {}, captures = false
     avantConv: (document.querySelector('#msFil [data-avant]') || {}).textContent || '' })));
   await p.keyboard.press('Escape'); await p.waitForTimeout(400);
 
-  /* ---------- ⑥ « Donner » : soixante lignes, puis la suite d'un tap ---------- */
-  if (await p.locator('#ecGive').count()){
-    await p.click('#ecGive');
+  /* ---------- ⑥ « Choisir » : soixante lignes, puis la suite d'un tap ---------- */
+  await p.evaluate(() => { location.hash = '#/pistes'; });
+  if (await p.waitForSelector('#piProspect').then(() => true, () => false)){
+    await p.click('#piProspect');
     await p.waitForSelector('.modal .pk');
     Object.assign(x, await p.evaluate(() => ({ dnLignes: document.querySelectorAll('.modal .pk').length,
       dnPlus: (document.querySelector('.modal [data-plus]') || {}).textContent || '' })));
@@ -158,9 +163,8 @@ async function jouer({ nom, preversion = false, mutations = {}, captures = false
   return x;
 }
 
-/* ---------- préversion éteinte : l'ancien chemin, et l'échelle ---------- */
 {
-  const x = await jouer({ nom: 'normal', captures: true });
+  const x = await jouer({ nom: 'plafond', captures: true });
   console.log(JSON.stringify(x));
   ok(x.bulles <= 120 && x.bulles >= 60 && /^Voir les \d+ messages d’avant$/.test(x.avant),
     `① le groupe de 640 messages ne rend qu’une fenêtre : ${x.bulles} bulles, « ${x.avant} »`);
@@ -170,27 +174,18 @@ async function jouer({ nom, preversion = false, mutations = {}, captures = false
   ok(x.msgs <= 120 && /^Voir les \d+ messages d’avant$/.test(x.avantConv),
     `① la conversation de 300 messages aussi : ${x.msgs} bulles, « ${x.avantConv} »`);
   ok(x.rect === 0 && x.path === x.vz && x.vz > 50, `② ${x.vz} visages, un tracé chacun, aucun <rect>`);
-  ok(x.amis === 3 && x.premiere === 'don' && /^Voir les \d+ autres$/.test(x.plus) && x.amisTous > 30,
-    `③ « Tes amis » : 3 lignes, le contact donné en tête, « ${x.plus} » → ${x.amisTous}`);
-  ok(x.ongletBoite && x.ongletJour && x.bxc > 0 && !x.bxpt,
-    `⑤ préversion éteinte : les chiffres restent (onglets ${x.ongletJour} et ${x.ongletBoite}, ${x.bxc} compteurs)`);
+  ok(x.amis === 3 && x.deuxieme === 'don' && /^Voir les \d+ autres$/.test(x.plus) && x.amisTous > 30,
+    `③ « Tes amis » : 3 lignes, le contact donné juste après « t’ont écrit », « ${x.plus} » → ${x.amisTous}`);
   const reste = +((/^Voir les (\d+) autres$/.exec(x.dnPlus || '') || [])[1] || 0);
-  ok(x.dnLignes === 60 && reste > 0, `⑥ « Donner » s’ouvre sur ${x.dnLignes} lignes, « ${x.dnPlus} »`);
+  ok(x.dnLignes === 60 && reste > 0, `⑥ « Choisir » s’ouvre sur ${x.dnLignes} lignes, « ${x.dnPlus} »`);
   ok(x.dnTous === 60 + reste && x.dnFocus === 60 && !x.dnPlusApres,
     `⑥ le tap montre les ${x.dnTous}, et le focus se pose sur la première révélée (ligne ${x.dnFocus + 1})`);
-}
-
-/* ---------- ④ au calme ---------- */
-{
-  const x = await jouer({ nom: 'calme', preversion: true, captures: true });
-  console.log(JSON.stringify(x));
   ok(!x.ongletJour && !x.ongletBoite && !/\d/.test(x.aria), `④ aucun chiffre sur les onglets (« ${x.aria} »)`);
   ok(!x.bxc && x.bxpt > 0, `④ aucun compteur sur une conversation, ${x.bxpt} points`);
   ok(x.premiere === 'ecrits' && /t’ont écrit$/.test(x.premiereTxt) && x.amis === 3,
     `④ « Aujourd’hui » dit qui t’a écrit : « ${x.premiereTxt} »`);
   ok(x.lignesNonLues && /Non lus/.test(x.filtre), `④ le tap ouvre la boîte sur « ${x.filtre} »`);
   ok(x.rz === 3 && x.carte, `④ trois demandes, trois lignes, la carte s’ouvre au tap`);
-  ok(x.bulles <= 120, `④ la fenêtre vaut au calme aussi (${x.bulles} bulles)`);
 }
 
 /* ---------- les mutations : chaque garde doit rougir ---------- */
@@ -207,11 +202,11 @@ await muter('① la fenêtre ouverte en grand', 'ui/fil.js',
   m => jouer({ nom: 'mut-fenetre', mutations: m }), x => x.bulles > 120 && !x.avant);
 await muter('③ « Tes amis » sans plafond', 'ui/today.js', 'const CAP_AMIS = 3;', 'const CAP_AMIS = 999;',
   m => jouer({ nom: 'mut-amis', mutations: m }), x => x.amis !== 3);
-await muter('⑥ « Donner » sans plafond', 'ui/affiner.js', 'export const CAP_COCHER = 60;', 'export const CAP_COCHER = 100000;',
+await muter('⑥ la liste à cocher sans plafond', 'ui/affiner.js', 'export const CAP_COCHER = 60;', 'export const CAP_COCHER = 100000;',
   m => jouer({ nom: 'mut-donner', mutations: m }), x => x.dnLignes !== 60 || !x.dnPlus);
-await muter('④ les chiffres rendus aux onglets au calme', 'ui/conversations.js',
-  "  if (lot('calme')){\n    poser(lot('reseau') ? 'reseau' : 'echanger', 0, '');", "  if (false){\n    poser(lot('reseau') ? 'reseau' : 'echanger', 0, '');",
-  m => jouer({ nom: 'mut-onglets', preversion: true, mutations: m }), x => !!x.ongletBoite);
+await muter('④ un compte rendu aux conversations', 'ui/conversations.js',
+  `r.n ? '<span class="bx-pt" aria-hidden="true"></span>' : ''`, `r.n ? '<span class="bx-c">' + r.n + '</span>' : ''`,
+  m => jouer({ nom: 'mut-compte', mutations: m }), x => x.bxc > 0);
 
 ok(!errors.length, 'Zéro erreur console' + (errors.length ? ' — ' + errors.slice(0, 4).join(' | ') : ''));
 await browser.close();

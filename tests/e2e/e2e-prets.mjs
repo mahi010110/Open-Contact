@@ -2,7 +2,7 @@
    OpenContact — e2e : PRÊTS À PARTIR (lot R3-a)
    (docs/propositions/R3-prets-a-partir.md, validée le 20 octobre 2026)
 
-   Derrière le drapeau `prets`, préversion allumée, sur l'app réelle.
+   Ouvert à tous depuis la 7.0.0, sur l'app réelle.
    Le contrôle N°1 n'est pas la fonctionnalité, c'est l'INVARIANT ① :
    un brouillon est du privé de CET appareil. On l'écrit par le vrai
    composeur, puis on lit les octets qui sortent par les vraies portes.
@@ -16,8 +16,7 @@
      l'entretien, qui n'est pas un mail —, « 1/3 », « Passer » avance ;
    ④ le brouillon revient à la réouverture ; « Envoyée ✓ » l'emporte ;
      une piste qui a changé de statut le propose sans l'imposer ;
-   ⑤ moins de deux mails prêts, les premiers pas, la préversion
-     éteinte : pas de bouton — et éteinte, rien ne se garde ;
+   ⑤ moins de deux mails prêts, les premiers pas : pas de bouton ;
    ⑥ au poste (R3-b), une fenêtre en trois colonnes : la file (où l'on
      est, ce qui est parti ou passé ; un clic, ↓ y mènent), le mail
      posé dans sa colonne, et ce qui aide à l'écrire — absent quand il
@@ -53,7 +52,7 @@ const PISTES = [
 const PROFIL = { name: 'Inès Martin', email: 'ines@prive.test', formation: 'BTS SIO', recherche: 'alternance' };
 const SECRET = 'BROUILLON-SECRET-7731';
 
-async function ecran(nom, { vp = { width: 390, height: 844 }, sombre = false, preversion = true,
+async function ecran(nom, { vp = { width: 390, height: 844 }, sombre = false, 
                             pistes = PISTES, profil = PROFIL, mutations = {} } = {}){
   const ctx = await browser.newContext({ viewport: vp, hasTouch: vp.width < 901, colorScheme: sombre ? 'dark' : 'light', acceptDownloads: true });
   await relaisMuets(ctx); await annuaireMuet(ctx);
@@ -67,13 +66,12 @@ async function ecran(nom, { vp = { width: 390, height: 844 }, sombre = false, pr
   await p.waitForFunction(() => !!document.querySelector('#sbVer')?.textContent);
   /* semer APRÈS le démarrage, puis recharger : l'app lit son état à
      l'ouverture (§5) */
-  await p.evaluate(async ([ps, pr, pv]) => {
+  await p.evaluate(async ([ps, pr]) => {
     const st = await import('./engine/storage.js'); await st.kvInit();
     await st.kvSet(st.DATA_KEY, JSON.stringify(ps));
     await st.kvSet(st.PROFILE_KEY, JSON.stringify(pr));
     await st.kvDel(st.BROUILLONS_KEY);
-    if (pv) await st.kvSet(st.PREVERSION_KEY, '1'); else await st.kvDel(st.PREVERSION_KEY);
-  }, [pistes, profil, preversion]);
+  }, [pistes, profil]);
   await p.reload();
   await p.waitForFunction(() => !!document.querySelector('#sbVer')?.textContent);
   await p.waitForTimeout(350);
@@ -266,16 +264,6 @@ const posteOk = r => !!r.debut && r.debut.file === 'Advens:à écrire* | Orange 
   const { ctx, p } = await ecran('premiers-pas', { pistes: froides, profil: { name: 'Inès' } });
   ok(await bouton(p) === null && await p.evaluate(() => !!document.querySelector('#tdPas')),
     '⑤ les premiers pas sont là : pas de série');
-  await ctx.close();
-}
-{
-  const { ctx, p } = await ecran('eteinte', { preversion: false });
-  ok(await bouton(p) === null, '⑤ éteinte : pas de bouton');
-  await p.click('.act-row[data-id="adv"] [data-a="mail"]');
-  await p.waitForTimeout(500);
-  await ecrire(p, 'rien ne se garde');
-  await fermer(p);
-  ok(!(await cle(p)), '⑤ éteinte : rien ne se garde');
   await ctx.close();
 }
 

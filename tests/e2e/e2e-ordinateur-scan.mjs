@@ -6,7 +6,7 @@
    L'app est rechargée PENDANT l'analyse : le mid scellé doit permettre
    sa reprise, puis la ligne « À trier » d'Aujourd'hui doit rendre le résultat triable (#10).
    Sauté proprement si le binaire n'est pas construit. */
-import { chromium, chromiumPath, SHOTS, serveRepo, ROOT, attendreCanal } from './outils.mjs';
+import { chromium, chromiumPath, SHOTS, serveRepo, ROOT, attendreCanal, relaisMuetsPartout } from './outils.mjs';
 import { spawn } from 'child_process';
 import { existsSync, mkdtempSync, writeFileSync } from 'fs';
 import http from 'http';
@@ -76,6 +76,7 @@ await attendreCanal({ journal: () => ordinateurOut + ordinateurErr });
 /* ---------- la PWA ---------- */
 const { server, base } = await serveRepo();
 const browser = await chromium.launch({ executablePath: chromiumPath() });
+relaisMuetsPartout(browser);   /* R5 : protéger dépose la copie scellée */
 const page = await (await browser.newContext({ viewport: { width: 1280, height: 800 } })).newPage();
 const errors = [];
 page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });

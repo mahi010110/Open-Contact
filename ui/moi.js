@@ -32,6 +32,7 @@ import { enregistrerFichier, partagePossible } from './fichier.js';
 import { mergePreviewInto, messageLecture } from './recevoir.js';
 import { DIST_PAGE } from '../engine/distribution.js';
 import { aideRowHTML, ouvrirAide } from './aide.js';
+import { chargerMoi, etatPhrase, ouvrirPhrase, depotAt } from './moi-phrase.js';
 import { clavierActif, lettresCoupees, ouvrirTouches } from './clavier.js';
 
 /* ---------- garder une copie (.oc complet) ----------
@@ -403,7 +404,8 @@ function etatFilet(){
   if (appareilsVus === null) return false;
   return sansFilet({
     pistes: S.companies.length,
-    derniereCopie: (S.profile.flags || {}).lastBackupAt || 0,
+    /* une copie déposée par la phrase de secours (lot R5) en est une */
+    derniereCopie: Math.max((S.profile.flags || {}).lastBackupAt || 0, depotAt()),
     appareils: appareilsVus
   });
 }
@@ -682,6 +684,14 @@ export function renderMoi(){
        <legend>Ma copie <span class="lg-note">privé inclus</span></legend>
        ${filet ? `<p class="hint warn copie-etat" id="moiFilet">${ic('square-alert', 'ic-14')} Tes ${S.companies.length} pistes sont enregistrées seulement sur cet appareil.</p>` : ''}
        ${lockRowHTML({ id: 'moiBk', action: partagePossible() ? 'Enregistrer' : 'Télécharger' })}
+       ${/* LA PHRASE DE SECOURS (lot R5) : l'autre façon d'avoir une
+            copie, celle qui part toute seule. Une rangée qui dit son
+            état, comme celles des Réglages — elle ouvre sa feuille. */''}
+       <button class="rg-row rg-last mp-row" id="moiPhrase">
+         <span class="rg-n">Phrase de secours</span>
+         <span class="rg-s" id="moiPhraseSt">${etatPhrase()}</span>
+         ${ic('chevron-right', 'ic-14')}
+       </button>
      </fieldset>` : '';
 
   /* « General first, Advanced last » : les réglages ferment la page.
@@ -728,6 +738,7 @@ export function renderMoi(){
      se referme et l'oublie. Un seul contrôle, deux états (#19-4). */
   const bk = root.querySelector('#moiBk') ? bindLockRow(root, 'moiBk') : null;
   root.querySelector('#moiBkDo')?.addEventListener('click', () => downloadBackup(bk.value()));
+  root.querySelector('#moiPhrase')?.addEventListener('click', ouvrirPhrase);
   if (wide) bindReglages(root);
   else root.querySelector('#moiReglages').addEventListener('click', () => {
     reglagesOpen = true;
@@ -737,7 +748,17 @@ export function renderMoi(){
   bindSyncLive(root);
   renderDocs();
   relireAppareils();
+  /* l'état de la phrase se lit dans le stockage : la rangée le dit dès
+     qu'il est lu, puis à chaque dépôt */
+  chargerMoi().then(majPhrase);
 }
+function majPhrase(){
+  const st = document.querySelector('#moiPhraseSt');
+  if (st) st.textContent = etatPhrase();
+  const avant = !!document.querySelector('#moiFilet');
+  if (S.route === 'moi' && avant !== !!etatFilet()) renderMoi();
+}
+document.addEventListener('oc:moi', majPhrase);
 
 /* ---------- effacer cet appareil ----------
    Le seul geste de l'écran qui ne se rattrape pas : `confirmSheet` s'y

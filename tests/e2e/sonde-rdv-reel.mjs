@@ -19,7 +19,7 @@
 
    Réseau sortant requis : ne tourne que si OC_SONDE_RELAIS=1.
    ============================================================ */
-import { chromium, chromiumPath, serveRepo, attendre } from './outils.mjs';
+import { chromium, chromiumPath, serveRepo, attendre, ouvrirDonner, ouvrirRecevoir } from './outils.mjs';
 
 if (!process.env.OC_SONDE_RELAIS){
   console.log('sonde rendez-vous ignorée (OC_SONDE_RELAIS absent) — réseau sortant requis.');
@@ -68,7 +68,7 @@ try {
   await G1.waitForSelector('#view-aujourdhui:not([hidden])');
   const motDePasse = 'sonde-' + Math.random().toString(36).slice(2, 10);
   for (const p of [G1, G2]){
-    await p.click('.bottomnav a[data-r="echanger"]');
+    await p.click('.bottomnav a[data-r="reseau"]');
     /* le partage EN DIRECT est masqué à l'écran depuis les groupes (lot 5,
        ui/perimetre.js) : il reste dans le code, et on l'ouvre par lui */
     await p.evaluate(async () => (await import('./ui/direct.js')).openPromo());
@@ -101,8 +101,7 @@ try {
   await D.reload({ waitUntil: 'load' });
   await D.waitForSelector('#view-aujourdhui:not([hidden])');
 
-  await D.click('.bottomnav a[data-r="echanger"]');
-  await D.waitForSelector('#ecGive'); await D.click('#ecGive');
+  await ouvrirDonner(D);
   await D.waitForSelector('#dnQR'); await D.click('#dnQR');
   /* le gros lot doit mener au RENDEZ-VOUS, pas au QR de données :
      sans ça la sonde mesure l'autre chemin sans le savoir */
@@ -112,9 +111,7 @@ try {
 
   /* le temps qu'une vraie personne met à sortir son téléphone */
   await D.waitForTimeout(8000);
-  await R.click('.bottomnav a[data-r="echanger"]');
-  await R.waitForSelector('#ecRecv'); await R.click('#ecRecv');
-  await R.waitForSelector('#rcScan'); await R.click('#rcScan');
+  await ouvrirRecevoir(R, 'qr');
   await R.waitForSelector('#rcCode');
   await R.fill('#rcCode', code);
   await R.waitForSelector('#rcCodeGo:not([hidden])');

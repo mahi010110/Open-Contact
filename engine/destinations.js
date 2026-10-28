@@ -14,25 +14,22 @@
    ============================================================ */
 
 /* toutes les destinations connues ; `titre` suit `document.title`.
-   « Réseau » (R1, décision 0002) prend la place d'« Échanger » : l'une
-   OU l'autre est présente, selon le lot (`navigation`, plus bas). */
+   « Réseau » (R1, décision 0002) a pris la place d'« Échanger » le jour
+   où le recadrage s'est ouvert à tous (7.0.0) : l'ancienne adresse y
+   mène (`navigation`, plus bas). */
 export const DESTINATIONS = Object.freeze([
   Object.freeze({ id: 'aujourdhui', titre: 'Aujourd’hui' }),
   Object.freeze({ id: 'pistes', titre: 'Mes pistes' }),
-  Object.freeze({ id: 'echanger', titre: 'Échanger' }),
   Object.freeze({ id: 'reseau', titre: 'Réseau' }),
   Object.freeze({ id: 'moi', titre: 'Moi' })
 ]);
 export const ACCUEIL = 'aujourdhui';
 
-/* La barre selon le lot « reseau » : les destinations présentes, dans
-   l'ordre de la barre, et l'ancienne adresse dans les DEUX sens — une
-   adresse donnée depuis un appareil en préversion (`#/reseau`) mène à
-   « Échanger » sur un appareil qui ne l'est pas, et l'inverse. */
-export function navigation(reseau){
-  return reseau
-    ? { ids: ['aujourdhui', 'pistes', 'reseau', 'moi'], alias: { echanger: 'reseau' } }
-    : { ids: ['aujourdhui', 'pistes', 'echanger', 'moi'], alias: { reseau: 'echanger' } };
+/* La barre : les destinations présentes, dans l'ordre de la barre, et
+   les ANCIENNES adresses — `#/echanger`, donnée avant la 7.0.0 (un
+   favori, un écran d'accueil), mène à « Réseau ». */
+export function navigation(){
+  return { ids: ['aujourdhui', 'pistes', 'reseau', 'moi'], alias: { echanger: 'reseau' } };
 }
 /* `#/pistes`, `#pistes`, `#/pistes/` désignent la même route ; ce qui
    suit la route (`?…`) ne la change pas */
@@ -46,7 +43,7 @@ export function routeDe(hash){
    redirigée, pour que l'écran puisse réécrire la barre d'adresse.
    Un alias suit sa chaîne (deux déménagements successifs), mais une
    boucle s'arrête : on ne tourne jamais en rond, on retombe sur l'accueil. */
-export function destination(hash, { ids = navigation(false).ids, alias = {} } = {}){
+export function destination(hash, { ids = navigation().ids, alias = {} } = {}){
   let r = routeDe(hash);
   const vus = new Set();
   let ancienne = false;
