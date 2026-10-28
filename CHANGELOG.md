@@ -53,6 +53,8 @@ L'audit de l'interface, joué comme un nouveau venu sur un téléphone.
 - « Écrire » s'ouvre sur ce qu'il te reste à écrire : la phrase entre
   crochets est déjà sélectionnée, tu tapes et elle est remplacée. Avant,
   le curseur se posait dans l'objet, déjà rempli.
+- « Rattacher » écrit le contact en tête, tel qu'il est (une adresse
+  restait en capitales dans le libellé du champ).
 
 ## [7.1.0] — 27 octobre 2026
 

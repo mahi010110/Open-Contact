@@ -2069,6 +2069,9 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 .na-company{
   display:flex;align-items:center;gap:8px;margin-bottom:14px;
   font-family:var(--font-mono);font-size:var(--text-12);font-weight:var(--weight-medium);color:var(--text-muted);
+  /* un nom long PLIE ; une adresse, qui n'a pas d'espace, se coupe où il
+     faut plutôt que de sortir de la feuille (texte à 200 %, 320 px) */
+  overflow-wrap:anywhere;
 }
 .na-company::before{content:'';width:8px;height:8px;flex:none;border:1px solid var(--border-strong);background:var(--teal)}
 /* ---- direct (P2P) ---- */

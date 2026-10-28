@@ -130,6 +130,25 @@ for (const [ergo, opts] of [['pouce', PHONE], ['poste', DESK]]){
   await p.context().close();
 }
 
+/* ---------- ① ter « Rattacher » : la donnée garde sa casse ----------
+   Le libellé disait « L’entreprise de recrutement@exemple.fr », et les
+   libellés de champ sont en capitales : l'adresse sortait déformée, en
+   gros (28 octobre 2026). Qui l'on rattache ouvre le contenu, le libellé
+   ne dit que le champ. */
+{
+  const p = await ouvrir(PHONE, PISTES, { name: 'Sam' });
+  const r = await p.evaluate(async () => {
+    (await import('./ui/contact.js')).openAttach({ id: 'o1', email: 'recrutement@exemple.fr' });
+    await new Promise(res => setTimeout(res, 300));
+    const o = [...document.querySelectorAll('.overlay:not(.ov-out)')].pop();
+    const tete = o.querySelector('.modal-b > .na-company');
+    return { tete: tete?.innerText.trim() || '', libelle: o.querySelector('label[for="atQ"]')?.textContent.trim() || '' };
+  });
+  okSi(r.tete === 'recrutement@exemple.fr' && r.libelle === 'Entreprise',
+    `① ter « Rattacher » : l’adresse en tête, telle quelle, le libellé dit le champ — ${JSON.stringify(r)}`);
+  await p.context().close();
+}
+
 /* ---------- ② « Moi » sans nom, et ce qui remplace la phrase ---------- */
 {
   const p = await ouvrir(PHONE);
