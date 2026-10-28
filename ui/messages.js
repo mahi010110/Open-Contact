@@ -31,6 +31,7 @@ import { openSheet, ic, champGrandit } from './dom.js';
 import { heureDe, memeJour } from './dates.js';
 import { preparerMessage, posterMessage, enAttente, ecouterBoite, relever, echecEnvoi } from './reseau.js';
 import { cleFil } from '../engine/conversations.js';
+import { visageHTML } from './visage.js';
 import { ligneNouveaux, suivreNouveaux, ligneJour, texteHTML, debutFenetre, ligneAvant, ouvrirAvant, boutonEnvoi } from './fil.js';
 
 let conv = conversationsVides();
@@ -101,7 +102,7 @@ export async function ouvrirConversation(a, apres, o = {}){
   /* ce qui était lu AVANT d'ouvrir : la ligne « N nouveaux » se pose là */
   const vuAvant = (conv.fils[a.id] && conv.fils[a.id].vu) || 0;
   /* au poste, posée dans le volet de la boîte ; au pouce, une feuille */
-  const sh = openSheet({ title: a.nom, icon: 'message-text', className: 'modal-groupe modal-conv', dans: o.dans,
+  const sh = openSheet({ title: a.nom, visage: visageHTML(a.id, 'vz-barre'), className: 'modal-groupe modal-conv', dans: o.dans,
     onClose: () => {
       if (arret) arret();
       if (ouverte && ouverte.sh === sh) ouverte = null;

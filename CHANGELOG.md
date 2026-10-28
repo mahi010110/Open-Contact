@@ -9,6 +9,25 @@ le premier pour une rupture. La bascule du recadrage est la 7.0.0
 
 Les versions d'avant la 6.76 se lisent dans l'historique du dépôt.
 
+## [7.3.0] — 28 octobre 2026
+
+Ton visage, dessiné par toi.
+
+### Ajouté
+
+- « Mon visage », dans « Moi » : dessine le visage que tes amis voient à
+  côté de ton nom. Une grille de cases à toucher (le dessin reste
+  symétrique tout seul), six couleurs, et un aperçu. « Visage
+  d'origine » le rend tel qu'il était. Il part avec ton profil chez tes
+  amis, et nulle part ailleurs.
+- Une conversation avec un ami porte son visage dans sa barre, comme dans
+  toutes les messageries.
+
+### Corrigé
+
+- Sur ordinateur, toucher « Je peux aider » ouvrait aussi la page d'aide
+  dans un nouvel onglet, et « Aide et confidentialité » ne faisait rien.
+
 ## [7.2.0] — 28 octobre 2026
 
 Écrire au téléphone, les groupes, et ce qui t'attend.

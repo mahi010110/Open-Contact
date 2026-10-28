@@ -94,7 +94,10 @@ export async function openMonQR(o = {}){
      ${/* CE QUI PART, en entier, sous l'image : rien de caché derrière
           un QR. Le nom et les entreprises — c'est tout. */''}
      <div class="mq-donne" id="mqDonne">
-       <b>${esc(donne.nom)}</b>
+       ${/* le visage part avec le nom : dessiné, il est dans le QR ;
+            tiré, il se recalcule de l'identifiant — c'est celui-là
+            qu'ils verront */''}
+       <b class="mq-nom">${visageHTML(S.profile.amiId, 'vz-m')}${esc(donne.nom)}</b>
        ${donne.parcours.length
          ? `<span>${esc(donne.parcours.map(e => (PARCOURS[e.quoi] ? PARCOURS[e.quoi].label + ' chez ' : '') + e.entreprise).join(' · '))}</span>`
          : `<button class="linklike" id="mqParcours">${ic('plus', 'ic-14')} Ajouter mon parcours</button>`}

@@ -281,6 +281,34 @@ const UA_ANDROID = 'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 
   await ctx.close();
 }
 
+/* ---------- au poste, « Moi » et ses Réglages sur un écran : chaque
+   identifiant n'y vit qu'une fois (audit du 28 octobre 2026) ----------
+   « Je peux aider » et « Aide et confidentialité » portaient le même :
+   toucher le premier ouvrait AUSSI la page d'aide dans un onglet, et le
+   second ne faisait rien. Un identifiant en double ne se voit pas — il
+   se joue. */
+{
+  const { ctx, p } = await page({ largeur: 1280, profil: { ...PROFIL, amiId: 'MoiMoiMoiMoiMoi000001' } });
+  await p.waitForSelector('#moiReglagesCols, .moi-cols');
+  await p.waitForTimeout(300);
+  const doubles = await p.evaluate(() => { const vus = new Map();
+    for (const e of document.querySelectorAll('#view-moi [id]')) vus.set(e.id, (vus.get(e.id) || 0) + 1);
+    return [...vus].filter(([, n]) => n > 1).map(([id]) => id); });
+  okSi(!doubles.length, 'au poste, aucun identifiant en double dans « Moi » (' + (doubles.join(', ') || 'aucun') + ')');
+  const onglets = [];
+  ctx.on('page', np => onglets.push(np.url()));
+  await p.click('#moiAide');
+  await p.waitForTimeout(500);
+  const feuille = await p.evaluate(() => document.querySelector('.overlay:not(.ov-out) .mh-t')?.textContent || '');
+  okSi(feuille === 'Je peux aider' && !onglets.length, '« Je peux aider » ouvre sa feuille, et elle seule (' + feuille + ', ' + onglets.length + ' onglet)');
+  await p.evaluate(() => [...document.querySelectorAll('.overlay')].forEach(o => o.querySelector('.modal-h .x')?.click()));
+  await p.waitForTimeout(300);
+  await p.click('#moiAidePage');
+  await p.waitForTimeout(600);
+  okSi(onglets.some(u => /aide\.html$/.test(u)), '« Aide et confidentialité » ouvre la page d’aide');
+  await ctx.close();
+}
+
 if (errors.length) fail('erreurs console : ' + errors.join(' | '));
 else console.log('Zéro erreur console.');
 console.log(process.exitCode ? 'E2E moi : ÉCHEC' : 'E2E moi : OK');

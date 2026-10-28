@@ -347,6 +347,10 @@ function installDeplacement(ov, modal, signal){
 const sortants = new Set();
 function solderSorties(){ for (const oter of [...sortants]) oter(); }
 
+/* l'icône de la barre : un pictogramme, ou — pour une conversation avec
+   un ami — son visage (`visage`, déjà dessiné par ui/visage.js), comme
+   l'avatar en tête de toute messagerie */
+const iconeDe = o => o.visage || (o.icon ? ic(o.icon, 'ic-14') : '');
 export function openSheet(o){
   o = o || {};
   if (o.dans) return poserDans(o);
@@ -358,7 +362,7 @@ export function openSheet(o){
   const ov = el(
     `<div class="overlay open">
       <div class="modal ${o.className || ''}" role="dialog" aria-modal="true" aria-label="${esc(o.title || '')}">
-        <div class="modal-h"><h2>${o.icon ? ic(o.icon, 'ic-14') : ''}<span class="mh-t">${esc(o.title || '')}</span></h2>
+        <div class="modal-h"><h2>${iconeDe(o)}<span class="mh-t">${esc(o.title || '')}</span></h2>
           ${/* `title` explicite : sans lui, la croix HÉRITE de l'infobulle
                 de la barre de titre (« Glisser pour déplacer… ») — le
                 navigateur remonte au premier ancêtre qui en porte une, et
@@ -520,7 +524,7 @@ function poserDans(o){
   const d = el(
     `<div class="dock">
       <div class="modal ${o.className || ''}" role="region" aria-label="${esc(o.title || '')}">
-        <div class="modal-h"><h2>${o.icon ? ic(o.icon, 'ic-14') : ''}<span class="mh-t">${esc(o.title || '')}</span></h2></div>
+        <div class="modal-h"><h2>${iconeDe(o)}<span class="mh-t">${esc(o.title || '')}</span></h2></div>
         <div class="modal-b"></div>
         <div class="modal-f" hidden></div>
       </div>
