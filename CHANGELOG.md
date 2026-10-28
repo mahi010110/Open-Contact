@@ -50,6 +50,9 @@ L'audit de l'interface, joué comme un nouveau venu sur un téléphone.
 - « Mes pistes » vide ne dit plus « 0 piste » au-dessus de « Aucune
   piste pour l'instant », et « Affiner » n'apparaît qu'avec ta première
   piste.
+- « Écrire » s'ouvre sur ce qu'il te reste à écrire : la phrase entre
+  crochets est déjà sélectionnée, tu tapes et elle est remplacée. Avant,
+  le curseur se posait dans l'objet, déjà rempli.
 
 ## [7.1.0] — 27 octobre 2026
 
