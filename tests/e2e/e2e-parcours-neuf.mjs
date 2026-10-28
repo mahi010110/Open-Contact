@@ -276,6 +276,21 @@ const listed = await M.evaluate(() =>
 if (!listed) fail('la piste capturée n’apparaît pas dans Mes pistes');
 else console.log('La piste capturée s’affiche dans Mes pistes ✓');
 
+/* sa fiche montre son seul contact OUVERT : « Écrire » et « Appeler »
+   ne se cachent pas derrière un triangle quand il n'y a qu'une personne
+   (28 octobre 2026 — NN/g : pas d'accordéon sur le contenu qu'on vient
+   chercher). Dès deux, ils se replient. */
+await M.locator('#piBody .row-item').filter({ hasText: 'Boulangerie Cyber' }).first().click();
+await M.waitForSelector('.modal-fiche details.ctc');
+const seul = await M.evaluate(() => {
+  const d = document.querySelector('.modal-fiche details.ctc'), w = d && d.querySelector('[data-write]');
+  return { ouvert: !!d?.open, ecrire: !!w && w.checkVisibility() };
+});
+if (!seul.ouvert || !seul.ecrire) fail('le seul contact de la fiche est replié, « Écrire » caché : ' + JSON.stringify(seul));
+else console.log('Fiche : le seul contact s’ouvre, « Écrire » à portée ✓');
+await closeSheets(M);
+await M.waitForSelector('.overlay', { state: 'detached', timeout: 5000 }).catch(() => {});
+
 /* persistance : elle survit à un rechargement (IndexedDB, pas la mémoire) */
 await M.reload({ waitUntil: 'load' });
 await attendre(M, async () => (await import('./ui/state.js')).S.companies.some(c => /Boulangerie Cyber/.test(c.name)),
@@ -365,7 +380,7 @@ console.log('La piste survit au rechargement ✓');
     + 'le profil complété remplit les trous sans toucher à l’accroche ✓');
 
   /* ---------- APRÈS L'ENVOI : la relance conseillée, et l'agenda ----------
-     Joué le 30 septembre 2026 : on fermait « Envoyé ✓ — et ensuite ? »,
+     Joué le 30 septembre 2026 : on fermait « Et ensuite ? »,
      rien n'était prévu, et la piste revenait dans « Par où commencer »
      avec l'icône mail. La relance à 7 jours tient maintenant le pied, et
      la case « Me le rappeler dans mon agenda » fait sonner le téléphone
@@ -377,12 +392,21 @@ console.log('La piste survit au rechargement ✓');
   const pied = await M.evaluate(() =>
     [...document.querySelectorAll('.overlay:last-of-type .modal-f .btn')].map(b => b.textContent.trim()));
   if (String(pied) !== 'Dans 7 jours') suite.push('le pied ne propose pas la relance conseillée : ' + JSON.stringify(pied));
+  /* la puce du même jour ne double pas le pied : deux boutons pour un
+     seul geste, c'est un choix pour rien (28 octobre 2026) */
+  const puces = await M.evaluate(() => [...document.querySelectorAll('.overlay:last-of-type .dchip-d b')].map(b => b.textContent.trim()));
+  if (String(pied) === 'Dans 7 jours' && puces.includes('+7 jours'))
+    suite.push('la puce « +7 jours » redit le pied « Dans 7 jours » : ' + JSON.stringify(puces));
   await M.check('#naAgenda');
-  /* sans la relance conseillée, on prend la puce « +7 jours » : le reste
-     se mesure quand même, et la faute du pied reste NOMMÉE au lieu de
-     finir en délai dépassé (une mutation l'a montré) */
+  /* sans la relance conseillée, on prend la date précise : le reste se
+     mesure quand même, et la faute du pied reste NOMMÉE au lieu de finir
+     en délai dépassé (une mutation l'a montré) */
   if (String(pied) === 'Dans 7 jours') await M.locator('.overlay:last-of-type .modal-f .btn-primary').click();
-  else await M.locator('.overlay:last-of-type .dchip-d').filter({ hasText: '+7 jours' }).click();
+  else {
+    const j = new Date(); j.setDate(j.getDate() + 7);
+    await M.fill('#naDate', j.getFullYear() + '-' + String(j.getMonth() + 1).padStart(2, '0') + '-' + String(j.getDate()).padStart(2, '0'));
+    await M.click('#naOk');
+  }
   await M.waitForTimeout(400);
   const r = await M.evaluate(async () => {
     const { S } = await import('./ui/state.js');

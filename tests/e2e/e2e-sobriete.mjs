@@ -1024,16 +1024,25 @@ function titresComposes(src, fichier){
     }
     return src.slice(i, j).trim();
   };
+  /* Trois formes fabriquent ces titres : un tiret cadratin, un gabarit
+     `${…}`, et une chaîne COLLÉE à une valeur (`'Qui, chez ' + c.name`).
+     La troisième a échappé au relevé jusqu'au 28 octobre 2026 : « Qui
+     part, chez Société Générale… ? » vivait dans une barre. Les chaînes
+     effacées, il ne doit rester aucun `+`. */
   const voir = (expr, i) => {
-    if (/—/.test(expr) || /`[^`]*\$\{/.test(expr))
+    const sansChaines = expr.replace(/'(?:\\.|[^'\\])*'|"(?:\\.|[^"\\])*"|`(?:\\.|[^`\\])*`/g, "''");
+    if (/—/.test(expr) || /`[^`]*\$\{/.test(expr) || /\+/.test(sansChaines))
       out.push(`${fichier}:${src.slice(0, i).split('\n').length} ${expr.slice(0, 70)}`);
   };
-  /* chaque appel lu pour lui-même : son `title:` est dans ses premières
-     lignes, jamais dans l'appel suivant */
-  for (let k = src.indexOf('openSheet({'); k >= 0; k = src.indexOf('openSheet({', k + 1)){
-    const m = /\btitle:\s*/.exec(src.slice(k, k + 300));
-    if (!m) continue;
-    const i = k + m.index + m[0].length;
+  /* TOUT `title:` d'un objet, pas seulement celui d'`openSheet({`. Le
+     titre passe souvent par un appel qui ouvre la feuille à sa place
+     (`askNextAction(c, { title })`, `confirmSheet`) : « Envoyé ✓ — et
+     ensuite ? » et « Fait ✓ — et ensuite ? » y ont vécu, invisibles au
+     relevé, sur la feuille que voit chaque mail parti. Seul le partage
+     du système (`navigator.share`) a un `title:` qui n'est pas une barre. */
+  for (const m of src.matchAll(/\btitle:\s*/g)){
+    if (/navigator\.share\(\{[^}]*$|canShare/.test(src.slice(Math.max(0, m.index - 80), m.index))) continue;
+    const i = m.index + m[0].length;
     voir(lireExpr(i, ','), i);
   }
   for (const m of src.matchAll(/\.setTitle\(/g)){
@@ -1051,13 +1060,18 @@ function titresComposes(src, fichier){
   const sonde = titresComposes(
     "openSheet({ title: 'Modifier — ' + c.name, icon: 'pencil' });\n" +
     "const sh = openSheet({ title: `${r.de.prenom} cherche quelqu’un`, icon: 'users' });\n" +
-    "openSheet({ title: 'Demande', icon: 'users' }); sh.setTitle(nomDe(code));", 'sonde');
-  if (sonde.length !== 2 || !/Modifier/.test(sonde[0]) || !/cherche/.test(sonde[1]))
-    fail('⑥ titres : la sonde ne rend pas ses deux fautes, et seulement elles — ' + JSON.stringify(sonde));
+    "askNextAction(c, { title: 'Fait ✓ — et ensuite ?' });\n" +
+    "openSheet({ title: (v ? 'Qui, chez ' : 'Qui part, chez ') + c.name + ' ?', icon: 'contact' });\n" +
+    "openSheet({ title: 'Demande', icon: 'users' }); sh.setTitle(nomDe(code));\n" +
+    "openSheet({ title: o.title || 'Prochaine action ?', focus: a ? 'x' : 'y' });\n" +
+    "await navigator.share({ title: 'Pistes ' + n, text: txt });", 'sonde');
+  if (sonde.length !== 4 || !/Modifier/.test(sonde[0]) || !/cherche/.test(sonde[1])
+      || !/ensuite/.test(sonde[2]) || !/Qui part/.test(sonde[3]))
+    fail('⑥ titres : la sonde ne rend pas ses quatre fautes, et seulement elles — ' + JSON.stringify(sonde));
   else if (composes.length > PLAFOND.titresComposes)
     fail(`⑥ titres : ${composes.length} barre(s) de feuille composée(s) (plafond ${PLAFOND.titresComposes}) — `
       + 'la barre dit ce qu’est la fenêtre, le contenu dit laquelle (§4) :\n      ' + composes.join('\n      '));
-  else console.log(`⑥ titres : ${composes.length} barre(s) composée(s) (plafond ${PLAFOND.titresComposes}), la sonde rend ses deux fautes ✓`);
+  else console.log(`⑥ titres : ${composes.length} barre(s) composée(s) (plafond ${PLAFOND.titresComposes}), la sonde rend ses quatre fautes ✓`);
   globalThis.__titresComposes = composes.length;
 }
 

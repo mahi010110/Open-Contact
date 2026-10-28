@@ -491,6 +491,18 @@ export function renderToday(){
   /* elle remplace le vide quand rien n'est prévu ; sinon elle SUIT le
      travail du jour — ce qui est engagé passe avant ce qui est suggéré */
   const alaPlace = rienDePrevu && suggestion;
+  /* les pistes engagées sans suite, hors celles qui se taisent (elles
+     ont leur tranche) : c'est ce que compte le lien du pied */
+  const silencieuses = new Set(muettes.map(c => c.id));
+  const aPlanifier = noAction.filter(c => !silencieuses.has(c.id));
+  /* « TOUT EST À JOUR » SEULEMENT QUAND C'EST VRAI. Juste après le
+     premier mail, l'écran disait « Tout est à jour » au-dessus de
+     « 1 piste à planifier → » : les deux phrases se contredisaient, et
+     l'une des deux mentait (28 octobre 2026). Atlassian réserve le
+     « tout est fait » à ce qui est vraiment fini, SAP demande que le
+     vide dise POURQUOI il est vide : tant qu'une piste attend sa suite,
+     l'écran dit seulement qu'aujourd'hui n'a rien de prévu. */
+  const aJour = rienAFaire && !aPlanifier.length;
   /* la reprise est un ÉTAT, le temps d'un geste : au poste aussi, une
      colonne — l'exception nommée de « Par où commencer » (§6, règle 4) */
   const tableau = wide && alive.length && !alaPlace && !reprise.length;
@@ -569,7 +581,7 @@ export function renderToday(){
     html +=
       `<div class="board td-board">
          ${colHTML('late', 'En retard', 'square-alert', late, 'Rien en retard ✓')}
-         ${colHTML('due', 'Aujourd’hui', 'zap', due, rienAFaire ? 'Tout est à jour ✓' : 'Rien de prévu aujourd’hui')}
+         ${colHTML('due', 'Aujourd’hui', 'zap', due, aJour ? 'Tout est à jour ✓' : 'Rien de prévu aujourd’hui')}
          ${colHTML('soon', 'Bientôt', 'calendar', soon,
            /* « — donne une prochaine action à une piste » redisait le
               lien du pied, « N pistes à planifier → », posé
@@ -581,11 +593,15 @@ export function renderToday(){
        suite est plus bas, repliée exprès » décrivait « Bientôt », qui se
        voit juste dessous avec son compte ; « ajoute une piste quand tu
        en croises une » redisait le + de la barre, toujours là. */
-    html +=
-      `<div class="td-empty td-clear">
-         <div class="tde-ic ok">${ic('check', 'ic-24')}</div>
-         <h2>Tout est à jour</h2>
-       </div>`;
+    html += aJour
+      ? `<div class="td-empty td-clear">
+           <div class="tde-ic ok">${ic('check', 'ic-24')}</div>
+           <h2>Tout est à jour</h2>
+         </div>`
+      : `<div class="td-empty td-clear">
+           <div class="tde-ic">${ic('calendar', 'ic-24')}</div>
+           <h2>Rien de prévu aujourd’hui</h2>
+         </div>`;
   } else {
     html += trancheHTML('late', 'En retard', 'square-alert', late);
     html += trancheHTML('due', 'Aujourd’hui', 'zap', due);
@@ -612,8 +628,6 @@ export function renderToday(){
      « Mes pistes » et de la barre ; les silencieuses ont leur tranche),
      n'existe que si l'une d'elles n'est pas déjà à l'écran, et ouvre
      « Mes pistes » sur l'étiquette « À planifier » : le même nombre. */
-  const silencieuses = new Set(muettes.map(c => c.id));
-  const aPlanifier = noAction.filter(c => !silencieuses.has(c.id));
   const aLEcran = new Set([...debut.map(c => c.id), ...reprise.map(x => x.id)]);
   if (aPlanifier.some(c => !aLEcran.has(c.id))){
     pied += `<button class="td-foot linklike" id="tdNoAct">${aPlanifier.length} piste${aPlanifier.length > 1 ? 's' : ''} à planifier →</button>`;
@@ -732,7 +746,7 @@ function finishRow(row, c){
   setTimeout(() => {
     markDone(c);
     bus.refresh();
-    askNextAction(c, { title: 'Fait ✓ — et ensuite ?' });
+    askNextAction(c, { title: 'Et ensuite ?' });
   }, 160);
 }
 

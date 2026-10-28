@@ -9,6 +9,26 @@ le premier pour une rupture. La bascule du recadrage est la 7.0.0
 
 Les versions d'avant la 6.76 se lisent dans l'historique du dépôt.
 
+## [7.1.1] — 28 octobre 2026
+
+L'audit de l'interface, joué comme un nouveau venu sur un téléphone.
+
+### Corrigé
+
+- Sur un iPhone, l'en-tête de « Mes pistes » tenait sur trois lignes :
+  tes chiffres passent sous le titre, sur une ligne, et « Choisir »
+  reste en haut à droite.
+- Juste après ton premier mail, « Aujourd'hui » disait « Tout est à
+  jour » au-dessus de « 1 piste à planifier » : il dit maintenant « Rien
+  de prévu aujourd'hui » tant qu'une piste attend sa suite.
+- Après un mail, la feuille de la suite ne propose plus deux fois le
+  même jour (« Dans 7 jours » en bas, « +7 jours » au-dessus).
+- Les barres de feuilles disent ce qu'est la fenêtre, en un mot : « Et
+  ensuite ? », « Demande », « Contacts », « Destinataires » ; le nom de
+  la piste ouvre le contenu, en entier.
+- Une fiche qui n'a qu'un contact le montre ouvert : « Écrire » et
+  « Appeler » ne se cachent plus derrière un triangle.
+
 ## [7.1.0] — 27 octobre 2026
 
 Un seul « moi » : une phrase de douze mots, et un téléphone perdu ne
@@ -49,9 +69,6 @@ fait plus tout perdre.
   d'un groupe ou d'une conversation grandit avec le texte (et ne fait
   plus zoomer l'iPhone) ; ton nom dans « Moi » plie au lieu de passer
   sous « Modifier ».
-- Sur un iPhone, l'en-tête de « Mes pistes » tenait sur trois lignes et
-  « Choisir » tombait seul à gauche : tes chiffres se replient dans leur
-  colonne, « Choisir » reste en haut à droite.
 
 ## [7.0.0] — 27 octobre 2026
 

@@ -657,7 +657,7 @@ export function renderPistes(){
   const nCamps = liveCampaignsCount();
   root.innerHTML =
     `<div class="page-inner${wide ? ' page-wide' : ''}">
-       <div class="td-head">
+       <div class="td-head pi-head">
          <h1>Mes pistes</h1>
          ${/* le compte se réécrit à chaque frappe (renderBody) : sans lui,
               on ne sait pas si l'on regarde 3 pistes sur 3 ou 3 sur 40 */''}

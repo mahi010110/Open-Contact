@@ -456,7 +456,7 @@ export function openMail(c, opts){
     sh.close();
     bus.refresh();
     askNextAction(c, {
-      title: 'Envoyé ✓ — et ensuite ?',
+      title: 'Et ensuite ?',
       preset: 'Relancer' + (who ? ' ' + who : ''),
       conseil: SILENCE_RELANCE,                         /* « Dans 7 jours », sous le pouce */
       ctId: ct && ct.id,                                /* la relance vise la personne */
@@ -556,10 +556,10 @@ export function openMail(c, opts){
      reconnexion s'empile au-dessus */
   const askReconnect = () => {
     const s2 = openSheet({
-      title: (acct.provider === 'gmail' ? 'Gmail' : 'Outlook') + ' demande de te reconnecter',
+      title: 'Reconnexion',
       icon: 'mail', className: 'modal-confirm'
     });
-    s2.body.innerHTML = '<p class="cf-msg">Ton brouillon ne bouge pas.</p>';
+    s2.body.innerHTML = '<p class="cf-msg">' + (acct.provider === 'gmail' ? 'Gmail' : 'Outlook') + ' demande de te reconnecter. Ton brouillon ne bouge pas.</p>';
     s2.setFoot([
       el(`<a class="btn" href="${aMail.href || '#'}" style="text-decoration:none">Ouvrir dans Mail</a>`),
       btn('Reconnecter', 'btn-primary', () => { s2.close(); openConnexions(); })

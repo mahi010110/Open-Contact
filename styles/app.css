@@ -887,12 +887,16 @@ html[data-theme="dark"] .field select{
 .td-head h1{font-size:var(--text-20);letter-spacing:var(--tracking-tight)}
 .td-date{font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted)}
 /* AU POUCE, le compteur de « Mes pistes » (« 7 écrites · 3 réponses ·
-   1 décrochée ») prend la place libre et se replie DANS sa colonne :
-   « Choisir » reste en haut à droite. Sans ça, dès la police d'un
-   iPhone (17 px) ou sur un 360 px, l'en-tête prenait trois lignes et
-   « Choisir » tombait seul à gauche — vu sous WebKit (audit 7.1.0) */
+   1 décrochée ») passe SOUS le titre, sur toute la largeur, comme le
+   sous-titre d'un grand titre d'iOS ; « Choisir » reste en haut à
+   droite. Deux essais avant : en ligne, dès la police d'un iPhone
+   (17 px), « Choisir » tombait seul à gauche (vu sous WebKit) ; replié
+   dans une colonne étroite entre le titre et le bouton, il empilait ses
+   trois chiffres sur trois rangs de 12 px (audit du 28 octobre 2026). */
 @media (max-width:900px){
-  #piCount{flex:1 1 0;min-width:6em}
+  .pi-head{row-gap:2px}
+  .pi-head #piCount{order:3;flex:1 0 100%}
+  .pi-head #piProspect{margin-left:auto}
 }
 .td-date .nw{white-space:nowrap}
 /* le retour d'un 2ᵉ écran : nu, comme la poubelle au survol — un chevron

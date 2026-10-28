@@ -118,6 +118,25 @@ const repriseOk = r => !!r && r.ids.join(',') === 'adv,ora,cap' && r.sortes.join
   const { ctx, p } = await ecran('chiffres', { hash: '#/pistes' });
   ok(await compte(p) === '5 écrites · 2 réponses · 1 décrochée',
     `① les chiffres à la place du compte, déduits des pistes — « ${await compte(p)} »`);
+  /* L'EN-TÊTE TIENT au pouce : « Choisir » sur la ligne du titre, les
+     chiffres sur UNE ligne sous lui. Vu sous WebKit puis à la police
+     d'un iPhone (17 px) : « Choisir » tombait seul à gauche, puis les
+     trois chiffres s'empilaient sur trois rangs (28 octobre 2026). */
+  for (const [larg, police] of [[390, '17px'], [360, '16px'], [320, '16px']]){
+    await p.setViewportSize({ width: larg, height: 844 });
+    const t = await p.evaluate(async f => {
+      document.documentElement.style.fontSize = f;
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      const r = s => document.querySelector(s).getBoundingClientRect();
+      const h1 = r('#view-pistes .pi-head h1'), ch = r('#piProspect'), n = document.querySelector('#piCount');
+      return { choisir: Math.round(ch.top - h1.top), droite: Math.round(innerWidth - ch.right),
+               rangs: Math.round(n.getBoundingClientRect().height / parseFloat(getComputedStyle(n).lineHeight)) };
+    }, police);
+    ok(Math.abs(t.choisir) <= 12 && t.droite < 40 && t.rangs === 1,
+      `① ${larg} px, police ${police} : « Choisir » en haut à droite, les chiffres sur une ligne — ${JSON.stringify(t)}`);
+  }
+  await p.evaluate(() => { document.documentElement.style.fontSize = ''; });
+  await p.setViewportSize({ width: 390, height: 844 });
   await p.fill('#piQ', 'Advens');
   await p.waitForTimeout(500);
   ok(/^1 sur 7$/.test(await compte(p)), `① une recherche garde son compte — « ${await compte(p)} »`);

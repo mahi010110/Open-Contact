@@ -84,7 +84,10 @@ function bindDateOk(root, inputSel, okSel, pick){
    « OK » valide un changement du « Quoi ? » seul en gardant la date. */
 export function askNextAction(c, opts){
   opts = opts || {};
-  const choix = dateChoices();
+  /* la réponse conseillée tient le pied (plus bas) : la puce du même
+     jour ne serait qu'un second bouton pour le même geste */
+  const conseille = !opts.presetDate && opts.conseil > 0 ? plusDaysISO(opts.conseil) : null;
+  const choix = dateChoices().filter(([, iso]) => iso !== conseille);
   /* « Quoi ? » est DÉJÀ RÉPONDU quand on peut le deviner. Trois boutons
      de verbes posés sous le champ ressemblaient à des actions alors
      qu'ils ne faisaient que le remplir : il fallait les lire, comprendre
@@ -161,9 +164,8 @@ export function askNextAction(c, opts){
      quatre : on fermait la feuille, et rien n'était prévu. Elle tient
      maintenant le pied, sous le pouce ; les puces restent pour un autre
      jour, et la croix pour ne rien prévoir. */
-  else if (opts.conseil > 0){
-    const iso = plusDaysISO(opts.conseil);
-    sh.setFoot([btn('Dans ' + opts.conseil + ' jours', 'btn-primary', () => pick(iso))]);
+  else if (conseille){
+    sh.setFoot([btn('Dans ' + opts.conseil + ' jours', 'btn-primary', () => pick(conseille))]);
   }
   return sh;
 }

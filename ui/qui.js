@@ -69,7 +69,7 @@ export function openWhoPicker(c, keep, o){
   const verbe = o.verbe || 'donner';
   const cts = whoCandidates(c, verbe);
   const sh = openSheet({
-    title: (verbe === 'ecrire' ? 'Qui, chez ' : 'Qui part, chez ') + c.name + ' ?',
+    title: verbe === 'ecrire' ? 'Destinataires' : 'Contacts',
     icon: 'contact'
   });
   /* L'emphase suit le DÉFAUT de la liste, pas la feuille qui l'affiche.
@@ -81,8 +81,11 @@ export function openWhoPicker(c, keep, o){
      même point de départ. */
   const inverse = verbe !== 'ecrire';
   const render = () => {
+    /* la barre dit la fenêtre, le contenu dit laquelle (§4) : le nom
+       de la piste ouvre la liste, en entier, et il plie */
     sh.body.innerHTML =
-      `<div class="pick-list${inverse ? ' pk-inverse' : ''}">
+      `<div class="na-company">${esc(c.name)}</div>
+       <div class="pick-list${inverse ? ' pk-inverse' : ''}">
          ${cts.map(t =>
            `<button class="pick pk${keep.has(t.id) ? ' on' : ''}" data-ct="${esc(t.id)}" aria-pressed="${keep.has(t.id)}">
               ${ic('checkbox', 'ic-20 ic-off')}${ic('checkbox-on', 'ic-20 ic-on')}
