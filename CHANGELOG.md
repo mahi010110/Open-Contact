@@ -47,6 +47,9 @@ L'audit de l'interface, joué comme un nouveau venu sur un téléphone.
 - Au poste, les colonnes d'« Aujourd'hui » s'arrêtent sous leur
   dernière carte, au lieu d'encadrer du vide à la hauteur de la plus
   longue.
+- « Mes pistes » vide ne dit plus « 0 piste » au-dessus de « Aucune
+  piste pour l'instant », et « Affiner » n'apparaît qu'avec ta première
+  piste.
 
 ## [7.1.0] — 27 octobre 2026
 

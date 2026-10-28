@@ -778,6 +778,11 @@ export function renderPistes(){
     }
     const dec = porteeVue() === 'decouvrir';
     page.classList.toggle('pt-dec', dec);
+    /* SANS UNE PISTE, RIEN À AFFINER : « Affiner » ouvrait une feuille de
+       filtres vides à côté de « Aucune piste pour l'instant » — un geste
+       sans objet (§6 : jamais une valeur absente des données). Il revient
+       avec la première piste. */
+    page.classList.toggle('pi-vide', !S.companies.length);
     premierId = (!dec && wide && mqFine.matches && q) ? ((alive[0] || closed[0] || {}).id || null) : null;
     /* « À découvrir » suit la barre : la question part seule après une
        pause, pour que son compte se remplisse pendant qu'on tape. Barre
@@ -804,7 +809,10 @@ export function renderPistes(){
     if (cnt && !filtre && chiffres){
       const parts = chiffres.split(' · ');
       cnt.innerHTML = parts.map((x, i) => `<span class="nw">${esc(x)}${i < parts.length - 1 ? ' ·' : ''}</span>`).join(' ');
-    } else if (cnt) cnt.textContent = filtre ? `${all.length} sur ${tout}` : `${tout} piste${tout > 1 ? 's' : ''}`;
+    } else if (cnt) cnt.textContent = filtre ? `${all.length} sur ${tout}`
+      /* « 0 piste » redisait, sous le titre, « Aucune piste pour
+         l'instant » juste dessous : le compte se tait sur le vide */
+      : tout ? `${tout} piste${tout > 1 ? 's' : ''}` : '';
     /* Filtrer réorganise tout l'écran sans rien annoncer : quelqu'un qui
        ne voit pas l'écran tape trois lettres et n'apprend jamais qu'il
        ne reste qu'une piste. C'est le DÉCOR qui suit un geste, jamais sa

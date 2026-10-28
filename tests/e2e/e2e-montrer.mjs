@@ -111,6 +111,25 @@ for (const [ergo, opts] of [['pouce', PHONE], ['poste', DESK]]){
   await p.context().close();
 }
 
+/* ---------- ① bis « Mes pistes » vide : l'accueil, et rien autour ----------
+   « 0 piste » sous le titre redisait « Aucune piste pour l'instant »
+   juste dessous, et « Affiner » ouvrait des filtres vides (28 octobre
+   2026). Le vide se dit une fois ; « Affiner » revient avec une piste. */
+for (const [ergo, opts] of [['pouce', PHONE], ['poste', DESK]]){
+  const p = await ouvrir(opts);
+  await p.evaluate(() => { location.hash = '#/pistes'; });
+  await p.waitForSelector('#view-pistes:not([hidden]) .td-empty, #view-pistes:not([hidden]) .empty');
+  const vide = await p.evaluate(() => ({ compte: document.querySelector('#piCount').textContent.trim(),
+    affiner: !!document.querySelector('#piAffiner')?.checkVisibility() }));
+  await p.evaluate(async () => { const { addDemo } = await import('./ui/state.js'); addDemo(); (await import('./ui/state.js')).bus.refresh(); });
+  await p.waitForTimeout(300);
+  const plein = await p.evaluate(() => ({ compte: document.querySelector('#piCount').textContent.trim(),
+    affiner: !!document.querySelector('#piAffiner')?.checkVisibility() }));
+  okSi(!vide.compte && !vide.affiner && plein.compte && plein.affiner,
+    `① bis « Mes pistes » vide (${ergo}) : ni « 0 piste » ni « Affiner » ; avec des pistes, les deux reviennent — ${JSON.stringify({ vide, plein })}`);
+  await p.context().close();
+}
+
 /* ---------- ② « Moi » sans nom, et ce qui remplace la phrase ---------- */
 {
   const p = await ouvrir(PHONE);
