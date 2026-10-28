@@ -9,6 +9,41 @@ le premier pour une rupture. La bascule du recadrage est la 7.0.0
 
 Les versions d'avant la 6.76 se lisent dans l'historique du dépôt.
 
+## [7.2.0] — 28 octobre 2026
+
+Écrire au téléphone, les groupes, et ce qui t'attend.
+
+### Ajouté
+
+- L'onglet « Réseau » change de couleur quand quelque chose t'y attend :
+  un message que tu n'as pas lu, quelqu'un qui veut entrer dans ton
+  groupe. Le mot passe en couleur, avec un petit carré. Pas de chiffre,
+  pas de notification.
+
+### Changé
+
+- Au téléphone, une conversation prend tout l'écran.
+- Quand le clavier s'ouvre, les derniers messages restent au-dessus de
+  lui : tu vois le message auquel tu réponds.
+- La flèche d'envoi s'allume quand tu as écrit quelque chose, et le
+  clavier reste ouvert d'un message à l'autre.
+- Un long message ne cache plus la conversation : le champ s'arrête à
+  six lignes, puis défile.
+- Dans un groupe, la ligne des membres et ce qui t'attend (quelqu'un qui
+  veut entrer, une demande à laquelle tu peux répondre) restent en haut,
+  même quand tu descends dans les messages. Les personnes qui veulent
+  entrer se présentent une par une.
+- La fiche « Groupe » se range comme celle de WhatsApp : le nom,
+  « Inviter », les réglages, les membres (huit, puis « Voir les
+  autres »), et « Quitter le groupe » en dernier. Le QR de l'invitation
+  a sa propre feuille. Elle se met à jour pendant que tu la lis : un
+  adjoint nommé, quelqu'un qui arrive.
+- « Premiers pas » ne montre plus que la prochaine étape, sur une ligne,
+  et dit ce qui manque à ton profil (« il manque ce que tu cherches ») ;
+  la toucher ouvre ton profil à cet endroit.
+- Les Réglages se rangent en groupes : Mes données, Réseau, Préférences,
+  Aide.
+
 ## [7.1.3] — 28 octobre 2026
 
 Les boutons retrouvent leur dessin d'origine.

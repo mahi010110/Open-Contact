@@ -669,6 +669,8 @@ export async function ouvrirGroupe(code, apres, o = {}){
     if (!rendu) suivre.ouvrir(); else if (bas) sh.body.scrollTop = sh.body.scrollHeight;
     else suivre.maj();
     rendu = true;
+    /* « Groupe », s'il est ouvert par-dessus, suit avec elle */
+    if (membresOuvert && membresOuvert.code === code) membresOuvert.rendre();
     /* la conversation est sous les yeux : ce qui arrive est lu */
     if (sh.body.isConnected && groupe(code).vu < Date.now() - 1000) vu(code);
   };
@@ -997,10 +999,16 @@ function ouvrirInviter(code, suivre){
    membres — huit, puis « Voir les N autres » —, et la sortie, rouge, en
    rangées, en dernier. */
 const MEMBRES_VUS = 8;
+/* « Groupe » ouvert : il suit le groupe EN DIRECT. Un adjoint nommé, un
+   membre qui arrive ou s'en va pendant qu'on la lit se voyait seulement
+   en la rouvrant — et sur un téléphone lent, le rôle qu'on venait de
+   donner n'y apparaissait jamais (relevé sous charge, 28 octobre 2026) */
+let membresOuvert = null;
 function ouvrirMembres(code, shGroupe, o = {}){
   /* « Groupe » dans la barre, son nom en tête du contenu — le dessin de
      la fiche d'un ami (§4) */
-  const sh = openSheet({ title: 'Groupe', icon: 'users' });
+  const sh = openSheet({ title: 'Groupe', icon: 'users',
+    onClose: () => { if (membresOuvert && membresOuvert.sh === sh) membresOuvert = null; } });
   let tous = false;
   const rendre = () => {
     if (!sh.body.isConnected) return;
@@ -1080,6 +1088,7 @@ function ouvrirMembres(code, shGroupe, o = {}){
     ouvrirMembres(nc, ouvert && ouvert.code === nc ? ouvert.sh : { close(){} }, { inviter });
     return true;
   };
+  membresOuvert = { code, sh, rendre };
   rendre();
   if (o.inviter) ouvrirInviter(code, suivre);
 }
