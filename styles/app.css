@@ -3707,11 +3707,30 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
    le fil défile, le pied reste sous le pouce */
 .modal-groupe{height:92dvh}
 .modal-groupe .modal-b{flex:1;min-height:0}
+/* UNE CONVERSATION PREND L'ÉCRAN, au pouce (audit au téléphone, 28
+   octobre 2026). Posée à 92 % de la hauteur, elle laissait voir le haut
+   de « Réseau » derrière elle : une bande qu'on ne peut pas taper, prise
+   au fil, et une conversation qui se lisait comme une fenêtre posée sur
+   la liste plutôt que comme l'écran qu'on vient d'ouvrir — toutes les
+   messageries ouvrent la conversation en plein écran. Sa barre se pousse
+   sous l'encoche ; clavier ouvert, elle prend toute la zone qu'il
+   laisse, sans la marge des autres feuilles. */
+@media (max-width:900px){
+  .modal-groupe{height:100dvh;max-height:100dvh;border-width:0}
+  .modal-groupe .modal-h{padding-top:calc(3px + env(safe-area-inset-top))}
+  .clavier-ouvert .modal-groupe{height:var(--zone-h,100dvh);max-height:var(--zone-h,100dvh)}
+}
+/* la tête d'un groupe : sous la barre, hors du défilement (ui/groupes.js).
+   Clavier ouvert, elle s'efface — on écrit, la place va au fil. */
+.gr-tete{flex:none;padding:0 18px;background:var(--surface-window);border-bottom:1px solid var(--border-soft)}
+.gr-tete:empty{display:none}
+.clavier-ouvert .gr-tete{display:none}
 .gr-membres{
-  display:flex;align-items:center;gap:8px;width:100%;min-height:var(--ctl);padding:4px 0;margin:0 0 4px;
-  border:0;border-bottom:1px dashed var(--border-soft);background:none;
+  display:flex;align-items:center;gap:8px;width:100%;min-height:var(--ctl);padding:4px 0;margin:0;
+  border:0;background:none;
   font:inherit;font-size:var(--text-13);color:var(--text-muted);text-align:left;cursor:pointer;
 }
+.gr-tete>*+*{border-top:1px dashed var(--border-soft)}
 .gr-membres-t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}
 .gr-ephem{display:flex;align-items:center;justify-content:center;gap:6px;margin:10px 0;
   font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);text-align:center}
@@ -3731,7 +3750,12 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
    champ passe sur sa propre ligne plutôt que de se serrer entre deux
    boutons — sa base est en `rem`, elle suit la police toute seule */
 .gr-pied{display:flex;align-items:flex-end;flex-wrap:wrap;gap:8px;width:100%}
-.gr-pied .gr-champ{flex:1 1 7rem;min-width:0;min-height:var(--ctl);padding:10px 12px;line-height:1.4;resize:none;overflow:hidden;
+/* six lignes au plus, puis le champ défile chez lui : au-dessus de lui
+   vit la conversation à laquelle on répond (Messages, WhatsApp). C'est
+   l'exception nommée de `champGrandit` (§6) — un message de mille
+   signes poussait le pied jusqu'à la barre et le fil disparaissait. */
+.gr-pied .gr-champ{flex:1 1 7rem;min-width:0;min-height:var(--ctl);padding:10px 12px;line-height:1.4;resize:none;
+  overflow-x:hidden;overflow-y:auto;max-height:calc(6 * 1.4em + 22px);
   /* le dessin d'un champ, et SA taille : sans elle, le navigateur donnait
      13 px fixes — sourd au texte agrandi, et sous les 16 px qui évitent le
      zoom d'iOS à la mise au point (§5) — audit 7.1.0 */
@@ -3764,9 +3788,14 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 /* LOT 5c — le groupe « sur demande ».
    Qui attend à la porte : la même bulle qu'une demande trouvée (le bord
    d'accent : quelqu'un attend, c'est à moi), ses deux gestes dessous. */
-.gr-entree p{display:flex;align-items:center;gap:6px;border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.gr-entree{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px 10px;
+  padding:6px 0 6px 10px;box-shadow:inset 3px 0 0 var(--accent)}
+.gr-entree p{display:flex;align-items:center;gap:6px;margin:0;min-width:0;font-size:var(--text-14)}
 .gr-entree p b{font-weight:var(--weight-semibold)}
-.gr-entree-g{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.gr-entree-g{display:flex;flex-wrap:wrap;gap:8px;margin-left:auto}
+/* la demande trouvée par MON téléphone, en tête : toute la largeur */
+.gr-tete .gr-entete{margin:6px 0}
+.gr-tete .gr-m{max-width:none}
 /* qui ouvre la porte se lit à côté du prénom ; le geste au bout */
 .gr-noms li{justify-content:space-between;gap:8px;flex-wrap:wrap}
 .gr-noms li>span{min-width:0;overflow-wrap:anywhere}
@@ -3782,14 +3811,14 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 .gr-membre .ic{flex:none;color:var(--text-muted)}
 /* LES RÉGLAGES D'UN GROUPE (décisions 31 à 35) : les rangées de « Moi ›
    Réglages », dans un cadre — un nom, son état, un chevron */
-.gr-regl{margin:0 0 12px;padding:0 12px}
+.gr-regl,.gr-actions{margin:0 0 12px;padding:0 12px}
 /* « qui écrit : les responsables » : l'état prend la place du champ,
    en encre sourde, à côté de « Donner » qui reste */
 .gr-seuls{flex:1 1 10rem;margin:0;align-self:center;font-size:var(--text-13);color:var(--text-muted)}
-#grNouvelleInv{display:flex;margin:0 auto 8px}
-/* la sortie : Quitter, et pour le chef Supprimer — rouges, en dernier,
-   chacun taillé à son mot */
-.gr-sortie{display:flex;flex-wrap:wrap;gap:8px}
+#grNouvelleInv{display:flex;margin:16px auto 0}
+/* « Groupe » : un titre de section au-dessus de chaque cadre, comme les
+   tranches d'« Aujourd'hui » — le compte des membres dans sa pastille */
+.gr-sec{margin:16px 0 8px}
 .gr-membre:active{background:var(--surface-raised)}
 @media (hover:hover){ .gr-membre:hover{background:var(--surface-raised)} }
 /* un message retiré garde sa place, en gris : qui l'a retiré, rien de

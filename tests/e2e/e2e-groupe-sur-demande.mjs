@@ -203,10 +203,12 @@ await I.p.waitForSelector('#grPorte');
 {
   const t = await texte(I.p, '#grPorte');
   if (t !== 'Karim veut entrer Refuser Accepter') fail('en tête du groupe : ' + t);
-  const ordre = await I.p.evaluate(() => { const b = document.querySelector('.modal-b'); const kids = [...b.children].map(x => x.id || x.className); return kids; });
-  /* en tête : avant l'invitation, avant le fil — seule la ligne des
-     membres passe devant */
-  if (ordre.filter(x => x !== 'grMembres')[0] !== 'grPorte') fail('« Karim veut entrer » n’est pas en tête : ' + ordre.join(', '));
+  /* en tête, HORS DU FIL : sous la barre, juste après la ligne des
+     membres — le fil s'ouvre en bas, et ce qui m'attend doit se voir
+     sans remonter (audit au téléphone, 28 octobre 2026) */
+  const ordre = await I.p.evaluate(() => { const t = document.querySelector('.overlay:not(.ov-out) .gr-tete');
+    return t ? { kids: [...t.children].map(x => x.id || x.className), dansFil: !!document.querySelector('.modal-b #grPorte') } : null; });
+  if (!ordre || ordre.dansFil || ordre.kids.join(',') !== 'grMembres,grPorte') fail('« Karim veut entrer » n’est pas en tête, hors du fil : ' + JSON.stringify(ordre));
 }
 await I.p.waitForTimeout(300);
 await I.p.screenshot({ path: `${SHOTS}/128-groupe-veut-entrer-pouce.png` });
@@ -274,6 +276,7 @@ await ouvrirLeGroupe(K.p);
 await K.p.click('#grMembres');
 await attendreQue(K.p, () => /Toi adjoint/.test(document.querySelector('.gr-noms')?.innerText.replace(/\s+/g, ' ') || ''), null, 20000,
   'Karim se lit adjoint chez lui');
+await K.p.click('#grInviterOuvrir');
 const porteK = await copierPorte(K.p);
 {
   const lu = lirePorte(porteK);

@@ -27,11 +27,11 @@ import { prenomAmi } from '../engine/amis.js';
 import { MESSAGE_MAX, conversationsVides, normaliserConversations, filAvec, ajouterMessage, nonLus,
          dernier, marquerLu } from '../engine/messages.js';
 import { S, bus, apresImage } from './state.js';
-import { openSheet, btn, ic, champGrandit } from './dom.js';
+import { openSheet, ic, champGrandit } from './dom.js';
 import { heureDe, memeJour } from './dates.js';
 import { preparerMessage, posterMessage, enAttente, ecouterBoite, relever, echecEnvoi } from './reseau.js';
 import { cleFil } from '../engine/conversations.js';
-import { ligneNouveaux, suivreNouveaux, ligneJour, texteHTML, debutFenetre, ligneAvant, ouvrirAvant } from './fil.js';
+import { ligneNouveaux, suivreNouveaux, ligneJour, texteHTML, debutFenetre, ligneAvant, ouvrirAvant, boutonEnvoi } from './fil.js';
 
 let conv = conversationsVides();
 let charge = null;
@@ -157,9 +157,7 @@ export async function ouvrirConversation(a, apres, o = {}){
   const envoyer = async () => {
     const texte = champ.value.trim();
     if (!texte) return;
-    bEnv.disabled = true;
     const l = await preparerMessage(a, texte).catch(() => null);
-    bEnv.disabled = false;
     if (!l){ echecEnvoi(); return; }
     /* il entre dans la conversation TOUT DE SUITE, « pas encore parti »
        tant que la file le garde : rien de ce qu'on a écrit ne se perd */
@@ -173,16 +171,17 @@ export async function ouvrirConversation(a, apres, o = {}){
     await parti.catch(() => 0);
     rendre();
   };
+  /* la flèche s'allume quand il y a de quoi envoyer, et ne prend pas le
+     focus : le clavier reste ouvert d'un message à l'autre (ui/fil.js) */
+  const env = boutonEnvoi(champ, envoyer, 'msEnvoyer');
   champ.addEventListener('keydown', e => {
     if (e.key !== 'Enter' || e.shiftKey || e.isComposing || matchMedia('(pointer:coarse)').matches) return;
     e.preventDefault();
-    envoyer();
+    env.lancer();
   });
-  const bEnv = btn('', 'icon-btn btn-contour', envoyer, 'arrow-up');
-  bEnv.id = 'msEnvoyer'; bEnv.setAttribute('aria-label', 'Envoyer'); bEnv.title = 'Envoyer';
   const pied = document.createElement('div');
   pied.className = 'gr-pied';
-  pied.append(champ, bEnv);
+  pied.append(champ, env.bouton);
   sh.setFoot([pied]);
 
   conv = marquerLu(conv, a.id);

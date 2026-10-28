@@ -194,8 +194,9 @@ const fermer = async p => {
   await p.click(`[data-fil="g:${G1}"]`);
   await p.waitForSelector('.modal-groupe .fil-nouv');
   await p.waitForTimeout(300);
-  const b = await p.evaluate(() => { const x = document.querySelector('.fil-bas'); return x ? x.textContent.trim() : ''; });
-  ok(/^\d+ nouveaux$/.test(b), `③ du neuf sous le bord : le bouton le dit (« ${b} »)`);
+  /* la flèche et le compte à l'œil, le mot pour qui ne voit pas l'écran */
+  const b = await p.evaluate(() => { const x = document.querySelector('.fil-bas'); return x ? { t: x.textContent.trim(), a: x.getAttribute('aria-label') || '' } : { t: '', a: '' }; });
+  ok(/^\d+$/.test(b.t) && b.a === b.t + ' nouveaux', `③ du neuf sous le bord : le bouton le dit (« ${b.t} », lu « ${b.a} »)`);
   await p.screenshot({ path: `${SHOTS}/140-boite-bas-pouce.png` });
   await p.click('.fil-bas');
   await p.waitForTimeout(900);
