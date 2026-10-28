@@ -143,6 +143,35 @@ const repriseOk = r => !!r && r.ids.join(',') === 'adv,ora,cap' && r.sortes.join
   await p.screenshot({ path: `${SHOTS}/163-chiffres-recherche.png` });
   await ctx.close();
 }
+/* LA SOUS-LIGNE D'UNE PISTE PLIE ENTRE SES DONNÉES, JAMAIS DEDANS.
+   Vu sur les pistes d'exemple à la police d'un iPhone : « Envoyer la
+   candidature · À / contacter · Roubaix » — le statut coupé en deux
+   (28 octobre 2026). Des sous-lignes qui PLIENT, sinon la mesure ne
+   prouve rien. */
+{
+  const longues = [['dam', 'Damart', 'Roubaix', 'Envoyer la candidature'], ['aub', 'Auchan Retail', 'Villeneuve-d’Ascq', 'Préparer l’entretien'],
+                   ['lec', 'Leroy Merlin', 'Lezennes', 'Envoyer la candidature spontanée']]
+    .map(([id, name, city, txt]) => ({ id, name, city, status: 'todo', nextAction: iso(0), nextActionText: txt, updatedAt: now }));
+  const { ctx, p } = await ecran('sous-ligne', { hash: '#/pistes', pistes: longues });
+  for (const [larg, police] of [[390, '17px'], [360, '16px'], [320, '16px']]){
+    await p.setViewportSize({ width: larg, height: 844 });
+    const t = await p.evaluate(async f => {
+      document.documentElement.style.fontSize = f;
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      const subs = [...document.querySelectorAll('#piBody .ri-sub')];
+      const lh = subs.length ? parseFloat(getComputedStyle(subs[0]).lineHeight) : 1;
+      return { plient: subs.filter(s => s.getBoundingClientRect().height > lh * 1.5).length,
+               /* des LIGNES, pas des rectangles : le « · » vient d'une
+                  autre police que la mono, et fait un second rectangle
+                  sur la même ligne */
+               coupees: [...document.querySelectorAll('#piBody .ri-sub .nw')]
+                 .filter(x => new Set([...x.getClientRects()].map(r => Math.round(r.top))).size > 1).map(x => x.textContent) };
+    }, police);
+    ok(t.plient > 0 && !t.coupees.length,
+      `① ${larg} px, police ${police} : ${t.plient} sous-ligne(s) plient, aucune donnée coupée en deux — ${JSON.stringify(t.coupees)}`);
+  }
+  await ctx.close();
+}
 {
   const { ctx, p } = await ecran('chiffres-vides', { hash: '#/pistes',
     pistes: [{ id: 'a', name: 'Aztek', status: 'todo' }, { id: 'b', name: 'Thales', status: 'todo' }] });

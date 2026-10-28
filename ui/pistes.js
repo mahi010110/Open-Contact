@@ -277,6 +277,18 @@ function hintHTML(c, skip){
     r.accent && h ? ' · ' : ''}${out}</div>`;
 }
 
+/* La sous-ligne plie, mais jamais DANS une donnée : « À contacter » se
+   coupait en « À » et « contacter » sur deux rangs (audit du 28 octobre
+   2026, police d'iPhone). Chaque donnée courte est insécable, le point
+   reste collé à celle qui le précède ; le verbe d'action, lui, peut
+   plier — il est le seul à pouvoir dépasser une ligne. */
+function sousLigne(bits){
+  return bits.map((x, i) => {
+    const point = i < bits.length - 1 ? '\u00a0·' : '';
+    return x.startsWith('<b>') ? x + point : `<span class="nw">${x}${point}</span>`;
+  }).join(' ');
+}
+
 function rowHTML(c){
   const closed = isClosed(c);
   /* la ligne qu'Entrée ouvrirait depuis la barre (au poste, une piste
@@ -302,7 +314,7 @@ function rowHTML(c){
          ${premier ? '<kbd class="kbd-enter" aria-hidden="true">↵</kbd>' : ''}
          <div class="ri-main sw-cible" role="button" tabindex="0" aria-label="Ouvrir ${esc(c.name)}">
            <h3>${esc(c.name)}</h3>
-           <div class="ri-sub">${bits.join(' · ')}</div>
+           <div class="ri-sub">${sousLigne(bits)}</div>
            ${hintHTML(c, ['name', 'city'])}
          </div>
          ${dueHTML(c)}

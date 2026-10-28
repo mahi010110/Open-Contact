@@ -1514,6 +1514,7 @@ button.pp-et:active{background:var(--surface-raised)}
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
 }
 .row-item .ri-sub b{color:var(--text-body);font-weight:var(--weight-semibold)}
+.row-item .ri-sub .nw{white-space:nowrap}
 /* ---- CE QUI A FAIT REMONTER LA LIGNE ----
    N'existe que pendant une recherche, et seulement quand la ligne ne
    montre pas déjà la réponse : de l'encre sur ce qui CHANGE, qui s'en

@@ -141,6 +141,22 @@ for (const [ergo, opts] of [['pouce', PHONE], ['poste', DESK]]){
   const geste = (await p.textContent('#fiNa')).trim();
   okSi(etat === 'Aucune' && geste === 'Planifier',
     `④ fiche : « Aucune » à côté de « Planifier » — le bouton porte le geste (lu : « ${etat} » / « ${geste} »)`);
+  /* ④ bis « Modifier » nomme QUI verra ce qu'on y tape : la pastille
+     « partagé » seule, en pixel de 8, ne se lisait pas et ne disait pas
+     avec qui (28 octobre 2026) */
+  await p.evaluate(async () => {
+    const { S } = await import('./ui/state.js');
+    (await import('./ui/edit.js')).openEditPiste(S.companies.find(c => c.id === 'p1'));
+  });
+  await p.waitForSelector('#edName');
+  const pub = await p.evaluate(() => {
+    const o = [...document.querySelectorAll('.overlay:not(.ov-out)')].pop();
+    const h = o.querySelector('.modal-b > .hint');
+    return { ligne: h?.textContent.trim() || '', premier: o.querySelector('.modal-b').firstElementChild === h,
+             pastille: !!o.querySelector('.tag-share') };
+  });
+  okSi(pub.ligne === 'Visible par qui reçoit la piste.' && pub.premier && !pub.pastille,
+    `④ bis « Modifier » : la première ligne nomme le public, sans pastille muette — ${JSON.stringify(pub)}`);
   await p.context().close();
 }
 

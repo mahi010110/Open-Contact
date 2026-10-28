@@ -12,7 +12,7 @@ import { deptDePiste } from '../engine/requete.js';
 import { brancherNom } from './nom-annuaire.js';
 import { connaitre } from './fiche-annuaire.js';
 import { bus, saveData, logJ } from './state.js';
-import { openSheet, toast, btn, clavier, champGrandit, champAOuvrir, montrerRemplis, annoncer } from './dom.js';
+import { openSheet, toast, btn, clavier, champGrandit, champAOuvrir, montrerRemplis, annoncer, ic } from './dom.js';
 
 const FIELDS = ['name','city','domain','desc','website','address','techs','process','tips'];
 
@@ -261,11 +261,16 @@ export function openEditPiste(c, onDone){
      le redire dans la barre le coupait à 320 px (§4) */
   const sh = openSheet({ title: 'Modifier', icon: 'pencil', className: 'modal-fiche', focus: champAOuvrir('#edName') });
   sh.body.innerHTML =
-    /* La pastille suffit. « Ces infos circulent dans les partages — ton
-       suivi jamais » expliquait la pastille : c'est le motif documenté
-       (`tag-share`) qui porte la distinction, la phrase ne faisait que
-       la traduire, sur un écran où l'on vient taper, pas lire. */
-    `<div style="margin:0 0 14px"><span class="tag-share">partagé</span></div>
+    /* QUI VERRA CE QU'ON ÉCRIT ICI. La pastille « partagé » seule, en
+       pixel de 8 (6 px de haut), ne se lisait pas sur un téléphone et ne
+       disait pas avec QUI (audit du 28 octobre 2026). Un contrôle de
+       visibilité nomme son public — « Moi uniquement », « Amis » —, pas
+       un état : la ligne dit donc qui, au moment où l'on tape. C'est la
+       seule mise en garde de la feuille, et elle prévient d'une erreur
+       qu'on ne voit pas venir (§7, question 3) : une note perso écrite
+       ici part avec la piste. Le pendant privé, « Mes notes 🔒 privées »,
+       vit sur la fiche. */
+    `<p class="hint">${ic('users', 'ic-14')} Visible par qui reçoit la piste.</p>
      ${sharedFieldsHTML(c)}`;
   const champs = bindSharedFields(sh.body);
 

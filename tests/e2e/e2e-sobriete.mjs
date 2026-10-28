@@ -419,8 +419,13 @@ const PLAFOND = {
      (docs/propositions/R5-un-seul-moi.md) ; une perte qu'on ne voit pas
      venir, dite au moment où les mots sont à l'écran. L'avertissement
      au-dessus perd trois mots dans le même geste (« sans elle, rien ne
-     se récupère » dit le code oublié ET le téléphone perdu). */
-  motsExplication: 350,
+     se récupère » dit le code oublié ET le téléphone perdu).
+     357 avec l'audit de la 7.1.1 (28 octobre 2026) : « Modifier » dit
+     « Visible par qui reçoit la piste. » à la place d'une pastille
+     « partagé » en pixel de 8, illisible et muette sur le PUBLIC — une
+     note perso écrite là part avec la piste, une erreur qu'on ne voit
+     pas venir (§7, question 3). */
+  motsExplication: 357,
   /* ZÉRO, et c'est le seul plafond qui puisse honnêtement valoir zéro :
      un style sans porteur n'a pas de contrepartie à peser — il ne rend
      service à personne, il ne fait qu'attendre d'être lu par erreur.
@@ -653,12 +658,14 @@ const KIT_GARDE = [
      supprimer ferait pointer la référence sur du vide — exactement la
      faute qu'on corrige ailleurs. Il reste au kit, déclaré. */
   'fs-alert',
-  /* `.tag-priv` : le jeton « privé », la moitié de `tag-share / tag-priv`
-     que le catalogue de `CLAUDE.md` §6 nomme pour « Marquer partagé vs
-     privé ». Aucun écran ne le pose aujourd'hui — le privé s'y dit par
-     son absence de jeton —, mais le retirer laisserait le motif borgne :
-     le jour où un écran doit dire « privé », il le trouve au kit. */
-  'tag-priv'
+  /* `.tag-priv` et `.tag-share` : les jetons « privé » et « partagé »
+     que le catalogue de `CLAUDE.md` §6 garde pour un ÉTAT court sur une
+     ligne. Aucun écran ne les pose aujourd'hui : « Modifier » portait
+     « partagé » seul, en pixel de 8 — illisible, et sans dire avec qui ;
+     il nomme maintenant son public en toutes lettres (28 octobre 2026).
+     Les retirer laisserait le motif borgne : le jour où une ligne doit
+     dire « privé », elle le trouve au kit. */
+  'tag-priv', 'tag-share'
 ];
 
 {

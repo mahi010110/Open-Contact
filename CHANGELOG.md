@@ -28,6 +28,11 @@ L'audit de l'interface, joué comme un nouveau venu sur un téléphone.
   la piste ouvre le contenu, en entier.
 - Une fiche qui n'a qu'un contact le montre ouvert : « Écrire » et
   « Appeler » ne se cachent plus derrière un triangle.
+- Dans « Mes pistes », la ligne sous le nom ne coupe plus un statut en
+  deux (« À » en fin de ligne, « contacter » sur la suivante).
+- « Modifier » dit qui verra ce que tu y écris : « Visible par qui
+  reçoit la piste. », à la place d'une petite pastille « partagé »
+  qu'on ne lisait pas.
 
 ## [7.1.0] — 27 octobre 2026
 
