@@ -785,9 +785,14 @@ export function renderPistes(){
        est, « 9 pistes » ne le disait pas. Une recherche garde son
        « 3 sur 40 » : là, c'est le compte qui répond à ce qu'on fait. */
     const chiffres = chiffresTexte(mesChiffres(S.companies));
-    if (cnt) cnt.textContent = (q || ftOn()) && all.length !== tout
-      ? `${all.length} sur ${tout}`
-      : chiffres || `${tout} piste${tout > 1 ? 's' : ''}`;
+    const filtre = (q || ftOn()) && all.length !== tout;
+    /* un groupe par <span> insécable, le point collé à celui qui le
+       précède : replié au pouce, « 3 réponses » ne se coupe jamais en
+       « 3 » et « réponses » (audit 7.1.0). Le texte lu ne change pas. */
+    if (cnt && !filtre && chiffres){
+      const parts = chiffres.split(' · ');
+      cnt.innerHTML = parts.map((x, i) => `<span class="nw">${esc(x)}${i < parts.length - 1 ? ' ·' : ''}</span>`).join(' ');
+    } else if (cnt) cnt.textContent = filtre ? `${all.length} sur ${tout}` : `${tout} piste${tout > 1 ? 's' : ''}`;
     /* Filtrer réorganise tout l'écran sans rien annoncer : quelqu'un qui
        ne voit pas l'écran tape trois lettres et n'apprend jamais qu'il
        ne reste qu'une piste. C'est le DÉCOR qui suit un geste, jamais sa

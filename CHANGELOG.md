@@ -49,6 +49,9 @@ fait plus tout perdre.
   d'un groupe ou d'une conversation grandit avec le texte (et ne fait
   plus zoomer l'iPhone) ; ton nom dans « Moi » plie au lieu de passer
   sous « Modifier ».
+- Sur un iPhone, l'en-tête de « Mes pistes » tenait sur trois lignes et
+  « Choisir » tombait seul à gauche : tes chiffres se replient dans leur
+  colonne, « Choisir » reste en haut à droite.
 
 ## [7.0.0] — 27 octobre 2026
 

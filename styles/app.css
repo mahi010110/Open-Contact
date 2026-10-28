@@ -886,6 +886,15 @@ html[data-theme="dark"] .field select{
    l'écran : c'est la même règle de style, sur la balise juste. */
 .td-head h1{font-size:var(--text-20);letter-spacing:var(--tracking-tight)}
 .td-date{font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted)}
+/* AU POUCE, le compteur de « Mes pistes » (« 7 écrites · 3 réponses ·
+   1 décrochée ») prend la place libre et se replie DANS sa colonne :
+   « Choisir » reste en haut à droite. Sans ça, dès la police d'un
+   iPhone (17 px) ou sur un 360 px, l'en-tête prenait trois lignes et
+   « Choisir » tombait seul à gauche — vu sous WebKit (audit 7.1.0) */
+@media (max-width:900px){
+  #piCount{flex:1 1 0;min-width:6em}
+}
+.td-date .nw{white-space:nowrap}
 /* le retour d'un 2ᵉ écran : nu, comme la poubelle au survol — un chevron
    qui n'est pas un bouton encadré. La ligne se centre sur le titre. */
 .td-back{align-items:center;gap:4px}
