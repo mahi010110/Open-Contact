@@ -122,7 +122,7 @@ export function openMail(c, opts){
      <div class="ml-a">
        <span class="ml-l" id="mToL">À</span>
        ${cts.length > 1
-         ? `<div class="datechips ml-choix" role="radiogroup" aria-labelledby="mToL" id="mTo">${cts.map((t, i) =>
+         ? `<div class="datechips" role="radiogroup" aria-labelledby="mToL" id="mTo">${cts.map((t, i) =>
              `<button class="dchip${i === initIdx ? ' on' : ''}" role="radio" aria-checked="${i === initIdx}" data-ct="${i}">${
                esc(t.name || t.email)}${t.role ? ` <span class="ml-role">${esc(t.role)}</span>` : ''}</button>`).join('')}</div>`
          : `<span class="fld-ro${cts.length ? '' : ' ml-rien'}">${cts.length
@@ -131,7 +131,7 @@ export function openMail(c, opts){
      </div>
      <div class="ml-a">
        <span class="ml-l" id="mTplL">Modèle</span>
-       <div class="datechips ml-choix" role="radiogroup" aria-labelledby="mTplL" id="mTpl">${tpls.map((t, i) =>
+       <div class="datechips" role="radiogroup" aria-labelledby="mTplL" id="mTpl">${tpls.map((t, i) =>
          `<button class="dchip${i === tplInit ? ' on' : ''}" role="radio" aria-checked="${i === tplInit}" data-tpl="${i}">${esc(t.name)}</button>`).join('')}</div>
      </div>
      ${/* L'OBJET S'AFFICHE EN ENTIER.
