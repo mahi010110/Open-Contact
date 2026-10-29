@@ -30,11 +30,12 @@ function defaultCt(c){
 }
 
 /* `o.ids` : les pistes déjà cochées — l'appui long sur une piste ouvre
-   le choix sur elle (décision 0010) */
-export function openProspect(o = {}){
+   le choix sur elle (décision 0010). `o` peut manquer, valoir `null` ou
+   arriver d'un écouteur (un événement) : rien de tout ça ne coche rien. */
+export function openProspect(o){
   const alive = () => S.companies.filter(c => !isClosed(c));
   if (!alive().length) return;
-  const sel = new Set(Array.isArray(o.ids) ? o.ids : []);
+  const sel = new Set(o && Array.isArray(o.ids) ? o.ids : []);
   const st = sortState('status');            /* « À contacter » en tête par défaut */
   const ft = filterState();                  /* propre à cet écran (#8) */
   /* R1 (décision 0002) : la feuille CHOISIT des pistes à qui écrire.
