@@ -663,6 +663,11 @@ les confondre coûte cher : une tablette tactile en paysage fait 1024 à
   changeait de taille d'un onglet à l'autre ; une seule colonne de liste
   pour les deux écrans à volet (« Mes pistes », « Réseau », 24 rem) ;
   les gestes d'un écran se calent à DROITE de son titre, partout.
+  **Plus large n'est pas mieux** : essayé à 1 600 px sur un écran de
+  1 920, la fiche étirait ses trois segments de statut à 385 px chacun et
+  « Écrire » s'éloignait de 380 px du nom qu'il concerne. Une page qu'on
+  élargit sans repenser son contenu l'étire, elle n'utilise pas la place
+  — le vide du bord appartient au bureau.
   Gardé par `e2e-poste.mjs`, trois sondes à l'appui.
 - **Au doigt, 44 px** (`--control-h-touch`, plancher d'Apple et de WCAG
   2.5.5 AAA) ; **à la souris, 32 px** (`--control-h`, bien au-dessus du
