@@ -656,6 +656,14 @@ les confondre coûte cher : une tablette tactile en paysage fait 1024 à
   centrées, layouts en colonnes, raccourcis clavier (« / » = recherche,
   « n » = nouvelle piste — et une touche s'annonce DANS ce qu'elle
   commande, jamais dans un écran d'aide).
+- **Au poste, les onglets se ressemblent** *(lot E, 29 octobre 2026 —
+  « sur PC, rends les affichages plus cohérents »)*. Une seule largeur de
+  page pour les quatre onglets (`.page-wide`, 1 180 px : celle des deux
+  volets) — « Réseau » en prenait 120 de plus que les autres, et la page
+  changeait de taille d'un onglet à l'autre ; une seule colonne de liste
+  pour les deux écrans à volet (« Mes pistes », « Réseau », 24 rem) ;
+  les gestes d'un écran se calent à DROITE de son titre, partout.
+  Gardé par `e2e-poste.mjs`, trois sondes à l'appui.
 - **Au doigt, 44 px** (`--control-h-touch`, plancher d'Apple et de WCAG
   2.5.5 AAA) ; **à la souris, 32 px** (`--control-h`, bien au-dessus du
   plancher WCAG 2.5.8 AA de 24 px). Toute cible neuve part de `--ctl` :

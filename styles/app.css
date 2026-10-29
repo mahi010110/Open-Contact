@@ -930,6 +930,11 @@ html[data-theme="dark"] .field select{
 }
 @media (min-width:901px){
   .td-head>#tdPartir{margin-left:auto;align-self:center}
+  /* les gestes d'un écran se calent à DROITE de son titre, sur tous les
+     onglets — « Écrire les N mails », « Donner · Recevoir ». Ceux de
+     « Mes pistes » suivaient le compteur, au milieu de la ligne (lot E) */
+  .pi-head>.pi-vue{margin-left:auto}
+  .pi-head>.pi-vue,.pi-head>#piProspect{align-self:center}
 }
 @media (min-width:901px){
   .td-under{
@@ -2212,7 +2217,7 @@ details.pcard-details[open]>summary{margin-bottom:10px}
      La barre d'actions passe au-dessus, sur toute la largeur : les trois
      canaux d'un échange tiennent sur une ligne au lieu de deux, et
      « Donner » cesse d'être un timbre de 165 px. */
-  #view-reseau>.page-inner{max-width:1060px}
+  #view-reseau>.page-inner{max-width:1180px}   /* la largeur de toutes les pages (`.page-wide`, lot E) */
 }
 /* Le message tout prêt de « Demander à … » : il se LIT et se
    sélectionne, il ne se tape pas. `user-select:all` pour que le doigt
@@ -3272,7 +3277,13 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 .tr-orph .hint{margin:8px 0 0}
 
 /* ============ TABLEAU 3 COLONNES (desktop) ============ */
-.page-wide{max-width:1060px}
+/* UNE LARGEUR DE PAGE POUR TOUS LES ONGLETS (lot E, 29 octobre 2026 —
+   « sur PC, rends les affichages plus cohérents »). « Réseau » avait
+   pris 1 180 px pour ses deux volets, les trois autres onglets 1 060 :
+   sur un grand écran, la page changeait de largeur d'un onglet à
+   l'autre, et la liste des pistes, à deux volets elle aussi, restait à
+   l'étroit. Une seule mesure, celle des deux volets. */
+.page-wide{max-width:1180px}
 /* `1fr` vaut `minmax(auto,1fr)` : une colonne dont le contenu est plus
    large (une date « sam. 08/08 ») pousse et écrase ses voisines — à
    901 px, la colonne du milieu tombait à 245 px contre 303. `minmax(0,…)`
@@ -3758,8 +3769,10 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
   /* LES DEUX VOLETS (Discord, Slack ; Material 3 « list-detail ») : la
      liste à gauche, la conversation choisie posée à droite, la même
      hauteur — chacun défile chez lui */
-  #view-reseau>.page-inner.ec-boite{max-width:1180px}
-  .bx-cols{flex:1;min-height:0;display:grid;grid-template-columns:minmax(17rem,22rem) minmax(0,1fr);gap:18px}
+  /* la colonne de la liste est celle de « Mes pistes » (`.pi-split`) :
+     d'un onglet à l'autre, la frontière entre la liste et le volet ne
+     saute plus de 32 px (lot E) */
+  .bx-cols{flex:1;min-height:0;display:grid;grid-template-columns:minmax(17rem,24rem) minmax(0,1fr);gap:18px}
   .bx-gauche{min-height:0;overflow:auto;padding:4px;margin:-4px}
   .bx-seule{max-width:36rem}
   .bx-volet{min-height:0;display:flex}

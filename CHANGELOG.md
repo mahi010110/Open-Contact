@@ -31,6 +31,9 @@ l'écran. Et « Écrire » va plus droit au message.
   clic droit sur ordinateur). Le bouton « Choisir » reste.
 - Dans « Réseau », les filtres (Tout, Non lus, Groupes, Amis) sont de
   simples onglets.
+- Sur ordinateur, les quatre onglets ont la même largeur, « Mes pistes »
+  et « Réseau » la même colonne de liste, et les boutons d'un écran se
+  rangent toujours à droite de son titre.
 - Dans « Écrire », le destinataire et le modèle tiennent chacun une
   ligne. Les modèles sont visibles d'un coup d'œil, plus cachés dans un
   menu. Si tu changes de modèle après avoir écrit, « Annuler » rend ton
