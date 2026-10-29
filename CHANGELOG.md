@@ -23,7 +23,6 @@ l'écran. Et « Écrire » va plus droit au message.
 - Sur ordinateur, « Aujourd'hui » pose ses trois colonnes sans cadre,
   comme sur téléphone. Le tableau de « Mes pistes » garde ses colonnes :
   on y dépose des cartes.
-- Sur téléphone, une fenêtre longue prend tout l'écran.
 - Pour modifier ton profil ou une piste, touche son nom : le bouton
   « Modifier » à côté a disparu. Sur une fiche, « Donner » devient
   l'icône de partage.

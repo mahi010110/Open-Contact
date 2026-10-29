@@ -1424,15 +1424,15 @@ chaque écran enseigne le produit, jamais un simple « aucune donnée ».
 
 **Une feuille ne s'étire pas — elle se déplace.** Mesuré sur les seize
 feuilles de l'app, en 390 × 844 et en 1280 × 800 : chacune est soit au
-plafond, soit assez courte pour tout montrer (l'étirer n'ajouterait que du
-vide) — le dimensionnement automatique fait déjà le travail, et un cran
-« pleine hauteur » serait un geste sans effet. **Au pouce, le plafond est
-l'écran** *(décision 0010, 29 octobre 2026 : « utiliser l'espace
-disponible »)* : une feuille longue monte jusque sous l'encoche. Arrêtée à
-92 dvh, elle laissait voir 67 px de l'écran d'en dessous — son titre et
-ses boutons, qu'on ne peut pas toucher — et deux feuilles empilées
-montraient deux barres de titre l'une sur l'autre. Au poste, une fenêtre
-garde ses 92 dvh : on voit derrière elle, et on la déplace.
+plafond (92 dvh, plus rien à gagner), soit assez courte pour tout montrer
+(l'étirer n'ajouterait que du vide) — le dimensionnement automatique fait
+déjà le travail, et un cran « pleine hauteur » serait un geste sans effet.
+**Et les 8 % du haut ne sont pas de la place perdue** *(essayé et retiré
+le 29 octobre 2026, décision 0010)* : c'est là que se posent le toast et
+la barre « Annuler » quand une feuille est ouverte, et c'est ce qui dit
+« feuille » — iOS laisse lui aussi voir l'écran d'en dessous. Une feuille
+montée jusqu'en haut faisait tomber la barre sur son corps
+(`e2e-finitions.mjs` ①).
 
 > **Une seule feuille a fait mentir ce relevé, et c'est la plus chère :
 > « Écrire ».** Elle s'arrêtait à 612 px sur 776 disponibles *pendant*
@@ -1440,7 +1440,7 @@ garde ses 92 dvh : on voit derrière elle, et on la déplace.
 > travaille que si quelque chose RÉCLAME la place ; ici, la zone
 > d'écriture avait une hauteur fixe, donc personne ne la réclamait. La
 > règle se précise donc : **une feuille dont un champ doit grandir se
-> donne sa hauteur** (`height:92dvh` au poste, l'écran au pouce) et pose un **plancher en `dvh` sur
+> donne sa hauteur** (`height:92dvh`) et pose un **plancher en `dvh` sur
 > ce champ** — sans quoi sa taille se met à dépendre de ce qui est écrit
 > au-dessus, et une fiche bien renseignée rétrécit l'endroit où l'on
 > travaille. Deux constructions sont mortes avant celle-là : un panneau
@@ -2310,7 +2310,6 @@ retiré.
 | « Le + fait tout entrer : une piste, quelqu'un rencontré, ce qu'on te tend » (décision 0002, 7.0.0) | **remplacée** (29 octobre 2026, décision 0008), par le mainteneur : « le + a perdu son sens, le partage a été dispersé entre plusieurs endroits » | Le + ouvrait « Ajouter », dont le corps disait « Recevoir » et dont la piste attendait au pied : deux taps pour le geste le plus fréquent, et la touche N qui ne faisait pas ce que faisait son bouton. Le + crée une piste d'un tap ; Donner et Recevoir se retrouvent côte à côte dans « Réseau » ; « Choisir » ne fait plus qu'écrire |
 | « Télécharger » taillé à son mot, dans « Ma copie » (6.36.0) | **retirée** (30 septembre 2026, le jour même), par le mainteneur : « j'aimais bien comment c'était » | La règle générale était juste — un bouton de 235 px pour un mot annonce une action lourde. Mais cette ligne n'est pas un bouton étiré : c'est un échange de place, où l'action tient la largeur que le champ du mot de passe prendra en s'ouvrant. Taillée à son mot, la ligne gardait un trou à droite et l'ouverture ne se lisait plus comme un échange. L'exception se nomme dans `e2e-boutons.mjs` par sa construction (`.lockrow:not(.on) > .lr-do`), pas par un bouton |
 | « Choisir parmi 2-5 options : UN cadre, des rangées » et « Une page = un objet : des cadres `.fset`, deux par écran au maximum » | **remplacées** (29 octobre 2026, décision 0010), par le mainteneur : « les cadres restreignent et empêchent d'utiliser l'espace vide », « un gros travail de minimalisme » | Elles avaient remplacé des piles de briques par UN cadre, ce qui était un progrès. Mais l'écran d'un onglet est déjà une fenêtre, et chaque liste y ajoutait un bord, chaque piste une carte, chaque compte une pastille : trois niveaux d'encadrement au poste, et 7 px perdus entre deux pistes pour ne rien distinguer — toutes les cartes étaient pareilles. Un groupe se dit par son nom, une liste par son pointillé ; le cadre reste au châssis et aux objets qu'on prend en entier (§4) |
-| « Une feuille plafonne à 92 dvh » (au pouce) | **précisée** (29 octobre 2026, décision 0010) | Le plafond était juste au poste, où l'on voit derrière une fenêtre et où on la déplace. Au pouce, les 8 % restants montraient le titre et les boutons d'un écran qu'on ne peut pas toucher, et deux feuilles empilées deux barres de titre. Une feuille longue y prend l'écran, sous l'encoche ; une courte garde la hauteur de son contenu |
 
 *Tranché par l'assistant, à valider :* la reformulation de l'interdit serveur,
 la suppression de « ne pas dégrader l'existant », et le contenu détaillé des

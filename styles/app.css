@@ -1436,6 +1436,17 @@ button.pp-et:active{background:var(--surface-raised)}
    la page à chaque feuille ouverte — la plus chère de l'app après le
    toast (porte « Performance », statistiques de sélecteurs de Chromium). */
 :focus-within:has(> * > .sw-cible:focus-visible){outline:var(--focus-outline);outline-offset:var(--focus-offset)}
+/* LES PISTES SE TOUCHENT depuis la décision 0010 (plus de 7 px entre
+   deux cartes) : l'anneau posé DEHORS passait sous la ligne suivante,
+   opaque, et n'en gardait que deux bords (e2e-focus, 29 octobre 2026).
+   Il se pose donc DEDANS, et sur la boîte qui PEINT — l'enveloppe est
+   positionnée et opaque, elle recouvrirait un anneau intérieur de la
+   rangée (§4 ③, la même réponse que le fil). */
+.row-item:focus-within:has(> .sw-in > .sw-cible:focus-visible){outline:none}
+.row-item:focus-within:has(> .sw-in > .sw-cible:focus-visible)>.sw-in{outline:var(--focus-outline);outline-offset:-2px}
+/* au poste, la piste focalisée est aussi la piste CHOISIE, sur le navy
+   du châssis : l'anneau en prend l'encre, comme la croix de la ligne */
+.row-item.pi-sel:focus-within:has(> .sw-in > .sw-cible:focus-visible)>.sw-in{outline-color:var(--select-text)}
 /* poubelle au survol (souris) : un élément du flux, pas un survol
    flottant — la colonne est réservée, rien ne saute ni ne déborde. Nue
    comme toute action de ligne : ni cadre, ni biseau, ni ombre, ni aplat
@@ -3827,18 +3838,6 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
    messageries ouvrent la conversation en plein écran. Sa barre se pousse
    sous l'encoche ; clavier ouvert, elle prend toute la zone qu'il
    laisse, sans la marge des autres feuilles. */
-/* AU POUCE, UNE FEUILLE LONGUE PREND L'ÉCRAN (décision 0010, 29 octobre
-   2026 : « utiliser l'espace disponible, ne pas se brider »). Arrêtée à
-   92 % de la hauteur, elle laissait voir 67 px de l'écran d'en dessous —
-   son titre et ses boutons, qu'on ne peut pas toucher — et deux feuilles
-   empilées montraient deux barres de titre l'une sur l'autre. Une
-   feuille courte garde la hauteur de son contenu ; une longue va
-   jusqu'en haut, sous l'encoche, comme une conversation (`.modal-groupe`)
-   et comme les feuilles plein écran de Material. */
-@media (max-width:900px){
-  .modal{max-height:calc(100dvh - env(safe-area-inset-top))}
-  .modal-compose{height:calc(100dvh - env(safe-area-inset-top))}
-}
 @media (max-width:900px){
   .modal-groupe{height:100dvh;max-height:100dvh;border-width:0}
   .modal-groupe .modal-h{padding-top:calc(3px + env(safe-area-inset-top))}

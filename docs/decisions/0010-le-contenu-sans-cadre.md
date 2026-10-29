@@ -29,10 +29,6 @@ Relevé sur la 7.4.0, au pouce et au poste :
   qu'on cherche et qu'on compare se lit mieux en lignes (NN/g, Laubheimer
   2016, repris par les systèmes de design du Queensland et de la
   Commission européenne).
-- **Une feuille longue s'arrêtait à 92 % de l'écran** : 67 px de l'écran
-  d'en dessous restaient visibles — son titre et ses boutons, qu'on ne
-  peut pas toucher — et deux feuilles empilées montraient deux barres de
-  titre l'une sur l'autre.
 - **« Modifier » était un bouton à côté du nom qu'il modifie**, sur la
   fiche et dans « Moi » : deux objets pour un geste.
 
@@ -62,8 +58,6 @@ Relevé sur la 7.4.0, au pouce et au poste :
   trois cadres : rien ne s'y dépose, ce sont des tranches côte à côte.
   Le tableau de « Mes pistes » garde ses colonnes encadrées : on y dépose
   une carte, et le bas d'une colonne courte reste une cible.
-- **Au pouce, une feuille longue prend l'écran**, jusque sous l'encoche ;
-  une feuille courte garde la hauteur de son contenu.
 - **Ce qui se modifie se touche** : sur la fiche et dans « Moi », le bloc
   du nom ouvre « Modifier », son crayon le dit. « Donner », sur la fiche,
   n'est plus qu'une icône de partage.
@@ -87,6 +81,12 @@ Relevé sur la 7.4.0, au pouce et au poste :
   raccourci (NN/g), et l'idiome d'iOS est un bouton visible.
 - **Aplatir aussi le tableau de « Mes pistes »** : ses colonnes sont des
   cibles de dépôt ; sans cadre, on ne voit plus où lâcher une carte.
+- **Au pouce, une feuille longue qui prend tout l'écran** : essayé,
+  retiré le jour même. Les 8 % du haut ne sont pas de la place perdue :
+  c'est là que se posent le toast et la barre « Annuler » quand une
+  feuille est ouverte — sans eux, la barre couvrait le corps de la
+  feuille (`e2e-finitions.mjs` ①, rouge) —, et c'est ce qui dit
+  « feuille » : iOS laisse lui aussi voir l'écran d'en dessous.
 
 ## Conséquences
 
