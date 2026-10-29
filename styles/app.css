@@ -67,7 +67,13 @@ input,select,textarea{font-family:inherit;color:var(--text-body)}
 .skip:focus{transform:none}
 .app{display:flex;flex-direction:column;height:100dvh}
 .main{flex:1;min-height:0;position:relative}
-.view{height:100%;overflow-y:auto;padding:16px 14px 40px;
+/* LE CONTENU SE POSE SUR LA FACE DE LA FENÊTRE (décision 0010, 29 octobre
+   2026 — le mainteneur : « les cadres restreignent », « un gros travail
+   de minimalisme », « utiliser l'espace disponible »). L'écran d'un
+   onglet EST la fenêtre de l'app : il prend sa face claire, celle des
+   feuilles, et ce qui s'y range n'a plus de cadre à soi — le châssis
+   (barres, fenêtres, champs, boutons) garde les siens. */
+.view{height:100%;overflow-y:auto;padding:16px 14px 40px;background:var(--surface-window);
   padding-left:calc(14px + env(safe-area-inset-left));
   padding-right:calc(14px + env(safe-area-inset-right));}
 .page-inner{max-width:640px;margin:0 auto}
@@ -919,7 +925,7 @@ html[data-theme="dark"] .field select{
      et laisseraient les liens flotter au milieu. */
   #view-aujourdhui>.page-inner>.td-pret{margin-top:auto}
   #view-aujourdhui>.page-inner>.td-under+.td-pret{margin-top:12px}
-  .td-pret{position:sticky;bottom:0;z-index:3;padding:10px 0 2px;background:var(--surface-desktop)}
+  .td-pret{position:sticky;bottom:0;z-index:3;padding:10px 0 2px;background:var(--surface-window)}
   .td-pret>.btn{width:100%}
 }
 @media (min-width:901px){
@@ -930,7 +936,7 @@ html[data-theme="dark"] .field select{
     display:flex;flex-wrap:wrap;align-items:center;gap:8px 20px;
     margin-top:20px;padding-top:14px;border-top:1px dashed var(--border-soft);
   }
-  .td-under .td-triage{width:auto}
+  .td-under .td-triage{width:auto;margin-top:0;padding:0;border-top:0}
   .td-under .td-foot{margin-top:0}
   /* AU POSTE, LE TABLEAU PREND LA HAUTEUR DE SA JOURNÉE (audit
      adaptatif, octobre 2026). Il s'étirait jusqu'au bas de la vue pour
@@ -955,17 +961,23 @@ html[data-theme="dark"] .field select{
   #view-aujourdhui>.page-wide .tranche .tr-rows{
     display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:start
   }
+  /* en grille, le pointillé sépare les RANGS, jamais deux voisines d'un
+     même rang : posé entre la 1ʳᵉ et la 2ᵉ, il ne soulignait que deux
+     colonnes sur trois et les décalait d'un pixel */
+  #view-aujourdhui>.page-wide .tranche .tr-rows>.act-row{border-top:0}
+  #view-aujourdhui>.page-wide .tranche .tr-rows>.act-row:nth-child(n+4){border-top:1px dashed var(--border-soft)}
 }
 /* « À trier (N) » — la ligne calme qui regroupe les entrants (#10) */
 .td-triage{
   display:flex;align-items:center;gap:8px;width:100%;margin-top:16px;
-  padding:10px 12px;min-height:var(--ctl);cursor:pointer;
-  background:var(--surface-chrome);border:1px dashed var(--border-strong);
-  border-radius:var(--radius-0);
+  padding:10px 0;min-height:var(--ctl);cursor:pointer;
+  background:none;border:0;border-top:1px dashed var(--border-soft);border-radius:0;
   font:inherit;font-size:var(--text-13);color:var(--text-muted);text-align:left;
 }
+/* une rangée de plus, plus un bandeau (décision 0010) : le compte au
+   bout, comme l'état d'une rangée des Réglages */
 .td-triage .tr-n{margin-left:auto}
-.td-triage:active{box-shadow:var(--bevel-down)}
+.td-triage:active{background:var(--surface-raised)}
 
 /* ============ TRANCHES ============ */
 .tranche{margin-top:18px}
@@ -974,11 +986,9 @@ html[data-theme="dark"] .field select{
   font-size:var(--text-11);font-weight:var(--weight-bold);
   letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;
 }
-.tr-n{
-  font-family:var(--font-mono);font-size:var(--text-11);
-  background:var(--surface-chrome);border:1px solid var(--border-soft);
-  padding:0 6px;border-radius:var(--radius-1);
-}
+/* le compte d'une tranche est un CHIFFRE, en mono (décision 0010) : la
+   pastille encadrée posait une boîte de plus à côté de chaque titre */
+.tr-n{font-family:var(--font-mono);font-size:var(--text-11);font-weight:var(--weight-regular);letter-spacing:0}
 /* le titre d'une tranche pliable vit DANS son `<summary>` : le résumé
    garde son rôle de bouton, le `<h3>` sa place dans le plan. Il reprend
    la mise en page de `.tr-h` pour que rien ne bouge à l'écran. */
@@ -1141,7 +1151,7 @@ html[data-theme="dark"] .field select{
 /* « Ajouter un contact » : le dirigeant proposé, en pointillé */
 .ce-sugg{display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;margin:0 0 12px}
 .tr-late .tr-h{color:var(--amber)}
-.tr-late .tr-h .tr-n{border-color:var(--amber);background:var(--amber-wash)}
+.tr-late .tr-h .tr-n{color:var(--amber)}
 /* replier/déplier « Bientôt » est un geste au pouce comme un autre :
    la ligne fait 44 px, pas la hauteur de ses 11 px de texte */
 /* La CIBLE fait 44 px, la mise en page n'en prend pas 44. Le repli de
@@ -1169,15 +1179,14 @@ details.tranche[open]>summary::before{
   border-left:4px solid transparent;border-right:4px solid transparent;
   border-top:5px solid var(--accent);border-bottom:0;
 }
-.tr-rows{display:flex;flex-direction:column;gap:7px}
+/* une tranche est une LISTE : des lignes sur le papier, un pointillé
+   entre elles (décision 0010) — plus une pile de cartes */
+.tr-rows{display:flex;flex-direction:column;gap:0}
 .tr-more{align-self:flex-start}
 
 /* ============ LIGNES D'ACTION ============ */
-.act-row{
-  position:relative;border:1px solid var(--border-strong);border-radius:var(--radius-0);
-  background:var(--surface-window);box-shadow:var(--shadow-raised);
-  overflow:hidden;touch-action:pan-y;
-}
+.act-row{position:relative;overflow:hidden;touch-action:pan-y}
+.act-row+.act-row{border-top:1px dashed var(--border-soft)}
 .act-under{
   position:absolute;inset:0;display:flex;align-items:center;gap:6px;padding:0 16px;
   font-weight:var(--weight-bold);font-size:var(--text-13);opacity:0;
@@ -1328,14 +1337,13 @@ details.tranche[open]>summary::before{
 .act-gone{transition:opacity 150ms var(--ease-out),transform 150ms var(--ease-out);opacity:0;transform:translateX(20px)}
 
 /* ============ ÉTATS VIDES ============ */
-.td-empty{
-  margin-top:20px;background:var(--surface-window);border:1px solid var(--border-strong);
-  box-shadow:var(--shadow-raised);padding:26px 18px;text-align:center;
-}
+/* l'état vide se pose sur la page, plus dans une carte (décision 0010) :
+   c'est déjà la fenêtre de l'app, un cadre de plus n'y ajoutait qu'un bord */
+.td-empty{margin-top:20px;padding:26px 0;text-align:center}
 .tde-ic{
   display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;
   border:1px solid var(--border-strong);background:var(--teal-wash);color:var(--accent);
-  margin-bottom:12px;box-shadow:var(--shadow-raised);
+  margin-bottom:12px;
 }
 .tde-ic.ok{background:var(--green-wash);color:var(--green)}
 .td-empty h2{font-size:var(--text-16);font-weight:var(--weight-bold);letter-spacing:var(--tracking-tight);margin-bottom:5px}
@@ -1345,13 +1353,13 @@ details.tranche[open]>summary::before{
 /* les deux gestes d'un vide, TAILLÉS À LEUR MOT et côte à côte — au
    pouce ils s'empilaient sur 280 px chacun, deux barres pour trois mots */
 .tde-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:0 auto}
-/* PREMIERS PAS (lot F4) : une liste ordonnée dans UN cadre, des rangées
-   sans relief séparées d'un pointillé (§6, « Choisir parmi 2-5 options »).
+/* PREMIERS PAS (lot F4) : une liste ordonnée, des rangées sans relief
+   séparées d'un pointillé — et, depuis la décision 0010, sans cadre.
    Ce qui reste à faire se tape, avec son chevron ; ce qui est fait se
    coche en accent et passe en encre sourde — l'encre va à ce qui reste. */
-.pp-liste{margin:0;padding:0;list-style:none;border:1px solid var(--border-frame);background:var(--surface-field)}
+.pp-liste{margin:0;padding:0;list-style:none}
 .pp-liste li + li{border-top:1px dashed var(--border-soft)}
-.pp-et{display:flex;align-items:center;gap:10px;width:100%;min-height:var(--ctl);padding:4px 12px;
+.pp-et{display:flex;align-items:center;gap:10px;width:100%;min-height:var(--ctl);padding:4px 0;
   background:none;border:0;border-radius:0;font:inherit;font-size:var(--text-14);color:var(--text-body);text-align:left}
 .pp-l{flex:1;min-width:0;overflow-wrap:anywhere}
 /* ce qui manque au profil : une donnée sous le pas, en encre sourde */
@@ -1443,11 +1451,14 @@ button.pp-et:active{background:var(--surface-raised)}
 }
 
 /* ============ LISTE DES PISTES ============ */
-.rows{display:flex;flex-direction:column;gap:7px}
-.row-item{
-  background:var(--surface-window);border:1px solid var(--border-strong);border-radius:var(--radius-0);
-  box-shadow:var(--shadow-raised);cursor:pointer;
-}
+/* une liste de pistes : des lignes, un pointillé entre elles — plus une
+   carte par piste (décision 0010). La ligne entière s'ouvre. */
+.rows{display:flex;flex-direction:column;gap:0}
+.row-item{cursor:pointer}
+.row-item+.row-item{border-top:1px dashed var(--border-soft)}
+/* l'appui long y choisit (décision 0010) : iOS n'y pose ni sa bulle ni
+   sa sélection de texte, comme sur une conversation (`.bx-l`) */
+.row-item:not(.row-closed){-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 /* le rembourrage vertical appartient à la ZONE QUI OUVRE, pas au
    conteneur : posé sur .sw-in, les 9 px du haut et du bas ne
    réagissaient pas au tap alors que la ligne, elle, faisait bien 44 px */
@@ -1556,41 +1567,34 @@ button.pp-et:active{background:var(--surface-raised)}
 .pcard .pd{font-size:var(--text-12);color:var(--text-muted);line-height:1.55;margin-bottom:10px}
 .pcard .pd:last-child{margin-bottom:0}
 
-/* ============ GROUP BOX (feuille de propriétés 98) ============
-   Le cadre fin dont la légende est posée DANS le trait. Les guidelines
-   d'origine le disent « visually heavy, use sparingly » : il ne sert que
-   là où une page rassemble plusieurs familles de réglages autour d'un
-   objet — « Moi ». Ailleurs, la carte (`pcard`) reste la règle.
-   Le trait a son propre ton (`--border-frame`) : en `--border-soft` il
-   valait exactement les pointillés qu'il contient, et le cadre cessait
-   de se lire comme un cadre — flagrant en thème sombre. */
-.fset{
-  border:1px solid var(--border-frame);border-radius:var(--radius-0);
-  padding:2px 12px 10px;margin:0 0 12px;min-width:0;
-}
+/* ============ LE GROUPE NOMMÉ (ex-« group box » 98) ============
+   Le cadre fin dont la légende était posée DANS le trait est parti
+   (décision 0010, 29 octobre 2026 — le mainteneur : « les cadres
+   restreignent et empêchent d'utiliser l'espace vide »). Un groupe se dit
+   par son NOM, en petites capitales, comme les sections des Réglages
+   (`.rg-sec`) : la grammaire de toutes les listes de l'app. Le
+   `<fieldset>` reste — il dit le groupe à qui lit l'écran sans le voir. */
+.fset{border:0;border-radius:0;padding:0;margin:14px 0 12px;min-width:0}
+.fset:first-child{margin-top:0}
 .fset>legend{
   font-size:var(--text-11);font-weight:var(--weight-bold);
   text-transform:uppercase;letter-spacing:var(--tracking-wide);
-  color:var(--text-muted);padding:0 6px;margin-left:-6px;
+  color:var(--text-muted);padding:0;margin:0 0 2px;
 }
-/* Une précision qui qualifie le cadre se pose DANS sa légende, mais nue :
-   `tag-priv` y apportait sa bordure et sa trame, et le filet du cadre lui
-   passait derrière — un jeton posé en travers du trait, qui se lisait
-   comme un contrôle (§6 : bordure et fond appartiennent à ce qui se
-   tape). Même encre que la légende, un cran plus clair, rien de plus. */
+/* Une précision qui qualifie le groupe se pose DANS son nom, mais nue :
+   même encre que le nom, un cran plus clair, rien de plus (§6 : bordure
+   et fond appartiennent à ce qui se tape). */
 .lg-note{
   font-weight:var(--weight-regular);opacity:.8;
   display:inline-flex;align-items:center;gap:4px;margin-left:2px;
 }
-/* un cadre sans légende (l'écran porte déjà son titre) ne doit pas
-   garder l'encoche que le navigateur réserve au `legend` */
-.fset-plain{padding-top:6px}
+.fset-plain{padding-top:0;margin-top:0}
 .fset .pd{font-size:var(--text-12);color:var(--text-muted);line-height:1.55;margin:0}
-/* le cadre entier prend le bord ambre quand l'état qu'il porte est celui
+/* le groupe prend le bord ambre quand l'état qu'il porte est celui
    qui peut TOUT coûter (aucune copie, sans serveur derrière) — même
    signal que le bac « Contacts à rattacher », et seulement quand c'est
-   vrai. Un cadre alerté en permanence ne serait plus une alerte. */
-.fset.fs-alert{border-left:3px solid var(--amber)}
+   vrai. Un groupe alerté en permanence ne serait plus une alerte. */
+.fset.fs-alert{border-left:3px solid var(--amber);padding-left:9px}
 
 /* ============ EN-TÊTE D'OBJET ============
    « Put the object's name on the first page » + « display the appropriate
@@ -1628,7 +1632,14 @@ button.pp-et:active{background:var(--surface-raised)}
    garde la sienne, l'alignement des textes ne bouge pas. */
 .obj-moi{display:grid;grid-template-columns:auto minmax(0,1fr) auto;column-gap:12px;row-gap:2px;align-items:center}
 .obj-moi>.obj-s{grid-column:2 / -1}
-.obj-moi .obj-n{margin-bottom:0;overflow-wrap:break-word;hyphens:auto}   /* comme la fiche : un nom plie, il ne passe pas sous « Modifier » (« Maheydine » à 200 % en 320 px) */
+.obj-moi .obj-n{margin-bottom:0;overflow-wrap:break-word;hyphens:auto}   /* comme la fiche : un nom plie, il ne passe pas sous son chevron (« Maheydine » à 200 % en 320 px) */
+/* l'en-tête qui SE TOUCHE (décision 0010) : un bouton nu, le bloc entier
+   est la cible ; son crayon dit qu'on y modifie, et le nom prend l'encre
+   du lien au survol, comme une rangée des Réglages */
+.obj-touche{width:100%;padding:6px 0;background:none;border:0;font:inherit;color:inherit;text-align:left;cursor:pointer}
+.obj-touche .obj-m,.obj-touche .obj-s,.obj-touche .obj-n{display:block}
+.obj-touche>.ic:not(:first-child){color:var(--text-muted);align-self:center}
+@media (hover:hover){ .obj-touche:hover .obj-n{color:var(--text-link)} }
 /* les actions d'une carte se partagent la largeur : deux boutons de
    libellés inégaux ne peuvent plus finir de tailles différentes. Une
    commande à icône garde la sienne. Le plafond évite l'inverse — un
@@ -1777,7 +1788,10 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 .moi-cols .pcard:last-child,.moi-cols .fset:last-child{margin-bottom:0}
 /* au pouce, « Réglages » est une porte seule sous les cadres : elle
    s'aligne sur leur contenu (même retrait) sans porter de cadre à elle */
-.rg-row.moi-rg{padding:0 13px}   /* 1px de cadre + 12px de retrait : le nom tombe pile sous « Modèles d'emails » */
+.rg-row.moi-rg{padding:0}   /* plus de cadre au-dessus (décision 0010) : le nom tombe pile sous « Modèles d'emails » */
+/* « Je peux aider », « Mon visage » : deux portes qui se suivent, le
+   pointillé de toute liste entre elles */
+.moi-rg+.moi-rg{border-top:1px dashed var(--border-soft)}
 /* l'état « sans copie », au-dessus du bouton qui le règle */
 .copie-etat{display:flex;align-items:flex-start;gap:6px;margin:2px 0 8px}
 .copie-etat .ic{flex:none;margin-top:1px}
@@ -2235,11 +2249,11 @@ button.fi-vecu b{flex:1;min-width:0}
    désormais le geste de suppression, et le contenu glisse à l'intérieur */
 .ec-l{border-bottom:1px dashed var(--border-soft)}
 .ec-l:last-of-type{border-bottom:0}
-/* `.sw .sw-in` habille normalement une carte (`--surface-window`). Ici
-   le fil est une TRANCHE, posée à même la page : lui donner un fond de
-   carte le transformerait en liste de boîtes — l'inverse de ce qu'on
-   cherche. Il prend donc le fond de la page, juste assez opaque pour
-   couvrir la poubelle pendant le glissement. */
+/* Le fil est une TRANCHE : il prend le fond de ce qui le porte, juste
+   assez opaque pour couvrir la poubelle pendant le glissement. Depuis
+   qu'il vit dans « Historique », ce fond est la face de la fenêtre — il
+   gardait celui du bureau, une bande beige par ligne dans une feuille
+   claire (décision 0010). */
 /* Et la ligne du fil EST une ligne. Sans `display:flex`, `.sw-in` reste
    un BLOC : la poubelle du geste de suppression se posait SOUS le texte,
    collée à gauche, et chaque échange occupait 65 px de haut dont la
@@ -2250,7 +2264,7 @@ button.fi-vecu b{flex:1;min-width:0}
    raté avant qu'on en trouve la cause. */
 /* les 5 px de droite sont ceux de la poubelle du survol : collée au
    bord de la rangée, son anneau de focus était rogné du même coup */
-.ec-l .sw-in{display:flex;align-items:center;background:var(--surface-desktop);padding-right:5px}
+.ec-l .sw-in{display:flex;align-items:center;background:var(--surface-window);padding-right:5px}
 .ec-row{
   /* 8 px et non 10 : à 320 px les quatre colonnes plus le chevron
      demandent 289 px pour 282 disponibles, et c'est le CHEVRON qui
@@ -2731,8 +2745,9 @@ button.ec-row:hover{background:var(--surface-field)}
    action remplie par vue) ; cinq briques égales disent cinq actions
    lourdes, et aucune.
    Une liste d'actions prend donc la forme que l'app donne DÉJÀ à ses
-   listes — « Réglages », « Modèles d'emails » : UN cadre, des rangées de
-   hauteur de contrôle séparées d'un pointillé, sans relief. La rangée
+   listes — « Réglages », « Modèles d'emails » : des rangées de hauteur
+   de contrôle séparées d'un pointillé, sans relief — et, depuis la
+   décision 0010, sans cadre autour : la feuille EST la fenêtre. La rangée
    reste un `<button>` (un geste qui agit n'est jamais un lien) et garde
    sa cible de 44 px ; seul l'habit disparaît. Les rangées se touchent,
    et §5-3 l'autorise pour une liste : le pointillé dit la frontière.
@@ -2740,11 +2755,7 @@ button.ec-row:hover{background:var(--surface-field)}
    deux étages, pas des gestes. Portée : les FEUILLES, et les gestes qui
    continuent la liste de Réglages ; le panneau d'« Échanger » au poste
    garde sa propre grammaire de tranche (plus haut). */
-.modal-b .pick-list:not(:has(.pk)){
-  gap:0;padding:0 12px;
-  background:var(--surface-window);border:1px solid var(--border-strong);
-  border-radius:var(--radius-0);box-shadow:var(--shadow-raised);
-}
+.modal-b .pick-list:not(:has(.pk)){gap:0}
 .rg-foot .pick-list{gap:0}
 /* UN CHOIX PARMI DEUX OU TROIS (`choixHTML`) : la rangée retenue porte
    sa coche d'accent au bout ; les autres, rien — l'encre va à ce qui est
@@ -3282,8 +3293,19 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
    le bas d'une colonne courte doit rester une cible (F9). */
 .td-board{margin-top:14px;align-items:start}
 .td-board .bcol-h::before{display:none}
+/* TROIS COLONNES DE LIGNES, PLUS TROIS CADRES (décision 0010). Le
+   tableau du jour n'est pas un tableau où l'on DÉPOSE : rien ne s'y
+   glisse d'une colonne à l'autre. Ses colonnes sont donc des tranches,
+   posées côte à côte — le titre, puis les lignes et leur pointillé, comme
+   au pouce. Le tableau de « Mes pistes » garde ses colonnes encadrées :
+   le bas d'une colonne y reste une cible (F9), une carte y est un objet
+   qu'on prend. Le titre collant garde la face de la page sous lui, sans
+   quoi les lignes passeraient à travers. */
+.td-board .bcol{border:0;background:none;box-shadow:none}
+.td-board .bcol-h{padding:0 0 6px;border-bottom:0;background:var(--surface-window)}
+.td-board .bcol-rows{gap:0;padding:0}
 .td-board .tr-late .bcol-h{color:var(--amber)}
-.td-board .tr-late .bcol-h .tr-n{border-color:var(--amber);background:var(--amber-wash)}
+.td-board .tr-late .bcol-h .tr-n{color:var(--amber)}
 .bcard{
   background:var(--surface-window);border:1px solid var(--border-strong);border-radius:var(--radius-0);
   box-shadow:var(--bevel-up), var(--shadow-raised);cursor:pointer;
@@ -3370,7 +3392,12 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
    s'y décide vit dans la CASE. Un relief dit « je suis un geste » ; une
    fiche de liste dit « je suis une piste ». Le cadre reste (deux étages,
    un objet), dans le trait des cadres de groupe, et l'appui s'enfonce. */
-.pick.pk,.pk-duo{background-color:var(--surface-window);border-color:var(--border-frame);box-shadow:none}
+/* plus de fiche encadrée par piste (décision 0010) : une ligne, la case
+   en tête, un pointillé avec la suivante */
+.pick.pk,.pk-duo{background-color:transparent;border:0;border-radius:0;box-shadow:none}
+.pick.pk{padding-left:2px;padding-right:2px}
+.pick-list:has(.pk){gap:0}
+.pick-list:has(.pk)>*+*{border-top:1px dashed var(--border-soft)}
 .pick.pk:active{background-color:var(--surface-chrome);box-shadow:var(--bevel-down)}
 /* dans un duo, c'est le DUO qui porte le fond : la ligne qu'on coche
    reste transparente, cochée ou non (plus haut, « l'état vit dans la
@@ -3519,8 +3546,8 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 .am-etat{display:flex;align-items:center;gap:7px;margin:12px 0 0;color:var(--accent);font-size:var(--text-13);font-weight:var(--weight-semibold)}
 /* ---------- LA BOÎTE « Échanger » (ui/conversations.js) ----------
    (13 octobre 2026 : « exactement comme les messageries
-   traditionnelles »). UN cadre, une rangée par conversation, un
-   pointillé entre elles — la rangée de §6. Chaque rangée : le visage,
+   traditionnelles »). Une rangée par conversation, un pointillé entre
+   elles, et plus de cadre autour (décision 0010). Chaque rangée : le visage,
    le nom (il plie, il ne se coupe pas : c'est l'identité), le dernier
    message (une donnée : il s'élide), l'heure et ce qui n'est pas lu.
    Ce qui attend prend le gras et son chiffre en accent ; le reste se
@@ -3530,19 +3557,17 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 .bx-zone{flex:1;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;padding:4px;margin:-4px -4px 0;
   display:flex;flex-direction:column}
 .bx-zone>*{flex:none}
-/* au pouce, le cadre TIENT sa région (§5, le panneau) : la place sous la
+/* au pouce, la liste TIENT sa région (§5, le panneau) : la place sous la
    dernière conversation lui appartient, l'historique se pose dessous,
-   juste au-dessus des deux gestes */
+   juste au-dessus des deux verbes, Donner · Recevoir (décision 0008) */
 .bx-zone>.bx-liste{flex:1 0 auto}
 .bx-filtres{margin:0 0 10px}
 /* vide, la phrase ouvre le cadre, le geste suit */
 .bx-rien{margin:0;padding:12px 12px 4px;font-size:var(--text-13);color:var(--text-muted)}
-.bx-filtres .dchip:disabled{color:var(--text-disabled);border-style:dashed;cursor:default}
-.bx-liste{
-  display:flex;flex-direction:column;margin:0 0 16px;
-  background:var(--surface-window);border:1px solid var(--border-strong);border-radius:var(--radius-0);
-  box-shadow:var(--shadow-raised);
-}
+.bx-filtres .pt:disabled{color:var(--text-disabled);cursor:default}
+/* la boîte n'a plus de cadre (décision 0010) : des rangées sur le
+   papier, le pointillé entre elles — l'onglet EST la fenêtre */
+.bx-liste{display:flex;flex-direction:column;margin:0 0 16px}
 .bx-liste>*{position:relative}
 .bx-liste>*+*::before{content:'';position:absolute;left:12px;right:12px;top:0;border-top:1px dashed var(--border-soft);pointer-events:none}
 .bx-l{
@@ -3592,12 +3617,11 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 /* « Mes demandes » en tête de Réseau : les cartes de la fiche, et le
    contact donné juste dessous */
 .rz-dem{margin:0 0 16px}
-/* PLUSIEURS DEMANDES (R10) : une ligne chacune dans un cadre — le dessin
-   de la boîte, juste dessous —, l'entreprise en tête, et le suivi réduit
+/* PLUSIEURS DEMANDES (R10) : une ligne chacune — le dessin de la boîte,
+   juste dessous —, l'entreprise en tête, et le suivi réduit
    à trois cases : pleine (faite), à moitié (en cours), vide (à venir).
    La même lecture que les barres de la carte, à la taille d'une ligne. */
-.rz-liste{display:flex;flex-direction:column;margin-top:6px;
-  background:var(--surface-window);border:1px solid var(--border-strong);box-shadow:var(--shadow-raised)}
+.rz-liste{display:flex;flex-direction:column;margin-top:6px}
 .rz-liste>*{position:relative}
 .rz-liste>*+*::before{content:'';position:absolute;left:12px;right:12px;top:0;border-top:1px dashed var(--border-soft);pointer-events:none}
 .rz-l{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:4px 10px;
@@ -3659,7 +3683,7 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
    qui se lit, pas une ligne qu'on tape — le gris, puisque rien n'y a
    changé */
 .fil-jour{display:flex;justify-content:center;margin:4px 0;list-style:none}
-.fil-jour span{padding:2px 8px;border:1px solid var(--border-soft);background:var(--surface-window);
+.fil-jour span{padding:2px 8px;
   font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
 /* un petit visage devant le prénom de qui écrit dans un groupe */
 .vz.vz-s{width:16px;height:16px;border:0;background:none;vertical-align:-3px;margin-right:4px}
@@ -3772,6 +3796,18 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
    messageries ouvrent la conversation en plein écran. Sa barre se pousse
    sous l'encoche ; clavier ouvert, elle prend toute la zone qu'il
    laisse, sans la marge des autres feuilles. */
+/* AU POUCE, UNE FEUILLE LONGUE PREND L'ÉCRAN (décision 0010, 29 octobre
+   2026 : « utiliser l'espace disponible, ne pas se brider »). Arrêtée à
+   92 % de la hauteur, elle laissait voir 67 px de l'écran d'en dessous —
+   son titre et ses boutons, qu'on ne peut pas toucher — et deux feuilles
+   empilées montraient deux barres de titre l'une sur l'autre. Une
+   feuille courte garde la hauteur de son contenu ; une longue va
+   jusqu'en haut, sous l'encoche, comme une conversation (`.modal-groupe`)
+   et comme les feuilles plein écran de Material. */
+@media (max-width:900px){
+  .modal{max-height:calc(100dvh - env(safe-area-inset-top))}
+  .modal-compose{height:calc(100dvh - env(safe-area-inset-top))}
+}
 @media (max-width:900px){
   .modal-groupe{height:100dvh;max-height:100dvh;border-width:0}
   .modal-groupe .modal-h{padding-top:calc(3px + env(safe-area-inset-top))}
@@ -3797,9 +3833,12 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 .gr-qui{font-size:var(--text-12);color:var(--text-muted)}
 .gr-qui b{color:var(--text-body);font-weight:var(--weight-semibold)}
 .gr-qui time{font-family:var(--font-mono);font-size:var(--text-11)}
-.gr-m p{margin:0;padding:8px 12px;border:1px solid var(--border-strong);background:var(--surface-chrome);
+/* une bulle est un APLAT, sans trait (décision 0010) : le gris du
+   châssis pour les autres, le lavis d'accent pour les miennes — c'est la
+   couleur qui dit qui parle, comme dans toute messagerie */
+.gr-m p{margin:0;padding:8px 12px;border:0;background:var(--surface-chrome);
   font-size:var(--text-14);line-height:1.45;overflow-wrap:anywhere;text-align:left}
-.gr-moi p{background:var(--teal-wash);border-color:var(--accent)}
+.gr-moi p{background:var(--teal-wash)}
 .gr-don p{display:flex;align-items:center;gap:6px;font-weight:var(--weight-semibold)}
 .gr-don .btn-sm{align-self:flex-start;margin-top:4px}
 .gr-pris{display:flex;align-items:center;gap:6px;margin-top:4px;color:var(--accent);font-size:var(--text-13);font-weight:var(--weight-semibold)}
@@ -3868,7 +3907,7 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 .gr-membre .ic{flex:none;color:var(--text-muted)}
 /* LES RÉGLAGES D'UN GROUPE (décisions 31 à 35) : les rangées de « Moi ›
    Réglages », dans un cadre — un nom, son état, un chevron */
-.gr-regl,.gr-actions{margin:0 0 12px;padding:0 12px}
+.gr-regl,.gr-actions{margin:0 0 12px}
 /* « qui écrit : les responsables » : l'état prend la place du champ,
    en encre sourde, à côté de « Donner » qui reste */
 .gr-seuls{flex:1 1 10rem;margin:0;align-self:center;font-size:var(--text-13);color:var(--text-muted)}
@@ -4280,7 +4319,7 @@ html.oc-locked .undo-bar{display:none}
    au bord droit de la LIGNE. Replié avec les mots, il tombait seul sur
    un rang à lui, 327 px de vide à sa gauche (e2e-decroche, 125 %). */
 .td-semaine{display:flex;align-items:center;gap:10px;width:100%;min-height:var(--ctl);margin:0 0 6px;
-  padding:6px 10px;background:var(--surface-window);border:1px solid var(--border-soft);text-align:left;color:var(--text-body)}
+  padding:6px 0;background:none;border:0;text-align:left;color:var(--text-body)}
 .td-semaine .ts-dit{flex:1;min-width:0;display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px}
 .td-semaine .ts-l{font-size:var(--text-12);font-weight:var(--weight-semibold);color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;flex:none}
 .td-semaine .ts-n{font-family:var(--font-mono);font-size:var(--text-13);flex:0 1 auto;min-width:0}
@@ -4374,3 +4413,4 @@ html.oc-locked .undo-bar{display:none}
 .cv-donne .cv-nom b{font-size:var(--text-16);font-weight:var(--weight-bold)}
 .cv-donne span{font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted);overflow-wrap:anywhere}
 .cv-donne .cv-experience:first-of-type,.cv-donne .cv-formation + .cv-experience{margin-top:6px}
+

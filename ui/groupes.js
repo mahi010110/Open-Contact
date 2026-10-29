@@ -1039,10 +1039,10 @@ function ouvrirMembres(code, shGroupe, o = {}){
     ] : [];
     sh.body.innerHTML =
       `<h2 class="ap-nom">${esc(nomDe(code))}</h2>
-       <div class="pcard gr-actions">
+       <div class="gr-actions">
          <button class="rg-row rg-last" id="grInviterOuvrir"><span class="rg-n">${ic('plus', 'ic-14')} Inviter</span>${ic('chevron-right', 'ic-14')}</button>
        </div>
-       ${regl.length ? `<h3 class="tr-h gr-sec">Réglages</h3><div class="pcard gr-regl">${regl.join('')}</div>` : ''}
+       ${regl.length ? `<h3 class="tr-h gr-sec">Réglages</h3><div class="gr-regl">${regl.join('')}</div>` : ''}
        <h3 class="tr-h gr-sec">Membres <span class="tr-n">${lignes.length}</span></h3>
        <ul class="gr-noms">${vus.map(m => {
         const nom = `<span class="gr-nom">${visageHTML(m.de, 'vz-m')}<span>${esc(m.prenom)}${m.role ? ` <span class="gr-role">${m.role}</span>` : ''}</span></span>`;

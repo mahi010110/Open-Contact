@@ -15,7 +15,7 @@ import { mesChiffres, chiffresTexte } from '../engine/suivi.js';
 import { S, bus, isClosed, hasDemo, addDemo, ctLabel, deletePiste, undeletePiste,
          removeOrphan, saveOrphans, saveData, logJ } from './state.js';
 import { portesDuJour } from './amis.js';
-import { $, ic, toast, showUndo, bindDeleteGesture, softReorder, topSheet,
+import { $, ic, toast, showUndo, bindDeleteGesture, softReorder, topSheet, appuiLong,
          collerEnHaut, clavier, annoncer, voirAutres } from './dom.js';
 import { openAffinerSheet, filterState, filterOn, filterClear, filterArgs } from './affiner.js';
 import { sortState, sortArgs, sortHasDist, sortChipHTML, bindSortChip, sortIsDefault, withPos } from './sort.js';
@@ -679,7 +679,12 @@ export function renderPistes(){
          ${wide && nAlive ? `<div class="seg3 pi-vue" role="group" aria-label="Affichage">${
            [['liste', 'Liste'], ['tableau', 'Tableau']].map(([k, mot]) =>
              `<button class="seg${vuePoste === k ? ' on' : ''}" data-vue="${k}" aria-pressed="${vuePoste === k}">${mot}</button>`).join('')}</div>` : ''}
-         ${/* R1 : choisir des pistes, puis les écrire ou les donner */''}
+         ${/* R1 : choisir des pistes, puis leur écrire. Le bouton reste
+              au pouce : sur un iPhone, choisir dans une liste passe par un
+              « Sélectionner » visible (Mail, Fichiers), et un geste seul
+              ne se devine pas. L'appui long sur une piste (le clic droit
+              au poste) en est le RACCOURCI — l'idiome d'Android, Gmail,
+              Photos : le choix s'ouvre, elle cochée (décision 0010). */''}
          ${nAlive ? `<button class="btn btn-sm" id="piProspect">${ic('checkbox-on', 'ic-14')} Choisir</button>` : ''}
        </div>
        ${/* le repère qui dit à la barre de commande qu'elle a décroché
@@ -906,6 +911,10 @@ export function renderPistes(){
         if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); open(); }
       });
       bindDeleteGesture(r, () => removeRow(r.dataset.id), nomPar.get(r.dataset.id));
+      /* l'appui long (et le clic droit) choisit : « Choisir » s'ouvre, cette
+         piste cochée — une piste close ne s'écrit plus, elle ne s'y coche pas */
+      if (r.classList.contains('row-item') && !r.classList.contains('row-closed'))
+        appuiLong(r, () => openProspect({ ids: [r.dataset.id] }));
     });
     if (wide && body.querySelector('.board')) bindBoardDrag(body);
     body.querySelector('#piFtClear')?.addEventListener('click', () => { ftClear(); renderPistes(); });

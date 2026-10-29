@@ -427,7 +427,7 @@ export function openTemplates(){
     sh.body.innerHTML =
       /* la même ligne que les Réglages : nom + chevron. L'objet répété
          sous chaque nom n'aidait pas — on ouvre pour le lire. */
-      `<div class="pcard" style="margin:0">
+      `<div>
          ${S.profile.templates.map((t, i) =>
            `<button class="rg-row${i === S.profile.templates.length - 1 ? ' rg-last' : ''}" data-i="${i}">
               <span class="rg-n">${esc(t.name)}</span>

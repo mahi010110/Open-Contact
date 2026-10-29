@@ -309,11 +309,13 @@ export function openFiche(c, o = {}){
     /* R1 (décision 0002) : DONNER part aussi de la fiche — le geste vit
        avec l'objet qu'il donne, à côté de « Modifier ». Une piste close
        ou d'exemple ne se donne pas (`openDonner` les écarte). */
+    /* « Modifier » n'est plus un bouton à côté du nom : c'est le NOM qui
+       s'ouvre (plus bas, `sub` ; décision 0010). Reste « Donner », d'une
+       icône — le partage d'iOS et d'Android, que personne n'a à lire. */
     const outils =
       `<div class="fi-tools">
          ${wide ? `<span class="fi-score">fiche complète à ${score} %</span>` : ''}
-         ${!closed && !c.demo ? `<button class="btn btn-sm" id="fiDonner" aria-label="Donner la piste ${esc(c.name)}">${ic('share', 'ic-14')} Donner</button>` : ''}
-         <button class="btn btn-sm" id="fiEdit" aria-label="${score < 60 ? 'Compléter' : 'Modifier'} la piste ${esc(c.name)}">${ic('pencil', 'ic-14')} ${score < 60 ? 'Compléter' : 'Modifier'}</button>
+         ${!closed && !c.demo ? `<button class="btn btn-sm icon-btn" id="fiDonner" aria-label="Donner la piste ${esc(c.name)}" title="Donner">${ic('share', 'ic-14')}</button>` : ''}
        </div>`;
     /* ---- le travail : où j'en suis, ce que je fais ensuite, ce que je note ---- */
     const travail =
@@ -528,18 +530,25 @@ export function openFiche(c, o = {}){
        motif existant). « Moi » s'en sert pour la même chose : icône,
        nom en `--text-16` gras, sous-ligne en dessous. En `rem`, donc il
        suit la police du navigateur, et il PLIE au lieu de se couper. */
+    /* LE NOM SE TOUCHE (décision 0010, le mainteneur : « sur tel ajouter
+       des choses cliquables et enlever des boutons inutiles »). Le bloc
+       entier ouvre « Modifier », son crayon le dit ; « Compléter »
+       reste le mot de son nom pour qui ne voit pas l'écran, et « à
+       compléter » se lit en creux sous le nom, comme sur « Moi ». */
     const sub =
-      `<div class="obj fi-obj">
+      `<button class="obj fi-obj obj-touche" id="fiEdit" aria-label="${score < 60 ? 'Compléter' : 'Modifier'} la piste ${esc(c.name)}">
          ${/* la MÊME icône que le châssis : un objet, une icône — la
               mallette dit « une piste » dans toute l'app, et en mettre
               une autre ici ferait réapprendre le même objet d'un endroit
               à l'autre (§7, appliqué à l'image plutôt qu'au mot) */''}
          ${ic('briefcase', 'ic-16')}
-         <div class="obj-m">
+         <span class="obj-m">
            <span class="obj-n">${esc(c.name)}</span>
-           <div class="obj-s">${subBits.length ? `<span class="obj-l">${subBits.map(esc).join(' · ')}</span>` : ''}${annuaireEtatHTML(c)}</div>
-         </div>
-       </div>`;
+           <span class="obj-s">${subBits.length ? `<span class="obj-l">${subBits.map(esc).join(' · ')}</span>` : ''}${annuaireEtatHTML(c)}${
+             score < 60 ? '<span class="obj-l obj-creux">à compléter</span>' : ''}</span>
+         </span>
+         ${ic('pencil', 'ic-14')}
+       </button>`;
     /* LA FICHE COMMENCE PAR LES GENS (R1, décision 0002) : qui peut
        t'ouvrir la porte (le bandeau, déjà en tête), puis les contacts,
        puis le suivi. Au poste, les gens prennent la colonne de gauche,

@@ -217,7 +217,7 @@ const fermer = async p => {
   await p.waitForSelector('.bx-liste');
 
   /* ⑤ les filtres : une liste fermée */
-  const f = await p.evaluate(() => [...document.querySelectorAll('.bx-filtres .dchip')].map(b => ({ mot: b.textContent.trim(), eteint: b.disabled })));
+  const f = await p.evaluate(() => [...document.querySelectorAll('.bx-filtres .pt')].map(b => ({ mot: b.textContent.trim(), eteint: b.disabled })));
   ok(f.length === 4 && f.find(x => x.mot === 'Non lus') && !f.find(x => x.mot === 'Non lus').eteint, '⑤ quatre filtres — « Non lus » allumé tant qu’il reste du neuf');
   await p.click('.bx-filtres [data-filtre="groupes"]');
   await p.waitForTimeout(200);
@@ -227,7 +227,7 @@ const fermer = async p => {
   await p.click(`[data-fil="a:${ID.ines}"]`);
   await p.waitForSelector('.modal-conv');
   await fermer(p);
-  const f2 = await p.evaluate(() => [...document.querySelectorAll('.bx-filtres .dchip')].map(b => ({ mot: b.textContent.trim(), eteint: b.disabled })));
+  const f2 = await p.evaluate(() => [...document.querySelectorAll('.bx-filtres .pt')].map(b => ({ mot: b.textContent.trim(), eteint: b.disabled })));
   ok(f2.length === 4 && f2.find(x => x.mot === 'Non lus').eteint, '⑤ tout lu : « Non lus » reste, éteint — la rangée ne change pas de forme');
 
   await ctx.close();

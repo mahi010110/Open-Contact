@@ -700,32 +700,35 @@ export function renderMoi(){
        C'est le VERBE du bouton qui porte l'écart — « Compléter » tant
        qu'il reste quelque chose, « Modifier » ensuite : un mot, pas un
        objet de plus. */
-    `<div class="obj${p.name ? ' obj-moi' : ' obj-vide'}">
-       ${ic('user', 'ic-24')}
-       <div class="obj-m">
-         ${p.name
-           ? `<span class="obj-n">${esc(p.name)}</span>`
-           : `<button class="btn btn-sm btn-primary" id="moiProfil">Remplir mon profil</button>`}
-       </div>
-       ${p.name ? `<button class="btn btn-sm" id="moiProfil">${pReady ? 'Modifier' : 'Compléter'}</button>` : ''}
-       ${/* Les données passent SOUS le bouton, sur toute la largeur. À côté
-            de lui, elles perdaient 80 px : « Alternance · 2 ans dès le 1er
-            sep… » rendait la date, c'est-à-dire la seule chose qu'on vient
-            lire. Le nom reste face au bouton qui le modifie.
-            Une ligne par donnée, et chacune se coupe à sa fin. Jointes par
-            <br> dans un bloc en `overflow-wrap:anywhere`, elles se brisaient
-            n'importe où : sur un 360, l'adresse rendait « …@example » puis
-            « .fr » seul sur sa ligne.
-            Formation et école sur UNE ligne : ce sont deux moitiés de la
-            même réponse (« où tu en es »), et la ligne peut s'élider — c'est
-            une donnée (§4). Ce qui MANQUE se lit en creux, sans couleur ni
-            pastille : remplir son profil n'est pas urgent, mais un manque
-            nommé se comble, un « Compléter » vague se remet à plus tard. */''}
-       ${p.name ? `<div class="obj-s">${[[p.formation, p.ecole].filter(Boolean).join(' · '),
+    /* L'EN-TÊTE SE TOUCHE (décision 0010, le mainteneur : « sur tel
+       ajouter des choses cliquables et enlever des boutons inutiles »).
+       « Modifier » était un bouton à côté du nom qu'il modifie : c'est
+       le bloc entier qui s'ouvre maintenant — la carte de profil en tête
+       des réglages d'iOS et d'Android. Son crayon dit qu'on y MODIFIE,
+       comme celui du nom d'une piste ; les rangées dessous, qui mènent
+       ailleurs, gardent leur chevron. Le verbe
+       (« Compléter » tant qu'il manque quelque chose) reste dans son nom
+       pour qui ne voit pas l'écran, et ce qui manque se lit dessous. */
+    p.name
+      ? `<button class="obj obj-moi obj-touche" id="moiProfil" aria-label="${pReady ? 'Modifier' : 'Compléter'} mon profil">
+           ${ic('user', 'ic-24')}
+           <span class="obj-m"><span class="obj-n">${esc(p.name)}</span></span>
+           ${ic('pencil', 'ic-14')}
+           ${/* Une ligne par donnée, et chacune se coupe à sa fin.
+                Formation et école sur UNE ligne : ce sont deux moitiés de
+                la même réponse (« où tu en es »), et la ligne peut
+                s'élider — c'est une donnée (§4). Ce qui MANQUE se lit en
+                creux, sans couleur ni pastille : un manque nommé se
+                comble, un « Compléter » vague se remet à plus tard. */''}
+           <span class="obj-s">${[[p.formation, p.ecole].filter(Boolean).join(' · '),
                                     resumeRecherche(p), p.email].filter(Boolean)
                  .map(v => `<span class="obj-l" title="${esc(v)}">${esc(v)}</span>`).join('')}
-                ${manques.length ? `<span class="obj-l obj-creux">À compléter : ${esc(manques.join(', '))}</span>` : ''}</div>` : ''}
-     </div>`;
+                ${manques.length ? `<span class="obj-l obj-creux">À compléter : ${esc(manques.join(', '))}</span>` : ''}</span>
+         </button>`
+      : `<div class="obj obj-vide">
+           ${ic('user', 'ic-24')}
+           <div class="obj-m"><button class="btn btn-sm btn-primary" id="moiProfil">Remplir mon profil</button></div>
+         </div>`;
 
   const envoi =
     `<fieldset class="fset">

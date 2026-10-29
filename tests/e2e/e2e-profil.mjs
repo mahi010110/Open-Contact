@@ -70,7 +70,7 @@ const obj = await page.textContent('#view-moi .obj');
 okSi(obj.includes('BTS SIO SISR 2e année · Lycée Gustave Eiffel'), 'formation et école sur une ligne');
 okSi(obj.includes('Alternance · 2 ans dès le 1er sept. 2027'), 'la recherche se résume sous le nom');
 okSi(!(await page.$('#view-moi .obj-creux')), 'profil complet : aucun creux');
-okSi((await page.textContent('#moiProfil')).trim() === 'Modifier', 'le verbe passe à « Modifier »');
+okSi((await page.getAttribute('#moiProfil', 'aria-label')) === 'Modifier mon profil', 'l’en-tête qui se touche passe à « Modifier mon profil »');
 
 /* ---------- 4. le MAIL, par le vrai composeur ---------- */
 const mail = await page.evaluate(async () => {

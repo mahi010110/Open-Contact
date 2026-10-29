@@ -9,6 +9,29 @@ le premier pour une rupture. La bascule du recadrage est la 7.0.0
 
 Les versions d'avant la 6.76 se lisent dans l'historique du dépôt.
 
+## [7.5.0] — 29 octobre 2026
+
+Moins de cadres, plus de place : le contenu se pose directement sur
+l'écran.
+
+### Changé
+
+- Les pistes, les lignes d'« Aujourd'hui », les conversations, les
+  réglages et les listes à cocher ne sont plus des cartes encadrées :
+  ce sont des lignes, séparées d'un pointillé, sur un fond clair. Les
+  boutons, les champs et les fenêtres gardent leur cadre.
+- Sur ordinateur, « Aujourd'hui » pose ses trois colonnes sans cadre,
+  comme sur téléphone. Le tableau de « Mes pistes » garde ses colonnes :
+  on y dépose des cartes.
+- Sur téléphone, une fenêtre longue prend tout l'écran.
+- Pour modifier ton profil ou une piste, touche son nom : le bouton
+  « Modifier » à côté a disparu. Sur une fiche, « Donner » devient
+  l'icône de partage.
+- Un appui long sur une piste ouvre « Choisir », cette piste cochée (un
+  clic droit sur ordinateur). Le bouton « Choisir » reste.
+- Dans « Réseau », les filtres (Tout, Non lus, Groupes, Amis) sont de
+  simples onglets.
+
 ## [7.4.0] — 29 octobre 2026
 
 Le + ajoute une piste, le partage se retrouve dans « Réseau », et tous

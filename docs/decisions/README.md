@@ -30,5 +30,6 @@ Trois règles :
 | [0007](0007-envoi-direct.md) | L'envoi direct sur le web passe par la vérification Google | close sans être faite, 27 octobre 2026 (« garder le lien mail ») |
 | [0008](0008-le-plus-et-le-partage.md) | Le + crée, le partage vit dans « Réseau » | acceptée par délégation, 29 octobre 2026 |
 | [0009](0009-tous-les-reglages.md) | Tout ce qui se règle vit dans « Réglages » | acceptée par délégation, 29 octobre 2026 |
+| [0010](0010-le-contenu-sans-cadre.md) | Le contenu sans cadre | acceptée par délégation, 29 octobre 2026 |
 
 Le plan qui découle de ces fiches est dans [`../recadrage.md`](../recadrage.md).

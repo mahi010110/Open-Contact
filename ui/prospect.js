@@ -29,10 +29,12 @@ function defaultCt(c){
   return withMail.find(t => t.activatedAt) || withMail[0] || null;
 }
 
-export function openProspect(){
+/* `o.ids` : les pistes déjà cochées — l'appui long sur une piste ouvre
+   le choix sur elle (décision 0010) */
+export function openProspect(o = {}){
   const alive = () => S.companies.filter(c => !isClosed(c));
   if (!alive().length) return;
-  const sel = new Set();
+  const sel = new Set(Array.isArray(o.ids) ? o.ids : []);
   const st = sortState('status');            /* « À contacter » en tête par défaut */
   const ft = filterState();                  /* propre à cet écran (#8) */
   /* R1 (décision 0002) : la feuille CHOISIT des pistes à qui écrire.

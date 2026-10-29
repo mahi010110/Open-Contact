@@ -126,9 +126,13 @@ export function boiteHTML(wide){
   return {
     vide: !tous.length,
     html:
-      (offerts.length ? `<div class="datechips bx-filtres" role="group" aria-label="Afficher">${offerts.map(f => {
+      /* les filtres sont des ONGLETS DE TEXTE, ceux de « Mes pistes · À
+         découvrir » (décision 0010) : quatre puces encadrées sous les
+         demandes faisaient une rangée de boîtes de plus pour un réglage
+         de vue — le mot actif en encre et son trait suffisent */
+      (offerts.length ? `<div class="portee bx-filtres" role="group" aria-label="Afficher">${offerts.map(f => {
         const vide = filtreVide(tous, f);
-        return `<button class="dchip${f === filtre ? ' on' : ''}" data-filtre="${f}" aria-pressed="${f === filtre}"${
+        return `<button class="pt${f === filtre ? ' on' : ''}" data-filtre="${f}" aria-pressed="${f === filtre}"${
           vide ? ' disabled' : ''}>${MOTS_FILTRE[f]}</button>`; }).join('')}</div>` : '')
       + `<div class="bx-liste${tous.length ? '' : ' bx-vide'}"${tous.length ? ' role="list" aria-label="Conversations"' : ''}>${
          /* vide, le cadre dit ce qu'il recevra — pas qu'il n'y a rien */
