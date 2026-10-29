@@ -12,7 +12,7 @@
      expiration ; le contenu est du chiffré — ni nom, ni entreprise, ni
      note, ni e-mail, ni clé de boîte ; l'auteur n'est pas la clé de la
      page ; et l'appareil ne garde pas la phrase, seulement ses clés ;
-   ② chez Inès : « Ma copie › Phrase de secours » — créer, les douze
+   ② chez Inès : « Réglages › Ma copie › Phrase de secours » — créer, les douze
      mots, deux à retaper — et la rangée dit « déposée aujourd'hui » ;
    ③ le téléphone neuf : « J'ai déjà OpenContact » sur l'accueil vide ;
      un mot inconnu, onze mots, une phrase qui n'a rien déposé : chaque
@@ -99,8 +99,11 @@ async function ecran(o = {}){
 }
 const brut = (p, k) => p.evaluate(async k => (await import('./engine/storage.js')).kvGet(k).catch(() => 'ILLISIBLE'), k);
 const lu = async (p, k) => JSON.parse(await brut(p, k) || 'null');
+/* « Ma copie » et sa phrase vivent en tête des Réglages (décision 0009) :
+   la porte au pouce, la colonne au poste */
 const ouvrirMoi = async p => {
   await p.evaluate(() => { location.hash = '#/moi'; });
+  await ouvrirReglages(p);
   await p.waitForSelector('#moiPhrase');
 };
 const lireMots = p => p.$$eval('.phrase-grid li', els => els.map(e => e.textContent.trim()));

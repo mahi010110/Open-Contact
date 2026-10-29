@@ -135,8 +135,15 @@ export function auSommet(route){
 }
 bus.refresh = render;
 
+/* LE + CRÉE (décision 0008, 29 octobre 2026 : « le + a perdu son
+   sens »). Il ouvrait une feuille « Ajouter » dont le corps disait
+   « Recevoir » et dont la piste attendait au pied : le geste le plus
+   fréquent de l'app à deux taps, derrière ce qu'un camarade te tend.
+   Un + ajoute UNE chose, la plus probable — une piste — et la touche N
+   dit la même chose que le bouton qui la porte. Ce qu'on reçoit est
+   parti dans « Réseau », à côté de « Donner ». */
 async function ajouter(){
-  (await import('./ui/ajouter.js')).openAjouter();
+  (await import('./ui/capture.js')).openCapture();
 }
 
 (async function init(){

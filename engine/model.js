@@ -14,7 +14,7 @@ import { normaliserSemaine } from './semaine.js';
 import { normaliserAide } from './aide.js';
 import { normaliserVisage } from './visage.js';
 
-export const APP_VERSION = '7.3.0';
+export const APP_VERSION = '7.4.0';
 
 export const DOMAINS = {
   esn:     { label:'ESN / Services IT',       color:'#4C9FD8' },

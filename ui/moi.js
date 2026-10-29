@@ -318,7 +318,42 @@ const MOT_THEME = { auto: 'automatique', light: 'clair', dark: 'sombre' };
      appareils, l'app installée ;
    · Réseau — ce qui passe par toi (le nom de l'onglet) ;
    · Préférences — comment l'app se présente et se commande ;
-   · Aide — l'aide, et le chemin du retour. */
+   · Aide — l'aide, et le chemin du retour.
+   TOUT CE QUI SE RÈGLE VIT ICI (décision 0009, le mainteneur, 29 octobre
+   2026 : « mettre tous les paramètres dans les réglages »). « Ma copie »
+   et la phrase de secours vivaient dans « Moi », à côté du profil : la
+   copie de ses données se cherchait à deux endroits selon qu'on voulait
+   la faire à la main ou la laisser partir seule. Elles ouvrent les
+   Réglages, en tête — c'est ce qui garde tout le reste. « Moi » garde
+   qui je suis et ce que j'envoie. */
+function copieHTML(){
+  /* rien à copier = groupe absent */
+  if (!(S.companies.length || S.profile.name)) return '';
+  /* L'état de la copie, seulement quand elle manque VRAIMENT (`sansFilet`,
+     engine/assist.js) : au moins 5 pistes, ni copie ni autre appareil
+     depuis 30 jours. Il dit le fait en mots simples ; le bouton qui le
+     règle est juste dessous. Le bord ambre revient avec lui — §6 le
+     réserve à un état qui peut tout coûter.
+     Le verbe dit ce qui se passe : au doigt la copie passe par la
+     feuille de partage du téléphone (Fichiers, Drive, un mail à soi),
+     donc « Enregistrer » ; au poste c'est un téléchargement.
+     « privé inclus » : ce fichier emporte le suivi privé, et ça se sait
+     avant de l'envoyer à quelqu'un. */
+  const filet = etatFilet();
+  return `<div class="rg-copie${filet ? ' fs-alert' : ''}" id="moiCopie">
+     <h3 class="rg-sec">Ma copie <span class="lg-note">privé inclus</span></h3>
+     ${filet ? `<p class="hint warn copie-etat" id="moiFilet">${ic('square-alert', 'ic-14')} Tes ${S.companies.length} pistes sont enregistrées seulement sur cet appareil.</p>` : ''}
+     ${lockRowHTML({ id: 'moiBk', action: partagePossible() ? 'Enregistrer' : 'Télécharger' })}
+     ${/* LA PHRASE DE SECOURS (lot R5) : l'autre façon d'avoir une copie,
+          celle qui part toute seule. Une rangée qui dit son état, comme
+          ses voisines — elle ouvre sa feuille. */''}
+     <button class="rg-row rg-last mp-row" id="moiPhrase">
+       <span class="rg-n">Phrase de secours</span>
+       <span class="rg-s" id="moiPhraseSt">${etatPhrase()}</span>
+       ${ic('chevron-right', 'ic-14')}
+     </button>
+   </div>`;
+}
 function reglagesRowsHTML(){
   const prot = isProtected();
   /* les lignes se composent avant de s'écrire : le recentrage en retire
@@ -390,7 +425,7 @@ function reglagesRowsHTML(){
   const groupe = (titre, l) => !l.length ? '' : `<h3 class="rg-sec">${titre}</h3>` +
     l.map(([id, nom, etat, dep], i) => rgRow(id, nom, etat, i === l.length - 1, dep)).join('');
   return (
-    groupe('Mes données', rows) + groupe('Réseau', reseau) + groupe('Préférences', prefs) + groupe('Aide', aide) +
+    copieHTML() + groupe('Mes données', rows) + groupe('Réseau', reseau) + groupe('Préférences', prefs) + groupe('Aide', aide) +
     /* DEUX GESTES QUI CHANGENT TOUT NE SONT PAS DES LIENS. Ils vivaient en
        mots soulignés sous la liste : la forme d'un lien, qui promet
        d'emmener ailleurs, pour les deux gestes les plus lourds de l'écran
@@ -450,6 +485,13 @@ function bindSyncLive(root){
 
 function bindReglages(box){
   const q = s => box.querySelector(s);
+  /* le mot de passe est facultatif : au repos il ne pèse qu'un bouton
+     compact au bout de la ligne (#8 — l'avancé se replie derrière un
+     signe, jamais une phrase). Tapé, il s'étire en champ ; re-tapé, il
+     se referme et l'oublie. Un seul contrôle, deux états (#19-4). */
+  const bk = q('#moiBk') ? bindLockRow(box, 'moiBk') : null;
+  q('#moiBkDo')?.addEventListener('click', () => downloadBackup(bk.value()));
+  q('#moiPhrase')?.addEventListener('click', ouvrirPhrase);
   q('#moiVerrou').addEventListener('click', () =>
     isProtected() ? openManageSheet() : openProtectFlow());
   q('#moiSync').addEventListener('click', openAppareils);
@@ -630,7 +672,6 @@ export function renderMoi(){
   const p = S.profile;
   const manques = manquesProfil(p);
   const pReady = p.name && !manques.length;
-  const showBackup = !!(S.companies.length || p.name);   /* rien à copier = carte absente */
 
   /* « Moi » est une FEUILLE DE PROPRIÉTÉS, pas une pile de cartes.
      Trois règles d'origine, appliquées telles quelles :
@@ -641,7 +682,8 @@ export function renderMoi(){
        group doesn't contain all controls on the surface » → quatre cartes
        deviennent deux cadres, rangés par usage et non par objet ;
      · « buttons that apply only to a page go on the page » → « Télécharger »
-       reste DANS son groupe, il ne descend pas en pied de page. */
+       reste DANS son groupe (« Ma copie », en tête des Réglages depuis la
+       décision 0009), il ne descend pas en pied de page. */
   const objet =
     /* Ce qui est rempli s'AFFICHE, tout de suite. L'écran exigeait le nom
        ET l'email pour montrer quoi que ce soit : on tapait son nom, et
@@ -696,38 +738,6 @@ export function renderMoi(){
        <div id="moiDocs"></div>
      </fieldset>`;
 
-  /* « privé inclus » reste — c'est la seule chose que la carte ne peut
-     PAS dire autrement : ce fichier emporte le suivi privé, et ça se
-     sait avant de l'envoyer à quelqu'un. Il monte simplement DANS la
-     légende, où il ne coûte plus sa propre ligne : un cadre nommé
-     « Ma copie » a de la place à droite de son nom, et l'étiquette y
-     qualifie ce qu'elle nomme au lieu de flotter au-dessus du geste. */
-  /* L'état de la copie revient, mais seulement quand elle manque VRAIMENT
-     (`sansFilet`, engine/assist.js) : au moins 5 pistes, ni copie ni autre
-     appareil depuis 30 jours. Il dit le fait en mots simples ; le bouton
-     qui le règle est juste dessous. Le bord ambre du cadre revient avec
-     lui — §6 le réserve à un état qui peut tout coûter.
-     Le verbe dit ce qui se passe : au doigt la copie passe par la
-     feuille de partage du téléphone (Fichiers, Drive, un mail à soi),
-     donc « Enregistrer » ; au poste c'est un téléchargement.
-     Pas d'image à la place du fait (§7) : « à l'abri », « filet » ont
-     été lus sur le téléphone du mainteneur et retirés. */
-  const filet = showBackup && etatFilet();
-  const copie = showBackup ? `
-     <fieldset class="fset${filet ? ' fs-alert' : ''}" id="moiCopie">
-       <legend>Ma copie <span class="lg-note">privé inclus</span></legend>
-       ${filet ? `<p class="hint warn copie-etat" id="moiFilet">${ic('square-alert', 'ic-14')} Tes ${S.companies.length} pistes sont enregistrées seulement sur cet appareil.</p>` : ''}
-       ${lockRowHTML({ id: 'moiBk', action: partagePossible() ? 'Enregistrer' : 'Télécharger' })}
-       ${/* LA PHRASE DE SECOURS (lot R5) : l'autre façon d'avoir une
-            copie, celle qui part toute seule. Une rangée qui dit son
-            état, comme celles des Réglages — elle ouvre sa feuille. */''}
-       <button class="rg-row rg-last mp-row" id="moiPhrase">
-         <span class="rg-n">Phrase de secours</span>
-         <span class="rg-s" id="moiPhraseSt">${etatPhrase()}</span>
-         ${ic('chevron-right', 'ic-14')}
-       </button>
-     </fieldset>` : '';
-
   /* « General first, Advanced last » : les réglages ferment la page.
      Au pouce c'est une porte ; à la souris, la 2ᵉ colonne les déplie. */
   const reglages = `<fieldset class="fset">
@@ -749,11 +759,13 @@ export function renderMoi(){
             cadenas ne sert plus qu'à ce qui verrouille. */''}
        <div class="td-head"><h1>Moi</h1></div>
        ${wide
-         ? `<div class="moi-cols"><div>${objet}${aide}${envoi}${copie}</div><div>${reglages}</div></div>`
-         : objet + aide + envoi + copie +
+         ? `<div class="moi-cols"><div>${objet}${aide}${envoi}</div><div>${reglages}</div></div>`
+         : objet + aide + envoi +
+           /* la copie vit dans Réglages : quand elle manque VRAIMENT, la
+              porte le dit d'un mot, dans le langage d'urgence de l'app */
            `<button class="rg-row rg-last moi-rg" id="moiReglages">
               <span class="rg-n">Réglages</span>
-              <span class="rg-s">${verrouLabel()}</span>
+              <span class="rg-s">${etatFilet() ? '<span class="mark mark-late" id="moiFilet">sans copie</span>' : verrouLabel()}</span>
               ${ic('chevron-right', 'ic-14')}
             </button>`}
        ${/* La barre de statut qui portait la version est masquée au pouce :
@@ -767,13 +779,6 @@ export function renderMoi(){
   root.querySelector('#moiTpl').addEventListener('click', openTemplates);
   root.querySelector('#moiAide')?.addEventListener('click', ouvrirAide);
   root.querySelector('#moiVisage')?.addEventListener('click', () => import('./mon-visage.js').then(m => m.ouvrirMonVisage()));
-  /* le mot de passe est facultatif : au repos il ne pèse qu'un bouton
-     compact au bout de la ligne (#8 — l'avancé se replie derrière un
-     signe, jamais une phrase). Tapé, il s'étire en champ ; re-tapé, il
-     se referme et l'oublie. Un seul contrôle, deux états (#19-4). */
-  const bk = root.querySelector('#moiBk') ? bindLockRow(root, 'moiBk') : null;
-  root.querySelector('#moiBkDo')?.addEventListener('click', () => downloadBackup(bk.value()));
-  root.querySelector('#moiPhrase')?.addEventListener('click', ouvrirPhrase);
   if (wide) bindReglages(root);
   else root.querySelector('#moiReglages').addEventListener('click', () => {
     reglagesOpen = true;

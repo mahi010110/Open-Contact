@@ -34,15 +34,13 @@ export function companyFromEmail(email){
 
 export function openCapture(prefill){
   prefill = prefill || {};
-  /* QUELQU'UN RENCONTRÉ (R1, décision 0002 — « + › Un contact ») : les
-     mêmes trois champs, la personne d'abord, l'entreprise ensuite et
-     facultative — sans elle, la personne part dans le bac « à
-     rattacher », et une entreprise déjà suivie la reçoit dans sa fiche.
-     Le formulaire court, au poste aussi : on note quelqu'un, on ne
-     remplit pas une piste. */
-  const pourContact = !!prefill.contact;
+  /* QUELQU'UN RENCONTRÉ n'a plus sa feuille (décision 0008, 29 octobre
+     2026) : le + crée, et une seule chose. Le formulaire d'une piste le
+     sait déjà — le contact sans entreprise part dans le bac « à
+     rattacher », jamais bloqué. « Un contact » ne faisait que changer
+     l'ordre des mêmes champs. */
   /* le contexte décide du formulaire, pas la largeur d'un bloc (#3) */
-  const wide = !pourContact && matchMedia('(min-width:901px)').matches;
+  const wide = matchMedia('(min-width:901px)').matches;
   /* ordinateur : le formulaire complet part d'une piste à blanc, déjà
      porteuse de ce qu'un partage a apporté (site, description) */
   const brouillon = wide ? normalizeCompany({
@@ -51,8 +49,8 @@ export function openCapture(prefill){
   const NOM = wide ? '#edName' : '#cpName';
 
   const sh = openSheet({
-    title: pourContact ? 'Nouveau contact' : prefill.website ? 'Piste reçue du partage' : 'Nouvelle piste',
-    icon: pourContact ? 'user' : 'plus', className: wide ? 'modal-fiche' : '', focus: pourContact ? '#cpCtName' : NOM
+    title: prefill.website ? 'Piste reçue du partage' : 'Nouvelle piste',
+    icon: 'plus', className: wide ? 'modal-fiche' : '', focus: NOM
   });
   /* ordinateur : le contact prend la grammaire du formulaire partagé
      (un libellé par champ) ; au pouce il garde son en-tête unique */
@@ -63,7 +61,7 @@ export function openCapture(prefill){
          <div class="field"><label for="cpCtCoord">Email ou téléphone</label>
            <input id="cpCtCoord" placeholder="nadia@…  ou  06 12 34 56 78" autocomplete="off" ${clavier('coord')}></div>
        </div>`
-    : `<div class="field"><label for="cpCtName">${pourContact ? 'Son nom' : 'Le contact'}</label>
+    : `<div class="field"><label for="cpCtName">Le contact</label>
          <input id="cpCtName" placeholder="Ex : Nadia Rahmani" autocomplete="off" ${clavier('nom')}></div>
        <div class="field"><input id="cpCtCoord" aria-label="Son email ou son téléphone"
          placeholder="Son email ou son téléphone" autocomplete="off" ${clavier('coord')}></div>`;
@@ -75,14 +73,13 @@ export function openCapture(prefill){
   const mailsHTML = `<button class="linklike" id="cpMails">${ic('sparkles', 'ic-14')} Depuis mes e-mails</button>`;
 
   const entrepriseHTML =
-    `<div class="field"><label for="cpName">${pourContact ? 'Son entreprise' : 'L’entreprise'}</label>
+    `<div class="field"><label for="cpName">L’entreprise</label>
        <input id="cpName" value="${esc(prefill.name || '')}" placeholder="Ex : Orange Cyberdefense" autocomplete="off" ${clavier('nom')}>
        <div class="dup-note" id="cpDup" hidden></div>
        <button class="linklike" id="cpFromMail" hidden></button>
      </div>`;
   sh.body.innerHTML = wide
     ? `${sharedFieldsHTML(brouillon)}${contactHTML}${mailsHTML}`
-    : pourContact ? contactHTML + entrepriseHTML
     : `${/* le libellé vit DANS le `.field`, comme partout : posé dans une
             `.lbl-row` sœur, il perdait le dessin des libellés de l'app
             (petites capitales grises) et prenait celui du texte courant —
@@ -213,12 +210,10 @@ export function openCapture(prefill){
     checkDup();
     checkMail();
     bus.refresh();
-    q(pourContact ? '#cpCtName' : NOM).focus();
+    q(NOM).focus();
   });
-  /* « Compléter » = créé ET la fiche s'ouvre pour le reste (au pouce).
-     Pas pour quelqu'un qu'on note : sans entreprise il n'a pas de fiche,
-     et « Compléter » promettrait un écran qui ne vient pas. */
-  const bMore = wide || pourContact ? null : btn('Compléter', '', () => {
+  /* « Compléter » = créé ET la fiche s'ouvre pour le reste (au pouce) */
+  const bMore = wide ? null : btn('Compléter', '', () => {
     const c = save();
     if (c === undefined) return;
     sh.close();

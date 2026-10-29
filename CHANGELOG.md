@@ -9,6 +9,27 @@ le premier pour une rupture. La bascule du recadrage est la 7.0.0
 
 Les versions d'avant la 6.76 se lisent dans l'historique du dépôt.
 
+## [7.4.0] — 29 octobre 2026
+
+Le + ajoute une piste, le partage se retrouve dans « Réseau », et tous
+les réglages dans « Réglages ».
+
+### Changé
+
+- Le **+** ouvre directement « Nouvelle piste ». Quelqu'un rencontré sans
+  entreprise se note dans la même feuille : il part dans « Contacts à
+  rattacher », comme avant. Sur ordinateur, le bouton dit « Nouvelle
+  piste », et la touche N fait la même chose.
+- **Donner** et **Recevoir** sont côte à côte dans « Réseau » : en bas de
+  l'écran sur téléphone, à droite du titre sur ordinateur. La fiche
+  d'une piste garde « Donner » pour cette piste, un groupe garde
+  « Donner » pour le groupe.
+- « Choisir », dans « Mes pistes », ne sert plus qu'à écrire à plusieurs.
+- **Ma copie** et la **phrase de secours** passent en tête des Réglages.
+  « Moi » ne garde que ton profil et ce que tu envoies. Si tes pistes ne
+  sont enregistrées que sur cet appareil, la ligne « Réglages » le dit :
+  « sans copie ».
+
 ## [7.3.0] — 28 octobre 2026
 
 Ton visage, dessiné par toi.

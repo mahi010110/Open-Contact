@@ -117,7 +117,7 @@ const nouveau = async (p, quoi) => {
   await p.waitForSelector('#' + quoi);
   await p.click('#' + quoi);
 };
-/* Ajouter › Recevoir › Texte : là où se colle tout ce qu'on te tend */
+/* Réseau › Recevoir › Texte : là où se colle tout ce qu'on te tend */
 const recevoirTexte = async (p, txt) => {
   await ouvrirRecevoir(p, 'texte');
   await p.fill('#rcTxt', txt);
@@ -133,12 +133,14 @@ const I = await ecran('ines');
   const t = await I.p.evaluate(() => [...document.querySelectorAll('.bx-liste button')].map(b => b.innerText.replace(/\s+/g, ' ').trim()));
   if (t.join('|') !== 'Mes amis|Nouveau groupe') fail('la boîte, sans groupe : ' + JSON.stringify(t));
   if (await I.p.$('#ecPromo')) fail('la porte « Partage en groupe » est encore là');
-  /* Donner et Recevoir ont quitté « Réseau » (R1) : le + et « Mes pistes » */
+  /* Donner et Recevoir vivent dans « Réseau » (décision 0008) — mais
+     seulement dans leur pied, jamais jetés au milieu de la boîte */
   const gestes = await I.p.evaluate(() => [...document.querySelectorAll('#view-reseau button')]
-    .map(b => b.textContent.trim()).filter(t => /^(Donner|Recevoir)$/.test(t)));
+    .filter(b => /^(Donner|Recevoir)$/.test(b.textContent.trim()) && !b.closest('.rz-pied, .rz-verbes'))
+    .map(b => b.textContent.trim()));
   const restes = await I.p.evaluate(() => ['#ecScan', '#ecMonQR', '#ecGrCreer', '#ecGrRejoindre', '.ec-amis', '.ec-groupes']
     .filter(s => document.querySelector('#view-reseau ' + s)));
-  if (gestes.length) fail('« Réseau » porte encore Donner ou Recevoir : ' + JSON.stringify(gestes));
+  if (gestes.length) fail('« Réseau » porte Donner ou Recevoir hors de leur pied : ' + JSON.stringify(gestes));
   if (restes.length) fail('« Réseau » garde des gestes jetés en vrac : ' + restes.join(', '));
 }
 /* le téléphone d'Inès SAIT partager : une feuille de partage posée

@@ -158,7 +158,8 @@ const ECRANS = [
   ['36-groupe', p => p.evaluate(async () => { const m = await import('./ui/groupes.js'); await m.chargerGroupes();
     m.ouvrirGroupe('bts2sxe3kmw4ka7'); })],
   ['37-groupe-neuf', async p => { await route('#/reseau')(p); await p.waitForTimeout(300); await p.click('#ecGrNeuf'); }],
-  ['40-ajouter', p => p.evaluate(() => import('./ui/ajouter.js').then(m => m.openAjouter()))],
+  /* décision 0008 : le + ouvre la capture ; Donner et Recevoir vivent dans « Réseau » */
+  ['40-recevoir', p => p.evaluate(() => import('./ui/recevoir.js').then(m => m.openRecevoir()))],
   ['41-phrase', p => p.evaluate(() => import('./ui/moi-phrase.js').then(m => m.ouvrirPhrase()))],
   ['42-retrouver', p => p.evaluate(() => import('./ui/moi-phrase.js').then(m => m.ouvrirRetrouver()))],
   ['39-annuler', async p => { await route('#/pistes')(p); await p.waitForTimeout(300);

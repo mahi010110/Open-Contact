@@ -8,7 +8,7 @@
      geste ; « karim » écrit à Karim ; rien de tapé, les gestes. Au pouce,
      rien ne s'ouvre ;
    ② chaque lettre s'écrit dans son bouton, et `aria-keyshortcuts` la
-     dit : N dans « Ajouter », E et P dans la fiche, E et F sur la ligne
+     dit : N dans « Nouvelle piste », E et P dans la fiche, E et F sur la ligne
      d'« Aujourd'hui » qui a le curseur. Dans la fiche, P planifie, E
      écrit — mais une lettre tapée dans « Mes notes » s'y écrit. Sur la
      ligne, F coche l'action ;
@@ -168,7 +168,7 @@ async function allerPar(mutations = {}){
     return { kbd: b.querySelector('.kbd-btn')?.textContent, aria: b.getAttribute('aria-keyshortcuts'), mot: b.textContent.replace(/\s+/g, ' ').trim() }; });
   const chercher = await p.evaluate(() => { const b = document.querySelector('#btnPalette');
     return b ? { t: b.textContent.replace(/\s+/g, ' ').trim(), aria: b.getAttribute('aria-keyshortcuts') } : null; });
-  ok(ajout.kbd === 'N' && ajout.aria === 'N' && /^Ajouter/.test(ajout.mot), '② « Ajouter » porte N — ' + JSON.stringify(ajout));
+  ok(ajout.kbd === 'N' && ajout.aria === 'N' && /^Nouvelle piste/.test(ajout.mot), '② « Nouvelle piste » porte N — ' + JSON.stringify(ajout));
   ok(chercher && /Chercher Ctrl K$/.test(chercher.t) && chercher.aria === 'Control+K', '② « Chercher » porte Ctrl K — ' + JSON.stringify(chercher));
   await p.screenshot({ path: `${SHOTS}/r8-entete-poste.png` });
   /* la ligne d'« Aujourd'hui » : ses lettres ne se montrent qu'au curseur */

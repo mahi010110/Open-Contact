@@ -151,22 +151,24 @@ export async function ouvrirReglages(page){
   }
 }
 
-/* ---- les chemins de l'app ouverte (7.0.0) ----
-   « Échanger » est devenu « Réseau » : Donner part de « Mes pistes ›
-   Choisir » ou de la fiche, Recevoir du +, Mon QR de « Réseau › Mes
-   amis ». Un seul endroit pour ces chemins : un scénario qui les
-   recopie à la main finit par jouer un chemin que l'app n'a plus. */
+/* ---- les chemins de l'app (décision 0008, 29 octobre 2026) ----
+   Le + crée une piste. Donner et Recevoir vivent côte à côte dans
+   « Réseau » (et la fiche donne SA piste) ; Mon QR, dans « Réseau › Mes
+   amis ». Un seul endroit pour ces chemins : un scénario qui les recopie
+   à la main finit par jouer un chemin que l'app n'a plus. */
 
-/* le + : `#bnAdd` au pouce, `#btnAddTop` au poste — celui qui se voit */
-export async function ouvrirAjouter(page){
-  await page.waitForFunction(() => [...document.querySelectorAll('#bnAdd, #btnAddTop')].some(b => b.offsetParent));
-  await page.evaluate(() => [...document.querySelectorAll('#bnAdd, #btnAddTop')].find(b => b.offsetParent).click());
-  await page.waitForSelector('.modal-ajouter [data-mode]');
+/* « Réseau » et l'un de ses deux verbes (`#rzDonner`, `#rzRecevoir`) :
+   sous la boîte au pouce, à droite du titre au poste */
+async function verbeReseau(page, id){
+  await page.evaluate(() => { location.hash = '#/reseau'; });
+  await page.waitForFunction(i => !!document.querySelector('#view-reseau:not([hidden]) ' + i), id);
+  await page.click('#view-reseau ' + id);
 }
-/* + › Recevoir › QR · Fichier · Texte (`qr`, `fichier`, `texte`) */
+/* Réseau › Recevoir › QR · Fichier · Texte (`qr`, `fichier`, `texte`) */
 export async function ouvrirRecevoir(page, mode = 'texte'){
-  await ouvrirAjouter(page);
-  await page.click(`.modal-ajouter [data-mode="${mode}"]`);
+  await verbeReseau(page, '#rzRecevoir');
+  await page.waitForSelector('#rcScan');
+  await page.click({ qr: '#rcScan', fichier: '#rcFile', texte: '#rcPaste' }[mode]);
   if (mode === 'texte') await page.waitForSelector('#rcTxt');
 }
 /* Réseau › Mes amis : la feuille de la liste */
@@ -183,16 +185,10 @@ export async function ouvrirMonQR(page){
   await page.waitForSelector('#avMonQR, #avAjout');
   await page.click('#avMonQR, #avAjout');
 }
-/* Mes pistes › Choisir › (tout cocher) › Donner : la liste de « Donner »,
-   ce que l'ancien « Échanger › Donner » ouvrait d'un tap */
+/* Réseau › Donner : toutes les pistes, cochées d'office — ce que
+   l'ancien « Échanger › Donner » ouvrait d'un tap */
 export async function ouvrirDonner(page){
-  await page.evaluate(() => { location.hash = '#/pistes'; });
-  await page.waitForSelector('#piProspect');
-  await page.click('#piProspect');
-  await page.waitForSelector('#pkDonner');
-  await page.click('.overlay [data-tout]');
-  await page.waitForFunction(() => !document.querySelector('#pkDonner')?.disabled);
-  await page.click('#pkDonner');
+  await verbeReseau(page, '#rzDonner');
   await page.waitForFunction(() => [...document.querySelectorAll('.overlay')].pop()?.querySelector('.mh-t')?.textContent.trim() === 'Donner');
 }
 

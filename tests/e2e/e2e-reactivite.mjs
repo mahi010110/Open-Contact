@@ -58,7 +58,7 @@ const GESTES = [
   { nom: 'ajouter', ou: 'pistes', tap: '#bnAdd', la: '.modal .modal-b' },
   { nom: 'groupe', ou: 'reseau', tap: `.bx-l[data-groupe="${GROUPE}"]`, la: '#grFil' },
   { nom: 'conversation', ou: 'reseau', tap: `.bx-l[data-ami="${AMI}"]`, la: '#msFil' },
-  /* la liste à cocher de « Mes pistes » : d'où partent Écrire et Donner */
+  /* la liste à cocher de « Mes pistes » : d'où part « Écrire » */
   { nom: 'choisir', ou: 'pistes', tap: '#piProspect', la: '.modal .pk' },
   /* deux feuilles qui s'ouvrent SUR la fiche : celle qui pose cinq champs
      qui grandissent, et le composeur */

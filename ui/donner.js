@@ -32,10 +32,11 @@ const QR_HARD_MAX = 1800;     /* caractères par QR : au-delà, rendez-vous P2P 
 /* `o.groupe` ({ code, nom }) : ouvert depuis un groupe (lot 5). La même
    liste, le même « qui part » ; le pied n'a plus qu'un geste — donner au
    groupe, qui le recevra à sa prochaine ouverture.
-   `o.ids` : les pistes déjà choisies dans « Mes pistes » (R1, décision
-   0002 — choisir, puis Donner). La liste ne montre qu'elles : le choix
-   est fait, il ne se refait pas parmi vingt lignes tramées (§6, la
-   trame sur une liste qui part de presque rien). */
+   `o.ids` : les pistes déjà choisies — la fiche donne SA piste. La
+   liste ne montre qu'elles : le choix est fait, il ne se refait pas
+   parmi vingt lignes tramées (§6, la trame sur une liste qui part de
+   presque rien). Sans `o.ids` (« Réseau › Donner », décision 0008),
+   toutes les pistes partent par défaut, élagables d'un tap. */
 export function openDonner(o){
   /* appelée aussi en écouteur de clic (l'événement) ou avec null */
   o = o && (o.groupe || Array.isArray(o.ids)) ? o : {};

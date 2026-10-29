@@ -65,10 +65,10 @@ perdre en route.** Le pourquoi est dans les fiches de décision
 | Mes amis | Mes pistes › Amis | Réseau › Mes amis | R1 |
 | Conversations et groupes | Échanger | Réseau | R1 |
 | Mes demandes en cours | Fiche › Contacts ; Amis | Fiche, et Réseau en tête | R1 |
-| Donner des pistes | Échanger › Donner | Pistes › Choisir › Donner, et la fiche | R1 |
-| Recevoir (QR, fichier, texte) | Échanger › Recevoir | + › Recevoir | R1 |
-| Ajouter une piste | + | + › Une piste | R1 |
-| Ajouter quelqu'un rencontré | Fiche › Ajouter un contact | + › Un contact, ou la fiche | R1 |
+| Donner des pistes | Échanger › Donner | Réseau › Donner, et la fiche | R1 |
+| Recevoir (QR, fichier, texte) | Échanger › Recevoir | Réseau › Recevoir | R1 |
+| Ajouter une piste | + | + | R1 |
+| Ajouter quelqu'un rencontré | Fiche › Ajouter un contact | + (sans entreprise : le bac), ou la fiche | R1 |
 | Historique des échanges | Échanger › Historique | Réseau › Historique, en bas | R1 |
 | Écrire à plusieurs | Mes pistes › Prospecter | Aujourd'hui › Écrire les N mails ; Pistes › Choisir › Écrire | R3 |
 | Ma semaine | — | Aujourd'hui, en tête ; la revue le vendredi | R4 |
@@ -80,6 +80,10 @@ Cette table est un scénario automatique depuis R1
 ligne d'un lot livré depuis son onglet, en trois gestes au plus, au
 téléphone et au poste, et rougit si une ligne n'a pas son parcours.
 Les mots de la colonne « Après » sont ceux de l'écran.
+
+Le 29 octobre 2026, la décision 0008 a redéplacé trois lignes : le +
+crée une piste d'un tap, et Donner et Recevoir se retrouvent côte à côte
+dans « Réseau » (« le + a perdu son sens, le partage a été dispersé »).
 
 ## Les lots
 

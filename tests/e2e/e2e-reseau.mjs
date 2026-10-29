@@ -9,23 +9,24 @@
    ③ « Réseau » répond à « qui peut m'aider ? » : mes demandes en tête
      (une ligne chacune dès qu'il y en a deux, le contact donné en accent
      sur sa ligne, la carte au tap — R10), puis les
-     conversations, puis « Mes amis » — ni Donner ni Recevoir ;
-   ④ le + fait tout entrer : « Ajouter », QR · Fichier · Texte sous
-     « Recevoir », et « Une piste » au pied, qui ouvre la capture ;
-   ⑤ Pistes ne porte plus que des entreprises : pas de portée « Amis »,
-     et « Choisir » mène à « Donner » avec les pistes cochées, et
-     elles seules ;
+     conversations, puis « Mes amis » — et, sous le pouce, les deux
+     verbes de l'échange, Donner · Recevoir (décision 0008) ;
+   ④ le + crée : il ouvre « Nouvelle piste » d'un tap, le curseur dans
+     l'entreprise ; « Recevoir » ouvre QR · Fichier · Texte, et « Texte »
+     mène droit au champ où l'on colle ;
+   ⑤ Pistes ne porte plus que des entreprises : pas de portée « Amis » ;
+     « Choisir » ne fait plus qu'écrire, et « Réseau › Donner » part de
+     toutes les pistes, cochées d'office ;
    ⑥ « Mes amis » cherche comme la barre : « Thales » trouve Karim,
      « cyber Lille » propose de demander ;
    ⑧ au poste aussi ;
    ⑨ (R1-b) la fiche commence par les gens — les contacts avant « Où
      j'en suis », au pouce, et en colonne de gauche au poste — et
      « Donner » part de la fiche avec cette seule piste ;
-   ⑩ (R1-b) « Un contact », depuis le + : la personne d'abord,
-     l'entreprise ensuite ; sans entreprise, elle part dans le bac
-     « à rattacher » ;
+   ⑩ quelqu'un rencontré, depuis le + : sans entreprise, la personne part
+     dans le bac « à rattacher », et la suivante se tape aussitôt ;
    ⑪ (R1-c, décision 0003) au poste, la barre latérale : l'en-tête
-     devient une colonne à gauche — le logo, « Ajouter », puis les quatre
+     devient une colonne à gauche — le logo, « Nouvelle piste », puis les quatre
      destinations empilées, icône et mot — à côté de l'écran, de haut en
      bas ;
    ⑫ (R1-d, décision 0003) au poste, « Liste » pose la fiche à droite de
@@ -36,9 +37,10 @@
      demandée d'ailleurs (Ctrl K) se pose dans le volet, jamais en
      double ; hors de « Mes pistes », le volet se vide ; « Tableau »
      revient aux colonnes, la fiche en fenêtre.
-   Zéro erreur console. Cinq mutations à l'appui : l'ancienne adresse
-   oubliée, l'écran sans ses demandes, la fiche qui garde son ordre,
-   l'en-tête qui reste une rangée, la fiche qui ne se pose pas.
+   Zéro erreur console. Six mutations à l'appui : l'ancienne adresse
+   oubliée, l'écran sans ses demandes, le partage qui quitte « Réseau »,
+   la fiche qui garde son ordre, l'en-tête qui reste une rangée, la
+   fiche qui ne se pose pas.
    ============================================================ */
 import { chromium, chromiumPath, serveRepo, relaisMuets, annuaireMuet, ouvrirReglages, ROOT, SHOTS } from './outils.mjs';
 import { readFile } from 'fs/promises';
@@ -131,7 +133,10 @@ const reseauLu = p => p.evaluate(() => {
     /* l'ordre de la colonne : la tranche des demandes, puis la boîte */
     ordre: v ? [...v.querySelectorAll('#rzDemandes, .bx-liste')].map(e => e.id || 'boite') : [],
     amis: v?.querySelector('#bxAmis')?.innerText.replace(/\s+/g, ' ').trim() || '',
-    verbes: v ? [...v.querySelectorAll('#ecGive, #ecRecv')].length : -1,
+    /* les deux verbes de l'échange, et où ils tombent : sous la boîte,
+       dans le bas de l'écran au pouce (§5) */
+    verbes: v ? [...v.querySelectorAll('#rzDonner, #rzRecevoir')].map(b => b.textContent.trim()).join(' · ') : '',
+    basVerbes: (() => { const b = v?.querySelector('#rzRecevoir'); return b ? Math.round(b.getBoundingClientRect().top / innerHeight * 100) : -1; })(),
     echangerParti: !document.querySelector('#view-echanger')
   };
 });
@@ -144,8 +149,8 @@ for (const sombre of [false, true]){
   ok(a.vue === 'reseau' && a.hash === '#/reseau' && a.titre === 'Réseau — OpenContact' && a.h1 === 'Réseau',
     `② ${nom} : « #/echanger » mène à « Réseau », l'adresse et le titre suivent — ${JSON.stringify(a)}`);
   ok(await barre(p) === 'Aujourd’hui→#/aujourdhui | Pistes→#/pistes | Réseau→#/reseau | Moi→#/moi'
-    && await p.evaluate(() => document.querySelector('#bnAdd').getAttribute('aria-label')) === 'Ajouter',
-    `② ${nom} : la barre dit Réseau, le + dit « Ajouter » — ${await barre(p)}`);
+    && await p.evaluate(() => document.querySelector('#bnAdd').getAttribute('aria-label')) === 'Nouvelle piste',
+    `② ${nom} : la barre dit Réseau, le + dit « Nouvelle piste » — ${await barre(p)}`);
   const r = await reseauLu(p);
   ok(r.demandes.join(' / ') === 'Aztek / Thales'
     && r.don === 'Karim t’a donné Julie Marchand' && r.ordre.join(',') === 'rzDemandes,boite',
@@ -155,55 +160,49 @@ for (const sombre of [false, true]){
   const carte = await p.waitForSelector('.modal #rzCarte .dmc-t').then(e => e.evaluate(t => t.firstChild.textContent.trim()), () => '');
   ok(carte === 'Tu cherches quelqu’un chez Aztek pour une alternance', `③ ${nom} : la ligne ouvre sa carte (« ${carte} »)`);
   await p.keyboard.press('Escape'); await p.waitForTimeout(350);
-  ok(r.amis === 'Mes amis 2' && r.verbes === 0 && r.echangerParti,
-    `③ ${nom} : « Mes amis » dans la liste, ni Donner ni Recevoir, et plus d'écran « Échanger » — ${JSON.stringify(r)}`);
+  ok(r.amis === 'Mes amis 2' && r.verbes === 'Donner · Recevoir' && r.basVerbes >= 75 && r.echangerParti,
+    `③ ${nom} : « Mes amis » dans la liste, Donner · Recevoir sous le pouce, et plus d'écran « Échanger » — ${JSON.stringify(r)}`);
   await p.screenshot({ path: `${SHOTS}/161-reseau-${nom}.png` });
   if (sombre){ await ctx.close(); continue; }
 
-  /* ④ le + fait tout entrer */
+  /* ④ le + crée ; « Recevoir » vit dans Réseau */
   await p.click('#bnAdd');
-  await p.waitForTimeout(350);
-  const aj = await p.evaluate(() => {
-    const o = [...document.querySelectorAll('.overlay:not(.ov-out)')].pop();
-    return { rangs: [...o.querySelectorAll('[data-mode]')].map(b => b.textContent.trim()).join(' · '),
-             sous: o.querySelector('.aj-recv .tr-h')?.textContent.trim(),
-             pied: [...o.querySelectorAll('.modal-f button')].map(b => b.textContent.trim() + (b.classList.contains('btn-primary') ? '*' : '')).join(' · ') };
-  });
-  ok(await dessus(p) === 'Ajouter' && aj.sous === 'Recevoir' && aj.rangs === 'QR · Fichier · Texte' && aj.pied === 'Un contact · Une piste*',
-    `④ « Ajouter » : Recevoir (QR · Fichier · Texte), « Un contact » et « Une piste » au pied — ${JSON.stringify(aj)}`);
+  await p.waitForTimeout(400);
+  ok(await dessus(p) === 'Nouvelle piste' && await p.evaluate(() => document.activeElement?.id) === 'cpName',
+    `④ le + ouvre « Nouvelle piste » d'un tap, le curseur dans l'entreprise — ${await dessus(p)}`);
   await p.screenshot({ path: `${SHOTS}/161-reseau-ajouter.png` });
-  await p.click('[data-mode="texte"]');
+  await fermer(p);
+  await allerA(p, '#/reseau');
+  await p.click('#rzRecevoir');
+  await p.waitForTimeout(350);
+  const rc = await p.evaluate(() => [...document.querySelectorAll('.overlay:not(.ov-out) .pick')].map(b => b.textContent.trim()).join(' · '));
+  ok(await dessus(p) === 'Recevoir' && rc === 'QR · Fichier · Texte', `④ « Recevoir » : ${rc}`);
+  await p.click('#rcPaste');
   await p.waitForTimeout(350);
   ok(await dessus(p) === 'Texte' && await p.evaluate(() => document.activeElement?.id) === 'rcTxt',
     `④ « Texte » mène droit au champ où l'on colle — ${await dessus(p)}`);
   await fermer(p);
-  await p.click('#bnAdd');
-  await p.waitForTimeout(300);
-  await p.click('#ajPiste');
-  await p.waitForTimeout(350);
-  ok(await dessus(p) === 'Nouvelle piste', `④ « Une piste » ouvre la capture — ${await dessus(p)}`);
-  await fermer(p);
 
-  /* ⑤ Pistes : des entreprises, et « Choisir » mène à « Donner » */
+  /* ⑤ Pistes : des entreprises ; « Choisir » écrit, « Réseau › Donner » donne */
   await allerA(p, '#/pistes');
   ok(await p.evaluate(() => [...document.querySelectorAll('#piPortee [data-portee]')].map(b => b.dataset.portee).join(',')) === 'pistes,decouvrir'
     && await p.evaluate(() => document.querySelector('#piProspect')?.textContent.trim()) === 'Choisir',
     '⑤ Pistes : plus de portée « Amis », et « Choisir »');
   await p.click('#piProspect');
   await p.waitForTimeout(350);
-  const pied0 = await p.evaluate(() => ({ donner: document.querySelector('#pkDonner')?.disabled, titre: null }));
   await p.click('.pk[data-id="az"]');
-  await p.click('.pk[data-id="ki"]');
   await p.waitForTimeout(200);
   const pied1 = await p.evaluate(() => [...document.querySelectorAll('.overlay:not(.ov-out) .modal-f button')]
     .map(b => b.textContent.trim() + (b.disabled ? '(off)' : '')).join(' · '));
-  ok(await dessus(p) === 'Choisir' && pied0.donner === true && pied1 === 'Donner · Écrire(off)',
-    `⑤ « Choisir » : Donner s'allume dès qu'une piste est cochée — ${pied1}`);
+  ok(await dessus(p) === 'Choisir' && pied1 === 'Écrire(off)',
+    `⑤ « Choisir » n'a plus qu'un geste, « Écrire » — ${pied1}`);
   await p.screenshot({ path: `${SHOTS}/161-reseau-choisir.png` });
-  await p.click('#pkDonner');
+  await fermer(p);
+  await allerA(p, '#/reseau');
+  await p.click('#rzDonner');
   await p.waitForTimeout(450);
   const dn = await p.evaluate(() => [...document.querySelectorAll('.modal-donner .pk')].map(b => b.dataset.id + (b.classList.contains('on') ? '*' : '')).sort().join(','));
-  ok(await dessus(p) === 'Donner' && dn === 'az*,ki*', `⑤ « Donner » ne montre que les pistes choisies, cochées — ${dn}`);
+  ok(await dessus(p) === 'Donner' && dn === 'adv*,az*,ki*,th*', `⑤ « Réseau › Donner » part de toutes les pistes, cochées — ${dn}`);
   await fermer(p);
 
   /* ⑥ Mes amis */
@@ -237,13 +236,15 @@ for (const sombre of [false, true]){
      muette pour le lecteur d'écran */
   const top = await p.evaluate(() => [...(document.querySelector('#btnAddTop')?.childNodes || [])]
     .filter(n => !n.classList?.contains('kbd-btn')).map(n => n.textContent).join('').trim());
-  ok(a.vue === 'reseau' && a.h1 === 'Réseau' && r.ordre.join(',') === 'rzDemandes,boite' && r.verbes === 0 && top === 'Ajouter'
+  /* au poste, les deux verbes se posent à droite du titre */
+  const tete = await p.evaluate(() => [...document.querySelectorAll('#view-reseau .td-head .btn')].map(b => b.textContent.trim()).join(' · '));
+  ok(a.vue === 'reseau' && a.h1 === 'Réseau' && r.ordre.join(',') === 'rzDemandes,boite' && tete === 'Donner · Recevoir' && top === 'Nouvelle piste'
     && await barre(p) === 'Aujourd’hui→#/aujourdhui | Mes pistes→#/pistes | Réseau→#/reseau | Moi→#/moi',
-    `⑧ poste : Réseau, mes demandes en tête, « Ajouter » en haut — ${await barre(p)}`);
+    `⑧ poste : Réseau, mes demandes en tête, Donner · Recevoir à droite du titre, « Nouvelle piste » en haut — ${tete} — ${await barre(p)}`);
   await p.screenshot({ path: `${SHOTS}/161-reseau-poste.png` });
   await p.click('#btnAddTop');
   await p.waitForTimeout(350);
-  ok(await dessus(p) === 'Ajouter', '⑧ poste : « Ajouter » ouvre la même feuille');
+  ok(await dessus(p) === 'Nouvelle piste', '⑧ poste : « Nouvelle piste » ouvre la capture');
   await ctx.close();
 }
 
@@ -287,30 +288,21 @@ for (const [nom, vp] of [['pouce', { width: 390, height: 844 }], ['poste', { wid
   await ctx.close();
 }
 
-/* ---------- ⑩ « Un contact », depuis le + ---------- */
+/* ---------- ⑩ quelqu'un rencontré, depuis le + ---------- */
 {
   const { ctx, p } = await ecran('contact');
   await p.click('#bnAdd');
-  await p.waitForTimeout(300);
-  await p.click('#ajContact');
   await p.waitForTimeout(400);
-  const f = await p.evaluate(() => {
-    const o = [...document.querySelectorAll('.overlay:not(.ov-out)')].pop();
-    return { champs: [...o.querySelectorAll('input')].map(i => i.id).join(','),
-             libelles: [...o.querySelectorAll('.field > label')].map(l => l.textContent.trim()).join(' · '),
-             focus: document.activeElement?.id };
-  });
-  ok(await dessus(p) === 'Nouveau contact' && f.champs === 'cpCtName,cpCtCoord,cpName' && f.libelles === 'Son nom · Son entreprise' && f.focus === 'cpCtName',
-    `⑩ « Un contact » : la personne d'abord, l'entreprise ensuite — ${JSON.stringify(f)}`);
-  await p.screenshot({ path: `${SHOTS}/161-reseau-contact.png` });
   const avant = await p.evaluate(async () => (await import('./ui/state.js')).S.orphans.length);
   await p.fill('#cpCtName', 'Sarah Lemoine');
   await p.fill('#cpCtCoord', 'sarah@forum.test');
   await p.click('.overlay:not(.ov-out) .modal-f .btn-primary');
   await p.waitForTimeout(350);
   const apres = await p.evaluate(async () => (await import('./ui/state.js')).S.orphans.map(o => o.name));
-  ok(apres.length === avant + 1 && apres.includes('Sarah Lemoine') && await p.evaluate(() => document.activeElement?.id) === 'cpCtName',
+  ok(await dessus(p) === 'Nouvelle piste' && apres.length === avant + 1 && apres.includes('Sarah Lemoine')
+    && await p.evaluate(() => document.activeElement?.id) === 'cpName',
     `⑩ sans entreprise, la personne part dans le bac, et la suivante se tape aussitôt — ${apres.join(', ')}`);
+  await p.screenshot({ path: `${SHOTS}/161-reseau-contact.png` });
   await ctx.close();
 }
 
@@ -333,7 +325,7 @@ for (const [nom, vp, sombre] of [['poste', { width: 1280, height: 800 }, false],
                                   ['poste-1024', { width: 1024, height: 700 }, false]]){
   const { ctx, p } = await ecran('lat-' + nom, { vp, sombre, hash: '#/pistes' });
   const c = await coque(p);
-  ok(lateraleOk(c), `⑪ ${nom} : la barre latérale — en-tête ${c.hdr.l}×${c.hdr.h} à gauche, écran à ${c.main.x}, « Ajouter » au-dessus, liens ${enRang(c)}`);
+  ok(lateraleOk(c), `⑪ ${nom} : la barre latérale — en-tête ${c.hdr.l}×${c.hdr.h} à gauche, écran à ${c.main.x}, « Nouvelle piste » au-dessus, liens ${enRang(c)}`);
   await p.screenshot({ path: `${SHOTS}/161-reseau-laterale-${nom}.png` });
   await ctx.close();
 }
@@ -427,7 +419,17 @@ const volet = p => p.evaluate(() => ({
   ok(fige !== ech, 'mutation ② l’écran sans ses demandes : le fichier servi est bien modifié');
   const { ctx, p } = await ecran('mutation-ecran', { mutations: { 'ui/echanger.js': fige }, hash: '#/reseau' });
   const r = await reseauLu(p);
-  ok(!(r.ordre.join(',') === 'rzDemandes,boite' && r.verbes === 0), `mutation ② : la garde de l'écran rougit — ${JSON.stringify(r)}`);
+  ok(!(r.ordre.join(',') === 'rzDemandes,boite' && r.verbes === 'Donner · Recevoir'), `mutation ② : la garde de l'écran rougit — ${JSON.stringify(r)}`);
+  await ctx.close();
+}
+{
+  /* le partage reparti ailleurs : les deux verbes quittent le pied */
+  const ech = await readFile(path.join(ROOT, 'ui', 'echanger.js'), 'utf8');
+  const sans = ech.replace('<div class="rz-pied">${verbes}</div>', '');
+  ok(sans !== ech, 'mutation ②b le partage qui quitte « Réseau » : le fichier servi est bien modifié');
+  const { ctx, p } = await ecran('mutation-verbes', { mutations: { 'ui/echanger.js': sans }, hash: '#/reseau' });
+  const r = await reseauLu(p);
+  ok(!(r.verbes === 'Donner · Recevoir' && r.basVerbes >= 75), `mutation ②b : la garde des verbes rougit — ${JSON.stringify(r)}`);
   await ctx.close();
 }
 

@@ -1781,6 +1781,11 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 /* l'état « sans copie », au-dessus du bouton qui le règle */
 .copie-etat{display:flex;align-items:flex-start;gap:6px;margin:2px 0 8px}
 .copie-etat .ic{flex:none;margin-top:1px}
+/* « Ma copie », en tête des Réglages (décision 0009) : la ligne du
+   fichier, puis la phrase de secours ; quand la copie manque vraiment,
+   le groupe prend le bord ambre que §6 réserve à ce qui peut tout coûter */
+.rg-copie .lockrow{margin:6px 0 2px}
+.rg-copie.fs-alert{border-left:3px solid var(--amber);padding-left:9px}
 /* « Installer l'app » : deux gestes, numérotés parce qu'ils se FONT dans
    cet ordre — c'est une séquence, le numéro dit quelque chose de vrai */
 .inst-pas{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:10px;
@@ -3611,8 +3616,15 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 .rz-pas i.rz-c::after{content:'';display:block;width:50%;height:100%;background:var(--accent)}
 .rz-dem .tr-h{margin-bottom:2px}
 .rz-carte + .rz-carte,.rz-don + .rz-carte{margin-top:10px}
-/* la feuille « Ajouter » : ce qu'on reçoit, sous son mot */
-.aj-recv{margin-top:0}
+/* LES DEUX VERBES DE L'ÉCHANGE (décision 0008, 29 octobre 2026) :
+   « Donner » et « Recevoir » côte à côte, là où sont les gens. Au pouce,
+   sous la boîte, juste au-dessus de la barre — la place du pouce (§5) ;
+   les deux pèsent pareil : ni l'un ni l'autre n'est l'action probable,
+   c'est la situation qui choisit. Au poste, à droite du titre, comme
+   « Écrire les N mails » sur « Aujourd'hui ». */
+.rz-pied{flex:none;display:flex;gap:8px;padding:10px 0 2px}
+.rz-pied>.btn{flex:1 1 0;min-width:0}
+.rz-verbes{display:flex;gap:8px;margin-left:auto;align-self:center}
 /* l'historique : une ligne qui mène à sa feuille */
 .bx-histo{
   display:flex;align-items:center;gap:8px;width:100%;min-height:var(--ctl);padding:0 2px;margin:0 0 6px;
