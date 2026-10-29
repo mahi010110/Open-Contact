@@ -1781,6 +1781,11 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 /* l'état « sans copie », au-dessus du bouton qui le règle */
 .copie-etat{display:flex;align-items:flex-start;gap:6px;margin:2px 0 8px}
 .copie-etat .ic{flex:none;margin-top:1px}
+/* « Ma copie », en tête des Réglages (décision 0009) : la ligne du
+   fichier, puis la phrase de secours ; quand la copie manque vraiment,
+   le groupe prend le bord ambre que §6 réserve à ce qui peut tout coûter */
+.rg-copie .lockrow{margin:6px 0 2px}
+.rg-copie.fs-alert{border-left:3px solid var(--amber);padding-left:9px}
 /* « Installer l'app » : deux gestes, numérotés parce qu'ils se FONT dans
    cet ordre — c'est une séquence, le numéro dit quelque chose de vrai */
 .inst-pas{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:10px;

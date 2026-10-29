@@ -2,7 +2,7 @@
    parcours « l’ordinateur depuis un téléphone » honnête, relais avancés accessibles, cibles au
    pouce, contact sans doublon et fournisseurs IA non livrés non activables. */
 import { readFileSync, readdirSync } from 'fs';
-import { chromium, chromiumPath, SHOTS, serveRepo, attendre, annuaireMuetPartout, ouvrirDonner, vueTableau, relaisMuetsPartout } from './outils.mjs';
+import { chromium, chromiumPath, SHOTS, serveRepo, attendre, annuaireMuetPartout, ouvrirDonner, ouvrirReglages, vueTableau, relaisMuetsPartout } from './outils.mjs';
 import { ORDINATEUR, IA } from '../../ui/perimetre.js';
 
 const { server, base } = await serveRepo();
@@ -1020,10 +1020,12 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
   await lPage.evaluate(() => localStorage.setItem('oc_data_v3', JSON.stringify(
     [{ id: 'lr1', name: 'Piste Témoin', city: 'Lille', status: 'active', contacts: [] }])));
   await lPage.reload({ waitUntil: 'load' });
+  /* « Ma copie » vit en tête des Réglages (décision 0009) */
+  await ouvrirReglages(lPage);
   await lPage.waitForSelector('#moiBkLock');
 
   const hFset = () => lPage.evaluate(() => Math.round(
-    document.querySelector('#moiBk').closest('.fset').getBoundingClientRect().height));
+    document.querySelector('#moiBk').closest('.rg-copie').getBoundingClientRect().height));
   const hRepos = await hFset();
   await lPage.click('#moiBkLock');
   await lPage.waitForTimeout(400);
