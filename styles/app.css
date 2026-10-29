@@ -3611,8 +3611,15 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 .rz-pas i.rz-c::after{content:'';display:block;width:50%;height:100%;background:var(--accent)}
 .rz-dem .tr-h{margin-bottom:2px}
 .rz-carte + .rz-carte,.rz-don + .rz-carte{margin-top:10px}
-/* la feuille « Ajouter » : ce qu'on reçoit, sous son mot */
-.aj-recv{margin-top:0}
+/* LES DEUX VERBES DE L'ÉCHANGE (décision 0008, 29 octobre 2026) :
+   « Donner » et « Recevoir » côte à côte, là où sont les gens. Au pouce,
+   sous la boîte, juste au-dessus de la barre — la place du pouce (§5) ;
+   les deux pèsent pareil : ni l'un ni l'autre n'est l'action probable,
+   c'est la situation qui choisit. Au poste, à droite du titre, comme
+   « Écrire les N mails » sur « Aujourd'hui ». */
+.rz-pied{flex:none;display:flex;gap:8px;padding:10px 0 2px}
+.rz-pied>.btn{flex:1 1 0;min-width:0}
+.rz-verbes{display:flex;gap:8px;margin-left:auto;align-self:center}
 /* l'historique : une ligne qui mène à sa feuille */
 .bx-histo{
   display:flex;align-items:center;gap:8px;width:100%;min-height:var(--ctl);padding:0 2px;margin:0 0 6px;

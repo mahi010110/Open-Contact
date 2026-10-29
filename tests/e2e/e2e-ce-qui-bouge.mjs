@@ -96,13 +96,16 @@ const PARCOURS = {
     arrive: () => !!document.querySelector('#view-reseau .bx-liste [data-fil]') },
   'Mes demandes en cours': { onglet: '#/reseau', gestes: [],
     arrive: () => !!document.querySelector('#view-reseau #rzDemandes .dmc') },
-  'Donner des pistes': { onglet: '#/pistes', gestes: ['#piProspect', '.pk[data-id="az"]', '#pkDonner'], titre: 'Donner' },
-  'Recevoir (QR, fichier, texte)': { onglet: '#/aujourdhui', gestes: ['#bnAdd', '[data-mode="texte"]'], titre: 'Texte',
-    poste: { gestes: ['#btnAddTop', '[data-mode="texte"]'], titre: 'Texte' } },
-  'Ajouter une piste': { onglet: '#/aujourdhui', gestes: ['#bnAdd', '#ajPiste'], titre: 'Nouvelle piste',
-    poste: { gestes: ['#btnAddTop', '#ajPiste'], titre: 'Nouvelle piste' } },
-  'Ajouter quelqu’un rencontré': { onglet: '#/aujourdhui', gestes: ['#bnAdd', '#ajContact'], titre: 'Nouveau contact',
-    poste: { gestes: ['#btnAddTop', '#ajContact'], titre: 'Nouveau contact' } },
+  /* décision 0008 (29 octobre 2026) : le + crée ; Donner et Recevoir
+     vivent côte à côte dans « Réseau » */
+  'Donner des pistes': { onglet: '#/reseau', gestes: ['#rzDonner'], titre: 'Donner' },
+  'Recevoir (QR, fichier, texte)': { onglet: '#/reseau', gestes: ['#rzRecevoir', '#rcPaste'], titre: 'Texte' },
+  'Ajouter une piste': { onglet: '#/aujourdhui', gestes: ['#bnAdd'], titre: 'Nouvelle piste',
+    poste: { gestes: ['#btnAddTop'], titre: 'Nouvelle piste' } },
+  /* la même feuille : sans entreprise, la personne part dans le bac */
+  'Ajouter quelqu’un rencontré': { onglet: '#/aujourdhui', gestes: ['#bnAdd'],
+    arrive: () => !!document.querySelector('.overlay:not(.ov-out) #cpCtName'),
+    poste: { gestes: ['#btnAddTop'], arrive: () => !!document.querySelector('.overlay:not(.ov-out) #cpCtName') } },
   'Historique des échanges': { onglet: '#/reseau', gestes: ['#ecHisto'], titre: 'Historique' },
   'Navigation au poste': { onglet: '#/aujourdhui', seulPoste: true,
     poste: { gestes: [], arrive: () => document.querySelector('.app').classList.contains('nav-laterale') } }

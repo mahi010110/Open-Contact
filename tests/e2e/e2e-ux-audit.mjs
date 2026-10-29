@@ -2984,10 +2984,10 @@ if (IA){
     const pActif = await cActif.newPage();
     await pActif.goto(base, { waitUntil: 'load' });
     await pActif.waitForSelector('#view-aujourdhui:not([hidden])');
-    /* le bouton plein du pied d'« Ajouter » (« Une piste »), ouverte par
-       le « + » de la barre — l'accueil n'en porte plus depuis les
-       premiers pas (lot F4), et au pouce le premier `.btn-primary` du
-       document est celui du bandeau de bureau, caché */
+    /* le bouton plein du pied de « Nouvelle piste », ouverte par le
+       « + » de la barre (décision 0008) — l'accueil n'en porte plus
+       depuis les premiers pas (lot F4), et au pouce le premier
+       `.btn-primary` du document est celui du bandeau de bureau, caché */
     await pActif.click('#bnAdd');
     await pActif.waitForSelector('.overlay:not(.ov-out) .modal-f .btn-primary');
     const bp = await pActif.$('.overlay:not(.ov-out) .modal-f .btn-primary');

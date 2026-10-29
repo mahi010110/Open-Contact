@@ -13,7 +13,7 @@
 import { esc, localISO, todayISO } from '../engine/utils.js';
 import { STATUSES } from '../engine/model.js';
 import { canalCourt, exchangeLog, recuesDormantes, jamaisDonnees } from '../engine/assist.js';
-import { S, saveJournal } from './state.js';
+import { S, saveJournal, isClosed } from './state.js';
 import { $, ic, openSheet, bindDeleteGesture, showUndo, voirAutres } from './dom.js';
 import { frDate, diffDays } from './dates.js';
 import { boiteHTML, bindBoite } from './conversations.js';
@@ -25,8 +25,13 @@ import { mesDemandes, carteDemandeHTML, bandeauDon, ouvrirLigne, ligneDemandeHTM
 /* R1 (décision 0002) : « Réseau » a remplacé « Échanger » (7.0.0).
    Une vue recadrée sur UNE question — qui peut m'aider ? : mes demandes
    en tête, puis les conversations, « Mes amis » et « Historique ».
-   « Donner » est parti dans « Pistes » et la fiche, « Recevoir » dans
-   le +. */
+   LE PARTAGE REVIENT ICI (décision 0008, le mainteneur, 29 octobre
+   2026 : « le + a perdu son sens, le partage a été dispersé entre
+   plusieurs endroits »). « Donner » vivait dans « Pistes › Choisir » et
+   « Recevoir » derrière le + : les deux moitiés d'un même échange, à
+   deux bouts de l'app. Elles se retrouvent côte à côte, là où sont les
+   gens à qui l'on donne — sous le pouce au téléphone, à droite du titre
+   au poste. La fiche garde « Donner » pour SA piste. */
 const surIci = () => /^#\/(echanger|reseau)\b/.test(location.hash);
 
 /* Deux conceptions, pas une page élastique : au pouce, une colonne —
@@ -455,6 +460,12 @@ export function renderEchanger(){
      l'onglet relance un rendu AVANT que la route ait changé — il ne doit
      pas la reposer (l'adresse, elle, a déjà changé) */
   const deux = wide && !b.vide && surIci();
+  /* les deux verbes de l'échange : « Donner » seulement s'il y a une
+     piste à donner (les pistes d'exemple ne se donnent pas) — un geste
+     qui ne peut rien faire n'est pas à l'écran (§0, corollaire) */
+  const aDonner = S.companies.some(c => !c.demo && !isClosed(c));
+  const verbes = `${aDonner ? `<button class="btn" id="rzDonner">${ic('share', 'ic-14')} Donner</button>` : ''}
+     <button class="btn" id="rzRecevoir">${ic('inbox', 'ic-14')} Recevoir</button>`;
   if (volet && !deux){ const d = volet.querySelector(':scope > .dock'); if (d && d.fermer) d.fermer(); }
   /* UN NOUVEAU RENDU NE DOIT RIEN COÛTER à qui lit ou écrit. La boîte
      se redessine à chaque message reçu : la place dans la liste et le
@@ -465,15 +476,19 @@ export function renderEchanger(){
   const ligneFoc = foc && foc.dataset.fil ? foc.dataset.fil : (foc && foc.id && !volet?.contains(foc) ? '#' + foc.id : '');
   const defile = root.querySelector('.bx-zone, .bx-gauche')?.scrollTop || 0;
   const gauche = deux && volet && root.contains(volet) ? root.querySelector('.bx-gauche') : null;
-  if (gauche) gauche.innerHTML = colonne;
+  if (gauche){
+    gauche.innerHTML = colonne;
+    const rv = root.querySelector('.rz-verbes');
+    if (rv) rv.innerHTML = verbes;
+  }
   else {
     root.innerHTML =
       `<div class="page-inner${wide ? ' page-wide' : ''} ec-boite">
-         <div class="td-head"><h1>Réseau</h1></div>
+         <div class="td-head"><h1>Réseau</h1>${wide ? `<div class="rz-verbes">${verbes}</div>` : ''}</div>
          ${wide
            ? deux ? `<div class="bx-cols"><div class="bx-gauche">${colonne}</div><div class="bx-volet-ici"></div></div>`
                   : `<div class="bx-seule">${colonne}</div>`
-           : `<div class="bx-zone">${colonne}</div>`}
+           : `<div class="bx-zone">${colonne}</div><div class="rz-pied">${verbes}</div>`}
        </div>`;
     if (deux){
       if (!volet){ volet = document.createElement('div'); volet.className = 'bx-volet'; volet.id = 'bxVolet'; }
@@ -491,6 +506,8 @@ export function renderEchanger(){
   root.querySelectorAll('[data-dem]').forEach(b =>
     b.addEventListener('click', () => ouvrirDemande(b.dataset.dem)));
   root.querySelector('#ecHisto')?.addEventListener('click', ouvrirHistorique);
+  root.querySelector('#rzDonner')?.addEventListener('click', async () => (await import('./donner.js')).openDonner());
+  root.querySelector('#rzRecevoir')?.addEventListener('click', async () => (await import('./recevoir.js')).openRecevoir());
   root.querySelector('#ecPromo')?.addEventListener('click', openPromo);
   bindBoite(root, { volet: deux ? volet : null, rendre: renderEchanger });
   /* une ligne qui réclame mène LÀ OÙ L'ON AGIT : sa fiche, en un tap */

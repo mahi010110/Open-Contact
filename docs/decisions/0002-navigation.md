@@ -1,6 +1,8 @@
 # 0002 — Un onglet, une question
 
-**Statut** : acceptée par le mainteneur, 19 octobre 2026.
+**Statut** : acceptée par le mainteneur, 19 octobre 2026. Les lignes « Le +
+fait tout entrer » et « Un seul Partager » sont **remplacées par la
+fiche [0008](0008-le-plus-et-le-partage.md)** (29 octobre 2026).
 
 ## Contexte
 
