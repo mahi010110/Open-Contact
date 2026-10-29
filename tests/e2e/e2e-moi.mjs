@@ -284,8 +284,8 @@ const UA_ANDROID = 'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 
     const { S } = await import('./ui/state.js');
     (await import('./ui/mail.js')).openMail(S.companies[0], { ctId: 'cr' });
     await new Promise(r => setTimeout(r, 300));
-    const sel = document.querySelector('#mTpl');
-    return { nom: sel.options[sel.selectedIndex].text, corps: document.querySelector('#mBody').value };
+    /* les modèles sont des puces (lot D) : la retenue est cochée */
+    return { nom: document.querySelector('#mTpl [aria-checked="true"]').textContent.trim(), corps: document.querySelector('#mBody').value };
   });
   okSi(choisi.nom === 'Relance' && choisi.corps.includes('Je reviens vers vous'),
     'piste « en cours » : le composeur s’ouvre sur la relance, pas sur une seconde candidature');

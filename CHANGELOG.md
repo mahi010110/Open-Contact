@@ -12,7 +12,7 @@ Les versions d'avant la 6.76 se lisent dans l'historique du dépôt.
 ## [7.5.0] — 29 octobre 2026
 
 Moins de cadres, plus de place : le contenu se pose directement sur
-l'écran.
+l'écran. Et « Écrire » va plus droit au message.
 
 ### Changé
 
@@ -31,6 +31,10 @@ l'écran.
   clic droit sur ordinateur). Le bouton « Choisir » reste.
 - Dans « Réseau », les filtres (Tout, Non lus, Groupes, Amis) sont de
   simples onglets.
+- Dans « Écrire », le destinataire et le modèle tiennent chacun une
+  ligne. Les modèles sont visibles d'un coup d'œil, plus cachés dans un
+  menu. Si tu changes de modèle après avoir écrit, « Annuler » rend ton
+  texte. « À savoir » se replie d'un tap.
 
 ## [7.4.0] — 29 octobre 2026
 

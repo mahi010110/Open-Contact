@@ -3097,6 +3097,24 @@ button.ec-row:hover{background:var(--surface-field)}
 /* une valeur qu'on lit sans pouvoir la changer : ni bordure ni relief —
    ce qui se tape a un cadre, le reste se pose en texte (§6, sobriété 3) */
 .fld-ro{font-size:var(--input-fs);line-height:1.4;padding:2px 0;color:var(--text-body)}
+/* « À » ET « MODÈLE » : UNE LIGNE CHACUN (lot D). L'étiquette tient une
+   colonne à gauche, comme le « À » de toute messagerie, et les valeurs
+   s'alignent ; ce qu'on choisit se pose en ligne, ce qu'on TAPE (l'objet,
+   le message) garde son étiquette au-dessus et son cadre. Les puces se
+   replient par rangs sous leur propre colonne, jamais sous l'étiquette. */
+/* `flex:none` : le corps du composeur est une colonne flex bornée, où un
+   enfant rétrécit sous sa propre hauteur (§4, la faute verticale) — les
+   puces repliées sur deux rangs passaient sous l'objet. L'étiquette se
+   cale sur le PREMIER rang, à la hauteur d'une cible. */
+.ml-a{display:grid;grid-template-columns:4.25rem minmax(0,1fr);align-items:center;gap:4px 8px;
+  margin:0 0 8px;flex:none}
+.ml-l{align-self:start;min-height:var(--ctl);display:flex;align-items:center;
+  font-size:var(--text-11);font-weight:var(--weight-bold);text-transform:uppercase;
+  letter-spacing:var(--tracking-wide);color:var(--text-muted)}
+.ml-a .fld-ro{min-width:0;overflow-wrap:anywhere}
+.ml-a .ml-rien{color:var(--text-muted)}
+.ml-role{font-weight:var(--weight-regular);color:var(--text-muted);font-size:var(--text-12)}
+.dchip.on .ml-role{color:var(--on-accent);opacity:.85}
 /* Une fiche remplie à 43 % ne RÉCLAME rien : elle ne coûte pas une
    opportunité, contrairement à une relance en retard — qui, elle, porte
    déjà l'ambre trois blocs plus haut. Deux ambres sur un écran diluent
@@ -3111,14 +3129,14 @@ button.ec-row:hover{background:var(--surface-field)}
    fiche, dans un cadre au trait discontinu pour dire que c'est de la
    matière à lire, pas un champ à remplir. */
 .ml-know{
-  margin:0 0 12px;padding:2px 10px 0;
+  margin:0 0 12px;padding:0 10px;
   border:1px dashed var(--border-strong);background:var(--surface-chrome);
 }
-.ml-know-h{
-  display:block;padding:7px 0 2px;font-family:var(--font-mono);
-  font-size:var(--text-11);color:var(--text-muted);
-  text-transform:uppercase;letter-spacing:.04em;
-}
+/* son titre est le résumé d'un pli : le dessin des titres de la fiche
+   (`.fi-hist summary`), à la hauteur d'une cible ; replié, le cadre ne
+   garde que lui */
+.ml-know>.ml-know-h{padding:2px 0}
+.ml-know[open]{padding-bottom:4px}
 .ml-know .fk{padding-left:0;padding-right:0}
 /* ---- AU POUCE, L'ÉTIQUETTE SE MET AU-DESSUS DE SA VALEUR ----
    La colonne de gauche était fixée à 72 px. Mesuré sur un corps de

@@ -53,9 +53,13 @@ export function savoirHTML(c){
           esc(c.website.replace(/^https?:\/\//i, '').replace(/\/$/, ''))} ${ic('external-link', 'ic-14')}</a>`] : null
   ].filter(Boolean);
   if (!lignes.length) return '';
-  return `<div class="ml-know"><span class="ml-know-h">À savoir</span>
+  /* OUVERT D'OFFICE, comme sur la fiche (« sans devoir appuyer », le
+     mainteneur, 5 octobre) — et il se replie d'un tap, le même triangle
+     que la fiche (`fi-hist`) : une fois l'accroche écrite, la place
+     revient au message (lot D). */
+  return `<details class="fi-hist ml-know" open><summary class="ml-know-h">À savoir</summary>
     ${lignes.map(([l, v]) => `<div class="fk"><span class="fk-l">${l}</span><span class="fk-v">${v}</span></div>`).join('')}
-  </div>`;
+  </details>`;
 }
 
 export function openMail(c, opts){
@@ -104,23 +108,31 @@ export function openMail(c, opts){
           brouillon. Un geste ne peut pas changer de taille selon le
           remplissage d'une fiche. Le plancher du champ Message est ce
           qui lui rend sa place (`styles/app.css`, `.fld-body`). */''}
-     <div class="grid2">
-       ${/* UN CHOIX À UNE SEULE OPTION N'EST PAS UN CHOIX. La plupart
-            des pistes portent une seule personne joignable : le menu ne
-            pouvait alors rien faire, et il coûtait 80 px de la hauteur
-            que le message réclame — sur un téléphone, ces 80 px sont
-            trois lignes de brouillon. C'est la règle « indisponible =
-            absent » appliquée à un contrôle sans pouvoir : la donnée
-            reste (on lit à qui on écrit), le contrôle part. */''}
-       <div class="field">${cts.length > 1
-         ? `<label for="mTo">Destinataire</label>
-            <select id="mTo">${cts.map((t, i) => `<option value="${i}"${i === initIdx ? ' selected' : ''}>${esc(t.name || t.email)}${t.role ? ' — ' + esc(t.role) : ''}</option>`).join('')}</select>`
-         : `<label>Destinataire</label>
-            <p class="fld-ro">${cts.length
-              ? esc(cts[0].name || cts[0].email) + (cts[0].role ? ' — ' + esc(cts[0].role) : '')
-              : 'Aucun email sur cette piste'}</p>`}</div>
-       <div class="field"><label for="mTpl">Modèle</label>
-         <select id="mTpl">${tpls.map((t, i) => `<option value="${i}"${i === tplInit ? ' selected' : ''}>${esc(t.name)}</option>`).join('')}</select></div>
+     ${/* À QUI, ET AVEC QUEL MODÈLE : deux LIGNES, plus deux champs
+          (lot D, 29 octobre 2026 — le mainteneur : « la section envoi de
+          message, peu UX et ergonomique »). Toute messagerie pose « À »
+          et son destinataire sur une ligne ; ici aussi, et le message
+          gagne les deux étiquettes posées au-dessus. Un petit choix ne
+          se cache pas dans une liste déroulante (GOV.UK : le menu en
+          dernier recours ; §6, les puces) : les modèles sont des puces,
+          le retenu se remplit d'accent, et au doigt la roue d'iOS ne
+          s'ouvre plus pour trois mots. Une seule personne joignable :
+          son nom se lit, sans contrôle — un choix à une option n'en est
+          pas un. */''}
+     <div class="ml-a">
+       <span class="ml-l" id="mToL">À</span>
+       ${cts.length > 1
+         ? `<div class="datechips ml-choix" role="radiogroup" aria-labelledby="mToL" id="mTo">${cts.map((t, i) =>
+             `<button class="dchip${i === initIdx ? ' on' : ''}" role="radio" aria-checked="${i === initIdx}" data-ct="${i}">${
+               esc(t.name || t.email)}${t.role ? ` <span class="ml-role">${esc(t.role)}</span>` : ''}</button>`).join('')}</div>`
+         : `<span class="fld-ro${cts.length ? '' : ' ml-rien'}">${cts.length
+             ? esc(cts[0].name || cts[0].email) + (cts[0].role ? ` <span class="ml-role">${esc(cts[0].role)}</span>` : '')
+             : 'aucun email sur cette piste'}</span>`}
+     </div>
+     <div class="ml-a">
+       <span class="ml-l" id="mTplL">Modèle</span>
+       <div class="datechips ml-choix" role="radiogroup" aria-labelledby="mTplL" id="mTpl">${tpls.map((t, i) =>
+         `<button class="dchip${i === tplInit ? ' on' : ''}" role="radio" aria-checked="${i === tplInit}" data-tpl="${i}">${esc(t.name)}</button>`).join('')}</div>
      </div>
      ${/* L'OBJET S'AFFICHE EN ENTIER.
           Une ligne de 350 px montre ~41 caractères. Le gabarit de
@@ -159,8 +171,10 @@ export function openMail(c, opts){
      <p class="hint" id="mHint"></p>`;
 
   const q = s => sh.body.querySelector(s);
-  /* sans menu (une seule personne joignable), le choix est déjà fait */
-  const currentCt = () => { const m = q('#mTo'); return (m ? cts[+m.value] : cts[0]) || (c.contacts || [])[0] || null; };
+  /* ce que les puces retiennent : la personne, le modèle */
+  let ctIdx = initIdx, tplIdx = tplInit;
+  /* une seule personne joignable : le choix est déjà fait */
+  const currentCt = () => cts[ctIdx] || (c.contacts || [])[0] || null;
   /* l'objet grandit avec son texte. Le plafond est à quatre lignes —
      deux fois la fenêtre visée : au-delà, ce n'est plus un objet
      d'email, et laisser le champ manger la feuille punirait le corps.
@@ -240,7 +254,7 @@ export function openMail(c, opts){
   /* ce que le modèle a produit, pour savoir plus tard si l'étudiant y a touché */
   const genere = { objet: '', corps: '' };
   function fill(){
-    const t = tpls[+q('#mTpl').value || 0];
+    const t = tpls[tplIdx];
     if (!t) return;
     const ct = currentCt();
     q('#mSubj').value = genere.objet = fillTpl(t.subject, c, ct, S.profile, { companies: S.companies });
@@ -258,7 +272,7 @@ export function openMail(c, opts){
     if (!touche && q('#mSubj').value === genere.objet){ fill(); return; }
     q('#mBody').value = remplirTrous(q('#mBody').value, S.profile);
     if (q('#mSubj').value === genere.objet){
-      const t = tpls[+q('#mTpl').value || 0];
+      const t = tpls[tplIdx];
       if (t) q('#mSubj').value = genere.objet = fillTpl(t.subject, c, currentCt(), S.profile, { companies: S.companies });
     }
     sync();
@@ -464,8 +478,40 @@ export function openMail(c, opts){
       onDone: advance
     });
   }
-  q('#mTo')?.addEventListener('change', fill);
-  q('#mTpl').addEventListener('change', fill);
+  /* UNE PUCE CHANGE LE BROUILLON — et ce que la main y avait écrit
+     revient d'un tap (invariant ②). Le menu d'avant refaisait le texte
+     sans un mot : une accroche écrite, un modèle effleuré, et elle
+     disparaissait. Un brouillon que personne n'a touché se refait en
+     silence : il n'y a rien à perdre. */
+  const marquer = (box, attr, i) => box?.querySelectorAll('[role="radio"]').forEach(b => {
+    const on = +b.dataset[attr] === i;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-checked', String(on));
+  });
+  const choisir = (box, attr, poser, dire) => box?.addEventListener('click', e => {
+    const b = e.target.closest('[role="radio"]');
+    if (!b || b.getAttribute('aria-checked') === 'true') return;
+    const avant = { objet: q('#mSubj').value, corps: q('#mBody').value, ct: ctIdx, tpl: tplIdx };
+    const touche = avant.objet !== genere.objet || avant.corps !== genere.corps;
+    poser(+b.dataset[attr]);
+    marquer(q('#mTo'), 'ct', ctIdx);
+    marquer(q('#mTpl'), 'tpl', tplIdx);
+    fill();
+    garder();
+    if (touche) showUndo(dire(), () => {
+      if (!sh.body.isConnected) return;
+      ctIdx = avant.ct; tplIdx = avant.tpl;
+      marquer(q('#mTo'), 'ct', ctIdx);
+      marquer(q('#mTpl'), 'tpl', tplIdx);
+      q('#mSubj').value = avant.objet;
+      q('#mBody').value = avant.corps;
+      sync();
+      garder();
+    });
+  });
+  choisir(q('#mTo'), 'ct', i => { ctIdx = i; },
+    () => 'Brouillon refait pour ' + ((cts[ctIdx] || {}).name || (cts[ctIdx] || {}).email || 'cette personne') + '.');
+  choisir(q('#mTpl'), 'tpl', i => { tplIdx = i; }, () => 'Modèle « ' + tpls[tplIdx].name + ' » posé.');
   q('#mSubj').addEventListener('input', sync);
   q('#mSubj').addEventListener('keydown', e => {
     if (e.key !== 'Enter') return;
@@ -498,7 +544,7 @@ export function openMail(c, opts){
       /* l'intention vient du modèle que l'utilisateur a DÉJÀ choisi juste
          au-dessus : sans elle, une « Relance » produisait une première
          candidature. C'est son propre choix, pas une donnée de suivi. */
-      const tpl = tpls[+q('#mTpl').value || 0];
+      const tpl = tpls[tplIdx];
       const prompt = draftPrompt({
         company: c, contactName: ct && ct.name, contactRole: ct && ct.role,
         profile: S.profile, intent: tpl && tpl.name
@@ -611,7 +657,7 @@ export function openMail(c, opts){
   if (br){
     const poser = () => {
       const i = br.ctId ? cts.findIndex(t => t.id === br.ctId) : -1;
-      if (i >= 0 && q('#mTo')) q('#mTo').value = String(i);
+      if (i >= 0){ ctIdx = i; marquer(q('#mTo'), 'ct', i); }
       q('#mSubj').value = br.objet;
       q('#mBody').value = br.corps;
       q('#mBrouillon').hidden = true;
