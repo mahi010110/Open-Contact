@@ -170,7 +170,9 @@ L'objet compressé, et RIEN d'autre :
   `presenter`) — jamais un texte libre. Absente si rien n'est coché ; à
   la lecture, un mot hors de la table tombe (`normaliserAide`). Une offre
   qui change est une mise à jour du profil (`maj`), comme le parcours
-  (`e2e-aide.mjs` ①).
+  (`e2e-aide.mjs` ①, de la 6.86 à la 7.4). **Depuis la 8.0.0, l'app ne
+  l'envoie plus** : aucun écran ne le montre (`profilDonneIci`,
+  `e2e-amis.mjs` ①) ; reçu d'un ami, il se lit et se garde toujours.
 - `visage` (depuis la 7.3, facultatif) : le visage que j'ai DESSINÉ,
   `{m, t}` — `m` un motif de 15 bits (entier de 1 à 32 767 : le bit
   y·3 + x allume la case (x, y) des trois colonnes de gauche d'une
@@ -179,8 +181,10 @@ L'objet compressé, et RIEN d'autre :
   dessiné — le visage se tire alors de `id`, comme avant. À la lecture,
   tout autre forme tombe (`normaliserVisage`). Un dessin qui change est
   une mise à jour du profil (`maj`). Il ne passe JAMAIS par un groupe ni
-  par un partage de pistes (`e2e-visage.mjs` ①) : on voit le dessin d'un
-  ami dans un groupe parce que son profil est déjà chez soi.
+  par un partage de pistes (`e2e-visage.mjs` ①, en 7.3 et 7.4) : on voit
+  le dessin d'un ami dans un groupe parce que son profil est déjà chez
+  soi. **Depuis la 8.0.0, l'app ne l'envoie plus**, comme `aide` ; reçu,
+  il se garde.
 - **Jamais** : adresse, téléphone, formation, école, ville, pistes,
   contacts, suivi, l'identifiant d'une piste — ni le profil d'un AMI. Un
   profil ne se repartage pas (`profilDonne`, `e2e-amis.mjs` ①).
