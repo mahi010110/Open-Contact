@@ -5,15 +5,6 @@
    ============================================================ */
 import { todayISO, localISO } from '../engine/utils.js';
 
-/* LES FORMATEURS, créés une fois. `toLocaleTimeString` en refait un à
-   chaque appel : sur un groupe de 640 messages, c'était 93 ms de profil
-   pour écrire des heures (relevé à grande échelle, octobre 2026). Même
-   sortie, au caractère près — c'est le même formateur. */
-const fmt = o => new Intl.DateTimeFormat('fr-FR', o);
-const F = { heure: fmt({ hour: '2-digit', minute: '2-digit' }), court: fmt({ weekday: 'short', day: '2-digit', month: '2-digit' }),
-  jourCourt: fmt({ weekday: 'short' }), jourMois: fmt({ day: '2-digit', month: '2-digit' }), jourLong: fmt({ weekday: 'long' }),
-  long: fmt({ weekday: 'long', day: 'numeric', month: 'long' }), longAn: fmt({ weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) };
-
 export function plusDaysISO(n){
   const d = new Date();
   d.setDate(d.getDate() + n);
@@ -32,48 +23,18 @@ export function diffDays(iso){
 export function frDate(iso){
   const d = new Date(iso + 'T12:00:00');
   if (isNaN(d)) return iso;
-  return F.court.format(d);
+  return d.toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: '2-digit' });
 }
 /* l'heure d'un message : « 14:05 » aujourd'hui, « hier », sinon « jeu. 03/07 » */
 export function quandMessage(t){
   const iso = localISO(new Date(t));
   const d = diffDays(iso);
-  if (d === 0) return F.heure.format(new Date(t));
+  if (d === 0) return new Date(t).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
   return d === -1 ? 'hier' : frDate(iso);
 }
-/* l'heure d'une LIGNE de la boîte, au plus court, comme toutes les
-   messageries : « 14:05 » aujourd'hui, « hier », « lun. » dans la
-   semaine, « 03/07 » au-delà — la colonne reste étroite et alignée */
-export function quandListe(t){
-  if (!t) return '';
-  const iso = localISO(new Date(t));
-  const d = diffDays(iso);
-  if (d === 0) return F.heure.format(new Date(t));
-  if (d === -1) return 'hier';
-  const j = new Date(iso + 'T12:00:00');
-  if (d > -7) return F.jourCourt.format(j);
-  return F.jourMois.format(j);
-}
-/* DANS UN FIL (lot F2) : le jour se dit UNE fois, sur une ligne à lui,
-   et chaque message ne porte plus que son heure — comme WhatsApp ou
-   Messages. « Aujourd'hui », « Hier », le jour de la semaine tant qu'il
-   est dans les sept derniers, la date au-delà (l'année seulement si ce
-   n'est pas celle-ci). */
-export const heureDe = t => F.heure.format(new Date(t));
-const majuscule = s => s.charAt(0).toUpperCase() + s.slice(1);
-export function jourFil(t){
-  const iso = localISO(new Date(t));
-  const d = diffDays(iso);
-  if (d === 0) return 'Aujourd’hui';
-  if (d === -1) return 'Hier';
-  const j = new Date(iso + 'T12:00:00');
-  if (d < 0 && d > -7) return majuscule(F.jourLong.format(j));
-  return majuscule((j.getFullYear() !== new Date().getFullYear() ? F.longAn : F.long).format(j));
-}
-export const memeJour = (a, b) => localISO(new Date(a)) === localISO(new Date(b));
 /* « mardi 8 juillet » */
 export function frToday(){
-  return F.long.format(new Date());
+  return new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
 }
 /* étiquette relative courte : « –5 j » · « aujourd'hui » · « demain » · « +12 j » */
 export function relLabel(iso){

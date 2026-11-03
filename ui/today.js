@@ -10,13 +10,9 @@ import { DOMAINS, STATUSES, prendCeQueJeCherche, PREND_MOT } from '../engine/mod
 import { porteurs } from '../engine/requete.js';
 import { portesDuJour } from './amis.js';
 import { lignesAmis, ouvrirLigne } from './reseau.js';
-import { ecritsDuJour, ouvrirNonLus } from './conversations.js';
+import { lignesMessages, ouvrirConversation } from './messages.js';
 import { scoreOf } from '../engine/score.js';
-import { dueFollowups, silentPistes, aDemarrer, premiersPas } from '../engine/assist.js';
-import { enPause, reprendre } from '../engine/suivi.js';
-import { pretsAPartir, SERIE_MIN } from '../engine/prets.js';
-import { ouvrirSerie } from './serie.js';
-import { semaineHTML, ouvrirSemaine } from './semaine.js';
+import { dueFollowups, silentPistes, aDemarrer } from '../engine/assist.js';
 import { S, bus, isClosed, markDone, hasDemo, addDemo, removeDemo } from './state.js';
 import { $, ic, openSheet, voirAutres } from './dom.js';
 import { frToday, frDate, dueMarkHTML, silenceMarkHTML } from './dates.js';
@@ -24,14 +20,12 @@ import { askNextAction, reportAction, askClose } from './actions.js';
 import { openMail } from './mail.js';
 import { openFiche } from './fiche.js';
 import { openCapture } from './capture.js';
-import { openProfil } from './profil.js';
 import { campaignLines, openCampaignById } from './campagnes.js';
 import { mailAnalysis } from './analyse.js';
 import { openPendingMailAnalysis } from './recevoir.js';
 import { ouvrirSur } from './pistes.js';
 import { pendingProposals, openPendingProposals } from './propositions.js';
 import { ORDINATEUR, CAMPAGNES } from './perimetre.js';
-import { toucheHTML, toucheAttr, lettreActive } from './clavier.js';
 
 const CAP = 8;                      /* lignes visibles par tranche avant « voir plus » */
 const expanded = new Set();         /* tranches dépliées à la main (le temps de la session) */
@@ -41,8 +35,7 @@ const expanded = new Set();         /* tranches dépliées à la main (le temps 
    tranches côte à côte, tout visible d'un coup, comme le tableau de
    « Mes pistes ». Ce n'est pas la même page à deux largeurs. */
 const mqWide = matchMedia('(min-width:901px)');
-/* derrière l'écran verrouillé, rien n'est chargé : rien à redessiner */
-mqWide.addEventListener('change', () => { if (S.profile && S.route === 'aujourdhui') renderToday(); });
+mqWide.addEventListener('change', () => { if (S.route === 'aujourdhui') renderToday(); });
 
 function doneTodayCount(){
   const start = new Date(); start.setHours(0, 0, 0, 0);
@@ -72,7 +65,7 @@ function receivedTodayCount(){
    Ce qui reste : le verbe descend en sous-ligne, où il est de toute
    façon doublé par les trois gestes de droite ; l'échéance garde sa
    place forte devant lui. */
-function rowHTML(c, o = {}){
+function rowHTML(c){
   const verb = c.nextActionText || 'Faire le point';
   const today = todayISO();
   /* la tranche donne le contexte : en retard → seul l'écart compte,
@@ -83,35 +76,26 @@ function rowHTML(c, o = {}){
      c'est le seul cran qui la porte ici — sur un écran où toutes les
      lignes réclament quelque chose, une marque sur chacune ne serait
      plus un signal. */
-  /* au retour d'une pause (R2), le retard ne se compte pas : la ligne
-     dit quoi faire, pas depuis combien de temps on ne l'a pas fait */
-  const when = o.sansRetard ? ''
-             : c.nextAction < today ? dueMarkHTML(c.nextAction)
+  const when = c.nextAction < today ? dueMarkHTML(c.nextAction)
              : c.nextAction > today ? `<span class="act-when">${frDate(c.nextAction)}</span>` : '';
   return (
     `<div class="act-row" data-id="${c.id}">
        <div class="act-under act-under-done">${ic('check', 'ic-14')} Fait</div>
        <div class="act-under act-under-report">${ic('calendar', 'ic-14')} Reporter</div>
        <div class="act-in">
-         ${/* UNE CASE EN TÊTE, UN MOT AU BOUT (19 octobre 2026). La ligne
-              portait trois icônes nues — enveloppe, calendrier, coche —
-              soit douze sur l'écran, et le relevé des boutons les a
-              comptées parmi ce qui faisait l'écran « horrible ». Une
-              action prévue se coche comme dans toute liste de tâches
-              (Rappels, Things, Todoist : la case est EN TÊTE, et personne
-              n'a à apprendre ce qu'elle fait) ; le geste le plus probable
-              garde son MOT (« Écrire ») ; « Reporter » reste au glissé
-              vers la gauche et dans la fiche, et le poste, qui n'a pas de
-              glissé, le montre à côté en icône (la colonne du tableau ne fait
-              que 321 px : deux mots n'y tiennent pas à côté du nom). */''}
-         <button class="act-fait" data-a="done" aria-label="Fait : ${esc(c.name)}" title="Fait"${toucheAttr('f')}><span class="act-case" aria-hidden="true">${ic('check', 'ic-12')}</span>${toucheHTML('f')}</button>
          <div class="act-main sw-cible" role="button" tabindex="0" aria-label="Ouvrir ${esc(c.name)}">
            <b class="act-verb">${esc(c.name)}</b>
            <span class="act-sub">${when}<span class="act-do">${esc(verb)}</span></span>
          </div>
          <div class="act-btns">
-           <button class="btn btn-sm btn-ghost icon-btn act-sec" data-a="report" aria-label="Reporter ${esc(c.name)}" title="Reporter">${ic('calendar', 'ic-14')}</button>
-           <button class="btn btn-sm" data-a="mail" aria-label="Écrire à ${esc(c.name)}"${toucheAttr('e')}>${ic('mail', 'ic-14')} Écrire${toucheHTML('e')}</button>
+           <button class="abtn" data-a="mail" aria-label="Écrire à ${esc(c.name)}" title="Écrire">${ic('mail')}</button>
+           ${/* le CALENDRIER, comme « Planifier » une tranche plus haut :
+                c'est la même question — quelle date — et elle avait deux
+                dessins. L'horloge, elle, ne se devinait pas (1er octobre
+                2026) ; elle reste à « Sans nouvelles », où elle dit le
+                temps qui passe. */''}
+           <button class="abtn" data-a="report" aria-label="Reporter ${esc(c.name)}" title="Reporter">${ic('calendar')}</button>
+           <button class="abtn abtn-ok" data-a="done" aria-label="Fait" title="Fait">${ic('check')}</button>
          </div>
        </div>
      </div>`);
@@ -155,23 +139,15 @@ const porteePar = c => porteurs(c, portesRendu)[0] || null;
    muette n'a rien refusé), puis « non ». Sans recherche choisie dans le
    profil, le critère ne départage rien — l'ordre d'avant est intact. */
 const rangPrend = c => { const v = prendCeQueJeCherche(c, S.profile.recherche); return v === true ? 2 : v === null ? 1 : 0; };
-function parOuCommencer(sansAction, n = DEBUT){
+function parOuCommencer(sansAction){
   return sansAction.slice().sort((a, b) =>
     (!!porteePar(b) - !!porteePar(a)) ||
     (rangPrend(b) - rangPrend(a)) ||
     (joignable(b) - joignable(a)) ||
     (scoreOf(b) - scoreOf(a)) ||
-    a.name.localeCompare(b.name, 'fr')).slice(0, n);
+    a.name.localeCompare(b.name, 'fr')).slice(0, DEBUT);
 }
-/* Dans « Reprendre », trois sortes de lignes se suivent dans UNE liste :
-   le nom doit y garder un seul bord (§6). La case « Fait » ouvre la ligne
-   d'une action prévue ; les deux autres prennent à sa place l'icône de
-   leur tranche de tous les jours — l'horloge de « Sans nouvelles »,
-   l'éclair de « Par où commencer » —, en encre sourde : elle dit
-   pourquoi la ligne est là, maintenant que le compte des jours n'y est
-   plus. Un repère, pas un geste. */
-const repereHTML = nom => `<span class="act-sorte" aria-hidden="true">${ic(nom, 'ic-14')}</span>`;
-function startRowHTML(c, o = {}){
+function startRowHTML(c){
   const n = (c.contacts || []).length;
   /* Le compte de contacts passe DEVANT le secteur : au pouce la
      sous-ligne s'élide, et c'est le dernier morceau qui saute. « ESN /
@@ -198,23 +174,16 @@ function startRowHTML(c, o = {}){
   return (
     `<div class="act-row act-start" data-id="${c.id}">
        <div class="act-in">
-         ${o.repere ? repereHTML('zap') : ''}
          <div class="act-main sw-cible" role="button" tabindex="0" aria-label="Ouvrir ${esc(c.name)}">
            <b class="act-verb">${esc(c.name)}</b>
            <span class="act-sub">${pourquoi}<span class="act-who">${esc(bits.join(' · '))}</span></span>
          </div>
          <div class="act-btns">
            ${/* pas d'adresse, pas de bouton : une capacité absente est
-                ABSENTE, jamais grisée (§0). Le geste qui avance garde son
-                mot (écrire si l'on peut, sinon décider quand) ; l'autre
-                reste en icône à côté — ces lignes n'ont pas de glissé,
-                et « décider quand » est justement le geste qui manque
-                quand rien n'est planifié. */''}
+                ABSENTE, jamais grisée (§0) */''}
            ${joignable(c)
-             ? `<button class="btn btn-sm btn-ghost icon-btn" data-a="plan" aria-label="Planifier ${esc(c.name)}" title="Planifier">${ic('calendar', 'ic-14')}</button>`
-             : `<button class="btn btn-sm" data-a="plan" aria-label="Planifier ${esc(c.name)}">${ic('calendar', 'ic-14')} Planifier</button>`}
-           ${joignable(c)
-             ? `<button class="btn btn-sm" data-a="mail" aria-label="Écrire à ${esc(c.name)}"${toucheAttr('e')}>${ic('mail', 'ic-14')} Écrire${toucheHTML('e')}</button>` : ''}
+             ? `<button class="abtn" data-a="mail" aria-label="Écrire à ${esc(c.name)}" title="Écrire">${ic('mail')}</button>` : ''}
+           <button class="abtn abtn-ok" data-a="plan" aria-label="Planifier ${esc(c.name)}" title="Planifier">${ic('calendar')}</button>
          </div>
        </div>
      </div>`);
@@ -231,7 +200,7 @@ function startRowHTML(c, o = {}){
    Passé le dernier seuil, le moteur ne dit plus « relance », il dit
    « clore » ; le geste proposé change avec lui. Une pile dont chaque
    ligne peut sortir ne grandit pas sans fin. */
-function silenceRowHTML(sil, o = {}){
+function silenceRowHTML(sil){
   const c = S.companies.find(x => x.id === sil.id);
   if (!c) return '';
   const bits = [(STATUSES[c.status] || {}).label, c.city].filter(Boolean);
@@ -239,24 +208,16 @@ function silenceRowHTML(sil, o = {}){
   return (
     `<div class="act-row act-quiet" data-id="${c.id}">
        <div class="act-in">
-         ${o.repere ? repereHTML('clock') : ''}
          <div class="act-main sw-cible" role="button" tabindex="0" aria-label="Ouvrir ${esc(c.name)}">
            <b class="act-verb">${esc(c.name)}</b>
-           <span class="act-sub">${o.sansJours ? '' : silenceMarkHTML(sil)}<span class="act-who">${esc(bits.join(' · '))}</span></span>
+           <span class="act-sub">${silenceMarkHTML(sil)}<span class="act-who">${esc(bits.join(' · '))}</span></span>
          </div>
          <div class="act-btns">
-           ${/* le geste que la tranche propose, avec son MOT : « Relancer »
-                (on écrit, ou l'on choisit quand si l'on n'a pas d'adresse),
-                puis « Clôturer » passé le dernier seuil — la sortie de la
-                pile. L'autre geste reste à côté, en icône : cette ligne n'a
-                pas de glissé pour le retrouver. */''}
+           ${joignable(c)
+             ? `<button class="abtn" data-a="mail" aria-label="Écrire à ${esc(c.name)}" title="Écrire">${ic('mail')}</button>` : ''}
            ${clore
-             ? (joignable(c) ? `<button class="btn btn-sm btn-ghost icon-btn" data-a="mail" aria-label="Écrire à ${esc(c.name)}" title="Écrire"${toucheAttr('e')}>${ic('mail', 'ic-14')}${toucheHTML('e')}</button>` : '')
-               + `<button class="btn btn-sm btn-ghost" data-a="clore" aria-label="Clôturer ${esc(c.name)}">${ic('archive', 'ic-14')} Clôturer</button>`
-             : joignable(c)
-               ? `<button class="btn btn-sm btn-ghost icon-btn" data-a="plan" aria-label="Planifier ${esc(c.name)}" title="Planifier">${ic('calendar', 'ic-14')}</button>
-                  <button class="btn btn-sm" data-a="mail" aria-label="Relancer ${esc(c.name)}"${toucheAttr('e')}>${ic('mail', 'ic-14')} Relancer${toucheHTML('e')}</button>`
-               : `<button class="btn btn-sm" data-a="plan" aria-label="Relancer ${esc(c.name)}">${ic('calendar', 'ic-14')} Relancer</button>`}
+             ? `<button class="abtn" data-a="clore" aria-label="Clôturer ${esc(c.name)}" title="Clôturer">${ic('archive')}</button>`
+             : `<button class="abtn abtn-ok" data-a="plan" aria-label="Relancer ${esc(c.name)}" title="Relancer">${ic('calendar')}</button>`}
          </div>
        </div>
      </div>`);
@@ -282,21 +243,10 @@ function silenceHTML(items, total){
    gagner quelque chose à quelqu'un d'autre. Elle n'existe que si ton
    téléphone a TROUVÉ quelqu'un (règle 6) : un ami qui demande sans que
    tu connaisses personne ne t'en dit rien. */
-/* À GRANDE ÉCHELLE (R10) : trois lignes, comme toute tranche, et la
-   suite à un tap — trente-sept cartes avaient pris tout l'écran avant le
-   travail du jour. Au calme, la première dit qui t'a écrit : l'onglet
-   ne porte plus de chiffre, c'est ici qu'on le lit, à son heure. */
-const CAP_AMIS = 3;
-function amisHTML(lignes){
-  const ecrits = ecritsDuJour();
-  const tous = [...(ecrits ? [{ sorte: 'ecrits', id: 'ecrits', nom: ecrits.texte, raison: ecrits.sous, qui: '',
-                                aria: [ecrits.texte, ecrits.sous].filter(Boolean).join(', ') }] : []), ...lignes];
-  if (!tous.length) return '';
-  const items = expanded.has('amis') ? tous : tous.slice(0, CAP_AMIS);
-  const more = tous.length > items.length
-    ? `<button class="linklike tr-more" data-tr="amis">${voirAutres(tous.length - items.length)}</button>` : '';
+function amisHTML(items){
+  if (!items.length) return '';
   return `<section class="tranche tr-amis">
-            <h2 class="tr-h">${ic('users', 'ic-14')} Tes amis${lignes.length ? ` <span class="tr-n">${lignes.length}</span>` : ''}</h2>
+            <h2 class="tr-h">${ic('users', 'ic-14')} Tes amis <span class="tr-n">${items.length}</span></h2>
             <div class="tr-rows">${items.map(x =>
               `<div class="act-row act-ami" data-sorte="${x.sorte}" data-ami="${esc(x.id)}">
                  <div class="act-in">
@@ -305,50 +255,7 @@ function amisHTML(lignes){
                      <span class="act-sub"><span class="act-vecu">${esc(x.raison)}</span><span class="act-who">${esc(x.qui)}</span></span>
                    </div>
                  </div>
-               </div>`).join('')}${more}</div>
-          </section>`;
-}
-
-/* ---------- « Premiers pas » (lot F4) ----------
-   Trois cases qui se cochent SEULES, dans l'ordre où elles se font —
-   une liste ordonnée dans un cadre. Ce qui reste à faire se tape (le
-   chevron), ce qui est fait se coche et se tait ; le mail attend qu'il
-   y ait une piste à qui écrire. Sans piste, la liste prend la place des
-   gestes de l'accueil (§6 : une nouveauté prend une place qui existe) ;
-   ensuite, elle est la première tranche, jusqu'au premier mail. */
-const PAS = { profil: 'Remplir mon profil', piste: 'Ajouter une piste', mail: 'Écrire mon premier mail' };
-/* ce qui manque au profil, dans les mots du formulaire, et le champ où
-   il s'ouvre pour qu'on le remplisse (`premiersPas`, engine/assist.js) */
-const MANQUE = { nom: 'ton nom', formation: 'ta formation', recherche: 'ce que tu cherches' };
-const CHAMP_MANQUE = { nom: '#pfName', formation: '#pfFormation', recherche: '[data-r]' };
-const manqueDit = m => m.length > 1 ? m.slice(0, -1).map(k => MANQUE[k]).join(', ') + ' et ' + MANQUE[m.at(-1)] : MANQUE[m[0]];
-function pasLigneHTML(x, pret){
-  /* un profil commencé dit ce qui lui manque : la case ne reste plus vide
-     sans dire pourquoi (rien commencé, la ligne suffit) */
-  const m = x.cle === 'profil' && x.manque && x.manque.length < 3 ? x.manque : [];
-  return `<li>${x.fait || !pret
-    ? `<span class="pp-et${x.fait ? ' pp-fait' : ''}">${ic(x.fait ? 'checkbox-on' : 'checkbox', 'ic-20')}<span class="pp-l">${PAS[x.cle]}</span>${
-        x.fait ? '<span class="visuellement-cache"> : fait</span>' : ''}</span>`
-    : `<button class="pp-et pp-a" data-pp="${x.cle}">${ic('checkbox', 'ic-20')}<span class="pp-l">${PAS[x.cle]}${
-        /* l'espace avant : le nom du bouton se lit « Remplir mon profil il
-           manque … », pas « profilil manque » */
-        m.length ? ` <span class="pp-s">il manque ${manqueDit(m)}</span>` : ''}</span>${ic('chevron-right', 'ic-14')}</button>`}</li>`;
-}
-function pasHTML(etapes, titre){
-  /* L'ACCUEIL montre les trois pas : c'est tout l'écran, et l'on voit
-     d'un coup où l'on va. */
-  if (!titre) return `<ol class="pp-liste" id="tdPas">${etapes.map(x => pasLigneHTML(x, x.cle !== 'mail' || etapes[1].fait)).join('')}</ol>`;
-  /* LA TRANCHE NE MONTRE QUE LE PROCHAIN PAS (le mainteneur, 28 octobre
-     2026 : « Premiers pas prend beaucoup de place et est très
-     frustrant »). Trois rangées en tête d'« Aujourd'hui », dont une ou
-     deux déjà cochées, pour une seule chose à faire : le compte dit le
-     chemin fait, la rangée dit la suite — la liste de vérification
-     qu'Asana et Notion réduisent à la prochaine étape une fois lancée. */
-  const x = etapes.find(e => !e.fait);
-  const faits = etapes.filter(e => e.fait).length;
-  return `<section class="tranche tr-pas">
-            <h2 class="tr-h">${ic('flag', 'ic-14')} Premiers pas <span class="tr-n">${faits}/3</span></h2>
-            <ol class="pp-liste" id="tdPas">${pasLigneHTML(x, true)}</ol>
+               </div>`).join('')}</div>
           </section>`;
 }
 
@@ -358,35 +265,6 @@ function debutHTML(items){
             <div class="tr-rows">${items.map(startRowHTML).join('')}</div>
           </section>`;
 }
-
-/* ---------- « Reprendre » (R2, docs/propositions/R2-suivi.md) ----------
-   Sept jours sans un geste : on rouvre l'app pour se remettre en route,
-   et l'écran empilait les retards, chaque ligne avec ses jours manqués.
-   C'est une dette, et c'est là qu'on referme l'app. L'écran s'ouvre donc
-   sur TROIS choses, choisies par l'app (`reprendre`) : ce qui a une date
-   dépassée, puis ce qui se tait, puis par où commencer — chacune avec le
-   dessin et les gestes qu'elle a partout ailleurs, moins le compte des
-   jours. Le reste de l'écran est replié dessous, sans un chiffre au
-   repos ; il s'ouvre si on le veut. Le premier geste fait (cocher,
-   écrire, planifier, clore) date une piste : la pause est finie, et
-   l'écran redevient celui de tous les jours. */
-function repriseHTML(items){
-  const ligne = x => {
-    const c = S.companies.find(y => y.id === x.id);
-    if (!c) return '';
-    return x.sorte === 'action' ? rowHTML(c, { sansRetard: true })
-         : x.sorte === 'silence' ? silenceRowHTML(x.item, { sansJours: true, repere: true })
-         : startRowHTML(c, { repere: true });
-  };
-  return `<section class="tranche tr-reprendre" id="tdReprendre">
-            <h2 class="tr-h">${ic('redo', 'ic-14')} Reprendre</h2>
-            <div class="tr-rows">${items.map(ligne).join('')}</div>
-          </section>`;
-}
-
-/* « Écrire les 3 mails » : un verbe et son objet, le compte dans le mot */
-const partirHTML = n =>
-  `<button class="btn btn-primary" id="tdPartir">${ic('mail', 'ic-14')} Écrire les ${n} mails</button>`;
 
 function trancheHTML(key, label, icon, items, open){
   if (!items.length) return '';
@@ -489,19 +367,6 @@ export function renderToday(){
      trois colonnes — une seule colonne de trois lignes étirée sur
      1660 px envoie ses boutons à l'autre bout (mesuré). */
   const muettes = silentPistes(alive, today);
-  const pas = premiersPas(S.profile, S.companies);
-  /* R2 : après sept jours sans un geste, trois choses à reprendre. Pas
-     tant que les premiers pas sont là : on ne reprend que ce qu'on a
-     commencé, et ils disent déjà quoi faire. */
-  const reprise = !pas && enPause(S.companies, S.journal)
-    ? reprendre({ dues: [...late, ...due], muettes, debuts: parOuCommencer(aLancer) }) : [];
-  /* R3 : LES MAILS PRÊTS À PARTIR — les relances dues, puis les premiers
-     mails, cinq au plus, chacun vers sa personne. Pas pendant les
-     premiers pas : ils disent déjà quoi écrire, et le premier mail
-     demande un profil rempli que la série ne vérifie pas. */
-  const prets = !pas
-    ? pretsAPartir({ dues: [...late, ...due], debuts: parOuCommencer(aLancer, Infinity), today }) : [];
-  const partir = prets.length >= SERIE_MIN;
   const rienDePrevu = rienAFaire && !soon.length;
   const debut = !muettes.length && rienDePrevu && aLancer.length ? parOuCommencer(aLancer) : [];
   const suggestion = muettes.length
@@ -510,59 +375,22 @@ export function renderToday(){
   /* elle remplace le vide quand rien n'est prévu ; sinon elle SUIT le
      travail du jour — ce qui est engagé passe avant ce qui est suggéré */
   const alaPlace = rienDePrevu && suggestion;
-  /* les pistes engagées sans suite, hors celles qui se taisent (elles
-     ont leur tranche) : c'est ce que compte le lien du pied */
-  const silencieuses = new Set(muettes.map(c => c.id));
-  const aPlanifier = noAction.filter(c => !silencieuses.has(c.id));
-  /* « TOUT EST À JOUR » SEULEMENT QUAND C'EST VRAI. Juste après le
-     premier mail, l'écran disait « Tout est à jour » au-dessus de
-     « 1 piste à planifier → » : les deux phrases se contredisaient, et
-     l'une des deux mentait (28 octobre 2026). Atlassian réserve le
-     « tout est fait » à ce qui est vraiment fini, SAP demande que le
-     vide dise POURQUOI il est vide : tant qu'une piste attend sa suite,
-     l'écran dit seulement qu'aujourd'hui n'a rien de prévu. */
-  const aJour = rienAFaire && !aPlanifier.length;
-  /* la reprise est un ÉTAT, le temps d'un geste : au poste aussi, une
-     colonne — l'exception nommée de « Par où commencer » (§6, règle 4) */
-  const tableau = wide && alive.length && !alaPlace && !reprise.length;
+  const tableau = wide && alive.length && !alaPlace;
   let html =
     `<div class="page-inner${tableau ? ' page-wide' : ''}">
        <div class="td-head">
          <h1>Aujourd’hui</h1>
          <div class="td-date">${frToday()}</div>
-         ${/* au poste, pas de zone du pouce : le geste suit le titre */''}
-         ${partir && wide ? partirHTML(prets.length) : ''}
        </div>
        ${/* pas de compte au-dessus d'un « ajoute ta première piste » : on ne
             félicite pas quelqu'un pour un travail dont l'écran affirme, deux
             lignes plus bas, qu'il n'existe pas */''}
        ${done && S.companies.length
-         ? `<div class="done-line">${ic('check', 'ic-14')} ${done} action${done > 1 ? 's' : ''} faite${done > 1 ? 's' : ''} aujourd’hui</div>` : ''}
-       ${/* R4 : MA SEMAINE, en tête — l'objectif et ce qui est parti, une
-            ligne qui se touche. Pas pendant les premiers pas ni avec
-            l'exemple : on ne se fixe pas d'objectif avant d'avoir écrit. */''}
-       ${!pas && !hasDemo() && S.companies.length ? semaineHTML() : ''}`;
+         ? `<div class="done-line">${ic('check', 'ic-14')} ${done} action${done > 1 ? 's' : ''} faite${done > 1 ? 's' : ''} aujourd’hui</div>` : ''}`;
 
-  /* les MESSAGES ne passent plus par ici : l'onglet « Échanger » porte
-     leur chiffre, comme toute messagerie (13 octobre 2026). Restent les
-     amis qui attendent un GESTE — une demande, un contact donné. */
-  html += amisHTML(lignesAmis());
-  if (pas && S.companies.length) html += pasHTML(pas, true);
+  html += amisHTML([...lignesMessages(), ...lignesAmis()]);
 
-  if (reprise.length){
-    html += repriseHTML(reprise);
-    /* le reste, replié : sans les trois lignes déjà montrées, et sans un
-       chiffre tant qu'il est fermé */
-    const montre = new Set(reprise.map(x => x.id));
-    const hors = l => l.filter(c => !montre.has(c.id));
-    const mu = muettes.filter(x => !montre.has(x.id));
-    const reste = trancheHTML('late', 'En retard', 'square-alert', hors(late))
-      + trancheHTML('due', 'Aujourd’hui', 'zap', hors(due))
-      + trancheHTML('soon', 'Bientôt', 'calendar', hors(soon), false)
-      + (mu.length ? silenceHTML(expanded.has('quiet') ? mu : mu.slice(0, DEBUT), mu.length) : '');
-    if (reste) html += `<details class="tranche tr-reste" id="tdReste"${expanded.has('reste') ? ' open' : ''}>
-        <summary class="tr-h"><h2>Tout le reste</h2></summary>${reste}</details>`;
-  } else if (!alive.length && !S.companies.length){
+  if (!alive.length && !S.companies.length){
     /* première visite : la promesse, puis un seul geste.
        PLUS DE MODE D'EMPLOI. « Ajoute une piste, donne-lui une prochaine
        action — cet écran te dira toujours quoi faire maintenant » racontait
@@ -575,9 +403,8 @@ export function renderToday(){
       `<div class="td-empty">
          <div class="tde-ic">${ic('zap', 'ic-24')}</div>
          <h2>Ta recherche, un jour à la fois</h2>
-         ${pas ? pasHTML(pas, false) : ''}
          <div class="tde-actions">
-           ${pas ? '' : `<button class="btn btn-primary" id="tdeAdd">${ic('plus', 'ic-14')} Ajouter une piste</button>`}
+           <button class="btn btn-primary" id="tdeAdd">${ic('plus', 'ic-14')} Ajouter une piste</button>
            <button class="btn" id="tdeDemo">Voir un exemple</button>
            ${/* UN SEUL MOI (lot R5) : sur un téléphone neuf, c'est ICI que
                 l'on arrive — la phrase de secours ramène tout, au lieu
@@ -600,7 +427,7 @@ export function renderToday(){
     html +=
       `<div class="board td-board">
          ${colHTML('late', 'En retard', 'square-alert', late, 'Rien en retard ✓')}
-         ${colHTML('due', 'Aujourd’hui', 'zap', due, aJour ? 'Tout est à jour ✓' : 'Rien de prévu aujourd’hui')}
+         ${colHTML('due', 'Aujourd’hui', 'zap', due, rienAFaire ? 'Tout est à jour ✓' : 'Rien de prévu aujourd’hui')}
          ${colHTML('soon', 'Bientôt', 'calendar', soon,
            /* « — donne une prochaine action à une piste » redisait le
               lien du pied, « N pistes à planifier → », posé
@@ -612,15 +439,11 @@ export function renderToday(){
        suite est plus bas, repliée exprès » décrivait « Bientôt », qui se
        voit juste dessous avec son compte ; « ajoute une piste quand tu
        en croises une » redisait le + de la barre, toujours là. */
-    html += aJour
-      ? `<div class="td-empty td-clear">
-           <div class="tde-ic ok">${ic('check', 'ic-24')}</div>
-           <h2>Tout est à jour</h2>
-         </div>`
-      : `<div class="td-empty td-clear">
-           <div class="tde-ic">${ic('calendar', 'ic-24')}</div>
-           <h2>Rien de prévu aujourd’hui</h2>
-         </div>`;
+    html +=
+      `<div class="td-empty td-clear">
+         <div class="tde-ic ok">${ic('check', 'ic-24')}</div>
+         <h2>Tout est à jour</h2>
+       </div>`;
   } else {
     html += trancheHTML('late', 'En retard', 'square-alert', late);
     html += trancheHTML('due', 'Aujourd’hui', 'zap', due);
@@ -628,10 +451,10 @@ export function renderToday(){
   /* les campagnes du jour — SOUS le travail, jamais tronquées (#10) */
   if (CAMPAGNES) html += campaignLines().map(l =>
     `<button class="camp-line" data-camp="${esc(l.id)}">${ic('flag', 'ic-14')} <span>${esc(l.txt)}</span> <em>Voir</em></button>`).join('');
-  if (!wide && !reprise.length) html += trancheHTML('soon', 'Bientôt', 'calendar', soon, false);   /* au poste, elle est déjà en colonne */
+  if (!wide) html += trancheHTML('soon', 'Bientôt', 'calendar', soon, false);   /* au poste, elle est déjà en colonne */
   /* du travail est prévu ET des pistes se taisent : la suggestion vient
      APRÈS l'engagé, jamais devant */
-  if (suggestion && !alaPlace && !reprise.length) html += suggestion.html();
+  if (suggestion && !alaPlace) html += suggestion.html();
   /* ce qui suit le travail du jour — un pied, pas des liens en vrac.
      Sous un tableau à trois colonnes de hauteurs inégales, « 5 pistes
      sans prochaine action » flottait tout seul à gauche, sous un trou. */
@@ -647,7 +470,9 @@ export function renderToday(){
      « Mes pistes » et de la barre ; les silencieuses ont leur tranche),
      n'existe que si l'une d'elles n'est pas déjà à l'écran, et ouvre
      « Mes pistes » sur l'étiquette « À planifier » : le même nombre. */
-  const aLEcran = new Set([...debut.map(c => c.id), ...reprise.map(x => x.id)]);
+  const silencieuses = new Set(muettes.map(c => c.id));
+  const aPlanifier = noAction.filter(c => !silencieuses.has(c.id));
+  const aLEcran = new Set(debut.map(c => c.id));
   if (aPlanifier.some(c => !aLEcran.has(c.id))){
     pied += `<button class="td-foot linklike" id="tdNoAct">${aPlanifier.length} piste${aPlanifier.length > 1 ? 's' : ''} à planifier →</button>`;
   }
@@ -655,9 +480,6 @@ export function renderToday(){
     pied += `<button class="td-foot linklike" id="tdRmDemo">Retirer les pistes d’exemple</button>`;
   }
   if (pied) html += `<div class="td-under">${pied}</div>`;
-  /* au pouce, la série tient le PIED, juste au-dessus de la barre : la
-     zone qu'une main atteint sans changer de prise (§5) */
-  if (partir && !wide) html += `<div class="td-pret">${partirHTML(prets.length)}</div>`;
   html += '</div>';
   root.innerHTML = html;
 
@@ -666,20 +488,6 @@ export function renderToday(){
   /* `:not(.act-start)` : une ligne « Par où commencer » n'a ni « Fait »
      ni « Reporter » — les brancher dessus planterait sur un nœud absent,
      et le swipe y proposerait de finir une action qui n'existe pas. */
-  /* LE CLAVIER AU POSTE (lot R8) : sur la ligne qui a le curseur, F coche
-     l'action, E écrit — les deux lettres écrites dans leurs boutons. Une
-     seule écoute pour tout l'écran ; aucune quand un champ a le curseur. */
-  if (!root.dataset.lettres){
-    root.dataset.lettres = '1';
-    root.addEventListener('keydown', e => {
-      const k = lettreActive(e);
-      const row = (k === 'f' || k === 'e') && e.target.closest && e.target.closest('.act-row');
-      const b = row && row.querySelector(k === 'f' ? '[data-a="done"]' : '[data-a="mail"]');
-      if (!b) return;
-      e.preventDefault();
-      b.click();
-    });
-  }
   root.querySelectorAll('.act-row:not(.act-start):not(.act-quiet)').forEach(row => {
     const c = byId(row.dataset.id);
     if (!c) return;
@@ -694,7 +502,11 @@ export function renderToday(){
     bindSwipe(row, c);
   });
   root.querySelectorAll('.act-ami').forEach(row => {
-    const ouvrir = () => row.dataset.sorte === 'ecrits' ? ouvrirNonLus() : ouvrirLigne(row.dataset.sorte, row.dataset.ami);
+    const ouvrir = () => {
+      /* un ami t'a écrit : la conversation, directement */
+      const a = row.dataset.sorte === 'message' && (S.profile.amis || []).find(x => x.id === row.dataset.ami);
+      if (a) ouvrirConversation(a, () => bus.refresh()); else ouvrirLigne(row.dataset.sorte, row.dataset.ami);
+    };
     row.querySelector('.act-main').addEventListener('click', ouvrir);
     row.querySelector('.act-main').addEventListener('keydown', e => {
       if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); ouvrir(); }
@@ -722,38 +534,16 @@ export function renderToday(){
       if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); ouvrir(); }
     });
     row.querySelector('[data-a="mail"]')?.addEventListener('click', () => openMail(c));
-    row.querySelector('[data-a="plan"]')?.addEventListener('click', () =>
+    row.querySelector('[data-a="plan"]').addEventListener('click', () =>
       askNextAction(c, { title: 'Et ensuite ?' }));
-  });
-  /* le reste replié garde son état d'un rendu à l'autre (« Voir les N
-     autres » redessine l'écran) */
-  root.querySelector('#tdReste')?.addEventListener('toggle', e => {
-    if (e.target.open) expanded.add('reste'); else expanded.delete('reste');
   });
   root.querySelectorAll('.tr-more').forEach(b =>
     b.addEventListener('click', () => { expanded.add(b.dataset.tr); renderToday(); }));
   root.querySelectorAll('[data-camp]').forEach(b =>
     b.addEventListener('click', () => openCampaignById(b.dataset.camp)));
   root.querySelector('#tdTriage')?.addEventListener('click', () => openTriage(triage.items));
-  root.querySelector('#tdSemaine')?.addEventListener('click', ouvrirSemaine);
-  root.querySelector('#tdPartir')?.addEventListener('click', () =>
-    ouvrirSerie(prets.map(x => {
-      const c = byId(x.id);
-      return { c, ct: ((c && c.contacts) || []).find(t => t.id === x.ctId) || null };
-    }).filter(x => x.c)));
   root.querySelector('#tdNoAct')?.addEventListener('click', () => ouvrirSur('à planifier'));
   root.querySelector('#tdeAdd')?.addEventListener('click', () => openCapture());
-  /* chaque pas mène là où il se fait ; le mail, à la piste que « Par où
-     commencer » proposerait en premier */
-  root.querySelectorAll('[data-pp]').forEach(b => b.addEventListener('click', () => {
-    /* le profil s'ouvre sur ce qui lui manque */
-    if (b.dataset.pp === 'profil'){
-      const m = (pas && pas[0].manque) || [];
-      openProfil(undefined, m.length && m.length < 3 ? { focus: CHAMP_MANQUE[m[0]] } : {});
-    }
-    else if (b.dataset.pp === 'piste') openCapture();
-    else { const c = parOuCommencer(aLancer)[0] || alive[0] || S.companies[0]; if (c) openMail(c); }
-  }));
   /* pas de toast : les pistes d'exemple arrivent sous les yeux, et
      « Retirer les pistes d'exemple » s'affiche au pied du même écran */
   root.querySelector('#tdeDemo')?.addEventListener('click', () => { addDemo(); bus.refresh(); });
@@ -769,7 +559,7 @@ function finishRow(row, c){
   setTimeout(() => {
     markDone(c);
     bus.refresh();
-    askNextAction(c, { title: 'Et ensuite ?' });
+    askNextAction(c, { title: 'Fait ✓ — et ensuite ?' });
   }, 160);
 }
 

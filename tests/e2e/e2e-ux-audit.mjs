@@ -2,7 +2,7 @@
    parcours « l’ordinateur depuis un téléphone » honnête, relais avancés accessibles, cibles au
    pouce, contact sans doublon et fournisseurs IA non livrés non activables. */
 import { readFileSync, readdirSync } from 'fs';
-import { chromium, chromiumPath, SHOTS, serveRepo, attendre, annuaireMuetPartout, ouvrirDonner, ouvrirReglages, vueTableau, relaisMuetsPartout } from './outils.mjs';
+import { chromium, chromiumPath, SHOTS, serveRepo, attendre, annuaireMuetPartout, relaisMuetsPartout } from './outils.mjs';
 import { ORDINATEUR, IA } from '../../ui/perimetre.js';
 
 const { server, base } = await serveRepo();
@@ -22,17 +22,6 @@ const tapIn = async (target, scope, code) => {
   for (const d of code) await target.click(`${scope} .pad-k[data-d="${d}"]`);
 };
 const closeSheet = () => page.evaluate(async () => (await import('./ui/dom.js')).topSheet()?.close());
-/* le fil des échanges vit dans la feuille « Historique », derrière une
-   ligne de la boîte (13 octobre 2026) */
-const ouvrirHisto = async (pg = page) => {
-  await pg.waitForSelector('#ecHisto');
-  await pg.click('#ecHisto');
-  await pg.waitForSelector('.overlay:not(.ov-out) .ec-row');
-};
-const fermerTout = (pg = page) => pg.evaluate(async () => {
-  const { topSheet } = await import('./ui/dom.js');
-  let s, n = 0; while ((s = topSheet()) && n++ < 5){ s.close(null, true); await new Promise(r => setTimeout(r, 120)); }
-});
 
 /* Deux pistes (dont une sans e-mail), un contact orphelin sans nom et une
    messagerie simulée : aucun appel externe ne part dans ce scénario. */
@@ -153,13 +142,15 @@ await page.evaluate(async () => {
   await st.kvSet(st.DATA_KEY, '[]');
 });
 await page.reload({ waitUntil: 'load' });
-await page.goto(base + '/#/pistes');
-await page.waitForSelector('#piQ');
-/* à zéro piste, « Choisir » (d'où partent Écrire et Donner) n'a rien à
-   choisir : il n'existe pas — une action morte ne se montre pas */
-const ech0 = await page.evaluate(() => ({ choisir: !!document.querySelector('#piProspect') }));
-if (ech0.choisir) fail('« Choisir » présent alors qu’il n’y a rien à choisir (action morte)');
-console.log('Mes pistes à zéro piste : « Choisir » absent ✓');
+await page.goto(base + '/#/echanger');
+await page.waitForSelector('.hero2');
+const ech0 = await page.evaluate(() => ({
+  donner: !!document.querySelector('#ecGive'),
+  recevoirPrim: !!document.querySelector('#ecRecv')?.classList.contains('btn-primary')
+}));
+if (ech0.donner) fail('« Donner » présent alors qu’il n’y a rien à donner (action morte)');
+if (!ech0.recevoirPrim) fail('« Recevoir » ne prend pas l’accent quand « Donner » disparaît');
+console.log('Échanger à zéro piste : « Donner » absent, « Recevoir » devient le bouton ✓');
 /* les deux pistes reviennent : la suite du scénario compte dessus */
 await page.evaluate(async d => {
   const st = await import('./engine/storage.js');
@@ -272,14 +263,13 @@ await page.evaluate(async () => {
     ids: ['sans-mail', 'disparue-depuis'] });
   await st.kvSet(st.JOURNAL_KEY, JSON.stringify(j));
 });
-await page.goto(base + '/#/reseau');
+await page.goto(base + '/#/echanger');
 await page.reload({ waitUntil: 'load' });
-await page.waitForSelector('#ecHisto');
-await ouvrirHisto();
+await page.waitForSelector('.ec-row');
 const fil = await page.evaluate(() => ({
   lignes: document.querySelectorAll('.ec-row').length,
   ouvrables: document.querySelectorAll('button.ec-row').length,
-  badge: document.querySelector('#ecHisto .bx-histo-n')?.textContent || '',
+  badge: document.querySelector('.ec-fil .tr-n')?.textContent || '',
   more: document.querySelector('#ecMore')?.textContent || '',
   hauteur: Math.round(document.querySelector('.ec-row').getBoundingClientRect().height)
 }));
@@ -293,7 +283,7 @@ if (fil.lignes !== 10)
   fail(`le fil rend ${fil.lignes} ligne(s) sur 10 — sous le plafond, la liste est ENTIÈRE`);
 if (fil.more)
   fail('le fil propose « voir plus » pour dix échanges — le défilement du panneau y suffit : ' + fil.more);
-if (fil.badge !== '10') fail('la ligne « Historique » ne dit pas le total : ' + fil.badge);
+if (fil.badge !== '10') fail('le compte de l’en-tête ne dit pas le total : ' + fil.badge);
 if (fil.hauteur < 44) fail('une ligne qui s’ouvre doit faire 44 px au pouce : ' + fil.hauteur);
 /* une entrée d'avant le champ `ids` ne promet pas une ouverture */
 const apres = await page.evaluate(() => ({
@@ -318,7 +308,7 @@ if (apres.ouvrables !== 9 || apres.muettes.length !== 1)
   });
   if (gros){
     await page.reload({ waitUntil: 'load' });
-    await ouvrirHisto();
+    await page.waitForSelector('.ec-row');
     const c = await page.evaluate(() => ({
       lignes: document.querySelectorAll('.ec-row').length,
       more: document.querySelector('#ecMore')?.textContent || ''
@@ -343,7 +333,7 @@ if (apres.ouvrables !== 9 || apres.muettes.length !== 1)
     await st.kvSet(st.JOURNAL_KEY, JSON.stringify(j));
   });
   await page.reload({ waitUntil: 'load' });
-  await ouvrirHisto();
+  await page.waitForSelector('.ec-row');
 }
 /* LE FIL EST UN JOURNAL, PAS UN TITRE. Il portait le même gras qu'un
    nom de piste et pesait donc autant que les deux gestes qu'il
@@ -362,12 +352,16 @@ const poids = await page.evaluate(() => {
      dessin. */
   const dans = [...document.querySelectorAll('.ec-row *')]
     .filter(n => n.textContent.trim() && !n.querySelector('*'));
+  const g = document.querySelector('.hero2 .btn.hero span, .hero2 .btn.hero');
   return { fil: dans.length ? Math.max(...dans.map(n => +getComputedStyle(n).fontWeight)) : 0,
+           geste: g ? +getComputedStyle(g).fontWeight : 0,
            poubelle: !!document.querySelector('.ec-l .hov-del') };
 });
 if (!poids.fil) fail('le relevé du poids du fil ne trouve plus aucun texte — le contrôle ne contrôle rien');
 if (poids.fil >= 600)
   fail(`le fil pèse ${poids.fil} — un journal ne porte pas le gras d'un titre, il raconte ce qui est fait`);
+else if (poids.fil >= poids.geste)
+  fail(`le fil (${poids.fil}) pèse autant que les gestes (${poids.geste}) qu'il surplombe`);
 else if (!poids.poubelle)
   fail('aucune façon de retirer une ligne du fil');
 else {
@@ -409,14 +403,11 @@ else {
 await page.evaluate(() =>
   [...document.querySelectorAll('button.ec-row')].find(n => /Marco/.test(n.textContent)).click());
 await page.waitForSelector('.modal-b .pick-list');
-const feuille = await page.evaluate(() => {
-  const haut = [...document.querySelectorAll('.overlay:not(.ov-out)')].pop();
-  return {
-    titre: haut.querySelector('.mh-t')?.textContent || '',
-    pistes: [...haut.querySelectorAll('.modal-b .pick b')].map(n => n.textContent),
-    note: haut.querySelector('.modal-b .hint')?.textContent || ''
-  };
-});
+const feuille = await page.evaluate(() => ({
+  titre: document.querySelector('.mh-t')?.textContent || '',
+  pistes: [...document.querySelectorAll('.modal-b .pick b')].map(n => n.textContent),
+  note: document.querySelector('.modal-b .hint')?.textContent || ''
+}));
 if (!/reçu/i.test(feuille.titre) || feuille.pistes.join() !== 'Atelier local')
   fail('la feuille d’un échange ne montre pas ce qui a circulé : ' + JSON.stringify(feuille));
 if (!/plus dans ton suivi/.test(feuille.note))
@@ -425,7 +416,7 @@ await page.click('.modal-b .pick');
 /* la barre de la fiche dit « Fiche » ; laquelle, c'est son en-tête qui le dit */
 await attendre(page, async () => /Atelier local/.test(document.querySelector('.modal-fiche .obj-n')?.textContent || ''),
   { message: 'taper une piste de l’échange ouvre sa fiche' });
-await fermerTout();
+await closeSheet();
 await page.evaluate(async () => (await import('./engine/storage.js')).kvSet('oc_journal_v1', '[]'));
 await page.goto(base + '/#/pistes');
 console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pistes, une vieille entrée ne promet rien ✓');
@@ -453,7 +444,6 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
       .map(([name, city, status], i) =>
         ({ id: 'bc' + i, name, city, domain: 'esn', status, contacts: [], updatedAt: Date.now() - i })));
   await dPage.reload({ waitUntil: 'load' });
-  await vueTableau(dPage);
   await attendre(dPage, () => document.querySelectorAll('.bcol').length === 3, { message: 'le tableau' });
 
   const board = await dPage.evaluate(() => ({
@@ -509,7 +499,7 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
      adaptatif, octobre 2026). Ce contrôle exigeait l'inverse — un pied
      posé à 85 % de la hauteur, donc trois cadres étirés jusqu'en bas :
      relevé en 1280 × 800, 600 px de cadre pour UNE carte chacun. Il
-     vérifie maintenant que chaque colonne s'arrête sous son
+     vérifie maintenant que la plus haute colonne s'arrête sous son
      dernier contenu (12 px de rembourrage près) et que le pied SUIT le
      tableau au lieu d'attendre en bas. Une mutation qui remet
      `flex:1 0 auto` sur le tableau le fait rougir. */
@@ -526,9 +516,7 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
              comprime: [...document.querySelectorAll('.bcol-rows')].some(c => c.scrollHeight > c.clientHeight + 1) };
   });
   if (jour.cols !== 3) fail(`le tableau du jour n'a pas ses trois colonnes (${jour.cols})`);
-  /* CHAQUE colonne, pas seulement la plus haute : étirées à la plus
-     haute, les courtes encadraient du vide (28 octobre 2026) */
-  if (Math.max(...jour.vides) > 24)
+  if (Math.min(...jour.vides) > 24)
     fail(`le tableau du jour s'étire sous son contenu : ${jour.vides.join(' / ')} px vides en bas des colonnes`);
   if (jour.ecart !== null && jour.ecart > 48)
     fail(`le pied d'« Aujourd'hui » attend en bas, à ${jour.ecart} px de ce qui le précède, au lieu de le suivre`);
@@ -545,7 +533,7 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
      nom. On le vérifie au pouce ET au poste : c'est la même liste. */
   for (const [lw, lh] of [[360, 640], [1280, 800]]){
     await dPage.setViewportSize({ width: lw, height: lh });
-    await dPage.goto(base + '/#/reseau', { waitUntil: 'load' });
+    await dPage.goto(base + '/#/echanger', { waitUntil: 'load' });
     await dPage.evaluate(async () => {
       const st = await import('./engine/storage.js');
       const { S } = await import('./ui/state.js');
@@ -553,15 +541,18 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
         canal: 'fichier', txt: 'Donné (fichier) : 4 piste(s)', ids: S.companies.map(c => c.id) }]));
     });
     await dPage.reload({ waitUntil: 'load' });
-    /* le fil vit dans « Historique », un échange s'y ouvre en feuille,
-       au pouce comme au poste */
-    await ouvrirHisto(dPage);
-    await dPage.click('.overlay:not(.ov-out) button.ec-row');
+    await attendre(dPage, () => !!document.querySelector('button.ec-row'), { message: 'le fil' });
+    await dPage.click('button.ec-row');
+    /* Le contenu d'un échange vit dans DEUX contenants selon
+       l'ergonomie : une feuille au pouce (on descend, on remonte), le
+       panneau de droite au poste (motif liste-détail — on lit à côté
+       sans rien ouvrir). Le contrôle regarde donc les deux : ce qu'il
+       garde, c'est la ligne `.pick` elle-même, la même des deux côtés. */
     await attendre(dPage,
-      () => document.querySelectorAll('.modal-b .pick').length >= 4,
-      { message: 'les lignes de l’échange, dans sa feuille' });
+      () => document.querySelectorAll('.modal-b .pick, .ec-detail .pick').length >= 4,
+      { message: 'les lignes de l’échange, en feuille ou en panneau' });
     const reg = await dPage.evaluate(() => {
-      const rows = [...document.querySelectorAll('.modal-b .pick')];
+      const rows = [...document.querySelectorAll('.modal-b .pick, .ec-detail .pick')];
       return {
         n: rows.length,
         hauteurs: [...new Set(rows.map(r => Math.round(r.getBoundingClientRect().height)))],
@@ -584,91 +575,114 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
     if (lw === 360) await dPage.screenshot({ path: SHOTS + '/86-ux-lignes-pouce.png' });
   }
   /* ---- LISTE-DÉTAIL : au poste on lit à côté, au pouce on ouvre ----
-     Depuis le 13 octobre 2026, c'est la BOÎTE qui porte ce motif : les
-     conversations à gauche, celle qu'on lit à droite (Material 3
-     « list-detail », Apple HIG « split view », Discord, Slack). Le
-     contrôle est à DOUBLE SENS, comme celui du mouvement : au poste
-     aucune feuille ne doit s'ouvrir et le volet doit se remplir ; au
-     pouce la feuille doit s'ouvrir. Sans le second sens, on casserait
-     le téléphone sans s'en apercevoir. */
+     L'écran ne montrait que des portes — deux verbes, une entrée de
+     groupe, un relevé de reçus — alors qu'il tenait la donnée : les
+     pistes que chaque échange a fait circuler, cachées derrière un clic
+     et une modale. Au poste elles vivent dans le panneau de droite
+     (Material 3 « list-detail », Apple HIG « split view »).
+     Le contrôle est à DOUBLE SENS, comme celui du mouvement : au poste
+     aucune feuille ne doit s'ouvrir et le panneau doit se remplir ; au
+     pouce la feuille doit s'ouvrir comme avant. Sans le second sens, on
+     casserait le téléphone sans s'en apercevoir. */
   for (const [lw, lh, poste] of [[1280, 800, true], [390, 844, false]]){
     await dPage.setViewportSize({ width: lw, height: lh });
-    await dPage.goto(base + '/#/reseau', { waitUntil: 'load' });
-    await dPage.waitForFunction(() => !!document.querySelector('#sbVer')?.textContent);
-    /* TROIS conversations, pas une : le clavier ne se mesure qu'entre
-       des lignes. Avec une seule, ↓ n'a nulle part où aller et le
-       contrôle resterait vert en ne vérifiant rien. */
+    await dPage.goto(base + '/#/echanger', { waitUntil: 'load' });
+    /* TROIS échanges, pas un : le clavier ne se mesure qu'entre des
+       lignes. Avec une seule, ↓ n'a nulle part où aller et le contrôle
+       resterait vert en ne vérifiant rien. */
     await dPage.evaluate(async () => {
       const st = await import('./engine/storage.js');
       const { S } = await import('./ui/state.js');
-      const amis = [['InesInesInesInes01', 'Inès Martin'], ['KarimKarimKarim01', 'Karim Benali'], ['LeaLeaLeaLeaLea01', 'Léa Dupont']];
-      await st.kvSet(st.PROFILE_KEY, JSON.stringify({ ...S.profile, amiId: 'MoiMoiMoiMoiMoi01',
-        amis: amis.map(([id, nom]) => ({ id, nom, parcours: [] })) }));
-      const t = Date.now();
-      await st.kvSet(st.MESSAGES_KEY, JSON.stringify({ v: 1, fils: Object.fromEntries(amis.map(([id], i) =>
-        [id, { vu: t, m: [{ id: 'm000000' + i, moi: false, texte: 'Salut, tu as une piste ?', at: t - (i + 1) * 36e5 }] }])) }));
+      const ids = S.companies.map(c => c.id);
+      const J = n => Date.now() - n * 864e5;
+      await st.kvSet(st.JOURNAL_KEY, JSON.stringify([
+        /* la plus RÉCENTE est un échange d'avant le suivi des pistes :
+           sans identifiants, elle ne s'ouvre pas. C'est elle qui était
+           retenue d'office, et le panneau s'ouvrait sur une explication
+           technique au lieu des affaires de l'étudiant. */
+        { t: J(0), txt: 'Reçu de Léa : +3 piste(s)' },
+        { t: J(1), txt: 'Donné (fichier) : ' + ids.length + ' piste(s)', ids },
+        { t: J(4), txt: 'Reçu de Léa : +2 piste(s)', ids: ids.slice(0, 2) },
+        { t: J(9), txt: 'Donné (QR) : 1 piste(s)', ids: ids.slice(0, 1) }
+      ]));
     });
     await dPage.reload({ waitUntil: 'load' });
-    await attendre(dPage, () => document.querySelectorAll('.bx-l[data-fil]').length >= 3,
-      { message: 'les trois conversations de la boîte' });
-    if (poste) await attendre(dPage, () => !!document.querySelector('#bxVolet .dock .mh-t'),
-      { message: 'la conversation posée à droite' });
+    await attendre(dPage, () => document.querySelectorAll('button.ec-row').length >= 3,
+      { message: 'les trois lignes du fil de la liste-détail' });
     const avant = await dPage.evaluate(() => ({
       feuille: !!document.querySelector('.overlay:not(.ov-out)'),
-      volet: document.querySelector('#bxVolet .dock .mh-t')?.textContent || '',
-      lue: document.querySelector('.bx-l[aria-current="true"] .bx-n')?.textContent || '',
-      premiere: document.querySelector('.bx-l[data-fil] .bx-n')?.textContent || ''
+      pane: document.querySelectorAll('.ec-detail .pick').length,
+      phrase: (document.querySelector('.ec-detail p')?.textContent || '').trim(),
+      lue: !!document.querySelector('button.ec-row[aria-current="true"]')
     }));
-    if (poste && !avant.volet)
-      fail('liste-détail : au poste, le volet est vide à l’arrivée — la conversation la plus '
-        + 'récente doit l’être d’emblée, sinon on a remplacé une porte par un vide');
-    if (poste && avant.lue !== avant.premiere)
-      fail(`liste-détail : à l’arrivée, la ligne retenue (« ${avant.lue} ») n’est pas la plus récente (« ${avant.premiere} »)`);
-    if (poste && avant.volet !== avant.lue)
-      fail(`liste-détail : le volet montre « ${avant.volet} », la liste dit « ${avant.lue} »`);
-    await dPage.evaluate(() => [...document.querySelectorAll('.bx-l[data-fil]')][1].click());
+    if (poste && !avant.pane)
+      fail('liste-détail : au poste, le panneau est vide à l’arrivée — la ligne la plus '
+        + 'récente QU’ON PEUT LIRE doit l’être d’emblée, sinon on a remplacé une porte par un vide');
+    if (poste && avant.phrase)
+      fail(`liste-détail : le panneau s'ouvre sur une phrase (« ${avant.phrase} ») — `
+        + 'un échange trop ancien pour retrouver ses pistes ne s’explique pas, il ne se choisit pas');
+    if (poste && !avant.lue)
+      fail('liste-détail : à l’arrivée, aucune ligne ne porte la sélection — '
+        + 'le panneau montre des pistes sans dire à quel échange elles appartiennent');
+    await dPage.click('button.ec-row');
     await dPage.waitForTimeout(450);
     const apres = await dPage.evaluate(() => ({
       feuille: !!document.querySelector('.overlay:not(.ov-out)'),
-      volet: document.querySelector('#bxVolet .dock .mh-t')?.textContent || '',
-      lue: document.querySelector('.bx-l[aria-current="true"] .bx-n')?.textContent || '',
-      seconde: [...document.querySelectorAll('.bx-l[data-fil] .bx-n')][1]?.textContent || ''
+      pane: document.querySelectorAll('.ec-detail .pick').length,
+      marquee: !!document.querySelector('.ec-row[aria-current="true"]')
     }));
     if (poste){
       if (apres.feuille)
-        fail('liste-détail : au poste, taper une conversation ouvre encore une feuille — '
-          + 'le volet est là pour éviter exactement ça');
-      if (apres.volet !== apres.seconde) fail(`liste-détail : le volet ne suit pas la ligne tapée (« ${apres.volet} »)`);
-      if (apres.lue !== apres.seconde)
+        fail('liste-détail : au poste, taper une ligne ouvre encore une feuille — '
+          + 'le panneau est là pour éviter exactement ça');
+      if (!apres.pane) fail('liste-détail : au poste, le panneau ne se remplit pas');
+      if (!apres.marquee)
         fail('liste-détail : la ligne lue ne se signale pas (`aria-current`) — '
           + 'rien ne dit à quelle ligne appartient ce qu’on lit à droite');
       /* et elle se VOIT : un état de sélection qui ne change aucun pixel
          n'existe pas pour qui regarde l'écran */
       const contraste = await dPage.evaluate(() => {
-        const lue = document.querySelector('.bx-l[aria-current="true"]');
-        const autre = [...document.querySelectorAll('.bx-l[data-fil]')].find(n => n !== lue);
+        const lue = document.querySelector('.ec-row[aria-current="true"]');
+        const autre = [...document.querySelectorAll('.ec-row')].find(n => n !== lue);
         if (!lue || !autre) return null;
         return getComputedStyle(lue).backgroundColor !== getComputedStyle(autre).backgroundColor;
       });
       if (contraste === false)
         fail('liste-détail : la ligne lue ne se distingue pas de ses voisines à l’écran');
-      /* ---- LE CLAVIER, LE FOCUS, L'ANNONCE ----
-         Trois règles écrites pour le fil d'avant, et qui valent pour
-         toute liste-détail : le focus ne tombe pas sur le `<body>`, le
-         côté droit qui change se DIT, ↓ ↑ roulent dans la liste. */
+      /* et le panneau MÈNE quelque part : sans ce contrôle, débrancher
+         ses lignes le rendrait décoratif sans rien faire rougir — une
+         liste de pistes qu'on ne peut pas ouvrir vaut moins que la
+         feuille qu'on vient de supprimer */
+      await dPage.click('.ec-detail .pick');
+      await dPage.waitForTimeout(450);
+      const fiche = await dPage.evaluate(() =>
+        !!document.querySelector('.overlay:not(.ov-out) #fiNotes'));
+      if (!fiche)
+        fail('liste-détail : une piste du panneau n’ouvre pas sa fiche — le panneau ne mène nulle part');
+      await dPage.evaluate(async () => {
+        const { topSheet } = await import('./ui/dom.js');
+        let s, n = 0; while ((s = topSheet()) && n++ < 4){ s.close(null, true); await new Promise(r => setTimeout(r, 120)); }
+      });
+      /* ---- ET CE QUE LA PREMIÈRE VERSION AVAIT OUBLIÉ ----
+         Trois défauts, tous des règles écrites deux lots plus tôt et
+         re-cassées par un re-rendu de confort. Ils ne se voient pas :
+         ils se mesurent. */
       const clavier = await dPage.evaluate(async () => {
         const lire = () => ({
-          ligne: document.querySelector('.bx-l[aria-current="true"]')?.dataset.fil,
-          focus: !!document.activeElement && document.activeElement.classList.contains('bx-l'),
+          ligne: document.querySelector('.ec-row[aria-current="true"]')?.dataset.fil,
+          focus: document.activeElement && document.activeElement.classList.contains('ec-row'),
           surBody: document.activeElement === document.body,
           dit: (document.getElementById('annonce')?.textContent || '').trim()
         });
-        const rows = [...document.querySelectorAll('.bx-l[data-fil]')];
+        const rows = [...document.querySelectorAll('button.ec-row')];
         document.getElementById('annonce').textContent = '';
         rows[0].focus();
         rows[0].click();
         await new Promise(r => setTimeout(r, 300));
         const apresClic = lire();
+        /* ↓ puis ↑ : la sélection roule dans la liste sans la quitter */
+        const tape = k => rows[0].dispatchEvent(new KeyboardEvent('keydown',
+          { key: k, bubbles: true, cancelable: true }));
         document.activeElement.dispatchEvent(new KeyboardEvent('keydown',
           { key: 'ArrowDown', bubbles: true, cancelable: true }));
         await new Promise(r => setTimeout(r, 300));
@@ -676,40 +690,69 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
         document.activeElement.dispatchEvent(new KeyboardEvent('keydown',
           { key: 'ArrowUp', bubbles: true, cancelable: true }));
         await new Promise(r => setTimeout(r, 300));
-        return { apresClic, apresBas, apresHaut: lire(), n: rows.length };
+        return { apresClic, apresBas, apresHaut: lire(), n: rows.length, tape: !!tape };
       });
       if (clavier.n < 2)
         fail('liste-détail : moins de deux lignes — le contrôle du clavier ne mesure rien');
       if (clavier.apresClic.surBody || !clavier.apresClic.focus)
         fail('liste-détail : après un clic, le focus retombe sur le `<body>` — '
-          + 'au clavier on repart en haut de la page à chaque conversation lue (WCAG 2.4.3)');
-      if (!/^Conversation avec /.test(clavier.apresClic.dit))
-        fail(`liste-détail : changer de conversation ne s'annonce pas — tout le côté droit change `
-          + `sans que le focus bouge (WCAG 4.1.3). Région : « ${clavier.apresClic.dit} »`);
+          + 'au clavier on repart en haut de la page à chaque ligne lue (WCAG 2.4.3)');
+      if (!/piste/.test(clavier.apresClic.dit))
+        fail(`liste-détail : changer de ligne ne s'annonce pas — tout le côté droit change `
+          + `sans que le focus bouge, donc sans écran on ne sait pas qu'il s'est passé quelque `
+          + `chose (WCAG 4.1.3). Région : « ${clavier.apresClic.dit} »`);
       if (clavier.apresBas.ligne === clavier.apresClic.ligne)
-        fail('liste-détail : la flèche bas ne change pas de conversation — un couple liste-détail '
+        fail('liste-détail : la flèche bas ne change pas de ligne — un couple liste-détail '
           + 'sans clavier passe à côté de la seule vraie efficacité d’un grand écran');
       if (!clavier.apresBas.focus)
         fail('liste-détail : la flèche déplace la sélection mais pas le focus — '
           + 'le clavier perd la liste au coup suivant');
       if (clavier.apresHaut.ligne !== clavier.apresClic.ligne)
         fail('liste-détail : la flèche haut ne revient pas où l’on était');
-      console.log(`liste-détail @${lw} : la conversation à droite, aucune feuille, la ligne lue marquée `
-        + 'et visible, gardée au focus, annoncée, atteinte au clavier ✓');
+
+      /* UNE SEULE GRAMMAIRE. Le fil est une tranche sans cadre ; le
+         panneau empilait des cartes à bordure et relief. Deux listes
+         d'objets à 22 px l'une de l'autre, rendues de deux façons
+         opposées : on réapprend à lire en traversant l'écran. */
+      const gram = await dPage.evaluate(() => {
+        const g = document.querySelector('.ec-l .ec-row');
+        const d = document.querySelector('.ec-detail .pick');
+        if (!g || !d) return null;
+        const lu = n => { const s = getComputedStyle(n);
+          return { bord: parseFloat(s.borderTopWidth) + parseFloat(s.borderLeftWidth),
+                   ombre: s.boxShadow !== 'none' };
+        };
+        return { g: lu(g), d: lu(d) };
+      });
+      if (!gram) fail('liste-détail : grammaires non mesurables — le contrôle ne lit plus rien');
+      else if (gram.d.bord > gram.g.bord + 0.5 || (gram.d.ombre && !gram.g.ombre))
+        fail('liste-détail : le panneau encadre ses lignes quand la liste d’à côté ne le fait '
+          + 'pas — deux grammaires pour deux listes d’objets sur le même écran');
+
+      /* et la poubelle reste lisible sur la ligne peinte : elle passait
+         en gris de texte sur le navy, soit 1,6:1 */
+      const poub = await dPage.evaluate(() => {
+        const lue = document.querySelector('.ec-row[aria-current="true"]');
+        const ico = lue && lue.closest('.ec-l')?.querySelector('.hov-del .ic');
+        if (!ico) return null;
+        const lum = s => { const [r, v, b] = s.match(/\d+/g).map(Number);
+          const f = x => { x /= 255; return x <= .03928 ? x / 12.92 : ((x + .055) / 1.055) ** 2.4; };
+          return .2126 * f(r) + .7152 * f(v) + .0722 * f(b); };
+        const a = lum(getComputedStyle(ico).backgroundColor), b = lum(getComputedStyle(lue).backgroundColor);
+        return Math.round(((Math.max(a, b) + .05) / (Math.min(a, b) + .05)) * 10) / 10;
+      });
+      if (poub !== null && poub < 3)
+        fail(`liste-détail : la poubelle rend ${poub}:1 sur la ligne lue — invisible (plancher 3:1)`);
+
+      console.log(`liste-détail @${lw} : ${apres.pane} pistes au panneau, aucune feuille, `
+        + `la ligne lue est marquée, gardée au focus, annoncée, atteinte au clavier, `
+        + `même grammaire des deux côtés, poubelle à ${poub}:1 ✓`);
     } else {
       if (!apres.feuille)
-        fail('liste-détail : au pouce, taper une conversation n’ouvre rien — '
-          + 'le volet n’existe pas sur un téléphone, la feuille est le seul chemin');
-      console.log(`liste-détail @${lw} : au pouce la conversation s’ouvre en feuille ✓`);
+        fail('liste-détail : au pouce, taper une ligne n’ouvre plus rien — '
+          + 'le panneau n’existe pas sur un téléphone, la feuille est le seul chemin');
+      console.log(`liste-détail @${lw} : au pouce la feuille s’ouvre, comme avant ✓`);
     }
-    await fermerTout(dPage);
-    /* on rend l'état emprunté : les contrôles suivants ne connaissent pas ces amis */
-    await dPage.evaluate(async () => {
-      const st = await import('./engine/storage.js');
-      const { S } = await import('./ui/state.js');
-      await st.kvSet(st.PROFILE_KEY, JSON.stringify({ ...S.profile, amis: [] }));
-      await st.kvSet(st.MESSAGES_KEY, JSON.stringify({ v: 1, fils: {} }));
-    });
   }
   /* ---- LES COMMANDES D'UN ÉCRAN PARLENT LA LANGUE DE L'APP ----
      Mesuré : les trois contrôles d'« Échanger » faisaient 345 × 76 px
@@ -739,9 +782,9 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
       const r = document.querySelector('#piProspect').getBoundingClientRect();
       return { h: Math.round(r.height), w: Math.round(r.width) };
     });
-    await eP.evaluate(() => { location.hash = '#/reseau'; });
-    await attendre(eP, () => !!document.querySelector('#ecGrNeuf'),
-      { message: 'la boîte de Réseau' });
+    await eP.evaluate(() => { location.hash = '#/echanger'; });
+    await attendre(eP, () => !!document.querySelector('#ecGive'),
+      { message: 'les commandes d’Échanger' });
     const cmd = await eP.evaluate(() => {
       const lu = s => {
         const n = document.querySelector(s);
@@ -751,22 +794,18 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
           boite: parseFloat(st.borderTopWidth) > 0 || st.boxShadow !== 'none'
                  || st.backgroundColor !== 'rgba(0, 0, 0, 0)' };
       };
-      /* La boîte (13 octobre 2026) a pris la place des portes : les
-         groupes et les amis y sont des conversations, et « Nouveau
-         groupe » la ferme, en encre sourde. Plus de « Créer », de
-         « Rejoindre », de « Scanner » ni de « Mon QR » posés en vrac,
-         ni de porte « Groupes » dans la rangée des verbes. */
-      /* Donner et Recevoir ont quitté « Réseau » (R1, 7.0.0) : le + et
-         « Mes pistes » les portent ; reste à garder la place du geste rare */
-      const out = { groupes: lu('#ecGrNeuf') };
-      const a = document.querySelector('#bxAmis'), g = document.querySelector('#ecGrNeuf');
-      if (g){
-        out.groupes.dansBoite = !!g.closest('.bx-liste');
-        out.groupes.dernier = [...document.querySelectorAll('.bx-liste button')].pop() === g;
-        out.groupes.sous = !a || g.getBoundingClientRect().top >= a.getBoundingClientRect().bottom - 1;   /* rangées jointives */
+      /* Les groupes ont repris la place de la porte « Partage en
+         groupe » (12 octobre 2026) : sans groupe, UNE porte, « Groupes »,
+         dans la rangée des verbes. Plus de « Créer », de « Rejoindre », de
+         « Scanner » ni de « Mon QR » posés là en vrac. */
+      const out = { donner: lu('#ecGive'), recevoir: lu('#ecRecv'), groupes: lu('#ecGrNeuf') };
+      const d = document.querySelector('#ecGive'), g = document.querySelector('#ecGrNeuf');
+      if (d && g){
+        out.groupes.memeFond = getComputedStyle(g).backgroundColor === getComputedStyle(d).backgroundColor;
+        out.groupes.memeRang = Math.abs(g.getBoundingClientRect().top - d.getBoundingClientRect().top) < 4;
         out.groupes.mot = g.textContent.trim();
       }
-      out.enVrac = ['#ecGrCreer', '#ecGrRejoindre', '#ecScan', '#ecMonQR', '.ec-amis', '.ec-groupes'].filter(x => document.querySelector(x));
+      out.enVrac = ['#ecGrCreer', '#ecGrRejoindre', '#ecScan', '#ecMonQR', '.ec-amis'].filter(x => document.querySelector(x));
       out.porteDirect = !!document.querySelector('#ecPromo');
       return out;
     });
@@ -797,28 +836,38 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
     await eP.reload({ waitUntil: 'load' });
     await eP.evaluate(() => { location.hash = '#/aujourdhui'; });
     await eP.waitForTimeout(200);
-    await eP.evaluate(() => { location.hash = '#/reseau'; });
-    await attendre(eP, () => !!document.querySelector('.bx-liste .bx-l[data-groupe]'),
-      { message: 'la boîte au pouce, avec la conversation du groupe' });
+    await eP.evaluate(() => { location.hash = '#/echanger'; });
+    await attendre(eP, () => !!document.querySelector('.ec-groupes .gr-ligne'),
+      { message: 'le cadre « Groupes » au pouce, avec sa rangée' });
     const pouce = await eP.evaluate(() => {
-      const p = document.querySelector('.bx-liste');
-      const inner = document.querySelector('#view-reseau .page-inner');
+      const p = document.querySelector('.ec-groupes');
+      const inner = document.querySelector('#view-echanger .page-inner');
+      const g = document.querySelector('#ecGive');
       return {
         pleine: p.getBoundingClientRect().width >= inner.getBoundingClientRect().width - 4,
-        /* chaque conversation est une grande cible, bord à bord */
-        rangees: [...p.querySelectorAll('.bx-l[data-fil]')].every(r => {
-          const b = r.getBoundingClientRect();
-          return b.height >= 44 && b.width >= p.getBoundingClientRect().width - 4;
-        }),
+        /* chaque rangée mène à son groupe : elle porte son chevron */
+        chevron: [...p.querySelectorAll('.gr-ligne')].every(r => !!r.querySelector(':scope > .gr-chev')),
+        hauteurVerbe: g ? Math.round(g.getBoundingClientRect().height) : 0,
         /* ce que le poste a gagné ne descend PAS ici tout seul */
-        trancheDuPoste: !!document.querySelector('#view-reseau .ec-repr')
+        trancheDuPoste: !!document.querySelector('#view-echanger .ec-repr')
       };
     });
     if (!pouce.pleine)
-      fail('commandes @pouce : la boîte n’occupe plus toute la largeur — au doigt, une seule '
+      fail('commandes @pouce : le cadre « Groupes » n’occupe plus toute la largeur — au doigt, une seule '
         + 'colonne et de grandes cibles ; le dessin du poste n’a rien à faire ici');
-    if (!pouce.rangees)
-      fail('commandes @pouce : une conversation n’est plus une rangée pleine largeur de 44 px au moins');
+    if (!pouce.chevron)
+      fail('commandes @pouce : une rangée de groupe a perdu son chevron — sur une ligne pleine largeur, '
+        + 'c’est lui qui dit qu’elle mène ailleurs');
+    /* LE FORMAT DU POUCE A CHANGÉ, EXPRÈS (30 septembre 2026). Les
+       verbes faisaient 95 px de haut, icône au-dessus du mot — le
+       mainteneur : « les boutons beaucoup trop gros ». Ils gardent la
+       largeur (une moitié de rangée chacun, au-dessus de la barre) et
+       prennent la hauteur de TOUT bouton au doigt : la cible de 44 px,
+       l'icône à côté du mot. Le contrôle fige le nouveau dessin dans les
+       deux sens — ni sous la cible, ni revenu en tuile. */
+    if (pouce.hauteurVerbe < 44 || pouce.hauteurVerbe > 56)
+      fail(`commandes @pouce : « Donner » fait ${pouce.hauteurVerbe}px — au doigt, un verbe a la `
+        + 'hauteur de tout bouton (44 px), ni moins (la cible), ni une tuile (décision du 30 septembre)');
     /* « Reçues, jamais reprises » est né POUR LE POSTE, et il y reste
        tant que le mainteneur n'en décide pas autrement. Ce n'est pas
        une loi d'ergonomie, c'est une DÉCISION — donc la descendre au
@@ -829,39 +878,51 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
       fail('commandes @pouce : la tranche « reçues, jamais reprises » s’est invitée sur le '
         + 'téléphone — elle a été conçue pour le poste. Si elle doit descendre ici, ça se '
         + 'décide et ça se change dans ce contrôle, pas au détour d’une retouche d’écran');
-    if (pouce.pleine && pouce.rangees && !pouce.trancheDuPoste)
-      console.log('commandes @pouce : la boîte pleine largeur, des rangées de 44 px et plus — le dessin du doigt est intact ✓');
+    if (pouce.pleine && pouce.chevron && pouce.hauteurVerbe >= 44 && pouce.hauteurVerbe <= 56 && !pouce.trancheDuPoste)
+      console.log(`commandes @pouce : cadre « Groupes » pleine largeur, rangées à chevron, verbes à `
+        + `${pouce.hauteurVerbe}px — le dessin du doigt est intact ✓`);
     await eCtx.close();
-    if (!etalon.h || !cmd.groupes) fail('commandes : étalon ou « Nouveau groupe » introuvables — le contrôle ne mesure rien');
+    if (!etalon.h || !cmd.donner) fail('commandes : étalon ou boutons introuvables — le contrôle ne mesure rien');
     else {
       /* la marge est généreuse — on garde l'ÉCHELLE, pas le pixel */
-      if (cmd.groupes.h > Math.round(etalon.h * 1.5))
-        fail(`commandes : « Nouveau groupe » fait ${cmd.groupes.h}px de haut quand l'étalon de l'app en fait ${etalon.h}`);
-      /* « NOUVEAU GROUPE » ferme la boîte, en encre sourde — la ligne
-         « Ajouter un compte » d'iOS. Ce que les trois essais ratés sur
-         l'ancienne porte avaient appris tient toujours : un geste qu'on
-         fait UNE fois ne s'aligne pas avec les deux qu'on fait tous les
-         jours, et il ne porte jamais le fond de l'action principale. */
+      const plafond = Math.round(etalon.h * 1.5);
+      for (const [nom, c] of [['Donner', cmd.donner], ['Recevoir', cmd.recevoir], ['Groupes', cmd.groupes]])
+        if (c && c.h > plafond)
+          fail(`commandes : « ${nom} » fait ${c.h}px de haut quand l'étalon de l'app en fait `
+            + `${etalon.h} (plafond ${plafond}) — c'est le format du pouce posé sur un écran de bureau`);
+      if (cmd.donner.w > etalon.w * 2.5)
+        fail(`commandes : « Donner » fait ${cmd.donner.w}px de large pour un mot, contre `
+          + `${etalon.w} à l'étalon — un bouton se taille à son contenu`);
+      /* LE CADRE « GROUPES » (lot 5) a pris la place de la porte
+         « Partage en groupe ». Ce que les trois essais ratés sur cette
+         porte avaient appris tient toujours, appliqué à un cadre :
+         il se VOIT (fond, cadre ou relief — se distinguer n'est pas
+         s'effacer), et il ne porte jamais le fond de l'action
+         principale (une seule action remplie par écran, Material 3).
+         Et le partage en direct, masqué, ne revient pas par la porte. */
       let porteOk = true;
       const grief = m => { porteOk = false; fail(m); };
-      if (!cmd.groupes) grief('commandes : « Nouveau groupe » a disparu — le contrôle ne mesure rien');
+      if (!cmd.groupes) grief('commandes : la porte « Groupes » a disparu — le contrôle ne mesure rien');
       else {
-        if (cmd.groupes.mot !== 'Nouveau groupe') grief(`commandes : sans groupe, le geste dit « ${cmd.groupes.mot} »`);
-        if (!cmd.groupes.dansBoite || !cmd.groupes.dernier)
-          grief('commandes : « Nouveau groupe » n’est plus la dernière ligne de la boîte');
-        if (cmd.groupes.boite)
-          grief('commandes : « Nouveau groupe » porte un fond, un cadre ou un relief — '
-            + 'un geste rare se dit en encre sourde, il ne pèse pas comme « Recevoir »');
-        if (!cmd.groupes.sous)
-          grief('commandes : au poste, « Nouveau groupe » est remonté au-dessus de « Mes amis »');
+        if (cmd.groupes.mot !== 'Groupes') grief(`commandes : sans groupe, la porte dit « ${cmd.groupes.mot} »`);
+        if (!cmd.groupes.boite)
+          grief('commandes : « Groupes » n’a plus ni fond, ni cadre, ni relief — '
+            + 'se distinguer n’est pas s’effacer');
+        if (cmd.groupes.memeFond)
+          grief('commandes : la porte « Groupes » porte le fond de l’action principale — une seule action '
+            + 'remplie par écran (Material 3), sinon la hiérarchie ne se lit plus');
+        if (!cmd.groupes.memeRang)
+          grief('commandes : au poste, « Groupes » a quitté la rangée des verbes — c’était la place de la porte d’avant');
       }
       if (cmd.enVrac.length)
-        grief('commandes : « Réseau » porte de nouveau des gestes jetés en vrac — ' + cmd.enVrac.join(', '));
+        grief('commandes : « Échanger » porte de nouveau des gestes jetés en vrac — ' + cmd.enVrac.join(', '));
       if (cmd.porteDirect)
         grief('commandes : la porte « Partage en groupe » est revenue — le direct est masqué (ui/perimetre.js)');
       if (porteOk)
-        console.log(`commandes @poste : « Nouveau groupe » ${cmd.groupes.w}×${cmd.groupes.h} en dernier dans la boîte, `
-          + `en encre sourde (étalon de l'app ${etalon.w}×${etalon.h}) ✓`);
+        console.log(`commandes @poste : Donner ${cmd.donner.w}×${cmd.donner.h} rempli, `
+          + `Recevoir ${cmd.recevoir.w}×${cmd.recevoir.h} contourné, `
+          + `porte « Groupes » ${cmd.groupes.w}×${cmd.groupes.h} sourde, dans la même rangée `
+          + `(étalon de l'app ${etalon.w}×${etalon.h}) ✓`);
     }
   }
   /* ---- CE QUI NE CIRCULE PAS ENCORE ----
@@ -876,7 +937,7 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
     const rCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
     const rP = await rCtx.newPage();
     watchErrors(rP);
-    await rP.goto(base + '/#/reseau', { waitUntil: 'load' });
+    await rP.goto(base + '/#/echanger', { waitUntil: 'load' });
     const semer = async (jours) => {
       await rP.evaluate(async j => {
         const st = await import('./engine/storage.js');
@@ -921,7 +982,7 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
         premiere: rows[0] && rows[0].querySelector('b').textContent.trim(),
         sousLignes: rows.map(r => r.querySelector('.rep-m>span').textContent.trim()),
         ecartMark: m0 ? Math.round(m0.getBoundingClientRect().left - enc(rows[0].querySelector('.rep-m'))) : -1,
-        avantLeFil: !!(t.compareDocumentPosition(document.querySelector('#ecHisto'))
+        avantLeFil: !!(t.compareDocumentPosition(document.querySelector('.ec-fil'))
                        & Node.DOCUMENT_POSITION_FOLLOWING)
       };
     });
@@ -950,36 +1011,33 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
           + 'qu’on les lise ensemble');
       /* et la place forte : ce qui réclame passe AVANT la trace */
       if (!bloc.avantLeFil)
-        fail('circuler : la ligne « Historique » passe avant ce qui réclame un geste — '
+        fail('circuler : le fil des échanges passe avant ce qui réclame un geste — '
           + 'un classeur ne se met pas devant le travail à faire');
     }
-    /* ⑤ PROPORTIONS : la place dit l'importance. Mesuré avant la
-       boîte, la colonne du travail à faire était plus étroite que celle
-       d'un reçu (420 contre 618, rapport 0,68) — l'écran disait le
-       contraire de ce qu'il veut dire. Avec la boîte (13 octobre 2026),
-       le travail, c'est la conversation qu'on lit et à laquelle on
-       répond : le volet est plus large que la liste qui y mène, comme
-       dans toute messagerie. */
-    await rP.evaluate(async () => {
-      const st = await import('./engine/storage.js');
-      await st.kvSet(st.PROFILE_KEY, JSON.stringify({ name: 'Moi Test', amiId: 'MoiMoiMoiMoiMoi01',
-        amis: [{ id: 'InesInesInesInes01', nom: 'Inès Martin', parcours: [] }] }));
-      await st.kvSet(st.MESSAGES_KEY, JSON.stringify({ v: 1, fils: { InesInesInesInes01: { vu: 0,
-        m: [{ id: 'm0000001', moi: false, texte: 'Tu as regardé Barbaste ?', at: Date.now() - 6e5 }] } } }));
-    });
-    await rP.reload({ waitUntil: 'load' });
-    await attendre(rP, () => !!document.querySelector('#bxVolet .dock .mh-t'), { message: 'la conversation dans le volet' });
+    /* ⑤ PROPORTIONS ET COHÉRENCE, les deux choses qu'on ne nomme pas
+       mais qu'on ressent. Deux défauts mesurés ici :
+       · la colonne qui porte le TRAVAIL À FAIRE était plus étroite que
+         celle qui porte un reçu (420 contre 618, rapport 0,68) — l'écran
+         disait le contraire de ce qu'il veut dire ;
+       · deux listes de même nature côte à côte avaient un PAS différent
+         (49 px et 54 px), donc elles se décalaient d'une demi-ligne au
+         bout de quatre rangs. */
     const prop = await rP.evaluate(() => {
       const b = s => { const n = document.querySelector(s);
         return n ? Math.round(n.getBoundingClientRect().width) : 0; };
-      return { g: b('.bx-gauche'), d: b('#bxVolet'), rep: !!document.querySelector('.bx-gauche .ec-repr') };
+      const h = s => { const n = document.querySelector(s);
+        return n ? Math.round(n.getBoundingClientRect().height) : 0; };
+      return { g: b('.ec-gauche'), d: b('.ec-detail'),
+               rangGauche: h('.ec-rep'), rangDroite: h('.ec-detail .pick') };
     });
     if (!prop.g || !prop.d) fail('proportions : colonnes introuvables — le contrôle ne mesure rien');
     else {
-      if (prop.d <= prop.g)
-        fail(`proportions : la conversation (${prop.d}px) n'est pas plus large que la liste `
-          + `qui y mène (${prop.g}px) — la place dit l'importance, ici elle dit l'inverse`);
-      if (!prop.rep) fail('proportions : avec une conversation, « Reçues, jamais reprises » a quitté l’écran');
+      if (prop.g <= prop.d)
+        fail(`proportions : la colonne du travail à faire (${prop.g}px) n'est pas plus large que `
+          + `celle du relevé (${prop.d}px) — la place dit l'importance, ici elle dit l'inverse`);
+      if (prop.rangGauche && prop.rangDroite && Math.abs(prop.rangGauche - prop.rangDroite) > 1)
+        fail(`proportions : deux listes de même nature au pas différent (${prop.rangGauche}px et `
+          + `${prop.rangDroite}px) — au bout de quatre rangs elles se décalent d'une demi-ligne`);
     }
 
     /* ③ une ligne mène LÀ OÙ L'ON AGIT : sa fiche, en un tap */
@@ -1020,12 +1078,10 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
   await lPage.evaluate(() => localStorage.setItem('oc_data_v3', JSON.stringify(
     [{ id: 'lr1', name: 'Piste Témoin', city: 'Lille', status: 'active', contacts: [] }])));
   await lPage.reload({ waitUntil: 'load' });
-  /* « Ma copie » vit en tête des Réglages (décision 0009) */
-  await ouvrirReglages(lPage);
   await lPage.waitForSelector('#moiBkLock');
 
   const hFset = () => lPage.evaluate(() => Math.round(
-    document.querySelector('#moiBk').closest('.rg-copie').getBoundingClientRect().height));
+    document.querySelector('#moiBk').closest('.fset').getBoundingClientRect().height));
   const hRepos = await hFset();
   await lPage.click('#moiBkLock');
   await lPage.waitForTimeout(400);
@@ -1056,7 +1112,9 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
     fail('serrure refermée, la copie sort quand même chiffrée');
 
   /* le même objet dans « Donner → Fichier » */
-  await ouvrirDonner(lPage);
+  await lPage.goto(base + '/#/echanger', { waitUntil: 'load' });
+  await lPage.waitForSelector('#ecGive');
+  await lPage.click('#ecGive');
   await attendre(lPage, () => [...document.querySelectorAll('.modal button, .modal .pick')]
     .some(b => /fichier/i.test(b.textContent)), { message: 'le choix du canal' });
   await lPage.evaluate(() => [...document.querySelectorAll('.modal button, .modal .pick')]
@@ -1152,7 +1210,6 @@ for (const [nom, ptr] of [['doigt', true], ['souris', false]]){
      rendait « 0 colonne » sur un écran parfaitement sain — troisième
      course de cette famille dans la suite, toujours la même cause :
      on attend la donnée et on mesure le DOM. */
-  await vueTableau(tPage);
   await attendre(tPage, () => document.querySelectorAll('#piBody .bcol').length === 3,
     { message: 'le tableau à trois colonnes doit être rendu' });
   const erg = await tPage.evaluate(() => {
@@ -1287,7 +1344,7 @@ for (const [nom, ptr] of [['doigt', true], ['souris', false]]){
     });
     await wPage.reload({ waitUntil: 'load' });
     await attendre(wPage, async () => (await import('./ui/state.js')).S.companies.length === 2);
-    for (const r of ['aujourdhui', 'pistes', 'reseau', 'moi']){
+    for (const r of ['aujourdhui', 'pistes', 'echanger', 'moi']){
       await wPage.goto(base + '/#/' + r, { waitUntil: 'load' });
       if (css) await wPage.addStyleTag({ content: css });
       await wPage.waitForTimeout(300);
@@ -1467,7 +1524,6 @@ for (const [nom, motion] of [['normal', 'no-preference'], ['mouvement réduit', 
         nextAction: dans5j, nextActionText: 'Relancer le service RH' }]));
   });
   await mPage.reload({ waitUntil: 'load' });
-  await vueTableau(mPage);
   await attendre(mPage, () => document.querySelectorAll('.bcard').length >= 3, { message: 'le tableau' });
 
   /* ① la carte : combien d'images portent une transformée ? */
@@ -1497,22 +1553,9 @@ for (const [nom, motion] of [['normal', 'no-preference'], ['mouvement réduit', 
   /* ② la section repliée, au pouce */
   await mPage.setViewportSize({ width: 390, height: 844 });
   await mPage.goto(base + '/#/aujourdhui', { waitUntil: 'load' });
-  /* l'écran AFFICHÉ, pas seulement rendu : « Aujourd'hui » est la route,
-     sa vue est visible, aucune feuille par-dessus. Relevé en CI (28
-     octobre 2026) : la section mesurait 0 px de bout en bout, dans les
-     deux contextes — un élément qu'on mesure hors de l'écran, ou qu'un
-     rendu a remplacé, rend zéro, et zéro se lit « s'ouvre d'un coup ». */
-  await attendre(mPage, () => location.hash === '#/aujourdhui' && !document.querySelector('#view-aujourdhui').hidden
-      && !document.querySelector('.overlay:not(.ov-out)') && !!document.querySelector('details.tr-soon summary'),
+  await attendre(mPage, () => !!document.querySelector('details.tr-soon summary'),
     { message: 'la section « Bientôt »' });
   const pli = await mPage.evaluate(async () => {
-    /* deux images d'abord, comme sous un vrai doigt : le changement de
-       largeur (1280 → 390) ne se signale qu'à une image, et « Aujourd'hui »
-       se redessine alors s'il est déjà la route (ui/today.js) — cliqué
-       avant, on mesurerait l'élément qui s'en va. Attendre une image ne
-       lit aucune géométrie : la règle du bloc tient, la hauteur de départ
-       ne s'engage toujours que dans `foldAnim` (ui/dom.js). */
-    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
     const d = document.querySelector('details.tr-soon');
     const hs = []; const t0 = performance.now();
     d.querySelector('summary').click();
@@ -1524,15 +1567,11 @@ for (const [nom, motion] of [['normal', 'no-preference'], ['mouvement réduit', 
       requestAnimationFrame(tick);
     });
     const deb = hs[0], fin = hs[hs.length - 1];
-    /* de quoi dire POURQUOI, si la mesure tombe à zéro */
-    const vue = document.querySelector('#view-aujourdhui');
-    const etat = { connecte: d.isConnected, route: location.hash, vueCachee: vue.hidden,
-      feuilles: document.querySelectorAll('.overlay:not(.ov-out)').length };
-    return { ouvert: d.open, deb, fin, inter: hs.filter(h => h > deb + 2 && h < fin - 2).length, etat };
+    return { ouvert: d.open, deb, fin, inter: hs.filter(h => h > deb + 2 && h < fin - 2).length };
   });
   if (!pli.ouvert) fail('la section « Bientôt » ne s’ouvre plus');
   if (doux && pli.inter < 3)
-    fail(`la section s'ouvre encore d'un coup (${pli.deb}→${pli.fin} px, ${pli.inter} images, ${JSON.stringify(pli.etat)})`);
+    fail(`la section s'ouvre encore d'un coup (${pli.deb}→${pli.fin} px, ${pli.inter} images)`);
   if (!doux && pli.inter > 1)
     fail(`mouvement réduit demandé, la section s'anime quand même (${pli.inter} images)`);
   await mCtx.close();
@@ -1799,7 +1838,7 @@ else console.log(`onglets : la place tient (${garde.pose}px), re-taper remonte, 
    nature du geste (`:focus-visible`), et un clic synthétique est traité
    comme du clavier. Mesurer avec le mauvais geste ferait croire à un
    cadre autour du titre à chaque changement d'onglet. */
-await nPage.tap('.bottomnav [data-r="reseau"]');
+await nPage.tap('.bottomnav [data-r="echanger"]');
 await nPage.waitForTimeout(450);
 const dit = await nPage.evaluate(() => {
   const a = document.activeElement;
@@ -1808,9 +1847,9 @@ const dit = await nPage.evaluate(() => {
            vu: a?.matches?.(':focus-visible') ?? false,
            evite: document.querySelector('#main')?.getAttribute('tabindex') };
 });
-if (!/Réseau/.test(dit.titre))
+if (!/Échanger/.test(dit.titre))
   fail(`le titre du document ne suit pas la route : « ${dit.titre} »`);
-else if (dit.dansNav || dit.focus !== 'Réseau')
+else if (dit.dansNav || dit.focus !== 'Échanger')
   fail(`le focus ne suit pas la route : resté sur « ${dit.focus} »`);
 else if (dit.vu)
   fail('un contour de focus s’allume sur le titre après un TAP — le focus doit s’entendre, pas se voir');
@@ -1988,9 +2027,8 @@ for (const L of [320, 360, 390]){
     ]));
     await st.kvSet(st.DATA_KEY, JSON.stringify([{ id: 'a', name: 'Adrastia', status: 'todo', updatedAt: 1 }]));
   });
-  await dPage.goto(base + '/#/reseau');
+  await dPage.goto(base + '/#/echanger');
   await dPage.reload({ waitUntil: 'load' });
-  await ouvrirHisto(dPage);
   await dPage.waitForSelector('.ec-when', { timeout: 8000 });
   const d = await dPage.evaluate(() => {
     const lire = sel => [...document.querySelectorAll('.ec-l ' + sel)].map(n => ({
@@ -2124,14 +2162,14 @@ for (const L of [320, 360, 390]){
       ]));
       await st.kvSet(st.DATA_KEY, JSON.stringify([{ id: 'a', name: 'Adrastia', status: 'todo', updatedAt: 1 }]));
     });
-    await pg.goto(base + '/#/reseau');
+    await pg.goto(base + '/#/echanger');
     await pg.reload({ waitUntil: 'load' });
     /* ON ATTEND LA LIGNE, PAS SA COLONNE. Attendre `.ec-avec` faisait
        MOURIR le scénario quand l'anatomie disparaissait — c'est-à-dire
        précisément le défaut que le bloc suivant existe pour nommer.
        Un garde qui tombe en panne ne garde rien : il attend ce qui
        existe toujours, et il JUGE ce qui peut manquer. */
-    await ouvrirHisto(pg);
+    await pg.waitForSelector('.ec-l', { timeout: 8000 });
   };
   /* un mot est CASSÉ si la boîte qui le met en page est plus étroite que
      lui. On lit la boîte qui met VRAIMENT en page — `.ec-quoi` au pouce,
@@ -2366,7 +2404,6 @@ for (const L of [320, 360, 390]){
     saveData();
     location.hash = '#/pistes';
   });
-  await vueTableau(kPg);
   await kPg.waitForSelector('.bcard .bc-sub', { timeout: 8000 });
   await kPg.waitForTimeout(400);
   const k = await kPg.evaluate(() => {
@@ -2416,7 +2453,7 @@ for (const L of [320, 360, 390]){
    raccourcir le mot, pas de le cacher. Ça touche §7 (un objet, un mot),
    donc l'écran et son titre changeraient avec. */
 {
-  const NOMS = ['Aujourd’hui', 'Pistes', 'Réseau', 'Moi'];
+  const NOMS = ['Aujourd’hui', 'Pistes', 'Échanger', 'Moi'];
   const nCtx = await browser.newContext({ viewport: { width: 320, height: 700 }, hasTouch: true });
   const nPg = await nCtx.newPage();
   nPg.on('pageerror', e => errors.push(String(e)));
@@ -2768,7 +2805,6 @@ await wPage.evaluate(async () => {
   document.querySelector('.topnav [data-r="pistes"]').click();
   await new Promise(r => setTimeout(r, 450));
 });
-await vueTableau(wPage);
 const collePoste = await colleTop(wPage, '.bcol-h');
 if (!collePoste) fail('pas de tableau en colonnes sur « Mes pistes » au poste');
 else if (collePoste.y !== collePoste.hautVue)
@@ -2986,13 +3022,10 @@ if (IA){
     const pActif = await cActif.newPage();
     await pActif.goto(base, { waitUntil: 'load' });
     await pActif.waitForSelector('#view-aujourdhui:not([hidden])');
-    /* le bouton plein du pied de « Nouvelle piste », ouverte par le
-       « + » de la barre (décision 0008) — l'accueil n'en porte plus
-       depuis les premiers pas (lot F4), et au pouce le premier
+    /* `#tdeAdd` et pas `.btn-primary` : au pouce, le premier
        `.btn-primary` du document est celui du bandeau de bureau, caché */
-    await pActif.click('#bnAdd');
-    await pActif.waitForSelector('.overlay:not(.ov-out) .modal-f .btn-primary');
-    const bp = await pActif.$('.overlay:not(.ov-out) .modal-f .btn-primary');
+    await pActif.waitForSelector('#tdeAdd');
+    const bp = await pActif.$('#tdeAdd');
     const repos = await bp.evaluate(n => getComputedStyle(n).backgroundColor);
     const boite = await bp.boundingBox();
     await pActif.mouse.move(boite.x + boite.width / 2, boite.y + boite.height / 2);
@@ -3166,11 +3199,9 @@ if (IA){
 
   const empiles = [];
   let vues = 0;
-  for (const route of ['pistes', 'reseau', 'moi']){
+  for (const route of ['pistes', 'echanger', 'moi']){
     await lp.evaluate(r => { location.hash = '#/' + r; }, route);
     await lp.waitForTimeout(500);
-    /* le fil d'« Échanger » vit dans sa feuille « Historique » */
-    if (route === 'reseau') await ouvrirHisto(lp);
     const r = await lp.evaluate(() => {
       const out = [];
       for (const n of document.querySelectorAll('.sw')){
@@ -3192,7 +3223,6 @@ if (IA){
     });
     vues += r.length;
     for (const x of r) if (!x.croise) empiles.push(`${route} · .${x.q} (cadre ${x.h}px, contenu ${x.hc}px)`);
-    await fermerTout(lp);
   }
   /* la sonde : sans lignes vues, l'absence d'empilement ne prouve rien */
   if (vues < 4)
@@ -3225,11 +3255,10 @@ if (IA){
      passe ; rendre un jour le fil pleine largeur (1660 px) le fait
      échouer, et c'est exactement le cas que l'ancienne règle voulait
      empêcher. */
-  await lp.evaluate(() => { location.hash = '#/reseau'; });
+  await lp.evaluate(() => { location.hash = '#/echanger'; });
   await lp.waitForTimeout(500);
-  await ouvrirHisto(lp);
   const LIGNE_MAX = 640;
-  const fil = await lp.evaluate(() => [...document.querySelectorAll('.overlay:not(.ov-out) .ec-l')]
+  const fil = await lp.evaluate(() => [...document.querySelectorAll('#view-echanger .ec-l')]
     .map(l => ({ large: Math.round(l.getBoundingClientRect().width),
                  date: !!l.querySelector('.ec-when'),
                  /* « la ligne porte du texte » se vérifie sur la rangée
@@ -3271,7 +3300,7 @@ const ZOOM_EXCEPTIONS = [
      dessin : il attend le mainteneur, il ne se glisse pas ici. */
   '.bn-l',
   /* Sous-lignes : données, pas identité. Elles s'élident par dessin. */
-  '.act-do', '.o-sub', '.ri-sub', '.ctc-sub', '.ec-when', '.pk-m',
+  '.act-do', '.o-sub', '.ri-sub', '.fi-sub', '.ctc-sub', '.ec-when', '.pk-m',
   /* `.pk-s` — la sous-ligne d'une ligne à cocher : « statut · ville ·
      qui est visé ». Elle vivait en `<span>` NU dans les six listes, ce
      qui la rendait innommable : une exception qui ne peut pas se
@@ -3282,11 +3311,6 @@ const ZOOM_EXCEPTIONS = [
      mesurait que le pouce, et c'est ce qui a fait ajouter le passage
      au poste plutôt que l'exception seule. */
   '.pk-s', '.bc-sub',
-  /* `.bc-na-t` — le texte de la prochaine action sur la carte du
-     tableau, une donnée écrite par l'étudiant : il s'élide à deux
-     lignes ; sa marque d'urgence, elle, vit hors de la bride et n'est
-     jamais dans cette liste (7.0.0) */
-  '.bc-na-t',
   /* L'en-tête d'objet et l'état d'un réglage : des DONNÉES. `.obj-l`
      porte la formation et l'adresse — et une adresse rendue
      « …@example » sur une ligne et « .fr » sur la suivante n'est plus
@@ -3485,15 +3509,7 @@ const GRAINE_ZOOM = async () => {
      n'est jamais voulu — et c'est le symptôme le plus déroutant qui
      soit, on croit avoir cassé l'application. */
   const surfaces = [
-    ['aujourdhui', null], ['pistes', null], ['reseau', null], ['moi', null],
-    /* le fil des échanges, la surface la plus dense de l'app, vit dans sa
-       feuille « Historique » (13 octobre 2026) */
-    ['historique', async p => {
-      await p.evaluate(() => { location.hash = '#/reseau'; });
-      await p.waitForSelector('#ecHisto');
-      await p.click('#ecHisto');
-      await p.waitForSelector('.overlay:not(.ov-out) .ec-l');
-    }],
+    ['aujourdhui', null], ['pistes', null], ['echanger', null], ['moi', null],
     ['écrire', async p => p.evaluate(async () => { const { S } = await import('./ui/state.js');
       (await import('./ui/mail.js')).openMail(S.companies[0], {}); })],
     ['fiche', async p => p.evaluate(async () => { const { S } = await import('./ui/state.js');
@@ -3527,7 +3543,6 @@ const GRAINE_ZOOM = async () => {
       await p.click('#piAffiner');
     }],
     ['rattacher', async p => p.evaluate(async () => {
-      const { S } = await import('./ui/state.js');
       (await import('./ui/contact.js')).openAttach({ id: 'oz', name: '', email: 'recrutement@exemple-de-societe.fr' });
     })]
   ];
@@ -3619,8 +3634,8 @@ const GRAINE_ZOOM = async () => {
       dur.push(`${nom} · ${c.q} écrase son contenu de ${c.perdu}px (boîte ${c.h}px) « ${c.t} »`);
     for (const c of r.debordes)
       dur.push(`${nom} · ${c.q} sort de sa boîte de ${c.perdu}px, sous son voisin « ${c.t} »`);
-    if (nom === 'historique')
-      filVu = await zPage.evaluate(() => document.querySelectorAll('.overlay:not(.ov-out) .ec-l').length >= 6);
+    if (nom === 'echanger')
+      filVu = await zPage.evaluate(() => document.querySelectorAll('.ec-l').length >= 6);
     /* LA SONDE DE L'ÉCRASEMENT SE VÉRIFIE ELLE-MÊME : on plante une
        boîte qui coupe et dont l'enfant est deux fois trop haut, et on
        exige qu'elle soit vue. Sans ça, restreindre le balayage — aux
@@ -3677,10 +3692,7 @@ const GRAINE_ZOOM = async () => {
      de la carte du tableau, n'existe qu'ici). */
   const vusAvantPoste = vus;
   for (const [nom, ouvrir] of [
-    ['aujourdhui', null], ['pistes', null],
-    /* « Mes pistes » s'ouvre en liste, la fiche à droite ; le tableau se mesure aussi */
-    ['pistes-tableau', async p => { await p.evaluate(() => { location.hash = '#/pistes'; }); await vueTableau(p); }],
-    ['reseau', null], ['moi', null],
+    ['aujourdhui', null], ['pistes', null], ['echanger', null], ['moi', null],
     ['fiche', async p => p.evaluate(async () => { const { S } = await import('./ui/state.js');
       (await import('./ui/fiche.js')).openFiche(S.companies[0]); })],
     ['donner', async p => p.evaluate(async () => (await import('./ui/donner.js')).openDonner(null))]
@@ -3697,7 +3709,7 @@ const GRAINE_ZOOM = async () => {
     vus += r.coupes.length; mesurees++;
     /* la carte du tableau n'existe qu'ici : si elle manque, ce passage
        ne mesure pas l'ergonomie qu'il prétend mesurer */
-    if (nom === 'pistes-tableau')
+    if (nom === 'pistes')
       carteVue = await wPage.evaluate(() => !!document.querySelector('.bcard'));
     if (r.deborde > 1) dur.push(`poste · ${nom} : la page déborde de ${r.deborde}px en largeur`);
     for (const c of r.coupes){
@@ -3714,8 +3726,8 @@ const GRAINE_ZOOM = async () => {
   /* le contrôle dit sous quelle police il mesure — sans ça, retirer
      l'agrandissement le laisserait passer au vert sans rien vérifier */
   if (!doublee) fail('texte doublé : la garde ne mesure pas à 200 % — elle ne vérifie plus rien');
-  else if (mesurees < 21)
-    fail(`texte doublé : ${mesurees} surfaces mesurées au lieu de 21 — écrans ET feuilles, `
+  else if (mesurees < 20)
+    fail(`texte doublé : ${mesurees} surfaces mesurées au lieu de 20 — écrans ET feuilles, `
       + `au pouce ET au poste ; c'est en n'ouvrant aucune feuille que la garde a laissé passer `
       + `le glissement latéral, et en ignorant le poste qu'elle a laissé passer le nom amputé`);
   else if (!carteVue)
@@ -3735,12 +3747,12 @@ const GRAINE_ZOOM = async () => {
   else if (statutForme !== 'rangée' && statutForme !== 'pile')
     fail(`fiche à 200 % : le statut « Où j’en suis » n’est ni une rangée ni une pile (${statutForme}) — `
       + 'deux puis un, la forme que la bascule existe pour éviter');
-  else if (!sondeDeborde)
-    fail('texte doublé : la sonde du débordement (un mot sans espace dans une boîte de 30px qui ne coupe pas) '
-      + 'n’a pas été vue — la mesure du texte qui sort de sa boîte ne mesure plus rien');
   else if (!sondeEcrase)
     fail('texte doublé : la sonde d’écrasement (un enfant de 60px dans une boîte de 20px qui coupe) '
       + 'n’a pas été vue — la mesure de l’écrasement ne mesure plus rien');
+  else if (!sondeDeborde)
+    fail('texte doublé : la sonde du débordement (un mot sans espace dans une boîte de 30px qui ne coupe pas) '
+      + 'n’a pas été vue — la mesure du texte qui sort de sa boîte ne mesure plus rien');
   else if (!filVu)
     fail('texte doublé : le fil d’« Échanger » n’a pas ses six lignes — la surface la plus dense '
       + 'de l’app n’exerce rien, et à trois lignes la région ne serre même pas');
@@ -3772,21 +3784,9 @@ const SONDE_CONTRASTE = () => {
     const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
     return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]);
   };
-  /* LE NAVIGATEUR CONVERTIT, PAS UNE EXPRESSION RÉGULIÈRE. Une couleur
-     calculée n'est pas toujours `rgb(…)` : un `color-mix()` se rend
-     `color(srgb 0.89 0.93 0.92)`, en fractions — lues comme du 0-255,
-     elles faisaient de chaque aplat teinté un fond presque NOIR, et le
-     contrôle accusait 2,58:1 des boutons qui rendent 6,2:1 (19 octobre
-     2026). Une toile d'un pixel lit toutes les syntaxes que le moteur
-     sait peindre. */
-  const toile = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
   const rgb = s => {
-    if (!s) return null;
-    toile.clearRect(0, 0, 1, 1);
-    toile.fillStyle = '#000'; toile.fillStyle = s;
-    toile.fillRect(0, 0, 1, 1);
-    const d = toile.getImageData(0, 0, 1, 1).data;
-    return [d[0], d[1], d[2], d[3] / 255];
+    const m = String(s).match(/[\d.]+/g);
+    return m ? m.slice(0, 3).map(Number).concat(m[3] !== undefined ? +m[3] : 1) : null;
   };
   /* une couleur translucide se juge une fois POSÉE sur son fond */
   const melange = (fg, bg) => fg[3] >= 1 ? fg : fg.slice(0, 3).map((v, i) => v * fg[3] + bg[i] * (1 - fg[3]));
@@ -3853,7 +3853,7 @@ const SONDE_TITRES = route => {
     });
     let noeuds = 0; let titres = 0;
     const bas = []; const plans = [];
-    for (const route of ['aujourdhui', 'pistes', 'reseau', 'moi']){
+    for (const route of ['aujourdhui', 'pistes', 'echanger', 'moi']){
       await stPage.evaluate(r => { location.hash = '#/' + r; }, route);
       await stPage.waitForTimeout(450);
       const txt = await stPage.evaluate(SONDE_CONTRASTE);
@@ -3927,7 +3927,7 @@ const SONDE_CIBLES = () => {
 async function balayer(P, seuil){
   const surfaces = [
     ['Aujourd’hui', 'route', 'aujourdhui'], ['Mes pistes', 'route', 'pistes'],
-    ['Réseau', 'route', 'reseau'], ['Moi', 'route', 'moi'],
+    ['Échanger', 'route', 'echanger'], ['Moi', 'route', 'moi'],
     ['fiche', './ui/fiche.js', 'openFiche', true], ['écrire', './ui/mail.js', 'openMail', true],
     ['modifier', './ui/edit.js', 'openEditPiste', true],
     ['contact', './ui/contact.js', 'openContactEditor', false],

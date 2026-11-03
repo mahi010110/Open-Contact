@@ -63,7 +63,7 @@ async function ecran(qui, o = {}){
       if (t && window.__toasts.at(-1) !== t) window.__toasts.push(t); })
       .observe(document, { subtree: true, childList: true, characterData: true });
   });
-  await p.goto(base + '/#/reseau', { waitUntil: 'load' });
+  await p.goto(base + '/#/echanger', { waitUntil: 'load' });
   await p.evaluate(async ([pr, url]) => {
     const st = await import('./engine/storage.js');
     await st.kvInit();
@@ -72,7 +72,7 @@ async function ecran(qui, o = {}){
     await st.kvSet(st.RELAYS_KEY, JSON.stringify([url]));
   }, [profil(qui, o.profil), relay.url]);
   await p.reload({ waitUntil: 'load' });
-  await p.waitForSelector('#view-reseau:not([hidden])');
+  await p.waitForSelector('#view-echanger:not([hidden])');
   return { ctx, p };
 }
 const fermerTout = async p => {
@@ -85,9 +85,9 @@ const fermerTout = async p => {
 };
 const rouvrir = async p => {
   await fermerTout(p);
-  await p.evaluate(() => { location.hash = '#/reseau'; });
+  await p.evaluate(() => { location.hash = '#/echanger'; });
   await p.reload({ waitUntil: 'load' });
-  await p.waitForSelector('#view-reseau:not([hidden])');
+  await p.waitForSelector('#view-echanger:not([hidden])');
 };
 const attendreQue = async (p, fn, arg, ms = 20000, quoi = '') => {
   for (const fin = Date.now() + ms; Date.now() < fin; await p.waitForTimeout(300))
@@ -99,7 +99,7 @@ const texte = (p, sel) => p.evaluate(s => document.querySelector(s)?.innerText.r
 const profilDe = p => p.evaluate(async () => JSON.parse(JSON.stringify((await import('./ui/state.js')).S.profile)));
 const ouvrirLeGroupe = async p => {
   await fermerTout(p);
-  await p.click('.bx-l[data-groupe]');
+  await p.click('.gr-ligne[data-groupe]');
   await p.waitForSelector('#grMembres');
 };
 const ouvrirReglages = async p => {
@@ -173,7 +173,7 @@ await attendreQue(I.p, () => /BTS SIO Lille 2/.test(document.querySelector('#grr
   for (const x of ['BTS SIO', 'Lille', 'Inès', CODE]) if (brut.includes(x)) fail(`le relais lit « ${x} »`);
 }
 await rouvrir(Ka.p);
-await attendreQue(Ka.p, () => /BTS SIO Lille 2/.test(document.querySelector('.bx-l[data-groupe]')?.textContent || ''), null, 20000, 'le nouveau nom dans « Échanger » chez Karim');
+await attendreQue(Ka.p, () => /BTS SIO Lille 2/.test(document.querySelector('.gr-ligne[data-groupe]')?.textContent || ''), null, 20000, 'le nouveau nom dans « Échanger » chez Karim');
 await ouvrirLeGroupe(Ka.p);
 if (!/BTS SIO LILLE 2/i.test(await texte(Ka.p, '.overlay:last-of-type .modal-h'))) fail('la barre du groupe chez Karim : ' + await texte(Ka.p, '.overlay:last-of-type .modal-h'));
 console.log('③ renommer : un réglage signé, illisible pour le relais ; chez Karim, la porte et la barre suivent ✓');
@@ -228,14 +228,8 @@ await So.p.waitForTimeout(3000);
 }
 console.log('⑤ « les responsables » : chez Karim, l’état remplace le champ ; un mot ou un réglage qu’il forge ne change rien chez Sofia ✓');
 
-/* ---------- ⑥ une nouvelle invitation ----------
-   L'invitation vit dans sa feuille, derrière la ligne « Inviter » de
-   « Groupe » ; changer de code la rouvre, à jour, sur le nouveau */
+/* ---------- ⑥ une nouvelle invitation ---------- */
 await ouvrirReglages(I.p);
-await I.p.click('#grInviterOuvrir');
-await I.p.waitForSelector('#grCodeAff');
-if (!/^\+?\s*inviter\b/i.test(await texte(I.p, '.overlay:last-of-type .modal-h') || '')) fail('la barre ne dit pas « Inviter » : ' + await texte(I.p, '.overlay:last-of-type .modal-h'));
-if (await I.p.$('.overlay:last-of-type .gr-inv-t')) fail('« Inviter » se redit sous la barre qui le dit déjà');
 const invAvant = await I.p.evaluate(() => document.querySelector('#grCodeAff')?.textContent);
 await I.p.click('#grNouvelleInv');
 await I.p.waitForSelector('.overlay:last-of-type .modal-f .btn-primary, .overlay:last-of-type .modal-f .btn-danger');
@@ -278,12 +272,8 @@ for (const [x, qui] of [[Ka, 'Karim'], [So, 'Sofia']]){
   if (!await ok()) fail(`${qui} ne suit pas le groupe passé sur demande : ` + JSON.stringify((await profilDe(x.p)).groupes));
 }
 await ouvrirReglages(I.p);
-await I.p.click('#grInviterOuvrir');
-await I.p.waitForSelector('.overlay:last-of-type #grInviter .qr-wrap svg');
-await I.p.waitForTimeout(300);
+await I.p.waitForTimeout(800);
 if (await I.p.$('#grCodeAff')) fail('sur demande, l’invitation montre encore le code');
-await fermerTout(I.p);
-await ouvrirReglages(I.p);
 if (!/sur demande/.test(await texte(I.p, '#grrEntree .rg-s') || '')) fail('l’entrée ne dit pas « sur demande »');
 console.log('⑥ bis « sur demande » : un nouveau code, Karim et Sofia suivent, et l’invitation n’est plus qu’une porte ✓');
 
@@ -296,7 +286,7 @@ await ouvrirReglages(I.p);
 await I.p.click('#grSupprimer');
 await I.p.waitForSelector('.undo-bar');
 await I.p.click('.undo-bar .btn-sm');
-await attendreQue(I.p, () => !!document.querySelector('.bx-l[data-groupe]'), null, 5000, '« Annuler » rend le groupe');
+await attendreQue(I.p, () => !!document.querySelector('.gr-ligne[data-groupe]'), null, 5000, '« Annuler » rend le groupe');
 await ouvrirReglages(I.p);
 await I.p.click('#grSupprimer');
 await I.p.waitForSelector('.undo-bar');
@@ -313,7 +303,7 @@ for (const [x, qui] of [[Ka, 'Karim'], [So, 'Sofia']]){
   if (!await attendreQue(x.p, () => window.__toasts.some(t => /BTS SIO Lille 2 a été supprimé par Inès\./.test(t)), null, 20000,
     `« BTS SIO Lille 2 a été supprimé par Inès. » chez ${qui}`))
     console.error('   toasts chez ' + qui + ' : ' + JSON.stringify(await x.p.evaluate(() => window.__toasts)));
-  await attendreQue(x.p, () => !document.querySelector('.bx-l[data-groupe]'), null, 8000, `le groupe parti de chez ${qui}`);
+  await attendreQue(x.p, () => !document.querySelector('.gr-ligne[data-groupe]'), null, 8000, `le groupe parti de chez ${qui}`);
 }
 console.log('⑦ supprimer pour tous : « Annuler » le rend ; sinon, après la barre, le groupe quitte les téléphones de Karim et Sofia ✓');
 

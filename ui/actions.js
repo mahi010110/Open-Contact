@@ -7,8 +7,7 @@
 import { esc } from '../engine/utils.js';
 import { CLOSE_REASONS } from '../engine/model.js';
 import { S, bus, setNextAction, closePiste, saveProfile } from './state.js';
-import { ouvrirDecroche } from './aide.js';
-import { openSheet, toast, btn } from './dom.js';
+import { openSheet, toast, ic, btn } from './dom.js';
 import { plusDaysISO, nextMondayISO, frDate } from './dates.js';
 import { nextActionSuggestions } from '../engine/assist.js';
 import { rappelICS, lienAgendaGoogle, formeAgenda } from '../engine/agenda.js';
@@ -84,10 +83,7 @@ function bindDateOk(root, inputSel, okSel, pick){
    « OK » valide un changement du « Quoi ? » seul en gardant la date. */
 export function askNextAction(c, opts){
   opts = opts || {};
-  /* la réponse conseillée tient le pied (plus bas) : la puce du même
-     jour ne serait qu'un second bouton pour le même geste */
-  const conseille = !opts.presetDate && opts.conseil > 0 ? plusDaysISO(opts.conseil) : null;
-  const choix = dateChoices().filter(([, iso]) => iso !== conseille);
+  const choix = dateChoices();
   /* « Quoi ? » est DÉJÀ RÉPONDU quand on peut le deviner. Trois boutons
      de verbes posés sous le champ ressemblaient à des actions alors
      qu'ils ne faisaient que le remplir : il fallait les lire, comprendre
@@ -164,8 +160,9 @@ export function askNextAction(c, opts){
      quatre : on fermait la feuille, et rien n'était prévu. Elle tient
      maintenant le pied, sous le pouce ; les puces restent pour un autre
      jour, et la croix pour ne rien prévoir. */
-  else if (conseille){
-    sh.setFoot([btn('Dans ' + opts.conseil + ' jours', 'btn-primary', () => pick(conseille))]);
+  else if (opts.conseil > 0){
+    const iso = plusDaysISO(opts.conseil);
+    sh.setFoot([btn('Dans ' + opts.conseil + ' jours', 'btn-primary', () => pick(iso))]);
   }
   return sh;
 }
@@ -227,12 +224,8 @@ export function askClose(c, opts){
     b.addEventListener('click', () => {
       closePiste(c, b.dataset.r);
       sh.close();
-      /* CEUX QUI AIDENT (lot R7) : « Décroché » propose d'aider à son
-         tour — la feuille remplace le toast. Le toast, lui, perd son
-         emoji partout : §4 n'en veut aucun dans l'interface. */
-      const won = b.dataset.r === 'won';
-      if (!(won && ouvrirDecroche(c))) toast(won
-        ? 'Décroché, félicitations !'
+      toast(b.dataset.r === 'won'
+        ? '🎉 Décroché — félicitations !'
         : 'Piste clôturée (' + CLOSE_REASONS[b.dataset.r].label + ').');
       if (opts.onDone) opts.onDone();
       bus.refresh();

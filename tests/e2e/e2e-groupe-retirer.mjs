@@ -60,7 +60,7 @@ async function ecran(qui, o = {}){
       if (t && window.__toasts.at(-1) !== t) window.__toasts.push(t); })
       .observe(document, { subtree: true, childList: true, characterData: true });
   });
-  await p.goto(base + '/#/reseau', { waitUntil: 'load' });
+  await p.goto(base + '/#/echanger', { waitUntil: 'load' });
   await p.evaluate(async ([pr, url]) => {
     const st = await import('./engine/storage.js');
     await st.kvInit();
@@ -69,7 +69,7 @@ async function ecran(qui, o = {}){
     await st.kvSet(st.RELAYS_KEY, JSON.stringify([url]));
   }, [profil(qui, o.profil), relay.url]);
   await p.reload({ waitUntil: 'load' });
-  await p.waitForSelector('#view-reseau:not([hidden])');
+  await p.waitForSelector('#view-echanger:not([hidden])');
   return { ctx, p };
 }
 const fermerTout = async p => {
@@ -81,9 +81,9 @@ const fermerTout = async p => {
   }
 };
 const rouvrir = async p => {
-  await p.evaluate(() => { location.hash = '#/reseau'; });
+  await p.evaluate(() => { location.hash = '#/echanger'; });
   await p.reload({ waitUntil: 'load' });
-  await p.waitForSelector('#view-reseau:not([hidden])');
+  await p.waitForSelector('#view-echanger:not([hidden])');
 };
 const attendreQue = async (p, fn, arg, ms = 20000, quoi = '') => {
   for (const fin = Date.now() + ms; Date.now() < fin; await p.waitForTimeout(300))
@@ -95,7 +95,7 @@ const texte = (p, sel) => p.evaluate(s => document.querySelector(s)?.innerText.r
 const profilDe = p => p.evaluate(async () => JSON.parse(JSON.stringify((await import('./ui/state.js')).S.profile)));
 const ouvrirLeGroupe = async p => {
   await fermerTout(p);
-  await p.click('.bx-l[data-groupe]');
+  await p.click('.gr-ligne[data-groupe]');
   await p.waitForSelector('#grMot');
 };
 const messagesDu = async code => {
@@ -221,7 +221,7 @@ await attendreQue(I.p, () => /on continue/.test(document.querySelector('#grFil')
 await attendreQue(So.p, () => window.__toasts.some(t => /Tu n’es plus dans BTS SIO Lille\./.test(t)), null, 20000,
   '« Tu n’es plus dans BTS SIO Lille. » chez Sofia');
 await rouvrir(So.p);
-await attendreQue(So.p, () => !document.querySelector('.bx-l[data-groupe]'), null, 20000, 'le groupe parti de chez Sofia');
+await attendreQue(So.p, () => !document.querySelector('.gr-ligne[data-groupe]'), null, 20000, 'le groupe parti de chez Sofia');
 {
   const pS = await profilDe(So.p);
   if ((pS.groupes || []).length) fail('Sofia garde un groupe dans son profil');

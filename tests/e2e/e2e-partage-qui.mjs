@@ -31,7 +31,7 @@ await page.evaluate(async () => {
     { id: 'pi-c', name: 'Sopra', city: 'Paris', domain: 'esn', status: 'todo', updatedAt: 1, contacts: [] }
   ]));
 });
-await page.goto(base + '/#/reseau');
+await page.goto(base + '/#/echanger');
 await page.reload({ waitUntil: 'load' });
 await attendre(page, async () => (await import('./ui/state.js')).S.companies.length === 3,
   { timeout: 8000, message: 'pistes semées' });
@@ -66,10 +66,7 @@ console.log('la ligne « → qui » : commande si choix, donnée sinon, rien si 
 await page.click('.pk-duo:has-text("Capgemini") .pk-who');
 await page.waitForSelector('.overlay:last-of-type .pick[data-ct]');
 const titre = await page.textContent('.overlay:last-of-type .modal-h h2');
-/* la barre dit la fenêtre, le contenu dit laquelle (§4) */
-if (titre.trim() !== 'Contacts') fail('titre du verbe « donner » : ' + titre);
-const tete = await page.textContent('.overlay:last-of-type .na-company');
-if (tete.trim() !== 'Capgemini') fail('le nom de la piste ouvre la sous-feuille : ' + tete);
+if (!/Qui part, chez Capgemini/.test(titre)) fail('titre du verbe « donner » : ' + titre);
 if (await page.$('.overlay:last-of-type .modal-f:not([hidden])'))
   fail('la sous-feuille ne valide rien — la croix referme (R2)');
 const hauteurs = await page.evaluate(() =>

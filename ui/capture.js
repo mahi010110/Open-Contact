@@ -34,11 +34,6 @@ export function companyFromEmail(email){
 
 export function openCapture(prefill){
   prefill = prefill || {};
-  /* QUELQU'UN RENCONTRÉ n'a plus sa feuille (décision 0008, 29 octobre
-     2026) : le + crée, et une seule chose. Le formulaire d'une piste le
-     sait déjà — le contact sans entreprise part dans le bac « à
-     rattacher », jamais bloqué. « Un contact » ne faisait que changer
-     l'ordre des mêmes champs. */
   /* le contexte décide du formulaire, pas la largeur d'un bloc (#3) */
   const wide = matchMedia('(min-width:901px)').matches;
   /* ordinateur : le formulaire complet part d'une piste à blanc, déjà
@@ -72,12 +67,6 @@ export function openCapture(prefill){
      la boîte est gardée à l'intérieur (CLAUDE.md §0). */
   const mailsHTML = `<button class="linklike" id="cpMails">${ic('sparkles', 'ic-14')} Depuis mes e-mails</button>`;
 
-  const entrepriseHTML =
-    `<div class="field"><label for="cpName">L’entreprise</label>
-       <input id="cpName" value="${esc(prefill.name || '')}" placeholder="Ex : Orange Cyberdefense" autocomplete="off" ${clavier('nom')}>
-       <div class="dup-note" id="cpDup" hidden></div>
-       <button class="linklike" id="cpFromMail" hidden></button>
-     </div>`;
   sh.body.innerHTML = wide
     ? `${sharedFieldsHTML(brouillon)}${contactHTML}${mailsHTML}`
     : `${/* le libellé vit DANS le `.field`, comme partout : posé dans une
@@ -85,7 +74,11 @@ export function openCapture(prefill){
             (petites capitales grises) et prenait celui du texte courant —
             la seule feuille où « L'entreprise » ressemblait à une phrase
             (audit d'octobre 2026) */''}
-       ${entrepriseHTML}
+       <div class="field"><label for="cpName">L’entreprise</label>
+         <input id="cpName" value="${esc(prefill.name || '')}" placeholder="Ex : Orange Cyberdefense" autocomplete="off" ${clavier('nom')}>
+         <div class="dup-note" id="cpDup" hidden></div>
+         <button class="linklike" id="cpFromMail" hidden></button>
+       </div>
        ${prefill.website ? `<div class="cp-carry">${ic('link', 'ic-14')} <span>${esc(prefill.website)}</span></div>` : ''}
        ${contactHTML}${mailsHTML}`;
 
@@ -223,7 +216,7 @@ export function openCapture(prefill){
 
   /* l'import d'e-mails est une SOURCE de pistes (#5) — il vit ici,
      pas dans « Recevoir » (réservé à ce qu'un camarade envoie) */
-  q('#cpMails')?.addEventListener('click', async () => {
+  q('#cpMails').addEventListener('click', async () => {
     sh.close();
     (await import('./recevoir.js')).openImportMails();
   });

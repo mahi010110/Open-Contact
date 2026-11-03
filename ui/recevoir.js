@@ -48,9 +48,7 @@ export const messageLecture = code => ERRS[code] || 'Impossible de lire ce conte
 /* `o.scanner` : ouvrir directement sur la caméra — depuis « Mon QR » ou
    « Rejoindre un groupe ». Le scanner est le MÊME : il reconnaît tout
    seul un QR de pistes, un rendez-vous, un profil ou une invitation. `o.apres` : ce que l'écran
-   d'en dessous doit redessiner quand un ami arrive.
-   Sans option (« Réseau › Recevoir », décision 0008), les trois mots de
-   « Donner » : QR · Fichier · Texte. */
+   d'en dessous doit redessiner quand un ami arrive. */
 export function openRecevoir(o = {}){
   let stopScan = null;
   let room = null;         /* salle de rendez-vous (QR OCR1 / code tapé) */
@@ -318,7 +316,7 @@ export function openRecevoir(o = {}){
 
   /* ---- coller ---- */
   const paste = () => {
-    sh.setTitle('Texte');
+    sh.setTitle('Coller');
     sh.body.innerHTML =
       `<div class="field"><label for="rcTxt">Le texte reçu</label>
          <textarea id="rcTxt" style="min-height:140px" placeholder="Colle ici le contenu partagé"></textarea></div>`;

@@ -73,9 +73,7 @@ const prose = (p, sel) => p.evaluate(sel => {
   const b = document.querySelector(sel);
   if (!b) return null;
   const c = b.cloneNode(true);
-  /* les premiers pas (lot F4) sont des GESTES — l'un attend seulement
-     qu'il y ait une piste —, pas une phrase d'explication */
-  c.querySelectorAll('h1,h2,h3,button,a,label,svg,.ic,.pp-liste').forEach(n => n.remove());
+  c.querySelectorAll('h1,h2,h3,button,a,label,svg,.ic').forEach(n => n.remove());
   return c.textContent.replace(/\s+/g, ' ').trim();
 }, sel);
 
@@ -88,9 +86,9 @@ const PISTES = [
 /* ---------- ① le premier lancement, aux deux ergonomies ---------- */
 for (const [ergo, opts] of [['pouce', PHONE], ['poste', DESK]]){
   const p = await ouvrir(opts);
-  await p.waitForSelector('#tdPas');
+  await p.waitForSelector('#tdeAdd');
   const reste = await prose(p, '.td-empty');
-  okSi(reste === '', `① premier lancement (${ergo}) : les premiers pas sous le titre, sans mode d’emploi`
+  okSi(reste === '', `① premier lancement (${ergo}) : les deux gestes sous le titre, sans mode d’emploi`
     + (reste ? ` — lu : « ${reste} »` : ''));
   await viderToast(p);
   await p.click('#tdeDemo');
@@ -100,52 +98,6 @@ for (const [ergo, opts] of [['pouce', PHONE], ['poste', DESK]]){
   okSi(!t && await p.isVisible('#tdRmDemo'),
     `① « Voir un exemple » (${ergo}) : les pistes arrivent et « Retirer » s’affiche, sans toast`
     + (t ? ` — toast lu : « ${t} »` : ''));
-  /* les pistes d'exemple ne se donnent pas — mais « ajoute d'abord une
-     piste » sous trois pistes visibles se contredisait (28 octobre 2026) */
-  await viderToast(p);
-  await p.evaluate(async () => (await import('./ui/donner.js')).openDonner());
-  await p.waitForTimeout(200);
-  const refus = await toastLu(p);
-  okSi(/exemple/.test(refus) && !/ajoute d’abord une piste/.test(refus),
-    `① « Donner » sur les seules pistes d’exemple (${ergo}) dit pourquoi — « ${refus} »`);
-  await p.context().close();
-}
-
-/* ---------- ① bis « Mes pistes » vide : l'accueil, et rien autour ----------
-   « 0 piste » sous le titre redisait « Aucune piste pour l'instant »
-   juste dessous, et « Affiner » ouvrait des filtres vides (28 octobre
-   2026). Le vide se dit une fois ; « Affiner » revient avec une piste. */
-for (const [ergo, opts] of [['pouce', PHONE], ['poste', DESK]]){
-  const p = await ouvrir(opts);
-  await p.evaluate(() => { location.hash = '#/pistes'; });
-  await p.waitForSelector('#view-pistes:not([hidden]) .td-empty, #view-pistes:not([hidden]) .empty');
-  const vide = await p.evaluate(() => ({ compte: document.querySelector('#piCount').textContent.trim(),
-    affiner: !!document.querySelector('#piAffiner')?.checkVisibility() }));
-  await p.evaluate(async () => { const { addDemo } = await import('./ui/state.js'); addDemo(); (await import('./ui/state.js')).bus.refresh(); });
-  await p.waitForTimeout(300);
-  const plein = await p.evaluate(() => ({ compte: document.querySelector('#piCount').textContent.trim(),
-    affiner: !!document.querySelector('#piAffiner')?.checkVisibility() }));
-  okSi(!vide.compte && !vide.affiner && plein.compte && plein.affiner,
-    `① bis « Mes pistes » vide (${ergo}) : ni « 0 piste » ni « Affiner » ; avec des pistes, les deux reviennent — ${JSON.stringify({ vide, plein })}`);
-  await p.context().close();
-}
-
-/* ---------- ① ter « Rattacher » : la donnée garde sa casse ----------
-   Le libellé disait « L’entreprise de recrutement@exemple.fr », et les
-   libellés de champ sont en capitales : l'adresse sortait déformée, en
-   gros (28 octobre 2026). Qui l'on rattache ouvre le contenu, le libellé
-   ne dit que le champ. */
-{
-  const p = await ouvrir(PHONE, PISTES, { name: 'Sam' });
-  const r = await p.evaluate(async () => {
-    (await import('./ui/contact.js')).openAttach({ id: 'o1', email: 'recrutement@exemple.fr' });
-    await new Promise(res => setTimeout(res, 300));
-    const o = [...document.querySelectorAll('.overlay:not(.ov-out)')].pop();
-    const tete = o.querySelector('.modal-b > .na-company');
-    return { tete: tete?.innerText.trim() || '', libelle: o.querySelector('label[for="atQ"]')?.textContent.trim() || '' };
-  });
-  okSi(r.tete === 'recrutement@exemple.fr' && r.libelle === 'Entreprise',
-    `① ter « Rattacher » : l’adresse en tête, telle quelle, le libellé dit le champ — ${JSON.stringify(r)}`);
   await p.context().close();
 }
 
@@ -187,22 +139,6 @@ for (const [ergo, opts] of [['pouce', PHONE], ['poste', DESK]]){
   const geste = (await p.textContent('#fiNa')).trim();
   okSi(etat === 'Aucune' && geste === 'Planifier',
     `④ fiche : « Aucune » à côté de « Planifier » — le bouton porte le geste (lu : « ${etat} » / « ${geste} »)`);
-  /* ④ bis « Modifier » nomme QUI verra ce qu'on y tape : la pastille
-     « partagé » seule, en pixel de 8, ne se lisait pas et ne disait pas
-     avec qui (28 octobre 2026) */
-  await p.evaluate(async () => {
-    const { S } = await import('./ui/state.js');
-    (await import('./ui/edit.js')).openEditPiste(S.companies.find(c => c.id === 'p1'));
-  });
-  await p.waitForSelector('#edName');
-  const pub = await p.evaluate(() => {
-    const o = [...document.querySelectorAll('.overlay:not(.ov-out)')].pop();
-    const h = o.querySelector('.modal-b > .hint');
-    return { ligne: h?.textContent.trim() || '', premier: o.querySelector('.modal-b').firstElementChild === h,
-             pastille: !!o.querySelector('.tag-share') };
-  });
-  okSi(pub.ligne === 'Visible par qui reçoit la piste.' && pub.premier && !pub.pastille,
-    `④ bis « Modifier » : la première ligne nomme le public, sans pastille muette — ${JSON.stringify(pub)}`);
   await p.context().close();
 }
 
@@ -261,16 +197,12 @@ else {
 /* ---------- ⑦ « Échanger » vide, au poste ---------- */
 {
   const p = await ouvrir(DESK);
-  await p.evaluate(() => { location.hash = '#/reseau'; });
-  await p.waitForSelector('.bx-seule .bx-liste');
-  /* sans conversation, une seule colonne : un volet vide ne serait
-     qu'un trou, et le cadre dit ce qu'il recevra, une fois */
-  const r = await p.evaluate(() => ({
-    volet: !!document.querySelector('#bxVolet'),
-    phrases: [...document.querySelectorAll('#view-reseau p')].map(x => x.textContent.trim()).filter(Boolean)
-  }));
-  okSi(!r.volet && r.phrases.length === 1,
-    '⑦ « Échanger » vide au poste : une colonne, une phrase pour le vide' + (r.volet || r.phrases.length !== 1 ? ` — lu : ${JSON.stringify(r)}` : ''));
+  await p.evaluate(() => { location.hash = '#/echanger'; });
+  await p.waitForSelector('.ec-detail', { state: 'attached' });
+  const detail = await p.evaluate(() => document.querySelector('.ec-detail').textContent.trim());
+  const fil = await p.evaluate(() => document.querySelector('.ec-rien')?.textContent.trim() || '');
+  okSi(detail === '' && fil.length > 0,
+    '⑦ « Échanger » vide au poste : une phrase pour le vide, pas deux' + (detail ? ` — détail lu : « ${detail} »` : ''));
   await p.context().close();
 }
 

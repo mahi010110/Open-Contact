@@ -26,8 +26,7 @@
    ⑦ pouce et poste, clair et sombre, et à 320 px texte doublé : rien
      ne déborde, aucun nom n'est coupé.
    ============================================================ */
-import { chromium, chromiumPath, serveRepo, SHOTS, annuaireMuet,
-         ouvrirMonQR, ouvrirRecevoir, ouvrirMesAmis, ouvrirDonner } from './outils.mjs';
+import { chromium, chromiumPath, serveRepo, SHOTS, annuaireMuet } from './outils.mjs';
 
 const { server, base } = await serveRepo();
 const browser = await chromium.launch({ executablePath: chromiumPath() });
@@ -68,7 +67,7 @@ async function ecran(vp, touch, profil, pistes, o = {}){
   p.setDefaultTimeout(6000);
   p.on('pageerror', e => errors.push(String(e)));
   p.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
-  await p.goto(base + '/#/reseau', { waitUntil: 'load' });
+  await p.goto(base + '/#/echanger', { waitUntil: 'load' });
   await p.evaluate(async ([d, pr]) => {
     const st = await import('./engine/storage.js');
     await st.kvInit();
@@ -88,6 +87,15 @@ const fermerTout = async p => {
     await p.waitForTimeout(250);
   }
 };
+/* « Mon QR » par le vrai chemin : Mes pistes › Amis — « Mon QR » quand
+   la liste est vide, « Ajouter un ami » en bout de liste sinon */
+async function ouvrirMonQR(p){
+  await p.evaluate(() => { location.hash = '#/pistes'; });
+  await p.waitForSelector('#piPortee [data-portee="amis"]');
+  await p.click('#piPortee [data-portee="amis"]');
+  await p.waitForSelector('#avMonQR, #avAjout');
+  await p.click('#avMonQR, #avAjout');
+}
 /* la barre « Annuler » d'un geste précédent couvre le bas de l'écran
    trente secondes : on la referme comme on le ferait, par sa croix */
 const sansAnnuler = async p => {
@@ -108,21 +116,27 @@ async function monProfilCopie(p){
   return { txt, bouton };
 }
 /* recevoir un profil par le vrai chemin : Échanger › Recevoir › Texte →
-   Lire — la phrase que « Copier » met devant le profil dit ce chemin-là
-   (+ › Recevoir › Texte depuis la 7.0.0) */
+   Lire — la phrase que « Copier » met devant le profil dit ce chemin-là */
 async function recevoirProfil(p, txt){
   await fermerTout(p);
   await sansAnnuler(p);
-  await ouvrirRecevoir(p, 'texte');
+  await p.evaluate(() => { location.hash = '#/echanger'; });
+  await p.waitForSelector('#ecRecv');
+  await p.click('#ecRecv');
+  await p.waitForSelector('#rcPaste');
+  await p.click('#rcPaste');
+  await p.waitForSelector('#rcTxt');
   await p.fill('#rcTxt', txt);
   await p.evaluate(() => [...document.querySelectorAll('.overlay')].pop().querySelector('.modal-f .btn-primary').click());
   await p.waitForTimeout(400);
 }
-/* la liste des amis vit dans « Réseau › Mes amis » (R1, 7.0.0) */
+/* la liste des amis vit dans « Mes pistes » (lot 4) : la portée « Amis » */
 async function ongletAmis(p){
   await fermerTout(p);
   await sansAnnuler(p);
-  await ouvrirMesAmis(p);
+  await p.evaluate(() => { location.hash = '#/pistes'; });
+  await p.waitForSelector('[data-portee="amis"]');
+  await p.click('[data-portee="amis"]');
   await p.waitForSelector('#piAmis');
   await p.waitForTimeout(250);
 }
@@ -178,7 +192,9 @@ await K.p.screenshot({ path: `${SHOTS}/99-amis-mon-qr-pouce.png` });
 console.log('① « Mon QR » ne porte que l’identifiant, le nom, le parcours et la clé publique — ni suivi, ni ami ✓');
 /* « Donner » (texte), depuis l'état réel : aucun ami ne sort */
 await fermerTout(K.p);
-await ouvrirDonner(K.p);
+await K.p.evaluate(() => { location.hash = '#/echanger'; });
+await K.p.waitForSelector('#ecGive');
+await K.p.click('#ecGive');
 await K.p.waitForSelector('#dnText');
 await K.p.evaluate(() => { window.__copie = []; });
 await K.p.click('#dnText');
@@ -218,11 +234,10 @@ if ((await bandeaux(I.p))[0] !== 'Karim y est en alternance') fail('fiche AZTEK 
 await I.p.screenshot({ path: `${SHOTS}/99-amis-fiche-pouce.png` });
 await I.p.click('#fiVecu');
 await I.p.waitForTimeout(350);
-/* la barre dit la fenêtre (« Demande ») ; à qui, c'est le message qui le dit (§4) */
-if (await dessus(I.p) !== 'Demande') fail('le bandeau n’ouvre pas la feuille « Demande » : ' + await dessus(I.p));
+if (await dessus(I.p) !== 'Demander à Karim') fail('le bandeau n’ouvre pas « Demander à Karim » : ' + await dessus(I.p));
 {
   const mot = await I.p.evaluate(() => document.querySelector('.overlay:last-child .gr-mot')?.textContent || '');
-  if (!mot.startsWith('Salut Karim, tu es en alternance chez AZTEK SAS ?')) fail('message : ' + mot);
+  if (!mot.startsWith('Salut Karim, tu y es en alternance chez AZTEK SAS ?')) fail('message : ' + mot);
 }
 /* une piste sans rapport ne dit rien */
 await ouvrirFiche(I.p, 'a');
@@ -233,10 +248,15 @@ console.log('② la fiche dit « Karim y est en alternance » et le message est 
 await fermerTout(I.p);
 await I.p.evaluate(() => { location.hash = '#/pistes'; });
 await I.p.waitForSelector('#piQ');
-/* la barre cherche dans les PISTES */
+/* la portée tient pour la session (on sort de « Amis ») : la barre
+   cherche ici dans les PISTES */
+await I.p.click('[data-portee="pistes"]');
 await I.p.fill('#piQ', 'Karim');
 await I.p.waitForTimeout(500);
 {
+  /* et la portée « Amis » le trouve aussi, pendant la frappe */
+  const nAmis = await I.p.evaluate(() => document.querySelector('[data-portee="amis"] .pt-n')?.textContent);
+  if (nAmis !== '1') fail('la portée « Amis » ne compte pas Karim pendant la frappe : ' + nAmis);
   const r = await I.p.evaluate(() => [...document.querySelectorAll('#view-pistes .row-item')]
     .filter(x => x.offsetParent).map(x => x.textContent.replace(/\s+/g, ' ').trim()));
   if (r.length !== 1 || !/AZTEK SAS/.test(r[0]) || !/Karim y est en alternance/.test(r[0])) fail('barre « Karim » : ' + JSON.stringify(r));
@@ -353,7 +373,7 @@ for (const [vp, touch, sombre, nom] of [[{ width: 1280, height: 800 }, false, fa
   if (nom === '320-200') await p.evaluate(() => { document.documentElement.style.fontSize = '200%'; });
   await ongletAmis(p);
   await p.waitForSelector('#piAmis .am-row');
-  /* `dans` : la boîte qui doit tenir — la feuille du dessus par défaut */
+  /* `dans` : la boîte qui doit tenir — la feuille au pouce, la page au poste */
   const mesure = (sel, dans) => p.evaluate(([s, d]) => {
     const m = d ? document.querySelector(d) : [...document.querySelectorAll('.overlay')].pop().querySelector('.modal-b');
     const mr = m.getBoundingClientRect().right;
@@ -364,19 +384,20 @@ for (const [vp, touch, sombre, nom] of [[{ width: 1280, height: 800 }, false, fa
       lateral: m.scrollWidth > m.clientWidth + 1
     };
   }, [sel, dans || null]);
-  let r = await mesure('#piAmis');
+  /* la boîte de la LISTE : la barre de recherche, elle, déborde exprès
+     de la page pour coller pleine largeur (§5) */
+  let r = await mesure('#piAmis', '#piBody');
   if (r.deborde || r.lateral) fail(`${nom} : la liste des amis déborde (${r.deborde})`);
   if (r.coupes) fail(`${nom} : un nom d’ami est coupé`);
   await p.screenshot({ path: `${SHOTS}/99-amis-liste-${nom}.png` });
   /* Karim, pas le premier de la liste : c'est LUI qui a un parcours, et
      le nom le plus long. Un contrôle ne serre que ce qu'il remplit —
      ouvert sur Awa, sans parcours, il ne mesurait rien. Au pouce sa
-     fiche est une feuille, au pouce comme au poste (« Réseau › Mes
-     amis », 7.0.0). */
+     fiche est une feuille ; au poste, elle vit à côté de la liste. */
   await p.click('#piAmis .am-row[data-ami="KarimKarimKarim00001"] .ri-main');
-  await p.waitForSelector('.overlay .am-par [data-ajout]');
+  await p.waitForSelector(touch ? '.overlay .am-par [data-ajout]' : '.am-detail .am-par [data-ajout]');
   await p.waitForTimeout(450);
-  r = await mesure('.am-par');
+  r = touch ? await mesure('.am-par') : await mesure('.am-detail .am-par', '.am-detail');
   if (touch){
     /* au doigt, ce qu'on voit est ce qu'on touche : 44 px (§5) */
     const petits = await p.evaluate(() => [...[...document.querySelectorAll('.overlay')].pop().querySelectorAll('button')]

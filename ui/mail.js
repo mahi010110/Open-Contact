@@ -8,7 +8,6 @@
    propose la suite — la boucle qui entretient « Aujourd'hui ».
    ============================================================ */
 import { esc, todayISO } from '../engine/utils.js';
-import { brouillon, garderBrouillon, oublierBrouillon, ecrireBrouillonsMaintenant } from './brouillons.js';
 import { fillTpl, crochets, remplirTrous, pushHist, modeleConseille } from '../engine/model.js';
 import { sendMail } from '../engine/mailer.js';
 import { bytesToB64 } from '../engine/crypto.js';
@@ -16,7 +15,7 @@ import { docGet } from '../engine/storage.js';
 import { aiComplete, draftPrompt, splitDraft } from '../engine/ai.js';
 import { SILENCE_RELANCE } from '../engine/assist.js';
 import { S, bus, saveData, logJ, activateContact } from './state.js';
-import { openSheet, toast, btn, el, ic, showUndo, champGrandit, avantImage } from './dom.js';
+import { openSheet, toast, btn, el, ic, showUndo, champGrandit } from './dom.js';
 import { askNextAction } from './actions.js';
 import { openProfil } from './profil.js';
 import { listDocs, docKind, docTitle, pickPdf } from './docs.js';
@@ -31,7 +30,7 @@ import { euros } from '../engine/marche.js';
    la fiche. Sans rien de tout ça, le site est la matière : un tap pour
    aller la chercher. */
 const webH = w => /^https?:\/\//i.test(w) ? w : 'https://' + w;
-export function savoirHTML(c){
+function savoirHTML(c){
   /* Sans « En bref », la carte de l'entreprise (ui/carte.js) a souvent
      la phrase qui manque — ce qu'elle fait, selon Wikipédia ou
      l'annuaire — et sa taille, qui dit à qui l'on écrit (« une équipe de
@@ -81,11 +80,8 @@ export function openMail(c, opts){
        et c'est justement quand on écrit à cinq pistes d'affilée
        (Prospecter, « 2/5 ») qu'il faut lire à qui l'on écrit. */
     title: 'Écrire',
-    /* le champ est choisi une fois le brouillon posé (plus bas) */
-    icon: 'mail', className: 'modal-compose', focus: '[data-ouvrir]',
-    /* R3-b : au poste, la série le pose dans sa colonne (ui/serie.js) */
-    dans: opts.dans,
-    onClose: () => { oublier(); ecrireBrouillonsMaintenant(); if (done) return; done = true; if (opts.onQuit) opts.onQuit(); }
+    icon: 'mail', className: 'modal-compose', focus: cts.length ? '#mSubj' : '#mBody',
+    onClose: () => { oublier(); if (done) return; done = true; if (opts.onQuit) opts.onQuit(); }
   });
   /* messagerie connectée ? Hors périmètre, la réponse est « non » et tout
      le composeur retombe de lui-même sur `mailto:` — pied, pièce jointe,
@@ -150,9 +146,8 @@ export function openMail(c, opts){
           Absent quand il n'y a rien à savoir : un cadre vide dirait
           seulement qu'on n'a rien préparé, et le site, lui, mène
           quelque part. */''}
-     ${opts.sansSavoir ? '' : savoirHTML(c)}
+     ${savoirHTML(c)}
      <div class="field fld-body"><label for="mBody">Message</label><textarea id="mBody" aria-describedby="mTrou"></textarea>
-       <button class="linklike" id="mBrouillon" hidden>${ic('undo', 'ic-14')} Reprendre mon brouillon</button>
        <p class="hint warn" id="mTrou" hidden>Remplace le texte entre crochets.</p>
        ${(IA && aiConnection()) ? `<button class="linklike" id="mAi" style="margin-top:2px">${ic('sparkles', 'ic-14')} Proposer un brouillon</button>` : ''}</div>
      <div class="attach-line" id="mAttach"></div>
@@ -167,6 +162,14 @@ export function openMail(c, opts){
      Un objet n'a pas de ligne : Entrée passe au message, et un
      copier-coller multiligne se remet à plat en entrant. */
   const OBJET_CIBLE = 60, OBJET_LIGNES = 4;
+  /* poser la hauteur d'un champ sur son texte. `scrollHeight` ne compte
+     jamais la bordure : sans elle, chaque mesure rogne deux pixels et
+     une dernière ligne finit par se couper. */
+  function auTexte(t, plafond){
+    t.style.height = 'auto';
+    const bord = t.offsetHeight - t.clientHeight;
+    t.style.height = Math.ceil(Math.min(t.scrollHeight, plafond) + bord) + 'px';
+  }
   /* appelé par `sync()`, donc par TOUS les chemins qui posent un objet —
      le gabarit, la frappe, le brouillon IA, l'annulation du brouillon.
      Un chemin qui l'oubliait laissait un champ d'une ligne sur un objet
@@ -192,19 +195,9 @@ export function openMail(c, opts){
     if (!t || (!force && t.value === objetVu)) return;
     if (t.value.includes('\n')) t.value = t.value.replace(/\s*\n+\s*/g, ' ');
     objetVu = t.value;
-    /* la hauteur se pose à l'image, avec celle du message (ui/dom.js,
-       `avantImage`). `scrollHeight` ne compte jamais la bordure : sans
-       elle, chaque mesure rogne deux pixels et une dernière ligne finit
-       par se couper. */
-    avantImage({
-      preparer: () => { t.style.height = 'auto'; },
-      lire: () => {
-        const st = getComputedStyle(t);
-        const plafond = (parseFloat(st.lineHeight) || 20) * OBJET_LIGNES + parseFloat(st.paddingTop) + parseFloat(st.paddingBottom);
-        return Math.ceil(Math.min(t.scrollHeight, plafond) + t.offsetHeight - t.clientHeight);
-      },
-      ecrire: h => { t.style.height = h + 'px'; }
-    });
+    const st = getComputedStyle(t);
+    auTexte(t, (parseFloat(st.lineHeight) || 20) * OBJET_LIGNES
+      + parseFloat(st.paddingTop) + parseFloat(st.paddingBottom));
     q('#mSubjN').textContent = t.value.length + '/' + OBJET_CIBLE;
   }
   const aMail = document.createElement('a');
@@ -330,7 +323,7 @@ export function openMail(c, opts){
   };
   function sync(){
     syncObjet();
-    pousserCorps.aLImage();
+    pousserCorps();
     /* l'erreur part dès que le dernier crochet est remplacé — jamais avant */
     if (!q('#mTrou').hidden && !crochets(q('#mBody').value).length){
       q('#mTrou').hidden = true;
@@ -451,13 +444,11 @@ export function openMail(c, opts){
     if (!c.appliedAt) c.appliedAt = todayISO();
     c.updatedAt = Date.now();
     saveData();
-    oublierBrouillon(c.id);                             /* parti : le brouillon n'a plus d'objet */
-    if (opts.onEnvoye) opts.onEnvoye();                 /* la file de la série le dit */
     done = true;
     sh.close();
     bus.refresh();
     askNextAction(c, {
-      title: 'Et ensuite ?',
+      title: 'Envoyé ✓ — et ensuite ?',
       preset: 'Relancer' + (who ? ' ' + who : ''),
       conseil: SILENCE_RELANCE,                         /* « Dans 7 jours », sous le pouce */
       ctId: ct && ct.id,                                /* la relance vise la personne */
@@ -473,18 +464,6 @@ export function openMail(c, opts){
     q('#mBody').focus();
   });
   q('#mBody').addEventListener('input', sync);
-  /* R3 : CE QU'ON ÉCRIT SE GARDE, sur cet appareil. Seulement ce que la
-     main a tapé — jamais le modèle tel quel : rouvrir sur un texte
-     qu'on n'a pas touché, c'est le modèle, et il se recalcule de
-     lui-même. Pas depuis `sync()` : `fill()` l'appelle à l'ouverture et
-     effacerait le brouillon avant qu'il revienne. */
-  const garder = () => {
-    const objet = q('#mSubj').value, corps = q('#mBody').value;
-    if (objet === genere.objet && corps === genere.corps) oublierBrouillon(c.id);
-    else garderBrouillon(c, { objet, corps, ctId: (currentCt() || {}).id, statut: c.status });
-  };
-  q('#mSubj').addEventListener('input', garder);
-  q('#mBody').addEventListener('input', garder);
   aMail.addEventListener('click', logPrep);
   /* brouillon IA : le texte tombe dans le champ ÉDITABLE — relecture
      par construction, le gabarit reste le repli */
@@ -557,10 +536,10 @@ export function openMail(c, opts){
      reconnexion s'empile au-dessus */
   const askReconnect = () => {
     const s2 = openSheet({
-      title: 'Reconnexion',
+      title: (acct.provider === 'gmail' ? 'Gmail' : 'Outlook') + ' demande de te reconnecter',
       icon: 'mail', className: 'modal-confirm'
     });
-    s2.body.innerHTML = '<p class="cf-msg">' + (acct.provider === 'gmail' ? 'Gmail' : 'Outlook') + ' demande de te reconnecter. Ton brouillon ne bouge pas.</p>';
+    s2.body.innerHTML = '<p class="cf-msg">Ton brouillon ne bouge pas.</p>';
     s2.setFoot([
       el(`<a class="btn" href="${aMail.href || '#'}" style="text-decoration:none">Ouvrir dans Mail</a>`),
       btn('Reconnecter', 'btn-primary', () => { s2.close(); openConnexions(); })
@@ -603,46 +582,5 @@ export function openMail(c, opts){
     });
   }
   fill();
-  /* LE BROUILLON REVIENT où on l'avait laissé — la personne, l'objet, le
-     message. Si la piste a changé de statut depuis (une réponse est
-     arrivée), le modèle d'aujourd'hui est sans doute plus juste : le
-     brouillon se propose, il ne s'impose pas. */
-  const br = brouillon(c);
-  if (br){
-    const poser = () => {
-      const i = br.ctId ? cts.findIndex(t => t.id === br.ctId) : -1;
-      if (i >= 0 && q('#mTo')) q('#mTo').value = String(i);
-      q('#mSubj').value = br.objet;
-      q('#mBody').value = br.corps;
-      q('#mBrouillon').hidden = true;
-      sync();
-    };
-    if (!br.perime) poser();
-    else {
-      q('#mBrouillon').hidden = false;
-      q('#mBrouillon').addEventListener('click', () => { poser(); garder(); q('#mBody').focus(); });
-    }
-  }
-  /* LE CURSEUR LÀ OÙ IL RESTE QUELQUE CHOSE À ÉCRIRE. Il s'ouvrait dans
-     l'objet, déjà rempli (49/60), pendant que la seule chose à écrire —
-     l'accroche entre crochets — attendait deux champs plus bas, et qu'au
-     doigt le clavier montait pour rien (audit du 28 octobre 2026). Le
-     motif de dialogue d'ARIA (APG) pose le focus initial là où la
-     feuille attend une saisie, pas forcément sur son premier champ : ici
-     c'est le crochet, et il est SÉLECTIONNÉ — il suffit de taper pour le
-     remplacer, comme après le refus de « Ouvrir dans Mail ». Sans
-     crochet (un brouillon repris, déjà écrit), l'objet comme avant. */
-  const trou = crochets(q('#mBody').value)[0];
-  (trou || !cts.length ? q('#mBody') : q('#mSubj')).dataset.ouvrir = '';
-  /* le focus d'ouverture part à l'image (openSheet), inscrit avant
-     celle-ci : à la même image, le crochet est encore à sa place, et le
-     curseur n'a pas bougé si personne n'a encore touché la feuille */
-  if (trou) requestAnimationFrame(() => {
-    const t = q('#mBody');
-    if (document.activeElement !== t || t.selectionStart !== t.selectionEnd) return;
-    const [x] = crochets(t.value);
-    if (x) t.setSelectionRange(x.debut, x.fin);
-  });
   renderAttach();
-  return sh;
 }

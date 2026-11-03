@@ -28,18 +28,15 @@ import { boutonEnvoyer } from './fichier.js';
 import { esc, todayISO, uid } from '../engine/utils.js';
 import { normalizeCompany } from '../engine/model.js';
 import { PARCOURS, periodeParcours } from '../engine/parcours.js';
-import { AIDES, direAide } from '../engine/aide.js';
 import { nouvelIdAmi, profilDonne, statutAmi, ajouterAmi, retirerAmi, prenomAmi,
-         portesAmis, memeEntreprise, classerAmis, chercherAmis, TRI_AMIS_DEFAUT } from '../engine/amis.js';
+         portesAmis, memeEntreprise, classerAmis, chercherAmis, TRIS_AMIS, TRI_AMIS_DEFAUT } from '../engine/amis.js';
 import { encodeOCA } from '../engine/exchange.js';
 import { S, bus, saveData, saveProfile, logJ, deletePiste } from './state.js';
-import { openSheet, btn, ic, showUndo, bindDeleteGesture, clavier } from './dom.js';
-import { interpreter, contexteRecherche, critereDe } from '../engine/requete.js';
-import { sortState, sensDe } from './sort.js';
+import { openSheet, toast, btn, ic, showUndo, bindDeleteGesture } from './dom.js';
+import { sortState, sortSectionHTML, bindSortSection, sortChipHTML, bindSortChip, sensDe } from './sort.js';
 import { makeQrSvg } from './qr.js';
-import { demandesCritere, peutDemanderAmis, carteDemandeHTML, ouvrirDemander, libelleDemander, direAdieu, reprendreMonProfil } from './reseau.js';
-import { ouvrirConversation, aUneConversation } from './messages.js';
-import { visageHTML } from './visage.js';
+import { demandesCritere, peutDemanderAmis, phraseDemande, ouvrirDemander, libelleDemander, direAdieu, reprendreMonProfil } from './reseau.js';
+import { nonLusDe, ouvrirConversation } from './messages.js';
 
 /* ce que le parcours de tes amis dit de tes pistes — calculé à la
    demande : l'index du moteur le rend linéaire, rien à mémoriser */
@@ -94,17 +91,10 @@ export async function openMonQR(o = {}){
      ${/* CE QUI PART, en entier, sous l'image : rien de caché derrière
           un QR. Le nom et les entreprises — c'est tout. */''}
      <div class="mq-donne" id="mqDonne">
-       ${/* le visage part avec le nom : dessiné, il est dans le QR ;
-            tiré, il se recalcule de l'identifiant — c'est celui-là
-            qu'ils verront */''}
-       <b class="mq-nom">${visageHTML(S.profile.amiId, 'vz-m')}${esc(donne.nom)}</b>
+       <b>${esc(donne.nom)}</b>
        ${donne.parcours.length
          ? `<span>${esc(donne.parcours.map(e => (PARCOURS[e.quoi] ? PARCOURS[e.quoi].label + ' chez ' : '') + e.entreprise).join(' · '))}</span>`
          : `<button class="linklike" id="mqParcours">${ic('plus', 'ic-14')} Ajouter mon parcours</button>`}
-       ${/* ce que je peux offrir (lot R7) : écrit tel qu'il part — un mot
-            hors de la table s'y lirait aussi, jamais caché */''}
-       ${(donne.aide || []).length
-         ? `<span id="mqAide">Je peux aider : ${esc(donne.aide.map(k => AIDES[k] ? AIDES[k].mot[0].toLowerCase() + AIDES[k].mot.slice(1) : k).join(' · '))}</span>` : ''}
      </div>`;
   sh.body.querySelector('#mqParcours')?.addEventListener('click', async () => {
     sh.close();
@@ -117,7 +107,7 @@ export async function openMonQR(o = {}){
   /* au doigt, « Envoyer » ouvre la feuille de partage ; au poste, « Copier » */
   /* les deux gestes de la feuille, sans primaire pour les porter : ils
      gardent leur boîte (§6, « La taille dit le rang ») */
-  const copier = boutonEnvoyer(`Mon profil OpenContact — colle ce message dans OpenContact, Ajouter › Recevoir › Texte :\n${txt}`,
+  const copier = boutonEnvoyer(`Mon profil OpenContact — colle ce message dans Échanger › Recevoir › Texte :\n${txt}`,
     { classe: 'btn-contour' });
   const scanner = btn('Scanner', 'btn-contour', async () => {
     sh.close();
@@ -228,23 +218,16 @@ function ficheAmiHTML(a){
    poste il ouvre le détail, sous le nom. Ce qui n'est pas lu se compte
    dedans. Un ami sans boîte n'a pas ce geste : la ligne « Rescanne son
    QR » le dit. */
-const motEcrire = a => `${ic('message-text', 'ic-14')} Écrire à ${esc(prenomAmi(a))}`;
+const motEcrire = a => {
+  const n = nonLusDe(a.id);
+  return `${ic('message-text', 'ic-14')} Écrire à ${esc(prenomAmi(a))}${n ? ` <span class="gr-n am-n">${n}</span>` : ''}`;
+};
 function boutonEcrire(a, apres, classe){
   const b = document.createElement('button');
   b.className = 'btn ' + classe;
   b.id = 'amEcrire';
   b.innerHTML = motEcrire(a);
-  /* au poste, une conversation qui existe se lit dans la boîte, à sa
-     place (lot F2 : un seul endroit pour une conversation, comme
-     « Message » sur Discord) ; une conversation neuve, ou au pouce, s'ouvre
-     en feuille ici même */
-  b.addEventListener('click', async () => {
-    if (matchMedia('(min-width:901px)').matches && aUneConversation(a.id)){
-      (await import('./conversations.js')).ouvrirDansBoite('ami', a.id);
-      return;
-    }
-    ouvrirConversation(a, apres);
-  });
+  b.addEventListener('click', () => ouvrirConversation(a, apres));
   return b;
 }
 function lierFicheAmi(box, a, { apres, fermer } = {}){
@@ -290,7 +273,7 @@ export function openAmi(a, apres){
   const dessiner = () => {
     if (!sh.body.isConnected) return;
     const frais = (S.profile.amis || []).find(x => x.id === a.id) || a;
-    sh.body.innerHTML = `<h2 class="ap-nom am-nom">${visageHTML(frais.id, 'vz-m')}${esc(frais.nom)}</h2>` + ficheAmiHTML(frais);
+    sh.body.innerHTML = `<h2 class="ap-nom am-nom">${esc(frais.nom)}</h2>` + ficheAmiHTML(frais);
     const ensuite = () => { dessiner(); if (apres) apres(); };
     lierFicheAmi(sh.body, frais, { apres: ensuite, fermer: () => sh.close() });
     sh.setFoot(frais.cle ? [boutonEcrire(frais, ensuite, 'btn-primary')] : null);
@@ -299,9 +282,9 @@ export function openAmi(a, apres){
   return sh;
 }
 
-/* ---------- « Mes amis » (lot 4, dans « Réseau » depuis R1) ----------
+/* ---------- l'onglet « Amis » de « Mes pistes » (lot 4) ----------
    Un ami se lit comme une piste : la même rangée, le même geste pour le
-   retirer. Sa ligne dit ce qu'il T'OUVRE — des onglets
+   retirer, le même tri. Sa ligne dit ce qu'il T'OUVRE — des onglets
    voisins montrent des choses de même nature (NN/g) : ses entreprises,
    celles de tes pistes d'abord, en accent. */
 export const triAmis = sortState(TRI_AMIS_DEFAUT);
@@ -315,21 +298,21 @@ function sousLigneAmi(o){
   return (dans.length ? `<span class="am-tienne">${esc(dans.join(', '))}, dans tes pistes</span>` : '')
     + (dans.length && autres.length ? ' · ' : '') + esc(autres.join(' · '));
 }
-/* Ce qu'un ami t'a écrit ne se compte plus ici : la conversation vit
-   dans la boîte « Échanger », dont l'onglet porte le chiffre (13 octobre
-   2026). Cette liste dit ce que l'ami T'OUVRE. */
+/* ce qu'il t'a écrit et que tu n'as pas lu se compte au bout de sa
+   ligne, en accent — le chiffre d'un groupe dans « Échanger » ; rien
+   quand il n'y a rien */
 function ligneAmiHTML({ a, o }, sel){
+  const n = nonLusDe(a.id);
   return (
     `<div class="row-item am-row${sel ? ' am-sel' : ''}" data-ami="${esc(a.id)}">
        <div class="sw-in">
-         <div class="ri-main sw-cible am-main" role="button" tabindex="0" aria-label="Ouvrir ${esc(a.nom)}"${sel ? ' aria-current="true"' : ''}>
-           ${visageHTML(a.id)}
+         <div class="ri-main sw-cible am-main" role="button" tabindex="0" aria-label="Ouvrir ${esc(a.nom)}${
+           n ? `, ${n} message${n > 1 ? 's' : ''} non lu${n > 1 ? 's' : ''}` : ''}"${sel ? ' aria-current="true"' : ''}>
            <div class="am-txt">
              <h3>${esc(a.nom)}</h3>
-             <div class="ri-sub">${sousLigneAmi(o)}${direAide(a.aide)
-               ? /* ce qu'il offre (lot R7), après ce qu'il ouvre : une donnée,
-                    qui s'élide la première */ ` · <span class="am-aide">${esc(direAide(a.aide))}</span>` : ''}</div>
+             <div class="ri-sub">${sousLigneAmi(o)}</div>
            </div>
+           ${n ? `<span class="gr-n am-n" aria-hidden="true">${n}</span>` : ''}
          </div>
        </div>
      </div>`);
@@ -340,14 +323,13 @@ function ligneAmiHTML({ a, o }, sel){
 const memeCritere = (a, b) => !!a && !!b && a.metier === b.metier && a.ville === b.ville;
 function demandesHTML(critere){
   const ouvertes = demandesCritere();
-  /* la même carte que sur la fiche (lot F3, idée I) : une demande se
-     reconnaît partout où je la relis */
-  const faits = ouvertes.map(d => carteDemandeHTML(d, { cls: 'am-dem' })).join('');
+  const faits = ouvertes.map(d => `<p class="fi-demande am-dem">${ic(d.trouve ? 'check' : 'clock', 'ic-14')} Quelqu’un ${esc(phraseDemande(d))} · ${
+    d.trouve ? `trouvé chez un ami${d.trouve.par ? ' de ' + esc(d.trouve.par) : ''}` : `demandé à ${d.vers} ami${d.vers > 1 ? 's' : ''}`}</p>`).join('');
   const peut = critere && peutDemanderAmis() && !ouvertes.some(d => memeCritere(d.critere, critere));
   return { faits, geste: peut
     ? `<div class="am-demander"><button class="btn btn-sm" id="avDemander" data-metier="${esc(critere.metier || '')}" data-ville="${esc(critere.ville || '')}">${ic('users', 'ic-14')} ${esc(libelleDemander())}</button></div>` : '' };
 }
-export function vueAmisHTML(classes, { q, wide, critere, sansDemandes = false }){
+export function vueAmisHTML(classes, { q, wide, critere }){
   if (!(S.profile.amis || []).length)
     /* L'ÉTAT VIDE ENSEIGNE (§6) : ce que la liste montrera, et les deux
        gestes qui la remplissent — montrer son QR, scanner celui de l'autre */
@@ -360,10 +342,7 @@ export function vueAmisHTML(classes, { q, wide, critere, sansDemandes = false })
            <button class="btn" id="avScan">${ic('grid-3x3', 'ic-14')} Scanner</button>
          </div>
        </div>`);
-  /* `sansDemandes` : les cartes vivent ailleurs (Réseau, en tête) — le
-     GESTE qui en fait une reste ici, là où l'on a tapé « cyber Lille » */
   const dem = demandesHTML(critere);
-  if (sansDemandes) dem.faits = '';
   if (!classes.length) return dem.faits + `<div class="empty-list" id="avRien">Aucun ami ne correspond.</div>` + dem.geste;
   const x = wide ? (classes.find(c => c.a.id === choisiAmi) || classes[0]) : null;
   if (x) choisiAmi = x.a.id;
@@ -380,7 +359,7 @@ export function vueAmisHTML(classes, { q, wide, critere, sansDemandes = false })
     ? `<div class="dc-split">
          <div class="dc-col">${liste}${dem.geste}</div>
          <aside class="dc-detail am-detail" data-ami="${esc(x.a.id)}" aria-label="${esc(x.a.nom)}">
-           <h2 class="ap-nom am-nom">${visageHTML(x.a.id, 'vz-m')}${esc(x.a.nom)}</h2>${x.a.cle ? '<div class="am-ecrire"></div>' : ''}${ficheAmiHTML(x.a)}
+           <h2 class="ap-nom">${esc(x.a.nom)}</h2>${x.a.cle ? '<div class="am-ecrire"></div>' : ''}${ficheAmiHTML(x.a)}
          </aside>
        </div>`
     : liste + dem.geste);
@@ -394,9 +373,7 @@ export function lierVueAmis(box, { wide, rendre }){
   const dem = box.querySelector('#avDemander');
   dem?.addEventListener('click', () => ouvrirDemander({ critere: { ...(dem.dataset.metier ? { metier: dem.dataset.metier } : {}),
     ...(dem.dataset.ville ? { ville: dem.dataset.ville } : {}) } }, rendre));
-  /* une table, pas une recherche par ligne (porte « Performance ») */
-  const parId = new Map((S.profile.amis || []).map(a => [a.id, a]));
-  const trouve = id => parId.get(id);
+  const trouve = id => (S.profile.amis || []).find(a => a.id === id);
   /* `rendre` REMPLACE la vue : le focus se rend à la ligne NEUVE, cherchée
      dans le document — l'ancienne `box` n'y est plus */
   const reprendre = id => document.querySelector(`#piAmis .am-row[data-ami="${CSS.escape(id)}"] .ri-main`)?.focus({ preventScroll: true });
@@ -428,36 +405,18 @@ export function lierVueAmis(box, { wide, rendre }){
     if (a) aside.querySelector('.am-ecrire')?.append(boutonEcrire(a, rendre, 'btn-sm btn-contour'));
   }
 }
-/* « MES AMIS », depuis Réseau (R1, décision 0002) : la même liste que
-   la portée « Amis » de Pistes, dans sa feuille, avec SA recherche —
-   « Thales » trouve Karim, et « cyber Lille » propose « Demander à mes
-   amis », comme la barre de Pistes le faisait. Les cartes des demandes
-   n'y sont pas : Réseau les montre déjà en tête, une seule place par
-   chose. */
-export function openMesAmis(apres){
-  const sh = openSheet({ title: 'Amis', icon: 'users' });
-  let q = '';
-  const avec = () => (S.profile.amis || []).length > 0;
-  const rendreListe = () => {
-    const zone = sh.body.querySelector('#amListe');
-    const critere = q ? critereDe(interpreter(q, contexteRecherche(S.companies))) : null;
-    zone.innerHTML = `<div id="piAmis">${vueAmisHTML(amisClasses(q), { q, wide: false, critere, sansDemandes: true })}</div>`;
-    lierVueAmis(zone.querySelector('#piAmis'), { wide: false, rendre: () => { rendre(); if (apres) apres(); } });
+/* le tri des amis : la même feuille que celle des pistes, leurs critères */
+export function openTriAmis(rendre){
+  const sh = openSheet({ title: 'Trier', icon: 'sort-vertical' });
+  const dessiner = () => {
+    sh.body.innerHTML = sortSectionHTML(triAmis, TRIS_AMIS);
+    bindSortSection(sh.body, triAmis, () => { rendre(); dessiner(); });
   };
-  const rendre = () => {
-    /* sans ami, l'état vide enseigne seul : un champ de recherche au-
-       dessus d'une liste vide ne chercherait rien */
-    sh.body.innerHTML = (avec()
-      ? `<div class="listbar lb-cmd am-cherche"><div class="lb-box"><div class="lb-find">
-           <span class="ic ic-14 srch-i" aria-hidden="true"></span>
-           <input class="lb-q" id="amQ" type="search" value="${esc(q)}" placeholder="Nom, entreprise…"
-                  aria-label="Chercher un ami" ${clavier('cherche')}>
-         </div></div></div>` : '') + '<div id="amListe"></div>';
-    sh.body.querySelector('#amQ')?.addEventListener('input', e => { q = e.target.value.trim(); rendreListe(); });
-    rendreListe();
-  };
-  rendre();
+  dessiner();
+  return sh;
 }
+export const triAmisChipHTML = () => sortChipHTML(triAmis, TRIS_AMIS);
+export const lierTriAmisChip = (box, rendre) => bindSortChip(box, triAmis, rendre);
 
 /* Une entreprise du parcours d'un ami devient une piste : son nom, et
    son SIREN s'il l'a donné — rien d'autre n'est inventé. La fiche dira

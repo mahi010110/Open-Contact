@@ -7,19 +7,15 @@
    léger garde-fou. Contacts joignables en un tap, clôture,
    itinéraire — l'édition des champs partagés reste sa feuille.
    ============================================================ */
-import { esc, fmtDate, isLate, directionsUrl, todayISO } from '../engine/utils.js';
+import { esc, fmtDate, isLate, directionsUrl } from '../engine/utils.js';
 import { STATUSES, CLOSE_REASONS, DOMAINS, POSITIONS, VECU, pushHist, summarizeChanges,
          nextActionContact } from '../engine/model.js';
 import { scoreOf } from '../engine/score.js';
 import { porteurs } from '../engine/requete.js';
 import { portesDuJour } from './amis.js';
-import { reseauDePiste, ouvrirDemander, ouvrirDon, carteDemandeHTML, bandeauDon, libelleDemander } from './reseau.js';
+import { reseauDePiste, ouvrirDemander, ouvrirDon, demandeEnCoursHTML, bandeauDon, libelleDemander } from './reseau.js';
 import { S, bus, isClosed, saveData, reopenPiste, logJ, activateContact } from './state.js';
-import { openSheet, confirmSheet, toast, btn, ic, montrerChange, suivreLargeur, choixHTML } from './dom.js';
-import { demandesPossibles, libelleDemande, messageDemande, merciAProposer, messageMerci } from '../engine/aide.js';
-import { dernierEnvoiA } from './messages.js';
-import { toucheHTML, toucheAttr, poserTouche, lettreActive } from './clavier.js';
-import { prenomAmi } from '../engine/amis.js';
+import { openSheet, confirmSheet, toast, btn, ic, montrerChange, suivreLargeur } from './dom.js';
 import { frDate, relLabel } from './dates.js';
 import { askNextAction, askClose } from './actions.js';
 import { openMail } from './mail.js';
@@ -46,76 +42,21 @@ const FORM_FIELDS = ['status', 'nextAction', 'nextActionText', 'nextActionCt', '
    C'est ce qui le fait marcher aussi de seconde main — un carnet de
    camarades, lui, ne contient que les gens qu'on a déjà joints, donc
    jamais celui qui recommande deux échanges plus loin. */
-/* La seule chose qui ne se devine pas, et elle change tout : vous êtes
-   dans le même cours, et la demande faite là aboutit 34 fois plus
-   souvent que par écrit. Huit mots, parce qu'un neuvième ne dirait rien
-   de plus. Une phrase, dite une fois : les deux feuilles la partagent. */
-const enVraiHTML = () => `<p class="hint">${ic('users', 'ic-14')} Demande-lui en vrai : bien plus efficace qu\u2019un message.</p>`;
-const boutonCopier = (sh, mot) => btn('Copier le message', 'btn-primary', async () => {
-  try { await navigator.clipboard.writeText(mot()); toast('Copié ✓'); sh.close(); }
-  catch (e) { toast('Copie impossible ici — sélectionne le texte.'); }
-}, 'copy');
 function openDemander(c, prenom, v){
-  /* CEUX QUI AIDENT (lot R7) : un AMI dit ce qu'il peut offrir, et la
-     demande se pose dans votre conversation */
-  const ami = v.amiId && (S.profile.amis || []).find(a => a.id === v.amiId);
-  if (ami) return demanderAAmi(c, ami, v);
-  const sh = openSheet({ title: 'Demande', icon: 'message-text' });
+  const sh = openSheet({ title: 'Demander à ' + prenom, icon: 'message-text' });
   const mot = `Salut ${prenom}, tu ${v.tu} chez ${c.name} ? `
             + `Je postule là-bas — tu peux me dire à qui écrire ?`;
-  sh.body.innerHTML = enVraiHTML() + `<div class="gr-mot">${esc(mot)}</div>`;
-  sh.setFoot([boutonCopier(sh, () => mot)]);
-}
-
-/* De qui dire merci (lot R7) : les amis qui ont porté la piste et qu'on
-   peut joindre (une boîte) — ceux qui y sont passés d'abord, puis celui
-   dont le prénom est sur un contact donné (`via`), s'il est le seul de
-   mes amis à le porter. Un prénom partagé par deux amis ne désigne
-   personne : on ne devine pas. */
-function merciDePiste(c, qui){
-  const amis = (S.profile.amis || []).filter(a => a.cle);
-  const cands = [];
-  for (const p of qui) if (p.amiId && amis.some(a => a.id === p.amiId)) cands.push({ id: p.amiId, prenom: p.prenom });
-  for (const t of c.contacts || []){
-    if (!t.via) continue;
-    const memes = amis.filter(a => prenomAmi(a).toLowerCase() === String(t.via).trim().toLowerCase());
-    if (memes.length === 1 && !cands.some(x => x.id === memes[0].id)) cands.push({ id: memes[0].id, prenom: prenomAmi(memes[0]) });
-  }
-  return merciAProposer(c, cands, dernierEnvoiA, todayISO());
-}
-
-/* « Demander à Karim », quand Karim est un ami (lot R7). Ce qu'il a dit
-   pouvoir faire devient un CHOIX d'une valeur — à qui écrire, 20 minutes
-   pour parler de son entreprise, relire mon CV, me présenter —, et la
-   phrase change sous les yeux. Le geste du pied pose la phrase dans la
-   conversation avec lui ; elle part de la flèche, pas d'ici. Sans boîte
-   (un QR d'avant la 6.55), on ne peut pas lui écrire : la phrase se
-   copie, comme avant. */
-function demanderAAmi(c, ami, v){
-  const prenom = prenomAmi(ami);
-  const sh = openSheet({ title: 'Demande', icon: 'message-text' });
-  const sortes = demandesPossibles(ami.aide);
-  let sorte = sortes[0];
-  const mot = () => messageDemande(sorte, { prenom, tu: v.tu, entreprise: c.name, cherche: S.profile.recherche });
-  const rendre = () => {
-    sh.body.innerHTML =
-      `${enVraiHTML()}
-       ${sortes.length > 1 ? choixHTML(sortes.map(k => [k, libelleDemande(k, c.name)]), sorte, { attr: 'data-sorte' }) : ''}
-       <div class="gr-mot" id="dmMot">${esc(mot())}</div>`;
-    sh.body.querySelectorAll('[data-sorte]').forEach(b => b.addEventListener('click', () => {
-      sorte = b.dataset.sorte;
-      rendre();
-      sh.body.querySelector(`[data-sorte="${sorte}"]`)?.focus();   /* le focus reste sur le choix */
-    }));
-  };
-  rendre();
-  sh.setFoot([ami.cle
-    ? btn('Écrire à ' + prenom, 'btn-primary', async () => {
-        const texte = mot();
-        sh.close();
-        (await import('./messages.js')).ouvrirConversation(ami, null, { texte });
-      }, 'message-text')
-    : boutonCopier(sh, mot)]);
+  sh.body.innerHTML =
+    /* La seule chose qui ne se devine pas, et elle change tout : vous
+       êtes dans le même cours, et la demande faite là aboutit 34 fois
+       plus souvent que par écrit. Huit mots, parce qu'un neuvième ne
+       dirait rien de plus. */
+    `<p class="hint">${ic('users', 'ic-14')} Demande-lui en vrai : bien plus efficace qu\u2019un message.</p>
+     <div class="gr-mot">${esc(mot)}</div>`;
+  sh.setFoot([btn('Copier le message', 'btn-primary', async () => {
+    try { await navigator.clipboard.writeText(mot); toast('Copié ✓'); sh.close(); }
+    catch (e) { toast('Copie impossible ici — sélectionne le texte.'); }
+  }, 'copy')]);
 }
 
 /* Deux conceptions, pas une fenêtre élastique. Au pouce : une colonne,
@@ -134,34 +75,7 @@ const plisSavoir = new Map();
    choix, que la session retient. */
 const savoirOuvert = c => plisSavoir.has(c.id) ? plisSavoir.get(c.id) : true;
 
-/* « Écrire » part vers la personne visée par l'action, sinon la
-   première personne joignable (#14) — jamais un email deviné en silence.
-   Exporté : au poste, E écrit à la piste choisie dans la liste (R1). */
-function ecrireA(c){
-  const p = nextActionContact(c);
-  if (p && p.email) return p.id;
-  const withMail = (c.contacts || []).filter(t => t.email);
-  const pref = withMail.find(t => t.activatedAt || t.src !== 'promo') || withMail[0];
-  return pref && pref.id;
-}
-export const ecrirePiste = c => openMail(c, { ctId: ecrireA(c) });
-
-/* `o.dans` : au poste, la fiche se POSE à droite de la liste de Pistes
-   (R1, décision 0003 — le motif du volet, `openSheet({ dans })`, celui
-   des conversations). Elle y prend le dessin d'une colonne : le volet
-   n'a pas la largeur de la fenêtre. Pas de croix ni de garde-fou de
-   fermeture : on la quitte en choisissant une autre piste, et c'est la
-   liste qui demande d'abord (`aQuitter`, rendu avec la feuille). */
-/* AU POSTE, « MES PISTES » EN LISTE POSE LA FICHE À CÔTÉ (R1-d). Une
-   fiche demandée d'ailleurs pendant qu'on y est (Ctrl K, une ligne qui
-   la nomme) se pose dans ce volet au lieu d'ouvrir une fenêtre de plus :
-   deux fiches dans la page, c'étaient deux `#fiNotes`, et le libellé de
-   la fenêtre visait la fiche qu'on ne voyait pas (7.0.0). `ui/pistes.js`
-   dit s'il la prend (`fichesVersVolet`) ; sinon, la fenêtre. */
-let versVolet = null;
-export const fichesVersVolet = fn => { versVolet = fn; };
-export function openFiche(c, o = {}){
-  if (!o.dans && versVolet){ const d = versVolet(c); if (d) return d; }
+export function openFiche(c){
   /* le tampon : seulement les champs touchés — rien ne s'écrit avant Confirmer */
   const draft = {};
   const val = f => (f in draft) ? draft[f] : c[f];
@@ -184,27 +98,17 @@ export function openFiche(c, o = {}){
      qui doit rester : un nom d'entreprise ne se coupe jamais (§4), et
      la barre l'élidait. Elle dit donc « Fiche », le mot de §7 ; le
      lecteur d'écran, lui, entend toujours de quelle fiche il s'agit. */
-  const aQuitter = () => !dirty() || confirmSheet({
-    title: 'Quitter sans enregistrer ?', icon: 'square-alert', danger: true,
-    okLabel: 'Quitter',
-    msg: 'Tes changements ne sont pas enregistrés.'
-  });
   const sh = openSheet({
     title: 'Fiche', icon: 'briefcase', className: 'modal-fiche',
-    dans: o.dans,
-    guard: aQuitter,
+    guard: () => !dirty() || confirmSheet({
+      title: 'Quitter sans enregistrer ?', icon: 'square-alert', danger: true,
+      okLabel: 'Quitter',
+      msg: 'Tes changements ne sont pas enregistrés.'
+    }),
     /* La ligne derrière a changé pendant que la fiche la couvrait. Sans
        ça, on revient à une liste silencieusement différente : le geste
        ne se voit jamais atterrir (cécité au changement). */
     onClose: () => { oublierFiche(); if (commis) montrerChange(c.id); }
-  });
-  /* LE CLAVIER AU POSTE (lot R8) : dans la fiche, E écrit et P planifie
-     — les deux lettres écrites dans leurs boutons. Jamais pendant qu'un
-     champ a le curseur (on y TAPE ses notes). */
-  sh.ov.addEventListener('keydown', e => {
-    const k = lettreActive(e);
-    if (k === 'e'){ e.preventDefault(); ecrirePiste(c); }
-    else if (k === 'p' && sh.body.querySelector('#fiNa')){ e.preventDefault(); sh.body.querySelector('#fiNa').click(); }
   });
 
   const confirm = () => {
@@ -231,11 +135,20 @@ export function openFiche(c, o = {}){
     foot.innerHTML = '';
     foot.hidden = false;
     const d = dirty();
-    /* « Clôturer » ne vit plus dans le pied (19 octobre 2026) : il y
-       partageait la place de « Écrire », la seule action du pouce, alors
-       qu'il décide du STATUT de la piste — il monte à côté de « Où j'en
-       suis », là où l'on pense à l'état de la piste. Un pied, un geste. */
-    foot.append(poserTouche(btn('Écrire', d ? '' : 'btn-primary', () => ecrirePiste(c), 'mail'), 'e'));
+    if (!isClosed(c)) foot.append(btn('Clôturer', 'btn-ghost', () => askClose(c, { onDone: () => {
+      ['status', 'nextAction', 'nextActionText', 'nextActionCt'].forEach(f => delete draft[f]);
+      render();
+    } }), 'archive'));
+    /* « Écrire » part vers la personne visée par l'action, sinon la
+       première personne joignable (#14) — jamais un email deviné en silence */
+    const writeTo = () => {
+      const p = nextActionContact(c);
+      if (p && p.email) return p.id;
+      const withMail = (c.contacts || []).filter(t => t.email);
+      const pref = withMail.find(t => t.activatedAt || t.src !== 'promo') || withMail[0];
+      return pref && pref.id;
+    };
+    foot.append(btn('Écrire', d ? '' : 'btn-primary', () => openMail(c, { ctId: writeTo() }), 'mail'));
     if (d) foot.append(btn('Confirmer', 'btn-primary', confirm, 'check'));
   };
 
@@ -274,9 +187,7 @@ export function openFiche(c, o = {}){
            ${meta ? `<div class="ct-meta">${esc(meta)}</div>` : ''}
            ${acts ? `<div class="ct-acts">${acts}</div>` : ''}
            ${t.note ? `<div class="ct-note">${esc(t.note)}</div>` : ''}
-           ${/* un bouton, pas un lien souligné : il CHANGE la personne, il
-                ne mène nulle part (§6, « un lien emmène, un bouton agit ») */''}
-           <button class="btn btn-sm btn-ghost ct-mod" data-ct="${t.id}" aria-label="Modifier ${pour}">${ic('pencil', 'ic-14')} Modifier</button>
+           <button class="linklike" data-ct="${t.id}" aria-label="Modifier ${pour}">${ic('pencil', 'ic-14')} Modifier</button>
          </div>
        </details>`);
   };
@@ -293,7 +204,7 @@ export function openFiche(c, o = {}){
     const naCtId = val('nextActionCt');
     const naPerson = !closed && val('nextAction') && naCtId
       ? (c.contacts || []).find(t => t.id === naCtId) : null;
-    const wide = mqWide.matches && !o.dans;
+    const wide = mqWide.matches;
     /* un renommage se suit — à l'oreille : la barre, elle, dit « Fiche » */
     sh.ov.querySelector('.modal').setAttribute('aria-label', 'Fiche — ' + c.name);
     /* la complétude et « Modifier » parlent de la FICHE entière, pas du
@@ -306,13 +217,9 @@ export function openFiche(c, o = {}){
        qu'au poste : un pourcentage sur lequel on n'agit pas est le même
        papier peint qu'on a retiré des cartes du tableau, et il coûte une
        ligne entière là où la place manque. */
-    /* R1 (décision 0002) : DONNER part aussi de la fiche — le geste vit
-       avec l'objet qu'il donne, à côté de « Modifier ». Une piste close
-       ou d'exemple ne se donne pas (`openDonner` les écarte). */
     const outils =
       `<div class="fi-tools">
          ${wide ? `<span class="fi-score">fiche complète à ${score} %</span>` : ''}
-         ${!closed && !c.demo ? `<button class="btn btn-sm" id="fiDonner" aria-label="Donner la piste ${esc(c.name)}">${ic('share', 'ic-14')} Donner</button>` : ''}
          <button class="btn btn-sm" id="fiEdit" aria-label="${score < 60 ? 'Compléter' : 'Modifier'} la piste ${esc(c.name)}">${ic('pencil', 'ic-14')} ${score < 60 ? 'Compléter' : 'Modifier'}</button>
        </div>`;
     /* ---- le travail : où j'en suis, ce que je fais ensuite, ce que je note ---- */
@@ -328,31 +235,23 @@ export function openFiche(c, o = {}){
            <span class="fic-t">${ic('archive', 'ic-14')} Clôturée — <b>${CLOSE_REASONS[c.closedReason].label}</b>${c.closedAt ? ' · ' + esc(fmtDate(c.closedAt)) : ''}</span>
            <button class="btn btn-sm" id="fiReopen">Rouvrir</button>
          </div>` : `
-         <div class="field"><div class="lbl-row"><label>Où j’en suis</label>
-           <button class="btn btn-sm btn-ghost" id="fiClore" aria-label="Clôturer ${esc(c.name)}">${ic('archive', 'ic-14')} Clôturer</button></div>
+         <div class="field"><label>Où j’en suis</label>
            <div class="seg3 seg3-statut" role="radiogroup" aria-label="Statut">
              ${Object.keys(STATUSES).map(k =>
                `<button class="seg${val('status') === k ? ' on' : ''}" data-st="${k}" aria-pressed="${val('status') === k}">${STATUSES[k].label}</button>`).join('')}
            </div>
          </div>
          <div class="field"><label>Prochaine action</label>
-           ${/* LA CARTE SE TOUCHE (19 octobre 2026). Elle portait à droite
-                un deuxième « Modifier » — trois sur la fiche au poste, que
-                rien ne départageait à l'œil. Une carte qui montre une
-                chose qu'on change est une RANGÉE : on la touche, son
-                chevron le dit (la cellule d'iOS). Vide, elle garde son
-                bouton : « Planifier » dit un geste que « Aucune » ne dit
-                pas. */''}
-           ${val('nextAction')
-             ? `<button class="na-box na-btn${isLate(val('nextAction')) ? ' late' : ''}" id="fiNa"${toucheAttr('p')}
-                  aria-label="Modifier la prochaine action : ${esc(val('nextActionText') || 'Faire le point')}, ${esc(frDate(val('nextAction')))}">
-                  <span class="na-cur"><b>${esc(val('nextActionText') || 'Faire le point')}</b>
-                    <span>${frDate(val('nextAction'))} · ${relLabel(val('nextAction'))}${naPerson ? ' · ' + esc(naPerson.name || naPerson.email) : ''}</span></span>
-                  ${toucheHTML('p')}${ic('chevron-right', 'ic-14')}</button>`
-             /* « Aucune », pas « Aucune — planifie la suite » : le
-                bouton d'à côté dit déjà le geste (§6, sobriété 1) */
-             : `<div class="na-box"><div class="na-cur na-none">Aucune</div>
-                  <button class="btn btn-sm" id="fiNa"${toucheAttr('p')}>Planifier${toucheHTML('p')}</button></div>`}
+           <div class="na-box${val('nextAction') && isLate(val('nextAction')) ? ' late' : ''}">
+             ${val('nextAction')
+               ? `<div class="na-cur"><b>${esc(val('nextActionText') || 'Faire le point')}</b>
+                    <span>${frDate(val('nextAction'))} · ${relLabel(val('nextAction'))}${naPerson ? ' · ' + esc(naPerson.name || naPerson.email) : ''}</span></div>
+                  <button class="btn btn-sm" id="fiNa" aria-label="Modifier la prochaine action">Modifier</button>`
+               /* « Aucune », pas « Aucune — planifie la suite » : le
+                  bouton d'à côté dit déjà le geste (§6, sobriété 1) */
+               : `<div class="na-cur na-none">Aucune</div>
+                  <button class="btn btn-sm" id="fiNa">Planifier</button>`}
+           </div>
          </div>`}
        <div class="field"><label for="fiNotes">Mes notes ${ic('lock', 'ic-14')} <span class="lbl-soft">privées</span></label>
          ${/* `rows="1"` est nécessaire : sans lui, `height:auto` retombe sur
@@ -377,27 +276,19 @@ export function openFiche(c, o = {}){
        en plein (§6). Les conditions ne changent pas : une piste ouverte,
        personne pour te porter, personne à qui écrire, un ami ou un
        groupe à qui demander. */
-    /* LE MERCI QUI REVIENT (lot R7) : la piste qu'un ami a portée — il y
-       est passé, ou il m'a donné un contact — vient de répondre. Une
-       ligne, proposée en pointillé d'accent comme un don : elle ouvre la
-       conversation, le merci prêt dans le champ. Elle se tait dès qu'on
-       lui a écrit, et au bout de quatorze jours. */
-    const merci = merciDePiste(c, qui);
     const res = reseauDePiste(c);
     const joignable = (c.contacts || []).some(t => t.email || t.phone || t.link);
-    /* LA DEMANDE SE SUIT COMME UN COLIS (lot F3) : sa carte reste tant
-       qu'elle est ouverte, et le contact arrivé se propose juste dessous —
-       l'étape « Reçu » et ce qui a été reçu, l'un sous l'autre */
-    const reseau = (res.demande ? carteDemandeHTML(res.demande, { id: 'fiDemande' }) : '') + (res.don
+    const reseau = res.don
       ? `<button class="fi-don" id="fiDon">${ic('user', 'ic-14')}
            <b>${esc(bandeauDon(res.don))}</b>${ic('chevron-right', 'ic-14')}</button>`
-      : !res.demande && res.peut && !closed && !c.demo && !qui.length && !joignable
-        ? `<button class="fi-demander" id="fiDemander">${ic('users', 'ic-14')} ${esc(libelleDemander())}</button>` : '');
+      : res.demande ? demandeEnCoursHTML(res.demande)
+      : res.peut && !closed && !c.demo && !qui.length && !joignable
+        ? `<button class="fi-demander" id="fiDemander">${ic('users', 'ic-14')} ${esc(libelleDemander())}</button>` : '';
 
     /* ---- le dossier : les gens, ce qu'on sait, l'histoire ---- */
     /* ce que TU sais de l'entreprise : « À savoir » existe pour ça */
     const aSavoir = !!(c.desc || c.website || c.techs || (c.positions || []).length || c.process || c.tips || c.address);
-    const gens =
+    const dossier =
       `<div class="field fi-contacts">
          ${/* Essayé : descendre « + Ajouter » en fin de liste pour rendre
               au libellé sa hauteur de libellé. MESURÉ : le bloc passe de
@@ -414,24 +305,15 @@ export function openFiche(c, o = {}){
               emmenaient ailleurs avant qu'on ait cherché quoi que ce soit :
               ils vivent maintenant dans « Ajouter un contact », là où l'on
               cherche quelqu'un. */''}
-         ${/* UN SEUL CONTACT S'OUVRE. Replié, il cachait derrière un
-              triangle les seuls gestes de la fiche qui mènent à quelqu'un
-              (Écrire, Appeler) : un pli sur un seul élément ne range
-              rien, il ajoute un tap (NN/g, cinq cas où éviter
-              l'accordéon : quand on a besoin de presque tout le contenu).
-              Dès deux, ils se replient : c'est là qu'un mur menace. */''}
-         ${main.length ? `<div class="ctc-list">${main.map(t => ctRowHTML(t, wide || main.length === 1)).join('')}</div>` : ''}
+         ${main.length ? `<div class="ctc-list">${main.map(t => ctRowHTML(t, wide)).join('')}</div>` : ''}
          ${knownCts.length ? `
            <details class="ctc-known"${main.length ? '' : ' open'}>
              <summary>+ ${knownCts.length} personne${knownCts.length > 1 ? 's' : ''} connue${knownCts.length > 1 ? 's' : ''}</summary>
              <div class="ctc-list">${knownCts.map(t => ctRowHTML(t, false)).join('')}</div>
            </details>` : ''}
          ${reseau}
-         ${merci ? `<button class="fi-don fi-merci" id="fiMerci">${ic('message-text', 'ic-14')}
-             <b>Le dire à ${esc(merci.prenom)}</b>${ic('chevron-right', 'ic-14')}</button>` : ''}
-       </div>`;
-    const savoir =
-      `${/* « À SAVOIR » N'EXISTE QUE S'IL A QUELQUE CHOSE À DIRE : ce que tu
+       </div>
+       ${/* « À SAVOIR » N'EXISTE QUE S'IL A QUELQUE CHOSE À DIRE : ce que tu
             y as écrit, ou ce que l'annuaire sait (la carte). Une piste
             sans SIREN et sans notes n'en a pas — il portait alors trois
             liens et une ligne de source, rien à lire. Avec un SIREN, il
@@ -540,30 +422,18 @@ export function openFiche(c, o = {}){
            <div class="obj-s">${subBits.length ? `<span class="obj-l">${subBits.map(esc).join(' · ')}</span>` : ''}${annuaireEtatHTML(c)}</div>
          </div>
        </div>`;
-    /* LA FICHE COMMENCE PAR LES GENS (R1, décision 0002) : qui peut
-       t'ouvrir la porte (le bandeau, déjà en tête), puis les contacts,
-       puis le suivi. Au poste, les gens prennent la colonne de gauche,
-       celle qu'on lit d'abord. */
-    const colTravail = `<div class="fi-travail">${travail}</div>`;
     sh.body.innerHTML = wide
       ? `<div class="fi-top">${sub}${outils}</div>${vecuHTML}
-         <div class="fi-cols"><div>${gens}${savoir}</div>${colTravail}</div>`
-      : `<div class="fi-top">${sub}${outils}</div>${vecuHTML}${gens}${travail}${savoir}`;
+         <div class="fi-cols"><div>${travail}</div><div>${dossier}</div></div>`
+      : `<div class="fi-top">${sub}${outils}</div>${vecuHTML}` + travail + dossier;
 
     /* branchements */
     const byCt = id => (c.contacts || []).find(t => t.id === id);
     sh.body.querySelector('#fiEdit').addEventListener('click', () => openEditPiste(c, render));
-    sh.body.querySelector('#fiDonner')?.addEventListener('click', async () =>
-      (await import('./donner.js')).openDonner({ ids: [c.id] }));
     sh.body.querySelectorAll('[data-porteur]').forEach(b =>
       b.addEventListener('click', () => { const p = qui[+b.dataset.porteur]; openDemander(c, p.prenom, p); }));
     sh.body.querySelector('#fiDemander')?.addEventListener('click', () => ouvrirDemander(c, render));
     sh.body.querySelector('#fiDon')?.addEventListener('click', () => ouvrirDon(res.don, render));
-    sh.body.querySelector('#fiMerci')?.addEventListener('click', async () => {
-      const ami = (S.profile.amis || []).find(a => a.id === merci.amiId);
-      if (ami) (await import('./messages.js')).ouvrirConversation(ami, render,
-        { texte: messageMerci({ entreprise: c.name, decroche: merci.decroche }) });
-    });
     lierAnnuaireFiche(sh.body, c);
     /* « À savoir » garde son pli le temps de la session : un geste fait
        ailleurs sur la fiche (un contact ajouté) la redessine, et la carte
@@ -595,10 +465,6 @@ export function openFiche(c, o = {}){
       onPick: (txt, iso) => { touch('nextActionText', txt); touch('nextAction', iso); touch('nextActionCt', ''); },
       onDone: render
     }));
-    sh.body.querySelector('#fiClore')?.addEventListener('click', () => askClose(c, { onDone: () => {
-      ['status', 'nextAction', 'nextActionText', 'nextActionCt'].forEach(f => delete draft[f]);
-      render();
-    } }));
     const ro = sh.body.querySelector('#fiReopen');
     if (ro) ro.addEventListener('click', () => { reopenPiste(c); render(); bus.refresh(); });
     /* La zone de notes suit son contenu : deux lignes à vide, elle grandit
@@ -612,7 +478,6 @@ export function openFiche(c, o = {}){
        que personne n'a demandé. Ensuite, chaque ligne gagnée ou rendue
        glisse — c'est ce qui empêche le reste du formulaire de sauter
        d'un cran sous les doigts pendant qu'on écrit. */
-    let largeur = 0;
     const pousse = net => {
       /* Piège mesuré : lire `scrollHeight` juste après `height:auto`
          FORCE un calcul de style, et la transition part alors de la
@@ -626,15 +491,10 @@ export function openFiche(c, o = {}){
          dernière ligne perd ses deux derniers pixels (même piège que
          `champGrandit`) */
       const bord = notes.offsetHeight - notes.clientHeight;
-      largeur = notes.clientWidth;
       const cible = Math.max(44, notes.scrollHeight + bord) + 'px';
-      /* `net` : UNE mesure suffit. De `auto` à une longueur, rien ne
-         s'anime (ce n'est pas une valeur qu'on interpole) ; les deux
-         mises en page forcées de plus ne servaient à rien, et elles
-         tombaient dans le tap qui ouvre la fiche (porte « Performance ») */
-      if (net){ notes.style.height = cible; notes.style.transition = ''; return; }
       notes.style.height = depart || cible;
       void notes.offsetHeight;
+      if (net){ notes.style.height = cible; void notes.offsetHeight; }
       notes.style.transition = '';
       notes.style.height = cible;
     };
@@ -644,12 +504,9 @@ export function openFiche(c, o = {}){
       renderFoot();
     });
     pousse(true);
-    suivreLargeur(notes, () => pousse(true), () => largeur);
+    suivreLargeur(notes, () => pousse(true));
     renderFoot();
   };
   render();
-  sh.c = c;
-  sh.aQuitter = aQuitter;
-  sh.sale = dirty;
   return sh;
 }
