@@ -10,7 +10,7 @@ import { DOMAINS, STATUSES, prendCeQueJeCherche, PREND_MOT } from '../engine/mod
 import { porteurs } from '../engine/requete.js';
 import { portesDuJour } from './amis.js';
 import { lignesAmis, ouvrirLigne } from './reseau.js';
-import { lignesMessages, ouvrirConversation } from './messages.js';
+import { ecritsDuJour, ouvrirNonLus } from './conversations.js';
 import { scoreOf } from '../engine/score.js';
 import { dueFollowups, silentPistes, aDemarrer } from '../engine/assist.js';
 import { S, bus, isClosed, markDone, hasDemo, addDemo, removeDemo } from './state.js';
@@ -243,10 +243,21 @@ function silenceHTML(items, total){
    gagner quelque chose à quelqu'un d'autre. Elle n'existe que si ton
    téléphone a TROUVÉ quelqu'un (règle 6) : un ami qui demande sans que
    tu connaisses personne ne t'en dit rien. */
-function amisHTML(items){
-  if (!items.length) return '';
+/* À GRANDE ÉCHELLE : trois lignes, comme toute tranche, et la suite à un
+   tap — trente-sept cartes avaient pris tout l'écran avant le travail du
+   jour. Au calme, la première dit qui t'a écrit : l'onglet ne porte pas
+   de chiffre, c'est ici qu'on le lit, à son heure. */
+const CAP_AMIS = 3;
+function amisHTML(lignes){
+  const ecrits = ecritsDuJour();
+  const tous = [...(ecrits ? [{ sorte: 'ecrits', id: 'ecrits', nom: ecrits.texte, raison: ecrits.sous, qui: '',
+                                aria: [ecrits.texte, ecrits.sous].filter(Boolean).join(', ') }] : []), ...lignes];
+  if (!tous.length) return '';
+  const items = expanded.has('amis') ? tous : tous.slice(0, CAP_AMIS);
+  const more = tous.length > items.length
+    ? `<button class="linklike tr-more" data-tr="amis">${voirAutres(tous.length - items.length)}</button>` : '';
   return `<section class="tranche tr-amis">
-            <h2 class="tr-h">${ic('users', 'ic-14')} Tes amis <span class="tr-n">${items.length}</span></h2>
+            <h2 class="tr-h">${ic('users', 'ic-14')} Tes amis${lignes.length ? ` <span class="tr-n">${lignes.length}</span>` : ''}</h2>
             <div class="tr-rows">${items.map(x =>
               `<div class="act-row act-ami" data-sorte="${x.sorte}" data-ami="${esc(x.id)}">
                  <div class="act-in">
@@ -255,7 +266,7 @@ function amisHTML(items){
                      <span class="act-sub"><span class="act-vecu">${esc(x.raison)}</span><span class="act-who">${esc(x.qui)}</span></span>
                    </div>
                  </div>
-               </div>`).join('')}</div>
+               </div>`).join('')}${more}</div>
           </section>`;
 }
 
@@ -400,7 +411,7 @@ export function renderToday(){
        ${done && S.companies.length
          ? `<div class="done-line">${ic('check', 'ic-14')} ${done} action${done > 1 ? 's' : ''} faite${done > 1 ? 's' : ''} aujourd’hui</div>` : ''}`;
 
-  html += amisHTML([...lignesMessages(), ...lignesAmis()]);
+  html += amisHTML(lignesAmis());
 
   if (!alive.length && !S.companies.length){
     /* première visite : la promesse, puis un seul geste.
@@ -516,11 +527,9 @@ export function renderToday(){
     bindSwipe(row, c);
   });
   root.querySelectorAll('.act-ami').forEach(row => {
-    const ouvrir = () => {
-      /* un ami t'a écrit : la conversation, directement */
-      const a = row.dataset.sorte === 'message' && (S.profile.amis || []).find(x => x.id === row.dataset.ami);
-      if (a) ouvrirConversation(a, () => bus.refresh()); else ouvrirLigne(row.dataset.sorte, row.dataset.ami);
-    };
+    /* « Karim et Léa t'ont écrit » ouvre la boîte sur « Non lus » ; les
+       autres lignes, ce qu'elles disent */
+    const ouvrir = () => row.dataset.sorte === 'ecrits' ? ouvrirNonLus() : ouvrirLigne(row.dataset.sorte, row.dataset.ami);
     row.querySelector('.act-main').addEventListener('click', ouvrir);
     row.querySelector('.act-main').addEventListener('keydown', e => {
       if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); ouvrir(); }

@@ -45,7 +45,7 @@ const FEUILLES = {
   donner: p => p.evaluate(async () => (await import('./ui/donner.js')).openDonner(null)),
   recevoir: p => p.evaluate(async () => (await import('./ui/recevoir.js')).openRecevoir())
 };
-const ECRANS = ['aujourdhui', 'pistes', 'echanger', 'moi'];
+const ECRANS = ['aujourdhui', 'pistes', 'reseau', 'moi'];
 
 const neuf = async (w, semer) => {
   const ctx = await browser.newContext({ viewport: { width: w, height: 900 },
@@ -144,7 +144,7 @@ const CHARGE = k => ({ fn: async k => {
   const cdp = await ctx.newCDPSession(p);
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: 8 });   /* téléphone d'entrée de gamme */
   const t = {};
-  for (const r of ['aujourdhui', 'pistes', 'echanger']){
+  for (const r of ['aujourdhui', 'pistes', 'reseau']){
     const t0 = Date.now();
     await p.evaluate(x => { location.hash = '#/' + x; }, r);
     await p.waitForFunction(x => { const v = document.querySelector('#view-' + x);
@@ -176,7 +176,7 @@ const CHARGE = k => ({ fn: async k => {
     fail(`${N} pistes : l’écran le plus lent met ${pire} ms sur un téléphone bridé ×8 — `
       + JSON.stringify(t));
   else console.log(`${N} pistes, processeur bridé ×8 : aujourd’hui ${t.aujourdhui} ms · `
-    + `mes pistes ${t.pistes} ms · échanger ${t.echanger} ms · ${vu.lignes} lignes rendues `
+    + `mes pistes ${t.pistes} ms · réseau ${t.reseau} ms · ${vu.lignes} lignes rendues `
     + `et le reste atteignable ✓`);
   await ctx.close();
 }

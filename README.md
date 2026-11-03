@@ -42,7 +42,7 @@ pousse vers le prochain geste concret.
 |---|---|
 | **Aujourd'hui** | Ce qu'il y a à faire, maintenant. Ce qui est planifié, ce qui se tait depuis trop longtemps, et par où commencer quand tu ne sais pas |
 | **Mes pistes** | Toutes tes pistes, leur statut, leur prochaine action. Liste au pouce, tableau à l'écran |
-| **Échanger** | Donner tes pistes à ton groupe, recevoir les leurs, synchroniser tes propres appareils |
+| **Réseau** | Tes demandes, tes conversations avec tes groupes et tes amis, et les deux gestes de l'échange : donner tes pistes, recevoir les leurs |
 | **Moi** | Ton profil, tes CV et lettres, tes modèles d'e-mails, ta copie de sauvegarde |
 
 Et le geste le plus cher, celui que personne ne peut faire à ta place :

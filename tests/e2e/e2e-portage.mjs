@@ -18,7 +18,7 @@
    Le chemin direct est coupé des deux côtés, comme dans
    `e2e-liaison.mjs` — et le témoin des canaux de données le prouve.
    ============================================================ */
-import { chromium, chromiumPath, serveRepo, attendre, ouvrirReglages } from './outils.mjs';
+import { chromium, chromiumPath, serveRepo, attendre, ouvrirReglages, ouvrirDonner, ouvrirRecevoir } from './outils.mjs';
 import { startLocalRelay } from './relais-local.mjs';
 import { clePortage, ouvrir as ouvrirMsg, rassembler } from '../../engine/portage.js';
 
@@ -88,14 +88,11 @@ const page = async (n, vue = { width: 390, height: 844 }) => {
 
 try {
   const G = await page(300), P = await page(0);
-  await G.click('.bottomnav a[data-r="echanger"]');
-  await G.waitForSelector('#ecGive'); await G.click('#ecGive');
+  await ouvrirDonner(G);
   await G.waitForSelector('#dnQR'); await G.click('#dnQR');
   await G.waitForSelector('.sy-phrase span', { timeout: 25000 });
   const code = (await G.textContent('.sy-phrase span')).trim();
-  await P.click('.bottomnav a[data-r="echanger"]');
-  await P.waitForSelector('#ecRecv'); await P.click('#ecRecv');
-  await P.waitForSelector('#rcScan'); await P.click('#rcScan');
+  await ouvrirRecevoir(P, 'qr');
   await P.waitForSelector('#rcCode');
   await P.fill('#rcCode', code);
   await P.waitForSelector('#rcCodeGo:not([hidden])');
@@ -144,7 +141,7 @@ try {
   {
     const C = await page(40), D = await page(0);
     const entrer = async p => {
-      await p.click('.bottomnav a[data-r="echanger"]');
+      await p.click('.bottomnav a[data-r="reseau"]');
       await p.evaluate(async () => (await import('./ui/direct.js')).openPromo());
       await p.waitForSelector('#prPass'); await p.fill('#prPass', 'groupe-sans-direct');
       await p.click('.modal-f .btn-primary');

@@ -22,7 +22,7 @@ Trois règles :
 | # | Décision | Statut |
 |---|---|---|
 | [0001](0001-recadrage.md) | Recadrer par lots, sans réécrire | acceptée, 19 octobre 2026 ; remplacée par 0011 |
-| [0002](0002-navigation.md) | Un onglet, une question : Aujourd'hui · Pistes · + · Réseau · Moi | acceptée, 19 octobre 2026 ; le + et le partage remplacés par 0008 ; remplacée par 0011 |
+| [0002](0002-navigation.md) | Un onglet, une question : Aujourd'hui · Pistes · + · Réseau · Moi | acceptée, 19 octobre 2026 ; le + et le partage remplacés par 0008 ; remplacée par 0011 ; l'onglet « Réseau » revenu par 0012 |
 | [0003](0003-poste.md) | Au poste : barre latérale, fiche à côté de la liste | acceptée, 19 octobre 2026 ; remplacée par 0011 |
 | [0004](0004-drapeaux-et-preversion.md) | Les lots derrière des drapeaux datés, et la préversion | acceptée, 19 octobre 2026 ; remplacée par 0011 |
 | [0005](0005-public.md) | L'informatique d'abord, tous les métiers ensuite | acceptée par délégation, 20 octobre 2026 ; « tous les métiers » remplacé par 0011 |
@@ -32,5 +32,6 @@ Trois règles :
 | [0009](0009-tous-les-reglages.md) | Tout ce qui se règle vit dans « Réglages » | acceptée par délégation, 29 octobre 2026 ; remplacée par 0011 |
 | [0010](0010-le-contenu-sans-cadre.md) | Le contenu sans cadre | proposée le 29 octobre 2026 (PR #92), jamais appliquée : remplacée par 0011 avant sa fusion |
 | [0011](0011-retour-a-la-6-70.md) | Retour à l'interface de la 6.70, avec les amis, les groupes, les messages, la phrase de secours et les corrections | acceptée, 3 novembre 2026 |
+| [0012](0012-le-reseau-revient.md) | Le réseau revient : l'onglet « Réseau », les conversations, les demandes suivies, ceux qui aident, et les boutons 98 — sans « Mon visage » ni la conversation à côté de la liste | acceptée, 3 novembre 2026 ; la mise en page au poste par délégation |
 
 Le plan qui découlait des fiches 0001 à 0005 est dans [`../recadrage.md`](../recadrage.md), clos par la fiche 0011.

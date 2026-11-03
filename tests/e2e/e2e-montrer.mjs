@@ -28,8 +28,8 @@
    ⑥ Prospecter sans campagnes : un choix à une seule option n'est pas
      un choix — « Écrire (n) » ouvre le premier composeur, sans feuille
      intermédiaire.
-   ⑦ Au poste, « Échanger » vide : le panneau de détail se tait — la
-     phrase du fil, juste à sa gauche, dit déjà le vide.
+   ⑦ Au poste, « Réseau » vide : une seule colonne, et une seule phrase
+     pour le vide — celle du cadre qui recevra les conversations.
    ============================================================ */
 import { chromium, chromiumPath, serveRepo, attendre } from './outils.mjs';
 import { CAMPAGNES } from '../../ui/perimetre.js';
@@ -240,15 +240,19 @@ else {
   await p.context().close();
 }
 
-/* ---------- ⑦ « Échanger » vide, au poste ---------- */
+/* ---------- ⑦ « Réseau » vide, au poste ---------- */
 {
   const p = await ouvrir(DESK);
-  await p.evaluate(() => { location.hash = '#/echanger'; });
-  await p.waitForSelector('.ec-detail', { state: 'attached' });
-  const detail = await p.evaluate(() => document.querySelector('.ec-detail').textContent.trim());
-  const fil = await p.evaluate(() => document.querySelector('.ec-rien')?.textContent.trim() || '');
-  okSi(detail === '' && fil.length > 0,
-    '⑦ « Échanger » vide au poste : une phrase pour le vide, pas deux' + (detail ? ` — détail lu : « ${detail} »` : ''));
+  await p.evaluate(() => { location.hash = '#/reseau'; });
+  await p.waitForSelector('.bx-seule .bx-liste');
+  /* sans conversation ni échange, une seule colonne : une colonne vide
+     ne serait qu'un trou, et le cadre dit ce qu'il recevra, une fois */
+  const r = await p.evaluate(() => ({
+    colonnes: !!document.querySelector('#view-reseau .bx-cols'),
+    phrases: [...document.querySelectorAll('#view-reseau p')].map(x => x.textContent.trim()).filter(Boolean)
+  }));
+  okSi(!r.colonnes && r.phrases.length === 1,
+    '⑦ « Réseau » vide au poste : une colonne, une phrase pour le vide' + (r.colonnes || r.phrases.length !== 1 ? ` — lu : ${JSON.stringify(r)}` : ''));
   await p.context().close();
 }
 

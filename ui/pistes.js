@@ -13,7 +13,7 @@ import { chercherPistes, raisonDe, propositions, elargir, retirer, contexteReche
 import { silentPistes } from '../engine/assist.js';
 import { S, bus, isClosed, hasDemo, addDemo, ctLabel, deletePiste, undeletePiste,
          removeOrphan, saveOrphans, saveData, logJ } from './state.js';
-import { portesDuJour, amisClasses, vueAmisHTML, lierVueAmis, openTriAmis, triAmisChipHTML, lierTriAmisChip } from './amis.js';
+import { portesDuJour } from './amis.js';
 import { $, ic, toast, showUndo, bindDeleteGesture, openSheet, softReorder, topSheet,
          collerEnHaut, clavier, annoncer, voirAutres } from './dom.js';
 import { openAffinerSheet, filterState, filterOn, filterClear, filterArgs } from './affiner.js';
@@ -50,10 +50,10 @@ let posDemandee = false;
    tape. La portée tient pour la session, comme un onglet garde sa place. */
 let portee = 'pistes';
 /* sans aucune piste, il n'y a rien à chercher chez toi : une recherche
-   tapée ne peut viser que l'annuaire. « Amis » (lot 4) est la troisième
-   portée — ceux qui t'ouvrent leurs entreprises. */
-const porteeVue = () => portee === 'amis' ? 'amis'
-  : (portee === 'decouvrir' || (!S.companies.length && q)) ? 'decouvrir' : 'pistes';
+   tapée ne peut viser que l'annuaire. Les amis ont quitté « Pistes »
+   pour « Réseau › Mes amis » (8.1.0, comme en 7.x) — Pistes ne porte
+   que des entreprises. */
+const porteeVue = () => (portee === 'decouvrir' || (!S.companies.length && q)) ? 'decouvrir' : 'pistes';
 const mqFine = matchMedia('(pointer:fine)');
 const procheActif = () => !!(interp && interp.etiquettes.some(e => e.cle === 'proche'));
 
@@ -419,13 +419,6 @@ function propsHTML(){
    la croix enlève, taper la puce de tri inverse son sens */
 function chipsRowHTML(){
   const bits = [];
-  /* chez les amis, la barre cherche des NOMS et des entreprises : les
-     étiquettes de la barre (un lieu, un état) ne les filtrent pas — on
-     ne montre que ce qui agit sur cette liste, son tri */
-  if (porteeVue() === 'amis'){
-    const sc = triAmisChipHTML();
-    return sc ? `<div class="chips-row">${sc}</div>` : '';
-  }
   const dec = porteeVue() === 'decouvrir';
   /* CE QUE LA BARRE A COMPRIS, une étiquette par chose comprise, dans
      l'ordre où on l'a tapée. Taper l'étiquette retire SES mots du champ :
@@ -632,19 +625,12 @@ export function renderPistes(){
       withPos(st, () => { if (S.route === 'pistes') glisser(renderBody); });
     }
     const dec = porteeVue() === 'decouvrir';
-    const am = porteeVue() === 'amis';
     page.classList.toggle('pt-dec', dec);
-    page.classList.toggle('pt-amis', am);
     /* SANS UNE PISTE, RIEN À AFFINER : « Affiner » ouvrait une feuille de
        filtres vides à côté de « Aucune piste pour l'instant » — un geste
        sans objet (§6 : jamais une valeur absente des données). Il revient
-       avec la première piste. Chez les amis il TRIE : il reste. */
-    page.classList.toggle('pi-vide', !S.companies.length && !am);
-    /* chez les amis, le bouton de la barre TRIE (il n'y a rien à filtrer) :
-       il dit son geste, l'icône suit */
-    const aff = root.querySelector('#piAffiner');
-    const affHTML = am ? `${ic('sort-vertical', 'ic-14')} Trier` : `${ic('filter', 'ic-14')} Affiner`;
-    if (aff && aff.innerHTML !== affHTML) aff.innerHTML = affHTML;
+       avec la première piste. */
+    page.classList.toggle('pi-vide', !S.companies.length);
     premierId = (!dec && wide && mqFine.matches && q) ? ((alive[0] || closed[0] || {}).id || null) : null;
     /* « À découvrir » suit la barre : la question part seule après une
        pause, pour que son compte se remplisse pendant qu'on tape. Barre
@@ -664,16 +650,6 @@ export function renderPistes(){
       /* « 0 piste » redisait, sous le titre, « Aucune piste pour
          l'instant » juste dessous : le compte se tait sur le vide */
       : tout ? `${tout} piste${tout > 1 ? 's' : ''}` : '';
-    if (am){
-      const liste = amisClasses(q);
-      const n = (S.profile.amis || []).length;
-      /* ce que la barre a gardé s'ENTEND ; il se voit dans l'onglet */
-      if (q) annoncer(`${liste.length} ami${liste.length > 1 ? 's' : ''} sur ${n}.`);
-      body.innerHTML = `<div id="piAmis">${vueAmisHTML(liste, { q, wide, critere: q ? critereDe(interp) : null })}</div>`;
-      lierVueAmis(body.querySelector('#piAmis'), { wide, rendre: () => glisser(renderBody) });
-      tenirBarre();
-      return;
-    }
     /* Filtrer réorganise tout l'écran sans rien annoncer : quelqu'un qui
        ne voit pas l'écran tape trois lettres et n'apprend jamais qu'il
        ne reste qu'une piste. C'est le DÉCOR qui suit un geste, jamais sa
@@ -818,12 +794,8 @@ export function renderPistes(){
     const box = root.querySelector('#piPortee');
     if (!box) return;
     const vue = porteeVue();
-    const dec = vue === 'decouvrir', am = vue === 'amis', pi = vue === 'pistes';
+    const dec = vue === 'decouvrir', pi = vue === 'pistes';
     const d = compteDecouverte();
-    /* le compte des AMIS se remplit pendant qu'on tape, comme celui
-       d'« À découvrir » : « Thales » rend « Amis 1 » si Karim y est
-       passé. Barre vide, rien — le titre de la vue dit déjà combien. */
-    const nAm = q && (S.profile.amis || []).length ? amisClasses(q).length : null;
     const html =
       `<div class="portee" role="group" aria-label="Où chercher">
          ${/* le compte de tes pistes est déjà dans le titre (« 4 sur 9 ») :
@@ -831,8 +803,6 @@ export function renderPistes(){
          <button class="pt${pi ? ' on' : ''}" data-portee="pistes" aria-pressed="${pi}">Mes pistes</button>
          <button class="pt${dec ? ' on' : ''}" data-portee="decouvrir" aria-pressed="${dec}"${d.occupe ? ' aria-busy="true"' : ''}>À découvrir${
            d.texte ? `<span class="pt-n">${d.texte}</span>` : ''}</button>
-         <button class="pt${am ? ' on' : ''}" data-portee="amis" aria-pressed="${am}">Amis${
-           nAm != null ? `<span class="pt-n">${nAm}</span>` : ''}</button>
        </div>`;
     if (box.innerHTML === html) return;
     const focus = document.activeElement && box.contains(document.activeElement) ? document.activeElement.dataset.portee : null;
@@ -842,8 +812,7 @@ export function renderPistes(){
       portee = b.dataset.portee;
       renderBody();
       root.querySelector(`#piPortee [data-portee="${portee}"]`)?.focus({ preventScroll: true });
-      annoncer(portee === 'decouvrir' ? 'À découvrir : les entreprises de l’annuaire.'
-        : portee === 'amis' ? 'Amis : les entreprises qu’ils t’ouvrent.' : 'Mes pistes.');
+      annoncer(portee === 'decouvrir' ? 'À découvrir : les entreprises de l’annuaire.' : 'Mes pistes.');
     }));
     if (focus) box.querySelector(`[data-portee="${focus}"]`)?.focus({ preventScroll: true });
   }
@@ -1070,12 +1039,9 @@ export function renderPistes(){
         refresh();
       }));
     bindSortChip(box, st, refresh);
-    lierTriAmisChip(box, refresh);
   };
-  root.querySelector('#piAffiner').addEventListener('click', () => porteeVue() === 'amis'
-    ? openTriAmis(refresh)
-    : openAffinerSheet(ft, st, { withStatus: !mqWide.matches,
-        pool: () => S.companies.filter(c => !isClosed(c)) }, refresh));
+  root.querySelector('#piAffiner').addEventListener('click', () => openAffinerSheet(ft, st, { withStatus: !mqWide.matches,
+    pool: () => S.companies.filter(c => !isClosed(c)) }, refresh));
   root.querySelector('#piProspect')?.addEventListener('click', openProspect);
   root.querySelector('#piCamps')?.addEventListener('click', openCampaignsHome);
   renderBody();

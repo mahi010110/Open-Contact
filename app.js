@@ -1,6 +1,6 @@
 /* ============================================================
    OpenContact v6 — amorçage & routeur
-   Quatre zones : Aujourd'hui · Mes pistes · Échanger · Moi.
+   Quatre zones : Aujourd'hui · Mes pistes · Réseau · Moi.
    Ce fichier ne fait que démarrer (chargement, thème, service
    worker) et router ; chaque écran vit dans ui/, le moteur dans
    engine/ — il ne lit jamais l'écran. Auto-tests : ?test.
@@ -13,12 +13,16 @@ import { $, $$, toast, installFoldMotion, sheetOpen } from './ui/dom.js';
 import { renderToday } from './ui/today.js';
 import { renderPistes } from './ui/pistes.js';
 import { renderEchanger } from './ui/echanger.js';
+import { chargerFils, rangsBoite } from './ui/conversations.js';
+import { attendOnglet } from './engine/conversations.js';
+import { chargerGroupes } from './ui/groupes.js';
 import { renderMoi } from './ui/moi.js';
 import { openCapture } from './ui/capture.js';
 import { downloadBackup, closeReglages } from './ui/moi.js';
 import { ecouterInstallation } from './ui/installer.js';
 import { initSyncLive } from './ui/synclive.js';
 import { ORDINATEUR, CAMPAGNES } from './ui/perimetre.js';
+import { destination, titreDe, navigation } from './engine/destinations.js';
 
 /* tôt, avant tout `await` : Chrome peut signaler l'installation dès le
    chargement, et un écouteur posé après aurait manqué l'événement */
@@ -27,23 +31,21 @@ ecouterInstallation();
 const VIEWS = {
   aujourdhui: renderToday,
   pistes: renderPistes,
-  echanger: renderEchanger,
+  /* « Réseau » a repris la place d'« Échanger » (8.1.0, le choix du
+     mainteneur) : son ancienne adresse y mène (engine/destinations.js) */
+  reseau: renderEchanger,
   moi: renderMoi
 };
 
-/* LES ADRESSES DE LA 7.x. De la 7.0.0 à la 7.4.0, les gens et les
-   échanges vivaient sous « Réseau » (#/reseau) ; depuis le retour à
-   l'interface de la 6.70 (8.0.0), ils vivent de nouveau dans
-   « Échanger ». Un favori, un écran d'accueil ou un lien collé qui porte
-   l'ancienne adresse mène là où sont les mêmes choses, au lieu de
-   retomber sur « Aujourd'hui » — et la barre d'adresse est réécrite sur
-   place. */
-const ALIAS = { reseau: 'echanger' };
+/* Le registre des destinations (engine/destinations.js) dit où mène une
+   adresse — y compris une ANCIENNE, le jour où un écran déménage. Une
+   adresse redirigée est réécrite sur place (`replaceState`) : la barre
+   d'adresse dit où l'on est, et le retour ne repasse pas par l'ancienne.
+   `#/echanger` (avant la 7.0, et en 8.0) mène à « Réseau ». */
 function routeFromHash(){
-  const brut = (location.hash || '').replace(/^#\/?/, '');
-  const r = ALIAS[brut] || brut;
-  if (r !== brut) history.replaceState(history.state, '', location.pathname + location.search + '#/' + r);
-  return VIEWS[r] ? r : 'aujourdhui';
+  const { id, ancienne } = destination(location.hash, navigation());
+  if (ancienne) history.replaceState(history.state, '', location.pathname + location.search + '#/' + id);
+  return id;
 }
 function render(){
   /* un autre onglet a écrit pendant qu'une feuille était ouverte :
@@ -51,10 +53,23 @@ function render(){
   if (S.stale && !sheetOpen()){ reloadFromStorage(); return; }
   for (const k in VIEWS) $('#view-' + k).hidden = (k !== S.route);
   VIEWS[S.route]();
+  /* « Réseau » change de couleur quand quelque chose y attend — pas de
+     chiffre, pas de notification (engine/conversations.js). Là où l'on
+     est déjà, la liste le montre : l'onglet se tait. */
+  const attend = attendOnglet(rangsBoite());
   $$('[data-r]').forEach(a => {
     const on = a.dataset.r === S.route;
     a.classList.toggle('on', on);
     if (a.closest('nav')) a.setAttribute('aria-current', on ? 'page' : 'false');
+    if (a.dataset.r === 'reseau' && a.closest('nav')){
+      const signe = attend && !on;
+      a.classList.toggle('attend', signe);
+      /* la couleur ne suffit pas à tout le monde (WCAG 1.4.1) : le nom
+         de l'onglet le dit aussi */
+      if (signe) a.setAttribute('aria-label', 'Réseau, du nouveau');
+      else if (a.closest('.bottomnav')) a.setAttribute('aria-label', 'Réseau');
+      else a.removeAttribute('aria-label');
+    }
   });
 }
 /* Chaque onglet garde sa place. Mesuré : trente pistes, on descend à
@@ -75,7 +90,6 @@ let routePrec = null;
    par l'onglet est déjà remise, elle ne doit pas sauter). Le contour ne
    s'allume pas — l'app ne dessine que `:focus-visible`, et un focus posé
    par le programme n'en est pas un. */
-const TITRES = { aujourdhui: 'Aujourd’hui', pistes: 'Mes pistes', echanger: 'Échanger', moi: 'Moi' };
 let premierRendu = true;
 function applyRoute(){
   const suivante = routeFromHash();
@@ -96,7 +110,7 @@ function applyRoute(){
   /* après le rendu : `render()` réécrit le contenu, donc toute position
      posée avant serait effacée */
   if (v) v.scrollTop = memeOnglet ? 0 : (places[suivante] || 0);
-  document.title = TITRES[suivante] + ' — OpenContact';
+  document.title = titreDe(suivante) + ' — OpenContact';
   /* pas au démarrage : personne n'a rien demandé, et voler le focus
      avant que l'utilisateur ait touché quoi que ce soit ne s'annonce
      à personne */
@@ -138,6 +152,10 @@ bus.refresh = render;
   await Promise.all([
     import('./ui/connexions.js').then(m => m.loadMail()).catch(() => {}),
     import('./ui/messages.js').then(m => m.chargerMessages()).catch(() => {}),
+    /* et mes groupes, et ce que j'ai réglé sur chaque conversation : ce
+       qui attend dans « Réseau » se lit dès le premier écran */
+    chargerGroupes(),
+    chargerFils(),
     CAMPAGNES ? import('./ui/campagnes.js').then(m => m.loadCampaigns()).catch(() => {}) : null,
     ORDINATEUR ? import('./ui/analyse.js').then(m => m.loadMailAnalysis()).catch(() => {}) : null,
     ORDINATEUR ? import('./ui/propositions.js').then(m => m.loadProposals()).catch(() => {}) : null
