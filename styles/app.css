@@ -1782,6 +1782,12 @@ details.pcard-details[open]>summary{margin-bottom:10px}
   box-shadow:var(--bevel-up);font-size:13px;line-height:1;
 }
 .x:active{box-shadow:var(--bevel-down)}
+/* l'anneau de la croix se pose sur la barre de titre, donc sur le navy :
+   à l'encre, il y rendait 1,4:1 — invisible (WCAG 2.4.11, relevé le
+   13 octobre 2026 en balayant pour la première fois une feuille, et de
+   nouveau en 8.1.0 : le balayage de la 8.0 n'en ouvrait aucune). Il
+   prend l'encre de la barre. */
+.modal-h .x:focus-visible{outline-color:var(--on-navy)}
 .cf-msg{font-size:var(--text-13);line-height:1.6;color:var(--text-muted)}
 @media (min-width:901px){
   .overlay{align-items:center;padding:22px}
