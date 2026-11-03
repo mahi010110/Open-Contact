@@ -551,7 +551,11 @@ console.log('⑥ trois demandes au plus, rien sur une piste qui a déjà quelqu�
 
 /* ---------- ④ bis : Karim connaît DEUX personnes chez Advens ---------- */
 await rouvrir(K.p);
-await K.p.waitForSelector('.tr-amis .act-ami', { timeout: 15000 });
+/* LA ligne d'Advens, pas la première venue : ce que la boîte a gardé
+   s'affiche dès l'ouverture (8.1.0), la demande d'Advens arrive avec la
+   relève, un peu plus tard */
+await K.p.waitForFunction(() => [...document.querySelectorAll('.tr-amis .act-ami')].some(r => /Advens/.test(r.textContent)),
+  null, { timeout: 15000 });
 await K.p.evaluate(() => [...document.querySelectorAll('.tr-amis .act-ami')].find(r => /Advens/.test(r.textContent)).querySelector('.act-main').click());
 await K.p.waitForSelector('#drListe');
 {
