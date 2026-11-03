@@ -28,14 +28,14 @@ import { boutonEnvoyer } from './fichier.js';
 import { esc, todayISO, uid } from '../engine/utils.js';
 import { normalizeCompany } from '../engine/model.js';
 import { PARCOURS, periodeParcours } from '../engine/parcours.js';
-import { nouvelIdAmi, profilDonne, statutAmi, ajouterAmi, retirerAmi, prenomAmi,
+import { nouvelIdAmi, statutAmi, ajouterAmi, retirerAmi, prenomAmi,
          portesAmis, memeEntreprise, classerAmis, chercherAmis, TRIS_AMIS, TRI_AMIS_DEFAUT } from '../engine/amis.js';
 import { encodeOCA } from '../engine/exchange.js';
 import { S, bus, saveData, saveProfile, logJ, deletePiste } from './state.js';
 import { openSheet, toast, btn, ic, showUndo, bindDeleteGesture } from './dom.js';
 import { sortState, sortSectionHTML, bindSortSection, sortChipHTML, bindSortChip, sensDe } from './sort.js';
 import { makeQrSvg } from './qr.js';
-import { demandesCritere, peutDemanderAmis, phraseDemande, ouvrirDemander, libelleDemander, direAdieu, reprendreMonProfil } from './reseau.js';
+import { demandesCritere, peutDemanderAmis, phraseDemande, ouvrirDemander, libelleDemander, direAdieu, reprendreMonProfil, profilDonneIci } from './reseau.js';
 import { nonLusDe, ouvrirConversation } from './messages.js';
 
 /* ce que le parcours de tes amis dit de tes pistes — calculé à la
@@ -76,7 +76,7 @@ export async function openMonQR(o = {}){
      pourront te demander quelqu'un. Un vieux navigateur sans WebCrypto
      donne son QR sans elle — on ne pourra pas lui écrire, c'est tout. */
   try { await (await import('./reseau.js')).assurerBoite(); } catch (e) {}
-  const donne = profilDonne(p, S.companies);
+  const donne = profilDonneIci(p, S.companies);
   let txt, svg;
   try {
     txt = await encodeOCA(donne);

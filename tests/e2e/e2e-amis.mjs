@@ -41,7 +41,11 @@ const KARIM = {
   ville: 'Lille', recherche: 'alternance',
   parcours: [{ id: 'k1', entreprise: 'Aztek', quoi: 'alternance', debut: '2025-09', fin: '' },
              { id: 'k2', entreprise: 'Quick', quoi: 'emploi', debut: '2024-06', fin: '2024-08' }],
-  amis: [{ id: 'LeaLeaLeaLeaLeaLea01', nom: 'Léa Durand', parcours: [{ entreprise: 'Wavestone', quoi: 'stage', debut: '', fin: '' }] }]
+  amis: [{ id: 'LeaLeaLeaLeaLeaLea01', nom: 'Léa Durand', parcours: [{ entreprise: 'Wavestone', quoi: 'stage', debut: '', fin: '' }] }],
+  /* un profil rempli en 7.x : « Je peux aider » et « Mon visage ».
+     Aucun écran de la 8.0 ne les montre — ils ne doivent donc pas partir
+     (la clé exacte du profil donné, plus bas, le vérifie) */
+  aide: ['parler', 'relire'], visage: { m: 12345, t: 2 }
 };
 const PISTES_KARIM = [
   { id: 'kp', name: 'Secret Corp', city: 'Lille', status: 'reply', notes: 'note très privée',

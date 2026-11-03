@@ -24,6 +24,9 @@ réparés depuis aussi.
   de barre latérale : la navigation est en haut, et la fiche s'ouvre en
   fenêtre.
 - Un lien gardé de la 7 vers « Réseau » ouvre « Échanger ».
+- Ton profil donné à tes amis ne porte plus que ce qui est écrit sous
+  ton QR : ton nom et ton parcours. Ce que tu avais coché dans « Je peux
+  aider » et ton visage dessiné restent chez toi, mais ne partent plus.
 
 ### Gardé
 

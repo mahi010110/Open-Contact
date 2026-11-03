@@ -36,6 +36,19 @@ import { S, bus, saveData, saveProfile, logJ } from './state.js';
 import { openSheet, toast, btn, ic, showUndo } from './dom.js';
 import { frDate } from './dates.js';
 
+/* CE QUI PART SE LIT SOUS LE QR — et rien d'autre (8.0.0). Le moteur de
+   la 7.x sait porter « Je peux aider » et « Mon visage » dans le profil
+   donné ; aucun écran de cette version ne les montre ni ne les change.
+   Un profil rempli en 7.x les garde chez lui, intacts, mais ne les
+   donne plus : ni dans « Mon QR », ni dans l'amitié réciproque, ni dans
+   la mise à jour qui part seule vers les amis. */
+export function profilDonneIci(p, companies){
+  const d = profilDonne(p, companies);
+  delete d.aide;
+  delete d.visage;
+  return d;
+}
+
 let etat = etatVide();
 let charge = null;
 const lib = () => import('../assets/vendor/trystero-nostr.min.js');
@@ -195,7 +208,7 @@ export async function donnerMonProfil(ami){
   await chargerReseau();
   const b = await assurerBoite();
   if (!S.profile.amiId){ S.profile.amiId = nouvelIdAmi(); saveProfile(); }
-  const l = lettreAmi({ prenom: prenomDe(S.profile.name), cle: b.pub }, profilDonne(S.profile, S.companies));
+  const l = lettreAmi({ prenom: prenomDe(S.profile.name), cle: b.pub }, profilDonneIci(S.profile, S.companies));
   const quand = Date.now() + DELAI_ANNULER;
   etat = { ...etat, envois: [...(etat.envois || []).filter(x => x.cle !== ami.cle),
                              { id: l.id, cle: ami.cle, lettre: l, quand, exp: Date.now() + 14 * 864e5 }] };
@@ -225,7 +238,7 @@ function planifierEnvois(){
    l'empreinte sans rien envoyer : ils viennent de recevoir ce profil. */
 async function profilAJour(){
   if (!String(S.profile.name || '').trim() || !S.profile.amiId || !S.profile.boite) return;
-  const donne = profilDonne(S.profile, S.companies);
+  const donne = profilDonneIci(S.profile, S.companies);
   const emp = await empreinteProfil(donne);
   if (etat.profilEnvoye === emp) return;
   const premiere = !etat.profilEnvoye;

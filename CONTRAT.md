@@ -57,6 +57,10 @@ tel quel, et « Effacer cet appareil » les emporte toujours. De même, les
 champs du profil qu'aucun écran ne montre plus — `semaine`, `aide`, `visage`,
 `flags.sansLettres` — se gardent à la lecture comme avant, et un ami reçu les
 garde aussi. Le moteur qui les lit et les auto-tests qui les gardent restent.
+Mais `aide` et `visage` **ne partent plus** dans le profil donné (OCA1) : ce
+qui part se lit sous « Mon QR », et aucun écran de la 8.0 ne les montre
+(`profilDonneIci`, `ui/reseau.js` ; gardé par `e2e-amis.mjs`). Le format
+OCA1 sait toujours les porter, et un ami qui les envoie les voit gardés.
 
 Depuis la v6.1, ces clés vivent dans **IndexedDB** (base `oc_kv_v1`, magasin
 `kv`) avec les **mêmes noms** ; `localStorage` reste lu en repli, ce qui migre
