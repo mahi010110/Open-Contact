@@ -30,7 +30,7 @@ const [bA, bB] = await Promise.all([lancer(nsA), lancer(nsB)]);
 const A = await ouvrir(bA, 6), B = await ouvrir(bB, 0);
 const mdp = 'labo-' + Math.random().toString(36).slice(2, 8);
 for (const p of [A, B]){
-  await p.click('.bottomnav a[data-r="echanger"]');
+  await p.click('.bottomnav a[data-r="reseau"]');
   await p.waitForSelector('#ecPromo'); await p.click('#ecPromo');
   await p.waitForSelector('#prPass'); await p.fill('#prPass', mdp);
   await p.click('.modal-f .btn-primary');

@@ -7,6 +7,7 @@
 import { esc } from '../engine/utils.js';
 import { CLOSE_REASONS } from '../engine/model.js';
 import { S, bus, setNextAction, closePiste, saveProfile } from './state.js';
+import { ouvrirDecroche } from './aide.js';
 import { openSheet, toast, ic, btn } from './dom.js';
 import { plusDaysISO, nextMondayISO, frDate } from './dates.js';
 import { nextActionSuggestions } from '../engine/assist.js';
@@ -226,8 +227,12 @@ export function askClose(c, opts){
     b.addEventListener('click', () => {
       closePiste(c, b.dataset.r);
       sh.close();
-      toast(b.dataset.r === 'won'
-        ? '🎉 Décroché — félicitations !'
+      /* CEUX QUI AIDENT (7.x, revenu en 8.1.0) : « Décroché » propose
+         d'aider à son tour — la feuille remplace le toast. Le toast,
+         lui, perd son emoji : §4 n'en veut aucun dans l'interface. */
+      const won = b.dataset.r === 'won';
+      if (!(won && ouvrirDecroche(c))) toast(won
+        ? 'Décroché, félicitations !'
         : 'Piste clôturée (' + CLOSE_REASONS[b.dataset.r].label + ').');
       if (opts.onDone) opts.onDone();
       bus.refresh();

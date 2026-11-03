@@ -31,7 +31,7 @@ await page.evaluate(async () => {
     { id: 'pi-c', name: 'Sopra', city: 'Paris', domain: 'esn', status: 'todo', updatedAt: 1, contacts: [] }
   ]));
 });
-await page.goto(base + '/#/echanger');
+await page.goto(base + '/#/reseau');
 await page.reload({ waitUntil: 'load' });
 await attendre(page, async () => (await import('./ui/state.js')).S.companies.length === 3,
   { timeout: 8000, message: 'pistes semées' });

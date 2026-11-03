@@ -68,7 +68,7 @@ const errors = [];
    (§0), donc les ouvrir mesurerait un écran que personne ne voit. */
 const SURFACES = [
   ['Aujourd’hui', 'route', 'aujourdhui', 'rien'], ['Mes pistes', 'route', 'pistes', 'rien'],
-  ['Échanger', 'route', 'echanger', 'rien'], ['Moi', 'route', 'moi', 'rien'],
+  ['Réseau', 'route', 'reseau', 'rien'], ['Moi', 'route', 'moi', 'rien'],
   ['fiche', './ui/fiche.js', 'openFiche', 'piste'],
   ['fiche clôturée', './ui/fiche.js', 'openFiche', 'pisteClose'],
   ['modifier', './ui/edit.js', 'openEditPiste', 'piste'],

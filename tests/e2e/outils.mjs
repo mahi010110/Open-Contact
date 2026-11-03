@@ -89,6 +89,19 @@ export async function attendre(page, fn, opts = {}){
    un échec de CI illisible (six scénarios rouges, zéro indice). Ici
    l'échec DIT ce qu'il a vu, port par port, et recrache les dernières
    lignes du binaire. */
+/* ---------- la carte d'une demande (lot F3) ----------
+   Lue comme on la lit : la phrase, à qui, puis chaque étape — son mot,
+   son état (fait, en cours, rien) et sa ligne. Partagée par les
+   scénarios des demandes, pour qu'ils lisent la MÊME carte. */
+export const suiviDe = (page, sel = '#fiDemande') => page.evaluate(s => {
+  const c = document.querySelector(s);
+  if (!c) return null;
+  const t = n => n ? n.textContent.replace(/\s+/g, ' ').trim() : '';
+  return { phrase: t(c.querySelector('.dmc-t')?.firstChild), a: t(c.querySelector('.dmc-s')),
+    etapes: [...c.querySelectorAll('.dmc-et')].map(e => [t(e.querySelector('b')),
+      e.classList.contains('dmc-fait') ? 'fait' : e.classList.contains('dmc-cours') ? 'cours' : '-', t(e.querySelector('.dmc-q'))].join(':')).join(' | ') };
+}, sel);
+
 export const CANAL_PORTS = [17095, 17096, 17097];
 
 export async function sonderCanal(pret = info => info && info.appairage){
@@ -278,4 +291,45 @@ export function annuaireMuetPartout(browser){
   const np = browser.newPage.bind(browser);
   browser.newPage = async (...a) => { const pg = await np(...a); await annuaireMuet(pg); return pg; };
   return browser;
+}
+
+/* ---- les chemins du réseau (8.1.0) ----
+   Donner et Recevoir vivent côte à côte dans « Réseau » ; Mon QR, dans
+   « Réseau › Mes amis ». Un seul endroit pour ces chemins : un scénario
+   qui les recopie à la main finit par jouer un chemin que l'app n'a
+   plus. */
+
+/* « Réseau » et l'un de ses deux verbes (`#rzDonner`, `#rzRecevoir`) :
+   sous la boîte au pouce, à droite du titre au poste */
+async function verbeReseau(page, id){
+  await page.evaluate(() => { location.hash = '#/reseau'; });
+  await page.waitForFunction(i => !!document.querySelector('#view-reseau:not([hidden]) ' + i), id);
+  await page.click('#view-reseau ' + id);
+}
+/* Réseau › Recevoir › QR · Fichier · Texte (`qr`, `fichier`, `texte`) */
+export async function ouvrirRecevoir(page, mode = 'texte'){
+  await verbeReseau(page, '#rzRecevoir');
+  await page.waitForSelector('#rcScan');
+  await page.click({ qr: '#rcScan', fichier: '#rcFile', texte: '#rcPaste' }[mode]);
+  if (mode === 'texte') await page.waitForSelector('#rcTxt');
+}
+/* Réseau › Mes amis : la feuille de la liste */
+export async function ouvrirMesAmis(page){
+  await page.evaluate(() => { location.hash = '#/reseau'; });
+  await page.waitForSelector('#bxAmis');
+  await page.click('#bxAmis');
+  await page.waitForSelector('#avMonQR, #avAjout');
+}
+/* Réseau › Mes amis › Mon QR (« Mon QR » liste vide, « Ajouter un ami »
+   en bout de liste sinon) */
+export async function ouvrirMonQR(page){
+  await ouvrirMesAmis(page);
+  await page.waitForSelector('#avMonQR, #avAjout');
+  await page.click('#avMonQR, #avAjout');
+}
+/* Réseau › Donner : toutes les pistes, cochées d'office — ce que
+   l'ancien « Échanger › Donner » ouvrait d'un tap */
+export async function ouvrirDonner(page){
+  await verbeReseau(page, '#rzDonner');
+  await page.waitForFunction(() => [...document.querySelectorAll('.overlay')].pop()?.querySelector('.mh-t')?.textContent.trim() === 'Donner');
 }

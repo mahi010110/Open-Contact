@@ -27,7 +27,8 @@ import { kvGet, kvSet, RELAYS_KEY, RESEAU_KEY } from '../engine/storage.js';
 import { nouvelleCle, etiquetteBoite, sceller, ouvrir, lettreDemande, lettreDon, lettreMerci, lettreAmi, normaliserLettre, empreinteProfil,
          etatVide, normaliserEtat, elaguer, peutDemander, demandeDePiste, traiterLettre, prenomDe,
          jetonRelais, ouvrirJeton, lettreRelais, lettreTrouve, choisirRelais, lettreEntree, lettreAdmis, lettreRecode,
-         lettreAdieu, adieuAuthentique, lettreMessage, messageAuthentique, MESSAGE_JOURS, LETTRE_KIND } from '../engine/boite.js';
+         lettreAdieu, adieuAuthentique, lettreMessage, messageAuthentique, MESSAGE_JOURS, LETTRE_KIND,
+         suiviDemande, pourCherche, demandesOuvertes, rangerLignesAmis, mercisRecents } from '../engine/boite.js';
 import { prenomAmi, profilDonne, statutAmi, ajouterAmi, retirerAmi, nouvelIdAmi, memeEntreprise, direQuoi, direQuoiTu } from '../engine/amis.js';
 import { parcoursDe } from '../engine/parcours.js';
 import { pistesPour } from '../engine/requete.js';
@@ -36,15 +37,15 @@ import { S, bus, saveData, saveProfile, logJ } from './state.js';
 import { openSheet, toast, btn, ic, showUndo } from './dom.js';
 import { frDate } from './dates.js';
 
-/* CE QUI PART SE LIT SOUS LE QR — et rien d'autre (8.0.0). Le moteur de
-   la 7.x sait porter « Je peux aider » et « Mon visage » dans le profil
-   donné ; aucun écran de cette version ne les montre ni ne les change.
-   Un profil rempli en 7.x les garde chez lui, intacts, mais ne les
-   donne plus : ni dans « Mon QR », ni dans l'amitié réciproque, ni dans
-   la mise à jour qui part seule vers les amis. */
+/* CE QUI PART SE LIT SOUS LE QR — et rien d'autre (8.1.0). Le moteur
+   sait porter « Mon visage » dans le profil donné ; aucun écran de cette
+   version ne le montre ni ne le change (le mainteneur l'a écarté, 3
+   novembre 2026). Un visage dessiné en 7.x reste dans le profil, intact,
+   mais ne part plus : ni dans « Mon QR », ni dans l'amitié réciproque,
+   ni dans la mise à jour qui part seule vers les amis. « Je peux aider »,
+   lui, part : il est revenu, et « Mon QR » l'écrit sous l'image. */
 export function profilDonneIci(p, companies){
   const d = profilDonne(p, companies);
-  delete d.aide;
   delete d.visage;
   return d;
 }
@@ -317,7 +318,7 @@ function recevoirAmi(l){
   if (st === 'nouveau'){
     const p = prenomAmi(l.profil);
     logJ(`${p} t’a ajouté à ses amis`);
-    toast(`${p} est dans tes amis.`);
+    /* le calme (R10) : la liste des amis le montre, rien ne surgit */
   }
   return true;
 }
@@ -365,8 +366,8 @@ async function nommerTrouve(l){
   const d = etat.demandes.find(x => x.id === l.demande);
   if (d && par) etat = { ...etat, demandes: etat.demandes.map(x => x === d ? { ...x, trouve: { ...x.trouve, par } } : x) };
   const quoi = d ? (d.entreprise && d.entreprise.nom ? 'chez ' + d.entreprise.nom : phraseCritere(d.critere)) : '';
-  /* le résultat vient d'un autre téléphone : il se dit (§6, ②) */
-  toast(`${par ? 'Un ami de ' + par : 'Un ami'} a trouvé quelqu’un ${quoi}.`);
+  /* le résultat vient d'un autre téléphone : il se dit (§6, ②) — sauf
+     au calme (R10), où l'étape « Trouvée » de la carte le montre */
 }
 async function nommerDon(l){
   const par = await premierMaillon(l.chaine);
@@ -375,7 +376,7 @@ async function nommerDon(l){
 /* le merci REMONTE : je le dis, puis je le passe au maillon suivant —
    lui seul ouvre son jeton */
 async function remercierChaine(m){
-  toast(`${m.de.prenom} te dit merci : quelqu’un a été trouvé chez ${m.entreprise.nom}, grâce à toi.`);
+  /* au calme (R10), le merci se lit deux jours dans « Tes amis » */
   logJ(`Merci de ${m.de.prenom} : la demande que tu as fait suivre a trouvé quelqu’un chez ${m.entreprise.nom}`);
   if (!(m.suite || []).length) return;
   const suivant = await ouvrirJeton(S.profile.boite.priv, m.suite[0]);
@@ -406,7 +407,6 @@ async function absorberLettre(ev){
   if (r.quoi === 'merci'){
     const m = etat.mercis.at(-1);
     logJ(`Merci de ${m.de.prenom} : ${m.contact.name} (${m.entreprise.nom})`);
-    toast(`${m.de.prenom} te dit merci pour ${m.contact.name}.`);
   }
   /* PRÉVENU TOUT DE SUITE (décision 18) : qui demande sait qu'on a
      trouvé, sans savoir qui — le contact suivra le oui */
@@ -475,6 +475,8 @@ export function relever(){
     if (lus) etat.depuis = debut;
     await sauver();
     if (change) bus.refresh();
+    /* qui l'attend sait s'il y a quelque chose à redessiner */
+    return change;
   })().catch(() => {}).finally(() => { enCours = null; });
   return enCours;
 }
@@ -531,7 +533,8 @@ export function lignesAmis(){
     const [x] = choixPour(r);
     if (!x) continue;
     out.push({ sorte: 'demande', id: r.id, nom: x.soi ? r.entreprise.nom : x.c.name, raison: quiCherche(r),
-               qui: x.soi ? 'tu ' + direQuoiTu(r.soi.quoi, r.soi.maintenant) : 'tu as ' + x.ct.name });
+               qui: x.soi ? 'tu ' + direQuoiTu(r.soi.quoi, r.soi.maintenant) : 'tu as ' + x.ct.name,
+               exp: r.exp, soi: !!x.soi });
   }
   for (const d of etat.dons){
     if (d.statut !== 'nouveau') continue;
@@ -539,12 +542,26 @@ export function lignesAmis(){
     /* « j'y suis » se dit comme sur la fiche : qui Y EST, par qui */
     out.push({ sorte: 'don', id: d.id, nom: c ? c.name : d.entreprise.nom,
                raison: d.soi ? `${d.contact.name} ${direQuoi(d.soi.quoi, d.soi.maintenant)}` : quiDonne(d),
-               qui: d.soi ? (d.par ? 'par ' + d.par : '') : d.contact.name });
+               qui: d.soi ? (d.par ? 'par ' + d.par : '') : d.contact.name, at: d.at });
   }
-  return out;
+  /* LE CALME (R10) : le merci d'un ami se lit ici deux jours, au lieu
+     d'un toast qu'on rate quand dix lettres arrivent d'un coup — le nom
+     de la piste en tête, comme les autres lignes */
+  for (const m of mercisRecents(etat))
+    out.push({ sorte: 'merci', id: m.id, nom: m.entreprise.nom, raison: `${m.de.prenom} te dit merci`,
+               qui: m.relais ? 'quelqu’un a été trouvé grâce à toi' : m.contact ? 'pour ' + m.contact.name : '', at: m.at,
+               aria: `${m.de.prenom} te dit merci, ${m.entreprise.nom}` });
+  /* trois d'abord, dans l'ordre de ce qui fait gagner le plus (R10) */
+  return rangerLignesAmis(out);
 }
 export function ouvrirLigne(sorte, id){
   if (sorte === 'demande'){ const r = etat.recues.find(x => x.id === id); if (r) ouvrirRecue(r); }
+  else if (sorte === 'merci'){
+    /* répondre au merci : sa conversation, s'il est de mes amis */
+    const m = etat.mercis.find(x => x.id === id);
+    const a = m && (S.profile.amis || []).find(x => x.cle && x.cle === m.de.cle);
+    if (a) import('./messages.js').then(m => m.ouvrirConversation(a));
+  }
   else { const d = etat.dons.find(x => x.id === id); if (d) ouvrirDon(d); }
 }
 
@@ -558,11 +575,14 @@ export function ouvrirDemander(c, apres){
   const prenom = prenomDe(S.profile.name);
   const crit = c && c.critere;
   const quoi = crit ? phraseCritere(crit) : 'chez ' + c.name;
+  /* CE QUE JE CHERCHE (lot F3) : le mot du profil — l'ami sait qui
+     présenter, un tuteur d'alternance n'est pas un recruteur de CDI */
+  const cherche = S.profile.recherche || '';
   /* LA PHRASE QUI PART, mot pour mot, et à qui. Rien d'autre ne voyage :
      ni ta piste, ni tes notes, ni où tu en es (règle 3). Et elle va plus
      loin que tes amis s'ils ne connaissent personne : ça se dit AVANT */
   sh.body.innerHTML =
-    `<div class="gr-mot" id="dmMot">${esc(prenom)} cherche quelqu’un ${esc(quoi)}.</div>
+    `<div class="gr-mot" id="dmMot">${esc(prenom)} cherche quelqu’un ${esc(quoi)}${esc(pourCherche(cherche))}.</div>
      <p class="dm-qui" id="dmQui">${ic('users', 'ic-14')} ${esc([
        ...(amis.length ? [amis.map(prenomAmi).join(' · ') + ', puis leurs amis'] : []),
        ...groupes.map(g => g.nom || 'Groupe')].join(' · '))}</p>`;
@@ -571,7 +591,7 @@ export function ouvrirDemander(c, apres){
     await chargerReseau();
     const b = await assurerBoite();
     const now = Date.now();
-    const l = lettreDemande({ prenom, cle: b.pub }, crit ? { critere: crit } : c, now);
+    const l = lettreDemande({ prenom, cle: b.pub }, crit ? { critere: crit } : c, now, cherche);
     const partis = (await Promise.all(amis.map(a => ecrire(a.cle, l, l.exp).catch(() => 0)))).filter(n => n > 0).length;
     /* et dans chaque groupe, que tout le groupe la voie (décision 20) */
     const dansGroupes = groupes.length ? await (await import('./groupes.js')).demanderAuxGroupes(l).catch(() => []) : [];
@@ -582,6 +602,7 @@ export function ouvrirDemander(c, apres){
     }
     const dem = { id: l.id, pisteId: crit ? null : c.id, at: now, exp: l.exp, vers: partis };
     if (dansGroupes.length) dem.groupes = dansGroupes;
+    if (l.cherche) dem.cherche = l.cherche;
     if (crit) dem.critere = l.critere; else dem.entreprise = l.entreprise;
     etat = { ...etat, demandes: [...etat.demandes, dem] };
     await sauver();
@@ -593,15 +614,68 @@ export function ouvrirDemander(c, apres){
   go.id = 'dmGo';
   sh.setFoot([go]);
 }
-/* l'état d'une demande en cours, sur la fiche : un fait, pas un bouton */
-export function demandeEnCoursHTML(d){
-  /* quelqu'un a trouvé : on le sait avant son oui (décision 18) */
-  if (d.trouve)
-    return `<p class="fi-demande fi-trouve" id="fiDemande">${ic('check', 'ic-14')} Trouvé ${d.trouve.groupe ? 'dans un groupe'
-      : 'chez un ami' + (d.trouve.par ? ' de ' + esc(d.trouve.par) : '')} · en attente</p>`;
-  const j = new Date(d.at).toISOString().slice(0, 10);
-  const quand = j === todayISO() ? 'aujourd’hui' : frDate(j);
-  return `<p class="fi-demande" id="fiDemande">${ic('clock', 'ic-14')} Demandé à ${esc(aQui(d))} · ${quand}</p>`;
+/* LA CARTE D'UNE DEMANDE (lot F3, idées G et I) : la même partout où je
+   la relis — la fiche, « Amis » —, sa phrase, à qui elle est partie, et
+   où elle en est, comme un colis : trois étapes en barres de progression
+   98. Un fait, pas un bouton : rien ne s'y tape. L'étape faite porte sa
+   date, celle en cours se remplit à moitié, la suivante attend. Elle ne
+   nomme personne d'autre que MON ami (« chez un ami de Léa »). */
+const ETAPES = { envoyee: 'Envoyée', trouvee: 'Trouvée', recu: 'Reçu' };
+const jourDe = t => { const j = new Date(t).toISOString().slice(0, 10); return j === todayISO() ? 'aujourd’hui' : frDate(j); };
+function sousEtape(x, i, courante){
+  if (i === courante) return i === 1 ? 'en cours' : 'en attente';
+  if (!x.at) return '';
+  if (x.ou === 'groupe') return 'dans un groupe';
+  if (x.ou === 'ami') return 'chez un ami' + (x.par ? ' de ' + x.par : '');
+  return jourDe(x.at);
+}
+export function carteDemandeHTML(d, { id = '', cls = '' } = {}){
+  const { etapes, courante } = suiviDemande(etat, d);
+  const quoi = d.critere ? phraseCritere(d.critere) : 'chez ' + ((d.entreprise && d.entreprise.nom) || '');
+  const etape = (x, i) => {
+    const fait = courante === -1 || i < courante, cours = i === courante;
+    const sous = sousEtape(x, i, courante);
+    return `<li class="dmc-et${fait ? ' dmc-fait' : cours ? ' dmc-cours' : ''}"${cours ? ' aria-current="step"' : ''}>
+        <b>${ETAPES[x.cle]}</b><span class="dmc-bar" aria-hidden="true"><i></i></span>
+        <span class="dmc-q">${sous ? esc(sous) : '<span class="visuellement-cache">pas encore</span>'}</span></li>`;
+  };
+  return `<div class="dmc${cls ? ' ' + cls : ''}"${id ? ` id="${id}"` : ''}>
+      <p class="dmc-p">${ic('users', 'ic-14')}<span class="dmc-t">Tu cherches quelqu’un ${esc(quoi)}${esc(pourCherche(d.cherche))}<span class="dmc-s">demandé à ${esc(aQui(d))}</span></span></p>
+      <ol class="dmc-suivi">${etapes.map(etape).join('')}</ol>
+    </div>`;
+}
+/* PLUSIEURS DEMANDES À LA FOIS (R10, à grande échelle) : trois cartes
+   prenaient tout le premier écran de « Réseau », la boîte dessous. Dès
+   qu'il y en a deux, chacune tient une LIGNE : ce qu'on cherche (le nom
+   de l'entreprise, l'attribut distinctif), où elle en est en trois
+   cases — le suivi du colis, réduit à son signe —, et en accent le
+   contact qui attend qu'on le prenne. La carte entière s'ouvre au tap. */
+const nomDemande = d => d.critere ? phraseCritere(d.critere) : ((d.entreprise && d.entreprise.nom) || '');
+export function ligneDemandeHTML(d, don){
+  const { etapes, courante } = suiviDemande(etat, d);
+  const fini = courante === -1;
+  /* les classes en toutes lettres : le relevé de la surface morte ne lit
+     pas une classe composée à la volée (e2e-sobriete.mjs) */
+  const etat3 = etapes.map((x, i) => fini || i < courante ? 'rz-f' : i === courante ? 'rz-c' : '');
+  const ou = etapes[1].at ? (etapes[1].ou === 'groupe' ? 'trouvée dans un groupe' : 'trouvée' + (etapes[1].par ? ' chez un ami de ' + etapes[1].par : ''))
+    : 'demandé à ' + aQui(d);
+  const sous = don ? bandeauDon(don) : fini ? 'reçu ' + jourDe(etapes[2].at) : ou;
+  const dit = [nomDemande(d), ETAPES[etapes[fini ? 2 : courante].cle] + (fini ? '' : ' en cours'), sous].join(', ');
+  return `<button class="rz-l" data-dem="${esc(d.id)}" aria-label="${esc(dit)}">
+      <span class="rz-m"><b>${esc(nomDemande(d))}</b><span class="rz-s${don ? ' rz-s-don' : ''}">${esc(sous)}</span></span>
+      <span class="rz-pas" aria-hidden="true">${etat3.map(c => `<i${c ? ` class="${c}"` : ''}></i>`).join('')}</span>
+      ${ic('chevron-right', 'ic-14')}</button>`;
+}
+/* la carte d'une demande, et le contact qui attend dessous */
+export function ouvrirDemande(id){
+  const d = etat.demandes.find(x => x.id === id);
+  if (!d) return;
+  const don = etat.dons.find(x => x.statut === 'nouveau' && x.demande === d.id) || null;
+  const sh = openSheet({ title: 'Demande', icon: 'users' });
+  sh.body.innerHTML = carteDemandeHTML(d, { id: 'rzCarte' })
+    + (don ? `<button class="fi-don rz-don" id="rzDon">${ic('user', 'ic-14')}<b>${esc(bandeauDon(don))}</b>${ic('chevron-right', 'ic-14')}</button>` : '');
+  sh.body.querySelector('#rzDon')?.addEventListener('click', () => { sh.close(null, true); ouvrirDon(don); });
+  return sh;
 }
 /* « 2 amis », « BTS SIO Lille », « 2 amis et BTS SIO Lille » */
 function aQui(d){
@@ -609,6 +683,12 @@ function aQui(d){
   const gr = (d.groupes || []).join(', ');
   return [amis, gr].filter(Boolean).join(' et ');
 }
+/* TOUTES mes demandes ouvertes, la plus récente d'abord, chacune avec le
+   contact qu'on m'a donné s'il attend (R1, décision 0002 : « Réseau »
+   les porte en tête — une demande par piste ET par métier et ville) */
+export const mesDemandes = () => demandesOuvertes(etat)
+  .slice().sort((a, b) => b.at - a.at)
+  .map(d => ({ d, don: etat.dons.find(x => x.statut === 'nouveau' && x.demande === d.id) || null }));
 /* les demandes par métier et ville : elles n'ont pas de fiche, elles se
    lisent dans « Amis », là où on les a faites */
 export const demandesCritere = () => etat.demandes.filter(d => d.critere && d.exp > Date.now());
@@ -621,7 +701,6 @@ export const peutDemanderAmis = () => peutDemander(etat) && (amisJoignables().le
    le groupe : un mot juste, pas une catégorie de plus */
 export const libelleDemander = () => amisJoignables().length ? 'Demander à mes amis'
   : mesGroupes().length > 1 ? 'Demander à mes groupes' : 'Demander à mon groupe';
-export const phraseDemande = d => phraseCritere(d.critere);
 
 /* ---------- ON TE DEMANDE ---------- */
 /* un contact tel qu'il partirait — ou tel qu'il arrive : le nom, puis
@@ -643,6 +722,10 @@ function ouvrirRecue(r){
      passe en premier : c'est toi qu'on cherche, et le geste le dit —
      « Tom peut m'écrire » (décision 10 : un seul oui, le tien). */
   let choisi = 0;
+  /* PRÉSENTER AU LIEU DE DONNER (lot F3b, double accord) : Karim demande
+     à Julie si elle veut bien, puis le dit d'une case. Rien ne l'y
+     oblige — « Donner » reste le geste —, mais Julie attendra le mail */
+  let accord = false;
   const dit = x => x.soi ? 'tu ' + direQuoiTu(r.soi.quoi, r.soi.maintenant) : x.ct.role;
   const ligne = x => [dit(x), x.ct.email || x.ct.phone || x.ct.link].filter(Boolean).join(' · ');
   const chez = x => x.soi ? r.entreprise.nom : x.c.name;
@@ -651,7 +734,7 @@ function ouvrirRecue(r){
     donner.disabled = true;
     await chargerReseau();
     const b = await assurerBoite();
-    const l = lettreDon({ prenom: prenomDe(S.profile.name), cle: b.pub }, r, x.ct, x.soi ? { soi: r.soi } : { piste: x.c });
+    const l = lettreDon({ prenom: prenomDe(S.profile.name), cle: b.pub }, r, x.ct, x.soi ? { soi: r.soi } : { piste: x.c, accord });
     const n = await ecrire(r.de.cle, l, r.exp).catch(() => 0);
     if (!n){ donner.disabled = false; echecEnvoi(); return; }
     etat = { ...etat, recues: etat.recues.map(y => y.id === r.id ? { ...y, statut: 'donnee', donne: x.ct.name } : y) };
@@ -660,8 +743,6 @@ function ouvrirRecue(r){
     sh.close();
     bus.refresh();
     /* le résultat est sur le téléphone d'un autre : il se dit (§6, ②) */
-    /* le toast ne genre personne : « Julie Marchand donné à Inès »
-       accordait au masculin une personne qu'on ne connaît pas (6.74) */
     toast(x.soi ? `${r.de.prenom} a ton contact.` : `${r.de.prenom} a le contact de ${x.ct.name}.`);
   }, 'share');
   donner.id = 'drDonner';
@@ -674,7 +755,7 @@ function ouvrirRecue(r){
   ignorer.id = 'drIgnorer';
   const dessiner = () => {
     const x = choix[choisi];
-    sh.body.innerHTML = `<p class="dm-de" id="drDe"><b>${esc(r.de.prenom)}</b> cherche quelqu’un</p>
+    sh.body.innerHTML = `<p class="dm-de" id="drDe"><b>${esc(r.de.prenom)}</b> cherche quelqu’un${esc(pourCherche(r.cherche))}</p>
       <p class="dm-qui dm-chez" id="drChez">chez ${esc(chez(x))}${r.par ? ' · par ' + esc(parDe(r)) : ''}</p>` + (choix.length === 1
       ? contactHTML({ ...x.ct, role: dit(x) }, 'drNom')
       : `<div class="pick-list" id="drListe">${choix.map((y, i) =>
@@ -682,12 +763,34 @@ function ouvrirRecue(r){
              ${ic('checkbox', 'ic-20 ic-off')}${ic('checkbox-on', 'ic-20 ic-on')}
              <div class="pk-m"><b>${esc(y.ct.name)}</b>${ligne(y) ? `<span class="pk-s">${esc(ligne(y))}</span>` : ''}</div>
            </button>`).join('')}</div>`);
-    sh.body.querySelectorAll('[data-i]').forEach(b => b.addEventListener('click', () => { choisi = +b.dataset.i; dessiner(); }));
-    /* le geste dit ce qui part : toi, ou un contact */
-    donner.innerHTML = `${ic('share', 'ic-14')} ${esc(x.soi ? `${r.de.prenom} peut m’écrire` : 'Donner')}`;
+    if (!x.soi) sh.body.insertAdjacentHTML('beforeend', accordHTML(r, x, accord));
+    sh.body.querySelectorAll('[data-i]').forEach(b => b.addEventListener('click', () => { choisi = +b.dataset.i; accord = false; dessiner(); }));
+    sh.body.querySelector('#drAccord')?.addEventListener('change', e => { accord = e.target.checked; libelle(); });
+    libelle();
+  };
+  /* le geste dit ce qui part : toi, un contact — ou quelqu'un qui attend */
+  const libelle = () => {
+    const x = choix[choisi];
+    donner.innerHTML = `${ic('share', 'ic-14')} ${esc(x.soi ? `${r.de.prenom} peut m’écrire` : accord ? 'Présenter ' + prenomDe(x.ct.name) : 'Donner')}`;
   };
   dessiner();
   sh.setFoot([ignorer, donner]);
+}
+
+/* « Julie est d'accord » — et, s'il y a de quoi la joindre, « Lui
+   demander » : son mail ou ses SMS, le message prêt. Un LIEN, parce
+   qu'on quitte l'app pour ça (§6) ; rien ne part sans Karim. Le message
+   ne dit que ce que la demande disait déjà, et pas un pronom de trop. */
+function accordHTML(r, x, coche){
+  const p = prenomDe(x.ct.name);
+  const quoi = (r.entreprise ? 'chez ' + (x.c ? x.c.name : r.entreprise.nom) : phraseCritere(r.critere)) + pourCherche(r.cherche);
+  const texte = `Bonjour ${p}, ${r.de.prenom} cherche quelqu’un ${quoi}. Je peux lui donner ton contact ?`;
+  const lien = x.ct.email ? `mailto:${x.ct.email}?subject=${encodeURIComponent('Je peux te présenter quelqu’un ?')}&body=${encodeURIComponent(texte)}`
+    : x.ct.phone ? `sms:${String(x.ct.phone).replace(/[^\d+]/g, '')}?&body=${encodeURIComponent(texte)}` : '';
+  return `<div class="dr-accord">
+      <label class="ckline"><input type="checkbox" id="drAccord"${coche ? ' checked' : ''}> ${esc(p)} est d’accord</label>
+      ${lien ? `<a class="linklike" id="drDemander" href="${esc(lien)}">Lui demander</a>` : ''}
+    </div>`;
 }
 
 /* ---------- LES DEMANDES D'UN GROUPE (lot 5b, décisions 20, 28, 29) ----------
@@ -809,6 +912,9 @@ export function ouvrirDon(d, apres){
   const lieu = [c ? c.name : d.entreprise.nom, !c && d.entreprise.ville].filter(Boolean).join(' · ');
   sh.body.innerHTML = `<p class="dm-de" id="ddDe">${esc(quiDonne(d))}</p>`
     + contactHTML({ ...k, role: k.role || (d.soi ? direQuoi(d.soi.quoi, d.soi.maintenant) : '') }, 'ddNom')
+    /* le double accord (lot F3b) : Julie attend ton mail — c'est l'atout,
+       donc l'accent, jamais un mark-* */
+    + (d.accord ? `<p class="dm-accord" id="ddAccord">${ic('check', 'ic-14')} ${esc(prenomDe(k.name))} est d’accord</p>` : '')
     + `<p class="dm-qui">pour ${esc(lieu)}</p>`;
   const ajouter = btn(c ? 'Ajouter à la piste' : 'Ajouter à mes pistes', 'btn-primary', async () => {
     let piste = c, neuve = false;
@@ -818,7 +924,10 @@ export function ouvrirDon(d, apres){
       S.companies.push(piste);
       neuve = true;
     }
-    const ct = normalizeContact({ ...k });
+    /* QUI ME L'A DONNÉ (lot F3) : le premier mail le dira — « Karim m'a
+       conseillé de vous écrire ». Pas quand c'est lui qu'on présente :
+       on ne lui écrit pas qu'il nous a conseillé de lui écrire. */
+    const ct = normalizeContact({ ...k, ...(d.soi ? {} : { via: d.de.prenom, ...(d.accord ? { accord: true } : {}) }) });
     piste.contacts = [...(piste.contacts || []), ct];
     (piste.history = piste.history || []).push({ d: todayISO(), t: `Contact donné par ${d.de.prenom} : ${k.name}` });
     piste.updatedAt = Date.now();

@@ -14,9 +14,10 @@
      la preuve — ni nom de famille, ni e-mail, ni piste, ni note ;
    ② chez Inès : « Écrire à Karim » au pied de sa fiche, le message à
      droite, ses retours à la ligne gardés, le champ vidé ;
-   ③ chez Karim : « Tes amis » en tête d'« Aujourd'hui » (« t'a écrit »),
-     le chiffre au bout de la ligne d'Inès dans « Amis », la conversation
-     d'un tap — et, lue, plus rien ne se compte ;
+   ③ chez Karim : « Inès t'a écrit » dans « Aujourd'hui », et sa ligne
+     en tête de la boîte de « Réseau », en gras avec un point — aucun
+     onglet ne compte (R10, le calme) ; la conversation d'un tap — et,
+     lue, plus rien ne la marque ;
    ④ EN DIRECT : conversation ouverte des deux côtés, ce qui s'écrit en
      face arrive sans rien toucher ;
    ⑤ SANS RÉSEAU : le message reste dans la conversation, « pas encore
@@ -27,7 +28,7 @@
    ⑧ pouce et poste, clair et sombre, 320 px texte doublé : rien ne
      déborde ; zéro erreur console.
    ============================================================ */
-import { chromium, chromiumPath, serveRepo, SHOTS, annuaireMuet } from './outils.mjs';
+import { chromium, chromiumPath, serveRepo, SHOTS, annuaireMuet, ouvrirMesAmis } from './outils.mjs';
 import { startLocalRelay } from './relais-local.mjs';
 import { nouvelleCle, ouvrir, etiquetteBoite, sceller, prouver, nouvelId } from '../../engine/boite.js';
 
@@ -77,11 +78,18 @@ async function ecran(profil, pistes, o = {}){
   await p.waitForSelector('#view-aujourdhui:not([hidden])');
   return { ctx, p };
 }
+/* une feuille qui SORT (`ov-out`) n'est plus à fermer : la compter, puis
+   la viser au tour d'après, c'était viser ce qui venait de disparaître
+   (relevé sur une machine chargée, 28 octobre 2026) */
 const fermerTout = async p => {
   for (let i = 0; i < 6; i++){
-    const n = await p.evaluate(() => document.querySelectorAll('.overlay').length);
-    if (!n) break;
-    await p.evaluate(() => [...document.querySelectorAll('.overlay')].pop().querySelector('.modal-h button.x').click());
+    const ferme = await p.evaluate(() => {
+      const ov = [...document.querySelectorAll('.overlay:not(.ov-out)')].pop();
+      if (!ov) return false;
+      ov.querySelector('.modal-h button.x').click();
+      return true;
+    });
+    if (!ferme) break;
     await p.waitForTimeout(250);
   }
 };
@@ -91,11 +99,10 @@ const rouvrir = async p => {
   await p.reload({ waitUntil: 'load' });
   await p.waitForSelector('#view-aujourdhui:not([hidden])');
 };
+/* « Réseau › Mes amis » (R1, 7.0.0) */
 const ongletAmis = async p => {
   await fermerTout(p);
-  await p.evaluate(() => { location.hash = '#/pistes'; });
-  await p.waitForSelector('[data-portee="amis"]');
-  await p.click('[data-portee="amis"]');
+  await ouvrirMesAmis(p);
   await p.waitForSelector('#piAmis .am-row');
 };
 const convDe = (p, id) => p.evaluate(async i => {
@@ -197,30 +204,35 @@ console.log('② « Écrire à Karim » au pied de sa fiche, le message à droit
   console.log('① la fuite d’abord : une étiquette, 30 jours, du chiffré ; le prénom, la clé, le texte, l’heure et la preuve — rien d’autre ✓');
 }
 
-/* ---------- ③ chez Karim : « Aujourd'hui », « Amis », la conversation ---------- */
+/* ---------- ③ chez Karim : la boîte, l'onglet, la conversation ---------- */
+const boiteK = () => K.p.evaluate(id => {
+  const r = document.querySelector(`.bx-l[data-ami="${id}"]`);
+  const a = document.querySelector('.bottomnav [data-r="reseau"]');
+  return { ligne: r ? { gras: r.classList.contains('bx-nonlu'), nom: r.querySelector('.bx-n').textContent.trim(),
+                        apercu: r.querySelector('.bx-p').textContent.trim(), point: !!r.querySelector('.bx-pt'),
+                        n: (r.querySelector('.bx-i')?.textContent || '').replace(/\D/g, ''),
+                        aria: r.getAttribute('aria-label') } : null,
+           onglet: a ? a.textContent.replace(/\D/g, '') : '', aria: a ? a.getAttribute('aria-label') : '',
+           jour: document.querySelector('#view-aujourdhui .act-row[data-sorte="ecrits"]')?.textContent.replace(/\s+/g, ' ').trim() || '' };
+}, ID_I);
 await rouvrir(K.p);
-const ligne = await attendre(() => K.p.evaluate(() => {
-  const r = document.querySelector('.tr-amis .act-ami[data-sorte="message"]');
-  return r ? { nom: r.querySelector('.act-verb').textContent.trim(), raison: r.querySelector('.act-vecu').textContent.trim(),
-               qui: r.querySelector('.act-who').textContent.trim(), tete: !r.closest('.tranche').previousElementSibling?.classList.contains('tranche') } : null;
-}), 'chez Karim, « Aujourd’hui » ne dit pas qu’Inès a écrit');
-if (ligne){
-  if (ligne.nom !== 'Inès Martin' || ligne.raison !== 't’a écrit' || !/^Salut Karim ! Tu as un contact chez Thales/.test(ligne.qui))
-    fail('la ligne d’« Aujourd’hui » : ' + JSON.stringify(ligne));
-  console.log('③ « Tes amis » chez Karim : « Inès Martin · t’a écrit · Salut Karim !… » ✓');
-}
+/* au calme (R10) : « Aujourd'hui » dit qui t'a écrit, l'onglet ne compte
+   rien — il change de couleur, et son nom dit « du nouveau » (28 octobre 2026) */
+const vu3 = await attendre(async () => { const b = await boiteK(); return /Inès t’a écrit/.test(b.jour) ? b : null; },
+  'chez Karim, « Aujourd’hui » ne dit pas qu’Inès a écrit');
+if (vu3 && (vu3.onglet || vu3.aria !== 'Réseau, du nouveau')) fail('l’onglet compte, ou ne dit pas « du nouveau » : ' + JSON.stringify(vu3));
 await K.p.screenshot({ path: `${SHOTS}/130-conv-aujourdhui.png` });
-await ongletAmis(K.p);
+await K.p.evaluate(() => { location.hash = '#/reseau'; });
+await K.p.waitForSelector(`.bx-l[data-ami="${ID_I}"]`);
 {
-  const n = await K.p.evaluate(() => document.querySelector('#piAmis .am-row .am-n')?.textContent.trim() || '');
-  if (n !== '1') fail('la ligne d’Inès dans « Amis » ne compte pas le message non lu : « ' + n + ' »');
-  const al = await K.p.evaluate(() => document.querySelector('#piAmis .am-row .ri-main').getAttribute('aria-label'));
-  if (al !== 'Ouvrir Inès Martin, 1 message non lu') fail('le nom de la ligne : ' + al);
+  const { ligne } = await boiteK();
+  if (!ligne.gras || !ligne.point || ligne.n || ligne.nom !== 'Inès Martin' || !/^Salut Karim ! Tu as un contact chez Thales/.test(ligne.apercu))
+    fail('la ligne d’Inès dans la boîte : ' + JSON.stringify(ligne));
+  if (!/^Inès Martin, non lue, Salut Karim !/.test(ligne.aria)) fail('le nom de la ligne : ' + ligne.aria);
+  console.log('③ chez Karim : « Inès t’a écrit » dans « Aujourd’hui », sa ligne en gras avec un point dans la boîte, le début du message ✓');
 }
-await K.p.screenshot({ path: `${SHOTS}/130-conv-amis.png` });
-await K.p.evaluate(() => { location.hash = '#/aujourdhui'; });
-await K.p.waitForSelector('.tr-amis .act-ami[data-sorte="message"] .act-main');
-await K.p.click('.tr-amis .act-ami[data-sorte="message"] .act-main');
+await K.p.screenshot({ path: `${SHOTS}/130-conv-boite.png` });
+await K.p.click(`.bx-l[data-ami="${ID_I}"]`);
 await K.p.waitForSelector('#msFil');
 {
   const b = await bulles(K.p);
@@ -228,12 +240,16 @@ await K.p.waitForSelector('#msFil');
 }
 await fermerTout(K.p);
 await K.p.waitForTimeout(300);
-if (await K.p.$('.tr-amis .act-ami[data-sorte="message"]')) fail('lu, le message reste dans « Aujourd’hui »');
+{
+  const b = await boiteK();
+  if (b.ligne.gras || b.ligne.point || b.onglet || b.aria !== 'Réseau') fail('lue, la conversation se marque encore : ' + JSON.stringify(b));
+}
 await ongletAmis(K.p);
-if (await K.p.$('#piAmis .am-row .am-n')) fail('lu, le message se compte encore dans « Amis »');
+if (await K.p.$('#piAmis .am-row .am-n')) fail('« Amis » compte encore les messages');
 console.log('③ un tap ouvre la conversation (Inès à gauche) ; lue, rien ne se compte plus ✓');
 
 /* ---------- ④ en direct, des deux côtés ---------- */
+/* depuis sa fiche d'ami : « Écrire à Inès » */
 await K.p.click('#piAmis .am-row .ri-main');
 await K.p.waitForSelector('.overlay #amEcrire');
 await K.p.click('.overlay #amEcrire');
@@ -320,30 +336,36 @@ for (const [nom, o] of [['pouce', {}], ['pouce-sombre', { sombre: true }], ['pos
      vient pas se mêler à la conversation semée */
   const E = await ecran({ ...INES, boite: await nouvelleCle() }, PISTES_I, { ...o, conv: CONV });
   if (o.gros) await E.p.addStyleTag({ content: 'html{font-size:200% !important}' });
-  await ongletAmis(E.p);
-  const n = await E.p.evaluate(() => document.querySelector('#piAmis .am-row .am-n')?.textContent.trim() || '');
-  if (n !== '2') fail(nom + ' : la ligne de Karim compte « ' + n + ' »');
-  await E.p.screenshot({ path: `${SHOTS}/130-conv-amis-${nom}.png` });
+  /* la boîte compte ses deux messages */
+  await E.p.evaluate(() => { location.hash = '#/reseau'; });
+  await E.p.waitForSelector(`.bx-l[data-ami="${ID_K}"]`);
   const poste = (o.vp || {}).width > 900;
-  if (poste){
-    /* au poste, le geste vit dans le détail, contourné */
-    const b = await E.p.evaluate(() => { const x = document.querySelector('.am-detail #amEcrire');
-      return x ? { mot: x.innerText.replace(/\s+/g, ' ').trim(), contour: x.classList.contains('btn-contour') } : null; });
-    if (!b || !/^Écrire à Karim 2$/.test(b.mot) || !b.contour) fail(nom + ' : le détail ne porte pas « Écrire à Karim » : ' + JSON.stringify(b));
-    await E.p.click('.am-detail #amEcrire');
-  } else {
-    await E.p.click('#piAmis .am-row .ri-main');
-    await E.p.waitForSelector('.overlay #amEcrire');
-    await E.p.click('.overlay #amEcrire');
+  /* rien ne s'ouvre de soi-même, au pouce comme au poste (8.1.0) : la
+     conversation attend qu'on la choisisse, et garde son point */
+  const pt = await E.p.evaluate(id => !!document.querySelector(`.bx-l[data-ami="${id}"] .bx-pt`), ID_K);
+  if (!pt) fail(nom + ' : la ligne de Karim n’a pas son point');
+  await E.p.screenshot({ path: `${SHOTS}/130-conv-boite-${nom}.png` });
+  await ongletAmis(E.p);
+  await E.p.screenshot({ path: `${SHOTS}/130-conv-amis-${nom}.png` });
+  await E.p.click('#piAmis .am-row .ri-main');
+  await E.p.waitForSelector('.overlay #amEcrire');
+  {
+    const b = await E.p.evaluate(() => { const x = document.querySelector('.overlay .modal-f #amEcrire');
+      return x ? x.innerText.replace(/\s+/g, ' ').trim() : ''; });
+    if (b !== 'Écrire à Karim') fail(nom + ' : la fiche de l’ami ne porte pas « Écrire à Karim » au pied : ' + b);
   }
-  await E.p.waitForSelector('#msFil');
+  await E.p.click('.overlay #amEcrire');
+  /* la conversation s'ouvre par-dessus la fiche de l'ami : une feuille
+     au pouce, une fenêtre au poste — la même qu'en partant de la boîte */
+  await E.p.waitForSelector('.overlay #msFil');
   await E.p.waitForTimeout(500);
   const fautes = await E.p.evaluate(() => {
-    const b = [...document.querySelectorAll('.overlay .modal-b')].pop();
+    const ici = '.overlay';
+    const b = [...document.querySelectorAll(ici + ' .modal-b')].pop();
     const f = [];
     if (b.scrollWidth > b.clientWidth + 1) f.push('la feuille défile latéralement');
     for (const p of b.querySelectorAll('.ms-m p')) if (p.scrollWidth > p.clientWidth + 1) f.push('une bulle déborde');
-    const pied = [...document.querySelectorAll('.overlay .modal-f')].pop();
+    const pied = [...document.querySelectorAll(ici + ' .modal-f')].pop();
     for (const x of pied.querySelectorAll('#msChamp, #msEnvoyer')){
       const r = x.getBoundingClientRect(), m = pied.getBoundingClientRect();
       if (r.right > m.right + 1 || r.left < m.left - 1) f.push(x.id + ' sort du pied');
@@ -353,9 +375,16 @@ for (const [nom, o] of [['pouce', {}], ['pouce-sombre', { sombre: true }], ['pos
        heure d'écart, la disent chacun ; aucune bulle ne la répète */
     const heures = [...b.querySelectorAll('.ms-m')].map(li => !!li.querySelector('time'));
     if (heures.join() !== 'true,true,true') f.push('l’heure : ' + heures.join());
-    /* le dernier message est à l'écran : la conversation s'ouvre en bas */
+    /* la conversation s'ouvre en bas — ou, s'il y a du neuf, sur la ligne
+       « N nouveaux » (13 octobre 2026) : elle est alors à l'écran, et si
+       la suite déborde, « ↓ N nouveaux » le dit */
     const der = b.querySelector('.ms-m:last-child').getBoundingClientRect(), bb = b.getBoundingClientRect();
-    if (der.bottom > bb.bottom + 1) f.push('le dernier message est sous le pied');
+    const nouv = b.querySelector('.fil-nouv')?.getBoundingClientRect();
+    if (der.bottom > bb.bottom + 1){
+      if (!nouv) f.push('le dernier message est sous le pied');
+      else if (nouv.top < bb.top || nouv.bottom > bb.bottom) f.push('la ligne « nouveaux » n’est pas à l’écran');
+      else if (!b.querySelector('.fil-bas')) f.push('du neuf sous le pied, et aucun « ↓ nouveaux » pour le dire');
+    }
     return f;
   });
   /* à la souris, un contrôle fait 32 px (§5) : la hauteur ne se compte qu'au doigt */

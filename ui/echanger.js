@@ -1,31 +1,40 @@
 /* ============================================================
-   OpenContact — interface · « Échanger »
-   Deux verbes : Donner · Recevoir. Puis les Groupes, à la place qu'avait
-   la porte « Partage en groupe » (lot 5 : on s'y écrit et on s'y donne
-   des pistes, en différé). Puis le fil
-   de ce qui a réellement circulé, relu dans le journal privé : un
-   écran qui ne montre que des portes ne se comprend pas d'un regard,
-   parce qu'il n'y a rien à comprendre. Tout en bas, le rappel qui
-   compte : jamais le privé. La sync de MES appareils vit dans « Moi ».
+   OpenContact — interface · « Réseau » (ex-« Échanger », d’où le nom du fichier)
+   (13 octobre 2026 : « une boîte de réception, les conversations comme
+   Discord, exactement comme les messageries traditionnelles »)
+   Mes demandes d'abord, puis la BOÎTE : toutes les conversations,
+   groupes et amis, la plus récente en haut (ui/conversations.js) — une
+   ligne ouvre sa conversation, en feuille au pouce, en fenêtre au poste.
+   Puis ce qui ne circule pas encore (« Reçues, jamais reprises », au
+   poste), et l'Historique de ce qui a circulé, derrière une ligne — une
+   trace, pas une place forte. Les deux verbes, Donner · Recevoir, sous
+   le pouce. La sync de MES appareils vit dans « Moi ».
    ============================================================ */
 import { esc, localISO, todayISO } from '../engine/utils.js';
 import { STATUSES } from '../engine/model.js';
-import { canalCourt, exchangeLog, exchangeTotals, recuesDormantes, jamaisDonnees } from '../engine/assist.js';
-import { S, isClosed, saveJournal } from './state.js';
-import { $, ic, openSheet, bindDeleteGesture, showUndo, annoncer, voirAutres } from './dom.js';
+import { canalCourt, exchangeLog, recuesDormantes, jamaisDonnees } from '../engine/assist.js';
+import { S, saveJournal, isClosed } from './state.js';
+import { $, ic, openSheet, bindDeleteGesture, showUndo, voirAutres } from './dom.js';
 import { frDate, diffDays } from './dates.js';
-import { openDonner } from './donner.js';
-import { openRecevoir } from './recevoir.js';
-import { openPromo } from './direct.js';
-import { groupesHTML, bindGroupes } from './groupes.js';
-import { PARTAGE_DIRECT } from './perimetre.js';
+import { boiteHTML, bindBoite } from './conversations.js';
 import { openFiche } from './fiche.js';
+import { openPromo } from './direct.js';
+import { PARTAGE_DIRECT } from './perimetre.js';
+import { mesDemandes, carteDemandeHTML, bandeauDon, ouvrirLigne, ligneDemandeHTML, ouvrirDemande } from './reseau.js';
 
-/* Deux conceptions, pas une page élastique : au pouce, une colonne —
-   les gestes d'abord, le fil dessous ; au poste, les gestes tiennent
-   dans une colonne étroite et le fil occupe la place restante. */
+/* « Réseau » a remplacé « Échanger » (7.0.0, revenu en 8.1.0 — décision
+   0012). Une vue recadrée sur UNE question — qui peut m'aider ? : mes
+   demandes en tête, puis les conversations, « Mes amis » et
+   « Historique ». Les deux moitiés d'un même échange, Donner et
+   Recevoir, vivent côte à côte, là où sont les gens à qui l'on donne —
+   sous le pouce au téléphone, à droite du titre au poste. */
+/* Deux conceptions, pas une page élastique : au pouce, une colonne qui
+   défile au-dessus des deux verbes ; au poste, deux colonnes — les GENS
+   à gauche (mes demandes, les conversations), les ÉCHANGES DE PISTES à
+   droite (ce qui dort, l'historique), sous les deux verbes qui les
+   font. */
 const mqWide = matchMedia('(min-width:901px)');
-mqWide.addEventListener('change', () => { if (S.route === 'echanger') renderEchanger(); });
+mqWide.addEventListener('change', () => { if (S.profile && S.route === 'reseau') renderEchanger(); });
 
 /* un journal porte des horodatages, pas des dates d'agenda : « hier »
    et « aujourd'hui » se disent, le reste se date */
@@ -131,12 +140,6 @@ function openEchange(x){
    d'échanges sur toute sa recherche, pas cinquante. */
 const FIL_CAP = 50;
 let filDeplie = false;
-/* Au poste, la ligne retenue et son contenu vivent CÔTE À CÔTE (motif
-   liste-détail : Material 3 « list-detail », Apple HIG « split view »).
-   L'index de la ligne lue, donc — et il vaut pour la session, comme le
-   tri et les filtres. Au pouce, il ne sert pas : on descend dans une
-   feuille et on remonte, un écran à la fois. */
-let filSel = 0;
 /* les lignes réellement à l'écran — le rendu et les écouteurs lisent
    la MÊME liste, sinon un tap ouvre l'échange d'à côté */
 function filVisible(){
@@ -147,7 +150,6 @@ function filVisible(){
 function filHTML(){
   const fil = filVisible();
   const reste = exchangeLog(S.journal, 0).length - fil.length;
-  const tot = exchangeTotals(S.journal);
   /* PAS DE CADRE. Le journal n'est pas un objet à encadrer, c'est une
      tranche — la même grammaire que « En retard » ou « Bientôt » sur
      « Aujourd'hui » : un libellé en petites capitales, son compte, puis
@@ -161,9 +163,6 @@ function filHTML(){
      dans tout journal. Le total en sous-titre est parti : chaque ligne
      porte déjà son compte, et le badge de l'en-tête dit combien il y en
      a eu. */
-  const head =
-    `<h2 class="tr-h">${ic('switch', 'ic-14')} Tes échanges${
-      tot.n ? ` <span class="tr-n">${tot.n}</span>` : ''}</h2>`;
   /* Un état vide enseigne, il ne constate pas. « Rien n'a encore
      circulé » disait qu'il n'y a rien — ce que le vide disait déjà — et
      laissait un nouveau venu sans idée de ce que cette place recevra.
@@ -273,21 +272,20 @@ function filHTML(){
            Le `.sw-in` est ce que `bindDeleteGesture` réclame : glisser
            au pouce, poubelle au survol — le motif de suppression de
            l'app, pas un bouton de plus dans la ligne. */
-        /* Au poste, la ligne ne « mène » plus ailleurs : elle SE LIT à
-           côté. Le chevron — la promesse d'un aller-retour — ne s'y
-           affiche donc pas, et la ligne lue prend le navy du châssis,
-           la couleur qui dit « tu es ici » (§4). */
-        const lue = mqWide.matches && i === filSel;
+        /* L'historique vit dans SA feuille, au pouce comme au poste : une
+           ligne y mène toujours ailleurs — le chevron le promet. (Au
+           poste elle se lisait à côté de la liste ; cette place est
+           maintenant celle de la conversation ouverte.) */
         const dedansLigne = x.ids.length
-          ? `<button class="ec-row ec-open sw-cible${lue ? ' ec-lue' : ''}" data-fil="${i}"${
-              lue ? ' aria-current="true"' : ''}>${dedans}${
-              mqWide.matches ? '' : ic('chevron-right', 'ic-14')}</button>`
+          ? `<button class="ec-row ec-open sw-cible" data-fil="${i}">${dedans}${ic('chevron-right', 'ic-14')}</button>`
           : `<div class="ec-row">${dedans}</div>`;
         return `<div class="ec-l" data-l="${i}"><div class="sw-in">${dedansLigne}</div></div>`;
       }).join('') +
       (reste ? `<button class="linklike tr-more" id="ecMore">${voirAutres(reste)}</button>` : '');
+  /* dans SA feuille, le titre « Historique » dit déjà de quoi il s'agit :
+     l'en-tête de tranche n'y redit rien */
   return `<section class="tranche ec-fil${fil.length ? '' : ' ec-vide'}">
-            ${head}<div class="ec-body">${corps}</div>
+            <div class="ec-body">${corps}</div>
           </section>`;
 }
 
@@ -353,231 +351,130 @@ function reprendreHTML(){
     </section>`;
 }
 
-/* ---- LE PANNEAU DE DROITE, au poste seulement ----
-   L'écran ne montrait que des PORTES : deux verbes, une entrée de
-   groupe, et un relevé de reçus. La règle du produit est pourtant
-   écrite (§6) — « un écran montre les affaires de l'utilisateur, pas
-   des portes », et son corollaire : un écran qui PEUT montrer une
-   donnée et ne le fait pas tombe sous la même règle. Or il l'avait, la
-   donnée : les pistes que chaque échange a fait circuler. Elles
-   vivaient derrière un clic et une feuille modale.
-   Au poste elles se posent à côté de la liste — c'est le motif
-   liste-détail, celui de Material 3 (« list-detail ») et d'Apple HIG
-   (« split view ») : on parcourt à gauche, on lit à droite, sans perdre
-   sa place et sans ouvrir quoi que ce soit. La ligne la plus récente est
-   retenue d'emblée, comme le veut ce motif sur un grand écran : un
-   panneau vide à l'arrivée serait la porte qu'on vient de supprimer.
-   Au pouce, rien ne change : on descend dans une feuille, on remonte. */
-function detailHTML(){
-  const fil = filVisible();
-  const x = fil[filSel];
-  /* Fil vide : le panneau se TAIT. « Les pistes qu'un échange fait
-     circuler s'affichent ici » répétait, à 580 px de distance, la phrase
-     du fil juste à sa gauche — deux phrases pour un seul vide. Un détail
-     n'a rien à dire tant qu'il n'y a rien à sélectionner. */
-  /* … et un échange plus ancien que le suivi de ses pistes ne s'y
-     EXPLIQUE pas : sa ligne ne s'ouvre pas (pas de chevron, pas de
-     focus), le panneau n'a donc rien à en dire. La phrase qui le disait
-     (« il ne les retrouve pas ») était la première chose lue au poste,
-     une explication technique à la place des affaires de l'étudiant. */
-  if (!fil.length || !x || !x.ids.length) return '<aside class="ec-detail"></aside>';
-  const k = contenuEchange(x, false);
-  return `<aside class="ec-detail">
-            <h2 class="tr-h">${ic(k.icone, 'ic-14')} ${esc(k.titre)}</h2>
-            <div class="ec-detail-b">${k.html}</div>
-          </aside>`;
+/* ---- MES DEMANDES, en tête de « Réseau » (R1) ----
+   Ce que j'attends des autres, là où je viens voir qui peut m'aider :
+   la même carte que sur la fiche (un fait, suivi comme un colis), et
+   juste dessous le contact qu'un ami m'a donné, proposé en pointillé
+   d'accent — proposé en pointillé, posé en plein (§6). Rien quand je
+   n'attends rien : une tranche vide ne dirait que mon impuissance. */
+function demandesHTML(){
+  const l = mesDemandes();
+  if (!l.length) return '';
+  /* deux ou plus : une ligne chacune, la carte au tap (R10) */
+  if (l.length > 1) return `<section class="tranche rz-dem" id="rzDemandes">
+      <h2 class="tr-h">${ic('users', 'ic-14')} Mes demandes</h2>
+      <div class="rz-liste">${l.map(({ d, don }) => ligneDemandeHTML(d, don)).join('')}</div>
+    </section>`;
+  return `<section class="tranche rz-dem" id="rzDemandes">
+      <h2 class="tr-h">${ic('users', 'ic-14')} Mes demandes</h2>
+      ${l.map(({ d, don }) => carteDemandeHTML(d, { cls: 'rz-carte' }) + (don
+        ? `<button class="fi-don rz-don" data-don="${esc(don.id)}">${ic('user', 'ic-14')}
+             <b>${esc(bandeauDon(don))}</b>${ic('chevron-right', 'ic-14')}</button>` : '')).join('')}
+    </section>`;
+}
+
+/* ---- L'HISTORIQUE, derrière une ligne ----
+   Ce qui a circulé — pistes données, pistes reçues — reste lisible, et
+   chaque échange mène encore à ses pistes. Mais c'est une TRACE : elle
+   ne prend plus le haut de l'écran, que la boîte occupe. Une ligne
+   « Historique » en bas de la boîte, et sa feuille. */
+function ouvrirHistorique(){
+  const sh = openSheet({ title: 'Historique', icon: 'switch', className: 'modal-histo' });
+  const rendre = () => {
+    sh.body.innerHTML = filHTML();
+    const fil = filVisible();
+    sh.body.querySelectorAll('[data-fil]').forEach(b =>
+      b.addEventListener('click', () => { const x = fil[+b.dataset.fil]; if (x) openEchange(x); }));
+    /* SUPPRIMER UNE LIGNE DU FIL — le motif de l'app, pas un bouton de
+       plus : glisser au pouce, poubelle au survol, et la barre
+       « Annuler » à la place d'une confirmation (CLAUDE.md §6). Ce qu'on
+       retire, c'est l'entrée du journal qui a produit la ligne ;
+       « Annuler » la remet à SA place, pas à la fin — sinon l'ordre du
+       fil changerait tout seul. */
+    sh.body.querySelectorAll('.ec-l').forEach(node => {
+      const x = fil[+node.dataset.l];
+      if (!x) return;
+      bindDeleteGesture(node, () => {
+        const e = S.journal[x.i];
+        if (!e) return;
+        S.journal.splice(x.i, 1);
+        saveJournal();
+        rendre();
+        renderEchanger();
+        showUndo('Ligne retirée du fil.', () => {
+          S.journal.splice(x.i, 0, e);
+          saveJournal();
+          if (sh.body.isConnected) rendre();
+          renderEchanger();
+        });
+      }, 'cette ligne du fil');
+    });
+    /* les lignes révélées se déplient, elles ne surgissent pas (§4) */
+    sh.body.querySelector('#ecMore')?.addEventListener('click', () => {
+      const avant = filVisible().length;
+      filDeplie = true;
+      rendre();
+      sh.body.querySelectorAll('.ec-l').forEach((n, i) => { if (i >= avant) n.classList.add('ec-neuve'); });
+    });
+  };
+  rendre();
 }
 
 export function renderEchanger(){
-  const root = $('#view-echanger');
+  const root = $('#view-reseau');
   const wide = mqWide.matches;
-  /* la ligne lue doit exister : supprimer la dernière du fil, ou replier
-     la liste, laisserait l'index dans le vide et le panneau muet */
-  const visibles = filVisible();
-  const nFil = visibles.length;
-  if (filSel >= nFil) filSel = Math.max(0, nFil - 1);
-  /* la ligne retenue d'office est la plus récente qu'on PEUT lire : une
-     ligne trop ancienne pour retrouver ses pistes ne se sélectionne pas */
-  if (visibles[filSel] && !visibles[filSel].ids.length){
-    const lisible = visibles.findIndex(x => x.ids.length);
-    if (lisible >= 0) filSel = lisible;
-  }
-  /* « Donner » sans rien à donner était une action MORTE : on tapait le
-     bouton principal de l'écran, un toast passait trois secondes, et
-     rien ne se produisait. C'est la loi #6, déjà appliquée au composeur
-     (sans adresse, « Envoyer » n'existe pas et « Copier » devient LE
-     bouton) : l'indisponible est ABSENT, jamais grisé, jamais mort.
-     Ici « Recevoir » prend donc la place — c'est le seul des deux qui
-     marche quand on n'a encore rien, et c'est justement par là qu'on
-     commence quand un camarade nous partage sa liste. */
-  const aDonner = S.companies.some(c => !isClosed(c) && !c.demo);
-  const gestes =
-    `<div class="hero2">
-       ${aDonner ? `<button class="btn btn-primary hero" id="ecGive">${ic('share', 'ic-14')}<span>Donner</span></button>` : ''}
-       <button class="btn${aDonner ? '' : ' btn-primary'} hero" id="ecRecv">${ic('inbox', 'ic-14')}<span>Recevoir</span></button>
-     </div>
-     ${/* LES GROUPES (lot 5, décision 23) prennent la place de « Partage
-          en groupe » : on s'y donne des pistes et on s'y écrit, sans être
-          là en même temps. Le partage EN DIRECT reste dans le code,
-          masqué (ui/perimetre.js) — rien n'est supprimé avant la bêta. */''}
-     ${groupesHTML()}
-     ${PARTAGE_DIRECT ? `<!-- une porte, pas une carte à bouton : « Entrer » ne disait rien de
-          plus que la ligne elle-même. Exactement la porte « Réglages »
-          de « Moi » — on tape la carte entière. -->
-     <button class="pcard moi-door" id="ecPromo">
-       <span class="md-m"><b>${ic('radio', 'ic-14')} Partage en groupe</b></span>
-       ${/* Le chevron dit « cette LIGNE mène ailleurs ». Il n'a de sens
-            que sur une ligne pleine largeur — au pouce. Au poste, la
-            porte devient un contrôle taillé à son mot : un chevron
-            coincé dans un bouton de 170 px ne promet plus rien, il
-            encombre. */''}
-       ${wide ? '' : ic('chevron-right', 'ic-14')}
-     </button>` : ''}`;
-  /* Pas de rappel de confidentialité ICI. Il répétait, en pied d'écran
-     et en permanence, ce que « Donner » dit déjà au moment du geste —
-     « Seules les fiches partent — jamais ton suivi privé » — c'est-à-dire
-     là où la question se pose vraiment. Deux fois la même phrase, dont
-     une qu'on lit cent fois sans jamais rien partager. */
-  const priv = '';
+  const b = boiteHTML();
+  const nHisto = exchangeLog(S.journal, 0).length;
+  /* l'historique : une ligne, seulement s'il y a une trace à relire */
+  const histo = nHisto ? `<button class="bx-histo" id="ecHisto">${ic('switch', 'ic-14')}<span class="bx-histo-l">Historique</span>
+      <span class="bx-histo-n">${nHisto}</span>${ic('chevron-right', 'ic-14')}</button>` : '';
+  /* « Reçues, jamais reprises » est né pour le poste, et il y reste :
+     c'est une décision, gardée par e2e-ux-audit.mjs */
+  /* le partage en direct, masqué (ui/perimetre.js) : sa porte reste ici */
+  const promo = PARTAGE_DIRECT ? `<button class="bx-histo" id="ecPromo">${ic('radio', 'ic-14')}<span class="bx-histo-l">Partage en groupe</span>${ic('chevron-right', 'ic-14')}</button>` : '';
+  const gens = `${demandesHTML()}${b.html}`;
+  const echanges = `${wide ? reprendreHTML() : ''}${histo}${promo}`;
+  /* les deux verbes de l'échange : « Donner » seulement s'il y a une
+     piste à donner (les pistes d'exemple ne se donnent pas) — un geste
+     qui ne peut rien faire n'est pas à l'écran (§0, corollaire) */
+  const aDonner = S.companies.some(c => !c.demo && !isClosed(c));
+  const verbes = `${aDonner ? `<button class="btn" id="rzDonner">${ic('share', 'ic-14')} Donner</button>` : ''}
+     <button class="btn" id="rzRecevoir">${ic('inbox', 'ic-14')} Recevoir</button>`;
+  /* UN NOUVEAU RENDU NE DOIT RIEN COÛTER à qui lit : la boîte se
+     redessine à chaque message reçu, la place dans la liste et le focus
+     se gardent (WCAG 2.4.3) */
+  const foc = root.contains(document.activeElement) ? document.activeElement : null;
+  const ligneFoc = foc && foc.dataset.fil ? foc.dataset.fil : (foc && foc.id ? '#' + foc.id : '');
+  const defile = root.querySelector('.bx-zone')?.scrollTop || 0;
+  /* au poste, sans rien à droite (ni pistes qui dorment ni historique),
+     une seule colonne : un volet vide ne serait qu'un trou */
   root.innerHTML =
-    `<div class="page-inner${wide ? ' page-wide' : ''}">
-       <div class="td-head"><h1>Échanger</h1></div>
-       ${/* Au pouce, l'ordre s'inverse : on LIT ce qui s'est passé en haut,
-            on AGIT en bas — là où le pouce arrive sans changer de prise.
-            Posés en tête, les deux gestes vivaient à 17 % de la hauteur,
-            le point le plus dur à atteindre d'une main. Au poste, la
-            souris ne connaît pas cette contrainte : les gestes gardent
-            leur colonne à gauche, en tête de lecture. */''}
-       ${/* Au poste, la tranche vit DANS la colonne de gauche, au-dessus
-             du fil. Pleine largeur, son cran d'urgence tombait à 900 px
-             de la ligne qu'il qualifie — la faute de proximité corrigée
-             sur le fil, refaite aussitôt. Dans une colonne de 420 px il
-             se lit avec sa ligne, comme sur « Mes pistes ». Et la
-             gauche est la première chose lue : c'est bien là que va ce
-             qui réclame quelque chose. */''}
-       ${/* Le POUCE ne change pas. Il garde le dessin qu'il avait : on
-             lit en haut, on agit en bas, les deux verbes au-dessus de la
-             barre et la porte en pleine largeur — un doigt, une colonne,
-             de grandes cibles. Ce qui suit ne concerne que le poste. */''}
+    `<div class="page-inner${wide ? ' page-wide' : ''} ec-boite">
+       <div class="td-head"><h1>Réseau</h1>${wide ? `<div class="rz-verbes">${verbes}</div>` : ''}</div>
        ${wide
-         ? `<div class="ec-actes">${gestes}</div>
-            <div class="ec-cols">
-              <div class="ec-gauche">${reprendreHTML()}${filHTML()}</div>
-              ${detailHTML()}
-            </div>`
-         : filHTML() + gestes + priv}
+         ? echanges ? `<div class="bx-cols"><div class="bx-gens">${gens}</div><div class="bx-echanges">${echanges}</div></div>`
+                    : `<div class="bx-seule">${gens}</div>`
+         : `<div class="bx-zone">${gens}${echanges}</div><div class="rz-pied">${verbes}</div>`}
      </div>`;
-  root.querySelector('#ecGive')?.addEventListener('click', openDonner);
-  root.querySelector('#ecRecv').addEventListener('click', openRecevoir);
+  const zone = root.querySelector('.bx-zone');
+  if (zone && defile) zone.scrollTop = defile;
+  if (ligneFoc){
+    const n = ligneFoc.startsWith('#') ? root.querySelector(ligneFoc) : root.querySelector(`[data-fil="${CSS.escape(ligneFoc)}"]`);
+    if (n && n !== document.activeElement) n.focus({ preventScroll: true });
+  }
+  root.querySelectorAll('[data-don]').forEach(b =>
+    b.addEventListener('click', () => ouvrirLigne('don', b.dataset.don)));
+  root.querySelectorAll('[data-dem]').forEach(b =>
+    b.addEventListener('click', () => ouvrirDemande(b.dataset.dem)));
+  root.querySelector('#ecHisto')?.addEventListener('click', ouvrirHistorique);
+  root.querySelector('#rzDonner')?.addEventListener('click', async () => (await import('./donner.js')).openDonner());
+  root.querySelector('#rzRecevoir')?.addEventListener('click', async () => (await import('./recevoir.js')).openRecevoir());
   root.querySelector('#ecPromo')?.addEventListener('click', openPromo);
-  bindGroupes(root, renderEchanger);
-  const fil = filVisible();
-  /* CHANGER DE LIGNE NE RE-REND PAS L'ÉCRAN. La première version
-     appelait `renderEchanger()` : le bouton qu'on venait de taper
-     quittait le document, et le navigateur rendait le focus au `<body>`
-     — au clavier, on repartait en haut de la page à chaque ligne lue.
-     C'est le défaut WCAG 2.4.3 corrigé pour les suppressions deux lots
-     plus tôt, et re-introduit ici par un re-rendu de confort. On
-     échange donc le seul panneau qui change, et la ligne garde le
-     focus. */
-  const choisir = (i) => {
-    const x = fil[i];
-    if (!x) return;
-    filSel = i;
-    const vieux = root.querySelector('.ec-detail');
-    if (vieux){
-      vieux.outerHTML = detailHTML();
-      const neuf = root.querySelector('.ec-detail');
-      /* ① D'OÙ ÇA VIENT ? — la seule question qui justifie un mouvement
-         ici (§4). Tout le côté droit de l'écran change d'un coup, à
-         500 px du doigt qui l'a causé : sans rien, le changement n'est
-         pas VU (cécité au changement), et le lecteur d'écran était déjà
-         mieux servi que l'œil — `annoncer()` le disait, l'écran non.
-         Le panneau entre donc du côté de sa cause, la liste, c'est-à-dire
-         par la gauche. L'élément est neuf à chaque fois : l'animation
-         rejoue sans qu'on ait à retirer la classe. */
-      neuf.classList.add('ec-detail-neuf');
-      bindContenu(neuf, null);
-    }
-    root.querySelectorAll('.ec-row[data-fil]').forEach(b => {
-      const on = +b.dataset.fil === i;
-      b.classList.toggle('ec-lue', on);
-      if (on) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current');
-    });
-    /* et ça se DIT : tout le côté droit de l'écran vient de changer sans
-       que le focus bouge — sans annonce, qui n'a pas l'écran ne sait
-       même pas qu'il s'est passé quelque chose (WCAG 4.1.3) */
-    const n = x.ids.length;
-    annoncer(`${contenuEchange(x, false).titre} : ${n} piste${n > 1 ? 's' : ''}.`);
-  };
-  /* Au poste, taper une ligne la LIT à côté ; au pouce, elle s'ouvre.
-     Même geste, deux contenants — voir `detailHTML`. */
-  root.querySelectorAll('[data-fil]').forEach(b =>
-    b.addEventListener('click', () => {
-      const i = +b.dataset.fil;
-      if (wide) choisir(i);
-      else { const x = fil[i]; if (x) openEchange(x); }
-    }));
-  /* LE CLAVIER, qui est l'efficacité même d'un grand écran : ↑ et ↓
-     passent d'un échange à l'autre sans quitter la main du clavier —
-     c'est ce que fait tout couple liste-détail (WAI-ARIA APG : le focus
-     ROULE dans la liste, il ne la quitte pas). Les lignes trop anciennes
-     pour retrouver leurs pistes ne sont pas focalisables : elles ne
-     mènent nulle part, les flèches n'ont donc rien à y faire. */
-  if (wide) root.querySelector('.ec-body')?.addEventListener('keydown', e => {
-    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
-    const rows = [...root.querySelectorAll('.ec-row[data-fil]')];
-    const ici = rows.indexOf(document.activeElement);
-    const suiv = rows[(ici < 0 ? filSel : ici) + (e.key === 'ArrowDown' ? 1 : -1)];
-    if (!suiv) return;
-    e.preventDefault();
-    suiv.focus();
-    choisir(+suiv.dataset.fil);
-  });
-  /* une ligne qui réclame mène LÀ OÙ L'ON AGIT : sa fiche, en un tap.
-     Pas de panneau intermédiaire, pas d'aperçu — le geste attendu est
-     d'écrire ou de planifier, et c'est la fiche qui les porte. */
-  root.querySelectorAll('[data-rep]').forEach(b =>
-    b.addEventListener('click', () => {
-      const c = S.companies.find(x => x.id === b.dataset.rep);
+  bindBoite(root, { rendre: renderEchanger });
+  /* une ligne qui réclame mène LÀ OÙ L'ON AGIT : sa fiche, en un tap */
+  root.querySelectorAll('[data-rep]').forEach(btn =>
+    btn.addEventListener('click', () => {
+      const c = S.companies.find(x => x.id === btn.dataset.rep);
       if (c) openFiche(c);
     }));
-  const det = root.querySelector('.ec-detail');
-  if (det) bindContenu(det, null);
-  /* SUPPRIMER UNE LIGNE DU FIL — le motif de l'app, pas un bouton de
-     plus : glisser au pouce, poubelle au survol, et la barre « Annuler »
-     à la place d'une confirmation (CLAUDE.md §6). Ce qu'on retire, c'est
-     l'entrée du journal qui a produit la ligne ; « Annuler » la remet à
-     SA place, pas à la fin — sinon l'ordre du fil changerait tout seul. */
-  root.querySelectorAll('.ec-l').forEach(node => {
-    const x = fil[+node.dataset.l];
-    if (!x) return;
-    bindDeleteGesture(node, () => {
-      const e = S.journal[x.i];
-      if (!e) return;
-      S.journal.splice(x.i, 1);
-      saveJournal();
-      renderEchanger();
-      showUndo('Ligne retirée du fil.', () => {
-        S.journal.splice(x.i, 0, e);
-        saveJournal();
-        renderEchanger();
-      });
-    }, 'cette ligne du fil');
-  });
-  /* ① D'OÙ ÇA VIENT ? — les lignes révélées se déplient, elles ne
-     surgissent pas. L'app le fait déjà partout ailleurs quand une
-     section s'ouvre (`e2e-mouvement.mjs` fige ce verdict pour
-     « Déplier une section ») ; le fil était le seul endroit où le même
-     geste sautait. On marque APRÈS le rendu les lignes qui n'étaient
-     pas là avant : aucun drapeau à porter dans l'état, et rien à
-     défaire. */
-  root.querySelector('#ecMore')?.addEventListener('click', () => {
-    const avant = filVisible().length;
-    filDeplie = true;
-    renderEchanger();
-    $('#view-echanger').querySelectorAll('.ec-l').forEach((n, i) => {
-      if (i >= avant) n.classList.add('ec-neuve');
-    });
-  });
 }

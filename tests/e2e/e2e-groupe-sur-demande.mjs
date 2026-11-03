@@ -17,9 +17,9 @@
      n'envoie RIEN ;
    ② créer : « Ouvert » ou « Sur demande », et ce que ça change se lit
      sous les segments ; l'invitation est un QR sans code ;
-   ③ demander à entrer (Rejoindre, ou Recevoir › Texte) : « Le groupe
+   ③ demander à entrer (Rejoindre, ou Réseau › Recevoir › Texte) : « Le groupe
      verra ton prénom » AVANT ; « BTS SIO Lille · en attente » après ;
-   ④ chez qui ouvre : un chiffre dans « Échanger », « Karim veut
+   ④ chez qui ouvre : un point sur la ligne du groupe, « Karim veut
      entrer » EN TÊTE du groupe, Accepter / Refuser ; accepté, Karim
      entre seul à sa prochaine ouverture (« Tu es dans BTS SIO Lille. ») ;
    ⑤ « Nommer adjoint » : « Annuler » le retient (rien ne part) ; sinon
@@ -28,7 +28,7 @@
    ⑥ pouce, poste, sombre, 320 px texte doublé : rien ne déborde ; zéro
      erreur console.
    ============================================================ */
-import { chromium, chromiumPath, serveRepo, SHOTS, annuaireMuet } from './outils.mjs';
+import { chromium, chromiumPath, serveRepo, SHOTS, annuaireMuet, ouvrirRecevoir } from './outils.mjs';
 import { startLocalRelay } from './relais-local.mjs';
 import { cleGroupe, ouvrirMessage, lirePorte } from '../../engine/groupe.js';
 import { ouvrir, etiquetteBoite } from '../../engine/boite.js';
@@ -61,7 +61,7 @@ async function ecran(qui, o = {}){
     window.__copie = '';
     Object.defineProperty(navigator, 'clipboard', { value: { writeText: async t => { window.__copie = t; } }, configurable: true });
   });
-  await p.goto(base + '/#/echanger', { waitUntil: 'load' });
+  await p.goto(base + '/#/reseau', { waitUntil: 'load' });
   await p.evaluate(async ([pr, url]) => {
     const st = await import('./engine/storage.js');
     await st.kvInit();
@@ -70,7 +70,7 @@ async function ecran(qui, o = {}){
     await st.kvSet(st.RELAYS_KEY, JSON.stringify([url]));
   }, [o.profilBrut || profil(qui, o.profil), relay.url]);
   await p.reload({ waitUntil: 'load' });
-  await p.waitForSelector('#view-echanger:not([hidden])');
+  await p.waitForSelector('#view-reseau:not([hidden])');
   return { ctx, p };
 }
 const fermerTout = async p => {
@@ -82,9 +82,9 @@ const fermerTout = async p => {
   }
 };
 const rouvrir = async p => {
-  await p.evaluate(() => { location.hash = '#/echanger'; });
+  await p.evaluate(() => { location.hash = '#/reseau'; });
   await p.reload({ waitUntil: 'load' });
-  await p.waitForSelector('#view-echanger:not([hidden])');
+  await p.waitForSelector('#view-reseau:not([hidden])');
 };
 const attendreQue = async (p, fn, arg, ms = 20000, quoi = '') => {
   for (const fin = Date.now() + ms; Date.now() < fin; await p.waitForTimeout(300))
@@ -109,7 +109,7 @@ const messagesDu = async code => {
 };
 const ouvrirLeGroupe = async p => {
   await fermerTout(p);
-  await p.click('.gr-ligne[data-groupe]');
+  await p.click('.bx-l[data-groupe]');
   await p.waitForSelector('#grMot');
 };
 /* ce que porte VRAIMENT une porte : son contenu décodé — la chaîne est
@@ -169,11 +169,12 @@ await K.p.fill('#grCode', porteI);
 if (await texte(K.p, '#grQui') !== 'Le groupe verra ton prénom : Karim.') fail('avant le geste : ' + await texte(K.p, '#grQui'));
 if (await texte(K.p, '#grRejoindreGo') !== 'Demander à entrer') fail('le geste d’une porte : ' + await texte(K.p, '#grRejoindreGo'));
 await K.p.click('#grRejoindreGo');
-await K.p.waitForSelector('.gr-attente');
+await K.p.waitForSelector('.bx-attente');
 {
-  const t = await texte(K.p, '.gr-attente');
+  /* le nom et l'état — le blason n'est qu'un dessin */
+  const t = await texte(K.p, '.bx-attente .bx-m');
   if (t !== 'BTS SIO Lille en attente') fail('la rangée en attente : ' + t);
-  if (await K.p.$('.gr-ligne[data-groupe]')) fail('Karim est dans le groupe avant d’être accepté');
+  if (await K.p.$('.bx-l[data-groupe]')) fail('Karim est dans le groupe avant d’être accepté');
   if ((await profilDe(K.p)).groupes?.length) fail('le profil de Karim porte un groupe avant d’être accepté');
 }
 await K.p.waitForTimeout(300);
@@ -195,17 +196,19 @@ console.log('③ Karim colle la porte : « Le groupe verra ton prénom : Karim. 
 
 /* ---------- ④ Inès accepte ; Karim entre seul ---------- */
 await rouvrir(I.p);
-await attendreQue(I.p, () => document.querySelector('.gr-ligne[data-groupe] .gr-n')?.textContent.trim() === '1', null, 20000,
-  'le chiffre de « Karim veut entrer » dans Échanger');
+await attendreQue(I.p, () => !!document.querySelector('.bx-l[data-groupe] .bx-pt'), null, 20000,
+  'le point de « Karim veut entrer » dans la boîte');
 await ouvrirLeGroupe(I.p);
 await I.p.waitForSelector('#grPorte');
 {
   const t = await texte(I.p, '#grPorte');
   if (t !== 'Karim veut entrer Refuser Accepter') fail('en tête du groupe : ' + t);
-  const ordre = await I.p.evaluate(() => { const b = document.querySelector('.modal-b'); const kids = [...b.children].map(x => x.id || x.className); return kids; });
-  /* en tête : avant l'invitation, avant le fil — seule la ligne des
-     membres passe devant */
-  if (ordre.filter(x => x !== 'grMembres')[0] !== 'grPorte') fail('« Karim veut entrer » n’est pas en tête : ' + ordre.join(', '));
+  /* en tête, HORS DU FIL : sous la barre, juste après la ligne des
+     membres — le fil s'ouvre en bas, et ce qui m'attend doit se voir
+     sans remonter (audit au téléphone, 28 octobre 2026) */
+  const ordre = await I.p.evaluate(() => { const t = document.querySelector('.overlay:not(.ov-out) .gr-tete');
+    return t ? { kids: [...t.children].map(x => x.id || x.className), dansFil: !!document.querySelector('.modal-b #grPorte') } : null; });
+  if (!ordre || ordre.dansFil || ordre.kids.join(',') !== 'grMembres,grPorte') fail('« Karim veut entrer » n’est pas en tête, hors du fil : ' + JSON.stringify(ordre));
 }
 await I.p.waitForTimeout(300);
 await I.p.screenshot({ path: `${SHOTS}/128-groupe-veut-entrer-pouce.png` });
@@ -219,7 +222,7 @@ await attendreQue(I.p, () => !document.querySelector('#grPorte'), null, 8000, '�
   if (fuite.length) fail('l’admis porte : ' + fuite.join(', '));
 }
 await rouvrir(K.p);
-await attendreQue(K.p, () => !!document.querySelector('.gr-ligne[data-groupe]') && !document.querySelector('.gr-attente'), null, 20000,
+await attendreQue(K.p, () => !!document.querySelector('.bx-l[data-groupe]') && !document.querySelector('.bx-attente'), null, 20000,
   'Karim dans le groupe, plus « en attente »');
 {
   const g = (await profilDe(K.p)).groupes[0];
@@ -273,6 +276,7 @@ await ouvrirLeGroupe(K.p);
 await K.p.click('#grMembres');
 await attendreQue(K.p, () => /Toi adjoint/.test(document.querySelector('.gr-noms')?.innerText.replace(/\s+/g, ' ') || ''), null, 20000,
   'Karim se lit adjoint chez lui');
+await K.p.click('#grInviterOuvrir');
 const porteK = await copierPorte(K.p);
 {
   const lu = lirePorte(porteK);
@@ -280,26 +284,23 @@ const porteK = await copierPorte(K.p);
   if (dansLaPorte(porteK).includes(G.code) || porteK.includes(G.code)) fail('la porte de Karim contient le code');
 }
 const So = await ecran('sofia');
-await So.p.click('#ecRecv');
-await So.p.waitForSelector('#rcPaste');
-await So.p.click('#rcPaste');
-await So.p.waitForSelector('#rcTxt');
+await ouvrirRecevoir(So.p, 'texte');
 await So.p.fill('#rcTxt', porteK);
 await So.p.evaluate(() => [...document.querySelectorAll('.overlay:not(.ov-out) .modal-f .btn')].find(b => b.textContent.trim() === 'Lire').click());
 await So.p.waitForSelector('#grQui');
 if (await texte(So.p, '#grQui') !== 'Le groupe verra ton prénom : Sofia.') fail('l’aperçu de la porte : ' + await texte(So.p, '#grQui'));
 if (await texte(So.p, '#grRejoindreGo') !== 'Demander à entrer') fail('le geste de l’aperçu : ' + await texte(So.p, '#grRejoindreGo'));
 await So.p.click('#grRejoindreGo');
-await So.p.waitForSelector('.gr-attente');
+await So.p.waitForSelector('.bx-attente');
 await rouvrir(K.p);
-await attendreQue(K.p, () => document.querySelector('.gr-ligne[data-groupe] .gr-n')?.textContent.trim() === '1', null, 20000,
-  'le chiffre de « Sofia veut entrer » chez Karim');
+await attendreQue(K.p, () => !!document.querySelector('.bx-l[data-groupe] .bx-pt'), null, 20000,
+  'le point de « Sofia veut entrer » chez Karim');
 await ouvrirLeGroupe(K.p);
 await K.p.waitForSelector('#grPorte');
 if (await texte(K.p, '#grPorte') !== 'Sofia veut entrer Refuser Accepter') fail('chez Karim, en tête : ' + await texte(K.p, '#grPorte'));
 await K.p.click('[data-accepter]');
 await rouvrir(So.p);
-await attendreQue(So.p, () => !!document.querySelector('.gr-ligne[data-groupe]') && !document.querySelector('.gr-attente'), null, 20000,
+await attendreQue(So.p, () => !!document.querySelector('.bx-l[data-groupe]') && !document.querySelector('.bx-attente'), null, 20000,
   'Sofia dans le groupe');
 {
   const g = (await profilDe(So.p)).groupes[0];
@@ -318,7 +319,7 @@ const T = await ecran('tom');
 await nouveau(T.p, 'grRejoindre');
 await T.p.fill('#grCode', porteI);
 await T.p.click('#grRejoindreGo');
-await T.p.waitForSelector('.gr-attente');
+await T.p.waitForSelector('.bx-attente');
 const pT = await profilDe(T.p);
 await rouvrir(I.p);
 await ouvrirLeGroupe(I.p);
@@ -329,7 +330,7 @@ await I.p.waitForTimeout(1500);
 if ((await lettresPour(pT.boite)).length) fail('un refus a écrit à Tom');
 await rouvrir(T.p);
 await T.p.waitForTimeout(3000);
-if (await T.p.$('.gr-ligne[data-groupe]') || !await T.p.$('.gr-attente')) fail('Tom, refusé : toujours en attente, jamais dedans');
+if (await T.p.$('.bx-l[data-groupe]') || !await T.p.$('.bx-attente')) fail('Tom, refusé : toujours en attente, jamais dedans');
 console.log('① un refus n’envoie rien : Tom reste « en attente », rien dans sa boîte ✓');
 
 /* ---------- ⑥ pouce, poste, sombre, 320 px texte doublé ---------- */

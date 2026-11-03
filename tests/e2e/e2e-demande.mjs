@@ -29,12 +29,23 @@
      qui écrire ne propose rien ; l'ami ancien dit « Rescanne son QR » ;
    ⑦ pouce et poste, clair et sombre, 320 px texte doublé : rien ne
      déborde ; zéro erreur console.
+   ⑧ LOT F3 : la demande dit ce qu'Inès cherche (« pour une alternance »,
+     le mot de son profil — chiffré, jamais lisible au relais) ; sur la
+     fiche, elle se suit comme un colis — Envoyée, Trouvée, Reçu — et le
+     contact ajouté garde « Karim » : le premier mail le dit (« Karim
+     m'a conseillé de vous écrire »), le fichier « Donner » jamais.
+   ⑨ LOT F3b, PRÉSENTER AU LIEU DE DONNER : chez Karim, « Julie est
+     d'accord » et « Lui demander » (son mail, le message prêt — rien de
+     son suivi) ; cochée, le geste devient « Présenter Julie » et la
+     lettre le dit ; chez Inès, « Julie est d'accord » dans l'aperçu, et
+     le premier mail s'ouvre sur « Karim vous a parlé de moi. ».
    ⓪ L'AMITIÉ EST RÉCIPROQUE (décision du 7 octobre 2026) : Inès ajoute
      Karim, Karim reçoit le profil d'Inès sans un geste — et rien d'autre
      que ce que porterait son QR. L'aperçu le dit avant ; « Annuler »
      l'empêche de partir.
    ============================================================ */
-import { chromium, chromiumPath, serveRepo, SHOTS, annuaireMuet } from './outils.mjs';
+import { chromium, chromiumPath, serveRepo, SHOTS, annuaireMuet, suiviDe,
+         ouvrirMonQR, ouvrirRecevoir, ouvrirMesAmis, ouvrirDonner } from './outils.mjs';
 import { startLocalRelay } from './relais-local.mjs';
 import { ouvrir, etiquetteBoite } from '../../engine/boite.js';
 
@@ -63,7 +74,7 @@ const SOFIA = { name: 'Sofia Haddad', formation: 'BUT info' };
 const PISTES_SOFIA = [{ id: 'sp', name: 'Sopra Steria', city: 'Lille', status: 'todo', updatedAt: 2 }];
 /* Awa : une amie ajoutée en 6.54, avant les boîtes — pas de clé */
 const AWA = { id: 'AwaAwaAwaAwaAwaAwa01', nom: 'Awa Diallo', parcours: [] };
-const INES = { name: 'Inès Martin', formation: 'BTS SIO', email: 'ines@exemple.test', amis: [AWA] };
+const INES = { name: 'Inès Martin', formation: 'BTS SIO', email: 'ines@exemple.test', recherche: 'alternance', amis: [AWA] };
 const PISTES_INES = [
   { id: 'az', name: 'Aztek', city: 'Roubaix', status: 'todo', notes: 'note très privée d’Inès', updatedAt: 9 },
   { id: 'adv', name: 'Advens', city: 'Lille', status: 'todo', updatedAt: 8 },
@@ -114,12 +125,8 @@ const sansAnnuler = async p => {
 };
 async function monProfilCopie(p){
   await fermerTout(p);
-  /* Mes pistes › Amis : « Mon QR » liste vide, « Ajouter un ami » sinon */
-  await p.evaluate(() => { location.hash = '#/pistes'; });
-  await p.waitForSelector('#piPortee [data-portee="amis"]');
-  await p.click('#piPortee [data-portee="amis"]');
-  await p.waitForSelector('#avMonQR, #avAjout');
-  await p.click('#avMonQR, #avAjout');
+  /* Réseau › Mes amis : « Mon QR » liste vide, « Ajouter un ami » sinon */
+  await ouvrirMonQR(p);
   await p.waitForSelector('.qr-wrap svg');
   await p.click('#mqCopier');
   await p.waitForTimeout(150);
@@ -128,11 +135,8 @@ async function monProfilCopie(p){
 async function ajouterAmi(p, txt){
   await fermerTout(p);
   await sansAnnuler(p);
-  /* Échanger › Recevoir › Texte : un seul « Recevoir » pour tout */
-  await p.evaluate(() => { location.hash = '#/echanger'; });
-  await p.waitForSelector('#ecRecv');
-  await p.click('#ecRecv');
-  await p.click('#rcPaste');
+  /* + › Recevoir › Texte : un seul « Recevoir » pour tout */
+  await ouvrirRecevoir(p, 'texte');
   await p.fill('#rcTxt', txt);
   await p.evaluate(() => [...document.querySelectorAll('.overlay')].pop().querySelector('.modal-f .btn-primary').click());
   await p.waitForSelector('#amAjouter');
@@ -272,7 +276,7 @@ await I.p.waitForSelector('#dmGo');
 {
   const mot = await I.p.evaluate(() => document.querySelector('#dmMot').textContent.trim());
   const qui = await I.p.evaluate(() => document.querySelector('#dmQui').textContent.replace(/\s+/g, ' ').trim());
-  if (mot !== 'Inès cherche quelqu’un chez Aztek.') fail('la phrase qui part : « ' + mot + ' »');
+  if (mot !== 'Inès cherche quelqu’un chez Aztek pour une alternance.') fail('la phrase qui part : « ' + mot + ' »');
   /* elle va aussi plus loin que tes amis (lot 4b) : ça se dit AVANT */
   if (qui !== 'Karim · Sofia, puis leurs amis') fail('à qui elle part : « ' + qui + ' » (Awa, sans boîte, ne doit pas y être)');
   if ((await deSorte('demande')).length) fail('une lettre est partie AVANT « Demander »');
@@ -282,21 +286,23 @@ await I.p.screenshot({ path: `${SHOTS}/100-demande-feuille-pouce.png` });
 await I.p.click('#dmGo');
 await I.p.waitForSelector('#fiDemande', { timeout: 15000 });
 {
-  const etat = await I.p.evaluate(() => document.querySelector('#fiDemande').textContent.replace(/\s+/g, ' ').trim());
-  if (etat !== 'Demandé à 2 amis · aujourd’hui') fail('la fiche ne dit pas que c’est parti : ' + etat);
-  if (!await dansContacts(I.p, '#fiDemande')) fail('« Demandé à 2 amis » n’est pas dans « Contacts »');
+  const su = await suiviDe(I.p);
+  if (su.phrase !== 'Tu cherches quelqu’un chez Aztek pour une alternance' || su.a !== 'demandé à 2 amis'
+      || su.etapes !== 'Envoyée:fait:aujourd’hui | Trouvée:cours:en cours | Reçu:-:pas encore')
+    fail('la fiche ne suit pas la demande partie : ' + JSON.stringify(su));
+  if (!await dansContacts(I.p, '#fiDemande')) fail('la carte de la demande n’est pas dans « Contacts »');
   if (await I.p.$('#fiDemander')) fail('le bouton reste après la demande');
 }
 await I.p.waitForTimeout(400);
 await I.p.screenshot({ path: `${SHOTS}/100-demande-partie-pouce.png` });
-console.log('② la phrase exacte, à qui (sans l’amie ancienne), puis « Demandé à 2 amis » ✓');
+console.log('② la phrase exacte (« pour une alternance »), à qui (sans l’amie ancienne), puis la carte : Envoyée, Trouvée en cours ✓');
 
 /* ---------- ① la fuite d'abord : ce que voit le relais, ce que lit l'ami ---------- */
 {
   const dem = await deSorte('demande');
   if (dem.length !== 2) fail(`${dem.length} demande(s) au relais, 2 attendues (Karim, Sofia)`);
   const brut = JSON.stringify(lettres);
-  for (const x of ['Aztek', 'AZTEK', 'Inès', 'Ines', 'Roubaix', 'note très privée', 'ines@exemple.test', 'Karim', 'Sofia'])
+  for (const x of ['Aztek', 'AZTEK', 'Inès', 'Ines', 'Roubaix', 'note très privée', 'ines@exemple.test', 'Karim', 'Sofia', 'alternance'])
     if (brut.includes(x)) fail(`le relais lit « ${x} »`);
   const pourK = (dem.find(x => x.pour === 'K') || {}).ev;
   const pourS = (dem.find(x => x.pour === 'S') || {}).ev;
@@ -307,7 +313,9 @@ console.log('② la phrase exacte, à qui (sans l’amie ancienne), puis « Dema
   if (!l) fail('Karim ne peut pas ouvrir sa lettre');
   else {
     const cles = Object.keys(l).sort().join(',');
-    if (cles !== 'cercle,de,entreprise,exp,id,t,v') fail('la demande porte : ' + cles);
+    if (cles !== 'cercle,cherche,de,entreprise,exp,id,t,v') fail('la demande porte : ' + cles);
+    /* ce qu'Inès cherche : UN mot d'une liste fermée, rien de son profil d'autre */
+    if (l.cherche !== 'alternance') fail('ce qu’Inès cherche : ' + JSON.stringify(l.cherche));
     if (Object.keys(l.de).sort().join(',') !== 'cle,prenom') fail('« de » porte : ' + Object.keys(l.de));
     if (Object.keys(l.entreprise).join(',') !== 'nom' || l.entreprise.nom !== 'Aztek') fail('« entreprise » : ' + JSON.stringify(l.entreprise));
     if (l.de.prenom !== 'Inès' || l.cercle !== 1) fail('prénom / cercle : ' + JSON.stringify(l));
@@ -315,7 +323,7 @@ console.log('② la phrase exacte, à qui (sans l’amie ancienne), puis « Dema
   }
   if (await ouvrir(bS.priv, pourK.content)) fail('Sofia ouvre la lettre de Karim');
 }
-console.log('① le relais ne lit rien ; la demande ne porte que l’entreprise, le prénom, le cercle, l’expiration ✓');
+console.log('① le relais ne lit rien ; la demande ne porte que l’entreprise, le prénom, ce qu’elle cherche, le cercle, l’expiration ✓');
 
 /* ---------- ③ règle 6 : Sofia ne connaît personne ---------- */
 await rouvrir(S2.p);
@@ -360,7 +368,7 @@ await K.p.waitForSelector('#drDonner');
   /* la barre dit ce qu'est la fenêtre, le contenu dit qui (§4) */
   if (await dessus(K.p) !== 'Demande') fail('la barre de la feuille : ' + await dessus(K.p));
   const de = await K.p.evaluate(() => document.querySelector('#drDe')?.textContent.replace(/\s+/g, ' ').trim());
-  if (de !== 'Inès cherche quelqu’un') fail('qui demande, en tête de la feuille : ' + de);
+  if (de !== 'Inès cherche quelqu’un pour une alternance') fail('qui demande, en tête de la feuille : ' + de);
   /* un seul contact joignable (Paul n'a aucun moyen) : ce n'est pas un
      choix, il se LIT, et « Donner » tient le pied */
   if (await K.p.$('#drListe')) fail('un seul contact se présente comme un choix');
@@ -370,6 +378,18 @@ await K.p.waitForSelector('#drDonner');
   const tout = await K.p.evaluate(() => [...document.querySelectorAll('.overlay')].pop().textContent);
   if (/ne pas citer|note privée|Paul/.test(tout)) fail('la feuille montre ce qui ne part pas : ' + tout.slice(0, 160));
   if ((await deSorte('don')).length) fail('une lettre est partie AVANT le tap');
+  /* ⑨ présenter : la case, et le lien qui va demander à Julie */
+  const pr = await K.p.evaluate(() => ({ case: document.querySelector('#drAccord')?.closest('label')?.textContent.replace(/\s+/g, ' ').trim(),
+    lien: document.querySelector('#drDemander')?.getAttribute('href') || '', geste: document.querySelector('#drDonner').textContent.trim() }));
+  const corps = decodeURIComponent((pr.lien.split('body=')[1] || '').replace(/\+/g, ' '));
+  if (pr.case !== 'Julie est d’accord' || pr.geste !== 'Donner') fail('la case de Karim : ' + JSON.stringify(pr));
+  if (!pr.lien.startsWith('mailto:julie@aztek.test?')
+      || corps !== 'Bonjour Julie, Inès cherche quelqu’un chez AZTEK SAS pour une alternance. Je peux lui donner ton contact ?')
+    fail('« Lui demander » : ' + pr.lien.slice(0, 80) + ' — ' + corps);
+  if (/note|tante|Paul|todo/.test(corps)) fail('le message à Julie laisse sortir le suivi de Karim : ' + corps);
+  await K.p.click('#drAccord');
+  if (await K.p.evaluate(() => document.querySelector('#drDonner').textContent.trim()) !== 'Présenter Julie')
+    fail('cochée, le geste ne dit pas « Présenter Julie »');
 }
 await K.p.waitForTimeout(400);
 await K.p.screenshot({ path: `${SHOTS}/100-demande-recue-pouce.png` });
@@ -388,6 +408,7 @@ if (await K.p.$('.tr-amis')) fail('la ligne reste après avoir donné');
     if (!l || l.t !== 'don') fail('Inès ne peut pas ouvrir le don');
     else {
       if (Object.keys(l.contact).sort().join(',') !== 'email,name,role') fail('le don porte : ' + Object.keys(l.contact));
+      if (l.accord !== true) fail('Karim a coché « Julie est d’accord », la lettre ne le dit pas');
       const s = JSON.stringify(l);
       for (const x of ['ne pas citer', 'note privée de Karim', 'Paul', 'todo', 'Lille', 'karim@prive.test'])
         if (s.includes(x)) fail(`le don laisse sortir « ${x} »`);
@@ -411,6 +432,12 @@ await ouvrirFiche(I.p, 'az');
 {
   const b = await I.p.evaluate(() => document.querySelector('#fiDon')?.textContent.replace(/\s+/g, ' ').trim());
   if (b !== 'Karim t’a donné Julie Marchand') fail('le contact proposé sur la fiche : ' + b);
+  /* le colis est arrivé : les trois étapes faites, et ce qui est arrivé juste dessous */
+  const su = await suiviDe(I.p);
+  if (!su || su.etapes !== 'Envoyée:fait:aujourd’hui | Trouvée:fait:chez un ami | Reçu:fait:aujourd’hui')
+    fail('la carte, le contact arrivé : ' + JSON.stringify(su));
+  if (!await I.p.evaluate(() => document.querySelector('#fiDemande')?.nextElementSibling?.id === 'fiDon'))
+    fail('le contact arrivé ne se propose pas juste sous la carte');
   /* proposé là où il finira : dans « Contacts », en pointillé */
   if (!await dansContacts(I.p, '#fiDon')) fail('le contact donné n’est pas proposé dans « Contacts »');
 }
@@ -420,6 +447,8 @@ if ((await pisteDe(I.p, 'az')).contacts.length) fail('le contact est ajouté AVA
 {
   const t = await dessus(I.p), de = await I.p.evaluate(() => document.querySelector('#ddDe')?.textContent.trim());
   if (t !== 'Contact' || de !== 'Karim t’a donné') fail(`l’aperçu du contact : barre « ${t} », en tête « ${de} »`);
+  const acc = await I.p.evaluate(() => document.querySelector('#ddAccord')?.textContent.trim());
+  if (acc !== 'Julie est d’accord') fail('l’aperçu ne dit pas que Julie attend le mail : ' + acc);
 }
 await I.p.waitForTimeout(400);
 await I.p.screenshot({ path: `${SHOTS}/100-demande-don-pouce.png` });
@@ -444,6 +473,38 @@ await I.p.waitForTimeout(600);
 await sansAnnuler(I.p);
 console.log('⑤ chez Inès, l’aperçu avant, « Ajouter à la piste », « Annuler » rend tout ✓');
 
+/* ---------- ⑧ le contact se souvient de qui l'a donné (lot F3) ---------- */
+{
+  const c = await pisteDe(I.p, 'az');
+  if (c.contacts[0]?.via !== 'Karim' || c.contacts[0]?.accord !== true) fail('le contact ajouté ne garde pas qui l’a donné, ni son accord : ' + JSON.stringify(c.contacts[0]));
+  /* la carte reste tant que la demande est ouverte — faite, plus rien à proposer */
+  await ouvrirFiche(I.p, 'az');
+  const su = await suiviDe(I.p);
+  if (!su || !/^Envoyée:fait.*Reçu:fait/.test(su.etapes) || await I.p.$('#fiDon')) fail('la fiche après l’ajout : ' + JSON.stringify(su));
+  /* le premier mail le dit, en tête : c'est ce qu'un recruteur lit d'abord */
+  await fermerTout(I.p);
+  await I.p.evaluate(async () => { const { S } = await import('./ui/state.js');
+    const c = S.companies.find(x => x.id === 'az');
+    (await import('./ui/mail.js')).openMail(c, { ctId: c.contacts[0].id }); });
+  await I.p.waitForSelector('#mBody');
+  const corps = await I.p.evaluate(() => document.querySelector('#mBody').value);
+  if (!corps.startsWith('Bonjour Julie Marchand,\n\nKarim vous a parlé de moi.\n')) fail('le premier mail : ' + corps.slice(0, 120));
+  await fermerTout(I.p);
+  await sansAnnuler(I.p);
+  /* LA FUITE : « Donner › Fichier », le vrai bouton, les vrais octets —
+     Julie part, le prénom de qui l'a donnée jamais */
+  await ouvrirDonner(I.p);
+  await I.p.waitForSelector('#dnFile');
+  await I.p.click('#dnFile');
+  await I.p.waitForSelector('#dnDl');
+  const [dl] = await Promise.all([I.p.waitForEvent('download'), I.p.click('#dnDl')]);
+  let oc = ''; for await (const x of await dl.createReadStream()) oc += x;
+  if (!oc.includes('Julie Marchand')) fail('le fichier « Donner » ne porte pas Julie : rien n’a été mesuré');
+  if (/Karim|"via"|"accord"/.test(oc)) fail('le fichier « Donner » laisse sortir qui a donné Julie : ' + oc.slice(0, 200));
+  await fermerTout(I.p);
+}
+console.log('⑧ ⑨ Julie garde « Karim » et son accord : le premier mail dit « Karim vous a parlé de moi », le fichier « Donner » jamais ✓');
+
 await rouvrir(K.p);
 await attendreReseau(K.p, 'e.mercis.length >= 1');
 await K.p.waitForTimeout(1500);
@@ -467,13 +528,11 @@ for (const id of ['adv', 'th']){
 }
 await ouvrirFiche(I.p, 'or');
 if (await I.p.$('#fiDemander')) fail('une quatrième demande se propose (trois ouvertes au plus)');
-/* la liste des amis vit dans « Mes pistes » (lot 4) */
+/* la liste des amis vit dans « Réseau › Mes amis » (R1, 7.0.0) */
 const ongletAmis = async p => {
   await fermerTout(p);
   await sansAnnuler(p);
-  await p.evaluate(() => { location.hash = '#/pistes'; });
-  await p.waitForSelector('[data-portee="amis"]');
-  await p.click('[data-portee="amis"]');
+  await ouvrirMesAmis(p);
   await p.waitForSelector('#piAmis .am-row');
 };
 await ongletAmis(I.p);
@@ -492,7 +551,11 @@ console.log('⑥ trois demandes au plus, rien sur une piste qui a déjà quelqu�
 
 /* ---------- ④ bis : Karim connaît DEUX personnes chez Advens ---------- */
 await rouvrir(K.p);
-await K.p.waitForSelector('.tr-amis .act-ami', { timeout: 15000 });
+/* LA ligne d'Advens, pas la première venue : ce que la boîte a gardé
+   s'affiche dès l'ouverture (8.1.0), la demande d'Advens arrive avec la
+   relève, un peu plus tard */
+await K.p.waitForFunction(() => [...document.querySelectorAll('.tr-amis .act-ami')].some(r => /Advens/.test(r.textContent)),
+  null, { timeout: 15000 });
 await K.p.evaluate(() => [...document.querySelectorAll('.tr-amis .act-ami')].find(r => /Advens/.test(r.textContent)).querySelector('.act-main').click());
 await K.p.waitForSelector('#drListe');
 {

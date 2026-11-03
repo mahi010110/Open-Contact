@@ -13,9 +13,11 @@ import { STATUSES, CLOSE_REASONS, DOMAINS, POSITIONS, VECU, pushHist, summarizeC
 import { scoreOf } from '../engine/score.js';
 import { porteurs } from '../engine/requete.js';
 import { portesDuJour } from './amis.js';
-import { reseauDePiste, ouvrirDemander, ouvrirDon, demandeEnCoursHTML, bandeauDon, libelleDemander } from './reseau.js';
+import { reseauDePiste, ouvrirDemander, ouvrirDon, carteDemandeHTML, bandeauDon, libelleDemander } from './reseau.js';
 import { S, bus, isClosed, saveData, reopenPiste, logJ, activateContact } from './state.js';
-import { openSheet, confirmSheet, toast, btn, ic, montrerChange, suivreLargeur } from './dom.js';
+import { openSheet, confirmSheet, toast, btn, ic, montrerChange, suivreLargeur, choixHTML } from './dom.js';
+import { demandesPossibles, libelleDemande, messageDemande } from '../engine/aide.js';
+import { prenomAmi } from '../engine/amis.js';
 import { frDate, relLabel } from './dates.js';
 import { askNextAction, askClose } from './actions.js';
 import { openMail } from './mail.js';
@@ -42,21 +44,59 @@ const FORM_FIELDS = ['status', 'nextAction', 'nextActionText', 'nextActionCt', '
    C'est ce qui le fait marcher aussi de seconde main — un carnet de
    camarades, lui, ne contient que les gens qu'on a déjà joints, donc
    jamais celui qui recommande deux échanges plus loin. */
+/* La seule chose qui ne se devine pas, et elle change tout : vous êtes
+   dans le même cours, et la demande faite là aboutit 34 fois plus
+   souvent que par écrit. Huit mots, parce qu'un neuvième ne dirait rien
+   de plus. Une phrase, dite une fois : les deux feuilles la partagent. */
+const enVraiHTML = () => `<p class="hint">${ic('users', 'ic-14')} Demande-lui en vrai : bien plus efficace qu’un message.</p>`;
+const boutonCopier = (sh, mot) => btn('Copier le message', 'btn-primary', async () => {
+  try { await navigator.clipboard.writeText(mot()); toast('Copié ✓'); sh.close(); }
+  catch (e) { toast('Copie impossible ici — sélectionne le texte.'); }
+}, 'copy');
 function openDemander(c, prenom, v){
+  /* CEUX QUI AIDENT (7.x, revenu en 8.1.0) : un AMI dit ce qu'il peut
+     offrir, et la demande se pose dans votre conversation */
+  const ami = v.amiId && (S.profile.amis || []).find(a => a.id === v.amiId);
+  if (ami) return demanderAAmi(c, ami, v);
   const sh = openSheet({ title: 'Demande', icon: 'message-text' });
   const mot = `Salut ${prenom}, tu ${v.tu} chez ${c.name} ? `
             + `Je postule là-bas — tu peux me dire à qui écrire ?`;
-  sh.body.innerHTML =
-    /* La seule chose qui ne se devine pas, et elle change tout : vous
-       êtes dans le même cours, et la demande faite là aboutit 34 fois
-       plus souvent que par écrit. Huit mots, parce qu'un neuvième ne
-       dirait rien de plus. */
-    `<p class="hint">${ic('users', 'ic-14')} Demande-lui en vrai : bien plus efficace qu\u2019un message.</p>
-     <div class="gr-mot">${esc(mot)}</div>`;
-  sh.setFoot([btn('Copier le message', 'btn-primary', async () => {
-    try { await navigator.clipboard.writeText(mot); toast('Copié ✓'); sh.close(); }
-    catch (e) { toast('Copie impossible ici — sélectionne le texte.'); }
-  }, 'copy')]);
+  sh.body.innerHTML = enVraiHTML() + `<div class="gr-mot">${esc(mot)}</div>`;
+  sh.setFoot([boutonCopier(sh, () => mot)]);
+}
+
+/* « Demander à Karim », quand Karim est un ami. Ce qu'il a dit pouvoir
+   faire (« Je peux aider ») devient un CHOIX d'une valeur — à qui
+   écrire, 20 minutes pour parler de son entreprise, relire mon CV, me
+   présenter —, et la phrase change sous les yeux. Le geste du pied pose
+   la phrase dans la conversation avec lui ; elle part de la flèche, pas
+   d'ici. Sans boîte (un QR d'avant la 6.55), on ne peut pas lui écrire :
+   la phrase se copie, comme avant. */
+function demanderAAmi(c, ami, v){
+  const prenom = prenomAmi(ami);
+  const sh = openSheet({ title: 'Demande', icon: 'message-text' });
+  const sortes = demandesPossibles(ami.aide);
+  let sorte = sortes[0];
+  const mot = () => messageDemande(sorte, { prenom, tu: v.tu, entreprise: c.name, cherche: S.profile.recherche });
+  const rendre = () => {
+    sh.body.innerHTML =
+      `${enVraiHTML()}
+       ${sortes.length > 1 ? choixHTML(sortes.map(k => [k, libelleDemande(k, c.name)]), sorte, { attr: 'data-sorte' }) : ''}
+       <div class="gr-mot" id="dmMot">${esc(mot())}</div>`;
+    sh.body.querySelectorAll('[data-sorte]').forEach(b => b.addEventListener('click', () => {
+      sorte = b.dataset.sorte;
+      rendre();
+      sh.body.querySelector(`[data-sorte="${sorte}"]`)?.focus();   /* le focus reste sur le choix */
+    }));
+  };
+  rendre();
+  sh.setFoot([ami.cle
+    ? btn('Écrire à ' + prenom, 'btn-primary', async () => {
+        const texte = mot();
+        sh.close();
+        (await import('./messages.js')).ouvrirConversation(ami, null, { texte });
+      }, 'message-text')
+    : boutonCopier(sh, mot)]);
 }
 
 /* Deux conceptions, pas une fenêtre élastique. Au pouce : une colonne,
@@ -278,12 +318,15 @@ export function openFiche(c){
        groupe à qui demander. */
     const res = reseauDePiste(c);
     const joignable = (c.contacts || []).some(t => t.email || t.phone || t.link);
-    const reseau = res.don
+    /* LA DEMANDE SE SUIT COMME UN COLIS (7.x, revenu en 8.1.0) : sa
+       carte reste tant qu'elle est ouverte, et le contact arrivé se
+       propose juste dessous — l'étape « Reçu » et ce qui a été reçu,
+       l'un sous l'autre */
+    const reseau = (res.demande ? carteDemandeHTML(res.demande, { id: 'fiDemande' }) : '') + (res.don
       ? `<button class="fi-don" id="fiDon">${ic('user', 'ic-14')}
            <b>${esc(bandeauDon(res.don))}</b>${ic('chevron-right', 'ic-14')}</button>`
-      : res.demande ? demandeEnCoursHTML(res.demande)
-      : res.peut && !closed && !c.demo && !qui.length && !joignable
-        ? `<button class="fi-demander" id="fiDemander">${ic('users', 'ic-14')} ${esc(libelleDemander())}</button>` : '';
+      : !res.demande && res.peut && !closed && !c.demo && !qui.length && !joignable
+        ? `<button class="fi-demander" id="fiDemander">${ic('users', 'ic-14')} ${esc(libelleDemander())}</button>` : '');
 
     /* ---- le dossier : les gens, ce qu'on sait, l'histoire ---- */
     /* ce que TU sais de l'entreprise : « À savoir » existe pour ça */

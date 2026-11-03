@@ -20,7 +20,7 @@
    Outil de développement : rien ici n'est chargé par l'app.
    ============================================================ */
 import path from 'node:path';
-import { chromium, chromiumPath, SHOTS, serveRepo, attendre } from './outils.mjs';
+import { chromium, chromiumPath, SHOTS, serveRepo, attendre, ouvrirDonner, ouvrirRecevoir } from './outils.mjs';
 import { startLocalRelay } from './relais-local.mjs';
 
 const { server, base } = await serveRepo();
@@ -89,15 +89,12 @@ for (const [nomErgo, opts] of ERGOS){
     const [G, P] = pages;
     const nav = nomErgo === 'telephone' ? '.bottomnav' : '.topnav';
 
-    await G.click(nav + ' a[data-r="echanger"]');
-    await G.waitForSelector('#ecGive'); await G.click('#ecGive');
+    await ouvrirDonner(G);
     await G.waitForSelector('#dnQR'); await G.click('#dnQR');
     await G.waitForSelector('.sy-phrase span', { timeout: 25000 });
     const code = (await G.textContent('.sy-phrase span')).trim();
 
-    await P.click(nav + ' a[data-r="echanger"]');
-    await P.waitForSelector('#ecRecv'); await P.click('#ecRecv');
-    await P.waitForSelector('#rcScan'); await P.click('#rcScan');
+    await ouvrirRecevoir(P, 'qr');
     await P.waitForSelector('#rcCode');
     await P.fill('#rcCode', code);
     await P.waitForSelector('#rcCodeGo:not([hidden])');

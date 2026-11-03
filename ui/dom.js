@@ -209,6 +209,19 @@ function prendreEntree(){
   if (internes){ aPoser++; return; }        /* un retour est en vol : on posera à l'atterrissage */
   history.pushState({ oc: poussees }, '', location.href);
 }
+/* CHANGER D'ADRESSE APRÈS UNE FERMETURE attend que nos retours aient
+   atterri. Le retour qui rend l'entrée d'une feuille part après le bloc
+   en cours : une adresse posée juste derrière se fait défaire par lui,
+   et l'écran choisi retombe sur celui d'avant — « Mes pistes » choisi
+   dans « Chercher » ramenait à « Aujourd'hui » (mesuré, lot R8). Une
+   seconde au plus : un retour qui n'atterrit pas ne bloque rien. */
+export function apresRetours(){
+  const t0 = Date.now();
+  return new Promise(fin => {
+    const voir = () => (aRendre || internes) && Date.now() - t0 < 1000 ? setTimeout(voir, 16) : fin();
+    queueMicrotask(voir);
+  });
+}
 addEventListener('popstate', () => {
   if (internes){
     internes--;
@@ -334,6 +347,27 @@ function installDeplacement(ov, modal, signal){
 const sortants = new Set();
 function solderSorties(){ for (const oter of [...sortants]) oter(); }
 
+/* LE FOCUS REVIENT D'OÙ IL VENAIT (WCAG 2.4.3) — même quand l'écran
+   s'est redessiné pendant que la feuille était ouverte : une conversation
+   lue redessine la boîte, et sa ligne d'origine a quitté le document. On
+   rend alors la main à celle qui a pris sa place — même identifiant,
+   même `data-fil`, même `data-id` —, jamais au `<body>`, qui renverrait
+   le clavier en haut de la page (8.1.0, relevé par e2e-ux-audit). */
+const CLES_FOCUS = ['id', 'data-fil', 'data-id', 'data-ami', 'data-groupe'];
+function rendreFocus(el){
+  if (!el || !el.focus) return;
+  let cible = el;
+  if (!el.isConnected){
+    const k = CLES_FOCUS.find(a => el.getAttribute && el.getAttribute(a));
+    cible = k ? document.querySelector(`[${k}="${CSS.escape(el.getAttribute(k))}"]`) : null;
+  }
+  if (cible) try { cible.focus(); } catch (e) {}
+}
+
+/* l'icône de la barre : un pictogramme, ou — pour une conversation avec
+   un ami — son visage (`visage`, déjà dessiné par ui/visage.js), comme
+   l'avatar en tête de toute messagerie */
+const iconeDe = o => o.visage || (o.icon ? ic(o.icon, 'ic-14') : '');
 export function openSheet(o){
   o = o || {};
   solderSorties();
@@ -344,7 +378,7 @@ export function openSheet(o){
   const ov = el(
     `<div class="overlay open">
       <div class="modal ${o.className || ''}" role="dialog" aria-modal="true" aria-label="${esc(o.title || '')}">
-        <div class="modal-h"><h2>${o.icon ? ic(o.icon, 'ic-14') : ''}<span class="mh-t">${esc(o.title || '')}</span></h2>
+        <div class="modal-h"><h2>${iconeDe(o)}<span class="mh-t">${esc(o.title || '')}</span></h2>
           ${/* `title` explicite : sans lui, la croix HÉRITE de l'infobulle
                 de la barre de titre (« Glisser pour déplacer… ») — le
                 navigateur remonte au premier ancêtre qui en porte une, et
@@ -400,7 +434,7 @@ export function openSheet(o){
     ov.inert = true;
     if (rec.behind){ rec.behind.ov.classList.remove('ov-behind'); rec.behind = null; }
     if (o.onClose) o.onClose(result);
-    if (prevFocus && prevFocus.focus){ try { prevFocus.focus(); } catch (e) {} }
+    rendreFocus(prevFocus);
     if (matchMedia('(prefers-reduced-motion:reduce)').matches){ ov.remove(); return; }
     /* `animationend` seul ne suffit pas : un onglet en arrière-plan ne
        joue pas ses animations, et la feuille resterait dans le document
@@ -476,13 +510,19 @@ export function openSheet(o){
      ramenait le curseur sur le premier champ : la formation tapée finissait
      collée au nom (« Sam MartinBTS SIO 2e année », vu sur la forge). Déjà
      dans la feuille, il se tait. */
-  requestAnimationFrame(() => {
+  /* nommé : la garde de réactivité (e2e-reactivite.mjs) le reconnaît
+     dans la trace — la mise en page qu'il demande est celle de l'image */
+  requestAnimationFrame(function focusOuverture(){
     if (ov.contains(document.activeElement) && document.activeElement !== ov) return;
     const f = (o.focus && ov.querySelector(o.focus)) || ov.querySelector('.x');
     try { f.focus({ preventScroll: true }); } catch (e) {}
   });
-  const api = {
-    ov, body, close,
+  const api = { ov, body, close, ...titreEtPied(ov, foot) };
+  return api;
+}
+/* le titre et le pied d'une feuille : UNE écriture */
+function titreEtPied(root, foot){
+  return {
     /* `.mh-t` et pas `span` : le premier span d'un `h2` est celui de
        l'ICÔNE. `setTitle` écrivait donc dedans — masqué par le `mask`
        de l'icône — et le titre visible ne changeait jamais. Toutes les
@@ -491,12 +531,12 @@ export function openSheet(o){
        sans jamais savoir où l'on était. Le `aria-label` du dialogue
        suit, sinon un lecteur d'écran restait sur le titre de départ. */
     setTitle(t){
-      ov.querySelector('.modal-h h2 .mh-t').textContent = t;
-      ov.querySelector('.modal').setAttribute('aria-label', t);
+      root.querySelector('.modal-h h2 .mh-t').textContent = t;
+      root.querySelector('.modal').setAttribute('aria-label', t);
     },
+    /* remplace — les feuilles à étapes rappellent setFoot à chaque
+       écran ; null = pas de pied (fermer = la croix ou le glisser) */
     setFoot(content){
-      /* remplace — les feuilles à étapes rappellent setFoot à chaque
-         écran ; null = pas de pied (fermer = la croix ou le glisser) */
       foot.innerHTML = '';
       foot.hidden = content == null;
       if (content == null) return;
@@ -504,7 +544,44 @@ export function openSheet(o){
       else foot.append(...[].concat(content));
     }
   };
-  return api;
+}
+/* ---------- L'APPUI LONG — et le clic droit ----------
+   Le menu d'une ligne de messagerie (épingler, couper le son) s'ouvre
+   comme partout : appui long au doigt (WhatsApp, Telegram), clic droit à
+   la souris, touche « menu » au clavier (le navigateur en fait un
+   `contextmenu` sur l'élément qui a le focus).
+   Trois pièges, tous payés ailleurs dans l'app :
+   · un doigt qui GLISSE n'appuie pas : au-delà de 8 px, c'est un
+     défilement, on abandonne ;
+   · le système reprend le toucher quand il veut : `touchcancel` remet
+     au repos comme `touchend` (§5) ;
+   · Android déclenche AUSSI un `contextmenu` au même instant : un seul
+     menu pour un seul appui, et le tap qui suit l'appui long n'ouvre pas
+     la ligne. */
+export function appuiLong(node, fn){
+  let t = null, x0 = 0, y0 = 0, tire = 0;
+  const lancer = () => { if (Date.now() - tire < 800) return; tire = Date.now(); fn(); };
+  const auRepos = () => { clearTimeout(t); t = null; };
+  node.addEventListener('touchstart', e => {
+    auRepos();
+    const p = e.touches[0];
+    x0 = p.clientX; y0 = p.clientY;
+    t = setTimeout(() => { t = null; lancer(); }, 500);
+  }, { passive: true });
+  node.addEventListener('touchmove', e => {
+    if (!t) return;
+    const p = e.touches[0];
+    if (Math.abs(p.clientX - x0) > 8 || Math.abs(p.clientY - y0) > 8) auRepos();
+  }, { passive: true });
+  node.addEventListener('touchend', e => {
+    auRepos();
+    if (Date.now() - tire < 800 && e.cancelable) e.preventDefault();
+  });
+  node.addEventListener('touchcancel', auRepos);
+  node.addEventListener('contextmenu', e => { e.preventDefault(); lancer(); });
+  node.addEventListener('click', e => {
+    if (Date.now() - tire < 800){ e.preventDefault(); e.stopImmediatePropagation(); }
+  }, true);
 }
 export function topSheet(){ return stack[stack.length - 1] || null; }
 
@@ -681,6 +758,12 @@ function focusApresRetrait(node){
 /* `o.mot` / `o.icone` : le même geste pour ÉCARTER sans supprimer (« Pas
    pour moi », « À découvrir ») — le mot dit ce qui arrive, jamais
    « Supprimer » pour ce qui ne l'est pas */
+const MQ_DOIGT = matchMedia('(pointer:coarse)');
+const MEUBLES = new Map();
+const meuble = (cle, faire) => {
+  if (!MEUBLES.has(cle)) MEUBLES.set(cle, faire());
+  return MEUBLES.get(cle).cloneNode(true);
+};
 export function bindDeleteGesture(node, onDelete, quoi, o){
   o = o || {};
   const mot = o.mot || 'Supprimer', icone = o.icone || 'trash';
@@ -698,11 +781,29 @@ export function bindDeleteGesture(node, onDelete, quoi, o){
   };
   const nom = String(quoi || '').trim();
   const dit = nom ? mot + (o.mot ? ' : ' : ' ') + nom : mot;
-  const del = el(`<button class="hov-del" aria-label="${esc(dit)}" title="${esc(dit)}">${ic(icone, 'ic-14')}</button>`);
+  /* posé sur chaque message d'un groupe et chaque ligne de « Mes
+     pistes » : ni gabarit à analyser ni requête média à recréer par
+     ligne (relevé à grande échelle). Le bouton et la sous-couche se
+     construisent UNE fois, puis se CLONENT (porte « Performance ») : relevé sur un
+     groupe de 640 messages ouvert par son chef, analyser le même petit
+     bout de HTML pour chacune des 120 bulles coûtait 250 ms du tap. */
+  const del = meuble('del ' + icone, () => {
+    const b = document.createElement('button');
+    b.className = 'hov-del';
+    b.innerHTML = ic(icone, 'ic-14');
+    return b;
+  });
+  del.setAttribute('aria-label', dit); del.title = dit;
   del.addEventListener('click', e => { e.stopPropagation(); vanish(); });
   inner.append(del);
-  if (!matchMedia('(pointer:coarse)').matches) return;
-  node.prepend(el(`<div class="sw-under" aria-hidden="true">${ic(icone, 'ic-14')} ${esc(mot)}</div>`));
+  if (!MQ_DOIGT.matches) return;
+  const sous = meuble('sous ' + icone + ' ' + mot, () => {
+    const d = document.createElement('div');
+    d.className = 'sw-under'; d.setAttribute('aria-hidden', 'true');
+    d.innerHTML = `${ic(icone, 'ic-14')} ${esc(mot)}`;
+    return d;
+  });
+  node.prepend(sous);
   let x0 = null, y0 = null, dx = 0, active = false, endedAt = 0;
   const auRepos = () => {
     x0 = null; dx = 0; active = false;
@@ -1018,45 +1119,6 @@ export function confirmSheet(o){
   });
 }
 
-/* LE BAS D'UNE CONVERSATION RESTE EN BAS (correction de la 7.2,
-   gardée au retour à l'interface de la 6.70). Le clavier qui s'ouvre, le
-   champ qui prend une ligne : la zone du fil rétrécit PAR LE BAS, et le
-   navigateur garde son haut. Les derniers messages passaient donc sous
-   le champ — celui auquel on répond compris : relevé en 390 × 844,
-   clavier ouvert, les trois derniers cachés. Toutes les messageries font
-   l'inverse (Messages, Telegram) : ce qui touchait le bas y reste.
-   « Collé en bas » se RETIENT, il ne se remesure pas à chaud : un rendu
-   qui tombe pendant qu'on tape lisait la distance entre le champ qui
-   vient de prendre une ligne et l'observateur qui ne l'a pas encore
-   rattrapée, se croyait décroché, et le dernier message restait sous le
-   champ (relevé en CI, sur une machine lente). La distance se lit donc
-   contre la DERNIÈRE taille que l'observateur a vue. La première
-   observation n'est pas un changement : c'est l'ouverture. */
-export function garderLeBas(body){
-  let distBas = 0, vu = -1, colle = true, prevu = false;
-  const noter = () => {
-    distBas = Math.max(0, body.scrollHeight - body.scrollTop - (vu >= 0 ? vu : body.clientHeight));
-    colle = distBas < 40;
-  };
-  if (typeof ResizeObserver === 'function') new ResizeObserver(() => {
-    const c = body.clientHeight;
-    if (vu < 0 || c === vu){ vu = c; return; }
-    body.scrollTop = colle ? body.scrollHeight : body.scrollHeight - c - distBas;
-    vu = c;
-  }).observe(body);
-  body.addEventListener('scroll', () => {
-    if (prevu) return;
-    prevu = true;
-    requestAnimationFrame(() => { prevu = false; noter(); });
-  }, { passive: true });
-  return {
-    /* la conversation suivait-elle son bas ? (un rendu s'y fie) */
-    colle: () => colle,
-    /* au bas, et retenu comme tel */
-    enBas(){ body.scrollTop = body.scrollHeight; noter(); },
-    noter
-  };
-}
 /* ---- UN CHAMP DE PROSE SE LIT EN ENTIER ----
    §6 nomme déjà ce motif — « un champ dont la VALEUR doit se lire en
    entier : il grandit avec son texte ». Il existait pourtant en deux
@@ -1080,22 +1142,57 @@ export function garderLeBas(body){
    d'« Écrire » (§6) — quand tout ne tient pas, c'est la FEUILLE qui
    défile, pas le champ où l'on travaille. Le plafond du composeur, lui,
    reste : là il borne un OBJET d'email, qui vise 40-60 caractères.
-   (`auTexte` et `pousse` ne sont pas migrés ici : le premier porte ce
-   plafond, le second une transition mesurée pour ne pas faire sauter le
-   formulaire sous les doigts. Les fondre demanderait de toucher deux
-   surfaces fortement gardées pour un défaut qui n'est pas le leur.) */
+   (L'objet du composeur et `pousse` de la fiche ne passent pas par ici :
+   le premier porte ce plafond, le second une transition mesurée pour ne
+   pas faire sauter le formulaire sous les doigts. L'objet se mesure
+   quand même à l'image, avec les autres, par `avantImage`.) */
+/* AVANT L'IMAGE, EN LOT (porte « Performance ») : préparer tout, lire tout, écrire
+   tout. Lire une hauteur juste après en avoir écrit une force le
+   navigateur à refaire la mise en page sur-le-champ ; une feuille qui
+   pose cinq champs qui grandissent (« Modifier ») la refaisait cinq fois
+   pendant le tap, et le composeur trois. Ici toutes les lectures
+   tombent sur UNE mise en page — celle de l'image, que le focus
+   d'ouverture vient de demander (`openSheet`, enregistré avant) : elles
+   ne coûtent plus rien. L'image passe après : rien ne se voit à sa
+   place d'avant. `lire` peut rendre `null` : `ecrire` ne fait rien. */
+let avantLImage = null;
+export function avantImage(t){
+  if (!avantLImage){ avantLImage = []; requestAnimationFrame(viderAvantImage); }
+  avantLImage.push(t);
+}
+function viderAvantImage(){
+  const l = avantLImage;
+  avantLImage = null;
+  l.forEach(t => t.preparer && t.preparer());
+  const v = l.map(t => t.lire());
+  l.forEach((t, i) => { if (v[i] != null) t.ecrire(v[i]); });
+}
 export function champGrandit(ta){
   if (!ta) return;
+  let largeur = 0;
+  /* la bordure ne compte pas dans `scrollHeight` : sans elle, chaque
+     mesure rogne deux pixels et la dernière ligne finit par se couper */
+  const lire = () => {
+    largeur = ta.clientWidth;
+    return Math.ceil(ta.scrollHeight + ta.offsetHeight - ta.clientHeight);
+  };
+  const poser = h => { ta.style.height = h + 'px'; };
   const pousse = () => {
     ta.style.height = 'auto';
-    /* la bordure ne compte pas dans `scrollHeight` : sans elle, chaque
-       mesure rogne deux pixels et la dernière ligne finit par se couper */
-    const bord = ta.offsetHeight - ta.clientHeight;
-    ta.style.height = Math.ceil(ta.scrollHeight + bord) + 'px';
+    poser(lire());
   };
+  /* la même mesure, à l'image, avec les autres. Un champ jamais
+     dimensionné est déjà à sa hauteur naturelle : inutile de la lui
+     remettre (`auto`) avant de lire. Pas encore dans la page, il attend
+     son observateur. */
+  pousse.aLImage = () => avantImage({
+    preparer: () => { if (ta.isConnected && ta.style.height) ta.style.height = 'auto'; },
+    lire: () => ta.isConnected ? lire() : null,
+    ecrire: poser
+  });
   ta.addEventListener('input', pousse);
-  pousse();
-  suivreLargeur(ta, pousse);
+  pousse.aLImage();
+  suivreLargeur(ta, pousse, () => largeur);
   return pousse;
 }
 /* Un champ mesuré une fois se trompe dès que sa LARGEUR change : un
@@ -1105,14 +1202,18 @@ export function champGrandit(ta){
    la cache sans rien dire. On re-mesure donc au changement de largeur,
    et à lui seul : la hauteur, c'est nous qui la changeons. La première
    largeur observée re-mesure aussi — elle peut ne pas être celle de la
-   mesure d'ouverture, et re-mesurer ne coûte rien. */
-export function suivreLargeur(el, fn){
+   mesure d'ouverture —, SAUF si c'est celle que la mesure a vue
+   (`mesuree`) : re-mesurer n'est pas gratuit, c'est une mise en page
+   forcée de plus dans la toute première image d'une feuille (porte « Performance »).
+   La largeur se lit dans le rappel, où la mise en page est déjà faite. */
+export function suivreLargeur(el, fn, mesuree){
   if (!el || typeof ResizeObserver !== 'function') return;
   let largeur = 0;
-  new ResizeObserver(([e]) => {
-    const w = Math.round(e.contentRect.width);
+  new ResizeObserver(() => {
+    const w = el.clientWidth;
     if (!w || w === largeur) return;
+    const deja = !largeur && mesuree && mesuree() === w;
     largeur = w;
-    fn();
+    if (!deja) fn();
   }).observe(el);
 }

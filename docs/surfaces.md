@@ -34,8 +34,9 @@ installer**.
 | Capture rapide, détection des doublons, bac « à rattacher » | ✅ |
 | Donner et recevoir des pistes : QR, fichier `.oc`, coller | ✅ |
 | Groupes : créer, rejoindre (QR ou code), s'écrire sept jours, se donner des pistes en différé, cinq au plus ; y demander quelqu'un, que tout le groupe voit et à qui chacun répond à son tour ; ouverts, ou sur demande (un chef et ses adjoints acceptent les entrées, retirent un message ou un membre) | ✅ |
-| Amis : donner son profil (QR, texte), lire sur ses pistes où ils sont passés, les retrouver triés dans « Mes pistes » | ✅ |
-| Demander à ses amis quelqu'un chez une entreprise ou dans un métier et une ville, jusqu'au troisième cercle, donner un contact — ou soi-même — en réponse | ✅ |
+| L'onglet « Réseau » : mes demandes, toutes les conversations (groupes et amis) dans une boîte, « Mes amis », Donner · Recevoir (revenu en 8.1.0) | ✅ |
+| Amis : donner son profil (QR, texte), lire sur ses pistes où ils sont passés, les retrouver dans « Réseau › Mes amis », s'écrire en privé ; « Je peux aider », et « Décroché » qui propose d'aider à son tour | ✅ |
+| Demander à ses amis quelqu'un chez une entreprise ou dans un métier et une ville, jusqu'au troisième cercle, donner un contact — ou soi-même — en réponse ; la suivre comme un colis, présenter quelqu'un qui est d'accord | ✅ |
 | Synchronisation entre **mes** appareils | ✅ |
 | Une phrase de secours qui ramène tout sur un téléphone neuf (7.1.0, lot R5, gardée en 8.0.0) | ✅ |
 | Écrire un e-mail (`mailto:`, copier, marquer « Envoyée ») | ✅ |

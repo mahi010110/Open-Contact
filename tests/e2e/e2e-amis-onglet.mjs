@@ -1,35 +1,33 @@
 /* ============================================================
-   L'onglet « Amis » de « Mes pistes » (docs/reseau.md, lot 4a)
+   « Mes amis », dans « Réseau » (docs/reseau.md, lot 4a ; R1, 7.0.0)
 
    Les amis se lisent comme les pistes : une ligne par ami, ce qu'il
-   T'OUVRE en sous-ligne, triés comme les pistes, retirés au geste.
-   L'onglet vit à côté de « À découvrir » — des onglets voisins montrent
-   des choses de même nature (NN/g, Tabs Used Right) : une entreprise
-   où entrer.
+   T'OUVRE en sous-ligne, rangés « Pour toi », retirés au geste. La liste
+   était la troisième portée de « Mes pistes » jusqu'à la 7.0.0 ; elle
+   vit dans « Réseau › Mes amis », avec ses conversations.
 
-   ① LA FUITE D'ABORD : taper le nom d'un ami dans la barre — là où on
-     le tape justement pour le retrouver — ne fait partir NI son nom NI
-     son prénom vers l'annuaire public ; une question qui ne contenait
-     que lui ne part pas du tout ;
-   ② trois portées, et celle des amis compte PENDANT la frappe ;
+   ① LA FUITE D'ABORD : taper le nom d'un ami dans la barre de « Mes
+     pistes » ne fait partir NI son nom NI son prénom vers l'annuaire
+     public ; une question qui ne contenait que lui ne part pas du tout ;
+     chercher dans « Mes amis » ne demande rien à personne ;
+   ② deux portées sous la barre ; la recherche de « Mes amis » trouve un
+     nom (« Benali ») ou une entreprise de son parcours (« Sopra ») ;
    ③ la ligne dit ce que l'ami t'ouvre — tes pistes d'abord, en accent ;
      une piste close ne compte pas ; « aucune entreprise » se dit ;
-   ④ « Pour toi » d'abord, puis « Trier » (le bouton de la barre devient
-     ce geste ici), la puce de tri retire le tri, « Affiner » revient
-     dans « Mes pistes » ;
+     « Ajouter un ami » ferme la liste et ouvre « Mon QR », et se tait
+     pendant une recherche ;
+   ④ « Pour toi » : qui porte le plus de tes pistes ouvertes d'abord ;
    ⑤ retirer au geste (le glissé au doigt avec SON mot, la croix au
      survol au poste), « Annuler » le rend ;
-   ⑥ au poste, liste-détail : la fiche de l'ami à côté, et elle suit le
-     clavier (↓ depuis la barre, ↓ ↑, Échap remonte) ;
-   ⑦ sans ami, l'état vide enseigne : les deux gestes qui remplissent
-     la liste, « Mon QR » en premier ; avec des amis, « Ajouter un ami »
-     ferme la liste et ouvre « Mon QR » ; « Échanger » ne porte plus
-     aucun geste d'ami ;
+   ⑥ la fiche d'un ami s'ouvre par-dessus la liste : « + Piste » ajoute,
+     et la ligne suit ;
+   ⑦ sans ami, l'état vide enseigne : « Mon QR » en premier, puis
+     « Scanner » ; « Réseau » ne porte aucun autre geste d'ami ;
    ⑧ « À découvrir » réchauffé : l'entreprise où un ami est passé
      remonte en tête, et dit qui — dans la ligne et dans l'aperçu ;
    ⑨ 320 px texte doublé, sombre : rien ne déborde, aucun nom coupé.
    ============================================================ */
-import { chromium, chromiumPath, serveRepo, SHOTS, relaisMuets, sourcesCarteMuettes } from './outils.mjs';
+import { chromium, chromiumPath, serveRepo, SHOTS, relaisMuets, sourcesCarteMuettes, ouvrirMesAmis } from './outils.mjs';
 
 const { server, base } = await serveRepo();
 const browser = await chromium.launch({ executablePath: chromiumPath() });
@@ -79,7 +77,6 @@ const PISTES = [
   { id: 't', name: 'Thales', city: 'Lille', status: 'closed', closedReason: 'rejected', updatedAt: 2 }
 ];
 const POUR_TOI = ['Karim Benali', 'Léa Durand', 'Tom Petit', 'Awa Diallo'];
-const RECENTS = ['Léa Durand', 'Tom Petit', 'Karim Benali', 'Awa Diallo'];
 
 async function ecran(vp, touch, profil, o = {}){
   const ctx = await browser.newContext({ viewport: vp, hasTouch: touch, colorScheme: o.sombre ? 'dark' : 'light' });
@@ -121,66 +118,55 @@ const amisStockes = p => p.evaluate(async () => {
   const st = await import('./engine/storage.js');
   return (JSON.parse(await st.kvGet(st.PROFILE_KEY) || '{}').amis || []).map(a => a.nom);
 });
-const pliees = s => decodeURIComponent(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-const taper = async (p, txt) => {
-  await p.fill('#piQ', '');
-  await p.click('#piQ');
+const pliees = s => decodeURIComponent(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const taper = async (p, txt, champ = '#piQ') => {
+  await p.fill(champ, '');
+  await p.click(champ);
   await p.keyboard.type(txt, { delay: 6 });
 };
+const fermerDessus = async p => {
+  await p.evaluate(() => [...document.querySelectorAll('.overlay:not(.ov-out)')].pop()?.querySelector('.modal-h button.x')?.click());
+  await p.waitForTimeout(300);
+};
+/* « Réseau › Mes amis », la feuille de la liste */
+const mesAmis = async p => { await ouvrirMesAmis(p); await p.waitForSelector('#piAmis'); await p.waitForTimeout(200); };
 
 /* ================= au pouce ================= */
 {
   const { ctx, p, journal } = await ecran({ width: 390, height: 844 }, true, INES);
 
-  /* ---------- ② trois portées ---------- */
+  /* ---------- ② deux portées ---------- */
   const portees = await p.evaluate(() => [...document.querySelectorAll('#piPortee [data-portee]')].map(b => b.dataset.portee + ':' + b.textContent.trim()));
-  if (portees.join() !== 'pistes:Mes pistes,decouvrir:À découvrir,amis:Amis')
+  if (portees.join() !== 'pistes:Mes pistes,decouvrir:À découvrir')
     fail('les portées sous la barre : ' + JSON.stringify(portees));
   if (journal.length) fail('une requête est partie au DÉMARRAGE (invariant ④)');
 
   /* ---------- ① la fuite d'abord ---------- */
-  await portee(p, 'amis');
   await taper(p, 'Benali');
   await p.waitForTimeout(1600);
-  {
-    const fuite = journal.filter(u => /benali|karim/.test(pliees(u)));
-    if (fuite.length) fail('le nom d’un ami part vers l’annuaire : ' + fuite[0]);
-    if (journal.length) fail('une question qui ne contenait QUE le nom d’un ami est partie : ' + journal[0]);
-    const r = await noms(p);
-    if (r.join() !== 'Karim Benali') fail('« Benali » ne trouve pas Karim : ' + JSON.stringify(r));
-  }
+  if (journal.some(u => /benali|karim/.test(pliees(u)))) fail('le nom d’un ami part vers l’annuaire : ' + journal[0]);
+  if (journal.length) fail('une question qui ne contenait QUE le nom d’un ami est partie : ' + journal[0]);
   await taper(p, 'Léa Durand');
   await p.waitForTimeout(1600);
   if (journal.some(u => /durand|\blea\b/.test(pliees(u)))) fail('le nom de Léa part vers l’annuaire');
-  /* depuis « Mes pistes » aussi — c'est là que la question part d'habitude */
-  await portee(p, 'pistes');
-  await taper(p, 'Benali');
-  await p.waitForTimeout(1600);
-  if (journal.some(u => /benali|karim/.test(pliees(u)))) fail('depuis « Mes pistes », le nom d’un ami part vers l’annuaire');
-  /* … et la portée « Amis » le compte pendant la frappe */
-  {
-    const n = await p.evaluate(() => document.querySelector('#piPortee [data-portee="amis"] .pt-n')?.textContent);
-    if (n !== '1') fail('la portée « Amis » ne compte pas Karim pendant la frappe : ' + n);
-  }
-  /* une entreprise du parcours d'un ami, elle, se cherche : « Thales »
-     trouve Tom (le mot décrit une entreprise, pas une personne) */
-  await taper(p, 'Sopra');
-  await p.waitForTimeout(500);
-  {
-    const n = await p.evaluate(() => document.querySelector('#piPortee [data-portee="amis"] .pt-n')?.textContent);
-    if (n !== '1') fail('« Sopra » ne trouve pas Tom dans la portée « Amis » : ' + n);
-  }
   await p.fill('#piQ', '');
   await p.waitForTimeout(300);
-  {
-    const n = await p.evaluate(() => document.querySelector('#piPortee [data-portee="amis"] .pt-n'));
-    if (n) fail('barre vide, la portée « Amis » garde un compte : le titre de la vue le dit déjà');
-  }
-  console.log('① le nom d’un ami ne part jamais vers l’annuaire, depuis aucune portée ✓');
-  console.log('② trois portées, « Amis » compte pendant la frappe, rien barre vide ✓');
+  const avant = journal.length;
+  await mesAmis(p);
+  await taper(p, 'Benali', '#amQ');
+  await p.waitForTimeout(400);
+  if ((await noms(p)).join() !== 'Karim Benali') fail('« Benali » ne trouve pas Karim dans « Mes amis » : ' + JSON.stringify(await noms(p)));
+  /* une entreprise du parcours d'un ami, elle, se cherche aussi */
+  await taper(p, 'Sopra', '#amQ');
+  await p.waitForTimeout(400);
+  if ((await noms(p)).join() !== 'Tom Petit') fail('« Sopra » ne trouve pas Tom dans « Mes amis » : ' + JSON.stringify(await noms(p)));
+  if (journal.length !== avant) fail('chercher dans « Mes amis » a demandé quelque chose à l’annuaire');
+  await p.fill('#amQ', '');
+  await p.waitForTimeout(300);
+  console.log('① le nom d’un ami ne part jamais vers l’annuaire ; chercher un ami ne demande rien ✓');
+  console.log('② deux portées sous la barre ; « Mes amis » trouve un nom ou une entreprise ✓');
 
   /* ---------- ③ la ligne dit ce que l'ami t'ouvre ---------- */
-  await portee(p, 'amis');
   {
     const l = await lignes(p);
     const k = l.find(x => x.nom === 'Karim Benali'), le = l.find(x => x.nom === 'Léa Durand'),
@@ -190,10 +176,6 @@ const taper = async (p, txt) => {
     /* Thales est CLOSE chez Inès : Tom ne la lui ouvre pas */
     if (!t || t.accent || !/Thales/.test(t.sous)) fail('une piste close compte comme « dans tes pistes » : ' + JSON.stringify(t));
     if (!a || a.sous !== 'aucune entreprise') fail('ligne d’Awa : ' + JSON.stringify(a));
-    /* ce qui vit AU-DESSUS des onglets ne change pas avec eux (NN/g) :
-       le titre « Mes pistes » compte toujours les pistes */
-    const cnt = await p.evaluate(() => document.querySelector('#piCount')?.textContent.trim());
-    if (cnt !== '3 pistes') fail('le titre change avec l’onglet : ' + cnt);
     /* une ligne = un geste, pas de bouton à l'intérieur (§6) — la croix
        du retrait au survol n'existe pas au doigt */
     const boutons = await p.evaluate(() => [...document.querySelectorAll('#piAmis .am-row button')]
@@ -210,52 +192,21 @@ const taper = async (p, txt) => {
     if (!a || a.mot !== 'Ajouter un ami' || !a.apres) fail('« Ajouter un ami » absent ou mal placé : ' + JSON.stringify(a));
     await p.click('#avAjout');
     await p.waitForSelector('.overlay #mqDonne');
-    await p.evaluate(() => [...document.querySelectorAll('.overlay')].pop().querySelector('.modal-h button.x').click());
-    await p.waitForTimeout(300);
-    await taper(p, 'Karim');
+    await fermerDessus(p);
+    await taper(p, 'Karim', '#amQ');
     await p.waitForTimeout(300);
     if (await p.$('#piAmis #avAjout')) fail('pendant une recherche, « Ajouter un ami » reste en bout de liste');
-    await p.fill('#piQ', '');
+    await p.fill('#amQ', '');
     await p.waitForTimeout(300);
   }
   await p.screenshot({ path: `${SHOTS}/99-onglet-amis-pouce.png` });
   console.log('③ la ligne dit ce que l’ami t’ouvre, tes pistes en accent, une piste close ne compte pas ; « Ajouter un ami » ferme la liste et ouvre Mon QR ✓');
 
-  /* ---------- ④ Pour toi, puis Trier ---------- */
+  /* ---------- ④ Pour toi ---------- */
   if ((await noms(p)).join() !== POUR_TOI.join()) fail('« Pour toi » : ' + JSON.stringify(await noms(p)));
-  {
-    const b = await p.evaluate(() => document.querySelector('#piAffiner').textContent.trim());
-    if (b !== 'Trier') fail('dans « Amis », le bouton de la barre ne dit pas « Trier » : ' + b);
-  }
-  await p.click('#piAffiner');
-  await p.waitForSelector('.overlay [data-sort-set="recent"]');
-  {
-    const crit = await p.evaluate(() => [...document.querySelectorAll('.overlay [data-sort-set]')].map(b => b.textContent.replace(/\s+/g, ' ').trim()));
-    if (!/^Pour toi/.test(crit[0]) || !/^Récents/.test(crit[1]) || !/^A → Z/.test(crit[2]) || crit.length !== 3)
-      fail('les critères de tri des amis : ' + JSON.stringify(crit));
-  }
-  await p.click('.overlay [data-sort-set="recent"]');
-  await p.waitForTimeout(250);
-  await p.evaluate(() => [...document.querySelectorAll('.overlay')].pop().querySelector('.modal-h button.x').click());
-  await p.waitForTimeout(350);
-  if ((await noms(p)).join() !== RECENTS.join()) fail('« Récents » : ' + JSON.stringify(await noms(p)));
-  {
-    const puce = await p.evaluate(() => document.querySelector('#piChips [data-sort-clear]')?.textContent.trim() || '');
-    if (!/^Récents/.test(puce)) fail('la puce de tri ne dit pas « Récents » : ' + puce);
-  }
-  await p.screenshot({ path: `${SHOTS}/99-onglet-amis-recents-pouce.png` });
-  await p.click('#piChips [data-sort-clear]');
-  await p.waitForTimeout(300);
-  if ((await noms(p)).join() !== POUR_TOI.join()) fail('la puce n’a pas rendu « Pour toi » : ' + JSON.stringify(await noms(p)));
-  await portee(p, 'pistes');
-  {
-    const b = await p.evaluate(() => document.querySelector('#piAffiner').textContent.trim());
-    if (!/^Affiner/.test(b)) fail('de retour dans « Mes pistes », le bouton reste « ' + b + ' »');
-  }
-  console.log('④ « Pour toi » d’abord, « Trier » → « Récents », la puce le retire, « Affiner » revient ✓');
+  console.log('④ « Pour toi » : qui porte le plus de tes pistes ouvertes d’abord ✓');
 
   /* ---------- ⑤ retirer au glissé, « Annuler » ---------- */
-  await portee(p, 'amis');
   {
     const sous = await p.evaluate(() => document.querySelector('#piAmis .am-row[data-ami="TomTomTomTomTomTom01"] .sw-under')?.textContent.trim());
     if (sous !== 'Retirer') fail('le glissé ne dit pas son mot : ' + sous);
@@ -282,7 +233,9 @@ const taper = async (p, txt) => {
   console.log('⑤ au doigt, le glissé dit « Retirer », retire, et « Annuler » rend Tom à sa place ✓');
 
   /* ---------- ⑧ « À découvrir » réchauffé ---------- */
-  await portee(p, 'pistes');
+  await fermerDessus(p);
+  await p.evaluate(() => { location.hash = '#/pistes'; });
+  await p.waitForSelector('#piQ');
   await taper(p, 'informatique Lille');
   await p.waitForTimeout(900);
   await portee(p, 'decouvrir');
@@ -311,38 +264,9 @@ const taper = async (p, txt) => {
 /* ================= au poste ================= */
 {
   const { ctx, p, journal } = await ecran({ width: 1280, height: 800 }, false, INES);
-  await portee(p, 'amis');
-  await p.waitForSelector('#piAmis .am-detail');
-  const detail = () => p.evaluate(() => {
-    const d = document.querySelector('#piAmis .am-detail');
-    return d ? { id: d.dataset.ami, nom: d.querySelector('.ap-nom')?.textContent.trim(),
-                 sel: document.querySelector('#piAmis .am-row.am-sel')?.dataset.ami,
-                 focus: document.activeElement?.closest('.am-row')?.dataset.ami || document.activeElement?.id || '' } : null;
-  });
-  {
-    const d = await detail();
-    if (!d || d.nom !== 'Karim Benali' || d.sel !== 'KarimKarimKarim00001') fail('au poste, la fiche du premier ami n’est pas à côté : ' + JSON.stringify(d));
-    if (await p.evaluate(() => document.querySelectorAll('.overlay').length)) fail('au poste, une feuille s’ouvre au lieu de la liste-détail');
-  }
+  await mesAmis(p);
+  if ((await noms(p)).join() !== POUR_TOI.join()) fail('au poste, « Pour toi » : ' + JSON.stringify(await noms(p)));
   await p.screenshot({ path: `${SHOTS}/99-onglet-amis-poste.png` });
-  /* ⑥ au clavier : ↓ depuis la barre, ↓, ↑, Échap remonte */
-  await p.click('#piQ');
-  await p.keyboard.press('ArrowDown');
-  await p.waitForTimeout(250);
-  if ((await detail()).focus !== 'KarimKarimKarim00001') fail('↓ depuis la barre ne descend pas sur le premier ami : ' + JSON.stringify(await detail()));
-  await p.keyboard.press('ArrowDown');
-  await p.waitForTimeout(300);
-  {
-    const d = await detail();
-    if (d.nom !== 'Léa Durand' || d.focus !== 'LeaLeaLeaLeaLeaLea01') fail('↓ : la fiche ne suit pas le clavier : ' + JSON.stringify(d));
-  }
-  await p.keyboard.press('ArrowUp');
-  await p.waitForTimeout(300);
-  if ((await detail()).nom !== 'Karim Benali') fail('↑ : la fiche ne revient pas sur Karim');
-  await p.keyboard.press('Escape');
-  await p.waitForTimeout(150);
-  if ((await detail()).focus !== 'piQ') fail('Échap ne remonte pas dans la barre : ' + (await detail()).focus);
-  console.log('⑥ au poste, liste-détail : la fiche suit ↓ ↑, Échap remonte dans la barre ✓');
 
   /* ⑤ au poste, la croix au survol, avec SON mot */
   const row = '#piAmis .am-row[data-ami="TomTomTomTomTomTom01"]';
@@ -359,19 +283,21 @@ const taper = async (p, txt) => {
   if (!(await amisStockes(p)).includes('Tom Petit')) fail('« Annuler » ne rend pas Tom au poste');
   console.log('⑤ au poste, la croix au survol dit « Retirer : Tom Petit », « Annuler » le rend ✓');
 
-  /* la fiche à côté : « + Piste » ajoute sans quitter la liste */
+  /* ⑥ la fiche d'un ami, par-dessus la liste : « + Piste » ajoute */
   await p.click('#piAmis .am-row[data-ami="KarimKarimKarim00001"] .ri-main');
-  await p.waitForTimeout(300);
-  await p.click('#piAmis .am-detail [data-ajout]');
+  await p.waitForSelector('.overlay .am-par [data-ajout]');
+  await p.click('.overlay .am-par [data-ajout]');
   await p.waitForTimeout(400);
   {
     const quick = await p.evaluate(async () => !!(await import('./ui/state.js')).S.companies.find(c => c.name === 'Quick'));
-    if (!quick) fail('« + Piste » depuis la fiche à côté n’a pas ajouté Quick');
+    if (!quick) fail('« + Piste » depuis la fiche d’un ami n’a pas ajouté Quick');
+  }
+  await fermerDessus(p);
+  {
     const l = (await lignes(p)).find(x => x.nom === 'Karim Benali');
     if (!l || l.accent !== 'Aztek, Quick, dans tes pistes') fail('la ligne de Karim ne suit pas l’ajout : ' + JSON.stringify(l));
-    if ((await detail())?.nom !== 'Karim Benali') fail('après « + Piste », la fiche à côté a changé d’ami');
   }
-  console.log('⑥ « + Piste » depuis la fiche à côté : Quick entre, la ligne suit, la fiche reste ✓');
+  console.log('⑥ « + Piste » depuis la fiche d’un ami : Quick entre, la ligne suit ✓');
   if (journal.some(u => /benali|karim|durand|petit|diallo/.test(pliees(u)))) fail('un nom d’ami est parti vers l’annuaire au poste');
   await ctx.close();
 }
@@ -379,7 +305,7 @@ const taper = async (p, txt) => {
 /* ================= ⑦ sans ami ================= */
 for (const [vp, touch, nom] of [[{ width: 390, height: 844 }, true, 'pouce'], [{ width: 1280, height: 800 }, false, 'poste']]){
   const { ctx, p } = await ecran(vp, touch, { name: 'Sofia Ait', formation: 'BTS SIO' });
-  await portee(p, 'amis');
+  await mesAmis(p);
   {
     const v = await p.evaluate(() => {
       const b = document.querySelector('#piAmis #avVide');
@@ -388,32 +314,25 @@ for (const [vp, touch, nom] of [[{ width: 390, height: 844 }, true, 'pouce'], [{
     });
     if (!v || v.titre !== 'Tes amis t’ouvrent leurs entreprises' || v.gestes.join() !== 'avMonQR*,avScan')
       fail(`${nom} : l’état vide n’enseigne pas (titre + Mon QR rempli + Scanner) : ` + JSON.stringify(v));
-    const cnt = await p.evaluate(() => document.querySelector('#piCount')?.textContent.trim());
-    if (cnt !== '3 pistes') fail(`${nom} : le titre change avec l’onglet : ` + cnt);
   }
   await p.screenshot({ path: `${SHOTS}/99-onglet-amis-vide-${nom}.png` });
   await p.click('#avMonQR');
   await p.waitForSelector('.overlay #mqDonne');
-  await p.evaluate(() => [...document.querySelectorAll('.overlay')].pop().querySelector('.modal-h button.x').click());
-  await p.waitForTimeout(300);
+  await fermerDessus(p);
   await p.click('#avScan');
   await p.waitForSelector('.overlay #rcTexte');
-  await p.evaluate(() => [...document.querySelectorAll('.overlay')].pop().querySelector('.modal-h button.x').click());
-  await p.waitForTimeout(300);
-  /* « Échanger » ne porte plus aucun geste des amis (12 octobre 2026) :
-     leur liste et « Ajouter un ami » vivent ici, leur QR se scanne par
-     « Recevoir » comme tout ce qu'on te tend */
-  await p.evaluate(() => { location.hash = '#/echanger'; });
-  await p.waitForSelector('#ecRecv');
+  await fermerDessus(p);
+  await fermerDessus(p);
+  /* « Réseau » ne porte aucun autre geste des amis : leur liste et
+     « Ajouter un ami » vivent derrière « Mes amis », leur QR se scanne
+     par « + › Recevoir » comme tout ce qu'on te tend */
   {
-    const e = await p.evaluate(() => ({ porte: !!document.querySelector('#ecAmis'),
-      gestes: [...document.querySelectorAll('#view-echanger button')].map(b => b.textContent.trim())
-        .filter(t => /Scanner|Mon QR|ami/i.test(t)) }));
-    if (e.porte) fail(`${nom} : « Échanger » garde une porte « Amis » — la liste vit dans « Mes pistes »`);
-    if (e.gestes.length) fail(`${nom} : « Échanger » porte encore des gestes d’amis : ` + JSON.stringify(e.gestes));
+    const gestes = await p.evaluate(() => [...document.querySelectorAll('#view-reseau button')].map(b => b.textContent.trim())
+      .filter(t => /Scanner|Mon QR|Ajouter un ami/i.test(t)));
+    if (gestes.length) fail(`${nom} : « Réseau » porte des gestes d’amis hors de « Mes amis » : ` + JSON.stringify(gestes));
   }
-  await p.screenshot({ path: `${SHOTS}/99-onglet-echanger-${nom}.png` });
-  console.log(`⑦ ${nom} : l’état vide enseigne, ses gestes ouvrent Mon QR et le scanner ; « Échanger » ne porte plus de geste d’ami ✓`);
+  await p.screenshot({ path: `${SHOTS}/99-onglet-reseau-${nom}.png` });
+  console.log(`⑦ ${nom} : l’état vide enseigne, ses gestes ouvrent Mon QR et le scanner ; « Réseau » ne porte pas d’autre geste d’ami ✓`);
   await ctx.close();
 }
 
@@ -422,25 +341,20 @@ for (const [vp, touch, o, nom] of [[{ width: 320, height: 640 }, true, { zoom: '
                                    [{ width: 390, height: 844 }, true, { sombre: true }, 'pouce-sombre'],
                                    [{ width: 1280, height: 800 }, false, { sombre: true }, 'poste-sombre']]){
   const { ctx, p } = await ecran(vp, touch, INES, o);
-  await portee(p, 'amis');
+  await mesAmis(p);
   await p.waitForSelector('#piAmis .am-row');
   const r = await p.evaluate(() => {
-    const m = document.querySelector('#piBody');
+    const m = [...document.querySelectorAll('.overlay')].pop().querySelector('.modal-b');
     const mr = m.getBoundingClientRect().right;
     return {
       deborde: [...m.querySelectorAll('#piAmis *')].filter(x => x.getBoundingClientRect().right > mr + 1).length,
       coupes: [...m.querySelectorAll('#piAmis h3')].filter(b => b.scrollHeight > b.clientHeight + 1 || b.scrollWidth > b.clientWidth + 1).length,
       lateral: m.scrollWidth > m.clientWidth + 1,
-      /* la portée tient sur la largeur, quitte à passer à la ligne */
-      portee: (() => { const b = document.querySelector('#piPortee'); const pr = b.getBoundingClientRect().right;
-        return [...b.querySelectorAll('button')].filter(x => x.getBoundingClientRect().right > pr + 1).length; })(),
-      petits: [...document.querySelectorAll('#piPortee button, #piAmis .ri-main')]
-        .filter(x => x.getBoundingClientRect().height < 43.5).length
+      petits: [...m.querySelectorAll('#piAmis .ri-main, #amQ')].filter(x => x.getBoundingClientRect().height < 43.5).length
     };
   });
   if (r.deborde || r.lateral) fail(`${nom} : la liste des amis déborde (${r.deborde})`);
   if (r.coupes) fail(`${nom} : un nom d’ami est coupé`);
-  if (r.portee) fail(`${nom} : une portée sort de la largeur`);
   if (touch && r.petits) fail(`${nom} : ${r.petits} cible(s) sous 44 px au doigt`);
   await p.screenshot({ path: `${SHOTS}/99-onglet-amis-${nom}.png` });
   console.log(`⑨ ${nom} : rien ne déborde, aucun nom coupé${touch ? ', 44 px au doigt' : ''} ✓`);
@@ -451,4 +365,4 @@ if (errors.length) fail('erreurs console : ' + errors.join(' | '));
 else console.log('Zéro erreur console.');
 await browser.close();
 server.close();
-console.log(process.exitCode ? 'E2E onglet amis : ÉCHEC' : 'E2E onglet amis : OK');
+console.log(process.exitCode ? 'E2E mes amis : ÉCHEC' : 'E2E mes amis : OK');

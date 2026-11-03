@@ -14,6 +14,13 @@ concevoir — ça, c'est `CLAUDE.md`. Et il ne redit pas l'état des surfaces �
 > d'ici : **un changement qui se voit se montre au mainteneur, capture de
 > l'avant à côté de celle de l'après, avant d'arriver dans main.** Ce qui
 > suit date du 30 septembre et reste vrai pour la bêta.
+>
+> **La 8.1.0 rend le réseau de la 7.4** *(3 novembre 2026, décision
+> [0012](decisions/0012-le-reseau-revient.md))* : l'onglet « Réseau », les
+> conversations comme une messagerie, les demandes suivies, ceux qui
+> aident, et les boutons du « 98 » d'origine — choisis par le mainteneur
+> sur un catalogue en captures, sans « Mon visage » ni la conversation
+> posée à côté de la liste au poste.
 
 ---
 

@@ -31,6 +31,7 @@ import { enregistrerFichier, partagePossible } from './fichier.js';
 import { mergePreviewInto, messageLecture } from './recevoir.js';
 import { DIST_PAGE } from '../engine/distribution.js';
 import { chargerMoi, etatPhrase, ouvrirPhrase, depotAt } from './moi-phrase.js';
+import { aideRowHTML, ouvrirAide } from './aide.js';
 
 /* ---------- garder une copie (.oc complet) ----------
    Au doigt par la feuille de partage, au poste en téléchargement :
@@ -355,7 +356,10 @@ function reglagesRowsHTML(){
   if ((S.profile.amis || []).length)
     rows.push(['moiRelais', 'Demandes de mes amis', S.profile.flags.sansRelais ? 'arrêtées' : 'transmises', false]);
   rows.push(['moiTheme', 'Thème', MOT_THEME[S.themeChoix] || 'automatique', false]);
-  rows.push(['moiAide', 'Aide et confidentialité', '', false]);
+  /* `moiAidePage`, pas `moiAide` : c'est l'identifiant de « Je peux aider »
+     (ui/aide.js). Au poste les deux vivent dans le même écran — le tap sur
+     « Je peux aider » ouvrait aussi la page d'aide (audit du 28 octobre 2026) */
+  rows.push(['moiAidePage', 'Aide et confidentialité', '', false]);
   rows.push(['moiDiag', 'Signaler un problème', '', false]);
   return (
     rows.map(([id, nom, etat, dep], i) => rgRow(id, nom, etat, i === rows.length - 1, dep)).join('') +
@@ -441,7 +445,7 @@ function bindReglages(box){
     const st = q('#moiCompSt');
     if (a && st) st.textContent = 'associé — ' + (a.nom || 'ton ordinateur');
   }).catch(() => {});
-  q('#moiAide').addEventListener('click', () =>
+  q('#moiAidePage').addEventListener('click', () =>
     window.open('aide.html', '_blank', 'noopener'));
   q('#moiDiag').addEventListener('click', openDiagnostic);
   q('#moiRelais')?.addEventListener('click', openRelais);
@@ -658,6 +662,11 @@ export function renderMoi(){
        </button>
      </fieldset>` : '';
 
+  /* JE PEUX AIDER (7.x, revenu en 8.1.0) : une porte sous le profil —
+     ce que je donne à mes amis vit à côté de qui je suis. Elle n'existe
+     que si quelqu'un peut le lire (un ami, un QR déjà donné). */
+  const aide = aideRowHTML();
+
   /* « General first, Advanced last » : les réglages ferment la page.
      Au pouce c'est une porte ; à la souris, la 2ᵉ colonne les déplie. */
   const reglages = `<fieldset class="fset">
@@ -675,8 +684,8 @@ export function renderMoi(){
             cadenas ne sert plus qu'à ce qui verrouille. */''}
        <div class="td-head"><h1>Moi</h1></div>
        ${wide
-         ? `<div class="moi-cols"><div>${objet}${envoi}${copie}</div><div>${reglages}</div></div>`
-         : objet + envoi + copie +
+         ? `<div class="moi-cols"><div>${objet}${aide}${envoi}${copie}</div><div>${reglages}</div></div>`
+         : objet + aide + envoi + copie +
            `<button class="rg-row rg-last moi-rg" id="moiReglages">
               <span class="rg-n">Réglages</span>
               <span class="rg-s">${verrouLabel()}</span>
@@ -691,6 +700,7 @@ export function renderMoi(){
 
   root.querySelector('#moiProfil').addEventListener('click', () => openProfil());
   root.querySelector('#moiTpl').addEventListener('click', openTemplates);
+  root.querySelector('#moiAide')?.addEventListener('click', ouvrirAide);
   /* le mot de passe est facultatif : au repos il ne pèse qu'un bouton
      compact au bout de la ligne (#8 — l'avancé se replie derrière un
      signe, jamais une phrase). Tapé, il s'étire en champ ; re-tapé, il

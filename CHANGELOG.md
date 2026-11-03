@@ -9,6 +9,53 @@ le premier pour une rupture. La bascule du recadrage est la 7.0.0
 
 Les versions d'avant la 6.76 se lisent dans l'historique du dépôt.
 
+## [8.1.0] — 3 novembre 2026
+
+Le réseau de la 7 revient sur l'interface de la 6.70 : l'onglet
+« Réseau », les conversations comme une messagerie, les demandes
+suivies étape par étape, « Je peux aider ». Et les boutons retrouvent
+leur boîte.
+
+### Revenu
+
+- **L'onglet « Réseau »** remplace « Échanger » : tes demandes en tête,
+  puis toutes tes conversations (groupes et amis) dans une seule liste,
+  « Mes amis », et Donner · Recevoir sous le pouce. Un lien gardé vers
+  « Échanger » ouvre « Réseau ».
+- **Les conversations comme une messagerie** : plein écran sur le
+  téléphone, le jour une fois, « 3 nouveaux » là où tu t'étais arrêté,
+  les liens qui se tapent, « @Karim » qui prévient Karim, un visage
+  devant chacun. « Groupe » se range comme les infos de WhatsApp.
+- **Le calme** : aucun chiffre sur les onglets. « Réseau » change de
+  couleur quand quelqu'un t'attend, et « Aujourd'hui » te dit « Clara
+  et Sarah t'ont écrit ».
+- **Tes amis vivent dans « Réseau › Mes amis »**, et leur fiche porte
+  « Écrire à Clara ». « Mes pistes » ne montre plus que des entreprises.
+- **Une demande se suit comme un colis** : envoyée, trouvée, reçue. Elle
+  dit ce que tu cherches, et ton premier mail commence par « Karim m'a
+  conseillé de vous écrire ». Un ami peut te présenter quelqu'un qui est
+  d'accord.
+- **« Je peux aider »**, dans Moi : ce que tu coches part avec ton profil
+  chez tes amis, et c'est écrit sous ton QR. Quand tu décroches, l'app
+  te propose d'aider à ton tour.
+- **Les boutons du « 98 » d'origine** : chaque bouton dans sa boîte, en
+  relief, qui s'enfonce quand tu le tapes.
+
+### Pas revenu
+
+- « Mon visage » : chaque visage reste celui que l'app tire de
+  l'identifiant. Un visage déjà dessiné reste sur ton appareil.
+- Sur ordinateur, la conversation posée à côté de la liste : elle
+  s'ouvre en fenêtre. « Réseau » y tient deux colonnes, tes contacts à
+  gauche, tes échanges de pistes à droite.
+
+### Corrigé
+
+- En refermant une conversation, le clavier revient sur sa ligne au lieu
+  de repartir en haut de la page.
+- « Aujourd'hui » montre « Tes amis » dès l'ouverture, au lieu de se
+  compléter deux secondes plus tard.
+
 ## [8.0.0] — 3 novembre 2026
 
 L'app retrouve l'interface du 14 octobre (la 6.70). Tes amis, tes
