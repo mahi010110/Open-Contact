@@ -3121,12 +3121,20 @@ button.ec-row:hover{background:var(--surface-field)}
 /* `flex:none` : le corps du composeur est une colonne flex bornée, où un
    enfant rétrécit sous sa propre hauteur (§4, la faute verticale) — les
    puces repliées sur deux rangs passaient sous l'objet. L'étiquette se
-   cale sur le PREMIER rang, à la hauteur d'une cible. */
-.ml-a{display:grid;grid-template-columns:4.25rem minmax(0,1fr);align-items:center;gap:4px 8px;
-  margin:0 0 8px;flex:none}
-.ml-l{align-self:start;min-height:var(--ctl);display:flex;align-items:center;
+   cale sur le PREMIER rang, à la hauteur d'une cible.
+   LA BASCULE (§9, du flex que tout moteur rend) : la valeur demande
+   13 rem à côté de son étiquette ; quand ils n'y sont pas, elle passe
+   DESSOUS, sur toute la largeur. En `rem`, l'étiquette double avec le
+   texte : à 200 % sur 320 px, sa colonne ne laissait que 140 px aux
+   puces, et « Remerciement après entretien » sortait de la feuille de
+   49 px (audit). */
+.ml-a{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin:0 0 8px;flex:none}
+.ml-l{flex:0 0 4.25rem;align-self:flex-start;min-height:var(--ctl);display:flex;align-items:center;
   font-size:var(--text-11);font-weight:var(--weight-bold);text-transform:uppercase;
   letter-spacing:var(--tracking-wide);color:var(--text-muted)}
+.ml-a>:not(.ml-l){flex:1 1 13rem;min-width:0}
+/* une puce plus longue que la place plie son mot, elle ne sort pas */
+.ml-a .dchip{max-width:100%;text-align:left}
 .ml-a .fld-ro{min-width:0;overflow-wrap:anywhere}
 .ml-a .ml-rien{color:var(--text-muted)}
 .ml-role{font-weight:var(--weight-regular);color:var(--text-muted);font-size:var(--text-12)}
@@ -3435,7 +3443,11 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
 /* plus de fiche encadrée par piste (décision 0010) : une ligne, la case
    en tête, un pointillé avec la suivante */
 .pick.pk,.pk-duo{background-color:transparent;border:0;border-radius:0;box-shadow:none}
-.pick.pk{padding-left:2px;padding-right:2px}
+/* le retrait d'origine (1 px de trait + 14 px de marge) reste, sans le
+   trait : c'est lui qui pose les cases dans l'AXE de la case « tout
+   cocher » de la barre (`.lb-all`) — à 2 px, elles s'en écartaient de
+   13 px et la case d'en-tête ne se lisait plus « tout cocher » (audit) */
+.pick.pk{padding-left:15px;padding-right:15px}
 .pick-list:has(.pk){gap:0}
 .pick-list:has(.pk)>*+*{border-top:1px dashed var(--border-soft)}
 .pick.pk:active{background-color:var(--surface-chrome);box-shadow:var(--bevel-down)}
