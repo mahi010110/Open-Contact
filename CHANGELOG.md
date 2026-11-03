@@ -49,6 +49,13 @@ leur boîte.
   s'ouvre en fenêtre. « Réseau » y tient deux colonnes, tes contacts à
   gauche, tes échanges de pistes à droite.
 
+### Corrigé
+
+- En refermant une conversation, le clavier revient sur sa ligne au lieu
+  de repartir en haut de la page.
+- « Aujourd'hui » montre « Tes amis » dès l'ouverture, au lieu de se
+  compléter deux secondes plus tard.
+
 ## [8.0.0] — 3 novembre 2026
 
 L'app retrouve l'interface du 14 octobre (la 6.70). Tes amis, tes

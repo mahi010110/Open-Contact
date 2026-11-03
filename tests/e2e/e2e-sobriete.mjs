@@ -162,7 +162,10 @@ const PLAFOND = {
      visibles. Un refus dit POURQUOI (famille ①), et ce pourquoi-là
      n'est pas celui d'un suivi vide : « Les pistes d'exemple ne se
      donnent pas — ajoute la tienne. » */
-  toasts: 125,
+  /* 119 avec le réseau revenu (8.1.0, 3 novembre 2026), −6 : ce qui
+     ARRIVE des autres ne surgit plus en toast (R10, « le calme ») — la
+     boîte, la carte d'une demande ou « Tes amis » le montrent déjà. */
+  toasts: 119,
   toastCar: 79,        /* le plus long : « Connexion interrompue — … » */
   /* portes bloquantes dans les écrans visibles.
      9 le 29 septembre 2026 : « Mon profil » prend le garde-fou de la

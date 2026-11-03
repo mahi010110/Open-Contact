@@ -156,6 +156,12 @@ bus.refresh = render;
        qui attend dans « Réseau » se lit dès le premier écran */
     chargerGroupes(),
     chargerFils(),
+    /* et ce que ma boîte aux lettres a GARDÉ (demandes, contacts donnés,
+       mercis) : une lecture locale, rien ne part — « Aujourd'hui » dit
+       « Tes amis » dès le premier écran, au lieu de se compléter sous
+       les yeux deux secondes plus tard (8.1.0). La relève, elle, reste
+       différée (plus bas). */
+    import('./ui/reseau.js').then(m => m.chargerReseau()).catch(() => {}),
     CAMPAGNES ? import('./ui/campagnes.js').then(m => m.loadCampaigns()).catch(() => {}) : null,
     ORDINATEUR ? import('./ui/analyse.js').then(m => m.loadMailAnalysis()).catch(() => {}) : null,
     ORDINATEUR ? import('./ui/propositions.js').then(m => m.loadProposals()).catch(() => {}) : null

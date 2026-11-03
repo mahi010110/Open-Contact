@@ -563,7 +563,7 @@ net. Sources uniques : `styles/tokens/` et le kit `design/`.
   extrémités d'un trait horizontal tombent aussi dans les bandes gauche
   et droite — le liseré rendait trois côtés sur quatre et la sonde
   restait verte. Chaque bord ne compte que le milieu de sa longueur.
-  `e2e-focus.mjs` balaie 4 écrans × 2 ergonomies × 2 thèmes et remet les
+  `e2e-focus.mjs` balaie 4 écrans et une feuille (« Historique ») × 2 ergonomies × 2 thèmes et remet les
   trois défauts d'origine en sondes.
 - **Icônes** : pixelarticons via `ic('nom', 'ic-14')`. Pas d'emoji dans
   l'interface, pas d'autre pack.
@@ -973,7 +973,7 @@ avec un motif existant.
 
 | Besoin | Motif |
 |---|---|
-| Poser une question, éditer | `openSheet` (empilable, focus-trap, Échap, **bouton retour / glissé depuis le bord**, glisser-fermer au doigt, barre de titre qui se glisse à la souris, `setFoot` REMPLACE les boutons, `guard` = garde-fou avant fermeture) |
+| Poser une question, éditer | `openSheet` (empilable, focus-trap, Échap, **bouton retour / glissé depuis le bord**, glisser-fermer au doigt, barre de titre qui se glisse à la souris, `setFoot` REMPLACE les boutons, `guard` = garde-fou avant fermeture ; refermée, **le focus revient d'où il venait**, même si l'écran s'est redessiné dessous — une conversation lue redessine la boîte : la main va à la ligne qui a pris la place de l'ancienne, même `id` ou même `data-fil`, jamais au `<body>`, WCAG 2.4.3, `e2e-ux-audit.mjs`) |
 | Le champ où s'ouvre une feuille | `focus` d'`openSheet`. **Ouvrir pour modifier n'est pas ouvrir pour écrire** : au doigt, un champ focalisé fait monter le clavier sur la moitié de la feuille. Une feuille qui ne sert qu'à taper (renommer, un mot de passe, une recherche, une fiche neuve, un profil vide) garde son champ ; une feuille qu'on vient relire passe par `champAOuvrir(sel)` — le curseur au poste, rien au doigt (audit d'octobre 2026, `e2e-finitions.mjs`) |
 | Garder une barre d'outils sous la main | `collerEnHaut(sentinelle, cible)` — la cible ne prend son décor que **décrochée**. Sur une liste courte, rien ne s'ajoute jamais |
 | Poser un champ de saisie | `clavier('nom' \| 'coord' \| 'email' \| 'tel' \| 'lien' \| 'cherche' \| 'secret')` — le genre dit ce que le champ EST, jamais sa balise. **La prose n'a pas de genre** : son correcteur doit rester allumé |

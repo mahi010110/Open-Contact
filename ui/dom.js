@@ -347,6 +347,23 @@ function installDeplacement(ov, modal, signal){
 const sortants = new Set();
 function solderSorties(){ for (const oter of [...sortants]) oter(); }
 
+/* LE FOCUS REVIENT D'OÙ IL VENAIT (WCAG 2.4.3) — même quand l'écran
+   s'est redessiné pendant que la feuille était ouverte : une conversation
+   lue redessine la boîte, et sa ligne d'origine a quitté le document. On
+   rend alors la main à celle qui a pris sa place — même identifiant,
+   même `data-fil`, même `data-id` —, jamais au `<body>`, qui renverrait
+   le clavier en haut de la page (8.1.0, relevé par e2e-ux-audit). */
+const CLES_FOCUS = ['id', 'data-fil', 'data-id', 'data-ami', 'data-groupe'];
+function rendreFocus(el){
+  if (!el || !el.focus) return;
+  let cible = el;
+  if (!el.isConnected){
+    const k = CLES_FOCUS.find(a => el.getAttribute && el.getAttribute(a));
+    cible = k ? document.querySelector(`[${k}="${CSS.escape(el.getAttribute(k))}"]`) : null;
+  }
+  if (cible) try { cible.focus(); } catch (e) {}
+}
+
 /* l'icône de la barre : un pictogramme, ou — pour une conversation avec
    un ami — son visage (`visage`, déjà dessiné par ui/visage.js), comme
    l'avatar en tête de toute messagerie */
@@ -417,7 +434,7 @@ export function openSheet(o){
     ov.inert = true;
     if (rec.behind){ rec.behind.ov.classList.remove('ov-behind'); rec.behind = null; }
     if (o.onClose) o.onClose(result);
-    if (prevFocus && prevFocus.focus){ try { prevFocus.focus(); } catch (e) {} }
+    rendreFocus(prevFocus);
     if (matchMedia('(prefers-reduced-motion:reduce)').matches){ ov.remove(); return; }
     /* `animationend` seul ne suffit pas : un onglet en arrière-plan ne
        joue pas ses animations, et la feuille resterait dans le document

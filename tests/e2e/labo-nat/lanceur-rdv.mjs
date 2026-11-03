@@ -33,14 +33,14 @@ for (const [nom, p] of [['D', D], ['R', R]])
   await p.evaluate(nom => { const t = document.getElementById('toast');
     if (t) new MutationObserver(() => { const x = t.textContent.trim(); if (x) window['__toast_' + nom](x); })
       .observe(t, { childList: true, characterData: true, subtree: true }); }, nom);
-await D.click('.bottomnav a[data-r="echanger"]');
-await D.waitForSelector('#ecGive'); await D.click('#ecGive');
+await D.click('.bottomnav a[data-r="reseau"]');
+await D.waitForSelector('#rzDonner'); await D.click('#rzDonner');
 await D.waitForSelector('#dnQR'); await D.click('#dnQR');
 await D.waitForSelector('.sy-phrase span', { timeout: 30000 });
 const code = (await D.textContent('.sy-phrase span')).trim();
 await new Promise(r => setTimeout(r, 5000));      /* le camarade sort son téléphone */
-await R.click('.bottomnav a[data-r="echanger"]');
-await R.waitForSelector('#ecRecv'); await R.click('#ecRecv');
+await R.click('.bottomnav a[data-r="reseau"]');
+await R.waitForSelector('#rzRecevoir'); await R.click('#rzRecevoir');
 await R.waitForSelector('#rcScan'); await R.click('#rcScan');
 await R.waitForSelector('#rcCode'); await R.fill('#rcCode', code);
 await R.waitForSelector('#rcCodeGo:not([hidden])'); await R.click('#rcCodeGo');
