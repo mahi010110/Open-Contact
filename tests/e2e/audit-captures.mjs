@@ -157,6 +157,9 @@ const ECRANS = [
   ['36-groupe', p => p.evaluate(async () => { const m = await import('./ui/groupes.js'); await m.chargerGroupes();
     m.ouvrirGroupe('bts2sxe3kmw4ka7'); })],
   ['37-groupe-neuf', async p => { await route('#/echanger')(p); await p.waitForTimeout(300); await p.click('#ecGrNeuf'); }],
+  /* la phrase de secours (R5, gardée au retour à la 6.70) */
+  ['41-phrase', p => p.evaluate(() => import('./ui/moi-phrase.js').then(m => m.ouvrirPhrase()))],
+  ['42-retrouver', p => p.evaluate(() => import('./ui/moi-phrase.js').then(m => m.ouvrirRetrouver()))],
   ['39-annuler', async p => { await route('#/pistes')(p); await p.waitForTimeout(300);
     await p.evaluate(async () => { const { S, deletePiste } = await import('./ui/state.js'); const { showUndo } = await import('./ui/dom.js');
       const c = S.companies.find(x => x.id === 'i'); deletePiste(c); showUndo('« Kiabi » supprimée.', () => {}); }); }],

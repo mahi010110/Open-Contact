@@ -2,6 +2,8 @@
 
 **Statut** : acceptée par le mainteneur, 19 octobre 2026.
 
+**Remplacée par [0011](0011-retour-a-la-6-70.md)**, 3 novembre 2026 : la ligne « Préversion » part avec l'interface du recadrage ; le registre `engine/drapeaux.js` reste dans le moteur, vide.
+
 ## Contexte
 
 Le recadrage (décision 0001) arrive par lots, et chaque lot doit être

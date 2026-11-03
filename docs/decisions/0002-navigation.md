@@ -4,6 +4,8 @@
 fait tout entrer » et « Un seul Partager » sont **remplacées par la
 fiche [0008](0008-le-plus-et-le-partage.md)** (29 octobre 2026).
 
+**Remplacée par [0011](0011-retour-a-la-6-70.md)**, 3 novembre 2026 : la navigation redevient Aujourd'hui · Mes pistes · + · Échanger · Moi.
+
 ## Contexte
 
 La barre du bas dit aujourd'hui Aujourd'hui · Mes pistes · + · Échanger ·

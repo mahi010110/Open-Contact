@@ -82,6 +82,7 @@ autres. Ni grisée, ni « bientôt » : absente.
 | Amis : donner son profil (QR, texte), lire sur ses pistes où ils sont passés, les retrouver triés dans « Mes pistes », s'écrire en privé | WEB |
 | Demander à ses amis — et à ses groupes — quelqu'un chez une entreprise ou dans un métier et une ville, la demande qui passe d'elle-même à leurs amis (trois cercles), donner un contact — ou soi-même — en réponse | WEB |
 | Sync entre MES appareils | WEB |
+| Une phrase de secours qui ramène tout sur un téléphone neuf (la copie scellée, déposée sur les relais) | WEB |
 | Écrire un mail (`mailto:`, copier, « Envoyée ✓ ») | WEB |
 | Postuler à plusieurs d'affilée, une par une | WEB |
 | CV & lettres rangés, modèles d'emails | WEB |
@@ -130,6 +131,35 @@ Le web se présente d'abord et récolte ses retours ; l’ordinateur s'ouvre
 ensuite, sur la coquille native déjà écrite ; le téléphone suit, sur cette
 même coquille. Ce n'est plus un seuil à deviner, c'est une file à suivre —
 et les retours du web passent toujours devant.
+
+### Le retour à la 6.70 (3 novembre 2026)
+
+Du 14 octobre au 29 octobre 2026, l'app est passée de la 6.70 à la
+7.4.0 : la boîte des conversations, puis le recadrage par lots (R0 à
+R10, ouverts à tous en 7.0.0), puis quatre versions de retouches. Le
+mainteneur, le 3 novembre : « tout ce que tu as fait niveau UX et design
+est désastreux ». **La 8.0.0 revient à l'interface de la 6.70**, et garde
+trois choses : les amis, les groupes et les messages (déjà là en 6.70),
+la phrase de secours (R5), et les corrections de bugs, reportées sans
+les changements d'apparence qui les accompagnaient (décision
+`docs/decisions/0011-retour-a-la-6-70.md`).
+
+**Le moteur reste celui de la 7.4.0.** Il n'avait fait qu'ajouter ; il
+lit tout ce qu'une 7.x a écrit, et les modules qu'aucun écran n'emploie
+plus dorment, testés par `?test` (`CONTRAT.md` §1 dit lesquels). Aucune
+clé ne bouge, aucune donnée ne se perd.
+
+**La règle qui en sort : un changement qui se voit se montre AVANT
+d'arriver dans main.** Un écran, un parcours, l'apparence d'un contrôle :
+la capture de l'avant à côté de celle de l'après, au pouce et au poste,
+regardée par le mainteneur — puis seulement la fusion. Chaque lot de la
+7.x était vert sur ses gardes et défendable seul ; c'est leur somme, vue
+sur un vrai téléphone, qui ne l'était pas, et aucune garde ne mesure ce
+que veut le mainteneur. **Une suite verte dit qu'un changement est
+conforme ; elle ne dit pas qu'il est voulu.** Une correction de bug qui
+ne change rien à l'apparence n'attend pas : elle se livre comme avant. Le
+retour à la 6.70 lui-même n'a pas attendu : c'est l'interface que le
+mainteneur a choisie, avec les corrections qu'il a demandé de garder.
 
 ## 1. Le produit en une phrase
 
@@ -346,6 +376,17 @@ net. Sources uniques : `styles/tokens/` et le kit `design/`.
   inmesurable.** Le contrôle doit viser la CAUSE (un enfant plus large
   que la boîte) et se vérifier lui-même en plantant une sonde — sinon
   il reste vert quand on le retire.
+  **Et la cause se mesure au BORD, pas à la largeur** *(octobre 2026)*.
+  Trois segments étroits dont le troisième commence dans la feuille et
+  finit dehors : aucun n'était plus large que la boîte, « Réponse »
+  perdait pourtant 10 px à 200 % en 320 px, et la garde restait verte —
+  le défaut a été vu sur une capture, pas par elle. Elle mesure donc ce
+  qui dépasse un bord, hors de ce qui défile ou coupe exprès (une
+  rangée de puces, la ligne d'un geste), et ses deux sondes plantent
+  l'un et l'autre cas. Le remède du statut de la fiche : rangée, ou pile
+  d'un coup quand le plus long mot ne tient plus (`--bascule`, MESURÉ —
+  13 rem pour trois segments ; « Ouvert · Sur demande » tient toujours
+  et n'en déclare pas).
 
   **Et la même faute existe VERTICALEMENT, en pire.** Dans une colonne
   flex de hauteur bornée, un enfant garde `flex-shrink:1` : il rétrécit
@@ -371,6 +412,14 @@ net. Sources uniques : `styles/tokens/` et le kit `design/`.
   n'avait besoin de rétrécir et la mutation passait au vert. Il en faut
   six. Le même piège que le profil vide du composeur, une surface plus
   loin.
+  ③ **Un texte peut sortir de sa boîte sans être coupé** *(audit
+  7.1.0)*. La boîte ne rogne rien (`overflow:visible`), donc ni
+  l'élision ni l'écrasement ne le voient : le mot le plus long passe
+  simplement SOUS son voisin. « Protection » glissait sous « non
+  protégé » dans Réglages, « TECHNOS » sur sa valeur dans la fiche au
+  poste. C'est une troisième mesure (le texte qui dépasse sa propre
+  boîte), et le remède est toujours le même : le nom garde son mot le
+  plus long (`min-width:auto`), c'est la donnée voisine qui cède.
 
   **La barre d'onglets : une limite qui reste, et un remède qui a échoué**
   *(19 août 2026)*. Mesuré : à 320 px « Aujourd'hui » est élidé à taille
@@ -899,6 +948,7 @@ avec un motif existant.
 | Une liste qui remplit une feuille | **l'action va dans le PIED, jamais au-dessus de la liste** (`setFoot`). C'est §5 appliqué à la lettre, et ça se paie deux fois si on l'oublie : « Donner » posait ses deux canaux dans le corps, à ~17 % de la hauteur, et avait dû inventer un **pli** pour les dégager — un pli qui coûtait ensuite 50 px au champ de recherche. Descendue dans le pied, l'action n'est plus jamais enterrée, le pli n'a plus d'objet, et l'état qui l'accompagnait disparaît. **Un contrôle qui existe pour réparer un mauvais placement se supprime en corrigeant le placement** |
 | Un geste qui CHANGE des données (restaurer, effacer, rompre, retirer, réinitialiser) | **un bouton, jamais un lien** — une rangée `.pick` s'il vit dans une liste, un `.btn-sm` taillé à son mot s'il est seul. Un lien EMMÈNE, un bouton AGIT (NN/g) : « Restaurer une copie », « Effacer cet appareil », « Rompre le lien » vivaient en mots soulignés, c'est-à-dire sous la forme qui promet d'aller ailleurs, pour les gestes les plus lourds de leur écran — le mainteneur l'a vu sur son téléphone. **Le destructif** est un `.pick-danger` en liste, un `.btn-danger` seul : pictogramme ET mot (une icône destructive ne se devine pas, elle se lit), rouge, dans **son propre groupe** (`.pick-sortie`, 16 px au-dessus), en dernier, jamais comme action principale (Apple ; GOV.UK réserve son bouton d'alerte à l'irréversible). Le `.linklike` reste à ce qui emmène ailleurs ou déplie : « Code oublié ? », « Compléter mon profil », « Voir les N autres ». Et un geste lourd sur une LIGNE (un appareil) ne s'y pose pas en icône nue : la ligne s'ouvre (chevron), et ses gestes vivent nommés dans sa feuille. Gardé par `e2e-appareils.mjs` |
 | Supprimer au geste | `bindDeleteGesture(node, onDelete)` — glisser (mobile) / poubelle au survol (desktop), doublé d'un `showUndo` |
+| Une conversation qui garde son bas | `garderLeBas(body)` (`ui/dom.js`) — le clavier qui s'ouvre, le champ qui prend une ligne : la zone du fil rétrécit PAR LE BAS, et le navigateur garde son haut ; le dernier message passait sous le champ. Ce qui touchait le bas y reste (Messages, Telegram), qui lisait plus haut garde sa lecture. « Collé en bas » se RETIENT et se lit contre la dernière taille vue, jamais à chaud — sinon un champ qui prend trois lignes entre deux images fait croire qu'on s'est décroché. Employé par la conversation d'un ami et par un groupe ; gardé par `e2e-ecrire.mjs` ⑤ |
 | Un journal, un historique | il RACONTE ce qui est fait : poids de texte courant, jamais le gras d'un titre — deux ou trois niveaux au maximum sur un écran (NN/g, poids visuel), et le journal vient toujours après les gestes qu'il surplombe |
 | Choisir parmi 2-5 options | `pick-list` / `.pick` — **UN cadre, des rangées sans relief**, séparées d'un pointillé : la forme de « Réglages » et de « Modèles d'emails ». Plus de pile de briques pleine largeur (voir « La taille dit le rang », sous la table). Une option ne porte pas de sous-titre qui l'explique ; à droite, au plus un état d'un mot ou un chiffre |
 | Choisir UNE valeur parmi deux ou trois (un réglage) | `choixHTML(options, actuel)` (`ui/dom.js`) — les rangées d'une liste d'actions dans un cadre, une coche d'accent au bout de la retenue (`role="radio"`), le choix appliqué au tap sous les yeux. La forme des réglages d'iOS et d'Android. Pas la liste à cocher (`.pk`) : une seule valeur à la fois, et ses fiches encadrées faisaient trois briques pour trois mots (13 octobre 2026). Employé par « Thème » et « Demandes de mes amis » |
@@ -1659,6 +1709,11 @@ coller. Le partage en groupe EN DIRECT (P2P) reste dans le code, masqué
 
 **Mes appareils (la même personne)** : `engine/sync.js`, tout circule (privé
 inclus), le plus récent gagne (`updatedAt`), suppressions par tombstones.
+**Et ma copie déposée** (lot R5, 7.1.0, `engine/moi.js`, gardée en 8.0.0) :
+la même personne, plus tard, sur un téléphone neuf — scellée par une clé
+tirée de la phrase de secours, sous une étiquette et une signature qui
+changent chaque semaine ; ramenée par la même fusion, aperçu avant,
+« Annuler » après. Rien ne part sans phrase.
 Canal : P2P avec phrase de liaison personnelle, hashée pour nommer la salle,
 données chiffrées de pair à pair. Le lien est **persistant** (`ui/synclive.js`).
 
@@ -2035,9 +2090,12 @@ retiré.
 | « Échanger » porte les gestes des groupes et des amis : un cadre « Groupes » (le mot, « Créer », « Rejoindre », les rangées) et un cadre « Amis » (« Scanner », « Mon QR ») — lots 4a et 5 | **retirée** (12 octobre 2026), par le mainteneur : « ce qui était avant était parfait, en rajoutant tu as juste rendu moche et mal fait » | Chaque cadre se défendait seul (le « My code / Scan » de WhatsApp, un cadre par objet). Ensemble ils posaient quatre gestes rares à côté des deux quotidiens et l'écran ne se lisait plus. Les groupes reprennent la place de la porte d'avant, « Créer » et « Rejoindre » passent derrière elle, les amis s'ajoutent dans leur liste et se scannent par « Recevoir » — §6, « Une fonctionnalité neuve prend une place qui existe » |
 | « Le bouton secondaire — contouré, `.btn-sm`, taillé à son mot » (6.36.0) | **remplacée** (13 octobre 2026), par le mainteneur : « j'en ai marre des gros boutons disgracieux, il y en a plein partout » | Elle avait réglé la TAILLE (des briques pleine largeur devenues des boutons à leur mot) et laissé le POIDS : chaque secondaire gardait fond, trait et ombre dure, si bien qu'une fiche alignait douze boîtes biseautées et que rien ne départageait « Modifier » d'« Écrire » sinon la couleur. Apple et Material réservent la boîte à l'action la plus probable ; le secondaire qui ACCOMPAGNE est devenu un bouton texte (§6). Celui qui EST l'action de son bloc garde sa boîte (`.btn-contour`) : la ligne de « Ma copie », les gestes de « Mon QR », l'envoi d'un message ou d'une invitation — « certains boutons sont utiles et beaux à leur place », le mainteneur, le même jour |
 | « Télécharger » taillé à son mot, dans « Ma copie » (6.36.0) | **retirée** (30 septembre 2026, le jour même), par le mainteneur : « j'aimais bien comment c'était » | La règle générale était juste — un bouton de 235 px pour un mot annonce une action lourde. Mais cette ligne n'est pas un bouton étiré : c'est un échange de place, où l'action tient la largeur que le champ du mot de passe prendra en s'ouvrant. Taillée à son mot, la ligne gardait un trou à droite et l'ouverture ne se lisait plus comme un échange. L'exception se nomme dans `e2e-boutons.mjs` par sa construction (`.lockrow:not(.on) > .lr-do`), pas par un bouton |
+| L'interface du recadrage (R1 à R10, 7.0.0) et les retouches de la 6.71 à la 7.4.0 : la boîte des conversations, l'onglet « Réseau », la barre latérale au poste, « Premiers pas », les boutons teintés, les réglages rangés, le + qui ne crée qu'une piste | **retirées** (3 novembre 2026), par le mainteneur : « tout ce que tu as fait niveau UX et design est désastreux » | Chaque lot était vert et défendable seul ; leur somme, vue sur son téléphone, ne se reconnaissait plus — une navigation changée deux fois en dix jours. L'interface revient à la 6.70 (décision 0011) ; les amis, les groupes, les messages, la phrase de secours et les corrections restent. Leur raisonnement vit dans `docs/decisions/` et dans l'historique de ce fichier : **un débat qui revient repart de là**, et se montre en captures avant d'être livré (§0) |
 
 *Tranché par l'assistant, à valider :* la reformulation de l'interdit serveur,
 la suppression de « ne pas dégrader l'existant », et le contenu détaillé des
 §4 à §9 (design, adaptatif, motifs, textes, checklist), gardés depuis la
 version précédente et resserrés. Et, le 29 septembre 2026, le retour de
-l'état de copie sous condition — la ligne juste au-dessus.
+l'état de copie sous condition — la ligne juste au-dessus. Et, le 3
+novembre 2026, la règle tirée du retour à la 6.70 : « un changement qui se
+voit se montre avant d'arriver dans main » (§0).

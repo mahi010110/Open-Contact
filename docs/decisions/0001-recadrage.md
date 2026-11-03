@@ -2,6 +2,8 @@
 
 **Statut** : acceptée par le mainteneur, 19 octobre 2026.
 
+**Remplacée par [0011](0011-retour-a-la-6-70.md)**, 3 novembre 2026 : l'interface revient à la 6.70, le recadrage est clos.
+
 ## Contexte
 
 Le mainteneur a fixé le cap en cinq phrases : une app qui aide, soutient

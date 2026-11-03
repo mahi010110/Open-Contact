@@ -4,7 +4,16 @@
 concevoir — ça, c'est `CLAUDE.md`. Et il ne redit pas l'état des surfaces —
 ça, c'est [`surfaces.md`](surfaces.md).
 
-*Dernière mise à jour : 30 septembre 2026.*
+*Dernière mise à jour : 3 novembre 2026.*
+
+> **La 8.0.0 revient à l'interface de la 6.70** *(3 novembre 2026,
+> décision [0011](decisions/0011-retour-a-la-6-70.md))*. Le recadrage
+> (R1 à R10) et les retouches de la 7.x sont retirés de l'écran, à la
+> demande du mainteneur ; restent les amis, les groupes, les messages, la
+> phrase de secours (R5) et les corrections de bugs. La suite reprend
+> d'ici : **un changement qui se voit se montre au mainteneur, capture de
+> l'avant à côté de celle de l'après, avant d'arriver dans main.** Ce qui
+> suit date du 30 septembre et reste vrai pour la bêta.
 
 ---
 

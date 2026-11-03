@@ -647,7 +647,9 @@ function ouvrirRecue(r){
     sh.close();
     bus.refresh();
     /* le résultat est sur le téléphone d'un autre : il se dit (§6, ②) */
-    toast(x.soi ? `${r.de.prenom} a ton contact.` : `${x.ct.name} donné à ${r.de.prenom}.`);
+    /* le toast ne genre personne : « Julie Marchand donné à Inès »
+       accordait au masculin une personne qu'on ne connaît pas (6.74) */
+    toast(x.soi ? `${r.de.prenom} a ton contact.` : `${r.de.prenom} a le contact de ${x.ct.name}.`);
   }, 'share');
   donner.id = 'drDonner';
   const ignorer = btn('Ignorer', '', async () => {

@@ -31,8 +31,18 @@ const VIEWS = {
   moi: renderMoi
 };
 
+/* LES ADRESSES DE LA 7.x. De la 7.0.0 à la 7.4.0, les gens et les
+   échanges vivaient sous « Réseau » (#/reseau) ; depuis le retour à
+   l'interface de la 6.70 (8.0.0), ils vivent de nouveau dans
+   « Échanger ». Un favori, un écran d'accueil ou un lien collé qui porte
+   l'ancienne adresse mène là où sont les mêmes choses, au lieu de
+   retomber sur « Aujourd'hui » — et la barre d'adresse est réécrite sur
+   place. */
+const ALIAS = { reseau: 'echanger' };
 function routeFromHash(){
-  const r = (location.hash || '').replace(/^#\/?/, '');
+  const brut = (location.hash || '').replace(/^#\/?/, '');
+  const r = ALIAS[brut] || brut;
+  if (r !== brut) history.replaceState(history.state, '', location.pathname + location.search + '#/' + r);
   return VIEWS[r] ? r : 'aujourdhui';
 }
 function render(){

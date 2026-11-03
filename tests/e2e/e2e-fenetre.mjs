@@ -397,6 +397,26 @@ else if (dos.gardeAccepte.n !== 0 || dos.gardeAccepte.hash !== '#echanger')
   fail('après un refus, le retour suivant ne ferme plus : ' + JSON.stringify(dos.gardeAccepte));
 else console.log('retour : ferme la feuille · dépile · respecte le garde-fou · pas d’entrée fantôme · fermer-attendre-rouvrir juste ✓');
 
+/* ---------- une adresse de la 7.x mène quelque part ----------
+   De la 7.0.0 à la 7.4.0, les gens et les échanges vivaient sous
+   « Réseau » (#/reseau). Depuis le retour à l'interface de la 6.70, un
+   favori ou un écran d'accueil qui porte cette adresse ouvre
+   « Échanger », et la barre d'adresse le dit — jamais « Aujourd'hui »
+   par défaut, qui laisserait croire que l'écran a disparu. */
+{
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true });
+  const p = await ctx.newPage();
+  p.on('pageerror', e => errors.push(String(e)));
+  await p.goto(base + '/#/reseau', { waitUntil: 'load' });
+  await p.waitForSelector('#view-echanger:not([hidden])', { timeout: 8000 }).catch(() => {});
+  const r = await p.evaluate(() => ({ hash: location.hash, vue: !document.querySelector('#view-echanger')?.hidden,
+    titre: document.title }));
+  if (!r.vue || r.hash !== '#/echanger' || !/Échanger/.test(r.titre))
+    fail('#/reseau (une adresse de la 7.x) ne mène pas à « Échanger » : ' + JSON.stringify(r));
+  else console.log('#/reseau, l’adresse de la 7.x, ouvre « Échanger » et la barre d’adresse le dit ✓');
+  await ctx.close();
+}
+
 console.log(errors.length ? 'Erreurs console : ' + errors.join(' | ') : 'Zéro erreur console.');
 if (errors.length) process.exitCode = 1;
 await browser.close();

@@ -8,6 +8,8 @@ Remplace, dans la fiche 0002, la ligne « Le + fait tout entrer » et la
 ligne « Un seul Partager, depuis Pistes (choisir, puis Partager) et
 depuis la fiche ».
 
+**Remplacée par [0011](0011-retour-a-la-6-70.md)**, 3 novembre 2026 : le + et le partage reviennent à leur place de la 6.70.
+
 ## Contexte
 
 La 7.0.0 (décision 0002) avait réparti l'échange de pistes ainsi :

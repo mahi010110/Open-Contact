@@ -375,7 +375,7 @@ await K.p.waitForTimeout(400);
 await K.p.screenshot({ path: `${SHOTS}/100-demande-recue-pouce.png` });
 await K.p.evaluate(() => { const t = document.querySelector('#toast'); if (t){ t.textContent = ''; t.classList.remove('on'); } });
 await K.p.click('#drDonner');
-await K.p.waitForFunction(() => /Julie Marchand donné à Inès\./.test(document.querySelector('#toast')?.textContent || ''), null, { timeout: 15000 });
+await K.p.waitForFunction(() => /Inès a le contact de Julie Marchand\./.test(document.querySelector('#toast')?.textContent || ''), null, { timeout: 15000 });
 await K.p.waitForTimeout(300);
 if (await K.p.$('.tr-amis')) fail('la ligne reste après avoir donné');
 {
@@ -503,7 +503,7 @@ await K.p.waitForSelector('#drListe');
   await K.p.waitForTimeout(300);
   await K.p.screenshot({ path: `${SHOTS}/100-demande-recue-deux-pouce.png` });
   await K.p.click('#drDonner');
-  await K.p.waitForFunction(() => /Nora Advens donné à Inès\./.test(document.querySelector('#toast')?.textContent || ''), null, { timeout: 15000 });
+  await K.p.waitForFunction(() => /Inès a le contact de Nora Advens\./.test(document.querySelector('#toast')?.textContent || ''), null, { timeout: 15000 });
   const l = ((await deSorte('don', 'I')).find(x => x.l.contact.name === 'Nora Advens') || {}).l;
   if (!l || l.contact.name !== 'Nora Advens' || l.contact.phone !== '0600000001') fail('le don ne porte pas le contact choisi : ' + JSON.stringify(l));
 }

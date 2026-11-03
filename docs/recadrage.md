@@ -7,6 +7,14 @@ perdre en route.** Le pourquoi est dans les fiches de décision
 
 *Démarré le 19 octobre 2026. Point de départ : la version 6.76.0.*
 
+> **Clos le 3 novembre 2026 (8.0.0).** Le mainteneur a retiré
+> l'interface du recadrage et des retouches qui l'ont suivi : l'app
+> revient à l'interface de la 6.70, avec les amis, les groupes, les
+> messages, la phrase de secours (R5) et les corrections de bugs
+> (décision [0011](decisions/0011-retour-a-la-6-70.md)). Le moteur des
+> lots reste, dormant, et ce document reste pour son raisonnement : ce
+> qui suit décrit un chantier fini, pas l'app d'aujourd'hui.
+
 ---
 
 ## En trente secondes

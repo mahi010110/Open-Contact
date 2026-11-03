@@ -48,6 +48,16 @@ doit être repensée, pas forcée.
 | `oc_view` | `map`, `list` ou `grid` (héritée, plus écrite) | chaîne |
 | `oc_data_v2`, `ais_stage_targets_v1` | Anciennes clés (v1/v2), lues une seule fois pour migration | lecture seule |
 
+**Depuis la 8.0.0** (le retour à l'interface de la 6.70, 3 novembre 2026,
+`docs/decisions/0011-retour-a-la-6-70.md`) : trois clés ne sont plus écrites
+par aucun écran — `oc_fils_v1` (la boîte des conversations), `oc_brouillons_v1`
+(les mails commencés) et `oc_preversion_v1` (la préversion). Elles ne sont ni
+renommées ni effacées (§10 de `CLAUDE.md`) : ce qu'elles portent reste lisible
+tel quel, et « Effacer cet appareil » les emporte toujours. De même, les
+champs du profil qu'aucun écran ne montre plus — `semaine`, `aide`, `visage`,
+`flags.sansLettres` — se gardent à la lecture comme avant, et un ami reçu les
+garde aussi. Le moteur qui les lit et les auto-tests qui les gardent restent.
+
 Depuis la v6.1, ces clés vivent dans **IndexedDB** (base `oc_kv_v1`, magasin
 `kv`) avec les **mêmes noms** ; `localStorage` reste lu en repli, ce qui migre
 automatiquement les données existantes sans les toucher. L'ordre des backends :
