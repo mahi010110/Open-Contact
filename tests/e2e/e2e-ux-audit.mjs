@@ -3502,6 +3502,7 @@ const GRAINE_ZOOM = async () => {
   await zPage.evaluate(GRAINE_ZOOM);
   await zPage.evaluate(() => { document.documentElement.style.fontSize = '32px'; });
   const dur = []; let vus = 0; let doublee = false; let sondeLarge = null; let sondeBord = null; let mesurees = 0;
+  let sondeLargeDit = '';
   let statutRangee = null; let statutForme = null;
   let sondeEcrase = null; let filVu = false; let sondeDeborde = null;
   /* LES FEUILLES AUSSI. La garde ne regardait que les quatre écrans, et
@@ -3570,10 +3571,18 @@ const GRAINE_ZOOM = async () => {
     if (ouvrir && sondeLarge === null){
       await zPage.evaluate(() => {
         const d = document.createElement('div');
-        d.id = 'sondeLarge'; d.style.cssText = 'width:9999px;height:2px';
+        /* `flex:none` : dans une feuille qui est une colonne flexible
+           déjà pleine (« Écrire »), une sonde de 2 px rétrécissait à
+           0 px de haut, et la mesure — qui ignore, à raison, ce qui n'a
+           pas de hauteur — ne la voyait plus. Une sonde ne se laisse pas
+           écraser : c'est elle qui doit être sûre */
+        d.id = 'sondeLarge'; d.style.cssText = 'width:9999px;height:2px;flex:none';
         document.querySelector('.overlay:not(.ov-out) .modal-b').append(d);
       });
-      sondeLarge = (await zPage.evaluate(SONDE_COUPE)).glisse > 100;
+      const vuLarge = await zPage.evaluate(SONDE_COUPE);
+      sondeLargeDit = `${nom} : glisse ${vuLarge.glisse} px, coupable ${vuLarge.coupable || '—'}`
+        + ` — la sonde est-elle encore là ? ${await zPage.evaluate(() => !!document.getElementById('sondeLarge'))}`;
+      sondeLarge = vuLarge.glisse > 100;
       await zPage.evaluate(() => { document.getElementById('sondeLarge')?.remove(); });
       /* LE BORD, DANS LES DEUX SENS. Un bloc ÉTROIT qui commence dans la
          feuille et finit dehors (120 px, moins que la feuille même à
@@ -3584,9 +3593,9 @@ const GRAINE_ZOOM = async () => {
       await zPage.evaluate(() => {
         const mb = document.querySelector('.overlay:not(.ov-out) .modal-b');
         const d = document.createElement('div');
-        d.id = 'sondeBord'; d.style.cssText = 'width:120px;height:2px;margin-left:calc(100% - 20px)';
+        d.id = 'sondeBord'; d.style.cssText = 'width:120px;height:2px;margin-left:calc(100% - 20px);flex:none';
         const r = document.createElement('div');
-        r.id = 'sondeDefile'; r.style.cssText = 'overflow-x:auto';
+        r.id = 'sondeDefile'; r.style.cssText = 'overflow-x:auto;flex:none';
         r.innerHTML = '<div style="width:120px;height:2px;margin-left:calc(100% - 20px)"></div>';
         mb.append(d, r);
       });
@@ -3740,7 +3749,7 @@ const GRAINE_ZOOM = async () => {
       + 'qu’il est seul à voir — il compte des surfaces sans les lire');
   else if (!sondeLarge)
     fail('texte doublé : la sonde plantée (un bloc de 9999px dans une feuille) n’a pas été vue — '
-      + 'la mesure du dépassement ne mesure plus rien');
+      + 'la mesure du dépassement ne mesure plus rien (' + sondeLargeDit + ')');
   else if (!sondeBord)
     fail('texte doublé : la sonde de BORD (un bloc étroit qui finit hors de la feuille) n’a pas été vue, '
       + 'ou la même dans une rangée qui défile a été prise — la mesure ne regarde plus les bords');
