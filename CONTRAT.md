@@ -48,6 +48,20 @@ doit être repensée, pas forcée.
 | `oc_view` | `map`, `list` ou `grid` (héritée, plus écrite) | chaîne |
 | `oc_data_v2`, `ais_stage_targets_v1` | Anciennes clés (v1/v2), lues une seule fois pour migration | lecture seule |
 
+**Depuis la 8.0.0** (le retour à l'interface de la 6.70, 3 novembre 2026,
+`docs/decisions/0011-retour-a-la-6-70.md`) : trois clés ne sont plus écrites
+par aucun écran — `oc_fils_v1` (la boîte des conversations), `oc_brouillons_v1`
+(les mails commencés) et `oc_preversion_v1` (la préversion). Elles ne sont ni
+renommées ni effacées (§10 de `CLAUDE.md`) : ce qu'elles portent reste lisible
+tel quel, et « Effacer cet appareil » les emporte toujours. De même, les
+champs du profil qu'aucun écran ne montre plus — `semaine`, `aide`, `visage`,
+`flags.sansLettres` — se gardent à la lecture comme avant, et un ami reçu les
+garde aussi. Le moteur qui les lit et les auto-tests qui les gardent restent.
+Mais `aide` et `visage` **ne partent plus** dans le profil donné (OCA1) : ce
+qui part se lit sous « Mon QR », et aucun écran de la 8.0 ne les montre
+(`profilDonneIci`, `ui/reseau.js` ; gardé par `e2e-amis.mjs`). Le format
+OCA1 sait toujours les porter, et un ami qui les envoie les voit gardés.
+
 Depuis la v6.1, ces clés vivent dans **IndexedDB** (base `oc_kv_v1`, magasin
 `kv`) avec les **mêmes noms** ; `localStorage` reste lu en repli, ce qui migre
 automatiquement les données existantes sans les toucher. L'ordre des backends :
@@ -156,7 +170,9 @@ L'objet compressé, et RIEN d'autre :
   `presenter`) — jamais un texte libre. Absente si rien n'est coché ; à
   la lecture, un mot hors de la table tombe (`normaliserAide`). Une offre
   qui change est une mise à jour du profil (`maj`), comme le parcours
-  (`e2e-aide.mjs` ①).
+  (`e2e-aide.mjs` ①, de la 6.86 à la 7.4). **Depuis la 8.0.0, l'app ne
+  l'envoie plus** : aucun écran ne le montre (`profilDonneIci`,
+  `e2e-amis.mjs` ①) ; reçu d'un ami, il se lit et se garde toujours.
 - `visage` (depuis la 7.3, facultatif) : le visage que j'ai DESSINÉ,
   `{m, t}` — `m` un motif de 15 bits (entier de 1 à 32 767 : le bit
   y·3 + x allume la case (x, y) des trois colonnes de gauche d'une
@@ -165,8 +181,10 @@ L'objet compressé, et RIEN d'autre :
   dessiné — le visage se tire alors de `id`, comme avant. À la lecture,
   tout autre forme tombe (`normaliserVisage`). Un dessin qui change est
   une mise à jour du profil (`maj`). Il ne passe JAMAIS par un groupe ni
-  par un partage de pistes (`e2e-visage.mjs` ①) : on voit le dessin d'un
-  ami dans un groupe parce que son profil est déjà chez soi.
+  par un partage de pistes (`e2e-visage.mjs` ①, en 7.3 et 7.4) : on voit
+  le dessin d'un ami dans un groupe parce que son profil est déjà chez
+  soi. **Depuis la 8.0.0, l'app ne l'envoie plus**, comme `aide` ; reçu,
+  il se garde.
 - **Jamais** : adresse, téléphone, formation, école, ville, pistes,
   contacts, suivi, l'identifiant d'une piste — ni le profil d'un AMI. Un
   profil ne se repartage pas (`profilDonne`, `e2e-amis.mjs` ①).

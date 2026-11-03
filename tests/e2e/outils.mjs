@@ -82,19 +82,6 @@ export async function attendre(page, fn, opts = {}){
   }
 }
 
-/* ---------- la carte d'une demande (lot F3) ----------
-   Lue comme on la lit : la phrase, à qui, puis chaque étape — son mot,
-   son état (fait, en cours, rien) et sa ligne. Partagée par les
-   scénarios des demandes, pour qu'ils lisent la MÊME carte. */
-export const suiviDe = (page, sel = '#fiDemande') => page.evaluate(s => {
-  const c = document.querySelector(s);
-  if (!c) return null;
-  const t = n => n ? n.textContent.replace(/\s+/g, ' ').trim() : '';
-  return { phrase: t(c.querySelector('.dmc-t')?.firstChild), a: t(c.querySelector('.dmc-s')),
-    etapes: [...c.querySelectorAll('.dmc-et')].map(e => [t(e.querySelector('b')),
-      e.classList.contains('dmc-fait') ? 'fait' : e.classList.contains('dmc-cours') ? 'cours' : '-', t(e.querySelector('.dmc-q'))].join(':')).join(' | ') };
-}, sel);
-
 /* ---------- le canal local de l’ordinateur (binaire natif) ----------
    Il écoute sur l'un de ces trois ports et n'expose `appairage` que
    pendant qu'un appairage attend un code. Attendre en silence puis
@@ -149,57 +136,6 @@ export async function ouvrirReglages(page){
     await page.click('#moiReglages');
     await page.waitForSelector('#moiVerrou');
   }
-}
-
-/* ---- les chemins de l'app (décision 0008, 29 octobre 2026) ----
-   Le + crée une piste. Donner et Recevoir vivent côte à côte dans
-   « Réseau » (et la fiche donne SA piste) ; Mon QR, dans « Réseau › Mes
-   amis ». Un seul endroit pour ces chemins : un scénario qui les recopie
-   à la main finit par jouer un chemin que l'app n'a plus. */
-
-/* « Réseau » et l'un de ses deux verbes (`#rzDonner`, `#rzRecevoir`) :
-   sous la boîte au pouce, à droite du titre au poste */
-async function verbeReseau(page, id){
-  await page.evaluate(() => { location.hash = '#/reseau'; });
-  await page.waitForFunction(i => !!document.querySelector('#view-reseau:not([hidden]) ' + i), id);
-  await page.click('#view-reseau ' + id);
-}
-/* Réseau › Recevoir › QR · Fichier · Texte (`qr`, `fichier`, `texte`) */
-export async function ouvrirRecevoir(page, mode = 'texte'){
-  await verbeReseau(page, '#rzRecevoir');
-  await page.waitForSelector('#rcScan');
-  await page.click({ qr: '#rcScan', fichier: '#rcFile', texte: '#rcPaste' }[mode]);
-  if (mode === 'texte') await page.waitForSelector('#rcTxt');
-}
-/* Réseau › Mes amis : la feuille de la liste */
-export async function ouvrirMesAmis(page){
-  await page.evaluate(() => { location.hash = '#/reseau'; });
-  await page.waitForSelector('#bxAmis');
-  await page.click('#bxAmis');
-  await page.waitForSelector('#avMonQR, #avAjout');
-}
-/* Réseau › Mes amis › Mon QR (« Mon QR » liste vide, « Ajouter un ami »
-   en bout de liste sinon) */
-export async function ouvrirMonQR(page){
-  await ouvrirMesAmis(page);
-  await page.waitForSelector('#avMonQR, #avAjout');
-  await page.click('#avMonQR, #avAjout');
-}
-/* Réseau › Donner : toutes les pistes, cochées d'office — ce que
-   l'ancien « Échanger › Donner » ouvrait d'un tap */
-export async function ouvrirDonner(page){
-  await verbeReseau(page, '#rzDonner');
-  await page.waitForFunction(() => [...document.querySelectorAll('.overlay')].pop()?.querySelector('.mh-t')?.textContent.trim() === 'Donner');
-}
-
-/* au poste, « Mes pistes » s'ouvre en « Liste », la fiche à droite
-   (R1-d, décision 0003) ; « Tableau » garde les trois colonnes. Un
-   scénario qui mesure le tableau le choisit, comme on le ferait. */
-export async function vueTableau(page){
-  await page.waitForSelector('#view-pistes:not([hidden]) [data-vue="tableau"]');
-  if (await page.evaluate(() => document.querySelector('#view-pistes [data-vue="tableau"]').getAttribute('aria-pressed') !== 'true'))
-    await page.click('#view-pistes [data-vue="tableau"]');
-  await page.waitForSelector('#view-pistes .board');
 }
 
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css',

@@ -22,13 +22,11 @@
      pose jamais dessus — au pouce, sur un petit téléphone, au poste ;
    ④ la touche Entrée : dans une conversation, au doigt elle va à la
      ligne et la flèche envoie ; au poste elle envoie ;
-   ⑤ UNE CONVERSATION AU TÉLÉPHONE (audit du 28 octobre 2026 : « l'envoi
-     de message est très mal fait ») : elle prend l'écran ; le clavier
-     ouvert, le dernier message reste au-dessus du champ ; la flèche
-     s'allume quand on a écrit et s'éteint sinon ; envoyer garde le
-     curseur dans le champ — le clavier ne se ferme pas — et le message
-     se pose à l'écran ; un long message plafonne à six lignes sans
-     cacher le fil ;
+   ⑤ LE BAS RESTE EN BAS (correction de la 7.2, gardée au retour à
+     l'interface de la 6.70) : dans une conversation d'ami et dans un
+     groupe, vingt-quatre messages, le dernier reste à l'écran quand le
+     clavier s'ouvre et quand le champ prend trois lignes d'un coup
+     pendant qu'une relecture de défilement attend son image ;
    ⑥ zéro erreur console.
    ============================================================ */
 import { chromium, chromiumPath, serveRepo, SHOTS, annuaireMuet } from './outils.mjs';
@@ -248,89 +246,93 @@ for (const [nom, vp, tactile] of [['pouce', { width: 390, height: 844 }, true], 
 }
 console.log('③ « Écrire » : le message se lit en entier et rien ne se pose dessus, au pouce, petit et au poste ✓');
 
-/* ---------- ⑤ une conversation au téléphone ---------- */
-const FIL = Array.from({ length: 24 }, (_, i) => ({ id: 'cv' + String(i).padStart(6, '0'), moi: i % 3 === 0,
+/* ---------- ⑤ le bas d'une conversation reste en bas ---------- */
+const N_FIL = 24;
+const FIL = Array.from({ length: N_FIL }, (_, i) => ({ id: 'cv' + String(i).padStart(6, '0'), moi: i % 3 === 0,
   texte: i % 3 === 0 ? 'Message numéro ' + (i + 1) : 'Réponse de Karim, numéro ' + (i + 1) + ', un peu plus longue pour plier.',
-  at: Date.now() - (24 - i) * 600000 }));
-/* le dernier message est-il entier, entre le haut du fil et son bas ? */
-const dernierVu = p => p.evaluate(() => {
+  at: Date.now() - (N_FIL - i) * 600000 }));
+const CODE_GR = 'bts2sxe3kmw4ka7';
+const GROUPE = { [CODE_GR]: { nom: 'BTS SIO Lille', depuis: 0, vu: Date.now(), presence: Date.now(),
+  membres: { KarimKarimKarim00001: { prenom: 'Karim', at: Date.now() - 5e8 }, SofiaSofiaSofia00001: { prenom: 'Sofia', at: Date.now() - 4e8 } },
+  fil: Array.from({ length: N_FIL }, (_, i) => ({ t: 'mot', id: 'mot' + String(i).padStart(10, '0'),
+    de: i % 2 ? 'KarimKarimKarim00001' : 'SofiaSofiaSofia00001', prenom: i % 2 ? 'Karim' : 'Sofia',
+    texte: 'Message du groupe numéro ' + (i + 1) + ', assez long pour plier sur un téléphone.', at: Date.now() - (N_FIL - i) * 600000 })) } };
+const CONVS = {
+  ami: { ouvrir: OUVRIR.conversation, champ: '#msChamp', bulle: '.ms-m' },
+  groupe: { ouvrir: async () => { const m = await import('./ui/groupes.js'); await m.chargerGroupes(); m.ouvrirGroupe('bts2sxe3kmw4ka7'); },
+            champ: '#grMot', bulle: '#grFil .gr-m' }
+};
+/* la FIN du dernier message est-elle à l'écran, au-dessus du champ ?
+   Sur un petit téléphone, clavier ouvert et champ de trois lignes, la
+   zone du fil ne fait plus que quelques dizaines de pixels : le message
+   entier n'y tient pas toujours, sa fin doit y être — c'est le bas du fil */
+const dernierVu = (p, bulle) => p.evaluate(sel => {
   const b = [...document.querySelectorAll('.overlay:not(.ov-out) .modal-b')].pop();
-  const l = [...b.querySelectorAll('.ms-m')].pop();
+  const l = [...b.querySelectorAll(sel)].pop();
   if (!l) return null;
   const r = l.getBoundingClientRect(), z = b.getBoundingClientRect();
-  return { vu: r.top >= z.top - 1 && r.bottom <= z.bottom + 1, texte: l.textContent.replace(/\s+/g, ' ').trim().slice(-30),
-           zone: Math.round(z.height) };
-});
-const fleche = p => p.evaluate(() => { const b = document.getElementById('msEnvoyer');
-  return { off: b.disabled, plein: b.classList.contains('btn-primary') }; });
+  return { vu: r.bottom > z.top + 4 && r.bottom <= z.bottom + 1, texte: l.textContent.replace(/\s+/g, ' ').trim().slice(-30),
+           bas: Math.round(r.bottom), zone: [Math.round(z.top), Math.round(z.bottom)] };
+}, bulle);
+const distBas = p => p.evaluate(() => { const b = [...document.querySelectorAll('.overlay:not(.ov-out) .modal-b')].pop();
+  return Math.round(b.scrollHeight - b.scrollTop - b.clientHeight); });
 for (const [nom, vp] of [['pouce', { width: 390, height: 844 }], ['petit', { width: 360, height: 640 }]]){
+  let ok5 = true;
+  const f5 = m => { ok5 = false; fail(m); };
   const { ctx, p } = await ecran(vp, true);
-  await p.evaluate(async ([id, m]) => { const st = await import('./engine/storage.js');
-    await st.kvSet(st.MESSAGES_KEY, JSON.stringify({ v: 1, fils: { [id]: { vu: Date.now(), m } } })); }, ['KarimKarimKarim01', FIL]);
-  await p.reload();
+  await p.evaluate(async ([id, m, g, pr]) => { const st = await import('./engine/storage.js');
+    await st.kvSet(st.MESSAGES_KEY, JSON.stringify({ v: 1, fils: { [id]: { vu: Date.now(), m } } }));
+    await st.kvSet(st.PROFILE_KEY, JSON.stringify(pr));
+    await st.kvSet(st.GROUPES_KEY, JSON.stringify(g)); },
+  ['KarimKarimKarim01', FIL, GROUPE, { ...PROFIL, amiId: 'InesInesInesInes0001', groupes: [{ code: CODE_GR, nom: 'BTS SIO Lille', at: Date.now() - 6e8 }] }]);
+  await p.reload({ waitUntil: 'load' });
   await p.waitForSelector('#view-aujourdhui:not([hidden])');
-  await p.evaluate(OUVRIR.conversation);
-  await p.waitForSelector('#msFil');
-  await p.waitForTimeout(500);
-  /* elle prend l'écran : plus de bande de « Réseau » au-dessus */
-  const m = await p.evaluate(() => { const r = document.querySelector('.overlay:not(.ov-out) .modal-conv').getBoundingClientRect();
-    return { top: Math.round(r.top), h: Math.round(r.height) }; });
-  if (m.top > 1 || m.h < vp.height - 1) fail(`${nom} : la conversation ne prend pas l'écran (${JSON.stringify(m)})`);
-  const d0 = await dernierVu(p);
-  if (!d0 || !d0.vu) fail(`${nom} : la conversation ne s'ouvre pas sur son dernier message (${JSON.stringify(d0)})`);
-  /* rien d'écrit : la flèche ne promet rien */
-  const f0 = await fleche(p);
-  if (!f0.off || f0.plein) fail(`${nom} : champ vide, la flèche est allumée (${JSON.stringify(f0)})`);
-  /* le clavier s'ouvre : le dernier message reste à l'écran */
-  await p.tap('#msChamp');
-  await p.evaluate(() => window.__zone({ clavier: true }));
-  await p.waitForTimeout(350);
-  const d1 = await dernierVu(p);
-  if (!d1 || !d1.vu) fail(`${nom} : clavier ouvert, le dernier message passe sous le champ (${JSON.stringify(d1)})`);
-  await p.screenshot({ path: `${SHOTS}/135-conversation-clavier-${nom}.png` });
-  await p.keyboard.type('Merci, je regarde ce soir');
-  await p.waitForTimeout(150);
-  const f1 = await fleche(p);
-  if (f1.off || !f1.plein) fail(`${nom} : un mot écrit, la flèche ne s'allume pas (${JSON.stringify(f1)})`);
-  /* envoyer : le curseur reste dans le champ, le message se pose à l'écran */
-  await p.tap('#msEnvoyer');
-  await p.waitForTimeout(700);
-  const e = await p.evaluate(() => ({ focus: document.activeElement?.id || '', vide: document.getElementById('msChamp').value === '' }));
-  const d2 = await dernierVu(p);
-  const f2 = await fleche(p);
-  if (e.focus !== 'msChamp') fail(`${nom} : envoyer a pris le curseur au champ — le clavier se fermerait (${JSON.stringify(e)})`);
-  if (!e.vide || !d2 || !d2.vu || !/je regarde ce soir/.test(d2.texte)) fail(`${nom} : le message envoyé n'est pas à l'écran (${JSON.stringify({ e, d2 })})`);
-  if (!f2.off || f2.plein) fail(`${nom} : le champ vidé, la flèche reste allumée (${JSON.stringify(f2)})`);
-  /* plusieurs lignes D'UN COUP pendant qu'une relecture de défilement
-     attend son image (un téléphone lent tape plus vite qu'il ne dessine) :
-     la relecture tombe avant que l'observateur ait rattrapé le champ — le
-     dernier message doit rester à l'écran quand même (CI de la 7.2.0) */
-  await p.evaluate(async () => {
-    const t = document.getElementById('msChamp');
-    const b = [...document.querySelectorAll('.overlay:not(.ov-out) .modal-b')].pop();
-    const image = () => new Promise(r => requestAnimationFrame(() => r()));
-    t.value = 'Trois lignes d’un coup, pour voir si le fil garde son bas. '.repeat(4);
-    b.dispatchEvent(new Event('scroll'));
-    t.dispatchEvent(new Event('input'));
-    for (let i = 0; i < 4; i++) await image();
-  });
-  const d4 = await dernierVu(p);
-  if (!d4 || !d4.vu) fail(`${nom} : trois lignes d’un coup, et le dernier message passe sous le champ (${JSON.stringify(d4)})`);
-  await p.evaluate(() => { const t = document.getElementById('msChamp'); t.value = ''; t.dispatchEvent(new Event('input')); });
-  await p.waitForTimeout(150);
-  /* un long message : six lignes au plus, le fil reste là */
-  for (let i = 0; i < 12; i++) await p.keyboard.type('Une ligne assez longue pour se replier sur un petit téléphone. ');
-  await p.waitForTimeout(250);
-  const g = await p.evaluate(() => { const t = document.getElementById('msChamp'), cs = getComputedStyle(t);
-    return { h: Math.round(t.getBoundingClientRect().height), max: Math.round(6 * parseFloat(cs.lineHeight) + 26),
-             defile: t.scrollHeight > t.clientHeight + 1 }; });
-  const d3 = await dernierVu(p);
-  if (g.h > g.max || !g.defile) fail(`${nom} : un long message ne plafonne pas à six lignes (${JSON.stringify(g)})`);
-  if (!d3 || !d3.vu) fail(`${nom} : un long message cache le dernier message du fil (${JSON.stringify(d3)})`);
-  await p.screenshot({ path: `${SHOTS}/135-conversation-long-${nom}.png` });
+  for (const [quoi, c] of Object.entries(CONVS)){
+    await fermer(p);
+    await p.evaluate(c.ouvrir);
+    await p.waitForSelector(c.champ);
+    await p.waitForTimeout(500);
+    const d0 = await dernierVu(p, c.bulle);
+    if (!d0 || !d0.vu) f5(`${nom}, ${quoi} : la conversation ne s'ouvre pas sur son dernier message (${JSON.stringify(d0)})`);
+    /* le clavier s'ouvre : le dernier message reste à l'écran */
+    await p.focus(c.champ);
+    await p.evaluate(() => window.__zone({ clavier: true }));
+    await p.waitForTimeout(350);
+    const d1 = await dernierVu(p, c.bulle);
+    if (!d1 || !d1.vu) f5(`${nom}, ${quoi} : clavier ouvert, le dernier message passe sous le champ (${JSON.stringify(d1)})`);
+    await p.screenshot({ path: `${SHOTS}/135-conversation-clavier-${quoi}-${nom}.png` });
+    /* plusieurs lignes D'UN COUP pendant qu'une relecture de défilement
+       attend son image (un téléphone lent tape plus vite qu'il ne
+       dessine) : le dernier message reste à l'écran quand même */
+    await p.evaluate(async sel => {
+      const t = document.querySelector(sel);
+      const b = [...document.querySelectorAll('.overlay:not(.ov-out) .modal-b')].pop();
+      const image = () => new Promise(r => requestAnimationFrame(() => r()));
+      t.value = 'Trois lignes d’un coup, pour voir si le fil garde son bas. '.repeat(4);
+      b.dispatchEvent(new Event('scroll'));
+      t.dispatchEvent(new Event('input'));
+      for (let i = 0; i < 4; i++) await image();
+    }, c.champ);
+    const d2 = await dernierVu(p, c.bulle);
+    if (!d2 || !d2.vu) f5(`${nom}, ${quoi} : trois lignes d’un coup, et le dernier message passe sous le champ (${JSON.stringify(d2)})`);
+    await p.evaluate(sel => { const t = document.querySelector(sel); t.value = ''; t.dispatchEvent(new Event('input')); }, c.champ);
+    /* remonter dans le fil, PUIS ouvrir le clavier : on lisait plus
+       haut, on y reste — ce qui touchait le bas de la zone y reste (la
+       distance au bas se garde), et rien ne ramène au dernier message */
+    await p.evaluate(() => window.__zone());
+    await p.waitForTimeout(250);
+    await p.evaluate(() => { const b = [...document.querySelectorAll('.overlay:not(.ov-out) .modal-b')].pop(); b.scrollTop = 0; });
+    await p.waitForTimeout(150);
+    const avant = await distBas(p);
+    await p.evaluate(() => window.__zone({ clavier: true }));
+    await p.waitForTimeout(350);
+    const apres = await distBas(p);
+    if (avant < 40 || Math.abs(apres - avant) > 6)
+      f5(`${nom}, ${quoi} : on lisait plus haut, le clavier a déplacé la lecture (au bas : ${avant} px avant, ${apres} après)`);
+  }
   await fermer(p);
   await ctx.close();
-  console.log(`⑤ ${nom} : plein écran, le dernier message au-dessus du clavier, la flèche s'allume et s'éteint, le curseur reste, six lignes au plus ✓`);
+  if (ok5) console.log(`⑤ ${nom} : ami et groupe, le dernier message reste au-dessus du clavier et du champ qui grandit ; qui lit plus haut y reste ✓`);
 }
 
 const vraies = errors.filter(e => !/net::ERR|Failed to load resource|WebSocket/.test(e));

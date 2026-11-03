@@ -1,21 +1,16 @@
 /* ============================================================
    « Moi » — et le profil qui sert ailleurs.
 
-   Au pouce : le profil, « Ce que j'envoie », puis la porte « Réglages »
-   (#20). Le mainteneur a essayé « Moi » sur un seul écran et l'a refusé
-   sur son téléphone : la porte reste. Et TOUT ce qui se règle vit
-   derrière elle, « Ma copie » en tête (décision 0009, 29 octobre 2026 :
-   « mettre tous les paramètres dans les réglages »). Ce scénario garde
-   ce qui se défait en silence :
+   Au pouce : le profil, « Ce que j'envoie », « Ma copie », puis la
+   porte « Réglages » (#20). Le mainteneur a essayé « Moi » sur un seul
+   écran et l'a refusé sur son téléphone : la porte reste. Ce scénario
+   garde ce qui se défait en silence :
 
-   ① au pouce, la porte « Réglages » est là, et ses lignes derrière —
-     « Moi » ne porte plus aucun réglage (une mutation remet « Ma copie »
-     dans « Moi », la garde rougit) ;
+   ① au pouce, la porte « Réglages » est là, et ses lignes derrière ;
    ② l'avertissement « enregistrées seulement sur cet appareil » ne
      parle que sans copie récente ni autre appareil, et se tait dès
      qu'une copie part — il a été retiré une fois pour avoir parlé à
-     chaque passage. Sur « Moi », la porte le dit d'un mot, « sans
-     copie » ;
+     chaque passage ;
    ③ au doigt, la copie passe par la feuille de partage (une copie
      restée sur le téléphone ne rattrape pas un téléphone perdu), et
      renoncer au partage ne compte pas comme une copie ;
@@ -42,7 +37,7 @@ const pistes = n => Array.from({ length: n }, (_, i) => ({
 /* une page « Moi » semée par le vrai stockage, puis RECHARGÉE : semer
    sans recharger mesure l'état d'avant (§5, corollaire ②) */
 async function page({ largeur = 390, profil = PROFIL, data = pistes(24), partage = null, route = 'moi',
-                      ua = null, installee = false, mutation = null } = {}){
+                      ua = null, installee = false } = {}){
   const doigt = largeur < 901;
   const ctx = await browser.newContext({ viewport: { width: largeur, height: doigt ? 844 : 800 },
     hasTouch: doigt, isMobile: doigt, acceptDownloads: true, ...(ua ? { userAgent: ua } : {}) });
@@ -65,8 +60,6 @@ async function page({ largeur = 390, profil = PROFIL, data = pistes(24), partage
       window.__partages.push(d.files.map(f => ({ name: f.name, size: f.size })));
     };
   }, partage);
-  /* une mutation : un fichier servi modifié, la preuve que la garde sait encore échouer */
-  if (mutation) await ctx.route('**/' + mutation.fichier, r => r.fulfill({ contentType: 'text/javascript', body: mutation.corps }));
   const p = await ctx.newPage();
   p.on('pageerror', e => errors.push(String(e)));
   p.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
@@ -83,21 +76,14 @@ async function page({ largeur = 390, profil = PROFIL, data = pistes(24), partage
 const lastBackupAt = p => p.evaluate(async () => (await import('./ui/state.js')).S.profile.flags.lastBackupAt || 0);
 
 /* ---------- ① et ② : la porte, et l'avertissement au bon moment ---------- */
-/* ce que « Moi » porte de RÉGLAGES, au pouce : rien (décision 0009) */
-const reglagesDansMoi = p => p.evaluate(() => [...document.querySelectorAll(
-  '#view-moi #moiBk, #view-moi #moiPhrase, #view-moi #moiVerrou, #view-moi #moiTheme, #view-moi #moiSync')].map(e => e.id).join(','));
 {
   const { ctx, p } = await page({ partage: 'accepte' });
   await p.waitForSelector('#moiProfil');
-  okSi(!!(await p.$('#moiReglages')) && !(await reglagesDansMoi(p)),
-    'au pouce, « Réglages » est une porte : tous ses réglages sont derrière, « Ma copie » comprise');
-  await attendre(p, () => !!document.querySelector('#moiFilet'), { message: 'la porte qui dit « sans copie »' });
-  okSi((await p.textContent('#moiReglages #moiFilet')).trim() === 'sans copie',
-    'sans copie ni autre appareil : la porte des Réglages le dit d’un mot');
-  await ouvrirReglages(p);
-  await attendre(p, () => /Tes 24 pistes/.test(document.querySelector('#moiFilet')?.textContent || ''), { message: 'l’avertissement sans copie' });
+  okSi(!!(await p.$('#moiReglages')) && !(await p.$('#moiVerrou')),
+    'au pouce, « Réglages » est une porte : ses lignes sont derrière');
+  await attendre(p, () => !!document.querySelector('#moiFilet'), { message: 'l’avertissement sans copie' });
   okSi((await p.textContent('#moiFilet')).includes('Tes 24 pistes sont enregistrées seulement sur cet appareil'),
-    'derrière, en tête des Réglages : l’état nomme le fait');
+    'sans copie ni autre appareil : l’état nomme le fait');
   okSi(await p.$eval('#moiCopie', e => e.classList.contains('fs-alert')), 'et « Ma copie » prend le bord ambre');
   const mots = (await p.textContent('#view-moi')).toLowerCase();
   okSi(!/\babri|\bfilet/.test(mots),'aucune image à la place du fait (§7)');
@@ -119,26 +105,12 @@ const reglagesDansMoi = p => p.evaluate(() => [...document.querySelectorAll(
   const { ctx, p } = await page({ data: pistes(3) });
   await p.waitForSelector('#moiProfil');
   await p.waitForTimeout(400);
-  okSi(!(await p.$('#moiFilet')), 'trois pistes : aucun avertissement sur « Moi »');
-  await ouvrirReglages(p);
-  await p.waitForTimeout(300);
-  okSi(!(await p.$('#moiFilet')), 'ni dans les Réglages');
-  await ctx.close();
-}
-{
-  /* la mutation : « Ma copie » remise dans « Moi » — la garde du ① rougit */
-  const src = await (await fetch(base + '/ui/moi.js')).text();
-  const corps = src.replace(': objet + aide + envoi +', ': objet + aide + envoi + copieHTML() +');
-  okSi(corps !== src, 'mutation « Ma copie » dans « Moi » : le fichier servi est bien modifié');
-  const { ctx, p } = await page({ mutation: { fichier: 'ui/moi.js', corps } });
-  await p.waitForSelector('#moiProfil');
-  okSi(!!(await reglagesDansMoi(p)), 'mutation : la garde voit un réglage revenu dans « Moi » — ' + await reglagesDansMoi(p));
+  okSi(!(await p.$('#moiFilet')), 'trois pistes : aucun avertissement');
   await ctx.close();
 }
 {
   /* ③ renoncer au partage : rien n'est parti, rien ne se compte */
   const { ctx, p } = await page({ partage: 'renonce' });
-  await ouvrirReglages(p);
   await p.waitForSelector('#moiBkDo');
   await p.evaluate(() => { const t = document.querySelector('#toast'); if (t) t.textContent = ''; });
   await p.click('#moiBkDo');
@@ -292,7 +264,7 @@ const UA_ANDROID = 'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 
   await ctx.close();
 }
 
-/* ---------- Mes appareils : deux gestes, sans note ----------
+/* ---------- Mes appareils : deux verbes, sans note ----------
    « sur le premier appareil », « sur l'appareil à ajouter » sont partis
    le 30 septembre 2026 : les verbes le disent (on CRÉE ce qu'on n'a pas,
    on ENTRE ce qu'un autre écran affiche), et l'écran suivant le montre. */
@@ -306,34 +278,6 @@ const UA_ANDROID = 'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 
      ma phrase » de la phrase de secours, un autre secret (§7) */
   okSi(deux[0] === 'Relier un autre appareil' && deux[1] === 'Relier cet appareil',
     'deux gestes, rien d’autre sur le bouton (lu : ' + deux.join(' | ') + ')');
-  await ctx.close();
-}
-
-/* ---------- au poste, « Moi » et ses Réglages sur un écran : chaque
-   identifiant n'y vit qu'une fois (audit du 28 octobre 2026) ----------
-   « Je peux aider » et « Aide et confidentialité » portaient le même :
-   toucher le premier ouvrait AUSSI la page d'aide dans un onglet, et le
-   second ne faisait rien. Un identifiant en double ne se voit pas — il
-   se joue. */
-{
-  const { ctx, p } = await page({ largeur: 1280, profil: { ...PROFIL, amiId: 'MoiMoiMoiMoiMoi000001' } });
-  await p.waitForSelector('#moiReglagesCols, .moi-cols');
-  await p.waitForTimeout(300);
-  const doubles = await p.evaluate(() => { const vus = new Map();
-    for (const e of document.querySelectorAll('#view-moi [id]')) vus.set(e.id, (vus.get(e.id) || 0) + 1);
-    return [...vus].filter(([, n]) => n > 1).map(([id]) => id); });
-  okSi(!doubles.length, 'au poste, aucun identifiant en double dans « Moi » (' + (doubles.join(', ') || 'aucun') + ')');
-  const onglets = [];
-  ctx.on('page', np => onglets.push(np.url()));
-  await p.click('#moiAide');
-  await p.waitForTimeout(500);
-  const feuille = await p.evaluate(() => document.querySelector('.overlay:not(.ov-out) .mh-t')?.textContent || '');
-  okSi(feuille === 'Je peux aider' && !onglets.length, '« Je peux aider » ouvre sa feuille, et elle seule (' + feuille + ', ' + onglets.length + ' onglet)');
-  await p.evaluate(() => [...document.querySelectorAll('.overlay')].forEach(o => o.querySelector('.modal-h .x')?.click()));
-  await p.waitForTimeout(300);
-  await p.click('#moiAidePage');
-  await p.waitForTimeout(600);
-  okSi(onglets.some(u => /aide\.html$/.test(u)), '« Aide et confidentialité » ouvre la page d’aide');
   await ctx.close();
 }
 

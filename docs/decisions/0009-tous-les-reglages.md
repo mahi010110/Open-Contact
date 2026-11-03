@@ -4,6 +4,8 @@
 l'a demandé (« mettre tous les paramètres dans les réglages ») ; le
 dessin est de l'assistant.
 
+**Remplacée par [0011](0011-retour-a-la-6-70.md)**, 3 novembre 2026 : « Moi » et ses Réglages reviennent à leur rangement de la 6.70.
+
 ## Contexte
 
 Depuis le 29 septembre 2026 (annexe de `CLAUDE.md`), « Moi » portait,

@@ -9,26 +9,23 @@
 import { esc, distKm, todayISO } from '../engine/utils.js';
 import { STATUSES, CLOSE_REASONS, DOMAINS, pushHist } from '../engine/model.js';
 import { filterOrphans, searchHint } from '../engine/filter.js';
-import { chercherPistes, raisonDe, propositions, elargir, retirer, contexteRecherche, correction, interpreter } from '../engine/requete.js';
+import { chercherPistes, raisonDe, propositions, elargir, retirer, contexteRecherche, correction, critereDe } from '../engine/requete.js';
 import { silentPistes } from '../engine/assist.js';
-import { mesChiffres, chiffresTexte } from '../engine/suivi.js';
 import { S, bus, isClosed, hasDemo, addDemo, ctLabel, deletePiste, undeletePiste,
          removeOrphan, saveOrphans, saveData, logJ } from './state.js';
-import { portesDuJour } from './amis.js';
-import { $, ic, toast, showUndo, bindDeleteGesture, softReorder, topSheet,
+import { portesDuJour, amisClasses, vueAmisHTML, lierVueAmis, openTriAmis, triAmisChipHTML, lierTriAmisChip } from './amis.js';
+import { $, ic, toast, showUndo, bindDeleteGesture, openSheet, softReorder, topSheet,
          collerEnHaut, clavier, annoncer, voirAutres } from './dom.js';
 import { openAffinerSheet, filterState, filterOn, filterClear, filterArgs } from './affiner.js';
 import { sortState, sortArgs, sortHasDist, sortChipHTML, bindSortChip, sortIsDefault, withPos } from './sort.js';
-import { dueMarkHTML, silenceMarkHTML } from './dates.js';
-import { openFiche, ecrirePiste, fichesVersVolet } from './fiche.js';
+import { relLabel, diffDays, dueMarkHTML, silenceMarkHTML } from './dates.js';
+import { openFiche } from './fiche.js';
 import { openCapture } from './capture.js';
 import { openContactEditor, openAttach } from './contact.js';
 import { openProspect } from './prospect.js';
 import { campaignOfPiste, liveCampaignsCount, openCampaignsHome } from './campagnes.js';
 import { CAMPAGNES } from './perimetre.js';
 import { suivreDecouverte, decouverteHTML, lierDecouverte, compteDecouverte, zoneEtiquetteHTML, lierZone } from './decouvrir.js';
-import { lettresCoupees } from './clavier.js';
-import { metiersPrets, chargerMetiers } from './metiers.js';
 
 /* hors périmètre, aucune piste n'est « en campagne » — la question ne se
    pose plus à l'écran, et « à planifier » reprend sa place (CLAUDE.md §0) */
@@ -53,105 +50,10 @@ let posDemandee = false;
    tape. La portée tient pour la session, comme un onglet garde sa place. */
 let portee = 'pistes';
 /* sans aucune piste, il n'y a rien à chercher chez toi : une recherche
-   tapée ne peut viser que l'annuaire. R1 (décision 0002) : les amis ont
-   quitté « Pistes » pour « Réseau › Mes amis » — Pistes ne porte plus
-   que des entreprises. */
-const porteeVue = () => (portee === 'decouvrir' || (!S.companies.length && q)) ? 'decouvrir' : 'pistes';
-
-/* ---- AU POSTE, LA FICHE À CÔTÉ DE LA LISTE (R1, décision 0003) ----
-   « Liste » pose la fiche de la piste choisie à droite (le volet des
-   conversations, `openFiche({ dans })`) ; « Tableau » garde les trois
-   colonnes d'avant, la fiche en fenêtre. Le choix tient pour la
-   session, comme la portée.
-   Trois choses que la liste-détail des conversations a déjà payées :
-   ① LE VOLET SURVIT AUX RENDUS. « Mes pistes » se redessine à chaque
-     donnée qui change ; le volet est le MÊME élément, remis en place,
-     et ce qu'on y faisait — le curseur, le texte sélectionné, le
-     défilement — se rend après (`capturerVolet` / `reposerVolet`) ;
-   ② ON NE PERD PAS UNE FICHE EN COURS : choisir une autre piste demande
-     d'abord à la fiche ouverte (`aQuitter`, le garde-fou de la fenêtre).
-     Une recherche qui écarte la piste ouverte ne la ferme pas ;
-   ③ LA FICHE SUIT LE CLAVIER : ↑ ↓ dans la liste la changent, E écrit. */
-let vuePoste = 'liste';
-let choisie = null;
-let volet = null;
-let dockFiche = null;
-let enChoix = false;
-let etatVolet = null;
-const listeDetail = () => mqWide.matches && vuePoste === 'liste';
-function capturerVolet(){
-  if (etatVolet || !volet || !volet.isConnected) return;
-  const a = document.activeElement;
-  const dedans = !!a && volet.contains(a);
-  const b = volet.querySelector('.modal-b');
-  let sel = null;
-  try { if (dedans && typeof a.selectionStart === 'number') sel = [a.selectionStart, a.selectionEnd]; } catch (e) {}
-  etatVolet = { foc: dedans ? a : null, sel, haut: b ? b.scrollTop : 0 };
-}
-function reposerVolet(){
-  const e = etatVolet;
-  etatVolet = null;
-  if (!e || !volet) return;
-  const b = volet.querySelector('.modal-b');
-  if (b) b.scrollTop = e.haut;
-  if (e.foc && volet.contains(e.foc)){
-    e.foc.focus({ preventScroll: true });
-    if (e.sel) try { e.foc.setSelectionRange(e.sel[0], e.sel[1]); } catch (x) {}
-  }
-}
-/* la ligne choisie porte la couleur du châssis — « tu es ici » (§4) */
-function marquerChoisie(zone){
-  zone.querySelectorAll('.pi-split .row-item').forEach(r => {
-    const on = r.dataset.id === choisie;
-    r.classList.toggle('pi-sel', on);
-    const m = r.querySelector('.ri-main');
-    if (m){ if (on) m.setAttribute('aria-current', 'true'); else m.removeAttribute('aria-current'); }
-  });
-}
-function poserFiche(c){
-  choisie = c.id;
-  dockFiche = openFiche(c, { dans: volet });
-}
-/* le geste « choisir » du dernier rendu : une fiche demandée d'ailleurs
-   pendant qu'on est ici passe par lui, garde-fou compris (ui/fiche.js) */
-let choisirIci = null;
-fichesVersVolet(c => {
-  if (S.route !== 'pistes' || !listeDetail() || !choisirIci || !volet || !volet.isConnected) return null;
-  choisirIci(c.id);
-  return dockFiche;
-});
-/* hors de « Mes pistes », la fiche de droite se ferme — sauf si elle
-   attend un « Enregistrer » : ce qu'on a tapé ne se jette pas. Cachée,
-   elle doublait la fiche qu'un autre écran ouvre en fenêtre. Au retour,
-   la liste la repose sur la même piste (`poserVolet`). */
-window.addEventListener('hashchange', () => {
-  if (!dockFiche || /^#\/?pistes\b/.test(location.hash)) return;
-  if (dockFiche.sale && dockFiche.sale()) return;
-  dockFiche.close();
-  dockFiche = null;
-});
-/* le volet reprend sa place après un rendu, et la fiche ouverte la sienne */
-function poserVolet(body, all){
-  if (!volet){ volet = document.createElement('div'); volet.className = 'pi-volet'; volet.id = 'piVolet'; }
-  body.querySelector('.pi-volet-ici').replaceWith(volet);
-  /* la piste ouverte a été supprimée, ou ses données rechargées (une
-     synchronisation remplace les objets) : la fiche se rouvre sur ce
-     qui existe — jamais sur un objet que plus rien ne sauvegarde */
-  const fraiche = dockFiche && S.companies.find(x => x.id === dockFiche.c.id);
-  if (dockFiche && fraiche !== dockFiche.c){
-    const id = dockFiche.c.id;
-    dockFiche.close();
-    dockFiche = null;
-    if (fraiche) poserFiche(fraiche);
-    else if (choisie === id) choisie = null;
-  }
-  if (!dockFiche || !volet.contains(dockFiche.ov)){
-    const c = S.companies.find(x => x.id === choisie) || all[0] || S.companies[0];
-    if (c) poserFiche(c);
-  }
-  marquerChoisie(body);
-  reposerVolet();
-}
+   tapée ne peut viser que l'annuaire. « Amis » (lot 4) est la troisième
+   portée — ceux qui t'ouvrent leurs entreprises. */
+const porteeVue = () => portee === 'amis' ? 'amis'
+  : (portee === 'decouvrir' || (!S.companies.length && q)) ? 'decouvrir' : 'pistes';
 const mqFine = matchMedia('(pointer:fine)');
 const procheActif = () => !!(interp && interp.etiquettes.some(e => e.cle === 'proche'));
 
@@ -176,7 +78,7 @@ const moreBtn = (key, n) =>
 
 /* liste ⇄ tableau : on re-rend au franchissement du breakpoint */
 const mqWide = matchMedia('(min-width:901px)');
-mqWide.addEventListener('change', () => { if (S.profile && S.route === 'pistes') renderPistes(); });
+mqWide.addEventListener('change', () => { if (S.route === 'pistes') renderPistes(); });
 
 /* « / » ouvre la recherche — le raccourci que CLAUDE.md §5 promet
    depuis toujours et que le code n'avait jamais eu. Il ne se pose pas
@@ -192,8 +94,6 @@ mqWide.addEventListener('change', () => { if (S.profile && S.route === 'pistes')
    de raccourcis serait un écran qui n'affiche aucune donnée (§6). */
 const libre = e => {
   if (e.metaKey || e.ctrlKey || e.altKey) return false;
-  /* « Touches d'une lettre » éteintes dans Réglages (lot R8, WCAG 2.1.4) */
-  if (lettresCoupees()) return false;
   if (topSheet() || document.querySelector('.lock')) return false;
   const t = e.target;
   return !(t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName || '')));
@@ -333,12 +233,10 @@ function cardHTML(c){
   /* la carte du poste dit la même chose que la ligne au pouce : muette
      depuis longtemps est un fait, pas une absence de fait */
   const sil = c.nextAction ? null : silenceOf(c);
-  /* le texte et la marque d'urgence : le premier peut s'élider, la
-     seconde jamais — c'est elle qui réclame quelque chose */
   const na = c.nextAction
-    ? `<span class="bc-na"><span class="bc-na-t">${esc(c.nextActionText || 'Faire le point')}</span> ${dueHTML(c)}</span>`
+    ? `<span class="bc-na">${esc(c.nextActionText || 'Faire le point')} ${dueHTML(c)}</span>`
     : sil
-      ? `<span class="bc-na"><span class="bc-na-t">sans nouvelles</span> ${silenceMarkHTML(sil)}</span>`
+      ? `<span class="bc-na">sans nouvelles ${silenceMarkHTML(sil)}</span>`
       : `<span class="bc-na bc-none">${inCamp ? 'en campagne' : 'à planifier'}</span>`;
   /* « complète à N % » vivait ici sur CHAQUE carte, et valait le même
      chiffre d'une carte à l'autre — quatre pistes à contacter, quatre
@@ -471,7 +369,7 @@ function marqueEtiquette(e){
   if (e.famille === 'metier' && e.domaine && DOMAINS[e.domaine]) return pastille(DOMAINS[e.domaine].color);
   if (e.famille === 'statut' && STATUSES[e.cle]) return pastille(STATUSES[e.cle].color);
   const nom = e.famille === 'recherche' ? 'briefcase'
-    : e.famille === 'metier' ? (e.rome ? 'clipboard' : 'monitor')
+    : e.famille === 'metier' ? 'monitor'
     : e.famille === 'lieu' ? (e.cle === 'proche' ? 'gps' : 'map-pin')
     : e.famille === 'groupe' ? (e.cle === 'recommandee' ? 'users' : 'user')
     : e.famille === 'taille' ? 'building'
@@ -486,28 +384,7 @@ function marqueEtiquette(e){
    dernier contexte calculé sert aussi à la raison de chaque ligne — une
    seule lecture par recherche, pas une par ligne. */
 let ctxDernier = null;
-/* relire la recherche en cours, une fois la table arrivée — sans quoi
-   le dernier mot tapé restait lu sans elle jusqu'à la frappe suivante */
-let relireBarre = null;
-const ctxBarre = () => {
-  const c = contexteRecherche(S.companies, todayISO(), portesDuJour());
-  /* TOUS LES MÉTIERS (lot R9-b) : la table, quand elle est lue ; sinon
-     elle se lit au premier mot tapé, et sert dès le suivant. Barre vide,
-     rien ne la demande : « Mes pistes » ouvert au démarrage la lisait
-     tout de suite, un demi-mégaoctet pour ne rien comprendre (7.0.0) */
-  const m = metiersPrets();
-  if (m) c.metiers = m;
-  else if (q) chargerMetiers().then(ix => {
-    if (!ix || !q || S.route !== 'pistes' || !relireBarre || !ctxDernier || ctxDernier.metiers) return;
-    /* seulement si la table CHANGE ce que la barre comprend. « alternance
-       lille » ne lui doit rien, et redessiner pour rien faisait tomber le
-       focus de qui parcourait le tableau au clavier — « Advalys Cyber ›
-       BODY », e2e-recherche sous charge (7.1.0) */
-    const sans = JSON.stringify(interpreter(q, ctxDernier).etiquettes);
-    if (JSON.stringify(interpreter(q, { ...ctxDernier, metiers: ix }).etiquettes) !== sans) relireBarre();
-  });
-  return (ctxDernier = c);
-};
+const ctxBarre = () => (ctxDernier = contexteRecherche(S.companies, todayISO(), portesDuJour()));
 
 /* l'état actif = des puces sous la recherche, un regard suffit (#8) —
    la croix enlève, taper la puce de tri inverse son sens */
@@ -542,6 +419,13 @@ function propsHTML(){
    la croix enlève, taper la puce de tri inverse son sens */
 function chipsRowHTML(){
   const bits = [];
+  /* chez les amis, la barre cherche des NOMS et des entreprises : les
+     étiquettes de la barre (un lieu, un état) ne les filtrent pas — on
+     ne montre que ce qui agit sur cette liste, son tri */
+  if (porteeVue() === 'amis'){
+    const sc = triAmisChipHTML();
+    return sc ? `<div class="chips-row">${sc}</div>` : '';
+  }
   const dec = porteeVue() === 'decouvrir';
   /* CE QUE LA BARRE A COMPRIS, une étiquette par chose comprise, dans
      l'ordre où on l'a tapée. Taper l'étiquette retire SES mots du champ :
@@ -663,24 +547,18 @@ export function ouvrirSur(texte){
 export function renderPistes(){
   const root = $('#view-pistes');
   const wide = mqWide.matches;
-  capturerVolet();
   const nAlive = S.companies.filter(c => !isClosed(c)).length;
 
   const nCamps = liveCampaignsCount();
   root.innerHTML =
     `<div class="page-inner${wide ? ' page-wide' : ''}">
-       <div class="td-head pi-head">
+       <div class="td-head">
          <h1>Mes pistes</h1>
          ${/* le compte se réécrit à chaque frappe (renderBody) : sans lui,
               on ne sait pas si l'on regarde 3 pistes sur 3 ou 3 sur 40 */''}
          <div class="td-date" id="piCount"></div>
          ${(CAMPAGNES && nCamps) ? `<button class="btn btn-sm" id="piCamps">${ic('flag', 'ic-14')} Campagnes (${nCamps})</button>` : ''}
-         ${/* R1, au poste : la fiche à côté de la liste, ou le tableau */''}
-         ${wide && nAlive ? `<div class="seg3 pi-vue" role="group" aria-label="Affichage">${
-           [['liste', 'Liste'], ['tableau', 'Tableau']].map(([k, mot]) =>
-             `<button class="seg${vuePoste === k ? ' on' : ''}" data-vue="${k}" aria-pressed="${vuePoste === k}">${mot}</button>`).join('')}</div>` : ''}
-         ${/* R1 : choisir des pistes, puis les écrire ou les donner */''}
-         ${nAlive ? `<button class="btn btn-sm" id="piProspect">${ic('checkbox-on', 'ic-14')} Choisir</button>` : ''}
+         ${nAlive ? `<button class="btn btn-sm" id="piProspect">${ic('mail', 'ic-14')} Prospecter</button>` : ''}
        </div>
        ${/* le repère qui dit à la barre de commande qu'elle a décroché
              du haut de page — 1 px, repris par une marge négative, donc
@@ -712,28 +590,7 @@ export function renderPistes(){
        <div id="piBody"></div>
      </div>`;
 
-  /* dans la liste-détail, ouvrir une piste, c'est la CHOISIR : sa fiche
-     se pose à droite, après avoir demandé à celle qui y était */
-  const choisir = async id => {
-    if (enChoix || !volet) return;
-    if (dockFiche && dockFiche.c.id === id && volet.contains(dockFiche.ov)) return;
-    const c = S.companies.find(x => x.id === id);
-    if (!c) return;
-    if (dockFiche){
-      enChoix = true;
-      const ok = await dockFiche.aQuitter();
-      enChoix = false;
-      if (!ok){
-        root.querySelector(`.pi-split .row-item[data-id="${CSS.escape(choisie || '')}"] .ri-main`)?.focus({ preventScroll: true });
-        return;
-      }
-    }
-    poserFiche(c);
-    marquerChoisie(root);
-  };
-  choisirIci = choisir;
   const openById = id => {
-    if (root.querySelector('.pi-split')){ choisir(id); return; }
     const c = S.companies.find(x => x.id === id);
     if (c) openFiche(c);
   };
@@ -765,8 +622,6 @@ export function renderPistes(){
      reste le même nœud, le curseur ne saute plus */
   const renderBody = () => {
     const body = root.querySelector('#piBody');
-    relireBarre = () => glisser(renderBody);
-    capturerVolet();
     const all = calculer();
     const alive = all.filter(c => !isClosed(c));
     const closed = all.filter(isClosed);
@@ -777,12 +632,19 @@ export function renderPistes(){
       withPos(st, () => { if (S.route === 'pistes') glisser(renderBody); });
     }
     const dec = porteeVue() === 'decouvrir';
+    const am = porteeVue() === 'amis';
     page.classList.toggle('pt-dec', dec);
+    page.classList.toggle('pt-amis', am);
     /* SANS UNE PISTE, RIEN À AFFINER : « Affiner » ouvrait une feuille de
        filtres vides à côté de « Aucune piste pour l'instant » — un geste
        sans objet (§6 : jamais une valeur absente des données). Il revient
-       avec la première piste. */
-    page.classList.toggle('pi-vide', !S.companies.length);
+       avec la première piste. Chez les amis il TRIE : il reste. */
+    page.classList.toggle('pi-vide', !S.companies.length && !am);
+    /* chez les amis, le bouton de la barre TRIE (il n'y a rien à filtrer) :
+       il dit son geste, l'icône suit */
+    const aff = root.querySelector('#piAffiner');
+    const affHTML = am ? `${ic('sort-vertical', 'ic-14')} Trier` : `${ic('filter', 'ic-14')} Affiner`;
+    if (aff && aff.innerHTML !== affHTML) aff.innerHTML = affHTML;
     premierId = (!dec && wide && mqFine.matches && q) ? ((alive[0] || closed[0] || {}).id || null) : null;
     /* « À découvrir » suit la barre : la question part seule après une
        pause, pour que son compte se remplisse pendant qu'on tape. Barre
@@ -797,22 +659,21 @@ export function renderPistes(){
        Right) — « Mes pistes · 4 amis » se lisait de travers */
     const tout = S.companies.length;
     const cnt = root.querySelector('#piCount');
-    /* R2 : tes chiffres À LA PLACE du compte, dès qu'une piste est
-       écrite — « 4 écrites · 1 réponse · 0 décrochée » dit où l'on en
-       est, « 9 pistes » ne le disait pas. Une recherche garde son
-       « 3 sur 40 » : là, c'est le compte qui répond à ce qu'on fait. */
-    const chiffres = chiffresTexte(mesChiffres(S.companies));
-    const filtre = (q || ftOn()) && all.length !== tout;
-    /* un groupe par <span> insécable, le point collé à celui qui le
-       précède : replié au pouce, « 3 réponses » ne se coupe jamais en
-       « 3 » et « réponses » (audit 7.1.0). Le texte lu ne change pas. */
-    if (cnt && !filtre && chiffres){
-      const parts = chiffres.split(' · ');
-      cnt.innerHTML = parts.map((x, i) => `<span class="nw">${esc(x)}${i < parts.length - 1 ? ' ·' : ''}</span>`).join(' ');
-    } else if (cnt) cnt.textContent = filtre ? `${all.length} sur ${tout}`
+    if (cnt) cnt.textContent = (q || ftOn()) && all.length !== tout
+      ? `${all.length} sur ${tout}`
       /* « 0 piste » redisait, sous le titre, « Aucune piste pour
          l'instant » juste dessous : le compte se tait sur le vide */
       : tout ? `${tout} piste${tout > 1 ? 's' : ''}` : '';
+    if (am){
+      const liste = amisClasses(q);
+      const n = (S.profile.amis || []).length;
+      /* ce que la barre a gardé s'ENTEND ; il se voit dans l'onglet */
+      if (q) annoncer(`${liste.length} ami${liste.length > 1 ? 's' : ''} sur ${n}.`);
+      body.innerHTML = `<div id="piAmis">${vueAmisHTML(liste, { q, wide, critere: q ? critereDe(interp) : null })}</div>`;
+      lierVueAmis(body.querySelector('#piAmis'), { wide, rendre: () => glisser(renderBody) });
+      tenirBarre();
+      return;
+    }
     /* Filtrer réorganise tout l'écran sans rien annoncer : quelqu'un qui
        ne voit pas l'écran tape trois lettres et n'apprend jamais qu'il
        ne reste qu'une piste. C'est le DÉCOR qui suit un geste, jamais sa
@@ -836,10 +697,6 @@ export function renderPistes(){
       tenirBarre();
       return;
     }
-    /* la liste-détail dès qu'il y a une piste : une recherche sans
-       résultat garde la fiche ouverte à droite, rien ne se ferme seul */
-    const split = listeDetail() && S.companies.length > 0;
-    page.classList.toggle('pi-ld', split);
     html += orphansHTML();
     if (!S.companies.length){
       html +=
@@ -872,7 +729,7 @@ export function renderPistes(){
          au-dessus de la seule piste trouvée, clôturée, plus bas. Hors
          recherche il reste — ses colonnes vides disent alors quelque
          chose (« aucune réponse »). */
-      if (wide && !split){ if (alive.length || !q) html += boardHTML(alive); }
+      if (wide){ if (alive.length || !q) html += boardHTML(alive); }
       else {
         const { shown, more } = capped(alive, 'list', CAP_LIST);
         html += `<div class="rows">${shown.map(rowHTML).join('')}${more ? moreBtn('list', more) : ''}</div>`;
@@ -888,24 +745,17 @@ export function renderPistes(){
            </details>`;
       }
     }
-    if (split) html = `<div class="pi-split"><div class="pi-gauche">${html}</div><div class="pi-volet-ici"></div></div>`;
     body.innerHTML = html;
-    if (split) poserVolet(body, all);
-    else etatVolet = null;
     tenirBarre();
 
-    /* une table, pas une recherche par ligne : 400 pistes en faisaient
-       jusqu'à 160 000 comparaisons à chaque rendu (porte « Performance ») */
-    const nomPar = new Map(S.companies.map(x => [x.id, x.name]));
     body.querySelectorAll('.row-item, .bcard').forEach(r => {
       const open = () => openById(r.dataset.id);
       r.addEventListener('click', open);
-      /* la fiche suit le clavier (↑ ↓), comme dans « À découvrir » */
-      if (split) r.querySelector('.ri-main')?.addEventListener('focus', open);
       r.querySelector('[role="button"]').addEventListener('keydown', e => {
         if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); open(); }
       });
-      bindDeleteGesture(r, () => removeRow(r.dataset.id), nomPar.get(r.dataset.id));
+      bindDeleteGesture(r, () => removeRow(r.dataset.id),
+        (S.companies.find(x => x.id === r.dataset.id) || {}).name);
     });
     if (wide && body.querySelector('.board')) bindBoardDrag(body);
     body.querySelector('#piFtClear')?.addEventListener('click', () => { ftClear(); renderPistes(); });
@@ -968,8 +818,12 @@ export function renderPistes(){
     const box = root.querySelector('#piPortee');
     if (!box) return;
     const vue = porteeVue();
-    const dec = vue === 'decouvrir', pi = vue === 'pistes';
+    const dec = vue === 'decouvrir', am = vue === 'amis', pi = vue === 'pistes';
     const d = compteDecouverte();
+    /* le compte des AMIS se remplit pendant qu'on tape, comme celui
+       d'« À découvrir » : « Thales » rend « Amis 1 » si Karim y est
+       passé. Barre vide, rien — le titre de la vue dit déjà combien. */
+    const nAm = q && (S.profile.amis || []).length ? amisClasses(q).length : null;
     const html =
       `<div class="portee" role="group" aria-label="Où chercher">
          ${/* le compte de tes pistes est déjà dans le titre (« 4 sur 9 ») :
@@ -977,6 +831,8 @@ export function renderPistes(){
          <button class="pt${pi ? ' on' : ''}" data-portee="pistes" aria-pressed="${pi}">Mes pistes</button>
          <button class="pt${dec ? ' on' : ''}" data-portee="decouvrir" aria-pressed="${dec}"${d.occupe ? ' aria-busy="true"' : ''}>À découvrir${
            d.texte ? `<span class="pt-n">${d.texte}</span>` : ''}</button>
+         <button class="pt${am ? ' on' : ''}" data-portee="amis" aria-pressed="${am}">Amis${
+           nAm != null ? `<span class="pt-n">${nAm}</span>` : ''}</button>
        </div>`;
     if (box.innerHTML === html) return;
     const focus = document.activeElement && box.contains(document.activeElement) ? document.activeElement.dataset.portee : null;
@@ -986,7 +842,8 @@ export function renderPistes(){
       portee = b.dataset.portee;
       renderBody();
       root.querySelector(`#piPortee [data-portee="${portee}"]`)?.focus({ preventScroll: true });
-      annoncer(portee === 'decouvrir' ? 'À découvrir : les entreprises de l’annuaire.' : 'Mes pistes.');
+      annoncer(portee === 'decouvrir' ? 'À découvrir : les entreprises de l’annuaire.'
+        : portee === 'amis' ? 'Amis : les entreprises qu’ils t’ouvrent.' : 'Mes pistes.');
     }));
     if (focus) box.querySelector(`[data-portee="${focus}"]`)?.focus({ preventScroll: true });
   }
@@ -1137,12 +994,6 @@ export function renderPistes(){
       return;
     }
     const cible = t.closest('.bc-main, .ri-main, .o-main, .dc-main');
-    /* E écrit à la piste choisie (décision 0003) */
-    if (cible && (e.key === 'e' || e.key === 'E') && cible.closest('.pi-split .row-item') && !lettresCoupees()){
-      const c = S.companies.find(x => x.id === cible.closest('.row-item').dataset.id);
-      if (c){ e.preventDefault(); ecrirePiste(c); }
-      return;
-    }
     if (!cible || !/^(Arrow(Up|Down|Left|Right)|Escape)$/.test(e.key)) return;
     if (e.key === 'Escape'){ e.preventDefault(); input.focus(); return; }
     const col = cible.closest('.bcol');
@@ -1219,22 +1070,13 @@ export function renderPistes(){
         refresh();
       }));
     bindSortChip(box, st, refresh);
+    lierTriAmisChip(box, refresh);
   };
-  root.querySelector('#piAffiner').addEventListener('click', () => openAffinerSheet(ft, st, { withStatus: !mqWide.matches,
-    pool: () => S.companies.filter(c => !isClosed(c)) }, refresh));
+  root.querySelector('#piAffiner').addEventListener('click', () => porteeVue() === 'amis'
+    ? openTriAmis(refresh)
+    : openAffinerSheet(ft, st, { withStatus: !mqWide.matches,
+        pool: () => S.companies.filter(c => !isClosed(c)) }, refresh));
   root.querySelector('#piProspect')?.addEventListener('click', openProspect);
   root.querySelector('#piCamps')?.addEventListener('click', openCampaignsHome);
-  root.querySelectorAll('[data-vue]').forEach(b => b.addEventListener('click', async () => {
-    if (b.dataset.vue === vuePoste) return;
-    /* quitter la liste-détail referme la fiche posée : on demande d'abord */
-    if (b.dataset.vue === 'tableau' && dockFiche){
-      if (!(await dockFiche.aQuitter())) return;
-      dockFiche.close();
-      dockFiche = null;
-    }
-    vuePoste = b.dataset.vue;
-    renderPistes();
-    root.querySelector(`[data-vue="${vuePoste}"]`)?.focus({ preventScroll: true });
-  }));
   renderBody();
 }

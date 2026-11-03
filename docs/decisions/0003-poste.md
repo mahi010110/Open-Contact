@@ -2,6 +2,8 @@
 
 **Statut** : acceptée par le mainteneur, 19 octobre 2026.
 
+**Remplacée par [0011](0011-retour-a-la-6-70.md)**, 3 novembre 2026 : au poste, la navigation revient en haut et la fiche en fenêtre.
+
 ## Contexte
 
 Au poste (≥ 901 px, `CLAUDE.md` §5), la navigation est une rangée

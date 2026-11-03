@@ -9,6 +9,76 @@ le premier pour une rupture. La bascule du recadrage est la 7.0.0
 
 Les versions d'avant la 6.76 se lisent dans l'historique du dépôt.
 
+## [8.0.0] — 3 novembre 2026
+
+L'app retrouve l'interface du 14 octobre (la 6.70). Tes amis, tes
+groupes, tes messages et ta phrase de secours restent, et les défauts
+réparés depuis aussi.
+
+### Changé
+
+- **L'écran revient à celui de la 6.70** : Aujourd'hui · Mes pistes · + ·
+  Échanger · Moi. « Échanger » réunit de nouveau Donner, Recevoir et tes
+  groupes ; tes amis vivent dans « Mes pistes › Amis », et la
+  conversation avec un ami s'ouvre depuis sa fiche. Sur ordinateur, plus
+  de barre latérale : la navigation est en haut, et la fiche s'ouvre en
+  fenêtre.
+- Un lien gardé de la 7 vers « Réseau » ouvre « Échanger ».
+- Ton profil donné à tes amis ne porte plus que ce qui est écrit sous
+  ton QR : ton nom et ton parcours. Ce que tu avais coché dans « Je peux
+  aider » et ton visage dessiné restent chez toi, mais ne partent plus.
+
+### Gardé
+
+- **La phrase de secours** : « Moi › Ma copie › Phrase de secours », et
+  « J'ai déjà OpenContact » sur un téléphone neuf.
+- **Tes amis, tes groupes et tes messages**, tels qu'ils étaient en 6.70.
+- **Rien de ce que tu as écrit ne se perd.** Ce que les écrans retirés
+  avaient enregistré (une semaine choisie, un visage dessiné, une
+  conversation épinglée, un mail commencé) reste sur ton appareil,
+  intact. Un téléphone encore en 7 et un ordinateur en 8 se
+  synchronisent comme avant.
+
+### Retiré
+
+- L'onglet « Réseau » et sa liste de conversations, « Premiers pas »,
+  tes chiffres en tête de « Mes pistes », « Ma semaine » et
+  « Reprendre », « Écrire les N mails », « Je peux aider », les
+  touches d'une lettre et Ctrl K, l'export de ton parcours, tous les
+  métiers dans la barre, les mentions et les liens dans les messages, le
+  suivi d'une demande étape par étape, « Présenter », « Mon visage »,
+  les nouveaux boutons.
+
+### Corrigé
+
+- Juste après ton premier mail, « Aujourd'hui » ne dit plus « Tout est
+  à jour » pendant qu'une piste attend sa suite.
+- Dans une conversation, le dernier message ne passe plus sous le champ
+  quand le clavier s'ouvre ou que ton message prend plusieurs lignes.
+- En ouvrant une feuille sur un téléphone lent, le curseur ne revient
+  plus dans le premier champ pendant que tu écris dans le deuxième.
+- Texte agrandi : « Où j'en suis » ne sort plus de la fiche ; dans les
+  Réglages, le nom d'une ligne ne passe plus sous son état ; « Affiner »
+  n'a plus de puces coupées ; « Rattacher » ne sort plus de l'écran et
+  montre l'adresse telle qu'elle est écrite ; ton nom dans « Moi » plie ;
+  le champ d'un groupe grandit avec le texte et ne fait plus zoomer
+  l'iPhone.
+- La ligne d'une piste ne coupe plus « À contacter » en deux.
+- Après un mail, « Dans 7 jours » n'apparaît plus deux fois.
+- Les messages en bas de l'écran prennent la largeur de leur texte au
+  lieu de plier sur trois lignes.
+- « Donner » sur les seules pistes d'exemple dit pourquoi.
+- « Mes pistes » vide ne dit plus « 0 piste », et « Affiner » attend ta
+  première piste.
+- « Voir l'autre » au lieu de « Voir les 1 autres » ; « 0 / 1 piste »
+  dans « Donner ».
+- « Mes appareils » : « Relier un autre appareil » et « Relier cet
+  appareil », pour ne plus confondre avec ta phrase de secours.
+- Sur ordinateur, chaque colonne du tableau d'« Aujourd'hui » s'arrête
+  sous sa dernière carte.
+- Quelques titres de fenêtre disent leur mot au lieu d'une phrase
+  (« Et ensuite ? », « Demande », « Contacts »).
+
 ## [7.4.0] — 29 octobre 2026
 
 Le + ajoute une piste, le partage se retrouve dans « Réseau », et tous

@@ -156,20 +156,13 @@ const PLAFOND = {
      et rien d'autre à l'écran ne dirait pourquoi. Un message retiré,
      lui, se lit à sa place (« Retiré par Inès ») ; un membre retiré
      passe par « Annuler » chez qui le retire. */
-  /* 126 le 20 octobre 2026, +2 (lot R4, « Ma semaine », en préversion) —
-     « Partager au groupe » : la feuille se ferme et la revue vit dans le
-     groupe, hors de l'écran (famille ②) ; et son refus, sans réseau
-     (famille ①). La fin d'une série (R3), elle, n'a rien ajouté : une
-     phrase, dite d'un seul endroit au pouce et au poste. */
-  /* 121 le 27 octobre 2026, −5 (7.0.0, les lots s'ouvrent) : les toasts
-     de l'ancien chemin sont partis avec lui — ce qui ARRIVE des autres
-     ne surgit plus (R10, « le calme »), la liste ou la boîte le montrent. */
-  /* 122 le 28 octobre 2026, +1 (audit de la 7.1.1) : « Donner » sur les
-     seules pistes d'exemple disait « ajoute d'abord une piste » sous
-     trois pistes visibles. Un refus dit POURQUOI (famille ①), et ce
-     pourquoi-là n'est pas celui d'un suivi vide : « Les pistes
-     d'exemple ne se donnent pas — ajoute la tienne. » */
-  toasts: 122,
+  /* 125 au retour à l'interface de la 6.70 (novembre 2026), +1 — la
+     correction de la 7.1.1 gardée : « Donner » sur les seules pistes
+     d'exemple disait « ajoute d'abord une piste » sous trois pistes
+     visibles. Un refus dit POURQUOI (famille ①), et ce pourquoi-là
+     n'est pas celui d'un suivi vide : « Les pistes d'exemple ne se
+     donnent pas — ajoute la tienne. » */
+  toasts: 125,
   toastCar: 79,        /* le plus long : « Connexion interrompue — … » */
   /* portes bloquantes dans les écrans visibles.
      9 le 29 septembre 2026 : « Mon profil » prend le garde-fou de la
@@ -411,26 +404,16 @@ const PLAFOND = {
      « Mes pistes » vide : l'accueil d'« Aujourd'hui » n'a qu'un titre et
      ses gestes, celui-ci fait pareil — la capture ne demande qu'un nom,
      elle le montre elle-même.
-     338 avec le lot des boutons (6.77.0, 19 octobre 2026) : un mot de
-     moins relevé par cette garde, verrouillé pour qu'il ne revienne pas.
-     344 avec R0 (6.78.0, 20 octobre 2026) : la feuille « Préversion »
-     dit « Sur cet appareil seulement : l’onglet Réseau. » — sur quel
-     appareil vaut le test, et ce qu'il change. Sans elle, on allume la
-     préversion sur son téléphone et on la cherche sur son poste : une
-     erreur qu'on ne voit pas venir (§7, question 3).
-     350 avec R5 (7.1.0, 27 octobre 2026) : sous les douze mots,
-     « Personne n’a besoin de ces mots, pas même OpenContact. » — la
-     parade à l'hameçonnage que l'analyse des menaces nomme
+
+     344 avec la phrase de secours (R5, gardée au retour à l'interface
+     de la 6.70, novembre 2026), +5 : sous les douze mots, « Personne
+     n’a besoin de ces mots, pas même OpenContact. » — la parade à
+     l'hameçonnage que l'analyse des menaces nomme
      (docs/propositions/R5-un-seul-moi.md) ; une perte qu'on ne voit pas
      venir, dite au moment où les mots sont à l'écran. L'avertissement
      au-dessus perd trois mots dans le même geste (« sans elle, rien ne
-     se récupère » dit le code oublié ET le téléphone perdu).
-     357 avec l'audit de la 7.1.1 (28 octobre 2026) : « Modifier » dit
-     « Visible par qui reçoit la piste. » à la place d'une pastille
-     « partagé » en pixel de 8, illisible et muette sur le PUBLIC — une
-     note perso écrite là part avec la piste, une erreur qu'on ne voit
-     pas venir (§7, question 3). */
-  motsExplication: 357,
+     se récupère » dit le code oublié ET le téléphone perdu). */
+  motsExplication: 344,
   /* ZÉRO, et c'est le seul plafond qui puisse honnêtement valoir zéro :
      un style sans porteur n'a pas de contrepartie à peser — il ne rend
      service à personne, il ne fait qu'attendre d'être lu par erreur.
@@ -662,15 +645,7 @@ const KIT_GARDE = [
      mais `CLAUDE.md` §6 le NOMME dans le catalogue des motifs. Le
      supprimer ferait pointer la référence sur du vide — exactement la
      faute qu'on corrige ailleurs. Il reste au kit, déclaré. */
-  'fs-alert',
-  /* `.tag-priv` et `.tag-share` : les jetons « privé » et « partagé »
-     que le catalogue de `CLAUDE.md` §6 garde pour un ÉTAT court sur une
-     ligne. Aucun écran ne les pose aujourd'hui : « Modifier » portait
-     « partagé » seul, en pixel de 8 — illisible, et sans dire avec qui ;
-     il nomme maintenant son public en toutes lettres (28 octobre 2026).
-     Les retirer laisserait le motif borgne : le jour où une ligne doit
-     dire « privé », elle le trouve au kit. */
-  'tag-priv', 'tag-share'
+  'fs-alert'
 ];
 
 {
@@ -698,14 +673,7 @@ const KIT_GARDE = [
       ids.set(m[1], (ids.get(m[1]) || 0) + 1);
   }
 
-  /* tout ce que l'app et la coque peuvent poser — PAS les scénarios.
-     Un scénario LIT une classe (`querySelector('.nav-n')`), il ne la
-     pose pas : les compter gardait en vie le style d'un contrôle retiré
-     tant qu'un vieux contrôle le cherchait encore. C'est ce qui a laissé
-     dormir le chiffre des onglets et la porte d'« Échanger » à
-     l'ouverture des lots (7.0.0) : partis de l'écran, toujours « posés »
-     par les gardes qui vérifiaient leur absence. Pour la même raison, un
-     `querySelector` de l'app ne pose rien non plus. */
+  /* tout ce que l'app, la coque et les scénarios peuvent poser */
   let code = '';
   for (const d of ['ui', 'engine']) {
     for (const f of readdirSync(path.join(RACINE, d)))
@@ -714,35 +682,24 @@ const KIT_GARDE = [
   /* toutes les pages du dépôt, relevées à la racine, plus l'amorçage */
   for (const f of readdirSync(RACINE))
     if (f.endsWith('.html')) code += '\n' + readFileSync(path.join(RACINE, f), 'utf8');
-  for (const f of ['app.js', 'sw.js'])
+  for (const f of ['app.js', 'sw.js', 'tests.js'])
     { try { code += '\n' + readFileSync(path.join(RACINE, f), 'utf8'); } catch {} }
-  /* les commentaires citent des classes pour dire pourquoi elles sont
-     parties — même piège que les commentaires CSS, ① plus haut. Le
-     `//` d'une adresse (`https://`) n'en est pas un. */
-  code = code.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:'"`\\])\/\/[^\n]*/g, '$1');
+  for (const f of readdirSync(path.join(RACINE, 'tests', 'e2e')))
+    if (f.endsWith('.mjs')) code += '\n' + readFileSync(path.join(RACINE, 'tests', 'e2e', f), 'utf8');
 
   const posees = new Set();
-  /* l'attribut ENTIER, `${…}` compris : `class="${neuf ? 'fil-neuf ' : ''}gr-m ms-m"`
-     s'arrêtait à la première apostrophe et perdait `ms-m` */
-  const ATTR = /class\s*=\s*"((?:[^"$]|\$(?!\{)|\$\{(?:[^{}]|\{[^{}]*\})*\})*)"/g;
-  for (const m of code.matchAll(ATTR))
-    for (const c of m[1].split(/[^\w-]+/)) if (c) posees.add(c);
-  for (const m of code.matchAll(/class\s*=\s*'([^']*)'/g))
-    for (const c of m[1].split(/[^\w-]+/)) if (c) posees.add(c);
+  for (const m of code.matchAll(/class\s*=\s*["'`]([^"'`]*)["'`]/g))
+    for (const c of m[1].split(/[\s${}()?:+'"`]+/)) if (c) posees.add(c);
   for (const m of code.matchAll(/classList\.\w+\(([^)]*)\)/g))
     for (const c of m[1].matchAll(/['"`]([\w- ]+)['"`]/g))
       for (const x of c[1].split(/\s+/)) if (x) posees.add(x);
   for (const m of code.matchAll(/className\s*\+?=\s*["'`]([^"'`]*)["'`]/g))
     for (const c of m[1].split(/\s+/)) if (c) posees.add(c);
+  for (const m of code.matchAll(/\.(?:querySelector|querySelectorAll|closest|matches)\(\s*["'`]([^"'`]+)["'`]/g))
+    for (const c of m[1].matchAll(/\.(-?[_a-zA-Z][\w-]*)/g)) posees.add(c[1]);
   /* l'espace en tête compte — voir ② plus haut */
-  const mots = new Set();
   for (const m of code.matchAll(/['"`]\s*([a-z][\w-]*(?:\s+[a-z][\w-]*)*)\s*['"`]/g))
-    for (const c of m[1].split(/\s+/)) if (/^[a-z][\w-]*$/.test(c)) { posees.add(c); mots.add(c); }
-  /* une famille COMPOSÉE (`tr-${key}`, la clé passée en chaîne) : vivante
-     pour chaque mot que le code écrit entre guillemets — `trancheHTML('late', …)`
-     pose `tr-late` sans que le nom entier apparaisse nulle part */
-  for (const m of code.matchAll(/([a-z][\w]*-)\$\{/g))
-    for (const w of mots) posees.add(m[1] + w);
+    for (const c of m[1].split(/\s+/)) if (/^[a-z][\w-]*$/.test(c)) posees.add(c);
 
   /* LA SONDE PASSE PAR LE MÊME CHEMIN QUE LA MESURE, sinon elle ne
      prouve rien : une première version se contentait de vérifier

@@ -38,7 +38,6 @@ import { ic, openSheet, btn, showUndo, annoncer, bindDeleteGesture } from './dom
 import { suivreCarte, carteDe, carteHTML, alerteHTML, sourcesHTML, lierCarte } from './carte.js';
 import { travailDe } from '../engine/carte.js';
 import { portesAmis } from '../engine/amis.js';
-import { metiersPrets } from './metiers.js';
 
 const PAUSE = 650;                 /* ms sans frappe avant de demander */
 const cache = new Map();           /* url → réponse : on ne redemande pas ce qu'on a déjà */
@@ -90,7 +89,7 @@ export function suivreDecouverte(interp, o){
      (relevé à l'audit du 6/10 : une ville dans le profil suffisait à
      interroger l'annuaire dès l'ouverture de l'onglet, sans un geste). */
   const pose = !!(o.actif || (interp && (interp.etiquettes.length || interp.texte.length)));
-  const aj = pose ? ajoutsProfil(interp, S.profile, sansProfil, metiersPrets())
+  const aj = pose ? ajoutsProfil(interp, S.profile, sansProfil)
     : { interp, lieu: null, metier: null, lieuPropose: null, metierPropose: null };
   const brut = interp;
   interp = aj.interp;

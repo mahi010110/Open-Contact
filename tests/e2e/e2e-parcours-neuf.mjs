@@ -68,10 +68,10 @@ else console.log('Mes pistes vide : état enseignant ✓');
   /* la barre d'onglets est une limite ASSUMÉE (CLAUDE.md §4, tranchée
      par le mainteneur le 21 août 2026) : son libellé s'élide, et son
      nom entier vit dans l'`aria-label`. Elle ne compte donc pas ici. */
-  const EXC = ['bn-l', 'rg-s', 'obj-l', 'pk-s', 'act-do', 'o-sub', 'ri-sub',
+  const EXC = ['bn-l', 'rg-s', 'obj-l', 'pk-s', 'act-do', 'o-sub', 'ri-sub', 'fi-sub',
                'ctc-sub', 'ec-when', 'pk-m', 'mh-t'];
   const durs = []; let sondeVue = null; let ecrans = 0;
-  for (const r of ['aujourdhui', 'pistes', 'reseau', 'moi']){
+  for (const r of ['aujourdhui', 'pistes', 'echanger', 'moi']){
     await N.evaluate(x => { location.hash = '#/' + x; }, r);
     await N.waitForTimeout(500);
     /* LA SONDE SE VÉRIFIE : on plante une boîte trop étroite pour son
@@ -153,7 +153,7 @@ else console.log('Mes pistes vide : état enseignant ✓');
    qu'on met en place. */
 await M.click('.bottomnav a[data-r="aujourdhui"]');
 await M.waitForSelector('#view-aujourdhui:not([hidden])');
-await M.click('#bnAdd');            /* le + ouvre la capture, d'un tap (décision 0008) */
+await M.click('#bnAdd');
 await M.waitForSelector('#cpName');
 /* le bouton dit le GESTE : il enregistre et laisse la feuille ouverte.
    « Suivant » faisait attendre une étape 2 (1er octobre 2026). */
@@ -289,21 +289,6 @@ const listed = await M.evaluate(() =>
 if (!listed) fail('la piste capturée n’apparaît pas dans Mes pistes');
 else console.log('La piste capturée s’affiche dans Mes pistes ✓');
 
-/* sa fiche montre son seul contact OUVERT : « Écrire » et « Appeler »
-   ne se cachent pas derrière un triangle quand il n'y a qu'une personne
-   (28 octobre 2026 — NN/g : pas d'accordéon sur le contenu qu'on vient
-   chercher). Dès deux, ils se replient. */
-await M.locator('#piBody .row-item').filter({ hasText: 'Boulangerie Cyber' }).first().click();
-await M.waitForSelector('.modal-fiche details.ctc');
-const seul = await M.evaluate(() => {
-  const d = document.querySelector('.modal-fiche details.ctc'), w = d && d.querySelector('[data-write]');
-  return { ouvert: !!d?.open, ecrire: !!w && w.checkVisibility() };
-});
-if (!seul.ouvert || !seul.ecrire) fail('le seul contact de la fiche est replié, « Écrire » caché : ' + JSON.stringify(seul));
-else console.log('Fiche : le seul contact s’ouvre, « Écrire » à portée ✓');
-await closeSheets(M);
-await M.waitForSelector('.overlay', { state: 'detached', timeout: 5000 }).catch(() => {});
-
 /* persistance : elle survit à un rechargement (IndexedDB, pas la mémoire) */
 await M.reload({ waitUntil: 'load' });
 await attendre(M, async () => (await import('./ui/state.js')).S.companies.some(c => /Boulangerie Cyber/.test(c.name)),
@@ -393,7 +378,7 @@ console.log('La piste survit au rechargement ✓');
     + 'le profil complété remplit les trous sans toucher à l’accroche ✓');
 
   /* ---------- APRÈS L'ENVOI : la relance conseillée, et l'agenda ----------
-     Joué le 30 septembre 2026 : on fermait « Et ensuite ? »,
+     Joué le 30 septembre 2026 : on fermait « Envoyé ✓ — et ensuite ? »,
      rien n'était prévu, et la piste revenait dans « Par où commencer »
      avec l'icône mail. La relance à 7 jours tient maintenant le pied, et
      la case « Me le rappeler dans mon agenda » fait sonner le téléphone
@@ -405,21 +390,12 @@ console.log('La piste survit au rechargement ✓');
   const pied = await M.evaluate(() =>
     [...document.querySelectorAll('.overlay:last-of-type .modal-f .btn')].map(b => b.textContent.trim()));
   if (String(pied) !== 'Dans 7 jours') suite.push('le pied ne propose pas la relance conseillée : ' + JSON.stringify(pied));
-  /* la puce du même jour ne double pas le pied : deux boutons pour un
-     seul geste, c'est un choix pour rien (28 octobre 2026) */
-  const puces = await M.evaluate(() => [...document.querySelectorAll('.overlay:last-of-type .dchip-d b')].map(b => b.textContent.trim()));
-  if (String(pied) === 'Dans 7 jours' && puces.includes('+7 jours'))
-    suite.push('la puce « +7 jours » redit le pied « Dans 7 jours » : ' + JSON.stringify(puces));
   await M.check('#naAgenda');
-  /* sans la relance conseillée, on prend la date précise : le reste se
-     mesure quand même, et la faute du pied reste NOMMÉE au lieu de finir
-     en délai dépassé (une mutation l'a montré) */
+  /* sans la relance conseillée, on prend la puce « +7 jours » : le reste
+     se mesure quand même, et la faute du pied reste NOMMÉE au lieu de
+     finir en délai dépassé (une mutation l'a montré) */
   if (String(pied) === 'Dans 7 jours') await M.locator('.overlay:last-of-type .modal-f .btn-primary').click();
-  else {
-    const j = new Date(); j.setDate(j.getDate() + 7);
-    await M.fill('#naDate', j.getFullYear() + '-' + String(j.getMonth() + 1).padStart(2, '0') + '-' + String(j.getDate()).padStart(2, '0'));
-    await M.click('#naOk');
-  }
+  else await M.locator('.overlay:last-of-type .dchip-d').filter({ hasText: '+7 jours' }).click();
   await M.waitForTimeout(400);
   const r = await M.evaluate(async () => {
     const { S } = await import('./ui/state.js');
@@ -571,10 +547,6 @@ const ecrire = await D.evaluate(async () => {
     return {
       objet: document.getElementById('mSubj').value,
       corps: corps.value,
-      /* le curseur s'ouvre sur ce qu'il reste à écrire : le crochet,
-         sélectionné (28 octobre 2026) */
-      focus: document.activeElement?.id || '',
-      choisi: corps.value.slice(corps.selectionStart, corps.selectionEnd),
       savoir: sav ? sav.innerText.replace(/\s+/g, ' ').trim() : '',
       /* la matière doit être AU-DESSUS du champ où l'on écrit, et les
          deux visibles ensemble : lire ailleurs et retenir, c'est le
@@ -610,11 +582,6 @@ else {
     fail(`objet de ${ecrire.riche.objet.length} car. — hors de la fenêtre 40-60 qui s’affiche en entier au mobile`);
   else console.log(`écrire : accroche en 1ᵉʳ bloc, ${mots} mots, objet ${ecrire.riche.objet.length} car. ✓`);
 }
-/* ③ bis le curseur s'ouvre sur le crochet, sélectionné : il suffit de
-   taper. Il s'ouvrait dans l'objet, déjà rempli. */
-if (ecrire.riche.focus !== 'mBody' || !/^\[[^\]]+\]$/.test(ecrire.riche.choisi))
-  fail(`écrire : le curseur ne s'ouvre pas sur l'accroche à écrire — focus « ${ecrire.riche.focus} », sélection « ${ecrire.riche.choisi.slice(0, 40)} »`);
-else console.log('écrire : le curseur s’ouvre sur le crochet de l’accroche, sélectionné ✓');
 /* ④ la matière est là, au-dessus du champ, et seulement quand elle existe */
 if (!/SOC managé/.test(ecrire.riche.savoir) || !/Fortinet/.test(ecrire.riche.savoir)
     || !/forum/.test(ecrire.riche.savoir))

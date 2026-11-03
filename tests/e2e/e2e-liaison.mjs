@@ -8,7 +8,7 @@
    · pannes DITES : aucun relais joignable → l'écran le dit, sur la sync
      ET sur le groupe — plus jamais « en liaison » dans le vide. */
 import net from 'net';
-import { chromium, chromiumPath, SHOTS, serveRepo, attendre, ouvrirReglages, ROOT, ouvrirDonner, ouvrirRecevoir } from './outils.mjs';
+import { chromium, chromiumPath, SHOTS, serveRepo, attendre, ouvrirReglages, ROOT } from './outils.mjs';
 import { startLocalRelay } from './relais-local.mjs';
 
 const { server, base } = await serveRepo();
@@ -150,7 +150,7 @@ await C.reload({ waitUntil: 'load' });
 await attendre(C, async () => (await import('./ui/state.js')).S.companies.length === 25);
 
 for (const [p, nav] of [[C, '.topnav'], [D, '.bottomnav']]){
-  await p.click(nav + ' a[data-r="reseau"]');
+  await p.click(nav + ' a[data-r="echanger"]');
   /* le partage EN DIRECT est masqué à l'écran depuis les groupes (lot 5,
      ui/perimetre.js) : il reste dans le code, et on l'ouvre par lui */
   await p.evaluate(async () => (await import('./ui/direct.js')).openPromo());
@@ -280,7 +280,9 @@ await D.evaluate(async () => {
   S.companies.push(normalizeCompany({ id: 'rdv-extra', name: 'Rendez-vous SARL', city: 'Arras', status: 'todo' }));
   saveData();
 });
-await ouvrirDonner(D);
+await D.click('.bottomnav a[data-r="echanger"]');
+await D.waitForSelector('#ecGive');
+await D.click('#ecGive');
 await D.waitForSelector('#dnQR');
 await D.click('#dnQR');
 await D.waitForSelector('.sy-phrase span', { timeout: 20000 });   /* écran rendez-vous */
@@ -296,7 +298,11 @@ console.log('code de rendez-vous affiché :', code);
    Mesuré à 0, 10, 25, 45 et 75 s avant d'écrire cette ligne : les cinq
    passent. On en fige un, celui qui ressemble à la vie. */
 await D.waitForTimeout(30000);
-await ouvrirRecevoir(C, 'qr');
+await C.click('.topnav a[data-r="echanger"]');
+await C.waitForSelector('#ecRecv');
+await C.click('#ecRecv');
+await C.waitForSelector('#rcScan');
+await C.click('#rcScan');
 await C.waitForSelector('#rcCode');       /* pas de caméra ici : le code se tape */
 await C.fill('#rcCode', code);
 await C.waitForSelector('#rcCodeGo:not([hidden])');
@@ -569,7 +575,8 @@ console.log('sync : « Pas de connexion » affiché sans jargon, Réessayer pré
   }, portS);
   await seul.reload({ waitUntil: 'load' });
   await seul.waitForSelector('#view-aujourdhui:not([hidden])');
-  await ouvrirDonner(seul);
+  await seul.click('.bottomnav a[data-r="echanger"]');
+  await seul.waitForSelector('#ecGive'); await seul.click('#ecGive');
   await seul.waitForSelector('#dnQR'); await seul.click('#dnQR');
   await seul.waitForSelector('.sy-phrase span', { timeout: 30000 });
 
@@ -643,7 +650,7 @@ await E.evaluate(async () => {
   let s; let n = 0;
   while ((s = topSheet()) && n++ < 4){ s.close(null, true); await new Promise(r => setTimeout(r, 150)); }
 });
-await E.click('.bottomnav a[data-r="reseau"]');
+await E.click('.bottomnav a[data-r="echanger"]');
 /* le partage EN DIRECT est masqué à l'écran depuis les groupes (lot 5,
    ui/perimetre.js) : il reste dans le code, et on l'ouvre par lui */
 await E.evaluate(async () => (await import('./ui/direct.js')).openPromo());
@@ -812,11 +819,14 @@ const rdvSansDirect = async (url, prefixe) => {
   await semer(G, 26);
   await semer(P, 0);
   for (const p of [G, P]){ await p.reload({ waitUntil: 'load' }); await p.waitForSelector('#view-aujourdhui:not([hidden])'); }
-  await ouvrirDonner(G);
+  await G.click('.bottomnav a[data-r="echanger"]');
+  await G.waitForSelector('#ecGive'); await G.click('#ecGive');
   await G.waitForSelector('#dnQR'); await G.click('#dnQR');
   await G.waitForSelector('.sy-phrase span', { timeout: 25000 });
   const code = (await G.textContent('.sy-phrase span')).trim();
-  await ouvrirRecevoir(P, 'qr');
+  await P.click('.bottomnav a[data-r="echanger"]');
+  await P.waitForSelector('#ecRecv'); await P.click('#ecRecv');
+  await P.waitForSelector('#rcScan'); await P.click('#rcScan');
   await P.waitForSelector('#rcCode');
   await P.fill('#rcCode', code);
   await P.waitForSelector('#rcCodeGo:not([hidden])');

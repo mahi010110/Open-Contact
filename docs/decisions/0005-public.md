@@ -7,6 +7,8 @@ drapeau, mais **l'ouverture à tous** attend qu'un testeur d'une autre
 formation l'ait jouée (`propositions/R9-tous-les-metiers.md`). Jusque-là,
 l'app reste pensée pour les étudiants IT et cyber (`CLAUDE.md` §1).
 
+**Remplacée en partie par [0011](0011-retour-a-la-6-70.md)**, 3 novembre 2026 : « tous les métiers » quitte l'écran avec l'interface du recadrage ; l'informatique d'abord tient toujours.
+
 ## Contexte
 
 Les tables de l'app — métiers, technos, codes d'activité, formations —

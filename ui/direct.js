@@ -16,7 +16,7 @@ import { sharePayload, linkWrap, linkParse } from '../engine/exchange.js';
 import { PROMO_KEY, RELAYS_KEY, TURN_KEY, kvGet, kvSet } from '../engine/storage.js';
 import { parseTurn, turnText, PORTAGE_APRES_MS, PORTAGE_RELANCE_MS, PORTAGE_PAS_MS } from '../engine/transport.js';
 import { decouper, recolte, rassembler } from '../engine/portage.js';
-import { S, isClosed, logJ } from './state.js';
+import { S, bus, isClosed, logJ } from './state.js';
 import { openSheet, confirmSheet, toast, btn, ic, softReorder, collerEnHaut, clavier } from './dom.js';
 import { mergePreviewInto } from './recevoir.js';
 import { makeQrSvg, startScan } from './qr.js';
@@ -485,7 +485,7 @@ export function openAppareils(){
     sh.body.innerHTML =
       /* Pas de phrase d'accueil. « Une phrase de liaison, et tes
          appareils restent à jour » décrivait les deux boutons posés
-         juste dessous — « Créer une phrase », « Entrer une phrase ».
+         juste dessous — « Relier un autre appareil », « Relier cet appareil ».
          Celle qui reste prévient d'une conséquence invisible : changer
          de phrase décroche silencieusement les autres appareils. */
       `${changing

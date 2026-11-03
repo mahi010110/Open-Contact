@@ -14,9 +14,8 @@ import { fmtSize, todayISO, esc } from '../engine/utils.js';
 import { mergeTombs } from '../engine/sync.js';
 import { docGet, docPut, effacerCetAppareil } from '../engine/storage.js';
 import { sansFilet, FILET_MIN_PISTES } from '../engine/assist.js';
-import { DRAPEAUX, enTest } from '../engine/drapeaux.js';
 import { listDocs, docKind, docTitle, pickPdf, removeDoc } from './docs.js';
-import { S, bus, saveData, saveProfile, saveOrphans, saveTombs, logJ, choisirTheme, choisirPreversion } from './state.js';
+import { S, bus, saveData, saveProfile, saveOrphans, saveTombs, logJ, choisirTheme } from './state.js';
 import { $, ic, toast, btn, openSheet, confirmSheet, showUndo, bindDeleteGesture,
          lockRowHTML, bindLockRow, choixHTML } from './dom.js';
 import { openProfil, openTemplates } from './profil.js';
@@ -31,10 +30,7 @@ import { proposerInstallation, installer } from './installer.js';
 import { enregistrerFichier, partagePossible } from './fichier.js';
 import { mergePreviewInto, messageLecture } from './recevoir.js';
 import { DIST_PAGE } from '../engine/distribution.js';
-import { aideRowHTML, ouvrirAide } from './aide.js';
-import { visageHTML } from './visage.js';
 import { chargerMoi, etatPhrase, ouvrirPhrase, depotAt } from './moi-phrase.js';
-import { clavierActif, lettresCoupees, ouvrirTouches } from './clavier.js';
 
 /* ---------- garder une copie (.oc complet) ----------
    Au doigt par la feuille de partage, au poste en téléchargement :
@@ -308,58 +304,11 @@ const rgRow = (id, nom, etat, last, dep) =>
    pas : une seule place, la même sur les deux appareils. */
 const MOT_THEME = { auto: 'automatique', light: 'clair', dark: 'sombre' };
 
-/* LES RÉGLAGES SE RANGENT (le mainteneur, 28 octobre 2026 : « range les
-   paramètres, ça permettra une meilleure évolutivité »). Neuf lignes à
-   la file, rangées par l'ordre de leur arrivée : la protection à côté du
-   thème, l'aide entre deux réglages. Quatre groupes nommés, comme les
-   catégories des réglages d'Android et les groupes d'iOS — chaque ligne
-   neuve a une place évidente, et un groupe vide ne se montre pas :
-   · Mes données — ce qui garde tes pistes : la protection, tes
-     appareils, l'app installée ;
-   · Réseau — ce qui passe par toi (le nom de l'onglet) ;
-   · Préférences — comment l'app se présente et se commande ;
-   · Aide — l'aide, et le chemin du retour.
-   TOUT CE QUI SE RÈGLE VIT ICI (décision 0009, le mainteneur, 29 octobre
-   2026 : « mettre tous les paramètres dans les réglages »). « Ma copie »
-   et la phrase de secours vivaient dans « Moi », à côté du profil : la
-   copie de ses données se cherchait à deux endroits selon qu'on voulait
-   la faire à la main ou la laisser partir seule. Elles ouvrent les
-   Réglages, en tête — c'est ce qui garde tout le reste. « Moi » garde
-   qui je suis et ce que j'envoie. */
-function copieHTML(){
-  /* rien à copier = groupe absent */
-  if (!(S.companies.length || S.profile.name)) return '';
-  /* L'état de la copie, seulement quand elle manque VRAIMENT (`sansFilet`,
-     engine/assist.js) : au moins 5 pistes, ni copie ni autre appareil
-     depuis 30 jours. Il dit le fait en mots simples ; le bouton qui le
-     règle est juste dessous. Le bord ambre revient avec lui — §6 le
-     réserve à un état qui peut tout coûter.
-     Le verbe dit ce qui se passe : au doigt la copie passe par la
-     feuille de partage du téléphone (Fichiers, Drive, un mail à soi),
-     donc « Enregistrer » ; au poste c'est un téléchargement.
-     « privé inclus » : ce fichier emporte le suivi privé, et ça se sait
-     avant de l'envoyer à quelqu'un. */
-  const filet = etatFilet();
-  return `<div class="rg-copie${filet ? ' fs-alert' : ''}" id="moiCopie">
-     <h3 class="rg-sec">Ma copie <span class="lg-note">privé inclus</span></h3>
-     ${filet ? `<p class="hint warn copie-etat" id="moiFilet">${ic('square-alert', 'ic-14')} Tes ${S.companies.length} pistes sont enregistrées seulement sur cet appareil.</p>` : ''}
-     ${lockRowHTML({ id: 'moiBk', action: partagePossible() ? 'Enregistrer' : 'Télécharger' })}
-     ${/* LA PHRASE DE SECOURS (lot R5) : l'autre façon d'avoir une copie,
-          celle qui part toute seule. Une rangée qui dit son état, comme
-          ses voisines — elle ouvre sa feuille. */''}
-     <button class="rg-row rg-last mp-row" id="moiPhrase">
-       <span class="rg-n">Phrase de secours</span>
-       <span class="rg-s" id="moiPhraseSt">${etatPhrase()}</span>
-       ${ic('chevron-right', 'ic-14')}
-     </button>
-   </div>`;
-}
 function reglagesRowsHTML(){
   const prot = isProtected();
   /* les lignes se composent avant de s'écrire : le recentrage en retire
-     (CLAUDE.md §0), et c'est la DERNIÈRE présente de chaque groupe qui
-     porte `rg-last` — sinon masquer l’ordinateur laisserait un trait en
-     bas de liste */
+     (CLAUDE.md §0), et c'est la DERNIÈRE présente qui porte `rg-last` —
+     sinon masquer l’ordinateur laisserait un trait en bas de liste */
   const rows = [
     ['moiVerrou', 'Protection', verrouLabel(), false],
     ['moiSync', 'Mes appareils', syncLabel(), false]
@@ -403,29 +352,13 @@ function reglagesRowsHTML(){
   /* LE DROIT DE NE PLUS SERVIR DE CHEMIN (docs/reseau.md, décision 7),
      sans quitter personne. Seulement quand on a des amis : sans eux,
      rien ne passe par toi. */
-  const reseau = [];
   if ((S.profile.amis || []).length)
-    reseau.push(['moiRelais', 'Demandes de mes amis', S.profile.flags.sansRelais ? 'arrêtées' : 'transmises', false]);
-  const prefs = [['moiTheme', 'Thème', MOT_THEME[S.themeChoix] || 'automatique', false]];
-  /* LES TOUCHES D'UNE LETTRE (lot R8, WCAG 2.1.4) : au poste seulement —
-     au pouce il n'y a pas de clavier, la rangée ne réglerait rien */
-  if (clavierActif())
-    prefs.push(['moiTouches', 'Touches d’une lettre', lettresCoupees() ? 'éteintes' : 'allumées', false]);
-  /* LA PRÉVERSION (R0, docs/decisions/0004) : les lots du recadrage en
-     test s'allument sur CET appareil, chez le mainteneur et ses
-     testeurs. Seulement quand un lot est en test : une bascule qui ne
-     bascule rien n'a pas sa place (§6, « Le minimum, au bon moment »). */
-  if (enTest(DRAPEAUX).length)
-    prefs.push(['moiPreversion', 'Préversion', S.preversion ? 'allumée' : 'éteinte', false]);
-  /* `moiAidePage`, pas `moiAide` : c'est l'identifiant de « Je peux aider »
-     (ui/aide.js). Au poste les deux vivent dans le même écran — le tap sur
-     « Je peux aider » ouvrait aussi la page d'aide, et « Aide et
-     confidentialité » ne faisait rien (audit du 28 octobre 2026) */
-  const aide = [['moiAidePage', 'Aide et confidentialité', '', false], ['moiDiag', 'Signaler un problème', '', false]];
-  const groupe = (titre, l) => !l.length ? '' : `<h3 class="rg-sec">${titre}</h3>` +
-    l.map(([id, nom, etat, dep], i) => rgRow(id, nom, etat, i === l.length - 1, dep)).join('');
+    rows.push(['moiRelais', 'Demandes de mes amis', S.profile.flags.sansRelais ? 'arrêtées' : 'transmises', false]);
+  rows.push(['moiTheme', 'Thème', MOT_THEME[S.themeChoix] || 'automatique', false]);
+  rows.push(['moiAide', 'Aide et confidentialité', '', false]);
+  rows.push(['moiDiag', 'Signaler un problème', '', false]);
   return (
-    copieHTML() + groupe('Mes données', rows) + groupe('Réseau', reseau) + groupe('Préférences', prefs) + groupe('Aide', aide) +
+    rows.map(([id, nom, etat, dep], i) => rgRow(id, nom, etat, i === rows.length - 1, dep)).join('') +
     /* DEUX GESTES QUI CHANGENT TOUT NE SONT PAS DES LIENS. Ils vivaient en
        mots soulignés sous la liste : la forme d'un lien, qui promet
        d'emmener ailleurs, pour les deux gestes les plus lourds de l'écran
@@ -485,13 +418,6 @@ function bindSyncLive(root){
 
 function bindReglages(box){
   const q = s => box.querySelector(s);
-  /* le mot de passe est facultatif : au repos il ne pèse qu'un bouton
-     compact au bout de la ligne (#8 — l'avancé se replie derrière un
-     signe, jamais une phrase). Tapé, il s'étire en champ ; re-tapé, il
-     se referme et l'oublie. Un seul contrôle, deux états (#19-4). */
-  const bk = q('#moiBk') ? bindLockRow(box, 'moiBk') : null;
-  q('#moiBkDo')?.addEventListener('click', () => downloadBackup(bk.value()));
-  q('#moiPhrase')?.addEventListener('click', ouvrirPhrase);
   q('#moiVerrou').addEventListener('click', () =>
     isProtected() ? openManageSheet() : openProtectFlow());
   q('#moiSync').addEventListener('click', openAppareils);
@@ -515,7 +441,7 @@ function bindReglages(box){
     const st = q('#moiCompSt');
     if (a && st) st.textContent = 'associé — ' + (a.nom || 'ton ordinateur');
   }).catch(() => {});
-  q('#moiAidePage').addEventListener('click', () =>
+  q('#moiAide').addEventListener('click', () =>
     window.open('aide.html', '_blank', 'noopener'));
   q('#moiDiag').addEventListener('click', openDiagnostic);
   q('#moiRelais')?.addEventListener('click', openRelais);
@@ -527,8 +453,6 @@ function bindReglages(box){
   rf.addEventListener('change', () => { if (rf.files[0]) restoreFile(rf.files[0]); });
   q('#moiInstall')?.addEventListener('click', installer);
   q('#moiTheme')?.addEventListener('click', openTheme);
-  q('#moiPreversion')?.addEventListener('click', openPreversion);
-  q('#moiTouches')?.addEventListener('click', ouvrirTouches);
   q('#moiEfface')?.addEventListener('click', effacerIci);
 }
 /* Quand un ami cherche quelqu'un et que tu ne connais personne, ton
@@ -547,27 +471,6 @@ export function openTheme(){
       sh.body.querySelector(`[data-theme-choix="${S.themeChoix}"]`)?.focus({ preventScroll: true });
       const st = document.querySelector('#moiTheme .rg-s');
       if (st) st.textContent = MOT_THEME[S.themeChoix];
-    }));
-  };
-  dessiner();
-}
-
-/* deux rangées, la forme du Thème. La phrase reste parce qu'elle prévient
-   de ce qu'on ne peut pas voir venir (§7) : ce qui est en test n'est pas
-   fini, et ça ne vaut que pour CET appareil — pas tes autres appareils,
-   pas ton groupe. */
-function openPreversion(){
-  const sh = openSheet({ title: 'Préversion', icon: 'flag' });
-  const dessiner = () => {
-    const lots = enTest(DRAPEAUX).map(d => d.nom).join(', ');
-    sh.body.innerHTML = choixHTML([['non', 'Éteinte'], ['oui', 'Allumée']], S.preversion ? 'oui' : 'non', { attr: 'data-preversion' }) +
-      `<p class="hint">Sur cet appareil seulement : ${esc(lots)}.</p>`;
-    sh.body.querySelectorAll('[data-preversion]').forEach(b => b.addEventListener('click', async () => {
-      await choisirPreversion(b.dataset.preversion === 'oui');
-      dessiner();
-      sh.body.querySelector(`[data-preversion="${S.preversion ? 'oui' : 'non'}"]`)?.focus({ preventScroll: true });
-      const st = document.querySelector('#moiPreversion .rg-s');
-      if (st) st.textContent = S.preversion ? 'allumée' : 'éteinte';
     }));
   };
   dessiner();
@@ -594,26 +497,11 @@ function openRelais(){
 /* installée pendant qu'on regarde : la ligne part d'elle-même */
 document.addEventListener('oc:installee', () => { if (S.route === 'moi') renderMoi(); });
 
-/* MON VISAGE (28 octobre 2026 : « pouvoir dessiner son propre dessin »)
-   — une porte sous le profil, comme « Je peux aider » : ce que je donne
-   à mes amis vit à côté de qui je suis. Son état, c'est le visage même.
-   Elle n'existe que si quelqu'un peut le voir — un ami, un groupe, un QR
-   déjà donné (§6, « le minimum, au bon moment »). */
-function visageRowHTML(){
-  const p = S.profile;
-  if (!(p.amiId || (p.amis || []).length || (p.groupes || []).length)) return '';
-  return `<button class="rg-row rg-last moi-rg moi-visage" id="moiVisage">
-     <span class="rg-n">Mon visage</span>
-     <span class="rg-s">${visageHTML(p.amiId, 'vz-m')}</span>
-     ${ic('chevron-right', 'ic-14')}
-   </button>`;
-}
-
 /* mobile : Réglages est le 2ᵉ écran de « Moi » (la porte #20) — un vrai
    écran re-rendu par bus.refresh, jamais une feuille qui gèlerait ses états */
 let reglagesOpen = false;
 const mqWideMoi = matchMedia('(min-width:901px)');
-mqWideMoi.addEventListener('change', () => { if (S.profile && S.route === 'moi') renderMoi(); });
+mqWideMoi.addEventListener('change', () => { if (S.route === 'moi') renderMoi(); });
 
 /* Revenir de Réglages : le chevron le fait, mais il vit dans le coin le
    plus dur à atteindre au pouce. Deux chemins s'y ajoutent — jamais ne le
@@ -672,6 +560,7 @@ export function renderMoi(){
   const p = S.profile;
   const manques = manquesProfil(p);
   const pReady = p.name && !manques.length;
+  const showBackup = !!(S.companies.length || p.name);   /* rien à copier = carte absente */
 
   /* « Moi » est une FEUILLE DE PROPRIÉTÉS, pas une pile de cartes.
      Trois règles d'origine, appliquées telles quelles :
@@ -682,8 +571,7 @@ export function renderMoi(){
        group doesn't contain all controls on the surface » → quatre cartes
        deviennent deux cadres, rangés par usage et non par objet ;
      · « buttons that apply only to a page go on the page » → « Télécharger »
-       reste DANS son groupe (« Ma copie », en tête des Réglages depuis la
-       décision 0009), il ne descend pas en pied de page. */
+       reste DANS son groupe, il ne descend pas en pied de page. */
   const objet =
     /* Ce qui est rempli s'AFFICHE, tout de suite. L'écran exigeait le nom
        ET l'email pour montrer quoi que ce soit : on tapait son nom, et
@@ -738,16 +626,44 @@ export function renderMoi(){
        <div id="moiDocs"></div>
      </fieldset>`;
 
+  /* « privé inclus » reste — c'est la seule chose que la carte ne peut
+     PAS dire autrement : ce fichier emporte le suivi privé, et ça se
+     sait avant de l'envoyer à quelqu'un. Il monte simplement DANS la
+     légende, où il ne coûte plus sa propre ligne : un cadre nommé
+     « Ma copie » a de la place à droite de son nom, et l'étiquette y
+     qualifie ce qu'elle nomme au lieu de flotter au-dessus du geste. */
+  /* L'état de la copie revient, mais seulement quand elle manque VRAIMENT
+     (`sansFilet`, engine/assist.js) : au moins 5 pistes, ni copie ni autre
+     appareil depuis 30 jours. Il dit le fait en mots simples ; le bouton
+     qui le règle est juste dessous. Le bord ambre du cadre revient avec
+     lui — §6 le réserve à un état qui peut tout coûter.
+     Le verbe dit ce qui se passe : au doigt la copie passe par la
+     feuille de partage du téléphone (Fichiers, Drive, un mail à soi),
+     donc « Enregistrer » ; au poste c'est un téléchargement.
+     Pas d'image à la place du fait (§7) : « à l'abri », « filet » ont
+     été lus sur le téléphone du mainteneur et retirés. */
+  const filet = showBackup && etatFilet();
+  const copie = showBackup ? `
+     <fieldset class="fset${filet ? ' fs-alert' : ''}" id="moiCopie">
+       <legend>Ma copie <span class="lg-note">privé inclus</span></legend>
+       ${filet ? `<p class="hint warn copie-etat" id="moiFilet">${ic('square-alert', 'ic-14')} Tes ${S.companies.length} pistes sont enregistrées seulement sur cet appareil.</p>` : ''}
+       ${lockRowHTML({ id: 'moiBk', action: partagePossible() ? 'Enregistrer' : 'Télécharger' })}
+       ${/* LA PHRASE DE SECOURS (lot R5) : l'autre façon d'avoir une
+            copie, celle qui part toute seule. Une rangée qui dit son
+            état, comme celles des Réglages — elle ouvre sa feuille. */''}
+       <button class="rg-row rg-last mp-row" id="moiPhrase">
+         <span class="rg-n">Phrase de secours</span>
+         <span class="rg-s" id="moiPhraseSt">${etatPhrase()}</span>
+         ${ic('chevron-right', 'ic-14')}
+       </button>
+     </fieldset>` : '';
+
   /* « General first, Advanced last » : les réglages ferment la page.
      Au pouce c'est une porte ; à la souris, la 2ᵉ colonne les déplie. */
   const reglages = `<fieldset class="fset">
        <legend>Réglages</legend>
        ${reglagesRowsHTML()}
      </fieldset>`;
-
-  /* JE PEUX AIDER (lot R7) : une porte sous le profil, comme celle des
-     Réglages — ce que je donne à mes amis vit à côté de qui je suis */
-  const aide = aideRowHTML() + visageRowHTML();
 
   root.innerHTML =
     `<div class="page-inner${wide ? ' page-wide' : ''}">
@@ -759,13 +675,11 @@ export function renderMoi(){
             cadenas ne sert plus qu'à ce qui verrouille. */''}
        <div class="td-head"><h1>Moi</h1></div>
        ${wide
-         ? `<div class="moi-cols"><div>${objet}${aide}${envoi}</div><div>${reglages}</div></div>`
-         : objet + aide + envoi +
-           /* la copie vit dans Réglages : quand elle manque VRAIMENT, la
-              porte le dit d'un mot, dans le langage d'urgence de l'app */
+         ? `<div class="moi-cols"><div>${objet}${envoi}${copie}</div><div>${reglages}</div></div>`
+         : objet + envoi + copie +
            `<button class="rg-row rg-last moi-rg" id="moiReglages">
               <span class="rg-n">Réglages</span>
-              <span class="rg-s">${etatFilet() ? '<span class="mark mark-late" id="moiFilet">sans copie</span>' : verrouLabel()}</span>
+              <span class="rg-s">${verrouLabel()}</span>
               ${ic('chevron-right', 'ic-14')}
             </button>`}
        ${/* La barre de statut qui portait la version est masquée au pouce :
@@ -777,8 +691,13 @@ export function renderMoi(){
 
   root.querySelector('#moiProfil').addEventListener('click', () => openProfil());
   root.querySelector('#moiTpl').addEventListener('click', openTemplates);
-  root.querySelector('#moiAide')?.addEventListener('click', ouvrirAide);
-  root.querySelector('#moiVisage')?.addEventListener('click', () => import('./mon-visage.js').then(m => m.ouvrirMonVisage()));
+  /* le mot de passe est facultatif : au repos il ne pèse qu'un bouton
+     compact au bout de la ligne (#8 — l'avancé se replie derrière un
+     signe, jamais une phrase). Tapé, il s'étire en champ ; re-tapé, il
+     se referme et l'oublie. Un seul contrôle, deux états (#19-4). */
+  const bk = root.querySelector('#moiBk') ? bindLockRow(root, 'moiBk') : null;
+  root.querySelector('#moiBkDo')?.addEventListener('click', () => downloadBackup(bk.value()));
+  root.querySelector('#moiPhrase')?.addEventListener('click', ouvrirPhrase);
   if (wide) bindReglages(root);
   else root.querySelector('#moiReglages').addEventListener('click', () => {
     reglagesOpen = true;

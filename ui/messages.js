@@ -12,10 +12,10 @@
    prend une place qui existe ») :
    · la fiche d'un ami porte « Écrire à Karim » : sur une fiche de
      personne, écrire est LE geste (Contacts d'iOS, WhatsApp) ;
-   · la boîte « Échanger » la range avec les groupes, la plus récente
-     en haut, et l'onglet compte ce qui n'est pas lu (13 octobre 2026 :
-     « comme les messageries traditionnelles ») ; au poste, elle se pose
-     à droite de la liste.
+   · sa ligne dans « Amis » compte ce qui n'est pas lu, en accent, à la
+     place du chiffre d'un groupe dans « Échanger » ;
+   · « Aujourd'hui » le dit en tête, dans « Tes amis » : quelqu'un
+     attend une réponse.
    La feuille a le dessin du fil d'un groupe — les miens à droite en
    lavis d'accent, l'heure, et au pied le champ et la flèche. En direct
    tant qu'elle est ouverte ; fermée, la relève de la boîte prend le
@@ -26,13 +26,10 @@ import { MESSAGES_KEY, kvGet, kvSet } from '../engine/storage.js';
 import { prenomAmi } from '../engine/amis.js';
 import { MESSAGE_MAX, conversationsVides, normaliserConversations, filAvec, ajouterMessage, nonLus,
          dernier, marquerLu } from '../engine/messages.js';
-import { S, bus, apresImage } from './state.js';
-import { openSheet, ic, champGrandit } from './dom.js';
-import { heureDe, memeJour } from './dates.js';
+import { S, bus } from './state.js';
+import { openSheet, btn, ic, champGrandit, garderLeBas } from './dom.js';
+import { quandMessage } from './dates.js';
 import { preparerMessage, posterMessage, enAttente, ecouterBoite, relever, echecEnvoi } from './reseau.js';
-import { cleFil } from '../engine/conversations.js';
-import { visageHTML } from './visage.js';
-import { ligneNouveaux, suivreNouveaux, ligneJour, texteHTML, debutFenetre, ligneAvant, ouvrirAvant, boutonEnvoi } from './fil.js';
 
 let conv = conversationsVides();
 let charge = null;
@@ -47,25 +44,15 @@ export function chargerMessages(){
 }
 const sauver = () => kvSet(MESSAGES_KEY, JSON.stringify(conv)).catch(() => {});
 
-/* LA BOÎTE « Échanger » (ui/conversations.js) : chaque conversation
-   résumée comme une ligne de messagerie. Un ami à qui l'on n'a jamais
-   écrit n'y est pas — il est dans « Amis », et « Écrire à un ami »
-   l'ouvre. */
-export function resumeConversations(){
-  return (S.profile.amis || []).filter(a => filAvec(conv, a.id).length).map(a => {
-    const d = dernier(conv, a.id);
-    return { cle: cleFil('ami', a.id), sorte: 'ami', id: a.id, nom: a.nom, at: d.at,
-             apercu: (d.moi ? 'Toi : ' : '') + d.texte.replace(/\s+/g, ' '), n: nonLus(conv, a.id) };
-  });
-}
-export const aUneConversation = id => filAvec(conv, id).length > 0;
-/* l'instant de MON dernier message à cet ami (0 sinon) — le merci du lot
-   R7 se tait dès qu'on lui a écrit depuis que la piste a répondu */
-export const dernierEnvoiA = id => filAvec(conv, id).filter(m => m.moi).reduce((t, m) => Math.max(t, m.at || 0), 0);
-export function marquerAmiLu(id){
-  conv = marquerLu(conv, id);
-  sauver();
-  bus.refresh();
+/* ce que la liste des amis et « Aujourd'hui » lisent */
+export const nonLusDe = id => nonLus(conv, id);
+export function lignesMessages(){
+  return (S.profile.amis || []).map(a => ({ a, n: nonLus(conv, a.id) })).filter(x => x.n)
+    .sort((x, y) => dernier(conv, y.a.id).at - dernier(conv, x.a.id).at)
+    .map(({ a, n }) => {
+      const raison = n > 1 ? `t’a écrit ${n} fois` : 't’a écrit', qui = dernier(conv, a.id).texte.replace(/\s+/g, ' ');
+      return { sorte: 'message', id: a.id, nom: a.nom, raison, qui, aria: `${prenomAmi(a)} ${raison} : ${qui}` };
+    });
 }
 
 /* reçu par la boîte (ui/reseau.js) — la preuve est déjà vérifiée */
@@ -84,59 +71,42 @@ export async function ajouterRecu(amiId, l){
    elle revient quand l'autre répond, ou après cinq minutes de silence.
    « pas encore parti » se dit toujours : c'est un état, pas une heure. */
 const SALVE = 5 * 60000;
-function bulleHTML(m, avant, neuf){
+function bulleHTML(m, avant){
   const attente = m.moi && enAttente(m.id);
-  /* le jour est dit au-dessus (ligne de jour) : la salve s'arrête à minuit */
-  const suite = !!avant && avant.moi === m.moi && m.at - avant.at < SALVE && memeJour(avant.at, m.at);
-  const tete = attente ? `<span class="gr-qui">${suite ? '' : `<time>${esc(heureDe(m.at))}</time> · `}${ic('clock', 'ic-14')} pas encore parti</span>`
-    : suite ? '' : `<span class="gr-qui"><time>${esc(heureDe(m.at))}</time></span>`;
-  /* les liens se tapent, sans aperçu (ui/fil.js) */
-  return `<li class="${neuf ? 'fil-neuf ' : ''}gr-m ms-m${m.moi ? ' gr-moi' : ''}${suite ? ' ms-suite' : ''}">${tete}<p>${texteHTML(m.texte)}</p></li>`;
+  const suite = !!avant && avant.moi === m.moi && m.at - avant.at < SALVE;
+  const tete = attente ? `<span class="gr-qui">${suite ? '' : `<time>${esc(quandMessage(m.at))}</time> · `}${ic('clock', 'ic-14')} pas encore parti</span>`
+    : suite ? '' : `<span class="gr-qui"><time>${esc(quandMessage(m.at))}</time></span>`;
+  return `<li class="gr-m ms-m${m.moi ? ' gr-moi' : ''}${suite ? ' ms-suite' : ''}">${tete}<p>${esc(m.texte)}</p></li>`;
 }
 
 /* LA CONVERSATION. La barre porte le nom de l'ami, et lui seul : c'est
    celle d'une messagerie (§4). */
-export async function ouvrirConversation(a, apres, o = {}){
+export async function ouvrirConversation(a, apres){
   await chargerMessages();
   let arret = null;
-  /* ce qui était lu AVANT d'ouvrir : la ligne « N nouveaux » se pose là */
-  const vuAvant = (conv.fils[a.id] && conv.fils[a.id].vu) || 0;
-  /* au poste, posée dans le volet de la boîte ; au pouce, une feuille */
-  const sh = openSheet({ title: a.nom, visage: visageHTML(a.id, 'vz-barre'), className: 'modal-groupe modal-conv', dans: o.dans,
+  const sh = openSheet({ title: a.nom, icon: 'message-text', className: 'modal-groupe modal-conv',
     onClose: () => {
       if (arret) arret();
       if (ouverte && ouverte.sh === sh) ouverte = null;
       conv = marquerLu(conv, a.id);
-      apresImage(sauver);
-      bus.apresImage();
+      sauver();
+      bus.refresh();
       if (apres) apres();
     } });
+  /* le bas reste en bas : clavier ouvert, champ qui grandit (ui/dom.js) */
+  const suivi = garderLeBas(sh.body);
   const rendre = () => {
     if (!sh.body.isConnected) return;
     const fil = filAvec(conv, a.id);
-    const bas = rendu && suivre.colle();
-    const neuf = m => !m.moi && m.at > vuAvant;
-    const n = fil.filter(neuf).length;
-    const premier = fil.findIndex(neuf);
-    /* la fenêtre : les derniers messages, jamais les 300 d'un coup (ui/fil.js) */
-    const debut = debutFenetre(fil, neuf, fen.ancre);
-    fen.debut = debut; fen.ancre = (fil[debut] || {}).id || ''; fen.fil = fil;
+    const bas = suivi.colle();
     /* vide, la feuille le dit d'un mot — un ÉTAT, pas une explication */
     sh.body.innerHTML = fil.length
-      ? `<ol class="gr-fil ms-fil" id="msFil">${ligneAvant(debut)}${fil.slice(debut).map((m, k) => {
-          const i = debut + k;
-          return (!k || !memeJour(fil[i - 1].at, m.at) ? ligneJour(m.at) : '') +
-            (i === premier ? ligneNouveaux(n) : '') + bulleHTML(m, k ? fil[i - 1] : null, neuf(m));
-        }).join('')}</ol>`
+      ? `<ol class="gr-fil ms-fil" id="msFil">${fil.map((m, i) => bulleHTML(m, fil[i - 1])).join('')}</ol>`
       : `<p class="ms-vide" id="msVide">Aucun message pour l’instant.</p>`;
-    sh.body.querySelector('[data-avant]')?.addEventListener('click', () => ouvrirAvant(sh.body, fen, fen.fil, rendre));
-    if (!rendu) suivre.ouvrir(); else if (bas) sh.body.scrollTop = sh.body.scrollHeight;
-    else suivre.maj();
+    if (bas || !rendu) suivi.enBas();
     rendu = true;
   };
   let rendu = false;
-  const fen = {};
-  const suivre = suivreNouveaux(sh.body);
   ouverte = { id: a.id, sh, rendre };
 
   /* LE PIED : le champ et la flèche, comme dans un groupe. Un message
@@ -152,13 +122,12 @@ export async function ouvrirConversation(a, apres, o = {}){
   champ.placeholder = 'Écrire à ' + prenomAmi(a);
   champ.setAttribute('aria-label', 'Écrire à ' + prenomAmi(a));
   champGrandit(champ);
-  /* un message PRÊT (lot R7 : une demande d'aide, un merci) : posé dans
-     le champ, jamais envoyé — il part de la flèche, comme tout le reste */
-  if (o.texte){ champ.value = String(o.texte).slice(0, MESSAGE_MAX); queueMicrotask(() => champ.dispatchEvent(new Event('input'))); }
   const envoyer = async () => {
     const texte = champ.value.trim();
     if (!texte) return;
+    bEnv.disabled = true;
     const l = await preparerMessage(a, texte).catch(() => null);
+    bEnv.disabled = false;
     if (!l){ echecEnvoi(); return; }
     /* il entre dans la conversation TOUT DE SUITE, « pas encore parti »
        tant que la file le garde : rien de ce qu'on a écrit ne se perd */
@@ -168,29 +137,26 @@ export async function ouvrirConversation(a, apres, o = {}){
     champ.dispatchEvent(new Event('input'));
     const parti = posterMessage(a, l);
     rendre();
-    sh.body.scrollTop = sh.body.scrollHeight;
+    suivi.enBas();
     await parti.catch(() => 0);
     rendre();
   };
-  /* la flèche s'allume quand il y a de quoi envoyer, et ne prend pas le
-     focus : le clavier reste ouvert d'un message à l'autre (ui/fil.js) */
-  const env = boutonEnvoi(champ, envoyer, 'msEnvoyer');
   champ.addEventListener('keydown', e => {
     if (e.key !== 'Enter' || e.shiftKey || e.isComposing || matchMedia('(pointer:coarse)').matches) return;
     e.preventDefault();
-    env.lancer();
+    envoyer();
   });
+  const bEnv = btn('', 'icon-btn btn-contour', envoyer, 'arrow-up');
+  bEnv.id = 'msEnvoyer'; bEnv.setAttribute('aria-label', 'Envoyer'); bEnv.title = 'Envoyer';
   const pied = document.createElement('div');
   pied.className = 'gr-pied';
-  pied.append(champ, env.bouton);
+  pied.append(champ, bEnv);
   sh.setFoot([pied]);
 
   conv = marquerLu(conv, a.id);
+  sauver();
   rendre();
-  /* la boîte est derrière la feuille, et la lecture n'a pas à
-     s'enregistrer pendant le tap : après l'image (ui/state.js) */
-  apresImage(sauver);
-  bus.apresImage();
+  bus.refresh();
   /* EN DIRECT tant que la feuille est ouverte ; une relève rattrape ce
      qui est arrivé pendant que l'app était fermée, et renvoie ce qui
      attendait encore */

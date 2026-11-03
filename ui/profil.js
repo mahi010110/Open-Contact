@@ -11,7 +11,6 @@ import { villeConnue, correction } from '../engine/requete.js';
 import { S, bus, saveProfile } from './state.js';
 import { openSheet, confirmSheet, toast, showUndo, btn, ic, clavier, champGrandit, champAOuvrir } from './dom.js';
 import { tplField, tplSample, TPL_LABELS } from './tplfield.js';
-import { amenerDansFeuille } from './zone-visible.js';
 import { PARCOURS, parcoursDe, periodeParcours, normalizeParcours } from '../engine/parcours.js';
 
 /* ---------- profil ----------
@@ -62,11 +61,6 @@ export function openProfil(onDone, opts = {}){
     })
   });
   const q = s => sh.body.querySelector(s);
-  /* ouvert SUR un champ (« il manque ce que tu cherches », « Ajouter mon
-     CV ») : il se montre aussi, dans la feuille — le focus d'ouverture ne
-     fait pas défiler (`preventScroll`), et « Ce que tu cherches » vit
-     sous le parcours, hors de l'écran d'un petit téléphone */
-  if (opts.focus) requestAnimationFrame(() => amenerDansFeuille(q(opts.focus)));
   const un = (id, label, val, attrs = '') =>
     `<div class="field fld-1l"><label for="${id}">${label}</label>
        <textarea id="${id}" rows="1" ${attrs}>${esc(val)}</textarea></div>`;
@@ -278,16 +272,8 @@ export function openProfil(onDone, opts = {}){
          `<button class="pick" data-par="${esc(e.id)}"><div class="pk-m"><b>${esc(e.entreprise)}</b><span>${
            esc([PARCOURS[e.quoi].label, periodeParcours(e)].filter(Boolean).join(' · '))}</span></div>${
            ic('chevron-right', 'ic-14')}</button>`).join('')}</div>` : ''}
-       <div class="pf-par-gestes">
-         <button class="btn btn-sm" id="pfParAdd">${ic('plus', 'ic-14')} Ajouter</button>
-         ${/* TON PARCOURS EN UN FICHIER (lot R9-a) : seulement quand il y a
-              un parcours à faire partir — ce qu'on a sous les yeux,
-              enregistré ou non */''}
-         ${l.length ? `<button class="btn btn-sm" id="pfParExp">${ic('download', 'ic-14')} Exporter</button>` : ''}
-       </div>`;
+       <button class="btn btn-sm" id="pfParAdd">${ic('plus', 'ic-14')} Ajouter</button>`;
     q('#pfParAdd').addEventListener('click', () => ouvrirExperience(null));
-    q('#pfParExp')?.addEventListener('click', async () =>
-      (await import('./cv.js')).ouvrirExport({ ...d, ...lire(), parcours: d.parcours }));
     sh.body.querySelectorAll('[data-par]').forEach(b =>
       b.addEventListener('click', () => ouvrirExperience(l.find(e => e.id === b.dataset.par))));
   };

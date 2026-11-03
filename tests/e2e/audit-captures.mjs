@@ -127,7 +127,7 @@ const ECRANS = [
   ['08-ecrire', piste('a', `(await import('./ui/mail.js')).openMail(c, {});`)],
   ['09-modifier', piste('b', `(await import('./ui/edit.js')).openEditPiste(c);`)],
   ['10-capture', p => p.evaluate(() => import('./ui/capture.js').then(m => m.openCapture()))],
-  ['11-echanger', route('#/reseau')],
+  ['11-echanger', route('#/echanger')],
   ['12-donner', p => p.evaluate(() => import('./ui/donner.js').then(m => m.openDonner()))],
   ['13-recevoir', p => p.evaluate(() => import('./ui/recevoir.js').then(m => m.openRecevoir()))],
   ['14-moi', route('#/moi')],
@@ -149,17 +149,15 @@ const ECRANS = [
   ['26-verrouillage', p => p.evaluate(() => import('./ui/verrou.js').then(m => m.openProtectFlow()))],
   ['27-nom-suggere', async p => { await ECRAN('10-capture')(p); await p.waitForTimeout(400);
     await p.type('#cpName, #edName', 'Reseaux', { delay: 40 }); await p.waitForTimeout(1200); }],
-  /* 7.0.0 : « Mes amis » vit dans « Réseau » (R1) */
-  ['29-amis', async p => { await route('#/reseau')(p); await p.waitForTimeout(300);
-    await p.click('#bxAmis').catch(() => {}); }],
+  ['29-amis', async p => { await route('#/pistes')(p); await p.waitForTimeout(300);
+    await p.click('#piPortee [data-portee="amis"]').catch(() => {}); }],
   ['34-ami', p => p.evaluate(async () => { const { S } = await import('./ui/state.js');
     (await import('./ui/amis.js')).openAmi(S.profile.amis[0]); })],
   ['35-mon-qr', p => p.evaluate(() => import('./ui/amis.js').then(m => m.openMonQR()))],
   ['36-groupe', p => p.evaluate(async () => { const m = await import('./ui/groupes.js'); await m.chargerGroupes();
     m.ouvrirGroupe('bts2sxe3kmw4ka7'); })],
-  ['37-groupe-neuf', async p => { await route('#/reseau')(p); await p.waitForTimeout(300); await p.click('#ecGrNeuf'); }],
-  /* décision 0008 : le + ouvre la capture ; Donner et Recevoir vivent dans « Réseau » */
-  ['40-recevoir', p => p.evaluate(() => import('./ui/recevoir.js').then(m => m.openRecevoir()))],
+  ['37-groupe-neuf', async p => { await route('#/echanger')(p); await p.waitForTimeout(300); await p.click('#ecGrNeuf'); }],
+  /* la phrase de secours (R5, gardée au retour à la 6.70) */
   ['41-phrase', p => p.evaluate(() => import('./ui/moi-phrase.js').then(m => m.ouvrirPhrase()))],
   ['42-retrouver', p => p.evaluate(() => import('./ui/moi-phrase.js').then(m => m.ouvrirRetrouver()))],
   ['39-annuler', async p => { await route('#/pistes')(p); await p.waitForTimeout(300);
@@ -172,7 +170,7 @@ const ECRAN = n => ECRANS.find(e => e[0] === n)[1];
 const VIDES = [
   ['30-vide-aujourdhui', route('#/aujourdhui')],
   ['31-vide-pistes', route('#/pistes')],
-  ['32-vide-echanger', route('#/reseau')],
+  ['32-vide-echanger', route('#/echanger')],
   ['33-vide-moi', route('#/moi')]
 ];
 

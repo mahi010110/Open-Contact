@@ -15,7 +15,7 @@ import { S, isClosed, logJ } from './state.js';
 import { openSheet, toast, btn, ic, softReorder, lockRowHTML, bindLockRow, collerEnHaut } from './dom.js';
 import { sortState, sortArgs } from './sort.js';
 import { filterState, filterArgs, barreListeHTML, bindBarreListe, majTout,
-         direCombien, rienTrouveHTML, fenetreCocher, voirAutresHTML, lierVoirAutres } from './affiner.js';
+         direCombien, rienTrouveHTML } from './affiner.js';
 import { openRoom, leaveRoom, watchLiaison, ouvrirPortage } from './synclive.js';
 import { SANS_PAIR_DONNEUR_MS, PORTAGE_SILENCE_MS, PORTAGE_RELANCE_MS, PORTAGE_PAS_MS } from '../engine/transport.js';
 import { decouper } from '../engine/portage.js';
@@ -31,18 +31,12 @@ const QR_HARD_MAX = 1800;     /* caractères par QR : au-delà, rendez-vous P2P 
 
 /* `o.groupe` ({ code, nom }) : ouvert depuis un groupe (lot 5). La même
    liste, le même « qui part » ; le pied n'a plus qu'un geste — donner au
-   groupe, qui le recevra à sa prochaine ouverture.
-   `o.ids` : les pistes déjà choisies — la fiche donne SA piste. La
-   liste ne montre qu'elles : le choix est fait, il ne se refait pas
-   parmi vingt lignes tramées (§6, la trame sur une liste qui part de
-   presque rien). Sans `o.ids` (« Réseau › Donner », décision 0008),
-   toutes les pistes partent par défaut, élagables d'un tap. */
+   groupe, qui le recevra à sa prochaine ouverture. */
 export function openDonner(o){
   /* appelée aussi en écouteur de clic (l'événement) ou avec null */
-  o = o && (o.groupe || Array.isArray(o.ids)) ? o : {};
-  const choix = o.ids ? new Set(o.ids) : null;
+  o = o && o.groupe ? o : {};
   /* jamais les pistes d'exemple : leurs contacts sont fictifs */
-  const alive = () => S.companies.filter(c => !isClosed(c) && !c.demo && (!choix || choix.has(c.id)));
+  const alive = () => S.companies.filter(c => !isClosed(c) && !c.demo);
   /* les pistes d'exemple sont à l'écran : « ajoute d'abord une piste »
      se contredisait sous les yeux (audit du 28 octobre 2026) */
   if (!alive().length){
@@ -55,7 +49,6 @@ export function openDonner(o){
   const st = sortState('recent');
   const ft = filterState();                  /* propre à cet écran (#8) */
   let qs = '';                               /* ce qu'on cherche dans la liste */
-  let toutVoir = false;                      /* « Voir les N autres » tapé (ui/affiner.js) */
   const chosen = () => alive().filter(c => !unsel.has(c.id));
   /* qui part, piste par piste (#2) : tout le monde par défaut — une
      entrée n'apparaît ici que si on y a touché, et `keepFn` rend alors
@@ -178,10 +171,9 @@ export function openDonner(o){
       const box = q('#dnItems');
       if (!box) return;
       const list = listed();
-      const vus = fenetreCocher(list, toutVoir);
       box.innerHTML = !list.length ? rienTrouveHTML() :
         `<div class="pick-list pk-inverse">
-           ${vus.map(c =>
+           ${list.map(c =>
              `<div class="pk-duo${unsel.has(c.id) ? ' pk-out' : ''}">
                 <button class="pick pk${unsel.has(c.id) ? '' : ' on'}" data-id="${c.id}" aria-pressed="${!unsel.has(c.id)}">
                   ${ic('checkbox', 'ic-20 ic-off')}${ic('checkbox-on', 'ic-20 ic-on')}
@@ -193,8 +185,7 @@ export function openDonner(o){
                 </button>
                 ${whoLineHTML(c, keepOf(c), 'donner')}
               </div>`).join('')}
-         </div>${voirAutresHTML(list.length - vus.length)}`;
-      lierVoirAutres(box, () => { toutVoir = true; renderItems(); });
+         </div>`;
       box.querySelectorAll('.pk').forEach(b =>
         b.addEventListener('click', () => {
           const id = b.dataset.id;

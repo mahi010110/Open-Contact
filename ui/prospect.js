@@ -9,12 +9,12 @@
 import { esc } from '../engine/utils.js';
 import { STATUSES, nextActionContact } from '../engine/model.js';
 import { filterCompanies } from '../engine/filter.js';
-import { S, isClosed } from './state.js';
-import { openSheet, btn, ic, softReorder, collerEnHaut } from './dom.js';
+import { S, bus, isClosed } from './state.js';
+import { openSheet, toast, btn, ic, softReorder, collerEnHaut } from './dom.js';
 import { sortState, sortArgs } from './sort.js';
 import { filterState, filterArgs, barreListeHTML, bindBarreListe, majTout,
-         direCombien, rienTrouveHTML, fenetreCocher, voirAutresHTML, lierVoirAutres } from './affiner.js';
-import { ouvrirSerie } from './serie.js';
+         direCombien, rienTrouveHTML } from './affiner.js';
+import { openMail } from './mail.js';
 import { openContactEditor } from './contact.js';
 import { openCampaignWizard } from './campagnes.js';
 import { CAMPAGNES } from './perimetre.js';
@@ -35,10 +35,7 @@ export function openProspect(){
   const sel = new Set();
   const st = sortState('status');            /* « À contacter » en tête par défaut */
   const ft = filterState();                  /* propre à cet écran (#8) */
-  /* R1 (décision 0002) : la feuille CHOISIT des pistes à qui écrire.
-     « Donner » n'y est plus (décision 0008, 29 octobre 2026) : il vit
-     dans « Réseau », à côté de « Recevoir » — un geste, une place. */
-  const sh = openSheet({ title: 'Choisir', icon: 'checkbox-on' });
+  const sh = openSheet({ title: 'Prospecter', icon: 'mail' });
 
   /* qui recevra, piste par piste (#1). Écrire n'est pas donner : le
      défaut reste UNE personne — celle de la prochaine action — sinon un
@@ -82,12 +79,11 @@ export function openProspect(){
     const pairs = allPairs();
     if (!pairs.some(p => p.ct)) return;
     sh.close();
-    if (CAMPAGNES) chooseMode(pairs); else ouvrirSerie(pairs);
+    if (CAMPAGNES) chooseMode(pairs); else run(pairs);
   });
   /* la case « Tout » PORTE l'état : elle doit donc suivre chaque tap
      individuel, sinon elle affiche un état périmé dès la seconde ligne */
   let qs = '';                 /* ce qu'on cherche dans la liste */
-  let toutVoir = false;        /* « Voir les N autres » tapé (ui/affiner.js) */
   let syncAll = () => {};
   const sync = () => {
     const n = nWho();
@@ -119,10 +115,9 @@ export function openProspect(){
     const box = sh.body.querySelector('#pkItems');
     if (!box) return;
     const list = listed();
-    const vus = fenetreCocher(list, toutVoir);
     box.innerHTML = !list.length ? rienTrouveHTML() :
       `<div class="pick-list">
-         ${vus.map(c =>
+         ${list.map(c =>
            `<div class="pk-duo">
               <button class="pick pk${sel.has(c.id) ? ' on' : ''}" data-id="${c.id}" aria-pressed="${sel.has(c.id)}">
                 ${ic('checkbox', 'ic-20 ic-off')}${ic('checkbox-on', 'ic-20 ic-on')}
@@ -146,10 +141,7 @@ export function openProspect(){
                    en une donnée de sa sous-ligne. */''}
               ${sansAdresse(c) && !sel.has(c.id) ? '' : whoLineHTML(c, keepOf(c), 'ecrire')}
             </div>`).join('')}
-       </div>${voirAutresHTML(list.length - vus.length)}`;
-    lierVoirAutres(box, () => { toutVoir = true; renderItems(); });
-    /* une table, pas une recherche par ligne */
-    const parId = new Map(alive().map(c => [c.id, c]));
+       </div>`;
     box.querySelectorAll('.pk').forEach(b =>
       b.addEventListener('click', () => {
         const id = b.dataset.id;
@@ -170,11 +162,11 @@ export function openProspect(){
         sync();
       }));
     box.querySelectorAll('[data-who]').forEach(b => {
-      const c = parId.get(b.dataset.who);
+      const c = alive().find(x => x.id === b.dataset.who);
       if (c) b.addEventListener('click', () => pickWho(c));
     });
     box.querySelectorAll('[data-addct]').forEach(b => {
-      const c = parId.get(b.dataset.addct);
+      const c = alive().find(x => x.id === b.dataset.addct);
       if (c) b.addEventListener('click', () =>
         openContactEditor({ company: c, onDone: () => { sel.add(c.id); renderItems(); sync(); } }));
     });
@@ -231,6 +223,27 @@ function chooseMode(pairs){
        ${CAMPAGNES ? `<button class="pick" id="pmCamp"><b>${ic('flag', 'ic-14')} En campagne</b>
          <span>sur 2 semaines</span></button>` : ''}
      </div>`;
-  sh.body.querySelector('#pmOne').addEventListener('click', () => { sh.close(); ouvrirSerie(pairs); });
+  sh.body.querySelector('#pmOne').addEventListener('click', () => { sh.close(); run(pairs); });
   sh.body.querySelector('#pmCamp')?.addEventListener('click', () => { sh.close(); openCampaignWizard(pairs); });
+}
+
+/* la série : un composeur après l'autre, vers la personne choisie.
+   « Passer » avance, la croix arrête tout — tout de suite. */
+function run(pairs){
+  let i = 0;
+  const next = () => {
+    if (i >= pairs.length){
+      toast('Série terminée — ' + pairs.length + ' piste' + (pairs.length > 1 ? 's' : '') + ' traitée' + (pairs.length > 1 ? 's' : '') + ' ✓');
+      bus.refresh();
+      return;
+    }
+    const { c, ct } = pairs[i++];
+    openMail(c, {
+      ctId: ct && ct.id,
+      progress: i + '/' + pairs.length,
+      onDone: next,
+      onQuit: () => { bus.refresh(); }
+    });
+  };
+  next();
 }
