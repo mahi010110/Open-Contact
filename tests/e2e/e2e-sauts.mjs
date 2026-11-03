@@ -382,12 +382,17 @@ if (dem3 && dem3.l.entreprise) fail('une demande par critère porte une entrepri
       || !/^Envoyée:fait/.test(f.etapes)) fail('la demande partie ne se lit pas dans « Mes demandes » : ' + JSON.stringify(f));
 }
 await rouvrir(L.p);
-await L.p.waitForSelector('.tr-amis .act-ami', { timeout: 20000 }).catch(() => fail('chez Léa, la demande par critère ne s’affiche pas'));
+/* l'état gardé de la boîte se lit dès l'ouverture (8.1.0) : le merci
+   d'Aztek est déjà là, la demande d'Advens arrive avec la relève — on
+   attend SA ligne, jamais la première venue */
+await L.p.waitForFunction(() => [...document.querySelectorAll('.tr-amis .act-ami')].some(r => /Advens/.test(r.textContent)),
+  null, { timeout: 20000 }).catch(() => fail('chez Léa, la demande par critère ne s’affiche pas'));
+const iAdvens = await L.p.evaluate(() => [...document.querySelectorAll('.tr-amis .act-ami')].findIndex(r => /Advens/.test(r.textContent)));
 {
-  const ligne = await ligneAmis(L.p);
+  const ligne = await ligneAmis(L.p, iAdvens);
   if (ligne !== 'Advens | Tom cherche quelqu’un | tu as Julie Marchand') fail('chez Léa : ' + ligne);
 }
-await L.p.evaluate(() => document.querySelector('.tr-amis .act-ami .act-main').click());
+await L.p.evaluate(k => document.querySelectorAll('.tr-amis .act-ami')[k].querySelector('.act-main').click(), iAdvens);
 await L.p.waitForSelector('#drDonner');
 await L.p.click('#drDonner');
 const don3 = await attendreLettre('don', 'tom', l => l.demande === dem3.l.id);
