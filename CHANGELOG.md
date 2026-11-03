@@ -34,9 +34,9 @@ l'écran. Et « Écrire » va plus droit au message.
   et « Réseau » la même colonne de liste, et les boutons d'un écran se
   rangent toujours à droite de son titre.
 - Dans « Écrire », le destinataire et le modèle tiennent chacun une
-  ligne. Les modèles sont visibles d'un coup d'œil, plus cachés dans un
-  menu. Si tu changes de modèle après avoir écrit, « Annuler » rend ton
-  texte. « À savoir » se replie d'un tap.
+  ligne : touche-la pour en changer. Plus de menu déroulant, et le
+  message commence plus haut. Si tu changes de modèle après avoir écrit,
+  « Annuler » rend ton texte. « À savoir » se replie d'un tap.
 
 ## [7.4.0] — 29 octobre 2026
 

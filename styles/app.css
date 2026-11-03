@@ -3133,12 +3133,17 @@ button.ec-row:hover{background:var(--surface-field)}
   font-size:var(--text-11);font-weight:var(--weight-bold);text-transform:uppercase;
   letter-spacing:var(--tracking-wide);color:var(--text-muted)}
 .ml-a>:not(.ml-l){flex:1 1 13rem;min-width:0}
-/* une puce plus longue que la place plie son mot, elle ne sort pas */
-.ml-a .dchip{max-width:100%;text-align:left}
+/* la ligne qui s'ouvre sur le choix : la valeur, son chevron — une
+   rangée des Réglages, à la taille d'une cible ; le nom plie */
+.ml-v{display:flex;align-items:center;gap:8px;min-height:var(--ctl);padding:0;
+  background:none;border:0;font:inherit;font-size:var(--input-fs);line-height:1.35;
+  color:var(--text-body);text-align:left;cursor:pointer}
+.ml-v>span{flex:1;min-width:0;overflow-wrap:anywhere}
+.ml-v>.ic{flex:none;color:var(--text-muted)}
+@media (hover:hover){ .ml-v:hover>span{color:var(--text-link)} }
 .ml-a .fld-ro{min-width:0;overflow-wrap:anywhere}
 .ml-a .ml-rien{color:var(--text-muted)}
 .ml-role{font-weight:var(--weight-regular);color:var(--text-muted);font-size:var(--text-12)}
-.dchip.on .ml-role{color:var(--on-accent);opacity:.85}
 /* Une fiche remplie à 43 % ne RÉCLAME rien : elle ne coûte pas une
    opportunité, contrairement à une relance en retard — qui, elle, porte
    déjà l'ambre trois blocs plus haut. Deux ambres sur un écran diluent

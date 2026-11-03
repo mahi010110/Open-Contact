@@ -661,7 +661,10 @@ async function composeur(P, piste){
     openMail(S.companies[0], {});
     await new Promise(r => setTimeout(r, 400));
     /* le gabarit le plus long des trois : c'est lui qui décide */
-    document.querySelector('#mTpl [data-tpl="1"]').click();   /* une puce par modèle (lot D) */
+    /* la ligne « Modèle » s'ouvre sur le choix (lot D) */
+    document.querySelector('#mTpl').click();
+    await new Promise(r => setTimeout(r, 80));
+    document.querySelector('[data-mchoix="1"]').click();
     await new Promise(r => setTimeout(r, 250));
     const o = document.querySelector('#mSubj'), b = document.querySelector('#mBody');
     const k = document.querySelector('.ml-know');

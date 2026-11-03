@@ -29,9 +29,10 @@
      curseur dans le champ — le clavier ne se ferme pas — et le message
      se pose à l'écran ; un long message plafonne à six lignes sans
      cacher le fil ;
-   ⑥ « À » et les modèles (lot D) : une ligne et des puces, plus de menu
-     déroulant ; un brouillon intact se refait en silence, un texte écrit
-     à la main revient d'un tap — au pouce et au poste ;
+   ⑥ « À » et « Modèle » (lot D) : des lignes qui disent leur valeur et
+     s'ouvrent sur le choix, plus de menu déroulant ; un brouillon intact
+     se refait en silence, un texte écrit à la main revient d'un tap — au
+     pouce et au poste ;
    ⑦ zéro erreur console.
    ============================================================ */
 import { chromium, chromiumPath, serveRepo, SHOTS, annuaireMuet } from './outils.mjs';
@@ -208,8 +209,9 @@ for (const [nom, vp, tactile] of [['pouce', { width: 390, height: 844 }, true], 
   for (const etape of ['gabarit', 'modèle changé', 'texte ajouté']){
     if (etape === 'modèle changé'){
       const avant = await p.evaluate(() => document.getElementById('mBody').getBoundingClientRect().height);
-      /* les modèles sont des puces (lot D) : un tap pose le modèle */
-      await p.click('#mTpl [role="radio"]:has-text("Long")');
+      /* la ligne « Modèle » s'ouvre sur le choix (lot D) : un tap pose le modèle */
+      await p.click('#mTpl');
+      await p.click('[data-mchoix="1"]');
       await p.waitForTimeout(200);
       const apres = await p.evaluate(() => document.getElementById('mBody').scrollHeight);
       if (apres <= avant + 40) fail(`${nom} : le modèle long ne réclame pas plus de place (${Math.round(avant)} → ${apres}) — la mesure ne mesure rien`);
@@ -337,13 +339,14 @@ for (const [nom, vp] of [['pouce', { width: 390, height: 844 }], ['petit', { wid
   console.log(`⑤ ${nom} : plein écran, le dernier message au-dessus du clavier, la flèche s'allume et s'éteint, le curseur reste, six lignes au plus ✓`);
 }
 
-/* ---------- ⑥ « À » et les modèles : des lignes, des puces, et le texte écrit qui revient ----------
+/* ---------- ⑥ « À » et le modèle : des lignes qui s'ouvrent sur le choix, et le texte écrit qui revient ----------
    (lot D, 29 octobre 2026 — « la section envoi de message, peu UX et
-   ergonomique »). Plus de menu déroulant dans le composeur : « À » se lit
-   sur une ligne, les modèles sont des puces, la retenue cochée. Et un
-   modèle effleuré ne fait plus perdre ce qu'on a écrit : un brouillon
-   intact se refait en silence (rien à perdre), un texte écrit à la main
-   revient d'un tap (invariant ②). */
+   ergonomique »). Plus de menu déroulant dans le composeur : « À » et
+   « Modèle » sont des lignes qui DISENT leur valeur et s'ouvrent sur la
+   feuille du choix (`choixHTML`, la forme de « Thème »). Et un modèle
+   changé ne fait plus perdre ce qu'on a écrit : un brouillon intact se
+   refait en silence (rien à perdre), un texte écrit à la main revient
+   d'un tap (invariant ②). */
 for (const [nom, vp, tactile] of [['pouce', { width: 390, height: 844 }, true], ['poste', { width: 1280, height: 800 }, false]]){
   const { ctx, p } = await ecran(vp, tactile);
   await p.evaluate(OUVRIR['écrire']);
@@ -351,30 +354,32 @@ for (const [nom, vp, tactile] of [['pouce', { width: 390, height: 844 }, true], 
   await p.waitForTimeout(300);
   const f = await p.evaluate(() => ({
     menus: document.querySelectorAll('.overlay:not(.ov-out) .modal-b select').length,
-    puces: [...document.querySelectorAll('#mTpl [role="radio"]')].map(b => ({ mot: b.textContent.trim(), on: b.getAttribute('aria-checked') === 'true' })),
+    modele: ((document.querySelector('#mTplV') || {}).textContent || '').trim(),
     a: ((document.querySelector('.ml-a .fld-ro') || {}).textContent || '').trim()
   }));
   if (f.menus) fail(`${nom} : ${f.menus} menu(s) déroulant(s) dans le composeur`);
-  if (f.puces.length !== 2 || f.puces.filter(x => x.on).length !== 1 || !f.puces[0].on)
-    fail(`${nom} : les modèles ne sont pas deux puces, la première retenue (${JSON.stringify(f.puces)})`);
+  if (f.modele !== 'Court') fail(`${nom} : la ligne « Modèle » ne dit pas le modèle retenu (« ${f.modele} »)`);
   if (!/Julie Marchand/.test(f.a)) fail(`${nom} : « À » ne dit pas à qui l’on écrit (« ${f.a} »)`);
   const lire = () => p.evaluate(() => ({ corps: document.getElementById('mBody').value,
-    retenu: (document.querySelector('#mTpl [aria-checked="true"]') || {}).textContent?.trim(),
+    retenu: ((document.querySelector('#mTplV') || {}).textContent || '').trim(),
     barre: (document.querySelector('.undo-bar span') || {}).textContent || '' }));
-  /* un brouillon intact : la puce pose son modèle, sans rien à annuler */
-  await p.click('#mTpl [data-tpl="1"]');
-  await p.waitForTimeout(150);
+  const choisir = async i => { await p.click('#mTpl'); await p.waitForSelector('[data-mchoix]'); await p.click(`[data-mchoix="${i}"]`); await p.waitForTimeout(200); };
+  /* la feuille du choix : deux options, la retenue cochée */
+  await p.click('#mTpl');
+  await p.waitForSelector('[data-mchoix]');
+  const o = await p.evaluate(() => [...document.querySelectorAll('[data-mchoix]')].map(b => ({ mot: b.textContent.trim(), on: b.getAttribute('aria-checked') === 'true' })));
+  if (o.length !== 2 || !o[0].on || o[1].on) fail(`${nom} : la feuille « Modèle » ne propose pas les deux modèles, le retenu coché (${JSON.stringify(o)})`);
+  await p.click('[data-mchoix="1"]');
+  await p.waitForTimeout(200);
   const t1 = await lire();
-  if (!t1.corps.startsWith('Ligne 1') || t1.retenu !== 'Long') fail(`${nom} : la puce « Long » ne pose pas son modèle (${JSON.stringify(t1).slice(0, 120)})`);
+  if (!t1.corps.startsWith('Ligne 1') || t1.retenu !== 'Long') fail(`${nom} : « Long » ne pose pas son modèle (${JSON.stringify(t1).slice(0, 120)})`);
   if (t1.barre) fail(`${nom} : un brouillon intact propose « Annuler » — il n’y avait rien à perdre (${t1.barre})`);
   /* un texte écrit à la main : le modèle le remplace, « Annuler » le rend */
-  await p.click('#mTpl [data-tpl="0"]');
-  await p.waitForTimeout(150);
+  await choisir(0);
   await p.click('#mBody');
   await p.keyboard.press('Control+End');
   await p.keyboard.type(' Mon accroche à moi.');
-  await p.click('#mTpl [data-tpl="1"]');
-  await p.waitForTimeout(200);
+  await choisir(1);
   const t2 = await lire();
   if (t2.corps.includes('Mon accroche à moi.')) fail(`${nom} : le modèle choisi n’a pas remplacé le texte`);
   if (!/Long/.test(t2.barre)) fail(`${nom} : un texte écrit à la main remplacé sans « Annuler » (« ${t2.barre} »)`);
@@ -386,7 +391,7 @@ for (const [nom, vp, tactile] of [['pouce', { width: 390, height: 844 }, true], 
   await p.screenshot({ path: `${SHOTS}/136-ecrire-modeles-${nom}.png` });
   await fermer(p);
   await ctx.close();
-  console.log(`⑥ ${nom} : « À » sur une ligne, les modèles en puces, un texte écrit revient d’un tap ✓`);
+  console.log(`⑥ ${nom} : « À » et « Modèle » en lignes qui s’ouvrent sur le choix, un texte écrit revient d’un tap ✓`);
 }
 
 const vraies = errors.filter(e => !/net::ERR|Failed to load resource|WebSocket/.test(e));

@@ -16,7 +16,7 @@ import { docGet } from '../engine/storage.js';
 import { aiComplete, draftPrompt, splitDraft } from '../engine/ai.js';
 import { SILENCE_RELANCE } from '../engine/assist.js';
 import { S, bus, saveData, logJ, activateContact } from './state.js';
-import { openSheet, toast, btn, el, ic, showUndo, champGrandit, avantImage } from './dom.js';
+import { openSheet, toast, btn, el, ic, showUndo, champGrandit, avantImage, choixHTML } from './dom.js';
 import { askNextAction } from './actions.js';
 import { openProfil } from './profil.js';
 import { listDocs, docKind, docTitle, pickPdf } from './docs.js';
@@ -99,6 +99,9 @@ export function openMail(c, opts){
   const initIdx = Math.max(0, cts.findIndex(t => t.id === opts.ctId));
   /* le modèle aussi arrive pré-choisi, d'après le statut de la piste */
   const tplInit = modeleConseille(tpls, c);
+  /* une personne : son nom, et son rôle en encre sourde */
+  const quiHTML = t => esc(t.name || t.email) + (t.role ? ` <span class="ml-role">${esc(t.role)}</span>` : '');
+  const quiTexte = t => (t.name || t.email) + (t.role ? ' — ' + t.role : '');
   sh.body.innerHTML =
     `<p class="ml-pour" id="mPour"><b>${esc(c.name)}</b>${opts.progress ? `<span class="ml-n">${esc(opts.progress)}</span>` : ''}</p>
      ${/* LE PRÉAMBULE EST LE CONTENU VARIABLE, PAS LE MESSAGE.
@@ -112,27 +115,27 @@ export function openMail(c, opts){
           (lot D, 29 octobre 2026 — le mainteneur : « la section envoi de
           message, peu UX et ergonomique »). Toute messagerie pose « À »
           et son destinataire sur une ligne ; ici aussi, et le message
-          gagne les deux étiquettes posées au-dessus. Un petit choix ne
-          se cache pas dans une liste déroulante (GOV.UK : le menu en
-          dernier recours ; §6, les puces) : les modèles sont des puces,
-          le retenu se remplit d'accent, et au doigt la roue d'iOS ne
-          s'ouvre plus pour trois mots. Une seule personne joignable :
-          son nom se lit, sans contrôle — un choix à une option n'en est
-          pas un. */''}
+          gagne les deux étiquettes posées au-dessus. Chaque ligne DIT sa
+          valeur et s'ouvre sur le choix, la forme de « Thème »
+          (`choixHTML`) — jamais un menu déroulant (GOV.UK : le menu en
+          dernier recours), plus la roue d'iOS pour trois mots. Pas des
+          puces non plus : essayées le même jour, quatre personnes
+          joignables prenaient quatre rangs et poussaient le message aux
+          trois quarts de l'écran, pour un choix que l'app fait déjà —
+          le modèle d'après le statut, la personne d'après l'action. Une
+          seule option : la valeur se lit, sans contrôle — un choix à une
+          option n'en est pas un. */''}
      <div class="ml-a">
        <span class="ml-l" id="mToL">À</span>
        ${cts.length > 1
-         ? `<div class="datechips" role="radiogroup" aria-labelledby="mToL" id="mTo">${cts.map((t, i) =>
-             `<button class="dchip${i === initIdx ? ' on' : ''}" role="radio" aria-checked="${i === initIdx}" data-ct="${i}">${
-               esc(t.name || t.email)}${t.role ? ` <span class="ml-role">${esc(t.role)}</span>` : ''}</button>`).join('')}</div>`
-         : `<span class="fld-ro${cts.length ? '' : ' ml-rien'}">${cts.length
-             ? esc(cts[0].name || cts[0].email) + (cts[0].role ? ` <span class="ml-role">${esc(cts[0].role)}</span>` : '')
-             : 'aucun email sur cette piste'}</span>`}
+         ? `<button class="ml-v" id="mTo" aria-labelledby="mToL mToV" aria-haspopup="dialog"><span id="mToV">${quiHTML(cts[initIdx])}</span>${ic('chevron-right', 'ic-14')}</button>`
+         : `<span class="fld-ro${cts.length ? '' : ' ml-rien'}">${cts.length ? quiHTML(cts[0]) : 'aucun email sur cette piste'}</span>`}
      </div>
      <div class="ml-a">
        <span class="ml-l" id="mTplL">Modèle</span>
-       <div class="datechips" role="radiogroup" aria-labelledby="mTplL" id="mTpl">${tpls.map((t, i) =>
-         `<button class="dchip${i === tplInit ? ' on' : ''}" role="radio" aria-checked="${i === tplInit}" data-tpl="${i}">${esc(t.name)}</button>`).join('')}</div>
+       ${tpls.length > 1
+         ? `<button class="ml-v" id="mTpl" aria-labelledby="mTplL mTplV" aria-haspopup="dialog"><span id="mTplV">${esc(tpls[tplInit].name)}</span>${ic('chevron-right', 'ic-14')}</button>`
+         : `<span class="fld-ro">${esc((tpls[0] || {}).name || '')}</span>`}
      </div>
      ${/* L'OBJET S'AFFICHE EN ENTIER.
           Une ligne de 350 px montre ~41 caractères. Le gabarit de
@@ -478,40 +481,47 @@ export function openMail(c, opts){
       onDone: advance
     });
   }
-  /* UNE PUCE CHANGE LE BROUILLON — et ce que la main y avait écrit
-     revient d'un tap (invariant ②). Le menu d'avant refaisait le texte
-     sans un mot : une accroche écrite, un modèle effleuré, et elle
-     disparaissait. Un brouillon que personne n'a touché se refait en
-     silence : il n'y a rien à perdre. */
-  const marquer = (box, attr, i) => box?.querySelectorAll('[role="radio"]').forEach(b => {
-    const on = +b.dataset[attr] === i;
-    b.classList.toggle('on', on);
-    b.setAttribute('aria-checked', String(on));
-  });
-  const choisir = (box, attr, poser, dire) => box?.addEventListener('click', e => {
-    const b = e.target.closest('[role="radio"]');
-    if (!b || b.getAttribute('aria-checked') === 'true') return;
+  /* CHANGER DE MODÈLE OU DE PERSONNE REFAIT LE BROUILLON — et ce que la
+     main y avait écrit revient d'un tap (invariant ②). Le menu d'avant
+     refaisait le texte sans un mot : une accroche écrite, un modèle
+     effleuré, et elle disparaissait. Un brouillon que personne n'a
+     touché se refait en silence : il n'y a rien à perdre. */
+  const poserValeurs = () => {
+    if (q('#mToV')) q('#mToV').innerHTML = quiHTML(cts[ctIdx]);
+    if (q('#mTplV')) q('#mTplV').textContent = tpls[tplIdx].name;
+  };
+  const appliquer = (poser, annonce) => {
     const avant = { objet: q('#mSubj').value, corps: q('#mBody').value, ct: ctIdx, tpl: tplIdx };
     const touche = avant.objet !== genere.objet || avant.corps !== genere.corps;
-    poser(+b.dataset[attr]);
-    marquer(q('#mTo'), 'ct', ctIdx);
-    marquer(q('#mTpl'), 'tpl', tplIdx);
+    poser();
+    poserValeurs();
     fill();
     garder();
-    if (touche) showUndo(dire(), () => {
+    if (touche) showUndo(annonce(), () => {
       if (!sh.body.isConnected) return;
       ctIdx = avant.ct; tplIdx = avant.tpl;
-      marquer(q('#mTo'), 'ct', ctIdx);
-      marquer(q('#mTpl'), 'tpl', tplIdx);
+      poserValeurs();
       q('#mSubj').value = avant.objet;
       q('#mBody').value = avant.corps;
       sync();
       garder();
     });
-  });
-  choisir(q('#mTo'), 'ct', i => { ctIdx = i; },
-    () => 'Brouillon refait pour ' + ((cts[ctIdx] || {}).name || (cts[ctIdx] || {}).email || 'cette personne') + '.');
-  choisir(q('#mTpl'), 'tpl', i => { tplIdx = i; }, () => 'Modèle « ' + tpls[tplIdx].name + ' » posé.');
+  };
+  /* la feuille du choix : les options de « Thème », la retenue cochée ;
+     un tap choisit et referme, le composeur reprend la main */
+  const ouvrirChoix = (titre, options, actuel, poser, annonce) => {
+    const s2 = openSheet({ title: titre, icon: 'mail' });
+    s2.body.innerHTML = choixHTML(options, actuel, { attr: 'data-mchoix' });
+    s2.body.querySelectorAll('[data-mchoix]').forEach(b => b.addEventListener('click', () => {
+      const i = +b.dataset.mchoix;
+      s2.close();
+      if (i !== actuel) appliquer(() => poser(i), annonce);
+    }));
+  };
+  q('#mTo')?.addEventListener('click', () => ouvrirChoix('Destinataire', cts.map((t, i) => [i, quiTexte(t)]), ctIdx,
+    i => { ctIdx = i; }, () => 'Brouillon refait pour ' + ((cts[ctIdx] || {}).name || (cts[ctIdx] || {}).email || 'cette personne') + '.'));
+  q('#mTpl')?.addEventListener('click', () => ouvrirChoix('Modèle', tpls.map((t, i) => [i, t.name]), tplIdx,
+    i => { tplIdx = i; }, () => 'Modèle « ' + tpls[tplIdx].name + ' » posé.'));
   q('#mSubj').addEventListener('input', sync);
   q('#mSubj').addEventListener('keydown', e => {
     if (e.key !== 'Enter') return;
@@ -657,7 +667,7 @@ export function openMail(c, opts){
   if (br){
     const poser = () => {
       const i = br.ctId ? cts.findIndex(t => t.id === br.ctId) : -1;
-      if (i >= 0){ ctIdx = i; marquer(q('#mTo'), 'ct', i); }
+      if (i >= 0){ ctIdx = i; poserValeurs(); }
       q('#mSubj').value = br.objet;
       q('#mBody').value = br.corps;
       q('#mBrouillon').hidden = true;
