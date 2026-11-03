@@ -199,7 +199,13 @@ export function openContactEditor(o){
 export function openAttach(ct){
   const sh = openSheet({ title: 'Rattacher', icon: 'building', focus: '#atQ' });
   sh.body.innerHTML =
-    `<div class="field"><label for="atQ">L’entreprise de ${esc(ctLabel(ct))}</label>
+    /* QUI on rattache ouvre le contenu, tel qu'il est écrit ; le libellé
+       ne dit que le champ. « L’entreprise de recrutement@exemple.fr »
+       passait en capitales de libellé : l'adresse déformée, en gros, sur
+       trois rangs à 200 % (WebKit, audit du 28 octobre 2026) — une donnée
+       ne se met pas en majuscules, et §4 la veut dans le contenu. */
+    `<div class="na-company">${esc(ctLabel(ct))}</div>
+     <div class="field"><label for="atQ">Entreprise</label>
        <input id="atQ" value="${esc((ct.extra && ct.extra.company) || '')}" placeholder="Cherche ou tape un nom…" autocomplete="off"></div>
      <div class="pick-list" id="atList"></div>`;
   const q = s => sh.body.querySelector(s);

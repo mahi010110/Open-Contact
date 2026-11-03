@@ -98,6 +98,52 @@ for (const [ergo, opts] of [['pouce', PHONE], ['poste', DESK]]){
   okSi(!t && await p.isVisible('#tdRmDemo'),
     `① « Voir un exemple » (${ergo}) : les pistes arrivent et « Retirer » s’affiche, sans toast`
     + (t ? ` — toast lu : « ${t} »` : ''));
+  /* les pistes d'exemple ne se donnent pas — mais « ajoute d'abord une
+     piste » sous trois pistes visibles se contredisait (28 octobre 2026) */
+  await viderToast(p);
+  await p.evaluate(async () => (await import('./ui/donner.js')).openDonner());
+  await p.waitForTimeout(200);
+  const refus = await toastLu(p);
+  okSi(/exemple/.test(refus) && !/ajoute d’abord une piste/.test(refus),
+    `① « Donner » sur les seules pistes d’exemple (${ergo}) dit pourquoi — « ${refus} »`);
+  await p.context().close();
+}
+
+/* ---------- ① bis « Mes pistes » vide : l'accueil, et rien autour ----------
+   « 0 piste » sous le titre redisait « Aucune piste pour l'instant »
+   juste dessous, et « Affiner » ouvrait des filtres vides (28 octobre
+   2026). Le vide se dit une fois ; « Affiner » revient avec une piste. */
+for (const [ergo, opts] of [['pouce', PHONE], ['poste', DESK]]){
+  const p = await ouvrir(opts);
+  await p.evaluate(() => { location.hash = '#/pistes'; });
+  await p.waitForSelector('#view-pistes:not([hidden]) .td-empty, #view-pistes:not([hidden]) .empty');
+  const vide = await p.evaluate(() => ({ compte: document.querySelector('#piCount').textContent.trim(),
+    affiner: !!document.querySelector('#piAffiner')?.checkVisibility() }));
+  await p.evaluate(async () => { const { addDemo } = await import('./ui/state.js'); addDemo(); (await import('./ui/state.js')).bus.refresh(); });
+  await p.waitForTimeout(300);
+  const plein = await p.evaluate(() => ({ compte: document.querySelector('#piCount').textContent.trim(),
+    affiner: !!document.querySelector('#piAffiner')?.checkVisibility() }));
+  okSi(!vide.compte && !vide.affiner && plein.compte && plein.affiner,
+    `① bis « Mes pistes » vide (${ergo}) : ni « 0 piste » ni « Affiner » ; avec des pistes, les deux reviennent — ${JSON.stringify({ vide, plein })}`);
+  await p.context().close();
+}
+
+/* ---------- ① ter « Rattacher » : la donnée garde sa casse ----------
+   Le libellé disait « L’entreprise de recrutement@exemple.fr », et les
+   libellés de champ sont en capitales : l'adresse sortait déformée, en
+   gros (28 octobre 2026). Qui l'on rattache ouvre le contenu, le libellé
+   ne dit que le champ. */
+{
+  const p = await ouvrir(PHONE, PISTES, { name: 'Sam' });
+  const r = await p.evaluate(async () => {
+    (await import('./ui/contact.js')).openAttach({ id: 'o1', email: 'recrutement@exemple.fr' });
+    await new Promise(res => setTimeout(res, 300));
+    const o = [...document.querySelectorAll('.overlay:not(.ov-out)')].pop();
+    const tete = o.querySelector('.modal-b > .na-company');
+    return { tete: tete?.innerText.trim() || '', libelle: o.querySelector('label[for="atQ"]')?.textContent.trim() || '' };
+  });
+  okSi(r.tete === 'recrutement@exemple.fr' && r.libelle === 'Entreprise',
+    `① ter « Rattacher » : l’adresse en tête, telle quelle, le libellé dit le champ — ${JSON.stringify(r)}`);
   await p.context().close();
 }
 

@@ -934,7 +934,7 @@ html[data-theme="dark"] .field select{
 /* pendant la frappe au pouce, la liste a de quoi défiler jusqu'à la
    barre (ui/pistes.js, `amenerBarre`) — le surplus vit sous le clavier */
 .pi-cherche #piBody{min-height:100vh;min-height:100dvh}
-.pt-dec #piAffiner,.pt-dec .kbd-bas{display:none}
+.pt-dec #piAffiner,.pt-dec .kbd-bas,.pi-vide #piAffiner{display:none}
 .pt-dec .search-wrap .kbd-hint{position:absolute;right:8px;top:50%;transform:translateY(-50%);margin:0}
 
 /* ============ « À DÉCOUVRIR », LA VUE ============
@@ -1346,6 +1346,7 @@ details.tranche[open]>summary::before{
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
 }
 .row-item .ri-sub b{color:var(--text-body);font-weight:var(--weight-semibold)}
+.row-item .ri-sub .nw{white-space:nowrap}
 /* ---- CE QUI A FAIT REMONTER LA LIGNE ----
    N'existe que pendant une recherche, et seulement quand la ligne ne
    montre pas déjà la réponse : de l'encre sur ce qui CHANGE, qui s'en
@@ -1892,6 +1893,9 @@ details.pcard-details[open]>summary{margin-bottom:10px}
 .na-company{
   display:flex;align-items:center;gap:8px;margin-bottom:14px;
   font-family:var(--font-mono);font-size:var(--text-12);font-weight:var(--weight-medium);color:var(--text-muted);
+  /* un nom long PLIE ; une adresse, qui n'a pas d'espace, se coupe où il
+     faut plutôt que de sortir de la feuille (texte à 200 %, 320 px) */
+  overflow-wrap:anywhere;
 }
 .na-company::before{content:'';width:8px;height:8px;flex:none;border:1px solid var(--border-strong);background:var(--teal)}
 /* ---- direct (P2P) ---- */
@@ -3231,7 +3235,14 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
    porte déjà son icône — le carré de couleur du tableau des statuts
    n'a rien à dire ici. Seule « En retard » prend l'ambre : l'encre va
    à la colonne qui réclame quelque chose. */
-.td-board{margin-top:14px}
+/* CHAQUE COLONNE S'ARRÊTE SOUS SA DERNIÈRE CARTE (§6, règle 3 : « une
+   colonne de Trello ou de Notion s'arrête sous sa dernière carte »).
+   Étirées à la plus haute, les colonnes courtes encadraient du vide :
+   « Aujourd'hui » à une carte sous 250 px de cadre, à côté de
+   « Bientôt » à quatre (audit du 28 octobre 2026). Le tableau de « Mes
+   pistes », lui, garde ses colonnes égales : on y DÉPOSE une carte, et
+   le bas d'une colonne courte doit rester une cible (F9). */
+.td-board{margin-top:14px;align-items:start}
 .td-board .bcol-h::before{display:none}
 .td-board .tr-late .bcol-h{color:var(--amber)}
 .td-board .tr-late .bcol-h .tr-n{border-color:var(--amber);background:var(--amber-wash)}
@@ -3676,7 +3687,13 @@ body:has(#saveWarn:not([hidden])):has(.undo-bar):has(.overlay) .toast{top:calc(e
   border:1px solid var(--border-strong);box-shadow:var(--shadow-raised);
   font-family:var(--font-mono);font-size:var(--text-12);padding:8px 12px;
   opacity:0;pointer-events:none;transition:opacity var(--dur-2) var(--ease-out),transform var(--dur-2) var(--ease-out);
-  max-width:calc(100% - 40px);text-align:left;line-height:1.5;
+  /* LA LARGEUR DE SON TEXTE, PAS LA MOITIÉ DE L'ÉCRAN. Posé à `left:50%`,
+     un élément fixe ne dispose que de la moitié droite pour se
+     dimensionner : « Rien à donner pour l'instant — ajoute d'abord une
+     piste. » pliait sur trois rangs dans une boîte de 150 px, au milieu
+     d'un écran de 390 (audit du 28 octobre 2026). `max-content` le
+     mesure sur son texte, le plafond le garde dans l'écran. */
+  width:max-content;max-width:calc(100% - 40px);text-align:left;line-height:1.5;
 }
 .toast::before{content:'';width:8px;height:8px;flex:none;border:1px solid var(--border-strong);background:var(--teal)}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}

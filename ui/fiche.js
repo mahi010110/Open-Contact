@@ -43,7 +43,7 @@ const FORM_FIELDS = ['status', 'nextAction', 'nextActionText', 'nextActionCt', '
    camarades, lui, ne contient que les gens qu'on a déjà joints, donc
    jamais celui qui recommande deux échanges plus loin. */
 function openDemander(c, prenom, v){
-  const sh = openSheet({ title: 'Demander à ' + prenom, icon: 'message-text' });
+  const sh = openSheet({ title: 'Demande', icon: 'message-text' });
   const mot = `Salut ${prenom}, tu ${v.tu} chez ${c.name} ? `
             + `Je postule là-bas — tu peux me dire à qui écrire ?`;
   sh.body.innerHTML =

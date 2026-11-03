@@ -27,7 +27,7 @@ import { prenomAmi } from '../engine/amis.js';
 import { MESSAGE_MAX, conversationsVides, normaliserConversations, filAvec, ajouterMessage, nonLus,
          dernier, marquerLu } from '../engine/messages.js';
 import { S, bus } from './state.js';
-import { openSheet, btn, ic, champGrandit } from './dom.js';
+import { openSheet, btn, ic, champGrandit, garderLeBas } from './dom.js';
 import { quandMessage } from './dates.js';
 import { preparerMessage, posterMessage, enAttente, ecouterBoite, relever, echecEnvoi } from './reseau.js';
 
@@ -93,15 +93,17 @@ export async function ouvrirConversation(a, apres){
       bus.refresh();
       if (apres) apres();
     } });
+  /* le bas reste en bas : clavier ouvert, champ qui grandit (ui/dom.js) */
+  const suivi = garderLeBas(sh.body);
   const rendre = () => {
     if (!sh.body.isConnected) return;
     const fil = filAvec(conv, a.id);
-    const bas = sh.body.scrollHeight - sh.body.scrollTop - sh.body.clientHeight < 40;
+    const bas = suivi.colle();
     /* vide, la feuille le dit d'un mot — un ÉTAT, pas une explication */
     sh.body.innerHTML = fil.length
       ? `<ol class="gr-fil ms-fil" id="msFil">${fil.map((m, i) => bulleHTML(m, fil[i - 1])).join('')}</ol>`
       : `<p class="ms-vide" id="msVide">Aucun message pour l’instant.</p>`;
-    if (bas || !rendu) sh.body.scrollTop = sh.body.scrollHeight;
+    if (bas || !rendu) suivi.enBas();
     rendu = true;
   };
   let rendu = false;
@@ -135,7 +137,7 @@ export async function ouvrirConversation(a, apres){
     champ.dispatchEvent(new Event('input'));
     const parti = posterMessage(a, l);
     rendre();
-    sh.body.scrollTop = sh.body.scrollHeight;
+    suivi.enBas();
     await parti.catch(() => 0);
     rendre();
   };

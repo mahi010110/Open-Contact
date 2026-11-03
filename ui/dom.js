@@ -1018,6 +1018,45 @@ export function confirmSheet(o){
   });
 }
 
+/* LE BAS D'UNE CONVERSATION RESTE EN BAS (correction de la 7.2,
+   gardée au retour à l'interface de la 6.70). Le clavier qui s'ouvre, le
+   champ qui prend une ligne : la zone du fil rétrécit PAR LE BAS, et le
+   navigateur garde son haut. Les derniers messages passaient donc sous
+   le champ — celui auquel on répond compris : relevé en 390 × 844,
+   clavier ouvert, les trois derniers cachés. Toutes les messageries font
+   l'inverse (Messages, Telegram) : ce qui touchait le bas y reste.
+   « Collé en bas » se RETIENT, il ne se remesure pas à chaud : un rendu
+   qui tombe pendant qu'on tape lisait la distance entre le champ qui
+   vient de prendre une ligne et l'observateur qui ne l'a pas encore
+   rattrapée, se croyait décroché, et le dernier message restait sous le
+   champ (relevé en CI, sur une machine lente). La distance se lit donc
+   contre la DERNIÈRE taille que l'observateur a vue. La première
+   observation n'est pas un changement : c'est l'ouverture. */
+export function garderLeBas(body){
+  let distBas = 0, vu = -1, colle = true, prevu = false;
+  const noter = () => {
+    distBas = Math.max(0, body.scrollHeight - body.scrollTop - (vu >= 0 ? vu : body.clientHeight));
+    colle = distBas < 40;
+  };
+  if (typeof ResizeObserver === 'function') new ResizeObserver(() => {
+    const c = body.clientHeight;
+    if (vu < 0 || c === vu){ vu = c; return; }
+    body.scrollTop = colle ? body.scrollHeight : body.scrollHeight - c - distBas;
+    vu = c;
+  }).observe(body);
+  body.addEventListener('scroll', () => {
+    if (prevu) return;
+    prevu = true;
+    requestAnimationFrame(() => { prevu = false; noter(); });
+  }, { passive: true });
+  return {
+    /* la conversation suivait-elle son bas ? (un rendu s'y fie) */
+    colle: () => colle,
+    /* au bas, et retenu comme tel */
+    enBas(){ body.scrollTop = body.scrollHeight; noter(); },
+    noter
+  };
+}
 /* ---- UN CHAMP DE PROSE SE LIT EN ENTIER ----
    §6 nomme déjà ce motif — « un champ dont la VALEUR doit se lire en
    entier : il grandit avec son texte ». Il existait pourtant en deux

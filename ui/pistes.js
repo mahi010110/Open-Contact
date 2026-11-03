@@ -177,6 +177,18 @@ function hintHTML(c, skip){
     r.accent && h ? ' · ' : ''}${out}</div>`;
 }
 
+/* La sous-ligne plie, mais jamais DANS une donnée : « À contacter » se
+   coupait en « À » et « contacter » sur deux rangs (audit du 28 octobre
+   2026, police d'iPhone). Chaque donnée courte est insécable, le point
+   reste collé à celle qui le précède ; le verbe d'action, lui, peut
+   plier — il est le seul à pouvoir dépasser une ligne. */
+function sousLigne(bits){
+  return bits.map((x, i) => {
+    const point = i < bits.length - 1 ? '\u00a0·' : '';
+    return x.startsWith('<b>') ? x + point : `<span class="nw">${x}${point}</span>`;
+  }).join(' ');
+}
+
 function rowHTML(c){
   const closed = isClosed(c);
   /* la ligne qu'Entrée ouvrirait depuis la barre (au poste, une piste
@@ -202,7 +214,7 @@ function rowHTML(c){
          ${premier ? '<kbd class="kbd-enter" aria-hidden="true">↵</kbd>' : ''}
          <div class="ri-main sw-cible" role="button" tabindex="0" aria-label="Ouvrir ${esc(c.name)}">
            <h3>${esc(c.name)}</h3>
-           <div class="ri-sub">${bits.join(' · ')}</div>
+           <div class="ri-sub">${sousLigne(bits)}</div>
            ${hintHTML(c, ['name', 'city'])}
          </div>
          ${dueHTML(c)}
@@ -623,6 +635,11 @@ export function renderPistes(){
     const am = porteeVue() === 'amis';
     page.classList.toggle('pt-dec', dec);
     page.classList.toggle('pt-amis', am);
+    /* SANS UNE PISTE, RIEN À AFFINER : « Affiner » ouvrait une feuille de
+       filtres vides à côté de « Aucune piste pour l'instant » — un geste
+       sans objet (§6 : jamais une valeur absente des données). Il revient
+       avec la première piste. Chez les amis il TRIE : il reste. */
+    page.classList.toggle('pi-vide', !S.companies.length && !am);
     /* chez les amis, le bouton de la barre TRIE (il n'y a rien à filtrer) :
        il dit son geste, l'icône suit */
     const aff = root.querySelector('#piAffiner');
@@ -644,7 +661,9 @@ export function renderPistes(){
     const cnt = root.querySelector('#piCount');
     if (cnt) cnt.textContent = (q || ftOn()) && all.length !== tout
       ? `${all.length} sur ${tout}`
-      : `${tout} piste${tout > 1 ? 's' : ''}`;
+      /* « 0 piste » redisait, sous le titre, « Aucune piste pour
+         l'instant » juste dessous : le compte se tait sur le vide */
+      : tout ? `${tout} piste${tout > 1 ? 's' : ''}` : '';
     if (am){
       const liste = amisClasses(q);
       const n = (S.profile.amis || []).length;

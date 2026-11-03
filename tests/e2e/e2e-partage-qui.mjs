@@ -66,7 +66,10 @@ console.log('la ligne « → qui » : commande si choix, donnée sinon, rien si 
 await page.click('.pk-duo:has-text("Capgemini") .pk-who');
 await page.waitForSelector('.overlay:last-of-type .pick[data-ct]');
 const titre = await page.textContent('.overlay:last-of-type .modal-h h2');
-if (!/Qui part, chez Capgemini/.test(titre)) fail('titre du verbe « donner » : ' + titre);
+/* la barre dit la fenêtre, le contenu dit laquelle (§4) */
+if (titre.trim() !== 'Contacts') fail('titre du verbe « donner » : ' + titre);
+const tete = await page.textContent('.overlay:last-of-type .na-company');
+if (tete.trim() !== 'Capgemini') fail('le nom de la piste ouvre la sous-feuille : ' + tete);
 if (await page.$('.overlay:last-of-type .modal-f:not([hidden])'))
   fail('la sous-feuille ne valide rien — la croix referme (R2)');
 const hauteurs = await page.evaluate(() =>

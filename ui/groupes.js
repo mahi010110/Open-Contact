@@ -33,7 +33,7 @@ import { GROUPES_MAX, MOT_MAX, NOM_MAX, nouveauCode, codeNorm, codeAffiche, nomG
 import { phraseCritere } from '../engine/critere.js';
 import { emailPlausible } from '../engine/model.js';
 import { S, bus, saveProfile } from './state.js';
-import { openSheet, toast, btn, ic, showUndo, clavier, champGrandit, bindDeleteGesture, confirmSheet, choixHTML } from './dom.js';
+import { openSheet, toast, btn, ic, showUndo, clavier, champGrandit, bindDeleteGesture, confirmSheet, choixHTML, garderLeBas } from './dom.js';
 import { quandMessage } from './dates.js';
 import { makeQrSvg } from './qr.js';
 import { publier, lire, ecouter, evenement, echecEnvoi, amisJoignables, recevoirDemandeGroupe, recueDe, chargerReseau,
@@ -550,6 +550,8 @@ export async function ouvrirGroupe(code, apres){
     onClose: () => { if (arret) arret(); if (ouvert && ouvert.sh === sh) ouvert = null; vu(code); if (apres) apres(); } });
   ouvert = { code, sh, apres };
   const q = s => sh.body.querySelector(s);
+  /* le bas reste en bas : clavier ouvert, champ qui grandit (ui/dom.js) */
+  const suivi = garderLeBas(sh.body);
   const rendre = async () => {
     if (!sh.body.isConnected) return;
     const g = groupe(code);
@@ -559,7 +561,7 @@ export async function ouvrirGroupe(code, apres){
     /* qui attend à la porte passe EN TÊTE, comme une demande trouvée :
        quelqu'un attend, et c'est à moi de répondre (lot 5c) */
     const porte = quiAttend(code);
-    const bas = sh.body.scrollHeight - sh.body.scrollTop - sh.body.clientHeight < 40;
+    const bas = suivi.colle();
     sh.setTitle(nomDe(code));
     sh.body.innerHTML =
       /* LA LIGNE D'EN-TÊTE, toujours là — seul aussi : c'est la porte des
@@ -599,7 +601,7 @@ export async function ouvrirGroupe(code, apres){
       const x = groupe(code).fil.find(y => y.id === b.dataset.repondre);
       if (x) ouvrirReponse(code, x, rendre);
     }));
-    if (bas || !rendu) sh.body.scrollTop = sh.body.scrollHeight;
+    if (bas || !rendu) suivi.enBas();
     rendu = true;
   };
   let rendu = false;
@@ -626,7 +628,7 @@ export async function ouvrirGroupe(code, apres){
     champ.value = '';
     champ.dispatchEvent(new Event('input'));
     rendre();
-    sh.body.scrollTop = sh.body.scrollHeight;
+    suivi.enBas();
   };
   /* un mot de groupe tient sur une ligne : Entrée envoie, partout — la
      touche du clavier le dit (« Envoyer »). Jamais pendant qu'un clavier
