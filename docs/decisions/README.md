@@ -33,5 +33,6 @@ Trois règles :
 | [0010](0010-le-contenu-sans-cadre.md) | Le contenu sans cadre | proposée le 29 octobre 2026 (PR #92), jamais appliquée : remplacée par 0011 avant sa fusion |
 | [0011](0011-retour-a-la-6-70.md) | Retour à l'interface de la 6.70, avec les amis, les groupes, les messages, la phrase de secours et les corrections | acceptée, 3 novembre 2026 |
 | [0012](0012-le-reseau-revient.md) | Le réseau revient : l'onglet « Réseau », les conversations, les demandes suivies, ceux qui aident, et les boutons 98 — sans « Mon visage » ni la conversation à côté de la liste | acceptée, 3 novembre 2026 ; la mise en page au poste par délégation |
+| [0013](0013-la-refonte.md) | La refonte : redessiner toute l'interface pour accompagner du début à la fin, sur le même moteur et le style 98 | acceptée, 4 novembre 2026 ; trois garde-fous proposés |
 
 Le plan qui découlait des fiches 0001 à 0005 est dans [`../recadrage.md`](../recadrage.md), clos par la fiche 0011.

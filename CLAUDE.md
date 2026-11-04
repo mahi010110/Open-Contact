@@ -199,6 +199,27 @@ latérale, « Premiers pas », « Ma semaine », Ctrl K, « Le dire à
 Karim »…). Montré au mainteneur en captures avant la fusion (§0, la
 règle juste au-dessus).
 
+### La refonte (4 novembre 2026)
+
+Le lendemain, le mainteneur : « aujourd'hui ma vision sur l'app a
+beaucoup changé, je veux faire une app qui accompagne dans la recherche
+du début jusqu'à la fin ». **Toute l'interface se redessine** pour
+qu'OpenContact accompagne l'étudiant du choix de sa cible jusqu'au
+contrat qui tient : le début, le milieu, la fin et le moral (décision
+`docs/decisions/0013-la-refonte.md`, périmètre et étapes
+`docs/refonte.md`). Le moteur, les données et le style « Utilitaire
+98 » restent. Il n'y a pas de date, mais des étapes qui ne se
+franchissent qu'à leur condition de sortie.
+
+**Pour la nouvelle interface, seul le socle s'applique** : les deux
+questions et la règle des captures (§0), les invariants (§2),
+l'architecture (§3), l'identité visuelle (§4 : jetons, polices, reliefs,
+icônes), l'accessibilité et les interdits (§10). Le reste de §4 à §9
+continue de tenir l'interface actuelle, qui reste en service jusqu'à la
+bascule ; une de ses règles n'entre dans la nouvelle que si le même
+problème y revient. Les principes de la nouvelle interface s'écrivent à
+l'étape « Dessiner ».
+
 ## 1. Le produit en une phrase
 
 OpenContact aide un étudiant IT/cyber à répondre à **« je fais quoi
