@@ -3,8 +3,11 @@
 **Ce document dit ce que couvre la refonte, ce qui n'en fait pas partie,
 et dans quel ordre elle avance.** Le pourquoi est dans la fiche
 [0013](decisions/0013-la-refonte.md) et dans la synthèse de recherche
-(`reports/Accompagner la recherche de stage.md`). Les principes
-d'interface de la nouvelle version s'écriront à l'étape « Dessiner ».
+(`reports/Accompagner la recherche de stage.md`). Le détail des lots, des
+tests et des décisions à prendre est dans le plan de mise en œuvre
+([`refonte-plan.md`](refonte-plan.md), proposé le 9 novembre 2026). Les
+principes d'interface de la nouvelle version s'écriront à l'étape
+« Dessiner ».
 
 *Cadrée le 4 novembre 2026, avec le mainteneur.*
 
@@ -105,7 +108,9 @@ réussite.
   a-t-elle encore lieu pendant la refonte, ou attend-elle la nouvelle
   interface ?
 - **Comment construire à côté** : une entrée séparée sur la même origine,
-  ou un interrupteur dans l'app. À choisir au début de l'étape 3.
+  ou un interrupteur dans l'app. Le plan de mise en œuvre propose
+  l'entrée séparée (`nouveau.html`, à la racine) et dit pourquoi ; à
+  confirmer au début de l'étape 3.
 - **Les chiffres du projet** que la recherche n'a pas confirmés
   (« 40 pour 1 », « 34 fois », « 66 % contre 32 % ») : à corriger dans
   le `README.md` et `CLAUDE.md`, indépendamment de la refonte.
