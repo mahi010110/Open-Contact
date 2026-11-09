@@ -56,7 +56,7 @@ Trois points restent incertains : où vivent vraiment les classes d'informatique
 
   Elle n'apporte en échange qu'un chiffrement de bout en bout. WhatsApp l'a déjà, et la plupart des gens ne le comprennent pas (section 5).
 - *(inférence)* **Le lien humain est la partie qui n'existe nulle part ailleurs, et elle ne demande pas de conversation.** On la décompose en trois éléments :
-  - « qui est passé où », déclaré par des camarades qui ne sont pas sur LinkedIn (57 % des 16-25 ans interrogés n'y sont pas) et affiché sur la piste elle-même ;
+  - « qui est passé où », déclaré par des camarades qui ne sont pas sur LinkedIn (57 % des 16-25 ans interrogés n'utilisent pas LinkedIn) et affiché sur la piste elle-même ;
   - la demande qui dépasse le premier cercle en protégeant la chaîne, alors que LinkedIn s'arrête aux relations directes ;
   - la demande qui désigne nommément qui peut aider, au lieu d'être lancée à tous.
 - *(inférence)* **Le lien humain marche à deux.** Une demande à un seul ami qui est passé par l'entreprise rend déjà service. Un fil de classe, lui, ne devient « le » lieu de la classe que si presque toute la classe y est. Dans le vocabulaire d'Andrew Chen (section 2), son « réseau atomique » est beaucoup plus gros.
@@ -164,8 +164,9 @@ La recherche dit aussi que l'on va là où sont ses contacts (Abu-Salma, 2017), 
   - la grande majorité ne comprend pas ce qu'est le chiffrement de bout en bout.
 - [presse, données Sensor Tower] La fuite de janvier 2021 n'a pas déplacé les groupes — [Sensor Tower](https://sensortower.com/blog/whatsapp-signal-telegram-install-growth) :
   - après le changement de règles de confidentialité de WhatsApp, Signal et Telegram ont bondi en téléchargements (Signal environ 60 millions entre le 6 et le 29 janvier 2021, selon un relais de presse ; les chiffres varient selon les sources) ;
-  - les installations se sont ensuite normalisées ;
-  - WhatsApp a repoussé son changement de trois mois.
+  - les installations se sont ensuite normalisées.
+- [presse] Face à la contestation, WhatsApp a repoussé son changement de trois mois — [TechCentral](https://techcentral.co.za/whatsapp-scrambles-to-contain-fallout-as-users-flee-to-rival-apps/104207/)
+- *Lecture :* aucune des sources ne teste directement l'effet de réseau. Le recul rapide des nouvelles installations est compatible avec lui, sans le prouver.
 - [recherche, petits échantillons, hors France] Des étudiants délaissent l'espace fourni par l'établissement :
   - Mpungose (2020, Afrique du Sud, 25 étudiants de première année) : ils jugent le forum Moodle difficile, créent leur propre groupe WhatsApp et le préfèrent — [*Education and Information Technologies*, doi:10.1007/s10639-019-10005-5](https://springerlink.bibliotecabuap.elogim.com/content/pdf/10.1007%2Fs10639-019-10005-5.pdf) ;
   - Ramkissoon (Maurice, 600 étudiants) : 68,4 % passent par WhatsApp, contre 23,6 % par Moodle — [scite](https://scite.ai/authors/parmeswar-ramkissoon-RZNVVW) ;
@@ -285,7 +286,7 @@ Les résultats sont absents ou déclaratifs, et le secteur lui-même parle de l'
   - un programme commun avec France Travail vise 100 000 demandeurs d'emploi ;
   - en Grand Est, 129 demandeurs d'emploi avaient déjà eu un entretien individuel avec un ambassadeur.
 - [officiel, partenaire] Depuis le 29 septembre 2025, un module dédié de 1jeune1solution.gouv.fr donne accès à My Job Glasses — [Centre Inffo](https://www.centre-inffo.fr/?p=501377)
-- [industrie] La conférence DRIVE 2023 du CASE, l'association professionnelle des relations avec les anciens, a tenu une session intitulée « 20 Years On: Benchmarking the Failure of Online Alumni Communities to Advance the Fundraising Pipeline ». Seuls le titre et la description ont été vus — [CASE](https://case.org/conferences-training/drive-2023/sessions/20-years-benchmarking-failure-online-alumni-communities)
+- [industrie] La conférence DRIVE 2023 du CASE (Council for Advancement and Support of Education, l'association professionnelle des services de développement et de relations avec les anciens des établissements) a tenu une session intitulée « 20 Years On: Benchmarking the Failure of Online Alumni Communities to Advance the Fundraising Pipeline ». Seuls le titre et la description ont été vus — [CASE](https://case.org/conferences-training/drive-2023/sessions/20-years-benchmarking-failure-online-alumni-communities)
 - [tiers] La règle « 90-9-1 » de participation aux communautés en ligne est une heuristique contestée, pas une mesure — [Garfield & Romero, SlideShare](https://fr2.slideshare.net/SGarfield/90-91-rule-of-thumb-fact-or-fiction)
 - [recherche, relevé dans une note antérieure] Rajkumar et al. (*Science*, 2022) ont mené des expériences randomisées sur la suggestion « Vous connaissez peut-être » de LinkedIn, auprès de plus de 20 millions de personnes pendant cinq ans. Les liens modérément faibles, mesurés par le nombre de relations en commun, produisent le plus de mobilité professionnelle, selon une courbe en U inversé — [PubMed](https://pubmed.ncbi.nlm.nih.gov/36107999/) ; [Stanford Digital Economy Lab](https://digitaleconomy.stanford.edu/publication/a-causal-test-of-the-strength-of-weak-ties)
 - [recherche, relevé dans une note antérieure] Burks et al. (*QJE*, 2015), sur les données de personnel de neuf grandes entreprises : à compétences comparables, un candidat recommandé est plus souvent embauché, accepte plus souvent l'offre et démissionne moins — [IDEAS/RePEc](https://ideas.repec.org/a/oup/qjecon/v130y2015i2p805-839.html)
@@ -382,7 +383,7 @@ Les utilisateurs tiennent le chiffrement de bout en bout pour acquis (WhatsApp, 
 - [officiel, presse spécialisée] Règlement CSAM, dit « Chat Control » — [Freevacy](https://www.freevacy.com/news/council-of-the-european-union/eu-council-agrees-negotiating-position-on-csam-regulation/6962) ; [eucrim](https://eucrim.eu/news/csa-regulation-council-position-reached/) ; [Bitkom](https://www.bitkom.org/index%2Ephp/EN/List-and-detailpages/Publications/CSAM-Proposal) ; [Conseil de l'UE, ST 11501/26](https://data.consilium.europa.eu/doc/document/ST-11501-2026-INIT/en/pdf) :
   - le Conseil a arrêté sa position le 26 novembre 2025, et les trilogues ont commencé le 9 décembre 2025 ;
   - selon des commentateurs, la version du Conseil rendrait la détection volontaire. Bitkom indique qu'un régime volontaire proposé par une présidence excluait les communications chiffrées ;
-  - au cinquième trilogue, le 29 juin 2026, un accord provisoire a mis les communications audio dans le champ du texte.
+  - au cinquième trilogue, le 29 juin 2026, un accord provisoire a été trouvé sur la question des communications audio, qui touche au champ du texte (lu en extrait, portée exacte non vérifiée).
 - [officiel, presse spécialisée] Dérogation provisoire : le Parlement européen a refusé sa prolongation le 26 mars 2026. Le règlement (UE) 2026/1881 du 24 juillet 2026 l'a rétablie, du 3 août 2026 au 3 avril 2028. Elle permet aux fournisseurs de messagerie de détecter volontairement — [eucrim](https://eucrim.eu/news/interim-rules-on-voluntary-csam-detection-reinstated-until-2028/) ; [Leto](https://www.leto.legal/news/chat-control-parlement-derogation-eprivacy-2026)
 
 **Mineurs**
