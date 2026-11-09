@@ -36,7 +36,7 @@ décisions encore ouvertes sont au §6.*
 |---|---|---|---|---|
 | **Une barre qui comprend** | en bas, sous le pouce, toujours là | en haut, au centre ; « / » y met le curseur | la barre de « Pistes » comprend déjà métier, ville, état, groupe, et propose les fautes de frappe (`engine/requete.js`) | les verbes (« relancer Advens », « ajouter Thales », « écrire à Claire ») et les noms d'amis et de groupes : une table, sans IA |
 | **L'app fait le travail** | tu tapes un nom, l'app ouvre une page toute faite : ce que fait l'entreprise, qui y est passé, à qui écrire, la prochaine étape, « Ajouter à mes pistes » | la même page, plus large | la carte (annuaire, BODACC, Wikipédia…), qui y est passé, le dirigeant proposé, l'aide à l'embauche | réunir ces morceaux en une seule page, et proposer la prochaine étape |
-| **Presque pas de navigation** | plus de barre d'onglets : l'accueil, c'est ce qu'il y a à faire ; à côté de la barre, deux boutons, tes pistes et toi (profil, réseau, réglages) | pas d'onglets non plus : la barre en haut ; dessous, ce qu'il y a à faire et la page ouverte | les routes, les feuilles | la nouvelle coque, téléphone et ordinateur |
+| **Presque pas de navigation** | plus de barre d'onglets. En bas, trois boutons, comme dans Arc Search : à gauche **tes pistes** (la dernière ouverte posée sur la pile, comme les onglets d'Arc), au centre le grand **+** qui ouvre la barre, à droite **toi** (profil, réseau, réglages). L'accueil n'est pas vide comme chez Arc : il dit ce qu'il y a à faire, et ce qu'un ami te demande y apparaît | pas d'onglets non plus : la barre en haut ; dessous, ce qu'il y a à faire et la page ouverte | les routes, les feuilles | la nouvelle coque, téléphone et ordinateur |
 | **Le rangement automatique** | une piste sans nouvelles depuis 45 jours se range seule dans « Rangées » ; l'accueil le dit, avec « Annuler » | pareil | les seuils de 7, 21 et 45 jours (`engine/assist.js`), la clôture « Abandonné » | ranger sans geste, et l'annoncer ; rien n'est jamais supprimé (invariant ②) |
 
 **Le parcours se pose dans ce cadre** (détail dans `refonte.md`) : la
@@ -100,6 +100,10 @@ pour que ça ne se reproduise pas :
    sans nouvelles et le rangement ; le retour après une pause ; un
    refus ; « Décroché » et le contrat ; le réseau ; « Moi ». D'abord au
    téléphone, puis à l'ordinateur.
+   *Commencées le 9 novembre 2026* : `design/maquettes/refonte/telephone.html`
+   (l'accueil, le + vide et en train de taper, la fiche d'une entreprise,
+   la liste des pistes), en clair et en sombre, avec les jetons et les
+   icônes de l'app. Un écran par adresse : `?ecran=…&theme=dark`.
 
 *On passe à la suite quand* : tu as validé l'ensemble en captures.
 
