@@ -6,7 +6,8 @@ l'échéance, le style et les règles : le mainteneur les a choisis un à un.
 place d'une date, une première version mince mais complète, l'interface
 actuelle en service jusqu'à la bascule) et pour l'accessibilité dans le
 socle : l'assistant les recommande, le mainteneur ne les a pas encore
-validés.
+validés. **Méthode remplacée par la fiche 0014** (9 novembre 2026) :
+construite dans main, sans entretiens, avec l'expérience d'Arc Search.
 
 ## Contexte
 

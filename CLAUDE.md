@@ -215,10 +215,18 @@ franchissent qu'à leur condition de sortie.
 questions et la règle des captures (§0), les invariants (§2),
 l'architecture (§3), l'identité visuelle (§4 : jetons, polices, reliefs,
 icônes), l'accessibilité et les interdits (§10). Le reste de §4 à §9
-continue de tenir l'interface actuelle, qui reste en service jusqu'à la
-bascule ; une de ses règles n'entre dans la nouvelle que si le même
-problème y revient. Les principes de la nouvelle interface s'écrivent à
-l'étape « Dessiner ».
+continue de tenir les écrans pas encore refaits ; une de ses règles
+n'entre dans la nouvelle interface que si le même problème y revient.
+Les principes de la nouvelle interface s'écrivent à l'étape « Dessiner ».
+
+**L'expérience est celle d'Arc Search, le style reste 98** *(décision du
+mainteneur, 9 novembre 2026, fiche 0014)* : une barre qui comprend ce
+qu'on tape, l'app qui prépare la page, presque pas de navigation, le
+rangement automatique — et deux dessins, « le PC et le tel sont deux
+choses différentes ». La refonte se construit **directement dans main**,
+lot par lot, sans entretiens : tous les écrans sont dessinés avant le
+premier lot, la navigation ne change qu'une fois, et chaque lot se
+montre en captures avant la fusion (`docs/refonte-plan.md`).
 
 ## 1. Le produit en une phrase
 

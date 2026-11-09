@@ -1,15 +1,14 @@
 # La refonte
 
 **Ce document dit ce que couvre la refonte, ce qui n'en fait pas partie,
-et dans quel ordre elle avance.** Le pourquoi est dans la fiche
-[0013](decisions/0013-la-refonte.md) et dans la synthèse de recherche
-(`reports/Accompagner la recherche de stage.md`). Le détail des lots, des
-tests et des décisions à prendre est dans le plan de mise en œuvre
-([`refonte-plan.md`](refonte-plan.md), proposé le 9 novembre 2026). Les
-principes d'interface de la nouvelle version s'écriront à l'étape
-« Dessiner ».
+et dans quel ordre elle avance.** Le pourquoi est dans les fiches
+[0013](decisions/0013-la-refonte.md) et
+[0014](decisions/0014-arc-search-dans-main.md), les preuves dans
+`reports/`. Le détail des lots est dans le plan de mise en œuvre
+([`refonte-plan.md`](refonte-plan.md)).
 
-*Cadrée le 4 novembre 2026, avec le mainteneur.*
+*Cadrée le 4 novembre 2026 avec le mainteneur ; méthode et expérience
+revues le 9 novembre 2026 (fiche 0014).*
 
 ---
 
@@ -28,9 +27,12 @@ son téléphone.
 | Le parcours | les quatre parties dès la première version : le début, le milieu, la fin, le moral |
 | L'échéance | pas de date : la qualité d'abord |
 | Le style | « Utilitaire 98 », gardé |
-| Les règles | le socle seulement ; des principes courts pour la nouvelle interface |
-| L'IA | pas encore tranchée : décidée à l'étape « Dessiner », après les entretiens |
-| Les étudiants | quelques contacts, à élargir |
+| L'expérience | celle d'Arc Search : une barre qui comprend ce qu'on tape, l'app qui prépare la page, presque pas de navigation, le rangement automatique |
+| Téléphone et ordinateur | deux dessins différents, pensés chacun pour sa main |
+| La méthode | directement dans main, par lots, comme depuis le début ; chaque lot montré en captures avant la fusion |
+| Les étudiants | pas d'entretiens : la recherche documentaire et l'usage du mainteneur pour sa propre recherche |
+| Les règles | le socle seulement pour ce qui est refait ; des principes courts pour la nouvelle interface |
+| L'IA | pas dans la première version (proposé, à confirmer) |
 
 ## Le socle : ce qui ne bouge pas
 
@@ -39,18 +41,18 @@ son téléphone.
   but ; tout marche hors ligne.
 - **Les interdits** (§10) : aucun serveur, aucun compte, aucune
   télémétrie.
-- **Le moteur et les données** (§3, `CONTRAT.md`) : `engine/` est repris
-  tel quel, aucune clé de stockage ne bouge, aucune donnée ne se perd. La
-  nouvelle interface lit et écrit les mêmes données que l'actuelle.
+- **Le moteur et les données** (§3, `CONTRAT.md`) : `engine/` est repris,
+  aucune clé de stockage ne bouge, aucune donnée ne se perd.
 - **L'identité** (§4) : les jetons de `styles/tokens/`, les trois
   polices, les reliefs, les pixelarticons, les deux thèmes.
 - **L'accessibilité** : WCAG 2.2 AA, cibles de 44 px au doigt, texte
-  agrandi jusqu'à 200 %. *Ajoutée au socle par l'assistant, à confirmer.*
+  agrandi jusqu'à 200 %. *Proposée par l'assistant, à confirmer.*
 - **Le public et la surface** : les étudiants IT et cyber ; le web
-  d'abord, le téléphone avant le poste.
-- **Les fonctions du réseau** : amis, groupes, messages, demandes, telles
-  qu'en 8.1.0. Leur place dans la nouvelle interface se redessine comme
-  le reste.
+  d'abord.
+- **Les fonctions du réseau** : qui est passé où, les demandes, les
+  groupes qui reçoivent pistes et demandes, Donner et Recevoir. La
+  conversation libre est masquée dans la première version, sans rien
+  supprimer (proposé, à confirmer).
 - **La règle des captures** (§0) : un changement qui se voit se montre au
   mainteneur, avant et après côte à côte, avant d'arriver dans main.
 
@@ -58,59 +60,45 @@ son téléphone.
 
 - La candidature automatique, le simulateur d'entretien, le score
   « ATS », les séries, les badges, les classements : la recherche les
-  déconseille (synthèse, « Ce qu'il ne faut pas faire »).
+  déconseille.
 - L'application ordinateur, l'application téléphone des stores, l'envoi
   direct par Gmail ou Outlook.
-- Les métiers hors informatique et cybersécurité.
+- Les métiers hors informatique et cybersécurité (seul le vocabulaire
+  devient neutre).
 
-## Le parcours : quatre parties, des hypothèses de départ
+## Le parcours : quatre parties
 
-Ce qui suit n'est pas un dessin. Ce sont les hypothèses que les
-entretiens confirmeront ou déferont, chacune tirée de la synthèse.
-
-| Partie | Ce que l'étudiant doit obtenir | Hypothèse de départ |
+| Partie | Ce que l'étudiant doit obtenir | Ce que l'app fait pour lui |
 |---|---|---|
-| **Le début** | une cible (métier, type de contrat, zone, date butoir), puis une liste d'entreprises qui emploient | passer de la cible à la liste sans rien ressaisir ; proposer des métiers ou des zones voisins quand la recherche est trop étroite (Belot et al., 2019) |
-| **Le milieu** | des candidatures adaptées et relancées, et quelqu'un qui recommande | la prochaine action au format « si… alors » plutôt que des rappels (Gollwitzer et Sheeran, 2006 ; Abel et al., 2019) ; le réseau entre camarades, et ses ponts vers les anciens et les enseignants |
-| **La fin** | se préparer à cette entreprise, choisir entre deux offres, puis un contrat signé qui tient | une courte liste privée après le « oui » : la convention de stage, ou la promesse, le CERFA, le début du contrat, le dépôt à l'OPCO, les 45 premiers jours ; deux alertes contre les arnaques au moment du geste |
-| **Le moral** | tenir face aux refus et au silence | revenir après trois semaines sans tomber sur une dette ; un geste privé et facultatif après un refus (Kreemers et al., 2020) |
+| **Le début** | une cible, puis des entreprises qui emploient | il dit ce qu'il cherche en quelques taps ; l'app propose des entreprises autour de lui, et des métiers ou des zones voisins quand c'est trop étroit (Belot et al., 2019) |
+| **Le milieu** | des candidatures relancées, et quelqu'un qui recommande | l'accueil dit quoi faire maintenant ; après un envoi, la suite se décide en « si… alors » (Gollwitzer et Sheeran, 2006 ; Abel et al., 2019) ; un silence a toujours une sortie ; qui est passé où se lit sur la page de l'entreprise |
+| **La fin** | un contrat signé qui tient | après « Décroché », une courte liste privée jusqu'au contrat (convention ; ou promesse, CERFA, début, OPCO, 45ᵉ jour), et deux alertes contre les arnaques |
+| **Le moral** | tenir face aux refus et au silence | revenir après trois semaines sans liste de retards ; un geste privé et facultatif après un refus (Kreemers et al., 2020) |
 
-**Une première version mince mais complète.** Les quatre parties existent
-dès la première version, chacune réduite à son minimum. On approfondit
-ensuite selon ce que disent les étudiants : jamais une partie parfaite à
-côté de trois absentes.
+**Une première version mince mais complète** : les quatre parties
+existent dès la première version, chacune à son minimum.
 
 ## Les étapes
 
-Pas de date : chaque étape a une **condition de sortie**, et on ne passe
-à la suivante que lorsqu'elle est remplie.
-
 | Étape | Ce qu'on fait | On passe à la suite quand |
 |---|---|---|
-| 0. Cadrer | ce document et la fiche 0013 | le mainteneur a validé le périmètre |
-| 1. Comprendre | des entretiens de 45 minutes avec les contacts du mainteneur, chacun invité à en amener un autre ; la carte du parcours vécu, avec ses émotions et ses risques ; comment ils se servent déjà d'une IA | au moins cinq entretiens, et une carte du parcours que le mainteneur reconnaît |
-| 2. Dessiner | la structure de l'app (navigation, écrans), puis les écrans clés en maquettes, au pouce et au poste, clair et sombre, testés à voix haute ; les principes de la nouvelle interface ; la décision sur l'IA | des maquettes validées en captures par le mainteneur, et chaque partie du parcours comprise sans aide par les étudiants testés |
-| 3. Construire | la nouvelle interface à côté de l'actuelle, sur le même moteur et les mêmes données ; le moteur d'abord, testé | les quatre parties jouables de bout en bout, `?test` vert, le socle vérifié |
-| 4. Essayer | une bêta pendant une vraie période de recherche ; un résumé calculé sur l'appareil, que l'étudiant lit en entier puis envoie s'il le veut | les parcours réussis seuls, aucun signe de préjudice (culpabilité, anxiété), les retours traités |
-| 5. Basculer | une décision du mainteneur, consignée dans une fiche ; l'ancienne interface part ensuite, avec son style | — |
+| 1. Vérifier | une heure de test sur un vrai iPhone ; les chiffres du README corrigés | le tableau du test est rempli |
+| 2. Dessiner | tous les écrans en maquettes, téléphone et ordinateur, clair et sombre | le mainteneur a validé l'ensemble en captures |
+| 3. Construire | dans main, lot par lot, vers ce dessin ; la navigation ne change qu'une fois | les quatre parties se jouent de bout en bout, `?test` vert |
+| 4. Montrer | quand le mainteneur le décide | — |
 
-**Ce qui juge la refonte** : les étudiants qui décrochent, l'adéquation
-qu'ils ressentent, et l'absence de préjudice. Jamais le nombre
-d'ouvertures : un étudiant qui trouve et n'ouvre plus l'app est une
-réussite.
+**Ce qui juge la refonte** : les étudiants qui décrochent. Jamais le
+nombre d'ouvertures : un étudiant qui trouve et n'ouvre plus l'app est
+une réussite.
 
 ## Questions ouvertes
 
-- **L'IA** : tranchée à l'étape 2, sur ce que les entretiens auront
-  montré. Quelle que soit la réponse, la nouvelle interface marche
-  entièrement sans IA.
-- **La bêta de l'interface actuelle** (`feuille-de-route.md`, §2) :
-  a-t-elle encore lieu pendant la refonte, ou attend-elle la nouvelle
-  interface ?
-- **Comment construire à côté** : une entrée séparée sur la même origine,
-  ou un interrupteur dans l'app. Le plan de mise en œuvre propose
-  l'entrée séparée (`nouveau.html`, à la racine) et dit pourquoi ; à
-  confirmer au début de l'étape 3.
+- **Le clavier à l'ouverture** sur téléphone : prêt tout de suite comme
+  dans Arc Search, ou d'un tap pour laisser voir ce qu'il y a à faire ?
+  À trancher en maquette.
+- **La page d'une entreprise à l'ordinateur** : à côté de la liste, ou
+  en fenêtre comme aujourd'hui ? Le mainteneur avait refusé « à côté »
+  le 3 novembre (fiche 0011). À trancher en maquette.
 - **Les chiffres du projet** que la recherche n'a pas confirmés
   (« 40 pour 1 », « 34 fois », « 66 % contre 32 % ») : à corriger dans
-  le `README.md` et `CLAUDE.md`, indépendamment de la refonte.
+  le `README.md` et `CLAUDE.md`.
