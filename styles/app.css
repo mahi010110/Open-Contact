@@ -966,18 +966,6 @@ html[data-theme="dark"] .field select{
      sous sa dernière carte. Le pied SUIT donc le travail du jour, sous
      son filet, comme la fin d'une page. */
 }
-/* Au poste, une tranche qui suit le tableau (« Sans nouvelles », « Tes
-   amis ») se range sur SES colonnes : en pleine largeur, ses lignes
-   faisaient 1 060 px et le geste tombait à 900 px du nom qu'il
-   concerne — la faute de proximité que « Échanger » avait déjà payée
-   (NN/g, loi de proximité ; Fitts : la cible loin de l'œil). Trois
-   colonnes, la même gouttière que le tableau, et chaque ligne garde
-   ses gestes à portée de son nom. */
-@media (min-width:901px){
-  #view-aujourdhui>.page-wide .tranche .tr-rows{
-    display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:start
-  }
-}
 /* « À trier (N) » — la ligne calme qui regroupe les entrants (#10) */
 .td-triage{
   display:flex;align-items:center;gap:8px;width:100%;margin-top:16px;
@@ -4195,3 +4183,50 @@ html.oc-locked .undo-bar{display:none}
    signe que le bouton « Moi » de la barre du bas */
 .moi-reseau.attend .rg-n,.moi-reseau.attend .rg-s{color:var(--accent)}
 .moi-reseau.attend .rg-s::before{content:'';display:inline-block;width:6px;height:6px;margin-right:6px;vertical-align:.1em;background:var(--accent)}
+
+/* ============ « AUJOURD'HUI » (la refonte, fiche 0014) ============
+   Une file : une piste, sa prochaine étape, un bouton nommé. Les lignes
+   gardent le dessin des lignes d'action (`.act-row`) ; ce qui change,
+   c'est le bout de la ligne — un seul geste, écrit, au lieu de trois
+   icônes à deviner — et l'emphase : le premier bouton est le seul rempli. */
+/* LA CIBLE : ce que je cherche, où, pour quand. Un cadre de groupe (le
+   trait `--border-frame`), sans relief : c'est un fait qu'on relit, pas
+   une action du jour — le crayon dit qu'il se modifie. */
+.aj-cible{
+  display:flex;align-items:center;gap:12px;width:100%;padding:10px 12px;text-align:left;
+  background:var(--surface-window);border:1px solid var(--border-frame);color:var(--text-body);
+}
+.aj-cible-t{flex:1;min-width:0;display:block}
+.aj-cible b{display:block;font-size:var(--text-15);font-weight:var(--weight-semibold);line-height:1.3;overflow-wrap:anywhere}
+.aj-cible-t span{
+  display:block;margin-top:2px;font-family:var(--font-mono);font-size:var(--text-12);line-height:1.4;color:var(--text-muted);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.aj-cible>.ic{flex:none;color:var(--text-muted)}
+@media (hover:hover){ .aj-cible[id]:hover>.ic{color:var(--text-body)} }
+.aj-cible-vide{display:block}
+.aj-cible-vide .datechips{margin-top:8px}
+.aj .done-line{margin-top:12px}
+/* le geste de la ligne : une boîte 98 à la hauteur de la main, taillée
+   à son mot. 8 px le séparent d'« ouvrir la fiche » (`.act-in`) : deux
+   conséquences différentes ne partagent pas une arête (§5). */
+.aj .act-btns{padding-right:8px}
+/* ce que l'app a rangé toute seule : un fait en encre sourde, et sa sortie */
+.aj-range{
+  display:flex;align-items:center;gap:10px;margin-top:14px;padding:6px 0 6px 2px;
+  border-top:1px dotted var(--border-soft);border-bottom:1px dotted var(--border-soft);
+  font-size:var(--text-13);line-height:1.35;color:var(--text-muted);
+}
+.aj-range+.aj-range{margin-top:0;border-top:0}
+.aj-range-t{flex:1;min-width:0}
+.aj-range b{color:var(--text-body);font-weight:var(--weight-semibold)}
+.aj-range>.ic{flex:none}
+/* AU POSTE : deux zones. Le travail à gauche, la plus large — c'est la
+   colonne de ce qu'il y a à faire (§6, « les proportions disent
+   l'importance ») ; le contexte à droite : la cible, puis « Bientôt ». */
+/* La colonne de travail s'arrête à 42 rem : étirée sur toute la largeur,
+   le geste d'une ligne tomberait à 900 px du nom qu'il concerne — la
+   faute de proximité qu'« Échanger » avait déjà payée (§6). */
+.aj-cols{display:grid;grid-template-columns:minmax(0,42rem) minmax(17rem,22rem);gap:32px;align-items:start}
+.aj-travail>.tranche:first-child,.aj-travail>.td-empty:first-child{margin-top:0}
+.aj-contexte .tranche{margin-top:16px}

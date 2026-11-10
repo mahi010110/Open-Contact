@@ -1,25 +1,61 @@
 /* ============================================================
    OpenContact — interface · « Aujourd'hui »
-   Le flux d'actions : En retard · Aujourd'hui · Bientôt (repliée).
-   Une ligne = une action — Écrire / Reporter / Fait (swipe sur
-   mobile). Faire une action vide la ligne. État vide positif,
-   jamais culpabilisant. Jamais 40 lignes d'un coup.
+   (la refonte — « l'app fait le travail », fiche 0014)
+
+   L'écran répond à UNE question : « je fais quoi maintenant ? »
+   (CLAUDE.md §1). Il le faisait par tranches — En retard, Aujourd'hui,
+   Sans nouvelles, Par où commencer — et trois icônes muettes par ligne :
+   c'était à l'étudiant de lire l'état de chaque piste et d'en déduire le
+   geste. Maintenant c'est l'app qui le dit.
+
+   UNE FILE, PAS DES TRANCHES. `aFaire` (engine/etape.js) rend la liste
+   dans l'ordre : ce qui est dû (le plus en retard d'abord), la suite
+   d'un contrat décroché, les pistes qui se taisent, puis trois pistes
+   par où commencer. Une ligne = une piste, sa prochaine étape, et UN
+   bouton nommé qui la fait.
+
+   CINQ PARTIS PRIS, chacun tiré de ce qu'on a lu
+   (reports/Accompagner la recherche de stage.md) :
+   1. UNE SEULE EMPHASE. Le bouton de la première ligne est le seul
+      rempli : c'est la réponse à la question de l'écran. Les autres sont
+      des boîtes 98 claires (§6, « une seule action remplie par vue »).
+   2. TOUT CE QUI EST ENGAGÉ SE MONTRE, ce que l'app PROPOSE complète
+      jusqu'à trois lignes — vingt-quatre pistes à démarrer ne font pas
+      vingt-quatre décisions (§6, « choisir à la place de l'utilisateur »).
+   3. LE PLAN EST CONTINGENT. « Bientôt » ne liste pas que les dates
+      posées : une piste qui attend une réponse y dit « Relancer si pas
+      de réponse », au jour où la relance viendra. Un plan « si… alors »
+      fait mieux qu'un rappel (Gollwitzer & Sheeran, 2006 ; Abel et al.,
+      2019).
+   4. REVENIR NE COÛTE RIEN. Après une semaine sans geste, la file
+      s'appelle « Pour reprendre », tient en trois lignes et ne compte
+      plus les jours de retard : une dette affichée fait décrocher
+      (`enPause`, engine/suivi.js).
+   5. CE QUE L'APP FAIT SEULE, ELLE LE DIT. Une piste rangée après 45
+      jours de silence s'annonce ici, avec « Annuler » (invariant ②).
+
+   DEUX DESSINS (« le PC et le tel sont deux choses différentes ») : au
+   pouce, une colonne — la cible, la file, puis « Bientôt » replié ; au
+   poste, deux zones — le travail à gauche, le contexte à droite (la
+   cible, « Bientôt » déplié), comme un volet d'appui.
    ============================================================ */
 import { esc, todayISO } from '../engine/utils.js';
-import { DOMAINS, STATUSES, prendCeQueJeCherche, PREND_MOT } from '../engine/model.js';
-import { porteurs } from '../engine/requete.js';
+import { RECHERCHES, resumeRecherche } from '../engine/model.js';
+import { aFaire } from '../engine/etape.js';
+import { annonces } from '../engine/rangement.js';
+import { enPause } from '../engine/suivi.js';
+import { metierDuProfil, METIER } from '../engine/requete.js';
+import { amorces } from '../engine/commande.js';
 import { portesDuJour } from './amis.js';
-import { lignesAmis, ouvrirLigne } from './reseau.js';
+import { lignesAmis, ouvrirLigne, peutDemanderAmis } from './reseau.js';
 import { ecritsDuJour, ouvrirNonLus } from './conversations.js';
-import { scoreOf } from '../engine/score.js';
-import { dueFollowups, silentPistes, aDemarrer } from '../engine/assist.js';
-import { S, bus, isClosed, markDone, hasDemo, addDemo, removeDemo } from './state.js';
+import { S, bus, hasDemo, addDemo, removeDemo, saveProfile } from './state.js';
 import { $, ic, openSheet, voirAutres } from './dom.js';
 import { frToday, frDate, dueMarkHTML, silenceMarkHTML } from './dates.js';
-import { askNextAction, reportAction, askClose } from './actions.js';
-import { openMail } from './mail.js';
+import { reportAction } from './actions.js';
 import { openFiche } from './fiche.js';
 import { openCapture } from './capture.js';
+import { faireEtape, marquerFait, annulerRangement } from './gestes.js';
 import { campaignLines, openCampaignById } from './campagnes.js';
 import { mailAnalysis } from './analyse.js';
 import { openPendingMailAnalysis } from './recevoir.js';
@@ -27,13 +63,10 @@ import { ouvrirSur } from './pistes.js';
 import { pendingProposals, openPendingProposals } from './propositions.js';
 import { ORDINATEUR, CAMPAGNES } from './perimetre.js';
 
-const CAP = 8;                      /* lignes visibles par tranche avant « voir plus » */
-const expanded = new Set();         /* tranches dépliées à la main (le temps de la session) */
+const CAP = 8;                      /* lignes de « Bientôt » avant « voir plus » */
+const FILE = 3;                     /* ce que l'app propose complète jusqu'à trois lignes */
+const expanded = new Set();         /* ce qu'on a déplié à la main (le temps de la session) */
 
-/* Deux conceptions, pas une page élastique. Au pouce : un fil vertical,
-   « Bientôt » replié — une seule chose à la fois. Au poste : les trois
-   tranches côte à côte, tout visible d'un coup, comme le tableau de
-   « Mes pistes ». Ce n'est pas la même page à deux largeurs. */
 const mqWide = matchMedia('(min-width:901px)');
 mqWide.addEventListener('change', () => { if (S.route === 'aujourdhui') renderToday(); });
 
@@ -49,204 +82,112 @@ function receivedTodayCount(){
     (c.history || []).some(h => h.t === 'Reçue via partage' && h.d === today)).length;
 }
 
-/* L'ENCRE VA À L'ENTREPRISE, PAS AU VERBE.
-   Mesuré sur huit lignes d'action : le verbe portait l'encre (14 px,
-   gras, en tête) pour UNE seule valeur distincte — « Relancer le service
-   RH » sur les trois quarts des lignes — pendant que l'entreprise, seule
-   chose qui varie toujours, tenait 11 px de gris en seconde position.
-   Trois raisons de l'inverser, dont la dernière est la plus forte :
-   ① la règle que l'app s'est donnée (CLAUDE.md §6 — l'encre va à ce qui
-     change) ; ② NN/g, *The Anatomy of a List Entry* — mettre en avant
-     l'attribut DISTINCTIF ; ③ sur cet écran même, « Par où commencer »
-     et « Sans nouvelles » mettaient DÉJÀ le nom de la piste en tête. La
-     même place portait tantôt une action, tantôt une entreprise : c'est
-     la promesse « chaque information au même endroit d'une ligne à
-     l'autre » qui était rompue, à l'intérieur d'un seul écran.
-   Ce qui reste : le verbe descend en sous-ligne, où il est de toute
-   façon doublé par les trois gestes de droite ; l'échéance garde sa
-   place forte devant lui. */
-function rowHTML(c){
-  const verb = c.nextActionText || 'Faire le point';
-  const today = todayISO();
-  /* la tranche donne le contexte : en retard → seul l'écart compte,
-     aujourd'hui → rien à répéter, bientôt → la date. L'échéance passe
-     devant le nom : c'est lui qui se tronque, jamais elle.
-     Le retard prend LA marque de l'app (`dueMarkHTML`), celle de « Mes
-     pistes » : c'est le même fait, il doit avoir le même dessin. Et
-     c'est le seul cran qui la porte ici — sur un écran où toutes les
-     lignes réclament quelque chose, une marque sur chacune ne serait
-     plus un signal. */
-  const when = c.nextAction < today ? dueMarkHTML(c.nextAction)
-             : c.nextAction > today ? `<span class="act-when">${frDate(c.nextAction)}</span>` : '';
+/* ---------- la cible ----------
+   « Ma recherche » ouvre l'écran : ce que je cherche, où, pour quand —
+   le début du parcours (docs/refonte.md), et ce qui règle le reste (les
+   entreprises proposées, le mail, la suite d'un contrat). Tant qu'elle
+   n'est pas dite, trois puces la demandent d'un tap : pas un formulaire,
+   la première décision. Dite, elle tient en deux lignes et s'ouvre sur
+   le profil. */
+function cibleHTML(){
+  const p = S.profile;
+  const r = RECHERCHES[p.recherche];
+  if (!r){
+    return `<div class="aj-cible aj-cible-vide" role="group" aria-labelledby="ajCibleQ">
+              <b id="ajCibleQ">Tu cherches</b>
+              <div class="datechips">${Object.keys(RECHERCHES).map(k =>
+                `<button class="dchip" data-cherche="${k}">${RECHERCHES[k].label}</button>`).join('')}</div>
+            </div>`;
+  }
+  const m = metierDuProfil(p);
+  const metier = m && METIER[m] && !/[\/]/.test(METIER[m].label) ? ' en ' + METIER[m].label.toLowerCase() : '';
+  const titre = [r.label + metier, p.ville].filter(Boolean).join(' · ');
+  const periode = resumeRecherche(p).slice(r.label.length).replace(/^\s*·\s*/, '');
+  const sous = [p.formation, periode].filter(Boolean).join(' · ');
+  return `<button class="aj-cible" id="ajCible" aria-label="Ma recherche : ${esc(titre)}. Modifier">
+            <span class="aj-cible-t"><b>${esc(titre)}</b>${sous ? `<span>${esc(sous)}</span>` : ''}</span>
+            ${ic('pencil', 'ic-14')}
+          </button>`;
+}
+
+/* ---------- une ligne à faire ----------
+   L'ENCRE VA À L'ENTREPRISE, PAS AU VERBE (§6) : le nom en tête, ce qu'il
+   faut faire dessous, et le geste au bout — nommé. La sous-ligne
+   commence par ce qui a fait monter la ligne : le retard (la marque de
+   l'app), le silence (la même marque), ou l'atout en accent (« Karim y
+   est en alternance »). Quand l'atout dit déjà le geste, il ne se
+   redit pas. */
+function rangHTML(e, o){
+  const date = e.genre === 'retard' || e.genre === 'jour';
+  const devant = e.genre === 'retard' && !o.reprise ? dueMarkHTML(e.date)
+    : e.genre === 'silence' ? silenceMarkHTML(e.silence)
+    : e.raison ? `<span class="act-vecu">${esc(e.raison)}</span>` : '';
+  const quoi = e.genre === 'demarrer' && e.raison ? '' : `<span class="act-do">${esc(e.titre)}</span>`;
+  const derriere = e.genre === 'contrat' ? `<span class="act-who">${esc(e.sous)}</span>` : '';
   return (
-    `<div class="act-row" data-id="${c.id}">
-       <div class="act-under act-under-done">${ic('check', 'ic-14')} Fait</div>
-       <div class="act-under act-under-report">${ic('calendar', 'ic-14')} Reporter</div>
+    `<div class="act-row aj-rang" data-id="${esc(e.id)}" data-genre="${e.genre}">
+       ${date ? `<div class="act-under act-under-done">${ic('check', 'ic-14')} Fait</div>
+                 <div class="act-under act-under-report">${ic('calendar', 'ic-14')} Reporter</div>` : ''}
        <div class="act-in">
-         <div class="act-main sw-cible" role="button" tabindex="0" aria-label="Ouvrir ${esc(c.name)}">
-           <b class="act-verb">${esc(c.name)}</b>
-           <span class="act-sub">${when}<span class="act-do">${esc(verb)}</span></span>
+         <div class="act-main sw-cible" role="button" tabindex="0" aria-label="Ouvrir ${esc(e.nom)}">
+           <b class="act-verb">${esc(e.nom)}</b>
+           <span class="act-sub">${devant}${quoi}${derriere}</span>
          </div>
          <div class="act-btns">
-           <button class="abtn" data-a="mail" aria-label="Écrire à ${esc(c.name)}" title="Écrire">${ic('mail')}</button>
-           ${/* le CALENDRIER, comme « Planifier » une tranche plus haut :
-                c'est la même question — quelle date — et elle avait deux
-                dessins. L'horloge, elle, ne se devinait pas (1er octobre
-                2026) ; elle reste à « Sans nouvelles », où elle dit le
-                temps qui passe. */''}
-           <button class="abtn" data-a="report" aria-label="Reporter ${esc(c.name)}" title="Reporter">${ic('calendar')}</button>
-           <button class="abtn abtn-ok" data-a="done" aria-label="Fait" title="Fait">${ic('check')}</button>
+           <button class="btn btn-sm aj-geste${o.premier ? ' btn-primary' : ''}" data-geste
+                   aria-label="${esc(e.bouton + ' — ' + e.nom)}">${ic(e.icone, 'ic-14')} ${esc(e.bouton)}</button>
          </div>
        </div>
      </div>`);
 }
-/* ---------- « Par où commencer » ----------
-   Le cas mesuré : on reçoit le fichier d'un camarade, vingt-quatre
-   pistes arrivent d'un coup, aucune n'est planifiée — et l'écran censé
-   répondre à « je fais quoi maintenant ? » répondait « Rien de
-   planifié », zéro ligne affichée, deux portes. Or il tient la réponse :
-   vingt-quatre pistes. C'est la règle §6 (« un écran montre les affaires
-   de l'utilisateur, pas des portes ») appliquée à l'écran principal.
-
-   TROIS, pas vingt-quatre : vingt-quatre pistes non planifiées, c'est
-   vingt-quatre décisions avant le premier geste, et le premier geste
-   n'arrive jamais. Choisir à la place de l'utilisateur EST le service.
-
-   L'ordre a une raison, et elle se voit sur la ligne : d'abord ce à quoi
-   on peut ÉCRIRE tout de suite (une adresse), ensuite les fiches les
-   mieux remplies (on a le plus à dire). Un coup de pouce sans raison
-   visible ne pousse personne.
-
-   Une ligne sans action n'offre ni « Fait » ni « Reporter » — il n'y a
-   rien à finir ni à repousser. Elle offre les deux seuls gestes qui
-   existent ici : écrire, ou décider quand. */
-const DEBUT = 3;
-const joignable = c => (c.contacts || []).some(t => t.email);
-/* Le premier critère, avant même l'adresse : quelqu'un a-t-il déjà mis
-   les pieds là-bas ? Une candidature portée décroche ~40 % d'entretiens
-   contre ~3 % à froid — un facteur treize que rien d'autre sur cette
-   ligne n'approche. Le prénom suffit : c'est lui qui rend la chose
-   jouable (« quelqu'un y a fait son stage » ne se joue pas). */
-/* Et depuis le lot 2 du réseau : un AMI dont le parcours nomme la piste
-   (« Karim y est en alternance ») compte au même titre — c'est la même
-   raison, dite par lui-même. Calculé une fois par rendu. */
-let portesRendu = null;
-const porteePar = c => porteurs(c, portesRendu)[0] || null;
-/* Le deuxième critère : la piste PREND-ELLE ce que tu cherches ? Un
-   alternant à qui l'on propose d'abord trois entreprises qui ne prennent
-   que des stagiaires perd trois candidatures avant la première utile.
-   Trois rangs, pas deux : « oui », puis « on ne sait pas » (une piste
-   muette n'a rien refusé), puis « non ». Sans recherche choisie dans le
-   profil, le critère ne départage rien — l'ordre d'avant est intact. */
-const rangPrend = c => { const v = prendCeQueJeCherche(c, S.profile.recherche); return v === true ? 2 : v === null ? 1 : 0; };
-function parOuCommencer(sansAction){
-  return sansAction.slice().sort((a, b) =>
-    (!!porteePar(b) - !!porteePar(a)) ||
-    (rangPrend(b) - rangPrend(a)) ||
-    (joignable(b) - joignable(a)) ||
-    (scoreOf(b) - scoreOf(a)) ||
-    a.name.localeCompare(b.name, 'fr')).slice(0, DEBUT);
-}
-function startRowHTML(c){
-  const n = (c.contacts || []).length;
-  /* Le compte de contacts passe DEVANT le secteur : au pouce la
-     sous-ligne s'élide, et c'est le dernier morceau qui saute. « ESN /
-     Services IT » est le plus long et le moins décisif — le nombre de
-     personnes joignables, lui, est exactement ce qui départage. Mesuré :
-     la version secteur-en-second rendait « Toulouse · ESN / Services
-     IT · 3 co… ». */
-  const bits = [
-    c.city,
-    n ? n + ' contact' + (n > 1 ? 's' : '') : '',
-    c.domain && c.domain !== 'autre' ? (DOMAINS[c.domain] || DOMAINS.autre).label : ''
-  ].filter(Boolean);
-  /* La raison du classement se lit sur la ligne, et EN PREMIER : la
-     sous-ligne s'élide par la fin, donc ce qui décide se met devant.
-     Pas de `mark-*` — ce n'est pas une urgence, c'est un atout ; même
-     traitement que le bandeau de la fiche, l'accent et rien d'autre. */
-  const porte = porteePar(c);
-  /* Une raison, la plus forte : quelqu'un du groupe d'abord (40 contre 3),
-     sinon « prend des alternants » — le critère qui l'a fait monter. */
-  const prend = !porte && prendCeQueJeCherche(c, S.profile.recherche) === true;
-  const pourquoi = porte
-    ? `<span class="act-vecu">${esc(porte.prenom + ' ' + porte.court)}</span>`
-    : prend ? `<span class="act-vecu">${esc(PREND_MOT[S.profile.recherche])}</span>` : '';
+/* plus tard : la date, puis ce qui est prévu — ou le plan « si… alors »
+   d'une piste qui attend */
+function tardHTML(e){
   return (
-    `<div class="act-row act-start" data-id="${c.id}">
+    `<div class="act-row aj-tard" data-id="${esc(e.id)}">
        <div class="act-in">
-         <div class="act-main sw-cible" role="button" tabindex="0" aria-label="Ouvrir ${esc(c.name)}">
-           <b class="act-verb">${esc(c.name)}</b>
-           <span class="act-sub">${pourquoi}<span class="act-who">${esc(bits.join(' · '))}</span></span>
-         </div>
-         <div class="act-btns">
-           ${/* pas d'adresse, pas de bouton : une capacité absente est
-                ABSENTE, jamais grisée (§0) */''}
-           ${joignable(c)
-             ? `<button class="abtn" data-a="mail" aria-label="Écrire à ${esc(c.name)}" title="Écrire">${ic('mail')}</button>` : ''}
-           <button class="abtn abtn-ok" data-a="plan" aria-label="Planifier ${esc(c.name)}" title="Planifier">${ic('calendar')}</button>
+         <div class="act-main sw-cible" role="button" tabindex="0" aria-label="Ouvrir ${esc(e.nom)}">
+           <b class="act-verb">${esc(e.nom)}</b>
+           <span class="act-sub"><span class="act-when">${frDate(e.date)}</span><span class="act-do">${
+             esc(e.genre === 'attente' ? 'Relancer si pas de réponse' : e.titre)}</span></span>
          </div>
        </div>
      </div>`);
 }
-/* ---------- « Sans nouvelles » ----------
-   Une piste qu'on a contactée, qui n'a pas répondu, et à qui on n'a pas
-   donné de suite : elle disparaissait. Zéro ligne ici, et dans « Mes
-   pistes » le même « à planifier » qu'elle dorme depuis cinq jours ou
-   depuis trois mois. C'est là que la plupart des recherches s'arrêtent.
+function bientotHTML(tard, wide){
+  if (!tard.length) return '';
+  const cap = expanded.has('soon') ? tard.length : CAP;
+  const rows = tard.slice(0, cap).map(tardHTML).join('');
+  const more = tard.length > cap
+    ? `<button class="linklike tr-more" data-tr="soon">${voirAutres(tard.length - cap)}</button>` : '';
+  const head = `${ic('calendar', 'ic-14')} Bientôt <span class="tr-n">${tard.length}</span>`;
+  /* au poste, la place ne manque pas : la tranche est ouverte, dans le
+     volet de droite. Au pouce, elle se replie — une chose à la fois. */
+  return wide
+    ? `<section class="tranche tr-soon"><h2 class="tr-h">${head}</h2><div class="tr-rows">${rows}${more}</div></section>`
+    : `<details class="tranche tr-soon">
+         <summary class="tr-h"><h2>${head}</h2></summary><div class="tr-rows">${rows}${more}</div>
+       </details>`;
+}
 
-   Ce qui empêche cette tranche de devenir une pile de reproches — le
-   piège qui fait abandonner les outils de suivi, et que la spec
-   interdit déjà (« jamais culpabilisant ») : chaque ligne a une SORTIE.
-   Passé le dernier seuil, le moteur ne dit plus « relance », il dit
-   « clore » ; le geste proposé change avec lui. Une pile dont chaque
-   ligne peut sortir ne grandit pas sans fin. */
-function silenceRowHTML(sil){
-  const c = S.companies.find(x => x.id === sil.id);
-  if (!c) return '';
-  const bits = [(STATUSES[c.status] || {}).label, c.city].filter(Boolean);
-  const clore = sil.geste === 'clore';
-  return (
-    `<div class="act-row act-quiet" data-id="${c.id}">
-       <div class="act-in">
-         <div class="act-main sw-cible" role="button" tabindex="0" aria-label="Ouvrir ${esc(c.name)}">
-           <b class="act-verb">${esc(c.name)}</b>
-           <span class="act-sub">${silenceMarkHTML(sil)}<span class="act-who">${esc(bits.join(' · '))}</span></span>
-         </div>
-         <div class="act-btns">
-           ${joignable(c)
-             ? `<button class="abtn" data-a="mail" aria-label="Écrire à ${esc(c.name)}" title="Écrire">${ic('mail')}</button>` : ''}
-           ${clore
-             ? `<button class="abtn" data-a="clore" aria-label="Clôturer ${esc(c.name)}" title="Clôturer">${ic('archive')}</button>`
-             : `<button class="abtn abtn-ok" data-a="plan" aria-label="Relancer ${esc(c.name)}" title="Relancer">${ic('calendar')}</button>`}
-         </div>
-       </div>
-     </div>`);
-}
-function silenceHTML(items, total){
-  /* trois d'abord — c'est un choix proposé, pas la liste —, mais celles
-     d'après restent à un tap, comme dans toute tranche (« Voir les N
-     autres ») : elles n'avaient plus d'autre chemin que le lien du pied,
-     qui ouvrait « Mes pistes » entière */
-  const more = total > items.length
-    ? `<button class="linklike tr-more" data-tr="quiet">${voirAutres(total - items.length)}</button>` : '';
-  return `<section class="tranche tr-quiet">
-            <h2 class="tr-h">${ic('clock', 'ic-14')} Sans nouvelles <span class="tr-n">${total}</span></h2>
-            <div class="tr-rows">${items.map(silenceRowHTML).join('')}${more}</div>
-          </section>`;
-}
+/* ---------- ce que l'app a rangé toute seule ----------
+   Un fait, et sa sortie : la piste est toujours là (« Mes pistes »,
+   clôturée), « Annuler » la rouvre et le silence repart de zéro. */
+const rangeesHTML = l => l.map(a =>
+  `<div class="aj-range" data-id="${esc(a.id)}">
+     ${ic('archive', 'ic-14')}
+     <span class="aj-range-t"><b>${esc(a.name)}</b> s’est rangée : ${a.jours} jours sans réponse.</span>
+     <button class="btn btn-sm" data-annuler aria-label="Annuler le rangement de ${esc(a.name)}">Annuler</button>
+   </div>`).join('');
 
 /* ---------- « Tes amis » (docs/reseau.md, lot 3) ----------
    Quelqu'un ATTEND : un ami cherche une personne chez une entreprise où
    tu en connais une, ou un ami t'a donné le contact que tu cherchais.
    Elle passe donc en tête, avant le travail du jour — une demande
    s'éteint en 14 jours, et c'est la seule ligne de l'écran qui fait
-   gagner quelque chose à quelqu'un d'autre. Elle n'existe que si ton
-   téléphone a TROUVÉ quelqu'un (règle 6) : un ami qui demande sans que
-   tu connaisses personne ne t'en dit rien. */
-/* À GRANDE ÉCHELLE : trois lignes, comme toute tranche, et la suite à un
-   tap — trente-sept cartes avaient pris tout l'écran avant le travail du
-   jour. Au calme, la première dit qui t'a écrit : l'onglet ne porte pas
-   de chiffre, c'est ici qu'on le lit, à son heure. */
+   gagner quelque chose à quelqu'un d'autre. Trois lignes, et la suite à
+   un tap. La première dit qui t'a écrit : aucun bouton ne porte de
+   chiffre, c'est ici qu'on le lit, à son heure. */
 const CAP_AMIS = 3;
 function amisHTML(lignes){
   const ecrits = ecritsDuJour();
@@ -267,50 +208,6 @@ function amisHTML(lignes){
                    </div>
                  </div>
                </div>`).join('')}${more}</div>
-          </section>`;
-}
-
-function debutHTML(items){
-  return `<section class="tranche tr-start">
-            <h2 class="tr-h">${ic('zap', 'ic-14')} Par où commencer</h2>
-            <div class="tr-rows">${items.map(startRowHTML).join('')}</div>
-          </section>`;
-}
-
-function trancheHTML(key, label, icon, items, open){
-  if (!items.length) return '';
-  const cap = expanded.has(key) ? items.length : CAP;
-  const rows = items.slice(0, cap).map(rowHTML).join('');
-  const more = items.length > cap
-    ? `<button class="linklike tr-more" data-tr="${key}">${voirAutres(items.length - cap)}</button>` : '';
-  const head = `${ic(icon, 'ic-14')} ${label} <span class="tr-n">${items.length}</span>`;
-  if (key === 'soon'){
-    return `<details class="tranche tr-${key}"${open ? ' open' : ''}>
-              ${/* même rang que les tranches non pliables juste au-dessus :
-                   « Bientôt » est un titre, le `<summary>` n'est que son
-                   bouton — sans le `<h3>`, le plan du document perdait
-                   une section sur trois selon qu'elle se replie ou non */''}
-              <summary class="tr-h"><h2>${head}</h2></summary><div class="tr-rows">${rows}${more}</div>
-            </details>`;
-  }
-  return `<section class="tranche tr-${key}">
-            <h2 class="tr-h">${head}</h2><div class="tr-rows">${rows}${more}</div>
-          </section>`;
-}
-
-/* la même tranche, en colonne de tableau (poste de commandement) —
-   mêmes briques que « Mes pistes » : .board / .bcol / .bcol-h, et le
-   dither de .bcol-empty quand il n'y a rien. Une colonne vide n'est
-   pas un trou : c'est une bonne nouvelle, elle le dit. */
-function colHTML(key, label, icon, items, vide){
-  const cap = expanded.has(key) ? items.length : CAP;
-  const more = items.length > cap
-    ? `<button class="linklike tr-more" data-tr="${key}">${voirAutres(items.length - cap)}</button>` : '';
-  return `<section class="bcol tr-${key}" aria-label="${label}">
-            <h2 class="bcol-h">${ic(icon, 'ic-14')} ${label} <span class="tr-n">${items.length}</span></h2>
-            ${items.length
-              ? `<div class="bcol-rows">${items.slice(0, cap).map(rowHTML).join('')}${more}</div>`
-              : `<div class="bcol-empty">${vide}</div>`}
           </section>`;
 }
 
@@ -348,225 +245,159 @@ function openTriage(items){
 }
 
 export function renderToday(){
-  portesRendu = portesDuJour();
   const root = $('#view-aujourdhui');
   const today = todayISO();
-  const alive = S.companies.filter(c => !isClosed(c));
-  const byDate = (a, b) => a.nextAction.localeCompare(b.nextAction) || (b.updatedAt || 0) - (a.updatedAt || 0);
-  /* « En retard » : priorisation locale (retard, puis pistes déjà
-     travaillées — celles qu'il ne faut pas lâcher) */
-  const lateOrder = dueFollowups(alive, today).map(x => x.id);
-  const late = alive.filter(c => c.nextAction && c.nextAction < today)
-    .sort((a, b) => lateOrder.indexOf(a.id) - lateOrder.indexOf(b.id));
-  const due = alive.filter(c => c.nextAction === today).sort(byDate);
-  const soon = alive.filter(c => c.nextAction && c.nextAction > today).sort(byDate);
-  const noAction = alive.filter(c => !c.nextAction);
-  /* « Par où commencer » ne propose que ce qui n'a JAMAIS démarré : une
-     piste qu'on vient d'écrire n'est pas à recommencer (`aDemarrer`). Le
-     lien du pied, lui, compte toujours toutes les pistes sans suite. */
-  const aLancer = noAction.filter(aDemarrer);
+  const wide = mqWide.matches;
+  const f = aFaire(S.companies, { today, profile: S.profile, portes: portesDuJour(), peutDemander: peutDemanderAmis() });
+  /* REVENIR NE COÛTE RIEN : après une semaine sans geste, trois lignes
+     pour reprendre, et plus un seul compte de jours de retard */
+  const reprise = enPause(S.companies, S.journal);
+  const file = [...f.engage, ...f.propose];
+  /* tout ce qui est engagé se montre ; ce que l'app propose complète
+     jusqu'à trois lignes — le reste est à un tap */
+  const base = reprise ? FILE : Math.max(f.engage.length, FILE);
+  const visibles = expanded.has('faire') ? file : file.slice(0, base);
+  const parId = new Map(file.map(e => [e.id, e]));
+  const tard = [...f.bientot, ...f.attente].sort((a, b) =>
+    String(a.date).localeCompare(String(b.date)) || String(a.nom).localeCompare(String(b.nom), 'fr'));
+  const rangees = annonces(S.companies, today);
   const done = doneTodayCount();
   const triage = triageItems();
+  const neuf = !S.companies.length;
 
-  const wide = mqWide.matches;
-  const rienAFaire = !late.length && !due.length;
-  /* UNE SEULE tranche de suggestion à la fois, et le silence prime :
-     ranimer une piste qu'on a déjà engagée vaut mieux que d'en démarrer
-     une froide. Deux tranches de conseils sur un écran qui n'a rien de
-     prévu, c'est le menu qu'on vient de retirer.
-     Calculé ICI parce que la pleine largeur appartient au TABLEAU à
-     trois colonnes — une seule colonne de trois lignes étirée sur
-     1660 px envoie ses boutons à l'autre bout (mesuré). */
-  const muettes = silentPistes(alive, today);
-  const rienDePrevu = rienAFaire && !soon.length;
-  const debut = !muettes.length && rienDePrevu && aLancer.length ? parOuCommencer(aLancer) : [];
-  const suggestion = muettes.length
-    ? { html: () => silenceHTML(expanded.has('quiet') ? muettes : muettes.slice(0, DEBUT), muettes.length) }
-    : debut.length ? { html: () => debutHTML(debut) } : null;
-  /* elle remplace le vide quand rien n'est prévu ; sinon elle SUIT le
-     travail du jour — ce qui est engagé passe avant ce qui est suggéré */
-  const alaPlace = rienDePrevu && suggestion;
-  /* les pistes engagées sans suite, hors celles qui se taisent (elles
-     ont leur tranche) : c'est ce que compte le lien du pied */
-  const silencieuses = new Set(muettes.map(c => c.id));
-  const aPlanifier = noAction.filter(c => !silencieuses.has(c.id));
-  /* « TOUT EST À JOUR » SEULEMENT QUAND C'EST VRAI. Juste après le
-     premier mail, l'écran disait « Tout est à jour » au-dessus de
-     « 1 piste à planifier → » : les deux phrases se contredisaient, et
-     l'une des deux mentait (28 octobre 2026). Atlassian réserve le
-     « tout est fait » à ce qui est vraiment fini, SAP demande que le
-     vide dise POURQUOI il est vide : tant qu'une piste attend sa suite,
-     l'écran dit seulement qu'aujourd'hui n'a rien de prévu. */
-  const aJour = rienAFaire && !aPlanifier.length;
-  const tableau = wide && alive.length && !alaPlace;
-  let html =
-    `<div class="page-inner${tableau ? ' page-wide' : ''}">
-       <div class="td-head">
-         <h1>Aujourd’hui</h1>
-         <div class="td-date">${frToday()}</div>
-       </div>
-       ${/* pas de compte au-dessus d'un « ajoute ta première piste » : on ne
-            félicite pas quelqu'un pour un travail dont l'écran affirme, deux
-            lignes plus bas, qu'il n'existe pas */''}
-       ${done && S.companies.length
-         ? `<div class="done-line">${ic('check', 'ic-14')} ${done} action${done > 1 ? 's' : ''} faite${done > 1 ? 's' : ''} aujourd’hui</div>` : ''}`;
-
-  html += amisHTML(lignesAmis());
-
-  if (!alive.length && !S.companies.length){
-    /* première visite : la promesse, puis un seul geste.
-       PLUS DE MODE D'EMPLOI. « Ajoute une piste, donne-lui une prochaine
-       action — cet écran te dira toujours quoi faire maintenant » racontait
-       ce que les deux boutons MONTRENT : « Voir un exemple » remplit
-       l'écran tel qu'il sera, et la première piste ajoutée revient ici
-       sous « Par où commencer », avec son geste. Ce que l'écran suivant
-       montre, celui-ci n'a pas à le dire (Krug : « l'objectif est de
-       supprimer les instructions en rendant tout évident »). */
-    html +=
+  /* ---- le travail ---- */
+  let travail = amisHTML(lignesAmis());
+  if (neuf){
+    /* première visite : la promesse, puis un seul geste. « Voir un
+       exemple » remplit l'écran tel qu'il sera ; ce que l'écran suivant
+       montre, celui-ci n'a pas à le dire (§7). Quand la cible est dite,
+       le premier geste change : l'app sait quelles entreprises proposer. */
+    const cible = !!RECHERCHES[S.profile.recherche];
+    travail +=
       `<div class="td-empty">
          <div class="tde-ic">${ic('zap', 'ic-24')}</div>
          <h2>Ta recherche, un jour à la fois</h2>
          <div class="tde-actions">
-           <button class="btn btn-primary" id="tdeAdd">${ic('plus', 'ic-14')} Ajouter une piste</button>
+           ${cible ? `<button class="btn btn-primary" id="tdeTrouver">${ic('search', 'ic-14')} Trouver des entreprises</button>` : ''}
+           <button class="btn${cible ? '' : ' btn-primary'}" id="tdeAdd">${ic('plus', 'ic-14')} Ajouter une piste</button>
            <button class="btn" id="tdeDemo">Voir un exemple</button>
            ${/* UN SEUL MOI (lot R5) : sur un téléphone neuf, c'est ICI que
-                l'on arrive — la phrase de secours ramène tout, au lieu
-                de tout refaire */''}
+                l'on arrive — la phrase de secours ramène tout */''}
            <button class="btn" id="tdeMoi">J’ai déjà OpenContact</button>
          </div>
        </div>`;
-  } else if (alaPlace){
-    /* Rien de prévu, mais il y a de quoi travailler tout de suite : on
-       le MONTRE, au lieu d'offrir une porte — ou pire, d'annoncer « tout
-       est à jour » à quelqu'un dont cinq pistes se taisent depuis un
-       mois. Vaut aux deux tailles : au poste, trois colonnes vides ne
-       sont pas « une bonne nouvelle qui se dit », c'est un mur de rien.
-       La promesse « la structure ne bouge pas » parle de l'état de
-       travail normal, pas du démarrage à froid. */
-    html += suggestion.html();
-  } else if (tableau){
-    /* le poste : les trois tranches côte à côte, toujours présentes —
-       la structure ne bouge pas, seul son contenu change */
-    html +=
-      `<div class="board td-board">
-         ${colHTML('late', 'En retard', 'square-alert', late, 'Rien en retard ✓')}
-         ${colHTML('due', 'Aujourd’hui', 'zap', due, aJour ? 'Tout est à jour ✓' : 'Rien de prévu aujourd’hui')}
-         ${colHTML('soon', 'Bientôt', 'calendar', soon,
-           /* « — donne une prochaine action à une piste » redisait le
-              lien du pied, « N pistes à planifier → », posé
-              juste dessous */
-           noAction.length ? 'Rien de planifié' : 'Rien en vue')}
-       </div>`;
-  } else if (rienAFaire){
-    /* à jour : positif, jamais culpabilisant. Le titre suffit — « la
-       suite est plus bas, repliée exprès » décrivait « Bientôt », qui se
-       voit juste dessous avec son compte ; « ajoute une piste quand tu
-       en croises une » redisait le + de la barre, toujours là. */
-    html += aJour
+  } else if (file.length){
+    const more = file.length > visibles.length
+      ? `<button class="linklike tr-more" data-tr="faire">${voirAutres(file.length - visibles.length)}</button>` : '';
+    travail +=
+      `<section class="tranche tr-faire">
+         <h2 class="tr-h">${ic('zap', 'ic-14')} ${reprise ? 'Pour reprendre' : 'À faire maintenant'}</h2>
+         <div class="tr-rows">${visibles.map((e, i) => rangHTML(e, { premier: i === 0, reprise })).join('')}${more}</div>
+       </section>`;
+  } else {
+    /* à jour : positif, jamais culpabilisant — et vrai. « Tout est à
+       jour » ne se dit que si rien n'attend plus tard non plus. */
+    travail += tard.length
       ? `<div class="td-empty td-clear">
-           <div class="tde-ic ok">${ic('check', 'ic-24')}</div>
-           <h2>Tout est à jour</h2>
+           <div class="tde-ic">${ic('calendar', 'ic-24')}</div>
+           <h2>Rien à faire aujourd’hui</h2>
          </div>`
       : `<div class="td-empty td-clear">
-           <div class="tde-ic">${ic('calendar', 'ic-24')}</div>
-           <h2>Rien de prévu aujourd’hui</h2>
+           <div class="tde-ic ok">${ic('check', 'ic-24')}</div>
+           <h2>Tout est à jour</h2>
          </div>`;
-  } else {
-    html += trancheHTML('late', 'En retard', 'square-alert', late);
-    html += trancheHTML('due', 'Aujourd’hui', 'zap', due);
   }
+  travail += rangeesHTML(rangees);
   /* les campagnes du jour — SOUS le travail, jamais tronquées (#10) */
-  if (CAMPAGNES) html += campaignLines().map(l =>
+  if (CAMPAGNES) travail += campaignLines().map(l =>
     `<button class="camp-line" data-camp="${esc(l.id)}">${ic('flag', 'ic-14')} <span>${esc(l.txt)}</span> <em>Voir</em></button>`).join('');
-  if (!wide) html += trancheHTML('soon', 'Bientôt', 'calendar', soon, false);   /* au poste, elle est déjà en colonne */
-  /* du travail est prévu ET des pistes se taisent : la suggestion vient
-     APRÈS l'engagé, jamais devant */
-  if (suggestion && !alaPlace) html += suggestion.html();
-  /* ce qui suit le travail du jour — un pied, pas des liens en vrac.
-     Sous un tableau à trois colonnes de hauteurs inégales, « 5 pistes
-     sans prochaine action » flottait tout seul à gauche, sous un trou. */
-  let pied = '';
-  if (triage.total){
-    pied += `<button class="td-triage" id="tdTriage">${ic('inbox', 'ic-14')} À trier <span class="tr-n">${triage.total}</span></button>`;
-  }
-  /* LE LIEN DU PIED MÈNE À CE QU'IL NOMME, et seulement s'il ajoute
-     quelque chose. Il disait « 1 piste sans prochaine action » sous la
-     seule piste de l'écran, déjà montrée juste au-dessus — et, tapé, il
-     ouvrait « Mes pistes » ENTIÈRE, où ce qu'il comptait se perdait
-     parmi le reste. Il compte donc les pistes « à planifier » (le mot de
-     « Mes pistes » et de la barre ; les silencieuses ont leur tranche),
-     n'existe que si l'une d'elles n'est pas déjà à l'écran, et ouvre
-     « Mes pistes » sur l'étiquette « À planifier » : le même nombre. */
-  const aLEcran = new Set(debut.map(c => c.id));
-  if (aPlanifier.some(c => !aLEcran.has(c.id))){
-    pied += `<button class="td-foot linklike" id="tdNoAct">${aPlanifier.length} piste${aPlanifier.length > 1 ? 's' : ''} à planifier →</button>`;
-  }
-  if (hasDemo()){
-    pied += `<button class="td-foot linklike" id="tdRmDemo">Retirer les pistes d’exemple</button>`;
-  }
-  if (pied) html += `<div class="td-under">${pied}</div>`;
-  html += '</div>';
-  root.innerHTML = html;
 
-  /* branchements */
+  /* ---- le pied : ce qui suit le travail du jour ---- */
+  let pied = '';
+  if (triage.total)
+    pied += `<button class="td-triage" id="tdTriage">${ic('inbox', 'ic-14')} À trier <span class="tr-n">${triage.total}</span></button>`;
+  /* LE LIEN DU PIED MÈNE À CE QU'IL NOMME (§5, promesse 5), et n'existe
+     que s'il ajoute à l'écran : il compte les pistes « à contacter » —
+     le mot de « Mes pistes » et de la barre — et se tait quand toutes
+     sont déjà dans la file. */
+  const aContacter = S.companies.filter(c => !c.closedReason && (c.status || 'todo') === 'todo');
+  if (aContacter.some(c => !visibles.some(e => e.id === c.id)) && !neuf)
+    pied += `<button class="td-foot linklike" id="tdNoAct">${aContacter.length} piste${aContacter.length > 1 ? 's' : ''} à contacter →</button>`;
+  if (hasDemo())
+    pied += `<button class="td-foot linklike" id="tdRmDemo">Retirer les pistes d’exemple</button>`;
+  if (pied) pied = `<div class="td-under">${pied}</div>`;
+
+  const tete =
+    `<div class="td-head">
+       <h1>Aujourd’hui</h1>
+       <div class="td-date">${frToday()}</div>
+     </div>`;
+  /* pas de compte au-dessus d'un « ajoute ta première piste » : on ne
+     félicite pas quelqu'un pour un travail dont l'écran affirme, deux
+     lignes plus bas, qu'il n'existe pas */
+  const fait = done && S.companies.length
+    ? `<div class="done-line">${ic('check', 'ic-14')} ${done} action${done > 1 ? 's' : ''} faite${done > 1 ? 's' : ''} aujourd’hui</div>` : '';
+
+  root.innerHTML = wide
+    ? `<div class="page-inner page-wide aj">
+         ${tete}${fait}
+         <div class="aj-cols">
+           <div class="aj-travail">${travail}${pied}</div>
+           <aside class="aj-contexte" aria-label="Ma recherche">${cibleHTML()}${bientotHTML(tard, true)}</aside>
+         </div>
+       </div>`
+    : `<div class="page-inner aj">
+         ${tete}${cibleHTML()}${fait}${travail}${bientotHTML(tard, false)}${pied}
+       </div>`;
+
+  /* ---- branchements ---- */
   const byId = id => S.companies.find(x => x.id === id);
-  /* `:not(.act-start)` : une ligne « Par où commencer » n'a ni « Fait »
-     ni « Reporter » — les brancher dessus planterait sur un nœud absent,
-     et le swipe y proposerait de finir une action qui n'existe pas. */
-  root.querySelectorAll('.act-row:not(.act-start):not(.act-quiet)').forEach(row => {
+  const ouvrable = (cible, ouvrir) => {
+    cible.addEventListener('click', ouvrir);
+    cible.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); ouvrir(); }
+    });
+  };
+  root.querySelectorAll('.aj-rang, .aj-tard').forEach(row => {
     const c = byId(row.dataset.id);
     if (!c) return;
-    row.querySelector('.act-main').addEventListener('click', () => openFiche(c));
-    row.querySelector('.act-main').addEventListener('keydown', e => {
-      if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); openFiche(c); }
-    });
-    row.querySelector('[data-a="mail"]').addEventListener('click', () =>
-      openMail(c, { ctId: c.nextActionCt }));      /* l'action vise sa personne (#14) */
-    row.querySelector('[data-a="report"]').addEventListener('click', () => reportAction(c));
-    row.querySelector('[data-a="done"]').addEventListener('click', () => finishRow(row, c));
-    bindSwipe(row, c);
+    ouvrable(row.querySelector('.act-main'), () => openFiche(c));
+    const e = parId.get(c.id);
+    row.querySelector('[data-geste]')?.addEventListener('click', () => faireEtape(c, e));
+    /* ce qui est daté se glisse : droite = Fait, gauche = Reporter */
+    if (row.querySelector('.act-under')) bindSwipe(row, c);
   });
   root.querySelectorAll('.act-ami').forEach(row => {
     /* « Karim et Léa t'ont écrit » ouvre la boîte sur « Non lus » ; les
        autres lignes, ce qu'elles disent */
-    const ouvrir = () => row.dataset.sorte === 'ecrits' ? ouvrirNonLus() : ouvrirLigne(row.dataset.sorte, row.dataset.ami);
-    row.querySelector('.act-main').addEventListener('click', ouvrir);
-    row.querySelector('.act-main').addEventListener('keydown', e => {
-      if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); ouvrir(); }
-    });
+    ouvrable(row.querySelector('.act-main'), () =>
+      row.dataset.sorte === 'ecrits' ? ouvrirNonLus() : ouvrirLigne(row.dataset.sorte, row.dataset.ami));
   });
-  root.querySelectorAll('.act-quiet').forEach(row => {
-    const c = byId(row.dataset.id);
-    if (!c) return;
-    const ouvrir = () => openFiche(c);
-    row.querySelector('.act-main').addEventListener('click', ouvrir);
-    row.querySelector('.act-main').addEventListener('keydown', e => {
-      if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); ouvrir(); }
-    });
-    row.querySelector('[data-a="mail"]')?.addEventListener('click', () => openMail(c));
-    row.querySelector('[data-a="plan"]')?.addEventListener('click', () =>
-      askNextAction(c, { title: 'Relancer quand ?' }));
-    row.querySelector('[data-a="clore"]')?.addEventListener('click', () => askClose(c, {}));
-  });
-  root.querySelectorAll('.act-start').forEach(row => {
-    const c = byId(row.dataset.id);
-    if (!c) return;
-    const ouvrir = () => openFiche(c);
-    row.querySelector('.act-main').addEventListener('click', ouvrir);
-    row.querySelector('.act-main').addEventListener('keydown', e => {
-      if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); ouvrir(); }
-    });
-    row.querySelector('[data-a="mail"]')?.addEventListener('click', () => openMail(c));
-    row.querySelector('[data-a="plan"]').addEventListener('click', () =>
-      askNextAction(c, { title: 'Et ensuite ?' }));
-  });
+  root.querySelectorAll('.aj-range [data-annuler]').forEach(b => b.addEventListener('click', () => {
+    const c = byId(b.closest('.aj-range').dataset.id);
+    if (c) annulerRangement(c);
+  }));
+  root.querySelector('#ajCible')?.addEventListener('click', () =>
+    import('./profil.js').then(m => m.openProfil(() => bus.refresh())));
+  /* la cible, d'un tap : c'est un réglage du profil, il se change là */
+  root.querySelectorAll('[data-cherche]').forEach(b => b.addEventListener('click', () => {
+    S.profile.recherche = b.dataset.cherche;
+    saveProfile();
+    bus.refresh();
+  }));
   root.querySelectorAll('.tr-more').forEach(b =>
     b.addEventListener('click', () => { expanded.add(b.dataset.tr); renderToday(); }));
   root.querySelectorAll('[data-camp]').forEach(b =>
     b.addEventListener('click', () => openCampaignById(b.dataset.camp)));
   root.querySelector('#tdTriage')?.addEventListener('click', () => openTriage(triage.items));
-  root.querySelector('#tdNoAct')?.addEventListener('click', () => ouvrirSur('à planifier'));
+  root.querySelector('#tdNoAct')?.addEventListener('click', () => ouvrirSur('à contacter'));
   root.querySelector('#tdeAdd')?.addEventListener('click', () => openCapture());
+  /* la cible est dite : l'app sait quoi chercher — ce que tu cherches,
+     ton métier, ta ville, dans l'annuaire des entreprises */
+  root.querySelector('#tdeTrouver')?.addEventListener('click', () => {
+    const q = amorces({ companies: [], profile: S.profile, today })[0] || '';
+    ouvrirSur(q, 'decouvrir');
+  });
   /* pas de toast : les pistes d'exemple arrivent sous les yeux, et
      « Retirer les pistes d'exemple » s'affiche au pied du même écran */
   root.querySelector('#tdeDemo')?.addEventListener('click', () => { addDemo(); bus.refresh(); });
@@ -579,11 +410,7 @@ export function renderToday(){
 function finishRow(row, c){
   if (row.classList.contains('act-gone')) return;   /* double-tap = un seul « Fait » */
   row.classList.add('act-gone');
-  setTimeout(() => {
-    markDone(c);
-    bus.refresh();
-    askNextAction(c, { title: 'Et ensuite ?' });
-  }, 160);
+  setTimeout(() => marquerFait(c), 160);
 }
 
 /* swipe mobile : droite = Fait, gauche = Reporter */
