@@ -32,7 +32,8 @@
    Fonctions pures : rien ici ne lit l'écran, l'horloge ni le réseau.
    ============================================================ */
 import { fold } from './filter.js';
-import { fautes, fautesPermises, interpreter, chercherPistes, contexteRecherche, propositions } from './requete.js';
+import { fautes, fautesPermises, interpreter, chercherPistes, contexteRecherche, propositions,
+         METIER, metierDuProfil, villeConnue } from './requete.js';
 import { silentPistes, dueFollowups, aDemarrer } from './assist.js';
 import { CLOSE_REASONS, STATUSES, nextActionContact } from './model.js';
 import { todayISO } from './utils.js';
@@ -709,6 +710,21 @@ export function comprendre(q, ctx){
   return { q: s, lignes: lignes.slice(0, LIGNES_MAX) };
 }
 
+/* ---------- les pistes ouvertes en dernier (`oc_recents_v1`) ----------
+   La pile de la barre du bas et « Ouvertes récemment » : la plus récente
+   d'abord, huit au plus, sans doublon. Un repère de CET appareil. */
+export const RECENTS_MAX = 8;
+export function lireRecents(raw){
+  let j = null;
+  try { j = typeof raw === 'string' ? JSON.parse(raw) : raw; } catch (e) {}
+  const ids = (j && Array.isArray(j.ids)) ? j.ids : [];
+  const vus = new Set();
+  return ids.filter(x => typeof x === 'string' && /^[A-Za-z0-9._-]{1,64}$/.test(x) && !vus.has(x) && vus.add(x))
+    .slice(0, RECENTS_MAX);
+}
+export const avecRecent = (ids, id) => id ? [id, ...(ids || []).filter(x => x !== id)].slice(0, RECENTS_MAX) : (ids || []);
+export const ecrireRecents = ids => JSON.stringify({ v: 1, ids: (ids || []).slice(0, RECENTS_MAX) });
+
 /* ---------- la barre vide : ce qu'on peut y taper ----------
    « Proposé en pointillé » (§6) : trois phrases au plus, écrites avec
    les pistes de l'utilisateur, et qui ont TOUTES une réponse — jamais
@@ -720,7 +736,17 @@ export function amorces(ctx){
   const vivantes = (ctx.companies || []).filter(c => c && !c.closedReason && !c.demo);
   const out = [];
   const mettre = q => { if (q && !out.includes(q) && comprendre(q, ctx).lignes.length) out.push(q); };
-  if (!vivantes.length) return out;
+  if (!vivantes.length){
+    /* aucune piste encore : ce que dit le profil — ce que tu cherches,
+       ton métier, ta ville — est une recherche d'entreprises toute faite */
+    const p = ctx.profile || {};
+    const m = metierDuProfil(p);
+    const v = villeConnue(p.ville);
+    const q = [['stage', 'alternance', 'emploi'].includes(p.recherche) ? p.recherche : '',
+      m && METIER[m] ? METIER[m].mots[0] : '', v ? v.nom : ''].filter(Boolean).join(' ');
+    if (q && comprendre(q, ctx).lignes.some(l => l.type === 'decouvrir')) out.push(q);
+    return out;
+  }
   const rech = ctx.recherche || contexteRecherche(ctx.companies || [], today);
   const p = propositions(ctx.companies || [], ctx.profile, rech, 1)[0];
   if (p) mettre(p.q);

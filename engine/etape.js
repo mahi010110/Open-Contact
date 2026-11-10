@@ -26,7 +26,9 @@
    Fonctions pures : l'écran demande, le moteur répond.
    ============================================================ */
 import { fold } from './filter.js';
-import { silentPistes, aDemarrer, derniereTrace, SILENCE_RELANCE } from './assist.js';
+import { silentPistes, aDemarrer, derniereTrace, dueFollowups, SILENCE_RELANCE } from './assist.js';
+import { prendCeQueJeCherche } from './model.js';
+import { scoreOf } from './score.js';
 import { suiteDe } from './contrat.js';
 import { aQuiEcrire, plusJours, prenomDe } from './commande.js';
 import { porteurs } from './requete.js';
@@ -139,4 +141,52 @@ export function parcours(companies){
   let ici = -1;
   cases.forEach((k, i) => { if (k.n) ici = i; });
   return cases.map((k, i) => ({ ...k, ici: i === ici }));
+}
+
+/* ---------- ce qu'il y a à faire, dans l'ordre ----------
+   Une seule liste pour « Aujourd'hui » et pour la barre vide, en quatre
+   temps :
+   · `engage`  — ce que tu as prévu et qui est dû, le plus en retard
+                 d'abord (`dueFollowups`), puis la suite d'un contrat
+                 décroché. Tout se montre : ce sont tes engagements.
+   · `propose` — ce que l'app propose : les pistes qui se taisent, une
+                 réponse sans suite, puis de quoi commencer — TROIS au
+                 plus, les mieux placées (CLAUDE.md §6, « Choisir à la
+                 place de l'utilisateur est le service rendu ») : qui peut
+                 te porter, ce qui prend ce que tu cherches, qui l'on
+                 peut joindre, la fiche la mieux remplie.
+   · `bientot` — ce qui est prévu plus tard, par date.
+   · `attente` — ce qui attend une réponse, par date de relance.
+   Rend des étapes (`prochaineEtape`), jamais des pistes : l'écran n'a
+   rien à recalculer. */
+export const DEMARRER_MAX = 3;
+export function aFaire(companies, o){
+  o = o || {};
+  const today = o.today || todayISO();
+  const cs = (companies || []).filter(Boolean);
+  const par = new Map(cs.map(c => [c.id, c]));
+  const etapes = new Map();
+  for (const c of cs){
+    const e = prochaineEtape(c, { ...o, today });
+    if (e) etapes.set(c.id, e);
+  }
+  const de = genre => [...etapes.values()].filter(e => e.genre === genre);
+  const dus = dueFollowups(cs, today).map(x => etapes.get(x.id)).filter(Boolean);
+  const muettes = silentPistes(cs, today).map(s => etapes.get(s.id)).filter(e => e && e.genre === 'silence');
+  const recherche = o.profile && o.profile.recherche;
+  const rangPrend = c => { const v = prendCeQueJeCherche(c, recherche); return v === true ? 2 : v === null ? 1 : 0; };
+  const joignable = c => (c.contacts || []).some(t => t.email);
+  const porte = c => porteurs(c, o.portes).length > 0;
+  const debut = de('demarrer').map(e => ({ e, c: par.get(e.id) })).sort((a, b) =>
+      (porte(b.c) - porte(a.c)) || (rangPrend(b.c) - rangPrend(a.c)) || (joignable(b.c) - joignable(a.c))
+      || (scoreOf(b.c) - scoreOf(a.c)) || String(a.c.name).localeCompare(String(b.c.name), 'fr'))
+    .slice(0, DEMARRER_MAX).map(x => x.e);
+  const parDate = (a, b) => String(a.date).localeCompare(String(b.date)) || String(a.nom).localeCompare(String(b.nom), 'fr');
+  return {
+    engage: [...dus, ...de('contrat')],
+    propose: [...muettes, ...de('suite'), ...debut],
+    bientot: de('prevu').sort(parDate),
+    attente: de('attente').sort(parDate),
+    aDemarrer: de('demarrer').length
+  };
 }

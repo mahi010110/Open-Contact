@@ -9,7 +9,7 @@
    ne pas remettre d'@import ici : il sérialise les téléchargements */
 
 :root{
-  --nav-h:53px;
+  --nav-h:72px;
   --ctl:var(--control-h-touch);      /* mobile d'abord : cibles 44px */
   /* `max()` et pas 16px sec : le plancher reste 16 px — en dessous, iOS
      zoome tout seul à la mise au point d'un champ — mais la valeur suit
@@ -114,12 +114,70 @@ input,select,textarea{font-family:inherit;color:var(--text-body)}
 .topnav a:hover{color:var(--text-body);background:var(--surface-chrome)}
 }
 .topnav a.on{color:var(--select-text);background:var(--select-bg);border-color:var(--border-strong)}
-.hdr-actions{display:flex;gap:8px;margin-left:auto;align-items:center}
-.hdr .btn-cta{display:none}
+/* ---- AU POSTE : LA BARRE LATÉRALE (la refonte, fiche 0014) ----
+   Quatre lieux fixes tiendraient dans une barre du haut (Microsoft la
+   recommande jusqu'à cinq catégories). Ce qui justifie la gauche, c'est
+   la COLLECTION : Notion, Todoist, Arc et ChatGPT y rangent ce que
+   l'utilisateur crée — ses pages, ses onglets, ses conversations. Ici,
+   ses pistes ouvertes en dernier : la pile du téléphone, dépliée
+   (reports/Refonte navigation adaptative et usages.md, §1).
+
+   De haut en bas : la marque (retour à « Aujourd'hui ») ; LA BARRE, un
+   bouton qui a le dessin d'un champ et ouvre la palette (Ctrl K, « / ») ;
+   les quatre lieux ; « Nouvelle piste » ; puis la pile. Le lieu où l'on
+   est prend le navy du châssis (§4), comme avant. */
 @media (min-width:901px){
-  .topnav{display:flex}
-  .hdr .btn-cta{display:inline-flex}
+  .app{display:grid;grid-template-columns:15rem minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto}
+  .hdr{
+    grid-column:1;grid-row:1 / 3;flex-direction:column;align-items:stretch;gap:12px;
+    height:auto;min-height:0;overflow-y:auto;
+    padding:10px 10px 14px calc(10px + env(safe-area-inset-left));
+    border-bottom:0;border-right:1px solid var(--border-strong);
+  }
+  .save-warn{grid-column:2;grid-row:1}
+  .main{grid-column:2;grid-row:2}
+  .statusbar{grid-column:1 / 3;grid-row:3}
+  .brand{padding:0 4px}
+  .topnav{display:flex;flex-direction:column;align-items:stretch;gap:2px}
+  .topnav a{gap:10px;padding:5px 10px;font-size:var(--text-14)}
+  .topnav a .ic{flex:none}
 }
+/* LA BARRE, au poste : elle a le dessin d'un champ — ce qui se tape a un
+   cadre (§6) — mais c'est un bouton : il ouvre la palette, où l'on tape.
+   Sa touche s'annonce DANS ce qu'elle commande (§5), jamais ailleurs. */
+.cmd-ouvrir{
+  display:flex;align-items:center;gap:8px;width:100%;min-height:var(--ctl);padding:0 6px 0 10px;
+  background:var(--surface-field);border:1px solid var(--border-field);box-shadow:var(--bevel-field);
+  color:var(--text-muted);font-size:var(--text-13);text-align:left;cursor:text;
+}
+.cmd-mot{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cmd-touche{
+  flex:none;font-family:var(--font-mono);font-size:var(--text-11);line-height:1;color:var(--text-muted);
+  border:1px solid var(--border-frame);padding:3px 5px;background:var(--surface-chrome);white-space:nowrap;
+}
+.cote-neuve{align-self:flex-start;margin-left:2px}
+/* LA PILE, dépliée : les pistes ouvertes en dernier, la plus récente en
+   tête. Le nom plie (une identité ne se coupe pas, §4) ; l'état, une
+   donnée, s'élide. Des lignes de liste, sans boîte. */
+.cote-pile{display:flex;flex-direction:column;min-height:0;margin-top:2px;padding-top:12px;border-top:1px dotted var(--border-frame)}
+.cote-lbl{
+  margin:0 0 4px 10px;font-size:var(--text-11);font-weight:var(--weight-bold);line-height:1.2;
+  letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--text-muted);
+}
+.cote-p{
+  display:block;width:100%;min-height:var(--ctl);padding:5px 10px;background:none;border:1px solid transparent;
+  text-align:left;color:var(--text-body);
+}
+.cote-p b{display:block;font-size:var(--text-13);font-weight:var(--weight-semibold);line-height:1.25;overflow-wrap:anywhere}
+.cote-p span{
+  display:block;margin-top:1px;font-family:var(--font-mono);font-size:var(--text-11);line-height:1.3;color:var(--text-muted);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+@media (hover:hover){
+  .cote-p:hover{background:var(--surface-chrome)}
+  .cmd-ouvrir:hover{color:var(--text-body)}
+}
+.cote-p:active{background:var(--surface-chrome)}
 /* AU POUCE, PAS D'EN-TÊTE (décision du mainteneur, 12 octobre 2026). Il
    ne portait que le logo et la bascule du thème : 46 px pris en haut de
    CHAQUE écran pour rien qu'on y fasse, pendant que la barre du bas
@@ -142,45 +200,88 @@ input,select,textarea{font-family:inherit;color:var(--text-body)}
 .statusbar span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 @media (min-width:901px){ .statusbar{display:flex} }
 
-/* ============ NAV BASSE (mobile) ============ */
+/* ============ LA BARRE DU BAS (téléphone) ============
+   LA REFONTE (fiche 0014) : trois places, comme Arc Search — mes pistes,
+   le +, moi. Elle remplace les cinq onglets : la navigation ne change
+   qu'une fois (docs/refonte-plan.md §2), et c'est ici.
+
+   · Les deux côtés sont des CARRÉS 98 (boîte claire, biseau, ombre dure)
+     de la hauteur de la main — au doigt, ce qu'on voit est ce qu'on
+     touche (§5) —, chacun avec son mot : une icône seule ne se devine pas.
+   · Le + tient le centre et la largeur : c'est le geste de l'app, sous
+     le pouce des deux mains.
+   · La PILE : la dernière piste ouverte, posée sur les autres — ses
+     initiales, comme le visage d'un groupe dans « Réseau ». Rien d'ouvert
+     encore : la mallette.
+   · Le coin de l'écran où l'on EST ramène à « Aujourd'hui » : le même
+     coin ouvre et referme. `data-ici` (app.js) dit où l'on est. */
 .bottomnav{
-  display:flex;position:fixed;left:0;right:0;bottom:0;z-index:1500;height:calc(var(--nav-h) + env(safe-area-inset-bottom));
+  display:grid;grid-template-columns:1fr minmax(0,11rem) 1fr;align-items:start;column-gap:12px;
+  position:fixed;left:0;right:0;bottom:0;z-index:1500;height:calc(var(--nav-h) + env(safe-area-inset-bottom));
   background:var(--surface-chrome);border-top:1px solid var(--border-strong);
-  padding:4px calc(4px + env(safe-area-inset-right)) calc(4px + env(safe-area-inset-bottom)) calc(4px + env(safe-area-inset-left));
-  align-items:stretch;gap:2px;
+  padding:8px max(calc(14px + env(safe-area-inset-right)), calc(50% - 15rem)) env(safe-area-inset-bottom)
+          max(calc(14px + env(safe-area-inset-left)), calc(50% - 15rem));
 }
-.bottomnav a{
-  flex:1;min-width:0;min-height:var(--control-h-touch);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+.bn-place{display:flex;min-width:0}
+.bn-d{justify-content:flex-end}
+.bn-cote{
+  display:flex;flex-direction:column;align-items:center;gap:3px;min-width:var(--control-h-touch);max-width:100%;
   text-decoration:none;color:var(--text-muted);
-  font-size:var(--text-11);font-weight:var(--weight-semibold);
-  border:1px solid transparent;border-radius:var(--radius-1);
-  white-space:nowrap;overflow:hidden;
+  font-size:var(--text-11);font-weight:var(--weight-semibold);line-height:1.15;
 }
-.bottomnav a.on{background:var(--select-bg);color:var(--select-text);border-color:var(--border-strong)}
-/* L'ONGLET QUI ATTEND (le mainteneur, 28 octobre 2026 : « pas de
-   notification, une couleur qui change dans l'onglet »). Pas de chiffre
-   (le calme, R10) : le mot et l'icône passent à l'accent, et le point
-   carré des conversations non lues de la boîte (`.bx-pt`) suit le mot.
-   La couleur seule ne parle pas à tout le monde (WCAG 1.4.1) : la forme
-   du point dit la même chose, et le nom de l'onglet aussi. */
-.bottomnav a.attend,.topnav a.attend{color:var(--accent)}
-.bottomnav a.attend .bn-l::after,.topnav a.attend::after{
-  content:'';display:inline-block;width:6px;height:6px;margin-left:4px;vertical-align:.1em;background:var(--accent)}
-/* Un libellé d'onglet trop long était coupé AUX DEUX BOUTS : centré dans
-   un `overflow:hidden`, « Aujourd'hui » rendait « ujourd'hu ». On perd
-   alors le début, qui est justement ce qu'on lit. Le libellé prend sa
-   propre boîte pour pouvoir s'élider — la fin s'en va, le début reste.
-   Ça se voit dès qu'un utilisateur agrandit sa police. */
+.bn-carre{
+  position:relative;display:grid;place-items:center;flex:none;
+  width:var(--control-h-touch);height:var(--control-h-touch);
+  background:var(--surface-window);color:var(--text-body);
+  border:1px solid var(--border-strong);box-shadow:var(--bevel-up), var(--shadow-raised);
+}
+.bn-cote:active .bn-carre{box-shadow:var(--bevel-down);transform:translate(1px,1px)}
+/* la pile : un carré tramé, décalé, derrière le carré de devant */
+.bn-pile{position:relative;display:block;margin-left:4px}
+.bn-pile::before{
+  content:'';position:absolute;left:-4px;top:-4px;width:100%;height:100%;
+  border:1px solid var(--border-frame);background:var(--dither-img), var(--surface-chrome);background-size:var(--dither-size);
+}
+.bn-pile .bn-carre{display:flex;flex-direction:column;align-items:stretch;justify-content:center;gap:4px;padding:0 6px}
+.bn-pile .bn-carre i{display:block;height:3px;background:var(--accent)}
+.bn-pile .bn-carre em{
+  display:block;font-family:var(--font-pixel);font-style:normal;font-size:var(--pixel-16);line-height:1;
+  text-align:center;text-transform:uppercase;overflow:hidden;white-space:nowrap;
+}
+.bn-pile .bn-carre u{display:block;height:2px;background:var(--border-soft);text-decoration:none}
+/* rien d'ouvert encore : la mallette, à la place des initiales */
+.bn-pile .bn-carre em:empty{
+  width:20px;height:20px;margin:0 auto;background:currentColor;
+  -webkit-mask:url(../assets/icons/briefcase.svg) center/contain no-repeat;mask:url(../assets/icons/briefcase.svg) center/contain no-repeat;
+}
+.bn-pile .bn-carre:has(em:empty) i,.bn-pile .bn-carre:has(em:empty) u{display:none}
+/* Un libellé trop long était coupé AUX DEUX BOUTS : centré dans un
+   `overflow:hidden`, « Aujourd'hui » rendait « ujourd'hu ». Le libellé
+   prend sa propre boîte pour pouvoir s'élider — la fin s'en va, le
+   début reste. */
 .bn-l{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-/* Le ⊕ était la cible la PLUS ÉTROITE de la barre (52 px) pour le geste
-   le plus précieux de l'app — noter une entreprise qu'on vient de
-   croiser. Il passe à 64 px : c'est le maximum mesuré avant que
-   « Aujourd'hui » ne se coupe sur un écran de 320 px (à 68 px il se
-   coupe). Les onglets descendent de 62 à 59 px, aucun libellé n'en
-   souffre, et le centre de la barre devient enfin son point d'appui. */
+/* le même coin ouvre et referme */
+.bn-retour{display:none}
+.bottomnav[data-ici="pistes"] .bn-g>a[data-r="pistes"],
+.bottomnav[data-ici="moi"] .bn-d>a[data-r="moi"],
+.bottomnav[data-ici="reseau"] .bn-d>a[data-r="moi"]{display:none}
+.bottomnav[data-ici="pistes"] .bn-g>.bn-retour,
+.bottomnav[data-ici="moi"] .bn-d>.bn-retour,
+.bottomnav[data-ici="reseau"] .bn-d>.bn-retour{display:flex}
+/* QUELQU'UN ATTEND (le mainteneur, 28 octobre 2026 : « pas de
+   notification, une couleur qui change dans l'onglet »). Pas de chiffre
+   (le calme) : l'icône et le mot passent à l'accent, et le point carré
+   des conversations non lues suit le mot. La couleur seule ne parle pas
+   à tout le monde (WCAG 1.4.1) : le point dit la même chose, et le nom
+   du bouton aussi. Au téléphone c'est « Moi » qui le porte — « Réseau »
+   vit derrière lui ; au poste, « Réseau » lui-même. */
+.bn-cote.attend,.topnav a.attend{color:var(--accent)}
+.bn-cote.attend .bn-carre{color:var(--accent)}
+.bn-cote.attend .bn-l::after,.topnav a.attend::after{
+  content:'';display:inline-block;width:6px;height:6px;margin-left:4px;vertical-align:.1em;background:var(--accent)}
+/* LE + : la cible la plus large de la barre, pour le geste de l'app */
 .bn-add{
-  flex:none;width:64px;margin:0 2px;align-self:stretch;
+  width:100%;height:var(--control-h-touch);
   display:inline-flex;align-items:center;justify-content:center;
   background:var(--accent);color:var(--on-accent);
   border:1px solid var(--border-strong);border-radius:var(--radius-1);
@@ -188,18 +289,6 @@ input,select,textarea{font-family:inherit;color:var(--text-body)}
 }
 .bn-add:active{box-shadow:var(--bevel-down);transform:translate(1px,1px)}
 .app{padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom))}
-/* FENÊTRE MOYENNE (600-900 px : une tablette en portrait, un téléphone
-   pliant ouvert, une fenêtre de poste rétrécie). Material 3 la nomme
-   « medium » et n'y étire plus la barre du téléphone ; l'iPad resserre
-   la sienne au centre. Étirée sur 768 px, chaque onglet faisait 150 px,
-   l'onglet allumé devenait un bloc navy de 170 px, et le « + » flottait
-   seul au milieu d'une bande vide. Les onglets gardent ici une largeur
-   de TÉLÉPHONE, en `rem` pour suivre la police, et la barre se centre :
-   la même rangée sous le même pouce, quelle que soit la largeur. */
-@media (min-width:600px) and (max-width:900px){
-  .bottomnav{justify-content:center}
-  .bottomnav a{flex:0 1 7.5rem}
-}
 @media (min-width:901px){
   .bottomnav{display:none}
   .app{padding-bottom:0}
@@ -4008,3 +4097,101 @@ html.oc-locked .undo-bar{display:none}
 .sm-h{font-size:var(--text-11);text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin:0 0 8px;font-weight:var(--weight-semibold)}
 .dc-quoi{margin:8px 0 0}
 .dc-h{margin-top:16px}
+
+/* ============ LA BARRE (la refonte, fiche 0014) ============
+   Une seule entrée pour chercher, ouvrir, ajouter et agir (ui/barre.js).
+   Deux dessins : la FEUILLE du + au téléphone, le PANNEAU sous le champ
+   de l'en-tête au poste — et une seule liste dessous.
+
+   · Le champ a le dessin d'un champ (ce qui se tape a un cadre, §6), à la
+     hauteur d'un pouce : c'est la seule chose qu'on fait ici.
+   · Une rangée = une icône, ce qui va se passer (en gras), où (en
+     données, mono). Pas de boîte : ce sont des lignes de liste, séparées
+     d'un pointillé — la forme de « Réglages ».
+   · LA PREMIÈRE EST LA RÉPONSE : elle seule prend un cadre, le lavis
+     d'accent et l'ombre dure — Entrée la joue. Une seule emphase par
+     écran (§6), et elle dit où ira le geste.
+   · Ce qui est PROPOSÉ est en pointillé (les phrases à essayer, une
+     piste devinée malgré une faute de frappe) ; ce qui est posé, en
+     plein. */
+.modal-barre{height:92dvh}
+/* au poste : une PALETTE — étroite, posée haut, à la hauteur de son
+   contenu. Posée haut et non centrée : la liste grandit vers le bas
+   pendant qu'on tape, et le champ ne doit pas bouger sous les yeux. */
+@media (min-width:901px){
+  .modal-barre{align-self:flex-start;margin-top:8dvh;max-width:40rem;height:auto;max-height:min(80dvh,46rem)}
+}
+.modal-barre .modal-b{flex:1;min-height:0;display:flex;flex-direction:column;padding-top:14px}
+.br-champ{
+  display:flex;align-items:center;gap:10px;flex:none;min-height:3.25rem;padding:0 12px;
+  background:var(--surface-field);border:1px solid var(--border-field);box-shadow:var(--bevel-field);
+  color:var(--text-muted);cursor:text;
+}
+.br-champ input{
+  flex:1;min-width:0;align-self:stretch;border:0;background:none;outline:none;
+  font-size:var(--input-fs);color:var(--text-body);
+}
+.br-champ input::placeholder{color:var(--text-disabled)}
+.br-champ:focus-within{outline:var(--focus-outline);outline-offset:var(--focus-offset)}
+.br-liste{flex:1 0 auto;padding-top:2px}
+.br-lbl{
+  margin:16px 0 2px;font-size:var(--text-11);font-weight:var(--weight-bold);line-height:1.2;
+  letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--text-muted);
+}
+.br-rang{
+  display:flex;align-items:center;gap:12px;width:100%;min-height:calc(var(--ctl) + 8px);padding:7px 4px;
+  background:none;border:0;border-bottom:1px dotted var(--border-soft);
+  text-align:left;color:var(--text-body);font-size:var(--text-14);
+}
+.br-rang>.ic{color:var(--text-muted)}
+.br-t{flex:1;min-width:0;display:block}
+.br-t b{display:block;font-size:var(--text-15);font-weight:var(--weight-semibold);line-height:1.25;overflow-wrap:anywhere}
+.br-s{
+  display:block;margin-top:2px;font-family:var(--font-mono);font-size:var(--text-12);line-height:1.35;color:var(--text-muted);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+/* le mot du geste, au bout de la ligne : ce que fera le tap */
+.br-geste{flex:none;font-size:var(--text-13);font-weight:var(--weight-semibold);color:var(--text-muted)}
+@media (hover:hover){
+  .br-rang:hover{background:var(--surface-chrome)}
+}
+.br-rang:active{background:var(--surface-chrome)}
+/* la réponse */
+.br-rang.br-actif{
+  margin:8px 0 4px;padding:8px 10px;background:var(--teal-wash);
+  border:1px solid var(--border-strong);box-shadow:var(--shadow-raised);
+}
+.br-rang.br-actif>.ic,.br-rang.br-actif .br-t b,.br-rang.br-actif .br-geste{color:var(--accent)}
+.br-rang.br-actif:active{box-shadow:none;transform:translate(1px,1px)}
+/* devinée, pas affirmée */
+.br-rang.br-approx .br-t b{text-decoration:underline dashed;text-underline-offset:4px;text-decoration-thickness:1px}
+.br-rang.br-neuve{border-bottom:0;margin-top:6px;color:var(--text-muted)}
+.br-rang.br-neuve .br-t b{font-weight:var(--weight-medium)}
+/* ce qu'on peut taper : proposé en pointillé */
+.br-essais{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.br-essai{
+  min-height:var(--ctl);padding:0 12px;background:none;border:1px dashed var(--border-frame);
+  color:var(--text-muted);font-size:var(--text-14);text-align:left;
+}
+.br-essai:active{background:var(--surface-chrome)}
+.br-rien{padding:16px 2px 4px;color:var(--text-muted);font-size:var(--text-14)}
+/* « Je prépare la page » : la jauge à blocs d'un utilitaire 98 */
+.br-prepa{padding:18px 2px 8px}
+.br-prepa b{display:block;font-size:var(--text-15);font-weight:var(--weight-semibold)}
+.br-jauge{
+  display:block;height:18px;margin-top:10px;padding:2px;overflow:hidden;
+  background:var(--surface-field);border:1px solid var(--border-strong);box-shadow:var(--bevel-field);
+}
+.br-jauge i{
+  display:block;height:100%;width:38%;
+  background:repeating-linear-gradient(90deg, var(--accent) 0 10px, transparent 10px 12px);
+  animation:br-jauge 1.6s steps(14) infinite;
+}
+@keyframes br-jauge{from{transform:translateX(-100%)}to{transform:translateX(270%)}}
+@media (prefers-reduced-motion:reduce){ .br-jauge i{animation:none;width:100%} }
+
+/* « Réseau », dans « Moi » au téléphone : quand quelqu'un attend, le mot
+   prend l'accent et le point carré des conversations non lues — le même
+   signe que le bouton « Moi » de la barre du bas */
+.moi-reseau.attend .rg-n,.moi-reseau.attend .rg-s{color:var(--accent)}
+.moi-reseau.attend .rg-s::before{content:'';display:inline-block;width:6px;height:6px;margin-right:6px;vertical-align:.1em;background:var(--accent)}

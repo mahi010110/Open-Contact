@@ -1,6 +1,8 @@
 /* ============================================================
-   OpenContact v6 — amorçage & routeur
-   Quatre zones : Aujourd'hui · Mes pistes · Réseau · Moi.
+   OpenContact — amorçage & routeur
+   Quatre écrans : Aujourd'hui · Mes pistes · Réseau · Moi — et la BARRE
+   (le + au téléphone, le champ de l'en-tête au poste) qui mène partout
+   (la refonte, docs/decisions/0014-arc-search-dans-main.md).
    Ce fichier ne fait que démarrer (chargement, thème, service
    worker) et router ; chaque écran vit dans ui/, le moteur dans
    engine/ — il ne lit jamais l'écran. Auto-tests : ?test.
@@ -8,7 +10,7 @@
 import { APP_VERSION } from './engine/model.js';
 import { THEME_KEY, kvInit, kvGet, kvSet } from './engine/storage.js';
 import { initVerrou } from './ui/verrou.js';
-import { S, bus, loadAll, reloadFromStorage, choisirTheme } from './ui/state.js';
+import { S, bus, loadAll, reloadFromStorage, choisirTheme, saveData, logJ } from './ui/state.js';
 import { $, $$, toast, installFoldMotion, sheetOpen } from './ui/dom.js';
 import { renderToday } from './ui/today.js';
 import { renderPistes } from './ui/pistes.js';
@@ -18,6 +20,12 @@ import { attendOnglet } from './engine/conversations.js';
 import { chargerGroupes } from './ui/groupes.js';
 import { renderMoi } from './ui/moi.js';
 import { openCapture } from './ui/capture.js';
+import { ouvrirBarre, brancherBarre } from './ui/barre.js';
+import { chargerRecents, recentes } from './ui/recents.js';
+import { initiales } from './engine/visage.js';
+import { rangerTout } from './engine/rangement.js';
+import { todayISO, esc } from './engine/utils.js';
+import { etatCourt } from './engine/commande.js';
 import { downloadBackup, closeReglages } from './ui/moi.js';
 import { ecouterInstallation } from './ui/installer.js';
 import { initSyncLive } from './ui/synclive.js';
@@ -53,25 +61,63 @@ function render(){
   if (S.stale && !sheetOpen()){ reloadFromStorage(); return; }
   for (const k in VIEWS) $('#view-' + k).hidden = (k !== S.route);
   VIEWS[S.route]();
-  /* « Réseau » change de couleur quand quelque chose y attend — pas de
-     chiffre, pas de notification (engine/conversations.js). Là où l'on
-     est déjà, la liste le montre : l'onglet se tait. */
+  /* LA BARRE DU BAS : le coin de l'écran où l'on est ramène à
+     « Aujourd'hui » (styles : `.bottomnav[data-ici]`), et la pile porte
+     les initiales de la dernière piste ouverte */
+  const bas = $('.bottomnav');
+  if (bas) bas.dataset.ici = S.route;
+  peindrePile();
+  /* Quelque chose attend dans « Réseau » : pas de chiffre, pas de
+     notification (engine/conversations.js) — une couleur. Au poste,
+     c'est le lien « Réseau » qui la prend ; au téléphone, « Moi », qui
+     y mène. Là où l'on est déjà, la liste le montre : le signe se tait. */
   const attend = attendOnglet(rangsBoite());
-  $$('[data-r]').forEach(a => {
+  $$('.topnav [data-r]').forEach(a => {
     const on = a.dataset.r === S.route;
     a.classList.toggle('on', on);
-    if (a.closest('nav')) a.setAttribute('aria-current', on ? 'page' : 'false');
-    if (a.dataset.r === 'reseau' && a.closest('nav')){
-      const signe = attend && !on;
-      a.classList.toggle('attend', signe);
-      /* la couleur ne suffit pas à tout le monde (WCAG 1.4.1) : le nom
-         de l'onglet le dit aussi */
-      if (signe) a.setAttribute('aria-label', 'Réseau, du nouveau');
-      else if (a.closest('.bottomnav')) a.setAttribute('aria-label', 'Réseau');
-      else a.removeAttribute('aria-label');
-    }
+    a.setAttribute('aria-current', on ? 'page' : 'false');
+    if (a.dataset.r !== 'reseau') return;
+    const signe = attend && !on;
+    a.classList.toggle('attend', signe);
+    /* la couleur ne suffit pas à tout le monde (WCAG 1.4.1) : le nom
+       du lien le dit aussi */
+    if (signe) a.setAttribute('aria-label', 'Réseau, du nouveau');
+    else a.removeAttribute('aria-label');
   });
+  const moi = $('.bottomnav a[data-r="moi"]');
+  if (moi){
+    const signe = attend && S.route !== 'reseau';
+    moi.classList.toggle('attend', signe);
+    moi.setAttribute('aria-label', signe ? 'Moi, du nouveau' : 'Moi');
+  }
 }
+/* LA PILE : les pistes ouvertes en dernier. Au téléphone, la dernière
+   est posée sur le bouton « Pistes » (ses initiales) ; au poste, la pile
+   se déplie dans la barre latérale — six lignes, la plus récente en
+   tête, chacune ouvre sa fiche. */
+const PILE_POSTE = 6;
+function peindrePile(){
+  const l = recentes(PILE_POSTE);
+  const em = $('#bnPile');
+  if (em){
+    em.textContent = l[0] ? initiales(l[0].name) : '';
+    const a = em.closest('a');
+    if (a) a.setAttribute('aria-label', l[0] ? 'Pistes — dernière ouverte : ' + l[0].name : 'Pistes');
+  }
+  const box = $('#cotePile');
+  if (!box) return;
+  box.hidden = !l.length;
+  const today = todayISO();
+  box.innerHTML = l.length ? `<h2 class="cote-lbl">Ouvertes récemment</h2>` + l.map(c =>
+    `<button class="cote-p" data-pile="${esc(c.id)}"><b>${esc(c.name)}</b><span>${esc(etatCourt(c, today))}</span></button>`).join('') : '';
+}
+document.addEventListener('oc:recents', peindrePile);
+document.addEventListener('click', e => {
+  const b = e.target.closest && e.target.closest('[data-pile]');
+  if (!b) return;
+  const c = S.companies.find(x => x.id === b.dataset.pile);
+  if (c) import('./ui/fiche.js').then(m => m.openFiche(c));
+});
 /* Chaque onglet garde sa place. Mesuré : trente pistes, on descend à
    900 px, on passe dans « Moi », on revient — et on était remonté tout
    en haut. Une barre d'onglets promet qu'on retrouve les choses où on
@@ -134,6 +180,18 @@ export function auSommet(route){
 }
 bus.refresh = render;
 
+/* LE RANGEMENT AUTOMATIQUE (la refonte, engine/rangement.js) : une piste
+   engagée qui se tait depuis 45 jours se range seule. Rien n'est
+   supprimé, et « Aujourd'hui » l'annonce avec « Annuler ». Rend vrai si
+   quelque chose a bougé. */
+function rangerSeules(){
+  const l = rangerTout(S.companies, todayISO());
+  if (!l.length) return false;
+  for (const r of l) logJ('Rangée (' + r.jours + ' jours sans réponse) : ' + r.name, r.id);
+  saveData();
+  return true;
+}
+
 (async function init(){
   console.info('OpenContact', APP_VERSION);
   /* le thème d'abord (l'écran verrouillé doit être du bon côté),
@@ -145,6 +203,9 @@ bus.refresh = render;
   installFoldMotion();
   await initVerrou();
   await loadAll();
+  /* avant le premier écran : ce qui s'est tu trop longtemps se range,
+     pour qu'« Aujourd'hui » l'annonce au lieu de le réclamer */
+  rangerSeules();
   /* cinq chargements indépendants : en parallèle, pas en file — chaque
      aller-retour IndexedDB sérialisé se paierait au démarrage. Les
      conversations avec mes amis en sont : « Aujourd'hui » et « Amis »
@@ -156,6 +217,7 @@ bus.refresh = render;
        qui attend dans « Réseau » se lit dès le premier écran */
     chargerGroupes(),
     chargerFils(),
+    chargerRecents(),
     /* et ce que ma boîte aux lettres a GARDÉ (demandes, contacts donnés,
        mercis) : une lecture locale, rien ne part — « Aujourd'hui » dit
        « Tes amis » dès le premier écran, au lieu de se compléter sous
@@ -183,24 +245,34 @@ bus.refresh = render;
      « Moi » qui en a besoin : ça referme Réglages depuis la zone la plus
      facile du pouce, au lieu du chevron coincé en haut à gauche. */
   $$('[data-r]').forEach(a => a.addEventListener('click', () => {
-    if (a.dataset.r === 'moi' && S.route === 'moi') closeReglages();
-    /* même onglet, deuxième tap : on remonte. Après `closeReglages()`,
-       qui a pu changer ce qui est à l'écran. */
+    /* quitter « Moi » referme Réglages : on le retrouve à sa racine,
+       comme une fenêtre qu'on a rangée */
+    if (S.route === 'moi' && (a.dataset.r === 'moi' || a.classList.contains('bn-retour'))) closeReglages();
+    /* même écran, deuxième clic (au poste) : on remonte. Après
+       `closeReglages()`, qui a pu changer ce qui est à l'écran. */
     if (a.dataset.r === S.route) auSommet(S.route);
   }));
-  $('#bnAdd').addEventListener('click', () => openCapture());
-  $('#btnAddTop').addEventListener('click', () => openCapture());
+  /* LA BARRE : le + au téléphone, le champ de l'en-tête au poste */
+  $('#bnAdd').addEventListener('click', () => ouvrirBarre());
+  brancherBarre();
+  /* revenir dans l'app un autre jour : ce qui s'est tu depuis se range */
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && !sheetOpen() && rangerSeules()) bus.refresh();
+  });
   $('#swCopy').addEventListener('click', () => downloadBackup());   /* secours : brut, sans question */
 
-  /* clavier : « / » saute à la recherche des pistes */
+  /* clavier : Ctrl K (ou ⌘ K) ouvre la barre de partout ; « / » aussi —
+     sauf dans « Mes pistes », où il garde la recherche de la liste, qui
+     filtre sous les yeux */
   document.addEventListener('keydown', e => {
-    if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
+    const k = (e.ctrlKey || e.metaKey) && !e.altKey && (e.key === 'k' || e.key === 'K');
+    if (!k && (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey)) return;
     const t = e.target;
-    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+    if (!k && t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
     if (sheetOpen()) return;
     e.preventDefault();
-    if (S.route !== 'pistes') location.hash = '#/pistes';
-    setTimeout(() => { try { $('#piQ').focus(); } catch (x) {} }, 60);
+    if (!k && S.route === 'pistes'){ try { $('#piQ').focus(); } catch (x) {} return; }
+    ouvrirBarre();
   });
 
   applyRoute();

@@ -256,6 +256,7 @@ export function closePiste(c, reason){
 export function reopenPiste(c){
   c.closedReason = '';
   c.closedAt = '';
+  delete c.rangeAuto;          /* rouverte : l'app ne l'annonce plus comme rangée (engine/rangement.js) */
   c.updatedAt = Date.now();
   pushHist(c, 'Rouverte');
   logJ('Rouverte : ' + c.name, c.id);

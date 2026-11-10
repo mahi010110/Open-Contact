@@ -525,9 +525,12 @@ function removeRow(id){
    tombe (il retirerait des pistes que le lien a comptées), et la liste
    part du haut : la place gardée par l'onglet valait pour une autre
    liste. */
-export function ouvrirSur(texte){
+/* `vers` : la portée où s'ouvre la recherche — « Mes pistes » (le
+   défaut), ou « À découvrir » quand la barre demande des entreprises
+   qu'on n'a pas encore (la refonte, ui/barre.js). */
+export function ouvrirSur(texte, vers = 'pistes'){
   q = texte;
-  portee = 'pistes';
+  portee = vers === 'decouvrir' ? 'decouvrir' : 'pistes';
   ftClear();
   const enHaut = () => { const v = $('#view-pistes'); if (v) v.scrollTop = 0; };
   if (location.hash.replace('#/', '#') === '#pistes'){ renderPistes(); enHaut(); return; }

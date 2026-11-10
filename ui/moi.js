@@ -18,6 +18,8 @@ import { listDocs, docKind, docTitle, pickPdf, removeDoc } from './docs.js';
 import { S, bus, saveData, saveProfile, saveOrphans, saveTombs, logJ, choisirTheme } from './state.js';
 import { $, ic, toast, btn, openSheet, confirmSheet, showUndo, bindDeleteGesture,
          lockRowHTML, bindLockRow, choixHTML } from './dom.js';
+import { attendOnglet } from '../engine/conversations.js';
+import { rangsBoite } from './conversations.js';
 import { openProfil, openTemplates } from './profil.js';
 import { openAppareils } from './direct.js';
 import { getSync, loadDevices } from './synclive.js';
@@ -513,6 +515,13 @@ mqWideMoi.addEventListener('change', () => { if (S.route === 'moi') renderMoi();
    · retaper « Moi » dans la barre du bas, comme un onglet iOS qu'on
      retape pour remonter à sa racine — c'est la zone la plus facile ;
    · glisser depuis le bord gauche. */
+/* la barre y mène d'un mot — « réglages » (ui/barre.js). Au poste, les
+   réglages vivent dans « Moi » même : on y va, c'est tout. */
+export function openReglages(){
+  reglagesOpen = true;
+  if (S.route === 'moi') renderMoi();
+  else location.hash = '#/moi';
+}
 export function closeReglages(){
   if (!reglagesOpen) return false;
   reglagesOpen = false;
@@ -619,6 +628,20 @@ export function renderMoi(){
                 ${manques.length ? `<span class="obj-l obj-creux">À compléter : ${esc(manques.join(', '))}</span>` : ''}</div>` : ''}
      </div>`;
 
+  /* AU TÉLÉPHONE, « RÉSEAU » VIT ICI (la refonte, fiche 0014). La barre
+     du bas n'a plus que trois places — mes pistes, le +, moi — et les
+     gens font partie de « moi » : mes amis, mes groupes, ce qu'on se
+     donne. La rangée dit s'il y a du nouveau, du même mot et de la même
+     couleur que le bouton « Moi » de la barre ; aucun chiffre (le calme).
+     Au poste, « Réseau » a sa place dans la barre latérale : rien ici. */
+  const attend = !wide && attendOnglet(rangsBoite());
+  const reseau = wide ? '' :
+    `<button class="rg-row rg-last moi-rg moi-reseau${attend ? ' attend' : ''}" id="moiReseau">
+       <span class="rg-n">Réseau</span>
+       <span class="rg-s">${attend ? 'du nouveau' : ''}</span>
+       ${ic('chevron-right', 'ic-14')}
+     </button>`;
+
   const envoi =
     `<fieldset class="fset">
        <legend>Ce que j’envoie</legend>
@@ -685,7 +708,7 @@ export function renderMoi(){
        <div class="td-head"><h1>Moi</h1></div>
        ${wide
          ? `<div class="moi-cols"><div>${objet}${aide}${envoi}${copie}</div><div>${reglages}</div></div>`
-         : objet + aide + envoi + copie +
+         : objet + reseau + aide + envoi + copie +
            `<button class="rg-row rg-last moi-rg" id="moiReglages">
               <span class="rg-n">Réglages</span>
               <span class="rg-s">${verrouLabel()}</span>
@@ -701,6 +724,7 @@ export function renderMoi(){
   root.querySelector('#moiProfil').addEventListener('click', () => openProfil());
   root.querySelector('#moiTpl').addEventListener('click', openTemplates);
   root.querySelector('#moiAide')?.addEventListener('click', ouvrirAide);
+  root.querySelector('#moiReseau')?.addEventListener('click', () => { location.hash = '#/reseau'; });
   /* le mot de passe est facultatif : au repos il ne pèse qu'un bouton
      compact au bout de la ligne (#8 — l'avancé se replie derrière un
      signe, jamais une phrase). Tapé, il s'étire en champ ; re-tapé, il

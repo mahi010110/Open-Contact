@@ -525,6 +525,15 @@ function ouvrirApercu(r){
        btn('Ajouter à mes pistes', 'btn-primary', () => { sh.close(); ajouter(r); }, 'plus')]);
   return sh;
 }
+/* LA PAGE PRÉPARÉE (la refonte, « l'app fait le travail ») : la barre
+   ouvre le même aperçu — une entreprise, une page, le même geste au
+   pied. Une entreprise qu'on a déjà sous ce SIREN s'ouvre sur sa fiche
+   au lieu de se doubler. */
+export function ouvrirPage(r){
+  const deja = S.companies.find(c => c.siren && c.siren === r.siren);
+  if (deja) ajoutees.set(r.siren, deja.id);
+  return ouvrirApercu(r);
+}
 async function ouvrirFiche(r){
   const c = S.companies.find(x => x.id === ajoutees.get(r.siren));
   if (c) (await import('./fiche.js')).openFiche(c);

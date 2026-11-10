@@ -21,6 +21,7 @@ import { prenomAmi } from '../engine/amis.js';
 import { frDate, relLabel } from './dates.js';
 import { askNextAction, askClose } from './actions.js';
 import { openMail } from './mail.js';
+import { noterOuverte } from './recents.js';
 import { openEditPiste } from './edit.js';
 import { openContactEditor, telHref, smsHref, waHref } from './contact.js';
 import { annuaireEtatHTML, annuaireCarteHTML, annuaireParle, lierAnnuaireFiche, oublierFiche,
@@ -99,6 +100,15 @@ function demanderAAmi(c, ami, v){
     : boutonCopier(sh, mot)]);
 }
 
+/* LA PROCHAINE ÉTAPE (la refonte) : « Demander à Karim » se tape depuis
+   « Aujourd'hui » et depuis la barre, sans ouvrir la fiche d'abord — le
+   plus fort des porteurs, comme le bandeau de la fiche. */
+export function demanderAuPorteur(c){
+  const p = porteurs(c, portesDuJour())[0];
+  if (p) openDemander(c, p.prenom, p);
+  else openFiche(c);
+}
+
 /* Deux conceptions, pas une fenêtre élastique. Au pouce : une colonne,
    le travail d'abord, le dossier replié — on tient la fiche d'une main.
    Au poste : le travail à gauche (où j'en suis, la prochaine action,
@@ -116,6 +126,8 @@ const plisSavoir = new Map();
 const savoirOuvert = c => plisSavoir.has(c.id) ? plisSavoir.get(c.id) : true;
 
 export function openFiche(c){
+  /* elle passe en tête de la pile (la barre du bas, la barre latérale) */
+  noterOuverte(c);
   /* le tampon : seulement les champs touchés — rien ne s'écrit avant Confirmer */
   const draft = {};
   const val = f => (f in draft) ? draft[f] : c[f];

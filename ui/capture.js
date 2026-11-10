@@ -44,7 +44,9 @@ export function openCapture(prefill){
   const NOM = wide ? '#edName' : '#cpName';
 
   const sh = openSheet({
-    title: prefill.website ? 'Piste reçue du partage' : 'Nouvelle piste',
+    /* `direct` : l'adresse vient de la barre (on l'a tapée ou collée
+       soi-même), pas du partage d'une autre app */
+    title: prefill.website && !prefill.direct ? 'Piste reçue du partage' : 'Nouvelle piste',
     icon: 'plus', className: wide ? 'modal-fiche' : '', focus: NOM
   });
   /* ordinateur : le contact prend la grammaire du formulaire partagé
@@ -84,6 +86,8 @@ export function openCapture(prefill){
 
   const q = s => sh.body.querySelector(s);
   const v = s => q(s).value.trim();
+  /* une adresse ou un numéro tapés dans la barre arrivent déjà posés */
+  if (prefill.coord) q('#cpCtCoord').value = prefill.coord;
   /* ordinateur : l'avertissement de doublon et l'entreprise devinée se
      posent sous le nom, dans le formulaire partagé */
   const champs = wide ? bindSharedFields(sh.body) : null;
@@ -172,7 +176,7 @@ export function openCapture(prefill){
        n'est écrasé */
     else if (choisie && choisie.nom === name){ Object.assign(c, complements(c, choisie, '')); connaitre(choisie); }
     choisie = null;
-    c.history = [{ d: todayISO(), t: prefill.website ? 'Piste reçue du partage' : 'Piste créée' }];
+    c.history = [{ d: todayISO(), t: prefill.website && !prefill.direct ? 'Piste reçue du partage' : 'Piste créée' }];
     S.companies.push(c);
     saveData();
     logJ('Piste créée : ' + c.name, c.id);

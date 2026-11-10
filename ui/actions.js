@@ -50,11 +50,14 @@ function caseAgenda(root, id){
 }
 /* Appelé DANS le geste qui choisit la date : un téléchargement ou une
    fenêtre qui s'ouvre hors d'un geste est bloqué par le navigateur. */
-export function ouvrirAgenda(c, txt, iso){
+/* `heure` (« 14:00 ») : quand la barre a compris une heure — « entretien
+   Aztek jeudi 14h » —, le rappel sonne à cette heure-là, pas le matin */
+export function ouvrirAgenda(c, txt, iso, heure){
   const titre = (txt || 'Faire le point') + ' — ' + c.name;
   const details = 'Prochaine action notée dans OpenContact.';
+  const quand = /^\d{2}:\d{2}$/.test(String(heure || '')) ? { heure } : {};
   if (formeAgenda(navigator.userAgent) === 'ics'){
-    const ics = rappelICS({ uid: c.id + '-' + iso, titre, date: iso, details });
+    const ics = rappelICS({ uid: c.id + '-' + iso, titre, date: iso, details, ...quand });
     if (!ics) return;
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([ics], { type: 'text/calendar;charset=utf-8' }));
@@ -65,7 +68,7 @@ export function ouvrirAgenda(c, txt, iso){
     setTimeout(() => URL.revokeObjectURL(a.href), 4000);
     return;
   }
-  const url = lienAgendaGoogle({ titre, date: iso, details });
+  const url = lienAgendaGoogle({ titre, date: iso, details, ...quand });
   if (url) window.open(url, '_blank', 'noopener');
 }
 
