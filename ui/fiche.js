@@ -7,7 +7,7 @@
    léger garde-fou. Contacts joignables en un tap, clôture,
    itinéraire — l'édition des champs partagés reste sa feuille.
    ============================================================ */
-import { esc, fmtDate, isLate, directionsUrl } from '../engine/utils.js';
+import { esc, fmtDate, isLate, directionsUrl, todayISO } from '../engine/utils.js';
 import { STATUSES, CLOSE_REASONS, DOMAINS, POSITIONS, VECU, pushHist, summarizeChanges,
          nextActionContact } from '../engine/model.js';
 import { scoreOf } from '../engine/score.js';
@@ -20,6 +20,10 @@ import { demandesPossibles, libelleDemande, messageDemande } from '../engine/aid
 import { prenomAmi } from '../engine/amis.js';
 import { frDate, relLabel } from './dates.js';
 import { askNextAction, askClose } from './actions.js';
+import { prochaineEtape, estEntretien, aDemander } from '../engine/etape.js';
+import { suiteDe } from '../engine/contrat.js';
+import { rangeeSeule } from '../engine/rangement.js';
+import { faireEtape, cocherEtape } from './gestes.js';
 import { openMail } from './mail.js';
 import { noterOuverte } from './recents.js';
 import { openEditPiste } from './edit.js';
@@ -182,6 +186,14 @@ export function openFiche(c){
     render();
   };
 
+  /* LA PROCHAINE ÉTAPE (la refonte, engine/etape.js) : celle de la piste
+     telle qu'on la voit — le tampon compris, pour qu'un statut qu'on vient
+     de changer change l'étape sous les yeux */
+  const etapeVue = () => {
+    const vue = { ...c, status: val('status'), nextAction: val('nextAction'), nextActionText: val('nextActionText') };
+    if (val('nextActionCt')) vue.nextActionCt = val('nextActionCt'); else delete vue.nextActionCt;
+    return prochaineEtape(vue, { today: todayISO(), portes: portesDuJour(), profile: S.profile, peutDemander: reseauDePiste(c).peut });
+  };
   const renderFoot = () => {
     const foot = sh.ov.querySelector('.modal-f');
     foot.innerHTML = '';
@@ -200,7 +212,22 @@ export function openFiche(c){
       const pref = withMail.find(t => t.activatedAt || t.src !== 'promo') || withMail[0];
       return pref && pref.id;
     };
-    foot.append(btn('Écrire', d ? '' : 'btn-primary', () => openMail(c, { ctId: writeTo() }), 'mail'));
+    /* LE BOUTON REMPLI JOUE LA PROCHAINE ÉTAPE, sous le pouce (§5 : ce
+       qui compte se tape en bas). Il disait toujours « Écrire », même
+       quand il fallait demander à Karim, cocher une action ou trouver
+       quelqu'un : c'était à l'étudiant de traduire. Il dit maintenant le
+       geste de l'étape — le même mot, le même geste que sur
+       « Aujourd'hui » et dans la barre (ui/gestes.js). Une étape qui ne
+       se joue pas d'ici (une action prévue plus tard, une attente) le
+       laisse à « Écrire », comme avant. */
+    const e = d ? null : etapeVue();
+    const joue = e && e.bouton && e.action !== 'fiche' && e.action !== 'quand' && e.action !== 'cocher';
+    if (joue){
+      foot.append(btn(e.bouton, 'btn-primary', () => faireEtape(c, e, { apres: render }), e.icone));
+      foot.lastChild.id = 'fiEtape';
+    } else {
+      foot.append(btn('Écrire', d ? '' : 'btn-primary', () => openMail(c, { ctId: writeTo() }), 'mail'));
+    }
     if (d) foot.append(btn('Confirmer', 'btn-primary', confirm, 'check'));
   };
 
@@ -275,35 +302,67 @@ export function openFiche(c){
          <button class="btn btn-sm" id="fiEdit" aria-label="${score < 60 ? 'Compléter' : 'Modifier'} la piste ${esc(c.name)}">${ic('pencil', 'ic-14')} ${score < 60 ? 'Compléter' : 'Modifier'}</button>
        </div>`;
     /* ---- le travail : où j'en suis, ce que je fais ensuite, ce que je note ---- */
+    /* LA PROCHAINE ÉTAPE (la refonte). Le cadre disait « Aucune » dès
+       qu'aucune date n'était posée — pour une piste où quelqu'un pouvait
+       te porter, ou qui se taisait depuis trois semaines. Il y a TOUJOURS
+       une étape : celle qu'on a prévue, sinon celle que l'app déduit
+       (demander à qui y est passé, relancer, attendre — et jusqu'à quand).
+       Le geste de l'étape tient le pied ; ici, « Planifier » ou
+       « Modifier » règlent la date. */
+    const etape = closed ? null : etapeVue();
+    const prevu = val('nextAction');
+    const etTitre = prevu ? (val('nextActionText') || 'Faire le point') : (etape ? etape.titre : 'Faire le point');
+    const etSous = prevu
+      ? `${frDate(prevu)} · ${relLabel(prevu)}${naPerson ? ' · ' + esc(naPerson.name || naPerson.email) : ''}`
+      : !etape ? ''
+      : etape.genre === 'silence' ? `sans nouvelles depuis ${etape.silence.jours} j`
+      : etape.genre === 'attente' ? `relance le ${frDate(etape.date)}, si pas de réponse`
+      /* l'atout (« Karim y est en alternance ») est déjà dit par le
+         bandeau, juste au-dessus : rien ne se dit deux fois (§6) */
+      : '';
+    /* avant un entretien : trois choses à demander (engine/etape.js) */
+    const prep = prevu && estEntretien(val('nextActionText'))
+      ? `<div class="fi-prep"><span class="fi-prep-l">À demander</span>
+           <ul>${aDemander(S.profile.recherche).map(q => `<li>${esc(q)}</li>`).join('')}</ul></div>` : '';
+    /* LE SILENCE N'EST PAS UN VERDICT : la seule phrase d'explication de
+       la fiche, parce qu'elle prévient d'une erreur qu'on ne voit pas
+       venir — prendre pour soi le sort de la plupart des candidatures (§7) */
+    const silence = !prevu && etape && etape.genre === 'silence'
+      ? `<p class="hint fi-silence">Beaucoup de candidatures restent sans réponse : ce n’est pas toi.</p>` : '';
+    /* LA SUITE D'UN « DÉCROCHÉ » (engine/contrat.js) : du « oui » au
+       contrat qui tient. Une liste à cocher — l'état vit dans la case
+       (§4) —, et la phrase qui prévient n'accompagne que l'étape en cours. */
+    const suite = suiteDe(c, S.profile);
+    const suiteHTML = suite
+      ? `<div class="field fi-suite"><label>La suite</label>
+           <div class="pick-list" role="group" aria-label="La suite">${suite.etapes.map(e =>
+             `<button class="pick pk${e.fait ? ' on' : ''}" data-suite="${e.id}" aria-pressed="${!!e.fait}">
+                ${ic('checkbox', 'ic-20 ic-off')}${ic('checkbox-on', 'ic-20 ic-on')}
+                <div class="pk-m"><b>${esc(e.label)}</b>${e.fait ? `<span class="pk-s">${frDate(e.fait)}</span>`
+                  : e.note && suite.prochaine && suite.prochaine.id === e.id ? `<span class="pk-s fi-suite-n">${esc(e.note)}</span>` : ''}</div>
+              </button>`).join('')}</div>
+         </div>` : '';
     const travail =
       `${closed ? `
          <div class="fi-closed" style="--c:${CLOSE_REASONS[c.closedReason].color}">
-           ${/* La phrase dans SA boîte, et « Rouvrir » à côté d'elle. Le
-                bandeau repliait ses enfants (`flex-wrap`) et jetait le
-                bouton à droite (`margin-left:auto`) : mesuré, à 125 % et
-                à 200 % il DÉCROCHAIT sur un rang à lui avec 182 à 221 px
-                de vide à sa gauche. Une phrase qui s'allonge doit faire
-                grandir sa boîte, pas chasser le geste hors de la rangée. */''}
-           <span class="fic-t">${ic('archive', 'ic-14')} Clôturée — <b>${CLOSE_REASONS[c.closedReason].label}</b>${c.closedAt ? ' · ' + esc(fmtDate(c.closedAt)) : ''}</span>
+           ${/* La phrase dans SA boîte, et « Rouvrir » à côté d'elle. Une
+                piste que l'app a rangée seule le dit : « Rangée », pas
+                « Abandonné » — personne ne l'a abandonnée. */''}
+           <span class="fic-t">${ic('archive', 'ic-14')} ${rangeeSeule(c)
+             ? `Rangée — <b>sans réponse</b>` : `Clôturée — <b>${CLOSE_REASONS[c.closedReason].label}</b>`}${c.closedAt ? ' · ' + esc(fmtDate(c.closedAt)) : ''}</span>
            <button class="btn btn-sm" id="fiReopen">Rouvrir</button>
-         </div>` : `
+         </div>${suiteHTML}` : `
          <div class="field"><label>Où j’en suis</label>
            <div class="seg3 seg3-statut" role="radiogroup" aria-label="Statut">
              ${Object.keys(STATUSES).map(k =>
                `<button class="seg${val('status') === k ? ' on' : ''}" data-st="${k}" aria-pressed="${val('status') === k}">${STATUSES[k].label}</button>`).join('')}
            </div>
          </div>
-         <div class="field"><label>Prochaine action</label>
-           <div class="na-box${val('nextAction') && isLate(val('nextAction')) ? ' late' : ''}">
-             ${val('nextAction')
-               ? `<div class="na-cur"><b>${esc(val('nextActionText') || 'Faire le point')}</b>
-                    <span>${frDate(val('nextAction'))} · ${relLabel(val('nextAction'))}${naPerson ? ' · ' + esc(naPerson.name || naPerson.email) : ''}</span></div>
-                  <button class="btn btn-sm" id="fiNa" aria-label="Modifier la prochaine action">Modifier</button>`
-               /* « Aucune », pas « Aucune — planifie la suite » : le
-                  bouton d'à côté dit déjà le geste (§6, sobriété 1) */
-               : `<div class="na-cur na-none">Aucune</div>
-                  <button class="btn btn-sm" id="fiNa">Planifier</button>`}
-           </div>
+         <div class="field"><label>Prochaine étape</label>
+           <div class="na-box${prevu && isLate(prevu) ? ' late' : ''}">
+             <div class="na-cur"><b>${esc(etTitre)}</b>${etSous ? `<span>${etSous}</span>` : ''}</div>
+             <button class="btn btn-sm" id="fiNa"${prevu ? ' aria-label="Modifier la prochaine étape"' : ''}>${prevu ? 'Modifier' : 'Planifier'}</button>
+           </div>${prep}${silence}
          </div>`}
        <div class="field"><label for="fiNotes">Mes notes ${ic('lock', 'ic-14')} <span class="lbl-soft">privées</span></label>
          ${/* `rows="1"` est nécessaire : sans lui, `height:auto` retombe sur
@@ -520,6 +579,8 @@ export function openFiche(c){
       onPick: (txt, iso) => { touch('nextActionText', txt); touch('nextAction', iso); touch('nextActionCt', ''); },
       onDone: render
     }));
+    sh.body.querySelectorAll('[data-suite]').forEach(b =>
+      b.addEventListener('click', () => { cocherEtape(c, b.dataset.suite); render(); }));
     const ro = sh.body.querySelector('#fiReopen');
     if (ro) ro.addEventListener('click', () => { reopenPiste(c); render(); bus.refresh(); });
     /* La zone de notes suit son contenu : deux lignes à vide, elle grandit

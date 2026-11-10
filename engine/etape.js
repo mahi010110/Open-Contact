@@ -190,3 +190,20 @@ export function aFaire(companies, o){
     aDemarrer: de('demarrer').length
   };
 }
+
+/* ---------- avant un entretien : ce qu'il faut demander ----------
+   S'entraîner est couvert partout (simulateurs, questions types) ; se
+   préparer à CETTE entreprise ne l'est par personne. Et ce qui fait
+   rompre un contrat se demande avant de le signer : 65 % des apprentis
+   qui rompent citent l'employeur ou le poste (Dares Analyses n° 63), et
+   le taux de rupture monte dans les très petites entreprises. Trois
+   questions, pas un cours — c'est une hypothèse que rien n'a encore
+   évaluée (reports/Accompagner la recherche de stage.md), d'où trois
+   lignes et pas une de plus. */
+export const A_DEMANDER = {
+  alternance: ['Qui sera ton tuteur', 'Tes missions, concrètement', 'Le rythme école et entreprise'],
+  stage: ['Qui t’encadre', 'Tes missions, concrètement', 'Les horaires'],
+  emploi: ['Tes missions, concrètement', 'Avec qui tu travailles', 'La période d’essai']
+};
+export const estEntretien = texte => /entretien|rdv|rendez|visio|entrevue/.test(plier(texte));
+export const aDemander = recherche => A_DEMANDER[recherche] || A_DEMANDER.stage;

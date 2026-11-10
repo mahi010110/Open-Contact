@@ -4230,3 +4230,20 @@ html.oc-locked .undo-bar{display:none}
 .aj-cols{display:grid;grid-template-columns:minmax(0,42rem) minmax(17rem,22rem);gap:32px;align-items:start}
 .aj-travail>.tranche:first-child,.aj-travail>.td-empty:first-child{margin-top:0}
 .aj-contexte .tranche{margin-top:16px}
+
+/* ============ LA FICHE : la prochaine étape, ses appuis ============ */
+/* avant un entretien : trois choses à demander — un cadre de groupe,
+   trois lignes, le carré d'accent des listes de l'app */
+.fi-prep{margin-top:10px;padding:8px 12px 10px;border:1px solid var(--border-frame);background:var(--surface-window)}
+.fi-prep-l{
+  display:block;margin-bottom:4px;font-size:var(--text-11);font-weight:var(--weight-bold);line-height:1.3;
+  letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--text-muted);
+}
+.fi-prep ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px}
+.fi-prep li{position:relative;padding-left:14px;font-size:var(--text-13);line-height:1.45}
+.fi-prep li::before{content:'';position:absolute;left:2px;top:.6em;width:5px;height:5px;background:var(--accent)}
+.fi-silence{margin-top:8px}
+/* la suite d'un « Décroché » : la phrase qui prévient ne s'élide pas —
+   c'est elle qu'on vient lire (§4 : une donnée s'élide, pas un avertissement) */
+.fi-suite{margin-top:14px}
+.fi-suite .pk-s.fi-suite-n{white-space:normal;overflow:visible;color:var(--amber)}
