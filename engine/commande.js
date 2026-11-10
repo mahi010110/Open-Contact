@@ -321,7 +321,7 @@ export function aQuiEcrire(c){
    qui commence par un service se dit en entier */
 const SERVICES = new Set(['service', 'services', 'direction', 'equipe', 'accueil', 'recrutement', 'rh', 'drh', 'dsi',
   'contact', 'pole', 'cellule', 'departement', 'relation', 'relations', 'bureau', 'secretariat', 'cabinet', 'agence']);
-const prenomDe = t => {
+export const prenomDe = t => {
   const nom = t ? String(t.name || '').trim() : '';
   const premier = nom.split(/\s+/)[0] || '';
   return SERVICES.has(plier(premier)) ? nom : premier;
@@ -465,7 +465,7 @@ function candidatsSans(verbe, companies, today){
    Les mots qui mènent quelque part. La phrase entière doit être l'un
    d'eux, ou son début (trois lettres au moins). */
 export const ALLER = [
-  { id: 'accueil',    titre: 'Aujourd’hui',         icone: 'zap',       mots: ['accueil', 'a faire'] },
+  { id: 'accueil',    titre: 'Aujourd’hui',         icone: 'home',      mots: ['accueil', 'a faire'] },
   { id: 'pistes',     titre: 'Mes pistes',          icone: 'briefcase', mots: ['pistes', 'mes pistes', 'liste', 'toutes mes pistes'] },
   { id: 'rangees',    titre: 'Pistes rangées',      icone: 'archive',   mots: ['rangees', 'pistes rangees', 'archives'] },
   { id: 'decouvrir',  titre: 'À découvrir',         icone: 'search',    mots: ['decouvrir', 'a decouvrir', 'annuaire'] },
@@ -481,9 +481,9 @@ export const ALLER = [
   { id: 'cv',         titre: 'CV',                  icone: 'file',      mots: ['cv', 'mon cv'] },
   { id: 'lettres',    titre: 'Lettres',             icone: 'file',      mots: ['lettres', 'lettre', 'lettre de motivation'] },
   { id: 'copie',      titre: 'Télécharger ma copie', icone: 'download', mots: ['copie', 'ma copie', 'telecharger', 'telecharger ma copie', 'sauvegarde', 'sauvegarder', 'exporter'] },
-  { id: 'reglages',   titre: 'Réglages',            icone: 'sliders',   mots: ['reglages', 'reglage', 'parametres', 'options'] },
-  { id: 'theme',      titre: 'Thème',               icone: 'sliders',   mots: ['theme', 'sombre', 'clair', 'mode sombre', 'mode clair'] },
-  { id: 'aide',       titre: 'Aide et confidentialité', icone: 'info',  mots: ['aide', 'confidentialite'] }
+  { id: 'reglages',   titre: 'Réglages',            icone: 'settings-2', mots: ['reglages', 'reglage', 'parametres', 'options'] },
+  { id: 'theme',      titre: 'Thème',               icone: 'moon',      mots: ['theme', 'sombre', 'clair', 'mode sombre', 'mode clair'] },
+  { id: 'aide',       titre: 'Aide et confidentialité', icone: 'info-box', mots: ['aide', 'confidentialite'] }
 ];
 function allerVers(cle){
   if (cle.length < 2) return [];
@@ -596,7 +596,7 @@ export function comprendre(q, ctx){
 
   /* ----- ajouter : un nom, et rien d'autre ----- */
   const lignesAjout = nom => [
-    { type: 'preparer', icone: 'search', nom, titre: 'Prépare la page de « ' + nom + ' »', detail: 'dans l’annuaire des entreprises' },
+    { type: 'preparer', icone: 'sparkles', nom, titre: 'Prépare la page de « ' + nom + ' »', detail: 'dans l’annuaire des entreprises' },
     { type: 'ajouter', icone: 'plus', nom, titre: 'Ajouter « ' + nom + ' » à mes pistes', detail: '' }];
   if (verbe && verbe.id === 'ajouter'){
     const reste = toks.filter((t, i) => libre(i));

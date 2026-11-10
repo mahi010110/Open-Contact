@@ -25,7 +25,7 @@ import { filterCompanies, filterOrphans, searchHint, NATURAL_DIR } from './engin
 import { scoreOf } from './engine/score.js';
 import { DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, SYNC_KEY,
          RELAYS_KEY, TURN_KEY, DEVICE_KEY, DEVICES_KEY, PROMO_KEY, VAULT_KEY,
-         ANALYSIS_KEY, VUS_KEY, RESEAU_KEY, GROUPES_KEY, MESSAGES_KEY, FILS_KEY, BROUILLONS_KEY, MOI_KEY, SEALABLE, THEME_KEY, VIEW_KEY, OLD_V2, OLD_V1, CLES_A_EFFACER,
+         ANALYSIS_KEY, VUS_KEY, RESEAU_KEY, GROUPES_KEY, MESSAGES_KEY, FILS_KEY, BROUILLONS_KEY, MOI_KEY, RECENTS_KEY, SEALABLE, THEME_KEY, VIEW_KEY, OLD_V2, OLD_V1, CLES_A_EFFACER,
          PREVERSION_KEY,
          kvGet, kvSet, kvDel, vaultActive, vaultDetach, vaultReseal } from './engine/storage.js';
 import { DRAPEAUX, DUREE_MAX_JOURS, defauts as defautsDrapeau, perimes, actif, enTest,
@@ -33,6 +33,9 @@ import { DRAPEAUX, DUREE_MAX_JOURS, defauts as defautsDrapeau, perimes, actif, e
 import { DESTINATIONS, ACCUEIL, routeDe, destination, titreDe, navigation } from './engine/destinations.js';
 import { comprendre, amorces, jetons, lireDate, heureEnMots, jourEnMots, etatCourt, aQuiEcrire, nomDepuisLien,
          VERBES, ALLER, LIGNES_MAX } from './engine/commande.js';
+import { SUITES, genreDeSuite, normaliserSuite, suiteDe, cocherSuite } from './engine/contrat.js';
+import { aRanger, ranger, rangerTout, annonces, sortir, rangeeSeule, RANGER_APRES, ANNONCE_JOURS } from './engine/rangement.js';
+import { prochaineEtape, gesteDuTexte, parcours } from './engine/etape.js';
 import { causeLiaison, relayTally, liaisonStage, parseTurn, turnText, TURN_MAX, RELAIS_DEFAUT } from './engine/transport.js';
 import { clePortage, sceller as scellerPortage, ouvrir as ouvrirPortageMsg, decouper, rassembler, recolte,
          PORTAGE_PART, PORTAGE_PARTS_MAX, makeCleEchange, cleEntre, decouperScelle, rassemblerScelle } from './engine/portage.js';
@@ -4318,6 +4321,178 @@ export async function runSelfTests(){
       /* chaque verbe a ses formes, sans doublon d'un verbe à l'autre */
       const vues = new Map();
       for (const [id, v] of Object.entries(VERBES)) for (const m of v.mots){ ok(!vues.has(m), m + ' est dit deux fois'); vues.set(m, id); }
+    },
+    /* ---------- la refonte : la fin du parcours, le rangement, la prochaine étape ---------- */
+    'refonte : la suite d’un « Décroché » et la marque du rangement ne sortent JAMAIS dans un partage (invariant ①)': () => {
+      /* la fuite d'abord (§8) : l'état réel d'une piste, puis les octets qui sortent */
+      const won = normalizeCompany({ id: 'w', name: 'OVHcloud', closedReason: 'won', closedAt: '2026-11-10',
+        suite: { t: 'alternance', f: { contrat: '2026-11-12' } } });
+      const rangee = normalizeCompany({ id: 'r', name: 'Kiabi', status: 'active', closedReason: 'dropped',
+        closedAt: '2026-11-10', rangeAuto: '2026-11-10' });
+      eq(won.suite, { t: 'alternance', f: { contrat: '2026-11-12' } });
+      eq(rangee.rangeAuto, '2026-11-10');
+      const sorti = JSON.stringify(sharePayload([won, rangee], null, 'Inès'));
+      ok(!/suite|rangeAuto|2026-11-12|contrat/.test(sorti));
+      /* un vieil appareil les a rangés dans `extra` : ils n'en sortent pas non plus */
+      const vieux = communityView({ name: 'X', extra: { suite: { t: 'stage', f: {} }, rangeAuto: '2026-11-10', garde: 1 } });
+      eq(vieux.extra, { garde: 1 });
+      /* … et une version récente les en remonte, sans doublon */
+      const relu = normalizeCompany({ name: 'X', closedReason: 'dropped', extra: { suite: { t: 'stage', f: { debut: '2026-12-01' } }, rangeAuto: '2026-11-10', garde: 1 } });
+      eq([relu.suite, relu.rangeAuto, relu.extra], [{ t: 'stage', f: { debut: '2026-12-01' } }, '2026-11-10', { garde: 1 }]);
+      /* reçus d'un partage (un fichier fabriqué, un vieil appareil) : ils ne s'importent pas */
+      const chez = [];
+      mergeIncoming([{ name: 'Y', closedReason: 'dropped', rangeAuto: '2026-11-10', suite: { t: 'stage', f: {} } }], chez);
+      ok(!('suite' in chez[0]) && !('rangeAuto' in chez[0]) && !chez[0].closedReason);
+      /* entre MES appareils, ils voyagent avec la piste */
+      const s = syncMerge({ companies: [{ ...won, updatedAt: 5 }] }, { companies: [{ ...won, suite: undefined, updatedAt: 1 }] });
+      eq(s.companies[0].suite, { t: 'alternance', f: { contrat: '2026-11-12' } });
+      /* la copie complète les garde : c'est du suivi privé, à moi */
+      ok(/"suite"/.test(JSON.stringify(fullPayload([won], normalizeProfile({})))));
+      /* absents quand vides, et jamais sur une piste qui n'est pas rangée */
+      const nu = normalizeCompany({ name: 'Z', rangeAuto: '2026-11-10', suite: { t: 'inconnu' } });
+      ok(!('suite' in nu) && !('rangeAuto' in nu));
+      eq(RECENTS_KEY, 'oc_recents_v1');
+      ok(SEALABLE.has(RECENTS_KEY) && CLES_A_EFFACER.includes(RECENTS_KEY));
+    },
+    'contrat : du « oui » au contrat qui tient — trois ou quatre étapes, dans l’ordre': () => {
+      const p = r => normalizeProfile({ recherche: r });
+      const won = x => normalizeCompany({ name: 'X', closedReason: 'won', ...x });
+      /* le genre : ce que tu cherches, sinon ce que la piste propose, sinon un emploi */
+      eq(genreDeSuite(won({}), p('stage')), 'stage');
+      eq(genreDeSuite(won({ positions: ['alternance'] }), p('')), 'alternance');
+      eq(genreDeSuite(won({ positions: ['stage'] }), null), 'stage');
+      eq(genreDeSuite(won({}), null), 'emploi');
+      /* une piste qui n'est pas décrochée n'a pas de suite */
+      eq(suiteDe(normalizeCompany({ name: 'X' }), p('stage')), null);
+      eq(suiteDe(normalizeCompany({ name: 'X', closedReason: 'rejected' }), p('stage')), null);
+      /* la liste existe dès « Décroché », vide : la première étape est la prochaine */
+      const c = won({});
+      let s = suiteDe(c, p('stage'));
+      eq([s.t, s.etapes.map(e => e.id), s.prochaine.id, s.finie, s.faites], ['stage', ['convention', 'signee', 'debut'], 'convention', false, 0]);
+      /* cocher rend la nouvelle valeur, sans toucher à la piste */
+      const v1 = cocherSuite(c, p('stage'), 'convention', '2026-11-12');
+      eq(v1, { t: 'stage', f: { convention: '2026-11-12' } });
+      ok(!('suite' in c));
+      c.suite = v1;
+      s = suiteDe(c, p('alternance'));             /* le genre est fixé : le profil qui change ne le change plus */
+      eq([s.t, s.prochaine.id, s.faites], ['stage', 'signee', 1]);
+      /* la phrase qui prévient n'existe que là où il y a une erreur à ne pas faire */
+      eq(s.prochaine.note, 'Avant le premier jour : sans elle, pas de stage.');
+      ok(!SUITES.stage[0].note && !SUITES.emploi.some(e => e.note));
+      /* recocher décoche ; une étape inconnue ne fait rien */
+      eq(cocherSuite(c, p('stage'), 'convention', '2026-11-13'), { t: 'stage', f: {} });
+      eq(cocherSuite(c, p('stage'), 'nimporte', '2026-11-13'), v1);
+      c.suite = { t: 'stage', f: { convention: '2026-11-12', signee: '2026-11-20', debut: '2026-12-01' } };
+      eq([suiteDe(c, null).finie, suiteDe(c, null).prochaine], [true, null]);
+      /* normaliser : un genre connu, des étapes de ce genre, des jours bien formés */
+      eq(normaliserSuite({ t: 'stage', f: { convention: '2026-11-12', depot: '2026-11-13', debut: 'demain', __proto__: 1 } }),
+         { t: 'stage', f: { convention: '2026-11-12' } });
+      eq(normaliserSuite({ t: 'cdi' }), null);
+      eq(normaliserSuite(null), null);
+      /* l'alternance dit les deux délais qu'on ne voit pas venir */
+      eq(SUITES.alternance.map(e => e.id), ['contrat', 'debut', 'depot', 'essai']);
+      ok(/5 jours ouvrables/.test(SUITES.alternance[2].note) && /45/.test(SUITES.alternance[3].label));
+    },
+    'rangement : après 45 jours de silence la piste se range seule — annoncée, rattrapable, jamais supprimée (invariant ②)': () => {
+      const J = '2026-11-10';
+      const il = n => { const d = new Date(Date.parse(J + 'T00:00:00Z') - n * 864e5); return d.toISOString().slice(0, 10); };
+      const cs = [
+        normalizeCompany({ id: 'kia', name: 'Kiabi', status: 'active', notes: 'à garder', contacts: [{ name: 'A', email: 'a@x.fr' }],
+          history: [{ d: il(60), t: 'Candidature sur le site' }] }),
+        normalizeCompany({ id: 'adv', name: 'Advens', status: 'active', history: [{ d: il(44), t: 'Mail envoyé' }] }),          /* 44 j : pas encore */
+        normalizeCompany({ id: 'tha', name: 'Thales', status: 'todo', history: [{ d: il(200), t: 'Ajoutée' }] }),              /* jamais engagée : elle attend */
+        normalizeCompany({ id: 'ovh', name: 'OVHcloud', status: 'reply', nextAction: il(50), nextActionText: 'Relancer',
+          history: [{ d: il(80), t: 'Réponse' }] }),                                                                             /* une action prévue, même en retard, a un propriétaire */
+        normalizeCompany({ id: 'dem', name: 'Exemple', demo: true, status: 'active', history: [{ d: il(90), t: 'Piste d’exemple' }] })
+      ];
+      eq(RANGER_APRES, SILENCE_TROP_TARD);          /* le seuil existant, pas un second chiffre */
+      eq(aRanger(cs, J), [{ id: 'kia', jours: 60 }]);
+      const n = cs.length;
+      eq(rangerTout(cs, J), [{ id: 'kia', name: 'Kiabi', jours: 60 }]);
+      /* rien n'est supprimé : la piste est là, entière, clôturée « Abandonné » */
+      const k = cs[0];
+      eq([cs.length, k.closedReason, k.closedAt, k.rangeAuto, k.notes, k.contacts.length], [n, 'dropped', J, J, 'à garder', 1]);
+      eq(k.history[k.history.length - 1], { d: J, t: 'Rangée : 60 jours sans réponse' });
+      ok(rangeeSeule(k) && !rangeeSeule(cs[1]));
+      /* une seconde passe ne range rien de plus */
+      eq(rangerTout(cs, J), []);
+      /* l'accueil l'annonce, le temps de la voir */
+      eq(annonces(cs, J), [{ id: 'kia', name: 'Kiabi', jours: 60, le: J }]);
+      const plus = d => new Date(Date.parse(J + 'T00:00:00Z') + d * 864e5).toISOString().slice(0, 10);
+      eq(annonces(cs, plus(ANNONCE_JOURS)).length, 1);
+      eq(annonces(cs, plus(ANNONCE_JOURS + 1)).length, 0);
+      /* une piste abandonnée À LA MAIN ne s'annonce pas */
+      eq(annonces([normalizeCompany({ name: 'M', closedReason: 'dropped', closedAt: J })], J), []);
+      /* « Annuler » : elle revient, et le silence repart de zéro — elle ne se re-range pas */
+      sortir(k, J);
+      eq([k.closedReason, k.closedAt, 'rangeAuto' in k, k.history[k.history.length - 1].t], ['', '', false, 'Rouverte']);
+      eq(aRanger(cs, J), []);
+      eq(silentPistes(cs, J).filter(x => x.id === 'kia'), []);
+      /* la marque survit à une normalisation, et à elle seule */
+      ranger(k, J, 60);
+      eq(normalizeCompany(JSON.parse(JSON.stringify(k))).rangeAuto, J);
+    },
+    'étape : une prochaine étape par piste, la même partout — un titre et un seul bouton': () => {
+      const J = '2026-11-10';
+      const il = n => new Date(Date.parse(J + 'T00:00:00Z') - n * 864e5).toISOString().slice(0, 10);
+      const e = (x, o) => prochaineEtape(normalizeCompany({ name: 'X', ...x }), { today: J, ...o });
+      const lu = x => x && [x.genre, x.quand, x.titre, x.bouton, x.action];
+      const claire = { id: 'cl', name: 'Claire Dubois', email: 'c@x.fr' };
+      /* 2 · ce qui est prévu : le bouton vient du verbe */
+      eq(lu(e({ status: 'active', contacts: [claire], nextAction: il(2), nextActionText: 'Relancer Claire' })),
+         ['retard', 'maintenant', 'Relancer Claire', 'Relancer', 'mail']);
+      eq(lu(e({ status: 'active', nextAction: J, nextActionText: 'Entretien à 14 h' })),
+         ['jour', 'maintenant', 'Entretien à 14 h', 'Préparer', 'fiche']);
+      eq(lu(e({ status: 'active', contacts: [{ name: 'M', phone: '06 00 00 00 01' }], nextAction: J, nextActionText: 'Appeler M' })),
+         ['jour', 'maintenant', 'Appeler M', 'Appeler', 'tel']);
+      /* ce que la table ne reconnaît pas reste une case à cocher */
+      eq(lu(e({ status: 'active', nextAction: J, nextActionText: 'Déposer le dossier' })), ['jour', 'maintenant', 'Déposer le dossier', 'Fait', 'fait']);
+      /* relancer sans adresse : pas de mail deviné, une case à cocher */
+      eq(lu(e({ status: 'active', nextAction: J, nextActionText: 'Relancer' }))[3], 'Fait');
+      /* plus tard : rien à faire maintenant */
+      eq(lu(e({ status: 'active', nextAction: '2026-11-13', nextActionText: 'Relancer Nadia' })), ['prevu', 'bientot', 'Relancer Nadia', '', 'fiche']);
+      /* 3 · le silence : relancer, puis une dernière fois */
+      const s1 = e({ status: 'active', contacts: [claire], history: [{ d: il(9), t: 'Mail envoyé' }] });
+      eq([...lu(s1), s1.silence], ['silence', 'maintenant', 'Relancer Claire', 'Relancer', 'mail', { jours: 9, cran: 'soon' }]);
+      eq(e({ status: 'active', contacts: [claire], history: [{ d: il(30), t: 'Mail envoyé' }] }).titre, 'Relancer une dernière fois');
+      /* 6 · en attente : l'app dit quand la relance viendra */
+      const a = e({ status: 'active', history: [{ d: il(3), t: 'Mail envoyé' }] });
+      eq([a.genre, a.quand, a.titre, a.date, a.bouton], ['attente', 'attente', 'En attente de réponse', '2026-11-14', '']);
+      /* 4 · une réponse, et rien de prévu */
+      eq(lu(e({ status: 'reply', history: [{ d: il(1), t: 'Réponse reçue' }] })), ['suite', 'maintenant', 'Prévoir la suite', 'Planifier', 'quand']);
+      /* 5 · jamais commencée : qui y est passé d'abord, puis qui l'on peut joindre, sinon trouver quelqu'un */
+      const v = e({ id: 'p', status: 'todo', vecu: 'alternance', vecuQui: 'Léa' });
+      eq([...lu(v), v.raison], ['demarrer', 'maintenant', 'Demander à Léa', 'Demander', 'porteur', 'Léa y a été en alternance']);
+      eq(lu(e({ status: 'todo', contacts: [claire] })), ['demarrer', 'maintenant', 'Écrire à Claire', 'Écrire', 'mail']);
+      eq(lu(e({ status: 'todo', contacts: [{ name: 'Service RH', email: 'rh@x.fr' }] }))[2], 'Écrire à Service RH');
+      eq(lu(e({ status: 'todo' }, { peutDemander: true })), ['demarrer', 'maintenant', 'Trouver quelqu’un à qui écrire', 'Demander', 'amis']);
+      eq(lu(e({ status: 'todo' })), ['demarrer', 'maintenant', 'Trouver à qui écrire', 'Trouver', 'contact']);
+      /* 1 · le contrat : la première étape qui reste */
+      const w = e({ closedReason: 'won' }, { profile: normalizeProfile({ recherche: 'stage' }) });
+      eq([...lu(w), w.etape, w.sous], ['contrat', 'maintenant', 'Demander la convention à ton école', 'Fait', 'cocher', 'convention', 'Décroché · étape 1 sur 3']);
+      /* plus d'étape : refusée, rangée, ou décrochée et finie */
+      eq(e({ closedReason: 'rejected' }), null);
+      eq(e({ closedReason: 'dropped' }), null);
+      eq(e({ closedReason: 'won', suite: { t: 'emploi', f: { ecrit: J, signe: J, debut: J } } }), null);
+      eq(prochaineEtape(null), null);
+      eq(gesteDuTexte(normalizeCompany({ name: 'X' }), 'Faire le point'), null);
+    },
+    'étape : où en est la recherche — quatre cases, les mots des statuts, et la recherche qui les montre': () => {
+      const cs = [
+        normalizeCompany({ name: 'A', status: 'todo' }), normalizeCompany({ name: 'B', status: 'todo' }),
+        normalizeCompany({ name: 'C', status: 'active' }),
+        normalizeCompany({ name: 'D', status: 'reply', closedReason: 'rejected' }),   /* une piste close ne compte plus dans son statut */
+        normalizeCompany({ name: 'E', status: 'active', demo: true })                 /* l'exemple ne compte pas */
+      ];
+      const p = parcours(cs);
+      eq(p.map(k => [k.id, k.label, k.n, k.ici]),
+         [['todo', 'À contacter', 2, false], ['active', 'En cours', 1, true], ['reply', 'Réponse', 0, false], ['won', 'Décroché', 0, false]]);
+      /* un nombre est une promesse : la recherche de la case rend exactement ce nombre */
+      const ctx = contexteRecherche(cs);
+      for (const k of p) eq(chercherPistes(cs.filter(c => !c.demo), { q: k.q, ctx }).liste.length, k.n);
+      cs.push(normalizeCompany({ name: 'F', status: 'reply', closedReason: 'won' }));
+      eq(parcours(cs).map(k => k.ici), [false, false, false, true]);
+      eq(parcours([]).some(k => k.ici || k.n), false);
     },
     'composeur : le modèle arrive pré-choisi d’après le statut de la piste': () => {
       const tpls = defaultTemplates();                    /* Candidature, Relance, Remerciement */

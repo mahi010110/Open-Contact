@@ -51,7 +51,10 @@ export function communityView(c, keep, moi){
     out.vecu = c.vecu;
     out.vecuQui = qui;
   }
-  const ex = extraSans(c.extra, ['nextActionCt']);
+  /* la refonte (9.0) : la suite d'un « Décroché » et la marque du
+     rangement automatique sont du suivi privé — ni émis, ni laissés
+     dans `extra` par un aller-retour avec un vieil appareil */
+  const ex = extraSans(c.extra, ['nextActionCt', 'suite', 'rangeAuto']);
   if (ex) out.extra = ex;
   return out;
 }

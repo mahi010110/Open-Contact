@@ -68,6 +68,7 @@ export function mergeIncoming(list, companies){
       x.status = 'todo'; x.notes = ''; x.appliedAt = ''; x.nextAction = '';          /* le privé ne s'importe jamais */
       x.nextActionText = ''; x.closedAt = ''; x.closedReason = '';
       delete x.nextActionCt;                                                         /* #14 */
+      delete x.suite; delete x.rangeAuto;                                            /* la refonte : privés aussi */
       x.history = [{ d: todayISO(), t: 'Reçue via partage' }];
       companies.push(x);
       stats.addedC++;

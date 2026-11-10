@@ -13,6 +13,7 @@ import { normaliserGroupes } from './groupe.js';
 import { normaliserSemaine } from './semaine.js';
 import { normaliserAide } from './aide.js';
 import { normaliserVisage } from './visage.js';
+import { normaliserSuite } from './contrat.js';
 
 export const APP_VERSION = '8.1.0';
 
@@ -207,6 +208,7 @@ const KNOWN_CT = ['id','name','role','email','phone','link','note','conf','extra
 const KNOWN_C  = ['id','name','city','domain','desc','address','website','techs','positions','siren',
   'process','tips','contacts','lat','lng','vecu','vecuQui','status','notes','appliedAt','nextAction',
   'nextActionText','closedAt','closedReason','nextActionCt',
+  'suite','rangeAuto',          /* la refonte (9.0) : la suite d'un « Décroché », le rangement automatique — privés */
   'history','verifiedAt','confirmations','demo','createdAt','updatedAt','extra',
   'contact','email','phone'];   /* les 3 derniers : héritage v1, absorbés dans contacts */
 /* un lien ne sort d'ici qu'en http(s) : « javascript: » et consorts, posés
@@ -342,9 +344,20 @@ export function normalizeCompany(x){
   const nact = [x.nextActionCt, xe.nextActionCt]
     .find(v => typeof v === 'string' && ID_RE.test(v));
   if (nact) out.nextActionCt = nact;
+  /* LA REFONTE (9.0) — deux champs privés, optionnels, absents quand
+     vides, avec la même migration en lecture depuis `extra` :
+     `suite` : ce qui reste à faire après « Décroché » (engine/contrat.js) ;
+     `rangeAuto` : le jour où l'app a rangé la piste toute seule
+     (engine/rangement.js) — il n'a de sens que sur une piste abandonnée. */
+  const su = normaliserSuite(x.suite || xe.suite);
+  if (su) out.suite = su;
+  const ra = isoDay(x.rangeAuto || xe.rangeAuto);
+  if (ra && closedReason === 'dropped') out.rangeAuto = ra;
   const extra = keepExtra(x, KNOWN_C);
   if (extra){
     delete extra.nextActionCt;
+    delete extra.suite;
+    delete extra.rangeAuto;
     if (Object.keys(extra).length) out.extra = extra;
   }
   return out;

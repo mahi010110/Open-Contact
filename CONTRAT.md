@@ -43,6 +43,7 @@ doit être repensée, pas forcée.
 | `oc_brouillons_v1` | **Depuis la 6.84** (lot R3, en préversion) — les mails commencés, une entrée par piste (`engine/prets.js`) — `{v:1, b: {<id de piste>: {objet, corps, ctId?, statut?, at}}}` ; `objet` 300 caractères au plus, `corps` 20 000, `at` = la dernière frappe (ms) ; `statut` = celui de la piste quand on écrivait : s'il a changé depuis, le brouillon se propose sans s'imposer. Un brouillon part à « Envoyée ✓ » ou au bout de 30 jours sans y toucher ; deux cents au plus, les plus vieux partent. Un identifiant qui n'a pas la forme d'un `id` de piste, ou un nom de prototype, ne se lit pas. Du privé de CET appareil : ni sync, ni copie, ni partage ; scellée (SEALABLE), emportée par « Effacer cet appareil » | JSON |
 | `oc_moi_v1` | **Depuis la 7.1** (lot R5, « un seul moi », `engine/moi.js`) — les clés tirées de la phrase de secours, **jamais la phrase** : `{v:1, cles: {scelle, etiquette, signe}, appareil, depot?: {at, empreinte, relais, n}, trop?}` ; `cles` = trois clés HKDF (base64) d'une seule graine PBKDF2-SHA256 à 600 000 tours sur la phrase (sel fixe `oc-moi-v1` : un téléphone neuf n'a qu'elle) ; `appareil` = 12 caractères tirés une fois, qui nomment cet appareil DANS le dépôt scellé ; `depot` = le dernier dépôt réussi (ms, empreinte de la copie, combien de relais l'ont pris, combien de morceaux) ; `trop` = la copie dépasse 64 morceaux et ne se dépose pas. Absente tant qu'aucune phrase n'existe : rien ne part. Scellée (SEALABLE) ; ni sync, ni copie, ni partage, ni diagnostic ; emportée par « Effacer cet appareil » — le dépôt, lui, reste sur les relais : c'est lui qui ramène | JSON |
 | `oc_vus_v1` | « À découvrir » : ce que chaque recherche a déjà montré, pour marquer « nouveau » ce qui n'y était pas la fois d'avant (docs/recherche-profil.md) — `{v:1, r: {<recherche>: {at, s: [siren…]}}}`, la recherche = ses questions à l'annuaire sans la page, 30 recherches de 300 SIREN au plus. Un repère de CET appareil : ni sync, ni copie, ni partage ; scellée (SEALABLE), emportée par « Effacer cet appareil » | JSON |
+| `oc_recents_v1` | **Depuis la 9.0** (la refonte, fiche 0014) — les pistes ouvertes en dernier sur CET appareil, la plus récente d'abord : `{v:1, ids:[<id de piste>…]}`, huit au plus. C'est la « pile » de la barre du bas et les « Ouvertes récemment » du +. Un repère de CET appareil : ni sync, ni copie, ni partage ; scellée (SEALABLE), emportée par « Effacer cet appareil ». Un identifiant qui ne désigne plus aucune piste est ignoré à la lecture | JSON |
 | `oc_theme` | le CHOIX de thème : `auto` (suit l'appareil), `light` ou `dark` — **depuis la 6.66**, `auto` ; une valeur absente ou inconnue vaut `auto`. Le miroir synchrone de `localStorage` (même clé) porte la même valeur | chaîne |
 | `oc_preversion_v1` | **Depuis la 6.78** (R0 du recadrage, `docs/decisions/0004-drapeaux-et-preversion.md`) — la préversion de CET appareil : `'1'` quand elle est allumée, ABSENTE sinon (éteindre efface la clé) ; toute autre valeur vaut éteinte. Allumée, les lots en test du registre `engine/drapeaux.js` s'allument sur cet appareil. Ni scellée (elle ne dit rien de toi), ni sync, ni copie, ni partage ; emportée par « Effacer cet appareil » — un téléphone prêté ne doit pas montrer des écrans pas encore vérifiés | chaîne |
 | `oc_view` | `map`, `list` ou `grid` (héritée, plus écrite) | chaîne |
@@ -639,7 +640,8 @@ présent).
 
 **Privé** — ne part **jamais** dans un partage :
 `status`, `notes`, `appliedAt`, `nextAction`, `nextActionText`, `closedAt`,
-`closedReason`, `nextActionCt`, `history[]` (40 entrées max).
+`closedReason`, `nextActionCt`, `suite`, `rangeAuto`, `history[]` (40 entrées
+max).
 Ni `id`, ni `demo`, ni `createdAt` ne circulent non plus.
 
 **Un contact** : `id`, `name`, `role`, `email`, `phone`, `link`, `note`,
@@ -687,6 +689,29 @@ vous a parlé de moi. ». Privés comme les champs d'action :
 communautaire vide un `via` et un `accord` entrants — qui a donné un contact à un autre
 n'est pas mon ami, et un appareil resté en 6.72 l'aurait laissé dans
 `extra`.
+**Depuis la 9.0** (la refonte, `docs/decisions/0013-la-refonte.md` et
+`0014-arc-search-dans-main.md`) — deux champs de plus à la piste,
+optionnels, absents quand vides, **privés** comme les champs d'action :
+
+- `suite` — ce qui reste à faire après « Décroché » (`engine/contrat.js`) :
+  `{ t, f }`, où `t` est le genre de contrat (`stage`, `alternance` ou
+  `emploi`, fixé au premier geste) et `f` les étapes faites,
+  `{ <étape>: AAAA-MM-JJ }`. Seules les étapes du genre sont gardées
+  (`SUITES`) ; un genre inconnu vide le champ.
+- `rangeAuto` — le jour (`AAAA-MM-JJ`) où l'app a rangé la piste toute
+  seule, après `SILENCE_TROP_TARD` jours sans réponse
+  (`engine/rangement.js`). Il n'existe que sur une piste clôturée
+  « Abandonné » (`closedReason: "dropped"`) : c'est la même clôture que
+  celle faite à la main, la marque dit seulement QUI l'a faite, pour que
+  l'accueil l'annonce et offre « Annuler ». Rouvrir la piste l'efface.
+
+Un lecteur ancien les range dans `extra` ; une version récente les en
+remonte (migration en lecture, doublon purgé). Ils ne sortent **jamais**
+dans un partage : `communityView` ne les émet pas et les purge d'`extra`,
+et la fusion communautaire les retire d'une piste entrante. Entre MES
+appareils et dans ma copie, ils suivent la piste (§5). Rien n'est
+supprimé par le rangement (invariant ② : la piste reste, entière).
+
 `link` est toujours en `http(s)` après normalisation : tout autre schéma
 (`javascript:` et consorts) est neutralisé — un lien piégé dans un fichier
 reçu ne doit jamais devenir cliquable.
