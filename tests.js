@@ -31,6 +31,8 @@ import { DATA_KEY, PROFILE_KEY, JOURNAL_KEY, ORPHANS_KEY, TOMBS_KEY, SYNC_KEY,
 import { DRAPEAUX, DUREE_MAX_JOURS, defauts as defautsDrapeau, perimes, actif, enTest,
          lirePreversion, ecrirePreversion } from './engine/drapeaux.js';
 import { DESTINATIONS, ACCUEIL, routeDe, destination, titreDe, navigation } from './engine/destinations.js';
+import { comprendre, amorces, jetons, lireDate, heureEnMots, jourEnMots, etatCourt, aQuiEcrire, nomDepuisLien,
+         VERBES, ALLER, LIGNES_MAX } from './engine/commande.js';
 import { causeLiaison, relayTally, liaisonStage, parseTurn, turnText, TURN_MAX, RELAIS_DEFAUT } from './engine/transport.js';
 import { clePortage, sceller as scellerPortage, ouvrir as ouvrirPortageMsg, decouper, rassembler, recolte,
          PORTAGE_PART, PORTAGE_PARTS_MAX, makeCleEchange, cleEntre, decouperScelle, rassemblerScelle } from './engine/portage.js';
@@ -4083,6 +4085,239 @@ export async function runSelfTests(){
       eq(destination('#/constructor', { ids }), { id: 'aujourdhui', ancienne: false });
       eq(titreDe('echanger'), '');
       eq(titreDe('inconnu'), '');
+    },
+    /* ---------- la barre qui comprend (la refonte, lot 0) ---------- */
+    'barre : un geste a un verbe en tête et une piste — sinon c’est une recherche (règle 1)': () => {
+      const J = '2026-11-10';                     /* un mardi */
+      const cs = [
+        normalizeCompany({ id: 'adv', name: 'Advens', city: 'Lille', domain: 'cyber', status: 'active',
+          contacts: [{ id: 'cl', name: 'Claire Dubois', email: 'claire@exemple.fr' }],
+          nextAction: '2026-11-08', nextActionText: 'Relancer Claire', history: [{ d: '2026-11-01', t: 'Mail envoyé' }] }),
+        normalizeCompany({ id: 'ora', name: 'Orange Cyberdefense', city: 'Lille', domain: 'cyber', status: 'todo' }),
+        normalizeCompany({ id: 'cap', name: 'Capgemini', status: 'reply', closedReason: 'rejected', closedAt: '2026-10-29' })
+      ];
+      const ctx = { companies: cs, profile: normalizeProfile({}), today: J };
+      const l = q => comprendre(q, ctx).lignes;
+      const g = q => l(q).filter(x => x.type === 'geste');
+      /* le verbe ouvre la phrase : un geste, écrit en clair */
+      eq(g('relancer advens').map(x => [x.action, x.id, x.titre, x.detail]),
+         [['mail', 'adv', 'Relancer Claire', 'Advens · en retard de 2 jours']]);
+      /* … ou suit le nom de la piste */
+      eq(g('advens relancer')[0].action, 'mail');
+      eq(g('Advens m’a refusé')[0].raison, 'rejected');
+      /* le nom SEUL est une piste à ouvrir, jamais un geste */
+      eq(l('advens').map(x => x.type), ['piste']);
+      eq(l('orange')[0].type, 'piste');
+      /* un verbe au milieu d'une phrase n'en est pas un */
+      eq(g('la note d’advens').length, 0);
+      /* les mots qui relient ne comptent pas : « j'ai décroché chez … » */
+      eq(g('j’ai décroché chez advens').map(x => [x.action, x.raison]), [['clore', 'won']]);
+      /* une piste clôturée ne se relance pas : elle s'ouvre, ou se rouvre */
+      eq(g('relancer capgemini').length, 0);
+      eq(l('relancer capgemini')[0].type, 'piste');
+      eq(g('rouvrir capgemini').map(x => x.action), ['rouvrir']);
+      eq(g('rouvrir advens').length, 0);          /* elle n'est pas fermée */
+      /* on ne relance pas qui n'a jamais reçu de mail : on lui écrit */
+      eq(g('relancer orange')[0].titre, 'Écrire à Orange Cyberdefense');
+      /* chaque geste dit s'il CHANGE une donnée (l'écran offre alors « Annuler ») */
+      ok(g('refus advens')[0].change && !g('relancer advens')[0].change);
+      /* et comprendre ne touche à rien (règle 2) */
+      const avant = JSON.stringify(cs);
+      ['refus advens', 'décroché advens', 'note advens : test', 'entretien advens jeudi 14h', 'fait advens'].forEach(l);
+      eq(JSON.stringify(cs), avant);
+    },
+    'barre : une date dit « plus tard », son absence « maintenant » (règle 4)': () => {
+      const J = '2026-11-10';
+      const cs = [normalizeCompany({ id: 'azt', name: 'Aztek', status: 'active',
+        contacts: [{ id: 'm', name: 'Marc Lefèvre', email: 'marc@exemple.fr', phone: '06 00 00 00 01' }] })];
+      const ctx = { companies: cs, today: J };
+      const g = q => comprendre(q, ctx).lignes.filter(x => x.type === 'geste')[0];
+      eq(g('relancer aztek').action, 'mail');
+      const r = g('relancer aztek lundi');
+      eq([r.action, r.date, r.texte, r.ct], ['plan', '2026-11-16', 'Relancer Marc', 'm']);
+      /* un entretien : le jour, l'heure, et le statut suit — on t'a répondu */
+      const e = g('entretien aztek jeudi 14h');
+      eq([e.action, e.date, e.heure, e.texte, e.statut, e.titre, e.detail],
+         ['plan', '2026-11-12', '14:00', 'Entretien à 14 h', 'reply', 'Entretien à 14 h', 'Aztek · jeudi 12 novembre']);
+      eq(g('entretien aztek').action, 'quand');             /* sans jour : la feuille de date */
+      /* appeler : le numéro tout de suite, ou l'action plus tard */
+      eq([g('appeler marc').action, g('appeler marc').tel], ['tel', '06 00 00 00 01']);
+      eq([g('appeler marc demain').action, g('appeler marc demain').date], ['plan', '2026-11-11']);
+      /* la date dite d'abord ne déloge pas le verbe */
+      eq([g('demain, appeler marc').action, g('le 15 relancer aztek').date], ['plan', '2026-11-15']);
+      /* reporter : seulement ce qui est prévu */
+      eq(g('reporter aztek à vendredi'), undefined);
+      cs[0].nextAction = J; cs[0].nextActionText = 'Entretien à 14 h';
+      const p = g('reporter aztek à vendredi');
+      eq([p.action, p.date, p.texte, p.titre], ['plan', '2026-11-13', 'Entretien à 14 h', 'Reporter à vendredi 13 novembre']);
+      eq(g('fait aztek').titre, 'Fait : Entretien à 14 h');
+    },
+    'barre : les dates et les heures telles qu’on les écrit': () => {
+      const J = '2026-11-10';                     /* un mardi */
+      const lire = q => { const t = jetons(q); const d = lireDate(t, () => true, J); return [d.date, d.heure]; };
+      eq(lire('demain'), ['2026-11-11', '']);
+      eq(lire('après-demain'), ['2026-11-12', '']);
+      eq(lire('aujourd’hui 9h'), [J, '09:00']);
+      eq(lire('mardi'), ['2026-11-17', '']);       /* le PROCHAIN mardi, jamais le jour même */
+      eq(lire('lundi prochain'), ['2026-11-16', '']);
+      eq(lire('dans 3 jours'), ['2026-11-13', '']);
+      eq(lire('dans deux semaines'), ['2026-11-24', '']);
+      eq(lire('la semaine prochaine'), ['2026-11-16', '']);
+      eq(lire('12/11'), ['2026-11-12', '']);
+      eq(lire('05/01'), ['2027-01-05', '']);       /* déjà passé cette année : l'an prochain */
+      eq(lire('3 décembre'), ['2026-12-03', '']);
+      eq(lire('1er déc 2026 à 14h30'), ['2026-12-01', '14:30']);
+      eq(lire('le 20'), ['2026-11-20', '']);
+      eq(lire('le 5'), ['2026-12-05', '']);        /* le 5 est passé : celui du mois suivant */
+      eq(lire('14 h 30'), ['', '14:30']);
+      eq(lire('14:05'), ['', '14:05']);
+      eq(lire('midi'), ['', '12:00']);
+      /* ce qui n'est pas une date n'en devient pas une */
+      eq(lire('31/02'), ['', '']);
+      eq(lire('59'), ['', '']);                    /* un nombre seul : un département, un numéro */
+      eq(lire('25h'), ['', '']);
+      eq(lire('10/11/2025'), ['', '']);            /* le passé ne se planifie pas */
+      eq([heureEnMots('14:00'), heureEnMots('09:05'), heureEnMots('')], ['14 h', '9 h 05', '']);
+      eq([jourEnMots(J, J), jourEnMots('2026-11-11', J), jourEnMots('2026-12-01', J)],
+         ['aujourd’hui', 'demain', 'mardi 1er décembre']);
+    },
+    'barre : aucun mot perdu — le reste devient le texte du geste (règle 3)': () => {
+      const J = '2026-11-10';
+      const cs = [normalizeCompany({ id: 'adv', name: 'Advens', status: 'active',
+          contacts: [{ id: 'cl', name: 'Claire Dubois', email: 'claire@exemple.fr' }] }),
+        normalizeCompany({ id: 'tha', name: 'Thales', status: 'todo' })];
+      const g = q => comprendre(q, { companies: cs, today: J }).lignes.filter(x => x.type === 'geste')[0];
+      eq(g('rappeler advens lundi pour le test technique').texte, 'Rappeler pour le test technique');
+      /* le mot qui reliait ce qu'on retire part avec lui : « chez », « à », « le » */
+      eq(g('rappeler chez advens le 20 à 9h pour le test').texte, 'Rappeler pour le test à 9 h');
+      /* la personne s'écrit comme sur sa fiche */
+      eq(g('rappeler claire jeudi').texte, 'Rappeler Claire');
+      eq(g('rappeler claire jeudi').id, 'adv');
+      /* une note garde tout ce qui la suit, tel quel — même un jour, même une heure */
+      eq(g('note thales : écrire à Karim avant vendredi 14h').texte, 'écrire à Karim avant vendredi 14h');
+      eq(g('thales note demander à Karim').texte, 'demander à Karim');
+      eq(g('note écrire à Mme X chez thales').texte, 'écrire à Mme X');
+      eq(g('note thales'), undefined);            /* une note vide n'est pas une note */
+    },
+    'barre : reconnaître une piste — son nom, son début, un mot du nom, une personne, une faute de frappe': () => {
+      const J = '2026-11-10';
+      const cs = [
+        normalizeCompany({ id: 'ora', name: 'Orange Cyberdefense', status: 'todo' }),
+        normalizeCompany({ id: 'ovh', name: 'OVHcloud', status: 'reply' }),
+        normalizeCompany({ id: 'adv', name: 'Advens', status: 'active',
+          contacts: [{ id: 'cl', name: 'Claire Dubois', email: 'claire@exemple.fr' }, { id: 'rh', name: 'Service RH', email: 'rh@exemple.fr' }] }),
+        normalizeCompany({ id: 'pos', name: 'La Poste', status: 'todo' })
+      ];
+      const l = q => comprendre(q, { companies: cs, today: J }).lignes;
+      const p = q => l(q).filter(x => x.type === 'piste').map(x => x.id);
+      eq(p('orange cyberdefense'), ['ora']);
+      eq(p('orange'), ['ora']);                    /* le début du nom */
+      eq(p('ovh'), ['ovh']);                       /* trois lettres : un début */
+      eq(p('ov'), []);                             /* deux lettres ne devinent pas un nom */
+      eq(p('cyberdefense'), ['ora']);              /* un mot du nom qui n'est pas le premier */
+      eq(p('la poste'), ['pos']);                  /* un mot qui relie fait partie du nom */
+      eq(p('poste'), ['pos']);
+      eq(p('la'), []);                             /* … mais seul, il ne nomme rien */
+      eq(p('claire'), ['adv']);                    /* une personne de la piste */
+      eq(l('claire')[0].detail.startsWith('Claire Dubois'), true);
+      eq(l('advnes').filter(x => x.type === 'piste').map(x => [x.id, x.approx]), [['adv', true]]);   /* proposée, pas affirmée */
+      eq(p('adv'), ['adv']);
+      /* « écrire à Claire chez Advens » : la personne ET la piste */
+      const g = l('écrire à claire chez advens')[0];
+      eq([g.type, g.id, g.ct, g.titre], ['geste', 'adv', 'cl', 'Écrire à Claire']);
+      /* « Service RH » n'a pas de prénom */
+      cs[2].contacts.shift();
+      eq(l('écrire advens')[0].titre, 'Écrire à Service RH');
+      eq(aQuiEcrire(cs[2]).id, 'rh');
+      eq(aQuiEcrire(cs[0]), null);                 /* jamais une adresse devinée */
+    },
+    'barre : ce qu’on n’a pas vient en dernier, et un nom qu’on finit de taper ne se prépare pas (règle 5)': () => {
+      const J = '2026-11-10';
+      const cs = [normalizeCompany({ id: 'tha', name: 'Thales', status: 'todo' }),
+                  normalizeCompany({ id: 'ora', name: 'Orange Cyberdefense', city: 'Lille', domain: 'cyber', status: 'todo' })];
+      const t = q => comprendre(q, { companies: cs, today: J }).lignes.map(x => x.type);
+      eq(t('sopra'), ['preparer', 'ajouter']);
+      eq(t('sopra steria'), ['preparer', 'ajouter']);
+      eq(comprendre('Sopra Steria', { companies: cs, today: J }).lignes[0].nom, 'Sopra Steria');
+      eq(t('tha'), ['piste']);                     /* on finit de taper « Thales » */
+      eq(t('thales'), ['piste']);
+      eq(t('orange'), ['piste', 'preparer', 'ajouter']);   /* « Orange » peut être une autre entreprise */
+      eq(t('so'), []);                             /* deux lettres ne se préparent pas */
+      /* « ajouter … » : le nom, tel quel — ou la piste qu'on a déjà */
+      eq(t('ajouter sopra steria'), ['preparer', 'ajouter']);
+      eq(comprendre('ajouter Sopra Steria', { companies: cs, today: J }).lignes[1].nom, 'Sopra Steria');
+      eq(comprendre('ajouter thales', { companies: cs, today: J }).lignes[0].detail, 'déjà dans tes pistes');
+      eq(t('ajouter'), ['ajouter']);
+      /* un geste sur un nom qu'on n'a pas : il se propose à l'ajout, sans le verbe */
+      eq(comprendre('relancer sopra lundi', { companies: cs, today: J }).lignes.map(x => [x.type, x.nom]),
+         [['preparer', 'sopra'], ['ajouter', 'sopra']]);
+      /* une recherche comprise n'est pas un nom d'entreprise */
+      eq(t('cyber lille'), ['chercher', 'decouvrir']);
+      eq(comprendre('cyber lille', { companies: cs, today: J }).lignes[0].detail, '1 piste');
+      eq(comprendre('x'.repeat(4) + ' ' + 'y'.repeat(4), { companies: cs, today: J }).lignes.length <= LIGNES_MAX, true);
+    },
+    'barre : où aller, un ami, ce qu’on colle': () => {
+      const J = '2026-11-10';
+      const cs = [normalizeCompany({ id: 'adv', name: 'Advens', website: 'https://www.advens.fr', status: 'active',
+        contacts: [{ id: 'cl', name: 'Claire Dubois', email: 'claire@exemple.fr', phone: '06 12 34 56 78' }] })];
+      const k = nouvelIdAmi();
+      const profile = normalizeProfile({ amis: [{ id: k, nom: 'Karim Benali' }] });
+      const l = q => comprendre(q, { companies: cs, profile, today: J }).lignes;
+      eq(l('réglages').map(x => [x.type, x.vers]), [['aller', 'reglages']]);
+      eq(l('régl')[0].vers, 'reglages');           /* le début suffit, à trois lettres */
+      eq(l('ré').length, 0);
+      eq(l('sombre')[0].vers, 'theme');
+      eq(l('mon QR')[0].vers, 'qr');
+      eq(l('donner mes pistes')[0].vers, 'donner');
+      eq(l('sauvegarde')[0].vers, 'copie');        /* son mot à lui, même si l'écran dit « copie » */
+      ok(ALLER.every(a => a.titre && a.mots.length && a.icone));
+      /* un ami : son prénom, son nom, ou leur début */
+      eq(l('karim').map(x => [x.type, x.id]), [['ami', k]]);
+      eq(l('benali')[0].id, k);
+      eq(l('kar')[0].type, 'ami');
+      /* ce qu'on colle se reconnaît à sa forme */
+      eq(l('www.sopra-steria.com/carrieres').map(x => [x.type, x.nom]), [['lien', 'Sopra Steria']]);
+      eq(l('https://advens.fr/contact').map(x => [x.type, x.id]), [['piste', 'adv']]);   /* le site d'une piste qu'on a */
+      eq(l('claire@exemple.fr').map(x => [x.type, x.id]), [['piste', 'adv']]);
+      eq(l('06.12.34.56.78')[0].id, 'adv');
+      eq(l('jean@exemple.fr').map(x => [x.type, x.valeur]), [['contact', 'jean@exemple.fr']]);
+      eq(nomDepuisLien('https://www.orange-cyberdefense.com/fr'), 'Orange Cyberdefense');
+      /* rien de tapé, rien de proposé */
+      eq(comprendre('   ', { companies: cs }).lignes, []);
+      eq(comprendre(null, {}).lignes, []);
+    },
+    'barre : le verbe seul propose les pistes qui le réclament, et la barre vide ce qui a une réponse': () => {
+      const J = '2026-11-10';
+      const cs = [
+        normalizeCompany({ id: 'adv', name: 'Advens', city: 'Lille', positions: ['alternance'], status: 'active',
+          contacts: [{ id: 'cl', name: 'Claire Dubois', email: 'claire@exemple.fr' }],
+          nextAction: '2026-11-08', nextActionText: 'Relancer Claire', history: [{ d: '2026-11-01', t: 'Mail envoyé' }] }),
+        normalizeCompany({ id: 'kia', name: 'Kiabi', city: 'Lille', positions: ['alternance'], status: 'active',
+          history: [{ d: '2026-09-11', t: 'Candidature' }] }),
+        normalizeCompany({ id: 'ovh', name: 'OVHcloud', city: 'Roubaix', status: 'reply', history: [{ d: J, t: 'Réponse' }] }),
+        normalizeCompany({ id: 'tha', name: 'Thales', status: 'todo' })
+      ];
+      const ctx = { companies: cs, profile: normalizeProfile({ recherche: 'alternance' }), today: J };
+      const l = q => comprendre(q, ctx).lignes;
+      /* « relancer » : la relance en retard, puis la piste qui se tait — et la recherche */
+      eq(l('relancer').map(x => [x.type, x.id || x.titre]),
+         [['geste', 'adv'], ['geste', 'kia'], ['chercher', 'À relancer']]);
+      eq(l('relancer')[1].detail, 'sans nouvelles depuis 60 j');
+      /* « décroché » : celle qui a répondu d'abord */
+      eq(l('décroché')[0].id, 'ovh');
+      /* « fait » : seulement ce qui est prévu */
+      eq(l('fait').filter(x => x.type === 'geste').map(x => x.id), ['adv']);
+      eq([etatCourt(cs[0], J), etatCourt(cs[1], J), etatCourt(cs[3], J)],
+         ['en retard de 2 jours', 'sans nouvelles depuis 60 j', 'à contacter']);
+      /* la barre vide : trois phrases au plus, et chacune a une réponse */
+      const a = amorces(ctx);
+      ok(a.length >= 2 && a.length <= 3);
+      ok(a.includes('relancer Advens'));
+      ok(a.every(q => comprendre(q, ctx).lignes.length > 0));
+      eq(amorces({ companies: [], today: J }), []);          /* sans piste : rien à proposer */
+      /* chaque verbe a ses formes, sans doublon d'un verbe à l'autre */
+      const vues = new Map();
+      for (const [id, v] of Object.entries(VERBES)) for (const m of v.mots){ ok(!vues.has(m), m + ' est dit deux fois'); vues.set(m, id); }
     },
     'composeur : le modèle arrive pré-choisi d’après le statut de la piste': () => {
       const tpls = defaultTemplates();                    /* Candidature, Relance, Remerciement */
