@@ -61,6 +61,9 @@ async function jouer({ nom, mutations = {}, captures = false }){
   await p.waitForTimeout(600);
   const x = { nom };
   const boite = 'reseau';
+  /* 9.0 : au téléphone, « Réseau » vit dans « Moi » — c'est la place
+     « Moi » de la barre du bas qui dirait un chiffre s'il y en avait un */
+  const place = 'moi';
 
   /* ---------- les onglets, « Tes amis » ---------- */
   const lire = () => p.evaluate(b => {
@@ -71,7 +74,7 @@ async function jouer({ nom, mutations = {}, captures = false }){
              aria: document.querySelector(`.bottomnav [data-r="${b}"]`).getAttribute('aria-label'),
              amis: rows.length, premiere: rows[0] ? rows[0].dataset.sorte : '', deuxieme: rows[1] ? rows[1].dataset.sorte : '', premiereTxt: rows[0] ? rows[0].querySelector('.act-verb').textContent : '',
              plus: (document.querySelector('.tr-amis .tr-more') || {}).textContent || '' };
-  }, boite);
+  }, place);
   Object.assign(x, await lire());
   if (captures) await p.screenshot({ path: `${SHOTS}/echelle-${nom}-aujourdhui.png` });
   if (x.plus){
@@ -87,7 +90,7 @@ async function jouer({ nom, mutations = {}, captures = false }){
     x.filtre = await p.evaluate(() => (document.querySelector('[data-filtre][aria-pressed="true"]') || {}).textContent || '');
     x.lignesNonLues = await p.evaluate(() => [...document.querySelectorAll('.bx-liste .bx-l')].every(b => b.classList.contains('bx-nonlu')));
   } else {
-    await p.click(`.bottomnav [data-r="${boite}"]`);
+    await p.evaluate(b => { location.hash = '#/' + b; }, boite);
     await p.waitForSelector('.bx-liste .bx-l');
   }
 

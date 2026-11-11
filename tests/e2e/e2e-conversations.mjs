@@ -97,7 +97,7 @@ async function ecran(nom, vp){
   const { ctx, p, fuites } = await ecran('pouce', { width: 390, height: 844 });
   const l = await p.evaluate(code => {
     const r = document.querySelector(`.bx-l[data-groupe="${code}"]`);
-    const a = document.querySelector('.bottomnav [data-r="reseau"]');
+    const a = document.querySelector('.bottomnav [data-r="moi"]');   /* 9.0 : « Réseau » vit dans « Moi » */
     return { at: !!r.querySelector('.bx-at'), muet: !!r.querySelector('.bx-i .ic'), aria: r.getAttribute('aria-label'),
              onglet: a.textContent.replace(/\D/g, '') };
   }, CODE);

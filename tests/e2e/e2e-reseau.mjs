@@ -104,7 +104,9 @@ const fermer = async p => {
 /* la barre telle qu'on la lit : chaque onglet, son mot et son adresse */
 const barre = p => p.evaluate(() => {
   const nav = matchMedia('(min-width:901px)').matches ? '.topnav' : '.bottomnav';
-  return [...document.querySelectorAll(nav + ' a[data-r]')].map(a => a.innerText.replace(/\s+/g, ' ').trim() + '→' + a.getAttribute('href')).join(' | ');
+  /* seulement ce qui se voit : au téléphone (9.0), chaque coin porte deux
+     liens et n'en montre qu'un — le lieu, ou le retour à « Aujourd'hui » */
+  return [...document.querySelectorAll(nav + ' a[data-r]')].filter(a => a.getClientRects().length).map(a => a.innerText.replace(/\s+/g, ' ').trim() + '→' + a.getAttribute('href')).join(' | ');
 });
 const ici = p => p.evaluate(() => ({
   hash: location.hash, titre: document.title,
@@ -135,8 +137,17 @@ for (const sombre of [false, true]){
   const a = await ici(p);
   ok(a.vue === 'reseau' && a.hash === '#/reseau' && a.titre === 'Réseau — OpenContact' && a.h1 === 'Réseau',
     `② ${nom} : « #/echanger » mène à « Réseau », l'adresse et le titre suivent — ${JSON.stringify(a)}`);
-  ok(await barre(p) === 'Aujourd’hui→#/aujourdhui | Pistes→#/pistes | Réseau→#/reseau | Moi→#/moi',
-    `② ${nom} : la barre dit Réseau — ${await barre(p)}`);
+  /* 9.0 : trois places en bas, « Réseau » vit dans « Moi ». Dans
+     « Réseau », le coin de droite ramène à « Aujourd'hui » ; et « Moi »
+     porte la ligne qui y mène. */
+  ok(await barre(p) === 'Pistes→#/pistes | Aujourd’hui→#/aujourdhui',
+    `② ${nom} : dans « Réseau », la barre du bas dit Pistes et le retour — ${await barre(p)}`);
+  await p.evaluate(() => { location.hash = '#/moi'; });
+  await p.waitForSelector('#moiReseau');
+  await p.click('#moiReseau');
+  await p.waitForSelector('#view-reseau:not([hidden])');
+  ok((await ici(p)).vue === 'reseau', `② ${nom} : « Moi » porte la ligne « Réseau », qui y mène`);
+  await p.waitForTimeout(250);
   const r = await reseauLu(p);
   ok(r.demandes.join(' / ') === 'Aztek / Thales'
     && r.don === 'Karim t’a donné Julie Marchand' && r.ordre.join(',') === 'rzDemandes,boite',

@@ -247,7 +247,7 @@ console.log('② la barre trouve AZTEK SAS par « Karim » et dit pourquoi ✓')
 await I.p.evaluate(() => { location.hash = '#/aujourdhui'; });
 await I.p.waitForTimeout(500);
 {
-  const premiere = await I.p.evaluate(() => document.querySelector('#view-aujourdhui .act-start')?.textContent.replace(/\s+/g, ' ').trim() || '');
+  const premiere = await I.p.evaluate(() => document.querySelector('#view-aujourdhui .aj-rang[data-genre="demarrer"]')?.textContent.replace(/\s+/g, ' ').trim() || '');
   if (!/^AZTEK SAS Karim y est en alternance/.test(premiere)) fail('« Par où commencer » : ' + premiere);
 }
 console.log('② « Par où commencer » met AZTEK SAS en tête, « Karim y est en alternance » ✓');

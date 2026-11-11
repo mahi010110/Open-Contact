@@ -415,8 +415,15 @@ const PLAFOND = {
      (docs/propositions/R5-un-seul-moi.md) ; une perte qu'on ne voit pas
      venir, dite au moment où les mots sont à l'écran. L'avertissement
      au-dessus perd trois mots dans le même geste (« sans elle, rien ne
-     se récupère » dit le code oublié ET le téléphone perdu). */
-  motsExplication: 344,
+     se récupère » dit le code oublié ET le téléphone perdu).
+
+     355 avec la 9.0 (novembre 2026), +11 : « Beaucoup de candidatures
+     restent sans réponse : ce n’est pas toi. », sur la fiche d'une
+     piste qui se tait. C'est le « moral » du périmètre de la refonte
+     (docs/principes.md, 6) : le silence est le moment le plus dur de la
+     recherche, et rien à l'écran ne peut le dire à la place d'une
+     phrase. Elle n'apparaît que sur une piste muette, jamais ailleurs. */
+  motsExplication: 355,
   /* ZÉRO, et c'est le seul plafond qui puisse honnêtement valoir zéro :
      un style sans porteur n'a pas de contrepartie à peser — il ne rend
      service à personne, il ne fait qu'attendre d'être lu par erreur.

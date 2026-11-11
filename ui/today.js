@@ -112,18 +112,20 @@ function cibleHTML(){
 
 /* ---------- une ligne à faire ----------
    L'ENCRE VA À L'ENTREPRISE, PAS AU VERBE (§6) : le nom en tête, ce qu'il
-   faut faire dessous, et le geste au bout — nommé. La sous-ligne
-   commence par ce qui a fait monter la ligne : le retard (la marque de
-   l'app), le silence (la même marque), ou l'atout en accent (« Karim y
-   est en alternance »). Quand l'atout dit déjà le geste, il ne se
-   redit pas. */
+   faut faire dessous, et le geste au bout — nommé. Ce qu'il faut faire
+   ouvre la sous-ligne, à la même place sur chaque ligne (une valeur
+   répétée garde un bord, §6) ; ce qui a fait monter la ligne la suit :
+   le retard (la marque de l'app), le silence (la même marque). L'atout
+   en accent (« Karim y est en alternance ») dit déjà le geste : il
+   tient la place, seul. */
 function rangHTML(e, o){
   const date = e.genre === 'retard' || e.genre === 'jour';
-  const devant = e.genre === 'retard' && !o.reprise ? dueMarkHTML(e.date)
-    : e.genre === 'silence' ? silenceMarkHTML(e.silence)
-    : e.raison ? `<span class="act-vecu">${esc(e.raison)}</span>` : '';
+  const atout = e.genre !== 'retard' && e.genre !== 'silence' && e.raison
+    ? `<span class="act-vecu">${esc(e.raison)}</span>` : '';
   const quoi = e.genre === 'demarrer' && e.raison ? '' : `<span class="act-do">${esc(e.titre)}</span>`;
-  const derriere = e.genre === 'contrat' ? `<span class="act-who">${esc(e.sous)}</span>` : '';
+  const derriere = e.genre === 'retard' && !o.reprise ? dueMarkHTML(e.date)
+    : e.genre === 'silence' ? silenceMarkHTML(e.silence)
+    : e.genre === 'contrat' ? `<span class="act-who">${esc(e.sous)}</span>` : '';
   return (
     `<div class="act-row aj-rang" data-id="${esc(e.id)}" data-genre="${e.genre}">
        ${date ? `<div class="act-under act-under-done">${ic('check', 'ic-14')} Fait</div>
@@ -131,7 +133,7 @@ function rangHTML(e, o){
        <div class="act-in">
          <div class="act-main sw-cible" role="button" tabindex="0" aria-label="Ouvrir ${esc(e.nom)}">
            <b class="act-verb">${esc(e.nom)}</b>
-           <span class="act-sub">${devant}${quoi}${derriere}</span>
+           <span class="act-sub">${quoi}${atout}${derriere}</span>
          </div>
          <div class="act-btns">
            <button class="btn btn-sm aj-geste${o.premier ? ' btn-primary' : ''}" data-geste

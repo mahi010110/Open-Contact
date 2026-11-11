@@ -270,7 +270,7 @@ await attendre(page, async () => (await import('./ui/state.js')).S.companies.len
   'les pistes ne sont pas chargées');
 await page.waitForTimeout(400);
 const debut = await page.evaluate(() =>
-  [...document.querySelectorAll('.act-start')].map(r => ({
+  [...document.querySelectorAll('.aj-rang[data-genre="demarrer"]')].map(r => ({
     nom: r.querySelector('.act-verb').textContent.trim(),
     pourquoi: (r.querySelector('.act-vecu') || {}).textContent || ''
   })));

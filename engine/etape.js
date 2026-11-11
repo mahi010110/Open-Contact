@@ -27,7 +27,7 @@
    ============================================================ */
 import { fold } from './filter.js';
 import { silentPistes, aDemarrer, derniereTrace, dueFollowups, SILENCE_RELANCE } from './assist.js';
-import { prendCeQueJeCherche } from './model.js';
+import { prendCeQueJeCherche, PREND_MOT } from './model.js';
 import { scoreOf } from './score.js';
 import { suiteDe } from './contrat.js';
 import { aQuiEcrire, plusJours, prenomDe } from './commande.js';
@@ -87,17 +87,23 @@ export function prochaineEtape(c, o){
     const qui = porteurs(c, o.portes)[0];
     const mail = aQuiEcrire(c);
     const joignable = (c.contacts || []).some(t => t.email || t.phone || t.link);
+    /* une raison, la plus forte, et elle se lit sur la ligne : quelqu'un
+       qui peut te porter d'abord (40 contre 3) ; sinon ce qui l'a fait
+       monter — « prend des alternants », le mot du profil */
+    const recherche = o.profile && o.profile.recherche;
+    const raison = qui ? qui.prenom + ' ' + qui.court
+      : prendCeQueJeCherche(c, recherche) === true ? PREND_MOT[recherche] || '' : '';
     if (qui && !joignable)
       return { ...base, genre: 'demarrer', quand: 'maintenant', titre: 'Demander à ' + qui.prenom,
         raison: qui.prenom + ' ' + qui.court, bouton: 'Demander', icone: 'message-text', action: 'porteur' };
     if (mail)
       return { ...base, genre: 'demarrer', quand: 'maintenant', titre: 'Écrire à ' + (prenomDe(mail) || c.name),
-        raison: qui ? qui.prenom + ' ' + qui.court : '', bouton: 'Écrire', icone: 'mail', action: 'mail', ct: mail.id };
+        raison, bouton: 'Écrire', icone: 'mail', action: 'mail', ct: mail.id };
     if (o.peutDemander && !joignable)
       return { ...base, genre: 'demarrer', quand: 'maintenant', titre: 'Trouver quelqu’un à qui écrire',
-        bouton: 'Demander', icone: 'users', action: 'amis' };
+        raison, bouton: 'Demander', icone: 'users', action: 'amis' };
     return { ...base, genre: 'demarrer', quand: 'maintenant', titre: 'Trouver à qui écrire',
-      bouton: 'Trouver', icone: 'user', action: 'contact' };
+      raison, bouton: 'Trouver', icone: 'user', action: 'contact' };
   }
 
   /* 3 · le silence */

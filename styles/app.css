@@ -237,11 +237,19 @@ input,select,textarea{font-family:inherit;color:var(--text-body)}
 }
 .bn-cote:active .bn-carre{box-shadow:var(--bevel-down);transform:translate(1px,1px)}
 /* la pile : un carré tramé, décalé, derrière le carré de devant */
-.bn-pile{position:relative;display:block;margin-left:4px}
+/* Le carré de derrière n'est PAS positionné : il partage la case du
+   carré de devant et s'en décale par ses marges. Positionné, il se
+   peignait par-dessus l'anneau de focus du lien, dont il mangeait le
+   bord haut (mesuré : 91 % de l'aire exigée, e2e-focus.mjs). */
+.bn-pile{display:grid;margin-left:4px}
 .bn-pile::before{
-  content:'';position:absolute;left:-4px;top:-4px;width:100%;height:100%;
+  content:'';grid-area:1/1;margin:-4px 4px 4px -4px;
   border:1px solid var(--border-frame);background:var(--dither-img), var(--surface-chrome);background-size:var(--dither-size);
 }
+.bn-pile .bn-carre{grid-area:1/1}
+/* un pointillé n'encre que la moitié de sa bande (§4) : autour d'une
+   cible presque carrée, 2 px passent sous le plancher. 3 px ici. */
+.bn-cote:focus-visible{outline-width:3px}
 .bn-pile .bn-carre{display:flex;flex-direction:column;align-items:stretch;justify-content:center;gap:4px;padding:0 6px}
 .bn-pile .bn-carre i{display:block;height:3px;background:var(--accent)}
 .bn-pile .bn-carre em{
@@ -1290,10 +1298,6 @@ details.tranche[open]>summary::before{
 .abtn:focus-visible, .abtn:active{color:var(--text-body)}
 @media (hover:hover){
 .abtn:hover{color:var(--text-body)}
-}
-.abtn-ok:focus-visible, .abtn-ok:active{color:var(--green)}
-@media (hover:hover){
-.abtn-ok:hover{color:var(--green)}
 }
 .act-gone{transition:opacity 150ms var(--ease-out),transform 150ms var(--ease-out);opacity:0;transform:translateX(20px)}
 
@@ -2762,7 +2766,6 @@ button.ec-row:hover{background:var(--surface-field)}
 .na-cur{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
 .na-cur b{font-size:var(--text-14)}
 .na-cur span{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
-.na-none{font-size:var(--text-12);color:var(--text-muted);line-height:1.5}
 .fi-hist{margin-top:4px}
 /* « À savoir » et « Historique » s'ouvrent d'un tap — même règle, et
    surtout MÊME SIGNE que « Bientôt » : sans le triangle, ces deux mots
@@ -4211,6 +4214,19 @@ html.oc-locked .undo-bar{display:none}
    à son mot. 8 px le séparent d'« ouvrir la fiche » (`.act-in`) : deux
    conséquences différentes ne partagent pas une arête (§5). */
 .aj .act-btns{padding-right:8px}
+/* Une ligne qui se replie (un petit téléphone, un texte agrandi) rend
+   son geste à GAUCHE, sous le nom : c'est le nom qui pousse le geste à
+   droite tant qu'ils partagent le rang, jamais une marge automatique —
+   elle l'enverrait seul au bord droit, tout le vide à sa gauche. Le
+   retrait passe donc à la rangée, pour que le geste replié s'aligne
+   sur le nom ; la cible qui ouvre la fiche garde sa largeur. */
+.aj-rang .act-in{padding:0 8px 0 12px}
+.aj-rang .act-main{margin-left:-12px;padding-left:12px}
+.aj-rang .act-btns{margin:6px 0;padding-right:0}
+@media (max-width:340px){
+  .aj-rang .act-in{padding:0 4px 0 8px}
+  .aj-rang .act-main{margin-left:-8px}
+}
 /* ce que l'app a rangé toute seule : un fait en encre sourde, et sa sortie */
 .aj-range{
   display:flex;align-items:center;gap:10px;margin-top:14px;padding:6px 0 6px 2px;

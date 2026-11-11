@@ -103,7 +103,11 @@ const noms = p => p.evaluate(() => [...document.querySelectorAll('.bx-l[data-fil
    l'accent, et le contraste du mot sur la barre (WCAG 1.4.3 : 4,5:1
    pour un mot de 11 px) */
 const signe = (p, r = 'reseau') => p.evaluate(r => {
-  const a = document.querySelector(`.bottomnav [data-r="${r}"]`) || document.querySelector(`.topnav [data-r="${r}"]`);
+  /* 9.0 : au téléphone, « Réseau » vit dans « Moi » — c'est la place
+     « Moi » de la barre du bas qui porte le signe ; au poste, le lien
+     « Réseau » de la barre latérale */
+  const a = matchMedia('(min-width:901px)').matches ? document.querySelector(`.topnav [data-r="${r}"]`)
+    : document.querySelector(`.bottomnav [data-r="${r === 'reseau' ? 'moi' : r}"]`);
   const l = a.querySelector('.bn-l') || a;
   const pt = getComputedStyle(l, '::after');
   const sonde = document.createElement('span');
@@ -123,7 +127,11 @@ const aller = async (p, route) => {
   await p.waitForTimeout(200);
 };
 const onglet = (p, r) => p.evaluate(r => {
-  const a = document.querySelector(`.bottomnav [data-r="${r}"]`) || document.querySelector(`.topnav [data-r="${r}"]`);
+  /* 9.0 : au téléphone, « Réseau » vit dans « Moi » — c'est la place
+     « Moi » de la barre du bas qui porte le signe ; au poste, le lien
+     « Réseau » de la barre latérale */
+  const a = matchMedia('(min-width:901px)').matches ? document.querySelector(`.topnav [data-r="${r}"]`)
+    : document.querySelector(`.bottomnav [data-r="${r === 'reseau' ? 'moi' : r}"]`);
   /* un chiffre où qu'il se pose dans l'onglet, quelle que soit sa classe */
   return { n: (a?.textContent || '').replace(/\D/g, ''), aria: a ? a.getAttribute('aria-label') : '' };
 }, r);
@@ -166,7 +174,7 @@ const fermer = async p => {
     '① ce qui n’est pas lu en gras, avec un point et sans chiffre ; le reste se tait');
   ok(g.apercu === 'Karim : Qui va au forum jeudi ?' && l.apercu === 'Toi : Merci pour Advens !', '① le dernier message se lit sans ouvrir');
   const e = await onglet(p, 'reseau'), a = await onglet(p, 'aujourdhui');
-  ok(!e.n && e.aria === 'Réseau' && !a.n && !/\d/.test(a.aria), `① aucun onglet ne compte (« ${e.aria} », « ${a.aria} »)`);
+  ok(!e.n && e.aria === 'Moi' && !a.n && !/\d/.test(a.aria), `① aucun onglet ne compte (« ${e.aria} », « ${a.aria} »)`);
   await p.screenshot({ path: `${SHOTS}/140-boite-pouce.png` });
   /* ① bis ailleurs, « Réseau » CHANGE DE COULEUR quand quelque chose y
      attend — l'accent et le point carré, jamais un chiffre — et son nom
@@ -174,7 +182,7 @@ const fermer = async p => {
   ok(!(await signe(p)).attend, '① bis dans « Réseau », l’onglet allumé ne se double pas d’un signe');
   await aller(p, 'aujourdhui');
   const s1 = await signe(p);
-  ok(s1.attend && s1.aria === 'Réseau, du nouveau' && s1.point && !s1.n && s1.couleur === s1.accent && s1.contraste >= 4.5,
+  ok(s1.attend && s1.aria === 'Moi, du nouveau' && s1.point && !s1.n && s1.couleur === s1.accent && s1.contraste >= 4.5,
     '① bis ailleurs, « Réseau » prend l’accent et le point carré, sans chiffre, et se dit « du nouveau » — ' + JSON.stringify(s1));
   await p.screenshot({ path: `${SHOTS}/140-onglet-attend-pouce.png` });
   await aller(p, 'reseau');
@@ -213,7 +221,7 @@ const fermer = async p => {
      revient à son encre, et son nom aussi */
   await aller(p, 'aujourdhui');
   const s2 = await signe(p);
-  ok(!s2.attend && s2.aria === 'Réseau' && !s2.point, '④ bis tout lu ou coupé : « Réseau » revient à son encre — ' + JSON.stringify(s2));
+  ok(!s2.attend && s2.aria === 'Moi' && !s2.point, '④ bis tout lu ou coupé : « Réseau » revient à son encre — ' + JSON.stringify(s2));
   await aller(p, 'reseau');
   await p.waitForSelector('.bx-liste');
 

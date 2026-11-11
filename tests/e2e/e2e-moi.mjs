@@ -169,11 +169,11 @@ const lastBackupAt = p => p.evaluate(async () => (await import('./ui/state.js'))
       contacts: [{ id: 'cc', name: 'Céline', email: 'celine@cirrus.test' }] }
   ];
   const { ctx, p } = await page({ route: 'aujourdhui', data: qui });
-  await p.waitForSelector('.act-start');
-  const ordre = await p.$$eval('.act-start .act-verb', els => els.map(e => e.textContent.trim()));
+  await p.waitForSelector('.aj-rang[data-genre="demarrer"]');
+  const ordre = await p.$$eval('.aj-rang[data-genre="demarrer"] .act-verb', els => els.map(e => e.textContent.trim()));
   okSi(ordre.join(' > ') === 'Borée Alternance > Cirrus Muet > Aster Stages',
     '« Par où commencer » : prend ce que tu cherches > on ne sait pas > ne prend pas (' + ordre.join(' > ') + ')');
-  okSi((await p.textContent('.act-start[data-id="b"]')).includes('prend des alternants'),
+  okSi((await p.textContent('.aj-rang[data-id="b"]')).includes('prend des alternants'),
     'et la raison se lit sur la ligne');
   await ctx.close();
 }
@@ -185,8 +185,8 @@ const lastBackupAt = p => p.evaluate(async () => (await import('./ui/state.js'))
       contacts: [{ id: 'ca', name: 'Ana', email: 'ana@aster.test' }] }
   ];
   const { ctx, p } = await page({ route: 'aujourdhui', data: qui, profil: { name: 'Sam', formation: 'BTS SIO' } });
-  await p.waitForSelector('.act-start');
-  const ordre = await p.$$eval('.act-start .act-verb', els => els.map(e => e.textContent.trim()));
+  await p.waitForSelector('.aj-rang[data-genre="demarrer"]');
+  const ordre = await p.$$eval('.aj-rang[data-genre="demarrer"] .act-verb', els => els.map(e => e.textContent.trim()));
   okSi(ordre[0] === 'Aster Stages', 'sans recherche choisie, le critère ne départage rien');
 
   /* le composeur : « Compléter mon profil » tant que le mail partirait faux */

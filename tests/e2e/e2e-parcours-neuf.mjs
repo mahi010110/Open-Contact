@@ -151,9 +151,16 @@ else console.log('Mes pistes vide : état enseignant ✓');
    Depuis « Aujourd'hui », là où l'app neuve la propose : c'est l'état
    où le toast s'étirait (voir plus bas), et on ne garde que les états
    qu'on met en place. */
-await M.click('.bottomnav a[data-r="aujourdhui"]');
+/* 9.0 : le coin où l'on est ramène à « Aujourd'hui » ; le + ouvre la
+   barre, et « Nouvelle piste » en tient le pied */
+const nouvellePiste = async p => {
+  await p.click('#bnAdd');
+  await p.waitForSelector('.modal-barre .modal-f .btn');
+  await p.click('.modal-barre .modal-f .btn');
+};
+await M.click('.bottomnav a.bn-retour:visible');
 await M.waitForSelector('#view-aujourdhui:not([hidden])');
-await M.click('#bnAdd');
+await nouvellePiste(M);
 await M.waitForSelector('#cpName');
 /* le bouton dit le GESTE : il enregistre et laisse la feuille ouverte.
    « Suivant » faisait attendre une étape 2 (1er octobre 2026). */
@@ -271,7 +278,7 @@ const etire = m => m.boite > m.texte + 30;   /* 2 × 8 px de marge, 2 px de bord
   else if (durs.length) fail(`le toast s'étire : ${durs.length} état(s) —\n      ` + durs.join('\n      '));
   else console.log(`toast : jamais plus haut que son texte, dans ${ETATS.length + 1} états au pouce, sonde vue ✓`);
   /* on rouvre la capture pour la suite du parcours, comme on l'avait laissée */
-  await M.click('#bnAdd');
+  await nouvellePiste(M);
   await M.waitForSelector('#cpName');
 }
 const withCt = await M.evaluate(async () =>
@@ -304,9 +311,12 @@ console.log('La piste survit au rechargement ✓');
    tous le remplissaient d'abord. On ne garde que les états qu'on met en
    place (§5). Ici : le vrai bouton, le vrai profil vide. */
 {
-  await M.click('.bottomnav a[data-r="aujourdhui"]');
-  await M.waitForSelector('#view-aujourdhui:not([hidden]) .act-start [data-a="mail"]');
-  await M.click('#view-aujourdhui .act-start [data-a="mail"]');
+  await M.click('.bottomnav a.bn-retour:visible');
+  /* la file : la piste jamais contactée, et son geste nommé — « Écrire » */
+  await M.waitForSelector('#view-aujourdhui:not([hidden]) .aj-rang[data-genre="demarrer"] [data-geste]');
+  if ((await M.textContent('#view-aujourdhui .aj-rang[data-genre="demarrer"] [data-geste]')).trim() !== 'Écrire')
+    fail('la première piste, qui a une adresse, doit proposer « Écrire »');
+  await M.click('#view-aujourdhui .aj-rang[data-genre="demarrer"] [data-geste]');
   await M.waitForSelector('#mBody');
   /* le mail ne doit pas partir pour de vrai pendant le scénario */
   await M.evaluate(() => document.addEventListener('click', e => {

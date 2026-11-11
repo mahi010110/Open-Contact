@@ -149,8 +149,9 @@ await seed(D, '', 0);
 await C.reload({ waitUntil: 'load' });
 await attendre(C, async () => (await import('./ui/state.js')).S.companies.length === 25);
 
-for (const [p, nav] of [[C, '.topnav'], [D, '.bottomnav']]){
-  await p.click(nav + ' a[data-r="reseau"]');
+/* au téléphone, « Réseau » vit dans « Moi » (9.0) : on y va par sa route */
+for (const [p, nav] of [[C, '.topnav'], [D, '']]){
+  if (nav) await p.click(nav + ' a[data-r="reseau"]'); else await p.evaluate(() => { location.hash = '#/reseau'; });
   /* le partage EN DIRECT est masqué à l'écran depuis les groupes (lot 5,
      ui/perimetre.js) : il reste dans le code, et on l'ouvre par lui */
   await p.evaluate(async () => (await import('./ui/direct.js')).openPromo());
@@ -643,7 +644,7 @@ await E.evaluate(async () => {
   let s; let n = 0;
   while ((s = topSheet()) && n++ < 4){ s.close(null, true); await new Promise(r => setTimeout(r, 150)); }
 });
-await E.click('.bottomnav a[data-r="reseau"]');
+await E.evaluate(() => { location.hash = '#/reseau'; });
 /* le partage EN DIRECT est masqué à l'écran depuis les groupes (lot 5,
    ui/perimetre.js) : il reste dans le code, et on l'ouvre par lui */
 await E.evaluate(async () => (await import('./ui/direct.js')).openPromo());

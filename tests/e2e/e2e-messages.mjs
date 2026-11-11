@@ -207,7 +207,7 @@ console.log('② « Écrire à Karim » au pied de sa fiche, le message à droit
 /* ---------- ③ chez Karim : la boîte, l'onglet, la conversation ---------- */
 const boiteK = () => K.p.evaluate(id => {
   const r = document.querySelector(`.bx-l[data-ami="${id}"]`);
-  const a = document.querySelector('.bottomnav [data-r="reseau"]');
+  const a = document.querySelector('.bottomnav [data-r="moi"]');   /* 9.0 : au téléphone, « Réseau » vit dans « Moi », qui porte le signe */
   return { ligne: r ? { gras: r.classList.contains('bx-nonlu'), nom: r.querySelector('.bx-n').textContent.trim(),
                         apercu: r.querySelector('.bx-p').textContent.trim(), point: !!r.querySelector('.bx-pt'),
                         n: (r.querySelector('.bx-i')?.textContent || '').replace(/\D/g, ''),
@@ -220,7 +220,7 @@ await rouvrir(K.p);
    rien — il change de couleur, et son nom dit « du nouveau » (28 octobre 2026) */
 const vu3 = await attendre(async () => { const b = await boiteK(); return /Inès t’a écrit/.test(b.jour) ? b : null; },
   'chez Karim, « Aujourd’hui » ne dit pas qu’Inès a écrit');
-if (vu3 && (vu3.onglet || vu3.aria !== 'Réseau, du nouveau')) fail('l’onglet compte, ou ne dit pas « du nouveau » : ' + JSON.stringify(vu3));
+if (vu3 && (vu3.onglet || vu3.aria !== 'Moi, du nouveau')) fail('l’onglet compte, ou ne dit pas « du nouveau » : ' + JSON.stringify(vu3));
 await K.p.screenshot({ path: `${SHOTS}/130-conv-aujourdhui.png` });
 await K.p.evaluate(() => { location.hash = '#/reseau'; });
 await K.p.waitForSelector(`.bx-l[data-ami="${ID_I}"]`);
@@ -242,7 +242,7 @@ await fermerTout(K.p);
 await K.p.waitForTimeout(300);
 {
   const b = await boiteK();
-  if (b.ligne.gras || b.ligne.point || b.onglet || b.aria !== 'Réseau') fail('lue, la conversation se marque encore : ' + JSON.stringify(b));
+  if (b.ligne.gras || b.ligne.point || b.onglet || b.aria !== 'Moi') fail('lue, la conversation se marque encore : ' + JSON.stringify(b));
 }
 await ongletAmis(K.p);
 if (await K.p.$('#piAmis .am-row .am-n')) fail('« Amis » compte encore les messages');
