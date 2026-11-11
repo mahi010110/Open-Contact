@@ -33,6 +33,9 @@ seul. Rien n'est supprimé, aucune donnée ne bouge
   Préparer, Demander, Écrire. Le premier est le plus important.
 - **« Bientôt » dit aussi ce qui attend** : une piste sans réponse y
   affiche « Relancer si pas de réponse », au jour où la relance viendra.
+  Si la réponse arrive avant, la relance prévue s'efface toute seule.
+- **« Appeler »** : une piste dont le contact n'a qu'un numéro te
+  propose de l'appeler, au lieu de te laisser sans geste.
 - **Après « Décroché », la suite.** La convention avant le premier jour
   pour un stage ; le contrat, son dépôt et les 45 premiers jours pour
   une alternance. Une liste à cocher, privée.

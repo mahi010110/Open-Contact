@@ -134,25 +134,30 @@ export function prochaineEtape(c, o){
     date: plusJours(today, Math.max(1, SILENCE_RELANCE - depuis)), bouton: '', action: 'fiche' };
 }
 
-/* ---------- où en est la recherche ----------
-   Les quatre états d'une piste, dans l'ordre du parcours, avec leur
-   compte : c'est la recherche entière en une ligne. Chaque case porte la
-   recherche qui la montre dans « Mes pistes » — un nombre est une
-   promesse, l'arrivée montre ce nombre-là (CLAUDE.md §5, promesse 5).
-   Les mots sont ceux des statuts : rien de neuf à apprendre.
-   `ici` : la case la plus avancée qui n'est pas vide. */
-export function parcours(companies){
-  const cs = (companies || []).filter(c => c && !c.demo);
-  const ouvertes = cs.filter(c => !c.closedReason);
-  const cases = [
-    { id: 'todo', label: 'À contacter', q: 'à contacter', n: ouvertes.filter(c => (c.status || 'todo') === 'todo').length },
-    { id: 'active', label: 'En cours', q: 'en cours', n: ouvertes.filter(c => c.status === 'active').length },
-    { id: 'reply', label: 'Réponse', q: 'réponse', n: ouvertes.filter(c => c.status === 'reply').length },
-    { id: 'won', label: 'Décroché', q: 'décroché', n: cs.filter(c => c.closedReason === 'won').length }
-  ];
-  let ici = -1;
-  cases.forEach((k, i) => { if (k.n) ici = i; });
-  return cases.map((k, i) => ({ ...k, ici: i === ici }));
+/* ---------- ce qui s'est passé en dernier ----------
+   Le contexte d'une étape, en une ligne : la dernière chose FAITE sur la
+   piste (« Email envoyé », « Réponse reçue », « Piste créée »), avec son
+   jour. C'est ce qu'il faut savoir pour agir sans ouvrir la fiche. Une
+   date posée (« À faire : … ») n'est pas un fait : elle est écartée. */
+export function dernierFait(c){
+  const h = ((c && c.history) || []).filter(x => x && x.d && x.t && !/^À faire :/.test(x.t));
+  if (!h.length) return null;
+  let dernier = h[0];
+  for (const x of h) if (String(x.d) >= String(dernier.d)) dernier = x;
+  return { d: dernier.d, t: String(dernier.t) };
+}
+
+/* ---------- le plan est contingent ----------
+   « Relancer si pas de réponse » (docs/principes.md, 6). La réponse
+   arrive : la relance prévue n'a plus d'objet, elle tombe. Rend `true`
+   si elle a été retirée — l'appelant garde de quoi annuler. Une autre
+   action prévue (un entretien, un envoi) ne bouge pas. */
+export function tomberRelance(c){
+  if (!c || !c.nextAction || !/relanc/.test(plier(c.nextActionText || ''))) return false;
+  c.nextAction = '';
+  c.nextActionText = '';
+  delete c.nextActionCt;
+  return true;
 }
 
 /* ---------- ce qu'il y a à faire, dans l'ordre ----------

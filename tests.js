@@ -35,7 +35,7 @@ import { comprendre, amorces, jetons, lireDate, heureEnMots, jourEnMots, etatCou
          VERBES, ALLER, LIGNES_MAX } from './engine/commande.js';
 import { SUITES, genreDeSuite, normaliserSuite, suiteDe, cocherSuite } from './engine/contrat.js';
 import { aRanger, ranger, rangerTout, annonces, sortir, rangeeSeule, RANGER_APRES, ANNONCE_JOURS } from './engine/rangement.js';
-import { prochaineEtape, gesteDuTexte, parcours } from './engine/etape.js';
+import { prochaineEtape, gesteDuTexte, dernierFait, tomberRelance } from './engine/etape.js';
 import { causeLiaison, relayTally, liaisonStage, parseTurn, turnText, TURN_MAX, RELAIS_DEFAUT } from './engine/transport.js';
 import { clePortage, sceller as scellerPortage, ouvrir as ouvrirPortageMsg, decouper, rassembler, recolte,
          PORTAGE_PART, PORTAGE_PARTS_MAX, makeCleEchange, cleEntre, decouperScelle, rassemblerScelle } from './engine/portage.js';
@@ -4477,22 +4477,36 @@ export async function runSelfTests(){
       eq(prochaineEtape(null), null);
       eq(gesteDuTexte(normalizeCompany({ name: 'X' }), 'Faire le point'), null);
     },
-    'étape : où en est la recherche — quatre cases, les mots des statuts, et la recherche qui les montre': () => {
-      const cs = [
-        normalizeCompany({ name: 'A', status: 'todo' }), normalizeCompany({ name: 'B', status: 'todo' }),
-        normalizeCompany({ name: 'C', status: 'active' }),
-        normalizeCompany({ name: 'D', status: 'reply', closedReason: 'rejected' }),   /* une piste close ne compte plus dans son statut */
-        normalizeCompany({ name: 'E', status: 'active', demo: true })                 /* l'exemple ne compte pas */
-      ];
-      const p = parcours(cs);
-      eq(p.map(k => [k.id, k.label, k.n, k.ici]),
-         [['todo', 'À contacter', 2, false], ['active', 'En cours', 1, true], ['reply', 'Réponse', 0, false], ['won', 'Décroché', 0, false]]);
-      /* un nombre est une promesse : la recherche de la case rend exactement ce nombre */
-      const ctx = contexteRecherche(cs);
-      for (const k of p) eq(chercherPistes(cs.filter(c => !c.demo), { q: k.q, ctx }).liste.length, k.n);
-      cs.push(normalizeCompany({ name: 'F', status: 'reply', closedReason: 'won' }));
-      eq(parcours(cs).map(k => k.ici), [false, false, false, true]);
-      eq(parcours([]).some(k => k.ici || k.n), false);
+    'étape : un numéro sans adresse propose « Appeler », et la raison qui fait monter la piste se lit': () => {
+      const tel = normalizeCompany({ name: 'Aster', status: 'todo', positions: ['alternance'],
+        contacts: [{ id: 't1', name: 'Nadia Benali', phone: '06 39 98 00 01' }] });
+      const e = prochaineEtape(tel, { today: '2026-11-11', profile: normalizeProfile({ recherche: 'alternance' }) });
+      eq([e.genre, e.titre, e.bouton, e.action, e.ct, e.tel, e.raison],
+         ['demarrer', 'Appeler Nadia', 'Appeler', 'tel', 't1', '06 39 98 00 01', 'prend des alternants']);
+      /* une adresse passe devant le numéro : écrire reste le premier geste */
+      const mail = normalizeCompany({ name: 'Borée', status: 'todo',
+        contacts: [{ id: 'm1', name: 'Luc Martin', email: 'luc@boree.test', phone: '06 39 98 00 02' }] });
+      eq(prochaineEtape(mail, { today: '2026-11-11' }).bouton, 'Écrire');
+      /* personne à joindre : il reste à trouver quelqu'un */
+      eq(prochaineEtape(normalizeCompany({ name: 'Cirrus', status: 'todo' }), { today: '2026-11-11' }).bouton, 'Trouver');
+    },
+    'étape : le dernier fait d’une piste (une date posée n’en est pas un), et la relance qui tombe à la réponse': () => {
+      const c = normalizeCompany({ name: 'Advens', status: 'active', nextAction: '2026-11-18', nextActionText: 'Relancer Claire', nextActionCt: 'c1',
+        contacts: [{ id: 'c1', name: 'Claire', email: 'claire@advens.test' }],
+        history: [{ d: '2026-10-28', t: 'Piste créée' }, { d: '2026-10-30', t: 'Email envoyé — Claire' },
+                  { d: '2026-10-30', t: 'À faire : Relancer Claire — 18/11' }] });
+      eq(dernierFait(c), { d: '2026-10-30', t: 'Email envoyé — Claire' });
+      eq(dernierFait(normalizeCompany({ name: 'X' })), null);
+      eq(dernierFait(null), null);
+      /* la réponse arrive : la relance prévue tombe, et rien d'autre ne bouge */
+      const avant = JSON.stringify(c.contacts);
+      eq(tomberRelance(c), true);
+      eq([c.nextAction, c.nextActionText, 'nextActionCt' in c, JSON.stringify(c.contacts) === avant], ['', '', false, true]);
+      eq(tomberRelance(c), false);                                     /* plus rien à retirer */
+      /* un entretien prévu n'est pas une relance : il reste */
+      const e = normalizeCompany({ name: 'Aztek', nextAction: '2026-11-12', nextActionText: 'Entretien à 14 h' });
+      eq([tomberRelance(e), e.nextAction, e.nextActionText], [false, '2026-11-12', 'Entretien à 14 h']);
+      eq(tomberRelance(null), false);
     },
     'composeur : le modèle arrive pré-choisi d’après le statut de la piste': () => {
       const tpls = defaultTemplates();                    /* Candidature, Relance, Remerciement */
