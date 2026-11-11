@@ -1438,11 +1438,21 @@ for (const [nom, motion] of [['normal', 'no-preference'], ['mouvement réduit', 
 
   /* ② la section repliée, au pouce */
   await mPage.setViewportSize({ width: 390, height: 844 });
-  await mPage.goto(base + '/#/aujourdhui', { waitUntil: 'load' });
-  await attendre(mPage, () => !!document.querySelector('details.tr-soon summary'),
-    { message: 'la section « Bientôt »' });
+  /* 9.0 : « Bientôt » ne se replie plus sur « Aujourd'hui » ; la section
+     qui se déplie est « Clôturées », dans « Mes pistes » — il lui faut
+     une piste close */
+  await mPage.goto(base + '/#/pistes', { waitUntil: 'load' });
+  await mPage.evaluate(async () => {
+    const st = await import('./ui/state.js');
+    if (!st.S.companies.some(c => c.closedReason)){
+      const c = st.S.companies.slice().reverse().find(x => !x.closedReason);
+      if (c){ st.closePiste(c, 'dropped'); st.bus.refresh(); }
+    }
+  });
+  await attendre(mPage, () => !!document.querySelector('#view-pistes details.tranche summary'),
+    { message: 'la section « Clôturées »' });
   const pli = await mPage.evaluate(async () => {
-    const d = document.querySelector('details.tr-soon');
+    const d = document.querySelector('#view-pistes details.tranche');
     const hs = []; const t0 = performance.now();
     d.querySelector('summary').click();
     await new Promise(res => {
@@ -1455,7 +1465,7 @@ for (const [nom, motion] of [['normal', 'no-preference'], ['mouvement réduit', 
     const deb = hs[0], fin = hs[hs.length - 1];
     return { ouvert: d.open, deb, fin, inter: hs.filter(h => h > deb + 2 && h < fin - 2).length };
   });
-  if (!pli.ouvert) fail('la section « Bientôt » ne s’ouvre plus');
+  if (!pli.ouvert) fail('la section « Clôturées » ne s’ouvre plus');
   if (doux && pli.inter < 3)
     fail(`la section s'ouvre encore d'un coup (${pli.deb}→${pli.fin} px, ${pli.inter} images)`);
   if (!doux && pli.inter > 1)
@@ -2918,12 +2928,16 @@ if (IA){
        `.btn-primary` du document est celui du bandeau de bureau, caché */
     await pActif.waitForSelector('#tdeAdd');
     const bp = await pActif.$('#tdeAdd');
-    const repos = await bp.evaluate(n => getComputedStyle(n).backgroundColor);
+    /* 9.0 : sur une app neuve, « Ajouter une piste » est une boîte 98
+       claire (la question de la cible passe devant) — son appui se lit
+       sur le relief qui s'enfonce autant que sur le fond */
+    const etat = n => { const cs = getComputedStyle(n); return cs.backgroundColor + '|' + cs.boxShadow + '|' + cs.transform; };
+    const repos = await bp.evaluate(etat);
     const boite = await bp.boundingBox();
     await pActif.mouse.move(boite.x + boite.width / 2, boite.y + boite.height / 2);
     await pActif.mouse.down();
     await pActif.waitForTimeout(120);
-    const presse = await bp.evaluate(n => getComputedStyle(n).backgroundColor);
+    const presse = await bp.evaluate(etat);
     await pActif.mouse.up();
     await cActif.close();
     await hBrowser.close();
