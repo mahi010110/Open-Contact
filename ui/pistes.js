@@ -6,7 +6,7 @@
    Supprimer une piste = un geste (glisser / poubelle au survol)
    + Annuler ~30 s — c'est le seul endroit où l'on supprime.
    ============================================================ */
-import { tomberRelance } from '../engine/etape.js';
+import { tomberRelance, prochaineEtape } from '../engine/etape.js';
 import { esc, distKm, todayISO } from '../engine/utils.js';
 import { STATUSES, CLOSE_REASONS, DOMAINS, pushHist } from '../engine/model.js';
 import { filterOrphans, searchHint } from '../engine/filter.js';
@@ -190,8 +190,26 @@ function sousLigne(bits){
   }).join(' ');
 }
 
-function rowHTML(c){
+/* LA PROCHAINE ÉTAPE, LA MÊME PARTOUT (docs/principes.md, 1). Une piste
+   sans date disait « à planifier » ici, pendant qu'« Aujourd'hui » et
+   la fiche disaient « Demander à Karim » ou « Prévoir la suite » : trois
+   écrans, deux réponses. La ligne dit maintenant l'étape du moteur —
+   l'atout en accent (« Karim y est en alternance »), sinon son titre.
+   Une piste à contacter sans atout ne dit rien de plus : son groupe, ou
+   son statut, le dit déjà. */
+function etapeSansDate(c){
+  const e = prochaineEtape(c, { today: todayISO(), portes: portesDuJour(), profile: S.profile });
+  if (!e) return null;
+  if (e.genre === 'demarrer') return e.raison ? { atout: e.raison } : null;
+  if (e.genre === 'attente') return { texte: 'Relancer si pas de réponse' };
+  if (e.genre === 'suite') return { texte: e.titre };
+  return null;
+}
+
+function rowHTML(c, o){
   const closed = isClosed(c);
+  /* dans un groupe, l'en-tête dit déjà l'état : la ligne ne le redit pas */
+  const groupe = !!(o && o.groupe);
   /* la ligne qu'Entrée ouvrirait depuis la barre (au poste, une piste
      clôturée peut être la première trouvée) */
   const premier = c.id === premierId;
@@ -203,8 +221,13 @@ function rowHTML(c){
     /* « à planifier » seulement pour une piste ENGAGÉE : sur une piste
        « À contacter », le statut, juste à côté, le disait déjà — et il se
        répétait sur presque toutes les lignes (minimalisme, 7 octobre) */
-    else if (!enCampagne(c.id) && c.status !== 'todo') bits.push(silenceOf(c) ? 'sans nouvelles' : 'à planifier');
-    bits.push(STATUSES[c.status].label);
+    else if (!enCampagne(c.id)){
+      const e = silenceOf(c) ? { texte: 'sans nouvelles' } : etapeSansDate(c);
+      /* pendant une recherche, la raison se lit déjà sous la ligne (`hintHTML`) */
+      if (e && e.atout && !q) bits.push('<b class="ri-atout">' + esc(e.atout) + '</b>');
+      else if (e && e.texte) bits.push(esc(e.texte));
+    }
+    if (!groupe) bits.push(STATUSES[c.status].label);
     if (enCampagne(c.id)) bits.push('en campagne');
   }
   if (kmBit(c)) bits.push(kmBit(c));
@@ -238,7 +261,11 @@ function cardHTML(c){
     ? `<span class="bc-na">${esc(c.nextActionText || 'Faire le point')} ${dueHTML(c)}</span>`
     : sil
       ? `<span class="bc-na">sans nouvelles ${silenceMarkHTML(sil)}</span>`
-      : `<span class="bc-na bc-none">${inCamp ? 'en campagne' : 'à planifier'}</span>`;
+      : inCamp ? `<span class="bc-na bc-none">en campagne</span>`
+      : (e => e && e.atout && !q ? `<span class="bc-na bc-atout">${esc(e.atout)}</span>`
+           : e && e.texte ? `<span class="bc-na bc-none">${esc(e.texte)}</span>`
+           : (x => x ? `<span class="bc-na bc-none">${esc(x.titre)}</span>` : '')(
+               prochaineEtape(c, { today: todayISO(), portes: portesDuJour(), profile: S.profile })))(etapeSansDate(c));
   /* « complète à N % » vivait ici sur CHAQUE carte, et valait le même
      chiffre d'une carte à l'autre — quatre pistes à contacter, quatre
      fois « complète à 37 % ». C'est le papier peint de §6.1 : une encre
@@ -712,9 +739,27 @@ export function renderPistes(){
          recherche il reste — ses colonnes vides disent alors quelque
          chose (« aucune réponse »). */
       if (wide){ if (alive.length || !q) html += boardHTML(alive); }
+      /* AU TÉLÉPHONE, LE TABLEAU EST UNE LISTE GROUPÉE (9.0) : les trois
+         états des colonnes du poste — le même classement, donc rien à
+         réapprendre d'un appareil à l'autre —, empilés, le plus avancé
+         d'abord (une réponse vaut plus qu'une piste à contacter). On lit
+         où en est sa recherche sans déchiffrer chaque sous-ligne. Une
+         recherche, un filtre ou un tri choisi rendent la liste à plat :
+         leur ordre est une réponse, un groupe la casserait. */
+      else if (!q && !ftOn() && sortIsDefault(st)){
+        html += `<div class="rows rows-groupes">${['reply', 'active', 'todo'].map(k => {
+          const col = alive.filter(c => c.status === k);
+          if (!col.length) return '';
+          const { shown, more } = capped(col, 'grp-' + k, CAP_LIST);
+          return `<section class="rg" data-etat="${k}" aria-label="${STATUSES[k].label}">
+                    <h2 class="rg-h" style="--c:${STATUSES[k].color}">${STATUSES[k].label} <span class="tr-n">${col.length}</span></h2>
+                    ${shown.map(c => rowHTML(c, { groupe: true })).join('')}${more ? moreBtn('grp-' + k, more) : ''}
+                  </section>`;
+        }).join('')}</div>`;
+      }
       else {
         const { shown, more } = capped(alive, 'list', CAP_LIST);
-        html += `<div class="rows">${shown.map(rowHTML).join('')}${more ? moreBtn('list', more) : ''}</div>`;
+        html += `<div class="rows">${shown.map(c => rowHTML(c)).join('')}${more ? moreBtn('list', more) : ''}</div>`;
       }
       if (closed.length){
         const { shown, more } = capped(closed, 'closed', CAP_LIST);
@@ -723,7 +768,7 @@ export function renderPistes(){
         html +=
           `<details class="tranche tr-closed"${q ? ' open' : ''}>
              <summary class="tr-h">${ic('archive', 'ic-14')} Clôturées <span class="tr-n">${closed.length}</span></summary>
-             <div class="rows">${shown.map(rowHTML).join('')}${more ? moreBtn('closed', more) : ''}</div>
+             <div class="rows">${shown.map(c => rowHTML(c)).join('')}${more ? moreBtn('closed', more) : ''}</div>
            </details>`;
       }
     }

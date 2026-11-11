@@ -635,10 +635,15 @@ export function renderMoi(){
      couleur que le bouton « Moi » de la barre ; aucun chiffre (le calme).
      Au poste, « Réseau » a sa place dans la barre latérale : rien ici. */
   const attend = !wide && attendOnglet(rangsBoite());
+  /* au repos, la ligne dit ce qu'il y a derrière — comme « Modèles
+     d'emails · 3 » : un état, pas une porte muette */
+  const nAmis = (p.amis || []).length, nGroupes = (p.groupes || []).length;
+  const dedans = [nAmis ? nAmis + ' ami' + (nAmis > 1 ? 's' : '') : '',
+                  nGroupes ? nGroupes + ' groupe' + (nGroupes > 1 ? 's' : '') : ''].filter(Boolean).join(' · ');
   const reseau = wide ? '' :
     `<button class="rg-row rg-last moi-rg moi-reseau${attend ? ' attend' : ''}" id="moiReseau">
        <span class="rg-n">Réseau</span>
-       <span class="rg-s">${attend ? 'du nouveau' : ''}</span>
+       <span class="rg-s">${attend ? 'du nouveau' : dedans}</span>
        ${ic('chevron-right', 'ic-14')}
      </button>`;
 
