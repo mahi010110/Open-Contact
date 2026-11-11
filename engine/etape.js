@@ -99,6 +99,12 @@ export function prochaineEtape(c, o){
     if (mail)
       return { ...base, genre: 'demarrer', quand: 'maintenant', titre: 'Écrire à ' + (prenomDe(mail) || c.name),
         raison, bouton: 'Écrire', icone: 'mail', action: 'mail', ct: mail.id };
+    /* pas d'adresse, mais un numéro : la voix est le canal qui reste —
+       et celui qui marche le mieux (§8) */
+    const tel = (c.contacts || []).find(t => t.phone);
+    if (tel)
+      return { ...base, genre: 'demarrer', quand: 'maintenant', titre: 'Appeler ' + (prenomDe(tel) || c.name),
+        raison, bouton: 'Appeler', icone: 'phone', action: 'tel', ct: tel.id, tel: tel.phone };
     if (o.peutDemander && !joignable)
       return { ...base, genre: 'demarrer', quand: 'maintenant', titre: 'Trouver quelqu’un à qui écrire',
         raison, bouton: 'Demander', icone: 'users', action: 'amis' };

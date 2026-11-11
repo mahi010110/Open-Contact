@@ -181,10 +181,14 @@ for (const [ergo, opts] of [['pouce', PHONE], ['poste', DESK]]){
     (await import('./ui/fiche.js')).openFiche(S.companies.find(c => c.id === 'p1'));
   });
   await p.waitForSelector('#fiNa');
-  const etat = (await p.textContent('.na-none')).trim();
+  /* 9.0 : la fiche ne dit plus « Aucune » — elle dit la prochaine étape
+     (docs/principes.md, 1), en une ligne, sans phrase qui l'explique ;
+     « Planifier » reste le geste qui pose une date */
+  const etat = (await p.textContent('.na-box .na-cur b')).trim();
   const geste = (await p.textContent('#fiNa')).trim();
-  okSi(etat === 'Aucune' && geste === 'Planifier',
-    `④ fiche : « Aucune » à côté de « Planifier » — le bouton porte le geste (lu : « ${etat} » / « ${geste} »)`);
+  const phrases = await p.$$eval('.na-box p, .na-box .hint', els => els.length);
+  okSi(!!etat && etat.split(/\s+/).length <= 6 && geste === 'Planifier' && !phrases,
+    `④ fiche : la prochaine étape en une ligne, à côté de « Planifier » — rien ne l'explique (lu : « ${etat} » / « ${geste} »)`);
   await p.context().close();
 }
 

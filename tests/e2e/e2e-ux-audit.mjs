@@ -489,12 +489,12 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
     (await import('./ui/state.js')).S.companies.find(c => c.name === 'Orange Cyberdefense')?.status === 'reply',
     { message: 'la carte lâchée en bas de colonne change de statut' });
 
-  /* « Aujourd'hui » : le pied est un pied, il se pose en bas.
-     Ce bloc a pour sujet le TABLEAU à trois colonnes — il faut donc du
-     travail planifié pour qu'il existe : sans aucune action, l'écran
-     montre désormais « Par où commencer » à la place (trois colonnes
-     vides ne sont pas une bonne nouvelle, c'est un mur de rien). La
-     nouvelle tranche a son propre garde, `e2e-commencer.mjs`. */
+  /* « Aujourd'hui » au poste (9.0) : deux zones, le travail et le
+     contexte — plus de tableau à trois colonnes. Ce que ce bloc gardait
+     tient toujours : AU POSTE, UN CADRE PREND LA HAUTEUR DE SON CONTENU
+     (audit adaptatif, octobre 2026 — trois cadres de 600 px pour une
+     carte chacun), et le pied SUIT le travail au lieu d'attendre en bas.
+     Il faut du travail pour que la file existe. */
   await dPage.evaluate(async () => {
     /* par le MAGASIN, pas par la clé brute : écrire dans `oc_data_v3` à
        la main ignore le scellement éventuel et se fait écraser par le
@@ -507,38 +507,36 @@ console.log('Tes échanges : le fil se déplie, une ligne s’ouvre sur ses pist
     saveData();
   });
   await dPage.goto(base + '/#/aujourdhui', { waitUntil: 'load' });
-  await attendre(dPage, () => !!document.querySelector('.td-board'), {
-    message: 'le tableau du jour — il lui faut du travail planifié pour exister, '
-           + 'sinon l’écran montre « Par où commencer » (garde : e2e-commencer.mjs)' });
-  /* AU POSTE, LE TABLEAU PREND LA HAUTEUR DE SA JOURNÉE (audit
-     adaptatif, octobre 2026). Ce contrôle exigeait l'inverse — un pied
-     posé à 85 % de la hauteur, donc trois cadres étirés jusqu'en bas :
-     relevé en 1280 × 800, 600 px de cadre pour UNE carte chacun. Il
-     vérifie maintenant que chaque colonne s'arrête sous son
-     dernier contenu (12 px de rembourrage près) et que le pied SUIT le
-     tableau au lieu d'attendre en bas. Une mutation qui remet
-     `flex:1 0 auto` sur le tableau le fait rougir. */
+  await attendre(dPage, () => !!document.querySelector('#view-aujourdhui .aj-cols .aj-rang'), {
+    message: 'la file du jour, au poste — il lui faut du travail planifié pour exister '
+           + '(garde de la file : e2e-commencer.mjs)' });
   const jour = await dPage.evaluate(() => {
-    const cols = [...document.querySelectorAll('.td-board .bcol')];
-    const vide = c => {
-      const corps = c.querySelector('.bcol-rows, .bcol-empty');
-      const dernier = corps && corps.lastElementChild ? corps.lastElementChild : corps;
-      return dernier ? Math.round(c.getBoundingClientRect().bottom - dernier.getBoundingClientRect().bottom) : null;
-    };
-    const p = document.querySelector('.td-under'), avant = p && p.previousElementSibling;
-    return { vides: cols.map(vide), cols: cols.length,
-             ecart: p && avant ? Math.round(p.getBoundingClientRect().top - avant.getBoundingClientRect().bottom) : null,
-             comprime: [...document.querySelectorAll('.bcol-rows')].some(c => c.scrollHeight > c.clientHeight + 1) };
+    const v = document.querySelector('#view-aujourdhui');
+    const vus = n => [...n.children].filter(k => k.getClientRects().length);
+    /* chaque cadre de la file s'arrête sous son contenu */
+    const rangs = [...v.querySelectorAll('.aj-rang')];
+    const vides = rangs.map(r => {
+      const dedans = [...r.querySelectorAll('.act-main, .act-btns')].filter(k => k.getClientRects().length);
+      const bas = Math.max(...dedans.map(k => k.getBoundingClientRect().bottom));
+      return Math.round(r.getBoundingClientRect().bottom - bas);
+    });
+    const zones = [...v.querySelectorAll('.aj-cols > *')].filter(k => k.getClientRects().length);
+    const travail = v.querySelector('.aj-travail');
+    const dernier = travail ? vus(travail).pop() : null;
+    const p = v.querySelector('.td-under'), avant = p && p.previousElementSibling;
+    return { zones: zones.length, vides,
+             /* la zone du travail ne s'étire pas jusqu'au bas de l'écran */
+             sousLeTravail: travail && dernier ? Math.round(travail.getBoundingClientRect().bottom - dernier.getBoundingClientRect().bottom) : null,
+             ecart: p && avant ? Math.round(p.getBoundingClientRect().top - avant.getBoundingClientRect().bottom) : null };
   });
-  if (jour.cols !== 3) fail(`le tableau du jour n'a pas ses trois colonnes (${jour.cols})`);
-  /* CHAQUE colonne, pas seulement la plus haute : étirées à la plus
-     haute, les courtes encadraient du vide (28 octobre 2026) */
-  if (Math.max(...jour.vides) > 24)
-    fail(`le tableau du jour s'étire sous son contenu : ${jour.vides.join(' / ')} px vides en bas des colonnes`);
+  if (jour.zones !== 2) fail(`« Aujourd'hui » au poste n'a pas ses deux zones (${jour.zones})`);
+  if (!jour.vides.length || Math.max(...jour.vides) > 24)
+    fail(`une ligne de la file s'étire sous son contenu : ${jour.vides.join(' / ')} px vides`);
+  if (jour.sousLeTravail !== null && jour.sousLeTravail > 24)
+    fail(`la zone du travail s'étire sous son contenu : ${jour.sousLeTravail} px vides`);
   if (jour.ecart !== null && jour.ecart > 48)
     fail(`le pied d'« Aujourd'hui » attend en bas, à ${jour.ecart} px de ce qui le précède, au lieu de le suivre`);
-  if (jour.comprime) fail('une colonne du jour est comprimée sous son contenu');
-  console.log(`   tableau du jour : colonnes à ${jour.vides.join(' / ')} px de leur contenu, pied à ${jour.ecart} px ✓`);
+  console.log(`   la file du jour : lignes à ${jour.vides.join(' / ')} px de leur contenu, pied à ${jour.ecart} px ✓`);
   await dPage.screenshot({ path: SHOTS + '/83-ux-poste-region.png' });
 
   /* Une liste se BALAIE : ses lignes ont toutes la même hauteur et le
@@ -1726,7 +1724,8 @@ else console.log(`onglets : la place tient (${garde.pose}px), re-taper remonte, 
    nature du geste (`:focus-visible`), et un clic synthétique est traité
    comme du clavier. Mesurer avec le mauvais geste ferait croire à un
    cadre autour du titre à chaque changement d'onglet. */
-await nPage.tap('.bottomnav [data-r="reseau"]');
+/* 9.0 : trois places en bas — on tape « Moi », le coin de droite */
+await nPage.tap('.bottomnav [data-r="moi"]');
 await nPage.waitForTimeout(450);
 const dit = await nPage.evaluate(() => {
   const a = document.activeElement;
@@ -1735,9 +1734,9 @@ const dit = await nPage.evaluate(() => {
            vu: a?.matches?.(':focus-visible') ?? false,
            evite: document.querySelector('#main')?.getAttribute('tabindex') };
 });
-if (!/Réseau/.test(dit.titre))
+if (!/Moi/.test(dit.titre))
   fail(`le titre du document ne suit pas la route : « ${dit.titre} »`);
-else if (dit.dansNav || dit.focus !== 'Réseau')
+else if (dit.dansNav || dit.focus !== 'Moi')
   fail(`le focus ne suit pas la route : resté sur « ${dit.focus} »`);
 else if (dit.vu)
   fail('un contour de focus s’allume sur le titre après un TAP — le focus doit s’entendre, pas se voir');
@@ -2342,7 +2341,9 @@ for (const L of [320, 360, 390]){
    raccourcir le mot, pas de le cacher. Ça touche §7 (un objet, un mot),
    donc l'écran et son titre changeraient avec. */
 {
-  const NOMS = ['Aujourd’hui', 'Pistes', 'Réseau', 'Moi'];
+  /* 9.0 : trois places — chaque coin porte deux liens (le lieu, et le
+     retour à « Aujourd'hui » quand on y est), et le + a son nom aussi */
+  const NOMS = ['Pistes', 'Aujourd’hui', 'Moi', 'Aujourd’hui'];
   const nCtx = await browser.newContext({ viewport: { width: 320, height: 700 }, hasTouch: true });
   const nPg = await nCtx.newPage();
   nPg.on('pageerror', e => errors.push(String(e)));
@@ -2354,6 +2355,8 @@ for (const L of [320, 360, 390]){
              elide: [...document.querySelectorAll('.bottomnav .bn-l')]
                .filter(n => n.scrollWidth > n.clientWidth + 1).map(n => n.textContent) };
   });
+  if ((await nPg.getAttribute('#bnAdd', 'aria-label')) !== 'Chercher, ajouter, agir')
+    fail('le + de la barre du bas n’a plus son nom : une icône seule ne s’annonce pas');
   if (m.noms.join('|') !== NOMS.join('|'))
     fail(`onglets : un nom accessible manque — ${JSON.stringify(m.noms)} ; `
        + 'sans lui, un libellé élidé s’annonce tronqué');
