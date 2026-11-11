@@ -18,6 +18,7 @@
 import { esc, todayISO } from '../engine/utils.js';
 import { pushHist, STATUSES, CLOSE_REASONS } from '../engine/model.js';
 import { cocherSuite, suiteDe } from '../engine/contrat.js';
+import { tomberRelance } from '../engine/etape.js';
 import { jourEnMots } from '../engine/commande.js';
 import { sortir } from '../engine/rangement.js';
 import { S, bus, saveData, logJ, setNextAction, markDone, closePiste, reopenPiste, activateContact } from './state.js';
@@ -133,6 +134,9 @@ export async function faireGeste(g){
     case 'statut': {
       c.status = g.statut;
       c.updatedAt = Date.now();
+      /* la réponse est arrivée : la relance prévue tombe (le plan était
+         « relancer SI pas de réponse ») — « Annuler » la remet */
+      if (g.statut === 'reply') tomberRelance(c);
       pushHist(c, 'Réponse reçue');
       logJ('Réponse reçue : ' + c.name, c.id);
       saveData();

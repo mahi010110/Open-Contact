@@ -2755,15 +2755,23 @@ button.ec-row:hover{background:var(--surface-field)}
    rend 68 px à 16 px de police — 3 × 68 = 12,8 rem */
 .seg3.seg3-statut{--bascule:13rem}
 .seg3 .seg.on{background:var(--accent);color:var(--on-accent);box-shadow:var(--bevel-down)}
+/* LE PARCOURS d'une piste : ce qui est derrière soi garde un lavis
+   d'accent — trois états se lisent comme une barre qui se remplit */
+.seg3 .seg.seg-passe{background:var(--teal-wash);color:var(--accent)}
+/* LA PROCHAINE ÉTAPE : une phrase qu'on lit, pas un champ qu'on
+   remplit — un filet d'accent à gauche, le titre en grand, et le geste
+   qui règle la date. Le pointillé et le fond la faisaient ressembler à
+   une case de formulaire. En retard, le filet passe à l'ambre : le
+   langage d'urgence de l'app, sans repeindre le bloc. */
 .na-box{
   display:flex;align-items:center;gap:10px;flex-wrap:wrap;
-  border:1px dashed var(--border-strong);border-radius:var(--radius-1);
-  padding:10px 12px;background:var(--surface-chrome);
+  border-left:3px solid var(--accent);padding:2px 0 2px 12px;
 }
-.na-box.late{border-color:var(--amber);background:var(--amber-wash)}
-.na-cur{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
-.na-cur b{font-size:var(--text-14)}
-.na-cur span{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
+.na-box.late{border-left-color:var(--amber)}
+.na-cur{flex:1 1 9rem;min-width:0;display:flex;flex-direction:column;gap:2px}
+.na-cur b{font-size:var(--text-16);line-height:1.3;overflow-wrap:anywhere}
+.na-cur span{font-family:var(--font-mono);font-size:var(--text-12);color:var(--text-muted)}
+.na-box.late .na-cur span{color:var(--amber)}
 .fi-hist{margin-top:4px}
 /* « À savoir » et « Historique » s'ouvrent d'un tap — même règle, et
    surtout MÊME SIGNE que « Bientôt » : sans le triangle, ces deux mots
@@ -2785,8 +2793,11 @@ button.ec-row:hover{background:var(--surface-field)}
 }
 /* contacts compacts (#15) : une ligne par personne, dépliable — les
    règles .ct-* (meta, acts, note) servent aussi dans .ctc-body */
-.ctc-list{display:flex;flex-direction:column;gap:6px}
-.ctc{background:var(--surface-chrome);border:1px solid var(--border-soft);border-radius:var(--radius-1)}
+/* une liste 98 dans un cadre, comme la file d'« Aujourd'hui » : des
+   lignes, un pointillé entre elles */
+.ctc-list{display:flex;flex-direction:column;background:var(--surface-field);border:1px solid var(--border-field);box-shadow:var(--bevel-field)}
+.ctc{border-top:1px dotted var(--border-soft)}
+.ctc:first-child{border-top:0}
 .ctc>summary{
   list-style:none;cursor:pointer;user-select:none;
   display:flex;align-items:center;gap:8px;min-height:var(--ctl);padding:5px 10px;
@@ -2798,6 +2809,19 @@ button.ec-row:hover{background:var(--surface-field)}
 .ctc>summary::-webkit-details-marker{display:none}
 .ctc>summary::before{content:'▸';font-size:9px;color:var(--text-muted);flex:none}
 .ctc[open]>summary::before{content:'▾'}
+/* le nom et son rôle prennent la place ; les deux gestes directs sont au
+   bout du rang — c'est le nom qui les pousse à droite, et replié (un
+   texte agrandi) ils reviennent à gauche, sous le nom */
+.ctc-qui{flex:1 1 7rem;min-width:0;display:flex;align-items:baseline;flex-wrap:wrap;gap:0 8px}
+.ctc-rapides{flex:none;display:flex;gap:6px}
+.ctc-geste{
+  display:grid;place-items:center;width:var(--ctl);height:var(--ctl);padding:0;
+  background:var(--surface-window);color:var(--text-body);
+  border:1px solid var(--border-strong);border-radius:var(--radius-0);box-shadow:var(--bevel-up), var(--shadow-raised);
+}
+.ctc-geste:active{box-shadow:var(--bevel-down);transform:translate(1px,1px)}
+/* le pli ouvert montre déjà « Écrire » et « Appeler » en toutes lettres */
+.ctc[open] .ctc-rapides{display:none}
 /* LE NOM D'UN CONTACT EST UNE IDENTITÉ : IL PLIE, IL NE S'ÉLIDE PAS.
    C'est la règle de §6 pour les listes à cocher, et elle vaut ici pour
    la même raison — « Léa Barbaste » amputé ne se distingue plus de son
@@ -2837,6 +2861,7 @@ button.ec-row:hover{background:var(--surface-field)}
 .ctc-body .linklike{margin-top:8px}
 /* « + N personnes connues » : les reçues dormantes, repliées (#14) */
 .ctc-known{margin-top:8px}
+.ctc-known .ctc-list{margin-top:0}
 .ctc-known>summary{
   list-style:none;cursor:pointer;user-select:none;min-height:28px;
   display:flex;align-items:center;gap:6px;
@@ -2926,9 +2951,6 @@ button.ec-row:hover{background:var(--surface-field)}
   transition:height var(--dur-2) var(--ease-out)}
 /* un chiffre qui bouge deux fois par mois n'a pas à porter un cadre :
    encadré, il se déguisait en chose qui se tape (elle ne se tape pas) */
-.fi-score{
-  font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);
-}
 /* La fiche au poste : le travail à gauche, le dossier à droite. Une
    fenêtre de 560 px au milieu de 1280 était l'écran du pouce resservi
    tel quel — et sur l'écran le PLUS ouvert de l'application. */

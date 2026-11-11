@@ -20,7 +20,7 @@ import { demandesPossibles, libelleDemande, messageDemande } from '../engine/aid
 import { prenomAmi } from '../engine/amis.js';
 import { frDate, relLabel } from './dates.js';
 import { askNextAction, askClose } from './actions.js';
-import { prochaineEtape, estEntretien, aDemander } from '../engine/etape.js';
+import { prochaineEtape, estEntretien, aDemander, tomberRelance } from '../engine/etape.js';
 import { suiteDe } from '../engine/contrat.js';
 import { rangeeSeule } from '../engine/rangement.js';
 import { faireEtape, cocherEtape } from './gestes.js';
@@ -259,9 +259,19 @@ export function openFiche(c){
                  <a class="btn" data-act="${t.id}" href="${esc(waHref(t.phone))}" target="_blank" rel="noopener" aria-label="Écrire à ${pour} sur WhatsApp">${ic('message-text', 'ic-14')} WhatsApp</a>` : '',
       t.link ? `<a class="btn" data-act="${t.id}" href="${esc(t.link)}" target="_blank" rel="noopener" aria-label="Ouvrir le profil de ${pour}">${ic('external-link', 'ic-14')} Profil</a>` : ''
     ].filter(Boolean).join('');
+    /* JOINDRE QUELQU'UN EST LA RAISON D'OUVRIR UNE FICHE : écrire et
+       appeler se tapent sur la ligne, sans la déplier. Deux pictogrammes
+       que tout le monde lit (une enveloppe, un combiné), chacun avec son
+       nom pour qui n'a pas l'écran ; les autres canaux, la note et
+       « Modifier » restent dans le pli. */
+    const rapides = [
+      t.email ? `<button class="ctc-geste" data-write="${t.id}" aria-label="Écrire à ${pour}">${ic('mail', 'ic-16')}</button>` : '',
+      t.phone ? `<a class="ctc-geste" data-act="${t.id}" href="${esc(telHref(t.phone))}" aria-label="Appeler ${pour}">${ic('phone', 'ic-16')}</a>` : ''
+    ].filter(Boolean).join('');
     return (
       `<details class="ctc"${ouvert ? ' open' : ''}>
-         <summary><b>${esc(title)}</b>${subBits ? `<span class="ctc-sub">${subBits}</span>` : ''}</summary>
+         <summary><span class="ctc-qui"><b>${esc(title)}</b>${subBits ? `<span class="ctc-sub">${subBits}</span>` : ''}</span>${
+           rapides ? `<span class="ctc-rapides">${rapides}</span>` : ''}</summary>
          <div class="ctc-body">
            ${meta ? `<div class="ct-meta">${esc(meta)}</div>` : ''}
            ${acts ? `<div class="ct-acts">${acts}</div>` : ''}
@@ -296,10 +306,14 @@ export function openFiche(c){
        qu'au poste : un pourcentage sur lequel on n'agit pas est le même
        papier peint qu'on a retiré des cartes du tableau, et il coûte une
        ligne entière là où la place manque. */
+    /* MODIFIER LA PISTE SE FAIT PEU : c'est un mot sourd et son crayon (le
+       neutre, §6), pas une boîte en tête de fiche — elle disputait la
+       place au nom, pour le geste le moins fréquent de l'écran. Et le
+       pourcentage de complétude part aussi du poste : un chiffre sur
+       lequel on n'agit pas est du papier peint. */
     const outils =
       `<div class="fi-tools">
-         ${wide ? `<span class="fi-score">fiche complète à ${score} %</span>` : ''}
-         <button class="btn btn-sm" id="fiEdit" aria-label="${score < 60 ? 'Compléter' : 'Modifier'} la piste ${esc(c.name)}">${ic('pencil', 'ic-14')} ${score < 60 ? 'Compléter' : 'Modifier'}</button>
+         <button class="btn btn-ghost btn-sm" id="fiEdit" aria-label="${score < 60 ? 'Compléter' : 'Modifier'} la piste ${esc(c.name)}">${ic('pencil', 'ic-14')} ${score < 60 ? 'Compléter' : 'Modifier'}</button>
        </div>`;
     /* ---- le travail : où j'en suis, ce que je fais ensuite, ce que je note ---- */
     /* LA PROCHAINE ÉTAPE (la refonte). Le cadre disait « Aucune » dès
@@ -342,7 +356,7 @@ export function openFiche(c){
                   : e.note && suite.prochaine && suite.prochaine.id === e.id ? `<span class="pk-s fi-suite-n">${esc(e.note)}</span>` : ''}</div>
               </button>`).join('')}</div>
          </div>` : '';
-    const travail =
+    const etat =
       `${closed ? `
          <div class="fi-closed" style="--c:${CLOSE_REASONS[c.closedReason].color}">
            ${/* La phrase dans SA boîte, et « Rouvrir » à côté d'elle. Une
@@ -352,10 +366,16 @@ export function openFiche(c){
              ? `Rangée — <b>sans réponse</b>` : `Clôturée — <b>${CLOSE_REASONS[c.closedReason].label}</b>`}${c.closedAt ? ' · ' + esc(fmtDate(c.closedAt)) : ''}</span>
            <button class="btn btn-sm" id="fiReopen">Rouvrir</button>
          </div>${suiteHTML}` : `
+         ${/* LE PARCOURS de la piste : trois états dans l'ordre, et ce qui
+              est derrière soi se voit (un lavis d'accent) — on lit où en
+              est la piste comme on lit une barre de progression, on tape
+              pour corriger. Le statut suit d'ordinaire les gestes (écrire,
+              noter une réponse) : ce contrôle le RELIT plus qu'il ne le
+              règle. */''}
          <div class="field"><label>Où j’en suis</label>
            <div class="seg3 seg3-statut" role="radiogroup" aria-label="Statut">
-             ${Object.keys(STATUSES).map(k =>
-               `<button class="seg${val('status') === k ? ' on' : ''}" data-st="${k}" aria-pressed="${val('status') === k}">${STATUSES[k].label}</button>`).join('')}
+             ${Object.keys(STATUSES).map((k, i, tous) =>
+               `<button class="seg${val('status') === k ? ' on' : i < tous.indexOf(val('status')) ? ' seg-passe' : ''}" data-st="${k}" aria-pressed="${val('status') === k}">${STATUSES[k].label}</button>`).join('')}
            </div>
          </div>
          <div class="field"><label>Prochaine étape</label>
@@ -363,8 +383,9 @@ export function openFiche(c){
              <div class="na-cur"><b>${esc(etTitre)}</b>${etSous ? `<span>${etSous}</span>` : ''}</div>
              <button class="btn btn-sm" id="fiNa"${prevu ? ' aria-label="Modifier la prochaine étape"' : ''}>${prevu ? 'Modifier' : 'Planifier'}</button>
            </div>${prep}${silence}
-         </div>`}
-       <div class="field"><label for="fiNotes">Mes notes ${ic('lock', 'ic-14')} <span class="lbl-soft">privées</span></label>
+         </div>`}`;
+    const notesHTML =
+      `<div class="field"><label for="fiNotes">Mes notes ${ic('lock', 'ic-14')} <span class="lbl-soft">privées</span></label>
          ${/* `rows="1"` est nécessaire : sans lui, `height:auto` retombe sur
               les DEUX lignes par défaut d'un textarea, et la mesure de
               `scrollHeight` ne descend jamais sous 66 px — le champ ne
@@ -402,7 +423,7 @@ export function openFiche(c){
     /* ---- le dossier : les gens, ce qu'on sait, l'histoire ---- */
     /* ce que TU sais de l'entreprise : « À savoir » existe pour ça */
     const aSavoir = !!(c.desc || c.website || c.techs || (c.positions || []).length || c.process || c.tips || c.address);
-    const dossier =
+    const contactsHTML =
       `<div class="field fi-contacts">
          ${/* Essayé : descendre « + Ajouter » en fin de liste pour rendre
               au libellé sa hauteur de libellé. MESURÉ : le bloc passe de
@@ -426,8 +447,9 @@ export function openFiche(c){
              <div class="ctc-list">${knownCts.map(t => ctRowHTML(t, false)).join('')}</div>
            </details>` : ''}
          ${reseau}
-       </div>
-       ${/* « À SAVOIR » N'EXISTE QUE S'IL A QUELQUE CHOSE À DIRE : ce que tu
+       </div>`;
+    const savoirHTML =
+      `${/* « À SAVOIR » N'EXISTE QUE S'IL A QUELQUE CHOSE À DIRE : ce que tu
             y as écrit, ou ce que l'annuaire sait (la carte). Une piste
             sans SIREN et sans notes n'en a pas — il portait alors trois
             liens et une ligne de source, rien à lire. Avec un SIREN, il
@@ -477,12 +499,15 @@ export function openFiche(c){
                    <a class="btn btn-sm" href="${esc(dirs)}" target="_blank" rel="noopener">${ic('directions', 'ic-14')} Itinéraire</a>
                  </span></div>` : ''}
            </div>
-         </details>` : ''}
-       ${(c.history || []).length ? `
-         <details class="fi-hist"><summary>Historique</summary>
+         </details>` : ''}`;
+    /* LE FIL : ce qui s'est passé, le plus récent en tête. Il est OUVERT —
+       c'est lui qui répond à « où j'en étais ? » quand on rouvre une piste
+       trois semaines plus tard, et ce qui se voit ne se cherche pas. */
+    const filHTML = (c.history || []).length ? `
+         <details class="fi-hist fi-fil" open><summary>Historique</summary>
            <ul class="timeline">${c.history.slice().reverse().slice(0, 10).map(h =>
              `<li><span class="d">${esc(fmtDate(h.d))}</span><span>${esc(h.t)}</span></li>`).join('')}</ul>
-         </details>` : ''}`;
+         </details>` : '';
 
     /* « J'y suis passé » — la seule information de la fiche qui change
        l'ordre de grandeur du résultat : 3 % d'entretiens à froid contre
@@ -536,10 +561,16 @@ export function openFiche(c){
            <div class="obj-s">${subBits.length ? `<span class="obj-l">${subBits.map(esc).join(' · ')}</span>` : ''}${annuaireEtatHTML(c)}</div>
          </div>
        </div>`;
+    /* DEUX DESSINS, un seul ordre de lecture : où en est la piste et ce
+       qu'il faut faire ; à qui parler ; ce que j'ai noté ; ce qu'on sait
+       d'elle ; ce qui s'est passé. Au téléphone, une colonne, dans cet
+       ordre — les gens juste sous l'étape, puisque l'étape se joue avec
+       eux. Au poste, deux colonnes : le suivi à gauche (l'état, l'étape,
+       mes notes, le fil), le dossier à droite (les gens, l'entreprise). */
     sh.body.innerHTML = wide
       ? `<div class="fi-top">${sub}${outils}</div>${vecuHTML}
-         <div class="fi-cols"><div>${travail}</div><div>${dossier}</div></div>`
-      : `<div class="fi-top">${sub}${outils}</div>${vecuHTML}` + travail + dossier;
+         <div class="fi-cols"><div>${etat}${notesHTML}${filHTML}</div><div>${contactsHTML}${savoirHTML}</div></div>`
+      : `<div class="fi-top">${sub}${outils}</div>${vecuHTML}` + etat + contactsHTML + notesHTML + savoirHTML + filHTML;
 
     /* branchements */
     const byCt = id => (c.contacts || []).find(t => t.id === id);
@@ -561,15 +592,27 @@ export function openFiche(c){
       b.addEventListener('click', () =>
         openContactEditor({ company: c, contact: byCt(b.dataset.ct), onDone: render })));
     /* écrire À cette personne — et tout geste vers elle l'active (#14) */
+    /* (`preventDefault` : le geste direct vit dans le `summary` — il ne
+       doit pas déplier la ligne en plus d'ouvrir le mail) */
     sh.body.querySelectorAll('[data-write]').forEach(b =>
-      b.addEventListener('click', () => openMail(c, { ctId: b.dataset.write })));
+      b.addEventListener('click', ev => { ev.preventDefault(); openMail(c, { ctId: b.dataset.write }); }));
     sh.body.querySelectorAll('[data-act]').forEach(a =>
       a.addEventListener('click', () => {
         const t = byCt(a.dataset.act);
         if (t){ activateContact(c, t); }
       }));
     sh.body.querySelectorAll('.seg').forEach(b =>
-      b.addEventListener('click', () => { touch('status', b.dataset.st); render(); }));
+      b.addEventListener('click', () => {
+        touch('status', b.dataset.st);
+        /* LE PLAN EST CONTINGENT (docs/principes.md, 6) : la réponse est
+           arrivée, la relance prévue n'a plus d'objet. Elle tombe du
+           tampon, sous les yeux — rien ne s'écrit avant « Confirmer ». */
+        if (b.dataset.st === 'reply'){
+          const vue = { nextAction: val('nextAction'), nextActionText: val('nextActionText') };
+          if (tomberRelance(vue)){ touch('nextAction', ''); touch('nextActionText', ''); touch('nextActionCt', ''); }
+        }
+        render();
+      }));
     const na = sh.body.querySelector('#fiNa');
     if (na) na.addEventListener('click', () => askNextAction(c, {
       preset: val('nextActionText'),

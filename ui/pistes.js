@@ -6,6 +6,7 @@
    Supprimer une piste = un geste (glisser / poubelle au survol)
    + Annuler ~30 s — c'est le seul endroit où l'on supprime.
    ============================================================ */
+import { tomberRelance } from '../engine/etape.js';
 import { esc, distKm, todayISO } from '../engine/utils.js';
 import { STATUSES, CLOSE_REASONS, DOMAINS, pushHist } from '../engine/model.js';
 import { filterOrphans, searchHint } from '../engine/filter.js';
@@ -310,6 +311,8 @@ function moveStatus(id, k){
      sans lui. C'est « la liste qui se réorganise » de CLAUDE.md §4. */
   const glisse = softReorder('#piBody .row-item, #piBody .bcard');
   c.status = k;
+  /* déposée dans « Réponse » : la relance prévue n'a plus d'objet */
+  if (k === 'reply') tomberRelance(c);
   pushHist(c, 'Statut → ' + STATUSES[k].label);
   logJ(c.name + ' — Statut → ' + STATUSES[k].label, c.id);
   c.updatedAt = Date.now();
