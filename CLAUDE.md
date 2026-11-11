@@ -228,6 +228,39 @@ lot par lot, sans entretiens : tous les écrans sont dessinés avant le
 premier lot, la navigation ne change qu'une fois, et chaque lot se
 montre en captures avant la fusion (`docs/refonte-plan.md`).
 
+### La 9.0 : la barre, la file, la barre latérale (10 novembre 2026)
+
+Le 10 novembre, le mainteneur a délégué la construction — « tu as la
+main sur tout, fais toi-même les choix sur base de connaissances », puis
+« la version PC aussi est à refaire » (décision
+`docs/decisions/0015-la-refonte-en-9-0.md`, **acceptée par délégation** ;
+elle vit sur la branche `claude/refonte-arc` tant que le mainteneur ne
+l'a pas regardée en captures). **Les dix principes de la nouvelle
+interface sont dans `docs/principes.md`** ; ils valent pour tout écran
+refait, sous le socle. Ce qui est refait :
+
+- **la barre** (`engine/commande.js`, `ui/barre.js`) : une seule entrée
+  pour chercher, ouvrir, ajouter et agir — « relancer Advens »,
+  « entretien Aztek jeudi 14h ». Une table, pas une IA ; rien ne change
+  sans un tap, et ce qui change s'annule (`ui/gestes.js`) ;
+- **« Aujourd'hui » est une file** (`engine/etape.js`, `ui/today.js`) :
+  une piste, sa prochaine étape, UN bouton nommé ; le premier est le
+  seul rempli. La fiche dit la même étape, et son pied la joue ;
+- **le rangement automatique** (`engine/rangement.js`) : 45 jours de
+  silence, jamais supprimée, annoncée sept jours, « Annuler » ;
+- **la suite d'un « Décroché »** (`engine/contrat.js`) : du « oui » au
+  contrat qui tient ;
+- **la coque** : au téléphone, trois places en bas — mes pistes (la
+  dernière ouverte posée sur la pile), le +, moi ; « Réseau » vit dans
+  « Moi ». À l'ordinateur, une barre latérale (la barre, les quatre
+  lieux, « Nouvelle piste », la pile dépliée) et la barre en palette
+  (Ctrl K, « / »).
+
+« Mes pistes », « Réseau », « Moi » et le composeur ne sont pas refaits :
+ils gardent les règles des §4 à §9. **Là où ces paragraphes décrivent la
+navigation d'avant (§5 : « navigation en bas », « navigation en haut »),
+c'est `docs/principes.md` qui dit l'état de la 9.0.**
+
 ## 1. Le produit en une phrase
 
 OpenContact aide un étudiant IT/cyber à répondre à **« je fais quoi

@@ -35,5 +35,6 @@ Trois règles :
 | [0012](0012-le-reseau-revient.md) | Le réseau revient : l'onglet « Réseau », les conversations, les demandes suivies, ceux qui aident, et les boutons 98 — sans « Mon visage » ni la conversation à côté de la liste | acceptée, 3 novembre 2026 ; la mise en page au poste par délégation |
 | [0013](0013-la-refonte.md) | La refonte : redessiner toute l'interface pour accompagner du début à la fin, sur le même moteur et le style 98 | acceptée, 4 novembre 2026 ; trois garde-fous proposés ; méthode remplacée par 0014 |
 | [0014](0014-arc-search-dans-main.md) | L'expérience d'Arc Search (le style 98 gardé), deux dessins téléphone et ordinateur, construite dans main, sans entretiens | acceptée, 9 novembre 2026 |
+| [0015](0015-la-refonte-en-9-0.md) | La refonte en 9.0 : la barre qui comprend, « Aujourd'hui » en file, le rangement automatique, la suite d'un « Décroché » ; au poste, une barre latérale qui porte la pile | acceptée par délégation, 10 novembre 2026 ; sur une branche, à montrer en captures avant la fusion |
 
 Le plan qui découlait des fiches 0001 à 0005 est dans [`../recadrage.md`](../recadrage.md), clos par la fiche 0011.

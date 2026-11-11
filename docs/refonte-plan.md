@@ -10,6 +10,13 @@
 d'entretiens, directement dans main, l'expérience d'Arc Search. Les
 décisions encore ouvertes sont au §6.*
 
+*Le 10 novembre 2026, le mainteneur a délégué la construction (« tu as la
+main sur tout », « la version PC aussi est à refaire »). Ce qui est
+construit, sur la branche `claude/refonte-arc`, est au §8 ; les choix
+sont dans la fiche [0015](decisions/0015-la-refonte-en-9-0.md) et les
+[principes](principes.md). Rien n'est dans main : la branche se montre
+d'abord en captures.*
+
 ---
 
 ## En bref
@@ -177,3 +184,32 @@ ou crée sa phrase de secours.
 2. La grille du test iPhone, puis le test.
 3. Les maquettes : d'abord le téléphone (l'accueil, la barre, la page
    d'une entreprise), puis l'ordinateur.
+
+---
+
+## 8. Où on en est (10 novembre 2026, branche `claude/refonte-arc`)
+
+| Lot | État | Ce qui est fait | Ce qui reste |
+|---|---|---|---|
+| **0. Le moteur de la barre** | fait | `engine/commande.js` : les verbes, les pistes, les dates, les lieux de l'app, ce qu'on colle ; huit tests | — |
+| **1. La page d'une entreprise** | en partie | « Prochaine étape » sur la fiche, son bouton au pied, « Prépare la page » depuis la barre (l'aperçu de « À découvrir ») | réunir la fiche et l'aperçu en une seule page |
+| **2. La barre** | fait | `ui/barre.js` : la feuille du + au téléphone, la palette à l'ordinateur | y fondre la recherche de « Mes pistes » |
+| **3. Le rangement automatique** | fait | `engine/rangement.js`, l'annonce sur « Aujourd'hui », « Annuler » | — |
+| **4. La nouvelle navigation** | fait | trois places en bas au téléphone ; barre latérale et pile à l'ordinateur | — |
+| **5. Le début** | amorcé | la cible en tête d'« Aujourd'hui », trois puces quand elle n'est pas dite, « Trouver des entreprises » | les entreprises proposées dès la cible, sans passer par « À découvrir » |
+| **6. La fin** | en partie | la suite d'un « Décroché » (`engine/contrat.js`), sur la fiche et dans la file | les échéances datées, le plan B avant l'échéance |
+| **7. Le moral** | en partie | « Pour reprendre » après une pause, le silence dit sans verdict, trois choses à demander avant un entretien | le geste après un refus |
+| **8. Le réseau** | amorcé | « Réseau » dans « Moi » au téléphone, dans la barre latérale à l'ordinateur | masquer la conversation libre (D3) |
+| **9. Moi et la finition** | à faire | — | profil, documents, copie, réglages dans la nouvelle interface |
+
+Les étapes 1 (« Vérifier ») et 2 (« Dessiner ») n'ont pas été suivies à
+la lettre : le test sur un vrai iPhone reste à faire par le mainteneur,
+et les écrans se sont dessinés en les construisant, captures à l'appui,
+plutôt qu'en maquettes. C'est le risque que le §2 nommait ; la parade
+tient en une ligne : **rien n'entre dans main avant d'avoir été regardé.**
+
+Les décisions du §6 : D1 (pas de clavier au lancement), D4 (pas d'IA),
+D6 (rangement à 45 jours) et D7 (l'accessibilité dans le socle) sont
+appliquées ; D2 (la fiche reste une fenêtre à l'ordinateur) est tranchée
+par délégation ; D3 (masquer la conversation libre) et D5 (les chiffres
+du README) attendent.
