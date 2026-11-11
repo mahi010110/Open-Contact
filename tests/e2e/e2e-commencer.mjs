@@ -11,10 +11,12 @@
    une ligne : quand des pistes existent, l'écran en MONTRE — la règle §6
    « un écran montre les affaires de l'utilisateur, pas des portes ».
 
-   DEPUIS LA 9.0 (docs/principes.md), « Aujourd'hui » est UNE file : une
-   piste, sa prochaine étape, un bouton nommé. Les tranches « Par où
-   commencer » et « Sans nouvelles » n'existent plus, mais ce qu'elles
-   garantissaient tient toujours, et c'est ce que ce fichier garde :
+   DEPUIS LA 9.0 (docs/principes.md), « Aujourd'hui » est un lecteur :
+   UNE file (une liste, une ligne par piste et sa prochaine étape) et la
+   fenêtre « Maintenant », qui porte la ligne choisie et son geste,
+   nommé. Les tranches « Par où commencer » et « Sans nouvelles »
+   n'existent plus, mais ce qu'elles garantissaient tient toujours, et
+   c'est ce que ce fichier garde :
    trois lignes proposées au plus, ce qui est engagé avant ce qui est
    proposé, une capacité absente est absente, le silence a une sortie,
    et le lien du pied mène à ce qu'il compte.
@@ -72,11 +74,13 @@ const lire = p => p.evaluate(() => {
     demarrage: v.querySelectorAll('.aj-rang[data-genre="demarrer"]').length,
     genres: rangs.map(r => r.dataset.genre),
     ids: rangs.map(r => r.dataset.id),
-    /* LE geste de chaque ligne : un bouton, un mot — c'est lui qui fait
-       avancer la recherche, pas « ouvrir » */
-    gestes: rangs.map(r => [...r.querySelectorAll('[data-geste]')].map(b => b.textContent.trim())),
-    remplis: v.querySelectorAll('.aj-rang .btn-primary').length,
-    premierRempli: !!(rangs[0] && rangs[0].querySelector('.btn-primary')),
+    /* une seule emphase : le bouton rempli vit dans la fenêtre
+       « Maintenant », qui porte la première ligne */
+    remplis: v.querySelectorAll('.btn-primary').length,
+    premierRempli: !!(rangs[0] && rangs[0].classList.contains('aj-ici')
+      && v.querySelector('#ajMaint[data-id="' + rangs[0].dataset.id + '"] .btn-primary')),
+    fenetre: (m => m ? { titre: (m.querySelector('.mt-t') || {}).textContent || '', id: m.dataset.id || '',
+      plusTard: !!m.querySelector('[data-plus-tard]') } : null)(v.querySelector('#ajMaint')),
     /* ce qu'une ligne datée offre au glissé : « Fait » et « Reporter » */
     glisser: rangs.map(r => ({ genre: r.dataset.genre, fait: !!r.querySelector('.act-under-done'),
       reporter: !!r.querySelector('.act-under-report'), icone: icone(r.querySelector('.act-under-report .ic')) })),
@@ -91,6 +95,24 @@ const lire = p => p.evaluate(() => {
   };
 });
 const plat = g => g.flat();
+/* LE geste de chaque ligne : un bouton, un mot — c'est lui qui fait
+   avancer la recherche, pas « ouvrir ». Il se lit dans la fenêtre : on
+   choisit la ligne (un tap), on lit son bouton. Une ligne déjà choisie
+   ne se retape pas — elle ouvrirait la fiche. */
+const gestesDe = async p => {
+  const ids = await p.evaluate(() => [...document.querySelectorAll('#view-aujourdhui .aj-rang')].map(r => r.dataset.id));
+  const out = [];
+  const choisir = async id => {
+    const deja = await p.evaluate(i => document.querySelector(`#view-aujourdhui .aj-rang[data-id="${i}"]`).classList.contains('aj-ici'), id);
+    if (!deja) await p.click(`#view-aujourdhui .aj-rang[data-id="${id}"] .act-main`);
+  };
+  for (const id of ids){
+    await choisir(id);
+    out.push(await p.evaluate(i => [...document.querySelectorAll(`#ajMaint[data-id="${i}"] [data-geste]`)].map(b => b.textContent.trim()), id));
+  }
+  if (ids.length) await choisir(ids[0]);
+  return out;
+};
 
 /* ---------- A · app neuve : la promesse, la cible, et un seul geste ---------- */
 {
@@ -101,7 +123,7 @@ const plat = g => g.flat();
      neuf, c'est ici qu'on ramène tout avec sa phrase de secours. Depuis
      la 9.0, la CIBLE ouvre l'écran (« Tu cherches » : trois puces) :
      l'app accompagne du début, et le début est de dire ce qu'on cherche. */
-  const attendu = ['Stage', 'Alternance', 'Emploi', 'Ajouter une piste', 'Voir un exemple', 'J’ai déjà OpenContact'];
+  const attendu = ['Voir un exemple', 'J’ai déjà OpenContact', 'Stage', 'Alternance', 'Emploi', 'Ajouter une piste'];
   if (a.cibles.join(' · ') !== attendu.join(' · '))
     fail(`app neuve : ${a.cibles.join(' · ')} au lieu de ${attendu.join(' · ')}`);
   /* la promesse, puis le geste qui la MONTRE — « Voir un exemple » ;
@@ -110,11 +132,17 @@ const plat = g => g.flat();
   if (!/un jour à la fois/i.test(a.texte) || !/Voir un exemple/.test(a.texte))
     fail('app neuve : l’état vide n’enseigne plus le produit');
   else console.log(`app neuve : la promesse + ${a.cibles.length} gestes (${a.cibles.join(' · ')}) ✓`);
-  /* la cible dite, le premier geste change : l'app sait quoi proposer */
-  await p.click('.aj-cible-vide [data-cherche="alternance"]');
+  /* UNE question à la fois : c'est la fenêtre qui la pose (« Pour
+     commencer »), et tant que la cible n'est pas dite aucun bouton
+     rempli ne dispute la place à ses trois puces */
+  if (!a.fenetre || a.fenetre.titre !== 'Pour commencer' || a.remplis)
+    fail('app neuve : la fenêtre pose la première question, sans bouton rempli — ' + JSON.stringify([a.fenetre, a.remplis]));
+  /* la cible dite, le geste change : l'app sait quoi proposer */
+  await p.click('#ajMaint .aj-cible-vide [data-cherche="alternance"]');
   await p.waitForSelector('#tdeTrouver');
   const b = await lire(p);
-  if (b.cibles[1] !== 'Trouver des entreprises' || await p.$$eval('#view-aujourdhui .btn-primary', n => n.length) !== 1)
+  if (!b.cibles.includes('Trouver des entreprises') || b.remplis !== 1
+      || !(await p.$('#ajMaint #tdeTrouver.btn-primary')))
     fail('la cible dite, « Trouver des entreprises » doit devenir LE geste : ' + b.cibles.join(' · '));
   else console.log('   la cible dite : « Trouver des entreprises » devient le seul bouton rempli ✓');
   await ctx.close();
@@ -124,6 +152,7 @@ const plat = g => g.flat();
 {
   const { ctx, p } = await ecran(390, RECUES);
   const b = await lire(p);
+  b.gestes = await gestesDe(p);
   /* LE contrôle. Une seule ligne, et c'est tout le défaut. */
   if (!b.demarrage)
     fail('des pistes en réserve et l’écran n’en montre AUCUNE — il est redevenu un menu');
@@ -134,9 +163,14 @@ const plat = g => g.flat();
     fail('une ligne, un geste : ' + JSON.stringify(b.gestes));
   if (!plat(b.gestes).includes('Écrire'))
     fail('aucune ligne ne propose d’écrire alors que des pistes ont une adresse');
-  /* une seule emphase : le premier bouton est le seul rempli */
+  /* une seule emphase : le geste de la première ligne, dans la fenêtre */
   if (b.remplis !== 1 || !b.premierRempli)
-    fail(`un seul bouton rempli, celui de la première ligne — ${b.remplis} rempli(s)`);
+    fail(`un seul bouton rempli, celui de la première ligne, dans « Maintenant » — ${b.remplis} rempli(s)`);
+  /* « Plus tard » : toute proposition peut prendre une date */
+  /* (« Pour reprendre » : la graine n'a aucun geste récent, la file le
+     dit — c'est la même fenêtre) */
+  if (!b.fenetre || !['Maintenant', 'Pour reprendre'].includes(b.fenetre.titre) || !b.fenetre.plusTard)
+    fail('la fenêtre « Maintenant » porte la première ligne et son « Plus tard » : ' + JSON.stringify(b.fenetre));
   /* une ligne sans action ne peut être ni « faite » ni « reportée » */
   const faux = plat(b.gestes).filter(g => g === 'Fait' || g === 'Reporter');
   if (faux.length || b.glisser.some(g => g.fait || g.reporter))
@@ -148,7 +182,7 @@ const plat = g => g.flat();
     + 'un seul rempli, et la route vers les autres ✓');
 
   /* au pouce, toute cible reste tapable */
-  const petites = await p.evaluate(() => [...document.querySelectorAll('.aj-rang [data-geste], .aj-rang .act-main')]
+  const petites = await p.evaluate(() => [...document.querySelectorAll('.aj-rang .act-main, #ajMaint button')]
     .map(n => ({ t: n.textContent.trim().slice(0, 12), h: Math.round(n.getBoundingClientRect().height),
                  w: Math.round(n.getBoundingClientRect().width) }))
     .filter(x => x.h < 44 || x.w < 44));
@@ -169,6 +203,7 @@ const plat = g => g.flat();
     contacts: [{ id: 'z' + c.id, name: 'Sans adresse', role: 'RH', phone: '06 39 98 00 09' }] }));
   const { ctx, p } = await ecran(390, muettes);
   const m = await lire(p);
+  m.gestes = await gestesDe(p);
   if (!m.demarrage) fail('aucune piste joignable par mail : l’écran ne montre plus rien');
   if (plat(m.gestes).includes('Écrire'))
     fail('aucune piste n’a d’adresse et « Écrire » est pourtant proposé — une capacité absente doit être ABSENTE');
@@ -180,6 +215,7 @@ const plat = g => g.flat();
   const nues = RECUES.slice(0, 2).map(c => ({ ...c, contacts: [] }));
   const { ctx: c2, p: p2 } = await ecran(390, nues);
   const n = await lire(p2);
+  n.gestes = await gestesDe(p2);
   if (!plat(n.gestes).length || !plat(n.gestes).every(g => g === 'Trouver'))
     fail('personne à joindre : le geste est « Trouver » — ' + JSON.stringify(n.gestes));
   else console.log('   personne à joindre : « Trouver » ✓');
@@ -305,6 +341,7 @@ const plat = g => g.flat();
     ? { ...c, nextAction: jour(i - 1), nextActionText: 'Relancer', status: 'contacted' } : c);
   const { ctx, p } = await ecran(390, planifiees);
   const c = await lire(p);
+  c.gestes = await gestesDe(p);
   const dernierEngage = Math.max(...c.genres.map((g, i) => ENGAGE.includes(g) ? i : -1));
   const premierPropose = c.genres.findIndex(g => !ENGAGE.includes(g));
   if (!c.lignes) fail('les actions planifiées ne s’affichent plus');
@@ -323,13 +360,30 @@ const plat = g => g.flat();
   else console.log(`travail planifié : ${c.genres.join(' · ')} — l'engagé d'abord, « Fait » et « Reporter » au glissé ✓`);
   await ctx.close();
 
-  /* et au poste, ce qui vient plus tard se lit à droite, ouvert */
+  /* et au poste : la file au centre (« Bientôt » compris, ouvert), la
+     fenêtre « Maintenant » à droite, avec de quoi agir sans ouvrir la
+     fiche — les contacts de la piste */
   const { ctx: c2, p: p2 } = await ecran(1280, planifiees);
   const d = await lire(p2);
-  const ouvert = await p2.evaluate(() => !!document.querySelector('#view-aujourdhui .aj-contexte section.tr-soon'));
-  if (d.zones.join('+') !== 'aj-travail+aj-contexte' || !ouvert || d.bientot.length !== 1)
-    fail('au poste, « Bientôt » se lit dans le contexte, ouvert : ' + JSON.stringify({ zones: d.zones, ouvert, bientot: d.bientot }));
-  else console.log('   au poste, « Bientôt » est ouvert dans le contexte, à droite du travail ✓');
+  const poste = await p2.evaluate(() => ({
+    bientot: !!document.querySelector('#view-aujourdhui .aj-travail .aj-liste section.tr-soon'),
+    fenetre: !!document.querySelector('#view-aujourdhui .aj-contexte #ajMaint'),
+    contacts: document.querySelectorAll('#ajMaint .mt-ct').length }));
+  if (d.zones.join('+') !== 'aj-travail+aj-contexte' || !poste.bientot || !poste.fenetre || d.bientot.length !== 1 || !poste.contacts)
+    fail('au poste : la file au centre, « Maintenant » à droite avec ses contacts — ' + JSON.stringify({ zones: d.zones, poste, bientot: d.bientot }));
+  else console.log('   au poste, la file au centre, « Maintenant » à droite, avec les contacts de la piste ✓');
+  /* le clavier suffit : ↓ parcourt la file, la fenêtre suit ; Entrée passe au geste */
+  await p2.focus('#view-aujourdhui .aj-rang .act-main');
+  await p2.keyboard.press('ArrowDown');
+  const suivi = await p2.evaluate(() => ({
+    ici: (document.querySelector('#view-aujourdhui .aj-ici') || {}).dataset?.id || '',
+    fenetre: (document.querySelector('#ajMaint') || {}).dataset?.id || '',
+    focus: document.activeElement?.closest('.act-row')?.dataset.id || '' }));
+  await p2.keyboard.press('Enter');
+  const surGeste = await p2.evaluate(() => !!document.activeElement?.closest('#ajMaint .mt-f'));
+  if (!suivi.ici || suivi.ici === d.ids[0] || suivi.ici !== suivi.fenetre || suivi.focus !== suivi.ici || !surGeste)
+    fail('au clavier : ↓ choisit la ligne suivante, la fenêtre suit, Entrée passe au geste — ' + JSON.stringify({ suivi, surGeste }));
+  else console.log('   au clavier : ↓ parcourt la file, la fenêtre suit, Entrée passe au geste ✓');
   await c2.close();
 }
 
@@ -362,6 +416,7 @@ const MUETTES = [
   const { ctx, p } = await ecran(390, MUETTES);
   await p.evaluate(() => { document.querySelectorAll('#view-aujourdhui details').forEach(d => { d.open = true; }); });
   const q = await lire(p);
+  q.gestes = await gestesDe(p);
   const marque = await p.evaluate(() => Object.fromEntries([...document.querySelectorAll('#view-aujourdhui .aj-rang')]
     .map(r => [r.dataset.id, (r.querySelector('.mark') || {}).textContent || ''])));
   const rang = id => q.ids.indexOf(id);
@@ -530,8 +585,9 @@ async function encre(p, etiquette, minimum){
         return { tete: (t.textContent || '').trim(), tetePx: px(t),
                  sousPx: px(s && s.querySelector('.act-do, .act-who')) };
       });
+      /* le nom accessible d'une ligne : la piste, puis son étape */
       const noms = vues.map(r =>
-        (r.querySelector('.act-main').getAttribute('aria-label') || '').replace(/^Ouvrir\s+/, ''));
+        (r.querySelector('.act-main').getAttribute('aria-label') || '').split(' : ')[0]);
       return { lignes, noms };
     });
     if (r.lignes.length < minimum){

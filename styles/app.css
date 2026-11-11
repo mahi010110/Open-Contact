@@ -58,7 +58,7 @@ input,select,textarea{font-family:inherit;color:var(--text-body)}
    relevé à l'audit d'octobre 2026, à 200 % en 320 px. Le pourcentage
    est celui de sa propre hauteur, quelle qu'elle soit. */
 .skip{
-  position:fixed;top:0;left:10px;z-index:5000;transform:translateY(-100%);
+  position:fixed;top:0;left:10px;z-index:5000;transform:translateY(calc(-100% - 2px));
   display:inline-flex;align-items:center;min-height:var(--ctl);
   background:var(--accent);color:var(--on-accent);
   font-weight:var(--weight-bold);font-size:var(--text-13);padding:10px 14px;
@@ -221,13 +221,15 @@ input,select,textarea{font-family:inherit;color:var(--text-body)}
    · Le coin de l'écran où l'on EST ramène à « Aujourd'hui » : le même
      coin ouvre et referme. `data-ici` (app.js) dit où l'on est. */
 .bottomnav{
-  display:grid;grid-template-columns:1fr minmax(0,11rem) 1fr;align-items:start;column-gap:12px;
+  display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:start;column-gap:12px;
   position:fixed;left:0;right:0;bottom:0;z-index:1500;height:calc(var(--nav-h) + env(safe-area-inset-bottom));
   background:var(--surface-chrome);border-top:1px solid var(--border-strong);
   padding:8px max(calc(14px + env(safe-area-inset-right)), calc(50% - 15rem)) env(safe-area-inset-bottom)
           max(calc(14px + env(safe-area-inset-left)), calc(50% - 15rem));
 }
-.bn-place{display:flex;min-width:0}
+/* les deux coins gardent la même largeur d'un écran à l'autre : le champ
+   du milieu ne bouge pas quand un coin change de mot */
+.bn-place{display:flex;justify-content:flex-start;min-width:3.75rem}
 .bn-d{justify-content:flex-end}
 .bn-cote{
   display:flex;flex-direction:column;align-items:center;gap:3px;min-width:var(--control-h-touch);max-width:100%;
@@ -294,14 +296,22 @@ input,select,textarea{font-family:inherit;color:var(--text-body)}
 .bn-cote.attend .bn-l::after,.topnav a.attend::after{
   content:'';display:inline-block;width:6px;height:6px;margin-left:4px;vertical-align:.1em;background:var(--accent)}
 /* LE + : la cible la plus large de la barre, pour le geste de l'app */
+/* LA BARRE EST UN CHAMP : on y tape. Un + rempli disait « ajouter » ;
+   la barre cherche, ouvre, ajoute et agit — le signe doit dire le geste
+   (un champ enfoncé, son invite), comme la barre de la colonne de gauche
+   à l'ordinateur. Le + garde l'accent : c'est le point d'entrée de l'app.
+   Et l'écran n'a plus qu'un aplat d'accent : le geste du jour. */
 .bn-add{
-  width:100%;height:var(--control-h-touch);
-  display:inline-flex;align-items:center;justify-content:center;
-  background:var(--accent);color:var(--on-accent);
-  border:1px solid var(--border-strong);border-radius:var(--radius-1);
-  box-shadow:var(--bevel-up), var(--shadow-raised);
+  width:100%;min-height:var(--control-h-touch);
+  display:flex;align-items:center;gap:8px;padding:4px 12px;
+  background:var(--surface-field);color:var(--text-muted);
+  border:1px solid var(--border-field);border-radius:var(--radius-0);
+  box-shadow:var(--bevel-field);
+  font:inherit;font-size:var(--text-14);line-height:1.2;text-align:left;
 }
-.bn-add:active{box-shadow:var(--bevel-down);transform:translate(1px,1px)}
+.bn-add>.ic{flex:none;color:var(--accent)}
+.bn-add-l{min-width:0}
+.bn-add:active{background:var(--teal-wash)}
 .app{padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom))}
 @media (min-width:901px){
   .bottomnav{display:none}
@@ -934,33 +944,12 @@ html[data-theme="dark"] .field select{
    qui n'est pas un bouton encadré. La ligne se centre sur le titre. */
 .td-back{align-items:center;gap:4px}
 .td-back .abtn{width:auto;min-width:32px;color:var(--text-muted)}
-.done-line{
-  display:inline-flex;align-items:center;gap:6px;margin:0 0 10px;
-  font-family:var(--font-mono);font-size:var(--text-12);font-weight:var(--weight-semibold);color:var(--green);
-}
 .td-foot{margin-top:16px;display:flex}
 /* le pied d'« Aujourd'hui » : au pouce les lignes s'empilent comme
    avant ; au poste elles se rangent sur un rang sous un filet, pour
    qu'on les lise comme un pied de page et non comme un lien égaré
    sous la colonne la plus courte du tableau */
 .td-under{margin-top:16px}
-@media (max-width:900px){
-  /* Au pouce, le pied est un PIED : il se pose en bas de la vue quand la
-     journée est courte — la zone qu'une main atteint sans changer de
-     prise — au lieu de flotter sous la dernière tranche avec 440 px de
-     vide dessous. « 2 pistes sans prochaine action → » est justement le
-     prochain geste quand il n'y a rien à faire : il doit être sous le
-     pouce, pas à 27 % de la hauteur. Journée chargée, il suit le contenu :
-     `margin-top:auto` ne prend que la place qui reste, s'il en reste. */
-  #view-aujourdhui>.page-inner{display:flex;flex-direction:column;min-height:100%}
-  /* Pas de filet ici. Il devait dire « le travail s'arrête, le pied
-     commence » ; à l'usage personne ne sait à quoi il sert, et sur une
-     journée courte il vient se poser contre la dernière carte, où il se
-     lit comme un bord de cette carte. Le pied se distingue déjà par sa
-     position — tout en bas — et par son style de lien. Un séparateur
-     qu'il faut expliquer ne sépare rien. */
-  #view-aujourdhui>.page-inner>.td-under{margin-top:auto}
-}
 @media (min-width:901px){
   .td-under{
     display:flex;flex-wrap:wrap;align-items:center;gap:8px 20px;
@@ -1164,8 +1153,6 @@ html[data-theme="dark"] .field select{
 .fa-etat-nom:not(:empty){display:inline-flex;align-items:center;gap:6px;margin-left:8px}
 /* « Ajouter un contact » : le dirigeant proposé, en pointillé */
 .ce-sugg{display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;margin:0 0 12px}
-.tr-late .tr-h{color:var(--amber)}
-.tr-late .tr-h .tr-n{border-color:var(--amber);background:var(--amber-wash)}
 /* replier/déplier « Bientôt » est un geste au pouce comme un autre :
    la ligne fait 44 px, pas la hauteur de ses 11 px de texte */
 /* La CIBLE fait 44 px, la mise en page n'en prend pas 44. Le repli de
@@ -1273,7 +1260,6 @@ details.tranche[open]>summary::before{
    qui protègent le doigt. */
 @media (max-width:340px){
   .act-in .act-main{padding-left:8px}
-  .act-in .act-btns{padding-right:0}
 }
 .act-sub .act-when{flex:none}
 /* La marque se range DANS la ligne sans la grandir. Mesuré sur une
@@ -1283,12 +1269,6 @@ details.tranche[open]>summary::before{
    moins bien. `line-height:1` ramène la marque dans la boîte de ligne du
    texte qu'elle accompagne. */
 .act-sub .mark{padding:1px 6px;line-height:1}
-/* Trois gestes aux conséquences distinctes — écrire, reporter, clore —
-   plus « ouvrir la fiche » à leur gauche. Ils se touchaient (0 px
-   mesuré) : un pouce posé à la frontière ouvrait la fiche au lieu de
-   marquer « Fait ». 8 px partout, et chaque geste ne touche plus que
-   lui-même quand la visée dérape de 6 px. */
-.act-btns{display:flex;flex:none;margin-left:auto;padding-right:4px;gap:8px}
 /* actions d'une ligne : des icônes nues, jamais des boutons — au survol,
    au focus ou au tap, SEULE LA COULEUR change. Aucun aplat de fond,
    aucun biseau : le carré derrière l'icône était le bruit à retirer. */
@@ -3202,17 +3182,6 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
    porte déjà son icône — le carré de couleur du tableau des statuts
    n'a rien à dire ici. Seule « En retard » prend l'ambre : l'encre va
    à la colonne qui réclame quelque chose. */
-/* CHAQUE COLONNE S'ARRÊTE SOUS SA DERNIÈRE CARTE (§6, règle 3 : « une
-   colonne de Trello ou de Notion s'arrête sous sa dernière carte »).
-   Étirées à la plus haute, les colonnes courtes encadraient du vide :
-   « Aujourd'hui » à une carte sous 250 px de cadre, à côté de
-   « Bientôt » à quatre (audit du 28 octobre 2026). Le tableau de « Mes
-   pistes », lui, garde ses colonnes égales : on y DÉPOSE une carte, et
-   le bas d'une colonne courte doit rester une cible (F9). */
-.td-board{margin-top:14px;align-items:start}
-.td-board .bcol-h::before{display:none}
-.td-board .tr-late .bcol-h{color:var(--amber)}
-.td-board .tr-late .bcol-h .tr-n{border-color:var(--amber);background:var(--amber-wash)}
 .bcard{
   background:var(--surface-window);border:1px solid var(--border-strong);border-radius:var(--radius-0);
   box-shadow:var(--bevel-up), var(--shadow-raised);cursor:pointer;
@@ -3791,18 +3760,9 @@ a.fk-v{display:inline-flex;align-items:center;gap:5px;min-height:var(--ctl)}
    texte, dans chaque état et chaque combinaison). */
 /* le toast laisse la place à la barre Annuler quand elle est là */
 body:has(.undo-bar):not(:has(.overlay)) .toast{bottom:calc(var(--nav-h) + 76px + env(safe-area-inset-bottom))}
-/* … et à un PIED posé au pouce, qui occupe la même bande. Mesuré sur
-   « Aujourd'hui » : 34 px de recouvrement, et un doigt visant « 1 piste
-   sans prochaine action → » touchait LE TOAST — juste après avoir ajouté
-   une piste, donc au moment précis où ce lien est le prochain geste.
-   Tout écran qui descend une action au pouce doit repasser ici. */
-@media (max-width:900px){
-  body:has(#view-aujourdhui:not([hidden]) .td-under):not(:has(.overlay)) .toast{
-    /* 88 et non 76 : à 76 il restait 8 px de recouvrement sur le bord
-       HAUT du lien — le centre était libre, le bord non */
-    bottom:calc(var(--nav-h) + 88px + env(safe-area-inset-bottom));
-  }
-}
+/* … et au QUAI d'« Aujourd'hui », au pouce, qui occupe la même bande :
+   la règle vit avec lui (« la file et la fenêtre », plus bas). Tout
+   écran qui descend une action au pouce doit repasser ici. */
 @media (min-width:901px){
   .undo-bar{bottom:40px}
   body:has(.undo-bar):not(:has(.overlay)) .toast{bottom:100px}
@@ -4201,65 +4161,174 @@ html.oc-locked .undo-bar{display:none}
    gardent le dessin des lignes d'action (`.act-row`) ; ce qui change,
    c'est le bout de la ligne — un seul geste, écrit, au lieu de trois
    icônes à deviner — et l'emphase : le premier bouton est le seul rempli. */
-/* LA CIBLE : ce que je cherche, où, pour quand. Un cadre de groupe (le
-   trait `--border-frame`), sans relief : c'est un fait qu'on relit, pas
-   une action du jour — le crayon dit qu'il se modifie. */
+/* ============ « AUJOURD'HUI » : LA FILE ET LA FENÊTRE (9.0) ============
+   Un lecteur : la file (une liste 98, enfoncée, dans un seul cadre) et la
+   fenêtre « Maintenant » (une boîte de dialogue qui pose une question).
+   Ce qui se lit est à plat et blanc ; ce qui se fait a du relief. */
+
+/* la cible : une ligne sous le titre — elle se règle une fois, elle ne
+   prend pas une boîte en tête d'écran. Un mot sourd et son crayon : le
+   dessin du neutre (§6), à la hauteur de la main. */
+.aj .td-head{margin-bottom:0}
 .aj-cible{
-  display:flex;align-items:center;gap:12px;width:100%;padding:10px 12px;text-align:left;
-  background:var(--surface-window);border:1px solid var(--border-frame);color:var(--text-body);
+  display:inline-flex;align-items:center;gap:8px;max-width:100%;min-height:var(--ctl);
+  margin:0 0 4px;padding:0;background:none;border:0;
+  color:var(--text-muted);font:inherit;font-size:var(--text-13);line-height:1.35;text-align:left;cursor:pointer;
 }
-.aj-cible-t{flex:1;min-width:0;display:block}
-.aj-cible b{display:block;font-size:var(--text-15);font-weight:var(--weight-semibold);line-height:1.3;overflow-wrap:anywhere}
-.aj-cible-t span{
-  display:block;margin-top:2px;font-family:var(--font-mono);font-size:var(--text-12);line-height:1.4;color:var(--text-muted);
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-}
-.aj-cible>.ic{flex:none;color:var(--text-muted)}
-@media (hover:hover){ .aj-cible[id]:hover>.ic{color:var(--text-body)} }
-.aj-cible-vide{display:block}
+.aj-cible-t{min-width:0;overflow-wrap:anywhere}
+.aj-cible>.ic{flex:none}
+@media (hover:hover){ .aj-cible:hover{color:var(--text-body)} }
+.aj-cible-vide{margin:8px 0 12px}
+.aj-cible-vide>b{display:block;font-size:var(--text-14);font-weight:var(--weight-semibold)}
 .aj-cible-vide .datechips{margin-top:8px}
-.aj .done-line{margin-top:12px}
-/* le geste de la ligne : une boîte 98 à la hauteur de la main, taillée
-   à son mot. 8 px le séparent d'« ouvrir la fiche » (`.act-in`) : deux
-   conséquences différentes ne partagent pas une arête (§5). */
-.aj .act-btns{padding-right:8px}
-/* Une ligne qui se replie (un petit téléphone, un texte agrandi) rend
-   son geste à GAUCHE, sous le nom : c'est le nom qui pousse le geste à
-   droite tant qu'ils partagent le rang, jamais une marge automatique —
-   elle l'enverrait seul au bord droit, tout le vide à sa gauche. Le
-   retrait passe donc à la rangée, pour que le geste replié s'aligne
-   sur le nom ; la cible qui ouvre la fiche garde sa largeur. */
-.aj-rang .act-in{padding:0 8px 0 12px}
-.aj-rang .act-main{margin-left:-12px;padding-left:12px}
-.aj-rang .act-btns{margin:6px 0;padding-right:0}
-@media (max-width:340px){
-  .aj-rang .act-in{padding:0 4px 0 8px}
-  .aj-rang .act-main{margin-left:-8px}
+.aj .td-head+.aj-liste,.aj .td-head+.td-empty,.aj .td-head+.tranche,.aj .td-head+.aj-cols{margin-top:12px}
+
+/* LA FILE : un cadre enfoncé, blanc, comme la liste d'un explorateur de
+   fichiers. Les groupes y ont leur en-tête ; les lignes, un pointillé
+   entre elles et aucun relief — ce sont des données, pas des boutons. */
+.aj-liste{
+  background:var(--surface-field);border:1px solid var(--border-field);box-shadow:var(--bevel-field);
 }
+.aj-liste .tranche{margin-top:0}
+.aj-liste .tranche+.tranche{border-top:1px solid var(--border-soft)}
+.aj-liste .tr-h{margin:0;padding:10px 12px 7px}
+.aj-liste .tr-rows{gap:0}
+.aj-liste .act-row{border:0;border-top:1px dotted var(--border-soft);border-radius:0;box-shadow:none;background:none}
+.aj-liste .act-in{flex-wrap:wrap;column-gap:10px;row-gap:0;padding:0 12px;background:var(--surface-field)}
+.aj-liste .act-main{min-height:var(--ctl);justify-content:center;padding:7px 0}
+.aj-liste .act-verb{font-size:var(--text-15)}
+.aj-liste .act-sub .act-do,.aj-liste .act-sub .act-vecu{font-family:var(--font-ui);font-size:var(--text-13)}
+.aj-liste .tr-more{margin:0;padding:0 12px;min-height:var(--ctl);border-top:1px dotted var(--border-soft);align-self:stretch;text-align:left}
+/* au bout de la ligne : ce qui presse, ou le jour prévu. C'est le nom
+   qui le pousse à droite tant qu'ils partagent le rang ; replié (un
+   texte agrandi), il revient à gauche, sous le nom. */
+.aj-quand{
+  flex:none;display:flex;align-items:center;padding:0 0 0;
+  font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted);
+}
+.aj-liste .act-in>.aj-quand:last-child{padding-bottom:0}
+/* LA LIGNE CHOISIE prend le navy du châssis (§4) : elle dit où l'on
+   est — c'est elle que la fenêtre « Maintenant » porte. Ses marques
+   gardent leur boîte : l'urgence reste lisible sur le navy. */
+.aj-liste .aj-ici .act-in{background:var(--select-bg);color:var(--select-text)}
+.aj-liste .aj-ici .act-sub,.aj-liste .aj-ici .act-sub .act-vecu,.aj-liste .aj-ici .aj-quand{color:var(--select-text)}
+.aj-liste .aj-ici .act-sub{opacity:.9}
+@media (hover:hover){
+  .aj-liste .aj-ici .act-main:hover .act-verb{color:var(--select-text)}
+}
+/* fait aujourd'hui : coché, barré, en encre sourde — un fait, rien à taper */
+.aj-fait{
+  display:flex;align-items:center;gap:8px;min-height:36px;padding:6px 12px;
+  border-top:1px dotted var(--border-soft);font-size:var(--text-13);line-height:1.35;color:var(--text-muted);
+}
+.aj-fait>.ic{flex:none;color:var(--green)}
+.aj-fait span{min-width:0;overflow-wrap:anywhere;text-decoration:line-through;text-decoration-color:var(--border-strong)}
+
 /* ce que l'app a rangé toute seule : un fait en encre sourde, et sa sortie */
 .aj-range{
-  display:flex;align-items:center;gap:10px;margin-top:14px;padding:6px 0 6px 2px;
-  border-top:1px dotted var(--border-soft);border-bottom:1px dotted var(--border-soft);
+  display:flex;align-items:center;gap:10px;margin-top:12px;padding:4px 0 4px 2px;
   font-size:var(--text-13);line-height:1.35;color:var(--text-muted);
 }
-.aj-range+.aj-range{margin-top:0;border-top:0}
+.aj-range+.aj-range{margin-top:0}
 .aj-range-t{flex:1;min-width:0}
 .aj-range b{color:var(--text-body);font-weight:var(--weight-semibold)}
 .aj-range>.ic{flex:none}
-/* AU POSTE : deux zones. Le travail à gauche, la plus large — c'est la
-   colonne de ce qu'il y a à faire (§6, « les proportions disent
-   l'importance ») ; le contexte à droite : la cible, puis « Bientôt ». */
-/* La colonne de travail s'arrête à 42 rem : étirée sur toute la largeur,
-   le geste d'une ligne tomberait à 900 px du nom qu'il concerne — la
-   faute de proximité qu'« Échanger » avait déjà payée (§6). */
-/* deux zones tant qu'elles tiennent côte à côte ; sinon le contexte
-   passe sous le travail (un texte agrandi, une fenêtre étroite) — le
-   contenu se réorganise, il ne se perd pas (WCAG 1.4.10) */
+
+/* LA FENÊTRE « MAINTENANT » : une boîte de dialogue 98 — une barre de
+   titre navy, une question, ses réponses. Le relief et l'ombre dure
+   disent « ceci se fait » à côté d'une liste qui se lit. */
+.aj-maint{
+  background:var(--surface-window);border:1px solid var(--border-strong);
+  box-shadow:var(--bevel-up), var(--shadow-window);
+}
+.mt-h{
+  display:flex;align-items:center;min-height:var(--titlebar-h);padding:3px 10px;
+  background:var(--titlebar-accent-bg);color:var(--on-navy);border-bottom:1px solid var(--border-strong);
+}
+.mt-t{font-family:var(--font-pixel);font-size:var(--pixel-16);font-weight:400;line-height:1;text-transform:uppercase;letter-spacing:.02em}
+.mt-b{padding:8px 12px 12px}
+/* ce qui se lit de la piste est UN bouton : il ouvre la fiche — le
+   lecteur s'agrandit. Le chevron le dit, au bout de la première ligne. */
+.mt-nom{
+  display:flex;align-items:flex-start;gap:10px;width:100%;min-height:var(--ctl);padding:2px 0;
+  background:none;border:0;color:var(--text-body);font:inherit;text-align:left;cursor:pointer;
+}
+.mt-nom-t{flex:1;min-width:0;display:block}
+.mt-nom b{display:block;font-size:var(--text-16);font-weight:var(--weight-bold);letter-spacing:var(--tracking-tight);line-height:1.3;overflow-wrap:anywhere}
+.mt-lieu{display:block;font-family:var(--font-mono);font-size:var(--text-11);line-height:1.4;color:var(--text-muted);overflow-wrap:anywhere}
+.mt-nom>.ic{flex:none;margin-top:5px;color:var(--text-muted)}
+@media (hover:hover){ .mt-nom:hover b{color:var(--text-link)} .mt-nom:hover>.ic{color:var(--text-body)} }
+.mt-quoi{display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;margin-top:3px;font-size:var(--text-14);line-height:1.35}
+.mt-etape{font-weight:var(--weight-semibold);overflow-wrap:anywhere}
+.mt-atout{display:block;margin-top:2px;font-size:var(--text-13);font-weight:var(--weight-semibold);color:var(--accent)}
+.mt-plan,.mt-ctx{display:block;margin-top:3px;font-size:var(--text-13);line-height:1.4;color:var(--text-muted);overflow-wrap:anywhere}
+.mt-ctx span{font-family:var(--font-mono);font-size:var(--text-12)}
+p.mt-plan{margin:3px 0 0}
+.mt-f{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+/* le geste est le seul qui s'étire (§6) : il tient la largeur qui reste */
+.mt-f .btn-primary{flex:1 1 auto}
+.aj-maint .aj-cible-vide{margin:4px 0 0}
+.aj-maint .td-empty{padding:6px 0 2px;border:0;background:none;box-shadow:none;text-align:left;display:flex;align-items:center;gap:10px}
+.aj-maint .td-empty .tde-ic{margin:0;flex:none}
+.aj-maint .td-empty h2{margin:0}
+/* au poste, de quoi agir sans ouvrir la fiche */
+.mt-bloc{margin-top:10px;padding-top:9px;border-top:1px dotted var(--border-soft)}
+.mt-lbl{
+  margin:0 0 4px;font-size:var(--text-11);font-weight:var(--weight-bold);
+  letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--text-muted);
+}
+.mt-ct{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 10px;padding:2px 0}
+.mt-ct-n{flex:1 1 100%;min-width:0;font-size:var(--text-13);overflow-wrap:anywhere}
+.mt-ct-n b{font-weight:var(--weight-semibold)}
+.mt-ct-n span,.mt-ct-t{font-family:var(--font-mono);font-size:var(--text-11);color:var(--text-muted)}
+.mt-ct-m{font-family:var(--font-mono);font-size:var(--text-12);font-weight:var(--weight-regular);min-height:var(--ctl);overflow-wrap:anywhere;text-align:left}
+.mt-suite{margin:2px 0 0;font-size:var(--text-12);color:var(--text-muted)}
+.mt-note{margin:0;font-size:var(--text-13);line-height:1.5;white-space:pre-line;overflow-wrap:anywhere}
+
+/* AU TÉLÉPHONE : la fenêtre est ANCRÉE en bas de l'écran, au-dessus de
+   la barre — le geste est sous le pouce, toujours au même endroit (§5),
+   et la file défile au-dessus. Journée courte, elle se pose en bas ;
+   journée longue, elle y reste. Le quai porte le fond de la page : ce
+   qui défile passe dessous, pas à travers. */
+@media (max-width:900px){
+  #view-aujourdhui{padding-bottom:0}
+  .aj-tel{display:flex;flex-direction:column;min-height:100%}
+  .aj-quai{position:sticky;bottom:0;z-index:5;margin-top:auto;padding:12px 0 10px;background:var(--surface-desktop)}
+  .aj-tel>.td-under{margin-bottom:4px}
+  /* la fenêtre tient serrée sous le pouce : le lieu se lit dans la fiche */
+  .aj-tel .mt-lieu{display:none}
+  /* la barre « Annuler » et le toast se posent au-dessus du quai, jamais
+     sur son bouton (`--quai-h`, ui/today.js) */
+  body:has(#view-aujourdhui:not([hidden]) .aj-quai):not(:has(.overlay)) .undo-bar{
+    bottom:calc(var(--nav-h) + var(--quai-h, 0px) + 4px + env(safe-area-inset-bottom));
+  }
+  body:has(#view-aujourdhui:not([hidden]) .aj-quai):not(:has(.overlay)) .toast{
+    bottom:calc(var(--nav-h) + var(--quai-h, 0px) + 8px + env(safe-area-inset-bottom));
+  }
+  body:has(#view-aujourdhui:not([hidden]) .aj-quai):has(.undo-bar):not(:has(.overlay)) .toast{
+    bottom:calc(var(--nav-h) + var(--quai-h, 0px) + 64px + env(safe-area-inset-bottom));
+  }
+}
+/* À L'ORDINATEUR : la file au centre, en colonnes — le nom, l'étape, le
+   jour, sur une ligne, dense comme une liste de fichiers ; la fenêtre à
+   droite, qui reste en vue pendant que la file défile. Trop étroit (un
+   texte agrandi), la fenêtre passe sous la file : le contenu se
+   réorganise, il ne se perd pas (WCAG 1.4.10). */
 .aj-cols{display:flex;flex-wrap:wrap;gap:24px 32px;align-items:flex-start}
-.aj-travail{flex:1 1 24rem;min-width:0;max-width:42rem}
-.aj-contexte{flex:1 1 17rem;min-width:0;max-width:22rem}
+.aj-travail{flex:1 1 24rem;min-width:0;max-width:44rem}
+.aj-contexte{flex:1 1 19rem;min-width:0;max-width:26rem;position:sticky;top:0}
 .aj-travail>.tranche:first-child,.aj-travail>.td-empty:first-child{margin-top:0}
-.aj-contexte .tranche{margin-top:16px}
+.aj-pc .aj-liste .act-main{flex-direction:row;flex-wrap:wrap;align-items:baseline;justify-content:flex-start;gap:0 16px;padding:5px 0}
+.aj-pc .aj-liste .act-verb{flex:0 1 13rem;min-width:7rem;font-size:var(--text-14)}
+.aj-pc .aj-liste .act-sub{flex:1 1 9rem}
+.aj-pc .mt-b{padding:10px 14px 14px}
+.aj-pc .mt-nom b{font-size:var(--text-20)}
+/* un petit téléphone : le dernier échange se lit dans la fiche, la file
+   garde ses lignes */
+@media (max-width:900px) and (max-height:700px){
+  .aj-tel .mt-ctx{display:none}
+  .aj-quai{padding-top:8px}
+}
 
 /* ============ LA FICHE : la prochaine étape, ses appuis ============ */
 /* avant un entretien : trois choses à demander — un cadre de groupe,
