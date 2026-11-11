@@ -252,9 +252,33 @@ function rangerSeules(){
        `closeReglages()`, qui a pu changer ce qui est à l'écran. */
     if (a.dataset.r === S.route) auSommet(S.route);
   }));
-  /* LA BARRE : le + au téléphone, le champ de l'en-tête au poste */
+  /* LA BARRE : le champ du bas au téléphone, celui de la colonne de
+     gauche au poste */
   $('#bnAdd').addEventListener('click', () => ouvrirBarre());
   brancherBarre();
+  /* Au téléphone, l'invite du champ (« Chercher, agir… ») ne se montre
+     que si elle tient ENTIÈRE à côté du + : un texte agrandi sur un
+     petit écran ne lui laisse pas la place, et un libellé ne se coupe
+     pas (§4). Il reste alors le +, et le nom du bouton. Mesuré, jamais
+     deviné : on la montre, on compare, on la retire si elle déborde. */
+  const ajusterInvite = () => {
+    const b = $('#bnAdd'), l = b && b.querySelector('.bn-add-l'), i = b && b.querySelector('.ic');
+    if (!l || !i || !b.getClientRects().length) return;
+    l.hidden = false;
+    const cs = getComputedStyle(b);
+    const place = b.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)
+      - (parseFloat(cs.columnGap) || 0) - i.offsetWidth;
+    l.hidden = l.scrollWidth > place + 0.5;
+  };
+  ajusterInvite();
+  addEventListener('resize', ajusterInvite);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(ajusterInvite);
+  if (window.ResizeObserver){
+    const ro = new ResizeObserver(ajusterInvite);
+    ro.observe($('#bnAdd'));
+    const inv = $('#bnAdd .bn-add-l');
+    if (inv) ro.observe(inv);
+  }
   /* revenir dans l'app un autre jour : ce qui s'est tu depuis se range */
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden && !sheetOpen() && rangerSeules()) bus.refresh();

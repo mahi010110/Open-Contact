@@ -9,7 +9,9 @@
    ne pas remettre d'@import ici : il sérialise les téléchargements */
 
 :root{
-  --nav-h:72px;
+  /* 8 de marge, 44 de carré, 3 d'écart, la ligne du mot (en rem : elle
+     suit le texte agrandi), 4 de fond — 72 px à taille normale */
+  --nav-h:calc(59px + 0.8125rem);
   --ctl:var(--control-h-touch);      /* mobile d'abord : cibles 44px */
   /* `max()` et pas 16px sec : le plancher reste 16 px — en dessous, iOS
      zoome tout seul à la mise au point d'un champ — mais la valeur suit
@@ -229,7 +231,7 @@ input,select,textarea{font-family:inherit;color:var(--text-body)}
 }
 /* les deux coins gardent la même largeur d'un écran à l'autre : le champ
    du milieu ne bouge pas quand un coin change de mot */
-.bn-place{display:flex;justify-content:flex-start;min-width:3.75rem}
+.bn-place{display:flex;justify-content:flex-start;min-width:60px}
 .bn-d{justify-content:flex-end}
 .bn-cote{
   display:flex;flex-direction:column;align-items:center;gap:3px;min-width:var(--control-h-touch);max-width:100%;
@@ -302,15 +304,25 @@ input,select,textarea{font-family:inherit;color:var(--text-body)}
    à l'ordinateur. Le + garde l'accent : c'est le point d'entrée de l'app.
    Et l'écran n'a plus qu'un aplat d'accent : le geste du jour. */
 .bn-add{
-  width:100%;min-height:var(--control-h-touch);
-  display:flex;align-items:center;gap:8px;padding:4px 12px;
+  width:100%;height:var(--control-h-touch);
+  display:flex;align-items:center;column-gap:8px;padding:0 12px;
   background:var(--surface-field);color:var(--text-muted);
   border:1px solid var(--border-field);border-radius:var(--radius-0);
   box-shadow:var(--bevel-field);
   font:inherit;font-size:var(--text-14);line-height:1.2;text-align:left;
 }
 .bn-add>.ic{flex:none;color:var(--accent)}
-.bn-add-l{min-width:0}
+/* L'invite ne se montre que si elle TIENT à côté du + (app.js,
+   `ajusterInvite`) : à texte doublé sur un petit téléphone elle n'a plus
+   la place, et il reste le + — le bouton d'avant — avec son nom pour qui
+   n'a pas l'écran. Elle ne se coupe jamais : entière, ou absente. */
+.bn-add-l{flex:none;white-space:nowrap}
+.bn-add:has(.bn-add-l[hidden]){justify-content:center}
+/* les plus petits écrans rendent leurs marges au champ */
+@media (max-width:340px){
+  .bottomnav{column-gap:8px;padding-left:max(calc(8px + env(safe-area-inset-left)), calc(50% - 15rem));padding-right:max(calc(8px + env(safe-area-inset-right)), calc(50% - 15rem))}
+  .bn-add{padding:0 8px;column-gap:6px}
+}
 .bn-add:active{background:var(--teal-wash)}
 .app{padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom))}
 @media (min-width:901px){
@@ -4291,7 +4303,9 @@ p.mt-plan{margin:3px 0 0}
    journée longue, elle y reste. Le quai porte le fond de la page : ce
    qui défile passe dessous, pas à travers. */
 @media (max-width:900px){
-  #view-aujourdhui{padding-bottom:0}
+  /* ce qui prend le focus sous le quai remonte au-dessus de lui : un
+     contrôle focalisé ne reste jamais caché (WCAG 2.4.11) */
+  #view-aujourdhui{padding-bottom:0;scroll-padding-bottom:calc(var(--quai-h, 0px) + 12px)}
   .aj-tel{display:flex;flex-direction:column;min-height:100%}
   .aj-quai{position:sticky;bottom:0;z-index:5;margin-top:auto;padding:12px 0 10px;background:var(--surface-desktop)}
   .aj-tel>.td-under{margin-bottom:4px}

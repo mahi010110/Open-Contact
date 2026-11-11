@@ -167,8 +167,10 @@ for (const [ergo, opts] of [['pouce', PHONE], ['poste', DESK]]){
   const p = await ouvrir(PHONE, [PISTES[1]], { name: 'Sam' });
   await p.waitForSelector('.td-clear');
   const reste = await prose(p, '.td-clear');
-  okSi(reste === '' && !!(await p.$('details.tr-soon')),
-    '③ « Tout est à jour » : le titre seul, « Bientôt » juste dessous'
+  /* 9.0 : c'est la fenêtre « Maintenant » qui le dit, et la file montre
+     « Bientôt », ouvert — plus de repli à déplier */
+  okSi(reste === '' && !!(await p.$('#ajMaint .td-clear')) && !!(await p.$('.aj-liste .tr-soon .aj-tard')),
+    '③ rien à faire : le titre seul, dans la fenêtre ; « Bientôt » se lit dans la file'
     + (reste ? ` — lu : « ${reste} »` : ''));
   await p.context().close();
 }

@@ -312,11 +312,13 @@ console.log('La piste survit au rechargement ✓');
    place (§5). Ici : le vrai bouton, le vrai profil vide. */
 {
   await M.click('.bottomnav a.bn-retour:visible');
-  /* la file : la piste jamais contactée, et son geste nommé — « Écrire » */
-  await M.waitForSelector('#view-aujourdhui:not([hidden]) .aj-rang[data-genre="demarrer"] [data-geste]');
-  if ((await M.textContent('#view-aujourdhui .aj-rang[data-genre="demarrer"] [data-geste]')).trim() !== 'Écrire')
+  /* la file : la piste jamais contactée ; la fenêtre « Maintenant » porte
+     son geste, nommé — « Écrire » */
+  await M.waitForSelector('#view-aujourdhui:not([hidden]) .aj-rang[data-genre="demarrer"]');
+  await M.waitForSelector('#ajMaint[data-genre="demarrer"] [data-geste]');
+  if ((await M.textContent('#ajMaint [data-geste]')).trim() !== 'Écrire')
     fail('la première piste, qui a une adresse, doit proposer « Écrire »');
-  await M.click('#view-aujourdhui .aj-rang[data-genre="demarrer"] [data-geste]');
+  await M.click('#ajMaint [data-geste]');
   await M.waitForSelector('#mBody');
   /* le mail ne doit pas partir pour de vrai pendant le scénario */
   await M.evaluate(() => document.addEventListener('click', e => {

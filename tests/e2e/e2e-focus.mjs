@@ -172,6 +172,13 @@ async function mesurer(p, id, dpr){
     const n = document.querySelector(sel);
     if (!n) return { perdu: 'l’élément n’est plus dans le document' };
     document.activeElement?.blur?.();
+    /* on amène le contrôle là où le navigateur l'amènerait en le
+       focalisant au clavier : dans la zone de défilement, marges de
+       défilement comprises (`scroll-padding`). Sans ça, un contrôle posé
+       sous un élément collant — le quai d'« Aujourd'hui », au pouce —
+       se mesure caché, alors qu'un Tab le remonte au-dessus (WCAG
+       2.4.11 : le focus n'est pas masqué). */
+    n.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     const r = n.getBoundingClientRect();
     if (r.width < 6 || r.height < 6)
       return { perdu: `réduit à ${Math.round(r.width)}×${Math.round(r.height)}` };

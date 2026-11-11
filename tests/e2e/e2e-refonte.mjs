@@ -145,17 +145,35 @@ const sansDate = c => { const { updatedAt, ...r } = c; return JSON.stringify(r);
   kia = await piste(p, 'kia');
   ok(!kia.closedReason, '② rechargée : elle n’est pas rangée de nouveau — le silence repart de zéro');
 
-  /* ---------- ③ la file ---------- */
-  const file = await p.evaluate(() => [...document.querySelectorAll('#view-aujourdhui .aj-rang')].map(r => ({
-    nom: r.querySelector('.act-verb').textContent.trim(), sous: r.querySelector('.act-sub').textContent.replace(/\s+/g, ' ').trim(),
-    bouton: r.querySelector('[data-geste]').textContent.trim(), plein: r.querySelector('[data-geste]').classList.contains('btn-primary'),
-    h: Math.round(r.querySelector('[data-geste]').getBoundingClientRect().height) })));
-  ok(file.map(x => x.nom).join() === 'Advens,OVHcloud,Thales', '③ la file, dans l’ordre : ce qui est dû, une réponse sans suite, par où commencer — ' + file.map(x => x.nom).join(' · '));
-  ok(file.map(x => x.bouton).join() === 'Relancer,Planifier,Demander', '③ un bouton NOMMÉ par ligne — ' + file.map(x => x.bouton).join(' · '));
-  ok(/Léa y a été en alternance/.test(file[2].sous), '③ la raison se lit sur la ligne — ' + file[2].sous);
-  ok(file[0].plein && !file[1].plein && !file[2].plein && await visible(p, '#view-aujourdhui .btn-primary') === 1, '③ un seul bouton rempli sur l’écran : le premier');
-  ok(file.every(x => x.h >= 44), '③ au doigt, chaque geste fait 44 px — ' + file.map(x => x.h).join(' '));
-  await p.click('#view-aujourdhui .tr-soon summary');
+  /* ---------- ③ la file et la fenêtre « Maintenant » ---------- */
+  const lireFile = () => p.evaluate(() => ({
+    rangs: [...document.querySelectorAll('#view-aujourdhui .aj-rang')].map(r => ({ id: r.dataset.id,
+      nom: r.querySelector('.act-verb').textContent.trim(), sous: r.querySelector('.act-sub').textContent.replace(/\s+/g, ' ').trim(),
+      ici: r.classList.contains('aj-ici'), bouton: !!r.querySelector('button') })),
+    fenetre: (m => m ? { titre: m.querySelector('.mt-t').textContent.trim(), nom: (m.querySelector('.mt-nom b') || {}).textContent || '',
+      geste: m.querySelector('[data-geste]') ? m.querySelector('[data-geste]').textContent.trim() : '',
+      plein: !!m.querySelector('[data-geste].btn-primary'), plusTard: !!m.querySelector('[data-plus-tard]'),
+      h: m.querySelector('[data-geste]') ? Math.round(m.querySelector('[data-geste]').getBoundingClientRect().height) : 0,
+      bas: m.querySelector('.mt-f') ? Math.round(innerHeight - m.querySelector('.mt-f').getBoundingClientRect().bottom) : -1 } : null)(document.querySelector('#ajMaint')) }));
+  let f = await lireFile();
+  ok(f.rangs.map(x => x.nom).join() === 'Advens,OVHcloud,Thales', '③ la file, dans l’ordre : ce qui est dû, une réponse sans suite, par où commencer — ' + f.rangs.map(x => x.nom).join(' · '));
+  ok(f.rangs[0].ici && !f.rangs[1].ici && !f.rangs[2].ici && f.rangs.every(x => !x.bouton), '③ la première ligne est choisie ; aucune ligne ne porte de bouton');
+  ok(f.fenetre && ['Maintenant', 'Pour reprendre'].includes(f.fenetre.titre) && f.fenetre.nom === 'Advens' && f.fenetre.geste === 'Relancer' && f.fenetre.plein && f.fenetre.plusTard,
+    '③ la fenêtre « Maintenant » la porte : son geste NOMMÉ, rempli, et « Plus tard » — ' + JSON.stringify(f.fenetre));
+  ok(await visible(p, '#view-aujourdhui .btn-primary') === 1, '③ un seul bouton rempli sur l’écran');
+  ok(f.fenetre.h >= 44 && f.fenetre.bas >= 0 && f.fenetre.bas <= 844 * 0.4, '③ le geste fait 44 px et tient sous le pouce, à ' + f.fenetre.bas + ' px du bas de l’écran');
+  /* toucher une ligne la charge dans la fenêtre */
+  await p.click(`#view-aujourdhui .aj-rang[data-id="${f.rangs[1].id}"] .act-main`);
+  let g = await lireFile();
+  ok(g.rangs[1].ici && !g.rangs[0].ici && g.fenetre.nom === 'OVHcloud' && g.fenetre.geste === 'Planifier', '③ toucher une ligne la charge dans la fenêtre — ' + g.fenetre.nom + ' · ' + g.fenetre.geste);
+  await p.click(`#view-aujourdhui .aj-rang[data-id="${f.rangs[2].id}"] .act-main`);
+  g = await lireFile();
+  ok(g.fenetre.nom === 'Thales' && g.fenetre.geste === 'Demander' && /Léa y a été en alternance/.test(g.rangs[2].sous), '③ la raison se lit sur la ligne, le geste dans la fenêtre — ' + g.rangs[2].sous + ' · ' + g.fenetre.geste);
+  /* la retoucher ouvre la fiche : le même geste, un cran plus loin */
+  await p.click(`#view-aujourdhui .aj-rang[data-id="${f.rangs[2].id}"] .act-main`);
+  ok(!!(await p.waitForSelector('.modal-fiche', { timeout: 3000 }).catch(() => null)), '③ retoucher la ligne choisie ouvre la fiche');
+  await fermerFeuilles(p);
+  await p.click(`#view-aujourdhui .aj-rang[data-id="${f.rangs[0].id}"] .act-main`);
   const tard = (await p.textContent('#view-aujourdhui .tr-soon')).replace(/\s+/g, ' ');
   ok(/Aztek/.test(tard) && /Relancer si pas de réponse/.test(tard) && /Kiabi/.test(tard), '③ « Bientôt » dit le plan d’une piste qui attend : « Relancer si pas de réponse »');
 
@@ -251,10 +269,14 @@ const sansDate = c => { const { updatedAt, ...r } = c; return JSON.stringify(r);
   await p.waitForSelector('.undo-bar');
   await fermerFeuilles(p);
   ok((await piste(p, 'ovh')).closedReason === 'won', '⑤ « décroché ovh » clôture la piste');
+  if (!(await p.$('#view-aujourdhui .aj-rang.aj-ici[data-id="ovh"]'))) await p.click('#view-aujourdhui .aj-rang[data-id="ovh"] .act-main');
   const suiteLigne = await p.evaluate(() => { const r = document.querySelector('#view-aujourdhui .aj-rang[data-id="ovh"]');
-    return r ? { quoi: r.querySelector('.act-do').textContent.trim(), bouton: r.querySelector('[data-geste]').textContent.trim() } : null; });
-  ok(suiteLigne && suiteLigne.quoi === 'Demander la convention à ton école' && suiteLigne.bouton === 'Fait', '⑤ la suite entre dans la file — ' + JSON.stringify(suiteLigne));
-  await p.click('#view-aujourdhui .aj-rang[data-id="ovh"] .act-main');
+    const b = document.querySelector('#ajMaint[data-id="ovh"] [data-geste]');
+    return r && b ? { quoi: r.querySelector('.act-do').textContent.trim(), bouton: b.textContent.trim(),
+      plusTard: !!document.querySelector('#ajMaint [data-plus-tard]') } : null; });
+  ok(suiteLigne && suiteLigne.quoi === 'Demander la convention à ton école' && suiteLigne.bouton === 'Fait' && !suiteLigne.plusTard,
+    '⑤ la suite entre dans la file, la fenêtre la porte (« Fait », sans « Plus tard ») — ' + JSON.stringify(suiteLigne));
+  await p.click('#ajMaint [data-ouvrir]');
   await p.waitForSelector('.modal-fiche .fi-suite');
   const etapes = await p.evaluate(() => [...document.querySelectorAll('.modal-fiche .fi-suite [data-suite]')].map(b => b.dataset.suite));
   ok(etapes.join() === 'convention,signee,debut', '⑤ après « Décroché », la suite d’un stage — ' + etapes.join(' · '));
@@ -285,8 +307,12 @@ const sansDate = c => { const { updatedAt, ...r } = c; return JSON.stringify(r);
   ok(coque.l >= 200 && coque.l <= 280 && coque.h > 600 && coque.bas === 'none', '⑥ au poste, une barre latérale (' + coque.l + ' × ' + coque.h + '), plus de barre du bas');
   ok(coque.liens.join() === 'Aujourd’hui,Mes pistes,Réseau,Moi' && coque.barre, '⑥ elle porte la barre et les quatre lieux — ' + coque.liens.join(' · '));
   const zones = await p.evaluate(() => { const t = document.querySelector('.aj-travail').getBoundingClientRect(), c = document.querySelector('.aj-contexte').getBoundingClientRect();
-    return { t: Math.round(t.width), c: Math.round(c.width), aDroite: c.left >= t.right, cible: !!document.querySelector('.aj-contexte .aj-cible') }; });
-  ok(zones.aDroite && zones.t > zones.c && zones.t <= 680 && zones.cible, '⑥ « Aujourd’hui » en deux zones : le travail (' + zones.t + ' px), le contexte à droite (' + zones.c + ' px)');
+    return { t: Math.round(t.width), c: Math.round(c.width), aDroite: c.left >= t.right,
+      fenetre: !!document.querySelector('.aj-contexte #ajMaint .mt-f [data-geste]'), contacts: document.querySelectorAll('#ajMaint .mt-ct').length,
+      /* la file en colonnes : le nom et l'étape sur un même rang */
+      enLigne: (r => r ? Math.abs(r.querySelector('.act-verb').getBoundingClientRect().top - r.querySelector('.act-sub').getBoundingClientRect().top) < 8 : false)(document.querySelector('#view-aujourdhui .aj-rang')) }; });
+  ok(zones.aDroite && zones.t > zones.c && zones.t <= 720 && zones.fenetre, '⑥ « Aujourd’hui » en deux zones : la file (' + zones.t + ' px), la fenêtre « Maintenant » à droite (' + zones.c + ' px)');
+  ok(zones.enLigne && zones.contacts >= 1, '⑥ la file en colonnes, et la fenêtre montre les contacts de la piste : on agit sans ouvrir la fiche');
   /* la pile */
   ok(await visible(p, '#cotePile .cote-p') === 0, '⑥ rien d’ouvert : pas de pile');
   await p.click('#view-aujourdhui .aj-rang[data-id="adv"] .act-main');

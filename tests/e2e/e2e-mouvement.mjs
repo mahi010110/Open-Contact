@@ -132,10 +132,21 @@ const GESTES = [
       () => mod.topSheet().close(null, true)), m);
   }],
   ['Déplier une section', 'glisse', async p => {
-    await p.evaluate(() => { location.hash = '#/aujourdhui'; });
-    await p.waitForTimeout(500);
+    /* 9.0 : « Bientôt » ne se replie plus sur « Aujourd'hui » ; la
+       section qui se déplie est « Clôturées », dans « Mes pistes » — il
+       lui faut une piste close pour exister */
+    await p.evaluate(async () => {
+      const st = await import('./ui/state.js');
+      if (!st.S.companies.some(c => c.closedReason)){
+        /* la DERNIÈRE piste ouverte : les gestes suivants jouent la première */
+        const c = st.S.companies.slice().reverse().find(x => !x.closedReason);
+        if (c){ st.closePiste(c, 'dropped'); st.bus.refresh(); }
+      }
+      location.hash = '#/pistes';
+    });
+    await p.waitForTimeout(600);
     return p.evaluate(() => {
-      const d = document.querySelector('details.tr-soon') || document.querySelector('details');
+      const d = document.querySelector('#view-pistes details.tranche') || document.querySelector('details');
       if (!d) return { deb: 'absent', fin: 'absent', inter: -1 };
       return window.__film(() => d, n => Math.round(n.getBoundingClientRect().height),
         () => d.querySelector('summary').click());
