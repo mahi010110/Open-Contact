@@ -184,10 +184,15 @@ const sansDate = c => { const { updatedAt, ...r } = c; return JSON.stringify(r);
   const vide = await p.evaluate(() => ({ focus: document.activeElement && document.activeElement.id,
     labels: [...document.querySelectorAll('.modal-barre .br-lbl')].map(x => x.textContent.trim()),
     essais: [...document.querySelectorAll('.modal-barre .br-essai')].map(x => x.textContent.trim()),
-    pied: [...document.querySelectorAll('.modal-barre .modal-f button')].map(x => x.textContent.trim()) }));
+    derniere: (r => r ? r.textContent.replace(/\s+/g, ' ').trim() : '')([...document.querySelectorAll('.modal-barre .br-liste button')].pop()),
+    /* au téléphone, le champ est EN BAS — là où on l'a touché — et la liste au-dessus */
+    champ: Math.round(document.querySelector('#brQ').getBoundingClientRect().top),
+    liste: Math.round(document.querySelector('.modal-barre .br-liste').getBoundingClientRect().top) }));
   ok(vide.focus === 'brQ', '④ le + ouvre la barre, le curseur dans le champ');
-  ok(vide.labels.includes('À faire') && vide.labels.includes('Essaie') && vide.essais.length >= 2, '④ vide, elle propose : ' + vide.labels.join(' · ') + ' — ' + vide.essais.join(' | '));
-  ok(vide.pied.join() === 'Nouvelle piste', '④ « Nouvelle piste » tient le pied');
+  /* depuis « Aujourd'hui », elle ne redit pas la file qu'on a derrière elle */
+  ok(!vide.labels.includes('À faire') && vide.labels.includes('Essaie') && vide.essais.length >= 2, '④ vide, elle propose : ' + vide.labels.join(' · ') + ' — ' + vide.essais.join(' | '));
+  ok(vide.derniere === 'Nouvelle piste', '④ « Nouvelle piste » ferme la liste, juste au-dessus du champ');
+  ok(vide.champ > vide.liste && vide.champ > 844 * 0.6, '④ au téléphone, le champ est en bas (à ' + vide.champ + ' px), la liste au-dessus');
   /* une phrase proposée a une réponse */
   await p.click('.modal-barre .br-essai');
   await p.waitForTimeout(200);

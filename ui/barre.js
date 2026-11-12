@@ -36,7 +36,7 @@ import { comprendre, amorces, etatCourt } from '../engine/commande.js';
 import { aFaire } from '../engine/etape.js';
 import { questionNom, suggestionsNom, sousLigneNom } from '../engine/annuaire.js';
 import { S, bus } from './state.js';
-import { $, ic, openSheet, btn, annoncer, clavier } from './dom.js';
+import { $, ic, openSheet, annoncer, clavier } from './dom.js';
 import { recentes } from './recents.js';
 import { faireGeste, faireEtape } from './gestes.js';
 import { portesDuJour } from './amis.js';
@@ -75,7 +75,9 @@ function lignesVides(){
   const ctx = contexte();
   const l = [];
   const f = aFaire(S.companies, { today: ctx.today, profile: S.profile, portes: portesDuJour() });
-  const faire = [...f.engage, ...f.propose].slice(0, 3);
+  /* ouverte depuis « Aujourd'hui », la barre ne redit pas la file qu'on
+     a sous les yeux, juste derrière elle : rien ne se dit deux fois (§6) */
+  const faire = S.route === 'aujourdhui' ? [] : [...f.engage, ...f.propose].slice(0, 3);
   for (const e of faire){
     const c = piste(e.id);
     if (!c) continue;
@@ -235,7 +237,15 @@ const peutDemander = () => { try { return !!peutDemanderAmis && peutDemanderAmis
 let peutDemanderAmis = null;
 import('./reseau.js').then(m => { peutDemanderAmis = m.peutDemanderAmis; }).catch(() => {});
 
-/* ---------- au téléphone : la feuille du + ---------- */
+/* ---------- la fenêtre de la barre ----------
+   DEUX DESSINS, la même fenêtre (`.modal-barre`, le style décide) :
+   · au téléphone, le CHAMP EST EN BAS, là où on l'a touché (la barre du
+     bas) et juste au-dessus du clavier ; ce que la barre propose se lit
+     au-dessus. Le champ ne saute pas à l'autre bout de l'écran au
+     moment où on le touche (la barre d'adresse de Safari, la recherche
+     d'iOS, Arc Search font de même) ;
+   · à l'ordinateur, une palette : étroite, posée haut, le champ en tête
+     et la liste qui grandit dessous. */
 function ouvrirFeuille(texte){
   let barre = null;
   const sh = openSheet({ title: 'Chercher', icon: 'search', className: 'modal-barre', focus: '#brQ',
@@ -248,11 +258,11 @@ function ouvrirFeuille(texte){
      </label>
      <div class="br-liste" id="brListe"></div>`;
   const champ = sh.body.querySelector('#brQ');
+  /* « Nouvelle piste » ferme la liste, barre vide : la dernière ligne —
+     au téléphone, celle qui touche le champ, sous le pouce. Plus de
+     bouton au pied : le pied, au téléphone, c'est le champ lui-même. */
   barre = monter(champ, sh.body.querySelector('#brListe'),
-    { fermer: () => sh.close(), peutDemander, vide: false, suivre: mqLarge.matches });
-  /* ajouter une piste reste à un tap du + : c'était son seul métier, et
-     la main s'en souvient */
-  sh.setFoot([btn('Nouvelle piste', '', () => { sh.close(); openCapture(); }, 'plus')]);
+    { fermer: () => sh.close(), peutDemander, vide: true, suivre: mqLarge.matches });
   if (texte) champ.value = texte;
   barre.calculer();
   return sh;

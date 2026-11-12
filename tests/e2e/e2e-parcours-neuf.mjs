@@ -151,12 +151,12 @@ else console.log('Mes pistes vide : état enseignant ✓');
    Depuis « Aujourd'hui », là où l'app neuve la propose : c'est l'état
    où le toast s'étirait (voir plus bas), et on ne garde que les états
    qu'on met en place. */
-/* 9.0 : le coin où l'on est ramène à « Aujourd'hui » ; le + ouvre la
-   barre, et « Nouvelle piste » en tient le pied */
+/* 9.0 : le coin où l'on est ramène à « Aujourd'hui » ; le champ du bas
+   ouvre la barre, et « Nouvelle piste » ferme sa liste */
 const nouvellePiste = async p => {
   await p.click('#bnAdd');
-  await p.waitForSelector('.modal-barre .modal-f .btn');
-  await p.click('.modal-barre .modal-f .btn');
+  await p.waitForSelector('.modal-barre [data-neuve]');
+  await p.click('.modal-barre [data-neuve]');
 };
 await M.click('.bottomnav a.bn-retour:visible');
 await M.waitForSelector('#view-aujourdhui:not([hidden])');

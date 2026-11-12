@@ -4157,6 +4157,26 @@ html.oc-locked .undo-bar{display:none}
 .br-champ input::placeholder{color:var(--text-disabled)}
 .br-champ:focus-within{outline:var(--focus-outline);outline-offset:var(--focus-offset)}
 .br-liste{flex:1 0 auto;padding-top:2px}
+/* AU TÉLÉPHONE, LE CHAMP EST EN BAS : là où le doigt vient de toucher
+   la barre, et au-dessus du clavier. La liste prend la place au-dessus
+   et défile chez elle ; le champ ne bouge pas pendant qu'on tape. */
+@media (max-width:900px){
+  /* la feuille prend la hauteur de ce qu'elle propose : une feuille
+     basse qui monte de la barre, et grandit vers le haut quand on tape —
+     le champ, lui, ne bouge pas. Clavier ouvert, elle prend la zone
+     visible (ui/zone-visible.js) et ses lignes se posent contre le champ. */
+  .modal-barre{height:auto;max-height:92dvh}
+  .modal-barre .modal-b{flex:0 1 auto;padding-top:4px;padding-bottom:12px}
+  .clavier-ouvert .modal-barre .modal-b{flex:1 1 auto}
+  .modal-barre .br-champ{order:2;margin-top:10px}
+  .modal-barre .br-liste{order:1;flex:1 1 auto;min-height:0;overflow-y:auto;padding-top:0;display:flex;flex-direction:column}
+  /* … et ce qu'elle propose se pose CONTRE le champ, pas à l'autre bout
+     de la feuille : on lit ce qu'elle a compris juste au-dessus de ce
+     qu'on tape, et le pouce n'a pas à monter. (`margin-top:auto` sur le
+     premier enfant, pas `justify-content:flex-end` : une liste longue
+     doit rester défilable jusqu'en haut.) */
+  .modal-barre .br-liste>:first-child{margin-top:auto}
+}
 .br-lbl{
   margin:16px 0 2px;font-size:var(--text-11);font-weight:var(--weight-bold);line-height:1.2;
   letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--text-muted);

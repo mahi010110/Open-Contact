@@ -161,7 +161,9 @@ const CHARGE = k => ({ fn: async k => {
        l'écran : en le visant large, la mutation qui retire les trois
        vrais boutons restait AU VERT. On vise donc la clé que
        `moreBtn('list', …)` pose, et rien d'autre. */
-    suite: !!document.querySelector('[data-more="list"]')
+    /* (9.0 : au téléphone la liste est groupée par état — chaque groupe
+       pose sa propre clé, `grp-<état>`) */
+    suite: !!document.querySelector('[data-more="list"], [data-more^="grp-"]')
   }));
   /* le piège ② en garde : sans lignes, les temps ne valent rien */
   if (!vu.lignes) fail(`${N} pistes : aucune ligne rendue — la mesure ne vaut rien, pas l’app`);
