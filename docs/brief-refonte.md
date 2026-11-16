@@ -318,6 +318,8 @@ d'ouvertures.
 
 - `design/maquettes/directions/index.html` : la proposition retenue et
   les trois explorations écartées (le paquet, l'assistant, le carnet).
+- `design/maquettes/app/index.html` : la maquette de l'app, qui grandit
+  lot par lot. `docs/table-de-passage.md` : où va chaque capacité.
 - `CLAUDE.md` : le socle, et les leçons.
 - `CONTRAT.md` : les clés, les formats, les invariants de fusion.
 - `docs/surfaces.md`, `docs/frictions.md` : ce qui est livré, et ce qui
@@ -325,3 +327,34 @@ d'ouvertures.
 - Branche `claude/refonte-arc` : `reports/*.md` (la recherche),
   `engine/etape.js` et `engine/contrat.js` (du moteur à reprendre s'il
   sert). Pas son interface.
+
+## 12. Le journal des lots
+
+Une entrée par lot : ce qui a été montré, ce que le mainteneur en a dit.
+Une place reste « proposée » tant qu'il ne l'a pas validée.
+
+### Lot 1 : Trouver, et la page d'une entreprise (16 novembre 2026)
+
+Montré, en attente de son avis. Ce que la maquette propose :
+
+- **Une phrase à trois trous** à la place du formulaire du premier jour :
+  « Je suis en … Je cherche … autour de … ». Remplie, elle reste en tête
+  de la liste et se rouvre d'un tap. C'est la même phrase qui ira dans Moi.
+- **Une ligne = le nom, ce qu'elle fait, où elle est.** « Colle à ta
+  formation » ne s'écrit pas sur chaque ligne : la liste commence par
+  celles qui collent, et un intertitre dit où ça s'arrête. Seule la raison
+  rare s'écrit sur la ligne : un ami qui y est passé.
+- **« Garder » sur chaque ligne**, « Pas pour moi » au glissé et au pied
+  de la page, avec « Annuler ». Dès qu'on a gardé, le pied propose
+  « Continuer avec mes N pistes ».
+- **La barre fait tout** : un nom, un métier (« cyber »), un lien collé
+  (LinkedIn, une annonce). Rien trouvé : « Garder tel quel ».
+- **La carte**, à côté de la liste : toi au centre, des anneaux à 5, 10 et
+  15 km, les villes voisines. Sans fond de carte, donc hors ligne.
+- **Au poste** : la liste, l'entreprise et la carte côte à côte ; ↑ ↓, G
+  pour garder, X pour écarter, « / » pour chercher.
+
+À trancher avec lui : la carte et « coller un lien » sont deux surprises
+proposées, il peut n'en garder aucune. Non vérifié : WebKit (iPhone).
+Dans le vrai moteur, il restera à écrire la lecture d'un lien collé et le
+plan (les coordonnées viennent déjà de l'annuaire).
