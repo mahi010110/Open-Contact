@@ -17,11 +17,11 @@ n'a pas été montré au mainteneur.
 
 | Capacité (`CLAUDE.md` §0) | Sa place dans l'app simple | Lot |
 |---|---|---|
-| « À découvrir » : l'annuaire public depuis la barre | **Trouver**, l'onglet d'ouverture : une phrase (ma formation, ce que je cherche, ma ville), une barre, une liste | 1 |
+| « À découvrir » : l'annuaire public depuis la barre | **Trouver**, l'onglet d'ouverture : trois questions le premier jour (ce que je cherche, ce que j'étudie, ma ville), puis une barre et une liste | 1 |
 | La carte de l'entreprise (annuaire, BODACC, Wikidata, Wikipédia) | **La page d'une entreprise**, depuis Trouver ; la même carte, repliée, dans la page d'une piste | 1, 2 |
 | « À qui écrire » | La page d'une entreprise, bloc « À qui écrire » ; puis « Les gens » de la piste | 1, 2 |
 | Offres d'alternance (La bonne alternance), offres de stage (HelloWork) | Un lien à la fin de la liste de Trouver | 1 |
-| « Autour de » : ma ville, mon rayon | Le troisième trou de la phrase de Trouver ; la même phrase dans Moi | 1, 4 |
+| « Autour de » : ma ville, mon rayon | La troisième question de Trouver, qui se rouvre d'un tap sur « Lille · 15 km » ; les mêmes réponses dans Moi | 1, 4 |
 | « Pas pour moi » | Le pied de la page d'une entreprise ; au glissé sur une ligne ; « Annuler » après | 1 |
 | L'aide à l'embauche d'un apprenti | La page d'une entreprise, ligne « Aide » | 1 |
 | Capture, anti-doublon | **La barre de Trouver** : taper un nom, l'annuaire le reconnaît, « Garder » ; sinon « Garder tel quel ». Une entreprise déjà gardée se dit « dans tes pistes » et ouvre sa piste | 1 |

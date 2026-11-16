@@ -3,8 +3,9 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Public+Sans:wght@400;500;600;700&family=Silkscreen:wght@400;700&display=swap">
 <!--
   OpenContact : la maquette de l'app simple, lot par lot (docs/brief-refonte.md §9).
-  LOT 1 : Trouver, et la page d'une entreprise. Pistes, Réseau et Moi sont encore ceux
-  de design/maquettes/directions/ : ils attendent les lots 2 à 4.
+  Elle PROLONGE la proposition validée de design/maquettes/directions/ : ce qui a été
+  validé là-bas se reprend tel quel, un lot n'y ajoute que ce qui manque et qui sert.
+  LOT 1 : Trouver, et la page d'une entreprise. Pistes, Réseau et Moi attendent les lots 2 à 4.
   Une MAQUETTE : rien ici n'est chargé par l'application, et tests/e2e n'y touche pas.
   Le fichier est le contenu d'une page (sans <html> ni <body>) : il se publie tel quel.
   Le matériel vient de styles/tokens/ (couleurs, reliefs, polices) et d'assets/icons/.
@@ -66,18 +67,18 @@ a{color:var(--teal)}
 
 /* ---------- la régie de la maquette ---------- */
 .regie{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--table);
-  padding:8px max(16px,env(safe-area-inset-right,0px)) 8px max(16px,env(safe-area-inset-left,0px));
+  padding:6px max(16px,env(safe-area-inset-right,0px)) 6px max(16px,env(safe-area-inset-left,0px));
   display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;border-bottom:1px solid var(--cadre)}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--table)}
 .regie h1{margin:0;font:700 19px/1.2 var(--ui);letter-spacing:-.01em}
 .regie p{margin:0;color:var(--ink2);font-size:14px;flex:1 1 240px;min-width:0}
-.bascule{display:flex;border:1px solid var(--bord);background:var(--g1);box-shadow:var(--sh2)}
-.bascule button{min-height:40px;padding:0 14px;border:0;border-right:1px solid var(--bord);background:none;font:600 14px/1 var(--ui);white-space:nowrap}
+.bascule{display:flex;border:1px solid var(--cadre);background:var(--g1)}
+.bascule button{min-height:36px;padding:0 12px;border:0;border-right:1px solid var(--cadre);background:none;font:500 13px/1 var(--ui);white-space:nowrap}
 .bascule button:last-child{border-right:0}
-.bascule button.on{background:var(--navy);color:var(--on-navy);box-shadow:var(--bevel-down)}
-.r-btn{min-height:40px;padding:0 12px;border:1px solid var(--bord);background:var(--g1);font:600 14px/1 var(--ui);box-shadow:var(--bevel-up),var(--sh2);display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.bascule button.on{background:var(--ink);color:var(--g0)}
+.r-btn{min-height:36px;padding:0 12px;border:1px solid var(--cadre);background:var(--g1);font:500 13px/1 var(--ui);display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 .r-btn .ic{width:16px;height:16px}
-.r-btn[aria-pressed="true"]{background:var(--amber-w);color:var(--amber);border-color:var(--amber);box-shadow:var(--bevel-down)}
+.r-btn[aria-pressed="true"]{background:var(--amber-w);color:var(--amber);border-color:var(--amber)}
 
 .scene{max-width:1320px;margin:0 auto;padding:22px max(16px,env(safe-area-inset-right,0px)) 40px max(16px,env(safe-area-inset-left,0px));display:grid;gap:28px}
 .haut{display:grid;grid-template-columns:390px minmax(0,1fr);gap:32px;align-items:start}
@@ -129,8 +130,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .rang b{display:block;font-weight:600;line-height:1.25}
 .rang span{display:block;font:400 12px/1.4 var(--mono);color:var(--ink2)}
 .rang span.plus{font:600 13px/1.35 var(--ui);color:var(--teal)}
-.rang span.fait-l{font:400 14px/1.35 var(--ui);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rang span.sl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;word-spacing:-.14em}
+.rang span.sl{word-spacing:-.14em}
 .rang span.alerte-l{font:600 13px/1.35 var(--ui);color:var(--amber)}
 .rang>.ic{color:var(--ink2);width:18px;height:18px}
 
@@ -163,21 +163,15 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .cherche .barre .lien{display:inline-flex}
 .sans-barre .barre{display:none}
 
-/* la phrase à trois trous */
-.accueil{margin:8px 16px 0;color:var(--ink2);font-size:15px}
-.phrase{margin:0;padding:10px 16px 4px;font:600 21px/52px var(--ui);letter-spacing:-.01em}
-.phrase .l{display:block}
-.trou{display:inline-flex;align-items:center;min-height:44px;padding:0 12px;margin:0 2px;vertical-align:middle;border:1px solid var(--bord);background:var(--g1);
-  color:var(--ink);font:600 19px/1.1 var(--ui);box-shadow:var(--bevel-up),var(--sh2);max-width:100%;text-align:left}
-.trou.vide{border:1px dashed var(--teal);background:var(--g0);color:var(--teal);box-shadow:none;font-weight:500}
-.trou.on{background:var(--teal);color:var(--on-teal);border:1px solid var(--bord);box-shadow:var(--bevel-down)}
-.editeur{margin:10px 12px 0;padding:12px;border:1px solid var(--cadre);background:var(--g1);display:grid;gap:12px}
-.editeur .deux{display:flex;gap:8px}
-.editeur .deux .champ{flex:1}
-.phrase-c{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:8px 16px 4px;border:0;background:none;text-align:left;font:400 14px/1.45 var(--ui);color:var(--ink2)}
-.phrase-c span{flex:1;min-width:0}
-.phrase-c b{color:var(--teal);font-weight:600;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px}
-.phrase-c .ic{width:16px;height:16px;color:var(--ink3)}
+/* les trois questions, et la recherche en trois mots */
+.accueil{margin:6px 16px 0;color:var(--ink2);font-size:14px}
+.s-form{padding:6px 16px 16px;display:grid;gap:8px}
+.s-form .et{margin-top:8px}
+.s-form .et.manque{color:var(--amber)}
+.s-form .seg{max-width:280px}
+.s-form>.btn{margin-top:10px}
+.s-tags{display:flex;flex-wrap:wrap;gap:0 18px;padding:2px 16px 0}
+.s-tags button{min-height:44px;border:0;background:none;padding:0;color:var(--teal);font:500 14px/1 var(--ui)}
 
 /* le chargement, façon 98 */
 .charge{margin:26px 16px;display:grid;gap:10px}
@@ -186,9 +180,6 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 @keyframes bloc{to{opacity:1}}
 
 /* la liste */
-.l-tete{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 16px 8px}
-.l-tete .seg{flex:none}
-.l-tete .seg button{padding:0 12px;font-size:13px}
 .s-liste{margin:0 12px 12px}
 .gl{position:relative;overflow:hidden;border-bottom:1px dashed var(--doux)}
 .gl .dessous-g{position:absolute;inset:0;display:flex;align-items:center;justify-content:flex-end;padding:0 14px;background:var(--g3);color:var(--ink);font:600 13px/1 var(--ui)}
@@ -200,33 +191,12 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .rang.ent.nav-r{align-items:center}
 .s-ok{display:inline-flex!important;align-items:center;gap:4px;min-height:44px;font:500 12px/1 var(--mono)!important;color:var(--teal)!important;white-space:nowrap}
 .s-ok .ic{width:14px;height:14px}
-.sep-l{padding:8px 12px 6px;background:var(--g2);border-bottom:1px dashed var(--doux);font:500 11px/1.5 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink2)}
 .suite-l{display:grid;justify-items:center;gap:4px;padding:0 16px 20px}
 .fin-m{font:400 12px/1.4 var(--mono);color:var(--ink3);text-align:center;padding:0 16px 8px}
 .panneau{margin:14px 12px;padding:26px 16px;border:1px dashed var(--cadre);text-align:center;display:grid;gap:12px;justify-items:center}
 .panneau p{margin:0;color:var(--ink2)}
 .panneau p b{color:var(--ink);display:block;font-size:17px;margin-bottom:2px}
 .panneau .ic{width:28px;height:28px;color:var(--ink2)}
-
-/* la carte : toi au centre, les entreprises autour */
-.plan{margin:0 12px;border:1px solid var(--bord);background:var(--g1);box-shadow:var(--bevel-down)}
-.plan svg{display:block;width:100%;height:auto}
-.plan .anneau{fill:none;stroke:var(--cadre);stroke-width:1;stroke-dasharray:2 4}
-.plan .axe{stroke:var(--doux);stroke-width:1}
-.plan text{font:500 10px/1 var(--mono);letter-spacing:.06em;fill:var(--ink2)}
-.plan text.km{fill:var(--ink3);letter-spacing:0}
-.plan text.toi{fill:var(--ink);font-weight:500}
-.plan .m{cursor:pointer}
-.plan .m rect.c{fill:var(--g0);stroke:var(--bord);stroke-width:1.5}
-.plan .m.pour rect.c{fill:var(--teal);stroke:var(--bord)}
-.plan .m.garde rect.c{fill:var(--teal-w);stroke:var(--teal)}
-.plan .m path{fill:var(--teal)}
-.plan .m .halo{fill:none;stroke:none}
-.plan .m.on .halo{stroke:var(--navy);stroke-width:3}
-.plan .ici{fill:var(--ink)}
-.legende{display:flex;flex-wrap:wrap;gap:4px 16px;padding:8px 16px 10px;font:400 12px/1.4 var(--mono);color:var(--ink2)}
-.legende i{display:inline-block;width:10px;height:10px;border:1.5px solid var(--bord);background:var(--g0);margin-right:6px;vertical-align:-1px}
-.legende i.pour{background:var(--teal)}
 
 /* la recherche */
 .res-et{padding:12px 16px 6px}
@@ -307,35 +277,32 @@ details.pli .faits{margin:0 0 10px;border-top:0}
 .p-corps{flex:1;min-height:0;display:flex;flex-direction:row}
 .p-col{display:flex;flex-direction:column;min-width:0;border-right:1px solid var(--bord)}
 .p-col:last-child{border-right:0}
-.p-col.c1{width:372px;background:var(--bureau)}
+.p-col.c1{width:392px;background:var(--bureau)}
 .p-col.c2{flex:1;background:var(--g1);position:relative}
-.p-col.c3{width:340px;background:var(--bureau)}
 .poste-in .t-tete{padding:12px 12px 0}
 .poste-in .champ input{font-size:14px}
-.poste-in .phrase{font:600 17px/42px var(--ui);padding:8px 12px 4px}
-.poste-in .trou{min-height:32px;font-size:15px;padding:0 10px}
-.poste-in .phrase-c{padding:8px 12px 2px;min-height:32px;font-size:13px}
-.poste-in .l-tete{padding:6px 12px 6px}
 .poste-in .s-liste{margin:0 8px 10px}
 .poste-in .rang.ent{padding:9px 8px 9px 10px}
 .poste-in .rang.ent b{font-size:14px}
 .poste-in .rang.ent.on{background:var(--navy)}
 .poste-in .rang.ent.on b,.poste-in .rang.ent.on span{color:var(--on-navy)}
-.poste-in .rang span.fait-l{font-size:13px}
 .poste-in .rang.ent.on span{opacity:.88}
 .poste-in .s-ok{min-height:32px}
 .poste-in .rang.ent.on .s-ok{color:var(--on-navy)!important}
 .poste-in .btn{font-size:14px;padding:0 14px}
 .poste-in .btn.s{padding:0 10px;font-size:13px}
 .poste-in .puce{font-size:14px;padding:0 12px}
-.poste-in .editeur{margin:8px 8px 0}
-.poste-in .s-page{padding:20px 28px 20px;max-width:640px}
+.poste-in .s-page{padding:20px 28px}
+.poste-in .pg-corps{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:0 32px;align-items:start}
+.poste-in .s-form{padding:6px 12px 12px}
+.poste-in .s-tags{padding:2px 12px 0}
+.poste-in .s-tags button{min-height:32px;font-size:13px}
+.poste-in .accueil{margin:10px 12px 0}
+.poste-in .s-et{padding:8px 12px 6px}
 .poste-in .s-page h4{font-size:24px}
 .poste-in .pied{padding:10px 16px;justify-content:flex-end;align-items:center}
 .poste-in .pied .btn{flex:none}
 .poste-in .pied .aide-k{margin-right:auto}
-.poste-in .legende{padding:8px 12px}
-.poste-in .plan{margin:12px 12px 0}
 .poste-in .annule{left:auto;right:16px;bottom:66px;width:380px}
 .poste-in .res-et{padding:10px 12px 6px}
 .poste-in .lu{margin:8px 12px 0}
@@ -348,7 +315,6 @@ kbd{font:500 11px/1 var(--mono);padding:3px 6px;border:1px solid var(--bord);bac
 .p-vide{flex:1;display:grid;place-items:center;color:var(--ink2);text-align:center;padding:24px}
 .p-seul{flex:1;min-width:0;display:flex;justify-content:center;background:var(--bureau)}
 .p-seul>div{width:480px;display:flex;flex-direction:column;border-left:1px solid var(--bord);border-right:1px solid var(--bord);background:var(--bureau);position:relative}
-.c3-bas{padding:4px 12px 12px;margin-top:auto}
 
 @media (hover:hover){
   .btn:hover{filter:brightness(1.04)}
@@ -362,12 +328,11 @@ kbd{font:500 11px/1 var(--mono);padding:3px 6px;border:1px solid var(--bord);bac
   .regie{gap:8px}
   .regie h1,.regie p{display:none}
   .bascule{flex:1}
-  .bascule button{flex:1;min-height:44px;padding:0 4px}
-  .r-btn{min-height:44px}
+  .bascule button{flex:1;padding:0 4px}
   .scene{display:block;padding:0}
   .haut{display:block}
   .notes,.poste{display:none}
-  .tel{max-width:none;height:640px;height:calc(100svh - 62px);min-height:520px;border:0;box-shadow:none}
+  .tel{max-width:none;height:640px;height:calc(100svh - 50px);min-height:520px;border:0;box-shadow:none}
 }
 @media (prefers-reduced-motion:reduce){ *{transition:none!important;animation-duration:.01s!important;animation-delay:0s!important} }
 </style>
@@ -410,23 +375,22 @@ kbd{font:500 11px/1 var(--mono);padding:3px 6px;border:1px solid var(--bord);bac
     <div class="notes">
       <h2>Ce qu’il y a dans ce lot</h2>
       <ol>
-        <li><b>Une phrase à trois trous.</b> Elle remplace le formulaire du premier jour, puis reste en tête de liste pour changer d’avis.</li>
-        <li><b>Ce qui décide passe devant.</b> Un ami qui y est passé d’abord, puis ce qui colle à ta formation, puis le plus proche.</li>
-        <li><b>La barre fait tout.</b> Un nom, un métier, ou un lien LinkedIn collé : ça devient une piste.</li>
-        <li><b>La carte.</b> Où elles sont par rapport à toi. Sans fond de carte, donc sans réseau.</li>
+        <li><b>L’accueil et la liste de la maquette validée.</b> Trois questions le premier jour, puis des entreprises avec « Garder ».</li>
+        <li><b>La barre marche.</b> Un nom, un métier, ou un lien collé : ça devient une piste.</li>
+        <li><b>La page d’une entreprise, complète.</b> Ce qu’elle fait, sa taille, ses comptes, à qui écrire.</li>
+        <li><b>« Pas pour moi »</b> au glissé ou au pied de la page, avec « Annuler ».</li>
       </ol>
       <div class="et">À essayer</div>
       <ul>
-        <li><b>Jour 1</b> : réponds aux trois trous, garde deux entreprises, ouvre une page.</li>
-        <li><b>Jour 8</b> : touche « Carte », puis la barre et « Coller un lien ».</li>
-        <li>Change un mot de la phrase : la liste et la carte suivent.</li>
+        <li><b>Jour 1</b> : réponds aux trois questions, garde deux entreprises, ouvre une page.</li>
+        <li><b>Jour 8</b> : tape « cyber » dans la barre, puis essaie « Coller un lien ».</li>
       </ul>
       <div class="et">Pas encore</div>
-      <ul><li>Pistes, Réseau et Moi sont ceux de la maquette d’avant. Ils arrivent aux lots 2 à 4.</li></ul>
+      <ul><li>Pistes, Réseau et Moi sont ceux de la maquette validée. Ils arrivent aux lots 2 à 4.</li></ul>
     </div>
   </div>
   <figure class="poste">
-    <figcaption>À l’ordinateur : la liste, l’entreprise et la carte côte à côte, au clavier</figcaption>
+    <figcaption>À l’ordinateur : la liste et l’entreprise côte à côte, au clavier</figcaption>
     <div class="poste-cadre"><div class="poste-in trame">
       <section class="win pw" id="poste" tabindex="-1">
         <div class="tb">OpenContact<span class="tb-d">local · sans serveur</span></div>
@@ -448,46 +412,43 @@ var plat=function(s){return String(s).toLowerCase().normalize('NFD').replace(/[�
 var calme=window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches;
 
 /* ---------- les données de la maquette ----------
-   km et cap : la distance et la direction depuis le centre de Lille (0° = nord).
-   m : les métiers qu'on y fait, pour « colle à ta formation ».
+   km : la distance depuis le centre de Lille. m : les métiers qu'on y fait, pour « colle à ta formation ».
    Les noms inventés portent des comptes et des dirigeants inventés. */
 var ENT={
-  rsn:{n:'Réseaux et Systèmes du Nord',v:'Lille',km:1,cap:150,t:'20 à 49 salariés',m:['reseau'],f:'Gère les serveurs et les réseaux d’entreprises de la région',
+  rsn:{n:'Réseaux et Systèmes du Nord',v:'Lille',km:1,t:'20 à 49 salariés',m:['reseau'],f:'Infogérance : les serveurs et les réseaux de leurs clients',
        c:'2,1 M€ de chiffre d’affaires en 2025, bénéficiaire',rec:'Établissement ouvert à Lens (mars 2026)',qui:{n:'Claire Durand',r:'présidente'}},
-  nor:{n:'Nord Infogérance',v:'Lambersart',km:3,cap:305,t:'10 à 19 salariés',m:['reseau','support'],f:'Dépanne et sécurise l’informatique des PME',
+  nor:{n:'Nord Infogérance',v:'Lambersart',km:3,t:'10 à 19 salariés',m:['reseau','support'],f:'Dépannage et sécurité informatique des PME',
        c:'840 000 € de chiffre d’affaires en 2024, bénéficiaire',qui:{n:'Marc Delattre',r:'gérant'}},
-  adv:{n:'Advens',v:'Lille',km:2,cap:20,t:'250 à 499 salariés',m:['cyber'],grande:1,f:'Sécurité informatique pour des entreprises et des hôpitaux'},
-  sep:{n:'Septentrion Cloud',v:'Marcq-en-Barœul',km:5,cap:15,t:'50 à 99 salariés',m:['cloud','reseau'],f:'Héberge et surveille les serveurs de ses clients',
+  adv:{n:'Advens',v:'Lille',km:2,t:'250 à 499 salariés',m:['cyber'],grande:1,f:'Sécurité informatique pour des entreprises et des hôpitaux'},
+  sep:{n:'Septentrion Cloud',v:'Marcq-en-Barœul',km:5,t:'50 à 99 salariés',m:['cloud','reseau'],f:'Héberge et surveille les serveurs de ses clients',
        c:'6,4 M€ de chiffre d’affaires en 2025, bénéficiaire',rec:'Direction qui change (janv. 2026)',qui:{n:'Hugo Vasseur',r:'directeur général'}},
-  fid:{n:'Fiducial Informatique',v:'Villeneuve-d’Ascq',km:6,cap:105,t:'6 à 9 salariés ici · 500 à 999 en tout',tc:'6 à 9 salariés ici',m:['dev','support'],grande:1,f:'Logiciels et matériel pour les petites entreprises'},
-  dat:{n:'Datagora',v:'Roubaix',km:9,cap:52,t:'10 à 19 salariés',m:['dev'],f:'Développe des logiciels sur mesure',
+  fid:{n:'Fiducial Informatique',v:'Villeneuve-d’Ascq',km:6,t:'6 à 9 salariés ici · 500 à 999 en tout',tc:'6 à 9 salariés ici',m:['dev','support'],grande:1,f:'Logiciels et matériel pour les petites entreprises'},
+  dat:{n:'Datagora',v:'Roubaix',km:9,t:'10 à 19 salariés',m:['dev'],f:'Développement de logiciels sur mesure',
        c:'1,2 M€ de chiffre d’affaires en 2025, en perte',qui:{n:'Sophie Marchal',r:'gérante'}},
-  ocd:{n:'Orange Cyberdefense',v:'Lille',km:3,cap:85,t:'Plus de 2 000 salariés',m:['cyber'],grande:1,f:'Surveille et répond aux attaques pour de grands comptes',ami:{p:'Léa',q:'y a fait son stage',v:'l'}},
-  ovh:{n:'OVHcloud',v:'Roubaix',km:9,cap:38,t:'Plus de 2 000 salariés',m:['cloud'],grande:1,f:'Héberge des sites et des serveurs dans le monde entier',ami:{p:'Karim',q:'y est en alternance',v:'k'}},
-  hdf:{n:'Hauts-de-France Télécom',v:'Wasquehal',km:6,cap:55,t:'20 à 49 salariés',m:['reseau'],f:'Installe la fibre et la téléphonie des entreprises',
+  ocd:{n:'Orange Cyberdefense',v:'Lille',km:3,t:'Plus de 2 000 salariés',m:['cyber'],grande:1,f:'Surveillance et réponse aux attaques pour de grands comptes',ami:{p:'Léa',q:'y a fait son stage',v:'l'}},
+  ovh:{n:'OVHcloud',v:'Roubaix',km:9,t:'Plus de 2 000 salariés',m:['cloud'],grande:1,f:'Hébergement et serveurs dans le cloud',ami:{p:'Karim',q:'y est en alternance',v:'k'}},
+  hdf:{n:'Hauts-de-France Télécom',v:'Wasquehal',km:6,t:'20 à 49 salariés',m:['reseau'],f:'Installe la fibre et la téléphonie des entreprises',
        c:'3,3 M€ de chiffre d’affaires en 2025, bénéficiaire',qui:{n:'Élodie Carpentier',r:'présidente'}},
-  dec:{n:'Decathlon Technology',v:'Villeneuve-d’Ascq',km:7,cap:118,t:'Plus de 2 000 salariés',m:['dev','reseau'],grande:1,f:'Les sites, les applis et les réseaux d’une enseigne de sport'},
-  kia:{n:'Kiabi',v:'Hem',km:8,cap:78,t:'Plus de 2 000 salariés',m:['dsi'],grande:1,f:'L’informatique interne d’une enseigne de vêtements'},
-  chu:{n:'CHU de Lille',v:'Lille',km:4,cap:215,t:'Plus de 2 000 salariés',m:['dsi','reseau'],grande:1,f:'L’informatique et les réseaux d’un hôpital'},
-  bra:{n:'Brasserie Numérique',v:'Lille',km:2,cap:255,t:'6 à 9 salariés',m:['dev'],f:'Crée des sites web et des applis pour des commerces',
+  dec:{n:'Decathlon Technology',v:'Villeneuve-d’Ascq',km:7,t:'Plus de 2 000 salariés',m:['dev','reseau'],grande:1,f:'Les sites, les applis et les réseaux d’une enseigne de sport'},
+  kia:{n:'Kiabi',v:'Hem',km:8,t:'Plus de 2 000 salariés',m:['dsi'],grande:1,f:'L’informatique interne d’une enseigne de vêtements'},
+  chu:{n:'CHU de Lille',v:'Lille',km:4,t:'Plus de 2 000 salariés',m:['dsi','reseau'],grande:1,f:'L’informatique et les réseaux d’un hôpital'},
+  bra:{n:'Brasserie Numérique',v:'Lille',km:2,t:'6 à 9 salariés',m:['dev'],f:'Crée des sites web et des applis pour des commerces',
        c:'410 000 € de chiffre d’affaires en 2024, bénéficiaire',qui:{n:'Nora Belkacem',r:'gérante'}},
-  wor:{n:'Worldline',v:'Seclin',km:11,cap:195,t:'Plus de 2 000 salariés',m:['dev'],grande:1,f:'Paiement électronique'},
-  anf:{n:'Atelier Numérique des Flandres',v:'Armentières',km:14,cap:292,t:'6 à 9 salariés',m:['reseau','support'],f:'Installe et dépanne des réseaux et des postes',
+  wor:{n:'Worldline',v:'Seclin',km:11,t:'Plus de 2 000 salariés',m:['dev'],grande:1,f:'Paiement électronique'},
+  anf:{n:'Atelier Numérique des Flandres',v:'Armentières',km:14,t:'6 à 9 salariés',m:['reseau','support'],f:'Installe et dépanne des réseaux et des postes',
        al:'Redressement judiciaire (sept. 2026)',qui:{n:'Paul Dewaele',r:'gérant'}}
 };
 var TOUT=['rsn','nor','adv','sep','fid','dat','ocd','ovh','hdf','dec','kia','chu','bra','wor','anf'];
-var FORMATIONS={'BTS SIO SISR':{m:['reseau','cyber','cloud'],niv:'bts'},'BTS SIO SLAM':{m:['dev'],niv:'bts'},'BUT Informatique':{m:['dev'],niv:'but'},
-  'BUT R&T':{m:['reseau','cyber'],niv:'but'},'Bac pro CIEL':{m:['reseau','support'],niv:'bacpro'}};
-var QUOI={stage:'un stage',alternance:'une alternance',emploi:'un emploi'};
-var AIDE={bts:[4500,1500],but:[2000,750],bacpro:[5000,0]};
+/* une formation : les métiers qu'elle vise, et le mot que l'app en retient */
+var FORMATIONS={'BTS SIO SISR':{m:['reseau'],l:'Systèmes et réseaux',niv:'bts'},'BTS SIO SLAM':{m:['dev'],l:'Développement',niv:'bts'},
+  'BUT Informatique':{m:['dev'],l:'Développement',niv:'but'},'BUT R&T':{m:['reseau'],l:'Réseaux et télécoms',niv:'but'}};
+var QUOI={stage:'Stage',alternance:'Alternance',emploi:'Emploi'};
+var AIDE={bts:[4500,1500],but:[2000,750]};
 var THEMES=[{l:'Cybersécurité',m:'cyber',k:['cyber','cybersecurite','securite','secu','soc','pentest']},
   {l:'Systèmes et réseaux',m:'reseau',k:['reseau','reseaux','systeme','systemes','infra','sisr','admin']},
   {l:'Développement',m:'dev',k:['dev','developpement','developpeur','web','logiciel','slam','appli']},
   {l:'Cloud',m:'cloud',k:['cloud','hebergement','serveur','serveurs']}];
 var TOTAL={5:41,15:148,30:212};
-/* une ville du plan : son nom, sa distance, son cap, puis où poser le mot par rapport à son point */
-var VILLES_PLAN=[['LILLE',0,0,-10,-12,'end'],['LAMBERSART',3,305,0,-13,'middle'],['MARCQ',5,15,-15,4,'end'],['ROUBAIX',9.5,45,14,-12,'start'],['HEM',8,78,13,-3,'start'],
-  ['VILLENEUVE-D’ASCQ',7,118,74,24,'end'],['SECLIN',11,195,-14,4,'end'],['ARMENTIÈRES',14,292,-34,-13,'start']];
 var G={jour:'1',hl:false};
 var euros=function(n){return String(n).replace(/\B(?=(\d{3})+(?!\d))/g,' ')+' €'};
 
@@ -496,11 +457,13 @@ function app(root,poste){
   var ecran=$('.ecran',root), nav=$('.nav',root)||$('.p-onglets',root), S, horloge=null, nId=0;
 
   function ajouter(id,p){ S.pistes[id]=p; S.ordre.push(id); }
+  function brouillon(){ return {quoi:S.P.quoi,formation:S.P.formation,ville:S.P.ville,rayon:S.P.rayon,autre:!!S.P.formation&&!FORMATIONS[S.P.formation]}; }
   function init(){
     var j8=G.jour==='8';
-    S={onglet:'trouver',vue:'trouver',fiche:null,trou:null,edition:false,charge:false,lot:1,mode:'liste',sel:null,q:'',cherche:false,
-       P:j8?{formation:'BTS SIO SISR',quoi:'alternance',ville:'Lille',rayon:15}:{formation:null,quoi:null,ville:null,rayon:15},
-       pistes:{},ordre:[],deja:[],ecartes:[],neuves:0,amis:j8,pmode:null,annule:null,autre:false,vient:false};
+    S={onglet:'trouver',vue:'trouver',fiche:null,form:!j8,manque:false,charge:false,lot:1,sel:null,q:'',cherche:false,
+       P:j8?{quoi:'alternance',formation:'BTS SIO SISR',ville:'Lille',rayon:15}:{quoi:null,formation:null,ville:'',rayon:15},
+       pistes:{},ordre:[],deja:[],ecartes:[],neuves:0,amis:j8,pmode:null,annule:null,vient:false};
+    S.B=brouillon();
     if(j8){
       ajouter('ocd',{e:'ecrit',j:7,h:[['lun. 9','Gardée'],['lun. 9','Écrit au recrutement, par mail']]});
       ajouter('adv',{e:'garde',h:[['ven. 13','Gardée']]});
@@ -508,103 +471,72 @@ function app(root,poste){
       ajouter('fid',{e:'garde',h:[['hier','Gardée']]});
       ajouter('kia',{e:'ecrit',j:5,h:[['mer. 11','Gardée'],['mer. 11','Écrit, sur leur site']]});
       S.deja=S.ordre.slice();
-    } else S.trou='formation';
+    }
     ecran.removeAttribute('data-vue');
   }
 
-  var complet=function(){return !!(S.P.formation&&S.P.quoi&&S.P.ville)};
+  var complet=function(){return !!(S.P.quoi&&S.P.formation&&S.P.ville)};
   var ami=function(id){return S.amis?ENT[id].ami:null};
   var colle=function(id){var f=FORMATIONS[S.P.formation];return !!f&&ENT[id].m.some(function(x){return f.m.indexOf(x)>=0})};
   var lieu=function(e){return e.v?e.v+(e.km!=null?' · '+e.km+' km':''):''};
   var prenom=function(q){return q.split(' ')[0]};
-  /* sur une ligne, seule la raison RARE s'écrit (un ami) ; « colle à ta formation » répété sur chaque ligne serait un papier peint :
-     il se dit par l'ordre de la liste et par un intertitre, puis en toutes lettres sur la page */
-  var raison=function(id){var a=ami(id);return a?a.p+' '+a.q:''};
-  var pourToi=function(id){return !!ami(id)||colle(id)};
+  var raison=function(id){var a=ami(id);return a?a.p+' '+a.q:colle(id)?'colle à ta formation':''};
   var pasLille=function(){return S.P.ville&&plat(S.P.ville)!=='lille'};
+  /* l'ordre : qui un ami peut porter d'abord, puis la plus proche */
   function candidats(){
     return TOUT.filter(function(id){return S.deja.indexOf(id)<0&&S.ecartes.indexOf(id)<0&&ENT[id].km<=S.P.rayon})
-      .sort(function(a,b){return (ENT[a].al?1:0)-(ENT[b].al?1:0)||(ami(b)?1:0)-(ami(a)?1:0)||(colle(b)?1:0)-(colle(a)?1:0)||ENT[a].km-ENT[b].km});
+      .sort(function(a,b){return (ENT[a].al?1:0)-(ENT[b].al?1:0)||(ami(b)?1:0)-(ami(a)?1:0)||ENT[a].km-ENT[b].km});
   }
   function aide(e){ var f=FORMATIONS[S.P.formation]; if(S.P.quoi!=='alternance'||!f||e.main) return ''; var n=AIDE[f.niv][e.grande?1:0];
-    return n?'L’État lui verse '+euros(n)+' la première année si elle te prend en apprentissage':''; }
+    return n?'L’État lui verse jusqu’à '+euros(n)+' la première année d’un apprenti':''; }
 
-  /* ---------- la phrase ---------- */
-  function trouHTML(k,vide){ var v=k==='formation'?S.P.formation:k==='quoi'?(S.P.quoi?QUOI[S.P.quoi]:''):(S.P.ville?S.P.ville:'');
-    return '<button class="trou'+(v?'':' vide')+(S.trou===k?' on':'')+'" data-a="trou" data-id="'+k+'" aria-expanded="'+(S.trou===k)+'">'+esc(v||vide)+'</button>'; }
-  function phraseGrande(){
-    return (complet()?'':'<p class="accueil">Trois réponses, et l’app te propose des entreprises.</p>')
-      +'<p class="phrase"><span class="l">Je suis en '+trouHTML('formation','ta formation')+'</span><span class="l">Je cherche '+trouHTML('quoi','quoi ?')+'</span><span class="l">autour de '+trouHTML('ville','ta ville')+'</span></p>'
-      +editeur()
-      +(poste&&complet()&&!S.trou?'<div class="suite-l" style="padding-top:16px"><button class="btn p" data-a="fini">Voir les entreprises</button></div>':'');
+  /* ---------- les trois questions (celles de la maquette validée) ---------- */
+  function formulaire(){ var b=S.B, m=S.manque, premier=!complet();
+    var et=function(t,vide){return '<div class="et'+(m&&vide?' manque':'')+'">'+t+(m&&vide?' · à choisir':'')+'</div>'};
+    var puce=function(a,id,l,on){return '<button class="puce'+(on?' on':'')+'" data-a="'+a+'" data-id="'+esc(id)+'" aria-pressed="'+!!on+'">'+esc(l)+'</button>'};
+    return (premier?'<p class="accueil">Dis ce que tu cherches. L’app te propose des entreprises près de toi.</p>':'')
+      +'<div class="s-form">'
+      +et('Tu cherches',!b.quoi)+'<div class="puces">'+Object.keys(QUOI).map(function(k){return puce('b-quoi',k,QUOI[k],b.quoi===k)}).join('')+'</div>'
+      +et('Tu étudies',!b.formation)+'<div class="puces">'+Object.keys(FORMATIONS).map(function(f){return puce('b-form',f,f,!b.autre&&b.formation===f)}).join('')+puce('b-autre','','Autre',b.autre)+'</div>'
+      +(b.autre?'<label class="champ"><input class="f-autre" value="'+esc(b.formation&&!FORMATIONS[b.formation]?b.formation:'')+'" placeholder="Ta formation" aria-label="Ta formation" autocomplete="off" enterkeyhint="next"></label>':'')
+      +et('Autour de',!b.ville.trim())+'<label class="champ"><input class="f-ville" value="'+esc(b.ville)+'" placeholder="Ta ville" aria-label="Ta ville" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="search"></label>'
+      +(premier?'':'<div class="seg" role="group" aria-label="Jusqu’où">'+[5,15,30].map(function(r){return '<button'+(b.rayon===r?' class="on"':'')+' data-a="b-rayon" data-id="'+r+'">'+r+' km</button>'}).join('')+'</div>')
+      +'<button class="btn p" data-a="voir">Voir les entreprises</button></div>';
   }
-  function editeur(){ var k=S.trou, h='';
-    if(!k) return '';
-    if(k==='formation'){
-      h='<div class="puces">'+Object.keys(FORMATIONS).map(function(f){return '<button class="puce'+(S.P.formation===f?' on':'')+'" data-a="choix" data-id="'+esc(f)+'">'+esc(f)+'</button>'}).join('')
-        +'<button class="puce'+(S.autre?' on':'')+'" data-a="autre">Autre</button></div>'
-        +(S.autre?'<div class="deux"><label class="champ"><input class="libre" placeholder="Ta formation" aria-label="Ta formation" autocomplete="off" enterkeyhint="done"></label><button class="btn" data-a="libre-ok">OK</button></div>':'');
-    } else if(k==='quoi'){
-      h='<div class="puces">'+Object.keys(QUOI).map(function(q){return '<button class="puce'+(S.P.quoi===q?' on':'')+'" data-a="choix" data-id="'+q+'">'+QUOI[q].replace(/^./,function(c){return c.toUpperCase()})+'</button>'}).join('')+'</div>';
-    } else {
-      h='<div class="deux"><label class="champ"><input class="libre" value="'+esc(S.P.ville||'')+'" placeholder="Ta ville" aria-label="Ta ville" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="done"></label><button class="btn" data-a="libre-ok">OK</button></div>'
-        +'<div class="puces">'+['Lille','Lyon','Nantes','Toulouse'].map(function(v){return '<button class="puce'+(S.P.ville===v?' on':'')+'" data-a="choix" data-id="'+v+'">'+v+'</button>'}).join('')+'</div>'
-        +(S.P.ville?'<div><div class="et" style="margin-bottom:6px">Jusqu’où</div><div class="seg" style="max-width:280px">'+[5,15,30].map(function(r){return '<button'+(S.P.rayon===r?' class="on"':'')+' data-a="rayon" data-id="'+r+'">'+r+' km</button>'}).join('')+'</div></div>':'');
-    }
-    return '<div class="editeur">'+h+'</div>';
+  function brancherForm(){ var v=$('.f-ville',ecran), a=$('.f-autre',ecran);
+    if(v) v.addEventListener('input',function(){ S.B.ville=v.value;
+      /* le rappel « à choisir » s'éteint dès qu'on écrit, sans redessiner le champ sous le doigt */
+      var et=v.parentNode.previousElementSibling; if(et&&et.classList.contains('manque')&&v.value.trim()){ et.classList.remove('manque'); et.textContent='Autour de'; } });
+    if(a) a.addEventListener('input',function(){ S.B.formation=a.value.trim()||null; });
   }
-  function phraseCompacte(){
-    return '<button class="phrase-c" data-a="editer" aria-label="Changer ma recherche"><span>Je suis en <b>'+esc(S.P.formation)+'</b>. Je cherche <b>'+QUOI[S.P.quoi]+'</b> autour de <b>'+esc(S.P.ville)+'</b>.</span>'+ic('pencil')+'</button>';
-  }
+  /* la recherche en cours, en trois mots ; un tap rouvre les trois questions */
+  function etiquettes(){ var f=FORMATIONS[S.P.formation];
+    return '<div class="s-tags">'+[QUOI[S.P.quoi],f?f.l:S.P.formation,S.P.ville+' · '+S.P.rayon+' km'].map(function(t){return '<button data-a="editer">'+esc(t)+'</button>'}).join('')+'</div>'; }
 
-  /* ---------- la liste, la carte ---------- */
+  /* ---------- la liste ---------- */
   function ligneEnt(id,o){ o=o||{}; var e=ENT[id], r=raison(id), garde=!!S.pistes[id];
     var fin=garde?(o.pistes?'<span class="s-ok">dans tes pistes</span>':'<span class="s-ok">'+ic('check')+'gardée</span>')
       :'<button class="btn s" data-a="garder" data-id="'+id+'">Garder</button>';
     var rang='<div class="rang ent'+(poste&&S.sel===id&&!o.plat?' on':'')+'" data-a="'+(garde&&o.pistes?'piste':'ent')+'" data-id="'+id+'" role="button" tabindex="0">'
-      +'<div class="r-c"><b>'+esc(e.n)+'</b>'+(e.f?'<span class="fait-l">'+esc(e.f)+'</span>':'')+'<span class="sl">'+esc([lieu(e),(e.tc||e.t).replace(/^Plus/,'plus')].filter(Boolean).join(' · ')||'ajoutée à la main')+'</span>'
+      +'<div class="r-c"><b>'+esc(e.n)+'</b><span class="sl">'+esc([lieu(e),(e.tc||e.t).replace(/^Plus/,'plus')].filter(Boolean).join(' · ')||'ajoutée à la main')+'</span>'
       +(e.al?'<span class="alerte-l">'+esc(e.al.replace(/ \(.*/,'')).toLowerCase()+'</span>':'')+(r?'<span class="plus">'+esc(r)+'</span>':'')+'</div>'+fin+'</div>';
     return o.fixe?rang:'<div class="gl" data-id="'+id+'"><div class="dessous-g">Pas pour moi</div>'+rang+'</div>'; }
   function offres(){ var v=esc(S.P.ville);
     return S.P.quoi==='alternance'?'<a class="lien" href="https://labonnealternance.apprentissage.beta.gouv.fr/" target="_blank" rel="noopener noreferrer">Offres d’alternance autour de '+v+ic('external-link')+'</a>'
       :S.P.quoi==='stage'?'<a class="lien" href="https://www.hellowork.com/fr-fr/stage.html" target="_blank" rel="noopener noreferrer">Offres de stage autour de '+v+ic('external-link')+'</a>':''; }
   function liste(){ var c=candidats(), vus=c.slice(0,6*S.lot), reste=c.length-vus.length;
-    if(!c.length) return '<div class="panneau"><p><b>Tu as fait le tour.</b>Élargis jusqu’à 30 km, ou change un mot de ta phrase.</p></div>';
-    var coupe=-1; vus.forEach(function(id,i){ if(coupe<0&&i>0&&!pourToi(id)&&!ENT[id].al&&pourToi(vus[i-1])) coupe=i; });
-    return '<div class="rangs s-liste">'+vus.map(function(id,i){return (i===coupe?'<div class="sep-l">Moins proches de ta formation</div>':'')+ligneEnt(id)}).join('')+'</div>'
+    if(!c.length) return '<div class="panneau"><p><b>Tu as fait le tour.</b>Élargis jusqu’à 30 km, ou change ce que tu cherches.</p></div>';
+    return '<div class="rangs s-liste">'+vus.map(function(id){return ligneEnt(id)}).join('')+'</div>'
       +'<div class="suite-l">'+(reste>0?'<button class="btn" data-a="suite">Voir les '+Math.min(6,reste)+' suivantes</button>':'<div class="fin-m">La maquette s’arrête là.</div>')+offres()+'</div>';
-  }
-  /* l'échelle du plan est en racine : le centre-ville, où tout se serre, prend de la place ; les anneaux disent les vrais kilomètres */
-  var rayonPlan=function(km){return 136*Math.sqrt(km/15)};
-  var ptPlan=function(km,cap){var r=rayonPlan(Math.min(km,16)),a=cap*Math.PI/180;return [Math.round(170+r*Math.sin(a)),Math.round(150-r*Math.cos(a))]};
-  function plusProche(svg,ev){ var b=svg.getBoundingClientRect(), k=340/b.width, x=(ev.clientX-b.left)*k, y=(ev.clientY-b.top)*k, mieux=null, d=26*26;
-    candidats().forEach(function(id){ var p=ptPlan(ENT[id].km,ENT[id].cap), q=(p[0]-x)*(p[0]-x)+(p[1]-y)*(p[1]-y); if(q<d){ d=q; mieux=id; } });
-    return mieux; }
-  function plan(){ var c=candidats(), cy=150, R=rayonPlan, pt=ptPlan;
-    var h='<svg viewBox="0 0 340 300" role="group" aria-label="Les entreprises autour de '+esc(S.P.ville)+'">';
-    h+='<line class="axe" x1="170" y1="10" x2="170" y2="290"/><line class="axe" x1="30" y1="150" x2="310" y2="150"/>';
-    [5,10,15].forEach(function(km){ h+='<circle class="anneau" cx="170" cy="150" r="'+R(km).toFixed(1)+'"/><text class="km" x="174" y="'+(cy+R(km)-4).toFixed(0)+'">'+km+' km</text>'; });
-    VILLES_PLAN.forEach(function(v){ var p=pt(v[1],v[2]); h+='<text x="'+(p[0]+v[3])+'" y="'+(p[1]+v[4])+'" text-anchor="'+v[5]+'">'+v[0]+'</text>'; });
-    h+='<path class="ici" d="M166 146h8v8h-8z"/><text class="toi" x="178" y="146">TOI</text>';
-    c.forEach(function(id){ var e=ENT[id], p=pt(e.km,e.cap), garde=!!S.pistes[id], pour=pourToi(id);
-      h+='<g class="m'+(garde?' garde':pour?' pour':'')+(S.sel===id?' on':'')+'" data-a="sel" data-id="'+id+'" role="button" tabindex="0" aria-label="'+esc(e.n)+', '+esc(lieu(e))+'">'
-        +'<rect x="'+(p[0]-20)+'" y="'+(p[1]-20)+'" width="40" height="40" fill="transparent"/><rect class="halo" x="'+(p[0]-10)+'" y="'+(p[1]-10)+'" width="20" height="20"/>'
-        +'<rect class="c" x="'+(p[0]-6)+'" y="'+(p[1]-6)+'" width="12" height="12"/>'
-        +(garde?'<path d="M'+(p[0]-4)+' '+(p[1])+'h2v2h-2zm2 2h2v2h-2zm2-2h2v2h-2zm2-2h2v2h-2z"/>':'')+'</g>'; });
-    return '<div class="plan trame">'+h+'</svg></div><div class="legende"><span><i class="pour"></i>'+(S.amis?'un ami, ou ta formation':'colle à ta formation')+'</span><span><i></i>les autres</span></div>';
   }
   function corpsListe(){
     if(pasLille()) return '<div class="panneau"><p><b>La maquette ne connaît que Lille.</b>La vraie app cherche partout en France.</p><button class="btn" data-a="lille">Revenir à Lille</button></div>';
     if(G.hl) return '<div class="panneau">'+ic('radio')+'<p><b>Pas de réseau.</b>L’annuaire revient avec lui. Tes pistes, elles, restent là.</p>'+(S.ordre.length?'<button class="btn" data-a="onglet" data-id="pistes">Voir mes pistes</button>':'')+'</div>';
     if(S.charge) return '<div class="charge" role="status"><div class="et">Recherche autour de '+esc(S.P.ville)+'…</div><div class="barre98">'+Array.apply(null,Array(14)).map(function(_,i){return '<i style="animation-delay:'+(i*55)+'ms"></i>'}).join('')+'</div></div>';
-    var n=TOTAL[S.P.rayon]-S.deja.length-S.ecartes.length;
-    var tete='<div class="l-tete"><div class="et">'+n+' entreprises</div>'+(poste?'':'<div class="seg" role="group" aria-label="Affichage"><button'+(S.mode==='liste'?' class="on"':'')+' data-a="mode" data-id="liste">Liste</button><button'+(S.mode==='carte'?' class="on"':'')+' data-a="mode" data-id="carte">Carte</button></div>')+'</div>';
-    if(!poste&&S.mode==='carte'){ var c=candidats(); if(c.indexOf(S.sel)<0) S.sel=c[0]||null;
-      return tete+plan()+(S.sel?'<div class="rangs s-liste">'+ligneEnt(S.sel,{fixe:1,plat:1})+'</div>':''); }
-    return tete+liste();
+    return '<div class="et s-et">'+(TOTAL[S.P.rayon]-S.deja.length-S.ecartes.length)+' entreprises près de toi</div>'+liste();
   }
 
-  /* ---------- la recherche : un nom, un métier, un lien ---------- */
+  /* ---------- la barre : un nom, un métier, un lien ---------- */
   function lireLien(q){ var m=q.match(/linkedin\.com\/company\/([^\/?#\s]+)/i)||q.match(/\/companies\/([^\/?#\s]+)/i)||q.match(/^(?:https?:\/\/)?(?:www\.)?([a-z0-9-]+)\.(?:fr|com|io|net|eu|org)(?:\/|$)/i);
     return m?decodeURIComponent(m[1]).replace(/[-_]+/g,' ').replace(/\b[a-zà-ÿ]/g,function(c){return c.toUpperCase()}):''; }
   function chercher(q){ var lu=lireLien(q), p=plat(lu||q), mots=p.split(' ').filter(Boolean), theme=null, ids=[];
@@ -641,9 +573,9 @@ function app(root,poste){
       +(e.al?'<div class="alerte">'+ic('square-alert')+esc(e.al)+'</div>':'')
       +(a?'<div class="porte"><svg class="visage"><use href="#i-visage-'+a.v+'"/></svg>'+a.p+' '+a.q+'</div>':'')
       +(e.main?'<div class="panneau" style="margin:16px 0 0"><p><b>Pas dans l’annuaire.</b>Tu pourras la compléter depuis sa piste.</p></div>':'')
-      +(f.length?'<dl class="faits">'+f.map(function(x){return '<div><dt>'+x[0]+'</dt><dd>'+x[1]+'</dd></div>'}).join('')+'</dl>':'')
-      +(qui?'<fieldset class="gb"><legend>À qui écrire</legend>'+qui+'</fieldset>':'')
-      +(e.main?'':'<p class="src">'+(e.c||e.rec||e.al?'Annuaire des entreprises · BODACC':'Annuaire des entreprises')+'</p>')+'</div>';
+      +'<div class="pg-corps"><div>'+(f.length?'<dl class="faits">'+f.map(function(x){return '<div><dt>'+x[0]+'</dt><dd>'+x[1]+'</dd></div>'}).join('')+'</dl>':'')+'</div>'
+      +'<div>'+(qui?'<fieldset class="gb"><legend>À qui écrire</legend>'+qui+'</fieldset>':'')
+      +(e.main?'':'<p class="src">'+(e.c||e.rec||e.al?'Annuaire des entreprises · BODACC':'Annuaire des entreprises')+'</p>')+'</div></div></div>';
   }
   function piedEnt(id){ var garde=!!S.pistes[id];
     return garde?'<button class="btn fait court" disabled>'+ic('check')+'Gardée</button><button class="btn p" data-a="piste" data-id="'+id+'">Préparer mon message</button>'
@@ -667,7 +599,7 @@ function app(root,poste){
   function ligneP(id,bouton){ var e=ENT[id], s=suite(id);
     return '<div class="rang l" data-a="piste" data-id="'+id+'" role="button" tabindex="0"><div class="r-c"><b>'+esc(e.n)+'</b><span'+(s.plus?' class="plus"':'')+'>'+esc(s.l)+'</span></div>'
       +(bouton&&s.b?'<button class="btn s'+(bouton===2?' p':'')+'" data-a="piste" data-id="'+id+'">'+s.c+'</button>':ic('chevron-right'))+'</div>'; }
-  var avenir=function(n){return '<small>maquette d’avant · lot '+n+'</small>'};
+  var avenir=function(n){return '<small>lot '+n+', à venir</small>'};
   function vPistes(){ var ids=S.ordre, n=ids.length;
     if(!n) return '<div class="defile"><div class="s-tete"><h3>Pistes'+avenir(2)+'</h3></div><div class="panneau"><p>Les entreprises que tu gardes arrivent ici.<br>L’app te dit ensuite quoi faire pour chacune.</p><button class="btn p" data-a="onglet" data-id="trouver">Trouver des entreprises</button></div></div>';
     var afaire=ids.filter(function(id){return suite(id).urgent}).slice(0,3);
@@ -700,7 +632,7 @@ function app(root,poste){
       +'<div class="s-bas"><button class="btn">Donner des pistes</button><button class="btn">Recevoir</button></div>';
   }
   function vMoi(){ var r=function(t,d){ return '<div class="rang nav-r"><div class="r-c"><b>'+t+'</b>'+(d?'<span>'+d+'</span>':'')+'</div>'+ic('chevron-right')+'</div>'; };
-    var p=complet()?esc(S.P.formation)+' · '+S.P.quoi+' · '+esc(S.P.ville):'à compléter';
+    var p=complet()?esc(S.P.formation)+' · '+QUOI[S.P.quoi].toLowerCase()+' · '+esc(S.P.ville):'à compléter';
     return '<div class="defile"><div class="s-tete"><h3>Moi'+avenir(4)+'</h3></div><div class="s-moi">'+(S.amis?'<b>Inès Martin</b>':'<b>Ton profil</b>')+'<span>'+p+'</span></div><div class="rangs s-liste">'
       +r('Mon profil',S.amis?'':'à compléter : ton nom, ton école')+r('CV et lettres',S.amis?'1 CV':'aucun')+r('Mes messages types','3 modèles')+r('Ma copie','sur cet appareil seulement')+r('Réglages','')+'</div></div>';
   }
@@ -710,28 +642,25 @@ function app(root,poste){
     return [['trouver','search','Trouver'],['pistes','briefcase','Pistes'],['reseau','users','Réseau'],['moi','user','Moi']].map(function(o){
       return '<button data-a="onglet" data-id="'+o[0]+'" class="'+(S.onglet===o[0]?'on':'')+(o[0]==='pistes'&&S.vient?' vient':'')+'"'+(S.onglet===o[0]?' aria-current="page"':'')+'>'+ic(o[1])+'<span>'+o[2]+(o[0]==='pistes'&&n?'<b>'+n+'</b>':'')+'</span></button>'; }).join(''); }
   function annuleHTML(){ return S.annule?'<div class="annule" role="status"><span>'+esc(ENT[S.annule].n)+' : pas pour moi</span><button data-a="annuler">Annuler</button></div>':''; }
-  function barreHTML(){ return '<div class="barre"><label class="champ">'+ic('search')+'<input type="search" class="q" placeholder="Une entreprise, un métier, un lien" aria-label="Chercher une entreprise" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search"></label><button class="lien" data-a="fermer-r">Annuler</button></div>'; }
+  function barreHTML(){ return '<div class="barre"><label class="champ">'+ic('search')+'<input type="search" class="q" placeholder="Métier, ville, entreprise…" aria-label="Chercher une entreprise" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search"></label><button class="lien" data-a="fermer-r">Annuler</button></div>'; }
   function brancherBarre(){ var q=$('.q',ecran); if(!q) return;
     q.value=S.q;
-    q.addEventListener('focus',function(){ if(!S.cherche&&!poste){ S.cherche=true; S.trou=null; S.edition=false; rendre(); } });
+    q.addEventListener('focus',function(){ if(!S.cherche&&!poste){ S.cherche=true; rendre(); } });
     q.addEventListener('input',function(){ S.q=q.value; if(poste) S.cherche=!!S.q.trim(); rendre(); });
     q.addEventListener('keydown',function(e){ if(e.key==='Escape'){ fermerRecherche(); rendre(); q.blur(); } });
   }
   function fermerRecherche(){ S.cherche=false; S.q=''; var q=$('.q',ecran); if(q) q.value=''; }
   function garderDefile(f){ var d=$('.defile',ecran), y=d?d.scrollTop:0; f(); d=$('.defile',ecran); if(d) d.scrollTop=y; }
+  function corpsTrouver(){ return S.cherche?corpsRecherche():S.form?formulaire():etiquettes()+corpsListe(); }
 
   function rendreTel(){
     var v=S.vue, memes=ecran.getAttribute('data-vue')===v;
     if(v==='trouver'){
       if(!memes){ ecran.innerHTML='<div class="t-tete"><h3>Trouver</h3>'+barreHTML()+'</div><div class="defile t-corps"></div><div class="pied" hidden></div><div class="t-annule"></div>'; brancherBarre(); }
-      var grande=!complet()||S.edition;
-      ecran.classList.toggle('cherche',S.cherche); ecran.classList.toggle('sans-barre',grande);
-      var corps=S.cherche?corpsRecherche():grande?phraseGrande():phraseCompacte()+corpsListe();
-      var d=$('.t-corps',ecran), y=memes?d.scrollTop:0; d.innerHTML=corps; d.scrollTop=y;
-      var pied=$('.pied',ecran), valide=grande&&complet()&&!S.trou&&!S.cherche, montre=S.neuves>0&&!S.cherche&&!grande;
-      pied.hidden=!(montre||valide);
-      pied.innerHTML=valide?'<button class="btn p" data-a="fini">Voir les entreprises</button>'
-        :montre?'<button class="btn p" data-a="onglet" data-id="pistes">Continuer avec '+(S.neuves>1?'mes '+S.neuves+' pistes':'ma piste')+ic('arrow-right')+'</button>':'';
+      ecran.classList.toggle('cherche',S.cherche); ecran.classList.toggle('sans-barre',S.form&&!S.cherche);
+      var d=$('.t-corps',ecran), y=memes?d.scrollTop:0; d.innerHTML=corpsTrouver(); d.scrollTop=y; brancherForm();
+      var pied=$('.pied',ecran), montre=S.neuves>0&&!S.cherche&&!S.form;
+      pied.hidden=!montre; pied.innerHTML=montre?'<button class="btn p" data-a="onglet" data-id="pistes">Continuer avec '+(S.neuves>1?'mes '+S.neuves+' pistes':'ma piste')+ic('arrow-right')+'</button>':'';
       $('.t-annule',ecran).innerHTML=annuleHTML();
     } else if(v==='entreprise'){
       garderDefile(function(){ ecran.innerHTML='<div class="tb"><button class="ret" data-a="retour" aria-label="Retour">'+ic('arrow-left')+'</button>Entreprise</div><div class="defile">'+pageEnt(S.fiche)+'</div><div class="pied">'+piedEnt(S.fiche)+'</div>'; });
@@ -746,18 +675,18 @@ function app(root,poste){
   function rendrePoste(){
     var v=S.vue, memes=ecran.getAttribute('data-vue')===v, etat=$('.p-etat',root);
     if(v==='trouver'){
-      if(!memes){ ecran.innerHTML='<div class="p-col c1"><div class="t-tete">'+barreHTML()+'</div><div class="defile t-corps"></div></div><div class="p-col c2"></div><div class="p-col c3"></div>'; brancherBarre(); }
-      var grande=!complet()||S.edition, c=grande||pasLille()||G.hl||S.charge?[]:candidats();
+      if(!memes){ ecran.innerHTML='<div class="p-col c1"><div class="t-tete">'+barreHTML()+'</div><div class="defile t-corps"></div></div><div class="p-col c2"></div>'; brancherBarre(); }
+      ecran.classList.toggle('sans-barre',S.form&&!S.cherche);
+      var vide=S.form||pasLille()||G.hl||S.charge, c=vide?[]:candidats();
       if(c.length&&(!S.sel||(c.indexOf(S.sel)<0&&!S.pistes[S.sel]))) S.sel=c[0];
-      var d=$('.t-corps',ecran), y=memes?d.scrollTop:0;
-      d.innerHTML=S.cherche?corpsRecherche():grande?phraseGrande():phraseCompacte()+corpsListe(); d.scrollTop=y;
-      var c2=$('.c2',ecran), c3=$('.c3',ecran), montre=S.sel&&ENT[S.sel]&&!grande&&!G.hl&&!S.charge&&!pasLille();
+      var d=$('.t-corps',ecran), y=memes?d.scrollTop:0; d.innerHTML=corpsTrouver(); d.scrollTop=y; brancherForm();
+      var c2=$('.c2',ecran), montre=!!(S.sel&&ENT[S.sel]&&!vide);
       var y2=($('.defile',c2)||{}).scrollTop||0, meme2=c2.getAttribute('data-id')===S.sel;
       c2.innerHTML=montre?'<div class="defile">'+pageEnt(S.sel)+'</div><div class="pied">'+piedEnt(S.sel)+'</div>'+annuleHTML()
-        :'<div class="p-vide"><p>'+(grande?'Tes entreprises apparaissent ici.':G.hl?'Rien à montrer sans réseau.':'')+'</p></div>'+annuleHTML();
+        :'<div class="p-vide"><p>'+(S.form?'Tes entreprises apparaissent ici.':G.hl?'Rien à montrer sans réseau.':'')+'</p></div>'+annuleHTML();
       c2.setAttribute('data-id',montre?S.sel:''); if(meme2&&$('.defile',c2)) $('.defile',c2).scrollTop=y2;
-      c3.innerHTML=montre?plan()+'<div class="c3-bas">'+offres()+'</div>':'<div class="p-vide"></div>';
-      etat.innerHTML=(montre?'<span>'+(TOTAL[S.P.rayon]-S.deja.length-S.ecartes.length)+' entreprises autour de '+esc(S.P.ville)+'</span><span>Annuaire des entreprises</span>':'<span>'+(G.hl?'Hors ligne':'Prêt')+'</span>')+'<div class="aide-k">'+(montre?'<kbd>↑</kbd><kbd>↓</kbd><span>choisir</span>':'')+'<kbd>/</kbd><span>chercher</span></div>';
+      etat.innerHTML=(montre?'<span>'+(TOTAL[S.P.rayon]-S.deja.length-S.ecartes.length)+' entreprises autour de '+esc(S.P.ville)+'</span><span>Annuaire des entreprises</span>':'<span>'+(G.hl?'Hors ligne':'Prêt')+'</span>')
+        +'<div class="aide-k">'+(montre?'<kbd>↑</kbd><kbd>↓</kbd><span>choisir</span>':'')+'<kbd>/</kbd><span>chercher</span></div>';
     } else {
       ecran.innerHTML='<div class="p-seul"><div>'+({pistes:vPistes,piste:vPiste,reseau:vReseau,moi:vMoi})[v]()+'</div></div>';
       etat.innerHTML='<span>Le poste de ces écrans se dessine au lot 6.</span>';
@@ -768,15 +697,9 @@ function app(root,poste){
   function rendre(){ poste?rendrePoste():rendreTel(); }
 
   /* ---------- les gestes ---------- */
-  function lancer(){ S.edition=false; S.trou=null; S.lot=1; S.sel=null;
+  function lancer(){ S.form=false; S.manque=false; S.lot=1; S.sel=null;
     if(calme||pasLille()||G.hl){ rendre(); return; }
     S.charge=true; rendre(); clearTimeout(horloge); horloge=setTimeout(function(){ S.charge=false; rendre(); },950); }
-  function apres(k){ /* un trou rempli : le suivant s'ouvre, ou la liste arrive */
-    var ordre=['formation','quoi','ville'], vide=ordre.filter(function(x){return !S.P[x]})[0];
-    if(vide){ S.trou=vide; rendre(); var l=$('.libre',ecran); if(l&&vide==='ville'&&poste) l.focus(); }
-    else if(S.edition){ S.trou=k==='ville'?'ville':null; rendre(); }
-    else lancer();
-  }
   function garder(id){ if(S.pistes[id]) return; ajouter(id,{e:'garde',h:[['aujourd’hui','Gardée']]}); S.neuves++; S.vient=true; }
   function ecarter(id){ if(S.pistes[id]) return; S.ecartes.push(id); S.annule=id; if(S.sel===id) S.sel=null;
     clearTimeout(ecarter.t); ecarter.t=setTimeout(function(){ S.annule=null; rendre(); },6000); }
@@ -786,17 +709,16 @@ function app(root,poste){
     var b=ev.target.closest('[data-a]'); if(!b||!root.contains(b)) return;
     var a=b.getAttribute('data-a'), id=b.getAttribute('data-id'), p=S.pistes[S.fiche];
     if(a==='onglet'){ S.onglet=S.vue=id; S.pmode=null; fermerRecherche(); if(id==='pistes') S.neuves=0; }
-    else if(a==='trou'){ S.trou=S.trou===id?null:id; S.autre=false; if(complet()) S.edition=true; }
-    else if(a==='autre'){ S.autre=!S.autre; rendre(); var l=$('.libre',ecran); if(l) l.focus(); return; }
-    else if(a==='choix'){ var k=S.trou; S.P[k]=id; S.autre=false; if(k==='ville'&&S.edition){ rendre(); return; } apres(k); return; }
-    else if(a==='libre-ok'){ var c=$('.libre',ecran), val=c?c.value.trim():''; if(!val){ if(c) c.focus(); return; } var k2=S.trou; S.P[k2]=val; S.autre=false; if(k2==='ville'&&S.edition){ S.trou=null; rendre(); return; } apres(k2); return; }
-    else if(a==='rayon'){ S.P.rayon=+id; }
-    else if(a==='editer'){ S.edition=true; S.trou=null; }
-    else if(a==='fini'){ lancer(); return; }
+    else if(a==='b-quoi'){ S.B.quoi=id; }
+    else if(a==='b-form'){ S.B.formation=id; S.B.autre=false; }
+    else if(a==='b-autre'){ S.B.autre=!S.B.autre; S.B.formation=null; rendre(); var fa=$('.f-autre',ecran); if(fa) fa.focus(); return; }
+    else if(a==='b-rayon'){ S.B.rayon=+id; }
+    else if(a==='voir'){ var B=S.B, ville=B.ville.trim();
+      if(!B.quoi||!B.formation||!ville){ S.manque=true; rendre(); return; }
+      S.P={quoi:B.quoi,formation:B.formation,ville:ville.replace(/^./,function(c){return c.toUpperCase()}),rayon:B.rayon}; lancer(); return; }
+    else if(a==='editer'){ S.form=true; S.manque=false; S.B=brouillon(); }
     else if(a==='lille'){ S.P.ville='Lille'; lancer(); return; }
     else if(a==='suite'){ S.lot++; }
-    else if(a==='mode'){ S.mode=id; }
-    else if(a==='sel'){ var svg=ev.target.closest('svg'); S.sel=(svg&&ev.clientX?plusProche(svg,ev):null)||id; }
     else if(a==='ent'){ if(poste){ S.sel=id; if(S.cherche) fermerRecherche(); } else { S.vue='entreprise'; S.fiche=id; } }
     else if(a==='garder'){ garder(id); }
     else if(a==='ecarter'){ ecarter(id); if(!poste){ S.vue='trouver'; } }
@@ -818,7 +740,7 @@ function app(root,poste){
   });
   root.addEventListener('keydown',function(ev){
     if((ev.key==='Enter'||ev.key===' ')&&ev.target.matches('[role="button"]')){ ev.preventDefault(); ev.target.click(); }
-    if(ev.key==='Enter'&&ev.target.matches('.libre')){ var ok=$('[data-a="libre-ok"]',ecran); if(ok) ok.click(); }
+    if(ev.key==='Enter'&&ev.target.matches('.f-ville,.f-autre')){ var ok=$('[data-a="voir"]',ecran); if(ok) ok.click(); }
   });
 
   /* au doigt : glisser une ligne vers la gauche l'écarte ; le geste annulé revient au repos */
@@ -840,8 +762,8 @@ function app(root,poste){
     rendre:rendre,
     touche:function(ev){ if(S.vue!=='trouver') return;
       var q=$('.q',ecran), dans=ev.target.matches('input');
-      if(ev.key==='/'&&!dans){ ev.preventDefault(); if(q) q.focus(); return; }
-      if(dans||!complet()||S.edition) return;
+      if(ev.key==='/'&&!dans&&!S.form){ ev.preventDefault(); if(q) q.focus(); return; }
+      if(dans||S.form) return;
       var c=candidats(), i=c.indexOf(S.sel);
       if(ev.key==='ArrowDown'||ev.key==='ArrowUp'){ ev.preventDefault(); var n=Math.max(0,Math.min(c.length-1,i+(ev.key==='ArrowDown'?1:-1))); S.sel=c[n]; if(n>=6*S.lot) S.lot++; rendre();
         var on=$('.rang.ent.on',ecran); if(on&&on.scrollIntoView) on.scrollIntoView({block:'nearest'}); }

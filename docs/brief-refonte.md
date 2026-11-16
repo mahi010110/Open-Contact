@@ -335,26 +335,36 @@ Une place reste « proposée » tant qu'il ne l'a pas validée.
 
 ### Lot 1 : Trouver, et la page d'une entreprise (16 novembre 2026)
 
-Montré, en attente de son avis. Ce que la maquette propose :
+**Première version : refusée.** « C'est horrible. La page d'accueil, la
+carte… » J'avais remplacé l'accueil validé (trois questions à puces) par
+une phrase à trous, et ajouté un plan des entreprises autour de soi. Deux
+idées neuves, conceptuelles, à la place de ce qu'il avait aimé. Sa
+réponse : « Tu m'avais montré du bon avant. Le principal est qu'il faut
+que ce soit utile. »
 
-- **Une phrase à trois trous** à la place du formulaire du premier jour :
-  « Je suis en … Je cherche … autour de … ». Remplie, elle reste en tête
-  de la liste et se rouvre d'un tap. C'est la même phrase qui ira dans Moi.
-- **Une ligne = le nom, ce qu'elle fait, où elle est.** « Colle à ta
-  formation » ne s'écrit pas sur chaque ligne : la liste commence par
-  celles qui collent, et un intertitre dit où ça s'arrête. Seule la raison
-  rare s'écrit sur la ligne : un ami qui y est passé.
-- **« Garder » sur chaque ligne**, « Pas pour moi » au glissé et au pied
-  de la page, avec « Annuler ». Dès qu'on a gardé, le pied propose
-  « Continuer avec mes N pistes ».
-- **La barre fait tout** : un nom, un métier (« cyber »), un lien collé
-  (LinkedIn, une annonce). Rien trouvé : « Garder tel quel ».
-- **La carte**, à côté de la liste : toi au centre, des anneaux à 5, 10 et
-  15 km, les villes voisines. Sans fond de carte, donc hors ligne.
-- **Au poste** : la liste, l'entreprise et la carte côte à côte ; ↑ ↓, G
-  pour garder, X pour écarter, « / » pour chercher.
+**La règle qui en sort, pour tous les lots.** On approfondit ce qui est
+validé, on ne le remplace pas. Un lot reprend tels quels les écrans de
+la maquette validée, puis ajoute seulement ce qui manque et qui sert. Une
+idée neuve se propose à côté, jamais à la place. Et « le surprendre »
+(§5) ne veut pas dire changer la forme : il a refusé deux fois ce qui
+était conceptuel.
 
-À trancher avec lui : la carte et « coller un lien » sont deux surprises
-proposées, il peut n'en garder aucune. Non vérifié : WebKit (iPhone).
-Dans le vrai moteur, il restera à écrire la lecture d'un lien collé et le
-plan (les coordonnées viennent déjà de l'annuaire).
+**Seconde version : montrée, en attente de son avis.**
+
+- L'accueil et la liste sont ceux de la maquette validée : trois
+  questions le premier jour, puis les trois mots de la recherche
+  (« Alternance », « Systèmes et réseaux », « Lille · 15 km »), qui
+  rouvrent les questions d'un tap, et la liste avec « Garder ».
+- Une ligne dit le nom, le lieu et la taille, puis sa raison quand elle
+  en a une : un ami qui y est passé, ou « colle à ta formation ».
+- Ce qui s'ajoute : la barre qui marche (un nom, un métier, un lien
+  collé, sinon « Garder tel quel ») ; la page complète (comptes,
+  récemment, aide, à qui écrire avec le lien LinkedIn) ; « Pas pour moi »
+  au glissé et au pied de la page, avec « Annuler » ; « Continuer avec
+  mes N pistes » dès qu'on a gardé ; « Voir les 6 suivantes » ; le lien
+  vers les offres ; le chargement et le hors ligne.
+- Au poste : la liste et l'entreprise côte à côte ; ↑ ↓, G pour garder,
+  X pour écarter, « / » pour chercher.
+
+Non vérifié : WebKit (iPhone). Dans le vrai moteur, il restera à écrire
+la lecture d'un lien collé.
