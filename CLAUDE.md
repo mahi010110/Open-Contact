@@ -199,6 +199,29 @@ latérale, « Premiers pas », « Ma semaine », Ctrl K, « Le dire à
 Karim »…). Montré au mainteneur en captures avant la fusion (§0, la
 règle juste au-dessus).
 
+### La refonte de l'interface (16 novembre 2026)
+
+Le mainteneur, le 16 novembre 2026 : « Je veux refaire les interfaces
+d'OpenContact : le concept, la navigation et l'UX. On garde le moteur,
+les données, le code et le matériel "Utilitaire 98". » Puis, sur
+l'ampleur : « tout peut changer ». Trois directions lui ont été montrées
+en maquette ; il a retenu **l'app simple** : quatre onglets fixes
+(Trouver · Pistes · Réseau · Moi), des listes, une page par entreprise.
+Le cadrage est dans `docs/brief-refonte.md`, la maquette dans
+`design/maquettes/directions/`.
+
+**Pour la nouvelle interface, seul le socle oblige** : §0 (les deux
+questions, la règle des captures), §1, §2, §3, le matériel de §4, les
+mots de §7, §10 et `CONTRAT.md`. La navigation, les écrans et le
+catalogue de §5 et §6 décrivent l'interface ACTUELLE : ils continuent de
+la tenir jusqu'à la bascule. Pour la nouvelle, ils servent de leçons
+(les pièges du navigateur, du clavier, du geste), jamais de plan. Rien
+n'arrive dans main sans l'accord du mainteneur, et la navigation ne
+change qu'une fois.
+
+*Tranché par l'assistant, à valider :* la liste exacte de ce qui forme
+le socle, ci-dessus.
+
 ## 1. Le produit en une phrase
 
 OpenContact aide un étudiant IT/cyber à répondre à **« je fais quoi
