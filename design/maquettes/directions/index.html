@@ -183,6 +183,7 @@ body[data-jour="1"] .tel[data-j="8"], body[data-jour="8"] .tel[data-j="1"]{displ
 .rang .r-c{flex:1;min-width:0}
 .rang b{display:block;font-weight:600;line-height:1.25}
 .rang span{display:block;font:400 12px/1.3 var(--mono);color:var(--ink2)}
+.rang span.plus,.p-l span.plus{font:600 13px/1.3 var(--ui);color:var(--teal)}
 
 /* ---------- 3 · le carnet ---------- */
 .d3 .tb{min-height:46px}
@@ -247,12 +248,107 @@ body[data-jour="1"] .tel[data-j="8"], body[data-jour="8"] .tel[data-j="1"]{displ
 .p3 .compo{display:flex;gap:8px;align-items:center}
 .p3 .compo .champ{flex:1;min-height:34px;font-size:14px;display:flex;align-items:center;color:var(--ink3)}
 
+/* ---------- la proposition : l'app simple ---------- */
+.ecran{flex:1;min-height:0;display:flex;flex-direction:column}
+.s-def{flex:1;min-height:0;overflow:auto}
+.s-tete{padding:16px 16px 6px}
+.s-tete h3{margin:0;font:700 22px/1.1 var(--ui);letter-spacing:-.01em;display:flex;align-items:baseline;gap:10px}
+.s-tete h3 small{font:400 13px/1 var(--mono);color:var(--ink2)}
+.s-tete p{margin:6px 0 0;color:var(--ink2);font-size:14px}
+.s-form{padding:6px 16px 16px;display:grid;gap:8px}
+.s-form .et{margin-top:8px}
+.s-form .btn{margin-top:10px}
+.faux{display:flex;align-items:center;gap:8px;color:var(--ink3)}
+.faux .ic{width:18px;height:18px}
+.s-cherche{padding:4px 16px 0}
+.s-tags{display:flex;flex-wrap:wrap;gap:0 16px;padding-top:4px}
+.s-tags button{min-height:36px;border:0;background:none;padding:0;color:var(--teal);font:500 14px/1 var(--ui);display:inline-flex;align-items:center;gap:5px}
+.s-tags .ic{width:12px;height:12px;color:var(--ink3)}
+.s-et{padding:12px 16px 6px}
+.s-liste{margin:0 12px 14px}
+.s-liste .rang{align-items:flex-start;padding:11px 10px;cursor:pointer}
+.s-liste .rang b{font-size:16px}
+.s-liste .rang .plus{font:600 13px/1.3 var(--ui);color:var(--teal);margin-top:2px}
+.s-liste .rang>.ic{color:var(--ink2);width:18px;height:18px;margin-top:2px}
+.s-liste .rang.conv,.s-liste .rang.nav-r{align-items:center;min-height:52px}
+.s-ok{font:500 12px/1 var(--mono);color:var(--teal);white-space:nowrap;padding-top:4px}
+.s-afaire{margin:0 12px 4px;border:1px solid var(--bord);background:var(--g1);box-shadow:var(--sh2)}
+.s-afaire .rang{padding:11px 10px;cursor:pointer}
+.s-afaire .rang b{font-size:16px}
+.ret{width:32px;height:32px;display:grid;place-items:center;border:1px solid var(--bord);background:var(--g2);color:var(--ink);box-shadow:var(--bevel-up);padding:0;margin-left:-4px}
+.ret .ic{width:16px;height:16px;transform:rotate(180deg)}
+.s-page{flex:1;min-height:0;overflow:auto;padding:16px 16px 20px}
+.s-page h4{margin:0 0 3px;font:700 23px/1.15 var(--ui);letter-spacing:-.01em}
+.doux{color:var(--ink2);font-size:14px}
+fieldset.gb{margin:18px 0 0;min-width:0;padding:4px 12px 12px;border:1px solid var(--cadre)}
+fieldset.gb legend{padding:0 6px;font:500 11px/1.5 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink2)}
+.gb p{margin:6px 0 0}
+.gb .fort{font:700 17px/1.25 var(--ui)}
+.gb>.btn{width:100%;margin-top:12px}
+.gb .deux{display:flex;gap:8px;margin-top:12px}
+.gb .seg{margin-top:10px}
+.evs{display:flex;gap:8px;margin-top:8px}
+.evs .btn{flex:1;padding:0 6px;font-size:14px;white-space:normal;text-align:center}
+.pers{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px dashed var(--doux)}
+.pers .r-c{flex:1;min-width:0}
+.pers b{display:block;font-weight:600}
+.pers span{display:block;font:400 12px/1.3 var(--mono);color:var(--ink2)}
+.pers>.ic{color:var(--ink2)}
+details.pli{border-bottom:1px dashed var(--doux)}
+details.pli summary{list-style:none;display:flex;align-items:center;justify-content:space-between;min-height:46px;font-weight:600;cursor:pointer}
+details.pli summary::-webkit-details-marker{display:none}
+details.pli summary .ic{color:var(--ink2);width:18px;height:18px}
+details.pli[open] summary .ic{transform:rotate(90deg)}
+details.pli .faits{margin:0 0 10px;border-top:0}
+.hist{margin:0 0 12px;padding:0;list-style:none;display:grid;gap:6px;font-size:14px}
+.hist span{font:400 12px/1.4 var(--mono);color:var(--ink2);margin-right:8px}
+.rang .s-init{flex:none;width:36px;height:36px;display:grid;place-items:center;border:1px solid var(--bord);background:var(--g3);font:400 16px/1 var(--pixel);color:var(--ink)}
+.conv .visage{width:36px;height:36px}
+.s-h{font:400 11px/1 var(--mono);color:var(--ink2);align-self:flex-start;padding-top:4px}
+.s-vide{margin:8px 12px;padding:26px 16px;border:1px dashed var(--cadre);text-align:center;display:grid;gap:12px;justify-items:center}
+.s-vide p{margin:0;color:var(--ink2)}
+.s-bas{display:flex;gap:10px;padding:12px;flex:none}
+.s-bas .btn{flex:1}
+.s-moi{margin:4px 16px 12px}
+.s-moi b{display:block;font:700 18px/1.2 var(--ui)}
+.s-moi span{font:400 13px/1.4 var(--mono);color:var(--ink2)}
+.p4-onglets{display:flex;align-items:center;gap:4px;padding:6px 8px;background:var(--g2);border-bottom:1px solid var(--bord);flex:none}
+.p4-onglets button{height:32px;padding:0 14px;border:1px solid transparent;background:none;font:600 14px/1 var(--ui);display:inline-flex;align-items:center;gap:8px;color:var(--ink2)}
+.p4-onglets button.on{background:var(--navy);color:var(--on-navy);border-color:var(--bord);box-shadow:var(--bevel-up)}
+.p4-onglets .champ{margin-left:auto;width:320px;min-height:32px;font-size:14px}
+.p4 .p-fiche{gap:12px}
+.p4 fieldset.gb{margin:0}
+.p4 .gb>.btn{width:auto}
+.p4 .evs{margin:0}
+.p4 .evs .btn{flex:none;padding:0 12px}
+
+.prop.dir{display:grid;grid-template-columns:minmax(0,1fr) 390px 390px;gap:18px 28px;align-items:start;max-width:1320px;margin:0 auto;
+  padding:22px max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px))}
+.prop>.d-texte{grid-column:1;grid-row:1;display:grid;gap:14px}
+.prop>.tel{grid-column:2;grid-row:1;margin:0}
+.prop>.tel.bis{grid-column:3}
+.prop>.poste{grid-column:1/-1}
+.d-texte ul{margin:0;padding-left:18px;display:grid;gap:6px;font-size:14px;line-height:1.4}
+.d-num .ic{width:20px;height:20px}
+.inter{max-width:1320px;margin:34px auto 0;padding:14px max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px));font:700 19px/1.2 var(--ui);border-top:1px solid var(--cadre)}
+@media (max-width:1180px){
+  .prop.dir{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .prop>.d-texte{grid-column:1/-1}
+  .prop>.tel{grid-row:2;grid-column:1}
+  .prop>.tel.bis{grid-column:2}
+}
+
 /* ---------- au téléphone : une direction à la fois, à sa vraie taille ---------- */
 @media (max-width:860px){
   .tete{gap:8px}
-  .tete h1,.tete p{display:none}
+  .tete h1,.tete p,.inter{display:none}
+  .prop.dir{display:none;padding:0}
+  body[data-dir="4"] .prop.dir{display:block}
+  .prop>.tel.bis{display:none}
+  .prop>.d-texte{margin:18px max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px))}
+  .prop>.d-texte .d-tete,.prop>.d-texte .d-notes{margin:0}
   .bascule.dirs{display:flex;flex:1 1 100%}
-  .bascule.dirs button{flex:1;min-height:44px;padding:0 4px}
+  .bascule.dirs button{flex:1;min-height:44px;padding:0 2px;font-size:13px}
   .bascule.jours{flex:1}
   .bascule.jours button{flex:1}
   .planche{display:block;padding:0 0 32px}
@@ -279,17 +375,19 @@ body[data-jour="1"] .tel[data-j="8"], body[data-jour="8"] .tel[data-j="1"]{displ
   <symbol id="i-msg" viewBox="0 0 24 24"><path d="M20 2H4v2h16zm0 14H6v2h14zm2-12h-2v12h2zM4 4H2v18h2zm2 14H4v2h2zm0-6h4v2H6zm0-4h8v2H6z"/></symbol>
   <symbol id="i-flag" viewBox="0 0 24 24"><path d="M4 2h2v20H4z"/><path d="M4 4h16v2H4zm12 2h2v2h-2zm-2 2h2v2h-2zm2 2h2v2h-2zM4 12h16v2H4z"/></symbol>
   <symbol id="i-undo" viewBox="0 0 24 24"><path d="M18 20h-6v-2h6v2Zm2-2h-2v-8h2v8Zm-10-4H8v-2H6v-2H4V8h2V6h2V4h2v4h8v2h-8v4Z"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><path d="M22 22h-2v-2h2v2Zm-2-2h-2v-2h2v2Zm-6-2H6v-2h8v2Zm4 0h-2v-2h2v2ZM6 16H4v-2h2v2Zm10 0h-2v-2h2v2ZM4 14H2V6h2v8Zm14 0h-2V6h2v8ZM6 6H4V4h2v2Zm10 0h-2V4h2v2Zm-2-2H6V2h8v2Z"/></symbol>
   <symbol id="i-visage-k" viewBox="0 0 7 7"><path d="M1 1h5v1H1zM1 3h1v1H1zm4 0h1v1H5zM2 5h3v1H2zM0 2h1v3H0zm6 0h1v3H6z"/></symbol>
   <symbol id="i-visage-l" viewBox="0 0 7 7"><path d="M0 0h7v2H0zM1 3h2v1H1zm3 0h2v1H4zM2 5h3v1H2zM0 2h1v5H0zm6 0h1v5H6z"/></symbol>
 </svg>
 
 <header class="tete">
-  <h1>Trois directions pour l’accueil</h1>
+  <h1>Une proposition, trois explorations</h1>
   <p>Le même étudiant, le premier jour puis une semaine plus tard. Tout se touche.</p>
   <div class="bascule dirs" role="group" aria-label="Direction">
-    <button data-regle="dir" data-v="1">1 · Paquet</button>
-    <button data-regle="dir" data-v="2">2 · Assistant</button>
-    <button data-regle="dir" data-v="3">3 · Carnet</button>
+    <button data-regle="dir" data-v="4">Simple</button>
+    <button data-regle="dir" data-v="1">Paquet</button>
+    <button data-regle="dir" data-v="2">Assistant</button>
+    <button data-regle="dir" data-v="3">Carnet</button>
   </div>
   <div class="bascule jours" role="group" aria-label="Jour">
     <button data-regle="jour" data-v="1">Jour 1</button>
@@ -297,6 +395,72 @@ body[data-jour="1"] .tel[data-j="8"], body[data-jour="8"] .tel[data-j="1"]{displ
   </div>
   <button class="rejouer" id="rejouer"><svg class="ic" aria-hidden="true"><use href="#i-undo"/></svg>Rejouer</button>
 </header>
+
+<!-- ================= LA PROPOSITION · L'APP SIMPLE ================= -->
+<section class="prop dir" data-d="4">
+  <div class="tel d4" data-j="1"><div class="ecran"></div><nav class="nav" aria-label="Lieux"></nav></div>
+  <div class="tel d4" data-j="8"><div class="ecran"></div><nav class="nav" aria-label="Lieux"></nav></div>
+  <div class="tel d4 bis" data-j="1" data-depart="entreprise:rsn"><div class="ecran"></div><nav class="nav" aria-label="Lieux"></nav></div>
+  <div class="tel d4 bis" data-j="8" data-depart="piste:ocd"><div class="ecran"></div><nav class="nav" aria-label="Lieux"></nav></div>
+  <div class="d-texte">
+    <div class="d-tete"><span class="d-num"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><div><h2>Ma proposition : l’app simple</h2><p>La forme des apps que tout le monde connaît : chercher, garder, contacter, suivre. Quatre onglets fixes, des listes, une page par entreprise.</p></div></div>
+    <ul>
+      <li><b>Du paquet :</b> une entreprise se décide d’un geste, « Garder », et l’app ne montre jamais de retard.</li>
+      <li><b>De l’assistant :</b> trois questions le premier jour, et les pistes rangées par étape.</li>
+      <li><b>Du carnet :</b> « J’ai écrit », « On m’a répondu » en un tap, et l’historique s’écrit seul.</li>
+    </ul>
+    <dl class="d-notes">
+      <div><dt>Réussit</dt><dd>Rien à apprendre. On trouve dès la première minute, et chaque piste dit sa suite.</dd></div>
+      <div><dt>Risque</dt><dd>Moins de surprise. Elle doit se gagner dans le soin de chaque écran.</dd></div>
+    </dl>
+  </div>
+  <figure class="poste">
+    <figcaption>L’APP SIMPLE, À L’ORDINATEUR : la liste, la piste, et de quoi écrire à côté</figcaption>
+    <div class="poste-cadre"><div class="poste-in p4 trame">
+      <section class="win" style="left:24px;top:22px;width:1232px;height:676px">
+        <div class="tb">OpenContact<span class="tb-d">local · sans serveur</span></div>
+        <div class="p4-onglets"><button><svg class="ic"><use href="#i-search"/></svg>Trouver</button><button class="on"><svg class="ic"><use href="#i-briefcase"/></svg>Pistes</button><button><svg class="ic"><use href="#i-users"/></svg>Réseau</button><button><svg class="ic"><use href="#i-user"/></svg>Moi</button><div class="champ faux"><svg class="ic"><use href="#i-search"/></svg>Chercher une piste, une entreprise…</div></div>
+        <div class="p2-corps">
+          <div class="p-col" style="width:320px">
+            <div class="p-liste">
+              <div class="p-groupe">À faire</div>
+              <div class="p-l on"><div class="r-c"><b>Orange Cyberdefense</b><span>7 jours sans réponse</span></div></div>
+              <div class="p-l"><div class="r-c"><b>OVHcloud</b><span class="plus">Karim y est en alternance</span></div></div>
+              <div class="p-groupe">À contacter · 4</div>
+              <div class="p-l"><div class="r-c"><b>Advens</b><span>Thomas Leroy, président</span></div></div>
+              <div class="p-l"><div class="r-c"><b>Worldline</b><span>Service RH</span></div></div>
+              <div class="p-l"><div class="r-c"><b>Fiducial Informatique</b><span>Villeneuve-d’Ascq · 6 km</span></div></div>
+              <div class="p-groupe">En attente · 2</div>
+              <div class="p-l"><div class="r-c"><b>Kiabi</b><span>écrit il y a 5 jours</span></div></div>
+            </div>
+          </div>
+          <div class="p-col" style="width:440px">
+            <div class="p-fiche">
+              <div><h4>Orange Cyberdefense</h4><div class="lieu">Lille · 3 km · cybersécurité</div></div>
+              <fieldset class="gb"><legend>La suite</legend><p class="fort">7 jours sans réponse.</p><p class="doux">C’est courant. Un court message suffit.</p></fieldset>
+              <div><div class="et" style="margin-bottom:8px">Il s’est passé quelque chose ?</div><div class="evs"><button class="btn">J’ai écrit</button><button class="btn">On m’a répondu</button><button class="btn">C’est non</button></div></div>
+              <fieldset class="gb"><legend>Les gens</legend>
+                <div class="pers"><div class="r-c"><b>Nadia Rahmani</b><span>chargée de recrutement</span></div><svg class="ic"><use href="#i-mail"/></svg></div>
+                <div class="pers" style="border-bottom:0"><svg class="visage"><use href="#i-visage-l"/></svg><div class="r-c"><b>Léa</b><span>y a fait son stage</span></div><button class="btn s">Demander</button></div>
+              </fieldset>
+              <ul class="hist"><li><span>lun. 9</span>Gardée</li><li><span>lun. 9</span>Écrit à Nadia Rahmani, par mail</li></ul>
+            </div>
+          </div>
+          <div class="p-col" style="flex:1">
+            <div class="p-fiche">
+              <div class="et">Relancer Nadia Rahmani</div>
+              <div class="seg" style="align-self:flex-start;width:340px"><button class="on">Mail</button><button>LinkedIn</button><button>Appel</button><button>Site</button></div>
+              <div class="p-msg">Bonjour Madame Rahmani,<br><br>Je me permets de revenir vers vous au sujet de ma candidature du 9 novembre pour une alternance en BTS SIO SISR.<br><br><mark>[Du neuf depuis : un projet fini, une techno apprise, une actu de chez eux.]</mark><br><br>Je reste disponible pour un échange.<br><br>Inès Martin</div>
+              <div class="p-pied"><button class="btn">Copier</button><button class="btn p" style="flex:none"><svg class="ic"><use href="#i-mail"/></svg>Ouvrir dans Mail</button></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div></div>
+  </figure>
+</section>
+
+<h2 class="inter">Les trois explorations de départ</h2>
 
 <main class="planche">
 
@@ -578,10 +742,10 @@ body[data-jour="1"] .tel[data-j="8"], body[data-jour="8"] .tel[data-j="1"]{displ
   function regler(k,v){
     corps.setAttribute('data-'+k,v);
     $$('[data-regle="'+k+'"]').forEach(function(b){ var on=b.getAttribute('data-v')===v; b.classList.toggle('on',on); b.setAttribute('aria-pressed',on); });
-    try{ localStorage.setItem('oc-directions-'+k,v); }catch(e){}
+    try{ localStorage.setItem('oc-propo-'+k,v); }catch(e){}
     mesurer(); auBas();
   }
-  function lire(k,d){ try{ return localStorage.getItem('oc-directions-'+k)||d; }catch(e){ return d; } }
+  function lire(k,d){ try{ return localStorage.getItem('oc-propo-'+k)||d; }catch(e){ return d; } }
   $('.tete').addEventListener('click',function(e){ var b=e.target.closest('[data-regle]'); if(b) regler(b.getAttribute('data-regle'),b.getAttribute('data-v')); });
   window.addEventListener('resize',mesurer);
 
@@ -699,13 +863,140 @@ body[data-jour="1"] .tel[data-j="8"], body[data-jour="8"] .tel[data-j="1"]{displ
     }
   }
 
-  function monter(){ $$('.pile').forEach(pile); $$('.tel.d2').forEach(assistant); $$('.tel.d3').forEach(carnet); }
+  /* ---------- la proposition : l'app simple ---------- */
+  var ENT={
+    rsn:{n:'Réseaux et Systèmes du Nord',l:'Lille · 1 km',t:'20 à 49 salariés',f:'Infogérance : les serveurs et réseaux de leurs clients',r:'colle à ta formation',q:'Claire Durand',qr:'présidente',aide:1},
+    nor:{n:'Nord Infogérance',l:'Lambersart · 3 km',t:'10 à 19 salariés',f:'Dépannage et sécurité informatique des PME',r:'colle à ta formation',q:'Marc Delattre',qr:'gérant',aide:1},
+    fid:{n:'Fiducial Informatique',l:'Villeneuve-d’Ascq · 6 km',t:'50 à 99 salariés ici',f:'Logiciels et matériel pour les petites entreprises',r:'',q:'',qr:'',aide:1},
+    dat:{n:'Datagora',l:'Roubaix · 9 km',t:'10 à 19 salariés',f:'Développement de logiciels sur mesure',r:'prend des alternants',q:'Sophie Marchal',qr:'gérante',aide:1},
+    adv:{n:'Advens',l:'Lille · 2 km',t:'250 à 499 salariés',f:'Sécurité informatique pour des entreprises et des hôpitaux',r:'colle à ta formation',q:'Thomas Leroy',qr:'président'},
+    ovh:{n:'OVHcloud',l:'Roubaix · 9 km',t:'Plus de 2 000 salariés',f:'Hébergement et serveurs dans le cloud',r:'',q:'',qr:'',ami:'Karim',amiq:'y est en alternance',v:'k'},
+    wor:{n:'Worldline',l:'Seclin · 11 km',t:'Plus de 2 000 salariés',f:'Paiement électronique',r:'',q:'Service RH',qr:''},
+    ocd:{n:'Orange Cyberdefense',l:'Lille · 3 km',t:'Plus de 2 000 salariés',f:'Surveillance et réponse aux attaques pour de grands comptes',r:'colle à ta formation',q:'Nadia Rahmani',qr:'chargée de recrutement',ami:'Léa',amiq:'y a fait son stage',v:'l'},
+    kia:{n:'Kiabi',l:'Hem · 8 km',t:'Plus de 2 000 salariés',f:'L’informatique interne d’une enseigne de vêtements',r:'',q:'',qr:''}
+  };
+  function simple(tel){
+    var ecran=$('.ecran',tel), nav=$('.nav',tel), j8=tel.getAttribute('data-j')==='8', dep=(tel.getAttribute('data-depart')||'').split(':');
+    var S={ onglet:'trouver', vue:'trouver', fiche:null, pret:j8, mode:null, trouves:j8?['rsn','nor','dat']:['rsn','nor','fid','dat'], pistes:{}, ordre:[] };
+    function ajouter(id,p){ S.pistes[id]=p; S.ordre.push(id); }
+    if(j8){
+      ajouter('ocd',{e:'ecrit',j:7,h:[['lun. 9','Gardée'],['lun. 9','Écrit à Nadia Rahmani, par mail']]});
+      ajouter('ovh',{e:'garde',h:[['ven. 13','Gardée']]});
+      ajouter('adv',{e:'garde',h:[['ven. 13','Gardée']]});
+      ajouter('wor',{e:'garde',h:[['ven. 13','Gardée']]});
+      ajouter('fid',{e:'garde',h:[['hier','Gardée']]});
+      ajouter('kia',{e:'ecrit',j:5,h:[['mer. 11','Gardée'],['mer. 11','Écrit, sur leur site']]});
+    }
+    if(dep[0]==='piste'){ S.onglet='pistes'; S.vue='piste'; S.fiche=dep[1]; }
+    if(dep[0]==='entreprise'){ S.pret=true; S.vue='entreprise'; S.fiche=dep[1]; }
+    var prenom=function(q){ return q.split(' ')[0]; };
+    /* la suite d'une piste : une phrase, et le geste qui la fait */
+    function suite(id){ var p=S.pistes[id], e=ENT[id];
+      if(p.e==='garde'){
+        if(p.demande) return {l:'demande envoyée à '+e.ami,t:'Demande envoyée à '+e.ami+'.',s:'Sa réponse arrivera ici et dans « Réseau ».'};
+        if(e.ami) return {l:e.ami+' '+e.amiq,plus:1,t:e.ami+' '+e.amiq+'.',s:'Demande-lui à qui écrire.',b:'Demander à '+e.ami,c:'Demander',a:'demande',urgent:1};
+        if(e.qr) return {l:e.q+', '+e.qr,t:'À contacter : '+e.q+', '+e.qr+'.',s:'Ton message est prêt. Tu le relis, puis tu l’envoies.',b:'Écrire à '+prenom(e.q),c:'Écrire',a:'canal'};
+        return {l:e.l,t:'À contacter.',s:e.q?'Passe par : '+e.q+'.':'Personne à qui écrire pour l’instant : passe par leur site.',b:'Écrire',c:'Écrire',a:'canal'};
+      }
+      if(p.e==='ecrit'){
+        if(p.j>=7) return {l:p.j+' jours sans réponse',t:p.j+' jours sans réponse.',s:'C’est courant. Un court message suffit.',b:'Relancer'+(e.qr?' '+prenom(e.q):''),c:'Relancer',a:'parti',urgent:1};
+        return {l:p.j?'écrit il y a '+p.j+' jours':'écrit aujourd’hui',t:p.j?'Écrit il y a '+p.j+' jours.':'Écrit aujourd’hui.',s:'On attend. Elle reviendra dans « À faire » au bout de 7 jours.'};
+      }
+      if(p.e==='reponse') return {l:'un entretien à préparer',plus:1,t:'On t’a répondu : un entretien.',s:'Note la date, puis relis ce que tu sais d’eux.',b:'Préparer l’entretien',c:'Préparer',a:'',urgent:1};
+      return {l:'refus',t:'C’est non.',s:'Ce n’est pas toi : la plupart des candidatures s’arrêtent là.'};
+    }
+    function vTrouver(){
+      if(!S.pret) return '<div class="s-def"><div class="s-tete"><h3>Trouver</h3><p>Dis ce que tu cherches. L’app te propose des entreprises près de toi.</p></div><div class="s-form">'
+        +'<div class="et">Tu cherches</div><div class="puces" data-un><button class="puce">Stage</button><button class="puce on">Alternance</button><button class="puce">Emploi</button></div>'
+        +'<div class="et">Tu étudies</div><div class="puces" data-un><button class="puce on">BTS SIO SISR</button><button class="puce">BTS SIO SLAM</button><button class="puce">Autre</button></div>'
+        +'<div class="et">Autour de</div><input class="champ" value="Lille" aria-label="Ville" autocomplete="off">'
+        +'<button class="btn p" data-a="voir">Voir les entreprises</button></div></div>';
+      return '<div class="s-def"><div class="s-tete"><h3>Trouver</h3></div><div class="s-cherche"><div class="champ faux">'+ic('search')+'Métier, ville, entreprise…</div>'
+        +'<div class="s-tags"><button>Alternance'+ic('close')+'</button><button>Systèmes et réseaux'+ic('close')+'</button><button>Lille · 15 km'+ic('close')+'</button></div></div>'
+        +'<div class="et s-et">'+S.trouves.length+' entreprises près de toi</div><div class="rangs s-liste">'+S.trouves.map(function(id){ var e=ENT[id];
+          return '<div class="rang" data-a="ent" data-id="'+id+'"><div class="r-c"><b>'+e.n+'</b><span>'+e.l+' · '+e.t+'</span>'+(e.r?'<span class="plus">'+e.r+'</span>':'')+'</div>'
+            +(S.pistes[id]?'<span class="s-ok">gardée</span>':'<button class="btn s" data-a="garder" data-id="'+id+'">Garder</button>')+'</div>'; }).join('')+'</div></div>';
+    }
+    function vEntreprise(){ var e=ENT[S.fiche], garde=!!S.pistes[S.fiche];
+      return '<div class="tb"><button class="ret" data-a="retour" aria-label="Retour">'+ic('chev')+'</button>Entreprise</div><div class="s-page"><h4>'+e.n+'</h4><div class="lieu">'+e.l+'</div>'
+        +(e.ami?'<div class="porte"><svg class="visage"><use href="#i-visage-'+e.v+'"/></svg>'+e.ami+' '+e.amiq+'</div>':'')
+        +'<dl class="faits"><div><dt>Ils font</dt><dd>'+e.f+(e.r?'<br><span class="plus">'+e.r+'</span>':'')+'</dd></div><div><dt>Taille</dt><dd>'+e.t+'</dd></div>'
+        +(e.q?'<div><dt>À qui écrire</dt><dd>'+e.q+(e.qr?', '+e.qr:'')+'</dd></div>':'')
+        +(e.aide?'<div><dt>Aide</dt><dd>L’État lui verse jusqu’à 4 500 € la première année d’un apprenti</dd></div>':'')+'</dl></div>'
+        +'<div class="c-pied">'+(garde?'<button class="btn fait" disabled>'+ic('check')+'Gardée</button><button class="btn p" data-a="piste" data-id="'+S.fiche+'">Voir la piste</button>'
+          :'<button class="btn" data-a="retour">Pas pour moi</button><button class="btn p" data-a="garder" data-id="'+S.fiche+'">'+ic('plus')+'Garder</button>')+'</div>';
+    }
+    function ligne(id,bouton){ var e=ENT[id], s=suite(id);
+      return '<div class="rang" data-a="piste" data-id="'+id+'"><div class="r-c"><b>'+e.n+'</b><span'+(s.plus?' class="plus"':'')+'>'+s.l+'</span></div>'
+        +(bouton&&s.b?'<button class="btn s'+(bouton===2?' p':'')+'" style="flex:none" data-a="piste" data-id="'+id+'">'+s.c+'</button>':ic('chev'))+'</div>'; }
+    function vPistes(){ var ids=S.ordre, n=ids.length;
+      if(!n) return '<div class="s-def"><div class="s-tete"><h3>Pistes</h3></div><div class="s-vide"><p>Les entreprises que tu gardes arrivent ici.<br>L’app te dit ensuite quoi faire pour chacune.</p><button class="btn p" style="flex:none" data-a="onglet" data-id="trouver">Trouver des entreprises</button></div></div>';
+      var afaire=ids.filter(function(id){return suite(id).urgent}).slice(0,3);
+      var groupe=function(titre,et){ var l=ids.filter(function(id){return S.pistes[id].e===et&&afaire.indexOf(id)<0}); return l.length?'<div class="et s-et">'+titre+' · '+l.length+'</div><div class="rangs s-liste">'+l.map(function(id){return ligne(id)}).join('')+'</div>':''; };
+      return '<div class="s-def"><div class="s-tete"><h3>Pistes<small>'+n+'</small></h3></div>'
+        +(afaire.length?'<div class="et s-et">À faire</div><div class="s-afaire">'+afaire.map(function(id,k){return ligne(id,k?1:2)}).join('')+'</div>':'')
+        +groupe('Réponse','reponse')+groupe('À contacter','garde')+groupe('En attente','ecrit')+groupe('Terminées','non')+'</div>';
+    }
+    function vPiste(){ var id=S.fiche, e=ENT[id], p=S.pistes[id], s=suite(id), bloc;
+      if(S.mode==='canal') bloc='<p class="fort">Par où ?</p><div class="seg" data-un><button class="on">Mail</button><button>LinkedIn</button><button>Appel</button><button>Site</button></div><p class="doux">Ton message est prêt. Tu le relis avant d’envoyer.</p><div class="deux"><button class="btn" data-a="mode" data-id="">Annuler</button><button class="btn p" data-a="mode" data-id="parti">Ouvrir</button></div>';
+      else if(S.mode==='parti') bloc='<p class="fort">C’est parti ?</p><p class="doux">Dis-le d’un tap : l’app note la date et compte les jours pour toi.</p><div class="deux"><button class="btn" data-a="mode" data-id="">Pas encore</button><button class="btn p" data-a="ev" data-id="ecrit">Oui, envoyé</button></div>';
+      else if(S.mode==='quoi') bloc='<p class="fort">C’est quoi ?</p><div class="deux"><button class="btn" style="flex:1" data-a="ev" data-id="non">Un refus</button><button class="btn p" data-a="ev" data-id="reponse">Un entretien</button></div>';
+      else bloc='<p class="fort">'+s.t+'</p><p class="doux">'+s.s+'</p>'+(s.b?'<button class="btn p" data-a="'+(s.a==='demande'?'ev':'mode')+'" data-id="'+s.a+'">'+s.b+'</button>':'');
+      var evs=p.e==='non'?'':'<div class="et" style="margin-top:18px">Il s’est passé quelque chose ?</div><div class="evs"><button class="btn" data-a="ev" data-id="ecrit">J’ai écrit</button><button class="btn" data-a="mode" data-id="quoi">On m’a répondu</button><button class="btn" data-a="ev" data-id="non">C’est non</button></div>';
+      var gens='<fieldset class="gb"><legend>Les gens</legend>'
+        +(e.q?'<div class="pers"><div class="r-c"><b>'+e.q+'</b><span>'+(e.qr||'à préciser')+'</span></div>'+ic('mail')+'</div>':'')
+        +(e.ami?'<div class="pers"><svg class="visage"><use href="#i-visage-'+e.v+'"/></svg><div class="r-c"><b>'+e.ami+'</b><span>'+e.amiq+'</span></div><button class="btn s" data-a="ev" data-id="demande">Demander</button></div>':'')
+        +'<button class="lien" style="margin-top:10px">Ajouter quelqu’un</button></fieldset>';
+      var plis='<details class="pli" style="margin-top:14px"><summary>L’entreprise'+ic('chev')+'</summary><dl class="faits"><div><dt>Ils font</dt><dd>'+e.f+'</dd></div><div><dt>Taille</dt><dd>'+e.t+'</dd></div></dl></details>'
+        +'<details class="pli"><summary>Historique · '+p.h.length+ic('chev')+'</summary><ul class="hist">'+p.h.map(function(x){return '<li><span>'+x[0]+'</span>'+x[1]+'</li>'}).join('')+'</ul></details>'
+        +'<details class="pli"><summary>Mes notes'+ic('chev')+'</summary><p class="doux" style="margin:0 0 12px">Privées. Elles ne partent jamais dans un partage.</p></details>';
+      return '<div class="tb"><button class="ret" data-a="retour" aria-label="Retour">'+ic('chev')+'</button>Piste</div><div class="s-page"><h4>'+e.n+'</h4><div class="lieu">'+e.l+'</div><fieldset class="gb"><legend>La suite</legend>'+bloc+'</fieldset>'+evs+gens+plis+'</div>';
+    }
+    function vReseau(){
+      if(!j8) return '<div class="s-def"><div class="s-tete"><h3>Réseau</h3></div><div class="s-vide"><p>Ta classe et tes amis apparaissent ici.<br>Ils te disent où ils sont passés et qui contacter.</p><button class="btn p" style="flex:none">Rejoindre ma classe</button><button class="btn">Ajouter un ami</button></div></div>';
+      return '<div class="s-def"><div class="s-tete"><h3>Réseau</h3></div><div class="rangs s-liste"><div class="rang conv"><span class="s-init">BS</span><div class="r-c"><b>BTS SIO Lille</b><span>Sofia : Forum alternance jeudi à la CCI, on y va ?</span></div><span class="s-h">02:55</span></div>'
+        +'<div class="rang conv"><svg class="visage"><use href="#i-visage-k"/></svg><div class="r-c"><b>Karim</b><span>Je te donne le contact demain.</span></div><span class="s-h">hier</span></div></div>'
+        +'<div class="et s-et">Mes amis · 2</div><div class="rangs s-liste"><div class="rang conv"><svg class="visage"><use href="#i-visage-k"/></svg><div class="r-c"><b>Karim</b><span class="plus">en alternance chez OVHcloud</span></div></div>'
+        +'<div class="rang conv"><svg class="visage"><use href="#i-visage-l"/></svg><div class="r-c"><b>Léa</b><span class="plus">a fait son stage chez Orange Cyberdefense</span></div></div></div></div>'
+        +'<div class="s-bas"><button class="btn">Donner des pistes</button><button class="btn">Recevoir</button></div>';
+    }
+    function vMoi(){ var r=function(t,d){ return '<div class="rang nav-r"><div class="r-c"><b>'+t+'</b>'+(d?'<span>'+d+'</span>':'')+'</div>'+ic('chev')+'</div>'; };
+      return '<div class="s-def"><div class="s-tete"><h3>Moi</h3></div><div class="s-moi">'+(j8?'<b>Inès Martin</b>':'<b>Ton profil</b>')+'<span>BTS SIO SISR · alternance · Lille</span></div><div class="rangs s-liste">'
+        +r('Mon profil',j8?'':'à compléter : ton nom, ton école')+r('CV et lettres',j8?'1 CV':'aucun')+r('Mes messages types','3 modèles')+r('Ma copie','sur cet appareil seulement')+r('Réglages','')+'</div></div>';
+    }
+    function vNav(){ var n=S.ordre.length;
+      return [['trouver','search','Trouver'],['pistes','briefcase','Pistes'],['reseau','users','Réseau'],['moi','user','Moi']].map(function(o){
+        return '<button data-a="onglet" data-id="'+o[0]+'"'+(S.onglet===o[0]?' class="on"':'')+'>'+ic(o[1])+'<span>'+o[2]+(o[0]==='pistes'&&n?'<b>'+n+'</b>':'')+'</span></button>'; }).join(''); }
+    function rendre(){ ecran.innerHTML=({trouver:vTrouver,pistes:vPistes,reseau:vReseau,moi:vMoi,entreprise:vEntreprise,piste:vPiste})[S.vue](); nav.innerHTML=vNav(); }
+    tel.onclick=function(e){
+      var u=e.target.closest('[data-un] button'); if(u){ $$('button',u.parentNode).forEach(function(x){x.classList.toggle('on',x===u)}); return; }
+      var b=e.target.closest('[data-a]'); if(!b) return;
+      var a=b.getAttribute('data-a'), id=b.getAttribute('data-id'), p=S.pistes[S.fiche];
+      if(a==='onglet'){ S.onglet=S.vue=id; S.mode=null; }
+      else if(a==='voir'){ S.pret=true; }
+      else if(a==='ent'){ S.vue='entreprise'; S.fiche=id; }
+      else if(a==='garder'){ if(!S.pistes[id]) ajouter(id,{e:'garde',h:[['aujourd’hui','Gardée']]}); }
+      else if(a==='piste'){ S.onglet='pistes'; S.vue='piste'; S.fiche=id; S.mode=null; }
+      else if(a==='retour'){ S.vue=S.onglet; S.mode=null; }
+      else if(a==='mode'){ S.mode=id||null; }
+      else if(a==='ev'){ S.mode=null;
+        if(id==='ecrit'){ p.h.push(['aujourd’hui',p.e==='ecrit'?'Relancée':'Écrit']); p.e='ecrit'; p.j=0; }
+        if(id==='reponse'){ p.e='reponse'; p.h.push(['aujourd’hui','Réponse : un entretien']); }
+        if(id==='non'){ p.e='non'; p.h.push(['aujourd’hui','Refus']); }
+        if(id==='demande'){ p.demande=true; p.h.push(['aujourd’hui','Demandé à '+ENT[S.fiche].ami]); }
+      }
+      rendre();
+    };
+    rendre();
+  }
+
+  function monter(){ $$('.pile').forEach(pile); $$('.tel.d2').forEach(assistant); $$('.tel.d3').forEach(carnet); $$('.tel.d4').forEach(simple); }
   $('#rejouer').addEventListener('click',function(){
     $$('.tel.d2 .et-corps [data-vue="q"]').forEach(function(x){x.hidden=false}); $$('.tel.d2 .et-corps [data-vue="r"]').forEach(function(x){x.hidden=true});
     $$('.tel.d2 .fait').forEach(function(g){ g.className='btn s'; g.textContent='Garder'; g.setAttribute('data-garder',''); });
     monter(); auBas();
   });
   monter();
-  regler('dir',lire('dir','1')); regler('jour',lire('jour','1'));
+  regler('dir',lire('dir','4')); regler('jour',lire('jour','1'));
 })();
 </script>
