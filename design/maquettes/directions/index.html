@@ -1,0 +1,711 @@
+<title>Trois directions OpenContact</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Public+Sans:wght@400;500;600;700&family=Silkscreen:wght@400;700&display=swap">
+<!--
+  OpenContact : trois directions pour l'accueil (étape 4 de la refonte, novembre 2026).
+  Une MAQUETTE : rien ici n'est chargé par l'application. Le fichier est le contenu
+  d'une page (sans <html> ni <body>) : il se publie tel quel, et tests/e2e n'y touche pas.
+  Le matériel vient de styles/tokens/ (couleurs, reliefs, polices) et d'assets/icons/.
+-->
+<style>
+/* Planche : au poste, trois téléphones côte à côte puis les trois écrans d'ordinateur ;
+   au téléphone, une direction à la fois, à sa vraie taille, sous une barre de choix. */
+:root{
+  --g0:#FFFFFF; --g1:#F7F6F1; --g2:#ECEAE2; --g3:#DDDACE; --bureau:#E7E5DD; --table:#CBC8BB;
+  --ink:#1D242C; --ink2:#5C6672; --ink3:#8B94A0;
+  --teal:#0B7268; --teal-w:#E3EFED; --on-teal:#FFFFFF;
+  --navy:#27337F; --barre:#27337F; --on-navy:#FFFFFF;
+  --amber:#8F5A00; --amber-w:#F6ECD9;
+  --bord:#1D242C; --cadre:#A8A395; --doux:#C9C6BA;
+  --bevel-up:inset 1px 1px 0 rgba(255,255,255,.7), inset -1px -1px 0 rgba(29,36,44,.14);
+  --bevel-down:inset 1px 1px 0 rgba(29,36,44,.18), inset -1px -1px 0 rgba(255,255,255,.5);
+  --sh2:2px 2px 0 0 rgba(29,36,44,.18); --sh4:4px 4px 0 0 rgba(29,36,44,.16);
+  --trame-c:rgba(29,36,44,.14);
+  --ui:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  --pixel:'Silkscreen','IBM Plex Mono',ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --g0:#12151A; --g1:#1E232B; --g2:#262C35; --g3:#313947; --bureau:#15181D; --table:#0A0C0F;
+  --ink:#E9ECEF; --ink2:#9AA4B0; --ink3:#657080;
+  --teal:#3BC9BA; --teal-w:#12332F; --on-teal:#06251F;
+  --navy:#4A5BC4; --barre:#333F8F; --on-navy:#FFFFFF;
+  --amber:#E3A648; --amber-w:#332812;
+  --bord:#9AA4B0; --cadre:#4E5A68; --doux:#3C4550;
+  --bevel-up:inset 1px 1px 0 rgba(255,255,255,.10), inset -1px -1px 0 rgba(0,0,0,.45);
+  --bevel-down:inset 1px 1px 0 rgba(0,0,0,.5), inset -1px -1px 0 rgba(255,255,255,.08);
+  --sh2:2px 2px 0 0 rgba(0,0,0,.5); --sh4:4px 4px 0 0 rgba(0,0,0,.55);
+  --trame-c:rgba(233,236,239,.10);
+  color-scheme:dark } }
+:root[data-theme="dark"]{
+  --g0:#12151A; --g1:#1E232B; --g2:#262C35; --g3:#313947; --bureau:#15181D; --table:#0A0C0F;
+  --ink:#E9ECEF; --ink2:#9AA4B0; --ink3:#657080;
+  --teal:#3BC9BA; --teal-w:#12332F; --on-teal:#06251F;
+  --navy:#4A5BC4; --barre:#333F8F; --on-navy:#FFFFFF;
+  --amber:#E3A648; --amber-w:#332812;
+  --bord:#9AA4B0; --cadre:#4E5A68; --doux:#3C4550;
+  --bevel-up:inset 1px 1px 0 rgba(255,255,255,.10), inset -1px -1px 0 rgba(0,0,0,.45);
+  --bevel-down:inset 1px 1px 0 rgba(0,0,0,.5), inset -1px -1px 0 rgba(255,255,255,.08);
+  --sh2:2px 2px 0 0 rgba(0,0,0,.5); --sh4:4px 4px 0 0 rgba(0,0,0,.55);
+  --trame-c:rgba(233,236,239,.10);
+  color-scheme:dark }
+
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--table);color:var(--ink);font:400 15px/1.4 var(--ui);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer;border-radius:0;-webkit-tap-highlight-color:transparent}
+button:focus-visible,input:focus-visible{outline:2px dotted var(--ink);outline-offset:2px}
+.ic{width:20px;height:20px;fill:currentColor;flex:none}
+.trame{background:repeating-conic-gradient(var(--trame-c) 0% 25%, transparent 0% 50%) 0 0 / 4px 4px}
+
+/* ---------- la page ---------- */
+.tete{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--table);
+  padding:10px max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px));
+  display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;border-bottom:1px solid var(--cadre)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--table)}
+.tete h1{margin:0;font:700 20px/1.2 var(--ui);letter-spacing:-.01em}
+.tete p{margin:0;color:var(--ink2);font-size:14px;flex:1 1 280px;min-width:0}
+.bascule{display:flex;border:1px solid var(--bord);background:var(--g1);box-shadow:var(--sh2)}
+.bascule button{min-height:40px;padding:0 14px;border:0;border-right:1px solid var(--bord);background:none;font:600 14px/1 var(--ui);white-space:nowrap}
+.bascule button:last-child{border-right:0}
+.bascule button.on{background:var(--navy);color:var(--on-navy);box-shadow:var(--bevel-down)}
+.bascule.dirs{display:none}
+.rejouer{min-height:40px;padding:0 12px;border:1px solid var(--bord);background:var(--g1);font:600 14px/1 var(--ui);box-shadow:var(--bevel-up),var(--sh2);display:inline-flex;align-items:center;gap:6px}
+
+.planche{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px 28px;max-width:1320px;margin:0 auto;
+  padding:22px max(16px,env(safe-area-inset-right,0px)) 40px max(16px,env(safe-area-inset-left,0px))}
+.dir{display:contents}
+.dir[data-d="1"]>*{grid-column:1} .dir[data-d="2"]>*{grid-column:2} .dir[data-d="3"]>*{grid-column:3}
+.dir>.d-tete{grid-row:1} .dir>.tel{grid-row:2} .dir>.d-notes{grid-row:3}
+.dir>.poste{grid-column:1/-1}
+.d-tete{display:flex;align-items:flex-start;gap:12px}
+.d-num{flex:none;width:36px;height:36px;display:grid;place-items:center;background:var(--barre);color:#fff;font:400 16px/1 var(--pixel);border:1px solid var(--bord)}
+.d-tete h2{margin:0;font:700 19px/1.2 var(--ui)}
+.d-tete p{margin:2px 0 0;color:var(--ink2);font-size:14px;line-height:1.35}
+.d-notes{margin:0;font-size:14px;line-height:1.4;display:grid;gap:6px}
+.d-notes div{display:flex;gap:8px}
+.d-notes dt{flex:none;width:62px;font:500 11px/1.6 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink2)}
+.d-notes dd{margin:0;min-width:0}
+.poste{margin:18px 0 0}
+.poste figcaption{font:500 12px/1.4 var(--mono);letter-spacing:.04em;color:var(--ink2);margin:0 0 8px}
+.poste-cadre{width:100%;aspect-ratio:1280/720;max-width:100%;overflow:hidden;border:1px solid var(--bord);box-shadow:var(--sh4);background:var(--bureau)}
+.poste-in{width:1280px;height:720px;transform-origin:0 0;transform:scale(var(--k,1));position:relative;font-size:14px;line-height:1.35}
+
+body[data-jour="1"] .tel[data-j="8"], body[data-jour="8"] .tel[data-j="1"]{display:none}
+
+/* ---------- le téléphone ---------- */
+.tel{position:relative;display:flex;flex-direction:column;width:100%;max-width:390px;height:780px;margin:0 auto;
+  background:var(--bureau);border:1px solid var(--bord);box-shadow:var(--sh4);overflow:hidden;font-size:15px;line-height:1.4}
+.win{background:var(--g1);border:1px solid var(--bord);box-shadow:var(--sh4)}
+.tb{display:flex;align-items:center;gap:8px;min-height:36px;padding:0 6px 0 10px;background:var(--barre);color:#fff;
+  font:400 16px/1 var(--pixel);text-transform:uppercase;letter-spacing:.03em;flex:none}
+.tb .ic{width:18px;height:18px}
+.tb-d{margin-left:auto;font:400 12px/1 var(--mono);letter-spacing:.04em;opacity:.85;padding-right:6px;text-transform:none}
+.tb.inactif{background:var(--g3);color:var(--ink2)}
+.x{margin-left:auto;width:28px;height:28px;display:grid;place-items:center;border:1px solid var(--bord);background:var(--g2);color:var(--ink);box-shadow:var(--bevel-up);padding:0}
+.x .ic{width:16px;height:16px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:0 16px;border:1px solid var(--bord);
+  background:var(--g1);color:var(--ink);font:600 15px/1.15 var(--ui);box-shadow:var(--bevel-up),var(--sh2);white-space:nowrap}
+.btn:active{box-shadow:var(--bevel-down);transform:translate(1px,1px)}
+.btn.p{background:var(--teal);color:var(--on-teal);flex:1}
+.btn.s{min-height:36px;padding:0 12px;font-size:13px}
+.btn.fait{background:none;box-shadow:none;border-style:dashed;color:var(--teal)}
+.lien{background:none;border:0;padding:0;color:var(--teal);text-decoration:underline;text-underline-offset:2px;font-weight:500}
+.lieu{font:400 13px/1.3 var(--mono);color:var(--ink2)}
+.et{font:500 11px/1.5 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink2)}
+.plus{color:var(--teal);font-weight:600}
+.porte{display:flex;align-items:center;gap:10px;margin-top:14px;padding:10px 12px;background:var(--teal-w);border:1px solid var(--teal);color:var(--teal);font-weight:600}
+.visage{flex:none;width:28px;height:28px;border:1px solid var(--bord);background:var(--g0);fill:var(--ink)}
+.faits{margin:16px 0 0;border-top:1px dashed var(--doux)}
+.faits div{display:flex;gap:12px;padding:10px 0;border-bottom:1px dashed var(--doux)}
+.faits dt{flex:none;width:86px;font:500 11px/1.5 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink2);padding-top:2px}
+.faits dd{margin:0;min-width:0;flex:1}
+.puces{display:flex;flex-wrap:wrap;gap:8px}
+.puce{min-height:44px;padding:0 14px;border:1px solid var(--bord);background:var(--g1);font:500 15px/1 var(--ui)}
+.puce.on{background:var(--teal);color:var(--on-teal)}
+.seg{display:flex;border:1px solid var(--bord);background:var(--g1)}
+.seg button{flex:1;min-height:40px;padding:0 4px;border:0;border-right:1px solid var(--bord);background:none;font:500 13px/1 var(--ui)}
+.seg button:last-child{border-right:0}
+.seg button.on{background:var(--teal);color:var(--on-teal);box-shadow:var(--bevel-down)}
+.champ{width:100%;min-height:46px;padding:0 12px;border:1px solid var(--bord);background:var(--g0);color:var(--ink);font:400 16px/1 var(--ui);border-radius:0}
+.nav{display:flex;gap:4px;padding:6px 8px;background:var(--g2);border-top:1px solid var(--bord);flex:none}
+.nav button{flex:1;min-height:48px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:1px solid transparent;background:none;color:var(--ink2);font:500 12px/1 var(--ui)}
+.nav button.on{background:var(--navy);color:var(--on-navy);border-color:var(--bord);box-shadow:var(--bevel-up)}
+.nav b{font:400 11px/1 var(--mono);opacity:.8;margin-left:3px}
+
+/* ---------- 1 · le paquet ---------- */
+.d1-tete{display:flex;align-items:center;justify-content:space-between;padding:16px 16px 6px;flex:none}
+.d1-tete h3{margin:0;font:700 22px/1.1 var(--ui);letter-spacing:-.01em}
+.blocs{display:flex;gap:3px}
+.blocs i{width:12px;height:16px;border:1px solid var(--bord);background:var(--g0)}
+.blocs i.f{background:var(--teal)}
+.pile{flex:1;min-height:0;display:flex;flex-direction:column;padding:10px 14px 16px}
+.dessous{flex:none;height:24px;padding:0 10px;display:flex;align-items:center;border:1px solid var(--bord);border-bottom:0;background:var(--g3);color:var(--ink2);
+  font:500 11px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;overflow:hidden;white-space:nowrap}
+.dessous.n2{margin:0 24px} .dessous.n1{margin:0 12px}
+.carte{flex:1;min-height:0;display:flex;flex-direction:column}
+.c-corps{flex:1;min-height:0;overflow:auto;padding:18px 16px 12px}
+.c-corps h4{margin:0 0 3px;font:700 23px/1.15 var(--ui);letter-spacing:-.01em}
+.c-corps p{margin:14px 0 0}
+.c-corps .doux{color:var(--ink2);font-size:14px}
+.c-corps .q{font:700 23px/1.2 var(--ui);margin:4px 0 16px}
+.c-pied{display:flex;gap:10px;padding:12px;border-top:1px solid var(--bord);background:var(--g2);flex:none}
+.choix{border:1px solid var(--bord);background:var(--g0)}
+.choix button{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;min-height:58px;padding:0 14px;border:0;border-bottom:1px dashed var(--doux);background:none;font:600 17px/1.2 var(--ui);text-align:left}
+.choix button:last-child{border-bottom:0}
+.choix .ic{color:var(--ink2)}
+.fin{text-align:center;padding-top:28px}
+.fin .coche{width:56px;height:56px;margin:0 auto 14px;display:grid;place-items:center;border:1px solid var(--bord);background:var(--teal-w);color:var(--teal);box-shadow:var(--sh2)}
+.fin .coche .ic{width:32px;height:32px}
+
+/* ---------- 2 · l'assistant ---------- */
+.d2-cible{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px 10px;font:400 13px/1.3 var(--mono);color:var(--ink2);flex:none}
+.d2-cadre{flex:1;min-height:0;margin:0 12px 14px;display:flex;flex-direction:column}
+.etapes{flex:1;min-height:0;overflow:auto}
+.etape{display:flex;align-items:flex-start;gap:12px;width:100%;padding:14px 12px;border:0;border-top:1px solid var(--doux);background:none;text-align:left}
+.etape:first-child{border-top:0}
+.num{flex:none;width:36px;height:36px;display:grid;place-items:center;border:1px solid var(--bord);background:var(--g0);font:400 16px/1 var(--pixel);box-shadow:var(--bevel-up),var(--sh2)}
+.etape[aria-expanded="true"] .num{background:var(--navy);color:var(--on-navy)}
+.et-c{flex:1;min-width:0}
+.et-n{display:block;font:700 18px/1.2 var(--ui)}
+.et-s{display:block;font:400 13px/1.35 var(--ui);color:var(--ink2);margin-top:2px}
+.jauge{display:flex;gap:2px;margin-top:8px}
+.jauge i{width:10px;height:12px;background:var(--teal)}
+.jauge i.a{background:var(--amber)}
+.etape>.ic{margin-top:8px;color:var(--ink2)}
+.etape[aria-expanded="true"]>.ic{transform:rotate(90deg)}
+.et-corps{padding:0 12px 16px 60px;display:grid;gap:10px}
+.et-corps h4{margin:0;font:700 19px/1.2 var(--ui)}
+.et-corps p{margin:0}
+.et-corps .btn{width:100%}
+.rangs{border:1px solid var(--bord);background:var(--g0)}
+.rang{display:flex;align-items:center;gap:10px;padding:9px 10px;border-bottom:1px dashed var(--doux)}
+.rang:last-child{border-bottom:0}
+.rang .r-c{flex:1;min-width:0}
+.rang b{display:block;font-weight:600;line-height:1.25}
+.rang span{display:block;font:400 12px/1.3 var(--mono);color:var(--ink2)}
+
+/* ---------- 3 · le carnet ---------- */
+.d3 .tb{min-height:46px}
+.tb-a{margin-left:auto;display:flex;gap:6px}
+.tb-a button{height:34px;padding:0 10px;border:1px solid var(--bord);background:var(--g2);color:var(--ink);font:600 13px/1 var(--ui);box-shadow:var(--bevel-up);text-transform:none;letter-spacing:0}
+.fil{flex:1;min-height:0;overflow:auto;padding:14px 14px 10px;display:flex;flex-direction:column;gap:10px;background:var(--g1)}
+.jour{align-self:center;font:400 11px/1.4 var(--mono);color:var(--ink2);border:1px solid var(--doux);padding:2px 8px;margin:6px 0 0}
+.b{max-width:88%;padding:10px 12px;border:1px solid var(--bord);line-height:1.35}
+.b.moi{align-self:flex-end;background:var(--teal-w);border-color:var(--teal)}
+.b.app{align-self:flex-start;background:var(--g2)}
+.b.ami{align-self:flex-start;background:var(--g0);display:flex;gap:10px;align-items:flex-start}
+.b .qui{display:block;font:500 11px/1.4 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink2);margin-bottom:2px}
+.b .actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.minis{align-self:stretch;border:1px solid var(--bord);background:var(--g0)}
+.compo{border-top:1px solid var(--bord);background:var(--g2);padding:10px 12px 12px;flex:none}
+.compo .q{font:500 11px/1.5 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink2);margin-bottom:8px}
+.compo .ev{display:flex;gap:8px}
+.compo .ev .btn{flex:1;padding:0 6px;min-height:50px;font-size:14px;white-space:normal;text-align:center}
+
+/* ---------- l'ordinateur ---------- */
+.poste-in .win{position:absolute;display:flex;flex-direction:column}
+.poste-in .tb{min-height:30px;font-size:16px}
+.poste-in .btn{min-height:34px;padding:0 14px;font-size:14px}
+.poste-in h4{margin:0;font:700 18px/1.2 var(--ui)}
+.poste-in kbd{font:500 11px/1 var(--mono);padding:3px 6px;border:1px solid var(--bord);background:var(--g2);box-shadow:var(--bevel-up)}
+.p-liste{flex:1;min-height:0;overflow:hidden;background:var(--g0)}
+.p-groupe{padding:8px 12px 4px;background:var(--g2);border-bottom:1px solid var(--doux);border-top:1px solid var(--doux);font:500 11px/1.5 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink2)}
+.p-groupe:first-child{border-top:0}
+.p-l{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px dashed var(--doux)}
+.p-l.on{background:var(--navy);color:var(--on-navy)}
+.p-l.on span{color:inherit;opacity:.85}
+.p-l b{display:block;font-weight:600} .p-l span{display:block;font:400 12px/1.3 var(--mono);color:var(--ink2)}
+.p-l .r-c{flex:1;min-width:0}
+.p-l em{font:500 11px/1 var(--mono);font-style:normal;padding:3px 6px;border:1px solid var(--amber);color:var(--amber);background:var(--amber-w)}
+.p-taches{position:absolute;left:0;right:0;bottom:0;height:44px;display:flex;align-items:center;gap:6px;padding:0 8px;background:var(--g2);border-top:1px solid var(--bord);box-shadow:var(--bevel-up)}
+.p-taches button{height:32px;padding:0 14px;border:1px solid var(--bord);background:var(--g1);font:600 13px/1 var(--ui);box-shadow:var(--bevel-up),var(--sh2);display:inline-flex;align-items:center;gap:8px}
+.p-taches button.on{background:var(--g3);box-shadow:var(--bevel-down)}
+.p-taches .logo{font:400 16px/1 var(--pixel);letter-spacing:.03em}
+.p-taches .heure{margin-left:auto;font:400 12px/1 var(--mono);color:var(--ink2);padding:0 8px}
+.p1-main{flex:1;min-height:0;display:flex;gap:16px;padding:16px}
+.p1-c{position:static!important;flex:1;min-width:0;box-shadow:var(--sh2)}
+.p1-c .c-corps h4{font-size:19px}
+.p1-c:not(.on){opacity:.75}
+.p-aide{display:flex;align-items:center;gap:8px;padding:8px 16px;border-top:1px solid var(--doux);color:var(--ink2);font-size:13px;flex:none}
+.p-aide span{margin-right:12px}
+.p2-corps,.p3-corps{flex:1;min-height:0;display:flex}
+.p-col{display:flex;flex-direction:column;min-width:0;border-right:1px solid var(--bord)}
+.p-col:last-child{border-right:0}
+.p2-etape{display:flex;gap:12px;align-items:flex-start;padding:12px;border-bottom:1px solid var(--doux)}
+.p2-etape.on{background:var(--navy);color:var(--on-navy)}
+.p2-etape.on .et-s{color:inherit;opacity:.85}
+.p2-etape.on .jauge i{background:#fff}
+.p2-etape.on .num{color:var(--ink)}
+.p2-etape .num{width:32px;height:32px}
+.p-fiche{flex:1;min-width:0;padding:18px 20px;display:flex;flex-direction:column;gap:12px;overflow:hidden}
+.p-fiche .faits{margin:0}
+.p-msg{flex:1;min-height:0;border:1px solid var(--bord);background:var(--g0);padding:12px 14px;font-size:14px;line-height:1.5;overflow:hidden}
+.p-msg mark{background:var(--amber-w);color:var(--amber);padding:0 2px}
+.p-pied{display:flex;gap:10px;justify-content:flex-end;align-items:center}
+.p3 .fil{padding:16px 22px}
+.p3 .b{max-width:70%}
+.p3 .compo{display:flex;gap:8px;align-items:center}
+.p3 .compo .champ{flex:1;min-height:34px;font-size:14px;display:flex;align-items:center;color:var(--ink3)}
+
+/* ---------- au téléphone : une direction à la fois, à sa vraie taille ---------- */
+@media (max-width:860px){
+  .tete{gap:8px}
+  .tete h1,.tete p{display:none}
+  .bascule.dirs{display:flex;flex:1 1 100%}
+  .bascule.dirs button{flex:1;min-height:44px;padding:0 4px}
+  .bascule.jours{flex:1}
+  .bascule.jours button{flex:1}
+  .planche{display:block;padding:0 0 32px}
+  .dir{display:none}
+  body[data-dir="1"] .dir[data-d="1"], body[data-dir="2"] .dir[data-d="2"], body[data-dir="3"] .dir[data-d="3"]{display:block}
+  .tel{max-width:none;height:640px;height:calc(100svh - 124px);min-height:540px;border-left:0;border-right:0;border-top:0;box-shadow:none}
+  .d-tete,.d-notes,.poste{margin:18px max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px))}
+}
+@media (prefers-reduced-motion:reduce){ *{transition:none!important;animation:none!important} }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-zap" viewBox="0 0 24 24"><path d="M4 13h8v6h2v2h-2v2h-2v-8H2v-4h2v2Zm12 6h-2v-2h2v2Zm2-2h-2v-2h2v2Zm2-2h-2v-2h2v2Zm-6-6h8v4h-2v-2h-8V5h-2V3h2V1h2v8Zm-8 2H4V9h2v2Zm2-2H6V7h2v2Zm2-2H8V5h2v2Z"/></symbol>
+  <symbol id="i-briefcase" viewBox="0 0 24 24"><path d="M2 8h2v12H2zm18 0h2v12h-2zM4 6h16v2H4zm0 14h16v2H4zM8 4h2v2H8zm2-2h4v2h-4zm4 2h2v2h-2z"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><path d="M7 3h6v2H7zm0 6h6v2H7zm6-4h2v4h-2zM5 5h2v4H5zM3 13h2v8H3zm12 0h2v8h-2zM5 11h10v2H5zM17 3h4v2h-4zm4 2h2v4h-2zm-2 6h4v2h-4zm4 2h2v8h-2zm-4-2h2v2h-2z"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><path d="M9 2h6v2H9zm0 8h6v2H9zm6-6h2v6h-2zM7 4h2v6H7zM4 18h2v4H4zm14 0h2v4h-2zM8 14h8v2H8zm-2 2h2v2H6zm10 0h2v2h-2z"/></symbol>
+  <symbol id="i-mail" viewBox="0 0 24 24"><path d="M6 8h2v2H6zm2 2h2v2H8zm10-2h-2v2h2zm-2 2h-2v2h2zm-6 2h4v2h-4zM2 6h2v12H2zm18 0h2v12h-2zM4 4h16v2H4zm0 14h16v2H4z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M10 18H8v-2h2v2Zm-2-2H6v-2h2v2Zm4-2v2h-2v-2h2Zm-6 0H4v-2h2v2Zm8 0h-2v-2h2v2Zm2-2h-2v-2h2v2Zm2-2h-2V8h2v2Zm2-2h-2V6h2v2Z"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M7 19H5V17H7V19ZM19 19H17V17H19V19ZM9 15V17H7V15H9ZM17 17H15V15H17V17ZM11 15H9V13H11V15ZM15 15H13V13H15V15ZM13 13H11V11H13V13ZM11 11H9V9H11V11ZM15 11H13V9H15V11ZM9 9H7V7H9V9ZM17 9H15V7H17V9ZM7 7H5V5H7V7ZM19 7H17V5H19V7Z"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M13 11h7v2h-7v7h-2v-7H4v-2h7V4h2v7Z"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M16 13v-2h-2v2h2Zm-2-2V9h-2v2h2Zm0 4v-2h-2v2h2Zm-2-6V7h-2v2h2Zm0 8v-2h-2v2h2ZM10 7V5H8v2h2Zm0 12v-2H8v2h2Z"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><path d="M6 2h12v2H6zM2 6h2v12H2zm18 0h2v12h-2zm-2-2h2v2h-2zM4 4h2v2H4zm2 18h12v-2H6zm12-2h2v-2h-2zM4 20h2v-2H4zm7-14h2v7h-2zm2 7h2v2h-2zm2 2h2v2h-2z"/></symbol>
+  <symbol id="i-building" viewBox="0 0 24 24"><path d="M5 2h14v2H5zm0 18h14v2H5zM3 4h2v16H3zm16 0h2v16h-2zM7 6h2v2H7zm4 0h2v2h-2zm4 0h2v2h-2zm-8 4h2v2H7zm4 0h2v2h-2zm4 0h2v2h-2zm-8 4h2v2H7zm4 0h2v2h-2zm-1 4h4v2h-4zm5-4h2v2h-2z"/></symbol>
+  <symbol id="i-msg" viewBox="0 0 24 24"><path d="M20 2H4v2h16zm0 14H6v2h14zm2-12h-2v12h2zM4 4H2v18h2zm2 14H4v2h2zm0-6h4v2H6zm0-4h8v2H6z"/></symbol>
+  <symbol id="i-flag" viewBox="0 0 24 24"><path d="M4 2h2v20H4z"/><path d="M4 4h16v2H4zm12 2h2v2h-2zm-2 2h2v2h-2zm2 2h2v2h-2zM4 12h16v2H4z"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 24 24"><path d="M18 20h-6v-2h6v2Zm2-2h-2v-8h2v8Zm-10-4H8v-2H6v-2H4V8h2V6h2V4h2v4h8v2h-8v4Z"/></symbol>
+  <symbol id="i-visage-k" viewBox="0 0 7 7"><path d="M1 1h5v1H1zM1 3h1v1H1zm4 0h1v1H5zM2 5h3v1H2zM0 2h1v3H0zm6 0h1v3H6z"/></symbol>
+  <symbol id="i-visage-l" viewBox="0 0 7 7"><path d="M0 0h7v2H0zM1 3h2v1H1zm3 0h2v1H4zM2 5h3v1H2zM0 2h1v5H0zm6 0h1v5H6z"/></symbol>
+</svg>
+
+<header class="tete">
+  <h1>Trois directions pour l’accueil</h1>
+  <p>Le même étudiant, le premier jour puis une semaine plus tard. Tout se touche.</p>
+  <div class="bascule dirs" role="group" aria-label="Direction">
+    <button data-regle="dir" data-v="1">1 · Paquet</button>
+    <button data-regle="dir" data-v="2">2 · Assistant</button>
+    <button data-regle="dir" data-v="3">3 · Carnet</button>
+  </div>
+  <div class="bascule jours" role="group" aria-label="Jour">
+    <button data-regle="jour" data-v="1">Jour 1</button>
+    <button data-regle="jour" data-v="8">Jour 8</button>
+  </div>
+  <button class="rejouer" id="rejouer"><svg class="ic" aria-hidden="true"><use href="#i-undo"/></svg>Rejouer</button>
+</header>
+
+<main class="planche">
+
+<!-- ================= 1 · LE PAQUET ================= -->
+<section class="dir" data-d="1">
+  <div class="tel d1" data-j="1">
+    <div class="d1-tete"><h3>Aujourd’hui</h3><div class="blocs"></div></div>
+    <div class="pile" data-pile="j1"></div>
+    <nav class="nav" aria-label="Lieux">
+      <button class="on"><svg class="ic"><use href="#i-zap"/></svg>Aujourd’hui</button>
+      <button><svg class="ic"><use href="#i-briefcase"/></svg>Pistes</button>
+      <button><svg class="ic"><use href="#i-users"/></svg>Gens</button>
+    </nav>
+  </div>
+  <div class="tel d1" data-j="8">
+    <div class="d1-tete"><h3>Aujourd’hui</h3><div class="blocs"></div></div>
+    <div class="pile" data-pile="j8"></div>
+    <nav class="nav" aria-label="Lieux">
+      <button class="on"><svg class="ic"><use href="#i-zap"/></svg>Aujourd’hui</button>
+      <button><svg class="ic"><use href="#i-briefcase"/></svg><span>Pistes<b>6</b></span></button>
+      <button><svg class="ic"><use href="#i-users"/></svg><span>Gens<b>2</b></span></button>
+    </nav>
+  </div>
+  <div class="d-tete"><span class="d-num">1</span><div><h2>Le paquet</h2><p>L’app te donne cinq cartes par jour. Une carte, une décision.</p></div></div>
+  <dl class="d-notes">
+    <div><dt>Réussit</dt><dd>Rien à apprendre ni à ranger. Le premier jour et le centième se ressemblent.</dd></div>
+    <div><dt>Risque</dt><dd>On ne voit pas l’ensemble sans aller dans « Pistes ».</dd></div>
+  </dl>
+  <figure class="poste">
+    <figcaption>1 · LE PAQUET, À L’ORDINATEUR : les cartes étalées, les flèches du clavier</figcaption>
+    <div class="poste-cadre"><div class="poste-in p1 trame">
+      <section class="win" style="left:28px;top:24px;width:836px;height:624px">
+        <div class="tb"><svg class="ic"><use href="#i-zap"/></svg>Aujourd’hui<span class="tb-d">1 sur 5</span></div>
+        <div class="p1-main">
+          <article class="win p1-c on carte">
+            <div class="tb"><svg class="ic"><use href="#i-clock"/></svg>Ça a bougé ?</div>
+            <div class="c-corps"><h4>Orange Cyberdefense</h4><div class="lieu">Lille · cybersécurité</div>
+              <p>Tu as écrit à Nadia Rahmani il y a 7 jours.</p><p class="doux">Une réponse met souvent une à deux semaines.</p></div>
+            <div class="c-pied"><button class="btn">Rien encore</button><button class="btn p">Elle a répondu</button></div>
+          </article>
+          <article class="win p1-c carte">
+            <div class="tb inactif">Quelqu’un peut t’aider</div>
+            <div class="c-corps"><h4>OVHcloud</h4><div class="lieu">Roubaix · cloud</div>
+              <div class="porte"><svg class="visage"><use href="#i-visage-k"/></svg>Karim y est en alternance</div></div>
+            <div class="c-pied"><button class="btn">Passer</button><button class="btn p">Demander à Karim</button></div>
+          </article>
+          <article class="win p1-c carte">
+            <div class="tb inactif">À toi d’écrire</div>
+            <div class="c-corps"><h4>Advens</h4><div class="lieu">Lille · cybersécurité</div>
+              <p>Tu l’as gardée il y a 3 jours.</p><p class="doux">Thomas Leroy, président</p></div>
+            <div class="c-pied"><button class="btn">Plus tard</button><button class="btn p">Écrire à Thomas</button></div>
+          </article>
+        </div>
+        <div class="p-aide"><kbd>←</kbd><span>Rien encore</span><kbd>→</kbd><span>Elle a répondu</span><kbd>↓</kbd><span>Carte suivante</span><kbd>N</kbd><span>Nouvelle piste</span></div>
+      </section>
+      <section class="win" style="left:888px;top:24px;width:364px;height:624px">
+        <div class="tb"><svg class="ic"><use href="#i-briefcase"/></svg>Mes pistes<span class="tb-d">6</span></div>
+        <div class="p-liste">
+          <div class="p-groupe">À écrire · 4</div>
+          <div class="p-l"><div class="r-c"><b>Advens</b><span>Lille · gardée il y a 3 j</span></div></div>
+          <div class="p-l"><div class="r-c"><b>OVHcloud</b><span class="plus">Karim y est en alternance</span></div></div>
+          <div class="p-l"><div class="r-c"><b>Worldline</b><span>Seclin · gardée il y a 3 j</span></div></div>
+          <div class="p-l"><div class="r-c"><b>Fiducial Informatique</b><span>Villeneuve-d’Ascq · hier</span></div></div>
+          <div class="p-groupe">En attente · 2</div>
+          <div class="p-l"><div class="r-c"><b>Orange Cyberdefense</b><span>écrit à Nadia Rahmani</span></div><em>7 j</em></div>
+          <div class="p-l"><div class="r-c"><b>Kiabi</b><span>écrit par leur site</span></div><span>5 j</span></div>
+        </div>
+      </section>
+      <div class="p-taches"><button><span class="logo">OpenContact</span></button><button class="on"><svg class="ic"><use href="#i-zap"/></svg>Aujourd’hui</button><button><svg class="ic"><use href="#i-briefcase"/></svg>Pistes</button><button><svg class="ic"><use href="#i-users"/></svg>Gens</button><span class="heure">local · sans serveur · 17:04</span></div>
+    </div></div>
+  </figure>
+</section>
+
+<!-- ================= 2 · L'ASSISTANT ================= -->
+<section class="dir" data-d="2">
+  <div class="tel d2" data-j="1">
+    <div class="d2-cible"><span>Ta recherche, en quatre étapes</span></div>
+    <div class="win d2-cadre">
+      <div class="tb"><svg class="ic"><use href="#i-flag"/></svg>Parcours<span class="tb-d">étape 1 sur 4</span></div>
+      <div class="etapes" data-acc>
+        <button class="etape" aria-expanded="true"><span class="num">1</span><span class="et-c"><span class="et-n">Trouver</span><span class="et-s">des entreprises qui te correspondent</span></span><svg class="ic"><use href="#i-chev"/></svg></button>
+        <div class="et-corps">
+          <div data-vue="q">
+            <div class="et" style="margin-bottom:6px">Tu cherches</div>
+            <div class="puces" data-un><button class="puce">Stage</button><button class="puce on">Alternance</button><button class="puce">Emploi</button></div>
+            <div class="et" style="margin:12px 0 6px">Tu étudies</div>
+            <div class="puces" data-un><button class="puce on">BTS SIO SISR</button><button class="puce">BTS SIO SLAM</button><button class="puce">Autre</button></div>
+            <div class="et" style="margin:12px 0 6px">Autour de</div>
+            <input class="champ" id="d2-ville" value="Lille" aria-label="Ville" autocomplete="off">
+            <button class="btn p" style="margin-top:14px" data-voir>Voir les entreprises</button>
+          </div>
+          <div data-vue="r" hidden>
+            <p><b>3 entreprises près de Lille</b> collent à ta formation.</p>
+            <div class="rangs">
+              <div class="rang"><div class="r-c"><b>Réseaux et Systèmes du Nord</b><span>Lille · 1 km · infogérance</span></div><button class="btn s" data-garder>Garder</button></div>
+              <div class="rang"><div class="r-c"><b>Fiducial Informatique</b><span>Villeneuve-d’Ascq · 6 km</span></div><button class="btn s" data-garder>Garder</button></div>
+              <div class="rang"><div class="r-c"><b>Datagora</b><span>Roubaix · 9 km · logiciels</span></div><button class="btn s" data-garder>Garder</button></div>
+            </div>
+          </div>
+        </div>
+        <button class="etape" aria-expanded="false"><span class="num">2</span><span class="et-c"><span class="et-n">Contacter</span><span class="et-s">écrire, appeler, demander à un ami</span></span><svg class="ic"><use href="#i-chev"/></svg></button>
+        <div class="et-corps" hidden><p>Quand tu auras gardé une entreprise, elle arrive ici, avec la personne à qui écrire.</p></div>
+        <button class="etape" aria-expanded="false"><span class="num">3</span><span class="et-c"><span class="et-n">Tenir</span><span class="et-s">relancer, attendre, passer à autre chose</span></span><svg class="ic"><use href="#i-chev"/></svg></button>
+        <div class="et-corps" hidden><p>Après un message, l’app compte les jours à ta place et te dit quand relancer.</p></div>
+        <button class="etape" aria-expanded="false"><span class="num">4</span><span class="et-c"><span class="et-n">Signer</span><span class="et-s">la convention ou le contrat</span></span><svg class="ic"><use href="#i-chev"/></svg></button>
+        <div class="et-corps" hidden><p>Quand une entreprise dit oui, la suite est ici : les papiers, les dates, le premier jour.</p></div>
+      </div>
+    </div>
+    <nav class="nav" aria-label="Lieux">
+      <button class="on"><svg class="ic"><use href="#i-flag"/></svg>Parcours</button>
+      <button><svg class="ic"><use href="#i-users"/></svg>Gens</button>
+      <button><svg class="ic"><use href="#i-user"/></svg>Moi</button>
+    </nav>
+  </div>
+  <div class="tel d2" data-j="8">
+    <div class="d2-cible"><span>Alternance · réseau · autour de Lille</span><button class="lien">Changer</button></div>
+    <div class="win d2-cadre">
+      <div class="tb"><svg class="ic"><use href="#i-flag"/></svg>Parcours<span class="tb-d">6 pistes</span></div>
+      <div class="etapes" data-acc>
+        <button class="etape" aria-expanded="false"><span class="num">1</span><span class="et-c"><span class="et-n">Trouver</span><span class="et-s">6 gardées · 3 nouvelles près de toi</span><span class="jauge"><i></i><i></i><i></i><i></i><i></i><i></i></span></span><svg class="ic"><use href="#i-chev"/></svg></button>
+        <div class="et-corps" hidden>
+          <div class="rangs">
+            <div class="rang"><div class="r-c"><b>Réseaux et Systèmes du Nord</b><span>Lille · 1 km · infogérance</span></div><button class="btn s" data-garder>Garder</button></div>
+            <div class="rang"><div class="r-c"><b>Datagora</b><span>Roubaix · 9 km · logiciels</span></div><button class="btn s" data-garder>Garder</button></div>
+            <div class="rang"><div class="r-c"><b>Nord Infogérance</b><span>Lambersart · 3 km</span></div><button class="btn s" data-garder>Garder</button></div>
+          </div>
+        </div>
+        <button class="etape" aria-expanded="true"><span class="num">2</span><span class="et-c"><span class="et-n">Contacter</span><span class="et-s">4 à contacter</span><span class="jauge"><i></i><i></i><i></i><i></i></span></span><svg class="ic"><use href="#i-chev"/></svg></button>
+        <div class="et-corps">
+          <div class="et">Commence par</div>
+          <h4>Advens</h4>
+          <p>Thomas Leroy, président. Tu l’as gardée il y a 3 jours.</p>
+          <div class="seg" data-un><button class="on">Mail</button><button>LinkedIn</button><button>Appel</button><button>Site</button></div>
+          <button class="btn p"><svg class="ic"><use href="#i-mail"/></svg>Écrire à Thomas Leroy</button>
+          <button class="lien" style="justify-self:start">Puis OVHcloud, Worldline, Fiducial</button>
+        </div>
+        <button class="etape" aria-expanded="false"><span class="num">3</span><span class="et-c"><span class="et-n">Tenir</span><span class="et-s">2 en attente · une à relancer</span><span class="jauge"><i class="a"></i><i></i></span></span><svg class="ic"><use href="#i-chev"/></svg></button>
+        <div class="et-corps" hidden>
+          <h4>Orange Cyberdefense</h4>
+          <p>7 jours sans réponse de Nadia Rahmani. C’est courant.</p>
+          <div style="display:flex;gap:8px"><button class="btn" style="flex:1">Elle a répondu</button><button class="btn p">Relancer</button></div>
+          <p class="lieu">Kiabi : écrit il y a 5 jours, on attend encore.</p>
+        </div>
+        <button class="etape" aria-expanded="false"><span class="num">4</span><span class="et-c"><span class="et-n">Signer</span><span class="et-s">rien encore</span></span><svg class="ic"><use href="#i-chev"/></svg></button>
+        <div class="et-corps" hidden><p>Quand une entreprise dit oui, la suite est ici : les papiers, les dates, le premier jour.</p></div>
+      </div>
+    </div>
+    <nav class="nav" aria-label="Lieux">
+      <button class="on"><svg class="ic"><use href="#i-flag"/></svg>Parcours</button>
+      <button><svg class="ic"><use href="#i-users"/></svg><span>Gens<b>2</b></span></button>
+      <button><svg class="ic"><use href="#i-user"/></svg>Moi</button>
+    </nav>
+  </div>
+  <div class="d-tete"><span class="d-num">2</span><div><h2>L’assistant</h2><p>Ta recherche en quatre étapes, toujours visibles. Chaque étape a son geste.</p></div></div>
+  <dl class="d-notes">
+    <div><dt>Réussit</dt><dd>On voit où on en est et ce qui manque, dès le premier jour.</dd></div>
+    <div><dt>Risque</dt><dd>La plus proche de l’app actuelle. Quatre blocs, c’est plus chargé.</dd></div>
+  </dl>
+  <figure class="poste">
+    <figcaption>2 · L’ASSISTANT, À L’ORDINATEUR : les étapes à gauche, la liste, puis de quoi écrire</figcaption>
+    <div class="poste-cadre"><div class="poste-in p2 trame">
+      <section class="win" style="left:24px;top:22px;width:1232px;height:676px">
+        <div class="tb"><svg class="ic"><use href="#i-flag"/></svg>Parcours<span class="tb-d">Alternance · réseau · autour de Lille</span></div>
+        <div class="p2-corps">
+          <div class="p-col" style="width:262px;background:var(--g2)">
+            <div class="p2-etape"><span class="num">1</span><span class="et-c"><span class="et-n">Trouver</span><span class="et-s">6 gardées · 3 nouvelles</span><span class="jauge"><i></i><i></i><i></i><i></i><i></i><i></i></span></span></div>
+            <div class="p2-etape on"><span class="num">2</span><span class="et-c"><span class="et-n">Contacter</span><span class="et-s">4 à contacter</span><span class="jauge"><i></i><i></i><i></i><i></i></span></span></div>
+            <div class="p2-etape"><span class="num">3</span><span class="et-c"><span class="et-n">Tenir</span><span class="et-s">2 en attente · une à relancer</span><span class="jauge"><i class="a"></i><i></i></span></span></div>
+            <div class="p2-etape"><span class="num">4</span><span class="et-c"><span class="et-n">Signer</span><span class="et-s">rien encore</span></span></div>
+            <div style="margin-top:auto;padding:12px;display:flex;gap:8px"><button class="btn s"><svg class="ic"><use href="#i-users"/></svg>Gens</button><button class="btn s"><svg class="ic"><use href="#i-user"/></svg>Moi</button></div>
+          </div>
+          <div class="p-col" style="width:330px">
+            <div class="p-liste">
+              <div class="p-groupe">À contacter · 4</div>
+              <div class="p-l on"><div class="r-c"><b>Advens</b><span>Thomas Leroy, président</span></div></div>
+              <div class="p-l"><div class="r-c"><b>OVHcloud</b><span class="plus">Karim y est en alternance</span></div></div>
+              <div class="p-l"><div class="r-c"><b>Worldline</b><span>Service RH</span></div></div>
+              <div class="p-l"><div class="r-c"><b>Fiducial Informatique</b><span>personne à qui écrire</span></div></div>
+            </div>
+          </div>
+          <div class="p-fiche">
+            <div><h4>Advens</h4><div class="lieu">Lille · cybersécurité · 250 à 499 salariés</div></div>
+            <dl class="faits">
+              <div><dt>Ils font</dt><dd>Sécurité des systèmes d’information pour des entreprises et des hôpitaux <span class="plus">· colle à ta formation</span></dd></div>
+              <div><dt>À qui</dt><dd>Thomas Leroy, président</dd></div>
+            </dl>
+            <div class="seg" style="align-self:flex-start;width:360px"><button class="on">Mail</button><button>LinkedIn</button><button>Appel</button><button>Site</button></div>
+            <div class="p-msg">Bonjour Monsieur Leroy,<br><br><mark>[Une phrase précise sur Advens : un projet, une actu, une techno.]</mark><br><br>Je suis en BTS SIO SISR au lycée Gustave Eiffel et je cherche une alternance de deux ans à partir de septembre.<br><br>Seriez-vous disponible pour un échange de quinze minutes ?<br><br>Inès Martin</div>
+            <div class="p-pied"><button class="btn">Copier</button><button class="btn p" style="flex:none"><svg class="ic"><use href="#i-mail"/></svg>Ouvrir dans Mail</button></div>
+          </div>
+        </div>
+      </section>
+    </div></div>
+  </figure>
+</section>
+
+<!-- ================= 3 · LE CARNET ================= -->
+<section class="dir" data-d="3">
+  <div class="tel d3" data-j="1">
+    <div class="tb"><svg class="ic"><use href="#i-msg"/></svg>Carnet<span class="tb-a"><button>Pistes</button><button>Gens</button></span></div>
+    <div class="fil" data-fil="j1"></div>
+    <div class="compo"></div>
+  </div>
+  <div class="tel d3" data-j="8">
+    <div class="tb"><svg class="ic"><use href="#i-msg"/></svg>Carnet<span class="tb-a"><button>Pistes 6</button><button>Gens 2</button></span></div>
+    <div class="fil" data-fil="j8"></div>
+    <div class="compo"></div>
+  </div>
+  <div class="d-tete"><span class="d-num">3</span><div><h2>Le carnet</h2><p>Tu dis ce qui s’est passé, l’app répond par la suite. Le suivi s’écrit tout seul.</p></div></div>
+  <dl class="d-notes">
+    <div><dt>Réussit</dt><dd>Noter un événement prend un tap. Tes amis et l’app parlent au même endroit.</dd></div>
+    <div><dt>Risque</dt><dd>Un fil se remplit vite. Retrouver une piste demande de le quitter.</dd></div>
+  </dl>
+  <figure class="poste">
+    <figcaption>3 · LE CARNET, À L’ORDINATEUR : trois colonnes, comme le Discord de la classe</figcaption>
+    <div class="poste-cadre"><div class="poste-in p3">
+      <section class="win" style="left:0;top:0;width:1280px;height:720px;border:0;box-shadow:none">
+        <div class="p3-corps">
+          <div class="p-col" style="width:256px">
+            <div class="tb"><svg class="ic"><use href="#i-briefcase"/></svg>Pistes</div>
+            <div class="p-liste">
+              <div class="p-l"><div class="r-c"><b>Tout le carnet</b><span>6 pistes · 2 amis</span></div></div>
+              <div class="p-groupe">Ça bouge</div>
+              <div class="p-l on"><div class="r-c"><b>Orange Cyberdefense</b><span>7 j sans réponse</span></div></div>
+              <div class="p-l"><div class="r-c"><b>OVHcloud</b><span class="plus">Karim y est</span></div></div>
+              <div class="p-groupe">En attente</div>
+              <div class="p-l"><div class="r-c"><b>Kiabi</b><span>écrit il y a 5 j</span></div></div>
+              <div class="p-groupe">À écrire</div>
+              <div class="p-l"><div class="r-c"><b>Advens</b><span>Lille</span></div></div>
+              <div class="p-l"><div class="r-c"><b>Worldline</b><span>Seclin</span></div></div>
+              <div class="p-l"><div class="r-c"><b>Fiducial Informatique</b><span>Villeneuve-d’Ascq</span></div></div>
+              <div class="p-groupe">Gens</div>
+              <div class="p-l"><svg class="visage"><use href="#i-visage-k"/></svg><div class="r-c"><b>Karim</b><span>ami</span></div></div>
+              <div class="p-l"><svg class="visage"><use href="#i-visage-l"/></svg><div class="r-c"><b>BTS SIO Lille</b><span>groupe · 14</span></div></div>
+            </div>
+          </div>
+          <div class="p-col" style="flex:1">
+            <div class="tb"><svg class="ic"><use href="#i-msg"/></svg>Orange Cyberdefense</div>
+            <div class="fil">
+              <div class="jour">Lundi 9 novembre</div>
+              <div class="b moi">J’ai gardé Orange Cyberdefense</div>
+              <div class="b moi">J’ai écrit à Nadia Rahmani, par mail</div>
+              <div class="b app"><span class="qui">OpenContact</span>Noté. Sans réponse lundi 16, on relance.</div>
+              <div class="jour">Aujourd’hui</div>
+              <div class="b app"><span class="qui">OpenContact</span>7 jours sans réponse de Nadia Rahmani. C’est courant.
+                <div class="actions"><button class="btn p" style="flex:none">Relancer Nadia</button><button class="btn">Elle a répondu</button></div></div>
+            </div>
+            <div class="compo"><button class="btn s">J’ai écrit</button><button class="btn s">On m’a répondu</button><div class="champ">Écris une note, ou colle un lien, un mail, une annonce…</div></div>
+          </div>
+          <div class="p-col" style="width:340px">
+            <div class="tb"><svg class="ic"><use href="#i-building"/></svg>Fiche</div>
+            <div class="p-fiche">
+              <div><h4>Orange Cyberdefense</h4><div class="lieu">Lille · cybersécurité</div></div>
+              <div class="porte" style="margin:0"><svg class="visage"><use href="#i-visage-l"/></svg>Léa y a fait son stage</div>
+              <dl class="faits">
+                <div><dt>Ils font</dt><dd>Surveillance et réponse aux attaques pour de grands comptes</dd></div>
+                <div><dt>Taille</dt><dd>Plus de 2 000 salariés</dd></div>
+                <div><dt>Contact</dt><dd>Nadia Rahmani, chargée de recrutement</dd></div>
+              </dl>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div></div>
+  </figure>
+</section>
+
+</main>
+
+<script>
+(function(){
+  var $=function(s,r){return (r||document).querySelector(s)}, $$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))};
+  var ic=function(n){return '<svg class="ic" aria-hidden="true"><use href="#i-'+n+'"/></svg>'};
+  var corps=document.body;
+
+  /* ---------- les commutateurs de la planche ---------- */
+  function auBas(){ $$('.tel .fil').forEach(function(f){ f.scrollTop=f.scrollHeight; }); }
+  function mesurer(){ $$('.poste-cadre').forEach(function(c){ var k=c.clientWidth/1280; if(k>0) c.firstElementChild.style.setProperty('--k',k); }); }
+  function regler(k,v){
+    corps.setAttribute('data-'+k,v);
+    $$('[data-regle="'+k+'"]').forEach(function(b){ var on=b.getAttribute('data-v')===v; b.classList.toggle('on',on); b.setAttribute('aria-pressed',on); });
+    try{ localStorage.setItem('oc-directions-'+k,v); }catch(e){}
+    mesurer(); auBas();
+  }
+  function lire(k,d){ try{ return localStorage.getItem('oc-directions-'+k)||d; }catch(e){ return d; } }
+  $('.tete').addEventListener('click',function(e){ var b=e.target.closest('[data-regle]'); if(b) regler(b.getAttribute('data-regle'),b.getAttribute('data-v')); });
+  window.addEventListener('resize',mesurer);
+
+  /* ---------- 1 · le paquet ---------- */
+  var FAITS=function(l){ return '<dl class="faits">'+l.map(function(f){return '<div><dt>'+f[0]+'</dt><dd>'+f[1]+'</dd></div>'}).join('')+'</dl>'; };
+  var DEC=function(nom,lieu,faits){ return {t:'À découvrir',i:'building',passer:1,h:'<h4>'+nom+'</h4><div class="lieu">'+lieu+'</div>'+FAITS(faits),b:[['Passer'],['Garder','p','plus']]}; };
+  var C={
+    q1:{t:'Pour commencer',i:'flag',h:'<div class="q">Tu cherches quoi ?</div><div class="choix"><button data-a="suite">Un stage'+ic('chev')+'</button><button data-a="suite">Une alternance'+ic('chev')+'</button><button data-a="suite">Un premier emploi'+ic('chev')+'</button></div>'},
+    q2:{t:'Tu étudies quoi ?',i:'flag',h:'<div class="q">Tu étudies quoi ?</div><div class="choix"><button data-a="suite">BTS SIO, option SISR'+ic('chev')+'</button><button data-a="suite">BTS SIO, option SLAM'+ic('chev')+'</button><button data-a="suite">BUT Informatique'+ic('chev')+'</button><button data-a="suite">Autre chose'+ic('chev')+'</button></div>'},
+    q3:{t:'Autour de quelle ville ?',i:'flag',h:'<div class="q">Autour de quelle ville ?</div><input class="champ" value="Lille" aria-label="Ville" autocomplete="off"><div class="et" style="margin:16px 0 8px">Jusqu’à</div><div class="puces" data-un><button class="puce">10 km</button><button class="puce on">15 km</button><button class="puce">30 km</button></div>',b:[['Voir les entreprises','p']]},
+    dec1:DEC('Réseaux et Systèmes du Nord','Lille · 1 km',[['Ils font','Infogérance : les serveurs et réseaux de leurs clients<br><span class="plus">colle à ta formation</span>'],['Taille','20 à 49 salariés'],['À qui écrire','Claire Durand, présidente']]),
+    dec2:DEC('Fiducial Informatique','Villeneuve-d’Ascq · 6 km',[['Ils font','Logiciels et matériel pour les petites entreprises'],['Taille','50 à 99 salariés ici'],['À qui écrire','Le recrutement']]),
+    dec3:DEC('Datagora','Roubaix · 9 km',[['Ils font','Développement de logiciels sur mesure'],['Taille','10 à 19 salariés'],['Bon à savoir','<span class="plus">prend des alternants</span>']]),
+    dec4:DEC('Nord Infogérance','Lambersart · 3 km',[['Ils font','Dépannage et sécurité informatique des PME<br><span class="plus">colle à ta formation</span>'],['Taille','10 à 19 salariés'],['À qui écrire','Marc Delattre, gérant']]),
+    bouge:{t:'Ça a bougé ?',i:'clock',h:'<h4>Orange Cyberdefense</h4><div class="lieu">Lille · cybersécurité</div><p>Tu as écrit à Nadia Rahmani il y a 7 jours.</p><p class="doux">Une réponse met souvent une à deux semaines.</p>',b:[['Rien encore','','', 'vers:relance'],['Elle a répondu','p','', 'vers:reponse']]},
+    relance:{t:'On relance ?',i:'mail',hors:1,h:'<h4>Orange Cyberdefense</h4><div class="lieu">Nadia Rahmani, chargée de recrutement</div><p>Un court message suffit. Il est prêt, tu le relis et tu l’envoies.</p>',b:[['Plus tard'],['Relancer Nadia','p','mail']]},
+    reponse:{t:'Bonne nouvelle',i:'check',hors:1,h:'<h4>Orange Cyberdefense</h4><div class="lieu">Nadia Rahmani t’a répondu</div><div class="q" style="margin-top:18px;font-size:19px">C’est quoi ?</div><div class="choix"><button data-a="suite">Un entretien'+ic('chev')+'</button><button data-a="suite">Une question'+ic('chev')+'</button><button data-a="suite">Un refus'+ic('chev')+'</button></div>'},
+    aide:{t:'Quelqu’un peut t’aider',i:'users',h:'<h4>OVHcloud</h4><div class="lieu">Roubaix · cloud</div><div class="porte"><svg class="visage"><use href="#i-visage-k"/></svg>Karim y est en alternance</div><p>Demande-lui à qui écrire. Passer par quelqu’un de l’intérieur aide beaucoup.</p>',b:[['Passer'],['Demander à Karim','p']]},
+    ecrire:{t:'À toi d’écrire',i:'mail',h:'<h4>Advens</h4><div class="lieu">Lille · cybersécurité</div><p>Tu l’as gardée il y a 3 jours.</p>'+FAITS([['À qui','Thomas Leroy, président'],['Par où','<div class="seg" data-un><button class="on">Mail</button><button>LinkedIn</button><button>Appel</button></div>']]),b:[['Plus tard'],['Écrire à Thomas','p','mail']]},
+    fin1:{t:'C’est parti',i:'check',fin:1,h:'<div class="fin"><div class="coche">'+ic('check')+'</div><div class="q">Voilà tes premières pistes.</div><p class="doux">Demain, on écrit à la première.<br>Tu les retrouves dans « Pistes ».</p></div>',b:[['Encore 5 entreprises','','', 'rejouer']]},
+    fin8:{t:'C’est tout pour aujourd’hui',i:'check',fin:1,h:'<div class="fin"><div class="coche">'+ic('check')+'</div><div class="q">Cinq cartes, c’est une bonne séance.</div><p class="doux">Reviens quand tu veux.<br>Rien ne t’attend en retard.</p></div>',b:[['Encore 5 entreprises','','', 'rejouer']]}
+  };
+  var PILES={ j1:['q1','q2','q3','dec1','dec2','dec3','fin1'], j8:['bouge','aide','ecrire','dec1','dec4','fin8'] };
+  function pile(el){
+    var ids=PILES[el.getAttribute('data-pile')], i=0, hors=null;
+    var tel=el.closest('.tel'), blocs=$('.blocs',tel), total=ids.filter(function(id){return !C[id].fin}).length;
+    function rendre(){
+      var c=C[hors||ids[i]], suite=ids.slice(i+1,i+3).map(function(x){return C[x]}), h='';
+      for(var k=suite.length-1;k>=0;k--) h+='<div class="dessous n'+(k+1)+'">'+suite[k].t+'</div>';
+      h+='<article class="win carte"><div class="tb">'+ic(c.i)+c.t+(c.passer?'<button class="x" data-a="suite" aria-label="Passer">'+ic('close')+'</button>':'')+'</div><div class="c-corps">'+c.h+'</div>';
+      if(c.b) h+='<div class="c-pied">'+c.b.map(function(b){return '<button class="btn '+(b[1]||'')+'" data-a="'+(b[3]||'suite')+'">'+(b[2]?ic(b[2]):'')+b[0]+'</button>'}).join('')+'</div>';
+      el.innerHTML=h+'</article>';
+      var f=''; for(var n=0;n<total;n++) f+='<i'+(n<Math.min(i,total)?' class="f"':'')+'></i>';
+      blocs.innerHTML=f; blocs.setAttribute('aria-label',Math.min(i,total)+' cartes sur '+total);
+    }
+    el.onclick=function(e){
+      var u=e.target.closest('[data-un] button'); if(u){ $$('button',u.parentNode).forEach(function(x){x.classList.toggle('on',x===u)}); return; }
+      var b=e.target.closest('[data-a]'); if(!b) return;
+      var a=b.getAttribute('data-a');
+      if(a==='rejouer'){ i=0; hors=null; }
+      else if(a.indexOf('vers:')===0){ hors=a.slice(5); }
+      else { hors=null; if(i<ids.length-1) i++; }
+      rendre();
+    };
+    rendre();
+  }
+
+  /* ---------- 2 · l'assistant ---------- */
+  function assistant(tel){
+    tel.onclick=function(e){
+      var u=e.target.closest('[data-un] button'); if(u){ $$('button',u.parentNode).forEach(function(x){x.classList.toggle('on',x===u)}); return; }
+      var g=e.target.closest('[data-garder]'); if(g){ g.className='btn s fait'; g.innerHTML=ic('check')+'Gardée'; g.removeAttribute('data-garder'); return; }
+      var v=e.target.closest('[data-voir]'); if(v){ var c=v.closest('.et-corps'); $('[data-vue="q"]',c).hidden=true; $('[data-vue="r"]',c).hidden=false; return; }
+      var et=e.target.closest('.etape'); if(!et) return;
+      var ouvert=et.getAttribute('aria-expanded')==='true';
+      $$('.etape',tel).forEach(function(x){ x.setAttribute('aria-expanded','false'); x.nextElementSibling.hidden=true; });
+      if(!ouvert){ et.setAttribute('aria-expanded','true'); et.nextElementSibling.hidden=false; }
+    };
+  }
+
+  /* ---------- 3 · le carnet ---------- */
+  var MINI=function(nom,meta){ return '<div class="rang"><div class="r-c"><b>'+nom+'</b><span>'+meta+'</span></div><button class="btn s" data-garder>Garder</button></div>'; };
+  function carnet(tel){
+    var fil=$('.fil',tel), compo=$('.compo',tel), jour=fil.getAttribute('data-fil');
+    function bas(){ fil.scrollTop=fil.scrollHeight; }
+    function dire(cls,html){ var d=document.createElement('div'); d.className=cls; d.innerHTML=html; fil.appendChild(d); bas(); return d; }
+    var app=function(t){ return dire('b app','<span class="qui">OpenContact</span>'+t); }, moi=function(t){ return dire('b moi',t); };
+    function poser(q,opts,suite){
+      compo.innerHTML='<div class="q">'+q+'</div><div class="puces">'+opts.map(function(o,k){return '<button class="puce" data-k="'+k+'">'+o+'</button>'}).join('')+'</div>';
+      compo.onclick=function(e){ var b=e.target.closest('.puce'); if(!b) return; compo.onclick=null; suite(opts[+b.getAttribute('data-k')]); };
+      bas();
+    }
+    function libre(){
+      compo.innerHTML='<div class="q">Il s’est passé quoi ?</div><div class="ev"><button class="btn" data-e="trouve">J’ai trouvé</button><button class="btn" data-e="ecrit">J’ai écrit</button><button class="btn" data-e="repondu">On m’a répondu</button></div>';
+      compo.onclick=function(e){ var b=e.target.closest('[data-e]'); if(!b) return; compo.onclick=null; ({trouve:trouve,ecrit:ecrit,repondu:repondu})[b.getAttribute('data-e')](); };
+      bas();
+    }
+    function trouve(){ app('Deux entreprises près de Lille collent à ta formation.'); dire('minis',MINI('Réseaux et Systèmes du Nord','Lille · 1 km · infogérance')+MINI('Nord Infogérance','Lambersart · 3 km')); libre(); }
+    function ecrit(){ poser('À qui ?',['Advens','OVHcloud','Worldline'],function(qui){ poser('Par où ?',['Mail','LinkedIn','Téléphone','Leur site'],function(par){
+      var p={'Mail':'par mail','LinkedIn':'sur LinkedIn','Téléphone':'par téléphone','Leur site':'sur leur site'}[par];
+      moi('J’ai écrit à '+qui+', '+p); app('Noté. Sans réponse lundi 23, on relance.'); libre(); }); }); }
+    function quoi(qui){ poser('C’est quoi ?',['Un entretien','Une question','Un refus'],function(r){
+      moi(qui+' m’a répondu : '+r.toLowerCase());
+      app(r==='Un entretien'?'Bravo. Note la date, je te prépare trois questions à leur poser.':r==='Un refus'?'Dommage. La plupart des candidatures s’arrêtent là, ce n’est pas toi. On écrit à Advens ?':'Réponds-lui aujourd’hui, tant que c’est frais.');
+      libre(); }); }
+    function repondu(){ poser('Qui ?',['Orange Cyberdefense','Kiabi'],quoi); }
+    fil.onclick=function(e){
+      var g=e.target.closest('[data-garder]'); if(g){ g.className='btn s fait'; g.innerHTML=ic('check')+'Gardée'; g.removeAttribute('data-garder'); return; }
+      var a=e.target.closest('[data-f]'); if(!a) return;
+      var f=a.getAttribute('data-f'); a.parentNode.remove();
+      if(f==='relance'){ moi('J’ai relancé Nadia Rahmani'); app('Noté. On en reparle lundi 23.'); libre(); }
+      if(f==='repondu'){ quoi('Orange Cyberdefense'); }
+      if(f==='karim'){ moi('J’ai demandé à Karim à qui écrire chez OVHcloud'); app('C’est parti. Sa réponse arrivera ici.'); libre(); }
+    };
+    fil.innerHTML='';
+    if(jour==='j1'){
+      app('Salut. Ici tu notes ce qui se passe dans ta recherche, et je te dis la suite.');
+      app('Tu cherches quoi ?');
+      poser('Tu cherches',['Un stage','Une alternance','Un emploi'],function(a){ moi(a); app('Tu étudies quoi ?');
+        poser('Tu étudies',['BTS SIO SISR','BTS SIO SLAM','BUT Info','Autre'],function(b){ moi(b); app('Autour de quelle ville ?');
+          poser('Autour de',['Lille','Une autre ville'],function(c){ moi(c==='Lille'?'Lille':c); app('Voilà trois entreprises près de Lille qui collent à ta formation.');
+            dire('minis',MINI('Réseaux et Systèmes du Nord','Lille · 1 km · infogérance')+MINI('Fiducial Informatique','Villeneuve-d’Ascq · 6 km')+MINI('Datagora','Roubaix · 9 km · logiciels'));
+            app('Garde celles qui te parlent. Demain, on écrit à la première.'); libre(); }); }); });
+    } else {
+      dire('jour','Lundi 9 novembre');
+      moi('J’ai gardé Advens, OVHcloud, Worldline et Fiducial');
+      moi('J’ai écrit à Nadia Rahmani, Orange Cyberdefense, par mail');
+      app('Noté. Sans réponse lundi 16, on relance.');
+      dire('jour','Mercredi 11');
+      moi('J’ai écrit à Kiabi, sur leur site');
+      dire('jour','Aujourd’hui');
+      dire('b ami','<svg class="visage"><use href="#i-visage-k"/></svg><div><span class="qui">Karim</span>Je suis en alternance chez OVHcloud, que tu as gardée.<div class="actions"><button class="btn s" data-f="karim">Lui demander à qui écrire</button></div></div>');
+      app('Orange Cyberdefense : 7 jours sans réponse. C’est courant.<div class="actions"><button class="btn s p" style="flex:none" data-f="relance">Relancer Nadia</button><button class="btn s" data-f="repondu">Elle a répondu</button></div>');
+      libre();
+    }
+  }
+
+  function monter(){ $$('.pile').forEach(pile); $$('.tel.d2').forEach(assistant); $$('.tel.d3').forEach(carnet); }
+  $('#rejouer').addEventListener('click',function(){
+    $$('.tel.d2 .et-corps [data-vue="q"]').forEach(function(x){x.hidden=false}); $$('.tel.d2 .et-corps [data-vue="r"]').forEach(function(x){x.hidden=true});
+    $$('.tel.d2 .fait').forEach(function(g){ g.className='btn s'; g.textContent='Garder'; g.setAttribute('data-garder',''); });
+    monter(); auBas();
+  });
+  monter();
+  regler('dir',lire('dir','1')); regler('jour',lire('jour','1'));
+})();
+</script>
