@@ -187,20 +187,21 @@ ou crée sa phrase de secours.
 
 ---
 
-## 8. Où on en est (10 novembre 2026, branche `claude/refonte-arc`)
+## 8. Où on en est (12 novembre 2026, branche `claude/refonte-arc`)
 
 | Lot | État | Ce qui est fait | Ce qui reste |
 |---|---|---|---|
 | **0. Le moteur de la barre** | fait | `engine/commande.js` : les verbes, les pistes, les dates, les lieux de l'app, ce qu'on colle ; huit tests | — |
-| **1. La page d'une entreprise** | en partie | « Prochaine étape » sur la fiche, son bouton au pied, « Prépare la page » depuis la barre (l'aperçu de « À découvrir ») | réunir la fiche et l'aperçu en une seule page |
-| **2. La barre** | fait | `ui/barre.js` : la feuille du + au téléphone, la palette à l'ordinateur | y fondre la recherche de « Mes pistes » |
+| **1. La page d'une entreprise** | en partie | la fiche repensée (le parcours, l'étape, les gens joints d'un tap, le fil ouvert), « Prépare la page » depuis la barre | réunir la fiche et l'aperçu de « À découvrir » en une seule page |
+| **2. La barre** | fait | `ui/barre.js` : au téléphone le champ reste en bas, à l'ordinateur une palette | y fondre la recherche de « Mes pistes » |
 | **3. Le rangement automatique** | fait | `engine/rangement.js`, l'annonce sur « Aujourd'hui », « Annuler » | — |
-| **4. La nouvelle navigation** | fait | trois places en bas au téléphone ; barre latérale et pile à l'ordinateur | — |
-| **5. Le début** | amorcé | la cible en tête d'« Aujourd'hui », trois puces quand elle n'est pas dite, « Trouver des entreprises » | les entreprises proposées dès la cible, sans passer par « À découvrir » |
-| **6. La fin** | en partie | la suite d'un « Décroché » (`engine/contrat.js`), sur la fiche et dans la file | les échéances datées, le plan B avant l'échéance |
-| **7. Le moral** | en partie | « Pour reprendre » après une pause, le silence dit sans verdict, trois choses à demander avant un entretien | le geste après un refus |
-| **8. Le réseau** | amorcé | « Réseau » dans « Moi » au téléphone, dans la barre latérale à l'ordinateur | masquer la conversation libre (D3) |
-| **9. Moi et la finition** | à faire | — | profil, documents, copie, réglages dans la nouvelle interface |
+| **4. La nouvelle navigation** | fait | trois places en bas au téléphone (la pile, la barre en champ, moi) ; barre latérale et pile à l'ordinateur | — |
+| **5. Le début** | en partie | la fenêtre « Pour commencer » demande la cible, puis propose de trouver des entreprises ; la cible en une ligne sous le titre | les entreprises proposées dès la cible, sans passer par « À découvrir » |
+| **6. Le milieu** | fait | « Aujourd'hui » en lecteur (la file, la fenêtre « Maintenant », « Plus tard »), la même étape dans « Mes pistes », la relance qui tombe à la réponse | — |
+| **7. La fin** | en partie | la suite d'un « Décroché » (`engine/contrat.js`), sur la fiche, dans la file et dans la fenêtre | les échéances datées, le plan B avant l'échéance |
+| **8. Le moral** | en partie | « Pour reprendre » après une pause, « Fait aujourd'hui » sans compte, le silence dit sans verdict, trois choses à demander avant un entretien | le geste après un refus |
+| **9. Le réseau** | amorcé | « Réseau » dans « Moi » au téléphone (la ligne dit ce qu'il y a derrière), dans la barre latérale à l'ordinateur | masquer la conversation libre (D3) ; « Réseau » garde son dessin de la 8.1 |
+| **10. Moi et la finition** | à faire | les listes au cadre commun | profil, documents, copie, réglages : leur dessin n'a pas bougé |
 
 Les étapes 1 (« Vérifier ») et 2 (« Dessiner ») n'ont pas été suivies à
 la lettre : le test sur un vrai iPhone reste à faire par le mainteneur,

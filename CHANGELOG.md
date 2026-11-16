@@ -14,53 +14,65 @@ Les versions d'avant la 6.76 se lisent dans l'historique du dépôt.
 La refonte : OpenContact s'utilise comme Arc Search, avec son style 98.
 Une barre qui comprend ce que tu tapes, une app qui te dit quoi faire,
 presque plus de navigation, et ce qui ne sert plus qui se range tout
-seul. Rien n'est supprimé, aucune donnée ne bouge
+seul. Le téléphone et l'ordinateur ont chacun leur dessin. Rien n'est
+supprimé, aucune donnée ne bouge
 (`docs/decisions/0015-la-refonte-en-9-0.md`, `docs/principes.md`).
 
 ### Nouveau
 
-- **La barre.** Le + ouvre une seule entrée pour tout : retrouver une
-  piste, aller quelque part (« réglages », « mon QR »), chercher
-  (« cyber Lille »), ajouter une entreprise — et agir. Écris « relancer
-  Advens », « entretien Aztek jeudi 14h », « refus Capgemini » ou « note
-  Thales : écrire à Karim » : la barre te montre ce qu'elle a compris,
-  et un tap le fait. Tu peux toujours annuler.
+- **La barre.** Une seule entrée pour tout : retrouver une piste, aller
+  quelque part (« réglages », « mon QR »), chercher (« cyber Lille »),
+  ajouter une entreprise — et agir. Écris « relancer Advens »,
+  « entretien Aztek jeudi 14h », « refus Capgemini » ou « note Thales :
+  écrire à Karim » : la barre te montre ce qu'elle a compris, et un tap
+  le fait. Tu peux toujours annuler.
 - **« Prépare la page ».** Tape le nom d'une entreprise que tu n'as pas :
   l'app va la chercher dans l'annuaire et t'ouvre sa page, prête à
   ajouter à tes pistes. Rien ne part tant que tu n'as pas tapé dessus.
-- **« Aujourd'hui » te dit quoi faire.** Une ligne par piste, sa
-  prochaine étape, et un bouton qui dit ce qu'il fait : Relancer,
-  Préparer, Demander, Écrire. Le premier est le plus important.
+- **« Maintenant ».** « Aujourd'hui » te pose une question à la fois :
+  une piste, ce qu'il y a à faire, ce qui s'est passé en dernier, et un
+  bouton qui dit ce qu'il fait — Relancer, Préparer, Demander, Écrire,
+  Appeler. Touche une autre ligne de la liste pour passer à elle.
+- **« Plus tard »** te demande quand : la piste passe dans « Bientôt »,
+  avec sa date.
 - **« Bientôt » dit aussi ce qui attend** : une piste sans réponse y
   affiche « Relancer si pas de réponse », au jour où la relance viendra.
   Si la réponse arrive avant, la relance prévue s'efface toute seule.
-- **« Appeler »** : une piste dont le contact n'a qu'un numéro te
-  propose de l'appeler, au lieu de te laisser sans geste.
+- **« Fait aujourd'hui »** : ce que tu as fait dans la journée, coché,
+  sous ta liste.
 - **Après « Décroché », la suite.** La convention avant le premier jour
   pour un stage ; le contrat, son dépôt et les 45 premiers jours pour
   une alternance. Une liste à cocher, privée.
 - **Avant un entretien**, la fiche te rappelle trois choses à demander.
-- **Ta cible ouvre l'écran** : ce que tu cherches, où, pour quand.
+- **Ta recherche** (ce que tu cherches, et où) tient sous le titre
+  d'« Aujourd'hui » ; une app neuve commence par te la demander.
 
 ### Changé
 
-- **Sur le téléphone, la barre du bas n'a plus que trois boutons** : tes
-  pistes (avec la dernière ouverte posée dessus), le +, et toi. Le coin
-  de l'écran où tu es te ramène à « Aujourd'hui ». « Réseau » est dans
-  « Moi ».
+- **Sur le téléphone, la barre du bas a trois places** : tes pistes (avec
+  la dernière ouverte posée dessus), un champ pour chercher ou agir, et
+  toi. Quand tu touches le champ, il reste en bas, et ce que la barre
+  comprend s'affiche juste au-dessus. Le coin de l'écran où tu es te
+  ramène à « Aujourd'hui ». « Réseau » est dans « Moi ».
 - **Sur l'ordinateur, une barre à gauche** : la barre (Ctrl K ou « / »),
   les quatre écrans, « Nouvelle piste », et tes pistes ouvertes en
-  dernier. « Aujourd'hui » tient en deux zones : ce qu'il y a à faire, et
-  ce qui vient.
+  dernier. « Aujourd'hui » montre ta liste au centre et « Maintenant » à
+  droite, avec les contacts et tes notes ; les flèches et Entrée
+  suffisent.
+- **« Mes pistes » sur le téléphone** est rangée par état : Réponse, En
+  cours, À contacter. Et chaque piste y dit sa prochaine étape, la même
+  que sur « Aujourd'hui ».
+- **La fiche** se lit dans l'ordre : où en est la piste, ce qu'il y a à
+  faire, à qui parler (un tap pour écrire ou appeler), tes notes, ce
+  qu'on sait de l'entreprise, l'historique. Le bouton du bas fait la
+  prochaine étape, au lieu de toujours dire « Écrire ».
 - **Une piste sans réponse depuis 45 jours se range toute seule.**
   « Aujourd'hui » te le dit pendant une semaine, avec « Annuler » ; elle
   reste dans « Mes pistes ».
-- **Le bouton du bas d'une fiche fait la prochaine étape**, au lieu de
-  toujours dire « Écrire ».
 - **Revenir après une pause** : trois choses pour reprendre, sans le
   compte des jours de retard.
-- **« Nouvelle piste »** est au pied de la barre : un tap de plus
-  qu'avant depuis le +.
+- **« Nouvelle piste »** est la dernière ligne de la barre ; sur
+  l'ordinateur, le bouton de la barre de gauche.
 
 ## [8.1.0] — 3 novembre 2026
 

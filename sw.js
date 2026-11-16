@@ -4,7 +4,7 @@
    arrière-plan — la version suivante s'applique à l'ouverture d'après.
    Jamais mis en cache : le géocodage (données fraîches) et les tuiles de
    carte (volume) — la carte demande donc du réseau, tout le reste non. */
-const CACHE = 'oc-v294';
+const CACHE = 'oc-v295';
 const PRECACHE = ['./', './index.html', './app.js', './theme.js', './tests.js', './tests-c8.js', './tests-mcp.js',
   './engine/crypto.js', './engine/exchange.js', './engine/filter.js',
   './engine/geo.js', './engine/merge.js', './engine/model.js',
@@ -16,6 +16,10 @@ const PRECACHE = ['./', './index.html', './app.js', './theme.js', './tests.js', 
      écrit ne se perd */
   './engine/moi.js', './engine/aide.js', './engine/visage.js', './engine/semaine.js', './engine/conversations.js', './engine/liens.js', './engine/drapeaux.js', './engine/destinations.js', './engine/suivi.js', './engine/prets.js', './engine/clavier.js', './engine/cv.js', './engine/metiers.js', './engine/metiers-donnees.js',
   './ui/dom.js', './ui/dates.js', './ui/state.js', './ui/actions.js', './ui/sort.js', './ui/verrou.js',
+  /* la 9.0 : la barre qui comprend, la prochaine étape, le rangement,
+     la suite d'un contrat — et leurs écrans */
+  './engine/commande.js', './engine/etape.js', './engine/rangement.js', './engine/contrat.js',
+  './ui/barre.js', './ui/gestes.js', './ui/recents.js',
   './ui/mail.js', './ui/capture.js', './ui/fiche.js', './ui/today.js',
   './ui/pistes.js', './ui/decouvrir.js', './ui/carte.js', './ui/fiche-annuaire.js', './ui/nom-annuaire.js', './ui/amis.js', './ui/reseau.js', './ui/groupes.js', './ui/messages.js', './ui/conversations.js', './ui/fil.js', './ui/visage.js', './ui/aide.js', './ui/zone-visible.js', './ui/moi.js', './ui/installer.js', './ui/fichier.js', './ui/perimetre.js', './ui/echanger.js', './ui/direct.js', './ui/synclive.js', './ui/moi-phrase.js',
   './ui/contact.js', './ui/edit.js', './ui/docs.js', './ui/tplfield.js', './ui/prospect.js', './ui/analyse.js', './ui/propositions.js',

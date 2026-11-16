@@ -290,11 +290,15 @@ function rangerSeules(){
      filtre sous les yeux */
   document.addEventListener('keydown', e => {
     const k = (e.ctrlKey || e.metaKey) && !e.altKey && (e.key === 'k' || e.key === 'K');
-    if (!k && (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey)) return;
+    /* « n » : nouvelle piste — la touche s'annonce sur le bouton de la
+       barre latérale (§5 : une touche se dit dans ce qu'elle commande) */
+    const n = !k && (e.key === 'n' || e.key === 'N') && !e.ctrlKey && !e.metaKey && !e.altKey;
+    if (!k && !n && (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey)) return;
     const t = e.target;
     if (!k && t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
     if (sheetOpen()) return;
     e.preventDefault();
+    if (n){ openCapture(); return; }
     if (!k && S.route === 'pistes'){ try { $('#piQ').focus(); } catch (x) {} return; }
     ouvrirBarre();
   });

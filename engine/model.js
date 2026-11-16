@@ -15,7 +15,7 @@ import { normaliserAide } from './aide.js';
 import { normaliserVisage } from './visage.js';
 import { normaliserSuite } from './contrat.js';
 
-export const APP_VERSION = '8.1.0';
+export const APP_VERSION = '9.0.0';
 
 export const DOMAINS = {
   esn:     { label:'ESN / Services IT',       color:'#4C9FD8' },
