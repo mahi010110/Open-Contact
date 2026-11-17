@@ -26,12 +26,13 @@ n'a pas été montré au mainteneur.
 | L'aide à l'embauche d'un apprenti | La page d'une entreprise, ligne « Aide » | 1 |
 | Capture, anti-doublon | **La barre de Trouver** : taper un nom, l'annuaire le reconnaît, « Garder » ; sinon « Garder tel quel ». Une entreprise déjà gardée se dit « dans tes pistes » et ouvre sa piste | 1 |
 | Pistes, fiches, suivi, prochaine action, clôture | **Pistes** : « À faire » en tête, puis les pistes par étape. **La page d'une piste** : la suite, « Il s'est passé quelque chose ? », les gens, l'entreprise, l'historique, mes notes | 2 |
-| Rappel par l'agenda du téléphone | La page d'une piste, au moment où une date se pose | 2 |
-| Écrire un mail (`mailto:`, copier, « Envoyée ✓ ») | La page d'une piste, « Écrire » : quatre canaux (mail, LinkedIn, appel, site) | 2 |
-| Postuler à plusieurs d'affilée | Pistes, « À contacter » : écrire aux N, une par une | 2 |
+| Rappel par l'agenda du téléphone | La page d'une piste : « Rappel dans mon agenda » après un envoi, « Ajouter à mon agenda » quand un entretien a sa date | 2 |
+| Écrire un mail (`mailto:`, copier, « Envoyée ✓ ») | « Écrire », poussé depuis la piste : quatre canaux (mail, LinkedIn, appel, site), puis « C'est parti ? » sur la piste | 2 |
+| Postuler à plusieurs d'affilée | Après un envoi, « Suivante : … » ouvre le message de la piste suivante à contacter | 2 |
 | « Mon parcours », la ligne « Expérience » du mail | Moi › Mon profil ; le message | 4, 2 |
-| Bac « à rattacher » | Pistes, en bas, seulement s'il contient quelque chose | 2 |
-| « Depuis mes e-mails » | Pistes, en bas, à côté du bac | 2 |
+| Bac « à rattacher » | Pistes, en bas, seulement s'il contient quelque chose (pas encore dessiné) | 2 |
+| « Depuis mes e-mails » | Pistes, en bas, à côté du bac (pas encore dessiné) | 2 |
+| Supprimer une piste, la clore | Au glissé dans Pistes, avec « Annuler » ; « C'est non » et « Laisser tomber cette piste » sur sa page ; « Rouvrir » une piste terminée | 2 |
 | Donner et recevoir (QR, fichier `.oc`, coller) | **Réseau** : Donner · Recevoir | 3 |
 | Les groupes | Réseau : une conversation parmi les autres ; « Groupe » pour ses réglages | 3 |
 | Amis, « Mes amis », s'écrire | Réseau. Ce qu'un ami ouvre se lit aussi sur la ligne et la page d'une entreprise, et sur la piste | 1, 2, 3 |
@@ -69,5 +70,6 @@ n'a pas été montré au mainteneur.
 Aucune clé de stockage ne bouge, aucun module du moteur n'est retiré.
 Les capacités marquées `PC` ou `⏸` restent masquées, comme aujourd'hui.
 
-*Tranché par l'assistant, à valider par le mainteneur :* toutes les
-places « proposées », lot par lot, et la liste de ce qui quitte l'écran.
+*Validé par le mainteneur :* les places du lot 1 (17 novembre 2026).
+*Tranché par l'assistant, à valider :* les places des lots suivants, et
+la liste de ce qui quitte l'écran.

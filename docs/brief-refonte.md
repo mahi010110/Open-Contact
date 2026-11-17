@@ -349,7 +349,7 @@ idée neuve se propose à côté, jamais à la place. Et « le surprendre »
 (§5) ne veut pas dire changer la forme : il a refusé deux fois ce qui
 était conceptuel.
 
-**Seconde version : montrée, en attente de son avis.**
+**Seconde version : validée** le 17 novembre (« Tout me va »).
 
 - L'accueil et la liste sont ceux de la maquette validée : trois
   questions le premier jour, puis les trois mots de la recherche
@@ -368,3 +368,66 @@ idée neuve se propose à côté, jamais à la place. Et « le surprendre »
 
 Non vérifié : WebKit (iPhone). Dans le vrai moteur, il restera à écrire
 la lecture d'un lien collé.
+
+**Ce que le mainteneur a ajouté en validant** : « La carte est une bonne
+idée, mais pour plus tard. Le but, c'est d'avoir une interface simple et
+logique, et qu'il puisse agir et faire ce qu'il doit faire. » C'est le
+critère de chaque lot qui suit : chaque écran mène à un geste qui se fait
+pour de vrai.
+
+### Plus tard
+
+Des idées montrées, jugées bonnes, et gardées pour après la refonte.
+
+- **La carte des entreprises** autour de soi (lot 1, première version) :
+  toi au centre, des anneaux à 5, 10 et 15 km, sans fond de carte donc
+  hors ligne. Les coordonnées viennent déjà de l'annuaire.
+
+### Lot 2 : Pistes, une piste, écrire (17 novembre 2026)
+
+Montré, en attente de son avis. La maquette validée est gardée telle
+quelle : « À faire » en tête, les pistes par étape, la page d'une piste
+(la suite, « Il s'est passé quelque chose ? », les gens, l'entreprise,
+l'historique, mes notes). Ce qui s'ajoute, pour que chaque piste mène à
+un geste :
+
+- **« À faire », trois lignes au plus, un bouton chacune** : un « oui » à
+  suivre, puis une réponse (le merci d'après l'entretien), puis une
+  relance, puis un ami à qui demander, puis une entreprise à contacter.
+  Le bouton fait le geste (Merci, Relancer, Demander, Écrire).
+- **Écrire, un message en quatre formes** : mail (À, objet, message,
+  « Ouvrir dans Mail »), LinkedIn (un mot court et son compteur sur 200,
+  « Copier et ouvrir LinkedIn »), appel (le numéro, trois phrases à dire,
+  « Appeler »), site (le texte, « Copier et ouvrir leur site »). Le canal
+  se choisit seul selon ce qu'on sait du contact. « À savoir » est posé
+  au-dessus du message, pour écrire l'accroche.
+- **Rien ne part avec un crochet** : l'erreur le dit au-dessus du message
+  et le crochet se sélectionne. Un nom manquant se tape une fois, « Ton
+  nom », et remplit tous les brouillons.
+- **« C'est parti ? »** au retour, d'un tap ; puis « Rappel dans mon
+  agenda » et « Suivante : … » pour enchaîner dans une séance.
+- **« On m'a répondu »** : un refus, un entretien (le jour en un tap, puis
+  les trois questions à leur poser), ou autre chose (« Répondre »).
+- **Du « oui » au contrat** : les étapes de `engine/contrat.js` (branche
+  `claude/refonte-arc`), à cocher.
+- **Le pire jour (mois 3, 25 pistes)** : « 11 pistes sans réponse depuis
+  plus de 45 jours · Ranger », d'un geste, avec « Annuler ». Une barre de
+  recherche à partir de 10 pistes.
+- **Les gens** : ajouter un contact dans une feuille courte, le dirigeant
+  de l'annuaire proposé d'un tap. Supprimer une piste au glissé, avec
+  « Annuler » ; « Laisser tomber cette piste » en bas de sa page.
+- **Au poste** : la liste, la piste et le message côte à côte ; un seul
+  bouton rempli, celui qui envoie.
+
+Les modèles du moteur se disent ici **sans genre** (« J'ai toujours très
+envie de vous rejoindre » au lieu de « Toujours très motivé ») : à
+reporter dans `engine/model.js` au moment du code.
+
+Pas dessiné dans ce lot : le bac « à rattacher » et « Depuis mes
+e-mails ». Ils viendront en bas de Pistes, seulement quand ils ont
+quelque chose.
+
+À vérifier avant le code : la longueur d'un mot d'invitation LinkedIn
+(200 caractères sur un compte gratuit selon plusieurs sources, pas lu sur
+l'aide de LinkedIn) et le nombre d'invitations avec un mot par mois (trois
+à cinq selon les sources). Non vérifié : WebKit (iPhone).
