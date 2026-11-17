@@ -21,6 +21,7 @@
    ============================================================ */
 import { $, $$, ic, esc, annoncer, calme, remplacer } from './outils.js';
 import { bus } from './etat.js';
+import { suivreZoneVisible } from './zone-visible.js';
 
 export const ONGLETS = Object.freeze([
   Object.freeze({ id: 'trouver', mot: 'Trouver', icone: 'search' }),
@@ -61,6 +62,27 @@ const titreDoc = () => {
   document.title = t + ' — OpenContact';
 };
 
+/* ---------- l'historique ----------
+   `pushState` est immédiat, `history.back()` ne l'est pas (CLAUDE.md §5,
+   « Naviguer, c'est tenir cinq promesses »). Une feuille qu'on referme
+   rend son entrée UNE MICRO-TÂCHE plus tard : si un geste ouvre autre
+   chose dans le même élan, il reprend cette entrée au lieu d'en empiler
+   une sur un retour en vol. Et si le retour est déjà parti, l'ouverture
+   attend qu'il ait atterri. Le compte de nos propres retours est un
+   COMPTEUR : deux fermetures dans le même tick lancent deux retours. */
+let aRendre = false, attendus = 0, apres = [];
+function poserEntree(etat, url, remplacer_){
+  if (attendus > 0){ apres.push(() => poserEntree(etat(), url, remplacer_)); return; }
+  const e = typeof etat === 'function' ? etat() : etat;
+  if (aRendre){ aRendre = false; history.replaceState(e, '', url); return; }
+  if (remplacer_) history.replaceState(e, '', url);
+  else history.pushState(e, '', url);
+}
+function rendreEntree(){
+  aRendre = true;
+  queueMicrotask(() => { if (aRendre){ aRendre = false; attendus++; history.back(); } });
+}
+
 /* ---------- aller ailleurs ---------- */
 export function allerA(o, { remplacer: rempl = false } = {}){
   if (!VUES[o]) return;
@@ -76,9 +98,9 @@ export function allerA(o, { remplacer: rempl = false } = {}){
     return;
   }
   garderPlace();
+  if (feuille) fermerFeuille();
   C.onglet = o;
-  if (rempl) history.replaceState(entree(), '', '#/' + o);
-  else history.pushState(entree(), '', '#/' + o);
+  poserEntree(entree, '#/' + o, rempl);
   rendre({ focus: 'titre' });
 }
 /* pousser une page (au téléphone) : une entrée d'historique à elle */
@@ -87,8 +109,9 @@ export function pousser(p, depuis){
   garderPlace();
   const d = { ...p };
   if (depuis) d.retour = cleDe(depuis);
+  if (feuille) fermerFeuille();
   pileDe(C.onglet).push(d);
-  history.pushState(entree(), '', location.href);
+  poserEntree(entree, location.href);
   rendre({ focus: 'page' });
   return true;
 }
@@ -109,6 +132,55 @@ function garderPlace(){
   if (d) C.places[C.onglet] = d.scrollTop;
 }
 const cleDe = el => el && el.getAttribute ? (el.getAttribute('data-a') || '') + '|' + (el.getAttribute('data-id') || '') : '';
+
+/* ---------- les feuilles ----------
+   Une question courte (ajouter quelqu'un) : une feuille qui monte du bas
+   au téléphone, une fenêtre au milieu au poste. Elle a son entrée
+   d'historique : le retour la referme, et la main revient d'où elle
+   venait. Échap la ferme, la tabulation reste dedans. Une à la fois.
+   `f` : { titre, rendre(f) → {corps, pied}, geste(a, el, ev, f), focus } */
+let feuille = null, coucheF = null;
+export const feuilleOuverte = () => feuille && feuille.f;
+export function ouvrirFeuille(f){
+  if (feuille) fermerFeuille();
+  const depuis = document.activeElement;
+  feuille = { f, depuis, cle: cleDe(depuis) };
+  poserEntree(() => ({ ...entree(), f: 1 }), location.href);
+  dessinerFeuille(true);
+}
+function dessinerFeuille(premier){
+  const f = feuille.f, x = f.rendre(f) || {};
+  if (premier){
+    coucheF.innerHTML = `<div class="voile trame" data-a="fermer-f"></div><section class="sheet win" role="dialog" aria-modal="true" aria-label="${esc(f.titre)}">`
+      + `<div class="tb"><span class="tb-t">${esc(f.titre)}</span><button class="x" data-a="fermer-f" aria-label="Fermer">${ic('close')}</button></div>`
+      + `<div class="sh-c">${x.corps || ''}</div><div class="pied"${x.pied ? '' : ' hidden'}>${x.pied || ''}</div></section>`;
+    document.documentElement.classList.add('feuille-ouverte');
+    const cible = (f.focus && $(f.focus, coucheF)) || $('.sheet .tb .x', coucheF);
+    if (cible) cible.focus({ preventScroll: true });
+    if (f.apres) f.apres(coucheF);
+  } else {
+    remplacer($('.sh-c', coucheF), x.corps || '');
+    const pied = $('.sheet .pied', coucheF);
+    pied.hidden = !x.pied;
+    remplacer(pied, x.pied || '');
+    if (f.apres) f.apres(coucheF);
+  }
+  poserAnnule();
+}
+export function rendreFeuille(){ if (feuille) dessinerFeuille(false); }
+/* `dejaRendue` : le retour du navigateur a déjà consommé l'entrée */
+export function fermerFeuille({ dejaRendue = false } = {}){
+  if (!feuille) return;
+  const fe = feuille;
+  feuille = null;
+  coucheF.innerHTML = '';
+  document.documentElement.classList.remove('feuille-ouverte');
+  if (!dejaRendue) rendreEntree();
+  /* la main revient d'où elle venait, ou à ce qui a pris sa place */
+  const el = fe.depuis && fe.depuis.isConnected ? fe.depuis : (fe.cle && $$('[data-a]', app).find(x => cleDe(x) === fe.cle));
+  if (el && el.focus) el.focus({ preventScroll: true });
+  poserAnnule();
+}
 
 /* ---------- le rendu ---------- */
 function navHTML(){
@@ -213,6 +285,7 @@ function poserAnnule(){
   /* elle se pose AU-DESSUS de ce qu'on touche : le pied d'une page, la
      barre des onglets au téléphone, la barre d'état au poste */
   const b = $('.annule', coucheA);
+  if (feuille && !C.poste){ b.style.bottom = ''; return; }
   const hauts = $$('.ecran .pied:not([hidden])', fen).map(e => e.getBoundingClientRect().top)
     .concat([(C.poste ? etatB : nav).getBoundingClientRect().top]).filter(t => t > 0);
   b.style.bottom = (innerHeight - Math.min(...hauts) + 10) + 'px';
@@ -273,6 +346,8 @@ function brancherGestes(){
       return;
     }
     if (a === 'retour'){ retour(); return; }
+    if (a === 'fermer-f'){ fermerFeuille(); return; }
+    if (feuille && coucheF.contains(b)){ if (feuille.f.geste) feuille.f.geste(a, b, ev, feuille.f); return; }
     if (a === 'annuler'){ const d = C.annule && C.annule.defaire; fermerAnnule(); if (d){ d(); rendre(); } return; }
     if (a === 'fermer-annule'){ fermerAnnule(); return; }
     geste(a, b, ev);
@@ -301,6 +376,18 @@ function brancherGestes(){
    onglet. Le reste appartient à l'écran ouvert (↑ ↓, « / », Échap…). */
 function brancherClavier(){
   document.addEventListener('keydown', ev => {
+    if (feuille){
+      if (ev.key === 'Escape'){ ev.preventDefault(); fermerFeuille(); return; }
+      if (ev.key === 'Tab'){
+        const l = $$('.sheet button, .sheet [href], .sheet input, .sheet textarea, .sheet [tabindex="0"]', coucheF).filter(x => !x.disabled && x.offsetParent);
+        if (l.length){
+          const i = l.indexOf(document.activeElement);
+          if (ev.shiftKey && i <= 0){ ev.preventDefault(); l[l.length - 1].focus(); }
+          else if (!ev.shiftKey && i === l.length - 1){ ev.preventDefault(); l[0].focus(); }
+        }
+      }
+      return;
+    }
     if (ev.defaultPrevented || ev.altKey || ev.ctrlKey || ev.metaKey) return;
     const t = ev.target;
     const champ = !!(t && t.matches && t.matches('input, textarea, select, [contenteditable="true"]'));
@@ -323,6 +410,7 @@ export function demarrer(){
   ecran = $('.ecran', app);
   etatB = $('.p-etat', app);
   coucheA = $('.couche-a', app);
+  coucheF = $('.couche-f', app);
   C.poste = mqPoste.matches;
   document.documentElement.classList.toggle('poste', C.poste);
   bus.refresh = () => rendre();
@@ -335,6 +423,12 @@ export function demarrer(){
   if (st && st.oc && st.o === o0 && Array.isArray(st.pile)) C.piles[o0] = st.pile;
   history.replaceState(entree(), '', location.pathname + location.search + '#/' + o0);
   addEventListener('popstate', ev => {
+    if (attendus > 0){
+      attendus--;
+      if (!attendus && apres.length){ const l = apres; apres = []; l.forEach(f => f()); }
+      return;
+    }
+    if (feuille){ fermerFeuille({ dejaRendue: true }); return; }
     const s = ev.state;
     const o = (s && s.oc && s.o) || ongletDe(location.hash) || 'trouver';
     const avant = pileDe(C.onglet).slice(-1)[0];
@@ -354,5 +448,6 @@ export function demarrer(){
   brancherGestes();
   brancherGlisse();
   brancherClavier();
+  suivreZoneVisible();
   rendre();
 }

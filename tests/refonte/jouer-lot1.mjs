@@ -126,14 +126,12 @@ const T = '.ecran ';
   await img(p, 't9-editer');
   await p.click(T + '[data-a="voir"]');
 
-  /* l'onglet Pistes, en attendant le lot 2 */
+  /* ce qui est gardé arrive dans Pistes (le lot 2 le joue en entier) */
   await p.click('.onglets [data-id="pistes"]');
   verifier(await p.evaluate(() => location.hash === '#/pistes'), 'l’adresse dit l’onglet');
   verifier((await texte(p, T)).includes('Boulangerie Martin') && (await texte(p, T)).includes('Réseaux et Systèmes du Nord'), 'Pistes montre ce qui est gardé');
+  verifier((await texte(p, T + '.s-afaire')).includes('Claire Durand, présidente'), 'et « À faire » propose d’écrire à la personne gardée');
   await img(p, 't10-pistes');
-  await glisser(p, T + '.gl[data-g="retirer"] .rang', -140);
-  verifier((await texte(p, '.couche-a')).includes('retirée'), 'une piste se retire au glissé, avec « Annuler »');
-  await p.click('.couche-a [data-a="annuler"]');
   await p.goBack();
   verifier(await p.evaluate(() => location.hash === '#/trouver'), 'le retour revient à Trouver');
 

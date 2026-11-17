@@ -16,7 +16,8 @@ import { APP_VERSION } from './engine/model.js';
 import { charger, choisirTheme, S } from './ecrans/etat.js';
 import { inscrire, demarrer } from './ecrans/coque.js';
 import trouver from './ecrans/trouver.js';
-import { pistes, reseau, moi } from './ecrans/bientot.js';
+import pistes from './ecrans/pistes.js';
+import { reseau, moi } from './ecrans/bientot.js';
 
 inscrire('trouver', trouver);
 inscrire('pistes', pistes);

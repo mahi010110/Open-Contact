@@ -263,9 +263,9 @@ export function noterEnvoi(c, { k = 'premier', canal = '', ct = null, today = to
   }
   c.updatedAt = Date.now();
 }
-/* « J'ai écrit », sans passer par l'app */
+/* « J'ai écrit », sans passer par l'app (une seconde fois : une relance) */
 export function noterEcrit(c, today = todayISO()){
-  pushHist(c, 'Écrit');
+  pushHist(c, c.status === 'active' ? 'Relancé' : 'Écrit');
   c.status = 'active';
   if (!c.appliedAt) c.appliedAt = today;
   c.updatedAt = Date.now();
@@ -285,14 +285,14 @@ export function noterReponse(c){
   c.updatedAt = Date.now();
 }
 /* clore : « C'est non » (`rejected`), « Ils me prennent » (`won`),
-   « Laisser tomber » ou « Ranger » (`dropped`) */
-const CLOS = { won: 'Ils me prennent', rejected: 'Refus', dropped: 'Rangée' };
-export function clore(c, raison, today = todayISO()){
+   « Ranger » ou « Laisser tomber » (`dropped`, `texte` le dit) */
+const CLOS = { won: 'C’est oui !', rejected: 'Refus', dropped: 'Rangée sans réponse' };
+export function clore(c, raison, today = todayISO(), texte = ''){
   if (!CLOS[raison]) return;
   c.closedReason = raison;
   c.closedAt = today;
   c.nextAction = ''; c.nextActionText = ''; delete c.nextActionCt;
-  pushHist(c, CLOS[raison]);
+  pushHist(c, texte || CLOS[raison]);
   c.updatedAt = Date.now();
 }
 export function rouvrir(c){

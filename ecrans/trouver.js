@@ -36,6 +36,8 @@ import { normalizeCompany, normalizeContact, RAYONS } from '../engine/model.js';
 import { uid, todayISO, normName } from '../engine/utils.js';
 import { euros } from '../engine/marche.js';
 import { visage } from '../engine/visage.js';
+import { laSuite } from '../engine/suite.js';
+import { ouvrirEcrire, ouvrirPiste } from './pistes.js';
 
 const QUOI = { stage: 'Stage', alternance: 'Alternance', emploi: 'Emploi' };
 const LOT = 6;                      /* une liste se lit six lignes à la fois */
@@ -389,8 +391,12 @@ function pageEnt(r, c){
 function piedEnt(r, c){
   const id = r ? r.siren : 'p:' + c.id;
   const piste = c || (r && pisteDe(r));
-  if (piste) return `<button class="btn fait court" disabled>${ic('check')}Gardée</button>`
-    + `<button class="btn p" data-a="aller" data-id="pistes">Voir la piste</button>`;
+  if (piste){
+    const s = laSuite(piste, { profile: S.profile });
+    return `<button class="btn fait court" disabled>${ic('check')}Gardée</button>`
+      + (s.k === 'premier' ? `<button class="btn p" data-a="ecrire-p" data-id="${esc(piste.id)}">Préparer mon message</button>`
+        : `<button class="btn p" data-a="voir-p" data-id="${esc(piste.id)}">Voir la piste</button>`);
+  }
   return `<button class="btn court" data-a="ecarter" data-id="${esc(id)}">Pas pour moi${C.poste ? '<kbd>X</kbd>' : ''}</button>`
     + `<button class="btn p" data-a="garder" data-id="${esc(id)}">${ic('plus')}Garder${C.poste ? '<kbd>G</kbd>' : ''}</button>`;
 }
@@ -426,6 +432,8 @@ inscrirePage('entreprise', {
     if (a === 'garder' && s && s.r){ garder(s.r); rendre(); return true; }
     if (a === 'ecarter' && s && s.r){ ecarterR(s.r); retour(); return true; }
     if (a === 'aller'){ allerA(el.getAttribute('data-id')); return true; }
+    if (a === 'ecrire-p'){ ouvrirEcrire(el.getAttribute('data-id'), 'premier'); return true; }
+    if (a === 'voir-p'){ allerA('pistes'); ouvrirPiste(el.getAttribute('data-id')); return true; }
     return false;
   }
 });
@@ -529,6 +537,8 @@ export default {
       return;
     }
     if (a === 'aller'){ allerA(id); return; }
+    if (a === 'ecrire-p'){ ouvrirEcrire(id, 'premier'); return; }
+    if (a === 'voir-p'){ allerA('pistes'); ouvrirPiste(id); return; }
     if (a === 'ent'){
       if (C.poste){ T.sel = id; rendre(); return; }
       pousser({ t: 'entreprise', id }, el);
