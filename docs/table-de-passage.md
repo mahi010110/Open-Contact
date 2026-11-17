@@ -71,6 +71,6 @@ n'a pas été montré au mainteneur.
 Aucune clé de stockage ne bouge, aucun module du moteur n'est retiré.
 Les capacités marquées `PC` ou `⏸` restent masquées, comme aujourd'hui.
 
-*Validé par le mainteneur :* les places des lots 1, 2 et 3 (17 novembre 2026).
+*Validé par le mainteneur :* les places des lots 1 à 4 (17 novembre 2026).
 *Tranché par l'assistant, à valider :* les places des lots suivants, et
 la liste de ce qui quitte l'écran.

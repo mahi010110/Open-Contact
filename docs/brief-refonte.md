@@ -320,6 +320,9 @@ d'ouvertures.
   les trois explorations écartées (le paquet, l'assistant, le carnet).
 - `design/maquettes/app/index.html` : la maquette de l'app, qui grandit
   lot par lot. `docs/table-de-passage.md` : où va chaque capacité.
+  `docs/refonte-reprendre.md` : où on en est, et comment reprendre dans
+  une nouvelle discussion. `design/maquettes/app/outils/` : rejouer et
+  montrer chaque lot.
 - `CLAUDE.md` : le socle, et les leçons.
 - `CONTRAT.md` : les clés, les formats, les invariants de fusion.
 - `docs/surfaces.md`, `docs/frictions.md` : ce qui est livré, et ce qui
@@ -474,7 +477,8 @@ le scan sont simulés.
 
 ### Lot 4 : Moi (17 novembre 2026)
 
-Montré, en attente de son avis. Les cinq lignes validées sont gardées
+**Validé** le 17 novembre (« Super »), avec une consigne pour la suite :
+« Sois attentif aux détails ». Les cinq lignes validées sont gardées
 (Mon profil, CV et lettres, Mes messages types, Ma copie, Réglages),
 chacune avec son état. Ce qui s'ajoute, pour que ce qu'on dit de soi
 serve tout de suite :

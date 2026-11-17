@@ -208,7 +208,8 @@ l'ampleur : « tout peut changer ». Trois directions lui ont été montrées
 en maquette ; il a retenu **l'app simple** : quatre onglets fixes
 (Trouver · Pistes · Réseau · Moi), des listes, une page par entreprise.
 Le cadrage est dans `docs/brief-refonte.md`, la maquette dans
-`design/maquettes/directions/`.
+`design/maquettes/directions/`. Où en est la refonte, et comment la
+reprendre dans une nouvelle discussion : `docs/refonte-reprendre.md`.
 
 **Pour la nouvelle interface, seul le socle oblige** : §0 (les deux
 questions, la règle des captures), §1, §2, §3, le matériel de §4, les
