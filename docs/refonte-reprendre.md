@@ -2,7 +2,7 @@
 
 *Pour l'assistant qui reprend la refonte dans une nouvelle discussion.
 Mise à jour à chaque lot, en même temps que le journal du brief.
-Dernière mise à jour : 17 novembre 2026, lot 5 validé.*
+Dernière mise à jour : 17 novembre 2026, lot 6 montré.*
 
 Le premier message à donner à une nouvelle discussion :
 
@@ -22,10 +22,11 @@ par le mainteneur avant le suivant (`docs/brief-refonte.md` §9).
 | 3 | Réseau : la classe, les amis, les demandes, donner, recevoir | validé le 17 novembre (« Go ») |
 | 4 | Moi : profil, documents, messages types, copie, réglages | validé le 17 novembre (« Super ») |
 | 5 | le premier jour, les états vides, les erreurs, le hors ligne, l'écran verrouillé | validé le 17 novembre (« Continue ») |
-| 6 | le poste, pensé comme un établi | **en cours** |
+| 6 | le poste, un établi : coller une offre, le clavier, déposer ; « Depuis mes e-mails » et le bac | montré le 17 novembre, **en attente de son avis** |
 
 **Phase 2, le code** : seulement quand toutes les maquettes sont validées
-(`docs/brief-refonte.md` §9 et §10).
+(`docs/brief-refonte.md` §9 et §10). Le lot 6 est le dernier : validé,
+la phase 1 est finie.
 
 - **La maquette** : `design/maquettes/app/index.html`. Elle est publiée,
   privée, pour le mainteneur : https://claude.ai/artifact/N8vGKspC37MQYTZEPg1gJZ.
@@ -87,7 +88,11 @@ par le mainteneur avant le suivant (`docs/brief-refonte.md` §9).
   (`AUJ`).
 - **Un bloc par lot** dans le script, dans l'ordre : Trouver, Pistes,
   Réseau (`R_VUES`, `ouvrirR`, `feuilleR`, `gesteR`), Moi (pages ajoutées
-  à `R_VUES`, `ouvrirM`, `retourM`, `feuilleM`, `gesteM`, `changeM`).
+  à `R_VUES`, `ouvrirM`, `retourM`, `feuilleM`, `gesteM`, `changeM`),
+  les états (`gesteE`, `feuilleE`, le verrou), le poste (`coller`,
+  `offreEnAttente`, `deposerFichier`, `viser`, puis `feuilleX` et
+  `gesteX` pour « Depuis mes e-mails » et le bac). `lireOffre` est hors
+  de `app()`, à côté des données.
 - **Une page** est une fonction qui rend `{titre, corps, pied}`. Au
   téléphone elle est poussée (`S.pile`, barre de titre avec retour) ; au
   poste elle s'ouvre à droite (`S.rsel`, `S.msel`).
@@ -95,8 +100,11 @@ par le mainteneur avant le suivant (`docs/brief-refonte.md` §9).
   Elle ne se redessine que si la couche est vide : pour changer une
   feuille ouverte sans la faire remonter, la retoucher en place.
 - **Un geste** : `data-a="…"` sur l'élément. Les gestes d'un lot ont leur
-  préfixe (`r-`, `m-`) et rendent `'fait'` (rien à redessiner) ou
-  `'rendre'`.
+  préfixe (`r-`, `m-`, `c-` `e-` `v-`, `o-`, `x-`) et rendent `'fait'`
+  (rien à redessiner) ou `'rendre'`.
+- **Le clavier du poste** : `touche()` (renvoyée par `app()`) reçoit les
+  touches hors du téléphone. Une lettre ne vit que hors d'un champ ; ↵
+  n'est jamais pris à un bouton, un lien ou une ligne qui a le focus.
 - **« Annuler »** : `annuler(texte, défaire)`. Un retour sans annulation :
   `toast(texte)`, seulement si l'écran ne le dit pas déjà.
 - **Les icônes** : les pixelarticons de `assets/icons/`, copiés en
@@ -106,9 +114,9 @@ par le mainteneur avant le suivant (`docs/brief-refonte.md` §9).
 
 `design/maquettes/app/outils/` (voir son `README.md`) :
 
-- `node design/maquettes/app/outils/jouer-lot5.mjs` (et lots 1 à 4) :
+- `node design/maquettes/app/outils/jouer-lot6.mjs` (et lots 1 à 5) :
   rejoue les gestes d'un lot au téléphone et au poste, écrit ses
-  captures, finit par « ERREURS 0 ». **Les quatre se relancent après
+  captures, finit par « ERREURS 0 ». **Les six se relancent après
   chaque changement** : un lot peut en casser un autre.
 - Puis **regarder les captures**. Une suite verte dit que c'est conforme,
   pas que c'est bien.
@@ -132,7 +140,15 @@ Pièges déjà payés :
   feuille ouverte passe devant son menu ;
 - le menu « ⋯ » de la régie provoque ce qu'aucun geste ne provoque :
   arriver par un lien de Karim, l'annuaire en panne, verrouiller l'app
-  (code 123456).
+  (code 123456), coller une offre ;
+- un raccourci qui fait `preventDefault` sur ↵ vole l'appui d'un bouton
+  qui a le focus : « Oui, envoyé » ne répondait plus. Il ne prend ↵ que
+  si rien n'a le focus ;
+- un collage multiligne dans un `<input>` perd ses sauts de ligne : la
+  barre lit l'événement `paste` elle-même, avant que le champ l'aplatisse ;
+- pour tester un collage ou un dépôt, Playwright envoie un
+  `ClipboardEvent` ou un `DragEvent` qui porte un `DataTransfer`
+  (`jouer-lot6.mjs`).
 
 ## 6. Montrer
 
@@ -140,8 +156,9 @@ Pièges déjà payés :
    `OC_AUDIT_POSTE=1 node tests/e2e/audit-captures.mjs`, qui les écrit
    dans `tests/e2e/captures/audit/chromium/` (`14-moi--390.png`,
    `14-moi--1280.png`…).
-2. Les planches : copier `outils/planches-lot5.mjs` pour le lot suivant ;
-   `planche()` pose l'avant au-dessus de l'après.
+2. Les planches : `outils/planches-lot6.mjs` est le dernier modèle ;
+   `planche()` pose l'avant au-dessus de l'après (`pile: true` pour
+   l'ordinateur, deux images par rang).
 3. Publier la maquette à son adresse (§1), envoyer les planches, huit
    lignes, la question.
 4. Après sa réponse : le journal (`docs/brief-refonte.md` §12), la table
@@ -149,16 +166,19 @@ Pièges déjà payés :
 
 ## 7. Ce qui reste
 
-- **Lot 6** : le poste comme un établi (le clavier d'abord ; coller un
-  lien ou une annonce pour en faire une piste).
-- **Pas encore dessinés** : le bac « à rattacher » et « Depuis mes
-  e-mails », en bas de Pistes, seulement quand ils ont quelque chose.
+- **Après l'avis du mainteneur sur le lot 6** : noter sa phrase (journal,
+  table, ce fichier), puis la phase 2, dans l'ordre du brief §9.
 - **Plus tard**, validé comme idée : la carte des entreprises autour de
   soi (brief §12).
 - **Au moment du code** : les modèles de messages sans genre
   (`engine/model.js`), la lecture d'un lien collé dans Trouver, la suite
   d'une piste et d'un « oui » (`etape.js`, `contrat.js` de
-  `claude/refonte-arc`).
+  `claude/refonte-arc`). La lecture d'une offre collée, dans le moteur
+  et testée (une table, pas une IA). Où vit l'offre d'une piste : le
+  schéma d'une piste est intouchable (`CONTRAT.md` §3), donc une clé
+  neuve ou les champs qui existent, à décider avec lui. Le bac garde sa
+  clé (`oc_orphans_v1`) ; la réponse de « Depuis mes e-mails » passe par
+  la même fusion que Recevoir.
 - **À vérifier avant le code** : la longueur d'un mot d'invitation
   LinkedIn (200 caractères annoncés, pas lu sur l'aide de LinkedIn) et le
   nombre d'invitations avec un mot par mois ; WebKit sur chaque lot.

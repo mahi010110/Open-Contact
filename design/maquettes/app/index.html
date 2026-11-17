@@ -619,6 +619,56 @@ details.jetons dd{font-size:14px;line-height:1.35;color:var(--ink2)}
   .tel{max-width:none;height:640px;height:calc(100svh - 50px);min-height:520px;border:0;box-shadow:none}
 }
 @media (prefers-reduced-motion:reduce){ *{transition:none!important;animation-duration:.01s!important;animation-delay:0s!important} }
+/* ---------- lot 6 : le poste, un établi ---------- */
+/* la lettre d'un onglet, soulignée comme dans un menu 98 : la touche se lit dans ce qu'elle commande */
+.p-onglets u{text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px}
+/* l'offre qui attend, en étiquette sous la barre */
+.o-tags{padding-top:4px}
+.s-tags .etq-o{display:inline-flex;align-items:center;gap:6px;max-width:100%;text-align:left;line-height:1.3}
+.etq-o span{min-width:0}
+.etq-o .ic{width:16px;height:16px;flex:none}
+.etq-o .ic:last-child{color:var(--ink2)}
+.o-deja{display:flex;align-items:center;gap:6px}
+.o-deja .ic{width:16px;height:16px;color:var(--teal)}
+/* l'offre, sur la page de l'entreprise et dans la piste */
+.offre-b{margin:16px 0 0}
+.offre-b.o-seule{margin:0}
+.o-p{margin:0;font:700 16px/1.3 var(--ui)}
+.offre-b .faits{margin-top:8px}
+.o-et{margin:12px 0 4px}
+.o-miss{margin:0;padding:0 0 0 18px;font-size:14px;line-height:1.45}
+.o-miss li{margin:0 0 3px}
+.savoir .o-miss{margin-top:4px}
+.savoir .o-miss+p{margin-top:6px}
+details.o-t{margin:10px 0 4px}
+details.o-t summary{list-style:none;display:inline-flex;align-items:center;gap:4px;min-height:var(--ctl);color:var(--teal);font-weight:500;cursor:pointer}
+details.o-t summary::-webkit-details-marker{display:none}
+details.o-t summary .ic{width:16px;height:16px}
+details.o-t[open] summary .ic{transform:rotate(90deg)}
+details.o-t p{margin:4px 0 0;white-space:pre-line;font-size:13px;line-height:1.45;color:var(--ink2)}
+/* déposer sur la fenêtre */
+.depot{position:absolute;left:6px;right:6px;z-index:30;display:grid;place-items:center;border:2px dashed var(--teal);pointer-events:none}
+.depot::before{content:'';position:absolute;inset:0;background:var(--g1);opacity:.94}
+.depot[hidden]{display:none}
+.depot p{position:relative;margin:0;max-width:420px;text-align:center;font-size:16px;line-height:1.4;color:var(--ink2)}
+.depot b{display:block;margin:0 0 10px;font:400 22px/1 var(--pixel);color:var(--teal)}
+/* au poste, la ligne ouverte s'allume aussi dans Réseau */
+.poste-in .rang.conv.on{background:var(--navy)}
+.poste-in .rang.conv.on b,.poste-in .rang.conv.on span{color:var(--on-navy)!important}
+.poste-in .rang.conv.on>.ic{color:var(--on-navy)}
+@media (hover:hover){ .poste-in .rang.conv.on:hover{background:var(--navy)} }
+.notes .r-btn.copie-o{margin:4px 0 2px}
+/* « Depuis mes e-mails » : trois gestes, dans l'ordre où ils se font ; le bac « À rattacher » */
+.etapes.x-pas li{align-items:flex-start}
+.etapes.x-pas li>span{margin-top:2px}
+.x-rep-c{flex:1;min-width:0}
+.x-rep-t{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:2px 0 6px}
+.x-rep-t .lien{margin:0;min-width:var(--ctl);padding:0 6px;justify-content:center}
+textarea.x-rep{width:100%;min-height:96px;font:400 14px/1.4 var(--mono)}
+.x-rep-c .err{margin:10px 0 0}
+.x-mails-r{margin-top:6px}
+.x-mails-r .rang.act>.ic:first-child{color:var(--teal)}
+details.term.bac .rang .btn{flex:none}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -655,8 +705,8 @@ details.jetons dd{font-size:14px;line-height:1.35;color:var(--ink2)}
 </svg>
 
 <header class="regie">
-  <h1>OpenContact, lot 5</h1>
-  <p>Les états : le premier jour, le vide, les erreurs, le hors ligne, le verrou. Tout se touche.</p>
+  <h1>OpenContact, lot 6</h1>
+  <p>L’ordinateur, un poste de travail : coller une offre, le clavier, déposer un fichier. Tout se touche.</p>
   <div class="bascule" role="group" aria-label="Moment">
     <button data-jour="1">Jour 1</button>
     <button data-jour="8">Jour 8</button>
@@ -669,6 +719,7 @@ details.jetons dd{font-size:14px;line-height:1.35;color:var(--ink2)}
       <button data-scene="lien">Arriver par un lien de Karim</button>
       <button data-scene="panne" aria-pressed="false">L’annuaire en panne</button>
       <button data-scene="verrou">Verrouiller l’app · code 123456</button>
+      <button data-scene="offre">Coller une offre</button>
     </div></div>
 </header>
 
@@ -678,23 +729,26 @@ details.jetons dd{font-size:14px;line-height:1.35;color:var(--ink2)}
     <div class="notes">
       <h2>Ce qu’il y a dans ce lot</h2>
       <ol>
-        <li><b>Le premier jour</b> : « J’ai déjà OpenContact » sous les trois questions, et l’arrivée par le lien d’un ami.</li>
-        <li><b>Hors ligne</b>, chaque écran dit ce qui attend le réseau : Trouver cherche dans tes pistes, un message « pas encore parti ».</li>
-        <li><b>Les erreurs</b> se disent sous ce qui les cause, et la saisie reste.</li>
-        <li><b>Verrouillé</b> : le pavé de l’app, « Code oublié ? » vers la phrase de secours ou l’effacement.</li>
+        <li><b>Coller une offre</b> : l’app y lit l’entreprise, le poste, la date et la personne. Garde-la : ton message cite l’offre.</li>
+        <li><b>Le clavier</b>, à l’ordinateur : la lettre soulignée de chaque onglet, ↑ ↓ partout, ↵ pour écrire, <span class="mod">Ctrl</span> ↵ pour envoyer.</li>
+        <li><b>Déposer</b> un fichier sur l’ordinateur : ton CV va dans « CV et lettres », une copie .oc s’ouvre avec son aperçu.</li>
+        <li><b>En bas de Pistes</b>, ce que le lot 2 avait promis : « Depuis mes e-mails » et le bac « À rattacher ».</li>
       </ol>
       <div class="et">À essayer</div>
       <ul>
-        <li>Les trois points de la régie : arriver par un lien de Karim, l’annuaire en panne, verrouiller l’app (code 123456).</li>
-        <li><b>Jour 1</b>, Trouver › J’ai déjà OpenContact › Avec ma phrase de secours › Coller.</li>
-        <li><b>Hors ligne</b>, puis Réseau › BTS SIO Lille : écris un message. Rallume le réseau.</li>
+        <li><button class="r-btn copie-o" id="copier-offre">Copier une offre</button> puis, sur l’ordinateur, <span class="mod">Ctrl</span> V.</li>
+        <li>Colle-la une seconde fois : pas de doublon.</li>
+        <li>Au téléphone : Trouver, touche la barre, colle l’offre.</li>
+        <li>À l’ordinateur : P, ↓, ↵, écris ta phrase, <span class="mod">Ctrl</span> ↵, puis ↵.</li>
+        <li>Glisse un PDF sur l’ordinateur.</li>
+        <li>Pistes › Depuis mes e-mails › Coller › Lire la réponse.</li>
       </ul>
       <div class="et">Dans la maquette</div>
-      <ul><li>Rien ne part : le lien, la copie et l’effacement sont simulés.</li><li>Ensuite : l’ordinateur, pensé comme un établi.</li></ul>
+      <ul><li>Rien ne part. Le menu « ⋯ » colle l’offre pour toi.</li><li>C’est le dernier lot de maquettes.</li></ul>
     </div>
   </div>
   <figure class="poste">
-    <figcaption>À l’ordinateur : la liste à gauche, la page ouverte à droite</figcaption>
+    <figcaption>À l’ordinateur : le clavier d’abord. Colle une offre n’importe où, dépose un fichier sur la fenêtre</figcaption>
     <div class="poste-cadre"><div class="poste-in trame">
       <section class="win pw" id="poste" tabindex="-1">
         <div class="tb">OpenContact<span class="tb-d">local · sans serveur</span></div>
@@ -806,6 +860,29 @@ var initiales=function(n){ return String(n||'?').split(/\s+/).filter(Boolean).ma
 var G={jour:'1',hl:false};
 var euros=function(n){return String(n).replace(/\B(?=(\d{3})+(?!\d))/g,' ')+' €'};
 
+/* ---------- lot 6 : le poste, un établi ---------- */
+/* une offre telle qu'on la copie d'un site d'offres (l'entreprise et la personne sont inventées) */
+var OFFRE_RSN='Alternance – Technicien·ne systèmes et réseaux (H/F)\nRéseaux et Systèmes du Nord · Lille\n\nAlternance de 2 ans, à partir de septembre 2027.\nRythme : 3 semaines en entreprise, 1 semaine à l’école.\n\nTes missions\n- Installer et suivre les serveurs de nos clients (Linux, Windows Server)\n- Gérer leurs réseaux : pare-feu, VLAN, wifi\n- Répondre à leurs demandes d’assistance\n\nProfil : BTS SIO option SISR, ou équivalent.\n\nCandidatures avant le 15 décembre 2026, auprès de Thomas Leroy, responsable technique : t.leroy@rsn-lille.fr';
+var MOD=/Mac|iPhone|iPad/.test(navigator.platform||'')?'⌘':'Ctrl';
+var MOIS={janvier:0,fevrier:1,mars:2,avril:3,mai:4,juin:5,juillet:6,aout:7,septembre:8,octobre:9,novembre:10,decembre:11};
+/* lire une offre collée : une table, pas une IA. Ce qui ne se lit pas sûrement ne s'invente pas :
+   un champ absent reste absent, et le texte entier est gardé. */
+function lireOffre(t){ t=String(t||''); var lignes=t.split(/\r?\n/).map(function(l){ return l.trim(); }).filter(Boolean), p=plat(t);
+  if(t.length<120||lignes.length<3||!/\b(alternance|stage|cdi|cdd|missions?|profil|candidatures?|poste)\b/.test(p)) return null;
+  var ent=null; Object.keys(ENT).sort(function(a,b){ return ENT[b].n.length-ENT[a].n.length; }).forEach(function(id){ var n=plat(ENT[id].n); if(!ent&&n.length>3&&(' '+p+' ').indexOf(' '+n+' ')>=0) ent=id; });
+  var l0=lignes[0].replace(/\s*\((h\/f|f\/h)\)|\s+(h\/f|f\/h)\b/ig,''), m0=l0.match(/^(alternance|stage|cdi|cdd)\s*[–—:-]\s*(.+)$/i);
+  var dm=p.match(/(?:avant le|jusqu au|au plus tard le)\s+(\d{1,2})\s+(janvier|fevrier|mars|avril|mai|juin|juillet|aout|septembre|octobre|novembre|decembre)(?:\s+(\d{4}))?/);
+  var mail=((t.match(/[^\s@:;,()<>]+@[^\s@:;,()<>]+\.[a-z]{2,}/i)||[''])[0]).replace(/[.)]+$/,'');
+  var cm=t.match(/(?:auprès de|contact\s*:)\s*([A-ZÉÈ][a-zA-Zéèëêïîôçà-]+(?:\s+[A-ZÉÈ][a-zA-Zéèëêïîôçà-]+)+)(?:\s*,\s*([^:\n]+?))?\s*(?::|\n|$)/);
+  var miss=[], dans=false; lignes.forEach(function(l){ if(/missions?\b/i.test(l)&&l.length<40){ dans=true; return; }
+    if(dans){ if(/^[-•·*–]\s*/.test(l)) miss.push(l.replace(/^[-•·*–]\s*/,'')); else if(miss.length) dans=false; } });
+  return {ent:ent,poste:m0?m0[2]:l0,type:/alternance/.test(p)?'alternance':/\bstage\b/.test(p)?'stage':'emploi',
+    avant:dm?prochaine(+dm[1],MOIS[dm[2]],dm[3]):null,
+    ct:cm?{n:cm[1],r:(cm[2]||'').trim(),mail:mail}:mail?{n:'',r:'',mail:mail}:null,
+    missions:miss.slice(0,3),rythme:(t.match(/rythme\s*:\s*([^.\n]+)/i)||[])[1]||'',
+    duree:(t.match(/(?:alternance|stage|contrat) de (\d+ (?:ans?|mois))/i)||[])[1]||'',debut:(t.match(/à partir (?:de |d’|d')([a-zéû]+ \d{4})/i)||[])[1]||'',texte:t}; }
+function prochaine(j,m,a){ var d=new Date(a?+a:AUJ.getFullYear(),m,j); if(!a&&d<AUJ) d.setFullYear(d.getFullYear()+1); return d; }
+
 /* ---------- l'app : la même au téléphone et au poste ---------- */
 function app(root,poste){
   var ecran=$('.ecran',root), nav=$('.nav',root)||$('.p-onglets',root), S, horloge=null, nId=0;
@@ -853,7 +930,8 @@ function app(root,poste){
     S.R=reseauInit(j); S.M=moiInit(j); S.msel=null; appliquerTheme('auto'); S.pile=[]; S.rid=null; S.rsel=null; S.convOuverte=null; S.don=null; S.prenom='';
     if(j==='8') init8();
     if(j==='90') init90();
-    S.deja=S.ordre.slice(); S.verrou=null; clearInterval(ticV);
+    S.deja=S.ordre.slice(); S.verrou=null; clearInterval(ticV); S.offre=null; S.offreDeja=null; S.offreVue=null; S.viser=null;
+    S.bac=j==='90'?[{n:'Hugo Lefort',r:'technicien',mail:'h.lefort@lys-informatique.fr',hint:'Lys Informatique'}]:[];
     if(G.lien&&j==='1') S.sheet={type:'cadeau'};
     ecran.removeAttribute('data-vue'); couche.innerHTML=''; coucheA.innerHTML='';
   }
@@ -909,7 +987,7 @@ function app(root,poste){
   function liste(){ var c=candidats(), vus=c.slice(0,6*S.lot), reste=c.length-vus.length;
     if(!c.length) return '<div class="panneau"><p><b>Tu as fait le tour.</b>Élargis jusqu’à 30 km, ou change ce que tu cherches.</p></div>';
     return '<div class="rangs s-liste">'+vus.map(function(id){return ligneEnt(id)}).join('')+'</div>'
-      +'<div class="suite-l">'+(reste>0?'<button class="btn" data-a="suite">Voir les '+Math.min(6,reste)+' suivantes</button>':'<div class="fin-m">La maquette s’arrête là.</div>')+offres()+'</div>';
+      +'<div class="suite-l">'+(reste>0?'<button class="btn" data-a="suite">'+(reste===1?'Voir la suivante':'Voir les '+Math.min(6,reste)+' suivantes')+'</button>':'<div class="fin-m">La maquette s’arrête là.</div>')+offres()+'</div>';
   }
   function corpsListe(){
     if(pasLille()) return '<div class="panneau"><p><b>La maquette ne connaît que Lille.</b>La vraie app cherche partout en France.</p><button class="btn" data-a="lille">Revenir à Lille</button></div>';
@@ -928,13 +1006,16 @@ function app(root,poste){
     var exact=ids.some(function(id){return plat(ENT[id].n)===p});
     return {lu:lu,theme:theme,ids:ids,exact:exact,nom:(lu||q).trim()};
   }
-  function corpsRecherche(){ var r=chercher(S.q), h='';
-    if(!r) return '<div class="rangs s-liste" style="margin-top:12px"><div class="rang act" data-a="coller" role="button" tabindex="0">'+ic('clipboard')+'<div class="r-c"><b>Coller un lien</b><span>LinkedIn, une annonce, le site d’une entreprise</span></div></div></div>';
+  function corpsRecherche(){ var o=S.offre, lue=S.offreVue, h=etiquetteOffre();
+    if(lue&&plat(S.q)===plat(ENT[lue].n)) return h+offreLueHTML(lue);
+    if(o&&!S.q.trim()) return h+'<p class="lu">Dans quelle entreprise ? Tape son nom.</p>';
+    var r=chercher(S.q);
+    if(!r) return h+'<div class="rangs s-liste" style="margin-top:12px"><div class="rang act" data-a="coller" role="button" tabindex="0">'+ic('clipboard')+'<div class="r-c"><b>Coller un lien ou une offre</b><span>LinkedIn, le site d’une entreprise, le texte d’une offre</span></div></div></div>';
     if(r.lu) h+='<p class="lu">Lu dans ton lien : <b>'+esc(r.lu)+'</b></p>';
     var ids=r.ids.slice();
     if(r.theme) TOUT.forEach(function(id){ if(ENT[id].m.indexOf(r.theme.m)>=0&&ids.indexOf(id)<0&&S.ecartes.indexOf(id)<0) ids.push(id); });
     var sans=G.hl||G.panne; if(sans){ ids=ids.filter(function(x){ return !!S.pistes[x]; }); h+=G.hl?ligneHL('Pas de réseau : l’annuaire attendra. Tes pistes, elles, se cherchent.'):ligneHL('L’annuaire ne répond pas : seules tes pistes se cherchent.','square-alert'); }
-    if(ids.length) h+=(sans?'':'<div class="et res-et">'+(r.theme?r.theme.l+' autour de '+esc(S.P.ville||'Lille'):ids.length>1?ids.length+' entreprises':'Dans l’annuaire')+'</div>')+'<div class="rangs s-liste">'+ids.map(function(id){return ligneEnt(id,{fixe:1,pistes:1,plat:1})}).join('')+'</div>';
+    if(ids.length) h+=(sans?'':'<div class="et res-et">'+(r.theme?r.theme.l+' autour de '+esc(S.P.ville||'Lille'):ids.length>1?ids.length+' entreprises':'Dans l’annuaire')+'</div>')+'<div class="rangs s-liste">'+ids.map(function(id){return ligneEnt(id,{fixe:1,pistes:!(S.offre&&S.pistes[id]),plat:1})}).join('')+'</div>';
     if(!r.exact&&!r.theme) h+='<div class="rangs s-liste" style="margin-top:'+(r.ids.length?0:12)+'px"><div class="rang act" data-a="tel-quel" role="button" tabindex="0">'+ic('plus')+'<div class="r-c"><b>Garder « '+esc(r.nom.slice(0,40))+' »</b><span>telle que tu l’as écrite, sans l’annuaire</span></div></div></div>';
     return h;
   }
@@ -945,8 +1026,9 @@ function app(root,poste){
     if(e.rec) f.push(['Récemment',esc(e.rec)]);
     if(ai&&!bref) f.push(['Aide',ai]);
     return f.length?'<dl class="faits">'+f.map(function(x){return '<div><dt>'+x[0]+'</dt><dd>'+x[1]+'</dd></div>'}).join('')+'</dl>':''; }
-  function pageEnt(id){ var e=ENT[id], a=ami(id);
-    var qui=e.main?'':e.qui
+  function pageEnt(id){ var e=ENT[id], a=ami(id), ob=offreDe(id), oc=ob&&ob.ct&&ob.ct.n?ob.ct:null;
+    var qui=oc?'<div class="pers prop"><div class="s-init">'+initiales(oc.n)+'</div><div class="r-c"><b>'+esc(oc.n)+'</b><span>'+esc([oc.r,'dans l’offre'].filter(Boolean).join(' · '))+'</span></div></div>'
+      :e.main?'':e.qui
       ?'<div class="pers prop"><div class="s-init">'+initiales(e.qui.n)+'</div><div class="r-c"><b>'+esc(e.qui.n)+'</b><span>'+esc(e.qui.r)+'</span></div></div>'
         +'<a class="lien" href="https://www.linkedin.com/search/results/people/?keywords='+encodeURIComponent(e.qui.n+' '+e.n)+'" target="_blank" rel="noopener noreferrer">'+(/e$/.test(e.qui.r)&&!/aire$/.test(e.qui.r)?'La':'Le')+' trouver sur LinkedIn'+ic('external-link')+'</a>'
       :'<p>Une grande maison : écris au recrutement'+(a?', ou passe par '+a.p:'')+'.</p>'
@@ -955,12 +1037,14 @@ function app(root,poste){
       +(e.al?'<div class="alerte">'+ic('square-alert')+esc(e.al)+'</div>':'')
       +(a?'<div class="porte">'+visageSVG(a.p)+''+a.p+' '+a.q+'</div>':'')
       +(e.main?'<div class="panneau" style="margin:16px 0 0"><p><b>Pas dans l’annuaire.</b>Tu pourras la compléter depuis sa piste.</p></div>':'')
+      +(ob?'<fieldset class="gb offre-b"><legend>L’offre</legend>'+offreHTML(ob)+'</fieldset>':'')
       +'<div class="pg-corps"><div>'+faitsEnt(id)+'</div>'
       +'<div>'+(qui?'<fieldset class="gb"><legend>À qui écrire</legend>'+qui+'</fieldset>':'')
       +(e.main?'':'<p class="src">'+(e.c||e.rec||e.al?'Annuaire des entreprises · BODACC':'Annuaire des entreprises')+'</p>')+'</div></div></div>';
   }
-  function piedEnt(id){ var garde=!!S.pistes[id];
-    return garde?'<button class="btn fait court" disabled>'+ic('check')+'Gardée</button><button class="btn p" data-a="ecrire" data-id="'+id+'">Préparer mon message</button>'
+  function piedEnt(id){ var garde=!!S.pistes[id], oa=garde&&offreEnAttente(id);
+    if(oa) return '<button class="btn p" data-a="o-ajouter" data-id="'+id+'">'+ic('plus')+(S.pistes[id].offre?'Remplacer l’offre de la piste':'Ajouter l’offre à la piste')+'</button>';
+    return garde?'<button class="btn fait court" disabled>'+ic('check')+'Gardée</button>'+(S.pistes[id].e==='garde'||kDe(id)?'<button class="btn p" data-a="ecrire" data-id="'+id+'">Préparer mon message</button>':'<button class="btn p" data-a="piste" data-id="'+id+'">Voir la piste</button>')
       :'<button class="btn court" data-a="ecarter" data-id="'+id+'">Pas pour moi'+(poste?'<kbd>X</kbd>':'')+'</button><button class="btn p" data-a="garder" data-id="'+id+'">'+ic('plus')+'Garder'+(poste?'<kbd>G</kbd>':'')+'</button>'; }
 
   /* ================= LOT 2 : PISTES, UNE PISTE, ÉCRIRE ================= */
@@ -988,14 +1072,15 @@ function app(root,poste){
     }
     if(p.demande) return {rang:7,l:'demande envoyée'+(a?' à '+a.p:''),t:'Demande envoyée'+(a?' à '+a.p:'')+'.',s:'La réponse arrivera ici et dans « Réseau ».'};
     if(a&&!c) return {rang:3,l:a.p+' '+a.q,plus:1,t:a.p+' '+a.q+'.',s:'Demande-lui à qui écrire.',b:'Demander à '+a.p,c:'Demander',a:'demande'};
-    if(c&&c.n) return {rang:4,l:c.n+(c.r?', '+c.r:'')+(c.via?' · par '+c.via:''),plus:c.via?1:0,t:'À contacter : '+c.n+(c.r?', '+c.r:'')+'.',s:'Ton message est prêt. Tu le relis, puis tu l’envoies.',b:'Écrire à '+pr,c:'Écrire',a:'ecrire',k:'premier'};
-    return {rang:4,l:lieu(e)||'ajoutée à la main',t:'À contacter.',s:e.grande?'Passe par le recrutement, ou par leur site.':'Personne à qui écrire pour l’instant : passe par leur site.',b:'Écrire',c:'Écrire',a:'ecrire',k:'premier'};
+    var av=p.offre&&p.offre.avant, court_=av?' L’offre court jusqu’au '+jusqua(av)+'.':'';
+    if(c&&c.n) return {rang:4,l:c.n+(av?' · jusqu’au '+jourMois(av):c.r?', '+c.r:'')+(c.via?' · par '+c.via:''),plus:c.via?1:0,t:'À contacter : '+c.n+(c.r?', '+c.r:'')+'.',s:'Ton message est prêt. Tu le relis, puis tu l’envoies.'+court_,b:'Écrire à '+pr,c:'Écrire',a:'ecrire',k:'premier'};
+    return {rang:4,l:av?'offre jusqu’au '+jourMois(av):lieu(e)||'ajoutée à la main',t:'À contacter.',s:(e.grande?'Passe par le recrutement, ou par leur site.':'Personne à qui écrire pour l’instant : passe par leur site.')+court_,b:'Écrire',c:'Écrire',a:'ecrire',k:'premier'};
   }
   /* « À faire » : trois lignes au plus. Ce qui est engagé passe avant ce qui commence ;
      les pistes muettes depuis 45 jours se rangent d'un geste, ensemble. */
   function aFaire(){ var l=[], mu=[];
     S.ordre.forEach(function(id){ var s=suite(id); if(s.muette) mu.push(id); else if(s.rang<=4) l.push({id:id,s:s}); });
-    l.sort(function(a,b){ return a.s.rang-b.s.rang||(cto(b.id)?1:0)-(cto(a.id)?1:0)||(ENT[a.id].km||99)-(ENT[b.id].km||99); });
+    l.sort(function(a,b){ return a.s.rang-b.s.rang||ordreContact(a.id,b.id); });
     var out=l.filter(function(x){return x.s.rang<=2}).slice(0,3);
     if(mu.length&&out.length<3) out.push({ranger:mu});
     l.filter(function(x){return x.s.rang>2}).forEach(function(x){ if(out.length<3) out.push(x); });
@@ -1012,7 +1097,7 @@ function app(root,poste){
     return '<div class="gl" data-id="'+id+'" data-g="supprimer"><div class="dessous-g">Supprimer</div><div class="rang l'+(poste&&S.selP===id?' on':'')+'" data-a="piste" data-id="'+id+'" role="button" tabindex="0"><div class="r-c"><b>'+esc(e.n)+'</b><span'+(s.plus?' class="plus"':'')+'>'+esc(s.l)+'</span></div>'+ic('chevron-right')+'</div></div>'; }
   function videPistes(){ return '<div class="panneau"><p>Les entreprises que tu gardes arrivent ici.<br>L’app te dit ensuite quoi faire pour chacune.</p><button class="btn p" data-a="onglet" data-id="trouver">Trouver des entreprises</button></div>'; }
   function corpsPistes(){ var ids=S.ordre;
-    if(!ids.length) return videPistes();
+    if(!ids.length) return videPistes()+basPistes();
     if(S.qp.trim()){ var w=plat(S.qp).split(' '); var t=ids.filter(function(id){ var n=plat(ENT[id].n); return w.every(function(x){return n.indexOf(x)>=0}); });
       return t.length?'<div class="rangs s-liste" style="margin-top:8px">'+t.map(ligneG).join('')+'</div>':'<div class="panneau"><p>Aucune piste ne porte ce nom.</p></div>'; }
     var af=aFaire(), dans=af.filter(function(x){return x.id}).map(function(x){return x.id}), h='';
@@ -1024,10 +1109,14 @@ function app(root,poste){
       +grp('En attente',function(p){return p.e==='ecrit'},function(a,b){return S.pistes[a].j-S.pistes[b].j});
     var fin=ids.filter(function(id){var e=S.pistes[id].e; return e==='non'||e==='range'});
     if(fin.length) h+='<details class="term" data-p="term"'+(S.ouv.term?' open':'')+'><summary>Terminées · '+fin.length+ic('chevron-right')+'</summary><div class="rangs">'+fin.map(ligneG).join('')+'</div></details>';
-    return h;
+    return h+basPistes();
   }
   function chercheP(){ return '<label class="champ">'+ic('search')+'<input type="search" class="qp" placeholder="Chercher une piste" aria-label="Chercher une piste" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="search"></label>'; }
-  function suivante(id){ var l=aFaire().filter(function(x){return x.id&&x.id!==id&&x.s.k==='premier'}); return l.length?l[0].id:null; }
+  /* entre deux pistes du même rang : qui a quelqu'un à qui écrire, puis l'offre qui se ferme la première, puis la plus proche */
+  function finOffre(id){ var o=S.pistes[id].offre; return o&&o.avant?o.avant.getTime():Infinity; }
+  function ordreContact(a,b){ return (cto(b)?1:0)-(cto(a)?1:0)||(finOffre(a)-finOffre(b))||(ENT[a].km||99)-(ENT[b].km||99); }
+  /* « Suivante » : la prochaine piste à contacter, qu'elle soit dans « À faire » ou plus bas */
+  function suivante(id){ var l=S.ordre.filter(function(x){ return x!==id&&suite(x).k==='premier'; }).sort(ordreContact); return l[0]||null; }
 
   /* la page d'une piste */
   function blocSuite(id,s){ var p=S.pistes[id], h='', x=[];
@@ -1070,7 +1159,7 @@ function app(root,poste){
       +(a?'<div class="pers">'+visageSVG(a.p)+'<div class="r-c"><b>'+a.p+'</b><span>'+a.q+'</span></div>'+(p.demande?'<span class="s-ok">demandé</span>':'<button class="btn s" data-a="demande" data-id="'+id+'">Demander</button>')+'</div>':'')
       +'<button class="lien ajout" data-a="contact" data-v="-1" data-id="'+id+'">'+ic('plus')+'Ajouter quelqu’un</button></fieldset>';
     var pli=function(k,t,c){ return '<details class="pli" data-p="'+k+'"'+(S.ouv[k]?' open':'')+'><summary>'+t+ic('chevron-right')+'</summary>'+c+'</details>'; };
-    var plis='<div class="plis">'+(e.f?pli('ent','L’entreprise',faitsEnt(id,1)):'')
+    var plis='<div class="plis">'+(e.f?pli('ent','L’entreprise',faitsEnt(id,1)):'')+(p.offre?pli('offre','L’offre',offreHTML(p.offre,1)):'')
       +pli('hist','Historique · '+p.h.length,'<ul class="hist">'+p.h.slice().reverse().map(function(x){return '<li><span>'+esc(x[0])+'</span>'+esc(x[1])+'</li>'}).join('')+'</ul>')
       +pli('notes','Mes notes','<textarea class="zone n-notes" data-id="'+id+'" rows="3" placeholder="Ce que tu veux retenir" aria-label="Mes notes">'+esc(p.notes)+'</textarea><p class="doux" style="margin:6px 0 12px">Privées. Elles ne partent jamais dans un partage.</p>')+'</div>';
     var bas=!s.fin&&p.e!=='oui'?'<div class="bas-p"><button class="btn-g" data-a="lacher" data-id="'+id+'">Laisser tomber cette piste</button></div>':'';
@@ -1115,6 +1204,8 @@ function app(root,poste){
   function lienSite(id){ var e=ENT[id]; return e.site?'https://www.'+e.site+'/':'https://duckduckgo.com/?q='+encodeURIComponent(e.n+' '+(e.v||'')); }
   function savoir(id,k){ var e=ENT[id], p=S.pistes[id], a=ami(id), l=[];
     if(k==='merci'||k==='reponse'){ if(p.notes.trim()) l.push(p.notes.trim()); return l.length?'<div class="savoir"><span class="et">Tes notes</span><p>'+esc(l.join(' · '))+'</p></div>':''; }
+    /* une piste gardée avec son offre : ce qu'elle demande, pour écrire l'accroche */
+    if(p.offre&&p.offre.missions.length&&k==='premier') return '<div class="savoir"><span class="et">Dans l’offre</span><ul class="o-miss">'+p.offre.missions.map(function(m){ return '<li>'+esc(m)+'</li>'; }).join('')+'</ul>'+(a?'<p>'+esc(a.p+' '+a.q)+'</p>':'')+'</div>';
     if(e.f) l.push(e.f); if(e.rec) l.push(e.rec); if(a) l.push(a.p+' '+a.q);
     return l.length?'<div class="savoir"><span class="et">À savoir</span><p>'+esc(l.join(' · '))+'</p></div>':''; }
   function ecrireHTML(id,k,canal){ var e=ENT[id], c=cto(id), d=brouillon(id,k,canal), corps='', pied='';
@@ -1126,23 +1217,23 @@ function app(root,poste){
       corps+='<label class="fld"><span class="et">À</span><input class="e-a" type="text" inputmode="email" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="off" value="'+esc(d.a)+'" placeholder="Son adresse"></label><p class="err e-err-a" hidden></p>'
         +'<label class="fld"><span class="et">Objet<span class="fld-n e-n-o">'+d.o.length+'/60</span></span><textarea class="zone un e-o" rows="1">'+esc(d.o)+'</textarea></label><p class="err e-err-o" hidden></p>'
         +sav+'<label class="fld"><span class="et">Message</span><span class="err e-err" hidden></span><textarea class="zone e-m">'+esc(d.m)+'</textarea></label>';
-      pied='<button class="btn court" data-a="copier" data-id="'+id+'">'+ic('copy')+'Copier</button><button class="btn p" data-a="envoyer" data-id="'+id+'">'+ic('mail')+'Ouvrir dans Mail</button>';
+      pied='<button class="btn court" data-a="copier" data-id="'+id+'">'+ic('copy')+'Copier</button><button class="btn p" data-a="envoyer" data-id="'+id+'">'+ic('mail')+'Ouvrir dans Mail'+(poste?'<kbd>'+MOD+' ↵</kbd>':'')+'</button>';
     } else if(canal==='linkedin'){ var n=d.m.length;
       corps+=sav+'<label class="fld"><span class="et">Message<span class="fld-n e-n-m'+(n>LI_MAX?' trop':'')+'">'+n+'/'+LI_MAX+'</span></span><span class="err e-err" hidden></span><textarea class="zone court e-m">'+esc(d.m)+'</textarea></label>'
         +'<p class="hint">Puis colle-le dans ton invitation. Sans LinkedIn payant, seules quelques invitations par mois peuvent porter un mot.</p>';
-      pied='<a class="btn p" href="'+esc(lienLI(id))+'" target="_blank" rel="noopener noreferrer" data-a="envoyer" data-id="'+id+'">Copier et ouvrir LinkedIn'+ic('external-link')+'</a>';
+      pied='<a class="btn p" href="'+esc(lienLI(id))+'" target="_blank" rel="noopener noreferrer" data-a="envoyer" data-id="'+id+'">Copier et ouvrir LinkedIn'+ic('external-link')+(poste?'<kbd>'+MOD+' ↵</kbd>':'')+'</a>';
     } else if(canal==='appel'){
       corps+='<label class="fld"><span class="et">Numéro</span><input class="e-a" type="tel" inputmode="tel" autocomplete="off" value="'+esc(d.a)+'" placeholder="Son numéro, ou le standard"></label><p class="err e-err-a" hidden></p>'
         +(d.a?'':'<p class="hint">Le standard est souvent sur leur site : <a class="lien-t" href="'+esc(lienSite(id))+'" target="_blank" rel="noopener noreferrer">'+(e.site?esc(e.site):'chercher leur site')+'</a>.</p>')
         +'<div class="et" style="margin-bottom:6px">Ce que tu peux dire</div><ol class="script">'+d.script.map(function(x){return '<li>'+esc(x)+'</li>'}).join('')+'</ol>';
-      pied='<button class="btn p" data-a="envoyer" data-id="'+id+'">'+ic('phone')+'Appeler</button>';
+      pied='<button class="btn p" data-a="envoyer" data-id="'+id+'">'+ic('phone')+'Appeler'+(poste?'<kbd>'+MOD+' ↵</kbd>':'')+'</button>';
     } else {
       corps+=sav+'<label class="fld"><span class="et">Le texte</span><span class="err e-err" hidden></span><textarea class="zone e-m">'+esc(d.m)+'</textarea></label>'
         +'<p class="hint">Puis colle-le dans leur formulaire de contact, ou sur leur page carrières.</p>';
-      pied='<a class="btn p" href="'+esc(lienSite(id))+'" target="_blank" rel="noopener noreferrer" data-a="envoyer" data-id="'+id+'">'+(e.site?'Copier et ouvrir leur site':'Copier et chercher leur site')+ic('external-link')+'</a>';
+      pied='<a class="btn p" href="'+esc(lienSite(id))+'" target="_blank" rel="noopener noreferrer" data-a="envoyer" data-id="'+id+'">'+(e.site?'Copier et ouvrir leur site':'Copier et chercher leur site')+ic('external-link')+(poste?'<kbd>'+MOD+' ↵</kbd>':'')+'</a>';
     }
     if(G.hl&&(canal==='linkedin'||canal==='site')){ corps+=ligneHL('Pas de réseau : copie '+(canal==='linkedin'?'ton mot, tu le colleras dans LinkedIn':'le texte, tu le colleras sur leur site')+' plus tard.');
-      pied='<button class="btn p" data-a="e-copier-hl" data-id="'+id+'">'+ic('copy')+(canal==='linkedin'?'Copier mon mot':'Copier le texte')+'</button>'; }
+      pied='<button class="btn p" data-a="e-copier-hl" data-id="'+id+'">'+ic('copy')+(canal==='linkedin'?'Copier mon mot':'Copier le texte')+(poste?'<kbd>'+MOD+' ↵</kbd>':'')+'</button>'; }
     return {corps:corps,pied:pied}; }
   /* où l'on écrit : la page « Écrire » au téléphone, la colonne de droite au poste */
   function ecrEnCours(){ var id, k, canal;
@@ -1171,7 +1262,7 @@ function app(root,poste){
     if(E.canal==='linkedin'&&d.m.length>LI_MAX){ ev.preventDefault(); erreur('.e-err','Trop long pour une invitation : '+LI_MAX+' caractères au plus.',ta); return; }
     garderCoord(E.id,E.canal,d.a);
     if(E.canal==='linkedin'||E.canal==='site') copier(d.m,ta);
-    S.envoi[E.id]={k:E.k,canal:E.canal}; S.pm[E.id]='parti'; S.fiche=E.id;
+    S.envoi[E.id]={k:E.k,canal:E.canal}; S.pm[E.id]='parti'; S.fiche=E.id; if(poste) S.viser='oui';
     var suite_=function(){ if(!poste) S.vue='piste'; rendre(); };
     if(b.tagName==='A') setTimeout(suite_,80);   /* le lien s'ouvre d'abord, la page revient ensuite sur « C'est parti ? » */
     else { ev.preventDefault(); suite_(); }
@@ -1279,7 +1370,7 @@ function app(root,poste){
   function colis(d){ var c=[1,d.trouve?1:.5,d.recu?1:d.trouve?.5:0];
     return '<div class="colis" aria-hidden="true">'+c.map(function(x){return '<i class="'+(x===1?'p':x?'m':'')+'"></i>'}).join('')+'</div>'; }
   function ligneDemande(d){ var s=d.recu?(d.ajoute?d.recu.n+' est dans tes pistes':'Reçu : '+d.recu.n+', par '+d.recu.via):d.trouve?'Trouvée, en attente de son accord':d.attente&&G.hl?'Partira dès que le réseau revient':'Envoyée '+d.env;
-    return '<div class="rang conv" data-a="r-demande" data-id="'+d.id+'" role="button" tabindex="0"><div class="r-c"><b>Quelqu’un '+esc(d.quoi)+'</b><span'+(d.recu&&!d.ajoute?' class="plus"':'')+'>'+esc(s)+'</span></div>'+colis(d)+'</div>'; }
+    return '<div class="rang conv'+rOn('demande',d.id)+'" data-a="r-demande" data-id="'+d.id+'" role="button" tabindex="0"><div class="r-c"><b>Quelqu’un '+esc(d.quoi)+'</b><span'+(d.recu&&!d.ajoute?' class="plus"':'')+'>'+esc(s)+'</span></div>'+colis(d)+'</div>'; }
   function apercuMsg(c){ var m=c.msgs.filter(function(x){return !x.j}).slice(-1)[0];
     if(!m) return 'Aucun message pour l’instant.';
     if(m.dem) return S.R.demsGroupe[m.dem].qui+' cherche quelqu’un chez '+ENT[S.R.demsGroupe[m.dem].e].n;
@@ -1288,10 +1379,10 @@ function app(root,poste){
     return (m.moi?'Toi : ':c.t==='groupe'?m.qui+' : ':'')+m.t; }
   function heureConv(c){ var j='', h=''; c.msgs.forEach(function(m){ if(m.j) j=m.j; else h=m.h; }); return j==='Hier'?'hier':h; }
   function ligneConv(id){ var c=S.R.convs[id];
-    return '<div class="rang conv'+(c.nonlu?' nonlu':'')+'" data-a="r-conv" data-id="'+id+'" role="button" tabindex="0">'+(c.t==='groupe'?'<div class="s-init">'+initiales(c.nom)+'</div>':visageSVG(c.nom))
+    return '<div class="rang conv'+(c.nonlu?' nonlu':'')+rOn('conv',id)+'" data-a="r-conv" data-id="'+id+'" role="button" tabindex="0">'+(c.t==='groupe'?'<div class="s-init">'+initiales(c.nom)+'</div>':visageSVG(c.nom))
       +'<div class="r-c"><b>'+esc(c.nom)+'</b><span>'+esc(apercuMsg(c))+'</span></div><span class="s-h">'+esc(heureConv(c))+'</span>'+(c.nonlu?'<i class="pt" aria-label="non lu"></i>':'')+'</div>'; }
   function ligneAmi(a){ var o=a.ouvre[0];
-    return '<div class="rang conv" data-a="r-ami" data-id="'+a.id+'" role="button" tabindex="0">'+visageSVG(a.p)+'<div class="r-c"><b>'+esc(a.p)+'</b><span class="plus">'+esc(o?o.l+' '+ENT[o.e].n+(a.ouvre.length>1?' · +'+(a.ouvre.length-1):''):'aucune entreprise')+'</span></div>'+ic('chevron-right')+'</div>'; }
+    return '<div class="rang conv'+rOn('ami',a.id)+'" data-a="r-ami" data-id="'+a.id+'" role="button" tabindex="0">'+visageSVG(a.p)+'<div class="r-c"><b>'+esc(a.p)+'</b><span class="plus">'+esc(o?o.l+' '+ENT[o.e].n+(a.ouvre.length>1?' · +'+(a.ouvre.length-1):''):'aucune entreprise')+'</span></div>'+ic('chevron-right')+'</div>'; }
   function listeReseau(){ var R=S.R, h='';
     if(!R.groupes.length&&!R.amis.length&&!R.demandes.length)
       return '<div class="panneau"><p>Ta classe et tes amis apparaissent ici.<br>Ils te disent où ils sont passés et qui contacter.</p><button class="btn p" data-a="r-rejoindre">Rejoindre ma classe</button><button class="btn" data-a="r-ajami">Ajouter un ami</button><button class="btn" data-a="r-recevoir">Recevoir des pistes</button></div>';
@@ -1520,7 +1611,7 @@ function app(root,poste){
      son rythme et son parcours remplissent ses messages ; son parcours et « Je peux aider » partent dans le profil
      donné à ses amis. Rien d'autre ne sort. */
   var TPL={
-    premier:{o:'Candidature {{type}} {{formation}} — {{moi}}',m:'Bonjour {{contact}},\n\n{{via}}\n[Une phrase précise sur ce qu’ils font. Pas « votre entreprise m’intéresse » — ils le lisent dix fois par jour.]\n\nJe suis en {{formation}} et je cherche {{recherche}}.\nRythme : {{rythme}}\nExpérience : {{experience}}\nMon CV : {{cv}}\nJe peux passer en parler quand vous voulez.\n\n{{signature}}'},
+    premier:{o:'Candidature {{type}} {{formation}} — {{moi}}',m:'Bonjour {{contact}},\n\n{{via}}\nJe réponds à votre offre « {{offre}} ».\n[Une phrase précise sur ce qu’ils font. Pas « votre entreprise m’intéresse » — ils le lisent dix fois par jour.]\n\nJe suis en {{formation}} et je cherche {{recherche}}.\nRythme : {{rythme}}\nExpérience : {{experience}}\nMon CV : {{cv}}\nJe peux passer en parler quand vous voulez.\n\n{{signature}}'},
     relance:{o:'Ma candidature chez {{entreprise}}',m:'Bonjour {{contact}},\n\nJe reviens vers vous au sujet de ma candidature du {{date}}.\n\n[Du neuf depuis : un projet fini, une techno apprise, une actu de chez eux. Une relance qui n’apporte rien n’appelle rien.]\n\nJ’ai toujours très envie de vous rejoindre, et je reste disponible pour en parler.\n\n{{signature}}'},
     merci:{o:'Merci pour notre échange — {{moi}}',m:'Bonjour {{contact}},\n\nMerci pour le temps que vous m’avez accordé lors de notre entretien. Notre échange a confirmé mon envie de rejoindre {{entreprise}}.\n\n[1 phrase : un point marquant de l’entretien]\n\nJe reste à votre disposition pour toute information complémentaire.\n\n{{signature}}'}
   };
@@ -1528,7 +1619,7 @@ function app(root,poste){
   /* ce que l'app remplace : la page d'un modèle ne nomme que les jetons qu'il emploie */
   var JETONS={contact:'la personne, ou « Madame, Monsieur »',entreprise:'l’entreprise',type:'stage, alternance ou emploi',formation:'ta formation',
     recherche:'ce que tu cherches',rythme:'ton rythme, pour une alternance',experience:'ton parcours',cv:'le lien vers ton CV',
-    via:'l’ami qui te recommande',date:'le jour de ton premier message',moi:'ton nom',signature:'ton nom, ton école, ton téléphone'};
+    via:'l’ami qui te recommande',offre:'le poste de l’offre, si tu l’as collée',date:'le jour de ton premier message',moi:'ton nom',signature:'ton nom, ton école, ton téléphone'};
   /* « Je peux aider » : ce que je coche, et ce que mes amis en lisent */
   var AIDES_M=[['parler','Parler de mon entreprise','parle de son entreprise'],['relire','Relire un CV','relit des CV'],['presenter','Présenter quelqu’un','présente des gens']];
   var MOTS=['girafe','cuivre','lanterne','marée','olive','tambour','prairie','vitrail','ruche','balcon','neige','ancre'];
@@ -1549,7 +1640,7 @@ function app(root,poste){
   function signature(){ var M=S.M; return ['Bien à vous,',S.nom||'[ton nom]',M.ecole,[M.tel,M.mail].filter(Boolean).join(' — ')].filter(Boolean).join('\n'); }
   function variables(id){ var p=S.pistes[id], c=cto(id), q=quoi();
     return {contact:c&&c.n?c.n:'Madame, Monsieur',via:c&&c.via?c.via+' m’a conseillé de vous écrire.':'',formation:S.P.formation||'[ta formation]',recherche:CHERCHE[q],type:q,
-      moi:S.nom||'[ton nom]',rythme:q==='alternance'?S.M.rythme:'',experience:experience(),cv:S.M.docs.lien,entreprise:ENT[id].n,date:p.ecritLe,signature:signature()}; }
+      moi:S.nom||'[ton nom]',rythme:q==='alternance'?S.M.rythme:'',experience:experience(),cv:S.M.docs.lien,entreprise:ENT[id].n,date:p.ecritLe,signature:signature(),offre:p.offre?p.offre.poste:''}; }
   /* un modèle ou le profil change : les brouillons pas encore touchés repartent du nouveau texte, les autres ne bougent pas */
   function oublierBrouillons(k){ Object.keys(S.br).forEach(function(key){ if((!k||key.split('|')[1]===k)&&!S.br[key].touche) delete S.br[key]; }); }
   var modifie=function(k){ var t=S.M.tpl[k]; return t.o!==TPL[k].o||t.m!==TPL[k].m; };
@@ -1899,18 +1990,189 @@ function app(root,poste){
     if(a==='e-copier-hl'){ var E=ecrEnCours(), ta2=$('.e-m',ecran); if(!E) return 'fait'; if(!crochetOk(ev,E.d,ta2)) return 'fait'; copier(E.d.m,ta2,b); return 'fait'; }
     return null; }
 
+  /* ================= LOT 6 : LE POSTE, UN ÉTABLI ================= */
+  /* Coller une offre en fait une piste. Elle entre par la barre de Trouver, comme un nom ou un lien :
+     l'entreprise lue va dans la barre, l'offre attend en étiquette dessous, et part avec ce qu'on garde.
+     Au téléphone on colle dans la barre ; au poste, n'importe où. */
+  function coller(t){ t=String(t||'').trim(); if(!t||S.verrou) return;
+    /* la réponse de son assistant, pour « Depuis mes e-mails » : l'aperçu s'ouvre tout de suite */
+    var ml=lireMails(t); if(ml){ S.onglet=S.vue='pistes'; S.pile=[]; S.convOuverte=null; fermerRecherche(); S.sheet={type:'mails',lu:ml}; couche.innerHTML=''; rendre(); return; }
+    var o=lireOffre(t);
+    S.onglet=S.vue='trouver'; S.pile=[]; S.sheet=null; S.convOuverte=null; S.cherche=true; S.offre=null; S.offreDeja=null; S.offreVue=o&&o.ent||null;
+    if(o){ var p=o.ent&&S.pistes[o.ent];
+      if(p&&p.offre&&p.offre.texte===o.texte) S.offreDeja=o.ent; else S.offre=o;
+      S.q=o.ent?ENT[o.ent].n:''; if(poste&&o.ent) S.sel=o.ent; }
+    else S.q=t.replace(/\s*\n\s*/g,' ');
+    rendre(); var q=$('.q',ecran);
+    if(q){ q.value=S.q; q.placeholder=S.offre&&!S.q?'Le nom de l’entreprise':'Métier, ville, entreprise…'; if(S.offre&&!S.q) q.focus(); else if(poste||o) q.blur(); } }
+  /* l'offre qu'on montre sur la page d'une entreprise : celle qui attend (lue pour elle, ou sans entreprise lue), sinon celle de sa piste */
+  function offreEnAttente(id,garde_){ var o=S.offre; return o&&S.cherche&&(o.ent===id||(!o.ent&&(garde_||o.pour===id)))?o:null; }
+  function offreDe(id){ var p=S.pistes[id]; return offreEnAttente(id)||(p&&p.offre)||null; }
+  function jusqua(d){ return d?enLong(d):''; }
+  function jourMois(d){ return d.toLocaleDateString('fr-FR',{day:'numeric',month:'short'}); }
+  function faitsOffre(o){ var f=[['Contrat',[QUOI[o.type],o.duree,o.debut?(/^[aeiouéèh]/i.test(o.debut)?'à partir d’':'à partir de ')+o.debut:''].filter(Boolean).join(', ')]];
+    if(o.rythme) f.push(['Rythme',o.rythme]);
+    if(o.avant) f.push(['Jusqu’au',jusqua(o.avant)]);
+    return '<dl class="faits">'+f.map(function(x){ return '<div><dt>'+x[0]+'</dt><dd>'+esc(x[1])+'</dd></div>'; }).join('')+'</dl>'; }
+  function offreHTML(o,tout){ return '<p class="o-p">'+esc(o.poste)+'</p>'+faitsOffre(o)
+    +(o.missions.length?'<div class="et o-et">Les missions</div><ul class="o-miss">'+o.missions.map(function(m){ return '<li>'+esc(m)+'</li>'; }).join('')+'</ul>':'')
+    +(tout?'<details class="o-t" data-p="o-t"'+(S.ouv['o-t']?' open':'')+'><summary>Tout le texte'+ic('chevron-right')+'</summary><p>'+esc(o.texte)+'</p></details>':''); }
+  function etiquetteOffre(){ var o=S.offre; if(!o) return '';
+    return '<div class="s-tags o-tags"><button class="etq-o" data-a="o-retirer" aria-label="Retirer l’offre : '+esc(o.poste)+'">'+ic('file')+'<span>Offre : '+esc(o.poste)+'</span>'+ic('close')+'</button></div>'; }
+  function offreLueHTML(id){
+    if((G.hl||G.panne)&&!S.pistes[id]) return ligneHL(G.hl?'Pas de réseau : l’entreprise se reconnaîtra quand il revient.':'L’annuaire ne répond pas : l’entreprise se reconnaîtra quand il revient.',G.hl?'radio':'square-alert');
+    return '<div class="et res-et">Lu dans l’offre</div><div class="rangs s-liste">'+ligneEnt(id,{fixe:1,pistes:!S.offre,plat:1})+'</div>'
+      +(S.offreDeja?'<p class="lu o-deja">'+ic('check')+'Cette offre est déjà sur sa piste.</p>':''); }
+  /* une offre qui rejoint une piste déjà là : elle complète, l'ancienne revient avec « Annuler » */
+  function ajouterOffre(id){ var p=S.pistes[id], o=S.offre; if(!p||!o) return; var avant=p.offre||null, n=p.ct.length;
+    p.offre=o; if(o.ct&&(o.ct.n||o.ct.mail)&&!p.ct.some(function(c){ return (c.mail&&c.mail===o.ct.mail)||(c.n&&c.n===o.ct.n); })) p.ct.push({n:o.ct.n,r:o.ct.r,mail:o.ct.mail});
+    hist(id,avant?'Offre remplacée':'Offre ajoutée'); S.offre=null; oublierBrouillons();
+    annuler((avant?'Offre remplacée : ':'Offre ajoutée à ')+ENT[id].n,function(){ p.offre=avant; p.ct.length=n; p.h.pop(); oublierBrouillons(); }); }
+  function gesteO(a,id){
+    if(a==='o-retirer'){ S.offre=null; var q=$('.q',ecran); if(q) q.placeholder='Métier, ville, entreprise…'; }
+    if(a==='o-ajouter') ajouterOffre(id); }
+
+  /* Déposer sur la fenêtre, au poste : une offre ou un lien comme un collage, ton CV dans « CV et lettres »,
+     une copie .oc avec son aperçu. Le bon fichier s'ouvre là où il sert. */
+  function deposerFichier(nom,taille){ var M=S.M;
+    if(/\.oc$/i.test(nom)){
+      if(/copie/i.test(nom)) ouvrirM('restauration','fichier');
+      else { if(!S.R.dons.karim3) S.R.dons.karim3={de:'Karim',ou:'',ids:['vau','bef','sep'],ct:{vau:{n:'Pierre Lambert',r:'responsable technique',mail:'p.lambert@vauban-infra.fr'}}};
+        ouvrirR('apercu','karim3'); }
+      rendre(); return; }
+    if(/\.(pdf|docx?|odt)$/i.test(nom)){ var k=/lettre|motivation/i.test(nom)?'lm':'cv', d={n:nom,t:Math.max(1,Math.round((taille||186000)/1024))+' Ko',d:'aujourd’hui'};
+      M.docs[k].push(d); ouvrirM('docs','');
+      annuler(nom+' ajouté',function(){ M.docs[k]=M.docs[k].filter(function(x){ return x!==d; }); }); rendre(); return; }
+    toast('L’app reçoit ici une offre, une copie .oc ou un CV.'); rendre(); }
+  if(poste){ var depot=document.createElement('div'); depot.className='depot'; depot.hidden=true; root.appendChild(depot);
+    var nDrag=0, genreDrag=function(dt){ var it=dt&&dt.items?Array.prototype.slice.call(dt.items):[], f=it.filter(function(x){ return x.kind==='file'; })[0], ty=Array.prototype.slice.call(dt&&dt.types||[]);
+      if(f) return /pdf|msword|officedocument|opendocument/.test(f.type)?'cv':'fichier';
+      return ty.indexOf('text/plain')>=0||ty.indexOf('text/uri-list')>=0?'texte':''; };
+    var DIT={cv:'Ton CV ira dans « CV et lettres ».',fichier:'Une copie .oc s’ouvre avec son aperçu.',texte:'L’app lit l’offre, et en fait une piste.'};
+    root.addEventListener('dragenter',function(ev){ var g=genreDrag(ev.dataTransfer); if(!g||S.verrou) return; ev.preventDefault(); nDrag++;
+      depot.style.top=(ecran.offsetTop+6)+'px'; depot.style.height=(ecran.offsetHeight-12)+'px';
+      depot.innerHTML='<p><b>Dépose ici</b>'+DIT[g]+'</p>'; depot.hidden=false; });
+    root.addEventListener('dragover',function(ev){ if(depot.hidden) return; ev.preventDefault(); if(ev.dataTransfer) ev.dataTransfer.dropEffect='copy'; });
+    root.addEventListener('dragleave',function(){ if(--nDrag<=0){ nDrag=0; depot.hidden=true; } });
+    root.addEventListener('drop',function(ev){ if(depot.hidden) return; ev.preventDefault(); nDrag=0; depot.hidden=true;
+      var dt=ev.dataTransfer, f=dt&&dt.files&&dt.files[0];
+      if(f) deposerFichier(f.name,f.size); else coller(dt&&(dt.getData('text/plain')||dt.getData('text/uri-list'))); }); }
+
+  /* Le clavier d'abord. Chaque touche se lit dans ce qu'elle commande : la lettre soulignée de l'onglet,
+     la touche dans son bouton, le reste dans la barre d'état de la vue. */
+  function cles(l){ return '<div class="aide-k">'+l.filter(Boolean).map(function(x){ return x[0].map(function(k){ return '<kbd>'+k+'</kbd>'; }).join('')+'<span>'+x[1]+'</span>'; }).join('')+'</div>'; }
+  var COLLER_K=[[MOD,'V'],'coller une offre'];
+  /* ce qu'ouvre ↵ sur la piste choisie : le geste de sa ligne dans « À faire » */
+  function gesteEntree(id){ var s=id&&S.pistes[id]&&!S.pm[id]?suite(id):null; return s&&(s.k||s.a==='demande')?s:null; }
+  function faireEntree(id){ var s=gesteEntree(id); if(!s) return false;
+    if(s.k) ouvrirEcrire(id,s.k); else { ouvrirPiste(id); S.pm[id]='demande'; } return true; }
+  /* au poste, ouvrir pour écrire pose le curseur : le premier crochet est sélectionné, il suffit de taper */
+  function viser(){ var v=S.viser, re=/\[[^\]]*\]/, x, el=null; S.viser=null;
+    if(v==='ecrire'){ var o=$('.pc3 .e-o',ecran), m=$('.pc3 .e-m',ecran);
+      [o,m].some(function(t){ if(t&&(x=re.exec(t.value))){ t.focus({preventScroll:true}); try{ t.setSelectionRange(x.index,x.index+x[0].length); }catch(e){} montrerSelection(t,x.index); el=t; return true; } });
+      if(!el&&m) m.focus(); return; }
+    el=v==='oui'?$('.pc2 [data-a="envoye"]',ecran):v==='suivante'?$('.pc2 .suivante',ecran):null;
+    if(el) el.focus(); }
+  /* ---- ce que le lot 2 avait promis en bas de Pistes : « Depuis mes e-mails » et le bac « à rattacher » ----
+     « Depuis mes e-mails » n'est pas de l'IA chez OpenContact : une consigne à copier, la réponse de
+     l'assistant de son choix à recoller, l'aperçu, puis « Annuler ». Le bac ne paraît que s'il contient
+     quelqu'un : un contact sans entreprise attend d'être rattaché à une piste. */
+  var CONSIGNE='Voici des e-mails de ma recherche de stage ou d’alternance. Pour chaque entreprise à qui j’ai écrit, réponds par une ligne, et rien d’autre :\nEntreprise ; Personne ; E-mail ; Où j’en suis (écrit, réponse, entretien, refus) ; Date du dernier échange (jj/mm/aaaa)';
+  var REPONSE_IA='Vauban Infra ; Pierre Lambert ; p.lambert@vauban-infra.fr ; écrit ; 30/10/2026\nCitadelle Réseaux ; ; ; écrit ; 04/11/2026\nEscaut Data ; Romain Petit ; r.petit@escaut-data.fr ; réponse ; 13/11/2026\nAdvens ; Camille Roussel ; c.roussel@advens.fr ; écrit ; 28/10/2026\n ; Nadia Rahmani ; nadia.rahmani@gmail.com ; écrit ; 05/11/2026';
+  var ETATS_IA={ecrit:'ecrit',reponse:'reponse',entretien:'reponse',refus:'non'};
+  var X_FEUILLES={mails:1,rattacher:1};
+  function lireMails(t){ var l=String(t||'').split(/\r?\n/).filter(function(x){ return (x.match(/;/g)||[]).length>=3; });
+    if(!l.length) return null;
+    return l.map(function(x){ var c=x.split(';').map(function(y){ return y.trim(); }), n=plat(c[0]||''), id=null;
+      if(n) Object.keys(ENT).forEach(function(k){ if(!id&&plat(ENT[k].n)===n) id=k; });
+      var dm=(c[4]||'').match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+      return {ent:id,nom:c[0]||'',ct:{n:c[1]||'',mail:c[2]||''},e:ETATS_IA[plat(c[3]||'').split(' ')[0]]||'ecrit',d:dm?new Date(+dm[3],+dm[2]-1,+dm[1]):null}; }); }
+  var jours=function(d){ return d?Math.max(0,Math.round((AUJ-d)/864e5)):0; };
+  var MOT_IA={ecrit:'écrit',reponse:'réponse',non:'refus'};
+  function ligneMail(x){ var dans=x.ent&&S.pistes[x.ent], ct=x.ct.n||x.ct.mail;
+    if(!x.ent&&!x.nom) return '<div class="rang"><div class="r-c"><b>'+esc(ct)+'</b><span>sans entreprise · ira dans « À rattacher »</span></div></div>';
+    if(dans) return '<div class="rang"><div class="r-c"><b>'+esc(ENT[x.ent].n)+'</b><span>déjà dans tes pistes'+(x.ct.n&&!dans.ct.some(function(c){ return c.n===x.ct.n; })?' · '+esc(x.ct.n)+' s’ajoute':'')+'</span></div>'+ic('check')+'</div>';
+    return '<div class="rang"><div class="r-c"><b>'+esc(x.ent?ENT[x.ent].n:x.nom)+'</b><span class="plus">nouvelle · '+MOT_IA[x.e]+(x.d?' le '+jourMois(x.d):'')+(x.ct.n?' · '+esc(x.ct.n):'')+'</span></div></div>'; }
+  function mailsNouveaux(l){ return l.filter(function(x){ return (x.ent||x.nom)&&!(x.ent&&S.pistes[x.ent]); }); }
+  function feuilleX(){ var o=S.sheet, t='', c='', pied='';
+    if(o.type==='mails'){ t='Depuis mes e-mails';
+      if(!o.lu){ c='<ol class="etapes x-pas"><li><span>1</span><button class="btn s" data-a="x-consigne">'+ic('copy')+'Copier la consigne</button></li>'
+          +'<li><span>2</span>Colle-la dans ton assistant, avec tes e-mails.</li>'
+          +'<li><span>3</span><div class="x-rep-c"><div class="x-rep-t"><label for="x-rep-'+(poste?'p':'t')+'">Colle sa réponse ici</label><button class="lien" data-a="x-coller">Coller</button></div>'
+          +'<textarea class="zone x-rep" id="x-rep-'+(poste?'p':'t')+'" rows="4" autocomplete="off" spellcheck="false"></textarea><p class="err x-err" hidden></p></div></li></ol>';
+        pied='<button class="btn p" data-a="x-lire">Lire la réponse</button>'; }
+      else { var nv=mailsNouveaux(o.lu), sans=o.lu.filter(function(x){ return !x.ent&&!x.nom; });
+        c='<p class="fort" style="margin:0 0 10px">Dans sa réponse</p><div class="rangs">'+o.lu.map(ligneMail).join('')+'</div>'
+          +'<p class="doux" style="margin-top:12px">Ce qui manque ici s’ajoute. Rien n’est effacé.</p>';
+        pied=nv.length||sans.length?'<button class="btn p" data-a="x-ajouter">'+ic('plus')+(nv.length?'Ajouter '+nv.length+' piste'+(nv.length>1?'s':''):'Ajouter au bac')+'</button>':'<button class="btn" data-a="fermer">Rien de neuf</button>'; } }
+    else if(o.type==='rattacher'){ t='Rattacher'; var ct=S.bac[o.i], h=plat(ct.hint||'');
+      var ids=S.ordre.filter(function(x){ var e=S.pistes[x].e; return e!=='non'&&e!=='range'; }).sort(function(a,b){ return (h&&plat(ENT[b].n)===h?1:0)-(h&&plat(ENT[a].n)===h?1:0); });
+      c='<p class="fort" style="margin:0">'+esc(ct.n||ct.mail)+'</p><p class="doux" style="margin:2px 0 12px">'+esc([ct.r,ct.n?ct.mail:''].filter(Boolean).join(' · '))+'</p>'
+        +'<div class="et">À quelle piste ?</div><div class="rangs choix">'+ids.map(function(x){ return '<button class="rang act" data-a="x-rattacher-a" data-id="'+x+'"><div class="r-c"><b>'+esc(ENT[x].n)+'</b>'+(h&&plat(ENT[x].n)===h?'<span class="plus">proposée</span>':'')+'</div>'+ic('chevron-right')+'</button>'; }).join('')+'</div>'
+        +'<div class="bas-p"><button class="btn s danger" data-a="x-jeter">Jeter ce contact</button></div>'; }
+    return '<div class="voile trame" data-a="fermer"></div><section class="sheet win" role="dialog" aria-modal="true" aria-label="'+t+'"><div class="tb">'+t+'<button class="x" data-a="fermer" aria-label="Fermer">'+ic('close')+'</button></div><div class="sh-c">'+c+'</div>'+(pied?'<div class="pied">'+pied+'</div>':'')+'</section>'; }
+  function ajouterMails(l){ var neuves=[], ajoutsCt=[], bac0=S.bac.length;
+    l.forEach(function(x){
+      if(!x.ent&&!x.nom){ S.bac.push({n:x.ct.n,r:'',mail:x.ct.mail,hint:''}); return; }
+      var id=x.ent; if(!id){ id=(poste?'p':'t')+'m'+(++nId); ENT[id]={n:x.nom.slice(0,60),v:'',km:null,t:'',m:[],f:'',main:1}; }
+      var p=S.pistes[id], ct=x.ct.n||x.ct.mail?{n:x.ct.n,r:'',mail:x.ct.mail}:null;
+      if(p){ if(ct&&!p.ct.some(function(c){ return (c.n&&c.n===ct.n)||(c.mail&&c.mail===ct.mail); })){ p.ct.push(ct); ajoutsCt.push(id); } return; }
+      var j=jours(x.d), h=[[ilYa(j),'Gardée, depuis mes e-mails'],[ilYa(j),'Écrit'+(ct&&ct.n?' à '+ct.n:'')+(ct&&ct.mail?', par mail':'')]];
+      if(x.e==='reponse') h.push([ilYa(j),'Réponse']); if(x.e==='non') h.push([ilYa(j),'Refus']);
+      piste(id,x.e,{j:j,ct:ct?[ct]:[],canal:ct&&ct.mail?'mail':'',ecritLe:x.d?enLong(x.d):'',h:h});
+      if(x.e==='reponse') S.pistes[id].autre=true;
+      neuves.push(id); });
+    S.vient=neuves.length>0; return {neuves:neuves,ct:ajoutsCt,bac:S.bac.length-bac0,bac0:bac0}; }
+  function gesteX(a,id,v,b){
+    if(a==='x-mails'){ S.sheet={type:'mails'}; couche.innerHTML=''; return 'rendre'; }
+    if(a==='x-consigne'){ copier(CONSIGNE,null,b); return 'fait'; }
+    if(a==='x-coller'){ var ta=$('.x-rep',couche); if(ta){ ta.value=REPONSE_IA; grandir(ta); var er=$('.x-err',couche); if(er) er.hidden=true; } return 'fait'; }
+    if(a==='x-lire'){ var tl=$('.x-rep',couche), l=lireMails(tl?tl.value:'');
+      if(!l){ var e2=$('.x-err',couche); if(e2){ e2.textContent=tl&&tl.value.trim()?'Aucune ligne ne se lit. La réponse doit suivre la consigne : une ligne par entreprise.':'Il manque la réponse de ton assistant.'; e2.hidden=false; } if(tl) tl.focus(); return 'fait'; }
+      S.sheet.lu=l; refaireFeuille(); return 'fait'; }
+    if(a==='x-ajouter'){ var r=ajouterMails(S.sheet.lu); S.sheet=null; S.onglet=S.vue='pistes'; S.pile=[]; if(poste&&r.neuves.length) S.selP=r.neuves[0];
+      var dit=[r.neuves.length?r.neuves.length+' piste'+(r.neuves.length>1?'s':'')+' ajoutée'+(r.neuves.length>1?'s':''):'',r.bac?r.bac+' contact'+(r.bac>1?'s':'')+' à rattacher':''].filter(Boolean).join(' · ');
+      annuler(dit||'Contacts ajoutés',function(){ r.neuves.forEach(function(x){ delete S.pistes[x]; }); S.ordre=S.ordre.filter(function(x){ return r.neuves.indexOf(x)<0; });
+        r.ct.forEach(function(x){ S.pistes[x].ct.pop(); }); S.bac.length=r.bac0; if(r.neuves.indexOf(S.selP)>=0) S.selP=null; });
+      return 'rendre'; }
+    if(a==='x-rattacher'){ S.sheet={type:'rattacher',i:+v}; couche.innerHTML=''; return 'rendre'; }
+    if(a==='x-rattacher-a'){ var i=S.sheet.i, ct=S.bac[i], p=S.pistes[id]; if(!ct||!p) return 'rendre';
+      S.bac.splice(i,1); p.ct.push({n:ct.n,r:ct.r,mail:ct.mail}); hist(id,'Contact rattaché : '+(ct.n||ct.mail)); S.sheet=null;
+      annuler('Contact rattaché à '+ENT[id].n,function(){ p.ct.pop(); p.h.pop(); S.bac.splice(i,0,ct); }); return 'rendre'; }
+    if(a==='x-jeter'){ var j2=S.sheet.i, cj=S.bac[j2]; S.bac.splice(j2,1); S.sheet=null; annuler('Contact jeté',function(){ S.bac.splice(j2,0,cj); }); return 'rendre'; }
+    return null; }
+  function basPistes(){ var b=S.bac;
+    return (b.length?'<details class="term bac" data-p="bac"'+(S.ouv.bac?' open':'')+'><summary>À rattacher · '+b.length+ic('chevron-right')+'</summary><div class="rangs">'
+        +b.map(function(o,i){ return '<div class="rang"><div class="r-c"><b>'+esc(o.n||o.mail)+'</b><span>'+esc([o.r,o.n?o.mail:'',o.hint?'→ '+o.hint+' ?':''].filter(Boolean).join(' · ')||'à compléter')+'</span></div><button class="btn s" data-a="x-rattacher" data-v="'+i+'">Rattacher</button></div>'; }).join('')+'</div></details>':'')
+      +'<div class="rangs s-liste x-mails-r"><button class="rang act" data-a="x-mails">'+ic('mail')+'<div class="r-c"><b>Depuis mes e-mails</b></div>'+ic('chevron-right')+'</button></div>'; }
+  /* amener la sélection d'un champ qui grandit dans sa colonne : on mesure la ligne du crochet dans un double du champ */
+  function montrerSelection(t,i){ var col=t.closest('.defile'); if(!col) return;
+    var d=document.createElement('div'), cs=getComputedStyle(t), mk=document.createElement('span');
+    ['fontFamily','fontSize','fontWeight','lineHeight','letterSpacing','wordSpacing','paddingTop','paddingRight','paddingBottom','paddingLeft',
+     'borderTopWidth','borderRightWidth','borderBottomWidth','borderLeftWidth','borderTopStyle','borderRightStyle','borderBottomStyle','borderLeftStyle','boxSizing','width'].forEach(function(k){ d.style[k]=cs[k]; });
+    d.style.position='absolute'; d.style.visibility='hidden'; d.style.left='-9999px'; d.style.top='0'; d.style.whiteSpace='pre-wrap'; d.style.overflowWrap='break-word';
+    d.textContent=t.value.slice(0,i); mk.textContent='\u200b'; d.appendChild(mk); document.body.appendChild(d);
+    var k=col.getBoundingClientRect().height/(col.offsetHeight||1)||1, y=(t.getBoundingClientRect().top-col.getBoundingClientRect().top)/k+col.scrollTop+mk.offsetTop;
+    d.remove(); col.scrollTop=Math.max(0,y-col.clientHeight*0.6); }
+  /* ce que la vue montre ouvert à droite, pour allumer sa ligne dans Réseau */
+  function rOuvert(){ if(S.convOuverte) return {v:'conv',id:S.convOuverte}; if(S.rsel) return S.rsel;
+    return S.R.demandes.length?{v:'demande',id:S.R.demandes[0].id}:S.R.amis.length?{v:'ami',id:S.R.amis[0].id}:null; }
+  function rOn(v,id){ var o=poste&&rOuvert(); return o&&o.v===v&&o.id===id?' on':''; }
+
   /* ---------- le rendu ---------- */
   function vNav(){ var n=S.ordre.length;
     return [['trouver','search','Trouver'],['pistes','briefcase','Pistes'],['reseau','users','Réseau'],['moi','user','Moi']].map(function(o){
-      return '<button data-a="onglet" data-id="'+o[0]+'" class="'+(S.onglet===o[0]?'on':'')+(o[0]==='pistes'&&S.vient?' vient':'')+(o[0]==='reseau'&&S.onglet!=='reseau'&&attend()?' attend':'')+'"'+(S.onglet===o[0]?' aria-current="page"':'')+(o[0]==='reseau'&&attend()?' aria-label="Réseau, du nouveau"':'')+'>'+ic(o[1])+'<span>'+o[2]+(o[0]==='pistes'&&n?'<b>'+n+'</b>':'')+'</span></button>'; }).join(''); }
+      return '<button data-a="onglet" data-id="'+o[0]+'" class="'+(S.onglet===o[0]?'on':'')+(o[0]==='pistes'&&S.vient?' vient':'')+(o[0]==='reseau'&&S.onglet!=='reseau'&&attend()?' attend':'')+'"'+(S.onglet===o[0]?' aria-current="page"':'')+(o[0]==='reseau'&&attend()?' aria-label="Réseau, du nouveau"':'')+(poste?' aria-keyshortcuts="'+o[2].charAt(0)+'"':'')+'>'+ic(o[1])+'<span>'+(poste?'<u>'+o[2].charAt(0)+'</u>'+o[2].slice(1):o[2])+(o[0]==='pistes'&&n?'<b>'+n+'</b>':'')+'</span></button>'; }).join(''); }
   function barreHTML(){ return '<div class="barre"><label class="champ">'+ic('search')+'<input type="search" class="q" placeholder="Métier, ville, entreprise…" aria-label="Chercher une entreprise" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search"></label><button class="lien" data-a="fermer-r">Annuler</button></div>'; }
   function brancherBarre(){ var q=$('.q',ecran); if(!q) return;
     q.value=S.q;
     q.addEventListener('focus',function(){ if(!S.cherche&&!poste){ S.cherche=true; rendre(); } });
-    q.addEventListener('input',function(){ S.q=q.value; if(poste) S.cherche=!!S.q.trim(); rendre(); });
+    q.addEventListener('input',function(){ S.q=q.value; if(poste) S.cherche=!!S.q.trim()||!!S.offre; rendre(); });
     q.addEventListener('keydown',function(e){ if(e.key==='Escape'){ fermerRecherche(); rendre(); q.blur(); } });
+    /* une offre collée garde ses lignes : la barre n'en prend que le nom de l'entreprise */
+    q.addEventListener('paste',function(e){ var t=e.clipboardData&&e.clipboardData.getData('text'); if(t&&(lireOffre(t)||lireMails(t))){ e.preventDefault(); coller(t); } });
   }
-  function fermerRecherche(){ S.cherche=false; S.q=''; var q=$('.q',ecran); if(q) q.value=''; }
+  function fermerRecherche(){ S.cherche=false; S.q=''; S.offre=null; S.offreDeja=null; S.offreVue=null; var q=$('.q',ecran); if(q){ q.value=''; q.placeholder='Métier, ville, entreprise…'; } }
   function garderDefile(f,meme){ var d=$('.defile',ecran), y=d&&meme?d.scrollTop:0; f(); d=$('.defile',ecran); if(d) d.scrollTop=y; }
   function corpsTrouver(){ return S.cherche?corpsRecherche():S.form?formulaire():etiquettes()+corpsListe(); }
   function grandirTout(r){ $$('.zone',r||ecran).forEach(grandir); }
@@ -1956,16 +2218,17 @@ function app(root,poste){
     if(v==='trouver'){
       if(!memes){ ecran.innerHTML='<div class="p-col c1"><div class="t-tete">'+barreHTML()+'</div><div class="defile t-corps"></div></div><div class="p-col c2"></div>'; brancherBarre(); }
       ecran.classList.toggle('sans-barre',S.form&&!S.cherche);
-      var vide=S.form||pasLille()||G.hl||G.panne||S.charge, c=vide?[]:candidats();
-      if(c.length&&(!S.sel||(c.indexOf(S.sel)<0&&!S.pistes[S.sel]))) S.sel=c[0];
+      var vide=S.form||pasLille()||G.hl||G.panne||S.charge, c=vide?[]:candidats(), lo=S.cherche&&!G.hl&&!G.panne?S.offreVue:null;
+      if(c.length&&!(lo&&S.sel===lo)&&(!S.sel||(c.indexOf(S.sel)<0&&!S.pistes[S.sel]))) S.sel=c[0];
       var d=$('.t-corps',ecran), y=memes?d.scrollTop:0; d.innerHTML=corpsTrouver(); d.scrollTop=y; brancherForm();
-      var c2=$('.c2',ecran), montre=!!(S.sel&&ENT[S.sel]&&!vide);
+      var seule=S.cherche&&S.offre&&!S.offre.ent&&S.offre.pour!==S.sel, c2=$('.c2',ecran), montre=!seule&&!!(S.sel&&ENT[S.sel]&&(!vide||(lo&&S.sel===lo)));
       var y2=($('.defile',c2)||{}).scrollTop||0, meme2=c2.getAttribute('data-id')===S.sel;
       c2.innerHTML=montre?'<div class="defile">'+pageEnt(S.sel)+'</div><div class="pied">'+piedEnt(S.sel)+'</div>'
+        :seule?'<div class="defile"><div class="s-page"><fieldset class="gb offre-b o-seule"><legend>L’offre</legend>'+offreHTML(S.offre,1)+'</fieldset></div></div>'
         :'<div class="p-vide"><p>'+(S.form?'Tes entreprises apparaissent ici.':G.hl?'Rien à montrer sans réseau.':G.panne?'Rien à montrer sans l’annuaire.':'')+'</p></div>';
       c2.setAttribute('data-id',montre?S.sel:''); if(meme2&&$('.defile',c2)) $('.defile',c2).scrollTop=y2;
-      etat.innerHTML=(montre?'<span>'+Math.max(0,TOTAL[S.P.rayon]-S.deja.length-S.ecartes.length)+' entreprises autour de '+esc(S.P.ville)+'</span><span>Annuaire des entreprises</span>':'<span>'+(G.hl?'Hors ligne':G.panne?'Annuaire en panne':'Prêt')+'</span>')
-        +'<div class="aide-k">'+(montre?'<kbd>↑</kbd><kbd>↓</kbd><span>choisir</span>':'')+'<kbd>/</kbd><span>chercher</span></div>';
+      etat.innerHTML=(montre?(S.P.ville&&!S.form?'<span>'+Math.max(0,TOTAL[S.P.rayon]-S.deja.length-S.ecartes.length)+' entreprises autour de '+esc(S.P.ville)+'</span>':'')+'<span>Annuaire des entreprises</span>':'<span>'+(G.hl?'Hors ligne':G.panne?'Annuaire en panne':'Prêt')+'</span>')
+        +cles([montre&&!S.cherche?[['↑','↓'],'choisir']:null,[['/'],'chercher'],COLLER_K]);
     } else if(v==='pistes'){
       if(!memes) ecran.innerHTML='<div class="p-col c1 pc1"><div class="p-cherche-c"></div><div class="defile p-liste-c"></div></div><div class="p-col c2 pc2"></div><div class="p-col c3 pc3"></div>';
       var n=S.ordre.length; ecran.classList.toggle('zero',!n);
@@ -1982,7 +2245,9 @@ function app(root,poste){
         else cc3.innerHTML='<div class="p-vide"><p><b>Rien à écrire pour l’instant.</b>'+esc(s.s||'')+'</p></div>';
       }
       var af2=aFaire();
-      etat.innerHTML='<span>'+n+' piste'+(n>1?'s':'')+'</span>'+(af2.length?'<span>'+af2.length+' à faire</span>':'')+(n?'<div class="aide-k"><kbd>↑</kbd><kbd>↓</kbd><span>choisir</span></div>':'');
+      var gE=gesteEntree(S.selP);
+      etat.innerHTML='<span>'+n+' piste'+(n>1?'s':'')+'</span>'+(af2.length?'<span>'+af2.length+' à faire</span>':'')
+        +cles([n?[['↑','↓'],'choisir']:null,gE?[['↵'],(gE.c||'écrire').toLowerCase()]:null,n>=10?[['/'],'chercher']:null,COLLER_K]);
     } else if(v==='reseau'){
       if(!memes) ecran.innerHTML='<div class="p-col rc1"><div class="defile r-liste"></div><div class="r-bas"></div></div><div class="p-col rc2"></div><div class="r-fen"></div>';
       ecran.classList.toggle('zero',!S.R.groupes.length&&!S.R.amis.length&&!S.R.demandes.length);
@@ -1995,13 +2260,15 @@ function app(root,poste){
         fen.innerHTML='<section class="win conv-w" role="dialog" aria-label="'+esc(xc.titre)+'"><div class="tb">'+esc(xc.titre)+'<button class="x" data-a="r-fermer-conv" aria-label="Fermer">'+ic('close')+'</button></div>'+xc.tete+'<div class="defile fil-d">'+xc.corps+'</div>'+xc.compo+'</section>';
         var df=$('.defile',fen); df.scrollTop=yf>=0?yf:df.scrollHeight; fen.setAttribute('data-id',S.convOuverte); }
       else { fen.innerHTML=''; fen.removeAttribute('data-id'); }
-      etat.innerHTML='<span>'+S.R.amis.length+' ami'+(S.R.amis.length>1?'s':'')+'</span><span>'+S.R.groupes.length+' groupe'+(S.R.groupes.length>1?'s':'')+'</span>';
+      etat.innerHTML='<span>'+S.R.amis.length+' ami'+(S.R.amis.length>1?'s':'')+'</span><span>'+S.R.groupes.length+' groupe'+(S.R.groupes.length>1?'s':'')+'</span>'
+        +cles([S.R.groupes.length||S.R.amis.length||S.R.demandes.length?[['↑','↓'],'choisir']:null,S.convOuverte?[['Échap'],'fermer']:null,COLLER_K]);
     } else if(v==='moi'){
       if(!memes) ecran.innerHTML='<div class="p-col rc1"><div class="defile m-liste"></div></div><div class="p-col rc2"></div>';
       $('.m-liste',ecran).innerHTML='<div class="s-tete"><h3>Moi</h3></div>'+listeMoi();
       var ms=S.msel||{v:'profil',id:''}, xm=R_VUES[ms.v](ms.id), mc2=$('.rc2',ecran), cm=ms.v+'|'+(ms.id||''), gm2=mc2.getAttribute('data-k')===cm, ym=gm2&&$('.defile',mc2)?$('.defile',mc2).scrollTop:0;
       mc2.innerHTML='<div class="defile">'+xm.corps+'</div>'+(xm.pied?'<div class="pied">'+xm.pied+'</div>':''); mc2.setAttribute('data-k',cm); if(gm2) $('.defile',mc2).scrollTop=ym;
-      etat.innerHTML='<span>'+(S.nom?esc(S.nom):'Profil à compléter')+'</span><span>'+(sansFilet()?'seulement sur cet appareil':aCopie()?'copie à jour':'aucune copie')+'</span>';
+      etat.innerHTML='<span>'+(S.nom?esc(S.nom):'Profil à compléter')+'</span><span>'+(sansFilet()?'seulement sur cet appareil':aCopie()?'copie à jour':'aucune copie')+'</span>'
+        +cles([[['↑','↓'],'choisir'],COLLER_K]);
     }
     if(G.hl&&v!=='trouver') etat.insertAdjacentHTML('afterbegin','<span class="hl-e">Hors ligne</span>');
     ecran.setAttribute('data-vue',v);
@@ -2009,21 +2276,23 @@ function app(root,poste){
   }
   function rendre(){ poste?rendrePoste():rendreTel(); nav.innerHTML=vNav(); S.vient=false;
     if(S.sheet&&!couche.firstChild){
-      if(S.sheet.type){ couche.innerHTML=E_FEUILLES[S.sheet.type]?feuilleE():M_FEUILLES[S.sheet.type]?feuilleM():feuilleR(); var fr=$('input:not([type="file"]),textarea',couche); if(fr&&(S.sheet.type==='rejoindre'||S.sheet.mode==='coller'||S.sheet.mode==='connais'||(S.sheet.type==='experience'&&S.sheet.i==null)||(S.sheet.type==='code'&&!S.M.code))) fr.focus(); }
+      if(S.sheet.type){ couche.innerHTML=E_FEUILLES[S.sheet.type]?feuilleE():X_FEUILLES[S.sheet.type]?feuilleX():M_FEUILLES[S.sheet.type]?feuilleM():feuilleR(); var fr=$('input:not([type="file"]),textarea',couche); if(fr&&(S.sheet.type==='rejoindre'||S.sheet.mode==='coller'||S.sheet.mode==='connais'||(S.sheet.type==='experience'&&S.sheet.i==null)||(S.sheet.type==='code'&&!S.M.code))) fr.focus(); }
       else { couche.innerHTML=feuilleContact(); var f=$('.c-n',couche); if(f&&!$('.c-n',couche).value&&!$('.prop-b',couche)) f.focus(); } }
     if(!S.sheet) couche.innerHTML='';
-    poserAnnule(); majVerrou(); }
+    poserAnnule(); majVerrou(); if(poste&&S.viser&&!S.verrou&&!S.sheet) viser(); }
 
   /* ---------- les gestes ---------- */
   function lancer(){ S.form=false; S.manque=false; S.lot=1; S.sel=null;
     if(calme||pasLille()||G.hl){ rendre(); return; }
     S.charge=true; rendre(); clearTimeout(horloge); horloge=setTimeout(function(){ S.charge=false; rendre(); },950); }
-  function garder(id){ if(S.pistes[id]) return; var e=ENT[id];
-    piste(id,'garde',{ct:e.qui?[{n:e.qui.n,r:e.qui.r}]:[],h:[['aujourd’hui','Gardée']]}); S.neuves++; S.vient=true; }
-  function ecarter(id){ if(S.pistes[id]) return; S.ecartes.push(id); if(S.sel===id) S.sel=null;
+  function garder(id){ if(S.pistes[id]) return; var e=ENT[id], o=offreEnAttente(id,1);
+    /* gardée avec son offre : la personne que l'offre nomme passe devant le dirigeant */
+    var ct=o&&o.ct&&(o.ct.n||o.ct.mail)?[{n:o.ct.n,r:o.ct.r,mail:o.ct.mail}]:e.qui?[{n:e.qui.n,r:e.qui.r}]:[];
+    piste(id,'garde',{ct:ct,h:[['aujourd’hui',o?'Gardée, avec son offre':'Gardée']]}); if(o){ S.pistes[id].offre=o; S.offre=null; } S.neuves++; S.vient=true; }
+  function ecarter(id){ if(S.pistes[id]) return; S.ecartes.push(id); if(S.sel===id) S.sel=null; if(S.offre&&S.offre.ent===id) S.offre=null;
     annuler(ENT[id].n+' : pas pour moi',function(){ S.ecartes=S.ecartes.filter(function(x){return x!==id}); }); }
   function ouvrirPiste(id){ S.onglet='pistes'; S.pile=[]; S.neuves=0; fermerRecherche(); if(poste){ S.vue='pistes'; S.selP=id; } else { S.vue='piste'; S.fiche=id; } }
-  function ouvrirEcrire(id,k){ k=k||kDe(id)||'premier'; ouvrirPiste(id); if(!poste){ S.ecr={id:id,k:k,canal:canalDefaut(id,k)}; S.vue='ecrire'; } }
+  function ouvrirEcrire(id,k){ k=k||kDe(id)||'premier'; ouvrirPiste(id); if(!poste){ S.ecr={id:id,k:k,canal:canalDefaut(id,k)}; S.vue='ecrire'; } else S.viser='ecrire'; }
 
   root.addEventListener('click',function(ev){
     var b=ev.target.closest('[data-a]'); if(!b||!root.contains(b)) return;
@@ -2031,9 +2300,11 @@ function app(root,poste){
     if(a.indexOf('r-')===0){ var gr=gesteR(a,id,v,b,ev); if(gr==='fait') return; if(gr==='rendre'){ rendre(); return; } }
     if(a.indexOf('m-')===0){ var gm=gesteM(a,id,v,b); if(gm==='fait') return; if(gm==='rendre'){ rendre(); return; } }
     if(/^[cev]-/.test(a)){ var ge=gesteE(a,id,v,b,ev); if(ge==='fait') return; if(ge==='rendre'){ rendre(); return; } }
+    if(a.indexOf('o-')===0){ gesteO(a,id); rendre(); return; }
+    if(a.indexOf('x-')===0){ var gx=gesteX(a,id,v,b); if(gx==='fait') return; if(gx==='rendre'){ rendre(); return; } }
     if(a==='envoyer'){ envoyer(ev,b); return; }
     if(a==='copier'){ var E=ecrEnCours(), ta=$('.e-m',ecran); if(!E) return; if(!crochetOk(ev,E.d,ta)) return;
-      copier((E.d.o?E.d.o+'\n\n':'')+E.d.m,ta,b); S.envoi[E.id]={k:E.k,canal:E.canal}; S.pm[E.id]='parti'; if(poste) setTimeout(rendre,900); return; }
+      copier((E.d.o?E.d.o+'\n\n':'')+E.d.m,ta,b); S.envoi[E.id]={k:E.k,canal:E.canal}; S.pm[E.id]='parti'; if(poste){ S.viser='oui'; setTimeout(rendre,900); } return; }
     if(a==='proposer'){ var pr=ENT[S.sheet.id].qui; $('.c-n',couche).value=pr.n; $('.c-r',couche).value=pr.r; b.hidden=true; return; }
     if(a==='garder-ct'){ garderContact(); return; }
     if(a==='onglet'){ S.onglet=S.vue=id; S.pile=[]; fermerRecherche(); if(id==='pistes') S.neuves=0; }
@@ -2047,7 +2318,7 @@ function app(root,poste){
     else if(a==='editer'){ S.form=true; S.manque=false; S.B=brouillonTrouver(); }
     else if(a==='lille'){ S.P.ville='Lille'; lancer(); return; }
     else if(a==='suite'){ S.lot++; }
-    else if(a==='ent'){ if(poste){ S.sel=id; if(S.cherche) fermerRecherche(); } else { S.vue='entreprise'; S.fiche=id; } }
+    else if(a==='ent'){ if(S.offre&&!S.offre.ent) S.offre.pour=id; if(poste){ S.sel=id; if(S.cherche&&!S.offre) fermerRecherche(); } else { S.vue='entreprise'; S.fiche=id; } }
     else if(a==='garder'){ garder(id); }
     else if(a==='ecarter'){ ecarter(id); if(!poste) S.vue='trouver'; }
     else if(a==='annuler'){ if(S.annule&&S.annule.undo){ S.annule.undo(); S.annule=null; } }
@@ -2062,7 +2333,7 @@ function app(root,poste){
     else if(a==='canal'){ if(poste) S.canalP[id]=v; else S.ecr.canal=v; }
     else if(a==='pm'){ S.pm[id]=v||null; }
     else if(a==='pas-encore'){ S.pm[id]=null; delete S.envoi[id]; }
-    else if(a==='envoye'){ faitEnvoi(id); }
+    else if(a==='envoye'){ faitEnvoi(id); if(poste) S.viser='suivante'; }
     else if(a==='demander'){ p.demande=true; hist(id,'Demandé à '+ami(id).p); S.pm[id]=null;
       S.R.demandes.unshift({id:'d'+(++S.R.n+1),quoi:'chez '+ENT[id].n,a:ami(id).p,env:'aujourd’hui',trouve:null,recu:null,ajoute:false,attente:G.hl?1:0}); }
     else if(a==='quand'){ p.e='reponse'; p.entretien={jour:v,passe:false}; hist(id,'Réponse : un entretien le '+v); S.pm[id]=null; }
@@ -2106,6 +2377,8 @@ function app(root,poste){
   root.addEventListener('change',function(ev){ if(ev.target.matches('.m-f,.m-tpl,.m-fichier')) changeM(ev.target); });
   root.addEventListener('toggle',function(ev){ var d=ev.target; if(d.matches&&d.matches('details[data-p]')){ S.ouv[d.getAttribute('data-p')]=d.open; if(d.open) grandirTout(d); } },true);
   root.addEventListener('keydown',function(ev){
+    if(poste&&ev.key==='Enter'&&!ev.ctrlKey&&!ev.metaKey&&ev.target.matches('.p-liste-c .rang[data-a="piste"]')&&gesteEntree(ev.target.getAttribute('data-id'))){
+      ev.preventDefault(); ev.stopPropagation(); faireEntree(ev.target.getAttribute('data-id')); rendre(); return; }
     if(ev.key==='Enter'&&ev.target.matches('textarea.un')) ev.preventDefault();
     if((ev.key==='Enter'||ev.key===' ')&&ev.target.matches('[role="button"]')){ ev.preventDefault(); ev.target.click(); }
     if(ev.key==='Enter'&&ev.target.matches('.f-ville,.f-autre')){ var ok=$('[data-a="voir"]',ecran); if(ok) ok.click(); }
@@ -2134,20 +2407,40 @@ function app(root,poste){
     rejouer:function(){ clearTimeout(horloge); init(); rendre(); },
     verrouiller:verrouiller,
     rendre:rendre,
+    coller:coller,
+    deposer:deposerFichier,
     touche:function(ev){
       var pave=S.verrou?(ev.target.matches('input,textarea')||(S.verrou.vue&&S.verrou.vue!=='nouveau')?'':'v'):S.sheet&&S.sheet.type==='code'&&!S.M.code&&(S.sheet.etape||1)<3?'c':'';
       if(pave&&(/^[0-9]$/.test(ev.key)||ev.key==='Backspace')){ ev.preventDefault(); if(gesteE(pave+(ev.key==='Backspace'?'-efface':'-chiffre'),'',ev.key,null,ev)==='rendre') rendre(); return; }
       if(S.verrou) return;
-      if(S.sheet) return;
-      var dans=ev.target.matches('input,textarea');
-      if(S.vue==='pistes'){ if(dans||(ev.key!=='ArrowDown'&&ev.key!=='ArrowUp')) return; ev.preventDefault();
+      var t=ev.target, dans=t.matches('input,textarea,select'), mod=ev.ctrlKey||ev.metaKey;
+      /* Ctrl ↵ : le bouton qui envoie, même depuis le message */
+      if(mod&&ev.key==='Enter'){ var bp=S.vue==='pistes'&&!S.sheet?$('.pc3 .pied .btn.p',ecran):null; if(bp){ ev.preventDefault(); bp.click(); } return; }
+      if(mod||ev.altKey||S.sheet) return;
+      if(ev.key==='Escape'){ if(S.vue==='reseau'&&S.convOuverte){ S.convOuverte=null; rendre(); } else if(dans&&!t.matches('.q')) t.blur(); return; }
+      if(dans) return;
+      /* les quatre onglets, par leur lettre soulignée */
+      var tab=ev.key.length===1?{t:'trouver',p:'pistes',r:'reseau',m:'moi'}[ev.key.toLowerCase()]:null;
+      if(tab){ ev.preventDefault(); S.onglet=S.vue=tab; S.pile=[]; fermerRecherche(); if(tab==='pistes') S.neuves=0; rendre(); return; }
+      var fl=ev.key==='ArrowDown'?1:ev.key==='ArrowUp'?-1:0;
+      if(S.vue==='reseau'){ if(!fl) return; ev.preventDefault();
+        var it=$$('.r-liste [data-a="r-demande"],.r-liste [data-a="r-conv"],.r-liste [data-a="r-ami"]',ecran).map(function(x){ return {v:x.getAttribute('data-a').slice(2),id:x.getAttribute('data-id')}; });
+        var cur=rOuvert(), ir=-1; it.forEach(function(x,k){ if(cur&&x.v===cur.v&&x.id===cur.id) ir=k; });
+        var nx=it[Math.max(0,Math.min(it.length-1,ir<0?0:ir+fl))]; if(!nx) return; S.convOuverte=null; ouvrirR(nx.v,nx.id); rendre();
+        var onr=$('.r-liste .rang.on',ecran); if(onr&&onr.scrollIntoView) onr.scrollIntoView({block:'nearest'}); return; }
+      if(S.vue==='moi'){ if(!fl) return; ev.preventDefault(); var L=['profil','docs','modeles','copie','reglages'], cm=S.msel?(PARENT_M[S.msel.v]||S.msel.v):'profil';
+        ouvrirM(L[Math.max(0,Math.min(L.length-1,L.indexOf(cm)+fl))],''); rendre(); return; }
+      if(S.vue==='pistes'&&ev.key==='/'){ var qp=$('.qp',ecran); if(qp){ ev.preventDefault(); qp.focus(); } return; }
+      if(ev.key==='Enter'&&t!==document.body&&t!==root) return;   /* un bouton, un lien, une ligne : ↵ est à eux */
+      if(S.vue==='pistes'&&ev.key==='Enter'){ if(faireEntree(S.selP)){ ev.preventDefault(); rendre(); } return; }
+      if(S.vue==='pistes'){ if(!fl) return; ev.preventDefault();
         var ids=[]; $$('.p-liste-c [data-a="piste"][data-id]',ecran).forEach(function(x){ var i=x.getAttribute('data-id'); if(ids.indexOf(i)<0) ids.push(i); });
         var i=ids.indexOf(S.selP), n=Math.max(0,Math.min(ids.length-1,i+(ev.key==='ArrowDown'?1:-1))); S.selP=ids[n]; rendre();
         var on=$('.p-liste-c .rang.on',ecran); if(on&&on.scrollIntoView) on.scrollIntoView({block:'nearest'}); return; }
       if(S.vue!=='trouver') return;
       var q=$('.q',ecran);
-      if(ev.key==='/'&&!dans&&!S.form){ ev.preventDefault(); if(q) q.focus(); return; }
-      if(dans||S.form) return;
+      if(ev.key==='/'&&(!S.form||S.cherche)){ ev.preventDefault(); if(q) q.focus(); return; }
+      if(S.form&&!S.cherche) return;
       var c=candidats(), i2=c.indexOf(S.sel);
       if(ev.key==='ArrowDown'||ev.key==='ArrowUp'){ ev.preventDefault(); var n2=Math.max(0,Math.min(c.length-1,i2+(ev.key==='ArrowDown'?1:-1))); S.sel=c[n2]; if(n2>=6*S.lot) S.lot++; rendre();
         var on2=$('.rang.ent.on',ecran); if(on2&&on2.scrollIntoView) on2.scrollIntoView({block:'nearest'}); }
@@ -2175,8 +2468,15 @@ menuS.addEventListener('click',function(ev){ var b=ev.target.closest('button'); 
   if(sc==='lien'){ G.lien=true; jour('1'); G.lien=false; }
   else if(sc==='panne'){ G.panne=!G.panne; b.setAttribute('aria-pressed',String(G.panne)); tel.rendre(); poste.rendre(); }
   else if(sc==='verrou'){ tel.verrouiller(); poste.verrouiller(); }
+  else if(sc==='offre'){ tel.coller(OFFRE_RSN); poste.coller(OFFRE_RSN); }
   fermerMenu(); });
-document.addEventListener('keydown',function(ev){ if(ev.metaKey||ev.ctrlKey||ev.altKey) return; var p=$('#poste'); if(p.offsetParent===null) return; if($('#tel').contains(ev.target)) return; poste.touche(ev); });
+document.addEventListener('keydown',function(ev){ if(((ev.metaKey||ev.ctrlKey)&&ev.key!=='Enter')||ev.altKey) return; var p=$('#poste'); if(p.offsetParent===null) return; if($('#tel').contains(ev.target)) return; poste.touche(ev); });
+/* coller hors d'un champ, à l'ordinateur : l'offre (ou le lien) va dans la barre de Trouver */
+document.addEventListener('paste',function(ev){ var t=ev.target; if(t&&t.closest&&t.closest('#tel')) return; if(t&&t.matches&&t.matches('input,textarea,select,[contenteditable]')) return;
+  var x=ev.clipboardData&&ev.clipboardData.getData('text'); if(!x||$('#poste').offsetParent===null) return; ev.preventDefault(); poste.coller(x); });
+$$('.mod').forEach(function(m){ m.textContent=MOD; });
+$('#copier-offre').addEventListener('click',function(){ var b=this, o=b.textContent, fin=function(){ b.textContent='Copiée'; setTimeout(function(){ b.textContent=o; },1600); };
+  try{ navigator.clipboard.writeText(OFFRE_RSN).then(fin,fin); }catch(e){ fin(); } });
 function echelle(){ $$('.poste-cadre').forEach(function(c){ if(c.clientWidth) c.firstElementChild.style.setProperty('--k',c.clientWidth/1280); }); }
 window.addEventListener('resize',echelle); echelle();
 var j0=lire('jour','8'); jour(['1','8','90'].indexOf(j0)>=0?j0:'8');

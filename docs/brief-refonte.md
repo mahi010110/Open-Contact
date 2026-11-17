@@ -552,3 +552,44 @@ du lot 4 passe au pavé ; une phrase forte est en gras partout ; « écrit
 il y a 1 jour » devient « écrit hier ».
 
 Non vérifié : WebKit (iPhone). Dans la maquette, rien ne part.
+
+### Lot 6 : le poste, un établi (17 novembre 2026)
+
+Montré, en attente de son avis. L'idée du §5 (« coller un lien ou une
+annonce pour en faire une piste », « le clavier d'abord ») prend des
+places qui existent : la barre de Trouver, la barre d'état, les boutons.
+
+- **Coller une offre** : au téléphone dans la barre de Trouver, à
+  l'ordinateur n'importe où (Ctrl V). L'app y lit l'entreprise (qui va
+  dans la barre), le poste, le contrat, le rythme, la date et la personne
+  à qui écrire ; l'offre attend en étiquette sous la barre. « Garder »
+  l'emporte avec la piste ; le message la cite (« Je réponds à votre
+  offre « … ». »), « Dans l'offre » est posé au-dessus, et la suite dit
+  jusqu'à quand elle court. Sans entreprise lue, l'app demande son nom ;
+  collée deux fois, pas de doublon ; hors ligne, l'entreprise se reconnaît
+  au retour du réseau. Une table, pas une IA : ce qui ne se lit pas
+  sûrement ne s'invente pas, et le texte entier reste sur la piste.
+- **Le clavier d'abord**, à l'ordinateur : la lettre soulignée de chaque
+  onglet, ↑ ↓ dans chaque liste (Réseau et Moi compris, la ligne ouverte
+  s'allume), ↵ le geste de la ligne, Ctrl ↵ dans le bouton qui envoie,
+  Échap. Ouvrir pour écrire sélectionne le crochet : on tape sa phrase.
+  Après l'envoi, « Oui, envoyé » puis « Suivante » ont la main : une
+  séance s'enchaîne sans la souris.
+- **Déposer** un fichier sur la fenêtre : un CV va dans « CV et lettres »,
+  une copie .oc s'ouvre avec son aperçu, des pistes reçues dans
+  Recevoir. La fenêtre dit où il ira pendant qu'on glisse.
+- **Ce que le lot 2 avait promis en bas de Pistes** : « Depuis mes
+  e-mails » (copier la consigne, la porter à son assistant, coller sa
+  réponse, l'aperçu, « Annuler » ; à l'ordinateur, la réponse collée
+  n'importe où ouvre l'aperçu) et le bac « À rattacher », seulement s'il
+  contient quelqu'un.
+- **Quitte l'écran** : le tableau à trois colonnes du poste, et la
+  touche « n » avec la feuille « Nouvelle piste ».
+
+Retouches des lots validés : « Voir les 1 suivantes » devient « Voir la
+suivante » ; « Coller un lien » devient « Coller un lien ou une offre » ;
+au poste, « Suivante » propose la prochaine piste à contacter même hors
+de « À faire » ; une piste déjà écrite ne propose plus « Préparer mon
+message » mais « Voir la piste ».
+
+Non vérifié : WebKit (iPhone). Dans la maquette, rien ne part.
