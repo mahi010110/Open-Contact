@@ -21,7 +21,7 @@ n'a pas été montré au mainteneur.
 | La carte de l'entreprise (annuaire, BODACC, Wikidata, Wikipédia) | **La page d'une entreprise**, depuis Trouver ; la même carte, repliée, dans la page d'une piste | 1, 2 |
 | « À qui écrire » | La page d'une entreprise, bloc « À qui écrire » ; puis « Les gens » de la piste | 1, 2 |
 | Offres d'alternance (La bonne alternance), offres de stage (HelloWork) | Un lien à la fin de la liste de Trouver | 1 |
-| « Autour de » : ma ville, mon rayon | La troisième question de Trouver, qui se rouvre d'un tap sur « Lille · 15 km » ; les mêmes réponses dans Moi | 1, 4 |
+| « Autour de » : ma ville, mon rayon | La troisième question de Trouver, qui se rouvre d'un tap sur « Lille · 15 km » ; les mêmes réponses dans Moi › Mon profil | 1, 4 |
 | « Pas pour moi » | Le pied de la page d'une entreprise ; au glissé sur une ligne ; « Annuler » après | 1 |
 | L'aide à l'embauche d'un apprenti | La page d'une entreprise, ligne « Aide » | 1 |
 | Capture, anti-doublon | **La barre de Trouver** : taper un nom, l'annuaire le reconnaît, « Garder » ; sinon « Garder tel quel ». Une entreprise déjà gardée se dit « dans tes pistes » et ouvre sa piste | 1 |
@@ -29,20 +29,20 @@ n'a pas été montré au mainteneur.
 | Rappel par l'agenda du téléphone | La page d'une piste : « Rappel dans mon agenda » après un envoi, « Ajouter à mon agenda » quand un entretien a sa date | 2 |
 | Écrire un mail (`mailto:`, copier, « Envoyée ✓ ») | « Écrire », poussé depuis la piste : quatre canaux (mail, LinkedIn, appel, site), puis « C'est parti ? » sur la piste | 2 |
 | Postuler à plusieurs d'affilée | Après un envoi, « Suivante : … » ouvre le message de la piste suivante à contacter | 2 |
-| « Mon parcours », la ligne « Expérience » du mail | Moi › Mon profil ; le message | 4, 2 |
+| « Mon parcours », la ligne « Expérience » du mail | Moi › Mon profil (une expérience se rouvre pour être modifiée ou retirée) ; le message, avec l'école, le téléphone, le rythme et le lien du CV | 4, 2 |
 | Bac « à rattacher » | Pistes, en bas, seulement s'il contient quelque chose (pas encore dessiné) | 2 |
 | « Depuis mes e-mails » | Pistes, en bas, à côté du bac (pas encore dessiné) | 2 |
 | Supprimer une piste, la clore | Au glissé dans Pistes, avec « Annuler » ; « C'est non » et « Laisser tomber cette piste » sur sa page ; « Rouvrir » une piste terminée | 2 |
 | Donner et recevoir (QR, fichier `.oc`, coller) | **Réseau** : Donner (les pistes, puis groupe, QR, fichier ou texte) · Recevoir (QR, fichier, texte, puis l'aperçu et « Annuler ») | 3 |
 | Les groupes | Réseau : une conversation parmi les autres ; la ligne des membres ouvre « Groupe » (Inviter, membres, Quitter) ; « Rejoindre ma classe » ou « Nouveau groupe » ferme la liste | 3 |
 | Amis, « Mes amis », s'écrire | Réseau : la page d'un ami (ce qu'il t'ouvre, « Écrire à … », « Retirer ») ; « Ajouter un ami » ferme la liste (son QR, « Scanner le sien »). Ce qu'un ami ouvre se lit aussi dans Trouver et sur la piste | 1, 2, 3 |
-| « Je peux aider » ; « Décroché » qui propose d'aider | Moi ; la clôture « Signé » d'une piste | 4, 2 |
+| « Je peux aider » ; « Décroché » qui propose d'aider | Moi › Mon profil, sous « Ce que tes amis voient » ; la clôture « Signé » d'une piste | 4, 2 |
 | Demander à ses amis et à ses groupes ; la suivre comme un colis ; présenter | « Les gens » d'une piste pour demander ; Réseau, « Mes demandes » en tête, pour suivre et ajouter le contact reçu ; « Répondre » sur la demande d'un camarade | 2, 3 |
 | Demander un métier et une ville | Réseau, « Demander quelqu'un » : un métier et la ville, ou une piste sans contact | 3 |
-| Sync entre mes appareils | Moi › Mes appareils | 4 |
-| La phrase de secours | Moi › Ma copie | 4 |
-| CV et lettres, modèles d'e-mails | Moi | 4 |
-| Copie, restauration, verrouillage | Moi › Ma copie ; Moi › Réglages | 4 |
+| Sync entre mes appareils | Moi › Ma copie › Mes appareils : « Relier un autre appareil » (chacun montre son QR et scanne celui de l'autre), « Retirer cet appareil » sur sa ligne | 4 |
+| La phrase de secours | Moi › Ma copie : la créer ; « Restaurer une copie › Avec ma phrase de secours », l'aperçu, puis « Annuler » | 4 |
+| CV et lettres, modèles d'e-mails | Moi › CV et lettres (et le lien vers le CV, qui part dans le mail) ; Moi › Mes messages types | 4 |
+| Copie, restauration, verrouillage | Moi › Ma copie (« Télécharger », « Chiffrer », « Restaurer une copie » par l'aperçu) ; Moi › Réglages › Code de verrouillage | 4 |
 
 ## Ce que l'interface actuelle porte en plus
 
@@ -52,8 +52,9 @@ n'a pas été montré au mainteneur.
 | « Par où commencer », « Sans nouvelles », « Tes amis » | « À faire », en tête de Pistes : trois lignes au plus | 2 |
 | « Karim et Léa t'ont écrit » | L'onglet Réseau, qui change de couleur ; la liste des conversations | 3 |
 | « Reçues, jamais reprises », l'historique des échanges | Pistes, « À contacter », avec qui les a données ; l'historique dans Réseau | 2, 3 |
-| « J'y suis passé » | La page d'une piste ; Moi › Mon parcours | 2, 4 |
-| Thème, installer l'app, effacer cet appareil, aide et confidentialité, diagnostic | Moi › Réglages | 4 |
+| « J'y suis passé » | La page d'une piste ; Moi › Mon profil › Mon parcours | 2, 4 |
+| Thème, installer l'app, effacer cet appareil, aide et confidentialité, diagnostic | Moi › Réglages : chaque ligne dit son état et ouvre ses choix | 4 |
+| « Demandes de mes amis » (les faire suivre ou non) | Moi › Réglages | 4 |
 | L'écran verrouillé, le premier jour, le hors ligne, les erreurs | Leurs propres maquettes | 5 |
 | Le tableau à trois colonnes, les raccourcis clavier | Le poste, pensé comme un établi | 6 |
 
@@ -70,6 +71,6 @@ n'a pas été montré au mainteneur.
 Aucune clé de stockage ne bouge, aucun module du moteur n'est retiré.
 Les capacités marquées `PC` ou `⏸` restent masquées, comme aujourd'hui.
 
-*Validé par le mainteneur :* les places des lots 1 et 2 (17 novembre 2026).
+*Validé par le mainteneur :* les places des lots 1, 2 et 3 (17 novembre 2026).
 *Tranché par l'assistant, à valider :* les places des lots suivants, et
 la liste de ce qui quitte l'écran.

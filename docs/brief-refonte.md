@@ -434,7 +434,7 @@ l'aide de LinkedIn) et le nombre d'invitations avec un mot par mois (trois
 
 ### Lot 3 : Réseau (17 novembre 2026)
 
-Montré, en attente de son avis. L'écran Réseau validé est gardé (les
+**Validé** le 17 novembre (« Go »). L'écran Réseau validé est gardé (les
 conversations, « Mes amis » et ce qu'ils ouvrent, Donner · Recevoir en
 bas). Ce qui s'ajoute, pour que le réseau mène à un geste :
 
@@ -471,3 +471,40 @@ bas). Ce qui s'ajoute, pour que le réseau mène à un geste :
 
 Non vérifié : WebKit (iPhone). Dans la maquette, rien ne part ; le QR et
 le scan sont simulés.
+
+### Lot 4 : Moi (17 novembre 2026)
+
+Montré, en attente de son avis. Les cinq lignes validées sont gardées
+(Mon profil, CV et lettres, Mes messages types, Ma copie, Réglages),
+chacune avec son état. Ce qui s'ajoute, pour que ce qu'on dit de soi
+serve tout de suite :
+
+- **Le profil sert dans les messages.** L'école, le téléphone, le rythme,
+  le parcours et le lien du CV entrent dans le mail d'une piste ; une
+  ligne dont la valeur manque disparaît. Pas de bouton « Enregistrer » :
+  ce qu'on tape est gardé. « Autour de » porte la ville et le rayon, les
+  mêmes que dans Trouver. Une expérience se rouvre pour être modifiée ou
+  retirée, avec « Annuler ». « Ce que tes amis voient » se lit en bas.
+- **Les modèles** : la ligne ne dit que « modifié ». La page les montre
+  tels quels, « Ce que l'app remplace » replié, et « Rétablir le modèle
+  d'origine » n'apparaît que s'il a changé, avec « Annuler ».
+- **Ma copie** : la ligne du mot de passe de l'app (« Télécharger », le
+  cadenas qui s'étire en champ), la phrase de secours, les appareils.
+  « Relier un autre appareil » : chacun montre son QR et sait scanner
+  celui de l'autre ; « Retirer cet appareil » sur sa ligne. L'alerte
+  ambre seulement à partir de cinq pistes sans aucune copie.
+- **Restaurer** passe par l'aperçu (ce qui est nouveau, ce qui est déjà
+  là), puis « Annuler ». Sur un téléphone neuf (jour 1), la phrase ramène
+  tout.
+- **Réglages** : chaque ligne dit son état et ouvre ses choix, comme le
+  Thème de la 6.70. « Effacer cet appareil » en rouge, en dernier ; la
+  feuille dit quand il n'y a pas de copie.
+- **Au poste** : la liste à gauche, la page ouverte à droite ; la ligne
+  ouverte s'allume.
+
+Deux retouches des lots validés, sans changer leur dessin : l'objet d'un
+mail se replie au lieu de se couper (« — Inès Martin » était caché), et
+« Ouvrir un fichier » (Recevoir) prend l'icône du fichier.
+
+Non vérifié : WebKit (iPhone). Dans la maquette, rien ne part : la copie,
+la phrase, le lien entre appareils et l'effacement sont simulés.
