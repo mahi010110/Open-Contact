@@ -104,6 +104,7 @@ import { questionsAnnuaire, lireAnnuaire, decouvertes, versPiste, motsInterdits,
          ajoutsProfil, loinDe, offresStage, HELLOWORK, questionClearbit, lireClearbit, CLEARBIT,
          ecarter, rendre, sirensEcartes, cleVus, lireVus, nouveauxDe, noterVus, VUS_RECHERCHES } from './engine/annuaire.js';
 import { BMO, marche, niveauDiplome, aideEmbauche, euros, AIDE_FIN } from './engine/marche.js';
+import { FORMATIONS, formationConnue } from './engine/formations.js';
 import { questionWikidata, lireWikidata, questionResume, lireResume, questionBodacc, lireBodacc,
          carte, WIKIPEDIA_FR, BODACC, LINKEDIN_PAGE, aQui, estGrande, travailDe, TRAVAIL, montantEnMots, compteEnMots, questionEgapro, lireEgapro, EGAPRO } from './engine/carte.js';
 import { makeMission, missionUsable, revokeMission, foldCampaignReport,
@@ -1773,6 +1774,27 @@ export async function runSelfTests(){
       eq(decouvertes([[loin, pres]], []).length, 2);                 /* sans ville, rien n'est écarté */
       /* l'annuaire ne remplit pas « En bref » : c'est ta phrase */
       eq(versPiste({ siren: '777777777', nom: 'X', naf: '62.01Z', activite: 'Programmation informatique' }).desc, '');
+    },
+    /* la refonte, lot 1 : « Tu étudies » se répond d'un tap. La table
+       ajoute ce que le texte ne lit pas et garde ce qu'il refuse */
+    'formations : chaque formation d’un tap dit son métier, ou rien exprès': () => {
+      eq(FORMATIONS.map(f => f.nom), ['BTS SIO SISR', 'BTS SIO SLAM', 'BUT Informatique', 'BUT R&T']);
+      eq(formationConnue('bts sio sisr').metier, 'reseau');
+      eq(formationConnue('  BTS SIO  option  SISR ').nom, 'BTS SIO SISR');
+      eq(formationConnue('BUT R&T').metier, 'reseau');
+      eq(formationConnue('but rt').nom, 'BUT R&T');
+      eq(formationConnue('BUT Réseaux et télécoms').nom, 'BUT R&T');
+      eq(formationConnue('BUT Informatique').metier, '');
+      eq(formationConnue('BTS SIO'), null);                 /* un morceau ne dit pas l'option */
+      eq(formationConnue('Master cyber'), null);
+      eq(formationConnue(''), null); eq(formationConnue(null), null);
+      /* le moteur de la recherche la lit : R&T vise le réseau, le BUT
+         informatique ne dit toujours rien */
+      eq(metierDuProfil({ formation: 'BUT R&T' }), 'reseau');
+      eq(metierDuProfil({ formation: 'BUT Informatique' }), '');
+      eq(metierEtiquetteDuProfil({ formation: 'BUT R&T' }).cle, 'reseau');
+      /* chaque métier de la table existe dans le moteur de la recherche */
+      ok(FORMATIONS.every(f => !f.metier || !!METIER[f.metier]));
     },
     'utile : ta formation dit ton métier — ou rien': () => {
       eq(metierDuProfil({ formation: 'BTS SIO option SISR' }), 'reseau');

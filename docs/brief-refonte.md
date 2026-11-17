@@ -594,3 +594,29 @@ de « À faire » ; une piste déjà écrite ne propose plus « Préparer mon
 message » mais « Voir la piste ».
 
 Non vérifié : WebKit (iPhone). Dans la maquette, rien ne part.
+
+### Code, lot 1 : la coque et Trouver (17 novembre 2026)
+
+Le premier lot de la phase 2 : la maquette du lot 1, devenue l'app,
+branchée sur le vrai annuaire et le vrai stockage. Elle vit dans sa page
+(`refonte.html`), à côté de l'app actuelle, qui ne bouge pas.
+Montré, en attente de son avis.
+
+- **La coque** : les quatre onglets, en bas au téléphone, en haut au
+  poste dans une fenêtre posée sur le bureau tramé, avec sa barre
+  d'état. Une entreprise est une page poussée ; le retour du téléphone
+  la referme et rend la main à sa ligne.
+- **Trouver** : les trois questions, puis les trois mots de la
+  recherche ; la liste de l'annuaire autour de ta ville, « Garder » sur
+  chaque ligne, « Pas pour moi » au glissé avec « Annuler » ; la page
+  d'une entreprise (ce qu'ils font, la taille, les comptes, ce qui
+  bouge, l'aide à l'embauche, à qui écrire) ; la barre (un nom, un
+  métier, un lien LinkedIn ou un site collé, sinon « Garder tel
+  quel ») ; le chargement, le hors ligne, la panne et « Réessayer ».
+- **Au poste** : la liste et l'entreprise côte à côte ; ↑ ↓, G, X, « / »,
+  et la lettre de chaque onglet.
+- **En attendant** : Pistes montre ce qui est gardé (et le retire, avec
+  « Annuler ») ; Réseau et Moi disent quel lot les apporte.
+
+Non vérifié : WebKit (iPhone), d'où le lien pour l'essayer. Pas encore
+là, exprès : le service worker, la sync, le verrou (lots suivants).

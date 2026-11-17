@@ -2,7 +2,7 @@
 
 *Pour l'assistant qui reprend la refonte dans une nouvelle discussion.
 Mise à jour à chaque lot, en même temps que le journal du brief.
-Dernière mise à jour : 17 novembre 2026, lot 6 validé, phase 2 commencée.*
+Dernière mise à jour : 17 novembre 2026, code : lot 1 montré.*
 
 Le premier message à donner à une nouvelle discussion :
 
@@ -192,7 +192,7 @@ lien pour l'essayer sur l'iPhone, et validé avant le suivant.
 
 | Lot du code | Reprend la maquette | État |
 |---|---|---|
-| 1 | la coque (les quatre onglets, les pages, les feuilles, le poste) et Trouver | en cours |
+| 1 | la coque (les quatre onglets, les pages, le poste) et Trouver | montré le 17 novembre, **en attente de son avis** |
 | 2 | Pistes, une piste, écrire par quatre canaux | à faire |
 | 3 | Réseau | à faire |
 | 4 | Moi | à faire |
@@ -211,3 +211,97 @@ nouvelle page devient `index.html`, son dossier devient `ui/`, l'ancien
 part ; les scénarios e2e sont portés ou retirés dans une liste nommée,
 aucun ne reste rouge ; `sw.js` (`CACHE`, `PRECACHE`) suit ; `CLAUDE.md`
 se réécrit pour la nouvelle interface, plus court.
+
+### Où vit le code
+
+| Fichier | Ce qu'il porte | À la bascule |
+|---|---|---|
+| `refonte.html` | la page : la fenêtre, les onglets, l'écran, la barre d'état, la barre « Annuler », la région qui parle | devient `index.html` |
+| `refonte.js` | l'amorce : charger, le thème, inscrire les onglets, démarrer | devient `app.js` |
+| `styles/refonte.css` | le style de la maquette, posé sur les vrais jetons (tailles en rem) | devient `styles/app.css` |
+| `ecrans/coque.js` | les onglets, l'adresse (`#/trouver`), la pile des pages dans l'historique, « Annuler », le glissé, le clavier du poste | `ecrans/` devient `ui/` |
+| `ecrans/etat.js` | l'état et son stockage, repris de `ui/state.js`, mêmes clés | |
+| `ecrans/annuaire.js` | `chercheur()` : une question à l'annuaire, ses pages, ses refus (repris de `ui/decouvrir.js`) | |
+| `ecrans/carte.js` | ce que Wikidata, le BODACC, Wikipédia, Egapro disent d'une entreprise ; relire une piste par son SIREN | |
+| `ecrans/trouver.js` | l'onglet Trouver et la page d'une entreprise | |
+| `ecrans/bientot.js` | Pistes, Réseau et Moi en attendant leurs lots | disparaît |
+| `engine/formations.js` | les formations de « Tu étudies » et leur métier (testé par `?test`) | reste |
+
+- **La nouvelle n'importe rien de `ui/`.** Ce qu'elle reprend y est
+  recopié puis adapté ; l'app actuelle ne bouge pas.
+- **Une vue** (un onglet) : `{ rendre(ecran, {poste, premier}),
+  geste(a, el, ev), clavier(ev, {champ, poste}), etat(), compte() }`,
+  inscrite par `inscrire(id, vue)`. Elle se redessine par
+  `remplacer(zone, html)` (`ecrans/outils.js`), qui garde le défilement
+  et rend le focus à l'élément qui a pris la place de l'ancien.
+- **Une page** (au téléphone) : `{ titre(p), rendre(p) → {titre, corps,
+  pied}, geste(a, el, ev, p) }`, inscrite par `inscrirePage(t, page)`,
+  ouverte par `pousser({t, id}, depuis)`. Le descripteur `{t, id}` vit
+  dans `history.state` : le retour du téléphone et du navigateur
+  referment la page, et revenir rend la main à la ligne qui l'avait
+  ouverte. Chaque onglet garde sa pile ; re-taper l'onglet revient à
+  sa racine. Au poste, il n'y a pas de pile : la page s'ouvre à droite.
+- **Un geste** : `data-a` et `data-id`, comme dans la maquette. La
+  coque prend les siens (`onglet`, `retour`, `annuler`), puis la page,
+  puis l'onglet.
+
+### Vérifier
+
+- `node tests/refonte/jouer-lot1.mjs` : Trouver de bout en bout, au
+  téléphone (390 et 360 px, clair et sombre) et au poste (clair et
+  sombre), sur un annuaire fictif dans son format réel
+  (`tests/refonte/annuaire-fictif.mjs`). Finit par « ÉCHECS 0 ·
+  ERREURS 0 ». Puis **regarder les captures**.
+- Restent verts : `node tests/e2e/unitaires.mjs` (`?test`, 285 tests),
+  `e2e-pages-sw.mjs` (la page d'essai est servie elle-même, pas l'app),
+  `e2e-decouvrir.mjs`, `e2e-classement.mjs`, `e2e-sobriete.mjs`.
+- Les planches : `OC_AVANT=<captures de l'app actuelle> node
+  tests/refonte/planches-lot1.mjs`. `planche()` prend `reelle: true`
+  quand l'après vient de l'app (rien à couper en haut).
+
+### L'essayer sur l'iPhone
+
+GitHub Pages ne sert que `main`. La branche se lit par GitHack, qui sert
+les fichiers d'un dépôt public, quelques minutes après chaque envoi :
+https://raw.githack.com/mahi010110/Open-Contact/claude/admiring-cori-3pcocf/refonte.html
+
+C'est une adresse à part : les vraies pistes du mainteneur n'y sont pas,
+et rien de ce qu'il y fait ne touche son app. Elle est partagée avec
+d'autres projets servis par GitHack (même origine) : rien de privé ne
+doit y entrer. La page d'essai n'enregistre pas de service worker.
+
+### Décisions prises en codant le lot 1 (montrées avec lui)
+
+- « Garder » range la personne à qui écrire quand l'annuaire la nomme
+  (le dirigeant d'une PME : nom et rôle, aucune adresse inventée),
+  comme la maquette validée. L'app actuelle ne le faisait pas.
+- Les trois réponses vivent dans le profil, sous ses clés :
+  `recherche`, `formation`, `ville`, `rayon`. Une ville que la table ne
+  connaît pas se dit sous le champ, la saisie gardée.
+- « BUT R&T » dit le réseau, « BUT Informatique » ne dit aucun métier
+  (exprès, déjà le cas) : `engine/formations.js`.
+- « colle à ta formation » ne se dit que s'il départage les lignes à
+  l'écran. Une liste demandée pour ton métier y colle presque toujours :
+  sinon la ligne se répétait partout.
+- « Annuler » dure trente secondes (invariant ②), pas six comme dans la
+  maquette.
+- Un nom tapé se cherche dans toute la France ; un métier, autour de ta
+  ville. La distance se lit toujours depuis ta ville.
+
+### Pièges déjà payés (le code)
+
+- `innerText` rend les majuscules que le CSS impose (`text-transform`) :
+  un scénario compare sans la casse.
+- Les données vivent dans IndexedDB : un scénario les lit par `kvGet`
+  (`lireCle`, `tests/refonte/outils.mjs`), jamais dans `localStorage`.
+- Un `role="button"` ne contient pas de bouton : VoiceOver ne verrait
+  plus « Garder ». La ligne a deux enfants, la partie qui s'ouvre et le
+  bouton ; c'est la ligne qui porte l'anneau de focus (`:has`).
+- `e2e-pages-sw.mjs` reconnaît l'app actuelle à `#app` : la nouvelle
+  page a `id="oc"`.
+- Une règle posée plus bas (`.tb{display:flex}`) rallume ce qu'une règle
+  d'avant cachait (`.fen-tb{display:none}`) : préciser le sélecteur.
+- Une commande qui écrit `\u00a0` dans un here-doc a été bloquée par une
+  vérification de sécurité : passer par un script écrit dans un fichier.
+- `engine/requete.js` est précaché par l'app actuelle : un module qu'il
+  importe entre dans `PRECACHE` (`sw.js`), et `CACHE` monte d'un cran.

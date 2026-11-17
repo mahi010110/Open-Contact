@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
+<!-- La nouvelle interface, pendant la phase 2 de la refonte
+     (docs/refonte-reprendre.md §8). Le jour de la bascule, cette page
+     devient index.html. La CSP de l'app actuelle, sans les adresses des
+     capacités masquées (messagerie, IA) : un contenu piégé reçu d'un
+     camarade ne peut ni charger ni exécuter quoi que ce soit d'extérieur. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://commons.wikimedia.org https://upload.wikimedia.org; font-src 'self'; connect-src 'self' https://nominatim.openstreetmap.org https://recherche-entreprises.api.gouv.fr https://query.wikidata.org https://fr.wikipedia.org https://bodacc-datadila.opendatasoft.com https://egapro.travail.gouv.fr https://autocomplete.clearbit.com wss:; media-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'none'; frame-src 'none'">
+<meta name="referrer" content="no-referrer">
+<title>Trouver — OpenContact</title>
+<meta name="description" content="OpenContact répond à « je fais quoi maintenant ? » dans ta recherche de stage, d'alternance ou d'emploi. Tes données restent sur tes appareils, sans compte et sans serveur.">
+<meta name="theme-color" id="metaTheme" content="#F7F6F1">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="OpenContact">
+<link rel="icon" href="assets/logo/piste-a-reseau.svg">
+<link rel="apple-touch-icon" href="icon.svg">
+<!-- le thème AVANT le premier pixel -->
+<script src="theme.js"></script>
+<link rel="stylesheet" href="styles/tokens/fonts.css">
+<link rel="stylesheet" href="styles/tokens/colors.css">
+<link rel="stylesheet" href="styles/tokens/typography.css">
+<link rel="stylesheet" href="styles/tokens/spacing.css">
+<link rel="stylesheet" href="styles/tokens/effects.css">
+<link rel="stylesheet" href="styles/tokens/base.css">
+<link rel="stylesheet" href="styles/refonte.css">
+</head>
+<body>
+<noscript><div style="padding:20px;font-family:system-ui;text-align:center">OpenContact a besoin de JavaScript pour fonctionner : active-le dans ton navigateur.</div></noscript>
+<a class="evite" href="#main">Aller au contenu</a>
+<div class="app" id="oc">
+  <!-- le seul cas où une phrase entière s'impose : ce que l'étudiant
+       saisit n'ira nulle part -->
+  <div class="avertir" id="avertir" hidden role="alert">Rien ne s’enregistre ici : tout disparaîtra en fermant.</div>
+  <section class="fen" aria-label="OpenContact">
+    <div class="tb fen-tb" aria-hidden="true">OpenContact<span class="tb-d">local · sans serveur</span></div>
+    <nav class="onglets" aria-label="Onglets"></nav>
+    <main class="ecran" id="main" tabindex="-1"></main>
+    <div class="p-etat"></div>
+  </section>
+  <div class="couche-a"></div>
+</div>
+<!-- l'annonceur : il ne se voit jamais, il dit à voix haute ce qui vient
+     de changer. Il existe AVANT qu'on écrive dedans. -->
+<div id="annonce" class="visuellement-cache" role="status" aria-live="polite" aria-atomic="true"></div>
+<script type="module" src="refonte.js"></script>
+</body>
+</html>

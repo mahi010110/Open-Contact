@@ -51,6 +51,7 @@ import { extractCity, todayISO } from './utils.js';
 import { VILLES, DEPARTEMENTS, DEPT_NOM_AMBIGU, REGIONS, CENTRES } from './lieux.js';
 import { CRITERE_METIER, critereValide, villeDeTable } from './critere.js';
 import { etiquetteFormation } from './metiers.js';
+import { formationConnue } from './formations.js';
 
 /* ---------- les mots ---------- */
 const plier = s => fold(s).replace(/œ/g, 'oe').replace(/æ/g, 'ae');
@@ -678,6 +679,11 @@ export function metierDuMoment(companies, today = todayISO()){
 export function metierDuProfil(profile){
   const f = String((profile && profile.formation) || '').trim();
   if (!f) return '';
+  /* une formation qu'on choisit d'un tap (engine/formations.js) dit
+     son métier par la table : « BUT R&T » que le texte ne lit pas, et
+     « BUT informatique » qui n'en dit aucun, exprès */
+  const connue = formationConnue(f);
+  if (connue) return connue.metier;
   /* un MÉTIER, pas un secteur : « Licence commerce » ne dit pas ce
      qu'on fait en informatique. Cyber et cloud sont les deux qui sont
      l'un et l'autre. */

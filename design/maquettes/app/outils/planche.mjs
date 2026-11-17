@@ -10,6 +10,7 @@
      apres: [[fichier, légende], …],          // images propres de la maquette
      poste: false,                            // true : une image d'ordinateur de chaque côté
      pile: false,                             // avec poste : l'avant au-dessus, l'après dessous, deux par rang
+     reelle: false,                           // l'après vient de l'app elle-même (phase 2) : pas de régie à couper
      largeur: 1700,
    });
 
@@ -26,14 +27,14 @@ h1{margin:0 0 4px;font-size:26px}p.s{margin:0 0 22px;color:#5C6672;font-size:16p
 .rang{display:flex;gap:18px;align-items:flex-start}.bloc{display:flex;gap:14px;padding:14px;background:#E7E5DD;border:1px solid #1D242C;box-shadow:4px 4px 0 rgba(29,36,44,.16)}
 .bloc.apres{background:#F7F6F1}.tag{font:600 13px/1 ui-monospace,monospace;letter-spacing:.08em;margin:0 0 8px;text-transform:uppercase}
 .tag.av{color:#8F5A00}.tag.ap{color:#0B7268}figure{margin:0}figcaption{font-size:14px;font-weight:600;margin:8px 0 0;max-width:250px}
-.tel{width:250px;height:509px;overflow:hidden;border:1px solid #1D242C;background:#fff}.tel img{width:250px;display:block}.tel.m img{margin-top:-32px}
+.tel{width:250px;height:509px;overflow:hidden;border:1px solid #1D242C;background:#fff}.tel img{width:250px;display:block}.tel.m img{margin-top:-32px}.tel.r{height:541px}
 .poste img{display:block;width:860px;border:1px solid #1D242C}
 .bloc.pile{flex-wrap:wrap;max-width:1772px}.bloc.pile figure{width:860px}.bloc.pile figcaption{max-width:860px}`;
 const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
 
-export async function planche({ sortie, titre, sousTitre = '', avant = [], apres = [], poste = false, pile = false, largeur = poste ? 1900 : 1700 }){
+export async function planche({ sortie, titre, sousTitre = '', avant = [], apres = [], poste = false, pile = false, reelle = false, largeur = poste ? 1900 : 1700 }){
   const fig = ([f, t], maquette) => poste ? (pile ? `<figure><img src="file://${f}"><figcaption>${esc(t)}</figcaption></figure>` : `<img src="file://${f}">`)
-    : `<figure><div class="tel${maquette ? ' m' : ''}"><img src="file://${f}"></div><figcaption>${esc(t)}</figcaption></figure>`;
+    : `<figure><div class="tel${maquette ? (reelle ? ' r' : ' m') : ''}"><img src="file://${f}"></div><figcaption>${esc(t)}</figcaption></figure>`;
   const bloc = (l, maq) => `<div class="bloc${maq ? ' apres' : ''}${poste ? ' poste' : ''}${pile ? ' pile' : ''}">${l.map(x => fig(x, maq)).join('')}</div>`;
   const corps = poste && !pile
     ? `<div class="rang"><div><div class="tag av">Avant</div>${bloc(avant)}</div><div><div class="tag ap">Après</div>${bloc(apres, true)}</div></div>`
