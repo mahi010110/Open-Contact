@@ -105,6 +105,9 @@ import { questionsAnnuaire, lireAnnuaire, decouvertes, versPiste, motsInterdits,
          ecarter, rendre, sirensEcartes, cleVus, lireVus, nouveauxDe, noterVus, VUS_RECHERCHES } from './engine/annuaire.js';
 import { BMO, marche, niveauDiplome, aideEmbauche, euros, AIDE_FIN } from './engine/marche.js';
 import { FORMATIONS, formationConnue } from './engine/formations.js';
+import { SUITES, genreDeSuite, normaliserSuite, suiteDe, cocherSuite } from './engine/contrat.js';
+import { laSuite, aFaire, etapeDe, suivante, phraseEnvoi, dernierEvenement, joursDepuisEcrit, noterEnvoi, noterEcrit,
+         noterEntretien, noterReponse, clore, rouvrir, canalDefaut, quiContacter, quandPasse, CANAUX_DE } from './engine/suite.js';
 import { questionWikidata, lireWikidata, questionResume, lireResume, questionBodacc, lireBodacc,
          carte, WIKIPEDIA_FR, BODACC, LINKEDIN_PAGE, aQui, estGrande, travailDe, TRAVAIL, montantEnMots, compteEnMots, questionEgapro, lireEgapro, EGAPRO } from './engine/carte.js';
 import { makeMission, missionUsable, revokeMission, foldCampaignReport,
@@ -122,6 +125,7 @@ export async function runSelfTests(){
       throw new Error(`attendu ${JSON.stringify(b)}, obtenu ${JSON.stringify(a)}`);
   };
   const ok = v => { if (!v) throw new Error('condition fausse'); };
+  const plusJoursIso = (iso, n) => new Date(Date.parse(iso + 'T00:00:00Z') + n * 864e5).toISOString().slice(0, 10);
   const tests = {
     'esc neutralise le HTML': () =>
       eq(esc('<b a="1">&\''), '&lt;b a=&quot;1&quot;&gt;&amp;&#39;'),
@@ -1777,6 +1781,168 @@ export async function runSelfTests(){
     },
     /* la refonte, lot 1 : « Tu étudies » se répond d'un tap. La table
        ajoute ce que le texte ne lit pas et garde ce qu'il refuse */
+    /* la refonte, lot 2 : repris de la branche claude/refonte-arc avec ses tests */
+    'contrat : du « oui » au contrat qui tient — trois ou quatre étapes, dans l’ordre': () => {
+      const p = r => normalizeProfile({ recherche: r });
+      const won = x => normalizeCompany({ name: 'X', closedReason: 'won', ...x });
+      eq(genreDeSuite(won({}), p('stage')), 'stage');
+      eq(genreDeSuite(won({ positions: ['alternance'] }), p('')), 'alternance');
+      eq(genreDeSuite(won({ positions: ['stage'] }), null), 'stage');
+      eq(genreDeSuite(won({}), null), 'emploi');
+      eq(suiteDe(normalizeCompany({ name: 'X' }), p('stage')), null);
+      eq(suiteDe(normalizeCompany({ name: 'X', closedReason: 'rejected' }), p('stage')), null);
+      const c = won({});
+      let s = suiteDe(c, p('stage'));
+      eq([s.t, s.etapes.map(e => e.id), s.prochaine.id, s.finie, s.faites], ['stage', ['convention', 'signee', 'debut'], 'convention', false, 0]);
+      const v1 = cocherSuite(c, p('stage'), 'convention', '2026-11-12');
+      eq(v1, { t: 'stage', f: { convention: '2026-11-12' } });
+      ok(!('suite' in c));
+      c.suite = v1;
+      s = suiteDe(c, p('alternance'));             /* le genre est fixé : le profil qui change ne le change plus */
+      eq([s.t, s.prochaine.id, s.faites], ['stage', 'signee', 1]);
+      eq(s.prochaine.note, 'Avant le premier jour : sans elle, pas de stage.');
+      ok(!SUITES.stage[0].note && !SUITES.emploi.some(e => e.note));
+      eq(cocherSuite(c, p('stage'), 'convention', '2026-11-13'), { t: 'stage', f: {} });
+      eq(cocherSuite(c, p('stage'), 'nimporte', '2026-11-13'), v1);
+      c.suite = { t: 'stage', f: { convention: '2026-11-12', signee: '2026-11-20', debut: '2026-12-01' } };
+      eq([suiteDe(c, null).finie, suiteDe(c, null).prochaine], [true, null]);
+      eq(normaliserSuite({ t: 'stage', f: { convention: '2026-11-12', depot: '2026-11-13', debut: 'demain', __proto__: 1 } }),
+         { t: 'stage', f: { convention: '2026-11-12' } });
+      eq(normaliserSuite({ t: 'cdi' }), null);
+      eq(normaliserSuite(null), null);
+      eq(SUITES.alternance.map(e => e.id), ['contrat', 'debut', 'depot', 'essai']);
+      ok(/5 jours ouvrables/.test(SUITES.alternance[2].note) && /45/.test(SUITES.alternance[3].label));
+    },
+    /* le champ `suite` est PRIVÉ (CONTRAT.md §3) : il suit la piste entre
+       mes appareils, jamais dans un partage */
+    'contrat : la suite d’un « Décroché » ne part jamais dans un partage': () => {
+      const c = normalizeCompany({ name: 'Advens', closedReason: 'won', suite: { t: 'stage', f: { convention: '2026-11-12' } } });
+      eq(c.suite, { t: 'stage', f: { convention: '2026-11-12' } });
+      ok(!JSON.stringify(sharePayload([c], null, 'Ana')).includes('convention'));
+      /* rangée par un vieil appareil dans `extra` : remontée, et jamais émise */
+      const vieux = normalizeCompany({ name: 'B', extra: { suite: { t: 'emploi', f: {} }, autre: 1 } });
+      eq([vieux.suite, vieux.extra], [{ t: 'emploi', f: {} }, { autre: 1 }]);
+      ok(!JSON.stringify(communityView({ ...c, extra: { suite: c.suite } }, null, 'Ana')).includes('convention'));
+      /* la fusion communautaire la vide */
+      const L = [];
+      mergeIncoming([{ ...c, name: 'Nouvelle' }], L);
+      ok(L.length === 1 && !('suite' in L[0]));
+      /* elle suit mes appareils */
+      ok(/"suite"/.test(JSON.stringify(fullPayload([c], normalizeProfile({})))));
+      /* absente quand vide ou inconnue */
+      ok(!('suite' in normalizeCompany({ name: 'Z', suite: { t: 'inconnu' } })));
+    },
+    /* la suite d'une piste : la phrase et le geste de la maquette validée */
+    'suite : chaque piste dit quoi faire, une phrase et un geste, la même partout': () => {
+      const T = '2026-11-17', P = normalizeProfile({ recherche: 'alternance' });
+      const mk = x => normalizeCompany({ name: 'X', ...x });
+      const S_ = c => laSuite(c, { today: T, profile: P });
+      eq(S_(mk({})).k, 'premier');
+      eq(S_(mk({})).s, 'Personne à qui écrire pour l’instant : passe par leur site.');
+      eq(laSuite(mk({}), { today: T, grande: true }).s, 'Passe par le recrutement, ou par leur site.');
+      const claire = mk({ contacts: [{ name: 'Claire Durand', role: 'présidente' }] });
+      eq([S_(claire).rang, S_(claire).t, S_(claire).b], [4, 'À contacter : Claire Durand, présidente.', 'Écrire à Claire']);
+      const ecrite = j => mk({ status: 'active', history: [{ d: plusJoursIso(T, -j), t: 'Écrit à Claire Durand, par mail' }] });
+      eq([S_(ecrite(0)).rang, S_(ecrite(0)).l], [8, 'écrit aujourd’hui']);
+      eq(S_(ecrite(1)).l, 'écrit hier');
+      eq(S_(ecrite(3)).s, 'On attend. Elle reviendra dans « À faire » dans 4 jours.');
+      eq([S_(ecrite(7)).rang, S_(ecrite(7)).k, S_(ecrite(7)).b], [2, 'relance', 'Relancer']);
+      eq(S_(ecrite(21)).b, 'Relancer une dernière fois');
+      eq([S_(ecrite(45)).rang, !!S_(ecrite(45)).muette, S_(ecrite(45)).b], [6, true, 'Ranger']);
+      /* une phrase de l'app actuelle se relit aussi */
+      eq(S_(mk({ status: 'active', history: [{ d: plusJoursIso(T, -8), t: 'Email envoyé — Claire' }] })).rang, 2);
+      /* l'entretien : à préparer, puis le merci, puis l'attente */
+      const ent = mk({ status: 'reply', nextAction: '2026-11-19', nextActionText: 'Entretien', contacts: [{ name: 'Élodie Carpentier' }] });
+      eq([S_(ent).rang, S_(ent).t, S_(ent).q.length], [1, 'Entretien jeudi 19 novembre.', 3]);
+      const hier = mk({ status: 'reply', nextAction: '2026-11-16', nextActionText: 'Entretien', contacts: [{ name: 'Élodie Carpentier' }] });
+      eq([S_(hier).t, S_(hier).k], ['Ton entretien, c’était hier.', 'merci']);
+      noterEnvoi(hier, { k: 'merci', canal: 'mail', ct: hier.contacts[0], today: T });
+      eq([S_(hier).rang, S_(hier).t, hier.nextAction, hier.status], [8, 'Merci envoyé.', '', 'reply']);
+      const rep = mk({ status: 'reply', history: [{ d: T, t: 'Réponse reçue' }], contacts: [{ name: 'Hugo Vasseur' }] });
+      eq([S_(rep).k, S_(rep).b], ['reponse', 'Répondre à Hugo']);
+      noterEnvoi(rep, { k: 'reponse', canal: 'mail', ct: rep.contacts[0], today: T });
+      eq(S_(rep).t, 'Tu leur as répondu.');
+      /* les fins */
+      eq(S_(mk({ closedReason: 'won' })).l, 'C’est oui : signer le contrat');
+      eq(S_(mk({ closedReason: 'rejected' })).t, 'C’est non.');
+      eq(S_(mk({ closedReason: 'dropped' })).t, 'Rangée.');
+      eq(['garde', 'ecrit', 'reponse', 'oui', 'fin'], [mk({}), mk({ status: 'active' }), mk({ status: 'reply' }),
+        mk({ closedReason: 'won' }), mk({ closedReason: 'dropped' })].map(etapeDe));
+      eq(quandPasse('2026-11-13', T), 'vendredi');
+      eq(quandPasse('2026-11-01', T), 'le 1 novembre');
+    },
+    'suite : l’historique écrit ce que la suite relit — un contrat entre les deux': () => {
+      eq(phraseEnvoi('premier', 'mail', 'Claire Durand'), 'Écrit à Claire Durand, par mail');
+      eq(phraseEnvoi('premier', 'site', ''), 'Écrit, sur leur site');
+      eq(phraseEnvoi('relance', 'linkedin', 'Claire Durand'), 'Relancé Claire Durand, sur LinkedIn');
+      eq(phraseEnvoi('premier', 'appel', ''), 'Appelé le standard');
+      eq(phraseEnvoi('merci', 'mail', 'Élodie Carpentier'), 'Merci envoyé à Élodie Carpentier, par mail');
+      for (const [k, canal, quoi] of [['premier', 'mail', 'ecrit'], ['relance', 'site', 'ecrit'], ['premier', 'appel', 'ecrit'],
+        ['merci', 'linkedin', 'merci'], ['reponse', 'mail', 'repondu']])
+        eq(dernierEvenement({ history: [{ d: '2026-11-17', t: phraseEnvoi(k, canal, 'A B') }] }).quoi, quoi);
+      /* « Oui, envoyé » : la piste attend, la date de candidature est posée une fois */
+      const c = normalizeCompany({ name: 'X', contacts: [{ name: 'Claire Durand', email: 'c@x.fr' }] });
+      noterEnvoi(c, { k: 'premier', canal: 'mail', ct: c.contacts[0], today: '2026-11-10' });
+      eq([c.status, c.appliedAt, c.contacts[0].activatedAt], ['active', '2026-11-10', '2026-11-10']);
+      noterEnvoi(c, { k: 'relance', canal: 'mail', ct: c.contacts[0], today: '2026-11-17' });
+      eq(c.appliedAt, '2026-11-10');
+      eq(joursDepuisEcrit(c, '2026-11-20') <= 3, true);
+      /* « J'ai écrit », un entretien, une réponse, clore et rouvrir */
+      const d = normalizeCompany({ name: 'Y' });
+      noterEcrit(d, '2026-11-17');
+      eq([d.status, d.appliedAt], ['active', '2026-11-17']);
+      noterEntretien(d, '2026-11-19');
+      eq([d.status, d.nextAction, d.nextActionText, d.history[d.history.length - 1].t], ['reply', '2026-11-19', 'Entretien', 'Réponse : un entretien le jeudi 19 novembre']);
+      noterReponse(d);
+      eq(dernierEvenement(d).quoi, 'reponse');
+      clore(d, 'rejected', '2026-11-17');
+      eq([d.closedReason, d.closedAt, d.nextAction], ['rejected', '2026-11-17', '']);
+      rouvrir(d);
+      eq(d.closedReason, '');
+    },
+    'suite : « À faire » tient en trois lignes, l’engagé d’abord, les muettes rangées ensemble': () => {
+      const T = '2026-11-17';
+      const mk = (id, x) => normalizeCompany({ id, name: id, ...x });
+      const e = (id, j) => mk(id, { status: 'active', history: [{ d: plusJoursIso(T, -j), t: 'Écrit' }] });
+      const cs = [mk('a', {}), mk('b', { contacts: [{ name: 'Lea Roy' }] }), e('c', 8), e('m1', 50), e('m2', 60), mk('o', { closedReason: 'won' })];
+      const af = aFaire(cs, { today: T });
+      eq(af.map(x => x.ranger ? 'ranger:' + x.ranger.join(',') : x.id), ['o', 'c', 'ranger:m1,m2']);
+      /* sans muettes, la place va aux pistes à contacter, qui a quelqu'un d'abord */
+      eq(aFaire([mk('a', {}), mk('b', { contacts: [{ name: 'Lea Roy' }] })], { today: T }).map(x => x.id), ['b', 'a']);
+      eq(suivante(cs, 'b', { today: T }).id, 'a');
+      /* le canal qui s'ouvre de lui-même */
+      eq(canalDefaut({}, 'premier', { name: 'A', email: 'a@x.fr' }), 'mail');
+      eq(canalDefaut({}, 'premier', { name: 'A' }), 'linkedin');
+      eq(canalDefaut({}, 'premier', null), 'site');
+      eq(canalDefaut({}, 'merci', { name: 'A' }), 'linkedin');
+      eq(canalDefaut({}, 'reponse', { name: 'A', phone: '06' }), 'appel');
+      eq(canalDefaut({ history: [{ d: T, t: 'Écrit, sur leur site' }] }, 'relance', { name: 'A', email: 'a@x.fr' }), 'site');
+      eq(CANAUX_DE.merci, ['mail', 'linkedin']);
+      eq(quiContacter(normalizeCompany({ name: 'X', contacts: [{ name: 'A' }, { name: 'B', email: 'b@x.fr' }] })).name, 'B');
+    },
+    /* les modèles de départ se disent sans genre (la refonte, lot 2) ; un
+       modèle jamais retouché passe à la nouvelle version, un modèle
+       retouché jamais */
+    'modèles : la relance et le merci sans genre, et la date de la candidature': () => {
+      const T = defaultTemplates();
+      const rel = T.find(t => t.name === 'Relance'), merci = T.find(t => t.name === 'Remerciement après entretien');
+      ok(!/motivé|intéressé/.test(rel.subject + rel.body + merci.body));
+      eq(rel.subject, 'Ma candidature chez {{entreprise}}');
+      const avant = { id: 'r1', name: 'Relance', subject: 'Toujours intéressé — {{formation}} chez {{entreprise}}',
+        body: rel.body.replace('Je reviens vers vous au sujet de ma candidature {{date}}.', 'Je reviens vers vous au sujet de ma candidature.')
+          .replace('J\'ai toujours très envie de vous rejoindre, et je reste disponible pour en parler.', 'Toujours très motivé pour vous rejoindre — je reste dispo.') };
+      const [neuf] = majModelesDefaut([avant]);
+      eq([neuf.id, neuf.subject, neuf.body], ['r1', rel.subject, rel.body]);
+      const retouche = { ...avant, body: avant.body + '!' };
+      ok(majModelesDefaut([retouche])[0] === retouche);
+      const m81 = { id: 'm1', name: 'Remerciement après entretien', subject: merci.subject,
+        body: merci.body.replace('Bien à vous,\n{{moi}}\n{{ecole}}\n{{tel}} — {{email}}', 'Bien cordialement,\n{{moi}} — {{tel}}') };
+      eq(majModelesDefaut([m81])[0].body, merci.body);
+      /* {{date}} porte sa préposition ; sans date, la phrase reste entière */
+      const p = normalizeProfile({ name: 'Ana B', formation: 'BTS SIO' });
+      ok(fillTpl(rel.body, normalizeCompany({ name: 'X', appliedAt: '2026-11-10' }), null, p).includes('ma candidature du 10 novembre.'));
+      ok(fillTpl(rel.body, normalizeCompany({ name: 'X' }), null, p).includes('au sujet de ma candidature.\n'));
+    },
     'formations : chaque formation d’un tap dit son métier, ou rien exprès': () => {
       eq(FORMATIONS.map(f => f.nom), ['BTS SIO SISR', 'BTS SIO SLAM', 'BUT Informatique', 'BUT R&T']);
       eq(formationConnue('bts sio sisr').metier, 'reseau');

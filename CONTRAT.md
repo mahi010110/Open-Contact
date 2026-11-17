@@ -639,7 +639,7 @@ présent).
 
 **Privé** — ne part **jamais** dans un partage :
 `status`, `notes`, `appliedAt`, `nextAction`, `nextActionText`, `closedAt`,
-`closedReason`, `nextActionCt`, `history[]` (40 entrées max).
+`closedReason`, `nextActionCt`, `suite`, `history[]` (40 entrées max).
 Ni `id`, ni `demo`, ni `createdAt` ne circulent non plus.
 
 **Un contact** : `id`, `name`, `role`, `email`, `phone`, `link`, `note`,
@@ -743,6 +743,16 @@ nom — même numéro, même piste, quel que soit son nom ; deux numéros
 différents, deux pistes, même homonymes — et un SIREN entrant complète
 une piste qui n'en avait pas (la règle générale, compléter les vides).
 Un lecteur ancien le range dans `extra` sans casse.
+
+**La suite d'un « Décroché » (`suite`, la refonte) — privée,
+optionnelle, absente quand vide.** `{ t, f }` : `t` le genre de contrat
+(`stage`, `alternance`, `emploi`), `f` les étapes faites et leur jour
+(`{ convention: 'AAAA-MM-JJ' }`), seulement les étapes de ce genre
+(`engine/contrat.js`). Elle ne part jamais dans un partage :
+`communityView` ne l'émet pas et la purge d'`extra`, la fusion
+communautaire la vide. Elle suit la piste entre MES appareils (§5). Un
+lecteur ancien la range dans `extra` sans casse ; une version récente
+l'en remonte (migration en lecture, doublon purgé).
 
 **La prochaine action** (privée) : `nextAction` porte la **date** (ISO,
 champ historique inchangé — les anciennes données restent valides),

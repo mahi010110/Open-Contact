@@ -51,7 +51,7 @@ export function communityView(c, keep, moi){
     out.vecu = c.vecu;
     out.vecuQui = qui;
   }
-  const ex = extraSans(c.extra, ['nextActionCt']);
+  const ex = extraSans(c.extra, ['nextActionCt', 'suite']);   /* la suite d'un « Décroché » : privée */
   if (ex) out.extra = ex;
   return out;
 }

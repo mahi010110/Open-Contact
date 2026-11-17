@@ -13,6 +13,7 @@ import { normaliserGroupes } from './groupe.js';
 import { normaliserSemaine } from './semaine.js';
 import { normaliserAide } from './aide.js';
 import { normaliserVisage } from './visage.js';
+import { normaliserSuite } from './contrat.js';
 
 export const APP_VERSION = '8.1.0';
 
@@ -207,6 +208,7 @@ const KNOWN_CT = ['id','name','role','email','phone','link','note','conf','extra
 const KNOWN_C  = ['id','name','city','domain','desc','address','website','techs','positions','siren',
   'process','tips','contacts','lat','lng','vecu','vecuQui','status','notes','appliedAt','nextAction',
   'nextActionText','closedAt','closedReason','nextActionCt',
+  'suite',                      /* la refonte : ce qui reste à faire après « Décroché » — privé */
   'history','verifiedAt','confirmations','demo','createdAt','updatedAt','extra',
   'contact','email','phone'];   /* les 3 derniers : héritage v1, absorbés dans contacts */
 /* un lien ne sort d'ici qu'en http(s) : « javascript: » et consorts, posés
@@ -342,9 +344,15 @@ export function normalizeCompany(x){
   const nact = [x.nextActionCt, xe.nextActionCt]
     .find(v => typeof v === 'string' && ID_RE.test(v));
   if (nact) out.nextActionCt = nact;
+  /* LA REFONTE — `suite` : ce qui reste à faire après « Décroché »
+     (engine/contrat.js). Privé, optionnel, absent quand vide, avec la
+     même migration en lecture depuis `extra` (CONTRAT.md §3). */
+  const su = normaliserSuite(x.suite || xe.suite);
+  if (su) out.suite = su;
   const extra = keepExtra(x, KNOWN_C);
   if (extra){
     delete extra.nextActionCt;
+    delete extra.suite;
     if (Object.keys(extra).length) out.extra = extra;
   }
   return out;
@@ -371,7 +379,23 @@ ${SIGNATURE}`;
    « {{via}} » (lot F3 : qui m'a donné ce contact) */
 const CANDIDATURE_6_47 = MODELE_CANDIDATURE.replace('{{via}}\n', '');
 const CANDIDATURE_6_31 = CANDIDATURE_6_47.replace('Expérience : {{parcours}}\n', '');
+/* LA RELANCE, SANS GENRE (la refonte, lot 2 : « Toujours très motivé »
+   ne se dit pas de la même façon par tout le monde ; « J'ai toujours très
+   envie de vous rejoindre » se dit par chacun). `{{date}}` porte sa
+   préposition (« du 10 novembre ») : sans date connue, la phrase reste
+   entière, « au sujet de ma candidature. » */
 const MODELE_RELANCE = `Bonjour {{contact}},
+
+Je reviens vers vous au sujet de ma candidature {{date}}.
+
+[Du neuf depuis : un projet fini, une techno apprise, une actu de chez eux. Une relance qui n'apporte rien n'appelle rien.]
+
+J'ai toujours très envie de vous rejoindre, et je reste disponible pour en parler.
+
+${SIGNATURE}`;
+const OBJET_RELANCE = 'Ma candidature chez {{entreprise}}';
+/* tels que les versions 6.30 à 8.1 les écrivaient */
+const RELANCE_8_1 = `Bonjour {{contact}},
 
 Je reviens vers vous au sujet de ma candidature.
 
@@ -380,6 +404,17 @@ Je reviens vers vous au sujet de ma candidature.
 Toujours très motivé pour vous rejoindre — je reste dispo.
 
 ${SIGNATURE}`;
+const MODELE_MERCI = `Bonjour {{contact}},
+
+Merci pour le temps que vous m'avez accordé lors de notre entretien. Notre échange a confirmé mon envie de rejoindre {{entreprise}}.
+
+[1 phrase : un point marquant de l'entretien]
+
+Je reste à votre disposition pour toute information complémentaire.
+
+${SIGNATURE}`;
+const MERCI_8_1 = MODELE_MERCI.replace(SIGNATURE, `Bien cordialement,
+{{moi}} — {{tel}}`);
 /* Les modèles de départ tels que les versions passées les écrivaient
    (6.30, puis 6.31 à 6.46). Un modèle que
    l'étudiant n'a JAMAIS retouché — objet et corps identiques au
@@ -411,8 +446,13 @@ Je reviens vers vous au sujet de ma candidature pour un stage.
 Toujours très motivé pour vous rejoindre — je reste dispo.
 
 Bien à vous,
-{{moi}} — {{tel}} — {{email}}` }],
-    apres: { subject: 'Toujours intéressé — {{formation}} chez {{entreprise}}', body: MODELE_RELANCE }
+{{moi}} — {{tel}} — {{email}}` },
+            { subject: 'Toujours intéressé — {{formation}} chez {{entreprise}}', body: RELANCE_8_1 }],
+    apres: { subject: OBJET_RELANCE, body: MODELE_RELANCE }
+  },
+  'Remerciement après entretien': {
+    avant: [{ subject: 'Merci pour notre échange — {{moi}}', body: MERCI_8_1 }],
+    apres: { subject: 'Merci pour notre échange — {{moi}}', body: MODELE_MERCI }
   }
 };
 export function majModelesDefaut(templates){
@@ -455,19 +495,9 @@ export function defaultTemplates(){
        celui qui la reçoit — et le « restée sans réponse à ce jour » lui
        reproche à demi-mot un oubli. Celle-ci rouvre avec quelque chose
        de neuf : c'est ce qui donne une raison de répondre maintenant. */
-    { id: uid(), name: 'Relance', subject: 'Toujours intéressé — {{formation}} chez {{entreprise}}',
-      body: MODELE_RELANCE },
+    { id: uid(), name: 'Relance', subject: OBJET_RELANCE, body: MODELE_RELANCE },
     { id: uid(), name: 'Remerciement après entretien', subject: 'Merci pour notre échange — {{moi}}',
-      body: `Bonjour {{contact}},
-
-Merci pour le temps que vous m'avez accordé lors de notre entretien. Notre échange a confirmé mon envie de rejoindre {{entreprise}}.
-
-[1 phrase : un point marquant de l'entretien]
-
-Je reste à votre disposition pour toute information complémentaire.
-
-Bien cordialement,
-{{moi}} — {{tel}}` }
+      body: MODELE_MERCI }
   ];
 }
 /* prompts IA de l'utilisateur : bornés pour rester un coup de pouce,
@@ -681,6 +711,8 @@ export function fillTpl(str, c, ct, profile, { trous = false, companies } = {}){
     /* lot F3 : le contact vient d'un ami — la première phrase le dit,
        c'est ce qu'un recruteur lit d'abord (une recommandation) */
     via: phraseVia(ct),
+    /* le jour du premier message, avec sa préposition (la relance) */
+    date: /^\d{4}-\d{2}-\d{2}$/.test(String(c.appliedAt || '')) ? 'du ' + dateLongue(c.appliedAt, false) : '',
     ...jetonsRecherche(profile, companies)
   };
   const trou = k => trous && !m[k] && Object.hasOwn(TROUS, k);
