@@ -600,7 +600,7 @@ Non vérifié : WebKit (iPhone). Dans la maquette, rien ne part.
 Le premier lot de la phase 2 : la maquette du lot 1, devenue l'app,
 branchée sur le vrai annuaire et le vrai stockage. Elle vit dans sa page
 (`refonte.html`), à côté de l'app actuelle, qui ne bouge pas.
-Montré, en attente de son avis.
+**Validé** le 17 novembre (« Continue »).
 
 - **La coque** : les quatre onglets, en bas au téléphone, en haut au
   poste dans une fenêtre posée sur le bureau tramé, avec sa barre
