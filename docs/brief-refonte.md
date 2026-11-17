@@ -515,8 +515,8 @@ la phrase, le lien entre appareils et l'effacement sont simulés.
 
 ### Lot 5 : les états (17 novembre 2026)
 
-Montré, en attente de son avis. Rien de neuf à apprendre : chaque état
-reprend un geste qui existe déjà.
+**Validé** le 17 novembre (« Continue »). Rien de neuf à apprendre :
+chaque état reprend un geste qui existe déjà.
 
 - **Le premier jour** : les trois questions de Trouver, et dessous
   « J'ai déjà OpenContact » (le mot de l'app actuelle) : la phrase de

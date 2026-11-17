@@ -2,7 +2,7 @@
 
 *Pour l'assistant qui reprend la refonte dans une nouvelle discussion.
 Mise à jour à chaque lot, en même temps que le journal du brief.
-Dernière mise à jour : 17 novembre 2026, lot 5 montré.*
+Dernière mise à jour : 17 novembre 2026, lot 5 validé.*
 
 Le premier message à donner à une nouvelle discussion :
 
@@ -21,8 +21,8 @@ par le mainteneur avant le suivant (`docs/brief-refonte.md` §9).
 | 2 | Pistes, la page d'une piste, écrire par quatre canaux | validé le 17 novembre (« Super ») |
 | 3 | Réseau : la classe, les amis, les demandes, donner, recevoir | validé le 17 novembre (« Go ») |
 | 4 | Moi : profil, documents, messages types, copie, réglages | validé le 17 novembre (« Super ») |
-| 5 | le premier jour, les états vides, les erreurs, le hors ligne, l'écran verrouillé | montré le 17 novembre, **en attente de son avis** |
-| 6 | le poste, pensé comme un établi | le prochain, après son avis sur le lot 5 |
+| 5 | le premier jour, les états vides, les erreurs, le hors ligne, l'écran verrouillé | validé le 17 novembre (« Continue ») |
+| 6 | le poste, pensé comme un établi | **en cours** |
 
 **Phase 2, le code** : seulement quand toutes les maquettes sont validées
 (`docs/brief-refonte.md` §9 et §10).
