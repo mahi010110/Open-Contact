@@ -2,7 +2,7 @@
 
 *Pour l'assistant qui reprend la refonte dans une nouvelle discussion.
 Mise à jour à chaque lot, en même temps que le journal du brief.
-Dernière mise à jour : 17 novembre 2026, code : lot 1 validé, lot 2 en cours.*
+Dernière mise à jour : 17 novembre 2026, code : lot 2 montré.*
 
 Le premier message à donner à une nouvelle discussion :
 
@@ -193,7 +193,7 @@ lien pour l'essayer sur l'iPhone, et validé avant le suivant.
 | Lot du code | Reprend la maquette | État |
 |---|---|---|
 | 1 | la coque (les quatre onglets, les pages, le poste) et Trouver | validé le 17 novembre (« Continue ») |
-| 2 | Pistes, une piste, écrire par quatre canaux | en cours |
+| 2 | Pistes, une piste, écrire par quatre canaux | montré le 17 novembre, **en attente de son avis** |
 | 3 | Réseau | à faire |
 | 4 | Moi | à faire |
 | 5 | les états : premier jour, vide, erreurs, hors ligne, verrou | à faire |
@@ -224,8 +224,12 @@ se réécrit pour la nouvelle interface, plus court.
 | `ecrans/annuaire.js` | `chercheur()` : une question à l'annuaire, ses pages, ses refus (repris de `ui/decouvrir.js`) | |
 | `ecrans/carte.js` | ce que Wikidata, le BODACC, Wikipédia, Egapro disent d'une entreprise ; relire une piste par son SIREN | |
 | `ecrans/trouver.js` | l'onglet Trouver et la page d'une entreprise | |
-| `ecrans/bientot.js` | Pistes, Réseau et Moi en attendant leurs lots | disparaît |
+| `ecrans/pistes.js` | Pistes, la page d'une piste, écrire par quatre canaux, la feuille d'un contact | |
+| `ecrans/zone-visible.js` | le clavier d'iOS ne couvre rien (repris de `ui/zone-visible.js`) | |
+| `ecrans/bientot.js` | Réseau et Moi en attendant leurs lots | disparaît |
 | `engine/formations.js` | les formations de « Tu étudies » et leur métier (testé par `?test`) | reste |
+| `engine/suite.js` | la suite d'une piste (sa phrase, son geste, son rang dans « À faire »), le canal, les gestes qui écrivent l'historique | reste |
+| `engine/contrat.js` | du « oui » au contrat, repris de `claude/refonte-arc` avec ses tests | reste |
 
 - **La nouvelle n'importe rien de `ui/`.** Ce qu'elle reprend y est
   recopié puis adapté ; l'app actuelle ne bouge pas.
@@ -242,8 +246,18 @@ se réécrit pour la nouvelle interface, plus court.
   ouverte. Chaque onglet garde sa pile ; re-taper l'onglet revient à
   sa racine. Au poste, il n'y a pas de pile : la page s'ouvre à droite.
 - **Un geste** : `data-a` et `data-id`, comme dans la maquette. La
-  coque prend les siens (`onglet`, `retour`, `annuler`), puis la page,
-  puis l'onglet.
+  coque prend les siens (`onglet`, `retour`, `annuler`), puis la feuille
+  ouverte, puis la page, puis l'onglet.
+- **Une feuille** (une question courte) : `ouvrirFeuille({ titre,
+  rendre, geste, focus })`. Elle a son entrée d'historique : le retour
+  la ferme, Échap aussi, la tabulation reste dedans, la main revient
+  d'où elle venait. Une feuille qui se ferme rend son entrée une
+  micro-tâche plus tard ; ce qui s'ouvre dans le même élan la reprend
+  (`poserEntree`), et nos propres retours se comptent.
+- **L'historique d'une piste est un contrat** entre `phraseEnvoi` (qui
+  l'écrit) et `dernierEvenement` (qui le relit) : « Écrit à Claire
+  Durand, par mail », « Réponse : un entretien le … », « Merci envoyé
+  … ». Changer une phrase, c'est changer les deux, et `tests.js`.
 
 ### Vérifier
 
@@ -252,7 +266,9 @@ se réécrit pour la nouvelle interface, plus court.
   sombre), sur un annuaire fictif dans son format réel
   (`tests/refonte/annuaire-fictif.mjs`). Finit par « ÉCHECS 0 ·
   ERREURS 0 ». Puis **regarder les captures**.
-- Restent verts : `node tests/e2e/unitaires.mjs` (`?test`, 285 tests),
+- `node tests/refonte/jouer-lot2.mjs` : Pistes de bout en bout, ce qui
+  sortirait de l'app (Mail, LinkedIn, l'agenda) intercepté.
+- Restent verts : `node tests/e2e/unitaires.mjs` (`?test`, 291 tests),
   `e2e-pages-sw.mjs` (la page d'essai est servie elle-même, pas l'app),
   `e2e-decouvrir.mjs`, `e2e-classement.mjs`, `e2e-sobriete.mjs`.
 - Les planches : `OC_AVANT=<captures de l'app actuelle> node
@@ -288,6 +304,25 @@ doit y entrer. La page d'essai n'enregistre pas de service worker.
 - Un nom tapé se cherche dans toute la France ; un métier, autour de ta
   ville. La distance se lit toujours depuis ta ville.
 
+### Décisions prises en codant le lot 2 (montrées avec lui)
+
+- Les messages de départ se disent sans genre : la relance (« J'ai
+  toujours très envie de vous rejoindre », objet « Ma candidature chez
+  … ») et le merci (la signature commune). Un modèle jamais retouché
+  passe à la nouvelle version, un modèle retouché jamais. `{{date}}`
+  dit le jour de la candidature (« du 10 novembre »).
+- Le contrat d'après un « oui » vit dans un champ privé de la piste,
+  `suite` (CONTRAT.md §3) : jamais dans un partage.
+- « Laisser tomber » reste sur la page (« Rangée. », « Rouvrir ») ;
+  « Annuler » trente secondes, comme pour « C'est non », « C'est oui »,
+  « Ranger » et le glissé.
+- Un entretien au-delà de six jours : « Un autre jour », une date qui
+  se VALIDE par « OK » (la roue d'iOS change en route).
+- Les brouillons et « C'est parti ? » survivent à un aller-retour dans
+  l'app Mail : `sessionStorage`, le temps de l'onglet.
+- Attendent leur lot : « Demander à un ami » (rang 3 de la suite, lot 3),
+  Ctrl ↵ pour envoyer (lot 6, la touche ne s'annonce pas avant).
+
 ### Pièges déjà payés (le code)
 
 - `innerText` rend les majuscules que le CSS impose (`text-transform`) :
@@ -305,3 +340,11 @@ doit y entrer. La page d'essai n'enregistre pas de service worker.
   vérification de sécurité : passer par un script écrit dans un fichier.
 - `engine/requete.js` est précaché par l'app actuelle : un module qu'il
   importe entre dans `PRECACHE` (`sw.js`), et `CACHE` monte d'un cran.
+  Même chose pour `engine/model.js`, qui importe `contrat.js`.
+- Deux fonctions du même nom dans un module : la seconde efface la
+  première sans rien dire (`geste`, devenue `gesteDe`).
+- Une espace insécable peut être écrite telle quelle dans un fichier :
+  un script qui cherche « \u00a0 » ne la trouve pas.
+- Pour jouer un envoi, un scénario intercepte les liens `mailto:`,
+  `tel:` et `target="_blank"`, et `window.open` : rien ne part, tout se
+  note.

@@ -620,3 +620,26 @@ branchée sur le vrai annuaire et le vrai stockage. Elle vit dans sa page
 
 Non vérifié : WebKit (iPhone), d'où le lien pour l'essayer. Pas encore
 là, exprès : le service worker, la sync, le verrou (lots suivants).
+
+### Code, lot 2 : Pistes, une piste, écrire (17 novembre 2026)
+
+La maquette du lot 2 devenue l'app. Montré, en attente de son avis.
+
+- **Pistes** : « À faire » en tête, trois lignes au plus, un bouton
+  chacune (le merci, la relance, écrire) ; les étapes ; le pire jour se
+  range d'un geste ; une barre à partir de dix pistes ; supprimer au
+  glissé, avec « Annuler ».
+- **Une piste** : la suite (une phrase, un seul bouton rempli), « Il
+  s'est passé quelque chose ? » (un entretien et son jour, un refus,
+  « Ils me prennent » et les étapes du contrat), les gens (le dirigeant
+  de l'annuaire proposé d'un tap), l'entreprise, l'historique, les notes
+  sans bouton, « Laisser tomber ».
+- **Écrire** : le mail, le mot LinkedIn, l'appel et ses trois phrases,
+  le texte d'un formulaire. Rien ne part avec un crochet. Au retour :
+  « C'est parti ? », puis le rappel dans l'agenda et « Suivante ».
+- **Au poste** : la liste, la piste et le message côte à côte, ↑ ↓.
+- **Les messages de départ se disent sans genre**, dans le moteur : la
+  relance et le merci (un modèle déjà retouché ne bouge pas).
+
+Non vérifié : WebKit (iPhone), d'où le lien. Pas encore là : demander à
+un ami (lot 3), Ctrl ↵ (lot 6).
