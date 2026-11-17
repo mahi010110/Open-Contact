@@ -2,7 +2,7 @@
 
 *Pour l'assistant qui reprend la refonte dans une nouvelle discussion.
 Mise à jour à chaque lot, en même temps que le journal du brief.
-Dernière mise à jour : 17 novembre 2026, lot 6 montré.*
+Dernière mise à jour : 17 novembre 2026, lot 6 validé, phase 2 commencée.*
 
 Le premier message à donner à une nouvelle discussion :
 
@@ -22,11 +22,10 @@ par le mainteneur avant le suivant (`docs/brief-refonte.md` §9).
 | 3 | Réseau : la classe, les amis, les demandes, donner, recevoir | validé le 17 novembre (« Go ») |
 | 4 | Moi : profil, documents, messages types, copie, réglages | validé le 17 novembre (« Super ») |
 | 5 | le premier jour, les états vides, les erreurs, le hors ligne, l'écran verrouillé | validé le 17 novembre (« Continue ») |
-| 6 | le poste, un établi : coller une offre, le clavier, déposer ; « Depuis mes e-mails » et le bac | montré le 17 novembre, **en attente de son avis** |
+| 6 | le poste, un établi : coller une offre, le clavier, déposer ; « Depuis mes e-mails » et le bac | validé le 17 novembre (« commence ! ») |
 
-**Phase 2, le code** : seulement quand toutes les maquettes sont validées
-(`docs/brief-refonte.md` §9 et §10). Le lot 6 est le dernier : validé,
-la phase 1 est finie.
+**La phase 1 est finie** : les six lots sont validés. **Phase 2, le
+code** : commencée le 17 novembre (« commence ! »), voir §8.
 
 - **La maquette** : `design/maquettes/app/index.html`. Elle est publiée,
   privée, pour le mainteneur : https://claude.ai/artifact/N8vGKspC37MQYTZEPg1gJZ.
@@ -182,3 +181,33 @@ Pièges déjà payés :
 - **À vérifier avant le code** : la longueur d'un mot d'invitation
   LinkedIn (200 caractères annoncés, pas lu sur l'aide de LinkedIn) et le
   nombre d'invitations avec un mot par mois ; WebKit sur chaque lot.
+
+## 8. La phase 2, le code
+
+Commencée le 17 novembre 2026. La méthode reste celle des maquettes
+(`docs/brief-refonte.md` §9) : le moteur d'abord, avec ses tests ; puis
+un lot d'écrans à la fois, dans l'ordre des maquettes, montré en images
+(avant : l'app actuelle ; après : la nouvelle, pour de vrai) avec un
+lien pour l'essayer sur l'iPhone, et validé avant le suivant.
+
+| Lot du code | Reprend la maquette | État |
+|---|---|---|
+| 1 | la coque (les quatre onglets, les pages, les feuilles, le poste) et Trouver | en cours |
+| 2 | Pistes, une piste, écrire par quatre canaux | à faire |
+| 3 | Réseau | à faire |
+| 4 | Moi | à faire |
+| 5 | les états : premier jour, vide, erreurs, hors ligne, verrou | à faire |
+| 6 | le poste, un établi | à faire |
+
+**La nouvelle interface grandit à côté de l'ancienne**, sans la toucher.
+L'app actuelle (`index.html`, `app.js`, `ui/`, `styles/app.css`) reste
+entière sur la branche jusqu'à la bascule : ses scénarios restent verts
+et servent de filet. La nouvelle vit dans sa page et son dossier, et
+n'importe rien de `ui/` : ce qu'elle reprend (l'état, le clavier
+d'iOS…) y est recopié puis adapté.
+
+**La bascule** se fait une fois, le jour où le mainteneur le décide : la
+nouvelle page devient `index.html`, son dossier devient `ui/`, l'ancien
+part ; les scénarios e2e sont portés ou retirés dans une liste nommée,
+aucun ne reste rouge ; `sw.js` (`CACHE`, `PRECACHE`) suit ; `CLAUDE.md`
+se réécrit pour la nouvelle interface, plus court.

@@ -80,6 +80,6 @@ n'a pas été montré au mainteneur.
 Aucune clé de stockage ne bouge, aucun module du moteur n'est retiré.
 Les capacités marquées `PC` ou `⏸` restent masquées, comme aujourd'hui.
 
-*Validé par le mainteneur :* les places des lots 1 à 5 (17 novembre 2026).
-*Tranché par l'assistant, à valider :* les places du lot 6, et la liste
-de ce qui quitte l'écran.
+*Validé par le mainteneur :* les places des lots 1 à 6 (17 novembre 2026).
+*Tranché par l'assistant, à valider :* la liste de ce qui quitte
+l'écran, à lui montrer en entier avant la bascule.

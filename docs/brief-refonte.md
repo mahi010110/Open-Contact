@@ -555,9 +555,10 @@ Non vérifié : WebKit (iPhone). Dans la maquette, rien ne part.
 
 ### Lot 6 : le poste, un établi (17 novembre 2026)
 
-Montré, en attente de son avis. L'idée du §5 (« coller un lien ou une
-annonce pour en faire une piste », « le clavier d'abord ») prend des
-places qui existent : la barre de Trouver, la barre d'état, les boutons.
+**Validé** le 17 novembre (« commence ! »), ce qui ferme la phase 1.
+L'idée du §5 (« coller un lien ou une annonce pour en faire une
+piste », « le clavier d'abord ») prend des places qui existent : la
+barre de Trouver, la barre d'état, les boutons.
 
 - **Coller une offre** : au téléphone dans la barre de Trouver, à
   l'ordinateur n'importe où (Ctrl V). L'app y lit l'entreprise (qui va
