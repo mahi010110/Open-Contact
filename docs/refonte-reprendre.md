@@ -2,7 +2,7 @@
 
 *Pour l'assistant qui reprend la refonte dans une nouvelle discussion.
 Mise à jour à chaque lot, en même temps que le journal du brief.
-Dernière mise à jour : 17 novembre 2026, lot 4 validé.*
+Dernière mise à jour : 17 novembre 2026, lot 5 montré.*
 
 Le premier message à donner à une nouvelle discussion :
 
@@ -21,8 +21,8 @@ par le mainteneur avant le suivant (`docs/brief-refonte.md` §9).
 | 2 | Pistes, la page d'une piste, écrire par quatre canaux | validé le 17 novembre (« Super ») |
 | 3 | Réseau : la classe, les amis, les demandes, donner, recevoir | validé le 17 novembre (« Go ») |
 | 4 | Moi : profil, documents, messages types, copie, réglages | validé le 17 novembre (« Super ») |
-| 5 | le premier jour, les états vides, les erreurs, le hors ligne, l'écran verrouillé | **le prochain** |
-| 6 | le poste, pensé comme un établi | à faire |
+| 5 | le premier jour, les états vides, les erreurs, le hors ligne, l'écran verrouillé | montré le 17 novembre, **en attente de son avis** |
+| 6 | le poste, pensé comme un établi | le prochain, après son avis sur le lot 5 |
 
 **Phase 2, le code** : seulement quand toutes les maquettes sont validées
 (`docs/brief-refonte.md` §9 et §10).
@@ -106,7 +106,7 @@ par le mainteneur avant le suivant (`docs/brief-refonte.md` §9).
 
 `design/maquettes/app/outils/` (voir son `README.md`) :
 
-- `node design/maquettes/app/outils/jouer-lot4.mjs` (et lots 1 à 3) :
+- `node design/maquettes/app/outils/jouer-lot5.mjs` (et lots 1 à 4) :
   rejoue les gestes d'un lot au téléphone et au poste, écrit ses
   captures, finit par « ERREURS 0 ». **Les quatre se relancent après
   chaque changement** : un lot peut en casser un autre.
@@ -127,7 +127,12 @@ Pièges déjà payés :
   quand un lot change ces défauts (au jour 8, le poste s'ouvre sur Moi) ;
 - éditer `index.html` par de petits scripts Python écrits dans un
   fichier : une vérification de sécurité bloque les here-docs qui
-  contiennent `$$`.
+  contiennent `$$` ;
+- la régie doit rester au-dessus de tout (`z-index:40`) : sinon une
+  feuille ouverte passe devant son menu ;
+- le menu « ⋯ » de la régie provoque ce qu'aucun geste ne provoque :
+  arriver par un lien de Karim, l'annuaire en panne, verrouiller l'app
+  (code 123456).
 
 ## 6. Montrer
 
@@ -135,7 +140,7 @@ Pièges déjà payés :
    `OC_AUDIT_POSTE=1 node tests/e2e/audit-captures.mjs`, qui les écrit
    dans `tests/e2e/captures/audit/chromium/` (`14-moi--390.png`,
    `14-moi--1280.png`…).
-2. Les planches : copier `outils/planches-lot4.mjs` pour le lot suivant ;
+2. Les planches : copier `outils/planches-lot5.mjs` pour le lot suivant ;
    `planche()` pose l'avant au-dessus de l'après.
 3. Publier la maquette à son adresse (§1), envoyer les planches, huit
    lignes, la question.
@@ -144,11 +149,6 @@ Pièges déjà payés :
 
 ## 7. Ce qui reste
 
-- **Lot 5** : le premier jour (y compris arriver par quelqu'un, l'idée
-  « Karim te donne 3 pistes » du brief §5), l'état vide de chaque onglet,
-  les erreurs (annuaire en panne, fichier illisible, code faux), le hors
-  ligne de chaque onglet, l'écran verrouillé (le code, « Code oublié ? »
-  vers la phrase de secours ou l'effacement).
 - **Lot 6** : le poste comme un établi (le clavier d'abord ; coller un
   lien ou une annonce pour en faire une piste).
 - **Pas encore dessinés** : le bac « à rattacher » et « Depuis mes

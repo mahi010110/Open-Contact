@@ -108,8 +108,10 @@ const nPistes = p => p.evaluate(() => { const b = document.querySelector('#tel .
   verifie('la ligne dit « automatique »', (await p.textContent(T + '[data-a="m-theme-f"]')).includes('automatique'));
   await p.click(T + '[data-a="m-suivre-f"]'); await p.waitForTimeout(150); await p.click(T + '[data-a="m-suivre"][data-v="false"]'); await p.click(T + '.sheet [data-a="fermer"]');
   verifie('demandes gardées', (await p.textContent(T + '[data-a="m-suivre-f"]')).includes('gardées'));
-  await p.click(T + '[data-a="m-code"]'); await p.waitForTimeout(150); await p.fill(T + '.m-code1', '123456'); await p.fill(T + '.m-code2', '123465'); await p.click(T + '[data-a="m-code-ok"]'); await shot('19-code-erreur');
-  await p.fill(T + '.m-code2', '123456'); await p.click(T + '[data-a="m-code-ok"]'); await shot('20-code-ok');
+  /* le code se choisit au pavé (lot 5) : deux fois le même, la phrase existe déjà */
+  const taper = async code => { for (const c of code) await p.click(T + `[data-a="c-chiffre"][data-v="${c}"]`); };
+  await p.click(T + '[data-a="m-code"]'); await p.waitForTimeout(150); await taper('123456'); await taper('123465'); await shot('19-code-erreur');
+  await taper('123456'); await taper('123456'); await shot('20-code-ok');
   verifie('« protégé », sans toast', (await p.textContent(T + '[data-a="m-code"]')).includes('protégé') && !(await annule(p)));
   await p.click(T + '[data-a="m-installer"]'); await p.waitForTimeout(150); await shot('21-installer'); await p.click(T + '.sheet [data-a="fermer"]');
   await p.click(T + '[data-a="m-aide-page"]'); await shot('22-aide'); await p.click(T + '[data-a="retour"]');

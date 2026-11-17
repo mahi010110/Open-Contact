@@ -55,7 +55,10 @@ n'a pas été montré au mainteneur.
 | « J'y suis passé » | La page d'une piste ; Moi › Mon profil › Mon parcours | 2, 4 |
 | Thème, installer l'app, effacer cet appareil, aide et confidentialité, diagnostic | Moi › Réglages : chaque ligne dit son état et ouvre ses choix | 4 |
 | « Demandes de mes amis » (les faire suivre ou non) | Moi › Réglages | 4 |
-| L'écran verrouillé, le premier jour, le hors ligne, les erreurs | Leurs propres maquettes | 5 |
+| L'écran verrouillé | Plein écran au téléphone, une fenêtre au poste : le pavé de chiffres, « Code oublié ? » vers la phrase de secours ou l'effacement. Le code se choisit au même pavé dans Moi › Réglages, qui offre aussi « Verrouiller maintenant » | 5 |
+| Le premier jour, « J'ai déjà OpenContact » | Les trois questions de Trouver ; dessous, « J'ai déjà OpenContact » : la phrase de secours, un fichier ou l'autre appareil, puis l'aperçu et « Tout ramener ». Le lien d'un ami ouvre l'aperçu de ses pistes | 5 |
+| Le hors ligne | Chaque écran dit ce qui attend le réseau, là où on le cherche : Trouver cherche dans tes pistes, un message ou une demande « partira », un mot pour LinkedIn se copie. Au poste, la barre d'état dit « Hors ligne » | 5 |
+| Les erreurs | Sous ce qui les cause, la saisie gardée : un fichier qui n'est pas une copie, un mot de la phrase, un code faux (cinq essais, puis une attente), l'annuaire en panne avec « Réessayer » | 5 |
 | Le tableau à trois colonnes, les raccourcis clavier | Le poste, pensé comme un établi | 6 |
 
 ## Ce qui quitte l'écran
@@ -66,6 +69,7 @@ n'a pas été montré au mainteneur.
 | Le bouton « + » et la feuille « Nouvelle piste » | La barre de Trouver fait la même chose : un nom tapé devient une piste. Une entrée au lieu de deux |
 | Les feuilles empilées (fiche sur liste, feuille sur fiche) | Une entreprise et une piste sont des pages. Les feuilles restent pour une question courte |
 | L'onglet de texte « Mes pistes · À découvrir » | Deux onglets fixes le remplacent : Pistes et Trouver |
+| « Voir un exemple », le premier jour | Trouver montre de vraies entreprises dès la première minute : l'exemple n'a plus d'objet |
 | La marque « nouveau » sur une entreprise | Elle ne marque presque jamais rien. Le moteur garde `oc_vus_v1` ; elle revient si une liste change vraiment |
 
 Aucune clé de stockage ne bouge, aucun module du moteur n'est retiré.

@@ -512,3 +512,43 @@ mail se replie au lieu de se couper (« — Inès Martin » était caché), et
 
 Non vérifié : WebKit (iPhone). Dans la maquette, rien ne part : la copie,
 la phrase, le lien entre appareils et l'effacement sont simulés.
+
+### Lot 5 : les états (17 novembre 2026)
+
+Montré, en attente de son avis. Rien de neuf à apprendre : chaque état
+reprend un geste qui existe déjà.
+
+- **Le premier jour** : les trois questions de Trouver, et dessous
+  « J'ai déjà OpenContact » (le mot de l'app actuelle) : la phrase de
+  secours, un fichier ou l'autre appareil, puis l'aperçu de ce qui
+  revient et « Tout ramener », avec « Annuler ».
+- **Arriver par quelqu'un** (l'idée du §5) : le lien de Karim ouvre
+  « Karim te donne 3 pistes », chacune avec la personne à qui écrire ;
+  « Ajouter les 3 pistes », et « À faire » propose d'écrire.
+- **Le hors ligne** : chaque écran dit ce qui attend, là où on le
+  cherche. Trouver cherche dans tes pistes ; un message reste « pas
+  encore parti » et Réseau le compte ; une demande « partira » ; un mot
+  pour LinkedIn se copie ; la phrase de secours dit que sa copie
+  partira. Au poste, la barre d'état dit « Hors ligne ».
+- **Les erreurs** se disent sous ce qui les cause, la saisie gardée : un
+  fichier qui n'est pas une copie, le mot de la phrase qui cloche, un
+  code faux (cinq essais, puis une attente), l'annuaire en panne avec
+  « Réessayer ».
+- **Verrouillé** : le pavé de l'app actuelle, sous le pouce au
+  téléphone, en fenêtre au poste où le clavier suffit. « Code oublié ? »
+  mène à la phrase de secours, puis à un nouveau code, ou à
+  l'effacement. Le code se choisit au même pavé, en deux étapes, plus la
+  phrase si elle n'existe pas encore ; « Verrouiller maintenant » est
+  dans Moi › Réglages.
+- **La fin de séance** (l'idée du §5) : quand rien n'attend, « À faire »
+  dit « C'est tout pour aujourd'hui. ».
+- **Au poste**, une liste vide n'ouvre plus deux colonnes vides.
+
+La régie a un menu « ⋯ » pour ce qu'aucun geste ne provoque dans une
+maquette : arriver par un lien, l'annuaire en panne, verrouiller.
+
+Retouches des lots validés, sans changer leur dessin : le choix du code
+du lot 4 passe au pavé ; une phrase forte est en gras partout ; « écrit
+il y a 1 jour » devient « écrit hier ».
+
+Non vérifié : WebKit (iPhone). Dans la maquette, rien ne part.
