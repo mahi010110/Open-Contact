@@ -385,7 +385,7 @@ Des idées montrées, jugées bonnes, et gardées pour après la refonte.
 
 ### Lot 2 : Pistes, une piste, écrire (17 novembre 2026)
 
-Montré, en attente de son avis. La maquette validée est gardée telle
+**Validé** le 17 novembre (« Super »). La maquette validée est gardée telle
 quelle : « À faire » en tête, les pistes par étape, la page d'une piste
 (la suite, « Il s'est passé quelque chose ? », les gens, l'entreprise,
 l'historique, mes notes). Ce qui s'ajoute, pour que chaque piste mène à
@@ -431,3 +431,43 @@ quelque chose.
 (200 caractères sur un compte gratuit selon plusieurs sources, pas lu sur
 l'aide de LinkedIn) et le nombre d'invitations avec un mot par mois (trois
 à cinq selon les sources). Non vérifié : WebKit (iPhone).
+
+### Lot 3 : Réseau (17 novembre 2026)
+
+Montré, en attente de son avis. L'écran Réseau validé est gardé (les
+conversations, « Mes amis » et ce qu'ils ouvrent, Donner · Recevoir en
+bas). Ce qui s'ajoute, pour que le réseau mène à un geste :
+
+- **« Mes demandes » en tête**, chacune suivie comme un colis : trois
+  cases (Envoyée, Trouvée, Reçu), pleines, à moitié ou vides. Le contact
+  reçu s'ajoute aux pistes d'un tap, et son premier message commence par
+  « Karim m'a conseillé de vous écrire. ». « Demander quelqu'un » : un
+  métier et la ville, ou une piste sans contact ; la phrase exacte et ses
+  destinataires se lisent avant d'envoyer. Une demande faite depuis une
+  piste (lot 2) arrive ici.
+- **Une conversation** prend l'écran (la barre d'onglets s'efface). Le
+  groupe : ses membres en tête, « Les messages s'effacent au bout de
+  7 jours », les pistes données (« Voir » ouvre l'aperçu), une demande
+  d'un camarade (« Répondre » : je connais quelqu'un, faire suivre à mes
+  amis, masquer ; la réponse ne passe jamais par le groupe). On écrit en
+  bas ; le champ reste en main après l'envoi.
+- **Un ami** : ce qu'il t'ouvre, chaque entreprise avec « Garder » ou
+  « Voir la piste » ; « Écrire à Karim » ; « Retirer de mes amis » en
+  rouge, en dernier, avec « Annuler ». Ce qu'un ami ouvre se lit aussi sur
+  la piste (Sofia ajoutée apparaît sur Kiabi).
+- **Donner** : les pistes, toutes cochées, puis le canal comme pour
+  écrire (groupe, QR, fichier, texte) et le geste en bas. Une phrase dit
+  ce qui part et ce qui reste (le suivi et les notes ne partent jamais).
+- **Recevoir** : QR, fichier ou texte, puis toujours l'aperçu (nouvelle,
+  déjà dans tes pistes) et « Annuler ».
+- **Le jour 1** : « Rejoindre ma classe » (le code, ou le QR ; le groupe
+  ne voit que le prénom), ou créer le groupe et « Envoyer l'invitation »
+  là où la classe se parle, Discord compris. « Ajouter un ami » : son QR,
+  « Scanner le sien », et l'aperçu (« Sofia aura aussi ton profil. »).
+- **Le calme** : aucun chiffre ; l'onglet Réseau change de couleur quand
+  quelque chose attend, et son nom le dit (« Réseau, du nouveau »).
+- **Au poste** : les gens à gauche, ce qu'on ouvre à droite, et la
+  conversation en fenêtre, comme le mainteneur l'avait choisi en 8.1.
+
+Non vérifié : WebKit (iPhone). Dans la maquette, rien ne part ; le QR et
+le scan sont simulés.

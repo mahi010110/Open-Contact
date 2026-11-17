@@ -33,12 +33,12 @@ n'a pas été montré au mainteneur.
 | Bac « à rattacher » | Pistes, en bas, seulement s'il contient quelque chose (pas encore dessiné) | 2 |
 | « Depuis mes e-mails » | Pistes, en bas, à côté du bac (pas encore dessiné) | 2 |
 | Supprimer une piste, la clore | Au glissé dans Pistes, avec « Annuler » ; « C'est non » et « Laisser tomber cette piste » sur sa page ; « Rouvrir » une piste terminée | 2 |
-| Donner et recevoir (QR, fichier `.oc`, coller) | **Réseau** : Donner · Recevoir | 3 |
-| Les groupes | Réseau : une conversation parmi les autres ; « Groupe » pour ses réglages | 3 |
-| Amis, « Mes amis », s'écrire | Réseau. Ce qu'un ami ouvre se lit aussi sur la ligne et la page d'une entreprise, et sur la piste | 1, 2, 3 |
+| Donner et recevoir (QR, fichier `.oc`, coller) | **Réseau** : Donner (les pistes, puis groupe, QR, fichier ou texte) · Recevoir (QR, fichier, texte, puis l'aperçu et « Annuler ») | 3 |
+| Les groupes | Réseau : une conversation parmi les autres ; la ligne des membres ouvre « Groupe » (Inviter, membres, Quitter) ; « Rejoindre ma classe » ou « Nouveau groupe » ferme la liste | 3 |
+| Amis, « Mes amis », s'écrire | Réseau : la page d'un ami (ce qu'il t'ouvre, « Écrire à … », « Retirer ») ; « Ajouter un ami » ferme la liste (son QR, « Scanner le sien »). Ce qu'un ami ouvre se lit aussi dans Trouver et sur la piste | 1, 2, 3 |
 | « Je peux aider » ; « Décroché » qui propose d'aider | Moi ; la clôture « Signé » d'une piste | 4, 2 |
-| Demander à ses amis et à ses groupes ; la suivre comme un colis ; présenter | « Les gens » d'une piste pour demander ; Réseau, « Mes demandes », pour suivre | 2, 3 |
-| Demander un métier et une ville | Réseau, « Demander » | 3 |
+| Demander à ses amis et à ses groupes ; la suivre comme un colis ; présenter | « Les gens » d'une piste pour demander ; Réseau, « Mes demandes » en tête, pour suivre et ajouter le contact reçu ; « Répondre » sur la demande d'un camarade | 2, 3 |
+| Demander un métier et une ville | Réseau, « Demander quelqu'un » : un métier et la ville, ou une piste sans contact | 3 |
 | Sync entre mes appareils | Moi › Mes appareils | 4 |
 | La phrase de secours | Moi › Ma copie | 4 |
 | CV et lettres, modèles d'e-mails | Moi | 4 |
@@ -70,6 +70,6 @@ n'a pas été montré au mainteneur.
 Aucune clé de stockage ne bouge, aucun module du moteur n'est retiré.
 Les capacités marquées `PC` ou `⏸` restent masquées, comme aujourd'hui.
 
-*Validé par le mainteneur :* les places du lot 1 (17 novembre 2026).
+*Validé par le mainteneur :* les places des lots 1 et 2 (17 novembre 2026).
 *Tranché par l'assistant, à valider :* les places des lots suivants, et
 la liste de ce qui quitte l'écran.

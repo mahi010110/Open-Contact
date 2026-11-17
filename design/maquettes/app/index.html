@@ -6,7 +6,7 @@
   Elle PROLONGE la proposition validée de design/maquettes/directions/ : ce qui a été
   validé là-bas se reprend tel quel, un lot n'y ajoute que ce qui manque et qui sert.
   LOT 1 : Trouver, et la page d'une entreprise. LOT 2 : Pistes, une piste, écrire par quatre canaux.
-  Réseau et Moi attendent les lots 3 et 4.
+  LOT 3 : Réseau, les conversations, les amis, les demandes, donner et recevoir. Moi attend le lot 4.
   Une MAQUETTE : rien ici n'est chargé par l'application, et tests/e2e n'y touche pas.
   Le fichier est le contenu d'une page (sans <html> ni <body>) : il se publie tel quel.
   Le matériel vient de styles/tokens/ (couleurs, reliefs, polices) et d'assets/icons/.
@@ -26,7 +26,7 @@
   --bevel-up:inset 1px 1px 0 rgba(255,255,255,.7), inset -1px -1px 0 rgba(29,36,44,.14);
   --bevel-down:inset 1px 1px 0 rgba(29,36,44,.18), inset -1px -1px 0 rgba(255,255,255,.5);
   --sh2:2px 2px 0 0 rgba(29,36,44,.18); --sh4:4px 4px 0 0 rgba(29,36,44,.16);
-  --trame-c:rgba(29,36,44,.14); --voile:rgba(29,36,44,.30);
+  --trame-c:rgba(29,36,44,.14); --voile:rgba(29,36,44,.30); --rouge:#A3302A; --qr-fond:#FFFFFF; --qr-encre:#000000;
   --ui:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
   --mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace;
   --pixel:'Silkscreen','IBM Plex Mono',ui-monospace,monospace;
@@ -42,7 +42,7 @@
   --bevel-up:inset 1px 1px 0 rgba(255,255,255,.10), inset -1px -1px 0 rgba(0,0,0,.45);
   --bevel-down:inset 1px 1px 0 rgba(0,0,0,.5), inset -1px -1px 0 rgba(255,255,255,.08);
   --sh2:2px 2px 0 0 rgba(0,0,0,.5); --sh4:4px 4px 0 0 rgba(0,0,0,.55);
-  --trame-c:rgba(233,236,239,.10); --voile:rgba(0,0,0,.55);
+  --trame-c:rgba(233,236,239,.10); --voile:rgba(0,0,0,.55); --rouge:#F08A80;
   color-scheme:dark } }
 :root[data-theme="dark"]{
   --g0:#12151A; --g1:#1E232B; --g2:#262C35; --g3:#313947; --bureau:#15181D; --table:#0A0C0F;
@@ -54,7 +54,7 @@
   --bevel-up:inset 1px 1px 0 rgba(255,255,255,.10), inset -1px -1px 0 rgba(0,0,0,.45);
   --bevel-down:inset 1px 1px 0 rgba(0,0,0,.5), inset -1px -1px 0 rgba(255,255,255,.08);
   --sh2:2px 2px 0 0 rgba(0,0,0,.5); --sh4:4px 4px 0 0 rgba(0,0,0,.55);
-  --trame-c:rgba(233,236,239,.10); --voile:rgba(0,0,0,.55);
+  --trame-c:rgba(233,236,239,.10); --voile:rgba(0,0,0,.55); --rouge:#F08A80;
   color-scheme:dark }
 
 *,*::before,*::after{box-sizing:border-box}
@@ -412,11 +412,89 @@ details.term .rangs{border:0;border-top:1px dashed var(--doux)}
 .poste-in .zone.court{min-height:120px}
 .poste-in .fld input{font-size:14px}
 .poste-in .p-vide p b{display:block;color:var(--ink);margin-bottom:4px}
+/* ---------- lot 3 : Réseau ---------- */
+.rang.plus-r{width:100%;min-height:48px;padding:0 12px;border:0;border-top:1px dashed var(--doux);background:none;color:var(--teal);font:600 15px/1.2 var(--ui);justify-content:flex-start;gap:8px;cursor:pointer;text-align:left}
+.rangs>.rang.plus-r:first-child{border-top:0}
+.rang.plus-r .ic{width:18px;height:18px;color:var(--teal)}
+.rang.conv{cursor:pointer;align-items:center;min-height:56px}
+.rang.conv.nonlu b{font-weight:800}
+.rang.conv .r-c>span:not(.plus){font:400 14px/1.35 var(--ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rang.conv.nonlu .r-c span{color:var(--ink)}
+.pt{flex:none;width:8px;height:8px;background:var(--teal)}
+.colis{display:flex;gap:2px;flex:none}
+.colis i{position:relative;width:12px;height:14px;border:1px solid var(--bord);background:var(--g0);overflow:hidden}
+.colis i.p{background:var(--teal)}
+.colis i.m::after{content:"";position:absolute;left:0;top:0;bottom:0;width:50%;background:var(--teal)}
+.colis-g{display:flex;gap:8px;margin:16px 0 12px}
+.colis-e{flex:1;min-width:0}
+.colis-e b{display:block;margin-top:6px;font:600 14px/1.3 var(--ui)}
+.colis-e span{display:block;font:400 12px/1.35 var(--mono);color:var(--ink2)}
+.barre-c{height:16px;padding:2px;border:1px solid var(--bord);background:var(--g0);box-shadow:var(--bevel-down)}
+.barre-c i{display:block;height:100%;background:var(--teal)}
+.tel.plein .nav{display:none}
+.conv-t{display:flex;align-items:center;gap:10px;width:100%;min-height:52px;padding:6px 16px;border:0;border-bottom:1px solid var(--doux);background:var(--g1);color:var(--ink2);font:500 14px/1.3 var(--ui);text-align:left;cursor:pointer;flex:none}
+.conv-t span{flex:1;min-width:0}
+.conv-t .s-init{width:32px;height:32px;font-size:14px}
+.conv-t>.ic{width:18px;height:18px}
+.fil-d{background:var(--g1)}
+.fil-c{display:flex;flex-direction:column;gap:10px;padding:12px 14px 18px}
+.efface{margin:2px 0;text-align:center;font:400 12px/1.4 var(--mono);color:var(--ink2)}
+.jour-m{align-self:center;margin-top:4px;padding:2px 8px;border:1px solid var(--doux);font:500 11px/1.4 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink2)}
+.msg{display:flex;align-items:flex-start;gap:8px;max-width:90%}
+.msg>.visage{margin-top:2px}
+.b{min-width:0;padding:9px 12px;border:1px solid var(--bord);background:var(--g0);line-height:1.38;overflow-wrap:anywhere}
+.b .qui{display:block;margin-bottom:2px;font:500 11px/1.5 var(--mono);color:var(--ink2)}
+.b.moi{align-self:flex-end;max-width:82%;background:var(--teal-w);border-color:var(--teal)}
+.b .h{display:block;margin-top:2px;text-align:right;font:400 11px/1.4 var(--mono);color:var(--ink2)}
+.b.dem{border-color:var(--teal)}
+.b .dem-t{display:block;font-weight:600}
+.b .btn{margin-top:8px}
+.carte-don{display:flex;align-items:center;gap:8px;width:100%;min-height:44px;margin-top:8px;padding:0 10px;border:1px solid var(--bord);background:var(--g1);box-shadow:var(--bevel-up),var(--sh2);color:var(--ink);font:600 14px/1 var(--ui);cursor:pointer}
+.carte-don span{margin-left:auto;color:var(--teal);font-weight:600}
+.compo{display:flex;align-items:center;gap:8px;padding:8px 10px calc(8px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--bord);background:var(--g2);flex:none}
+.compo .champ{flex:1;min-width:0}
+.compo .icone{flex:none;width:var(--ctl);padding:0}
+.envoi{flex:none;display:grid;place-items:center;width:var(--ctl);height:var(--ctl);padding:0;border:1px solid var(--bord);background:var(--teal);color:var(--on-teal);box-shadow:var(--bevel-up),var(--sh2)}
+.ami-t{display:flex;align-items:center;gap:14px}
+.ami-t h4{margin:0}
+.visage.grand{width:56px;height:56px}
+.s-init.grand{width:56px;height:56px;font-size:20px}
+.btn.danger{color:var(--rouge);border-color:var(--rouge)}
+.qr-b{width:max-content;max-width:100%;margin:6px auto 12px;padding:12px;border:1px solid var(--bord);background:var(--qr-fond)}
+.qr-b svg{display:block;width:200px;height:200px;max-width:100%}
+.code-g{margin:0 0 10px;text-align:center;font:500 19px/1.3 var(--mono);letter-spacing:.06em}
+.code-n{margin:0 0 6px;text-align:center;font:700 18px/1.2 var(--ui)}
+.centre{display:flex;justify-content:center}
+.rangs .ck.pk{padding:11px 12px}
+.rangs>.ck.pk:last-child{border-bottom:0}
+button.rang.act{width:100%;border:0;border-bottom:1px dashed var(--doux);background:none;text-align:left;font:inherit;color:inherit}
+.rangs>button.rang.act:last-child{border-bottom:0}
+.nav button.attend{color:var(--teal)}
+.nav button.attend span::after{content:"";display:inline-block;width:7px;height:7px;margin-left:5px;background:var(--teal);vertical-align:1px}
+.sheet .seg{margin:0 0 14px}
+.sheet .puces{margin:0 0 6px}
+/* le poste */
+.p-corps{position:relative}
+.p-col.rc1{width:420px;background:var(--bureau)}
+.p-col.rc2{flex:1;background:var(--g1)}
+.r-fen{position:absolute;inset:0;z-index:4;pointer-events:none}
+.r-fen:empty{display:none}
+.rc2.sous-fen>.pied{visibility:hidden}
+.r-fen .conv-w{position:absolute;right:16px;top:12px;bottom:12px;width:460px;display:flex;flex-direction:column;pointer-events:auto}
+.r-fen .conv-w>.tb{min-height:30px}
+.r-fen .conv-w>.tb .x{margin-left:auto;width:28px;height:24px;border:1px solid var(--bord);background:var(--g2);color:var(--ink);box-shadow:var(--bevel-up);display:grid;place-items:center;padding:0}
+.r-fen .conv-w>.tb .x .ic{width:14px;height:14px}
+.r-fen .conv-w .defile{flex:1;min-height:0;overflow:auto}
+.poste-in .rc1 .s-et{padding:10px 12px 6px}
+.poste-in .rc1 .s-liste{margin:0 8px 10px}
+.poste-in .rc1 .s-tete{padding:14px 12px 4px}
+.poste-in .rc2 .s-page{padding:20px 28px;max-width:680px}
 
 @media (hover:hover){
   .btn:hover{filter:brightness(1.04)}
   .rang.ent:hover,.rang.l:hover,.rang.act:hover,.pers[role="button"]:hover,.ck:hover{background:var(--g1)}
   .rang.l.on:hover{background:var(--navy)}
+  .rang.conv:hover,.rang.plus-r:hover,.carte-don:hover,.conv-t:hover{background:var(--g1)}
   .poste-in .rang.ent.on:hover{background:var(--navy)}
   .puce:hover{background:var(--g2)} .puce.on:hover{background:var(--teal)}
 }
@@ -468,8 +546,8 @@ details.term .rangs{border:0;border-top:1px dashed var(--doux)}
 </svg>
 
 <header class="regie">
-  <h1>OpenContact, lot 2</h1>
-  <p>Pistes, la page d’une piste, et écrire. Tout se touche.</p>
+  <h1>OpenContact, lot 3</h1>
+  <p>Réseau : la classe, les amis, les demandes. Tout se touche.</p>
   <div class="bascule" role="group" aria-label="Moment">
     <button data-jour="1">Jour 1</button>
     <button data-jour="8">Jour 8</button>
@@ -485,23 +563,23 @@ details.term .rangs{border:0;border-top:1px dashed var(--doux)}
     <div class="notes">
       <h2>Ce qu’il y a dans ce lot</h2>
       <ol>
-        <li><b>« À faire » d’abord.</b> Trois choses au plus, chacune avec son bouton. Puis les pistes par étape.</li>
-        <li><b>La page d’une piste.</b> La suite en une phrase, puis « Il s’est passé quelque chose ? ».</li>
-        <li><b>Écrire, par mail, LinkedIn, appel ou leur site.</b> Le message est prêt, et le bon geste pour l’envoyer est en bas.</li>
-        <li><b>Du « oui » au contrat.</b> Les étapes qui restent, à cocher.</li>
+        <li><b>Réseau, tel que validé</b>, avec en tête « Mes demandes » : chacune suivie comme un colis.</li>
+        <li><b>Une conversation</b> : ta classe ou un ami. On s’y écrit, on y reçoit des pistes, on y répond à une demande.</li>
+        <li><b>Un ami</b> : ce qu’il t’ouvre, et « Garder » d’un tap.</li>
+        <li><b>Donner et recevoir</b> : tu choisis les pistes, puis le groupe, un QR, un fichier ou un texte. Toujours l’aperçu avant.</li>
       </ol>
       <div class="et">À essayer</div>
       <ul>
-        <li><b>Jour 8</b>, onglet Pistes : relance Septentrion Cloud, écris à Nord Infogérance, puis le merci de Hauts-de-France Télécom et « Ils me prennent ».</li>
-        <li><b>Mois 3</b> : le pire jour, vingt-cinq pistes. « Ranger » les muettes.</li>
-        <li><b>Jour 1</b> : garde une entreprise dans Trouver, puis « Préparer mon message ».</li>
+        <li><b>Jour 8</b>, Réseau : ouvre la demande reçue, « Ajouter à mes pistes », puis « Écrire à Julie ».</li>
+        <li>Ouvre BTS SIO Lille : « Voir » les pistes de Karim, puis réponds à Tom.</li>
+        <li><b>Jour 1</b>, Réseau : « Rejoindre ma classe ». « Scanner le QR » remplit le code.</li>
       </ul>
       <div class="et">Dans la maquette</div>
-      <ul><li>Rien ne part : Mail et l’appel sont simulés. « Copier » copie pour de vrai, LinkedIn et les sites s’ouvrent.</li><li>Réseau et Moi arrivent aux lots 3 et 4.</li></ul>
+      <ul><li>Rien ne part : les messages restent sur ce téléphone, le QR et le scan sont simulés.</li><li>Moi arrive au lot 4.</li></ul>
     </div>
   </div>
   <figure class="poste">
-    <figcaption>À l’ordinateur : la liste, la piste et le message côte à côte</figcaption>
+    <figcaption>À l’ordinateur : les gens à gauche, ce que tu ouvres à droite, la conversation en fenêtre</figcaption>
     <div class="poste-cadre"><div class="poste-in trame">
       <section class="win pw" id="poste" tabindex="-1">
         <div class="tb">OpenContact<span class="tb-d">local · sans serveur</span></div>
@@ -652,11 +730,12 @@ function app(root,poste){
   }
   function init(){
     var j=G.jour, plus=j!=='1';
-    S={onglet:poste&&plus?'pistes':'trouver',vue:poste&&plus?'pistes':'trouver',fiche:null,form:!plus,manque:false,charge:false,lot:1,sel:null,q:'',cherche:false,
+    S={onglet:poste&&plus?'reseau':'trouver',vue:poste&&plus?'reseau':'trouver',fiche:null,form:!plus,manque:false,charge:false,lot:1,sel:null,q:'',cherche:false,
        P:plus?{quoi:'alternance',formation:'BTS SIO SISR',ville:'Lille',rayon:15}:{quoi:null,formation:null,ville:'',rayon:15},
        pistes:{},ordre:[],deja:[],ecartes:[],neuves:0,amis:plus,nom:plus?'Inès Martin':null,
        pm:{},envoi:{},ecr:null,br:{},canalP:{},selP:null,qp:'',sheet:null,annule:null,ouv:{},vient:false};
     S.B=brouillonTrouver();
+    S.R=reseauInit(j); S.pile=[]; S.rid=null; S.rsel=null; S.convOuverte=null; S.don=null; S.prenom='';
     if(j==='8') init8();
     if(j==='90') init90();
     S.deja=S.ordre.slice();
@@ -664,7 +743,7 @@ function app(root,poste){
   }
 
   var complet=function(){return !!(S.P.quoi&&S.P.formation&&S.P.ville)};
-  var ami=function(id){return S.amis?ENT[id].ami:null};
+  var ami=function(id){ var r=null; ((S&&S.R)?S.R.amis:[]).forEach(function(a){ a.ouvre.forEach(function(o){ if(!r&&o.e===id) r={p:a.p,q:o.q}; }); }); return r; };
   var colle=function(id){var f=FORMATIONS[S.P.formation];return !!f&&ENT[id].m.some(function(x){return f.m.indexOf(x)>=0})};
   var lieu=function(e){return e.v?e.v+(e.km!=null?' · '+e.km+' km':''):''};
   var prenom=function(q){return String(q||'').split(' ')[0]};
@@ -756,7 +835,7 @@ function app(root,poste){
         +'<a class="lien" href="https://www.linkedin.com/search/results/people/?keywords='+encodeURIComponent(e.n+' recrutement')+'" target="_blank" rel="noopener noreferrer">Trouver qui recrute sur LinkedIn'+ic('external-link')+'</a>';
     return '<div class="s-page"><h4>'+esc(e.n)+'</h4><div class="lieu">'+esc(lieu(e)||'Ajoutée à la main')+'</div>'
       +(e.al?'<div class="alerte">'+ic('square-alert')+esc(e.al)+'</div>':'')
-      +(a?'<div class="porte"><svg class="visage"><use href="#i-visage-'+a.v+'"/></svg>'+a.p+' '+a.q+'</div>':'')
+      +(a?'<div class="porte">'+visageSVG(a.p)+''+a.p+' '+a.q+'</div>':'')
       +(e.main?'<div class="panneau" style="margin:16px 0 0"><p><b>Pas dans l’annuaire.</b>Tu pourras la compléter depuis sa piste.</p></div>':'')
       +'<div class="pg-corps"><div>'+faitsEnt(id)+'</div>'
       +'<div>'+(qui?'<fieldset class="gb"><legend>À qui écrire</legend>'+qui+'</fieldset>':'')
@@ -789,9 +868,9 @@ function app(root,poste){
       var n=7-p.j;
       return {rang:8,l:p.j?'écrit il y a '+p.j+' jour'+(p.j>1?'s':''):'écrit aujourd’hui',t:p.j?'Écrit il y a '+p.j+' jour'+(p.j>1?'s':'')+'.':'Écrit aujourd’hui.',s:'On attend. Elle reviendra dans « À faire » dans '+n+' jour'+(n>1?'s':'')+'.'};
     }
-    if(p.demande) return {rang:7,l:'demande envoyée à '+a.p,t:'Demande envoyée à '+a.p+'.',s:'Sa réponse arrivera ici et dans « Réseau ».'};
+    if(p.demande) return {rang:7,l:'demande envoyée'+(a?' à '+a.p:''),t:'Demande envoyée'+(a?' à '+a.p:'')+'.',s:'La réponse arrivera ici et dans « Réseau ».'};
     if(a&&!c) return {rang:3,l:a.p+' '+a.q,plus:1,t:a.p+' '+a.q+'.',s:'Demande-lui à qui écrire.',b:'Demander à '+a.p,c:'Demander',a:'demande'};
-    if(c&&c.n) return {rang:4,l:c.n+(c.r?', '+c.r:''),t:'À contacter : '+c.n+(c.r?', '+c.r:'')+'.',s:'Ton message est prêt. Tu le relis, puis tu l’envoies.',b:'Écrire à '+pr,c:'Écrire',a:'ecrire',k:'premier'};
+    if(c&&c.n) return {rang:4,l:c.n+(c.r?', '+c.r:'')+(c.via?' · par '+c.via:''),plus:c.via?1:0,t:'À contacter : '+c.n+(c.r?', '+c.r:'')+'.',s:'Ton message est prêt. Tu le relis, puis tu l’envoies.',b:'Écrire à '+pr,c:'Écrire',a:'ecrire',k:'premier'};
     return {rang:4,l:lieu(e)||'ajoutée à la main',t:'À contacter.',s:e.grande?'Passe par le recrutement, ou par leur site.':'Personne à qui écrire pour l’instant : passe par leur site.',b:'Écrire',c:'Écrire',a:'ecrire',k:'premier'};
   }
   /* « À faire » : trois lignes au plus. Ce qui est engagé passe avant ce qui commence ;
@@ -869,7 +948,7 @@ function app(root,poste){
     var gens='<fieldset class="gb"><legend>Les gens</legend>'
       +p.ct.map(function(c,i){ var k=(c.mail?ic('mail'):'')+(c.tel?ic('phone'):'')+(c.li?ic('link'):'');
         return '<div class="pers" data-a="contact" data-v="'+i+'" data-id="'+id+'" role="button" tabindex="0"><div class="s-init">'+initiales(c.n||c.mail||c.tel)+'</div><div class="r-c"><b>'+esc(c.n||c.mail||c.tel)+'</b><span>'+esc(c.r||(c.n?'':'ajouté à la main'))+'</span></div>'+(k?'<span class="canaux-i">'+k+'</span>':'')+ic('chevron-right')+'</div>'; }).join('')
-      +(a?'<div class="pers"><svg class="visage"><use href="#i-visage-'+a.v+'"/></svg><div class="r-c"><b>'+a.p+'</b><span>'+a.q+'</span></div>'+(p.demande?'<span class="s-ok">demandé</span>':'<button class="btn s" data-a="demande" data-id="'+id+'">Demander</button>')+'</div>':'')
+      +(a?'<div class="pers">'+visageSVG(a.p)+'<div class="r-c"><b>'+a.p+'</b><span>'+a.q+'</span></div>'+(p.demande?'<span class="s-ok">demandé</span>':'<button class="btn s" data-a="demande" data-id="'+id+'">Demander</button>')+'</div>':'')
       +'<button class="lien ajout" data-a="contact" data-v="-1" data-id="'+id+'">'+ic('plus')+'Ajouter quelqu’un</button></fieldset>';
     var pli=function(k,t,c){ return '<details class="pli" data-p="'+k+'"'+(S.ouv[k]?' open':'')+'><summary>'+t+ic('chevron-right')+'</summary>'+c+'</details>'; };
     var plis='<div class="plis">'+(e.f?pli('ent','L’entreprise',faitsEnt(id,1)):'')
@@ -901,7 +980,7 @@ function app(root,poste){
     if(canal==='linkedin'){
       d.m=k==='relance'?'Bonjour '+(qui||'')+',\nJe reviens vers vous au sujet de ma candidature pour '+ch+'.\n[Du neuf depuis, en une phrase.]\n'+moi
         :k==='merci'?'Bonjour '+(qui||'')+',\nMerci pour notre entretien d’hier.\n[Un point marquant, en une phrase.]\n'+moi
-        :'Bonjour'+(qui?' '+qui:'')+',\n[Une phrase sur eux, courte.]\nJe suis en '+f+' et je cherche '+ch+ville+'. Puis-je vous envoyer ma candidature ?\n'+moi;
+        :'Bonjour'+(qui?' '+qui:'')+',\n'+(c&&c.via?c.via+' m’a conseillé de vous écrire.\n':'')+'[Une phrase sur eux, courte.]\nJe suis en '+f+' et je cherche '+ch+ville+'. Puis-je vous envoyer ma candidature ?\n'+moi;
       d.m=d.m.replace('Bonjour ,','Bonjour,'); return d; }
     var signe='\n\nBien à vous,\n'+moi;
     if(k==='relance'){ d.o='Ma candidature chez '+e.n;
@@ -911,7 +990,7 @@ function app(root,poste){
     else if(k==='reponse'){ d.o='Re : ma candidature chez '+e.n;
       d.m=salut+'\n\nMerci pour votre réponse.\n\n[Ce qu’ils t’ont demandé : ton CV, tes dates, tes disponibilités.]'+signe; }
     else { d.o='Candidature '+quoi()+' '+f+' — '+moi;
-      d.m=salut+'\n\n[Une phrase précise sur ce qu’ils font. Pas « votre entreprise m’intéresse » — ils le lisent dix fois par jour.]\n\nJe suis en '+f+' et je cherche '+ch+'.\nJe peux passer en parler quand vous voulez.'+signe; }
+      d.m=salut+'\n\n'+(c&&c.via&&canal!=='site'?c.via+' m’a conseillé de vous écrire.\n\n':'')+'[Une phrase précise sur ce qu’ils font. Pas « votre entreprise m’intéresse » — ils le lisent dix fois par jour.]\n\nJe suis en '+f+' et je cherche '+ch+'.\nJe peux passer en parler quand vous voulez.'+signe; }
     if(canal==='site'){ d.o=''; d.m=d.m.replace(salut,'Bonjour,'); }
     return d; }
   var insec=function(t){ return String(t).replace(/« /g,'«\u00a0').replace(/ »/g,'\u00a0»').replace(/ ([?!:;])/g,'\u00a0$1'); };
@@ -1021,7 +1100,7 @@ function app(root,poste){
   /* la barre « Annuler » : le filet de tout geste lourd */
   function annuler(t,undo){ S.annule={t:t,undo:undo}; clearTimeout(annuler.h); annuler.h=setTimeout(function(){ S.annule=null; poserAnnule(); },6000); }
   function poserAnnule(){
-    coucheA.innerHTML=S.annule?'<div class="annule" role="status"><span>'+esc(S.annule.t)+'</span><button data-a="annuler">Annuler</button></div>':'';
+    coucheA.innerHTML=S.annule?'<div class="annule" role="status"><span>'+esc(S.annule.t)+'</span>'+(S.annule.undo?'<button data-a="annuler">Annuler</button>':'')+'</div>':'';
     var a=$('.annule',coucheA); if(!a) return;
     if(poste){ a.style.bottom='40px'; return; }
     var pied=$('.ecran > .pied:not([hidden])',root);
@@ -1032,10 +1111,296 @@ function app(root,poste){
   function supprimer(id){ var i=S.ordre.indexOf(id), p=S.pistes[id]; if(i<0) return; S.ordre.splice(i,1); delete S.pistes[id]; if(S.selP===id) S.selP=null;
     annuler(ENT[id].n+' supprimée',function(){ S.ordre.splice(i,0,id); S.pistes[id]=p; }); }
 
+  /* ================= LOT 3 : RÉSEAU ================= */
+  /* les gens et ce qu'ils t'ouvrent. Un ami est quelqu'un qui t'a DONNÉ son profil : on y lit où il est passé.
+     Un groupe est un code (la classe) : on s'y écrit, on s'y donne des pistes, on y demande quelqu'un. */
+  var prenomMoi=function(){ return S.nom?prenom(S.nom):(S.prenom||''); };
+  function groupeClasse(R){
+    R.groupes.push({id:'bts',nom:'BTS SIO Lille',code:'K7P2Q-9XRT4-MW3HB',
+      membres:['Karim','Sofia','Tom','Léa','Yanis','Chloé','Mehdi','Sarah','Lucas','Emma','Nina','Rayan','Manon','Théo','Jade','Adam','Lina','Noah','Zoé','Sacha','Inaya','Enzo']});
+    R.convs.bts={t:'groupe',nom:'BTS SIO Lille',nonlu:true,msgs:[
+      {j:'Hier'},
+      {qui:'Karim',h:'18:40',t:'Je vous donne 3 pistes cyber autour de Lille.',don:'karim3'},
+      {qui:'Tom',h:'21:05',dem:'tom'},
+      {j:'Aujourd’hui'},
+      {qui:'Sofia',h:'08:12',t:'Forum alternance jeudi à la CCI, on y va ?'}]};
+    R.dons.karim3={de:'Karim',ou:'BTS SIO Lille',ids:['vau','bef','sep'],ct:{vau:{n:'Pierre Lambert',r:'responsable technique',mail:'p.lambert@vauban-infra.fr'}}};
+    R.demsGroupe.tom={qui:'Tom',e:'wor',rep:null};
+  }
+  function reseauInit(j){
+    var R={groupes:[],amis:[],convs:{},demandes:[],dons:{},demsGroupe:{},n:0};
+    if(j==='1') return R;
+    R.amis=[{id:'karim',p:'Karim',depuis:'2 oct.',ouvre:[{e:'ovh',q:'y est en alternance',l:'en alternance chez',d:'depuis sept. 2025'},{e:'esc',q:'y a fait son stage',l:'a fait son stage chez',d:'en 2025'}]},
+            {id:'lea',p:'Léa',depuis:'14 oct.',ouvre:[{e:'ocd',q:'y a fait son stage',l:'a fait son stage chez',d:'en 2025'}]}];
+    groupeClasse(R);
+    R.convs.karim={t:'ami',nom:'Karim',nonlu:false,msgs:[{j:'Hier'},{moi:1,h:'17:02',t:'Tu sais s’ils prennent des alternants à la rentrée, chez OVH ?'},{qui:'Karim',h:'17:30',t:'Oui, dans mon équipe. Je te donne le contact demain.'}]};
+    R.demandes=[{id:'d1',quoi:'dans la cybersécurité à Lille',a:'Léa, Karim et BTS SIO Lille',env:ilYa(4),
+      trouve:{le:'hier',ou:'chez un ami de Karim'},recu:{n:'Julie Marchand',r:'analyste SOC',e:'bef',mail:'j.marchand@beffroi-securite.fr',via:'Karim',le:'aujourd’hui'},ajoute:false}];
+    return R;
+  }
+  var amiDe=function(id){ return S.R.amis.filter(function(a){return a.id===id})[0]; };
+  var demandeDe=function(id){ return S.R.demandes.filter(function(d){return d.id===id})[0]; };
+  var groupeDe=function(id){ return S.R.groupes.filter(function(g){return g.id===id})[0]; };
+  /* un visage tiré du prénom : le même partout, rien à régler */
+  function visageSVG(nom,cl){ var h=2166136261, d='';
+    for(var i=0;i<nom.length;i++) h=Math.imul(h^nom.charCodeAt(i),16777619)>>>0;
+    for(var y=0;y<5;y++) for(var x=0;x<3;x++){ h=Math.imul(h^(h>>>15),2246822519)>>>0;
+      if(h%100<52){ d+='M'+(x+1)+' '+(y+1)+'h1v1h-1z'; if(x<2) d+='M'+(5-x)+' '+(y+1)+'h1v1h-1z'; } }
+    return '<svg class="visage'+(cl?' '+cl:'')+'" viewBox="0 0 7 7" aria-hidden="true" shape-rendering="crispEdges"><path d="'+d+'"/></svg>'; }
+  /* un QR de démonstration : il a la forme d'un QR, il ne contient rien */
+  function qrSVG(graine){ var h=2166136261, d='', n=25;
+    for(var i=0;i<graine.length;i++) h=Math.imul(h^graine.charCodeAt(i),16777619)>>>0;
+    var hasard=function(){ h^=h<<13; h>>>=0; h^=h>>>17; h^=h<<5; h>>>=0; return h%100; };
+    var coin=function(x,y){ d+='M'+x+' '+y+'h7v7h-7zM'+(x+1)+' '+(y+1)+'v5h5v-5zM'+(x+2)+' '+(y+2)+'h3v3h-3z'; };
+    coin(0,0); coin(n-7,0); coin(0,n-7);
+    for(var yy=0;yy<n;yy++) for(var xx=0;xx<n;xx++){ if((xx<8&&yy<8)||(xx>n-9&&yy<8)||(xx<8&&yy>n-9)) continue; if(hasard()<47) d+='M'+xx+' '+yy+'h1v1h-1z'; }
+    return '<svg viewBox="-2 -2 29 29" role="img" aria-label="QR de démonstration" shape-rendering="crispEdges"><rect x="-2" y="-2" width="29" height="29" style="fill:var(--qr-fond)"/><path fill-rule="evenodd" style="fill:var(--qr-encre)" d="'+d+'"/></svg>'; }
+  var attend=function(){ return Object.keys(S.R.convs).some(function(k){return S.R.convs[k].nonlu}) || S.R.demandes.some(function(d){return d.recu&&!d.ajoute}); };
+  var phraseDemande=function(d){ return (prenomMoi()||'Quelqu’un')+' cherche quelqu’un '+d.quoi+', pour '+CHERCHE[quoi()]+'.'; };
+  var destinataires=function(){ var l=S.R.amis.map(function(a){return a.p}).concat(S.R.groupes.map(function(g){return g.nom}));
+    return l.length>1?l.slice(0,-1).join(', ')+' et '+l[l.length-1]:l[0]||''; };
+
+  /* la liste : mes demandes, les conversations, mes amis ; puis donner et recevoir */
+  function colis(d){ var c=[1,d.trouve?1:.5,d.recu?1:d.trouve?.5:0];
+    return '<div class="colis" aria-hidden="true">'+c.map(function(x){return '<i class="'+(x===1?'p':x?'m':'')+'"></i>'}).join('')+'</div>'; }
+  function ligneDemande(d){ var s=d.recu?(d.ajoute?d.recu.n+' est dans tes pistes':'Reçu : '+d.recu.n+', par '+d.recu.via):d.trouve?'Trouvée, en attente de son accord':'Envoyée '+d.env;
+    return '<div class="rang conv" data-a="r-demande" data-id="'+d.id+'" role="button" tabindex="0"><div class="r-c"><b>Quelqu’un '+esc(d.quoi)+'</b><span'+(d.recu&&!d.ajoute?' class="plus"':'')+'>'+esc(s)+'</span></div>'+colis(d)+'</div>'; }
+  function apercuMsg(c){ var m=c.msgs.filter(function(x){return !x.j}).slice(-1)[0];
+    if(!m) return 'Aucun message pour l’instant.';
+    if(m.dem) return S.R.demsGroupe[m.dem].qui+' cherche quelqu’un chez '+ENT[S.R.demsGroupe[m.dem].e].n;
+    if(m.don) return m.qui+' a donné '+S.R.dons[m.don].ids.length+' pistes';
+    if(m.moiDon) return 'Tu as donné '+m.moiDon+' pistes';
+    return (m.moi?'Toi : ':c.t==='groupe'?m.qui+' : ':'')+m.t; }
+  function heureConv(c){ var j='', h=''; c.msgs.forEach(function(m){ if(m.j) j=m.j; else h=m.h; }); return j==='Hier'?'hier':h; }
+  function ligneConv(id){ var c=S.R.convs[id];
+    return '<div class="rang conv'+(c.nonlu?' nonlu':'')+'" data-a="r-conv" data-id="'+id+'" role="button" tabindex="0">'+(c.t==='groupe'?'<div class="s-init">'+initiales(c.nom)+'</div>':visageSVG(c.nom))
+      +'<div class="r-c"><b>'+esc(c.nom)+'</b><span>'+esc(apercuMsg(c))+'</span></div><span class="s-h">'+esc(heureConv(c))+'</span>'+(c.nonlu?'<i class="pt" aria-label="non lu"></i>':'')+'</div>'; }
+  function ligneAmi(a){ var o=a.ouvre[0];
+    return '<div class="rang conv" data-a="r-ami" data-id="'+a.id+'" role="button" tabindex="0">'+visageSVG(a.p)+'<div class="r-c"><b>'+esc(a.p)+'</b><span class="plus">'+esc(o?o.l+' '+ENT[o.e].n+(a.ouvre.length>1?' · +'+(a.ouvre.length-1):''):'aucune entreprise')+'</span></div>'+ic('chevron-right')+'</div>'; }
+  function listeReseau(){ var R=S.R, h='';
+    if(!R.groupes.length&&!R.amis.length&&!R.demandes.length)
+      return '<div class="panneau"><p>Ta classe et tes amis apparaissent ici.<br>Ils te disent où ils sont passés et qui contacter.</p><button class="btn p" data-a="r-rejoindre">Rejoindre ma classe</button><button class="btn" data-a="r-ajami">Ajouter un ami</button><button class="btn" data-a="r-recevoir">Recevoir des pistes</button></div>';
+    var ouvertes=R.demandes.filter(function(d){return !d.recu}).length;
+    if(R.demandes.length||R.amis.length||R.groupes.length)
+      h+='<div class="et s-et">Mes demandes</div><div class="rangs s-liste">'+R.demandes.map(ligneDemande).join('')
+        +(ouvertes<3?'<button class="rang plus-r" data-a="r-demander">'+ic('plus')+'Demander quelqu’un</button>':'')+'</div>';
+    h+='<div class="et s-et">Conversations</div><div class="rangs s-liste">'+Object.keys(R.convs).map(ligneConv).join('')
+      +'<button class="rang plus-r" data-a="r-rejoindre">'+ic('plus')+(R.groupes.length?'Nouveau groupe':'Rejoindre ma classe')+'</button></div>';
+    h+='<div class="et s-et">Mes amis · '+R.amis.length+'</div><div class="rangs s-liste">'+R.amis.map(ligneAmi).join('')
+      +'<button class="rang plus-r" data-a="r-ajami">'+ic('plus')+'Ajouter un ami</button></div>';
+    return h; }
+  function basReseau(){ return S.R.groupes.length||S.R.amis.length||S.R.demandes.length?'<div class="s-bas"><button class="btn" data-a="r-donner">Donner des pistes</button><button class="btn" data-a="r-recevoir">Recevoir</button></div>':''; }
+  function vReseau(){ return '<div class="defile"><div class="s-tete"><h3>Réseau</h3></div>'+listeReseau()+'</div>'+basReseau(); }
+
+  /* une conversation */
+  function msgHTML(m){
+    if(m.j) return '<div class="jour-m">'+esc(m.j)+'</div>';
+    if(m.moi) return '<div class="b moi">'+(m.moiDon?'Tu as donné '+m.moiDon+' pistes au groupe.':esc(m.t))+'<span class="h">'+esc(m.h)+'</span></div>';
+    var corps='';
+    if(m.don){ var d=S.R.dons[m.don], n=d.ids.filter(function(x){return !S.pistes[x]}).length;
+      corps=esc(m.t)+'<button class="carte-don" data-a="r-apercu" data-v="'+m.don+'">'+ic('briefcase')+'<b>'+d.ids.length+' pistes</b><span>'+(n?'Voir':'dans tes pistes')+'</span></button>'; }
+    else if(m.dem){ var g=S.R.demsGroupe[m.dem];
+      corps='<b class="dem-t">'+esc(g.qui+' cherche quelqu’un chez '+ENT[g.e].n+', pour une alternance.')+'</b>'
+        +(g.rep==='suivi'?'<span class="fait-a">'+ic('check')+'Tu l’as fait suivre à tes amis</span>':g.rep==='donne'?'<span class="fait-a">'+ic('check')+'Tu lui as donné un contact</span>':g.rep==='masque'?'':'<button class="btn s" data-a="r-repondre" data-v="'+m.dem+'">Répondre</button>'); }
+    else corps=esc(m.t);
+    return '<div class="msg">'+visageSVG(m.qui)+'<div class="b'+(m.dem?' dem':'')+'"><span class="qui">'+esc(m.qui)+' · '+esc(m.h)+'</span>'+corps+'</div></div>'; }
+  function filHTML(id){ var c=S.R.convs[id];
+    return (c.t==='groupe'?'<p class="efface">Les messages s’effacent au bout de 7 jours.</p>':'')+(c.msgs.length?c.msgs.map(msgHTML).join(''):'<p class="efface">Aucun message pour l’instant.</p>'); }
+  function membresTexte(g){ var l=[prenomMoi()||'toi'].concat(g.membres); return l.slice(0,4).join(' · ')+(l.length>4?' et '+(l.length-4)+' autres':''); }
+  function pageConv(id){ var c=S.R.convs[id], g=c.t==='groupe'?groupeDe(id):null;
+    return {titre:c.nom,
+      tete:g?'<button class="conv-t" data-a="r-groupe" data-id="'+id+'"><div class="s-init">'+initiales(g.nom)+'</div><span>'+esc(membresTexte(g))+'</span>'+ic('chevron-right')+'</button>':'',
+      corps:'<div class="fil-c">'+filHTML(id)+'</div>', fil:1,
+      compo:'<div class="compo">'+(g?'<button class="btn icone" data-a="r-donner" data-v="'+id+'" aria-label="Donner des pistes au groupe">'+ic('briefcase')+'</button>':'')
+        +'<label class="champ"><input class="m-in" type="text" data-id="'+id+'" placeholder="'+(g?'Écrire au groupe':'Écrire à '+esc(c.nom))+'" aria-label="Message" autocomplete="off" enterkeyhint="send"></label>'
+        +'<button class="envoi" data-a="r-envoyer" data-id="'+id+'" aria-label="Envoyer">'+ic('arrow-right')+'</button></div>'}; }
+  function envoyerMsg(id){ var box=poste?$('.conv-w',ecran):ecran, inp=$('.m-in',box), t=inp?inp.value.trim():''; if(!t){ if(inp) inp.focus(); return; }
+    var d=new Date(), h=('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2), c=S.R.convs[id], j=c.msgs.filter(function(m){return m.j}).slice(-1)[0];
+    if(!j||j.j!=='Aujourd’hui') c.msgs.push({j:'Aujourd’hui'});
+    c.msgs.push({moi:1,h:h,t:t}); inp.value='';
+    var fil=$('.fil-c',box); if(fil){ fil.innerHTML=filHTML(id); var dd=fil.parentNode; dd.scrollTop=dd.scrollHeight; }
+    inp.focus(); }
+
+  /* un ami : ce qu'il t'ouvre, et lui écrire */
+  function pageAmi(id){ var a=amiDe(id);
+    var h='<div class="s-page"><div class="ami-t">'+visageSVG(a.p,'grand')+'<div><h4>'+esc(a.p)+'</h4><div class="lieu">ami depuis le '+esc(a.depuis)+'</div></div></div>'
+      +'<fieldset class="gb"><legend>Ce que '+esc(a.p)+' t’ouvre</legend>'+(a.ouvre.length?a.ouvre.map(function(o){ var e=ENT[o.e], dans=!!S.pistes[o.e];
+        return '<div class="pers"><div class="r-c"><b>'+esc(e.n)+'</b><span class="plus">'+esc(o.q+' '+o.d)+'</span></div>'
+          +(dans?'<button class="btn s" data-a="piste" data-id="'+o.e+'">Voir la piste</button>':'<button class="btn s" data-a="r-garder" data-id="'+o.e+'">Garder</button>')+'</div>'; }).join(''):'<p class="doux">Aucune entreprise pour l’instant.</p>')+'</fieldset>'
+      +'<div class="bas-p"><button class="btn s danger" data-a="r-retirer" data-id="'+id+'">Retirer de mes amis</button></div></div>';
+    return {titre:'Ami',corps:h,pied:'<button class="btn p" data-a="r-conv" data-id="'+id+'">Écrire à '+esc(a.p)+'</button>'}; }
+
+  /* une demande, suivie comme un colis */
+  function pageDemande(id){ var d=demandeDe(id), et=[['Envoyée',d.env,1],['Trouvée',d.trouve?d.trouve.le:'',d.trouve?1:.5],['Reçu',d.recu?d.recu.le:'',d.recu?1:d.trouve?.5:0]];
+    var h='<div class="s-page"><blockquote class="cite">'+esc(insec(phraseDemande(d)))+'</blockquote><p class="doux" style="margin:8px 0 0">À '+esc(d.a)+'</p>'
+      +'<div class="colis-g">'+et.map(function(x){ return '<div class="colis-e"><div class="barre-c"><i style="width:'+(x[2]*100)+'%"></i></div><b>'+x[0]+'</b><span>'+esc(x[1]||(x[2]?'en cours':'à venir'))+'</span></div>'; }).join('')+'</div>';
+    if(d.trouve&&!d.recu) h+='<p class="doux">Quelqu’un a été trouvé '+esc(d.trouve.ou)+'. Il te sera donné s’il est d’accord.</p>';
+    if(!d.trouve) h+='<p class="doux">Ta demande passe d’elle-même aux amis de tes amis. Tu seras prévenu ici.</p>';
+    if(d.recu){ var r=d.recu, e=ENT[r.e];
+      h+='<fieldset class="gb"><legend>Reçu</legend><div class="pers prop"><div class="s-init">'+initiales(r.n)+'</div><div class="r-c"><b>'+esc(r.n)+'</b><span>'+esc(r.r+' · '+e.n)+'</span></div></div>'
+        +'<p class="doux">Par '+esc(r.via)+', avec son accord pour que tu lui écrives.</p>'
+        +(d.ajoute?'<button class="btn p large" data-a="ecrire" data-id="'+r.e+'" data-k="premier">Écrire à '+esc(prenom(r.n))+'</button>':'')+'</fieldset>'; }
+    return {titre:'Demande',corps:h+'</div>',pied:d.recu&&!d.ajoute?'<button class="btn p" data-a="r-ajouter-recu" data-id="'+id+'">'+ic('plus')+'Ajouter à mes pistes</button>':''}; }
+
+  /* donner des pistes : les mêmes canaux que d'habitude, le geste en bas */
+  function ouvertes(){ return S.ordre.filter(function(x){ var e=S.pistes[x].e; return e!=='non'&&e!=='range'; }); }
+  function pageDonner(){ var D=S.don, l=ouvertes(), can=(S.R.groupes.length?['groupe']:[]).concat(['qr','fichier','texte']), n=D.sel.length, g=groupeDe(D.groupe);
+    var NOMS={groupe:'Groupe',qr:'QR',fichier:'Fichier',texte:'Texte'};
+    var h='<div class="s-page ecr"><div class="seg canaux" role="group" aria-label="Comment">'+can.map(function(x){ return '<button'+(x===D.canal?' class="on" aria-pressed="true"':' aria-pressed="false"')+' data-a="r-don-canal" data-v="'+x+'">'+NOMS[x]+'</button>'; }).join('')+'</div>'
+      +'<p class="hint">Partent : le nom, la ville, les contacts. Tes notes et ton suivi restent chez toi.</p>';
+    h+=l.length?'<div class="rangs">'+l.map(function(x){ var on=D.sel.indexOf(x)>=0, e=ENT[x];
+      return '<button class="ck pk" data-a="r-don-sel" data-v="'+x+'" role="checkbox" aria-checked="'+on+'">'+ic(on?'checkbox-on':'checkbox')+'<span class="ck-t"><b>'+esc(e.n)+'</b><small>'+esc([e.v,(S.pistes[x].ct.length?S.pistes[x].ct.length+' contact'+(S.pistes[x].ct.length>1?'s':''):'')].filter(Boolean).join(' · '))+'</small></span></button>'; }).join('')+'</div>'
+      :'<div class="panneau"><p>Tes pistes arrivent ici. Garde d’abord quelques entreprises.</p></div>';
+    var lab=!n?'Choisis au moins une piste':D.canal==='groupe'?'Donner '+n+' piste'+(n>1?'s':'')+' à '+g.nom:D.canal==='qr'?'Montrer le QR':D.canal==='fichier'?'Télécharger le fichier':'Copier le texte';
+    return {titre:'Donner',corps:h+'</div>',pied:'<button class="btn p" data-a="r-don-ok"'+(n?'':' disabled')+'>'+esc(lab)+'</button>'}; }
+  function pageQR(){ var n=S.don.sel.length;
+    return {titre:'QR',corps:'<div class="s-page"><div class="qr-b">'+qrSVG('pistes'+n)+'</div><p class="code-n">'+n+' piste'+(n>1?'s':'')+'</p><p class="doux" style="text-align:center">Ton camarade le scanne depuis « Recevoir ». Il voit les pistes avant de les prendre.</p></div>',
+      pied:'<button class="btn p" data-a="retour">Terminé</button>'}; }
+
+  /* recevoir : toujours l'aperçu avant, et « Annuler » après */
+  function pageApercu(id){ var d=S.R.dons[id], nouv=d.ids.filter(function(x){return !S.pistes[x]});
+    var h='<div class="s-page"><h4>De '+esc(d.de)+'</h4><div class="lieu">'+d.ids.length+' pistes'+(d.ou?' · dans '+esc(d.ou):'')+'</div><div class="rangs" style="margin-top:14px">'
+      +d.ids.map(function(x){ var e=ENT[x], ct=d.ct[x], dans=!!S.pistes[x];
+        return '<div class="rang"><div class="r-c"><b>'+esc(e.n)+'</b><span'+(dans?'':' class="plus"')+'>'+esc(dans?'déjà dans tes pistes':'nouvelle · '+e.v+(ct&&ct.n?' · 1 contact':''))+'</span></div>'+(dans?ic('check'):'')+'</div>'; }).join('')+'</div></div>';
+    return {titre:'Recevoir',corps:h,pied:nouv.length?'<button class="btn p" data-a="r-prendre" data-id="'+id+'">'+ic('plus')+'Ajouter '+nouv.length+' piste'+(nouv.length>1?'s':'')+'</button>':'<button class="btn" data-a="retour">Rien de neuf</button>'}; }
+
+  /* un groupe : ses membres, l'invitation, la sortie */
+  function pageGroupe(id){ var g=groupeDe(id), l=[(prenomMoi()||'Toi')+' (toi)'].concat(g.membres);
+    var h='<div class="s-page"><div class="ami-t"><div class="s-init grand">'+initiales(g.nom)+'</div><div><h4>'+esc(g.nom)+'</h4><div class="lieu">'+l.length+' membres · messages effacés au bout de 7 jours</div></div></div>'
+      +'<div class="rangs" style="margin-top:16px"><div class="rang conv" data-a="r-inviter" data-id="'+id+'" role="button" tabindex="0"><div class="r-c"><b>Inviter</b><span>le QR, le code, ou un message à envoyer</span></div>'+ic('chevron-right')+'</div></div>'
+      +'<div class="et s-et" style="padding-left:0">Membres</div><div class="rangs">'+l.slice(0,8).map(function(x){ return '<div class="rang">'+visageSVG(x.replace(' (toi)',''))+'<div class="r-c"><b>'+esc(x)+'</b></div></div>'; }).join('')
+      +(l.length>8?'<div class="rang"><div class="r-c"><span>et '+(l.length-8)+' autres</span></div></div>':'')+'</div>'
+      +'<div class="bas-p"><button class="btn s danger" data-a="r-quitter" data-id="'+id+'">Quitter le groupe</button></div></div>';
+    return {titre:'Groupe',corps:h}; }
+  function texteInvitation(g){ return 'Rejoins '+g.nom+' sur OpenContact : on s’y donne des pistes de stage et d’alternance. Code : '+g.code; }
+  function pageInviter(id){ var g=groupeDe(id);
+    return {titre:'Inviter',corps:'<div class="s-page"><h4>'+esc(g.nom)+'</h4><div class="qr-b">'+qrSVG(g.code)+'</div><p class="code-g">'+esc(g.code)+'</p>'
+      +'<p class="doux" style="text-align:center">Envoie l’invitation là où ta classe se parle : Discord, un groupe de messages.</p></div>',
+      pied:'<button class="btn p" data-a="r-copier-inv" data-id="'+id+'">'+ic('copy')+'Envoyer l’invitation</button>'}; }
+
+  var R_VUES={conv:pageConv,ami:pageAmi,demande:pageDemande,donner:pageDonner,qr:pageQR,apercu:pageApercu,groupe:pageGroupe,inviter:pageInviter};
+  function ouvrirR(v,id){ if(poste){ if(v==='conv'){ S.convOuverte=id; S.R.convs[id].nonlu=false; } else S.rsel={v:v,id:id}; S.vue=S.onglet='reseau'; return; }
+    if(v==='conv') S.R.convs[id].nonlu=false;
+    S.pile.push({v:S.vue,id:S.rid}); S.vue=v; S.rid=id; S.onglet='reseau'; }
+
+  /* les feuilles du réseau : une question courte chacune */
+  function champPrenom(){ return prenomMoi()?'':'<label class="fld"><span class="et">Ton prénom</span><input class="r-prenom" type="text" autocomplete="given-name" autocorrect="off" spellcheck="false"></label><p class="err r-err-p" hidden></p>'; }
+  function lirePrenom(){ if(prenomMoi()) return 'fait'; var f=$('.r-prenom',couche), v=f?f.value.trim():''; if(!v){ var e=$('.r-err-p',couche); if(e){ e.textContent='Il manque ton prénom.'; e.hidden=false; } if(f) f.focus(); return false; } S.prenom=v; return 'fait'; }
+  function feuilleR(){ var o=S.sheet, t='', c='', pied='';
+    if(o.type==='recevoir'){ t='Recevoir';
+      if(o.mode==='coller') { c='<label class="fld"><span class="et">Le texte reçu</span><textarea class="zone court r-texte" placeholder="Colle ici ce qu’on t’a envoyé"></textarea></label>'; pied='<button class="btn p" data-a="r-lire">Lire</button>'; }
+      else c='<div class="rangs">'+[['r-scan','Scanner un QR','search'],['r-fichier','Ouvrir un fichier','briefcase'],['r-coller','Coller un texte','clipboard']].map(function(x){ return '<button class="rang act" data-a="'+x[0]+'">'+ic(x[2])+'<div class="r-c"><b>'+x[1]+'</b></div></button>'; }).join('')+'</div>';
+    } else if(o.type==='demander'){ t='Demande';
+      var crit={cyber:'dans la cybersécurité',reseau:'dans le réseau',dev:'dans le développement',cloud:'dans le cloud'};
+      var sans=ouvertes().filter(function(x){ return S.pistes[x].e==='garde'&&!S.pistes[x].ct.length; });
+      var quoi_=o.mode==='entreprise'?(o.e?'chez '+ENT[o.e].n:''):crit[o.m]+' à '+(S.P.ville||'Lille');
+      c='<div class="seg canaux" role="group" aria-label="Tu cherches quelqu’un"><button'+(o.mode==='metier'?' class="on"':'')+' data-a="r-dm-mode" data-v="metier">Dans un métier</button><button'+(o.mode==='entreprise'?' class="on"':'')+' data-a="r-dm-mode" data-v="entreprise">Chez une entreprise</button></div>'
+        +(o.mode==='metier'?'<div class="puces">'+Object.keys(crit).map(function(k){ return '<button class="puce'+(o.m===k?' on':'')+'" data-a="r-dm-m" data-v="'+k+'">'+esc(crit[k].replace(/^dans (la |le |l’)?/,'').replace(/^./,function(x){return x.toUpperCase()}))+'</button>'; }).join('')+'</div>'
+          :sans.length?'<div class="puces">'+sans.map(function(x){ return '<button class="puce'+(o.e===x?' on':'')+'" data-a="r-dm-e" data-v="'+x+'">'+esc(ENT[x].n)+'</button>'; }).join('')+'</div>':'<p class="doux">Toutes tes pistes ont déjà quelqu’un à qui écrire.</p>')
+        +champPrenom()
+        +(quoi_?'<div class="et" style="margin-top:14px">Ce qui part</div><blockquote class="cite">'+esc(insec((prenomMoi()||'[ton prénom]')+' cherche quelqu’un '+quoi_+', pour '+CHERCHE[quoi()]+'.'))+'</blockquote><p class="doux" style="margin:8px 0 0">À '+esc(destinataires())+'</p>':'');
+      o.quoi=quoi_; pied='<button class="btn p" data-a="r-dm-envoyer"'+(quoi_?'':' disabled')+'>Envoyer</button>';
+    } else if(o.type==='ami'){ t='Ami';
+      if(o.mode==='apercu') { c='<div class="ami-t">'+visageSVG('Sofia','grand')+'<div><h4>Sofia</h4><div class="lieu">BTS SIO Lille</div></div></div><div class="rangs" style="margin-top:14px"><div class="rang"><div class="r-c"><b>Kiabi</b><span class="plus">a fait son stage chez Kiabi'+(S.pistes.kia?' · dans tes pistes':'')+'</span></div></div></div><p class="doux" style="margin-top:12px">Sofia aura aussi ton profil.</p>';
+        pied='<button class="btn p" data-a="r-ajouter-ami">'+ic('plus')+'Ajouter Sofia</button>'; }
+      else { c=champPrenom()+'<div class="qr-b">'+qrSVG('profil'+(prenomMoi()||'?'))+'</div><p class="doux" style="text-align:center;margin:0 0 12px">Il contient '+esc((prenomMoi()||'ton prénom')+', '+(S.P.formation||'ta formation'))+', et où tu es passé.</p>'
+        +'<div class="centre"><button class="btn" data-a="r-scan-ami">'+ic('search')+'Scanner le sien</button></div>';
+        pied='<button class="btn p" data-a="r-envoyer-profil">'+ic('copy')+'Envoyer mon profil</button>'; }
+    } else if(o.type==='rejoindre'){ t='Groupe';
+      if(o.mode==='creer'){ c=champPrenom()+'<label class="fld"><span class="et">Nom du groupe</span><input class="r-nomg" type="text" placeholder="BTS SIO Lille, 2e année" autocomplete="off"></label><p class="err r-err-g" hidden></p>'; pied='<button class="btn p" data-a="r-creer-ok">Créer</button>'; }
+      else { c=champPrenom()+'<label class="fld"><span class="et">Le code de ta classe</span><input class="r-code" type="text" autocapitalize="characters" autocorrect="off" spellcheck="false" autocomplete="off" placeholder="XXXXX-XXXXX-XXXXX"></label><p class="err r-err-c" hidden></p>'
+        +'<button class="btn" data-a="r-scan-code">'+ic('search')+'Scanner le QR</button>'
+        +(prenomMoi()?'<p class="doux" style="margin-top:12px">Le groupe verra ton prénom : '+esc(prenomMoi())+'.</p>':'<p class="doux" style="margin-top:12px">Le groupe verra ton prénom, et rien d’autre.</p>')
+        +'<button class="lien" data-a="r-creer-mode" style="margin-top:4px">Pas encore de groupe ? Créer celui de ta classe</button>';
+        pied='<button class="btn p" data-a="r-rejoindre-ok">Rejoindre</button>'; }
+    } else if(o.type==='repondre'){ t='Répondre'; var gq=S.R.demsGroupe[o.id];
+      if(o.mode==='connais'){ c='<p class="doux" style="margin:0 0 12px">'+esc(gq.qui)+' le recevra directement, sans passer par le groupe.</p><label class="fld"><span class="et">Son nom</span><input class="r-cn" type="text" autocomplete="off" autocorrect="off" spellcheck="false"></label><label class="fld"><span class="et">E-mail ou téléphone</span><input class="r-cc" type="text" inputmode="email" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="off"></label><p class="err r-err-r" hidden></p>';
+        pied='<button class="btn p" data-a="r-donner-ct">Donner à '+esc(gq.qui)+'</button>'; }
+      else c='<blockquote class="cite">'+esc(insec(gq.qui+' cherche quelqu’un chez '+ENT[gq.e].n+', pour une alternance.'))+'</blockquote><div class="rangs" style="margin-top:12px">'
+        +[['r-connais','Je connais quelqu’un'],['r-suivre','Faire suivre à mes amis'],['r-masquer','Masquer']].map(function(x){ return '<button class="rang act" data-a="'+x[0]+'"><div class="r-c"><b>'+x[1]+'</b></div>'+ic('chevron-right')+'</button>'; }).join('')+'</div>';
+    }
+    return '<div class="voile trame" data-a="fermer"></div><section class="sheet win" role="dialog" aria-modal="true" aria-label="'+t+'"><div class="tb">'+t+'<button class="x" data-a="fermer" aria-label="Fermer">'+ic('close')+'</button></div><div class="sh-c">'+c+'</div>'+(pied?'<div class="pied">'+pied+'</div>':'')+'</section>'; }
+  function refaireFeuille(){ couche.innerHTML=''; rendre(); }
+  function toast(t){ annuler(t,null); }
+
+  /* les gestes du réseau ; rend vrai si le geste est pris */
+  function gesteR(a,id,v,b,ev){ var R=S.R, o=S.sheet;
+    if(a==='r-conv') ouvrirR('conv',id);
+    else if(a==='r-ami') ouvrirR('ami',id);
+    else if(a==='r-demande') ouvrirR('demande',id);
+    else if(a==='r-groupe') ouvrirR('groupe',id);
+    else if(a==='r-inviter') ouvrirR('inviter',id);
+    else if(a==='r-apercu') ouvrirR('apercu',v);
+    else if(a==='r-donner'){ S.don={canal:R.groupes.length?'groupe':'qr',groupe:v||(R.groupes[0]||{}).id,sel:ouvertes().slice(),retour:poste?S.convOuverte:null}; if(poste) S.convOuverte=null; ouvrirR('donner',''); }
+    else if(a==='r-don-canal') S.don.canal=v;
+    else if(a==='r-don-sel'){ var i=S.don.sel.indexOf(v); if(i>=0) S.don.sel.splice(i,1); else S.don.sel.push(v); }
+    else if(a==='r-don-ok'){ var n=S.don.sel.length, D=S.don;
+      if(D.canal==='groupe'){ var c=R.convs[D.groupe], j=c.msgs.filter(function(m){return m.j}).slice(-1)[0]; if(!j||j.j!=='Aujourd’hui') c.msgs.push({j:'Aujourd’hui'});
+        var d=new Date(), msg={moi:1,moiDon:n,h:('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2)}; c.msgs.push(msg);
+        annuler(n+' piste'+(n>1?'s':'')+' donnée'+(n>1?'s':'')+' à '+c.nom,function(){ c.msgs.splice(c.msgs.indexOf(msg),1); });
+        if(poste){ S.rsel=null; S.convOuverte=D.retour||null; } else { var xp=S.pile.pop(); if(xp){ S.vue=xp.v; S.rid=xp.id; } else S.vue='reseau'; } }
+      else if(D.canal==='qr') ouvrirR('qr','');
+      else if(D.canal==='fichier') toast('opencontact-pistes.oc téléchargé');
+      else { copier('OC1:'+btoa(D.sel.join(',')),null,b); return 'fait'; } }
+    else if(a==='r-recevoir'){ S.sheet={type:'recevoir'}; couche.innerHTML=''; }
+    else if(a==='r-coller'){ o.mode='coller'; refaireFeuille(); return 'fait'; }
+    else if(a==='r-scan'||a==='r-fichier'||a==='r-lire'){ if(!R.dons.karim3) R.dons.karim3={de:'Karim',ou:'',ids:['vau','bef','sep'],ct:{vau:{n:'Pierre Lambert',r:'responsable technique',mail:'p.lambert@vauban-infra.fr'}}};
+      S.sheet=null; ouvrirR('apercu','karim3'); }
+    else if(a==='r-prendre'){ var dn=R.dons[id], pris=dn.ids.filter(function(x){return !S.pistes[x]});
+      pris.forEach(function(x){ var ct=dn.ct[x]; piste(x,'garde',{ct:ct&&ct.n?[{n:ct.n,r:ct.r,mail:ct.mail}]:[],h:[['aujourd’hui','Reçue de '+dn.de]]}); });
+      annuler(pris.length+' piste'+(pris.length>1?'s':'')+' ajoutée'+(pris.length>1?'s':''),function(){ pris.forEach(function(x){ S.ordre.splice(S.ordre.indexOf(x),1); delete S.pistes[x]; }); });
+      S.vient=true; if(poste) S.rsel=null; else { var x=S.pile.pop(); if(x){ S.vue=x.v; S.rid=x.id; } else S.vue='reseau'; } }
+    else if(a==='r-ajouter-recu'){ var dm=demandeDe(id), r=dm.recu, ct={n:r.n,r:r.r,mail:r.mail,via:r.via};
+      if(S.pistes[r.e]){ S.pistes[r.e].ct.unshift(ct); hist(r.e,'Contact reçu de '+r.via); }
+      else piste(r.e,'garde',{ct:[ct],h:[['aujourd’hui','Contact reçu de '+r.via]]});
+      dm.ajoute=true; S.vient=true; }
+    else if(a==='r-garder'){ garder(id); }
+    else if(a==='r-retirer'){ var ia=R.amis.indexOf(amiDe(id)), am=R.amis[ia], cv=R.convs[id]; R.amis.splice(ia,1); delete R.convs[id];
+      annuler(am.p+' n’est plus dans tes amis',function(){ R.amis.splice(ia,0,am); if(cv) R.convs[id]=cv; });
+      if(poste) S.rsel=null; else { S.pile=[]; S.vue='reseau'; } }
+    else if(a==='r-quitter'){ var ig=R.groupes.indexOf(groupeDe(id)), gr=R.groupes[ig], cg=R.convs[id]; R.groupes.splice(ig,1); delete R.convs[id];
+      annuler('Tu as quitté '+gr.nom,function(){ R.groupes.splice(ig,0,gr); R.convs[id]=cg; });
+      if(poste){ S.rsel=null; S.convOuverte=null; } else { S.pile=[]; S.vue='reseau'; } }
+    else if(a==='r-envoyer'){ envoyerMsg(id); return 'fait'; }
+    else if(a==='r-fermer-conv'){ S.convOuverte=null; }
+    else if(a==='r-copier-inv'){ copier(texteInvitation(groupeDe(id)),null,b); return 'fait'; }
+    else if(a==='r-repondre'){ S.sheet={type:'repondre',id:v}; couche.innerHTML=''; }
+    else if(a==='r-connais'){ o.mode='connais'; refaireFeuille(); return 'fait'; }
+    else if(a==='r-suivre'||a==='r-masquer'){ R.demsGroupe[o.id].rep=a==='r-suivre'?'suivi':'masque'; S.sheet=null; if(a==='r-suivre') toast('Suivie à '+(R.amis.length?R.amis.map(function(x){return x.p}).join(' et '):'tes amis')); }
+    else if(a==='r-donner-ct'){ var cn=$('.r-cn',couche).value.trim(), cc=$('.r-cc',couche).value.trim();
+      if(!cn||!cc){ var er=$('.r-err-r',couche); er.textContent=!cn?'Il manque son nom.':'Il manque de quoi le joindre.'; er.hidden=false; return 'fait'; }
+      R.demsGroupe[o.id].rep='donne'; S.sheet=null; toast('Donné à '+R.demsGroupe[o.id].qui); }
+    else if(a==='r-demander'){ S.sheet={type:'demander',mode:'metier',m:'cyber',e:null}; couche.innerHTML=''; }
+    else if(a==='r-dm-mode'){ o.mode=v; refaireFeuille(); return 'fait'; }
+    else if(a==='r-dm-m'){ o.m=v; refaireFeuille(); return 'fait'; }
+    else if(a==='r-dm-e'){ o.e=v; refaireFeuille(); return 'fait'; }
+    else if(a==='r-dm-envoyer'){ if(!lirePrenom()) return 'fait'; var nid='d'+(++R.n+1);
+      R.demandes.unshift({id:nid,quoi:o.quoi,a:destinataires(),env:'aujourd’hui',trouve:null,recu:null,ajoute:false});
+      if(o.mode==='entreprise'&&o.e){ S.pistes[o.e].demande=true; hist(o.e,'Demande envoyée à '+destinataires()); }
+      S.sheet=null; ouvrirR('demande',nid); }
+    else if(a==='r-ajami'){ S.sheet={type:'ami'}; couche.innerHTML=''; }
+    else if(a==='r-envoyer-profil'){ if(!lirePrenom()) return 'fait'; copier('OCA1:'+btoa(encodeURIComponent(prenomMoi())),null,b); return 'fait'; }
+    else if(a==='r-scan-ami'){ if(!lirePrenom()) return 'fait'; o.mode='apercu'; refaireFeuille(); return 'fait'; }
+    else if(a==='r-ajouter-ami'){ if(!amiDe('sofia')) R.amis.push({id:'sofia',p:'Sofia',depuis:'aujourd’hui',ouvre:[{e:'kia',q:'y a fait son stage',l:'a fait son stage chez',d:'en 2025'}]});
+      S.sheet=null; annuler('Sofia est dans tes amis',function(){ R.amis=R.amis.filter(function(x){return x.id!=='sofia'}); }); }
+    else if(a==='r-rejoindre'){ S.sheet={type:'rejoindre'}; couche.innerHTML=''; }
+    else if(a==='r-creer-mode'){ o.mode='creer'; refaireFeuille(); return 'fait'; }
+    else if(a==='r-scan-code'){ var cf=$('.r-code',couche); if(cf) cf.value='K7P2Q-9XRT4-MW3HB'; return 'fait'; }
+    else if(a==='r-rejoindre-ok'){ if(!lirePrenom()) return 'fait'; var code=$('.r-code',couche).value.replace(/[^a-z0-9]/gi,'');
+      if(code.length<15){ var ec=$('.r-err-c',couche); ec.textContent=code?'Le code a 15 caractères, en trois blocs de cinq.':'Il manque le code.'; ec.hidden=false; $('.r-code',couche).focus(); return 'fait'; }
+      if(groupeDe('bts')){ var ec2=$('.r-err-c',couche); ec2.textContent='Tu es déjà dans BTS SIO Lille.'; ec2.hidden=false; return 'fait'; }
+      groupeClasse(R); S.sheet=null; ouvrirR('conv','bts'); }
+    else if(a==='r-creer-ok'){ if(!lirePrenom()) return 'fait'; var nom=$('.r-nomg',couche).value.trim();
+      if(!nom){ var eg=$('.r-err-g',couche); eg.textContent='Il manque un nom.'; eg.hidden=false; $('.r-nomg',couche).focus(); return 'fait'; }
+      var gid='g'+(++R.n); R.groupes.push({id:gid,nom:nom,code:'Q4M8T-2XKP7-ZR6WN',membres:[]}); R.convs[gid]={t:'groupe',nom:nom,nonlu:false,msgs:[]};
+      S.sheet=null; ouvrirR('inviter',gid); }
+    else return null;
+    return 'rendre'; }
+
   /* ---------- le rendu ---------- */
   function vNav(){ var n=S.ordre.length;
     return [['trouver','search','Trouver'],['pistes','briefcase','Pistes'],['reseau','users','Réseau'],['moi','user','Moi']].map(function(o){
-      return '<button data-a="onglet" data-id="'+o[0]+'" class="'+(S.onglet===o[0]?'on':'')+(o[0]==='pistes'&&S.vient?' vient':'')+'"'+(S.onglet===o[0]?' aria-current="page"':'')+'>'+ic(o[1])+'<span>'+o[2]+(o[0]==='pistes'&&n?'<b>'+n+'</b>':'')+'</span></button>'; }).join(''); }
+      return '<button data-a="onglet" data-id="'+o[0]+'" class="'+(S.onglet===o[0]?'on':'')+(o[0]==='pistes'&&S.vient?' vient':'')+(o[0]==='reseau'&&S.onglet!=='reseau'&&attend()?' attend':'')+'"'+(S.onglet===o[0]?' aria-current="page"':'')+(o[0]==='reseau'&&attend()?' aria-label="Réseau, du nouveau"':'')+'>'+ic(o[1])+'<span>'+o[2]+(o[0]==='pistes'&&n?'<b>'+n+'</b>':'')+'</span></button>'; }).join(''); }
   function barreHTML(){ return '<div class="barre"><label class="champ">'+ic('search')+'<input type="search" class="q" placeholder="Métier, ville, entreprise…" aria-label="Chercher une entreprise" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search"></label><button class="lien" data-a="fermer-r">Annuler</button></div>'; }
   function brancherBarre(){ var q=$('.q',ecran); if(!q) return;
     q.value=S.q;
@@ -1048,7 +1413,7 @@ function app(root,poste){
   function corpsTrouver(){ return S.cherche?corpsRecherche():S.form?formulaire():etiquettes()+corpsListe(); }
   function grandirTout(r){ $$('.zone',r||ecran).forEach(grandir); }
   function grandir(t){ if(!t||!t.offsetParent) return; t.style.height='auto'; t.style.height=(t.scrollHeight+2)+'px'; }
-  function cle(){ return S.vue+'|'+(S.vue==='piste'?S.fiche:S.vue==='ecrire'?S.ecr.id+S.ecr.k:S.vue==='entreprise'?S.fiche:''); }
+  function cle(){ return S.vue+'|'+(R_VUES[S.vue]?S.rid:S.vue==='piste'?S.fiche:S.vue==='ecrire'?S.ecr.id+S.ecr.k:S.vue==='entreprise'?S.fiche:''); }
   function pistesTel(){
     var n=S.ordre.length, h=$('.n-p',ecran); if(h) h.textContent=n||'';
     var pc=$('.p-cherche-c',ecran);
@@ -1072,9 +1437,13 @@ function app(root,poste){
       else if(v==='piste') garderDefile(function(){ ecran.innerHTML='<div class="tb"><button class="ret" data-a="retour" aria-label="Retour">'+ic('arrow-left')+'</button>Piste</div><div class="defile">'+pageP(S.fiche)+'</div>'; },memes);
       else if(v==='ecrire'){ var x=ecrireHTML(S.ecr.id,S.ecr.k,S.ecr.canal);
         garderDefile(function(){ ecran.innerHTML='<div class="tb"><button class="ret" data-a="retour" aria-label="Retour">'+ic('arrow-left')+'</button>'+TITRE_ECR[S.ecr.k]+'</div><div class="defile"><div class="s-page ecr">'+x.corps+'</div></div><div class="pied">'+x.pied+'</div>'; },memes); }
-      else ecran.innerHTML=({reseau:vReseau,moi:vMoi})[v]();
+      else if(R_VUES[v]){ var xr=R_VUES[v](S.rid);
+        garderDefile(function(){ ecran.innerHTML='<div class="tb"><button class="ret" data-a="retour" aria-label="Retour">'+ic('arrow-left')+'</button>'+esc(xr.titre)+'</div>'+(xr.tete||'')+'<div class="defile'+(xr.fil?' fil-d':'')+'">'+xr.corps+'</div>'+(xr.pied?'<div class="pied">'+xr.pied+'</div>':'')+(xr.compo||''); },memes);
+        if(xr.fil&&!memes){ var dd=$('.defile',ecran); dd.scrollTop=dd.scrollHeight; } }
+      else garderDefile(function(){ ecran.innerHTML=({reseau:vReseau,moi:vMoi})[v](); },memes);
     }
-    if(!memes&&(v==='entreprise'||v==='piste'||v==='ecrire')&&!calme){ ecran.classList.remove('pousse'); void ecran.offsetWidth; ecran.classList.add('pousse'); }
+    root.classList.toggle('plein',v==='conv');
+    if(!memes&&(v==='entreprise'||v==='piste'||v==='ecrire'||R_VUES[v])&&!calme){ ecran.classList.remove('pousse'); void ecran.offsetWidth; ecran.classList.add('pousse'); }
     ecran.setAttribute('data-cle',k); ecran.setAttribute('data-vue',v);
     grandirTout();
   }
@@ -1111,6 +1480,18 @@ function app(root,poste){
       }
       var af2=aFaire();
       etat.innerHTML='<span>'+n+' piste'+(n>1?'s':'')+'</span>'+(af2.length?'<span>'+af2.length+' à faire</span>':'')+'<div class="aide-k"><kbd>↑</kbd><kbd>↓</kbd><span>choisir</span></div>';
+    } else if(v==='reseau'){
+      if(!memes) ecran.innerHTML='<div class="p-col rc1"><div class="defile r-liste"></div><div class="r-bas"></div></div><div class="p-col rc2"></div><div class="r-fen"></div>';
+      var rl=$('.r-liste',ecran), yr=rl.scrollTop; rl.innerHTML='<div class="s-tete"><h3>Réseau</h3></div>'+listeReseau(); rl.scrollTop=yr; $('.r-bas',ecran).innerHTML=basReseau();
+      var sel=S.rsel||(S.R.demandes.length?{v:'demande',id:S.R.demandes[0].id}:S.R.amis.length?{v:'ami',id:S.R.amis[0].id}:null), rc2=$('.rc2',ecran);
+      if(sel&&R_VUES[sel.v]&&sel.v!=='conv'){ var xs=R_VUES[sel.v](sel.id); rc2.innerHTML='<div class="defile">'+xs.corps+'</div>'+(xs.pied?'<div class="pied">'+xs.pied+'</div>':''); }
+      else rc2.innerHTML='<div class="p-vide"><p>Choisis une demande, une conversation ou un ami.</p></div>';
+      var fen=$('.r-fen',ecran); rc2.classList.toggle('sous-fen',!!(S.convOuverte&&S.R.convs[S.convOuverte]));
+      if(S.convOuverte&&S.R.convs[S.convOuverte]){ var xc=pageConv(S.convOuverte), garde=fen.getAttribute('data-id')===S.convOuverte, yf=garde&&$('.defile',fen)?$('.defile',fen).scrollTop:-1;
+        fen.innerHTML='<section class="win conv-w" role="dialog" aria-label="'+esc(xc.titre)+'"><div class="tb">'+esc(xc.titre)+'<button class="x" data-a="r-fermer-conv" aria-label="Fermer">'+ic('close')+'</button></div>'+xc.tete+'<div class="defile fil-d">'+xc.corps+'</div>'+xc.compo+'</section>';
+        var df=$('.defile',fen); df.scrollTop=yf>=0?yf:df.scrollHeight; fen.setAttribute('data-id',S.convOuverte); }
+      else { fen.innerHTML=''; fen.removeAttribute('data-id'); }
+      etat.innerHTML='<span>'+S.R.amis.length+' ami'+(S.R.amis.length>1?'s':'')+'</span><span>'+S.R.groupes.length+' groupe'+(S.R.groupes.length>1?'s':'')+'</span>';
     } else {
       ecran.innerHTML='<div class="p-seul"><div>'+({reseau:vReseau,moi:vMoi})[v]()+'</div></div>';
       etat.innerHTML='<span>Le poste de cet écran se dessine au lot 6.</span>';
@@ -1119,20 +1500,14 @@ function app(root,poste){
     grandirTout();
   }
   function rendre(){ poste?rendrePoste():rendreTel(); nav.innerHTML=vNav(); S.vient=false;
-    if(S.sheet&&!couche.firstChild){ couche.innerHTML=feuilleContact(); var f=$('.c-n',couche); if(f&&!$('.c-n',couche).value&&!$('.prop-b',couche)) f.focus(); }
+    if(S.sheet&&!couche.firstChild){
+      if(S.sheet.type){ couche.innerHTML=feuilleR(); var fr=$('input,textarea',couche); if(fr&&(S.sheet.type==='rejoindre'||S.sheet.mode==='coller'||S.sheet.mode==='connais')) fr.focus(); }
+      else { couche.innerHTML=feuilleContact(); var f=$('.c-n',couche); if(f&&!$('.c-n',couche).value&&!$('.prop-b',couche)) f.focus(); } }
     if(!S.sheet) couche.innerHTML='';
     poserAnnule(); }
 
   /* ---------- ce qui attend son lot ---------- */
   var avenir=function(n){return '<small>lot '+n+', à venir</small>'};
-  function vReseau(){
-    if(!S.amis) return '<div class="defile"><div class="s-tete"><h3>Réseau'+avenir(3)+'</h3></div><div class="panneau"><p>Ta classe et tes amis apparaissent ici.<br>Ils te disent où ils sont passés et qui contacter.</p><button class="btn p">Rejoindre ma classe</button><button class="btn">Ajouter un ami</button></div></div>';
-    return '<div class="defile"><div class="s-tete"><h3>Réseau'+avenir(3)+'</h3></div><div class="rangs s-liste" style="margin-top:8px"><div class="rang conv"><div class="s-init">BS</div><div class="r-c"><b>BTS SIO Lille</b><span>Sofia : Forum alternance jeudi à la CCI, on y va ?</span></div><span class="s-h">02:55</span></div>'
-      +'<div class="rang conv"><svg class="visage"><use href="#i-visage-k"/></svg><div class="r-c"><b>Karim</b><span>Je te donne le contact demain.</span></div><span class="s-h">hier</span></div></div>'
-      +'<div class="et s-et">Mes amis · 2</div><div class="rangs s-liste"><div class="rang conv"><svg class="visage"><use href="#i-visage-k"/></svg><div class="r-c"><b>Karim</b><span class="plus">en alternance chez OVHcloud</span></div></div>'
-      +'<div class="rang conv"><svg class="visage"><use href="#i-visage-l"/></svg><div class="r-c"><b>Léa</b><span class="plus">a fait son stage chez Orange Cyberdefense</span></div></div></div></div>'
-      +'<div class="s-bas"><button class="btn">Donner des pistes</button><button class="btn">Recevoir</button></div>';
-  }
   function vMoi(){ var r=function(t,d){ return '<div class="rang nav-r"><div class="r-c"><b>'+t+'</b>'+(d?'<span>'+d+'</span>':'')+'</div>'+ic('chevron-right')+'</div>'; };
     var p=complet()?esc(S.P.formation)+' · '+QUOI[S.P.quoi].toLowerCase()+' · '+esc(S.P.ville):'à compléter';
     return '<div class="defile"><div class="s-tete"><h3>Moi'+avenir(4)+'</h3></div><div class="s-moi">'+(S.nom?'<b>'+esc(S.nom)+'</b>':'<b>Ton profil</b>')+'<span>'+p+'</span></div><div class="rangs s-liste">'
@@ -1147,18 +1522,19 @@ function app(root,poste){
     piste(id,'garde',{ct:e.qui?[{n:e.qui.n,r:e.qui.r}]:[],h:[['aujourd’hui','Gardée']]}); S.neuves++; S.vient=true; }
   function ecarter(id){ if(S.pistes[id]) return; S.ecartes.push(id); if(S.sel===id) S.sel=null;
     annuler(ENT[id].n+' : pas pour moi',function(){ S.ecartes=S.ecartes.filter(function(x){return x!==id}); }); }
-  function ouvrirPiste(id){ S.onglet='pistes'; S.neuves=0; fermerRecherche(); if(poste){ S.vue='pistes'; S.selP=id; } else { S.vue='piste'; S.fiche=id; } }
+  function ouvrirPiste(id){ S.onglet='pistes'; S.pile=[]; S.neuves=0; fermerRecherche(); if(poste){ S.vue='pistes'; S.selP=id; } else { S.vue='piste'; S.fiche=id; } }
   function ouvrirEcrire(id,k){ k=k||kDe(id)||'premier'; ouvrirPiste(id); if(!poste){ S.ecr={id:id,k:k,canal:canalDefaut(id,k)}; S.vue='ecrire'; } }
 
   root.addEventListener('click',function(ev){
     var b=ev.target.closest('[data-a]'); if(!b||!root.contains(b)) return;
     var a=b.getAttribute('data-a'), id=b.getAttribute('data-id'), v=b.getAttribute('data-v'), p=S.pistes[id];
+    if(a.indexOf('r-')===0){ var gr=gesteR(a,id,v,b,ev); if(gr==='fait') return; if(gr==='rendre'){ rendre(); return; } }
     if(a==='envoyer'){ envoyer(ev,b); return; }
     if(a==='copier'){ var E=ecrEnCours(), ta=$('.e-m',ecran); if(!E) return; if(!crochetOk(ev,E.d,ta)) return;
       copier((E.d.o?E.d.o+'\n\n':'')+E.d.m,ta,b); S.envoi[E.id]={k:E.k,canal:E.canal}; S.pm[E.id]='parti'; if(poste) setTimeout(rendre,900); return; }
     if(a==='proposer'){ var pr=ENT[S.sheet.id].qui; $('.c-n',couche).value=pr.n; $('.c-r',couche).value=pr.r; b.hidden=true; return; }
     if(a==='garder-ct'){ garderContact(); return; }
-    if(a==='onglet'){ S.onglet=S.vue=id; fermerRecherche(); if(id==='pistes') S.neuves=0; }
+    if(a==='onglet'){ S.onglet=S.vue=id; S.pile=[]; fermerRecherche(); if(id==='pistes') S.neuves=0; }
     else if(a==='b-quoi'){ S.B.quoi=id; }
     else if(a==='b-form'){ S.B.formation=id; S.B.autre=false; }
     else if(a==='b-autre'){ S.B.autre=!S.B.autre; S.B.formation=null; rendre(); var fa=$('.f-autre',ecran); if(fa) fa.focus(); return; }
@@ -1172,7 +1548,7 @@ function app(root,poste){
     else if(a==='ent'){ if(poste){ S.sel=id; if(S.cherche) fermerRecherche(); } else { S.vue='entreprise'; S.fiche=id; } }
     else if(a==='garder'){ garder(id); }
     else if(a==='ecarter'){ ecarter(id); if(!poste) S.vue='trouver'; }
-    else if(a==='annuler'){ if(S.annule){ S.annule.undo(); S.annule=null; } }
+    else if(a==='annuler'){ if(S.annule&&S.annule.undo){ S.annule.undo(); S.annule=null; } }
     else if(a==='coller'){ S.q='linkedin.com/company/septentrion-cloud'; var q=$('.q',ecran); if(q) q.value=S.q; S.cherche=true; }
     else if(a==='tel-quel'){ var r=chercher(S.q), nid=(poste?'p':'t')+'x'+(++nId); ENT[nid]={n:r.nom.slice(0,60),v:'',km:null,t:'',m:[],f:'',main:1}; garder(nid); fermerRecherche();
       if(poste) S.sel=nid; else { S.vue='entreprise'; S.fiche=nid; } }
@@ -1180,12 +1556,13 @@ function app(root,poste){
     else if(a==='piste'){ ouvrirPiste(id); }
     else if(a==='ecrire'){ ouvrirEcrire(id,b.getAttribute('data-k')); }
     else if(a==='demande'){ ouvrirPiste(id); S.pm[id]='demande'; }
-    else if(a==='retour'){ S.vue=S.vue==='ecrire'?'piste':S.onglet; }
+    else if(a==='retour'){ if(poste) S.rsel=null; else if(S.vue==='ecrire') S.vue='piste'; else if(S.pile.length){ var xb=S.pile.pop(); S.vue=xb.v; S.rid=xb.id; } else S.vue=S.onglet; }
     else if(a==='canal'){ if(poste) S.canalP[id]=v; else S.ecr.canal=v; }
     else if(a==='pm'){ S.pm[id]=v||null; }
     else if(a==='pas-encore'){ S.pm[id]=null; delete S.envoi[id]; }
     else if(a==='envoye'){ faitEnvoi(id); }
-    else if(a==='demander'){ p.demande=true; hist(id,'Demandé à '+ami(id).p); S.pm[id]=null; }
+    else if(a==='demander'){ p.demande=true; hist(id,'Demandé à '+ami(id).p); S.pm[id]=null;
+      S.R.demandes.unshift({id:'d'+(++S.R.n+1),quoi:'chez '+ENT[id].n,a:ami(id).p,env:'aujourd’hui',trouve:null,recu:null,ajoute:false}); }
     else if(a==='quand'){ p.e='reponse'; p.entretien={jour:v,passe:false}; hist(id,'Réponse : un entretien le '+v); S.pm[id]=null; }
     else if(a==='ev'){ S.pm[id]=null;
       if(v==='ecrit'){ hist(id,p.e==='ecrit'?'Relancé':'Écrit'); p.e='ecrit'; p.j=0; p.ecritLe=enLong(AUJ); p.aujourdhui=true; }
@@ -1227,6 +1604,7 @@ function app(root,poste){
     if((ev.key==='Enter'||ev.key===' ')&&ev.target.matches('[role="button"]')){ ev.preventDefault(); ev.target.click(); }
     if(ev.key==='Enter'&&ev.target.matches('.f-ville,.f-autre')){ var ok=$('[data-a="voir"]',ecran); if(ok) ok.click(); }
     if(ev.key==='Escape'&&S.sheet){ S.sheet=null; rendre(); }
+    if(ev.key==='Enter'&&ev.target.matches('.m-in')){ ev.preventDefault(); envoyerMsg(ev.target.getAttribute('data-id')); }
   });
 
   /* au doigt : glisser une ligne vers la gauche l'écarte (Trouver) ou la supprime (Pistes) ;
