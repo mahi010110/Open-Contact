@@ -623,7 +623,8 @@ là, exprès : le service worker, la sync, le verrou (lots suivants).
 
 ### Code, lot 2 : Pistes, une piste, écrire (17 novembre 2026)
 
-La maquette du lot 2 devenue l'app. Montré, en attente de son avis.
+La maquette du lot 2 devenue l'app. **Validé** le 17 novembre
+(« Continue ça me va »).
 
 - **Pistes** : « À faire » en tête, trois lignes au plus, un bouton
   chacune (le merci, la relance, écrire) ; les étapes ; le pire jour se
