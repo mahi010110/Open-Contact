@@ -20,15 +20,22 @@ export async function lancer(nom){
   const browser = await chromium.launch({ executablePath: chromiumPath() });
   const etat = { erreurs: [], echecs: [] };
   /* `o.sombre`, `o.mobile` (le doigt), `o.calme` (sans mouvement),
-     `o.profil` : un profil déjà rempli (les trois réponses) */
+     `o.profil` : un profil déjà rempli (les trois réponses) ; `o.relais` :
+     l'adresse d'un relais local (tests/e2e/relais-local.mjs), le seul que
+     l'app connaîtra ; `o.cles` : d'autres clés à semer ; `o.presse` : le
+     presse-papier ouvert au scénario */
   async function ouvrir(w, h, o = {}){
     const ctx = await browser.newContext({ viewport: { width: w, height: h }, hasTouch: !!o.mobile, isMobile: !!o.mobile,
-      deviceScaleFactor: o.echelle || 1, colorScheme: o.sombre ? 'dark' : 'light', reducedMotion: o.calme ? 'reduce' : 'no-preference' });
+      deviceScaleFactor: o.echelle || 1, colorScheme: o.sombre ? 'dark' : 'light', reducedMotion: o.calme ? 'reduce' : 'no-preference',
+      ignoreHTTPSErrors: !!o.relais });
+    if (o.presse) await ctx.grantPermissions(['clipboard-read', 'clipboard-write']);
     const an = brancherAnnuaire(ctx, o);
-    if (o.profil || o.pistes) await ctx.addInitScript(([profil, pistes]) => {
+    if (o.profil || o.pistes || o.relais || o.cles) await ctx.addInitScript(([profil, pistes, relais, cles]) => {
       if (profil) localStorage.setItem('oc_profile_v1', JSON.stringify(profil));
       if (pistes) localStorage.setItem('oc_data_v3', JSON.stringify(pistes));
-    }, [o.profil || null, o.pistes || null]);
+      if (relais) localStorage.setItem('oc_relays_v1', JSON.stringify([relais]));
+      for (const [k, v] of Object.entries(cles || {})) localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v));
+    }, [o.profil || null, o.pistes || null, o.relais || null, o.cles || null]);
     const p = await ctx.newPage();
     const ici = `${w}${o.sombre ? ' sombre' : ''}`;
     p.on('pageerror', e => etat.erreurs.push(ici + ' · ' + String(e)));

@@ -35,9 +35,10 @@ import { travailDe, aQui } from '../engine/carte.js';
 import { normalizeCompany, normalizeContact, RAYONS } from '../engine/model.js';
 import { uid, todayISO, normName } from '../engine/utils.js';
 import { euros } from '../engine/marche.js';
-import { visage } from '../engine/visage.js';
+import { visageHTML } from './visage.js';
 import { laSuite } from '../engine/suite.js';
 import { ouvrirEcrire, ouvrirPiste } from './pistes.js';
+import { optionsAmis } from './amis.js';
 
 const QUOI = { stage: 'Stage', alternance: 'Alternance', emploi: 'Emploi' };
 const LOT = 6;                      /* une liste se lit six lignes à la fois */
@@ -100,12 +101,6 @@ const alerteDe = r => {
   const b = sourcesDe(r.siren).bodacc;
   return b && b.procedure ? b.procedure.nature[0].toUpperCase() + b.procedure.nature.slice(1) : '';
 };
-function visageHTML(graine){
-  const v = visage(graine);
-  return `<span class="vz vz-${v.teinte}" aria-hidden="true"><svg viewBox="0 0 7 7" focusable="false"><path d="${
-    v.cases.map(([x, y]) => `M${x + 1} ${y + 1}h1v1h-1z`).join('')}"/></svg></span>`;
-}
-
 /* une ligne : le nom, où et quelle taille, puis sa raison quand elle en
    a une ; « Garder » au bout. Glissée, « Pas pour moi ». */
 function ligneEnt(r, o = {}){
@@ -392,7 +387,7 @@ function piedEnt(r, c){
   const id = r ? r.siren : 'p:' + c.id;
   const piste = c || (r && pisteDe(r));
   if (piste){
-    const s = laSuite(piste, { profile: S.profile });
+    const s = laSuite(piste, { profile: S.profile, ...optionsAmis() });
     return `<button class="btn fait court" disabled>${ic('check')}Gardée</button>`
       + (s.k === 'premier' ? `<button class="btn p" data-a="ecrire-p" data-id="${esc(piste.id)}">Préparer mon message</button>`
         : `<button class="btn p" data-a="voir-p" data-id="${esc(piste.id)}">Voir la piste</button>`);

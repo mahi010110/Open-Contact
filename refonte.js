@@ -9,15 +9,17 @@
 
    Ce qu'elle ne fait pas encore, exprès : enregistrer le service worker
    (une page d'essai ne doit pas garder une ancienne version en cache),
-   la sync de mes appareils, la boîte aux lettres, les groupes, le
-   verrou. Chacun revient avec le lot qui le montre.
+   la sync de mes appareils, le verrou. Chacun revient avec le lot qui le
+   montre. La boîte aux lettres et les groupes sont là depuis le lot 3
+   (Réseau) : ils démarrent avec l'app, comme dans l'app actuelle.
    ============================================================ */
 import { APP_VERSION } from './engine/model.js';
 import { charger, choisirTheme, S } from './ecrans/etat.js';
 import { inscrire, demarrer } from './ecrans/coque.js';
 import trouver from './ecrans/trouver.js';
 import pistes from './ecrans/pistes.js';
-import { reseau, moi } from './ecrans/bientot.js';
+import reseau from './ecrans/reseau.js';
+import { moi } from './ecrans/bientot.js';
 
 inscrire('trouver', trouver);
 inscrire('pistes', pistes);

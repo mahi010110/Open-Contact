@@ -99,6 +99,7 @@ export function allerA(o, { remplacer: rempl = false } = {}){
   }
   garderPlace();
   if (feuille) fermerFeuille();
+  quitterVue(C.onglet);
   C.onglet = o;
   poserEntree(entree, '#/' + o, rempl);
   rendre({ focus: 'titre' });
@@ -126,6 +127,9 @@ export function remplacerPage(p){
 export const retour = () => history.back();
 export const pageOuverte = () => !C.poste && pileDe(C.onglet).slice(-1)[0] || null;
 
+/* un onglet qu'on quitte range ce qui tourne pour lui (une conversation
+   écoutée en direct) */
+function quitterVue(o){ const v = VUES[o]; if (v && v.quitter) v.quitter(); }
 function garderPlace(){
   if (C.poste || pileDe(C.onglet).length) return;
   const d = $('.defile', ecran);
@@ -159,6 +163,10 @@ function dessinerFeuille(premier){
     if (cible) cible.focus({ preventScroll: true });
     if (f.apres) f.apres(coucheF);
   } else {
+    /* une feuille peut changer de question en route (« Recevoir » qui
+       reconnaît le profil d'un ami) : sa barre suit */
+    const t = $('.sheet .tb-t', coucheF);
+    if (t && t.textContent !== f.titre){ t.textContent = f.titre; $('.sheet', coucheF).setAttribute('aria-label', f.titre); }
     remplacer($('.sh-c', coucheF), x.corps || '');
     const pied = $('.sheet .pied', coucheF);
     pied.hidden = !x.pied;
@@ -173,6 +181,8 @@ export function fermerFeuille({ dejaRendue = false } = {}){
   if (!feuille) return;
   const fe = feuille;
   feuille = null;
+  /* ce qu'elle avait ouvert se range avec elle (la caméra) */
+  if (fe.f.fermee) try { fe.f.fermee(); } catch (e) {}
   coucheF.innerHTML = '';
   document.documentElement.classList.remove('feuille-ouverte');
   if (!dejaRendue) rendreEntree();
@@ -188,7 +198,12 @@ function navHTML(){
     const on = o.id === C.onglet;
     const mot = C.poste ? `<u>${o.mot[0]}</u>${o.mot.slice(1)}` : o.mot;
     const n = VUES[o.id] && VUES[o.id].compte ? VUES[o.id].compte() : '';
-    return `<a href="#/${o.id}" data-a="onglet" data-id="${o.id}" class="${on ? 'on' : ''}${C.vient === o.id && !on ? ' vient' : ''}"${on ? ' aria-current="page"' : ''}`
+    /* LE CALME : aucun chiffre, l'onglet change de couleur quand quelque
+       chose y attend, et son nom le dit (la couleur seule ne parle pas à
+       tout le monde, WCAG 1.4.1) */
+    const at = !on && VUES[o.id] && VUES[o.id].attend && VUES[o.id].attend();
+    return `<a href="#/${o.id}" data-a="onglet" data-id="${o.id}" class="${on ? 'on' : ''}${C.vient === o.id && !on ? ' vient' : ''}${at ? ' attend' : ''}"${on ? ' aria-current="page"' : ''}`
+      + `${at ? ` aria-label="${o.mot}, du nouveau"` : ''}`
       + `${C.poste ? ` aria-keyshortcuts="${o.mot[0]}"` : ''}>${ic(o.icone)}<span>${mot}${n ? `<b>${esc(n)}</b>` : ''}</span></a>`;
   }).join('');
 }
@@ -200,6 +215,9 @@ export function rendre(o = {}){
   const pile = pileDe(C.onglet);
   const p = !C.poste && pile.length ? pile[pile.length - 1] : null;
   const avant = ecran.dataset.cle || '';
+  /* une page qui prend l'écran (une conversation) : la barre d'onglets
+     s'efface, le temps de la lire */
+  document.documentElement.classList.toggle('plein', !!(p && PAGES[p.t] && PAGES[p.t].plein));
   if (p) rendrePage(p);
   else rendreVue();
   const cle = ecran.dataset.cle;
@@ -223,20 +241,30 @@ function rendrePage(p){
   if (!P) return;
   const x = P.rendre(p) || {};
   const cle = 'page:' + p.t + ':' + (p.id || '');
-  if (ecran.dataset.cle !== cle){
-    ecran.className = 'ecran page';
+  const premier = ecran.dataset.cle !== cle;
+  /* `tete` : ce qui reste sous la barre et ne défile pas (les membres
+     d'un groupe) ; `classe` : le dessin d'une page à part (le fil) */
+  if (premier){
+    ecran.className = 'ecran page' + (x.classe ? ' ' + x.classe : '');
     ecran.innerHTML = `<div class="tb"><button class="ret" data-a="retour" aria-label="Retour">${ic('arrow-left')}</button>`
       + `<span class="tb-t">${esc(x.titre || (P.titre ? P.titre(p) : ''))}</span></div>`
+      + `<div class="p-tete"${x.tete ? '' : ' hidden'}>${x.tete || ''}</div>`
       + `<div class="defile">${x.corps || ''}</div><div class="pied"${x.pied ? '' : ' hidden'}>${x.pied || ''}</div>`;
     ecran.dataset.cle = cle;
+    $('.p-tete', ecran).__h = x.tete || '';
+    $('.pied', ecran).__h = x.pied || '';
     if (!calme()){ ecran.classList.remove('pousse'); void ecran.offsetWidth; ecran.classList.add('pousse'); }
   } else {
+    const t = $('.tb-t', ecran);
+    if (t && x.titre && t.textContent !== x.titre) t.textContent = x.titre;
+    /* la tête et le pied ne se refont que s'ils ont changé : un champ où
+       l'on écrit (une conversation) garde sa main */
+    const poser = (z, h) => { z.hidden = !h; if (z.__h === h) return; remplacer(z, h); z.__h = h; };
+    poser($('.p-tete', ecran), x.tete || '');
     remplacer($('.defile', ecran), x.corps || '');
-    const pied = $('.pied', ecran);
-    pied.hidden = !x.pied;
-    remplacer(pied, x.pied || '');
+    poser($('.pied', ecran), x.pied || '');
   }
-  if (P.apres) P.apres(p, ecran);
+  if (P.apres) P.apres(p, ecran, premier);
 }
 function rendreVue(){
   const v = VUES[C.onglet];
@@ -433,6 +461,7 @@ export function demarrer(){
     const o = (s && s.oc && s.o) || ongletDe(location.hash) || 'trouver';
     const avant = pileDe(C.onglet).slice(-1)[0];
     garderPlace();
+    if (o !== C.onglet) quitterVue(C.onglet);
     C.onglet = o;
     C.piles[o] = (s && s.oc && Array.isArray(s.pile)) ? s.pile : [];
     rendre({ focus: 'retour', retour: avant && avant.retour });

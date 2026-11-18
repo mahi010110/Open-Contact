@@ -37,6 +37,9 @@ import { formeAgenda, rappelICS, lienAgendaGoogle } from '../engine/agenda.js';
 import { aQui } from '../engine/carte.js';
 import { todayISO } from '../engine/utils.js';
 import { metierDuProfil } from '../engine/requete.js';
+import { optionsAmis, porteurs } from './amis.js';
+import { amiDe, demander, ajouterDon, phraseDemande, prenomMoi, amisJoignables } from './boite.js';
+import { visageHTML } from './visage.js';
 
 /* ---------- l'état de l'écran (cette visite) ---------- */
 const P = {
@@ -48,7 +51,8 @@ const P = {
   sel: '',       /* au poste : la piste ouverte */
   canalP: {},    /* au poste : le canal choisi par piste */
   qp: '',        /* la recherche, à partir de dix pistes */
-  ouv: {}        /* les plis ouverts */
+  ouv: {},       /* les plis ouverts */
+  dem: {}        /* id → l'ami à qui l'on va demander (« Karim recevra : ») */
 };
 /* les brouillons et ce qui vient de partir survivent à un aller-retour
    dans l'app Mail (une page qu'iOS recharge) : sessionStorage, le temps
@@ -60,7 +64,11 @@ const garderSession = () => { try { sessionStorage.setItem(SESSION, JSON.stringi
 
 const pisteDe = id => S.companies.find(c => c.id === id) || null;
 const today = () => todayISO();
-const opt = () => ({ today: today(), profile: S.profile });
+/* ce que mes amis ouvrent (engine/amis.js) et les demandes parties
+   (ecrans/boite.js) : lu une fois par rendu, pas une fois par ligne */
+let optAmis = null;
+const amisOpt = () => { if (!optAmis){ optAmis = optionsAmis(); queueMicrotask(() => { optAmis = null; }); } return optAmis; };
+const opt = () => ({ today: today(), profile: S.profile, ...amisOpt() });
 const suiteDeP = c => laSuite(c, opt());
 const recherche = () => S.profile.recherche || '';
 /* la typographie française : pas de « 7 » seul en fin de ligne, pas de
@@ -70,7 +78,7 @@ const ilYa = d => { const n = Math.round((Date.parse(today()) - Date.parse(d)) /
   return n <= 0 ? 'aujourd’hui' : n === 1 ? 'hier' : jourCourt(d); };
 
 /* ---------- la liste ---------- */
-const gesteDe = s => s.a === 'ecrire' ? 'ecrire' : 'piste';
+const gesteDe = s => s.a === 'ecrire' || s.a === 'demande' || s.a === 'don' ? s.a : 'piste';
 function ligneAF(x, i){
   if (x.ranger) return `<div class="rang l rg"><div class="r-c"><b>${x.ranger.length} piste${x.ranger.length > 1 ? 's' : ''} sans réponse</b><span>depuis plus de 45 jours</span></div>`
     + `<button class="btn s${i || C.poste ? '' : ' p'}" data-a="ranger">Ranger</button></div>`;
@@ -164,6 +172,21 @@ function blocSuite(c, s){
   if (x.length) h += `<div class="extras">${x.join('')}</div>`;
   return h;
 }
+/* CE QUE MES AMIS OUVRENT, dans « Les gens » : qui y est passé (et lui
+   demander à qui écrire), puis le contact qu'il m'a donné, proposé en
+   pointillé — posé en plein quand on l'ajoute */
+function gensAmis(c){
+  const id = c.id, o = amisOpt(), dem = o.demandes.get(id), joignables = new Set(amisJoignables().map(a => a.id));
+  let h = porteurs(c).slice(0, 2).map(x => {
+    const peut = !dem && !(c.contacts || []).length && o.portes.has(id) && joignables.has(x.amiId);
+    return `<div class="pers">${visageHTML(x.amiId)}<div class="r-c"><b>${esc(x.prenom)}</b><span>${esc(x.court)}</span></div>`
+      + (dem && dem.a && dem.a.includes(x.prenom) ? `<span class="s-ok">${ic('check')}demandé</span>`
+        : peut ? `<button class="btn s" data-a="demande" data-id="${esc(id)}" data-v="${esc(x.amiId)}">Demander</button>` : '') + '</div>';
+  }).join('');
+  if (dem && dem.don) h += `<div class="pers prop">${visageHTML(dem.don.soi && dem.don.ami ? dem.don.ami : dem.don.nom)}<div class="r-c"><b>${esc(dem.don.nom)}</b>`
+    + `<span>${esc(dem.don.soi ? 'te donne son contact' : 'donné par ' + dem.don.de)}</span></div></div>`;
+  return h;
+}
 function pageP(c){
   const id = c.id, s = suiteDeP(c), pm = P.pm[id];
   let bloc, evs = '';
@@ -187,6 +210,14 @@ function pageP(c){
       + `<div class="autre-j"><label class="fld"><span class="et">Un autre jour</span><input type="date" class="jour-e" data-id="${esc(id)}" min="${today()}"></label>`
       + `<button class="btn s" data-a="quand-ok" data-id="${esc(id)}" hidden>OK</button></div>`
       + `<button class="btn-g" data-a="pm" data-v="" data-id="${esc(id)}">Annuler</button>`;
+  } else if (pm === 'demande' && amiDe(P.dem[id] || (amisOpt().portes.get(id) || {}).amiId)){
+    /* LA PHRASE EXACTE qui part, et à qui : rien d'autre ne voyage */
+    const a = amiDe(P.dem[id] || amisOpt().portes.get(id).amiId);
+    bloc = `<p class="fort">${esc(prenomDe(a.nom))} recevra :</p>`
+      + `<blockquote class="cite">${esc(insec(phraseDemande(prenomMoi() || 'Toi', 'chez ' + c.name, recherche())))}</blockquote>`
+      + '<p class="err d-err" hidden></p>'
+      + `<div class="deux"><button class="btn" data-a="pm" data-v="" data-id="${esc(id)}">Annuler</button>`
+      + `<button class="btn p" data-a="demander" data-id="${esc(id)}">Envoyer</button></div>`;
   } else bloc = blocSuite(c, s);
   const et = etapeDe(c);
   if (!pm && !s.fin && et !== 'oui'){
@@ -207,6 +238,7 @@ function pageP(c){
         + `<div class="r-c"><b>${esc(nom)}</b><span>${esc(t.role || (t.name ? '' : 'ajouté à la main'))}</span></div>`
         + (k ? `<span class="canaux-i">${k}</span>` : '') + ic('chevron-right') + '</div>';
     }).join('')
+    + gensAmis(c)
     + `<button class="lien ajout" data-a="contact" data-v="-1" data-id="${esc(id)}">${ic('plus')}Ajouter quelqu’un</button></fieldset>`;
   const pli = (k, t, x) => `<details class="pli" data-p="${k}"${P.ouv[k] ? ' open' : ''}><summary>${t}${ic('chevron-right')}</summary>${x}</details>`;
   const f = faitsHTML(c), h = c.history || [];
@@ -581,6 +613,40 @@ function geste(a, el, ev){
     return true;
   }
   if (a === 'contact' && c){ feuilleContact(id, Number(v)); return true; }
+  /* DEMANDER À UN AMI qui y est passé : la phrase et « Envoyer » sur la page */
+  if (a === 'demande' && c){
+    P.dem[id] = v || '';
+    P.pm[id] = 'demande';
+    if (C.poste){ P.sel = id; if (C.onglet !== 'pistes') allerA('pistes'); rendre(); }
+    else { const p = pageOuverte(); if (!p || p.t !== 'piste' || p.id !== id) ouvrirPiste(id, el); else rendre(); }
+    return true;
+  }
+  if (a === 'demander' && c){
+    const am = amiDe(P.dem[id] || (amisOpt().portes.get(id) || {}).amiId);
+    if (!am) return true;
+    el.disabled = true;
+    demander(c, { amis: [am], groupes: false }).then(d => {
+      el.disabled = false;
+      if (!d){ const e = $('.ecran .d-err'); if (e){ e.textContent = 'Pas de réseau : ta demande n’est pas partie.'; e.hidden = false; } return; }
+      pushHist(c, 'Demandé à ' + prenomDe(am.nom));
+      c.updatedAt = Date.now();
+      saveData();
+      P.pm[id] = '';
+      rendre();
+    });
+    return true;
+  }
+  /* le contact qu'un ami m'a donné : il entre dans la piste */
+  if (a === 'don' && c){
+    const dem = amisOpt().demandes.get(id);
+    if (!dem || !dem.don) return true;
+    ajouterDon(dem.don.id).then(x => {
+      if (!x) return;
+      annuler(`Contact ajouté à ${x.piste.name}`, () => x.defaire());
+      rendre();
+    });
+    return true;
+  }
   return false;
 }
 

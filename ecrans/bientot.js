@@ -5,7 +5,7 @@
    Pendant la phase 2, la nouvelle interface grandit un lot à la fois.
    Pistes, Réseau et Moi ont leur place dans la barre dès le lot 1 —
    la navigation ne bouge plus — mais leurs écrans arrivent aux lots 2,
-   3 et 4. En attendant :
+   3 et 4 (Pistes et Réseau sont arrivés). En attendant :
    · Pistes montre ce que Trouver a gardé, et chaque ligne s'enlève au
      glissé (ou par sa croix), avec « Annuler » : un essai ne laisse pas
      de trace qu'on ne puisse pas défaire ;
@@ -48,11 +48,6 @@ export const pistes = {
     else if (a === 'retirer') retirer(id);
   },
   etat: () => `<span>${S.companies.length} piste${S.companies.length > 1 ? 's' : ''}</span>` + cles([[['T'], 'trouver']])
-};
-export const reseau = {
-  id: 'reseau',
-  rendre(ecran){ ecran.innerHTML = vide('Réseau', 'Réseau arrive au lot 3 : ta classe, tes amis, tes demandes.'); },
-  etat: () => '<span>Réseau</span>'
 };
 export const moi = {
   id: 'moi',
