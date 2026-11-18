@@ -2,7 +2,7 @@
 
 *Pour l'assistant qui reprend la refonte dans une nouvelle discussion.
 Mise à jour à chaque lot, en même temps que le journal du brief.
-Dernière mise à jour : 17 novembre 2026, code : lot 2 validé, lot 3 en cours.*
+Dernière mise à jour : 18 novembre 2026, code : lot 3 montré.*
 
 Le premier message à donner à une nouvelle discussion :
 
@@ -194,7 +194,7 @@ lien pour l'essayer sur l'iPhone, et validé avant le suivant.
 |---|---|---|
 | 1 | la coque (les quatre onglets, les pages, le poste) et Trouver | validé le 17 novembre (« Continue ») |
 | 2 | Pistes, une piste, écrire par quatre canaux | validé le 17 novembre (« Continue ça me va ») |
-| 3 | Réseau | en cours |
+| 3 | Réseau | montré le 18 novembre, **en attente de son avis** |
 | 4 | Moi | à faire |
 | 5 | les états : premier jour, vide, erreurs, hors ligne, verrou | à faire |
 | 6 | le poste, un établi | à faire |
@@ -226,7 +226,16 @@ se réécrit pour la nouvelle interface, plus court.
 | `ecrans/trouver.js` | l'onglet Trouver et la page d'une entreprise | |
 | `ecrans/pistes.js` | Pistes, la page d'une piste, écrire par quatre canaux, la feuille d'un contact | |
 | `ecrans/zone-visible.js` | le clavier d'iOS ne couvre rien (repris de `ui/zone-visible.js`) | |
-| `ecrans/bientot.js` | Réseau et Moi en attendant leurs lots | disparaît |
+| `ecrans/reseau.js` | l'onglet Réseau : la liste (on te demande, mes demandes, les conversations, mes amis), un ami, une demande, un groupe, inviter, les feuilles (demander, rejoindre, ajouter un ami, répondre, les réglages du chef), le poste | |
+| `ecrans/conversation.js` | une conversation (un groupe, un ami) : le fil, « N nouveaux », les pistes données, la demande d'un camarade, le champ ; en direct tant qu'elle est ouverte | |
+| `ecrans/echange.js` | Donner (groupe, QR, fichier, texte), Recevoir (QR, fichier, texte, ce qui se reconnaît tout seul), l'aperçu et « Annuler » | |
+| `ecrans/relais.js` | parler aux relais : publier, lire, écouter (repris de `ui/reseau.js`) | |
+| `ecrans/boite.js` | la boîte aux lettres : l'amitié réciproque, les messages, les demandes et les dons, les sauts, les mercis (la mécanique de `ui/reseau.js`, sans son interface) | |
+| `ecrans/groupes.js` | les groupes : créer, rejoindre, s'écrire, donner, demander, les réglages, la porte, retirer (la mécanique de `ui/groupes.js`) | |
+| `ecrans/messages.js`, `ecrans/fils.js` | les conversations avec un ami ; l'épingle, le son coupé, le calme de l'onglet | |
+| `ecrans/amis.js` | ce que mes amis ouvrent, pour Pistes et Trouver (« Karim y est en alternance ») | |
+| `ecrans/qr.js`, `ecrans/visage.js`, `ecrans/fichier.js`, `ecrans/dates.js` | recopiés de `ui/` : le QR, les visages en pixels, enregistrer et envoyer un texte, l'heure d'un message | |
+| `ecrans/bientot.js` | Moi en attendant son lot | disparaît |
 | `engine/formations.js` | les formations de « Tu étudies » et leur métier (testé par `?test`) | reste |
 | `engine/suite.js` | la suite d'une piste (sa phrase, son geste, son rang dans « À faire »), le canal, les gestes qui écrivent l'historique | reste |
 | `engine/contrat.js` | du « oui » au contrat, repris de `claude/refonte-arc` avec ses tests | reste |
@@ -248,8 +257,16 @@ se réécrit pour la nouvelle interface, plus court.
 - **Un geste** : `data-a` et `data-id`, comme dans la maquette. La
   coque prend les siens (`onglet`, `retour`, `annuler`), puis la feuille
   ouverte, puis la page, puis l'onglet.
+- **Une page qui prend l'écran** (une conversation) : `plein: true` ;
+  la barre d'onglets s'efface. Une page peut rendre `tete` (ce qui ne
+  défile pas sous la barre) et `classe` ; `apres(p, ecran, premier)` sait
+  si elle vient de s'ouvrir. La tête et le pied ne se refont que s'ils
+  ont changé : un champ où l'on écrit garde sa main.
+- **Un onglet** peut dire `attend()` (il change de couleur, « Réseau, du
+  nouveau ») et `quitter()` (ce qui tourne pour lui s'arrête).
 - **Une feuille** (une question courte) : `ouvrirFeuille({ titre,
-  rendre, geste, focus })`. Elle a son entrée d'historique : le retour
+  rendre, geste, focus, fermee })`. Elle peut changer de question en
+  route (sa barre suit). Elle a son entrée d'historique : le retour
   la ferme, Échap aussi, la tabulation reste dedans, la main revient
   d'où elle venait. Une feuille qui se ferme rend son entrée une
   micro-tâche plus tard ; ce qui s'ouvre dans le même élan la reprend
@@ -268,6 +285,10 @@ se réécrit pour la nouvelle interface, plus court.
   ERREURS 0 ». Puis **regarder les captures**.
 - `node tests/refonte/jouer-lot2.mjs` : Pistes de bout en bout, ce qui
   sortirait de l'app (Mail, LinkedIn, l'agenda) intercepté.
+- `node tests/refonte/jouer-lot3.mjs` : Réseau joué à DEUX (Inès et
+  Karim) sur un relais local (`tests/e2e/relais-local.mjs`), deux
+  minutes et demie : il attend les 31 s de l'amitié réciproque. Il lit
+  d'abord ce que voit le relais : ni prénom, ni entreprise, ni mot.
 - Restent verts : `node tests/e2e/unitaires.mjs` (`?test`, 291 tests),
   `e2e-pages-sw.mjs` (la page d'essai est servie elle-même, pas l'app),
   `e2e-decouvrir.mjs`, `e2e-classement.mjs`, `e2e-sobriete.mjs`.
@@ -323,6 +344,39 @@ doit y entrer. La page d'essai n'enregistre pas de service worker.
 - Attendent leur lot : « Demander à un ami » (rang 3 de la suite, lot 3),
   Ctrl ↵ pour envoyer (lot 6, la touche ne s'annonce pas avant).
 
+### Décisions prises en codant le lot 3 (montrées avec lui)
+
+- La mécanique du réseau est celle de l'app actuelle, reprise sans son
+  interface : mêmes clés (`oc_reseau_v1`, `oc_groupes_v1`,
+  `oc_messages_v1`, `oc_fils_v1`), mêmes lettres. Les deux interfaces
+  sont dans les mêmes groupes et s'écrivent.
+- **« On te demande »**, en tête de Réseau : la demande d'un ami quand
+  ton téléphone a trouvé quelqu'un (« tu y es », « tu as Julie »). La
+  maquette ne lui donnait pas de place ; l'app actuelle la montrait dans
+  « Aujourd'hui › Tes amis ». Une demande vue dans un groupe se lit dans
+  le groupe, avec « Répondre ».
+- Depuis une piste, « Demander à Karim » envoie la demande au seul ami
+  qui y est passé ; « Demander quelqu'un » (Réseau), à tous les amis et
+  à tous les groupes. Quand l'ami se donne lui-même : « Karim te donne
+  son contact ».
+- Le chef d'un groupe garde ce que l'app actuelle lui donne : les
+  réglages (Nom, Entrée, Messages, Qui écrit), « Nouvelle invitation »,
+  « Supprimer le groupe », nommer un adjoint, retirer un membre, retirer
+  un message (au tap). Qui frappe à la porte s'accepte en tête de la
+  conversation.
+- L'appui long (le clic droit) sur une conversation : épingler, couper
+  le son, marquer comme lu.
+- Donner par QR : au-delà d'un QR, il défile en plusieurs parties, sans
+  réseau. Le rendez-vous en direct de l'app actuelle n'est pas repris.
+- Sans réseau : un message à un ami attend (« pas encore parti ») et
+  repart seul ; un mot de groupe, une demande, des pistes données disent
+  « Pas de réseau » et rien ne part (le lot 5 dira le reste).
+- Ne reviennent pas (à lui montrer en entier avant la bascule) : les
+  filtres Tout · Non lus · Groupes · Amis, « → qui » dans Donner,
+  chiffrer un fichier de pistes, « Écrire à un ami » (la page d'un ami
+  le fait), « Ignorer » un contact donné, le tri et la recherche des
+  amis.
+
 ### Pièges déjà payés (le code)
 
 - `innerText` rend les majuscules que le CSS impose (`text-transform`) :
@@ -348,3 +402,18 @@ doit y entrer. La page d'essai n'enregistre pas de service worker.
 - Pour jouer un envoi, un scénario intercepte les liens `mailto:`,
   `tel:` et `target="_blank"`, et `window.open` : rien ne part, tout se
   note.
+- Le pied d'une conversation ne porte pas ce qu'on tape : sinon chaque
+  message reçu redessine le champ, vide. Le brouillon se repose après
+  chaque rendu.
+- `.rang span` touche tout `span` d'une ligne (bloc, police mono) : un
+  visage s'écrit en `<i>`.
+- Une demande peut arriver AVANT l'ami : l'amitié réciproque part après
+  « Annuler » (31 s). Elle ne peut donc pas vivre seulement dans la
+  conversation de l'ami — d'où « On te demande ».
+- Un onglet rouvre la page où on l'a laissé : pour revenir à sa liste,
+  on le re-tape (un scénario aussi).
+- Une page entre en glissant : un contrôle de débordement mesure après
+  l'animation (450 ms), sinon il compte le glissé.
+- Deux personnes dans un scénario : deux contextes, le relais local
+  (`tls`, `garde`), `ouvrir(…, { relais, presse })` ; `relever()` se
+  demande à la page (`import('/ecrans/boite.js')`).

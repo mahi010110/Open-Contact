@@ -644,3 +644,36 @@ La maquette du lot 2 devenue l'app. **Validé** le 17 novembre
 
 Non vérifié : WebKit (iPhone), d'où le lien. Pas encore là : demander à
 un ami (lot 3), Ctrl ↵ (lot 6).
+
+### Code, lot 3 : Réseau (18 novembre 2026)
+
+La maquette du lot 3 devenue l'app, sur la vraie mécanique du réseau
+(relais, boîte aux lettres, groupes), celle de l'app actuelle : les deux
+interfaces sont dans les mêmes groupes. Montré, en attente de son avis.
+
+- **Réseau** : « Mes demandes » en tête, suivies comme un colis ; les
+  conversations (la classe, les amis), la plus récente en haut, le gras
+  et un point quand rien n'est lu ; « Mes amis » et ce que chacun
+  t'ouvre ; Donner · Recevoir en bas. Le premier jour : rejoindre sa
+  classe, ajouter un ami, recevoir des pistes.
+- **Une conversation** prend l'écran : les membres en tête, « N
+  nouveaux », les pistes données (« Voir », l'aperçu, « Annuler »), la
+  demande d'un camarade (« Répondre » ; la réponse ne passe jamais par
+  le groupe), « @Karim ». En direct tant qu'elle est ouverte.
+- **Ajouter un ami** : son QR ou son texte, l'aperçu (« Karim aura aussi
+  ton profil »), et l'amitié réciproque. **Un ami** : ce qu'il t'ouvre,
+  « Garder » ou « Voir la piste », « Écrire à Karim », « Retirer ».
+- **Demander** : depuis une piste (« Karim y est en alternance »,
+  « Demander à Karim », la phrase exacte avant d'envoyer) ou depuis
+  Réseau (un métier, ou une piste sans contact). Chez l'ami, « On te
+  demande » ; sa réponse revient sur la piste, et le premier mail dit
+  « Karim m'a conseillé de vous écrire ».
+- **Le chef d'un groupe** garde ses réglages, sa porte, ses retraits.
+- **Le calme** : aucun chiffre ; l'onglet Réseau change de couleur.
+- **Au poste** : les gens à gauche, ce qu'on ouvre à droite, la
+  conversation en fenêtre ; ↑ ↓, Échap.
+
+Non vérifié : WebKit (iPhone), d'où le lien, et les relais publics (le
+scénario joue sur un relais local). Ne reviennent pas, à lui montrer :
+les filtres de la liste, « → qui » dans Donner, chiffrer un fichier de
+pistes, le rendez-vous en direct (le QR défile), le tri des amis.

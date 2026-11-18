@@ -50,7 +50,8 @@ n'a pas été montré au mainteneur.
 | Aujourd'hui | Sa place | Lot |
 |---|---|---|
 | Chercher dans mes pistes (barre, étiquettes, « Affiner », tri) | La barre de Pistes | 2 |
-| « Par où commencer », « Sans nouvelles », « Tes amis » | « À faire », en tête de Pistes : trois lignes au plus | 2 |
+| « Par où commencer », « Sans nouvelles » | « À faire », en tête de Pistes : trois lignes au plus | 2 |
+| « Tes amis » (ce qu'un ami te demande, ce qu'il te donne, son merci) | Réseau, « On te demande » en tête ; le contact donné dans « Mes demandes » et sur sa piste ; le merci dans votre conversation | 3 |
 | « Karim et Léa t'ont écrit » | L'onglet Réseau, qui change de couleur ; la liste des conversations | 3 |
 | « Reçues, jamais reprises », l'historique des échanges | Pistes, « À contacter », avec qui les a données ; l'historique dans Réseau | 2, 3 |
 | « J'y suis passé » | La page d'une piste ; Moi › Mon profil › Mon parcours | 2, 4 |
@@ -76,10 +77,19 @@ n'a pas été montré au mainteneur.
 | Le tableau à trois colonnes, à l'ordinateur | On agit sur une piste à la fois : la liste par étape dit où en est chacune, la piste ouverte montre son geste et son message. Le tableau montrait les pistes sans les ouvrir |
 | « n », la touche d'une nouvelle piste | Il n'y a plus de feuille « Nouvelle piste » : on tape un nom dans Trouver (« / »), ou on colle une offre (Ctrl V) |
 | La marque « nouveau » sur une entreprise | Elle ne marque presque jamais rien. Le moteur garde `oc_vus_v1` ; elle revient si une liste change vraiment |
+| Les filtres Tout · Non lus · Groupes · Amis de la liste des conversations | Réseau tient trois listes courtes : ce qui n'est pas lu est en gras, en haut. L'épingle et le son coupé restent (appui long) |
+| « → qui » dans Donner (choisir les personnes qui partent) | Une piste part avec ses contacts ; une personne qu'on ne veut pas donner se retire de la piste, ou la piste se décoche |
+| Chiffrer un fichier de pistes (Donner › Fichier) | Une piste donnée ne porte que la vue communautaire. Recevoir lit toujours un fichier chiffré ; la copie de Moi garde son mot de passe (lot 4) |
+| Le rendez-vous en direct, au-delà d'un QR | Le QR défile en plusieurs parties : il marche sans réseau, partout |
+| « Écrire à un ami », en bas de la boîte | La page d'un ami porte « Écrire à Karim » |
+| « Ignorer » un contact donné | Il attend dans « Mes demandes » ; ajouté, il se retire de la piste |
+| Le tri (Pour toi, Récents, A → Z) et la recherche des amis | La liste des amis est courte et rangée par nom ; ce qu'un ami ouvre se lit sur les pistes et dans Trouver |
 
 Aucune clé de stockage ne bouge, aucun module du moteur n'est retiré.
 Les capacités marquées `PC` ou `⏸` restent masquées, comme aujourd'hui.
 
 *Validé par le mainteneur :* les places des lots 1 à 6 (17 novembre 2026).
+*Montré, en attente de son avis :* ce que le code du lot 3 a tranché
+(« On te demande », et ce qui ne revient pas de Réseau).
 *Tranché par l'assistant, à valider :* la liste de ce qui quitte
 l'écran, à lui montrer en entier avant la bascule.
