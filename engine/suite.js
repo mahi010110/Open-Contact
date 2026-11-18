@@ -13,9 +13,11 @@
      1  une réponse : le merci d'après l'entretien, un entretien à
         préparer, une réponse à laquelle répondre ;
      2  une relance (7 et 21 jours de silence, `SILENCE_*`) ;
-     3  un ami à qui demander (Réseau, lot 3) ;
+     3  un ami : celui qui y est passé, à qui demander à qui écrire ;
+        ou le contact qu'il t'a donné, à ajouter à la piste ;
      4  une entreprise à contacter ;
      6  45 jours de silence : se range, d'un geste, avec les autres ;
+     7  une demande partie : on attend la réponse d'un ami ;
      8  on attend, et la phrase dit jusqu'à quand ;
      9  terminée (refus, rangée, contrat fini).
 
@@ -149,8 +151,14 @@ export const A_DEMANDER = {
 export const aDemander = recherche => A_DEMANDER[recherche] || A_DEMANDER.stage;
 
 /* ---------- la suite ----------
-   `o` : { today, profile, grande } — `grande` : l'annuaire dit que
-   l'entreprise est grande (on passe par le recrutement). */
+   `o` : { today, profile, grande, porte, demande } — `grande` :
+   l'annuaire dit que l'entreprise est grande (on passe par le
+   recrutement) ; `porte` : l'ami qui y est passé et à qui l'on peut
+   demander, `{ prenom, court }` (« y est en alternance »,
+   engine/amis.js) ; `demande` : la demande partie pour cette piste,
+   `{ a, trouvee, don: { de, nom, soi? } | null }` (la boîte aux lettres,
+   engine/boite.js). Pour une liste (« À faire »), les mêmes rangés par
+   piste : `portes` et `demandes`, deux Map dont la clé est son id. */
 export function laSuite(c, o = {}){
   const today = o.today || todayISO();
   const recherche = (o.profile && o.profile.recherche) || '';
@@ -191,11 +199,31 @@ export function laSuite(c, o = {}){
     return { rang: 8, j, l: 'écrit ' + quand, t: 'Écrit ' + quand + '.',
       s: `On attend. Elle reviendra dans « À faire » dans ${n} jour${n > 1 ? 's' : ''}.` };
   }
+  /* le contact qu'un ami m'a donné attend qu'on le prenne : c'est le
+     geste qui débloque la piste */
+  const dem = o.demande || (o.demandes && o.demandes.get && o.demandes.get(c.id)) || null;
+  if (dem && dem.don){
+    const p = prenomDe(dem.don.nom);
+    /* `soi` : c'est l'ami lui-même, il y est */
+    const l = dem.don.soi ? `${dem.don.de} te donne son contact` : `${dem.don.de} t’a donné ${dem.don.nom}`;
+    return { rang: 3, l, plus: 1, t: l + '.', s: 'Ajoute son contact à la piste, puis écris-lui.', b: 'Ajouter ' + p, c: 'Ajouter', a: 'don' };
+  }
   if (ct && ct.name){
     const r = ct.role ? ', ' + ct.role : '';
     return { rang: 4, l: ct.name + r + (ct.via ? ' · par ' + ct.via : ''), plus: ct.via ? 1 : 0, t: 'À contacter : ' + ct.name + r + '.',
       s: 'Ton message est prêt. Tu le relis, puis tu l’envoies.', b: 'Écrire à ' + pr, c: 'Écrire', a: 'ecrire', k: 'premier' };
   }
+  if (dem){
+    if (dem.trouvee) return { rang: 7, l: 'quelqu’un a été trouvé', t: 'Quelqu’un a été trouvé.',
+      s: 'Son contact arrivera ici, s’il est d’accord.' };
+    return { rang: 7, l: 'demande envoyée' + (dem.a ? ' à ' + dem.a : ''), t: 'Demande envoyée' + (dem.a ? ' à ' + dem.a : '') + '.',
+      s: 'La réponse arrivera ici et dans « Réseau ».' };
+  }
+  /* QUELQU'UN Y EST PASSÉ : ~40 % d'entretiens portée par quelqu'un,
+     ~3 % à froid (CLAUDE.md §8). On lui demande à qui écrire. */
+  const po = o.porte || (o.portes && o.portes.get && o.portes.get(c.id)) || null;
+  if (po && po.prenom && !ct) return { rang: 3, l: `${po.prenom} ${po.court}`, plus: 1, t: `${po.prenom} ${po.court}.`,
+    s: 'Demande-lui à qui écrire.', b: 'Demander à ' + po.prenom, c: 'Demander', a: 'demande' };
   return { rang: 4, l: c.city || 'ajoutée à la main', t: 'À contacter.',
     s: o.grande ? 'Passe par le recrutement, ou par leur site.' : 'Personne à qui écrire pour l’instant : passe par leur site.',
     b: 'Écrire', c: 'Écrire', a: 'ecrire', k: 'premier' };

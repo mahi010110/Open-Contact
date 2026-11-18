@@ -1871,6 +1871,29 @@ export async function runSelfTests(){
       eq(quandPasse('2026-11-13', T), 'vendredi');
       eq(quandPasse('2026-11-01', T), 'le 1 novembre');
     },
+    'suite : un ami y est passé — on lui demande à qui écrire, puis on suit sa réponse': () => {
+      const T = '2026-11-17';
+      const mk = x => normalizeCompany({ name: 'Kiabi', ...x });
+      const po = { prenom: 'Karim', court: 'y est en alternance' };
+      const s1 = laSuite(mk({}), { today: T, porte: po });
+      eq([s1.rang, s1.l, s1.t, s1.s, s1.b, s1.a], [3, 'Karim y est en alternance', 'Karim y est en alternance.',
+        'Demande-lui à qui écrire.', 'Demander à Karim', 'demande']);
+      /* quelqu'un à qui écrire passe devant : on lui écrit */
+      eq(laSuite(mk({ contacts: [{ name: 'Claire Durand' }] }), { today: T, porte: po }).rang, 4);
+      /* la demande partie, puis trouvée, puis le contact donné */
+      eq(laSuite(mk({}), { today: T, porte: po, demande: { a: 'Karim' } }).t, 'Demande envoyée à Karim.');
+      eq(laSuite(mk({}), { today: T, demande: { a: 'Karim' } }).s, 'La réponse arrivera ici et dans « Réseau ».');
+      eq(laSuite(mk({}), { today: T, demande: { a: 'Karim', trouvee: true } }).t, 'Quelqu’un a été trouvé.');
+      const d = laSuite(mk({ contacts: [{ name: 'Claire Durand' }] }), { today: T,
+        demande: { a: 'Karim', trouvee: true, don: { de: 'Karim', nom: 'Julie Marchand' } } });
+      eq([d.rang, d.t, d.b, d.a], [3, 'Karim t’a donné Julie Marchand.', 'Ajouter Julie', 'don']);
+      /* l'ami lui-même : il y est, et il te donne son contact */
+      eq(laSuite(mk({}), { today: T, demande: { a: 'Karim', don: { de: 'Karim', nom: 'Karim Benali', soi: true } } }).t, 'Karim te donne son contact.');
+      /* dans « À faire », piste par piste ; la demande partie en sort : on attend */
+      const a = mk({ id: 'a' }), b = mk({ id: 'b', name: 'Worldline' });
+      eq(aFaire([a, b], { today: T, portes: new Map([['a', po]]) }).map(x => x.s.rang), [3, 4]);
+      eq(aFaire([a], { today: T, demandes: new Map([['a', { a: 'Karim' }]]) }).length, 0);
+    },
     'suite : l’historique écrit ce que la suite relit — un contrat entre les deux': () => {
       eq(phraseEnvoi('premier', 'mail', 'Claire Durand'), 'Écrit à Claire Durand, par mail');
       eq(phraseEnvoi('premier', 'site', ''), 'Écrit, sur leur site');
