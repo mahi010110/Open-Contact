@@ -73,7 +73,10 @@ async function ouvrir(w, h, o = {}){
   const p = await ctx.newPage();
   const ici = `${MOTEUR} ${w}${o.sombre ? ' sombre' : ''}`;
   p.on('pageerror', e => erreurs.push(ici + ' · ' + String(e)));
-  p.on('console', m => { if (m.type() === 'error' && !/WebSocket|wss:|ERR_|Failed to load resource|net::/i.test(m.text())) erreurs.push(ici + ' · ' + m.text()); });
+  /* `interactive-widget` règle le clavier d'Android ; Safari l'ignore et le
+     dit en console (CLAUDE.md §5, WebKit bug 259770) : ce n'est pas une
+     faute de l'app */
+  p.on('console', m => { if (m.type() === 'error' && !/WebSocket|wss:|ERR_|Failed to load resource|net::|interactive-widget/i.test(m.text())) erreurs.push(ici + ' · ' + m.text()); });
   await p.goto(base + '/refonte.html' + (o.adresse || ''));
   await p.waitForFunction(() => document.documentElement.classList.contains('pret'), null, { timeout: 20000 }).catch(() => erreurs.push(ici + ' · l’app ne s’ouvre pas'));
   await p.waitForTimeout(400);
