@@ -89,7 +89,8 @@ Aucune clé de stockage ne bouge, aucun module du moteur n'est retiré.
 Les capacités marquées `PC` ou `⏸` restent masquées, comme aujourd'hui.
 
 *Validé par le mainteneur :* les places des lots 1 à 6 (17 novembre 2026).
-*Montré, en attente de son avis :* ce que le code du lot 3 a tranché
-(« On te demande », et ce qui ne revient pas de Réseau).
+*Validé par le mainteneur aussi :* ce que le code du lot 3 a tranché
+(« On te demande »), le 21 novembre (« Continue »). La liste de ce qui ne
+revient pas de Réseau reste à lui montrer en entier avant la bascule.
 *Tranché par l'assistant, à valider :* la liste de ce qui quitte
 l'écran, à lui montrer en entier avant la bascule.

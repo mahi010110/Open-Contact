@@ -649,7 +649,8 @@ un ami (lot 3), Ctrl ↵ (lot 6).
 
 La maquette du lot 3 devenue l'app, sur la vraie mécanique du réseau
 (relais, boîte aux lettres, groupes), celle de l'app actuelle : les deux
-interfaces sont dans les mêmes groupes. Montré, en attente de son avis.
+interfaces sont dans les mêmes groupes. Montré le 18 novembre ;
+**validé** le 21 novembre (« Continue là où tu t'étais arrêté »).
 
 - **Réseau** : « Mes demandes » en tête, suivies comme un colis ; les
   conversations (la classe, les amis), la plus récente en haut, le gras
