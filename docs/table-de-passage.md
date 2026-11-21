@@ -25,7 +25,7 @@ n'a pas été montré au mainteneur.
 | « Pas pour moi » | Le pied de la page d'une entreprise ; au glissé sur une ligne ; « Annuler » après | 1 |
 | L'aide à l'embauche d'un apprenti | La page d'une entreprise, ligne « Aide » | 1 |
 | Capture, anti-doublon | **La barre de Trouver** : taper un nom, l'annuaire le reconnaît, « Garder » ; sinon « Garder tel quel ». Une entreprise déjà gardée se dit « dans tes pistes » et ouvre sa piste | 1 |
-| Coller une offre (neuf) | **La barre de Trouver** au téléphone, n'importe où à l'ordinateur (Ctrl V, ou l'offre déposée sur la fenêtre) : l'entreprise lue va dans la barre, l'offre attend en étiquette dessous. « Garder » l'emporte avec la piste : la personne qu'elle nomme, sa date, ses missions. Le message la cite, « Dans l'offre » est posé au-dessus. Collée deux fois, elle ne fait pas de doublon | 6 |
+| Coller une offre (neuf) | **La barre de Trouver** au téléphone, n'importe où à l'ordinateur (Ctrl V, ou l'offre déposée sur la fenêtre) : l'entreprise lue va dans la barre, l'offre attend en étiquette dessous. « Garder » l'emporte avec la piste : la personne qu'elle nomme, sa date, ses missions. Le message la cite, « Dans l'offre » est posé au-dessus. Collée deux fois, elle ne fait pas de doublon ; sans réseau, elle attend ; sur une piste qu'on a, « Ajouter l'offre à la piste ». Le lien d'un camarade, collé, ouvre ses pistes | 6 |
 | Pistes, fiches, suivi, prochaine action, clôture | **Pistes** : « À faire » en tête, puis les pistes par étape. **La page d'une piste** : la suite, « Il s'est passé quelque chose ? », les gens, l'entreprise, l'historique, mes notes | 2 |
 | Rappel par l'agenda du téléphone | La page d'une piste : « Rappel dans mon agenda » après un envoi, « Ajouter à mon agenda » quand un entretien a sa date | 2 |
 | Écrire un mail (`mailto:`, copier, « Envoyée ✓ ») | « Écrire », poussé depuis la piste : quatre canaux (mail, LinkedIn, appel, site), puis « C'est parti ? » sur la piste | 2 |
@@ -63,7 +63,7 @@ n'a pas été montré au mainteneur.
 | Les erreurs | Sous ce qui les cause, la saisie gardée : un fichier qui n'est pas une copie, un mot de la phrase, un code faux (cinq essais, puis une attente), l'annuaire en panne avec « Réessayer » | 5 |
 | Le tableau à trois colonnes | À l'ordinateur, Pistes tient trois colonnes : la liste par étape, la piste, son message. Le tableau quitte l'écran (plus bas) | 2, 6 |
 | Les raccourcis clavier (« / », « n ») | À l'ordinateur : la lettre soulignée de chaque onglet (T, P, R, M), ↑ ↓ dans chaque liste, ↵ le geste de la ligne, Ctrl ↵ envoyer, Échap, « / » chercher, Ctrl V coller une offre. Chaque touche se lit dans ce qu'elle commande : la lettre dans l'onglet, la touche dans son bouton, le reste dans la barre d'état. « n » quitte l'écran (plus bas) | 6 |
-| Déposer un fichier (neuf, à l'ordinateur) | Sur la fenêtre : ton CV va dans Moi › CV et lettres, une copie .oc dans l'aperçu de Restaurer, des pistes reçues dans celui de Recevoir. Pendant qu'on glisse, la fenêtre dit où il ira | 6 |
+| Déposer un fichier (neuf, à l'ordinateur) | Sur la fenêtre : ton CV va dans Moi › CV et lettres, une copie .oc dans l'aperçu de Restaurer, des pistes reçues dans celui de Recevoir, une offre en texte comme collée ; le reste se refuse en le disant. Pendant qu'on glisse, la fenêtre dit où il ira | 6 |
 
 ## Ce qui quitte l'écran
 

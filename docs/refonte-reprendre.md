@@ -2,7 +2,7 @@
 
 *Pour l'assistant qui reprend la refonte dans une nouvelle discussion.
 Mise à jour à chaque lot, en même temps que le journal du brief.
-Dernière mise à jour : 21 novembre 2026, code : lot 5 validé, lot 6 en cours.*
+Dernière mise à jour : 21 novembre 2026, code : lot 6 montré, en attente de son avis.*
 
 Le premier message à donner à une nouvelle discussion :
 
@@ -165,19 +165,17 @@ Pièges déjà payés :
 
 ## 7. Ce qui reste
 
-- **Après l'avis du mainteneur sur le lot 6** : noter sa phrase (journal,
-  table, ce fichier), puis la phase 2, dans l'ordre du brief §9.
+- **Après l'avis du mainteneur sur le lot 6 du code** : noter sa phrase
+  (journal, table, ce fichier). Puis la bascule, seulement le jour où il
+  la décide (§8).
 - **Plus tard**, validé comme idée : la carte des entreprises autour de
   soi (brief §12).
-- **Au moment du code** : les modèles de messages sans genre
-  (`engine/model.js`), la lecture d'un lien collé dans Trouver, la suite
-  d'une piste et d'un « oui » (`etape.js`, `contrat.js` de
-  `claude/refonte-arc`). La lecture d'une offre collée, dans le moteur
-  et testée (une table, pas une IA). Où vit l'offre d'une piste : le
-  schéma d'une piste est intouchable (`CONTRAT.md` §3), donc une clé
-  neuve ou les champs qui existent, à décider avec lui. Le bac garde sa
-  clé (`oc_orphans_v1`) ; la réponse de « Depuis mes e-mails » passe par
-  la même fusion que Recevoir.
+- **Fait en codant** (lots 1 à 6) : les modèles de messages sans genre,
+  la lecture d'un lien collé, la suite d'une piste et d'un « oui », la
+  lecture d'une offre collée (`engine/offre.js`, une table). L'offre
+  d'une piste vit dans un champ privé neuf, `offre` (`CONTRAT.md` §3,
+  migration en lecture) : tranché en codant, montré avec le lot 6. Le bac
+  garde sa clé (`oc_orphans_v1`).
 - **À vérifier avant le code** : la longueur d'un mot d'invitation
   LinkedIn (200 caractères annoncés, pas lu sur l'aide de LinkedIn) et le
   nombre d'invitations avec un mot par mois ; WebKit sur chaque lot.
@@ -197,7 +195,7 @@ lien pour l'essayer sur l'iPhone, et validé avant le suivant.
 | 3 | Réseau | validé le 21 novembre (« Continue »), après l'avoir vu le 18 |
 | 4 | Moi | validé le 21 novembre (« Continue ») |
 | 5 | les états : premier jour, vide, erreurs, hors ligne, verrou | validé le 21 novembre (« Oui tout me va ») |
-| 6 | le poste, un établi | en cours |
+| 6 | le poste, un établi | montré le 21 novembre |
 
 **La nouvelle interface grandit à côté de l'ancienne**, sans la toucher.
 L'app actuelle (`index.html`, `app.js`, `ui/`, `styles/app.css`) reste
@@ -241,12 +239,17 @@ se réécrit pour la nouvelle interface, plus court.
 | `ecrans/liaison.js` | la liaison de mes appareils (mêmes clés, mêmes messages que l'app actuelle) : la salle, le portage par les relais, l'anneau, ce qui arrive d'un autre appareil avec « Annuler » (repris de `ui/synclive.js`) | |
 | `ecrans/phrase.js` | la phrase de secours : les clés (jamais la phrase), la copie déposée scellée sur les relais, la retrouver (repris de `ui/moi-phrase.js`) | |
 | `ecrans/docs.js`, `ecrans/installer.js`, `ecrans/diagnostic.js` | les PDF de CV et de lettres (cet appareil seulement), installer l'app, le rapport sans donnée personnelle | |
+| `ecrans/offre.js` | une offre à l'écran : le poste, le contrat, le rythme, le dernier jour, les missions, « Tout le texte » ; « Dans l'offre » dans le message | |
+| `ecrans/emails.js` | le bas de Pistes : « Depuis mes e-mails » (la consigne, la réponse, l'aperçu, « Annuler ») et le bac « À rattacher » (rattacher, jeter) | |
+| `ecrans/etabli.js` | au poste : coller n'importe où, déposer un fichier sur la fenêtre (elle dit où il ira) | |
 | `ecrans/verrou.js` | le code et l'écran verrouillé : le pavé, choisir son code (et sa phrase), verrouillé (cinq essais, puis une attente), code oublié, le code redemandé, l'inactivité ; le même coffre que l'app actuelle (repris de `ui/verrou.js`) | |
 | `engine/modeles.js` | les trois messages types, ce qui les distingue de l'original, ce que l'app y remplace, rétablir (testé par `?test`) | reste |
 | `engine/copie.js` | l'aperçu d'une copie lue (nouvelles, plus récentes, déjà là) et la phrase de la ligne « Ma copie » (testé par `?test`) | reste |
 | `engine/formations.js` | les formations de « Tu étudies » et leur métier (testé par `?test`) | reste |
 | `engine/suite.js` | la suite d'une piste (sa phrase, son geste, son rang dans « À faire »), le canal, les gestes qui écrivent l'historique | reste |
 | `engine/contrat.js` | du « oui » au contrat, repris de `claude/refonte-arc` avec ses tests | reste |
+| `engine/offre.js` | lire une offre collée (une table, pas une IA) ; l'offre d'une piste, privée, et la phrase qui la cite (testé par `?test`) | reste |
+| `engine/emails.js` | « Depuis mes e-mails » : la consigne, lire la réponse, l'aperçu, ce qui s'ajoute, la piste que propose un e-mail (testé par `?test`) | reste |
 
 - **La nouvelle n'importe rien de `ui/`.** Ce qu'elle reprend y est
   recopié puis adapté ; l'app actuelle ne bouge pas.
@@ -310,7 +313,14 @@ se réécrit pour la nouvelle interface, plus court.
   cinq codes faux. Il lit le disque (scellé), le relais (ni nom, ni
   entreprise, ni note) et le lien de Karim (ni son prénom, ni ses notes,
   ni son suivi) ; l'inactivité se joue avec une horloge qu'on avance.
-- Restent verts : `node tests/e2e/unitaires.mjs` (`?test`, 302 tests),
+- `node tests/refonte/jouer-lot6.mjs` : le poste, un établi. Une offre
+  collée au téléphone et au poste (deux fois, sans nom, sans réseau, sur
+  une piste qu'on a), le clavier de bout en bout (G, P, ↵, la phrase, Ctrl
+  ↵, ↵, ↵), les fichiers déposés, « Depuis mes e-mails » et le bac. Il lit
+  d'abord le lien de « Donner » : l'offre n'y est pas. Le collage et le
+  dépôt sont des `ClipboardEvent` et des `DragEvent` qui portent un
+  `DataTransfer`.
+- Restent verts : `node tests/e2e/unitaires.mjs` (`?test`, 307 tests),
   `e2e-pages-sw.mjs` (la page d'essai est servie elle-même, pas l'app),
   `e2e-decouvrir.mjs`, `e2e-classement.mjs`, `e2e-sobriete.mjs`, et
   `e2e-verrou.mjs` (le verrou de l'app actuelle, qui partage son coffre).
@@ -497,7 +507,48 @@ doit y entrer. La page d'essai n'enregistre pas de service worker.
   ses commandes (un ordre « verrouiller » venu de l'app actuelle
   s'applique encore).
 
+### Décisions prises en codant le lot 6 (montrées avec lui)
+
+- L'offre vit dans un champ privé de la piste, `offre` (CONTRAT.md §3,
+  comme `suite`) : jamais dans un partage, mais dans la copie et la sync
+  de mes appareils. Son texte entier y reste (8 000 caractères au plus).
+- Le message la cite par un jeton, `{{offre}}` (« Je réponds à votre
+  offre « … ». »), dans le premier message : sans offre, la ligne
+  s'efface. Un message type jamais retouché passe à la nouvelle version.
+- Le nom lu dans une offre se cherche comme un NOM (cité) : sans quoi
+  « Réseaux et Systèmes du Nord » cherchait le métier « réseaux » dans le
+  Nord. Retouché dans la barre, il se comprend comme tapé.
+- Avec une offre qui attend, « À qui écrire » nomme sa personne (« dans
+  l'offre ») : c'est elle qui part avec la piste, à la place du dirigeant.
+- Au poste, la piste qu'on garde (G, ses e-mails) est celle que Pistes
+  montre ; ↵ hors d'un bouton (la page, son titre) fait le geste de la
+  piste choisie.
+- Déposer un fichier qui n'est ni un PDF, ni une copie, ni une offre
+  dit « L'app reçoit ici une offre, une copie .oc ou un CV. », comme la
+  maquette. Un .docx se refuse en disant de l'enregistrer en PDF.
+- « Depuis mes e-mails » lit une ligne par entreprise (« Entreprise ;
+  Personne ; E-mail ; Où j'en suis ; Date »). Une piste neuve arrive déjà
+  écrite, datée, avec sa réponse ou son refus ; une piste qu'on a ne
+  gagne que la personne qui manque ; un contact sans entreprise va au
+  bac. Une réponse au format d'OpenContact (l'ancienne consigne) s'ouvre
+  dans l'aperçu de Recevoir.
+- « Annuler » fait 44 px au doigt (la maquette le disait, le code avait
+  36). Au poste, une page ouverte dans un Réseau vide se montre.
+
 ### Pièges déjà payés (le code)
+
+- Un module que `tests.js` importe entre dans `PRECACHE` : sans quoi
+  `?test` ne s'ouvre plus hors ligne (`engine/emails.js`, `oc-v301`).
+- `.etapes li span` touchait l'icône d'un bouton posé dans une étape :
+  elle devenait blanche. Le numéro est un enfant direct (`li>span`).
+- `remplacer()` rendait la main à la zone entière quand le titre de
+  l'écran l'avait (la coque l'y pose en changeant d'onglet) : un cadre
+  de pointillés autour de la colonne. Le titre se retrouve par son nom.
+- ↓ sans rien de choisi sautait la première ligne (`Math.max(0, -1)`).
+- Au poste, Réseau vide cachait sa colonne de droite, même quand une
+  page s'y ouvrait (des pistes reçues) : rien ne se voyait.
+- Sans service worker, une icône jamais chargée ne vient pas hors ligne :
+  un scénario la charge avant de couper le réseau.
 
 - `innerText` rend les majuscules que le CSS impose (`text-transform`) :
   un scénario compare sans la casse.

@@ -756,3 +756,44 @@ Non vérifié : WebKit (iPhone), d'où le lien, les relais publics,
 l'appareil photo qui scanne le QR. Ne reviennent pas, à lui montrer :
 « Changer mon code », l'empreinte ou le visage, la copie exigée en
 protégeant, l'appareil principal et ses commandes.
+
+### Code, lot 6 : le poste, un établi (21 novembre 2026)
+
+La maquette du lot 6 devenue l'app. Montré le 21 novembre.
+
+- **Coller une offre** : au téléphone dans la barre de Trouver (ou
+  « Coller un lien ou une offre »), à l'ordinateur n'importe où (Ctrl V).
+  L'app y lit l'entreprise (cherchée comme un nom : « Réseaux et Systèmes
+  du Nord » ne cherche ni le métier ni le Nord), le poste, le contrat, le
+  rythme, la date et la personne ; l'offre attend en étiquette. Sur la
+  page de l'entreprise, « À qui écrire » nomme la personne de l'offre.
+  « Garder » emporte l'offre entière, privée ; « jusqu'au 15 déc. » dans
+  « À faire » ; le message la cite, « Dans l'offre » au-dessus. Sans
+  entreprise lue : « Dans quelle entreprise ? Tape son nom. » Collée deux
+  fois : pas de doublon. Sans réseau, elle attend. Sur une piste qu'on a :
+  « Ajouter l'offre à la piste », avec « Annuler ». Le lien d'un camarade,
+  collé, ouvre ses pistes.
+- **Le clavier** : G garde, et la piste gardée est celle que Pistes
+  montre ; P, puis ↵ ouvre le message, le crochet choisi : on tape sa
+  phrase. Ctrl ↵ se lit dans le bouton qui envoie ; puis ↵ « Oui,
+  envoyé », ↵ « Suivante ». ↓ sans rien de choisi prend la première ligne.
+- **Déposer** sur la fenêtre : elle dit où ira ce qu'on glisse. Un PDF va
+  dans CV et lettres (« Annuler »), un .docx se refuse en disant quoi
+  faire, une copie .oc s'ouvre avec son aperçu, des pistes reçues dans
+  Recevoir, une offre en texte devient une piste ; le reste : « L'app
+  reçoit ici une offre, une copie .oc ou un CV. » Verrouillée, rien.
+- **En bas de Pistes** : « Depuis mes e-mails » (trois gestes, l'aperçu :
+  les pistes neuves déjà écrites, avec leur réponse ou leur refus, un
+  contact de plus, un contact sans entreprise ; « Annuler ») ; au poste,
+  la réponse collée n'importe où ouvre l'aperçu. Le bac « À rattacher »
+  seulement s'il contient quelqu'un : la piste que porte son e-mail est
+  proposée ; rattacher ou jeter, avec « Annuler ».
+- **Corrigé en route** : « Annuler » fait 44 px au doigt (36 avant ; la
+  maquette disait 44) ; au poste, une page ouverte dans un Réseau vide
+  (des pistes reçues) se montre, elle restait cachée ; une entreprise
+  gardée ne revient plus en double ; l'icône d'un bouton dans une liste
+  d'étapes ne disparaît plus.
+
+Non vérifié : WebKit (iPhone) ; le collage et le dépôt réels (joués ici
+par des événements simulés) ; des offres réelles, que la table ne lit
+que si elle les reconnaît.
