@@ -85,6 +85,7 @@ function colis(d){
   return `<div class="colis" aria-hidden="true">${c.map(x => `<i${x ? ` class="${x}"` : ''}></i>`).join('')}</div>`;
 }
 function sousDemande(d){
+  if (d.attente) return { t: 'Partira dès que le réseau revient' };
   const don = donPour(d.id);
   if (don && don.statut === 'nouveau') return { t: don.soi ? `Reçu : le contact de ${don.de.prenom}` : `Reçu : ${don.contact.name}, par ${quiDonne(don)}`, plus: true };
   if (don && don.statut === 'ajoute') return { t: `${don.contact.name} est dans tes pistes` };
@@ -179,7 +180,7 @@ function pageDemande(id){
   if (!d) return { titre: 'Demande', corps: '<div class="panneau"><p>Cette demande est terminée.</p></div>' };
   const { etapes, courante } = suivi(d), don = donPour(d.id);
   const NOMS_E = ['Envoyée', 'Trouvée', 'Reçu'];
-  const sous = (x, i) => i === courante ? 'en cours' : x.at ? (i === 1 && x.par ? 'chez un ami de ' + x.par : i === 1 && x.ou === 'groupe' ? 'dans un groupe' : quandJour(x.at)) : 'à venir';
+  const sous = (x, i) => i === 0 && d.attente ? 'partira avec le réseau' : i === courante ? 'en cours' : x.at ? (i === 1 && x.par ? 'chez un ami de ' + x.par : i === 1 && x.ou === 'groupe' ? 'dans un groupe' : quandJour(x.at)) : 'à venir';
   let h = `<div class="s-page"><blockquote class="cite">${esc(insec(phraseDemande(prenomMoi() || 'Toi', quoiDe(d), d.cherche)))}</blockquote>`
     + `<p class="doux a-qui-d">À ${esc(aQui(d))}</p>`
     + `<ol class="colis-g">${etapes.map((x, i) => {

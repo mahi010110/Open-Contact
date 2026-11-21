@@ -573,9 +573,10 @@ b.cite{display:inline;margin:0;padding:0;border:0;background:none;color:var(--te
 .poste .rang.conv.on b,.poste .rang.conv.on .r-c>span,.poste .rang.conv.on .s-h,.poste .rang.conv.on .c-i,.poste .rang.conv.on>.ic{color:var(--select-text)}
 .poste .rc1>.r-bas-c>.pied{justify-content:stretch}
 .poste .rc1>.r-bas-c>.pied .btn{flex:1}
-.poste .ecran.zero .rc2,.poste .ecran.zero .r-fen{display:none}
-.poste .ecran.zero .p-col.rc1{width:auto;flex:1}
-.poste .ecran.zero .rc1 .panneau{max-width:520px;margin:40px auto}
+/* au poste, une liste vide n'ouvre pas des colonnes vides (lot 5) */
+.poste .ecran.zero .rc2,.poste .ecran.zero .r-fen,.poste .ecran.zero .pc2,.poste .ecran.zero .pc3{display:none}
+.poste .ecran.zero .p-col.rc1,.poste .ecran.zero .p-col.pc1{width:auto;flex:1}
+.poste .ecran.zero .rc1 .panneau,.poste .ecran.zero .pc1 .panneau{max-width:520px;margin:40px auto}
 .onglets a.attend{color:var(--teal)}
 .onglets a.attend span::after{content:"";display:inline-block;width:7px;height:7px;margin-left:5px;background:var(--teal);vertical-align:1px}
 .poste .onglets a.attend{color:var(--teal)}
@@ -674,3 +675,46 @@ details.jetons .doux{margin:0 0 12px}
 .poste .mc1 .s-liste{margin:0 8px 10px}
 .poste .mc1 .s-moi{margin:4px 12px 12px}
 .poste .mc2 .s-page{padding:20px 28px;max-width:680px}
+/* ---------- lot 5 : le code, l'écran verrouillé, le premier jour ---------- */
+/* le pavé : des touches « 98 », au pouce ; six cases qui se remplissent */
+.cases{display:flex;justify-content:center;gap:10px;margin:14px 0 6px}
+.cases i{width:16px;height:16px;border:1px solid var(--border-strong);background:var(--gray-0)}
+.cases i.on{background:var(--ink)}
+.pave{display:grid;grid-template-columns:repeat(3,minmax(0,76px));justify-content:center;gap:10px;margin:12px 0 8px}
+.touche{min-height:52px;border:1px solid var(--border-strong);background:var(--gray-1);box-shadow:var(--bevel-up),var(--shadow-raised);
+  font:500 1.375rem/1 var(--font-mono);color:var(--ink);display:grid;place-items:center;padding:0}
+.touche:active{box-shadow:var(--bevel-down);transform:translate(1px,1px)}
+.touche:disabled{color:var(--ink-3);box-shadow:none;background:var(--gray-0);transform:none}
+.touche .ic{width:22px;height:22px}
+.touche:focus-visible{outline:var(--focus-outline);outline-offset:var(--focus-offset)}
+.etapes-b{display:flex;gap:6px;margin:0 0 14px}
+.etapes-b i{width:44px;height:6px;border:1px solid var(--border-strong);background:var(--gray-0)}
+.etapes-b i.on{background:var(--teal);border-color:var(--teal)}
+.c-t{margin:0;text-align:center}
+.c-err,.v-err{margin:4px 0 0;text-align:center}
+.c-ligne{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+/* l'écran verrouillé : il couvre tout, même « Annuler » ; au téléphone il
+   prend l'écran et pose le pavé sous le pouce, au poste c'est une fenêtre */
+.couche-v{position:fixed;inset:0;z-index:40}
+.couche-v:empty{display:none}
+.verrou{position:absolute;inset:0;display:flex;padding-top:env(safe-area-inset-top,0px);
+  background:var(--dither-img) 0 0 / var(--dither-size), var(--gray-desktop)}
+.v-win{flex:1;display:flex;flex-direction:column;min-height:0;border:0;box-shadow:none;outline:0}
+.v-c{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;justify-content:flex-end;
+  padding:20px 16px calc(32px + env(safe-area-inset-bottom,0px))}
+.v-etat{display:flex;align-items:center;justify-content:center;gap:8px;color:var(--ink-2)}
+.v-etat .ic{width:20px;height:20px}
+.v-etat b{font:700 1.125rem/1.2 var(--font-ui);color:var(--ink)}
+.v-c>.lien,.v-c>.btn-g{align-self:center}
+.v-c>.btn.s{align-self:flex-start}
+.v-c .v-pied{margin:12px 0}
+.v-c .v-pied .btn{width:100%}
+.v-c .bas-p .doux{margin:0 0 10px}
+.verrouille .couche-a{visibility:hidden}
+.poste .verrou{align-items:center;justify-content:center;padding:0}
+.poste .v-win{flex:0 0 auto;width:400px;max-height:min(620px,92vh);border:1px solid var(--border-strong);box-shadow:var(--shadow-window)}
+.poste .v-c{justify-content:center;padding-bottom:24px}
+/* le premier jour : « J'ai déjà OpenContact » sous les trois questions */
+.deja{margin:14px 0 0;text-align:center}
+/* quelqu'un te donne des pistes */
+.don-t{margin:0 0 12px}

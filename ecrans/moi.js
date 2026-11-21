@@ -18,8 +18,8 @@
    gauche, la page à droite, et la ligne ouverte s'allume. « Ma copie »
    (la copie, la phrase de secours, les appareils, restaurer) vit dans
    copie.js, avec la mécanique de liaison et de dépôt (liaison.js,
-   phrase.js) reprise de l'app actuelle. Le code de verrouillage arrive
-   au lot 5, avec l'écran verrouillé.
+   phrase.js) reprise de l'app actuelle. Le code de verrouillage (lot 5)
+   vit dans verrou.js, avec l'écran verrouillé ; Réglages l'ouvre.
    ============================================================ */
 import { $, $$, ic, esc, remplacer } from './outils.js';
 import { S, bus, saveProfile, choisirTheme } from './etat.js';
@@ -40,7 +40,8 @@ import { texteDiagnostic } from './diagnostic.js';
 import { envoyerTexte, partagePossible } from './fichier.js';
 import { oublierBrouillons } from './pistes.js';
 import { M, lien, ouvrirM, fermerM, LIGNE_M } from './moi-nav.js';
-import { PAGES_COPIE, gesteCopie, apresCopie, surInputCopie, ligneCopie, demarrerCopie, copieExiste } from './copie.js';
+import { PAGES_COPIE, gesteCopie, apresCopie, surInputCopie, ligneCopie, demarrerCopie, copieExiste, ouvrirPhrase, terminer } from './copie.js';
+import { estProtege, ouvrirCode, demanderCode } from './verrou.js';
 
 const PAGES_M = { profil: () => pageProfil(), docs: () => pageDocs(), modeles: () => pageModeles(), modele: k => pageModele(k),
   reglages: () => pageReglages(), aideconf: () => pageAideConf(), ...PAGES_COPIE };
@@ -319,6 +320,7 @@ function pageReglages(){
   const p = S.profile, ligne = (a, t, d, id) => `<div class="rang nav-r" data-a="${a}"${id ? ` data-id="${id}"` : ''} role="button" tabindex="0"><div class="r-c"><b>${t}</b>${d ? `<span>${esc(d)}</span>` : ''}</div>${ic('chevron-right')}</div>`;
   const rien = !(S.companies.length || p.name);
   return { titre: 'Réglages', corps: '<div class="s-page"><div class="rangs">'
+    + ligne('m-code-f', 'Code de verrouillage', estProtege() ? 'protégé' : 'aucun')
     + ligne('m-theme-f', 'Thème', MOT_THEME[S.themeChoix] || 'automatique')
     + ((p.amis || []).length ? ligne('m-suivre-f', 'Demandes de mes amis', p.flags.sansRelais ? 'arrêtées' : 'transmises') : '')
     + (proposerInstallation() ? ligne('m-installer', 'Installer l’app', 'pas installée') : '')
@@ -436,7 +438,10 @@ function gesteF(a, el, ev, f){
   }
   if (a === 'm-copie-ici'){ fermerFeuille(); gesteCopie('m-copie-ici', el, ev); return; }
   if (a === 'm-effacer-ok'){
-    effacerCetAppareil().catch(() => {}).then(() => location.replace(location.pathname));
+    /* protégé, le code d'abord : on n'efface pas un téléphone qu'on a seulement ramassé */
+    const effacer = () => effacerCetAppareil().catch(() => {}).then(() => location.replace(location.pathname));
+    if (!estProtege()){ effacer(); return; }
+    demanderCode('Ton code, pour effacer').then(pin => { if (pin) effacer(); });
     return;
   }
 }
@@ -475,8 +480,8 @@ async function ouvrirRapport(){
    ============================================================ */
 function geste(a, el, ev){
   const id = el ? el.getAttribute('data-id') || '' : '', v = el ? el.getAttribute('data-v') || '' : '', p = S.profile;
-  if (a === 'm-ouvrir'){ if (id === 'phrase') gesteCopie('m-phrase-neuve', el, ev); ouvrirM(id, v, el); return; }
-  if (a === 'm-retour'){ fermerM(); return; }
+  if (a === 'm-ouvrir'){ if (id === 'phrase') ouvrirPhrase(el); else ouvrirM(id, v, el); return; }
+  if (a === 'm-retour'){ terminer(); return; }
   if (a === 'm-quoi'){
     p.recherche = p.recherche === v ? '' : v;
     $$('.ecran .m-quoi .puce').forEach(b => { const on = b.getAttribute('data-v') === p.recherche; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
@@ -520,6 +525,7 @@ function geste(a, el, ev){
   }
   if (a === 'm-doc-ouvrir'){ ouvrirDoc(id).then(ok => { if (!ok) toast('Ce document n’est plus là.'); }); return; }
   if (a === 'm-doc-retirer' || a === 'doc-retirer'){ retirerDocument(id); return; }
+  if (a === 'm-code-f'){ ouvrirCode(); return; }
   if (a === 'm-theme-f'){ feuille('theme'); return; }
   if (a === 'm-suivre-f'){ feuille('suivre'); return; }
   if (a === 'm-installer'){ ouvrirInstaller(); return; }

@@ -24,8 +24,11 @@ export const PARENT_M = { modele: 'modeles', phrase: 'copie', relier: 'copie', r
 /* la ligne de la liste que cette page allume */
 export const LIGNE_M = t => PARENT_M[t] || t;
 
-export function ouvrirM(t, id = '', depuis){
-  if (C.onglet !== 'moi') allerA('moi');
+/* `ici` : au téléphone, la page se pousse dans l'onglet où l'on est (le
+   premier jour, « Retrouver » depuis Trouver) ; au poste, elle vit
+   toujours à droite de la liste de Moi */
+export function ouvrirM(t, id = '', depuis, ici){
+  if (C.onglet !== 'moi' && (C.poste || !ici)) allerA('moi');
   if (C.poste){ M.sel = { t, id }; rendre(); return; }
   pousser({ t, id }, depuis);
 }

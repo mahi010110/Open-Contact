@@ -23,12 +23,15 @@ export async function lancer(nom){
      `o.profil` : un profil déjà rempli (les trois réponses) ; `o.relais` :
      l'adresse d'un relais local (tests/e2e/relais-local.mjs), le seul que
      l'app connaîtra ; `o.cles` : d'autres clés à semer ; `o.presse` : le
-     presse-papier ouvert au scénario */
+     presse-papier ouvert au scénario ; `o.verrouille` : l'app est
+     protégée, on attend l'écran verrouillé */
   async function ouvrir(w, h, o = {}){
     const ctx = await browser.newContext({ viewport: { width: w, height: h }, hasTouch: !!o.mobile, isMobile: !!o.mobile,
       deviceScaleFactor: o.echelle || 1, colorScheme: o.sombre ? 'dark' : 'light', reducedMotion: o.calme ? 'reduce' : 'no-preference',
       ignoreHTTPSErrors: !!o.relais });
     if (o.presse) await ctx.grantPermissions(['clipboard-read', 'clipboard-write']);
+    /* `o.horloge` : une horloge qu'on avance (l'inactivité), installée avant la page */
+    if (o.horloge) await ctx.clock.install();
     const an = brancherAnnuaire(ctx, o);
     if (o.profil || o.pistes || o.relais || o.cles) await ctx.addInitScript(([profil, pistes, relais, cles]) => {
       if (profil) localStorage.setItem('oc_profile_v1', JSON.stringify(profil));
@@ -45,7 +48,9 @@ export async function lancer(nom){
        liaison entre appareils (la bibliothèque la dit en console) */
     p.on('console', m => { if (m.type() === 'error' && !/status of (500|429)|ERR_INTERNET_DISCONNECTED|User-Initiated Abort|reason=Close called/.test(m.text())) etat.erreurs.push(ici + ' · ' + m.text()); });
     await p.goto(base + '/refonte.html' + (o.adresse || ''));
-    await p.waitForFunction(() => document.documentElement.classList.contains('pret'));
+    /* protégée par un code, l'app s'ouvre sur l'écran verrouillé */
+    if (o.verrouille) await p.waitForSelector('.couche-v .verrou');
+    else await p.waitForFunction(() => document.documentElement.classList.contains('pret'));
     await p.waitForTimeout(120);
     return { ctx, p, an };
   }

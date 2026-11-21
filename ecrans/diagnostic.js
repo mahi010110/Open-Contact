@@ -15,6 +15,7 @@ import { getBackend } from '../engine/storage.js';
 import { listDocs } from './docs.js';
 import { getSync, relaySnapshot, echecLiaison } from './liaison.js';
 import { S } from './etat.js';
+import { estProtege } from './verrou.js';
 
 /* l'environnement se lit ICI (c'est de l'écran), les faits se calculent
    LÀ-BAS (c'est du moteur) — règle de sens unique §3 */
@@ -31,8 +32,7 @@ export async function texteDiagnostic(){
     theme: document.documentElement.dataset.theme || S.theme,
     enLigne: navigator.onLine !== false,
     backend: getBackend(),
-    /* le code de verrouillage arrive au lot 5 */
-    protection: false,
+    protection: estProtege(),
     relie: !!sy.phrase,
     relais: relaySnapshot(),
     echec: echecLiaison(),

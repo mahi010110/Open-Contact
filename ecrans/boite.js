@@ -293,6 +293,7 @@ export function relever(){
     const debut = Date.now();
     await profilAJour();
     if ((etat.envois || []).length) await renvoyer();
+    await renvoyerDemandes();
     const { evs, lus } = await lire({ kinds: [LETTRE_KIND], '#x': [await etiquetteBoite(b.pub)],
                                       since: Math.max(0, Math.floor(etat.depuis / 1000) - 3600) });
     let change = false;
@@ -344,14 +345,22 @@ export async function demander(cible, { amis = amisJoignables(), groupes = true 
   const crit = cible && cible.critere;
   const cherche = S.profile.recherche || '';
   const l = lettreDemande({ prenom: prenomMoi(), cle: b.pub }, crit ? { critere: crit } : cible, now, cherche);
-  const partis = (await Promise.all(amis.map(a => ecrire(a.cle, l, l.exp).catch(() => 0)))).filter(n => n > 0).length;
-  const dansGroupes = groupes && mesGroupes().length ? await (await import('./groupes.js')).demanderAuxGroupes(l).catch(() => []) : [];
-  if (!partis && !dansGroupes.length) return null;
-  const dem = { id: l.id, pisteId: crit ? null : cible.id, at: now, exp: l.exp, vers: partis };
+  /* SANS RÉSEAU, elle attend, et part à son retour (`renvoyerDemandes`) :
+     rien ne se perd, on peut la faire dans le métro */
+  const hors = navigator.onLine === false;
+  const versGroupes = groupes && mesGroupes().length > 0;
+  if (hors && !amis.length && !versGroupes) return null;
+  const partis = hors ? 0 : (await Promise.all(amis.map(a => ecrire(a.cle, l, l.exp).catch(() => 0)))).filter(n => n > 0).length;
+  const dansGroupes = !hors && versGroupes ? await (await import('./groupes.js')).demanderAuxGroupes(l).catch(() => []) : [];
+  if (!hors && !partis && !dansGroupes.length) return null;
+  const dem = { id: l.id, pisteId: crit ? null : cible.id, at: now, exp: l.exp, vers: hors ? amis.length : partis };
   /* à qui elle est partie, quand ce sont des amis nommés (une demande
      faite depuis une piste, à ceux qui y sont passés) */
   if (!groupes) dem.noms = amis.map(prenomAmi).filter(Boolean).slice(0, 3);
-  if (dansGroupes.length) dem.groupes = dansGroupes;
+  if (hors){
+    dem.attente = { lettre: l, amis: amis.map(a => a.cle), groupes: versGroupes };
+    if (versGroupes) dem.groupes = mesGroupes().map(g => g.nom || 'Groupe');
+  } else if (dansGroupes.length) dem.groupes = dansGroupes;
   if (l.cherche) dem.cherche = l.cherche;
   if (crit) dem.critere = l.critere; else dem.entreprise = l.entreprise;
   etat = { ...etat, demandes: [...etat.demandes, dem] };
@@ -359,6 +368,28 @@ export async function demander(cible, { amis = amisJoignables(), groupes = true 
   logJ(`Demandé à ${aQui(dem)} : quelqu’un ${quoiDe(dem)}`, crit ? undefined : cible.id);
   bus.refresh();
   return dem;
+}
+/* le réseau revient : les demandes qui attendaient partent, et ne sont
+   « envoyées » qu'à ce moment-là */
+async function renvoyerDemandes(){
+  if (navigator.onLine === false || !etat.demandes.some(d => d.attente)) return false;
+  let change = false;
+  for (const d of etat.demandes.filter(x => x.attente && x.exp > Date.now())){
+    const a = d.attente;
+    const partis = (await Promise.all((a.amis || []).map(cle => ecrire(cle, a.lettre, a.lettre.exp).catch(() => 0)))).filter(n => n > 0).length;
+    const dansGroupes = a.groupes && mesGroupes().length ? await (await import('./groupes.js')).demanderAuxGroupes(a.lettre).catch(() => []) : [];
+    if (!partis && !dansGroupes.length) continue;
+    etat = { ...etat, demandes: etat.demandes.map(x => {
+      if (x.id !== d.id) return x;
+      const y = { ...x, at: Date.now(), vers: partis };
+      delete y.attente;
+      if (dansGroupes.length) y.groupes = dansGroupes; else delete y.groupes;
+      return y;
+    }) };
+    change = true;
+  }
+  if (change){ await sauver(); bus.refresh(); }
+  return change;
 }
 /* « Karim », « 2 amis et BTS SIO Lille » */
 export function aQui(d){

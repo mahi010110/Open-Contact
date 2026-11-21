@@ -12,13 +12,19 @@
    reconnaît tout seul : des pistes, le profil d'un ami, l'invitation
    d'un groupe, sa porte. Des pistes passent TOUJOURS par l'aperçu
    (nouvelle, déjà dans tes pistes), puis « Annuler » (invariant ②).
+
+   LE LIEN (lot 5) : le texte et le QR portent une adresse de l'app dont
+   le fragment est l'OCQ1 (CONTRAT.md §2). Un camarade qui n'a pas l'app
+   la tape ou la scanne avec son appareil photo : l'app s'ouvre sur « On
+   te donne 3 pistes », chacune avec la personne à qui écrire. Aucun
+   prénom n'y part : c'est la messagerie qui dit qui l'envoie.
    ============================================================ */
 import { $, $$, ic, esc } from './outils.js';
 import { S, saveData, logJ } from './etat.js';
-import { C, rendre, annuler, toast, ouvrirFeuille, rendreFeuille, fermerFeuille, feuilleOuverte } from './coque.js';
+import { C, rendre, annuler, toast, allerA, ouvrirFeuille, rendreFeuille, fermerFeuille, feuilleOuverte } from './coque.js';
 import { todayISO } from '../engine/utils.js';
 import { normalizeCompany } from '../engine/model.js';
-import { sharePayload, encodeOCQ, splitOCQ, makeOCQJoiner, parseInput, extraireOCA, decodeOCA } from '../engine/exchange.js';
+import { sharePayload, encodeOCQ, splitOCQ, makeOCQJoiner, parseInput, extraireOCA, decodeOCA, lienPistes } from '../engine/exchange.js';
 import { mergeIncoming, findMatch, contactKey } from '../engine/merge.js';
 import { estInvitation, estCodeTape, lireInvitation, estPorte, lirePorte } from '../engine/groupe.js';
 import { normalizeAmi } from '../engine/amis.js';
@@ -29,6 +35,9 @@ import { mesGroupes, nomDe, donnerAuGroupe, marquerPris, oublierPris } from './g
 import { R, ouvrirR, fermerR, apercuAmiFeuille, apercuGroupeFeuille, apercuPorteFeuille } from './reseau.js';
 
 const ouvertes = () => S.companies.filter(c => !c.closedReason && !c.demo);
+/* l'adresse de cette app, sans son fragment : celle que le lien ouvrira */
+const adresseApp = () => location.origin + location.pathname;
+const QR_MAX = 1800;     /* au-delà, un QR ne se lit plus bien : il défile */
 const pl = (n, mot) => `${n} ${mot}${n > 1 ? 's' : ''}`;
 
 /* ============================================================
@@ -87,14 +96,19 @@ export async function donnerOk(b){
   if (D.canal === 'qr'){
     b.disabled = true;
     let compact = null, svgs = null;
+    let lien = '';
     try {
       compact = await encodeOCQ(list, null, prenomMoi());
-      const parts = compact.length > 1800 ? splitOCQ(compact) : [compact];
+      /* un seul QR : il porte l'ADRESSE, que l'appareil photo d'un camarade
+         sans l'app sait ouvrir ; trop long, l'OCQ1 seul, ou il défile */
+      lien = lienPistes(adresseApp(), compact);
+      const parts = lien.length <= QR_MAX ? [lien] : compact.length > QR_MAX ? splitOCQ(compact) : [compact];
+      if (parts[0] !== lien) lien = '';
       svgs = await Promise.all(parts.map(makeQrSvg));
     } catch (e) {}
     b.disabled = false;
     if (!svgs){ toast('Le QR n’est pas disponible ici : passe par le fichier.'); return; }
-    R.qr = { n, svgs, i: 0 };
+    R.qr = { n, svgs, i: 0, lien: !!lien };
     logJ('Donné (QR) : ' + n + ' piste(s)', null, ids);
     ouvrirR('qr', '', b);
     return;
@@ -107,7 +121,11 @@ export async function donnerOk(b){
     if (r === 'telechargement') toast(nom + ' téléchargé.');
     return;
   }
-  const r = await envoyerTexte(JSON.stringify(payload));
+  /* le texte porte un LIEN : la messagerie le rend tapable, et l'app
+     s'ouvre dessus ; sans compression (très vieux navigateur), le JSON */
+  let texte = JSON.stringify(payload);
+  try { texte = `${pl(n, 'piste')} pour toi sur OpenContact : ${lienPistes(adresseApp(), await encodeOCQ(list, null, prenomMoi()))}`; } catch (e) {}
+  const r = await envoyerTexte(texte);
   if (r === 'renonce') return;
   if (r === 'echec'){ toast('Copie impossible ici : passe par le fichier.'); return; }
   logJ('Donné (texte) : ' + n + ' piste(s)', null, ids);
@@ -131,7 +149,7 @@ export function pageQR(){
   return { titre: 'QR', corps: `<div class="s-page"><div class="qr-b" role="img" aria-label="QR à faire scanner">${q.svgs[q.i % q.svgs.length]}</div>`
     + `<p class="code-n">${pl(q.n, 'piste')}</p>`
     + (q.svgs.length > 1 ? `<p class="doux centre-t qr-part">partie ${q.i % q.svgs.length + 1}/${q.svgs.length} · laisse défiler</p>` : '')
-    + '<p class="doux centre-t">Ton camarade le scanne depuis « Recevoir ». Il voit les pistes avant de les prendre.</p></div>',
+    + `<p class="doux centre-t">${q.lien ? 'Ton camarade le scanne, même sans l’app.' : 'Ton camarade le scanne depuis « Recevoir ».'} Il voit les pistes avant de les prendre.</p></div>`,
     pied: '<button class="btn p" data-a="r-fin-qr">Terminé</button>' };
 }
 export function animerQR(z){
@@ -259,6 +277,49 @@ async function lire(f, raw, pass){
   }
   fermerFeuille();
   montrerApercu(obj, {});
+}
+
+/* ============================================================
+   UN LIEN : quelqu'un te donne des pistes (le premier jour, souvent)
+   ============================================================ */
+export async function ouvrirLien(ocq){
+  let obj = null;
+  try { obj = await parseInput(ocq); } catch (e) {}
+  if (!obj || !obj.companies.length){ toast('Ce lien est abîmé : demande-le à nouveau.'); return; }
+  ouvrirFeuille({ titre: 'Recevoir', obj, rendre: rendreLien, geste: gesteLien });
+}
+/* chacune avec la personne à qui écrire : c'est ce qui fait d'une piste
+   donnée un geste possible tout de suite */
+function rendreLien(f){
+  const l = lignesApercu(f.obj), nouv = l.filter(x => x.neuve).length, compl = l.filter(x => !x.neuve && x.plus).length;
+  const lignes = l.slice(0, 200).map(({ x, neuve, plus }) => {
+    const ct = (x.contacts || []).find(t => t.name);
+    const qui = ct ? ct.name + (ct.role ? ', ' + ct.role : '') : '';
+    return `<div class="rang"><div class="r-c"><b>${esc(x.name)}</b>`
+      + (neuve ? (x.city ? `<span>${esc(x.city)}</span>` : '') + (qui ? `<span class="plus">${esc(qui)}</span>` : '')
+        : `<span${plus ? ' class="plus"' : ''}>${esc('déjà dans tes pistes' + (plus ? ' · ' + pl(plus, 'contact') + ' de plus' : ''))}</span>`)
+      + `</div>${neuve ? '' : ic('check')}</div>`;
+  }).join('');
+  const mot = nouv === l.length ? (nouv > 1 ? `Ajouter les ${nouv} pistes` : 'Ajouter la piste') : `Ajouter ${pl(nouv, 'piste')}`;
+  return { corps: `<p class="fort don-t">On te donne ${pl(l.length, 'piste')}</p><div class="rangs rc-l">${lignes}</div>`
+      + (nouv || compl ? '' : '<p class="doux m-top">Tout est déjà dans tes pistes.</p>'),
+    pied: nouv ? `<button class="btn p" data-a="r-lien-ok">${ic('plus')}${mot}</button>`
+      : compl ? `<button class="btn p" data-a="r-lien-ok">${ic('plus')}Compléter ${pl(compl, 'piste')}</button>` : '' };
+}
+function gesteLien(a, el, ev, f){
+  if (a !== 'r-lien-ok') return;
+  const snapshot = JSON.stringify(S.companies);
+  const stats = mergeIncoming(f.obj.companies, S.companies);
+  saveData();
+  logJ('Reçu par un lien : +' + stats.addedC + ' piste(s), ' + stats.enriched + ' complétée(s)', null, stats.ids);
+  fermerFeuille();
+  /* l'app s'ouvre sur ses pistes : « À faire » propose d'écrire */
+  allerA('pistes');
+  annuler(stats.addedC ? `${pl(stats.addedC, 'piste')} ajoutée${stats.addedC > 1 ? 's' : ''}` : `${pl(stats.enriched, 'piste')} complétée${stats.enriched > 1 ? 's' : ''}`, () => {
+    S.companies = JSON.parse(snapshot).map(normalizeCompany);
+    saveData();
+    logJ('Fusion annulée');
+  });
 }
 
 /* ============================================================

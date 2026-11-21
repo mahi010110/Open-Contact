@@ -50,7 +50,9 @@ if (onglets) onglets.addEventListener('message', e => {
 });
 export async function recharger(){
   S.perime = false;
-  await charger();
+  /* verrouillée au démarrage, l'app n'a pas encore sa clé : elle relira
+     tout en s'ouvrant */
+  try { await charger(); } catch (e) { return; }
   bus.refresh();
 }
 

@@ -15,14 +15,15 @@
    (`oc_moi_v1`).
 
    Ce fichier ne sait que la mécanique ; l'écran vit dans copie.js. Le
-   coffre d'un code de verrouillage (la phrase unique de l'app actuelle)
-   arrive avec le verrou, au lot 5.
+   coffre du code de verrouillage (verrou.js) s'ouvre par la MÊME phrase :
+   une seule phrase pour tout, comme dans l'app actuelle.
    ============================================================ */
 import { MOI_KEY, SYNC_KEY, kvGet, kvSet } from '../engine/storage.js';
 import { fullPayload } from '../engine/exchange.js';
-import { clesDe, clesValides, semaineDe, etiquetteSemaine, cleSemaine, posteSemaine, nouvelAppareil,
+import { clesDe, clesValides, defautPhrase, semaineDe, etiquetteSemaine, cleSemaine, posteSemaine, nouvelAppareil,
          sceller, ouvrirScelle, decouper, evenementsDepot, rassembler, fusionnerCopies, fautDeposer, empreinte,
          MOI_KIND, SEMAINES_LUES } from '../engine/moi.js';
+import { phraseUnknownWords } from '../engine/vault.js';
 import { S } from './etat.js';
 import { publierLot, lire } from './relais.js';
 
@@ -44,6 +45,26 @@ export const depotAt = () => (etat && etat.depot && etat.depot.at) || 0;
 /* ce que l'écran en dit : { existe, trop, depot: { at, relais } | null } */
 export const etatPhrase = () => ({ existe: !!etat, trop: !!(etat && etat.trop),
   depot: etat && etat.depot ? { at: etat.depot.at, relais: etat.depot.relais } : null });
+
+/* ---------- ce qui cloche dans une phrase tapée ----------
+   La même phrase d'erreur partout où l'on tape ses douze mots (restaurer,
+   l'écran verrouillé, le code qu'on choisit), sous le champ, la saisie
+   gardée. Le premier mot inconnu passe avant le compte : une faute
+   colle souvent deux mots ensemble. */
+export function erreurPhrase(v){
+  const d = defautPhrase(v);
+  if (d === 'vide') return 'Tape les douze mots de ta phrase.';
+  if (d === 'mot') return `« ${phraseUnknownWords(v)[0]} » n’est pas dans la liste des mots. Vérifie l’orthographe.`;
+  if (d === 'nombre') return `Il faut les douze mots : tu en as ${String(v).trim().split(/\s+/).length}.`;
+  return '';
+}
+/* ces douze mots sont-ils la phrase de cet appareil ? (on compare les
+   clés qu'on en tire : la phrase, elle, n'est gardée nulle part) */
+export async function estMaPhrase(phrase){
+  await chargerMoi();
+  if (!etat) return false;
+  try { return (await clesDe(phrase)).scelle === etat.cles.scelle; } catch (e) { return false; }
+}
 
 /* ---------- adopter une phrase ----------
    Une phrase qui CHANGE efface ce que cet appareil avait déposé sous

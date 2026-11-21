@@ -19,32 +19,42 @@
    L'alerte ambre « seulement sur cet appareil » ne parle qu'à partir de
    cinq pistes sans aucune copie, ni autre appareil, depuis un mois
    (`sansFilet`, engine/assist.js).
+
+   Le premier jour (lot 5), « J'ai déjà OpenContact », sous les questions
+   de Trouver, ouvre les mêmes gestes : la phrase, un fichier, l'autre
+   appareil. Ce qui revient passe par le même aperçu, et l'app s'ouvre
+   ensuite sur ses pistes.
+
+   Protégé par un code (verrou.js), changer de phrase le redemande : le
+   coffre suit la phrase, qui rouvre aussi l'app, code oublié.
    ============================================================ */
 import { $, $$, ic, esc, remplacer } from './outils.js';
 import { S, saveProfile, logJ, applySynced } from './etat.js';
-import { C, annuler, toast, rendre, ouvrirFeuille, rendreFeuille, fermerFeuille, feuilleOuverte } from './coque.js';
+import { C, annuler, toast, rendre, allerA, ouvrirFeuille, rendreFeuille, fermerFeuille, feuilleOuverte } from './coque.js';
 import { fullPayload, parseInput, linkWrap, linkParse } from '../engine/exchange.js';
 import { encryptOC2 } from '../engine/crypto.js';
 import { syncMerge } from '../engine/sync.js';
 import { sansFilet, FILET_MIN_PISTES } from '../engine/assist.js';
 import { apercuCopie, etatCopie } from '../engine/copie.js';
-import { nouvellePhrase, defautPhrase, motsAVerifier, clesDe } from '../engine/moi.js';
-import { phraseUnknownWords } from '../engine/vault.js';
+import { nouvellePhrase, motsAVerifier, clesDe } from '../engine/moi.js';
 import { DEVICES_KEY, SYNC_KEY, kvGet, kvSet } from '../engine/storage.js';
 import { todayISO } from '../engine/utils.js';
 import { quandJour } from './dates.js';
 import { enregistrerFichier, partagePossible } from './fichier.js';
 import { makeQrSvg, startScan } from './qr.js';
 import { getSync, startSync, breakLink, makePhrase, deviceSelf, loadDevices, removeDevice, nomDe } from './liaison.js';
-import { chargerMoi, adopterPhrase, aUnePhrase, depotAt, etatPhrase, chercherCopie } from './phrase.js';
+import { chargerMoi, adopterPhrase, aUnePhrase, depotAt, etatPhrase, chercherCopie, erreurPhrase } from './phrase.js';
 import { montrerApercu } from './echange.js';
-import { lien, ouvrirM, fermerM } from './moi-nav.js';
+import { M, lien, ouvrirM, fermerM } from './moi-nav.js';
+import { estProtege, demanderCode, estPhraseDuCoffre, alignerCoffre } from './verrou.js';
 
 const pl = (n, mot) => `${n} ${mot}${n > 1 ? 's' : ''}`;
 const dateCourte = ms => new Date(ms).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
 /* ce qui se garde le temps de la session : jamais la phrase au-delà de ce
    qui sert, jamais un mot de passe dans le stockage */
-const K = { pret: false, verrou: false, mdp: '', phrase: null, res: null, devs: null, soi: null, qrs: new Map(), creation: false };
+const K = { pret: false, verrou: false, mdp: '', phrase: null, res: null, devs: null, soi: null, qrs: new Map(), creation: false,
+  pin: '',          /* le code prouvé pour changer de phrase, le temps de la changer */
+  premier: false    /* on retrouve ses affaires depuis le premier jour (Trouver) */ };
 
 /* ============================================================
    CE QUE DIT LA LISTE, ET L'ALERTE
@@ -154,7 +164,7 @@ function pagePhrase(){
       pied: '<button class="btn" data-a="m-phrase-revoir">Revoir la phrase</button><button class="btn p" data-a="m-phrase-verif">Continuer</button>' };
   }
   return { titre: 'Phrase', corps: '<div class="s-page"><p class="fort m-fort">Écris-la sur papier, dans l’ordre.</p>'
-    + '<p class="doux m-doux">Sans elle, la copie déposée ne se rouvre pas. Ne la donne à personne.</p>'
+    + `<p class="doux m-doux">${estProtege() ? 'Sans elle, ni ta copie déposée ni l’app, code oublié, ne se rouvrent.' : 'Sans elle, la copie déposée ne se rouvre pas.'} Ne la donne à personne.</p>`
     + `<ol class="mots">${ph.mots.map((m, i) => `<li><span>${i + 1}</span>${esc(m)}</li>`).join('')}</ol></div>`,
     pied: '<button class="btn p" data-a="m-phrase-noter">Je l’ai notée</button>' };
 }
@@ -172,7 +182,19 @@ async function verifierPhrase(){
   const phrase = ph.mots.join(' ');
   K.phrase = null;
   await adopterPhrase(phrase);
+  /* protégé : le coffre se rouvre désormais par cette phrase-là */
+  if (K.pin){ await alignerCoffre(phrase, K.pin); K.pin = ''; }
   fermerM();
+}
+/* créer ou changer de phrase ; protégé, le code d'abord */
+export async function ouvrirPhrase(el){
+  K.phrase = null; K.pin = '';
+  if (estProtege()){
+    const pin = await demanderCode('Ton code, pour changer de phrase');
+    if (!pin) return;
+    K.pin = pin;
+  }
+  ouvrirM('phrase', '', el);
 }
 
 /* ---- relier un autre appareil : chacun montre son QR et sait scanner celui de l'autre ---- */
@@ -195,6 +217,7 @@ async function assurerLien(){
     const gardee = await kvGet(SYNC_KEY).catch(() => '');
     if (!getSync().phrase) await startSync(gardee || makePhrase());
   } finally { K.creation = false; }
+  if ($('.ecran .k-relier')) rendre();
 }
 function pageRelier(){
   const sy = getSync();
@@ -260,6 +283,13 @@ async function ramener(){
   const r = K.res;
   if (!r) return;
   const b = $('.ecran [data-a="m-restaurer-ajouter"]'); if (b) b.disabled = true;
+  /* protégé, une phrase que le coffre ne connaît pas : le code d'abord, le
+     coffre la suivra (une seule phrase pour tout) */
+  let pin = '';
+  if (r.mode === 'phrase' && estProtege() && !(await estPhraseDuCoffre(r.phrase))){
+    pin = await demanderCode('Ton code, pour ramener');
+    if (!pin){ const b2 = $('.ecran [data-a="m-restaurer-ajouter"]'); if (b2) b2.disabled = false; return; }
+  }
   const local = { companies: S.companies, orphans: S.orphans, profile: S.profile, tombs: S.tombs };
   const snap = JSON.parse(JSON.stringify(local));
   const neuf = !S.companies.length;
@@ -267,11 +297,11 @@ async function ramener(){
   applySynced(res);
   let lie = false;
   if (r.copie.liaison && !(await kvGet(SYNC_KEY).catch(() => ''))){ await startSync(r.copie.liaison); lie = true; }
-  if (r.mode === 'phrase') await adopterPhrase(r.phrase, r.cles);
+  if (r.mode === 'phrase'){ await adopterPhrase(r.phrase, r.cles); if (pin) await alignerCoffre(r.phrase, pin); }
   const st = res.stats;
   logJ('Copie ramenée : +' + st.addedC + ' piste(s), ' + st.updatedC + ' plus récente(s)');
   K.res = null;
-  fermerM();
+  apresRetour();
   annuler(neuf ? 'Tout est revenu' : st.addedC ? pl(st.addedC, 'piste') + ' ajoutée' + (st.addedC > 1 ? 's' : '') : 'Copie ramenée', () => {
     applySynced(snap);
     if (lie) breakLink();
@@ -279,8 +309,29 @@ async function ramener(){
   });
 }
 
+/* le premier jour, ce qui est revenu ouvre l'app sur ses pistes ; sinon on
+   revient à « Ma copie » */
+function apresRetour(){
+  if (!K.premier){ fermerM(); return; }
+  K.premier = false;
+  if (C.poste){ M.sel = null; allerA('pistes'); return; }
+  /* la page ouverte depuis Trouver ne reste pas derrière : Pistes prend
+     sa place dans l'historique, et le retour ramène aux questions */
+  C.piles[C.onglet] = [];
+  allerA('pistes', { remplacer: true });
+}
+/* « Terminé », « Rien de neuf » : le premier jour, s'il est revenu
+   quelque chose, l'app s'ouvre sur les pistes */
+export function terminer(){
+  if (K.premier && S.companies.length){ apresRetour(); return; }
+  K.premier = false;
+  fermerM();
+}
+/* le premier jour : « J'ai déjà OpenContact » */
+export function ouvrirRetrouver(){ K.res = null; K.premier = true; demarrerCopie(); feuilleC('retrouver'); }
+
 /* ============================================================
-   LES FEUILLES : restaurer, scanner, un appareil
+   LES FEUILLES : restaurer, retrouver, scanner, un appareil
    ============================================================ */
 const ERR_COPIE = {
   vide: 'Ce fichier est vide.',
@@ -289,7 +340,7 @@ const ERR_COPIE = {
   tropdepistes: 'Plus de 2 000 pistes d’un coup : trop pour être ouvert.',
   altéré: 'Ce fichier a été modifié après l’envoi : demande-le à nouveau.'
 };
-const TITRES_FC = { restaurer: 'Restaurer', scan: 'Scanner', appareil: 'Appareil', soi: 'Appareil' };
+const TITRES_FC = { restaurer: 'Restaurer', retrouver: 'Retrouver', scan: 'Scanner', appareil: 'Appareil', soi: 'Appareil' };
 function feuilleC(type, o = {}){
   const f = { type, mode: '', err: '', texte: '', ...o, titre: TITRES_FC[type], rendre: rendreFC, geste: gesteFC, focus: o.focus || '',
     apres: z => apresFC(z, f), fermee: () => arreterScan() };
@@ -298,7 +349,7 @@ function feuilleC(type, o = {}){
 }
 function rendreFC(f){
   const err = `<p class="err m-err"${f.err ? '' : ' hidden'}>${esc(f.err)}</p>`;
-  if (f.type === 'restaurer'){
+  if (f.type === 'restaurer' || f.type === 'retrouver'){
     if (f.mode === 'phrase')
       return { corps: `<label class="fld"><span class="et">Ta phrase de secours</span><textarea class="zone court m-phrase" placeholder="Les douze mots, dans l’ordre" autocapitalize="off" autocorrect="off" spellcheck="false">${esc(f.texte)}</textarea></label>${err}`
         + `<button class="btn s" data-a="m-phrase-coller">${ic('clipboard')}Coller</button>`,
@@ -307,9 +358,14 @@ function rendreFC(f){
       return { corps: `<p class="doux">${ic('lock')} Cette copie est protégée par un mot de passe.</p>`
         + `<label class="fld"><span class="et">Mot de passe de la copie</span><input class="m-rpass" type="password" autocomplete="off"${f.err ? ' aria-invalid="true"' : ''}></label>${err}`,
         pied: '<button class="btn p" data-a="m-rmdp">Ouvrir</button>' };
-    return { corps: '<div class="rangs"><label class="rang act fichier">' + ic('file') + '<div class="r-c"><b>Depuis un fichier</b></div>'
-      + '<input type="file" class="m-rfichier" accept=".oc,.txt,.json,application/octet-stream,application/json,text/plain" aria-label="Depuis un fichier"></label>'
-      + `<button class="rang act" data-a="m-restaurer-phrase">${ic('note')}<div class="r-c"><b>Avec ma phrase de secours</b></div></button></div>${err}` };
+    const fichier = '<label class="rang act fichier">' + ic('file') + '<div class="r-c"><b>Depuis un fichier</b></div>'
+      + '<input type="file" class="m-rfichier" accept=".oc,.txt,.json,application/octet-stream,application/json,text/plain" aria-label="Depuis un fichier"></label>';
+    const phrase = `<button class="rang act" data-a="m-restaurer-phrase">${ic('note')}<div class="r-c"><b>Avec ma phrase de secours</b></div></button>`;
+    /* le premier jour, d'abord ce qu'on a sur soi (sa phrase), puis le
+       fichier, puis l'autre appareil — l'ordre de la maquette */
+    if (f.type === 'retrouver')
+      return { corps: `<div class="rangs">${phrase}${fichier}<button class="rang act" data-a="m-retrouver-appareil">${ic('monitor')}<div class="r-c"><b>Depuis mon autre appareil</b></div></button></div>${err}` };
+    return { corps: `<div class="rangs">${fichier}${phrase}</div>${err}` };
   }
   if (f.type === 'scan'){
     const deja = (K.devs || []).length > 0;
@@ -388,7 +444,7 @@ async function lireTexte(f, raw, pass){
       rendreFeuille();
       return;
     }
-    f.mode = ''; f.titre = 'Restaurer'; f.err = ERR_COPIE[e.message] || ERR_COPIE.format;
+    f.mode = ''; f.titre = TITRES_FC[f.type]; f.err = ERR_COPIE[e.message] || ERR_COPIE.format;
     rendreFeuille();
     return;
   }
@@ -397,15 +453,13 @@ async function lireTexte(f, raw, pass){
   if (obj.kind === 'share'){ fermerFeuille(); montrerApercu(obj, {}); return; }
   K.res = { mode: 'fichier', copie: obj, at: f.fichierAt || Date.now() };
   fermerFeuille();
-  ouvrirM('restauration', 'fichier');
+  ouvrirM('restauration', 'fichier', null, K.premier);
 }
 async function lirePhrase(f){
   const v = f.texte || '';
   const dit = txt => { f.err = txt; f.cherche = false; rendreFeuille(); };
-  const d = defautPhrase(v);
-  if (d === 'vide') return dit('Tape les 12 mots de ta phrase.');
-  if (d === 'mot') return dit(`Mot inconnu : « ${phraseUnknownWords(v)[0]} ». Vérifie l’orthographe.`);
-  if (d === 'nombre') return dit(`Il faut 12 mots, il y en a ${v.trim().split(/\s+/).length}.`);
+  const e = erreurPhrase(v);
+  if (e) return dit(e);
   if (navigator.onLine === false) return dit('Pas de réseau : la copie déposée revient avec lui. Un fichier, lui, marche sans.');
   f.cherche = true; f.err = ''; rendreFeuille();
   let r = null, cles = null;
@@ -414,7 +468,7 @@ async function lirePhrase(f){
   if (r && r.copie){
     K.res = { mode: 'phrase', copie: r.copie, at: r.copie.at, phrase: v, cles };
     fermerFeuille();
-    ouvrirM('restauration', 'phrase');
+    ouvrirM('restauration', 'phrase', null, K.premier);
     return;
   }
   dit(!r || !r.lus ? 'Pas de connexion. Réessaie quand tu auras du réseau.' : 'Aucune copie trouvée avec cette phrase. Vérifie l’ordre des mots.');
@@ -430,6 +484,7 @@ async function relierAvec(f, brut){
 }
 function gesteFC(a, el, ev, f){
   if (a === 'm-restaurer-phrase'){ f.mode = 'phrase'; f.err = ''; rendreFeuille(); return; }
+  if (a === 'm-retrouver-appareil'){ fermerFeuille(); ouvrirM('relier', '', null, true); return; }
   if (a === 'm-phrase-coller'){
     navigator.clipboard.readText().then(t => { f.texte = t || ''; f.err = ''; rendreFeuille(); })
       .catch(() => { f.err = 'Colle ici avec un appui long : ce navigateur ne laisse pas l’app lire le presse-papier.'; rendreFeuille(); });
@@ -479,7 +534,6 @@ function gesteFC(a, el, ev, f){
    ============================================================ */
 export function gesteCopie(a, el, ev){
   const v = el ? el.getAttribute('data-v') || '' : '';
-  if (a === 'm-phrase-neuve'){ K.phrase = null; return; }
   if (a === 'm-phrase-noter'){ K.phrase.etape = 'verifier'; K.phrase.idx = motsAVerifier(); K.phrase.err = ''; rendre(); return; }
   if (a === 'm-phrase-revoir'){ K.phrase.etape = 'voir'; rendre(); return; }
   if (a === 'm-phrase-verif'){ verifierPhrase(); return; }
@@ -496,7 +550,7 @@ export function gesteCopie(a, el, ev){
   }
   if (a === 'm-copie'){ telecharger(); return; }
   if (a === 'm-copie-ici'){ telecharger({ sansMdp: true }); return; }
-  if (a === 'm-restaurer'){ K.res = null; feuilleC('restaurer'); return; }
+  if (a === 'm-restaurer'){ K.res = null; K.premier = false; feuilleC('restaurer'); return; }
   if (a === 'm-restaurer-ajouter'){ ramener(); return; }
   if (a === 'm-appareil'){ const d = (K.devs || []).find(x => x.id === v); if (d) feuilleC('appareil', { d }); return; }
   if (a === 'm-soi'){ if (K.soi) feuilleC('soi'); return; }
@@ -538,13 +592,14 @@ async function lireAppareils(){
 /* l'état d'un lien, d'une phrase, d'un appareil change : seuls les blocs
    concernés se redessinent — la serrure et ce qu'on y tape ne bougent pas */
 function majBlocs(){
+  /* « Relier » peut être ouverte depuis Trouver, le premier jour */
+  if ($('.ecran .k-relier')){ rendre(); return; }
   if (C.onglet !== 'moi') return;
   /* le contenu du cadre se redessine, pas sa légende */
   const a = $('.ecran .k-appareils .k-in'); if (a) remplacer(a, blocAppareils());
   const p = $('.ecran .k-phrase .k-in'); if (p) remplacer(p, blocPhrase());
   const f = $('.ecran .k-filet'), dit = etatFilet();
   if (!!f !== dit) rendre();
-  if ($('.ecran .k-relier')) rendre();
 }
 let demarre = false;
 export function demarrerCopie(){

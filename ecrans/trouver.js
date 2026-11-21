@@ -39,6 +39,7 @@ import { visageHTML } from './visage.js';
 import { laSuite } from '../engine/suite.js';
 import { ouvrirEcrire, ouvrirPiste } from './pistes.js';
 import { optionsAmis } from './amis.js';
+import { ouvrirRetrouver } from './copie.js';
 
 const QUOI = { stage: 'Stage', alternance: 'Alternance', emploi: 'Emploi' };
 const LOT = 6;                      /* une liste se lit six lignes à la fois */
@@ -57,6 +58,14 @@ const T = {
   connus: new Map()    /* siren → ce que l'annuaire a dit, pour ouvrir sa page */
 };
 const notifier = () => rendre();
+/* le premier jour, un profil arrive d'ailleurs (une copie ramenée, un
+   autre appareil relié) : les questions ont leur réponse, la liste les
+   remplace au prochain dessin */
+document.addEventListener('oc:change', () => {
+  if (T.form && T.premierJour && complet()){ T.form = null; T.premierJour = false; T.B = null; }
+  /* et l'inverse : un retour annulé rend le téléphone neuf, les questions reviennent */
+  else if (T.form === false && !complet()){ T.form = null; T.B = null; }
+});
 const liste = chercheur(notifier);
 const barre = chercheur(notifier);
 
@@ -140,7 +149,9 @@ function formulaire(){
     + `<label class="champ"><input class="f-ville" value="${esc(b.ville)}" placeholder="Ta ville" aria-label="Ta ville" autocomplete="address-level2" autocorrect="off" autocapitalize="words" spellcheck="false" enterkeyhint="go"></label>`
     + (T.villeInconnue ? `<p class="err" role="alert">Je ne trouve pas « ${esc(T.villeInconnue)} ». Essaie la ville la plus proche.</p>` : '')
     + (premier ? '' : `<div class="seg" role="group" aria-label="Jusqu’où">${RAYONS.map(r => `<button${b.rayon === r ? ' class="on"' : ''} data-a="b-rayon" data-id="${r}" aria-pressed="${b.rayon === r}">${r} km</button>`).join('')}</div>`)
-    + '<button class="btn p" data-a="voir">Voir les entreprises</button></div>';
+    + '<button class="btn p" data-a="voir">Voir les entreprises</button>'
+    /* le premier jour, qui a déjà l'app ailleurs retrouve ses affaires */
+    + (premier ? '<p class="deja"><button class="lien" data-a="retrouver">J’ai déjà OpenContact</button></p>' : '') + '</div>';
 }
 function brancherForm(ecran){
   const v = $('.f-ville', ecran), a = $('.f-autre', ecran);
@@ -510,7 +521,7 @@ function choisir(pas){
 export default {
   id: 'trouver',
   rendre(ecran, { poste, premier }){
-    if (T.form === null){ T.form = !complet(); T.B = brouillon(); if (!T.form) lancer(); }
+    if (T.form === null){ T.form = !complet(); T.premierJour = T.form; T.B = brouillon(); if (!T.form) lancer(); }
     if (!T.B) T.B = brouillon();
     (poste ? rendrePoste : rendreTel)(ecran, premier);
   },
@@ -521,7 +532,8 @@ export default {
     if (a === 'b-autre'){ T.B.autre = !T.B.autre; T.B.formation = ''; rendre(); $('.ecran .f-autre')?.focus(); return; }
     if (a === 'b-rayon'){ T.B.rayon = +id; rendre(); return; }
     if (a === 'voir'){ voir(); return; }
-    if (a === 'editer'){ T.form = true; T.manque = false; T.B = brouillon(); rendre(); return; }
+    if (a === 'editer'){ T.form = true; T.premierJour = false; T.manque = false; T.B = brouillon(); rendre(); return; }
+    if (a === 'retrouver'){ ouvrirRetrouver(); return; }
     if (a === 'elargir'){ P().rayon = 30; saveProfile(); lancer(); rendre(); return; }
     if (a === 'reessayer'){ liste.reessayer(); rendre(); return; }
     if (a === 'suite'){
