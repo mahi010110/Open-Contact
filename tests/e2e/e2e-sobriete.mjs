@@ -790,7 +790,12 @@ const MOTS_GARDE = [
      commercial que §7 bannit. Ici en exemple de champ, et là en
      donnée de démonstration. */
   'Ex : RH, team lead',
-  'Team lead infra'
+  'Team lead infra',
+  /* La nouvelle interface (`ecrans/pistes.js`, lot 2) : la phrase que
+     l'étudiant DIT au standard, au téléphone. Là, « contact » serait
+     faux : c'est le mot de l'app, pas celui qu'on emploie à voix haute
+     pour demander quelqu'un qu'on ne connaît pas. */
+  'la personne qui s’occupe du recrutement'
 ];
 
 /* Une exemption qui est une CONSTRUCTION, pas une phrase. §7 exempte le
@@ -858,6 +863,14 @@ const EXEMPT = {
   for (const f of readdirSync(RACINE).filter(n => n.endsWith('.html')).sort())
     sources.push([f, readFileSync(path.join(RACINE, f), 'utf8')]);
   for (const f of fichiers) sources.push([f, lire(f)]);
+  /* LA NOUVELLE INTERFACE (`ecrans/`, docs/refonte-reprendre.md §8) parle
+     déjà à l'écran sur sa page d'essai : la charte des mots vaut pour
+     elle dès maintenant. Sans quoi la bascule (`ecrans/` devient `ui/`)
+     ferait apparaître d'un coup ce qui aurait dérivé pendant des lots —
+     « Ton camarade le scanne » est passé ainsi par trois revues. */
+  const ECRANS = path.join(RACINE, 'ecrans');
+  for (const f of readdirSync(ECRANS).filter(n => n.endsWith('.js')).sort())
+    sources.push(['ecrans/' + f, readFileSync(path.join(ECRANS, f), 'utf8')]);
 
   const proses = {};
   for (const [nom, src] of sources)
@@ -899,7 +912,19 @@ const EXEMPT = {
         .map(m => m[2]);
       if (/\.html$/.test(nom)) morceaux.push(proses[nom][i] || '');
       for (const brut of morceaux) {
-        const t = brut.trim();
+        /* LE BALISAGE N'EST PAS DU TEXTE. Une chaîne de la nouvelle
+           interface porte souvent sa balise entière : `<details class=
+           "term">` faisait lire « detail » là où rien ne s'affiche, et
+           `class="k-filet"` un « filet » que personne ne voit. On retire
+           le nom des balises, les valeurs de classe, d'id et de données,
+           et le code des `${…}` — JAMAIS un `aria-label`, un `title` ou
+           un `placeholder` : c'est là que le premier relevé a trouvé ses
+           vraies fautes (§7). */
+        const t = brut
+          .replace(/\$\{[^}]*\}/g, ' ')
+          .replace(/\b(?:class|id|href|for|role|type|data-[\w-]+)=(["'])[^"']*\1/g, ' ')
+          .replace(/<\/?[a-z][\w-]*/gi, ' ')
+          .trim();
         if (!versEcran(t)) continue;
         if (compter) chaines++;
         if (MOTS_GARDE.some(g => t.includes(g))) continue;

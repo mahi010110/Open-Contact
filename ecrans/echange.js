@@ -149,7 +149,7 @@ export function pageQR(){
   return { titre: 'QR', corps: `<div class="s-page"><div class="qr-b" role="img" aria-label="QR à faire scanner">${q.svgs[q.i % q.svgs.length]}</div>`
     + `<p class="code-n">${pl(q.n, 'piste')}</p>`
     + (q.svgs.length > 1 ? `<p class="doux centre-t qr-part">partie ${q.i % q.svgs.length + 1}/${q.svgs.length} · laisse défiler</p>` : '')
-    + `<p class="doux centre-t">${q.lien ? 'Ton camarade le scanne, même sans l’app.' : 'Ton camarade le scanne depuis « Recevoir ».'} Il voit les pistes avant de les prendre.</p></div>`,
+    + `<p class="doux centre-t">${q.lien ? 'Il se scanne, même sans l’app : on voit les pistes avant de les prendre.' : 'Il se scanne depuis « Recevoir » : on voit les pistes avant de les prendre.'}</p></div>`,
     pied: '<button class="btn p" data-a="r-fin-qr">Terminé</button>' };
 }
 export function animerQR(z){

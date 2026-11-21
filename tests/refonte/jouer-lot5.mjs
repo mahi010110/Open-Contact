@@ -416,7 +416,7 @@ verifier(recu.companies.length === 3 && !/Karim|Benali|NOTE-PRIVEE|active|applie
   'LA FUITE D’ABORD : le lien porte les pistes et leurs contacts, ni le prénom de Karim, ni ses notes, ni son suivi');
 await kp.click(T + '[data-a="r-don-canal"][data-v="qr"]'); await kp.waitForTimeout(250);
 await kp.click(T + '[data-a="r-don-ok"]'); await kp.waitForTimeout(900);
-verifier(/Ton camarade le scanne, même sans l’app\./.test(await tout(kp)), 'le QR porte le lien : il se scanne même sans l’app');
+verifier(/Il se scanne, même sans l’app : on voit les pistes avant de les prendre\./.test(await tout(kp)), 'le QR porte le lien : il se scanne même sans l’app');
 await K.ctx.close();
 const lienK = m ? m[1] : '';
 const D = await ouvrir(390, 844, { mobile: true, calme: true, presse: true, relais: relay.url, adresse: lienK.slice(lienK.indexOf('#')) });

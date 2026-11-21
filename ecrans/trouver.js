@@ -274,17 +274,28 @@ const ligneHL = (t, icone) => `<p class="hl-l">${ic(icone || 'radio')}<span>${es
 /* l'offre collée attend en étiquette sous la barre ; la croix la retire */
 const etiquetteOffre = () => T.offre ? `<div class="s-tags o-tags"><button class="etq-o" data-a="o-retirer" aria-label="Retirer l’offre : ${esc(T.offre.poste)}">`
   + `${ic('file')}<span>Offre : ${esc(T.offre.poste || 'collée')}</span>${ic('close')}</button></div>` : '';
+/* ce que la recherche montre : les pistes qui portent ce nom, puis
+   l'annuaire (douze lignes) — une entreprise, une ligne. La liste et la
+   barre d'état du poste comptent la même chose. */
+function resultats(){
+  const q = T.q.trim(), nom = T.lu || q, e = barre.etat;
+  const sans = navigator.onLine === false || e.phase === 'horsligne' || e.phase === 'erreur' || e.phase === 'limite';
+  const vis = sans || !['ok', 'plus'].includes(e.phase) ? [] : barre.visibles(garderVisibles());
+  /* gardée pendant cette visite, elle reste à sa place (« gardée ») et
+     ne revient pas en tête comme piste */
+  const enListe = new Set(vis.map(r => T.gardees.get(r.siren)).filter(Boolean));
+  const pistes = q ? pistesDuNom(nom).filter(c => !enListe.has(c.id)) : [];
+  return { q, nom, e, sans, vis, pistes, nVis: Math.min(vis.length, 12) };
+}
 function corpsRecherche(){
   const q = T.q.trim();
   /* une offre sans entreprise lue : la barre demande son nom */
   if (!q && T.offre) return etiquetteOffre() + '<p class="lu">Dans quelle entreprise ? Tape son nom.</p>';
   if (!q) return etiquetteOffre() + `<div class="rangs s-liste haut"><div class="rang act" data-a="coller" role="button" tabindex="0">${ic('clipboard')}`
     + '<div class="r-c"><b>Coller un lien ou une offre</b><span>LinkedIn, le site d’une entreprise, le texte d’une offre</span></div></div></div>';
-  const nom = T.lu || q;
+  const { nom, e, sans, vis, pistes, nVis } = resultats();
   let h = etiquetteOffre() + (T.lu ? `<p class="lu">Lu dans ton lien : <b>${esc(T.lu)}</b></p>` : '')
     + (T.offreDeja ? `<p class="lu o-deja">${ic('check')}Cette offre est déjà sur sa piste.</p>` : '');
-  const e = barre.etat;
-  const sans = navigator.onLine === false || e.phase === 'horsligne' || e.phase === 'erreur' || e.phase === 'limite';
   if (navigator.onLine === false || e.phase === 'horsligne')
     h += ligneHL(T.offre ? 'Pas de réseau : l’entreprise se reconnaîtra quand il revient.' : 'Pas de réseau : l’annuaire attendra. Tes pistes, elles, se cherchent.');
   else if (e.phase === 'erreur' || e.phase === 'limite')
@@ -292,13 +303,7 @@ function corpsRecherche(){
   const interp = e.interp;
   const metier = interp && interp.etiquettes.find(x => x.famille === 'metier' && !x.profil);
   const lieu = e.lieu;
-  const vis = sans || !['ok', 'plus'].includes(e.phase) ? [] : barre.visibles(garderVisibles());
-  /* une entreprise = une ligne : gardée pendant cette visite, elle reste à
-     sa place (« gardée ») et ne revient pas en tête comme piste */
-  const enListe = new Set(vis.map(r => T.gardees.get(r.siren)).filter(Boolean));
-  const pistes = pistesDuNom(nom).filter(c => !enListe.has(c.id));
   vis.forEach(r => T.connus.set(r.siren, r));
-  const nVis = Math.min(vis.length, 12);
   if (pistes.length || nVis){
     const lue = T.offre && T.offre.entreprise && normName(T.offre.entreprise) === normName(q);
     const titre = lue ? 'Lu dans l’offre' : metier ? `${metier.label}${lieu ? ' autour de ' + esc(lieu.label) : ''}` : (pistes.length + nVis) > 1 ? `${pistes.length + nVis} entreprises` : pistes.length ? 'Dans tes pistes' : 'Dans l’annuaire';
@@ -687,6 +692,16 @@ export default {
   },
   etat(){
     if (T.form) return '<span>Prêt</span>' + cles([[['/'], 'chercher'], [[MOD, 'V'], 'coller une offre']]);
+    /* pendant une recherche, elle dit ce que la recherche montre — pas la
+       liste du jour qui attend derrière */
+    if (T.cherche && T.q.trim()){
+      const r = resultats(), n = r.pistes.length + r.nVis;
+      const dit = navigator.onLine === false || r.e.phase === 'horsligne' ? 'Hors ligne'
+        : r.e.phase === 'erreur' || r.e.phase === 'limite' ? 'Annuaire en panne'
+        : n ? `${n} entreprise${n > 1 ? 's' : ''}` : ['attente', 'charge'].includes(r.e.phase) ? 'Je cherche…' : 'Aucune entreprise';
+      return `<span>${dit}</span>` + (r.nVis ? '<span>Annuaire des entreprises</span>' : '')
+        + cles([n ? [['↑', '↓'], 'choisir'] : null, [['/'], 'chercher'], [[MOD, 'V'], 'coller une offre']]);
+    }
     const v = villeOk(), e = liste.etat;
     const n = ['ok', 'plus'].includes(e.phase) ? Math.max(liste.pres(), liste.visibles(garderVisibles()).length) : 0;
     const ok = n && navigator.onLine !== false;
