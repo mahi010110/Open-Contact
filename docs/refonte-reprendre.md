@@ -2,7 +2,7 @@
 
 *Pour l'assistant qui reprend la refonte dans une nouvelle discussion.
 Mise à jour à chaque lot, en même temps que le journal du brief.
-Dernière mise à jour : 21 novembre 2026, code : lot 4 validé, lot 5 en cours.*
+Dernière mise à jour : 21 novembre 2026, code : lot 5 montré.*
 
 Le premier message à donner à une nouvelle discussion :
 
@@ -196,7 +196,7 @@ lien pour l'essayer sur l'iPhone, et validé avant le suivant.
 | 2 | Pistes, une piste, écrire par quatre canaux | validé le 17 novembre (« Continue ça me va ») |
 | 3 | Réseau | validé le 21 novembre (« Continue »), après l'avoir vu le 18 |
 | 4 | Moi | validé le 21 novembre (« Continue ») |
-| 5 | les états : premier jour, vide, erreurs, hors ligne, verrou | en cours |
+| 5 | les états : premier jour, vide, erreurs, hors ligne, verrou | montré le 21 novembre, **en attente de son avis** |
 | 6 | le poste, un établi | à faire |
 
 **La nouvelle interface grandit à côté de l'ancienne**, sans la toucher.
@@ -216,8 +216,8 @@ se réécrit pour la nouvelle interface, plus court.
 
 | Fichier | Ce qu'il porte | À la bascule |
 |---|---|---|
-| `refonte.html` | la page : la fenêtre, les onglets, l'écran, la barre d'état, la barre « Annuler », la région qui parle | devient `index.html` |
-| `refonte.js` | l'amorce : charger, le thème, inscrire les onglets, démarrer | devient `app.js` |
+| `refonte.html` | la page : la fenêtre, les onglets, l'écran, la barre d'état, la barre « Annuler », la région qui parle ; l'écran verrouillé, hors de l'app | devient `index.html` |
+| `refonte.js` | l'amorce : le verrou d'abord, charger, le thème, inscrire les onglets, démarrer ; un lien de pistes lu avant que la coque réécrive l'adresse | devient `app.js` |
 | `styles/refonte.css` | le style de la maquette, posé sur les vrais jetons (tailles en rem) | devient `styles/app.css` |
 | `ecrans/coque.js` | les onglets, l'adresse (`#/trouver`), la pile des pages dans l'historique, « Annuler », le glissé, le clavier du poste | `ecrans/` devient `ui/` |
 | `ecrans/etat.js` | l'état et son stockage, repris de `ui/state.js`, mêmes clés | |
@@ -241,6 +241,7 @@ se réécrit pour la nouvelle interface, plus court.
 | `ecrans/liaison.js` | la liaison de mes appareils (mêmes clés, mêmes messages que l'app actuelle) : la salle, le portage par les relais, l'anneau, ce qui arrive d'un autre appareil avec « Annuler » (repris de `ui/synclive.js`) | |
 | `ecrans/phrase.js` | la phrase de secours : les clés (jamais la phrase), la copie déposée scellée sur les relais, la retrouver (repris de `ui/moi-phrase.js`) | |
 | `ecrans/docs.js`, `ecrans/installer.js`, `ecrans/diagnostic.js` | les PDF de CV et de lettres (cet appareil seulement), installer l'app, le rapport sans donnée personnelle | |
+| `ecrans/verrou.js` | le code et l'écran verrouillé : le pavé, choisir son code (et sa phrase), verrouillé (cinq essais, puis une attente), code oublié, le code redemandé, l'inactivité ; le même coffre que l'app actuelle (repris de `ui/verrou.js`) | |
 | `engine/modeles.js` | les trois messages types, ce qui les distingue de l'original, ce que l'app y remplace, rétablir (testé par `?test`) | reste |
 | `engine/copie.js` | l'aperçu d'une copie lue (nouvelles, plus récentes, déjà là) et la phrase de la ligne « Ma copie » (testé par `?test`) | reste |
 | `engine/formations.js` | les formations de « Tu étudies » et leur métier (testé par `?test`) | reste |
@@ -304,9 +305,15 @@ se réécrit pour la nouvelle interface, plus court.
   un relais local, cinq minutes : il attend la liaison. Il lit d'abord ce
   que voit le relais (la copie déposée, la sync) : ni nom, ni entreprise,
   ni note. La phrase se tape faute de caméra.
-- Restent verts : `node tests/e2e/unitaires.mjs` (`?test`, 299 tests),
+- `node tests/refonte/jouer-lot5.mjs` : les états, joués avec huit
+  appareils sur un relais local, quatre minutes : il attend les 30 s des
+  cinq codes faux. Il lit le disque (scellé), le relais (ni nom, ni
+  entreprise, ni note) et le lien de Karim (ni son prénom, ni ses notes,
+  ni son suivi) ; l'inactivité se joue avec une horloge qu'on avance.
+- Restent verts : `node tests/e2e/unitaires.mjs` (`?test`, 302 tests),
   `e2e-pages-sw.mjs` (la page d'essai est servie elle-même, pas l'app),
-  `e2e-decouvrir.mjs`, `e2e-classement.mjs`, `e2e-sobriete.mjs`.
+  `e2e-decouvrir.mjs`, `e2e-classement.mjs`, `e2e-sobriete.mjs`, et
+  `e2e-verrou.mjs` (le verrou de l'app actuelle, qui partage son coffre).
 - Les planches : `OC_AVANT=<captures de l'app actuelle> node
   tests/refonte/planches-lot1.mjs`. `planche()` prend `reelle: true`
   quand l'après vient de l'app (rien à couper en haut).
@@ -443,6 +450,53 @@ doit y entrer. La page d'essai n'enregistre pas de service worker.
   avancée » (relais et TURN personnalisés : les réglages déjà faits restent
   lus), l'appareil principal et ses commandes.
 
+### Décisions prises en codant le lot 5 (montrées avec lui)
+
+- Le coffre est celui de l'app actuelle (`oc_vault_v1`, mêmes
+  enveloppes, même compte d'essais) : un téléphone protégé par l'une
+  s'ouvre par l'autre. Protégée, l'app ne lit rien avant le code ;
+  verrouillée en route (« Verrouiller maintenant », cinq minutes sans toi
+  au téléphone, quinze au poste), elle garde sa clé, et rien ne s'arrête
+  derrière.
+- **Choisir son code** : la maquette passait en deux étapes quand la
+  phrase existe déjà. Le coffre a besoin des douze mots pour se laisser
+  rouvrir par eux, et l'appareil ne les garde jamais : la troisième étape
+  fait TAPER la phrase (« Je ne l'ai plus » en crée une neuve). Sans
+  phrase, elle se crée, deux mots à retaper, comme au lot 4. Un code
+  qu'on devine (123456, 000000) se refuse.
+- **Cinq codes faux, puis 30 s, 1 min, 5 min**, comme l'app actuelle ; la
+  maquette n'avait que 30 s. L'attente survit au rechargement.
+- **Code oublié** : la phrase, puis un nouveau code ; la phrase ne change
+  pas (l'app actuelle renouvelait les deux, et exigeait une copie).
+  « Effacer » dit « Tu repars de zéro. Une copie, ou un autre appareil
+  relié, te ramèneront le reste. » : verrouillée, l'app ne sait pas lire
+  s'il existe une copie.
+- **Le code se redemande** pour retirer le code, effacer cet appareil et
+  changer de phrase (le coffre suit la phrase : une seule phrase pour
+  tout). « Retirer le code » a son « Annuler ». La maquette ne
+  redemandait rien.
+- **Arriver par quelqu'un** : « Texte », dans Donner, envoie « 3 pistes
+  pour toi sur OpenContact : <lien> », et le QR porte le même lien quand
+  il tient en un seul : un camarade sans l'app le scanne avec son
+  appareil photo (CONTRAT.md §2, « Le lien »). Il ouvre « On te donne
+  3 pistes » : le contrat interdit qu'un partage porte le prénom de qui
+  donne, c'est la messagerie qui dit qui l'envoie. La maquette disait
+  « Karim te donne » : à trancher avec lui.
+- **Sans réseau, une demande attend** et part au retour du réseau. Le
+  lot 3 la refusait (« Pas de réseau : ta demande n'est pas partie »).
+- Les erreurs d'une phrase tapée sont les mêmes partout (restaurer, le
+  verrou, le code) : celles de la maquette.
+- Le premier jour, « Retrouver » s'ouvre là où l'on est (Trouver) ; ce qui
+  revient ouvre l'app sur ses pistes, et le retour ramène à Trouver, sans
+  les questions. « Annuler » les rend.
+- Au poste, Pistes vide n'ouvre plus deux colonnes vides (Réseau le
+  faisait déjà).
+- Ne reviennent pas (à lui montrer avant la bascule) : « Changer mon
+  code » (on le retire, puis on en choisit un), l'empreinte ou le
+  visage, la copie chiffrée exigée en protégeant, l'appareil principal et
+  ses commandes (un ordre « verrouiller » venu de l'app actuelle
+  s'applique encore).
+
 ### Pièges déjà payés (le code)
 
 - `innerText` rend les majuscules que le CSS impose (`text-transform`) :
@@ -493,6 +547,26 @@ doit y entrer. La page d'essai n'enregistre pas de service worker.
   faut `brut()`. Un modèle de départ écrit `J'ai` (apostrophe droite).
 - La console dit « User-Initiated Abort » quand on ferme une liaison en
   pleine négociation : ce n'est pas une faute de l'app.
+- Le journal privé s'écrivait avant d'être chargé (un geste de l'écran
+  verrouillé au démarrage) : il aurait été écrasé. Le verrou note après
+  le chargement (`apresChargement`).
+- La classe `poste` se pose avant l'écran verrouillé : la coque ne
+  démarre qu'après le code, et le verrou serait dessiné pour un
+  téléphone.
+- Une page de Moi ouverte depuis un autre onglet (« Relier » depuis
+  Trouver) ne se redessine que si les écouteurs de Moi sont partis
+  (`demarrerCopie()`).
+- `.lien-t` existait déjà (un texte souligné) : un nom de classe neuf se
+  cherche d'abord dans le CSS.
+- Un profil semé sans `updatedAt` perd contre un profil vide (le plus
+  récent gagne, et 0 n'est pas plus récent que 0) : un scénario date ce
+  qu'il sème.
+- L'inactivité se joue avec une horloge installée avant la page
+  (`ouvrir(…, { horloge })`, puis `clock.fastForward`) ; un appareil
+  protégé s'ouvre par `ouvrir(…, { verrouille })`, qui attend le verrou
+  au lieu de `pret`.
+- Un script de scénario écrit dans un here-doc (avec `$$eval`) a été
+  refusé par une vérification de sécurité : l'écrire dans un fichier.
 - Deux personnes dans un scénario : deux contextes, le relais local
   (`tls`, `garde`), `ouvrir(…, { relais, presse })` ; `relever()` se
   demande à la page (`import('/ecrans/boite.js')`).

@@ -87,7 +87,9 @@ n'a pas été montré au mainteneur.
 | « Nouveau modèle » et « Supprimer » un modèle d'emails | Mes messages types garde les trois de la recherche (candidature, relance, remerciement). Ceux qu'on avait ajoutés restent dans les données, sans être montrés |
 | Le champ « LinkedIn ou portfolio » du profil | Aucun modèle de départ ne l'emploie. La donnée reste, et `{{portfolio}}` la remplit encore |
 | « Connexion avancée » : relais et serveur TURN personnalisés | Le QR défile et passe par les relais : la liaison marche sans. Les réglages déjà faits restent lus |
-| L'appareil principal et ses commandes (verrouiller, effacer à distance) | Ils naissent avec le code de verrouillage : lot 5 |
+| L'appareil principal et ses commandes (verrouiller, effacer à distance) | Le code reste propre à chaque appareil. Un ordre « verrouiller » venu de l'app actuelle s'applique encore (lot 5) |
+| « Changer mon code », l'empreinte ou le visage | On retire le code, puis on en choisit un. Une empreinte déjà enregistrée reste dans le coffre, sans servir ici |
+| La copie chiffrée exigée en protégeant | La phrase de secours dépose la copie, scellée, dès qu'elle existe |
 | « Restaurer » qui remplace tout | Restaurer ramène : la même fusion que mes appareils, par l'aperçu, avec « Annuler ». Rien n'est écrasé |
 
 Aucune clé de stockage ne bouge, aucun module du moteur n'est retiré.
@@ -101,5 +103,8 @@ revient pas de Réseau reste à lui montrer en entier avant la bascule.
 « Ce que tes amis voient », la phrase vérifiée, restaurer qui ramène,
 « Ce téléphone » qui refait ou rompt le lien), le 21 novembre
 (« Continue »).
+*Montré, en attente de son avis :* ce que le code du lot 5 a tranché (la
+phrase tapée en choisissant son code, le code redemandé, « On te donne »
+sans prénom, la demande qui attend le réseau).
 *Tranché par l'assistant, à valider :* la liste de ce qui quitte
 l'écran, à lui montrer en entier avant la bascule.

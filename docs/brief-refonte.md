@@ -721,3 +721,36 @@ maintenant » (lot 5, avec l'écran verrouillé), « Nouveau modèle » et
 « Supprimer » un modèle d'emails, le champ « LinkedIn ou portfolio »,
 les relais et le TURN personnalisés (« Connexion avancée »), l'appareil
 principal et ses commandes.
+
+### Code, lot 5 : les états (21 novembre 2026)
+
+La maquette du lot 5 devenue l'app, sur le vrai coffre de l'app
+actuelle : le même code ouvre les deux interfaces. Montré le 21 novembre,
+en attente de son avis.
+
+- **Le code** : Moi › Réglages › Code de verrouillage. Le pavé, deux fois
+  le même code, puis la phrase de secours (créée, ou tapée si elle
+  existe). Protégé : « Verrouiller maintenant », « Retirer le code » (avec
+  « Annuler »). Les données sont scellées sur le disque.
+- **Verrouillé** : plein écran au téléphone, une fenêtre au poste où le
+  clavier suffit ; rien ne se voit derrière. Cinq codes faux, puis une
+  attente (30 s, 1 min, 5 min). Cinq minutes sans toi (quinze au poste),
+  et il se verrouille.
+- **Code oublié ?** : la phrase (chaque erreur sous le champ), puis un
+  nouveau code ; sans phrase, effacer cet appareil.
+- **Le premier jour** : « J'ai déjà OpenContact » sous les trois
+  questions : la phrase, un fichier, l'autre appareil ; l'aperçu ; « Tout
+  ramener » ouvre l'app sur ses pistes, avec « Annuler ».
+- **Arriver par quelqu'un** : le texte et le QR de Donner portent un
+  lien. Il ouvre « On te donne 3 pistes », chacune avec la personne à qui
+  écrire ; « À faire » propose d'écrire.
+- **Le hors ligne** : Trouver cherche dans tes pistes, un mot LinkedIn se
+  copie, une demande part au retour du réseau, la copie déposée attend ;
+  au poste, « Hors ligne ».
+- **La fin de séance** : « C'est tout pour aujourd'hui. » ; au poste, une
+  liste vide n'ouvre pas de colonnes vides.
+
+Non vérifié : WebKit (iPhone), d'où le lien, les relais publics,
+l'appareil photo qui scanne le QR. Ne reviennent pas, à lui montrer :
+« Changer mon code », l'empreinte ou le visage, la copie exigée en
+protégeant, l'appareil principal et ses commandes.
