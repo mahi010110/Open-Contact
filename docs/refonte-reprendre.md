@@ -2,7 +2,7 @@
 
 *Pour l'assistant qui reprend la refonte dans une nouvelle discussion.
 Mise à jour à chaque lot, en même temps que le journal du brief.
-Dernière mise à jour : 21 novembre 2026, code : lot 3 validé, lot 4 en cours.*
+Dernière mise à jour : 21 novembre 2026, code : lot 4 montré.*
 
 Le premier message à donner à une nouvelle discussion :
 
@@ -195,7 +195,7 @@ lien pour l'essayer sur l'iPhone, et validé avant le suivant.
 | 1 | la coque (les quatre onglets, les pages, le poste) et Trouver | validé le 17 novembre (« Continue ») |
 | 2 | Pistes, une piste, écrire par quatre canaux | validé le 17 novembre (« Continue ça me va ») |
 | 3 | Réseau | validé le 21 novembre (« Continue »), après l'avoir vu le 18 |
-| 4 | Moi | en cours |
+| 4 | Moi | montré le 21 novembre, **en attente de son avis** |
 | 5 | les états : premier jour, vide, erreurs, hors ligne, verrou | à faire |
 | 6 | le poste, un établi | à faire |
 
@@ -235,7 +235,14 @@ se réécrit pour la nouvelle interface, plus court.
 | `ecrans/messages.js`, `ecrans/fils.js` | les conversations avec un ami ; l'épingle, le son coupé, le calme de l'onglet | |
 | `ecrans/amis.js` | ce que mes amis ouvrent, pour Pistes et Trouver (« Karim y est en alternance ») | |
 | `ecrans/qr.js`, `ecrans/visage.js`, `ecrans/fichier.js`, `ecrans/dates.js` | recopiés de `ui/` : le QR, les visages en pixels, enregistrer et envoyer un texte, l'heure d'un message | |
-| `ecrans/bientot.js` | Moi en attendant son lot | disparaît |
+| `ecrans/moi.js` | l'onglet Moi : la liste (cinq lignes qui disent leur état), mon profil, CV et lettres, mes messages types, réglages, aide, les feuilles (parcours, thème, demandes, installer, rapport, effacer), le poste | |
+| `ecrans/moi-nav.js` | où l'on est dans Moi (la page ouverte au poste, les documents lus) et comment on y va ; ce que `copie.js` demande à `moi.js` sans l'importer | |
+| `ecrans/copie.js` | « Ma copie » : télécharger et chiffrer, la phrase de secours, mes appareils, relier (QR, scanner, phrase tapée), restaurer (un fichier, un mot de passe, la phrase) et son aperçu | |
+| `ecrans/liaison.js` | la liaison de mes appareils (mêmes clés, mêmes messages que l'app actuelle) : la salle, le portage par les relais, l'anneau, ce qui arrive d'un autre appareil avec « Annuler » (repris de `ui/synclive.js`) | |
+| `ecrans/phrase.js` | la phrase de secours : les clés (jamais la phrase), la copie déposée scellée sur les relais, la retrouver (repris de `ui/moi-phrase.js`) | |
+| `ecrans/docs.js`, `ecrans/installer.js`, `ecrans/diagnostic.js` | les PDF de CV et de lettres (cet appareil seulement), installer l'app, le rapport sans donnée personnelle | |
+| `engine/modeles.js` | les trois messages types, ce qui les distingue de l'original, ce que l'app y remplace, rétablir (testé par `?test`) | reste |
+| `engine/copie.js` | l'aperçu d'une copie lue (nouvelles, plus récentes, déjà là) et la phrase de la ligne « Ma copie » (testé par `?test`) | reste |
 | `engine/formations.js` | les formations de « Tu étudies » et leur métier (testé par `?test`) | reste |
 | `engine/suite.js` | la suite d'une piste (sa phrase, son geste, son rang dans « À faire »), le canal, les gestes qui écrivent l'historique | reste |
 | `engine/contrat.js` | du « oui » au contrat, repris de `claude/refonte-arc` avec ses tests | reste |
@@ -261,7 +268,10 @@ se réécrit pour la nouvelle interface, plus court.
   la barre d'onglets s'efface. Une page peut rendre `tete` (ce qui ne
   défile pas sous la barre) et `classe` ; `apres(p, ecran, premier)` sait
   si elle vient de s'ouvrir. La tête et le pied ne se refont que s'ils
-  ont changé : un champ où l'on écrit garde sa main.
+  ont changé : un champ où l'on écrit garde sa main. Une page peut dire
+  `focus(p, ecran)` : elle prend la main quand elle s'ouvre pour être
+  écrite (le profil sans nom), dans le même geste, sans quoi le clavier
+  d'un téléphone ne monte pas.
 - **Un onglet** peut dire `attend()` (il change de couleur, « Réseau, du
   nouveau ») et `quitter()` (ce qui tourne pour lui s'arrête).
 - **Une feuille** (une question courte) : `ouvrirFeuille({ titre,
@@ -289,7 +299,12 @@ se réécrit pour la nouvelle interface, plus court.
   Karim) sur un relais local (`tests/e2e/relais-local.mjs`), deux
   minutes et demie : il attend les 31 s de l'amitié réciproque. Il lit
   d'abord ce que voit le relais : ni prénom, ni entreprise, ni mot.
-- Restent verts : `node tests/e2e/unitaires.mjs` (`?test`, 291 tests),
+- `node tests/refonte/jouer-lot4.mjs` : Moi joué avec quatre appareils
+  (Inès, un téléphone neuf, un deuxième appareil qu'on relie, le poste) sur
+  un relais local, cinq minutes : il attend la liaison. Il lit d'abord ce
+  que voit le relais (la copie déposée, la sync) : ni nom, ni entreprise,
+  ni note. La phrase se tape faute de caméra.
+- Restent verts : `node tests/e2e/unitaires.mjs` (`?test`, 299 tests),
   `e2e-pages-sw.mjs` (la page d'essai est servie elle-même, pas l'app),
   `e2e-decouvrir.mjs`, `e2e-classement.mjs`, `e2e-sobriete.mjs`.
 - Les planches : `OC_AVANT=<captures de l'app actuelle> node
@@ -377,6 +392,57 @@ doit y entrer. La page d'essai n'enregistre pas de service worker.
   le fait), « Ignorer » un contact donné, le tri et la recherche des
   amis.
 
+### Décisions prises en codant le lot 4 (montrées avec lui)
+
+- La mécanique est celle de l'app actuelle, reprise sans son interface :
+  mêmes clés (`oc_profile_v1`, `oc_sync_v1`, `oc_moi_v1`, `oc_docs_v1`…),
+  même copie déposée, même liaison. Les deux interfaces se parlent : un
+  téléphone relié par l'une l'est pour l'autre.
+- **Restaurer ramène**, comme la maquette le disait (« rien n'est
+  effacé »). L'app actuelle remplaçait tout. L'aperçu dit ce qui
+  s'ajoute (nouvelles, plus récentes, déjà là), les contacts, le profil
+  plus récent, le lien des appareils ; sur un téléphone neuf, quatre
+  lignes (pistes, amis, classe, profil) et « Tout ramener ». « Annuler »
+  trente secondes.
+- **La phrase est vérifiée** : après « Je l'ai notée », deux mots à
+  retaper, comme l'app actuelle (une phrase jamais écrite ne sert à
+  rien le jour où il le faut). La maquette n'avait que « Je l'ai notée ».
+- **Les dates du profil** : « À partir de » et « Jusqu'au », deux vraies
+  dates, la durée se lit (« 2 ans »). La maquette n'avait qu'un « À
+  partir de » libre ; c'est le modèle de données qui fait « une
+  alternance de 2 ans à partir du 1er septembre 2027 » dans le mail.
+  « Rythme » ne vaut que pour l'alternance.
+- **Le parcours** : début et fin en mois. Une ligne déduite d'une piste
+  (« J'y suis passé ») se corrige, mais se retire en changeant la piste.
+- **« Ce que tes amis voient »** est tiré du profil qui part
+  (`vuParMesAmis`, `engine/amis.js`) : le nom, les entreprises, ce qu'on
+  peut aider. La maquette citait la formation : elle ne part pas.
+- **Rien d'enregistrable qui parte faux** : un e-mail incomplet, une
+  ville que la table ne connaît pas, une période à l'envers se disent sous
+  leur champ et ne s'enregistrent pas ; la saisie reste à l'écran.
+- **CV et lettres** : PDF seulement, 8 Mo, sur cet appareil (jamais dans
+  une copie). On retire au glissé, avec « Annuler » (la maquette n'en
+  avait pas). Le lien du CV se complète (« https:// »).
+- **Mes messages types** : le composeur retrouve ses trois modèles à leur
+  nom (`engine/modeles.js`). Un modèle retiré du profil retombe sur
+  l'original, le premier changement le remet. Les brouillons que personne
+  n'a touchés repartent du nouveau texte.
+- **Mes appareils** : « Ce téléphone » s'ouvre dès qu'un lien existe
+  (refaire le lien, rompre le lien, chacun avec « Annuler »). « Retirer
+  cet appareil » dit qu'il connaît encore le lien. Un nouveau lien repart
+  d'une liste d'appareils vide. Ouvrir « Relier un autre appareil » crée le
+  lien (la phrase gardée, jamais écrasée, sinon une neuve) ; sans caméra,
+  la phrase se tape.
+- **Le rapport** est montré en entier, comme l'app actuelle (c'est la
+  preuve qu'il ne dit rien de personnel). La maquette copiait d'un tap.
+- Le profil sans nom s'ouvre sur son champ (`focus` de la page).
+- Ne reviennent pas (à lui montrer en entier avant la bascule) : le code
+  de verrouillage et « Verrouiller maintenant » (lot 5, avec l'écran
+  verrouillé), « Nouveau modèle » et « Supprimer » un modèle d'emails, le
+  champ « LinkedIn ou portfolio » (la donnée reste), « Connexion
+  avancée » (relais et TURN personnalisés : les réglages déjà faits restent
+  lus), l'appareil principal et ses commandes.
+
 ### Pièges déjà payés (le code)
 
 - `innerText` rend les majuscules que le CSS impose (`text-transform`) :
@@ -414,6 +480,19 @@ doit y entrer. La page d'essai n'enregistre pas de service worker.
   on le re-tape (un scénario aussi).
 - Une page entre en glissant : un contrôle de débordement mesure après
   l'animation (450 ms), sinon il compte le glissé.
+- Un champ qui perd la main redessine parfois un bloc sous le doigt (le
+  rayon quand la ville est validée) : le tap tombe sur un élément retiré
+  et rien ne se passe. Un bloc ne se redessine que s'il change vraiment.
+- Redessiner l'`innerHTML` d'un `fieldset` emporte sa `<legend>` : le
+  contenu qui bouge a son propre `<div>`.
+- Une fonction `async` dans « Annuler » : la coque redessine tout de
+  suite, pas après. L'`await` fini, redessiner soi-même.
+- La photo du scénario efface la barre « Annuler » (avec son bouton) :
+  `img(p, nom, true)` la garde, quand c'est elle qu'on veut montrer.
+- Une phrase de liaison est du texte, pas du JSON : `lireCle` la rate, il
+  faut `brut()`. Un modèle de départ écrit `J'ai` (apostrophe droite).
+- La console dit « User-Initiated Abort » quand on ferme une liaison en
+  pleine négociation : ce n'est pas une faute de l'app.
 - Deux personnes dans un scénario : deux contextes, le relais local
   (`tls`, `garde`), `ouvrir(…, { relais, presse })` ; `relever()` se
   demande à la page (`import('/ecrans/boite.js')`).

@@ -84,6 +84,11 @@ n'a pas été montré au mainteneur.
 | « Écrire à un ami », en bas de la boîte | La page d'un ami porte « Écrire à Karim » |
 | « Ignorer » un contact donné | Il attend dans « Mes demandes » ; ajouté, il se retire de la piste |
 | Le tri (Pour toi, Récents, A → Z) et la recherche des amis | La liste des amis est courte et rangée par nom ; ce qu'un ami ouvre se lit sur les pistes et dans Trouver |
+| « Nouveau modèle » et « Supprimer » un modèle d'emails | Mes messages types garde les trois de la recherche (candidature, relance, remerciement). Ceux qu'on avait ajoutés restent dans les données, sans être montrés |
+| Le champ « LinkedIn ou portfolio » du profil | Aucun modèle de départ ne l'emploie. La donnée reste, et `{{portfolio}}` la remplit encore |
+| « Connexion avancée » : relais et serveur TURN personnalisés | Le QR défile et passe par les relais : la liaison marche sans. Les réglages déjà faits restent lus |
+| L'appareil principal et ses commandes (verrouiller, effacer à distance) | Ils naissent avec le code de verrouillage : lot 5 |
+| « Restaurer » qui remplace tout | Restaurer ramène : la même fusion que mes appareils, par l'aperçu, avec « Annuler ». Rien n'est écrasé |
 
 Aucune clé de stockage ne bouge, aucun module du moteur n'est retiré.
 Les capacités marquées `PC` ou `⏸` restent masquées, comme aujourd'hui.
@@ -92,5 +97,8 @@ Les capacités marquées `PC` ou `⏸` restent masquées, comme aujourd'hui.
 *Validé par le mainteneur aussi :* ce que le code du lot 3 a tranché
 (« On te demande »), le 21 novembre (« Continue »). La liste de ce qui ne
 revient pas de Réseau reste à lui montrer en entier avant la bascule.
+*Montré, en attente de son avis :* ce que le code du lot 4 a tranché
+(les dates du profil, « Ce que tes amis voient », la phrase vérifiée,
+« Ce téléphone » qui refait ou rompt le lien).
 *Tranché par l'assistant, à valider :* la liste de ce qui quitte
 l'écran, à lui montrer en entier avant la bascule.

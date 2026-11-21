@@ -678,3 +678,45 @@ Non vérifié : WebKit (iPhone), d'où le lien, et les relais publics (le
 scénario joue sur un relais local). Ne reviennent pas, à lui montrer :
 les filtres de la liste, « → qui » dans Donner, chiffrer un fichier de
 pistes, le rendez-vous en direct (le QR défile), le tri des amis.
+
+### Code, lot 4 : Moi (21 novembre 2026)
+
+La maquette du lot 4 devenue l'app, sur la vraie mécanique de la copie,
+de la phrase de secours et de la liaison des appareils, celle de l'app
+actuelle : mêmes clés, mêmes copies déposées, mêmes appareils reliés. Les
+deux interfaces se parlent. Montré, en attente de son avis.
+
+- **Moi** : cinq lignes, chacune dit son état. Mon profil, CV et lettres,
+  Mes messages types, Ma copie, Réglages.
+- **Mon profil** : pas de bouton, ce qu'on tape est gardé. Un e-mail
+  incomplet, une ville inconnue (« Lille ? »), une période à l'envers se
+  disent sous leur champ, la saisie gardée. Le parcours s'ajoute, se
+  corrige, se retire avec « Annuler ». Et ça sert : l'école, le
+  téléphone, le rythme, le parcours et le lien du CV entrent dans le
+  mail. « Ce que tes amis voient » est tiré du profil qui part (le nom,
+  les entreprises, ce qu'on peut aider) : jamais la formation ni le
+  téléphone.
+- **CV et lettres** : des PDF, retirés au glissé avec « Annuler » ; le
+  lien du CV se complète (« https:// »).
+- **Mes messages types** : trois modèles ; « modifié », « Ce que l'app
+  remplace », « Rétablir » avec « Annuler » ; le mail suit.
+- **Ma copie** : « Télécharger » (« Enregistrer » au doigt) et
+  « Chiffrer » ; la phrase de secours (douze mots, deux à retaper, la
+  copie déposée scellée sur les relais) ; mes appareils (relier : chacun
+  montre son QR et scanne celui de l'autre, la phrase se tape sans
+  caméra ; retirer, refaire ou rompre le lien) ; restaurer (un fichier,
+  un mot de passe, la phrase) par l'aperçu : ça ramène, rien ne
+  s'écrase.
+- **Réglages** : le thème, les demandes de mes amis, installer, aide et
+  confidentialité, le rapport (montré en entier, sans une donnée
+  personnelle), effacer cet appareil.
+- **Au poste** : la liste à gauche, la page ouverte à droite, la ligne
+  ouverte s'allume ; ↑ ↓.
+
+Non vérifié : WebKit (iPhone), d'où le lien, et les relais publics (le
+scénario joue sur un relais local, deux navigateurs, sans caméra). Ne
+reviennent pas, à lui montrer : le code de verrouillage et « Verrouiller
+maintenant » (lot 5, avec l'écran verrouillé), « Nouveau modèle » et
+« Supprimer » un modèle d'emails, le champ « LinkedIn ou portfolio »,
+les relais et le TURN personnalisés (« Connexion avancée »), l'appareil
+principal et ses commandes.
