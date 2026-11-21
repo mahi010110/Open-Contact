@@ -2,7 +2,7 @@
 
 *Pour l'assistant qui reprend la refonte dans une nouvelle discussion.
 Mise à jour à chaque lot, en même temps que le journal du brief.
-Dernière mise à jour : 21 novembre 2026, code : lot 5 montré.*
+Dernière mise à jour : 21 novembre 2026, code : lot 5 validé, lot 6 en cours.*
 
 Le premier message à donner à une nouvelle discussion :
 
@@ -196,8 +196,8 @@ lien pour l'essayer sur l'iPhone, et validé avant le suivant.
 | 2 | Pistes, une piste, écrire par quatre canaux | validé le 17 novembre (« Continue ça me va ») |
 | 3 | Réseau | validé le 21 novembre (« Continue »), après l'avoir vu le 18 |
 | 4 | Moi | validé le 21 novembre (« Continue ») |
-| 5 | les états : premier jour, vide, erreurs, hors ligne, verrou | montré le 21 novembre, **en attente de son avis** |
-| 6 | le poste, un établi | à faire |
+| 5 | les états : premier jour, vide, erreurs, hors ligne, verrou | validé le 21 novembre (« Oui tout me va ») |
+| 6 | le poste, un établi | en cours |
 
 **La nouvelle interface grandit à côté de l'ancienne**, sans la toucher.
 L'app actuelle (`index.html`, `app.js`, `ui/`, `styles/app.css`) reste
@@ -450,7 +450,7 @@ doit y entrer. La page d'essai n'enregistre pas de service worker.
   avancée » (relais et TURN personnalisés : les réglages déjà faits restent
   lus), l'appareil principal et ses commandes.
 
-### Décisions prises en codant le lot 5 (montrées avec lui)
+### Décisions prises en codant le lot 5 (validées avec lui le 21 novembre)
 
 - Le coffre est celui de l'app actuelle (`oc_vault_v1`, mêmes
   enveloppes, même compte d'essais) : un téléphone protégé par l'une
@@ -481,7 +481,7 @@ doit y entrer. La page d'essai n'enregistre pas de service worker.
   appareil photo (CONTRAT.md §2, « Le lien »). Il ouvre « On te donne
   3 pistes » : le contrat interdit qu'un partage porte le prénom de qui
   donne, c'est la messagerie qui dit qui l'envoie. La maquette disait
-  « Karim te donne » : à trancher avec lui.
+  « Karim te donne » ; il a choisi de garder la règle.
 - **Sans réseau, une demande attend** et part au retour du réseau. Le
   lot 3 la refusait (« Pas de réseau : ta demande n'est pas partie »).
 - Les erreurs d'une phrase tapée sont les mêmes partout (restaurer, le

@@ -103,8 +103,8 @@ revient pas de Réseau reste à lui montrer en entier avant la bascule.
 « Ce que tes amis voient », la phrase vérifiée, restaurer qui ramène,
 « Ce téléphone » qui refait ou rompt le lien), le 21 novembre
 (« Continue »).
-*Montré, en attente de son avis :* ce que le code du lot 5 a tranché (la
-phrase tapée en choisissant son code, le code redemandé, « On te donne »
-sans prénom, la demande qui attend le réseau).
+*Validé aussi :* ce que le code du lot 5 a tranché (la phrase tapée en
+choisissant son code, le code redemandé, « On te donne » sans prénom, la
+demande qui attend le réseau), le 21 novembre (« Oui tout me va »).
 *Tranché par l'assistant, à valider :* la liste de ce qui quitte
 l'écran, à lui montrer en entier avant la bascule.

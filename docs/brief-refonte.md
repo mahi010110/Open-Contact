@@ -725,8 +725,10 @@ principal et ses commandes.
 ### Code, lot 5 : les états (21 novembre 2026)
 
 La maquette du lot 5 devenue l'app, sur le vrai coffre de l'app
-actuelle : le même code ouvre les deux interfaces. Montré le 21 novembre,
-en attente de son avis.
+actuelle : le même code ouvre les deux interfaces. Montré le 21 novembre ;
+**validé** le même jour (« Oui tout me va. Continue. »), avec les trois
+choix faits en codant : « On te donne » sans prénom, la phrase tapée en
+choisissant son code, le code redemandé.
 
 - **Le code** : Moi › Réglages › Code de verrouillage. Le pavé, deux fois
   le même code, puis la phrase de secours (créée, ou tapée si elle
