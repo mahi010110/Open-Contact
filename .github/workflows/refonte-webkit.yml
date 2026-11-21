@@ -1,0 +1,48 @@
+# OpenContact — la nouvelle interface, regardée sous WebKit (le moteur de
+# l'iPhone). L'environnement de développement n'a que Chromium, et la
+# refonte vit sur sa branche jusqu'à la bascule (docs/refonte-reprendre.md
+# §8) : ce job installe WebKit, ouvre chaque écran de refonte.html au
+# téléphone et au poste, et relève ce qui déborde, ce qui est raboté et
+# les cibles trop petites (tests/refonte/regard-webkit.mjs). Informatif :
+# il ne fait jamais échouer ; le journal dit « REGARD webkit : N relevé(s) »
+# et les captures partent en artefact. À la bascule, il rejoint ci.yml.
+name: Refonte — WebKit
+
+on:
+  push:
+    branches: [claude/admiring-cori-3pcocf]
+    paths:
+      - 'ecrans/**'
+      - 'engine/**'
+      - 'styles/**'
+      - 'refonte.html'
+      - 'refonte.js'
+      - 'tests/refonte/**'
+      - '.github/workflows/refonte-webkit.yml'
+  workflow_dispatch:
+
+jobs:
+  regard:
+    name: La nouvelle interface sous WebKit
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Playwright + WebKit
+        run: |
+          npm i -g playwright
+          playwright install --with-deps webkit
+          echo "OC_PLAYWRIGHT=$(npm root -g)/playwright/index.mjs" >> "$GITHUB_ENV"
+      - name: Regarder chaque écran sous WebKit
+        continue-on-error: true
+        timeout-minutes: 15
+        run: OC_NAVIGATEUR=webkit node tests/refonte/regard-webkit.mjs captures-webkit
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: refonte-webkit
+          path: captures-webkit
+          retention-days: 14
