@@ -62,6 +62,16 @@ export const VAULT_WORDS = [
   'sapin', 'saule', 'savane', 'sentier', 'sirop', 'socle', 'soleil', 'sommet'
 ];
 
+/* un code trop facile à deviner : un chiffre répété (000000) ou une
+   suite, montante ou descendante, qui peut passer par zéro (123456,
+   654321, 901234). Refusé au moment de le choisir — la même règle dans
+   les deux interfaces. */
+export function codeTropFacile(code){
+  const c = String(code || '');
+  if (/^(\d)\1+$/.test(c)) return true;
+  return '01234567890123456789'.includes(c) || '98765432109876543210'.includes(c);
+}
+
 /* normalisation d'une phrase tapée : minuscules, accents retirés,
    espaces multiples réduits — tolérante à la saisie mobile */
 export function normVaultPhrase(s){

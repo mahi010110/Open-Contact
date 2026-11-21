@@ -144,6 +144,31 @@ compressée par l'API native
 autres formats. Si l'API manque (très vieux navigateur), l'émetteur replie
 vers le fichier `.oc` — le format ne change pas.
 
+### Le lien — un OCQ1 dans une adresse de l'app (refonte, lot 5)
+
+```
+https://<l'adresse de l'app>#OCQ1.<…>
+```
+
+Le même OCQ1, posé dans le **fragment** d'une adresse de l'app
+(`lienPistes`, engine/exchange.js). Le texte que la nouvelle interface
+envoie (« 3 pistes pour toi sur OpenContact : <lien> ») et son QR, quand
+il tient en un seul, le portent : tapé dans une messagerie ou scanné par
+l'appareil photo, il ouvre l'app sur l'aperçu de ces pistes. Rien de plus
+que l'OCQ1 — **aucun prénom** : « rien de moi ne part en plus des
+pistes » vaut aussi pour le lien.
+
+- Un navigateur n'envoie jamais le fragment au serveur ; l'app le lit à
+  l'ouverture, l'efface aussitôt de l'adresse, et passe par l'aperçu
+  (invariant ②).
+- `parseInput` lit un OCQ1 **au milieu d'un texte** quand ce texte n'est
+  pas du JSON (`extraireOCQ`) : le message collé dans « Recevoir », le
+  lien entier, une ligne coupée en deux par une messagerie. Le JSON passe
+  toujours avant — un mot qui ressemble à un OCQ1 dans une note n'est
+  jamais lu.
+- Un QR trop long pour porter l'adresse en un seul garde l'OCQ1 nu, ou
+  défile en OCQP : ceux-là se lisent depuis « Recevoir ».
+
 ### Profil donné à un ami — OCA1 (QR ou texte, docs/reseau.md lot 2)
 
 ```

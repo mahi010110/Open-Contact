@@ -522,7 +522,8 @@ export function suiviDemande(e, d){
   const t = d.trouve || null;
   const trouvee = { cle: 'trouvee', at: (t && Number(t.at)) || recu };
   if (t){ trouvee.ou = t.groupe ? 'groupe' : 'ami'; if (t.par) trouvee.par = t.par; }
-  const etapes = [{ cle: 'envoyee', at: Number(d.at) || 0 }, trouvee, { cle: 'recu', at: recu }];
+  /* une demande faite sans réseau ATTEND : rien n'est encore parti */
+  const etapes = [{ cle: 'envoyee', at: d.attente ? 0 : Number(d.at) || 0 }, trouvee, { cle: 'recu', at: recu }];
   return { etapes, courante: etapes.findIndex(x => !x.at) };
 }
 

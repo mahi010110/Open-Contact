@@ -12,7 +12,7 @@
 import { esc, todayISO } from '../engine/utils.js';
 import { bytesToB64, b64ToBytes, encryptOC2 } from '../engine/crypto.js';
 import { fullPayload } from '../engine/exchange.js';
-import { PIN_LEN, makeVaultPhrase, phraseUnknownWords,
+import { PIN_LEN, makeVaultPhrase, phraseUnknownWords, codeTropFacile,
          createVault, unlockWithPin, unlockWithPhrase, unlockWithPrf,
          setPin, addPrfWrap, removePrfWrap,
          rotateVaultResumable, prevKeyOf, clearPrev } from '../engine/vault.js';
@@ -311,12 +311,9 @@ function openRecovery(onUnlocked){
   stepPhrase();
 }
 
-/* codes refusés : suites et répétitions évidentes */
-export function isWeakPin(code){
-  if (/^(\d)\1+$/.test(code)) return true;
-  const asc = '01234567890123456789', desc = '98765432109876543210';
-  return asc.includes(code) || desc.includes(code);
-}
+/* codes refusés : suites et répétitions évidentes (la règle vit dans le
+   moteur, partagée avec la nouvelle interface) */
+export const isWeakPin = code => codeTropFacile(code);
 
 /* ---------- où j'en suis, sans le lire ----------
    Protéger ses données, c'est quatre écrans à la suite, et rien ne

@@ -71,6 +71,20 @@ export async function encodeOCQ(list, keep, moi){
   const stream = new Blob([json]).stream().pipeThrough(new CompressionStream('deflate-raw'));
   return 'OCQ1.' + b64url(new Uint8Array(await new Response(stream).arrayBuffer()));
 }
+/* ---------- le lien : des pistes dans une adresse de l'app ----------
+   Le texte qu'on envoie et le QR, quand il tient, portent une ADRESSE de
+   l'app dont le fragment est l'OCQ1 (https://…/#OCQ1.…) : tapée dans une
+   messagerie, ou scannée par l'appareil photo, elle ouvre l'app sur
+   l'aperçu de ces pistes. Un navigateur n'envoie jamais le fragment au
+   serveur, et l'app l'efface de l'adresse dès qu'elle l'a lu. Le contenu
+   est celui de l'OCQ1 : la vue communautaire, rien de moi. */
+export const lienPistes = (base, ocq) => String(base || '').replace(/#.*$/, '') + '#' + ocq;
+/* l'OCQ1 au milieu d'un texte ou d'une adresse ; une messagerie qui coupe
+   la ligne au milieu ne le casse pas */
+export function extraireOCQ(texte){
+  const m = String(texte || '').replace(/\s+/g, '').match(/OCQ1\.[A-Za-z0-9_-]+/);
+  return m ? m[0] : '';
+}
 export const OCQ_OUT_MAX = 4000000;   /* octets décompressés : même borne que l'entrée (D4) */
 export async function decodeOCQ(compact){
   return gonflerBorne(b64urlToBytes(String(compact).slice(5)));
@@ -239,8 +253,15 @@ export async function parseInput(raw, pass){
   } else {
     /* un PDF, une photo, un texte quelconque : c'est la mauvaise pièce,
        et l'appelant doit pouvoir le DIRE — jamais relayer le message de
-       JSON.parse, en anglais et technique */
-    try { obj = JSON.parse(s); } catch (e) { throw new Error('format'); }
+       JSON.parse, en anglais et technique. Un texte qui porte un LIEN de
+       pistes (« 3 pistes pour toi : https://…#OCQ1.… ») se lit par son
+       OCQ1 ; le JSON passe toujours avant. */
+    try { obj = JSON.parse(s); }
+    catch (e) {
+      const ocq = extraireOCQ(compact);
+      if (!ocq) throw new Error('format');
+      obj = await decodeOCQ(ocq);
+    }
   }
   if (Array.isArray(obj)) obj = { companies: obj };
   if (!obj || !Array.isArray(obj.companies)) throw new Error('format');

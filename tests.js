@@ -18,7 +18,7 @@ import { APP_VERSION, VECU, normalizeCompany, normalizeContact, normalizeProfile
 import { communityView, parseInput, sharePayload, fullPayload,
          encodeOCQ, splitOCQ, makeOCQJoiner, OCQP_CHUNK,
          makeRdvCode, rdvNorm, rdvWrap, rdvParse, linkWrap, linkParse,
-         encodeOCA, decodeOCA, estOCA } from './engine/exchange.js';
+         encodeOCA, decodeOCA, estOCA, lienPistes, extraireOCQ } from './engine/exchange.js';
 import { findMatch, mergeIncoming, contactKey } from './engine/merge.js';
 import { syncMerge, mergeTombs, TOMBS_MAX } from './engine/sync.js';
 import { filterCompanies, filterOrphans, searchHint, NATURAL_DIR } from './engine/filter.js';
@@ -42,7 +42,7 @@ import { VAULT_WORDS, PHRASE_LEN, makeVaultPhrase, normVaultPhrase, phraseUnknow
          createVault, unlockWithPin, unlockWithPhrase, unlockWithPrf,
          setPin, addPrfWrap, rotateVault,
          rotateVaultResumable, prevKeyOf, clearPrev,
-         sealValue, openValue, isSealed } from './engine/vault.js';
+         sealValue, openValue, isSealed, codeTropFacile } from './engine/vault.js';
 import { edAvailable, makeDeviceKeys, recoveryKeys, ringInit, ringAddDevice,
          ringCommand, ringTransfer, ringRecover, ringRekey, ringRename, nomAppareil,
          mergeRing, actionsFor, verifyRing, deviceIn } from './engine/ring.js';
@@ -5599,6 +5599,43 @@ export async function runSelfTests(){
       const dit = JSON.stringify(v);
       ok(!/BTS SIO|0600000000|ines@mail/.test(dit));
       eq(vuParMesAmis(normalizeProfile({}), []), { nom: '', entreprises: [], aides: [] });
+    },
+    'verrou : un code trop facile se refuse, dans le moteur (les deux interfaces)': () => {
+      for (const c of ['000000', '111111', '123456', '654321', '901234', '567890', '098765'])
+        if (!codeTropFacile(c)) throw new Error('accepté : ' + c);
+      for (const c of ['280941', '135790', '112233', '120120'])
+        if (codeTropFacile(c)) throw new Error('refusé : ' + c);
+      ok(codeTropFacile(''));                                          /* rien n'est pas un code */
+    },
+    'lien : des pistes dans une adresse se lisent comme leur OCQ1': async () => {
+      if (typeof CompressionStream === 'undefined') return;
+      const l = [normalizeCompany({ name: 'OVHcloud', city: 'Roubaix', contacts: [{ name: 'Julien Roussel', email: 'j.roussel@ovh.test' }] })];
+      const ocq = await encodeOCQ(l);
+      const lien = lienPistes('https://exemple.test/app/refonte.html#/trouver', ocq);
+      eq(lien, 'https://exemple.test/app/refonte.html#' + ocq);        /* l'ancien fragment ne reste pas */
+      eq(extraireOCQ('1 piste pour toi sur OpenContact : ' + lien), ocq);
+      /* une messagerie qui coupe la ligne au milieu */
+      eq(extraireOCQ(lien.slice(0, 50) + '\n' + lien.slice(50)), ocq);
+      const o = await parseInput('1 piste pour toi sur OpenContact : ' + lien);
+      eq(o.kind, 'share');
+      eq(o.companies[0].name, 'OVHcloud');
+      eq(o.companies[0].contacts[0].name, 'Julien Roussel');
+      /* le JSON passe toujours avant : un mot qui ressemble à un OCQ1 dans une note n'est pas lu */
+      const j = await parseInput(JSON.stringify({ companies: [{ name: 'Kiabi', notes: 'voir OCQ1.abc' }] }));
+      eq(j.companies[0].name, 'Kiabi');
+      let err = '';
+      try { await parseInput('Salut, tu viens ce soir ?'); } catch (e) { err = e.message; }
+      eq(err, 'format');
+      eq(extraireOCQ('rien ici'), '');
+    },
+    'demande : faite sans réseau, elle attend — rien n’est encore « envoyé »': () => {
+      const d = { id: 'd1', at: 1000, exp: 9e12, attente: { amis: ['k'], groupes: true } };
+      const s = suiviDemande({ dons: [] }, d);
+      eq(s.etapes[0].at, 0);
+      eq(s.courante, 0);
+      const partie = suiviDemande({ dons: [] }, { ...d, attente: undefined });
+      eq(partie.etapes[0].at, 1000);
+      eq(partie.courante, 1);
     }
   };
   for (const name of Object.keys(tests)){
