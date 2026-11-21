@@ -5622,6 +5622,30 @@ export async function runSelfTests(){
       eq(lireOffre('Salut Inès, tu viens ce soir au BDE ? On fait une soirée jeux.\nIl y aura Karim et Léa.\nDis-moi vite !'), null);
       ok(!estOffre('alternance'));
     },
+    'offre : les mises en page des sites courants se lisent (la forme copiée, pas un contenu réel)': () => {
+      const L = (t) => lireOffre(t, { today: '2026-11-21' });
+      /* LinkedIn : « Nom · Ville · il y a 3 jours · … », une ligne longue */
+      let o = L('Technicien Systèmes et Réseaux en alternance (H/F)\nAdvens · Lille, Hauts-de-France, France · il y a 3 jours · Plus de 100 candidats\nSur site  Alternance\nÀ propos de l’offre d’emploi\nVos missions :\n• Administrer les serveurs\n• Traiter les incidents\nProfil recherché : BTS SIO.');
+      eq([o.entreprise, o.poste, o.missions.length], ['Advens', 'Technicien Systèmes et Réseaux', 2]);
+      /* Welcome to the Jungle : l'entreprise AU-DESSUS du titre, « Début : 01 septembre 2027 » */
+      o = L('Datagora\nAlternance - Administrateur Systèmes & Réseaux (H/F)\nAlternance\nRoubaix\nDébut : 01 septembre 2027\nLe poste\nTes missions\n- Administrer les serveurs\n- Superviser le réseau');
+      eq([o.entreprise, o.poste, o.debut], ['Datagora', 'Administrateur Systèmes & Réseaux', 'septembre 2027']);
+      /* HelloWork : la durée seule sur sa ligne */
+      o = L('Stage - Technicien réseau H/F\nHauts-de-France Télécom\nWasquehal - 59\nStage\n6 mois\nLes missions du poste\n- Configurer les commutateurs');
+      eq([o.entreprise, o.poste, o.type, o.duree], ['Hauts-de-France Télécom', 'Technicien réseau', 'stage', '6 mois']);
+      /* France Travail : « NOM - 11 salariés », loin du titre */
+      o = L('Technicien / Technicienne réseau informatique (H/F)\nPublié le 15 novembre 2026 - offre n° 197ABCD\n59 - LILLE\nNous recherchons un technicien réseau en alternance.\nType de contrat\nContrat apprentissage\nLYS INFORMATIQUE - 11 salariés');
+      eq([o.entreprise, o.type], ['LYS INFORMATIQUE', 'alternance']);
+      /* La bonne alternance : « Début du contrat : 01/09/2027 » */
+      o = L('Développeur web en alternance H/F\nOPALE SYSTEMES\nLille\nContrat : Apprentissage\nRythme : 2 jours en formation, 3 jours en entreprise\nDébut du contrat : 01/09/2027\nMissions principales\n- Développer des fonctionnalités web');
+      eq([o.entreprise, o.poste, o.debut, o.rythme], ['OPALE SYSTEMES', 'Développeur web', 'septembre 2027', '2 jours en formation, 3 jours en entreprise']);
+      /* « Offre de stage chez Thales » ne nomme aucun poste : rien, pas une citation fausse */
+      o = L('Offre de stage chez Thales — Élancourt\nStage de 6 mois à partir de février 2027.\nMissions\n- Auditer les pare-feu\nEnvoyez votre candidature à Paul Martin, responsable sécurité : paul.martin@thales.test');
+      eq([o.entreprise, o.poste, o.duree, o.debut, o.contact.name], ['Thales', '', '6 mois', 'février 2027', 'Paul Martin']);
+      eq(phraseOffre({ offre: normaliserOffre(o) }), '');
+      /* « à partir du 1er septembre 2027 » */
+      eq(L('Alternance – Technicien support (H/F)\nNord Infogérance\nAlternance de 2 ans, à partir du 1er septembre 2027.\nMissions\n- Assister les utilisateurs').debut, 'septembre 2027');
+    },
     'offre : la piste la garde, privée, et le premier message la cite': () => {
       const o = normaliserOffre({ poste: 'Technicien réseaux', type: 'alternance', avant: '2026-12-15T10:00', missions: ['a', 'b', 'c', 'd'], texte: 'x'.repeat(9000), contact: { name: 'X' }, pirate: 1 });
       eq(o.avant, '2026-12-15');

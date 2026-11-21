@@ -30,7 +30,7 @@ import { chercheur } from './annuaire.js';
 import { suivreCarte, carteDe, sourcesDe, relireSiren } from './carte.js';
 import { interpreter, contexteRecherche, metierDuProfil, villeConnue, rayonDe, METIER } from '../engine/requete.js';
 import { FORMATIONS, formationConnue } from '../engine/formations.js';
-import { versPiste, ecarter, rendre as rendreEcartee, offresAlternance, offresStage } from '../engine/annuaire.js';
+import { versPiste, ecarter, rendre as rendreEcartee, offresAlternance, offresStage, casse } from '../engine/annuaire.js';
 import { travailDe, aQui } from '../engine/carte.js';
 import { normalizeCompany, normalizeContact, RAYONS } from '../engine/model.js';
 import { uid, todayISO, normName } from '../engine/utils.js';
@@ -741,7 +741,7 @@ export function collerTexte(brut){
     /* collée deux fois : pas de doublon, la piste qui l'a se montre */
     const deja = S.companies.find(c => c.offre && c.offre.texte === o.texte);
     if (deja){ T.offreDeja = deja.id; T.q = deja.name; if (C.poste) T.sel = 'p:' + deja.id; }
-    else { T.offre = o; T.q = o.entreprise || ''; }
+    else { T.offre = o; T.q = casse(o.entreprise || ''); }   /* « OPALE SYSTEMES » s'écrit « Opale Systemes » */
     T.nomLu = T.q;
   } else T.q = t.replace(/\s*\n\s*/g, ' ').slice(0, 300);
   const q = $('.ecran .q');

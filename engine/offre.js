@@ -25,6 +25,7 @@ const MOIS_RE = 'janvier|fevrier|mars|avril|mai|juin|juillet|aout|septembre|octo
 export const OFFRE_TEXTE_MAX = 8000;
 export const MISSIONS_MAX = 3;
 const pad = n => String(n).padStart(2, '0');
+const MOIS_DITS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
 const coupe = (s, n) => { s = String(s || '').replace(/\s+/g, ' ').trim(); return s.length > n ? s.slice(0, n - 1).trimEnd() + '…' : s; };
 
 /* ce qui fait d'un texte une offre : assez long, plusieurs lignes, et un
@@ -64,8 +65,23 @@ function posteDe(l0){
     .replace(/^(?:alternance|apprentissage|stage|cdi|cdd)\s*[–—:|-]\s*/i, '')
     .replace(/^(?:alternance|apprentissage|stage|cdi|cdd)\s+(?=\S)/i, '')
     .replace(/\s*[–—|-]\s*(?:alternance|apprentissage|stage|cdi|cdd)\s*$/i, '')
-    .replace(/\s*\((?:alternance|apprentissage|stage|cdi|cdd)\)\s*$/i, '');
+    .replace(/\s*\((?:alternance|apprentissage|stage|cdi|cdd)\)\s*$/i, '')
+    .replace(/\s+en\s+(?:alternance|apprentissage|stage|cdi|cdd)\s*$/i, '');
+  /* « Offre de stage chez Thales » ne nomme aucun poste : rien plutôt
+     qu'une citation fausse dans le message */
+  if (/^(?:(?:une\s+)?offre(?:\s+(?:de|d['’])\s*(?:stage|alternance|apprentissage|emploi))?|alternance|apprentissage|stage|cdi|cdd)$/i.test(p.trim())) return '';
   return coupe(p.charAt(0).toUpperCase() + p.slice(1), 120);
+}
+
+/* LA LIGNE DU TITRE n'est pas toujours la première : une page copiée en
+   entier commence souvent par le nom de l'entreprise, le titre dessous
+   (Welcome to the Jungle). C'est, parmi les trois premières lignes, la
+   première qui dit un poste : « (H/F) », un contrat, un métier. */
+const TITRE_RE = /\((?:h\s*\/\s*f|f\s*\/\s*h)\)|\b(?:h\s*\/\s*f|f\s*\/\s*h)\b|\b(?:alternance|alternant|alternante|apprenti|apprentie|apprentissage|stage|stagiaire|cdi|cdd)\b|\b(?:technicien|technicienne|administrateur|administratrice|developpeur|developpeuse|ingenieur|ingenieure|assistant|assistante|analyste|consultant|consultante|architecte|gestionnaire|charge|chargee)\b/;
+function titreDe(lignes){
+  for (let i = 0; i < Math.min(3, lignes.length); i++)
+    if (lignes[i].length <= 140 && TITRE_RE.test(plat(lignes[i]))) return i;
+  return 0;
 }
 
 /* L'ENTREPRISE, dans cet ordre, et rien d'autre :
@@ -75,7 +91,12 @@ function posteDe(l0){
    ④ la ligne sous le titre, quand elle est courte et ne dit rien d'autre
      (« Réseaux et Systèmes du Nord · Lille » : ce qui précède la ville). */
 const PAS_UN_NOM = /^(contrat|lieu|localisation|rythme|duree|debut|date|salaire|remuneration|description|missions?|profil|teletravail|type|niveau|experience|publie|postuler|candidat|alternance|apprentissage|stage|cdi|cdd|temps)\b/;
-function entrepriseDe(lignes, t, noms){
+function nomPlausible(l){
+  if (!l || /[.!?:]$/.test(l) || PAS_UN_NOM.test(plat(l)) || /@|https?:/.test(l)) return '';
+  const nom = l.split(/\s+[·•|–—-]\s+|\s*,\s+/)[0].replace(/\s*\(\d{2,3}\)\s*$/, '').trim();
+  return nom.length >= 2 && nom.length <= 70 && /[A-Za-zÀ-ÿ]/.test(nom) && !TITRE_RE.test(plat(nom)) ? coupe(nom, 80) : '';
+}
+function entrepriseDe(lignes, t, noms, ti = 0){
   const p = ' ' + plat(t).replace(/[^a-z0-9]+/g, ' ') + ' ';
   const connue = (noms || []).filter(n => plat(n).replace(/[^a-z0-9]+/g, ' ').trim().length > 2)
     .sort((a, b) => b.length - a.length)
@@ -85,15 +106,14 @@ function entrepriseDe(lignes, t, noms){
     const m = l.match(/^(?:entreprise|soci[ée]t[ée]|employeur|recruteur|structure)\s*:\s*(.{2,80})$/i);
     if (m) return coupe(m[1], 80);
   }
-  const chez = lignes[0] && lignes[0].match(/\bchez\s+([A-Z0-9À-Ý][^,;()\n]{1,60}?)\s*(?:[–—|(-]|$)/);
-  if (chez) return coupe(chez[1], 80);
-  const l1 = lignes[1] || '';
-  if (l1 && l1.length <= 70 && !/[.!?:]$/.test(l1) && !PAS_UN_NOM.test(plat(l1)) && !/@|https?:/.test(l1)){
-    const parts = l1.split(/\s+[·•|–—-]\s+|\s*,\s+/);
-    const nom = parts[0].replace(/\s*\(\d{2,3}\)\s*$/, '').trim();
-    if (nom.length >= 2 && /[A-Za-zÀ-ÿ]/.test(nom)) return coupe(nom, 80);
+  for (const l of lignes){
+    const m = l.match(/^(.{2,60}?)\s+[–—-]\s+\d+\s+salari[ée]s?$/i);
+    if (m && !PAS_UN_NOM.test(plat(m[1]))) return coupe(m[1], 80);
   }
-  return '';
+  const chez = lignes[ti] && lignes[ti].match(/\bchez\s+([A-Z0-9À-Ý][^,;()\n]{1,60}?)\s*(?:[–—|(-]|$)/);
+  if (chez) return coupe(chez[1], 80);
+  /* au-dessus du titre quand il n'est pas en tête, sinon dessous */
+  return (ti > 0 && nomPlausible(lignes[ti - 1])) || nomPlausible(lignes[ti + 1]) || '';
 }
 
 /* la personne : « auprès de Thomas Leroy, responsable technique », ou
@@ -127,17 +147,23 @@ export function lireOffre(texte, { noms = [], today = '' } = {}){
   const t = String(texte || '').replace(/\r/g, '');
   if (!estOffre(t)) return null;
   const lignes = t.split('\n').map(l => l.trim()).filter(Boolean);
-  const p = plat(t);
+  const p = plat(t), ti = titreDe(lignes);
   const type = /\b(alternance|apprentissage|apprenti|contrat de professionnalisation)\b/.test(p) ? 'alternance'
     : /\b(stage|stagiaire)\b/.test(p) ? 'stage' : /\b(cdi|cdd|emploi)\b/.test(p) ? 'emploi' : '';
   const duree = (t.match(/(?:alternance|apprentissage|stage|contrat|cdd)\s+de\s+(\d+\s*(?:ans?|mois|semaines))/i)
-    || t.match(/dur[ée]e\s*:\s*(\d+\s*(?:ans?|mois|semaines))/i) || [])[1] || '';
-  const debut = (t.match(/(?:à|a) partir (?:de |d’|d')\s*([a-zéû]+ \d{4})/i) || t.match(/d[ée]but\s*:\s*([a-zéû]+ \d{4})/i)
+    || t.match(/dur[ée]e(?: du contrat)?\s*:\s*(\d+\s*(?:ans?|mois|semaines))/i)
+    || t.match(/(?:alternance|apprentissage|stage|cdd)\s*[|·•]\s*(\d+\s*(?:ans?|mois|semaines))/i)
+    /* « 6 mois », seul sur sa ligne (HelloWork) */
+    || t.match(/(?:^|\n)\s*(\d{1,2}\s*(?:ans?|mois|semaines))\s*(?:\n|$)/i) || [])[1] || '';
+  const debutNum = t.match(/d[ée]but(?: du contrat)?\s*:\s*(?:le\s+)?\d{1,2}[/.](\d{1,2})[/.](\d{4})/i);
+  const debut = debutNum && +debutNum[1] >= 1 && +debutNum[1] <= 12 ? MOIS_DITS[+debutNum[1] - 1] + ' ' + debutNum[2]
+    : (t.match(/(?:à|a) partir (?:de |d’|d')\s*([a-zéû]+ \d{4})/i) || t.match(/(?:à|a) partir du\s+(?:\d{1,2}(?:er)?\s+)?([a-zéû]+ \d{4})/i)
+    || t.match(/d[ée]but(?: du contrat)?\s*:\s*(?:le\s+)?(?:\d{1,2}(?:er)?\s+)?([a-zéû]+ \d{4})/i)
     || t.match(/\bdès (?:le )?(\d{1,2}(?:er)? [a-zéû]+ \d{4}|[a-zéû]+ \d{4})/i) || [])[1] || '';
   const rythme = (t.match(/rythme\s*:\s*([^.\n]+)/i) || [])[1] || '';
   return {
-    entreprise: entrepriseDe(lignes, t, noms),
-    poste: posteDe(lignes[0]),
+    entreprise: entrepriseDe(lignes, t, noms, ti),
+    poste: posteDe(lignes[ti]),
     type,
     duree: coupe(duree, 40),
     debut: coupe(debut, 40),
