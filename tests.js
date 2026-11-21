@@ -110,7 +110,9 @@ import { BMO, marche, niveauDiplome, aideEmbauche, euros, AIDE_FIN } from './eng
 import { FORMATIONS, formationConnue } from './engine/formations.js';
 import { SUITES, genreDeSuite, normaliserSuite, suiteDe, cocherSuite } from './engine/contrat.js';
 import { laSuite, aFaire, etapeDe, suivante, phraseEnvoi, dernierEvenement, joursDepuisEcrit, noterEnvoi, noterEcrit,
-         noterEntretien, noterReponse, clore, rouvrir, canalDefaut, quiContacter, quandPasse, CANAUX_DE } from './engine/suite.js';
+         noterEntretien, noterReponse, clore, rouvrir, canalDefaut, quiContacter, quandPasse, CANAUX_DE, offreCourt } from './engine/suite.js';
+import { lireOffre, estOffre, normaliserOffre, phraseOffre, contratDit } from './engine/offre.js';
+import { lireReponseEmails, apercuEmails, appliquerEmails, pisteProposee, CONSIGNE_EMAILS } from './engine/emails.js';
 import { questionWikidata, lireWikidata, questionResume, lireResume, questionBodacc, lireBodacc,
          carte, WIKIPEDIA_FR, BODACC, LINKEDIN_PAGE, aQui, estGrande, travailDe, TRAVAIL, montantEnMots, compteEnMots, questionEgapro, lireEgapro, EGAPRO } from './engine/carte.js';
 import { makeMission, missionUsable, revokeMission, foldCampaignReport,
@@ -2338,7 +2340,7 @@ export async function runSelfTests(){
       /* le modèle de départ des 6.31 à 6.46, jamais retouché, prend la ligne ;
          un modèle retouché ne bouge pas */
       /* le modèle des versions 6.31 à 6.46 : ni « Expérience », ni la ligne {{via}} (lot F3) */
-      const ancien = { ...cand, body: cand.body.replace('{{via}}\n', '').replace('Expérience : {{parcours}}\n', '') };
+      const ancien = { ...cand, body: cand.body.replace('{{offre}}\n', '').replace('{{via}}\n', '').replace('Expérience : {{parcours}}\n', '') };
       eq(majModelesDefaut([ancien])[0].body, cand.body);
       const retouche = { ...ancien, body: ancien.body + ' ' };
       eq(majModelesDefaut([retouche])[0].body, retouche.body);
@@ -2897,7 +2899,7 @@ export async function runSelfTests(){
       const recu = [];
       mergeIncoming([{ name: 'Advens', contacts: [{ name: 'Y', email: 'y@x.fr', via: 'Léa', accord: true }] }], recu);
       ok(!('accord' in recu[0].contacts[0]) && !('via' in recu[0].contacts[0]));
-      const d672 = { ...tpl, body: tpl.body.replace('{{via}}\n', '') };
+      const d672 = { ...tpl, body: tpl.body.replace('{{offre}}\n', '').replace('{{via}}\n', '') };
       eq(majModelesDefaut([d672])[0].body, tpl.body);
       eq(majModelesDefaut([{ ...d672, body: d672.body + '!' }])[0].body, d672.body + '!');
     },
@@ -5599,6 +5601,109 @@ export async function runSelfTests(){
       const dit = JSON.stringify(v);
       ok(!/BTS SIO|0600000000|ines@mail/.test(dit));
       eq(vuParMesAmis(normalizeProfile({}), []), { nom: '', entreprises: [], aides: [] });
+    },
+    'offre : une offre collée se lit par une table — rien ne s’invente': () => {
+      const T = 'Alternance – Technicien·ne systèmes et réseaux (H/F)\nRéseaux et Systèmes du Nord · Lille\n\nAlternance de 2 ans, à partir de septembre 2027.\nRythme : 3 semaines en entreprise, 1 semaine à l’école.\n\nTes missions\n- Installer et suivre les serveurs de nos clients (Linux, Windows Server)\n- Gérer leurs réseaux : pare-feu, VLAN, wifi\n- Répondre à leurs demandes d’assistance\n\nProfil : BTS SIO option SISR, ou équivalent.\n\nCandidatures avant le 15 décembre 2026, auprès de Thomas Leroy, responsable technique : t.leroy@rsn-lille.fr';
+      const o = lireOffre(T, { today: '2026-11-21' });
+      eq([o.entreprise, o.poste, o.type, o.duree, o.debut, o.avant], ['Réseaux et Systèmes du Nord', 'Technicien·ne systèmes et réseaux', 'alternance', '2 ans', 'septembre 2027', '2026-12-15']);
+      eq(o.rythme, '3 semaines en entreprise, 1 semaine à l’école');
+      eq(o.missions.length, 3);
+      eq(o.contact, { name: 'Thomas Leroy', role: 'responsable technique', email: 't.leroy@rsn-lille.fr' });
+      eq(o.texte, T);
+      eq(contratDit(o), 'Alternance, 2 ans, à partir de septembre 2027');
+      /* une piste qu'on a déjà, nommée dans le texte, se reconnaît d'abord */
+      eq(lireOffre('CDI Ingénieur sécurité chez Thales - Élancourt\nNous recherchons un ingénieur.\nMissions principales\n- Auditer les systèmes\nEnvoyez votre candidature à Paul Martin.', { noms: ['Thales'], today: '2026-11-21' }).entreprise, 'Thales');
+      /* sans entreprise écrite : rien, et l'app demandera son nom */
+      const sans = lireOffre('Stage – Assistant(e) administrateur réseau (F/H)\nStage de 6 mois dès janvier 2027, au sein de notre DSI.\nMissions\n- Superviser le réseau\nContact : Julie Moreau, chargée de recrutement (julie.moreau@exemple.fr)', { today: '2026-11-21' });
+      eq([sans.entreprise, sans.type, sans.duree, sans.contact.name, sans.contact.email], ['', 'stage', '6 mois', 'Julie Moreau', 'julie.moreau@exemple.fr']);
+      /* une date sans année : la prochaine à venir */
+      eq(lireOffre('Développeur Full-Stack - Alternance\nDoctolib\nContrat : Alternance\nCe que tu feras\n- Développer de nouvelles fonctionnalités\nPostule avant le 3 mars, on lit tout.', { today: '2026-11-21' }).avant, '2027-03-03');
+      /* un message entre amis n'est pas une offre */
+      eq(lireOffre('Salut Inès, tu viens ce soir au BDE ? On fait une soirée jeux.\nIl y aura Karim et Léa.\nDis-moi vite !'), null);
+      ok(!estOffre('alternance'));
+    },
+    'offre : la piste la garde, privée, et le premier message la cite': () => {
+      const o = normaliserOffre({ poste: 'Technicien réseaux', type: 'alternance', avant: '2026-12-15T10:00', missions: ['a', 'b', 'c', 'd'], texte: 'x'.repeat(9000), contact: { name: 'X' }, pirate: 1 });
+      eq(o.avant, '2026-12-15');
+      eq(o.missions.length, 3);
+      eq(o.texte.length, 8000);
+      ok(!('contact' in o) && !('pirate' in o));
+      eq(normaliserOffre({ type: 'stage' }), null);
+      const c = normalizeCompany({ name: 'RSN', offre: { poste: 'Technicien réseaux', texte: 'Le texte' } });
+      eq(c.offre.poste, 'Technicien réseaux');
+      /* migration en lecture : rangée dans extra par un appareil plus ancien */
+      eq(normalizeCompany({ name: 'RSN', extra: { offre: { poste: 'Admin', texte: 't' } } }).offre.poste, 'Admin');
+      ok(!normalizeCompany({ name: 'RSN', extra: { offre: { poste: 'Admin' } } }).extra);
+      /* LA FUITE D'ABORD : elle ne part jamais dans un partage */
+      const v = communityView(normalizeCompany({ name: 'RSN', offre: { poste: 'Admin', texte: 'secret' }, extra: { offre: { poste: 'Vieux' } } }));
+      ok(!JSON.stringify(v).includes('Admin') && !JSON.stringify(v).includes('Vieux') && !JSON.stringify(v).includes('secret'));
+      const ici = [];
+      mergeIncoming([{ name: 'RSN', offre: { poste: 'Admin', texte: 't' } }], ici);
+      ok(!ici[0].offre);
+      /* le premier message : la phrase entière, qui s'efface sans offre */
+      const p = normalizeProfile({ name: 'Inès Martin', formation: 'BTS SIO', recherche: 'alternance' });
+      const tpl = defaultTemplates()[0].body;
+      ok(fillTpl(tpl, c, null, p).includes('Je réponds à votre offre « Technicien réseaux ».'));
+      ok(!fillTpl(tpl, normalizeCompany({ name: 'RSN' }), null, p).includes('offre'));
+      eq(phraseOffre({}), '');
+      /* un modèle de départ jamais retouché prend la ligne ; un modèle retouché n'est pas touché */
+      const vieux = { name: 'Candidature spontanée', subject: 'Candidature {{type}} {{formation}} — {{moi}}', body: tpl.replace('{{offre}}\n', '') };
+      eq(majModelesDefaut([vieux])[0].body, tpl);
+      const retouche = { ...vieux, body: vieux.body + ' Merci.' };
+      eq(majModelesDefaut([retouche])[0].body, retouche.body);
+      ok(JETONS.offre && jetonsDe({ subject: '', body: tpl }).some(j => j.jeton === 'offre'));
+    },
+    'offre : son dernier jour se dit, et départage « À faire »': () => {
+      const t = '2026-11-21';
+      const a = normalizeCompany({ id: 'a', name: 'Alpha', createdAt: 1, contacts: [{ name: 'Lou Petit', email: 'l@a.test' }] });
+      const b = normalizeCompany({ id: 'b', name: 'Beta', createdAt: 2, contacts: [{ name: 'Max Dur', email: 'm@b.test' }], offre: { poste: 'Admin', avant: '2026-12-15', texte: 'x' } });
+      const sb = laSuite(b, { today: t });
+      eq(sb.l, 'Max Dur · jusqu’au 15 déc.');
+      ok(sb.s.endsWith('L’offre court jusqu’au 15 décembre.'));
+      eq(aFaire([a, b], { today: t }).map(x => x.id), ['b', 'a']);
+      /* une offre close ne dit plus rien */
+      eq(offreCourt(b, '2026-12-16'), '');
+      eq(laSuite(normalizeCompany({ name: 'Gamma', offre: { poste: 'X', avant: '2027-03-01', texte: 'x' } }), { today: t }).l, 'offre jusqu’au 1 mars');
+    },
+    'e-mails : la réponse de l’assistant ajoute, rien ne s’écrase': () => {
+      ok(/Entreprise ; Personne ; E-mail/.test(CONSIGNE_EMAILS));
+      const rep = 'Voici ce que j’ai trouvé :\nVauban Infra ; Pierre Lambert ; p.lambert@vauban-infra.test ; écrit ; 30/10/2026\nCitadelle Réseaux ; ; ; refus ; 04/11/2026\nEscaut Data ; Romain Petit ; r.petit@escaut.test ; entretien ; 13/11/2026\nKiabi ; Claire Durand ; claire@kiabi.test ; écrit ; 28/10/2026\n ; Nadia Rahmani ; nadia.rahmani@gmail.com ; écrit ; 05/11/2026';
+      const l = lireReponseEmails(rep);
+      eq(l.length, 5);
+      eq(l[0], { nom: 'Vauban Infra', ct: { name: 'Pierre Lambert', email: 'p.lambert@vauban-infra.test' }, etat: 'ecrit', date: '2026-10-30' });
+      eq(l[2].etat, 'reponse');
+      eq(l[1].etat, 'non');
+      eq(lireReponseEmails('Je n’ai rien trouvé.'), null);
+      const kia = normalizeCompany({ id: 'kia', name: 'Kiabi', status: 'reply', notes: 'à moi', contacts: [] });
+      const ap = apercuEmails(l, [kia]);
+      eq(ap.map(x => x.quoi), ['neuve', 'neuve', 'neuve', 'complete', 'bac']);
+      const r = appliquerEmails(l, [kia], [], '2026-11-21');
+      eq(r.neuves.length, 3);
+      eq(r.completees, ['kia']);
+      eq(r.bac, 1);
+      const v = r.companies.find(c => c.name === 'Vauban Infra');
+      eq([v.status, v.appliedAt, v.contacts[0].activatedAt], ['active', '2026-10-30', '2026-10-30']);
+      eq(v.history.map(h => h.t), ['Gardée, depuis mes e-mails', 'Écrit à Pierre Lambert, par mail']);
+      eq(laSuite(v, { today: '2026-11-21' }).k, 'relance');
+      const e = r.companies.find(c => c.name === 'Escaut Data');
+      eq(laSuite(e, { today: '2026-11-21' }).k, 'reponse');
+      eq(r.companies.find(c => c.name === 'Citadelle Réseaux').closedReason, 'rejected');
+      /* Kiabi garde son suivi : seule la personne qui manquait s'ajoute */
+      const k2 = r.companies.find(c => c.id === 'kia');
+      eq([k2.status, k2.notes, k2.contacts[0].name], ['reply', 'à moi', 'Claire Durand']);
+      eq(kia.contacts.length, 0);                                        /* rien n'est touché en place */
+      eq(r.orphans[0].email, 'nadia.rahmani@gmail.com');
+      /* deux fois la même réponse : rien de plus */
+      const r2 = appliquerEmails(l, r.companies, r.orphans, '2026-11-21');
+      eq([r2.neuves.length, r2.completees.length, r2.bac], [0, 0, 0]);
+    },
+    'e-mails : un contact sans entreprise propose sa piste, jamais par une messagerie': () => {
+      const lys = normalizeCompany({ id: 'lys', name: 'Lys Informatique' });
+      const web = normalizeCompany({ id: 'web', name: 'Septentrion', website: 'https://www.septentrion-cloud.fr' });
+      eq(pisteProposee({ email: 'h.lefort@lys-informatique.fr' }, [lys, web]).id, 'lys');
+      eq(pisteProposee({ email: 'a.b@septentrion-cloud.fr' }, [lys, web]).id, 'web');
+      eq(pisteProposee({ email: 'nadia@gmail.com' }, [lys, web]), null);
+      eq(pisteProposee({ name: 'Sans mail' }, [lys]), null);
     },
     'verrou : un code trop facile se refuse, dans le moteur (les deux interfaces)': () => {
       for (const c of ['000000', '111111', '123456', '654321', '901234', '567890', '098765'])

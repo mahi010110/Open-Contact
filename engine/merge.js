@@ -69,6 +69,7 @@ export function mergeIncoming(list, companies){
       x.nextActionText = ''; x.closedAt = ''; x.closedReason = '';
       delete x.nextActionCt;                                                         /* #14 */
       delete x.suite;                                                                /* la refonte : privé aussi */
+      delete x.offre;                                                                /* l'offre collée (lot 6) : privée */
       x.history = [{ d: todayISO(), t: 'Reçue via partage' }];
       companies.push(x);
       stats.addedC++;

@@ -14,6 +14,7 @@ import { normaliserSemaine } from './semaine.js';
 import { normaliserAide } from './aide.js';
 import { normaliserVisage } from './visage.js';
 import { normaliserSuite } from './contrat.js';
+import { normaliserOffre, phraseOffre } from './offre.js';
 
 export const APP_VERSION = '8.1.0';
 
@@ -218,6 +219,7 @@ const KNOWN_C  = ['id','name','city','domain','desc','address','website','techs'
   'process','tips','contacts','lat','lng','vecu','vecuQui','status','notes','appliedAt','nextAction',
   'nextActionText','closedAt','closedReason','nextActionCt',
   'suite',                      /* la refonte : ce qui reste à faire après « Décroché » — privé */
+  'offre',                      /* la refonte (lot 6) : l'offre collée — privée */
   'history','verifiedAt','confirmations','demo','createdAt','updatedAt','extra',
   'contact','email','phone'];   /* les 3 derniers : héritage v1, absorbés dans contacts */
 /* un lien ne sort d'ici qu'en http(s) : « javascript: » et consorts, posés
@@ -358,10 +360,15 @@ export function normalizeCompany(x){
      même migration en lecture depuis `extra` (CONTRAT.md §3). */
   const su = normaliserSuite(x.suite || xe.suite);
   if (su) out.suite = su;
+  /* LA REFONTE (lot 6) — `offre` : l'offre qu'on a collée (engine/offre.js).
+     Privée, optionnelle, absente quand vide, même migration en lecture. */
+  const of = normaliserOffre(x.offre || xe.offre);
+  if (of) out.offre = of;
   const extra = keepExtra(x, KNOWN_C);
   if (extra){
     delete extra.nextActionCt;
     delete extra.suite;
+    delete extra.offre;
     if (Object.keys(extra).length) out.extra = extra;
   }
   return out;
@@ -373,6 +380,7 @@ const SIGNATURE = `Bien à vous,
 const MODELE_CANDIDATURE = `Bonjour {{contact}},
 
 {{via}}
+{{offre}}
 [Une phrase précise sur ce qu'ils font. Pas « votre entreprise m'intéresse » — ils le lisent dix fois par jour.]
 
 Je suis en {{formation}} et je cherche {{recherche}}.
@@ -386,7 +394,10 @@ ${SIGNATURE}`;
    ligne « Expérience » (docs/reseau.md, lot 1) */
 /* puis tel que les versions 6.47 à 6.72 l'écrivaient — avant la ligne
    « {{via}} » (lot F3 : qui m'a donné ce contact) */
-const CANDIDATURE_6_47 = MODELE_CANDIDATURE.replace('{{via}}\n', '');
+/* puis tel que les versions 6.73 à 8.1 l'écrivaient — avant la ligne
+   « {{offre}} » (la refonte, lot 6 : l'offre qu'on a collée) */
+const CANDIDATURE_8_1 = MODELE_CANDIDATURE.replace('{{offre}}\n', '');
+const CANDIDATURE_6_47 = CANDIDATURE_8_1.replace('{{via}}\n', '');
 const CANDIDATURE_6_31 = CANDIDATURE_6_47.replace('Expérience : {{parcours}}\n', '');
 /* LA RELANCE, SANS GENRE (la refonte, lot 2 : « Toujours très motivé »
    ne se dit pas de la même façon par tout le monde ; « J'ai toujours très
@@ -433,7 +444,8 @@ const MERCI_8_1 = MODELE_MERCI.replace(SIGNATURE, `Bien cordialement,
    d'une virgule, n'est jamais touché (invariant ②). */
 const MODELES_ANCIENS = {
   'Candidature spontanée': {
-    avant: [{ subject: 'Candidature {{type}} {{formation}} — {{moi}}', body: CANDIDATURE_6_47 },
+    avant: [{ subject: 'Candidature {{type}} {{formation}} — {{moi}}', body: CANDIDATURE_8_1 },
+            { subject: 'Candidature {{type}} {{formation}} — {{moi}}', body: CANDIDATURE_6_47 },
             { subject: 'Candidature {{type}} {{formation}} — {{moi}}', body: CANDIDATURE_6_31 }, { subject: 'Candidature stage {{formation}} — {{moi}}', body: `Bonjour {{contact}},
 
 [Une phrase précise sur ce qu'ils font. Pas « votre entreprise m'intéresse » — ils le lisent dix fois par jour.]
@@ -720,6 +732,8 @@ export function fillTpl(str, c, ct, profile, { trous = false, companies } = {}){
     /* lot F3 : le contact vient d'un ami — la première phrase le dit,
        c'est ce qu'un recruteur lit d'abord (une recommandation) */
     via: phraseVia(ct),
+    /* la refonte (lot 6) : l'offre collée, citée dans le premier message */
+    offre: phraseOffre(c),
     /* le jour du premier message, avec sa préposition (la relance) */
     date: /^\d{4}-\d{2}-\d{2}$/.test(String(c.appliedAt || '')) ? 'du ' + dateLongue(c.appliedAt, false) : '',
     ...jetonsRecherche(profile, companies)

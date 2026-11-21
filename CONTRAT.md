@@ -664,7 +664,7 @@ présent).
 
 **Privé** — ne part **jamais** dans un partage :
 `status`, `notes`, `appliedAt`, `nextAction`, `nextActionText`, `closedAt`,
-`closedReason`, `nextActionCt`, `suite`, `history[]` (40 entrées max).
+`closedReason`, `nextActionCt`, `suite`, `offre`, `history[]` (40 entrées max).
 Ni `id`, ni `demo`, ni `createdAt` ne circulent non plus.
 
 **Un contact** : `id`, `name`, `role`, `email`, `phone`, `link`, `note`,
@@ -778,6 +778,21 @@ optionnelle, absente quand vide.** `{ t, f }` : `t` le genre de contrat
 communautaire la vide. Elle suit la piste entre MES appareils (§5). Un
 lecteur ancien la range dans `extra` sans casse ; une version récente
 l'en remonte (migration en lecture, doublon purgé).
+
+**L'offre collée (`offre`, la refonte, lot 6) — privée, optionnelle,
+absente quand vide.** `{ poste, type, duree, debut, rythme, avant,
+missions[], texte }` : ce que l'app a lu d'une offre qu'on a collée
+(`engine/offre.js`, une table, pas une IA). `type` est `alternance`,
+`stage` ou `emploi` ; `avant` le dernier jour (`AAAA-MM-JJ`) ; trois
+missions au plus ; le texte entier, 8 000 caractères au plus. Chaque champ
+absent reste absent : rien ne s'invente. La personne lue rejoint les
+`contacts`, pas l'offre. Elle nourrit le jeton `{{offre}}` (« Je réponds à
+votre offre « … ». », une ligne qui s'efface sans elle) et le dernier jour
+de « la suite ». Privée comme le suivi : `communityView` ne l'émet pas et
+la purge d'`extra`, la fusion communautaire la vide ; elle suit la piste
+entre MES appareils (§5). Un lecteur ancien la range dans `extra` sans
+casse ; une version récente l'en remonte (migration en lecture, doublon
+purgé).
 
 **La prochaine action** (privée) : `nextAction` porte la **date** (ISO,
 champ historique inchangé — les anciennes données restent valides),

@@ -51,6 +51,10 @@ const jour = iso => new Date(t0(iso));
 export const jourLong = iso => { const d = jour(iso); return `${JOURS[d.getUTCDay()]} ${d.getUTCDate()} ${MOIS[d.getUTCMonth()]}`; };
 export const jourCourt = iso => { const d = jour(iso); return `${JOURS_C[d.getUTCDay()]} ${d.getUTCDate()}`; };
 export const jourMois = iso => { const d = jour(iso); return `${d.getUTCDate()} ${MOIS_C[d.getUTCMonth()]}`; };
+/* « 15 décembre », « 1er mars » : la date d'une offre */
+export const jourEnLettres = iso => { const d = jour(iso), n = d.getUTCDate(); return `${n === 1 ? '1er' : n} ${MOIS[d.getUTCMonth()]}`; };
+/* l'offre collée qui court encore (lot 6) : son dernier jour */
+export const offreCourt = (c, today = todayISO()) => c && c.offre && ISO.test(String(c.offre.avant || '')) && c.offre.avant >= today ? c.offre.avant : '';
 /* un jour passé, dit comme on le dirait : hier, lundi, le 3 novembre */
 export function quandPasse(iso, today){
   const n = joursEntre(iso, today);
@@ -208,10 +212,13 @@ export function laSuite(c, o = {}){
     const l = dem.don.soi ? `${dem.don.de} te donne son contact` : `${dem.don.de} t’a donné ${dem.don.nom}`;
     return { rang: 3, l, plus: 1, t: l + '.', s: 'Ajoute son contact à la piste, puis écris-lui.', b: 'Ajouter ' + p, c: 'Ajouter', a: 'don' };
   }
+  /* une offre collée qui court encore : son dernier jour se dit, et c'est
+     ce qui départage deux pistes à contacter (« À faire ») */
+  const av = offreCourt(c, today), court_ = av ? ' L’offre court jusqu’au ' + jourEnLettres(av) + '.' : '';
   if (ct && ct.name){
     const r = ct.role ? ', ' + ct.role : '';
-    return { rang: 4, l: ct.name + r + (ct.via ? ' · par ' + ct.via : ''), plus: ct.via ? 1 : 0, t: 'À contacter : ' + ct.name + r + '.',
-      s: 'Ton message est prêt. Tu le relis, puis tu l’envoies.', b: 'Écrire à ' + pr, c: 'Écrire', a: 'ecrire', k: 'premier' };
+    return { rang: 4, l: ct.name + (av ? ' · jusqu’au ' + jourMois(av) : r) + (ct.via ? ' · par ' + ct.via : ''), plus: ct.via ? 1 : 0, t: 'À contacter : ' + ct.name + r + '.',
+      s: 'Ton message est prêt. Tu le relis, puis tu l’envoies.' + court_, b: 'Écrire à ' + pr, c: 'Écrire', a: 'ecrire', k: 'premier', avant: av };
   }
   if (dem){
     if (dem.trouvee) return { rang: 7, l: 'quelqu’un a été trouvé', t: 'Quelqu’un a été trouvé.',
@@ -224,9 +231,9 @@ export function laSuite(c, o = {}){
   const po = o.porte || (o.portes && o.portes.get && o.portes.get(c.id)) || null;
   if (po && po.prenom && !ct) return { rang: 3, l: `${po.prenom} ${po.court}`, plus: 1, t: `${po.prenom} ${po.court}.`,
     s: 'Demande-lui à qui écrire.', b: 'Demander à ' + po.prenom, c: 'Demander', a: 'demande' };
-  return { rang: 4, l: c.city || 'ajoutée à la main', t: 'À contacter.',
-    s: o.grande ? 'Passe par le recrutement, ou par leur site.' : 'Personne à qui écrire pour l’instant : passe par leur site.',
-    b: 'Écrire', c: 'Écrire', a: 'ecrire', k: 'premier' };
+  return { rang: 4, l: av ? 'offre jusqu’au ' + jourMois(av) : c.city || 'ajoutée à la main', t: 'À contacter.',
+    s: (o.grande ? 'Passe par le recrutement, ou par leur site.' : 'Personne à qui écrire pour l’instant : passe par leur site.') + court_,
+    b: 'Écrire', c: 'Écrire', a: 'ecrire', k: 'premier', avant: av };
 }
 
 /* l'étape d'une piste dans la liste : c'est oui, réponse, à contacter,
@@ -253,7 +260,10 @@ export function aFaire(companies, o = {}){
     if (s.muette) mu.push(c.id);
     else if (s.rang <= 4) l.push({ id: c.id, s, c });
   }
-  l.sort((a, b) => (a.s.rang - b.s.rang) || (joignable(b.c) - joignable(a.c))
+  /* entre deux pistes du même rang : qui a quelqu'un à qui écrire, puis
+     l'offre qui se ferme la première, puis la plus ancienne */
+  const fin = s => s.avant || '9999';
+  l.sort((a, b) => (a.s.rang - b.s.rang) || (joignable(b.c) - joignable(a.c)) || (fin(a.s) < fin(b.s) ? -1 : fin(a.s) > fin(b.s) ? 1 : 0)
     || ((a.c.createdAt || 0) - (b.c.createdAt || 0)) || String(a.c.name).localeCompare(String(b.c.name), 'fr'));
   const out = l.filter(x => x.s.rang <= 2).slice(0, A_FAIRE_MAX);
   if (mu.length && out.length < A_FAIRE_MAX) out.push({ ranger: mu });

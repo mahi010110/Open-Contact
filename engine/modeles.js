@@ -83,6 +83,7 @@ export const JETONS = Object.freeze({
   parcours: 'ton parcours',
   cv: 'le lien vers ton CV',
   via: 'l’ami qui te recommande',
+  offre: 'le poste de l’offre, si tu l’as collée',
   date: 'le jour de ton premier message',
   moi: 'ton nom',
   ecole: 'ton école',
