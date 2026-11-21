@@ -814,6 +814,8 @@ améliorations s'il y en a ») :
   (téléphone 390 et 360 px, poste, clair et sombre) : rien qui déborde,
   rien de raboté, aucune cible trop petite, aucune erreur de la page.
 - Au poste, pendant une recherche, la barre d'état dit la recherche.
+- Donner le dit quand une piste porte une offre : « Tes notes, tes offres
+  et ton suivi restent chez toi. »
 - La garde des mots (§7) lit aussi la nouvelle interface : « Ton
   camarade le scanne » est devenu « Il se scanne, même sans l'app : on
   voit les pistes avant de les prendre. »
