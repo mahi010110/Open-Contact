@@ -2,7 +2,7 @@
 
 *Pour l'assistant qui reprend la refonte dans une nouvelle discussion.
 Mise à jour à chaque lot, en même temps que le journal du brief.
-Dernière mise à jour : 21 novembre 2026, code : lot 6 validé sous réserve de son essai.*
+Dernière mise à jour : 21 novembre 2026, code : lot 6 validé (« C'est parfait continue ») ; la bascule se prépare (`docs/bascule.md`).*
 
 Le premier message à donner à une nouvelle discussion :
 
@@ -165,9 +165,10 @@ Pièges déjà payés :
 
 ## 7. Ce qui reste
 
-- **Le mainteneur essaie le lot 6** (« il faut que je teste ») : ses
-  retours passent avant tout. Puis la bascule, seulement le jour où il la
-  décide (§8). D'ici là : « les améliorations s'il y en a ».
+- **La bascule** (`docs/bascule.md`) : d'abord lui montrer ce qui ne
+  revient pas et ses trois choix (modifier une piste, « J'y suis passé »
+  sur une piste, « Affiner »), et le dormant ; puis exécuter le plan sur
+  la branche, et ne fusionner dans `main` qu'avec son accord.
 - **Plus tard**, validé comme idée : la carte des entreprises autour de
   soi (brief §12).
 - **Fait en codant** (lots 1 à 6) : les modèles de messages sans genre,
@@ -195,7 +196,7 @@ lien pour l'essayer sur l'iPhone, et validé avant le suivant.
 | 3 | Réseau | validé le 21 novembre (« Continue »), après l'avoir vu le 18 |
 | 4 | Moi | validé le 21 novembre (« Continue ») |
 | 5 | les états : premier jour, vide, erreurs, hors ligne, verrou | validé le 21 novembre (« Oui tout me va ») |
-| 6 | le poste, un établi | « Tout me va je pense », le 21 novembre : il l'essaie d'abord |
+| 6 | le poste, un établi | validé le 21 novembre (« C'est parfait continue »), après l'avoir essayé |
 
 **La nouvelle interface grandit à côté de l'ancienne**, sans la toucher.
 L'app actuelle (`index.html`, `app.js`, `ui/`, `styles/app.css`) reste

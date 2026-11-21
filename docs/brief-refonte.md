@@ -820,3 +820,13 @@ améliorations s'il y en a ») :
   camarade le scanne » est devenu « Il se scanne, même sans l'app : on
   voit les pistes avant de les prendre. »
 
+Sa réponse le même jour : « C'est parfait continue ». La suite est la
+bascule : son plan est dans `docs/bascule.md` (les fichiers, chaque
+scénario porté ou retiré, l'ordre), avec ce qui ne revient pas, à lui
+montrer en entier d'abord. En préparant ce plan, trois gestes sans
+remplaçant ont été trouvés : modifier une piste, « J'y suis passé » sur
+une piste, « Affiner » et trier Pistes. Et un cul-de-sac corrigé : une
+ligne de « Mon parcours » venue d'une piste disait « change la piste »,
+un geste que la page d'une piste n'a pas ; elle se retire maintenant de
+Moi, avec « Annuler ».
+

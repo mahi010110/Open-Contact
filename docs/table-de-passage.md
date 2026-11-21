@@ -49,12 +49,12 @@ n'a pas été montré au mainteneur.
 
 | Aujourd'hui | Sa place | Lot |
 |---|---|---|
-| Chercher dans mes pistes (barre, étiquettes, « Affiner », tri) | La barre de Pistes | 2 |
+| Chercher dans mes pistes (barre, étiquettes, « Affiner », tri) | La barre de Pistes, à partir de dix pistes : elle cherche des mots. Les étiquettes, « Affiner » et le tri quittent l'écran (plus bas) | 2 |
 | « Par où commencer », « Sans nouvelles » | « À faire », en tête de Pistes : trois lignes au plus | 2 |
 | « Tes amis » (ce qu'un ami te demande, ce qu'il te donne, son merci) | Réseau, « On te demande » en tête ; le contact donné dans « Mes demandes » et sur sa piste ; le merci dans votre conversation | 3 |
 | « Karim et Léa t'ont écrit » | L'onglet Réseau, qui change de couleur ; la liste des conversations | 3 |
 | « Reçues, jamais reprises », l'historique des échanges | Pistes, « À contacter », avec qui les a données ; l'historique dans Réseau | 2, 3 |
-| « J'y suis passé » | La page d'une piste ; Moi › Mon profil › Mon parcours | 2, 4 |
+| « J'y suis passé » | Moi › Mon profil › Mon parcours ; une ligne venue d'une piste s'y retire. Sur la page d'une piste, il quitte l'écran (plus bas) | 4 |
 | Thème, installer l'app, effacer cet appareil, aide et confidentialité, diagnostic | Moi › Réglages : chaque ligne dit son état et ouvre ses choix | 4 |
 | « Demandes de mes amis » (les faire suivre ou non) | Moi › Réglages | 4 |
 | L'écran verrouillé | Plein écran au téléphone, une fenêtre au poste : le pavé de chiffres, « Code oublié ? » vers la phrase de secours ou l'effacement. Le code se choisit au même pavé dans Moi › Réglages, qui offre aussi « Verrouiller maintenant » | 5 |
@@ -91,6 +91,9 @@ n'a pas été montré au mainteneur.
 | « Changer mon code », l'empreinte ou le visage | On retire le code, puis on en choisit un. Une empreinte déjà enregistrée reste dans le coffre, sans servir ici |
 | La copie chiffrée exigée en protégeant | La phrase de secours dépose la copie, scellée, dès qu'elle existe |
 | « Restaurer » qui remplace tout | Restaurer ramène : la même fusion que mes appareils, par l'aperçu, avec « Annuler ». Rien n'est écrasé |
+| Modifier une piste (son nom, sa ville, son site, ses technos) | **Rien ne le remplace** (relevé le 21 novembre en préparant la bascule) : une piste gardée telle qu'on l'a écrite garde sa faute. À trancher avec lui |
+| « J'y suis passé » sur la page d'une piste | **Rien ne le remplace** pour le groupe : le prénom qui part avec une piste donnée (« Léa y a fait son stage », CLAUDE.md §8). « Mon parcours » le dit aux amis. À trancher avec lui |
+| « Affiner », le tri et les étiquettes de la recherche de Pistes | « À faire » et les étapes font le tri ; la barre cherche des mots. À trancher avec lui |
 
 Aucune clé de stockage ne bouge, aucun module du moteur n'est retiré.
 Les capacités marquées `PC` ou `⏸` restent masquées, comme aujourd'hui.
