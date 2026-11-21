@@ -182,6 +182,7 @@ await ap.goBack(); await ap.waitForTimeout(300);
 /* =================== ② LA FUITE D'ABORD =================== */
 await onglet(ap, 'reseau');
 await ap.click(T + '[data-a="r-donner"]'); await ap.waitForTimeout(400);
+verifier((await tout(ap)).includes('Tes notes, tes offres et ton suivi restent chez toi.'), 'Donner le dit : l’offre reste chez toi, avec les notes et le suivi');
 await ap.click(T + '[data-a="r-don-canal"][data-v="texte"]'); await ap.waitForTimeout(250);
 await ap.click(T + '[data-a="r-don-ok"]'); await ap.waitForTimeout(600);
 const envoye = await ap.evaluate(() => navigator.clipboard.readText());

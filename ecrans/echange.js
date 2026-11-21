@@ -58,7 +58,9 @@ export function pageDonner(){
     `<button data-a="r-don-canal" data-v="${x}" aria-pressed="${x === D.canal}"${x === D.canal ? ' class="on"' : ''}>${NOMS[x]}</button>`).join('')}</div>`;
   if (D.canal === 'groupe' && mesGroupes().length > 1)
     h += `<div class="puces don-g">${mesGroupes().map(g => `<button class="puce${g.code === D.groupe ? ' on' : ''}" data-a="r-don-g" data-v="${esc(g.code)}" aria-pressed="${g.code === D.groupe}">${esc(nomDe(g.code))}</button>`).join('')}</div>`;
-  h += '<p class="hint">Partent : le nom, la ville, les contacts. Tes notes et ton suivi restent chez toi.</p>';
+  /* l'offre collée reste aussi chez toi (CONTRAT.md §3) : la phrase le dit
+     dès qu'une piste en porte une */
+  h += `<p class="hint">Partent : le nom, la ville, les contacts. ${l.some(c => c.offre) ? 'Tes notes, tes offres et ton suivi' : 'Tes notes et ton suivi'} restent chez toi.</p>`;
   if (!l.length) h += '<div class="panneau en-page"><p>Tes pistes arrivent ici. Garde d’abord quelques entreprises.</p></div>';
   else {
     h += `<div class="rangs">${l.map(c => {
