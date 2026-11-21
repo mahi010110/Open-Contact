@@ -4,12 +4,12 @@
    arrière-plan — la version suivante s'applique à l'ouverture d'après.
    Jamais mis en cache : le géocodage (données fraîches) et les tuiles de
    carte (volume) — la carte demande donc du réseau, tout le reste non. */
-const CACHE = 'oc-v297';
+const CACHE = 'oc-v298';
 const PRECACHE = ['./', './index.html', './app.js', './theme.js', './tests.js', './tests-c8.js', './tests-mcp.js',
   './engine/crypto.js', './engine/exchange.js', './engine/filter.js',
   './engine/geo.js', './engine/merge.js', './engine/model.js',
   './engine/score.js', './engine/storage.js', './engine/sync.js', './engine/utils.js',
-  './engine/vault.js', './engine/ring.js', './engine/campaign.js', './engine/mailer.js', './engine/assist.js', './engine/ai.js', './engine/mission.js', './engine/ordinateur.js', './engine/mcp.js', './engine/distribution.js', './engine/transport.js', './engine/portage.js', './engine/diagnostic.js', './engine/agenda.js', './engine/requete.js', './engine/lieux.js', './engine/annuaire.js', './engine/carte.js', './engine/marche.js', './engine/parcours.js', './engine/amis.js', './engine/boite.js', './engine/messages.js', './engine/critere.js', './engine/groupe.js',
+  './engine/vault.js', './engine/ring.js', './engine/campaign.js', './engine/mailer.js', './engine/assist.js', './engine/ai.js', './engine/mission.js', './engine/ordinateur.js', './engine/mcp.js', './engine/distribution.js', './engine/transport.js', './engine/portage.js', './engine/diagnostic.js', './engine/agenda.js', './engine/requete.js', './engine/lieux.js', './engine/annuaire.js', './engine/carte.js', './engine/marche.js', './engine/parcours.js', './engine/amis.js', './engine/boite.js', './engine/messages.js', './engine/critere.js', './engine/groupe.js', './engine/modeles.js', './engine/copie.js',
   /* le moteur garde ce qu'il sait lire (8.0.0, retour à l'interface de
      la 6.70) : ces modules ne servent plus aucun écran, mais le profil
      et les auto-tests les lisent encore — rien de ce qu'une 7.x a

@@ -23,7 +23,7 @@
    4. Fonctions pures : rien ici ne lit l'écran ni le réseau.
    ============================================================ */
 import { parcoursDe, normalizeParcours, PARCOURS } from './parcours.js';
-import { normaliserAide } from './aide.js';
+import { normaliserAide, AIDES } from './aide.js';
 import { normaliserVisage } from './visage.js';
 
 export const AMIS_MAX = 200;
@@ -94,6 +94,17 @@ export function profilDonne(profile, companies){
   const vz = normaliserVisage(p.visage);
   if (vz) d.visage = vz;
   return d;
+}
+/* Ce que mes amis lisent de moi, dit en mots (lot 4 de la refonte, « Ce
+   que tes amis voient » dans Moi). Il se TIRE du profil qui part, il ne
+   s'écrit pas à côté : l'écran ne peut jamais dire autre chose que ce
+   qui sort. Le nom, les entreprises où je suis passé, ce que je peux
+   offrir — rien d'autre, ni la formation ni le suivi. */
+export function vuParMesAmis(profile, companies){
+  const d = profilDonne(profile, companies);
+  const entreprises = [];
+  for (const e of d.parcours) if (!entreprises.includes(e.entreprise)) entreprises.push(e.entreprise);
+  return { nom: d.nom, entreprises, aides: (d.aide || []).map(k => AIDES[k].ami) };
 }
 
 /* ---------- ce qu'on reçoit (un QR, un texte : n'importe qui a pu

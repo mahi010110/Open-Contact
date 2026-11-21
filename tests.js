@@ -11,7 +11,7 @@ import { KDF_ITER, encryptOC2, decryptOC2, deriveKey, bytesToB64,
 import { APP_VERSION, VECU, normalizeCompany, normalizeContact, normalizeProfile,
          pushHist, fillTpl, CLOSE_REASONS, TROUS, crochets, remplirTrous, safeUrl, summarizeChanges,
          RECHERCHES, dateLongue, dureeRecherche, periodeValide, phraseRecherche, resumeRecherche,
-         manquesProfil, emailPlausible, majModelesDefaut, defaultTemplates,
+         manquesProfil, manquesDits, emailPlausible, majModelesDefaut, defaultTemplates,
          prendCeQueJeCherche, PREND_MOT, modeleConseille,
          isActiveCt, nextActionContact,
          PROMPTS_MAX, PROMPT_MAX_LEN } from './engine/model.js';
@@ -70,7 +70,10 @@ import { rappelICS, lienAgendaGoogle, formeAgenda, RAPPEL_HEURE } from './engine
 import { normalizeParcours, parcoursDe, periodeParcours, phraseParcours, PARCOURS_MAX } from './engine/parcours.js';
 import { nouvelIdAmi, idAmiValide, cleEntreprise, memeEntreprise, profilDonne, normalizeAmi, normalizeAmis, parcoursADecrocher,
          statutAmi, ajouterAmi, retirerAmi, prenomAmi, enCours, direExperience, portesAmis, AMIS_MAX,
-         ceQuOuvre, classerAmis, chercherAmis, TRIS_AMIS } from './engine/amis.js';
+         ceQuOuvre, classerAmis, chercherAmis, TRIS_AMIS, vuParMesAmis } from './engine/amis.js';
+import { MODELES, originalDe, modeleDe, modeleModifie, nombreModifies, poserModele, retablirModele,
+         JETONS, jetonsDe } from './engine/modeles.js';
+import { apercuCopie, etatCopie } from './engine/copie.js';
 import { nouvelleCle, boiteValide, cleValide, etiquetteBoite, sceller, ouvrir, lettreDemande, lettreDon, lettreMerci, lettreAmi,
          lettreAdieu, adieuAuthentique, prouver, preuveValide, lettreMessage, messageAuthentique,
          contactDonne, normaliserLettre, contactsPour, etatVide, normaliserEtat, elaguer, peutDemander,
@@ -5499,6 +5502,103 @@ export async function runSelfTests(){
       vaultDetach();
       await (p0 == null ? kvDel(PROMO_KEY) : kvSet(PROMO_KEY, p0));
       await (r0 == null ? kvDel(RELAYS_KEY) : kvSet(RELAYS_KEY, r0));
+    },
+    /* ---------- la refonte, lot 4 : Moi ---------- */
+    'moi : ce qui manque se dit en mots, le nom d’abord': () => {
+      eq(manquesDits({}), ['ton nom', 'ta formation', 'ton école', 'ce que tu cherches', 'ton e-mail']);
+      eq(manquesDits({ name: 'Inès Martin', formation: 'BTS SIO', ecole: 'Lycée Eiffel', recherche: 'stage', email: 'ines@mail.test' }), []);
+      eq(manquesDits({ name: ' ', formation: 'BTS SIO', recherche: 'alternance', email: 'a@b.fr' }), ['ton nom', 'ton école']);
+    },
+    'messages types : trois modèles, reconnus par leur nom, jamais touchés quand on en retouche un': () => {
+      eq(MODELES.map(m => m.k), ['premier', 'relance', 'merci']);
+      for (const m of MODELES){ const o = originalDe(m.k); ok(o && o.name === m.nom && o.body.length > 40); }
+      const p = normalizeProfile({ name: 'Inès Martin' });
+      eq(nombreModifies(p), 0);
+      eq(modeleDe(p, 'relance').name, 'Relance');
+      /* un modèle de l'utilisateur, ajouté à l'ancienne : intact */
+      const perso = { id: 'perso1', name: 'Après le forum', subject: 'Forum', body: 'Bonjour {{contact}}' };
+      p.templates = [...p.templates, perso];
+      const l = poserModele(p, 'relance', { subject: 'Relance perso', body: 'Bonjour {{contact}},\nUn mot.' });
+      const r = l.find(t => t.name === 'Relance');
+      eq([r.subject, r.body], ['Relance perso', 'Bonjour {{contact}},\nUn mot.']);
+      eq(l.find(t => t.id === 'perso1'), perso);
+      eq(l.length, p.templates.length);
+      /* rien n'a été muté : l'appelant décide */
+      eq(modeleModifie(p, 'relance'), false);
+      p.templates = l;
+      eq([modeleModifie(p, 'relance'), modeleModifie(p, 'premier'), nombreModifies(p)], [true, false, 1]);
+      /* revenir à l'original : le texte de départ, et « modifié » s'éteint */
+      p.templates = retablirModele(p, 'relance');
+      eq([modeleModifie(p, 'relance'), nombreModifies(p)], [false, 0]);
+      eq(modeleDe(p, 'relance').body, originalDe('relance').body);
+      eq(p.templates.find(t => t.id === 'perso1'), perso);
+    },
+    'messages types : un modèle retiré du profil retombe sur l’original, le premier changement le remet': () => {
+      const p = normalizeProfile({});
+      p.templates = p.templates.filter(t => t.name !== 'Remerciement après entretien');
+      eq(modeleDe(p, 'merci').body, originalDe('merci').body);
+      eq(modeleModifie(p, 'merci'), false);
+      const l = poserModele(p, 'merci', { subject: "Merci\npour tout", body: 'Merci.' });
+      const t = l.find(x => x.name === 'Remerciement après entretien');
+      /* l'objet est d'une seule ligne */
+      eq([t.subject, t.body, l.length], ['Merci pour tout', 'Merci.', p.templates.length + 1]);
+      eq(poserModele(p, 'inconnu', { subject: 'x', body: 'y' }).length, p.templates.length);
+    },
+    'messages types : « ce que l’app remplace » ne liste que ce que le modèle emploie, une fois, dans son ordre': () => {
+      const j = jetonsDe({ subject: 'Ma candidature chez {{entreprise}}', body: 'Bonjour {{contact}},\n{{moi}} — {{entreprise}}\n{{inconnu}} {{cv}}' });
+      eq(j.map(x => x.jeton), ['entreprise', 'contact', 'moi', 'cv']);
+      eq(j[1].sens, 'la personne, ou « Madame, Monsieur »');
+      eq(jetonsDe({ subject: '', body: 'aucun jeton' }), []);
+      /* chaque modèle de départ s'explique entièrement : pas un jeton sans sens */
+      for (const m of MODELES){
+        const o = originalDe(m.k);
+        const tous = [...(o.subject + '\n' + o.body).matchAll(/\{\{(\w+)\}\}/g)].map(x => x[1]);
+        ok(tous.length > 0);
+        for (const t of tous) ok(Object.hasOwn(JETONS, t));
+      }
+    },
+    'copie : l’aperçu dit ce qui s’ajoute, ce qui est déjà là, ce qui est plus récent — sans rien écrire': () => {
+      const mk = (id, name, extra) => normalizeCompany({ id, name, city: 'Lille', ...extra });
+      const ici = [mk('a', 'Kiabi', { updatedAt: 50 }), mk('b', 'Worldline', { updatedAt: 10 }), mk('c', 'OVH', { updatedAt: 90 })];
+      const copie = { companies: [mk('a', 'Kiabi', { updatedAt: 50 }), mk('b', 'Worldline', { updatedAt: 99 }), mk('c', 'OVH', { updatedAt: 20 }),
+        mk('d', 'Thales', { updatedAt: 5 }), mk('e', 'Sopra', { updatedAt: 6 })], tombs: [{ id: 'e', t: 1000 }] };
+      const avant = JSON.stringify(ici);
+      const a = apercuCopie(copie, { companies: ici, orphans: [], profile: normalizeProfile({}), tombs: [] });
+      eq(a.nouvelles.map(x => x.name), ['Thales']);
+      eq(a.plusRecentes.map(x => x.name), ['Worldline']);
+      /* Kiabi identique et OVH plus récent ici : déjà là ; Sopra, supprimée depuis, ne revient pas */
+      eq([a.dejaLa, a.ecartees, a.retirees, a.contacts, a.profil, a.liaison, a.vide], [2, 1, 0, 0, false, false, false]);
+      eq(a.nouvelles[0], { id: 'd', name: 'Thales', city: 'Lille' });
+      eq(a.dejaLaListe.map(x => x.name), ['Kiabi', 'OVH']);
+      eq(JSON.stringify(ici), avant);
+      /* une copie qui n'apporte rien le dit */
+      eq(apercuCopie({ companies: ici }, { companies: ici, profile: normalizeProfile({}) }).vide, true);
+      /* le lien avec mes appareils et le profil plus récent comptent aussi */
+      const r = apercuCopie({ companies: [], liaison: 'abcde-fghij', profile: { name: 'Inès Martin', updatedAt: 500,
+        amis: [{ id: 'A'.repeat(22), nom: 'Karim Benali', parcours: [] }], groupes: [{ code: 'k7m3p-9xq2f-h4tn8', nom: 'BTS SIO Lille' }] } },
+        { companies: [], profile: normalizeProfile({ updatedAt: 1 }) });
+      eq([r.liaison, r.profil, r.vide], [true, true, false]);
+      eq(r.resume, { nom: 'Inès Martin', pistes: 0, amis: ['Karim'], groupes: ['BTS SIO Lille'] });
+    },
+    'copie : la ligne « Ma copie » dit ce qui existe, ou que rien ne la garde ailleurs': () => {
+      eq(etatCopie({}), 'aucune');
+      eq(etatCopie({ sansFilet: true, phrase: true, fichier: '3 nov.' }), 'seulement sur cet appareil');
+      eq(etatCopie({ phrase: true, fichier: '3 nov.', appareils: 2 }), 'phrase de secours · copie du 3 nov. · 2 appareils');
+      eq(etatCopie({ fichier: '3 nov.' }), 'copie du 3 nov.');
+      eq(etatCopie({ appareils: 1 }), 'aucune');
+    },
+    'amis : « ce que tes amis voient » est tiré du profil qui part, pas écrit à côté': () => {
+      const p = normalizeProfile({ name: 'Inès Martin', formation: 'BTS SIO', ville: 'Lille', phone: '0600000000', email: 'ines@mail.test',
+        parcours: [{ id: 'x1', entreprise: 'Kiabi', quoi: 'alternance', debut: '2025-09', fin: '' }], aide: ['relire'] });
+      const c = [normalizeCompany({ id: 'p1', name: 'OVH', vecu: 'stage' })];
+      const v = vuParMesAmis(p, c);
+      eq(v.nom, 'Inès Martin');
+      eq(v.entreprises, ['Kiabi', 'OVH']);
+      eq(v.aides, ['peut relire un CV']);
+      /* rien du privé : ni la formation, ni le téléphone, ni l'e-mail */
+      const dit = JSON.stringify(v);
+      ok(!/BTS SIO|0600000000|ines@mail/.test(dit));
+      eq(vuParMesAmis(normalizeProfile({}), []), { nom: '', entreprises: [], aides: [] });
     }
   };
   for (const name of Object.keys(tests)){

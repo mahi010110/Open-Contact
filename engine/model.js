@@ -149,6 +149,15 @@ export function manquesProfil(p){
   if (!String(p.email || '').trim()) out.push('email');
   return out;
 }
+/* Le même manque, dit à voix haute dans la liste de « Moi » (lot 4 de la
+   refonte) : « à compléter : ton nom, ton école ». Le nom compte ici, parce
+   que sans lui l'écran n'a rien d'autre à dire de la personne. */
+const MANQUE_DIT = { 'formation': 'ta formation', 'école': 'ton école',
+  'ce que tu cherches': 'ce que tu cherches', 'email': 'ton e-mail' };
+export function manquesDits(p){
+  p = p || {};
+  return [...(String(p.name || '').trim() ? [] : ['ton nom']), ...manquesProfil(p).map(m => MANQUE_DIT[m] || m)];
+}
 /* une adresse qu'un recruteur peut utiliser — pas une validation RFC,
    juste de quoi attraper l'oubli du @ ou du domaine */
 export const emailPlausible = s => /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(String(s || '').trim());
