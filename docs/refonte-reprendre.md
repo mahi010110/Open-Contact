@@ -561,6 +561,14 @@ doit y entrer. La page d'essai n'enregistre pas de service worker.
   page s'y ouvrait (des pistes reçues) : rien ne se voyait.
 - Sans service worker, une icône jamais chargée ne vient pas hors ligne :
   un scénario la charge avant de couper le réseau.
+- L'artefact de la CI (les captures WebKit) ne se télécharge pas d'ici :
+  son adresse est refusée. Le journal du job, lui, se lit (outil GitHub
+  `get_job_logs`) : `regard-webkit.mjs` y écrit ses relevés, en clair.
+- Safari dit en console qu'il ignore `interactive-widget` (le clavier
+  d'Android) : attendu, le regard ne le compte pas.
+- Une offre copiée d'un site se lit par sa FORME : `tests.js` en garde
+  sept (« les mises en page des sites courants »). Une forme neuve qui se
+  lit mal s'y ajoute d'abord, puis la table.
 
 - `innerText` rend les majuscules que le CSS impose (`text-transform`) :
   un scénario compare sans la casse.

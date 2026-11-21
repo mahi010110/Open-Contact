@@ -800,3 +800,21 @@ Validé sous réserve de son essai sur l'iPhone.
 Non vérifié : WebKit (iPhone) ; le collage et le dépôt réels (joués ici
 par des événements simulés) ; des offres réelles, que la table ne lit
 que si elle les reconnaît.
+
+### Après le lot 6 : les améliorations (21 novembre 2026)
+
+Pendant qu'il essaie le lot 6 (« Continue ce que tu as à faire et les
+améliorations s'il y en a ») :
+
+- **Les offres des sites courants** se lisent : la forme copiée depuis
+  LinkedIn, Indeed, Welcome to the Jungle, HelloWork, France Travail, La
+  bonne alternance, le mail d'une école. L'entreprise au-dessus du titre
+  ne devient plus le poste ; « Offre de stage » n'est pas un poste.
+- **Sous WebKit**, le moteur de l'iPhone, joué par la CI sur chaque écran
+  (téléphone 390 et 360 px, poste, clair et sombre) : rien qui déborde,
+  rien de raboté, aucune cible trop petite, aucune erreur de la page.
+- Au poste, pendant une recherche, la barre d'état dit la recherche.
+- La garde des mots (§7) lit aussi la nouvelle interface : « Ton
+  camarade le scanne » est devenu « Il se scanne, même sans l'app : on
+  voit les pistes avant de les prendre. »
+
