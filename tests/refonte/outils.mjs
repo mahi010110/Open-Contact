@@ -40,8 +40,10 @@ export async function lancer(nom){
     const ici = `${w}${o.sombre ? ' sombre' : ''}`;
     p.on('pageerror', e => etat.erreurs.push(ici + ' · ' + String(e)));
     /* les refus que le scénario provoque exprès (500, 429, le réseau
-       coupé) s'affichent en console : ce ne sont pas des fautes de l'app */
-    p.on('console', m => { if (m.type() === 'error' && !/status of (500|429)|ERR_INTERNET_DISCONNECTED/.test(m.text())) etat.erreurs.push(ici + ' · ' + m.text()); });
+       coupé) s'affichent en console : ce ne sont pas des fautes de l'app.
+       Même chose de notre propre fermeture, en pleine négociation d'une
+       liaison entre appareils (la bibliothèque la dit en console) */
+    p.on('console', m => { if (m.type() === 'error' && !/status of (500|429)|ERR_INTERNET_DISCONNECTED|User-Initiated Abort|reason=Close called/.test(m.text())) etat.erreurs.push(ici + ' · ' + m.text()); });
     await p.goto(base + '/refonte.html' + (o.adresse || ''));
     await p.waitForFunction(() => document.documentElement.classList.contains('pret'));
     await p.waitForTimeout(120);

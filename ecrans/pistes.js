@@ -32,7 +32,8 @@ import { laSuite, aFaire, etapeDe, suivante, noterEnvoi, noterEcrit, noterEntret
          quandPasse } from '../engine/suite.js';
 import { suiteDe, cocherSuite } from '../engine/contrat.js';
 import { fillTpl, crochets, remplirTrous, normalizeContact, normalizeCompany, emailPlausible, RECHERCHES,
-         defaultTemplates, pushHist } from '../engine/model.js';
+         pushHist } from '../engine/model.js';
+import { modeleDe as modeleDuProfil } from '../engine/modeles.js';
 import { formeAgenda, rappelICS, lienAgendaGoogle } from '../engine/agenda.js';
 import { aQui } from '../engine/carte.js';
 import { todayISO } from '../engine/utils.js';
@@ -252,11 +253,10 @@ function pageP(c){
 }
 
 /* ---------- écrire : un message, quatre formes ---------- */
-const NOMS_MODELES = { premier: 'Candidature spontanée', relance: 'Relance', merci: 'Remerciement après entretien' };
-function modeleDe(k){
-  const l = S.profile.templates || [];
-  return l.find(t => t && t.name === NOMS_MODELES[k]) || defaultTemplates().find(t => t.name === NOMS_MODELES[k]);
-}
+/* les trois messages types se retrouvent à leur nom (engine/modeles.js) :
+   celui du profil, sinon l'original — c'est aussi ce que « Moi › Mes
+   messages types » modifie */
+const modeleDe = k => modeleDuProfil(S.profile, k);
 function signature(){
   const p = S.profile;
   return ['Bien à vous,', p.name || '[ton nom]', p.ecole, [p.phone, p.email].filter(Boolean).join(' — ')].filter(Boolean).join('\n');
@@ -293,6 +293,13 @@ function modele(c, k, canal){
   d.m = fillTpl(t.body, c, vise, p, { trous: true, companies: S.companies });
   if (canal === 'site'){ d.o = ''; d.m = d.m.replace(/^Bonjour [^\n]*,/, 'Bonjour,'); }
   return d;
+}
+/* le profil ou un modèle a changé (« Moi ») : les brouillons que personne
+   n'a touchés repartent du nouveau texte, les autres ne bougent pas
+   (invariant ②) */
+export function oublierBrouillons(k){
+  Object.keys(br).forEach(key => { if ((!k || key.split('|')[1] === k) && !br[key].touche) delete br[key]; });
+  garderSession();
 }
 function brouillon(id, k, canal){
   const cle = id + '|' + k + '|' + canal;

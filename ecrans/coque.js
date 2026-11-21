@@ -18,6 +18,10 @@
 
    La coque ne connaît aucun écran : chaque onglet s'y inscrit
    (`inscrire`), chaque page aussi (`inscrirePage`).
+
+   Une page peut dire `focus(p, ecran)` : elle prend la main quand elle
+   s'ouvre pour être écrite (le profil d'un étudiant qui n'a pas encore
+   dit son nom).
    ============================================================ */
 import { $, $$, ic, esc, annoncer, calme, remplacer } from './outils.js';
 import { bus } from './etat.js';
@@ -230,6 +234,10 @@ export function rendre(o = {}){
   if (o.focus === 'page' && cle !== avant){
     const h = $('.s-page h4, .tb-t', ecran);
     if (h){ h.tabIndex = -1; h.focus({ preventScroll: true }); }
+    /* une page qui s'ouvre pour être ÉCRITE (un profil sans nom) prend la
+       main : dans le même geste, sans quoi le clavier d'un téléphone ne
+       monte pas */
+    if (p && PAGES[p.t] && PAGES[p.t].focus) PAGES[p.t].focus(p, ecran);
   } else if (o.focus === 'titre' || (o.focus === 'retour' && cle !== avant)){
     const r = o.retour && $$('[data-a]', ecran).find(x => cleDe(x) === o.retour);
     const h = r || $('h1, h2, h3', ecran);

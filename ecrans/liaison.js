@@ -1,0 +1,991 @@
+/* ============================================================
+   OpenContact · la nouvelle interface · la liaison de mes appareils
+   (docs/refonte-reprendre.md §8 ; repris de ui/synclive.js, sans rien
+   de l'ancienne interface : mêmes clés, mêmes messages, les deux
+   interfaces se parlent)
+
+   Dès qu'une phrase de liaison existe, l'app rejoint la salle en
+   arrière-plan (paresseusement, ~2 s après le démarrage) et y
+   RESTE : chaque enregistrement part vers les autres appareils,
+   chaque réception s'applique (le plus récent gagne, CONTRAT §5)
+   avec un « Annuler » de 30 s — tant que l'utilisateur n'a pas rompu
+   le lien. L'écran (« Moi › Ma copie › Mes appareils ») n'est que le
+   poste de gestion de cet état : il n'ouvre plus de connexion.
+   L'état est diffusé par l'événement `oc:sync` ; le transport
+   (Trystero vendorisé) reste chargé à la demande.
+   ============================================================ */
+import { uid } from '../engine/utils.js';
+import { normalizeProfile } from '../engine/model.js';
+import { fullPayload } from '../engine/exchange.js';
+import { syncMerge, syncPrivateMerge } from '../engine/sync.js';
+import { edAvailable, makeDeviceKeys, recoveryKeys, ringInit, ringAddDevice,
+         ringCommand, ringTransfer, ringRecover, ringRekey, ringRename, nomAppareil,
+         mergeRing, actionsFor, deviceIn, edSign, edVerify } from '../engine/ring.js';
+import { SYNC_KEY, RELAYS_KEY, TURN_KEY, DEVICE_KEY, DEVICES_KEY, RING_KEY,
+         CAMPAIGNS_KEY, MISSIONS_KEY, kvGet, kvSet, effacerCetAppareil } from '../engine/storage.js';
+import { causeLiaison, relayTally, liaisonStage, RELAIS_DEFAUT, TURN_DEFAUT,
+         PORTAGE_APRES_MS, PORTAGE_RELANCE_MS, PORTAGE_PAS_MS } from '../engine/transport.js';
+import { clePortage, sceller, ouvrir as ouvrirMessage, recolte, makeCleEchange, cleEntre,
+         decouperScelle, rassemblerScelle } from '../engine/portage.js';
+import { fnv } from '../engine/crypto.js';
+import { S, bus, applySynced, saveProfile, logJ } from './etat.js';
+import { toast, annuler } from './coque.js';
+
+let libP = null;
+let libM = null;    /* le module chargé — pour sonder l'état réel des relais */
+/* un échec de chargement ne se grave pas : sans ça, la première visite
+   hors ligne condamnait le P2P jusqu'au rechargement (la promesse
+   rejetée restait en cache alors que « Réessayer » relançait join) */
+const loadLib = () => libP || (libP = import('../assets/vendor/trystero-nostr.min.js')
+  .then(m => (libM = m), e => { libP = null; throw e; }));
+
+/* LES RELAIS QUI PORTENT VRAIMENT QUELQUE CHOSE.
+
+   Trois versions de cette mesure se sont succédé, chacune un cran plus
+   près de la capacité réelle : « socket ouverte », puis « il a
+   répondu », puis « il n'a pas refusé poliment ». Toutes les trois
+   se trompaient de la même façon, et la troisième a laissé passer le
+   cas le plus courant : un relais qui avale la publication **en
+   silence**. Socket ouverte, lectures servies, pas un mot sur ce qu'on
+   lui a donné à relayer — donc jamais dans `relaisQuiRefusent`, donc
+   compté vivant, donc « En attente » à l'infini. Mesuré sur deux vrais
+   téléphones, sur les trois fonctions à la fois.
+
+   CE QUI COMPTE EST LA PREUVE DE PORTAGE, et il y en a exactement deux,
+   toutes deux non ambiguës et déjà présentes sur le même socket :
+   · `["OK", <id>, true]` — il dit lui-même avoir PRIS notre événement ;
+   · `["EVENT", …]` qu'il nous DÉLIVRE — il relaie, c'est prouvé.
+   Un EOSE, un NOTICE ou le silence ne disent rien de cette capacité-là.
+
+   `relaisQuiRefusent` reste tenu à part, pour le seul diagnostic :
+   « il refuse » et « il ne répond pas » appellent des gestes
+   différents, et se tromper de cause coûte plus cher que ne pas
+   savoir. Un relais qui porte ensuite s'en trouve racheté — un
+   plafond de débit passager ne le condamne pas pour la session. */
+/* A-T-IL DIT UN MOT ? La mesure la plus ancienne, et elle reste juste :
+   un socket accepté par un serveur qui ne répond JAMAIS rien est un trou
+   noir. L'ensemble ne fait que grandir — un relais qui a parlé une fois
+   ne sera plus accusé sur un doute ; un socket refermé sort de toute
+   façon du compte par son `readyState`. */
+const relaisQuiRepondent = new Set();
+const relaisQuiPortent = new Set();
+const relaisQuiRefusent = new Set();
+function ecouterRelais(socks){
+  for (const k in (socks || {})){
+    const s = socks[k];
+    if (!s || s.__ocEcoute) continue;
+    s.__ocEcoute = true;
+    s.addEventListener('message', e => {
+      relaisQuiRepondent.add(k);
+      /* on ne déplie que ce qui peut être un verdict : les événements
+         relayés sont nombreux et gros, les accusés de réception non */
+      const d = e && e.data;
+      if (typeof d !== 'string' || d.length > 2048) return;
+      if (d.indexOf('"OK"') < 0 && d.indexOf('"EVENT"') < 0) return;
+      let m;
+      try { m = JSON.parse(d); } catch (x) { return; }
+      if (!Array.isArray(m)) return;
+      if (m[0] === 'OK' && m[2] === false){ relaisQuiRefusent.add(k); return; }
+      if (m[0] === 'OK' && m[2] === true){ relaisQuiPortent.add(k); relaisQuiRefusent.delete(k); return; }
+      if (m[0] === 'EVENT'){ relaisQuiPortent.add(k); relaisQuiRefusent.delete(k); }
+    });
+  }
+}
+/* ON S'ABONNE TÔT, PAS AU PREMIER SONDAGE. `watchLiaison` ne relève
+   qu'à 2 s, et un relais Nostr sain répond bien avant — son EOSE
+   arrivait donc AVANT qu'on écoute, et il ne comptait jamais comme
+   vivant. Zéro vivant vaut « Pas de connexion » : le remède du commit
+   précédent pouvait donc inventer la panne qu'il servait à voir. Les
+   sockets naissent de façon échelonnée, on repasse donc plusieurs fois
+   pendant les deux premières secondes. */
+function ecouterTot(){
+  for (const d of [0, 60, 150, 300, 600, 1000, 1500])
+    setTimeout(() => { try { ecouterRelais(libM && libM.getRelaySockets()); } catch (e) {} }, d);
+}
+
+/* l'état réel des WebSockets vers les relais — {total, open, pending,
+   vivants}. Sans bibliothèque chargée : rien à sonder, tout à zéro. */
+export const relaySnapshot = () => {
+  const socks = libM && libM.getRelaySockets();
+  ecouterRelais(socks);
+  return relayTally(socks, relaisQuiRepondent, relaisQuiRefusent, relaisQuiPortent);
+};
+
+/* délai de grâce avant de déclarer « aucun relais joignable » : les
+   sockets se (re)connectent, on ne crie pas au loup au premier instant */
+const GRACE_MS = 12000;
+
+/* surveille l'honnêteté d'une salle éphémère (promo, rendez-vous QR) :
+   rappelle `cb(stage)` toutes les 2 s — stage de engine/transport.js.
+   `fail()` se branche sur onJoinError (pair annoncé, liaison en échec). */
+export function watchLiaison(getPeers, cb){
+  const t0 = Date.now();
+  let rtcFail = false, cause = '';
+  const tick = () => cb(liaisonStage({
+    relays: relaySnapshot(), peers: getPeers(), exchanged: getPeers() > 0,
+    rtcFail, graceOver: Date.now() - t0 > GRACE_MS
+  }), cause);
+  const iv = setInterval(tick, 2000);
+  /* `fail` reçoit l'erreur de Trystero et la garde : trois pannes très
+     différentes passent par ce seul rappel, et les jeter revenait à
+     dire « rien ne passe » aussi bien à qui s'est trompé de code qu'à
+     qui a besoin d'un TURN (engine/transport.js, `causeLiaison`). */
+  return { stop: () => clearInterval(iv), tick,
+    fail: err => { rtcFail = true; cause = causeLiaison(err); dernierEchec = cause; tick(); } };
+}
+
+/* la dernière cause d'échec vue dans la session — le rapport « Signaler
+   un problème » la porte : c'est la panne qu'on ne peut pas voir à
+   distance, donc celle qu'un rapport doit dire. */
+let dernierEchec = '';
+export const echecLiaison = () => dernierEchec;
+
+async function sha256hex(s){
+  const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+  return Array.from(new Uint8Array(h)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+/* la phrase ne sort jamais telle quelle : la salle porte un hash.
+   Relais personnalisés possibles (oc_relays_v1). Le préfixe reste
+   historique (« sync- », « promo- », « give- » pour le QR de
+   rendez-vous) — compat entre versions. */
+export async function openRoom(kind, phrase, callbacks){
+  const { joinRoom } = await loadLib();
+  const id = kind + '-' + (await sha256hex('opencontact·' + kind + '·' + phrase)).slice(0, 24);
+  const cfg = { appId: 'opencontact', password: phrase };
+  /* Les relais sont ÉPINGLÉS (`RELAIS_DEFAUT`, voir engine/transport.js) :
+     sans liste, Trystero n'en tire que cinq sur quarante-trois, les
+     mêmes pour tout le monde — cinq pannes possibles pour un seul échec,
+     et aucun repli. La liste de l'utilisateur reste prioritaire. */
+  cfg.relayConfig = { urls: RELAIS_DEFAUT };
+  try {
+    const urls = JSON.parse(await kvGet(RELAYS_KEY) || 'null');
+    if (Array.isArray(urls) && urls.length) cfg.relayConfig = { urls };
+  } catch (e) {}
+  /* LE TURN NE SE RÈGLE PAS : il est là, ou la liaison échoue entre
+     deux réseaux différents. Celui de l'utilisateur prime ; sinon on
+     compose les adresses mesurées (`TURN_DEFAUT`, vide tant qu'aucune
+     n'a prouvé qu'elle porte une liaison). Il ne sert QUE si le chemin
+     direct échoue — c'est WebRTC qui en décide, pas nous. */
+  cfg.turnConfig = TURN_DEFAUT;
+  try {
+    const turn = JSON.parse(await kvGet(TURN_KEY) || 'null');
+    if (Array.isArray(turn) && turn.length) cfg.turnConfig = turn;
+  } catch (e) {}
+  if (!cfg.turnConfig.length) delete cfg.turnConfig;
+  const r = joinRoom(cfg, id, callbacks);
+  ecouterTot();   /* voir `ecouterTot` : un relais sain répond avant le premier sondage */
+  return r;
+}
+/* LE PORTAGE PAR RELAIS (engine/portage.js) — le tuyau qui reste
+   quand aucun chemin direct ne s'ouvre. Il emprunte les relais que
+   la salle vient d'ouvrir (`relayTopic`, exposé par le bundle — voir
+   assets/vendor/VERSIONS.txt) : pas une connexion de plus, et les
+   mêmes relais que ceux qui ont trouvé l'autre appareil.
+   `surMessage` ne reçoit que des messages scellés avec le code ET
+   venus de quelqu'un d'autre. Les relais qui s'ouvrent après coup
+   sont rattrapés : on repasse toutes les secondes. */
+export async function ouvrirPortage(code, surMessage, espace = 'rdv'){
+  const lib = await loadLib();
+  const T = lib.relayTopic;
+  const k = await clePortage(code, espace);
+  const moi = lib.selfId;
+  const vus = new Set();
+  const abonnes = new Map();          /* client relais → désabonnement */
+  let ferme = false;
+  const recevoir = async (t, contenu) => {
+    if (ferme || vus.has(contenu)) return;
+    if (vus.size > 400) vus.clear();  /* une mémoire courte suffit : les doublons arrivent ensemble */
+    vus.add(contenu);                 /* le même événement arrive par plusieurs relais */
+    const m = await ouvrirMessage(k, contenu);
+    if (m && m.de !== moi && !ferme) surMessage(m);
+  };
+  const rattraper = () => {
+    for (const c of T.clients()) if (!abonnes.has(c)) abonnes.set(c, T.subscribe(c, k.sujet, recevoir));
+  };
+  rattraper();
+  const iv = setInterval(rattraper, 1000);
+  return {
+    moi,
+    envoyer: async msg => {
+      if (ferme) return;
+      const txt = await sceller(k, Object.assign({ de: moi }, msg));
+      for (const c of T.clients()) T.publish(c, k.sujet, txt).catch(() => {});
+    },
+    fermer: () => {
+      if (ferme) return;
+      ferme = true;
+      clearInterval(iv);
+      for (const stop of abonnes.values()) try { stop(); } catch (e) {}
+      abonnes.clear();
+    }
+  };
+}
+
+/* Quitter une salle POUR DE BON — à utiliser partout, jamais
+   `room.leave()` seul. `leave()` est ASYNCHRONE (départ annoncé aux
+   relais, connexions fermées, abonnements retirés) et rend une
+   promesse : rejoindre la même salle sans l'attendre laisse les deux
+   côtés en morceaux — celui qui revient garde un pair FANTÔME (« en
+   liaison » qui n'échange jamais rien) et l'autre le voit partir sans
+   jamais le revoir. Les rappels sont détachés d'abord : une salle
+   morte ne doit plus toucher à l'état affiché. */
+export async function leaveRoom(r){
+  if (!r) return;
+  try { r.onPeerJoin = null; r.onPeerLeave = null; } catch (e) {}
+  try { await r.leave(); } catch (e) {}
+}
+/* phrase de liaison : 10 caractères sans ambiguïté, faciles à taper */
+export function makePhrase(){
+  const abc = 'abcdefghjkmnpqrstuvwxyz23456789';
+  const u = crypto.getRandomValues(new Uint8Array(10));
+  const c = i => abc[u[i] % abc.length];
+  return [0, 1, 2, 3, 4].map(c).join('') + '-' + [5, 6, 7, 8, 9].map(c).join('');
+}
+
+/* ---------- identité de CET appareil & appareils vus ---------- */
+function guessName(){
+  const ua = navigator.userAgent;
+  const os = /iPhone/.test(ua) ? 'iPhone' : /iPad/.test(ua) ? 'iPad'
+    : /Android/.test(ua) ? 'Android' : /Windows/.test(ua) ? 'Windows'
+    : /Mac/.test(ua) ? 'Mac' : /Linux/.test(ua) ? 'Linux' : 'Appareil';
+  const br = /Edg\//.test(ua) ? 'Edge' : /Firefox\//.test(ua) ? 'Firefox'
+    : /Chrome\//.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari' : '';
+  return os + (br ? ' · ' + br : '');
+}
+/* UNE SEULE IDENTITÉ, MÊME DEMANDÉE DEUX FOIS À LA FOIS. La première
+   lecture trouve le stockage vide et fabrique un identifiant ; deux
+   premières lectures simultanées en fabriquaient DEUX — la dernière
+   écrite gagnait sur le disque, pendant que la sync gardait l'autre en
+   mémoire et l'annonçait. L'appareil changeait d'identité au lancement
+   suivant, et ses pairs le voyaient apparaître deux fois. Mesuré en
+   reliant deux navigateurs : l'identifiant lu par l'écran n'était pas
+   celui que la liaison annonçait. La promesse est donc partagée : tous
+   les appelants attendent la même. */
+let selfP = null;
+export function deviceSelf(){
+  if (!selfP) selfP = (async () => {
+    try {
+      const d = JSON.parse(await kvGet(DEVICE_KEY) || 'null');
+      if (d && d.id) return d;
+    } catch (e) {}
+    const d = { id: uid(), name: guessName() };
+    await kvSet(DEVICE_KEY, JSON.stringify(d));
+    return d;
+  })().catch(e => { selfP = null; throw e; });
+  return selfP.then(d => Object.assign({}, d));
+}
+export async function loadDevices(){
+  try { return JSON.parse(await kvGet(DEVICES_KEY) || '[]') || []; } catch (e) { return []; }
+}
+async function upsertDevice(id, name){
+  const list = (await loadDevices()).filter(d => d && d.id && d.id !== id);
+  list.unshift({ id, name: String(name || 'Appareil').slice(0, 40), seen: Date.now() });
+  list.sort((a, b) => (b.seen || 0) - (a.seen || 0));
+  await kvSet(DEVICES_KEY, JSON.stringify(list.slice(0, 12)));
+}
+export async function removeDevice(id){
+  const list = (await loadDevices()).filter(d => d.id !== id);
+  await kvSet(DEVICES_KEY, JSON.stringify(list));
+}
+export const DEVICES_MAX = 5;
+
+/* ---------- le nom d'un appareil ----------
+   Dès qu'un anneau existe, c'est LUI qui fait foi : le principal a signé
+   ce nom. Sinon, celui que l'appareil annonce de lui-même. */
+export function nomDe(id, annonce){
+  const d = getRing() && deviceIn(getRing(), id);
+  return (d && d.name) || annonce || 'Appareil';
+}
+/* Le principal m'a renommé : j'adopte ce nom, et c'est lui que
+   j'annonce désormais — sans ça, je continuerais de me présenter sous
+   l'ancien à chaque reconnexion. */
+let nomAdopte = null;
+async function adopterMonNom(){
+  const self = await deviceSelf();
+  const d = getRing() && deviceIn(getRing(), self.id);
+  if (!d || !d.name || d.name === self.name) return false;
+  const renomme = Object.assign({}, self, { name: d.name });
+  await kvSet(DEVICE_KEY, JSON.stringify(renomme));
+  selfP = Promise.resolve(renomme);
+  nomAdopte = d.name;
+  if (sendHello) sendHello();
+  return true;
+}
+
+/* Sans anneau, personne n'a autorité sur les noms : chaque appareil
+   choisit le SIEN, et l'annonce à la prochaine poignée de main. Ce n'est
+   un pouvoir sur personne d'autre — c'est pour ça qu'il ne demande ni
+   principal, ni code. Dès qu'un anneau existe, c'est le principal qui
+   nomme (`ringRenommer`) : deux autorités sur un même nom finiraient par
+   se contredire d'un écran à l'autre. */
+export async function renommerSoi(brut){
+  await loadRingSt();
+  if (getRing()) return false;
+  const nom = nomAppareil(brut);
+  if (!nom) return false;
+  const self = await deviceSelf();
+  if (nom === self.name) return true;
+  const renomme = Object.assign({}, self, { name: nom });
+  await kvSet(DEVICE_KEY, JSON.stringify(renomme));
+  selfP = Promise.resolve(renomme);
+  nomAdopte = nom;
+  logJ('Appareil renommé : ' + self.name + ' → ' + nom);
+  if (sendHello) sendHello();
+  emit();
+  return true;
+}
+
+/* ---------- l'anneau d'appareils (appareil principal) ----------
+   État persistant : { keys: {pub, seed}, ring, applied: [cid…] } —
+   scellé au repos quand le profil est protégé (SEALABLE). Les
+   commandes reçues me visant sont appliquées ici ; « verrouiller »
+   est délégué au verrou par événement (pas d'import croisé). */
+let ringSt = null;
+let ringLoaded = false;
+async function loadRingSt(){
+  if (ringLoaded) return ringSt;
+  ringLoaded = true;
+  try { ringSt = JSON.parse(await kvGet(RING_KEY) || 'null'); } catch (e) { ringSt = null; }
+  return ringSt;
+}
+const saveRingSt = () => kvSet(RING_KEY, JSON.stringify(ringSt));
+export const getRing = () => (ringSt && ringSt.ring) || null;
+/* l'anneau LU, pas supposé : `getRing()` rend `null` tant que rien ne
+   l'a chargé — hors ligne, la liaison peut ne jamais y arriver. Un
+   écran qui décide « pas d'anneau, donc chacun se nomme » doit d'abord
+   l'avoir lu, sinon un appareil ordinaire se verrait offrir un geste
+   qui refuserait en silence. */
+export async function anneauLu(){
+  await loadRingSt();
+  return getRing();
+}
+export async function ringOrdinateur(){
+  await loadRingSt();
+  return ((getRing() && getRing().devices) || []).find(d => d && d.role === 'ordinateur') || null;
+}
+export async function amMain(){
+  const r = getRing();
+  if (!r) return false;
+  return r.main === (await deviceSelf()).id;
+}
+/* les clés de CET appareil — créées au premier besoin */
+export async function ensureKeys(){
+  await loadRingSt();
+  if (ringSt && ringSt.keys) return ringSt.keys;
+  if (!(await edAvailable())) return null;
+  const keys = await makeDeviceKeys();
+  ringSt = Object.assign({ ring: null, applied: [] }, ringSt || {}, { keys });
+  await saveRingSt();
+  return keys;
+}
+/* la moitié d'échange de CET appareil (engine/portage.js, `cleEntre`) —
+   créée au premier besoin, gardée avec ses clés d'identité */
+async function ensureEchange(){
+  await loadRingSt();
+  if (ringSt && ringSt.xkeys) return ringSt.xkeys;
+  let xkeys;
+  try { xkeys = await makeCleEchange(); } catch (e) { return null; }
+  ringSt = Object.assign({ ring: null, keys: null, applied: [] }, ringSt || {}, { xkeys });
+  await saveRingSt();
+  return xkeys;
+}
+/* à l'activation de la protection : cet appareil devient le principal */
+export async function ensureRing(recoveryPhrase){
+  const keys = await ensureKeys();
+  if (!keys) return false;
+  if (ringSt.ring) return true;
+  const self = await deviceSelf();
+  const rec = await recoveryKeys(recoveryPhrase);
+  ringSt.ring = await ringInit(self, keys.pub, keys.seed, rec.pub);
+  await saveRingSt();
+  logJ('Appareil principal : ' + self.name);
+  sendRing();
+  emit();
+  return true;
+}
+/* récupération d'urgence (D7) : cet appareil devient le principal,
+   prouvé par l'ANCIENNE phrase, re-scellé par la NOUVELLE */
+export async function recoverRing(oldPhrase, newPhrase){
+  const keys = await ensureKeys();
+  if (!keys) return false;
+  const self = await deviceSelf();
+  const newRec = await recoveryKeys(newPhrase);
+  if (ringSt.ring){
+    const oldRec = await recoveryKeys(oldPhrase);
+    ringSt.ring = await ringRecover(ringSt.ring, oldRec.seed, self, keys.pub, newRec.pub);
+  } else {
+    ringSt.ring = await ringInit(self, keys.pub, keys.seed, newRec.pub);
+  }
+  ringSt.applied = [];
+  await saveRingSt();
+  logJ('Récupération : cet appareil devient le principal');
+  sendRing();
+  emit();
+  return true;
+}
+/* Refaire sa phrase de secours (papier perdu, code encore connu) :
+   l'anneau doit porter la clé de la NOUVELLE phrase, sinon le secours
+   d'urgence désignerait encore l'ancienne — et ça se saurait le jour
+   où il faut s'en servir, c'est-à-dire trop tard.
+   Signé par la clé de CET appareil, pas par l'ancienne clé de secours
+   qu'on n'a justement plus. Réservé au principal (voir ringRekey).
+   Sans anneau du tout, il n'y a rien à renouveler : la nouvelle phrase
+   vaudra dès qu'un anneau sera créé. */
+export async function rekeyRing(newPhrase){
+  await loadRingSt();
+  if (!ringSt || !ringSt.ring || !ringSt.keys) return false;
+  if (!(await amMain())) return false;
+  const self = await deviceSelf();
+  const newRec = await recoveryKeys(newPhrase);
+  ringSt.ring = await ringRekey(ringSt.ring, ringSt.keys.seed, self.id, newRec.pub);
+  await saveRingSt();
+  sendRing();
+  emit();
+  return true;
+}
+/* commandes du principal (l'appelant a déjà re-demandé le code) */
+export async function ringDo(cmd, targetId){
+  if (!(await amMain())) return false;
+  ringSt.ring = await ringCommand(ringSt.ring, ringSt.keys.seed, cmd, targetId);
+  await saveRingSt();
+  if (cmd === 'remove' || cmd === 'ban' || cmd === 'wipe') await removeDevice(targetId);
+  logJ('Commande appareil : ' + cmd + ' → ' + targetId);
+  sendRing();
+  emit();
+  return true;
+}
+/* renommer — le principal seul (engine/ring.js, `ringRename`) ; les
+   autres appareils l'apprennent avec l'anneau, comme toute commande */
+export async function ringRenommer(targetId, brut){
+  if (!(await amMain())) return false;
+  const self = await deviceSelf();
+  const avant = nomDe(targetId);
+  ringSt.ring = await ringRename(ringSt.ring, ringSt.keys.seed, self.id, targetId, brut);
+  await saveRingSt();
+  await adopterMonNom();
+  logJ('Appareil renommé : ' + avant + ' → ' + nomAppareil(brut));
+  sendRing();
+  emit();
+  return true;
+}
+export async function ringMakeMain(targetId){
+  if (!(await amMain())) return false;
+  ringSt.ring = await ringTransfer(ringSt.ring, ringSt.keys.seed, targetId);
+  await saveRingSt();
+  logJ('Rôle principal transféré');
+  sendRing();
+  emit();
+  return true;
+}
+/* le principal inscrit l’ordinateur dans l'anneau (rôle ordinateur) —
+   identité apprise sur le canal local authentifié par le code court */
+export async function ringAddOrdinateur(dev){
+  if (!(await amMain())) return false;
+  ringSt.ring = await ringAddDevice(ringSt.ring, ringSt.keys.seed,
+    { id: dev.id, name: dev.name, pub: dev.pub, role: 'ordinateur' });
+  await saveRingSt();
+  logJ('Ordinateur associé : ' + dev.name);
+  sendRing();
+  emit();
+  return true;
+}
+/* réception d'un anneau distant : fusion vérifiée, puis les
+   commandes qui me visent — appliquées UNE fois, même hors ligne
+   au moment de l'émission (elles voyagent dans l'anneau) */
+async function onRingMsg(incoming){
+  await loadRingSt();
+  const mine = getRing();
+  const r = await mergeRing(mine, incoming);
+  if (!r.changed) return;
+  ringSt = Object.assign({ keys: null, applied: [] }, ringSt || {}, { ring: r.ring });
+  await saveRingSt();
+  if (r.recovered) toast('Ton appareil principal a changé — récupération d’urgence.');
+  await adopterMonNom();
+  const self = await deviceSelf();
+  const acts = actionsFor(r.ring, self.id, ringSt.applied);
+  for (const a of acts){
+    ringSt.applied = (ringSt.applied || []).concat([a.cid]).slice(-80);
+    await saveRingSt();
+    if (a.cmd === 'lock'){
+      document.dispatchEvent(new CustomEvent('oc:ringlock'));
+      toast('Verrouillé depuis ton appareil principal.');
+    } else if (a.cmd === 'remove' || a.cmd === 'ban'){
+      await breakLink();
+      toast('Cet appareil a été retiré de tes appareils.');
+    } else if (a.cmd === 'wipe'){
+      logJ('Effacement demandé par l’appareil principal');
+      /* TOUT ce qui est à l'utilisateur part : données, suivi,
+         campagnes, jetons de messagerie, clés d'IA, missions,
+         identité d'appareil, documents (CV, lettre) */
+      await effacerCetAppareil();   /* la même liste que « Effacer cet appareil » */
+      location.replace(location.pathname);
+      return;
+    }
+  }
+  emit();
+}
+let sendRingRaw = null;
+function sendRing(){
+  const r = getRing();
+  if (r && sendRingRaw) sendRingRaw(r);
+  if (r && portageSync) portageSync.ring(r);
+}
+
+/* ---------- l'état vivant ---------- */
+const live = {
+  state: 'off',        /* off · connecting · norelay · wait · rtcfail · link · on · err */
+  peers: 0,
+  relays: { total: 0, open: 0, pending: 0 },
+  exchanged: false,    /* un échange a réellement été reçu — condition de « à jour » */
+  rtcFail: false,      /* pair annoncé mais liaison en échec */
+  cause: '',           /* POURQUOI — `causeLiaison`, engine/transport.js */
+  since: 0,            /* départ de la (re)connexion — pour le délai de grâce */
+  phrase: '',
+  lastStats: null,     /* dernier lot appliqué (affiché par la feuille) */
+  prevProfile: null    /* mon profil d'avant, si celui d'un autre appareil a été pris */
+};
+export const getSync = () => live;
+const emit = () => document.dispatchEvent(new CustomEvent('oc:sync'));
+
+/* recalcule l'étape honnête depuis les faits ; émet si elle a bougé */
+let watchIv = null;
+function refreshStage(force){
+  if (!room) return;
+  const relays = relaySnapshot();
+  const stage = liaisonStage({
+    relays, peers: recompter(), exchanged: live.exchanged,
+    rtcFail: live.rtcFail, graceOver: Date.now() - live.since > GRACE_MS
+  });
+  const moved = stage !== live.state ||
+    relays.open !== live.relays.open || relays.total !== live.relays.total;
+  live.relays = relays;
+  live.state = stage;
+  if (moved || force) emit();
+}
+function startWatch(){
+  stopWatch();
+  watchIv = setInterval(() => refreshStage(false), 2000);
+}
+function stopWatch(){
+  if (watchIv){ clearInterval(watchIv); watchIv = null; }
+}
+
+let room = null;
+let sendFull = null;
+let sendHello = null;
+/* les appareils reliés EN DIRECT ; `live.peers` y ajoute ceux qu'on
+   n'entend que par les relais (voir `ouvrirPortageSync`) */
+let directs = 0;
+let portageSync = null;
+const recompter = () => (live.peers = directs + (portageSync ? portageSync.horsDirect().length : 0));
+let lastSent = '';
+let sendJob = null;
+let sendAgain = false;
+let gen = 0;             /* jeton : une (re)connexion invalide les précédentes */
+
+const parseList = raw => {
+  try { const v = JSON.parse(raw || '[]'); return Array.isArray(v) ? v : []; }
+  catch (e) { return []; }
+};
+async function privateState(){
+  const [campaigns, missions] = await Promise.all([kvGet(CAMPAIGNS_KEY), kvGet(MISSIONS_KEY)]);
+  return { campaigns: parseList(campaigns), missions: parseList(missions) };
+}
+async function writePrivateState(next){
+  await Promise.all([
+    kvSet(CAMPAIGNS_KEY, JSON.stringify(next.campaigns || [])),
+    kvSet(MISSIONS_KEY, JSON.stringify(next.missions || []))
+  ]);
+  document.dispatchEvent(new CustomEvent('oc:campaigns-sync'));
+  document.dispatchEvent(new CustomEvent('oc:change'));
+}
+/* API volontairement petite, aussi utilisée par le scénario C8 : elle
+   applique exactement le même rail privé que la réception réseau. */
+export async function applyPrivatePayload(payload){
+  const mine = await privateState();
+  const merged = syncPrivateMerge(payload || {}, mine);
+  if (merged.stats.campaigns || merged.stats.missions) await writePrivateState(merged);
+  return merged;
+}
+
+const sendState = () => {
+  if (!(sendFull && directs) && !(portageSync && portageSync.horsDirect().length)) return;
+  if (sendJob){ sendAgain = true; return; }
+  sendJob = (async () => {
+    do {
+      sendAgain = false;
+      const priv = await privateState();
+      const payload = Object.assign(fullPayload(S.companies, S.profile, S.orphans, S.tombs), priv);
+      const j = JSON.stringify(payload);
+      if (sendFull && directs && j !== lastSent){
+        lastSent = j;           /* rien de neuf = stop au ping-pong */
+        sendFull(payload);
+      }
+      /* ceux qu'aucune liaison directe n'atteint : par les relais,
+         chiffré pour chacun (voir `ouvrirPortageSync`) */
+      if (portageSync) portageSync.envoyer(payload, j);
+    } while (sendAgain);
+  })().catch(() => {}).finally(() => {
+    sendJob = null;
+    if (sendAgain) sendState();
+  });
+};
+/* chaque enregistrement, où qu'il vienne, se propage — en continu */
+document.addEventListener('oc:change', () => sendState());
+/* le réseau revient : on retente sans rien demander */
+window.addEventListener('online', () => {
+  if (live.phrase && (live.state === 'err' || live.state === 'off' || live.state === 'norelay'))
+    join(live.phrase, true);
+});
+
+async function closeRoom(){
+  stopWatch();
+  const old = room;
+  room = null;
+  sendFull = null;
+  sendHello = null;
+  sendRingRaw = null;
+  lastSent = '';
+  if (portageSync){ portageSync.fermer(); portageSync = null; }
+  directs = 0;
+  live.peers = 0;
+  live.relays = { total: 0, open: 0, pending: 0 };
+  live.exchanged = false;
+  live.rtcFail = false;
+  live.cause = '';
+  await leaveRoom(old);
+}
+
+/* `force` = on quitte la salle même si c'est la même phrase (nouveaux
+   relais, « Réessayer », retour du réseau). Sans lui, rejoindre une
+   salle DÉJÀ ouverte l'arracherait pour rien — c'était la panne : la
+   liaison créée à la main était coupée deux secondes plus tard par la
+   reprise au démarrage, et ne revenait jamais. */
+async function join(phrase, force){
+  if (!force && live.phrase === phrase && (room || live.state === 'connecting')) return;
+  const my = ++gen;
+  live.phrase = phrase;
+  live.state = 'connecting';
+  live.since = Date.now();
+  emit();
+  await closeRoom();
+  if (my !== gen) return;
+  const self = await deviceSelf();
+  let r;
+  try {
+    r = await openRoom('sync', phrase, {
+      /* un appareil s'est annoncé via les relais mais la liaison
+         n'aboutit pas — on le dit, on ne laisse plus « en liaison »
+         mentir. Et on garde POURQUOI : Trystero fait passer par ce
+         rappel aussi bien un code différent qu'un manque de TURN, et
+         ces deux-là ne se réparent pas du tout pareil. */
+      onJoinError: e => {
+        if (my !== gen) return;
+        live.cause = causeLiaison(e);
+        dernierEchec = live.cause;
+        if (!live.rtcFail) logJ('Sync appareils : pair en vue, liaison en échec (' + live.cause + ')');
+        live.rtcFail = true;
+        refreshStage(false);
+      }
+    });
+  } catch (e) {
+    if (my !== gen) return;
+    live.state = 'err';
+    emit();
+    return;
+  }
+  if (my !== gen){ await leaveRoom(r); return; }
+  room = r;
+  startWatch();
+  refreshStage(false);
+
+  const keys = await ensureKeys();          /* identité signée de cet appareil */
+  /* une liaison plus récente a pris la main pendant l'attente : on ne
+     rebranche pas nos rappels par-dessus les siens */
+  if (my !== gen) return;
+  const hello = r.makeAction('hello');
+  sendHello = () => hello.send({ id: self.id, name: nomAdopte || self.name, pub: keys ? keys.pub : '' });
+  const appareilDuPair = new Map();     /* pair WebRTC → appareil */
+  hello.onMessage = async (obj, meta) => {
+    if (!obj || !obj.id || obj.id === self.id) return;
+    const pid = meta && meta.peerId;
+    if (pid) appareilDuPair.set(pid, obj.id);
+    if (portageSync) portageSync.direct(obj.id, true);
+    await upsertDevice(obj.id, obj.name);
+    /* je suis le principal : un appareil du canal authentifié qui
+       annonce sa clé entre dans l'anneau (signé, propagé) */
+    if (obj.pub && await amMain() && !deviceIn(getRing(), obj.id)){
+      ringSt.ring = await ringAddDevice(getRing(), ringSt.keys.seed, obj);
+      await saveRingSt();
+      sendRing();
+    }
+    emit();
+  };
+  const ringAct = r.makeAction('ring');
+  sendRingRaw = d => { try { ringAct.send(d); } catch (e) {} };
+  ringAct.onMessage = obj => { onRingMsg(obj).catch(() => {}); };
+
+  const full = r.makeAction('full');
+  sendFull = d => full.send(d);
+  let receiveQueue = Promise.resolve();
+  const recevoirComplet = obj => { receiveQueue = receiveQueue.then(async () => {
+    if (my !== gen) return;
+    if (!obj || obj.kind !== 'full' || !Array.isArray(obj.companies)) return;
+    const r2 = syncMerge(obj, { companies: S.companies, orphans: S.orphans,
+                                profile: S.profile, tombs: S.tombs });
+    const minePrivate = await privateState();
+    const rPriv = syncPrivateMerge(obj, minePrivate);
+    const st = r2.stats;
+    const changed = st.addedC + st.updatedC + st.removedC + st.addedO +
+      (st.profile === 'remote' ? 1 : 0) + rPriv.stats.campaigns + rPriv.stats.missions;
+    if (changed){
+      const snap = {
+        companies: JSON.stringify(S.companies), orphans: JSON.stringify(S.orphans),
+        profile: JSON.stringify(S.profile), tombs: JSON.stringify(S.tombs),
+        campaigns: JSON.stringify(minePrivate.campaigns), missions: JSON.stringify(minePrivate.missions)
+      };
+      if (st.profile === 'remote' && !live.prevProfile) live.prevProfile = snap.profile;
+      applySynced(r2);
+      if (rPriv.stats.campaigns || rPriv.stats.missions) await writePrivateState(rPriv);
+      bus.refresh();
+      live.lastStats = Object.assign({ t: Date.now(), campaigns: rPriv.stats.campaigns,
+        missions: rPriv.stats.missions }, st);
+      logJ('Sync appareils : +' + st.addedC + ', ' + st.updatedC + ' maj, ' + st.removedC + ' suppr.');
+      annuler('Appareils synchronisés.', () => {
+        applySynced({
+          companies: JSON.parse(snap.companies), orphans: JSON.parse(snap.orphans),
+          profile: JSON.parse(snap.profile), tombs: JSON.parse(snap.tombs)
+        });
+        writePrivateState({ campaigns: JSON.parse(snap.campaigns), missions: JSON.parse(snap.missions) });
+        live.lastStats = null;
+        live.prevProfile = null;
+        bus.refresh();
+        emit();
+      });
+    }
+    /* l'échange est CONFIRMÉ : un instantané complet vient d'arriver.
+       C'est lui — pas la salle, pas même le pair — qui autorise
+       « à jour » (incident #14). */
+    live.exchanged = true;
+    refreshStage(true);
+    sendState();   /* converge : ne repart que si quelque chose a changé */
+  }).catch(() => {}); };
+  full.onMessage = recevoirComplet;
+
+  r.onPeerJoin = () => {
+    directs++;
+    recompter();
+    refreshStage(true);
+    if (sendHello) sendHello();
+    sendRing();
+    sendState();
+  };
+  r.onPeerLeave = pid => {
+    directs = Math.max(0, directs - 1);
+    const dev = appareilDuPair.get(pid);
+    if (dev && portageSync) portageSync.direct(dev, false);
+    if (!recompter()) live.exchanged = false;   /* prochaine liaison = nouvelle preuve */
+    refreshStage(true);
+  };
+
+  /* LES RELAIS PORTENT AUSSI LA SYNC — quand aucun chemin direct ne
+     s'ouvre entre deux de mes appareils (le NAT d'un opérateur
+     mobile). Sans lui, « En attente de ton autre appareil » pendant
+     que l'autre appareil était là. */
+  try { await ouvrirPortageSync(phrase, self, keys, my, recevoirComplet); } catch (e) {}
+}
+
+/* ---------- le portage de « Mes appareils » ----------
+   Même tuyau que le rendez-vous et le groupe (engine/portage.js), avec
+   une différence qui compte : ce qui passe est PRIVÉ. Deux couches :
+   · la présence (`hello`) et l'anneau voyagent sous la phrase de
+     liaison — exactement ce qu'elle protège déjà dans la signalisation ;
+   · les données, elles, sont chiffrées pour CHAQUE appareil sous une
+     clé née d'un échange (ECDH) entre lui et moi — la phrase n'y entre
+     pas. Enregistrer les relais et deviner la phrase n'ouvre rien.
+   La moitié publique d'échange est signée par l'identité Ed25519 de
+   l'appareil : un appareil que l'anneau connaît ne peut pas être
+   imité avec une autre clé. */
+const PRESENCE_MS = 5000;
+const PRESENCE_OUBLI_MS = 16000;
+async function ouvrirPortageSync(phrase, self, keys, my, recevoirComplet){
+  const xk = await ensureEchange();
+  if (!xk || my !== gen) return;
+  let sig = '';
+  if (keys) try { sig = await edSign(keys.seed, 'oc-xpub:' + self.id + ':' + xk.pub); } catch (e) {}
+  const entendus = new Map();      /* appareil → { id, xpub, premier, dernier, cle, envoye } */
+  const parSession = new Map();    /* identifiant de session (`de`) → appareil */
+  const enDirect = new Set();
+  const rec = recolte();
+  const envois = new Map();        /* x → envoi chiffré, pour qui en redemande une part */
+  const relances = new Map();
+  const minuteries = [];
+  let file = Promise.resolve();
+  let p = null;
+  let ferme = false;
+  const cleDe = d => d.cle || (d.cle = cleEntre(xk.priv, d.xpub, self.id, d.id));
+  const horsDirect = () => {
+    const t = Date.now();
+    return [...entendus.values()].filter(d => !enDirect.has(d.id)
+      && t - d.premier > PORTAGE_APRES_MS && t - d.dernier < PRESENCE_OUBLI_MS);
+  };
+  const publier = (e, quoi) => (file = file.then(async () => {
+    for (const i of quoi){
+      if (ferme) return;
+      await p.envoyer({ t: 'part', pour: e.pour, x: e.x, i, n: e.n, d: e.parts[i] });
+      await new Promise(res => setTimeout(res, PORTAGE_PAS_MS));
+    }
+  }).catch(() => {}));
+  /* une sauvegarde en appelle souvent une autre : on n'envoie que le
+     DERNIER état, une seconde et demie après le dernier changement */
+  let attente = null, dernier = null;
+  const vider = async () => {
+    attente = null;
+    if (ferme || !dernier) return;
+    const { payload, j } = dernier;
+    const empreinte = j.length + ':' + fnv(j).toString(36);
+    for (const d of horsDirect()){
+      if (d.envoye === empreinte) continue;
+      d.envoye = empreinte;
+      try {
+        const e = await decouperScelle(payload, await cleDe(d));
+        e.pour = d.id;
+        envois.set(e.x, e);
+        if (envois.size > 6) envois.delete(envois.keys().next().value);
+        publier(e, e.parts.map((_, i) => i));
+      } catch (x) { d.envoye = ''; }
+    }
+  };
+  const surHello = async m => {
+    if (m.id === self.id) return;
+    /* un appareil que l'anneau connaît garde SA clé d'identité */
+    const anneau = getRing();
+    const connu = anneau ? deviceIn(anneau, m.id) : null;
+    if (connu && connu.pub && connu.pub !== m.pub) return;
+    if (m.pub && m.sig){
+      if (!(await edVerify(m.pub, m.sig, 'oc-xpub:' + m.id + ':' + m.xpub).catch(() => false))) return;
+    } else if (connu && connu.pub) return;
+    const t = Date.now();
+    parSession.set(m.de, m.id);
+    let d = entendus.get(m.id);
+    if (d && d.xpub === m.xpub && t - d.dernier < PRESENCE_OUBLI_MS){ d.dernier = t; return; }
+    d = { id: m.id, xpub: m.xpub, premier: t, dernier: t, cle: null, envoye: '' };
+    entendus.set(m.id, d);
+    await upsertDevice(m.id, m.nom || '');
+    /* comme la présence directe : je suis le principal, un appareil qui
+       annonce sa clé sur le canal de la phrase entre dans l'anneau */
+    if (m.pub && await amMain() && !deviceIn(getRing(), m.id)){
+      ringSt.ring = await ringAddDevice(getRing(), ringSt.keys.seed, { id: m.id, name: m.nom, pub: m.pub });
+      await saveRingSt();
+    }
+    /* le direct garde sa chance ; ensuite on se parle par les relais */
+    minuteries.push(setTimeout(() => {
+      if (ferme) return;
+      recompter(); refreshStage(true); sendRing(); sendState();
+    }, PORTAGE_APRES_MS + 500));
+    emit();
+  };
+  const surPart = async m => {
+    if (m.pour !== self.id) return;
+    const d = entendus.get(parSession.get(m.de));
+    if (!d) return;                 /* sa présence n'est pas encore arrivée */
+    const parts = rec.ajouter(m);
+    if (!parts){
+      if (!relances.has(m.x)){
+        let tours = 0;
+        const t = setInterval(() => {
+          const manque = rec.manque(m.x);
+          if (ferme || !manque || !manque.length || ++tours > 10){ clearInterval(t); relances.delete(m.x); return; }
+          p.envoyer({ t: 'demande', r: self.id, x: m.x, manque, pour: d.id }).catch(() => {});
+        }, PORTAGE_RELANCE_MS);
+        relances.set(m.x, t);
+        minuteries.push(t);
+      }
+      return;
+    }
+    rec.oublier(m.x);
+    clearInterval(relances.get(m.x));
+    relances.delete(m.x);
+    let obj;
+    try { obj = await rassemblerScelle(parts, await cleDe(d)); } catch (e) { return; }
+    recevoirComplet(obj);
+  };
+  p = await ouvrirPortage(phrase, m => {
+    if (ferme) return;
+    if (m.t === 'hello'){ surHello(m).catch(() => {}); return; }
+    if (m.t === 'ring'){ onRingMsg(m.ring).catch(() => {}); return; }
+    if (m.t === 'part'){ surPart(m).catch(() => {}); return; }
+    if (m.t === 'demande' && m.pour === self.id && m.x && envois.has(m.x)){
+      const e = envois.get(m.x);
+      const quoi = Array.isArray(m.manque) && m.manque.length ? m.manque.filter(i => i < e.n) : e.parts.map((_, i) => i);
+      publier(e, quoi);
+    }
+  }, 'appareils');
+  if (ferme || my !== gen){ p.fermer(); return; }
+  const annoncer = () => p.envoyer({ t: 'hello', id: self.id, nom: self.name,
+    pub: keys ? keys.pub : '', xpub: xk.pub, sig }).catch(() => {});
+  portageSync = {
+    horsDirect,
+    direct: (id, oui) => { oui ? enDirect.add(id) : enDirect.delete(id); },
+    envoyer: (payload, j) => { dernier = { payload, j }; if (!attente) attente = setTimeout(vider, 1500); },
+    ring: r => p.envoyer({ t: 'ring', ring: r }).catch(() => {}),
+    fermer: () => {
+      ferme = true;
+      clearTimeout(attente);
+      minuteries.forEach(t => { clearTimeout(t); clearInterval(t); });
+      p.fermer();
+    }
+  };
+  annoncer();
+  minuteries.push(setInterval(annoncer, PRESENCE_MS));
+  /* le compte suit les présences qui arrivent et celles qui s'éteignent */
+  let compte = live.peers;
+  minuteries.push(setInterval(() => {
+    const avant = compte;
+    compte = recompter();
+    if (compte !== avant){
+      if (!compte) live.exchanged = false;
+      refreshStage(true);
+    }
+  }, 1000));
+}
+
+/* ---------- l'API de la feuille de gestion ---------- */
+/* (re)lie cet appareil avec cette phrase — elle devient persistante.
+   `force` : reprendre la liaison à zéro même si la phrase ne change
+   pas (« Réessayer », nouveaux relais) */
+export async function startSync(phrase, force){
+  await kvSet(SYNC_KEY, phrase);
+  join(phrase, force);
+}
+/* rompre le lien : cet appareil ne se synchronise plus (les autres
+   gardent leurs données) ; la liste des appareils vus est vidée */
+export async function breakLink(){
+  gen++;
+  await closeRoom();
+  live.state = 'off';
+  live.phrase = '';
+  live.lastStats = null;
+  live.prevProfile = null;
+  await kvSet(SYNC_KEY, '');
+  await kvSet(DEVICES_KEY, '[]');
+  emit();
+}
+/* conflit de profil : reprendre le mien — il redevient le plus
+   récent et repart vers les autres appareils */
+export function keepMyProfile(){
+  if (!live.prevProfile) return;
+  S.profile = normalizeProfile(JSON.parse(live.prevProfile));
+  saveProfile();          /* re-tamponne updatedAt : elle gagne partout */
+  live.prevProfile = null;
+  emit();
+  toast('Profil repris ✓');
+}
+/* au démarrage (appelé en différé par app.js) : une phrase existe
+   = on rejoint, sinon on ne charge rien. Jamais en force : si
+   l'utilisateur a relié ses appareils pendant ces deux secondes, la
+   liaison est déjà là — la reprendre la casserait. */
+export async function initSyncLive(){
+  const saved = (await kvGet(SYNC_KEY)) || '';
+  if (saved) join(saved);
+}

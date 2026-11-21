@@ -62,6 +62,19 @@ export function saveProfile(){
 }
 export function saveOrphans(){ kvSet(ORPHANS_KEY, JSON.stringify(S.orphans)).then(ok => avertir(!ok)); direAuxOnglets(); }
 export function saveTombs(){ kvSet(TOMBS_KEY, JSON.stringify(S.tombs)); }
+/* un état venu d'un autre de MES appareils (ou d'une copie) : il remplace
+   celui d'ici, déjà fusionné (engine/sync.js) ; tout s'écrit d'un bloc */
+export function applySynced(r){
+  S.companies = r.companies;
+  S.orphans = r.orphans;
+  S.tombs = r.tombs;
+  if (r.profile) S.profile = r.profile;
+  kvSet(DATA_KEY, JSON.stringify(S.companies)).then(ok => avertir(!ok));
+  kvSet(ORPHANS_KEY, JSON.stringify(S.orphans));
+  kvSet(TOMBS_KEY, JSON.stringify(S.tombs));
+  kvSet(PROFILE_KEY, JSON.stringify(S.profile));
+  direAuxOnglets();
+}
 /* le journal privé : deux cents lignes au plus ; une ligne peut porter
    les pistes qu'elle concerne (CONTRAT.md §1) */
 export function logJ(txt, cid, ids){

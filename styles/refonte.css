@@ -579,3 +579,98 @@ b.cite{display:inline;margin:0;padding:0;border:0;background:none;color:var(--te
 .onglets a.attend{color:var(--teal)}
 .onglets a.attend span::after{content:"";display:inline-block;width:7px;height:7px;margin-left:5px;background:var(--teal);vertical-align:1px}
 .poste .onglets a.attend{color:var(--teal)}
+
+/* ---------- lot 4 : Moi ---------- */
+.s-moi{margin:4px 16px 12px}
+.s-moi .ami-t b{display:block;font:700 1.125rem/1.2 var(--font-ui)}
+.s-moi .ami-t span{display:block;font:400 var(--text-13)/1.4 var(--font-mono);color:var(--ink-2)}
+.rang.nav-r{min-height:52px;cursor:pointer}
+.rang.nav-r[role="button"]:focus-visible{outline:var(--focus-outline);outline-offset:-3px}
+.s-liste .rang.nav-r{align-items:center;min-height:52px}
+.rang.alerte-r .r-c span{color:var(--amber);font-weight:600}
+.rang.nav-r.on{background:var(--select-bg)}
+.rang.nav-r.on b,.rang.nav-r.on span{color:var(--select-text)!important}
+.rang.nav-r.on>.ic{color:var(--select-text)}
+.rang.doc{padding:0 10px}
+.rang.doc .r-c[role="button"]{min-height:52px;padding:9px 0}
+.m-et{margin:2px 0 6px}
+.m-et2{margin-top:16px}
+.m-quoi{margin-bottom:12px}
+.m-top{margin-top:12px}
+.m-h{margin:0 0 14px}
+.m-fort{margin:0 0 6px}
+.m-doux{margin:0 0 14px}
+.m-lien{margin-top:18px}
+.m-note{margin-top:12px}
+.m-rl{margin-top:14px}
+/* deux dates côte à côte ; un champ de date garde la hauteur d'un champ */
+.dates2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.dates2.un{grid-template-columns:1fr}
+.dates2>.fld{margin:0 0 12px}
+.fld input[type="date"],.fld input[type="month"]{min-height:var(--ctl);text-align:left}
+.fld.m-top{margin-top:12px}
+.s-page .seg.m-rayon{margin:-4px 0 12px}
+.sheet .seg+.fld{margin-top:12px}
+.s-page>.alerte:first-child{margin-top:0}
+/* une case qu'on coche : l'état vit dans la case */
+.ck.on>.ic{color:var(--teal)}
+.gb>.cks{margin-top:2px;border-top:0}
+.gb .cks .ck:last-child{border-bottom:0}
+.gb .btn.mot{margin-top:12px}
+.k-phrase .btn-g{margin-top:2px}
+.fait-a.avert{color:var(--amber)}
+/* les douze mots de la phrase de secours */
+.mots{margin:0;padding:0;list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mots li{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 12px;border:1px solid var(--border-strong);background:var(--gray-0);
+  font:500 1.0625rem/1 var(--font-mono)}
+.mots li span{width:18px;font:400 var(--text-12)/1 var(--font-mono);color:var(--ink-2)}
+/* des gestes dans l'ordre où ils se font */
+.etapes{margin:0 0 12px;padding:0;list-style:none;display:grid;gap:12px}
+.etapes li{display:flex;align-items:baseline;gap:12px;font-size:var(--text-15);line-height:1.4}
+.etapes li span{flex:none;width:28px;height:28px;display:grid;place-items:center;border:1px solid var(--border-strong);background:var(--gray-0);
+  box-shadow:var(--bevel-up);font:400 var(--pixel-16)/1 var(--font-pixel)}
+.version{margin:18px 0 0;text-align:center;font:400 var(--text-12)/1.4 var(--font-mono);color:var(--ink-3)}
+.choix .rang.act{min-height:48px}
+.choix .rang.act b{color:var(--ink)}
+.choix .rang.act>.ic{color:var(--teal)}
+details.jetons{margin-top:2px}
+details.jetons[hidden]{display:none}
+details.jetons dl{margin:0 0 10px;display:grid;grid-template-columns:auto 1fr;gap:6px 12px;align-items:baseline}
+details.jetons dt,details.jetons dd{margin:0}
+details.jetons dd{font-size:var(--text-14);line-height:1.35;color:var(--ink-2)}
+details.jetons .doux{margin:0 0 12px}
+.attente{margin:14px 0 0;text-align:center;font:400 var(--text-13)/1.4 var(--font-mono);color:var(--ink-2)}
+.attente.m-ok{color:var(--teal);font-weight:500}
+.attente .ic{width:16px;height:16px;vertical-align:-3px;margin-right:6px}
+.k-relier .centre{margin-top:12px}
+.k-relier .code-g{margin:0 0 8px;font-size:1rem}
+.liens-p{display:flex;flex-wrap:wrap;gap:0 18px;margin-top:14px}
+.diag{margin:0;padding:10px 12px;max-height:50vh;overflow:auto;border:1px solid var(--border-strong);background:var(--gray-0);
+  font:400 var(--text-12)/1.45 var(--font-mono);white-space:pre-wrap;overflow-wrap:anywhere}
+.diag:focus-visible{outline:var(--focus-outline);outline-offset:var(--focus-offset)}
+/* la ligne du mot de passe (CLAUDE.md §6) : « Télécharger » tient la ligne,
+   le cadenas s'étire en champ sur place et l'action se serre */
+.lockrow{display:flex;align-items:center;gap:8px;min-width:0;margin-top:12px}
+.lockrow:not(.on){flex-wrap:wrap}
+.lockrow .lr-do{flex:1 1 auto;min-width:0;transition:flex-grow var(--dur-3) var(--ease-out)}
+.lockrow.on .lr-do{flex-grow:0}
+.lr-pw{display:flex;align-items:center;flex:0 1 auto;min-width:0;border:1px solid transparent;transition:flex-grow var(--dur-3) var(--ease-out)}
+.lockrow.on .lr-pw{flex:1 1 auto;background:var(--gray-0);border-color:var(--border-strong);box-shadow:var(--bevel-down)}
+.btn.lr-lock{flex:0 0 auto}
+.lockrow.on .btn.lr-lock{min-width:var(--ctl);background:none;border-color:transparent;box-shadow:none;color:var(--teal);padding-right:2px}
+.lr-w{display:inline-block;overflow:hidden;white-space:nowrap;max-width:9em;transition:max-width var(--dur-3) var(--ease-out),opacity var(--dur-2) var(--ease-out)}
+.lockrow.on .lr-w{max-width:0;opacity:0}
+.lr-pass{flex:0 1 0;min-width:0;width:0;height:var(--ctl);padding:0;border:0;background:none;opacity:0;font:400 max(1rem,16px)/1 var(--font-ui);color:var(--ink)}
+.lockrow.on .lr-pass{flex:1 1 0;width:auto;padding:0 10px 0 2px;opacity:1}
+.lr-pass::placeholder{color:var(--ink-3);opacity:1}
+.lr-pass:focus{outline:none}
+.lockrow.on .lr-pw:focus-within{outline:var(--focus-outline);outline-offset:var(--focus-offset)}
+.lockrow+.err{margin:8px 0 0}
+@media (prefers-reduced-motion:reduce){.lockrow .lr-do,.lr-pw,.lr-w{transition:none}}
+/* le poste : la liste à gauche, la page ouverte à droite */
+.p-col.mc1{width:392px;flex:none;background:var(--gray-desktop)}
+.p-col.mc2{flex:1;background:var(--gray-1);position:relative}
+.poste .mc1 .s-tete{padding:14px 12px 4px}
+.poste .mc1 .s-liste{margin:0 8px 10px}
+.poste .mc1 .s-moi{margin:4px 12px 12px}
+.poste .mc2 .s-page{padding:20px 28px;max-width:680px}
