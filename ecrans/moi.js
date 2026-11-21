@@ -22,9 +22,9 @@
    vit dans verrou.js, avec l'écran verrouillé ; Réglages l'ouvre.
    ============================================================ */
 import { $, $$, ic, esc, remplacer } from './outils.js';
-import { S, bus, saveProfile, choisirTheme } from './etat.js';
+import { S, bus, saveProfile, saveData, choisirTheme } from './etat.js';
 import { C, inscrirePage, rendre, annuler, toast, cles, ouvrirFeuille, fermerFeuille } from './coque.js';
-import { APP_VERSION, RECHERCHES, RAYONS, manquesDits, dureeRecherche, periodeValide, emailPlausible } from '../engine/model.js';
+import { APP_VERSION, RECHERCHES, RAYONS, manquesDits, dureeRecherche, periodeValide, emailPlausible, normalizeCompany } from '../engine/model.js';
 import { PARCOURS, PARCOURS_MAX, parcoursDe, periodeParcours, normalizeParcours } from '../engine/parcours.js';
 import { AIDES, ORDRE_AIDES, normaliserAide, basculerAide } from '../engine/aide.js';
 import { vuParMesAmis } from '../engine/amis.js';
@@ -375,8 +375,10 @@ function rendreF(f){
       + `<div class="dates2"><label class="fld"><span class="et">Début</span><input class="m-exp-d" type="month" value="${esc(x.debut)}"></label>`
       + `<label class="fld"><span class="et">Fin<span class="fld-n m-exp-per">${esc(per)}</span></span><input class="m-exp-f" type="month" value="${esc(x.fin)}"></label></div>`
       + '<p class="err m-err-f" hidden></p>'
-      + (e && e.deduit ? `<p class="doux">Cette ligne vient de ta piste « ${esc(e.entreprise)} » (J’y suis passé). Pour la retirer, change la piste.</p>`
-        : e ? `<div class="bas-p"><button class="btn s danger" data-a="m-exp-retirer">${ic('trash')}Retirer de mon parcours</button></div>` : ''),
+      /* une ligne venue d'une piste (« J'y suis passé ») se retire ici aussi :
+         la nouvelle page d'une piste n'a pas ce geste */
+      + (e && e.deduit ? `<p class="doux">Cette ligne vient de ta piste « ${esc(e.entreprise)} ».</p>` : '')
+      + (e ? `<div class="bas-p"><button class="btn s danger" data-a="m-exp-retirer">${ic('trash')}Retirer de mon parcours</button></div>` : ''),
       pied: `<button class="btn p" data-a="m-exp-ok">${e ? 'Enregistrer' : 'Ajouter'}</button>` };
   }
   if (f.type === 'theme') return { corps: choixHTML([['auto', 'Automatique'], ['light', 'Clair'], ['dark', 'Sombre']], S.themeChoix, 'm-theme') };
@@ -409,6 +411,21 @@ function gesteF(a, el, ev, f){
     return;
   }
   if (a === 'm-exp-ok'){ enregistrerExp(f); return; }
+  if (a === 'm-exp-retirer' && f.e && f.e.deduit){
+    /* la piste ne dit plus « J'y suis passé » ; « Annuler » le lui rend */
+    const e = f.e, c = S.companies.find(x => x.id === e.pisteId);
+    if (!c){ fermerFeuille(); return; }
+    const snap = JSON.stringify(c);
+    delete c.vecu;
+    c.updatedAt = Date.now();
+    saveData();
+    fermerFeuille(); rendre();
+    annuler(`${e.entreprise} retiré de ton parcours`, () => {
+      const j = S.companies.findIndex(x => x.id === e.pisteId);
+      if (j >= 0){ S.companies[j] = normalizeCompany(JSON.parse(snap)); saveData(); }
+    });
+    return;
+  }
   if (a === 'm-exp-retirer'){
     const e = f.e, avant = normalizeParcours(S.profile.parcours), i = avant.findIndex(y => y.id === e.id);
     S.profile.parcours = avant.filter(y => y.id !== e.id);

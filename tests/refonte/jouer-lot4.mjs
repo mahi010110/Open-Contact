@@ -157,10 +157,19 @@ await ip.waitForTimeout(500);
 p = await garde(ip);
 verifier(p.parcours.length === 1 && p.parcours[0].entreprise === 'OVHcloud' && p.parcours[0].quoi === 'alternance' && p.parcours[0].debut === '2025-09', 'parcours : OVHcloud ajouté et gardé');
 verifier((await tout(ip)).includes('Alternance · 2025-2026'), 'parcours : la ligne dit « Alternance · 2025-2026 »');
-/* la ligne déduite d'une piste se corrige, ne se retire pas d'ici */
+/* la ligne venue d'une piste dit d'où elle vient, et se retire d'ici
+   aussi : la page d'une piste n'a pas de « J'y suis passé » à changer */
 await ip.click(T + '[data-a="m-exp-edit"][data-v="piste:kia"]');
-verifier((await feuille(ip)).includes('Cette ligne vient de ta piste « Kiabi »') && !(await ip.isVisible('.couche-f [data-a="m-exp-retirer"]')), 'parcours : une ligne déduite d’une piste ne se retire pas d’ici');
-await ip.click('.couche-f .tb .x');
+verifier((await feuille(ip)).includes('Cette ligne vient de ta piste « Kiabi ».') && !/change la piste/.test(await feuille(ip))
+  && await ip.isVisible('.couche-f [data-a="m-exp-retirer"]'), 'parcours : une ligne venue d’une piste dit d’où elle vient, et se retire d’ici');
+await ip.click('.couche-f [data-a="m-exp-retirer"]');
+await ip.waitForTimeout(500);
+let kia = (await lireCle(ip, 'oc_data_v3')).find(c => c.id === 'kia');
+verifier(!kia.vecu && /Kiabi retiré de ton parcours/.test(await barre(ip)) && !(await tout(ip)).includes('Kiabi'), 'parcours : retirée, la piste ne dit plus « J’y suis passé », avec « Annuler »');
+await ip.click('.couche-a [data-a="annuler"]');
+await ip.waitForTimeout(500);
+kia = (await lireCle(ip, 'oc_data_v3')).find(c => c.id === 'kia');
+verifier(kia.vecu === 'alternance' && (await tout(ip)).includes('Kiabi'), 'parcours : « Annuler » la rend à la piste');
 await ip.click(T + '[data-a="m-exp-edit"]:has-text("OVHcloud")');
 await ip.click('.couche-f [data-a="m-exp-retirer"]');
 await ip.waitForTimeout(400);
