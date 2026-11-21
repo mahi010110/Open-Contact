@@ -2,7 +2,7 @@
 
 *Pour l'assistant qui reprend la refonte dans une nouvelle discussion.
 Mise à jour à chaque lot, en même temps que le journal du brief.
-Dernière mise à jour : 21 novembre 2026, code : lot 6 montré, en attente de son avis.*
+Dernière mise à jour : 21 novembre 2026, code : lot 6 validé sous réserve de son essai.*
 
 Le premier message à donner à une nouvelle discussion :
 
@@ -165,9 +165,9 @@ Pièges déjà payés :
 
 ## 7. Ce qui reste
 
-- **Après l'avis du mainteneur sur le lot 6 du code** : noter sa phrase
-  (journal, table, ce fichier). Puis la bascule, seulement le jour où il
-  la décide (§8).
+- **Le mainteneur essaie le lot 6** (« il faut que je teste ») : ses
+  retours passent avant tout. Puis la bascule, seulement le jour où il la
+  décide (§8). D'ici là : « les améliorations s'il y en a ».
 - **Plus tard**, validé comme idée : la carte des entreprises autour de
   soi (brief §12).
 - **Fait en codant** (lots 1 à 6) : les modèles de messages sans genre,
@@ -195,7 +195,7 @@ lien pour l'essayer sur l'iPhone, et validé avant le suivant.
 | 3 | Réseau | validé le 21 novembre (« Continue »), après l'avoir vu le 18 |
 | 4 | Moi | validé le 21 novembre (« Continue ») |
 | 5 | les états : premier jour, vide, erreurs, hors ligne, verrou | validé le 21 novembre (« Oui tout me va ») |
-| 6 | le poste, un établi | montré le 21 novembre |
+| 6 | le poste, un établi | « Tout me va je pense », le 21 novembre : il l'essaie d'abord |
 
 **La nouvelle interface grandit à côté de l'ancienne**, sans la toucher.
 L'app actuelle (`index.html`, `app.js`, `ui/`, `styles/app.css`) reste
@@ -320,6 +320,18 @@ se réécrit pour la nouvelle interface, plus court.
   d'abord le lien de « Donner » : l'offre n'y est pas. Le collage et le
   dépôt sont des `ClipboardEvent` et des `DragEvent` qui portent un
   `DataTransfer`.
+- `OC_NAVIGATEUR=webkit node tests/refonte/regard-webkit.mjs` : chaque
+  écran sous WebKit, au téléphone (390 et 360 px) et au poste, clair et
+  sombre ; il relève ce qui déborde, ce qui est raboté (une ligne plus
+  basse que son contenu, coupée) et les cibles de moins de 44 px, et sa
+  sonde prouve qu'il les voit. Ici WebKit ne s'installe pas (son
+  téléchargement est refusé) : la CI le joue à chaque envoi sur la
+  branche (`.github/workflows/refonte-webkit.yml`, informatif), son
+  journal finit par « REGARD webkit : N relevé(s) », les captures sont
+  l'artefact `refonte-webkit`. Sans `OC_NAVIGATEUR`, il tourne sous
+  Chromium.
+- `e2e-sobriete.mjs` lit aussi `ecrans/` pour les mots de la charte (§7,
+  compte ⑤) : une dérive se voit avant la bascule.
 - Restent verts : `node tests/e2e/unitaires.mjs` (`?test`, 307 tests),
   `e2e-pages-sw.mjs` (la page d'essai est servie elle-même, pas l'app),
   `e2e-decouvrir.mjs`, `e2e-classement.mjs`, `e2e-sobriete.mjs`, et

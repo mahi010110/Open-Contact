@@ -759,7 +759,10 @@ protégeant, l'appareil principal et ses commandes.
 
 ### Code, lot 6 : le poste, un établi (21 novembre 2026)
 
-La maquette du lot 6 devenue l'app. Montré le 21 novembre.
+La maquette du lot 6 devenue l'app. Montré le 21 novembre ; sa réponse
+le même jour : « Tout me va je pense, mais avant tout il faut que je
+teste. Continue ce que tu as à faire et les améliorations s'il y en a. »
+Validé sous réserve de son essai sur l'iPhone.
 
 - **Coller une offre** : au téléphone dans la barre de Trouver (ou
   « Coller un lien ou une offre »), à l'ordinateur n'importe où (Ctrl V).
