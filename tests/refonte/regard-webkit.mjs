@@ -22,6 +22,8 @@ import { mkdir } from 'fs/promises';
 import { serveRepo, chromiumPath } from '../e2e/outils.mjs';
 import { brancherAnnuaire } from './annuaire-fictif.mjs';
 import { deborde, petites } from './outils.mjs';
+import { nouvelleCle } from '../../engine/boite.js';
+import { createVault, sealValue } from '../../engine/vault.js';
 
 const WEBKIT = process.env.OC_NAVIGATEUR === 'webkit';
 const pw = await (async () => {
@@ -36,10 +38,17 @@ const { server, base } = await serveRepo();
 const browser = WEBKIT ? await pw.webkit.launch() : await pw.chromium.launch({ executablePath: chromiumPath() });
 const releves = [], erreurs = [];
 
+/* les feuilles et l'écran verrouillé vivent hors de la fenêtre : ce qui y
+   dépasse le bord, et les touches de moins de 44 px au doigt */
+const debordeCouches = p => p.evaluate(() => { const W = document.documentElement.clientWidth;
+  return [...document.querySelectorAll('.couche-f *, .couche-v *')].filter(e => { const r = e.getBoundingClientRect(); return r.width && r.right > W + 1; })
+    .map(e => (e.className || e.tagName) + ' ' + Math.round(e.getBoundingClientRect().right)).slice(0, 4); });
+const petitesCouches = p => p.evaluate(() => [...document.querySelectorAll('.couche-f button, .couche-f [role="button"], .couche-v button')]
+  .filter(b => b.offsetParent && b.getBoundingClientRect().height < 43.5).map(b => (b.textContent || b.getAttribute('aria-label') || '').trim().slice(0, 24) + ' ' + Math.round(b.getBoundingClientRect().height)).slice(0, 6));
 /* une ligne, un bouton raboté : son contenu dépasse et il le coupe */
 const ecrase = p => p.evaluate(() => {
   const out = [];
-  for (const el of document.querySelectorAll('.fen .rang, .fen .btn, .fen .pers, .fen .r-c, .couche-f .rang, .couche-f .btn')){
+  for (const el of document.querySelectorAll('.fen .rang, .fen .btn, .fen .pers, .fen .r-c, .couche-f .rang, .couche-f .btn, .couche-v .touche')){
     const r = el.getBoundingClientRect();
     if (!r.height || r.bottom < 0 || r.top > innerHeight) continue;
     if (!/(hidden|clip)/.test(getComputedStyle(el).overflowY)) continue;
@@ -52,6 +61,14 @@ const OFFRE = 'Alternance – Technicien·ne systèmes et réseaux (H/F)\nRésea
 const REPONSE = 'Nord Infogérance ; Marc Delattre ; m.delattre@nord-infogerance.fr ; écrit ; 12/11/2026\n'
   + ' ; Paul Girard ; paul.girard@worldline.test ; écrit ; 03/11/2026\nLys Informatique ; ; ; refus ; 14/11/2026';
 const PROFIL = { name: 'Inès Martin', formation: 'BTS SIO SISR', recherche: 'alternance', ville: 'Lille', rayon: 15 };
+/* un ami : Réseau a sa liste, sa page, Donner et Recevoir */
+const AMI = { id: 'KarimKarimKarim01', nom: 'Karim Benali', cle: (await nouvelleCle()).pub,
+  parcours: [{ entreprise: 'Kiabi', quoi: 'alternance', debut: '2025-09', fin: '' }] };
+/* un coffre : l'écran verrouillé, au pavé */
+const COFFRE = await (async () => {
+  const { meta, key } = await createVault('280941', 'abri ballon cadre domino ecole fumer gazon hiver invite jardin kayak lampe', { iter: 20000 });
+  return { oc_vault_v1: JSON.stringify(meta), oc_profile_v1: await sealValue(key, 'oc_profile_v1', JSON.stringify(PROFIL)) };
+})();
 const PISTES = [
   { id: 'kia', name: 'Kiabi', city: 'Hem', status: 'todo', createdAt: 1, contacts: [{ id: 'k1', name: 'Léa Roux', role: 'RH', email: 'lea.roux@kiabi.test' }] },
   { id: 'wor', name: 'Worldline', city: 'Seclin', status: 'active', appliedAt: '2026-11-10', createdAt: 2,
@@ -65,11 +82,12 @@ async function ouvrir(w, h, o = {}){
   const ctx = await browser.newContext({ viewport: { width: w, height: h }, hasTouch: !!o.mobile, isMobile: !!o.mobile,
     colorScheme: o.sombre ? 'dark' : 'light', reducedMotion: 'reduce' });
   brancherAnnuaire(ctx, {});
-  await ctx.addInitScript(([profil, pistes]) => {
+  await ctx.addInitScript(([profil, pistes, cles]) => {
     if (profil) localStorage.setItem('oc_profile_v1', JSON.stringify(profil));
     if (pistes) localStorage.setItem('oc_data_v3', JSON.stringify(pistes));
+    for (const [k, v] of Object.entries(cles || {})) localStorage.setItem(k, v);
     localStorage.setItem('oc_relays_v1', JSON.stringify(['wss://127.0.0.1:9/']));
-  }, [o.profil || null, o.pistes || null]);
+  }, [o.profil || null, o.pistes || null, o.cles || null]);
   const p = await ctx.newPage();
   const ici = `${MOTEUR} ${w}${o.sombre ? ' sombre' : ''}`;
   p.on('pageerror', e => erreurs.push(ici + ' · ' + String(e)));
@@ -78,14 +96,15 @@ async function ouvrir(w, h, o = {}){
      faute de l'app */
   p.on('console', m => { if (m.type() === 'error' && !/WebSocket|wss:|ERR_|Failed to load resource|net::|interactive-widget/i.test(m.text())) erreurs.push(ici + ' · ' + m.text()); });
   await p.goto(base + '/refonte.html' + (o.adresse || ''));
-  await p.waitForFunction(() => document.documentElement.classList.contains('pret'), null, { timeout: 20000 }).catch(() => erreurs.push(ici + ' · l’app ne s’ouvre pas'));
+  if (o.cles && o.cles.oc_vault_v1) await p.waitForSelector('.couche-v .verrou', { timeout: 20000 }).catch(() => erreurs.push(ici + ' · l’écran verrouillé ne vient pas'));
+  else await p.waitForFunction(() => document.documentElement.classList.contains('pret'), null, { timeout: 20000 }).catch(() => erreurs.push(ici + ' · l’app ne s’ouvre pas'));
   await p.waitForTimeout(400);
   return { ctx, p, ici };
 }
 async function regarder(x, nom, { mobile } = {}){
   const { p, ici } = x;
   await p.waitForTimeout(450);
-  const d = await deborde(p), e = await ecrase(p), s = mobile ? await petites(p) : [];
+  const d = [...await deborde(p), ...await debordeCouches(p)], e = await ecrase(p), s = mobile ? [...await petites(p), ...await petitesCouches(p)] : [];
   if (d.length) releves.push(`${ici} · ${nom} · déborde : ${d.join(' | ')}`);
   if (e.length) releves.push(`${ici} · ${nom} · raboté : ${e.join(' | ')}`);
   if (s.length) releves.push(`${ici} · ${nom} · cibles < 44 px : ${s.join(' | ')}`);
@@ -106,8 +125,14 @@ const doitVoir = async (x, re, quoi) => { if (!(await attendreTexte(x.p, re))) e
 /* ---------- au téléphone ---------- */
 for (const [w, h, sombre] of [[390, 844, false], [360, 640, true]]){
   const tel = { mobile: true, sombre };
+  /* verrouillée : le pavé, puis « Code oublié ? » */
+  let x = await ouvrir(w, h, { ...tel, cles: COFFRE });
+  await regarder(x, '00-verrou', tel);
+  await clic(x.p, '.couche-v [data-a="v-oublie"]');
+  await regarder(x, '00-code-oublie', tel);
+  await x.ctx.close();
   /* le premier jour */
-  let x = await ouvrir(w, h, tel);
+  x = await ouvrir(w, h, tel);
   await regarder(x, '01-premier-jour', tel);
   /* LA SONDE : un regard qui rend zéro doit prouver qu'il voit. Une
      ligne rabotée, un bloc trop large et un bouton de 30 px, posés
@@ -149,7 +174,7 @@ for (const [w, h, sombre] of [[390, 844, false], [360, 640, true]]){
   await clic(x.p, '.couche-f [data-a="x-ajouter"]');
   await clic(x.p, '.ecran details.bac summary');
   await regarder(x, '09-bac', tel);
-  /* Réseau, Moi */
+  /* Réseau vide, puis Moi */
   await clic(x.p, '.onglets [data-id="reseau"]');
   await regarder(x, '10-reseau', tel);
   await clic(x.p, '.onglets [data-id="moi"]');
@@ -159,6 +184,18 @@ for (const [w, h, sombre] of [[390, 844, false], [360, 640, true]]){
     await regarder(x, '12-moi-' + id, tel);
     await x.p.goBack().catch(() => {}); await x.p.waitForTimeout(300);
   }
+  await x.ctx.close();
+  /* Réseau avec un ami : la liste, sa page, Donner, Recevoir */
+  x = await ouvrir(w, h, { ...tel, profil: { ...PROFIL, amis: [AMI] }, pistes: PISTES, adresse: '#/reseau' });
+  await regarder(x, '13-reseau-ami', tel);
+  await clic(x.p, '.ecran [data-a="r-ami"]');
+  await regarder(x, '14-ami', tel);
+  await x.p.goBack().catch(() => {}); await x.p.waitForTimeout(300);
+  await clic(x.p, '.ecran [data-a="r-donner"]');
+  await regarder(x, '15-donner', tel);
+  await x.p.goBack().catch(() => {}); await x.p.waitForTimeout(300);
+  await clic(x.p, '.ecran [data-a="r-recevoir"]');
+  await regarder(x, '16-recevoir', tel);
   await x.ctx.close();
 }
 
