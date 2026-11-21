@@ -2,7 +2,7 @@
 
 *Pour l'assistant qui reprend la refonte dans une nouvelle discussion.
 Mise à jour à chaque lot, en même temps que le journal du brief.
-Dernière mise à jour : 21 novembre 2026, code : lot 4 montré.*
+Dernière mise à jour : 21 novembre 2026, code : lot 4 validé, lot 5 en cours.*
 
 Le premier message à donner à une nouvelle discussion :
 
@@ -195,8 +195,8 @@ lien pour l'essayer sur l'iPhone, et validé avant le suivant.
 | 1 | la coque (les quatre onglets, les pages, le poste) et Trouver | validé le 17 novembre (« Continue ») |
 | 2 | Pistes, une piste, écrire par quatre canaux | validé le 17 novembre (« Continue ça me va ») |
 | 3 | Réseau | validé le 21 novembre (« Continue »), après l'avoir vu le 18 |
-| 4 | Moi | montré le 21 novembre, **en attente de son avis** |
-| 5 | les états : premier jour, vide, erreurs, hors ligne, verrou | à faire |
+| 4 | Moi | validé le 21 novembre (« Continue ») |
+| 5 | les états : premier jour, vide, erreurs, hors ligne, verrou | en cours |
 | 6 | le poste, un établi | à faire |
 
 **La nouvelle interface grandit à côté de l'ancienne**, sans la toucher.

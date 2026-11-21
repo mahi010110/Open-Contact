@@ -97,8 +97,9 @@ Les capacités marquées `PC` ou `⏸` restent masquées, comme aujourd'hui.
 *Validé par le mainteneur aussi :* ce que le code du lot 3 a tranché
 (« On te demande »), le 21 novembre (« Continue »). La liste de ce qui ne
 revient pas de Réseau reste à lui montrer en entier avant la bascule.
-*Montré, en attente de son avis :* ce que le code du lot 4 a tranché
-(les dates du profil, « Ce que tes amis voient », la phrase vérifiée,
-« Ce téléphone » qui refait ou rompt le lien).
+*Validé aussi :* ce que le code du lot 4 a tranché (les dates du profil,
+« Ce que tes amis voient », la phrase vérifiée, restaurer qui ramène,
+« Ce téléphone » qui refait ou rompt le lien), le 21 novembre
+(« Continue »).
 *Tranché par l'assistant, à valider :* la liste de ce qui quitte
 l'écran, à lui montrer en entier avant la bascule.

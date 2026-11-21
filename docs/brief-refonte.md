@@ -684,7 +684,8 @@ pistes, le rendez-vous en direct (le QR défile), le tri des amis.
 La maquette du lot 4 devenue l'app, sur la vraie mécanique de la copie,
 de la phrase de secours et de la liaison des appareils, celle de l'app
 actuelle : mêmes clés, mêmes copies déposées, mêmes appareils reliés. Les
-deux interfaces se parlent. Montré, en attente de son avis.
+deux interfaces se parlent. Montré le 21 novembre ; **validé** le même
+jour (« Continue »).
 
 - **Moi** : cinq lignes, chacune dit son état. Mon profil, CV et lettres,
   Mes messages types, Ma copie, Réglages.
