@@ -217,8 +217,8 @@ fieldset.gb legend{padding:0 6px;font:500 var(--text-11)/1.5 var(--font-mono);le
 .annule{position:absolute;left:12px;right:12px;bottom:10px;display:flex;align-items:center;gap:10px;padding:6px 6px 6px 12px;
   background:var(--ink);color:var(--gray-0);border:1px solid var(--border-strong);box-shadow:var(--shadow-window);font-size:var(--text-14);pointer-events:auto}
 .annule span{flex:1;min-width:0}
-.annule button{min-height:36px;padding:0 12px;border:1px solid var(--gray-0);background:none;color:var(--gray-0);font:600 var(--text-14)/1 var(--font-ui)}
-.annule button.x{border:0;width:36px;padding:0;display:grid;place-items:center}
+.annule button{min-height:max(36px,var(--ctl));padding:0 12px;border:1px solid var(--gray-0);background:none;color:var(--gray-0);font:600 var(--text-14)/1 var(--font-ui)}
+.annule button.x{border:0;width:max(36px,var(--ctl));padding:0;display:grid;place-items:center}
 .annule button.x .ic{width:16px;height:16px}
 html[data-theme="dark"] .annule{background:var(--gray-3);color:var(--ink)}
 html[data-theme="dark"] .annule button{border-color:var(--ink);color:var(--ink)}
@@ -628,7 +628,7 @@ b.cite{display:inline;margin:0;padding:0;border:0;background:none;color:var(--te
 /* des gestes dans l'ordre où ils se font */
 .etapes{margin:0 0 12px;padding:0;list-style:none;display:grid;gap:12px}
 .etapes li{display:flex;align-items:baseline;gap:12px;font-size:var(--text-15);line-height:1.4}
-.etapes li span{flex:none;width:28px;height:28px;display:grid;place-items:center;border:1px solid var(--border-strong);background:var(--gray-0);
+.etapes li>span{flex:none;width:28px;height:28px;display:grid;place-items:center;border:1px solid var(--border-strong);background:var(--gray-0);
   box-shadow:var(--bevel-up);font:400 var(--pixel-16)/1 var(--font-pixel)}
 .version{margin:18px 0 0;text-align:center;font:400 var(--text-12)/1.4 var(--font-mono);color:var(--ink-3)}
 .choix .rang.act{min-height:48px}
@@ -718,3 +718,47 @@ details.jetons .doux{margin:0 0 12px}
 .deja{margin:14px 0 0;text-align:center}
 /* quelqu'un te donne des pistes */
 .don-t{margin:0 0 12px}
+/* ---------- lot 6 : le poste, un établi ---------- */
+/* l'offre qui attend, en étiquette sous la barre : son nom plie, sa croix la retire */
+.o-tags{padding-top:4px}
+.s-tags .etq-o{display:inline-flex;align-items:center;gap:6px;max-width:100%;text-align:left;line-height:1.3}
+.etq-o span{min-width:0}
+.etq-o .ic{width:16px;height:16px;flex:none}
+.etq-o .ic:last-child{color:var(--ink-2)}
+.o-deja{display:flex;align-items:center;gap:6px}
+.o-deja .ic{width:16px;height:16px;color:var(--teal)}
+/* l'offre, sur la page de l'entreprise et dans la piste */
+.offre-b{margin:16px 0 0}
+.o-p{margin:0;font:700 var(--text-16)/1.3 var(--font-ui)}
+.offre-b .faits{margin-top:8px}
+details.pli .o-p{margin:0 0 4px}
+.o-et{margin:12px 0 4px}
+.o-miss{margin:0;padding:0 0 0 18px;font-size:var(--text-14);line-height:1.45}
+.o-miss li{margin:0 0 3px}
+.savoir .o-miss{margin-top:4px}
+details.o-t{margin:10px 0 4px}
+details.o-t summary{list-style:none;display:inline-flex;align-items:center;gap:4px;min-height:var(--ctl);color:var(--teal);font-weight:500;cursor:pointer}
+details.o-t summary::-webkit-details-marker{display:none}
+details.o-t summary .ic{width:16px;height:16px}
+details.o-t[open] summary .ic{transform:rotate(90deg)}
+details.o-t summary:focus-visible{outline:var(--focus-outline);outline-offset:var(--focus-offset)}
+details.o-t p{margin:4px 0 0;white-space:pre-line;overflow-wrap:anywhere;font-size:var(--text-13);line-height:1.45;color:var(--ink-2)}
+/* déposer sur la fenêtre, au poste : elle dit où ira ce qu'on glisse */
+.depot{position:absolute;left:6px;right:6px;z-index:30;display:grid;place-items:center;border:2px dashed var(--teal);pointer-events:none}
+.depot::before{content:'';position:absolute;inset:0;background:var(--gray-1);opacity:.94}
+.depot[hidden]{display:none}
+.depot p{position:relative;margin:0;max-width:420px;padding:0 16px;text-align:center;font-size:var(--text-16);line-height:1.4;color:var(--ink-2)}
+.depot b{display:block;margin:0 0 10px;font:400 var(--pixel-24)/1 var(--font-pixel);color:var(--teal)}
+/* « Depuis mes e-mails » : trois gestes, dans l'ordre où ils se font ; le bac « À rattacher » */
+.etapes.x-pas li{align-items:flex-start}
+.etapes.x-pas li>span{margin-top:2px}
+.etapes.x-pas li>.btn{margin-top:-6px}
+.x-rep-c{flex:1;min-width:0}
+.x-rep-t{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:2px 0 6px}
+.x-rep-t .lien{margin:0;min-width:var(--ctl);padding:0 6px;justify-content:center}
+textarea.x-rep{min-height:120px;overflow:auto;font-family:var(--font-mono);font-size:max(.875rem,16px);line-height:1.4}
+.x-rep-c .err{margin:10px 0 0}
+.x-mails-r{margin-top:6px}
+.x-mails-r .rang.act>.ic:first-child{color:var(--teal)}
+details.term.bac .rang{align-items:center}
+details.term.bac .rang .btn{flex:none}

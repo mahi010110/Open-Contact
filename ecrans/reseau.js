@@ -868,7 +868,6 @@ function rendreTel(ecran){
 function rendrePoste(ecran, premier){
   if (premier || !$('.rc1', ecran))
     ecran.innerHTML = '<div class="p-col c1 rc1"><div class="defile r-liste"></div><div class="r-bas-c"></div></div><div class="p-col c2 rc2"></div><div class="r-fen"></div>';
-  ecran.classList.toggle('zero', !ilYaQuelqueChose());
   remplacer($('.r-liste', ecran), `<div class="s-tete"><h3>Réseau</h3></div>${listeHTML()}`);
   remplacer($('.r-bas-c', ecran), basHTML());
   brancherAppuiLong($('.r-liste', ecran));
@@ -879,6 +878,9 @@ function rendrePoste(ecran, premier){
     const d = mesDemandes()[0], a = (S.profile.amis || []).slice().sort((x, y) => x.nom.localeCompare(y.nom, 'fr'))[0];
     if (d) R.sel = { t: 'demande', id: d.id }; else if (a) R.sel = { t: 'ami', id: a.id };
   }
+  /* rien dans Réseau : une colonne — sauf quand une page s'y ouvre (des
+     pistes reçues, son QR) : elle prend la droite, comme ailleurs */
+  ecran.classList.toggle('zero', !ilYaQuelqueChose() && !R.sel);
   const rc2 = $('.rc2', ecran);
   const k = R.sel ? R.sel.t + '|' + R.sel.id : '';
   if (R.sel){

@@ -41,6 +41,8 @@ import { metierDuProfil } from '../engine/requete.js';
 import { optionsAmis, porteurs } from './amis.js';
 import { amiDe, demander, ajouterDon, phraseDemande, prenomMoi, amisJoignables } from './boite.js';
 import { visageHTML } from './visage.js';
+import { basPistesHTML, gesteBas } from './emails.js';
+import { offreHTML, offreSavoirHTML } from './offre.js';
 
 /* ---------- l'état de l'écran (cette visite) ---------- */
 const P = {
@@ -53,8 +55,10 @@ const P = {
   canalP: {},    /* au poste : le canal choisi par piste */
   qp: '',        /* la recherche, à partir de dix pistes */
   ouv: {},       /* les plis ouverts */
-  dem: {}        /* id → l'ami à qui l'on va demander (« Karim recevra : ») */
+  dem: {},       /* id → l'ami à qui l'on va demander (« Karim recevra : ») */
+  viser: ''      /* au poste, après un rendu : ce qui prend la main (le crochet, « Oui, envoyé », « Suivante ») */
 };
+const MOD = /Mac|iPhone|iPad/.test(navigator.platform || '') ? '⌘' : 'Ctrl';
 /* les brouillons et ce qui vient de partir survivent à un aller-retour
    dans l'app Mail (une page qu'iOS recharge) : sessionStorage, le temps
    de l'onglet, rien qui sorte de l'appareil */
@@ -99,7 +103,7 @@ const videPistes = () => '<div class="panneau"><p>Les entreprises que tu gardes 
   + '<button class="btn p" data-a="aller" data-id="trouver">Trouver des entreprises</button></div>';
 function corpsPistes(){
   const ids = S.companies.filter(c => !c.demo);
-  if (!ids.length) return videPistes();
+  if (!ids.length) return videPistes() + basPistesHTML(P.ouv.bac);
   if (P.qp.trim()){
     const w = plat(P.qp).split(' ').filter(Boolean);
     const t = ids.filter(c => { const n = plat(c.name); return w.every(x => n.includes(x)); });
@@ -119,7 +123,7 @@ function corpsPistes(){
   const fin = ids.filter(c => etapeDe(c) === 'fin');
   if (fin.length) h += `<details class="term" data-p="term"${P.ouv.term ? ' open' : ''}><summary>Terminées · ${fin.length}${ic('chevron-right')}</summary>`
     + `<div class="rangs">${fin.map(ligneG).join('')}</div></details>`;
-  return h;
+  return h + basPistesHTML(P.ouv.bac);
 }
 const chercheP = () => '<label class="champ">' + ic('search') + '<input type="search" class="qp" placeholder="Chercher une piste" aria-label="Chercher une piste" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="search"></label>';
 
@@ -243,7 +247,7 @@ function pageP(c){
     + `<button class="lien ajout" data-a="contact" data-v="-1" data-id="${esc(id)}">${ic('plus')}Ajouter quelqu’un</button></fieldset>`;
   const pli = (k, t, x) => `<details class="pli" data-p="${k}"${P.ouv[k] ? ' open' : ''}><summary>${t}${ic('chevron-right')}</summary>${x}</details>`;
   const f = faitsHTML(c), h = c.history || [];
-  const plis = '<div class="plis">' + (f ? pli('ent', 'L’entreprise', f) : '')
+  const plis = '<div class="plis">' + (c.offre ? pli('offre', 'L’offre', offreHTML(c.offre, true)) : '') + (f ? pli('ent', 'L’entreprise', f) : '')
     + pli('hist', 'Historique · ' + h.length, `<ul class="hist">${h.slice().reverse().map(x => `<li><span>${esc(ilYa(x.d))}</span>${esc(x.t)}</li>`).join('')}</ul>`)
     + pli('notes', 'Mes notes', `<textarea class="zone n-notes" data-id="${esc(id)}" rows="3" placeholder="Ce que tu veux retenir" aria-label="Mes notes">${esc(c.notes || '')}</textarea>`
       + '<p class="doux" style="margin:6px 0 12px">Privées. Elles ne partent jamais dans un partage.</p>') + '</div>';
@@ -314,6 +318,7 @@ const lienLI = c => { const ct = quiContacter(c); if (ct && ct.link && /linkedin
   return 'https://www.linkedin.com/search/results/people/?keywords=' + encodeURIComponent(ct && ct.name ? ct.name + ' ' + c.name : c.name + ' recrutement'); };
 const lienSite = c => c.website ? c.website : 'https://duckduckgo.com/?q=' + encodeURIComponent(c.name + ' ' + (c.city || ''));
 function savoir(c, k){
+  if (k === 'premier' && c.offre && (c.offre.missions || []).length) return offreSavoirHTML(c.offre);
   if (k === 'merci' || k === 'reponse')
     return c.notes && c.notes.trim() ? `<div class="savoir"><span class="et">Tes notes</span><p>${esc(c.notes.trim())}</p></div>` : '';
   const r = rDe(c), l = [];
@@ -331,8 +336,8 @@ function ecrireHTML(id, k, canal){
   corps += `<div class="seg canaux" role="group" aria-label="Par où">${(CANAUX_DE[k] || CANAUX_DE.premier).map(x =>
     `<button${x === canal ? ' class="on" aria-pressed="true"' : ' aria-pressed="false"'} data-a="canal" data-v="${x}" data-id="${esc(id)}">${CANAUX[x]}</button>`).join('')}</div>`;
   if (!S.profile.name) corps += '<label class="fld"><span class="et">Ton nom</span><input class="e-nom" type="text" autocomplete="name" autocorrect="off" spellcheck="false" placeholder="Prénom et nom, pour signer"></label>';
-  /* la touche qui envoie s'annoncera dans ce bouton quand elle existera (lot 6) */
-  const sav = savoir(c, k), kbd = '';
+  /* au poste, la touche qui envoie se lit dans le bouton qu'elle presse */
+  const sav = savoir(c, k), kbd = poste ? `<kbd>${MOD} ↵</kbd>` : '';
   let pied = '';
   if (canal === 'mail'){
     corps += `<label class="fld"><span class="et">À</span><input class="e-a" type="text" inputmode="email" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="off" value="${esc(d.a)}" placeholder="Son adresse"></label><p class="err e-err-a" hidden></p>`
@@ -356,7 +361,7 @@ function ecrireHTML(id, k, canal){
   }
   if (navigator.onLine === false && (canal === 'linkedin' || canal === 'site')){
     corps += `<p class="hl-l">${ic('radio')}<span>Pas de réseau : copie ${canal === 'linkedin' ? 'ton mot, tu le colleras dans LinkedIn' : 'le texte, tu le colleras sur leur site'} plus tard.</span></p>`;
-    pied = `<button class="btn p" data-a="copier" data-id="${esc(id)}">${ic('copy')}${canal === 'linkedin' ? 'Copier mon mot' : 'Copier le texte'}</button>`;
+    pied = `<button class="btn p" data-a="copier" data-id="${esc(id)}">${ic('copy')}${canal === 'linkedin' ? 'Copier mon mot' : 'Copier le texte'}${kbd}</button>`;
   }
   return { corps, pied };
 }
@@ -433,6 +438,7 @@ function envoyer(ev, b){
   if (E.canal === 'appel'){ ev.preventDefault(); ouvrirLien('tel:' + String(d.a).replace(/[^\d+]/g, '')); }
   P.envoi[E.id] = { k: E.k, canal: E.canal };
   P.pm[E.id] = 'parti';
+  if (C.poste) P.viser = 'oui';
   garderSession();
   /* le lien s'ouvre d'abord ; la page revient ensuite sur « C'est parti ? » */
   setTimeout(() => { if (!C.poste && pageOuverte() && pageOuverte().t === 'ecrire') retour(); else rendre(); }, b.tagName === 'A' ? 80 : 30);
@@ -535,7 +541,7 @@ function ouvrirEcrire(id, k, depuis){
   const c = pisteDe(id);
   if (!c) return;
   k = k || suiteDeP(c).k || 'premier';
-  if (C.poste){ if (C.onglet !== 'pistes') allerA('pistes'); P.sel = id; rendre(); const m = $('.ecran .pc3 .e-m'); if (m) m.focus({ preventScroll: true }); return; }
+  if (C.poste){ if (C.onglet !== 'pistes') allerA('pistes'); P.sel = id; P.viser = 'crochet'; rendre(); return; }
   const canal = canalDefaut(c, k, quiContacter(c));
   if (C.onglet !== 'pistes') allerA('pistes');
   const p = pageOuverte();
@@ -553,6 +559,7 @@ function evenement(c, v){
     annuler(c.name + ' : c’est oui', () => remettre(snap)); }
 }
 function geste(a, el, ev){
+  if (gesteBas(a, el)) return true;
   const id = el ? el.getAttribute('data-id') || '' : '', v = el ? el.getAttribute('data-v') : null, c = id ? pisteDe(id) : null;
   if (a === 'aller'){ allerA(id); return true; }
   if (a === 'piste' && c){ ouvrirPiste(id, el); return true; }
@@ -563,7 +570,7 @@ function geste(a, el, ev){
     const z = zoneEcr();
     if (E.canal !== 'appel' && !crochetOk(z, E.d)) return true;
     copier((E.d.o ? E.d.o + '\n\n' : '') + E.d.m, $('.e-m', z), el);
-    P.envoi[E.id] = { k: E.k, canal: E.canal }; P.pm[E.id] = 'parti'; garderSession();
+    P.envoi[E.id] = { k: E.k, canal: E.canal }; P.pm[E.id] = 'parti'; if (C.poste) P.viser = 'oui'; garderSession();
     setTimeout(() => { if (!C.poste && pageOuverte() && pageOuverte().t === 'ecrire') retour(); else rendre(); }, 900);
     return true;
   }
@@ -574,7 +581,7 @@ function geste(a, el, ev){
   }
   if (a === 'pm' && c){ P.pm[id] = v || ''; garderSession(); rendre(); return true; }
   if (a === 'pas-encore' && c){ P.pm[id] = ''; delete P.envoi[id]; garderSession(); rendre(); return true; }
-  if (a === 'envoye' && c){ faitEnvoi(id); C.vient = 'pistes'; rendre(); return true; }
+  if (a === 'envoye' && c){ faitEnvoi(id); C.vient = 'pistes'; if (C.poste) P.viser = 'suivante'; rendre(); return true; }
   if (a === 'ev' && c){ evenement(c, v); rendre(); return true; }
   if ((a === 'quand' || a === 'quand-ok') && c){
     const jour = a === 'quand' ? v : ($('.jour-e', el.closest('.autre-j')) || {}).value;
@@ -747,32 +754,92 @@ function rendrePoste(ecran, premier){
     c3.innerHTML = `<div class="p-vide"><p><b>Rien à écrire pour l’instant.</b>${esc(s.s || '')}</p></div>`;
   }
   brancherPage(c2);
+  viser(ecran);
+  if (!ecran.__entree){
+    ecran.__entree = true;
+    /* ↵ sur une ligne de la liste : le geste de sa piste (écrire, relancer…) */
+    ecran.addEventListener('keydown', ev => {
+      if (ev.key !== 'Enter' || ev.ctrlKey || ev.metaKey || !C.poste || !ev.target.matches || !ev.target.matches('.pc1 .r-c[data-a="piste"]')) return;
+      const id = ev.target.getAttribute('data-id');
+      if (!gesteEntree(id)) return;
+      ev.preventDefault(); ev.stopPropagation();
+      faireEntree(id);
+    });
+  }
+}
+/* ce que ↵ ouvre sur la piste choisie : le geste de sa ligne dans « À faire » */
+function gesteEntree(id){ const c = id && pisteDe(id); if (!c || P.pm[id]) return null; const s = suiteDeP(c); return s && (s.k || s.a === 'demande') ? s : null; }
+function faireEntree(id){
+  const s = gesteEntree(id);
+  if (!s) return false;
+  P.sel = id;
+  if (s.k) ouvrirEcrire(id, s.k);
+  else { P.pm[id] = 'demande'; rendre(); }
+  return true;
+}
+/* ouvrir pour écrire pose le curseur sur le premier crochet : il suffit de
+   taper sa phrase ; « Oui, envoyé » puis « Suivante » ont la main ensuite —
+   une séance s'enchaîne sans la souris */
+function viser(ecran){
+  const v = P.viser;
+  if (!v) return;
+  P.viser = '';
+  if (v === 'crochet'){
+    const z = $('.pc3', ecran);
+    for (const t of z ? [$('.e-o', z), $('.e-m', z)] : []){
+      const x = t && crochets(t.value)[0];
+      if (x){ t.focus(); try { t.setSelectionRange(x.debut, x.fin); } catch (e) {} return; }
+    }
+    const m = z && $('.e-m', z);
+    if (m) m.focus({ preventScroll: true });
+    return;
+  }
+  const el = v === 'oui' ? $('.pc2 [data-a="envoye"]', ecran) : v === 'suivante' ? $('.pc2 .suivante', ecran) : null;
+  if (el) el.focus({ preventScroll: true });
 }
 function choisir(pas){
   const l = $$('.ecran .pc1 .r-c[data-a="piste"]').map(x => x.getAttribute('data-id'));
   if (!l.length) return;
-  const i = Math.max(0, l.indexOf(P.sel));
-  P.sel = l[Math.min(l.length - 1, Math.max(0, i + pas))];
+  /* rien de choisi : ↓ prend la première, ↑ la dernière */
+  const i = l.indexOf(P.sel);
+  P.sel = i < 0 ? l[pas < 0 ? l.length - 1 : 0] : l[Math.min(l.length - 1, Math.max(0, i + pas))];
   rendre();
   const on = $$('.ecran .pc1 .r-c[data-a="piste"]').find(x => x.getAttribute('data-id') === P.sel);
   if (on){ on.focus({ preventScroll: true }); on.scrollIntoView({ block: 'nearest' }); }
 }
+
+/* au poste, la piste qu'on vient de garder (Trouver, ses e-mails) est
+   celle que Pistes montre : P, puis ↵, et l'on écrit */
+export function choisirPiste(id){ if (C.poste && id) P.sel = id; }
 
 export default {
   id: 'pistes',
   compte: () => { const n = S.companies.filter(c => !c.demo).length; return n ? String(n) : ''; },
   rendre(ecran, { poste, premier }){ (poste ? rendrePoste : rendreTel)(ecran, premier); },
   geste(a, el, ev){ geste(a, el, ev); },
-  clavier(ev, { champ, poste }){
-    if (!poste || champ) return false;
+  clavier(ev, { champ, poste, mod }){
+    if (!poste) return false;
+    if (mod){
+      if (ev.key !== 'Enter') return false;
+      const b = $('.ecran .pc3 .pied .btn.p');
+      if (!b) return false;
+      ev.preventDefault();
+      b.click();
+      return true;
+    }
+    if (champ) return false;
+    /* ↵ hors d'un bouton (la page, son titre, où la coque pose la main en
+       changeant d'onglet) : le geste de la piste choisie — P, puis ↵ */
+    const neutre = ev.target === document.body || ev.target === $('.ecran') || /^H[1-4]$/.test(ev.target.tagName || '');
+    if (ev.key === 'Enter' && neutre && faireEntree(P.sel)){ ev.preventDefault(); return true; }
     if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp'){ ev.preventDefault(); choisir(ev.key === 'ArrowDown' ? 1 : -1); return true; }
     if (ev.key === '/' && $('.ecran .qp')){ ev.preventDefault(); $('.ecran .qp').focus(); return true; }
     return false;
   },
   etat(){
-    const ids = S.companies.filter(c => !c.demo), af = aFaire(ids, opt());
+    const ids = S.companies.filter(c => !c.demo), af = aFaire(ids, opt()), g = gesteEntree(P.sel);
     return `<span>${ids.length} piste${ids.length > 1 ? 's' : ''}</span>` + (af.length ? `<span>${af.length} à faire</span>` : '')
-      + cles([ids.length ? [['↑', '↓'], 'choisir'] : null, ids.length >= 10 ? [['/'], 'chercher'] : null]);
+      + cles([ids.length ? [['↑', '↓'], 'choisir'] : null, g ? [['↵'], (g.c || g.b || 'ouvrir').toLowerCase()] : null, ids.length >= 10 ? [['/'], 'chercher'] : null]);
   }
 };
 /* Trouver et la page d'une entreprise ouvrent l'écriture d'une piste

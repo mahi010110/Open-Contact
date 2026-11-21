@@ -39,6 +39,8 @@ import { rekeyRing } from './liaison.js';
 
 let meta = null;          /* la métadonnée du coffre (null : pas de code) */
 export const estProtege = () => !!meta;
+/* l'écran verrouillé est là : rien ne se colle ni ne se dépose derrière */
+export const estVerrouille = () => !!V;
 const sauverMeta = () => kvSet(VAULT_KEY, JSON.stringify(meta));
 async function lireCoffre(){
   try { const raw = await kvGet(VAULT_KEY); meta = raw ? JSON.parse(raw) : null; } catch (e) { meta = null; }

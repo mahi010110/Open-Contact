@@ -327,6 +327,13 @@ export function terminer(){
   K.premier = false;
   fermerM();
 }
+/* une copie déposée sur la fenêtre, au poste (lot 6) : le même chemin
+   qu'« Ouvrir un fichier » — l'aperçu, ou le mot de passe qu'il demande */
+export function restaurerTexte(raw, at){
+  K.res = null; K.premier = false;
+  const f = feuilleC('restaurer', { fichierAt: at || Date.now() });
+  lireTexte(f, raw);
+}
 /* le premier jour : « J'ai déjà OpenContact » */
 export function ouvrirRetrouver(){ K.res = null; K.premier = true; demarrerCopie(); feuilleC('retrouver'); }
 

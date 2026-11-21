@@ -66,16 +66,22 @@ export function remplacer(zone, html){
   /* un champ où l'on tape garde son curseur et ce qu'il montrait */
   const champ = dedans && /^(INPUT|TEXTAREA)$/.test(actif.tagName)
     ? { d: actif.selectionStart, f: actif.selectionEnd, y: actif.scrollTop } : null;
+  /* le titre de l'écran (où la coque pose la main en changeant d'écran)
+     se retrouve par son nom : sans quoi la main tombait sur la zone
+     entière, encadrée de pointillés */
+  const titre = dedans && /^H[1-4]$/.test(actif.tagName) ? [actif.tagName, actif.textContent] : null;
   const defile = [zone, ...$$('.defile', zone)].map(d => [d.className, d.scrollTop]);
   zone.innerHTML = html;
   const nouv = [zone, ...$$('.defile', zone)];
   defile.forEach(([cl, y], i) => { const d = nouv[i]; if (d && d.className === cl && y) d.scrollTop = y; });
   if (dedans){
     const cible = k ? $$('[data-k],[data-a],input,textarea', zone).find(x => cleFocus(x) === k) : null;
+    const h = !cible && titre ? $$(titre[0], zone).find(x => x.textContent === titre[1]) : null;
     if (cible){
       cible.focus({ preventScroll: true });
       if (champ){ try { cible.setSelectionRange(champ.d, champ.f); } catch (e) {} cible.scrollTop = champ.y; }
     }
+    else if (h){ h.tabIndex = -1; h.focus({ preventScroll: true }); }
     else if (!zone.contains(document.activeElement)){
       if (!zone.hasAttribute('tabindex')) zone.setAttribute('tabindex', '-1');
       zone.focus({ preventScroll: true });

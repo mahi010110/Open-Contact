@@ -424,12 +424,16 @@ function brancherClavier(){
       }
       return;
     }
-    if (ev.defaultPrevented || ev.altKey || ev.ctrlKey || ev.metaKey) return;
+    if (ev.defaultPrevented || ev.altKey) return;
+    /* Ctrl ↵ (⌘ ↵) : le bouton qui envoie, même depuis le message (lot 6) —
+       la seule touche avec un modificateur que la coque passe à l'écran */
+    const mod = ev.ctrlKey || ev.metaKey;
+    if (mod && ev.key !== 'Enter') return;
     const t = ev.target;
     const champ = !!(t && t.matches && t.matches('input, textarea, select, [contenteditable="true"]'));
     const v = VUES[C.onglet];
-    if (v && v.clavier && v.clavier(ev, { champ, poste: C.poste })) return;
-    if (champ) return;
+    if (v && v.clavier && v.clavier(ev, { champ, poste: C.poste, mod })) return;
+    if (champ || mod) return;
     if (C.poste && ev.key.length === 1){
       const o = ONGLETS.find(x => x.mot[0].toLowerCase() === ev.key.toLowerCase());
       if (o){ ev.preventDefault(); allerA(o.id); return; }

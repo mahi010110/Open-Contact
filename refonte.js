@@ -32,6 +32,7 @@ import { initSyncLive } from './ecrans/liaison.js';
 import { demarrerMoi } from './ecrans/phrase.js';
 import { ouvrirAuDemarrage, apresChargement } from './ecrans/verrou.js';
 import { ouvrirLien } from './ecrans/echange.js';
+import { brancherEtabli } from './ecrans/etabli.js';
 
 inscrire('trouver', trouver);
 inscrire('pistes', pistes);
@@ -64,6 +65,8 @@ const lienRecu = extraireOCQ(location.hash);
      efface sinon un site non visité depuis sept jours) */
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
   demarrer();
+  /* au poste : coller n'importe où, déposer un fichier sur la fenêtre (lot 6) */
+  brancherEtabli();
   document.documentElement.classList.add('pret');
   if (lienRecu) ouvrirLien(lienRecu);
   /* un lien tapé pendant que l'app est ouverte, dans le même onglet */

@@ -37,9 +37,15 @@ import { uid, todayISO, normName } from '../engine/utils.js';
 import { euros } from '../engine/marche.js';
 import { visageHTML } from './visage.js';
 import { laSuite } from '../engine/suite.js';
-import { ouvrirEcrire, ouvrirPiste } from './pistes.js';
+import { ouvrirEcrire, ouvrirPiste, choisirPiste } from './pistes.js';
 import { optionsAmis } from './amis.js';
 import { ouvrirRetrouver } from './copie.js';
+import { lireOffre, estOffre, normaliserOffre } from '../engine/offre.js';
+import { offreHTML } from './offre.js';
+import { lireReponseEmails } from '../engine/emails.js';
+import { ouvrirEmails } from './emails.js';
+import { ouvrirLien } from './echange.js';
+import { extraireOCQ } from '../engine/exchange.js';
 
 const QUOI = { stage: 'Stage', alternance: 'Alternance', emploi: 'Emploi' };
 const LOT = 6;                      /* une liste se lit six lignes à la fois */
@@ -55,8 +61,12 @@ const T = {
   montres: LOT,
   neuves: 0,           /* gardées pendant cette visite */
   gardees: new Map(),  /* siren → id de la piste : la ligne reste, « gardée » */
-  connus: new Map()    /* siren → ce que l'annuaire a dit, pour ouvrir sa page */
+  connus: new Map(),   /* siren → ce que l'annuaire a dit, pour ouvrir sa page */
+  offre: null,         /* une offre collée qui attend sous la barre (lot 6) */
+  offreDeja: '',       /* la piste qui porte déjà cette offre */
+  nomLu: ''            /* le nom d'entreprise lu dans l'offre : il se cherche comme un nom */
 };
+const MOD = /Mac|iPhone|iPad/.test(navigator.platform || '') ? '⌘' : 'Ctrl';
 const notifier = () => rendre();
 /* le premier jour, un profil arrive d'ailleurs (une copie ramenée, un
    autre appareil relié) : les questions ont leur réponse, la liste les
@@ -243,7 +253,11 @@ function suivreBarre(){
   const q = T.q.trim();
   T.lu = q ? lireLien(q) : '';
   if (!q){ barre.oublier(); return; }
-  const interp = interpreter(T.lu || q, ctx());
+  /* le nom lu dans une offre est un NOM : « Réseaux et Systèmes du Nord »
+     ne cherche ni le métier « réseaux » ni le Nord — cité, il se cherche
+     tel quel, partout ; retouché dans la barre, il se comprend comme tapé */
+  const nomLu = !T.lu && T.nomLu && q === T.nomLu;
+  const interp = interpreter(T.lu || (nomLu ? '"' + q.replace(/"/g, '') + '"' : q), ctx());
   const metier = interp.etiquettes.some(e => e.famille === 'metier');
   /* un nom se cherche partout ; un métier, autour de ta ville. La
      distance se lit toujours depuis ta ville (rien ne part de plus) */
@@ -257,25 +271,37 @@ function pistesDuNom(q){
   return S.companies.filter(c => { const n = plat(c.name).split(' '); return mots.every(w => n.some(x => x.startsWith(w))); }).slice(0, 5);
 }
 const ligneHL = (t, icone) => `<p class="hl-l">${ic(icone || 'radio')}<span>${esc(t)}</span></p>`;
+/* l'offre collée attend en étiquette sous la barre ; la croix la retire */
+const etiquetteOffre = () => T.offre ? `<div class="s-tags o-tags"><button class="etq-o" data-a="o-retirer" aria-label="Retirer l’offre : ${esc(T.offre.poste)}">`
+  + `${ic('file')}<span>Offre : ${esc(T.offre.poste || 'collée')}</span>${ic('close')}</button></div>` : '';
 function corpsRecherche(){
   const q = T.q.trim();
-  if (!q) return `<div class="rangs s-liste haut"><div class="rang act" data-a="coller" role="button" tabindex="0">${ic('clipboard')}`
-    + '<div class="r-c"><b>Coller un lien</b><span>LinkedIn, le site d’une entreprise</span></div></div></div>';
+  /* une offre sans entreprise lue : la barre demande son nom */
+  if (!q && T.offre) return etiquetteOffre() + '<p class="lu">Dans quelle entreprise ? Tape son nom.</p>';
+  if (!q) return etiquetteOffre() + `<div class="rangs s-liste haut"><div class="rang act" data-a="coller" role="button" tabindex="0">${ic('clipboard')}`
+    + '<div class="r-c"><b>Coller un lien ou une offre</b><span>LinkedIn, le site d’une entreprise, le texte d’une offre</span></div></div></div>';
   const nom = T.lu || q;
-  let h = T.lu ? `<p class="lu">Lu dans ton lien : <b>${esc(T.lu)}</b></p>` : '';
-  const pistes = pistesDuNom(nom);
+  let h = etiquetteOffre() + (T.lu ? `<p class="lu">Lu dans ton lien : <b>${esc(T.lu)}</b></p>` : '')
+    + (T.offreDeja ? `<p class="lu o-deja">${ic('check')}Cette offre est déjà sur sa piste.</p>` : '');
   const e = barre.etat;
   const sans = navigator.onLine === false || e.phase === 'horsligne' || e.phase === 'erreur' || e.phase === 'limite';
-  if (navigator.onLine === false || e.phase === 'horsligne') h += ligneHL('Pas de réseau : l’annuaire attendra. Tes pistes, elles, se cherchent.');
-  else if (e.phase === 'erreur' || e.phase === 'limite') h += ligneHL('L’annuaire ne répond pas : seules tes pistes se cherchent.', 'square-alert');
+  if (navigator.onLine === false || e.phase === 'horsligne')
+    h += ligneHL(T.offre ? 'Pas de réseau : l’entreprise se reconnaîtra quand il revient.' : 'Pas de réseau : l’annuaire attendra. Tes pistes, elles, se cherchent.');
+  else if (e.phase === 'erreur' || e.phase === 'limite')
+    h += ligneHL(T.offre ? 'L’annuaire ne répond pas : l’entreprise se reconnaîtra quand il revient.' : 'L’annuaire ne répond pas : seules tes pistes se cherchent.', 'square-alert');
   const interp = e.interp;
   const metier = interp && interp.etiquettes.find(x => x.famille === 'metier' && !x.profil);
   const lieu = e.lieu;
   const vis = sans || !['ok', 'plus'].includes(e.phase) ? [] : barre.visibles(garderVisibles());
+  /* une entreprise = une ligne : gardée pendant cette visite, elle reste à
+     sa place (« gardée ») et ne revient pas en tête comme piste */
+  const enListe = new Set(vis.map(r => T.gardees.get(r.siren)).filter(Boolean));
+  const pistes = pistesDuNom(nom).filter(c => !enListe.has(c.id));
   vis.forEach(r => T.connus.set(r.siren, r));
   const nVis = Math.min(vis.length, 12);
   if (pistes.length || nVis){
-    const titre = metier ? `${metier.label}${lieu ? ' autour de ' + esc(lieu.label) : ''}` : (pistes.length + nVis) > 1 ? `${pistes.length + nVis} entreprises` : pistes.length ? 'Dans tes pistes' : 'Dans l’annuaire';
+    const lue = T.offre && T.offre.entreprise && normName(T.offre.entreprise) === normName(q);
+    const titre = lue ? 'Lu dans l’offre' : metier ? `${metier.label}${lieu ? ' autour de ' + esc(lieu.label) : ''}` : (pistes.length + nVis) > 1 ? `${pistes.length + nVis} entreprises` : pistes.length ? 'Dans tes pistes' : 'Dans l’annuaire';
     h += `<div class="et res-et">${titre}</div><div class="rangs s-liste">${pistes.map(lignePiste).join('')}${vis.slice(0, 12).map(r => ligneEnt(r, { fixe: 1 })).join('')}</div>`;
   }
   if (!sans && (e.phase === 'attente' || e.phase === 'charge')) h += '<p class="lu" aria-busy="true">Je cherche dans l’annuaire…</p>';
@@ -289,10 +315,10 @@ function corpsRecherche(){
   return h;
 }
 function fermerRecherche(){
-  T.cherche = false; T.q = ''; T.lu = '';
+  T.cherche = false; T.q = ''; T.lu = ''; T.offre = null; T.offreDeja = ''; T.nomLu = '';
   barre.oublier();
   const q = $('.ecran .q');
-  if (q) q.value = '';
+  if (q){ q.value = ''; q.placeholder = 'Métier, ville, entreprise…'; }
 }
 const barreHTML = () => '<div class="barre"><label class="champ">' + ic('search')
   + '<input type="search" class="q" placeholder="Métier, ville, entreprise…" aria-label="Chercher une entreprise" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search"></label>'
@@ -312,6 +338,12 @@ function brancherBarre(ecran){
     if (e.key === 'Escape'){ e.preventDefault(); fermerRecherche(); rendre(); q.blur(); }
     else if (e.key === 'Enter'){ e.preventDefault(); q.blur(); }
   });
+  /* une offre (ou la réponse de son assistant) collée garde ses lignes :
+     la barre n'en prend que le nom de l'entreprise */
+  q.addEventListener('paste', e => {
+    const t = e.clipboardData && e.clipboardData.getData('text');
+    if (t && (estOffre(t) || lireReponseEmails(t) || extraireOCQ(t))){ e.preventDefault(); collerTexte(t); }
+  });
 }
 
 /* ---------- garder, écarter ---------- */
@@ -324,12 +356,14 @@ function garder(r){
   const qui = aQui(r, r.nom);
   if (qui && qui.cible === 'dirigeant') c.contacts = [normalizeContact({ name: qui.nom, role: qui.qualite })];
   c.history = [{ d: todayISO(), t: 'Gardée' }];
+  avecOffre(c);
   S.companies.push(c);
   saveData();
   logJ('Piste gardée : ' + c.name, c.id);
   T.gardees.set(r.siren, c.id);
   T.neuves++;
   C.vient = 'pistes';
+  choisirPiste(c.id);
   annoncer(`${r.nom} : gardée.`);
   return c;
 }
@@ -340,13 +374,47 @@ function garderTelQuel(nom){
   if (deja) return deja;
   const c = normalizeCompany({ name: n, id: uid(), createdAt: Date.now() });
   c.history = [{ d: todayISO(), t: 'Gardée' }];
+  avecOffre(c);
   S.companies.push(c);
   saveData();
   logJ('Piste gardée : ' + c.name, c.id);
   T.neuves++;
   C.vient = 'pistes';
+  choisirPiste(c.id);
   return c;
 }
+/* L'OFFRE QUI ATTEND part avec la piste qu'on garde : son texte entier,
+   ce qu'on y a lu, et la personne à qui écrire (elle passe devant le
+   dirigeant que l'annuaire proposait : c'est elle que l'offre nomme) */
+function avecOffre(c){
+  const o = T.offre;
+  if (!o) return;
+  c.offre = normaliserOffre(o);
+  if (o.contact && (o.contact.name || o.contact.email)) c.contacts = [normalizeContact(o.contact)];
+  c.history = [{ d: todayISO(), t: 'Gardée, avec son offre' }];
+  T.offre = null;
+  remettreBarre();
+}
+/* une offre qui rejoint une piste qu'on a déjà : elle la complète, et
+   l'ancienne revient avec « Annuler » */
+function ajouterOffre(c){
+  const o = T.offre;
+  if (!c || !o) return;
+  const snap = JSON.parse(JSON.stringify(c)), avant = !!c.offre;
+  c.offre = normaliserOffre(o);
+  const ct = o.contact && (o.contact.name || o.contact.email) ? normalizeContact(o.contact) : null;
+  if (ct && !(c.contacts || []).some(t => (ct.email && t.email === ct.email) || (ct.name && t.name === ct.name))) (c.contacts = c.contacts || []).push(ct);
+  (c.history = c.history || []).push({ d: todayISO(), t: avant ? 'Offre remplacée' : 'Offre ajoutée' });
+  c.updatedAt = Date.now();
+  saveData();
+  T.offre = null;
+  remettreBarre();
+  annuler((avant ? 'Offre remplacée : ' : 'Offre ajoutée à ') + c.name, () => {
+    const i = S.companies.findIndex(x => x.id === snap.id);
+    if (i >= 0){ S.companies[i] = normalizeCompany(snap); saveData(); }
+  });
+}
+const remettreBarre = () => { const q = $('.ecran .q'); if (q) q.placeholder = 'Métier, ville, entreprise…'; };
 function ecarterR(r){
   if (!r || pisteDe(r)) return;
   S.profile.ecartees = ecarter(S.profile.ecartees, r);
@@ -373,7 +441,7 @@ function quiHTML(r, k, ami){
 }
 function pageEnt(r, c){
   const nom = r ? r.nom : c.name;
-  if (!r) return `<div class="s-page"><h4>${esc(nom)}</h4><div class="lieu">${esc(c.city || 'Ajoutée à la main')}</div>`
+  if (!r) return `<div class="s-page"><h4>${esc(nom)}</h4><div class="lieu">${esc(c.city || 'Ajoutée à la main')}</div>` + offreBloc()
     + (c.siren ? '' : panneau('', 'Pas dans l’annuaire.', 'Tu pourras la compléter depuis sa piste.').replace('class="panneau"', 'class="panneau en-page"')) + '</div>';
   const k = carteDe(r, c || null, metierDuProfil(P()), P());
   const ami = r.amis && r.amis[0];
@@ -386,17 +454,26 @@ function pageEnt(r, c){
   if (k.egalite) f.push(['Égalité', esc(k.egalite)]);
   if (k.aide) f.push(['Aide', `L’État lui verse jusqu’à ${euros(k.aide.montant)} la première année d’un apprenti${k.aide.grande ? ', sous conditions' : ''}`]);
   const faits = f.length ? `<dl class="faits">${f.map(([t, v]) => `<div><dt>${t}</dt><dd>${v}</dd></div>`).join('')}</dl>` : '';
-  const qui = quiHTML(r, k, ami);
+  /* l'offre qui attend nomme la personne à qui écrire : c'est elle qui
+     partira avec la piste, à la place du dirigeant de l'annuaire */
+  const oc = T.offre && T.cherche && T.offre.contact && T.offre.contact.name ? T.offre.contact : null;
+  const qui = oc ? `<div class="pers prop"><div class="s-init" aria-hidden="true">${esc(initiales(oc.name))}</div><div class="r-c"><b>${esc(oc.name)}</b>`
+      + `<span>${esc([oc.role, 'dans l’offre'].filter(Boolean).join(' · '))}</span></div></div>`
+    : quiHTML(r, k, ami);
   return `<div class="s-page"><h4>${esc(nom)}</h4><div class="lieu">${esc(lieuDe(r) || r.ville || '')}</div>`
+    + offreBloc()
     + (k.alerte ? `<div class="alerte">${ic('square-alert')}${esc(k.alerte.texte)}</div>` : '')
     + (ami ? `<div class="porte">${visageHTML(ami.amiId || ami.prenom)}${esc(ami.prenom + ' ' + ami.court)}</div>` : '')
     + `<div class="pg-corps"><div>${faits}</div><div>`
     + (qui ? `<fieldset class="gb"><legend>À qui écrire</legend>${qui}</fieldset>` : '')
     + (k.sources.length ? `<p class="src">${k.sources.map(esc).join(' · ')}</p>` : '') + '</div></div></div>';
 }
+const offreBloc = () => T.offre && T.cherche ? `<fieldset class="gb offre-b"><legend>L’offre</legend>${offreHTML(T.offre)}</fieldset>` : '';
 function piedEnt(r, c){
   const id = r ? r.siren : 'p:' + c.id;
   const piste = c || (r && pisteDe(r));
+  if (piste && T.offre && T.cherche)
+    return `<button class="btn p" data-a="o-ajouter" data-id="${esc(piste.id)}">${ic('plus')}${piste.offre ? 'Remplacer l’offre de la piste' : 'Ajouter l’offre à la piste'}</button>`;
   if (piste){
     const s = laSuite(piste, { profile: S.profile, ...optionsAmis() });
     return `<button class="btn fait court" disabled>${ic('check')}Gardée</button>`
@@ -440,6 +517,7 @@ inscrirePage('entreprise', {
     if (a === 'aller'){ allerA(el.getAttribute('data-id')); return true; }
     if (a === 'ecrire-p'){ ouvrirEcrire(el.getAttribute('data-id'), 'premier'); return true; }
     if (a === 'voir-p'){ allerA('pistes'); ouvrirPiste(el.getAttribute('data-id')); return true; }
+    if (a === 'o-ajouter'){ ajouterOffre(S.companies.find(c => c.id === el.getAttribute('data-id'))); rendre(); return true; }
     return false;
   }
 });
@@ -511,8 +589,9 @@ function rendrePoste(ecran, premier){
 function choisir(pas){
   const ids = lignesVisibles();
   if (!ids.length) return;
-  const i = Math.max(0, ids.indexOf(T.sel));
-  T.sel = ids[Math.min(ids.length - 1, Math.max(0, i + pas))];
+  /* rien de choisi : ↓ prend la première, ↑ la dernière */
+  const i = ids.indexOf(T.sel);
+  T.sel = i < 0 ? ids[pas < 0 ? ids.length - 1 : 0] : ids[Math.min(ids.length - 1, Math.max(0, i + pas))];
   rendre();
   const on = $('.ecran .t-corps .rang.on');
   if (on){ $('.r-c', on).focus({ preventScroll: true }); on.scrollIntoView({ block: 'nearest' }); }
@@ -571,6 +650,8 @@ export default {
     }
     if (a === 'fermer-r'){ fermerRecherche(); rendre(); return; }
     if (a === 'coller'){ coller(); return; }
+    if (a === 'o-retirer'){ T.offre = null; remettreBarre(); rendre(); const q = $('.ecran .q'); if (q) q.focus({ preventScroll: true }); return; }
+    if (a === 'o-ajouter'){ ajouterOffre(S.companies.find(c => c.id === id)); rendre(); return; }
   },
   clavier(ev, { champ, poste }){
     const bar = ev.target && ev.target.classList && ev.target.classList.contains('q');
@@ -605,13 +686,13 @@ export default {
     return false;
   },
   etat(){
-    if (T.form) return '<span>Prêt</span>' + cles([[['/'], 'chercher']]);
+    if (T.form) return '<span>Prêt</span>' + cles([[['/'], 'chercher'], [[MOD, 'V'], 'coller une offre']]);
     const v = villeOk(), e = liste.etat;
     const n = ['ok', 'plus'].includes(e.phase) ? Math.max(liste.pres(), liste.visibles(garderVisibles()).length) : 0;
     const ok = n && navigator.onLine !== false;
     return (ok ? `<span>${n} entreprise${n > 1 ? 's' : ''} autour de ${esc(v ? v.nom : '')}</span><span>Annuaire des entreprises</span>`
       : `<span>${navigator.onLine === false ? 'Hors ligne' : e.phase === 'erreur' || e.phase === 'limite' ? 'Annuaire en panne' : 'Prêt'}</span>`)
-      + cles([lignesVisibles().length && !T.cherche ? [['↑', '↓'], 'choisir'] : null, [['/'], 'chercher']]);
+      + cles([lignesVisibles().length && !T.cherche ? [['↑', '↓'], 'choisir'] : null, [['/'], 'chercher'], [[MOD, 'V'], 'coller une offre']]);
   }
 };
 
@@ -621,12 +702,38 @@ export default {
 async function coller(){
   let t = '';
   try { t = await navigator.clipboard.readText(); } catch (e) {}
-  const q = $('.ecran .q');
   t = String(t || '').trim();
-  if (!t){ q?.focus(); toast('Colle le lien dans la barre.'); return; }
-  T.q = t.slice(0, 300);
-  T.cherche = true;
-  if (q) q.value = T.q;
+  if (!t){ $('.ecran .q')?.focus(); toast('Colle le lien ou l’offre dans la barre.'); return; }
+  collerTexte(t);
+}
+/* CE QU'ON COLLE, d'où qu'on le colle (la barre, le presse-papier, la
+   fenêtre du poste) : la réponse de son assistant ouvre « Depuis mes
+   e-mails » ; le lien d'un camarade, ses pistes ; une offre en fait une
+   piste — l'entreprise lue va dans la barre, l'offre attend dessous ; le
+   reste se cherche comme on l'a tapé */
+export function collerTexte(brut){
+  const t = String(brut || '').trim();
+  if (!t) return;
+  const lu = lireReponseEmails(t);
+  if (lu){ ouvrirEmails(lu); return; }
+  /* le lien d'un camarade qui te donne des pistes : son aperçu */
+  const ocq = extraireOCQ(t);
+  if (ocq){ ouvrirLien(ocq); return; }
+  const o = lireOffre(t, { noms: S.companies.map(c => c.name), today: todayISO() });
+  if (C.onglet !== 'trouver') allerA('trouver');
+  T.cherche = true; T.offre = null; T.offreDeja = ''; T.nomLu = '';
+  if (o){
+    /* collée deux fois : pas de doublon, la piste qui l'a se montre */
+    const deja = S.companies.find(c => c.offre && c.offre.texte === o.texte);
+    if (deja){ T.offreDeja = deja.id; T.q = deja.name; if (C.poste) T.sel = 'p:' + deja.id; }
+    else { T.offre = o; T.q = o.entreprise || ''; }
+    T.nomLu = T.q;
+  } else T.q = t.replace(/\s*\n\s*/g, ' ').slice(0, 300);
+  const q = $('.ecran .q');
+  if (q){ q.value = T.q; q.placeholder = T.offre && !T.q ? 'Le nom de l’entreprise' : 'Métier, ville, entreprise…'; }
   suivreBarre();
   rendre();
+  /* sans entreprise lue, l'app demande son nom : la barre a la main */
+  if (q && T.offre && !T.q) q.focus({ preventScroll: true });
+  annoncer(T.offre ? (T.q ? `Offre lue : ${T.q}.` : 'Offre lue. Tape le nom de l’entreprise.') : T.offreDeja ? 'Cette offre est déjà sur sa piste.' : '');
 }
